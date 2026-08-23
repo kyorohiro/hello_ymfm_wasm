@@ -11,6 +11,9 @@ import {
 import {
   createPitchFromMidi,
 } from "../synth/synth_keyboard.js";
+import {
+  createPlaygroundOperatorTab,
+} from "./playground_operator_tab.js";
 
 const REFERENCE_MIDI = 62;
 const REFERENCE_BLOCK = 4;
@@ -440,6 +443,10 @@ const helpersTab =
   document.getElementById(
     "helpersTab"
   );
+const operatorTabButton =
+  document.getElementById(
+    "operatorTabButton"
+  );
 const consolePanel =
   document.getElementById(
     "consolePanel"
@@ -447,6 +454,14 @@ const consolePanel =
 const helpersPanel =
   document.getElementById(
     "helpersPanel"
+  );
+const operatorPanel =
+  document.getElementById(
+    "operatorPanel"
+  );
+const operatorTabRoot =
+  document.getElementById(
+    "operatorTabRoot"
   );
 
 const megaDrive =
@@ -473,6 +488,17 @@ let editorAdapter =
   createTextareaEditorAdapter(
     editor
   );
+const operatorTab =
+  createPlaygroundOperatorTab({
+    root: operatorTabRoot,
+    presets:
+      MEGADRIVE_FM_PRESETS,
+    presetOrder:
+      MEGADRIVE_FM_PRESET_ORDER,
+    onStatus(message) {
+      setStatus(message);
+    },
+  });
 
 function createTextareaEditorAdapter(
   textarea
@@ -1890,26 +1916,35 @@ function formatLogArgs(args) {
 }
 
 function setBottomTab(tabName) {
-  const showConsole =
-    tabName === "console";
+  const tabs = [
+    {
+      name: "console",
+      button: consoleTab,
+      panel: consolePanel,
+    },
+    {
+      name: "helpers",
+      button: helpersTab,
+      panel: helpersPanel,
+    },
+    {
+      name: "operator",
+      button: operatorTabButton,
+      panel: operatorPanel,
+    },
+  ];
 
-  consoleTab?.setAttribute(
-    "aria-selected",
-    showConsole ? "true" : "false"
-  );
-  helpersTab?.setAttribute(
-    "aria-selected",
-    showConsole ? "false" : "true"
-  );
-
-  if (consolePanel) {
-    consolePanel.hidden =
-      !showConsole;
-  }
-
-  if (helpersPanel) {
-    helpersPanel.hidden =
-      showConsole;
+  for (const tab of tabs) {
+    const isSelected =
+      tab.name === tabName;
+    tab.button?.setAttribute(
+      "aria-selected",
+      isSelected ? "true" : "false"
+    );
+    if (tab.panel) {
+      tab.panel.hidden =
+        !isSelected;
+    }
   }
 }
 
@@ -1920,6 +1955,7 @@ function moveBottomTabFocus(
   const tabs = [
     consoleTab,
     helpersTab,
+    operatorTabButton,
   ].filter(Boolean);
   const currentIndex =
     tabs.indexOf(activeTab);
@@ -1935,9 +1971,11 @@ function moveBottomTabFocus(
     tabs.length;
   tabs[nextIndex]?.focus();
   setBottomTab(
-    nextIndex === 0
+    tabs[nextIndex] === consoleTab
       ? "console"
-      : "helpers"
+      : tabs[nextIndex] === helpersTab
+        ? "helpers"
+        : "operator"
   );
 }
 
@@ -1995,11 +2033,12 @@ async function ensureReady() {
     "Loading Mega Drive audio..."
   );
   setRuntimeState("Preparing...");
-  await megaDrive.start();
-  synth = megaDrive.fm;
-  synth.setPreset(
-    0,
-    MEGADRIVE_FM_PRESETS[
+    await megaDrive.start();
+    synth = megaDrive.fm;
+    operatorTab.attachSynth(synth);
+    synth.setPreset(
+      0,
+      MEGADRIVE_FM_PRESETS[
       "one-op-basic"
     ]
   );
@@ -2765,31 +2804,39 @@ helpersTab?.addEventListener(
   }
 );
 
-consoleTab?.addEventListener(
-  "keydown",
-  (event) => {
-    if (event.key === "ArrowRight") {
-      event.preventDefault();
-      moveBottomTabFocus(
-        consoleTab,
-        1
-      );
-    }
+operatorTabButton?.addEventListener(
+  "click",
+  () => {
+    setBottomTab("operator");
   }
 );
 
-helpersTab?.addEventListener(
-  "keydown",
-  (event) => {
-    if (event.key === "ArrowLeft") {
-      event.preventDefault();
-      moveBottomTabFocus(
-        helpersTab,
-        -1
-      );
+for (const tabButton of [
+  consoleTab,
+  helpersTab,
+  operatorTabButton,
+]) {
+  tabButton?.addEventListener(
+    "keydown",
+    (event) => {
+      if (event.key === "ArrowRight") {
+        event.preventDefault();
+        moveBottomTabFocus(
+          tabButton,
+          1
+        );
+      }
+
+      if (event.key === "ArrowLeft") {
+        event.preventDefault();
+        moveBottomTabFocus(
+          tabButton,
+          -1
+        );
+      }
     }
-  }
-);
+  );
+}
 
 applyInitialSourceFromQuery();
 clearConsole();

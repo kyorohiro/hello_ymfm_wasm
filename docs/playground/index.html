@@ -250,6 +250,210 @@
         display: none;
       }
 
+      .operator-tab-toolbar {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex-wrap: wrap;
+        margin-bottom: 10px;
+      }
+
+      .operator-stack {
+        display: grid;
+        gap: 10px;
+      }
+
+      .operator-header-row {
+        display: grid;
+        grid-template-columns: 44px minmax(0, 1fr);
+        gap: 6px;
+        align-items: end;
+      }
+
+      .operator-header-spacer {
+        min-width: 0;
+      }
+
+      .operator-header-strip {
+        display: grid;
+        grid-template-columns: repeat(8, minmax(0, 1fr));
+        gap: 4px;
+      }
+
+      .operator-header-cell {
+        min-width: 0;
+        text-align: center;
+        font-size: 0.48rem;
+        font-weight: 800;
+        letter-spacing: 0.06em;
+        color: rgba(31, 27, 22, 0.64);
+        text-transform: uppercase;
+      }
+
+      .preset-row {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex-wrap: wrap;
+        margin-bottom: 4px;
+      }
+
+      .preset-row label {
+        font-size: 0.68rem;
+        font-weight: 800;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+
+      .preset-row select {
+        min-width: 140px;
+        max-width: 220px;
+        padding: 4px 10px;
+        border-radius: 999px;
+        border: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.9);
+        color: var(--ink);
+        font: inherit;
+        font-size: 0.78rem;
+        line-height: 1.2;
+      }
+
+      .operator-row {
+        display: grid;
+        grid-template-columns: 44px minmax(0, 1fr);
+        gap: 6px;
+        align-items: center;
+      }
+
+      .operator-name {
+        font-size: 0.72rem;
+        font-weight: 800;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        min-width: 0;
+      }
+
+      .op-color-1 {
+        color: #f2c078;
+        font-weight: 800;
+      }
+
+      .op-color-2 {
+        color: #ff93bc;
+        font-weight: 800;
+      }
+
+      .op-color-3 {
+        color: #9dff9b;
+        font-weight: 800;
+      }
+
+      .op-color-4 {
+        color: #89b7ff;
+        font-weight: 800;
+      }
+
+      .param-strip {
+        display: flex;
+        gap: 6px;
+        overflow-x: auto;
+        flex-wrap: nowrap;
+        padding-bottom: 2px;
+      }
+
+      #operatorTabOperatorControls .param-strip {
+        display: grid;
+        grid-template-columns: repeat(8, minmax(0, 1fr));
+        gap: 4px;
+        overflow: visible;
+      }
+
+      .param-control {
+        display: grid;
+        grid-template-columns: auto auto auto auto;
+        align-items: center;
+        gap: 4px;
+        flex: 0 0 auto;
+        min-width: 82px;
+        padding: 2px 5px 2px 7px;
+        border-radius: 999px;
+        border: 1.5px solid var(--pill-border);
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0) 45%),
+          var(--pill-bg);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.08),
+          0 1px 5px rgba(30, 24, 18, 0.14);
+      }
+
+      .param-control.no-label {
+        grid-template-columns: 16px minmax(0, 1fr) 16px;
+        justify-items: center;
+        gap: 4px;
+        padding: 2px 6px;
+      }
+
+      #operatorTabOperatorControls .param-control {
+        min-width: 0;
+        width: 100%;
+      }
+
+      #operatorTabOperatorControls .param-control.no-label {
+        grid-template-columns: 12px minmax(0, 1fr) 12px;
+        justify-items: center;
+        gap: 2px;
+        padding: 2px 4px;
+      }
+
+      .param-label {
+        min-width: 14px;
+        font-size: 0.48rem;
+        font-weight: 800;
+        letter-spacing: 0.06em;
+        text-align: left;
+        color: var(--pill-muted);
+      }
+
+      .param-button,
+      .param-value {
+        font: inherit;
+      }
+
+      .param-button {
+        width: 16px;
+        height: 16px;
+        padding: 0;
+        border: 0;
+        border-radius: 999px;
+        background: transparent;
+        color: var(--pill-ink);
+        cursor: pointer;
+        font-size: 0.92rem;
+        line-height: 1;
+      }
+
+      .param-button:hover {
+        color: white;
+      }
+
+      .param-value {
+        min-width: 20px;
+        padding: 0;
+        border: 0;
+        background: transparent;
+        text-align: center;
+        color: var(--pill-ink);
+        font-size: 0.6rem;
+        font-weight: 800;
+        letter-spacing: 0.02em;
+        user-select: none;
+        cursor: ew-resize;
+      }
+
+      .param-value.is-dragging {
+        color: #ffe3b6;
+      }
+
       @media (max-width: 960px) {
         textarea,
         .editor-host {
@@ -325,6 +529,16 @@
             >
               Helpers
             </button>
+            <button
+              id="operatorTabButton"
+              class="tab-button"
+              type="button"
+              role="tab"
+              aria-selected="false"
+              aria-controls="operatorPanel"
+            >
+              Operator
+            </button>
           </div>
 
           <section id="consolePanel" class="tab-panel" role="tabpanel" aria-labelledby="consoleTab">
@@ -372,6 +586,10 @@
               Sonic Pi style loop ideas on top of YM2612, though hot reload and
               safer live coding behavior still need more work.
             </p>
+          </section>
+
+          <section id="operatorPanel" class="tab-panel" role="tabpanel" aria-labelledby="operatorTabButton" hidden>
+            <div id="operatorTabRoot"></div>
           </section>
         </section>
       </section>
