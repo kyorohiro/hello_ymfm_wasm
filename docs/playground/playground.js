@@ -59,6 +59,74 @@ for (let step = 0; step < 16; step += 1) {
   await sleep(0.08);
 }
 `,
+  "8-bit-arcade-sweep": `setBpm(132);
+
+fm.reset();
+
+// channel 0 = lead voice
+// operator 4 = carrier
+// operator 2 = main modulator
+fm.setOperator(0, 1, { tl: 127, ar: 31, d1r: 0, d2r: 0, sl: 0, rr: 15 });
+fm.setOperator(0, 2, {
+  multi: 3,
+  tl: 30,
+  ar: 24,
+  d1r: 9,
+  d2r: 5,
+  sl: 6,
+  rr: 9,
+});
+fm.setOperator(0, 3, { tl: 127, ar: 31, d1r: 0, d2r: 0, sl: 0, rr: 15 });
+fm.setOperator(0, 4, {
+  multi: 1,
+  tl: 10,
+  ar: 25,
+  d1r: 8,
+  d2r: 4,
+  sl: 5,
+  rr: 8,
+});
+fm.setAlgo(0, 4, 3);
+fm.setPan(0, true, true);
+
+// channel 1 = simple bass support
+fm.setPreset(1, MEGADRIVE_FM_PRESETS["one-op-basic"]);
+fm.setOperator(1, 4, {
+  tl: 18,
+  ar: 28,
+  d1r: 7,
+  d2r: 3,
+  sl: 4,
+  rr: 8,
+});
+
+liveLoop("lead", async () => {
+  const phrase = ["E5", "B4", "A4", "E5", "D6", "A5"];
+  //await nextBeat();
+  await play(choose(phrase), {
+    channel: 0,
+    duration: 0.100,
+  });
+  await beat(0.001);
+});
+
+liveLoop("multi-sweep", async () => {
+  const modulatorMulti = choose([2, 3, 4, 6, 8, 10]);
+  fm.setOperator(0, 2, {
+    multi: modulatorMulti,
+  });
+  await beat(0.125);
+});
+
+liveLoop("bass", async () => {
+  await nextBeat();
+  await play("E2", {
+    channel: 1,
+    duration: 0.16,
+  });
+  await beat(1);
+});
+`,
   "live-loop": `setBpm(120);
 
 fm.setPreset(0, MEGADRIVE_FM_PRESETS["one-op-basic"]);
