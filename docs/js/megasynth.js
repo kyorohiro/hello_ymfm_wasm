@@ -7,6 +7,7 @@ import {
 } from "./ym2612synth.js";
 export {
   createDelayFX,
+  createEqFX,
   createFilterFX,
   createGainFX,
   createReverbFX,

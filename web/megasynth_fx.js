@@ -109,7 +109,7 @@ function createEffectUnit({
   params = {},
   disposeNodes = [],
 }) {
-  return {
+  const effect = {
     type,
     input,
     output,
@@ -132,6 +132,9 @@ function createEffectUnit({
       }
     },
   };
+
+  Object.assign(effect, params);
+  return effect;
 }
 
 function setDryWetMix(
@@ -232,6 +235,121 @@ export function createGainFX(
     },
     disposeNodes: [
       input,
+      output,
+    ],
+  });
+}
+
+export function createEqFX(
+  audioContext,
+  options = {}
+) {
+  const input =
+    audioContext.createGain();
+  const lowShelf =
+    audioContext.createBiquadFilter();
+  const midPeak =
+    audioContext.createBiquadFilter();
+  const highShelf =
+    audioContext.createBiquadFilter();
+  const output =
+    audioContext.createGain();
+
+  lowShelf.type = "lowshelf";
+  lowShelf.frequency.value =
+    clampNumber(
+      options.bassFrequency,
+      220,
+      40,
+      1000
+    );
+  lowShelf.gain.value =
+    clampNumber(
+      options.bass,
+      0,
+      -24,
+      24
+    );
+
+  midPeak.type = "peaking";
+  midPeak.frequency.value =
+    clampNumber(
+      options.midFrequency,
+      1200,
+      200,
+      5000
+    );
+  midPeak.Q.value = clampNumber(
+    options.midQ,
+    0.9,
+    0.1,
+    10
+  );
+  midPeak.gain.value =
+    clampNumber(
+      options.mid,
+      0,
+      -24,
+      24
+    );
+
+  highShelf.type = "highshelf";
+  highShelf.frequency.value =
+    clampNumber(
+      options.trebleFrequency,
+      3200,
+      800,
+      12000
+    );
+  highShelf.gain.value =
+    clampNumber(
+      options.treble,
+      0,
+      -24,
+      24
+    );
+
+  input.connect(lowShelf);
+  lowShelf.connect(midPeak);
+  midPeak.connect(highShelf);
+  highShelf.connect(output);
+
+  return createEffectUnit({
+    type: "eq",
+    input,
+    output,
+    params: {
+      bass: createAudioParamControl(
+        audioContext,
+        lowShelf.gain,
+        {
+          min: -24,
+          max: 24,
+        }
+      ),
+      mid: createAudioParamControl(
+        audioContext,
+        midPeak.gain,
+        {
+          min: -24,
+          max: 24,
+        }
+      ),
+      treble:
+        createAudioParamControl(
+          audioContext,
+          highShelf.gain,
+          {
+            min: -24,
+            max: 24,
+          }
+        ),
+    },
+    disposeNodes: [
+      input,
+      lowShelf,
+      midPeak,
+      highShelf,
       output,
     ],
   });

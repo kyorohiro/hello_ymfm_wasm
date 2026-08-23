@@ -1,5 +1,10 @@
 import {
   MegaDriveSynth,
+  createDelayFX,
+  createEqFX,
+  createFilterFX,
+  createGainFX,
+  createReverbFX,
   MEGADRIVE_FM_PRESETS,
 } from "../js/megasynth.js";
 import {
@@ -99,6 +104,135 @@ for (const note of ["C3", "G3", "Bb3", "C4"]) {
   await sleep(0.06);
 }
 `,
+  "fx-loop": `setBpm(120);
+
+fm.setPreset(0, MEGADRIVE_FM_PRESETS["one-op-basic"]);
+fm.setPreset(1, MEGADRIVE_FM_PRESETS["two-op-bell"]);
+
+const filter = fx.filter({
+  type: "lowpass",
+  cutoff: 2200,
+  q: 1.4,
+});
+const delay = fx.delay({
+  time: 0.18,
+  feedback: 0.32,
+  mix: 0.18,
+});
+const reverb = fx.reverb({
+  mix: 0.12,
+  tone: 6200,
+});
+
+fx.setChain([
+  filter,
+  delay,
+  reverb,
+]);
+
+liveLoop("bass", async () => {
+  await nextBeat();
+  await play("E2", { channel: 0, duration: 0.12 });
+  await beat(1);
+  await play("G2", { channel: 0, duration: 0.12 });
+  await beat(1);
+  await play("A2", { channel: 0, duration: 0.12 });
+  await beat(1);
+  await play("B2", { channel: 0, duration: 0.12 });
+  await beat(1);
+});
+
+liveLoop("lead", async () => {
+  const notes = scale("E4", "minorPentatonic", 2);
+  filter.cutoff.set(choose([900, 1400, 2200, 3600, 5200]));
+  delay.mix.set(choose([0.1, 0.16, 0.22]));
+  await play(choose(notes), {
+    channel: 1,
+    duration: 0.08,
+  });
+  await beat(0.125);
+});
+`,
+  "fx-motion": `setBpm(120);
+
+fm.setPreset(0, MEGADRIVE_FM_PRESETS["four-op-pad"]);
+fm.setPreset(1, MEGADRIVE_FM_PRESETS["two-op-bell"]);
+
+const gain = fx.gain({
+  gain: 0.9,
+});
+const eq = fx.eq({
+  bass: 0,
+  mid: 0,
+  treble: 0,
+});
+const filter = fx.filter({
+  type: "lowpass",
+  cutoff: 1200,
+  q: 1.1,
+});
+const delay = fx.delay({
+  time: 0.24,
+  feedback: 0.28,
+  mix: 0.16,
+});
+const reverb = fx.reverb({
+  mix: 0.18,
+  tone: 5400,
+});
+
+fx.setChain([
+  gain,
+  eq,
+  filter,
+  delay,
+  reverb,
+]);
+
+liveLoop("pad", async () => {
+  await nextBeat();
+  await play("E3", { channel: 0, duration: 0.45 });
+  await beat(2);
+  await play("G3", { channel: 0, duration: 0.45 });
+  await beat(2);
+});
+
+liveLoop("lead", async () => {
+  const notes = scale("E4", "minorPentatonic", 2);
+  await play(choose(notes), {
+    channel: 1,
+    duration: 0.08,
+  });
+  await beat(0.25);
+});
+
+liveLoop("fx-motion", async () => {
+  eq.bass.rampTo(
+    choose([-6, -3, 0, 3, 6]),
+    0.18
+  );
+  eq.mid.rampTo(
+    choose([-5, -2, 0, 2, 5]),
+    0.18
+  );
+  eq.treble.rampTo(
+    choose([-6, -2, 0, 3, 7]),
+    0.18
+  );
+  filter.cutoff.rampTo(
+    choose([800, 1200, 1800, 2600, 4200, 6400]),
+    0.18
+  );
+  delay.mix.rampTo(
+    choose([0.08, 0.12, 0.18, 0.24]),
+    0.12
+  );
+  reverb.mix.set(
+    choose([0.1, 0.16, 0.22])
+  );
+  await beat(0.5);
+});
+`,
 };
 
 const runButton =
@@ -143,6 +277,64 @@ const playgroundRuntime = {
   clockStartTime: null,
   liveLoops: new Map(),
 };
+
+function createFxApi() {
+  if (!megaDrive.audioContext) {
+    throw new Error(
+      "Audio is not ready yet"
+    );
+  }
+
+  return {
+    gain(options = {}) {
+      return createGainFX(
+        megaDrive.audioContext,
+        options
+      );
+    },
+
+    eq(options = {}) {
+      return createEqFX(
+        megaDrive.audioContext,
+        options
+      );
+    },
+
+    filter(options = {}) {
+      return createFilterFX(
+        megaDrive.audioContext,
+        options
+      );
+    },
+
+    delay(options = {}) {
+      return createDelayFX(
+        megaDrive.audioContext,
+        options
+      );
+    },
+
+    reverb(options = {}) {
+      return createReverbFX(
+        megaDrive.audioContext,
+        options
+      );
+    },
+
+    setChain(effects = []) {
+      megaDrive.setFXChain(
+        effects
+      );
+      return effects;
+    },
+
+    clear(options = {}) {
+      return megaDrive.clearFXChain(
+        options
+      );
+    },
+  };
+}
 
 function setStatus(message) {
   status.textContent = message;
@@ -696,14 +888,19 @@ async function runCode() {
 
   try {
     await ensureReady();
+    megaDrive.clearFXChain({
+      dispose: true,
+    });
     setStatus("Running...");
     setRuntimeState("Running");
     const evaluationState = {
       loopDefinitions: new Map(),
     };
+    const fx = createFxApi();
 
     const api = {
       fm: synth,
+      fx,
       play: (note, options) =>
         play(note, options),
       sleep: (seconds) =>
@@ -791,6 +988,9 @@ function stopRun() {
   currentRunToken += 1;
   stopAllLoops();
   stopAll();
+  megaDrive.clearFXChain({
+    dispose: true,
+  });
   megaDrive.stopRecordingPlayback?.();
   setStatus("Stopped.");
   setRuntimeState("Audio ready");
