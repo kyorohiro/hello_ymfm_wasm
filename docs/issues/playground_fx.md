@@ -28,6 +28,155 @@ This is closer to connecting an actual synth to external pedals / rack effects t
 
 ⸻
 
+Current implementation status
+
+As of 2026-08-23, the first Playground-oriented FX layer already exists.
+
+Implemented now:
+
+* `web/megasynth.js`
+  * `setFXChain(effects)`
+  * `getFXChain()`
+  * `connect(effect)`
+  * `clearFXChain()`
+  * `connectOutput()`
+* `web/megasynth_fx.js`
+  * `createGainFX(...)`
+  * `createEqFX(...)`
+  * `createFilterFX(...)`
+  * `createDelayFX(...)`
+  * `createReverbFX(...)`
+* `docs/playground/playground.js`
+  * `fx.gain(...)`
+  * `fx.eq(...)`
+  * `fx.filter(...)`
+  * `fx.delay(...)`
+  * `fx.reverb(...)`
+  * `fx.setChain([...])`
+  * `fx.clear()`
+  * `livePrepare(name, async ({ fx, fm, log }) => { ... })`
+
+This means the project already has:
+
+* one master FX chain after YM2612 output
+* effect creation from Playground code
+* real-time parameter updates from `liveLoop(...)`
+* reusable prepared FX state across `Run`
+
+Important current example pages:
+
+* `docs/playground/index.html`
+  * `FX Loop`
+  * `FX Motion`
+
+`FX Motion` is especially important because it proves:
+
+* `liveLoop("fx-motion", ...)`
+  can move FX parameters while other loops are playing
+* EQ, filter, delay, and reverb can all be adjusted from code
+
+⸻
+
+Current `livePrepare(...)` meaning
+
+`livePrepare(name, fn)` is now the first answer to:
+
+* "do not rebuild this every Run"
+
+Behavior:
+
+* first call with a `name`
+  * executes `fn`
+  * stores the result
+* later calls with the same `name`
+  * do not execute `fn` again
+  * return the previously stored result
+
+Conceptually:
+
+* `liveLoop(...)`
+  = live repeating behavior
+* `livePrepare(...)`
+  = live reusable prepared state
+
+This is useful for:
+
+* FX node creation
+* shared chains
+* future sequencer / looper helper state
+* other browser-side live coding support objects
+
+Current limitation:
+
+* if the code inside `livePrepare("main-fx", ...)` changes
+* but the name stays the same
+* the old prepared result is still reused
+
+So for now, changing behavior requires either:
+
+* changing the prepare name
+* or later adding reset/clear APIs
+
+⸻
+
+Current design consequence
+
+The Playground no longer has to recreate every FX node on every `Run`.
+
+Without `livePrepare(...)`, code like this:
+
+```js
+const filter = fx.filter(...);
+const delay = fx.delay(...);
+const reverb = fx.reverb(...);
+
+fx.setChain([filter, delay, reverb]);
+```
+
+would recreate all nodes on every `Run`.
+
+With `livePrepare(...)`, the intended pattern is now:
+
+```js
+const mainFx = await livePrepare("main-fx", async ({ fx }) => {
+  const eq = fx.eq({ bass: 0, mid: 0, treble: 0 });
+  const filter = fx.filter({ type: "lowpass", cutoff: 1200, q: 1.1 });
+  const delay = fx.delay({ time: 0.24, feedback: 0.28, mix: 0.16 });
+  const reverb = fx.reverb({ mix: 0.18, tone: 5400 });
+
+  return { eq, filter, delay, reverb };
+});
+
+fx.setChain([
+  mainFx.eq,
+  mainFx.filter,
+  mainFx.delay,
+  mainFx.reverb,
+]);
+```
+
+This is now the preferred Playground direction.
+
+⸻
+
+Current next-step interpretation
+
+The first question is no longer:
+
+* "can we add FX at all?"
+
+That part is now answered with a practical yes.
+
+The next questions are:
+
+* how to reduce `Run`-time click noise further
+* whether prepared FX should survive `Stop`
+* whether `livePrepareReset(name)` or `livePrepareClearAll()` should exist
+* how much of this should be shown in the UI vs left in code
+* whether `FX Motion` should become the default example
+
+⸻
+
 Current repo situation
 
 This repository already has one important hook for FX.
