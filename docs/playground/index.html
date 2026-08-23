@@ -263,6 +263,8 @@
             <option value="fx-loop">FX Loop</option>
             <option value="fx-motion">FX Motion</option>
             <option value="fm-direct">Direct FM Control</option>
+            <option value="fm-api-beep">FM API Beep</option>
+            <option value="raw-write-beep">Raw Write Beep</option>
           </select>
           <button id="loadExampleButton" type="button">Load Example</button>
           <span id="runtimeState" class="pill">Audio idle</span>
@@ -294,6 +296,7 @@
               <li><code>scale("Eb2", "majorPentatonic", 2)</code> builds note arrays</li>
               <li><code>choose(array)</code>, <code>rand()</code>, <code>randInt(0, 7)</code></li>
               <li><code>fm</code> is the raw <code>YM2612Synth</code> layer</li>
+              <li><code>fm.rawWrite(port, register, value)</code> sends one raw YM2612 register write</li>
               <li><code>fx.eq(...)</code>, <code>fx.filter(...)</code>, <code>fx.delay(...)</code>, <code>fx.reverb(...)</code></li>
               <li><code>fx.setChain([filter, delay])</code> replaces the master FX chain</li>
               <li><code>eq.bass.set(...)</code>, <code>eq.mid.rampTo(...)</code>, <code>eq.treble.set(...)</code></li>

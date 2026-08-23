@@ -418,6 +418,43 @@ export class YM2612Synth {
   }
 
   /**
+   * Raw YM2612 register write escape hatch.
+   *
+   * This is intentionally narrower than exposing `transport` directly.
+   * It keeps the caller at the YM2612 register level:
+   *
+   *   rawWrite(port, register, value)
+   *
+   * without leaking transport details such as:
+   *
+   * - direct vs AudioWorklet transport
+   * - future scheduling-aware transports
+   * - recorder insertion points
+   *
+   * Important:
+   *
+   * - this does not currently synchronize `this.channels` state
+   * - it should be treated as an escape hatch for advanced/manual register work
+   * - higher-level helpers like `setOperator()` / `setAlgo()` / `noteOn()` remain preferred
+   *
+   * @param {number} port
+   * @param {number} register
+   * @param {number} value
+   * @returns {void}
+   */
+  rawWrite(port, register, value) {
+    const validPort = validateRange("port", port, 0, 1);
+    const validRegister = validateRange("register", register, 0, 0xff);
+    const validValue = validateRange("value", value, 0, 0xff);
+
+    this._write(
+      validPort,
+      validRegister,
+      validValue
+    );
+  }
+
+  /**
    * Central write exit.
    *
    * This is intentionally one place so that later we can:

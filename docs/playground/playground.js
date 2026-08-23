@@ -105,6 +105,72 @@ for (const note of ["C3", "G3", "Bb3", "C4"]) {
   await sleep(0.06);
 }
 `,
+  "fm-api-beep": `fm.reset();
+
+// channel 0 = YM2612 channel 1
+// operator 4 is the audible carrier in this simple setup
+fm.setOperator(0, 1, { tl: 127, ar: 31, d1r: 0, d2r: 0, sl: 0, rr: 15 });
+fm.setOperator(0, 2, { tl: 127, ar: 31, d1r: 0, d2r: 0, sl: 0, rr: 15 });
+fm.setOperator(0, 3, { tl: 127, ar: 31, d1r: 0, d2r: 0, sl: 0, rr: 15 });
+fm.setOperator(0, 4, {
+  dt: 0,
+  multi: 1,
+  tl: 8,
+  ar: 22,
+  d1r: 6,
+  d2r: 3,
+  sl: 3,
+  rr: 8,
+});
+
+fm.setAlgo(0, 7, 0);
+fm.setPan(0, true, true);
+
+fm.noteOn(0, 4, 553);
+await sleep(0.4);
+fm.noteOff(0);
+await sleep(0.3);
+`,
+  "raw-write-beep": `fm.reset();
+
+// Port 0, channel 1, operator 4 only
+
+// DT / MULTI
+fm.rawWrite(0, 0x3c, (0 << 4) | 1);
+
+// Total Level
+fm.rawWrite(0, 0x4c, 8);
+
+// Attack Rate
+fm.rawWrite(0, 0x5c, 22);
+
+// First Decay Rate
+fm.rawWrite(0, 0x6c, 6);
+
+// Sustain Rate
+fm.rawWrite(0, 0x7c, 3);
+
+// Sustain Level / Release Rate
+fm.rawWrite(0, 0x8c, (3 << 4) | 8);
+
+// Algorithm / Feedback
+fm.rawWrite(0, 0xb0, (0 << 3) | 7);
+
+// Left / Right output enable
+fm.rawWrite(0, 0xb4, 0xc0);
+
+// BLOCK / F-NUM high and low
+fm.rawWrite(0, 0xa4, (4 << 3) | ((553 >> 8) & 0x07));
+fm.rawWrite(0, 0xa0, 553 & 0xff);
+
+// Key On all operators on channel 1
+fm.rawWrite(0, 0x28, 0xf0 | 0x00);
+await sleep(0.4);
+
+// Key Off
+fm.rawWrite(0, 0x28, 0x00);
+await sleep(0.3);
+`,
   "fx-loop": `setBpm(120);
 
 fm.setPreset(0, MEGADRIVE_FM_PRESETS["one-op-basic"]);
@@ -443,6 +509,15 @@ function createMonacoTopLevelItems(
         "Master FX creation and chain control.",
     },
     {
+      label: "fm.rawWrite",
+      kind: kind.Function,
+      insertText:
+        "fm.rawWrite(${1:0}, ${2:0x22}, ${3:0x08});",
+      insertTextRules: snippet,
+      documentation:
+        "Write one raw YM2612 register: port, register, value.",
+    },
+    {
       label:
         "MEGADRIVE_FM_PRESETS",
       kind: kind.Variable,
@@ -649,6 +724,17 @@ function registerMonacoCompletions(
                 snippet,
               documentation:
                 "Trigger YM2612 note on with block and F-Number.",
+              range,
+            },
+            {
+              label: "rawWrite",
+              kind: kind.Method,
+              insertText:
+                "rawWrite(${1:0}, ${2:0x22}, ${3:0x08})",
+              insertTextRules:
+                snippet,
+              documentation:
+                "Advanced/manual YM2612 register write escape hatch.",
               range,
             },
             {
