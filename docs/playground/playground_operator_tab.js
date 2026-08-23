@@ -20,6 +20,16 @@ const OPERATOR_PARAM_DEFS = [
   { id: "sl", label: "SL", min: 0, max: 15, step: 1 },
   { id: "rr", label: "RR", min: 0, max: 15, step: 1 },
 ];
+const ALGORITHM_DESCRIPTIONS = [
+  'ALGO 0 <span class="op-color-1">OP1</span> -> <span class="op-color-2">OP2</span> -> <span class="op-color-3">OP3</span> -> <span class="op-color-4">OP4</span> -> OUT',
+  'ALGO 1 (<span class="op-color-1">OP1</span> + <span class="op-color-2">OP2</span>) -> <span class="op-color-3">OP3</span> -> <span class="op-color-4">OP4</span> -> OUT',
+  'ALGO 2 (<span class="op-color-1">OP1</span> + (<span class="op-color-2">OP2</span> -> <span class="op-color-3">OP3</span>)) -> <span class="op-color-4">OP4</span> -> OUT',
+  'ALGO 3 ((<span class="op-color-1">OP1</span> -> <span class="op-color-2">OP2</span>) + <span class="op-color-3">OP3</span>) -> <span class="op-color-4">OP4</span> -> OUT',
+  'ALGO 4 (<span class="op-color-1">OP1</span> -> <span class="op-color-2">OP2</span>) + (<span class="op-color-3">OP3</span> -> <span class="op-color-4">OP4</span>) -> OUT',
+  'ALGO 5 (<span class="op-color-1">OP1</span> -> <span class="op-color-2">OP2</span>) + (<span class="op-color-1">OP1</span> -> <span class="op-color-3">OP3</span>) + (<span class="op-color-1">OP1</span> -> <span class="op-color-4">OP4</span>) -> OUT',
+  'ALGO 6 (<span class="op-color-1">OP1</span> -> <span class="op-color-2">OP2</span>) + <span class="op-color-3">OP3</span> + <span class="op-color-4">OP4</span> -> OUT',
+  'ALGO 7 <span class="op-color-1">OP1</span> + <span class="op-color-2">OP2</span> + <span class="op-color-3">OP3</span> + <span class="op-color-4">OP4</span> -> OUT',
+];
 
 function createDefaultOperatorState(
   operator
@@ -189,6 +199,7 @@ export function createPlaygroundOperatorTab(
         Right
       </label>
     </div>
+    <p id="operatorTabAlgorithmDescription" class="algo-inline"></p>
     <div class="operator-stack">
       <div class="operator-header-row">
         <div class="operator-header-spacer"></div>
@@ -237,6 +248,10 @@ export function createPlaygroundOperatorTab(
   const operatorControlsRoot =
     root.querySelector(
       "#operatorTabOperatorControls"
+    );
+  const algorithmDescription =
+    root.querySelector(
+      "#operatorTabAlgorithmDescription"
     );
 
   buildHeader(
@@ -299,6 +314,27 @@ export function createPlaygroundOperatorTab(
       state.right;
   }
 
+  function updateAlgorithmDescription() {
+    if (!algorithmDescription) {
+      return;
+    }
+
+    const state =
+      currentState();
+    const description =
+      ALGORITHM_DESCRIPTIONS[
+        state.algorithm
+      ] ??
+      `ALGO ${state.algorithm}`;
+    const feedbackText =
+      state.feedback === 0
+        ? "FB off"
+        : `OP1 feedback ${state.feedback}`;
+
+    algorithmDescription.innerHTML =
+      `${description} ${feedbackText}`;
+  }
+
   function updateControlsUi() {
     const state =
       currentState();
@@ -306,6 +342,7 @@ export function createPlaygroundOperatorTab(
     presetSelect.value =
       state.presetName;
     updatePanUi();
+    updateAlgorithmDescription();
 
     for (const config of COMMON_PARAM_DEFS) {
       commonControls
@@ -358,6 +395,7 @@ export function createPlaygroundOperatorTab(
     controlsMap: commonControls,
     onChange(id, value) {
       currentState()[id] = value;
+      updateAlgorithmDescription();
       markDirty();
       applyChannelStateToSynth(
         selectedChannel
