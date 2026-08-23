@@ -2502,6 +2502,134 @@ function midiToNoteName(midi) {
   return `${note}${octave}`;
 }
 
+function findPresetNameByReference(
+  preset
+) {
+  for (const presetName of MEGADRIVE_FM_PRESET_ORDER) {
+    if (
+      MEGADRIVE_FM_PRESETS[
+        presetName
+      ] === preset
+    ) {
+      return presetName;
+    }
+  }
+
+  return null;
+}
+
+function createFmProxy(
+  targetSynth
+) {
+  return {
+    reset() {
+      targetSynth.reset();
+      operatorTab.syncReset();
+    },
+    setPreset(channel, preset) {
+      targetSynth.setPreset(
+        channel,
+        preset
+      );
+      operatorTab.syncPreset(
+        channel,
+        findPresetNameByReference(
+          preset
+        ),
+        preset
+      );
+    },
+    setOperator(
+      channel,
+      operator,
+      params
+    ) {
+      targetSynth.setOperator(
+        channel,
+        operator,
+        params
+      );
+      operatorTab.syncOperator(
+        channel,
+        operator,
+        params
+      );
+    },
+    setAlgo(
+      channel,
+      algorithm,
+      feedback = 0
+    ) {
+      targetSynth.setAlgo(
+        channel,
+        algorithm,
+        feedback
+      );
+      operatorTab.syncAlgo(
+        channel,
+        algorithm,
+        feedback
+      );
+    },
+    setPan(
+      channel,
+      left,
+      right
+    ) {
+      targetSynth.setPan(
+        channel,
+        left,
+        right
+      );
+      operatorTab.syncPan(
+        channel,
+        left,
+        right
+      );
+    },
+    noteOn(channel, block, fnum) {
+      targetSynth.noteOn(
+        channel,
+        block,
+        fnum
+      );
+    },
+    noteOff(channel) {
+      targetSynth.noteOff(
+        channel
+      );
+    },
+    write(port, register, value) {
+      targetSynth.write(
+        port,
+        register,
+        value
+      );
+    },
+    writeAddress(port, register) {
+      targetSynth.writeAddress(
+        port,
+        register
+      );
+    },
+    writeData(value) {
+      targetSynth.writeData(
+        value
+      );
+    },
+    rawWrite(port, register, value) {
+      targetSynth.rawWrite(
+        port,
+        register,
+        value
+      );
+    },
+    get transport() {
+      return targetSynth.transport;
+    },
+  };
+}
+
 async function runCode() {
   currentRunToken += 1;
   const runToken =
@@ -2518,8 +2646,9 @@ async function runCode() {
       loopDefinitions: new Map(),
     };
     const fx = createFxApi();
+    const fm = createFmProxy(synth);
     const livePrepareApi = {
-      fm: synth,
+      fm,
       fx,
       log: (...args) => {
         logLine(
@@ -2545,7 +2674,7 @@ async function runCode() {
       },
     };
     const pg = {
-      fm: synth,
+      fm,
       fx,
       presets:
         MEGADRIVE_FM_PRESETS,
@@ -2582,7 +2711,7 @@ async function runCode() {
       console:
         playgroundConsole,
       pg,
-      fm: synth,
+      fm,
       fx,
       livePrepare: (name, fn) =>
         pg.livePrepare(name, fn),

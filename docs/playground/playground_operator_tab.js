@@ -145,6 +145,24 @@ function cloneChannelState(
   };
 }
 
+function mergeOperatorParams(
+  target,
+  params
+) {
+  if (!params) {
+    return;
+  }
+
+  for (const config of OPERATOR_PARAM_DEFS) {
+    if (
+      params[config.id] !== undefined
+    ) {
+      target[config.id] =
+        params[config.id];
+    }
+  }
+}
+
 export function createPlaygroundOperatorTab(
   options
 ) {
@@ -267,6 +285,14 @@ export function createPlaygroundOperatorTab(
     return stateByChannel[
       selectedChannel
     ];
+  }
+
+  function refreshIfSelected(
+    channel
+  ) {
+    if (channel === selectedChannel) {
+      updateControlsUi();
+    }
   }
 
   function markDirty() {
@@ -528,6 +554,99 @@ export function createPlaygroundOperatorTab(
           channel
         );
       }
+    },
+    syncReset() {
+      for (
+        let channel = 0;
+        channel < CHANNEL_COUNT;
+        channel += 1
+      ) {
+        stateByChannel[channel] =
+          createChannelStateFromPreset(
+            "one-op-basic",
+            presets
+          );
+      }
+      dirtyChannels.clear();
+      updateControlsUi();
+    },
+    syncPreset(channel, presetName, preset) {
+      const nextState =
+        presetName &&
+        presets[presetName]
+          ? createChannelStateFromPreset(
+              presetName,
+              presets
+            )
+          : createDefaultChannelState();
+
+      if (
+        preset &&
+        typeof preset === "object"
+      ) {
+        nextState.algorithm =
+          preset.algorithm ??
+          nextState.algorithm;
+        nextState.feedback =
+          preset.feedback ??
+          nextState.feedback;
+        nextState.left =
+          preset.pan?.left ??
+          preset.left ??
+          nextState.left;
+        nextState.right =
+          preset.pan?.right ??
+          preset.right ??
+          nextState.right;
+
+        for (const operator of OPERATOR_NUMBERS) {
+          mergeOperatorParams(
+            nextState.operators[operator],
+            preset.operators?.[operator]
+          );
+        }
+      }
+
+      nextState.presetName =
+        presetName ??
+        nextState.presetName;
+      stateByChannel[channel] =
+        nextState;
+      refreshIfSelected(channel);
+    },
+    syncOperator(
+      channel,
+      operator,
+      params
+    ) {
+      mergeOperatorParams(
+        stateByChannel[channel]
+          .operators[operator],
+        params
+      );
+      refreshIfSelected(channel);
+    },
+    syncAlgo(
+      channel,
+      algorithm,
+      feedback = 0
+    ) {
+      stateByChannel[channel].algorithm =
+        algorithm;
+      stateByChannel[channel].feedback =
+        feedback;
+      refreshIfSelected(channel);
+    },
+    syncPan(
+      channel,
+      left,
+      right
+    ) {
+      stateByChannel[channel].left =
+        left;
+      stateByChannel[channel].right =
+        right;
+      refreshIfSelected(channel);
     },
   };
 }
