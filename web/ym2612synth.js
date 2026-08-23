@@ -140,6 +140,8 @@ export class YM2612Synth {
       this.transport.reset();
     }
 
+    this._pendingAddressPort = undefined;
+    this._pendingAddressRegister = undefined;
     this.channels = [];
     for (let channel = 0; channel < CHANNEL_COUNT; channel += 1) {
       this.channels.push(createDefaultChannelState());
@@ -418,31 +420,26 @@ export class YM2612Synth {
   }
 
   /**
-   * Raw YM2612 register write escape hatch.
+   * Write one YM2612 register.
    *
-   * This is intentionally narrower than exposing `transport` directly.
-   * It keeps the caller at the YM2612 register level:
+   * This is the compact form:
    *
-   *   rawWrite(port, register, value)
+   *   write(port, register, value)
    *
-   * without leaking transport details such as:
+   * which corresponds to:
    *
-   * - direct vs AudioWorklet transport
-   * - future scheduling-aware transports
-   * - recorder insertion points
+   * - write register number to the address port
+   * - write value to the data port
    *
-   * Important:
-   *
-   * - this does not currently synchronize `this.channels` state
-   * - it should be treated as an escape hatch for advanced/manual register work
-   * - higher-level helpers like `setOperator()` / `setAlgo()` / `noteOn()` remain preferred
+   * This does not currently synchronize `this.channels` state.
+   * It is mainly for low-level/manual YM2612 register work.
    *
    * @param {number} port
    * @param {number} register
    * @param {number} value
    * @returns {void}
    */
-  rawWrite(port, register, value) {
+  write(port, register, value) {
     const validPort = validateRange("port", port, 0, 1);
     const validRegister = validateRange("register", register, 0, 0xff);
     const validValue = validateRange("value", value, 0, 0xff);
@@ -452,6 +449,63 @@ export class YM2612Synth {
       validRegister,
       validValue
     );
+  }
+
+  /**
+   * Write one YM2612 register number to the address port.
+   *
+   * Port mapping:
+   * - port 0 = A1=0, A0=0
+   * - port 1 = A1=1, A0=0
+   *
+   * Use this together with `writeData()`.
+   *
+   * @param {number} port
+   * @param {number} register
+   * @returns {void}
+   */
+  writeAddress(port, register) {
+    const validPort = validateRange("port", port, 0, 1);
+    const validRegister = validateRange("register", register, 0, 0xff);
+
+    this._pendingAddressPort = validPort;
+    this._pendingAddressRegister = validRegister;
+  }
+
+  /**
+   * Write one YM2612 value to the data port after `writeAddress()`.
+   *
+   * Port mapping:
+   * - port 0 = A1=0, A0=1
+   * - port 1 = A1=1, A0=1
+   *
+   * @param {number} value
+   * @returns {void}
+   */
+  writeData(value) {
+    const validValue = validateRange("value", value, 0, 0xff);
+
+    if (this._pendingAddressPort === undefined || this._pendingAddressRegister === undefined) {
+      throw new Error("writeData(value) requires a previous writeAddress(port, register)");
+    }
+
+    this._write(
+      this._pendingAddressPort,
+      this._pendingAddressRegister,
+      validValue
+    );
+  }
+
+  /**
+   * Backward-compatible alias for older playground/demo code.
+   *
+   * @param {number} port
+   * @param {number} register
+   * @param {number} value
+   * @returns {void}
+   */
+  rawWrite(port, register, value) {
+    this.write(port, register, value);
   }
 
   /**

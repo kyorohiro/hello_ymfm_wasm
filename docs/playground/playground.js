@@ -136,39 +136,51 @@ await sleep(0.3);
 // Port 0, channel 1, operator 4 only
 
 // DT / MULTI
-fm.rawWrite(0, 0x3c, (0 << 4) | 1);
+fm.writeAddress(0, 0x3c);
+fm.writeData((0 << 4) | 1);
 
 // Total Level
-fm.rawWrite(0, 0x4c, 8);
+fm.writeAddress(0, 0x4c);
+fm.writeData(8);
 
 // Attack Rate
-fm.rawWrite(0, 0x5c, 22);
+fm.writeAddress(0, 0x5c);
+fm.writeData(22);
 
 // First Decay Rate
-fm.rawWrite(0, 0x6c, 6);
+fm.writeAddress(0, 0x6c);
+fm.writeData(6);
 
 // Sustain Rate
-fm.rawWrite(0, 0x7c, 3);
+fm.writeAddress(0, 0x7c);
+fm.writeData(3);
 
 // Sustain Level / Release Rate
-fm.rawWrite(0, 0x8c, (3 << 4) | 8);
+fm.writeAddress(0, 0x8c);
+fm.writeData((3 << 4) | 8);
 
 // Algorithm / Feedback
-fm.rawWrite(0, 0xb0, (0 << 3) | 7);
+fm.writeAddress(0, 0xb0);
+fm.writeData((0 << 3) | 7);
 
 // Left / Right output enable
-fm.rawWrite(0, 0xb4, 0xc0);
+fm.writeAddress(0, 0xb4);
+fm.writeData(0xc0);
 
 // BLOCK / F-NUM high and low
-fm.rawWrite(0, 0xa4, (4 << 3) | ((553 >> 8) & 0x07));
-fm.rawWrite(0, 0xa0, 553 & 0xff);
+fm.writeAddress(0, 0xa4);
+fm.writeData((4 << 3) | ((553 >> 8) & 0x07));
+fm.writeAddress(0, 0xa0);
+fm.writeData(553 & 0xff);
 
 // Key On all operators on channel 1
-fm.rawWrite(0, 0x28, 0xf0 | 0x00);
+fm.writeAddress(0, 0x28);
+fm.writeData(0xf0 | 0x00);
 await sleep(0.4);
 
 // Key Off
-fm.rawWrite(0, 0x28, 0x00);
+fm.writeAddress(0, 0x28);
+fm.writeData(0x00);
 await sleep(0.3);
 `,
   "fx-loop": `setBpm(120);
@@ -426,7 +438,7 @@ function createMonacoTopLevelItems(
       label: "liveLoop",
       kind: kind.Snippet,
       insertText:
-        'liveLoop("${1:name}", async () => {\n  ${2:await play("E4", { channel: 0, duration: 0.08 });}\n  await beat(${3:0.5});\n});',
+        'liveLoop("${1:name}", async () => {\n  await play("${2:E4}", { channel: ${3:0}, duration: ${4:0.08} });\n  await beat(${5:0.5});\n});',
       insertTextRules: snippet,
       documentation:
         "Create a repeating named live loop.",
@@ -457,6 +469,15 @@ function createMonacoTopLevelItems(
       insertTextRules: snippet,
       documentation:
         "Wait using the shared beat clock.",
+    },
+    {
+      label: "sleep",
+      kind: kind.Function,
+      insertText:
+        "await sleep(${1:0.12});",
+      insertTextRules: snippet,
+      documentation:
+        "Wait using seconds instead of beat units.",
     },
     {
       label: "nextBeat",
@@ -509,13 +530,31 @@ function createMonacoTopLevelItems(
         "Master FX creation and chain control.",
     },
     {
-      label: "fm.rawWrite",
+      label: "fm.write",
       kind: kind.Function,
       insertText:
-        "fm.rawWrite(${1:0}, ${2:0x22}, ${3:0x08});",
+        "fm.write(${1:0}, ${2:0x22}, ${3:0x08});",
       insertTextRules: snippet,
       documentation:
-        "Write one raw YM2612 register: port, register, value.",
+        "Write one YM2612 register in compact form: port, register, value.",
+    },
+    {
+      label: "fm.writeAddress",
+      kind: kind.Function,
+      insertText:
+        "fm.writeAddress(${1:0}, ${2:0x22});",
+      insertTextRules: snippet,
+      documentation:
+        "Write one YM2612 register number to the address port.",
+    },
+    {
+      label: "fm.writeData",
+      kind: kind.Function,
+      insertText:
+        "fm.writeData(${1:0x08});",
+      insertTextRules: snippet,
+      documentation:
+        "Write one YM2612 value to the data port after writeAddress().",
     },
     {
       label:
@@ -727,14 +766,36 @@ function registerMonacoCompletions(
               range,
             },
             {
-              label: "rawWrite",
+              label: "write",
               kind: kind.Method,
               insertText:
-                "rawWrite(${1:0}, ${2:0x22}, ${3:0x08})",
+                "write(${1:0}, ${2:0x22}, ${3:0x08})",
               insertTextRules:
                 snippet,
               documentation:
-                "Advanced/manual YM2612 register write escape hatch.",
+                "Compact YM2612 register write: port, register, value.",
+              range,
+            },
+            {
+              label: "writeAddress",
+              kind: kind.Method,
+              insertText:
+                "writeAddress(${1:0}, ${2:0x22})",
+              insertTextRules:
+                snippet,
+              documentation:
+                "Write one YM2612 register number to the address port.",
+              range,
+            },
+            {
+              label: "writeData",
+              kind: kind.Method,
+              insertText:
+                "writeData(${1:0x08})",
+              insertTextRules:
+                snippet,
+              documentation:
+                "Write one YM2612 value to the data port after writeAddress().",
               range,
             },
             {
@@ -872,6 +933,59 @@ function registerMonacoHover(
   );
 }
 
+function registerMonacoPlaygroundGlobals(
+  monaco
+) {
+  const declarations =
+    `
+declare const MEGADRIVE_FM_PRESETS: Record<string, unknown>;
+
+declare const fm: {
+  reset(): void;
+  setPreset(channel: number, preset: object): void;
+  setOperator(channel: number, operator: number, params: object): void;
+  setAlgo(channel: number, algorithm: number, feedback?: number): void;
+  setPan(channel: number, left: boolean, right: boolean): void;
+  noteOn(channel: number, block: number, fnum: number): void;
+  noteOff(channel: number): void;
+  write(port: number, register: number, value: number): void;
+  writeAddress(port: number, register: number): void;
+  writeData(value: number): void;
+  rawWrite(port: number, register: number, value: number): void;
+};
+
+declare const fx: {
+  gain(options?: object): any;
+  eq(options?: object): any;
+  filter(options?: object): any;
+  delay(options?: object): any;
+  reverb(options?: object): any;
+  setChain(effects: any[]): void;
+  clear(): void;
+};
+
+declare function liveLoop(name: string, fn: () => Promise<void> | void): void;
+declare function livePrepare(name: string, fn: (context: { fx: typeof fx; fm: typeof fm; log: (...args: unknown[]) => void }) => Promise<any> | any): Promise<any>;
+declare function play(note: string, options?: { channel?: number; duration?: number; preset?: object }): Promise<void>;
+declare function sleep(seconds: number): Promise<void>;
+declare function beat(beats?: number): Promise<void>;
+declare function nextBeat(): Promise<void>;
+declare function setBpm(bpm: number): void;
+declare function scale(root: string, name: string, octaves?: number): string[];
+declare function choose<T>(values: T[]): T;
+declare function rand(): number;
+declare function randInt(min: number, max: number): number;
+declare function stopLoop(name: string): void;
+declare function stopAllLoops(): void;
+declare function stopAll(): void;
+`;
+
+  monaco.languages.typescript.javascriptDefaults.addExtraLib(
+    declarations,
+    "file:///tetorica-playground-globals.d.ts"
+  );
+}
+
 function loadMonacoLoader() {
   return new Promise(
     (resolve, reject) => {
@@ -962,6 +1076,9 @@ async function initializeMonacoEditor() {
       monaco
     );
     registerMonacoHover(monaco);
+    registerMonacoPlaygroundGlobals(
+      monaco
+    );
 
     const monacoEditor =
       monaco.editor.create(
