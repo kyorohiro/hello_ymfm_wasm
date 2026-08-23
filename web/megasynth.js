@@ -5,6 +5,12 @@ import {
   YM2612Synth,
   YM2612WorkletTransport,
 } from "./ym2612synth.js";
+export {
+  createDelayFX,
+  createFilterFX,
+  createGainFX,
+  createReverbFX,
+} from "./megasynth_fx.js";
 export { MegaSynthLooper } from "./looper.js";
 export {
   MEGADRIVE_FM_PRESETS,
@@ -48,6 +54,8 @@ export class MegaSynth {
       options.outputNode ?? null;
 
     this.node = null;
+    this.masterInputNode = null;
+    this.fxChain = [];
     this.recordingManager = null;
     this._recordingHooksInstalled =
       false;
@@ -115,6 +123,77 @@ export class MegaSynth {
     this.fm?.reset();
   }
 
+  setFXChain(
+    effects = [],
+    options = {}
+  ) {
+    if (!Array.isArray(effects)) {
+      throw new Error(
+        "FX chain must be an array"
+      );
+    }
+
+    const previousChain =
+      this.fxChain.slice();
+    this.fxChain = effects.slice();
+
+    if (this.masterInputNode) {
+      this.#rebuildFXChain();
+    }
+
+    if (options.dispose) {
+      for (const effect of previousChain) {
+        effect?.dispose?.();
+      }
+    }
+  }
+
+  getFXChain() {
+    return this.fxChain.slice();
+  }
+
+  connect(effect) {
+    this.fxChain.push(effect);
+
+    if (this.masterInputNode) {
+      this.#rebuildFXChain();
+    }
+
+    return this;
+  }
+
+  clearFXChain(options = {}) {
+    const previousChain =
+      this.fxChain.slice();
+    this.fxChain = [];
+
+    if (this.masterInputNode) {
+      this.#rebuildFXChain();
+    }
+
+    if (options.dispose) {
+      for (const effect of previousChain) {
+        effect?.dispose?.();
+      }
+    }
+
+    return previousChain;
+  }
+
+  connectOutput(node = null) {
+    this.outputNode =
+      node ??
+      this.outputNode ??
+      this.audioContext?.destination ??
+      null;
+
+    if (this.masterInputNode) {
+      this.#rebuildFXChain();
+    }
+
+    return this;
+  }
+
   startRecord() {
     this.#ensureRecordingManager();
     return this.recordingManager.start();
@@ -169,6 +248,9 @@ export class MegaSynth {
       this.node.disconnect();
       this.node = null;
     }
+
+    this.masterInputNode?.disconnect();
+    this.masterInputNode = null;
 
     this.fm = null;
     this.readyPromise = null;
@@ -228,10 +310,12 @@ export class MegaSynth {
         }
       );
 
+    this.masterInputNode =
+      this.audioContext.createGain();
     this.node.connect(
-      this.outputNode ??
-      this.audioContext.destination
+      this.masterInputNode
     );
+    this.#rebuildFXChain();
 
     const workletReady =
       this.#waitForWorkletReady();
@@ -298,6 +382,52 @@ export class MegaSynth {
 
       this.node.port.start();
     });
+  }
+
+  #disconnectFXRouting() {
+    this.masterInputNode?.disconnect();
+
+    for (const effect of this.fxChain) {
+      effect?.disconnect?.();
+    }
+  }
+
+  #rebuildFXChain() {
+    if (!this.masterInputNode) {
+      return;
+    }
+
+    this.#disconnectFXRouting();
+
+    const finalTarget =
+      this.outputNode ??
+      this.audioContext?.destination;
+
+    if (!finalTarget) {
+      return;
+    }
+
+    let currentNode =
+      this.masterInputNode;
+
+    for (const effect of this.fxChain) {
+      if (
+        !effect?.input ||
+        !effect?.output
+      ) {
+        throw new Error(
+          "Each FX unit must expose input and output nodes"
+        );
+      }
+
+      currentNode.connect(
+        effect.input
+      );
+      currentNode =
+        effect.output;
+    }
+
+    currentNode.connect(finalTarget);
   }
 
   #ensureRecordingManager() {

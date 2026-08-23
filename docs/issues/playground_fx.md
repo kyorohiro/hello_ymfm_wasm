@@ -28,6 +28,156 @@ This is closer to connecting an actual synth to external pedals / rack effects t
 
 ⸻
 
+Current repo situation
+
+This repository already has one important hook for FX.
+
+`web/megasynth.js` accepts:
+
+* `outputNode`
+
+and `docs/synth/synth_runtime.js` already passes `outputNode` into `MegaDriveSynth`.
+
+That means the first FX version does not require:
+
+* changing ymfm
+* changing YM2612 register behavior
+* redesigning `YM2612Synth`
+
+The practical route is:
+
+1. create a master bus
+2. give that bus to `MegaSynth` as `outputNode`
+3. connect FX nodes after that bus
+4. connect the final FX output to `audioContext.destination`
+
+Conceptually:
+
+YM2612 AudioWorklet
+  ↓
+master bus
+  ↓
+FX chain
+  ↓
+destination
+
+This is the strongest reason FX looks feasible now.
+
+⸻
+
+What this document is about
+
+This document is mainly about:
+
+* Playground-facing FX
+* browser runtime FX
+* post-YM2612 master processing
+
+This document is not about:
+
+* pretending YM2612 has built-in reverb or delay
+* adding internal per-operator FX to the chip model
+* modifying ymfm itself for effect processing
+
+FX should stay clearly outside the YM2612 chip model.
+
+⸻
+
+First implementation target
+
+Do the smallest useful thing first.
+
+v1 should aim for:
+
+* one YM2612 instance
+* one master FX chain
+* Web Audio based post-processing
+* real-time parameter changes
+* low enough CPU cost for games
+
+Not v1:
+
+* per-`liveLoop` FX routing
+* one YM2612 instance per loop
+* complex graph editors
+* heavy convolution-first design
+* studio-grade mastering
+
+If v1 succeeds, that is already enough to give:
+
+* nicer Playground sound
+* easier preset blending
+* a clearer game-embedding story
+
+⸻
+
+Recommended v1 order
+
+Build in this order:
+
+1. Gain
+2. Filter
+3. Delay
+4. Reverb
+
+Reason:
+
+* Gain is the simplest chain sanity check.
+* Filter makes real-time motion obvious.
+* Delay gives immediate musical value.
+* Reverb makes short FM notes feel more finished.
+
+EQ and compressor are still useful, but they are less important than:
+
+"can we obviously hear FX working in the Playground?"
+
+⸻
+
+Recommended first API direction
+
+Do not start with Sonic Pi style `withFX(...)`.
+
+That style suggests lexical scoping such as:
+
+* only this loop has reverb
+* only this block has delay
+
+That is misleading in the current YM2612 architecture because all channels already end up in one stereo output.
+
+A better first API direction is explicit master-chain control.
+
+Examples:
+
+```js
+const delay = fx.delay({
+  time: 0.2,
+  feedback: 0.35,
+  mix: 0.2,
+});
+
+megaSynth.setFXChain([
+  delay,
+]);
+```
+
+or:
+
+```js
+const filter = fx.filter({
+  type: "lowpass",
+  cutoff: 1800,
+  q: 1.2,
+});
+
+megaSynth
+  .connect(filter)
+  .connectOutput();
+```
+
+If a `withFX(...)` style is ever added later, it should be built on top of a real routing model, not used to hide the lack of one.
+
+⸻
+
 Important Constraint: YM2612 Output
 
 The YM2612 has six FM channels internally, but its final output is stereo L/R.
@@ -91,6 +241,24 @@ Output
 
 The exact order should be configurable.
 
+Recommended first default chain:
+
+YM2612
+  ↓
+Gain
+  ↓
+Filter
+  ↓
+Delay
+  ↓
+Reverb
+  ↓
+Master
+  ↓
+Output
+
+This is small enough to test quickly and already musically useful.
+
 ⸻
 
 Architecture
@@ -127,6 +295,26 @@ FX are not YM2612 features.
 
 Keep that distinction visible in the API.
 
+Concrete implication:
+
+* `YM2612Synth`
+  should not gain methods such as:
+  * `setReverb()`
+  * `setDelay()`
+  * `setFilter()`
+* `MegaSynth`
+  or a separate FX/runtime layer
+  should own the post-processing graph
+
+This preserves the current design:
+
+* `YM2612Synth`
+  = chip control
+* `MegaSynth`
+  = browser runtime
+* `FX`
+  = post-processing
+
 ⸻
 
 Suggested File Separation
@@ -160,6 +348,19 @@ FX
 = post-processing
 
 as separate responsibilities.
+
+Practical v1 candidate:
+
+web/
+  megasynth.js
+  megasynth_fx.js
+  fx/
+    gain.js
+    filter.js
+    delay.js
+    reverb.js
+
+That is enough to begin without over-designing.
 
 ⸻
 
@@ -869,3 +1070,22 @@ The FX layer exists to make it easier to:
 * experiment in the Playground
 
 while preserving lightweight runtime behavior.
+
+⸻
+
+Immediate next steps
+
+1. Add a very small master-bus FX layer on top of `MegaSynth`.
+2. Prove the routing with `Gain`.
+3. Add `Filter`.
+4. Add `Delay`.
+5. Add `Reverb`.
+6. Expose simple parameter changes from the Playground.
+
+The first milestone is not:
+
+* a polished FX workstation
+
+The first milestone is:
+
+* "YM2612 sound goes through one visible master FX chain, and the result is clearly controllable from browser-side code."

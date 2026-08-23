@@ -15,6 +15,7 @@ RUNTIME_FILES="
 genesisaudioengine.js
 looper.js
 megadrive-fm-presets.js
+megasynth_fx.js
 megasynth.js
 megasynth_recording.js
 segapsg.js

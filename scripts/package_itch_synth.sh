@@ -24,6 +24,7 @@ synth_runtime.js
 RUNTIME_FILES="
 looper.js
 megasynth.js
+megasynth_fx.js
 megasynth_recording.js
 megadrive-fm-presets.js
 tfi.js
