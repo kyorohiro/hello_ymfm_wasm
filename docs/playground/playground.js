@@ -109,25 +109,33 @@ for (const note of ["C3", "G3", "Bb3", "C4"]) {
 fm.setPreset(0, MEGADRIVE_FM_PRESETS["one-op-basic"]);
 fm.setPreset(1, MEGADRIVE_FM_PRESETS["two-op-bell"]);
 
-const filter = fx.filter({
-  type: "lowpass",
-  cutoff: 2200,
-  q: 1.4,
-});
-const delay = fx.delay({
-  time: 0.18,
-  feedback: 0.32,
-  mix: 0.18,
-});
-const reverb = fx.reverb({
-  mix: 0.12,
-  tone: 6200,
+const mainFx = await livePrepare("fx-loop-chain", async ({ fx }) => {
+  const filter = fx.filter({
+    type: "lowpass",
+    cutoff: 2200,
+    q: 1.4,
+  });
+  const delay = fx.delay({
+    time: 0.18,
+    feedback: 0.32,
+    mix: 0.18,
+  });
+  const reverb = fx.reverb({
+    mix: 0.12,
+    tone: 6200,
+  });
+
+  return {
+    filter,
+    delay,
+    reverb,
+  };
 });
 
 fx.setChain([
-  filter,
-  delay,
-  reverb,
+  mainFx.filter,
+  mainFx.delay,
+  mainFx.reverb,
 ]);
 
 liveLoop("bass", async () => {
@@ -144,8 +152,8 @@ liveLoop("bass", async () => {
 
 liveLoop("lead", async () => {
   const notes = scale("E4", "minorPentatonic", 2);
-  filter.cutoff.set(choose([900, 1400, 2200, 3600, 5200]));
-  delay.mix.set(choose([0.1, 0.16, 0.22]));
+  mainFx.filter.cutoff.set(choose([900, 1400, 2200, 3600, 5200]));
+  mainFx.delay.mix.set(choose([0.1, 0.16, 0.22]));
   await play(choose(notes), {
     channel: 1,
     duration: 0.08,
@@ -158,35 +166,45 @@ liveLoop("lead", async () => {
 fm.setPreset(0, MEGADRIVE_FM_PRESETS["four-op-pad"]);
 fm.setPreset(1, MEGADRIVE_FM_PRESETS["two-op-bell"]);
 
-const gain = fx.gain({
-  gain: 0.9,
-});
-const eq = fx.eq({
-  bass: 0,
-  mid: 0,
-  treble: 0,
-});
-const filter = fx.filter({
-  type: "lowpass",
-  cutoff: 1200,
-  q: 1.1,
-});
-const delay = fx.delay({
-  time: 0.24,
-  feedback: 0.28,
-  mix: 0.16,
-});
-const reverb = fx.reverb({
-  mix: 0.18,
-  tone: 5400,
+const mainFx = await livePrepare("fx-motion-chain", async ({ fx }) => {
+  const gain = fx.gain({
+    gain: 0.9,
+  });
+  const eq = fx.eq({
+    bass: 0,
+    mid: 0,
+    treble: 0,
+  });
+  const filter = fx.filter({
+    type: "lowpass",
+    cutoff: 1200,
+    q: 1.1,
+  });
+  const delay = fx.delay({
+    time: 0.24,
+    feedback: 0.28,
+    mix: 0.16,
+  });
+  const reverb = fx.reverb({
+    mix: 0.18,
+    tone: 5400,
+  });
+
+  return {
+    gain,
+    eq,
+    filter,
+    delay,
+    reverb,
+  };
 });
 
 fx.setChain([
-  gain,
-  eq,
-  filter,
-  delay,
-  reverb,
+  mainFx.gain,
+  mainFx.eq,
+  mainFx.filter,
+  mainFx.delay,
+  mainFx.reverb,
 ]);
 
 liveLoop("pad", async () => {
@@ -207,27 +225,27 @@ liveLoop("lead", async () => {
 });
 
 liveLoop("fx-motion", async () => {
-  eq.bass.rampTo(
+  mainFx.eq.bass.rampTo(
     choose([-6, -3, 0, 3, 6]),
     0.18
   );
-  eq.mid.rampTo(
+  mainFx.eq.mid.rampTo(
     choose([-5, -2, 0, 2, 5]),
     0.18
   );
-  eq.treble.rampTo(
+  mainFx.eq.treble.rampTo(
     choose([-6, -2, 0, 3, 7]),
     0.18
   );
-  filter.cutoff.rampTo(
+  mainFx.filter.cutoff.rampTo(
     choose([800, 1200, 1800, 2600, 4200, 6400]),
     0.18
   );
-  delay.mix.rampTo(
+  mainFx.delay.mix.rampTo(
     choose([0.08, 0.12, 0.18, 0.24]),
     0.12
   );
-  reverb.mix.set(
+  mainFx.reverb.mix.set(
     choose([0.1, 0.16, 0.22])
   );
   await beat(0.5);
@@ -276,7 +294,10 @@ const playgroundRuntime = {
   bpm: 120,
   clockStartTime: null,
   liveLoops: new Map(),
+  livePrepared: new Map(),
 };
+const preparedFxUnits =
+  new WeakSet();
 
 function createFxApi() {
   if (!megaDrive.audioContext) {
@@ -334,6 +355,84 @@ function createFxApi() {
       );
     },
   };
+}
+
+function markPreparedFxUnits(value) {
+  if (!value) {
+    return;
+  }
+
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      markPreparedFxUnits(item);
+    }
+    return;
+  }
+
+  if (typeof value !== "object") {
+    return;
+  }
+
+  if (value.input && value.output) {
+    preparedFxUnits.add(value);
+  }
+
+  for (const nestedValue of Object.values(value)) {
+    markPreparedFxUnits(nestedValue);
+  }
+}
+
+function clearRunFxChain() {
+  const previousChain =
+    megaDrive.clearFXChain();
+
+  for (const effect of previousChain) {
+    if (
+      !preparedFxUnits.has(effect)
+    ) {
+      effect?.dispose?.();
+    }
+  }
+}
+
+async function livePrepare(
+  name,
+  fn,
+  api
+) {
+  if (
+    typeof name !== "string" ||
+    name.length === 0
+  ) {
+    throw new Error(
+      "livePrepare(name, fn) requires a non-empty string name"
+    );
+  }
+
+  if (typeof fn !== "function") {
+    throw new Error(
+      "livePrepare(name, fn) requires a callback"
+    );
+  }
+
+  if (
+    playgroundRuntime.livePrepared.has(
+      name
+    )
+  ) {
+    return playgroundRuntime.livePrepared.get(
+      name
+    );
+  }
+
+  const result =
+    await fn(api);
+  playgroundRuntime.livePrepared.set(
+    name,
+    result
+  );
+  markPreparedFxUnits(result);
+  return result;
 }
 
 function setStatus(message) {
@@ -888,9 +987,7 @@ async function runCode() {
 
   try {
     await ensureReady();
-    megaDrive.clearFXChain({
-      dispose: true,
-    });
+    clearRunFxChain();
     setStatus("Running...");
     setRuntimeState("Running");
     const evaluationState = {
@@ -901,6 +998,22 @@ async function runCode() {
     const api = {
       fm: synth,
       fx,
+      livePrepare: (name, fn) =>
+        livePrepare(name, fn, {
+          fm: synth,
+          fx,
+          log: (...args) => {
+            logLine(
+              args
+                .map((value) =>
+                  typeof value === "string"
+                    ? value
+                    : JSON.stringify(value)
+                )
+                .join(" ")
+            );
+          },
+        }),
       play: (note, options) =>
         play(note, options),
       sleep: (seconds) =>
@@ -988,9 +1101,7 @@ function stopRun() {
   currentRunToken += 1;
   stopAllLoops();
   stopAll();
-  megaDrive.clearFXChain({
-    dispose: true,
-  });
+  clearRunFxChain();
   megaDrive.stopRecordingPlayback?.();
   setStatus("Stopped.");
   setRuntimeState("Audio ready");

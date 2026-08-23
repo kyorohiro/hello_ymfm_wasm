@@ -266,6 +266,7 @@
               <li><code>await sleep(0.25)</code> waits in seconds</li>
               <li><code>liveLoop("bass", async () =&gt; {})</code> keeps a named loop alive</li>
               <li><code>setBpm(120)</code>, <code>await beat(1)</code>, <code>await nextBeat()</code></li>
+              <li><code>await livePrepare("main-fx", async ({ fx }) =&gt; ...)</code> reuses prepared live state across runs</li>
               <li><code>scale("Eb2", "majorPentatonic", 2)</code> builds note arrays</li>
               <li><code>choose(array)</code>, <code>rand()</code>, <code>randInt(0, 7)</code></li>
               <li><code>fm</code> is the raw <code>YM2612Synth</code> layer</li>
