@@ -439,7 +439,7 @@ export function createPlaygroundOperatorTab(
       );
     option.value = String(channel);
     option.textContent =
-      `Channel ${channel + 1}`;
+      `Channel ${channel}`;
     channelSelect.appendChild(
       option
     );
@@ -479,7 +479,7 @@ export function createPlaygroundOperatorTab(
         )
       );
       onStatus?.(
-        `Operator tab preset loaded for channel ${selectedChannel + 1}.`
+        `Operator tab preset loaded for channel ${selectedChannel}.`
       );
     }
   );
