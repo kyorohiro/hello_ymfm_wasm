@@ -1,6 +1,159 @@
 # Save Point
 
-Last updated: 2026-08-22
+Last updated: 2026-08-23
+
+## Latest Playground / FX / Monaco status
+
+- `docs/playground/playground.js`
+  now includes:
+  - `livePrepare(name, async ({ fx, fm, log }) => { ... })`
+  - `fx.gain(...)`
+  - `fx.eq(...)`
+  - `fx.filter(...)`
+  - `fx.delay(...)`
+  - `fx.reverb(...)`
+  - `fx.setChain([...])`
+  - `fx.clear()`
+- `web/megasynth.js`
+  / `docs/js/megasynth.js`
+  now support a master FX chain after the YM2612 output:
+  - `setFXChain()`
+  - `getFXChain()`
+  - `connect()`
+  - `clearFXChain()`
+  - `connectOutput()`
+- `web/megasynth_fx.js`
+  / `docs/js/megasynth_fx.js`
+  now include:
+  - `createGainFX(...)`
+  - `createEqFX(...)`
+  - `createFilterFX(...)`
+  - `createDelayFX(...)`
+  - `createReverbFX(...)`
+
+## Important `livePrepare(...)` interpretation
+
+- `livePrepare(name, fn)` is now the first mechanism for:
+  - "do this once"
+  - "reuse this across Run"
+- Current behavior:
+  - first time with a name:
+    - execute `fn`
+    - store result
+  - later calls with the same name:
+    - do not execute `fn` again
+    - return the stored result
+- This is useful especially for:
+  - FX node creation
+  - shared master chain objects
+  - future browser-side live coding state
+- Current limitation:
+  - if the code inside `livePrepare("main-fx", ...)` changes
+  - but the name stays the same
+  - the old prepared result is still reused
+- Likely future additions:
+  - `livePrepareReset(name)`
+  - `livePrepareClearAll()`
+
+## Current Playground examples
+
+- `FX Loop`
+  now uses `livePrepare("fx-loop-chain", ...)`
+  for reusable:
+  - `filter`
+  - `delay`
+  - `reverb`
+- `FX Motion`
+  now uses `livePrepare("fx-motion-chain", ...)`
+  for reusable:
+  - `gain`
+  - `eq`
+  - `filter`
+  - `delay`
+  - `reverb`
+- `FX Motion` also now proves that `liveLoop("fx-motion", ...)`
+  can move:
+  - `eq.bass`
+  - `eq.mid`
+  - `eq.treble`
+  - `filter.cutoff`
+  - `delay.mix`
+  - `reverb.mix`
+  while other loops are playing
+
+## Current click-noise interpretation
+
+- `Run` can still produce a short click / noise.
+- Strong current suspect:
+  - master FX chain is disconnected / reconnected
+  - graph changes happen while audio is live
+- `livePrepare(...)` reduces needless FX recreation,
+  but does not fully solve routing click noise yet.
+- Likely next fix:
+  - fade master gain down briefly
+  - rebuild chain
+  - fade up again
+
+## Monaco status
+
+- `docs/playground/index.html`
+  and `docs/playground/playground.js`
+  now have a first Monaco-based editor path.
+- Current behavior:
+  - try loading Monaco from CDN
+  - if it succeeds:
+    - use Monaco
+    - enable Tetorica-specific completion
+  - if it fails:
+    - keep fallback `textarea`
+- Current Monaco completion focus:
+  - `liveLoop`
+  - `livePrepare`
+  - `play`
+  - `beat`
+  - `nextBeat`
+  - `setBpm`
+  - `fx.`
+  - `fm.`
+  - `MEGADRIVE_FM_PRESETS["..."]`
+- Current Monaco hover focus:
+  - small explanations for:
+    - `liveLoop`
+    - `livePrepare`
+    - `beat`
+    - `nextBeat`
+    - `fx`
+    - `fm`
+
+## Files to read first next time
+
+1. `docs/playground/playground.js`
+   - live runtime
+   - `livePrepare(...)`
+   - FX API
+   - Monaco completion setup
+2. `docs/playground/index.html`
+   - Monaco host + fallback textarea
+   - helper text
+3. `docs/issues/playground_fx.md`
+   - current FX design and implemented direction
+4. `docs/issues/playground_autocomplete.md`
+   - completion direction
+   - Monaco-oriented next ideas
+
+## Likely next steps
+
+1. Verify Monaco behavior more deeply in browser:
+   - completion quality
+   - cursor behavior
+   - fallback behavior
+2. Decide whether `FX Motion` should become the default example.
+3. Add `livePrepareReset(name)` / `livePrepareClearAll()`.
+4. Reduce FX chain click noise on `Run`.
+5. Expand Monaco completion:
+   - object field completion
+   - more snippets
+   - better preset/value suggestions
 
 ## Playground status
 
