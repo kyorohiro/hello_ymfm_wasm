@@ -40,6 +40,45 @@ export {
  */
 
 /**
+ * @typedef {{
+ *   type: "reset",
+ * } | {
+ *   type: "setPreset",
+ *   channel: number,
+ *   preset: object,
+ * } | {
+ *   type: "setOperator",
+ *   channel: number,
+ *   operator: number,
+ *   params: object,
+ * } | {
+ *   type: "setAlgo",
+ *   channel: number,
+ *   algorithm: number,
+ *   feedback: number,
+ * } | {
+ *   type: "setPan",
+ *   channel: number,
+ *   left: boolean,
+ *   right: boolean,
+ * } | {
+ *   type: "noteOn",
+ *   channel: number,
+ *   block: number,
+ *   fnum: number,
+ * } | {
+ *   type: "noteOff",
+ *   channel: number,
+ * }} MegaSynthEvent
+ */
+
+/**
+ * @callback MegaSynthListener
+ * @param {MegaSynthEvent} event
+ * @returns {void}
+ */
+
+/**
  * Browser-side Mega / Genesis-oriented synth runtime.
  *
  * This class hides:
@@ -84,6 +123,7 @@ export class MegaSynth {
     this.recordingManager = null;
     this._recordingHooksInstalled =
       false;
+    this.listeners = new Set();
 
     /** @type {YM2612Synth | null} */
     this.fm = null;
@@ -155,6 +195,36 @@ export class MegaSynth {
    */
   reset() {
     this.fm?.reset();
+  }
+
+  /**
+   * Subscribe to high-level FM actions coming from `fm`.
+   *
+   * This stays on `MegaSynth` so UI/demo sync logic does not have to live
+   * inside the lower-level `YM2612Synth`.
+   *
+   * @param {MegaSynthListener} listener
+   * @returns {() => void}
+   */
+  addListener(listener) {
+    if (typeof listener !== "function") {
+      throw new Error(
+        "listener must be a function"
+      );
+    }
+
+    this.listeners.add(listener);
+    return () => {
+      this.removeListener(listener);
+    };
+  }
+
+  /**
+   * @param {MegaSynthListener} listener
+   * @returns {void}
+   */
+  removeListener(listener) {
+    this.listeners.delete(listener);
   }
 
   /**
@@ -337,6 +407,8 @@ export class MegaSynth {
     this.masterInputNode = null;
 
     this.fm = null;
+    this._recordingHooksInstalled =
+      false;
     this.readyPromise = null;
     this.state = "closed";
 
@@ -556,6 +628,17 @@ export class MegaSynth {
       })
     );
     this.#wrapFmMethod(
+      "setPreset",
+      (channel, preset) => ({
+        type: "setPreset",
+        channel,
+        preset,
+      }),
+      {
+        record: false,
+      }
+    );
+    this.#wrapFmMethod(
       "setOperator",
       (channel, operator, params) => ({
         type: "setOperator",
@@ -609,7 +692,8 @@ export class MegaSynth {
 
   #wrapFmMethod(
     methodName,
-    toCommand
+    toCommand,
+    options = {}
   ) {
     const originalMethod =
       this.fm?.[methodName];
@@ -621,17 +705,42 @@ export class MegaSynth {
     this.fm[methodName] = (
       ...args
     ) => {
+      const event =
+        toCommand(...args);
       const result =
         originalMethod.apply(
           this.fm,
           args
         );
 
-      this.recordingManager?.recordCommand(
-        toCommand(...args)
-      );
+      if (options.record !== false) {
+        this.recordingManager?.recordCommand(
+          event
+        );
+      }
+
+      if (options.emit !== false) {
+        this.#emit(event);
+      }
       return result;
     };
+  }
+
+  /**
+   * @param {MegaSynthEvent} event
+   * @returns {void}
+   */
+  #emit(event) {
+    for (const listener of this.listeners) {
+      try {
+        listener(event);
+      } catch (error) {
+        console.error(
+          "MegaSynth listener failed",
+          error
+        );
+      }
+    }
   }
 }
 

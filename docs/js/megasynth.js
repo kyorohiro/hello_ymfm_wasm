@@ -60,6 +60,7 @@ export class MegaSynth {
     this.recordingManager = null;
     this._recordingHooksInstalled =
       false;
+    this.listeners = new Set();
 
     /**
      * YM2612Synth instance.
@@ -122,6 +123,23 @@ export class MegaSynth {
 
   reset() {
     this.fm?.reset();
+  }
+
+  addListener(listener) {
+    if (typeof listener !== "function") {
+      throw new Error(
+        "listener must be a function"
+      );
+    }
+
+    this.listeners.add(listener);
+    return () => {
+      this.removeListener(listener);
+    };
+  }
+
+  removeListener(listener) {
+    this.listeners.delete(listener);
   }
 
   setFXChain(
@@ -254,6 +272,8 @@ export class MegaSynth {
     this.masterInputNode = null;
 
     this.fm = null;
+    this._recordingHooksInstalled =
+      false;
     this.readyPromise = null;
     this.state = "closed";
 
@@ -467,6 +487,17 @@ export class MegaSynth {
       })
     );
     this.#wrapFmMethod(
+      "setPreset",
+      (channel, preset) => ({
+        type: "setPreset",
+        channel,
+        preset,
+      }),
+      {
+        record: false,
+      }
+    );
+    this.#wrapFmMethod(
       "setOperator",
       (channel, operator, params) => ({
         type: "setOperator",
@@ -520,7 +551,8 @@ export class MegaSynth {
 
   #wrapFmMethod(
     methodName,
-    toCommand
+    toCommand,
+    options = {}
   ) {
     const originalMethod =
       this.fm?.[methodName];
@@ -532,17 +564,38 @@ export class MegaSynth {
     this.fm[methodName] = (
       ...args
     ) => {
+      const event =
+        toCommand(...args);
       const result =
         originalMethod.apply(
           this.fm,
           args
         );
 
-      this.recordingManager?.recordCommand(
-        toCommand(...args)
-      );
+      if (options.record !== false) {
+        this.recordingManager?.recordCommand(
+          event
+        );
+      }
+
+      if (options.emit !== false) {
+        this.#emit(event);
+      }
       return result;
     };
+  }
+
+  #emit(event) {
+    for (const listener of this.listeners) {
+      try {
+        listener(event);
+      } catch (error) {
+        console.error(
+          "MegaSynth listener failed",
+          error
+        );
+      }
+    }
   }
 }
 
