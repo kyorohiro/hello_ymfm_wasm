@@ -283,9 +283,6 @@
           </section>
 
           <section class="card">
-            <h2>Console</h2>
-            <pre id="consoleOutput"></pre>
-
             <h2>Helpers</h2>
             <ul class="helper-list">
               <li><code>await play("C4")</code> plays one note</li>
@@ -296,7 +293,8 @@
               <li><code>scale("Eb2", "majorPentatonic", 2)</code> builds note arrays</li>
               <li><code>choose(array)</code>, <code>rand()</code>, <code>randInt(0, 7)</code></li>
               <li><code>fm</code> is the raw <code>YM2612Synth</code> layer</li>
-              <li><code>fm.rawWrite(port, register, value)</code> sends one raw YM2612 register write</li>
+              <li><code>fm.write(port, register, value)</code> sends one YM2612 register write</li>
+              <li><code>fm.writeAddress(port, register)</code>, <code>fm.writeData(value)</code> follow the YM2612 address/data flow</li>
               <li><code>fx.eq(...)</code>, <code>fx.filter(...)</code>, <code>fx.delay(...)</code>, <code>fx.reverb(...)</code></li>
               <li><code>fx.setChain([filter, delay])</code> replaces the master FX chain</li>
               <li><code>eq.bass.set(...)</code>, <code>eq.mid.rampTo(...)</code>, <code>eq.treble.set(...)</code></li>
@@ -313,6 +311,11 @@
             </p>
           </section>
         </div>
+
+        <section class="card" style="margin-top: 16px;">
+          <h2>Console</h2>
+          <pre id="consoleOutput"></pre>
+        </section>
       </section>
     </main>
 

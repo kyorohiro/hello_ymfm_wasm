@@ -1632,9 +1632,6 @@ async function play(
     pitch.fnum
   );
   activeNotes.add(channel);
-  logLine(
-    `play ${String(note)} ch=${channel + 1}`
-  );
 
   await sleep(duration);
 
