@@ -623,6 +623,11 @@ function registerMonacoCompletions(
           extractFxUnitVariables(
             model.getValue()
           );
+        const livePrepareObjects =
+          extractLivePrepareObjects(
+            model.getValue(),
+            effectUnitVariables
+          );
         const word =
           model.getWordUntilPosition(
             position
@@ -1038,14 +1043,59 @@ function registerMonacoCompletions(
           /(?:^|[^\w$])([A-Za-z_$][\w$]*)\.$/.exec(
             linePrefix
           );
+        const livePreparePropertyMatch =
+          /(?:^|[^\w$])([A-Za-z_$][\w$]*)\.([A-Za-z_$][\w$]*)\.$/.exec(
+            linePrefix
+          );
 
-        if (effectUnitMatch) {
+        if (effectUnitMatch && !livePreparePropertyMatch) {
           const variableName =
             effectUnitMatch[1];
+          const livePrepareObject =
+            livePrepareObjects.get(
+              variableName
+            );
+
+          if (livePrepareObject) {
+            for (const item of createLivePrepareObjectSuggestions(
+              livePrepareObject,
+              kind,
+              range
+            )) {
+              suggestions.push(item);
+            }
+          }
+
           const effectType =
             effectUnitVariables.get(
               variableName
             );
+
+          if (effectType) {
+            for (const item of createFxUnitSuggestions(
+              effectType,
+              kind,
+              snippet,
+              range
+            )) {
+              suggestions.push(item);
+            }
+          }
+        }
+
+        if (livePreparePropertyMatch) {
+          const objectName =
+            livePreparePropertyMatch[1];
+          const propertyName =
+            livePreparePropertyMatch[2];
+          const livePrepareObject =
+            livePrepareObjects.get(
+              objectName
+            );
+          const effectType =
+            livePrepareObject?.properties?.[
+              propertyName
+            ];
 
           if (effectType) {
             for (const item of createFxUnitSuggestions(
@@ -1151,6 +1201,70 @@ function extractFxUnitVariables(
   return variables;
 }
 
+function extractLivePrepareObjects(
+  source,
+  effectUnitVariables
+) {
+  const objects =
+    new Map();
+  const pattern =
+    /\b(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*await\s+livePrepare\s*\([\s\S]*?return\s*\{([\s\S]*?)\}\s*;?[\s\S]*?\)\s*;?/g;
+  let match =
+    pattern.exec(source);
+
+  while (match) {
+    const objectName =
+      match[1];
+    const body =
+      match[2];
+    const properties = {};
+    const parts =
+      body
+        .split(",")
+        .map((part) => part.trim())
+        .filter(Boolean);
+
+    for (const part of parts) {
+      const aliasMatch =
+        /^([A-Za-z_$][\w$]*)\s*:\s*([A-Za-z_$][\w$]*)$/.exec(
+          part
+        );
+      const shorthandMatch =
+        /^([A-Za-z_$][\w$]*)$/.exec(
+          part
+        );
+
+      if (aliasMatch) {
+        const propertyName =
+          aliasMatch[1];
+        const variableName =
+          aliasMatch[2];
+        properties[propertyName] =
+          effectUnitVariables.get(
+            variableName
+          ) ?? "unknown";
+        continue;
+      }
+
+      if (shorthandMatch) {
+        const variableName =
+          shorthandMatch[1];
+        properties[variableName] =
+          effectUnitVariables.get(
+            variableName
+          ) ?? "unknown";
+      }
+    }
+
+    objects.set(objectName, {
+      properties,
+    });
+    match = pattern.exec(source);
+  }
+
+  return objects;
+}
+
 function createFxUnitSuggestions(
   effectType,
   kind,
@@ -1199,6 +1313,31 @@ function createFxUnitSuggestions(
       insertText: name,
       documentation:
         `Parameter control for ${name}. Use .set(...) or .rampTo(...).`,
+      range,
+    });
+  }
+
+  return suggestions;
+}
+
+function createLivePrepareObjectSuggestions(
+  livePrepareObject,
+  kind,
+  range
+) {
+  const suggestions = [];
+
+  for (const [propertyName, effectType] of Object.entries(
+    livePrepareObject.properties
+  )) {
+    suggestions.push({
+      label: propertyName,
+      kind: kind.Property,
+      insertText: propertyName,
+      documentation:
+        effectType === "unknown"
+          ? "Value returned from livePrepare()."
+          : `${effectType} effect unit returned from livePrepare().`,
       range,
     });
   }
