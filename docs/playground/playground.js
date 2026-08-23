@@ -1076,7 +1076,10 @@ async function initializeMonacoEditor() {
       {
         allowNonTsExtensions: true,
         checkJs: false,
-        noLib: true,
+        noLib: false,
+        lib: [
+          "es2020",
+        ],
         target:
           monaco.languages.typescript.ScriptTarget.ES2020,
       }
