@@ -364,6 +364,22 @@ const consoleOutput =
   document.getElementById(
     "consoleOutput"
   );
+const consoleTab =
+  document.getElementById(
+    "consoleTab"
+  );
+const helpersTab =
+  document.getElementById(
+    "helpersTab"
+  );
+const consolePanel =
+  document.getElementById(
+    "consolePanel"
+  );
+const helpersPanel =
+  document.getElementById(
+    "helpersPanel"
+  );
 
 const megaDrive =
   new MegaDriveSynth({
@@ -514,6 +530,13 @@ function createMonacoTopLevelItems(
       insertTextRules: snippet,
       documentation:
         "Pick one random item from an array.",
+    },
+    {
+      label: "pg",
+      kind: kind.Variable,
+      insertText: "pg",
+      documentation:
+        "Tetorica playground helper namespace.",
     },
     {
       label: "fm",
@@ -813,6 +836,201 @@ function registerMonacoCompletions(
         }
 
         if (
+          /\bpg\.$/.test(
+            linePrefix
+          )
+        ) {
+          suggestions.push(
+            {
+              label: "play",
+              kind: kind.Method,
+              insertText:
+                'play("${1:E4}", { channel: ${2:0}, duration: ${3:0.08} })',
+              insertTextRules:
+                snippet,
+              documentation:
+                "Play one note through the YM2612 synth layer.",
+              range,
+            },
+            {
+              label: "sleep",
+              kind: kind.Method,
+              insertText:
+                "sleep(${1:0.12})",
+              insertTextRules:
+                snippet,
+              documentation:
+                "Wait using seconds.",
+              range,
+            },
+            {
+              label: "beat",
+              kind: kind.Method,
+              insertText:
+                "beat(${1:0.5})",
+              insertTextRules:
+                snippet,
+              documentation:
+                "Wait using the shared beat clock.",
+              range,
+            },
+            {
+              label: "nextBeat",
+              kind: kind.Method,
+              insertText:
+                "nextBeat()",
+              insertTextRules:
+                snippet,
+              documentation:
+                "Wait for the next integer beat boundary.",
+              range,
+            },
+            {
+              label: "setBpm",
+              kind: kind.Method,
+              insertText:
+                "setBpm(${1:120})",
+              insertTextRules:
+                snippet,
+              documentation:
+                "Set the shared BPM.",
+              range,
+            },
+            {
+              label: "liveLoop",
+              kind: kind.Method,
+              insertText:
+                'liveLoop("${1:name}", async () => {\n  await pg.play("${2:E4}", { channel: ${3:0}, duration: ${4:0.08} });\n  await pg.beat(${5:0.5});\n})',
+              insertTextRules:
+                snippet,
+              documentation:
+                "Create a repeating named live loop.",
+              range,
+            },
+            {
+              label: "livePrepare",
+              kind: kind.Method,
+              insertText:
+                'livePrepare("${1:main-fx}", async ({ fx, fm, log }) => {\n  ${2:const filter = fx.filter({ type: "lowpass", cutoff: 1200, q: 1.1 });}\n  return { ${3:filter} };\n})',
+              insertTextRules:
+                snippet,
+              documentation:
+                "Prepare and reuse live state across runs.",
+              range,
+            },
+            {
+              label: "scale",
+              kind: kind.Method,
+              insertText:
+                'scale("${1:E4}", "${2:minorPentatonic}", ${3:2})',
+              insertTextRules:
+                snippet,
+              documentation:
+                "Build a note array from a named scale.",
+              range,
+            },
+            {
+              label: "choose",
+              kind: kind.Method,
+              insertText:
+                "choose(${1:values})",
+              insertTextRules:
+                snippet,
+              documentation:
+                "Pick one random item from an array.",
+              range,
+            },
+            {
+              label: "rand",
+              kind: kind.Method,
+              insertText:
+                "rand()",
+              documentation:
+                "Return a random float from 0 to 1.",
+              range,
+            },
+            {
+              label: "randInt",
+              kind: kind.Method,
+              insertText:
+                "randInt(${1:0}, ${2:7})",
+              insertTextRules:
+                snippet,
+              documentation:
+                "Return a random integer in a range.",
+              range,
+            },
+            {
+              label: "stopLoop",
+              kind: kind.Method,
+              insertText:
+                'stopLoop("${1:name}")',
+              insertTextRules:
+                snippet,
+              documentation:
+                "Stop one live loop by name.",
+              range,
+            },
+            {
+              label: "stopAllLoops",
+              kind: kind.Method,
+              insertText:
+                "stopAllLoops()",
+              documentation:
+                "Stop all live loops.",
+              range,
+            },
+            {
+              label: "stopAll",
+              kind: kind.Method,
+              insertText:
+                "stopAll()",
+              documentation:
+                "Stop all sounding notes.",
+              range,
+            },
+            {
+              label: "log",
+              kind: kind.Method,
+              insertText:
+                'log("${1:hello}")',
+              insertTextRules:
+                snippet,
+              documentation:
+                "Write one line to the playground console.",
+              range,
+            },
+            {
+              label: "fm",
+              kind: kind.Property,
+              insertText:
+                "fm",
+              documentation:
+                "Raw YM2612Synth layer.",
+              range,
+            },
+            {
+              label: "fx",
+              kind: kind.Property,
+              insertText:
+                "fx",
+              documentation:
+                "Master FX helper API.",
+              range,
+            },
+            {
+              label: "presets",
+              kind: kind.Property,
+              insertText:
+                "presets",
+              documentation:
+                "Built-in YM2612 preset table.",
+              range,
+            }
+          );
+        }
+
+        if (
           /MEGADRIVE_FM_PRESETS\[\s*["']([^"']*)$/.test(
             linePrefix
           )
@@ -978,6 +1196,26 @@ declare function randInt(min: number, max: number): number;
 declare function stopLoop(name: string): void;
 declare function stopAllLoops(): void;
 declare function stopAll(): void;
+declare const pg: {
+  fm: typeof fm;
+  fx: typeof fx;
+  presets: typeof MEGADRIVE_FM_PRESETS;
+  play: typeof play;
+  sleep: typeof sleep;
+  beat: typeof beat;
+  nextBeat: typeof nextBeat;
+  setBpm: typeof setBpm;
+  liveLoop: typeof liveLoop;
+  livePrepare: typeof livePrepare;
+  scale: typeof scale;
+  choose: typeof choose;
+  rand: typeof rand;
+  randInt: typeof randInt;
+  stopLoop: typeof stopLoop;
+  stopAllLoops: typeof stopAllLoops;
+  stopAll: typeof stopAll;
+  log: (...args: unknown[]) => void;
+};
 `;
 
   monaco.languages.typescript.javascriptDefaults.addExtraLib(
@@ -1327,6 +1565,58 @@ function logLine(message) {
 
 function clearConsole() {
   consoleOutput.textContent = "";
+}
+
+function setBottomTab(tabName) {
+  const showConsole =
+    tabName === "console";
+
+  consoleTab?.setAttribute(
+    "aria-selected",
+    showConsole ? "true" : "false"
+  );
+  helpersTab?.setAttribute(
+    "aria-selected",
+    showConsole ? "false" : "true"
+  );
+
+  if (consolePanel) {
+    consolePanel.hidden =
+      !showConsole;
+  }
+
+  if (helpersPanel) {
+    helpersPanel.hidden =
+      showConsole;
+  }
+}
+
+function moveBottomTabFocus(
+  activeTab,
+  direction
+) {
+  const tabs = [
+    consoleTab,
+    helpersTab,
+  ].filter(Boolean);
+  const currentIndex =
+    tabs.indexOf(activeTab);
+
+  if (currentIndex === -1) {
+    return;
+  }
+
+  const nextIndex =
+    (currentIndex +
+      direction +
+      tabs.length) %
+    tabs.length;
+  tabs[nextIndex]?.focus();
+  setBottomTab(
+    nextIndex === 0
+      ? "console"
+      : "helpers"
+  );
 }
 
 function nowSeconds() {
@@ -1867,26 +2157,28 @@ async function runCode() {
       loopDefinitions: new Map(),
     };
     const fx = createFxApi();
-
-    const api = {
+    const livePrepareApi = {
       fm: synth,
       fx,
+      log: (...args) => {
+        logLine(
+          args
+            .map((value) =>
+              typeof value === "string"
+                ? value
+                : JSON.stringify(value)
+            )
+            .join(" ")
+        );
+      },
+    };
+    const pg = {
+      fm: synth,
+      fx,
+      presets:
+        MEGADRIVE_FM_PRESETS,
       livePrepare: (name, fn) =>
-        livePrepare(name, fn, {
-          fm: synth,
-          fx,
-          log: (...args) => {
-            logLine(
-              args
-                .map((value) =>
-                  typeof value === "string"
-                    ? value
-                    : JSON.stringify(value)
-                )
-                .join(" ")
-            );
-          },
-        }),
+        livePrepare(name, fn, livePrepareApi),
       play: (note, options) =>
         play(note, options),
       sleep: (seconds) =>
@@ -1907,7 +2199,6 @@ async function runCode() {
       rand,
       randInt,
       scale,
-      MEGADRIVE_FM_PRESETS,
       log: (...args) => {
         logLine(
           args
@@ -1919,6 +2210,32 @@ async function runCode() {
             .join(" ")
         );
       },
+    };
+
+    const api = {
+      pg,
+      fm: synth,
+      fx,
+      livePrepare: (name, fn) =>
+        pg.livePrepare(name, fn),
+      play: (note, options) =>
+        pg.play(note, options),
+      sleep: (seconds) =>
+        pg.sleep(seconds),
+      beat: pg.beat,
+      nextBeat: pg.nextBeat,
+      setBpm: pg.setBpm,
+      liveLoop: (name, fn) =>
+        pg.liveLoop(name, fn),
+      stopLoop: pg.stopLoop,
+      stopAllLoops: pg.stopAllLoops,
+      stopAll: pg.stopAll,
+      choose: pg.choose,
+      rand: pg.rand,
+      randInt: pg.randInt,
+      scale: pg.scale,
+      MEGADRIVE_FM_PRESETS,
+      log: pg.log,
     };
 
     const AsyncFunction =
@@ -2105,7 +2422,48 @@ loadExampleButton.addEventListener(
   }
 );
 
+consoleTab?.addEventListener(
+  "click",
+  () => {
+    setBottomTab("console");
+  }
+);
+
+helpersTab?.addEventListener(
+  "click",
+  () => {
+    setBottomTab("helpers");
+  }
+);
+
+consoleTab?.addEventListener(
+  "keydown",
+  (event) => {
+    if (event.key === "ArrowRight") {
+      event.preventDefault();
+      moveBottomTabFocus(
+        consoleTab,
+        1
+      );
+    }
+  }
+);
+
+helpersTab?.addEventListener(
+  "keydown",
+  (event) => {
+    if (event.key === "ArrowLeft") {
+      event.preventDefault();
+      moveBottomTabFocus(
+        helpersTab,
+        -1
+      );
+    }
+  }
+);
+
 applyInitialSourceFromQuery();
 clearConsole();
+setBottomTab("console");
 setRuntimeState("Audio idle");
 void initializeMonacoEditor();

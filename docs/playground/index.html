@@ -227,6 +227,32 @@
         border-radius: 999px;
       }
 
+      .tabbar {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 12px;
+      }
+
+      .tab-button {
+        min-height: 30px;
+        padding: 4px 10px;
+        border-radius: 999px;
+        border: 1px solid rgba(126, 56, 28, 0.18);
+        background: rgba(255, 255, 255, 0.72);
+        color: var(--ink);
+        font-weight: 700;
+      }
+
+      .tab-button[aria-selected="true"] {
+        color: white;
+        background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+      }
+
+      .tab-panel[hidden] {
+        display: none;
+      }
+
       @media (max-width: 960px) {
         .layout {
           grid-template-columns: 1fr;
@@ -281,28 +307,71 @@
               Monaco editor is loading. If it cannot load, the fallback textarea stays active.
             </p>
           </section>
+        </div>
 
-          <section class="card">
-            <h2>Helpers</h2>
+        <section class="card" style="margin-top: 16px;">
+          <div class="tabbar" role="tablist" aria-label="Playground panels">
+            <button
+              id="consoleTab"
+              class="tab-button"
+              type="button"
+              role="tab"
+              aria-selected="true"
+              aria-controls="consolePanel"
+            >
+              Console
+            </button>
+            <button
+              id="helpersTab"
+              class="tab-button"
+              type="button"
+              role="tab"
+              aria-selected="false"
+              aria-controls="helpersPanel"
+            >
+              Helpers
+            </button>
+          </div>
+
+          <section id="consolePanel" class="tab-panel" role="tabpanel" aria-labelledby="consoleTab">
+            <pre id="consoleOutput"></pre>
+          </section>
+
+          <section id="helpersPanel" class="tab-panel" role="tabpanel" aria-labelledby="helpersTab" hidden>
+            <h2>pg</h2>
             <ul class="helper-list">
-              <li><code>await play("C4")</code> plays one note</li>
-              <li><code>await sleep(0.25)</code> waits in seconds</li>
-              <li><code>liveLoop("bass", async () =&gt; {})</code> keeps a named loop alive</li>
-              <li><code>setBpm(120)</code>, <code>await beat(1)</code>, <code>await nextBeat()</code></li>
-              <li><code>await livePrepare("main-fx", async ({ fx }) =&gt; ...)</code> reuses prepared live state across runs</li>
-              <li><code>scale("Eb2", "majorPentatonic", 2)</code> builds note arrays</li>
-              <li><code>choose(array)</code>, <code>rand()</code>, <code>randInt(0, 7)</code></li>
+              <li><code>pg</code> is the main playground helper namespace</li>
+              <li><code>pg.play("C4", { channel: 0, duration: 0.2 })</code> plays one note</li>
+              <li><code>pg.sleep(0.25)</code> waits in seconds</li>
+              <li><code>pg.liveLoop("bass", async () =&gt; {})</code> keeps a named loop alive</li>
+              <li><code>pg.setBpm(120)</code>, <code>await pg.beat(1)</code>, <code>await pg.nextBeat()</code></li>
+              <li><code>await pg.livePrepare("main-fx", async ({ fx }) =&gt; ...)</code> reuses prepared live state across runs</li>
+              <li><code>pg.scale("Eb2", "majorPentatonic", 2)</code> builds note arrays</li>
+              <li><code>pg.choose(array)</code>, <code>pg.rand()</code>, <code>pg.randInt(0, 7)</code></li>
+              <li><code>pg.stopLoop(name)</code>, <code>pg.stopAllLoops()</code>, <code>pg.stopAll()</code></li>
+            </ul>
+
+            <h2 style="margin-top: 14px;">fm</h2>
+            <ul class="helper-list">
               <li><code>fm</code> is the raw <code>YM2612Synth</code> layer</li>
+              <li><code>await play("C4")</code> plays one note</li>
+              <li><code>pg.fm</code> points to the same YM2612 layer</li>
+              <li><code>fm.setPreset(0, pg.presets["one-op-basic"])</code> applies one preset</li>
               <li><code>fm.write(port, register, value)</code> sends one YM2612 register write</li>
               <li><code>fm.writeAddress(port, register)</code>, <code>fm.writeData(value)</code> follow the YM2612 address/data flow</li>
+            </ul>
+
+            <h2 style="margin-top: 14px;">fx</h2>
+            <ul class="helper-list">
+              <li><code>fx</code> is the master FX helper layer</li>
+              <li><code>pg.fx</code> points to the same FX helper layer</li>
               <li><code>fx.eq(...)</code>, <code>fx.filter(...)</code>, <code>fx.delay(...)</code>, <code>fx.reverb(...)</code></li>
               <li><code>fx.setChain([filter, delay])</code> replaces the master FX chain</li>
               <li><code>eq.bass.set(...)</code>, <code>eq.mid.rampTo(...)</code>, <code>eq.treble.set(...)</code></li>
               <li><code>filter.cutoff.set(...)</code>, <code>filter.cutoff.rampTo(...)</code></li>
-              <li><code>stopLoop(name)</code>, <code>stopAllLoops()</code>, <code>stopAll()</code></li>
             </ul>
 
-            <h2>Note</h2>
+            <h2 style="margin-top: 14px;">Note</h2>
             <p class="subtext">
               This first version already includes a small <code>liveLoop()</code>
               runtime with shared BPM/beat timing. It is enough to start trying
@@ -310,11 +379,6 @@
               safer live coding behavior still need more work.
             </p>
           </section>
-        </div>
-
-        <section class="card" style="margin-top: 16px;">
-          <h2>Console</h2>
-          <pre id="consoleOutput"></pre>
         </section>
       </section>
     </main>
