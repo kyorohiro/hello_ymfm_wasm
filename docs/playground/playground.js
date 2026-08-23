@@ -1811,6 +1811,16 @@ function clearConsole() {
   consoleOutput.textContent = "";
 }
 
+function formatLogArgs(args) {
+  return args
+    .map((value) =>
+      typeof value === "string"
+        ? value
+        : JSON.stringify(value)
+    )
+    .join(" ");
+}
+
 function setBottomTab(tabName) {
   const showConsole =
     tabName === "console";
@@ -2406,13 +2416,24 @@ async function runCode() {
       fx,
       log: (...args) => {
         logLine(
-          args
-            .map((value) =>
-              typeof value === "string"
-                ? value
-                : JSON.stringify(value)
-            )
-            .join(" ")
+          formatLogArgs(args)
+        );
+      },
+    };
+    const playgroundConsole = {
+      log: (...args) => {
+        logLine(
+          formatLogArgs(args)
+        );
+      },
+      warn: (...args) => {
+        logLine(
+          `[warn] ${formatLogArgs(args)}`
+        );
+      },
+      error: (...args) => {
+        logLine(
+          `[error] ${formatLogArgs(args)}`
         );
       },
     };
@@ -2445,18 +2466,14 @@ async function runCode() {
       scale,
       log: (...args) => {
         logLine(
-          args
-            .map((value) =>
-              typeof value === "string"
-                ? value
-                : JSON.stringify(value)
-            )
-            .join(" ")
+          formatLogArgs(args)
         );
       },
     };
 
     const api = {
+      console:
+        playgroundConsole,
       pg,
       fm: synth,
       fx,
