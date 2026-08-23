@@ -168,3 +168,42 @@ The important part is:
 - centralize the fretboard state
 - rebuild visible key labels from that state
 - keep shortcuts as thin UI over the same state
+
+## Listener direction
+
+For future controller synchronization, prefer adding observer/listener support on the `MegaSynth` side rather than inside `YM2612Synth`.
+
+Reason:
+
+- `YM2612Synth` should stay as the readable low-level FM control layer
+- listener / UI synchronization / recorder-facing notification logic would make `YM2612Synth` heavier
+- `MegaSynth` is the better place to expose browser/demo-facing change events
+
+Recommended direction:
+
+- `YM2612Synth`
+  - stays thin
+  - keeps high-level FM helpers and low-level write helpers
+- `MegaSynth`
+  - emits events for:
+    - `setPreset`
+    - `setOperator`
+    - `setAlgo`
+    - `setPan`
+    - `noteOn`
+    - `noteOff`
+    - optional raw low-level writes later
+- UI controllers subscribe to `MegaSynth` events and update themselves from listeners
+
+This should make controller code more reusable across:
+
+- `docs/synth`
+- `docs/playground`
+- future game/demo embeddings
+
+Important note about low-level writes:
+
+- high-level FM events are easy to synchronize
+- low-level `write(...)` / `writeAddress(...)` / `writeData(...)` are harder to interpret
+- first listener design should prioritize high-level events
+- raw low-level events can be emitted separately later if needed
