@@ -147,22 +147,41 @@
       }
 
       textarea,
+      .editor-host,
       pre,
       code {
         font-family: "SFMono-Regular", Menlo, Consolas, monospace;
       }
 
-      textarea {
+      textarea,
+      .editor-host {
         width: 100%;
         min-height: 420px;
-        resize: vertical;
-        padding: 14px;
         border-radius: 16px;
         border: 1px solid rgba(43, 36, 29, 0.12);
         background: var(--code);
         color: var(--code-ink);
+      }
+
+      textarea {
+        resize: vertical;
+        padding: 14px;
         font-size: 0.88rem;
         line-height: 1.5;
+      }
+
+      .editor-host {
+        overflow: hidden;
+      }
+
+      .editor-host[data-ready="false"] {
+        display: none;
+      }
+
+      .editor-note {
+        margin-top: 8px;
+        font-size: 0.78rem;
+        color: rgba(31, 27, 22, 0.78);
       }
 
       pre {
@@ -213,7 +232,8 @@
           grid-template-columns: 1fr;
         }
 
-        textarea {
+        textarea,
+        .editor-host {
           min-height: 320px;
         }
       }
@@ -253,7 +273,11 @@
         <div class="layout">
           <section class="card">
             <h2>Code</h2>
+            <div id="editorHost" class="editor-host" data-ready="false"></div>
             <textarea id="editor" spellcheck="false"></textarea>
+            <p id="editorNote" class="editor-note">
+              Monaco editor is loading. If it cannot load, the fallback textarea stays active.
+            </p>
           </section>
 
           <section class="card">

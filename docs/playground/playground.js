@@ -5,6 +5,7 @@ import {
   createFilterFX,
   createGainFX,
   createReverbFX,
+  MEGADRIVE_FM_PRESET_ORDER,
   MEGADRIVE_FM_PRESETS,
 } from "../js/megasynth.js";
 import {
@@ -267,6 +268,14 @@ const exampleSelect =
   );
 const editor =
   document.getElementById("editor");
+const editorHost =
+  document.getElementById(
+    "editorHost"
+  );
+const editorNote =
+  document.getElementById(
+    "editorNote"
+  );
 const status =
   document.getElementById("status");
 const runtimeState =
@@ -298,6 +307,627 @@ const playgroundRuntime = {
 };
 const preparedFxUnits =
   new WeakSet();
+let editorAdapter =
+  createTextareaEditorAdapter(
+    editor
+  );
+
+function createTextareaEditorAdapter(
+  textarea
+) {
+  return {
+    kind: "textarea",
+    getValue() {
+      return textarea.value;
+    },
+    setValue(value) {
+      textarea.value = value;
+    },
+    focus() {
+      textarea.focus();
+    },
+  };
+}
+
+function setEditorNote(message) {
+  if (editorNote) {
+    editorNote.textContent =
+      message;
+  }
+}
+
+function getEditorValue() {
+  return editorAdapter.getValue();
+}
+
+function setEditorValue(value) {
+  editorAdapter.setValue(value);
+}
+
+function createMonacoTopLevelItems(
+  monaco
+) {
+  const kind =
+    monaco.languages
+      .CompletionItemKind;
+  const snippet =
+    monaco.languages
+      .CompletionItemInsertTextRule
+      .InsertAsSnippet;
+
+  return [
+    {
+      label: "liveLoop",
+      kind: kind.Snippet,
+      insertText:
+        'liveLoop("${1:name}", async () => {\n  ${2:await play("E4", { channel: 0, duration: 0.08 });}\n  await beat(${3:0.5});\n});',
+      insertTextRules: snippet,
+      documentation:
+        "Create a repeating named live loop.",
+    },
+    {
+      label: "livePrepare",
+      kind: kind.Snippet,
+      insertText:
+        'const ${1:mainFx} = await livePrepare("${2:main-fx}", async ({ fx, fm, log }) => {\n  ${3:const filter = fx.filter({ type: "lowpass", cutoff: 1200, q: 1.1 });}\n  return { ${4:filter} };\n});',
+      insertTextRules: snippet,
+      documentation:
+        "Prepare and reuse live state across runs.",
+    },
+    {
+      label: "play",
+      kind: kind.Function,
+      insertText:
+        'await play("${1:E4}", { channel: ${2:0}, duration: ${3:0.08} });',
+      insertTextRules: snippet,
+      documentation:
+        "Play one note through the YM2612 synth layer.",
+    },
+    {
+      label: "beat",
+      kind: kind.Function,
+      insertText:
+        "await beat(${1:0.5});",
+      insertTextRules: snippet,
+      documentation:
+        "Wait using the shared beat clock.",
+    },
+    {
+      label: "nextBeat",
+      kind: kind.Function,
+      insertText:
+        "await nextBeat();",
+      insertTextRules: snippet,
+      documentation:
+        "Wait for the next integer beat boundary.",
+    },
+    {
+      label: "setBpm",
+      kind: kind.Function,
+      insertText:
+        "setBpm(${1:120});",
+      insertTextRules: snippet,
+      documentation:
+        "Set the shared BPM used by beat().",
+    },
+    {
+      label: "scale",
+      kind: kind.Function,
+      insertText:
+        'scale("${1:E4}", "${2:minorPentatonic}", ${3:2})',
+      insertTextRules: snippet,
+      documentation:
+        "Build a note array from a named scale.",
+    },
+    {
+      label: "choose",
+      kind: kind.Function,
+      insertText:
+        "choose(${1:values})",
+      insertTextRules: snippet,
+      documentation:
+        "Pick one random item from an array.",
+    },
+    {
+      label: "fm",
+      kind: kind.Variable,
+      insertText: "fm",
+      documentation:
+        "Raw YM2612Synth control layer.",
+    },
+    {
+      label: "fx",
+      kind: kind.Variable,
+      insertText: "fx",
+      documentation:
+        "Master FX creation and chain control.",
+    },
+    {
+      label:
+        "MEGADRIVE_FM_PRESETS",
+      kind: kind.Variable,
+      insertText:
+        "MEGADRIVE_FM_PRESETS",
+      documentation:
+        "Built-in YM2612 preset table.",
+    },
+  ];
+}
+
+function registerMonacoCompletions(
+  monaco
+) {
+  const kind =
+    monaco.languages
+      .CompletionItemKind;
+  const snippet =
+    monaco.languages
+      .CompletionItemInsertTextRule
+      .InsertAsSnippet;
+  const topLevelItems =
+    createMonacoTopLevelItems(
+      monaco
+    );
+
+  monaco.languages.registerCompletionItemProvider(
+    "javascript",
+    {
+      triggerCharacters: [
+        ".",
+        '"',
+        "'",
+      ],
+
+      provideCompletionItems(
+        model,
+        position
+      ) {
+        const word =
+          model.getWordUntilPosition(
+            position
+          );
+        const range = {
+          startLineNumber:
+            position.lineNumber,
+          endLineNumber:
+            position.lineNumber,
+          startColumn:
+            word.startColumn,
+          endColumn:
+            word.endColumn,
+        };
+        const linePrefix =
+          model.getLineContent(
+            position.lineNumber
+          )
+            .slice(
+              0,
+              position.column - 1
+            );
+        const suggestions = [];
+
+        if (
+          /\bfx\.$/.test(
+            linePrefix
+          )
+        ) {
+          suggestions.push(
+            {
+              label: "gain",
+              kind: kind.Function,
+              insertText:
+                'gain({ gain: ${1:1.0} })',
+              insertTextRules:
+                snippet,
+              documentation:
+                "Create a gain effect unit.",
+              range,
+            },
+            {
+              label: "eq",
+              kind: kind.Function,
+              insertText:
+                'eq({\n  bass: ${1:0},\n  mid: ${2:0},\n  treble: ${3:0},\n})',
+              insertTextRules:
+                snippet,
+              documentation:
+                "Create a 3-band EQ unit.",
+              range,
+            },
+            {
+              label: "filter",
+              kind: kind.Function,
+              insertText:
+                'filter({\n  type: "${1:lowpass}",\n  cutoff: ${2:1200},\n  q: ${3:1.1},\n})',
+              insertTextRules:
+                snippet,
+              documentation:
+                "Create a filter effect unit.",
+              range,
+            },
+            {
+              label: "delay",
+              kind: kind.Function,
+              insertText:
+                'delay({\n  time: ${1:0.24},\n  feedback: ${2:0.28},\n  mix: ${3:0.16},\n})',
+              insertTextRules:
+                snippet,
+              documentation:
+                "Create a delay effect unit.",
+              range,
+            },
+            {
+              label: "reverb",
+              kind: kind.Function,
+              insertText:
+                'reverb({\n  mix: ${1:0.18},\n  tone: ${2:5400},\n})',
+              insertTextRules:
+                snippet,
+              documentation:
+                "Create a reverb effect unit.",
+              range,
+            },
+            {
+              label: "setChain",
+              kind: kind.Method,
+              insertText:
+                "setChain([${1:effect}])",
+              insertTextRules:
+                snippet,
+              documentation:
+                "Replace the current master FX chain.",
+              range,
+            },
+            {
+              label: "clear",
+              kind: kind.Method,
+              insertText:
+                "clear()",
+              documentation:
+                "Clear the current master FX chain.",
+              range,
+            }
+          );
+        }
+
+        if (
+          /\bfm\.$/.test(
+            linePrefix
+          )
+        ) {
+          suggestions.push(
+            {
+              label: "setPreset",
+              kind: kind.Method,
+              insertText:
+                'setPreset(${1:0}, MEGADRIVE_FM_PRESETS["${2:one-op-basic}"])',
+              insertTextRules:
+                snippet,
+              documentation:
+                "Apply one preset to one YM2612 channel.",
+              range,
+            },
+            {
+              label: "setOperator",
+              kind: kind.Method,
+              insertText:
+                'setOperator(${1:0}, ${2:4}, {\n  dt: ${3:0},\n  multi: ${4:1},\n  tl: ${5:8},\n  ar: ${6:22},\n  d1r: ${7:6},\n  d2r: ${8:3},\n  sl: ${9:3},\n  rr: ${10:8},\n})',
+              insertTextRules:
+                snippet,
+              documentation:
+                "Partially update one YM2612 operator.",
+              range,
+            },
+            {
+              label: "setAlgo",
+              kind: kind.Method,
+              insertText:
+                "setAlgo(${1:0}, ${2:7}, ${3:0})",
+              insertTextRules:
+                snippet,
+              documentation:
+                "Set YM2612 algorithm and feedback for a channel.",
+              range,
+            },
+            {
+              label: "setPan",
+              kind: kind.Method,
+              insertText:
+                "setPan(${1:0}, ${2:true}, ${3:true})",
+              insertTextRules:
+                snippet,
+              documentation:
+                "Set stereo output enable flags for a channel.",
+              range,
+            },
+            {
+              label: "noteOn",
+              kind: kind.Method,
+              insertText:
+                "noteOn(${1:0}, ${2:4}, ${3:553})",
+              insertTextRules:
+                snippet,
+              documentation:
+                "Trigger YM2612 note on with block and F-Number.",
+              range,
+            },
+            {
+              label: "noteOff",
+              kind: kind.Method,
+              insertText:
+                "noteOff(${1:0})",
+              insertTextRules:
+                snippet,
+              documentation:
+                "Trigger YM2612 note off on one channel.",
+              range,
+            }
+          );
+        }
+
+        if (
+          /MEGADRIVE_FM_PRESETS\[\s*["']([^"']*)$/.test(
+            linePrefix
+          )
+        ) {
+          for (const presetName of MEGADRIVE_FM_PRESET_ORDER) {
+            suggestions.push({
+              label: presetName,
+              kind: kind.Value,
+              insertText:
+                presetName,
+              documentation:
+                MEGADRIVE_FM_PRESETS[
+                  presetName
+                ]?.label ??
+                presetName,
+              range,
+            });
+          }
+        }
+
+        if (
+          /\.(bass|mid|treble|cutoff|q|mix|feedback|time|tone)\.$/.test(
+            linePrefix
+          )
+        ) {
+          suggestions.push(
+            {
+              label: "set",
+              kind: kind.Method,
+              insertText:
+                "set(${1:value})",
+              insertTextRules:
+                snippet,
+              documentation:
+                "Set one effect parameter immediately.",
+              range,
+            },
+            {
+              label: "rampTo",
+              kind: kind.Method,
+              insertText:
+                "rampTo(${1:value}, ${2:0.18})",
+              insertTextRules:
+                snippet,
+              documentation:
+                "Smoothly move one effect parameter over time.",
+              range,
+            }
+          );
+        }
+
+        if (
+          suggestions.length === 0
+        ) {
+          for (const item of topLevelItems) {
+            suggestions.push({
+              ...item,
+              range,
+            });
+          }
+        }
+
+        return {
+          suggestions,
+        };
+      },
+    }
+  );
+}
+
+function registerMonacoHover(
+  monaco
+) {
+  monaco.languages.registerHoverProvider(
+    "javascript",
+    {
+      provideHover(
+        model,
+        position
+      ) {
+        const word =
+          model.getWordAtPosition(
+            position
+          );
+
+        if (!word) {
+          return null;
+        }
+
+        const docs = {
+          liveLoop:
+            "Create a named repeating live loop.",
+          livePrepare:
+            "Prepare and reuse live state across runs.",
+          beat:
+            "Wait using the shared beat clock.",
+          nextBeat:
+            "Wait for the next beat boundary.",
+          fx: "Create and connect master FX units.",
+          fm: "Control raw YM2612Synth behavior.",
+        };
+        const message =
+          docs[word.word];
+
+        if (!message) {
+          return null;
+        }
+
+        return {
+          contents: [
+            {
+              value: `**${word.word}**\n\n${message}`,
+            },
+          ],
+        };
+      },
+    }
+  );
+}
+
+function loadMonacoLoader() {
+  return new Promise(
+    (resolve, reject) => {
+      if (
+        window.require?.config &&
+        window.monaco
+      ) {
+        resolve(window.monaco);
+        return;
+      }
+
+      const script =
+        document.createElement(
+          "script"
+        );
+      script.src =
+        "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs/loader.min.js";
+      script.onload = () => {
+        resolve();
+      };
+      script.onerror = () => {
+        reject(
+          new Error(
+            "Failed to load Monaco loader"
+          )
+        );
+      };
+      document.head.appendChild(
+        script
+      );
+    }
+  );
+}
+
+async function initializeMonacoEditor() {
+  try {
+    await loadMonacoLoader();
+  } catch (error) {
+    console.warn(error);
+    setEditorNote(
+      "Monaco editor could not load. Fallback textarea is active."
+    );
+    return;
+  }
+
+  try {
+    await new Promise(
+      (resolve, reject) => {
+        window.MonacoEnvironment = {
+          getWorkerUrl() {
+            const workerSource =
+              `
+                self.MonacoEnvironment = { baseUrl: "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/" };
+                importScripts("https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs/base/worker/workerMain.js");
+              `;
+            return URL.createObjectURL(
+              new Blob(
+                [workerSource],
+                {
+                  type: "text/javascript",
+                }
+              )
+            );
+          },
+        };
+
+        window.require.config({
+          paths: {
+            vs: "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs",
+          },
+        });
+
+        window.require(
+          [
+            "vs/editor/editor.main",
+          ],
+          () => {
+            resolve();
+          },
+          reject
+        );
+      }
+    );
+
+    const monaco =
+      window.monaco;
+    registerMonacoCompletions(
+      monaco
+    );
+    registerMonacoHover(monaco);
+
+    const monacoEditor =
+      monaco.editor.create(
+        editorHost,
+        {
+          value: getEditorValue(),
+          language: "javascript",
+          theme: "vs-dark",
+          automaticLayout: true,
+          minimap: {
+            enabled: false,
+          },
+          fontSize: 13,
+          lineHeight: 21,
+          roundedSelection: false,
+          scrollBeyondLastLine: false,
+          tabSize: 2,
+          wordWrap: "on",
+          quickSuggestions: true,
+          suggestOnTriggerCharacters: true,
+          snippetSuggestions: "top",
+        }
+      );
+
+    editorHost.dataset.ready =
+      "true";
+    editor.style.display = "none";
+    setEditorNote(
+      "Monaco editor is active. Tetorica-specific completion is enabled."
+    );
+
+    editorAdapter = {
+      kind: "monaco",
+      getValue() {
+        return monacoEditor.getValue();
+      },
+      setValue(value) {
+        monacoEditor.setValue(
+          value
+        );
+      },
+      focus() {
+        monacoEditor.focus();
+      },
+    };
+  } catch (error) {
+    console.warn(error);
+    setEditorNote(
+      "Monaco editor setup failed. Fallback textarea is active."
+    );
+  }
+}
 
 function createFxApi() {
   if (!megaDrive.audioContext) {
@@ -1055,7 +1685,7 @@ async function runCode() {
     const userFunction =
       new AsyncFunction(
         ...Object.keys(api),
-        `"use strict";\n${editor.value}`
+        `"use strict";\n${getEditorValue()}`
       );
 
     await userFunction(
@@ -1113,7 +1743,7 @@ function loadExample() {
     EXAMPLES[
       exampleSelect.value
     ] ?? EXAMPLES.single;
-  editor.value = nextCode;
+  setEditorValue(nextCode);
   setStatus(
     `Loaded example: ${exampleSelect.value}`
   );
@@ -1141,6 +1771,9 @@ loadExampleButton.addEventListener(
 );
 
 exampleSelect.value = "live-loop";
-editor.value = EXAMPLES["live-loop"];
+setEditorValue(
+  EXAMPLES["live-loop"]
+);
 clearConsole();
 setRuntimeState("Audio idle");
+void initializeMonacoEditor();
