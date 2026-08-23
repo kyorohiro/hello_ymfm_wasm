@@ -1835,6 +1835,98 @@ function loadExample() {
   );
 }
 
+function decodeBase64Source(
+  encodedSource
+) {
+  if (!encodedSource) {
+    return null;
+  }
+
+  try {
+    const normalized =
+      String(encodedSource)
+        .replace(/-/g, "+")
+        .replace(/_/g, "/");
+    const padding =
+      normalized.length % 4 === 0
+        ? ""
+        : "=".repeat(
+            4 -
+              (normalized.length %
+                4)
+          );
+    const binary = atob(
+      normalized + padding
+    );
+    const bytes =
+      Uint8Array.from(
+        binary,
+        (char) =>
+          char.charCodeAt(0)
+      );
+
+    return new TextDecoder().decode(
+      bytes
+    );
+  } catch (error) {
+    console.warn(error);
+    setStatus(
+      "Failed to decode ?src=..."
+    );
+    return null;
+  }
+}
+
+function applyInitialSourceFromQuery() {
+  const params =
+    new URLSearchParams(
+      window.location.search
+    );
+  const encodedSource =
+    params.get("src");
+
+  if (encodedSource) {
+    const decodedSource =
+      decodeBase64Source(
+        encodedSource
+      );
+
+    if (decodedSource !== null) {
+      setEditorValue(
+        decodedSource
+      );
+      setStatus(
+        "Loaded code from ?src=..."
+      );
+      return;
+    }
+  }
+
+  const exampleName =
+    params.get("ex");
+
+  if (
+    exampleName &&
+    EXAMPLES[exampleName]
+  ) {
+    exampleSelect.value =
+      exampleName;
+    setEditorValue(
+      EXAMPLES[exampleName]
+    );
+    setStatus(
+      `Loaded example from ?ex=${exampleName}`
+    );
+    return;
+  }
+
+  exampleSelect.value =
+    "live-loop";
+  setEditorValue(
+    EXAMPLES["live-loop"]
+  );
+}
+
 runButton.addEventListener(
   "click",
   () => {
@@ -1856,10 +1948,7 @@ loadExampleButton.addEventListener(
   }
 );
 
-exampleSelect.value = "live-loop";
-setEditorValue(
-  EXAMPLES["live-loop"]
-);
+applyInitialSourceFromQuery();
 clearConsole();
 setRuntimeState("Audio idle");
 void initializeMonacoEditor();
