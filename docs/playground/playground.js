@@ -619,6 +619,10 @@ function registerMonacoCompletions(
         model,
         position
       ) {
+        const effectUnitVariables =
+          extractFxUnitVariables(
+            model.getValue()
+          );
         const word =
           model.getWordUntilPosition(
             position
@@ -1030,6 +1034,31 @@ function registerMonacoCompletions(
           );
         }
 
+        const effectUnitMatch =
+          /(?:^|[^\w$])([A-Za-z_$][\w$]*)\.$/.exec(
+            linePrefix
+          );
+
+        if (effectUnitMatch) {
+          const variableName =
+            effectUnitMatch[1];
+          const effectType =
+            effectUnitVariables.get(
+              variableName
+            );
+
+          if (effectType) {
+            for (const item of createFxUnitSuggestions(
+              effectType,
+              kind,
+              snippet,
+              range
+            )) {
+              suggestions.push(item);
+            }
+          }
+        }
+
         if (
           /MEGADRIVE_FM_PRESETS\[\s*["']([^"']*)$/.test(
             linePrefix
@@ -1099,6 +1128,82 @@ function registerMonacoCompletions(
       },
     }
   );
+}
+
+function extractFxUnitVariables(
+  source
+) {
+  const variables =
+    new Map();
+  const pattern =
+    /\b(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*fx\.(gain|eq|filter|delay|reverb)\s*\(/g;
+  let match =
+    pattern.exec(source);
+
+  while (match) {
+    variables.set(
+      match[1],
+      match[2]
+    );
+    match = pattern.exec(source);
+  }
+
+  return variables;
+}
+
+function createFxUnitSuggestions(
+  effectType,
+  kind,
+  snippet,
+  range
+) {
+  const suggestions = [
+    {
+      label: "input",
+      kind: kind.Property,
+      insertText: "input",
+      documentation:
+        "AudioNode input of this effect unit.",
+      range,
+    },
+    {
+      label: "output",
+      kind: kind.Property,
+      insertText: "output",
+      documentation:
+        "AudioNode output of this effect unit.",
+      range,
+    },
+    {
+      label: "dispose",
+      kind: kind.Method,
+      insertText: "dispose()",
+      documentation:
+        "Disconnect and dispose this effect unit.",
+      range,
+    },
+  ];
+
+  const parameterNames = {
+    gain: ["gain"],
+    eq: ["bass", "mid", "treble"],
+    filter: ["cutoff", "q"],
+    delay: ["time", "feedback", "mix"],
+    reverb: ["mix", "tone"],
+  }[effectType] ?? [];
+
+  for (const name of parameterNames) {
+    suggestions.push({
+      label: name,
+      kind: kind.Property,
+      insertText: name,
+      documentation:
+        `Parameter control for ${name}. Use .set(...) or .rampTo(...).`,
+      range,
+    });
+  }
+
+  return suggestions;
 }
 
 function registerMonacoHover(
@@ -1373,7 +1478,7 @@ async function initializeMonacoEditor() {
             showKeywords: false,
             showModules: false,
             showOperators: false,
-            showProperties: false,
+            showProperties: true,
             showReferences: false,
             showStructs: false,
             showTypeParameters: false,
