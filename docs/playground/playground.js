@@ -1072,6 +1072,21 @@ async function initializeMonacoEditor() {
 
     const monaco =
       window.monaco;
+    monaco.languages.typescript.javascriptDefaults.setCompilerOptions(
+      {
+        allowNonTsExtensions: true,
+        checkJs: false,
+        noLib: true,
+        target:
+          monaco.languages.typescript.ScriptTarget.ES2020,
+      }
+    );
+    monaco.languages.typescript.javascriptDefaults.setDiagnosticsOptions(
+      {
+        noSemanticValidation: true,
+        noSyntaxValidation: false,
+      }
+    );
     registerMonacoCompletions(
       monaco
     );
@@ -1097,9 +1112,34 @@ async function initializeMonacoEditor() {
           scrollBeyondLastLine: false,
           tabSize: 2,
           wordWrap: "on",
+          wordBasedSuggestions: "off",
           quickSuggestions: true,
           suggestOnTriggerCharacters: true,
           snippetSuggestions: "top",
+          suggest: {
+            showClasses: false,
+            showColors: false,
+            showConstants: false,
+            showConstructors: false,
+            showEnums: false,
+            showEnumMembers: false,
+            showEvents: false,
+            showFields: false,
+            showFiles: false,
+            showFolders: false,
+            showInterfaces: false,
+            showIssues: false,
+            showKeywords: false,
+            showModules: false,
+            showOperators: false,
+            showProperties: false,
+            showReferences: false,
+            showStructs: false,
+            showTypeParameters: false,
+            showUsers: false,
+            showVariables: true,
+            showWords: false,
+          },
         }
       );
 
