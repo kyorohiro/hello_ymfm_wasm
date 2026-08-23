@@ -12,6 +12,58 @@
  * Public API operator numbers are 1..4.
  */
 
+/**
+ * @typedef {{
+ *   write(port: number, register: number, value: number): void,
+ *   reset?: () => void,
+ * }} YM2612Transport
+ */
+
+/**
+ * @typedef {{
+ *   dt?: number,
+ *   multi?: number,
+ *   tl?: number,
+ *   rs?: number,
+ *   ar?: number,
+ *   d1r?: number,
+ *   sr?: number,
+ *   d2r?: number,
+ *   sl?: number,
+ *   rr?: number,
+ *   ssg?: number,
+ * }} YM2612OperatorParams
+ */
+
+/**
+ * @typedef {{
+ *   left?: boolean,
+ *   right?: boolean,
+ * }} YM2612PanParams
+ */
+
+/**
+ * @typedef {{
+ *   algorithm?: number,
+ *   feedback?: number,
+ *   pan?: YM2612PanParams,
+ *   left?: boolean,
+ *   right?: boolean,
+ *   operators?: {
+ *     1?: YM2612OperatorParams,
+ *     2?: YM2612OperatorParams,
+ *     3?: YM2612OperatorParams,
+ *     4?: YM2612OperatorParams,
+ *   },
+ * }} YM2612Preset
+ */
+
+/**
+ * @typedef {{
+ *   transport: YM2612Transport,
+ * }} YM2612SynthOptions
+ */
+
 const CHANNEL_COUNT = 6;
 const OPERATOR_COUNT = 4;
 
@@ -75,6 +127,9 @@ const DEFAULT_CHANNEL_STATE = Object.freeze({
  * A future AudioWorklet transport can implement the same `write` / `reset` shape.
  */
 export class YM2612DirectTransport {
+  /**
+   * @param {{ writeRegister(register: number, value: number, port?: number): void, reset?: () => void }} chip
+   */
   constructor(chip) {
     if (!chip || typeof chip.writeRegister !== "function") {
       throw new Error("YM2612DirectTransport requires a chip with writeRegister(register, value, port)");
@@ -94,6 +149,9 @@ export class YM2612DirectTransport {
 }
 
 export class YM2612WorkletTransport {
+  /**
+   * @param {AudioWorkletNode} node
+   */
   constructor(node) {
     this.node = node;
   }
@@ -116,13 +174,7 @@ export class YM2612WorkletTransport {
 
 export class YM2612Synth {
   /**
-   * @param {{
-   *   transport?: {
-   *     write: ((port: number, register: number, value: number) => void) |
-   *            ((command: { port: number, register: number, value: number }) => void),
-   *     reset?: () => void
-   *   }
-   * }} [options]
+   * @param {YM2612SynthOptions} options
    */
   constructor(options = {}) {
     const { transport } = options;
@@ -170,7 +222,7 @@ export class YM2612Synth {
    * }
    *
    * @param {number} channel
-   * @param {object} preset
+   * @param {YM2612Preset} preset
    * @returns {void}
    */
   setPreset(channel, preset) {
@@ -215,19 +267,7 @@ export class YM2612Synth {
    *
    * @param {number} channel
    * @param {number} operator
-   * @param {{
-   *   dt?: number,
-   *   multi?: number,
-   *   tl?: number,
-   *   rs?: number,
-   *   ar?: number,
-   *   d1r?: number,
-   *   sr?: number,
-   *   d2r?: number,
-   *   sl?: number,
-   *   rr?: number,
-   *   ssg?: number,
-   * }} params
+   * @param {YM2612OperatorParams} params
    * @returns {void}
    */
   setOperator(channel, operator, params) {

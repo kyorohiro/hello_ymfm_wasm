@@ -19,6 +19,27 @@ export {
 } from "./megadrive-fm-presets.js";
 
 /**
+ * @typedef {import("./megasynth_fx.js").AnyFXUnit} AnyFXUnit
+ * @typedef {import("./ym2612synth.js").YM2612Synth} YM2612Synth
+ * @typedef {import("./ym2612synth.js").YM2612Transport} YM2612Transport
+ */
+
+/**
+ * @typedef {{
+ *   audioContext?: AudioContext | null,
+ *   outputNode?: AudioNode | null,
+ *   workletUrl?: string,
+ *   ym2612WasmUrl?: string,
+ * }} MegaSynthOptions
+ */
+
+/**
+ * @typedef {{
+ *   dispose?: boolean,
+ * }} FXChainOptions
+ */
+
+/**
  * Browser-side Mega / Genesis-oriented synth runtime.
  *
  * This class hides:
@@ -38,6 +59,9 @@ export {
  * - VGM playback
  */
 export class MegaSynth {
+  /**
+   * @param {MegaSynthOptions} [options]
+   */
   constructor(options = {}) {
     this.ownsAudioContext =
       !options.audioContext;
@@ -61,14 +85,12 @@ export class MegaSynth {
     this._recordingHooksInstalled =
       false;
 
-    /**
-     * YM2612Synth instance.
-     *
-     * Available after start().
-     */
+    /** @type {YM2612Synth | null} */
     this.fm = null;
 
+    /** @type {Promise<void> | null} */
     this.readyPromise = null;
+    /** @type {"idle" | "starting" | "ready" | "error" | "closed"} */
     this.state = "idle";
   }
 
@@ -77,6 +99,8 @@ export class MegaSynth {
    *
    * This should normally be called from a user gesture such as
    * a click, pointerdown, or keydown event.
+   *
+    * @returns {Promise<MegaSynth>}
    */
   async start() {
     if (this.readyPromise) {
@@ -102,6 +126,9 @@ export class MegaSynth {
     return this;
   }
 
+  /**
+   * @returns {Promise<void>}
+   */
   async resume() {
     if (
       this.audioContext &&
@@ -111,6 +138,9 @@ export class MegaSynth {
     }
   }
 
+  /**
+   * @returns {Promise<void>}
+   */
   async suspend() {
     if (
       this.audioContext &&
@@ -120,10 +150,18 @@ export class MegaSynth {
     }
   }
 
+  /**
+   * @returns {void}
+   */
   reset() {
     this.fm?.reset();
   }
 
+  /**
+   * @param {AnyFXUnit[]} [effects]
+   * @param {FXChainOptions} [options]
+   * @returns {void}
+   */
   setFXChain(
     effects = [],
     options = {}
@@ -149,10 +187,17 @@ export class MegaSynth {
     }
   }
 
+  /**
+   * @returns {AnyFXUnit[]}
+   */
   getFXChain() {
     return this.fxChain.slice();
   }
 
+  /**
+   * @param {AnyFXUnit} effect
+   * @returns {MegaSynth}
+   */
   connect(effect) {
     this.fxChain.push(effect);
 
@@ -163,6 +208,10 @@ export class MegaSynth {
     return this;
   }
 
+  /**
+   * @param {FXChainOptions} [options]
+   * @returns {AnyFXUnit[]}
+   */
   clearFXChain(options = {}) {
     const previousChain =
       this.fxChain.slice();
@@ -181,6 +230,10 @@ export class MegaSynth {
     return previousChain;
   }
 
+  /**
+   * @param {AudioNode | null} [node]
+   * @returns {MegaSynth}
+   */
   connectOutput(node = null) {
     this.outputNode =
       node ??
@@ -195,21 +248,34 @@ export class MegaSynth {
     return this;
   }
 
+  /**
+   * @returns {*}
+   */
   startRecord() {
     this.#ensureRecordingManager();
     return this.recordingManager.start();
   }
 
+  /**
+   * @returns {*}
+   */
   stopRecord() {
     this.#ensureRecordingManager();
     return this.recordingManager.stop();
   }
 
+  /**
+   * @returns {*}
+   */
   exportRecording() {
     this.#ensureRecordingManager();
     return this.recordingManager.exportRecording();
   }
 
+  /**
+   * @param {*} recording
+   * @returns {*}
+   */
   importRecording(recording) {
     this.#ensureRecordingManager();
     return this.recordingManager.importRecording(
@@ -217,6 +283,11 @@ export class MegaSynth {
     );
   }
 
+  /**
+   * @param {*} [recording=null]
+   * @param {object} [options={}]
+   * @returns {*}
+   */
   playRecording(recording = null, options = {}) {
     this.#ensureRecordingManager();
     return this.recordingManager.play(
@@ -225,11 +296,17 @@ export class MegaSynth {
     );
   }
 
+  /**
+   * @returns {void}
+   */
   stopRecordingPlayback() {
     this.#ensureRecordingManager();
     this.recordingManager.stopPlayback();
   }
 
+  /**
+   * @returns {boolean}
+   */
   isRecording() {
     return (
       this.recordingManager?.isRecording() ??
@@ -237,6 +314,9 @@ export class MegaSynth {
     );
   }
 
+  /**
+   * @returns {boolean}
+   */
   isRecordingPlaybackActive() {
     return (
       this.recordingManager?.isPlaying() ??
@@ -244,6 +324,9 @@ export class MegaSynth {
     );
   }
 
+  /**
+   * @returns {Promise<void>}
+   */
   async close() {
     if (this.node) {
       this.node.disconnect();
@@ -266,10 +349,16 @@ export class MegaSynth {
     }
   }
 
+  /**
+   * @returns {boolean}
+   */
   isReady() {
     return this.state === "ready" && !!this.fm;
   }
 
+  /**
+   * @returns {boolean}
+   */
   isStarting() {
     return this.state === "starting";
   }
