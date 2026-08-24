@@ -726,8 +726,65 @@ function createNoteSuggestions(
     insertText: name,
     documentation:
       `Note name: ${name}`,
+    insertText: `"${name}"`,
     range,
   }));
+}
+
+function createPlayCallSuggestions(
+  kind,
+  snippet,
+  range
+) {
+  return [
+    {
+      label: '"E4"',
+      kind: kind.Value,
+      insertText: '"${1:E4}"',
+      insertTextRules: snippet,
+      documentation:
+        "First note argument for play().",
+      range,
+    },
+    {
+      label: '"C4", { ... }',
+      kind: kind.Snippet,
+      insertText:
+        '"${1:C4}", { channel: ${2:0}, duration: ${3:0.08} }',
+      insertTextRules: snippet,
+      documentation:
+        "Play note plus options object.",
+      range,
+    },
+  ];
+}
+
+function createScaleCallSuggestions(
+  kind,
+  snippet,
+  range
+) {
+  return [
+    {
+      label: '"E4"',
+      kind: kind.Value,
+      insertText: '"${1:E4}"',
+      insertTextRules: snippet,
+      documentation:
+        "Root note argument for scale().",
+      range,
+    },
+    {
+      label: '"E4", "minorPentatonic", 2',
+      kind: kind.Snippet,
+      insertText:
+        '"${1:E4}", "${2:minorPentatonic}", ${3:2}',
+      insertTextRules: snippet,
+      documentation:
+        "Root note, scale name, and octave span.",
+      range,
+    },
+  ];
 }
 
 function createRegisterSuggestions(
@@ -827,6 +884,26 @@ function isInsideNoteString(
   return /(^|[^.\w])(play|scale)\(\s*["'][^"']*$/.test(
     linePrefix
   ) || /pg\.(play|scale)\(\s*["'][^"']*$/.test(
+    linePrefix
+  );
+}
+
+function isAtPlayFirstArgument(
+  linePrefix
+) {
+  return /(^|[^.\w])play\(\s*$/.test(
+    linePrefix
+  ) || /pg\.play\(\s*$/.test(
+    linePrefix
+  );
+}
+
+function isAtScaleFirstArgument(
+  linePrefix
+) {
+  return /(^|[^.\w])scale\(\s*$/.test(
+    linePrefix
+  ) || /pg\.scale\(\s*$/.test(
     linePrefix
   );
 }
@@ -999,6 +1076,34 @@ function registerMonacoCompletions(
           suggestions.push(
             ...createPresetSuggestions(
               kind,
+              range
+            )
+          );
+        }
+
+        if (
+          isAtPlayFirstArgument(
+            linePrefix
+          )
+        ) {
+          suggestions.push(
+            ...createPlayCallSuggestions(
+              kind,
+              snippet,
+              range
+            )
+          );
+        }
+
+        if (
+          isAtScaleFirstArgument(
+            linePrefix
+          )
+        ) {
+          suggestions.push(
+            ...createScaleCallSuggestions(
+              kind,
+              snippet,
               range
             )
           );
