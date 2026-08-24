@@ -12,6 +12,59 @@
  * Public API operator numbers are 1..4.
  */
 
+/**
+ * @typedef {{
+ *   write(port: number, register: number, value: number): void,
+ *   reset?: () => void,
+ * }} YM2612Transport
+ */
+
+/**
+ * @typedef {{
+ *   dt?: number,
+ *   multi?: number,
+ *   tl?: number,
+ *   rs?: number,
+ *   ar?: number,
+ *   am?: boolean,
+ *   d1r?: number,
+ *   sr?: number,
+ *   d2r?: number,
+ *   sl?: number,
+ *   rr?: number,
+ *   ssg?: number,
+ * }} YM2612OperatorParams
+ */
+
+/**
+ * @typedef {{
+ *   left?: boolean,
+ *   right?: boolean,
+ * }} YM2612PanParams
+ */
+
+/**
+ * @typedef {{
+ *   algorithm?: number,
+ *   feedback?: number,
+ *   pan?: YM2612PanParams,
+ *   left?: boolean,
+ *   right?: boolean,
+ *   operators?: {
+ *     1?: YM2612OperatorParams,
+ *     2?: YM2612OperatorParams,
+ *     3?: YM2612OperatorParams,
+ *     4?: YM2612OperatorParams,
+ *   },
+ * }} YM2612Preset
+ */
+
+/**
+ * @typedef {{
+ *   transport: YM2612Transport,
+ * }} YM2612SynthOptions
+ */
+
 const CHANNEL_COUNT = 6;
 const OPERATOR_COUNT = 4;
 
@@ -52,6 +105,7 @@ const DEFAULT_OPERATOR_STATE = Object.freeze({
   tl: 0x7f,
   rs: 0,
   ar: 0,
+  am: false,
   d1r: 0,
   d2r: 0,
   sl: 0,
@@ -68,6 +122,11 @@ const DEFAULT_CHANNEL_STATE = Object.freeze({
   fnum: 0,
 });
 
+const DEFAULT_LFO_STATE = Object.freeze({
+  enabled: false,
+  frequency: 0,
+});
+
 /**
  * Direct transport for the current `web/ym2612.js` implementation.
  *
@@ -75,6 +134,9 @@ const DEFAULT_CHANNEL_STATE = Object.freeze({
  * A future AudioWorklet transport can implement the same `write` / `reset` shape.
  */
 export class YM2612DirectTransport {
+  /**
+   * @param {{ writeRegister(register: number, value: number, port?: number): void, reset?: () => void }} chip
+   */
   constructor(chip) {
     if (!chip || typeof chip.writeRegister !== "function") {
       throw new Error("YM2612DirectTransport requires a chip with writeRegister(register, value, port)");
@@ -94,6 +156,9 @@ export class YM2612DirectTransport {
 }
 
 export class YM2612WorkletTransport {
+  /**
+   * @param {AudioWorkletNode} node
+   */
   constructor(node) {
     this.node = node;
   }
@@ -116,13 +181,7 @@ export class YM2612WorkletTransport {
 
 export class YM2612Synth {
   /**
-   * @param {{
-   *   transport?: {
-   *     write: ((port: number, register: number, value: number) => void) |
-   *            ((command: { port: number, register: number, value: number }) => void),
-   *     reset?: () => void
-   *   }
-   * }} [options]
+   * @param {YM2612SynthOptions} options
    */
   constructor(options = {}) {
     const { transport } = options;
@@ -142,6 +201,10 @@ export class YM2612Synth {
 
     this._pendingAddressPort = undefined;
     this._pendingAddressRegister = undefined;
+    this.lfo = {
+      enabled: DEFAULT_LFO_STATE.enabled,
+      frequency: DEFAULT_LFO_STATE.frequency,
+    };
     this.channels = [];
     for (let channel = 0; channel < CHANNEL_COUNT; channel += 1) {
       this.channels.push(createDefaultChannelState());
@@ -170,7 +233,7 @@ export class YM2612Synth {
    * }
    *
    * @param {number} channel
-   * @param {object} preset
+   * @param {YM2612Preset} preset
    * @returns {void}
    */
   setPreset(channel, preset) {
@@ -215,19 +278,7 @@ export class YM2612Synth {
    *
    * @param {number} channel
    * @param {number} operator
-   * @param {{
-   *   dt?: number,
-   *   multi?: number,
-   *   tl?: number,
-   *   rs?: number,
-   *   ar?: number,
-   *   d1r?: number,
-   *   sr?: number,
-   *   d2r?: number,
-   *   sl?: number,
-   *   rr?: number,
-   *   ssg?: number,
-   * }} params
+   * @param {YM2612OperatorParams} params
    * @returns {void}
    */
   setOperator(channel, operator, params) {
@@ -271,12 +322,25 @@ export class YM2612Synth {
       this._write(port, 0x50 + channelOffset + slotOffset, (rs << 6) | ar);
     }
 
-    if (params.d1r !== undefined) {
-      state.d1r = validateRange("d1r", params.d1r, 0, 31);
+    if (params.am !== undefined || params.d1r !== undefined) {
+      const am =
+        params.am !== undefined
+          ? validateBoolean("am", params.am)
+          : state.am;
+      const d1r =
+        params.d1r !== undefined
+          ? validateRange("d1r", params.d1r, 0, 31)
+          : state.d1r;
+      state.am = am;
+      state.d1r = d1r;
 
-      // First Decay Rate
+      // AM enable / First Decay Rate
       // base 0x60
-      this._write(port, 0x60 + channelOffset + slotOffset, state.d1r);
+      this._write(
+        port,
+        0x60 + channelOffset + slotOffset,
+        (am ? 0x80 : 0x00) | d1r
+      );
     }
 
     if (params.sr !== undefined || params.d2r !== undefined) {
@@ -368,6 +432,39 @@ export class YM2612Synth {
     // base 0xb4
     // AMS / FMS bits are left at 0 in this first synth layer
     this._write(port, 0xb4 + channelOffset, value);
+  }
+
+  /**
+   * Set YM2612 chip-global LFO state.
+   *
+   * Register 0x22:
+   * - bit 3 = LFO enable
+   * - bits 2-0 = LFO frequency
+   *
+   * @param {boolean} enabled
+   * @param {number} frequency
+   * @returns {void}
+   */
+  setLfo(enabled, frequency) {
+    const validEnabled = validateBoolean("enabled", enabled);
+    const validFrequency = validateRange(
+      "frequency",
+      frequency,
+      0,
+      7
+    );
+
+    this.lfo.enabled = validEnabled;
+    this.lfo.frequency = validFrequency;
+
+    // LFO enable / frequency
+    // chip-global register 0x22 on port 0
+    this._write(
+      0,
+      0x22,
+      (validEnabled ? 0x08 : 0x00) |
+        validFrequency
+    );
   }
 
   /**
@@ -537,6 +634,7 @@ export class YM2612Synth {
 
   getState() {
     return structuredCloneCompat({
+      lfo: this.lfo,
       channels: this.channels,
     });
   }
@@ -581,6 +679,15 @@ function assertOperator(operator) {
 function validateRange(name, value, min, max) {
   if (!Number.isInteger(value) || value < min || value > max) {
     throw new Error(`${name} must be an integer in range ${min}..${max}, got ${value}`);
+  }
+  return value;
+}
+
+function validateBoolean(name, value) {
+  if (typeof value !== "boolean") {
+    throw new Error(
+      `${name} must be a boolean, got ${value}`
+    );
   }
   return value;
 }

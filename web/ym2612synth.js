@@ -26,6 +26,7 @@
  *   tl?: number,
  *   rs?: number,
  *   ar?: number,
+ *   am?: boolean,
  *   d1r?: number,
  *   sr?: number,
  *   d2r?: number,
@@ -104,6 +105,7 @@ const DEFAULT_OPERATOR_STATE = Object.freeze({
   tl: 0x7f,
   rs: 0,
   ar: 0,
+  am: false,
   d1r: 0,
   d2r: 0,
   sl: 0,
@@ -118,6 +120,11 @@ const DEFAULT_CHANNEL_STATE = Object.freeze({
   right: true,
   block: 4,
   fnum: 0,
+});
+
+const DEFAULT_LFO_STATE = Object.freeze({
+  enabled: false,
+  frequency: 0,
 });
 
 /**
@@ -194,6 +201,10 @@ export class YM2612Synth {
 
     this._pendingAddressPort = undefined;
     this._pendingAddressRegister = undefined;
+    this.lfo = {
+      enabled: DEFAULT_LFO_STATE.enabled,
+      frequency: DEFAULT_LFO_STATE.frequency,
+    };
     this.channels = [];
     for (let channel = 0; channel < CHANNEL_COUNT; channel += 1) {
       this.channels.push(createDefaultChannelState());
@@ -311,12 +322,25 @@ export class YM2612Synth {
       this._write(port, 0x50 + channelOffset + slotOffset, (rs << 6) | ar);
     }
 
-    if (params.d1r !== undefined) {
-      state.d1r = validateRange("d1r", params.d1r, 0, 31);
+    if (params.am !== undefined || params.d1r !== undefined) {
+      const am =
+        params.am !== undefined
+          ? validateBoolean("am", params.am)
+          : state.am;
+      const d1r =
+        params.d1r !== undefined
+          ? validateRange("d1r", params.d1r, 0, 31)
+          : state.d1r;
+      state.am = am;
+      state.d1r = d1r;
 
-      // First Decay Rate
+      // AM enable / First Decay Rate
       // base 0x60
-      this._write(port, 0x60 + channelOffset + slotOffset, state.d1r);
+      this._write(
+        port,
+        0x60 + channelOffset + slotOffset,
+        (am ? 0x80 : 0x00) | d1r
+      );
     }
 
     if (params.sr !== undefined || params.d2r !== undefined) {
@@ -408,6 +432,39 @@ export class YM2612Synth {
     // base 0xb4
     // AMS / FMS bits are left at 0 in this first synth layer
     this._write(port, 0xb4 + channelOffset, value);
+  }
+
+  /**
+   * Set YM2612 chip-global LFO state.
+   *
+   * Register 0x22:
+   * - bit 3 = LFO enable
+   * - bits 2-0 = LFO frequency
+   *
+   * @param {boolean} enabled
+   * @param {number} frequency
+   * @returns {void}
+   */
+  setLfo(enabled, frequency) {
+    const validEnabled = validateBoolean("enabled", enabled);
+    const validFrequency = validateRange(
+      "frequency",
+      frequency,
+      0,
+      7
+    );
+
+    this.lfo.enabled = validEnabled;
+    this.lfo.frequency = validFrequency;
+
+    // LFO enable / frequency
+    // chip-global register 0x22 on port 0
+    this._write(
+      0,
+      0x22,
+      (validEnabled ? 0x08 : 0x00) |
+        validFrequency
+    );
   }
 
   /**
@@ -577,6 +634,7 @@ export class YM2612Synth {
 
   getState() {
     return structuredCloneCompat({
+      lfo: this.lfo,
       channels: this.channels,
     });
   }
@@ -621,6 +679,15 @@ function assertOperator(operator) {
 function validateRange(name, value, min, max) {
   if (!Number.isInteger(value) || value < min || value > max) {
     throw new Error(`${name} must be an integer in range ${min}..${max}, got ${value}`);
+  }
+  return value;
+}
+
+function validateBoolean(name, value) {
+  if (typeof value !== "boolean") {
+    throw new Error(
+      `${name} must be a boolean, got ${value}`
+    );
   }
   return value;
 }

@@ -1,3 +1,127 @@
+/**
+ * @typedef {{
+ *   get(): number,
+ *   set(value: number): number,
+ *   rampTo(value: number, seconds?: number): number,
+ * }} AudioParamControl
+ */
+
+/**
+ * @typedef {{
+ *   get(): number,
+ *   set(value: number): number,
+ * }} SimpleParamControl
+ */
+
+/**
+ * @typedef {AudioNode | { input: AudioNode }} FXConnectTarget
+ */
+
+/**
+ * @typedef {{
+ *   type: string,
+ *   input: AudioNode,
+ *   output: AudioNode,
+ *   params: Record<string, unknown>,
+ *   connect(target: FXConnectTarget): FXConnectTarget,
+ *   disconnect(): void,
+ *   dispose(): void,
+ * }} BaseFXUnit
+ */
+
+/**
+ * @typedef {{ gain?: number }} GainFXOptions
+ */
+
+/**
+ * @typedef {{
+ *   bass?: number,
+ *   bassFrequency?: number,
+ *   mid?: number,
+ *   midFrequency?: number,
+ *   midQ?: number,
+ *   treble?: number,
+ *   trebleFrequency?: number,
+ * }} EqFXOptions
+ */
+
+/**
+ * @typedef {{
+ *   type?: BiquadFilterType,
+ *   cutoff?: number,
+ *   q?: number,
+ * }} FilterFXOptions
+ */
+
+/**
+ * @typedef {{
+ *   time?: number,
+ *   feedback?: number,
+ *   mix?: number,
+ * }} DelayFXOptions
+ */
+
+/**
+ * @typedef {{
+ *   mix?: number,
+ *   tone?: number,
+ *   seconds?: number,
+ *   decay?: number,
+ * }} ReverbFXOptions
+ */
+
+/**
+ * @typedef {BaseFXUnit & {
+ *   type: "gain",
+ *   gain: AudioParamControl,
+ * }} GainFXUnit
+ */
+
+/**
+ * @typedef {BaseFXUnit & {
+ *   type: "eq",
+ *   bass: AudioParamControl,
+ *   mid: AudioParamControl,
+ *   treble: AudioParamControl,
+ * }} EqFXUnit
+ */
+
+/**
+ * @typedef {BaseFXUnit & {
+ *   type: "filter",
+ *   cutoff: AudioParamControl,
+ *   q: AudioParamControl,
+ * }} FilterFXUnit
+ */
+
+/**
+ * @typedef {BaseFXUnit & {
+ *   type: "delay",
+ *   time: AudioParamControl,
+ *   feedback: AudioParamControl,
+ *   mix: SimpleParamControl,
+ * }} DelayFXUnit
+ */
+
+/**
+ * @typedef {BaseFXUnit & {
+ *   type: "reverb",
+ *   mix: SimpleParamControl,
+ *   tone: AudioParamControl,
+ * }} ReverbFXUnit
+ */
+
+/**
+ * @typedef {GainFXUnit | EqFXUnit | FilterFXUnit | DelayFXUnit | ReverbFXUnit} AnyFXUnit
+ */
+
+/**
+ * @param {unknown} value
+ * @param {number} fallback
+ * @param {number} [min=-Infinity]
+ * @param {number} [max=Infinity]
+ * @returns {number}
+ */
 function clampNumber(
   value,
   fallback,
@@ -15,6 +139,12 @@ function clampNumber(
   );
 }
 
+/**
+ * @param {BaseAudioContext} audioContext
+ * @param {AudioParam} audioParam
+ * @param {{ min?: number, max?: number }} [options]
+ * @returns {AudioParamControl}
+ */
 function createAudioParamControl(
   audioContext,
   audioParam,
@@ -77,6 +207,11 @@ function createAudioParamControl(
   };
 }
 
+/**
+ * @param {AudioNode} sourceNode
+ * @param {FXConnectTarget} target
+ * @returns {FXConnectTarget}
+ */
 function connectTarget(
   sourceNode,
   target
@@ -94,6 +229,10 @@ function connectTarget(
   return target;
 }
 
+/**
+ * @param {AudioNode | null | undefined} node
+ * @returns {void}
+ */
 function disconnectNode(node) {
   try {
     node?.disconnect();
@@ -102,6 +241,17 @@ function disconnectNode(node) {
   }
 }
 
+/**
+ * @template {Record<string, unknown>} T
+ * @param {{
+ *   type: string,
+ *   input: AudioNode,
+ *   output: AudioNode,
+ *   params?: T,
+ *   disposeNodes?: Array<AudioNode | null | undefined>,
+ * }} options
+ * @returns {BaseFXUnit & T}
+ */
 function createEffectUnit({
   type,
   input,
@@ -137,6 +287,12 @@ function createEffectUnit({
   return effect;
 }
 
+/**
+ * @param {GainNode} dryGain
+ * @param {GainNode} wetGain
+ * @param {unknown} mix
+ * @returns {void}
+ */
 function setDryWetMix(
   dryGain,
   wetGain,
@@ -153,6 +309,11 @@ function setDryWetMix(
   wetGain.gain.value = nextMix;
 }
 
+/**
+ * @param {BaseAudioContext} audioContext
+ * @param {ReverbFXOptions} [options]
+ * @returns {AudioBuffer}
+ */
 function createImpulseResponse(
   audioContext,
   options = {}
@@ -202,6 +363,11 @@ function createImpulseResponse(
   return impulse;
 }
 
+/**
+ * @param {BaseAudioContext} audioContext
+ * @param {GainFXOptions} [options]
+ * @returns {GainFXUnit}
+ */
 export function createGainFX(
   audioContext,
   options = {}
@@ -240,6 +406,11 @@ export function createGainFX(
   });
 }
 
+/**
+ * @param {BaseAudioContext} audioContext
+ * @param {EqFXOptions} [options]
+ * @returns {EqFXUnit}
+ */
 export function createEqFX(
   audioContext,
   options = {}
@@ -355,6 +526,11 @@ export function createEqFX(
   });
 }
 
+/**
+ * @param {BaseAudioContext} audioContext
+ * @param {FilterFXOptions} [options]
+ * @returns {FilterFXUnit}
+ */
 export function createFilterFX(
   audioContext,
   options = {}
@@ -415,6 +591,11 @@ export function createFilterFX(
   });
 }
 
+/**
+ * @param {BaseAudioContext} audioContext
+ * @param {DelayFXOptions} [options]
+ * @returns {DelayFXUnit}
+ */
 export function createDelayFX(
   audioContext,
   options = {}
@@ -506,6 +687,11 @@ export function createDelayFX(
   });
 }
 
+/**
+ * @param {BaseAudioContext} audioContext
+ * @param {ReverbFXOptions} [options]
+ * @returns {ReverbFXUnit}
+ */
 export function createReverbFX(
   audioContext,
   options = {}

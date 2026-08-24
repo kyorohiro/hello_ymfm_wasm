@@ -68,7 +68,42 @@ function verifyChannel4RegisterOrder() {
   }
 }
 
+function verifyAmPacking() {
+  const { synth, writes } = collectWrites();
+
+  synth.setOperator(0, 4, {
+    am: true,
+    d1r: 6,
+  });
+
+  expectEqual(writes.length, 1, "am write count");
+  expectEqual(writes[0].port, 0, "am port");
+  expectEqual(writes[0].register, 0x6c, "am register");
+  expectEqual(
+    writes[0].value,
+    0x80 | 6,
+    "am packed value"
+  );
+}
+
+function verifyLfoRegister() {
+  const { synth, writes } = collectWrites();
+
+  synth.setLfo(true, 5);
+
+  expectEqual(writes.length, 1, "lfo write count");
+  expectEqual(writes[0].port, 0, "lfo port");
+  expectEqual(writes[0].register, 0x22, "lfo register");
+  expectEqual(
+    writes[0].value,
+    0x08 | 5,
+    "lfo packed value"
+  );
+}
+
 verifyOperatorRegisterOrder();
 verifyChannel4RegisterOrder();
+verifyAmPacking();
+verifyLfoRegister();
 
-console.log("YM2612Synth operator mapping OK");
+console.log("YM2612Synth mapping and control packing OK");

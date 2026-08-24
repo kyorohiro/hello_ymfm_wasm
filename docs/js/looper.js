@@ -122,7 +122,6 @@ export class MegaSynthLooper {
     this.currentUnit = null;
     this.units = [];
 
-    this._nextUnitId = 1;
     this._scheduledTimers = [];
     this._activeChannels = new Set();
     this._recordStopTimer = null;
@@ -178,7 +177,6 @@ export class MegaSynthLooper {
     await this.stop();
     this.loopLength = null;
     this.units = [];
-    this._nextUnitId = 1;
     this._rebuildPlaybackChannelMaps();
     this._notifyStateChange("clear");
   }
@@ -209,9 +207,11 @@ export class MegaSynthLooper {
       this.loopLength === null
         ? 0
         : this._getLoopPosition(startedAt);
+    const nextUnitNumber =
+      this.units.length + 1;
 
     this.currentUnit = {
-      id: `unit-${this._nextUnitId}`,
+      id: `unit-${nextUnitNumber}`,
       startedAt,
       startedLoopTime,
       patch: this._clonePatch(
@@ -221,7 +221,6 @@ export class MegaSynthLooper {
     };
 
     await this.startAudioCapture();
-    this._nextUnitId += 1;
     this.recording = true;
     this.armed = false;
     this._clearArmTimer();
@@ -240,15 +239,14 @@ export class MegaSynthLooper {
       options.auto === true;
     const finishedAt = this.now();
     const currentUnit = this.currentUnit;
+    this.currentUnit = null;
+    this.recording = false;
+    this._clearRecordStopTimer();
     const audioResult =
       await this.stopAudioCapture();
     const hasEvents =
       currentUnit.events.length > 0;
     const readyAt = this.now();
-
-    this.currentUnit = null;
-    this.recording = false;
-    this._clearRecordStopTimer();
 
     if (!hasEvents) {
       if (
@@ -373,10 +371,10 @@ export class MegaSynthLooper {
     if (this.recording) {
       const canceledUnitId =
         this.currentUnit?.id ?? null;
-      await this.stopAudioCapture();
       this.currentUnit = null;
       this.recording = false;
       this._clearRecordStopTimer();
+      await this.stopAudioCapture();
       this._notifyStateChange(
         "record-cancel",
         {
@@ -1088,6 +1086,8 @@ export class MegaSynthLooper {
       }
     }
 
+    // If all 6 YM2612 channels are already occupied by other looper units,
+    // collisions are unavoidable. In that case keep the source channel.
     return preferredChannel;
   }
 

@@ -19,6 +19,66 @@ export {
 } from "./megadrive-fm-presets.js";
 
 /**
+ * @typedef {import("./megasynth_fx.js").AnyFXUnit} AnyFXUnit
+ * @typedef {import("./ym2612synth.js").YM2612Synth} YM2612Synth
+ * @typedef {import("./ym2612synth.js").YM2612Transport} YM2612Transport
+ */
+
+/**
+ * @typedef {{
+ *   audioContext?: AudioContext | null,
+ *   outputNode?: AudioNode | null,
+ *   workletUrl?: string,
+ *   ym2612WasmUrl?: string,
+ * }} MegaSynthOptions
+ */
+
+/**
+ * @typedef {{
+ *   dispose?: boolean,
+ * }} FXChainOptions
+ */
+
+/**
+ * @typedef {{
+ *   type: "reset",
+ * } | {
+ *   type: "setPreset",
+ *   channel: number,
+ *   preset: object,
+ * } | {
+ *   type: "setOperator",
+ *   channel: number,
+ *   operator: number,
+ *   params: object,
+ * } | {
+ *   type: "setAlgo",
+ *   channel: number,
+ *   algorithm: number,
+ *   feedback: number,
+ * } | {
+ *   type: "setPan",
+ *   channel: number,
+ *   left: boolean,
+ *   right: boolean,
+ * } | {
+ *   type: "noteOn",
+ *   channel: number,
+ *   block: number,
+ *   fnum: number,
+ * } | {
+ *   type: "noteOff",
+ *   channel: number,
+ * }} MegaSynthEvent
+ */
+
+/**
+ * @callback MegaSynthListener
+ * @param {MegaSynthEvent} event
+ * @returns {void}
+ */
+
+/**
  * Browser-side Mega / Genesis-oriented synth runtime.
  *
  * This class hides:
@@ -38,6 +98,9 @@ export {
  * - VGM playback
  */
 export class MegaSynth {
+  /**
+   * @param {MegaSynthOptions} [options]
+   */
   constructor(options = {}) {
     this.ownsAudioContext =
       !options.audioContext;
@@ -62,14 +125,12 @@ export class MegaSynth {
       false;
     this.listeners = new Set();
 
-    /**
-     * YM2612Synth instance.
-     *
-     * Available after start().
-     */
+    /** @type {YM2612Synth | null} */
     this.fm = null;
 
+    /** @type {Promise<void> | null} */
     this.readyPromise = null;
+    /** @type {"idle" | "starting" | "ready" | "error" | "closed"} */
     this.state = "idle";
   }
 
@@ -78,6 +139,8 @@ export class MegaSynth {
    *
    * This should normally be called from a user gesture such as
    * a click, pointerdown, or keydown event.
+   *
+    * @returns {Promise<MegaSynth>}
    */
   async start() {
     if (this.readyPromise) {
@@ -103,6 +166,9 @@ export class MegaSynth {
     return this;
   }
 
+  /**
+   * @returns {Promise<void>}
+   */
   async resume() {
     if (
       this.audioContext &&
@@ -112,6 +178,9 @@ export class MegaSynth {
     }
   }
 
+  /**
+   * @returns {Promise<void>}
+   */
   async suspend() {
     if (
       this.audioContext &&
@@ -121,10 +190,22 @@ export class MegaSynth {
     }
   }
 
+  /**
+   * @returns {void}
+   */
   reset() {
     this.fm?.reset();
   }
 
+  /**
+   * Subscribe to high-level FM actions coming from `fm`.
+   *
+   * This stays on `MegaSynth` so UI/demo sync logic does not have to live
+   * inside the lower-level `YM2612Synth`.
+   *
+   * @param {MegaSynthListener} listener
+   * @returns {() => void}
+   */
   addListener(listener) {
     if (typeof listener !== "function") {
       throw new Error(
@@ -138,10 +219,19 @@ export class MegaSynth {
     };
   }
 
+  /**
+   * @param {MegaSynthListener} listener
+   * @returns {void}
+   */
   removeListener(listener) {
     this.listeners.delete(listener);
   }
 
+  /**
+   * @param {AnyFXUnit[]} [effects]
+   * @param {FXChainOptions} [options]
+   * @returns {void}
+   */
   setFXChain(
     effects = [],
     options = {}
@@ -167,10 +257,17 @@ export class MegaSynth {
     }
   }
 
+  /**
+   * @returns {AnyFXUnit[]}
+   */
   getFXChain() {
     return this.fxChain.slice();
   }
 
+  /**
+   * @param {AnyFXUnit} effect
+   * @returns {MegaSynth}
+   */
   connect(effect) {
     this.fxChain.push(effect);
 
@@ -181,6 +278,10 @@ export class MegaSynth {
     return this;
   }
 
+  /**
+   * @param {FXChainOptions} [options]
+   * @returns {AnyFXUnit[]}
+   */
   clearFXChain(options = {}) {
     const previousChain =
       this.fxChain.slice();
@@ -199,6 +300,10 @@ export class MegaSynth {
     return previousChain;
   }
 
+  /**
+   * @param {AudioNode | null} [node]
+   * @returns {MegaSynth}
+   */
   connectOutput(node = null) {
     this.outputNode =
       node ??
@@ -213,21 +318,34 @@ export class MegaSynth {
     return this;
   }
 
+  /**
+   * @returns {*}
+   */
   startRecord() {
     this.#ensureRecordingManager();
     return this.recordingManager.start();
   }
 
+  /**
+   * @returns {*}
+   */
   stopRecord() {
     this.#ensureRecordingManager();
     return this.recordingManager.stop();
   }
 
+  /**
+   * @returns {*}
+   */
   exportRecording() {
     this.#ensureRecordingManager();
     return this.recordingManager.exportRecording();
   }
 
+  /**
+   * @param {*} recording
+   * @returns {*}
+   */
   importRecording(recording) {
     this.#ensureRecordingManager();
     return this.recordingManager.importRecording(
@@ -235,6 +353,11 @@ export class MegaSynth {
     );
   }
 
+  /**
+   * @param {*} [recording=null]
+   * @param {object} [options={}]
+   * @returns {*}
+   */
   playRecording(recording = null, options = {}) {
     this.#ensureRecordingManager();
     return this.recordingManager.play(
@@ -243,11 +366,17 @@ export class MegaSynth {
     );
   }
 
+  /**
+   * @returns {void}
+   */
   stopRecordingPlayback() {
     this.#ensureRecordingManager();
     this.recordingManager.stopPlayback();
   }
 
+  /**
+   * @returns {boolean}
+   */
   isRecording() {
     return (
       this.recordingManager?.isRecording() ??
@@ -255,6 +384,9 @@ export class MegaSynth {
     );
   }
 
+  /**
+   * @returns {boolean}
+   */
   isRecordingPlaybackActive() {
     return (
       this.recordingManager?.isPlaying() ??
@@ -262,6 +394,9 @@ export class MegaSynth {
     );
   }
 
+  /**
+   * @returns {Promise<void>}
+   */
   async close() {
     if (this.node) {
       this.node.disconnect();
@@ -286,10 +421,16 @@ export class MegaSynth {
     }
   }
 
+  /**
+   * @returns {boolean}
+   */
   isReady() {
     return this.state === "ready" && !!this.fm;
   }
 
+  /**
+   * @returns {boolean}
+   */
   isStarting() {
     return this.state === "starting";
   }
@@ -585,6 +726,10 @@ export class MegaSynth {
     };
   }
 
+  /**
+   * @param {MegaSynthEvent} event
+   * @returns {void}
+   */
   #emit(event) {
     for (const listener of this.listeners) {
       try {
