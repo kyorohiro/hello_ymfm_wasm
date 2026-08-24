@@ -108,6 +108,7 @@ const OPERATOR_PARAM_DEFS = [
   { id: "dt", label: "DT", min: 0, max: 7, step: 1, category: "pitch", help: "Small pitch offset." },
   { id: "multi", label: "MULTI", min: 0, max: 15, step: 1, category: "pitch", help: "Frequency multiplier." },
   { id: "tl", label: "TL", min: 0, max: 127, step: 1, category: "level", help: "Output level. Lower is louder." },
+  { id: "rs", label: "RS", min: 0, max: 3, step: 1, category: "envelope", help: "Higher notes use faster envelope rates." },
   { id: "ar", label: "AR", min: 0, max: 31, step: 1, category: "envelope", help: "Attack speed after key on." },
   { id: "am", label: "AM", min: 0, max: 1, step: 1, booleanMode: true, category: "modulation", help: "Enable LFO volume wobble." },
   { id: "d1r", label: "D1R", min: 0, max: 31, step: 1, category: "envelope", help: "First decay speed." },
