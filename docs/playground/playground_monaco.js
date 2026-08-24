@@ -3,6 +3,60 @@ import {
   MEGADRIVE_FM_PRESETS,
 } from "../js/megasynth.js";
 
+const SCALE_NAMES = [
+  "major",
+  "minor",
+  "majorPentatonic",
+  "minorPentatonic",
+  "chromatic",
+];
+
+const NOTE_NAMES = (() => {
+  const pitchClasses = [
+    "C",
+    "C#",
+    "D",
+    "Eb",
+    "E",
+    "F",
+    "F#",
+    "G",
+    "Ab",
+    "A",
+    "Bb",
+    "B",
+  ];
+  const notes = [];
+  for (let octave = 0; octave <= 7; octave += 1) {
+    for (const pitchClass of pitchClasses) {
+      notes.push(`${pitchClass}${octave}`);
+    }
+  }
+  return notes;
+})();
+
+const YM2612_REGISTER_CANDIDATES = [
+  { value: "0x22", description: "LFO enable / frequency" },
+  { value: "0x24", description: "Timer A high" },
+  { value: "0x25", description: "Timer A low" },
+  { value: "0x26", description: "Timer B" },
+  { value: "0x27", description: "Timer control / mode" },
+  { value: "0x28", description: "Key on / key off" },
+  { value: "0x2a", description: "DAC data" },
+  { value: "0x2b", description: "DAC enable" },
+  { value: "0x30", description: "DT / MULTI base" },
+  { value: "0x40", description: "TL base" },
+  { value: "0x50", description: "RS / AR base" },
+  { value: "0x60", description: "AM / D1R base" },
+  { value: "0x70", description: "SR / D2R base" },
+  { value: "0x80", description: "SL / RR base" },
+  { value: "0x90", description: "SSG-EG base" },
+  { value: "0xa0", description: "F-Number low base" },
+  { value: "0xa4", description: "Block / F-Number high base" },
+  { value: "0xb0", description: "Algorithm / feedback base" },
+  { value: "0xb4", description: "Pan / AMS / PMS base" },
+];
+
 function createMonacoTopLevelItems(
   monaco
 ) {
@@ -632,6 +686,104 @@ function detectFxConfigContext(
     : null;
 }
 
+function createPresetSuggestions(
+  kind,
+  range
+) {
+  return MEGADRIVE_FM_PRESET_ORDER.map(
+    (name) => ({
+      label: name,
+      kind: kind.Value,
+      insertText: name,
+      documentation:
+        `Built-in YM2612 preset: ${name}`,
+      range,
+    })
+  );
+}
+
+function createScaleSuggestions(
+  kind,
+  range
+) {
+  return SCALE_NAMES.map((name) => ({
+    label: name,
+    kind: kind.Value,
+    insertText: name,
+    documentation:
+      `Scale name: ${name}`,
+    range,
+  }));
+}
+
+function createNoteSuggestions(
+  kind,
+  range
+) {
+  return NOTE_NAMES.map((name) => ({
+    label: name,
+    kind: kind.Value,
+    insertText: name,
+    documentation:
+      `Note name: ${name}`,
+    range,
+  }));
+}
+
+function createRegisterSuggestions(
+  kind,
+  range
+) {
+  return YM2612_REGISTER_CANDIDATES.map(
+    ({ value, description }) => ({
+      label: `${value} ${description}`,
+      kind: kind.Value,
+      insertText: value,
+      documentation: description,
+      range,
+    })
+  );
+}
+
+function isInsidePresetString(
+  linePrefix
+) {
+  return (
+    /MEGADRIVE_FM_PRESETS\[\s*["'][^"']*$/.test(
+      linePrefix
+    ) ||
+    /pg\.presets\[\s*["'][^"']*$/.test(
+      linePrefix
+    )
+  );
+}
+
+function isInsideScaleNameString(
+  linePrefix
+) {
+  return /(scale|pg\.scale)\(\s*["'][^"']*["']\s*,\s*["'][^"']*$/.test(
+    linePrefix
+  );
+}
+
+function isInsideNoteString(
+  linePrefix
+) {
+  return /(^|[^.\w])(play|scale)\(\s*["'][^"']*$/.test(
+    linePrefix
+  ) || /pg\.(play|scale)\(\s*["'][^"']*$/.test(
+    linePrefix
+  );
+}
+
+function isInsideYm2612RegisterArgument(
+  linePrefix
+) {
+  return /fm\.(write|writeAddress)\(\s*[^,]+,\s*[^,)]*$/.test(
+    linePrefix
+  );
+}
+
 function isInsideCallObject(
   sourceBeforeCursor,
   callPrefixes
@@ -747,6 +899,58 @@ function registerMonacoCompletions(
               position.column,
           });
         const suggestions = [];
+
+        if (
+          isInsidePresetString(
+            linePrefix
+          )
+        ) {
+          suggestions.push(
+            ...createPresetSuggestions(
+              kind,
+              range
+            )
+          );
+        }
+
+        if (
+          isInsideScaleNameString(
+            linePrefix
+          )
+        ) {
+          suggestions.push(
+            ...createScaleSuggestions(
+              kind,
+              range
+            )
+          );
+        }
+
+        if (
+          isInsideNoteString(
+            linePrefix
+          )
+        ) {
+          suggestions.push(
+            ...createNoteSuggestions(
+              kind,
+              range
+            )
+          );
+        }
+
+        if (
+          isInsideYm2612RegisterArgument(
+            linePrefix
+          )
+        ) {
+          suggestions.push(
+            ...createRegisterSuggestions(
+              kind,
+              range
+            )
+          );
+        }
 
         if (
           isInsideCallObject(
