@@ -7,19 +7,29 @@ import {
 const CHANNEL_COUNT = 6;
 const OPERATOR_NUMBERS = [1, 2, 3, 4];
 const COMMON_PARAM_DEFS = [
-  { id: "algorithm", label: "ALGO", min: 0, max: 7, step: 1 },
-  { id: "feedback", label: "FB", min: 0, max: 7, step: 1 },
+  { id: "algorithm", label: "ALGO", min: 0, max: 7, step: 1, category: "routing" },
+  { id: "feedback", label: "FB", min: 0, max: 7, step: 1, category: "routing" },
+  { id: "ams", label: "AMS", min: 0, max: 3, step: 1, category: "modulation" },
+  { id: "lfoEnabled", label: "LFO", min: 0, max: 1, step: 1, booleanMode: true, category: "modulation" },
+  { id: "lfoFrequency", label: "LFOF", min: 0, max: 7, step: 1, category: "modulation" },
 ];
 const OPERATOR_PARAM_DEFS = [
-  { id: "dt", label: "DT", min: 0, max: 7, step: 1 },
-  { id: "multi", label: "MULTI", min: 0, max: 15, step: 1 },
-  { id: "tl", label: "TL", min: 0, max: 127, step: 1 },
-  { id: "ar", label: "AR", min: 0, max: 31, step: 1 },
-  { id: "d1r", label: "D1R", min: 0, max: 31, step: 1 },
-  { id: "d2r", label: "D2R", min: 0, max: 31, step: 1 },
-  { id: "sl", label: "SL", min: 0, max: 15, step: 1 },
-  { id: "rr", label: "RR", min: 0, max: 15, step: 1 },
+  { id: "dt", label: "DT", min: 0, max: 7, step: 1, category: "pitch" },
+  { id: "multi", label: "MULTI", min: 0, max: 15, step: 1, category: "pitch" },
+  { id: "tl", label: "TL", min: 0, max: 127, step: 1, category: "level" },
+  { id: "rs", label: "RS", min: 0, max: 3, step: 1, category: "envelope" },
+  { id: "ar", label: "AR", min: 0, max: 31, step: 1, category: "envelope" },
+  { id: "am", label: "AM", min: 0, max: 1, step: 1, booleanMode: true, category: "modulation" },
+  { id: "d1r", label: "D1R", min: 0, max: 31, step: 1, category: "envelope" },
+  { id: "d2r", label: "D2R", min: 0, max: 31, step: 1, category: "envelope" },
+  { id: "sl", label: "SL", min: 0, max: 15, step: 1, category: "envelope" },
+  { id: "rr", label: "RR", min: 0, max: 15, step: 1, category: "envelope" },
+  { id: "ssg", label: "SSG", min: 0, max: 15, step: 1, category: "modulation" },
 ];
+const GLOBAL_COMMON_STATE = {
+  lfoEnabled: false,
+  lfoFrequency: 0,
+};
 const ALGORITHM_DESCRIPTIONS = [
   'ALGO 0 <span class="op-color-1">OP1</span> -> <span class="op-color-2">OP2</span> -> <span class="op-color-3">OP3</span> -> <span class="op-color-4">OP4</span> -> OUT',
   'ALGO 1 (<span class="op-color-1">OP1</span> + <span class="op-color-2">OP2</span>) -> <span class="op-color-3">OP3</span> -> <span class="op-color-4">OP4</span> -> OUT',
@@ -39,11 +49,14 @@ function createDefaultOperatorState(
       dt: 0,
       multi: 1,
       tl: 8,
+      rs: 0,
       ar: 22,
+      am: false,
       d1r: 6,
       d2r: 3,
       sl: 3,
       rr: 8,
+      ssg: 0,
     };
   }
 
@@ -51,11 +64,14 @@ function createDefaultOperatorState(
     dt: 0,
     multi: 1,
     tl: 127,
+    rs: 0,
     ar: 31,
+    am: false,
     d1r: 0,
     d2r: 0,
     sl: 0,
     rr: 15,
+    ssg: 0,
   };
 }
 
@@ -64,6 +80,7 @@ function createDefaultChannelState() {
     presetName: "one-op-basic",
     algorithm: 7,
     feedback: 0,
+    ams: 0,
     left: true,
     right: true,
     operators: {
@@ -99,6 +116,8 @@ function createChannelStateFromPreset(
     preset.algorithm ?? 7;
   baseState.feedback =
     preset.feedback ?? 0;
+  baseState.ams =
+    preset.ams ?? 0;
   baseState.left =
     preset.pan?.left ??
     preset.left ??
@@ -126,6 +145,7 @@ function cloneChannelState(
     presetName: state.presetName,
     algorithm: state.algorithm,
     feedback: state.feedback,
+    ams: state.ams,
     left: state.left,
     right: state.right,
     operators: {
@@ -190,6 +210,9 @@ export function createPlaygroundOperatorTab(
     );
   const dirtyChannels =
     new Set();
+  const globalCommonState = {
+    ...GLOBAL_COMMON_STATE,
+  };
   let selectedChannel = 0;
   let synth = null;
   let refreshBatchDepth = 0;
@@ -227,11 +250,11 @@ export function createPlaygroundOperatorTab(
         <div class="operator-header-strip" id="operatorTabCommonHeader"></div>
       </div>
       <div class="operator-row">
-        <div class="operator-name">Common</div>
+        <div class="operator-name" aria-hidden="true"></div>
         <div class="param-strip" id="operatorTabCommonControls"></div>
       </div>
       <div class="operator-header-row">
-        <div class="operator-header-spacer"></div>
+        <div class="operator-header-spacer operator-corner-label">OP</div>
         <div class="operator-header-strip" id="operatorTabOperatorHeader"></div>
       </div>
       <div id="operatorTabOperatorControls" class="operator-stack"></div>
@@ -279,6 +302,10 @@ export function createPlaygroundOperatorTab(
     commonHeader,
     COMMON_PARAM_DEFS
   );
+  if (commonHeader?.parentElement) {
+    commonHeader.parentElement.style.display =
+      "none";
+  }
   buildHeader(
     operatorHeader,
     OPERATOR_PARAM_DEFS
@@ -359,10 +386,15 @@ export function createPlaygroundOperatorTab(
         state.algorithm,
         state.feedback
       );
+      synth.setLfo(
+        globalCommonState.lfoEnabled,
+        globalCommonState.lfoFrequency
+      );
       synth.setPan(
         channel,
         state.left,
-        state.right
+        state.right,
+        state.ams
       );
     } finally {
       endRefreshBatch();
@@ -412,7 +444,14 @@ export function createPlaygroundOperatorTab(
       commonControls
         .get(config.id)
         ?.updateVisual(
-          state[config.id]
+          config.id ===
+            "lfoEnabled" ||
+          config.id ===
+            "lfoFrequency"
+            ? globalCommonState[
+                config.id
+              ]
+            : state[config.id]
         );
     }
 
@@ -455,15 +494,42 @@ export function createPlaygroundOperatorTab(
   buildCommonControls({
     root: commonControlsRoot,
     defs: COMMON_PARAM_DEFS,
-    state: currentState(),
+    state: {
+      ...currentState(),
+      ...globalCommonState,
+    },
     controlsMap: commonControls,
+    stackedLabels: true,
+    referenceColumnCount:
+      OPERATOR_PARAM_DEFS.length,
+    gapPx: 4,
     onChange(id, value) {
-      currentState()[id] = value;
+      if (
+        id === "lfoEnabled" ||
+        id === "lfoFrequency"
+      ) {
+        globalCommonState[id] =
+          value;
+      } else {
+        currentState()[id] = value;
+      }
       updateAlgorithmDescription();
       markDirty();
-      applyChannelStateToSynth(
-        selectedChannel
-      );
+      if (synth) {
+        if (
+          id === "lfoEnabled" ||
+          id === "lfoFrequency"
+        ) {
+          synth.setLfo(
+            globalCommonState.lfoEnabled,
+            globalCommonState.lfoFrequency
+          );
+        } else {
+          applyChannelStateToSynth(
+            selectedChannel
+          );
+        }
+      }
     },
   });
 
@@ -558,7 +624,8 @@ export function createPlaygroundOperatorTab(
         synth.setPan(
           selectedChannel,
           currentState().left,
-          currentState().right
+          currentState().right,
+          currentState().ams
         );
       }
     }
@@ -574,7 +641,8 @@ export function createPlaygroundOperatorTab(
         synth.setPan(
           selectedChannel,
           currentState().left,
-          currentState().right
+          currentState().right,
+          currentState().ams
         );
       }
     }
@@ -628,6 +696,20 @@ export function createPlaygroundOperatorTab(
         nextState.feedback =
           preset.feedback ??
           nextState.feedback;
+        if (
+          preset.lfo &&
+          typeof preset.lfo === "object"
+        ) {
+          globalCommonState.lfoEnabled =
+            preset.lfo.enabled ??
+            globalCommonState.lfoEnabled;
+          globalCommonState.lfoFrequency =
+            preset.lfo.frequency ??
+            globalCommonState.lfoFrequency;
+        }
+        nextState.ams =
+          preset.ams ??
+          nextState.ams;
         nextState.left =
           preset.pan?.left ??
           preset.left ??
@@ -675,15 +757,28 @@ export function createPlaygroundOperatorTab(
         feedback;
       refreshIfSelected(channel);
     },
+    syncLfo(
+      enabled,
+      frequency
+    ) {
+      globalCommonState.lfoEnabled =
+        enabled;
+      globalCommonState.lfoFrequency =
+        frequency;
+      updateControlsUi();
+    },
     syncPan(
       channel,
       left,
-      right
+      right,
+      ams = 0
     ) {
       stateByChannel[channel].left =
         left;
       stateByChannel[channel].right =
         right;
+      stateByChannel[channel].ams =
+        ams;
       refreshIfSelected(channel);
     },
   };

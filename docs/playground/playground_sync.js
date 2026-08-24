@@ -62,11 +62,20 @@ export function handleMegaSynthEvent(
     return;
   }
 
+  if (event.type === "setLfo") {
+    operatorTab.syncLfo(
+      event.enabled,
+      event.frequency
+    );
+    return;
+  }
+
   if (event.type === "setPan") {
     operatorTab.syncPan(
       event.channel,
       event.left,
-      event.right
+      event.right,
+      event.ams
     );
   }
 }
@@ -109,12 +118,20 @@ export function createFmProxy(
     setPan(
       channel,
       left,
-      right
+      right,
+      ams
     ) {
       targetSynth.setPan(
         channel,
         left,
-        right
+        right,
+        ams
+      );
+    },
+    setLfo(enabled, frequency) {
+      targetSynth.setLfo(
+        enabled,
+        frequency
       );
     },
     noteOn(channel, block, fnum) {

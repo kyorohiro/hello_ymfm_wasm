@@ -499,11 +499,22 @@ function registerMonacoCompletions(
               label: "setPan",
               kind: kind.Method,
               insertText:
-                "setPan(${1:0}, ${2:true}, ${3:true})",
+                "setPan(${1:0}, ${2:true}, ${3:true}, ${4:0})",
               insertTextRules:
                 snippet,
               documentation:
                 "Set stereo output enable flags for a channel.",
+              range,
+            },
+            {
+              label: "setLfo",
+              kind: kind.Method,
+              insertText:
+                "setLfo(${1:false}, ${2:0})",
+              insertTextRules:
+                snippet,
+              documentation:
+                "Set YM2612 chip LFO enable and frequency.",
               range,
             },
             {
@@ -958,7 +969,8 @@ declare const fm: {
   setPreset(channel: number, preset: object): void;
   setOperator(channel: number, operator: number, params: object): void;
   setAlgo(channel: number, algorithm: number, feedback?: number): void;
-  setPan(channel: number, left: boolean, right: boolean): void;
+  setPan(channel: number, left: boolean, right: boolean, ams?: number): void;
+  setLfo(enabled: boolean, frequency: number): void;
   noteOn(channel: number, block: number, fnum: number): void;
   noteOff(channel: number): void;
   write(port: number, register: number, value: number): void;

@@ -661,12 +661,26 @@ export class MegaSynth {
       })
     );
     this.#wrapFmMethod(
+      "setLfo",
+      (enabled, frequency) => ({
+        type: "setLfo",
+        enabled,
+        frequency,
+      })
+    );
+    this.#wrapFmMethod(
       "setPan",
-      (channel, left, right) => ({
+      (
+        channel,
+        left,
+        right,
+        ams = 0
+      ) => ({
         type: "setPan",
         channel,
         left,
         right,
+        ams,
       })
     );
     this.#wrapFmMethod(
