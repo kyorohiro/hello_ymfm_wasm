@@ -4,6 +4,13 @@ Current status
 
 2026-08-22 時点で、最初の小さな Playground は動き始めている。
 
+2026-08-24 時点では、
+
+* `MegaSynth` 側に listener を持たせる方向が見えた
+* Playground の Operator tab 同期も `MegaSynth.addListener(...)` ベースへ寄せ始めた
+* つまり Playground は `YM2612Synth` に直接同期責務を足すのではなく、
+  `MegaSynth` を browser / demo / live coding 向けの通知ハブとして扱う方向になっている
+
 すでに入っているもの:
 
 * `play(note, { channel, duration, preset })`
@@ -33,6 +40,8 @@ Current status
 * live coding 向けの stop / replace の洗練
 * 今後の `with_fx` 的な層をどうするか
 * markdown ベースの書き方や tutorial との接続
+* Playground の責務分割
+* Synth demo と Playground の部品共通化
 
 この文書の以下は、その先の設計メモとして残す。
 
@@ -217,6 +226,140 @@ Level 3: Register
 fm.writeRegister(...);
 
 Playground から YM2612 自体を学べることも重要。
+
+⸻
+
+Current architecture direction
+
+今後、Playground はかなり多機能化する見込みがある。
+
+想定している主要追加機能:
+
+* TFI / VGI 対応
+* `docs/synth` 側の envelope view を Playground に持ち込む
+* FX をコードだけでなく toggle / knob 的 UI からも触れるようにする
+* ギター指板風の入力機能を持ち込む
+* Sonic Pi を benchmark にして、同等以上の live coding 表現を目指す
+
+この流れだと、
+
+* `playground.js` に全部を足し続ける
+
+のは危険。
+
+今のうちに、
+
+* 共通ライブラリ
+* 単体 demo / synth app
+* Playground orchestration
+
+を分けて考える。
+
+目安としては以下:
+
+* `web/*`
+  * 共通ライブラリ
+  * `YM2612Synth`
+  * `MegaSynth`
+  * TFI / VGI
+  * FX
+  * recording
+* `docs/synth/*`
+  * 学習用 / 単体操作アプリ
+  * operator
+  * envelope
+  * keyboard / fretboard
+  * looper
+* `docs/playground/*`
+  * live coding 用の統合アプリ
+  * editor
+  * runtime
+  * sync
+  * helper tabs
+  * controller tabs
+
+つまり、Playground に直接機能を生やすより、
+
+1. まず `web/*` か `docs/synth/*` で部品を作る
+2. その後 Playground に持ち込む
+
+の順を基本方針にしたい。
+
+⸻
+
+Near-future extraction plan
+
+Playground を軽く保つため、今後は少なくとも以下の単位で分けることを意識する。
+
+* `playground_runtime.js`
+  * `runCode`
+  * `liveLoop`
+  * `play`
+  * `beat`
+  * `sleep`
+  * `livePrepare`
+* `playground_editor.js`
+  * Monaco 初期化
+  * completion
+  * hover
+  * fallback textarea
+* `playground_console.js`
+  * console tab
+  * helper tab
+  * log formatting
+* `playground_sync.js`
+  * `MegaSynth.addListener(...)`
+  * operator / future fx tab への反映
+* `playground_examples.js`
+  * example code 定義
+* `playground_operator_tab.js`
+  * operator controller
+* `playground_fx_tab.js`
+  * future FX controller
+
+特に重要なのは、
+
+* `playground.js = 全部入り`
+
+に戻さないこと。
+
+Playground は最終的に「全部入りアプリ」になってもよいが、
+実装本体は外へ逃がしておく。
+
+⸻
+
+Current sync direction
+
+同期機能の基本方針は、以下で整理する。
+
+* `YM2612Synth`
+  * readable な low-level FM control layer
+  * state notify の中心にはしない
+* `MegaSynth`
+  * browser/runtime wrapper
+  * high-level FM events の listener hub
+* Playground / Synth demo
+  * `MegaSynth.addListener(...)` を購読して UI を同期
+
+この方針にすると、
+
+* `docs/playground`
+* `docs/synth`
+* 将来の game embed / app
+
+のすべてで、同じ通知の考え方を使いやすい。
+
+raw register write の同期は別問題なので、
+まずは
+
+* `setPreset`
+* `setOperator`
+* `setAlgo`
+* `setPan`
+* `noteOn`
+* `noteOff`
+
+の高レベル同期を優先する。
 
 ⸻
 

@@ -1,6 +1,94 @@
 # Save Point
 
-Last updated: 2026-08-23
+Last updated: 2026-08-24
+
+## Latest Playground architecture direction
+
+- `MegaSynth`
+  now has listener support:
+  - `addListener(listener)`
+  - `removeListener(listener)`
+- The intended responsibility split is now clearer:
+  - `YM2612Synth`
+    - readable low-level FM control layer
+    - should stay thin
+  - `MegaSynth`
+    - browser/runtime wrapper
+    - high-level FM event hub for demos/apps
+  - `docs/playground`
+    - subscribes to `MegaSynth.addListener(...)`
+    - updates controller UI from those events
+- `docs/playground/playground.js`
+  has already started this shift:
+  - Operator tab sync is no longer driven directly from the `fm` proxy
+  - it now listens through `MegaSynth` events
+
+## Important Playground direction
+
+- Playground is expected to grow with:
+  - TFI / VGI support
+  - envelope UI imported from `docs/synth`
+  - FX controller tab
+  - guitar/fretboard-style input
+  - more Sonic Pi-like live coding features
+- Because of that, avoid letting `docs/playground/playground.js`
+  become a "single giant file" again.
+- The preferred long-term split is:
+  1. `web/*`
+     - shared library/runtime/features
+  2. `docs/synth/*`
+     - isolated learning/demo widgets
+  3. `docs/playground/*`
+     - orchestration/integration layer
+
+## Suggested future Playground file split
+
+- `playground_runtime.js`
+  - `runCode`
+  - `liveLoop`
+  - `play`
+  - `beat`
+  - `sleep`
+  - `livePrepare`
+- `playground_editor.js`
+  - Monaco init
+  - completion / hover
+  - fallback textarea
+- `playground_console.js`
+  - console tab
+  - helper tab
+  - log formatting
+- `playground_sync.js`
+  - subscribe to `MegaSynth`
+  - push events into operator/future FX tabs
+- `playground_examples.js`
+  - example code strings
+- `playground_operator_tab.js`
+  - operator controller UI
+- `playground_fx_tab.js`
+  - future FX controller UI
+
+## Recent browser/runtime observation
+
+- A short temporary pause during playback was observed once or twice.
+- It did not reproduce reliably afterwards.
+- Current interpretation:
+  - likely browser main-thread pause / GC / extension / temporary UI load
+  - not yet strong evidence of a deterministic music-timing bug
+- Also observed:
+  - `Unchecked runtime.lastError: Could not establish connection...`
+  - this does not appear to come from this repository code
+  - likely browser extension / external page script noise
+- For now:
+  - treat both as investigation notes, not confirmed repo bugs
+
+## Current sync status interpretation
+
+- FM-side synchronization is now "organized enough" to move forward.
+- Remaining sync work is mainly:
+  - future FX-side synchronization
+  - deciding how much raw low-level write sync is worth exposing
+  - possible reuse of the same observer pattern in `docs/synth`
 
 ## Latest Playground / FX / Monaco status
 
