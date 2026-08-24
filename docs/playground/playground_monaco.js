@@ -465,13 +465,57 @@ function createFmOperatorParamSuggestions(
   ];
 }
 
-function isInsideFmSetOperatorObject(
-  sourceBeforeCursor
+function createPlayOptionsSuggestions(
+  kind,
+  snippet,
+  range
 ) {
-  const callIndex =
-    sourceBeforeCursor.lastIndexOf(
-      "fm.setOperator("
-    );
+  return [
+    {
+      label: "channel",
+      kind: kind.Property,
+      insertText: "channel: ${1:0},",
+      insertTextRules: snippet,
+      documentation:
+        "YM2612 channel number 0..5.",
+      range,
+    },
+    {
+      label: "duration",
+      kind: kind.Property,
+      insertText: "duration: ${1:0.08},",
+      insertTextRules: snippet,
+      documentation:
+        "Note duration in seconds.",
+      range,
+    },
+    {
+      label: "preset",
+      kind: kind.Property,
+      insertText:
+        'preset: MEGADRIVE_FM_PRESETS["${1:one-op-basic}"],',
+      insertTextRules: snippet,
+      documentation:
+        "Optional preset object applied before playing the note.",
+      range,
+    },
+  ];
+}
+
+function isInsideCallObject(
+  sourceBeforeCursor,
+  callPrefixes
+) {
+  let callIndex = -1;
+  for (const prefix of callPrefixes) {
+    const candidate =
+      sourceBeforeCursor.lastIndexOf(
+        prefix
+      );
+    if (candidate > callIndex) {
+      callIndex = candidate;
+    }
+  }
 
   if (callIndex < 0) {
     return false;
@@ -575,12 +619,29 @@ function registerMonacoCompletions(
         const suggestions = [];
 
         if (
-          isInsideFmSetOperatorObject(
-            sourceBeforeCursor
+          isInsideCallObject(
+            sourceBeforeCursor,
+            ["fm.setOperator("]
           )
         ) {
           suggestions.push(
             ...createFmOperatorParamSuggestions(
+              kind,
+              snippet,
+              range
+            )
+          );
+        }
+
+        if (
+          isInsideCallObject(
+            sourceBeforeCursor
+            ,
+            ["play(", "pg.play("]
+          )
+        ) {
+          suggestions.push(
+            ...createPlayOptionsSuggestions(
               kind,
               snippet,
               range
@@ -1187,6 +1248,12 @@ type YM2612OperatorParams = {
   ssg?: number;
 };
 
+type PlaygroundPlayOptions = {
+  channel?: number;
+  duration?: number;
+  preset?: object;
+};
+
 declare const fm: {
   reset(): void;
   setPreset(channel: number, preset: object): void;
@@ -1217,7 +1284,7 @@ declare const fx: {
 
 declare function liveLoop(name: string, fn: () => Promise<void> | void): void;
 declare function livePrepare(name: string, fn: (context: { fx: typeof fx; fm: typeof fm; log: (...args: unknown[]) => void }) => Promise<any> | any): Promise<any>;
-declare function play(note: string, options?: { channel?: number; duration?: number; preset?: object }): Promise<void>;
+declare function play(note: string, options?: PlaygroundPlayOptions): Promise<void>;
 declare function sleep(seconds: number): Promise<void>;
 declare function beat(beats?: number): Promise<void>;
 declare function nextBeat(): Promise<void>;
@@ -1233,7 +1300,7 @@ declare const pg: {
   fm: typeof fm;
   fx: typeof fx;
   presets: typeof MEGADRIVE_FM_PRESETS;
-  play: typeof play;
+  play(note: string, options?: PlaygroundPlayOptions): Promise<void>;
   sleep: typeof sleep;
   beat: typeof beat;
   nextBeat: typeof nextBeat;
