@@ -473,6 +473,8 @@ const megaDrive =
   });
 
 let synth = null;
+let removeMegaDriveListener =
+  null;
 let currentRunToken = 0;
 let activeNotes = new Set();
 let currentLoopContext = null;
@@ -2036,6 +2038,7 @@ async function ensureReady() {
     await megaDrive.start();
     synth = megaDrive.fm;
     operatorTab.attachSynth(synth);
+    installMegaDriveListener();
     synth.setPreset(
       0,
       MEGADRIVE_FM_PRESETS[
@@ -2044,6 +2047,67 @@ async function ensureReady() {
   );
   setRuntimeState("Audio ready");
   setStatus("Audio ready.");
+}
+
+function handleMegaDriveEvent(
+  event
+) {
+  if (!event || typeof event !== "object") {
+    return;
+  }
+
+  if (event.type === "reset") {
+    operatorTab.syncReset();
+    return;
+  }
+
+  if (event.type === "setPreset") {
+    operatorTab.syncPreset(
+      event.channel,
+      findPresetNameByReference(
+        event.preset
+      ),
+      event.preset
+    );
+    return;
+  }
+
+  if (event.type === "setOperator") {
+    operatorTab.syncOperator(
+      event.channel,
+      event.operator,
+      event.params
+    );
+    return;
+  }
+
+  if (event.type === "setAlgo") {
+    operatorTab.syncAlgo(
+      event.channel,
+      event.algorithm,
+      event.feedback
+    );
+    return;
+  }
+
+  if (event.type === "setPan") {
+    operatorTab.syncPan(
+      event.channel,
+      event.left,
+      event.right
+    );
+  }
+}
+
+function installMegaDriveListener() {
+  if (removeMegaDriveListener) {
+    return;
+  }
+
+  removeMegaDriveListener =
+    megaDrive.addListener(
+      handleMegaDriveEvent
+    );
 }
 
 function stopAll() {
@@ -2524,18 +2588,10 @@ function createFmProxy(
   return {
     reset() {
       targetSynth.reset();
-      operatorTab.syncReset();
     },
     setPreset(channel, preset) {
       targetSynth.setPreset(
         channel,
-        preset
-      );
-      operatorTab.syncPreset(
-        channel,
-        findPresetNameByReference(
-          preset
-        ),
         preset
       );
     },
@@ -2545,11 +2601,6 @@ function createFmProxy(
       params
     ) {
       targetSynth.setOperator(
-        channel,
-        operator,
-        params
-      );
-      operatorTab.syncOperator(
         channel,
         operator,
         params
@@ -2565,11 +2616,6 @@ function createFmProxy(
         algorithm,
         feedback
       );
-      operatorTab.syncAlgo(
-        channel,
-        algorithm,
-        feedback
-      );
     },
     setPan(
       channel,
@@ -2577,11 +2623,6 @@ function createFmProxy(
       right
     ) {
       targetSynth.setPan(
-        channel,
-        left,
-        right
-      );
-      operatorTab.syncPan(
         channel,
         left,
         right

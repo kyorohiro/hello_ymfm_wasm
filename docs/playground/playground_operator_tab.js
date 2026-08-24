@@ -192,6 +192,9 @@ export function createPlaygroundOperatorTab(
     new Set();
   let selectedChannel = 0;
   let synth = null;
+  let refreshBatchDepth = 0;
+  let pendingSelectedRefresh =
+    false;
 
   const commonControls =
     new Map();
@@ -290,7 +293,36 @@ export function createPlaygroundOperatorTab(
   function refreshIfSelected(
     channel
   ) {
-    if (channel === selectedChannel) {
+    if (channel !== selectedChannel) {
+      return;
+    }
+
+    if (refreshBatchDepth > 0) {
+      pendingSelectedRefresh =
+        true;
+      return;
+    }
+
+    updateControlsUi();
+  }
+
+  function beginRefreshBatch() {
+    refreshBatchDepth += 1;
+  }
+
+  function endRefreshBatch() {
+    if (refreshBatchDepth === 0) {
+      return;
+    }
+
+    refreshBatchDepth -= 1;
+
+    if (
+      refreshBatchDepth === 0 &&
+      pendingSelectedRefresh
+    ) {
+      pendingSelectedRefresh =
+        false;
       updateControlsUi();
     }
   }
@@ -311,24 +343,30 @@ export function createPlaygroundOperatorTab(
     const state =
       stateByChannel[channel];
 
-    for (const operator of OPERATOR_NUMBERS) {
-      synth.setOperator(
-        channel,
-        operator,
-        state.operators[operator]
-      );
-    }
+    beginRefreshBatch();
 
-    synth.setAlgo(
-      channel,
-      state.algorithm,
-      state.feedback
-    );
-    synth.setPan(
-      channel,
-      state.left,
-      state.right
-    );
+    try {
+      for (const operator of OPERATOR_NUMBERS) {
+        synth.setOperator(
+          channel,
+          operator,
+          state.operators[operator]
+        );
+      }
+
+      synth.setAlgo(
+        channel,
+        state.algorithm,
+        state.feedback
+      );
+      synth.setPan(
+        channel,
+        state.left,
+        state.right
+      );
+    } finally {
+      endRefreshBatch();
+    }
   }
 
   function updatePanUi() {
