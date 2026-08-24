@@ -48,6 +48,7 @@
  *   algorithm?: number,
  *   feedback?: number,
  *   ams?: number,
+ *   pms?: number,
  *   pan?: YM2612PanParams,
  *   left?: boolean,
  *   right?: boolean,
@@ -118,6 +119,7 @@ const DEFAULT_CHANNEL_STATE = Object.freeze({
   algorithm: 7,
   feedback: 0,
   ams: 0,
+  pms: 0,
   left: true,
   right: true,
   block: 4,
@@ -253,14 +255,21 @@ export class YM2612Synth {
       );
     }
 
-    if (preset.pan || preset.left !== undefined || preset.right !== undefined || preset.ams !== undefined) {
+    if (
+      preset.pan ||
+      preset.left !== undefined ||
+      preset.right !== undefined ||
+      preset.ams !== undefined ||
+      preset.pms !== undefined
+    ) {
       const pan = preset.pan || {};
       const current = this.channels[channel];
       this.setPan(
         channel,
         pan.left !== undefined ? pan.left : (preset.left !== undefined ? preset.left : current.left),
         pan.right !== undefined ? pan.right : (preset.right !== undefined ? preset.right : current.right),
-        preset.ams !== undefined ? preset.ams : current.ams
+        preset.ams !== undefined ? preset.ams : current.ams,
+        preset.pms !== undefined ? preset.pms : current.pms
       );
     }
 
@@ -405,15 +414,16 @@ export class YM2612Synth {
   }
 
   /**
-   * Set left/right output enable and AM sensitivity for one channel.
+   * Set left/right output enable, AM sensitivity, and PM sensitivity for one channel.
    *
    * @param {number} channel
    * @param {boolean} left
    * @param {boolean} right
    * @param {number} [ams]
+   * @param {number} [pms]
    * @returns {void}
    */
-  setPan(channel, left, right, ams = undefined) {
+  setPan(channel, left, right, ams = undefined, pms = undefined) {
     assertChannel(channel);
     if (typeof left !== "boolean" || typeof right !== "boolean") {
       throw new Error("left and right must be boolean");
@@ -426,9 +436,16 @@ export class YM2612Synth {
       0,
       3
     );
+    const validPms = validateRange(
+      "pms",
+      pms !== undefined ? pms : state.pms,
+      0,
+      7
+    );
     state.left = left;
     state.right = right;
     state.ams = validAms;
+    state.pms = validPms;
 
     const { port, channelOffset } = splitChannel(channel);
     let value = 0;
@@ -439,8 +456,9 @@ export class YM2612Synth {
       value |= 0x40;
     }
     value |= validAms << 4;
+    value |= validPms;
 
-    // Left / Right output enable + AMS
+    // Left / Right output enable + AMS + PMS
     // base 0xb4
     this._write(port, 0xb4 + channelOffset, value);
   }
@@ -656,6 +674,7 @@ function createDefaultChannelState() {
     algorithm: DEFAULT_CHANNEL_STATE.algorithm,
     feedback: DEFAULT_CHANNEL_STATE.feedback,
     ams: DEFAULT_CHANNEL_STATE.ams,
+    pms: DEFAULT_CHANNEL_STATE.pms,
     left: DEFAULT_CHANNEL_STATE.left,
     right: DEFAULT_CHANNEL_STATE.right,
     block: DEFAULT_CHANNEL_STATE.block,

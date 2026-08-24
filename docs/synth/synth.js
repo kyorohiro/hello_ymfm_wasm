@@ -122,6 +122,7 @@ const COMMON_PARAM_DEFS = [
   { id: "algorithm", label: "ALGO", min: 0, max: 7, step: 1, category: "routing", help: "Operator routing pattern." },
   { id: "feedback", label: "FB", min: 0, max: 7, step: 1, category: "routing", help: "OP1 self-feedback amount." },
   { id: "ams", label: "AMS", min: 0, max: 3, step: 1, category: "modulation", help: "LFO volume depth for AM-enabled operators." },
+  { id: "pms", label: "PMS", min: 0, max: 7, step: 1, category: "modulation", help: "LFO pitch depth for the channel." },
   { id: "lfoEnabled", label: "LFO", min: 0, max: 1, step: 1, booleanMode: true, category: "modulation", help: "Enable chip LFO." },
   { id: "lfoFrequency", label: "LFOF", min: 0, max: 7, step: 1, category: "modulation", help: "Chip LFO speed." },
 ];
@@ -149,6 +150,7 @@ const commonState = {
   algorithm: 7,
   feedback: 0,
   ams: 0,
+  pms: 0,
   lfoEnabled: false,
   lfoFrequency: 0,
 };
@@ -1121,7 +1123,8 @@ function applyPatchToVoices() {
       channel,
       true,
       true,
-      commonState.ams
+      commonState.ams,
+      commonState.pms
     );
   }
 }
@@ -1192,6 +1195,8 @@ function applyPresetState(
     preset.feedback ?? 0;
   commonState.ams =
     preset.ams ?? 0;
+  commonState.pms =
+    preset.pms ?? 0;
 
   for (const operator of OPERATOR_NUMBERS) {
     const nextOperator =
@@ -1227,6 +1232,8 @@ function applyImportedTfiPreset(
     preset.feedback ?? 0;
   commonState.ams =
     preset.ams ?? 0;
+  commonState.pms =
+    preset.pms ?? 0;
 
   for (const operator of OPERATOR_NUMBERS) {
     const nextOperator =
@@ -1256,6 +1263,7 @@ function buildCurrentPresetState() {
     feedback:
       commonState.feedback,
     ams: commonState.ams,
+    pms: commonState.pms,
     lfo: {
       enabled:
         commonState.lfoEnabled,
@@ -1281,6 +1289,7 @@ function buildLooperPatchSnapshot() {
     feedback:
       commonState.feedback,
     ams: commonState.ams,
+    pms: commonState.pms,
     lfoEnabled:
       commonState.lfoEnabled,
     lfoFrequency:
@@ -1346,7 +1355,8 @@ function applyLooperPatchToChannel(
     channel,
     patch.left ?? true,
     patch.right ?? true,
-    patch.ams ?? 0
+    patch.ams ?? 0,
+    patch.pms ?? 0
   );
 }
 
