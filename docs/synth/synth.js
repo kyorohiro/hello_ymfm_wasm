@@ -103,6 +103,7 @@ const OPERATOR_PARAM_DEFS = [
   { id: "multi", label: "MULTI", min: 0, max: 15, step: 1 },
   { id: "tl", label: "TL", min: 0, max: 127, step: 1 },
   { id: "ar", label: "AR", min: 0, max: 31, step: 1 },
+  { id: "am", label: "AM", min: 0, max: 1, step: 1, booleanMode: true },
   { id: "d1r", label: "D1R", min: 0, max: 31, step: 1 },
   { id: "d2r", label: "D2R", min: 0, max: 31, step: 1 },
   { id: "sl", label: "SL", min: 0, max: 15, step: 1 },
@@ -112,6 +113,8 @@ const OPERATOR_PARAM_DEFS = [
 const COMMON_PARAM_DEFS = [
   { id: "algorithm", label: "ALGO", min: 0, max: 7, step: 1 },
   { id: "feedback", label: "FB", min: 0, max: 7, step: 1 },
+  { id: "lfoEnabled", label: "LFO", min: 0, max: 1, step: 1, booleanMode: true },
+  { id: "lfoFrequency", label: "LFOF", min: 0, max: 7, step: 1 },
 ];
 
 const VOICE_COUNT = 6;
@@ -136,6 +139,8 @@ let fretboardLayout =
 const commonState = {
   algorithm: 7,
   feedback: 0,
+  lfoEnabled: false,
+  lfoFrequency: 0,
 };
 
 let currentPresetName =
@@ -149,6 +154,7 @@ const operatorStates = {
     tl: 127,
     rs: 0,
     ar: 31,
+    am: false,
     d1r: 0,
     d2r: 0,
     sl: 0,
@@ -161,6 +167,7 @@ const operatorStates = {
     tl: 127,
     rs: 0,
     ar: 31,
+    am: false,
     d1r: 0,
     d2r: 0,
     sl: 0,
@@ -173,6 +180,7 @@ const operatorStates = {
     tl: 127,
     rs: 0,
     ar: 31,
+    am: false,
     d1r: 0,
     d2r: 0,
     sl: 0,
@@ -185,6 +193,7 @@ const operatorStates = {
     tl: 8,
     rs: 0,
     ar: 22,
+    am: false,
     d1r: 6,
     d2r: 3,
     sl: 3,
@@ -1068,6 +1077,11 @@ function applyPatchToVoices() {
     return;
   }
 
+  synth.setLfo(
+    commonState.lfoEnabled,
+    commonState.lfoFrequency
+  );
+
   for (
     let channel = 0;
     channel < VOICE_COUNT;
@@ -1077,7 +1091,12 @@ function applyPatchToVoices() {
       synth.setOperator(
         channel,
         operator,
-        operatorStates[operator]
+        {
+          ...operatorStates[operator],
+          am:
+            operatorStates[operator].am ===
+            true,
+        }
       );
     }
 
@@ -1216,6 +1235,12 @@ function buildCurrentPresetState() {
       commonState.algorithm,
     feedback:
       commonState.feedback,
+    lfo: {
+      enabled:
+        commonState.lfoEnabled,
+      frequency:
+        commonState.lfoFrequency,
+    },
     operators: {},
   };
 
@@ -1234,6 +1259,10 @@ function buildLooperPatchSnapshot() {
       commonState.algorithm,
     feedback:
       commonState.feedback,
+    lfoEnabled:
+      commonState.lfoEnabled,
+    lfoFrequency:
+      commonState.lfoFrequency,
     left: true,
     right: true,
     operators: {
@@ -1261,6 +1290,11 @@ function applyLooperPatchToChannel(
     return;
   }
 
+  loopSynth.setLfo(
+    patch.lfoEnabled ?? false,
+    patch.lfoFrequency ?? 0
+  );
+
   for (const operator of OPERATOR_NUMBERS) {
     const operatorPatch =
       patch.operators?.[operator];
@@ -1272,7 +1306,11 @@ function applyLooperPatchToChannel(
     loopSynth.setOperator(
       channel,
       operator,
-      operatorPatch
+      {
+        ...operatorPatch,
+        am:
+          operatorPatch.am === true,
+      }
     );
   }
 
@@ -1368,6 +1406,10 @@ function buildCommonControls() {
     defs: COMMON_PARAM_DEFS,
     state: commonState,
     controlsMap: commonControls,
+    stackedLabels: true,
+    referenceColumnCount:
+      OPERATOR_PARAM_DEFS.length,
+    gapPx: 4,
     onChange: (id, nextValue) => {
       commonState[id] = nextValue;
       currentPresetName =
@@ -1386,10 +1428,12 @@ function buildCommonControls() {
 }
 
 function buildCommonHeader() {
-  buildHeader(
-    commonHeaderRoot,
-    COMMON_PARAM_DEFS
-  );
+  if (
+    commonHeaderRoot?.parentElement
+  ) {
+    commonHeaderRoot.parentElement.style.display =
+      "none";
+  }
 }
 
 function buildOperatorHeader() {

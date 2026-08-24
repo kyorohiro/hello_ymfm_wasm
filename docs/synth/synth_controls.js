@@ -14,6 +14,7 @@ export function createParamControl(config) {
     value,
     onChange,
     showLabel = true,
+    booleanMode = false,
   } = config;
 
   const wrapper =
@@ -51,6 +52,11 @@ export function createParamControl(config) {
 
   const updateVisual =
     (nextValue) => {
+      if (booleanMode) {
+        valueElement.textContent =
+          nextValue ? "1" : "0";
+        return;
+      }
       valueElement.textContent =
         String(nextValue);
     };
@@ -64,12 +70,13 @@ export function createParamControl(config) {
 
   const applyValue =
     (nextValue) => {
-      currentValue =
-        clampValue(
-          nextValue,
-          min,
-          max
-        );
+      currentValue = booleanMode
+        ? Boolean(nextValue)
+        : clampValue(
+            nextValue,
+            min,
+            max
+          );
       updateVisual(currentValue);
       onChange(currentValue);
     };
@@ -77,6 +84,10 @@ export function createParamControl(config) {
   minusButton.addEventListener(
     "click",
     () => {
+      if (booleanMode) {
+        applyValue(false);
+        return;
+      }
       applyValue(currentValue - step);
     }
   );
@@ -84,6 +95,10 @@ export function createParamControl(config) {
   plusButton.addEventListener(
     "click",
     () => {
+      if (booleanMode) {
+        applyValue(true);
+        return;
+      }
       applyValue(currentValue + step);
     }
   );
@@ -91,6 +106,10 @@ export function createParamControl(config) {
   valueElement.addEventListener(
     "pointerdown",
     (event) => {
+      if (booleanMode) {
+        applyValue(!currentValue);
+        return;
+      }
       dragStartX = event.clientX;
       dragStartValue = currentValue;
       valueElement.classList.add(
@@ -105,6 +124,9 @@ export function createParamControl(config) {
   valueElement.addEventListener(
     "pointermove",
     (event) => {
+      if (booleanMode) {
+        return;
+      }
       if (
         valueElement.hasPointerCapture(
           event.pointerId
@@ -157,6 +179,10 @@ export function createParamControl(config) {
     "wheel",
     (event) => {
       event.preventDefault();
+      if (booleanMode) {
+        applyValue(event.deltaY < 0);
+        return;
+      }
       const direction =
         event.deltaY < 0
           ? step
@@ -190,6 +216,8 @@ export function buildHeader(
   }
 
   root.innerHTML = "";
+  root.style.display = "grid";
+  root.style.gridTemplateColumns = `repeat(${defs.length}, minmax(0, 1fr))`;
 
   for (const config of defs) {
     const cell =
@@ -208,10 +236,19 @@ export function buildCommonControls({
   state,
   controlsMap,
   onChange,
+  stackedLabels = false,
+  referenceColumnCount = defs.length,
+  gapPx = 4,
 }) {
   root.innerHTML = "";
+  root.style.display = "grid";
+  root.style.gridTemplateColumns = `repeat(${referenceColumnCount}, minmax(0, 1fr))`;
+  root.style.gap = `${gapPx}px`;
+  root.style.justifyContent = "";
+  root.style.width = "";
 
-  for (const config of defs) {
+  for (let index = 0; index < defs.length; index += 1) {
+    const config = defs[index];
     const control =
       createParamControl({
         ...config,
@@ -227,9 +264,29 @@ export function buildCommonControls({
       control
     );
 
-    root.appendChild(
-      control.element
-    );
+    if (!stackedLabels) {
+      root.appendChild(
+        control.element
+      );
+      continue;
+    }
+
+    const cell =
+      document.createElement("div");
+    cell.className =
+      "common-control-cell";
+
+    const label =
+      document.createElement("div");
+    label.className =
+      "common-control-label";
+    label.textContent =
+      config.label;
+
+    cell.appendChild(label);
+    cell.appendChild(control.element);
+    cell.style.gridColumn = String(index + 1);
+    root.appendChild(cell);
   }
 }
 
@@ -259,6 +316,9 @@ export function buildOperatorControls({
     const strip =
       document.createElement("div");
     strip.className = "param-strip";
+    strip.style.display = "grid";
+    strip.style.gridTemplateColumns = `repeat(${defs.length}, minmax(0, 1fr))`;
+    strip.style.gap = "4px";
 
     const rowControls =
       new Map();
