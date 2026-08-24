@@ -29,6 +29,9 @@ export function createParamControl(config) {
   if (!showLabel) {
     wrapper.classList.add("no-label");
   }
+  if (booleanMode) {
+    wrapper.classList.add("is-boolean");
+  }
 
   const labelElement =
     document.createElement("div");
@@ -60,7 +63,11 @@ export function createParamControl(config) {
     (nextValue) => {
       if (booleanMode) {
         valueElement.textContent =
-          nextValue ? "1" : "0";
+          nextValue ? "ON" : "OFF";
+        valueElement.classList.toggle(
+          "is-on",
+          Boolean(nextValue)
+        );
         return;
       }
       valueElement.textContent =
@@ -87,27 +94,21 @@ export function createParamControl(config) {
       onChange(currentValue);
     };
 
-  minusButton.addEventListener(
-    "click",
-    () => {
-      if (booleanMode) {
-        applyValue(false);
-        return;
+  if (!booleanMode) {
+    minusButton.addEventListener(
+      "click",
+      () => {
+        applyValue(currentValue - step);
       }
-      applyValue(currentValue - step);
-    }
-  );
+    );
 
-  plusButton.addEventListener(
-    "click",
-    () => {
-      if (booleanMode) {
-        applyValue(true);
-        return;
+    plusButton.addEventListener(
+      "click",
+      () => {
+        applyValue(currentValue + step);
       }
-      applyValue(currentValue + step);
-    }
-  );
+    );
+  }
 
   valueElement.addEventListener(
     "pointerdown",
@@ -186,7 +187,7 @@ export function createParamControl(config) {
     (event) => {
       event.preventDefault();
       if (booleanMode) {
-        applyValue(event.deltaY < 0);
+        applyValue(!currentValue);
         return;
       }
       const direction =
@@ -201,9 +202,13 @@ export function createParamControl(config) {
   if (showLabel) {
     wrapper.appendChild(labelElement);
   }
-  wrapper.appendChild(minusButton);
+  if (!booleanMode) {
+    wrapper.appendChild(minusButton);
+  }
   wrapper.appendChild(valueElement);
-  wrapper.appendChild(plusButton);
+  if (!booleanMode) {
+    wrapper.appendChild(plusButton);
+  }
 
   updateVisual(value);
 
@@ -248,23 +253,34 @@ export function buildHeader(
         "function" &&
       config.help
     ) {
-      const helpButton =
-        document.createElement("button");
-      helpButton.type = "button";
-      helpButton.className =
-        "param-help-button";
-      helpButton.textContent = "?";
-      helpButton.setAttribute(
+      cell.classList.add("param-helpable");
+      cell.tabIndex = 0;
+      cell.setAttribute(
+        "role",
+        "button"
+      );
+      cell.setAttribute(
         "aria-label",
         `Show help for ${config.label}`
       );
-      helpButton.addEventListener(
+      cell.addEventListener(
         "click",
         () => {
           onHelpToggle(config);
         }
       );
-      cell.appendChild(helpButton);
+      cell.addEventListener(
+        "keydown",
+        (event) => {
+          if (
+            event.key === "Enter" ||
+            event.key === " "
+          ) {
+            event.preventDefault();
+            onHelpToggle(config);
+          }
+        }
+      );
     }
 
     root.appendChild(cell);
@@ -338,23 +354,34 @@ export function buildCommonControls({
         "function" &&
       config.help
     ) {
-      const helpButton =
-        document.createElement("button");
-      helpButton.type = "button";
-      helpButton.className =
-        "param-help-button";
-      helpButton.textContent = "?";
-      helpButton.setAttribute(
+      label.classList.add("param-helpable");
+      label.tabIndex = 0;
+      label.setAttribute(
+        "role",
+        "button"
+      );
+      label.setAttribute(
         "aria-label",
         `Show help for ${config.label}`
       );
-      helpButton.addEventListener(
+      label.addEventListener(
         "click",
         () => {
           onHelpToggle(config);
         }
       );
-      label.appendChild(helpButton);
+      label.addEventListener(
+        "keydown",
+        (event) => {
+          if (
+            event.key === "Enter" ||
+            event.key === " "
+          ) {
+            event.preventDefault();
+            onHelpToggle(config);
+          }
+        }
+      );
     }
 
     cell.appendChild(label);
@@ -385,7 +412,7 @@ export function buildOperatorControls({
     name.className =
       `operator-name op-color-${operator}`;
     name.textContent =
-      `OP${operator}`;
+      String(operator);
 
     const strip =
       document.createElement("div");

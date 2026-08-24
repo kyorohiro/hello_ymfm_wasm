@@ -330,11 +330,9 @@
 
       .common-control-label {
         min-width: 0;
-        position: relative;
         display: flex;
         align-items: center;
         justify-content: center;
-        padding-right: 16px;
         text-align: center;
         font-size: 0.48rem;
         font-weight: 800;
@@ -433,13 +431,26 @@
 
       .operator-header-row {
         display: grid;
-        grid-template-columns: 44px minmax(0, 1fr);
+        grid-template-columns: 32px minmax(0, 1fr);
         gap: 6px;
         align-items: end;
       }
 
       .operator-header-spacer {
         min-width: 0;
+      }
+
+      .operator-corner-label {
+        display: flex;
+        align-items: end;
+        justify-content: center;
+        font-size: 0.48rem;
+        font-weight: 800;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: rgba(31, 27, 22, 0.64);
+        text-align: center;
+        line-height: 1;
       }
 
       .operator-header-strip {
@@ -449,11 +460,9 @@
 
       .operator-header-cell {
         min-width: 0;
-        position: relative;
         display: flex;
         align-items: center;
         justify-content: center;
-        padding-right: 16px;
         text-align: center;
         font-size: 0.48rem;
         font-weight: 800;
@@ -474,17 +483,19 @@
 
       .operator-row {
         display: grid;
-        grid-template-columns: 44px minmax(0, 1fr);
+        grid-template-columns: 32px minmax(0, 1fr);
         gap: 6px;
         align-items: center;
       }
 
       .operator-name {
+        line-height: 0.95;
         font-size: 0.72rem;
         font-weight: 800;
         letter-spacing: 0.04em;
         text-transform: uppercase;
         min-width: 0;
+        text-align: center;
       }
 
       .operator-name.op-color-1,
@@ -533,6 +544,12 @@
         padding: 2px 6px;
       }
 
+      .param-control.is-boolean.no-label {
+        grid-template-columns: minmax(0, 1fr);
+        justify-items: stretch;
+        padding: 2px 4px;
+      }
+
       #operatorControls .param-control {
         min-width: 0;
         width: 100%;
@@ -545,6 +562,12 @@
         padding: 2px 4px;
       }
 
+      #operatorControls .param-control.is-boolean.no-label,
+      #commonControls .param-control.is-boolean.no-label {
+        grid-template-columns: minmax(0, 1fr);
+        padding: 2px 3px;
+      }
+
       .param-label {
         min-width: 14px;
         font-size: 0.48rem;
@@ -554,28 +577,18 @@
         color: var(--pill-muted);
       }
 
-      .param-help-button {
-        position: absolute;
-        right: 0;
-        top: 50%;
-        transform: translateY(-50%);
-        width: 14px;
-        height: 14px;
-        padding: 0;
-        border: 1px solid rgba(110, 122, 146, 0.42);
-        border-radius: 999px;
-        background: rgba(255, 255, 255, 0.74);
-        color: rgba(31, 27, 22, 0.72);
-        font: inherit;
-        font-size: 0.48rem;
-        font-weight: 900;
-        line-height: 1;
+      .param-helpable {
         cursor: pointer;
       }
 
-      .param-help-button:hover {
-        background: rgba(255, 255, 255, 0.94);
+      .param-helpable:hover {
         color: rgba(31, 27, 22, 0.9);
+      }
+
+      .param-helpable:focus-visible {
+        outline: 1px solid rgba(110, 122, 146, 0.6);
+        outline-offset: 2px;
+        border-radius: 4px;
       }
 
       .param-help {
@@ -647,6 +660,17 @@
         letter-spacing: 0.02em;
         user-select: none;
         cursor: ew-resize;
+      }
+
+      .param-control.is-boolean .param-value {
+        min-width: 0;
+        padding: 1px 0;
+        border-radius: 999px;
+        cursor: pointer;
+      }
+
+      .param-control.is-boolean .param-value.is-on {
+        background: rgba(255, 255, 255, 0.32);
       }
 
       .param-value.is-dragging {
@@ -842,7 +866,7 @@
 
       @media (max-width: 760px) {
         .operator-header-row {
-          grid-template-columns: 36px minmax(0, 1fr);
+          grid-template-columns: 28px minmax(0, 1fr);
           gap: 4px;
         }
 
@@ -855,7 +879,7 @@
         }
 
         .operator-row {
-          grid-template-columns: 36px minmax(0, 1fr);
+          grid-template-columns: 28px minmax(0, 1fr);
           gap: 4px;
         }
 
@@ -881,6 +905,11 @@
           padding: 1px 4px;
         }
 
+        .param-control.is-boolean.no-label {
+          grid-template-columns: minmax(0, 1fr);
+          padding: 1px 3px;
+        }
+
         #operatorControls .param-control {
           min-width: 0;
         }
@@ -888,6 +917,12 @@
         #operatorControls .param-control.no-label {
           padding: 1px 3px;
           grid-template-columns: 10px minmax(0, 1fr) 10px;
+        }
+
+        #operatorControls .param-control.is-boolean.no-label,
+        #commonControls .param-control.is-boolean.no-label {
+          grid-template-columns: minmax(0, 1fr);
+          padding: 1px 2px;
         }
 
         .param-label {
@@ -959,15 +994,15 @@
               </div>
               <div class="operator-stack">
                 <div class="operator-header-row">
-                  <div class="operator-header-spacer"></div>
+                <div class="operator-header-spacer"></div>
                   <div class="operator-header-strip" id="commonHeader"></div>
                 </div>
                 <div class="operator-row">
-                  <div class="operator-name">Common</div>
+                  <div class="operator-name" aria-hidden="true"></div>
                   <div class="param-strip" id="commonControls"></div>
                 </div>
                 <div class="operator-header-row">
-                  <div class="operator-header-spacer"></div>
+                  <div class="operator-header-spacer operator-corner-label">OP</div>
                   <div class="operator-header-strip" id="operatorHeader"></div>
                 </div>
                 <div id="operatorControls" class="operator-stack"></div>

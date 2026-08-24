@@ -115,6 +115,7 @@ const OPERATOR_PARAM_DEFS = [
   { id: "d2r", label: "D2R", min: 0, max: 31, step: 1, category: "envelope", help: "Later decay speed while held." },
   { id: "sl", label: "SL", min: 0, max: 15, step: 1, category: "envelope", help: "Later sustain target level." },
   { id: "rr", label: "RR", min: 0, max: 15, step: 1, category: "envelope", help: "Fade speed after key off." },
+  { id: "ssg", label: "SSG", min: 0, max: 15, step: 1, category: "modulation", help: "Special envelope mode." },
 ];
 
 const COMMON_PARAM_DEFS = [
