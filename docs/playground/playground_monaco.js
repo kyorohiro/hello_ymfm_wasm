@@ -745,6 +745,61 @@ function createRegisterSuggestions(
   );
 }
 
+function createRegisterValueSuggestions(
+  registerValue,
+  kind,
+  range
+) {
+  const definitions = {
+    "0x22": [
+      { value: "0x00", description: "LFO off" },
+      { value: "0x08", description: "LFO on, frequency 0" },
+      { value: "0x0f", description: "LFO on, frequency 7" },
+    ],
+    "0x28": [
+      { value: "0x00", description: "Key off channel 1" },
+      { value: "0x01", description: "Key off channel 2" },
+      { value: "0x02", description: "Key off channel 3" },
+      { value: "0x04", description: "Key off channel 4" },
+      { value: "0x05", description: "Key off channel 5" },
+      { value: "0x06", description: "Key off channel 6" },
+      { value: "0xf0", description: "Key on all operators, channel 1" },
+      { value: "0xf1", description: "Key on all operators, channel 2" },
+      { value: "0xf2", description: "Key on all operators, channel 3" },
+      { value: "0xf4", description: "Key on all operators, channel 4" },
+      { value: "0xf5", description: "Key on all operators, channel 5" },
+      { value: "0xf6", description: "Key on all operators, channel 6" },
+    ],
+    "0x2b": [
+      { value: "0x00", description: "DAC off" },
+      { value: "0x80", description: "DAC on" },
+    ],
+    "0xb0": [
+      { value: "0x07", description: "Algorithm 7, feedback 0" },
+      { value: "0x04", description: "Algorithm 4, feedback 0" },
+      { value: "0x23", description: "Algorithm 3, feedback 4" },
+      { value: "0x38", description: "Algorithm 0, feedback 7" },
+    ],
+    "0xb4": [
+      { value: "0x80", description: "Left only, AMS 0, PMS 0" },
+      { value: "0x40", description: "Right only, AMS 0, PMS 0" },
+      { value: "0xc0", description: "Left + right, AMS 0, PMS 0" },
+      { value: "0xc4", description: "Left + right, AMS 0, PMS 4" },
+      { value: "0xf7", description: "Left + right, AMS 3, PMS 7" },
+    ],
+  };
+
+  return (definitions[registerValue] ?? []).map(
+    ({ value, description }) => ({
+      label: `${value} ${description}`,
+      kind: kind.Value,
+      insertText: value,
+      documentation: description,
+      range,
+    })
+  );
+}
+
 function isInsidePresetString(
   linePrefix
 ) {
@@ -782,6 +837,42 @@ function isInsideYm2612RegisterArgument(
   return /fm\.(write|writeAddress)\(\s*[^,]+,\s*[^,)]*$/.test(
     linePrefix
   );
+}
+
+function detectYm2612ValueRegister(
+  linePrefix
+) {
+  const writeMatch =
+    /fm\.write\(\s*[^,]+,\s*(0x[0-9a-fA-F]+|\d+)\s*,\s*[^,)]*$/.exec(
+      linePrefix
+    );
+  if (writeMatch) {
+    return normalizeRegisterLiteral(
+      writeMatch[1]
+    );
+  }
+
+  return null;
+}
+
+function normalizeRegisterLiteral(
+  value
+) {
+  if (!value) {
+    return null;
+  }
+
+  const parsed =
+    value.startsWith("0x") ||
+    value.startsWith("0X")
+      ? Number.parseInt(value, 16)
+      : Number.parseInt(value, 10);
+
+  if (!Number.isFinite(parsed)) {
+    return null;
+  }
+
+  return `0x${parsed.toString(16)}`;
 }
 
 function isInsideCallObject(
@@ -946,6 +1037,20 @@ function registerMonacoCompletions(
         ) {
           suggestions.push(
             ...createRegisterSuggestions(
+              kind,
+              range
+            )
+          );
+        }
+
+        const registerValueContext =
+          detectYm2612ValueRegister(
+            linePrefix
+          );
+        if (registerValueContext) {
+          suggestions.push(
+            ...createRegisterValueSuggestions(
+              registerValueContext,
               kind,
               range
             )
