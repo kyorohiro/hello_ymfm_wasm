@@ -90,6 +90,29 @@ Last updated: 2026-08-24
   - deciding how much raw low-level write sync is worth exposing
   - possible reuse of the same observer pattern in `docs/synth`
 
+## Latest low-level YM2612 status
+
+- `Ym2612` now exposes:
+  - `write(offset, data)`
+  - `read(offset)`
+  - `readStatus()`
+  - `getIrq()`
+  - `setHooks({ onWrite, onRead, onIrq })`
+- `YM2612Synth` now exposes readable low-level helpers:
+  - `write(port, register, value)`
+  - `writeAddress(port, register)`
+  - `writeData(value)`
+  - `read(offset)` on direct transport
+  - `readStatus()` on direct transport
+  - `setHooks({ onWrite, onRead, onIrq })`
+- `AudioWorklet` side now forwards IRQ state back to the main thread.
+- Remaining low-level gap:
+  - synchronous `read()` does not make sense across `AudioWorklet`
+  - if needed, add a separate `readAsync()` path
+- After `readAsync()`, the next low-level work should be:
+  - busy flag exposure
+  - timer A / timer B exposure
+
 ## Latest Playground / FX / Monaco status
 
 - `docs/playground/playground.js`

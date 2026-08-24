@@ -167,6 +167,24 @@ export function createFmProxy(
         value
       );
     },
+    read(offset) {
+      return targetSynth.read(
+        offset
+      );
+    },
+    readStatus() {
+      return targetSynth.readStatus();
+    },
+    getIrq() {
+      if (
+        !targetSynth.transport ||
+        typeof targetSynth.transport.getIrq !==
+          "function"
+      ) {
+        return false;
+      }
+      return targetSynth.transport.getIrq();
+    },
     rawWrite(port, register, value) {
       targetSynth.rawWrite(
         port,

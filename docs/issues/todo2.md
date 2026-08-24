@@ -20,11 +20,60 @@ It is now mostly:
 
 Main missing or weak areas:
 
-- `KS / RS`
+- worklet-side async low-level read path
+- busy handling
+- timer A / timer B handling
+- more readable raw-write / learning-oriented APIs
+
+Already added recently:
+
+- `RS`
 - `AM enable`
 - `SSG-EG`
 - `LFO`
-- more readable raw-write / learning-oriented APIs
+- `PMS / AMS`
+- low-level `write(...)`
+- low-level `writeAddress(...)` / `writeData(...)`
+- direct low-level `read(...)`
+- direct low-level `readStatus(...)`
+- low-level `onWrite`
+- direct low-level `onRead`
+- low-level `onIrq`
+
+### Low-level API status
+
+Low-level access is now "mostly usable".
+
+Current shape:
+
+- direct transport:
+  - `write(offset, data)`
+  - `read(offset)`
+  - `readStatus()`
+  - `getIrq()`
+  - `setHooks({ onWrite, onRead, onIrq })`
+- synth low-level layer:
+  - `write(port, register, value)`
+  - `writeAddress(port, register)`
+  - `writeData(value)`
+  - `read(offset)` on direct transport
+  - `readStatus()` on direct transport
+  - `setHooks({ onWrite, onRead, onIrq })`
+- worklet transport:
+  - `write(...)`
+  - `getIrq()`
+  - `onIrq`
+
+Main remaining low-level gap:
+
+- `read()` across AudioWorklet is still missing as a synchronous API.
+- If needed, this should likely become `readAsync()` instead of pretending to be synchronous.
+
+After that, the next most YM2612-like low-level additions are:
+
+- busy flag exposure / policy
+- timer A / timer B exposure
+- deciding whether external I/O style hooks are worth surfacing now or later
 
 VGM playback is already practical for part of the Mega Drive / Genesis workflow,
 but it is not a full VGM implementation.

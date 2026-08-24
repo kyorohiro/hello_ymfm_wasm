@@ -145,6 +145,33 @@ function createMonacoTopLevelItems(
         "Write one YM2612 value to the data port after writeAddress().",
     },
     {
+      label: "fm.read",
+      kind: kind.Function,
+      insertText:
+        "fm.read(${1:0});",
+      insertTextRules: snippet,
+      documentation:
+        "Read one raw YM2612 bus offset. On AudioWorklet transport, synchronous read may be unavailable.",
+    },
+    {
+      label: "fm.readStatus",
+      kind: kind.Function,
+      insertText:
+        "fm.readStatus();",
+      insertTextRules: snippet,
+      documentation:
+        "Read the YM2612 status register.",
+    },
+    {
+      label: "fm.getIrq",
+      kind: kind.Function,
+      insertText:
+        "fm.getIrq();",
+      insertTextRules: snippet,
+      documentation:
+        "Read the current YM2612 IRQ pin state when available.",
+    },
+    {
       label:
         "MEGADRIVE_FM_PRESETS",
       kind: kind.Variable,
@@ -976,6 +1003,9 @@ declare const fm: {
   write(port: number, register: number, value: number): void;
   writeAddress(port: number, register: number): void;
   writeData(value: number): void;
+  read(offset: number): number;
+  readStatus(): number;
+  getIrq(): boolean;
   rawWrite(port: number, register: number, value: number): void;
 };
 

@@ -760,6 +760,7 @@
               <li><code>fm.setPreset(0, pg.presets["one-op-basic"])</code> applies one preset</li>
               <li><code>fm.write(port, register, value)</code> sends one YM2612 register write</li>
               <li><code>fm.writeAddress(port, register)</code>, <code>fm.writeData(value)</code> follow the YM2612 address/data flow</li>
+              <li><code>fm.read(offset)</code>, <code>fm.readStatus()</code>, <code>fm.getIrq()</code> expose low-level chip state where available</li>
             </ul>
 
             <h2 style="margin-top: 14px;">fx</h2>
