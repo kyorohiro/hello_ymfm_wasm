@@ -348,6 +348,164 @@ function createLivePrepareObjectSuggestions(
   return suggestions;
 }
 
+function createFmOperatorParamSuggestions(
+  kind,
+  snippet,
+  range
+) {
+  return [
+    {
+      label: "dt",
+      kind: kind.Property,
+      insertText: "dt: ${1:0},",
+      insertTextRules: snippet,
+      documentation:
+        "Detune. Small pitch offset for this operator.",
+      range,
+    },
+    {
+      label: "multi",
+      kind: kind.Property,
+      insertText: "multi: ${1:1},",
+      insertTextRules: snippet,
+      documentation:
+        "Frequency multiplier for this operator.",
+      range,
+    },
+    {
+      label: "tl",
+      kind: kind.Property,
+      insertText: "tl: ${1:8},",
+      insertTextRules: snippet,
+      documentation:
+        "Total level. Lower is louder.",
+      range,
+    },
+    {
+      label: "rs",
+      kind: kind.Property,
+      insertText: "rs: ${1:0},",
+      insertTextRules: snippet,
+      documentation:
+        "Rate scaling.",
+      range,
+    },
+    {
+      label: "ar",
+      kind: kind.Property,
+      insertText: "ar: ${1:22},",
+      insertTextRules: snippet,
+      documentation:
+        "Attack rate.",
+      range,
+    },
+    {
+      label: "am",
+      kind: kind.Property,
+      insertText: "am: ${1:false},",
+      insertTextRules: snippet,
+      documentation:
+        "Amplitude modulation enable.",
+      range,
+    },
+    {
+      label: "d1r",
+      kind: kind.Property,
+      insertText: "d1r: ${1:6},",
+      insertTextRules: snippet,
+      documentation:
+        "First decay rate.",
+      range,
+    },
+    {
+      label: "sr",
+      kind: kind.Property,
+      insertText: "sr: ${1:3},",
+      insertTextRules: snippet,
+      documentation:
+        "Sustain rate. Same YM2612 register family often called D2R in this project UI.",
+      range,
+    },
+    {
+      label: "d2r",
+      kind: kind.Property,
+      insertText: "d2r: ${1:3},",
+      insertTextRules: snippet,
+      documentation:
+        "Sustain rate / D2R.",
+      range,
+    },
+    {
+      label: "sl",
+      kind: kind.Property,
+      insertText: "sl: ${1:3},",
+      insertTextRules: snippet,
+      documentation:
+        "Sustain level.",
+      range,
+    },
+    {
+      label: "rr",
+      kind: kind.Property,
+      insertText: "rr: ${1:8},",
+      insertTextRules: snippet,
+      documentation:
+        "Release rate.",
+      range,
+    },
+    {
+      label: "ssg",
+      kind: kind.Property,
+      insertText: "ssg: ${1:0},",
+      insertTextRules: snippet,
+      documentation:
+        "SSG-EG setting.",
+      range,
+    },
+  ];
+}
+
+function isInsideFmSetOperatorObject(
+  sourceBeforeCursor
+) {
+  const callIndex =
+    sourceBeforeCursor.lastIndexOf(
+      "fm.setOperator("
+    );
+
+  if (callIndex < 0) {
+    return false;
+  }
+
+  const tail =
+    sourceBeforeCursor.slice(callIndex);
+  const openBraceIndex =
+    tail.indexOf("{");
+
+  if (openBraceIndex < 0) {
+    return false;
+  }
+
+  let depth = 0;
+  for (
+    let index = openBraceIndex;
+    index < tail.length;
+    index += 1
+  ) {
+    const char = tail[index];
+    if (char === "{") {
+      depth += 1;
+    } else if (char === "}") {
+      depth -= 1;
+      if (depth === 0) {
+        return false;
+      }
+    }
+  }
+
+  return depth > 0;
+}
+
 function registerMonacoCompletions(
   monaco
 ) {
@@ -405,7 +563,30 @@ function registerMonacoCompletions(
             0,
             position.column - 1
           );
+        const sourceBeforeCursor =
+          model.getValueInRange({
+            startLineNumber: 1,
+            startColumn: 1,
+            endLineNumber:
+              position.lineNumber,
+            endColumn:
+              position.column,
+          });
         const suggestions = [];
+
+        if (
+          isInsideFmSetOperatorObject(
+            sourceBeforeCursor
+          )
+        ) {
+          suggestions.push(
+            ...createFmOperatorParamSuggestions(
+              kind,
+              snippet,
+              range
+            )
+          );
+        }
 
         if (/\bfx\.$/.test(linePrefix)) {
           suggestions.push(
@@ -991,10 +1172,25 @@ function registerMonacoPlaygroundGlobals(
     `
 declare const MEGADRIVE_FM_PRESETS: Record<string, unknown>;
 
+type YM2612OperatorParams = {
+  dt?: number;
+  multi?: number;
+  tl?: number;
+  rs?: number;
+  ar?: number;
+  am?: boolean;
+  d1r?: number;
+  sr?: number;
+  d2r?: number;
+  sl?: number;
+  rr?: number;
+  ssg?: number;
+};
+
 declare const fm: {
   reset(): void;
   setPreset(channel: number, preset: object): void;
-  setOperator(channel: number, operator: number, params: object): void;
+  setOperator(channel: number, operator: number, params: YM2612OperatorParams): void;
   setAlgo(channel: number, algorithm: number, feedback?: number): void;
   setPan(channel: number, left: boolean, right: boolean, ams?: number, pms?: number): void;
   setLfo(enabled: boolean, frequency: number): void;
