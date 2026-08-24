@@ -502,6 +502,136 @@ function createPlayOptionsSuggestions(
   ];
 }
 
+function createFxConfigSuggestions(
+  effectType,
+  kind,
+  snippet,
+  range
+) {
+  const definitions = {
+    gain: [
+      {
+        label: "gain",
+        insertText: "gain: ${1:1.0},",
+        documentation: "Gain amount.",
+      },
+    ],
+    eq: [
+      {
+        label: "bass",
+        insertText: "bass: ${1:0},",
+        documentation: "EQ bass gain in dB.",
+      },
+      {
+        label: "mid",
+        insertText: "mid: ${1:0},",
+        documentation: "EQ mid gain in dB.",
+      },
+      {
+        label: "treble",
+        insertText: "treble: ${1:0},",
+        documentation: "EQ treble gain in dB.",
+      },
+    ],
+    filter: [
+      {
+        label: "type",
+        insertText: 'type: "${1:lowpass}",',
+        documentation: "Filter type such as lowpass or highpass.",
+      },
+      {
+        label: "cutoff",
+        insertText: "cutoff: ${1:1200},",
+        documentation: "Filter cutoff frequency in Hz.",
+      },
+      {
+        label: "q",
+        insertText: "q: ${1:1.1},",
+        documentation: "Filter resonance / Q.",
+      },
+    ],
+    delay: [
+      {
+        label: "time",
+        insertText: "time: ${1:0.24},",
+        documentation: "Delay time in seconds.",
+      },
+      {
+        label: "feedback",
+        insertText: "feedback: ${1:0.28},",
+        documentation: "Delay feedback amount.",
+      },
+      {
+        label: "mix",
+        insertText: "mix: ${1:0.16},",
+        documentation: "Dry/wet mix.",
+      },
+    ],
+    reverb: [
+      {
+        label: "mix",
+        insertText: "mix: ${1:0.18},",
+        documentation: "Dry/wet mix.",
+      },
+      {
+        label: "tone",
+        insertText: "tone: ${1:5400},",
+        documentation: "Reverb tone / damping frequency.",
+      },
+    ],
+  };
+
+  return (definitions[effectType] ?? []).map((item) => ({
+    label: item.label,
+    kind: kind.Property,
+    insertText: item.insertText,
+    insertTextRules: snippet,
+    documentation: item.documentation,
+    range,
+  }));
+}
+
+function detectFxConfigContext(
+  sourceBeforeCursor
+) {
+  const candidates = [
+    { prefix: "fx.gain(", effectType: "gain" },
+    { prefix: "fx.eq(", effectType: "eq" },
+    { prefix: "fx.filter(", effectType: "filter" },
+    { prefix: "fx.delay(", effectType: "delay" },
+    { prefix: "fx.reverb(", effectType: "reverb" },
+  ];
+
+  let bestMatch = null;
+  for (const candidate of candidates) {
+    const index =
+      sourceBeforeCursor.lastIndexOf(
+        candidate.prefix
+      );
+    if (
+      index >= 0 &&
+      (bestMatch === null ||
+        index > bestMatch.index)
+    ) {
+      bestMatch = {
+        ...candidate,
+        index,
+      };
+    }
+  }
+
+  if (!bestMatch) {
+    return null;
+  }
+
+  return isInsideCallObject(
+    sourceBeforeCursor,
+    [bestMatch.prefix]
+  )
+    ? bestMatch.effectType
+    : null;
+}
+
 function isInsideCallObject(
   sourceBeforeCursor,
   callPrefixes
@@ -642,6 +772,21 @@ function registerMonacoCompletions(
         ) {
           suggestions.push(
             ...createPlayOptionsSuggestions(
+              kind,
+              snippet,
+              range
+            )
+          );
+        }
+
+        const fxConfigType =
+          detectFxConfigContext(
+            sourceBeforeCursor
+          );
+        if (fxConfigType) {
+          suggestions.push(
+            ...createFxConfigSuggestions(
+              fxConfigType,
               kind,
               snippet,
               range
@@ -1254,6 +1399,33 @@ type PlaygroundPlayOptions = {
   preset?: object;
 };
 
+type GainFXOptions = {
+  gain?: number;
+};
+
+type EqFXOptions = {
+  bass?: number;
+  mid?: number;
+  treble?: number;
+};
+
+type FilterFXOptions = {
+  type?: string;
+  cutoff?: number;
+  q?: number;
+};
+
+type DelayFXOptions = {
+  time?: number;
+  feedback?: number;
+  mix?: number;
+};
+
+type ReverbFXOptions = {
+  mix?: number;
+  tone?: number;
+};
+
 declare const fm: {
   reset(): void;
   setPreset(channel: number, preset: object): void;
@@ -1273,11 +1445,11 @@ declare const fm: {
 };
 
 declare const fx: {
-  gain(options?: object): any;
-  eq(options?: object): any;
-  filter(options?: object): any;
-  delay(options?: object): any;
-  reverb(options?: object): any;
+  gain(options?: GainFXOptions): any;
+  eq(options?: EqFXOptions): any;
+  filter(options?: FilterFXOptions): any;
+  delay(options?: DelayFXOptions): any;
+  reverb(options?: ReverbFXOptions): any;
   setChain(effects: any[]): void;
   clear(): void;
 };
