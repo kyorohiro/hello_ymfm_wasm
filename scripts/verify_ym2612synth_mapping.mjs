@@ -101,9 +101,25 @@ function verifyLfoRegister() {
   );
 }
 
+function verifyAmsPacking() {
+  const { synth, writes } = collectWrites();
+
+  synth.setPan(0, true, true, 3);
+
+  expectEqual(writes.length, 1, "ams write count");
+  expectEqual(writes[0].port, 0, "ams port");
+  expectEqual(writes[0].register, 0xb4, "ams register");
+  expectEqual(
+    writes[0].value,
+    0x80 | 0x40 | (3 << 4),
+    "ams packed value"
+  );
+}
+
 verifyOperatorRegisterOrder();
 verifyChannel4RegisterOrder();
 verifyAmPacking();
 verifyLfoRegister();
+verifyAmsPacking();
 
 console.log("YM2612Synth mapping and control packing OK");
