@@ -84,6 +84,12 @@ const exportTfiButton =
   );
 const tfiSummary =
   document.getElementById("tfiSummary");
+const paramHelp =
+  document.getElementById("paramHelp");
+const paramHelpTitle =
+  document.getElementById("paramHelpTitle");
+const paramHelpText =
+  document.getElementById("paramHelpText");
 const envelopeCanvas =
   document.getElementById("envelopeCanvas");
 const envelopeContext =
@@ -99,22 +105,22 @@ const OPERATOR_NUMBERS = [
 ];
 
 const OPERATOR_PARAM_DEFS = [
-  { id: "dt", label: "DT", min: 0, max: 7, step: 1 },
-  { id: "multi", label: "MULTI", min: 0, max: 15, step: 1 },
-  { id: "tl", label: "TL", min: 0, max: 127, step: 1 },
-  { id: "ar", label: "AR", min: 0, max: 31, step: 1 },
-  { id: "am", label: "AM", min: 0, max: 1, step: 1, booleanMode: true },
-  { id: "d1r", label: "D1R", min: 0, max: 31, step: 1 },
-  { id: "d2r", label: "D2R", min: 0, max: 31, step: 1 },
-  { id: "sl", label: "SL", min: 0, max: 15, step: 1 },
-  { id: "rr", label: "RR", min: 0, max: 15, step: 1 },
+  { id: "dt", label: "DT", min: 0, max: 7, step: 1, category: "pitch", help: "Small pitch offset." },
+  { id: "multi", label: "MULTI", min: 0, max: 15, step: 1, category: "pitch", help: "Frequency multiplier." },
+  { id: "tl", label: "TL", min: 0, max: 127, step: 1, category: "level", help: "Output level. Lower is louder." },
+  { id: "ar", label: "AR", min: 0, max: 31, step: 1, category: "envelope", help: "Attack speed after key on." },
+  { id: "am", label: "AM", min: 0, max: 1, step: 1, booleanMode: true, category: "modulation", help: "Enable LFO volume wobble." },
+  { id: "d1r", label: "D1R", min: 0, max: 31, step: 1, category: "envelope", help: "First decay speed." },
+  { id: "d2r", label: "D2R", min: 0, max: 31, step: 1, category: "envelope", help: "Later decay speed while held." },
+  { id: "sl", label: "SL", min: 0, max: 15, step: 1, category: "envelope", help: "Later sustain target level." },
+  { id: "rr", label: "RR", min: 0, max: 15, step: 1, category: "envelope", help: "Fade speed after key off." },
 ];
 
 const COMMON_PARAM_DEFS = [
-  { id: "algorithm", label: "ALGO", min: 0, max: 7, step: 1 },
-  { id: "feedback", label: "FB", min: 0, max: 7, step: 1 },
-  { id: "lfoEnabled", label: "LFO", min: 0, max: 1, step: 1, booleanMode: true },
-  { id: "lfoFrequency", label: "LFOF", min: 0, max: 7, step: 1 },
+  { id: "algorithm", label: "ALGO", min: 0, max: 7, step: 1, category: "routing", help: "Operator routing pattern." },
+  { id: "feedback", label: "FB", min: 0, max: 7, step: 1, category: "routing", help: "OP1 self-feedback amount." },
+  { id: "lfoEnabled", label: "LFO", min: 0, max: 1, step: 1, booleanMode: true, category: "modulation", help: "Enable chip LFO." },
+  { id: "lfoFrequency", label: "LFOF", min: 0, max: 7, step: 1, category: "modulation", help: "Chip LFO speed." },
 ];
 
 const VOICE_COUNT = 6;
@@ -146,6 +152,7 @@ const commonState = {
 let currentPresetName =
   "one-op-basic";
 let importedTfiName = "";
+let activeHelpId = "";
 
 const operatorStates = {
   1: {
@@ -1380,6 +1387,30 @@ function drawEnvelopeGuide() {
   });
 }
 
+function toggleParamHelp(config) {
+  if (
+    !paramHelp ||
+    !paramHelpTitle ||
+    !paramHelpText ||
+    !config?.help
+  ) {
+    return;
+  }
+
+  if (activeHelpId === config.id) {
+    activeHelpId = "";
+    paramHelp.hidden = true;
+    paramHelpTitle.textContent = "";
+    paramHelpText.textContent = "";
+    return;
+  }
+
+  activeHelpId = config.id;
+  paramHelpTitle.textContent = config.label;
+  paramHelpText.textContent = config.help;
+  paramHelp.hidden = false;
+}
+
 function updateVisuals() {
   drawEnvelopeGuide();
   if (looper?.running) {
@@ -1410,6 +1441,7 @@ function buildCommonControls() {
     referenceColumnCount:
       OPERATOR_PARAM_DEFS.length,
     gapPx: 4,
+    onHelpToggle: toggleParamHelp,
     onChange: (id, nextValue) => {
       commonState[id] = nextValue;
       currentPresetName =
@@ -1439,7 +1471,8 @@ function buildCommonHeader() {
 function buildOperatorHeader() {
   buildHeader(
     operatorHeaderRoot,
-    OPERATOR_PARAM_DEFS
+    OPERATOR_PARAM_DEFS,
+    { onHelpToggle: toggleParamHelp }
   );
 }
 

@@ -15,11 +15,17 @@ export function createParamControl(config) {
     onChange,
     showLabel = true,
     booleanMode = false,
+    category = "",
   } = config;
 
   const wrapper =
     document.createElement("div");
   wrapper.className = "param-control";
+  if (category) {
+    wrapper.classList.add(
+      `param-category-${category}`
+    );
+  }
   if (!showLabel) {
     wrapper.classList.add("no-label");
   }
@@ -209,8 +215,10 @@ export function createParamControl(config) {
 
 export function buildHeader(
   root,
-  defs
+  defs,
+  options = {}
 ) {
+  const { onHelpToggle } = options;
   if (!root) {
     return;
   }
@@ -224,8 +232,41 @@ export function buildHeader(
       document.createElement("div");
     cell.className =
       "operator-header-cell";
-    cell.textContent =
+    if (config.category) {
+      cell.classList.add(
+        `param-label-category-${config.category}`
+      );
+    }
+    const labelText =
+      document.createElement("span");
+    labelText.textContent =
       config.label;
+    cell.appendChild(labelText);
+
+    if (
+      typeof onHelpToggle ===
+        "function" &&
+      config.help
+    ) {
+      const helpButton =
+        document.createElement("button");
+      helpButton.type = "button";
+      helpButton.className =
+        "param-help-button";
+      helpButton.textContent = "?";
+      helpButton.setAttribute(
+        "aria-label",
+        `Show help for ${config.label}`
+      );
+      helpButton.addEventListener(
+        "click",
+        () => {
+          onHelpToggle(config);
+        }
+      );
+      cell.appendChild(helpButton);
+    }
+
     root.appendChild(cell);
   }
 }
@@ -239,6 +280,7 @@ export function buildCommonControls({
   stackedLabels = false,
   referenceColumnCount = defs.length,
   gapPx = 4,
+  onHelpToggle = null,
 }) {
   root.innerHTML = "";
   root.style.display = "grid";
@@ -280,8 +322,40 @@ export function buildCommonControls({
       document.createElement("div");
     label.className =
       "common-control-label";
-    label.textContent =
+    if (config.category) {
+      label.classList.add(
+        `param-label-category-${config.category}`
+      );
+    }
+    const labelText =
+      document.createElement("span");
+    labelText.textContent =
       config.label;
+    label.appendChild(labelText);
+
+    if (
+      typeof onHelpToggle ===
+        "function" &&
+      config.help
+    ) {
+      const helpButton =
+        document.createElement("button");
+      helpButton.type = "button";
+      helpButton.className =
+        "param-help-button";
+      helpButton.textContent = "?";
+      helpButton.setAttribute(
+        "aria-label",
+        `Show help for ${config.label}`
+      );
+      helpButton.addEventListener(
+        "click",
+        () => {
+          onHelpToggle(config);
+        }
+      );
+      label.appendChild(helpButton);
+    }
 
     cell.appendChild(label);
     cell.appendChild(control.element);

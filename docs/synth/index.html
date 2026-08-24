@@ -330,12 +330,105 @@
 
       .common-control-label {
         min-width: 0;
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding-right: 16px;
         text-align: center;
         font-size: 0.48rem;
         font-weight: 800;
         letter-spacing: 0.06em;
         color: rgba(31, 27, 22, 0.64);
         text-transform: uppercase;
+        overflow: hidden;
+      }
+
+      .common-control-label span {
+        display: block;
+        min-width: 0;
+        width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .param-control.param-category-pitch {
+        border-color: rgba(132, 169, 228, 0.72);
+        background:
+          linear-gradient(180deg, rgba(235, 244, 255, 0.92), rgba(214, 229, 255, 0.92) 100%);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.5),
+          0 1px 5px rgba(30, 24, 18, 0.14);
+      }
+
+      .param-control.param-category-level {
+        border-color: rgba(196, 173, 118, 0.76);
+        background:
+          linear-gradient(180deg, rgba(255, 247, 225, 0.94), rgba(242, 227, 179, 0.94) 100%);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.5),
+          0 1px 5px rgba(30, 24, 18, 0.14);
+      }
+
+      .param-control.param-category-envelope {
+        border-color: rgba(225, 158, 124, 0.78);
+        background:
+          linear-gradient(180deg, rgba(255, 240, 232, 0.94), rgba(248, 210, 191, 0.94) 100%);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.5),
+          0 1px 5px rgba(30, 24, 18, 0.14);
+      }
+
+      .param-control.param-category-modulation {
+        border-color: rgba(124, 190, 141, 0.76);
+        background:
+          linear-gradient(180deg, rgba(235, 251, 239, 0.94), rgba(201, 235, 210, 0.94) 100%);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.5),
+          0 1px 5px rgba(30, 24, 18, 0.14);
+      }
+
+      .param-control.param-category-routing {
+        border-color: rgba(177, 166, 148, 0.7);
+        background:
+          linear-gradient(180deg, rgba(246, 244, 239, 0.94), rgba(225, 220, 210, 0.94) 100%);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.5),
+          0 1px 5px rgba(30, 24, 18, 0.14);
+      }
+
+      .param-control.param-category-pitch .param-button,
+      .param-control.param-category-pitch .param-value,
+      .param-control.param-category-level .param-button,
+      .param-control.param-category-level .param-value,
+      .param-control.param-category-envelope .param-button,
+      .param-control.param-category-envelope .param-value,
+      .param-control.param-category-modulation .param-button,
+      .param-control.param-category-modulation .param-value,
+      .param-control.param-category-routing .param-button,
+      .param-control.param-category-routing .param-value {
+        color: #2a2433;
+      }
+
+      .param-label-category-pitch {
+        color: #6d8fcb;
+      }
+
+      .param-label-category-level {
+        color: #9a8250;
+      }
+
+      .param-label-category-envelope {
+        color: #b76e4e;
+      }
+
+      .param-label-category-modulation {
+        color: #5f9771;
+      }
+
+      .param-label-category-routing {
+        color: #7a6e5c;
       }
 
       .operator-header-row {
@@ -356,12 +449,27 @@
 
       .operator-header-cell {
         min-width: 0;
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding-right: 16px;
         text-align: center;
         font-size: 0.48rem;
         font-weight: 800;
         letter-spacing: 0.06em;
         color: rgba(31, 27, 22, 0.64);
         text-transform: uppercase;
+        overflow: hidden;
+      }
+
+      .operator-header-cell span {
+        display: block;
+        min-width: 0;
+        width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
       }
 
       .operator-row {
@@ -444,6 +552,65 @@
         letter-spacing: 0.06em;
         text-align: left;
         color: var(--pill-muted);
+      }
+
+      .param-help-button {
+        position: absolute;
+        right: 0;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 14px;
+        height: 14px;
+        padding: 0;
+        border: 1px solid rgba(110, 122, 146, 0.42);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.74);
+        color: rgba(31, 27, 22, 0.72);
+        font: inherit;
+        font-size: 0.48rem;
+        font-weight: 900;
+        line-height: 1;
+        cursor: pointer;
+      }
+
+      .param-help-button:hover {
+        background: rgba(255, 255, 255, 0.94);
+        color: rgba(31, 27, 22, 0.9);
+      }
+
+      .param-help {
+        margin-top: 6px;
+        padding: 8px 10px;
+        border-radius: 12px;
+        border: 1px solid rgba(110, 122, 146, 0.26);
+        background: rgba(255, 255, 255, 0.4);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .param-help[hidden] {
+        display: none;
+      }
+
+      .param-help-title {
+        margin: 0;
+        flex: 0 0 auto;
+        font-size: 0.72rem;
+        font-weight: 800;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+
+      .param-help-text {
+        margin: 0;
+        flex: 1 1 auto;
+        font-size: 0.72rem;
+        line-height: 1.35;
+        color: rgba(31, 27, 22, 0.8);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
       }
 
       .param-button,
@@ -804,6 +971,10 @@
                   <div class="operator-header-strip" id="operatorHeader"></div>
                 </div>
                 <div id="operatorControls" class="operator-stack"></div>
+              </div>
+              <div id="paramHelp" class="param-help" hidden>
+                <div id="paramHelpTitle" class="param-help-title"></div>
+                <p id="paramHelpText" class="param-help-text"></p>
               </div>
             </div>
             <div class="looper-row">
