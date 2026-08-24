@@ -33,6 +33,7 @@ megasynth.js
 megasynth_recording.js
 segapsg.js
 tfi.js
+vgm-output-worklet.js
 vgmplayer.js
 ym2612-worklet.js
 ym2612.js
