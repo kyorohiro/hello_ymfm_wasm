@@ -1,0 +1,149 @@
+#!/bin/sh
+
+set -eu
+
+ROOT_DIR=$(CDPATH= cd -- "$(dirname "$0")/.." && pwd)
+RELEASE_DIR="${ROOT_DIR}/release"
+VERSION="${1:-dev}"
+STAGE_DIR="${RELEASE_DIR}/itch_playground_${VERSION}"
+ZIP_PATH="${RELEASE_DIR}/hello_ymfm_wasm_${VERSION}_itch_playground.zip"
+
+PLAYGROUND_DIR="${ROOT_DIR}/docs/playground"
+DOCS_JS_DIR="${ROOT_DIR}/docs/js"
+DOCS_SYNTH_DIR="${ROOT_DIR}/docs/synth"
+DOCS_GENERATED_DIR="${ROOT_DIR}/docs/generated"
+
+PLAYGROUND_FILES="
+index.html
+playground.js
+playground_clock.js
+playground_examples.js
+playground_live.js
+playground_monaco.js
+playground_music.js
+playground_operator_tab.js
+playground_sync.js
+playground_ui.js
+"
+
+RUNTIME_FILES="
+looper.js
+megasynth.js
+megasynth_fx.js
+megasynth_recording.js
+megadrive-fm-presets.js
+ym2612-worklet.js
+ym2612.js
+ym2612synth.js
+"
+
+SYNTH_SUPPORT_FILES="
+synth_controls.js
+synth_keyboard.js
+"
+
+GENERATED_FILES="
+ym2612_wasm.js
+ym2612_wasm.wasm
+"
+
+if [ ! -d "${PLAYGROUND_DIR}" ]; then
+  echo "error: missing directory: ${PLAYGROUND_DIR}" >&2
+  exit 1
+fi
+
+if [ ! -d "${DOCS_JS_DIR}" ]; then
+  echo "error: missing directory: ${DOCS_JS_DIR}" >&2
+  exit 1
+fi
+
+if [ ! -d "${DOCS_SYNTH_DIR}" ]; then
+  echo "error: missing directory: ${DOCS_SYNTH_DIR}" >&2
+  exit 1
+fi
+
+if [ ! -d "${DOCS_GENERATED_DIR}" ]; then
+  echo "error: missing directory: ${DOCS_GENERATED_DIR}" >&2
+  exit 1
+fi
+
+mkdir -p "${RELEASE_DIR}"
+rm -rf "${STAGE_DIR}"
+rm -f "${ZIP_PATH}"
+mkdir -p "${STAGE_DIR}/js" "${STAGE_DIR}/synth" "${STAGE_DIR}/generated"
+
+for file in ${PLAYGROUND_FILES}; do
+  src="${PLAYGROUND_DIR}/${file}"
+  dst="${STAGE_DIR}/${file}"
+
+  if [ ! -f "${src}" ]; then
+    echo "error: missing playground file: ${src}" >&2
+    exit 1
+  fi
+
+  cp "${src}" "${dst}"
+done
+
+for file in ${RUNTIME_FILES}; do
+  src="${DOCS_JS_DIR}/${file}"
+  dst="${STAGE_DIR}/js/${file}"
+
+  if [ ! -f "${src}" ]; then
+    echo "error: missing runtime file: ${src}" >&2
+    exit 1
+  fi
+
+  cp "${src}" "${dst}"
+done
+
+for file in ${SYNTH_SUPPORT_FILES}; do
+  src="${DOCS_SYNTH_DIR}/${file}"
+  dst="${STAGE_DIR}/synth/${file}"
+
+  if [ ! -f "${src}" ]; then
+    echo "error: missing synth support file: ${src}" >&2
+    exit 1
+  fi
+
+  cp "${src}" "${dst}"
+done
+
+for file in ${GENERATED_FILES}; do
+  src="${DOCS_GENERATED_DIR}/${file}"
+  dst="${STAGE_DIR}/generated/${file}"
+
+  if [ ! -f "${src}" ]; then
+    echo "error: missing generated file: ${src}" >&2
+    exit 1
+  fi
+
+  cp "${src}" "${dst}"
+done
+
+# Make the playground runnable from itch.io as a standalone app.
+perl -0pi -e 's#<a class="link-button" href="\.\./index\.html">Back</a>##g' \
+  "${STAGE_DIR}/index.html"
+perl -0pi -e 's#"\./playground\.js"#"./playground.js"#g; s#"\.\./js/#"./js/#g; s#"\.\./synth/#"./synth/#g; s#"\.\./generated/#"./generated/#g' \
+  "${STAGE_DIR}/index.html" \
+  "${STAGE_DIR}/playground.js" \
+  "${STAGE_DIR}/playground_monaco.js" \
+  "${STAGE_DIR}/playground_sync.js" \
+  "${STAGE_DIR}/playground_operator_tab.js" \
+  "${STAGE_DIR}/playground_clock.js" \
+  "${STAGE_DIR}/playground_examples.js" \
+  "${STAGE_DIR}/playground_live.js" \
+  "${STAGE_DIR}/playground_music.js" \
+  "${STAGE_DIR}/playground_ui.js"
+
+(
+  cd "${STAGE_DIR}"
+  zip -r "${ZIP_PATH}" .
+)
+
+echo "created stage: ${STAGE_DIR}"
+echo "created zip: ${ZIP_PATH}"
+echo "itch.io upload:"
+echo "  1. Create/Edit project"
+echo "  2. Set Kind of project to HTML"
+echo "  3. Upload ${ZIP_PATH}"
+echo "  4. Ensure index.html is the entry file"
