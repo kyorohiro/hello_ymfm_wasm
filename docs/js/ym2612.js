@@ -29,9 +29,9 @@ export class Ym2612 {
       destroy: module.cwrap("ym2612_destroy", null, ["number"]),
       reset: module.cwrap("ym2612_reset", null, ["number"]),
       write: module.cwrap("ym2612_write", null, ["number", "number", "number"]),
-      read: module.cwrap("ym2612_read", "number", ["number", "number"]),
-      readStatus: module.cwrap("ym2612_read_status", "number", ["number"]),
-      getIrq: module.cwrap("ym2612_get_irq", "number", ["number"]),
+      read: optionalCwrap(module, "ym2612_read", "number", ["number", "number"]),
+      readStatus: optionalCwrap(module, "ym2612_read_status", "number", ["number"]),
+      getIrq: optionalCwrap(module, "ym2612_get_irq", "number", ["number"]),
       sampleRate: module.cwrap("ym2612_sample_rate", "number", ["number", "number"]),
       generate: module.cwrap("ym2612_generate", null, ["number", "number", "number", "number"]),
       generateWithInternalEnvelope: module.cwrap(
@@ -80,6 +80,9 @@ export class Ym2612 {
   }
 
   read(offset) {
+    if (typeof this.api.read !== "function") {
+      throw new Error("This YM2612 runtime does not support read(offset). Rebuild or reload the generated wasm runtime.");
+    }
     const value = this.api.read(this.handle, offset);
     if (typeof this.hooks.onRead === "function") {
       this.hooks.onRead({ offset, value });
@@ -89,6 +92,9 @@ export class Ym2612 {
   }
 
   readStatus() {
+    if (typeof this.api.readStatus !== "function") {
+      return this.read(0);
+    }
     const value = this.api.readStatus(this.handle);
     if (typeof this.hooks.onRead === "function") {
       this.hooks.onRead({ offset: 0, value });
@@ -213,4 +219,12 @@ function assertHook(name, value) {
   if (value !== undefined && typeof value !== "function") {
     throw new Error(`${name} must be a function when provided`);
   }
+}
+
+function optionalCwrap(module, name, returnType, argTypes) {
+  const exportName = `_${name}`;
+  if (typeof module[exportName] !== "function") {
+    return undefined;
+  }
+  return module.cwrap(name, returnType, argTypes);
 }
