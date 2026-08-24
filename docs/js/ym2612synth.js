@@ -16,6 +16,9 @@
  * @typedef {{
  *   write(port: number, register: number, value: number): void,
  *   reset?: () => void,
+ *   read?: (offset: number) => number,
+ *   readStatus?: () => number,
+ *   getIrq?: () => boolean,
  * }} YM2612Transport
  */
 
@@ -139,7 +142,13 @@ const DEFAULT_LFO_STATE = Object.freeze({
  */
 export class YM2612DirectTransport {
   /**
-   * @param {{ writeRegister(register: number, value: number, port?: number): void, reset?: () => void }} chip
+   * @param {{
+   *   writeRegister(register: number, value: number, port?: number): void,
+   *   reset?: () => void,
+   *   read?: (offset: number) => number,
+   *   readStatus?: () => number,
+   *   getIrq?: () => boolean,
+   * }} chip
    */
   constructor(chip) {
     if (!chip || typeof chip.writeRegister !== "function") {
@@ -156,6 +165,27 @@ export class YM2612DirectTransport {
 
   write(port, register, value) {
     this.chip.writeRegister(register, value, port);
+  }
+
+  read(offset) {
+    if (typeof this.chip.read !== "function") {
+      throw new Error("YM2612DirectTransport chip does not support read(offset)");
+    }
+    return this.chip.read(offset);
+  }
+
+  readStatus() {
+    if (typeof this.chip.readStatus === "function") {
+      return this.chip.readStatus();
+    }
+    return this.read(0);
+  }
+
+  getIrq() {
+    if (typeof this.chip.getIrq !== "function") {
+      return false;
+    }
+    return this.chip.getIrq();
   }
 }
 
@@ -194,6 +224,12 @@ export class YM2612Synth {
     }
 
     this.transport = transport;
+    this.hooks = {
+      onWrite: undefined,
+      onRead: undefined,
+      onIrq: undefined,
+    };
+    this._lastIrqState = undefined;
     this.channels = [];
     this.reset();
   }
@@ -213,6 +249,8 @@ export class YM2612Synth {
     for (let channel = 0; channel < CHANNEL_COUNT; channel += 1) {
       this.channels.push(createDefaultChannelState());
     }
+
+    this._syncIrq();
   }
 
   /**
@@ -623,6 +661,71 @@ export class YM2612Synth {
   }
 
   /**
+   * Read one raw YM2612 bus offset.
+   *
+   * Offset mapping:
+   * - 0 = status port
+   * - 1 = data port
+   * - 2 = upper status port
+   * - 3 = upper data port
+   *
+   * @param {number} offset
+   * @returns {number}
+   */
+  read(offset) {
+    const validOffset = validateRange("offset", offset, 0, 3);
+    if (typeof this.transport.read !== "function") {
+      throw new Error("This YM2612 transport does not support read(offset)");
+    }
+
+    const value = this.transport.read(validOffset);
+    this._notifyRead(validOffset, value);
+    this._syncIrq();
+    return value;
+  }
+
+  /**
+   * Read the YM2612 status register.
+   *
+   * This is a convenience alias for low-level status reads.
+   *
+   * @returns {number}
+   */
+  readStatus() {
+    const value =
+      typeof this.transport.readStatus === "function"
+        ? this.transport.readStatus()
+        : this.read(0);
+
+    if (typeof this.transport.readStatus === "function") {
+      this._notifyRead(0, value);
+      this._syncIrq();
+    }
+
+    return value;
+  }
+
+  /**
+   * Attach low-level hooks for register traffic and IRQ changes.
+   *
+   * @param {{
+   *   onWrite?: ((command: { port: number, register: number, value: number }) => void),
+   *   onRead?: ((event: { offset: number, value: number }) => void),
+   *   onIrq?: ((asserted: boolean) => void),
+   * }} hooks
+   * @returns {void}
+   */
+  setHooks(hooks = {}) {
+    const { onWrite, onRead, onIrq } = hooks;
+    assertHook("onWrite", onWrite);
+    assertHook("onRead", onRead);
+    assertHook("onIrq", onIrq);
+    this.hooks = { onWrite, onRead, onIrq };
+    this._lastIrqState = undefined;
+    this._syncIrq();
+  }
+
+  /**
    * Backward-compatible alias for older playground/demo code.
    *
    * @param {number} port
@@ -659,6 +762,11 @@ export class YM2612Synth {
     } else {
       this.transport.write(command);
     }
+
+    if (typeof this.hooks.onWrite === "function") {
+      this.hooks.onWrite(command);
+    }
+    this._syncIrq();
   }
 
   getState() {
@@ -666,6 +774,26 @@ export class YM2612Synth {
       lfo: this.lfo,
       channels: this.channels,
     });
+  }
+
+  _notifyRead(offset, value) {
+    if (typeof this.hooks.onRead === "function") {
+      this.hooks.onRead({ offset, value });
+    }
+  }
+
+  _syncIrq() {
+    if (typeof this.transport.getIrq !== "function" || typeof this.hooks.onIrq !== "function") {
+      return;
+    }
+
+    const asserted = this.transport.getIrq();
+    if (this._lastIrqState === asserted) {
+      return;
+    }
+
+    this._lastIrqState = asserted;
+    this.hooks.onIrq(asserted);
   }
 }
 
@@ -721,6 +849,12 @@ function validateBoolean(name, value) {
     );
   }
   return value;
+}
+
+function assertHook(name, value) {
+  if (value !== undefined && typeof value !== "function") {
+    throw new Error(`${name} must be a function when provided`);
+  }
 }
 
 function structuredCloneCompat(value) {

@@ -13,9 +13,19 @@ struct ym2612_debug_chip : public ymfm::ym2612
     using ymfm::ym2612::m_fm;
 };
 
+struct ym2612_wasm_interface : public ymfm::ymfm_interface
+{
+    bool irq_asserted = false;
+
+    void ymfm_update_irq(bool asserted) override
+    {
+        irq_asserted = asserted;
+    }
+};
+
 struct ym2612_handle
 {
-    ymfm::ymfm_interface intf;
+    ym2612_wasm_interface intf;
     ym2612_debug_chip chip;
 
     ym2612_handle() : intf(), chip(intf)
@@ -93,6 +103,21 @@ void ym2612_reset(void *ptr)
 void ym2612_write(void *ptr, uint32_t offset, uint8_t data)
 {
     cast_handle(ptr)->chip.write(offset, data);
+}
+
+uint8_t ym2612_read(void *ptr, uint32_t offset)
+{
+    return cast_handle(ptr)->chip.read(offset);
+}
+
+uint8_t ym2612_read_status(void *ptr)
+{
+    return cast_handle(ptr)->chip.read_status();
+}
+
+uint8_t ym2612_get_irq(void *ptr)
+{
+    return cast_handle(ptr)->intf.irq_asserted ? 1 : 0;
 }
 
 uint32_t ym2612_sample_rate(void *ptr, uint32_t clock)

@@ -5,6 +5,12 @@ export class Ym2612 {
     this.module = module;
     this.handle = handle;
     this.api = api;
+    this.hooks = {
+      onWrite: undefined,
+      onRead: undefined,
+      onIrq: undefined,
+    };
+    this.lastIrqState = undefined;
     this.leftPtr = 0;
     this.rightPtr = 0;
     this.envPtrs = [0, 0, 0, 0];
@@ -23,6 +29,9 @@ export class Ym2612 {
       destroy: module.cwrap("ym2612_destroy", null, ["number"]),
       reset: module.cwrap("ym2612_reset", null, ["number"]),
       write: module.cwrap("ym2612_write", null, ["number", "number", "number"]),
+      read: module.cwrap("ym2612_read", "number", ["number", "number"]),
+      readStatus: module.cwrap("ym2612_read_status", "number", ["number"]),
+      getIrq: module.cwrap("ym2612_get_irq", "number", ["number"]),
       sampleRate: module.cwrap("ym2612_sample_rate", "number", ["number", "number"]),
       generate: module.cwrap("ym2612_generate", null, ["number", "number", "number", "number"]),
       generateWithInternalEnvelope: module.cwrap(
@@ -59,10 +68,47 @@ export class Ym2612 {
 
   reset() {
     this.api.reset(this.handle);
+    this.#syncIrq();
   }
 
   write(offset, data) {
     this.api.write(this.handle, offset, data);
+    if (typeof this.hooks.onWrite === "function") {
+      this.hooks.onWrite({ offset, data });
+    }
+    this.#syncIrq();
+  }
+
+  read(offset) {
+    const value = this.api.read(this.handle, offset);
+    if (typeof this.hooks.onRead === "function") {
+      this.hooks.onRead({ offset, value });
+    }
+    this.#syncIrq();
+    return value;
+  }
+
+  readStatus() {
+    const value = this.api.readStatus(this.handle);
+    if (typeof this.hooks.onRead === "function") {
+      this.hooks.onRead({ offset: 0, value });
+    }
+    this.#syncIrq();
+    return value;
+  }
+
+  getIrq() {
+    return this.api.getIrq(this.handle) !== 0;
+  }
+
+  setHooks(hooks = {}) {
+    const { onWrite, onRead, onIrq } = hooks;
+    assertHook("onWrite", onWrite);
+    assertHook("onRead", onRead);
+    assertHook("onIrq", onIrq);
+    this.hooks = { onWrite, onRead, onIrq };
+    this.lastIrqState = undefined;
+    this.#syncIrq();
   }
 
   writeRegister(register, value, port = 0) {
@@ -143,8 +189,28 @@ export class Ym2612 {
     this.envPtrs = this.envPtrs.map(() => this.module._malloc(byteLength));
     this.bufferFrames = frames;
   }
+
+  #syncIrq() {
+    if (typeof this.api.getIrq !== "function" || typeof this.hooks.onIrq !== "function") {
+      return;
+    }
+
+    const asserted = this.getIrq();
+    if (this.lastIrqState === asserted) {
+      return;
+    }
+
+    this.lastIrqState = asserted;
+    this.hooks.onIrq(asserted);
+  }
 }
 
 export async function createYm2612(moduleFactory, moduleOptions) {
   return Ym2612.create({ moduleFactory, moduleOptions });
+}
+
+function assertHook(name, value) {
+  if (value !== undefined && typeof value !== "function") {
+    throw new Error(`${name} must be a function when provided`);
+  }
 }

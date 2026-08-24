@@ -77,7 +77,7 @@ async function Module(moduleArg = {}) {
 
 // Attempt to auto-detect the environment
 var ENVIRONMENT_IS_WEB = !!globalThis.window;
-var ENVIRONMENT_IS_WORKER = !!globalThis.WorkerGlobalScope || !!globalThis.AudioWorkletGlobalScope;
+var ENVIRONMENT_IS_WORKER = !!globalThis.WorkerGlobalScope;
 // N.b. Electron.js environment is simultaneously a NODE-environment, but
 // also a web environment.
 var ENVIRONMENT_IS_NODE = globalThis.process?.versions?.node && globalThis.process?.type != 'renderer';
@@ -161,13 +161,13 @@ if (ENVIRONMENT_IS_SHELL) {
 // ENVIRONMENT_IS_NODE.
 if (ENVIRONMENT_IS_WEB || ENVIRONMENT_IS_WORKER) {
   try {
-    scriptDirectory = _scriptName.slice(0, _scriptName.lastIndexOf('/') + 1); // includes trailing slash
+    scriptDirectory = new URL('.', _scriptName).href; // includes trailing slash
   } catch {
     // Must be a `blob:` or `data:` URL (e.g. `blob:http://site.com/etc/etc`), we cannot
     // infer anything from them.
   }
 
-  if (!(globalThis.window || globalThis.WorkerGlobalScope || globalThis.AudioWorkletGlobalScope)) throw new Error('not compiled for this environment (did you build to HTML and try to run it not on the web, or set ENVIRONMENT to something - like node - and run it someplace else - like on the web?)');
+  if (!(globalThis.window || globalThis.WorkerGlobalScope)) throw new Error('not compiled for this environment (did you build to HTML and try to run it not on the web, or set ENVIRONMENT to something - like node - and run it someplace else - like on the web?)');
 
   {
 // include: web_or_worker_shell_read.js
@@ -549,7 +549,8 @@ function findWasmBinary() {
     return locateFile('ym2612_wasm.wasm');
   }
 
-  return scriptDirectory + 'ym2612_wasm.wasm';
+  // Use bundler-friendly `new URL(..., import.meta.url)` pattern; works in browsers too.
+  return new URL('ym2612_wasm.wasm', import.meta.url).href;
 
 }
 
@@ -1334,6 +1335,9 @@ var _ym2612_create = Module['_ym2612_create'] = makeInvalidEarlyAccess('_ym2612_
 var _ym2612_destroy = Module['_ym2612_destroy'] = makeInvalidEarlyAccess('_ym2612_destroy');
 var _ym2612_reset = Module['_ym2612_reset'] = makeInvalidEarlyAccess('_ym2612_reset');
 var _ym2612_write = Module['_ym2612_write'] = makeInvalidEarlyAccess('_ym2612_write');
+var _ym2612_read = Module['_ym2612_read'] = makeInvalidEarlyAccess('_ym2612_read');
+var _ym2612_read_status = Module['_ym2612_read_status'] = makeInvalidEarlyAccess('_ym2612_read_status');
+var _ym2612_get_irq = Module['_ym2612_get_irq'] = makeInvalidEarlyAccess('_ym2612_get_irq');
 var _ym2612_sample_rate = Module['_ym2612_sample_rate'] = makeInvalidEarlyAccess('_ym2612_sample_rate');
 var _ym2612_generate = Module['_ym2612_generate'] = makeInvalidEarlyAccess('_ym2612_generate');
 var _ym2612_generate_with_internal_envelope = Module['_ym2612_generate_with_internal_envelope'] = makeInvalidEarlyAccess('_ym2612_generate_with_internal_envelope');
@@ -1357,6 +1361,9 @@ function assignWasmExports(wasmExports) {
   assert(typeof wasmExports['ym2612_destroy'] != 'undefined', 'missing Wasm export: ym2612_destroy');
   assert(typeof wasmExports['ym2612_reset'] != 'undefined', 'missing Wasm export: ym2612_reset');
   assert(typeof wasmExports['ym2612_write'] != 'undefined', 'missing Wasm export: ym2612_write');
+  assert(typeof wasmExports['ym2612_read'] != 'undefined', 'missing Wasm export: ym2612_read');
+  assert(typeof wasmExports['ym2612_read_status'] != 'undefined', 'missing Wasm export: ym2612_read_status');
+  assert(typeof wasmExports['ym2612_get_irq'] != 'undefined', 'missing Wasm export: ym2612_get_irq');
   assert(typeof wasmExports['ym2612_sample_rate'] != 'undefined', 'missing Wasm export: ym2612_sample_rate');
   assert(typeof wasmExports['ym2612_generate'] != 'undefined', 'missing Wasm export: ym2612_generate');
   assert(typeof wasmExports['ym2612_generate_with_internal_envelope'] != 'undefined', 'missing Wasm export: ym2612_generate_with_internal_envelope');
@@ -1377,6 +1384,9 @@ function assignWasmExports(wasmExports) {
   _ym2612_destroy = Module['_ym2612_destroy'] = createExportWrapper('ym2612_destroy', wasmExports['ym2612_destroy'], 1);
   _ym2612_reset = Module['_ym2612_reset'] = createExportWrapper('ym2612_reset', wasmExports['ym2612_reset'], 1);
   _ym2612_write = Module['_ym2612_write'] = createExportWrapper('ym2612_write', wasmExports['ym2612_write'], 3);
+  _ym2612_read = Module['_ym2612_read'] = createExportWrapper('ym2612_read', wasmExports['ym2612_read'], 2);
+  _ym2612_read_status = Module['_ym2612_read_status'] = createExportWrapper('ym2612_read_status', wasmExports['ym2612_read_status'], 1);
+  _ym2612_get_irq = Module['_ym2612_get_irq'] = createExportWrapper('ym2612_get_irq', wasmExports['ym2612_get_irq'], 1);
   _ym2612_sample_rate = Module['_ym2612_sample_rate'] = createExportWrapper('ym2612_sample_rate', wasmExports['ym2612_sample_rate'], 2);
   _ym2612_generate = Module['_ym2612_generate'] = createExportWrapper('ym2612_generate', wasmExports['ym2612_generate'], 4);
   _ym2612_generate_with_internal_envelope = Module['_ym2612_generate_with_internal_envelope'] = createExportWrapper('ym2612_generate_with_internal_envelope', wasmExports['ym2612_generate_with_internal_envelope'], 9);
@@ -1508,3 +1518,4 @@ for (const prop of Object.keys(Module)) {
 
 // Export using a UMD style export, or ES6 exports if selected
 export default Module;
+
