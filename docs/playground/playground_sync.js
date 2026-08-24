@@ -75,7 +75,8 @@ export function handleMegaSynthEvent(
       event.channel,
       event.left,
       event.right,
-      event.ams
+      event.ams,
+      event.pms
     );
   }
 }
@@ -119,13 +120,15 @@ export function createFmProxy(
       channel,
       left,
       right,
-      ams
+      ams,
+      pms
     ) {
       targetSynth.setPan(
         channel,
         left,
         right,
-        ams
+        ams,
+        pms
       );
     },
     setLfo(enabled, frequency) {

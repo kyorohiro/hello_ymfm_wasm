@@ -674,13 +674,15 @@ export class MegaSynth {
         channel,
         left,
         right,
-        ams = 0
+        ams = 0,
+        pms = 0
       ) => ({
         type: "setPan",
         channel,
         left,
         right,
         ams,
+        pms,
       })
     );
     this.#wrapFmMethod(

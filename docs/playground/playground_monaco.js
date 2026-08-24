@@ -499,11 +499,11 @@ function registerMonacoCompletions(
               label: "setPan",
               kind: kind.Method,
               insertText:
-                "setPan(${1:0}, ${2:true}, ${3:true}, ${4:0})",
+                "setPan(${1:0}, ${2:true}, ${3:true}, ${4:0}, ${5:0})",
               insertTextRules:
                 snippet,
               documentation:
-                "Set stereo output enable flags for a channel.",
+                "Set stereo output enable flags plus AMS/PMS for a channel.",
               range,
             },
             {
@@ -969,7 +969,7 @@ declare const fm: {
   setPreset(channel: number, preset: object): void;
   setOperator(channel: number, operator: number, params: object): void;
   setAlgo(channel: number, algorithm: number, feedback?: number): void;
-  setPan(channel: number, left: boolean, right: boolean, ams?: number): void;
+  setPan(channel: number, left: boolean, right: boolean, ams?: number, pms?: number): void;
   setLfo(enabled: boolean, frequency: number): void;
   noteOn(channel: number, block: number, fnum: number): void;
   noteOff(channel: number): void;

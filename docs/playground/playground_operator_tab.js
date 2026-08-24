@@ -10,6 +10,7 @@ const COMMON_PARAM_DEFS = [
   { id: "algorithm", label: "ALGO", min: 0, max: 7, step: 1, category: "routing" },
   { id: "feedback", label: "FB", min: 0, max: 7, step: 1, category: "routing" },
   { id: "ams", label: "AMS", min: 0, max: 3, step: 1, category: "modulation" },
+  { id: "pms", label: "PMS", min: 0, max: 7, step: 1, category: "modulation" },
   { id: "lfoEnabled", label: "LFO", min: 0, max: 1, step: 1, booleanMode: true, category: "modulation" },
   { id: "lfoFrequency", label: "LFOF", min: 0, max: 7, step: 1, category: "modulation" },
 ];
@@ -81,6 +82,7 @@ function createDefaultChannelState() {
     algorithm: 7,
     feedback: 0,
     ams: 0,
+    pms: 0,
     left: true,
     right: true,
     operators: {
@@ -118,6 +120,8 @@ function createChannelStateFromPreset(
     preset.feedback ?? 0;
   baseState.ams =
     preset.ams ?? 0;
+  baseState.pms =
+    preset.pms ?? 0;
   baseState.left =
     preset.pan?.left ??
     preset.left ??
@@ -146,6 +150,7 @@ function cloneChannelState(
     algorithm: state.algorithm,
     feedback: state.feedback,
     ams: state.ams,
+    pms: state.pms,
     left: state.left,
     right: state.right,
     operators: {
@@ -394,7 +399,8 @@ export function createPlaygroundOperatorTab(
         channel,
         state.left,
         state.right,
-        state.ams
+        state.ams,
+        state.pms
       );
     } finally {
       endRefreshBatch();
@@ -625,7 +631,8 @@ export function createPlaygroundOperatorTab(
           selectedChannel,
           currentState().left,
           currentState().right,
-          currentState().ams
+          currentState().ams,
+          currentState().pms
         );
       }
     }
@@ -642,7 +649,8 @@ export function createPlaygroundOperatorTab(
           selectedChannel,
           currentState().left,
           currentState().right,
-          currentState().ams
+          currentState().ams,
+          currentState().pms
         );
       }
     }
@@ -710,6 +718,9 @@ export function createPlaygroundOperatorTab(
         nextState.ams =
           preset.ams ??
           nextState.ams;
+        nextState.pms =
+          preset.pms ??
+          nextState.pms;
         nextState.left =
           preset.pan?.left ??
           preset.left ??
@@ -771,7 +782,8 @@ export function createPlaygroundOperatorTab(
       channel,
       left,
       right,
-      ams = 0
+      ams = 0,
+      pms = 0
     ) {
       stateByChannel[channel].left =
         left;
@@ -779,6 +791,8 @@ export function createPlaygroundOperatorTab(
         right;
       stateByChannel[channel].ams =
         ams;
+      stateByChannel[channel].pms =
+        pms;
       refreshIfSelected(channel);
     },
   };
