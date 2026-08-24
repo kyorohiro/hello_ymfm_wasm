@@ -195,6 +195,22 @@ export class YM2612WorkletTransport {
    */
   constructor(node) {
     this.node = node;
+    this.irqAsserted = false;
+
+    if (typeof this.node.port.addEventListener === "function") {
+      this.node.port.addEventListener(
+        "message",
+        (event) => {
+          const message = event.data;
+          if (message && message.type === "irq") {
+            this.irqAsserted = Boolean(message.asserted);
+          }
+        }
+      );
+      if (typeof this.node.port.start === "function") {
+        this.node.port.start();
+      }
+    }
   }
 
   reset() {
@@ -210,6 +226,10 @@ export class YM2612WorkletTransport {
       register,
       value,
     });
+  }
+
+  getIrq() {
+    return this.irqAsserted;
   }
 }
 

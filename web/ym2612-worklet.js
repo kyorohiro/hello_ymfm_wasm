@@ -41,6 +41,14 @@ class YM2612Processor extends AudioWorkletProcessor {
           wasmBinary: new Uint8Array(wasmBinary),
         }
       );
+      this.ym2612.setHooks({
+        onIrq: (asserted) => {
+          this.port.postMessage({
+            type: "irq",
+            asserted,
+          });
+        },
+      });
 
       for (const command of this.pendingCommands) {
         this.applyCommand(command);
