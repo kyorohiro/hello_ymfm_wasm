@@ -468,6 +468,10 @@ export async function initializePlaygroundMonaco(
           },
           fontSize: 13,
           lineHeight: 21,
+          padding: {
+            top: 16,
+            bottom: 12,
+          },
           roundedSelection: false,
           scrollBeyondLastLine: false,
           tabSize: 2,
@@ -506,17 +510,47 @@ export async function initializePlaygroundMonaco(
         }
       );
 
+    const triggerParameterHints =
+      () => {
+        monacoEditor.trigger(
+          "tetorica",
+          "editor.action.triggerParameterHints",
+          {}
+        );
+      };
+
     monacoEditor.onDidType(
       (text) => {
         if (
           text === "(" ||
           text === ","
         ) {
-          monacoEditor.trigger(
-            "tetorica",
-            "editor.action.triggerParameterHints",
-            {}
+          triggerParameterHints();
+        }
+      }
+    );
+    monacoEditor.onKeyDown(
+      (event) => {
+        const e =
+          event.browserEvent;
+        const isShiftI =
+          e.shiftKey &&
+          (
+            e.code === "KeyI" ||
+            e.key === "I" ||
+            e.key === "i"
           );
+        const isSupportedModifier =
+          e.ctrlKey ||
+          e.metaKey;
+
+        if (
+          isShiftI &&
+          isSupportedModifier
+        ) {
+          e.preventDefault();
+          e.stopPropagation();
+          triggerParameterHints();
         }
       }
     );

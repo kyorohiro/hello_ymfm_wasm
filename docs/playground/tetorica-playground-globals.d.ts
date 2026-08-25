@@ -82,6 +82,10 @@ declare function play(note: string, options?: PlaygroundPlayOptions): Promise<vo
 declare function sleep(seconds: number): Promise<void>;
 declare function beat(beats?: number): Promise<void>;
 declare function nextBeat(): Promise<void>;
+/**
+ * Set the shared tempo used by beat() and nextBeat().
+ * @param bpm Beats per minute. For example, 120 means 120 quarter-note beats per minute.
+ */
 declare function setBpm(bpm: number): void;
 declare function scale(root: string, name: string, octaves?: number): string[];
 declare function choose<T>(values: T[]): T;

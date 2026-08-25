@@ -175,6 +175,156 @@ function extractLivePrepareObjects(
   return objects;
 }
 
+function extractDeclaredVariableNames(
+  source
+) {
+  const names =
+    new Set();
+  const pattern =
+    /\b(?:const|let|var)\s+([A-Za-z_$][\w$]*)\b/g;
+  let match =
+    pattern.exec(source);
+
+  while (match) {
+    names.add(
+      match[1]
+    );
+    match = pattern.exec(source);
+  }
+
+  return names;
+}
+
+function extractFunctionNames(
+  source
+) {
+  const names =
+    new Set();
+  const patterns = [
+    /\bfunction\s+([A-Za-z_$][\w$]*)\s*\(/g,
+    /\b(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*(?:async\s*)?\([^)]*\)\s*=>/g,
+    /\b(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*(?:async\s*)?[A-Za-z_$][\w$]*\s*=>/g,
+  ];
+
+  for (const pattern of patterns) {
+    let match =
+      pattern.exec(source);
+    while (match) {
+      names.add(
+        match[1]
+      );
+      match = pattern.exec(source);
+    }
+  }
+
+  return names;
+}
+
+function extractParameterNames(
+  source
+) {
+  const names =
+    new Set();
+  const patterns = [
+    /\bfunction(?:\s+[A-Za-z_$][\w$]*)?\s*\(([^)]*)\)/g,
+    /(?:async\s*)?\(([^)]*)\)\s*=>/g,
+    /(?:async\s+)?([A-Za-z_$][\w$]*)\s*=>/g,
+  ];
+
+  for (const pattern of patterns) {
+    let match =
+      pattern.exec(source);
+    while (match) {
+      const rawParameters =
+        match[1] ?? "";
+      for (const part of rawParameters.split(",")) {
+        const name =
+          part
+            .trim()
+            .replace(/^(\.\.\.)/, "")
+            .replace(/=.*/, "")
+            .trim();
+        if (/^[A-Za-z_$][\w$]*$/.test(name)) {
+          names.add(name);
+        }
+      }
+      match = pattern.exec(source);
+    }
+  }
+
+  return names;
+}
+
+function extractLiveLoopNames(
+  source
+) {
+  const names =
+    new Set();
+  const pattern =
+    /\b(?:pg\.)?liveLoop\(\s*["']([^"']+)["']/g;
+  let match =
+    pattern.exec(source);
+
+  while (match) {
+    names.add(
+      match[1]
+    );
+    match = pattern.exec(source);
+  }
+
+  return names;
+}
+
+/**
+ * Build one lightweight source analysis object before generating suggestions.
+ *
+ * This keeps the completion provider from re-deriving object/function/argument
+ * names in scattered ad-hoc branches.
+ *
+ * @param {string} source
+ * @returns {{
+ *   declaredVariableNames: Set<string>,
+ *   functionNames: Set<string>,
+ *   parameterNames: Set<string>,
+ *   liveLoopNames: Set<string>,
+ *   effectUnitVariables: Map<string, string>,
+ *   livePrepareObjects: Map<string, { properties: Record<string, string> }>,
+ * }}
+ */
+function buildSourceAnalysis(
+  source
+) {
+  const effectUnitVariables =
+    extractFxUnitVariables(
+      source
+    );
+
+  return {
+    declaredVariableNames:
+      extractDeclaredVariableNames(
+        source
+      ),
+    functionNames:
+      extractFunctionNames(
+        source
+      ),
+    parameterNames:
+      extractParameterNames(
+        source
+      ),
+    liveLoopNames:
+      extractLiveLoopNames(
+        source
+      ),
+    effectUnitVariables,
+    livePrepareObjects:
+      extractLivePrepareObjects(
+        source,
+        effectUnitVariables
+      ),
+  };
+}
+
 function createFxUnitSuggestions(
   effectType,
   kind,
@@ -662,6 +812,40 @@ function createSetBpmSuggestions(
   ];
 }
 
+function createNameSuggestions(
+  names,
+  kind,
+  range,
+  documentation
+) {
+  return Array.from(names).map(
+    (name) => ({
+      label: name,
+      kind,
+      insertText: name,
+      documentation,
+      range,
+    })
+  );
+}
+
+function createStringLiteralSuggestions(
+  values,
+  kind,
+  range,
+  documentation
+) {
+  return Array.from(values).map(
+    (value) => ({
+      label: value,
+      kind,
+      insertText: `"${value}"`,
+      documentation,
+      range,
+    })
+  );
+}
+
 function createRegisterSuggestions(
   kind,
   range
@@ -793,6 +977,26 @@ function isAtSetBpmFirstArgument(
   );
 }
 
+function isAtChooseFirstArgument(
+  linePrefix
+) {
+  return /(^|[^.\w])choose\(\s*$/.test(
+    linePrefix
+  ) || /pg\.choose\(\s*$/.test(
+    linePrefix
+  );
+}
+
+function isAtStopLoopFirstArgument(
+  linePrefix
+) {
+  return /(^|[^.\w])stopLoop\(\s*$/.test(
+    linePrefix
+  ) || /pg\.stopLoop\(\s*$/.test(
+    linePrefix
+  );
+}
+
 function isInsideYm2612RegisterArgument(
   linePrefix
 ) {
@@ -826,7 +1030,7 @@ function normalizeRegisterLiteral(
 
   const parsed =
     value.startsWith("0x") ||
-    value.startsWith("0X")
+      value.startsWith("0X")
       ? Number.parseInt(value, 16)
       : Number.parseInt(value, 10);
 
@@ -885,6 +1089,25 @@ function isInsideCallObject(
   return depth > 0;
 }
 
+/**
+ * Register Tetorica-specific Monaco completion behavior for the playground.
+ *
+ * This attaches one JavaScript CompletionItemProvider and keeps the custom
+ * suggestions for YM2612/FM learning use-cases in one place.
+ *
+ * Intended scope:
+ * - pg / fm / fx helper API suggestions
+ * - note / scale / preset suggestions
+ * - YM2612 register and register-value suggestions
+ * - lightweight argument-context suggestions such as setBpm(...)
+ *
+ * This layer is intentionally separate from the global `.d.ts` type
+ * declarations. General type understanding should come from Monaco's
+ * TypeScript engine, while this function adds playground-specific guidance.
+ *
+ * @param {typeof import("monaco-editor")} monaco Monaco runtime object.
+ * @returns {void}
+ */
 export function registerMonacoCompletions(
   monaco
 ) {
@@ -914,14 +1137,9 @@ export function registerMonacoCompletions(
       ) {
         const source =
           model.getValue();
-        const effectUnitVariables =
-          extractFxUnitVariables(
+        const analysis =
+          buildSourceAnalysis(
             source
-          );
-        const livePrepareObjects =
-          extractLivePrepareObjects(
-            source,
-            effectUnitVariables
           );
         const word =
           model.getWordUntilPosition(
@@ -955,6 +1173,11 @@ export function registerMonacoCompletions(
           });
         const suggestions = [];
 
+        const effectUnitVariables =
+          analysis.effectUnitVariables;
+        const livePrepareObjects =
+          analysis.livePrepareObjects;
+
         if (
           isInsidePresetString(
             linePrefix
@@ -964,6 +1187,41 @@ export function registerMonacoCompletions(
             ...createPresetSuggestions(
               kind,
               range
+            )
+          );
+        }
+
+        if (
+          isAtChooseFirstArgument(
+            linePrefix
+          )
+        ) {
+          const chooseNames =
+            new Set([
+              ...analysis.declaredVariableNames,
+              ...analysis.parameterNames,
+            ]);
+          suggestions.push(
+            ...createNameSuggestions(
+              chooseNames,
+              kind.Variable,
+              range,
+              "Declared value available in this source."
+            )
+          );
+        }
+
+        if (
+          isAtStopLoopFirstArgument(
+            linePrefix
+          )
+        ) {
+          suggestions.push(
+            ...createStringLiteralSuggestions(
+              analysis.liveLoopNames,
+              kind.Value,
+              range,
+              "Known liveLoop name from this source."
             )
           );
         }
@@ -1547,7 +1805,7 @@ export function registerMonacoCompletions(
             );
           const effectType =
             livePrepareObject?.properties?.[
-              propertyName
+            propertyName
             ];
 
           if (effectType) {
@@ -1610,6 +1868,21 @@ export function registerMonacoCompletions(
                 "Smoothly move one effect parameter over time.",
               range,
             }
+          );
+        }
+
+        if (
+          /fx\.setChain\(\[\s*$/.test(
+            linePrefix
+          )
+        ) {
+          suggestions.push(
+            ...createNameSuggestions(
+              effectUnitVariables.keys(),
+              kind.Variable,
+              range,
+              "Known FX unit declared in this source."
+            )
           );
         }
 
