@@ -1,5 +1,9 @@
-declare const MEGADRIVE_FM_PRESETS: Record<string, unknown>;
-
+/**
+ * One logical YM2612 operator parameter block used by `fm.setOperator()`.
+ *
+ * Public operator numbers are logical `1..4`.
+ * They are not the YM2612 physical slot order.
+ */
 type YM2612OperatorParams = {
   dt?: number;
   multi?: number;
@@ -15,10 +19,85 @@ type YM2612OperatorParams = {
   ssg?: number;
 };
 
+/**
+ * One logical YM2612 channel preset used by `fm.setPreset()`.
+ */
+type YM2612Preset = {
+  algorithm?: number;
+  feedback?: number;
+  ams?: number;
+  pms?: number;
+  pan?: {
+    left?: boolean;
+    right?: boolean;
+  };
+  left?: boolean;
+  right?: boolean;
+  lfo?: {
+    enabled?: boolean;
+    frequency?: number;
+  };
+  operators?: {
+    1?: YM2612OperatorParams;
+    2?: YM2612OperatorParams;
+    3?: YM2612OperatorParams;
+    4?: YM2612OperatorParams;
+  };
+};
+
+/**
+ * Built-in preset names shipped with the playground.
+ *
+ * This makes
+ * `MEGADRIVE_FM_PRESETS["..."]`
+ * and
+ * `pg.presets["..."]`
+ * much easier for Monaco to complete.
+ */
+type MegaDriveFmPresetName =
+  | "one-op-basic"
+  | "one-op-flute"
+  | "two-op-bell"
+  | "two-op-organ"
+  | "four-op-brass"
+  | "four-op-pad"
+  | "coin"
+  | "laser"
+  | "hit"
+  | "burst"
+  | "ui-confirm"
+  | "ui-select"
+  | "ui-cancel"
+  | "ui-error"
+  | "ui-cursor"
+  | "item-get"
+  | "power-up"
+  | "damage"
+  | "heavy-hit"
+  | "warning"
+  | "teleport"
+  | "scanner"
+  | "machine-hum"
+  | "engine-low"
+  | "metallic-ping"
+  | "ritual-bell"
+  | "horror-drone"
+  | "dark-ambient"
+  | "fm-bass"
+  | "fm-pluck"
+  | "fm-lead"
+  | "fm-electric-piano"
+  | "fm-strings";
+
+/**
+ * Built-in YM2612 preset table used by playground examples and helpers.
+ */
+declare const MEGADRIVE_FM_PRESETS: Record<MegaDriveFmPresetName, YM2612Preset>;
+
 type PlaygroundPlayOptions = {
   channel?: number;
   duration?: number;
-  preset?: object;
+  preset?: YM2612Preset;
 };
 
 type GainFXOptions = {
@@ -50,7 +129,7 @@ type ReverbFXOptions = {
 
 declare const fm: {
   reset(): void;
-  setPreset(channel: number, preset: object): void;
+  setPreset(channel: number, preset: YM2612Preset): void;
   setOperator(channel: number, operator: number, params: YM2612OperatorParams): void;
   setAlgo(channel: number, algorithm: number, feedback?: number): void;
   setPan(channel: number, left: boolean, right: boolean, ams?: number, pms?: number): void;

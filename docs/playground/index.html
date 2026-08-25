@@ -75,6 +75,20 @@
         margin-bottom: 8px;
       }
 
+      .section-heading {
+        display: flex;
+        align-items: baseline;
+        gap: 10px;
+        margin-bottom: 8px;
+      }
+
+      .shortcut-hint {
+        font-size: 0.74rem;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+        color: rgba(31, 27, 22, 0.62);
+      }
+
       p {
         margin: 0;
         line-height: 1.5;
@@ -691,7 +705,10 @@
 
         <div class="layout">
           <section class="card">
-            <h2>Code</h2>
+            <div class="section-heading">
+              <h2>Code</h2>
+              <span class="shortcut-hint">Ctrl/Cmd+Shift+Space/I · Ctrl/Cmd+Space/I</span>
+            </div>
             <div id="editorHost" class="editor-host" data-ready="false"></div>
             <textarea id="editor" spellcheck="false"></textarea>
             <p id="editorNote" class="editor-note">

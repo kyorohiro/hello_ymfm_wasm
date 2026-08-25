@@ -429,7 +429,7 @@ export async function initializePlaygroundMonaco(
       {
         allowJs: true,
         allowNonTsExtensions: true,
-        checkJs: false,
+        checkJs: true,
         noLib: false,
         lib: [
           "es2020",
