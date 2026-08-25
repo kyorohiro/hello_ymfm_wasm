@@ -219,6 +219,10 @@ declare const fm: {
   setChannel3SpecialMode(enabled: boolean): void;
   /** Set one logical channel 3 operator frequency while special mode is active. */
   setChannel3SpecialFrequency(operator: number, block: number, fnum: number): void;
+  /** Enable or disable the YM2612 DAC playback path on channel 6. */
+  setDacEnabled(enabled: boolean): void;
+  /** Write one 8-bit DAC sample byte to YM2612 register 0x2A. */
+  writeDac(value: number): void;
   /** Trigger note on with raw YM2612 BLOCK/F-NUM values. */
   noteOn(channel: number, block: number, fnum: number): void;
   /** Trigger note off on one channel. */
@@ -287,6 +291,10 @@ declare function stopLoop(name: string): void;
 declare function stopAllLoops(): void;
 /** Stop all sounding notes and playback state. */
 declare function stopAll(): void;
+/** Browser timer helper available in playground examples. */
+declare function setInterval(handler: () => void, timeout?: number): number;
+/** Browser timer helper available in playground examples. */
+declare function clearInterval(id: number): void;
 
 declare const pg: {
   /** Low-level YM2612 synth API. */

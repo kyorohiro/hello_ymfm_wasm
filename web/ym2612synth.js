@@ -135,6 +135,11 @@ const DEFAULT_LFO_STATE = Object.freeze({
   frequency: 0,
 });
 
+const DEFAULT_DAC_STATE = Object.freeze({
+  enabled: false,
+  value: 0x80,
+});
+
 // Channel 3 special mode uses one normal channel 3 frequency pair plus
 // three extra frequency pairs.
 //
@@ -281,6 +286,10 @@ export class YM2612Synth {
     this._pendingAddressPort = undefined;
     this._pendingAddressRegister = undefined;
     this._modeRegister = 0x00;
+    this.dac = {
+      enabled: DEFAULT_DAC_STATE.enabled,
+      value: DEFAULT_DAC_STATE.value,
+    };
     this.lfo = {
       enabled: DEFAULT_LFO_STATE.enabled,
       frequency: DEFAULT_LFO_STATE.frequency,
@@ -633,6 +642,43 @@ export class YM2612Synth {
   }
 
   /**
+   * Enable or disable the YM2612 DAC path on channel 6.
+   *
+   * Register 0x2B:
+   * - bit 7 = DAC enable
+   *
+   * @param {boolean} enabled
+   * @returns {void}
+   */
+  setDacEnabled(enabled) {
+    const validEnabled = validateBoolean("enabled", enabled);
+    this.dac.enabled = validEnabled;
+
+    // DAC enable
+    this._write(0, 0x2b, validEnabled ? 0x80 : 0x00);
+  }
+
+  /**
+   * Write one 8-bit DAC sample byte.
+   *
+   * Register 0x2A:
+   * - one 8-bit DAC value
+   *
+   * The YM2612 DAC path is software-fed, so callers normally write many of
+   * these in sequence at a chosen sample rate.
+   *
+   * @param {number} value
+   * @returns {void}
+   */
+  writeDac(value) {
+    const validValue = validateRange("value", value, 0, 0xff);
+    this.dac.value = validValue;
+
+    // DAC data
+    this._write(0, 0x2a, validValue);
+  }
+
+  /**
    * Write BLOCK/FNUM and trigger Key On for all operators on one channel.
    *
    * @param {number} channel
@@ -870,6 +916,7 @@ export class YM2612Synth {
   getState() {
     return structuredCloneCompat({
       modeRegister: this._modeRegister,
+      dac: this.dac,
       lfo: this.lfo,
       channels: this.channels,
     });

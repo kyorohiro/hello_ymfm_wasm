@@ -153,6 +153,16 @@ export function createFmProxy(
         fnum
       );
     },
+    setDacEnabled(enabled) {
+      targetSynth.setDacEnabled(
+        enabled
+      );
+    },
+    writeDac(value) {
+      targetSynth.writeDac(
+        value
+      );
+    },
     noteOn(channel, block, fnum) {
       targetSynth.noteOn(
         channel,

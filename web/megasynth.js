@@ -70,6 +70,12 @@ export {
  *   block: number,
  *   fnum: number,
  * } | {
+ *   type: "setDacEnabled",
+ *   enabled: boolean,
+ * } | {
+ *   type: "writeDac",
+ *   value: number,
+ * } | {
  *   type: "noteOn",
  *   channel: number,
  *   block: number,
@@ -707,6 +713,20 @@ export class MegaSynth {
         operator,
         block,
         fnum,
+      })
+    );
+    this.#wrapFmMethod(
+      "setDacEnabled",
+      (enabled) => ({
+        type: "setDacEnabled",
+        enabled,
+      })
+    );
+    this.#wrapFmMethod(
+      "writeDac",
+      (value) => ({
+        type: "writeDac",
+        value,
       })
     );
     this.#wrapFmMethod(
