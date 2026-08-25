@@ -434,6 +434,10 @@ export async function initializePlaygroundMonaco(
         lib: [
           "es2020",
         ],
+        module:
+          monaco.languages.typescript.ModuleKind.ES2022,
+        moduleDetection:
+          "force",
         target:
           monaco.languages.typescript.ScriptTarget.ES2020,
       }
@@ -442,6 +446,10 @@ export async function initializePlaygroundMonaco(
       {
         noSemanticValidation: false,
         noSyntaxValidation: false,
+        diagnosticCodesToIgnore: [
+          1375,
+          1378,
+        ],
       }
     );
     registerMonacoCompletions(
@@ -455,12 +463,33 @@ export async function initializePlaygroundMonaco(
       monaco
     );
 
+    const modelUri =
+      monaco.Uri.parse(
+        "file:///playground/main.mjs"
+      );
+    const existingModel =
+      monaco.editor.getModel(
+        modelUri
+      );
+    const monacoModel =
+      existingModel ??
+      monaco.editor.createModel(
+        getEditorValue(),
+        "javascript",
+        modelUri
+      );
+
+    if (existingModel) {
+      existingModel.setValue(
+        getEditorValue()
+      );
+    }
+
     const monacoEditor =
       monaco.editor.create(
         editorHost,
         {
-          value: getEditorValue(),
-          language: "javascript",
+          model: monacoModel,
           theme: "vs-dark",
           automaticLayout: true,
           minimap: {
@@ -565,10 +594,10 @@ export async function initializePlaygroundMonaco(
     setEditorAdapter({
       kind: "monaco",
       getValue() {
-        return monacoEditor.getValue();
+        return monacoModel.getValue();
       },
       setValue(value) {
-        monacoEditor.setValue(
+        monacoModel.setValue(
           value
         );
       },

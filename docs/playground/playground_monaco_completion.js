@@ -1108,6 +1108,7 @@ function isInsideCallObject(
  * @param {typeof import("monaco-editor")} monaco Monaco runtime object.
  * @returns {void}
  */
+
 export function registerMonacoCompletions(
   monaco
 ) {
@@ -1816,27 +1817,6 @@ export function registerMonacoCompletions(
             )) {
               suggestions.push(item);
             }
-          }
-        }
-
-        if (
-          /MEGADRIVE_FM_PRESETS\[\s*["']([^"']*)$/.test(
-            linePrefix
-          )
-        ) {
-          for (const presetName of MEGADRIVE_FM_PRESET_ORDER) {
-            suggestions.push({
-              label: presetName,
-              kind: kind.Value,
-              insertText:
-                presetName,
-              documentation:
-                MEGADRIVE_FM_PRESETS[
-                  presetName
-                ]?.label ??
-                presetName,
-              range,
-            });
           }
         }
 

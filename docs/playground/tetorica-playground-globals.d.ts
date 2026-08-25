@@ -127,6 +127,67 @@ type ReverbFXOptions = {
   tone?: number;
 };
 
+type AudioParamControl = {
+  get(): number;
+  set(value: number): number;
+  rampTo(value: number, seconds?: number): number;
+};
+
+type SimpleParamControl = {
+  get(): number;
+  set(value: number): number;
+};
+
+type FXConnectTarget = AudioNode | { input: AudioNode };
+
+type BaseFXUnit = {
+  type: string;
+  input: AudioNode;
+  output: AudioNode;
+  params: Record<string, unknown>;
+  connect(target: FXConnectTarget): FXConnectTarget;
+  disconnect(): void;
+  dispose(): void;
+};
+
+type GainFXUnit = BaseFXUnit & {
+  type: "gain";
+  gain: AudioParamControl;
+};
+
+type EqFXUnit = BaseFXUnit & {
+  type: "eq";
+  bass: AudioParamControl;
+  mid: AudioParamControl;
+  treble: AudioParamControl;
+};
+
+type FilterFXUnit = BaseFXUnit & {
+  type: "filter";
+  cutoff: AudioParamControl;
+  q: AudioParamControl;
+};
+
+type DelayFXUnit = BaseFXUnit & {
+  type: "delay";
+  time: AudioParamControl;
+  feedback: AudioParamControl;
+  mix: SimpleParamControl;
+};
+
+type ReverbFXUnit = BaseFXUnit & {
+  type: "reverb";
+  mix: SimpleParamControl;
+  tone: AudioParamControl;
+};
+
+type AnyFXUnit =
+  | GainFXUnit
+  | EqFXUnit
+  | FilterFXUnit
+  | DelayFXUnit
+  | ReverbFXUnit;
+
 declare const fm: {
   reset(): void;
   setPreset(channel: number, preset: YM2612Preset): void;
@@ -146,12 +207,12 @@ declare const fm: {
 };
 
 declare const fx: {
-  gain(options?: GainFXOptions): any;
-  eq(options?: EqFXOptions): any;
-  filter(options?: FilterFXOptions): any;
-  delay(options?: DelayFXOptions): any;
-  reverb(options?: ReverbFXOptions): any;
-  setChain(effects: any[]): void;
+  gain(options?: GainFXOptions): GainFXUnit;
+  eq(options?: EqFXOptions): EqFXUnit;
+  filter(options?: FilterFXOptions): FilterFXUnit;
+  delay(options?: DelayFXOptions): DelayFXUnit;
+  reverb(options?: ReverbFXOptions): ReverbFXUnit;
+  setChain(effects: AnyFXUnit[]): void;
   clear(): void;
 };
 
