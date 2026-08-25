@@ -20,10 +20,12 @@ playground_clock.js
 playground_examples.js
 playground_live.js
 playground_monaco.js
+playground_monaco_completion.js
 playground_music.js
 playground_operator_tab.js
 playground_sync.js
 playground_ui.js
+tetorica-playground-globals.d.ts
 "
 
 RUNTIME_FILES="
@@ -127,6 +129,7 @@ perl -0pi -e 's#"\./playground\.js"#"./playground.js"#g; s#"\.\./js/#"./js/#g; s
   "${STAGE_DIR}/index.html" \
   "${STAGE_DIR}/playground.js" \
   "${STAGE_DIR}/playground_monaco.js" \
+  "${STAGE_DIR}/playground_monaco_completion.js" \
   "${STAGE_DIR}/playground_sync.js" \
   "${STAGE_DIR}/playground_operator_tab.js" \
   "${STAGE_DIR}/playground_clock.js" \
