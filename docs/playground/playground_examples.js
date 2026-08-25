@@ -209,6 +209,44 @@ fm.writeAddress(0, 0x28);
 fm.writeData(0x00);
 await sleep(0.3);
 `,
+  "channel3-special-mode": `fm.reset();
+
+// Public channel 2 = YM2612 channel 3.
+fm.setChannel3SpecialMode(true);
+
+// Keep OP4 as the audible carrier.
+fm.setOperator(2, 1, { tl: 127, ar: 31, d1r: 0, d2r: 0, sl: 0, rr: 15 });
+fm.setOperator(2, 2, { tl: 127, ar: 31, d1r: 0, d2r: 0, sl: 0, rr: 15 });
+fm.setOperator(2, 3, { tl: 127, ar: 31, d1r: 0, d2r: 0, sl: 0, rr: 15 });
+fm.setOperator(2, 4, {
+  multi: 1,
+  tl: 8,
+  ar: 24,
+  d1r: 8,
+  d2r: 3,
+  sl: 3,
+  rr: 8,
+});
+
+fm.setAlgo(2, 7, 0);
+fm.setPan(2, true, true);
+
+// Special frequency mapping:
+// OP3 -> 0xA8 / 0xAC
+// OP1 -> 0xA9 / 0xAD
+// OP2 -> 0xAA / 0xAE
+// OP4 -> normal channel 3 frequency via noteOn(channel=2, ...)
+fm.setChannel3SpecialFrequency(1, 4, 640);
+fm.setChannel3SpecialFrequency(2, 4, 704);
+fm.setChannel3SpecialFrequency(3, 4, 512);
+
+fm.noteOn(2, 4, 553);
+await sleep(0.5);
+fm.noteOff(2);
+await sleep(0.2);
+
+fm.setChannel3SpecialMode(false);
+`,
   "fx-loop": `setBpm(120);
 
 fm.setPreset(0, MEGADRIVE_FM_PRESETS["one-op-basic"]);

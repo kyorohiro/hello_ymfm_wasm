@@ -137,6 +137,22 @@ export function createFmProxy(
         frequency
       );
     },
+    setChannel3SpecialMode(enabled) {
+      targetSynth.setChannel3SpecialMode(
+        enabled
+      );
+    },
+    setChannel3SpecialFrequency(
+      operator,
+      block,
+      fnum
+    ) {
+      targetSynth.setChannel3SpecialFrequency(
+        operator,
+        block,
+        fnum
+      );
+    },
     noteOn(channel, block, fnum) {
       targetSynth.noteOn(
         channel,

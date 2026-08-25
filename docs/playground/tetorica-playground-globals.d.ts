@@ -215,6 +215,10 @@ declare const fm: {
   setPan(channel: number, left: boolean, right: boolean, ams?: number, pms?: number): void;
   /** Set chip-level LFO enable and frequency. */
   setLfo(enabled: boolean, frequency: number): void;
+  /** Enable or disable YM2612 channel 3 special / 3-slot mode. */
+  setChannel3SpecialMode(enabled: boolean): void;
+  /** Set one logical channel 3 operator frequency while special mode is active. */
+  setChannel3SpecialFrequency(operator: number, block: number, fnum: number): void;
   /** Trigger note on with raw YM2612 BLOCK/F-NUM values. */
   noteOn(channel: number, block: number, fnum: number): void;
   /** Trigger note off on one channel. */

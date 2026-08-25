@@ -72,6 +72,7 @@
 
 const CHANNEL_COUNT = 6;
 const OPERATOR_COUNT = 4;
+const CHANNEL_3_INDEX = 2;
 
 // YM2612 packs channel numbers for key on/off a little differently.
 // Public channels:
@@ -133,6 +134,24 @@ const DEFAULT_LFO_STATE = Object.freeze({
   enabled: false,
   frequency: 0,
 });
+
+// Channel 3 special mode uses one normal channel 3 frequency pair plus
+// three extra frequency pairs.
+//
+// Logical operator mapping in this synth API:
+//   OP1, OP2, OP3, OP4
+//
+// YM2612 special frequency register mapping:
+//   OP3 -> 0xA8 / 0xAC
+//   OP1 -> 0xA9 / 0xAD
+//   OP2 -> 0xAA / 0xAE
+//   OP4 -> normal channel 3 registers 0xA2 / 0xA6
+const CHANNEL_3_SPECIAL_FREQUENCY_REGISTERS = {
+  1: { low: 0xa9, high: 0xad },
+  2: { low: 0xaa, high: 0xae },
+  3: { low: 0xa8, high: 0xac },
+  4: { low: 0xa2, high: 0xa6 },
+};
 
 /**
  * Direct transport for the current `web/ym2612.js` implementation.
@@ -261,6 +280,7 @@ export class YM2612Synth {
 
     this._pendingAddressPort = undefined;
     this._pendingAddressRegister = undefined;
+    this._modeRegister = 0x00;
     this.lfo = {
       enabled: DEFAULT_LFO_STATE.enabled,
       frequency: DEFAULT_LFO_STATE.frequency,
@@ -555,6 +575,64 @@ export class YM2612Synth {
   }
 
   /**
+   * Enable or disable YM2612 channel 3 special / 3-slot mode.
+   *
+   * Register 0x27:
+   * - bit 6 = channel 3 special mode
+   *
+   * This method preserves the other mode/timer bits tracked by this synth
+   * layer so it can coexist with future 0x27 helpers.
+   *
+   * @param {boolean} enabled
+   * @returns {void}
+   */
+  setChannel3SpecialMode(enabled) {
+    const validEnabled = validateBoolean("enabled", enabled);
+    this._modeRegister = validEnabled
+      ? (this._modeRegister | 0x40)
+      : (this._modeRegister & ~0x40);
+
+    // Timer control / channel 3 mode
+    this._write(0, 0x27, this._modeRegister);
+  }
+
+  /**
+   * Set one channel 3 operator frequency while special mode is active.
+   *
+   * This is a thin YM2612-shaped helper:
+   * - logical operators stay 1..4
+   * - block/fnum are written directly to YM2612 frequency registers
+   *
+   * Special channel 3 register mapping:
+   * - OP3 -> 0xA8 / 0xAC
+   * - OP1 -> 0xA9 / 0xAD
+   * - OP2 -> 0xAA / 0xAE
+   * - OP4 -> normal channel 3 0xA2 / 0xA6
+   *
+   * @param {number} operator
+   * @param {number} block
+   * @param {number} fnum
+   * @returns {void}
+   */
+  setChannel3SpecialFrequency(operator, block, fnum) {
+    assertOperator(operator);
+    const validBlock = validateRange("block", block, 0, 7);
+    const validFnum = validateRange("fnum", fnum, 0, 0x7ff);
+    const registers = CHANNEL_3_SPECIAL_FREQUENCY_REGISTERS[operator];
+    const fnumHigh = (validFnum >> 8) & 0x07;
+    const fnumLow = validFnum & 0xff;
+
+    this.channels[CHANNEL_3_INDEX].specialFrequencies[operator - 1] = {
+      block: validBlock,
+      fnum: validFnum,
+    };
+
+    // BLOCK / F-NUM high, then low
+    this._write(0, registers.high, (validBlock << 3) | fnumHigh);
+    this._write(0, registers.low, fnumLow);
+  }
+
+  /**
    * Write BLOCK/FNUM and trigger Key On for all operators on one channel.
    *
    * @param {number} channel
@@ -791,6 +869,7 @@ export class YM2612Synth {
 
   getState() {
     return structuredCloneCompat({
+      modeRegister: this._modeRegister,
       lfo: this.lfo,
       channels: this.channels,
     });
@@ -827,6 +906,12 @@ function createDefaultChannelState() {
     right: DEFAULT_CHANNEL_STATE.right,
     block: DEFAULT_CHANNEL_STATE.block,
     fnum: DEFAULT_CHANNEL_STATE.fnum,
+    specialFrequencies: [
+      { block: DEFAULT_CHANNEL_STATE.block, fnum: DEFAULT_CHANNEL_STATE.fnum },
+      { block: DEFAULT_CHANNEL_STATE.block, fnum: DEFAULT_CHANNEL_STATE.fnum },
+      { block: DEFAULT_CHANNEL_STATE.block, fnum: DEFAULT_CHANNEL_STATE.fnum },
+      { block: DEFAULT_CHANNEL_STATE.block, fnum: DEFAULT_CHANNEL_STATE.fnum },
+    ],
     operators: [
       { ...DEFAULT_OPERATOR_STATE },
       { ...DEFAULT_OPERATOR_STATE },

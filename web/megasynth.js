@@ -62,6 +62,14 @@ export {
  *   left: boolean,
  *   right: boolean,
  * } | {
+ *   type: "setChannel3SpecialMode",
+ *   enabled: boolean,
+ * } | {
+ *   type: "setChannel3SpecialFrequency",
+ *   operator: number,
+ *   block: number,
+ *   fnum: number,
+ * } | {
  *   type: "noteOn",
  *   channel: number,
  *   block: number,
@@ -683,6 +691,22 @@ export class MegaSynth {
         right,
         ams,
         pms,
+      })
+    );
+    this.#wrapFmMethod(
+      "setChannel3SpecialMode",
+      (enabled) => ({
+        type: "setChannel3SpecialMode",
+        enabled,
+      })
+    );
+    this.#wrapFmMethod(
+      "setChannel3SpecialFrequency",
+      (operator, block, fnum) => ({
+        type: "setChannel3SpecialFrequency",
+        operator,
+        block,
+        fnum,
       })
     );
     this.#wrapFmMethod(
