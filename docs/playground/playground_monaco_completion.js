@@ -1,5 +1,4 @@
 import {
-  MEGADRIVE_FM_PRESET_ORDER,
   MEGADRIVE_FM_PRESETS,
 } from "../js/megasynth.js";
 
@@ -410,115 +409,28 @@ function createFmOperatorParamSuggestions(
   range
 ) {
   return [
-    {
-      label: "dt",
-      kind: kind.Property,
-      insertText: "dt: ${1:0},",
-      insertTextRules: snippet,
-      documentation:
-        "Detune. Small pitch offset for this operator.",
-      range,
-    },
-    {
-      label: "multi",
-      kind: kind.Property,
-      insertText: "multi: ${1:1},",
-      insertTextRules: snippet,
-      documentation:
-        "Frequency multiplier for this operator.",
-      range,
-    },
-    {
-      label: "tl",
-      kind: kind.Property,
-      insertText: "tl: ${1:8},",
-      insertTextRules: snippet,
-      documentation:
-        "Total level. Lower is louder.",
-      range,
-    },
-    {
-      label: "rs",
-      kind: kind.Property,
-      insertText: "rs: ${1:0},",
-      insertTextRules: snippet,
-      documentation:
-        "Rate scaling.",
-      range,
-    },
-    {
-      label: "ar",
-      kind: kind.Property,
-      insertText: "ar: ${1:22},",
-      insertTextRules: snippet,
-      documentation:
-        "Attack rate.",
-      range,
-    },
-    {
-      label: "am",
-      kind: kind.Property,
-      insertText: "am: ${1:false},",
-      insertTextRules: snippet,
-      documentation:
-        "Amplitude modulation enable.",
-      range,
-    },
-    {
-      label: "d1r",
-      kind: kind.Property,
-      insertText: "d1r: ${1:6},",
-      insertTextRules: snippet,
-      documentation:
-        "First decay rate.",
-      range,
-    },
-    {
-      label: "sr",
-      kind: kind.Property,
-      insertText: "sr: ${1:3},",
-      insertTextRules: snippet,
-      documentation:
-        "Sustain rate. Same YM2612 register family often called D2R in this project UI.",
-      range,
-    },
-    {
-      label: "d2r",
-      kind: kind.Property,
-      insertText: "d2r: ${1:3},",
-      insertTextRules: snippet,
-      documentation:
-        "Sustain rate / D2R.",
-      range,
-    },
-    {
-      label: "sl",
-      kind: kind.Property,
-      insertText: "sl: ${1:3},",
-      insertTextRules: snippet,
-      documentation:
-        "Sustain level.",
-      range,
-    },
-    {
-      label: "rr",
-      kind: kind.Property,
-      insertText: "rr: ${1:8},",
-      insertTextRules: snippet,
-      documentation:
-        "Release rate.",
-      range,
-    },
-    {
-      label: "ssg",
-      kind: kind.Property,
-      insertText: "ssg: ${1:0},",
-      insertTextRules: snippet,
-      documentation:
-        "SSG-EG setting.",
-      range,
-    },
-  ];
+    "dt",
+    "multi",
+    "tl",
+    "rs",
+    "ar",
+    "am",
+    "d1r",
+    "sr",
+    "d2r",
+    "sl",
+    "rr",
+    "ssg",
+  ].map((label) => ({
+    label,
+    kind: kind.Property,
+    insertText:
+      `${label}: \${1},`,
+    insertTextRules: snippet,
+    documentation:
+      `YM2612 operator parameter: ${label}.`,
+    range,
+  }));
 }
 
 function createPlayOptionsSuggestions(
@@ -565,86 +477,25 @@ function createFxConfigSuggestions(
   range
 ) {
   const definitions = {
-    gain: [
-      {
-        label: "gain",
-        insertText: "gain: ${1:1.0},",
-        documentation: "Gain amount.",
-      },
-    ],
-    eq: [
-      {
-        label: "bass",
-        insertText: "bass: ${1:0},",
-        documentation: "EQ bass gain in dB.",
-      },
-      {
-        label: "mid",
-        insertText: "mid: ${1:0},",
-        documentation: "EQ mid gain in dB.",
-      },
-      {
-        label: "treble",
-        insertText: "treble: ${1:0},",
-        documentation: "EQ treble gain in dB.",
-      },
-    ],
-    filter: [
-      {
-        label: "type",
-        insertText: 'type: "${1:lowpass}",',
-        documentation: "Filter type such as lowpass or highpass.",
-      },
-      {
-        label: "cutoff",
-        insertText: "cutoff: ${1:1200},",
-        documentation: "Filter cutoff frequency in Hz.",
-      },
-      {
-        label: "q",
-        insertText: "q: ${1:1.1},",
-        documentation: "Filter resonance / Q.",
-      },
-    ],
-    delay: [
-      {
-        label: "time",
-        insertText: "time: ${1:0.24},",
-        documentation: "Delay time in seconds.",
-      },
-      {
-        label: "feedback",
-        insertText: "feedback: ${1:0.28},",
-        documentation: "Delay feedback amount.",
-      },
-      {
-        label: "mix",
-        insertText: "mix: ${1:0.16},",
-        documentation: "Dry/wet mix.",
-      },
-    ],
-    reverb: [
-      {
-        label: "mix",
-        insertText: "mix: ${1:0.18},",
-        documentation: "Dry/wet mix.",
-      },
-      {
-        label: "tone",
-        insertText: "tone: ${1:5400},",
-        documentation: "Reverb tone / damping frequency.",
-      },
-    ],
+    gain: ["gain"],
+    eq: ["bass", "mid", "treble"],
+    filter: ["type", "cutoff", "q"],
+    delay: ["time", "feedback", "mix"],
+    reverb: ["mix", "tone"],
   };
 
-  return (definitions[effectType] ?? []).map((item) => ({
-    label: item.label,
-    kind: kind.Property,
-    insertText: item.insertText,
-    insertTextRules: snippet,
-    documentation: item.documentation,
-    range,
-  }));
+  return (definitions[effectType] ?? []).map(
+    (label) => ({
+      label,
+      kind: kind.Property,
+      insertText:
+        `${label}: \${1},`,
+      insertTextRules: snippet,
+      documentation:
+        `${effectType} option: ${label}.`,
+      range,
+    })
+  );
 }
 
 function detectFxConfigContext(
@@ -692,16 +543,17 @@ function createPresetSuggestions(
   kind,
   range
 ) {
-  return MEGADRIVE_FM_PRESET_ORDER.map(
-    (name) => ({
-      label: name,
-      kind: kind.Value,
-      insertText: name,
-      documentation:
-        `Built-in YM2612 preset: ${name}`,
-      range,
-    })
-  );
+  return Object.keys(
+    MEGADRIVE_FM_PRESETS
+  ).map((name) => ({
+    label: name,
+    kind: kind.Value,
+    insertText: name,
+    documentation:
+      MEGADRIVE_FM_PRESETS[name]
+        ?.label ?? name,
+    range,
+  }));
 }
 
 function createScaleSuggestions(
@@ -1097,7 +949,7 @@ function isInsideCallObject(
  *
  * Intended scope:
  * - pg / fm / fx helper API suggestions
- * - note / scale / preset suggestions
+ * - note / scale suggestions
  * - YM2612 register and register-value suggestions
  * - lightweight argument-context suggestions such as setBpm(...)
  *
@@ -1363,392 +1215,6 @@ export function registerMonacoCompletions(
               snippet,
               range
             )
-          );
-        }
-
-        if (/\bfx\.$/.test(linePrefix)) {
-          suggestions.push(
-            {
-              label: "gain",
-              kind: kind.Function,
-              insertText:
-                'gain({ gain: ${1:1.0} })',
-              insertTextRules:
-                snippet,
-              documentation:
-                "Create a gain effect unit.",
-              range,
-            },
-            {
-              label: "eq",
-              kind: kind.Function,
-              insertText:
-                'eq({\n  bass: ${1:0},\n  mid: ${2:0},\n  treble: ${3:0},\n})',
-              insertTextRules:
-                snippet,
-              documentation:
-                "Create a 3-band EQ unit.",
-              range,
-            },
-            {
-              label: "filter",
-              kind: kind.Function,
-              insertText:
-                'filter({\n  type: "${1:lowpass}",\n  cutoff: ${2:1200},\n  q: ${3:1.1},\n})',
-              insertTextRules:
-                snippet,
-              documentation:
-                "Create a filter effect unit.",
-              range,
-            },
-            {
-              label: "delay",
-              kind: kind.Function,
-              insertText:
-                'delay({\n  time: ${1:0.24},\n  feedback: ${2:0.28},\n  mix: ${3:0.16},\n})',
-              insertTextRules:
-                snippet,
-              documentation:
-                "Create a delay effect unit.",
-              range,
-            },
-            {
-              label: "reverb",
-              kind: kind.Function,
-              insertText:
-                'reverb({\n  mix: ${1:0.18},\n  tone: ${2:5400},\n})',
-              insertTextRules:
-                snippet,
-              documentation:
-                "Create a reverb effect unit.",
-              range,
-            },
-            {
-              label: "setChain",
-              kind: kind.Method,
-              insertText:
-                "setChain([${1:effect}])",
-              insertTextRules:
-                snippet,
-              documentation:
-                "Replace the current master FX chain.",
-              range,
-            },
-            {
-              label: "clear",
-              kind: kind.Method,
-              insertText:
-                "clear()",
-              documentation:
-                "Clear the current master FX chain.",
-              range,
-            }
-          );
-        }
-
-        if (/\bfm\.$/.test(linePrefix)) {
-          suggestions.push(
-            {
-              label: "setPreset",
-              kind: kind.Method,
-              insertText:
-                'setPreset(${1:0}, MEGADRIVE_FM_PRESETS["${2:one-op-basic}"])',
-              insertTextRules:
-                snippet,
-              documentation:
-                "Apply one preset to one YM2612 channel.",
-              range,
-            },
-            {
-              label: "setOperator",
-              kind: kind.Method,
-              insertText:
-                'setOperator(${1:0}, ${2:4}, {\n  dt: ${3:0},\n  multi: ${4:1},\n  tl: ${5:8},\n  ar: ${6:22},\n  d1r: ${7:6},\n  d2r: ${8:3},\n  sl: ${9:3},\n  rr: ${10:8},\n})',
-              insertTextRules:
-                snippet,
-              documentation:
-                "Partially update one YM2612 operator.",
-              range,
-            },
-            {
-              label: "setAlgo",
-              kind: kind.Method,
-              insertText:
-                "setAlgo(${1:0}, ${2:7}, ${3:0})",
-              insertTextRules:
-                snippet,
-              documentation:
-                "Set YM2612 algorithm and feedback for a channel.",
-              range,
-            },
-            {
-              label: "setPan",
-              kind: kind.Method,
-              insertText:
-                "setPan(${1:0}, ${2:true}, ${3:true}, ${4:0}, ${5:0})",
-              insertTextRules:
-                snippet,
-              documentation:
-                "Set stereo output enable flags plus AMS/PMS for a channel.",
-              range,
-            },
-            {
-              label: "setLfo",
-              kind: kind.Method,
-              insertText:
-                "setLfo(${1:false}, ${2:0})",
-              insertTextRules:
-                snippet,
-              documentation:
-                "Set YM2612 chip LFO enable and frequency.",
-              range,
-            },
-            {
-              label: "noteOn",
-              kind: kind.Method,
-              insertText:
-                "noteOn(${1:0}, ${2:4}, ${3:553})",
-              insertTextRules:
-                snippet,
-              documentation:
-                "Trigger YM2612 note on with block and F-Number.",
-              range,
-            },
-            {
-              label: "write",
-              kind: kind.Method,
-              insertText:
-                "write(${1:0}, ${2:0x22}, ${3:0x08})",
-              insertTextRules:
-                snippet,
-              documentation:
-                "Compact YM2612 register write: port, register, value.",
-              range,
-            },
-            {
-              label: "writeAddress",
-              kind: kind.Method,
-              insertText:
-                "writeAddress(${1:0}, ${2:0x22})",
-              insertTextRules:
-                snippet,
-              documentation:
-                "Write one YM2612 register number to the address port.",
-              range,
-            },
-            {
-              label: "writeData",
-              kind: kind.Method,
-              insertText:
-                "writeData(${1:0x08})",
-              insertTextRules:
-                snippet,
-              documentation:
-                "Write one YM2612 value to the data port after writeAddress().",
-              range,
-            },
-            {
-              label: "noteOff",
-              kind: kind.Method,
-              insertText:
-                "noteOff(${1:0})",
-              insertTextRules:
-                snippet,
-              documentation:
-                "Trigger YM2612 note off on one channel.",
-              range,
-            }
-          );
-        }
-
-        if (/\bpg\.$/.test(linePrefix)) {
-          suggestions.push(
-            {
-              label: "play",
-              kind: kind.Method,
-              insertText:
-                'play("${1:E4}", { channel: ${2:0}, duration: ${3:0.08} })',
-              insertTextRules:
-                snippet,
-              documentation:
-                "Play one note through the YM2612 synth layer.",
-              range,
-            },
-            {
-              label: "sleep",
-              kind: kind.Method,
-              insertText:
-                "sleep(${1:0.12})",
-              insertTextRules:
-                snippet,
-              documentation:
-                "Wait using seconds.",
-              range,
-            },
-            {
-              label: "beat",
-              kind: kind.Method,
-              insertText:
-                "beat(${1:0.5})",
-              insertTextRules:
-                snippet,
-              documentation:
-                "Wait using the shared beat clock.",
-              range,
-            },
-            {
-              label: "nextBeat",
-              kind: kind.Method,
-              insertText:
-                "nextBeat()",
-              insertTextRules:
-                snippet,
-              documentation:
-                "Wait for the next integer beat boundary.",
-              range,
-            },
-            {
-              label: "setBpm",
-              kind: kind.Method,
-              insertText:
-                "setBpm(${1:120})",
-              insertTextRules:
-                snippet,
-              documentation:
-                "Set the shared BPM.",
-              range,
-            },
-            {
-              label: "liveLoop",
-              kind: kind.Method,
-              insertText:
-                'liveLoop("${1:name}", async () => {\n  await pg.play("${2:E4}", { channel: ${3:0}, duration: ${4:0.08} });\n  await pg.beat(${5:0.5});\n})',
-              insertTextRules:
-                snippet,
-              documentation:
-                "Create a repeating named live loop.",
-              range,
-            },
-            {
-              label: "livePrepare",
-              kind: kind.Method,
-              insertText:
-                'livePrepare("${1:main-fx}", async ({ fx, fm, log }) => {\n  ${2:const filter = fx.filter({ type: "lowpass", cutoff: 1200, q: 1.1 });}\n  return { ${3:filter} };\n})',
-              insertTextRules:
-                snippet,
-              documentation:
-                "Prepare and reuse live state across runs.",
-              range,
-            },
-            {
-              label: "scale",
-              kind: kind.Method,
-              insertText:
-                'scale("${1:E4}", "${2:minorPentatonic}", ${3:2})',
-              insertTextRules:
-                snippet,
-              documentation:
-                "Build a note array from a named scale.",
-              range,
-            },
-            {
-              label: "choose",
-              kind: kind.Method,
-              insertText:
-                "choose(${1:values})",
-              insertTextRules:
-                snippet,
-              documentation:
-                "Pick one random item from an array.",
-              range,
-            },
-            {
-              label: "rand",
-              kind: kind.Method,
-              insertText:
-                "rand()",
-              documentation:
-                "Return a random float from 0 to 1.",
-              range,
-            },
-            {
-              label: "randInt",
-              kind: kind.Method,
-              insertText:
-                "randInt(${1:0}, ${2:7})",
-              insertTextRules:
-                snippet,
-              documentation:
-                "Return a random integer in a range.",
-              range,
-            },
-            {
-              label: "stopLoop",
-              kind: kind.Method,
-              insertText:
-                'stopLoop("${1:name}")',
-              insertTextRules:
-                snippet,
-              documentation:
-                "Stop one live loop by name.",
-              range,
-            },
-            {
-              label: "stopAllLoops",
-              kind: kind.Method,
-              insertText:
-                "stopAllLoops()",
-              documentation:
-                "Stop all live loops.",
-              range,
-            },
-            {
-              label: "stopAll",
-              kind: kind.Method,
-              insertText:
-                "stopAll()",
-              documentation:
-                "Stop all sounding notes.",
-              range,
-            },
-            {
-              label: "log",
-              kind: kind.Method,
-              insertText:
-                'log("${1:hello}")',
-              insertTextRules:
-                snippet,
-              documentation:
-                "Write one line to the playground console.",
-              range,
-            },
-            {
-              label: "fm",
-              kind: kind.Property,
-              insertText:
-                "fm",
-              documentation:
-                "Raw YM2612Synth layer.",
-              range,
-            },
-            {
-              label: "fx",
-              kind: kind.Property,
-              insertText:
-                "fx",
-              documentation:
-                "Master FX helper API.",
-              range,
-            },
-            {
-              label: "presets",
-              kind: kind.Property,
-              insertText:
-                "presets",
-              documentation:
-                "Built-in YM2612 preset table.",
-              range,
-            }
           );
         }
 
