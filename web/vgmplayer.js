@@ -43,6 +43,10 @@ export class VgmPlayer {
     /** @type {boolean} */
     this.paused = false;
     /** @type {number} */
+    this.prefetchFactor = 2;
+    /** @type {number} */
+    this.maxFillStepsPerProcess = 512;
+    /** @type {number} */
     this.waitAccumulator = 0;
     /** @type {VgmAudioChunk[]} */
     this.chunkQueue = [];
@@ -152,6 +156,30 @@ export class VgmPlayer {
   }
 
   /**
+   * @param {number} factor
+   * @returns {void}
+   */
+  setPrefetchFactor(factor) {
+    const numeric = Number(factor);
+    if (!Number.isFinite(numeric)) {
+      return;
+    }
+    this.prefetchFactor = Math.min(8, Math.max(1, numeric));
+  }
+
+  /**
+   * @param {number} steps
+   * @returns {void}
+   */
+  setMaxFillStepsPerProcess(steps) {
+    const numeric = Number(steps);
+    if (!Number.isFinite(numeric)) {
+      return;
+    }
+    this.maxFillStepsPerProcess = Math.max(32, Math.floor(numeric));
+  }
+
+  /**
    * Enable or disable loop playback.
    *
    * @param {boolean} enabled
@@ -231,7 +259,7 @@ export class VgmPlayer {
     }
 
     if (this.playing) {
-      this.#fillQueue(frames * 2);
+      this.#fillQueue(Math.ceil(frames * this.prefetchFactor));
     }
 
     if (!this.playing && !this.paused && this.queuedFrames === 0) {
@@ -250,7 +278,13 @@ export class VgmPlayer {
    * @returns {void}
    */
   #fillQueue(targetFrames) {
-    while (this.playing && this.queuedFrames < targetFrames) {
+    let steps = 0;
+    while (
+      this.playing &&
+      this.queuedFrames < targetFrames &&
+      steps < this.maxFillStepsPerProcess
+    ) {
+      steps += 1;
       const event = this.parser.playStep({
         ym2612: { writeRegister: (register, value, port = 0) => this.engine.writeYm2612(port, register, value) },
         psg: { write: (value) => this.engine.writePsg(value) },

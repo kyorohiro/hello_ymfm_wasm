@@ -308,8 +308,9 @@
       .noteish-card {
         border: 1px solid var(--line);
         border-radius: 18px;
-        padding: 16px;
-        background: rgba(255, 255, 255, 0.56);
+        padding: 14px 16px;
+        background: rgba(255, 255, 255, 0.52);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.55);
       }
 
       .noteish-card.is-key-on {
@@ -322,46 +323,47 @@
         justify-content: space-between;
         gap: 12px;
         align-items: baseline;
-        margin-bottom: 10px;
+        margin: 0 0 10px;
       }
 
       .noteish-title {
         font-size: 1rem;
-        font-weight: 800;
+        font-weight: 700;
       }
 
       .noteish-state {
-        font-size: 0.8rem;
-        color: #6c5639;
+        font-size: 0.82rem;
+        color: #5b4a33;
       }
 
-      .noteish-main {
+      .noteish-row {
         display: flex;
         align-items: baseline;
         gap: 10px;
-        margin-bottom: 10px;
+        margin: 0 0 10px;
+        flex-wrap: wrap;
       }
 
       .noteish-note {
-        font-size: 1.6rem;
+        font-size: 1.35rem;
         font-weight: 800;
         letter-spacing: -0.03em;
       }
 
       .noteish-cents {
         font-size: 0.82rem;
-        color: #6c5639;
+        color: #7a6547;
       }
 
       .noteish-meta {
         font-size: 0.84rem;
-        line-height: 1.55;
+        line-height: 1.5;
         color: #4f4130;
       }
 
       .noteish-help {
         margin: 0 0 16px;
-        font-size: 0.9rem;
+        line-height: 1.5;
         color: #5b4a33;
       }
 
@@ -466,8 +468,8 @@
         <section id="noteishPanel" class="tab-panel" role="tabpanel" aria-labelledby="noteishTab" hidden>
           <h2>Channel Note-ish View</h2>
           <p class="noteish-help">
-            This is only a rough pitch estimate from each channel's current BLOCK and FNUM.
-            It ignores operator MULTI / DT, channel 3 special mode, and LFO pitch movement.
+            Rough note estimate from each channel's current BLOCK and FNUM.
+            It ignores operator MULTI / DT, channel 3 special mode, and pitch LFO.
           </p>
           <div id="noteishGrid" class="noteish-grid"></div>
         </section>
@@ -550,26 +552,18 @@
       let channelMonitor = createChannelMonitorState();
       let baseEngineWriteYm2612 = null;
       let channelMonitorRenderTimer = null;
+      let noteishRenderTimer = null;
+      let channelMonitorDirty = false;
+      let noteishDirty = false;
+      let lastNoteishSignature = "";
       let lastLoadedFileName = "snapshot";
       let psgMuted = false;
       let lastYm2612DacEnable = 0x00;
       let monitorToggleHandlerBound = false;
       let workletQueueMultiplier = 2;
+      let workletPumpScheduled = false;
 
-      const NOTE_NAMES = [
-        "C",
-        "C#",
-        "D",
-        "D#",
-        "E",
-        "F",
-        "F#",
-        "G",
-        "G#",
-        "A",
-        "A#",
-        "B",
-      ];
+      const NOTE_NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
       const NOTEISH_REFERENCE_MIDI = 62;
       const NOTEISH_REFERENCE_BLOCK = 4;
       const NOTEISH_REFERENCE_FNUM = 553;
@@ -748,11 +742,36 @@
           return;
         }
         channelMonitorRenderTimer = window.setInterval(() => {
-          if (!hasRecentChannelChanges()) {
+          if (!channelMonitorDirty && !hasRecentChannelChanges()) {
             return;
           }
           renderChannelMonitor();
+          channelMonitorDirty = false;
         }, 120);
+      }
+
+      function ensureNoteishRenderTimer() {
+        if (noteishRenderTimer) {
+          return;
+        }
+        noteishRenderTimer = window.setInterval(() => {
+          if (noteishPanel.hidden) {
+            return;
+          }
+          if (!noteishDirty && !player?.isPlaying?.() && !hasRecentChannelChanges()) {
+            return;
+          }
+          renderNoteishGrid();
+          noteishDirty = false;
+        }, 90);
+      }
+
+      function requestChannelMonitorRender() {
+        channelMonitorDirty = true;
+      }
+
+      function requestNoteishRender() {
+        noteishDirty = true;
       }
 
       function renderChannelMonitor() {
@@ -783,72 +802,69 @@
           `;
           channelGrid.append(card);
         }
-        renderNoteishGrid();
       }
 
       function midiToNoteName(midi) {
-        const noteName =
-          NOTE_NAMES[
-            ((midi % 12) + 12) % 12
-          ];
-        const octave =
-          Math.floor(midi / 12) - 1;
-        return `${noteName}${octave}`;
+        const note = NOTE_NAMES[((midi % 12) + 12) % 12];
+        const octave = Math.floor(midi / 12) - 1;
+        return `${note}${octave}`;
       }
 
-      function estimateNoteish(channel) {
+      function estimateChannelNoteish(channel) {
         if (channel.fnum <= 0) {
           return {
-            label: "No pitch",
+            note: "No pitch",
             cents: null,
           };
         }
 
         const ratio =
           (channel.fnum / NOTEISH_REFERENCE_FNUM) *
-          Math.pow(
-            2,
-            channel.block - NOTEISH_REFERENCE_BLOCK
-          );
+          Math.pow(2, channel.block - NOTEISH_REFERENCE_BLOCK);
         const midiFloat =
           NOTEISH_REFERENCE_MIDI +
           (12 * Math.log2(ratio));
-        const midiRounded =
-          Math.round(midiFloat);
-        const cents =
-          Math.round(
-            (midiFloat - midiRounded) * 100
-          );
-
+        const roundedMidi = Math.round(midiFloat);
         return {
-          label:
-            `~${midiToNoteName(midiRounded)}`,
-          cents,
+          note: `~${midiToNoteName(roundedMidi)}`,
+          cents: Math.round((midiFloat - roundedMidi) * 100),
         };
       }
 
+      function buildNoteishSignature() {
+        return JSON.stringify(channelMonitor.map((channel) => [
+          channel.keyOn,
+          channel.block,
+          channel.fnum,
+          channel.algorithm,
+          channel.feedback,
+        ]));
+      }
+
       function renderNoteishGrid() {
+        const signature = buildNoteishSignature();
+        if (signature === lastNoteishSignature && !noteishDirty) {
+          return;
+        }
+        lastNoteishSignature = signature;
         noteishGrid.innerHTML = "";
 
         for (const channel of channelMonitor) {
+          const estimated = estimateChannelNoteish(channel);
+          const centsText =
+            estimated.cents === null
+              ? "no base note"
+              : `${estimated.cents >= 0 ? "+" : ""}${estimated.cents} cents`;
           const card = document.createElement("section");
-          const noteish =
-            estimateNoteish(channel);
-          const centsLabel =
-            noteish.cents === null
-              ? "base pitch unavailable"
-              : `${noteish.cents >= 0 ? "+" : ""}${noteish.cents} cents`;
-
-          card.className =
-            `noteish-card${channel.keyOn ? " is-key-on" : ""}`;
+          card.className = `noteish-card${channel.keyOn ? " is-key-on" : ""}`;
           card.innerHTML = `
             <div class="noteish-head">
               <span class="noteish-title">CH${channel.channel + 1}</span>
               <span class="noteish-state">${channel.keyOn ? "key on" : "key off"}</span>
             </div>
-            <div class="noteish-main">
-              <span class="noteish-note">${noteish.label}</span>
-              <span class="noteish-cents">${centsLabel}</span>
+            <div class="noteish-row">
+              <span class="noteish-note">${estimated.note}</span>
+              <span class="noteish-cents">${centsText}</span>
             </div>
             <div class="noteish-meta">
               BLOCK ${channel.block}<br>
@@ -897,7 +913,7 @@
         channel.muted = !channel.muted;
         channelMuteStates[channelIndex] = channel.muted;
         channel.changedAt.pan = performance.now();
-        renderChannelMonitor();
+        requestChannelMonitorRender();
 
         if (!engine || !baseEngineWriteYm2612) {
           return;
@@ -924,7 +940,7 @@
         if (activeStream && activeStream.mode === "worklet") {
           activeStream.workletQueuedFrames = 0;
           activeStream.node.port.postMessage({ type: "flush" });
-          pumpWorkletChunks();
+          scheduleWorkletPump();
         }
       }
 
@@ -1129,7 +1145,8 @@
             changed = true;
           }
           if (changed) {
-            renderChannelMonitor();
+            requestChannelMonitorRender();
+            requestNoteishRender();
           }
           return;
         }
@@ -1140,7 +1157,8 @@
           state.fnum = (state.fnum & 0x700) | value;
           channelMonitor[channel].changedAt.fnum = now;
           changed = true;
-          renderChannelMonitor();
+          requestChannelMonitorRender();
+          requestNoteishRender();
           return;
         }
 
@@ -1152,7 +1170,8 @@
           channelMonitor[channel].changedAt.block = now;
           channelMonitor[channel].changedAt.fnum = now;
           changed = true;
-          renderChannelMonitor();
+          requestChannelMonitorRender();
+          requestNoteishRender();
           return;
         }
 
@@ -1164,7 +1183,8 @@
           channelMonitor[channel].changedAt.feedback = now;
           channelMonitor[channel].changedAt.algorithm = now;
           changed = true;
-          renderChannelMonitor();
+          requestChannelMonitorRender();
+          requestNoteishRender();
           return;
         }
 
@@ -1176,7 +1196,7 @@
           state.panRight = (value & 0x40) !== 0;
           channelMonitor[channel].changedAt.pan = now;
           changed = true;
-          renderChannelMonitor();
+          requestChannelMonitorRender();
           return;
         }
 
@@ -1235,7 +1255,7 @@
         }
 
         if (changed) {
-          renderChannelMonitor();
+          requestChannelMonitorRender();
         }
       }
 
@@ -1706,6 +1726,8 @@
           const { sampleRate } = await ensurePlaybackReady(parser);
           channelMonitor = createChannelMonitorState();
           renderChannelMonitor();
+          requestNoteishRender();
+          renderNoteishGrid();
           engine.reset();
           lastYm2612DacEnable = 0x00;
           engine.writeYm2612 = (port, register, value) => {
@@ -1761,12 +1783,24 @@
         );
       }
 
+      function scheduleWorkletPump() {
+        if (!activeStream || activeStream.mode !== "worklet" || workletPumpScheduled) {
+          return;
+        }
+        workletPumpScheduled = true;
+        window.setTimeout(() => {
+          workletPumpScheduled = false;
+          pumpWorkletChunks();
+        }, 0);
+      }
+
       function pumpWorkletChunks(targetFrames = currentWorkletTargetFrames()) {
         if (!activeStream || activeStream.mode !== "worklet") {
           return;
         }
 
-        while (activeStream.workletQueuedFrames < targetFrames) {
+        let chunksQueued = 0;
+        while (activeStream.workletQueuedFrames < targetFrames && chunksQueued < 1) {
           const statsBefore = player.stats();
           if (!statsBefore.playing && !statsBefore.paused && statsBefore.queuedFrames === 0) {
             if (!activeStream.endSent) {
@@ -1786,10 +1820,18 @@
             { type: "enqueue", left: left.buffer, right: right.buffer },
             [left.buffer, right.buffer],
           );
+          chunksQueued += 1;
         }
 
         updatePlaybackButtons(player.stats());
         updateStreamingStatus("(AudioWorklet)");
+
+        if (activeStream.workletQueuedFrames < targetFrames) {
+          const statsAfter = player.stats();
+          if (statsAfter.playing || statsAfter.paused || statsAfter.queuedFrames > 0) {
+            scheduleWorkletPump();
+          }
+        }
       }
 
       async function startWorkletStream(sampleRate) {
@@ -1833,7 +1875,7 @@
             setStatus("Ready.");
             return;
           }
-          pumpWorkletChunks();
+          scheduleWorkletPump();
         };
         node.connect(audioContext.destination);
         pumpWorkletChunks();
@@ -1874,6 +1916,8 @@
         playButton.disabled = true;
         channelMonitor = createChannelMonitorState();
         renderChannelMonitor();
+        requestNoteishRender();
+        renderNoteishGrid();
 
         if (looksLikeGzip(buffer)) {
           headerOutput.textContent = "Compressed VGZ is not supported yet in this demo.";
@@ -2018,8 +2062,6 @@
 
       function setOutputTab(tabName) {
         const isOperatorInfo = tabName === "operator-info";
-        const isParsedOutput = tabName === "parsed-output";
-        const isNoteish = tabName === "noteish";
 
         operatorInfoTab.setAttribute(
           "aria-selected",
@@ -2028,17 +2070,21 @@
         operatorInfoTab.tabIndex = isOperatorInfo ? 0 : -1;
         parsedOutputTab.setAttribute(
           "aria-selected",
-          String(isParsedOutput)
+          String(tabName === "parsed-output")
         );
-        parsedOutputTab.tabIndex = isParsedOutput ? 0 : -1;
+        parsedOutputTab.tabIndex = tabName === "parsed-output" ? 0 : -1;
         noteishTab.setAttribute(
           "aria-selected",
-          String(isNoteish)
+          String(tabName === "noteish")
         );
-        noteishTab.tabIndex = isNoteish ? 0 : -1;
+        noteishTab.tabIndex = tabName === "noteish" ? 0 : -1;
         operatorInfoPanel.hidden = !isOperatorInfo;
-        parsedOutputPanel.hidden = !isParsedOutput;
-        noteishPanel.hidden = !isNoteish;
+        parsedOutputPanel.hidden = tabName !== "parsed-output";
+        noteishPanel.hidden = tabName !== "noteish";
+        if (tabName === "noteish") {
+          requestNoteishRender();
+          renderNoteishGrid();
+        }
       }
 
       operatorInfoTab.addEventListener("click", () => {
@@ -2056,7 +2102,9 @@
       updateTfiPatchOptions();
       updateTfiSummary();
       ensureChannelMonitorRenderTimer();
+      ensureNoteishRenderTimer();
       renderChannelMonitor();
+      renderNoteishGrid();
     </script>
   </body>
 </html>
