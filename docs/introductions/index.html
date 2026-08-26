@@ -1,0 +1,430 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>About YM2612</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #f4efe4;
+        --panel: #fffaf0;
+        --ink: #1f1b16;
+        --accent: #b4572f;
+        --accent-dark: #7e381c;
+        --line: #d7c8ac;
+        --code: #2b241d;
+        --code-ink: #f6ead7;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: "Avenir Next", "Helvetica Neue", Helvetica, Arial, sans-serif;
+        color: var(--ink);
+        background:
+          radial-gradient(circle at top left, #fff8df 0, transparent 28%),
+          radial-gradient(circle at bottom right, #f0d8ba 0, transparent 24%),
+          linear-gradient(160deg, var(--bg), #eadfc9 60%, #e0cfb5);
+      }
+
+      main {
+        max-width: 980px;
+        margin: 0 auto;
+        padding: 48px 20px 64px;
+      }
+
+      .panel {
+        background: color-mix(in srgb, var(--panel) 90%, white 10%);
+        border: 1px solid var(--line);
+        border-radius: 24px;
+        padding: 28px;
+        box-shadow: 0 18px 40px rgba(90, 62, 30, 0.12);
+        margin-bottom: 24px;
+      }
+
+      h1, h2, h3 {
+        margin: 0 0 12px;
+        line-height: 1.15;
+        letter-spacing: -0.04em;
+      }
+
+      h1 {
+        font-size: clamp(2rem, 4vw, 3.2rem);
+      }
+
+      h2 {
+        margin-top: 28px;
+        font-size: 1.35rem;
+      }
+
+      h3 {
+        margin-top: 20px;
+        font-size: 1.05rem;
+      }
+
+      p, li {
+        line-height: 1.6;
+      }
+
+      p {
+        margin: 0 0 16px;
+      }
+
+      ul, ol {
+        margin: 0 0 16px 20px;
+      }
+
+      code {
+        font-family: "SFMono-Regular", Menlo, Consolas, monospace;
+      }
+
+      .figure {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 16px;
+        margin: 0 0 16px;
+      }
+
+      .figure .box {
+        flex: 1 1 160px;
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 14px 16px;
+        background: rgba(255, 255, 255, 0.5);
+      }
+
+      .figure .box strong {
+        display: block;
+        margin-bottom: 4px;
+      }
+
+      .algo-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 12px;
+        margin: 20px 0 12px;
+      }
+
+      .algo-button {
+        display: block;
+        width: 100%;
+        text-align: left;
+        cursor: pointer;
+        font: inherit;
+        color: inherit;
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 12px 14px;
+        background: rgba(255, 255, 255, 0.5);
+        transition: transform 140ms ease, box-shadow 140ms ease, border-color 140ms ease;
+      }
+
+      .algo-button:hover {
+        transform: translateY(-2px);
+        border-color: var(--accent);
+        box-shadow: 0 14px 28px rgba(126, 56, 28, 0.16);
+      }
+
+      .algo-button.is-active {
+        border-color: var(--accent);
+        background: color-mix(in srgb, var(--accent) 14%, white 86%);
+      }
+
+      .algo-button strong {
+        display: block;
+        margin-bottom: 4px;
+      }
+
+      .algo-button span {
+        font-size: 0.85rem;
+        opacity: 0.85;
+      }
+
+      .algo-status {
+        margin-bottom: 0;
+        font-size: 0.9rem;
+        opacity: 0.85;
+      }
+
+      .playground-frame {
+        width: 100%;
+        height: 640px;
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        background: white;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 16px;
+        margin-top: 24px;
+      }
+
+      .card {
+        display: block;
+        text-decoration: none;
+        color: inherit;
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        padding: 18px;
+        background: rgba(255, 255, 255, 0.45);
+        transition: transform 140ms ease, box-shadow 140ms ease, border-color 140ms ease;
+      }
+
+      .card:hover {
+        transform: translateY(-2px);
+        border-color: var(--accent);
+        box-shadow: 0 14px 28px rgba(126, 56, 28, 0.16);
+      }
+
+      .card strong {
+        display: block;
+        margin-bottom: 8px;
+        font-size: 1.05rem;
+      }
+
+      .link-button {
+        display: inline-block;
+        margin-top: 16px;
+        border-radius: 999px;
+        padding: 12px 18px;
+        font-weight: 700;
+        color: white;
+        background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+        text-decoration: none;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <section class="panel">
+        <h1>About YM2612</h1>
+        <p>
+          The YM2612 is the FM sound chip Sega put in the Mega Drive / Genesis.
+          It does not record or sample sound &mdash; it builds every tone from scratch, sample by sample,
+          out of sine waves that modulate each other. That technique is called FM (frequency modulation)
+          synthesis, and it is why the Mega Drive has its own distinct, slightly metallic voice compared to
+          consoles that used sampled or subtractive-synth chips.
+        </p>
+        <p>
+          This repository exists to understand that chip: how its registers work, how <a href="https://github.com/aaronsgiles/ymfm">ymfm</a>
+          (the emulation core this project builds on) exposes it, and how to hear it directly in a browser.
+        </p>
+      </section>
+
+      <section class="panel">
+        <h2>Try it Live</h2>
+        <p>
+          Before anything else, hear it. The embedded Playground below is preloaded with a C major scale
+          (Do Re Mi Fa Sol La Si Do) &mdash; press Run to hear the chip play, then read on to see what
+          <code>OP1</code>, <code>algorithm</code>, and the rest of the code actually mean.
+        </p>
+        <iframe
+          class="playground-frame"
+          src="../playground/index.html?mode=simple&src=Zm0uc2V0UHJlc2V0KENIMSwgTUVHQURSSVZFX0ZNX1BSRVNFVFNbIm9uZS1vcC1iYXNpYyJdKTsKCmNvbnN0IG5vdGVzID0gWyJDNCIsICJENCIsICJFNCIsICJGNCIsICJHNCIsICJBNCIsICJCNCIsICJDNSJdOwoKZm9yIChjb25zdCBub3RlIG9mIG5vdGVzKSB7CiAgYXdhaXQgcGxheShub3RlLCB7IGNoYW5uZWw6IENIMSwgZHVyYXRpb246IDAuMyB9KTsKICBhd2FpdCBzbGVlcCgwLjEpOwp9Cg"
+          title="YM2612 Playground"
+          allow="autoplay"
+          loading="lazy"
+          style="height: 560px;"
+        ></iframe>
+        <p>
+          <a href="../playground/index.html?src=Zm0uc2V0UHJlc2V0KENIMSwgTUVHQURSSVZFX0ZNX1BSRVNFVFNbIm9uZS1vcC1iYXNpYyJdKTsKCmNvbnN0IG5vdGVzID0gWyJDNCIsICJENCIsICJFNCIsICJGNCIsICJHNCIsICJBNCIsICJCNCIsICJDNSJdOwoKZm9yIChjb25zdCBub3RlIG9mIG5vdGVzKSB7CiAgYXdhaXQgcGxheShub3RlLCB7IGNoYW5uZWw6IENIMSwgZHVyYXRpb246IDAuMyB9KTsKICBhd2FpdCBzbGVlcCgwLjEpOwp9Cg">Open the full Playground (with console, examples, and the operator editor) &rarr;</a>
+        </p>
+      </section>
+
+      <section class="panel">
+        <h2>Operators: the Only Sound Source</h2>
+        <p>
+          Every voice the YM2612 makes comes from combinations of just one building block, called an
+          <strong>operator</strong>. An operator is a sine wave generator with its own pitch, volume envelope,
+          and a couple of shaping knobs (detune, frequency multiplier). On its own an operator just sounds like
+          a plain tone. What makes FM synthesis interesting is what happens when one operator's output is used
+          to modulate another operator's frequency instead of being sent straight to the speakers.
+        </p>
+        <div class="figure">
+          <div class="box">
+            <strong>Carrier</strong>
+            An operator connected to the audio output. You hear it directly.
+          </div>
+          <div class="box">
+            <strong>Modulator</strong>
+            An operator connected into another operator's frequency input. You do not hear it directly &mdash;
+            you hear how it reshapes the carrier's waveform.
+          </div>
+        </div>
+        <p>
+          The YM2612 gives each of its 6 channels exactly 4 operators. How those 4 operators are wired together
+          &mdash; who modulates whom, and who reaches the output &mdash; is called the <strong>algorithm</strong>.
+          There are 8 fixed algorithms to choose from per channel. Algorithm 7 is the simplest to start with:
+          all 4 operators are carriers, wired straight to the output with no modulation between them, so you can
+          hear each operator's raw contribution before adding modulation back in.
+        </p>
+      </section>
+
+      <section class="panel">
+        <h2>Compare the 8 Algorithms</h2>
+        <p>
+          The same 4-operator patch below is wired 8 different ways &mdash; nothing changes except the
+          algorithm. Click a button to hear it. Notice how algorithms with more operators feeding into a
+          single carrier (like ALGO 0) sound more metallic and complex, while algorithms with more operators
+          reaching the output in parallel (like ALGO 7) sound closer to layered plain tones.
+        </p>
+        <div id="algoButtons" class="algo-grid"></div>
+        <p id="algoStatus" class="algo-status">Click a button to load audio and play.</p>
+      </section>
+
+      <section class="panel">
+        <h2>How Software Talks to the Chip</h2>
+        <p>
+          The real chip only has an 8-bit data bus and two address-select pins (<code>A0</code>, <code>A1</code>),
+          so every parameter change is really just two writes: pick a register address, then write a value into it.
+          <code>ymfm</code> and this repository's JavaScript layer hide that two-step dance behind readable method
+          calls, but underneath it is always the same pattern:
+        </p>
+        <ul>
+          <li><code>0x30-0x3c</code> &mdash; detune and frequency multiplier, per operator</li>
+          <li><code>0x40-0x4c</code> &mdash; total level (volume), per operator</li>
+          <li><code>0x50-0x5c</code> / <code>0x80-0x8c</code> &mdash; envelope rates (attack, sustain, release), per operator</li>
+          <li><code>0xa0</code> / <code>0xa4</code> &mdash; frequency, per channel</li>
+          <li><code>0xb0</code> &mdash; algorithm and feedback, per channel</li>
+          <li><code>0x28</code> &mdash; key on / key off, to start and stop a note</li>
+        </ul>
+        <p>
+          The <a href="../info/ym2612.html">YM2612 Basics</a> page walks through this register map and the pin
+          layout in more detail, down to the exact bytes used to make a single beep.
+        </p>
+      </section>
+
+      <section class="panel">
+        <h2>Keep Reading</h2>
+        <div class="grid">
+          <a class="card" href="../info/ym2612.html">
+            <strong>YM2612 Basics</strong>
+            The minimum path from chip pins and registers to a simple beep.
+          </a>
+          <a class="card" href="../info/ym2612-ja.html">
+            <strong>YM2612 Basics (JA)</strong>
+            日本語で YM2612 の基本と beep までの流れを読む。
+          </a>
+          <a class="card" href="../info/vgm.html">
+            <strong>VGM Basics</strong>
+            What VGM files store, and which YM2612-related commands matter first.
+          </a>
+          <a class="card" href="../tutorials/">
+            <strong>Tutorials</strong>
+            Step-by-step walkthroughs for using the YM2612 and related tools.
+          </a>
+          <a class="card" href="../info/index.html">
+            <strong>Info Hub</strong>
+            The full browser-side reading hub for YM2612, FM, and VGM notes.
+          </a>
+        </div>
+        <a class="link-button" href="../index.html">Back</a>
+      </section>
+    </main>
+
+    <script type="module">
+      import { MegaDriveSynth } from "../js/megasynth.js";
+
+      const CHANNEL = 0;
+      const NOTE_BLOCK = 4;
+      const NOTE_FNUM = 644;
+      const NOTE_DURATION_MS = 900;
+
+      // Same 4-operator patch (based on the "4OP Brass-ish" preset) reused for
+      // every algorithm below, so the algorithm wiring is the only thing that
+      // changes from button to button.
+      const OPERATORS = {
+        1: { dt: 0, multi: 2, tl: 18, ar: 28, d1r: 9, d2r: 4, sl: 4, rr: 7 },
+        2: { dt: 0, multi: 1, tl: 12, ar: 26, d1r: 8, d2r: 3, sl: 4, rr: 7 },
+        3: { dt: 0, multi: 3, tl: 22, ar: 24, d1r: 10, d2r: 5, sl: 5, rr: 7 },
+        4: { dt: 0, multi: 1, tl: 6, ar: 30, d1r: 7, d2r: 3, sl: 3, rr: 6 },
+      };
+
+      const ALGORITHMS = [
+        { algorithm: 0, routing: "OP1 -> OP2 -> OP3 -> OP4 -> OUT", note: "all in series" },
+        { algorithm: 1, routing: "(OP1 + OP2) -> OP3 -> OP4 -> OUT", note: "two modulators feed one chain" },
+        { algorithm: 2, routing: "(OP1 + (OP2 -> OP3)) -> OP4 -> OUT", note: "one direct, one 2-step chain" },
+        { algorithm: 3, routing: "((OP1 -> OP2) + OP3) -> OP4 -> OUT", note: "one 2-step chain, one direct" },
+        { algorithm: 4, routing: "(OP1 -> OP2) + (OP3 -> OP4) -> OUT", note: "two independent 2-op pairs" },
+        { algorithm: 5, routing: "(OP1 -> OP2) + (OP1 -> OP3) + (OP1 -> OP4) -> OUT", note: "one modulator drives three carriers" },
+        { algorithm: 6, routing: "(OP1 -> OP2) + OP3 + OP4 -> OUT", note: "one pair, two lone carriers" },
+        { algorithm: 7, routing: "OP1 + OP2 + OP3 + OP4 -> OUT", note: "all 4 are carriers, no modulation" },
+      ];
+
+      const buttonsRoot = document.getElementById("algoButtons");
+      const statusEl = document.getElementById("algoStatus");
+
+      const megaDrive = new MegaDriveSynth({
+        workletUrl: "../js/ym2612-worklet.js",
+        ym2612WasmUrl: "../generated/ym2612_wasm.wasm",
+      });
+
+      let synth = null;
+      let stopTimer = null;
+
+      async function ensureReady() {
+        if (synth) {
+          await megaDrive.resume();
+          return;
+        }
+        statusEl.textContent = "Loading audio engine...";
+        await megaDrive.start();
+        synth = megaDrive.fm;
+      }
+
+      function playAlgorithm(entry, button) {
+        for (const other of buttonsRoot.querySelectorAll(".algo-button")) {
+          other.classList.toggle("is-active", other === button);
+        }
+
+        synth.reset();
+        synth.setPreset(CHANNEL, {
+          algorithm: entry.algorithm,
+          feedback: 0,
+          operators: OPERATORS,
+        });
+        synth.setPan(CHANNEL, true, true);
+        synth.noteOn(CHANNEL, NOTE_BLOCK, NOTE_FNUM);
+
+        statusEl.textContent = `Playing ALGO ${entry.algorithm}: ${entry.routing} (${entry.note})`;
+
+        if (stopTimer) {
+          clearTimeout(stopTimer);
+        }
+        stopTimer = setTimeout(() => {
+          synth.noteOff(CHANNEL);
+        }, NOTE_DURATION_MS);
+      }
+
+      for (const entry of ALGORITHMS) {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "algo-button";
+        button.innerHTML =
+          `<strong>ALGO ${entry.algorithm}</strong><span>${entry.routing}</span>`;
+
+        button.addEventListener("click", async () => {
+          button.disabled = true;
+          try {
+            await ensureReady();
+            playAlgorithm(entry, button);
+          } catch (error) {
+            console.error(error);
+            statusEl.textContent = `Error: ${error.message}`;
+          } finally {
+            button.disabled = false;
+          }
+        });
+
+        buttonsRoot.appendChild(button);
+      }
+    </script>
+  </body>
+</html>

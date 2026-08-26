@@ -150,6 +150,36 @@
         font-weight: 700;
       }
 
+      #codeCard {
+        position: relative;
+      }
+
+      .run-overlay {
+        display: none;
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        gap: 8px;
+        z-index: 5;
+      }
+
+      .run-overlay button {
+        min-height: 30px;
+        padding: 4px 14px;
+        font-size: 0.85rem;
+      }
+
+      body.mode-simple .topbar,
+      body.mode-simple .toolbar,
+      body.mode-simple .status,
+      body.mode-simple #bottomPanels {
+        display: none;
+      }
+
+      body.mode-simple .run-overlay {
+        display: flex;
+      }
+
       .layout {
         display: block;
       }
@@ -706,7 +736,8 @@
         <div class="status" id="status">Ready.</div>
 
         <div class="layout">
-          <section class="card">
+          <section class="card" id="codeCard">
+            <div class="run-overlay" id="runOverlay"></div>
             <div class="section-heading">
               <h2>Code</h2>
               <span class="shortcut-hint">Ctrl/Cmd+Shift+Space/I · Ctrl/Cmd+Space/I</span>
@@ -719,7 +750,7 @@
           </section>
         </div>
 
-        <section class="card" style="margin-top: 16px;">
+        <section class="card" id="bottomPanels" style="margin-top: 16px;">
           <div class="tabbar" role="tablist" aria-label="Playground panels">
             <button
               id="consoleTab"

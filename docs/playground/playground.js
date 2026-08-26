@@ -685,6 +685,38 @@ function applyInitialSourceFromQuery() {
   );
 }
 
+function applySimpleModeFromQuery() {
+  const params =
+    new URLSearchParams(
+      window.location.search
+    );
+
+  if (
+    params.get("mode") !==
+    "simple"
+  ) {
+    return;
+  }
+
+  document.body.classList.add(
+    "mode-simple"
+  );
+
+  const runOverlay =
+    document.getElementById(
+      "runOverlay"
+    );
+
+  if (runOverlay) {
+    runOverlay.appendChild(
+      runButton
+    );
+    runOverlay.appendChild(
+      stopButton
+    );
+  }
+}
+
 runButton.addEventListener(
   "click",
   () => {
@@ -707,6 +739,7 @@ loadExampleButton.addEventListener(
 );
 
 applyInitialSourceFromQuery();
+applySimpleModeFromQuery();
 clearConsole();
 setBottomTab("console");
 setRuntimeState("Audio idle");
