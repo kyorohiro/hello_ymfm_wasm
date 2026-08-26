@@ -309,6 +309,31 @@
       </section>
 
       <section class="panel">
+        <h2>Analyze a Real Sound with the Analyzer</h2>
+        <p>
+          Everything above used hand-written parameters. The FM2612 VGM Analyzer works the other way:
+          load a real VGM recording and see the actual register writes a game sent to the chip &mdash;
+          inspect parsed commands, watch all 6 YM2612 channels live, and export a channel's current
+          operator/algorithm state as a snapshot or TFI patch.
+        </p>
+        <p>
+          VGM files for real Mega Drive / Genesis game music are available from sites like
+          <a href="https://www.zophar.net/music/sega-mega-drive-genesis">zophar.net</a>.
+        </p>
+        <iframe
+          class="playground-frame"
+          src="../vgm_analyzer/index.html"
+          title="Tetorica FM2612 VGM Analyzer"
+          allow="autoplay"
+          loading="lazy"
+          style="height: 900px;"
+        ></iframe>
+        <p>
+          <a href="../vgm_analyzer/index.html">Open the VGM Analyzer in its own page &rarr;</a>
+        </p>
+      </section>
+
+      <section class="panel">
         <h2>How Software Talks to the Chip</h2>
         <p>
           The real chip only has an 8-bit data bus and two address-select pins (<code>A0</code>, <code>A1</code>),
