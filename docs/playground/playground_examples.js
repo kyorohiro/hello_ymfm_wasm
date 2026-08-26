@@ -432,9 +432,8 @@ liveLoop("fx-motion", async () => {
     choose([800, 1200, 1800, 2600, 4200, 6400]),
     0.18
   );
-  mainFx.delay.mix.rampTo(
-    choose([0.08, 0.12, 0.18, 0.24]),
-    0.12
+  mainFx.delay.mix.set(
+    choose([0.08, 0.12, 0.18, 0.24])
   );
   mainFx.reverb.mix.set(
     choose([0.1, 0.16, 0.22])
