@@ -20,6 +20,8 @@
       --op2-line: #f595bd;
       --op3-tint: #e7ffe5;
       --op3-line: #87e88b;
+      --op4-tint: #fff3d6;
+      --op4-line: #f0c56b;
     }
 
     * {
@@ -126,6 +128,17 @@
       box-shadow: none;
     }
 
+    .card-introduction {
+      background: var(--op4-tint);
+      border-color: var(--op4-line);
+      box-shadow: none;
+    }
+
+    .card-introduction:hover {
+      border-color: color-mix(in srgb, var(--op4-line) 72%, var(--accent) 28%);
+      box-shadow: none;
+    }
+
     h2 {
       margin: 0 0 12px;
       font-size: 1.35rem;
@@ -196,6 +209,16 @@
         <a class="card card-analyzer" href="./vgm_analyzer/index.html">
           <strong>FM2612 VGM Analyzer</strong>
           Inspect parsed commands, watch 6 YM2612 channels, and export snapshot data or TFI patches.
+        </a>
+      </div>
+
+      <h2>Introduction</h2>
+
+      <div class="grid">
+        <a class="card card-introduction" href="./introductions/index.html">
+          <strong>About YM2612</strong>
+          New here? Start with what FM synthesis and the YM2612's operators/algorithms actually do,
+          with a live Playground embedded right in the page.
         </a>
       </div>
 
