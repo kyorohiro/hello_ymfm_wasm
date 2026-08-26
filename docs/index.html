@@ -14,6 +14,12 @@
       --accent: #b4572f;
       --accent-dark: #7e381c;
       --line: #d7c8ac;
+      --op1-tint: #e7f0ff;
+      --op1-line: #8eb3f4;
+      --op2-tint: #ffe6ef;
+      --op2-line: #f595bd;
+      --op3-tint: #e7ffe5;
+      --op3-line: #87e88b;
     }
 
     * {
@@ -87,6 +93,39 @@
       font-size: 1.05rem;
     }
 
+    .card-playground {
+      background: var(--op1-tint);
+      border-color: var(--op1-line);
+      box-shadow: none;
+    }
+
+    .card-playground:hover {
+      border-color: color-mix(in srgb, var(--op1-line) 70%, var(--accent) 30%);
+      box-shadow: none;
+    }
+
+    .card-synth {
+      background: var(--op2-tint);
+      border-color: var(--op2-line);
+      box-shadow: none;
+    }
+
+    .card-synth:hover {
+      border-color: color-mix(in srgb, var(--op2-line) 72%, var(--accent) 28%);
+      box-shadow: none;
+    }
+
+    .card-analyzer {
+      background: var(--op3-tint);
+      border-color: var(--op3-line);
+      box-shadow: none;
+    }
+
+    .card-analyzer:hover {
+      border-color: color-mix(in srgb, var(--op3-line) 72%, var(--accent) 28%);
+      box-shadow: none;
+    }
+
     h2 {
       margin: 0 0 12px;
       font-size: 1.35rem;
@@ -99,7 +138,7 @@
 <body>
   <main>
     <section class="panel">
-      <h1>hello_ymfm_wasm</h1>
+      <h1>Tetorica YM2612</h1>
 
       <p>
         Small browser-side demos, documentation, and reusable code for
@@ -137,25 +176,26 @@
         by Aaron Giles under the BSD 3-Clause License.
       </p>
 
-      <h2>Docs Layout</h2>
-
-      <ul>
-        <li><code>docs/demos/</code> contains runnable browser demos.</li>
-        <li><code>docs/js/</code> contains reusable browser-side runtime code.</li>
-        <li><code>docs/generated/</code> contains generated WASM files.</li>
-        <li><code>docs/info/</code> contains reading-oriented explanation pages.</li>
-        <li><code>docs/playground/</code> contains the JavaScript live coding playground.</li>
-        <li><code>docs/tutorials/</code> contains tutorial markdown and small example source files.</li>
-        <li><code>docs/examples/</code> contains smaller code examples.</li>
-        <li><code>docs/issues/</code> contains work notes and save points.</li>
-      </ul>
-
-      <h2>Playground</h2>
+      <h2>Tetorica Tools</h2>
 
       <div class="grid">
-        <a class="card" href="./playground/index.html">
+        <a class="card card-playground" href="./playground/index.html">
           <strong>YM2612 Playground</strong>
           Try a small JavaScript playground with <code>play()</code>, <code>beat()</code>, <code>liveLoop()</code>, and raw <code>fm</code> access.
+        </a>
+      </div>
+
+      <div class="grid">
+        <a class="card card-synth" href="./synth/index.html">
+          <strong>YM2612 Synth Demo</strong>
+          Try a small YM2612Synth keyboard with a guitar-like PC key layout and preset switching.
+        </a>
+      </div>
+
+      <div class="grid">
+        <a class="card card-analyzer" href="./vgm_analyzer/index.html">
+          <strong>FM2612 VGM Analyzer</strong>
+          Inspect parsed commands, watch 6 YM2612 channels, and export snapshot data or TFI patches.
         </a>
       </div>
 
@@ -185,10 +225,6 @@
         <a class="card" href="./demos/operator2.html">
           <strong>2 Operator Demo</strong>
           Compare parallel and serial relationships, then add feedback to operator 1.
-        </a>
-        <a class="card" href="./synth/index.html">
-          <strong>YM2612 Synth Demo</strong>
-          Try a small YM2612Synth keyboard with a guitar-like PC key layout and preset switching.
         </a>
       </div>
     </section>
