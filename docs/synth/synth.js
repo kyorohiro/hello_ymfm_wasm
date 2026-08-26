@@ -27,6 +27,7 @@ import {
   buildCommonControls as buildCommonControlsView,
   buildHeader,
   buildOperatorControls as buildOperatorControlsView,
+  displayOperatorToApiOperator,
 } from "./synth_controls.js";
 import {
   attachOutputEnvelopeTap,
@@ -103,12 +104,6 @@ const OPERATOR_NUMBERS = [
   3,
   4,
 ];
-
-function displayOperatorToApiOperator(
-  operator
-) {
-  return operator - 1;
-}
 
 const OPERATOR_PARAM_DEFS = [
   { id: "dt", label: "DT", min: 0, max: 7, step: 1, category: "pitch", help: "Small pitch offset." },

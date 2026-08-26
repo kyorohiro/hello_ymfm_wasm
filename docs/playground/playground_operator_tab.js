@@ -1,7 +1,9 @@
 import {
+  apiOperatorToDisplayOperator,
   buildCommonControls,
   buildHeader,
   buildOperatorControls,
+  displayOperatorToApiOperator,
 } from "../synth/synth_controls.js";
 
 const CHANNEL_COUNT = 6;
@@ -41,18 +43,6 @@ const ALGORITHM_DESCRIPTIONS = [
   'ALGO 6 (<span class="op-color-1">OP1</span> -> <span class="op-color-2">OP2</span>) + <span class="op-color-3">OP3</span> + <span class="op-color-4">OP4</span> -> OUT',
   'ALGO 7 <span class="op-color-1">OP1</span> + <span class="op-color-2">OP2</span> + <span class="op-color-3">OP3</span> + <span class="op-color-4">OP4</span> -> OUT',
 ];
-
-function displayOperatorToApiOperator(
-  operator
-) {
-  return operator - 1;
-}
-
-function apiOperatorToDisplayOperator(
-  operator
-) {
-  return operator + 1;
-}
 
 function createDefaultOperatorState(
   operator

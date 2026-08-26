@@ -5,6 +5,26 @@ function clampValue(value, min, max) {
   );
 }
 
+/**
+ * Convert a display operator number (1..4) to the synth API's
+ * logical operator number (0..3).
+ */
+export function displayOperatorToApiOperator(
+  operator
+) {
+  return operator - 1;
+}
+
+/**
+ * Convert the synth API's logical operator number (0..3) to a
+ * display operator number (1..4).
+ */
+export function apiOperatorToDisplayOperator(
+  operator
+) {
+  return operator + 1;
+}
+
 export function createParamControl(config) {
   const {
     label,
