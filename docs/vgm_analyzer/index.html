@@ -145,6 +145,36 @@
         letter-spacing: 0.02em;
       }
 
+      .channel-head-left {
+        display: flex;
+        gap: 10px;
+        align-items: baseline;
+      }
+
+      .channel-toggle {
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        padding: 0.24rem 0.7rem;
+        background: rgba(255, 255, 255, 0.72);
+        color: var(--ink);
+        font: inherit;
+        font-size: 0.76rem;
+        font-weight: 700;
+        cursor: pointer;
+      }
+
+      .channel-toggle.is-muted {
+        background: rgba(43, 36, 29, 0.08);
+        color: #7b5d38;
+      }
+
+      .monitor-toggles {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin: 0 0 14px;
+      }
+
       .channel-meta {
         font-size: 0.82rem;
         color: #5b4a33;
@@ -227,6 +257,20 @@
           <select id="tfiPatchSelect" aria-label="TFI patch">
             <option value="">No patch</option>
           </select>
+          <label for="prefetchFactorSelect">VGM queue</label>
+          <select id="prefetchFactorSelect" aria-label="VGM queue length">
+            <option value="1">x1</option>
+            <option value="1.5">x1.5</option>
+            <option value="2" selected>x2</option>
+            <option value="3">x3</option>
+          </select>
+          <label for="workletQueueSelect">Worklet queue</label>
+          <select id="workletQueueSelect" aria-label="Worklet queue length">
+            <option value="1">x1</option>
+            <option value="2" selected>x2</option>
+            <option value="3">x3</option>
+            <option value="4">x4</option>
+          </select>
           <button id="exportTfiButton" type="button" disabled>Export TFI</button>
           <button id="exportAllTfiButton" type="button" disabled>Export All TFI ZIP</button>
           <button id="exportSnapshotTfiButton" type="button" disabled>Export Snapshot TFI</button>
@@ -236,7 +280,8 @@
         </div>
         <div class="status" id="status">Choose a .vgm file for analysis.</div>
 
-        <h2>6 Channel Monitor</h2>
+        <h2>6 Channel Monitor / PSG</h2>
+        <div id="monitorToggles" class="monitor-toggles"></div>
         <div id="channelGrid" class="channel-grid"></div>
 
         <h2>Header</h2>
@@ -277,7 +322,10 @@
       const replayButton = document.getElementById("replayButton");
       const stopButton = document.getElementById("stopButton");
       const loopCheckbox = document.getElementById("loopCheckbox");
+      const monitorToggles = document.getElementById("monitorToggles");
       const tfiPatchSelect = document.getElementById("tfiPatchSelect");
+      const prefetchFactorSelect = document.getElementById("prefetchFactorSelect");
+      const workletQueueSelect = document.getElementById("workletQueueSelect");
       const exportTfiButton = document.getElementById("exportTfiButton");
       const exportAllTfiButton = document.getElementById("exportAllTfiButton");
       const exportSnapshotTfiButton = document.getElementById("exportSnapshotTfiButton");
@@ -301,10 +349,15 @@
       let activeStream = null;
       let workletModuleReady = false;
       let extractedTfiPatches = [];
+      let channelMuteStates = [false, false, false, false, false, false];
       let channelMonitor = createChannelMonitorState();
       let baseEngineWriteYm2612 = null;
       let channelMonitorRenderTimer = null;
       let lastLoadedFileName = "snapshot";
+      let psgMuted = false;
+      let lastYm2612DacEnable = 0x00;
+      let monitorToggleHandlerBound = false;
+      let workletQueueMultiplier = 2;
 
       const DEFAULT_OPERATOR_PRESET = Object.freeze({
         multi: 1,
@@ -344,6 +397,55 @@
         status.textContent = message;
       }
 
+      function renderMonitorToggles() {
+        ensureMonitorToggleHandler();
+        monitorToggles.innerHTML = "";
+
+        const psgButton = document.createElement("button");
+        psgButton.type = "button";
+        psgButton.className = `channel-toggle${psgMuted ? " is-muted" : ""}`;
+        psgButton.textContent = psgMuted ? "PSG Muted" : "PSG On";
+        psgButton.setAttribute("data-monitor-toggle-kind", "psg");
+        monitorToggles.append(psgButton);
+
+        channelMonitor.forEach((channel) => {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = `channel-toggle${channel.muted ? " is-muted" : ""}`;
+          button.textContent = channel.muted
+            ? `CH${channel.channel + 1} Muted`
+            : `CH${channel.channel + 1} On`;
+          button.setAttribute("data-monitor-toggle-kind", "channel");
+          button.setAttribute("data-channel-index", String(channel.channel));
+          monitorToggles.append(button);
+        });
+      }
+
+      function ensureMonitorToggleHandler() {
+        if (monitorToggleHandlerBound) {
+          return;
+        }
+        monitorToggleHandlerBound = true;
+        monitorToggles.addEventListener("pointerdown", (event) => {
+          const target = event.target instanceof Element
+            ? event.target.closest("[data-monitor-toggle-kind]")
+            : null;
+          if (!target) {
+            return;
+          }
+          event.preventDefault();
+          const kind = target.getAttribute("data-monitor-toggle-kind");
+          if (kind === "psg") {
+            togglePsgMute();
+            return;
+          }
+          if (kind === "channel") {
+            const channelIndex = Number(target.getAttribute("data-channel-index"));
+            toggleChannelMute(channelIndex);
+          }
+        });
+      }
+
       function createChannelMonitorState() {
         return Array.from({ length: 6 }, (_, index) => ({
           channel: index,
@@ -354,6 +456,8 @@
           feedback: 0,
           block: 0,
           fnum: 0,
+          muted: channelMuteStates[index],
+          b4Value: 0xc0,
           changedAt: {
             keyOn: 0,
             pan: 0,
@@ -438,6 +542,7 @@
 
       function renderChannelMonitor() {
         channelGrid.innerHTML = "";
+        renderMonitorToggles();
         for (const channel of channelMonitor) {
           const card = document.createElement("section");
           card.className = `channel-card${channel.keyOn ? " is-key-on" : ""}`;
@@ -487,6 +592,71 @@
           ? `background: color-mix(in srgb, rgba(${hue} / ${Math.max(0.18, opacity * 0.72)}) 78%, rgba(43, 36, 29, 0.08) 22%);`
           : "";
         return `<span class="channel-chip" style="${background}">${label} ${value}</span>`;
+      }
+
+      function effectivePanValue(channel) {
+        return channel.muted ? (channel.b4Value & 0x3f) : channel.b4Value;
+      }
+
+      function toggleChannelMute(channelIndex) {
+        const channel = channelMonitor[channelIndex];
+        if (!channel) {
+          return;
+        }
+
+        channel.muted = !channel.muted;
+        channelMuteStates[channelIndex] = channel.muted;
+        channel.changedAt.pan = performance.now();
+        renderChannelMonitor();
+
+        if (!engine || !baseEngineWriteYm2612) {
+          return;
+        }
+
+        const port = channelIndex < 3 ? 0 : 1;
+        const register = 0xb4 + (channelIndex % 3);
+        baseEngineWriteYm2612(port, register, effectivePanValue(channel));
+
+        // YM2612 DAC is driven through 0x2A/0x2B and does not show up as a normal
+        // per-channel operator write sequence. In analyzer UI, CH6 mute should also
+        // silence the DAC path because DAC playback reuses channel 6 on the real chip.
+        if (channelIndex === 5 && channel.muted && (lastYm2612DacEnable & 0x80) !== 0) {
+          baseEngineWriteYm2612(0, 0x2a, 0x80);
+        }
+
+        flushPendingAudio();
+      }
+
+      function flushPendingAudio() {
+        if (player) {
+          player.clearQueuedAudio();
+        }
+        if (activeStream && activeStream.mode === "worklet") {
+          activeStream.workletQueuedFrames = 0;
+          activeStream.node.port.postMessage({ type: "flush" });
+          pumpWorkletChunks();
+        }
+      }
+
+      function togglePsgMute() {
+        psgMuted = !psgMuted;
+        renderMonitorToggles();
+        if (engine && typeof engine.setPsgMuted === "function") {
+          engine.setPsgMuted(psgMuted);
+        }
+        flushPendingAudio();
+      }
+
+      function allAudibleSourcesMuted() {
+        return psgMuted && channelMuteStates.every((muted) => muted);
+      }
+
+      function applyAnalyzerMuteToBuffer(left, right, frames) {
+        if (!allAudibleSourcesMuted()) {
+          return;
+        }
+        left.fill(0, 0, frames);
+        right.fill(0, 0, frames);
       }
 
       function formatHex(value, width = 2) {
@@ -711,6 +881,7 @@
         if (register >= 0xb4 && register <= 0xb6) {
           const channel = channelBase + (register - 0xb4);
           const state = channelMonitor[channel];
+          state.b4Value = value;
           state.panLeft = (value & 0x80) !== 0;
           state.panRight = (value & 0x40) !== 0;
           channelMonitor[channel].changedAt.pan = now;
@@ -1179,8 +1350,14 @@
           });
           baseEngineWriteYm2612 = engine.writeYm2612.bind(engine);
         }
+        if (typeof engine.setPsgMuted === "function") {
+          engine.setPsgMuted(psgMuted);
+        }
         if (!player) {
           player = new VgmPlayer(engine);
+        }
+        if (typeof player.setPrefetchFactor === "function") {
+          player.setPrefetchFactor(Number(prefetchFactorSelect.value));
         }
 
         const sampleRate = engine.sampleRate();
@@ -1240,8 +1417,22 @@
           channelMonitor = createChannelMonitorState();
           renderChannelMonitor();
           engine.reset();
+          lastYm2612DacEnable = 0x00;
           engine.writeYm2612 = (port, register, value) => {
             applyYm2612WriteToMonitor(port, register, value);
+            if (port === 0 && register === 0x2b) {
+              lastYm2612DacEnable = value;
+            }
+            if (port === 0 && register === 0x2a && channelMonitor[5].muted) {
+              // CH6 mute should suppress DAC sample writes too.
+              baseEngineWriteYm2612(port, register, 0x80);
+              return;
+            }
+            if (register >= 0xb4 && register <= 0xb6) {
+              const channelIndex = (port === 0 ? 0 : 3) + (register - 0xb4);
+              baseEngineWriteYm2612(port, register, effectivePanValue(channelMonitor[channelIndex]));
+              return;
+            }
             baseEngineWriteYm2612(port, register, value);
           };
           player.reset();
@@ -1270,7 +1461,17 @@
         );
       }
 
-      function pumpWorkletChunks(targetFrames = 4096) {
+      function currentWorkletTargetFrames() {
+        if (!activeStream || activeStream.mode !== "worklet") {
+          return 4096;
+        }
+        return Math.max(
+          activeStream.chunkFrames,
+          Math.floor(activeStream.chunkFrames * workletQueueMultiplier),
+        );
+      }
+
+      function pumpWorkletChunks(targetFrames = currentWorkletTargetFrames()) {
         if (!activeStream || activeStream.mode !== "worklet") {
           return;
         }
@@ -1289,6 +1490,7 @@
           const left = new Float32Array(frames);
           const right = new Float32Array(frames);
           player.process(left, right, frames);
+          applyAnalyzerMuteToBuffer(left, right, frames);
           activeStream.workletQueuedFrames += frames;
           activeStream.node.port.postMessage(
             { type: "enqueue", left: left.buffer, right: right.buffer },
@@ -1341,10 +1543,10 @@
             setStatus("Ready.");
             return;
           }
-          pumpWorkletChunks(chunkFrames * 2);
+          pumpWorkletChunks();
         };
         node.connect(audioContext.destination);
-        pumpWorkletChunks(chunkFrames * 2);
+        pumpWorkletChunks();
         return true;
       }
 
@@ -1356,6 +1558,7 @@
           const left = event.outputBuffer.getChannelData(0);
           const right = event.outputBuffer.getChannelData(1);
           player.process(left, right, bufferSize);
+          applyAnalyzerMuteToBuffer(left, right, bufferSize);
           const stats = player.stats();
           updatePlaybackButtons(stats);
           updateStreamingStatus("(ScriptProcessor)");
@@ -1489,6 +1692,18 @@
         if (player) {
           player.setLoopEnabled(loopCheckbox.checked);
         }
+      });
+
+      prefetchFactorSelect.addEventListener("change", () => {
+        if (player && typeof player.setPrefetchFactor === "function") {
+          player.setPrefetchFactor(Number(prefetchFactorSelect.value));
+        }
+        flushPendingAudio();
+      });
+
+      workletQueueSelect.addEventListener("change", () => {
+        workletQueueMultiplier = Number(workletQueueSelect.value) || 2;
+        flushPendingAudio();
       });
 
       tfiPatchSelect.addEventListener("change", () => {

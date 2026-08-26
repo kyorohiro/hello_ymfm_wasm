@@ -21,6 +21,14 @@ class VgmOutputProcessor extends AudioWorkletProcessor {
       }
       if (data.type === "end") {
         this.endRequested = true;
+        return;
+      }
+      if (data.type === "flush") {
+        this.queue = [];
+        this.queuedFrames = 0;
+        this.currentChunk = null;
+        this.currentOffset = 0;
+        this.endRequested = false;
       }
     };
   }

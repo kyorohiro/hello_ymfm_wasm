@@ -6,6 +6,7 @@ export class GenesisAudioEngine {
     this.ym2612 = ym2612;
     this.psg = psg;
     this._sampleRate = sampleRate;
+    this.psgMuted = false;
   }
 
   static async create(options = {}) {
@@ -62,6 +63,10 @@ export class GenesisAudioEngine {
     this.psg.write(value);
   }
 
+  setPsgMuted(muted) {
+    this.psgMuted = Boolean(muted);
+  }
+
   process(left, right, frames) {
     if (!(left instanceof Float32Array) || !(right instanceof Float32Array)) {
       throw new Error("process expects Float32Array buffers");
@@ -74,8 +79,10 @@ export class GenesisAudioEngine {
     const psg = this.psg.generateStereo(frames);
 
     for (let index = 0; index < frames; index += 1) {
-      left[index] = ym.left[index] * 0.9 + psg.left[index] * 0.35;
-      right[index] = ym.right[index] * 0.9 + psg.right[index] * 0.35;
+      const psgLeft = this.psgMuted ? 0 : psg.left[index] * 0.35;
+      const psgRight = this.psgMuted ? 0 : psg.right[index] * 0.35;
+      left[index] = ym.left[index] * 0.9 + psgLeft;
+      right[index] = ym.right[index] * 0.9 + psgRight;
     }
   }
 

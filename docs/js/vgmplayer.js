@@ -7,6 +7,7 @@ export class VgmPlayer {
     this.loopEnabled = false;
     this.playing = false;
     this.paused = false;
+    this.prefetchFactor = 2;
     this.waitAccumulator = 0;
     this.chunkQueue = [];
     this.queuedFrames = 0;
@@ -79,6 +80,19 @@ export class VgmPlayer {
     this.processedWaitSamples = 0;
   }
 
+  clearQueuedAudio() {
+    this.chunkQueue = [];
+    this.queuedFrames = 0;
+  }
+
+  setPrefetchFactor(factor) {
+    const numeric = Number(factor);
+    if (!Number.isFinite(numeric)) {
+      return;
+    }
+    this.prefetchFactor = Math.min(8, Math.max(1, numeric));
+  }
+
   setLoopEnabled(enabled) {
     this.loopEnabled = enabled;
   }
@@ -118,7 +132,7 @@ export class VgmPlayer {
     }
 
     if (this.playing) {
-      this.#fillQueue(frames * 2);
+      this.#fillQueue(Math.ceil(frames * this.prefetchFactor));
     }
 
     if (!this.playing && !this.paused && this.queuedFrames === 0) {
