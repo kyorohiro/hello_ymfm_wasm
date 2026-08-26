@@ -289,6 +289,13 @@
         </a>
       </p>
 
+      <p>
+        <code>web_runtime</code> is this embeddable runtime, source file by source file
+        (the files listed below).
+        <code>web_runtime_exsample</code> is a runnable embedding sample bundle
+        (the same runtime plus a few HTML demo pages) for a quick look at it working.
+      </p>
+
       <ul>
         <li>
           <code>generated/ym2612_wasm.js</code> /
@@ -340,8 +347,36 @@
         </li>
 
         <li>
-          <code>js/vgm-output-worklet.js</code>
-          — AudioWorklet processor used by the VGM audio output path.
+          <code>js/megasynth.js</code>
+          — MegaDriveSynth: a batteries-included wrapper combining YM2612Synth,
+          the FX chain, the looper, and recording behind one AudioWorklet-backed API.
+        </li>
+
+        <li>
+          <code>js/megasynth_fx.js</code>
+          — Browser-side FX chain (gain, EQ, filter, delay, reverb) for use with
+          MegaDriveSynth or standalone.
+        </li>
+
+        <li>
+          <code>js/megasynth_recording.js</code>
+          — Records and replays MegaDriveSynth commands as JSON for the
+          event-record and looper features.
+        </li>
+
+        <li>
+          <code>js/looper.js</code>
+          — Lightweight musical-event looper for MegaSynth / YM2612 browser usage.
+        </li>
+
+        <li>
+          <code>js/megadrive-fm-presets.js</code>
+          — Ready-made YM2612 FM instrument presets.
+        </li>
+
+        <li>
+          <code>js/tfi.js</code>
+          — TFI (OPN2 patch) import/export helpers for YM2612Synth presets.
         </li>
       </ul>
 
