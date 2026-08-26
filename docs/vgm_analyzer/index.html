@@ -236,6 +236,69 @@
         }
       }
 
+      .tabbar {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin: 20px 0 0;
+        padding: 6px 6px 0;
+        border: 1px solid var(--line);
+        border-bottom: none;
+        border-radius: 18px 18px 0 0;
+        background: rgba(255, 255, 255, 0.34);
+      }
+
+      .tab-button {
+        min-height: 38px;
+        padding: 8px 14px;
+        border-radius: 14px 14px 0 0;
+        border: 1px solid transparent;
+        border-bottom: none;
+        background: transparent;
+        color: var(--ink);
+        font: inherit;
+        cursor: pointer;
+        font-weight: 700;
+        opacity: 0.7;
+        transition:
+          background-color 140ms ease,
+          border-color 140ms ease,
+          color 140ms ease,
+          opacity 140ms ease,
+          transform 140ms ease;
+      }
+
+      .tab-button:hover {
+        opacity: 1;
+        background: rgba(255, 255, 255, 0.55);
+      }
+
+      .tab-button:focus-visible {
+        outline: 2px solid color-mix(in srgb, var(--accent) 70%, white 30%);
+        outline-offset: 2px;
+      }
+
+      .tab-button[aria-selected="true"] {
+        opacity: 1;
+        color: var(--accent-dark);
+        border-color: var(--line);
+        background: color-mix(in srgb, var(--panel) 88%, white 12%);
+        box-shadow: 0 -1px 0 rgba(255, 255, 255, 0.75) inset;
+        transform: translateY(1px);
+      }
+
+      .tab-panel {
+        margin-top: 0;
+        padding: 18px 0 0;
+        border: 1px solid var(--line);
+        border-top: none;
+        border-radius: 0 0 18px 18px;
+      }
+
+      .tab-panel[hidden] {
+        display: none;
+      }
+
     </style>
   </head>
   <body>
@@ -280,30 +343,59 @@
         </div>
         <div class="status" id="status">Choose a .vgm file for analysis.</div>
 
-        <h2>6 Channel Monitor / PSG</h2>
-        <div id="monitorToggles" class="monitor-toggles"></div>
-        <div id="channelGrid" class="channel-grid"></div>
+        <div class="tabbar" role="tablist" aria-label="Analyzer output panels">
+          <button
+            id="operatorInfoTab"
+            class="tab-button"
+            type="button"
+            role="tab"
+            aria-selected="true"
+            tabindex="0"
+            aria-controls="operatorInfoPanel"
+          >
+            Operator Info
+          </button>
+          <button
+            id="parsedOutputTab"
+            class="tab-button"
+            type="button"
+            role="tab"
+            aria-selected="false"
+            tabindex="-1"
+            aria-controls="parsedOutputPanel"
+          >
+            Parsed Output
+          </button>
+        </div>
 
-        <h2>Header</h2>
-        <pre id="headerOutput">No file loaded.</pre>
+        <section id="operatorInfoPanel" class="tab-panel" role="tabpanel" aria-labelledby="operatorInfoTab">
+          <h2>6 Channel Monitor / PSG</h2>
+          <div id="monitorToggles" class="monitor-toggles"></div>
+          <div id="channelGrid" class="channel-grid"></div>
+        </section>
 
-        <h2>First Parsed Commands</h2>
-        <pre id="commandsOutput">No commands parsed yet.</pre>
+        <section id="parsedOutputPanel" class="tab-panel" role="tabpanel" aria-labelledby="parsedOutputTab" hidden>
+          <h2>Header</h2>
+          <pre id="headerOutput">No file loaded.</pre>
 
-        <h2>Command Usage</h2>
-        <pre id="commandUsageOutput">No analysis yet.</pre>
+          <h2>First Parsed Commands</h2>
+          <pre id="commandsOutput">No commands parsed yet.</pre>
 
-        <h2>Data Blocks</h2>
-        <pre id="dataBlocksOutput">No data blocks inspected yet.</pre>
+          <h2>Command Usage</h2>
+          <pre id="commandUsageOutput">No analysis yet.</pre>
 
-        <h2>Special Command Details</h2>
-        <pre id="specialCommandsOutput">No special command details yet.</pre>
+          <h2>Data Blocks</h2>
+          <pre id="dataBlocksOutput">No data blocks inspected yet.</pre>
 
-        <h2>0x68 PCM RAM Write</h2>
-        <pre id="pcmRamWriteOutput">No 0x68 PCM RAM write details yet.</pre>
+          <h2>Special Command Details</h2>
+          <pre id="specialCommandsOutput">No special command details yet.</pre>
 
-        <h2>0x92 Context</h2>
-        <pre id="command92ContextOutput">No 0x92 context yet.</pre>
+          <h2>0x68 PCM RAM Write</h2>
+          <pre id="pcmRamWriteOutput">No 0x68 PCM RAM write details yet.</pre>
+
+          <h2>0x92 Context</h2>
+          <pre id="command92ContextOutput">No 0x92 context yet.</pre>
+        </section>
       </section>
     </main>
 
@@ -341,6 +433,10 @@
       const specialCommandsOutput = document.getElementById("specialCommandsOutput");
       const pcmRamWriteOutput = document.getElementById("pcmRamWriteOutput");
       const command92ContextOutput = document.getElementById("command92ContextOutput");
+      const operatorInfoTab = document.getElementById("operatorInfoTab");
+      const parsedOutputTab = document.getElementById("parsedOutputTab");
+      const operatorInfoPanel = document.getElementById("operatorInfoPanel");
+      const parsedOutputPanel = document.getElementById("parsedOutputPanel");
 
       let currentBuffer = null;
       let audioContext = null;
@@ -1724,6 +1820,33 @@
 
       exportSnapshotButton.addEventListener("click", () => {
         downloadSnapshot("manual");
+      });
+
+      function setOutputTab(tabName) {
+        const isOperatorInfo = tabName === "operator-info";
+
+        operatorInfoTab.setAttribute(
+          "aria-selected",
+          String(isOperatorInfo)
+        );
+        operatorInfoTab.tabIndex =
+          isOperatorInfo ? 0 : -1;
+        parsedOutputTab.setAttribute(
+          "aria-selected",
+          String(!isOperatorInfo)
+        );
+        parsedOutputTab.tabIndex =
+          isOperatorInfo ? -1 : 0;
+        operatorInfoPanel.hidden = !isOperatorInfo;
+        parsedOutputPanel.hidden = isOperatorInfo;
+      }
+
+      operatorInfoTab.addEventListener("click", () => {
+        setOutputTab("operator-info");
+      });
+
+      parsedOutputTab.addEventListener("click", () => {
+        setOutputTab("parsed-output");
       });
 
       updateTfiPatchOptions();
