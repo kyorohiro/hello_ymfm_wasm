@@ -299,6 +299,84 @@
         display: none;
       }
 
+      .noteish-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 14px;
+      }
+
+      .noteish-card {
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        padding: 16px;
+        background: rgba(255, 255, 255, 0.56);
+      }
+
+      .noteish-card.is-key-on {
+        border-color: color-mix(in srgb, var(--accent) 55%, var(--line) 45%);
+        background: linear-gradient(180deg, rgba(255, 244, 225, 0.92), rgba(255, 250, 240, 0.72));
+      }
+
+      .noteish-head {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        align-items: baseline;
+        margin-bottom: 10px;
+      }
+
+      .noteish-title {
+        font-size: 1rem;
+        font-weight: 800;
+      }
+
+      .noteish-state {
+        font-size: 0.8rem;
+        color: #6c5639;
+      }
+
+      .noteish-main {
+        display: flex;
+        align-items: baseline;
+        gap: 10px;
+        margin-bottom: 10px;
+      }
+
+      .noteish-note {
+        font-size: 1.6rem;
+        font-weight: 800;
+        letter-spacing: -0.03em;
+      }
+
+      .noteish-cents {
+        font-size: 0.82rem;
+        color: #6c5639;
+      }
+
+      .noteish-meta {
+        font-size: 0.84rem;
+        line-height: 1.55;
+        color: #4f4130;
+      }
+
+      .noteish-help {
+        margin: 0 0 16px;
+        font-size: 0.9rem;
+        color: #5b4a33;
+      }
+
+      @media (max-width: 1200px) {
+        .noteish-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+
+      @media (max-width: 820px) {
+        .noteish-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+
     </style>
   </head>
   <body>
@@ -366,12 +444,32 @@
           >
             Parsed Output
           </button>
+          <button
+            id="noteishTab"
+            class="tab-button"
+            type="button"
+            role="tab"
+            aria-selected="false"
+            tabindex="-1"
+            aria-controls="noteishPanel"
+          >
+            Note-ish
+          </button>
         </div>
 
         <section id="operatorInfoPanel" class="tab-panel" role="tabpanel" aria-labelledby="operatorInfoTab">
           <h2>6 Channel Monitor / PSG</h2>
           <div id="monitorToggles" class="monitor-toggles"></div>
           <div id="channelGrid" class="channel-grid"></div>
+        </section>
+
+        <section id="noteishPanel" class="tab-panel" role="tabpanel" aria-labelledby="noteishTab" hidden>
+          <h2>Channel Note-ish View</h2>
+          <p class="noteish-help">
+            This is only a rough pitch estimate from each channel's current BLOCK and FNUM.
+            It ignores operator MULTI / DT, channel 3 special mode, and LFO pitch movement.
+          </p>
+          <div id="noteishGrid" class="noteish-grid"></div>
         </section>
 
         <section id="parsedOutputPanel" class="tab-panel" role="tabpanel" aria-labelledby="parsedOutputTab" hidden>
@@ -435,8 +533,11 @@
       const command92ContextOutput = document.getElementById("command92ContextOutput");
       const operatorInfoTab = document.getElementById("operatorInfoTab");
       const parsedOutputTab = document.getElementById("parsedOutputTab");
+      const noteishTab = document.getElementById("noteishTab");
       const operatorInfoPanel = document.getElementById("operatorInfoPanel");
       const parsedOutputPanel = document.getElementById("parsedOutputPanel");
+      const noteishPanel = document.getElementById("noteishPanel");
+      const noteishGrid = document.getElementById("noteishGrid");
 
       let currentBuffer = null;
       let audioContext = null;
@@ -454,6 +555,24 @@
       let lastYm2612DacEnable = 0x00;
       let monitorToggleHandlerBound = false;
       let workletQueueMultiplier = 2;
+
+      const NOTE_NAMES = [
+        "C",
+        "C#",
+        "D",
+        "D#",
+        "E",
+        "F",
+        "F#",
+        "G",
+        "G#",
+        "A",
+        "A#",
+        "B",
+      ];
+      const NOTEISH_REFERENCE_MIDI = 62;
+      const NOTEISH_REFERENCE_BLOCK = 4;
+      const NOTEISH_REFERENCE_FNUM = 553;
 
       const DEFAULT_OPERATOR_PRESET = Object.freeze({
         multi: 1,
@@ -663,6 +782,81 @@
             </div>
           `;
           channelGrid.append(card);
+        }
+        renderNoteishGrid();
+      }
+
+      function midiToNoteName(midi) {
+        const noteName =
+          NOTE_NAMES[
+            ((midi % 12) + 12) % 12
+          ];
+        const octave =
+          Math.floor(midi / 12) - 1;
+        return `${noteName}${octave}`;
+      }
+
+      function estimateNoteish(channel) {
+        if (channel.fnum <= 0) {
+          return {
+            label: "No pitch",
+            cents: null,
+          };
+        }
+
+        const ratio =
+          (channel.fnum / NOTEISH_REFERENCE_FNUM) *
+          Math.pow(
+            2,
+            channel.block - NOTEISH_REFERENCE_BLOCK
+          );
+        const midiFloat =
+          NOTEISH_REFERENCE_MIDI +
+          (12 * Math.log2(ratio));
+        const midiRounded =
+          Math.round(midiFloat);
+        const cents =
+          Math.round(
+            (midiFloat - midiRounded) * 100
+          );
+
+        return {
+          label:
+            `~${midiToNoteName(midiRounded)}`,
+          cents,
+        };
+      }
+
+      function renderNoteishGrid() {
+        noteishGrid.innerHTML = "";
+
+        for (const channel of channelMonitor) {
+          const card = document.createElement("section");
+          const noteish =
+            estimateNoteish(channel);
+          const centsLabel =
+            noteish.cents === null
+              ? "base pitch unavailable"
+              : `${noteish.cents >= 0 ? "+" : ""}${noteish.cents} cents`;
+
+          card.className =
+            `noteish-card${channel.keyOn ? " is-key-on" : ""}`;
+          card.innerHTML = `
+            <div class="noteish-head">
+              <span class="noteish-title">CH${channel.channel + 1}</span>
+              <span class="noteish-state">${channel.keyOn ? "key on" : "key off"}</span>
+            </div>
+            <div class="noteish-main">
+              <span class="noteish-note">${noteish.label}</span>
+              <span class="noteish-cents">${centsLabel}</span>
+            </div>
+            <div class="noteish-meta">
+              BLOCK ${channel.block}<br>
+              FNUM ${channel.fnum}<br>
+              ALG ${channel.algorithm} / FB ${channel.feedback}
+            </div>
+          `;
+          noteishGrid.append(card);
         }
       }
 
@@ -1824,21 +2018,27 @@
 
       function setOutputTab(tabName) {
         const isOperatorInfo = tabName === "operator-info";
+        const isParsedOutput = tabName === "parsed-output";
+        const isNoteish = tabName === "noteish";
 
         operatorInfoTab.setAttribute(
           "aria-selected",
           String(isOperatorInfo)
         );
-        operatorInfoTab.tabIndex =
-          isOperatorInfo ? 0 : -1;
+        operatorInfoTab.tabIndex = isOperatorInfo ? 0 : -1;
         parsedOutputTab.setAttribute(
           "aria-selected",
-          String(!isOperatorInfo)
+          String(isParsedOutput)
         );
-        parsedOutputTab.tabIndex =
-          isOperatorInfo ? -1 : 0;
+        parsedOutputTab.tabIndex = isParsedOutput ? 0 : -1;
+        noteishTab.setAttribute(
+          "aria-selected",
+          String(isNoteish)
+        );
+        noteishTab.tabIndex = isNoteish ? 0 : -1;
         operatorInfoPanel.hidden = !isOperatorInfo;
-        parsedOutputPanel.hidden = isOperatorInfo;
+        parsedOutputPanel.hidden = !isParsedOutput;
+        noteishPanel.hidden = !isNoteish;
       }
 
       operatorInfoTab.addEventListener("click", () => {
@@ -1847,6 +2047,10 @@
 
       parsedOutputTab.addEventListener("click", () => {
         setOutputTab("parsed-output");
+      });
+
+      noteishTab.addEventListener("click", () => {
+        setOutputTab("noteish");
       });
 
       updateTfiPatchOptions();
