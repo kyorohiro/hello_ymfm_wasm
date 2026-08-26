@@ -237,6 +237,18 @@
       </section>
 
       <section class="panel">
+        <h2>What <code>fm.setPreset()</code> Actually Sets</h2>
+        <iframe
+          class="playground-frame"
+          src="../playground/index.html?mode=simple&src=Zm0ucmVzZXQoKTsKCi8vIFNhbWUgNC1vcGVyYXRvciBwYXRjaCBhcyBNRUdBRFJJVkVfRk1fUFJFU0VUU1sib25lLW9wLWJhc2ljIl0sCi8vIHdyaXR0ZW4gb3V0IGJ5IGhhbmQgaW5zdGVhZCBvZiB1c2luZyBmbS5zZXRQcmVzZXQoKS4KZm0uc2V0QWxnbyhDSDEsIDcsIDApOwoKLy8gT1AxLCBPUDIsIE9QMzogdGwgPSAxMjcgbWVhbnMgImFzIHF1aWV0IGFzIHBvc3NpYmxlIiAtPiBlZmZlY3RpdmVseSBzaWxlbnQuCmZtLnNldE9wZXJhdG9yKENIMSwgT1AxLCB7IGR0OiAwLCBtdWx0aTogMSwgdGw6IDEyNywgYXI6IDMxLCBkMXI6IDAsIGQycjogMCwgc2w6IDAsIHJyOiAxNSB9KTsKZm0uc2V0T3BlcmF0b3IoQ0gxLCBPUDIsIHsgZHQ6IDAsIG11bHRpOiAxLCB0bDogMTI3LCBhcjogMzEsIGQxcjogMCwgZDJyOiAwLCBzbDogMCwgcnI6IDE1IH0pOwpmbS5zZXRPcGVyYXRvcihDSDEsIE9QMywgeyBkdDogMCwgbXVsdGk6IDEsIHRsOiAxMjcsIGFyOiAzMSwgZDFyOiAwLCBkMnI6IDAsIHNsOiAwLCBycjogMTUgfSk7CgovLyBPUDQgaXMgdGhlIG9ubHkgb25lIHRoYXQgYWN0dWFsbHkgbWFrZXMgc291bmQuCmZtLnNldE9wZXJhdG9yKENIMSwgT1A0LCB7IGR0OiAwLCBtdWx0aTogMSwgdGw6IDgsIGFyOiAyMiwgZDFyOiA2LCBkMnI6IDMsIHNsOiAzLCBycjogOCB9KTsKCmNvbnN0IG5vdGVzID0gWyJDNCIsICJENCIsICJFNCIsICJGNCIsICJHNCIsICJBNCIsICJCNCIsICJDNSJdOwoKZm9yIChjb25zdCBub3RlIG9mIG5vdGVzKSB7CiAgYXdhaXQgcGxheShub3RlLCB7IGNoYW5uZWw6IENIMSwgZHVyYXRpb246IDAuMyB9KTsKICBhd2FpdCBzbGVlcCgwLjEpOwp9Cg"
+          title="fm.setOperator() example"
+          allow="autoplay"
+          loading="lazy"
+          style="height: 620px;"
+        ></iframe>
+      </section>
+
+      <section class="panel">
         <h2>1 Operator Demo</h2>
         <p>
           Change one audible operator directly &mdash; MULTI, TL, AR, RR, and pitch &mdash; and watch the
@@ -282,18 +294,6 @@
           all 4 operators are carriers, wired straight to the output with no modulation between them, so you can
           hear each operator's raw contribution before adding modulation back in.
         </p>
-      </section>
-
-      <section class="panel">
-        <h2>What <code>fm.setPreset()</code> Actually Sets</h2>
-        <iframe
-          class="playground-frame"
-          src="../playground/index.html?mode=simple&src=Zm0ucmVzZXQoKTsKCi8vIFNhbWUgNC1vcGVyYXRvciBwYXRjaCBhcyBNRUdBRFJJVkVfRk1fUFJFU0VUU1sib25lLW9wLWJhc2ljIl0sCi8vIHdyaXR0ZW4gb3V0IGJ5IGhhbmQgaW5zdGVhZCBvZiB1c2luZyBmbS5zZXRQcmVzZXQoKS4KZm0uc2V0QWxnbyhDSDEsIDcsIDApOwoKLy8gT1AxLCBPUDIsIE9QMzogdGwgPSAxMjcgbWVhbnMgImFzIHF1aWV0IGFzIHBvc3NpYmxlIiAtPiBlZmZlY3RpdmVseSBzaWxlbnQuCmZtLnNldE9wZXJhdG9yKENIMSwgT1AxLCB7IGR0OiAwLCBtdWx0aTogMSwgdGw6IDEyNywgYXI6IDMxLCBkMXI6IDAsIGQycjogMCwgc2w6IDAsIHJyOiAxNSB9KTsKZm0uc2V0T3BlcmF0b3IoQ0gxLCBPUDIsIHsgZHQ6IDAsIG11bHRpOiAxLCB0bDogMTI3LCBhcjogMzEsIGQxcjogMCwgZDJyOiAwLCBzbDogMCwgcnI6IDE1IH0pOwpmbS5zZXRPcGVyYXRvcihDSDEsIE9QMywgeyBkdDogMCwgbXVsdGk6IDEsIHRsOiAxMjcsIGFyOiAzMSwgZDFyOiAwLCBkMnI6IDAsIHNsOiAwLCBycjogMTUgfSk7CgovLyBPUDQgaXMgdGhlIG9ubHkgb25lIHRoYXQgYWN0dWFsbHkgbWFrZXMgc291bmQuCmZtLnNldE9wZXJhdG9yKENIMSwgT1A0LCB7IGR0OiAwLCBtdWx0aTogMSwgdGw6IDgsIGFyOiAyMiwgZDFyOiA2LCBkMnI6IDMsIHNsOiAzLCBycjogOCB9KTsKCmNvbnN0IG5vdGVzID0gWyJDNCIsICJENCIsICJFNCIsICJGNCIsICJHNCIsICJBNCIsICJCNCIsICJDNSJdOwoKZm9yIChjb25zdCBub3RlIG9mIG5vdGVzKSB7CiAgYXdhaXQgcGxheShub3RlLCB7IGNoYW5uZWw6IENIMSwgZHVyYXRpb246IDAuMyB9KTsKICBhd2FpdCBzbGVlcCgwLjEpOwp9Cg"
-          title="fm.setOperator() example"
-          allow="autoplay"
-          loading="lazy"
-          style="height: 620px;"
-        ></iframe>
       </section>
 
       <section class="panel">
