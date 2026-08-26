@@ -99,14 +99,14 @@
  *   type: "delay",
  *   time: AudioParamControl,
  *   feedback: AudioParamControl,
- *   mix: SimpleParamControl,
+ *   mix: AudioParamControl,
  * }} DelayFXUnit
  */
 
 /**
  * @typedef {BaseFXUnit & {
  *   type: "reverb",
- *   mix: SimpleParamControl,
+ *   mix: AudioParamControl,
  *   tone: AudioParamControl,
  * }} ReverbFXUnit
  */
@@ -307,6 +307,78 @@ function setDryWetMix(
 
   dryGain.gain.value = 1 - nextMix;
   wetGain.gain.value = nextMix;
+}
+
+/**
+ * @param {BaseAudioContext} audioContext
+ * @param {GainNode} dryGain
+ * @param {GainNode} wetGain
+ * @returns {AudioParamControl}
+ */
+function createDryWetMixControl(
+  audioContext,
+  dryGain,
+  wetGain
+) {
+  return {
+    get() {
+      return wetGain.gain.value;
+    },
+
+    set(value) {
+      setDryWetMix(
+        dryGain,
+        wetGain,
+        value
+      );
+      return wetGain.gain.value;
+    },
+
+    rampTo(
+      value,
+      seconds = 0.02
+    ) {
+      const nextMix = clampNumber(
+        value,
+        wetGain.gain.value,
+        0,
+        1
+      );
+      const duration =
+        Math.max(
+          0,
+          Number(seconds) || 0
+        );
+      const now =
+        audioContext.currentTime;
+
+      wetGain.gain.cancelScheduledValues(
+        now
+      );
+      wetGain.gain.setValueAtTime(
+        wetGain.gain.value,
+        now
+      );
+      wetGain.gain.linearRampToValueAtTime(
+        nextMix,
+        now + duration
+      );
+
+      dryGain.gain.cancelScheduledValues(
+        now
+      );
+      dryGain.gain.setValueAtTime(
+        dryGain.gain.value,
+        now
+      );
+      dryGain.gain.linearRampToValueAtTime(
+        1 - nextMix,
+        now + duration
+      );
+
+      return nextMix;
+    },
+  };
 }
 
 /**
@@ -662,19 +734,11 @@ export function createDelayFX(
           max: 0.95,
         }
       ),
-      mix: {
-        get() {
-          return wetGain.gain.value;
-        },
-        set(value) {
-          setDryWetMix(
-            dryGain,
-            wetGain,
-            value
-          );
-          return wetGain.gain.value;
-        },
-      },
+      mix: createDryWetMixControl(
+        audioContext,
+        dryGain,
+        wetGain
+      ),
     },
     disposeNodes: [
       input,
@@ -740,19 +804,11 @@ export function createReverbFX(
     input,
     output,
     params: {
-      mix: {
-        get() {
-          return wetGain.gain.value;
-        },
-        set(value) {
-          setDryWetMix(
-            dryGain,
-            wetGain,
-            value
-          );
-          return wetGain.gain.value;
-        },
-      },
+      mix: createDryWetMixControl(
+        audioContext,
+        dryGain,
+        wetGain
+      ),
       tone: createAudioParamControl(
         audioContext,
         tone.frequency,
