@@ -22,10 +22,10 @@ function expectEqual(actual, expected, message) {
 function verifyOperatorRegisterOrder() {
   const { synth, writes } = collectWrites();
 
+  synth.setOperator(0, 0, { dt: 0, multi: 1 });
   synth.setOperator(0, 1, { dt: 0, multi: 1 });
   synth.setOperator(0, 2, { dt: 0, multi: 1 });
   synth.setOperator(0, 3, { dt: 0, multi: 1 });
-  synth.setOperator(0, 4, { dt: 0, multi: 1 });
 
   const registers = writes.map((entry) => entry.register);
   const expected = [0x30, 0x38, 0x34, 0x3c];
@@ -44,10 +44,10 @@ function verifyOperatorRegisterOrder() {
 function verifyChannel4RegisterOrder() {
   const { synth, writes } = collectWrites();
 
-  synth.setOperator(3, 1, { tl: 10 });
-  synth.setOperator(3, 2, { tl: 20 });
-  synth.setOperator(3, 3, { tl: 30 });
-  synth.setOperator(3, 4, { tl: 40 });
+  synth.setOperator(3, 0, { tl: 10 });
+  synth.setOperator(3, 1, { tl: 20 });
+  synth.setOperator(3, 2, { tl: 30 });
+  synth.setOperator(3, 3, { tl: 40 });
 
   const targets = writes.map((entry) => ({
     port: entry.port,
@@ -71,7 +71,7 @@ function verifyChannel4RegisterOrder() {
 function verifyAmPacking() {
   const { synth, writes } = collectWrites();
 
-  synth.setOperator(0, 4, {
+  synth.setOperator(0, 3, {
     am: true,
     d1r: 6,
   });
