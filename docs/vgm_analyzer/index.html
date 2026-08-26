@@ -229,6 +229,9 @@
           </select>
           <button id="exportTfiButton" type="button" disabled>Export TFI</button>
           <button id="exportAllTfiButton" type="button" disabled>Export All TFI ZIP</button>
+          <button id="exportSnapshotTfiButton" type="button" disabled>Export Snapshot TFI</button>
+          <button id="exportSnapshotButton" type="button" disabled>Export Snapshot</button>
+          <label><input id="autoExportSnapshotCheckbox" type="checkbox"> Auto export on end</label>
           <span id="tfiSummary">No TFI-ready patch yet.</span>
         </div>
         <div class="status" id="status">Choose a .vgm file for analysis.</div>
@@ -277,6 +280,9 @@
       const tfiPatchSelect = document.getElementById("tfiPatchSelect");
       const exportTfiButton = document.getElementById("exportTfiButton");
       const exportAllTfiButton = document.getElementById("exportAllTfiButton");
+      const exportSnapshotTfiButton = document.getElementById("exportSnapshotTfiButton");
+      const exportSnapshotButton = document.getElementById("exportSnapshotButton");
+      const autoExportSnapshotCheckbox = document.getElementById("autoExportSnapshotCheckbox");
       const tfiSummary = document.getElementById("tfiSummary");
       const status = document.getElementById("status");
       const channelGrid = document.getElementById("channelGrid");
@@ -298,6 +304,7 @@
       let channelMonitor = createChannelMonitorState();
       let baseEngineWriteYm2612 = null;
       let channelMonitorRenderTimer = null;
+      let lastLoadedFileName = "snapshot";
 
       const DEFAULT_OPERATOR_PRESET = Object.freeze({
         multi: 1,
@@ -1033,6 +1040,132 @@
         setStatus(`Exported ${extractedTfiPatches.length} TFI patches as ZIP.`);
       }
 
+      function buildSnapshotData(reason = "manual") {
+        const stats = player ? player.stats() : null;
+        return {
+          type: "ym2612-vgm-snapshot",
+          reason,
+          createdAt: new Date().toISOString(),
+          sourceFile: lastLoadedFileName,
+          playback: stats ? {
+            playing: stats.playing,
+            paused: stats.paused,
+            queuedFrames: stats.queuedFrames,
+            processedEvents: stats.processedEvents,
+            processedWaitSamples: stats.processedWaitSamples,
+            totalSamples: stats.totalSamples,
+            audioProgress: stats.audioProgress,
+          } : null,
+          channels: channelMonitor.map((channel) => ({
+            channel: channel.channel,
+            keyOn: channel.keyOn,
+            panLeft: channel.panLeft,
+            panRight: channel.panRight,
+            algorithm: channel.algorithm,
+            feedback: channel.feedback,
+            block: channel.block,
+            fnum: channel.fnum,
+            operators: {
+              1: { ...channel.operators[1], changedAt: undefined },
+              2: { ...channel.operators[2], changedAt: undefined },
+              3: { ...channel.operators[3], changedAt: undefined },
+              4: { ...channel.operators[4], changedAt: undefined },
+            },
+          })),
+        };
+      }
+
+      function downloadSnapshot(reason = "manual") {
+        const snapshot = buildSnapshotData(reason);
+        const json = JSON.stringify(snapshot, null, 2);
+        const blob = new Blob([json], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const anchor = document.createElement("a");
+        anchor.href = url;
+        const stem = lastLoadedFileName.replace(/\.[^.]+$/, "") || "snapshot";
+        anchor.download = `${stem}_${reason}_snapshot.json`;
+        anchor.click();
+        URL.revokeObjectURL(url);
+        setStatus(`Exported ${reason} snapshot.`);
+      }
+
+      function createTfiPresetFromChannelSnapshot(channel) {
+        return {
+          algorithm: channel.algorithm & 0x07,
+          feedback: channel.feedback & 0x07,
+          operators: {
+            1: {
+              multi: channel.operators[1].multi & 0x0f,
+              dt: channel.operators[1].dt & 0x07,
+              tl: channel.operators[1].tl & 0x7f,
+              rs: channel.operators[1].rs & 0x03,
+              ar: channel.operators[1].ar & 0x1f,
+              d1r: channel.operators[1].d1r & 0x1f,
+              d2r: channel.operators[1].d2r & 0x1f,
+              rr: channel.operators[1].rr & 0x0f,
+              sl: channel.operators[1].sl & 0x0f,
+              ssg: channel.operators[1].ssg & 0x0f,
+            },
+            2: {
+              multi: channel.operators[2].multi & 0x0f,
+              dt: channel.operators[2].dt & 0x07,
+              tl: channel.operators[2].tl & 0x7f,
+              rs: channel.operators[2].rs & 0x03,
+              ar: channel.operators[2].ar & 0x1f,
+              d1r: channel.operators[2].d1r & 0x1f,
+              d2r: channel.operators[2].d2r & 0x1f,
+              rr: channel.operators[2].rr & 0x0f,
+              sl: channel.operators[2].sl & 0x0f,
+              ssg: channel.operators[2].ssg & 0x0f,
+            },
+            3: {
+              multi: channel.operators[3].multi & 0x0f,
+              dt: channel.operators[3].dt & 0x07,
+              tl: channel.operators[3].tl & 0x7f,
+              rs: channel.operators[3].rs & 0x03,
+              ar: channel.operators[3].ar & 0x1f,
+              d1r: channel.operators[3].d1r & 0x1f,
+              d2r: channel.operators[3].d2r & 0x1f,
+              rr: channel.operators[3].rr & 0x0f,
+              sl: channel.operators[3].sl & 0x0f,
+              ssg: channel.operators[3].ssg & 0x0f,
+            },
+            4: {
+              multi: channel.operators[4].multi & 0x0f,
+              dt: channel.operators[4].dt & 0x07,
+              tl: channel.operators[4].tl & 0x7f,
+              rs: channel.operators[4].rs & 0x03,
+              ar: channel.operators[4].ar & 0x1f,
+              d1r: channel.operators[4].d1r & 0x1f,
+              d2r: channel.operators[4].d2r & 0x1f,
+              rr: channel.operators[4].rr & 0x0f,
+              sl: channel.operators[4].sl & 0x0f,
+              ssg: channel.operators[4].ssg & 0x0f,
+            },
+          },
+        };
+      }
+
+      function downloadSnapshotTfiZip() {
+        if (!currentBuffer) {
+          return;
+        }
+
+        const files = channelMonitor.map((channel) => ({
+          name: `snapshot_ch${channel.channel + 1}.tfi`,
+          data: createTfiFromPreset(createTfiPresetFromChannelSnapshot(channel)),
+        }));
+        const blob = createStoredZip(files);
+        const url = URL.createObjectURL(blob);
+        const anchor = document.createElement("a");
+        anchor.href = url;
+        const stem = lastLoadedFileName.replace(/\.[^.]+$/, "") || "snapshot";
+        anchor.download = `${stem}_snapshot_tfi.zip`;
+        anchor.click();
+        URL.revokeObjectURL(url);
+        setStatus("Exported snapshot TFI ZIP.");
+      }
+
       function looksLikeGzip(buffer) {
         const bytes = new Uint8Array(buffer, 0, Math.min(buffer.byteLength, 2));
         return bytes.length >= 2 && bytes[0] === 0x1f && bytes[1] === 0x8b;
@@ -1089,6 +1222,8 @@
         pauseButton.disabled = !playing;
         resumeButton.disabled = !paused;
         stopButton.disabled = !hasBuffer || (!playing && !paused);
+        exportSnapshotTfiButton.disabled = !hasBuffer;
+        exportSnapshotButton.disabled = !hasBuffer;
       }
 
       async function playCurrentVgm() {
@@ -1200,6 +1335,9 @@
           if (data.ended) {
             stopActiveStream();
             updatePlaybackButtons(player.stats());
+            if (autoExportSnapshotCheckbox.checked) {
+              downloadSnapshot("ended");
+            }
             setStatus("Ready.");
             return;
           }
@@ -1225,6 +1363,9 @@
           if (!stats.playing && !stats.paused && stats.queuedFrames === 0) {
             stopActiveStream();
             updatePlaybackButtons(stats);
+            if (autoExportSnapshotCheckbox.checked) {
+              downloadSnapshot("ended");
+            }
             setStatus("Ready.");
           }
         };
@@ -1234,6 +1375,7 @@
 
       async function handleFile(file) {
         setStatus(`Loading ${file.name}...`);
+        lastLoadedFileName = file.name;
         const buffer = await file.arrayBuffer();
         currentBuffer = null;
         playButton.disabled = true;
@@ -1359,6 +1501,14 @@
 
       exportAllTfiButton.addEventListener("click", () => {
         downloadAllTfiZip();
+      });
+
+      exportSnapshotTfiButton.addEventListener("click", () => {
+        downloadSnapshotTfiZip();
+      });
+
+      exportSnapshotButton.addEventListener("click", () => {
+        downloadSnapshot("manual");
       });
 
       updateTfiPatchOptions();
