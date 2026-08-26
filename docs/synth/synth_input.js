@@ -204,6 +204,14 @@ export function createSynthInputController({
   }
 
   function handleKeyDown(event) {
+    console.log("keydown", {
+      key: event.key,
+      code: event.code,
+      keyCode: event.keyCode,
+      which: event.which,
+      shiftKey: event.shiftKey,
+    });
+
     const key =
       event.key.toLowerCase();
     const keyLayout =
@@ -291,6 +299,10 @@ export function createSynthInputController({
   }
 
   function attachWindowInput() {
+    console.log(
+      "attachWindowInput"
+    );
+
     const onPointerUp = (event) => {
       releasePointerKey(
         event.pointerId

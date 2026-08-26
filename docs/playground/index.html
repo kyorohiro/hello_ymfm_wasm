@@ -761,7 +761,7 @@
             <h2>pg</h2>
             <ul class="helper-list">
               <li><code>pg</code> is the main playground helper namespace</li>
-              <li><code>pg.play("C4", { channel: 0, duration: 0.2 })</code> plays one note</li>
+              <li><code>pg.play("C4", { channel: CH1, duration: 0.2 })</code> plays one note</li>
               <li><code>pg.sleep(0.25)</code> waits in seconds</li>
               <li><code>pg.liveLoop("bass", async () =&gt; {})</code> keeps a named loop alive</li>
               <li><code>pg.setBpm(120)</code>, <code>await pg.beat(1)</code>, <code>await pg.nextBeat()</code></li>
@@ -776,7 +776,7 @@
               <li><code>fm</code> is the raw <code>YM2612Synth</code> layer</li>
               <li><code>await play("C4")</code> plays one note</li>
               <li><code>pg.fm</code> points to the same YM2612 layer</li>
-              <li><code>fm.setPreset(0, pg.presets["one-op-basic"])</code> applies one preset</li>
+              <li><code>fm.setPreset(CH1, pg.presets["one-op-basic"])</code> applies one preset</li>
               <li><code>fm.write(port, register, value)</code> sends one YM2612 register write</li>
               <li><code>fm.writeAddress(port, register)</code>, <code>fm.writeData(value)</code> follow the YM2612 address/data flow</li>
               <li><code>fm.read(offset)</code>, <code>fm.readStatus()</code>, <code>fm.getIrq()</code> expose low-level chip state where available</li>

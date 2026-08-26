@@ -10,11 +10,17 @@ const ym2612 = await createYm2612(ym2612ModuleFactory);
 const transport = new YM2612DirectTransport(ym2612);
 const synth = new YM2612Synth({ transport });
 
-synth.setOperator(0, 1, { tl: 0x7f });
-synth.setOperator(0, 2, { tl: 0x7f });
-synth.setOperator(0, 3, { tl: 0x7f });
+const CH1 = 0;
+const OP1 = 0;
+const OP2 = 1;
+const OP3 = 2;
+const OP4 = 3;
 
-synth.setOperator(0, 4, {
+synth.setOperator(CH1, OP1, { tl: 0x7f });
+synth.setOperator(CH1, OP2, { tl: 0x7f });
+synth.setOperator(CH1, OP3, { tl: 0x7f });
+
+synth.setOperator(CH1, OP4, {
   dt: 0,
   multi: 1,
   tl: 8,
@@ -25,10 +31,10 @@ synth.setOperator(0, 4, {
   rr: 8,
 });
 
-synth.setAlgo(0, 7, 0);
-synth.setPan(0, true, true);
+synth.setAlgo(CH1, 7, 0);
+synth.setPan(CH1, true, true);
 
-synth.noteOn(0, 4, 553);
+synth.noteOn(CH1, 4, 553);
 
 // Later:
-synth.noteOff(0);
+synth.noteOff(CH1);

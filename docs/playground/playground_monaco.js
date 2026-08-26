@@ -159,7 +159,7 @@ function registerMonacoSignatureHelp(
         {
           label: "operator: number",
           documentation:
-            "Logical operator 1..4.",
+            "Logical operator 0..3.",
         },
         {
           label:
@@ -515,7 +515,7 @@ export async function initializePlaygroundMonaco(
           suggest: {
             showClasses: false,
             showColors: false,
-            showConstants: false,
+            showConstants: true,
             showConstructors: false,
             showEnums: false,
             showEnumMembers: false,

@@ -168,11 +168,11 @@ await megaDrive.start();
 
 const synth = megaDrive.fm;
 
+synth.setOperator(0, 0, { tl: 0x7f });
 synth.setOperator(0, 1, { tl: 0x7f });
 synth.setOperator(0, 2, { tl: 0x7f });
-synth.setOperator(0, 3, { tl: 0x7f });
 
-synth.setOperator(0, 4, {
+synth.setOperator(0, 3, {
   dt: 0,
   multi: 1,
   tl: 8,
@@ -278,6 +278,10 @@ Audio output</pre>
         synth.reset();
 
         // Use operator 4 only.
+        synth.setOperator(0, 0, {
+          tl: 0x7f,
+        });
+
         synth.setOperator(0, 1, {
           tl: 0x7f,
         });
@@ -287,10 +291,6 @@ Audio output</pre>
         });
 
         synth.setOperator(0, 3, {
-          tl: 0x7f,
-        });
-
-        synth.setOperator(0, 4, {
           dt: 0,
           multi: 1,
           tl: 8,

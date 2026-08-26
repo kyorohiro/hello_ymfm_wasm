@@ -42,6 +42,18 @@ const ALGORITHM_DESCRIPTIONS = [
   'ALGO 7 <span class="op-color-1">OP1</span> + <span class="op-color-2">OP2</span> + <span class="op-color-3">OP3</span> + <span class="op-color-4">OP4</span> -> OUT',
 ];
 
+function displayOperatorToApiOperator(
+  operator
+) {
+  return operator - 1;
+}
+
+function apiOperatorToDisplayOperator(
+  operator
+) {
+  return operator + 1;
+}
+
 function createDefaultOperatorState(
   operator
 ) {
@@ -381,7 +393,9 @@ export function createPlaygroundOperatorTab(
       for (const operator of OPERATOR_NUMBERS) {
         synth.setOperator(
           channel,
-          operator,
+          displayOperatorToApiOperator(
+            operator
+          ),
           state.operators[operator]
         );
       }
@@ -555,7 +569,9 @@ export function createPlaygroundOperatorTab(
       if (synth) {
         synth.setOperator(
           selectedChannel,
-          operator,
+          displayOperatorToApiOperator(
+            operator
+          ),
           {
             [id]: value,
           }
@@ -575,7 +591,7 @@ export function createPlaygroundOperatorTab(
       );
     option.value = String(channel);
     option.textContent =
-      `Channel ${channel}`;
+      `Channel ${channel + 1}`;
     channelSelect.appendChild(
       option
     );
@@ -615,7 +631,7 @@ export function createPlaygroundOperatorTab(
         )
       );
       onStatus?.(
-        `Operator tab preset loaded for channel ${selectedChannel}.`
+        `Operator tab preset loaded for channel ${selectedChannel + 1}.`
       );
     }
   );
@@ -750,9 +766,15 @@ export function createPlaygroundOperatorTab(
       operator,
       params
     ) {
+      const displayOperator =
+        apiOperatorToDisplayOperator(
+          operator
+        );
       mergeOperatorParams(
         stateByChannel[channel]
-          .operators[operator],
+          .operators[
+            displayOperator
+          ],
         params
       );
       refreshIfSelected(channel);

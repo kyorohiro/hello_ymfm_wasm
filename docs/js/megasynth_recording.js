@@ -275,8 +275,8 @@ export class MegaSynthRecordingManager {
         true
       ) {
         for (
-          let operator = 1;
-          operator <=
+          let operator = 0;
+          operator <
           channelState.operators.length;
           operator += 1
         ) {
@@ -284,7 +284,7 @@ export class MegaSynthRecordingManager {
             channel,
             operator,
             channelState.operators[
-              operator - 1
+              operator
             ]
           );
         }

@@ -9,7 +9,7 @@
  * - how channel/operator numbers map to register addresses
  *
  * Public API channel numbers are 0..5.
- * Public API operator numbers are 1..4.
+ * Public API operator numbers are 0..3.
  */
 
 /**
@@ -88,7 +88,7 @@ const CHANNEL_3_INDEX = 2;
 const KEY_CHANNEL_CODES = [0x00, 0x01, 0x02, 0x04, 0x05, 0x06];
 
 // Public operator numbers follow the logical YM2612 algorithm order:
-//   O1, O2, O3, O4
+//   0->O1, 1->O2, 2->O3, 3->O4
 //
 // YM2612 register slots are laid out in a different physical order:
 //   0x30 -> O1
@@ -99,10 +99,10 @@ const KEY_CHANNEL_CODES = [0x00, 0x01, 0x02, 0x04, 0x05, 0x06];
 // The synth API hides that physical slot order so callers and preset data can
 // stay in logical operator order.
 const OPERATOR_SLOT_OFFSETS = {
-  1: 0x00,
-  2: 0x08,
-  3: 0x04,
-  4: 0x0c,
+  0: 0x00,
+  1: 0x08,
+  2: 0x04,
+  3: 0x0c,
 };
 
 const DEFAULT_OPERATOR_STATE = Object.freeze({
@@ -152,10 +152,10 @@ const DEFAULT_DAC_STATE = Object.freeze({
 //   OP2 -> 0xAA / 0xAE
 //   OP4 -> normal channel 3 registers 0xA2 / 0xA6
 const CHANNEL_3_SPECIAL_FREQUENCY_REGISTERS = {
-  1: { low: 0xa9, high: 0xad },
-  2: { low: 0xaa, high: 0xae },
-  3: { low: 0xa8, high: 0xac },
-  4: { low: 0xa2, high: 0xa6 },
+  0: { low: 0xa9, high: 0xad },
+  1: { low: 0xaa, high: 0xae },
+  2: { low: 0xa8, high: 0xac },
+  3: { low: 0xa2, high: 0xa6 },
 };
 
 /**
@@ -361,8 +361,8 @@ export class YM2612Synth {
     }
 
     if (preset.operators && typeof preset.operators === "object") {
-      for (let operator = 1; operator <= OPERATOR_COUNT; operator += 1) {
-        const params = preset.operators[operator];
+      for (let operator = 0; operator < OPERATOR_COUNT; operator += 1) {
+        const params = preset.operators[operator + 1];
         if (params) {
           this.setOperator(channel, operator, params);
         }
@@ -373,7 +373,7 @@ export class YM2612Synth {
   /**
    * Partial operator update.
    *
-   * Public operators use 1..4 because that is easier to compare against YM2612 docs/examples.
+   * Public operators use 0..3 so they match JavaScript indexing.
    *
    * @param {number} channel
    * @param {number} operator
@@ -387,7 +387,7 @@ export class YM2612Synth {
       throw new Error("params must be an object");
     }
 
-    const state = this.channels[channel].operators[operator - 1];
+    const state = this.channels[channel].operators[operator];
     const { port, channelOffset } = splitChannel(channel);
     const slotOffset = OPERATOR_SLOT_OFFSETS[operator];
 
@@ -609,7 +609,7 @@ export class YM2612Synth {
    * Set one channel 3 operator frequency while special mode is active.
    *
    * This is a thin YM2612-shaped helper:
-   * - logical operators stay 1..4
+   * - logical operators use 0..3
    * - block/fnum are written directly to YM2612 frequency registers
    *
    * Special channel 3 register mapping:
@@ -631,7 +631,7 @@ export class YM2612Synth {
     const fnumHigh = (validFnum >> 8) & 0x07;
     const fnumLow = validFnum & 0xff;
 
-    this.channels[CHANNEL_3_INDEX].specialFrequencies[operator - 1] = {
+    this.channels[CHANNEL_3_INDEX].specialFrequencies[operator] = {
       block: validBlock,
       fnum: validFnum,
     };
@@ -982,8 +982,8 @@ function assertChannel(channel) {
 }
 
 function assertOperator(operator) {
-  if (!Number.isInteger(operator) || operator < 1 || operator > OPERATOR_COUNT) {
-    throw new Error(`operator must be an integer in range 1..4, got ${operator}`);
+  if (!Number.isInteger(operator) || operator < 0 || operator >= OPERATOR_COUNT) {
+    throw new Error(`operator must be an integer in range 0..3, got ${operator}`);
   }
 }
 

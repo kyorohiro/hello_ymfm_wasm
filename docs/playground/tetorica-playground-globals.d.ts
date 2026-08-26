@@ -1,7 +1,7 @@
 /**
  * One logical YM2612 operator parameter block used by `fm.setOperator()`.
  *
- * Public operator numbers are logical `1..4`.
+ * Public operator numbers are logical `0..3`.
  * They are not the YM2612 physical slot order.
  */
 type YM2612OperatorParams = {
@@ -93,6 +93,20 @@ type MegaDriveFmPresetName =
  * Built-in YM2612 preset table used by playground examples and helpers.
  */
 declare const MEGADRIVE_FM_PRESETS: Record<MegaDriveFmPresetName, YM2612Preset>;
+
+/** Friendly YM2612 channel constants for readable examples. */
+declare const CH1: 0;
+declare const CH2: 1;
+declare const CH3: 2;
+declare const CH4: 3;
+declare const CH5: 4;
+declare const CH6: 5;
+
+/** Friendly logical operator constants for readable examples. */
+declare const OP1: 0;
+declare const OP2: 1;
+declare const OP3: 2;
+declare const OP4: 3;
 
 /**
  * Common play helper options used by `play()` and `pg.play()`.
@@ -207,7 +221,7 @@ declare const fm: {
   reset(): void;
   /** Apply one preset to one YM2612 channel. */
   setPreset(channel: number, preset: YM2612Preset): void;
-  /** Partially update one logical operator `1..4`. */
+  /** Partially update one logical operator `0..3`. */
   setOperator(channel: number, operator: number, params: YM2612OperatorParams): void;
   /** Set channel algorithm and feedback. */
   setAlgo(channel: number, algorithm: number, feedback?: number): void;
@@ -217,7 +231,7 @@ declare const fm: {
   setLfo(enabled: boolean, frequency: number): void;
   /** Enable or disable YM2612 channel 3 special / 3-slot mode. */
   setChannel3SpecialMode(enabled: boolean): void;
-  /** Set one logical channel 3 operator frequency while special mode is active. */
+  /** Set one logical channel 3 operator `0..3` frequency while special mode is active. */
   setChannel3SpecialFrequency(operator: number, block: number, fnum: number): void;
   /** Enable or disable the YM2612 DAC playback path on channel 6. */
   setDacEnabled(enabled: boolean): void;

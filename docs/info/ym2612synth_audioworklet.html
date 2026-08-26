@@ -201,7 +201,7 @@ const transport =
 const synth =
   new YM2612Synth({ transport });
 
-synth.setOperator(0, 4, {
+synth.setOperator(0, 3, {
   dt: 0,
   multi: 1,
   tl: 8,
@@ -480,6 +480,10 @@ generateStereo() in process()</pre>
         synth.reset();
 
         // Use operator 4 only.
+        synth.setOperator(0, 0, {
+          tl: 0x7f,
+        });
+
         synth.setOperator(0, 1, {
           tl: 0x7f,
         });
@@ -489,10 +493,6 @@ generateStereo() in process()</pre>
         });
 
         synth.setOperator(0, 3, {
-          tl: 0x7f,
-        });
-
-        synth.setOperator(0, 4, {
           dt: 0,
           multi: 1,
           tl: 8,

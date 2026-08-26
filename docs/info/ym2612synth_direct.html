@@ -158,11 +158,11 @@
 const synth =
   new YM2612Synth({ transport });
 
+synth.setOperator(0, 0, { tl: 0x7f });
 synth.setOperator(0, 1, { tl: 0x7f });
 synth.setOperator(0, 2, { tl: 0x7f });
-synth.setOperator(0, 3, { tl: 0x7f });
 
-synth.setOperator(0, 4, {
+synth.setOperator(0, 3, {
   dt: 0,
   multi: 1,
   tl: 8,
@@ -272,6 +272,10 @@ AudioContext.destination</pre>
       function configureSynth() {
         synth.reset();
 
+        synth.setOperator(0, 0, {
+          tl: 0x7f,
+        });
+
         synth.setOperator(0, 1, {
           tl: 0x7f,
         });
@@ -281,10 +285,6 @@ AudioContext.destination</pre>
         });
 
         synth.setOperator(0, 3, {
-          tl: 0x7f,
-        });
-
-        synth.setOperator(0, 4, {
           dt: 0,
           multi: 1,
           tl: 8,

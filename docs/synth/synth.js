@@ -104,6 +104,12 @@ const OPERATOR_NUMBERS = [
   4,
 ];
 
+function displayOperatorToApiOperator(
+  operator
+) {
+  return operator - 1;
+}
+
 const OPERATOR_PARAM_DEFS = [
   { id: "dt", label: "DT", min: 0, max: 7, step: 1, category: "pitch", help: "Small pitch offset." },
   { id: "multi", label: "MULTI", min: 0, max: 15, step: 1, category: "pitch", help: "Frequency multiplier." },
@@ -361,7 +367,7 @@ function updateLooperUi() {
       looperRecordButton.hidden =
         true;
       looperRecordButton.textContent =
-        "Record";
+        "Record [Space]";
     }
     if (looperStopButton) {
       looperStopButton.textContent =
@@ -417,8 +423,8 @@ function updateLooperUi() {
       !state.running;
     looperRecordButton.textContent =
       state.recording
-        ? "Stop"
-        : "Record";
+        ? "Stop [Space]"
+        : "Record [Space]";
   }
   if (looperStopButton) {
     looperStopButton.textContent =
@@ -454,8 +460,6 @@ function updateEventRecordUi() {
     recording?.commands?.length ?? 0;
 
   if (eventRecordStartButton) {
-    eventRecordStartButton.disabled =
-      false;
     eventRecordStartButton.textContent =
       eventRecordSessionActive
         ? "Event Rec Stop"
@@ -469,8 +473,8 @@ function updateEventRecordUi() {
       !eventRecordSessionActive;
     eventRecordStopButton.textContent =
       isRecording
-        ? "Stop"
-        : "Record";
+        ? "Stop [Space]"
+        : "Record [Space]";
   }
 
   if (eventRecordPlayButton) {
@@ -515,15 +519,20 @@ function updateEventRecordUi() {
 }
 
 function buildEventPlaybackOptions() {
-  const ignoreOperators =
-    eventRecordIgnoreOperators?.checked ===
-    true;
-
   return {
     loop: true,
-    ignoreOperators,
-    ignorePatch: ignoreOperators,
-    reset: !ignoreOperators,
+    get ignoreOperators() {
+      return (
+        eventRecordIgnoreOperators?.checked ===
+        true
+      );
+    },
+    get ignorePatch() {
+      return this.ignoreOperators;
+    },
+    get reset() {
+      return !this.ignoreOperators;
+    },
   };
 }
 
@@ -580,6 +589,19 @@ async function toggleEventRecordSession() {
     return;
   }
 
+  if (
+    !eventRecordSessionActive &&
+    looper?.running
+  ) {
+    updateLooperUi();
+    updateEventRecordUi();
+    setStatus(
+      "Stopping looper..."
+    );
+    await looper.stop();
+    stopAllNotes();
+  }
+
   if (eventRecordSessionActive) {
     if (megaSynth.isRecording()) {
       const recording =
@@ -596,6 +618,7 @@ async function toggleEventRecordSession() {
 
     eventRecordSessionActive =
       false;
+    updateLooperUi();
     updateEventRecordUi();
     setStatus(
       "Event record mode stopped."
@@ -604,9 +627,10 @@ async function toggleEventRecordSession() {
   }
 
   eventRecordSessionActive = true;
+  updateLooperUi();
   updateEventRecordUi();
   setStatus(
-    "Event record mode ready. Press Record or Space."
+    "Event record mode ready. Press Record [Space]."
   );
 }
 
@@ -1103,7 +1127,9 @@ function applyPatchToVoices() {
     for (const operator of OPERATOR_NUMBERS) {
       synth.setOperator(
         channel,
-        operator,
+        displayOperatorToApiOperator(
+          operator
+        ),
         {
           ...operatorStates[operator],
           am:
@@ -1336,7 +1362,9 @@ function applyLooperPatchToChannel(
 
     loopSynth.setOperator(
       channel,
-      operator,
+      displayOperatorToApiOperator(
+        operator
+      ),
       {
         ...operatorPatch,
         am:
@@ -1671,6 +1699,22 @@ async function ensureLooper() {
 }
 
 async function toggleLooperStart() {
+  if (
+    !looper?.running &&
+    eventRecordSessionActive
+  ) {
+    if (megaSynth?.isRecording()) {
+      megaSynth.stopRecord();
+    }
+    if (
+      megaSynth?.isRecordingPlaybackActive()
+    ) {
+      megaSynth.stopRecordingPlayback();
+    }
+    eventRecordSessionActive = false;
+    updateEventRecordUi();
+  }
+
   const currentLooper =
     await ensureLooper();
 
@@ -1680,9 +1724,11 @@ async function toggleLooperStart() {
 
   if (currentLooper.running) {
     updateLooperUi();
+    updateEventRecordUi();
     setStatus("Stopping looper...");
     await currentLooper.stop();
     updateLooperUi();
+    updateEventRecordUi();
     stopAllNotes();
     setStatus("Looper stopped.");
     return;
@@ -1690,8 +1736,9 @@ async function toggleLooperStart() {
 
   await currentLooper.start();
   updateLooperUi();
+  updateEventRecordUi();
   setStatus(
-    "Looper started. Press Space or Record to capture a unit."
+    "Looper started. Press Record [Space] to capture a unit."
   );
 }
 
@@ -1718,7 +1765,7 @@ async function toggleLooperRecord() {
   setStatus(
     wasRecording
       ? "Finalizing take..."
-      : "Recording started."
+      : "Recording started. Press Space again to stop."
   );
   const completedUnit =
     await pendingToggle;
@@ -1736,7 +1783,7 @@ async function toggleLooperRecord() {
     }
   } else {
     setStatus(
-      "Recording started."
+      "Recording started. Press Space again to stop."
     );
   }
 }

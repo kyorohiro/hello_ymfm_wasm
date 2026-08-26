@@ -426,6 +426,16 @@ async function runCode() {
     const pg = {
       fm,
       fx,
+      CH1: 0,
+      CH2: 1,
+      CH3: 2,
+      CH4: 3,
+      CH5: 4,
+      CH6: 5,
+      OP1: 0,
+      OP2: 1,
+      OP3: 2,
+      OP4: 3,
       presets:
         MEGADRIVE_FM_PRESETS,
       livePrepare: (name, fn) =>
@@ -498,6 +508,16 @@ async function runCode() {
       rand: pg.rand,
       randInt: pg.randInt,
       scale: pg.scale,
+      CH1: pg.CH1,
+      CH2: pg.CH2,
+      CH3: pg.CH3,
+      CH4: pg.CH4,
+      CH5: pg.CH5,
+      CH6: pg.CH6,
+      OP1: pg.OP1,
+      OP2: pg.OP2,
+      OP3: pg.OP3,
+      OP4: pg.OP4,
       MEGADRIVE_FM_PRESETS,
       log: pg.log,
     };

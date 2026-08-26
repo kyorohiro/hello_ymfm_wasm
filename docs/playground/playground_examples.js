@@ -1,17 +1,17 @@
 export const EXAMPLES = {
-  single: `fm.setPreset(0, MEGADRIVE_FM_PRESETS["one-op-basic"]);
-await play("C4", { channel: 0, duration: 0.35 });
+  single: `fm.setPreset(CH1, MEGADRIVE_FM_PRESETS["one-op-basic"]);
+await play("C4", { channel: CH1, duration: 0.35 });
 await sleep(0.12);
-await play("E4", { channel: 0, duration: 0.35 });
+await play("E4", { channel: CH1, duration: 0.35 });
 await sleep(0.12);
-await play("G4", { channel: 0, duration: 0.5 });
+await play("G4", { channel: CH1, duration: 0.5 });
 `,
-  random: `fm.setPreset(0, MEGADRIVE_FM_PRESETS["two-op-bell"]);
+  random: `fm.setPreset(CH1, MEGADRIVE_FM_PRESETS["two-op-bell"]);
 const notes = scale("Eb2", "majorPentatonic", 2);
 
 for (let step = 0; step < 16; step += 1) {
   await play(choose(notes), {
-    channel: 0,
+    channel: CH1,
     duration: 0.12 + rand() * 0.15,
   });
   await sleep(0.08);
@@ -21,11 +21,11 @@ for (let step = 0; step < 16; step += 1) {
 
 fm.reset();
 
-// channel 0 = lead voice
-// operator 4 = carrier
-// operator 2 = main modulator
-fm.setOperator(0, 1, { tl: 127, ar: 31, d1r: 0, d2r: 0, sl: 0, rr: 15 });
-fm.setOperator(0, 2, {
+// CH1 = lead voice
+// OP4 = carrier
+// OP2 = main modulator
+fm.setOperator(CH1, OP1, { tl: 127, ar: 31, d1r: 0, d2r: 0, sl: 0, rr: 15 });
+fm.setOperator(CH1, OP2, {
   multi: 3,
   tl: 30,
   ar: 24,
@@ -34,8 +34,8 @@ fm.setOperator(0, 2, {
   sl: 6,
   rr: 9,
 });
-fm.setOperator(0, 3, { tl: 127, ar: 31, d1r: 0, d2r: 0, sl: 0, rr: 15 });
-fm.setOperator(0, 4, {
+fm.setOperator(CH1, OP3, { tl: 127, ar: 31, d1r: 0, d2r: 0, sl: 0, rr: 15 });
+fm.setOperator(CH1, OP4, {
   multi: 1,
   tl: 10,
   ar: 25,
@@ -44,12 +44,12 @@ fm.setOperator(0, 4, {
   sl: 5,
   rr: 8,
 });
-fm.setAlgo(0, 4, 3);
-fm.setPan(0, true, true);
+fm.setAlgo(CH1, 4, 3);
+fm.setPan(CH1, true, true);
 
-// channel 1 = simple bass support
-fm.setPreset(1, MEGADRIVE_FM_PRESETS["one-op-basic"]);
-fm.setOperator(1, 4, {
+// CH2 = simple bass support
+fm.setPreset(CH2, MEGADRIVE_FM_PRESETS["one-op-basic"]);
+fm.setOperator(CH2, OP4, {
   tl: 18,
   ar: 28,
   d1r: 7,
@@ -62,7 +62,7 @@ liveLoop("lead", async () => {
   const phrase = ["E5", "B4", "A4", "E5", "D6", "A5"];
   //await nextBeat();
   await play(choose(phrase), {
-    channel: 0,
+    channel: CH1,
     duration: 0.100,
   });
   await beat(0.001);
@@ -70,7 +70,7 @@ liveLoop("lead", async () => {
 
 liveLoop("multi-sweep", async () => {
   const modulatorMulti = choose([2, 3, 4, 6, 8, 10]);
-  fm.setOperator(0, 2, {
+  fm.setOperator(CH1, OP2, {
     multi: modulatorMulti,
   });
   await beat(0.125);
@@ -79,7 +79,7 @@ liveLoop("multi-sweep", async () => {
 liveLoop("bass", async () => {
   await nextBeat();
   await play("E2", {
-    channel: 1,
+    channel: CH2,
     duration: 0.16,
   });
   await beat(1);
@@ -87,18 +87,18 @@ liveLoop("bass", async () => {
 `,
   "live-loop": `setBpm(120);
 
-fm.setPreset(0, MEGADRIVE_FM_PRESETS["one-op-basic"]);
-fm.setPreset(1, MEGADRIVE_FM_PRESETS["two-op-bell"]);
+fm.setPreset(CH1, MEGADRIVE_FM_PRESETS["one-op-basic"]);
+fm.setPreset(CH2, MEGADRIVE_FM_PRESETS["two-op-bell"]);
 
 liveLoop("bass", async () => {
   await nextBeat();
-  await play("E2", { channel: 0, duration: 0.14 });
+  await play("E2", { channel: CH1, duration: 0.14 });
   await beat(1);
-  await play("E2", { channel: 0, duration: 0.14 });
+  await play("E2", { channel: CH1, duration: 0.14 });
   await beat(1);
-  await play("G2", { channel: 0, duration: 0.14 });
+  await play("G2", { channel: CH1, duration: 0.14 });
   await beat(1);
-  await play("A2", { channel: 0, duration: 0.14 });
+  await play("A2", { channel: CH1, duration: 0.14 });
   await beat(1);
 });
 
@@ -106,15 +106,15 @@ liveLoop("lead", async () => {
   const notes = scale("E4", "minorPentatonic", 2);
   //await nextBeat();
   await play(choose(notes), {
-    channel: 1,
+    channel: CH2,
     duration: 0.08,
   });
   await beat(0.125);
 });
 `,
   "fm-direct": `fm.reset();
-fm.setPreset(0, MEGADRIVE_FM_PRESETS["one-op-basic"]);
-fm.setOperator(0, 4, {
+fm.setPreset(CH1, MEGADRIVE_FM_PRESETS["one-op-basic"]);
+fm.setOperator(CH1, OP4, {
   multi: 3,
   tl: 10,
   ar: 24,
@@ -123,22 +123,22 @@ fm.setOperator(0, 4, {
   sl: 5,
   rr: 8,
 });
-fm.setAlgo(0, 7, 0);
-fm.setPan(0, true, true);
+fm.setAlgo(CH1, 7, 0);
+fm.setPan(CH1, true, true);
 
 for (const note of ["C3", "G3", "Bb3", "C4"]) {
-  await play(note, { channel: 0, duration: 0.22 });
+  await play(note, { channel: CH1, duration: 0.22 });
   await sleep(0.06);
 }
 `,
   "fm-api-beep": `fm.reset();
 
-// channel 0 = YM2612 channel 1
-// operator 4 is the audible carrier in this simple setup
-fm.setOperator(0, 1, { tl: 127, ar: 31, d1r: 0, d2r: 0, sl: 0, rr: 15 });
-fm.setOperator(0, 2, { tl: 127, ar: 31, d1r: 0, d2r: 0, sl: 0, rr: 15 });
-fm.setOperator(0, 3, { tl: 127, ar: 31, d1r: 0, d2r: 0, sl: 0, rr: 15 });
-fm.setOperator(0, 4, {
+// CH1 = YM2612 channel 1
+// OP4 is the audible carrier in this simple setup
+fm.setOperator(CH1, OP1, { tl: 127, ar: 31, d1r: 0, d2r: 0, sl: 0, rr: 15 });
+fm.setOperator(CH1, OP2, { tl: 127, ar: 31, d1r: 0, d2r: 0, sl: 0, rr: 15 });
+fm.setOperator(CH1, OP3, { tl: 127, ar: 31, d1r: 0, d2r: 0, sl: 0, rr: 15 });
+fm.setOperator(CH1, OP4, {
   dt: 0,
   multi: 1,
   tl: 8,
@@ -149,12 +149,12 @@ fm.setOperator(0, 4, {
   rr: 8,
 });
 
-fm.setAlgo(0, 7, 0);
-fm.setPan(0, true, true);
+fm.setAlgo(CH1, 7, 0);
+fm.setPan(CH1, true, true);
 
-fm.noteOn(0, 4, 553);
+fm.noteOn(CH1, 4, 553);
 await sleep(0.4);
-fm.noteOff(0);
+fm.noteOff(CH1);
 await sleep(0.3);
 `,
   "raw-write-beep": `fm.reset();
@@ -211,39 +211,55 @@ await sleep(0.3);
 `,
   "channel3-special-mode": `fm.reset();
 
-// Public channel 2 = YM2612 channel 3.
+// YM2612 CH3 Special Mode
 fm.setChannel3SpecialMode(true);
 
-// Keep OP4 as the audible carrier.
-fm.setOperator(2, 1, { tl: 127, ar: 31, d1r: 0, d2r: 0, sl: 0, rr: 15 });
-fm.setOperator(2, 2, { tl: 127, ar: 31, d1r: 0, d2r: 0, sl: 0, rr: 15 });
-fm.setOperator(2, 3, { tl: 127, ar: 31, d1r: 0, d2r: 0, sl: 0, rr: 15 });
-fm.setOperator(2, 4, {
+// ALG 7:
+// OP1, OP2, OP3, OP4 are all carriers.
+fm.setAlgo(CH3, 7, 0);
+fm.setPan(CH3, true, true);
+
+const op = {
   multi: 1,
-  tl: 8,
-  ar: 24,
-  d1r: 8,
+  tl: 24,
+  ar: 31,
+  d1r: 6,
   d2r: 3,
   sl: 3,
   rr: 8,
-});
+};
 
-fm.setAlgo(2, 7, 0);
-fm.setPan(2, true, true);
+fm.setOperator(CH3, OP1, op);
+fm.setOperator(CH3, OP2, op);
+fm.setOperator(CH3, OP3, op);
+fm.setOperator(CH3, OP4, op);
 
-// Special frequency mapping:
+// CH3 Special Mode frequency registers:
+//
 // OP3 -> 0xA8 / 0xAC
 // OP1 -> 0xA9 / 0xAD
 // OP2 -> 0xAA / 0xAE
-// OP4 -> normal channel 3 frequency via noteOn(channel=2, ...)
-fm.setChannel3SpecialFrequency(1, 4, 640);
-fm.setChannel3SpecialFrequency(2, 4, 704);
-fm.setChannel3SpecialFrequency(3, 4, 512);
+// OP4 -> normal CH3 frequency (0xA2 / 0xA6)
+//
+// Rough C-E-G-C chord.
+//
+// Same BLOCK, different FNUM values.
+// These do not need to be exact equal-tempered pitches;
+// the point is to make the four independent frequencies obvious.
 
-fm.noteOn(2, 4, 553);
-await sleep(0.5);
-fm.noteOff(2);
-await sleep(0.2);
+fm.setChannel3SpecialFrequency(OP1, 4, 512); // C-ish
+fm.setChannel3SpecialFrequency(OP2, 4, 645); // E-ish
+fm.setChannel3SpecialFrequency(OP3, 4, 768); // G-ish
+
+// OP4 frequency is written through the normal CH3 frequency registers.
+// noteOn also performs KEY ON for all operators.
+fm.noteOn(CH3, 5, 512); // upper C-ish
+
+await sleep(1.5);
+
+fm.noteOff(CH3);
+
+await sleep(0.3);
 
 fm.setChannel3SpecialMode(false);
 `,
@@ -281,8 +297,8 @@ fm.setDacEnabled(false);
 `,
   "fx-loop": `setBpm(120);
 
-fm.setPreset(0, MEGADRIVE_FM_PRESETS["one-op-basic"]);
-fm.setPreset(1, MEGADRIVE_FM_PRESETS["two-op-bell"]);
+fm.setPreset(CH1, MEGADRIVE_FM_PRESETS["one-op-basic"]);
+fm.setPreset(CH2, MEGADRIVE_FM_PRESETS["two-op-bell"]);
 
 const mainFx = await livePrepare("fx-loop-chain", async ({ fx }) => {
   const filter = fx.filter({
@@ -315,13 +331,13 @@ fx.setChain([
 
 liveLoop("bass", async () => {
   await nextBeat();
-  await play("E2", { channel: 0, duration: 0.12 });
+  await play("E2", { channel: CH1, duration: 0.12 });
   await beat(1);
-  await play("G2", { channel: 0, duration: 0.12 });
+  await play("G2", { channel: CH1, duration: 0.12 });
   await beat(1);
-  await play("A2", { channel: 0, duration: 0.12 });
+  await play("A2", { channel: CH1, duration: 0.12 });
   await beat(1);
-  await play("B2", { channel: 0, duration: 0.12 });
+  await play("B2", { channel: CH1, duration: 0.12 });
   await beat(1);
 });
 
@@ -330,7 +346,7 @@ liveLoop("lead", async () => {
   mainFx.filter.cutoff.set(choose([900, 1400, 2200, 3600, 5200]));
   mainFx.delay.mix.set(choose([0.1, 0.16, 0.22]));
   await play(choose(notes), {
-    channel: 1,
+    channel: CH2,
     duration: 0.08,
   });
   await beat(0.125);
@@ -338,8 +354,8 @@ liveLoop("lead", async () => {
 `,
   "fx-motion": `setBpm(120);
 
-fm.setPreset(0, MEGADRIVE_FM_PRESETS["four-op-pad"]);
-fm.setPreset(1, MEGADRIVE_FM_PRESETS["two-op-bell"]);
+fm.setPreset(CH1, MEGADRIVE_FM_PRESETS["four-op-pad"]);
+fm.setPreset(CH2, MEGADRIVE_FM_PRESETS["two-op-bell"]);
 
 const mainFx = await livePrepare("fx-motion-chain", async ({ fx }) => {
   const gain = fx.gain({
@@ -384,16 +400,16 @@ fx.setChain([
 
 liveLoop("pad", async () => {
   await nextBeat();
-  await play("E3", { channel: 0, duration: 0.45 });
+  await play("E3", { channel: CH1, duration: 0.45 });
   await beat(2);
-  await play("G3", { channel: 0, duration: 0.45 });
+  await play("G3", { channel: CH1, duration: 0.45 });
   await beat(2);
 });
 
 liveLoop("lead", async () => {
   const notes = scale("E4", "minorPentatonic", 2);
   await play(choose(notes), {
-    channel: 1,
+    channel: CH2,
     duration: 0.08,
   });
   await beat(0.25);
