@@ -45,6 +45,8 @@ This is the easiest way to test YM2612 control, sound design, and Genesis-orient
 
 - Main page:
   [https://kyorohiro.github.io/hello_ymfm_wasm/](https://kyorohiro.github.io/hello_ymfm_wasm/)
+- Sega Genesis / Mega Drive YM2612 FM Introduction with JavaScript:
+  [https://kyorohiro.github.io/hello_ymfm_wasm/introductions/index.html](https://kyorohiro.github.io/hello_ymfm_wasm/introductions/index.html)
 - Playground:
   [https://kyorohiro.github.io/hello_ymfm_wasm/playground/index.html](https://kyorohiro.github.io/hello_ymfm_wasm/playground/index.html)
 - Synth:

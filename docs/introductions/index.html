@@ -221,6 +221,22 @@
         border-radius: 12px;
       }
 
+      .demo-loader {
+        margin-top: 18px;
+        border: 1px dashed var(--line);
+        border-radius: 18px;
+        padding: 20px;
+        background: rgba(255, 255, 255, 0.36);
+      }
+
+      .demo-loader p {
+        margin-bottom: 12px;
+      }
+
+      .demo-loader .playground-frame {
+        margin-top: 14px;
+      }
+
       .grid {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
@@ -424,6 +440,19 @@
           all 4 operators are carriers, wired straight to the output with no modulation between them, so you can
           hear each operator's raw contribution before adding modulation back in.
         </p>
+        <div class="demo-loader" data-demo-loader>
+          <p>Load the 2 Operator Demo when you want to compare carrier/modulator behavior more directly.</p>
+          <button
+            type="button"
+            class="link-button"
+            data-iframe-src="../demos/operator2.html"
+            data-iframe-title="YM2612 2 Operator Demo"
+            data-iframe-height="1100"
+          >
+            Load 2 Operator Demo
+          </button>
+          <a href="../demos/operator2.html" style="margin-left: 12px;">Open in its own page &rarr;</a>
+        </div>
       </section>
 
       <section class="panel">
@@ -436,6 +465,19 @@
         </p>
         <div id="algoButtons" class="algo-grid"></div>
         <p id="algoStatus" class="algo-status">Click a button to load audio and play.</p>
+        <div class="demo-loader" data-demo-loader>
+          <p>Load the full Synth app when you want to try the same ideas with a larger hands-on control surface.</p>
+          <button
+            type="button"
+            class="link-button"
+            data-iframe-src="../synth/index.html"
+            data-iframe-title="YM2612 Synth"
+            data-iframe-height="1200"
+          >
+            Load Full Synth Demo
+          </button>
+          <a href="../synth/index.html" style="margin-left: 12px;">Open in its own page &rarr;</a>
+        </div>
       </section>
 
       <section class="panel">
@@ -455,14 +497,19 @@
           <a href="https://archive.org/details/Project2612CompleteArchive20180623681Sets.7z">Project 2612 Complete Archive (2018-06-23, 681 sets)</a> and
           <a href="https://archive.org/details/project-2612-complete-archive-2021-07-12-704-sets.-7z">Project 2612 Complete Archive (2021-07-12, 704 sets)</a>.
         </p>
-        <iframe
-          class="playground-frame"
-          src="../vgm_analyzer/index.html"
-          title="Tetorica FM2612 VGM Analyzer"
-          allow="autoplay"
-          loading="lazy"
-          style="height: 900px;"
-        ></iframe>
+        <div class="demo-loader" data-demo-loader>
+          <p>Load the Analyzer when you want to inspect real VGM files, watch register changes, and extract patches.</p>
+          <button
+            type="button"
+            class="link-button"
+            data-iframe-src="../vgm_analyzer/index.html"
+            data-iframe-title="Tetorica FM2612 VGM Analyzer"
+            data-iframe-height="900"
+          >
+            Load VGM Analyzer
+          </button>
+          <a href="../vgm_analyzer/index.html" style="margin-left: 12px;">Open in its own page &rarr;</a>
+        </div>
         <p>
           <a href="../vgm_analyzer/index.html">Open the VGM Analyzer in its own page &rarr;</a>
         </p>
@@ -537,6 +584,30 @@
       let synth = null;
       let stopTimer = null;
 
+      function installDeferredIframes() {
+        for (const loader of document.querySelectorAll("[data-demo-loader]")) {
+          const button = loader.querySelector("button[data-iframe-src]");
+          if (!button) {
+            continue;
+          }
+          button.addEventListener("click", () => {
+            if (loader.querySelector("iframe")) {
+              return;
+            }
+            const frame = document.createElement("iframe");
+            frame.className = "playground-frame";
+            frame.src = button.dataset.iframeSrc;
+            frame.title = button.dataset.iframeTitle || "Demo";
+            frame.allow = "autoplay";
+            frame.loading = "lazy";
+            frame.style.height = `${button.dataset.iframeHeight || 900}px`;
+            loader.appendChild(frame);
+            button.disabled = true;
+            button.textContent = "Loaded";
+          }, { once: true });
+        }
+      }
+
       async function ensureReady() {
         if (synth) {
           await megaDrive.resume();
@@ -593,6 +664,8 @@
 
         buttonsRoot.appendChild(button);
       }
+
+      installDeferredIframes();
     </script>
   </body>
 </html>
