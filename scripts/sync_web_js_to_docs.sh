@@ -21,6 +21,7 @@ segapsg.js
 tfi.js
 vgmplayer.js
 ym2612-worklet.js
+ym2612-worklet-nuked.js
 ym2612.js
 ym2612synth.js
 ym2612vgm.js
@@ -43,5 +44,8 @@ done
 
 perl -0pi -e 's#"\./generated/ym2612_wasm\.js"#"../generated/ym2612_wasm.js"#g' \
   "${DOCS_JS_DIR}/ym2612-worklet.js"
+
+perl -0pi -e 's#"\./generated/nuked_opn2_wasm\.js"#"../generated/nuked_opn2_wasm.js"#g' \
+  "${DOCS_JS_DIR}/ym2612-worklet-nuked.js"
 
 echo "done: synced shared web runtime files into docs/js"

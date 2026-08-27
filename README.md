@@ -70,10 +70,29 @@ The following files and directories in this repository are ymfm-originated works
 - `examples/`
 - [GeneralInfo.md](https://github.com/aaronsgiles/ymfm/blob/main/GeneralInfo.md)
 
+### Nuked-OPN2 (`third_party/nuked-opn2/`)
+
+`third_party/nuked-opn2/` vendors [Nuked-OPN2](https://github.com/nukeykt/Nuked-OPN2)
+by Alexey Khokholov (Nuke.YKT), via [kyorohiro/Nuked-OPN2](https://github.com/kyorohiro/Nuked-OPN2)
+(a pinned fork). It is an **optional, experimental alternate YM2612 engine**
+you can switch to with `?engine=nuked` on the Playground, Synth, and VGM
+Analyzer pages, alongside the default ymfm-based engine.
+
+Unlike the rest of this repository, `third_party/nuked-opn2/` (and the
+`nuked_opn2_wasm.wasm` build produced from it) is licensed under the
+**GNU Lesser General Public License v2.1 or later**, not BSD 3-Clause. See
+`third_party/nuked-opn2/LICENSE` and `third_party/nuked-opn2/README.md` for
+details. It is not included in the packaged release/embed builds
+(`scripts/package_*.sh`), so anyone embedding only the default ymfm build is
+unaffected.
+
 ## Links
 
 - `ymfm` repository:
   - https://github.com/aaronsgiles/ymfm
+- `Nuked-OPN2` (original, and the pinned fork vendored in `third_party/nuked-opn2/`):
+  - https://github.com/nukeykt/Nuked-OPN2
+  - https://github.com/kyorohiro/Nuked-OPN2
 - `MAME`:
   - https://www.mamedev.org/
 - `retropc.net`:
