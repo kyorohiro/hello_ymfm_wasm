@@ -115,13 +115,36 @@ const operatorTabRoot =
     "operatorTabRoot"
   );
 
+// Experimental: ?engine=nuked swaps the YM2612 core for Nuked-OPN2
+// (https://github.com/nukeykt/Nuked-OPN2) instead of the default ymfm
+// backend.
+const useNukedEngine =
+  new URLSearchParams(
+    window.location.search
+  ).get("engine") === "nuked";
+
 const megaDrive =
   new MegaDriveSynth({
-    workletUrl:
-      "../js/ym2612-worklet.js",
-    ym2612WasmUrl:
-      "../generated/ym2612_wasm.wasm",
+    workletUrl: useNukedEngine
+      ? "../js/ym2612-worklet-nuked.js"
+      : "../js/ym2612-worklet.js",
+    ym2612WasmUrl: useNukedEngine
+      ? "../generated/nuked_opn2_wasm.wasm"
+      : "../generated/ym2612_wasm.wasm",
   });
+
+if (useNukedEngine) {
+  const pageTitle =
+    document.getElementById(
+      "pageTitle"
+    );
+  const badge =
+    document.createElement("span");
+  badge.className = "engine-badge";
+  badge.textContent =
+    "Nuked-OPN2 engine";
+  pageTitle?.appendChild(badge);
+}
 
 let synth = null;
 let removeMegaDriveListener =

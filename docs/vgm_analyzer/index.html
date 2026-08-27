@@ -236,6 +236,18 @@
         }
       }
 
+      .engine-badge {
+        display: inline-block;
+        margin-left: 10px;
+        padding: 2px 10px;
+        border-radius: 999px;
+        font-size: 0.7rem;
+        font-weight: 700;
+        vertical-align: middle;
+        color: white;
+        background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+      }
+
       .tabbar {
         display: flex;
         align-items: center;
@@ -475,7 +487,7 @@
   <body>
     <main>
       <section class="panel">
-        <h1>Tetorica FM2612 VGM Analyzer</h1>
+        <h1 id="pageTitle">Tetorica FM2612 VGM Analyzer</h1>
         <div class="actions">
           <input id="fileInput" type="file" accept=".vgm,.vgz,application/octet-stream">
           <button id="playButton" type="button" disabled>Play VGM</button>
@@ -502,9 +514,11 @@
             <option value="4">x4</option>
           </select>
           <button id="exportAllTfiButton" type="button" disabled>Export All TFI ZIP</button>
+          <button id="exportParseInfoButton" type="button" disabled>Export Parse Info</button>
           <button id="exportSnapshotTfiButton" type="button" disabled>Export Snapshot TFI</button>
           <button id="exportSnapshotButton" type="button" disabled>Export Snapshot</button>
           <label><input id="autoExportSnapshotCheckbox" type="checkbox"> Auto export on end</label>
+          <label><input id="monoMixCheckbox" type="checkbox"> Mono fold-down</label>
         </div>
         <div class="status" id="status">Choose a .vgm file for analysis.</div>
 
@@ -602,9 +616,28 @@
       import { Ym2612VGM } from "../js/ym2612vgm.js";
       import { createTfiFromPreset } from "../js/tfi.js";
       import ym2612ModuleFactory from "../generated/ym2612_wasm.js";
+      import nukedOpn2ModuleFactory from "../generated/nuked_opn2_wasm.js";
       import segaPsgModuleFactory from "../generated/segapsg_wasm.js";
       import { createGenesisAudioEngine } from "../js/genesisaudioengine.js";
       import { VgmPlayer } from "../js/vgmplayer.js";
+
+      // Experimental: ?engine=nuked swaps the YM2612 core for Nuked-OPN2
+      // (https://github.com/nukeykt/Nuked-OPN2) instead of the default ymfm
+      // backend. Same web/ym2612.js and web/ym2612synth.js code either way.
+      const useNukedEngine =
+        new URLSearchParams(window.location.search).get("engine") ===
+        "nuked";
+      const activeYm2612ModuleFactory = useNukedEngine
+        ? nukedOpn2ModuleFactory
+        : ym2612ModuleFactory;
+
+      if (useNukedEngine) {
+        const pageTitle = document.getElementById("pageTitle");
+        const badge = document.createElement("span");
+        badge.className = "engine-badge";
+        badge.textContent = "Nuked-OPN2 engine";
+        pageTitle?.appendChild(badge);
+      }
 
       const fileInput = document.getElementById("fileInput");
       const playButton = document.getElementById("playButton");
@@ -617,9 +650,11 @@
       const prefetchFactorSelect = document.getElementById("prefetchFactorSelect");
       const workletQueueSelect = document.getElementById("workletQueueSelect");
       const exportAllTfiButton = document.getElementById("exportAllTfiButton");
+      const exportParseInfoButton = document.getElementById("exportParseInfoButton");
       const exportSnapshotTfiButton = document.getElementById("exportSnapshotTfiButton");
       const exportSnapshotButton = document.getElementById("exportSnapshotButton");
       const autoExportSnapshotCheckbox = document.getElementById("autoExportSnapshotCheckbox");
+      const monoMixCheckbox = document.getElementById("monoMixCheckbox");
       const status = document.getElementById("status");
       const channelGrid = document.getElementById("channelGrid");
       const headerOutput = document.getElementById("headerOutput");
@@ -659,10 +694,16 @@
       let lastNoteishSignature = "";
       let lastLoadedFileName = "snapshot";
       let psgMuted = false;
+      let monoMixEnabled = false;
       let lastYm2612DacEnable = 0x00;
       let monitorToggleHandlerBound = false;
       let workletQueueMultiplier = 2;
       let workletPumpScheduled = false;
+      let playbackUiDirty = false;
+      let playbackUiRenderScheduled = false;
+      let lastStreamingStatusSuffix = "";
+      let lastStreamingStatusAt = 0;
+      let lastParseInfo = null;
 
       const NOTE_NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
       const NOTEISH_REFERENCE_MIDI = 62;
@@ -708,6 +749,35 @@
 
       function setStatus(message) {
         status.textContent = message;
+      }
+
+      function requestPlaybackUiRender(extra = "") {
+        lastStreamingStatusSuffix = extra;
+        playbackUiDirty = true;
+        if (playbackUiRenderScheduled) {
+          return;
+        }
+        playbackUiRenderScheduled = true;
+        window.requestAnimationFrame(() => {
+          playbackUiRenderScheduled = false;
+          if (!playbackUiDirty) {
+            return;
+          }
+          playbackUiDirty = false;
+          const stats = player ? player.stats() : {};
+          updatePlaybackButtons(stats);
+
+          // Avoid rebuilding the long status string for every audio chunk.
+          const now = performance.now();
+          const activePlayback = Boolean(stats.playing || stats.paused || stats.queuedFrames > 0);
+          if (
+            !activePlayback ||
+            (now - lastStreamingStatusAt) >= 120
+          ) {
+            updateStreamingStatus(lastStreamingStatusSuffix);
+            lastStreamingStatusAt = now;
+          }
+        });
       }
 
       function renderMonitorToggles() {
@@ -1335,6 +1405,14 @@
         renderMonitorToggles();
         if (engine && typeof engine.setPsgMuted === "function") {
           engine.setPsgMuted(psgMuted);
+        }
+        flushPendingAudio();
+      }
+
+      function updateMonoMix() {
+        monoMixEnabled = monoMixCheckbox.checked;
+        if (engine && typeof engine.setMonoMix === "function") {
+          engine.setMonoMix(monoMixEnabled);
         }
         flushPendingAudio();
       }
@@ -2010,13 +2088,16 @@
       async function ensurePlaybackReady(vgm) {
         if (!engine) {
           engine = await createGenesisAudioEngine({
-            ym2612ModuleFactory,
+            ym2612ModuleFactory: activeYm2612ModuleFactory,
             segaPsgModuleFactory,
           });
           baseEngineWriteYm2612 = engine.writeYm2612.bind(engine);
         }
         if (typeof engine.setPsgMuted === "function") {
           engine.setPsgMuted(psgMuted);
+        }
+        if (typeof engine.setMonoMix === "function") {
+          engine.setMonoMix(monoMixEnabled);
         }
         if (!player) {
           player = new VgmPlayer(engine);
@@ -2064,8 +2145,77 @@
         pauseButton.disabled = !playing;
         resumeButton.disabled = !paused;
         stopButton.disabled = !hasBuffer || (!playing && !paused);
+        exportParseInfoButton.disabled = !hasBuffer || !lastParseInfo;
         exportSnapshotTfiButton.disabled = !hasBuffer;
         exportSnapshotButton.disabled = !hasBuffer;
+      }
+
+      function buildParseInfo(buffer, fileName, vgm) {
+        const commandUsage = Array.from(vgm.analyzeCommandUsage().entries()).map(([command, count]) => ({
+          command,
+          count,
+        }));
+        const dataBlocks = vgm.dataBlockSummary();
+        const specialCommands = vgm.analyzeSpecialCommands();
+        const pcmRamWrites = vgm.pcmRamWriteSummary();
+        const command92Context = vgm.analyzeCommandContext(0x92);
+        const previewParser = new Ym2612VGM(buffer, { logger: null });
+        const allCommands = [];
+        let timeSamples = 0;
+        try {
+          for (let index = 0; ; index += 1) {
+            const event = previewParser.step();
+            allCommands.push({
+              index,
+              timeSamples,
+              timeSeconds: timeSamples / 44100,
+              ...event,
+            });
+            if (event.type === "wait") {
+              timeSamples += event.samples;
+            }
+            if (event.type === "end") {
+              break;
+            }
+          }
+        } catch (error) {
+          allCommands.push({
+            index: allCommands.length,
+            timeSamples,
+            timeSeconds: timeSamples / 44100,
+            type: "error",
+            message: error.message,
+          });
+        }
+
+        return {
+          type: "tetorica-fm2612-parse-info",
+          createdAt: new Date().toISOString(),
+          sourceFile: fileName,
+          header: { ...vgm.header },
+          allCommands,
+          commandUsage,
+          dataBlocks,
+          specialCommands,
+          pcmRamWrites,
+          command92Context,
+        };
+      }
+
+      function downloadParseInfo() {
+        if (!lastParseInfo) {
+          return;
+        }
+        const json = JSON.stringify(lastParseInfo, null, 2);
+        const blob = new Blob([json], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const anchor = document.createElement("a");
+        anchor.href = url;
+        const stem = lastLoadedFileName.replace(/\.[^.]+$/, "") || "parse_info";
+        anchor.download = `${stem}_parse_info.json`;
+        anchor.click();
+        URL.revokeObjectURL(url);
+        setStatus("Exported parse info JSON.");
       }
 
       async function playCurrentVgm() {
@@ -2121,6 +2271,9 @@
       }
 
       function updateStreamingStatus(extra = "") {
+        if (!player) {
+          return;
+        }
         const stats = player.stats();
         const suffix = extra === "" ? "" : ` ${extra}`;
         setStatus(
@@ -2178,8 +2331,7 @@
           chunksQueued += 1;
         }
 
-        updatePlaybackButtons(player.stats());
-        updateStreamingStatus("(AudioWorklet)");
+        requestPlaybackUiRender("(AudioWorklet)");
 
         if (activeStream.workletQueuedFrames < targetFrames) {
           const statsAfter = player.stats();
@@ -2223,7 +2375,7 @@
           }
           if (data.ended) {
             stopActiveStream();
-            updatePlaybackButtons(player.stats());
+            requestPlaybackUiRender("");
             if (autoExportSnapshotCheckbox.checked) {
               downloadSnapshot("ended");
             }
@@ -2247,12 +2399,11 @@
           player.process(left, right, bufferSize);
           applyAnalyzerMuteToBuffer(left, right, bufferSize);
           const stats = player.stats();
-          updatePlaybackButtons(stats);
-          updateStreamingStatus("(ScriptProcessor)");
+          requestPlaybackUiRender("(ScriptProcessor)");
 
           if (!stats.playing && !stats.paused && stats.queuedFrames === 0) {
             stopActiveStream();
-            updatePlaybackButtons(stats);
+            requestPlaybackUiRender("");
             if (autoExportSnapshotCheckbox.checked) {
               downloadSnapshot("ended");
             }
@@ -2268,6 +2419,7 @@
         lastLoadedFileName = file.name;
         const buffer = await file.arrayBuffer();
         currentBuffer = null;
+        lastParseInfo = null;
         playButton.disabled = true;
         channelMonitor = createChannelMonitorState();
         renderChannelMonitor();
@@ -2324,6 +2476,7 @@
 
         commandsOutput.textContent = events.join("\n");
         currentBuffer = buffer;
+        lastParseInfo = buildParseInfo(buffer, file.name, vgm);
         extractedTfiPatches = extractTfiPatchesFromVgm(buffer);
         exportAllTfiButton.disabled = extractedTfiPatches.length === 0;
         updatePlaybackButtons({});
@@ -2382,6 +2535,10 @@
         }
       });
 
+      monoMixCheckbox.addEventListener("change", () => {
+        updateMonoMix();
+      });
+
       prefetchFactorSelect.addEventListener("change", () => {
         if (player && typeof player.setPrefetchFactor === "function") {
           player.setPrefetchFactor(Number(prefetchFactorSelect.value));
@@ -2396,6 +2553,10 @@
 
       exportAllTfiButton.addEventListener("click", () => {
         downloadAllTfiZip();
+      });
+
+      exportParseInfoButton.addEventListener("click", () => {
+        downloadParseInfo();
       });
 
       exportSnapshotTfiButton.addEventListener("click", () => {
