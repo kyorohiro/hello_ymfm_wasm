@@ -1,3 +1,16 @@
+FM synthesis can be difficult at first.
+It asks you to learn both parameter design and performance technique.
+
+The Sega Genesis / Mega Drive is a retro game console, but it includes the YM2612,
+a 4-operator, 6-channel FM sound chip.
+Compared with modern synth setups, that may look small, but it created a huge amount of memorable music and sound.
+
+A lot of that know-how still survives in VGM files made and preserved by enthusiasts.
+By reading and replaying them, we can study how people actually used the chip and how they shaped its sound.
+
+With Tetorica, we prepared an environment where you can try it directly from JavaScript.
+If that sounds interesting, let&apos;s keep going.
+
 # Tetorica FM2612 (hello_ymfm_wasm)
 
 This repository has three goals:
