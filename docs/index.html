@@ -74,6 +74,7 @@
 
     .card {
       display: block;
+      position: relative;
       text-decoration: none;
       color: inherit;
       border: 1px solid var(--line);
@@ -81,6 +82,32 @@
       padding: 18px;
       background: rgba(255, 255, 255, 0.45);
       transition: transform 140ms ease, box-shadow 140ms ease, border-color 140ms ease;
+    }
+
+    .card-primary-link {
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+    }
+
+    .card-engine-link {
+      position: relative;
+      z-index: 2;
+      display: block;
+      width: fit-content;
+      margin-top: 14px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: var(--accent-dark);
+      text-decoration: none;
+      background: rgba(255, 255, 255, 0.8);
+      padding: 3px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+    }
+
+    .card-engine-link:hover {
+      border-color: var(--accent);
     }
 
     .card:hover {
@@ -196,24 +223,30 @@
       <h2>Tetorica Tools</h2>
 
       <div class="grid">
-        <a class="card card-playground" href="./playground/index.html">
+        <div class="card card-playground">
+          <a class="card-primary-link" href="./playground/index.html" aria-label="YM2612 Playground"></a>
           <strong>YM2612 Playground</strong>
           Try a small JavaScript playground with <code>play()</code>, <code>beat()</code>, <code>liveLoop()</code>, and raw <code>fm</code> access.
-        </a>
+          <a class="card-engine-link" href="./playground/index.html?engine=nuked">Try with Nuked-OPN2 &rarr;</a>
+        </div>
       </div>
 
       <div class="grid">
-        <a class="card card-synth" href="./synth/index.html">
+        <div class="card card-synth">
+          <a class="card-primary-link" href="./synth/index.html" aria-label="YM2612 Synth Demo"></a>
           <strong>YM2612 Synth Demo</strong>
           Try a small YM2612Synth keyboard with a guitar-like PC key layout and preset switching.
-        </a>
+          <a class="card-engine-link" href="./synth/index.html?engine=nuked">Try with Nuked-OPN2 &rarr;</a>
+        </div>
       </div>
 
       <div class="grid">
-        <a class="card card-analyzer" href="./vgm_analyzer/index.html">
+        <div class="card card-analyzer">
+          <a class="card-primary-link" href="./vgm_analyzer/index.html" aria-label="FM2612 VGM Analyzer"></a>
           <strong>FM2612 VGM Analyzer</strong>
           Inspect parsed commands, watch 6 YM2612 channels, and export snapshot data or TFI patches.
-        </a>
+          <a class="card-engine-link" href="./vgm_analyzer/index.html?engine=nuked">Try with Nuked-OPN2 &rarr;</a>
+        </div>
       </div>
 
       <h2>Introduction</h2>
