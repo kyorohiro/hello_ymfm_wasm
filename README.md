@@ -1,4 +1,4 @@
-# About hello_ymfm_wasm
+# Tetorica FM2612 (hello_ymfm_wasm)
 
 This repository has three goals:
 
