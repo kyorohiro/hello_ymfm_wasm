@@ -1,0 +1,110 @@
+#!/bin/sh
+
+set -eu
+
+ROOT_DIR=$(CDPATH= cd -- "$(dirname "$0")/.." && pwd)
+RELEASE_DIR="${ROOT_DIR}/release"
+VERSION="${1:-dev}"
+STAGE_DIR="${RELEASE_DIR}/itch_vgm_analyzer_${VERSION}"
+ZIP_PATH="${RELEASE_DIR}/hello_ymfm_wasm_${VERSION}_itch_vgm_analyzer.zip"
+
+ANALYZER_DIR="${ROOT_DIR}/docs/vgm_analyzer"
+DOCS_JS_DIR="${ROOT_DIR}/docs/js"
+DOCS_GENERATED_DIR="${ROOT_DIR}/docs/generated"
+
+ANALYZER_FILES="
+index.html
+"
+
+JS_FILES="
+genesisaudioengine.js
+segapsg.js
+tfi.js
+vgm-output-worklet.js
+vgmplayer.js
+ym2612.js
+ym2612vgm.js
+"
+
+GENERATED_FILES="
+ym2612_wasm.js
+ym2612_wasm.wasm
+segapsg_wasm.js
+segapsg_wasm.wasm
+"
+
+if [ ! -d "${ANALYZER_DIR}" ]; then
+  echo "error: missing directory: ${ANALYZER_DIR}" >&2
+  exit 1
+fi
+
+if [ ! -d "${DOCS_JS_DIR}" ]; then
+  echo "error: missing directory: ${DOCS_JS_DIR}" >&2
+  exit 1
+fi
+
+if [ ! -d "${DOCS_GENERATED_DIR}" ]; then
+  echo "error: missing directory: ${DOCS_GENERATED_DIR}" >&2
+  exit 1
+fi
+
+mkdir -p "${RELEASE_DIR}"
+rm -rf "${STAGE_DIR}"
+rm -f "${ZIP_PATH}"
+mkdir -p "${STAGE_DIR}/js" "${STAGE_DIR}/generated"
+
+for file in ${ANALYZER_FILES}; do
+  src="${ANALYZER_DIR}/${file}"
+  dst="${STAGE_DIR}/${file}"
+
+  if [ ! -f "${src}" ]; then
+    echo "error: missing analyzer file: ${src}" >&2
+    exit 1
+  fi
+
+  cp "${src}" "${dst}"
+done
+
+for file in ${JS_FILES}; do
+  src="${DOCS_JS_DIR}/${file}"
+  dst="${STAGE_DIR}/js/${file}"
+
+  if [ ! -f "${src}" ]; then
+    echo "error: missing js file: ${src}" >&2
+    exit 1
+  fi
+
+  cp "${src}" "${dst}"
+done
+
+for file in ${GENERATED_FILES}; do
+  src="${DOCS_GENERATED_DIR}/${file}"
+  dst="${STAGE_DIR}/generated/${file}"
+
+  if [ ! -f "${src}" ]; then
+    echo "error: missing generated file: ${src}" >&2
+    exit 1
+  fi
+
+  cp "${src}" "${dst}"
+done
+
+# Make the analyzer runnable from itch.io as a standalone app.
+perl -0pi -e 's#<a class="link-button" href="\.\./index\.html">Back</a>##g' "${STAGE_DIR}/index.html"
+perl -0pi -e 's#"\.\./js/#"./js/#g; s#"\.\./generated/#"./generated/#g' \
+  "${STAGE_DIR}/index.html"
+perl -0pi -e 's#\.\./js/vgm-output-worklet\.js#./js/vgm-output-worklet.js#g' \
+  "${STAGE_DIR}/index.html"
+
+(
+  cd "${STAGE_DIR}"
+  zip -r "${ZIP_PATH}" .
+)
+
+echo "created stage: ${STAGE_DIR}"
+echo "created zip: ${ZIP_PATH}"
+echo "itch.io upload:"
+echo "  1. Create/Edit project"
+echo "  2. Set Kind of project to HTML"
+echo "  3. Upload ${ZIP_PATH}"
+echo "  4. Ensure index.html is the entry file"
