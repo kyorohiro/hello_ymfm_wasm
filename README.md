@@ -17,7 +17,7 @@ This repository has three goals:
 
 Release files are available here:
 
-- WebAssembly builds for YM2612
+- WebAssembly (wasm) builds for YM2612
 - JavaScript wrappers for browser-side use
 - browser demos and app-style tools
 
