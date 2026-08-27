@@ -11,6 +11,7 @@ STAGE_DIR="${RELEASE_DIR}/web_runtime_${VERSION}"
 
 WEB_DIR="${ROOT_DIR}/web"
 GENERATED_DIR="${ROOT_DIR}/docs/generated"
+LICENSE_FILE="${ROOT_DIR}/LICENSE"
 RUNTIME_FILES="
 genesisaudioengine.js
 looper.js
@@ -34,6 +35,11 @@ fi
 
 if [ ! -d "${GENERATED_DIR}" ]; then
   echo "error: missing directory: ${GENERATED_DIR}" >&2
+  exit 1
+fi
+
+if [ ! -f "${LICENSE_FILE}" ]; then
+  echo "error: missing file: ${LICENSE_FILE}" >&2
   exit 1
 fi
 
@@ -71,6 +77,7 @@ mkdir -p "${STAGE_DIR}/generated"
   cp "${GENERATED_DIR}/ym2612_wasm.wasm" "${STAGE_DIR}/generated/ym2612_wasm.wasm"
   cp "${GENERATED_DIR}/segapsg_wasm.js" "${STAGE_DIR}/generated/segapsg_wasm.js"
   cp "${GENERATED_DIR}/segapsg_wasm.wasm" "${STAGE_DIR}/generated/segapsg_wasm.wasm"
+  cp "${LICENSE_FILE}" "${STAGE_DIR}/LICENSE"
 
   cd "${STAGE_DIR}"
   zip -r "${OUTPUT_PATH}" .

@@ -12,6 +12,7 @@ SOURCE_HTML="${ROOT_DIR}/docs/synth/index.html"
 SOURCE_JS="${ROOT_DIR}/docs/synth/synth.js"
 SOURCE_JS_DIR="${ROOT_DIR}/docs/js"
 SOURCE_GENERATED_DIR="${ROOT_DIR}/docs/generated"
+LICENSE_FILE="${ROOT_DIR}/LICENSE"
 SYNTH_SUPPORT_DIR="${ROOT_DIR}/docs/synth"
 SYNTH_FILES="
 synth.js
@@ -50,6 +51,11 @@ fi
 
 if [ ! -d "${SOURCE_GENERATED_DIR}" ]; then
   echo "error: missing directory: ${SOURCE_GENERATED_DIR}" >&2
+  exit 1
+fi
+
+if [ ! -f "${LICENSE_FILE}" ]; then
+  echo "error: missing file: ${LICENSE_FILE}" >&2
   exit 1
 fi
 
@@ -92,6 +98,7 @@ done
 
 cp "${SOURCE_GENERATED_DIR}/ym2612_wasm.js" "${STAGE_DIR}/generated/ym2612_wasm.js"
 cp "${SOURCE_GENERATED_DIR}/ym2612_wasm.wasm" "${STAGE_DIR}/generated/ym2612_wasm.wasm"
+cp "${LICENSE_FILE}" "${STAGE_DIR}/LICENSE"
 
 perl -0pi -e 's#import "\\./synth\\.js";#import "./synth.js";#g' "${STAGE_DIR}/index.html"
 perl -0pi -e 's#\.\./js/([A-Za-z0-9._-]+\.js)#./js/$1#g; s#\.\./generated/#./generated/#g' "${STAGE_DIR}/synth.js"

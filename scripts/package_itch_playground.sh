@@ -12,6 +12,7 @@ PLAYGROUND_DIR="${ROOT_DIR}/docs/playground"
 DOCS_JS_DIR="${ROOT_DIR}/docs/js"
 DOCS_SYNTH_DIR="${ROOT_DIR}/docs/synth"
 DOCS_GENERATED_DIR="${ROOT_DIR}/docs/generated"
+LICENSE_FILE="${ROOT_DIR}/LICENSE"
 
 PLAYGROUND_FILES="
 index.html
@@ -69,6 +70,11 @@ if [ ! -d "${DOCS_GENERATED_DIR}" ]; then
   exit 1
 fi
 
+if [ ! -f "${LICENSE_FILE}" ]; then
+  echo "error: missing file: ${LICENSE_FILE}" >&2
+  exit 1
+fi
+
 mkdir -p "${RELEASE_DIR}"
 rm -rf "${STAGE_DIR}"
 rm -f "${ZIP_PATH}"
@@ -121,6 +127,8 @@ for file in ${GENERATED_FILES}; do
 
   cp "${src}" "${dst}"
 done
+
+cp "${LICENSE_FILE}" "${STAGE_DIR}/LICENSE"
 
 # Make the playground runnable from itch.io as a standalone app.
 perl -0pi -e 's#<a class="link-button" href="\.\./index\.html">Back</a>##g' \

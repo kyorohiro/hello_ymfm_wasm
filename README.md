@@ -41,10 +41,19 @@ This is the easiest way to test YM2612 control, sound design, and Genesis-orient
 
 - [https://kyorohiro.itch.io](https://kyorohiro.itch.io)
 
-## Reference
+## License and Attribution
 
-This project uses [ymfm](https://github.com/aaronsgiles/ymfm) by Aaron Giles under the BSD 3-Clause License.
-See `LICENSE` for the license text included with this repository.
+This repository uses the BSD 3-Clause License for both the upstream ymfm-derived parts and the original files added in this project.
+It uses [ymfm](https://github.com/aaronsgiles/ymfm) by Aaron Giles, and this repository also includes original work by kyorohiro under the same BSD 3-Clause License.
+This repository includes the license text in `LICENSE`, and the packaged release files also include `LICENSE`.
+
+The following files and directories in this repository are ymfm-originated works:
+
+- `src/` except `src/segapsg.h` and `src/segapsg.cpp`
+- `examples/`
+- [GeneralInfo.md](https://github.com/aaronsgiles/ymfm/blob/main/GeneralInfo.md)
+
+## Links
 
 - `ymfm` repository:
   - https://github.com/aaronsgiles/ymfm

@@ -11,6 +11,7 @@ ZIP_PATH="${RELEASE_DIR}/hello_ymfm_wasm_${VERSION}_itch_vgm_analyzer.zip"
 ANALYZER_DIR="${ROOT_DIR}/docs/vgm_analyzer"
 DOCS_JS_DIR="${ROOT_DIR}/docs/js"
 DOCS_GENERATED_DIR="${ROOT_DIR}/docs/generated"
+LICENSE_FILE="${ROOT_DIR}/LICENSE"
 
 ANALYZER_FILES="
 index.html
@@ -45,6 +46,11 @@ fi
 
 if [ ! -d "${DOCS_GENERATED_DIR}" ]; then
   echo "error: missing directory: ${DOCS_GENERATED_DIR}" >&2
+  exit 1
+fi
+
+if [ ! -f "${LICENSE_FILE}" ]; then
+  echo "error: missing file: ${LICENSE_FILE}" >&2
   exit 1
 fi
 
@@ -88,6 +94,8 @@ for file in ${GENERATED_FILES}; do
 
   cp "${src}" "${dst}"
 done
+
+cp "${LICENSE_FILE}" "${STAGE_DIR}/LICENSE"
 
 # Make the analyzer runnable from itch.io as a standalone app.
 perl -0pi -e 's#<a class="link-button" href="\.\./index\.html">Back</a>##g' "${STAGE_DIR}/index.html"
