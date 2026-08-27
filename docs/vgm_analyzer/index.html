@@ -305,6 +305,27 @@
         gap: 14px;
       }
 
+      .noteish-overview {
+        margin: 0 0 18px;
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        padding: 14px 16px;
+        background: rgba(255, 255, 255, 0.56);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.55);
+      }
+
+      .noteish-overview svg {
+        display: block;
+        width: 100%;
+        height: 210px;
+      }
+
+      .noteish-overview-caption {
+        margin: 0 0 10px;
+        font-size: 0.9rem;
+        color: #5b4a33;
+      }
+
       .noteish-card {
         border: 1px solid var(--line);
         border-radius: 18px;
@@ -481,6 +502,10 @@
             Rough note estimate from each channel's current BLOCK and FNUM.
             It ignores operator MULTI / DT, channel 3 special mode, and pitch LFO.
           </p>
+          <div class="noteish-overview">
+            <p class="noteish-overview-caption">Top graph: time on X, pitch range on Y, CH1 to CH6 overlaid.</p>
+            <div id="noteishOverview"></div>
+          </div>
           <div id="noteishGrid" class="noteish-grid"></div>
         </section>
 
@@ -549,6 +574,7 @@
       const operatorInfoPanel = document.getElementById("operatorInfoPanel");
       const parsedOutputPanel = document.getElementById("parsedOutputPanel");
       const noteishPanel = document.getElementById("noteishPanel");
+      const noteishOverview = document.getElementById("noteishOverview");
       const noteishGrid = document.getElementById("noteishGrid");
 
       let currentBuffer = null;
@@ -879,6 +905,16 @@
           return;
         }
         const now = performance.now();
+        const lastPoint = channel.noteHistory[channel.noteHistory.length - 1] ?? null;
+        if (
+          lastPoint &&
+          lastPoint.midiFloat === midiFloat &&
+          (now - lastPoint.time) < 45
+        ) {
+          lastPoint.time = now;
+          pruneChannelNoteHistory(channel, now);
+          return;
+        }
         channel.noteHistory.push({
           time: now,
           midiFloat,
@@ -948,6 +984,7 @@
         }
 
         let historySvg = "";
+        let historyDotsSvg = "";
         let lastPoint = null;
         for (const point of channel.noteHistory) {
           if (point.midiFloat === null) {
@@ -961,6 +998,8 @@
               ((clamp(point.midiFloat, NOTEISH_GRAPH_MIN_MIDI, NOTEISH_GRAPH_MAX_MIDI) - NOTEISH_GRAPH_MIN_MIDI) /
                 (NOTEISH_GRAPH_MAX_MIDI - NOTEISH_GRAPH_MIN_MIDI)) * 20
             );
+          const opacity = Math.max(0.18, 1 - (age / NOTEISH_HISTORY_WINDOW_MS));
+          historyDotsSvg += `<circle cx="${x}" cy="${y}" r="1.9" fill="rgba(98,215,221,${opacity.toFixed(3)})" />`;
           if (lastPoint) {
             historySvg += `<line x1="${lastPoint.x}" y1="${lastPoint.y}" x2="${x}" y2="${y}" stroke="#62d7dd" stroke-width="2" stroke-linecap="round" />`;
           }
@@ -973,7 +1012,94 @@
             ${tickSvg}
             ${rangeSvg}
             ${historySvg}
+            ${historyDotsSvg}
             ${currentSvg}
+          </svg>
+        `;
+      }
+
+      function noteishOverviewY(midiFloat) {
+        const normalized =
+          (clamp(midiFloat, NOTEISH_GRAPH_MIN_MIDI, NOTEISH_GRAPH_MAX_MIDI) - NOTEISH_GRAPH_MIN_MIDI) /
+          (NOTEISH_GRAPH_MAX_MIDI - NOTEISH_GRAPH_MIN_MIDI);
+        return 176 - (normalized * 144);
+      }
+
+      function renderNoteishOverviewGraph() {
+        const now = performance.now();
+        const ticks = [24, 36, 48, 60, 72, 84, 96];
+        const tickLabels = ["C1", "C2", "C3", "C4", "C5", "C6", "C7"];
+        const channelColors = [
+          "#e77f67",
+          "#f2b15c",
+          "#7fdc86",
+          "#72a8ff",
+          "#bd86ff",
+          "#62d7dd",
+        ];
+
+        const horizontalTicks = ticks.map((tick, index) => {
+          const y = noteishOverviewY(tick);
+          return `
+            <line x1="42" y1="${y}" x2="736" y2="${y}" stroke="rgba(91,74,51,0.12)" stroke-width="1" />
+            <text x="36" y="${y + 4}" text-anchor="end" font-size="11" fill="#7a6547">${tickLabels[index]}</text>
+          `;
+        }).join("");
+
+        const verticalTicks = [0, 2, 4, 6, 8].map((seconds) => {
+          const x = 42 + ((seconds / 8) * 694);
+          const label = seconds === 8 ? "now" : `-${8 - seconds}s`;
+          return `
+            <line x1="${x}" y1="24" x2="${x}" y2="176" stroke="rgba(91,74,51,0.12)" stroke-width="1" />
+            <text x="${x}" y="196" text-anchor="middle" font-size="11" fill="#7a6547">${label}</text>
+          `;
+        }).join("");
+
+        let channelSvg = "";
+        channelMonitor.forEach((channel, index) => {
+          pruneChannelNoteHistory(channel, now);
+          let lastPoint = null;
+          let path = "";
+          let dots = "";
+          for (const point of channel.noteHistory) {
+            if (point.midiFloat === null) {
+              lastPoint = null;
+              continue;
+            }
+            const age = now - point.time;
+            const x = 42 + (694 * (1 - clamp(age / NOTEISH_HISTORY_WINDOW_MS, 0, 1)));
+            const y = noteishOverviewY(point.midiFloat);
+            const opacity = Math.max(0.14, 1 - (age / NOTEISH_HISTORY_WINDOW_MS));
+            dots += `<circle cx="${x}" cy="${y}" r="1.8" fill="${channelColors[index]}" fill-opacity="${opacity.toFixed(3)}" />`;
+            if (lastPoint) {
+              path += `<line x1="${lastPoint.x}" y1="${lastPoint.y}" x2="${x}" y2="${y}" stroke="${channelColors[index]}" stroke-width="2.5" stroke-linecap="round" />`;
+            }
+            lastPoint = { x, y };
+          }
+
+          const latest = channel.noteHistory[channel.noteHistory.length - 1];
+          let marker = "";
+          if (latest && latest.midiFloat !== null) {
+            const age = now - latest.time;
+            const x = 42 + (694 * (1 - clamp(age / NOTEISH_HISTORY_WINDOW_MS, 0, 1)));
+            const y = noteishOverviewY(latest.midiFloat);
+            marker = `<circle cx="${x}" cy="${y}" r="4.5" fill="${channelColors[index]}" />`;
+          }
+
+          channelSvg += `
+            ${path}
+            ${dots}
+            ${marker}
+            <text x="${708 + (index % 2) * 34}" y="${34 + Math.floor(index / 2) * 18}" font-size="11" fill="${channelColors[index]}">CH${index + 1}</text>
+          `;
+        });
+
+        noteishOverview.innerHTML = `
+          <svg viewBox="0 0 760 210" aria-hidden="true">
+            <rect x="42" y="24" width="694" height="152" rx="10" fill="rgba(255,255,255,0.35)" stroke="rgba(91,74,51,0.18)" />
+            ${horizontalTicks}
+            ${verticalTicks}
+            ${channelSvg}
           </svg>
         `;
       }
@@ -984,6 +1110,7 @@
           return;
         }
         lastNoteishSignature = signature;
+        renderNoteishOverviewGraph();
         noteishGrid.innerHTML = "";
 
         for (const channel of channelMonitor) {
