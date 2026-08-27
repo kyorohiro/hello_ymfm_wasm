@@ -192,9 +192,37 @@
       let player = null;
       let activeStream = null;
       let workletModuleReady = false;
+      let playbackUiDirty = false;
+      let playbackUiRenderScheduled = false;
+      let lastStreamingStatusSuffix = "";
+      let lastStreamingStatusAt = 0;
 
       function setStatus(message) {
         status.textContent = message;
+      }
+
+      function requestPlaybackUiRender(extra = "") {
+        lastStreamingStatusSuffix = extra;
+        playbackUiDirty = true;
+        if (playbackUiRenderScheduled) {
+          return;
+        }
+        playbackUiRenderScheduled = true;
+        window.requestAnimationFrame(() => {
+          playbackUiRenderScheduled = false;
+          if (!playbackUiDirty) {
+            return;
+          }
+          playbackUiDirty = false;
+          const stats = player ? player.stats() : {};
+          updatePlaybackButtons(stats);
+          const now = performance.now();
+          const activePlayback = Boolean(stats.playing || stats.paused || stats.queuedFrames > 0);
+          if (!activePlayback || (now - lastStreamingStatusAt) >= 120) {
+            updateStreamingStatus(lastStreamingStatusSuffix);
+            lastStreamingStatusAt = now;
+          }
+        });
       }
 
       function formatHex(value, width = 2) {
@@ -347,6 +375,9 @@
       }
 
       function updateStreamingStatus(extra = "") {
+        if (!player) {
+          return;
+        }
         const stats = player.stats();
         const suffix = extra === "" ? "" : ` ${extra}`;
         setStatus(
@@ -380,8 +411,7 @@
           );
         }
 
-        updatePlaybackButtons(player.stats());
-        updateStreamingStatus("(AudioWorklet)");
+        requestPlaybackUiRender("(AudioWorklet)");
       }
 
       async function startWorkletStream(sampleRate) {
@@ -418,7 +448,7 @@
           }
           if (data.ended) {
             stopActiveStream();
-            updatePlaybackButtons(player.stats());
+            requestPlaybackUiRender("");
             setStatus("Ready.");
             return;
           }
@@ -438,12 +468,11 @@
           const right = event.outputBuffer.getChannelData(1);
           player.process(left, right, bufferSize);
           const stats = player.stats();
-          updatePlaybackButtons(stats);
-          updateStreamingStatus("(ScriptProcessor)");
+          requestPlaybackUiRender("(ScriptProcessor)");
 
           if (!stats.playing && !stats.paused && stats.queuedFrames === 0) {
             stopActiveStream();
-            updatePlaybackButtons(stats);
+            requestPlaybackUiRender("");
             setStatus("Ready.");
           }
         };
