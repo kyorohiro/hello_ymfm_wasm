@@ -204,15 +204,24 @@
       <section class="panel">
         <h1>Sega Genesis / Mega Drive YM2612 FM Introduction with JavaScript</h1>
         <p>
-          The YM2612 is the FM sound chip Sega put in the Mega Drive / Genesis.
-          It does not record or sample sound &mdash; it builds every tone from scratch, sample by sample,
-          out of sine waves that modulate each other. That technique is called FM (frequency modulation)
-          synthesis, and it is why the Mega Drive has its own distinct, slightly metallic voice compared to
-          consoles that used sampled or subtractive-synth chips.
+          FM synthesis can be difficult at first.
+          It asks you to learn both parameter design and performance technique.
         </p>
         <p>
-          This repository exists to understand that chip: how its registers work, how <a href="https://github.com/aaronsgiles/ymfm">ymfm</a>
-          (the emulation core this project builds on) exposes it, and how to hear it directly in a browser.
+          The Sega Genesis / Mega Drive is a retro game console, but it includes the YM2612,
+          a 4-operator, 6-channel FM sound chip.
+          Compared with modern synth setups, that may look small, but it created a huge amount of memorable music and sound.
+        </p>
+        <p>
+          A lot of that know-how still survives in VGM files made and preserved by enthusiasts.
+          By reading and replaying them, we can study how people actually used the chip and how they shaped its sound.
+        </p>
+        <p>
+          Today, even this small 4-operator, 6-channel setup feels like an interesting starting point for learning FM.
+          With Tetorica, we prepared an environment where you can try it directly from JavaScript.
+        </p>
+        <p>
+          If that sounds interesting, let&apos;s keep going.
         </p>
       </section>
 
