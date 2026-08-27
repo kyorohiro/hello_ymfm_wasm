@@ -487,10 +487,6 @@
           <a class="link-button" href="../index.html">Back</a>
         </div>
         <div class="sub-actions">
-          <label for="tfiPatchSelect">TFI Patch</label>
-          <select id="tfiPatchSelect" aria-label="TFI patch">
-            <option value="">No patch</option>
-          </select>
           <label for="prefetchFactorSelect">VGM queue</label>
           <select id="prefetchFactorSelect" aria-label="VGM queue length">
             <option value="1">x1</option>
@@ -505,12 +501,10 @@
             <option value="3">x3</option>
             <option value="4">x4</option>
           </select>
-          <button id="exportTfiButton" type="button" disabled>Export TFI</button>
           <button id="exportAllTfiButton" type="button" disabled>Export All TFI ZIP</button>
           <button id="exportSnapshotTfiButton" type="button" disabled>Export Snapshot TFI</button>
           <button id="exportSnapshotButton" type="button" disabled>Export Snapshot</button>
           <label><input id="autoExportSnapshotCheckbox" type="checkbox"> Auto export on end</label>
-          <span id="tfiSummary">No TFI-ready patch yet.</span>
         </div>
         <div class="status" id="status">Choose a .vgm file for analysis.</div>
 
@@ -620,15 +614,12 @@
       const stopButton = document.getElementById("stopButton");
       const loopCheckbox = document.getElementById("loopCheckbox");
       const monitorToggles = document.getElementById("monitorToggles");
-      const tfiPatchSelect = document.getElementById("tfiPatchSelect");
       const prefetchFactorSelect = document.getElementById("prefetchFactorSelect");
       const workletQueueSelect = document.getElementById("workletQueueSelect");
-      const exportTfiButton = document.getElementById("exportTfiButton");
       const exportAllTfiButton = document.getElementById("exportAllTfiButton");
       const exportSnapshotTfiButton = document.getElementById("exportSnapshotTfiButton");
       const exportSnapshotButton = document.getElementById("exportSnapshotButton");
       const autoExportSnapshotCheckbox = document.getElementById("autoExportSnapshotCheckbox");
-      const tfiSummary = document.getElementById("tfiSummary");
       const status = document.getElementById("status");
       const channelGrid = document.getElementById("channelGrid");
       const headerOutput = document.getElementById("headerOutput");
@@ -1763,61 +1754,6 @@
         return patches;
       }
 
-      function updateTfiPatchOptions() {
-        tfiPatchSelect.innerHTML = "";
-
-        if (extractedTfiPatches.length === 0) {
-          const option = document.createElement("option");
-          option.value = "";
-          option.textContent = "No patch";
-          tfiPatchSelect.append(option);
-          return;
-        }
-
-        for (const patch of extractedTfiPatches) {
-          const option = document.createElement("option");
-          option.value = patch.id;
-          option.textContent = patch.label;
-          tfiPatchSelect.append(option);
-        }
-      }
-
-      function currentSelectedPatch() {
-        const patchId = tfiPatchSelect.value;
-        return extractedTfiPatches.find((patch) => patch.id === patchId) ?? null;
-      }
-
-      function updateTfiSummary() {
-        const patch = currentSelectedPatch();
-        if (!currentBuffer || !patch) {
-          tfiSummary.textContent = "No TFI-ready patch yet.";
-          exportTfiButton.disabled = true;
-          exportAllTfiButton.disabled = extractedTfiPatches.length === 0;
-          return;
-        }
-
-        tfiSummary.textContent = `TFI ready from ${patch.label} (ALGO ${patch.preset.algorithm}, FB ${patch.preset.feedback}).`;
-        exportTfiButton.disabled = false;
-        exportAllTfiButton.disabled = false;
-      }
-
-      function downloadTfi() {
-        const patch = currentSelectedPatch();
-        if (!currentBuffer || !patch) {
-          return;
-        }
-
-        const bytes = createTfiFromPreset(patch.preset);
-        const blob = new Blob([bytes], { type: "application/octet-stream" });
-        const url = URL.createObjectURL(blob);
-        const anchor = document.createElement("a");
-        anchor.href = url;
-        anchor.download = `${patch.label}.tfi`;
-        anchor.click();
-        URL.revokeObjectURL(url);
-        setStatus(`Exported ${patch.label} as TFI.`);
-      }
-
       function crc32(bytes) {
         let crc = 0xffffffff;
         for (const value of bytes) {
@@ -2389,8 +2325,7 @@
         commandsOutput.textContent = events.join("\n");
         currentBuffer = buffer;
         extractedTfiPatches = extractTfiPatchesFromVgm(buffer);
-        updateTfiPatchOptions();
-        updateTfiSummary();
+        exportAllTfiButton.disabled = extractedTfiPatches.length === 0;
         updatePlaybackButtons({});
         setStatus(`Parsed ${file.name}.`);
       }
@@ -2457,14 +2392,6 @@
       workletQueueSelect.addEventListener("change", () => {
         workletQueueMultiplier = Number(workletQueueSelect.value) || 2;
         flushPendingAudio();
-      });
-
-      tfiPatchSelect.addEventListener("change", () => {
-        updateTfiSummary();
-      });
-
-      exportTfiButton.addEventListener("click", () => {
-        downloadTfi();
       });
 
       exportAllTfiButton.addEventListener("click", () => {
@@ -2537,8 +2464,7 @@
         notesDialog.close();
       });
 
-      updateTfiPatchOptions();
-      updateTfiSummary();
+      exportAllTfiButton.disabled = extractedTfiPatches.length === 0;
       ensureChannelMonitorRenderTimer();
       ensureNoteishRenderTimer();
       renderChannelMonitor();
