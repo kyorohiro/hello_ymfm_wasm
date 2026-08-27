@@ -9,7 +9,7 @@ This repository has three goals:
 ## What this repository provides
 
 - YM2612 WebAssembly builds and JavaScript wrappers for browser-side use
-- a browser playground for trying YM2612 control from JavaScript
+- a browser playground for trying YM2612 control and live coding from JavaScript
 - a browser synth app for hands-on YM2612 sound design
 - a Genesis-oriented VGM analyzer for playback, inspection, and patch extraction
 
