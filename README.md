@@ -80,6 +80,8 @@ The following files and directories in this repository are ymfm-originated works
   - https://github.com/jamatarmusic/GENajam
 - megatoy:
   - https://github.com/ulalume/megatoy
+- Maple's Garden article:
+  - https://another.maple4ever.net/archives/3027/
 - VGM specification:
   - https://vgmrips.net/wiki/VGM_Specification
 - SMS Power:
