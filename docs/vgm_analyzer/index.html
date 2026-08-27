@@ -236,6 +236,18 @@
         }
       }
 
+      .engine-badge {
+        display: inline-block;
+        margin-left: 10px;
+        padding: 2px 10px;
+        border-radius: 999px;
+        font-size: 0.7rem;
+        font-weight: 700;
+        vertical-align: middle;
+        color: white;
+        background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+      }
+
       .tabbar {
         display: flex;
         align-items: center;
@@ -475,7 +487,7 @@
   <body>
     <main>
       <section class="panel">
-        <h1>Tetorica FM2612 VGM Analyzer</h1>
+        <h1 id="pageTitle">Tetorica FM2612 VGM Analyzer</h1>
         <div class="actions">
           <input id="fileInput" type="file" accept=".vgm,.vgz,application/octet-stream">
           <button id="playButton" type="button" disabled>Play VGM</button>
@@ -604,9 +616,28 @@
       import { Ym2612VGM } from "../js/ym2612vgm.js";
       import { createTfiFromPreset } from "../js/tfi.js";
       import ym2612ModuleFactory from "../generated/ym2612_wasm.js";
+      import nukedOpn2ModuleFactory from "../generated/nuked_opn2_wasm.js";
       import segaPsgModuleFactory from "../generated/segapsg_wasm.js";
       import { createGenesisAudioEngine } from "../js/genesisaudioengine.js";
       import { VgmPlayer } from "../js/vgmplayer.js";
+
+      // Experimental: ?engine=nuked swaps the YM2612 core for Nuked-OPN2
+      // (https://github.com/nukeykt/Nuked-OPN2) instead of the default ymfm
+      // backend. Same web/ym2612.js and web/ym2612synth.js code either way.
+      const useNukedEngine =
+        new URLSearchParams(window.location.search).get("engine") ===
+        "nuked";
+      const activeYm2612ModuleFactory = useNukedEngine
+        ? nukedOpn2ModuleFactory
+        : ym2612ModuleFactory;
+
+      if (useNukedEngine) {
+        const pageTitle = document.getElementById("pageTitle");
+        const badge = document.createElement("span");
+        badge.className = "engine-badge";
+        badge.textContent = "Nuked-OPN2 engine";
+        pageTitle?.appendChild(badge);
+      }
 
       const fileInput = document.getElementById("fileInput");
       const playButton = document.getElementById("playButton");
@@ -2057,7 +2088,7 @@
       async function ensurePlaybackReady(vgm) {
         if (!engine) {
           engine = await createGenesisAudioEngine({
-            ym2612ModuleFactory,
+            ym2612ModuleFactory: activeYm2612ModuleFactory,
             segaPsgModuleFactory,
           });
           baseEngineWriteYm2612 = engine.writeYm2612.bind(engine);
