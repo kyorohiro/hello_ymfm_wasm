@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 520" role="img" aria-labelledby="title desc">
+  <title id="title">ADSR envelope diagram</title>
+  <desc id="desc">Attack, Decay, Sustain, and Release envelope guide for YM2612-style sound design.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0%" stop-color="#f1f3f2" />
+      <stop offset="26%" stop-color="#c8d2e2" />
+      <stop offset="62%" stop-color="#90a3c4" />
+      <stop offset="100%" stop-color="#e4e8ee" />
+    </linearGradient>
+    <style>
+      .label { font: 700 22px Arial, sans-serif; fill: #071224; }
+      .small { font: 700 18px Arial, sans-serif; fill: #071224; }
+      .axis { stroke: #071224; stroke-width: 5; }
+      .env { fill: none; stroke: #071224; stroke-width: 8; }
+      .guide { stroke: #071224; stroke-width: 3; stroke-dasharray: 7 7; opacity: 0.8; }
+      .arrow { stroke: #071224; stroke-width: 3; fill: none; }
+    </style>
+    <marker id="arrowhead" markerWidth="10" markerHeight="10" refX="7" refY="3.5" orient="auto">
+      <polygon points="0 0, 8 3.5, 0 7" fill="#071224" />
+    </marker>
+  </defs>
+
+  <rect width="960" height="520" fill="url(#bg)" />
+
+  <line x1="60" y1="430" x2="860" y2="430" class="axis" />
+  <line x1="60" y1="430" x2="60" y2="90" class="axis" />
+
+  <polyline points="120,430 300,140 470,240 650,240 820,430" class="env" />
+
+  <line x1="300" y1="140" x2="300" y2="430" class="guide" />
+  <line x1="470" y1="240" x2="470" y2="430" class="guide" />
+  <line x1="650" y1="240" x2="650" y2="430" class="guide" />
+
+  <text x="140" y="288" class="label" transform="rotate(-90 24 278)">Level</text>
+  <text x="802" y="475" class="label">Time</text>
+
+  <text x="68" y="55" class="small">fm.noteOn</text>
+  <text x="614" y="55" class="small">fm.noteOff</text>
+
+  <line x1="120" y1="72" x2="120" y2="338" class="arrow" marker-end="url(#arrowhead)" />
+  <line x1="654" y1="72" x2="654" y2="208" class="arrow" marker-end="url(#arrowhead)" />
+
+  <text x="205" y="318" class="label">A</text>
+  <text x="372" y="318" class="label">D</text>
+
+  <text x="552" y="318" class="label">S</text>
+
+  <text x="728" y="318" class="label">R</text>
+
+</svg>

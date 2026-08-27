@@ -206,6 +206,21 @@
         opacity: 0.82;
       }
 
+      .diagram {
+        margin: 20px 0 18px;
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        padding: 12px;
+        background: rgba(255, 255, 255, 0.42);
+      }
+
+      .diagram img {
+        display: block;
+        width: 100%;
+        height: auto;
+        border-radius: 12px;
+      }
+
       .grid {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
@@ -329,11 +344,30 @@
       </section>
 
       <section class="panel">
-        <h2>What <code>fm.setPreset()</code> Actually Sets</h2>
+        <h2>FM Sound Magic.</h2>
+        <p>
+          A good next step is ADSR: <strong>Attack</strong>, <strong>Decay</strong>,
+          <strong>Sustain</strong>, and <strong>Release</strong>.
+          This is the part that makes a sound feel like a pluck, a bell, an organ, a brass hit,
+          or something soft and slow.
+        </p>
+        <p>
+          On the YM2612, those ideas are controlled with parameters such as
+          <code>AR</code>, <code>D1R</code>, <code>D2R</code>, <code>SL</code>, and <code>RR</code>.
+          They decide how fast the sound rises, how it falls after the peak, how long it stays,
+          and how it disappears after key off.
+        </p>
+        <div class="diagram">
+          <img src="./adsr_diagram.svg" alt="ADSR envelope diagram">
+        </div>
+        <p>
+          There are more parameters too, such as <code>DT</code>, <code>MULTI</code>, and <code>TL</code>.
+          But first, here is a small example patch so you can see what "setting a sound" looks like in code.
+        </p>
         <iframe
           class="playground-frame"
           src="../playground/index.html?mode=simple&src=Zm0ucmVzZXQoKTsKCi8vIFNhbWUgNC1vcGVyYXRvciBwYXRjaCBhcyBNRUdBRFJJVkVfRk1fUFJFU0VUU1sib25lLW9wLWJhc2ljIl0sCi8vIHdyaXR0ZW4gb3V0IGJ5IGhhbmQgaW5zdGVhZCBvZiB1c2luZyBmbS5zZXRQcmVzZXQoKS4KZm0uc2V0QWxnbyhDSDEsIDcsIDApOwoKLy8gT1AxLCBPUDIsIE9QMzogdGwgPSAxMjcgbWVhbnMgImFzIHF1aWV0IGFzIHBvc3NpYmxlIiAtPiBlZmZlY3RpdmVseSBzaWxlbnQuCmZtLnNldE9wZXJhdG9yKENIMSwgT1AxLCB7IGR0OiAwLCBtdWx0aTogMSwgdGw6IDEyNywgYXI6IDMxLCBkMXI6IDAsIGQycjogMCwgc2w6IDAsIHJyOiAxNSB9KTsKZm0uc2V0T3BlcmF0b3IoQ0gxLCBPUDIsIHsgZHQ6IDAsIG11bHRpOiAxLCB0bDogMTI3LCBhcjogMzEsIGQxcjogMCwgZDJyOiAwLCBzbDogMCwgcnI6IDE1IH0pOwpmbS5zZXRPcGVyYXRvcihDSDEsIE9QMywgeyBkdDogMCwgbXVsdGk6IDEsIHRsOiAxMjcsIGFyOiAzMSwgZDFyOiAwLCBkMnI6IDAsIHNsOiAwLCBycjogMTUgfSk7CgovLyBPUDQgaXMgdGhlIG9ubHkgb25lIHRoYXQgYWN0dWFsbHkgbWFrZXMgc291bmQuCmZtLnNldE9wZXJhdG9yKENIMSwgT1A0LCB7IGR0OiAwLCBtdWx0aTogMSwgdGw6IDgsIGFyOiAyMiwgZDFyOiA2LCBkMnI6IDMsIHNsOiAzLCBycjogOCB9KTsKCmNvbnN0IG5vdGVzID0gWyJDNCIsICJENCIsICJFNCIsICJGNCIsICJHNCIsICJBNCIsICJCNCIsICJDNSJdOwoKZm9yIChjb25zdCBub3RlIG9mIG5vdGVzKSB7CiAgYXdhaXQgcGxheShub3RlLCB7IGNoYW5uZWw6IENIMSwgZHVyYXRpb246IDAuMyB9KTsKICBhd2FpdCBzbGVlcCgwLjEpOwp9Cg"
-          title="fm.setOperator() example"
+          title="FM sound patch example"
           allow="autoplay"
           loading="lazy"
           style="height: 620px;"
