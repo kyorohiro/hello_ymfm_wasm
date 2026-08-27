@@ -361,6 +361,16 @@
         color: #4f4130;
       }
 
+      .noteish-graph {
+        margin: 0 0 10px;
+      }
+
+      .noteish-graph svg {
+        display: block;
+        width: 100%;
+        height: 54px;
+      }
+
       .noteish-help {
         margin: 0 0 16px;
         line-height: 1.5;
@@ -567,6 +577,9 @@
       const NOTEISH_REFERENCE_MIDI = 62;
       const NOTEISH_REFERENCE_BLOCK = 4;
       const NOTEISH_REFERENCE_FNUM = 553;
+      const NOTEISH_GRAPH_MIN_MIDI = 24;
+      const NOTEISH_GRAPH_MAX_MIDI = 96;
+      const NOTEISH_HISTORY_WINDOW_MS = 8000;
 
       const DEFAULT_OPERATOR_PRESET = Object.freeze({
         multi: 1,
@@ -665,6 +678,9 @@
           feedback: 0,
           block: 0,
           fnum: 0,
+          noteMinMidi: null,
+          noteMaxMidi: null,
+          noteHistory: [],
           muted: channelMuteStates[index],
           b4Value: 0xc0,
           changedAt: {
@@ -814,6 +830,7 @@
         if (channel.fnum <= 0) {
           return {
             note: "No pitch",
+            midiFloat: null,
             cents: null,
           };
         }
@@ -827,8 +844,46 @@
         const roundedMidi = Math.round(midiFloat);
         return {
           note: `~${midiToNoteName(roundedMidi)}`,
+          midiFloat,
           cents: Math.round((midiFloat - roundedMidi) * 100),
         };
+      }
+
+      function updateChannelObservedRange(channelIndex) {
+        const channel = channelMonitor[channelIndex];
+        if (!channel || !channel.keyOn) {
+          return;
+        }
+        const estimated = estimateChannelNoteish(channel);
+        if (estimated.midiFloat === null) {
+          return;
+        }
+        if (channel.noteMinMidi === null || estimated.midiFloat < channel.noteMinMidi) {
+          channel.noteMinMidi = estimated.midiFloat;
+        }
+        if (channel.noteMaxMidi === null || estimated.midiFloat > channel.noteMaxMidi) {
+          channel.noteMaxMidi = estimated.midiFloat;
+        }
+      }
+
+      function pruneChannelNoteHistory(channel, now = performance.now()) {
+        const cutoff = now - NOTEISH_HISTORY_WINDOW_MS;
+        while (channel.noteHistory.length > 0 && channel.noteHistory[0].time < cutoff) {
+          channel.noteHistory.shift();
+        }
+      }
+
+      function recordChannelNoteHistory(channelIndex, midiFloat) {
+        const channel = channelMonitor[channelIndex];
+        if (!channel) {
+          return;
+        }
+        const now = performance.now();
+        channel.noteHistory.push({
+          time: now,
+          midiFloat,
+        });
+        pruneChannelNoteHistory(channel, now);
       }
 
       function buildNoteishSignature() {
@@ -838,7 +893,89 @@
           channel.fnum,
           channel.algorithm,
           channel.feedback,
+          channel.noteMinMidi,
+          channel.noteMaxMidi,
+          channel.noteHistory.length,
+          channel.noteHistory[channel.noteHistory.length - 1]?.time ?? 0,
+          channel.noteHistory[channel.noteHistory.length - 1]?.midiFloat ?? null,
+          player?.isPlaying?.() ? Math.floor(performance.now() / 200) : 0,
         ]));
+      }
+
+      function clamp(value, min, max) {
+        return Math.min(max, Math.max(min, value));
+      }
+
+      function noteishGraphX(midiFloat) {
+        const normalized =
+          (clamp(midiFloat, NOTEISH_GRAPH_MIN_MIDI, NOTEISH_GRAPH_MAX_MIDI) - NOTEISH_GRAPH_MIN_MIDI) /
+          (NOTEISH_GRAPH_MAX_MIDI - NOTEISH_GRAPH_MIN_MIDI);
+        return 16 + (normalized * 188);
+      }
+
+      function renderNoteishGraph(channel, estimated) {
+        const axisY = 26;
+        const ticks = [24, 36, 48, 60, 72, 84, 96];
+        const tickLabels = ["C1", "C2", "C3", "C4", "C5", "C6", "C7"];
+        const now = performance.now();
+        pruneChannelNoteHistory(channel, now);
+        const tickSvg = ticks.map((tick, index) => {
+          const x = noteishGraphX(tick);
+          return `
+            <line x1="${x}" y1="16" x2="${x}" y2="32" stroke="rgba(91,74,51,0.22)" stroke-width="1" />
+            <text x="${x}" y="46" text-anchor="middle" font-size="9" fill="#7a6547">${tickLabels[index]}</text>
+          `;
+        }).join("");
+
+        let rangeSvg = "";
+        if (channel.noteMinMidi !== null && channel.noteMaxMidi !== null) {
+          const minX = noteishGraphX(channel.noteMinMidi);
+          const maxX = noteishGraphX(channel.noteMaxMidi);
+          rangeSvg = `
+            <line x1="${minX}" y1="${axisY}" x2="${maxX}" y2="${axisY}" stroke="#ef8f6b" stroke-width="8" stroke-linecap="round" />
+            <circle cx="${minX}" cy="${axisY}" r="4" fill="#ef8f6b" />
+            <circle cx="${maxX}" cy="${axisY}" r="4" fill="#ef8f6b" />
+          `;
+        }
+
+        let currentSvg = "";
+        if (estimated.midiFloat !== null) {
+          const currentX = noteishGraphX(estimated.midiFloat);
+          currentSvg = `
+            <line x1="${currentX}" y1="10" x2="${currentX}" y2="36" stroke="#62d7dd" stroke-width="3" />
+            <circle cx="${currentX}" cy="${axisY}" r="5" fill="#62d7dd" />
+          `;
+        }
+
+        let historySvg = "";
+        let lastPoint = null;
+        for (const point of channel.noteHistory) {
+          if (point.midiFloat === null) {
+            lastPoint = null;
+            continue;
+          }
+          const age = now - point.time;
+          const x = 16 + (188 * (1 - clamp(age / NOTEISH_HISTORY_WINDOW_MS, 0, 1)));
+          const y =
+            36 - (
+              ((clamp(point.midiFloat, NOTEISH_GRAPH_MIN_MIDI, NOTEISH_GRAPH_MAX_MIDI) - NOTEISH_GRAPH_MIN_MIDI) /
+                (NOTEISH_GRAPH_MAX_MIDI - NOTEISH_GRAPH_MIN_MIDI)) * 20
+            );
+          if (lastPoint) {
+            historySvg += `<line x1="${lastPoint.x}" y1="${lastPoint.y}" x2="${x}" y2="${y}" stroke="#62d7dd" stroke-width="2" stroke-linecap="round" />`;
+          }
+          lastPoint = { x, y };
+        }
+
+        return `
+          <svg viewBox="0 0 220 54" aria-hidden="true">
+            <line x1="16" y1="${axisY}" x2="204" y2="${axisY}" stroke="rgba(91,74,51,0.24)" stroke-width="2" />
+            ${tickSvg}
+            ${rangeSvg}
+            ${historySvg}
+            ${currentSvg}
+          </svg>
+        `;
       }
 
       function renderNoteishGrid() {
@@ -851,6 +988,10 @@
 
         for (const channel of channelMonitor) {
           const estimated = estimateChannelNoteish(channel);
+          const rangeText =
+            channel.noteMinMidi === null || channel.noteMaxMidi === null
+              ? "no observed range yet"
+              : `${midiToNoteName(Math.round(channel.noteMinMidi))} .. ${midiToNoteName(Math.round(channel.noteMaxMidi))}`;
           const centsText =
             estimated.cents === null
               ? "no base note"
@@ -866,7 +1007,11 @@
               <span class="noteish-note">${estimated.note}</span>
               <span class="noteish-cents">${centsText}</span>
             </div>
+            <div class="noteish-graph">
+              ${renderNoteishGraph(channel, estimated)}
+            </div>
             <div class="noteish-meta">
+              RANGE ${rangeText}<br>
               BLOCK ${channel.block}<br>
               FNUM ${channel.fnum}<br>
               ALG ${channel.algorithm} / FB ${channel.feedback}
@@ -1142,6 +1287,13 @@
           if (channel !== null) {
             channelMonitor[channel].keyOn = ((value >> 4) & 0x0f) !== 0;
             channelMonitor[channel].changedAt.keyOn = now;
+            if (channelMonitor[channel].keyOn) {
+              updateChannelObservedRange(channel);
+              const estimated = estimateChannelNoteish(channelMonitor[channel]);
+              recordChannelNoteHistory(channel, estimated.midiFloat);
+            } else {
+              recordChannelNoteHistory(channel, null);
+            }
             changed = true;
           }
           if (changed) {
@@ -1156,6 +1308,11 @@
           const state = channelMonitor[channel];
           state.fnum = (state.fnum & 0x700) | value;
           channelMonitor[channel].changedAt.fnum = now;
+          updateChannelObservedRange(channel);
+          if (state.keyOn) {
+            const estimated = estimateChannelNoteish(state);
+            recordChannelNoteHistory(channel, estimated.midiFloat);
+          }
           changed = true;
           requestChannelMonitorRender();
           requestNoteishRender();
@@ -1169,6 +1326,11 @@
           state.fnum = ((value & 0x07) << 8) | (state.fnum & 0xff);
           channelMonitor[channel].changedAt.block = now;
           channelMonitor[channel].changedAt.fnum = now;
+          updateChannelObservedRange(channel);
+          if (state.keyOn) {
+            const estimated = estimateChannelNoteish(state);
+            recordChannelNoteHistory(channel, estimated.midiFloat);
+          }
           changed = true;
           requestChannelMonitorRender();
           requestNoteishRender();
