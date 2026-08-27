@@ -23,6 +23,8 @@ Release files are available here:
 
 - [https://github.com/kyorohiro/hello_ymfm_wasm/releases](https://github.com/kyorohiro/hello_ymfm_wasm/releases)
 
+GitHub Releases is the primary download entry point for packaged wasm and browser-side runtime files.
+
 ## Try it in the browser
 
 You can try the WebAssembly build, the JavaScript wrapper, and the browser tools directly in the published pages.
