@@ -295,6 +295,38 @@ await new Promise((resolve) => {
 fm.writeDac(0x80);
 fm.setDacEnabled(false);
 `,
+  "psg-scale": `// Sega PSG (SN76489-compatible) tone on channel 0, mixed into the same
+// output as fm. Raw register writes, same format as docs/demos/psg.html:
+//   0x80 | low4bits(period)  -> tone latch (low bits)
+//   high6bits(period)        -> tone data (high bits)
+//   0x90 | attenuation       -> volume (0 = loudest, 15 = silent)
+function psgTone(period, attenuation) {
+  psg.write(0x80 | (period & 0x0f));
+  psg.write((period >> 4) & 0x3f);
+  psg.write(0x90 | attenuation);
+}
+
+psg.reset();
+
+// C4..C5 tone periods for PSG channel 0 (clock 3579545 Hz).
+const notes = [
+  { name: "C4", period: 428 },
+  { name: "D4", period: 381 },
+  { name: "E4", period: 339 },
+  { name: "F4", period: 320 },
+  { name: "G4", period: 285 },
+  { name: "A4", period: 254 },
+  { name: "B4", period: 226 },
+  { name: "C5", period: 214 },
+];
+
+for (const note of notes) {
+  psgTone(note.period, 0);
+  await sleep(0.15);
+}
+
+psgTone(0, 15);
+`,
   "fx-loop": `setBpm(120);
 
 fm.setPreset(CH1, MEGADRIVE_FM_PRESETS["one-op-basic"]);

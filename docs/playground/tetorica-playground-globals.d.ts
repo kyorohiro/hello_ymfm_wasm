@@ -257,6 +257,13 @@ declare const fm: {
   rawWrite(port: number, register: number, value: number): void;
 };
 
+declare const psg: {
+  /** Send one raw Sega PSG (SN76489-compatible) register byte. */
+  write(value: number): void;
+  /** Reset both PSG and YM2612 state. */
+  reset(): void;
+};
+
 declare const fx: {
   /** Create a gain effect unit. */
   gain(options?: GainFXOptions): GainFXUnit;
@@ -277,7 +284,7 @@ declare const fx: {
 /** Create or replace a named repeating live loop. */
 declare function liveLoop(name: string, fn: () => Promise<void> | void): void;
 /** Prepare shared live state once and reuse it across runs. */
-declare function livePrepare(name: string, fn: (context: { fx: typeof fx; fm: typeof fm; log: (...args: unknown[]) => void }) => Promise<any> | any): Promise<any>;
+declare function livePrepare(name: string, fn: (context: { fx: typeof fx; fm: typeof fm; psg: typeof psg; log: (...args: unknown[]) => void }) => Promise<any> | any): Promise<any>;
 /** Play one note through the current synth setup. */
 declare function play(note: string, options?: PlaygroundPlayOptions): Promise<void>;
 /** Wait for a number of seconds. */
@@ -315,6 +322,8 @@ declare const pg: {
   fm: typeof fm;
   /** Master FX helper API. */
   fx: typeof fx;
+  /** Raw Sega PSG API, mixed into the same output as fm. */
+  psg: typeof psg;
   /** Built-in preset table. */
   presets: typeof MEGADRIVE_FM_PRESETS;
   /** Play one note through the current synth setup. */

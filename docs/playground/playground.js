@@ -131,6 +131,8 @@ const megaDrive =
     ym2612WasmUrl: useNukedEngine
       ? "../generated/nuked_opn2_wasm.wasm"
       : "../generated/ym2612_wasm.wasm",
+    segaPsgWasmUrl:
+      "../generated/segapsg_wasm.wasm",
   });
 
 if (useNukedEngine) {
@@ -395,6 +397,7 @@ async function runCode() {
     };
     const fx = createFxApi();
     const fm = createFmProxy(synth);
+    const psg = megaDrive.psg;
     const musicApi =
       createPlaygroundMusic({
         noteToSemitone:
@@ -423,6 +426,7 @@ async function runCode() {
     const livePrepareApi = {
       fm,
       fx,
+      psg,
       log: (...args) => {
         logLine(
           formatLogArgs(args)
@@ -449,6 +453,7 @@ async function runCode() {
     const pg = {
       fm,
       fx,
+      psg,
       CH1: 0,
       CH2: 1,
       CH3: 2,
@@ -513,6 +518,7 @@ async function runCode() {
       pg,
       fm,
       fx,
+      psg,
       livePrepare: (name, fn) =>
         pg.livePrepare(name, fn),
       play: (note, options) =>

@@ -125,6 +125,15 @@ export class MegaSynth {
     this.ym2612WasmUrl =
       options.ym2612WasmUrl ?? "./generated/ym2612_wasm.wasm";
 
+    /**
+     * Optional. When set, the worklet also loads a Sega PSG core and mixes
+     * it with the YM2612 output, exposed on `this.psg`. Left unset by
+     * default so callers that only want YM2612 (e.g. the Synth demo) are
+     * unaffected.
+     */
+    this.segaPsgWasmUrl =
+      options.segaPsgWasmUrl ?? null;
+
     this.audioContext =
       options.audioContext ?? null;
 
@@ -141,6 +150,9 @@ export class MegaSynth {
 
     /** @type {YM2612Synth | null} */
     this.fm = null;
+
+    /** @type {{ write(value: number): void, reset(): void } | null} */
+    this.psg = null;
 
     /** @type {Promise<void> | null} */
     this.readyPromise = null;
@@ -475,6 +487,22 @@ export class MegaSynth {
     const wasmBinary =
       await response.arrayBuffer();
 
+    let psgWasmBinary = null;
+    if (this.segaPsgWasmUrl) {
+      const psgResponse = await fetch(
+        this.segaPsgWasmUrl
+      );
+
+      if (!psgResponse.ok) {
+        throw new Error(
+          `Failed to load Sega PSG WASM: ${psgResponse.status} ${psgResponse.statusText}`
+        );
+      }
+
+      psgWasmBinary =
+        await psgResponse.arrayBuffer();
+    }
+
     this.node =
       new AudioWorkletNode(
         this.audioContext,
@@ -496,14 +524,18 @@ export class MegaSynth {
     const workletReady =
       this.#waitForWorkletReady();
 
+    const transferList = [wasmBinary];
+    if (psgWasmBinary) {
+      transferList.push(psgWasmBinary);
+    }
+
     this.node.port.postMessage(
       {
         type: "initialize",
         wasmBinary,
+        psgWasmBinary,
       },
-      [
-        wasmBinary,
-      ]
+      transferList
     );
 
     await workletReady;
@@ -517,6 +549,24 @@ export class MegaSynth {
       new YM2612Synth({
         transport,
       });
+
+    if (psgWasmBinary) {
+      const node = this.node;
+      this.psg = {
+        write(value) {
+          node.port.postMessage({
+            type: "psg-write",
+            value,
+          });
+        },
+        reset() {
+          node.port.postMessage({
+            type: "reset",
+          });
+        },
+      };
+    }
+
     this.#ensureRecordingManager();
     this.#installRecordingHooks();
   }

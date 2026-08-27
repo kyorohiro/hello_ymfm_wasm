@@ -740,6 +740,7 @@
             <option value="raw-write-beep">Raw Write Beep</option>
             <option value="channel3-special-mode">Channel 3 Special Mode</option>
             <option value="dac-byte-stream">DAC Byte Stream</option>
+            <option value="psg-scale">PSG Scale</option>
           </select>
           <button id="loadExampleButton" type="button">Load Example</button>
           <span id="runtimeState" class="pill">Audio idle</span>
@@ -823,6 +824,14 @@
               <li><code>fm.write(port, register, value)</code> sends one YM2612 register write</li>
               <li><code>fm.writeAddress(port, register)</code>, <code>fm.writeData(value)</code> follow the YM2612 address/data flow</li>
               <li><code>fm.read(offset)</code>, <code>fm.readStatus()</code>, <code>fm.getIrq()</code> expose low-level chip state where available</li>
+            </ul>
+
+            <h2 style="margin-top: 14px;">psg</h2>
+            <ul class="helper-list">
+              <li><code>psg</code> is the raw Sega PSG (SN76489-compatible) layer, mixed into the same output as <code>fm</code></li>
+              <li><code>pg.psg</code> points to the same PSG layer</li>
+              <li><code>psg.write(value)</code> sends one raw PSG register byte (tone/noise/attenuation, same format as <code>docs/demos/psg.html</code>)</li>
+              <li><code>psg.reset()</code> resets both PSG and YM2612</li>
             </ul>
 
             <h2 style="margin-top: 14px;">fx</h2>
