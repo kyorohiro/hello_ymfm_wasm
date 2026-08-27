@@ -157,6 +157,55 @@
         background: white;
       }
 
+      .hero-media {
+        display: grid;
+        grid-template-columns: minmax(0, 1.2fr) minmax(260px, 0.8fr);
+        gap: 20px;
+        align-items: stretch;
+        margin-top: 24px;
+      }
+
+      .hero-stack {
+        display: grid;
+        gap: 16px;
+      }
+
+      .hero-card {
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        padding: 16px;
+        background: rgba(255, 255, 255, 0.55);
+      }
+
+      .hero-card img {
+        display: block;
+        max-width: 100%;
+        height: auto;
+        margin: 0 auto;
+      }
+
+      .hero-card--logos {
+        display: grid;
+        gap: 14px;
+      }
+
+      .hero-card--art {
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+      }
+
+      .hero-card--art img {
+        width: 100%;
+        border-radius: 12px;
+      }
+
+      .hero-caption {
+        margin: 12px 0 0;
+        font-size: 0.92rem;
+        opacity: 0.82;
+      }
+
       .grid {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
@@ -197,6 +246,12 @@
         background: linear-gradient(135deg, var(--accent), var(--accent-dark));
         text-decoration: none;
       }
+
+      @media (max-width: 760px) {
+        .hero-media {
+          grid-template-columns: 1fr;
+        }
+      }
     </style>
   </head>
   <body>
@@ -222,6 +277,24 @@
         </p>
         <p>
           If that sounds interesting, let&apos;s keep going.
+        </p>
+        <div class="hero-media">
+          <div class="hero-stack">
+            <div class="hero-card hero-card--logos">
+              <img src="./GenesisLogo.png" alt="Sega Genesis logo">
+              <img src="./Megadrive_logo.svg" alt="Sega Mega Drive logo">
+            </div>
+          </div>
+          <div class="hero-card hero-card--art">
+            <img src="./VirtuaRacing.png" alt="Virtua Racing screenshot">
+            <p class="hero-caption">
+              Experimental reference images for the introduction page: Genesis / Mega Drive branding and one iconic FM-era game image.
+            </p>
+          </div>
+        </div>
+        <p class="hero-caption">
+          Source reference for the imported images:
+          <a href="https://en.wikipedia.org/wiki/Sega_Genesis">Sega Genesis - Wikipedia</a>
         </p>
       </section>
 
