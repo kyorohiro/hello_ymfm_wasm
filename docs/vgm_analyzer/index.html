@@ -382,6 +382,66 @@
         color: #4f4130;
       }
 
+      .noteish-actions {
+        margin: 10px 0 0;
+        display: flex;
+        justify-content: flex-end;
+      }
+
+      .noteish-button {
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.82);
+        color: var(--accent-dark);
+        padding: 7px 12px;
+        font: inherit;
+        cursor: pointer;
+      }
+
+      .noteish-button:hover {
+        background: rgba(255, 248, 238, 0.96);
+      }
+
+      .notes-dialog {
+        width: min(720px, calc(100vw - 32px));
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        padding: 0;
+        background: color-mix(in srgb, var(--panel) 94%, white 6%);
+        color: var(--ink);
+      }
+
+      .notes-dialog::backdrop {
+        background: rgba(26, 19, 14, 0.38);
+      }
+
+      .notes-dialog-body {
+        padding: 18px;
+      }
+
+      .notes-dialog-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin: 0 0 12px;
+      }
+
+      .notes-dialog-head h3 {
+        margin: 0;
+      }
+
+      .notes-dialog-output {
+        margin: 0;
+        padding: 14px 16px;
+        border-radius: 14px;
+        border: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.7);
+        white-space: pre-wrap;
+        word-break: break-word;
+        line-height: 1.6;
+      }
+
       .noteish-graph {
         margin: 0 0 10px;
       }
@@ -531,6 +591,16 @@
           <h2>0x92 Context</h2>
           <pre id="command92ContextOutput">No 0x92 context yet.</pre>
         </section>
+
+        <dialog id="notesDialog" class="notes-dialog">
+          <div class="notes-dialog-body">
+            <div class="notes-dialog-head">
+              <h3 id="notesDialogTitle">Channel Notes</h3>
+              <button id="notesDialogCloseButton" class="noteish-button" type="button">Close</button>
+            </div>
+            <pre id="notesDialogOutput" class="notes-dialog-output">No notes yet.</pre>
+          </div>
+        </dialog>
       </section>
     </main>
 
@@ -576,6 +646,10 @@
       const noteishPanel = document.getElementById("noteishPanel");
       const noteishOverview = document.getElementById("noteishOverview");
       const noteishGrid = document.getElementById("noteishGrid");
+      const notesDialog = document.getElementById("notesDialog");
+      const notesDialogTitle = document.getElementById("notesDialogTitle");
+      const notesDialogOutput = document.getElementById("notesDialogOutput");
+      const notesDialogCloseButton = document.getElementById("notesDialogCloseButton");
 
       let currentBuffer = null;
       let audioContext = null;
@@ -707,6 +781,9 @@
           noteMinMidi: null,
           noteMaxMidi: null,
           noteHistory: [],
+          noteSequence: [],
+          noteSequenceOpen: false,
+          lastSequenceNote: null,
           muted: channelMuteStates[index],
           b4Value: 0xc0,
           changedAt: {
@@ -920,6 +997,47 @@
           midiFloat,
         });
         pruneChannelNoteHistory(channel, now);
+      }
+
+      function noteNameFromMidiFloat(midiFloat) {
+        if (midiFloat === null || !Number.isFinite(midiFloat)) {
+          return null;
+        }
+        return midiToNoteName(Math.round(midiFloat));
+      }
+
+      function appendChannelNoteSequence(channelIndex, midiFloat, force = false) {
+        const channel = channelMonitor[channelIndex];
+        if (!channel) {
+          return;
+        }
+        const noteName = noteNameFromMidiFloat(midiFloat);
+        if (!noteName) {
+          return;
+        }
+        if (!force && channel.lastSequenceNote === noteName) {
+          return;
+        }
+        channel.noteSequence.push(noteName);
+        channel.lastSequenceNote = noteName;
+      }
+
+      function formatChannelCompactNotes(channelIndex) {
+        const channel = channelMonitor[channelIndex];
+        if (!channel || channel.noteSequence.length === 0) {
+          return `CH${channelIndex + 1}\n(no notes yet)`;
+        }
+        return `CH${channelIndex + 1}\n${channel.noteSequence.join(" ")}`;
+      }
+
+      function showChannelCompactNotes(channelIndex) {
+        notesDialogTitle.textContent = `CH${channelIndex + 1} Notes`;
+        notesDialogOutput.textContent = formatChannelCompactNotes(channelIndex);
+        if (typeof notesDialog.showModal === "function") {
+          notesDialog.showModal();
+          return;
+        }
+        notesDialog.setAttribute("open", "open");
       }
 
       function buildNoteishSignature() {
@@ -1142,6 +1260,11 @@
               BLOCK ${channel.block}<br>
               FNUM ${channel.fnum}<br>
               ALG ${channel.algorithm} / FB ${channel.feedback}
+            </div>
+            <div class="noteish-actions">
+              <button class="noteish-button" type="button" data-show-notes="${channel.channel}">
+                Show Notes
+              </button>
             </div>
           `;
           noteishGrid.append(card);
@@ -1412,14 +1535,19 @@
         if (port === 0 && register === 0x28) {
           const channel = decodeKeyOnChannel(value);
           if (channel !== null) {
+            const wasKeyOn = channelMonitor[channel].keyOn;
             channelMonitor[channel].keyOn = ((value >> 4) & 0x0f) !== 0;
             channelMonitor[channel].changedAt.keyOn = now;
             if (channelMonitor[channel].keyOn) {
               updateChannelObservedRange(channel);
               const estimated = estimateChannelNoteish(channelMonitor[channel]);
               recordChannelNoteHistory(channel, estimated.midiFloat);
+              channelMonitor[channel].noteSequenceOpen = true;
+              appendChannelNoteSequence(channel, estimated.midiFloat, !wasKeyOn);
             } else {
               recordChannelNoteHistory(channel, null);
+              channelMonitor[channel].noteSequenceOpen = false;
+              channelMonitor[channel].lastSequenceNote = null;
             }
             changed = true;
           }
@@ -1439,6 +1567,7 @@
           if (state.keyOn) {
             const estimated = estimateChannelNoteish(state);
             recordChannelNoteHistory(channel, estimated.midiFloat);
+            appendChannelNoteSequence(channel, estimated.midiFloat, false);
           }
           changed = true;
           requestChannelMonitorRender();
@@ -1457,6 +1586,7 @@
           if (state.keyOn) {
             const estimated = estimateChannelNoteish(state);
             recordChannelNoteHistory(channel, estimated.midiFloat);
+            appendChannelNoteSequence(channel, estimated.midiFloat, false);
           }
           changed = true;
           requestChannelMonitorRender();
@@ -2386,6 +2516,25 @@
 
       noteishTab.addEventListener("click", () => {
         setOutputTab("noteish");
+      });
+
+      noteishGrid.addEventListener("pointerdown", (event) => {
+        const target = event.target instanceof Element
+          ? event.target.closest("[data-show-notes]")
+          : null;
+        if (!target) {
+          return;
+        }
+        event.preventDefault();
+        const channelIndex = Number(target.getAttribute("data-show-notes"));
+        if (!Number.isInteger(channelIndex)) {
+          return;
+        }
+        showChannelCompactNotes(channelIndex);
+      });
+
+      notesDialogCloseButton.addEventListener("click", () => {
+        notesDialog.close();
       });
 
       updateTfiPatchOptions();
