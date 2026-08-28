@@ -309,6 +309,10 @@ declare function setBpm(bpm: number): void;
 declare function scale(root: string, name: string, octaves?: number): string[];
 /** Pick one random item from an array. */
 declare function choose<T>(values: T[]): T;
+/** Return the next item in a repeating sequence. */
+declare function cycle<T>(values: T[]): T;
+/** Return the next item in a repeating named sequence. */
+declare function cycle<T>(key: string, values: T[]): T;
 /** Return a random float from 0 to 1. */
 declare function rand(): number;
 /** Return a random integer in the inclusive range. */
@@ -345,6 +349,7 @@ declare const pg: {
   livePrepare: typeof livePrepare;
   scale: typeof scale;
   choose: typeof choose;
+  cycle: typeof cycle;
   rand: typeof rand;
   randInt: typeof randInt;
   stopLoop: typeof stopLoop;

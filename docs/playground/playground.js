@@ -703,6 +703,8 @@ async function runCode() {
             seconds,
             runToken
           ),
+        getCurrentLoopContext: () =>
+          currentLoopContext,
       });
     const livePrepareApi = {
       fm,
@@ -783,6 +785,8 @@ async function runCode() {
       stopAll,
       choose:
         musicApi.choose,
+      cycle:
+        musicApi.cycle,
       rand: musicApi.rand,
       randInt:
         musicApi.randInt,
@@ -819,6 +823,7 @@ async function runCode() {
       stopAllLoops: pg.stopAllLoops,
       stopAll: pg.stopAll,
       choose: pg.choose,
+      cycle: pg.cycle,
       rand: pg.rand,
       randInt: pg.randInt,
       scale: pg.scale,

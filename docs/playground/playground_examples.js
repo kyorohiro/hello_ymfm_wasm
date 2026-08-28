@@ -109,7 +109,7 @@ liveLoop("lead", async () => {
     channel: CH2,
     duration: 0.08,
   });
-  await beat(0.125);
+  await beat(cycle([0.04, 0.04, 0.08]));
 });
 `,
   "fm-direct": `fm.reset();

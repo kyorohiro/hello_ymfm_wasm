@@ -145,6 +145,7 @@ export function createPlaygroundLive(
           state.cursorBeat,
           currentBeat()
         );
+        state.cycleCallIndex = 0;
         setCurrentLoopContext(state);
         await state.currentFn();
       }
@@ -213,6 +214,8 @@ export function createPlaygroundLive(
         stopped: false,
         runToken: 1,
         cursorBeat: currentBeat(),
+        cycleCallIndex: 0,
+        cycleState: new Map(),
       };
       runtime.liveLoops.set(
         name,

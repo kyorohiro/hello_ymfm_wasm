@@ -10,7 +10,10 @@ export function createPlaygroundMusic(
     presets,
     activeNotes,
     sleep,
+    getCurrentLoopContext,
   } = options;
+  const globalCycleState =
+    new Map();
 
   function parseNoteName(noteName) {
     const match =
@@ -184,6 +187,46 @@ export function createPlaygroundMusic(
     ];
   }
 
+  function cycle(
+    keyOrValues,
+    maybeValues
+  ) {
+    const {
+      key,
+      values,
+    } = normalizeCycleArgs(
+      keyOrValues,
+      maybeValues
+    );
+    const loopState =
+      getCurrentLoopContext?.() ??
+      null;
+    const stateMap =
+      loopState?.cycleState ??
+      globalCycleState;
+    const stateKey =
+      key ??
+      (
+        loopState
+          ? `slot:${loopState.cycleCallIndex++}`
+          : `values:${createCycleSignature(values)}`
+      );
+    const nextIndex =
+      stateMap.get(stateKey) ?? 0;
+    const value =
+      values[
+        nextIndex % values.length
+      ];
+
+    stateMap.set(
+      stateKey,
+      (nextIndex + 1) %
+        values.length
+    );
+
+    return value;
+  }
+
   function rand() {
     return Math.random();
   }
@@ -206,7 +249,75 @@ export function createPlaygroundMusic(
     midiToNoteName,
     scale,
     choose,
+    cycle,
     rand,
     randInt,
   };
+}
+
+function normalizeCycleArgs(
+  keyOrValues,
+  maybeValues
+) {
+  if (
+    typeof keyOrValues ===
+    "string"
+  ) {
+    validateCycleValues(
+      maybeValues
+    );
+    return {
+      key: keyOrValues,
+      values: maybeValues,
+    };
+  }
+
+  validateCycleValues(
+    keyOrValues
+  );
+  return {
+    key: null,
+    values: keyOrValues,
+  };
+}
+
+function validateCycleValues(values) {
+  if (
+    !Array.isArray(values) ||
+    values.length === 0
+  ) {
+    throw new Error(
+      "cycle() requires a non-empty array"
+    );
+  }
+}
+
+function createCycleSignature(
+  values
+) {
+  return values
+    .map((value) => {
+      if (
+        typeof value ===
+          "string" ||
+        typeof value ===
+          "number" ||
+        typeof value ===
+          "boolean" ||
+        value === null
+      ) {
+        return String(value);
+      }
+
+      try {
+        return JSON.stringify(
+          value
+        );
+      } catch {
+        return Object.prototype.toString.call(
+          value
+        );
+      }
+    })
+    .join("\u0001");
 }

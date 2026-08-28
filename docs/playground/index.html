@@ -812,7 +812,8 @@
               <li><code>pg.setBpm(120)</code>, <code>await pg.beat(1)</code>, <code>await pg.nextBeat()</code></li>
               <li><code>await pg.livePrepare("main-fx", async ({ fx }) =&gt; ...)</code> reuses prepared live state across runs</li>
               <li><code>pg.scale("Eb2", "majorPentatonic", 2)</code> builds note arrays</li>
-              <li><code>pg.choose(array)</code>, <code>pg.rand()</code>, <code>pg.randInt(0, 7)</code></li>
+              <li><code>pg.choose(array)</code>, <code>pg.cycle(array)</code>, <code>pg.cycle("bass", array)</code></li>
+              <li><code>pg.rand()</code>, <code>pg.randInt(0, 7)</code></li>
               <li><code>pg.stopLoop(name)</code>, <code>pg.stopAllLoops()</code>, <code>pg.stopAll()</code></li>
             </ul>
 
