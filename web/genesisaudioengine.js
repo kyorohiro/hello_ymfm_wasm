@@ -6,11 +6,6 @@ export class GenesisAudioEngine {
     this.ym2612 = ym2612;
     this.psg = psg;
     this._sampleRate = sampleRate;
-    this.psgMuted = false;
-    this.monoMix = false;
-    // vgmrender normalizes after rendering the whole track.
-    // The browser path is realtime, so give YM2612 a modest fixed lift here.
-    this.ymGain = 2.0;
   }
 
   static async create(options = {}) {
@@ -67,14 +62,6 @@ export class GenesisAudioEngine {
     this.psg.write(value);
   }
 
-  setPsgMuted(muted) {
-    this.psgMuted = Boolean(muted);
-  }
-
-  setMonoMix(enabled) {
-    this.monoMix = Boolean(enabled);
-  }
-
   process(left, right, frames) {
     if (!(left instanceof Float32Array) || !(right instanceof Float32Array)) {
       throw new Error("process expects Float32Array buffers");
@@ -87,18 +74,8 @@ export class GenesisAudioEngine {
     const psg = this.psg.generateStereo(frames);
 
     for (let index = 0; index < frames; index += 1) {
-      const psgLeft = this.psgMuted ? 0 : psg.left[index] * 0.35;
-      const psgRight = this.psgMuted ? 0 : psg.right[index] * 0.35;
-      const mixedLeft = clampSample(ym.left[index] * this.ymGain + psgLeft);
-      const mixedRight = clampSample(ym.right[index] * this.ymGain + psgRight);
-      if (this.monoMix) {
-        const mono = (mixedLeft + mixedRight) * 0.5;
-        left[index] = mono;
-        right[index] = mono;
-      } else {
-        left[index] = mixedLeft;
-        right[index] = mixedRight;
-      }
+      left[index] = ym.left[index] * 0.9 + psg.left[index] * 0.35;
+      right[index] = ym.right[index] * 0.9 + psg.right[index] * 0.35;
     }
   }
 
@@ -112,14 +89,4 @@ export class GenesisAudioEngine {
 
 export async function createGenesisAudioEngine(options) {
   return GenesisAudioEngine.create(options);
-}
-
-function clampSample(value) {
-  if (value < -1) {
-    return -1;
-  }
-  if (value > 1) {
-    return 1;
-  }
-  return value;
 }
