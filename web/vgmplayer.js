@@ -213,6 +213,27 @@ export class VgmPlayer {
   }
 
   /**
+   * @param {number} volume
+   * @returns {number}
+   */
+  setMasterVolume(volume) {
+    if (typeof this.engine.setMasterVolume === "function") {
+      return this.engine.setMasterVolume(volume);
+    }
+    return 1;
+  }
+
+  /**
+   * @returns {number}
+   */
+  getMasterVolume() {
+    if (typeof this.engine.getMasterVolume === "function") {
+      return this.engine.getMasterVolume();
+    }
+    return 1;
+  }
+
+  /**
    * Return a small playback status snapshot for UI/debug use.
    *
    * @returns {{

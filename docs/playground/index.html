@@ -114,6 +114,29 @@
         margin-bottom: 12px;
       }
 
+      .volume-control {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 4px 10px;
+        border-radius: 999px;
+        border: 1px solid rgba(126, 56, 28, 0.16);
+        background: rgba(255, 255, 255, 0.7);
+        color: var(--ink);
+        font-size: 0.84rem;
+        font-weight: 700;
+      }
+
+      .volume-control input[type="range"] {
+        width: 110px;
+      }
+
+      .volume-readout {
+        min-width: 3.4em;
+        text-align: right;
+        font-variant-numeric: tabular-nums;
+      }
+
       button,
       .link-button,
       select {
@@ -747,6 +770,11 @@
             <option value="psg-noise">PSG Noise</option>
           </select>
           <button id="loadExampleButton" type="button">Load Example</button>
+          <label class="volume-control" for="masterVolumeRange">
+            <span>Vol</span>
+            <input id="masterVolumeRange" type="range" min="0" max="380" value="100" step="1">
+            <span id="masterVolumeValue" class="volume-readout">100%</span>
+          </label>
           <span id="runtimeState" class="pill">Audio idle</span>
         </div>
 

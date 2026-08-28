@@ -110,6 +110,14 @@ const exportTfiButton =
   document.getElementById(
     "exportTfiButton"
   );
+const masterVolumeRange =
+  document.getElementById(
+    "masterVolumeRange"
+  );
+const masterVolumeValue =
+  document.getElementById(
+    "masterVolumeValue"
+  );
 const tfiSummary =
   document.getElementById("tfiSummary");
 const paramHelp =
@@ -187,6 +195,7 @@ let currentPresetName =
   "one-op-basic";
 let importedTfiName = "";
 let activeHelpId = "";
+let masterVolume = 1;
 
 const operatorStates = {
   1: {
@@ -345,6 +354,29 @@ let inputController = null;
 
 function setStatus(message) {
   status.textContent = message;
+}
+
+function updateMasterVolumeUi() {
+  if (masterVolumeRange) {
+    masterVolumeRange.value =
+      String(
+        Math.round(masterVolume * 100)
+      );
+  }
+
+  if (masterVolumeValue) {
+    masterVolumeValue.textContent =
+      `${Math.round(masterVolume * 100)}%`;
+  }
+}
+
+function applyMasterVolume() {
+  megaSynth?.setMasterVolume(
+    masterVolume
+  );
+  loopMegaSynth?.setMasterVolume(
+    masterVolume
+  );
 }
 
 function formatLooperProgress(
@@ -1883,6 +1915,7 @@ async function initializeDirectAudio() {
 
   megaSynth = runtime.megaSynth;
   synth = runtime.synth;
+  applyMasterVolume();
   setupLooperCaptureTap();
   loopOutputBus =
     audioContext.createGain();
@@ -1904,6 +1937,7 @@ async function initializeDirectAudio() {
     loopRuntime.megaSynth;
   loopSynth =
     loopRuntime.synth;
+  applyMasterVolume();
   looper = new MegaSynthLooper({
     synth: loopMegaSynth,
     now: () =>
@@ -2289,5 +2323,16 @@ renderFretboardUi();
 buildKeyboard();
 applyPresetState(currentPresetName);
 updateKeyboardAvailability();
+updateMasterVolumeUi();
+masterVolumeRange?.addEventListener(
+  "input",
+  () => {
+    masterVolume =
+      Number(masterVolumeRange.value) /
+      100;
+    updateMasterVolumeUi();
+    applyMasterVolume();
+  }
+);
 updateLooperUi();
 updateEventRecordUi();

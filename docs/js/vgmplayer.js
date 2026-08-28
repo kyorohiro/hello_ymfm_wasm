@@ -118,6 +118,28 @@ export class VgmPlayer {
     return this.engine.sampleRate();
   }
 
+  setMasterVolume(volume) {
+    if (
+      typeof this.engine
+        .setMasterVolume === "function"
+    ) {
+      return this.engine.setMasterVolume(
+        volume
+      );
+    }
+    return 1;
+  }
+
+  getMasterVolume() {
+    if (
+      typeof this.engine
+        .getMasterVolume === "function"
+    ) {
+      return this.engine.getMasterVolume();
+    }
+    return 1;
+  }
+
   stats() {
     const totalSamples = this.parser ? this.parser.header.totalSamples : 0;
     return {

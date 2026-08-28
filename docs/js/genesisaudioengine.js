@@ -2,10 +2,11 @@ import { Ym2612, YM2612_CLOCK } from "./ym2612.js";
 import { SegaPSG, SEGAPSG_CLOCK } from "./segapsg.js";
 
 export class GenesisAudioEngine {
-  constructor(ym2612, psg, sampleRate) {
+  constructor(ym2612, psg, sampleRate, masterVolume = 1) {
     this.ym2612 = ym2612;
     this.psg = psg;
     this._sampleRate = sampleRate;
+    this._masterVolume = clampMasterVolume(masterVolume);
   }
 
   static async create(options = {}) {
@@ -16,6 +17,7 @@ export class GenesisAudioEngine {
       segaPsgModuleOptions,
       ym2612Clock = YM2612_CLOCK,
       psgClock = SEGAPSG_CLOCK,
+      masterVolume = 1,
     } = options;
 
     if (!ym2612ModuleFactory) {
@@ -37,7 +39,12 @@ export class GenesisAudioEngine {
       clock: psgClock,
     });
 
-    return new GenesisAudioEngine(ym2612, psg, sampleRate);
+    return new GenesisAudioEngine(
+      ym2612,
+      psg,
+      sampleRate,
+      masterVolume
+    );
   }
 
   dispose() {
@@ -52,6 +59,16 @@ export class GenesisAudioEngine {
 
   sampleRate() {
     return this._sampleRate;
+  }
+
+  setMasterVolume(volume) {
+    this._masterVolume =
+      clampMasterVolume(volume);
+    return this._masterVolume;
+  }
+
+  getMasterVolume() {
+    return this._masterVolume;
   }
 
   writeYm2612(port, register, value) {
@@ -74,8 +91,12 @@ export class GenesisAudioEngine {
     const psg = this.psg.generateStereo(frames);
 
     for (let index = 0; index < frames; index += 1) {
-      left[index] = ym.left[index] * 0.9 + psg.left[index] * 0.35;
-      right[index] = ym.right[index] * 0.9 + psg.right[index] * 0.35;
+      left[index] =
+        (ym.left[index] * 0.9 + psg.left[index] * 0.35) *
+        this._masterVolume;
+      right[index] =
+        (ym.right[index] * 0.9 + psg.right[index] * 0.35) *
+        this._masterVolume;
     }
   }
 
@@ -89,4 +110,21 @@ export class GenesisAudioEngine {
 
 export async function createGenesisAudioEngine(options) {
   return GenesisAudioEngine.create(options);
+}
+
+const MAX_MASTER_VOLUME = 3.8;
+
+function clampMasterVolume(value) {
+  const numeric = Number(value);
+
+  if (!Number.isFinite(numeric)) {
+    throw new Error(
+      `master volume must be a finite number, got ${value}`
+    );
+  }
+
+  return Math.min(
+    MAX_MASTER_VOLUME,
+    Math.max(0, numeric)
+  );
 }

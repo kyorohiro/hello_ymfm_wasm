@@ -83,6 +83,14 @@ const runtimeState =
   document.getElementById(
     "runtimeState"
   );
+const masterVolumeRange =
+  document.getElementById(
+    "masterVolumeRange"
+  );
+const masterVolumeValue =
+  document.getElementById(
+    "masterVolumeValue"
+  );
 const consoleOutput =
   document.getElementById(
     "consoleOutput"
@@ -152,6 +160,7 @@ if (useNukedEngine) {
 let synth = null;
 let removeMegaDriveListener =
   null;
+let masterVolume = 1;
 let currentRunToken = 0;
 let activeNotes = new Set();
 let currentLoopContext = null;
@@ -187,6 +196,26 @@ const operatorTab =
       setStatus(message);
     },
   });
+
+function updateMasterVolumeUi() {
+  if (masterVolumeRange) {
+    masterVolumeRange.value =
+      String(
+        Math.round(masterVolume * 100)
+      );
+  }
+
+  if (masterVolumeValue) {
+    masterVolumeValue.textContent =
+      `${Math.round(masterVolume * 100)}%`;
+  }
+}
+
+function applyMasterVolume() {
+  megaDrive.setMasterVolume(
+    masterVolume
+  );
+}
 
 function psgTone(channel, period, attenuation = 0) {
   const normalizedChannel = Number(channel);
@@ -586,9 +615,22 @@ const {
   setBottomTab,
 } = ui;
 
+updateMasterVolumeUi();
+masterVolumeRange?.addEventListener(
+  "input",
+  () => {
+    masterVolume =
+      Number(masterVolumeRange.value) /
+      100;
+    updateMasterVolumeUi();
+    applyMasterVolume();
+  }
+);
+
 async function ensureReady() {
   if (synth) {
     await megaDrive.resume();
+    applyMasterVolume();
     setRuntimeState("Audio ready");
     return;
   }
@@ -597,13 +639,14 @@ async function ensureReady() {
     "Loading Mega Drive audio..."
   );
   setRuntimeState("Preparing...");
-    await megaDrive.start();
-    synth = megaDrive.fm;
-    operatorTab.attachSynth(synth);
-    installMegaDriveListener();
-    synth.setPreset(
-      0,
-      MEGADRIVE_FM_PRESETS[
+  await megaDrive.start();
+  synth = megaDrive.fm;
+  operatorTab.attachSynth(synth);
+  installMegaDriveListener();
+  applyMasterVolume();
+  synth.setPreset(
+    0,
+    MEGADRIVE_FM_PRESETS[
       "one-op-basic"
     ]
   );

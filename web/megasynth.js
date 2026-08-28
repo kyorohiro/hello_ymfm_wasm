@@ -31,6 +31,7 @@ export {
  *   outputNode?: AudioNode | null,
  *   workletUrl?: string,
  *   ym2612WasmUrl?: string,
+ *   masterVolume?: number,
  * }} MegaSynthOptions
  */
 
@@ -84,6 +85,9 @@ export {
  * } | {
  *   type: "noteOff",
  *   channel: number,
+ * } | {
+ *   type: "setMasterVolume",
+ *   volume: number,
  * }} MegaSynthEvent
  */
 
@@ -140,9 +144,14 @@ export class MegaSynth {
 
     this.outputNode =
       options.outputNode ?? null;
+    this.masterVolume =
+      clampMasterVolume(
+        options.masterVolume ?? 1
+      );
 
     this.node = null;
     this.masterInputNode = null;
+    this.masterOutputNode = null;
     this.fxChain = [];
     this.recordingManager = null;
     this._recordingHooksInstalled =
@@ -346,6 +355,41 @@ export class MegaSynth {
   }
 
   /**
+   * Set the final browser-side output gain after the current FX chain.
+   *
+   * This is not a YM2612 register write. It scales the mixed output at the
+   * Web Audio level.
+   *
+   * @param {number} volume
+   * @returns {number}
+   */
+  setMasterVolume(volume) {
+    const nextVolume =
+      clampMasterVolume(volume);
+    this.masterVolume =
+      nextVolume;
+
+    if (this.masterOutputNode) {
+      this.masterOutputNode.gain.value =
+        nextVolume;
+    }
+
+    this.#emit({
+      type: "setMasterVolume",
+      volume: nextVolume,
+    });
+
+    return nextVolume;
+  }
+
+  /**
+   * @returns {number}
+   */
+  getMasterVolume() {
+    return this.masterVolume;
+  }
+
+  /**
    * @returns {*}
    */
   startRecord() {
@@ -432,6 +476,8 @@ export class MegaSynth {
 
     this.masterInputNode?.disconnect();
     this.masterInputNode = null;
+    this.masterOutputNode?.disconnect();
+    this.masterOutputNode = null;
 
     this.fm = null;
     this._recordingHooksInstalled =
@@ -517,6 +563,10 @@ export class MegaSynth {
 
     this.masterInputNode =
       this.audioContext.createGain();
+    this.masterOutputNode =
+      this.audioContext.createGain();
+    this.masterOutputNode.gain.value =
+      this.masterVolume;
     this.node.connect(
       this.masterInputNode
     );
@@ -618,6 +668,7 @@ export class MegaSynth {
 
   #disconnectFXRouting() {
     this.masterInputNode?.disconnect();
+    this.masterOutputNode?.disconnect();
 
     for (const effect of this.fxChain) {
       effect?.disconnect?.();
@@ -659,7 +710,16 @@ export class MegaSynth {
         effect.output;
     }
 
-    currentNode.connect(finalTarget);
+    if (!this.masterOutputNode) {
+      return;
+    }
+
+    currentNode.connect(
+      this.masterOutputNode
+    );
+    this.masterOutputNode.connect(
+      finalTarget
+    );
   }
 
   #ensureRecordingManager() {
@@ -864,3 +924,20 @@ export class MegaSynth {
 // Keep this so older downloads and examples that still refer to
 // `MegaDriveSynth` continue to work.
 export const MegaDriveSynth = MegaSynth;
+
+const MAX_MASTER_VOLUME = 3.8;
+
+function clampMasterVolume(value) {
+  const numeric = Number(value);
+
+  if (!Number.isFinite(numeric)) {
+    throw new Error(
+      `master volume must be a finite number, got ${value}`
+    );
+  }
+
+  return Math.min(
+    MAX_MASTER_VOLUME,
+    Math.max(0, numeric)
+  );
+}

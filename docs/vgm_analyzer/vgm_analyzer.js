@@ -34,6 +34,8 @@ const loopCheckbox = document.getElementById("loopCheckbox");
 const monitorToggles = document.getElementById("monitorToggles");
 const prefetchFactorSelect = document.getElementById("prefetchFactorSelect");
 const workletQueueSelect = document.getElementById("workletQueueSelect");
+const masterVolumeRange = document.getElementById("masterVolumeRange");
+const masterVolumeValue = document.getElementById("masterVolumeValue");
 const exportAllTfiButton = document.getElementById("exportAllTfiButton");
 const exportParseInfoButton = document.getElementById("exportParseInfoButton");
 const exportSnapshotTfiButton = document.getElementById("exportSnapshotTfiButton");
@@ -89,6 +91,7 @@ let playbackUiRenderScheduled = false;
 let lastStreamingStatusSuffix = "";
 let lastStreamingStatusAt = 0;
 let lastParseInfo = null;
+let masterVolume = 1;
 
 const NOTE_NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
 const NOTEISH_REFERENCE_MIDI = 62;
@@ -134,6 +137,23 @@ const CRC32_TABLE = (() => {
 
 function setStatus(message) {
   status.textContent = message;
+}
+
+function updateMasterVolumeUi() {
+  if (masterVolumeRange) {
+    masterVolumeRange.value =
+      String(Math.round(masterVolume * 100));
+  }
+
+  if (masterVolumeValue) {
+    masterVolumeValue.textContent =
+      `${Math.round(masterVolume * 100)}%`;
+  }
+}
+
+function applyMasterVolume() {
+  engine?.setMasterVolume?.(masterVolume);
+  player?.setMasterVolume?.(masterVolume);
 }
 
 function requestPlaybackUiRender(extra = "") {
@@ -1475,6 +1495,7 @@ async function ensurePlaybackReady(vgm) {
     engine = await createGenesisAudioEngine({
       ym2612ModuleFactory: activeYm2612ModuleFactory,
       segaPsgModuleFactory,
+      masterVolume,
     });
     baseEngineWriteYm2612 = engine.writeYm2612.bind(engine);
   }
@@ -1487,6 +1508,7 @@ async function ensurePlaybackReady(vgm) {
   if (!player) {
     player = new VgmPlayer(engine);
   }
+  applyMasterVolume();
   if (typeof player.setPrefetchFactor === "function") {
     player.setPrefetchFactor(Number(prefetchFactorSelect.value));
   }
@@ -1934,6 +1956,15 @@ prefetchFactorSelect.addEventListener("change", () => {
 workletQueueSelect.addEventListener("change", () => {
   workletQueueMultiplier = Number(workletQueueSelect.value) || 2;
   flushPendingAudio();
+});
+
+updateMasterVolumeUi();
+masterVolumeRange?.addEventListener("input", () => {
+  masterVolume =
+    Number(masterVolumeRange.value) /
+    100;
+  updateMasterVolumeUi();
+  applyMasterVolume();
 });
 
 exportAllTfiButton.addEventListener("click", () => {

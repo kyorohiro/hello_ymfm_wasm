@@ -163,6 +163,38 @@
         margin: 0;
       }
 
+      .volume-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin: 0 0 6px;
+      }
+
+      .volume-control {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        min-height: 24px;
+        padding: 2px 8px;
+        border-radius: 999px;
+        border: 1px solid rgba(110, 122, 146, 0.36);
+        background: rgba(255, 255, 255, 0.45);
+        font-size: 0.68rem;
+        line-height: 1.2;
+        color: rgba(31, 27, 22, 0.82);
+      }
+
+      .volume-control input[type="range"] {
+        width: 120px;
+      }
+
+      .volume-readout {
+        min-width: 3.2em;
+        text-align: right;
+        font-variant-numeric: tabular-nums;
+      }
+
       .layout {
         display: grid;
         grid-template-columns: 1fr;
@@ -1043,6 +1075,13 @@
                 Ignore Op
               </label>
               <div id="eventRecordState" class="looper-state">Event: none</div>
+            </div>
+            <div class="volume-row">
+              <label class="volume-control" for="masterVolumeRange">
+                <span>Vol</span>
+                <input id="masterVolumeRange" type="range" min="0" max="380" value="100" step="1">
+                <span id="masterVolumeValue" class="volume-readout">100%</span>
+              </label>
             </div>
             <div class="status" id="status">Press any key or click a pad to start audio.</div>
 

@@ -79,6 +79,30 @@
         margin: 0 0 18px;
       }
 
+      .volume-control {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 0.3rem 0.75rem;
+        border-radius: 999px;
+        border: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.72);
+        color: var(--ink);
+        font: inherit;
+        font-size: 0.82rem;
+        font-weight: 700;
+      }
+
+      .volume-control input[type="range"] {
+        width: 120px;
+      }
+
+      .volume-readout {
+        min-width: 3.4em;
+        text-align: right;
+        font-variant-numeric: tabular-nums;
+      }
+
       input[type="file"] {
         font: inherit;
       }
@@ -519,6 +543,11 @@
           <button id="exportSnapshotButton" type="button" disabled>Export Snapshot</button>
           <label><input id="autoExportSnapshotCheckbox" type="checkbox"> Auto export on end</label>
           <label><input id="monoMixCheckbox" type="checkbox"> Mono fold-down</label>
+          <label class="volume-control" for="masterVolumeRange">
+            <span>Vol</span>
+            <input id="masterVolumeRange" type="range" min="0" max="380" value="100" step="1">
+            <span id="masterVolumeValue" class="volume-readout">100%</span>
+          </label>
         </div>
         <div class="status" id="status">Choose a .vgm file for analysis.</div>
 
