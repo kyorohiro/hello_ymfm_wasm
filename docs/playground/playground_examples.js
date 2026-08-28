@@ -157,6 +157,17 @@ await sleep(0.4);
 fm.noteOff(CH1);
 await sleep(0.3);
 `,
+  "fm-low-level-note": `fm.reset();
+
+fm.setPreset(CH1, MEGADRIVE_FM_PRESETS["one-op-basic"]);
+
+const { block, fnum } = noteToBlockFnum("C4");
+fm.setFrequency(CH1, block, fnum);
+fm.keyOn(CH1);
+await sleep(0.4);
+fm.keyOff(CH1);
+await sleep(0.3);
+`,
   "raw-write-beep": `fm.reset();
 
 // Port 0, channel 1, operator 4 only

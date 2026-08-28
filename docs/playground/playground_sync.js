@@ -158,6 +158,25 @@ export function createFmProxy(
         enabled
       );
     },
+    setFrequency(channel, block, fnum) {
+      targetSynth.setFrequency(
+        channel,
+        block,
+        fnum
+      );
+    },
+    keyOn(channel, operators) {
+      targetSynth.keyOn(
+        channel,
+        operators
+      );
+    },
+    keyOff(channel, operators) {
+      targetSynth.keyOff(
+        channel,
+        operators
+      );
+    },
     writeDac(value) {
       targetSynth.writeDac(
         value

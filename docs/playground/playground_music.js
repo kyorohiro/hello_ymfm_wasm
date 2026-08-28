@@ -60,6 +60,14 @@ export function createPlaygroundMusic(
     });
   }
 
+  function noteToBlockFnum(note) {
+    const pitch = toPitch(note);
+    return {
+      block: pitch.block,
+      fnum: pitch.fnum,
+    };
+  }
+
   async function play(
     note,
     options = {}
@@ -245,6 +253,7 @@ export function createPlaygroundMusic(
   return {
     parseNoteName,
     toPitch,
+    noteToBlockFnum,
     play,
     midiToNoteName,
     scale,

@@ -792,6 +792,8 @@ async function runCode() {
         musicApi.randInt,
       scale:
         musicApi.scale,
+      noteToBlockFnum:
+        musicApi.noteToBlockFnum,
       log: (...args) => {
         logLine(
           formatLogArgs(args)
@@ -827,6 +829,8 @@ async function runCode() {
       rand: pg.rand,
       randInt: pg.randInt,
       scale: pg.scale,
+      noteToBlockFnum:
+        pg.noteToBlockFnum,
       CH1: pg.CH1,
       CH2: pg.CH2,
       CH3: pg.CH3,

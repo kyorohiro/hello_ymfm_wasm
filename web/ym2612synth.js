@@ -87,6 +87,19 @@ const CHANNEL_3_INDEX = 2;
 //   ch1=0x00 ch2=0x01 ch3=0x02 ch4=0x04 ch5=0x05 ch6=0x06
 const KEY_CHANNEL_CODES = [0x00, 0x01, 0x02, 0x04, 0x05, 0x06];
 
+// Key on/off register 0x28 operator bits:
+//   bit 4 = OP1
+//   bit 5 = OP2
+//   bit 6 = OP3
+//   bit 7 = OP4
+//
+// Public logical operators in this synth use:
+//   0 -> OP1
+//   1 -> OP2
+//   2 -> OP3
+//   3 -> OP4
+const KEY_OPERATOR_BITS = [0x10, 0x20, 0x40, 0x80];
+
 // Public operator numbers follow the logical YM2612 algorithm order:
 //   0->O1, 1->O2, 2->O3, 3->O4
 //
@@ -679,14 +692,18 @@ export class YM2612Synth {
   }
 
   /**
-   * Write BLOCK/FNUM and trigger Key On for all operators on one channel.
+   * Write BLOCK / F-NUM without triggering KEY ON.
+   *
+   * This is the explicit YM2612-shaped frequency helper:
+   * - setFrequency(CH1, 4, 553)
+   * - keyOn(CH1)
    *
    * @param {number} channel
    * @param {number} block
    * @param {number} fnum
    * @returns {void}
    */
-  noteOn(channel, block, fnum) {
+  setFrequency(channel, block, fnum) {
     assertChannel(channel);
     const validBlock = validateRange("block", block, 0, 7);
     const validFnum = validateRange("fnum", fnum, 0, 0x7ff);
@@ -706,11 +723,59 @@ export class YM2612Synth {
     // F-NUM low
     // base 0xa0
     this._write(port, 0xa0 + channelOffset, fnumLow);
+  }
+
+  /**
+   * Trigger KEY ON on one channel.
+   *
+   * If operators are omitted, all four logical operators are keyed on.
+   *
+   * @param {number} channel
+   * @param {number[]} [operators]
+   * @returns {void}
+   */
+  keyOn(channel, operators = undefined) {
+    assertChannel(channel);
+    const operatorMask = buildKeyOperatorMask(operators);
 
     // Key On / Key Off register
     // register 0x28 uses upper nibble as operator mask
-    // 0xf0 means key on all four operators for this channel
-    this._write(0, 0x28, 0xf0 | KEY_CHANNEL_CODES[channel]);
+    this._write(0, 0x28, operatorMask | KEY_CHANNEL_CODES[channel]);
+  }
+
+  /**
+   * Trigger KEY OFF on one channel.
+   *
+   * YM2612 key off happens per channel through register 0x28.
+   * If a partial operator list is passed, only those operator bits are cleared.
+   *
+   * @param {number} channel
+   * @param {number[]} [operators]
+   * @returns {void}
+   */
+  keyOff(channel, operators = undefined) {
+    assertChannel(channel);
+
+    if (operators === undefined) {
+      this._write(0, 0x28, KEY_CHANNEL_CODES[channel]);
+      return;
+    }
+
+    const operatorMask = buildKeyOperatorMask(operators);
+    this._write(0, 0x28, operatorMask | KEY_CHANNEL_CODES[channel]);
+  }
+
+  /**
+   * Write BLOCK/FNUM and trigger Key On for all operators on one channel.
+   *
+   * @param {number} channel
+   * @param {number} block
+   * @param {number} fnum
+   * @returns {void}
+   */
+  noteOn(channel, block, fnum) {
+    this.setFrequency(channel, block, fnum);
+    this.keyOn(channel);
   }
 
   /**
@@ -720,11 +785,7 @@ export class YM2612Synth {
    * @returns {void}
    */
   noteOff(channel) {
-    assertChannel(channel);
-
-    // Key On / Key Off register
-    // operator mask 0x00 means key off
-    this._write(0, 0x28, KEY_CHANNEL_CODES[channel]);
+    this.keyOff(channel);
   }
 
   /**
@@ -973,6 +1034,24 @@ function splitChannel(channel) {
     return { port: 0, channelOffset: channel };
   }
   return { port: 1, channelOffset: channel - 3 };
+}
+
+function buildKeyOperatorMask(operators) {
+  if (operators === undefined) {
+    return 0xf0;
+  }
+
+  if (!Array.isArray(operators) || operators.length === 0) {
+    throw new Error("operators must be a non-empty array when provided");
+  }
+
+  let mask = 0;
+  for (const operator of operators) {
+    assertOperator(operator);
+    mask |= KEY_OPERATOR_BITS[operator];
+  }
+
+  return mask;
 }
 
 function assertChannel(channel) {

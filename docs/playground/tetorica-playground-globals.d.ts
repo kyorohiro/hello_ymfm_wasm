@@ -5,19 +5,37 @@
  * They are not the YM2612 physical slot order.
  */
 type YM2612OperatorParams = {
+  /** Detune, 0..7. */
   dt?: number;
+  /** Frequency multiple, 0..15. */
   multi?: number;
+  /** Total level, 0..127. Lower values are louder. */
   tl?: number;
+  /** Rate scaling, 0..3. */
   rs?: number;
+  /** Attack rate, 0..31. */
   ar?: number;
   am?: boolean;
+  /** First decay rate, 0..31. */
   d1r?: number;
+  /** Sustain rate, 0..31. */
   sr?: number;
+  /** Alias of sustain rate used in some demos, 0..31. */
   d2r?: number;
+  /** Sustain level, 0..15. */
   sl?: number;
+  /** Release rate, 0..15. */
   rr?: number;
+  /** SSG-EG value, 0..15. */
   ssg?: number;
 };
+
+type YM2612Channel = 0 | 1 | 2 | 3 | 4 | 5;
+type YM2612Operator = 0 | 1 | 2 | 3;
+type YM2612Algorithm = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7;
+type YM2612Feedback = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7;
+type YM2612Ams = 0 | 1 | 2 | 3;
+type YM2612Pms = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7;
 
 /**
  * One logical YM2612 channel preset used by `fm.setPreset()`.
@@ -113,7 +131,7 @@ declare const OP4: 3;
  */
 type PlaygroundPlayOptions = {
   /** YM2612 channel 0..5. */
-  channel?: number;
+  channel?: YM2612Channel;
   /** Note duration in seconds. */
   duration?: number;
   /** Optional preset applied before playing the note. */
@@ -220,27 +238,33 @@ declare const fm: {
   /** Reset YM2612 state. */
   reset(): void;
   /** Apply one preset to one YM2612 channel. */
-  setPreset(channel: number, preset: YM2612Preset): void;
+  setPreset(channel: YM2612Channel, preset: YM2612Preset): void;
   /** Partially update one logical operator `0..3`. */
-  setOperator(channel: number, operator: number, params: YM2612OperatorParams): void;
+  setOperator(channel: YM2612Channel, operator: YM2612Operator, params: YM2612OperatorParams): void;
   /** Set channel algorithm and feedback. */
-  setAlgo(channel: number, algorithm: number, feedback?: number): void;
+  setAlgo(channel: YM2612Channel, algorithm: YM2612Algorithm, feedback?: YM2612Feedback): void;
   /** Set left/right output plus AMS/PMS on one channel. */
-  setPan(channel: number, left: boolean, right: boolean, ams?: number, pms?: number): void;
+  setPan(channel: YM2612Channel, left: boolean, right: boolean, ams?: YM2612Ams, pms?: YM2612Pms): void;
   /** Set chip-level LFO enable and frequency. */
   setLfo(enabled: boolean, frequency: number): void;
   /** Enable or disable YM2612 channel 3 special / 3-slot mode. */
   setChannel3SpecialMode(enabled: boolean): void;
   /** Set one logical channel 3 operator `0..3` frequency while special mode is active. */
-  setChannel3SpecialFrequency(operator: number, block: number, fnum: number): void;
+  setChannel3SpecialFrequency(operator: YM2612Operator, block: number, fnum: number): void;
   /** Enable or disable the YM2612 DAC playback path on channel 6. */
   setDacEnabled(enabled: boolean): void;
+  /** Write BLOCK / F-NUM without KEY ON. */
+  setFrequency(channel: YM2612Channel, block: number, fnum: number): void;
+  /** Trigger KEY ON on one channel. */
+  keyOn(channel: YM2612Channel, operators?: YM2612Operator[]): void;
+  /** Trigger KEY OFF on one channel. */
+  keyOff(channel: YM2612Channel, operators?: YM2612Operator[]): void;
   /** Write one 8-bit DAC sample byte to YM2612 register 0x2A. */
   writeDac(value: number): void;
   /** Trigger note on with raw YM2612 BLOCK/F-NUM values. */
-  noteOn(channel: number, block: number, fnum: number): void;
+  noteOn(channel: YM2612Channel, block: number, fnum: number): void;
   /** Trigger note off on one channel. */
-  noteOff(channel: number): void;
+  noteOff(channel: YM2612Channel): void;
   /** Compact YM2612 register write: port, register, value. */
   write(port: number, register: number, value: number): void;
   /** Write one YM2612 register number to the address port. */
@@ -307,6 +331,8 @@ declare function nextBeat(): Promise<void>;
 declare function setBpm(bpm: number): void;
 /** Build an array of note names from one named scale. */
 declare function scale(root: string, name: string, octaves?: number): string[];
+/** Convert one note name into raw YM2612 BLOCK / F-NUM values. */
+declare function noteToBlockFnum(note: string): { block: number; fnum: number };
 /** Pick one random item from an array. */
 declare function choose<T>(values: T[]): T;
 /** Return the next item in a repeating sequence. */
@@ -348,6 +374,7 @@ declare const pg: {
   liveLoop: typeof liveLoop;
   livePrepare: typeof livePrepare;
   scale: typeof scale;
+  noteToBlockFnum: typeof noteToBlockFnum;
   choose: typeof choose;
   cycle: typeof cycle;
   rand: typeof rand;

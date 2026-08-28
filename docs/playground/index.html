@@ -737,6 +737,7 @@
             <option value="fx-motion">FX Motion</option>
             <option value="fm-direct">Direct FM Control</option>
             <option value="fm-api-beep">FM API Beep</option>
+            <option value="fm-low-level-note">FM Low-Level Note</option>
             <option value="raw-write-beep">Raw Write Beep</option>
             <option value="channel3-special-mode">Channel 3 Special Mode</option>
             <option value="dac-byte-stream">DAC Byte Stream</option>
@@ -812,6 +813,7 @@
               <li><code>pg.setBpm(120)</code>, <code>await pg.beat(1)</code>, <code>await pg.nextBeat()</code></li>
               <li><code>await pg.livePrepare("main-fx", async ({ fx }) =&gt; ...)</code> reuses prepared live state across runs</li>
               <li><code>pg.scale("Eb2", "majorPentatonic", 2)</code> builds note arrays</li>
+              <li><code>pg.noteToBlockFnum("C4")</code> converts a note name into raw YM2612 block/fnum</li>
               <li><code>pg.choose(array)</code>, <code>pg.cycle(array)</code>, <code>pg.cycle("bass", array)</code></li>
               <li><code>pg.rand()</code>, <code>pg.randInt(0, 7)</code></li>
               <li><code>pg.stopLoop(name)</code>, <code>pg.stopAllLoops()</code>, <code>pg.stopAll()</code></li>
@@ -823,6 +825,7 @@
               <li><code>await play("C4")</code> plays one note</li>
               <li><code>pg.fm</code> points to the same YM2612 layer</li>
               <li><code>fm.setPreset(CH1, pg.presets["one-op-basic"])</code> applies one preset</li>
+              <li><code>fm.setFrequency(CH1, 4, 553)</code>, <code>fm.keyOn(CH1)</code>, <code>fm.keyOff(CH1)</code> expose the YM2612 note trigger flow</li>
               <li><code>fm.write(port, register, value)</code> sends one YM2612 register write</li>
               <li><code>fm.writeAddress(port, register)</code>, <code>fm.writeData(value)</code> follow the YM2612 address/data flow</li>
               <li><code>fm.read(offset)</code>, <code>fm.readStatus()</code>, <code>fm.getIrq()</code> expose low-level chip state where available</li>
