@@ -35,12 +35,20 @@ export function createSynthInputController({
       return;
     }
 
-    if (
-      getAudioReadyPromise() &&
-      !getSynth()
-    ) {
+    if (!getSynth()) {
+      if (!getAudioReadyPromise()) {
+        void ensureAudioReady().catch(
+          (error) => {
+            console.error(error);
+            setStatus(
+              `Error: ${error.message}`
+            );
+          }
+        );
+      }
+
       setStatus(
-        "Preparing audio..."
+        "Preparing audio... press again when ready."
       );
       return;
     }
@@ -49,11 +57,9 @@ export function createSynthInputController({
       await ensureAudioReady();
     } catch (error) {
       console.error(error);
-
       setStatus(
         `Error: ${error.message}`
       );
-
       return;
     }
 

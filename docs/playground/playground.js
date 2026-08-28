@@ -161,6 +161,7 @@ let synth = null;
 let removeMegaDriveListener =
   null;
 let masterVolume = 1;
+let prepareAudioPromise = null;
 let currentRunToken = 0;
 let activeNotes = new Set();
 let currentLoopContext = null;
@@ -639,6 +640,11 @@ masterVolumeRange?.addEventListener(
 );
 
 async function ensureReady() {
+  if (prepareAudioPromise) {
+    await prepareAudioPromise;
+    return;
+  }
+
   if (synth) {
     await megaDrive.resume();
     applyMasterVolume();
@@ -650,19 +656,28 @@ async function ensureReady() {
     "Loading Mega Drive audio..."
   );
   setRuntimeState("Preparing...");
-  await megaDrive.start();
-  synth = megaDrive.fm;
-  operatorTab.attachSynth(synth);
-  installMegaDriveListener();
-  applyMasterVolume();
-  synth.setPreset(
-    0,
-    MEGADRIVE_FM_PRESETS[
-      "one-op-basic"
-    ]
-  );
-  setRuntimeState("Audio ready");
-  setStatus("Audio ready.");
+  prepareAudioPromise =
+    (async () => {
+      await megaDrive.start();
+      synth = megaDrive.fm;
+      operatorTab.attachSynth(synth);
+      installMegaDriveListener();
+      applyMasterVolume();
+      synth.setPreset(
+        0,
+        MEGADRIVE_FM_PRESETS[
+          "one-op-basic"
+        ]
+      );
+      setRuntimeState("Audio ready");
+      setStatus("Audio ready.");
+    })();
+
+  try {
+    await prepareAudioPromise;
+  } finally {
+    prepareAudioPromise = null;
+  }
 }
 
 function installMegaDriveListener() {

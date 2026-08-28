@@ -92,6 +92,7 @@ let lastStreamingStatusSuffix = "";
 let lastStreamingStatusAt = 0;
 let lastParseInfo = null;
 let masterVolume = 1;
+let playbackPreparePromise = null;
 
 const NOTE_NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
 const NOTEISH_REFERENCE_MIDI = 62;
@@ -1530,6 +1531,40 @@ async function ensurePlaybackReady(vgm) {
   return { sampleRate };
 }
 
+function isPlaybackReady() {
+  return Boolean(
+    currentBuffer &&
+    engine &&
+    player &&
+    audioContext &&
+    audioContext.state === "running"
+  );
+}
+
+function beginPreparePlayback(vgm) {
+  if (playbackPreparePromise || isPlaybackReady()) {
+    return playbackPreparePromise;
+  }
+
+  setStatus(
+    "Preparing audio..."
+  );
+  playbackPreparePromise =
+    ensurePlaybackReady(vgm)
+      .then(() => {
+        setStatus("Audio ready.");
+      })
+      .catch((error) => {
+        console.error(error);
+        setStatus(`Error: ${error.message}`);
+      })
+      .finally(() => {
+        playbackPreparePromise = null;
+      });
+
+  return playbackPreparePromise;
+}
+
 function stopActiveStream() {
   if (!activeStream) {
     return;
@@ -1630,11 +1665,19 @@ async function playCurrentVgm() {
     return;
   }
 
+  const parser = new Ym2612VGM(currentBuffer);
+
+  if (!isPlaybackReady()) {
+    await beginPreparePlayback(parser);
+    if (!isPlaybackReady()) {
+      return;
+    }
+  }
+
   playButton.disabled = true;
   try {
     stopActiveStream();
 
-    const parser = new Ym2612VGM(currentBuffer);
     const { sampleRate } = await ensurePlaybackReady(parser);
     channelMonitor = createChannelMonitorState();
     renderChannelMonitor();
