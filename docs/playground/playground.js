@@ -9,6 +9,11 @@ import {
   MEGADRIVE_FM_PRESETS,
 } from "../js/megasynth.js";
 import {
+  createTfiOperatorObjectText,
+  createTfiPresetObjectText,
+  parseTfi,
+} from "../js/tfi.js";
+import {
   createPitchFromMidi,
 } from "../synth/synth_keyboard.js";
 import {
@@ -166,6 +171,15 @@ let editorAdapter =
   createTextareaEditorAdapter(
     editor
   );
+const tfiImportInput =
+  document.createElement("input");
+tfiImportInput.type = "file";
+tfiImportInput.accept = ".tfi,application/octet-stream";
+tfiImportInput.style.display =
+  "none";
+document.body.appendChild(
+  tfiImportInput
+);
 const operatorTab =
   createPlaygroundOperatorTab({
     root: operatorTabRoot,
@@ -231,10 +245,235 @@ function createTextareaEditorAdapter(
     setValue(value) {
       textarea.value = value;
     },
+    getCursorOffset() {
+      return textarea.selectionStart ??
+        textarea.value.length;
+    },
+    insertText(text) {
+      const start =
+        textarea.selectionStart ??
+        textarea.value.length;
+      const end =
+        textarea.selectionEnd ?? start;
+      textarea.setRangeText(
+        text,
+        start,
+        end,
+        "end"
+      );
+      textarea.focus();
+    },
     focus() {
       textarea.focus();
     },
   };
+}
+
+function findNearestSetOperatorContext(
+  source,
+  cursorOffset
+) {
+  const lookBehind =
+    source.slice(
+      Math.max(0, cursorOffset - 320),
+      cursorOffset
+    );
+  const startIndex =
+    lookBehind.lastIndexOf(
+      "setOperator("
+    );
+
+  if (startIndex < 0) {
+    return null;
+  }
+
+  const callTail =
+    lookBehind.slice(startIndex);
+
+  if (
+    callTail.includes(");")
+  ) {
+    return null;
+  }
+
+  const match =
+    callTail.match(
+      /setOperator\s*\(\s*[^,]+,\s*(?:pg\.)?(OP([1-4])|([0-3]))\s*,[\s\S]*$/m
+    );
+
+  if (!match) {
+    return null;
+  }
+
+  if (match[2]) {
+    return Number(match[2]);
+  }
+
+  if (match[3]) {
+    return Number(match[3]) + 1;
+  }
+
+  return null;
+}
+
+function createTfiInsertTextForCursor(
+  preset
+) {
+  const source =
+    editorAdapter.getValue();
+  const cursorOffset =
+    editorAdapter.getCursorOffset?.() ??
+    source.length;
+  const logicalOperator =
+    findNearestSetOperatorContext(
+      source,
+      cursorOffset
+    );
+
+  if (
+    logicalOperator !== null
+  ) {
+    return createTfiOperatorObjectText(
+      preset.operators?.[
+        logicalOperator
+      ]
+    );
+  }
+
+  return createTfiPresetObjectText(
+    preset
+  );
+}
+
+function insertParsedTfiPreset(
+  preset,
+  label
+) {
+  const text =
+    createTfiInsertTextForCursor(
+      preset
+    );
+  const before =
+    getEditorValue();
+
+  if (
+    typeof editorAdapter.insertText ===
+    "function"
+  ) {
+    editorAdapter.insertText(text);
+  } else {
+    setEditorValue(
+      appendTextAtEnd(
+        before,
+        text
+      )
+    );
+  }
+
+  const after =
+    getEditorValue();
+
+  if (after === before) {
+    setEditorValue(
+      appendTextAtEnd(
+        before,
+        text
+      )
+    );
+  }
+
+  editorAdapter.focus();
+  setStatus(
+    `Inserted TFI object from ${label}.`
+  );
+}
+
+function appendTextAtEnd(
+  source,
+  text
+) {
+  if (!source) {
+    return text;
+  }
+
+  if (source.endsWith("\n")) {
+    return `${source}${text}`;
+  }
+
+  return `${source}\n${text}`;
+}
+
+async function insertTfiFile(
+  file
+) {
+  const preset = parseTfi(
+    await file.arrayBuffer()
+  );
+  insertParsedTfiPreset(
+    preset,
+    file.name
+  );
+}
+
+function promptTfiInsert() {
+  tfiImportInput.value = "";
+  tfiImportInput.click();
+}
+
+function installTfiEditorDropTarget() {
+  const targets = [
+    editor,
+    editorHost,
+  ];
+
+  for (const target of targets) {
+    target?.addEventListener(
+      "dragover",
+      (event) => {
+        const hasFile =
+          Array.from(
+            event.dataTransfer?.items ??
+              []
+          ).some(
+            (item) =>
+              item.kind === "file"
+          );
+
+        if (!hasFile) {
+          return;
+        }
+
+        event.preventDefault();
+        if (
+          event.dataTransfer
+        ) {
+          event.dataTransfer.dropEffect =
+            "copy";
+        }
+      }
+    );
+
+    target?.addEventListener(
+      "drop",
+      (event) => {
+        const file =
+          event.dataTransfer?.files?.[0];
+
+        if (!file) {
+          return;
+        }
+
+        event.preventDefault();
+        void insertTfiFile(file).catch(
+          (error) => {
+            setStatus(
+              `Failed to import TFI: ${error.message}`
+            );
+          }
+        );
+      }
+    );
+  }
 }
 
 function setEditorNote(message) {
@@ -813,12 +1052,33 @@ loadExampleButton.addEventListener(
   }
 );
 
+tfiImportInput.addEventListener(
+  "change",
+  () => {
+    const file =
+      tfiImportInput.files?.[0];
+
+    if (!file) {
+      return;
+    }
+
+    void insertTfiFile(file).catch(
+      (error) => {
+        setStatus(
+          `Failed to import TFI: ${error.message}`
+        );
+      }
+    );
+  }
+);
+
 applyInitialSourceFromQuery();
 applySimpleModeFromQuery();
 clearConsole();
 setBottomTab("console");
 setRuntimeState("Audio idle");
 ui.installBottomTabHandlers();
+installTfiEditorDropTarget();
 void initializePlaygroundMonaco({
   editor,
   editorHost,
@@ -826,5 +1086,20 @@ void initializePlaygroundMonaco({
   setEditorNote,
   setEditorAdapter: (nextAdapter) => {
     editorAdapter = nextAdapter;
+  },
+  onMonacoEditorReady({
+    monacoEditor,
+  }) {
+    monacoEditor.addAction({
+      id: "tetorica-insert-tfi-object",
+      label:
+        "File (TFI) Import...",
+      contextMenuGroupId:
+        "navigation",
+      contextMenuOrder: 1.5,
+      run() {
+        promptTfiInsert();
+      },
+    });
   },
 });

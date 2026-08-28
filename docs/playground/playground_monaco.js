@@ -369,6 +369,7 @@ export async function initializePlaygroundMonaco(
     getEditorValue,
     setEditorNote,
     setEditorAdapter,
+    onMonacoEditorReady,
   } = options;
 
   try {
@@ -601,9 +602,63 @@ export async function initializePlaygroundMonaco(
           value
         );
       },
+      getCursorOffset() {
+        const selection =
+          monacoEditor.getSelection();
+        const position =
+          selection?.getPosition() ??
+          monacoEditor.getPosition();
+
+        if (!position) {
+          return monacoModel.getValueLength();
+        }
+
+        return monacoModel.getOffsetAt(
+          position
+        );
+      },
+      insertText(text) {
+        const selection =
+          monacoEditor.getSelection();
+        const position =
+          monacoEditor.getPosition() ??
+          monacoModel.getPositionAt(
+            monacoModel.getValueLength()
+          );
+        const range =
+          selection ??
+          new monaco.Range(
+            position.lineNumber,
+            position.column,
+            position.lineNumber,
+            position.column
+          );
+
+        monacoEditor.executeEdits(
+          "tetorica",
+          [
+            {
+              range,
+              text,
+              forceMoveMarkers: true,
+            },
+          ]
+        );
+        monacoEditor.revealPositionInCenterIfOutsideViewport(
+          monacoEditor.getPosition() ??
+            position
+        );
+        monacoEditor.focus();
+      },
       focus() {
         monacoEditor.focus();
       },
+    });
+
+    onMonacoEditorReady?.({
+      monaco,
+      monacoEditor,
+      monacoModel,
     });
   } catch (error) {
     console.warn(error);

@@ -117,6 +117,49 @@ export function applyTfiToSynth(synth, channel, data) {
 }
 
 /**
+ * Convert one logical TFI operator block into readable JavaScript object text.
+ *
+ * The returned text is meant to fit directly into:
+ * `fm.setOperator(CH1, OP1, |here|)`
+ *
+ * @param {TfiOperatorPreset} operator
+ * @returns {string}
+ */
+export function createTfiOperatorObjectText(operator) {
+  const normalized = normalizeOperatorPreset(operator);
+  return `{ dt: ${normalized.dt}, multi: ${normalized.multi}, tl: ${normalized.tl}, rs: ${normalized.rs}, ar: ${normalized.ar}, d1r: ${normalized.d1r}, d2r: ${normalized.d2r}, sl: ${normalized.sl}, rr: ${normalized.rr}, ssg: ${normalized.ssg} }`;
+}
+
+/**
+ * Convert a parsed TFI preset into readable JavaScript object text.
+ *
+ * The returned text is meant to fit directly into:
+ * `fm.setPreset(CH1, |here|)`
+ *
+ * @param {TfiPreset} preset
+ * @returns {string}
+ */
+export function createTfiPresetObjectText(preset) {
+  const normalizedPreset = normalizePreset(preset);
+  const lines = [
+    "{",
+    `  algorithm: ${normalizedPreset.algorithm},`,
+    `  feedback: ${normalizedPreset.feedback},`,
+    "  operators: {",
+  ];
+
+  for (let logicalOperator = 1; logicalOperator <= 4; logicalOperator += 1) {
+    lines.push(
+      `    ${logicalOperator}: ${createTfiOperatorObjectText(normalizedPreset.operators[logicalOperator])},`
+    );
+  }
+
+  lines.push("  },");
+  lines.push("}");
+  return lines.join("\n");
+}
+
+/**
  * Build a 42-byte TFI file from a logical YM2612 preset.
  *
  * The input preset uses logical operator numbers `1, 2, 3, 4`.
@@ -198,6 +241,48 @@ function toTfiBytes(data) {
     throw new Error(`TFI data must be exactly ${TFI_FILE_SIZE} bytes`);
   }
   return bytes;
+}
+
+/**
+ * @param {TfiPreset} preset
+ * @returns {TfiPreset}
+ */
+function normalizePreset(preset) {
+  if (!preset || typeof preset !== "object") {
+    throw new Error("preset must be an object");
+  }
+
+  return {
+    algorithm: validateRange("algorithm", preset.algorithm ?? 7, 0, 7),
+    feedback: validateRange("feedback", preset.feedback ?? 0, 0, 7),
+    operators: {
+      1: normalizeOperatorPreset(preset.operators?.[1]),
+      2: normalizeOperatorPreset(preset.operators?.[2]),
+      3: normalizeOperatorPreset(preset.operators?.[3]),
+      4: normalizeOperatorPreset(preset.operators?.[4]),
+    },
+  };
+}
+
+/**
+ * @param {TfiOperatorPreset | undefined} operator
+ * @returns {Required<TfiOperatorPreset>}
+ */
+function normalizeOperatorPreset(operator) {
+  const source = operator && typeof operator === "object" ? operator : {};
+
+  return {
+    multi: validateRange("multi", source.multi ?? 1, 0, 15),
+    dt: validateRange("dt", source.dt ?? 0, 0, 7),
+    tl: validateRange("tl", source.tl ?? 127, 0, 127),
+    rs: validateRange("rs", source.rs ?? 0, 0, 3),
+    ar: validateRange("ar", source.ar ?? 0, 0, 31),
+    d1r: validateRange("d1r", source.d1r ?? 0, 0, 31),
+    d2r: validateRange("d2r", source.sr ?? source.d2r ?? 0, 0, 31),
+    rr: validateRange("rr", source.rr ?? 15, 0, 15),
+    sl: validateRange("sl", source.sl ?? 0, 0, 15),
+    ssg: validateRange("ssg", source.ssg ?? 0, 0, 15),
+  };
 }
 
 /**
