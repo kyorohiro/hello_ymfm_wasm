@@ -374,6 +374,10 @@ declare function stopLoop(name: string): void;
 declare function stopAllLoops(): void;
 /** Stop all sounding notes and playback state. */
 declare function stopAll(): void;
+/** Set the final browser-side master output volume. 1.0 = 100%. */
+declare function setMasterVolume(volume: number): number;
+/** Read the current browser-side master output volume. */
+declare function getMasterVolume(): number;
 /** Browser timer helper available in playground examples. */
 declare function setInterval(handler: () => void, timeout?: number): number;
 /** Browser timer helper available in playground examples. */
@@ -412,5 +416,7 @@ declare const pg: {
   stopLoop: typeof stopLoop;
   stopAllLoops: typeof stopAllLoops;
   stopAll: typeof stopAll;
+  setMasterVolume: typeof setMasterVolume;
+  getMasterVolume: typeof getMasterVolume;
   log: (...args: unknown[]) => void;
 };

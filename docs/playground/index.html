@@ -841,6 +841,7 @@
               <li><code>pg.sleep(0.25)</code> waits in seconds</li>
               <li><code>pg.liveLoop("bass", async () =&gt; {})</code> keeps a named loop alive</li>
               <li><code>pg.setBpm(120)</code>, <code>await pg.beat(1)</code>, <code>await pg.nextBeat()</code>, <code>await pg.tween(1, (t) =&gt; {})</code></li>
+              <li><code>pg.setMasterVolume(1.5)</code>, <code>pg.getMasterVolume()</code></li>
               <li><code>await pg.livePrepare("main-fx", async ({ fx }) =&gt; ...)</code> reuses prepared live state across runs</li>
               <li><code>pg.scale("Eb2", "majorPentatonic", 2)</code>, <code>pg.chord("B2", "minor")</code></li>
               <li><code>pg.noteToBlockFnum("C4")</code>, <code>pg.noteLerp("B2", "E3", 0.5)</code>, <code>pg.lerp(0, 100, 0.5)</code></li>

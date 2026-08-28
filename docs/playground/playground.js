@@ -217,6 +217,17 @@ function applyMasterVolume() {
   );
 }
 
+function setMasterVolume(volume) {
+  masterVolume = Number(volume);
+  updateMasterVolumeUi();
+  applyMasterVolume();
+  return megaDrive.getMasterVolume();
+}
+
+function getMasterVolume() {
+  return megaDrive.getMasterVolume();
+}
+
 function psgTone(channel, period, attenuation = 0) {
   const normalizedChannel = Number(channel);
   const normalizedPeriod = Number(period);
@@ -798,6 +809,8 @@ async function runCode() {
       psg,
       psgTone,
       psgNoise,
+      setMasterVolume,
+      getMasterVolume,
       CH1: 0,
       CH2: 1,
       CH3: 2,
@@ -878,6 +891,10 @@ async function runCode() {
       psg,
       psgTone,
       psgNoise,
+      setMasterVolume:
+        pg.setMasterVolume,
+      getMasterVolume:
+        pg.getMasterVolume,
       livePrepare: (name, fn) =>
         pg.livePrepare(name, fn),
       play: (note, options) =>
