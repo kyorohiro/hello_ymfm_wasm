@@ -15,6 +15,7 @@ LICENSE_FILE="${ROOT_DIR}/LICENSE"
 
 ANALYZER_FILES="
 index.html
+vgm_analyzer.js
 "
 
 JS_FILES="
@@ -30,8 +31,16 @@ ym2612vgm.js
 GENERATED_FILES="
 ym2612_wasm.js
 ym2612_wasm.wasm
+nuked_opn2_wasm.js
+nuked_opn2_wasm.wasm
 segapsg_wasm.js
 segapsg_wasm.wasm
+"
+
+NUKED_LICENSE_DIR="${ROOT_DIR}/third_party/nuked-opn2"
+NUKED_LICENSE_FILES="
+LICENSE
+README.md
 "
 
 if [ ! -d "${ANALYZER_DIR}" ]; then
@@ -54,10 +63,15 @@ if [ ! -f "${LICENSE_FILE}" ]; then
   exit 1
 fi
 
+if [ ! -d "${NUKED_LICENSE_DIR}" ]; then
+  echo "error: missing directory: ${NUKED_LICENSE_DIR}" >&2
+  exit 1
+fi
+
 mkdir -p "${RELEASE_DIR}"
 rm -rf "${STAGE_DIR}"
 rm -f "${ZIP_PATH}"
-mkdir -p "${STAGE_DIR}/js" "${STAGE_DIR}/generated"
+mkdir -p "${STAGE_DIR}/js" "${STAGE_DIR}/generated" "${STAGE_DIR}/licenses/nuked-opn2"
 
 for file in ${ANALYZER_FILES}; do
   src="${ANALYZER_DIR}/${file}"
@@ -97,10 +111,41 @@ done
 
 cp "${LICENSE_FILE}" "${STAGE_DIR}/LICENSE"
 
+for file in ${NUKED_LICENSE_FILES}; do
+  src="${NUKED_LICENSE_DIR}/${file}"
+  dst="${STAGE_DIR}/licenses/nuked-opn2/${file}"
+
+  if [ ! -f "${src}" ]; then
+    echo "error: missing Nuked license file: ${src}" >&2
+    exit 1
+  fi
+
+  cp "${src}" "${dst}"
+done
+
+cat > "${STAGE_DIR}/THIRD_PARTY_LICENSES.txt" <<EOF
+This package includes two YM2612 engine options:
+
+- Default engine: ymfm
+  - Project: https://github.com/aaronsgiles/ymfm
+  - License: BSD 3-Clause
+  - Covered by: ./LICENSE
+
+- Optional engine: Nuked-OPN2
+  - Project: https://github.com/nukeykt/Nuked-OPN2
+  - Vendored source in this repository: third_party/nuked-opn2/
+  - License: GNU Lesser General Public License v2.1 or later (LGPL-2.1-or-later)
+  - Included license files:
+    - ./licenses/nuked-opn2/LICENSE
+    - ./licenses/nuked-opn2/README.md
+
+Use ?engine=nuked only if you want the optional Nuked-OPN2 backend.
+EOF
+
 # Make the analyzer runnable from itch.io as a standalone app.
 perl -0pi -e 's#<a class="link-button" href="\.\./index\.html">Back</a>##g' "${STAGE_DIR}/index.html"
 perl -0pi -e 's#"\.\./js/#"./js/#g; s#"\.\./generated/#"./generated/#g' \
-  "${STAGE_DIR}/index.html"
+  "${STAGE_DIR}/index.html" "${STAGE_DIR}/vgm_analyzer.js"
 perl -0pi -e 's#\.\./js/vgm-output-worklet\.js#./js/vgm-output-worklet.js#g' \
   "${STAGE_DIR}/index.html"
 
