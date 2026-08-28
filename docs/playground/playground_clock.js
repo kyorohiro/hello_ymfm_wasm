@@ -201,6 +201,78 @@ export function createPlaygroundClock(
       beatsToSeconds(beatPosition);
   }
 
+  async function tween(
+    seconds,
+    fn,
+    runToken = getCurrentRunToken()
+  ) {
+    if (typeof fn !== "function") {
+      throw new Error(
+        "tween(seconds, fn) requires a callback"
+      );
+    }
+
+    const loopState =
+      getCurrentLoopContext();
+    const effectiveToken =
+      loopState?.runToken ??
+      runToken;
+    const duration =
+      Math.max(
+        0,
+        Number(seconds) || 0
+      );
+    const startedAt =
+      nowSeconds();
+
+    if (duration === 0) {
+      await fn(1);
+      return;
+    }
+
+    await fn(0);
+
+    while (true) {
+      const elapsed =
+        nowSeconds() - startedAt;
+      const progress = Math.min(
+        1,
+        elapsed / duration
+      );
+
+      if (progress >= 1) {
+        break;
+      }
+
+      await sleep(
+        Math.min(1 / 60, duration / 16),
+        runToken
+      );
+
+      if (
+        loopState?.stopped ||
+        effectiveToken !==
+          (loopState?.runToken ??
+            getCurrentRunToken())
+      ) {
+        throw new Error(
+          "Run stopped"
+        );
+      }
+
+      const steppedElapsed =
+        nowSeconds() - startedAt;
+      const steppedProgress =
+        Math.min(
+          1,
+          steppedElapsed / duration
+        );
+      await fn(steppedProgress);
+    }
+
+    await fn(1);
+  }
+
   return {
     nowSeconds,
     ensureMusicClock,
@@ -211,5 +283,6 @@ export function createPlaygroundClock(
     beat,
     nextBeat,
     setBpm,
+    tween,
   };
 }

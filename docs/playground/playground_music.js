@@ -1,3 +1,23 @@
+const CHORD_INTERVALS = {
+  major: [0, 4, 7],
+  minor: [0, 3, 7],
+  major7: [0, 4, 7, 11],
+  minor7: [0, 3, 7, 10],
+  dominant7: [0, 4, 7, 10],
+};
+
+export function lerp(
+  a,
+  b,
+  t
+) {
+  return (
+    Number(a) +
+    (Number(b) - Number(a)) *
+      Number(t)
+  );
+}
+
 export function createPlaygroundMusic(
   options
 ) {
@@ -177,6 +197,30 @@ export function createPlaygroundMusic(
     return notes;
   }
 
+  function chord(
+    root,
+    name
+  ) {
+    const intervals =
+      CHORD_INTERVALS[name];
+
+    if (!intervals) {
+      throw new Error(
+        `Unsupported chord: ${name}`
+      );
+    }
+
+    const rootMidi =
+      parseNoteName(root);
+
+    return intervals.map(
+      (interval) =>
+        midiToNoteName(
+          rootMidi + interval
+        )
+    );
+  }
+
   function choose(values) {
     if (
       !Array.isArray(values) ||
@@ -258,13 +302,33 @@ export function createPlaygroundMusic(
     );
   }
 
+  function noteLerp(
+    from,
+    to,
+    t
+  ) {
+    const fromMidi =
+      parseNoteName(from);
+    const toMidi =
+      parseNoteName(to);
+    const midi = lerp(
+      fromMidi,
+      toMidi,
+      t
+    );
+    return toPitch(midi);
+  }
+
   return {
     parseNoteName,
     toPitch,
     noteToBlockFnum,
+    noteLerp,
     play,
     midiToNoteName,
     scale,
+    chord,
+    lerp,
     choose,
     cycle,
     rand,

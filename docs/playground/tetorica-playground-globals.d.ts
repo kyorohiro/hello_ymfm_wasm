@@ -171,6 +171,12 @@ type ReverbFXOptions = {
   tone?: number;
 };
 
+/** Options for `fx.slicer()`. */
+type SlicerFXOptions = {
+  phase?: number;
+  mix?: number;
+};
+
 /** Control wrapper for AudioParam-like values. */
 type AudioParamControl = {
   get(): number;
@@ -227,12 +233,19 @@ type ReverbFXUnit = BaseFXUnit & {
   tone: AudioParamControl;
 };
 
+type SlicerFXUnit = BaseFXUnit & {
+  type: "slicer";
+  phase: SimpleParamControl;
+  mix: AudioParamControl;
+};
+
 type AnyFXUnit =
   | GainFXUnit
   | EqFXUnit
   | FilterFXUnit
   | DelayFXUnit
-  | ReverbFXUnit;
+  | ReverbFXUnit
+  | SlicerFXUnit;
 
 declare const fm: {
   /** Reset YM2612 state. */
@@ -306,6 +319,8 @@ declare const fx: {
   delay(options?: DelayFXOptions): DelayFXUnit;
   /** Create a reverb effect unit. */
   reverb(options?: ReverbFXOptions): ReverbFXUnit;
+  /** Create a BPM-based slicer / gate effect unit. */
+  slicer(options?: SlicerFXOptions): SlicerFXUnit;
   /** Replace the current master FX chain. */
   setChain(effects: AnyFXUnit[]): void;
   /** Clear the current master FX chain. */
@@ -324,6 +339,8 @@ declare function sleep(seconds: number): Promise<void>;
 declare function beat(beats?: number): Promise<void>;
 /** Wait for the next integer beat boundary. */
 declare function nextBeat(): Promise<void>;
+/** Update something gradually over time with `t = 0..1`. */
+declare function tween(seconds: number, fn: (t: number) => void | Promise<void>): Promise<void>;
 /**
  * Set the shared tempo used by beat() and nextBeat().
  * @param bpm Beats per minute. For example, 120 means 120 quarter-note beats per minute.
@@ -331,8 +348,14 @@ declare function nextBeat(): Promise<void>;
 declare function setBpm(bpm: number): void;
 /** Build an array of note names from one named scale. */
 declare function scale(root: string, name: string, octaves?: number): string[];
+/** Build a simple chord from a root note. */
+declare function chord(root: string, name: "major" | "minor" | "major7" | "minor7" | "dominant7"): string[];
 /** Convert one note name into raw YM2612 BLOCK / F-NUM values. */
 declare function noteToBlockFnum(note: string): { block: number; fnum: number };
+/** Interpolate between two numbers. */
+declare function lerp(a: number, b: number, t: number): number;
+/** Interpolate between two note names and return YM2612 BLOCK / F-NUM. */
+declare function noteLerp(from: string, to: string, t: number): { block: number; fnum: number };
 /** Pick one random item from an array. */
 declare function choose<T>(values: T[]): T;
 /** Return the next item in a repeating sequence. */
@@ -372,16 +395,20 @@ declare const pg: {
   sleep: typeof sleep;
   beat: typeof beat;
   nextBeat: typeof nextBeat;
+  tween: typeof tween;
   setBpm: typeof setBpm;
   liveLoop: typeof liveLoop;
   livePrepare: typeof livePrepare;
   scale: typeof scale;
+  chord: typeof chord;
   noteToBlockFnum: typeof noteToBlockFnum;
+  noteLerp: typeof noteLerp;
   choose: typeof choose;
   cycle: typeof cycle;
   rand: typeof rand;
   rrange: typeof rrange;
   randInt: typeof randInt;
+  lerp: typeof lerp;
   stopLoop: typeof stopLoop;
   stopAllLoops: typeof stopAllLoops;
   stopAll: typeof stopAll;

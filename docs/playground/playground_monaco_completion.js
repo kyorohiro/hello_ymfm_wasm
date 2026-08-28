@@ -95,7 +95,7 @@ function extractFxUnitVariables(
   const variables =
     new Map();
   const pattern =
-    /\b(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*fx\.(gain|eq|filter|delay|reverb)\s*\(/g;
+    /\b(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*fx\.(gain|eq|filter|delay|reverb|slicer)\s*\(/g;
   let match =
     pattern.exec(source);
 
@@ -362,6 +362,7 @@ function createFxUnitSuggestions(
     filter: ["cutoff", "q"],
     delay: ["time", "feedback", "mix"],
     reverb: ["mix", "tone"],
+    slicer: ["phase", "mix"],
   }[effectType] ?? [];
 
   for (const name of parameterNames) {
@@ -482,6 +483,7 @@ function createFxConfigSuggestions(
     filter: ["type", "cutoff", "q"],
     delay: ["time", "feedback", "mix"],
     reverb: ["mix", "tone"],
+    slicer: ["phase", "mix"],
   };
 
   return (definitions[effectType] ?? []).map(
@@ -1287,7 +1289,7 @@ export function registerMonacoCompletions(
         }
 
         if (
-          /\.(bass|mid|treble|cutoff|q|mix|feedback|time|tone)\.$/.test(
+          /\.(bass|mid|treble|cutoff|q|mix|feedback|time|tone|phase)\.$/.test(
             linePrefix
           )
         ) {

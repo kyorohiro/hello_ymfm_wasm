@@ -71,6 +71,14 @@
  */
 
 /**
+ * @typedef {{
+ *   phase?: number,
+ *   mix?: number,
+ *   getBeatSeconds?: (() => number),
+ * }} SlicerFXOptions
+ */
+
+/**
  * @typedef {BaseFXUnit & {
  *   type: "gain",
  *   gain: AudioParamControl,
@@ -107,12 +115,20 @@
  * @typedef {BaseFXUnit & {
  *   type: "reverb",
  *   mix: AudioParamControl,
- *   tone: AudioParamControl,
+  *   tone: AudioParamControl,
  * }} ReverbFXUnit
  */
 
 /**
- * @typedef {GainFXUnit | EqFXUnit | FilterFXUnit | DelayFXUnit | ReverbFXUnit} AnyFXUnit
+ * @typedef {BaseFXUnit & {
+ *   type: "slicer",
+ *   phase: SimpleParamControl,
+ *   mix: AudioParamControl,
+ * }} SlicerFXUnit
+ */
+
+/**
+ * @typedef {GainFXUnit | EqFXUnit | FilterFXUnit | DelayFXUnit | ReverbFXUnit | SlicerFXUnit} AnyFXUnit
  */
 
 /**
@@ -825,6 +841,144 @@ export function createReverbFX(
       convolver,
       tone,
       output,
+    ],
+  });
+}
+
+/**
+ * @param {BaseAudioContext} audioContext
+ * @param {SlicerFXOptions} [options]
+ * @returns {SlicerFXUnit}
+ */
+export function createSlicerFX(
+  audioContext,
+  options = {}
+) {
+  const input =
+    audioContext.createGain();
+  const dryGain =
+    audioContext.createGain();
+  const wetInputGain =
+    audioContext.createGain();
+  const gateGain =
+    audioContext.createGain();
+  const wetGain =
+    audioContext.createGain();
+  const output =
+    audioContext.createGain();
+  const lfo =
+    audioContext.createOscillator();
+  const lfoDepth =
+    audioContext.createGain();
+
+  let phaseBeats =
+    clampNumber(
+      options.phase,
+      0.25,
+      0.03125,
+      16
+    );
+
+  const resolveBeatSeconds =
+    typeof options.getBeatSeconds ===
+    "function"
+      ? options.getBeatSeconds
+      : () => 0.5;
+
+  function updateRate() {
+    const beatSeconds =
+      clampNumber(
+        resolveBeatSeconds(),
+        0.5,
+        0.01,
+        60
+      );
+    const periodSeconds =
+      Math.max(
+        0.01,
+        phaseBeats * beatSeconds
+      );
+    const frequency =
+      1 / periodSeconds;
+    lfo.frequency.setValueAtTime(
+      frequency,
+      audioContext.currentTime
+    );
+  }
+
+  lfo.type = "square";
+  lfoDepth.gain.value = 0.5;
+  gateGain.gain.value = 0.5;
+  setDryWetMix(
+    dryGain,
+    wetGain,
+    options.mix ?? 1
+  );
+
+  input.connect(dryGain);
+  input.connect(wetInputGain);
+  wetInputGain.connect(gateGain);
+  gateGain.connect(wetGain);
+  dryGain.connect(output);
+  wetGain.connect(output);
+
+  lfo.connect(lfoDepth);
+  lfoDepth.connect(gateGain.gain);
+  updateRate();
+  lfo.start();
+
+  const syncTimer =
+    window.setInterval(() => {
+      updateRate();
+    }, 60);
+
+  return createEffectUnit({
+    type: "slicer",
+    input,
+    output,
+    params: {
+      phase: {
+        get() {
+          return phaseBeats;
+        },
+        set(value) {
+          phaseBeats = clampNumber(
+            value,
+            phaseBeats,
+            0.03125,
+            16
+          );
+          updateRate();
+          return phaseBeats;
+        },
+      },
+      mix: createDryWetMixControl(
+        audioContext,
+        dryGain,
+        wetGain
+      ),
+    },
+    disposeNodes: [
+      input,
+      dryGain,
+      wetInputGain,
+      gateGain,
+      wetGain,
+      output,
+      lfo,
+      lfoDepth,
+      {
+        disconnect() {
+          window.clearInterval(
+            syncTimer
+          );
+          try {
+            lfo.stop();
+          } catch (_error) {
+            // Ignore stop-after-stop differences across browsers.
+          }
+        },
+      },
     ],
   });
 }

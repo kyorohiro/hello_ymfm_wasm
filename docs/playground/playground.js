@@ -1,13 +1,9 @@
 import {
   MegaDriveSynth,
-  createDelayFX,
-  createEqFX,
-  createFilterFX,
-  createGainFX,
-  createReverbFX,
   MEGADRIVE_FM_PRESET_ORDER,
   MEGADRIVE_FM_PRESETS,
 } from "../js/megasynth.js";
+import * as megaSynthFx from "../js/megasynth_fx.js";
 import {
   createTfiOperatorObjectText,
   createTfiPresetObjectText,
@@ -500,37 +496,57 @@ function createFxApi() {
 
   return {
     gain(options = {}) {
-      return createGainFX(
+      return megaSynthFx.createGainFX(
         megaDrive.audioContext,
         options
       );
     },
 
     eq(options = {}) {
-      return createEqFX(
+      return megaSynthFx.createEqFX(
         megaDrive.audioContext,
         options
       );
     },
 
     filter(options = {}) {
-      return createFilterFX(
+      return megaSynthFx.createFilterFX(
         megaDrive.audioContext,
         options
       );
     },
 
     delay(options = {}) {
-      return createDelayFX(
+      return megaSynthFx.createDelayFX(
         megaDrive.audioContext,
         options
       );
     },
 
     reverb(options = {}) {
-      return createReverbFX(
+      return megaSynthFx.createReverbFX(
         megaDrive.audioContext,
         options
+      );
+    },
+
+    slicer(options = {}) {
+      if (
+        typeof megaSynthFx.createSlicerFX !==
+        "function"
+      ) {
+        throw new Error(
+          "fx.slicer() is not available in the current megasynth_fx.js build"
+        );
+      }
+
+      return megaSynthFx.createSlicerFX(
+        megaDrive.audioContext,
+        {
+          ...options,
+          getBeatSeconds: () =>
+            clockApi.beatsToSeconds(1),
+        }
       );
     },
 
@@ -772,6 +788,8 @@ async function runCode() {
         clockApi.nextBeat,
       setBpm:
         clockApi.setBpm,
+      tween:
+        clockApi.tween,
       liveLoop: (name, fn) =>
         liveApi.liveLoop(
           name,
@@ -792,10 +810,15 @@ async function runCode() {
         musicApi.rrange,
       randInt:
         musicApi.randInt,
+      lerp: musicApi.lerp,
       scale:
         musicApi.scale,
+      chord:
+        musicApi.chord,
       noteToBlockFnum:
         musicApi.noteToBlockFnum,
+      noteLerp:
+        musicApi.noteLerp,
       log: (...args) => {
         logLine(
           formatLogArgs(args)
@@ -821,6 +844,7 @@ async function runCode() {
       beat: pg.beat,
       nextBeat: pg.nextBeat,
       setBpm: pg.setBpm,
+      tween: pg.tween,
       liveLoop: (name, fn) =>
         pg.liveLoop(name, fn),
       stopLoop: pg.stopLoop,
@@ -831,9 +855,13 @@ async function runCode() {
       rand: pg.rand,
       rrange: pg.rrange,
       randInt: pg.randInt,
+      lerp: pg.lerp,
       scale: pg.scale,
+      chord: pg.chord,
       noteToBlockFnum:
         pg.noteToBlockFnum,
+      noteLerp:
+        pg.noteLerp,
       CH1: pg.CH1,
       CH2: pg.CH2,
       CH3: pg.CH3,

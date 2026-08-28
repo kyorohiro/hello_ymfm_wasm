@@ -11,6 +11,7 @@ export {
   createFilterFX,
   createGainFX,
   createReverbFX,
+  createSlicerFX,
 } from "./megasynth_fx.js";
 export { MegaSynthLooper } from "./looper.js";
 export {
