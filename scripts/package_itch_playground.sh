@@ -35,7 +35,10 @@ megasynth.js
 megasynth_fx.js
 megasynth_recording.js
 megadrive-fm-presets.js
+segapsg.js
+tfi.js
 ym2612-worklet.js
+ym2612-worklet-nuked.js
 ym2612.js
 ym2612synth.js
 "
@@ -48,6 +51,16 @@ synth_keyboard.js
 GENERATED_FILES="
 ym2612_wasm.js
 ym2612_wasm.wasm
+nuked_opn2_wasm.js
+nuked_opn2_wasm.wasm
+segapsg_wasm.js
+segapsg_wasm.wasm
+"
+
+NUKED_LICENSE_DIR="${ROOT_DIR}/third_party/nuked-opn2"
+NUKED_LICENSE_FILES="
+LICENSE
+README.md
 "
 
 if [ ! -d "${PLAYGROUND_DIR}" ]; then
@@ -75,10 +88,15 @@ if [ ! -f "${LICENSE_FILE}" ]; then
   exit 1
 fi
 
+if [ ! -d "${NUKED_LICENSE_DIR}" ]; then
+  echo "error: missing directory: ${NUKED_LICENSE_DIR}" >&2
+  exit 1
+fi
+
 mkdir -p "${RELEASE_DIR}"
 rm -rf "${STAGE_DIR}"
 rm -f "${ZIP_PATH}"
-mkdir -p "${STAGE_DIR}/js" "${STAGE_DIR}/synth" "${STAGE_DIR}/generated"
+mkdir -p "${STAGE_DIR}/js" "${STAGE_DIR}/synth" "${STAGE_DIR}/generated" "${STAGE_DIR}/licenses/nuked-opn2"
 
 for file in ${PLAYGROUND_FILES}; do
   src="${PLAYGROUND_DIR}/${file}"
@@ -129,6 +147,26 @@ for file in ${GENERATED_FILES}; do
 done
 
 cp "${LICENSE_FILE}" "${STAGE_DIR}/LICENSE"
+
+for file in ${NUKED_LICENSE_FILES}; do
+  cp "${NUKED_LICENSE_DIR}/${file}" "${STAGE_DIR}/licenses/nuked-opn2/${file}"
+done
+
+cat > "${STAGE_DIR}/THIRD_PARTY_LICENSES.txt" <<EOF
+This package includes two YM2612 engine options:
+
+- Default engine: ymfm
+  - Project: https://github.com/aaronsgiles/ymfm
+  - License: BSD 3-Clause
+  - Covered by: ./LICENSE
+
+- Optional engine: Nuked-OPN2
+  - Project: https://github.com/nukeykt/Nuked-OPN2
+  - License: GNU Lesser General Public License v2.1 or later (LGPL-2.1-or-later)
+  - Included license files:
+    - ./licenses/nuked-opn2/LICENSE
+    - ./licenses/nuked-opn2/README.md
+EOF
 
 # Make the playground runnable from itch.io as a standalone app.
 perl -0pi -e 's#<a class="link-button" href="\.\./index\.html">Back</a>##g' \

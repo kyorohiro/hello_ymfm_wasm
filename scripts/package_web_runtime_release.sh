@@ -23,9 +23,16 @@ segapsg.js
 tfi.js
 vgmplayer.js
 ym2612-worklet.js
+ym2612-worklet-nuked.js
 ym2612.js
 ym2612synth.js
 ym2612vgm.js
+"
+
+NUKED_LICENSE_DIR="${ROOT_DIR}/third_party/nuked-opn2"
+NUKED_LICENSE_FILES="
+LICENSE
+README.md
 "
 
 if [ ! -d "${WEB_DIR}" ]; then
@@ -43,6 +50,11 @@ if [ ! -f "${LICENSE_FILE}" ]; then
   exit 1
 fi
 
+if [ ! -d "${NUKED_LICENSE_DIR}" ]; then
+  echo "error: missing directory: ${NUKED_LICENSE_DIR}" >&2
+  exit 1
+fi
+
 if [ ! -f "${GENERATED_DIR}/ym2612_wasm.js" ] || [ ! -f "${GENERATED_DIR}/ym2612_wasm.wasm" ]; then
   echo "error: YM2612 WASM files are missing in ${GENERATED_DIR}" >&2
   echo "hint: run sh scripts/build_ym2612_wasm.sh first" >&2
@@ -55,10 +67,16 @@ if [ ! -f "${GENERATED_DIR}/segapsg_wasm.js" ] || [ ! -f "${GENERATED_DIR}/segap
   exit 1
 fi
 
+if [ ! -f "${GENERATED_DIR}/nuked_opn2_wasm.js" ] || [ ! -f "${GENERATED_DIR}/nuked_opn2_wasm.wasm" ]; then
+  echo "error: Nuked-OPN2 WASM files are missing in ${GENERATED_DIR}" >&2
+  echo "hint: run sh scripts/build_nuked_opn2_wasm.sh first" >&2
+  exit 1
+fi
+
 mkdir -p "${RELEASE_DIR}"
 rm -rf "${STAGE_DIR}"
 rm -f "${OUTPUT_PATH}"
-mkdir -p "${STAGE_DIR}/generated"
+mkdir -p "${STAGE_DIR}/generated" "${STAGE_DIR}/licenses/nuked-opn2"
 
 (
   for file in ${RUNTIME_FILES}; do
@@ -75,9 +93,31 @@ mkdir -p "${STAGE_DIR}/generated"
 
   cp "${GENERATED_DIR}/ym2612_wasm.js" "${STAGE_DIR}/generated/ym2612_wasm.js"
   cp "${GENERATED_DIR}/ym2612_wasm.wasm" "${STAGE_DIR}/generated/ym2612_wasm.wasm"
+  cp "${GENERATED_DIR}/nuked_opn2_wasm.js" "${STAGE_DIR}/generated/nuked_opn2_wasm.js"
+  cp "${GENERATED_DIR}/nuked_opn2_wasm.wasm" "${STAGE_DIR}/generated/nuked_opn2_wasm.wasm"
   cp "${GENERATED_DIR}/segapsg_wasm.js" "${STAGE_DIR}/generated/segapsg_wasm.js"
   cp "${GENERATED_DIR}/segapsg_wasm.wasm" "${STAGE_DIR}/generated/segapsg_wasm.wasm"
   cp "${LICENSE_FILE}" "${STAGE_DIR}/LICENSE"
+
+  for file in ${NUKED_LICENSE_FILES}; do
+    cp "${NUKED_LICENSE_DIR}/${file}" "${STAGE_DIR}/licenses/nuked-opn2/${file}"
+  done
+
+  cat > "${STAGE_DIR}/THIRD_PARTY_LICENSES.txt" <<EOF
+This package includes two YM2612 engine options:
+
+- Default engine: ymfm
+  - Project: https://github.com/aaronsgiles/ymfm
+  - License: BSD 3-Clause
+  - Covered by: ./LICENSE
+
+- Optional engine: Nuked-OPN2
+  - Project: https://github.com/nukeykt/Nuked-OPN2
+  - License: GNU Lesser General Public License v2.1 or later (LGPL-2.1-or-later)
+  - Included license files:
+    - ./licenses/nuked-opn2/LICENSE
+    - ./licenses/nuked-opn2/README.md
+EOF
 
   cd "${STAGE_DIR}"
   zip -r "${OUTPUT_PATH}" .

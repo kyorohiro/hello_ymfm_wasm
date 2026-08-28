@@ -28,10 +28,18 @@ megasynth.js
 megasynth_fx.js
 megasynth_recording.js
 megadrive-fm-presets.js
+segapsg.js
 tfi.js
 ym2612.js
 ym2612synth.js
 ym2612-worklet.js
+ym2612-worklet-nuked.js
+"
+
+NUKED_LICENSE_DIR="${ROOT_DIR}/third_party/nuked-opn2"
+NUKED_LICENSE_FILES="
+LICENSE
+README.md
 "
 
 if [ ! -f "${SOURCE_HTML}" ]; then
@@ -59,16 +67,33 @@ if [ ! -f "${LICENSE_FILE}" ]; then
   exit 1
 fi
 
+if [ ! -d "${NUKED_LICENSE_DIR}" ]; then
+  echo "error: missing directory: ${NUKED_LICENSE_DIR}" >&2
+  exit 1
+fi
+
 if [ ! -f "${SOURCE_GENERATED_DIR}/ym2612_wasm.js" ] || [ ! -f "${SOURCE_GENERATED_DIR}/ym2612_wasm.wasm" ]; then
   echo "error: YM2612 WASM files are missing in ${SOURCE_GENERATED_DIR}" >&2
   echo "hint: run sh scripts/build_ym2612_wasm.sh first" >&2
   exit 1
 fi
 
+if [ ! -f "${SOURCE_GENERATED_DIR}/nuked_opn2_wasm.js" ] || [ ! -f "${SOURCE_GENERATED_DIR}/nuked_opn2_wasm.wasm" ]; then
+  echo "error: Nuked-OPN2 WASM files are missing in ${SOURCE_GENERATED_DIR}" >&2
+  echo "hint: run sh scripts/build_nuked_opn2_wasm.sh first" >&2
+  exit 1
+fi
+
+if [ ! -f "${SOURCE_GENERATED_DIR}/segapsg_wasm.js" ] || [ ! -f "${SOURCE_GENERATED_DIR}/segapsg_wasm.wasm" ]; then
+  echo "error: Sega PSG WASM files are missing in ${SOURCE_GENERATED_DIR}" >&2
+  echo "hint: run sh scripts/build_segapsg_wasm.sh first" >&2
+  exit 1
+fi
+
 mkdir -p "${RELEASE_DIR}"
 rm -rf "${STAGE_DIR}"
 rm -f "${ZIP_PATH}"
-mkdir -p "${STAGE_DIR}/js" "${STAGE_DIR}/generated"
+mkdir -p "${STAGE_DIR}/js" "${STAGE_DIR}/generated" "${STAGE_DIR}/licenses/nuked-opn2"
 
 cp "${SOURCE_HTML}" "${STAGE_DIR}/index.html"
 
@@ -98,13 +123,38 @@ done
 
 cp "${SOURCE_GENERATED_DIR}/ym2612_wasm.js" "${STAGE_DIR}/generated/ym2612_wasm.js"
 cp "${SOURCE_GENERATED_DIR}/ym2612_wasm.wasm" "${STAGE_DIR}/generated/ym2612_wasm.wasm"
+cp "${SOURCE_GENERATED_DIR}/nuked_opn2_wasm.js" "${STAGE_DIR}/generated/nuked_opn2_wasm.js"
+cp "${SOURCE_GENERATED_DIR}/nuked_opn2_wasm.wasm" "${STAGE_DIR}/generated/nuked_opn2_wasm.wasm"
+cp "${SOURCE_GENERATED_DIR}/segapsg_wasm.js" "${STAGE_DIR}/generated/segapsg_wasm.js"
+cp "${SOURCE_GENERATED_DIR}/segapsg_wasm.wasm" "${STAGE_DIR}/generated/segapsg_wasm.wasm"
 cp "${LICENSE_FILE}" "${STAGE_DIR}/LICENSE"
+
+for file in ${NUKED_LICENSE_FILES}; do
+  cp "${NUKED_LICENSE_DIR}/${file}" "${STAGE_DIR}/licenses/nuked-opn2/${file}"
+done
+
+cat > "${STAGE_DIR}/THIRD_PARTY_LICENSES.txt" <<EOF
+This package includes two YM2612 engine options:
+
+- Default engine: ymfm
+  - Project: https://github.com/aaronsgiles/ymfm
+  - License: BSD 3-Clause
+  - Covered by: ./LICENSE
+
+- Optional engine: Nuked-OPN2
+  - Project: https://github.com/nukeykt/Nuked-OPN2
+  - License: GNU Lesser General Public License v2.1 or later (LGPL-2.1-or-later)
+  - Included license files:
+    - ./licenses/nuked-opn2/LICENSE
+    - ./licenses/nuked-opn2/README.md
+EOF
 
 perl -0pi -e 's#import "\\./synth\\.js";#import "./synth.js";#g' "${STAGE_DIR}/index.html"
 perl -0pi -e 's#\.\./js/([A-Za-z0-9._-]+\.js)#./js/$1#g; s#\.\./generated/#./generated/#g' "${STAGE_DIR}/synth.js"
 perl -0pi -e 's#\.\./js/megasynth\.js#./js/megasynth.js#g#' "${STAGE_DIR}/synth_runtime.js"
 perl -0pi -e 's#\./ym2612-worklet\.js#./js/ym2612-worklet.js#g; s#\./generated/ym2612_wasm\.wasm#./generated/ym2612_wasm.wasm#g' "${STAGE_DIR}/js/megasynth.js"
 perl -0pi -e 's#import ym2612ModuleFactory from "\\.\\./generated/ym2612_wasm\\.js";#import ym2612ModuleFactory from "../generated/ym2612_wasm.js";#g' "${STAGE_DIR}/js/ym2612-worklet.js"
+perl -0pi -e 's#import ym2612ModuleFactory from "\\.\\./generated/nuked_opn2_wasm\\.js";#import ym2612ModuleFactory from "../generated/nuked_opn2_wasm.js";#g' "${STAGE_DIR}/js/ym2612-worklet-nuked.js"
 
 (
   cd "${STAGE_DIR}"

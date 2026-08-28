@@ -36,6 +36,7 @@ tfi.js
 vgm-output-worklet.js
 vgmplayer.js
 ym2612-worklet.js
+ym2612-worklet-nuked.js
 ym2612.js
 ym2612synth.js
 ym2612vgm.js
@@ -44,8 +45,16 @@ ym2612vgm.js
 GENERATED_FILES="
 ym2612_wasm.js
 ym2612_wasm.wasm
+nuked_opn2_wasm.js
+nuked_opn2_wasm.wasm
 segapsg_wasm.js
 segapsg_wasm.wasm
+"
+
+NUKED_LICENSE_DIR="${ROOT_DIR}/third_party/nuked-opn2"
+NUKED_LICENSE_FILES="
+LICENSE
+README.md
 "
 
 if [ ! -d "${DOCS_JS_DIR}" ]; then
@@ -58,10 +67,15 @@ if [ ! -d "${DOCS_GENERATED_DIR}" ]; then
   exit 1
 fi
 
+if [ ! -d "${NUKED_LICENSE_DIR}" ]; then
+  echo "error: missing directory: ${NUKED_LICENSE_DIR}" >&2
+  exit 1
+fi
+
 mkdir -p "${RELEASE_DIR}"
 rm -rf "${STAGE_DIR}"
 rm -f "${ZIP_PATH}"
-mkdir -p "${STAGE_DIR}/demos" "${STAGE_DIR}/info" "${STAGE_DIR}/js" "${STAGE_DIR}/generated"
+mkdir -p "${STAGE_DIR}/demos" "${STAGE_DIR}/info" "${STAGE_DIR}/js" "${STAGE_DIR}/generated" "${STAGE_DIR}/licenses/nuked-opn2"
 
 for file in ${DEMO_FILES}; do
   src="${DOCS_DEMOS_DIR}/${file}"
@@ -110,6 +124,26 @@ for file in ${GENERATED_FILES}; do
 
   cp "${src}" "${dst}"
 done
+
+for file in ${NUKED_LICENSE_FILES}; do
+  cp "${NUKED_LICENSE_DIR}/${file}" "${STAGE_DIR}/licenses/nuked-opn2/${file}"
+done
+
+cat > "${STAGE_DIR}/THIRD_PARTY_LICENSES.txt" <<EOF
+This package includes two YM2612 engine options:
+
+- Default engine: ymfm
+  - Project: https://github.com/aaronsgiles/ymfm
+  - License: BSD 3-Clause
+  - Covered by: ./LICENSE
+
+- Optional engine: Nuked-OPN2
+  - Project: https://github.com/nukeykt/Nuked-OPN2
+  - License: GNU Lesser General Public License v2.1 or later (LGPL-2.1-or-later)
+  - Included license files:
+    - ./licenses/nuked-opn2/LICENSE
+    - ./licenses/nuked-opn2/README.md
+EOF
 
 cat > "${STAGE_DIR}/index.html" <<'EOF'
 <!doctype html>
