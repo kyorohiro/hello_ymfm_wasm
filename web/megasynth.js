@@ -561,6 +561,11 @@ export class MegaSynth {
         },
         reset() {
           node.port.postMessage({
+            type: "psg-reset",
+          });
+        },
+        resetAll() {
+          node.port.postMessage({
             type: "reset",
           });
         },

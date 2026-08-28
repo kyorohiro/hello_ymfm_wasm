@@ -296,16 +296,8 @@ fm.writeDac(0x80);
 fm.setDacEnabled(false);
 `,
   "psg-scale": `// Sega PSG (SN76489-compatible) tone on channel 0, mixed into the same
-// output as fm. Raw register writes, same format as docs/demos/psg.html:
-//   0x80 | low4bits(period)  -> tone latch (low bits)
-//   high6bits(period)        -> tone data (high bits)
-//   0x90 | attenuation       -> volume (0 = loudest, 15 = silent)
-function psgTone(period, attenuation) {
-  psg.write(0x80 | (period & 0x0f));
-  psg.write((period >> 4) & 0x3f);
-  psg.write(0x90 | attenuation);
-}
-
+// output as fm. Use the small helper first, then fall back to raw psg.write(...)
+// if you want exact register-level control.
 psg.reset();
 
 // C4..C5 tone periods for PSG channel 0 (clock 3579545 Hz).
@@ -321,11 +313,31 @@ const notes = [
 ];
 
 for (const note of notes) {
-  psgTone(note.period, 0);
+  pg.psgTone(0, note.period, 0);
   await sleep(0.15);
 }
 
-psgTone(0, 15);
+pg.psgTone(0, 0, 15);
+`,
+  "psg-noise": `// Sega PSG noise channel.
+// mode uses the PSG noise register bits:
+// 0..3  = periodic noise
+// 4..7  = white noise
+psg.reset();
+
+const bursts = [
+  { mode: 4, attenuation: 2, duration: 0.08 },
+  { mode: 5, attenuation: 3, duration: 0.08 },
+  { mode: 6, attenuation: 2, duration: 0.08 },
+  { mode: 7, attenuation: 1, duration: 0.14 },
+];
+
+for (const burst of bursts) {
+  pg.psgNoise(burst.mode, burst.attenuation);
+  await sleep(burst.duration);
+  pg.psgNoise(burst.mode, 15);
+  await sleep(0.05);
+}
 `,
   "fx-loop": `setBpm(120);
 

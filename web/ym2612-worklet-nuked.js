@@ -127,6 +127,11 @@ class YM2612Processor extends AudioWorkletProcessor {
       return;
     }
 
+    if (command.type === "psg-reset") {
+      this.psg?.reset();
+      return;
+    }
+
     if (command.type === "reset") {
       this.ym2612.reset();
       this.psg?.reset();

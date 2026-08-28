@@ -178,6 +178,48 @@ const operatorTab =
     },
   });
 
+function psgTone(channel, period, attenuation = 0) {
+  const normalizedChannel = Number(channel);
+  const normalizedPeriod = Number(period);
+  const normalizedAttenuation = Number(attenuation);
+
+  if (!Number.isInteger(normalizedChannel) || normalizedChannel < 0 || normalizedChannel > 2) {
+    throw new Error("psgTone channel must be 0..2");
+  }
+  if (!Number.isInteger(normalizedPeriod) || normalizedPeriod < 0 || normalizedPeriod > 0x3ff) {
+    throw new Error("psgTone period must be an integer in range 0..1023");
+  }
+  if (!Number.isInteger(normalizedAttenuation) || normalizedAttenuation < 0 || normalizedAttenuation > 15) {
+    throw new Error("psgTone attenuation must be 0..15");
+  }
+  if (!megaDrive.psg) {
+    throw new Error("PSG is not available");
+  }
+
+  const latchBase = 0x80 | (normalizedChannel << 5);
+  megaDrive.psg.write(latchBase | (normalizedPeriod & 0x0f));
+  megaDrive.psg.write((normalizedPeriod >> 4) & 0x3f);
+  megaDrive.psg.write(0x90 | (normalizedChannel << 5) | normalizedAttenuation);
+}
+
+function psgNoise(mode, attenuation = 0) {
+  const normalizedMode = Number(mode);
+  const normalizedAttenuation = Number(attenuation);
+
+  if (!Number.isInteger(normalizedMode) || normalizedMode < 0 || normalizedMode > 7) {
+    throw new Error("psgNoise mode must be 0..7");
+  }
+  if (!Number.isInteger(normalizedAttenuation) || normalizedAttenuation < 0 || normalizedAttenuation > 15) {
+    throw new Error("psgNoise attenuation must be 0..15");
+  }
+  if (!megaDrive.psg) {
+    throw new Error("PSG is not available");
+  }
+
+  megaDrive.psg.write(0xe0 | normalizedMode);
+  megaDrive.psg.write(0xf0 | normalizedAttenuation);
+}
+
 function createTextareaEditorAdapter(
   textarea
 ) {
@@ -454,6 +496,8 @@ async function runCode() {
       fm,
       fx,
       psg,
+      psgTone,
+      psgNoise,
       CH1: 0,
       CH2: 1,
       CH3: 2,
@@ -519,6 +563,8 @@ async function runCode() {
       fm,
       fx,
       psg,
+      psgTone,
+      psgNoise,
       livePrepare: (name, fn) =>
         pg.livePrepare(name, fn),
       play: (note, options) =>

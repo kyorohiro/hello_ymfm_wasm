@@ -741,6 +741,7 @@
             <option value="channel3-special-mode">Channel 3 Special Mode</option>
             <option value="dac-byte-stream">DAC Byte Stream</option>
             <option value="psg-scale">PSG Scale</option>
+            <option value="psg-noise">PSG Noise</option>
           </select>
           <button id="loadExampleButton" type="button">Load Example</button>
           <span id="runtimeState" class="pill">Audio idle</span>
@@ -830,8 +831,11 @@
             <ul class="helper-list">
               <li><code>psg</code> is the raw Sega PSG (SN76489-compatible) layer, mixed into the same output as <code>fm</code></li>
               <li><code>pg.psg</code> points to the same PSG layer</li>
+              <li><code>pg.psgTone(channel, period, attenuation)</code> writes one PSG tone note helper for channel <code>0..2</code></li>
+              <li><code>pg.psgNoise(mode, attenuation)</code> writes one PSG noise helper using raw mode <code>0..7</code></li>
               <li><code>psg.write(value)</code> sends one raw PSG register byte (tone/noise/attenuation, same format as <code>docs/demos/psg.html</code>)</li>
-              <li><code>psg.reset()</code> resets both PSG and YM2612</li>
+              <li><code>psg.reset()</code> resets only PSG</li>
+              <li><code>psg.resetAll()</code> resets both PSG and YM2612</li>
             </ul>
 
             <h2 style="margin-top: 14px;">fx</h2>

@@ -260,9 +260,16 @@ declare const fm: {
 declare const psg: {
   /** Send one raw Sega PSG (SN76489-compatible) register byte. */
   write(value: number): void;
-  /** Reset both PSG and YM2612 state. */
+  /** Reset only the Sega PSG state. */
   reset(): void;
+  /** Reset both PSG and YM2612 state. */
+  resetAll(): void;
 };
+
+/** Write one PSG tone channel period + attenuation pair. Channel is 0..2. */
+declare function psgTone(channel: number, period: number, attenuation?: number): void;
+/** Write PSG noise mode + attenuation. Mode is the raw 3-bit noise register value 0..7. */
+declare function psgNoise(mode: number, attenuation?: number): void;
 
 declare const fx: {
   /** Create a gain effect unit. */
@@ -324,6 +331,8 @@ declare const pg: {
   fx: typeof fx;
   /** Raw Sega PSG API, mixed into the same output as fm. */
   psg: typeof psg;
+  psgTone: typeof psgTone;
+  psgNoise: typeof psgNoise;
   /** Built-in preset table. */
   presets: typeof MEGADRIVE_FM_PRESETS;
   /** Play one note through the current synth setup. */
