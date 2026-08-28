@@ -239,6 +239,14 @@ export function createPlaygroundMusic(
     return Math.random();
   }
 
+  function rrange(min, max) {
+    return (
+      Number(min) +
+      Math.random() *
+        (Number(max) - Number(min))
+    );
+  }
+
   function randInt(min, max) {
     const low = Math.ceil(min);
     const high = Math.floor(max);
@@ -260,6 +268,7 @@ export function createPlaygroundMusic(
     choose,
     cycle,
     rand,
+    rrange,
     randInt,
   };
 }

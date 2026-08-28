@@ -1,0 +1,2017 @@
+import { Ym2612VGM } from "../js/ym2612vgm.js";
+import { createTfiFromPreset } from "../js/tfi.js";
+import ym2612ModuleFactory from "../generated/ym2612_wasm.js";
+import nukedOpn2ModuleFactory from "../generated/nuked_opn2_wasm.js";
+import segaPsgModuleFactory from "../generated/segapsg_wasm.js";
+import { createGenesisAudioEngine } from "../js/genesisaudioengine.js";
+import { VgmPlayer } from "../js/vgmplayer.js";
+
+// Experimental: ?engine=nuked swaps the YM2612 core for Nuked-OPN2
+// (https://github.com/nukeykt/Nuked-OPN2) instead of the default ymfm
+// backend. Same web/ym2612.js and web/ym2612synth.js code either way.
+const useNukedEngine =
+  new URLSearchParams(window.location.search).get("engine") ===
+  "nuked";
+const activeYm2612ModuleFactory = useNukedEngine
+  ? nukedOpn2ModuleFactory
+  : ym2612ModuleFactory;
+
+if (useNukedEngine) {
+  const pageTitle = document.getElementById("pageTitle");
+  const badge = document.createElement("span");
+  badge.className = "engine-badge";
+  badge.textContent = "Nuked-OPN2 engine";
+  pageTitle?.appendChild(badge);
+}
+
+const fileInput = document.getElementById("fileInput");
+const playButton = document.getElementById("playButton");
+const pauseButton = document.getElementById("pauseButton");
+const resumeButton = document.getElementById("resumeButton");
+const replayButton = document.getElementById("replayButton");
+const stopButton = document.getElementById("stopButton");
+const loopCheckbox = document.getElementById("loopCheckbox");
+const monitorToggles = document.getElementById("monitorToggles");
+const prefetchFactorSelect = document.getElementById("prefetchFactorSelect");
+const workletQueueSelect = document.getElementById("workletQueueSelect");
+const exportAllTfiButton = document.getElementById("exportAllTfiButton");
+const exportParseInfoButton = document.getElementById("exportParseInfoButton");
+const exportSnapshotTfiButton = document.getElementById("exportSnapshotTfiButton");
+const exportSnapshotButton = document.getElementById("exportSnapshotButton");
+const autoExportSnapshotCheckbox = document.getElementById("autoExportSnapshotCheckbox");
+const monoMixCheckbox = document.getElementById("monoMixCheckbox");
+const status = document.getElementById("status");
+const channelGrid = document.getElementById("channelGrid");
+const headerOutput = document.getElementById("headerOutput");
+const commandsOutput = document.getElementById("commandsOutput");
+const commandUsageOutput = document.getElementById("commandUsageOutput");
+const dataBlocksOutput = document.getElementById("dataBlocksOutput");
+const specialCommandsOutput = document.getElementById("specialCommandsOutput");
+const pcmRamWriteOutput = document.getElementById("pcmRamWriteOutput");
+const command92ContextOutput = document.getElementById("command92ContextOutput");
+const operatorInfoTab = document.getElementById("operatorInfoTab");
+const parsedOutputTab = document.getElementById("parsedOutputTab");
+const noteishTab = document.getElementById("noteishTab");
+const operatorInfoPanel = document.getElementById("operatorInfoPanel");
+const parsedOutputPanel = document.getElementById("parsedOutputPanel");
+const noteishPanel = document.getElementById("noteishPanel");
+const noteishOverview = document.getElementById("noteishOverview");
+const noteishGrid = document.getElementById("noteishGrid");
+const notesDialog = document.getElementById("notesDialog");
+const notesDialogTitle = document.getElementById("notesDialogTitle");
+const notesDialogOutput = document.getElementById("notesDialogOutput");
+const notesDialogCloseButton = document.getElementById("notesDialogCloseButton");
+
+let currentBuffer = null;
+let audioContext = null;
+let engine = null;
+let player = null;
+let activeStream = null;
+let workletModuleReady = false;
+let extractedTfiPatches = [];
+let channelMuteStates = [false, false, false, false, false, false];
+let channelMonitor = createChannelMonitorState();
+let baseEngineWriteYm2612 = null;
+let channelMonitorRenderTimer = null;
+let noteishRenderTimer = null;
+let channelMonitorDirty = false;
+let noteishDirty = false;
+let lastNoteishSignature = "";
+let lastLoadedFileName = "snapshot";
+let psgMuted = false;
+let monoMixEnabled = false;
+let lastYm2612DacEnable = 0x00;
+let monitorToggleHandlerBound = false;
+let workletQueueMultiplier = 2;
+let workletPumpScheduled = false;
+let playbackUiDirty = false;
+let playbackUiRenderScheduled = false;
+let lastStreamingStatusSuffix = "";
+let lastStreamingStatusAt = 0;
+let lastParseInfo = null;
+
+const NOTE_NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+const NOTEISH_REFERENCE_MIDI = 62;
+const NOTEISH_REFERENCE_BLOCK = 4;
+const NOTEISH_REFERENCE_FNUM = 553;
+const NOTEISH_GRAPH_MIN_MIDI = 24;
+const NOTEISH_GRAPH_MAX_MIDI = 96;
+const NOTEISH_HISTORY_WINDOW_MS = 8000;
+
+const DEFAULT_OPERATOR_PRESET = Object.freeze({
+  multi: 1,
+  dt: 0,
+  tl: 127,
+  rs: 0,
+  ar: 0,
+  d1r: 0,
+  d2r: 0,
+  rr: 15,
+  sl: 0,
+  ssg: 0,
+});
+
+const OPERATOR_SLOT_OFFSETS = {
+  1: 0x00,
+  2: 0x08,
+  3: 0x04,
+  4: 0x0c,
+};
+
+const CRC32_TABLE = (() => {
+  const table = new Uint32Array(256);
+  for (let index = 0; index < 256; index += 1) {
+    let value = index;
+    for (let bit = 0; bit < 8; bit += 1) {
+      value = (value & 1) !== 0
+        ? (0xedb88320 ^ (value >>> 1))
+        : (value >>> 1);
+    }
+    table[index] = value >>> 0;
+  }
+  return table;
+})();
+
+function setStatus(message) {
+  status.textContent = message;
+}
+
+function requestPlaybackUiRender(extra = "") {
+  lastStreamingStatusSuffix = extra;
+  playbackUiDirty = true;
+  if (playbackUiRenderScheduled) {
+    return;
+  }
+  playbackUiRenderScheduled = true;
+  window.requestAnimationFrame(() => {
+    playbackUiRenderScheduled = false;
+    if (!playbackUiDirty) {
+      return;
+    }
+    playbackUiDirty = false;
+    const stats = player ? player.stats() : {};
+    updatePlaybackButtons(stats);
+
+    // Avoid rebuilding the long status string for every audio chunk.
+    const now = performance.now();
+    const activePlayback = Boolean(stats.playing || stats.paused || stats.queuedFrames > 0);
+    if (
+      !activePlayback ||
+      (now - lastStreamingStatusAt) >= 120
+    ) {
+      updateStreamingStatus(lastStreamingStatusSuffix);
+      lastStreamingStatusAt = now;
+    }
+  });
+}
+
+function renderMonitorToggles() {
+  ensureMonitorToggleHandler();
+  monitorToggles.innerHTML = "";
+
+  const psgButton = document.createElement("button");
+  psgButton.type = "button";
+  psgButton.className = `channel-toggle${psgMuted ? " is-muted" : ""}`;
+  psgButton.textContent = psgMuted ? "PSG Muted" : "PSG On";
+  psgButton.setAttribute("data-monitor-toggle-kind", "psg");
+  monitorToggles.append(psgButton);
+
+  channelMonitor.forEach((channel) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = `channel-toggle${channel.muted ? " is-muted" : ""}`;
+    button.textContent = channel.muted
+      ? `CH${channel.channel + 1} Muted`
+      : `CH${channel.channel + 1} On`;
+    button.setAttribute("data-monitor-toggle-kind", "channel");
+    button.setAttribute("data-channel-index", String(channel.channel));
+    monitorToggles.append(button);
+  });
+}
+
+function ensureMonitorToggleHandler() {
+  if (monitorToggleHandlerBound) {
+    return;
+  }
+  monitorToggleHandlerBound = true;
+  monitorToggles.addEventListener("pointerdown", (event) => {
+    const target = event.target instanceof Element
+      ? event.target.closest("[data-monitor-toggle-kind]")
+      : null;
+    if (!target) {
+      return;
+    }
+    event.preventDefault();
+    const kind = target.getAttribute("data-monitor-toggle-kind");
+    if (kind === "psg") {
+      togglePsgMute();
+      return;
+    }
+    if (kind === "channel") {
+      const channelIndex = Number(target.getAttribute("data-channel-index"));
+      toggleChannelMute(channelIndex);
+    }
+  });
+}
+
+function createChannelMonitorState() {
+  return Array.from({ length: 6 }, (_, index) => ({
+    channel: index,
+    keyOn: false,
+    panLeft: false,
+    panRight: false,
+    algorithm: 7,
+    feedback: 0,
+    block: 0,
+    fnum: 0,
+    noteMinMidi: null,
+    noteMaxMidi: null,
+    noteHistory: [],
+    noteSequence: [],
+    noteSequenceOpen: false,
+    lastSequenceNote: null,
+    muted: channelMuteStates[index],
+    b4Value: 0xc0,
+    changedAt: {
+      keyOn: 0,
+      pan: 0,
+      algorithm: 0,
+      feedback: 0,
+      block: 0,
+      fnum: 0,
+    },
+    operators: {
+      1: { dt: 0, multi: 1, tl: 127, rs: 0, ar: 0, am: 0, d1r: 0, d2r: 0, sl: 0, rr: 15, ssg: 0, changedAt: createOperatorChangeState() },
+      2: { dt: 0, multi: 1, tl: 127, rs: 0, ar: 0, am: 0, d1r: 0, d2r: 0, sl: 0, rr: 15, ssg: 0, changedAt: createOperatorChangeState() },
+      3: { dt: 0, multi: 1, tl: 127, rs: 0, ar: 0, am: 0, d1r: 0, d2r: 0, sl: 0, rr: 15, ssg: 0, changedAt: createOperatorChangeState() },
+      4: { dt: 0, multi: 1, tl: 127, rs: 0, ar: 0, am: 0, d1r: 0, d2r: 0, sl: 0, rr: 15, ssg: 0, changedAt: createOperatorChangeState() },
+    },
+  }));
+}
+
+function createOperatorChangeState() {
+  return {
+    dt: 0,
+    multi: 0,
+    tl: 0,
+    rs: 0,
+    ar: 0,
+    am: 0,
+    d1r: 0,
+    d2r: 0,
+    sl: 0,
+    rr: 0,
+    ssg: 0,
+  };
+}
+
+function changeAgeOpacity(changedAt) {
+  if (!changedAt) {
+    return 0;
+  }
+  const age = performance.now() - changedAt;
+  if (age >= 1800) {
+    return 0;
+  }
+  return 1 - (age / 1800);
+}
+
+function renderParamToken(label, value, changedAt, hue = "255 184 92") {
+  const opacity = changeAgeOpacity(changedAt);
+  const background = opacity > 0
+    ? `background: color-mix(in srgb, rgba(${hue} / ${Math.max(0.22, opacity * 0.78)}) 75%, rgba(43, 36, 29, 0.06) 25%);`
+    : "";
+  return `<span class="param-token" style="${background}">${label} ${value}</span>`;
+}
+
+function hasRecentChannelChanges() {
+  for (const channel of channelMonitor) {
+    for (const value of Object.values(channel.changedAt)) {
+      if (changeAgeOpacity(value) > 0) {
+        return true;
+      }
+    }
+    for (const operator of Object.values(channel.operators)) {
+      for (const value of Object.values(operator.changedAt)) {
+        if (changeAgeOpacity(value) > 0) {
+          return true;
+        }
+      }
+    }
+  }
+  return false;
+}
+
+function ensureChannelMonitorRenderTimer() {
+  if (channelMonitorRenderTimer) {
+    return;
+  }
+  channelMonitorRenderTimer = window.setInterval(() => {
+    if (!channelMonitorDirty && !hasRecentChannelChanges()) {
+      return;
+    }
+    renderChannelMonitor();
+    channelMonitorDirty = false;
+  }, 120);
+}
+
+function ensureNoteishRenderTimer() {
+  if (noteishRenderTimer) {
+    return;
+  }
+  noteishRenderTimer = window.setInterval(() => {
+    if (noteishPanel.hidden) {
+      return;
+    }
+    if (!noteishDirty && !player?.isPlaying?.() && !hasRecentChannelChanges()) {
+      return;
+    }
+    renderNoteishGrid();
+    noteishDirty = false;
+  }, 90);
+}
+
+function requestChannelMonitorRender() {
+  channelMonitorDirty = true;
+}
+
+function requestNoteishRender() {
+  noteishDirty = true;
+}
+
+function renderChannelMonitor() {
+  channelGrid.innerHTML = "";
+  renderMonitorToggles();
+  for (const channel of channelMonitor) {
+    const card = document.createElement("section");
+    card.className = `channel-card${channel.keyOn ? " is-key-on" : ""}`;
+    const pan = `${channel.panLeft ? "L" : "-"}${channel.panRight ? "R" : "-"}`;
+    card.innerHTML = `
+      <div class="channel-head">
+        <span class="channel-title">CH${channel.channel + 1}</span>
+        <span class="channel-meta">${channel.keyOn ? "key on" : "key off"}</span>
+      </div>
+      <div class="channel-row">
+        ${renderChannelChip("ALG", channel.algorithm, channel.changedAt.algorithm, "255 184 92")}
+        ${renderChannelChip("FB", channel.feedback, channel.changedAt.feedback, "255 184 92")}
+        ${renderChannelChip("PAN", pan, channel.changedAt.pan, "166 214 148")}
+        ${renderChannelChip("B", channel.block, channel.changedAt.block, "125 176 255")}
+        ${renderChannelChip("F", channel.fnum, channel.changedAt.fnum, "125 176 255")}
+      </div>
+      <div class="operators">
+        <div class="operator-box"><strong>OP1</strong> ${renderOperatorTokens(channel.operators[1])}</div>
+        <div class="operator-box"><strong>OP2</strong> ${renderOperatorTokens(channel.operators[2])}</div>
+        <div class="operator-box"><strong>OP3</strong> ${renderOperatorTokens(channel.operators[3])}</div>
+        <div class="operator-box"><strong>OP4</strong> ${renderOperatorTokens(channel.operators[4])}</div>
+      </div>
+    `;
+    channelGrid.append(card);
+  }
+}
+
+function midiToNoteName(midi) {
+  const note = NOTE_NAMES[((midi % 12) + 12) % 12];
+  const octave = Math.floor(midi / 12) - 1;
+  return `${note}${octave}`;
+}
+
+function estimateChannelNoteish(channel) {
+  if (channel.fnum <= 0) {
+    return {
+      note: "No pitch",
+      midiFloat: null,
+      cents: null,
+    };
+  }
+
+  const ratio =
+    (channel.fnum / NOTEISH_REFERENCE_FNUM) *
+    Math.pow(2, channel.block - NOTEISH_REFERENCE_BLOCK);
+  const midiFloat =
+    NOTEISH_REFERENCE_MIDI +
+    (12 * Math.log2(ratio));
+  const roundedMidi = Math.round(midiFloat);
+  return {
+    note: `~${midiToNoteName(roundedMidi)}`,
+    midiFloat,
+    cents: Math.round((midiFloat - roundedMidi) * 100),
+  };
+}
+
+function updateChannelObservedRange(channelIndex) {
+  const channel = channelMonitor[channelIndex];
+  if (!channel || !channel.keyOn) {
+    return;
+  }
+  const estimated = estimateChannelNoteish(channel);
+  if (estimated.midiFloat === null) {
+    return;
+  }
+  if (channel.noteMinMidi === null || estimated.midiFloat < channel.noteMinMidi) {
+    channel.noteMinMidi = estimated.midiFloat;
+  }
+  if (channel.noteMaxMidi === null || estimated.midiFloat > channel.noteMaxMidi) {
+    channel.noteMaxMidi = estimated.midiFloat;
+  }
+}
+
+function pruneChannelNoteHistory(channel, now = performance.now()) {
+  const cutoff = now - NOTEISH_HISTORY_WINDOW_MS;
+  while (channel.noteHistory.length > 0 && channel.noteHistory[0].time < cutoff) {
+    channel.noteHistory.shift();
+  }
+}
+
+function recordChannelNoteHistory(channelIndex, midiFloat) {
+  const channel = channelMonitor[channelIndex];
+  if (!channel) {
+    return;
+  }
+  const now = performance.now();
+  const lastPoint = channel.noteHistory[channel.noteHistory.length - 1] ?? null;
+  if (
+    lastPoint &&
+    lastPoint.midiFloat === midiFloat &&
+    (now - lastPoint.time) < 45
+  ) {
+    lastPoint.time = now;
+    pruneChannelNoteHistory(channel, now);
+    return;
+  }
+  channel.noteHistory.push({
+    time: now,
+    midiFloat,
+  });
+  pruneChannelNoteHistory(channel, now);
+}
+
+function noteNameFromMidiFloat(midiFloat) {
+  if (midiFloat === null || !Number.isFinite(midiFloat)) {
+    return null;
+  }
+  return midiToNoteName(Math.round(midiFloat));
+}
+
+function appendChannelNoteSequence(channelIndex, midiFloat, force = false) {
+  const channel = channelMonitor[channelIndex];
+  if (!channel) {
+    return;
+  }
+  const noteName = noteNameFromMidiFloat(midiFloat);
+  if (!noteName) {
+    return;
+  }
+  if (!force && channel.lastSequenceNote === noteName) {
+    return;
+  }
+  channel.noteSequence.push(noteName);
+  channel.lastSequenceNote = noteName;
+}
+
+function formatChannelCompactNotes(channelIndex) {
+  const channel = channelMonitor[channelIndex];
+  if (!channel || channel.noteSequence.length === 0) {
+    return `CH${channelIndex + 1}\n(no notes yet)`;
+  }
+  return `CH${channelIndex + 1}\n${channel.noteSequence.join(" ")}`;
+}
+
+function showChannelCompactNotes(channelIndex) {
+  notesDialogTitle.textContent = `CH${channelIndex + 1} Notes`;
+  notesDialogOutput.textContent = formatChannelCompactNotes(channelIndex);
+  if (typeof notesDialog.showModal === "function") {
+    notesDialog.showModal();
+    return;
+  }
+  notesDialog.setAttribute("open", "open");
+}
+
+function buildNoteishSignature() {
+  return JSON.stringify(channelMonitor.map((channel) => [
+    channel.keyOn,
+    channel.block,
+    channel.fnum,
+    channel.algorithm,
+    channel.feedback,
+    channel.noteMinMidi,
+    channel.noteMaxMidi,
+    channel.noteHistory.length,
+    channel.noteHistory[channel.noteHistory.length - 1]?.time ?? 0,
+    channel.noteHistory[channel.noteHistory.length - 1]?.midiFloat ?? null,
+    player?.isPlaying?.() ? Math.floor(performance.now() / 200) : 0,
+  ]));
+}
+
+function clamp(value, min, max) {
+  return Math.min(max, Math.max(min, value));
+}
+
+function noteishGraphX(midiFloat) {
+  const normalized =
+    (clamp(midiFloat, NOTEISH_GRAPH_MIN_MIDI, NOTEISH_GRAPH_MAX_MIDI) - NOTEISH_GRAPH_MIN_MIDI) /
+    (NOTEISH_GRAPH_MAX_MIDI - NOTEISH_GRAPH_MIN_MIDI);
+  return 16 + (normalized * 188);
+}
+
+function renderNoteishGraph(channel, estimated) {
+  const axisY = 26;
+  const ticks = [24, 36, 48, 60, 72, 84, 96];
+  const tickLabels = ["C1", "C2", "C3", "C4", "C5", "C6", "C7"];
+  const now = performance.now();
+  pruneChannelNoteHistory(channel, now);
+  const tickSvg = ticks.map((tick, index) => {
+    const x = noteishGraphX(tick);
+    return `
+      <line x1="${x}" y1="16" x2="${x}" y2="32" stroke="rgba(91,74,51,0.22)" stroke-width="1" />
+      <text x="${x}" y="46" text-anchor="middle" font-size="9" fill="#7a6547">${tickLabels[index]}</text>
+    `;
+  }).join("");
+
+  let rangeSvg = "";
+  if (channel.noteMinMidi !== null && channel.noteMaxMidi !== null) {
+    const minX = noteishGraphX(channel.noteMinMidi);
+    const maxX = noteishGraphX(channel.noteMaxMidi);
+    rangeSvg = `
+      <line x1="${minX}" y1="${axisY}" x2="${maxX}" y2="${axisY}" stroke="#ef8f6b" stroke-width="8" stroke-linecap="round" />
+      <circle cx="${minX}" cy="${axisY}" r="4" fill="#ef8f6b" />
+      <circle cx="${maxX}" cy="${axisY}" r="4" fill="#ef8f6b" />
+    `;
+  }
+
+  let currentSvg = "";
+  if (estimated.midiFloat !== null) {
+    const currentX = noteishGraphX(estimated.midiFloat);
+    currentSvg = `
+      <line x1="${currentX}" y1="10" x2="${currentX}" y2="36" stroke="#62d7dd" stroke-width="3" />
+      <circle cx="${currentX}" cy="${axisY}" r="5" fill="#62d7dd" />
+    `;
+  }
+
+  let historySvg = "";
+  let historyDotsSvg = "";
+  let lastPoint = null;
+  for (const point of channel.noteHistory) {
+    if (point.midiFloat === null) {
+      lastPoint = null;
+      continue;
+    }
+    const age = now - point.time;
+    const x = 16 + (188 * (1 - clamp(age / NOTEISH_HISTORY_WINDOW_MS, 0, 1)));
+    const y =
+      36 - (
+        ((clamp(point.midiFloat, NOTEISH_GRAPH_MIN_MIDI, NOTEISH_GRAPH_MAX_MIDI) - NOTEISH_GRAPH_MIN_MIDI) /
+          (NOTEISH_GRAPH_MAX_MIDI - NOTEISH_GRAPH_MIN_MIDI)) * 20
+      );
+    const opacity = Math.max(0.18, 1 - (age / NOTEISH_HISTORY_WINDOW_MS));
+    historyDotsSvg += `<circle cx="${x}" cy="${y}" r="1.9" fill="rgba(98,215,221,${opacity.toFixed(3)})" />`;
+    if (lastPoint) {
+      historySvg += `<line x1="${lastPoint.x}" y1="${lastPoint.y}" x2="${x}" y2="${y}" stroke="#62d7dd" stroke-width="2" stroke-linecap="round" />`;
+    }
+    lastPoint = { x, y };
+  }
+
+  return `
+    <svg viewBox="0 0 220 54" aria-hidden="true">
+      <line x1="16" y1="${axisY}" x2="204" y2="${axisY}" stroke="rgba(91,74,51,0.24)" stroke-width="2" />
+      ${tickSvg}
+      ${rangeSvg}
+      ${historySvg}
+      ${historyDotsSvg}
+      ${currentSvg}
+    </svg>
+  `;
+}
+
+function noteishOverviewY(midiFloat) {
+  const normalized =
+    (clamp(midiFloat, NOTEISH_GRAPH_MIN_MIDI, NOTEISH_GRAPH_MAX_MIDI) - NOTEISH_GRAPH_MIN_MIDI) /
+    (NOTEISH_GRAPH_MAX_MIDI - NOTEISH_GRAPH_MIN_MIDI);
+  return 176 - (normalized * 144);
+}
+
+function renderNoteishOverviewGraph() {
+  const now = performance.now();
+  const ticks = [24, 36, 48, 60, 72, 84, 96];
+  const tickLabels = ["C1", "C2", "C3", "C4", "C5", "C6", "C7"];
+  const channelColors = [
+    "#e77f67",
+    "#f2b15c",
+    "#7fdc86",
+    "#72a8ff",
+    "#bd86ff",
+    "#62d7dd",
+  ];
+
+  const horizontalTicks = ticks.map((tick, index) => {
+    const y = noteishOverviewY(tick);
+    return `
+      <line x1="42" y1="${y}" x2="736" y2="${y}" stroke="rgba(91,74,51,0.12)" stroke-width="1" />
+      <text x="36" y="${y + 4}" text-anchor="end" font-size="11" fill="#7a6547">${tickLabels[index]}</text>
+    `;
+  }).join("");
+
+  const verticalTicks = [0, 2, 4, 6, 8].map((seconds) => {
+    const x = 42 + ((seconds / 8) * 694);
+    const label = seconds === 8 ? "now" : `-${8 - seconds}s`;
+    return `
+      <line x1="${x}" y1="24" x2="${x}" y2="176" stroke="rgba(91,74,51,0.12)" stroke-width="1" />
+      <text x="${x}" y="196" text-anchor="middle" font-size="11" fill="#7a6547">${label}</text>
+    `;
+  }).join("");
+
+  let channelSvg = "";
+  channelMonitor.forEach((channel, index) => {
+    pruneChannelNoteHistory(channel, now);
+    let lastPoint = null;
+    let path = "";
+    let dots = "";
+    for (const point of channel.noteHistory) {
+      if (point.midiFloat === null) {
+        lastPoint = null;
+        continue;
+      }
+      const age = now - point.time;
+      const x = 42 + (694 * (1 - clamp(age / NOTEISH_HISTORY_WINDOW_MS, 0, 1)));
+      const y = noteishOverviewY(point.midiFloat);
+      const opacity = Math.max(0.14, 1 - (age / NOTEISH_HISTORY_WINDOW_MS));
+      dots += `<circle cx="${x}" cy="${y}" r="1.8" fill="${channelColors[index]}" fill-opacity="${opacity.toFixed(3)}" />`;
+      if (lastPoint) {
+        path += `<line x1="${lastPoint.x}" y1="${lastPoint.y}" x2="${x}" y2="${y}" stroke="${channelColors[index]}" stroke-width="2.5" stroke-linecap="round" />`;
+      }
+      lastPoint = { x, y };
+    }
+
+    const latest = channel.noteHistory[channel.noteHistory.length - 1];
+    let marker = "";
+    if (latest && latest.midiFloat !== null) {
+      const age = now - latest.time;
+      const x = 42 + (694 * (1 - clamp(age / NOTEISH_HISTORY_WINDOW_MS, 0, 1)));
+      const y = noteishOverviewY(latest.midiFloat);
+      marker = `<circle cx="${x}" cy="${y}" r="4.5" fill="${channelColors[index]}" />`;
+    }
+
+    channelSvg += `
+      ${path}
+      ${dots}
+      ${marker}
+      <text x="${708 + (index % 2) * 34}" y="${34 + Math.floor(index / 2) * 18}" font-size="11" fill="${channelColors[index]}">CH${index + 1}</text>
+    `;
+  });
+
+  noteishOverview.innerHTML = `
+    <svg viewBox="0 0 760 210" aria-hidden="true">
+      <rect x="42" y="24" width="694" height="152" rx="10" fill="rgba(255,255,255,0.35)" stroke="rgba(91,74,51,0.18)" />
+      ${horizontalTicks}
+      ${verticalTicks}
+      ${channelSvg}
+    </svg>
+  `;
+}
+
+function renderNoteishGrid() {
+  const signature = buildNoteishSignature();
+  if (signature === lastNoteishSignature && !noteishDirty) {
+    return;
+  }
+  lastNoteishSignature = signature;
+  renderNoteishOverviewGraph();
+  noteishGrid.innerHTML = "";
+
+  for (const channel of channelMonitor) {
+    const estimated = estimateChannelNoteish(channel);
+    const rangeText =
+      channel.noteMinMidi === null || channel.noteMaxMidi === null
+        ? "no observed range yet"
+        : `${midiToNoteName(Math.round(channel.noteMinMidi))} .. ${midiToNoteName(Math.round(channel.noteMaxMidi))}`;
+    const centsText =
+      estimated.cents === null
+        ? "no base note"
+        : `${estimated.cents >= 0 ? "+" : ""}${estimated.cents} cents`;
+    const card = document.createElement("section");
+    card.className = `noteish-card${channel.keyOn ? " is-key-on" : ""}`;
+    card.innerHTML = `
+      <div class="noteish-head">
+        <span class="noteish-title">CH${channel.channel + 1}</span>
+        <span class="noteish-state">${channel.keyOn ? "key on" : "key off"}</span>
+      </div>
+      <div class="noteish-row">
+        <span class="noteish-note">${estimated.note}</span>
+        <span class="noteish-cents">${centsText}</span>
+      </div>
+      <div class="noteish-graph">
+        ${renderNoteishGraph(channel, estimated)}
+      </div>
+      <div class="noteish-meta">
+        RANGE ${rangeText}<br>
+        BLOCK ${channel.block}<br>
+        FNUM ${channel.fnum}<br>
+        ALG ${channel.algorithm} / FB ${channel.feedback}
+      </div>
+      <div class="noteish-actions">
+        <button class="noteish-button" type="button" data-show-notes="${channel.channel}">
+          Show Notes
+        </button>
+      </div>
+    `;
+    noteishGrid.append(card);
+  }
+}
+
+function renderOperatorTokens(operator) {
+  return [
+    renderParamToken("DT", operator.dt, operator.changedAt.dt, "125 176 255"),
+    renderParamToken("M", operator.multi, operator.changedAt.multi, "125 176 255"),
+    renderParamToken("TL", operator.tl, operator.changedAt.tl, "255 224 138"),
+    renderParamToken("RS", operator.rs, operator.changedAt.rs, "255 186 150"),
+    renderParamToken("AR", operator.ar, operator.changedAt.ar, "255 186 150"),
+    renderParamToken("AM", operator.am, operator.changedAt.am, "166 214 148"),
+    renderParamToken("D1R", operator.d1r, operator.changedAt.d1r, "255 186 150"),
+    renderParamToken("D2R", operator.d2r, operator.changedAt.d2r, "255 186 150"),
+    renderParamToken("SL", operator.sl, operator.changedAt.sl, "255 186 150"),
+    renderParamToken("RR", operator.rr, operator.changedAt.rr, "255 186 150"),
+    renderParamToken("SSG", operator.ssg, operator.changedAt.ssg, "166 214 148"),
+  ].join("");
+}
+
+function renderChannelChip(label, value, changedAt, hue) {
+  const opacity = changeAgeOpacity(changedAt);
+  const background = opacity > 0
+    ? `background: color-mix(in srgb, rgba(${hue} / ${Math.max(0.18, opacity * 0.72)}) 78%, rgba(43, 36, 29, 0.08) 22%);`
+    : "";
+  return `<span class="channel-chip" style="${background}">${label} ${value}</span>`;
+}
+
+function effectivePanValue(channel) {
+  return channel.muted ? (channel.b4Value & 0x3f) : channel.b4Value;
+}
+
+function toggleChannelMute(channelIndex) {
+  const channel = channelMonitor[channelIndex];
+  if (!channel) {
+    return;
+  }
+
+  channel.muted = !channel.muted;
+  channelMuteStates[channelIndex] = channel.muted;
+  channel.changedAt.pan = performance.now();
+  requestChannelMonitorRender();
+
+  if (!engine || !baseEngineWriteYm2612) {
+    return;
+  }
+
+  const port = channelIndex < 3 ? 0 : 1;
+  const register = 0xb4 + (channelIndex % 3);
+  baseEngineWriteYm2612(port, register, effectivePanValue(channel));
+
+  // YM2612 DAC is driven through 0x2A/0x2B and does not show up as a normal
+  // per-channel operator write sequence. In analyzer UI, CH6 mute should also
+  // silence the DAC path because DAC playback reuses channel 6 on the real chip.
+  if (channelIndex === 5 && channel.muted && (lastYm2612DacEnable & 0x80) !== 0) {
+    baseEngineWriteYm2612(0, 0x2a, 0x80);
+  }
+
+  flushPendingAudio();
+}
+
+function flushPendingAudio() {
+  if (player) {
+    player.clearQueuedAudio();
+  }
+  if (activeStream && activeStream.mode === "worklet") {
+    activeStream.workletQueuedFrames = 0;
+    activeStream.node.port.postMessage({ type: "flush" });
+    scheduleWorkletPump();
+  }
+}
+
+function togglePsgMute() {
+  psgMuted = !psgMuted;
+  renderMonitorToggles();
+  if (engine && typeof engine.setPsgMuted === "function") {
+    engine.setPsgMuted(psgMuted);
+  }
+  flushPendingAudio();
+}
+
+function updateMonoMix() {
+  monoMixEnabled = monoMixCheckbox.checked;
+  if (engine && typeof engine.setMonoMix === "function") {
+    engine.setMonoMix(monoMixEnabled);
+  }
+  flushPendingAudio();
+}
+
+function allAudibleSourcesMuted() {
+  return psgMuted && channelMuteStates.every((muted) => muted);
+}
+
+function applyAnalyzerMuteToBuffer(left, right, frames) {
+  if (!allAudibleSourcesMuted()) {
+    return;
+  }
+  left.fill(0, 0, frames);
+  right.fill(0, 0, frames);
+}
+
+function formatHex(value, width = 2) {
+  return `0x${value.toString(16).padStart(width, "0")}`;
+}
+
+function renderHeader(header) {
+  return [
+    `ident: ${header.ident}`,
+    `version: ${formatHex(header.version, 8)}`,
+    `ym2612Clock: ${header.ym2612Clock}`,
+    `totalSamples: ${header.totalSamples}`,
+    `loopOffset: ${formatHex(header.loopOffset, 8)}`,
+    `loopSamples: ${header.loopSamples}`,
+    `dataOffset: ${formatHex(header.dataOffset, 8)}`,
+  ].join("\n");
+}
+
+function renderEvent(event, index) {
+  if (event.type === "ym2612-write") {
+    return `${String(index).padStart(3, " ")}: write port=${event.port} register=${formatHex(event.register)} value=${formatHex(event.value)}`;
+  }
+  if (event.type === "psg-write") {
+    return `${String(index).padStart(3, " ")}: psg write value=${formatHex(event.value)}`;
+  }
+  if (event.type === "wait") {
+    return `${String(index).padStart(3, " ")}: wait ${event.samples} samples`;
+  }
+  return `${String(index).padStart(3, " ")}: end`;
+}
+
+function renderCommandUsage(counts) {
+  return Array.from(counts.entries())
+    .sort((left, right) => left[0].localeCompare(right[0]))
+    .map(([command, count]) => `${command}: ${count}`)
+    .join("\n");
+}
+
+function renderDataBlocks(blocks) {
+  if (blocks.length === 0) {
+    return "No stored data blocks were found.";
+  }
+  return blocks.map((block) => {
+    const preview = block.preview === "" ? "(empty)" : block.preview;
+    return `block ${block.index}: offset=0x${block.offset.toString(16).padStart(8, "0")} type=${formatHex(block.type)} size=${block.size} preview=${preview}`;
+  }).join("\n");
+}
+
+function renderPcmRamWrites(entries) {
+  if (entries.length === 0) {
+    return "No 0x68 PCM RAM write commands were found.";
+  }
+  return entries.map((entry, index) => {
+    return [
+      `entry ${index}:`,
+      `  commandOffset=${formatHex(entry.commandOffset, 8)}`,
+      `  type=${formatHex(entry.type)}`,
+      `  readOffset=${formatHex(entry.readOffset, 6)}`,
+      `  writeOffset=${formatHex(entry.writeOffset, 6)}`,
+      `  size=${entry.size}`,
+    ].join("\n");
+  }).join("\n");
+}
+
+function createDefaultTfiPreset() {
+  return {
+    algorithm: 7,
+    feedback: 0,
+    operators: {
+      1: { ...DEFAULT_OPERATOR_PRESET },
+      2: { ...DEFAULT_OPERATOR_PRESET },
+      3: { ...DEFAULT_OPERATOR_PRESET },
+      4: { ...DEFAULT_OPERATOR_PRESET },
+    },
+  };
+}
+
+function findOperatorFromSlotOffset(slotOffset) {
+  for (const [operator, expectedOffset] of Object.entries(OPERATOR_SLOT_OFFSETS)) {
+    if (expectedOffset === slotOffset) {
+      return Number(operator);
+    }
+  }
+  return null;
+}
+
+function cloneTfiPreset(preset) {
+  return {
+    algorithm: preset.algorithm,
+    feedback: preset.feedback,
+    operators: {
+      1: { ...preset.operators[1] },
+      2: { ...preset.operators[2] },
+      3: { ...preset.operators[3] },
+      4: { ...preset.operators[4] },
+    },
+  };
+}
+
+function presetSignature(preset) {
+  return JSON.stringify([
+    preset.algorithm,
+    preset.feedback,
+    preset.operators[1].multi,
+    preset.operators[1].dt,
+    preset.operators[1].tl,
+    preset.operators[1].rs,
+    preset.operators[1].ar,
+    preset.operators[1].d1r,
+    preset.operators[1].d2r,
+    preset.operators[1].rr,
+    preset.operators[1].sl,
+    preset.operators[1].ssg,
+    preset.operators[2].multi,
+    preset.operators[2].dt,
+    preset.operators[2].tl,
+    preset.operators[2].rs,
+    preset.operators[2].ar,
+    preset.operators[2].d1r,
+    preset.operators[2].d2r,
+    preset.operators[2].rr,
+    preset.operators[2].sl,
+    preset.operators[2].ssg,
+    preset.operators[3].multi,
+    preset.operators[3].dt,
+    preset.operators[3].tl,
+    preset.operators[3].rs,
+    preset.operators[3].ar,
+    preset.operators[3].d1r,
+    preset.operators[3].d2r,
+    preset.operators[3].rr,
+    preset.operators[3].sl,
+    preset.operators[3].ssg,
+    preset.operators[4].multi,
+    preset.operators[4].dt,
+    preset.operators[4].tl,
+    preset.operators[4].rs,
+    preset.operators[4].ar,
+    preset.operators[4].d1r,
+    preset.operators[4].d2r,
+    preset.operators[4].rr,
+    preset.operators[4].sl,
+    preset.operators[4].ssg,
+  ]);
+}
+
+function decodeKeyOnChannel(value) {
+  const channelCode = value & 0x07;
+  if (channelCode === 0x00) {
+    return 0;
+  }
+  if (channelCode === 0x01) {
+    return 1;
+  }
+  if (channelCode === 0x02) {
+    return 2;
+  }
+  if (channelCode === 0x04) {
+    return 3;
+  }
+  if (channelCode === 0x05) {
+    return 4;
+  }
+  if (channelCode === 0x06) {
+    return 5;
+  }
+  return null;
+}
+
+function applyYm2612WriteToMonitor(port, register, value) {
+  let changed = false;
+  const now = performance.now();
+  const channelBase = port === 0 ? 0 : 3;
+
+  if (port === 0 && register === 0x28) {
+    const channel = decodeKeyOnChannel(value);
+    if (channel !== null) {
+      const wasKeyOn = channelMonitor[channel].keyOn;
+      channelMonitor[channel].keyOn = ((value >> 4) & 0x0f) !== 0;
+      channelMonitor[channel].changedAt.keyOn = now;
+      if (channelMonitor[channel].keyOn) {
+        updateChannelObservedRange(channel);
+        const estimated = estimateChannelNoteish(channelMonitor[channel]);
+        recordChannelNoteHistory(channel, estimated.midiFloat);
+        channelMonitor[channel].noteSequenceOpen = true;
+        appendChannelNoteSequence(channel, estimated.midiFloat, !wasKeyOn);
+      } else {
+        recordChannelNoteHistory(channel, null);
+        channelMonitor[channel].noteSequenceOpen = false;
+        channelMonitor[channel].lastSequenceNote = null;
+      }
+      changed = true;
+    }
+    if (changed) {
+      requestChannelMonitorRender();
+      requestNoteishRender();
+    }
+    return;
+  }
+
+  if (register >= 0xa0 && register <= 0xa2) {
+    const channel = channelBase + (register - 0xa0);
+    const state = channelMonitor[channel];
+    state.fnum = (state.fnum & 0x700) | value;
+    channelMonitor[channel].changedAt.fnum = now;
+    updateChannelObservedRange(channel);
+    if (state.keyOn) {
+      const estimated = estimateChannelNoteish(state);
+      recordChannelNoteHistory(channel, estimated.midiFloat);
+      appendChannelNoteSequence(channel, estimated.midiFloat, false);
+    }
+    changed = true;
+    requestChannelMonitorRender();
+    requestNoteishRender();
+    return;
+  }
+
+  if (register >= 0xa4 && register <= 0xa6) {
+    const channel = channelBase + (register - 0xa4);
+    const state = channelMonitor[channel];
+    state.block = (value >> 3) & 0x07;
+    state.fnum = ((value & 0x07) << 8) | (state.fnum & 0xff);
+    channelMonitor[channel].changedAt.block = now;
+    channelMonitor[channel].changedAt.fnum = now;
+    updateChannelObservedRange(channel);
+    if (state.keyOn) {
+      const estimated = estimateChannelNoteish(state);
+      recordChannelNoteHistory(channel, estimated.midiFloat);
+      appendChannelNoteSequence(channel, estimated.midiFloat, false);
+    }
+    changed = true;
+    requestChannelMonitorRender();
+    requestNoteishRender();
+    return;
+  }
+
+  if (register >= 0xb0 && register <= 0xb2) {
+    const channel = channelBase + (register - 0xb0);
+    const state = channelMonitor[channel];
+    state.feedback = (value >> 3) & 0x07;
+    state.algorithm = value & 0x07;
+    channelMonitor[channel].changedAt.feedback = now;
+    channelMonitor[channel].changedAt.algorithm = now;
+    changed = true;
+    requestChannelMonitorRender();
+    requestNoteishRender();
+    return;
+  }
+
+  if (register >= 0xb4 && register <= 0xb6) {
+    const channel = channelBase + (register - 0xb4);
+    const state = channelMonitor[channel];
+    state.b4Value = value;
+    state.panLeft = (value & 0x80) !== 0;
+    state.panRight = (value & 0x40) !== 0;
+    channelMonitor[channel].changedAt.pan = now;
+    changed = true;
+    requestChannelMonitorRender();
+    return;
+  }
+
+  const lowNibble = register & 0x0f;
+  const channelOffset = lowNibble & 0x03;
+  if (channelOffset > 2) {
+    return;
+  }
+
+  const slotOffset = lowNibble - channelOffset;
+  const operator = findOperatorFromSlotOffset(slotOffset);
+  if (!operator) {
+    return;
+  }
+
+  const channel = channelBase + channelOffset;
+  const state = channelMonitor[channel].operators[operator];
+  const registerBase = register & 0xf0;
+
+  if (registerBase === 0x30) {
+    state.dt = (value >> 4) & 0x07;
+    state.multi = value & 0x0f;
+    state.changedAt.dt = now;
+    state.changedAt.multi = now;
+    changed = true;
+  } else if (registerBase === 0x40) {
+    state.tl = value & 0x7f;
+    state.changedAt.tl = now;
+    changed = true;
+  } else if (registerBase === 0x50) {
+    state.rs = (value >> 6) & 0x03;
+    state.ar = value & 0x1f;
+    state.changedAt.rs = now;
+    state.changedAt.ar = now;
+    changed = true;
+  } else if (registerBase === 0x60) {
+    state.am = (value >> 7) & 0x01;
+    state.d1r = value & 0x1f;
+    state.changedAt.am = now;
+    state.changedAt.d1r = now;
+    changed = true;
+  } else if (registerBase === 0x70) {
+    state.d2r = value & 0x1f;
+    state.changedAt.d2r = now;
+    changed = true;
+  } else if (registerBase === 0x80) {
+    state.sl = (value >> 4) & 0x0f;
+    state.rr = value & 0x0f;
+    state.changedAt.sl = now;
+    state.changedAt.rr = now;
+    changed = true;
+  } else if (registerBase === 0x90) {
+    state.ssg = value & 0x0f;
+    state.changedAt.ssg = now;
+    changed = true;
+  }
+
+  if (changed) {
+    requestChannelMonitorRender();
+  }
+}
+
+function extractTfiPatchesFromVgm(buffer) {
+  const parser = new Ym2612VGM(buffer, { logger: null });
+  const presets = Array.from({ length: 6 }, () => createDefaultTfiPreset());
+  const patchCounts = Array(6).fill(0);
+  const seenSignatures = Array.from({ length: 6 }, () => new Set());
+  const patches = [];
+
+  while (true) {
+    const event = parser.step();
+    if (event.type === "end") {
+      break;
+    }
+    if (event.type !== "ym2612-write") {
+      continue;
+    }
+
+    const channelBase = event.port === 0 ? 0 : 3;
+
+    if (event.register >= 0xb0 && event.register <= 0xb2) {
+      const channel = channelBase + (event.register - 0xb0);
+      presets[channel].feedback = (event.value >> 3) & 0x07;
+      presets[channel].algorithm = event.value & 0x07;
+      continue;
+    }
+
+    if (event.port === 0 && event.register === 0x28) {
+      const operatorMask = (event.value >> 4) & 0x0f;
+      const channel = decodeKeyOnChannel(event.value);
+      if (operatorMask !== 0 && channel !== null) {
+        const snapshot = cloneTfiPreset(presets[channel]);
+        const signature = presetSignature(snapshot);
+        if (!seenSignatures[channel].has(signature)) {
+          seenSignatures[channel].add(signature);
+          patchCounts[channel] += 1;
+          patches.push({
+            id: `channel${channel + 1}-${patchCounts[channel]}`,
+            label: `channel${channel + 1}-${patchCounts[channel]}`,
+            channel,
+            sequence: patchCounts[channel],
+            preset: snapshot,
+          });
+        }
+      }
+      continue;
+    }
+
+    const lowNibble = event.register & 0x0f;
+    const channelOffset = lowNibble & 0x03;
+    if (channelOffset > 2) {
+      continue;
+    }
+
+    const slotOffset = lowNibble - channelOffset;
+    const operator = findOperatorFromSlotOffset(slotOffset);
+    if (!operator) {
+      continue;
+    }
+
+    const channel = channelBase + channelOffset;
+    const operatorPreset = presets[channel].operators[operator];
+    const registerBase = event.register & 0xf0;
+
+    if (registerBase === 0x30) {
+      operatorPreset.dt = (event.value >> 4) & 0x07;
+      operatorPreset.multi = event.value & 0x0f;
+    } else if (registerBase === 0x40) {
+      operatorPreset.tl = event.value & 0x7f;
+    } else if (registerBase === 0x50) {
+      operatorPreset.rs = (event.value >> 6) & 0x03;
+      operatorPreset.ar = event.value & 0x1f;
+    } else if (registerBase === 0x60) {
+      operatorPreset.d1r = event.value & 0x1f;
+    } else if (registerBase === 0x70) {
+      operatorPreset.d2r = event.value & 0x1f;
+    } else if (registerBase === 0x80) {
+      operatorPreset.sl = (event.value >> 4) & 0x0f;
+      operatorPreset.rr = event.value & 0x0f;
+    } else if (registerBase === 0x90) {
+      operatorPreset.ssg = event.value & 0x0f;
+    }
+  }
+
+  return patches;
+}
+
+function crc32(bytes) {
+  let crc = 0xffffffff;
+  for (const value of bytes) {
+    crc = CRC32_TABLE[(crc ^ value) & 0xff] ^ (crc >>> 8);
+  }
+  return (crc ^ 0xffffffff) >>> 0;
+}
+
+function encodeDosDateTime(date = new Date()) {
+  const year = Math.max(1980, date.getFullYear());
+  const dosTime =
+    ((date.getHours() & 0x1f) << 11) |
+    ((date.getMinutes() & 0x3f) << 5) |
+    Math.floor(date.getSeconds() / 2);
+  const dosDate =
+    (((year - 1980) & 0x7f) << 9) |
+    (((date.getMonth() + 1) & 0x0f) << 5) |
+    (date.getDate() & 0x1f);
+  return { dosTime, dosDate };
+}
+
+function concatUint8Arrays(chunks) {
+  const totalLength = chunks.reduce((sum, chunk) => sum + chunk.length, 0);
+  const result = new Uint8Array(totalLength);
+  let offset = 0;
+  for (const chunk of chunks) {
+    result.set(chunk, offset);
+    offset += chunk.length;
+  }
+  return result;
+}
+
+function createStoredZip(files) {
+  const encoder = new TextEncoder();
+  const localParts = [];
+  const centralParts = [];
+  let localOffset = 0;
+
+  for (const file of files) {
+    const nameBytes = encoder.encode(file.name);
+    const dataBytes = file.data;
+    const checksum = crc32(dataBytes);
+    const { dosTime, dosDate } = encodeDosDateTime();
+
+    const localHeader = new Uint8Array(30 + nameBytes.length);
+    const localView = new DataView(localHeader.buffer);
+    localView.setUint32(0, 0x04034b50, true);
+    localView.setUint16(4, 20, true);
+    localView.setUint16(6, 0, true);
+    localView.setUint16(8, 0, true);
+    localView.setUint16(10, dosTime, true);
+    localView.setUint16(12, dosDate, true);
+    localView.setUint32(14, checksum, true);
+    localView.setUint32(18, dataBytes.length, true);
+    localView.setUint32(22, dataBytes.length, true);
+    localView.setUint16(26, nameBytes.length, true);
+    localView.setUint16(28, 0, true);
+    localHeader.set(nameBytes, 30);
+
+    const centralHeader = new Uint8Array(46 + nameBytes.length);
+    const centralView = new DataView(centralHeader.buffer);
+    centralView.setUint32(0, 0x02014b50, true);
+    centralView.setUint16(4, 20, true);
+    centralView.setUint16(6, 20, true);
+    centralView.setUint16(8, 0, true);
+    centralView.setUint16(10, 0, true);
+    centralView.setUint16(12, dosTime, true);
+    centralView.setUint16(14, dosDate, true);
+    centralView.setUint32(16, checksum, true);
+    centralView.setUint32(20, dataBytes.length, true);
+    centralView.setUint32(24, dataBytes.length, true);
+    centralView.setUint16(28, nameBytes.length, true);
+    centralView.setUint16(30, 0, true);
+    centralView.setUint16(32, 0, true);
+    centralView.setUint16(34, 0, true);
+    centralView.setUint16(36, 0, true);
+    centralView.setUint32(38, 0, true);
+    centralView.setUint32(42, localOffset, true);
+    centralHeader.set(nameBytes, 46);
+
+    localParts.push(localHeader, dataBytes);
+    centralParts.push(centralHeader);
+    localOffset += localHeader.length + dataBytes.length;
+  }
+
+  const centralDirectory = concatUint8Arrays(centralParts);
+  const localData = concatUint8Arrays(localParts);
+  const endRecord = new Uint8Array(22);
+  const endView = new DataView(endRecord.buffer);
+  endView.setUint32(0, 0x06054b50, true);
+  endView.setUint16(4, 0, true);
+  endView.setUint16(6, 0, true);
+  endView.setUint16(8, files.length, true);
+  endView.setUint16(10, files.length, true);
+  endView.setUint32(12, centralDirectory.length, true);
+  endView.setUint32(16, localData.length, true);
+  endView.setUint16(20, 0, true);
+
+  return new Blob([localData, centralDirectory, endRecord], {
+    type: "application/zip",
+  });
+}
+
+function downloadAllTfiZip() {
+  if (extractedTfiPatches.length === 0) {
+    return;
+  }
+
+  const files = extractedTfiPatches.map((patch) => ({
+    name: `${patch.label}.tfi`,
+    data: createTfiFromPreset(patch.preset),
+  }));
+  const blob = createStoredZip(files);
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = "all_tfi_patches.zip";
+  anchor.click();
+  URL.revokeObjectURL(url);
+  setStatus(`Exported ${extractedTfiPatches.length} TFI patches as ZIP.`);
+}
+
+function buildSnapshotData(reason = "manual") {
+  const stats = player ? player.stats() : null;
+  return {
+    type: "ym2612-vgm-snapshot",
+    reason,
+    createdAt: new Date().toISOString(),
+    sourceFile: lastLoadedFileName,
+    playback: stats ? {
+      playing: stats.playing,
+      paused: stats.paused,
+      queuedFrames: stats.queuedFrames,
+      processedEvents: stats.processedEvents,
+      processedWaitSamples: stats.processedWaitSamples,
+      totalSamples: stats.totalSamples,
+      audioProgress: stats.audioProgress,
+    } : null,
+    channels: channelMonitor.map((channel) => ({
+      channel: channel.channel,
+      keyOn: channel.keyOn,
+      panLeft: channel.panLeft,
+      panRight: channel.panRight,
+      algorithm: channel.algorithm,
+      feedback: channel.feedback,
+      block: channel.block,
+      fnum: channel.fnum,
+      operators: {
+        1: { ...channel.operators[1], changedAt: undefined },
+        2: { ...channel.operators[2], changedAt: undefined },
+        3: { ...channel.operators[3], changedAt: undefined },
+        4: { ...channel.operators[4], changedAt: undefined },
+      },
+    })),
+  };
+}
+
+function downloadSnapshot(reason = "manual") {
+  const snapshot = buildSnapshotData(reason);
+  const json = JSON.stringify(snapshot, null, 2);
+  const blob = new Blob([json], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  const stem = lastLoadedFileName.replace(/\.[^.]+$/, "") || "snapshot";
+  anchor.download = `${stem}_${reason}_snapshot.json`;
+  anchor.click();
+  URL.revokeObjectURL(url);
+  setStatus(`Exported ${reason} snapshot.`);
+}
+
+function createTfiPresetFromChannelSnapshot(channel) {
+  return {
+    algorithm: channel.algorithm & 0x07,
+    feedback: channel.feedback & 0x07,
+    operators: {
+      1: {
+        multi: channel.operators[1].multi & 0x0f,
+        dt: channel.operators[1].dt & 0x07,
+        tl: channel.operators[1].tl & 0x7f,
+        rs: channel.operators[1].rs & 0x03,
+        ar: channel.operators[1].ar & 0x1f,
+        d1r: channel.operators[1].d1r & 0x1f,
+        d2r: channel.operators[1].d2r & 0x1f,
+        rr: channel.operators[1].rr & 0x0f,
+        sl: channel.operators[1].sl & 0x0f,
+        ssg: channel.operators[1].ssg & 0x0f,
+      },
+      2: {
+        multi: channel.operators[2].multi & 0x0f,
+        dt: channel.operators[2].dt & 0x07,
+        tl: channel.operators[2].tl & 0x7f,
+        rs: channel.operators[2].rs & 0x03,
+        ar: channel.operators[2].ar & 0x1f,
+        d1r: channel.operators[2].d1r & 0x1f,
+        d2r: channel.operators[2].d2r & 0x1f,
+        rr: channel.operators[2].rr & 0x0f,
+        sl: channel.operators[2].sl & 0x0f,
+        ssg: channel.operators[2].ssg & 0x0f,
+      },
+      3: {
+        multi: channel.operators[3].multi & 0x0f,
+        dt: channel.operators[3].dt & 0x07,
+        tl: channel.operators[3].tl & 0x7f,
+        rs: channel.operators[3].rs & 0x03,
+        ar: channel.operators[3].ar & 0x1f,
+        d1r: channel.operators[3].d1r & 0x1f,
+        d2r: channel.operators[3].d2r & 0x1f,
+        rr: channel.operators[3].rr & 0x0f,
+        sl: channel.operators[3].sl & 0x0f,
+        ssg: channel.operators[3].ssg & 0x0f,
+      },
+      4: {
+        multi: channel.operators[4].multi & 0x0f,
+        dt: channel.operators[4].dt & 0x07,
+        tl: channel.operators[4].tl & 0x7f,
+        rs: channel.operators[4].rs & 0x03,
+        ar: channel.operators[4].ar & 0x1f,
+        d1r: channel.operators[4].d1r & 0x1f,
+        d2r: channel.operators[4].d2r & 0x1f,
+        rr: channel.operators[4].rr & 0x0f,
+        sl: channel.operators[4].sl & 0x0f,
+        ssg: channel.operators[4].ssg & 0x0f,
+      },
+    },
+  };
+}
+
+function downloadSnapshotTfiZip() {
+  if (!currentBuffer) {
+    return;
+  }
+
+  const files = channelMonitor.map((channel) => ({
+    name: `snapshot_ch${channel.channel + 1}.tfi`,
+    data: createTfiFromPreset(createTfiPresetFromChannelSnapshot(channel)),
+  }));
+  const blob = createStoredZip(files);
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  const stem = lastLoadedFileName.replace(/\.[^.]+$/, "") || "snapshot";
+  anchor.download = `${stem}_snapshot_tfi.zip`;
+  anchor.click();
+  URL.revokeObjectURL(url);
+  setStatus("Exported snapshot TFI ZIP.");
+}
+
+function looksLikeGzip(buffer) {
+  const bytes = new Uint8Array(buffer, 0, Math.min(buffer.byteLength, 2));
+  return bytes.length >= 2 && bytes[0] === 0x1f && bytes[1] === 0x8b;
+}
+
+async function ensurePlaybackReady(vgm) {
+  if (!engine) {
+    engine = await createGenesisAudioEngine({
+      ym2612ModuleFactory: activeYm2612ModuleFactory,
+      segaPsgModuleFactory,
+    });
+    baseEngineWriteYm2612 = engine.writeYm2612.bind(engine);
+  }
+  if (typeof engine.setPsgMuted === "function") {
+    engine.setPsgMuted(psgMuted);
+  }
+  if (typeof engine.setMonoMix === "function") {
+    engine.setMonoMix(monoMixEnabled);
+  }
+  if (!player) {
+    player = new VgmPlayer(engine);
+  }
+  if (typeof player.setPrefetchFactor === "function") {
+    player.setPrefetchFactor(Number(prefetchFactorSelect.value));
+  }
+
+  const sampleRate = engine.sampleRate();
+
+  if (!audioContext || audioContext.sampleRate !== sampleRate) {
+    if (audioContext) {
+      await audioContext.close();
+    }
+    audioContext = new AudioContext({ sampleRate });
+  }
+  if (audioContext.state !== "running") {
+    await audioContext.resume();
+  }
+
+  player.setLoopEnabled(loopCheckbox.checked);
+  player.load(currentBuffer);
+  return { sampleRate };
+}
+
+function stopActiveStream() {
+  if (!activeStream) {
+    return;
+  }
+  if (activeStream.mode === "script") {
+    activeStream.node.onaudioprocess = null;
+  } else if (activeStream.mode === "worklet") {
+    activeStream.node.port.onmessage = null;
+  }
+  activeStream.node.disconnect();
+  activeStream = null;
+}
+
+function updatePlaybackButtons(state = {}) {
+  const hasBuffer = Boolean(currentBuffer);
+  const playing = Boolean(state.playing);
+  const paused = Boolean(state.paused);
+  playButton.disabled = !hasBuffer || playing;
+  replayButton.disabled = !hasBuffer;
+  pauseButton.disabled = !playing;
+  resumeButton.disabled = !paused;
+  stopButton.disabled = !hasBuffer || (!playing && !paused);
+  exportParseInfoButton.disabled = !hasBuffer || !lastParseInfo;
+  exportSnapshotTfiButton.disabled = !hasBuffer;
+  exportSnapshotButton.disabled = !hasBuffer;
+}
+
+function buildParseInfo(buffer, fileName, vgm) {
+  const commandUsage = Array.from(vgm.analyzeCommandUsage().entries()).map(([command, count]) => ({
+    command,
+    count,
+  }));
+  const dataBlocks = vgm.dataBlockSummary();
+  const specialCommands = vgm.analyzeSpecialCommands();
+  const pcmRamWrites = vgm.pcmRamWriteSummary();
+  const command92Context = vgm.analyzeCommandContext(0x92);
+  const previewParser = new Ym2612VGM(buffer, { logger: null });
+  const allCommands = [];
+  let timeSamples = 0;
+  try {
+    for (let index = 0; ; index += 1) {
+      const event = previewParser.step();
+      allCommands.push({
+        index,
+        timeSamples,
+        timeSeconds: timeSamples / 44100,
+        ...event,
+      });
+      if (event.type === "wait") {
+        timeSamples += event.samples;
+      }
+      if (event.type === "end") {
+        break;
+      }
+    }
+  } catch (error) {
+    allCommands.push({
+      index: allCommands.length,
+      timeSamples,
+      timeSeconds: timeSamples / 44100,
+      type: "error",
+      message: error.message,
+    });
+  }
+
+  return {
+    type: "tetorica-fm2612-parse-info",
+    createdAt: new Date().toISOString(),
+    sourceFile: fileName,
+    header: { ...vgm.header },
+    allCommands,
+    commandUsage,
+    dataBlocks,
+    specialCommands,
+    pcmRamWrites,
+    command92Context,
+  };
+}
+
+function downloadParseInfo() {
+  if (!lastParseInfo) {
+    return;
+  }
+  const json = JSON.stringify(lastParseInfo, null, 2);
+  const blob = new Blob([json], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  const stem = lastLoadedFileName.replace(/\.[^.]+$/, "") || "parse_info";
+  anchor.download = `${stem}_parse_info.json`;
+  anchor.click();
+  URL.revokeObjectURL(url);
+  setStatus("Exported parse info JSON.");
+}
+
+async function playCurrentVgm() {
+  if (!currentBuffer) {
+    return;
+  }
+
+  playButton.disabled = true;
+  try {
+    stopActiveStream();
+
+    const parser = new Ym2612VGM(currentBuffer);
+    const { sampleRate } = await ensurePlaybackReady(parser);
+    channelMonitor = createChannelMonitorState();
+    renderChannelMonitor();
+    requestNoteishRender();
+    renderNoteishGrid();
+    engine.reset();
+    lastYm2612DacEnable = 0x00;
+    engine.writeYm2612 = (port, register, value) => {
+      applyYm2612WriteToMonitor(port, register, value);
+      if (port === 0 && register === 0x2b) {
+        lastYm2612DacEnable = value;
+      }
+      if (port === 0 && register === 0x2a && channelMonitor[5].muted) {
+        // CH6 mute should suppress DAC sample writes too.
+        baseEngineWriteYm2612(port, register, 0x80);
+        return;
+      }
+      if (register >= 0xb4 && register <= 0xb6) {
+        const channelIndex = (port === 0 ? 0 : 3) + (register - 0xb4);
+        baseEngineWriteYm2612(port, register, effectivePanValue(channelMonitor[channelIndex]));
+        return;
+      }
+      baseEngineWriteYm2612(port, register, value);
+    };
+    player.reset();
+    player.setLoopEnabled(loopCheckbox.checked);
+    player.play();
+    const started = await startWorkletStream(sampleRate) || startScriptProcessorStream();
+    if (!started) {
+      throw new Error("Failed to create an audio output stream");
+    }
+
+    updatePlaybackButtons(player.stats());
+    setStatus(`Streaming VGM at ${sampleRate} Hz...`);
+  } catch (error) {
+    console.error(error);
+    setStatus(`Error: ${error.message}`);
+  } finally {
+    updatePlaybackButtons(player ? player.stats() : {});
+  }
+}
+
+function updateStreamingStatus(extra = "") {
+  if (!player) {
+    return;
+  }
+  const stats = player.stats();
+  const suffix = extra === "" ? "" : ` ${extra}`;
+  setStatus(
+    `Streaming VGM... commands=${stats.processedEvents} queued=${stats.queuedFrames} audio=${stats.audioProgress.toFixed(1)}% loop=${loopCheckbox.checked ? "on" : "off"}${suffix}`,
+  );
+}
+
+function currentWorkletTargetFrames() {
+  if (!activeStream || activeStream.mode !== "worklet") {
+    return 4096;
+  }
+  return Math.max(
+    activeStream.chunkFrames,
+    Math.floor(activeStream.chunkFrames * workletQueueMultiplier),
+  );
+}
+
+function scheduleWorkletPump() {
+  if (!activeStream || activeStream.mode !== "worklet" || workletPumpScheduled) {
+    return;
+  }
+  workletPumpScheduled = true;
+  window.setTimeout(() => {
+    workletPumpScheduled = false;
+    pumpWorkletChunks();
+  }, 0);
+}
+
+function pumpWorkletChunks(targetFrames = currentWorkletTargetFrames()) {
+  if (!activeStream || activeStream.mode !== "worklet") {
+    return;
+  }
+
+  let chunksQueued = 0;
+  while (activeStream.workletQueuedFrames < targetFrames && chunksQueued < 1) {
+    const statsBefore = player.stats();
+    if (!statsBefore.playing && !statsBefore.paused && statsBefore.queuedFrames === 0) {
+      if (!activeStream.endSent) {
+        activeStream.node.port.postMessage({ type: "end" });
+        activeStream.endSent = true;
+      }
+      break;
+    }
+
+    const frames = activeStream.chunkFrames;
+    const left = new Float32Array(frames);
+    const right = new Float32Array(frames);
+    player.process(left, right, frames);
+    applyAnalyzerMuteToBuffer(left, right, frames);
+    activeStream.workletQueuedFrames += frames;
+    activeStream.node.port.postMessage(
+      { type: "enqueue", left: left.buffer, right: right.buffer },
+      [left.buffer, right.buffer],
+    );
+    chunksQueued += 1;
+  }
+
+  requestPlaybackUiRender("(AudioWorklet)");
+
+  if (activeStream.workletQueuedFrames < targetFrames) {
+    const statsAfter = player.stats();
+    if (statsAfter.playing || statsAfter.paused || statsAfter.queuedFrames > 0) {
+      scheduleWorkletPump();
+    }
+  }
+}
+
+async function startWorkletStream(sampleRate) {
+  if (!audioContext.audioWorklet) {
+    return false;
+  }
+  if (!workletModuleReady) {
+    try {
+      await audioContext.audioWorklet.addModule("../js/vgm-output-worklet.js");
+      workletModuleReady = true;
+    } catch (error) {
+      console.warn("AudioWorklet module load failed; falling back to ScriptProcessorNode.", error);
+      return false;
+    }
+  }
+
+  const chunkFrames = 2048;
+  const node = new AudioWorkletNode(audioContext, "vgm-output-processor", {
+    numberOfInputs: 0,
+    numberOfOutputs: 1,
+    outputChannelCount: [2],
+  });
+  activeStream = {
+    mode: "worklet",
+    node,
+    chunkFrames,
+    workletQueuedFrames: 0,
+    endSent: false,
+  };
+  node.port.onmessage = (event) => {
+    const data = event.data || {};
+    if (typeof data.queuedFrames === "number") {
+      activeStream.workletQueuedFrames = data.queuedFrames;
+    }
+    if (data.ended) {
+      stopActiveStream();
+      requestPlaybackUiRender("");
+      if (autoExportSnapshotCheckbox.checked) {
+        downloadSnapshot("ended");
+      }
+      setStatus("Ready.");
+      return;
+    }
+    scheduleWorkletPump();
+  };
+  node.connect(audioContext.destination);
+  pumpWorkletChunks();
+  return true;
+}
+
+function startScriptProcessorStream() {
+  const bufferSize = 2048;
+  const node = audioContext.createScriptProcessor(bufferSize, 0, 2);
+  activeStream = { mode: "script", node };
+  node.onaudioprocess = (event) => {
+    const left = event.outputBuffer.getChannelData(0);
+    const right = event.outputBuffer.getChannelData(1);
+    player.process(left, right, bufferSize);
+    applyAnalyzerMuteToBuffer(left, right, bufferSize);
+    const stats = player.stats();
+    requestPlaybackUiRender("(ScriptProcessor)");
+
+    if (!stats.playing && !stats.paused && stats.queuedFrames === 0) {
+      stopActiveStream();
+      requestPlaybackUiRender("");
+      if (autoExportSnapshotCheckbox.checked) {
+        downloadSnapshot("ended");
+      }
+      setStatus("Ready.");
+    }
+  };
+  node.connect(audioContext.destination);
+  return true;
+}
+
+async function handleFile(file) {
+  setStatus(`Loading ${file.name}...`);
+  lastLoadedFileName = file.name;
+  const buffer = await file.arrayBuffer();
+  currentBuffer = null;
+  lastParseInfo = null;
+  playButton.disabled = true;
+  channelMonitor = createChannelMonitorState();
+  renderChannelMonitor();
+  requestNoteishRender();
+  renderNoteishGrid();
+
+  if (looksLikeGzip(buffer)) {
+    headerOutput.textContent = "Compressed VGZ is not supported yet in this demo.";
+    commandsOutput.textContent = "Please use a plain .vgm file for now.";
+    pauseButton.disabled = true;
+    resumeButton.disabled = true;
+    replayButton.disabled = true;
+    stopButton.disabled = true;
+    setStatus("VGZ is not supported yet.");
+    return;
+  }
+
+  let vgm;
+  try {
+    vgm = new Ym2612VGM(buffer);
+  } catch (error) {
+    console.error(error);
+    headerOutput.textContent = "Failed to parse VGM header.";
+    commandsOutput.textContent = error.message;
+    pauseButton.disabled = true;
+    resumeButton.disabled = true;
+    replayButton.disabled = true;
+    stopButton.disabled = true;
+    setStatus(`Error: ${error.message}`);
+    return;
+  }
+
+  headerOutput.textContent = renderHeader(vgm.header);
+  commandUsageOutput.textContent = renderCommandUsage(vgm.analyzeCommandUsage());
+  commandUsageOutput.textContent += "\n";
+  dataBlocksOutput.textContent = renderDataBlocks(vgm.dataBlockSummary());
+  specialCommandsOutput.textContent = vgm.analyzeSpecialCommands().join("\n");
+  pcmRamWriteOutput.textContent = renderPcmRamWrites(vgm.pcmRamWriteSummary());
+  command92ContextOutput.textContent = vgm.analyzeCommandContext(0x92).join("\n");
+
+  const events = [];
+  try {
+    for (let index = 0; index < 64; index += 1) {
+      const event = vgm.step();
+      events.push(renderEvent(event, index));
+      if (event.type === "end") {
+        break;
+      }
+    }
+  } catch (error) {
+    console.error(error);
+    events.push(`Parser stopped with error: ${error.message}`);
+  }
+
+  commandsOutput.textContent = events.join("\n");
+  currentBuffer = buffer;
+  lastParseInfo = buildParseInfo(buffer, file.name, vgm);
+  extractedTfiPatches = extractTfiPatchesFromVgm(buffer);
+  exportAllTfiButton.disabled = extractedTfiPatches.length === 0;
+  updatePlaybackButtons({});
+  setStatus(`Parsed ${file.name}.`);
+}
+
+fileInput.addEventListener("change", async (event) => {
+  const file = event.target.files && event.target.files[0];
+  if (!file) {
+    return;
+  }
+  await handleFile(file);
+});
+
+playButton.addEventListener("click", async () => {
+  await playCurrentVgm();
+});
+
+pauseButton.addEventListener("click", () => {
+  if (!player) {
+    return;
+  }
+  player.pause();
+  updatePlaybackButtons(player.stats());
+  setStatus("Paused.");
+});
+
+resumeButton.addEventListener("click", () => {
+  if (!player) {
+    return;
+  }
+  player.resume();
+  updatePlaybackButtons(player.stats());
+  setStatus("Resumed.");
+});
+
+replayButton.addEventListener("click", async () => {
+  if (!currentBuffer) {
+    return;
+  }
+  await playCurrentVgm();
+});
+
+stopButton.addEventListener("click", () => {
+  stopActiveStream();
+  if (player) {
+    player.stop();
+    updatePlaybackButtons(player.stats());
+  }
+  setStatus("Stopped.");
+});
+
+loopCheckbox.addEventListener("change", () => {
+  if (player) {
+    player.setLoopEnabled(loopCheckbox.checked);
+  }
+});
+
+monoMixCheckbox.addEventListener("change", () => {
+  updateMonoMix();
+});
+
+prefetchFactorSelect.addEventListener("change", () => {
+  if (player && typeof player.setPrefetchFactor === "function") {
+    player.setPrefetchFactor(Number(prefetchFactorSelect.value));
+  }
+  flushPendingAudio();
+});
+
+workletQueueSelect.addEventListener("change", () => {
+  workletQueueMultiplier = Number(workletQueueSelect.value) || 2;
+  flushPendingAudio();
+});
+
+exportAllTfiButton.addEventListener("click", () => {
+  downloadAllTfiZip();
+});
+
+exportParseInfoButton.addEventListener("click", () => {
+  downloadParseInfo();
+});
+
+exportSnapshotTfiButton.addEventListener("click", () => {
+  downloadSnapshotTfiZip();
+});
+
+exportSnapshotButton.addEventListener("click", () => {
+  downloadSnapshot("manual");
+});
+
+function setOutputTab(tabName) {
+  const isOperatorInfo = tabName === "operator-info";
+
+  operatorInfoTab.setAttribute(
+    "aria-selected",
+    String(isOperatorInfo)
+  );
+  operatorInfoTab.tabIndex = isOperatorInfo ? 0 : -1;
+  parsedOutputTab.setAttribute(
+    "aria-selected",
+    String(tabName === "parsed-output")
+  );
+  parsedOutputTab.tabIndex = tabName === "parsed-output" ? 0 : -1;
+  noteishTab.setAttribute(
+    "aria-selected",
+    String(tabName === "noteish")
+  );
+  noteishTab.tabIndex = tabName === "noteish" ? 0 : -1;
+  operatorInfoPanel.hidden = !isOperatorInfo;
+  parsedOutputPanel.hidden = tabName !== "parsed-output";
+  noteishPanel.hidden = tabName !== "noteish";
+  if (tabName === "noteish") {
+    requestNoteishRender();
+    renderNoteishGrid();
+  }
+}
+
+operatorInfoTab.addEventListener("click", () => {
+  setOutputTab("operator-info");
+});
+
+parsedOutputTab.addEventListener("click", () => {
+  setOutputTab("parsed-output");
+});
+
+noteishTab.addEventListener("click", () => {
+  setOutputTab("noteish");
+});
+
+noteishGrid.addEventListener("pointerdown", (event) => {
+  const target = event.target instanceof Element
+    ? event.target.closest("[data-show-notes]")
+    : null;
+  if (!target) {
+    return;
+  }
+  event.preventDefault();
+  const channelIndex = Number(target.getAttribute("data-show-notes"));
+  if (!Number.isInteger(channelIndex)) {
+    return;
+  }
+  showChannelCompactNotes(channelIndex);
+});
+
+notesDialogCloseButton.addEventListener("click", () => {
+  notesDialog.close();
+});
+
+exportAllTfiButton.disabled = extractedTfiPatches.length === 0;
+ensureChannelMonitorRenderTimer();
+ensureNoteishRenderTimer();
+renderChannelMonitor();
+renderNoteishGrid();

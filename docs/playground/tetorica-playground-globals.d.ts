@@ -341,6 +341,8 @@ declare function cycle<T>(values: T[]): T;
 declare function cycle<T>(key: string, values: T[]): T;
 /** Return a random float from 0 to 1. */
 declare function rand(): number;
+/** Return a random float in the half-open range [min, max). */
+declare function rrange(min: number, max: number): number;
 /** Return a random integer in the inclusive range. */
 declare function randInt(min: number, max: number): number;
 /** Stop one named live loop. */
@@ -378,6 +380,7 @@ declare const pg: {
   choose: typeof choose;
   cycle: typeof cycle;
   rand: typeof rand;
+  rrange: typeof rrange;
   randInt: typeof randInt;
   stopLoop: typeof stopLoop;
   stopAllLoops: typeof stopAllLoops;

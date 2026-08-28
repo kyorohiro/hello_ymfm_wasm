@@ -788,6 +788,8 @@ async function runCode() {
       cycle:
         musicApi.cycle,
       rand: musicApi.rand,
+      rrange:
+        musicApi.rrange,
       randInt:
         musicApi.randInt,
       scale:
@@ -827,6 +829,7 @@ async function runCode() {
       choose: pg.choose,
       cycle: pg.cycle,
       rand: pg.rand,
+      rrange: pg.rrange,
       randInt: pg.randInt,
       scale: pg.scale,
       noteToBlockFnum:

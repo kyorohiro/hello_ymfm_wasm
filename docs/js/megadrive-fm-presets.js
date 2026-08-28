@@ -10,6 +10,7 @@ export const MEGADRIVE_FM_PRESETS = {
       4: { dt: 0, multi: 1, tl: 8, ar: 22, d1r: 6, d2r: 3, sl: 3, rr: 8 },
     },
   },
+
   "one-op-flute": {
     label: "1OP Flute-ish",
     algorithm: 7,
@@ -21,15 +22,87 @@ export const MEGADRIVE_FM_PRESETS = {
       4: { dt: 0, multi: 1, tl: 18, ar: 18, d1r: 5, d2r: 2, sl: 2, rr: 6 },
     },
   },
+
   "two-op-bell": {
     label: "2OP Bell",
     algorithm: 4,
     feedback: 1,
     operators: {
-      1: { dt: 0, multi: 6, tl: 10, ar: 31, d1r: 20, d2r: 8, sl: 7, rr: 7 },
-      2: { dt: 0, multi: 1, tl: 16, ar: 28, d1r: 12, d2r: 4, sl: 5, rr: 6 },
+      1: { dt: 2, multi: 11, tl: 20, ar: 31, d1r: 28, d2r: 20, sl: 11, rr: 11 },
+      2: { dt: 0, multi: 1, tl: 6, ar: 31, d1r: 10, d2r: 4, sl: 5, rr: 6 },
       3: { dt: 0, multi: 1, tl: 127, ar: 31, d1r: 0, d2r: 0, sl: 0, rr: 15 },
       4: { dt: 0, multi: 1, tl: 127, ar: 31, d1r: 0, d2r: 0, sl: 0, rr: 15 },
+    },
+  },
+
+  "perc-bell": {
+    label: "Perc Bell",
+    algorithm: 4,
+    feedback: 1,
+    operators: {
+      1: { dt: 3, multi: 13, tl: 16, ar: 31, d1r: 31, d2r: 24, sl: 12, rr: 12 },
+      2: { dt: 0, multi: 1, tl: 5, ar: 31, d1r: 12, d2r: 5, sl: 5, rr: 7 },
+      3: { dt: 0, multi: 1, tl: 127, ar: 31, d1r: 0, d2r: 0, sl: 0, rr: 15 },
+      4: { dt: 0, multi: 1, tl: 127, ar: 31, d1r: 0, d2r: 0, sl: 0, rr: 15 },
+    },
+  },
+
+  "glass-bell": {
+    label: "Glass Bell",
+    algorithm: 5,
+    feedback: 1,
+    operators: {
+      1: { dt: 2, multi: 7, tl: 24, ar: 31, d1r: 28, d2r: 18, sl: 10, rr: 10 },
+      2: { dt: 1, multi: 11, tl: 32, ar: 31, d1r: 30, d2r: 20, sl: 11, rr: 11 },
+      3: { dt: 3, multi: 3, tl: 38, ar: 31, d1r: 24, d2r: 15, sl: 9, rr: 9 },
+      4: { dt: 0, multi: 1, tl: 5, ar: 31, d1r: 9, d2r: 3, sl: 4, rr: 6 },
+    },
+  },
+  "fm-bell": {
+    label: "FM Bell",
+    algorithm: 7,
+    feedback: 0,
+    operators: {
+      1: {
+        dt: 2,
+        multi: 5,
+        tl: 28,
+        ar: 31,
+        d1r: 14,
+        d2r: 8,
+        sl: 6,
+        rr: 8,
+      },
+      2: {
+        dt: 1,
+        multi: 7,
+        tl: 44,
+        ar: 31,
+        d1r: 16,
+        d2r: 9,
+        sl: 7,
+        rr: 9,
+      },
+      3: {
+        dt: 0,
+        multi: 2,
+        tl: 56,
+        ar: 31,
+        d1r: 12,
+        d2r: 6,
+        sl: 6,
+        rr: 8,
+      },
+      4: {
+        dt: 0,
+        multi: 1,
+        tl: 8,
+        ar: 31,
+        d1r: 9,
+        d2r: 4,
+        sl: 5,
+        rr: 10,
+      },
     },
   },
   "two-op-organ": {
@@ -43,6 +116,7 @@ export const MEGADRIVE_FM_PRESETS = {
       4: { dt: 0, multi: 1, tl: 127, ar: 31, d1r: 0, d2r: 0, sl: 0, rr: 15 },
     },
   },
+
   "four-op-brass": {
     label: "4OP Brass-ish",
     algorithm: 3,
@@ -54,6 +128,7 @@ export const MEGADRIVE_FM_PRESETS = {
       4: { dt: 0, multi: 1, tl: 6, ar: 30, d1r: 7, d2r: 3, sl: 3, rr: 6 },
     },
   },
+
   "four-op-pad": {
     label: "4OP Soft Pad",
     algorithm: 5,
@@ -65,6 +140,7 @@ export const MEGADRIVE_FM_PRESETS = {
       4: { dt: 0, multi: 1, tl: 10, ar: 22, d1r: 6, d2r: 3, sl: 4, rr: 5 },
     },
   },
+
   coin: {
     label: "SFX Coin",
     algorithm: 4,
@@ -76,6 +152,7 @@ export const MEGADRIVE_FM_PRESETS = {
       4: { dt: 0, multi: 1, tl: 127, ar: 31, d1r: 0, d2r: 0, sl: 0, rr: 15 },
     },
   },
+
   laser: {
     label: "SFX Laser",
     algorithm: 4,
@@ -87,6 +164,7 @@ export const MEGADRIVE_FM_PRESETS = {
       4: { dt: 0, multi: 1, tl: 127, ar: 31, d1r: 0, d2r: 0, sl: 0, rr: 15 },
     },
   },
+
   hit: {
     label: "SFX Hit",
     algorithm: 4,
@@ -98,6 +176,7 @@ export const MEGADRIVE_FM_PRESETS = {
       4: { dt: 0, multi: 1, tl: 127, ar: 31, d1r: 0, d2r: 0, sl: 0, rr: 15 },
     },
   },
+
   burst: {
     label: "SFX Rough Burst",
     algorithm: 4,
@@ -109,6 +188,7 @@ export const MEGADRIVE_FM_PRESETS = {
       4: { dt: 0, multi: 1, tl: 127, ar: 31, d1r: 0, d2r: 0, sl: 0, rr: 15 },
     },
   },
+
   "ui-confirm": {
     label: "UI Confirm",
     algorithm: 4,
@@ -193,7 +273,7 @@ export const MEGADRIVE_FM_PRESETS = {
     },
   },
 
-  "damage": {
+  damage: {
     label: "SFX Damage",
     algorithm: 4,
     feedback: 6,
@@ -217,7 +297,7 @@ export const MEGADRIVE_FM_PRESETS = {
     },
   },
 
-  "warning": {
+  warning: {
     label: "SFX Warning",
     algorithm: 7,
     feedback: 0,
@@ -229,7 +309,7 @@ export const MEGADRIVE_FM_PRESETS = {
     },
   },
 
-  "teleport": {
+  teleport: {
     label: "SFX Teleport",
     algorithm: 5,
     feedback: 5,
@@ -241,7 +321,7 @@ export const MEGADRIVE_FM_PRESETS = {
     },
   },
 
-  "scanner": {
+  scanner: {
     label: "SFX Scanner",
     algorithm: 4,
     feedback: 3,
@@ -282,8 +362,8 @@ export const MEGADRIVE_FM_PRESETS = {
     algorithm: 4,
     feedback: 2,
     operators: {
-      1: { dt: 1, multi: 11, tl: 8, ar: 31, d1r: 24, d2r: 14, sl: 10, rr: 9 },
-      2: { dt: 0, multi: 1, tl: 8, ar: 31, d1r: 18, d2r: 9, sl: 7, rr: 8 },
+      1: { dt: 2, multi: 11, tl: 18, ar: 31, d1r: 30, d2r: 22, sl: 12, rr: 11 },
+      2: { dt: 0, multi: 1, tl: 7, ar: 31, d1r: 15, d2r: 7, sl: 6, rr: 7 },
       3: { dt: 0, multi: 1, tl: 127, ar: 31, d1r: 0, d2r: 0, sl: 0, rr: 15 },
       4: { dt: 0, multi: 1, tl: 127, ar: 31, d1r: 0, d2r: 0, sl: 0, rr: 15 },
     },
@@ -291,13 +371,13 @@ export const MEGADRIVE_FM_PRESETS = {
 
   "ritual-bell": {
     label: "SFX Ritual Bell",
-    algorithm: 3,
+    algorithm: 5,
     feedback: 2,
     operators: {
-      1: { dt: 1, multi: 7, tl: 12, ar: 31, d1r: 15, d2r: 5, sl: 7, rr: 5 },
-      2: { dt: 0, multi: 2, tl: 18, ar: 31, d1r: 12, d2r: 4, sl: 6, rr: 5 },
-      3: { dt: 2, multi: 11, tl: 25, ar: 31, d1r: 18, d2r: 7, sl: 8, rr: 6 },
-      4: { dt: 0, multi: 1, tl: 5, ar: 31, d1r: 10, d2r: 3, sl: 5, rr: 5 },
+      1: { dt: 3, multi: 7, tl: 18, ar: 31, d1r: 23, d2r: 12, sl: 9, rr: 8 },
+      2: { dt: 1, multi: 11, tl: 28, ar: 31, d1r: 27, d2r: 16, sl: 10, rr: 9 },
+      3: { dt: 2, multi: 3, tl: 34, ar: 31, d1r: 18, d2r: 9, sl: 8, rr: 8 },
+      4: { dt: 0, multi: 1, tl: 4, ar: 31, d1r: 7, d2r: 2, sl: 4, rr: 6 },
     },
   },
 
@@ -401,6 +481,13 @@ export const MEGADRIVE_FM_PRESET_ORDER = [
   "fm-lead",
   "fm-electric-piano",
   "fm-strings",
+  "fm-bell",
+
+  // Bells
+  "perc-bell",
+  "glass-bell",
+  "metallic-ping",
+  "ritual-bell",
 
   // UI
   "ui-cursor",
@@ -425,10 +512,8 @@ export const MEGADRIVE_FM_PRESET_ORDER = [
   "scanner",
   "machine-hum",
   "engine-low",
-  "metallic-ping",
 
   // Horror / Fantasy
-  "ritual-bell",
   "horror-drone",
   "dark-ambient",
 ];

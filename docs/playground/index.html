@@ -733,7 +733,8 @@
             <option value="random">Random Pentatonic</option>
             <option value="8-bit-arcade-sweep">8-bit Arcade Sweep</option>
             <option value="live-loop" selected>Live Loop</option>
-            <option value="fx-loop">FX Loop</option>
+            <option value="fx-loop-minor">FX Loop Minor</option>
+            <option value="fx-loop-major">FX Loop Major</option>
             <option value="fx-motion">FX Motion</option>
             <option value="fm-direct">Direct FM Control</option>
             <option value="fm-api-beep">FM API Beep</option>
@@ -815,7 +816,7 @@
               <li><code>pg.scale("Eb2", "majorPentatonic", 2)</code> builds note arrays</li>
               <li><code>pg.noteToBlockFnum("C4")</code> converts a note name into raw YM2612 block/fnum</li>
               <li><code>pg.choose(array)</code>, <code>pg.cycle(array)</code>, <code>pg.cycle("bass", array)</code></li>
-              <li><code>pg.rand()</code>, <code>pg.randInt(0, 7)</code></li>
+              <li><code>pg.rand()</code>, <code>pg.rrange(0.2, 0.8)</code>, <code>pg.randInt(0, 7)</code></li>
               <li><code>pg.stopLoop(name)</code>, <code>pg.stopAllLoops()</code>, <code>pg.stopAll()</code></li>
             </ul>
 
