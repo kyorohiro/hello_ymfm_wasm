@@ -870,6 +870,8 @@ export function createSlicerFX(
     audioContext.createOscillator();
   const lfoDepth =
     audioContext.createGain();
+  const controlSmoother =
+    audioContext.createBiquadFilter();
 
   let phaseBeats =
     clampNumber(
@@ -904,11 +906,20 @@ export function createSlicerFX(
       frequency,
       audioContext.currentTime
     );
+    controlSmoother.frequency.setValueAtTime(
+      Math.max(
+        24,
+        Math.min(480, frequency * 18)
+      ),
+      audioContext.currentTime
+    );
   }
 
   lfo.type = "square";
   lfoDepth.gain.value = 0.5;
   gateGain.gain.value = 0.5;
+  controlSmoother.type =
+    "lowpass";
   setDryWetMix(
     dryGain,
     wetGain,
@@ -923,7 +934,10 @@ export function createSlicerFX(
   wetGain.connect(output);
 
   lfo.connect(lfoDepth);
-  lfoDepth.connect(gateGain.gain);
+  lfoDepth.connect(controlSmoother);
+  controlSmoother.connect(
+    gateGain.gain
+  );
   updateRate();
   lfo.start();
 
@@ -967,6 +981,7 @@ export function createSlicerFX(
       output,
       lfo,
       lfoDepth,
+      controlSmoother,
       {
         disconnect() {
           window.clearInterval(
