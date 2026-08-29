@@ -25,6 +25,9 @@ import {
   loadTfiPresetsFromQuery,
   resolveInitialSourceFromQuery,
 } from "./playground_query.js";
+import {
+  createPlaygroundRuntime,
+} from "./playground_runtime.js";
 import { createPlaygroundUi } from "./playground_ui.js";
 import {
   createFmProxy,
@@ -639,6 +642,38 @@ const {
   formatLogArgs,
   setBottomTab,
 } = ui;
+const runtime =
+  createPlaygroundRuntime({
+    megaDrive,
+    presets:
+      playgroundPresets,
+    onStatus(message) {
+      setStatus(message);
+    },
+    onRuntimeState(nextState) {
+      setRuntimeState(nextState);
+    },
+    onLog(line) {
+      logLine(line);
+    },
+    onReady(context) {
+      synth = context.synth;
+      operatorTab.attachSynth(synth);
+      applyMasterVolume();
+    },
+    onMegaDriveEvent(event) {
+      handleMegaSynthEvent(
+        event,
+        {
+          operatorTab,
+          presets:
+            runtime.presets,
+          presetOrder:
+            FM_PRESET_ORDER,
+        }
+      );
+    },
+  });
 
 updateMasterVolumeUi();
 masterVolumeRange?.addEventListener(
@@ -760,271 +795,26 @@ const liveApi =
   });
 
 async function runCode() {
-  currentRunToken += 1;
-  const runToken =
-    currentRunToken;
   runButton.disabled = true;
   clearConsole();
 
   try {
-    await ensureReady();
-    liveApi.clearRunFxChain();
-    setStatus("Running...");
-    setRuntimeState("Running");
-    const evaluationState = {
-      loopDefinitions: new Map(),
-    };
-    const fx = createFxApi();
-    const fm = createFmProxy(synth);
-    const psg = megaDrive.psg;
-    const musicApi =
-      createPlaygroundMusic({
-        noteToSemitone:
-          NOTE_TO_SEMITONE,
-        scaleIntervals:
-          SCALE_INTERVALS,
-        createPitchFromMidi,
-        pitchReference: {
-          referenceMidi:
-            REFERENCE_MIDI,
-          referenceBlock:
-            REFERENCE_BLOCK,
-          referenceFnum:
-            REFERENCE_FNUM,
-        },
-        synth: () => synth,
-        presets:
-          playgroundPresets,
-        activeNotes,
-        sleep: (seconds) =>
-          clockApi.sleep(
-            seconds,
-            runToken
-          ),
-        getCurrentLoopContext: () =>
-          currentLoopContext,
-      });
-    const livePrepareApi = {
-      fm,
-      fx,
-      psg,
-      log: (...args) => {
-        logLine(
-          formatLogArgs(args)
-        );
-      },
-    };
-    const playgroundConsole = {
-      log: (...args) => {
-        logLine(
-          formatLogArgs(args)
-        );
-      },
-      warn: (...args) => {
-        logLine(
-          `[warn] ${formatLogArgs(args)}`
-        );
-      },
-      error: (...args) => {
-        logLine(
-          `[error] ${formatLogArgs(args)}`
-        );
-      },
-    };
-    const pg = {
-      fm,
-      fx,
-      psg,
-      psgTone,
-      psgNoise,
-      setMasterVolume,
-      getMasterVolume,
-      CH1: 0,
-      CH2: 1,
-      CH3: 2,
-      CH4: 3,
-      CH5: 4,
-      CH6: 5,
-      OP1: 0,
-      OP2: 1,
-      OP3: 2,
-      OP4: 3,
-      presets:
-        playgroundPresets,
-      livePrepare: (name, fn) =>
-        liveApi.livePrepare(
-          name,
-          fn,
-          livePrepareApi
-        ),
-      play: (note, options) =>
-        musicApi.play(
-          note,
-          options
-        ),
-      sleep: (seconds) =>
-        clockApi.sleep(
-          seconds,
-          runToken
-        ),
-      beat: clockApi.beat,
-      nextBeat:
-        clockApi.nextBeat,
-      setBpm:
-        clockApi.setBpm,
-      tween:
-        clockApi.tween,
-      liveLoop: (name, fn) =>
-        liveApi.liveLoop(
-          name,
-          fn,
-          evaluationState
-        ),
-      stopLoop:
-        liveApi.stopLoop,
-      stopAllLoops:
-        liveApi.stopAllLoops,
-      stopAll,
-      choose:
-        musicApi.choose,
-      cycle:
-        musicApi.cycle,
-      rand: musicApi.rand,
-      rrange:
-        musicApi.rrange,
-      randInt:
-        musicApi.randInt,
-      lerp: musicApi.lerp,
-      scale:
-        musicApi.scale,
-      chord:
-        musicApi.chord,
-      noteToBlockFnum:
-        musicApi.noteToBlockFnum,
-      noteLerp:
-        musicApi.noteLerp,
-      log: (...args) => {
-        logLine(
-          formatLogArgs(args)
-        );
-      },
-    };
-
-    const api = {
-      console:
-        playgroundConsole,
-      pg,
-      fm,
-      fx,
-      psg,
-      psgTone,
-      psgNoise,
-      setMasterVolume:
-        pg.setMasterVolume,
-      getMasterVolume:
-        pg.getMasterVolume,
-      livePrepare: (name, fn) =>
-        pg.livePrepare(name, fn),
-      play: (note, options) =>
-        pg.play(note, options),
-      sleep: (seconds) =>
-        pg.sleep(seconds),
-      beat: pg.beat,
-      nextBeat: pg.nextBeat,
-      setBpm: pg.setBpm,
-      tween: pg.tween,
-      liveLoop: (name, fn) =>
-        pg.liveLoop(name, fn),
-      stopLoop: pg.stopLoop,
-      stopAllLoops: pg.stopAllLoops,
-      stopAll: pg.stopAll,
-      choose: pg.choose,
-      cycle: pg.cycle,
-      rand: pg.rand,
-      rrange: pg.rrange,
-      randInt: pg.randInt,
-      lerp: pg.lerp,
-      scale: pg.scale,
-      chord: pg.chord,
-      noteToBlockFnum:
-        pg.noteToBlockFnum,
-      noteLerp:
-        pg.noteLerp,
-      CH1: pg.CH1,
-      CH2: pg.CH2,
-      CH3: pg.CH3,
-      CH4: pg.CH4,
-      CH5: pg.CH5,
-      CH6: pg.CH6,
-      OP1: pg.OP1,
-      OP2: pg.OP2,
-      OP3: pg.OP3,
-      OP4: pg.OP4,
-      FM_PRESETS:
-        playgroundPresets,
-      log: pg.log,
-    };
-
-    const AsyncFunction =
-      Object.getPrototypeOf(
-        async function () {}
-      ).constructor;
-    const userFunction =
-      new AsyncFunction(
-        ...Object.keys(api),
-        `"use strict";\n${getEditorValue()}`
-      );
-
-    await executeWithPlaygroundGuards(
-      () =>
-        userFunction(
-          ...Object.values(api)
-        )
+    runtime.put(
+      "__editor__",
+      getEditorValue()
     );
-    liveApi.commitLiveLoops(
-      evaluationState.loopDefinitions
+    await runtime.play(
+      "__editor__"
     );
-
-    if (runToken === currentRunToken) {
-      setStatus(
-        evaluationState.loopDefinitions.size > 0
-          ? `Running ${evaluationState.loopDefinitions.size} live loop(s).`
-          : "Done."
-      );
-      setRuntimeState("Audio ready");
-    }
   } catch (error) {
-    if (
-      error instanceof Error &&
-      error.message === "Run stopped"
-    ) {
-      setStatus("Stopped.");
-      setRuntimeState("Audio ready");
-    } else {
-      console.error(error);
-      setStatus(
-        `Error: ${error.message}`
-      );
-      setRuntimeState("Error");
-      logLine(
-        error?.stack ?? String(error)
-      );
-    }
+    console.error(error);
   } finally {
-    if (runToken === currentRunToken) {
-      runButton.disabled = false;
-    }
+    runButton.disabled = false;
   }
 }
 
 function stopRun() {
-  currentRunToken += 1;
-  liveApi.stopAllLoops();
-  stopAll();
-  liveApi.clearRunFxChain();
-  megaDrive.stopRecordingPlayback?.();
-  setStatus("Stopped.");
-  setRuntimeState("Audio ready");
+  runtime.stop();
   runButton.disabled = false;
 }
 
