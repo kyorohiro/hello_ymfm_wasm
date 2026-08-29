@@ -157,6 +157,7 @@ type PlaygroundSampleVoice = {
 };
 
 type PlaygroundSampleAPI = {
+  load(source: string): Promise<AudioBuffer>;
   load(name: string, source: string | ArrayBuffer | AudioBuffer): Promise<AudioBuffer>;
   play(name: string, options?: PlaygroundSamplePlayOptions): Promise<PlaygroundSampleVoice>;
   stop(name?: string): void;
@@ -185,6 +186,7 @@ type PlaygroundStreamEntry = {
 };
 
 type PlaygroundStreamAPI = {
+  load(url: string): Promise<PlaygroundStreamEntry>;
   load(name: string, url: string): Promise<PlaygroundStreamEntry>;
   play(name: string, options?: PlaygroundStreamPlayOptions): Promise<PlaygroundStreamEntry>;
   pause(name?: string): void;

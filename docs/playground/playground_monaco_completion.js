@@ -34,6 +34,215 @@ const NOTE_NAMES = (() => {
   return notes;
 })();
 
+const SONIC_PI_SAMPLE_ALIASES = [
+  "sonic-pi/ambi-choir",
+  "sonic-pi/ambi-dark-woosh",
+  "sonic-pi/ambi-drone",
+  "sonic-pi/ambi-glass-hum",
+  "sonic-pi/ambi-glass-rub",
+  "sonic-pi/ambi-haunted-hum",
+  "sonic-pi/ambi-lunar-land",
+  "sonic-pi/ambi-piano",
+  "sonic-pi/ambi-sauna",
+  "sonic-pi/ambi-soft-buzz",
+  "sonic-pi/ambi-swoosh",
+  "sonic-pi/arovane-beat-a",
+  "sonic-pi/arovane-beat-b",
+  "sonic-pi/arovane-beat-c",
+  "sonic-pi/arovane-beat-d",
+  "sonic-pi/arovane-beat-e",
+  "sonic-pi/bass-dnb-f",
+  "sonic-pi/bass-drop-c",
+  "sonic-pi/bass-hard-c",
+  "sonic-pi/bass-hit-c",
+  "sonic-pi/bass-thick-c",
+  "sonic-pi/bass-trance-c",
+  "sonic-pi/bass-voxy-c",
+  "sonic-pi/bass-voxy-hit-c",
+  "sonic-pi/bass-woodsy-c",
+  "sonic-pi/bd-808",
+  "sonic-pi/bd-ada",
+  "sonic-pi/bd-boom",
+  "sonic-pi/bd-chip",
+  "sonic-pi/bd-fat",
+  "sonic-pi/bd-gas",
+  "sonic-pi/bd-haus",
+  "sonic-pi/bd-jazz",
+  "sonic-pi/bd-klub",
+  "sonic-pi/bd-mehackit",
+  "sonic-pi/bd-pure",
+  "sonic-pi/bd-sone",
+  "sonic-pi/bd-tek",
+  "sonic-pi/bd-zome",
+  "sonic-pi/bd-zum",
+  "sonic-pi/drum-bass-hard",
+  "sonic-pi/drum-bass-soft",
+  "sonic-pi/drum-cowbell",
+  "sonic-pi/drum-cymbal-closed",
+  "sonic-pi/drum-cymbal-hard",
+  "sonic-pi/drum-cymbal-open",
+  "sonic-pi/drum-cymbal-pedal",
+  "sonic-pi/drum-cymbal-soft",
+  "sonic-pi/drum-heavy-kick",
+  "sonic-pi/drum-roll",
+  "sonic-pi/drum-snare-hard",
+  "sonic-pi/drum-snare-soft",
+  "sonic-pi/drum-splash-hard",
+  "sonic-pi/drum-splash-soft",
+  "sonic-pi/drum-tom-hi-hard",
+  "sonic-pi/drum-tom-hi-soft",
+  "sonic-pi/drum-tom-lo-hard",
+  "sonic-pi/drum-tom-lo-soft",
+  "sonic-pi/drum-tom-mid-hard",
+  "sonic-pi/drum-tom-mid-soft",
+  "sonic-pi/elec-beep",
+  "sonic-pi/elec-bell",
+  "sonic-pi/elec-blip",
+  "sonic-pi/elec-blip2",
+  "sonic-pi/elec-blup",
+  "sonic-pi/elec-bong",
+  "sonic-pi/elec-chime",
+  "sonic-pi/elec-cymbal",
+  "sonic-pi/elec-filt-snare",
+  "sonic-pi/elec-flip",
+  "sonic-pi/elec-fuzz-tom",
+  "sonic-pi/elec-hi-snare",
+  "sonic-pi/elec-hollow-kick",
+  "sonic-pi/elec-lo-snare",
+  "sonic-pi/elec-mid-snare",
+  "sonic-pi/elec-ping",
+  "sonic-pi/elec-plip",
+  "sonic-pi/elec-pop",
+  "sonic-pi/elec-snare",
+  "sonic-pi/elec-soft-kick",
+  "sonic-pi/elec-tick",
+  "sonic-pi/elec-triangle",
+  "sonic-pi/elec-twang",
+  "sonic-pi/elec-twip",
+  "sonic-pi/elec-wood",
+  "sonic-pi/glitch-bass-g",
+  "sonic-pi/glitch-perc1",
+  "sonic-pi/glitch-perc2",
+  "sonic-pi/glitch-perc3",
+  "sonic-pi/glitch-perc4",
+  "sonic-pi/glitch-perc5",
+  "sonic-pi/glitch-robot1",
+  "sonic-pi/glitch-robot2",
+  "sonic-pi/guit-e-fifths",
+  "sonic-pi/guit-e-slide",
+  "sonic-pi/guit-em9",
+  "sonic-pi/guit-harmonics",
+  "sonic-pi/hat-bdu",
+  "sonic-pi/hat-cab",
+  "sonic-pi/hat-cats",
+  "sonic-pi/hat-gem",
+  "sonic-pi/hat-gnu",
+  "sonic-pi/hat-gump",
+  "sonic-pi/hat-hier",
+  "sonic-pi/hat-len",
+  "sonic-pi/hat-mess",
+  "sonic-pi/hat-metal",
+  "sonic-pi/hat-noiz",
+  "sonic-pi/hat-psych",
+  "sonic-pi/hat-raw",
+  "sonic-pi/hat-sci",
+  "sonic-pi/hat-snap",
+  "sonic-pi/hat-star",
+  "sonic-pi/hat-tap",
+  "sonic-pi/hat-yosh",
+  "sonic-pi/hat-zan",
+  "sonic-pi/hat-zap",
+  "sonic-pi/hat-zild",
+  "sonic-pi/loop-3d-printer",
+  "sonic-pi/loop-amen",
+  "sonic-pi/loop-amen-full",
+  "sonic-pi/loop-breakbeat",
+  "sonic-pi/loop-compus",
+  "sonic-pi/loop-drone-g-97",
+  "sonic-pi/loop-electric",
+  "sonic-pi/loop-garzul",
+  "sonic-pi/loop-industrial",
+  "sonic-pi/loop-mehackit1",
+  "sonic-pi/loop-mehackit2",
+  "sonic-pi/loop-mika",
+  "sonic-pi/loop-perc1",
+  "sonic-pi/loop-perc2",
+  "sonic-pi/loop-safari",
+  "sonic-pi/loop-tabla",
+  "sonic-pi/loop-weirdo",
+  "sonic-pi/mehackit-phone1",
+  "sonic-pi/mehackit-phone2",
+  "sonic-pi/mehackit-phone3",
+  "sonic-pi/mehackit-phone4",
+  "sonic-pi/mehackit-robot1",
+  "sonic-pi/mehackit-robot2",
+  "sonic-pi/mehackit-robot3",
+  "sonic-pi/mehackit-robot4",
+  "sonic-pi/mehackit-robot5",
+  "sonic-pi/mehackit-robot6",
+  "sonic-pi/mehackit-robot7",
+  "sonic-pi/misc-burp",
+  "sonic-pi/misc-cineboom",
+  "sonic-pi/misc-crow",
+  "sonic-pi/perc-bell",
+  "sonic-pi/perc-bell2",
+  "sonic-pi/perc-door",
+  "sonic-pi/perc-impact1",
+  "sonic-pi/perc-impact2",
+  "sonic-pi/perc-snap",
+  "sonic-pi/perc-snap2",
+  "sonic-pi/perc-swash",
+  "sonic-pi/perc-swoosh",
+  "sonic-pi/perc-till",
+  "sonic-pi/ride-tri",
+  "sonic-pi/ride-via",
+  "sonic-pi/sn-dolf",
+  "sonic-pi/sn-dub",
+  "sonic-pi/sn-generic",
+  "sonic-pi/sn-zome",
+  "sonic-pi/tabla-dhec",
+  "sonic-pi/tabla-ghe1",
+  "sonic-pi/tabla-ghe2",
+  "sonic-pi/tabla-ghe3",
+  "sonic-pi/tabla-ghe4",
+  "sonic-pi/tabla-ghe5",
+  "sonic-pi/tabla-ghe6",
+  "sonic-pi/tabla-ghe7",
+  "sonic-pi/tabla-ghe8",
+  "sonic-pi/tabla-ke1",
+  "sonic-pi/tabla-ke2",
+  "sonic-pi/tabla-ke3",
+  "sonic-pi/tabla-na",
+  "sonic-pi/tabla-na-o",
+  "sonic-pi/tabla-na-s",
+  "sonic-pi/tabla-re",
+  "sonic-pi/tabla-tas1",
+  "sonic-pi/tabla-tas2",
+  "sonic-pi/tabla-tas3",
+  "sonic-pi/tabla-te1",
+  "sonic-pi/tabla-te2",
+  "sonic-pi/tabla-te-m",
+  "sonic-pi/tabla-te-ne",
+  "sonic-pi/tabla-tun1",
+  "sonic-pi/tabla-tun2",
+  "sonic-pi/tabla-tun3",
+  "sonic-pi/tbd-fxbed-loop",
+  "sonic-pi/tbd-highkey-c4",
+  "sonic-pi/tbd-pad-1",
+  "sonic-pi/tbd-pad-2",
+  "sonic-pi/tbd-pad-3",
+  "sonic-pi/tbd-pad-4",
+  "sonic-pi/tbd-perc-blip",
+  "sonic-pi/tbd-perc-hat",
+  "sonic-pi/tbd-perc-tap-1",
+  "sonic-pi/tbd-perc-tap-2",
+  "sonic-pi/tbd-voctone",
+  "sonic-pi/vinyl-backspin",
+  "sonic-pi/vinyl-hiss",
+  "sonic-pi/vinyl-rewind",
+  "sonic-pi/vinyl-scratch",
+];
+
 const YM2612_REGISTER_CANDIDATES = [
   { value: "0x22", description: "LFO enable / frequency" },
   { value: "0x24", description: "Timer A high" },
@@ -677,7 +886,7 @@ function createNoteSuggestions(
   return NOTE_NAMES.map((name) => ({
     label: name,
     kind: kind.Value,
-    insertText: `"${name}"`,
+    insertText: name,
     documentation:
       `Note name: ${name}`,
     range,
@@ -785,13 +994,18 @@ function createStringLiteralSuggestions(
   values,
   kind,
   range,
-  documentation
+  documentation,
+  options = {}
 ) {
+  const quoteWrapped =
+    options.quoteWrapped !== false;
   return Array.from(values).map(
     (value) => ({
       label: value,
       kind,
-      insertText: `"${value}"`,
+      insertText: quoteWrapped
+        ? `"${value}"`
+        : value,
       documentation,
       range,
     })
@@ -895,6 +1109,20 @@ function isInsideNoteString(
   return /(^|[^.\w])(play|scale)\(\s*["'][^"']*$/.test(
     linePrefix
   ) || /pg\.(play|scale)\(\s*["'][^"']*$/.test(
+    linePrefix
+  );
+}
+
+function isInsideSampleLoadString(
+  linePrefix
+) {
+  return /(sample|stream)\.load\(\s*["'][^"']*$/.test(
+    linePrefix
+  ) || /(sample|stream)\.load\(\s*["'][^"']*["']\s*,\s*["'][^"']*$/.test(
+    linePrefix
+  ) || /pg\.(sample|stream)\.load\(\s*["'][^"']*$/.test(
+    linePrefix
+  ) || /pg\.(sample|stream)\.load\(\s*["'][^"']*["']\s*,\s*["'][^"']*$/.test(
     linePrefix
   );
 }
@@ -1242,6 +1470,22 @@ export function registerMonacoCompletions(
             ...createNoteSuggestions(
               kind,
               range
+            )
+          );
+        }
+
+        if (
+          isInsideSampleLoadString(
+            linePrefix
+          )
+        ) {
+          suggestions.push(
+            ...createStringLiteralSuggestions(
+              SONIC_PI_SAMPLE_ALIASES,
+              kind.Value,
+              range,
+              "Built-in Sonic Pi sample alias.",
+              { quoteWrapped: false }
             )
           );
         }

@@ -161,7 +161,7 @@ await sleep(0.3);
 
 await sample.load(
   "ambi-choir",
-  "./samples/sonic-pi/ambi_choir.flac"
+  "sonic-pi/ambi-choir"
 );
 
 await sample.play("ambi-choir", {
@@ -550,7 +550,7 @@ setMasterVolume(1.0);
 const choirFx = await livePrepare("ambient-choir-sample-fx", async ({ fx, sample }) => {
   await sample.load(
     "ambi-choir",
-    "./samples/sonic-pi/ambi_choir.flac"
+    "sonic-pi/ambi-choir"
   );
 
   const reverb = fx.reverb({
@@ -647,11 +647,11 @@ setMasterVolume(1.0);
 const wubFx = await livePrepare("wobble-kick-bass-sample-fx", async ({ fx, sample }) => {
   await sample.load(
     "drum-heavy-kick",
-    "./samples/sonic-pi/drum_heavy_kick.flac"
+    "sonic-pi/drum-heavy-kick"
   );
   await sample.load(
     "bass-hit-c",
-    "./samples/sonic-pi/bass_hit_c.flac"
+    "sonic-pi/bass-hit-c"
   );
 
   const wobble = fx.wobble({
