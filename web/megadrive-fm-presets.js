@@ -1,4 +1,4 @@
-export const MEGADRIVE_FM_PRESETS = {
+export const FM_PRESETS = {
   "one-op-basic": {
     label: "1OP Basic",
     algorithm: 7,
@@ -386,7 +386,7 @@ export const MEGADRIVE_FM_PRESETS = {
   },
 };
 
-export const MEGADRIVE_FM_PRESET_ORDER = [
+export const FM_PRESET_ORDER = [
   // Learning
   "one-op-basic",
   "one-op-flute",

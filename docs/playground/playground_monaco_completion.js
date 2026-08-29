@@ -1,5 +1,5 @@
 import {
-  MEGADRIVE_FM_PRESETS,
+  FM_PRESETS,
 } from "../js/megasynth.js";
 
 const SCALE_NAMES = [
@@ -462,7 +462,7 @@ function createPlayOptionsSuggestions(
       label: "preset",
       kind: kind.Property,
       insertText:
-        'preset: MEGADRIVE_FM_PRESETS["${1:one-op-basic}"],',
+        'preset: FM_PRESETS["${1:one-op-basic}"],',
       insertTextRules: snippet,
       documentation:
         "Optional preset object applied before playing the note.",
@@ -546,13 +546,13 @@ function createPresetSuggestions(
   range
 ) {
   return Object.keys(
-    MEGADRIVE_FM_PRESETS
+    FM_PRESETS
   ).map((name) => ({
     label: name,
     kind: kind.Value,
     insertText: name,
     documentation:
-      MEGADRIVE_FM_PRESETS[name]
+      FM_PRESETS[name]
         ?.label ?? name,
     range,
   }));
@@ -774,7 +774,7 @@ function isInsidePresetString(
   linePrefix
 ) {
   return (
-    /MEGADRIVE_FM_PRESETS\[\s*["'][^"']*$/.test(
+    /FM_PRESETS\[\s*["'][^"']*$/.test(
       linePrefix
     ) ||
     /pg\.presets\[\s*["'][^"']*$/.test(

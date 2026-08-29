@@ -67,7 +67,7 @@ type YM2612Preset = {
  * Built-in preset names shipped with the playground.
  *
  * This makes
- * `MEGADRIVE_FM_PRESETS["..."]`
+ * `FM_PRESETS["..."]`
  * and
  * `pg.presets["..."]`
  * much easier for Monaco to complete.
@@ -110,7 +110,7 @@ type MegaDriveFmPresetName =
 /**
  * Built-in YM2612 preset table used by playground examples and helpers.
  */
-declare const MEGADRIVE_FM_PRESETS: Record<MegaDriveFmPresetName, YM2612Preset>;
+declare const FM_PRESETS: Record<MegaDriveFmPresetName, YM2612Preset>;
 
 /** Friendly YM2612 channel constants for readable examples. */
 declare const CH1: 0;
@@ -393,7 +393,7 @@ declare const pg: {
   psgTone: typeof psgTone;
   psgNoise: typeof psgNoise;
   /** Built-in preset table. */
-  presets: typeof MEGADRIVE_FM_PRESETS;
+  presets: typeof FM_PRESETS;
   /** Play one note through the current synth setup. */
   play(note: string, options?: PlaygroundPlayOptions): Promise<void>;
   sleep: typeof sleep;

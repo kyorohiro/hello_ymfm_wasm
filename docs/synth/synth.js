@@ -1,6 +1,6 @@
 import {
-  MEGADRIVE_FM_PRESETS,
-  MEGADRIVE_FM_PRESET_ORDER,
+  FM_PRESETS,
+  FM_PRESET_ORDER,
   MegaSynthLooper,
 } from "../js/megasynth.js";
 import {
@@ -1258,7 +1258,7 @@ function applyPresetState(
   presetName
 ) {
   const preset =
-    MEGADRIVE_FM_PRESETS[
+    FM_PRESETS[
       presetName
     ];
 
@@ -2072,9 +2072,9 @@ function buildPresetSelect() {
     customOption
   );
 
-  for (const presetName of MEGADRIVE_FM_PRESET_ORDER) {
+  for (const presetName of FM_PRESET_ORDER) {
     const preset =
-      MEGADRIVE_FM_PRESETS[
+      FM_PRESETS[
         presetName
       ];
 

@@ -15,8 +15,8 @@ export {
 } from "./megasynth_fx.js";
 export { MegaSynthLooper } from "./looper.js";
 export {
-  MEGADRIVE_FM_PRESETS,
-  MEGADRIVE_FM_PRESET_ORDER,
+  FM_PRESETS,
+  FM_PRESET_ORDER,
 } from "./megadrive-fm-presets.js";
 
 /**

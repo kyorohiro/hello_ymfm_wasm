@@ -1,7 +1,7 @@
 import {
   MegaDriveSynth,
-  MEGADRIVE_FM_PRESET_ORDER,
-  MEGADRIVE_FM_PRESETS,
+  FM_PRESET_ORDER,
+  FM_PRESETS,
 } from "../js/megasynth.js";
 import * as megaSynthFx from "../js/megasynth_fx.js";
 import {
@@ -190,9 +190,9 @@ const operatorTab =
   createPlaygroundOperatorTab({
     root: operatorTabRoot,
     presets:
-      MEGADRIVE_FM_PRESETS,
+      FM_PRESETS,
     presetOrder:
-      MEGADRIVE_FM_PRESET_ORDER,
+      FM_PRESET_ORDER,
     onStatus(message) {
       setStatus(message);
     },
@@ -665,7 +665,7 @@ async function ensureReady() {
       applyMasterVolume();
       synth.setPreset(
         0,
-        MEGADRIVE_FM_PRESETS[
+        FM_PRESETS[
           "one-op-basic"
         ]
       );
@@ -693,9 +693,9 @@ function installMegaDriveListener() {
           {
             operatorTab,
             presets:
-              MEGADRIVE_FM_PRESETS,
+              FM_PRESETS,
             presetOrder:
-              MEGADRIVE_FM_PRESET_ORDER,
+              FM_PRESET_ORDER,
           }
         )
     );
@@ -781,7 +781,7 @@ async function runCode() {
         },
         synth: () => synth,
         presets:
-          MEGADRIVE_FM_PRESETS,
+          FM_PRESETS,
         activeNotes,
         sleep: (seconds) =>
           clockApi.sleep(
@@ -837,7 +837,7 @@ async function runCode() {
       OP3: 2,
       OP4: 3,
       presets:
-        MEGADRIVE_FM_PRESETS,
+        FM_PRESETS,
       livePrepare: (name, fn) =>
         liveApi.livePrepare(
           name,
@@ -947,7 +947,7 @@ async function runCode() {
       OP2: pg.OP2,
       OP3: pg.OP3,
       OP4: pg.OP4,
-      MEGADRIVE_FM_PRESETS,
+      FM_PRESETS,
       log: pg.log,
     };
 

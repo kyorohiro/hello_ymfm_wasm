@@ -1,12 +1,12 @@
 export const EXAMPLES = {
-  single: `fm.setPreset(CH1, MEGADRIVE_FM_PRESETS["one-op-basic"]);
+  single: `fm.setPreset(CH1, FM_PRESETS["one-op-basic"]);
 await play("C4", { channel: CH1, duration: 0.35 });
 await sleep(0.12);
 await play("E4", { channel: CH1, duration: 0.35 });
 await sleep(0.12);
 await play("G4", { channel: CH1, duration: 0.5 });
 `,
-  random: `fm.setPreset(CH1, MEGADRIVE_FM_PRESETS["two-op-bell"]);
+  random: `fm.setPreset(CH1, FM_PRESETS["two-op-bell"]);
 const notes = scale("Eb2", "majorPentatonic", 2);
 
 for (let step = 0; step < 16; step += 1) {
@@ -48,7 +48,7 @@ fm.setAlgo(CH1, 4, 3);
 fm.setPan(CH1, true, true);
 
 // CH2 = simple bass support
-fm.setPreset(CH2, MEGADRIVE_FM_PRESETS["one-op-basic"]);
+fm.setPreset(CH2, FM_PRESETS["one-op-basic"]);
 fm.setOperator(CH2, OP4, {
   tl: 18,
   ar: 28,
@@ -87,8 +87,8 @@ liveLoop("bass", async () => {
 `,
   "live-loop": `setBpm(120);
 
-fm.setPreset(CH1, MEGADRIVE_FM_PRESETS["one-op-basic"]);
-fm.setPreset(CH2, MEGADRIVE_FM_PRESETS["two-op-bell"]);
+fm.setPreset(CH1, FM_PRESETS["one-op-basic"]);
+fm.setPreset(CH2, FM_PRESETS["two-op-bell"]);
 
 liveLoop("bass", async () => {
   await nextBeat();
@@ -113,7 +113,7 @@ liveLoop("lead", async () => {
 });
 `,
   "fm-direct": `fm.reset();
-fm.setPreset(CH1, MEGADRIVE_FM_PRESETS["one-op-basic"]);
+fm.setPreset(CH1, FM_PRESETS["one-op-basic"]);
 fm.setOperator(CH1, OP4, {
   multi: 3,
   tl: 10,
@@ -159,7 +159,7 @@ await sleep(0.3);
 `,
   "fm-low-level-note": `fm.reset();
 
-fm.setPreset(CH1, MEGADRIVE_FM_PRESETS["one-op-basic"]);
+fm.setPreset(CH1, FM_PRESETS["one-op-basic"]);
 
 const { block, fnum } = noteToBlockFnum("C4");
 fm.setFrequency(CH1, block, fnum);
@@ -521,8 +521,8 @@ liveLoop("just-intonation-chorus", async () => {
 setMasterVolume(1.1);
 
 fm.reset();
-fm.setPreset(CH1, MEGADRIVE_FM_PRESETS["fm-bass"]);
-fm.setPreset(CH2, MEGADRIVE_FM_PRESETS["fm-pluck"]);
+fm.setPreset(CH1, FM_PRESETS["fm-bass"]);
+fm.setPreset(CH2, FM_PRESETS["fm-pluck"]);
 
 fm.setPan(CH1, true, true, 0, 3);
 fm.setLfo(true, 4);
@@ -655,8 +655,8 @@ for (const burst of bursts) {
 `,
   "fx-loop-minor": `setBpm(120);
 
-fm.setPreset(CH1, MEGADRIVE_FM_PRESETS["one-op-basic"]);
-fm.setPreset(CH2, MEGADRIVE_FM_PRESETS["two-op-bell"]);
+fm.setPreset(CH1, FM_PRESETS["one-op-basic"]);
+fm.setPreset(CH2, FM_PRESETS["two-op-bell"]);
 
 const mainFx = await livePrepare("fx-loop-minor-chain", async ({ fx }) => {
   const filter = fx.filter({
@@ -710,7 +710,7 @@ liveLoop("lead", async () => {
   await beat(0.125);
 });
 `,
-  "fx-loop-major": `fm.setPreset(CH2, MEGADRIVE_FM_PRESETS["ritual-bell"]);
+  "fx-loop-major": `fm.setPreset(CH2, FM_PRESETS["ritual-bell"]);
 
 const reverb = fx.reverb({
   mix: 0.2,
@@ -735,7 +735,7 @@ liveLoop("bleeps", async () => {
 `,
   "slicer-sweep": `setBpm(96);
 
-fm.setPreset(CH2, MEGADRIVE_FM_PRESETS["fm-strings"]);
+fm.setPreset(CH2, FM_PRESETS["fm-strings"]);
 
 const mainFx = await livePrepare("slicer-sweep-chain", async ({ fx }) => {
   const slicer = fx.slicer({
@@ -783,8 +783,8 @@ liveLoop("bikes", async () => {
 `,
   "fx-motion": `setBpm(120);
 
-fm.setPreset(CH1, MEGADRIVE_FM_PRESETS["four-op-pad"]);
-fm.setPreset(CH2, MEGADRIVE_FM_PRESETS["two-op-bell"]);
+fm.setPreset(CH1, FM_PRESETS["four-op-pad"]);
+fm.setPreset(CH2, FM_PRESETS["two-op-bell"]);
 
 const mainFx = await livePrepare("fx-motion-chain", async ({ fx }) => {
   const gain = fx.gain({
