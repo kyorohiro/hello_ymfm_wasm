@@ -13,6 +13,8 @@ DOCS_JS_DIR="${DOCS_DIR}/js"
 DOCS_GENERATED_DIR="${DOCS_DIR}/generated"
 DOCS_DEMOS_DIR="${DOCS_DIR}/demos"
 DOCS_INFO_DIR="${DOCS_DIR}/info"
+PLAYGROUND_SAMPLES_DIR="${DOCS_DIR}/playground/samples"
+LICENSE_FILE="${ROOT_DIR}/LICENSE"
 
 DEMO_FILES="
 beep.html
@@ -27,11 +29,13 @@ ym2612synth_audioworklet.html
 "
 
 JS_FILES="
+bitcrusher-worklet.js
 genesisaudioengine.js
 looper.js
 megadrive-fm-presets.js
 megasynth_fx.js
 megasynth.js
+megasynth_looper.js
 megasynth_recording.js
 pitch.js
 playground_clock.js
@@ -41,6 +45,7 @@ playground_music.js
 playground_runtime.js
 playground_sync.js
 segapsg.js
+stereo-width-worklet.js
 tfi.js
 vgm-output-worklet.js
 vgmplayer.js
@@ -82,10 +87,20 @@ if [ ! -d "${NUKED_LICENSE_DIR}" ]; then
   exit 1
 fi
 
+if [ ! -d "${PLAYGROUND_SAMPLES_DIR}" ]; then
+  echo "error: missing directory: ${PLAYGROUND_SAMPLES_DIR}" >&2
+  exit 1
+fi
+
+if [ ! -f "${LICENSE_FILE}" ]; then
+  echo "error: missing file: ${LICENSE_FILE}" >&2
+  exit 1
+fi
+
 mkdir -p "${RELEASE_DIR}"
 rm -rf "${STAGE_DIR}"
 rm -f "${ZIP_PATH}"
-mkdir -p "${STAGE_DIR}/demos" "${STAGE_DIR}/info" "${STAGE_DIR}/js" "${STAGE_DIR}/generated" "${STAGE_DIR}/licenses/nuked-opn2"
+mkdir -p "${STAGE_DIR}/demos" "${STAGE_DIR}/info" "${STAGE_DIR}/js" "${STAGE_DIR}/generated" "${STAGE_DIR}/samples" "${STAGE_DIR}/licenses/nuked-opn2"
 
 for file in ${DEMO_FILES}; do
   src="${DOCS_DEMOS_DIR}/${file}"
@@ -134,6 +149,9 @@ for file in ${GENERATED_FILES}; do
 
   cp "${src}" "${dst}"
 done
+
+cp -R "${PLAYGROUND_SAMPLES_DIR}/." "${STAGE_DIR}/samples/"
+cp "${LICENSE_FILE}" "${STAGE_DIR}/LICENSE"
 
 for file in ${NUKED_LICENSE_FILES}; do
   cp "${NUKED_LICENSE_DIR}/${file}" "${STAGE_DIR}/licenses/nuked-opn2/${file}"

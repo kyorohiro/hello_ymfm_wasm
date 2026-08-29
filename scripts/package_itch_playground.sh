@@ -12,6 +12,7 @@ PLAYGROUND_DIR="${ROOT_DIR}/docs/playground"
 DOCS_JS_DIR="${ROOT_DIR}/docs/js"
 DOCS_SYNTH_DIR="${ROOT_DIR}/docs/synth"
 DOCS_GENERATED_DIR="${ROOT_DIR}/docs/generated"
+PLAYGROUND_SAMPLES_DIR="${ROOT_DIR}/docs/playground/samples"
 LICENSE_FILE="${ROOT_DIR}/LICENSE"
 
 PLAYGROUND_FILES="
@@ -19,23 +20,35 @@ index.html
 playground.js
 playground_clock.js
 playground_examples.js
+playground_execution.js
 playground_live.js
 playground_monaco.js
 playground_monaco_completion.js
 playground_music.js
 playground_operator_tab.js
+playground_query.js
 playground_sync.js
 playground_ui.js
 tetorica-playground-globals.d.ts
 "
 
 RUNTIME_FILES="
+bitcrusher-worklet.js
 looper.js
 megasynth.js
 megasynth_fx.js
+megasynth_looper.js
 megasynth_recording.js
 megadrive-fm-presets.js
+pitch.js
+playground_clock.js
+playground_execution.js
+playground_live.js
+playground_music.js
+playground_runtime.js
+playground_sync.js
 segapsg.js
+stereo-width-worklet.js
 tfi.js
 ym2612-worklet.js
 ym2612-worklet-nuked.js
@@ -83,6 +96,11 @@ if [ ! -d "${DOCS_GENERATED_DIR}" ]; then
   exit 1
 fi
 
+if [ ! -d "${PLAYGROUND_SAMPLES_DIR}" ]; then
+  echo "error: missing directory: ${PLAYGROUND_SAMPLES_DIR}" >&2
+  exit 1
+fi
+
 if [ ! -f "${LICENSE_FILE}" ]; then
   echo "error: missing file: ${LICENSE_FILE}" >&2
   exit 1
@@ -96,7 +114,7 @@ fi
 mkdir -p "${RELEASE_DIR}"
 rm -rf "${STAGE_DIR}"
 rm -f "${ZIP_PATH}"
-mkdir -p "${STAGE_DIR}/js" "${STAGE_DIR}/synth" "${STAGE_DIR}/generated" "${STAGE_DIR}/licenses/nuked-opn2"
+mkdir -p "${STAGE_DIR}/js" "${STAGE_DIR}/synth" "${STAGE_DIR}/generated" "${STAGE_DIR}/samples" "${STAGE_DIR}/licenses/nuked-opn2"
 
 for file in ${PLAYGROUND_FILES}; do
   src="${PLAYGROUND_DIR}/${file}"
@@ -146,6 +164,8 @@ for file in ${GENERATED_FILES}; do
   cp "${src}" "${dst}"
 done
 
+cp -R "${PLAYGROUND_SAMPLES_DIR}/." "${STAGE_DIR}/samples/"
+
 cp "${LICENSE_FILE}" "${STAGE_DIR}/LICENSE"
 
 for file in ${NUKED_LICENSE_FILES}; do
@@ -178,7 +198,9 @@ perl -0pi -e 's#"\./playground\.js"#"./playground.js"#g; s#"\.\./js/#"./js/#g; s
   "${STAGE_DIR}/playground_monaco_completion.js" \
   "${STAGE_DIR}/playground_sync.js" \
   "${STAGE_DIR}/playground_operator_tab.js" \
+  "${STAGE_DIR}/playground_query.js" \
   "${STAGE_DIR}/playground_clock.js" \
+  "${STAGE_DIR}/playground_execution.js" \
   "${STAGE_DIR}/playground_examples.js" \
   "${STAGE_DIR}/playground_live.js" \
   "${STAGE_DIR}/playground_music.js" \

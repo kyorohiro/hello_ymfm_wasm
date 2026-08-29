@@ -23,12 +23,14 @@ synth_keyboard.js
 synth_runtime.js
 "
 RUNTIME_FILES="
+bitcrusher-worklet.js
 looper.js
 megasynth.js
 megasynth_fx.js
 megasynth_recording.js
 megadrive-fm-presets.js
 segapsg.js
+stereo-width-worklet.js
 tfi.js
 ym2612.js
 ym2612synth.js

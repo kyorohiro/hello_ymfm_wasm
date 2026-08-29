@@ -11,16 +11,29 @@ STAGE_DIR="${RELEASE_DIR}/web_runtime_${VERSION}"
 
 WEB_DIR="${ROOT_DIR}/web"
 GENERATED_DIR="${ROOT_DIR}/docs/generated"
+PLAYGROUND_SAMPLES_DIR="${ROOT_DIR}/docs/playground/samples"
 LICENSE_FILE="${ROOT_DIR}/LICENSE"
 RUNTIME_FILES="
+bitcrusher-worklet.js
 genesisaudioengine.js
 looper.js
 megadrive-fm-presets.js
 megasynth_fx.js
 megasynth.js
+megasynth_looper.js
 megasynth_recording.js
+pitch.js
+playground_clock.js
+playground_execution.js
+playground_live.js
+playground_music.js
+playground_runtime.js
+playground_sync.js
 segapsg.js
+stereo-width-worklet.js
 tfi.js
+vgm-output-worklet.js
+vgm_runtime.js
 vgmplayer.js
 ym2612-worklet.js
 ym2612-worklet-nuked.js
@@ -42,6 +55,11 @@ fi
 
 if [ ! -d "${GENERATED_DIR}" ]; then
   echo "error: missing directory: ${GENERATED_DIR}" >&2
+  exit 1
+fi
+
+if [ ! -d "${PLAYGROUND_SAMPLES_DIR}" ]; then
+  echo "error: missing directory: ${PLAYGROUND_SAMPLES_DIR}" >&2
   exit 1
 fi
 
@@ -76,7 +94,7 @@ fi
 mkdir -p "${RELEASE_DIR}"
 rm -rf "${STAGE_DIR}"
 rm -f "${OUTPUT_PATH}"
-mkdir -p "${STAGE_DIR}/generated" "${STAGE_DIR}/licenses/nuked-opn2"
+mkdir -p "${STAGE_DIR}/generated" "${STAGE_DIR}/samples" "${STAGE_DIR}/licenses/nuked-opn2"
 
 (
   for file in ${RUNTIME_FILES}; do
@@ -97,6 +115,7 @@ mkdir -p "${STAGE_DIR}/generated" "${STAGE_DIR}/licenses/nuked-opn2"
   cp "${GENERATED_DIR}/nuked_opn2_wasm.wasm" "${STAGE_DIR}/generated/nuked_opn2_wasm.wasm"
   cp "${GENERATED_DIR}/segapsg_wasm.js" "${STAGE_DIR}/generated/segapsg_wasm.js"
   cp "${GENERATED_DIR}/segapsg_wasm.wasm" "${STAGE_DIR}/generated/segapsg_wasm.wasm"
+  cp -R "${PLAYGROUND_SAMPLES_DIR}/." "${STAGE_DIR}/samples/"
   cp "${LICENSE_FILE}" "${STAGE_DIR}/LICENSE"
 
   for file in ${NUKED_LICENSE_FILES}; do
