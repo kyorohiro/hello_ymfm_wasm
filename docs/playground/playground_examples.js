@@ -390,6 +390,199 @@ liveLoop("choir-pad", async () => {
   await beat(0.5);
 });
 `,
+  "just-intonation-chorus": `setBpm(72);
+setMasterVolume(1.0);
+
+fm.reset();
+
+const harmonyChannels = [CH1, CH2, CH3, CH4, CH5];
+const melodyChannel = CH6;
+const allChannels = [...harmonyChannels, melodyChannel];
+
+for (const ch of allChannels) {
+  fm.setAlgo(ch, 7, 0);
+  fm.setPan(ch, true, true);
+
+  const op = {
+    dt: 0,
+    multi: 1,
+    tl: 24,
+    ar: 10,
+    d1r: 4,
+    d2r: 2,
+    sl: 4,
+    rr: 7,
+  };
+
+  fm.setOperator(ch, OP1, op);
+  fm.setOperator(ch, OP2, { ...op, tl: 32 });
+  fm.setOperator(ch, OP3, { ...op, tl: 38 });
+  fm.setOperator(ch, OP4, { ...op, tl: ch === melodyChannel ? 20 : 26 });
+}
+
+const choirFx = await livePrepare("just-intonation-chorus-fx", async ({ fx }) => {
+  const filter = fx.filter({
+    type: "lowpass",
+    cutoff: 3400,
+    q: 0.8,
+  });
+  const delay = fx.delay({
+    time: 0.16,
+    feedback: 0.18,
+    mix: 0.12,
+  });
+  const reverb = fx.reverb({
+    mix: 0.34,
+    tone: 4200,
+  });
+
+  return {
+    filter,
+    delay,
+    reverb,
+  };
+});
+
+fx.setChain([
+  choirFx.filter,
+  choirFx.delay,
+  choirFx.reverb,
+]);
+
+function ratioPitch(block, fnum, ratio) {
+  let value = fnum * ratio;
+  let b = block;
+
+  while (value >= 2048 && b < 7) {
+    value /= 2;
+    b++;
+  }
+
+  while (value < 1024 && b > 0) {
+    value *= 2;
+    b--;
+  }
+
+  return {
+    block: b,
+    fnum: Math.round(value),
+  };
+}
+
+const root = noteToBlockFnum("D3");
+
+const NOTE_RATIOS = {
+  D: 2 / 1,
+  E: 9 / 4,
+  Gb: 5 / 2,
+  G: 8 / 3,
+  A: 3 / 1,
+};
+
+const melody = [
+  "D", ".", ".",
+  "E", ".", ".", ".", ".", ".",
+
+  "Gb", "G", "A", ".", ".", ".", ".", ".", ".",
+
+  "G", "Gb", "E", ".", ".", ".", ".", ".", ".",
+
+  "G", "Gb", "E", "D", "E",
+  "rest", ".", ".", ".", ".", ".",
+];
+
+const HARMONY_BY_NOTE = {
+  D: [1 / 1, 5 / 4, 3 / 2, 2 / 1, 5 / 2],
+  E: [1 / 1, 4 / 3, 3 / 2, 2 / 1, 8 / 3],
+  Gb: [5 / 4, 3 / 2, 15 / 8, 5 / 2, 3 / 1],
+  G: [4 / 3, 3 / 2, 2 / 1, 8 / 3, 10 / 3],
+  A: [3 / 2, 15 / 8, 9 / 4, 3 / 1, 15 / 4],
+};
+
+liveLoop("just-intonation-chorus", async () => {
+  let harmonyOn = false;
+  let melodyOn = false;
+
+  for (const token of melody) {
+    if (token === ".") {
+      await beat(0.5);
+      continue;
+    }
+
+    if (token === "rest") {
+      if (melodyOn) {
+        fm.keyOff(melodyChannel);
+        melodyOn = false;
+      }
+
+      if (harmonyOn) {
+        for (const ch of harmonyChannels) {
+          fm.keyOff(ch);
+        }
+        harmonyOn = false;
+      }
+
+      await beat(0.5);
+      continue;
+    }
+
+    const harmonyRatios = HARMONY_BY_NOTE[token];
+    for (let i = 0; i < harmonyChannels.length; i++) {
+      const pitch = ratioPitch(
+        root.block,
+        root.fnum,
+        harmonyRatios[i]
+      );
+      fm.setFrequency(
+        harmonyChannels[i],
+        pitch.block,
+        pitch.fnum
+      );
+    }
+
+    const melodyPitch = ratioPitch(
+      root.block,
+      root.fnum,
+      NOTE_RATIOS[token]
+    );
+    fm.setFrequency(
+      melodyChannel,
+      melodyPitch.block,
+      melodyPitch.fnum
+    );
+
+    choirFx.filter.cutoff.set(choose([2800, 3200, 3600, 4200]));
+    choirFx.delay.mix.set(choose([0.1, 0.12, 0.16]));
+
+    if (!harmonyOn) {
+      for (const ch of harmonyChannels) {
+        fm.keyOn(ch);
+      }
+      harmonyOn = true;
+    }
+
+    if (melodyOn) {
+      fm.keyOff(melodyChannel);
+    }
+    fm.keyOn(melodyChannel);
+    melodyOn = true;
+
+    await beat(0.5);
+  }
+
+  if (melodyOn) {
+    fm.keyOff(melodyChannel);
+  }
+
+  if (harmonyOn) {
+    for (const ch of harmonyChannels) {
+      fm.keyOff(ch);
+    }
+  }
+
+  await beat(1);
+});
+`,
   "wobble-bass": `setBpm(108);
 setMasterVolume(1.1);
 
