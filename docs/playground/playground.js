@@ -20,6 +20,10 @@ import { createPlaygroundClock } from "./playground_clock.js";
 import { createPlaygroundMusic } from "./playground_music.js";
 import { createPlaygroundLive } from "./playground_live.js";
 import { initializePlaygroundMonaco } from "./playground_monaco.js";
+import {
+  loadTfiPresetsFromQuery,
+  resolveInitialSourceFromQuery,
+} from "./playground_query.js";
 import { createPlaygroundUi } from "./playground_ui.js";
 import {
   createFmProxy,
@@ -165,6 +169,14 @@ let prepareAudioPromise = null;
 let currentRunToken = 0;
 let activeNotes = new Set();
 let currentLoopContext = null;
+const urlTfiResult =
+  loadTfiPresetsFromQuery(
+    window.location.search
+  );
+const playgroundPresets = {
+  ...FM_PRESETS,
+  ...urlTfiResult.presets,
+};
 const playgroundRuntime = {
   bpm: 120,
   clockStartTime: null,
@@ -190,7 +202,7 @@ const operatorTab =
   createPlaygroundOperatorTab({
     root: operatorTabRoot,
     presets:
-      FM_PRESETS,
+      playgroundPresets,
     presetOrder:
       FM_PRESET_ORDER,
     onStatus(message) {
@@ -665,7 +677,7 @@ async function ensureReady() {
       applyMasterVolume();
       synth.setPreset(
         0,
-        FM_PRESETS[
+        playgroundPresets[
           "one-op-basic"
         ]
       );
@@ -693,7 +705,7 @@ function installMegaDriveListener() {
           {
             operatorTab,
             presets:
-              FM_PRESETS,
+              playgroundPresets,
             presetOrder:
               FM_PRESET_ORDER,
           }
@@ -781,7 +793,7 @@ async function runCode() {
         },
         synth: () => synth,
         presets:
-          FM_PRESETS,
+          playgroundPresets,
         activeNotes,
         sleep: (seconds) =>
           clockApi.sleep(
@@ -837,7 +849,7 @@ async function runCode() {
       OP3: 2,
       OP4: 3,
       presets:
-        FM_PRESETS,
+        playgroundPresets,
       livePrepare: (name, fn) =>
         liveApi.livePrepare(
           name,
@@ -947,7 +959,8 @@ async function runCode() {
       OP2: pg.OP2,
       OP3: pg.OP3,
       OP4: pg.OP4,
-      FM_PRESETS,
+      FM_PRESETS:
+        playgroundPresets,
       log: pg.log,
     };
 
@@ -1022,96 +1035,58 @@ function loadExample() {
   );
 }
 
-function decodeBase64Source(
-  encodedSource
-) {
-  if (!encodedSource) {
-    return null;
-  }
-
-  try {
-    const normalized =
-      String(encodedSource)
-        .replace(/-/g, "+")
-        .replace(/_/g, "/");
-    const padding =
-      normalized.length % 4 === 0
-        ? ""
-        : "=".repeat(
-            4 -
-              (normalized.length %
-                4)
-          );
-    const binary = atob(
-      normalized + padding
-    );
-    const bytes =
-      Uint8Array.from(
-        binary,
-        (char) =>
-          char.charCodeAt(0)
-      );
-
-    return new TextDecoder().decode(
-      bytes
-    );
-  } catch (error) {
-    console.warn(error);
-    setStatus(
-      "Failed to decode ?src=..."
-    );
-    return null;
-  }
-}
-
 function applyInitialSourceFromQuery() {
-  const params =
-    new URLSearchParams(
-      window.location.search
+  const result =
+    resolveInitialSourceFromQuery(
+      window.location.search,
+      EXAMPLES
     );
-  const encodedSource =
-    params.get("src");
 
-  if (encodedSource) {
-    const decodedSource =
-      decodeBase64Source(
-        encodedSource
-      );
+  if (result.exampleName) {
+    exampleSelect.value =
+      result.exampleName;
+  }
 
-    if (decodedSource !== null) {
-      setEditorValue(
-        decodedSource
+  setEditorValue(result.source);
+
+  const statusParts = [];
+  if (result.status) {
+    statusParts.push(
+      result.status
+    );
+  }
+  if (
+    urlTfiResult.loadedIds.length >
+    0
+  ) {
+    statusParts.push(
+      `Loaded ${urlTfiResult.loadedIds.length} URL TFI preset(s): ${urlTfiResult.loadedIds.join(", ")}.`
+    );
+  }
+  if (
+    urlTfiResult.errors.length >
+    0
+  ) {
+    for (const errorMessage of urlTfiResult.errors) {
+      console.warn(
+        errorMessage
       );
-      setStatus(
-        "Loaded code from ?src=..."
+    }
+    if (
+      statusParts.length === 0
+    ) {
+      statusParts.push(
+        "Some URL TFI presets were ignored."
       );
-      return;
     }
   }
-
-  const exampleName =
-    params.get("ex");
-
   if (
-    exampleName &&
-    EXAMPLES[exampleName]
+    statusParts.length > 0
   ) {
-    exampleSelect.value =
-      exampleName;
-    setEditorValue(
-      EXAMPLES[exampleName]
-    );
     setStatus(
-      `Loaded example from ?ex=${exampleName}`
+      statusParts.join(" ")
     );
-    return;
   }
-
-  exampleSelect.value =
-    "live-loop";
-  setEditorValue(
-    EXAMPLES["live-loop"]
-  );
 }
 
 function applySimpleModeFromQuery() {
