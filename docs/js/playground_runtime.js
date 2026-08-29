@@ -333,6 +333,18 @@ export function createPlaygroundRuntime(
           fxOptions
         );
       },
+      radioTone(fxOptions = {}) {
+        return megaSynthFx.createRadioToneFX(
+          megaDrive.audioContext,
+          fxOptions
+        );
+      },
+      lofi(fxOptions = {}) {
+        return megaSynthFx.createLofiFX(
+          megaDrive.audioContext,
+          fxOptions
+        );
+      },
       filter(fxOptions = {}) {
         return megaSynthFx.createFilterFX(
           megaDrive.audioContext,

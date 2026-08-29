@@ -6,10 +6,14 @@ import {
   YM2612WorkletTransport,
 } from "./ym2612synth.js";
 export {
+  createFXBranch,
+  createFXParallel,
   createDelayFX,
   createEqFX,
   createFilterFX,
   createGainFX,
+  createLofiFX,
+  createRadioToneFX,
   createReverbFX,
   createSlicerFX,
 } from "./megasynth_fx.js";

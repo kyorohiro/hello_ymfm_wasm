@@ -12,6 +12,8 @@ export {
   createEqFX,
   createFilterFX,
   createGainFX,
+  createLofiFX,
+  createRadioToneFX,
   createReverbFX,
   createSlicerFX,
 } from "./megasynth_fx.js";

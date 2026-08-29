@@ -504,6 +504,20 @@ function createFxConfigSuggestions(
   const definitions = {
     gain: ["gain"],
     eq: ["bass", "mid", "treble"],
+    radioTone: [
+      "highpass",
+      "lowpass",
+      "presence",
+      "mix",
+      "output",
+    ],
+    lofi: [
+      "cutoff",
+      "highshelf",
+      "drive",
+      "mix",
+      "output",
+    ],
     filter: ["type", "cutoff", "q"],
     delay: ["time", "feedback", "mix"],
     distortion: ["drive", "mix", "output"],
@@ -554,6 +568,8 @@ function detectFxConfigContext(
   const candidates = [
     { prefix: "fx.gain(", effectType: "gain" },
     { prefix: "fx.eq(", effectType: "eq" },
+    { prefix: "fx.radioTone(", effectType: "radioTone" },
+    { prefix: "fx.lofi(", effectType: "lofi" },
     { prefix: "fx.filter(", effectType: "filter" },
     { prefix: "fx.delay(", effectType: "delay" },
     { prefix: "fx.distortion(", effectType: "distortion" },

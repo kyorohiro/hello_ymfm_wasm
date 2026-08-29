@@ -19,6 +19,13 @@
 
 /**
  * @typedef {{
+ *   type: "branch",
+ *   effects: AnyFXUnit[],
+ * }} FXBranch
+ */
+
+/**
+ * @typedef {{
  *   type: string,
  *   input: AudioNode,
  *   output: AudioNode,
@@ -43,6 +50,26 @@
  *   treble?: number,
  *   trebleFrequency?: number,
  * }} EqFXOptions
+ */
+
+/**
+ * @typedef {{
+ *   highpass?: number,
+ *   lowpass?: number,
+ *   presence?: number,
+ *   mix?: number,
+ *   output?: number,
+ * }} RadioToneFXOptions
+ */
+
+/**
+ * @typedef {{
+ *   cutoff?: number,
+ *   highshelf?: number,
+ *   drive?: number,
+ *   mix?: number,
+ *   output?: number,
+ * }} LofiFXOptions
  */
 
 /**
@@ -145,6 +172,28 @@
 
 /**
  * @typedef {BaseFXUnit & {
+ *   type: "radioTone",
+ *   highpass: AudioParamControl,
+ *   lowpass: AudioParamControl,
+ *   presence: AudioParamControl,
+ *   mix: AudioParamControl,
+ *   outputGain: AudioParamControl,
+ * }} RadioToneFXUnit
+ */
+
+/**
+ * @typedef {BaseFXUnit & {
+ *   type: "lofi",
+ *   cutoff: AudioParamControl,
+ *   highshelf: AudioParamControl,
+ *   drive: AudioParamControl,
+ *   mix: AudioParamControl,
+ *   outputGain: AudioParamControl,
+ * }} LofiFXUnit
+ */
+
+/**
+ * @typedef {BaseFXUnit & {
  *   type: "filter",
  *   cutoff: AudioParamControl,
  *   q: AudioParamControl,
@@ -229,7 +278,14 @@
  */
 
 /**
- * @typedef {GainFXUnit | EqFXUnit | FilterFXUnit | DelayFXUnit | DistortionFXUnit | CompressorFXUnit | GateFXUnit | WobbleFXUnit | FlangerFXUnit | ReverbFXUnit | SlicerFXUnit} AnyFXUnit
+ * @typedef {BaseFXUnit & {
+ *   type: "parallel",
+ *   branches: FXBranch[],
+ * }} ParallelFXUnit
+ */
+
+/**
+ * @typedef {GainFXUnit | EqFXUnit | RadioToneFXUnit | LofiFXUnit | FilterFXUnit | DelayFXUnit | DistortionFXUnit | CompressorFXUnit | GateFXUnit | WobbleFXUnit | FlangerFXUnit | ReverbFXUnit | SlicerFXUnit | ParallelFXUnit} AnyFXUnit
  */
 
 /**
@@ -402,6 +458,52 @@ function createEffectUnit({
 
   Object.assign(effect, params);
   return effect;
+}
+
+/**
+ * @param {unknown} value
+ * @returns {value is AnyFXUnit}
+ */
+function isFXUnit(value) {
+  return !!(
+    value &&
+    typeof value === "object" &&
+    "input" in value &&
+    "output" in value &&
+    typeof value.connect ===
+      "function"
+  );
+}
+
+/**
+ * @param {unknown} value
+ * @returns {value is FXBranch}
+ */
+function isFXBranch(value) {
+  return !!(
+    value &&
+    typeof value === "object" &&
+    value.type === "branch" &&
+    Array.isArray(value.effects)
+  );
+}
+
+/**
+ * @param {unknown} value
+ * @returns {FXBranch}
+ */
+function normalizeBranch(value) {
+  if (isFXBranch(value)) {
+    return value;
+  }
+
+  if (isFXUnit(value)) {
+    return createFXBranch(value);
+  }
+
+  throw new Error(
+    "parallel() expects fx.branch(...) or FX units"
+  );
 }
 
 /**
@@ -623,6 +725,106 @@ function createGateThresholdCurve(
 }
 
 /**
+ * Describe one serial branch used by `parallel(...)`.
+ *
+ * `branch(a, b, c)` means:
+ *
+ * input -> a -> b -> c
+ *
+ * @param {...AnyFXUnit} effects
+ * @returns {FXBranch}
+ */
+export function createFXBranch(
+  ...effects
+) {
+  for (const effect of effects) {
+    if (!isFXUnit(effect)) {
+      throw new Error(
+        "branch() expects FX units"
+      );
+    }
+  }
+
+  return {
+    type: "branch",
+    effects: effects.slice(),
+  };
+}
+
+/**
+ * Create one routing unit that splits one input into multiple branches and
+ * mixes them back together.
+ *
+ * @param {BaseAudioContext} audioContext
+ * @param {...(FXBranch | AnyFXUnit)} branchesOrEffects
+ * @returns {ParallelFXUnit}
+ */
+export function createFXParallel(
+  audioContext,
+  ...branchesOrEffects
+) {
+  const input =
+    audioContext.createGain();
+  const output =
+    audioContext.createGain();
+  const disposeNodes = [
+    input,
+    output,
+  ];
+  const ownedEffects = new Set();
+  const branches =
+    branchesOrEffects.map(
+      normalizeBranch
+    );
+
+  if (branches.length === 0) {
+    input.connect(output);
+  }
+
+  for (const branch of branches) {
+    const branchInput =
+      audioContext.createGain();
+    const branchOutput =
+      audioContext.createGain();
+    disposeNodes.push(
+      branchInput,
+      branchOutput
+    );
+
+    input.connect(branchInput);
+
+    let currentNode = branchInput;
+    for (const effect of branch.effects) {
+      currentNode.connect(effect.input);
+      currentNode = effect.output;
+      ownedEffects.add(effect);
+    }
+
+    currentNode.connect(branchOutput);
+    branchOutput.connect(output);
+  }
+
+  return createEffectUnit({
+    type: "parallel",
+    input,
+    output,
+    params: {
+      branches: branches.slice(),
+    },
+    disposeNodes: [
+      ...disposeNodes,
+      {
+        disconnect() {
+          for (const effect of ownedEffects) {
+            effect.dispose?.();
+          }
+        },
+      },
+    ],
+  });
+}
+
+/**
  * @param {BaseAudioContext} audioContext
  * @param {GainFXOptions} [options]
  * @returns {GainFXUnit}
@@ -780,6 +982,324 @@ export function createEqFX(
       lowShelf,
       midPeak,
       highShelf,
+      output,
+    ],
+  });
+}
+
+/**
+ * Radio-like narrow-band tone shaping.
+ *
+ * This is useful when game audio should feel like it is coming from:
+ *
+ * - a handheld radio
+ * - an in-world speaker
+ * - a phone / comms voice
+ *
+ * @param {BaseAudioContext} audioContext
+ * @param {RadioToneFXOptions} [options]
+ * @returns {RadioToneFXUnit}
+ */
+export function createRadioToneFX(
+  audioContext,
+  options = {}
+) {
+  const input =
+    audioContext.createGain();
+  const dryGain =
+    audioContext.createGain();
+  const wetInputGain =
+    audioContext.createGain();
+  const highpass =
+    audioContext.createBiquadFilter();
+  const lowpass =
+    audioContext.createBiquadFilter();
+  const presence =
+    audioContext.createBiquadFilter();
+  const wetGain =
+    audioContext.createGain();
+  const outputGain =
+    audioContext.createGain();
+  const output =
+    audioContext.createGain();
+
+  highpass.type = "highpass";
+  highpass.frequency.value =
+    clampNumber(
+      options.highpass,
+      380,
+      40,
+      4000
+    );
+
+  lowpass.type = "lowpass";
+  lowpass.frequency.value =
+    clampNumber(
+      options.lowpass,
+      2800,
+      300,
+      12000
+    );
+
+  presence.type = "peaking";
+  presence.frequency.value = 1800;
+  presence.Q.value = 1.1;
+  presence.gain.value =
+    clampNumber(
+      options.presence,
+      4,
+      -24,
+      24
+    );
+
+  outputGain.gain.value =
+    clampNumber(
+      options.output,
+      1,
+      0,
+      4
+    );
+
+  setDryWetMix(
+    dryGain,
+    wetGain,
+    options.mix ?? 1
+  );
+
+  input.connect(dryGain);
+  input.connect(wetInputGain);
+  wetInputGain.connect(highpass);
+  highpass.connect(lowpass);
+  lowpass.connect(presence);
+  presence.connect(wetGain);
+  dryGain.connect(outputGain);
+  wetGain.connect(outputGain);
+  outputGain.connect(output);
+
+  return createEffectUnit({
+    type: "radioTone",
+    input,
+    output,
+    params: {
+      highpass:
+        createAudioParamControl(
+          audioContext,
+          highpass.frequency,
+          {
+            min: 40,
+            max: 4000,
+          }
+        ),
+      lowpass:
+        createAudioParamControl(
+          audioContext,
+          lowpass.frequency,
+          {
+            min: 300,
+            max: 12000,
+          }
+        ),
+      presence:
+        createAudioParamControl(
+          audioContext,
+          presence.gain,
+          {
+            min: -24,
+            max: 24,
+          }
+        ),
+      mix: createDryWetMixControl(
+        audioContext,
+        dryGain,
+        wetGain
+      ),
+      outputGain:
+        createAudioParamControl(
+          audioContext,
+          outputGain.gain,
+          {
+            min: 0,
+            max: 4,
+          }
+        ),
+    },
+    disposeNodes: [
+      input,
+      dryGain,
+      wetInputGain,
+      highpass,
+      lowpass,
+      presence,
+      wetGain,
+      outputGain,
+      output,
+    ],
+  });
+}
+
+/**
+ * Small lo-fi tone shaper.
+ *
+ * This is intentionally lighter than a full cassette / vinyl simulation.
+ * It keeps the runtime simple enough for game embedding while still giving:
+ *
+ * - softer highs
+ * - mild band-limiting
+ * - light saturation
+ *
+ * @param {BaseAudioContext} audioContext
+ * @param {LofiFXOptions} [options]
+ * @returns {LofiFXUnit}
+ */
+export function createLofiFX(
+  audioContext,
+  options = {}
+) {
+  const input =
+    audioContext.createGain();
+  const dryGain =
+    audioContext.createGain();
+  const wetInputGain =
+    audioContext.createGain();
+  const lowpass =
+    audioContext.createBiquadFilter();
+  const highshelf =
+    audioContext.createBiquadFilter();
+  const shaper =
+    audioContext.createWaveShaper();
+  const wetGain =
+    audioContext.createGain();
+  const outputGain =
+    audioContext.createGain();
+  const output =
+    audioContext.createGain();
+
+  const state = {
+    drive: clampNumber(
+      options.drive,
+      0.9,
+      0,
+      8
+    ),
+  };
+
+  lowpass.type = "lowpass";
+  lowpass.frequency.value =
+    clampNumber(
+      options.cutoff,
+      3200,
+      200,
+      16000
+    );
+
+  highshelf.type = "highshelf";
+  highshelf.frequency.value = 2800;
+  highshelf.gain.value =
+    clampNumber(
+      options.highshelf,
+      -8,
+      -24,
+      6
+    );
+
+  shaper.curve =
+    createDistortionCurve(
+      state.drive
+    );
+  shaper.oversample = "4x";
+
+  outputGain.gain.value =
+    clampNumber(
+      options.output,
+      1,
+      0,
+      4
+    );
+
+  setDryWetMix(
+    dryGain,
+    wetGain,
+    options.mix ?? 1
+  );
+
+  input.connect(dryGain);
+  input.connect(wetInputGain);
+  wetInputGain.connect(lowpass);
+  lowpass.connect(highshelf);
+  highshelf.connect(shaper);
+  shaper.connect(wetGain);
+  dryGain.connect(outputGain);
+  wetGain.connect(outputGain);
+  outputGain.connect(output);
+
+  return createEffectUnit({
+    type: "lofi",
+    input,
+    output,
+    params: {
+      cutoff: createAudioParamControl(
+        audioContext,
+        lowpass.frequency,
+        {
+          min: 200,
+          max: 16000,
+        }
+      ),
+      highshelf:
+        createAudioParamControl(
+          audioContext,
+          highshelf.gain,
+          {
+            min: -24,
+            max: 6,
+          }
+        ),
+      drive: {
+        get() {
+          return state.drive;
+        },
+        set(value) {
+          state.drive =
+            clampNumber(
+              value,
+              state.drive,
+              0,
+              8
+            );
+          shaper.curve =
+            createDistortionCurve(
+              state.drive
+            );
+          return state.drive;
+        },
+        rampTo(value) {
+          return this.set(value);
+        },
+      },
+      mix: createDryWetMixControl(
+        audioContext,
+        dryGain,
+        wetGain
+      ),
+      outputGain:
+        createAudioParamControl(
+          audioContext,
+          outputGain.gain,
+          {
+            min: 0,
+            max: 4,
+          }
+        ),
+    },
+    disposeNodes: [
+      input,
+      dryGain,
+      wetInputGain,
+      lowpass,
+      highshelf,
+      shaper,
+      wetGain,
+      outputGain,
       output,
     ],
   });

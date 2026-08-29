@@ -151,6 +151,24 @@ type EqFXOptions = {
   treble?: number;
 };
 
+/** Options for `fx.radioTone()`. */
+type RadioToneFXOptions = {
+  highpass?: number;
+  lowpass?: number;
+  presence?: number;
+  mix?: number;
+  output?: number;
+};
+
+/** Options for `fx.lofi()`. */
+type LofiFXOptions = {
+  cutoff?: number;
+  highshelf?: number;
+  drive?: number;
+  mix?: number;
+  output?: number;
+};
+
 /** Options for `fx.filter()`. */
 type FilterFXOptions = {
   type?: string;
@@ -261,6 +279,24 @@ type EqFXUnit = BaseFXUnit & {
   treble: AudioParamControl;
 };
 
+type RadioToneFXUnit = BaseFXUnit & {
+  type: "radioTone";
+  highpass: AudioParamControl;
+  lowpass: AudioParamControl;
+  presence: AudioParamControl;
+  mix: AudioParamControl;
+  outputGain: AudioParamControl;
+};
+
+type LofiFXUnit = BaseFXUnit & {
+  type: "lofi";
+  cutoff: AudioParamControl;
+  highshelf: AudioParamControl;
+  drive: AudioParamControl;
+  mix: AudioParamControl;
+  outputGain: AudioParamControl;
+};
+
 type FilterFXUnit = BaseFXUnit & {
   type: "filter";
   cutoff: AudioParamControl;
@@ -336,6 +372,8 @@ type ParallelFXUnit = BaseFXUnit & {
 type AnyFXUnit =
   | GainFXUnit
   | EqFXUnit
+  | RadioToneFXUnit
+  | LofiFXUnit
   | FilterFXUnit
   | DelayFXUnit
   | DistortionFXUnit
@@ -413,6 +451,10 @@ declare const fx: {
   gain(options?: GainFXOptions): GainFXUnit;
   /** Create a simple 3-band EQ effect unit. */
   eq(options?: EqFXOptions): EqFXUnit;
+  /** Create a narrow-band radio / speaker tone effect unit. */
+  radioTone(options?: RadioToneFXOptions): RadioToneFXUnit;
+  /** Create a lightweight lo-fi tone shaping effect unit. */
+  lofi(options?: LofiFXOptions): LofiFXUnit;
   /** Create a filter effect unit. */
   filter(options?: FilterFXOptions): FilterFXUnit;
   /** Create a delay effect unit. */
