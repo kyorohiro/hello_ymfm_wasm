@@ -38,3 +38,52 @@ The JS wrapper provides:
 - `sampleRate(clock = YM2612_CLOCK)`
 - `generateStereo(frames)`
 - `dispose()`
+
+## Playground Runtime
+
+If you want to embed Tetorica-style live code into a browser app or game,
+use the reusable Playground runtime layer:
+
+```js
+import {
+  Playground,
+} from "./playground_runtime.js";
+
+const pg =
+  Playground({
+    audioWorkletUrl:
+      "./ym2612-worklet.js",
+    ym2612WasmUrl:
+      "./generated/ym2612_wasm.wasm",
+    segaPsgWasmUrl:
+      "./generated/segapsg_wasm.wasm",
+  });
+
+pg.put("stage1", `
+setBpm(120);
+
+fm.setPreset(CH1, FM_PRESETS["one-op-basic"]);
+
+liveLoop("lead", async () => {
+  await play("C4", {
+    channel: CH1,
+    duration: 0.18,
+  });
+  await beat(0.5);
+});
+`);
+
+await pg.play("stage1");
+```
+
+Current core methods:
+
+- `put(name, sourceCode)`
+- `get(name)`
+- `play(name)`
+- `playSource(sourceCode)`
+- `stop()`
+- `clear()`
+
+This keeps the Playground-style API, but removes the Monaco editor and the
+current app UI from the dependency surface.

@@ -1,0 +1,311 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1"
+    >
+    <title>Playground Runtime Embedded Demo</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #f4efe4;
+        --panel: #fffaf0;
+        --ink: #1f1b16;
+        --accent: #4d89d8;
+        --accent-dark: #2d5e9d;
+        --line: #d7c8ac;
+        --code: #2b241d;
+        --code-ink: #f6ead7;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: "Avenir Next", "Helvetica Neue", Helvetica, Arial, sans-serif;
+        color: var(--ink);
+        background:
+          radial-gradient(circle at top left, #fff8df 0, transparent 28%),
+          radial-gradient(circle at bottom right, #d8e8ff 0, transparent 24%),
+          linear-gradient(160deg, var(--bg), #eadfc9 60%, #e0cfb5);
+      }
+
+      main {
+        max-width: 980px;
+        margin: 0 auto;
+        padding: 48px 20px 64px;
+      }
+
+      .panel {
+        background: color-mix(in srgb, var(--panel) 90%, white 10%);
+        border: 1px solid var(--line);
+        border-radius: 24px;
+        padding: 28px;
+        box-shadow: 0 18px 40px rgba(90, 62, 30, 0.12);
+      }
+
+      h1,
+      h2 {
+        margin: 0 0 12px;
+        line-height: 1.12;
+        letter-spacing: -0.04em;
+      }
+
+      h1 {
+        font-size: clamp(2rem, 4vw, 3.2rem);
+      }
+
+      h2 {
+        margin-top: 28px;
+        font-size: 1.35rem;
+      }
+
+      p,
+      li {
+        line-height: 1.6;
+      }
+
+      pre,
+      code {
+        font-family: "SFMono-Regular", Menlo, Consolas, monospace;
+      }
+
+      pre {
+        margin: 0 0 16px;
+        padding: 16px 18px;
+        border-radius: 16px;
+        background: var(--code);
+        color: var(--code-ink);
+        overflow-x: auto;
+        white-space: pre-wrap;
+      }
+
+      .actions {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+        margin: 24px 0 18px;
+      }
+
+      button,
+      .link-button {
+        appearance: none;
+        border: 0;
+        border-radius: 999px;
+        padding: 12px 18px;
+        font: inherit;
+        font-weight: 700;
+        color: white;
+        background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+        cursor: pointer;
+        text-decoration: none;
+      }
+
+      button:disabled {
+        cursor: wait;
+        opacity: 0.72;
+      }
+
+      .status {
+        min-height: 1.5em;
+        font-weight: 700;
+      }
+
+      .meta {
+        margin: 0 0 16px;
+        font-size: 0.95rem;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <section class="panel">
+        <h1>Playground Runtime Embedded Demo</h1>
+
+        <p>
+          This example shows the new reusable
+          <code>Playground(...)</code> runtime layer.
+          It keeps the live-code style API, but without Monaco or the current
+          Playground UI.
+        </p>
+
+        <p>
+          The idea is to make code written for Tetorica easier to move into a
+          browser game or another small app.
+        </p>
+
+        <p class="meta">
+          Source:
+          <a href="https://github.com/kyorohiro/hello_ymfm_wasm/blob/main/web/playground_runtime.js">
+            web/playground_runtime.js
+          </a>
+          |
+          <a href="https://github.com/kyorohiro/hello_ymfm_wasm/blob/main/docs/demos/playground_runtime.html">
+            docs/demos/playground_runtime.html
+          </a>
+        </p>
+
+        <h2>Minimal Usage</h2>
+
+        <pre>import {
+  Playground,
+} from "../js/playground_runtime.js";
+
+const pg =
+  Playground({
+    audioWorkletUrl:
+      "../js/ym2612-worklet.js",
+    ym2612WasmUrl:
+      "../generated/ym2612_wasm.wasm",
+    segaPsgWasmUrl:
+      "../generated/segapsg_wasm.wasm",
+  });
+
+pg.put("stage1", `
+setBpm(120);
+
+fm.setPreset(CH1, FM_PRESETS["one-op-basic"]);
+
+liveLoop("lead", async () => {
+  await play("C4", {
+    channel: CH1,
+    duration: 0.18,
+  });
+  await beat(0.5);
+  await play("E4", {
+    channel: CH1,
+    duration: 0.18,
+  });
+  await beat(0.5);
+  await play("G4", {
+    channel: CH1,
+    duration: 0.18,
+  });
+  await beat(1);
+});
+`);
+
+await pg.play("stage1");</pre>
+
+        <div class="actions">
+          <button id="playButton" type="button">Play</button>
+          <button id="stopButton" type="button">Stop</button>
+          <a class="link-button" href="../index.html">Back</a>
+        </div>
+
+        <div class="status" id="status">Ready.</div>
+
+        <h2>What This Layer Hides</h2>
+
+        <pre>Application / Game
+    |
+    v
+Playground runtime
+    |
+    +-- source registry
+    +-- play / stop control
+    +-- liveLoop helpers
+    +-- YM2612 / PSG access
+    |
+    v
+MegaDriveSynth
+    |
+    +-- AudioContext
+    +-- AudioWorklet
+    +-- WASM loading
+    |
+    v
+YM2612 / PSG output</pre>
+      </section>
+    </main>
+
+    <script type="module">
+      import {
+        Playground,
+      } from "../js/playground_runtime.js";
+
+      const playButton =
+        document.getElementById(
+          "playButton"
+        );
+      const stopButton =
+        document.getElementById(
+          "stopButton"
+        );
+      const status =
+        document.getElementById(
+          "status"
+        );
+
+      const pg =
+        Playground({
+          audioWorkletUrl:
+            "../js/ym2612-worklet.js",
+          ym2612WasmUrl:
+            "../generated/ym2612_wasm.wasm",
+          segaPsgWasmUrl:
+            "../generated/segapsg_wasm.wasm",
+          onStatus(message) {
+            status.textContent =
+              message;
+          },
+        });
+
+      pg.put(
+        "stage1",
+        `
+setBpm(120);
+
+fm.setPreset(CH1, FM_PRESETS["one-op-basic"]);
+
+liveLoop("lead", async () => {
+  await play("C4", {
+    channel: CH1,
+    duration: 0.18,
+  });
+  await beat(0.5);
+  await play("E4", {
+    channel: CH1,
+    duration: 0.18,
+  });
+  await beat(0.5);
+  await play("G4", {
+    channel: CH1,
+    duration: 0.18,
+  });
+  await beat(1);
+});
+`
+      );
+
+      playButton.addEventListener(
+        "click",
+        async () => {
+          playButton.disabled = true;
+
+          try {
+            await pg.play("stage1");
+          } catch (error) {
+            console.error(error);
+            status.textContent =
+              `Error: ${error.message}`;
+          } finally {
+            playButton.disabled = false;
+          }
+        }
+      );
+
+      stopButton.addEventListener(
+        "click",
+        () => {
+          pg.stop();
+        }
+      );
+    </script>
+  </body>
+</html>

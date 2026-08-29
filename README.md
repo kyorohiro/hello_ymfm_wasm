@@ -22,6 +22,7 @@ This repository has three goals:
 ## What this repository provides
 
 - YM2612 WebAssembly builds and JavaScript wrappers for browser-side use
+- a reusable `Playground(...)` runtime layer for browser games and app embedding
 - a browser playground for trying YM2612 control and live coding from JavaScript
 - a browser synth app for hands-on YM2612 sound design
 - a Genesis-oriented VGM analyzer for playback, inspection, and patch extraction
@@ -49,6 +50,8 @@ This is the easiest way to test YM2612 control, sound design, and Genesis-orient
   [https://kyorohiro.github.io/hello_ymfm_wasm/introductions/index.html](https://kyorohiro.github.io/hello_ymfm_wasm/introductions/index.html)
 - Playground:
   [https://kyorohiro.github.io/hello_ymfm_wasm/playground/index.html](https://kyorohiro.github.io/hello_ymfm_wasm/playground/index.html)
+- Playground Runtime Embedded Demo:
+  [https://kyorohiro.github.io/hello_ymfm_wasm/demos/playground_runtime.html](https://kyorohiro.github.io/hello_ymfm_wasm/demos/playground_runtime.html)
 - Synth:
   [https://kyorohiro.github.io/hello_ymfm_wasm/synth/index.html](https://kyorohiro.github.io/hello_ymfm_wasm/synth/index.html)
 - VGM Analyzer:

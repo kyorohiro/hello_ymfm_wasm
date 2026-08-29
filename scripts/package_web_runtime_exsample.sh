@@ -18,6 +18,7 @@ DEMO_FILES="
 beep.html
 vgm.html
 megasynth_embeded.html
+playground_runtime.html
 "
 
 INFO_FILES="
@@ -31,6 +32,13 @@ megadrive-fm-presets.js
 megasynth_fx.js
 megasynth.js
 megasynth_recording.js
+pitch.js
+playground_clock.js
+playground_execution.js
+playground_live.js
+playground_music.js
+playground_runtime.js
+playground_sync.js
 segapsg.js
 tfi.js
 vgm-output-worklet.js
@@ -252,6 +260,10 @@ cat > "${STAGE_DIR}/index.html" <<'EOF'
           <a class="card" href="./demos/megasynth_embeded.html">
             <strong>MegaDriveSynth Embedded Demo</strong>
             Higher-level browser embedding sample.
+          </a>
+          <a class="card" href="./demos/playground_runtime.html">
+            <strong>Playground Runtime Embedded Demo</strong>
+            Small game/app-facing sample using put/play/stop.
           </a>
           <a class="card" href="./info/ym2612synth_audioworklet.html">
             <strong>YM2612Synth AudioWorklet Demo</strong>

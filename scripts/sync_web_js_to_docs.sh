@@ -17,6 +17,13 @@ megasynth_fx.js
 megasynth_looper.js
 megasynth_recording.js
 megadrive-fm-presets.js
+pitch.js
+playground_runtime.js
+playground_clock.js
+playground_execution.js
+playground_live.js
+playground_music.js
+playground_sync.js
 segapsg.js
 tfi.js
 vgmplayer.js
