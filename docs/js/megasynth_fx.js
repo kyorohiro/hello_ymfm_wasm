@@ -19,6 +19,13 @@
 
 /**
  * @typedef {{
+ *   type: "branch",
+ *   effects: AnyFXUnit[],
+ * }} FXBranch
+ */
+
+/**
+ * @typedef {{
  *   type: string,
  *   input: AudioNode,
  *   output: AudioNode,
@@ -229,7 +236,14 @@
  */
 
 /**
- * @typedef {GainFXUnit | EqFXUnit | FilterFXUnit | DelayFXUnit | DistortionFXUnit | CompressorFXUnit | GateFXUnit | WobbleFXUnit | FlangerFXUnit | ReverbFXUnit | SlicerFXUnit} AnyFXUnit
+ * @typedef {BaseFXUnit & {
+ *   type: "parallel",
+ *   branches: FXBranch[],
+ * }} ParallelFXUnit
+ */
+
+/**
+ * @typedef {GainFXUnit | EqFXUnit | FilterFXUnit | DelayFXUnit | DistortionFXUnit | CompressorFXUnit | GateFXUnit | WobbleFXUnit | FlangerFXUnit | ReverbFXUnit | SlicerFXUnit | ParallelFXUnit} AnyFXUnit
  */
 
 /**
@@ -402,6 +416,52 @@ function createEffectUnit({
 
   Object.assign(effect, params);
   return effect;
+}
+
+/**
+ * @param {unknown} value
+ * @returns {value is AnyFXUnit}
+ */
+function isFXUnit(value) {
+  return !!(
+    value &&
+    typeof value === "object" &&
+    "input" in value &&
+    "output" in value &&
+    typeof value.connect ===
+      "function"
+  );
+}
+
+/**
+ * @param {unknown} value
+ * @returns {value is FXBranch}
+ */
+function isFXBranch(value) {
+  return !!(
+    value &&
+    typeof value === "object" &&
+    value.type === "branch" &&
+    Array.isArray(value.effects)
+  );
+}
+
+/**
+ * @param {unknown} value
+ * @returns {FXBranch}
+ */
+function normalizeBranch(value) {
+  if (isFXBranch(value)) {
+    return value;
+  }
+
+  if (isFXUnit(value)) {
+    return createFXBranch(value);
+  }
+
+  throw new Error(
+    "parallel() expects fx.branch(...) or FX units"
+  );
 }
 
 /**
@@ -620,6 +680,106 @@ function createGateThresholdCurve(
   }
 
   return curve;
+}
+
+/**
+ * Describe one serial branch used by `parallel(...)`.
+ *
+ * `branch(a, b, c)` means:
+ *
+ * input -> a -> b -> c
+ *
+ * @param {...AnyFXUnit} effects
+ * @returns {FXBranch}
+ */
+export function createFXBranch(
+  ...effects
+) {
+  for (const effect of effects) {
+    if (!isFXUnit(effect)) {
+      throw new Error(
+        "branch() expects FX units"
+      );
+    }
+  }
+
+  return {
+    type: "branch",
+    effects: effects.slice(),
+  };
+}
+
+/**
+ * Create one routing unit that splits one input into multiple branches and
+ * mixes them back together.
+ *
+ * @param {BaseAudioContext} audioContext
+ * @param {...(FXBranch | AnyFXUnit)} branchesOrEffects
+ * @returns {ParallelFXUnit}
+ */
+export function createFXParallel(
+  audioContext,
+  ...branchesOrEffects
+) {
+  const input =
+    audioContext.createGain();
+  const output =
+    audioContext.createGain();
+  const disposeNodes = [
+    input,
+    output,
+  ];
+  const ownedEffects = new Set();
+  const branches =
+    branchesOrEffects.map(
+      normalizeBranch
+    );
+
+  if (branches.length === 0) {
+    input.connect(output);
+  }
+
+  for (const branch of branches) {
+    const branchInput =
+      audioContext.createGain();
+    const branchOutput =
+      audioContext.createGain();
+    disposeNodes.push(
+      branchInput,
+      branchOutput
+    );
+
+    input.connect(branchInput);
+
+    let currentNode = branchInput;
+    for (const effect of branch.effects) {
+      currentNode.connect(effect.input);
+      currentNode = effect.output;
+      ownedEffects.add(effect);
+    }
+
+    currentNode.connect(branchOutput);
+    branchOutput.connect(output);
+  }
+
+  return createEffectUnit({
+    type: "parallel",
+    input,
+    output,
+    params: {
+      branches: branches.slice(),
+    },
+    disposeNodes: [
+      ...disposeNodes,
+      {
+        disconnect() {
+          for (const effect of ownedEffects) {
+            effect.dispose?.();
+          }
+        },
+      },
+    ],
+  });
 }
 
 /**

@@ -389,6 +389,17 @@ export function createPlaygroundRuntime(
           fxOptions
         );
       },
+      branch(...effects) {
+        return megaSynthFx.createFXBranch(
+          ...effects
+        );
+      },
+      parallel(...branches) {
+        return megaSynthFx.createFXParallel(
+          megaDrive.audioContext,
+          ...branches
+        );
+      },
       slicer(fxOptions = {}) {
         if (
           typeof megaSynthFx.createSlicerFX !==

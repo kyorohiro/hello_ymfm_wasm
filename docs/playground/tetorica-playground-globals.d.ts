@@ -244,6 +244,11 @@ type BaseFXUnit = {
   dispose(): void;
 };
 
+type FXBranch = {
+  type: "branch";
+  effects: AnyFXUnit[];
+};
+
 type GainFXUnit = BaseFXUnit & {
   type: "gain";
   gain: AudioParamControl;
@@ -323,6 +328,11 @@ type SlicerFXUnit = BaseFXUnit & {
   mix: AudioParamControl;
 };
 
+type ParallelFXUnit = BaseFXUnit & {
+  type: "parallel";
+  branches: FXBranch[];
+};
+
 type AnyFXUnit =
   | GainFXUnit
   | EqFXUnit
@@ -334,7 +344,8 @@ type AnyFXUnit =
   | WobbleFXUnit
   | FlangerFXUnit
   | ReverbFXUnit
-  | SlicerFXUnit;
+  | SlicerFXUnit
+  | ParallelFXUnit;
 
 declare const fm: {
   /** Reset YM2612 state. */
@@ -418,6 +429,10 @@ declare const fx: {
   flanger(options?: FlangerFXOptions): FlangerFXUnit;
   /** Create a reverb effect unit. */
   reverb(options?: ReverbFXOptions): ReverbFXUnit;
+  /** Describe one serial branch to be used inside fx.parallel(...). */
+  branch(...effects: AnyFXUnit[]): FXBranch;
+  /** Split one input into multiple branches and mix them back together. */
+  parallel(...branches: Array<FXBranch | AnyFXUnit>): ParallelFXUnit;
   /** Create a BPM-based slicer / gate effect unit. */
   slicer(options?: SlicerFXOptions): SlicerFXUnit;
   /** Replace the current master FX chain. */

@@ -6,6 +6,8 @@ import {
   YM2612WorkletTransport,
 } from "./ym2612synth.js";
 export {
+  createFXBranch,
+  createFXParallel,
   createDelayFX,
   createEqFX,
   createFilterFX,
