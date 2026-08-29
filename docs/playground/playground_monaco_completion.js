@@ -95,7 +95,7 @@ function extractFxUnitVariables(
   const variables =
     new Map();
   const pattern =
-    /\b(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*fx\.(gain|eq|filter|delay|distortion|compressor|gate|reverb|slicer)\s*\(/g;
+    /\b(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*fx\.(gain|eq|filter|delay|distortion|compressor|gate|wobble|flanger|reverb|slicer)\s*\(/g;
   let match =
     pattern.exec(source);
 
@@ -371,6 +371,20 @@ function createFxUnitSuggestions(
       "outputGain",
     ],
     gate: ["threshold", "floor", "mix"],
+    wobble: [
+      "cutoff",
+      "depth",
+      "rate",
+      "resonance",
+      "mix",
+    ],
+    flanger: [
+      "time",
+      "depth",
+      "rate",
+      "feedback",
+      "mix",
+    ],
     reverb: ["mix", "tone"],
     slicer: ["phase", "mix"],
   }[effectType] ?? [];
@@ -502,6 +516,20 @@ function createFxConfigSuggestions(
       "output",
     ],
     gate: ["threshold", "floor", "mix"],
+    wobble: [
+      "cutoff",
+      "depth",
+      "rate",
+      "resonance",
+      "mix",
+    ],
+    flanger: [
+      "time",
+      "depth",
+      "rate",
+      "feedback",
+      "mix",
+    ],
     reverb: ["mix", "tone"],
     slicer: ["phase", "mix"],
   };
@@ -531,6 +559,8 @@ function detectFxConfigContext(
     { prefix: "fx.distortion(", effectType: "distortion" },
     { prefix: "fx.compressor(", effectType: "compressor" },
     { prefix: "fx.gate(", effectType: "gate" },
+    { prefix: "fx.wobble(", effectType: "wobble" },
+    { prefix: "fx.flanger(", effectType: "flanger" },
     { prefix: "fx.reverb(", effectType: "reverb" },
   ];
 

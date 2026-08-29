@@ -90,6 +90,28 @@
 
 /**
  * @typedef {{
+ *   cutoff?: number,
+ *   depth?: number,
+ *   rate?: number,
+ *   resonance?: number,
+ *   mix?: number,
+ *   getBeatSeconds?: (() => number),
+ * }} WobbleFXOptions
+ */
+
+/**
+ * @typedef {{
+ *   time?: number,
+ *   depth?: number,
+ *   rate?: number,
+ *   feedback?: number,
+ *   mix?: number,
+ *   getBeatSeconds?: (() => number),
+ * }} FlangerFXOptions
+ */
+
+/**
+ * @typedef {{
  *   mix?: number,
  *   tone?: number,
  *   seconds?: number,
@@ -170,6 +192,28 @@
 
 /**
  * @typedef {BaseFXUnit & {
+ *   type: "wobble",
+ *   cutoff: AudioParamControl,
+ *   depth: AudioParamControl,
+ *   rate: SimpleParamControl,
+ *   resonance: AudioParamControl,
+ *   mix: AudioParamControl,
+ * }} WobbleFXUnit
+ */
+
+/**
+ * @typedef {BaseFXUnit & {
+ *   type: "flanger",
+ *   time: AudioParamControl,
+ *   depth: AudioParamControl,
+ *   rate: SimpleParamControl,
+ *   feedback: AudioParamControl,
+ *   mix: AudioParamControl,
+ * }} FlangerFXUnit
+ */
+
+/**
+ * @typedef {BaseFXUnit & {
  *   type: "reverb",
  *   mix: AudioParamControl,
  *   tone: AudioParamControl,
@@ -185,7 +229,7 @@
  */
 
 /**
- * @typedef {GainFXUnit | EqFXUnit | FilterFXUnit | DelayFXUnit | DistortionFXUnit | CompressorFXUnit | GateFXUnit | ReverbFXUnit | SlicerFXUnit} AnyFXUnit
+ * @typedef {GainFXUnit | EqFXUnit | FilterFXUnit | DelayFXUnit | DistortionFXUnit | CompressorFXUnit | GateFXUnit | WobbleFXUnit | FlangerFXUnit | ReverbFXUnit | SlicerFXUnit} AnyFXUnit
  */
 
 /**
@@ -1271,6 +1315,375 @@ export function createGateFX(
       floorGain,
       wetGain,
       output,
+    ],
+  });
+}
+
+/**
+ * @param {BaseAudioContext} audioContext
+ * @param {WobbleFXOptions} [options]
+ * @returns {WobbleFXUnit}
+ */
+export function createWobbleFX(
+  audioContext,
+  options = {}
+) {
+  const input =
+    audioContext.createGain();
+  const dryGain =
+    audioContext.createGain();
+  const wetInputGain =
+    audioContext.createGain();
+  const filter =
+    audioContext.createBiquadFilter();
+  const wetGain =
+    audioContext.createGain();
+  const output =
+    audioContext.createGain();
+  const lfo =
+    audioContext.createOscillator();
+  const lfoDepth =
+    audioContext.createGain();
+
+  const resolveBeatSeconds =
+    typeof options.getBeatSeconds ===
+    "function"
+      ? options.getBeatSeconds
+      : () => 0.5;
+
+  const state = {
+    rate: clampNumber(
+      options.rate,
+      0.5,
+      0.03125,
+      16
+    ),
+  };
+
+  filter.type = "lowpass";
+  filter.frequency.value =
+    clampNumber(
+      options.cutoff,
+      1400,
+      40,
+      20000
+    );
+  filter.Q.value = clampNumber(
+    options.resonance,
+    1.4,
+    0.0001,
+    40
+  );
+  lfo.type = "sine";
+  lfoDepth.gain.value =
+    clampNumber(
+      options.depth,
+      1100,
+      0,
+      12000
+    );
+  setDryWetMix(
+    dryGain,
+    wetGain,
+    options.mix ?? 1
+  );
+
+  function updateRate() {
+    const beatSeconds =
+      clampNumber(
+        resolveBeatSeconds(),
+        0.5,
+        0.01,
+        60
+      );
+    const periodSeconds =
+      Math.max(
+        0.01,
+        state.rate * beatSeconds
+      );
+    lfo.frequency.setValueAtTime(
+      1 / periodSeconds,
+      audioContext.currentTime
+    );
+  }
+
+  input.connect(dryGain);
+  input.connect(wetInputGain);
+  wetInputGain.connect(filter);
+  filter.connect(wetGain);
+  dryGain.connect(output);
+  wetGain.connect(output);
+
+  lfo.connect(lfoDepth);
+  lfoDepth.connect(filter.frequency);
+  updateRate();
+  lfo.start();
+
+  const syncTimer =
+    window.setInterval(() => {
+      updateRate();
+    }, 60);
+
+  return createEffectUnit({
+    type: "wobble",
+    input,
+    output,
+    params: {
+      cutoff: createAudioParamControl(
+        audioContext,
+        filter.frequency,
+        {
+          min: 40,
+          max: 20000,
+        }
+      ),
+      depth: createAudioParamControl(
+        audioContext,
+        lfoDepth.gain,
+        {
+          min: 0,
+          max: 12000,
+        }
+      ),
+      rate: {
+        get() {
+          return state.rate;
+        },
+        set(value) {
+          state.rate =
+            clampNumber(
+              value,
+              state.rate,
+              0.03125,
+              16
+            );
+          updateRate();
+          return state.rate;
+        },
+      },
+      resonance:
+        createAudioParamControl(
+          audioContext,
+          filter.Q,
+          {
+            min: 0.0001,
+            max: 40,
+          }
+        ),
+      mix: createDryWetMixControl(
+        audioContext,
+        dryGain,
+        wetGain
+      ),
+    },
+    disposeNodes: [
+      input,
+      dryGain,
+      wetInputGain,
+      filter,
+      wetGain,
+      output,
+      lfo,
+      lfoDepth,
+      {
+        disconnect() {
+          window.clearInterval(
+            syncTimer
+          );
+          try {
+            lfo.stop();
+          } catch (_error) {
+            // Ignore stop-after-stop differences across browsers.
+          }
+        },
+      },
+    ],
+  });
+}
+
+/**
+ * @param {BaseAudioContext} audioContext
+ * @param {FlangerFXOptions} [options]
+ * @returns {FlangerFXUnit}
+ */
+export function createFlangerFX(
+  audioContext,
+  options = {}
+) {
+  const input =
+    audioContext.createGain();
+  const dryGain =
+    audioContext.createGain();
+  const wetInputGain =
+    audioContext.createGain();
+  const delay =
+    audioContext.createDelay(0.05);
+  const feedbackGain =
+    audioContext.createGain();
+  const wetGain =
+    audioContext.createGain();
+  const output =
+    audioContext.createGain();
+  const lfo =
+    audioContext.createOscillator();
+  const lfoDepth =
+    audioContext.createGain();
+
+  const resolveBeatSeconds =
+    typeof options.getBeatSeconds ===
+    "function"
+      ? options.getBeatSeconds
+      : () => 0.5;
+
+  const state = {
+    rate: clampNumber(
+      options.rate,
+      0.25,
+      0.03125,
+      16
+    ),
+  };
+
+  delay.delayTime.value =
+    clampNumber(
+      options.time,
+      0.004,
+      0.0005,
+      0.03
+    );
+  lfoDepth.gain.value =
+    clampNumber(
+      options.depth,
+      0.002,
+      0,
+      0.02
+    );
+  feedbackGain.gain.value =
+    clampNumber(
+      options.feedback,
+      0.25,
+      0,
+      0.95
+    );
+  lfo.type = "sine";
+  setDryWetMix(
+    dryGain,
+    wetGain,
+    options.mix ?? 1
+  );
+
+  function updateRate() {
+    const beatSeconds =
+      clampNumber(
+        resolveBeatSeconds(),
+        0.5,
+        0.01,
+        60
+      );
+    const periodSeconds =
+      Math.max(
+        0.01,
+        state.rate * beatSeconds
+      );
+    lfo.frequency.setValueAtTime(
+      1 / periodSeconds,
+      audioContext.currentTime
+    );
+  }
+
+  input.connect(dryGain);
+  input.connect(wetInputGain);
+  wetInputGain.connect(delay);
+  delay.connect(feedbackGain);
+  feedbackGain.connect(delay);
+  delay.connect(wetGain);
+  dryGain.connect(output);
+  wetGain.connect(output);
+
+  lfo.connect(lfoDepth);
+  lfoDepth.connect(delay.delayTime);
+  updateRate();
+  lfo.start();
+
+  const syncTimer =
+    window.setInterval(() => {
+      updateRate();
+    }, 60);
+
+  return createEffectUnit({
+    type: "flanger",
+    input,
+    output,
+    params: {
+      time: createAudioParamControl(
+        audioContext,
+        delay.delayTime,
+        {
+          min: 0.0005,
+          max: 0.03,
+        }
+      ),
+      depth: createAudioParamControl(
+        audioContext,
+        lfoDepth.gain,
+        {
+          min: 0,
+          max: 0.02,
+        }
+      ),
+      rate: {
+        get() {
+          return state.rate;
+        },
+        set(value) {
+          state.rate =
+            clampNumber(
+              value,
+              state.rate,
+              0.03125,
+              16
+            );
+          updateRate();
+          return state.rate;
+        },
+      },
+      feedback:
+        createAudioParamControl(
+          audioContext,
+          feedbackGain.gain,
+          {
+            min: 0,
+            max: 0.95,
+          }
+        ),
+      mix: createDryWetMixControl(
+        audioContext,
+        dryGain,
+        wetGain
+      ),
+    },
+    disposeNodes: [
+      input,
+      dryGain,
+      wetInputGain,
+      delay,
+      feedbackGain,
+      wetGain,
+      output,
+      lfo,
+      lfoDepth,
+      {
+        disconnect() {
+          window.clearInterval(
+            syncTimer
+          );
+          try {
+            lfo.stop();
+          } catch (_error) {
+            // Ignore stop-after-stop differences across browsers.
+          }
+        },
+      },
     ],
   });
 }

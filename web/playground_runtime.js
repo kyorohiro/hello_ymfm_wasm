@@ -363,6 +363,26 @@ export function createPlaygroundRuntime(
           fxOptions
         );
       },
+      wobble(fxOptions = {}) {
+        return megaSynthFx.createWobbleFX(
+          megaDrive.audioContext,
+          {
+            ...fxOptions,
+            getBeatSeconds: () =>
+              clockApi.beatsToSeconds(1),
+          }
+        );
+      },
+      flanger(fxOptions = {}) {
+        return megaSynthFx.createFlangerFX(
+          megaDrive.audioContext,
+          {
+            ...fxOptions,
+            getBeatSeconds: () =>
+              clockApi.beatsToSeconds(1),
+          }
+        );
+      },
       reverb(fxOptions = {}) {
         return megaSynthFx.createReverbFX(
           megaDrive.audioContext,

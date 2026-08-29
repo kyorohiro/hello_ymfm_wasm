@@ -189,6 +189,24 @@ type GateFXOptions = {
   mix?: number;
 };
 
+/** Options for `fx.wobble()`. */
+type WobbleFXOptions = {
+  cutoff?: number;
+  depth?: number;
+  rate?: number;
+  resonance?: number;
+  mix?: number;
+};
+
+/** Options for `fx.flanger()`. */
+type FlangerFXOptions = {
+  time?: number;
+  depth?: number;
+  rate?: number;
+  feedback?: number;
+  mix?: number;
+};
+
 /** Options for `fx.reverb()`. */
 type ReverbFXOptions = {
   mix?: number;
@@ -275,6 +293,24 @@ type GateFXUnit = BaseFXUnit & {
   mix: SimpleParamControl;
 };
 
+type WobbleFXUnit = BaseFXUnit & {
+  type: "wobble";
+  cutoff: AudioParamControl;
+  depth: AudioParamControl;
+  rate: SimpleParamControl;
+  resonance: AudioParamControl;
+  mix: SimpleParamControl;
+};
+
+type FlangerFXUnit = BaseFXUnit & {
+  type: "flanger";
+  time: AudioParamControl;
+  depth: AudioParamControl;
+  rate: SimpleParamControl;
+  feedback: AudioParamControl;
+  mix: SimpleParamControl;
+};
+
 type ReverbFXUnit = BaseFXUnit & {
   type: "reverb";
   mix: SimpleParamControl;
@@ -295,6 +331,8 @@ type AnyFXUnit =
   | DistortionFXUnit
   | CompressorFXUnit
   | GateFXUnit
+  | WobbleFXUnit
+  | FlangerFXUnit
   | ReverbFXUnit
   | SlicerFXUnit;
 
@@ -374,6 +412,10 @@ declare const fx: {
   compressor(options?: CompressorFXOptions): CompressorFXUnit;
   /** Create a simple noise-gate style effect unit. */
   gate(options?: GateFXOptions): GateFXUnit;
+  /** Create an LFO-driven filter wobble effect unit. */
+  wobble(options?: WobbleFXOptions): WobbleFXUnit;
+  /** Create a short-delay modulation flanger effect unit. */
+  flanger(options?: FlangerFXOptions): FlangerFXUnit;
   /** Create a reverb effect unit. */
   reverb(options?: ReverbFXOptions): ReverbFXUnit;
   /** Create a BPM-based slicer / gate effect unit. */
