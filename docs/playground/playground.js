@@ -3,23 +3,15 @@ import {
   FM_PRESET_ORDER,
   FM_PRESETS,
 } from "../js/megasynth.js";
-import * as megaSynthFx from "../js/megasynth_fx.js";
 import {
   createTfiOperatorObjectText,
   createTfiPresetObjectText,
   parseTfi,
 } from "../js/tfi.js";
 import {
-  createPitchFromMidi,
-} from "../synth/synth_keyboard.js";
-import {
   createPlaygroundOperatorTab,
 } from "./playground_operator_tab.js";
 import { EXAMPLES } from "./playground_examples.js";
-import { createPlaygroundClock } from "./playground_clock.js";
-import { createPlaygroundMusic } from "./playground_music.js";
-import { createPlaygroundLive } from "./playground_live.js";
-import { executeWithPlaygroundGuards } from "./playground_execution.js";
 import { initializePlaygroundMonaco } from "./playground_monaco.js";
 import {
   loadTfiPresetsFromQuery,
@@ -27,10 +19,9 @@ import {
 } from "./playground_query.js";
 import {
   createPlaygroundRuntime,
-} from "./playground_runtime.js";
+} from "../js/playground_runtime.js";
 import { createPlaygroundUi } from "./playground_ui.js";
 import {
-  createFmProxy,
   handleMegaSynthEvent,
 } from "./playground_sync.js";
 
@@ -166,13 +157,6 @@ if (useNukedEngine) {
 }
 
 let synth = null;
-let removeMegaDriveListener =
-  null;
-let masterVolume = 1;
-let prepareAudioPromise = null;
-let currentRunToken = 0;
-let activeNotes = new Set();
-let currentLoopContext = null;
 const urlTfiResult =
   loadTfiPresetsFromQuery(
     window.location.search
@@ -181,14 +165,6 @@ const playgroundPresets = {
   ...FM_PRESETS,
   ...urlTfiResult.presets,
 };
-const playgroundRuntime = {
-  bpm: 120,
-  clockStartTime: null,
-  liveLoops: new Map(),
-  livePrepared: new Map(),
-};
-const preparedFxUnits =
-  new WeakSet();
 let editorAdapter =
   createTextareaEditorAdapter(
     editor
@@ -215,6 +191,8 @@ const operatorTab =
   });
 
 function updateMasterVolumeUi() {
+  const masterVolume =
+    runtime?.getMasterVolume?.() ?? 1;
   if (masterVolumeRange) {
     masterVolumeRange.value =
       String(
@@ -229,62 +207,9 @@ function updateMasterVolumeUi() {
 }
 
 function applyMasterVolume() {
-  megaDrive.setMasterVolume(
-    masterVolume
+  runtime.setMasterVolume(
+    runtime.getMasterVolume()
   );
-}
-
-function setMasterVolume(volume) {
-  masterVolume = Number(volume);
-  updateMasterVolumeUi();
-  applyMasterVolume();
-  return megaDrive.getMasterVolume();
-}
-
-function getMasterVolume() {
-  return megaDrive.getMasterVolume();
-}
-
-function psgTone(channel, period, attenuation = 0) {
-  const normalizedChannel = Number(channel);
-  const normalizedPeriod = Number(period);
-  const normalizedAttenuation = Number(attenuation);
-
-  if (!Number.isInteger(normalizedChannel) || normalizedChannel < 0 || normalizedChannel > 2) {
-    throw new Error("psgTone channel must be 0..2");
-  }
-  if (!Number.isInteger(normalizedPeriod) || normalizedPeriod < 0 || normalizedPeriod > 0x3ff) {
-    throw new Error("psgTone period must be an integer in range 0..1023");
-  }
-  if (!Number.isInteger(normalizedAttenuation) || normalizedAttenuation < 0 || normalizedAttenuation > 15) {
-    throw new Error("psgTone attenuation must be 0..15");
-  }
-  if (!megaDrive.psg) {
-    throw new Error("PSG is not available");
-  }
-
-  const latchBase = 0x80 | (normalizedChannel << 5);
-  megaDrive.psg.write(latchBase | (normalizedPeriod & 0x0f));
-  megaDrive.psg.write((normalizedPeriod >> 4) & 0x3f);
-  megaDrive.psg.write(0x90 | (normalizedChannel << 5) | normalizedAttenuation);
-}
-
-function psgNoise(mode, attenuation = 0) {
-  const normalizedMode = Number(mode);
-  const normalizedAttenuation = Number(attenuation);
-
-  if (!Number.isInteger(normalizedMode) || normalizedMode < 0 || normalizedMode > 7) {
-    throw new Error("psgNoise mode must be 0..7");
-  }
-  if (!Number.isInteger(normalizedAttenuation) || normalizedAttenuation < 0 || normalizedAttenuation > 15) {
-    throw new Error("psgNoise attenuation must be 0..15");
-  }
-  if (!megaDrive.psg) {
-    throw new Error("PSG is not available");
-  }
-
-  megaDrive.psg.write(0xe0 | normalizedMode);
-  megaDrive.psg.write(0xf0 | normalizedAttenuation);
 }
 
 function createTextareaEditorAdapter(
@@ -544,84 +469,6 @@ function setEditorValue(value) {
   editorAdapter.setValue(value);
 }
 
-function createFxApi() {
-  if (!megaDrive.audioContext) {
-    throw new Error(
-      "Audio is not ready yet"
-    );
-  }
-
-  return {
-    gain(options = {}) {
-      return megaSynthFx.createGainFX(
-        megaDrive.audioContext,
-        options
-      );
-    },
-
-    eq(options = {}) {
-      return megaSynthFx.createEqFX(
-        megaDrive.audioContext,
-        options
-      );
-    },
-
-    filter(options = {}) {
-      return megaSynthFx.createFilterFX(
-        megaDrive.audioContext,
-        options
-      );
-    },
-
-    delay(options = {}) {
-      return megaSynthFx.createDelayFX(
-        megaDrive.audioContext,
-        options
-      );
-    },
-
-    reverb(options = {}) {
-      return megaSynthFx.createReverbFX(
-        megaDrive.audioContext,
-        options
-      );
-    },
-
-    slicer(options = {}) {
-      if (
-        typeof megaSynthFx.createSlicerFX !==
-        "function"
-      ) {
-        throw new Error(
-          "fx.slicer() is not available in the current megasynth_fx.js build"
-        );
-      }
-
-      return megaSynthFx.createSlicerFX(
-        megaDrive.audioContext,
-        {
-          ...options,
-          getBeatSeconds: () =>
-            clockApi.beatsToSeconds(1),
-        }
-      );
-    },
-
-    setChain(effects = []) {
-      megaDrive.setFXChain(
-        effects
-      );
-      return effects;
-    },
-
-    clear(options = {}) {
-      return megaDrive.clearFXChain(
-        options
-      );
-    },
-  };
-}
-
 const ui =
   createPlaygroundUi({
     status,
@@ -679,120 +526,13 @@ updateMasterVolumeUi();
 masterVolumeRange?.addEventListener(
   "input",
   () => {
-    masterVolume =
+    runtime.setMasterVolume(
       Number(masterVolumeRange.value) /
-      100;
+        100
+    );
     updateMasterVolumeUi();
-    applyMasterVolume();
   }
 );
-
-async function ensureReady() {
-  if (prepareAudioPromise) {
-    await prepareAudioPromise;
-    return;
-  }
-
-  if (synth) {
-    await megaDrive.resume();
-    applyMasterVolume();
-    setRuntimeState("Audio ready");
-    return;
-  }
-
-  setStatus(
-    "Loading Mega Drive audio..."
-  );
-  setRuntimeState("Preparing...");
-  prepareAudioPromise =
-    (async () => {
-      await megaDrive.start();
-      synth = megaDrive.fm;
-      operatorTab.attachSynth(synth);
-      installMegaDriveListener();
-      applyMasterVolume();
-      synth.setPreset(
-        0,
-        playgroundPresets[
-          "one-op-basic"
-        ]
-      );
-      setRuntimeState("Audio ready");
-      setStatus("Audio ready.");
-    })();
-
-  try {
-    await prepareAudioPromise;
-  } finally {
-    prepareAudioPromise = null;
-  }
-}
-
-function installMegaDriveListener() {
-  if (removeMegaDriveListener) {
-    return;
-  }
-
-  removeMegaDriveListener =
-    megaDrive.addListener(
-      (event) =>
-        handleMegaSynthEvent(
-          event,
-          {
-            operatorTab,
-            presets:
-              playgroundPresets,
-            presetOrder:
-              FM_PRESET_ORDER,
-          }
-        )
-    );
-}
-
-function stopAll() {
-  if (!synth) {
-    return;
-  }
-
-  for (let channel = 0; channel < 6; channel += 1) {
-    synth.noteOff(channel);
-  }
-  activeNotes.clear();
-}
-
-const clockApi =
-  createPlaygroundClock({
-    runtime: playgroundRuntime,
-    getAudioContext: () =>
-      megaDrive.audioContext,
-    getCurrentRunToken: () =>
-      currentRunToken,
-    getCurrentLoopContext: () =>
-      currentLoopContext,
-    setCurrentLoopContext: (
-      value
-    ) => {
-      currentLoopContext = value;
-    },
-  });
-
-const liveApi =
-  createPlaygroundLive({
-    runtime: playgroundRuntime,
-    megaDrive,
-    preparedFxUnits,
-    currentBeat:
-      clockApi.currentBeat,
-    getCurrentLoopContext: () =>
-      currentLoopContext,
-    setCurrentLoopContext: (
-      value
-    ) => {
-      currentLoopContext = value;
-    },
-    logLine,
-    setStatus,
-  });
 
 async function runCode() {
   runButton.disabled = true;

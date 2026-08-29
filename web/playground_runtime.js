@@ -1,11 +1,11 @@
 import {
   MegaDriveSynth,
   FM_PRESETS,
-} from "../js/megasynth.js";
-import * as megaSynthFx from "../js/megasynth_fx.js";
+} from "./megasynth.js";
+import * as megaSynthFx from "./megasynth_fx.js";
 import {
   createPitchFromMidi,
-} from "../synth/synth_keyboard.js";
+} from "./pitch.js";
 import { createPlaygroundClock } from "./playground_clock.js";
 import { executeWithPlaygroundGuards } from "./playground_execution.js";
 import { createPlaygroundLive } from "./playground_live.js";
@@ -67,13 +67,13 @@ export function createPlaygroundRuntime(
       workletUrl:
         options.audioWorkletUrl ??
         options.workletUrl ??
-        "../js/ym2612-worklet.js",
+        "./ym2612-worklet.js",
       ym2612WasmUrl:
         options.ym2612WasmUrl ??
-        "../generated/ym2612_wasm.wasm",
+        "./generated/ym2612_wasm.wasm",
       segaPsgWasmUrl:
         options.segaPsgWasmUrl ??
-        "../generated/segapsg_wasm.wasm",
+        "./generated/segapsg_wasm.wasm",
     });
   const presets = {
     ...FM_PRESETS,

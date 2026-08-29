@@ -1,3 +1,7 @@
+import {
+  createPitchFromMidi,
+} from "../js/pitch.js";
+
 const NOTE_NAMES = [
   "C",
   "C#",
@@ -84,50 +88,6 @@ export function midiToNoteName(midi) {
     Math.floor(midi / 12) - 1;
 
   return `${note}${octave}`;
-}
-
-export function createPitchFromMidi(
-  midi,
-  {
-    referenceMidi,
-    referenceBlock,
-    referenceFnum,
-  }
-) {
-  let block = referenceBlock;
-  let fnum =
-    referenceFnum *
-    Math.pow(
-      2,
-      (midi - referenceMidi) / 12
-    );
-
-  while (
-    fnum >= 1024 &&
-    block < 7
-  ) {
-    fnum /= 2;
-    block += 1;
-  }
-
-  while (
-    fnum < 512 &&
-    block > 0
-  ) {
-    fnum *= 2;
-    block -= 1;
-  }
-
-  return {
-    block,
-    fnum: Math.max(
-      0,
-      Math.min(
-        0x7ff,
-        Math.round(fnum)
-      )
-    ),
-  };
 }
 
 export function createFretboardState() {
