@@ -157,6 +157,33 @@ await sleep(0.4);
 fm.noteOff(CH1);
 await sleep(0.3);
 `,
+  "sonic-pi-sample-choir": `setMasterVolume(1.0);
+
+await sample.load(
+  "ambi-choir",
+  "./samples/sonic-pi/ambi_choir.flac"
+);
+
+await sample.play("ambi-choir", {
+  gain: 0.9,
+  fadeIn: 0.02,
+  fadeOut: 0.2,
+});
+
+await sleep(1.2);
+
+await sample.play("ambi-choir", {
+  gain: 0.7,
+  playbackRate: 0.8,
+  offset: 0.1,
+  duration: 1.6,
+  fadeIn: 0.02,
+  fadeOut: 0.25,
+  pan: -0.2,
+});
+
+await sleep(1.8);
+`,
   "fm-low-level-note": `fm.reset();
 
 fm.setPreset(CH1, FM_PRESETS["one-op-basic"]);
@@ -517,6 +544,43 @@ liveLoop("just-intonation-chorus", async () => {
   await beat(baseBeat * 0.5);
 });
 `,
+  "ambient-choir-sample": `setBpm(72);
+setMasterVolume(1.0);
+
+const choirFx = await livePrepare("ambient-choir-sample-fx", async ({ fx, sample }) => {
+  await sample.load(
+    "ambi-choir",
+    "./samples/sonic-pi/ambi_choir.flac"
+  );
+
+  const reverb = fx.reverb({
+    mix: 0.24,
+    tone: 6200,
+  });
+
+  return {
+    reverb,
+  };
+});
+
+fx.setChain([
+  choirFx.reverb,
+]);
+
+liveLoop("choir", async () => {
+  const rate = choose([0.5, 1 / 3, 3 / 5]);
+
+  await sample.play("ambi-choir", {
+    playbackRate: rate,
+    gain: 0.75,
+    pan: rrange(-1, 1),
+    fadeIn: 0.02,
+    fadeOut: 0.28,
+  });
+
+  await sleep(0.5);
+});
+`,
   "wobble-bass": `setBpm(108);
 setMasterVolume(1.1);
 
@@ -575,6 +639,66 @@ liveLoop("wub-top", async () => {
     duration: 0.08,
   });
   await beat(0.5);
+});
+`,
+  "wobble-kick-bass-sample": `setBpm(96);
+setMasterVolume(1.0);
+
+const wubFx = await livePrepare("wobble-kick-bass-sample-fx", async ({ fx, sample }) => {
+  await sample.load(
+    "drum-heavy-kick",
+    "./samples/sonic-pi/drum_heavy_kick.flac"
+  );
+  await sample.load(
+    "bass-hit-c",
+    "./samples/sonic-pi/bass_hit_c.flac"
+  );
+
+  const wobble = fx.wobble({
+    cutoff: 900,
+    depth: 1600,
+    rate: 0.5,
+    resonance: 6,
+    mix: 0.65,
+  });
+  const delay = fx.delay({
+    time: 0.24,
+    feedback: 0.32,
+    mix: 0.18,
+  });
+  const reverb = fx.reverb({
+    mix: 0.1,
+    tone: 4200,
+  });
+
+  return {
+    wobble,
+    delay,
+    reverb,
+  };
+});
+
+fx.setChain([
+  wubFx.wobble,
+  wubFx.delay,
+  wubFx.reverb,
+]);
+
+liveLoop("wub", async () => {
+  await sample.play("drum-heavy-kick", {
+    gain: 0.9,
+    fadeIn: 0.002,
+    fadeOut: 0.05,
+  });
+
+  await sample.play("bass-hit-c", {
+    playbackRate: 0.8,
+    gain: 0.4,
+    fadeIn: 0.002,
+    fadeOut: 0.08,
+  });
+
+  await sleep(1);
 });
 `,
   "dac-byte-stream": `fm.reset();
@@ -1147,6 +1271,123 @@ liveLoop("lead", async () => {
     duration: 0.10,
   });
   await beat(0.375);
+});
+`,
+  "stereo-chorus": `setBpm(92);
+
+fm.setPreset(CH1, FM_PRESETS["four-op-pad"]);
+fm.setPreset(CH2, FM_PRESETS["two-op-bell"]);
+
+const spaceFx = await livePrepare("stereo-chorus-chain", async ({ fx }) => {
+  const stereo = fx.stereoWidth({
+    width: 1.6,
+    mix: 1,
+    output: 1,
+  });
+  const chorus = fx.chorus({
+    delay1: 0.018,
+    delay2: 0.023,
+    depth: 0.004,
+    rate: 1,
+    spread: 1.7,
+    mix: 0.45,
+    output: 1,
+  });
+  const reverb = fx.reverb({
+    mix: 0.14,
+    tone: 5200,
+  });
+
+  return {
+    stereo,
+    chorus,
+    reverb,
+  };
+});
+
+fx.setChain([
+  spaceFx.stereo,
+  spaceFx.chorus,
+  spaceFx.reverb,
+]);
+
+liveLoop("pad", async () => {
+  await nextBeat();
+  await play(choose(["E3", "G3", "A3", "B3"]), {
+    channel: CH1,
+    duration: 0.55,
+  });
+  await beat(1.5);
+});
+
+liveLoop("lead", async () => {
+  await play(choose(scale("E4", "minorPentatonic", 2)), {
+    channel: CH2,
+    duration: 0.09,
+  });
+  await beat(0.25);
+});
+`,
+  "crush-tape": `setBpm(104);
+
+fm.setPreset(CH1, FM_PRESETS["fm-bass"]);
+fm.setPreset(CH2, FM_PRESETS["two-op-bell"]);
+
+const crushFx = await livePrepare("crush-tape-chain", async ({ fx }) => {
+  const bitcrusher = fx.bitcrusher({
+    bitDepth: 9,
+    holdFrames: 3,
+    mix: 0.7,
+    output: 1,
+  });
+  const tape = fx.tapeSaturation({
+    drive: 0.9,
+    mix: 0.65,
+    output: 1,
+  });
+  const reverb = fx.reverb({
+    mix: 0.08,
+    tone: 4600,
+  });
+
+  return {
+    bitcrusher,
+    tape,
+    reverb,
+  };
+});
+
+fx.setChain([
+  crushFx.bitcrusher,
+  crushFx.tape,
+  crushFx.reverb,
+]);
+
+liveLoop("bass", async () => {
+  await nextBeat();
+  await play(choose(["E2", "E2", "G2", "A2"]), {
+    channel: CH1,
+    duration: 0.15,
+  });
+  await beat(1);
+});
+
+liveLoop("lead", async () => {
+  crushFx.bitcrusher.bitDepth.set(
+    choose([7, 8, 9, 10, 12])
+  );
+  crushFx.bitcrusher.holdFrames.set(
+    choose([1, 2, 3, 4, 6])
+  );
+  crushFx.tape.drive.set(
+    choose([0.5, 0.8, 1.1, 1.5])
+  );
+
+  await play(choose(scale("E4", "minorPentatonic", 2)), {
+    channel: CH2,
+    duration: 0.08,
+  });
+  await beat(0.25);
 });
 `,
 };

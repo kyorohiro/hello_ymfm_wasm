@@ -149,6 +149,70 @@ export function createPlaygroundRuntime(
     return megaDrive.getMasterVolume();
   }
 
+  async function loadSample(
+    name,
+    source
+  ) {
+    await ensureReady();
+    return megaDrive.sample.load(
+      name,
+      source
+    );
+  }
+
+  async function playSample(
+    name,
+    sampleOptions = {}
+  ) {
+    await ensureReady();
+    return megaDrive.sample.play(
+      name,
+      sampleOptions
+    );
+  }
+
+  function stopSample(name) {
+    megaDrive.sample.stop(name);
+  }
+
+  function unloadSample(name) {
+    return megaDrive.sample.unload(name);
+  }
+
+  async function loadStream(
+    name,
+    url
+  ) {
+    await ensureReady();
+    return megaDrive.stream.load(
+      name,
+      url
+    );
+  }
+
+  async function playStream(
+    name,
+    streamOptions = {}
+  ) {
+    await ensureReady();
+    return megaDrive.stream.play(
+      name,
+      streamOptions
+    );
+  }
+
+  function pauseStream(name) {
+    megaDrive.stream.pause(name);
+  }
+
+  function stopStream(name) {
+    megaDrive.stream.stop(name);
+  }
+
+  function unloadStream(name) {
+    return megaDrive.stream.unload(name);
+  }
+
   function stopAllNotes() {
     if (!synth) {
       return;
@@ -163,6 +227,12 @@ export function createPlaygroundRuntime(
     }
 
     activeNotes.clear();
+  }
+
+  function stopAllAudio() {
+    stopAllNotes();
+    megaDrive.sample.stopAll();
+    megaDrive.stream.stop();
   }
 
   const clockApi =
@@ -345,6 +415,18 @@ export function createPlaygroundRuntime(
           fxOptions
         );
       },
+      stereoWidth(fxOptions = {}) {
+        return megaSynthFx.createStereoWidthFX(
+          megaDrive.audioContext,
+          fxOptions
+        );
+      },
+      bitcrusher(fxOptions = {}) {
+        return megaSynthFx.createBitcrusherFX(
+          megaDrive.audioContext,
+          fxOptions
+        );
+      },
       filter(fxOptions = {}) {
         return megaSynthFx.createFilterFX(
           megaDrive.audioContext,
@@ -393,6 +475,22 @@ export function createPlaygroundRuntime(
             getBeatSeconds: () =>
               clockApi.beatsToSeconds(1),
           }
+        );
+      },
+      chorus(fxOptions = {}) {
+        return megaSynthFx.createChorusFX(
+          megaDrive.audioContext,
+          {
+            ...fxOptions,
+            getBeatSeconds: () =>
+              clockApi.beatsToSeconds(1),
+          }
+        );
+      },
+      tapeSaturation(fxOptions = {}) {
+        return megaSynthFx.createTapeSaturationFX(
+          megaDrive.audioContext,
+          fxOptions
         );
       },
       reverb(fxOptions = {}) {
@@ -533,10 +631,39 @@ export function createPlaygroundRuntime(
         getCurrentLoopContext: () =>
           currentLoopContext,
       });
+    const sampleApi = {
+      load: loadSample,
+      play: playSample,
+      stop: stopSample,
+      stopAll: () =>
+        megaDrive.sample.stopAll(),
+      unload: unloadSample,
+      isLoaded: (name) =>
+        megaDrive.sample.isLoaded(name),
+      get: (name) =>
+        megaDrive.sample.get(name),
+      list: () =>
+        megaDrive.sample.list(),
+    };
+    const streamApi = {
+      load: loadStream,
+      play: playStream,
+      pause: pauseStream,
+      stop: stopStream,
+      unload: unloadStream,
+      isLoaded: (name) =>
+        megaDrive.stream.isLoaded(name),
+      get: (name) =>
+        megaDrive.stream.get(name),
+      list: () =>
+        megaDrive.stream.list(),
+    };
     const livePrepareApi = {
       fm,
       fx,
       psg,
+      sample: sampleApi,
+      stream: streamApi,
       log: (...args) => {
         emitLog(
           formatLogArgs(args)
@@ -564,6 +691,8 @@ export function createPlaygroundRuntime(
       fm,
       fx,
       psg,
+      sample: sampleApi,
+      stream: streamApi,
       psgTone,
       psgNoise,
       setMasterVolume,
@@ -612,7 +741,7 @@ export function createPlaygroundRuntime(
         liveApi.stopLoop,
       stopAllLoops:
         liveApi.stopAllLoops,
-      stopAll: stopAllNotes,
+      stopAll: stopAllAudio,
       choose:
         musicApi.choose,
       cycle:
@@ -647,6 +776,8 @@ export function createPlaygroundRuntime(
         fm,
         fx,
         psg,
+        sample: pg.sample,
+        stream: pg.stream,
         psgTone,
         psgNoise,
         setMasterVolume:
@@ -697,6 +828,8 @@ export function createPlaygroundRuntime(
         OP3: pg.OP3,
         OP4: pg.OP4,
         FM_PRESETS: presets,
+        sample: pg.sample,
+        stream: pg.stream,
         log: pg.log,
       },
     };
@@ -836,7 +969,7 @@ export function createPlaygroundRuntime(
   function stop() {
     currentRunToken += 1;
     liveApi.stopAllLoops();
-    stopAllNotes();
+    stopAllAudio();
     liveApi.clearRunFxChain();
     megaDrive.stopRecordingPlayback?.();
     setPlaybackState("stopped");
@@ -921,6 +1054,12 @@ export function createPlaygroundRuntime(
     },
     get psg() {
       return megaDrive.psg;
+    },
+    get sample() {
+      return megaDrive.sample;
+    },
+    get stream() {
+      return megaDrive.stream;
     },
   };
 }

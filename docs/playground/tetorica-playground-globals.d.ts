@@ -138,6 +138,63 @@ type PlaygroundPlayOptions = {
   preset?: YM2612Preset;
 };
 
+type PlaygroundSamplePlayOptions = {
+  gain?: number;
+  playbackRate?: number;
+  offset?: number;
+  duration?: number;
+  loop?: boolean;
+  loopStart?: number;
+  loopEnd?: number;
+  fadeIn?: number;
+  fadeOut?: number;
+  pan?: number;
+};
+
+type PlaygroundSampleVoice = {
+  name: string;
+  stop(): void;
+};
+
+type PlaygroundSampleAPI = {
+  load(name: string, source: string | ArrayBuffer | AudioBuffer): Promise<AudioBuffer>;
+  play(name: string, options?: PlaygroundSamplePlayOptions): Promise<PlaygroundSampleVoice>;
+  stop(name?: string): void;
+  stopAll(): void;
+  unload(name: string): boolean;
+  isLoaded(name: string): boolean;
+  get(name: string): AudioBuffer | null;
+  list(): string[];
+};
+
+type PlaygroundStreamPlayOptions = {
+  gain?: number;
+  playbackRate?: number;
+  offset?: number;
+  loop?: boolean;
+  fadeIn?: number;
+  fadeOut?: number;
+  pan?: number;
+};
+
+type PlaygroundStreamEntry = {
+  name: string;
+  play(options?: PlaygroundStreamPlayOptions): Promise<void>;
+  pause(): void;
+  stop(): void;
+};
+
+type PlaygroundStreamAPI = {
+  load(name: string, url: string): Promise<PlaygroundStreamEntry>;
+  play(name: string, options?: PlaygroundStreamPlayOptions): Promise<PlaygroundStreamEntry>;
+  pause(name?: string): void;
+  stop(name?: string): void;
+  unload(name: string): boolean;
+  isLoaded(name: string): boolean;
+  get(name: string): PlaygroundStreamEntry | null;
+  list(): string[];
+};
+
 /** Options for `fx.gain()`. */
 type GainFXOptions = {
   /** Linear gain amount. Default is 1. */
@@ -165,6 +222,21 @@ type LofiFXOptions = {
   cutoff?: number;
   highshelf?: number;
   drive?: number;
+  mix?: number;
+  output?: number;
+};
+
+/** Options for `fx.stereoWidth()`. */
+type StereoWidthFXOptions = {
+  width?: number;
+  mix?: number;
+  output?: number;
+};
+
+/** Options for `fx.bitcrusher()`. */
+type BitcrusherFXOptions = {
+  bitDepth?: number;
+  holdFrames?: number;
   mix?: number;
   output?: number;
 };
@@ -222,6 +294,24 @@ type FlangerFXOptions = {
   depth?: number;
   rate?: number;
   feedback?: number;
+  mix?: number;
+};
+
+/** Options for `fx.chorus()`. */
+type ChorusFXOptions = {
+  delay1?: number;
+  delay2?: number;
+  depth?: number;
+  rate?: number;
+  spread?: number;
+  mix?: number;
+  output?: number;
+};
+
+/** Options for `fx.tapeSaturation()`. */
+type TapeSaturationFXOptions = {
+  drive?: number;
+  output?: number;
   mix?: number;
 };
 
@@ -297,6 +387,21 @@ type LofiFXUnit = BaseFXUnit & {
   outputGain: AudioParamControl;
 };
 
+type StereoWidthFXUnit = BaseFXUnit & {
+  type: "stereoWidth";
+  width: AudioParamControl;
+  mix: AudioParamControl;
+  outputGain: AudioParamControl;
+};
+
+type BitcrusherFXUnit = BaseFXUnit & {
+  type: "bitcrusher";
+  bitDepth: AudioParamControl;
+  holdFrames: AudioParamControl;
+  mix: AudioParamControl;
+  outputGain: AudioParamControl;
+};
+
 type FilterFXUnit = BaseFXUnit & {
   type: "filter";
   cutoff: AudioParamControl;
@@ -352,6 +457,24 @@ type FlangerFXUnit = BaseFXUnit & {
   mix: SimpleParamControl;
 };
 
+type ChorusFXUnit = BaseFXUnit & {
+  type: "chorus";
+  delay1: AudioParamControl;
+  delay2: AudioParamControl;
+  depth: AudioParamControl;
+  rate: SimpleParamControl;
+  spread: SimpleParamControl;
+  mix: AudioParamControl;
+  outputGain: AudioParamControl;
+};
+
+type TapeSaturationFXUnit = BaseFXUnit & {
+  type: "tapeSaturation";
+  drive: AudioParamControl;
+  mix: AudioParamControl;
+  outputGain: AudioParamControl;
+};
+
 type ReverbFXUnit = BaseFXUnit & {
   type: "reverb";
   mix: SimpleParamControl;
@@ -374,6 +497,8 @@ type AnyFXUnit =
   | EqFXUnit
   | RadioToneFXUnit
   | LofiFXUnit
+  | StereoWidthFXUnit
+  | BitcrusherFXUnit
   | FilterFXUnit
   | DelayFXUnit
   | DistortionFXUnit
@@ -381,6 +506,8 @@ type AnyFXUnit =
   | GateFXUnit
   | WobbleFXUnit
   | FlangerFXUnit
+  | ChorusFXUnit
+  | TapeSaturationFXUnit
   | ReverbFXUnit
   | SlicerFXUnit
   | ParallelFXUnit;
@@ -446,6 +573,9 @@ declare function psgTone(channel: number, period: number, attenuation?: number):
 /** Write PSG noise mode + attenuation. Mode is the raw 3-bit noise register value 0..7. */
 declare function psgNoise(mode: number, attenuation?: number): void;
 
+declare const sample: PlaygroundSampleAPI;
+declare const stream: PlaygroundStreamAPI;
+
 declare const fx: {
   /** Create a gain effect unit. */
   gain(options?: GainFXOptions): GainFXUnit;
@@ -455,6 +585,10 @@ declare const fx: {
   radioTone(options?: RadioToneFXOptions): RadioToneFXUnit;
   /** Create a lightweight lo-fi tone shaping effect unit. */
   lofi(options?: LofiFXOptions): LofiFXUnit;
+  /** Create a stereo-width effect unit. */
+  stereoWidth(options?: StereoWidthFXOptions): StereoWidthFXUnit;
+  /** Create a bitcrusher / sample-hold effect unit. */
+  bitcrusher(options?: BitcrusherFXOptions): BitcrusherFXUnit;
   /** Create a filter effect unit. */
   filter(options?: FilterFXOptions): FilterFXUnit;
   /** Create a delay effect unit. */
@@ -469,6 +603,10 @@ declare const fx: {
   wobble(options?: WobbleFXOptions): WobbleFXUnit;
   /** Create a short-delay modulation flanger effect unit. */
   flanger(options?: FlangerFXOptions): FlangerFXUnit;
+  /** Create a wider dual-delay chorus effect unit. */
+  chorus(options?: ChorusFXOptions): ChorusFXUnit;
+  /** Create a tape-like soft saturation effect unit. */
+  tapeSaturation(options?: TapeSaturationFXOptions): TapeSaturationFXUnit;
   /** Create a reverb effect unit. */
   reverb(options?: ReverbFXOptions): ReverbFXUnit;
   /** Describe one serial branch to be used inside fx.parallel(...). */
@@ -486,7 +624,7 @@ declare const fx: {
 /** Create or replace a named repeating live loop. */
 declare function liveLoop(name: string, fn: () => Promise<void> | void): void;
 /** Prepare shared live state once and reuse it across runs. */
-declare function livePrepare(name: string, fn: (context: { fx: typeof fx; fm: typeof fm; psg: typeof psg; log: (...args: unknown[]) => void }) => Promise<any> | any): Promise<any>;
+declare function livePrepare(name: string, fn: (context: { fx: typeof fx; fm: typeof fm; psg: typeof psg; sample: PlaygroundSampleAPI; stream: PlaygroundStreamAPI; log: (...args: unknown[]) => void }) => Promise<any> | any): Promise<any>;
 /** Play one note through the current synth setup. */
 declare function play(note: string, options?: PlaygroundPlayOptions): Promise<void>;
 /** Wait for a number of seconds. */
@@ -546,6 +684,10 @@ declare const pg: {
   fx: typeof fx;
   /** Raw Sega PSG API, mixed into the same output as fm. */
   psg: typeof psg;
+  /** Preloaded sample playback API. */
+  sample: PlaygroundSampleAPI;
+  /** Streamed BGM-style playback API. */
+  stream: PlaygroundStreamAPI;
   psgTone: typeof psgTone;
   psgNoise: typeof psgNoise;
   /** Built-in preset table. */

@@ -10,6 +10,7 @@ DOCS_JS_DIR="${ROOT_DIR}/docs/js"
 # between `web/` and `docs/js/`.
 #
 SYNC_FILES="
+bitcrusher-worklet.js
 genesisaudioengine.js
 looper.js
 megasynth.js
@@ -25,6 +26,7 @@ playground_live.js
 playground_music.js
 playground_sync.js
 segapsg.js
+stereo-width-worklet.js
 tfi.js
 vgm-output-worklet.js
 vgmplayer.js
@@ -68,5 +70,8 @@ perl -0pi -e 's#"\./generated/nuked_opn2_wasm\.js"#"../generated/nuked_opn2_wasm
 
 perl -0pi -e 's#"\./generated/segapsg_wasm\.js"#"../generated/segapsg_wasm.js"#g' \
   "${DOCS_JS_DIR}/ym2612-worklet-nuked.js"
+
+perl -0pi -e 's#"\./generated/ym2612_wasm\.js"#"../generated/ym2612_wasm.js"#g' \
+  "${DOCS_JS_DIR}/bitcrusher-worklet.js"
 
 echo "done: synced shared web runtime files into docs/js"

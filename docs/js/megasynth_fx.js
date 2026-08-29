@@ -74,6 +74,23 @@
 
 /**
  * @typedef {{
+ *   width?: number,
+  *   mix?: number,
+  *   output?: number,
+ * }} StereoWidthFXOptions
+ */
+
+/**
+ * @typedef {{
+ *   bitDepth?: number,
+ *   holdFrames?: number,
+ *   mix?: number,
+ *   output?: number,
+ * }} BitcrusherFXOptions
+ */
+
+/**
+ * @typedef {{
  *   type?: BiquadFilterType,
  *   cutoff?: number,
  *   q?: number,
@@ -139,6 +156,27 @@
 
 /**
  * @typedef {{
+ *   delay1?: number,
+ *   delay2?: number,
+ *   depth?: number,
+ *   rate?: number,
+ *   spread?: number,
+ *   mix?: number,
+ *   output?: number,
+ *   getBeatSeconds?: (() => number),
+ * }} ChorusFXOptions
+ */
+
+/**
+ * @typedef {{
+ *   drive?: number,
+ *   output?: number,
+ *   mix?: number,
+ * }} TapeSaturationFXOptions
+ */
+
+/**
+ * @typedef {{
  *   mix?: number,
  *   tone?: number,
  *   seconds?: number,
@@ -187,16 +225,35 @@
  *   cutoff: AudioParamControl,
  *   highshelf: AudioParamControl,
  *   drive: AudioParamControl,
- *   mix: AudioParamControl,
- *   outputGain: AudioParamControl,
+  *   mix: AudioParamControl,
+  *   outputGain: AudioParamControl,
  * }} LofiFXUnit
  */
 
 /**
  * @typedef {BaseFXUnit & {
+ *   type: "stereoWidth",
+ *   width: AudioParamControl,
+ *   mix: AudioParamControl,
+ *   outputGain: AudioParamControl,
+ * }} StereoWidthFXUnit
+ */
+
+/**
+ * @typedef {BaseFXUnit & {
+ *   type: "bitcrusher",
+ *   bitDepth: AudioParamControl,
+ *   holdFrames: AudioParamControl,
+ *   mix: AudioParamControl,
+ *   outputGain: AudioParamControl,
+ * }} BitcrusherFXUnit
+ */
+
+/**
+ * @typedef {BaseFXUnit & {
  *   type: "filter",
- *   cutoff: AudioParamControl,
- *   q: AudioParamControl,
+  *   cutoff: AudioParamControl,
+  *   q: AudioParamControl,
  * }} FilterFXUnit
  */
 
@@ -256,16 +313,38 @@
  *   time: AudioParamControl,
  *   depth: AudioParamControl,
  *   rate: SimpleParamControl,
- *   feedback: AudioParamControl,
- *   mix: AudioParamControl,
+  *   feedback: AudioParamControl,
+  *   mix: AudioParamControl,
  * }} FlangerFXUnit
  */
 
 /**
  * @typedef {BaseFXUnit & {
- *   type: "reverb",
+ *   type: "chorus",
+ *   delay1: AudioParamControl,
+ *   delay2: AudioParamControl,
+ *   depth: AudioParamControl,
+ *   rate: SimpleParamControl,
+ *   spread: SimpleParamControl,
  *   mix: AudioParamControl,
- *   tone: AudioParamControl,
+ *   outputGain: AudioParamControl,
+ * }} ChorusFXUnit
+ */
+
+/**
+ * @typedef {BaseFXUnit & {
+ *   type: "tapeSaturation",
+ *   drive: AudioParamControl,
+ *   mix: AudioParamControl,
+ *   outputGain: AudioParamControl,
+ * }} TapeSaturationFXUnit
+ */
+
+/**
+ * @typedef {BaseFXUnit & {
+ *   type: "reverb",
+  *   mix: AudioParamControl,
+  *   tone: AudioParamControl,
  * }} ReverbFXUnit
  */
 
@@ -285,7 +364,7 @@
  */
 
 /**
- * @typedef {GainFXUnit | EqFXUnit | RadioToneFXUnit | LofiFXUnit | FilterFXUnit | DelayFXUnit | DistortionFXUnit | CompressorFXUnit | GateFXUnit | WobbleFXUnit | FlangerFXUnit | ReverbFXUnit | SlicerFXUnit | ParallelFXUnit} AnyFXUnit
+ * @typedef {GainFXUnit | EqFXUnit | RadioToneFXUnit | LofiFXUnit | StereoWidthFXUnit | BitcrusherFXUnit | FilterFXUnit | DelayFXUnit | DistortionFXUnit | CompressorFXUnit | GateFXUnit | WobbleFXUnit | FlangerFXUnit | ChorusFXUnit | TapeSaturationFXUnit | ReverbFXUnit | SlicerFXUnit | ParallelFXUnit} AnyFXUnit
  */
 
 /**
@@ -458,6 +537,16 @@ function createEffectUnit({
 
   Object.assign(effect, params);
   return effect;
+}
+
+/**
+ * @returns {typeof AudioWorkletNode | null}
+ */
+function getAudioWorkletNodeCtor() {
+  return (
+    globalThis.AudioWorkletNode ??
+    null
+  );
 }
 
 /**
@@ -685,6 +774,43 @@ function createDistortionCurve(
     curve[index] =
       Math.tanh(shape * x) /
       Math.tanh(shape);
+  }
+
+  return curve;
+}
+
+/**
+ * @param {number} drive
+ * @returns {Float32Array}
+ */
+function createTapeSaturationCurve(
+  drive
+) {
+  const amount = clampNumber(
+    drive,
+    0.8,
+    0,
+    8
+  );
+  const samples = 4096;
+  const curve = new Float32Array(
+    samples
+  );
+  const k = amount * 6;
+
+  for (
+    let index = 0;
+    index < samples;
+    index += 1
+  ) {
+    const x =
+      (index / (samples - 1)) * 2 -
+      1;
+    curve[index] =
+      k < 0.001
+        ? x
+        : Math.tanh(x * (1 + k)) /
+          Math.tanh(1 + k);
   }
 
   return curve;
@@ -1299,6 +1425,426 @@ export function createLofiFX(
       highshelf,
       shaper,
       wetGain,
+      outputGain,
+      output,
+    ],
+  });
+}
+
+/**
+ * @param {BaseAudioContext} audioContext
+ * @param {StereoWidthFXOptions} [options]
+ * @returns {StereoWidthFXUnit}
+ */
+export function createStereoWidthFX(
+  audioContext,
+  options = {}
+) {
+  const input =
+    audioContext.createGain();
+  const dryGain =
+    audioContext.createGain();
+  const wetInputGain =
+    audioContext.createGain();
+  const wetGain =
+    audioContext.createGain();
+  const outputGain =
+    audioContext.createGain();
+  const output =
+    audioContext.createGain();
+
+  const widthParamValue =
+    clampNumber(
+      options.width,
+      1,
+      0,
+      2
+    );
+
+  const AudioWorkletNodeCtor =
+    getAudioWorkletNodeCtor();
+  /** @type {AudioWorkletNode | null} */
+  let stereoWidthNode = null;
+
+  if (
+    AudioWorkletNodeCtor &&
+    "audioWorklet" in audioContext
+  ) {
+    try {
+      stereoWidthNode =
+        new AudioWorkletNodeCtor(
+          audioContext,
+          "tetorica-stereo-width",
+          {
+            numberOfInputs: 1,
+            numberOfOutputs: 1,
+            outputChannelCount: [2],
+            parameterData: {
+              width: widthParamValue,
+            },
+          }
+        );
+    } catch (_error) {
+      stereoWidthNode = null;
+    }
+  }
+
+  let widthControl = null;
+  const disposeNodes = [
+    input,
+    dryGain,
+    wetInputGain,
+    wetGain,
+    outputGain,
+    output,
+  ];
+
+  if (stereoWidthNode) {
+    wetInputGain.connect(
+      stereoWidthNode
+    );
+    stereoWidthNode.connect(wetGain);
+    disposeNodes.push(
+      stereoWidthNode
+    );
+
+    widthControl =
+      createAudioParamControl(
+        audioContext,
+        stereoWidthNode.parameters.get(
+          "width"
+        ),
+        {
+          min: 0,
+          max: 2,
+        }
+      );
+  } else {
+    const splitter =
+      audioContext.createChannelSplitter(
+        2
+      );
+    const merger =
+      audioContext.createChannelMerger(2);
+    const midLeft =
+      audioContext.createGain();
+    const midRight =
+      audioContext.createGain();
+    const sideLeft =
+      audioContext.createGain();
+    const sideRight =
+      audioContext.createGain();
+    const sideWidth =
+      audioContext.createGain();
+    const leftSumMid =
+      audioContext.createGain();
+    const leftSumSide =
+      audioContext.createGain();
+    const rightSumMid =
+      audioContext.createGain();
+    const rightSumSide =
+      audioContext.createGain();
+
+    midLeft.gain.value = 0.5;
+    midRight.gain.value = 0.5;
+    sideLeft.gain.value = 0.5;
+    sideRight.gain.value = -0.5;
+    sideWidth.gain.value =
+      widthParamValue;
+    leftSumMid.gain.value = 1;
+    leftSumSide.gain.value = 1;
+    rightSumMid.gain.value = 1;
+    rightSumSide.gain.value = -1;
+
+    wetInputGain.connect(splitter);
+    splitter.connect(midLeft, 0);
+    splitter.connect(midRight, 1);
+    splitter.connect(sideLeft, 0);
+    splitter.connect(sideRight, 1);
+
+    midLeft.connect(leftSumMid);
+    midRight.connect(leftSumMid);
+    midLeft.connect(rightSumMid);
+    midRight.connect(rightSumMid);
+
+    sideLeft.connect(sideWidth);
+    sideRight.connect(sideWidth);
+    sideWidth.connect(leftSumSide);
+    sideWidth.connect(rightSumSide);
+
+    leftSumMid.connect(merger, 0, 0);
+    leftSumSide.connect(merger, 0, 0);
+    rightSumMid.connect(merger, 0, 1);
+    rightSumSide.connect(merger, 0, 1);
+    merger.connect(wetGain);
+
+    const compensation =
+      Math.max(
+        0.5,
+        widthParamValue > 1
+          ? 1 / widthParamValue
+          : 1
+      );
+    wetGain.gain.value = compensation;
+
+    disposeNodes.push(
+      splitter,
+      merger,
+      midLeft,
+      midRight,
+      sideLeft,
+      sideRight,
+      sideWidth,
+      leftSumMid,
+      leftSumSide,
+      rightSumMid,
+      rightSumSide
+    );
+
+    widthControl = {
+      get() {
+        return sideWidth.gain.value;
+      },
+      set(value) {
+        const next =
+          clampNumber(
+            value,
+            sideWidth.gain.value,
+            0,
+            2
+          );
+        sideWidth.gain.value = next;
+        wetGain.gain.value = Math.max(
+          0.5,
+          next > 1 ? 1 / next : 1
+        );
+        return next;
+      },
+      rampTo(value, seconds = 0.02) {
+        const next =
+          clampNumber(
+            value,
+            sideWidth.gain.value,
+            0,
+            2
+          );
+        const now =
+          audioContext.currentTime;
+        const duration =
+          Math.max(
+            0,
+            Number(seconds) || 0
+          );
+        sideWidth.gain.cancelScheduledValues(
+          now
+        );
+        sideWidth.gain.setValueAtTime(
+          sideWidth.gain.value,
+          now
+        );
+        sideWidth.gain.linearRampToValueAtTime(
+          next,
+          now + duration
+        );
+        wetGain.gain.cancelScheduledValues(
+          now
+        );
+        wetGain.gain.setValueAtTime(
+          wetGain.gain.value,
+          now
+        );
+        wetGain.gain.linearRampToValueAtTime(
+          Math.max(
+            0.5,
+            next > 1 ? 1 / next : 1
+          ),
+          now + duration
+        );
+        return next;
+      },
+    };
+  }
+
+  outputGain.gain.value =
+    clampNumber(
+      options.output,
+      1,
+      0,
+      4
+    );
+
+  setDryWetMix(
+    dryGain,
+    wetGain,
+    options.mix ?? 1
+  );
+
+  input.connect(dryGain);
+  input.connect(wetInputGain);
+  dryGain.connect(outputGain);
+  wetGain.connect(outputGain);
+  outputGain.connect(output);
+
+  return createEffectUnit({
+    type: "stereoWidth",
+    input,
+    output,
+    params: {
+      width: widthControl,
+      mix: createDryWetMixControl(
+        audioContext,
+        dryGain,
+        wetGain
+      ),
+      outputGain:
+        createAudioParamControl(
+          audioContext,
+          outputGain.gain,
+          {
+            min: 0,
+            max: 4,
+          }
+        ),
+    },
+    disposeNodes,
+  });
+}
+
+/**
+ * @param {BaseAudioContext} audioContext
+ * @param {BitcrusherFXOptions} [options]
+ * @returns {BitcrusherFXUnit}
+ */
+export function createBitcrusherFX(
+  audioContext,
+  options = {}
+) {
+  const input =
+    audioContext.createGain();
+  const wetInputGain =
+    audioContext.createGain();
+  const outputGain =
+    audioContext.createGain();
+  const output =
+    audioContext.createGain();
+
+  const AudioWorkletNodeCtor =
+    getAudioWorkletNodeCtor();
+  /** @type {AudioWorkletNode | null} */
+  let bitcrusherNode = null;
+
+  if (
+    AudioWorkletNodeCtor &&
+    "audioWorklet" in audioContext
+  ) {
+    try {
+      bitcrusherNode =
+        new AudioWorkletNodeCtor(
+          audioContext,
+          "tetorica-bitcrusher",
+          {
+            numberOfInputs: 1,
+            numberOfOutputs: 1,
+            outputChannelCount: [2],
+            parameterData: {
+              bitDepth: clampNumber(
+                options.bitDepth,
+                10,
+                2,
+                16
+              ),
+              holdFrames: clampNumber(
+                options.holdFrames,
+                1,
+                1,
+                32
+              ),
+              mix: clampNumber(
+                options.mix,
+                1,
+                0,
+                1
+              ),
+            },
+          }
+        );
+    } catch (_error) {
+      bitcrusherNode = null;
+    }
+  }
+
+  if (!bitcrusherNode) {
+    throw new Error(
+      "fx.bitcrusher() requires AudioWorklet support and a loaded tetorica-bitcrusher worklet"
+    );
+  }
+
+  outputGain.gain.value =
+    clampNumber(
+      options.output,
+      1,
+      0,
+      4
+    );
+
+  input.connect(wetInputGain);
+  wetInputGain.connect(
+    bitcrusherNode
+  );
+  bitcrusherNode.connect(outputGain);
+  outputGain.connect(output);
+
+  return createEffectUnit({
+    type: "bitcrusher",
+    input,
+    output,
+    params: {
+      bitDepth:
+        createAudioParamControl(
+          audioContext,
+          bitcrusherNode.parameters.get(
+            "bitDepth"
+          ),
+          {
+            min: 2,
+            max: 16,
+          }
+        ),
+      holdFrames:
+        createAudioParamControl(
+          audioContext,
+          bitcrusherNode.parameters.get(
+            "holdFrames"
+          ),
+          {
+            min: 1,
+            max: 32,
+          }
+        ),
+      mix: createAudioParamControl(
+        audioContext,
+        bitcrusherNode.parameters.get(
+          "mix"
+        ),
+        {
+          min: 0,
+          max: 1,
+        }
+      ),
+      outputGain:
+        createAudioParamControl(
+          audioContext,
+          outputGain.gain,
+          {
+            min: 0,
+            max: 4,
+          }
+        ),
+    },
+    disposeNodes: [
+      input,
+      wetInputGain,
+      bitcrusherNode,
       outputGain,
       output,
     ],
@@ -2204,6 +2750,376 @@ export function createFlangerFX(
           }
         },
       },
+    ],
+  });
+}
+
+/**
+ * @param {BaseAudioContext} audioContext
+ * @param {ChorusFXOptions} [options]
+ * @returns {ChorusFXUnit}
+ */
+export function createChorusFX(
+  audioContext,
+  options = {}
+) {
+  const input =
+    audioContext.createGain();
+  const dryGain =
+    audioContext.createGain();
+  const wetInputGain =
+    audioContext.createGain();
+  const delay1 =
+    audioContext.createDelay(0.05);
+  const delay2 =
+    audioContext.createDelay(0.05);
+  const wetGain =
+    audioContext.createGain();
+  const outputGain =
+    audioContext.createGain();
+  const output =
+    audioContext.createGain();
+  const lfo1 =
+    audioContext.createOscillator();
+  const lfo2 =
+    audioContext.createOscillator();
+  const lfoGain1 =
+    audioContext.createGain();
+  const lfoGain2 =
+    audioContext.createGain();
+
+  const resolveBeatSeconds =
+    typeof options.getBeatSeconds ===
+    "function"
+      ? options.getBeatSeconds
+      : () => 0.5;
+
+  const state = {
+    rate: clampNumber(
+      options.rate,
+      1,
+      0.03125,
+      16
+    ),
+    spread: clampNumber(
+      options.spread,
+      1.6,
+      0.25,
+      4
+    ),
+  };
+
+  delay1.delayTime.value =
+    clampNumber(
+      options.delay1,
+      0.018,
+      0.001,
+      0.04
+    );
+  delay2.delayTime.value =
+    clampNumber(
+      options.delay2,
+      0.023,
+      0.001,
+      0.04
+    );
+  lfo1.type = "sine";
+  lfo2.type = "sine";
+  lfoGain1.gain.value =
+    clampNumber(
+      options.depth,
+      0.005,
+      0,
+      0.02
+    );
+  lfoGain2.gain.value =
+    clampNumber(
+      options.depth,
+      0.005,
+      0,
+      0.02
+    ) * 1.2;
+  outputGain.gain.value =
+    clampNumber(
+      options.output,
+      1,
+      0,
+      4
+    );
+
+  setDryWetMix(
+    dryGain,
+    wetGain,
+    options.mix ?? 1
+  );
+
+  function updateRate() {
+    const beatSeconds =
+      clampNumber(
+        resolveBeatSeconds(),
+        0.5,
+        0.01,
+        60
+      );
+    const periodSeconds =
+      Math.max(
+        0.01,
+        state.rate * beatSeconds
+      );
+    const baseFrequency =
+      1 / periodSeconds;
+    lfo1.frequency.setValueAtTime(
+      baseFrequency,
+      audioContext.currentTime
+    );
+    lfo2.frequency.setValueAtTime(
+      baseFrequency * state.spread,
+      audioContext.currentTime
+    );
+  }
+
+  input.connect(dryGain);
+  input.connect(wetInputGain);
+  wetInputGain.connect(delay1);
+  wetInputGain.connect(delay2);
+  delay1.connect(wetGain);
+  delay2.connect(wetGain);
+  dryGain.connect(outputGain);
+  wetGain.connect(outputGain);
+  outputGain.connect(output);
+
+  lfo1.connect(lfoGain1);
+  lfoGain1.connect(delay1.delayTime);
+  lfo2.connect(lfoGain2);
+  lfoGain2.connect(delay2.delayTime);
+  updateRate();
+  lfo1.start();
+  lfo2.start();
+
+  const syncTimer =
+    window.setInterval(() => {
+      updateRate();
+    }, 60);
+
+  return createEffectUnit({
+    type: "chorus",
+    input,
+    output,
+    params: {
+      delay1: createAudioParamControl(
+        audioContext,
+        delay1.delayTime,
+        {
+          min: 0.001,
+          max: 0.04,
+        }
+      ),
+      delay2: createAudioParamControl(
+        audioContext,
+        delay2.delayTime,
+        {
+          min: 0.001,
+          max: 0.04,
+        }
+      ),
+      depth: createAudioParamControl(
+        audioContext,
+        lfoGain1.gain,
+        {
+          min: 0,
+          max: 0.02,
+        }
+      ),
+      rate: {
+        get() {
+          return state.rate;
+        },
+        set(value) {
+          state.rate =
+            clampNumber(
+              value,
+              state.rate,
+              0.03125,
+              16
+            );
+          updateRate();
+          return state.rate;
+        },
+      },
+      spread: {
+        get() {
+          return state.spread;
+        },
+        set(value) {
+          state.spread =
+            clampNumber(
+              value,
+              state.spread,
+              0.25,
+              4
+            );
+          updateRate();
+          return state.spread;
+        },
+      },
+      mix: createDryWetMixControl(
+        audioContext,
+        dryGain,
+        wetGain
+      ),
+      outputGain:
+        createAudioParamControl(
+          audioContext,
+          outputGain.gain,
+          {
+            min: 0,
+            max: 4,
+          }
+        ),
+    },
+    disposeNodes: [
+      input,
+      dryGain,
+      wetInputGain,
+      delay1,
+      delay2,
+      wetGain,
+      outputGain,
+      output,
+      lfo1,
+      lfo2,
+      lfoGain1,
+      lfoGain2,
+      {
+        disconnect() {
+          window.clearInterval(
+            syncTimer
+          );
+          try {
+            lfo1.stop();
+          } catch (_error) {
+            // Ignore stop-after-stop differences across browsers.
+          }
+          try {
+            lfo2.stop();
+          } catch (_error) {
+            // Ignore stop-after-stop differences across browsers.
+          }
+        },
+      },
+    ],
+  });
+}
+
+/**
+ * @param {BaseAudioContext} audioContext
+ * @param {TapeSaturationFXOptions} [options]
+ * @returns {TapeSaturationFXUnit}
+ */
+export function createTapeSaturationFX(
+  audioContext,
+  options = {}
+) {
+  const input =
+    audioContext.createGain();
+  const dryGain =
+    audioContext.createGain();
+  const wetInputGain =
+    audioContext.createGain();
+  const shaper =
+    audioContext.createWaveShaper();
+  const wetGain =
+    audioContext.createGain();
+  const outputGain =
+    audioContext.createGain();
+  const output =
+    audioContext.createGain();
+
+  const state = {
+    drive: clampNumber(
+      options.drive,
+      0.8,
+      0,
+      8
+    ),
+  };
+
+  shaper.curve =
+    createTapeSaturationCurve(
+      state.drive
+    );
+  shaper.oversample = "4x";
+  outputGain.gain.value =
+    clampNumber(
+      options.output,
+      1,
+      0,
+      4
+    );
+  setDryWetMix(
+    dryGain,
+    wetGain,
+    options.mix ?? 1
+  );
+
+  input.connect(dryGain);
+  input.connect(wetInputGain);
+  wetInputGain.connect(shaper);
+  shaper.connect(wetGain);
+  dryGain.connect(outputGain);
+  wetGain.connect(outputGain);
+  outputGain.connect(output);
+
+  return createEffectUnit({
+    type: "tapeSaturation",
+    input,
+    output,
+    params: {
+      drive: {
+        get() {
+          return state.drive;
+        },
+        set(value) {
+          state.drive =
+            clampNumber(
+              value,
+              state.drive,
+              0,
+              8
+            );
+          shaper.curve =
+            createTapeSaturationCurve(
+              state.drive
+            );
+          return state.drive;
+        },
+        rampTo(value) {
+          return this.set(value);
+        },
+      },
+      mix: createDryWetMixControl(
+        audioContext,
+        dryGain,
+        wetGain
+      ),
+      outputGain:
+        createAudioParamControl(
+          audioContext,
+          outputGain.gain,
+          {
+            min: 0,
+            max: 4,
+          }
+        ),
+    },
+    disposeNodes: [
+      input,
+      dryGain,
+      wetInputGain,
+      shaper,
+      wetGain,
+      outputGain,
+      output,
     ],
   });
 }

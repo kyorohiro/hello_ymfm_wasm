@@ -7,6 +7,8 @@ import {
 } from "./ym2612synth.js";
 export {
   createFXBranch,
+  createBitcrusherFX,
+  createChorusFX,
   createFXParallel,
   createDelayFX,
   createEqFX,
@@ -16,12 +18,20 @@ export {
   createRadioToneFX,
   createReverbFX,
   createSlicerFX,
+  createStereoWidthFX,
+  createTapeSaturationFX,
 } from "./megasynth_fx.js";
 export { MegaSynthLooper } from "./looper.js";
 export {
   FM_PRESETS,
   FM_PRESET_ORDER,
 } from "./megadrive-fm-presets.js";
+
+const NATIVE_FETCH =
+  typeof globalThis.fetch ===
+  "function"
+    ? globalThis.fetch.bind(globalThis)
+    : null;
 
 /**
  * @typedef {import("./megasynth_fx.js").AnyFXUnit} AnyFXUnit
@@ -31,13 +41,116 @@ export {
 
 /**
  * @typedef {{
+ *   gain?: number,
+ *   playbackRate?: number,
+ *   offset?: number,
+ *   duration?: number,
+ *   loop?: boolean,
+ *   loopStart?: number,
+ *   loopEnd?: number,
+ *   fadeIn?: number,
+ *   fadeOut?: number,
+ *   pan?: number,
+ * }} MegaSynthSamplePlayOptions
+ */
+
+/**
+ * @typedef {{
+ *   name: string,
+ *   source: AudioBufferSourceNode,
+ *   gainNode: GainNode,
+ *   pannerNode: StereoPannerNode | GainNode,
+ *   stop(): void,
+ * }} MegaSynthSampleVoice
+ */
+
+/**
+ * @typedef {{
+ *   load(name: string, source: string | ArrayBuffer | AudioBuffer): Promise<AudioBuffer>,
+ *   play(name: string, options?: MegaSynthSamplePlayOptions): MegaSynthSampleVoice,
+ *   stop(name?: string): void,
+ *   stopAll(): void,
+ *   unload(name: string): boolean,
+ *   isLoaded(name: string): boolean,
+ *   get(name: string): AudioBuffer | null,
+ *   list(): string[],
+ * }} MegaSynthSampleAPI
+ */
+
+/**
+ * @typedef {{
+ *   gain?: number,
+ *   playbackRate?: number,
+ *   offset?: number,
+ *   loop?: boolean,
+ *   fadeIn?: number,
+ *   fadeOut?: number,
+ *   pan?: number,
+ * }} MegaSynthStreamPlayOptions
+ */
+
+/**
+ * @typedef {{
+ *   name: string,
+ *   element: HTMLAudioElement,
+ *   sourceNode: MediaElementAudioSourceNode,
+ *   gainNode: GainNode,
+ *   pannerNode: StereoPannerNode | GainNode,
+ *   play(options?: MegaSynthStreamPlayOptions): Promise<void>,
+ *   pause(): void,
+ *   stop(): void,
+ * }} MegaSynthStreamEntry
+ */
+
+/**
+ * @typedef {{
+ *   load(name: string, url: string): Promise<MegaSynthStreamEntry>,
+ *   play(name: string, options?: MegaSynthStreamPlayOptions): Promise<MegaSynthStreamEntry>,
+ *   pause(name?: string): void,
+ *   stop(name?: string): void,
+ *   unload(name: string): boolean,
+ *   isLoaded(name: string): boolean,
+ *   get(name: string): MegaSynthStreamEntry | null,
+ *   list(): string[],
+ * }} MegaSynthStreamAPI
+ */
+
+/**
+ * @typedef {{
  *   audioContext?: AudioContext | null,
  *   outputNode?: AudioNode | null,
  *   workletUrl?: string,
+ *   stereoWidthWorkletUrl?: string,
+ *   bitcrusherWorkletUrl?: string,
  *   ym2612WasmUrl?: string,
  *   masterVolume?: number,
+ *   sampleOutputNode?: AudioNode | null,
  * }} MegaSynthOptions
  */
+
+/**
+ * @param {string} workletUrl
+ * @param {string} siblingName
+ * @returns {string}
+ */
+function resolveSiblingWorkletUrl(
+  workletUrl,
+  siblingName
+) {
+  const lastSlash =
+    String(workletUrl).lastIndexOf("/");
+
+  if (lastSlash < 0) {
+    return `./${siblingName}`;
+  }
+
+  return (
+    String(workletUrl).slice(
+      0,
+      lastSlash + 1
+    ) + siblingName
+  );
+}
 
 /**
  * @typedef {{
@@ -130,6 +243,18 @@ export class MegaSynth {
 
     this.workletUrl =
       options.workletUrl ?? "./ym2612-worklet.js";
+    this.stereoWidthWorkletUrl =
+      options.stereoWidthWorkletUrl ??
+      resolveSiblingWorkletUrl(
+        this.workletUrl,
+        "stereo-width-worklet.js"
+      );
+    this.bitcrusherWorkletUrl =
+      options.bitcrusherWorkletUrl ??
+      resolveSiblingWorkletUrl(
+        this.workletUrl,
+        "bitcrusher-worklet.js"
+      );
 
     this.ym2612WasmUrl =
       options.ym2612WasmUrl ?? "./generated/ym2612_wasm.wasm";
@@ -152,6 +277,8 @@ export class MegaSynth {
       clampMasterVolume(
         options.masterVolume ?? 1
       );
+    this.sampleOutputNode =
+      options.sampleOutputNode ?? null;
 
     this.node = null;
     this.masterInputNode = null;
@@ -167,6 +294,14 @@ export class MegaSynth {
 
     /** @type {{ write(value: number): void, reset(): void } | null} */
     this.psg = null;
+
+    this.sampleBuffers = new Map();
+    this.sampleVoices = new Set();
+    /** @type {MegaSynthSampleAPI} */
+    this.sample = this.#createSampleApi();
+    this.streamEntries = new Map();
+    /** @type {MegaSynthStreamAPI} */
+    this.stream = this.#createStreamApi();
 
     /** @type {Promise<void> | null} */
     this.readyPromise = null;
@@ -473,6 +608,13 @@ export class MegaSynth {
    * @returns {Promise<void>}
    */
   async close() {
+    this.sample.stopAll();
+    this.sampleBuffers.clear();
+    this.stream.stop();
+    for (const name of this.stream.list()) {
+      this.stream.unload(name);
+    }
+
     if (this.node) {
       this.node.disconnect();
       this.node = null;
@@ -524,6 +666,36 @@ export class MegaSynth {
     await this.audioContext.audioWorklet.addModule(
       this.workletUrl
     );
+    if (
+      this.stereoWidthWorkletUrl &&
+      this.audioContext.audioWorklet
+    ) {
+      try {
+        await this.audioContext.audioWorklet.addModule(
+          this.stereoWidthWorkletUrl
+        );
+      } catch (error) {
+        console.warn(
+          "Stereo width worklet load failed; falling back to built-in stereo width routing if needed.",
+          error
+        );
+      }
+    }
+    if (
+      this.bitcrusherWorkletUrl &&
+      this.audioContext.audioWorklet
+    ) {
+      try {
+        await this.audioContext.audioWorklet.addModule(
+          this.bitcrusherWorkletUrl
+        );
+      } catch (error) {
+        console.warn(
+          "Bitcrusher worklet load failed; fx.bitcrusher() will be unavailable.",
+          error
+        );
+      }
+    }
 
     const response = await fetch(
       this.ym2612WasmUrl
@@ -629,6 +801,668 @@ export class MegaSynth {
 
     this.#ensureRecordingManager();
     this.#installRecordingHooks();
+  }
+
+  /**
+   * @returns {MegaSynthSampleAPI}
+   */
+  #createSampleApi() {
+    return {
+      load: (name, source) =>
+        this.#loadSample(name, source),
+      play: (name, options = {}) =>
+        this.#playSample(name, options),
+      stop: (name) =>
+        this.#stopSample(name),
+      stopAll: () =>
+        this.#stopSample(),
+      unload: (name) =>
+        this.#unloadSample(name),
+      isLoaded: (name) =>
+        this.sampleBuffers.has(String(name)),
+      get: (name) =>
+        this.sampleBuffers.get(
+          String(name)
+        ) ?? null,
+      list: () =>
+        Array.from(
+          this.sampleBuffers.keys()
+        ),
+    };
+  }
+
+  /**
+   * @returns {MegaSynthStreamAPI}
+   */
+  #createStreamApi() {
+    return {
+      load: (name, url) =>
+        this.#loadStream(name, url),
+      play: (name, options = {}) =>
+        this.#playStream(name, options),
+      pause: (name) =>
+        this.#pauseStream(name),
+      stop: (name) =>
+        this.#stopStream(name),
+      unload: (name) =>
+        this.#unloadStream(name),
+      isLoaded: (name) =>
+        this.streamEntries.has(
+          String(name)
+        ),
+      get: (name) =>
+        this.streamEntries.get(
+          String(name)
+        ) ?? null,
+      list: () =>
+        Array.from(
+          this.streamEntries.keys()
+        ),
+    };
+  }
+
+  /**
+   * @param {string} name
+   * @param {string | ArrayBuffer | AudioBuffer} source
+   * @returns {Promise<AudioBuffer>}
+   */
+  async #loadSample(name, source) {
+    if (
+      typeof name !== "string" ||
+      name.length === 0
+    ) {
+      throw new Error(
+        "sample.load(name, source) requires a non-empty name"
+      );
+    }
+
+    const audioContext =
+      this.audioContext ??
+      new AudioContext();
+
+    if (!this.audioContext) {
+      this.audioContext =
+        audioContext;
+      this.ownsAudioContext = true;
+    }
+
+    let audioBuffer = null;
+
+    if (
+      typeof AudioBuffer !== "undefined" &&
+      source instanceof AudioBuffer
+    ) {
+      audioBuffer = source;
+    } else if (typeof source === "string") {
+      const normalizedSourceUrl =
+        normalizeLocalMediaUrl(
+          source
+        );
+      if (!NATIVE_FETCH) {
+        throw new Error(
+          "sample.load() requires fetch support"
+        );
+      }
+      const response =
+        await NATIVE_FETCH(
+          normalizedSourceUrl
+        );
+
+      if (!response.ok) {
+        throw new Error(
+          `Failed to load sample "${name}": ${response.status} ${response.statusText}`
+        );
+      }
+
+      const arrayBuffer =
+        await response.arrayBuffer();
+      audioBuffer =
+        await decodeAudioBuffer(
+          audioContext,
+          arrayBuffer
+        );
+    } else if (source instanceof ArrayBuffer) {
+      audioBuffer =
+        await decodeAudioBuffer(
+          audioContext,
+          source
+        );
+    } else {
+      throw new Error(
+        "sample.load(name, source) source must be a URL string, ArrayBuffer, or AudioBuffer"
+      );
+    }
+
+    this.sampleBuffers.set(
+      name,
+      audioBuffer
+    );
+    return audioBuffer;
+  }
+
+  /**
+   * @param {string} name
+   * @param {MegaSynthSamplePlayOptions} [options]
+   * @returns {MegaSynthSampleVoice}
+   */
+  #playSample(name, options = {}) {
+    if (!this.audioContext) {
+      throw new Error(
+        "sample.play() requires MegaSynth to be initialized first"
+      );
+    }
+
+    const buffer =
+      this.sampleBuffers.get(
+        String(name)
+      );
+
+    if (!buffer) {
+      throw new Error(
+        `Unknown sample: ${name}`
+      );
+    }
+
+    const source =
+      this.audioContext.createBufferSource();
+    source.buffer = buffer;
+
+    const gainNode =
+      this.audioContext.createGain();
+    const stereoPannerSupported =
+      typeof this.audioContext
+        .createStereoPanner ===
+      "function";
+    const pannerNode =
+      stereoPannerSupported
+        ? this.audioContext.createStereoPanner()
+        : this.audioContext.createGain();
+
+    const playbackRate =
+      normalizeFiniteNumber(
+        options.playbackRate,
+        1
+      );
+    const gain =
+      normalizeFiniteNumber(
+        options.gain,
+        1
+      );
+    const offset =
+      Math.max(
+        0,
+        normalizeFiniteNumber(
+          options.offset,
+          0
+        )
+      );
+    const duration =
+      options.duration == null
+        ? null
+        : Math.max(
+            0,
+            normalizeFiniteNumber(
+              options.duration,
+              0
+            )
+          );
+    const fadeIn =
+      Math.max(
+        0,
+        normalizeFiniteNumber(
+          options.fadeIn,
+          0
+        )
+      );
+    const fadeOut =
+      Math.max(
+        0,
+        normalizeFiniteNumber(
+          options.fadeOut,
+          0
+        )
+      );
+
+    source.playbackRate.value =
+      playbackRate;
+    source.loop = options.loop === true;
+    source.loopStart = Math.max(
+      0,
+      normalizeFiniteNumber(
+        options.loopStart,
+        0
+      )
+    );
+    source.loopEnd = Math.max(
+      0,
+      normalizeFiniteNumber(
+        options.loopEnd,
+        0
+      )
+    );
+
+    if (
+      stereoPannerSupported &&
+      "pan" in options
+    ) {
+      pannerNode.pan.value =
+        Math.max(
+          -1,
+          Math.min(
+            1,
+            normalizeFiniteNumber(
+              options.pan,
+              0
+            )
+          )
+        );
+    }
+
+    const now =
+      this.audioContext.currentTime;
+    gainNode.gain.cancelScheduledValues(
+      now
+    );
+    if (fadeIn > 0) {
+      gainNode.gain.setValueAtTime(
+        0,
+        now
+      );
+      gainNode.gain.linearRampToValueAtTime(
+        gain,
+        now + fadeIn
+      );
+    } else {
+      gainNode.gain.setValueAtTime(
+        gain,
+        now
+      );
+    }
+
+    source.connect(gainNode);
+    gainNode.connect(pannerNode);
+    pannerNode.connect(
+      this.sampleOutputNode ??
+        this.masterInputNode ??
+        this.outputNode ??
+        this.audioContext.destination
+    );
+
+    let stopped = false;
+    const voice = {
+      name: String(name),
+      source,
+      gainNode,
+      pannerNode,
+      stop: () => {
+        if (stopped) {
+          return;
+        }
+
+        stopped = true;
+        const stopTime =
+          this.audioContext.currentTime;
+
+        if (fadeOut > 0) {
+          gainNode.gain.cancelScheduledValues(
+            stopTime
+          );
+          gainNode.gain.setValueAtTime(
+            gainNode.gain.value,
+            stopTime
+          );
+          gainNode.gain.linearRampToValueAtTime(
+            0,
+            stopTime + fadeOut
+          );
+          source.stop(
+            stopTime + fadeOut
+          );
+        } else {
+          source.stop();
+        }
+      },
+    };
+
+    source.addEventListener(
+      "ended",
+      () => {
+        this.sampleVoices.delete(
+          voice
+        );
+        try {
+          source.disconnect();
+        } catch {}
+        try {
+          gainNode.disconnect();
+        } catch {}
+        try {
+          pannerNode.disconnect();
+        } catch {}
+      },
+      { once: true }
+    );
+
+    this.sampleVoices.add(voice);
+
+    if (duration != null) {
+      source.start(now, offset, duration);
+    } else {
+      source.start(now, offset);
+    }
+
+    return voice;
+  }
+
+  /**
+   * @param {string | undefined} [name]
+   * @returns {void}
+   */
+  #stopSample(name) {
+    for (const voice of this.sampleVoices) {
+      if (
+        name == null ||
+        voice.name === String(name)
+      ) {
+        voice.stop();
+      }
+    }
+  }
+
+  /**
+   * @param {string} name
+   * @returns {boolean}
+   */
+  #unloadSample(name) {
+    const normalizedName =
+      String(name);
+    this.#stopSample(normalizedName);
+    return this.sampleBuffers.delete(
+      normalizedName
+    );
+  }
+
+  /**
+   * @param {string} name
+   * @param {string} url
+   * @returns {Promise<MegaSynthStreamEntry>}
+   */
+  async #loadStream(name, url) {
+    if (
+      typeof name !== "string" ||
+      name.length === 0
+    ) {
+      throw new Error(
+        "stream.load(name, url) requires a non-empty name"
+      );
+    }
+    if (
+      typeof url !== "string" ||
+      url.length === 0
+    ) {
+      throw new Error(
+        "stream.load(name, url) requires a non-empty url"
+      );
+    }
+    const normalizedUrl =
+      normalizeLocalMediaUrl(url);
+
+    const existing =
+      this.streamEntries.get(name);
+    if (existing) {
+      existing.stop();
+      this.#unloadStream(name);
+    }
+
+    const audioContext =
+      this.audioContext ??
+      new AudioContext();
+
+    if (!this.audioContext) {
+      this.audioContext =
+        audioContext;
+      this.ownsAudioContext = true;
+    }
+
+    const element = new Audio();
+    element.src = normalizedUrl;
+    element.preload = "auto";
+    element.crossOrigin = "anonymous";
+
+    const sourceNode =
+      audioContext.createMediaElementSource(
+        element
+      );
+    const gainNode =
+      audioContext.createGain();
+    const stereoPannerSupported =
+      typeof audioContext
+        .createStereoPanner ===
+      "function";
+    const pannerNode =
+      stereoPannerSupported
+        ? audioContext.createStereoPanner()
+        : audioContext.createGain();
+
+    sourceNode.connect(gainNode);
+    gainNode.connect(pannerNode);
+    pannerNode.connect(
+      this.sampleOutputNode ??
+        this.masterInputNode ??
+        this.outputNode ??
+        audioContext.destination
+    );
+
+    const entry = {
+      name,
+      element,
+      sourceNode,
+      gainNode,
+      pannerNode,
+      play: (options = {}) =>
+        this.#playLoadedStream(
+          entry,
+          options
+        ),
+      pause: () => {
+        element.pause();
+      },
+      stop: () => {
+        element.pause();
+        element.currentTime = 0;
+      },
+    };
+
+    this.streamEntries.set(
+      name,
+      entry
+    );
+
+    return entry;
+  }
+
+  /**
+   * @param {string} name
+   * @param {MegaSynthStreamPlayOptions} [options]
+   * @returns {Promise<MegaSynthStreamEntry>}
+   */
+  async #playStream(
+    name,
+    options = {}
+  ) {
+    const entry =
+      this.streamEntries.get(
+        String(name)
+      );
+
+    if (!entry) {
+      throw new Error(
+        `Unknown stream: ${name}`
+      );
+    }
+
+    await this.#playLoadedStream(
+      entry,
+      options
+    );
+    return entry;
+  }
+
+  /**
+   * @param {MegaSynthStreamEntry} entry
+   * @param {MegaSynthStreamPlayOptions} [options]
+   * @returns {Promise<void>}
+   */
+  async #playLoadedStream(
+    entry,
+    options = {}
+  ) {
+    if (!this.audioContext) {
+      throw new Error(
+        "stream.play() requires an AudioContext"
+      );
+    }
+
+    const {
+      element,
+      gainNode,
+      pannerNode,
+    } = entry;
+    const now =
+      this.audioContext.currentTime;
+    const gain =
+      normalizeFiniteNumber(
+        options.gain,
+        1
+      );
+    const fadeIn =
+      Math.max(
+        0,
+        normalizeFiniteNumber(
+          options.fadeIn,
+          0
+        )
+      );
+
+    element.loop = options.loop === true;
+    element.playbackRate =
+      Math.max(
+        0.01,
+        normalizeFiniteNumber(
+          options.playbackRate,
+          1
+        )
+      );
+
+    if (options.offset != null) {
+      element.currentTime = Math.max(
+        0,
+        normalizeFiniteNumber(
+          options.offset,
+          0
+        )
+      );
+    }
+
+    if (
+      "pan" in options &&
+      "pan" in pannerNode
+    ) {
+      pannerNode.pan.value =
+        Math.max(
+          -1,
+          Math.min(
+            1,
+            normalizeFiniteNumber(
+              options.pan,
+              0
+            )
+          )
+        );
+    }
+
+    gainNode.gain.cancelScheduledValues(
+      now
+    );
+    if (fadeIn > 0) {
+      gainNode.gain.setValueAtTime(
+        0,
+        now
+      );
+      gainNode.gain.linearRampToValueAtTime(
+        gain,
+        now + fadeIn
+      );
+    } else {
+      gainNode.gain.setValueAtTime(
+        gain,
+        now
+      );
+    }
+
+    await this.resume();
+    await element.play();
+  }
+
+  /**
+   * @param {string | undefined} [name]
+   * @returns {void}
+   */
+  #pauseStream(name) {
+    for (const entry of this.streamEntries.values()) {
+      if (
+        name == null ||
+        entry.name === String(name)
+      ) {
+        entry.pause();
+      }
+    }
+  }
+
+  /**
+   * @param {string | undefined} [name]
+   * @returns {void}
+   */
+  #stopStream(name) {
+    for (const entry of this.streamEntries.values()) {
+      if (
+        name == null ||
+        entry.name === String(name)
+      ) {
+        entry.stop();
+      }
+    }
+  }
+
+  /**
+   * @param {string} name
+   * @returns {boolean}
+   */
+  #unloadStream(name) {
+    const entry =
+      this.streamEntries.get(
+        String(name)
+      );
+    if (!entry) {
+      return false;
+    }
+
+    entry.stop();
+    try {
+      entry.sourceNode.disconnect();
+    } catch {}
+    try {
+      entry.gainNode.disconnect();
+    } catch {}
+    try {
+      entry.pannerNode.disconnect();
+    } catch {}
+    entry.element.removeAttribute("src");
+    entry.element.load();
+
+    return this.streamEntries.delete(
+      String(name)
+    );
   }
 
   #waitForWorkletReady() {
@@ -944,4 +1778,75 @@ function clampMasterVolume(value) {
     MAX_MASTER_VOLUME,
     Math.max(0, numeric)
   );
+}
+
+/**
+ * @param {AudioContext} audioContext
+ * @param {ArrayBuffer} arrayBuffer
+ * @returns {Promise<AudioBuffer>}
+ */
+async function decodeAudioBuffer(
+  audioContext,
+  arrayBuffer
+) {
+  return new Promise(
+    (resolve, reject) => {
+      audioContext.decodeAudioData(
+        arrayBuffer.slice(0),
+        resolve,
+        reject
+      );
+    }
+  );
+}
+
+function normalizeFiniteNumber(
+  value,
+  fallback
+) {
+  if (value == null) {
+    return fallback;
+  }
+
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) {
+    throw new Error(
+      `expected a finite number, got ${value}`
+    );
+  }
+  return numeric;
+}
+
+function normalizeLocalMediaUrl(url) {
+  const value = String(url);
+
+  if (
+    value.startsWith("data:") ||
+    value.startsWith("blob:")
+  ) {
+    return value;
+  }
+
+  if (
+    typeof location === "undefined" ||
+    !location?.href
+  ) {
+    return value;
+  }
+
+  const resolved = new URL(
+    value,
+    location.href
+  );
+
+  if (
+    resolved.origin !==
+    location.origin
+  ) {
+    throw new Error(
+      "Only same-origin media URLs are allowed in MegaSynth.sample/stream"
+    );
+  }
+
+  return resolved.href;
 }
