@@ -868,11 +868,29 @@ export class MegaSynth {
    */
   async #loadSample(name, source) {
     if (
+      source === undefined &&
+      typeof name === "string"
+    ) {
+      source = name;
+    }
+
+    if (
+      typeof source === "string" &&
+      (
+        typeof name !== "string" ||
+        name.length === 0 ||
+        name === source
+      )
+    ) {
+      name = source;
+    }
+
+    if (
       typeof name !== "string" ||
       name.length === 0
     ) {
       throw new Error(
-        "sample.load(name, source) requires a non-empty name"
+        "sample.load(source) or sample.load(name, source) requires a non-empty name"
       );
     }
 
@@ -929,7 +947,7 @@ export class MegaSynth {
         );
     } else {
       throw new Error(
-        "sample.load(name, source) source must be a URL string, ArrayBuffer, or AudioBuffer"
+        "sample.load(source) or sample.load(name, source) source must be a URL string, ArrayBuffer, or AudioBuffer"
       );
     }
 
@@ -1189,11 +1207,29 @@ export class MegaSynth {
    */
   async #loadStream(name, url) {
     if (
+      url === undefined &&
+      typeof name === "string"
+    ) {
+      url = name;
+    }
+
+    if (
+      typeof url === "string" &&
+      (
+        typeof name !== "string" ||
+        name.length === 0 ||
+        name === url
+      )
+    ) {
+      name = url;
+    }
+
+    if (
       typeof name !== "string" ||
       name.length === 0
     ) {
       throw new Error(
-        "stream.load(name, url) requires a non-empty name"
+        "stream.load(url) or stream.load(name, url) requires a non-empty name"
       );
     }
     if (
@@ -1201,7 +1237,7 @@ export class MegaSynth {
       url.length === 0
     ) {
       throw new Error(
-        "stream.load(name, url) requires a non-empty url"
+        "stream.load(url) or stream.load(name, url) requires a non-empty url"
       );
     }
     const normalizedUrl =
@@ -1818,7 +1854,9 @@ function normalizeFiniteNumber(
 }
 
 function normalizeLocalMediaUrl(url) {
-  const value = String(url);
+  const value = resolveBuiltInMediaAlias(
+    String(url)
+  );
 
   if (
     value.startsWith("data:") ||
@@ -1849,4 +1887,26 @@ function normalizeLocalMediaUrl(url) {
   }
 
   return resolved.href;
+}
+
+function resolveBuiltInMediaAlias(url) {
+  if (
+    typeof url !== "string" ||
+    url.length === 0
+  ) {
+    return url;
+  }
+
+  if (
+    url.startsWith("sonic-pi/") &&
+    !url.includes("://")
+  ) {
+    const sampleName =
+      url
+        .slice("sonic-pi/".length)
+        .replaceAll("-", "_");
+    return `./samples/sonic-pi/${sampleName}.flac`;
+  }
+
+  return url;
 }
