@@ -758,6 +758,7 @@
             <option value="live-loop" selected>Live Loop</option>
             <option value="fx-loop-minor">FX Loop Minor</option>
             <option value="fx-loop-major">FX Loop Major</option>
+            <option value="guitar-fx-chain">Guitar FX Chain</option>
             <option value="ambient-choir">Ambient Choir</option>
             <option value="just-intonation-chorus">Just Intonation Chorus</option>
             <option value="wobble-bass">Wobble Bass</option>
@@ -880,7 +881,7 @@
             <ul class="helper-list">
               <li><code>fx</code> is the master FX helper layer</li>
               <li><code>pg.fx</code> points to the same FX helper layer</li>
-              <li><code>fx.eq(...)</code>, <code>fx.filter(...)</code>, <code>fx.delay(...)</code>, <code>fx.reverb(...)</code>, <code>fx.slicer(...)</code></li>
+              <li><code>fx.eq(...)</code>, <code>fx.filter(...)</code>, <code>fx.delay(...)</code>, <code>fx.distortion(...)</code>, <code>fx.compressor(...)</code>, <code>fx.gate(...)</code>, <code>fx.reverb(...)</code>, <code>fx.slicer(...)</code></li>
               <li><code>fx.setChain([filter, delay])</code> replaces the master FX chain</li>
               <li><code>eq.bass.set(...)</code>, <code>eq.mid.rampTo(...)</code>, <code>eq.treble.set(...)</code></li>
               <li><code>filter.cutoff.set(...)</code>, <code>filter.cutoff.rampTo(...)</code></li>

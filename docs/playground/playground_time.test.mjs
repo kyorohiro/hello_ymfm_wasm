@@ -7,7 +7,12 @@ import {
   lerp,
 } from "./playground_music.js";
 import { createPlaygroundClock } from "./playground_clock.js";
-import { createSlicerFX } from "../js/megasynth_fx.js";
+import {
+  createCompressorFX,
+  createDistortionFX,
+  createGateFX,
+  createSlicerFX,
+} from "../js/megasynth_fx.js";
 
 const NOTE_TO_SEMITONE = {
   C: 0,
@@ -134,6 +139,14 @@ class FakeConvolverNode extends FakeAudioNode {
   }
 }
 
+class FakeWaveShaperNode extends FakeAudioNode {
+  constructor() {
+    super();
+    this.curve = null;
+    this.oversample = "none";
+  }
+}
+
 class FakeBiquadFilterNode extends FakeAudioNode {
   constructor() {
     super();
@@ -148,6 +161,17 @@ class FakeDelayNode extends FakeAudioNode {
   constructor() {
     super();
     this.delayTime = new FakeAudioParam(0);
+  }
+}
+
+class FakeDynamicsCompressorNode extends FakeAudioNode {
+  constructor() {
+    super();
+    this.threshold = new FakeAudioParam(0);
+    this.knee = new FakeAudioParam(0);
+    this.ratio = new FakeAudioParam(1);
+    this.attack = new FakeAudioParam(0);
+    this.release = new FakeAudioParam(0);
   }
 }
 
@@ -172,12 +196,20 @@ class FakeAudioContext {
     return new FakeConvolverNode();
   }
 
+  createWaveShaper() {
+    return new FakeWaveShaperNode();
+  }
+
   createBiquadFilter() {
     return new FakeBiquadFilterNode();
   }
 
   createDelay() {
     return new FakeDelayNode();
+  }
+
+  createDynamicsCompressor() {
+    return new FakeDynamicsCompressorNode();
   }
 
   createBuffer(channelCount, length) {
@@ -339,4 +371,71 @@ test("slicer constructs, updates BPM-derived timing, and disposes cleanly", () =
     globalThis.window =
       originalWindow;
   }
+});
+
+test("distortion, compressor, and gate construct with readable controls", () => {
+  const audioContext =
+    new FakeAudioContext();
+
+  const distortion =
+    createDistortionFX(
+      audioContext,
+      {
+        drive: 2.4,
+        mix: 0.8,
+        output: 0.9,
+      }
+    );
+  const compressor =
+    createCompressorFX(
+      audioContext,
+      {
+        threshold: -24,
+        ratio: 8,
+        output: 1.1,
+      }
+    );
+  const gate = createGateFX(
+    audioContext,
+    {
+      threshold: 0.05,
+      floor: 0.02,
+      mix: 1,
+    }
+  );
+
+  assert.equal(
+    distortion.type,
+    "distortion"
+  );
+  assert.equal(
+    compressor.type,
+    "compressor"
+  );
+  assert.equal(gate.type, "gate");
+
+  assert.equal(
+    distortion.drive.get(),
+    2.4
+  );
+  assert.equal(
+    distortion.mix.get(),
+    0.8
+  );
+  assert.equal(
+    compressor.threshold.get(),
+    -24
+  );
+  assert.equal(
+    compressor.ratio.get(),
+    8
+  );
+  assert.equal(
+    gate.threshold.get(),
+    0.05
+  );
+  assert.equal(
+    gate.floor.get(),
+    0.02
+  );
 });

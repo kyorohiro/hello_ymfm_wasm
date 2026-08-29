@@ -63,6 +63,33 @@
 
 /**
  * @typedef {{
+ *   drive?: number,
+ *   mix?: number,
+ *   output?: number,
+ * }} DistortionFXOptions
+ */
+
+/**
+ * @typedef {{
+ *   threshold?: number,
+ *   knee?: number,
+ *   ratio?: number,
+ *   attack?: number,
+ *   release?: number,
+ *   output?: number,
+ * }} CompressorFXOptions
+ */
+
+/**
+ * @typedef {{
+ *   threshold?: number,
+ *   floor?: number,
+ *   mix?: number,
+ * }} GateFXOptions
+ */
+
+/**
+ * @typedef {{
  *   mix?: number,
  *   tone?: number,
  *   seconds?: number,
@@ -113,9 +140,39 @@
 
 /**
  * @typedef {BaseFXUnit & {
+ *   type: "distortion",
+ *   drive: AudioParamControl,
+ *   mix: AudioParamControl,
+ *   outputGain: AudioParamControl,
+ * }} DistortionFXUnit
+ */
+
+/**
+ * @typedef {BaseFXUnit & {
+ *   type: "compressor",
+ *   threshold: AudioParamControl,
+ *   knee: AudioParamControl,
+ *   ratio: AudioParamControl,
+ *   attack: AudioParamControl,
+ *   release: AudioParamControl,
+ *   outputGain: AudioParamControl,
+ * }} CompressorFXUnit
+ */
+
+/**
+ * @typedef {BaseFXUnit & {
+ *   type: "gate",
+ *   threshold: SimpleParamControl,
+ *   floor: AudioParamControl,
+ *   mix: AudioParamControl,
+ * }} GateFXUnit
+ */
+
+/**
+ * @typedef {BaseFXUnit & {
  *   type: "reverb",
  *   mix: AudioParamControl,
-  *   tone: AudioParamControl,
+ *   tone: AudioParamControl,
  * }} ReverbFXUnit
  */
 
@@ -128,7 +185,7 @@
  */
 
 /**
- * @typedef {GainFXUnit | EqFXUnit | FilterFXUnit | DelayFXUnit | ReverbFXUnit | SlicerFXUnit} AnyFXUnit
+ * @typedef {GainFXUnit | EqFXUnit | FilterFXUnit | DelayFXUnit | DistortionFXUnit | CompressorFXUnit | GateFXUnit | ReverbFXUnit | SlicerFXUnit} AnyFXUnit
  */
 
 /**
@@ -452,6 +509,76 @@ function createImpulseResponse(
 }
 
 /**
+ * @param {number} drive
+ * @returns {Float32Array}
+ */
+function createDistortionCurve(
+  drive
+) {
+  const amount = clampNumber(
+    drive,
+    1.8,
+    0,
+    64
+  );
+  const samples = 4096;
+  const curve = new Float32Array(
+    samples
+  );
+  const shape =
+    1 + amount * 6;
+
+  for (
+    let index = 0;
+    index < samples;
+    index += 1
+  ) {
+    const x =
+      (index / (samples - 1)) * 2 -
+      1;
+    curve[index] =
+      Math.tanh(shape * x) /
+      Math.tanh(shape);
+  }
+
+  return curve;
+}
+
+/**
+ * @param {number} threshold
+ * @returns {Float32Array}
+ */
+function createGateThresholdCurve(
+  threshold
+) {
+  const normalizedThreshold =
+    clampNumber(
+      threshold,
+      0.04,
+      0,
+      1
+    );
+  const samples = 1024;
+  const curve = new Float32Array(
+    samples
+  );
+
+  for (
+    let index = 0;
+    index < samples;
+    index += 1
+  ) {
+    const x = index / (samples - 1);
+    curve[index] =
+      x >= normalizedThreshold
+        ? 1
+        : 0;
+  }
+
+  return curve;
+}
+
+/**
  * @param {BaseAudioContext} audioContext
  * @param {GainFXOptions} [options]
  * @returns {GainFXUnit}
@@ -762,6 +889,387 @@ export function createDelayFX(
       wetGain,
       delay,
       feedbackGain,
+      output,
+    ],
+  });
+}
+
+/**
+ * @param {BaseAudioContext} audioContext
+ * @param {DistortionFXOptions} [options]
+ * @returns {DistortionFXUnit}
+ */
+export function createDistortionFX(
+  audioContext,
+  options = {}
+) {
+  const input =
+    audioContext.createGain();
+  const dryGain =
+    audioContext.createGain();
+  const wetInputGain =
+    audioContext.createGain();
+  const shaper =
+    audioContext.createWaveShaper();
+  const wetGain =
+    audioContext.createGain();
+  const outputGain =
+    audioContext.createGain();
+  const output =
+    audioContext.createGain();
+
+  const state = {
+    drive: clampNumber(
+      options.drive,
+      1.8,
+      0,
+      64
+    ),
+  };
+
+  shaper.curve =
+    createDistortionCurve(
+      state.drive
+    );
+  shaper.oversample = "4x";
+  outputGain.gain.value =
+    clampNumber(
+      options.output,
+      0.8,
+      0,
+      4
+    );
+  setDryWetMix(
+    dryGain,
+    wetGain,
+    options.mix ?? 1
+  );
+
+  input.connect(dryGain);
+  input.connect(wetInputGain);
+  wetInputGain.connect(shaper);
+  shaper.connect(wetGain);
+  dryGain.connect(outputGain);
+  wetGain.connect(outputGain);
+  outputGain.connect(output);
+
+  return createEffectUnit({
+    type: "distortion",
+    input,
+    output,
+    params: {
+      drive: {
+        get() {
+          return state.drive;
+        },
+        set(value) {
+          state.drive =
+            clampNumber(
+              value,
+              state.drive,
+              0,
+              64
+            );
+          shaper.curve =
+            createDistortionCurve(
+              state.drive
+            );
+          return state.drive;
+        },
+        rampTo(value) {
+          return this.set(value);
+        },
+      },
+      mix: createDryWetMixControl(
+        audioContext,
+        dryGain,
+        wetGain
+      ),
+      outputGain:
+        createAudioParamControl(
+          audioContext,
+          outputGain.gain,
+          {
+            min: 0,
+            max: 4,
+          }
+        ),
+    },
+    disposeNodes: [
+      input,
+      dryGain,
+      wetInputGain,
+      shaper,
+      wetGain,
+      outputGain,
+      output,
+    ],
+  });
+}
+
+/**
+ * @param {BaseAudioContext} audioContext
+ * @param {CompressorFXOptions} [options]
+ * @returns {CompressorFXUnit}
+ */
+export function createCompressorFX(
+  audioContext,
+  options = {}
+) {
+  const input =
+    audioContext.createGain();
+  const compressor =
+    audioContext.createDynamicsCompressor();
+  const outputGain =
+    audioContext.createGain();
+  const output =
+    audioContext.createGain();
+
+  compressor.threshold.value =
+    clampNumber(
+      options.threshold,
+      -24,
+      -100,
+      0
+    );
+  compressor.knee.value =
+    clampNumber(
+      options.knee,
+      18,
+      0,
+      40
+    );
+  compressor.ratio.value =
+    clampNumber(
+      options.ratio,
+      8,
+      1,
+      20
+    );
+  compressor.attack.value =
+    clampNumber(
+      options.attack,
+      0.003,
+      0,
+      1
+    );
+  compressor.release.value =
+    clampNumber(
+      options.release,
+      0.18,
+      0,
+      1
+    );
+  outputGain.gain.value =
+    clampNumber(
+      options.output,
+      1,
+      0,
+      4
+    );
+
+  input.connect(compressor);
+  compressor.connect(outputGain);
+  outputGain.connect(output);
+
+  return createEffectUnit({
+    type: "compressor",
+    input,
+    output,
+    params: {
+      threshold:
+        createAudioParamControl(
+          audioContext,
+          compressor.threshold,
+          {
+            min: -100,
+            max: 0,
+          }
+        ),
+      knee: createAudioParamControl(
+        audioContext,
+        compressor.knee,
+        {
+          min: 0,
+          max: 40,
+        }
+      ),
+      ratio:
+        createAudioParamControl(
+          audioContext,
+          compressor.ratio,
+          {
+            min: 1,
+            max: 20,
+          }
+        ),
+      attack:
+        createAudioParamControl(
+          audioContext,
+          compressor.attack,
+          {
+            min: 0,
+            max: 1,
+          }
+        ),
+      release:
+        createAudioParamControl(
+          audioContext,
+          compressor.release,
+          {
+            min: 0,
+            max: 1,
+          }
+        ),
+      outputGain:
+        createAudioParamControl(
+          audioContext,
+          outputGain.gain,
+          {
+            min: 0,
+            max: 4,
+          }
+        ),
+    },
+    disposeNodes: [
+      input,
+      compressor,
+      outputGain,
+      output,
+    ],
+  });
+}
+
+/**
+ * @param {BaseAudioContext} audioContext
+ * @param {GateFXOptions} [options]
+ * @returns {GateFXUnit}
+ */
+export function createGateFX(
+  audioContext,
+  options = {}
+) {
+  const input =
+    audioContext.createGain();
+  const dryGain =
+    audioContext.createGain();
+  const wetInputGain =
+    audioContext.createGain();
+  const rectifier =
+    audioContext.createWaveShaper();
+  const follower =
+    audioContext.createBiquadFilter();
+  const threshold =
+    audioContext.createWaveShaper();
+  const gateGain =
+    audioContext.createGain();
+  const floorGain =
+    audioContext.createGain();
+  const wetGain =
+    audioContext.createGain();
+  const output =
+    audioContext.createGain();
+
+  const state = {
+    threshold: clampNumber(
+      options.threshold,
+      0.04,
+      0,
+      1
+    ),
+  };
+
+  rectifier.curve =
+    Float32Array.from(
+      { length: 1024 },
+      (_value, index) => {
+        const x =
+          (index / 1023) * 2 - 1;
+        return Math.abs(x);
+      }
+    );
+  follower.type = "lowpass";
+  follower.frequency.value = 28;
+  threshold.curve =
+    createGateThresholdCurve(
+      state.threshold
+    );
+  gateGain.gain.value = 0;
+  floorGain.gain.value =
+    clampNumber(
+      options.floor,
+      0,
+      0,
+      1
+    );
+  setDryWetMix(
+    dryGain,
+    wetGain,
+    options.mix ?? 1
+  );
+
+  input.connect(dryGain);
+  input.connect(wetInputGain);
+  wetInputGain.connect(gateGain);
+  gateGain.connect(wetGain);
+  dryGain.connect(output);
+  wetGain.connect(output);
+
+  input.connect(rectifier);
+  rectifier.connect(follower);
+  follower.connect(threshold);
+  threshold.connect(gateGain.gain);
+  wetInputGain.connect(floorGain);
+  floorGain.connect(wetGain);
+
+  return createEffectUnit({
+    type: "gate",
+    input,
+    output,
+    params: {
+      threshold: {
+        get() {
+          return state.threshold;
+        },
+        set(value) {
+          state.threshold =
+            clampNumber(
+              value,
+              state.threshold,
+              0,
+              1
+            );
+          threshold.curve =
+            createGateThresholdCurve(
+              state.threshold
+            );
+          return state.threshold;
+        },
+      },
+      floor: createAudioParamControl(
+        audioContext,
+        floorGain.gain,
+        {
+          min: 0,
+          max: 1,
+        }
+      ),
+      mix: createDryWetMixControl(
+        audioContext,
+        dryGain,
+        wetGain
+      ),
+    },
+    disposeNodes: [
+      input,
+      dryGain,
+      wetInputGain,
+      rectifier,
+      follower,
+      threshold,
+      gateGain,
+      floorGain,
+      wetGain,
       output,
     ],
   });

@@ -345,6 +345,24 @@ export function createPlaygroundRuntime(
           fxOptions
         );
       },
+      distortion(fxOptions = {}) {
+        return megaSynthFx.createDistortionFX(
+          megaDrive.audioContext,
+          fxOptions
+        );
+      },
+      compressor(fxOptions = {}) {
+        return megaSynthFx.createCompressorFX(
+          megaDrive.audioContext,
+          fxOptions
+        );
+      },
+      gate(fxOptions = {}) {
+        return megaSynthFx.createGateFX(
+          megaDrive.audioContext,
+          fxOptions
+        );
+      },
       reverb(fxOptions = {}) {
         return megaSynthFx.createReverbFX(
           megaDrive.audioContext,

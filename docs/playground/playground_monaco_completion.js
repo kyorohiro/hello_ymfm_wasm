@@ -95,7 +95,7 @@ function extractFxUnitVariables(
   const variables =
     new Map();
   const pattern =
-    /\b(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*fx\.(gain|eq|filter|delay|reverb|slicer)\s*\(/g;
+    /\b(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*fx\.(gain|eq|filter|delay|distortion|compressor|gate|reverb|slicer)\s*\(/g;
   let match =
     pattern.exec(source);
 
@@ -361,6 +361,16 @@ function createFxUnitSuggestions(
     eq: ["bass", "mid", "treble"],
     filter: ["cutoff", "q"],
     delay: ["time", "feedback", "mix"],
+    distortion: ["drive", "mix", "outputGain"],
+    compressor: [
+      "threshold",
+      "knee",
+      "ratio",
+      "attack",
+      "release",
+      "outputGain",
+    ],
+    gate: ["threshold", "floor", "mix"],
     reverb: ["mix", "tone"],
     slicer: ["phase", "mix"],
   }[effectType] ?? [];
@@ -482,6 +492,16 @@ function createFxConfigSuggestions(
     eq: ["bass", "mid", "treble"],
     filter: ["type", "cutoff", "q"],
     delay: ["time", "feedback", "mix"],
+    distortion: ["drive", "mix", "output"],
+    compressor: [
+      "threshold",
+      "knee",
+      "ratio",
+      "attack",
+      "release",
+      "output",
+    ],
+    gate: ["threshold", "floor", "mix"],
     reverb: ["mix", "tone"],
     slicer: ["phase", "mix"],
   };
@@ -508,6 +528,9 @@ function detectFxConfigContext(
     { prefix: "fx.eq(", effectType: "eq" },
     { prefix: "fx.filter(", effectType: "filter" },
     { prefix: "fx.delay(", effectType: "delay" },
+    { prefix: "fx.distortion(", effectType: "distortion" },
+    { prefix: "fx.compressor(", effectType: "compressor" },
+    { prefix: "fx.gate(", effectType: "gate" },
     { prefix: "fx.reverb(", effectType: "reverb" },
   ];
 

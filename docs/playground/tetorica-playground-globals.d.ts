@@ -165,6 +165,30 @@ type DelayFXOptions = {
   mix?: number;
 };
 
+/** Options for `fx.distortion()`. */
+type DistortionFXOptions = {
+  drive?: number;
+  mix?: number;
+  output?: number;
+};
+
+/** Options for `fx.compressor()`. */
+type CompressorFXOptions = {
+  threshold?: number;
+  knee?: number;
+  ratio?: number;
+  attack?: number;
+  release?: number;
+  output?: number;
+};
+
+/** Options for `fx.gate()`. */
+type GateFXOptions = {
+  threshold?: number;
+  floor?: number;
+  mix?: number;
+};
+
 /** Options for `fx.reverb()`. */
 type ReverbFXOptions = {
   mix?: number;
@@ -227,6 +251,30 @@ type DelayFXUnit = BaseFXUnit & {
   mix: SimpleParamControl;
 };
 
+type DistortionFXUnit = BaseFXUnit & {
+  type: "distortion";
+  drive: AudioParamControl;
+  mix: SimpleParamControl;
+  outputGain: AudioParamControl;
+};
+
+type CompressorFXUnit = BaseFXUnit & {
+  type: "compressor";
+  threshold: AudioParamControl;
+  knee: AudioParamControl;
+  ratio: AudioParamControl;
+  attack: AudioParamControl;
+  release: AudioParamControl;
+  outputGain: AudioParamControl;
+};
+
+type GateFXUnit = BaseFXUnit & {
+  type: "gate";
+  threshold: SimpleParamControl;
+  floor: AudioParamControl;
+  mix: SimpleParamControl;
+};
+
 type ReverbFXUnit = BaseFXUnit & {
   type: "reverb";
   mix: SimpleParamControl;
@@ -244,6 +292,9 @@ type AnyFXUnit =
   | EqFXUnit
   | FilterFXUnit
   | DelayFXUnit
+  | DistortionFXUnit
+  | CompressorFXUnit
+  | GateFXUnit
   | ReverbFXUnit
   | SlicerFXUnit;
 
@@ -317,6 +368,12 @@ declare const fx: {
   filter(options?: FilterFXOptions): FilterFXUnit;
   /** Create a delay effect unit. */
   delay(options?: DelayFXOptions): DelayFXUnit;
+  /** Create a simple wave-shaper distortion effect unit. */
+  distortion(options?: DistortionFXOptions): DistortionFXUnit;
+  /** Create a DynamicsCompressor-based effect unit. */
+  compressor(options?: CompressorFXOptions): CompressorFXUnit;
+  /** Create a simple noise-gate style effect unit. */
+  gate(options?: GateFXOptions): GateFXUnit;
   /** Create a reverb effect unit. */
   reverb(options?: ReverbFXOptions): ReverbFXUnit;
   /** Create a BPM-based slicer / gate effect unit. */
