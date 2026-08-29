@@ -19,6 +19,7 @@ import { EXAMPLES } from "./playground_examples.js";
 import { createPlaygroundClock } from "./playground_clock.js";
 import { createPlaygroundMusic } from "./playground_music.js";
 import { createPlaygroundLive } from "./playground_live.js";
+import { executeWithPlaygroundGuards } from "./playground_execution.js";
 import { initializePlaygroundMonaco } from "./playground_monaco.js";
 import {
   loadTfiPresetsFromQuery,
@@ -974,8 +975,11 @@ async function runCode() {
         `"use strict";\n${getEditorValue()}`
       );
 
-    await userFunction(
-      ...Object.values(api)
+    await executeWithPlaygroundGuards(
+      () =>
+        userFunction(
+          ...Object.values(api)
+        )
     );
     liveApi.commitLiveLoops(
       evaluationState.loopDefinitions

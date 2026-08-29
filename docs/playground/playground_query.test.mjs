@@ -273,6 +273,38 @@ test(
 );
 
 test(
+  "external src is loaded but not executed during query resolution",
+  () => {
+    globalThis.__tetoricaRan =
+      false;
+    const examples = {
+      single: "example-single",
+      "live-loop":
+        "example-live-loop",
+    };
+    const src =
+      encodeText(
+        "globalThis.__tetoricaRan = true;"
+      );
+    const result =
+      resolveInitialSourceFromQuery(
+        `?src=${src}`,
+        examples
+      );
+
+    assert.equal(
+      result.source,
+      "globalThis.__tetoricaRan = true;"
+    );
+    assert.equal(
+      globalThis.__tetoricaRan,
+      false
+    );
+    delete globalThis.__tetoricaRan;
+  }
+);
+
+test(
   "ex query still loads existing examples",
   () => {
     const examples = {

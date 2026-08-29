@@ -893,6 +893,12 @@
               Sonic Pi style loop ideas on top of YM2612, though hot reload and
               safer live coding behavior still need more work.
             </p>
+            <p class="subtext">
+              Shared Playground URLs may include JavaScript source via <code>?src=</code>.
+              That source is loaded into the editor and waits for an explicit
+              <code>Run</code>. During execution, common network APIs are disabled.
+              This is a small safety guard, not a full security sandbox.
+            </p>
           </section>
 
           <section id="operatorPanel" class="tab-panel" role="tabpanel" aria-labelledby="operatorTabButton" hidden>
