@@ -1,0 +1,302 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1"
+    >
+    <title>VGM Runtime Embedded Demo</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #f4efe4;
+        --panel: #fffaf0;
+        --ink: #1f1b16;
+        --accent: #7ed86f;
+        --accent-dark: #3d8f39;
+        --line: #d7c8ac;
+        --code: #2b241d;
+        --code-ink: #f6ead7;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: "Avenir Next", "Helvetica Neue", Helvetica, Arial, sans-serif;
+        color: var(--ink);
+        background:
+          radial-gradient(circle at top left, #fff8df 0, transparent 28%),
+          radial-gradient(circle at bottom right, #ddf6d7 0, transparent 24%),
+          linear-gradient(160deg, var(--bg), #eadfc9 60%, #e0cfb5);
+      }
+
+      main {
+        max-width: 980px;
+        margin: 0 auto;
+        padding: 48px 20px 64px;
+      }
+
+      .panel {
+        background: color-mix(in srgb, var(--panel) 90%, white 10%);
+        border: 1px solid var(--line);
+        border-radius: 24px;
+        padding: 28px;
+        box-shadow: 0 18px 40px rgba(90, 62, 30, 0.12);
+      }
+
+      h1,
+      h2 {
+        margin: 0 0 12px;
+        line-height: 1.12;
+        letter-spacing: -0.04em;
+      }
+
+      h1 {
+        font-size: clamp(2rem, 4vw, 3.2rem);
+      }
+
+      p {
+        line-height: 1.6;
+      }
+
+      pre,
+      code {
+        font-family: "SFMono-Regular", Menlo, Consolas, monospace;
+      }
+
+      pre {
+        margin: 0 0 16px;
+        padding: 16px 18px;
+        border-radius: 16px;
+        background: var(--code);
+        color: var(--code-ink);
+        overflow-x: auto;
+        white-space: pre-wrap;
+      }
+
+      .actions {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+        margin: 24px 0 18px;
+      }
+
+      button,
+      .link-button {
+        appearance: none;
+        border: 0;
+        border-radius: 999px;
+        padding: 12px 18px;
+        font: inherit;
+        font-weight: 700;
+        color: white;
+        background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+        cursor: pointer;
+        text-decoration: none;
+      }
+
+      .status {
+        min-height: 1.5em;
+        font-weight: 700;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <section class="panel">
+        <h1>VGM Runtime Embedded Demo</h1>
+
+        <p>
+          This example wraps the current YM2612 + PSG VGM playback path in one
+          small runtime API.
+        </p>
+
+        <pre>import {
+  VgmRuntime,
+} from "../js/vgm_runtime.js";
+
+const vgm =
+  VgmRuntime({
+    audioWorkletUrl:
+      "../js/vgm-output-worklet.js",
+  });
+
+await vgm.initialize();
+await vgm.load(vgmArrayBuffer);
+await vgm.play();</pre>
+
+        <div class="actions">
+          <input
+            id="fileInput"
+            type="file"
+            accept=".vgm,.vgz,application/octet-stream"
+          >
+          <button id="playButton" type="button" disabled>Play</button>
+          <button id="pauseButton" type="button" disabled>Pause</button>
+          <button id="resumeButton" type="button" disabled>Resume</button>
+          <button id="stopButton" type="button" disabled>Stop</button>
+          <label><input id="loopCheckbox" type="checkbox"> Loop</label>
+          <a class="link-button" href="../index.html">Back</a>
+        </div>
+
+        <div class="status" id="status">Choose a .vgm file.</div>
+        <pre id="stateView">{
+  "audio": "idle",
+  "playback": "stopped",
+  "hasBuffer": false
+}</pre>
+      </section>
+    </main>
+
+    <script type="module">
+      import { VgmRuntime } from "../js/vgm_runtime.js";
+
+      const fileInput =
+        document.getElementById(
+          "fileInput"
+        );
+      const playButton =
+        document.getElementById(
+          "playButton"
+        );
+      const pauseButton =
+        document.getElementById(
+          "pauseButton"
+        );
+      const resumeButton =
+        document.getElementById(
+          "resumeButton"
+        );
+      const stopButton =
+        document.getElementById(
+          "stopButton"
+        );
+      const loopCheckbox =
+        document.getElementById(
+          "loopCheckbox"
+        );
+      const status =
+        document.getElementById(
+          "status"
+        );
+      const stateView =
+        document.getElementById(
+          "stateView"
+        );
+
+      const vgm = VgmRuntime({
+        audioWorkletUrl:
+          "../js/vgm-output-worklet.js",
+        onStatus(message) {
+          status.textContent = message;
+        },
+        onStateChange(state) {
+          stateView.textContent =
+            JSON.stringify(
+              state,
+              null,
+              2
+            );
+          const hasBuffer =
+            state.hasBuffer;
+          playButton.disabled =
+            !hasBuffer ||
+            state.playback ===
+              "playing";
+          pauseButton.disabled =
+            state.playback !==
+            "playing";
+          resumeButton.disabled =
+            state.playback !==
+            "paused";
+          stopButton.disabled =
+            !hasBuffer ||
+            state.playback ===
+              "stopped";
+        },
+      });
+
+      function looksLikeGzip(buffer) {
+        const bytes = new Uint8Array(
+          buffer,
+          0,
+          Math.min(
+            buffer.byteLength,
+            2
+          )
+        );
+        return (
+          bytes.length >= 2 &&
+          bytes[0] === 0x1f &&
+          bytes[1] === 0x8b
+        );
+      }
+
+      fileInput.addEventListener(
+        "change",
+        async (event) => {
+          const file =
+            event.target.files &&
+            event.target.files[0];
+          if (!file) {
+            return;
+          }
+
+          const buffer =
+            await file.arrayBuffer();
+          if (looksLikeGzip(buffer)) {
+            status.textContent =
+              "VGZ is not supported yet in this demo.";
+            return;
+          }
+
+          await vgm.load(buffer);
+          status.textContent =
+            `Loaded ${file.name}.`;
+        }
+      );
+
+      playButton.addEventListener(
+        "click",
+        async () => {
+          await vgm.play();
+        }
+      );
+
+      pauseButton.addEventListener(
+        "click",
+        () => {
+          vgm.pause();
+        }
+      );
+
+      resumeButton.addEventListener(
+        "click",
+        () => {
+          vgm.resume();
+        }
+      );
+
+      stopButton.addEventListener(
+        "click",
+        () => {
+          vgm.stop();
+        }
+      );
+
+      loopCheckbox.addEventListener(
+        "change",
+        () => {
+          vgm.setLoopEnabled(
+            loopCheckbox.checked
+          );
+        }
+      );
+    </script>
+  </body>
+</html>

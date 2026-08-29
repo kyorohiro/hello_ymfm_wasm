@@ -98,3 +98,39 @@ current app UI from the dependency surface.
 
 `logicWorkerUrl` is reserved for a future worker-backed execution path and is
 not implemented yet.
+
+## VGM Runtime
+
+If you want a small browser-side VGM playback wrapper instead of wiring
+`GenesisAudioEngine` and `VgmPlayer` yourself, use:
+
+```js
+import {
+  VgmRuntime,
+} from "./vgm_runtime.js";
+
+const vgm =
+  VgmRuntime({
+    audioWorkletUrl:
+      "./vgm-output-worklet.js",
+  });
+
+await vgm.initialize();
+await vgm.load(vgmArrayBuffer);
+await vgm.play();
+```
+
+Current core methods:
+
+- `initialize()`
+- `load(buffer, parserOptions?)`
+- `play()`
+- `pause()`
+- `resume()`
+- `replay()`
+- `stop()`
+- `finalize()`
+- `getState()`
+- `setLoopEnabled(enabled)`
+- `setPrefetchFactor(factor)`
+- `setMaxFillStepsPerProcess(steps)`

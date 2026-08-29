@@ -17,6 +17,7 @@ DOCS_INFO_DIR="${DOCS_DIR}/info"
 DEMO_FILES="
 beep.html
 vgm.html
+vgm_runtime.html
 megasynth_embeded.html
 playground_runtime.html
 "
@@ -43,6 +44,7 @@ segapsg.js
 tfi.js
 vgm-output-worklet.js
 vgmplayer.js
+vgm_runtime.js
 ym2612-worklet.js
 ym2612-worklet-nuked.js
 ym2612.js

@@ -26,7 +26,9 @@ playground_music.js
 playground_sync.js
 segapsg.js
 tfi.js
+vgm-output-worklet.js
 vgmplayer.js
+vgm_runtime.js
 ym2612-worklet.js
 ym2612-worklet-nuked.js
 ym2612.js
@@ -54,6 +56,12 @@ perl -0pi -e 's#"\./generated/ym2612_wasm\.js"#"../generated/ym2612_wasm.js"#g' 
 
 perl -0pi -e 's#"\./generated/segapsg_wasm\.js"#"../generated/segapsg_wasm.js"#g' \
   "${DOCS_JS_DIR}/ym2612-worklet.js"
+
+perl -0pi -e 's#"\./generated/ym2612_wasm\.js"#"../generated/ym2612_wasm.js"#g' \
+  "${DOCS_JS_DIR}/vgm_runtime.js"
+
+perl -0pi -e 's#"\./generated/segapsg_wasm\.js"#"../generated/segapsg_wasm.js"#g' \
+  "${DOCS_JS_DIR}/vgm_runtime.js"
 
 perl -0pi -e 's#"\./generated/nuked_opn2_wasm\.js"#"../generated/nuked_opn2_wasm.js"#g' \
   "${DOCS_JS_DIR}/ym2612-worklet-nuked.js"
