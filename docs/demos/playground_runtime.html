@@ -166,7 +166,9 @@ const pg =
       "../generated/segapsg_wasm.wasm",
   });
 
-pg.put("stage1", `
+await pg.initialize();
+
+pg.load("stage1", `
 setBpm(120);
 
 fm.setPreset(CH1, FM_PRESETS["one-op-basic"]);
@@ -199,6 +201,12 @@ await pg.play("stage1");</pre>
         </div>
 
         <div class="status" id="status">Ready.</div>
+        <pre id="stateView">{
+  "audio": "idle",
+  "playback": "stopped",
+  "currentSourceName": null,
+  "loadedSourceNames": []
+}</pre>
 
         <h2>What This Layer Hides</h2>
 
@@ -241,6 +249,10 @@ YM2612 / PSG output</pre>
         document.getElementById(
           "status"
         );
+      const stateView =
+        document.getElementById(
+          "stateView"
+        );
 
       const pg =
         Playground({
@@ -253,10 +265,20 @@ YM2612 / PSG output</pre>
           onStatus(message) {
             status.textContent =
               message;
+            renderState();
           },
         });
 
-      pg.put(
+      function renderState() {
+        stateView.textContent =
+          JSON.stringify(
+            pg.getState(),
+            null,
+            2
+          );
+      }
+
+      pg.load(
         "stage1",
         `
 setBpm(120);
@@ -282,6 +304,7 @@ liveLoop("lead", async () => {
 });
 `
       );
+      renderState();
 
       playButton.addEventListener(
         "click",
@@ -289,12 +312,15 @@ liveLoop("lead", async () => {
           playButton.disabled = true;
 
           try {
+            await pg.initialize();
             await pg.play("stage1");
           } catch (error) {
             console.error(error);
             status.textContent =
               `Error: ${error.message}`;
+            renderState();
           } finally {
+            renderState();
             playButton.disabled = false;
           }
         }
@@ -304,6 +330,7 @@ liveLoop("lead", async () => {
         "click",
         () => {
           pg.stop();
+          renderState();
         }
       );
     </script>

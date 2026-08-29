@@ -59,7 +59,9 @@ const pg =
       "./generated/segapsg_wasm.wasm",
   });
 
-pg.put("stage1", `
+await pg.initialize();
+
+pg.load("stage1", `
 setBpm(120);
 
 fm.setPreset(CH1, FM_PRESETS["one-op-basic"]);
@@ -74,11 +76,17 @@ liveLoop("lead", async () => {
 `);
 
 await pg.play("stage1");
+
+console.log(pg.getState());
 ```
 
 Current core methods:
 
-- `put(name, sourceCode)`
+- `initialize()`
+- `finalize()`
+- `load(name, sourceCode)`
+- `getState()`
+- `put(name, sourceCode)` for backward compatibility
 - `get(name)`
 - `play(name)`
 - `playSource(sourceCode)`
@@ -87,3 +95,6 @@ Current core methods:
 
 This keeps the Playground-style API, but removes the Monaco editor and the
 current app UI from the dependency surface.
+
+`logicWorkerUrl` is reserved for a future worker-backed execution path and is
+not implemented yet.

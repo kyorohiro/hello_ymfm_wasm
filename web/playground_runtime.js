@@ -100,6 +100,8 @@ export function createPlaygroundRuntime(
   let currentLoopContext = null;
   let removeMegaDriveListener =
     null;
+  let currentSourceName = null;
+  let playbackState = "stopped";
 
   function emitStatus(message) {
     options.onStatus?.(message);
@@ -111,6 +113,10 @@ export function createPlaygroundRuntime(
 
   function emitLog(line) {
     options.onLog?.(line);
+  }
+
+  function setPlaybackState(state) {
+    playbackState = state;
   }
 
   function installMegaDriveListener() {
@@ -427,6 +433,10 @@ export function createPlaygroundRuntime(
     return synth;
   }
 
+  async function initialize() {
+    await ensureReady();
+  }
+
   function createExecutionGlobals(
     runToken
   ) {
@@ -638,6 +648,7 @@ export function createPlaygroundRuntime(
 
     await ensureReady();
     liveApi.clearRunFxChain();
+    setPlaybackState("running");
     emitStatus("Running...");
     emitRuntimeState("Running");
 
@@ -683,6 +694,14 @@ export function createPlaygroundRuntime(
             ? `Running ${evaluationState.loopDefinitions.size} live loop(s).`
             : "Done."
         );
+        if (
+          evaluationState.loopDefinitions.size ===
+          0
+        ) {
+          setPlaybackState(
+            "stopped"
+          );
+        }
         emitRuntimeState(
           "Audio ready"
         );
@@ -693,6 +712,9 @@ export function createPlaygroundRuntime(
         error.message ===
           "Run stopped"
       ) {
+        setPlaybackState(
+          "stopped"
+        );
         emitStatus("Stopped.");
         emitRuntimeState(
           "Audio ready"
@@ -728,6 +750,10 @@ export function createPlaygroundRuntime(
     );
   }
 
+  function load(name, sourceCode) {
+    put(name, sourceCode);
+  }
+
   function get(name) {
     return sourceMap.get(name) ?? null;
   }
@@ -742,6 +768,7 @@ export function createPlaygroundRuntime(
       );
     }
 
+    currentSourceName = name;
     await playSource(sourceCode);
   }
 
@@ -751,6 +778,7 @@ export function createPlaygroundRuntime(
     stopAllNotes();
     liveApi.clearRunFxChain();
     megaDrive.stopRecordingPlayback?.();
+    setPlaybackState("stopped");
     emitStatus("Stopped.");
     emitRuntimeState(
       "Audio ready"
@@ -760,18 +788,65 @@ export function createPlaygroundRuntime(
   function clear() {
     stop();
     sourceMap.clear();
+    currentSourceName = null;
+  }
+
+  async function finalize() {
+    stop();
+    sourceMap.clear();
+    currentSourceName = null;
+    synth = null;
+    removeMegaDriveListener?.();
+    removeMegaDriveListener =
+      null;
+    await megaDrive.close();
+    emitStatus("Finalized.");
+    emitRuntimeState("Audio idle");
+  }
+
+  function getState() {
+    let audio = "idle";
+
+    if (prepareAudioPromise) {
+      audio = "preparing";
+    } else if (megaDrive.state === "error") {
+      audio = "error";
+    } else if (
+      megaDrive.state === "ready" &&
+      synth
+    ) {
+      audio = "ready";
+    } else if (
+      megaDrive.state === "starting"
+    ) {
+      audio = "preparing";
+    }
+
+    return {
+      audio,
+      playback: playbackState,
+      currentSourceName,
+      loadedSourceNames:
+        Array.from(
+          sourceMap.keys()
+        ),
+    };
   }
 
   return {
     logicWorkerUrl:
       options.logicWorkerUrl ?? null,
+    initialize,
     ensureReady,
+    load,
     put,
     get,
     play,
     playSource,
     stop,
     clear,
+    finalize,
+    getState,
     setMasterVolume,
     getMasterVolume,
     get presets() {
