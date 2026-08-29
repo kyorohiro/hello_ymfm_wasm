@@ -203,8 +203,14 @@ export function createPlaygroundLive(
         runtime.liveLoops.get(name);
 
       if (existing) {
+        if (existing.stopped) {
+          runtime.liveLoops.delete(
+            name
+          );
+        } else {
         existing.nextFn = fn;
         continue;
+        }
       }
 
       const state = {
