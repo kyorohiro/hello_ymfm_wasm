@@ -75,6 +75,7 @@ type MegaDriveFmPresetName =
   | "one-op-basic"
   | "one-op-flute"
   | "two-op-bell"
+  | "fm-bell"
   | "two-op-organ"
   | "four-op-brass"
   | "four-op-pad"

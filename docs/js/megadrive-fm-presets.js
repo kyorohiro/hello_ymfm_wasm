@@ -32,6 +32,17 @@ export const FM_PRESETS = {
       { dt: 0, multi: 1, tl: 127, ar: 31, d1r: 0, d2r: 0, sl: 0, rr: 15 },
     ],
   },
+  "fm-bell": {
+    label: "FM Bell",
+    algorithm: 7,
+    feedback: 0,
+    operators: [
+      { dt: 2, multi: 5, tl: 28, ar: 31, d1r: 14, d2r: 8, sl: 6, rr: 8 },
+      { dt: 1, multi: 7, tl: 44, ar: 31, d1r: 16, d2r: 9, sl: 7, rr: 9 },
+      { dt: 0, multi: 2, tl: 56, ar: 31, d1r: 12, d2r: 6, sl: 6, rr: 8 },
+      { dt: 0, multi: 1, tl: 8, ar: 31, d1r: 9, d2r: 4, sl: 5, rr: 10 },
+    ],
+  },
   "two-op-organ": {
     label: "2OP Organ-ish",
     algorithm: 4,
@@ -401,6 +412,7 @@ export const FM_PRESET_ORDER = [
   "fm-lead",
   "fm-electric-piano",
   "fm-strings",
+  "fm-bell",
 
   // UI
   "ui-cursor",
