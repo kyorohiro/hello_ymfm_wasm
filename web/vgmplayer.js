@@ -306,11 +306,15 @@ export class VgmPlayer {
       steps < this.maxFillStepsPerProcess
     ) {
       steps += 1;
+      const ym2612Target = typeof this.engine.writeYm2612 === "function"
+        ? { writeRegister: (register, value, port = 0) => this.engine.writeYm2612(port, register, value) }
+        : undefined;
+      const ym2203Target = typeof this.engine.writeYm2203 === "function"
+        ? { writeRegister: (register, value) => this.engine.writeYm2203(register, value) }
+        : undefined;
       const event = this.parser.playStep({
-        ym2612: { writeRegister: (register, value, port = 0) => this.engine.writeYm2612(port, register, value) },
-        ym2203: typeof this.engine.writeYm2203 === "function"
-          ? { writeRegister: (register, value) => this.engine.writeYm2203(register, value) }
-          : undefined,
+        ym2612: ym2612Target,
+        ym2203: ym2203Target,
         psg: { write: (value) => this.engine.writePsg(value) },
       });
       this.processedEvents += 1;
@@ -318,10 +322,8 @@ export class VgmPlayer {
       if (event.type === "wait") {
         this.parser.consumeWait(
           {
-            ym2612: { writeRegister: (register, value, port = 0) => this.engine.writeYm2612(port, register, value) },
-            ym2203: typeof this.engine.writeYm2203 === "function"
-              ? { writeRegister: (register, value) => this.engine.writeYm2203(register, value) }
-              : undefined,
+            ym2612: ym2612Target,
+            ym2203: ym2203Target,
             psg: { write: (value) => this.engine.writePsg(value) },
           },
           event.samples,

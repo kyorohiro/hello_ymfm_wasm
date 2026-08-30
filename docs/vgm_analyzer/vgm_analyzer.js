@@ -74,8 +74,10 @@ let activeStream = null;
 let workletModuleReady = false;
 let extractedTfiPatches = [];
 let channelMuteStates = [false, false, false, false, false, false];
+let currentChipKind = "ym2612";
 let channelMonitor = createChannelMonitorState();
 let baseEngineWriteYm2612 = null;
+let baseEngineWriteYm2203 = null;
 let channelMonitorRenderTimer = null;
 let noteishRenderTimer = null;
 let channelMonitorDirty = false;
@@ -95,7 +97,6 @@ let lastStreamingStatusAt = 0;
 let lastParseInfo = null;
 let masterVolume = 1;
 let playbackPreparePromise = null;
-let currentChipKind = "ym2612";
 let activeYm2203ModuleFactoryPromise = null;
 
 const NOTE_NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
@@ -194,12 +195,14 @@ function renderMonitorToggles() {
   ensureMonitorToggleHandler();
   monitorToggles.innerHTML = "";
 
-  const psgButton = document.createElement("button");
-  psgButton.type = "button";
-  psgButton.className = `channel-toggle${psgMuted ? " is-muted" : ""}`;
-  psgButton.textContent = psgMuted ? "PSG Muted" : "PSG On";
-  psgButton.setAttribute("data-monitor-toggle-kind", "psg");
-  monitorToggles.append(psgButton);
+  if (currentChipKind === "ym2612") {
+    const psgButton = document.createElement("button");
+    psgButton.type = "button";
+    psgButton.className = `channel-toggle${psgMuted ? " is-muted" : ""}`;
+    psgButton.textContent = psgMuted ? "PSG Muted" : "PSG On";
+    psgButton.setAttribute("data-monitor-toggle-kind", "psg");
+    monitorToggles.append(psgButton);
+  }
 
   channelMonitor.forEach((channel) => {
     const button = document.createElement("button");
@@ -240,7 +243,8 @@ function ensureMonitorToggleHandler() {
 }
 
 function createChannelMonitorState() {
-  return Array.from({ length: 6 }, (_, index) => ({
+  const channelCount = currentChipKind === "ym2203" ? 3 : 6;
+  return Array.from({ length: channelCount }, (_, index) => ({
     channel: index,
     keyOn: false,
     panLeft: false,
@@ -371,6 +375,9 @@ function renderChannelMonitor() {
     const card = document.createElement("section");
     card.className = `channel-card${channel.keyOn ? " is-key-on" : ""}`;
     const pan = `${channel.panLeft ? "L" : "-"}${channel.panRight ? "R" : "-"}`;
+    const panChip = currentChipKind === "ym2612"
+      ? renderChannelChip("PAN", pan, channel.changedAt.pan, "166 214 148")
+      : "";
     card.innerHTML = `
       <div class="channel-head">
         <span class="channel-title">CH${channel.channel + 1}</span>
@@ -379,7 +386,7 @@ function renderChannelMonitor() {
       <div class="channel-row">
         ${renderChannelChip("ALG", channel.algorithm, channel.changedAt.algorithm, "255 184 92")}
         ${renderChannelChip("FB", channel.feedback, channel.changedAt.feedback, "255 184 92")}
-        ${renderChannelChip("PAN", pan, channel.changedAt.pan, "166 214 148")}
+        ${panChip}
         ${renderChannelChip("B", channel.block, channel.changedAt.block, "125 176 255")}
         ${renderChannelChip("F", channel.fnum, channel.changedAt.fnum, "125 176 255")}
       </div>
@@ -781,19 +788,23 @@ function toggleChannelMute(channelIndex) {
   channel.changedAt.pan = performance.now();
   requestChannelMonitorRender();
 
-  if (!engine || !baseEngineWriteYm2612) {
+  if (!engine) {
     return;
   }
 
-  const port = channelIndex < 3 ? 0 : 1;
-  const register = 0xb4 + (channelIndex % 3);
-  baseEngineWriteYm2612(port, register, effectivePanValue(channel));
+  if (currentChipKind === "ym2612" && baseEngineWriteYm2612) {
+    const port = channelIndex < 3 ? 0 : 1;
+    const register = 0xb4 + (channelIndex % 3);
+    baseEngineWriteYm2612(port, register, effectivePanValue(channel));
 
-  // YM2612 DAC is driven through 0x2A/0x2B and does not show up as a normal
-  // per-channel operator write sequence. In analyzer UI, CH6 mute should also
-  // silence the DAC path because DAC playback reuses channel 6 on the real chip.
-  if (channelIndex === 5 && channel.muted && (lastYm2612DacEnable & 0x80) !== 0) {
-    baseEngineWriteYm2612(0, 0x2a, 0x80);
+    // YM2612 DAC is driven through 0x2A/0x2B and does not show up as a normal
+    // per-channel operator write sequence. In analyzer UI, CH6 mute should also
+    // silence the DAC path because DAC playback reuses channel 6 on the real chip.
+    if (channelIndex === 5 && channel.muted && (lastYm2612DacEnable & 0x80) !== 0) {
+      baseEngineWriteYm2612(0, 0x2a, 0x80);
+    }
+  } else if (currentChipKind === "ym2203" && baseEngineWriteYm2203 && channel.muted) {
+    baseEngineWriteYm2203(0x28, channelIndex & 0x07);
   }
 
   flushPendingAudio();
@@ -828,6 +839,10 @@ function updateMonoMix() {
 }
 
 function allAudibleSourcesMuted() {
+  if (currentChipKind === "ym2203") {
+    return channelMonitor.length > 0 &&
+      channelMonitor.every((channel) => channel.muted);
+  }
   return psgMuted && channelMuteStates.every((muted) => muted);
 }
 
@@ -861,6 +876,152 @@ function detectPlaybackChipKind(header) {
     return "ym2203";
   }
   return "ym2612";
+}
+
+function applyYm2203WriteToMonitor(register, value) {
+  let changed = false;
+  const now = performance.now();
+
+  if (register === 0x28) {
+    const channel = value & 0x03;
+    if (channel <= 2) {
+      const wasKeyOn = channelMonitor[channel].keyOn;
+      channelMonitor[channel].keyOn = ((value >> 4) & 0x0f) !== 0;
+      channelMonitor[channel].changedAt.keyOn = now;
+      if (channelMonitor[channel].keyOn) {
+        updateChannelObservedRange(channel);
+        const estimated = estimateChannelNoteish(channelMonitor[channel]);
+        recordChannelNoteHistory(channel, estimated.midiFloat);
+        channelMonitor[channel].noteSequenceOpen = true;
+        appendChannelNoteSequence(channel, estimated.midiFloat, !wasKeyOn);
+      } else {
+        recordChannelNoteHistory(channel, null);
+        channelMonitor[channel].noteSequenceOpen = false;
+        channelMonitor[channel].lastSequenceNote = null;
+      }
+      changed = true;
+    }
+    if (changed) {
+      requestChannelMonitorRender();
+      requestNoteishRender();
+    }
+    return;
+  }
+
+  if (register >= 0xa0 && register <= 0xa2) {
+    const channel = register - 0xa0;
+    const state = channelMonitor[channel];
+    if (!state) {
+      return;
+    }
+    state.fnum = (state.fnum & 0x700) | value;
+    state.changedAt.fnum = now;
+    updateChannelObservedRange(channel);
+    if (state.keyOn) {
+      const estimated = estimateChannelNoteish(state);
+      recordChannelNoteHistory(channel, estimated.midiFloat);
+      appendChannelNoteSequence(channel, estimated.midiFloat, false);
+    }
+    requestChannelMonitorRender();
+    requestNoteishRender();
+    return;
+  }
+
+  if (register >= 0xa4 && register <= 0xa6) {
+    const channel = register - 0xa4;
+    const state = channelMonitor[channel];
+    if (!state) {
+      return;
+    }
+    state.block = (value >> 3) & 0x07;
+    state.fnum = ((value & 0x07) << 8) | (state.fnum & 0xff);
+    state.changedAt.block = now;
+    state.changedAt.fnum = now;
+    updateChannelObservedRange(channel);
+    if (state.keyOn) {
+      const estimated = estimateChannelNoteish(state);
+      recordChannelNoteHistory(channel, estimated.midiFloat);
+      appendChannelNoteSequence(channel, estimated.midiFloat, false);
+    }
+    requestChannelMonitorRender();
+    requestNoteishRender();
+    return;
+  }
+
+  if (register >= 0xb0 && register <= 0xb2) {
+    const channel = register - 0xb0;
+    const state = channelMonitor[channel];
+    if (!state) {
+      return;
+    }
+    state.feedback = (value >> 3) & 0x07;
+    state.algorithm = value & 0x07;
+    state.changedAt.feedback = now;
+    state.changedAt.algorithm = now;
+    requestChannelMonitorRender();
+    requestNoteishRender();
+    return;
+  }
+
+  const lowNibble = register & 0x0f;
+  const channelOffset = lowNibble & 0x03;
+  if (channelOffset > 2) {
+    return;
+  }
+
+  const slotOffset = lowNibble - channelOffset;
+  const operator = findOperatorFromSlotOffset(slotOffset);
+  if (!operator) {
+    return;
+  }
+
+  const state = channelMonitor[channelOffset]?.operators[operator];
+  if (!state) {
+    return;
+  }
+  const registerBase = register & 0xf0;
+
+  if (registerBase === 0x30) {
+    state.dt = (value >> 4) & 0x07;
+    state.multi = value & 0x0f;
+    state.changedAt.dt = now;
+    state.changedAt.multi = now;
+    changed = true;
+  } else if (registerBase === 0x40) {
+    state.tl = value & 0x7f;
+    state.changedAt.tl = now;
+    changed = true;
+  } else if (registerBase === 0x50) {
+    state.rs = (value >> 6) & 0x03;
+    state.ar = value & 0x1f;
+    state.changedAt.rs = now;
+    state.changedAt.ar = now;
+    changed = true;
+  } else if (registerBase === 0x60) {
+    state.am = (value >> 7) & 0x01;
+    state.d1r = value & 0x1f;
+    state.changedAt.am = now;
+    state.changedAt.d1r = now;
+    changed = true;
+  } else if (registerBase === 0x70) {
+    state.d2r = value & 0x1f;
+    state.changedAt.d2r = now;
+    changed = true;
+  } else if (registerBase === 0x80) {
+    state.sl = (value >> 4) & 0x0f;
+    state.rr = value & 0x0f;
+    state.changedAt.sl = now;
+    state.changedAt.rr = now;
+    changed = true;
+  } else if (registerBase === 0x90) {
+    state.ssg = value & 0x0f;
+    state.changedAt.ssg = now;
+    changed = true;
+  }
+
+  if (changed) {
+    requestChannelMonitorRender();
+  }
 }
 
 async function loadYm2203ModuleFactory() {
@@ -1520,6 +1681,7 @@ async function ensurePlaybackReady(vgm) {
     engine = null;
     player = null;
     baseEngineWriteYm2612 = null;
+    baseEngineWriteYm2203 = null;
     workletModuleReady = false;
   }
 
@@ -1532,6 +1694,7 @@ async function ensurePlaybackReady(vgm) {
         ym2203Clock: vgm.header.ym2203Clock,
         masterVolume,
       });
+      baseEngineWriteYm2203 = engine.writeYm2203.bind(engine);
     } else {
       engine = await createGenesisAudioEngine({
         ym2612ModuleFactory: activeYm2612ModuleFactory,
@@ -1623,15 +1786,14 @@ function updatePlaybackButtons(state = {}) {
   const hasBuffer = Boolean(currentBuffer);
   const playing = Boolean(state.playing);
   const paused = Boolean(state.paused);
-  const supportsYm2612Tools = currentChipKind === "ym2612";
   playButton.disabled = !hasBuffer || playing;
   replayButton.disabled = !hasBuffer;
   pauseButton.disabled = !playing;
   resumeButton.disabled = !paused;
   stopButton.disabled = !hasBuffer || (!playing && !paused);
   exportParseInfoButton.disabled = !hasBuffer || !lastParseInfo;
-  exportSnapshotTfiButton.disabled = !hasBuffer || !supportsYm2612Tools;
-  exportSnapshotButton.disabled = !hasBuffer || !supportsYm2612Tools;
+  exportSnapshotTfiButton.disabled = !hasBuffer;
+  exportSnapshotButton.disabled = !hasBuffer;
 }
 
 function buildParseInfo(buffer, fileName, vgm) {
@@ -1745,6 +1907,18 @@ async function playCurrentVgm() {
         }
         baseEngineWriteYm2612(port, register, value);
       };
+    } else if (currentChipKind === "ym2203" && baseEngineWriteYm2203) {
+      engine.writeYm2203 = (register, value) => {
+        applyYm2203WriteToMonitor(register, value);
+        if (register === 0x28) {
+          const channelIndex = value & 0x03;
+          if (channelIndex <= 2 && channelMonitor[channelIndex]?.muted) {
+            baseEngineWriteYm2203(register, channelIndex);
+            return;
+          }
+        }
+        baseEngineWriteYm2203(register, value);
+      };
     }
     player.reset();
     player.setLoopEnabled(loopCheckbox.checked);
@@ -1855,20 +2029,26 @@ async function startWorkletStream(sampleRate) {
     numberOfOutputs: 1,
     outputChannelCount: [2],
   });
-  activeStream = {
+  const stream = {
     mode: "worklet",
     node,
     chunkFrames,
     workletQueuedFrames: 0,
     endSent: false,
   };
+  activeStream = stream;
   node.port.onmessage = (event) => {
+    if (activeStream !== stream) {
+      return;
+    }
     const data = event.data || {};
     if (typeof data.queuedFrames === "number") {
-      activeStream.workletQueuedFrames = data.queuedFrames;
+      stream.workletQueuedFrames = data.queuedFrames;
     }
     if (data.ended) {
-      stopActiveStream();
+      if (activeStream === stream) {
+        stopActiveStream();
+      }
       requestPlaybackUiRender("");
       if (autoExportSnapshotCheckbox.checked) {
         downloadSnapshot("ended");
@@ -1950,7 +2130,23 @@ async function handleFile(file) {
     return;
   }
 
-  currentChipKind = detectPlaybackChipKind(vgm.header);
+  const nextChipKind = detectPlaybackChipKind(vgm.header);
+  if (engine && currentChipKind !== nextChipKind) {
+    stopActiveStream();
+    if (typeof engine.dispose === "function") {
+      engine.dispose();
+    }
+    engine = null;
+    player = null;
+    baseEngineWriteYm2612 = null;
+    baseEngineWriteYm2203 = null;
+    workletModuleReady = false;
+  }
+  currentChipKind = nextChipKind;
+  channelMonitor = createChannelMonitorState();
+  renderChannelMonitor();
+  requestNoteishRender();
+  renderNoteishGrid();
   headerOutput.textContent = renderHeader(vgm.header);
   commandUsageOutput.textContent = renderCommandUsage(vgm.analyzeCommandUsage());
   commandUsageOutput.textContent += "\n";
@@ -1976,10 +2172,7 @@ async function handleFile(file) {
   commandsOutput.textContent = events.join("\n");
   currentBuffer = buffer;
   lastParseInfo = buildParseInfo(buffer, file.name, vgm);
-  extractedTfiPatches =
-    currentChipKind === "ym2612"
-      ? extractTfiPatchesFromVgm(buffer)
-      : [];
+  extractedTfiPatches = extractTfiPatchesFromVgm(buffer);
   exportAllTfiButton.disabled = extractedTfiPatches.length === 0;
   updatePlaybackButtons({});
   setStatus(`Parsed ${file.name} (${currentChipKind.toUpperCase()}).`);
