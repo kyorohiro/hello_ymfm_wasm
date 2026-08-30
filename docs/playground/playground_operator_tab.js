@@ -44,6 +44,22 @@ const ALGORITHM_DESCRIPTIONS = [
   'ALGO 7 <span class="op-color-1">OP1</span> + <span class="op-color-2">OP2</span> + <span class="op-color-3">OP3</span> + <span class="op-color-4">OP4</span> -> OUT',
 ];
 
+function getPresetOperator(
+  preset,
+  displayOperator
+) {
+  const operators =
+    preset?.operators;
+
+  if (!Array.isArray(operators)) {
+    return undefined;
+  }
+
+  return operators[
+    displayOperator - 1
+  ];
+}
+
 function createDefaultOperatorState(
   operator
 ) {
@@ -126,17 +142,18 @@ function createChannelStateFromPreset(
     preset.pms ?? 0;
   baseState.left =
     preset.pan?.left ??
-    preset.left ??
     true;
   baseState.right =
     preset.pan?.right ??
-    preset.right ??
     true;
 
   for (const operator of OPERATOR_NUMBERS) {
     baseState.operators[operator] = {
       ...baseState.operators[operator],
-      ...(preset.operators?.[operator] ??
+      ...(getPresetOperator(
+        preset,
+        operator
+      ) ??
         {}),
     };
   }
@@ -729,17 +746,18 @@ export function createPlaygroundOperatorTab(
           nextState.pms;
         nextState.left =
           preset.pan?.left ??
-          preset.left ??
           nextState.left;
         nextState.right =
           preset.pan?.right ??
-          preset.right ??
           nextState.right;
 
         for (const operator of OPERATOR_NUMBERS) {
           mergeOperatorParams(
             nextState.operators[operator],
-            preset.operators?.[operator]
+            getPresetOperator(
+              preset,
+              operator
+            )
           );
         }
       }

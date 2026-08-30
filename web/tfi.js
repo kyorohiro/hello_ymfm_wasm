@@ -23,17 +23,17 @@
  * Preset shape shared between `web/tfi.js` and `YM2612Synth.setPreset()`.
  *
  * Operators are exposed in logical order:
- * `1, 2, 3, 4`.
+ * `0, 1, 2, 3`.
  *
  * @typedef {object} TfiPreset
  * @property {number} algorithm
  * @property {number} feedback
- * @property {{
- *   1?: TfiOperatorPreset,
- *   2?: TfiOperatorPreset,
- *   3?: TfiOperatorPreset,
- *   4?: TfiOperatorPreset,
- * }} operators
+ * @property {[
+ *   TfiOperatorPreset?,
+ *   TfiOperatorPreset?,
+ *   TfiOperatorPreset?,
+ *   TfiOperatorPreset?
+ * ]} operators
  */
 
 /**
@@ -53,7 +53,7 @@ export const TFI_FILE_SIZE = 42;
 //
 // This table converts one TFI operator block index into the synth's
 // public logical operator number.
-export const TFI_OPERATOR_FILE_ORDER = [1, 3, 2, 4];
+export const TFI_OPERATOR_FILE_ORDER = [0, 2, 1, 3];
 
 const TFI_OPERATOR_SIZE = 10;
 const TFI_OPERATOR_DATA_START = 2;
@@ -62,7 +62,7 @@ const TFI_OPERATOR_DATA_START = 2;
  * Parse a 42-byte TFI file into a logical YM2612 preset.
  *
  * TFI stores operators in physical slot order `S1, S3, S2, S4`.
- * The returned preset converts that into logical operator order `1, 2, 3, 4`.
+ * The returned preset converts that into logical operator order `0, 1, 2, 3`.
  *
  * @param {Uint8Array | ArrayBuffer | ArrayLike<number>} data
  * @returns {TfiPreset}
@@ -74,7 +74,7 @@ export function parseTfi(data) {
   const preset = {
     algorithm: validateRange("algorithm", bytes[0], 0, 7),
     feedback: validateRange("feedback", bytes[1], 0, 7),
-    operators: {},
+    operators: [],
   };
 
   for (let blockIndex = 0; blockIndex < TFI_OPERATOR_FILE_ORDER.length; blockIndex += 1) {
@@ -145,16 +145,16 @@ export function createTfiPresetObjectText(preset) {
     "{",
     `  algorithm: ${normalizedPreset.algorithm},`,
     `  feedback: ${normalizedPreset.feedback},`,
-    "  operators: {",
+    "  operators: [",
   ];
 
-  for (let logicalOperator = 1; logicalOperator <= 4; logicalOperator += 1) {
+  for (let logicalOperator = 0; logicalOperator < 4; logicalOperator += 1) {
     lines.push(
-      `    ${logicalOperator}: ${createTfiOperatorObjectText(normalizedPreset.operators[logicalOperator])},`
+      `    ${createTfiOperatorObjectText(normalizedPreset.operators[logicalOperator])},`
     );
   }
 
-  lines.push("  },");
+  lines.push("  ],");
   lines.push("}");
   return lines.join("\n");
 }
@@ -162,7 +162,7 @@ export function createTfiPresetObjectText(preset) {
 /**
  * Build a 42-byte TFI file from a logical YM2612 preset.
  *
- * The input preset uses logical operator numbers `1, 2, 3, 4`.
+ * The input preset uses logical operator numbers `0, 1, 2, 3`.
  * The produced TFI bytes are written in physical file order `S1, S3, S2, S4`.
  *
  * @param {TfiPreset} preset
@@ -179,7 +179,8 @@ export function createTfiFromPreset(preset) {
 
   for (let blockIndex = 0; blockIndex < TFI_OPERATOR_FILE_ORDER.length; blockIndex += 1) {
     const logicalOperator = TFI_OPERATOR_FILE_ORDER[blockIndex];
-    const operator = preset.operators?.[logicalOperator] || {};
+    const operator =
+      preset.operators?.[logicalOperator] || {};
     const base = TFI_OPERATOR_DATA_START + blockIndex * TFI_OPERATOR_SIZE;
 
     bytes[base + 0] = validateRange("multi", operator.multi ?? 1, 0, 15);
@@ -255,12 +256,20 @@ function normalizePreset(preset) {
   return {
     algorithm: validateRange("algorithm", preset.algorithm ?? 7, 0, 7),
     feedback: validateRange("feedback", preset.feedback ?? 0, 0, 7),
-    operators: {
-      1: normalizeOperatorPreset(preset.operators?.[1]),
-      2: normalizeOperatorPreset(preset.operators?.[2]),
-      3: normalizeOperatorPreset(preset.operators?.[3]),
-      4: normalizeOperatorPreset(preset.operators?.[4]),
-    },
+    operators: [
+      normalizeOperatorPreset(
+        preset.operators?.[0]
+      ),
+      normalizeOperatorPreset(
+        preset.operators?.[1]
+      ),
+      normalizeOperatorPreset(
+        preset.operators?.[2]
+      ),
+      normalizeOperatorPreset(
+        preset.operators?.[3]
+      ),
+    ],
   };
 }
 

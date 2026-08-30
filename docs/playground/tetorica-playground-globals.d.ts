@@ -36,31 +36,30 @@ type YM2612Algorithm = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7;
 type YM2612Feedback = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7;
 type YM2612Ams = 0 | 1 | 2 | 3;
 type YM2612Pms = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7;
+type YM2612LfoFrequency = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7;
 
 /**
  * One logical YM2612 channel preset used by `fm.setPreset()`.
  */
 type YM2612Preset = {
-  algorithm?: number;
-  feedback?: number;
-  ams?: number;
-  pms?: number;
+  algorithm?: YM2612Algorithm;
+  feedback?: YM2612Feedback;
+  ams?: YM2612Ams;
+  pms?: YM2612Pms;
   pan?: {
     left?: boolean;
     right?: boolean;
   };
-  left?: boolean;
-  right?: boolean;
   lfo?: {
     enabled?: boolean;
-    frequency?: number;
+    frequency?: YM2612LfoFrequency;
   };
-  operators?: {
-    1?: YM2612OperatorParams;
-    2?: YM2612OperatorParams;
-    3?: YM2612OperatorParams;
-    4?: YM2612OperatorParams;
-  };
+  operators?: [
+    YM2612OperatorParams?,
+    YM2612OperatorParams?,
+    YM2612OperatorParams?,
+    YM2612OperatorParams?
+  ];
 };
 
 /**

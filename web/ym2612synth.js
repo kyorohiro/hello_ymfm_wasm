@@ -53,14 +53,12 @@
  *   ams?: number,
  *   pms?: number,
  *   pan?: YM2612PanParams,
- *   left?: boolean,
- *   right?: boolean,
- *   operators?: {
- *     1?: YM2612OperatorParams,
- *     2?: YM2612OperatorParams,
- *     3?: YM2612OperatorParams,
- *     4?: YM2612OperatorParams,
- *   },
+ *   operators?: [
+ *     YM2612OperatorParams?,
+ *     YM2612OperatorParams?,
+ *     YM2612OperatorParams?,
+ *     YM2612OperatorParams?
+ *   ],
  * }} YM2612Preset
  */
 
@@ -326,14 +324,7 @@ export class YM2612Synth {
    *   algorithm?: number,
    *   feedback?: number,
    *   pan?: { left?: boolean, right?: boolean },
-   *   left?: boolean,
-   *   right?: boolean,
-   *   operators?: {
-   *     1?: {...},
-   *     2?: {...},
-   *     3?: {...},
-   *     4?: {...}
-   *   }
+   *   operators?: [op1, op2, op3, op4]
    * }
    *
    * @param {number} channel
@@ -357,8 +348,6 @@ export class YM2612Synth {
 
     if (
       preset.pan ||
-      preset.left !== undefined ||
-      preset.right !== undefined ||
       preset.ams !== undefined ||
       preset.pms !== undefined
     ) {
@@ -366,8 +355,8 @@ export class YM2612Synth {
       const current = this.channels[channel];
       this.setPan(
         channel,
-        pan.left !== undefined ? pan.left : (preset.left !== undefined ? preset.left : current.left),
-        pan.right !== undefined ? pan.right : (preset.right !== undefined ? preset.right : current.right),
+        pan.left !== undefined ? pan.left : current.left,
+        pan.right !== undefined ? pan.right : current.right,
         preset.ams !== undefined ? preset.ams : current.ams,
         preset.pms !== undefined ? preset.pms : current.pms
       );
@@ -375,7 +364,10 @@ export class YM2612Synth {
 
     if (preset.operators && typeof preset.operators === "object") {
       for (let operator = 0; operator < OPERATOR_COUNT; operator += 1) {
-        const params = preset.operators[operator + 1];
+        const params = getPresetOperatorParams(
+          preset,
+          operator
+        );
         if (params) {
           this.setOperator(channel, operator, params);
         }
@@ -1064,6 +1056,20 @@ function assertOperator(operator) {
   if (!Number.isInteger(operator) || operator < 0 || operator >= OPERATOR_COUNT) {
     throw new Error(`operator must be an integer in range 0..3, got ${operator}`);
   }
+}
+
+function getPresetOperatorParams(
+  preset,
+  operator
+) {
+  const operators =
+    preset?.operators;
+
+  if (!Array.isArray(operators)) {
+    return undefined;
+  }
+
+  return operators[operator];
 }
 
 function validateRange(name, value, min, max) {

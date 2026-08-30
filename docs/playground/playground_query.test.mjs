@@ -29,12 +29,12 @@ function createSamplePreset(
   return {
     algorithm,
     feedback,
-    operators: {
-      1: { dt: 0, multi: 1, tl: 127, rs: 0, ar: 31, d1r: 0, d2r: 0, sl: 0, rr: 15, ssg: 0 },
-      2: { dt: 0, multi: 2, tl: 36, rs: 0, ar: 24, d1r: 6, d2r: 2, sl: 3, rr: 7, ssg: 0 },
-      3: { dt: 0, multi: 3, tl: 48, rs: 1, ar: 18, d1r: 5, d2r: 2, sl: 4, rr: 7, ssg: 0 },
-      4: { dt: 0, multi: 1, tl: tl4, rs: 0, ar: 22, d1r: 6, d2r: 3, sl: 3, rr: 8, ssg: 0 },
-    },
+    operators: [
+      { dt: 0, multi: 1, tl: 127, rs: 0, ar: 31, d1r: 0, d2r: 0, sl: 0, rr: 15, ssg: 0 },
+      { dt: 0, multi: 2, tl: 36, rs: 0, ar: 24, d1r: 6, d2r: 2, sl: 3, rr: 7, ssg: 0 },
+      { dt: 0, multi: 3, tl: 48, rs: 1, ar: 18, d1r: 5, d2r: 2, sl: 4, rr: 7, ssg: 0 },
+      { dt: 0, multi: 1, tl: tl4, rs: 0, ar: 22, d1r: 6, d2r: 3, sl: 3, rr: 8, ssg: 0 },
+    ],
   };
 }
 
