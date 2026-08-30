@@ -99,6 +99,7 @@ type MegaDriveFmPresetName =
   | "engine-low"
   | "metallic-ping"
   | "ritual-bell"
+  | "ritual-chime"
   | "horror-drone"
   | "dark-ambient"
   | "fm-bass"

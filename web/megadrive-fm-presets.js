@@ -302,6 +302,17 @@ export const FM_PRESETS = {
 
   "ritual-bell": {
     label: "SFX Ritual Bell",
+    algorithm: 5,
+    feedback: 2,
+    operators: [
+      { dt: 3, multi: 7, tl: 18, ar: 31, d1r: 23, d2r: 12, sl: 9, rr: 8 },
+      { dt: 1, multi: 11, tl: 28, ar: 31, d1r: 27, d2r: 16, sl: 10, rr: 9 },
+      { dt: 2, multi: 3, tl: 34, ar: 31, d1r: 18, d2r: 9, sl: 8, rr: 8 },
+      { dt: 0, multi: 1, tl: 4, ar: 31, d1r: 7, d2r: 2, sl: 4, rr: 6 },
+    ],
+  },
+  "ritual-chime": {
+    label: "SFX Ritual Chime",
     algorithm: 3,
     feedback: 2,
     operators: [
@@ -441,6 +452,7 @@ export const FM_PRESET_ORDER = [
 
   // Horror / Fantasy
   "ritual-bell",
+  "ritual-chime",
   "horror-drone",
   "dark-ambient",
 ];

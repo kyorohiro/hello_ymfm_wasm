@@ -855,7 +855,7 @@ liveLoop("lead", async () => {
   await beat(0.125);
 });
 `,
-  "fx-loop-major": `fm.setPreset(CH2, FM_PRESETS["ritual-bell"]);
+  "fx-loop-major": `fm.setPreset(CH2, FM_PRESETS["ritual-chime"]);
 
 const reverb = fx.reverb({
   mix: 0.2,
