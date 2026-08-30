@@ -28,9 +28,12 @@ playground_sync.js
 segapsg.js
 stereo-width-worklet.js
 tfi.js
+vgm_file.js
 vgm-output-worklet.js
 vgmplayer.js
 vgm_runtime.js
+ym2203.js
+ym2203audioengine.js
 ym2612-worklet.js
 ym2612-worklet-nuked.js
 ym2612.js

@@ -22,13 +22,18 @@ JS_FILES="
 genesisaudioengine.js
 segapsg.js
 tfi.js
+vgm_file.js
 vgm-output-worklet.js
 vgmplayer.js
+ym2203.js
+ym2203audioengine.js
 ym2612.js
 ym2612vgm.js
 "
 
 GENERATED_FILES="
+ym2203_wasm.js
+ym2203_wasm.wasm
 ym2612_wasm.js
 ym2612_wasm.wasm
 nuked_opn2_wasm.js

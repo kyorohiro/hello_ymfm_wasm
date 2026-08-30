@@ -308,6 +308,9 @@ export class VgmPlayer {
       steps += 1;
       const event = this.parser.playStep({
         ym2612: { writeRegister: (register, value, port = 0) => this.engine.writeYm2612(port, register, value) },
+        ym2203: typeof this.engine.writeYm2203 === "function"
+          ? { writeRegister: (register, value) => this.engine.writeYm2203(register, value) }
+          : undefined,
         psg: { write: (value) => this.engine.writePsg(value) },
       });
       this.processedEvents += 1;
@@ -316,6 +319,9 @@ export class VgmPlayer {
         this.parser.consumeWait(
           {
             ym2612: { writeRegister: (register, value, port = 0) => this.engine.writeYm2612(port, register, value) },
+            ym2203: typeof this.engine.writeYm2203 === "function"
+              ? { writeRegister: (register, value) => this.engine.writeYm2203(register, value) }
+              : undefined,
             psg: { write: (value) => this.engine.writePsg(value) },
           },
           event.samples,

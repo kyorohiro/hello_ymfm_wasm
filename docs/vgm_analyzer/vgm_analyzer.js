@@ -4,7 +4,9 @@ import ym2612ModuleFactory from "../generated/ym2612_wasm.js";
 import nukedOpn2ModuleFactory from "../generated/nuked_opn2_wasm.js";
 import segaPsgModuleFactory from "../generated/segapsg_wasm.js";
 import { createGenesisAudioEngine } from "../js/genesisaudioengine.js";
+import { createYm2203AudioEngine } from "../js/ym2203audioengine.js";
 import { VgmPlayer } from "../js/vgmplayer.js";
+import { maybeDecodeVgmFile } from "../js/vgm_file.js";
 
 // Experimental: ?engine=nuked swaps the YM2612 core for Nuked-OPN2
 // (https://github.com/nukeykt/Nuked-OPN2) instead of the default ymfm
@@ -93,6 +95,8 @@ let lastStreamingStatusAt = 0;
 let lastParseInfo = null;
 let masterVolume = 1;
 let playbackPreparePromise = null;
+let currentChipKind = "ym2612";
+let activeYm2203ModuleFactoryPromise = null;
 
 const NOTE_NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
 const NOTEISH_REFERENCE_MIDI = 62;
@@ -844,6 +848,7 @@ function renderHeader(header) {
     `ident: ${header.ident}`,
     `version: ${formatHex(header.version, 8)}`,
     `ym2612Clock: ${header.ym2612Clock}`,
+    `ym2203Clock: ${header.ym2203Clock}`,
     `totalSamples: ${header.totalSamples}`,
     `loopOffset: ${formatHex(header.loopOffset, 8)}`,
     `loopSamples: ${header.loopSamples}`,
@@ -851,9 +856,27 @@ function renderHeader(header) {
   ].join("\n");
 }
 
+function detectPlaybackChipKind(header) {
+  if (header.ym2203Clock > 0 && header.ym2612Clock === 0) {
+    return "ym2203";
+  }
+  return "ym2612";
+}
+
+async function loadYm2203ModuleFactory() {
+  if (!activeYm2203ModuleFactoryPromise) {
+    activeYm2203ModuleFactoryPromise = import("../generated/ym2203_wasm.js")
+      .then((module) => module.default);
+  }
+  return await activeYm2203ModuleFactoryPromise;
+}
+
 function renderEvent(event, index) {
   if (event.type === "ym2612-write") {
     return `${String(index).padStart(3, " ")}: write port=${event.port} register=${formatHex(event.register)} value=${formatHex(event.value)}`;
+  }
+  if (event.type === "ym2203-write") {
+    return `${String(index).padStart(3, " ")}: ym2203 write register=${formatHex(event.register)} value=${formatHex(event.value)}`;
   }
   if (event.type === "psg-write") {
     return `${String(index).padStart(3, " ")}: psg write value=${formatHex(event.value)}`;
@@ -1486,19 +1509,37 @@ function downloadSnapshotTfiZip() {
   setStatus("Exported snapshot TFI ZIP.");
 }
 
-function looksLikeGzip(buffer) {
-  const bytes = new Uint8Array(buffer, 0, Math.min(buffer.byteLength, 2));
-  return bytes.length >= 2 && bytes[0] === 0x1f && bytes[1] === 0x8b;
-}
-
 async function ensurePlaybackReady(vgm) {
+  const nextChipKind = detectPlaybackChipKind(vgm.header);
+
+  if (engine && currentChipKind !== nextChipKind) {
+    stopActiveStream();
+    if (typeof engine.dispose === "function") {
+      engine.dispose();
+    }
+    engine = null;
+    player = null;
+    baseEngineWriteYm2612 = null;
+    workletModuleReady = false;
+  }
+
+  currentChipKind = nextChipKind;
+
   if (!engine) {
-    engine = await createGenesisAudioEngine({
-      ym2612ModuleFactory: activeYm2612ModuleFactory,
-      segaPsgModuleFactory,
-      masterVolume,
-    });
-    baseEngineWriteYm2612 = engine.writeYm2612.bind(engine);
+    if (currentChipKind === "ym2203") {
+      engine = await createYm2203AudioEngine({
+        ym2203ModuleFactory: await loadYm2203ModuleFactory(),
+        ym2203Clock: vgm.header.ym2203Clock,
+        masterVolume,
+      });
+    } else {
+      engine = await createGenesisAudioEngine({
+        ym2612ModuleFactory: activeYm2612ModuleFactory,
+        segaPsgModuleFactory,
+        masterVolume,
+      });
+      baseEngineWriteYm2612 = engine.writeYm2612.bind(engine);
+    }
   }
   if (typeof engine.setPsgMuted === "function") {
     engine.setPsgMuted(psgMuted);
@@ -1582,14 +1623,15 @@ function updatePlaybackButtons(state = {}) {
   const hasBuffer = Boolean(currentBuffer);
   const playing = Boolean(state.playing);
   const paused = Boolean(state.paused);
+  const supportsYm2612Tools = currentChipKind === "ym2612";
   playButton.disabled = !hasBuffer || playing;
   replayButton.disabled = !hasBuffer;
   pauseButton.disabled = !playing;
   resumeButton.disabled = !paused;
   stopButton.disabled = !hasBuffer || (!playing && !paused);
   exportParseInfoButton.disabled = !hasBuffer || !lastParseInfo;
-  exportSnapshotTfiButton.disabled = !hasBuffer;
-  exportSnapshotButton.disabled = !hasBuffer;
+  exportSnapshotTfiButton.disabled = !hasBuffer || !supportsYm2612Tools;
+  exportSnapshotButton.disabled = !hasBuffer || !supportsYm2612Tools;
 }
 
 function buildParseInfo(buffer, fileName, vgm) {
@@ -1685,23 +1727,25 @@ async function playCurrentVgm() {
     renderNoteishGrid();
     engine.reset();
     lastYm2612DacEnable = 0x00;
-    engine.writeYm2612 = (port, register, value) => {
-      applyYm2612WriteToMonitor(port, register, value);
-      if (port === 0 && register === 0x2b) {
-        lastYm2612DacEnable = value;
-      }
-      if (port === 0 && register === 0x2a && channelMonitor[5].muted) {
-        // CH6 mute should suppress DAC sample writes too.
-        baseEngineWriteYm2612(port, register, 0x80);
-        return;
-      }
-      if (register >= 0xb4 && register <= 0xb6) {
-        const channelIndex = (port === 0 ? 0 : 3) + (register - 0xb4);
-        baseEngineWriteYm2612(port, register, effectivePanValue(channelMonitor[channelIndex]));
-        return;
-      }
-      baseEngineWriteYm2612(port, register, value);
-    };
+    if (currentChipKind === "ym2612" && baseEngineWriteYm2612) {
+      engine.writeYm2612 = (port, register, value) => {
+        applyYm2612WriteToMonitor(port, register, value);
+        if (port === 0 && register === 0x2b) {
+          lastYm2612DacEnable = value;
+        }
+        if (port === 0 && register === 0x2a && channelMonitor[5].muted) {
+          // CH6 mute should suppress DAC sample writes too.
+          baseEngineWriteYm2612(port, register, 0x80);
+          return;
+        }
+        if (register >= 0xb4 && register <= 0xb6) {
+          const channelIndex = (port === 0 ? 0 : 3) + (register - 0xb4);
+          baseEngineWriteYm2612(port, register, effectivePanValue(channelMonitor[channelIndex]));
+          return;
+        }
+        baseEngineWriteYm2612(port, register, value);
+      };
+    }
     player.reset();
     player.setLoopEnabled(loopCheckbox.checked);
     player.play();
@@ -1867,7 +1911,7 @@ function startScriptProcessorStream() {
 async function handleFile(file) {
   setStatus(`Loading ${file.name}...`);
   lastLoadedFileName = file.name;
-  const buffer = await file.arrayBuffer();
+  const rawBuffer = await file.arrayBuffer();
   currentBuffer = null;
   lastParseInfo = null;
   playButton.disabled = true;
@@ -1876,14 +1920,18 @@ async function handleFile(file) {
   requestNoteishRender();
   renderNoteishGrid();
 
-  if (looksLikeGzip(buffer)) {
-    headerOutput.textContent = "Compressed VGZ is not supported yet in this demo.";
-    commandsOutput.textContent = "Please use a plain .vgm file for now.";
+  let buffer;
+  try {
+    buffer = await maybeDecodeVgmFile(rawBuffer);
+  } catch (error) {
+    console.error(error);
+    headerOutput.textContent = "Failed to decode VGM/VGZ file.";
+    commandsOutput.textContent = error.message;
     pauseButton.disabled = true;
     resumeButton.disabled = true;
     replayButton.disabled = true;
     stopButton.disabled = true;
-    setStatus("VGZ is not supported yet.");
+    setStatus(`Error: ${error.message}`);
     return;
   }
 
@@ -1902,6 +1950,7 @@ async function handleFile(file) {
     return;
   }
 
+  currentChipKind = detectPlaybackChipKind(vgm.header);
   headerOutput.textContent = renderHeader(vgm.header);
   commandUsageOutput.textContent = renderCommandUsage(vgm.analyzeCommandUsage());
   commandUsageOutput.textContent += "\n";
@@ -1927,10 +1976,13 @@ async function handleFile(file) {
   commandsOutput.textContent = events.join("\n");
   currentBuffer = buffer;
   lastParseInfo = buildParseInfo(buffer, file.name, vgm);
-  extractedTfiPatches = extractTfiPatchesFromVgm(buffer);
+  extractedTfiPatches =
+    currentChipKind === "ym2612"
+      ? extractTfiPatchesFromVgm(buffer)
+      : [];
   exportAllTfiButton.disabled = extractedTfiPatches.length === 0;
   updatePlaybackButtons({});
-  setStatus(`Parsed ${file.name}.`);
+  setStatus(`Parsed ${file.name} (${currentChipKind.toUpperCase()}).`);
 }
 
 fileInput.addEventListener("change", async (event) => {
