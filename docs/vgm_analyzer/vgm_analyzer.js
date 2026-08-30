@@ -5,6 +5,7 @@ import nukedOpn2ModuleFactory from "../generated/nuked_opn2_wasm.js";
 import segaPsgModuleFactory from "../generated/segapsg_wasm.js";
 import { createGenesisAudioEngine } from "../js/genesisaudioengine.js";
 import { createYm2203AudioEngine } from "../js/ym2203audioengine.js";
+import { createYm2608AudioEngine } from "../js/ym2608audioengine.js";
 import { VgmPlayer } from "../js/vgmplayer.js";
 import { maybeDecodeVgmFile } from "../js/vgm_file.js";
 
@@ -27,6 +28,7 @@ if (useNukedEngine) {
 }
 
 const fileInput = document.getElementById("fileInput");
+const ym2608RomInput = document.getElementById("ym2608RomInput");
 const playButton = document.getElementById("playButton");
 const pauseButton = document.getElementById("pauseButton");
 const resumeButton = document.getElementById("resumeButton");
@@ -78,6 +80,7 @@ let currentChipKind = "ym2612";
 let channelMonitor = createChannelMonitorState();
 let baseEngineWriteYm2612 = null;
 let baseEngineWriteYm2203 = null;
+let baseEngineWriteYm2608 = null;
 let channelMonitorRenderTimer = null;
 let noteishRenderTimer = null;
 let channelMonitorDirty = false;
@@ -98,6 +101,9 @@ let lastParseInfo = null;
 let masterVolume = 1;
 let playbackPreparePromise = null;
 let activeYm2203ModuleFactoryPromise = null;
+let activeYm2608ModuleFactoryPromise = null;
+let ym2608AdpcmARomBytes = null;
+let ym2608AdpcmARomName = "";
 
 const NOTE_NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
 const NOTEISH_REFERENCE_MIDI = 62;
@@ -143,6 +149,12 @@ const CRC32_TABLE = (() => {
 
 function setStatus(message) {
   status.textContent = message;
+}
+
+function currentStatusSuffix() {
+  return ym2608AdpcmARomBytes
+    ? ` YM2608 ADPCM-A ROM: ${ym2608AdpcmARomName || `${ym2608AdpcmARomBytes.length} bytes`}.`
+    : "";
 }
 
 function updateMasterVolumeUi() {
@@ -792,15 +804,22 @@ function toggleChannelMute(channelIndex) {
     return;
   }
 
-  if (currentChipKind === "ym2612" && baseEngineWriteYm2612) {
+  if ((currentChipKind === "ym2612" || currentChipKind === "ym2608")) {
     const port = channelIndex < 3 ? 0 : 1;
     const register = 0xb4 + (channelIndex % 3);
-    baseEngineWriteYm2612(port, register, effectivePanValue(channel));
+    const writePort = currentChipKind === "ym2612"
+      ? baseEngineWriteYm2612
+      : baseEngineWriteYm2608;
+    if (typeof writePort === "function") {
+      writePort(port, register, effectivePanValue(channel));
+    }
 
-    // YM2612 DAC is driven through 0x2A/0x2B and does not show up as a normal
-    // per-channel operator write sequence. In analyzer UI, CH6 mute should also
-    // silence the DAC path because DAC playback reuses channel 6 on the real chip.
-    if (channelIndex === 5 && channel.muted && (lastYm2612DacEnable & 0x80) !== 0) {
+    if (
+      currentChipKind === "ym2612" &&
+      channelIndex === 5 &&
+      channel.muted &&
+      (lastYm2612DacEnable & 0x80) !== 0
+    ) {
       baseEngineWriteYm2612(0, 0x2a, 0x80);
     }
   } else if (currentChipKind === "ym2203" && baseEngineWriteYm2203 && channel.muted) {
@@ -839,7 +858,7 @@ function updateMonoMix() {
 }
 
 function allAudibleSourcesMuted() {
-  if (currentChipKind === "ym2203") {
+  if (currentChipKind === "ym2203" || currentChipKind === "ym2608") {
     return channelMonitor.length > 0 &&
       channelMonitor.every((channel) => channel.muted);
   }
@@ -864,6 +883,7 @@ function renderHeader(header) {
     `version: ${formatHex(header.version, 8)}`,
     `ym2612Clock: ${header.ym2612Clock}`,
     `ym2203Clock: ${header.ym2203Clock}`,
+    `ym2608Clock: ${header.ym2608Clock}`,
     `totalSamples: ${header.totalSamples}`,
     `loopOffset: ${formatHex(header.loopOffset, 8)}`,
     `loopSamples: ${header.loopSamples}`,
@@ -874,6 +894,13 @@ function renderHeader(header) {
 function detectPlaybackChipKind(header) {
   if (header.ym2203Clock > 0 && header.ym2612Clock === 0) {
     return "ym2203";
+  }
+  if (
+    header.ym2608Clock > 0 &&
+    header.ym2612Clock === 0 &&
+    header.ym2203Clock === 0
+  ) {
+    return "ym2608";
   }
   return "ym2612";
 }
@@ -1032,12 +1059,23 @@ async function loadYm2203ModuleFactory() {
   return await activeYm2203ModuleFactoryPromise;
 }
 
+async function loadYm2608ModuleFactory() {
+  if (!activeYm2608ModuleFactoryPromise) {
+    activeYm2608ModuleFactoryPromise = import("../generated/ym2608_wasm.js")
+      .then((module) => module.default);
+  }
+  return await activeYm2608ModuleFactoryPromise;
+}
+
 function renderEvent(event, index) {
   if (event.type === "ym2612-write") {
     return `${String(index).padStart(3, " ")}: write port=${event.port} register=${formatHex(event.register)} value=${formatHex(event.value)}`;
   }
   if (event.type === "ym2203-write") {
     return `${String(index).padStart(3, " ")}: ym2203 write register=${formatHex(event.register)} value=${formatHex(event.value)}`;
+  }
+  if (event.type === "ym2608-write") {
+    return `${String(index).padStart(3, " ")}: ym2608 port=${event.port} register=${formatHex(event.register)} value=${formatHex(event.value)}`;
   }
   if (event.type === "psg-write") {
     return `${String(index).padStart(3, " ")}: psg write value=${formatHex(event.value)}`;
@@ -1349,7 +1387,10 @@ function extractTfiPatchesFromVgm(buffer) {
     if (event.type === "end") {
       break;
     }
-    if (event.type !== "ym2612-write") {
+    if (
+      event.type !== "ym2612-write" &&
+      event.type !== "ym2608-write"
+    ) {
       continue;
     }
 
@@ -1682,6 +1723,7 @@ async function ensurePlaybackReady(vgm) {
     player = null;
     baseEngineWriteYm2612 = null;
     baseEngineWriteYm2203 = null;
+    baseEngineWriteYm2608 = null;
     workletModuleReady = false;
   }
 
@@ -1695,6 +1737,16 @@ async function ensurePlaybackReady(vgm) {
         masterVolume,
       });
       baseEngineWriteYm2203 = engine.writeYm2203.bind(engine);
+    } else if (currentChipKind === "ym2608") {
+      engine = await createYm2608AudioEngine({
+        ym2608ModuleFactory: await loadYm2608ModuleFactory(),
+        ym2608Clock: vgm.header.ym2608Clock,
+        masterVolume,
+      });
+      if (ym2608AdpcmARomBytes) {
+        engine.loadAdpcmARom(ym2608AdpcmARomBytes);
+      }
+      baseEngineWriteYm2608 = engine.writeYm2608.bind(engine);
     } else {
       engine = await createGenesisAudioEngine({
         ym2612ModuleFactory: activeYm2612ModuleFactory,
@@ -1756,7 +1808,7 @@ function beginPreparePlayback(vgm) {
   playbackPreparePromise =
     ensurePlaybackReady(vgm)
       .then(() => {
-        setStatus("Audio ready.");
+        setStatus(`Audio ready.${currentStatusSuffix()}`);
       })
       .catch((error) => {
         console.error(error);
@@ -1889,24 +1941,41 @@ async function playCurrentVgm() {
     renderNoteishGrid();
     engine.reset();
     lastYm2612DacEnable = 0x00;
-    if (currentChipKind === "ym2612" && baseEngineWriteYm2612) {
-      engine.writeYm2612 = (port, register, value) => {
-        applyYm2612WriteToMonitor(port, register, value);
-        if (port === 0 && register === 0x2b) {
-          lastYm2612DacEnable = value;
+    if ((currentChipKind === "ym2612" || currentChipKind === "ym2608")) {
+      const baseWriteFm = currentChipKind === "ym2612"
+        ? baseEngineWriteYm2612
+        : baseEngineWriteYm2608;
+      if (typeof baseWriteFm === "function") {
+        if (currentChipKind === "ym2612") {
+          engine.writeYm2612 = (port, register, value) => {
+            applyYm2612WriteToMonitor(port, register, value);
+            if (port === 0 && register === 0x2b) {
+              lastYm2612DacEnable = value;
+            }
+            if (port === 0 && register === 0x2a && channelMonitor[5].muted) {
+              // CH6 mute should suppress DAC sample writes too.
+              baseEngineWriteYm2612(port, register, 0x80);
+              return;
+            }
+            if (register >= 0xb4 && register <= 0xb6) {
+              const channelIndex = (port === 0 ? 0 : 3) + (register - 0xb4);
+              baseEngineWriteYm2612(port, register, effectivePanValue(channelMonitor[channelIndex]));
+              return;
+            }
+            baseEngineWriteYm2612(port, register, value);
+          };
+        } else {
+          engine.writeYm2608 = (port, register, value) => {
+            applyYm2612WriteToMonitor(port, register, value);
+            if (register >= 0xb4 && register <= 0xb6) {
+              const channelIndex = (port === 0 ? 0 : 3) + (register - 0xb4);
+              baseEngineWriteYm2608(port, register, effectivePanValue(channelMonitor[channelIndex]));
+              return;
+            }
+            baseEngineWriteYm2608(port, register, value);
+          };
         }
-        if (port === 0 && register === 0x2a && channelMonitor[5].muted) {
-          // CH6 mute should suppress DAC sample writes too.
-          baseEngineWriteYm2612(port, register, 0x80);
-          return;
-        }
-        if (register >= 0xb4 && register <= 0xb6) {
-          const channelIndex = (port === 0 ? 0 : 3) + (register - 0xb4);
-          baseEngineWriteYm2612(port, register, effectivePanValue(channelMonitor[channelIndex]));
-          return;
-        }
-        baseEngineWriteYm2612(port, register, value);
-      };
+      }
     } else if (currentChipKind === "ym2203" && baseEngineWriteYm2203) {
       engine.writeYm2203 = (register, value) => {
         applyYm2203WriteToMonitor(register, value);
@@ -1929,7 +1998,7 @@ async function playCurrentVgm() {
     }
 
     updatePlaybackButtons(player.stats());
-    setStatus(`Streaming VGM at ${sampleRate} Hz...`);
+      setStatus(`Streaming VGM at ${sampleRate} Hz...${currentStatusSuffix()}`);
   } catch (error) {
     console.error(error);
     setStatus(`Error: ${error.message}`);
@@ -2053,7 +2122,7 @@ async function startWorkletStream(sampleRate) {
       if (autoExportSnapshotCheckbox.checked) {
         downloadSnapshot("ended");
       }
-      setStatus("Ready.");
+      setStatus(`Ready.${currentStatusSuffix()}`);
       return;
     }
     scheduleWorkletPump();
@@ -2081,7 +2150,7 @@ function startScriptProcessorStream() {
       if (autoExportSnapshotCheckbox.checked) {
         downloadSnapshot("ended");
       }
-      setStatus("Ready.");
+      setStatus(`Ready.${currentStatusSuffix()}`);
     }
   };
   node.connect(audioContext.destination);
@@ -2140,6 +2209,7 @@ async function handleFile(file) {
     player = null;
     baseEngineWriteYm2612 = null;
     baseEngineWriteYm2203 = null;
+    baseEngineWriteYm2608 = null;
     workletModuleReady = false;
   }
   currentChipKind = nextChipKind;
@@ -2175,7 +2245,20 @@ async function handleFile(file) {
   extractedTfiPatches = extractTfiPatchesFromVgm(buffer);
   exportAllTfiButton.disabled = extractedTfiPatches.length === 0;
   updatePlaybackButtons({});
-  setStatus(`Parsed ${file.name} (${currentChipKind.toUpperCase()}).`);
+  setStatus(`Parsed ${file.name} (${currentChipKind.toUpperCase()}).${currentStatusSuffix()}`);
+}
+
+async function handleYm2608RomFile(file) {
+  setStatus(`Loading ${file.name}...`);
+  const buffer = await file.arrayBuffer();
+  ym2608AdpcmARomBytes = new Uint8Array(buffer);
+  ym2608AdpcmARomName = file.name;
+
+  if (currentChipKind === "ym2608" && engine && typeof engine.loadAdpcmARom === "function") {
+    engine.loadAdpcmARom(ym2608AdpcmARomBytes);
+  }
+
+  setStatus(`Loaded YM2608 ADPCM-A ROM: ${file.name} (${ym2608AdpcmARomBytes.length} bytes).`);
 }
 
 fileInput.addEventListener("change", async (event) => {
@@ -2184,6 +2267,14 @@ fileInput.addEventListener("change", async (event) => {
     return;
   }
   await handleFile(file);
+});
+
+ym2608RomInput?.addEventListener("change", async (event) => {
+  const file = event.target.files && event.target.files[0];
+  if (!file) {
+    return;
+  }
+  await handleYm2608RomFile(file);
 });
 
 playButton.addEventListener("click", async () => {

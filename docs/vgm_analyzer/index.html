@@ -79,6 +79,27 @@
         margin: 0 0 18px;
       }
 
+      .file-input-group {
+        display: inline-flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+
+      .file-input-label {
+        font-size: 0.78rem;
+        font-weight: 700;
+        color: #5b4a33;
+      }
+
+      .file-input-group.is-optional {
+        opacity: 0.76;
+      }
+
+      .file-input-group.is-optional .file-input-label {
+        font-size: 0.72rem;
+        font-weight: 600;
+      }
+
       .volume-control {
         display: inline-flex;
         align-items: center;
@@ -513,7 +534,14 @@
       <section class="panel">
         <h1 id="pageTitle">Tetorica FM2612 VGM Analyzer</h1>
         <div class="actions">
-          <input id="fileInput" type="file" accept=".vgm,.vgz,application/octet-stream">
+          <label class="file-input-group">
+            <span class="file-input-label">VGM / VGZ File</span>
+            <input id="fileInput" type="file" accept=".vgm,.vgz,application/octet-stream">
+          </label>
+          <label class="file-input-group is-optional">
+            <span class="file-input-label">Optional: ym2608_adpcm_rom.bin</span>
+            <input id="ym2608RomInput" type="file" accept=".bin,.rom,application/octet-stream">
+          </label>
           <button id="playButton" type="button" disabled>Play VGM</button>
           <button id="pauseButton" type="button" disabled>Pause</button>
           <button id="resumeButton" type="button" disabled>Resume</button>

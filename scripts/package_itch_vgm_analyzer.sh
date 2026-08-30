@@ -27,6 +27,8 @@ vgm-output-worklet.js
 vgmplayer.js
 ym2203.js
 ym2203audioengine.js
+ym2608.js
+ym2608audioengine.js
 ym2612.js
 ym2612vgm.js
 "
@@ -34,6 +36,8 @@ ym2612vgm.js
 GENERATED_FILES="
 ym2203_wasm.js
 ym2203_wasm.wasm
+ym2608_wasm.js
+ym2608_wasm.wasm
 ym2612_wasm.js
 ym2612_wasm.wasm
 nuked_opn2_wasm.js

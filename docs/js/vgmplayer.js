@@ -18,6 +18,8 @@ import { Ym2612VGM } from "./ym2612vgm.js";
  *   reset(): void,
  *   sampleRate(): number,
  *   writeYm2612(port: number, register: number, value: number): void,
+ *   writeYm2608?(port: number, register: number, value: number): void,
+ *   writeYm2203?(register: number, value: number): void,
  *   writePsg(value: number): void,
  *   processFrames(frames: number): { left: Float32Array, right: Float32Array },
  * }} VgmPlaybackEngine
@@ -312,9 +314,13 @@ export class VgmPlayer {
       const ym2203Target = typeof this.engine.writeYm2203 === "function"
         ? { writeRegister: (register, value) => this.engine.writeYm2203(register, value) }
         : undefined;
+      const ym2608Target = typeof this.engine.writeYm2608 === "function"
+        ? { writeRegister: (register, value, port = 0) => this.engine.writeYm2608(port, register, value) }
+        : undefined;
       const event = this.parser.playStep({
         ym2612: ym2612Target,
         ym2203: ym2203Target,
+        ym2608: ym2608Target,
         psg: { write: (value) => this.engine.writePsg(value) },
       });
       this.processedEvents += 1;
@@ -324,6 +330,7 @@ export class VgmPlayer {
           {
             ym2612: ym2612Target,
             ym2203: ym2203Target,
+            ym2608: ym2608Target,
             psg: { write: (value) => this.engine.writePsg(value) },
           },
           event.samples,

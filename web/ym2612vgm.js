@@ -4,6 +4,7 @@
  * @property {number} version
  * @property {number} ym2612Clock
  * @property {number} ym2203Clock
+ * @property {number} ym2608Clock
  * @property {number} totalSamples
  * @property {number} loopOffset
  * @property {number} loopSamples
@@ -26,6 +27,14 @@
  */
 
 /**
+ * @typedef {Object} Ym2608WriteEvent
+ * @property {"ym2608-write"} type
+ * @property {0|1} port
+ * @property {number} register
+ * @property {number} value
+ */
+
+/**
  * @typedef {Object} SegaPsgWriteEvent
  * @property {"psg-write"} type
  * @property {number} value
@@ -43,7 +52,7 @@
  */
 
 /**
- * @typedef {Ym2612WriteEvent | Ym2203WriteEvent | SegaPsgWriteEvent | Ym2612WaitEvent | Ym2612EndEvent} Ym2612VgmEvent
+ * @typedef {Ym2612WriteEvent | Ym2203WriteEvent | Ym2608WriteEvent | SegaPsgWriteEvent | Ym2612WaitEvent | Ym2612EndEvent} Ym2612VgmEvent
  */
 
 /**
@@ -156,6 +165,7 @@ export class Ym2612VGM {
     const version = readUint32LE(this.view, 0x08);
     const ym2612Clock = readUint32LE(this.view, 0x2c);
     const ym2203Clock = readUint32LE(this.view, 0x44);
+    const ym2608Clock = readUint32LE(this.view, 0x48);
     const totalSamples = readUint32LE(this.view, 0x18);
     const loopOffsetRaw = readUint32LE(this.view, 0x1c);
     const loopSamples = readUint32LE(this.view, 0x20);
@@ -172,6 +182,7 @@ export class Ym2612VGM {
       version,
       ym2612Clock,
       ym2203Clock,
+      ym2608Clock,
       totalSamples,
       loopOffset,
       loopSamples,
@@ -368,6 +379,20 @@ export class Ym2612VGM {
         this.position += 3;
         return { type: "ym2203-write", register, value };
       }
+      case 0x56: {
+        this.#ensureAvailable(3);
+        const register = this.bytes[this.position + 1];
+        const value = this.bytes[this.position + 2];
+        this.position += 3;
+        return { type: "ym2608-write", port: 0, register, value };
+      }
+      case 0x57: {
+        this.#ensureAvailable(3);
+        const register = this.bytes[this.position + 1];
+        const value = this.bytes[this.position + 2];
+        this.position += 3;
+        return { type: "ym2608-write", port: 1, register, value };
+      }
       case 0x67: {
         this.#ensureAvailable(7);
         if (this.bytes[this.position + 1] !== 0x66) {
@@ -445,6 +470,7 @@ export class Ym2612VGM {
    * @param {{
    *   ym2612?: { writeRegister(register: number, value: number, port?: number): void },
    *   ym2203?: { writeRegister(register: number, value: number): void },
+   *   ym2608?: { writeRegister(register: number, value: number, port?: number): void },
    *   psg?: { write(data: number): void },
    *   writeRegister?: (register: number, value: number, port?: number) => void
    * }} targets
@@ -469,6 +495,12 @@ export class Ym2612VGM {
       const ym2203 = targets.ym2203;
       if (ym2203 && typeof ym2203.writeRegister === "function") {
         ym2203.writeRegister(event.register, event.value);
+      }
+    }
+    if (event.type === "ym2608-write") {
+      const ym2608 = targets.ym2608;
+      if (ym2608 && typeof ym2608.writeRegister === "function") {
+        ym2608.writeRegister(event.register, event.value, event.port);
       }
     }
     if (event.type === "psg-write") {
@@ -572,6 +604,9 @@ export class Ym2612VGM {
     }
     if (command === 0x55) {
       return `cmd=0x55 ym2203 register=${formatHexNumber(this.bytes[position + 1])} value=${formatHexNumber(this.bytes[position + 2])}`;
+    }
+    if (command === 0x56 || command === 0x57) {
+      return `cmd=0x${command.toString(16)} ym2608 port=${command === 0x56 ? 0 : 1} register=${formatHexNumber(this.bytes[position + 1])} value=${formatHexNumber(this.bytes[position + 2])}`;
     }
     if (command === 0x61) {
       return `cmd=0x61 wait=${readUint16LE(this.view, position + 1)}`;
@@ -970,6 +1005,9 @@ function rawCommandLength(bytes, view, position) {
     return 3;
   }
   if (command === 0x55) {
+    return 3;
+  }
+  if (command === 0x56 || command === 0x57) {
     return 3;
   }
   if (command === 0x61) {

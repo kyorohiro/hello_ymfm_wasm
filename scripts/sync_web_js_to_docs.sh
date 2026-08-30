@@ -34,6 +34,8 @@ vgmplayer.js
 vgm_runtime.js
 ym2203.js
 ym2203audioengine.js
+ym2608.js
+ym2608audioengine.js
 ym2612-worklet.js
 ym2612-worklet-nuked.js
 ym2612.js
