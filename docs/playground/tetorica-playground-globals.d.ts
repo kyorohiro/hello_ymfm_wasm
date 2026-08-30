@@ -197,6 +197,8 @@ type PlaygroundStreamAPI = {
   list(): string[];
 };
 
+type PlaygroundContext = Record<string, unknown>;
+
 /** Options for `fx.gain()`. */
 type GainFXOptions = {
   /** Linear gain amount. Default is 1. */
@@ -514,7 +516,7 @@ type AnyFXUnit =
   | SlicerFXUnit
   | ParallelFXUnit;
 
-declare const fm: {
+type FMApi = {
   /** Reset YM2612 state. */
   reset(): void;
   /** Apply one preset to one YM2612 channel. */
@@ -561,7 +563,9 @@ declare const fm: {
   rawWrite(port: number, register: number, value: number): void;
 };
 
-declare const psg: {
+declare const fm: FMApi;
+
+type PSGApi = {
   /** Send one raw Sega PSG (SN76489-compatible) register byte. */
   write(value: number): void;
   /** Reset only the Sega PSG state. */
@@ -569,6 +573,8 @@ declare const psg: {
   /** Reset both PSG and YM2612 state. */
   resetAll(): void;
 };
+
+declare const psg: PSGApi;
 
 /** Write one PSG tone channel period + attenuation pair. Channel is 0..2. */
 declare function psgTone(channel: number, period: number, attenuation?: number): void;
@@ -578,7 +584,7 @@ declare function psgNoise(mode: number, attenuation?: number): void;
 declare const sample: PlaygroundSampleAPI;
 declare const stream: PlaygroundStreamAPI;
 
-declare const fx: {
+type FXApi = {
   /** Create a gain effect unit. */
   gain(options?: GainFXOptions): GainFXUnit;
   /** Create a simple 3-band EQ effect unit. */
@@ -623,10 +629,12 @@ declare const fx: {
   clear(): void;
 };
 
+declare const fx: FXApi;
+
 /** Create or replace a named repeating live loop. */
 declare function liveLoop(name: string, fn: () => Promise<void> | void): void;
 /** Prepare shared live state once and reuse it across runs. */
-declare function livePrepare(name: string, fn: (context: { fx: typeof fx; fm: typeof fm; psg: typeof psg; sample: PlaygroundSampleAPI; stream: PlaygroundStreamAPI; log: (...args: unknown[]) => void }) => Promise<any> | any): Promise<any>;
+declare function livePrepare(name: string, fn: (context: { fx: FXApi; fm: FMApi; psg: PSGApi; sample: PlaygroundSampleAPI; stream: PlaygroundStreamAPI; log: (...args: unknown[]) => void }) => Promise<any> | any): Promise<any>;
 /** Play one note through the current synth setup. */
 declare function play(note: string, options?: PlaygroundPlayOptions): Promise<void>;
 /** Wait for a number of seconds. */
@@ -674,49 +682,58 @@ declare function stopAll(): void;
 declare function setMasterVolume(volume: number): number;
 /** Read the current browser-side master output volume. */
 declare function getMasterVolume(): number;
+/** Write one line into the playground console area. */
+declare function log(...args: unknown[]): void;
 /** Browser timer helper available in playground examples. */
 declare function setInterval(handler: () => void, timeout?: number): number;
 /** Browser timer helper available in playground examples. */
 declare function clearInterval(id: number): void;
 
-declare const pg: {
+type PlaygroundAPI = {
   /** Low-level YM2612 synth API. */
-  fm: typeof fm;
+  fm: FMApi;
   /** Master FX helper API. */
-  fx: typeof fx;
+  fx: FXApi;
   /** Raw Sega PSG API, mixed into the same output as fm. */
-  psg: typeof psg;
+  psg: PSGApi;
+  /** Shared mutable object that survives re-runs in the same playground session. */
+  context: PlaygroundContext;
   /** Preloaded sample playback API. */
   sample: PlaygroundSampleAPI;
   /** Streamed BGM-style playback API. */
   stream: PlaygroundStreamAPI;
-  psgTone: typeof psgTone;
-  psgNoise: typeof psgNoise;
+  psgTone: (channel: number, period: number, attenuation?: number) => void;
+  psgNoise: (mode: number, attenuation?: number) => void;
   /** Built-in preset table. */
   presets: typeof FM_PRESETS;
   /** Play one note through the current synth setup. */
   play(note: string, options?: PlaygroundPlayOptions): Promise<void>;
-  sleep: typeof sleep;
-  beat: typeof beat;
-  nextBeat: typeof nextBeat;
-  tween: typeof tween;
-  setBpm: typeof setBpm;
-  liveLoop: typeof liveLoop;
-  livePrepare: typeof livePrepare;
-  scale: typeof scale;
-  chord: typeof chord;
-  noteToBlockFnum: typeof noteToBlockFnum;
-  noteLerp: typeof noteLerp;
-  choose: typeof choose;
-  cycle: typeof cycle;
-  rand: typeof rand;
-  rrange: typeof rrange;
-  randInt: typeof randInt;
-  lerp: typeof lerp;
-  stopLoop: typeof stopLoop;
-  stopAllLoops: typeof stopAllLoops;
-  stopAll: typeof stopAll;
-  setMasterVolume: typeof setMasterVolume;
-  getMasterVolume: typeof getMasterVolume;
+  sleep: (seconds: number) => Promise<void>;
+  beat: (beats?: number) => Promise<void>;
+  nextBeat: () => Promise<void>;
+  tween: (seconds: number, fn: (t: number) => void | Promise<void>) => Promise<void>;
+  setBpm: (bpm: number) => void;
+  liveLoop: (name: string, fn: () => Promise<void> | void) => void;
+  livePrepare: (name: string, fn: (context: { fx: FXApi; fm: FMApi; psg: PSGApi; sample: PlaygroundSampleAPI; stream: PlaygroundStreamAPI; log: (...args: unknown[]) => void }) => Promise<any> | any) => Promise<any>;
+  scale: (root: string, name: string, octaves?: number) => string[];
+  chord: (root: string, name: "major" | "minor" | "major7" | "minor7" | "dominant7") => string[];
+  noteToBlockFnum: (note: string) => { block: number; fnum: number };
+  noteLerp: (from: string, to: string, t: number) => { block: number; fnum: number };
+  choose: <T>(values: T[]) => T;
+  cycle: {
+    <T>(values: T[]): T;
+    <T>(key: string, values: T[]): T;
+  };
+  rand: () => number;
+  rrange: (min: number, max: number) => number;
+  randInt: (min: number, max: number) => number;
+  lerp: (a: number, b: number, t: number) => number;
+  stopLoop: (name: string) => void;
+  stopAllLoops: () => void;
+  stopAll: () => void;
+  setMasterVolume: (volume: number) => number;
+  getMasterVolume: () => number;
   log: (...args: unknown[]) => void;
 };
+
+declare var pg: PlaygroundAPI;

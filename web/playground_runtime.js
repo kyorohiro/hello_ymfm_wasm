@@ -86,6 +86,7 @@ export function createPlaygroundRuntime(
     clockStartTime: null,
     liveLoops: new Map(),
     livePrepared: new Map(),
+    context: {},
   };
   const preparedFxUnits =
     new WeakSet();
@@ -691,6 +692,7 @@ export function createPlaygroundRuntime(
       fm,
       fx,
       psg,
+      context: runtime.context,
       sample: sampleApi,
       stream: streamApi,
       psgTone,
@@ -1060,6 +1062,9 @@ export function createPlaygroundRuntime(
     },
     get stream() {
       return megaDrive.stream;
+    },
+    get context() {
+      return runtime.context;
     },
   };
 }

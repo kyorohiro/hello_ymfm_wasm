@@ -780,6 +780,40 @@ stopLiveLoop()
 stopAllLoops()
 yield detection
 
+Error behavior should be read in two layers:
+
+1. Top-level Run / re-evaluation error
+
+If newly entered code fails before `commitLiveLoops()` is reached,
+the previous committed live loops should keep running.
+
+This includes cases such as:
+
+- syntax error
+- top-level runtime error during the new Run
+
+In other words, a failed re-run must not immediately destroy the last stable
+liveLoop set.
+
+2. Error inside an already running liveLoop iteration
+
+If a loop callback itself throws after it has already been committed and started,
+that loop may stop and show an error.
+
+This is different from "new Run failed, keep the previous version".
+
+The first rule is about preserving the previously committed live-loop set when
+new code fails to install.
+The second rule is about an active loop instance crashing during playback.
+
+The current implementation direction is:
+
+- failed new Run -> keep previous committed loops
+- active loop iteration throws -> stop that loop and report error
+
+If later we want "rollback to previous callback version for the same loop name",
+that should be treated as a separate feature, not assumed by default.
+
 その後Schedulerを改善する。
 
 ⸻

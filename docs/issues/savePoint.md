@@ -78,6 +78,19 @@ Last updated: 2026-08-24
 - Also observed:
   - `Unchecked runtime.lastError: Could not establish connection...`
   - this does not appear to come from this repository code
+
+## liveLoop error behavior reminder
+
+- As of 2026-08-30, the intended distinction is:
+  - top-level Run failure before `commitLiveLoops()`
+    - keep the previously committed live loops running
+  - error inside an already running liveLoop iteration
+    - keep the loop alive
+    - if the newly swapped callback fails, roll back to the last stable callback
+    - if the current stable callback itself fails, report the error and retry
+- This distinction should stay explicit in future Playground refactors.
+- "Rollback to previous callback version for the same loop name" is now part of
+  the live performance behavior when a hot-swapped callback fails.
   - likely browser extension / external page script noise
 - For now:
   - treat both as investigation notes, not confirmed repo bugs

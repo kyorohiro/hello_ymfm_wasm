@@ -265,37 +265,185 @@ const YM2612_REGISTER_CANDIDATES = [
   { value: "0xb4", description: "Pan / AMS / PMS base" },
 ];
 
-function createMonacoTopLevelItems(
-  monaco
+function createPropertySuggestions(
+  names,
+  kind,
+  range,
+  documentation
 ) {
-  const kind =
-    monaco.languages
-      .CompletionItemKind;
-  const snippet =
-    monaco.languages
-      .CompletionItemInsertTextRule
-      .InsertAsSnippet;
+  return names.map((name) => ({
+    label: name,
+    kind: kind.Property,
+    insertText: name,
+    documentation:
+      typeof documentation ===
+      "function"
+        ? documentation(name)
+        : documentation,
+    range,
+  }));
+}
 
-  return [
-    {
-      label: "liveLoop",
-      kind: kind.Snippet,
-      insertText:
-        'liveLoop("${1:name}", async () => {\n  await play("${2:E4}", { channel: ${3:0}, duration: ${4:0.08} });\n  await beat(${5:0.5});\n});',
-      insertTextRules: snippet,
-      documentation:
-        "Create a repeating named live loop.",
-    },
-    {
-      label: "livePrepare",
-      kind: kind.Snippet,
-      insertText:
-        'const ${1:mainFx} = await livePrepare("${2:main-fx}", async ({ fx, fm, log }) => {\n  ${3:const filter = fx.filter({ type: "lowpass", cutoff: 1200, q: 1.1 });}\n  return { ${4:filter} };\n});',
-      insertTextRules: snippet,
-      documentation:
-        "Prepare and reuse live state across runs.",
-    },
-  ];
+function createMethodSuggestions(
+  names,
+  kind,
+  range,
+  documentation
+) {
+  return names.map((name) => ({
+    label: name,
+    kind: kind.Method,
+    insertText: name,
+    documentation:
+      typeof documentation ===
+      "function"
+        ? documentation(name)
+        : documentation,
+    range,
+  }));
+}
+
+function createKnownObjectSuggestions(
+  objectName,
+  kind,
+  range
+) {
+  if (objectName === "pg") {
+    return [
+      ...createPropertySuggestions(
+        [
+          "fm",
+          "fx",
+          "psg",
+          "context",
+          "sample",
+          "stream",
+          "presets",
+          "CH1",
+          "CH2",
+          "CH3",
+          "CH4",
+          "CH5",
+          "CH6",
+          "OP1",
+          "OP2",
+          "OP3",
+          "OP4",
+        ],
+        kind,
+        range,
+        "Playground helper property."
+      ),
+      ...createMethodSuggestions(
+        [
+          "play",
+          "sleep",
+          "beat",
+          "nextBeat",
+          "tween",
+          "setBpm",
+          "liveLoop",
+          "livePrepare",
+          "scale",
+          "chord",
+          "noteToBlockFnum",
+          "noteLerp",
+          "choose",
+          "cycle",
+          "rand",
+          "rrange",
+          "randInt",
+          "lerp",
+          "psgTone",
+          "psgNoise",
+          "stopLoop",
+          "stopAllLoops",
+          "stopAll",
+          "setMasterVolume",
+          "getMasterVolume",
+          "log",
+        ],
+        kind,
+        range,
+        "Playground helper method."
+      ),
+    ];
+  }
+
+  if (objectName === "sample") {
+    return [
+      ...createMethodSuggestions(
+        [
+          "load",
+          "play",
+          "stop",
+          "stopAll",
+          "unload",
+          "isLoaded",
+          "get",
+          "list",
+        ],
+        kind,
+        range,
+        "Sample helper method."
+      ),
+    ];
+  }
+
+  if (objectName === "stream") {
+    return [
+      ...createMethodSuggestions(
+        [
+          "load",
+          "play",
+          "pause",
+          "stop",
+          "unload",
+          "isLoaded",
+          "get",
+          "list",
+        ],
+        kind,
+        range,
+        "Stream helper method."
+      ),
+    ];
+  }
+
+  if (objectName === "fx") {
+    return [
+      ...createMethodSuggestions(
+        [
+          "gain",
+          "eq",
+          "radioTone",
+          "lofi",
+          "stereoWidth",
+          "bitcrusher",
+          "filter",
+          "delay",
+          "distortion",
+          "compressor",
+          "gate",
+          "wobble",
+          "flanger",
+          "chorus",
+          "tapeSaturation",
+          "reverb",
+          "branch",
+          "parallel",
+          "slicer",
+          "setChain",
+          "clear",
+        ],
+        kind,
+        range,
+        "FX helper method."
+      ),
+    ];
+  }
+
+  return null;
 }
 
 function extractFxUnitVariables(
@@ -1299,10 +1447,6 @@ export function registerMonacoCompletions(
     monaco.languages
       .CompletionItemInsertTextRule
       .InsertAsSnippet;
-  const topLevelItems =
-    createMonacoTopLevelItems(
-      monaco
-    );
 
   monaco.languages.registerCompletionItemProvider(
     "javascript",
@@ -1353,6 +1497,10 @@ export function registerMonacoCompletions(
               position.column,
           });
         const suggestions = [];
+        const propertyAccessMatch =
+          /(?:^|[^\w$])([A-Za-z_$][\w$]*)\.$/.exec(
+            linePrefix
+          );
 
         const effectUnitVariables =
           analysis.effectUnitVariables;
@@ -1677,14 +1825,10 @@ export function registerMonacoCompletions(
         }
 
         if (
+          propertyAccessMatch &&
           suggestions.length === 0
         ) {
-          for (const item of topLevelItems) {
-            suggestions.push({
-              ...item,
-              range,
-            });
-          }
+          return null;
         }
 
         return {

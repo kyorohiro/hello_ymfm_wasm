@@ -136,25 +136,80 @@ export function createPlaygroundLive(
     }
   }
 
+  function isRunStoppedError(error) {
+    return (
+      error instanceof Error &&
+      error.message === "Run stopped"
+    );
+  }
+
+  function waitForLoopRetry() {
+    return new Promise((resolve) => {
+      setTimeout(resolve, 16);
+    });
+  }
+
   async function runLiveLoop(state) {
     try {
       while (!state.stopped) {
-        state.currentFn =
-          state.nextFn;
         state.cursorBeat = Math.max(
           state.cursorBeat,
           currentBeat()
         );
         state.cycleCallIndex = 0;
-        setCurrentLoopContext(state);
-        await state.currentFn();
+
+        // Apply a newly committed callback at loop boundaries.
+        // If that callback throws, we can roll back to the last
+        // stable version instead of killing the loop.
+        if (
+          state.currentFn !==
+          state.nextFn
+        ) {
+          state.currentFn =
+            state.nextFn;
+        }
+
+        try {
+          setCurrentLoopContext(state);
+          await state.currentFn();
+          state.stableFn =
+            state.currentFn;
+          state.hasStableRun = true;
+        } catch (error) {
+          if (
+            isRunStoppedError(error)
+          ) {
+            throw error;
+          }
+
+          console.error(error);
+          logLine(
+            `[liveLoop:${state.name}] ${error?.stack ?? String(error)}`
+          );
+
+          if (
+            state.hasStableRun &&
+            state.currentFn !==
+              state.stableFn
+          ) {
+            state.currentFn =
+              state.stableFn;
+            state.nextFn =
+              state.stableFn;
+            setStatus(
+              `Loop error: ${state.name} (rolled back)`
+            );
+          } else {
+            setStatus(
+              `Loop error: ${state.name} (retrying)`
+            );
+          }
+
+          await waitForLoopRetry();
+        }
       }
     } catch (error) {
-      if (
-        error instanceof Error &&
-        error.message ===
-          "Run stopped"
-      ) {
+      if (isRunStoppedError(error)) {
         // no-op
       } else {
         console.error(error);
@@ -217,6 +272,8 @@ export function createPlaygroundLive(
         name,
         currentFn: fn,
         nextFn: fn,
+        stableFn: fn,
+        hasStableRun: false,
         stopped: false,
         runToken: 1,
         cursorBeat: currentBeat(),
