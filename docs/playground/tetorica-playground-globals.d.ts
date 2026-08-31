@@ -209,11 +209,15 @@ type PlaygroundNoiseOptions = {
   type?: PlaygroundNoiseType;
   gain?: number;
   pan?: number;
+  attack?: number;
+  release?: number;
   autoStart?: boolean;
 };
 
 type PlaygroundNoiseVoice = {
   type: PlaygroundNoiseType;
+  attack: AudioParamControl;
+  release: AudioParamControl;
   gain: AudioParamControl;
   pan: AudioParamControl;
   filter: {

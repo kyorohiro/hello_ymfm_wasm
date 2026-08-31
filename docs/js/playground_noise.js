@@ -335,6 +335,27 @@ function createNoiseVoice(
     typeof audioContext
       .createStereoPanner ===
     "function";
+  const attackSeconds =
+    clampNumber(
+      options.attack,
+      0,
+      0,
+      60
+    );
+  const releaseSeconds =
+    clampNumber(
+      options.release,
+      0,
+      0,
+      60
+    );
+  const targetGain =
+    clampNumber(
+      options.gain,
+      0.3,
+      0,
+      8
+    );
   const gainNode =
     audioContext.createGain();
   const filterNode =
@@ -349,12 +370,9 @@ function createNoiseVoice(
     1600;
   filterNode.Q.value = 0.2;
   gainNode.gain.value =
-    clampNumber(
-      options.gain,
-      0.3,
-      0,
-      8
-    );
+    attackSeconds > 0
+      ? 0
+      : targetGain;
 
   if (stereoPannerSupported) {
     pannerNode.pan.value =
@@ -378,6 +396,68 @@ function createNoiseVoice(
     type: normalizeNoiseType(
       options.type
     ),
+    attack:
+      createAudioParamControl(
+        audioContext,
+        {
+          get value() {
+            return voice.attackSeconds;
+          },
+          setValueAtTime(value) {
+            voice.attackSeconds =
+              clampNumber(
+                value,
+                voice.attackSeconds,
+                0,
+                60
+              );
+          },
+          cancelScheduledValues() {},
+          linearRampToValueAtTime(
+            value
+          ) {
+            voice.attackSeconds =
+              clampNumber(
+                value,
+                voice.attackSeconds,
+                0,
+                60
+              );
+          },
+        },
+        { min: 0, max: 60 }
+      ),
+    release:
+      createAudioParamControl(
+        audioContext,
+        {
+          get value() {
+            return voice.releaseSeconds;
+          },
+          setValueAtTime(value) {
+            voice.releaseSeconds =
+              clampNumber(
+                value,
+                voice.releaseSeconds,
+                0,
+                60
+              );
+          },
+          cancelScheduledValues() {},
+          linearRampToValueAtTime(
+            value
+          ) {
+            voice.releaseSeconds =
+              clampNumber(
+                value,
+                voice.releaseSeconds,
+                0,
+                60
+              );
+          },
+        },
+        { min: 0, max: 60 }
+      ),
     gain:
       createAudioParamControl(
         audioContext,
@@ -468,6 +548,27 @@ function createNoiseVoice(
         { once: true }
       );
       voice.source = source;
+      const now =
+        audioContext.currentTime;
+      gainNode.gain.cancelScheduledValues(
+        now
+      );
+      if (voice.attackSeconds > 0) {
+        gainNode.gain.setValueAtTime(
+          0,
+          now
+        );
+        gainNode.gain.linearRampToValueAtTime(
+          voice.gain.get(),
+          now +
+            voice.attackSeconds
+        );
+      } else {
+        gainNode.gain.setValueAtTime(
+          voice.gain.get(),
+          now
+        );
+      }
       source.start();
     },
     stop() {
@@ -476,10 +577,28 @@ function createNoiseVoice(
       }
       const source = voice.source;
       voice.source = null;
-      source.stop();
-      try {
-        source.disconnect();
-      } catch {}
+      const stopNow =
+        audioContext.currentTime;
+      gainNode.gain.cancelScheduledValues(
+        stopNow
+      );
+      gainNode.gain.setValueAtTime(
+        gainNode.gain.value,
+        stopNow
+      );
+      if (voice.releaseSeconds > 0) {
+        gainNode.gain.linearRampToValueAtTime(
+          0,
+          stopNow +
+            voice.releaseSeconds
+        );
+        source.stop(
+          stopNow +
+            voice.releaseSeconds
+        );
+      } else {
+        source.stop();
+      }
     },
     dispose() {
       if (voice.disposed) {
@@ -500,6 +619,8 @@ function createNoiseVoice(
     },
     source: null,
     disposed: false,
+    attackSeconds,
+    releaseSeconds,
   };
 
   activeVoices.add(voice);
