@@ -231,3 +231,20 @@ Current leaning:
 - global `noise` is fine
 - also expose `pg.noise`
 - `autoStart: true` by default may feel best for beginners
+
+## TODO
+
+- add short public docs for `noise.create(...)`
+- add Monaco-friendly JSDoc for `noise` and `control(...)`
+- tune `Noise Ocean`
+- tune `Wind Noise`
+- tune `Rain Noise`
+- tune `Radio Noise Bed`
+- tune `Campfire Air`
+- add a short-lived `create -> control -> dispose` waves example
+- consider per-parameter slide options:
+  - `gainSlide`
+  - `panSlide`
+  - `cutoffSlide`
+  - `qSlide`
+- evaluate whether real `AudioWorklet` noise generation is needed later
