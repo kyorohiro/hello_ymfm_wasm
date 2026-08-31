@@ -201,7 +201,9 @@ type PlaygroundStreamAPI = {
 type PlaygroundNoiseType =
   | "white"
   | "pink"
-  | "brown";
+  | "brown"
+  | "gray"
+  | "clip";
 
 type PlaygroundNoiseOptions = {
   type?: PlaygroundNoiseType;

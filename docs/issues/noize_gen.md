@@ -109,6 +109,14 @@ Later:
 4. `gray`
 5. `clip`
 
+Current status:
+
+- `white`
+- `pink`
+- `brown`
+- `gray`
+- `clip`
+
 The first version does not need:
 
 - Sonic Pi compatible `control(voice, ...)`

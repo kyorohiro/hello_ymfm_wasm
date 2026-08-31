@@ -4,6 +4,8 @@ const NOISE_TYPES = new Set([
   "white",
   "pink",
   "brown",
+  "gray",
+  "clip",
 ]);
 
 const NOISE_BUFFER_CACHE =
@@ -195,6 +197,46 @@ function fillBrownNoise(
   }
 }
 
+function fillGrayNoise(
+  channelData
+) {
+  let previous = 0;
+
+  for (
+    let index = 0;
+    index < channelData.length;
+    index += 1
+  ) {
+    const white =
+      Math.random() * 2 - 1;
+    const current =
+      white - previous * 0.985;
+    previous = white;
+    channelData[index] =
+      current * 0.75;
+  }
+}
+
+function fillClipNoise(
+  channelData
+) {
+  for (
+    let index = 0;
+    index < channelData.length;
+    index += 1
+  ) {
+    const white =
+      Math.random() * 2 - 1;
+    if (white > 0.2) {
+      channelData[index] = 1;
+    } else if (white < -0.2) {
+      channelData[index] = -1;
+    } else {
+      channelData[index] = 0;
+    }
+  }
+}
+
 function createNoiseBuffer(
   audioContext,
   type
@@ -238,6 +280,14 @@ function createNoiseBuffer(
     normalizedType === "brown"
   ) {
     fillBrownNoise(channelData);
+  } else if (
+    normalizedType === "gray"
+  ) {
+    fillGrayNoise(channelData);
+  } else if (
+    normalizedType === "clip"
+  ) {
+    fillClipNoise(channelData);
   } else {
     fillWhiteNoise(channelData);
   }
