@@ -26,6 +26,7 @@ import {
 import {
   buildCommonControls as buildCommonControlsView,
   buildHeader,
+  createParamControl,
   buildOperatorControls as buildOperatorControlsView,
   displayOperatorToApiOperator,
 } from "./synth_controls.js";
@@ -126,6 +127,18 @@ const paramHelpTitle =
   document.getElementById("paramHelpTitle");
 const paramHelpText =
   document.getElementById("paramHelpText");
+const channel3SpecialMonitor =
+  document.getElementById(
+    "channel3SpecialMonitor"
+  );
+const channel3SpecialModePill =
+  document.getElementById(
+    "channel3SpecialModePill"
+  );
+const channel3SpecialControlsRoot =
+  document.getElementById(
+    "channel3SpecialControls"
+  );
 const envelopeCanvas =
   document.getElementById("envelopeCanvas");
 const envelopeContext =
@@ -161,6 +174,7 @@ const COMMON_PARAM_DEFS = [
   { id: "pms", label: "PMS", min: 0, max: 7, step: 1, category: "modulation", help: "LFO pitch depth for the channel." },
   { id: "lfoEnabled", label: "LFO", min: 0, max: 1, step: 1, booleanMode: true, category: "modulation", help: "Enable chip LFO." },
   { id: "lfoFrequency", label: "LFOF", min: 0, max: 7, step: 1, category: "modulation", help: "Chip LFO speed." },
+  { id: "dacEnabled", label: "DAC", min: 0, max: 1, step: 1, booleanMode: true, category: "modulation", help: "Enable YM2612 channel 6 DAC / PCM path." },
 ];
 
 const VOICE_COUNT = 6;
@@ -189,6 +203,17 @@ const commonState = {
   pms: 0,
   lfoEnabled: false,
   lfoFrequency: 0,
+  dacEnabled: false,
+};
+
+const channel3SpecialState = {
+  enabled: false,
+  frequencies: [
+    { block: 4, fnum: 553 },
+    { block: 4, fnum: 553 },
+    { block: 4, fnum: 553 },
+    { block: 4, fnum: 553 },
+  ],
 };
 
 let currentPresetName =
@@ -254,6 +279,8 @@ const operatorStates = {
 
 const commonControls = new Map();
 const operatorControls = new Map();
+const channel3SpecialControls =
+  new Map();
 const envelopeDescription =
   document.getElementById(
     "envelopeDescription"
@@ -1172,6 +1199,35 @@ function applyPatchToVoices() {
     commonState.lfoEnabled,
     commonState.lfoFrequency
   );
+  synth.setDacEnabled(
+    commonState.dacEnabled
+  );
+  synth.setChannel3SpecialMode(
+    channel3SpecialState.enabled
+  );
+
+  for (
+    let operator = 0;
+    operator < 4;
+    operator += 1
+  ) {
+    const frequency =
+      channel3SpecialState
+        .frequencies[operator];
+    synth.setChannel3SpecialFrequency(
+      operator,
+      frequency.block,
+      frequency.fnum
+    );
+  }
+
+  synth.setFrequency(
+    2,
+    channel3SpecialState
+      .frequencies[3].block,
+    channel3SpecialState
+      .frequencies[3].fnum
+  );
 
   for (
     let channel = 0;
@@ -1237,6 +1293,8 @@ function syncControlsFromState() {
     presetSelect.value =
       currentPresetName;
   }
+
+  syncChannel3SpecialControls();
 }
 
 function updateTfiSummary() {
@@ -1350,11 +1408,11 @@ function buildCurrentPresetState() {
       frequency:
         commonState.lfoFrequency,
     },
-    operators: {},
+    operators: [],
   };
 
   for (const operator of OPERATOR_NUMBERS) {
-    preset.operators[operator] = {
+    preset.operators[operator - 1] = {
       ...operatorStates[operator],
     };
   }
@@ -1374,22 +1432,26 @@ function buildLooperPatchSnapshot() {
       commonState.lfoEnabled,
     lfoFrequency:
       commonState.lfoFrequency,
-    left: true,
-    right: true,
-    operators: {
-      1: {
+    dacEnabled:
+      commonState.dacEnabled,
+    pan: {
+      left: true,
+      right: true,
+    },
+    operators: [
+      {
         ...operatorStates[1],
       },
-      2: {
+      {
         ...operatorStates[2],
       },
-      3: {
+      {
         ...operatorStates[3],
       },
-      4: {
+      {
         ...operatorStates[4],
       },
-    },
+    ],
   };
 }
 
@@ -1405,10 +1467,13 @@ function applyLooperPatchToChannel(
     patch.lfoEnabled ?? false,
     patch.lfoFrequency ?? 0
   );
+  loopSynth.setDacEnabled(
+    patch.dacEnabled ?? false
+  );
 
   for (const operator of OPERATOR_NUMBERS) {
     const operatorPatch =
-      patch.operators?.[operator];
+      patch.operators?.[operator - 1];
 
     if (!operatorPatch) {
       continue;
@@ -1435,8 +1500,8 @@ function applyLooperPatchToChannel(
 
   loopSynth.setPan(
     channel,
-    patch.left ?? true,
-    patch.right ?? true,
+    patch.pan?.left ?? true,
+    patch.pan?.right ?? true,
     patch.ams ?? 0,
     patch.pms ?? 0
   );
@@ -1495,6 +1560,225 @@ function drawEnvelopeGuide() {
   });
 }
 
+function renderChannel3SpecialMonitor() {
+  if (
+    !channel3SpecialMonitor ||
+    !channel3SpecialModePill
+  ) {
+    return;
+  }
+
+  if (!synth) {
+    channel3SpecialModePill.textContent =
+      "Special Off";
+    return;
+  }
+
+  const state = synth.getState?.();
+  const channel =
+    state?.channels?.[2];
+  const specialFrequencies =
+    channel?.specialFrequencies ??
+    [];
+  const specialMode =
+    channel?.specialMode === true;
+
+  channel3SpecialModePill.textContent =
+    specialMode
+      ? "Special On"
+      : "Special Off";
+
+  for (
+    let operator = 0;
+    operator < 4;
+    operator += 1
+  ) {
+    const entry =
+      specialFrequencies[operator] ??
+      {
+        block: 0,
+        fnum: 0,
+      };
+    channel3SpecialState
+      .frequencies[operator] = {
+      block: entry.block,
+      fnum: entry.fnum,
+    };
+  }
+  syncChannel3SpecialControls();
+}
+
+function syncChannel3SpecialControls() {
+  channel3SpecialControls
+    .get("enabled")
+    ?.updateVisual(
+      channel3SpecialState.enabled
+    );
+
+  for (
+    let operator = 0;
+    operator < 4;
+    operator += 1
+  ) {
+    const frequency =
+      channel3SpecialState
+        .frequencies[operator];
+    channel3SpecialControls
+      .get(`op${operator}-block`)
+      ?.updateVisual(
+        frequency.block
+      );
+    channel3SpecialControls
+      .get(`op${operator}-fnum`)
+      ?.updateVisual(
+        frequency.fnum
+      );
+  }
+}
+
+function buildChannel3SpecialControls() {
+  if (!channel3SpecialControlsRoot) {
+    return;
+  }
+
+  channel3SpecialControlsRoot.innerHTML =
+    "";
+  channel3SpecialControlsRoot.className =
+    "special-control-strip";
+
+  const modeControl =
+    createParamControl({
+      label: "MODE",
+      min: 0,
+      max: 1,
+      step: 1,
+      booleanMode: true,
+      category: "modulation",
+      value:
+        channel3SpecialState.enabled,
+      onChange: (nextValue) => {
+        channel3SpecialState.enabled =
+          Boolean(nextValue);
+        if (synth) {
+          synth.setChannel3SpecialMode(
+            channel3SpecialState.enabled
+          );
+        }
+        renderChannel3SpecialMonitor();
+      },
+    });
+  channel3SpecialControls.set(
+    "enabled",
+    modeControl
+  );
+  channel3SpecialControlsRoot.appendChild(
+    modeControl.element
+  );
+
+  for (
+    let operator = 0;
+    operator < 4;
+    operator += 1
+  ) {
+    const blockControl =
+      createParamControl({
+        label: `OP${operator + 1}B`,
+        min: 0,
+        max: 7,
+        step: 1,
+        category: "pitch",
+        value:
+          channel3SpecialState
+            .frequencies[operator]
+            .block,
+        onChange: (nextValue) => {
+          channel3SpecialState
+            .frequencies[operator]
+            .block = nextValue;
+          if (synth) {
+            synth.setChannel3SpecialFrequency(
+              operator,
+              channel3SpecialState
+                .frequencies[operator]
+                .block,
+              channel3SpecialState
+                .frequencies[operator]
+                .fnum
+            );
+            if (operator === 3) {
+              synth.setFrequency(
+                2,
+                channel3SpecialState
+                  .frequencies[operator]
+                  .block,
+                channel3SpecialState
+                  .frequencies[operator]
+                  .fnum
+              );
+            }
+          }
+          renderChannel3SpecialMonitor();
+        },
+      });
+    channel3SpecialControls.set(
+      `op${operator}-block`,
+      blockControl
+    );
+
+    const fnumControl =
+      createParamControl({
+        label: `OP${operator + 1}F`,
+        min: 0,
+        max: 2047,
+        step: 1,
+        category: "pitch",
+        value:
+          channel3SpecialState
+            .frequencies[operator]
+            .fnum,
+        onChange: (nextValue) => {
+          channel3SpecialState
+            .frequencies[operator]
+            .fnum = nextValue;
+          if (synth) {
+            synth.setChannel3SpecialFrequency(
+              operator,
+              channel3SpecialState
+                .frequencies[operator]
+                .block,
+              channel3SpecialState
+                .frequencies[operator]
+                .fnum
+            );
+            if (operator === 3) {
+              synth.setFrequency(
+                2,
+                channel3SpecialState
+                  .frequencies[operator]
+                  .block,
+                channel3SpecialState
+                  .frequencies[operator]
+                  .fnum
+              );
+            }
+          }
+          renderChannel3SpecialMonitor();
+        },
+      });
+    channel3SpecialControls.set(
+      `op${operator}-fnum`,
+      fnumControl
+    );
+
+    channel3SpecialControlsRoot.appendChild(
+      blockControl.element
+    );
+    channel3SpecialControlsRoot.appendChild(
+      fnumControl.element
+    );
+  }
+}
+
 function toggleParamHelp(config) {
   if (
     !paramHelp ||
@@ -1521,6 +1805,7 @@ function toggleParamHelp(config) {
 
 function updateVisuals() {
   drawEnvelopeGuide();
+  renderChannel3SpecialMonitor();
   if (looper?.running) {
     updateLooperUi();
   }
@@ -2260,6 +2545,7 @@ buildCommonHeader();
 buildCommonControls();
 buildOperatorHeader();
 buildOperatorControls();
+buildChannel3SpecialControls();
 buildPresetSelect();
 buildTfiLoader();
 buildTfiExporter();

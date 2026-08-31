@@ -353,6 +353,53 @@
         gap: 7px;
       }
 
+      .special-monitor {
+        display: grid;
+        gap: 6px;
+        margin-top: 8px;
+        padding: 8px;
+        border-radius: 14px;
+        border: 1px solid rgba(110, 122, 146, 0.28);
+        background: rgba(255, 255, 255, 0.38);
+      }
+
+      .special-monitor-head {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: nowrap;
+      }
+
+      .special-monitor-title {
+        font-size: 0.72rem;
+        font-weight: 800;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        color: rgba(31, 27, 22, 0.72);
+      }
+
+      #channel3SpecialModePill {
+        flex: 0 0 auto;
+      }
+
+      .special-control-strip {
+        display: grid;
+        grid-template-columns: repeat(9, minmax(0, 1fr));
+        gap: 4px;
+      }
+
+      #channel3SpecialControls .param-control {
+        min-width: 0;
+        width: 100%;
+        padding: 2px 4px;
+      }
+
+      @media (max-width: 720px) {
+        .special-control-strip {
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+      }
+
       .common-control-cell {
         display: grid;
         gap: 3px;
@@ -1046,10 +1093,17 @@
                   <div class="param-strip" id="commonControls"></div>
                 </div>
                 <div class="operator-header-row">
-                  <div class="operator-header-spacer operator-corner-label">OP</div>
+                <div class="operator-header-spacer operator-corner-label">OP</div>
                   <div class="operator-header-strip" id="operatorHeader"></div>
                 </div>
                 <div id="operatorControls" class="operator-stack"></div>
+                <div id="channel3SpecialMonitor" class="special-monitor">
+                  <div class="special-monitor-head">
+                    <span class="special-monitor-title">CH3SP</span>
+                    <span id="channel3SpecialModePill" class="tfi-summary">Special Off</span>
+                  </div>
+                  <div id="channel3SpecialControls" class="operator-stack"></div>
+                </div>
               </div>
               <div id="paramHelp" class="param-help" hidden>
                 <div id="paramHelpTitle" class="param-help-title"></div>

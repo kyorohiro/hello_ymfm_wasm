@@ -346,6 +346,49 @@
         gap: 7px;
       }
 
+      .special-monitor {
+        display: grid;
+        gap: 6px;
+        margin-top: 8px;
+        padding: 8px;
+        border-radius: 14px;
+        border: 1px solid rgba(110, 122, 146, 0.28);
+        background: rgba(255, 255, 255, 0.38);
+      }
+
+      .special-monitor-head {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: nowrap;
+      }
+
+      .special-monitor-title {
+        font-size: 0.72rem;
+        font-weight: 800;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        color: rgba(31, 27, 22, 0.72);
+      }
+
+      .special-control-strip {
+        display: grid;
+        grid-template-columns: repeat(9, minmax(0, 1fr));
+        gap: 4px;
+      }
+
+      #operatorTabSpecialControls .param-control {
+        min-width: 0;
+        width: 100%;
+        padding: 2px 4px;
+      }
+
+      @media (max-width: 720px) {
+        .special-control-strip {
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+      }
+
       .operator-header-row {
         display: grid;
         grid-template-columns: 32px minmax(0, 1fr);

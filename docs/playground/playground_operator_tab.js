@@ -3,6 +3,7 @@ import {
   buildCommonControls,
   buildHeader,
   buildOperatorControls,
+  createParamControl,
   displayOperatorToApiOperator,
 } from "../synth/synth_controls.js";
 
@@ -15,6 +16,7 @@ const COMMON_PARAM_DEFS = [
   { id: "pms", label: "PMS", min: 0, max: 7, step: 1, category: "modulation" },
   { id: "lfoEnabled", label: "LFO", min: 0, max: 1, step: 1, booleanMode: true, category: "modulation" },
   { id: "lfoFrequency", label: "LFOF", min: 0, max: 7, step: 1, category: "modulation" },
+  { id: "dacEnabled", label: "DAC", min: 0, max: 1, step: 1, booleanMode: true, category: "modulation" },
 ];
 const OPERATOR_PARAM_DEFS = [
   { id: "dt", label: "DT", min: 0, max: 7, step: 1, category: "pitch" },
@@ -32,7 +34,12 @@ const OPERATOR_PARAM_DEFS = [
 const GLOBAL_COMMON_STATE = {
   lfoEnabled: false,
   lfoFrequency: 0,
+  dacEnabled: false,
 };
+const DEFAULT_SPECIAL_FREQUENCY = Object.freeze({
+  block: 0,
+  fnum: 0,
+});
 const ALGORITHM_DESCRIPTIONS = [
   'ALGO 0 <span class="op-color-1">OP1</span> -> <span class="op-color-2">OP2</span> -> <span class="op-color-3">OP3</span> -> <span class="op-color-4">OP4</span> -> OUT',
   'ALGO 1 (<span class="op-color-1">OP1</span> + <span class="op-color-2">OP2</span>) -> <span class="op-color-3">OP3</span> -> <span class="op-color-4">OP4</span> -> OUT',
@@ -189,6 +196,18 @@ function cloneChannelState(
   };
 }
 
+function createDefaultChannel3SpecialState() {
+  return {
+    enabled: false,
+    frequencies: {
+      1: { ...DEFAULT_SPECIAL_FREQUENCY },
+      2: { ...DEFAULT_SPECIAL_FREQUENCY },
+      3: { ...DEFAULT_SPECIAL_FREQUENCY },
+      4: { ...DEFAULT_SPECIAL_FREQUENCY },
+    },
+  };
+}
+
 function mergeOperatorParams(
   target,
   params
@@ -242,10 +261,14 @@ export function createPlaygroundOperatorTab(
   let refreshBatchDepth = 0;
   let pendingSelectedRefresh =
     false;
+  let channel3SpecialState =
+    createDefaultChannel3SpecialState();
 
   const commonControls =
     new Map();
   const operatorControls =
+    new Map();
+  const channel3SpecialControls =
     new Map();
 
   root.innerHTML = `
@@ -282,6 +305,13 @@ export function createPlaygroundOperatorTab(
         <div class="operator-header-strip" id="operatorTabOperatorHeader"></div>
       </div>
       <div id="operatorTabOperatorControls" class="operator-stack"></div>
+      <div class="special-monitor">
+        <div class="special-monitor-head">
+          <span class="special-monitor-title">CH3SP</span>
+          <span id="operatorTabSpecialModePill" class="pill">Special Off</span>
+        </div>
+        <div id="operatorTabSpecialControls" class="operator-stack"></div>
+      </div>
     </div>
   `;
 
@@ -316,6 +346,14 @@ export function createPlaygroundOperatorTab(
   const operatorControlsRoot =
     root.querySelector(
       "#operatorTabOperatorControls"
+    );
+  const specialModePill =
+    root.querySelector(
+      "#operatorTabSpecialModePill"
+    );
+  const specialControlsRoot =
+    root.querySelector(
+      "#operatorTabSpecialControls"
     );
   const algorithmDescription =
     root.querySelector(
@@ -416,6 +454,32 @@ export function createPlaygroundOperatorTab(
         globalCommonState.lfoEnabled,
         globalCommonState.lfoFrequency
       );
+      synth.setDacEnabled(
+        globalCommonState.dacEnabled
+      );
+      synth.setChannel3SpecialMode(
+        channel3SpecialState.enabled
+      );
+      for (let operator = 1; operator <= 4; operator += 1) {
+        const entry =
+          channel3SpecialState.frequencies[
+            operator
+          ];
+        synth.setChannel3SpecialFrequency(
+          displayOperatorToApiOperator(
+            operator
+          ),
+          entry.block,
+          entry.fnum
+        );
+        if (operator === 4) {
+          synth.setFrequency(
+            2,
+            entry.block,
+            entry.fnum
+          );
+        }
+      }
       synth.setPan(
         channel,
         state.left,
@@ -474,7 +538,9 @@ export function createPlaygroundOperatorTab(
           config.id ===
             "lfoEnabled" ||
           config.id ===
-            "lfoFrequency"
+            "lfoFrequency" ||
+          config.id ===
+            "dacEnabled"
             ? globalCommonState[
                 config.id
               ]
@@ -500,6 +566,171 @@ export function createPlaygroundOperatorTab(
             ]
           );
       }
+    }
+
+    updateSpecialUi();
+  }
+
+  function updateSpecialUi() {
+    if (!specialModePill) {
+      return;
+    }
+
+    specialModePill.textContent =
+      channel3SpecialState.enabled
+        ? "Special On"
+        : "Special Off";
+    for (const operator of OPERATOR_NUMBERS) {
+      const entry =
+        channel3SpecialState
+          .frequencies[operator] ??
+        DEFAULT_SPECIAL_FREQUENCY;
+      channel3SpecialControls
+        .get(`op${operator}-block`)
+        ?.updateVisual(entry.block);
+      channel3SpecialControls
+        .get(`op${operator}-fnum`)
+        ?.updateVisual(entry.fnum);
+    }
+    channel3SpecialControls
+      .get("enabled")
+      ?.updateVisual(
+        channel3SpecialState.enabled
+      );
+  }
+
+  function buildSpecialControls() {
+    if (!specialControlsRoot) {
+      return;
+    }
+
+    specialControlsRoot.innerHTML = "";
+    specialControlsRoot.className =
+      "special-control-strip";
+
+    const modeControl =
+      createParamControl({
+        label: "MODE",
+        min: 0,
+        max: 1,
+        step: 1,
+        booleanMode: true,
+        category: "modulation",
+        value:
+          channel3SpecialState.enabled,
+        onChange: (nextValue) => {
+          channel3SpecialState.enabled =
+            Boolean(nextValue);
+          synth?.setChannel3SpecialMode(
+            channel3SpecialState.enabled
+          );
+          updateSpecialUi();
+        },
+      });
+    channel3SpecialControls.set(
+      "enabled",
+      modeControl
+    );
+    specialControlsRoot.appendChild(
+      modeControl.element
+    );
+
+    for (const operator of OPERATOR_NUMBERS) {
+      const blockControl =
+        createParamControl({
+          label: `OP${operator}B`,
+          min: 0,
+          max: 7,
+          step: 1,
+          category: "pitch",
+          value:
+            channel3SpecialState
+              .frequencies[operator]
+              .block,
+          onChange: (nextValue) => {
+            channel3SpecialState
+              .frequencies[operator]
+              .block = nextValue;
+            synth?.setChannel3SpecialFrequency(
+              displayOperatorToApiOperator(
+                operator
+              ),
+              channel3SpecialState
+                .frequencies[operator]
+                .block,
+              channel3SpecialState
+                .frequencies[operator]
+                .fnum
+            );
+            if (operator === 4) {
+              synth?.setFrequency(
+                2,
+                channel3SpecialState
+                  .frequencies[operator]
+                  .block,
+                channel3SpecialState
+                  .frequencies[operator]
+                  .fnum
+              );
+            }
+            updateSpecialUi();
+          },
+        });
+      channel3SpecialControls.set(
+        `op${operator}-block`,
+        blockControl
+      );
+      specialControlsRoot.appendChild(
+        blockControl.element
+      );
+
+      const fnumControl =
+        createParamControl({
+          label: `OP${operator}F`,
+          min: 0,
+          max: 2047,
+          step: 1,
+          category: "pitch",
+          value:
+            channel3SpecialState
+              .frequencies[operator]
+              .fnum,
+          onChange: (nextValue) => {
+            channel3SpecialState
+              .frequencies[operator]
+              .fnum = nextValue;
+            synth?.setChannel3SpecialFrequency(
+              displayOperatorToApiOperator(
+                operator
+              ),
+              channel3SpecialState
+                .frequencies[operator]
+                .block,
+              channel3SpecialState
+                .frequencies[operator]
+                .fnum
+            );
+            if (operator === 4) {
+              synth?.setFrequency(
+                2,
+                channel3SpecialState
+                  .frequencies[operator]
+                  .block,
+                channel3SpecialState
+                  .frequencies[operator]
+                  .fnum
+              );
+            }
+            updateSpecialUi();
+          },
+        });
+      channel3SpecialControls.set(
+        `op${operator}-fnum`,
+        fnumControl
+      );
+      specialControlsRoot.appendChild(
+        fnumControl.element
+      );
     }
   }
 
@@ -533,7 +764,8 @@ export function createPlaygroundOperatorTab(
     onChange(id, value) {
       if (
         id === "lfoEnabled" ||
-        id === "lfoFrequency"
+        id === "lfoFrequency" ||
+        id === "dacEnabled"
       ) {
         globalCommonState[id] =
           value;
@@ -550,6 +782,12 @@ export function createPlaygroundOperatorTab(
           synth.setLfo(
             globalCommonState.lfoEnabled,
             globalCommonState.lfoFrequency
+          );
+        } else if (
+          id === "dacEnabled"
+        ) {
+          synth.setDacEnabled(
+            globalCommonState.dacEnabled
           );
         } else {
           applyChannelStateToSynth(
@@ -586,6 +824,8 @@ export function createPlaygroundOperatorTab(
       }
     },
   });
+
+  buildSpecialControls();
 
   for (
     let channel = 0;
@@ -704,6 +944,8 @@ export function createPlaygroundOperatorTab(
             presets
           );
       }
+      channel3SpecialState =
+        createDefaultChannel3SpecialState();
       dirtyChannels.clear();
       updateControlsUi();
     },
@@ -738,6 +980,9 @@ export function createPlaygroundOperatorTab(
             preset.lfo.frequency ??
             globalCommonState.lfoFrequency;
         }
+        globalCommonState.dacEnabled =
+          preset.dacEnabled ??
+          globalCommonState.dacEnabled;
         nextState.ams =
           preset.ams ??
           nextState.ams;
@@ -807,6 +1052,36 @@ export function createPlaygroundOperatorTab(
       globalCommonState.lfoFrequency =
         frequency;
       updateControlsUi();
+    },
+    syncDacEnabled(enabled) {
+      globalCommonState.dacEnabled =
+        enabled;
+      updateControlsUi();
+    },
+    syncChannel3SpecialMode(
+      enabled
+    ) {
+      channel3SpecialState.enabled =
+        enabled;
+      updateSpecialUi();
+    },
+    syncChannel3SpecialFrequency(
+      operator,
+      block,
+      fnum
+    ) {
+      const displayOperator =
+        apiOperatorToDisplayOperator(
+          operator
+        );
+      channel3SpecialState
+        .frequencies[
+        displayOperator
+      ] = {
+        block,
+        fnum,
+      };
+      updateSpecialUi();
     },
     syncPan(
       channel,

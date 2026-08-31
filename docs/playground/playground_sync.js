@@ -70,6 +70,32 @@ export function handleMegaSynthEvent(
     return;
   }
 
+  if (event.type === "setDacEnabled") {
+    operatorTab.syncDacEnabled(
+      event.enabled
+    );
+    return;
+  }
+
+  if (event.type === "setChannel3SpecialMode") {
+    operatorTab.syncChannel3SpecialMode(
+      event.enabled
+    );
+    return;
+  }
+
+  if (
+    event.type ===
+    "setChannel3SpecialFrequency"
+  ) {
+    operatorTab.syncChannel3SpecialFrequency(
+      event.operator,
+      event.block,
+      event.fnum
+    );
+    return;
+  }
+
   if (event.type === "setPan") {
     operatorTab.syncPan(
       event.channel,
