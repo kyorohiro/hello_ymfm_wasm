@@ -46,12 +46,119 @@ export function createPlaygroundLive(
       megaDrive.clearFXChain();
 
     for (const effect of previousChain) {
+      if (preparedFxUnits.has(effect)) {
+        continue;
+      }
+
       if (
-        !preparedFxUnits.has(effect)
+        containsPreparedFxUnit(effect)
       ) {
+        effect?.disconnect?.();
+      } else {
         effect?.dispose?.();
       }
     }
+  }
+
+  function containsPreparedFxUnit(
+    value,
+    visited = new Set()
+  ) {
+    if (
+      !value ||
+      typeof value !== "object"
+    ) {
+      return false;
+    }
+
+    if (visited.has(value)) {
+      return false;
+    }
+    visited.add(value);
+
+    if (
+      preparedFxUnits.has(value)
+    ) {
+      return true;
+    }
+
+    if (Array.isArray(value)) {
+      return value.some((item) =>
+        containsPreparedFxUnit(
+          item,
+          visited
+        )
+      );
+    }
+
+    return Object.values(value).some(
+      (nestedValue) =>
+        containsPreparedFxUnit(
+          nestedValue,
+          visited
+        )
+    );
+  }
+
+  function collectPreparedFxUnits(
+    value,
+    collected,
+    visited = new Set()
+  ) {
+    if (
+      !value ||
+      typeof value !== "object"
+    ) {
+      return;
+    }
+
+    if (visited.has(value)) {
+      return;
+    }
+    visited.add(value);
+
+    if (value.input && value.output) {
+      collected.add(value);
+    }
+
+    if (Array.isArray(value)) {
+      for (const item of value) {
+        collectPreparedFxUnits(
+          item,
+          collected,
+          visited
+        );
+      }
+      return;
+    }
+
+    for (const nestedValue of Object.values(
+      value
+    )) {
+      collectPreparedFxUnits(
+        nestedValue,
+        collected,
+        visited
+      );
+    }
+  }
+
+  function clearPrepared() {
+    const preparedUnits =
+      new Set();
+
+    for (const prepared of runtime.livePrepared.values()) {
+      collectPreparedFxUnits(
+        prepared,
+        preparedUnits
+      );
+    }
+
+    for (const effect of preparedUnits) {
+      effect?.dispose?.();
+    }
+
+    runtime.livePrepared.clear();
   }
 
   async function livePrepare(
@@ -290,6 +397,7 @@ export function createPlaygroundLive(
 
   return {
     clearRunFxChain,
+    clearPrepared,
     livePrepare,
     liveLoop,
     stopLoop,

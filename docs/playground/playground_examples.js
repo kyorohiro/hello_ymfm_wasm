@@ -1676,8 +1676,8 @@ liveLoop("fx-motion", async () => {
 `,
   "parallel-fx": `setBpm(112);
 
-fm.setPreset(CH1, FM_PRESETS["fm-bass"]);
-fm.setPreset(CH2, FM_PRESETS["two-op-bell"]);
+fm.setPreset(CH1, FM_PRESETS["one-op-basic"]);
+fm.setPreset(CH2, FM_PRESETS["one-op-flute"]);
 
 const layeredFx = await livePrepare("parallel-fx-chain", async ({ fx }) => {
   const dryFilter = fx.filter({

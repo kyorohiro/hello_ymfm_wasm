@@ -1046,6 +1046,8 @@ export function createPlaygroundRuntime(
     liveApi.stopAllLoops();
     stopAllAudio();
     liveApi.clearRunFxChain();
+    liveApi.clearPrepared();
+    runtime.context = {};
     megaDrive.stopRecordingPlayback?.();
     setPlaybackState("stopped");
     emitStatus("Stopped.");
