@@ -42,6 +42,7 @@ playground_clock.js
 playground_execution.js
 playground_live.js
 playground_music.js
+playground_noise.js
 playground_runtime.js
 playground_sync.js
 segapsg.js
