@@ -273,6 +273,15 @@ function createChannelMonitorState() {
     lastSequenceNote: null,
     muted: channelMuteStates[index],
     b4Value: 0xc0,
+    specialMode: false,
+    specialFrequencies: {
+      1: createFrequencyChangeState(),
+      2: createFrequencyChangeState(),
+      3: createFrequencyChangeState(),
+      4: createFrequencyChangeState(),
+    },
+    dacEnabled: false,
+    dacValue: 0,
     changedAt: {
       keyOn: 0,
       pan: 0,
@@ -280,6 +289,9 @@ function createChannelMonitorState() {
       feedback: 0,
       block: 0,
       fnum: 0,
+      specialMode: 0,
+      dacEnabled: 0,
+      dacValue: 0,
     },
     operators: {
       1: { dt: 0, multi: 1, tl: 127, rs: 0, ar: 0, am: 0, d1r: 0, d2r: 0, sl: 0, rr: 15, ssg: 0, changedAt: createOperatorChangeState() },
@@ -288,6 +300,17 @@ function createChannelMonitorState() {
       4: { dt: 0, multi: 1, tl: 127, rs: 0, ar: 0, am: 0, d1r: 0, d2r: 0, sl: 0, rr: 15, ssg: 0, changedAt: createOperatorChangeState() },
     },
   }));
+}
+
+function createFrequencyChangeState() {
+  return {
+    block: 0,
+    fnum: 0,
+    changedAt: {
+      block: 0,
+      fnum: 0,
+    },
+  };
 }
 
 function createOperatorChangeState() {
@@ -329,6 +352,11 @@ function hasRecentChannelChanges() {
   for (const channel of channelMonitor) {
     for (const value of Object.values(channel.changedAt)) {
       if (changeAgeOpacity(value) > 0) {
+        return true;
+      }
+    }
+    for (const frequency of Object.values(channel.specialFrequencies || {})) {
+      if (changeAgeOpacity(frequency.changedAt?.block) > 0 || changeAgeOpacity(frequency.changedAt?.fnum) > 0) {
         return true;
       }
     }
@@ -390,6 +418,12 @@ function renderChannelMonitor() {
     const panChip = currentChipKind === "ym2612"
       ? renderChannelChip("PAN", pan, channel.changedAt.pan, "166 214 148")
       : "";
+    const dacChips = currentChipKind === "ym2612" && channel.channel === 5
+      ? [
+        renderChannelChip("DAC", channel.dacEnabled ? "ON" : "OFF", channel.changedAt.dacEnabled, "166 214 148"),
+        renderChannelChip("BYTE", channel.dacValue, channel.changedAt.dacValue, "255 184 92"),
+      ].join("")
+      : "";
     card.innerHTML = `
       <div class="channel-head">
         <span class="channel-title">CH${channel.channel + 1}</span>
@@ -401,6 +435,7 @@ function renderChannelMonitor() {
         ${panChip}
         ${renderChannelChip("B", channel.block, channel.changedAt.block, "125 176 255")}
         ${renderChannelChip("F", channel.fnum, channel.changedAt.fnum, "125 176 255")}
+        ${dacChips}
       </div>
       <div class="operators">
         <div class="operator-box"><strong>OP1</strong> ${renderOperatorTokens(channel.operators[1])}</div>
@@ -410,6 +445,35 @@ function renderChannelMonitor() {
       </div>
     `;
     channelGrid.append(card);
+  }
+
+  if (currentChipKind === "ym2612" || currentChipKind === "ym2608") {
+    const specialCard = document.createElement("section");
+    const ch3 = channelMonitor[2];
+    specialCard.className = `channel-card${ch3?.keyOn ? " is-key-on" : ""}`;
+    specialCard.innerHTML = `
+      <div class="channel-head">
+        <span class="channel-title">CH3SP</span>
+        <span class="channel-meta">${ch3?.specialMode ? "special on" : "special off"}</span>
+      </div>
+      <div class="channel-row">
+        ${renderChannelChip("MODE", ch3?.specialMode ? "ON" : "OFF", ch3?.changedAt.specialMode, "166 214 148")}
+      </div>
+      <div class="operators">
+        ${renderSpecialFrequencyBox("OP1", ch3?.specialFrequencies?.[1])}
+        ${renderSpecialFrequencyBox("OP2", ch3?.specialFrequencies?.[2])}
+        ${renderSpecialFrequencyBox("OP3", ch3?.specialFrequencies?.[3])}
+        ${renderSpecialFrequencyBox("OP4", {
+          block: ch3?.block ?? 0,
+          fnum: ch3?.fnum ?? 0,
+          changedAt: {
+            block: ch3?.changedAt.block ?? 0,
+            fnum: ch3?.changedAt.fnum ?? 0,
+          },
+        })}
+      </div>
+    `;
+    channelGrid.append(specialCard);
   }
 }
 
@@ -775,6 +839,15 @@ function renderOperatorTokens(operator) {
     renderParamToken("RR", operator.rr, operator.changedAt.rr, "255 186 150"),
     renderParamToken("SSG", operator.ssg, operator.changedAt.ssg, "166 214 148"),
   ].join("");
+}
+
+function renderSpecialFrequencyBox(label, frequency) {
+  return `<div class="operator-box"><strong>${label}</strong> ${
+    [
+      renderParamToken("B", frequency?.block ?? 0, frequency?.changedAt?.block ?? 0, "125 176 255"),
+      renderParamToken("F", frequency?.fnum ?? 0, frequency?.changedAt?.fnum ?? 0, "125 176 255"),
+    ].join("")
+  }</div>`;
 }
 
 function renderChannelChip(label, value, changedAt, hue) {
@@ -1229,6 +1302,14 @@ function applyYm2612WriteToMonitor(port, register, value) {
   const now = performance.now();
   const channelBase = port === 0 ? 0 : 3;
 
+  if (port === 0 && register === 0x27) {
+    const ch3 = channelMonitor[2];
+    ch3.specialMode = (value & 0x40) !== 0;
+    ch3.changedAt.specialMode = now;
+    requestChannelMonitorRender();
+    return;
+  }
+
   if (port === 0 && register === 0x28) {
     const channel = decodeKeyOnChannel(value);
     if (channel !== null) {
@@ -1291,6 +1372,26 @@ function applyYm2612WriteToMonitor(port, register, value) {
     return;
   }
 
+  if (port === 0 && register >= 0xa8 && register <= 0xaa) {
+    const operator = register === 0xa8 ? 3 : register === 0xa9 ? 1 : 2;
+    const state = channelMonitor[2].specialFrequencies[operator];
+    state.fnum = (state.fnum & 0x700) | value;
+    state.changedAt.fnum = now;
+    requestChannelMonitorRender();
+    return;
+  }
+
+  if (port === 0 && register >= 0xac && register <= 0xae) {
+    const operator = register === 0xac ? 3 : register === 0xad ? 1 : 2;
+    const state = channelMonitor[2].specialFrequencies[operator];
+    state.block = (value >> 3) & 0x07;
+    state.fnum = ((value & 0x07) << 8) | (state.fnum & 0xff);
+    state.changedAt.block = now;
+    state.changedAt.fnum = now;
+    requestChannelMonitorRender();
+    return;
+  }
+
   if (register >= 0xb0 && register <= 0xb2) {
     const channel = channelBase + (register - 0xb0);
     const state = channelMonitor[channel];
@@ -1312,6 +1413,20 @@ function applyYm2612WriteToMonitor(port, register, value) {
     state.panRight = (value & 0x40) !== 0;
     channelMonitor[channel].changedAt.pan = now;
     changed = true;
+    requestChannelMonitorRender();
+    return;
+  }
+
+  if (port === 0 && register === 0x2b && channelMonitor[5]) {
+    channelMonitor[5].dacEnabled = (value & 0x80) !== 0;
+    channelMonitor[5].changedAt.dacEnabled = now;
+    requestChannelMonitorRender();
+    return;
+  }
+
+  if (port === 0 && register === 0x2a && channelMonitor[5]) {
+    channelMonitor[5].dacValue = value;
+    channelMonitor[5].changedAt.dacValue = now;
     requestChannelMonitorRender();
     return;
   }
