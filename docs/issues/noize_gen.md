@@ -55,9 +55,9 @@ type PlaygroundNoiseOptions = {
 };
 
 type PlaygroundNoiseVoice = {
-  type: PlaygroundNoiseType;
-  attack: AudioParamControl;
-  release: AudioParamControl;
+  readonly type: PlaygroundNoiseType;
+  attack: SimpleParamControl;
+  release: SimpleParamControl;
 
   gain: AudioParamControl;
   pan: AudioParamControl;
@@ -85,6 +85,19 @@ type PlaygroundNoiseAPI = {
 };
 
 declare const noise: PlaygroundNoiseAPI;
+
+type NoiseControlOptions = {
+  gain?: number;
+  pan?: number;
+  cutoff?: number;
+  q?: number;
+  slide?: number;
+};
+
+declare function control(
+  voice: PlaygroundNoiseVoice,
+  options: NoiseControlOptions
+): void;
 ```
 
 Example:
@@ -96,8 +109,12 @@ const sea = noise.create({
 });
 
 sea.filter.set("lowpass", 1800, 0.4);
-sea.pan.rampTo(-0.5, 2.0);
-sea.gain.rampTo(0.8, 3.0);
+control(sea, {
+  pan: -0.5,
+  gain: 0.8,
+  cutoff: 2500,
+  slide: 2,
+});
 ```
 
 ## First implementation scope
@@ -122,6 +139,7 @@ Current status:
 - `clip`
 - `attack`
 - `release`
+- `control(noiseVoice, ...)`
 
 The first version does not need:
 

@@ -90,6 +90,20 @@ function createAudioParamControl(
   };
 }
 
+function createSimpleParamControl(
+  getter,
+  setter
+) {
+  return {
+    get() {
+      return getter();
+    },
+    set(value) {
+      return setter(value);
+    },
+  };
+}
+
 function getNoiseBufferMap(
   audioContext
 ) {
@@ -397,66 +411,32 @@ function createNoiseVoice(
       options.type
     ),
     attack:
-      createAudioParamControl(
-        audioContext,
-        {
-          get value() {
-            return voice.attackSeconds;
-          },
-          setValueAtTime(value) {
-            voice.attackSeconds =
-              clampNumber(
-                value,
-                voice.attackSeconds,
-                0,
-                60
-              );
-          },
-          cancelScheduledValues() {},
-          linearRampToValueAtTime(
-            value
-          ) {
-            voice.attackSeconds =
-              clampNumber(
-                value,
-                voice.attackSeconds,
-                0,
-                60
-              );
-          },
-        },
-        { min: 0, max: 60 }
+      createSimpleParamControl(
+        () => voice.attackSeconds,
+        (value) => {
+          voice.attackSeconds =
+            clampNumber(
+              value,
+              voice.attackSeconds,
+              0,
+              60
+            );
+          return voice.attackSeconds;
+        }
       ),
     release:
-      createAudioParamControl(
-        audioContext,
-        {
-          get value() {
-            return voice.releaseSeconds;
-          },
-          setValueAtTime(value) {
-            voice.releaseSeconds =
-              clampNumber(
-                value,
-                voice.releaseSeconds,
-                0,
-                60
-              );
-          },
-          cancelScheduledValues() {},
-          linearRampToValueAtTime(
-            value
-          ) {
-            voice.releaseSeconds =
-              clampNumber(
-                value,
-                voice.releaseSeconds,
-                0,
-                60
-              );
-          },
-        },
-        { min: 0, max: 60 }
+      createSimpleParamControl(
+        () => voice.releaseSeconds,
+        (value) => {
+          voice.releaseSeconds =
+            clampNumber(
+              value,
+              voice.releaseSeconds,
+              0,
+              60
+            );
+          return voice.releaseSeconds;
+        }
       ),
     gain:
       createAudioParamControl(

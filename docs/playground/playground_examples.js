@@ -472,23 +472,50 @@ const washFx = await livePrepare("noise-ocean-fx", async ({ fx }) => {
 fx.setChain([washFx.reverb]);
 
 liveLoop("sea-pan", async () => {
-  sea.pan.rampTo(rrange(-0.3, 0.3), 2.4);
-  surf.pan.rampTo(rrange(-0.8, 0.8), 1.4);
-  deep.pan.rampTo(rrange(-0.2, 0.2), 3.6);
+  control(sea, {
+    pan: rrange(-0.3, 0.3),
+    slide: 2.4,
+  });
+  control(surf, {
+    pan: rrange(-0.8, 0.8),
+    slide: 1.4,
+  });
+  control(deep, {
+    pan: rrange(-0.2, 0.2),
+    slide: 3.6,
+  });
   await beat(1);
 });
 
 liveLoop("sea-cutoff", async () => {
-  sea.filter.cutoff.rampTo(rrange(900, 2200), 2.8);
-  surf.filter.cutoff.rampTo(rrange(600, 1800), 0.8);
-  deep.filter.cutoff.rampTo(rrange(180, 420), 4.0);
+  control(sea, {
+    cutoff: rrange(900, 2200),
+    slide: 2.8,
+  });
+  control(surf, {
+    cutoff: rrange(600, 1800),
+    slide: 0.8,
+  });
+  control(deep, {
+    cutoff: rrange(180, 420),
+    slide: 4.0,
+  });
   await beat(0.5);
 });
 
 liveLoop("sea-gain", async () => {
-  sea.gain.rampTo(rrange(0.16, 0.32), 2.2);
-  surf.gain.rampTo(rrange(0.02, 0.10), 0.9);
-  deep.gain.rampTo(rrange(0.12, 0.20), 3.0);
+  control(sea, {
+    gain: rrange(0.16, 0.32),
+    slide: 2.2,
+  });
+  control(surf, {
+    gain: rrange(0.02, 0.10),
+    slide: 0.9,
+  });
+  control(deep, {
+    gain: rrange(0.12, 0.20),
+    slide: 3.0,
+  });
   await beat(0.5);
 });
 `,

@@ -214,10 +214,18 @@ type PlaygroundNoiseOptions = {
   autoStart?: boolean;
 };
 
+type NoiseControlOptions = {
+  gain?: number;
+  pan?: number;
+  cutoff?: number;
+  q?: number;
+  slide?: number;
+};
+
 type PlaygroundNoiseVoice = {
-  type: PlaygroundNoiseType;
-  attack: AudioParamControl;
-  release: AudioParamControl;
+  readonly type: PlaygroundNoiseType;
+  attack: SimpleParamControl;
+  release: SimpleParamControl;
   gain: AudioParamControl;
   pan: AudioParamControl;
   filter: {
@@ -628,6 +636,10 @@ declare function psgNoise(mode: number, attenuation?: number): void;
 declare const sample: PlaygroundSampleAPI;
 declare const stream: PlaygroundStreamAPI;
 declare const noise: PlaygroundNoiseAPI;
+declare function control(
+  voice: PlaygroundNoiseVoice,
+  options: NoiseControlOptions
+): void;
 
 type FXApi = {
   /** Create a gain effect unit. */
@@ -749,6 +761,10 @@ type PlaygroundAPI = {
   stream: PlaygroundStreamAPI;
   /** Looping noise-source helper for ambient beds. */
   noise: PlaygroundNoiseAPI;
+  control: (
+    voice: PlaygroundNoiseVoice,
+    options: NoiseControlOptions
+  ) => void;
   psgTone: (channel: number, period: number, attenuation?: number) => void;
   psgNoise: (mode: number, attenuation?: number) => void;
   /** Built-in preset table. */

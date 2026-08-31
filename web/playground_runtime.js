@@ -155,6 +155,66 @@ export function createPlaygroundRuntime(
     return megaDrive.getMasterVolume();
   }
 
+  function controlNoiseVoice(
+    voice,
+    options = {}
+  ) {
+    if (
+      !voice ||
+      typeof voice !== "object" ||
+      typeof voice.gain?.set !==
+        "function" ||
+      typeof voice.gain?.rampTo !==
+        "function" ||
+      typeof voice.pan?.set !==
+        "function" ||
+      typeof voice.pan?.rampTo !==
+        "function" ||
+      typeof voice.filter?.cutoff?.set !==
+        "function" ||
+      typeof voice.filter?.cutoff
+        ?.rampTo !== "function" ||
+      typeof voice.filter?.q?.set !==
+        "function" ||
+      typeof voice.filter?.q?.rampTo !==
+        "function"
+    ) {
+      throw new Error(
+        "control(voice, options) currently supports noise voices only"
+      );
+    }
+
+    const slide =
+      Math.max(
+        0,
+        Number(options.slide) || 0
+      );
+    const apply = (
+      controlParam,
+      value
+    ) => {
+      if (value == null) {
+        return;
+      }
+      if (slide > 0) {
+        controlParam.rampTo(
+          value,
+          slide
+        );
+        return;
+      }
+      controlParam.set(value);
+    };
+
+    apply(voice.gain, options.gain);
+    apply(voice.pan, options.pan);
+    apply(
+      voice.filter.cutoff,
+      options.cutoff
+    );
+    apply(voice.filter.q, options.q);
+  }
+
   async function loadSample(
     name,
     source
@@ -672,6 +732,7 @@ export function createPlaygroundRuntime(
       sample: sampleApi,
       stream: streamApi,
       noise: noiseApi,
+      control: controlNoiseVoice,
       log: (...args) => {
         emitLog(
           formatLogArgs(args)
@@ -703,6 +764,7 @@ export function createPlaygroundRuntime(
       sample: sampleApi,
       stream: streamApi,
       noise: noiseApi,
+      control: controlNoiseVoice,
       psgTone,
       psgNoise,
       setMasterVolume,
@@ -789,6 +851,7 @@ export function createPlaygroundRuntime(
         sample: pg.sample,
         stream: pg.stream,
         noise: pg.noise,
+        control: pg.control,
         psgTone,
         psgNoise,
         setMasterVolume:
@@ -841,6 +904,7 @@ export function createPlaygroundRuntime(
         FM_PRESETS: presets,
         sample: pg.sample,
         stream: pg.stream,
+        control: pg.control,
         log: pg.log,
       },
     };
