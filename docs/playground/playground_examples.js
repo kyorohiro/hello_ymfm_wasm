@@ -181,11 +181,10 @@ await play("G4", { channel: CH1, duration: 0.28 });
   "sonic-pi-sample-choir": `setMasterVolume(1.0);
 
 await sample.load(
-  "ambi-choir",
   "sonic-pi/ambi-choir"
 );
 
-await sample.play("ambi-choir", {
+await sample.play("sonic-pi/ambi-choir", {
   gain: 0.9,
   fadeIn: 0.02,
   fadeOut: 0.2,
@@ -193,7 +192,7 @@ await sample.play("ambi-choir", {
 
 await sleep(1.2);
 
-await sample.play("ambi-choir", {
+await sample.play("sonic-pi/ambi-choir", {
   gain: 0.7,
   playbackRate: 0.8,
   offset: 0.1,
@@ -872,7 +871,6 @@ setMasterVolume(1.0);
 
 const choirFx = await livePrepare("ambient-choir-sample-fx", async ({ fx, sample }) => {
   await sample.load(
-    "ambi-choir",
     "sonic-pi/ambi-choir"
   );
 
@@ -893,7 +891,7 @@ fx.setChain([
 liveLoop("choir", async () => {
   const rate = choose([0.5, 1 / 3, 3 / 5]);
 
-  await sample.play("ambi-choir", {
+  await sample.play("sonic-pi/ambi-choir", {
     playbackRate: rate,
     gain: 0.75,
     pan: rrange(-1, 1),
@@ -1170,11 +1168,9 @@ setMasterVolume(1.0);
 
 const wubFx = await livePrepare("wobble-kick-bass-sample-fx", async ({ fx, sample }) => {
   await sample.load(
-    "drum-heavy-kick",
     "sonic-pi/drum-heavy-kick"
   );
   await sample.load(
-    "bass-hit-c",
     "sonic-pi/bass-hit-c"
   );
 
