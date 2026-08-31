@@ -492,6 +492,227 @@ liveLoop("sea-gain", async () => {
   await beat(0.5);
 });
 `,
+  "wind-noise": `setBpm(28);
+
+const wind = noise.create({
+  type: "pink",
+  gain: 0.18,
+});
+wind.filter.set("bandpass", 900, 0.35);
+
+const gust = noise.create({
+  type: "white",
+  gain: 0.03,
+  pan: -0.4,
+});
+gust.filter.set("highpass", 1800, 0.2);
+
+const airFx = await livePrepare("wind-noise-fx", async ({ fx }) => {
+  return {
+    reverb: fx.reverb({
+      mix: 0.18,
+      tone: 4800,
+    }),
+    chorus: fx.chorus({
+      delay1: 0.018,
+      delay2: 0.028,
+      depth: 0.25,
+      rate: 0.08,
+      mix: 0.16,
+      output: 1.0,
+    }),
+  };
+});
+
+fx.setChain([airFx.chorus, airFx.reverb]);
+
+liveLoop("wind-shape", async () => {
+  wind.gain.rampTo(rrange(0.08, 0.28), rrange(1.5, 4.0));
+  wind.filter.cutoff.rampTo(rrange(500, 1800), rrange(1.2, 3.2));
+  wind.pan.rampTo(rrange(-0.6, 0.6), rrange(2.0, 4.5));
+  await beat(0.5);
+});
+
+liveLoop("wind-gust", async () => {
+  gust.gain.rampTo(rrange(0.01, 0.08), rrange(0.2, 0.9));
+  gust.filter.cutoff.rampTo(rrange(1400, 4200), rrange(0.2, 0.8));
+  gust.pan.rampTo(rrange(-1.0, 1.0), rrange(0.3, 1.1));
+  await beat(cycle([0.25, 0.5, 0.75]));
+});
+`,
+  "radio-noise-bed": `setBpm(54);
+
+const hiss = noise.create({
+  type: "gray",
+  gain: 0.06,
+});
+hiss.filter.set("bandpass", 2600, 0.7);
+
+const crackle = noise.create({
+  type: "clip",
+  gain: 0.012,
+  pan: 0.1,
+});
+crackle.filter.set("highpass", 1900, 0.5);
+
+const rumble = noise.create({
+  type: "brown",
+  gain: 0.015,
+});
+rumble.filter.set("lowpass", 180, 0.4);
+
+const radioFx = await livePrepare("radio-noise-bed-fx", async ({ fx }) => {
+  return {
+    radio: fx.radioTone({
+      highpass: 380,
+      lowpass: 3000,
+      presence: 7,
+      mix: 1.0,
+      output: 1.0,
+    }),
+    lofi: fx.lofi({
+      cutoff: 3600,
+      highshelf: -12,
+      drive: 1.25,
+      mix: 0.7,
+      output: 1.0,
+    }),
+  };
+});
+
+fx.setChain([radioFx.radio, radioFx.lofi]);
+
+liveLoop("radio-hiss", async () => {
+  hiss.gain.rampTo(rrange(0.03, 0.09), rrange(0.4, 1.8));
+  hiss.filter.cutoff.rampTo(rrange(1800, 4200), rrange(0.3, 1.2));
+  await beat(0.25);
+});
+
+liveLoop("radio-crackle", async () => {
+  crackle.gain.rampTo(rrange(0.0, 0.001), rrange(0.03, 0.18));
+  crackle.pan.rampTo(rrange(-0.5, 0.5), rrange(0.05, 0.2));
+  await beat(0.125);
+});
+
+liveLoop("radio-rumble", async () => {
+  rumble.gain.rampTo(rrange(0.0, 0.001), rrange(0.8, 2.8));
+  await beat(0.5);
+});
+`,
+  "rain-noise": `setBpm(46);
+
+const rainBed = noise.create({
+  type: "pink",
+  gain: 0.10,
+});
+rainBed.filter.set("highpass", 700, 0.2);
+
+const drops = noise.create({
+  type: "white",
+  gain: 0.016,
+  pan: -0.2,
+});
+drops.filter.set("bandpass", 4200, 1.6);
+
+const roof = noise.create({
+  type: "gray",
+  gain: 0.022,
+  pan: 0.2,
+});
+roof.filter.set("bandpass", 2100, 0.9);
+
+const rainFx = await livePrepare("rain-noise-fx", async ({ fx }) => {
+  return {
+    reverb: fx.reverb({
+      mix: 0.14,
+      tone: 5600,
+    }),
+    filter: fx.filter({
+      type: "lowpass",
+      cutoff: 6800,
+      q: 0.2,
+    }),
+  };
+});
+
+fx.setChain([rainFx.filter, rainFx.reverb]);
+
+liveLoop("rain-bed", async () => {
+  rainBed.gain.rampTo(rrange(0.08, 0.15), rrange(1.2, 3.4));
+  rainBed.filter.cutoff.rampTo(rrange(1200, 2800), rrange(1.0, 2.8));
+  await beat(0.5);
+});
+
+liveLoop("rain-drops", async () => {
+  drops.gain.rampTo(rrange(0.004, 0.03), rrange(0.04, 0.16));
+  drops.pan.rampTo(rrange(-1.0, 1.0), rrange(0.05, 0.24));
+  drops.filter.cutoff.rampTo(rrange(3000, 6200), rrange(0.05, 0.18));
+  await beat(cycle([0.125, 0.125, 0.25, 0.0625]));
+});
+
+liveLoop("rain-roof", async () => {
+  roof.gain.rampTo(rrange(0.01, 0.05), rrange(0.2, 0.7));
+  roof.pan.rampTo(rrange(-0.5, 0.5), rrange(0.18, 0.6));
+  await beat(0.25);
+});
+`,
+  "campfire-air": `setBpm(34);
+
+const fireAir = noise.create({
+  type: "brown",
+  gain: 0.06,
+});
+fireAir.filter.set("bandpass", 340, 0.5);
+
+const flame = noise.create({
+  type: "pink",
+  gain: 0.05,
+  pan: -0.1,
+});
+flame.filter.set("bandpass", 1200, 0.8);
+
+const crackle = noise.create({
+  type: "clip",
+  gain: 0.006,
+  pan: 0.1,
+});
+crackle.filter.set("highpass", 2600, 0.7);
+
+const fireFx = await livePrepare("campfire-air-fx", async ({ fx }) => {
+  return {
+    reverb: fx.reverb({
+      mix: 0.10,
+      tone: 4200,
+    }),
+    tape: fx.tapeSaturation({
+      drive: 1.08,
+      mix: 0.22,
+      output: 1.0,
+    }),
+  };
+});
+
+fx.setChain([fireFx.tape, fireFx.reverb]);
+
+liveLoop("fire-air", async () => {
+  fireAir.gain.rampTo(rrange(0.03, 0.09), rrange(2.0, 4.8));
+  fireAir.filter.cutoff.rampTo(rrange(220, 520), rrange(1.8, 4.2));
+  await beat(0.5);
+});
+
+liveLoop("fire-flame", async () => {
+  flame.gain.rampTo(rrange(0.02, 0.08), rrange(0.4, 1.3));
+  flame.filter.cutoff.rampTo(rrange(700, 2200), rrange(0.3, 1.1));
+  flame.pan.rampTo(rrange(-0.4, 0.4), rrange(0.8, 2.0));
+  await beat(0.25);
+});
+
+liveLoop("fire-crackle", async () => {
+  crackle.gain.rampTo(rrange(0.0, 0.018), rrange(0.02, 0.12));
+  crackle.pan.rampTo(rrange(-0.7, 0.7), rrange(0.03, 0.16));
+  await beat(cycle([0.0625, 0.125, 0.25, 0.125]));
+});
+`,
   "just-intonation-chorus": `setBpm(72);
 setMasterVolume(1.0);
 
