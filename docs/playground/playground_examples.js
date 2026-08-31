@@ -439,24 +439,41 @@ liveLoop("choir-pad", async () => {
 `,
   "noise-ocean": `setBpm(40);
 
-const sea = noise.create({
-  type: "pink",
-  gain: 0.22,
-});
+/** @type {PlaygroundContext & {
+  noiseOcean?: {
+    sea: PlaygroundNoiseVoice,
+    surf: PlaygroundNoiseVoice,
+    deep: PlaygroundNoiseVoice,
+  },
+}} */
+const sContext = context;
+
+if (!sContext.noiseOcean) {
+  sContext.noiseOcean = {
+    sea: noise.create({
+      type: "pink",
+      gain: 0.22,
+    }),
+    surf: noise.create({
+      type: "white",
+      gain: 0.05,
+      pan: -0.2,
+    }),
+    deep: noise.create({
+      type: "brown",
+      gain: 0.16,
+      pan: 0.15,
+    }),
+  };
+}
+
+const sea = sContext.noiseOcean.sea;
 sea.filter.set("lowpass", 1400, 0.3);
 
-const surf = noise.create({
-  type: "white",
-  gain: 0.05,
-  pan: -0.2,
-});
+const surf = sContext.noiseOcean.surf;
 surf.filter.set("bandpass", 900, 0.6);
 
-const deep = noise.create({
-  type: "brown",
-  gain: 0.16,
-  pan: 0.15,
-});
+const deep = sContext.noiseOcean.deep;
 deep.filter.set("lowpass", 320, 0.4);
 
 const washFx = await livePrepare("noise-ocean-fx", async ({ fx }) => {
@@ -469,6 +486,16 @@ const washFx = await livePrepare("noise-ocean-fx", async ({ fx }) => {
 });
 
 fx.setChain([washFx.reverb]);
+
+liveCleanup(
+  ["sea-pan", "sea-cutoff", "sea-gain"],
+  () => {
+    sContext.noiseOcean?.sea.dispose();
+    sContext.noiseOcean?.surf.dispose();
+    sContext.noiseOcean?.deep.dispose();
+    delete sContext.noiseOcean;
+  }
+);
 
 liveLoop("sea-pan", async () => {
   control(sea, {

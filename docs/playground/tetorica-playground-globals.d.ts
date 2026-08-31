@@ -687,9 +687,12 @@ type FXApi = {
 };
 
 declare const fx: FXApi;
+declare const context: PlaygroundContext;
 
 /** Create or replace a named repeating live loop. */
 declare function liveLoop(name: string, fn: () => Promise<void> | void): void;
+/** Register cleanup that runs once after all named live loops disappear. */
+declare function liveCleanup(names: string[], fn: () => Promise<void> | void): void;
 /** Prepare shared live state once and reuse it across runs. */
 declare function livePrepare(name: string, fn: (context: { fx: FXApi; fm: FMApi; psg: PSGApi; sample: PlaygroundSampleAPI; stream: PlaygroundStreamAPI; noise: PlaygroundNoiseAPI; log: (...args: unknown[]) => void }) => Promise<any> | any): Promise<any>;
 /** Play one note through the current synth setup. */

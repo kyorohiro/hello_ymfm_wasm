@@ -90,6 +90,8 @@ export function createPlaygroundRuntime(
     bpm: 120,
     clockStartTime: null,
     liveLoops: new Map(),
+    liveCleanupHooks:
+      new Map(),
     livePrepared: new Map(),
     context: {},
   };
@@ -668,6 +670,11 @@ export function createPlaygroundRuntime(
   ) {
     const evaluationState = {
       loopDefinitions: new Map(),
+      cleanupDefinitions: [],
+      cleanupCallIndex: 0,
+      cleanupScope:
+        currentSourceName ??
+        "__anonymous__",
     };
     const fx = createFxApi();
     const fm = createFmProxy(synth);
@@ -809,6 +816,15 @@ export function createPlaygroundRuntime(
           fn,
           evaluationState
         ),
+      liveCleanup: (
+        names,
+        fn
+      ) =>
+        liveApi.liveCleanup(
+          names,
+          fn,
+          evaluationState
+        ),
       stopLoop:
         liveApi.stopLoop,
       stopAllLoops:
@@ -871,8 +887,18 @@ export function createPlaygroundRuntime(
         nextBeat: pg.nextBeat,
         setBpm: pg.setBpm,
         tween: pg.tween,
+        context:
+          pg.context,
         liveLoop: (name, fn) =>
           pg.liveLoop(name, fn),
+        liveCleanup: (
+          names,
+          fn
+        ) =>
+          pg.liveCleanup(
+            names,
+            fn
+          ),
         stopLoop:
           pg.stopLoop,
         stopAllLoops:
@@ -954,6 +980,10 @@ export function createPlaygroundRuntime(
 
       liveApi.commitLiveLoops(
         evaluationState.loopDefinitions
+      );
+      liveApi.commitLiveCleanups(
+        evaluationState.cleanupDefinitions,
+        evaluationState.cleanupScope
       );
 
       if (runToken === currentRunToken) {
@@ -1045,6 +1075,9 @@ export function createPlaygroundRuntime(
     currentRunToken += 1;
     liveApi.stopAllLoops();
     stopAllAudio();
+    liveApi.flushLiveCleanups(
+      new Set()
+    );
     liveApi.clearRunFxChain();
     liveApi.clearPrepared();
     runtime.context = {};

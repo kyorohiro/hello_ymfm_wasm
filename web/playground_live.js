@@ -224,6 +224,53 @@ export function createPlaygroundLive(
     );
   }
 
+  function liveCleanup(
+    names,
+    fn,
+    evaluationState
+  ) {
+    if (
+      !Array.isArray(names) ||
+      names.length === 0
+    ) {
+      throw new Error(
+        "liveCleanup(names, fn) requires a non-empty string array"
+      );
+    }
+
+    if (typeof fn !== "function") {
+      throw new Error(
+        "liveCleanup(names, fn) requires a callback"
+      );
+    }
+
+    const normalizedNames =
+      names.map((name) => {
+        if (
+          typeof name !== "string" ||
+          name.length === 0
+        ) {
+          throw new Error(
+            "liveCleanup(names, fn) requires non-empty string names"
+          );
+        }
+        return name;
+      });
+
+    const id = `${evaluationState.cleanupScope}:${evaluationState.cleanupCallIndex}`;
+    evaluationState.cleanupCallIndex +=
+      1;
+    evaluationState.cleanupDefinitions.push(
+      {
+        id,
+        cleanupScope:
+          evaluationState.cleanupScope,
+        names: normalizedNames,
+        fn,
+      }
+    );
+  }
+
   function stopLoop(name) {
     const state =
       runtime.liveLoops.get(name);
@@ -395,13 +442,103 @@ export function createPlaygroundLive(
     }
   }
 
+  function getActiveLoopNames() {
+    return Array.from(
+      runtime.liveLoops.values()
+    )
+      .filter(
+        (state) => !state.stopped
+      )
+      .map((state) => state.name);
+  }
+
+  function flushLiveCleanups(
+    activeNames = new Set(
+      getActiveLoopNames()
+    )
+  ) {
+    for (const [
+      id,
+      definition,
+    ] of runtime.liveCleanupHooks.entries()) {
+      if (
+        definition.names.some((name) =>
+          activeNames.has(name)
+        )
+      ) {
+        continue;
+      }
+
+      runtime.liveCleanupHooks.delete(
+        id
+      );
+
+      try {
+        definition.fn();
+      } catch (error) {
+        console.error(error);
+        logLine(
+          `[liveCleanup:${definition.names.join(",")}] ${error?.stack ?? String(error)}`
+        );
+        setStatus(
+          "Cleanup error"
+        );
+      }
+    }
+  }
+
+  function commitLiveCleanups(
+    cleanupDefinitions,
+    cleanupScope
+  ) {
+    const activeDefinitionIds =
+      new Set(
+        cleanupDefinitions.map(
+          (definition) =>
+            definition.id
+        )
+      );
+
+    for (const [
+      id,
+      definition,
+    ] of runtime.liveCleanupHooks.entries()) {
+      if (
+        definition.cleanupScope ===
+          cleanupScope &&
+        !activeDefinitionIds.has(id)
+      ) {
+        runtime.liveCleanupHooks.delete(
+          id
+        );
+      }
+    }
+
+    for (const definition of cleanupDefinitions) {
+      runtime.liveCleanupHooks.set(
+        definition.id,
+        definition
+      );
+    }
+
+    flushLiveCleanups(
+      new Set(
+        getActiveLoopNames()
+      )
+    );
+  }
+
   return {
     clearRunFxChain,
     clearPrepared,
     livePrepare,
     liveLoop,
+    liveCleanup,
     stopLoop,
     stopAllLoops,
     commitLiveLoops,
+    commitLiveCleanups,
+    flushLiveCleanups,
+    getActiveLoopNames,
   };
 }
