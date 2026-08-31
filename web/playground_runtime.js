@@ -10,6 +10,7 @@ import { createPlaygroundClock } from "./playground_clock.js";
 import { executeWithPlaygroundGuards } from "./playground_execution.js";
 import { createPlaygroundLive } from "./playground_live.js";
 import { createPlaygroundMusic } from "./playground_music.js";
+import { createPlaygroundNoiseApi } from "./playground_noise.js";
 import { createFmProxy } from "./playground_sync.js";
 
 const REFERENCE_MIDI = 62;
@@ -79,6 +80,10 @@ export function createPlaygroundRuntime(
     ...FM_PRESETS,
     ...(options.presets ?? {}),
   };
+  const noiseApi =
+    createPlaygroundNoiseApi(
+      megaDrive
+    );
   const sourceMap =
     new Map();
   const runtime = {
@@ -234,6 +239,7 @@ export function createPlaygroundRuntime(
     stopAllNotes();
     megaDrive.sample.stopAll();
     megaDrive.stream.stop();
+    noiseApi.stopAll();
   }
 
   const clockApi =
@@ -665,6 +671,7 @@ export function createPlaygroundRuntime(
       psg,
       sample: sampleApi,
       stream: streamApi,
+      noise: noiseApi,
       log: (...args) => {
         emitLog(
           formatLogArgs(args)
@@ -695,6 +702,7 @@ export function createPlaygroundRuntime(
       context: runtime.context,
       sample: sampleApi,
       stream: streamApi,
+      noise: noiseApi,
       psgTone,
       psgNoise,
       setMasterVolume,
@@ -780,6 +788,7 @@ export function createPlaygroundRuntime(
         psg,
         sample: pg.sample,
         stream: pg.stream,
+        noise: pg.noise,
         psgTone,
         psgNoise,
         setMasterVolume:
@@ -1062,6 +1071,9 @@ export function createPlaygroundRuntime(
     },
     get stream() {
       return megaDrive.stream;
+    },
+    get noise() {
+      return noiseApi;
     },
     get context() {
       return runtime.context;

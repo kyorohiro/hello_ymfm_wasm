@@ -438,6 +438,60 @@ liveLoop("choir-pad", async () => {
   await beat(0.5);
 });
 `,
+  "noise-ocean": `setBpm(40);
+
+const sea = noise.create({
+  type: "pink",
+  gain: 0.22,
+});
+sea.filter.set("lowpass", 1400, 0.3);
+
+const surf = noise.create({
+  type: "white",
+  gain: 0.05,
+  pan: -0.2,
+});
+surf.filter.set("bandpass", 900, 0.6);
+
+const deep = noise.create({
+  type: "brown",
+  gain: 0.16,
+  pan: 0.15,
+});
+deep.filter.set("lowpass", 320, 0.4);
+
+const washFx = await livePrepare("noise-ocean-fx", async ({ fx }) => {
+  return {
+    reverb: fx.reverb({
+      mix: 0.22,
+      tone: 5200,
+    }),
+  };
+});
+
+fx.setChain([washFx.reverb]);
+
+liveLoop("sea-pan", async () => {
+  sea.pan.rampTo(rrange(-0.3, 0.3), 2.4);
+  surf.pan.rampTo(rrange(-0.8, 0.8), 1.4);
+  deep.pan.rampTo(rrange(-0.2, 0.2), 3.6);
+  await beat(1);
+});
+
+liveLoop("sea-cutoff", async () => {
+  sea.filter.cutoff.rampTo(rrange(900, 2200), 2.8);
+  surf.filter.cutoff.rampTo(rrange(600, 1800), 0.8);
+  deep.filter.cutoff.rampTo(rrange(180, 420), 4.0);
+  await beat(0.5);
+});
+
+liveLoop("sea-gain", async () => {
+  sea.gain.rampTo(rrange(0.16, 0.32), 2.2);
+  surf.gain.rampTo(rrange(0.02, 0.10), 0.9);
+  deep.gain.rampTo(rrange(0.12, 0.20), 3.0);
+  await beat(0.5);
+});
+`,
   "just-intonation-chorus": `setBpm(72);
 setMasterVolume(1.0);
 

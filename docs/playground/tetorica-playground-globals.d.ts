@@ -198,6 +198,43 @@ type PlaygroundStreamAPI = {
   list(): string[];
 };
 
+type PlaygroundNoiseType =
+  | "white"
+  | "pink"
+  | "brown";
+
+type PlaygroundNoiseOptions = {
+  type?: PlaygroundNoiseType;
+  gain?: number;
+  pan?: number;
+  autoStart?: boolean;
+};
+
+type PlaygroundNoiseVoice = {
+  type: PlaygroundNoiseType;
+  gain: AudioParamControl;
+  pan: AudioParamControl;
+  filter: {
+    set(
+      type: BiquadFilterType,
+      frequency: number,
+      q?: number
+    ): void;
+    cutoff: AudioParamControl;
+    q: AudioParamControl;
+  };
+  start(): void;
+  stop(): void;
+  dispose(): void;
+};
+
+type PlaygroundNoiseAPI = {
+  create(
+    options?: PlaygroundNoiseOptions
+  ): PlaygroundNoiseVoice;
+  stopAll(): void;
+};
+
 type PlaygroundContext = Record<string, unknown>;
 
 /** Options for `fx.gain()`. */
@@ -584,6 +621,7 @@ declare function psgNoise(mode: number, attenuation?: number): void;
 
 declare const sample: PlaygroundSampleAPI;
 declare const stream: PlaygroundStreamAPI;
+declare const noise: PlaygroundNoiseAPI;
 
 type FXApi = {
   /** Create a gain effect unit. */
@@ -635,7 +673,7 @@ declare const fx: FXApi;
 /** Create or replace a named repeating live loop. */
 declare function liveLoop(name: string, fn: () => Promise<void> | void): void;
 /** Prepare shared live state once and reuse it across runs. */
-declare function livePrepare(name: string, fn: (context: { fx: FXApi; fm: FMApi; psg: PSGApi; sample: PlaygroundSampleAPI; stream: PlaygroundStreamAPI; log: (...args: unknown[]) => void }) => Promise<any> | any): Promise<any>;
+declare function livePrepare(name: string, fn: (context: { fx: FXApi; fm: FMApi; psg: PSGApi; sample: PlaygroundSampleAPI; stream: PlaygroundStreamAPI; noise: PlaygroundNoiseAPI; log: (...args: unknown[]) => void }) => Promise<any> | any): Promise<any>;
 /** Play one note through the current synth setup. */
 declare function play(note: string, options?: PlaygroundPlayOptions): Promise<void>;
 /** Wait for a number of seconds. */
@@ -703,6 +741,8 @@ type PlaygroundAPI = {
   sample: PlaygroundSampleAPI;
   /** Streamed BGM-style playback API. */
   stream: PlaygroundStreamAPI;
+  /** Looping noise-source helper for ambient beds. */
+  noise: PlaygroundNoiseAPI;
   psgTone: (channel: number, period: number, attenuation?: number) => void;
   psgNoise: (mode: number, attenuation?: number) => void;
   /** Built-in preset table. */
@@ -715,7 +755,7 @@ type PlaygroundAPI = {
   tween: (seconds: number, fn: (t: number) => void | Promise<void>) => Promise<void>;
   setBpm: (bpm: number) => void;
   liveLoop: (name: string, fn: () => Promise<void> | void) => void;
-  livePrepare: (name: string, fn: (context: { fx: FXApi; fm: FMApi; psg: PSGApi; sample: PlaygroundSampleAPI; stream: PlaygroundStreamAPI; log: (...args: unknown[]) => void }) => Promise<any> | any) => Promise<any>;
+  livePrepare: (name: string, fn: (context: { fx: FXApi; fm: FMApi; psg: PSGApi; sample: PlaygroundSampleAPI; stream: PlaygroundStreamAPI; noise: PlaygroundNoiseAPI; log: (...args: unknown[]) => void }) => Promise<any> | any) => Promise<any>;
   scale: (root: string, name: string, octaves?: number) => string[];
   chord: (root: string, name: "major" | "minor" | "major7" | "minor7" | "dominant7") => string[];
   noteToBlockFnum: (note: string) => { block: number; fnum: number };
