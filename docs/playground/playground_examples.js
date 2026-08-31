@@ -1707,18 +1707,19 @@ const layeredFx = await livePrepare("parallel-fx-chain", async ({ fx }) => {
     distorted,
     flanger,
     reverb,
+    layered: fx.parallel(
+      fx.branch(dryFilter),
+      fx.branch(
+        distorted,
+        flanger,
+        reverb
+      )
+    ),
   };
 });
 
 fx.setChain([
-  fx.parallel(
-    fx.branch(layeredFx.dryFilter),
-    fx.branch(
-      layeredFx.distorted,
-      layeredFx.flanger,
-      layeredFx.reverb
-    )
-  ),
+  layeredFx.layered,
 ]);
 
 liveLoop("bass", async () => {

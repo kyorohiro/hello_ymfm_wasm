@@ -24,6 +24,8 @@ Temporarily hide these demos from the Playground example list until their qualit
   - label: `Rain Noise`
 - `campfire-air`
   - label: `Campfire Air`
+- `waves-sample`
+  - label: `Waves Sample`
 - `stereo-chorus`
   - label: `Stereo / Chorus`
 - `wobble-bass`
