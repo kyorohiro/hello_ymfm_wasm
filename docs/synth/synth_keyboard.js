@@ -59,6 +59,19 @@ const INSTRUMENT_CONFIGS = {
       [1, 2, 3, 4],
     ],
   },
+  ukulele: {
+    label: "Ukulele",
+    // Standard re-entrant tuning, from the first string to the fourth.
+    stringBaseMidis: [
+      69,
+      64,
+      60,
+      67,
+    ],
+    stringWindows: [
+      [1, 2, 3, 4],
+    ],
+  },
 };
 
 function clampStringWindowIndex(
