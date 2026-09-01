@@ -75,6 +75,7 @@ example automatically.
 Use this form for small, shareable Cassettes such as timbres and short
 examples. Base64URL adds size, and practical browser, server, and sharing-tool
 URL limits make it unsuitable for Cassettes containing substantial samples.
+The loader limits both the archive and its expanded contents to 16 MiB.
 
 ## Runtime API
 
@@ -96,8 +97,8 @@ term for a sound color. The Playground UI may still describe this category as
 ## Keyboard Input
 
 Keyboard mappings are written directly in an example rather than stored in a
-separate cassette format. The Playground should eventually provide named input
-handlers with the same lifecycle behavior as `liveLoop`:
+separate cassette format. The Playground provides named input handlers with
+the same lifecycle behavior as `liveLoop`:
 
 ```js
 onKeyboardPressKey("arcade-input", (event) => {

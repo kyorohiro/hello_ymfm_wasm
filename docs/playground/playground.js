@@ -14,9 +14,13 @@ import {
 import { EXAMPLES } from "./playground_examples.js";
 import { initializePlaygroundMonaco } from "./playground_monaco.js";
 import {
+  decodeBase64Bytes,
   loadTfiPresetsFromQuery,
   resolveInitialSourceFromQuery,
 } from "./playground_query.js";
+import {
+  loadPlaygroundCassette,
+} from "./playground_cassette.js";
 import {
   createPlaygroundRuntime,
 } from "../js/playground_runtime.js";
@@ -61,6 +65,10 @@ const stopButton =
 const loadExampleButton =
   document.getElementById(
     "loadExampleButton"
+  );
+const importCassetteButton =
+  document.getElementById(
+    "importCassetteButton"
   );
 const exampleSelect =
   document.getElementById(
@@ -178,6 +186,16 @@ tfiImportInput.style.display =
 document.body.appendChild(
   tfiImportInput
 );
+const cassetteImportInput =
+  document.createElement("input");
+cassetteImportInput.type = "file";
+cassetteImportInput.accept = ".zip,application/zip";
+cassetteImportInput.style.display =
+  "none";
+document.body.appendChild(
+  cassetteImportInput
+);
+const cassetteExamples = new Map();
 const operatorTab =
   createPlaygroundOperatorTab({
     root: operatorTabRoot,
@@ -398,6 +416,11 @@ function promptTfiInsert() {
   tfiImportInput.click();
 }
 
+function promptCassetteImport() {
+  cassetteImportInput.value = "";
+  cassetteImportInput.click();
+}
+
 function installTfiEditorDropTarget() {
   const targets = [
     editor,
@@ -559,14 +582,175 @@ function stopRun() {
 }
 
 function loadExample() {
+  const exampleName =
+    exampleSelect.value;
   const nextCode =
-    EXAMPLES[
-      exampleSelect.value
-    ] ?? EXAMPLES.single;
+    cassetteExamples.get(exampleName) ??
+    EXAMPLES[exampleName] ??
+    EXAMPLES.single;
   setEditorValue(nextCode);
   setStatus(
-    `Loaded example: ${exampleSelect.value}`
+    `Loaded example: ${exampleName}`
   );
+}
+
+async function loadCassetteSource(
+  source,
+  name
+) {
+  const cassette =
+    await loadPlaygroundCassette(
+      source,
+      { name }
+    );
+  const parsedTimbres = cassette.timbres.map(
+    (timbre) => ({
+      ...timbre,
+      preset: parseTfi(timbre.bytes),
+    })
+  );
+  const exampleEntries = cassette.examples.map(
+    (example) => ({
+      optionValue:
+        `cassette:${cassette.id}/${example.name}`,
+      name: example.name,
+      source: example.source,
+    })
+  );
+
+  for (const timbre of parsedTimbres) {
+    if (
+      Object.prototype.hasOwnProperty.call(
+        runtime.presets,
+        timbre.name
+      )
+    ) {
+      throw new Error(
+        `Cassette timbre "${timbre.name}" conflicts with an existing preset.`
+      );
+    }
+  }
+
+  for (const sampleEntry of cassette.samples) {
+    if (
+      runtime.sample.isLoaded(sampleEntry.name)
+    ) {
+      throw new Error(
+        `Cassette sample "${sampleEntry.name}" is already loaded.`
+      );
+    }
+  }
+
+  for (const example of exampleEntries) {
+    if (cassetteExamples.has(example.optionValue)) {
+      throw new Error(
+        `Cassette example "${example.name}" is already loaded.`
+      );
+    }
+  }
+
+  for (const timbre of parsedTimbres) {
+    playgroundPresets[timbre.name] =
+      timbre.preset;
+    runtime.presets[timbre.name] =
+      timbre.preset;
+  }
+
+  if (cassette.samples.length > 0) {
+    await runtime.ensureReady();
+    for (const sampleEntry of cassette.samples) {
+      await runtime.sample.load(
+        sampleEntry.name,
+        sampleEntry.bytes.buffer
+      );
+    }
+  }
+
+  for (const example of exampleEntries) {
+    cassetteExamples.set(
+      example.optionValue,
+      example.source
+    );
+  }
+
+  for (const example of exampleEntries) {
+    const option = document.createElement(
+      "option"
+    );
+    option.value = example.optionValue;
+    option.textContent =
+      `${cassette.id}: ${example.name}`;
+    exampleSelect.appendChild(option);
+  }
+
+  const firstExample = exampleEntries[0];
+  if (firstExample) {
+    exampleSelect.value =
+      firstExample.optionValue;
+    loadExample();
+  }
+
+  const statusParts = [];
+  if (parsedTimbres.length > 0) {
+    statusParts.push(
+      `${parsedTimbres.length} timbre(s)`
+    );
+  }
+  if (exampleEntries.length > 0) {
+    statusParts.push(
+      `${exampleEntries.length} example(s)`
+    );
+  }
+  if (cassette.samples.length > 0) {
+    statusParts.push(
+      `${cassette.samples.length} sample(s)`
+    );
+  }
+  setStatus(
+    `Loaded cassette ${cassette.id}${statusParts.length > 0 ? `: ${statusParts.join(", ")}.` : "."}`
+  );
+}
+
+async function loadCassetteFile(file) {
+  await loadCassetteSource(
+    await file.arrayBuffer(),
+    file.name
+  );
+}
+
+async function applyCassetteFromQuery() {
+  const params = new URLSearchParams(
+    window.location.search
+  );
+  const encodedCassette = params.get(
+    "cassette"
+  );
+
+  if (!encodedCassette) {
+    return;
+  }
+
+  const bytes = decodeBase64Bytes(
+    encodedCassette
+  );
+  if (!bytes) {
+    setStatus(
+      "Failed to decode ?cassette=..."
+    );
+    return;
+  }
+
+  try {
+    await loadCassetteSource(
+      bytes,
+      "cassette.cassette.zip"
+    );
+  } catch (error) {
+    console.error(error);
+    setStatus(
+      `Failed to load ?cassette=...: ${error.message}`
+    );
+  }
 }
 
 function applyInitialSourceFromQuery() {
@@ -676,6 +860,13 @@ loadExampleButton.addEventListener(
   }
 );
 
+importCassetteButton?.addEventListener(
+  "click",
+  () => {
+    promptCassetteImport();
+  }
+);
+
 tfiImportInput.addEventListener(
   "change",
   () => {
@@ -696,7 +887,29 @@ tfiImportInput.addEventListener(
   }
 );
 
+cassetteImportInput.addEventListener(
+  "change",
+  () => {
+    const file =
+      cassetteImportInput.files?.[0];
+
+    if (!file) {
+      return;
+    }
+
+    void loadCassetteFile(file).catch(
+      (error) => {
+        console.error(error);
+        setStatus(
+          `Failed to load cassette: ${error.message}`
+        );
+      }
+    );
+  }
+);
+
 applyInitialSourceFromQuery();
+void applyCassetteFromQuery();
 applySimpleModeFromQuery();
 clearConsole();
 setBottomTab("console");

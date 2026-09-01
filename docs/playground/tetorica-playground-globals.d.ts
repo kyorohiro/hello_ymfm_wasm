@@ -691,6 +691,10 @@ declare const context: PlaygroundContext;
 
 /** Create or replace a named repeating live loop. */
 declare function liveLoop(name: string, fn: () => Promise<void> | void): void;
+/** Register a named key-down handler for the current Playground run. */
+declare function onKeyboardPressKey(name: string, fn: (event: KeyboardEvent) => void): void;
+/** Register a named key-up handler for the current Playground run. */
+declare function onKeyboardReleaseKey(name: string, fn: (event: KeyboardEvent) => void): void;
 /** Register cleanup that runs once after all named live loops disappear. */
 declare function liveCleanup(names: string[], fn: () => Promise<void> | void): void;
 /** Prepare shared live state once and reuse it across runs. */
@@ -780,6 +784,8 @@ type PlaygroundAPI = {
   tween: (seconds: number, fn: (t: number) => void | Promise<void>) => Promise<void>;
   setBpm: (bpm: number) => void;
   liveLoop: (name: string, fn: () => Promise<void> | void) => void;
+  onKeyboardPressKey: (name: string, fn: (event: KeyboardEvent) => void) => void;
+  onKeyboardReleaseKey: (name: string, fn: (event: KeyboardEvent) => void) => void;
   livePrepare: (name: string, fn: (context: { fx: FXApi; fm: FMApi; psg: PSGApi; sample: PlaygroundSampleAPI; stream: PlaygroundStreamAPI; noise: PlaygroundNoiseAPI; log: (...args: unknown[]) => void }) => Promise<any> | any) => Promise<any>;
   scale: (root: string, name: string, octaves?: number) => string[];
   chord: (root: string, name: "major" | "minor" | "major7" | "minor7" | "dominant7") => string[];

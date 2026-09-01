@@ -9,6 +9,7 @@ STAGE_DIR="${RELEASE_DIR}/itch_playground_${VERSION}"
 ZIP_PATH="${RELEASE_DIR}/hello_ymfm_wasm_${VERSION}_itch_playground.zip"
 
 PLAYGROUND_DIR="${ROOT_DIR}/docs/playground"
+PLAYGROUND_VENDOR_DIR="${PLAYGROUND_DIR}/vendor"
 DOCS_JS_DIR="${ROOT_DIR}/docs/js"
 DOCS_SYNTH_DIR="${ROOT_DIR}/docs/synth"
 DOCS_GENERATED_DIR="${ROOT_DIR}/docs/generated"
@@ -17,7 +18,10 @@ LICENSE_FILE="${ROOT_DIR}/LICENSE"
 
 PLAYGROUND_FILES="
 index.html
+cassette-gen.html
 playground.js
+playground_cassette.js
+playground_cassette_generator.js
 playground_clock.js
 playground_examples.js
 playground_execution.js
@@ -102,6 +106,11 @@ if [ ! -d "${PLAYGROUND_SAMPLES_DIR}" ]; then
   exit 1
 fi
 
+if [ ! -d "${PLAYGROUND_VENDOR_DIR}" ]; then
+  echo "error: missing directory: ${PLAYGROUND_VENDOR_DIR}" >&2
+  exit 1
+fi
+
 if [ ! -f "${LICENSE_FILE}" ]; then
   echo "error: missing file: ${LICENSE_FILE}" >&2
   exit 1
@@ -115,7 +124,7 @@ fi
 mkdir -p "${RELEASE_DIR}"
 rm -rf "${STAGE_DIR}"
 rm -f "${ZIP_PATH}"
-mkdir -p "${STAGE_DIR}/js" "${STAGE_DIR}/synth" "${STAGE_DIR}/generated" "${STAGE_DIR}/samples" "${STAGE_DIR}/licenses/nuked-opn2"
+mkdir -p "${STAGE_DIR}/js" "${STAGE_DIR}/synth" "${STAGE_DIR}/generated" "${STAGE_DIR}/samples" "${STAGE_DIR}/vendor" "${STAGE_DIR}/licenses/nuked-opn2"
 
 for file in ${PLAYGROUND_FILES}; do
   src="${PLAYGROUND_DIR}/${file}"
@@ -166,6 +175,7 @@ for file in ${GENERATED_FILES}; do
 done
 
 cp -R "${PLAYGROUND_SAMPLES_DIR}/." "${STAGE_DIR}/samples/"
+cp -R "${PLAYGROUND_VENDOR_DIR}/." "${STAGE_DIR}/vendor/"
 
 cp "${LICENSE_FILE}" "${STAGE_DIR}/LICENSE"
 

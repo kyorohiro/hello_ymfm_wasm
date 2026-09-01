@@ -59,6 +59,12 @@
         margin-bottom: 14px;
       }
 
+      .topbar-links {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+
       h1,
       h2 {
         margin: 0;
@@ -788,7 +794,10 @@
               drop down to raw YM2612 control when you want to.
             </p>
           </div>
-          <a class="link-button" href="../index.html">Back</a>
+          <div class="topbar-links">
+            <a class="link-button" href="./cassette-gen.html">Cassette Generator</a>
+            <a class="link-button" href="../index.html">Back</a>
+          </div>
         </div>
 
         <div class="toolbar">
@@ -820,6 +829,7 @@
             <option value="psg-noise">PSG Noise</option>
           </select>
           <button id="loadExampleButton" type="button">Load Example</button>
+          <button id="importCassetteButton" type="button">Import Cassette</button>
           <label class="volume-control" for="masterVolumeRange">
             <span>Vol</span>
             <input id="masterVolumeRange" type="range" min="0" max="380" value="100" step="1">
@@ -949,6 +959,7 @@
             <ul class="helper-list" style="margin-top: 10px;">
               <li><code>?ex=live-loop</code> loads one built-in example by name</li>
               <li><code>?src=...</code> loads base64-encoded JavaScript source into the editor</li>
+              <li><code>?cassette=...</code> loads a small Base64URL-encoded cassette zip</li>
               <li><code>?tfi=...&amp;tfi-id=bass</code> loads one URL TFI preset with id <code>bass</code></li>
               <li><code>?tfi=...,...</code> with <code>?tfi-id=a,b</code> loads multiple URL TFI presets</li>
             </ul>

@@ -106,6 +106,7 @@ export function createPlaygroundRuntime(
   let prepareAudioPromise = null;
   let currentRunToken = 0;
   let currentLoopContext = null;
+  const keyboardHandlers = new Map();
   let removeMegaDriveListener =
     null;
   let currentSourceName = null;
@@ -665,6 +666,64 @@ export function createPlaygroundRuntime(
     await ensureReady();
   }
 
+  function registerKeyboardHandler(
+    eventType,
+    name,
+    fn,
+    evaluationState
+  ) {
+    if (
+      typeof name !== "string" ||
+      name.length === 0
+    ) {
+      throw new Error(
+        "Keyboard handler name must be a non-empty string"
+      );
+    }
+
+    if (typeof fn !== "function") {
+      throw new Error(
+        "Keyboard handler callback must be a function"
+      );
+    }
+
+    evaluationState.keyboardDefinitions.set(
+      `${eventType}:${name}`,
+      { eventType, name, fn }
+    );
+  }
+
+  function clearKeyboardHandlers() {
+    for (const handler of keyboardHandlers.values()) {
+      window.removeEventListener(
+        handler.eventType,
+        handler.listener
+      );
+    }
+    keyboardHandlers.clear();
+  }
+
+  function commitKeyboardHandlers(definitions) {
+    clearKeyboardHandlers();
+
+    for (const [id, definition] of definitions) {
+      const listener = (event) => {
+        definition.fn(event);
+      };
+      keyboardHandlers.set(
+        id,
+        {
+          eventType: definition.eventType,
+          listener,
+        }
+      );
+      window.addEventListener(
+        definition.eventType,
+        listener
+      );
+    }
+  }
+
   function createExecutionGlobals(
     runToken
   ) {
@@ -672,6 +731,7 @@ export function createPlaygroundRuntime(
       loopDefinitions: new Map(),
       cleanupDefinitions: [],
       cleanupCallIndex: 0,
+      keyboardDefinitions: new Map(),
       cleanupScope:
         currentSourceName ??
         "__anonymous__",
@@ -825,6 +885,20 @@ export function createPlaygroundRuntime(
           fn,
           evaluationState
         ),
+      onKeyboardPressKey: (name, fn) =>
+        registerKeyboardHandler(
+          "keydown",
+          name,
+          fn,
+          evaluationState
+        ),
+      onKeyboardReleaseKey: (name, fn) =>
+        registerKeyboardHandler(
+          "keyup",
+          name,
+          fn,
+          evaluationState
+        ),
       stopLoop:
         liveApi.stopLoop,
       stopAllLoops:
@@ -899,6 +973,10 @@ export function createPlaygroundRuntime(
             names,
             fn
           ),
+        onKeyboardPressKey: (name, fn) =>
+          pg.onKeyboardPressKey(name, fn),
+        onKeyboardReleaseKey: (name, fn) =>
+          pg.onKeyboardReleaseKey(name, fn),
         stopLoop:
           pg.stopLoop,
         stopAllLoops:
@@ -942,6 +1020,7 @@ export function createPlaygroundRuntime(
       currentRunToken;
 
     await ensureReady();
+    clearKeyboardHandlers();
     liveApi.clearRunFxChain();
     setPlaybackState("running");
     emitStatus("Running...");
@@ -985,17 +1064,25 @@ export function createPlaygroundRuntime(
         evaluationState.cleanupDefinitions,
         evaluationState.cleanupScope
       );
+      commitKeyboardHandlers(
+        evaluationState.keyboardDefinitions
+      );
 
       if (runToken === currentRunToken) {
+        const loopCount =
+          evaluationState.loopDefinitions.size;
+        const keyboardHandlerCount =
+          evaluationState.keyboardDefinitions.size;
         emitStatus(
-          evaluationState.loopDefinitions.size >
-            0
-            ? `Running ${evaluationState.loopDefinitions.size} live loop(s).`
-            : "Done."
+          loopCount > 0
+            ? `Running ${loopCount} live loop(s).`
+            : keyboardHandlerCount > 0
+              ? `Running ${keyboardHandlerCount} keyboard handler(s).`
+              : "Done."
         );
         if (
-          evaluationState.loopDefinitions.size ===
-          0
+          loopCount === 0 &&
+          keyboardHandlerCount === 0
         ) {
           setPlaybackState(
             "stopped"
@@ -1073,6 +1160,7 @@ export function createPlaygroundRuntime(
 
   function stop() {
     currentRunToken += 1;
+    clearKeyboardHandlers();
     liveApi.stopAllLoops();
     stopAllAudio();
     liveApi.flushLiveCleanups(
