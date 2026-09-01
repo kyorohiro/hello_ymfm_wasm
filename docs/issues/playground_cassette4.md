@@ -58,6 +58,24 @@ names within one category are an error. The v1 format has no package-level or
 component-level metadata, including resource requirements. Add metadata only
 when a concrete use requires it.
 
+## URL Loading
+
+A Cassette can be embedded in a Playground URL with the `cassette` query
+parameter:
+
+```text
+playground/index.html?cassette=<base64url-encoded-cassette-zip>
+```
+
+The value is the complete `.cassette.zip` archive encoded as unpadded
+Base64URL. The Playground decodes and opens it in the same way as a locally
+selected cassette. Invalid archives must show an error and must not run an
+example automatically.
+
+Use this form for small, shareable Cassettes such as timbres and short
+examples. Base64URL adds size, and practical browser, server, and sharing-tool
+URL limits make it unsuitable for Cassettes containing substantial samples.
+
 ## Runtime API
 
 The exact API is still open, but discovered file names should map directly to
