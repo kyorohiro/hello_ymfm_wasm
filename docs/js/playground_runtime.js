@@ -87,7 +87,6 @@ export function createPlaygroundRuntime(
     );
   const sourceMap =
     new Map();
-  const dacBanks = new Map();
   const runtime = {
     bpm: 120,
     clockStartTime: null,
@@ -315,6 +314,7 @@ export function createPlaygroundRuntime(
 
   function stopAllAudio() {
     synth?.clearScheduledWrites?.();
+    synth?.clearDacPlayback?.();
     synth?.write?.(0, 0x2b, 0x00);
     stopAllNotes();
     megaDrive.sample.stopAll();
@@ -984,12 +984,19 @@ export function createPlaygroundRuntime(
       fm,
       dac: {
         loadBase64: async (name, encoded) => {
-          dacBanks.set(name, decodeDacBase64(encoded));
+          fm.loadDacBank(
+            name,
+            decodeDacBase64Bytes(encoded)
+          );
         },
         playStream: (name, { atSamples = 0 } = {}) => {
-          const entries = dacBanks.get(name);
-          if (!entries) throw new Error(`Unknown DAC bank: ${name}`);
-          scheduleWritesSamples(fm, atSamples, entries);
+          const origin = runtime.sampleClockStartTime ??
+            (megaDrive.audioContext.currentTime + 0.25);
+          runtime.sampleClockStartTime = origin;
+          fm.playDacBank(
+            name,
+            origin + Math.max(0, Number(atSamples) || 0) / 44100
+          );
         },
         schedule: (start, entries) => scheduleWritesSamples(fm, start, entries.map(([offset, value]) => [offset, 0, 0x2a, value])),
         scheduleBase64: (start, encoded) => scheduleDacBase64(fm, start, encoded),
@@ -1277,6 +1284,15 @@ export function createPlaygroundRuntime(
       entries.push([view.getUint32(offset, true), 0, 0x2a, bytes[offset + 4]]);
     }
     return entries;
+  }
+
+  function decodeDacBase64Bytes(encoded) {
+    const binary = atob(encoded);
+    const bytes = new Uint8Array(binary.length);
+    for (let index = 0; index < binary.length; index += 1) {
+      bytes[index] = binary.charCodeAt(index);
+    }
+    return bytes;
   }
 
 

@@ -274,6 +274,21 @@ export class YM2612WorkletTransport {
     this.node.port.postMessage({ type: "clear-scheduled-writes" });
   }
 
+  loadDacBank(name, bytes) {
+    this.node.port.postMessage(
+      { type: "load-dac-bank", name, data: bytes.buffer },
+      [bytes.buffer]
+    );
+  }
+
+  playDacBank(name, time) {
+    this.node.port.postMessage({ type: "play-dac-bank", name, time });
+  }
+
+  clearDacPlayback() {
+    this.node.port.postMessage({ type: "clear-dac-playback" });
+  }
+
   getIrq() {
     return this.irqAsserted;
   }
@@ -834,6 +849,18 @@ export class YM2612Synth {
     if (typeof this.transport.clearScheduledWrites === "function") {
       this.transport.clearScheduledWrites();
     }
+  }
+
+  loadDacBank(name, bytes) {
+    this.transport.loadDacBank(name, bytes);
+  }
+
+  playDacBank(name, time) {
+    this.transport.playDacBank(name, time);
+  }
+
+  clearDacPlayback() {
+    this.transport.clearDacPlayback();
   }
 
   /**
