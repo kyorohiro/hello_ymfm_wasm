@@ -47,6 +47,7 @@ const exportSnapshotButton = document.getElementById("exportSnapshotButton");
 const exportJavaScriptButton = document.getElementById("exportJavaScriptButton");
 const exportScheduledJavaScriptButton = document.getElementById("exportScheduledJavaScriptButton");
 const copyJavaScriptButton = document.getElementById("copyJavaScriptButton");
+const copyScheduledJavaScriptButton = document.getElementById("copyScheduledJavaScriptButton");
 const autoExportSnapshotCheckbox = document.getElementById("autoExportSnapshotCheckbox");
 const monoMixCheckbox = document.getElementById("monoMixCheckbox");
 const status = document.getElementById("status");
@@ -1970,6 +1971,7 @@ function updatePlaybackButtons(state = {}) {
   exportJavaScriptButton.disabled = !hasJavaScriptExport;
   exportScheduledJavaScriptButton.disabled = !hasJavaScriptExport;
   copyJavaScriptButton.disabled = !hasJavaScriptExport;
+  copyScheduledJavaScriptButton.disabled = !hasJavaScriptExport;
 }
 
 function buildParseInfo(buffer, fileName, vgm) {
@@ -2103,6 +2105,27 @@ async function copyJavaScriptExport() {
   } catch (error) {
     console.error(error);
     setStatus(`Error: ${error.message}`);
+  }
+}
+
+async function copyScheduledJavaScriptExport() {
+  if (!lastScheduledJavaScript) {
+    return;
+  }
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(lastScheduledJavaScript);
+    } else {
+      const textarea = document.createElement("textarea");
+      textarea.value = lastScheduledJavaScript;
+      document.body.append(textarea);
+      textarea.select();
+      document.execCommand("copy");
+      textarea.remove();
+    }
+    setStatus("Copied scheduled Playground JavaScript.");
+  } catch (error) {
+    setStatus(`Copy failed: ${error.message}`);
   }
 }
 
@@ -2373,7 +2396,9 @@ async function handleFile(file) {
     replayButton.disabled = true;
     stopButton.disabled = true;
     exportJavaScriptButton.disabled = true;
+    exportScheduledJavaScriptButton.disabled = true;
     copyJavaScriptButton.disabled = true;
+    copyScheduledJavaScriptButton.disabled = true;
     setStatus(`Error: ${error.message}`);
     return;
   }
@@ -2390,7 +2415,9 @@ async function handleFile(file) {
     replayButton.disabled = true;
     stopButton.disabled = true;
     exportJavaScriptButton.disabled = true;
+    exportScheduledJavaScriptButton.disabled = true;
     copyJavaScriptButton.disabled = true;
+    copyScheduledJavaScriptButton.disabled = true;
     setStatus(`Error: ${error.message}`);
     return;
   }
@@ -2570,6 +2597,10 @@ exportScheduledJavaScriptButton.addEventListener("click", () => {
 
 copyJavaScriptButton.addEventListener("click", async () => {
   await copyJavaScriptExport();
+});
+
+copyScheduledJavaScriptButton.addEventListener("click", async () => {
+  await copyScheduledJavaScriptExport();
 });
 
 function setOutputTab(tabName) {
