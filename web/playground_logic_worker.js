@@ -81,6 +81,7 @@ function createRun(sourceCode, presets, scaleIntervals) {
     prepared: new Map(),
     keyboard: new Map(),
     cleanups: [],
+    collectingCleanups: null,
     currentLoop: null,
   };
   const clock = createClock(run);
@@ -170,7 +171,7 @@ function createRun(sourceCode, presets, scaleIntervals) {
     if (!Array.isArray(names) || names.length === 0 || typeof fn !== "function") {
       throw new Error("liveCleanup(names, fn) requires loop names and a callback");
     }
-    run.cleanups.push({ names, fn });
+    (run.collectingCleanups ?? run.cleanups).push({ names, fn });
   };
   run.stop = async () => {
     if (run.stopped) return;
@@ -299,15 +300,24 @@ function createRun(sourceCode, presets, scaleIntervals) {
   };
   run.execute = async (nextSourceCode = sourceCode) => {
     run.collectingLoops = new Map();
+    run.collectingCleanups = [];
     const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
     const userFunction = new AsyncFunction(...Object.keys(globals), `"use strict";\n${nextSourceCode}`);
     await userFunction(...Object.values(globals));
     const definitions = run.collectingLoops;
+    const cleanupDefinitions = run.collectingCleanups;
     run.collectingLoops = null;
+    run.collectingCleanups = null;
     for (const name of run.loops.keys()) {
       if (!definitions.has(name)) run.loops.delete(name);
     }
     for (const [name, fn] of definitions) run.loops.set(name, fn);
+    for (const cleanup of run.cleanups) {
+      if (!cleanup.names.some((name) => run.loops.has(name))) {
+        await cleanup.fn();
+      }
+    }
+    run.cleanups = cleanupDefinitions;
     for (const name of definitions.keys()) {
       if (run.runningLoops.has(name)) continue;
       run.runningLoops.add(name);
