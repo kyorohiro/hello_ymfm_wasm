@@ -117,7 +117,7 @@ export function createPlaygroundRuntime(
     );
   defaultLogicWorkerUrl.searchParams.set(
     "v",
-    "20260903-3"
+    "20260903-4"
   );
   const logicWorkerUrl =
     options.logicWorkerUrl ??

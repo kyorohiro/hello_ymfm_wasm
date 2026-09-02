@@ -177,9 +177,146 @@ test(
   }
 );
 
-function dispatch(listeners, type) {
+test(
+  "worker is reused across runs and terminated by finalize",
+  async () => {
+    const originalWindow = globalThis.window;
+    const originalWorker = globalThis.Worker;
+    const createdWorkers = [];
+    globalThis.window = {
+      addEventListener() {},
+      removeEventListener() {},
+      setTimeout,
+    };
+    globalThis.Worker = class FakeWorker {
+      constructor() {
+        this.terminateCount = 0;
+        createdWorkers.push(this);
+      }
+
+      postMessage(message) {
+        if (message.type === "run") {
+          queueMicrotask(() => {
+            this.onmessage?.({
+              data: {
+                type: "complete",
+                loopCount: 0,
+                keyboardHandlerCount: 0,
+              },
+            });
+          });
+        }
+        if (message.type === "stop") {
+          queueMicrotask(() => {
+            this.onmessage?.({ data: { type: "stopped" } });
+          });
+        }
+      }
+
+      terminate() {
+        this.terminateCount += 1;
+      }
+    };
+
+    try {
+      const runtime = createPlaygroundRuntime({
+        megaDrive: createMegaDriveStub(),
+        guardExecution: false,
+      });
+      runtime.put("game", "context.run = (context.run || 0) + 1;");
+      await runtime.play("game", { execution: "worker" });
+      await runtime.play("game", { execution: "worker" });
+
+      assert.equal(createdWorkers.length, 1);
+      assert.equal(createdWorkers[0].terminateCount, 0);
+
+      await runtime.finalize();
+      assert.equal(createdWorkers[0].terminateCount, 1);
+    } finally {
+      globalThis.window = originalWindow;
+      globalThis.Worker = originalWorker;
+    }
+  }
+);
+
+test(
+  "worker receives keyboard events and stop does not terminate it",
+  async () => {
+    const originalWindow = globalThis.window;
+    const originalWorker = globalThis.Worker;
+    const listeners = new Map();
+    const messages = [];
+    globalThis.window = {
+      addEventListener(type, listener) {
+        const registered = listeners.get(type) ?? new Set();
+        registered.add(listener);
+        listeners.set(type, registered);
+      },
+      removeEventListener(type, listener) {
+        listeners.get(type)?.delete(listener);
+      },
+      setTimeout,
+    };
+    globalThis.Worker = class FakeWorker {
+      constructor() {
+        this.terminateCount = 0;
+      }
+
+      postMessage(message) {
+        messages.push(message);
+        if (message.type === "run") {
+          queueMicrotask(() => {
+            this.onmessage?.({
+              data: {
+                type: "command",
+                command: "keyboard.register",
+                args: ["keydown:jump", "keydown"],
+              },
+            });
+            this.onmessage?.({
+              data: {
+                type: "complete",
+                loopCount: 1,
+                keyboardHandlerCount: 1,
+              },
+            });
+          });
+        }
+        if (message.type === "stop") {
+          queueMicrotask(() => {
+            this.onmessage?.({ data: { type: "stopped" } });
+          });
+        }
+      }
+
+      terminate() {
+        this.terminateCount += 1;
+      }
+    };
+
+    try {
+      const runtime = createPlaygroundRuntime({
+        megaDrive: createMegaDriveStub(),
+        guardExecution: false,
+      });
+      runtime.put("game", "liveLoop('game', async () => {});");
+      await runtime.play("game", { execution: "worker" });
+      dispatch(listeners, "keydown", { key: "z", code: "KeyZ" });
+      runtime.stop();
+
+      assert.ok(messages.some((message) => message.type === "keyboard" && message.id === "keydown:jump"));
+      assert.ok(messages.some((message) => message.type === "stop"));
+      assert.equal(messages.filter((message) => message.type === "run").length, 1);
+    } finally {
+      globalThis.window = originalWindow;
+      globalThis.Worker = originalWorker;
+    }
+  }
+);
+
+function dispatch(listeners, type, event = { type }) {
   for (const listener of listeners.get(type) ?? []) {
-    listener({ type });
+    listener({ type, ...event });
   }
 }
 
@@ -214,6 +351,7 @@ function createMegaDriveStub() {
       this.state = "ready";
     },
     async resume() {},
+    async close() {},
     clearFXChain() {
       return [];
     },

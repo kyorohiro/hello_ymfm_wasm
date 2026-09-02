@@ -214,6 +214,23 @@ function createRun(sourceCode, presets, scaleIntervals) {
     const rootMidi = noteToMidi(root);
     return intervals.map((interval) => midiToNote(rootMidi + interval));
   };
+  const pitchFromMidi = (midi) => {
+    let block = 4;
+    let fnum = 553 * Math.pow(2, (midi - 62) / 12);
+    while (fnum >= 1024 && block < 7) {
+      fnum /= 2;
+      block += 1;
+    }
+    while (fnum < 512 && block > 0) {
+      fnum *= 2;
+      block -= 1;
+    }
+    return { block, fnum: Math.max(0, Math.min(0x7ff, Math.round(fnum))) };
+  };
+  const noteToBlockFnum = (note) => pitchFromMidi(typeof note === "number" ? note : noteToMidi(note));
+  const noteLerp = (from, to, amount) => pitchFromMidi(
+    noteToMidi(from) + (noteToMidi(to) - noteToMidi(from)) * Number(amount)
+  );
   const tween = async (seconds, fn) => {
     if (typeof fn !== "function") throw new Error("tween(seconds, fn) requires a callback");
     const duration = Math.max(0, Number(seconds) || 0);
@@ -271,8 +288,8 @@ function createRun(sourceCode, presets, scaleIntervals) {
     scale,
     chord,
     tween,
-    noteToBlockFnum: (note) => request("noteToBlockFnum", [note], run.currentLoop),
-    noteLerp: (from, to, amount) => request("noteLerp", [from, to, amount], run.currentLoop),
+    noteToBlockFnum,
+    noteLerp,
   };
   globals.pg = { ...globals };
 
