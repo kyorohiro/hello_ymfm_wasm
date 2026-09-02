@@ -52,6 +52,7 @@ const SCALE_INTERVALS = {
  *   presets?: Record<string, object>,
  *   logicWorkerUrl?: string | null,
  *   execution?: "main" | "worker",
+ *   dacLookaheadSeconds?: number,
  *   guardExecution?: boolean,
  *   onStatus?: ((message: string) => void) | null,
  *   onRuntimeState?: ((state: string) => void) | null,
@@ -96,6 +97,10 @@ export function createPlaygroundRuntime(
     livePrepared: new Map(),
     context: {},
     sampleClockStartTime: null,
+    dacLookaheadSeconds: Math.max(
+      0,
+      Number(options.dacLookaheadSeconds) || 0.25
+    ),
   };
   const preparedFxUnits =
     new WeakSet();
@@ -170,6 +175,21 @@ export function createPlaygroundRuntime(
 
   function getMasterVolume() {
     return megaDrive.getMasterVolume();
+  }
+
+  function setDacLookahead(seconds) {
+    const value = Number(seconds);
+    if (!Number.isFinite(value) || value < 0) {
+      throw new Error(
+        "DAC lookahead must be a non-negative number"
+      );
+    }
+    runtime.dacLookaheadSeconds = value;
+    return value;
+  }
+
+  function getDacLookahead() {
+    return runtime.dacLookaheadSeconds;
   }
 
   function controlNoiseVoice(
@@ -789,14 +809,25 @@ export function createPlaygroundRuntime(
       if (typeof globals.sample[method] !== "function") {
         throw new Error(`Unsupported sample method: ${method}`);
       }
-      return globals.sample[method](...args);
+      const value = await globals.sample[method](...args);
+      if (method === "isLoaded" || method === "list") {
+        return value;
+      }
+      // AudioBuffer and voice objects contain AudioNodes and cannot cross the
+      // Worker boundary. Worker callers use these operations for their side
+      // effects, so resolve after the main-thread operation completes.
+      return undefined;
     }
     if (command.startsWith("stream.")) {
       const method = command.slice(7);
       if (typeof globals.stream[method] !== "function") {
         throw new Error(`Unsupported stream method: ${method}`);
       }
-      return globals.stream[method](...args);
+      const value = await globals.stream[method](...args);
+      if (method === "isLoaded" || method === "list") {
+        return value;
+      }
+      return undefined;
     }
     if (command.startsWith("dac.")) {
       const method = command.slice(4);
@@ -813,6 +844,8 @@ export function createPlaygroundRuntime(
       case "psgNoise":
       case "setMasterVolume":
       case "getMasterVolume":
+      case "setDacLookahead":
+      case "getDacLookahead":
         return globals[command](...args);
       case "psg.write":
         return globals.psg.write(...args);
@@ -991,7 +1024,8 @@ export function createPlaygroundRuntime(
         },
         playStream: (name, { atSamples = 0 } = {}) => {
           const origin = runtime.sampleClockStartTime ??
-            (megaDrive.audioContext.currentTime + 0.25);
+            (megaDrive.audioContext.currentTime +
+              runtime.dacLookaheadSeconds);
           runtime.sampleClockStartTime = origin;
           fm.playDacBank(
             name,
@@ -1012,6 +1046,8 @@ export function createPlaygroundRuntime(
       psgNoise,
       setMasterVolume,
       getMasterVolume,
+      setDacLookahead,
+      getDacLookahead,
       CH1: 0,
       CH2: 1,
       CH3: 2,
@@ -1143,6 +1179,10 @@ export function createPlaygroundRuntime(
           pg.setMasterVolume,
         getMasterVolume:
           pg.getMasterVolume,
+        setDacLookahead:
+          pg.setDacLookahead,
+        getDacLookahead:
+          pg.getDacLookahead,
         livePrepare: (name, fn) =>
           pg.livePrepare(name, fn),
         play: (note, playOptions) =>
@@ -1251,7 +1291,8 @@ export function createPlaygroundRuntime(
   function beginSampleSchedule() {
     if (runtime.sampleClockStartTime === null) {
       runtime.sampleClockStartTime =
-        megaDrive.audioContext.currentTime + 0.25;
+        megaDrive.audioContext.currentTime +
+        runtime.dacLookaheadSeconds;
     }
     return Math.round(
       (currentLoopContext?.sampleCursorSeconds ?? 0) * 44100
@@ -1261,7 +1302,8 @@ export function createPlaygroundRuntime(
   function scheduleWritesSamples(fm, startSamples, entries) {
     const start = Math.max(0, Number(startSamples) || 0);
     const origin = runtime.sampleClockStartTime ??
-      (megaDrive.audioContext.currentTime + 0.25);
+      (megaDrive.audioContext.currentTime +
+        runtime.dacLookaheadSeconds);
     runtime.sampleClockStartTime = origin;
     fm.scheduleWrites(entries.map(([offset, port, register, value]) => ({
       time: origin + (start + Number(offset)) / 44100,

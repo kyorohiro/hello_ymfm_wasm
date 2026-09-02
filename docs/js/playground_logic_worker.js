@@ -133,6 +133,8 @@ function createRun(sourceCode, presets) {
     psgNoise: (...args) => postCommand("psgNoise", args),
     setMasterVolume: (...args) => request("setMasterVolume", args),
     getMasterVolume: () => request("getMasterVolume"),
+    setDacLookahead: (...args) => request("setDacLookahead", args),
+    getDacLookahead: () => request("getDacLookahead"),
     sleep: clock.sleep,
     sleepSamples: clock.sleepSamples,
     beat: clock.beat,

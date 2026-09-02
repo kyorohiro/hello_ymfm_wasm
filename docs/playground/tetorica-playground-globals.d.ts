@@ -764,6 +764,12 @@ declare function stopAll(): void;
 declare function setMasterVolume(volume: number): number;
 /** Read the current browser-side master output volume. */
 declare function getMasterVolume(): number;
+
+/** Sets the AudioWorklet scheduling margin used by DAC streams. */
+declare function setDacLookahead(seconds: number): number;
+
+/** Returns the current DAC scheduling margin in seconds. */
+declare function getDacLookahead(): number;
 /** Write one line into the playground console area. */
 declare function log(...args: unknown[]): void;
 /** Browser timer helper available in playground examples. */
@@ -830,6 +836,8 @@ type PlaygroundAPI = {
   stopAll: () => void;
   setMasterVolume: (volume: number) => number;
   getMasterVolume: () => number;
+  setDacLookahead: (seconds: number) => number;
+  getDacLookahead: () => number;
   log: (...args: unknown[]) => void;
 };
 
