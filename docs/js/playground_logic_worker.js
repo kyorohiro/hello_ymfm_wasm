@@ -275,8 +275,13 @@ function createRun(sourceCode, presets, scaleIntervals) {
 self.onmessage = async (event) => {
   const message = event.data;
   if (message.type === "run") {
-    await currentRun?.stop?.();
+    const previousRun = currentRun;
+    await previousRun?.stop?.();
     currentRun = createRun(message.sourceCode, message.presets ?? {}, message.scaleIntervals ?? {});
+    if (previousRun) {
+      currentRun.context = previousRun.context;
+      currentRun.prepared = previousRun.prepared;
+    }
     try {
       await currentRun.execute();
       postMessage({ type: "complete", loopCount: currentRun.loops.size, keyboardHandlerCount: currentRun.keyboard.size });

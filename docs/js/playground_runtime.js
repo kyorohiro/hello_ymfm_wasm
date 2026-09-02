@@ -763,18 +763,24 @@ export function createPlaygroundRuntime(
     return new Promise((resolve) => {
       const finish = () => {
         if (logicWorker !== worker) return;
-        worker.terminate();
-        logicWorker = null;
-        workerGlobals = null;
         resolveLogicWorkerStop = null;
-        for (const value of workerAudioHandles.values()) value?.dispose?.();
-        workerAudioHandles.clear();
         resolve();
       };
       resolveLogicWorkerStop = finish;
       worker.postMessage({ type: "stop" });
       setTimeout(finish, 100);
     });
+  }
+
+  function terminateLogicWorker() {
+    logicWorker?.terminate();
+    logicWorker = null;
+    workerGlobals = null;
+    resolveLogicWorkerStop = null;
+    for (const value of workerAudioHandles.values()) {
+      value?.dispose?.();
+    }
+    workerAudioHandles.clear();
   }
 
   function serializeKeyboardEvent(event) {
@@ -1418,10 +1424,11 @@ export function createPlaygroundRuntime(
     currentRunToken += 1;
     const runToken = currentRunToken;
     await ensureReady();
-    await stopLogicWorker();
     clearKeyboardHandlers();
     liveApi.stopAllLoops();
-    liveApi.clearRunFxChain();
+    if (!logicWorker) {
+      liveApi.clearRunFxChain();
+    }
     setPlaybackState("running");
     emitStatus("Starting Playground Worker...");
     emitRuntimeState("Running");
@@ -1429,7 +1436,7 @@ export function createPlaygroundRuntime(
     const { globals } =
       createExecutionGlobals(runToken);
     workerGlobals = globals;
-    const worker = new Worker(logicWorkerUrl, {
+    const worker = logicWorker ?? new Worker(logicWorkerUrl, {
       type: "module",
     });
     logicWorker = worker;
@@ -1688,6 +1695,7 @@ export function createPlaygroundRuntime(
 
   async function finalize() {
     stop();
+    terminateLogicWorker();
     sourceMap.clear();
     currentSourceName = null;
     synth = null;
