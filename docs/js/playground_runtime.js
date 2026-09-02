@@ -51,6 +51,7 @@ const SCALE_INTERVALS = {
  *   segaPsgWasmUrl?: string,
  *   presets?: Record<string, object>,
  *   logicWorkerUrl?: string | null,
+ *   execution?: "main" | "worker",
  *   guardExecution?: boolean,
  *   onStatus?: ((message: string) => void) | null,
  *   onRuntimeState?: ((state: string) => void) | null,
@@ -86,6 +87,7 @@ export function createPlaygroundRuntime(
     );
   const sourceMap =
     new Map();
+  const dacBanks = new Map();
   const runtime = {
     bpm: 120,
     clockStartTime: null,
@@ -102,6 +104,14 @@ export function createPlaygroundRuntime(
     new Set();
   const guardExecution =
     options.guardExecution !== false;
+  const defaultExecution =
+    options.execution ?? "main";
+  const logicWorkerUrl =
+    options.logicWorkerUrl ??
+    new URL(
+      "./playground_logic_worker.js",
+      import.meta.url
+    ).href;
 
   let synth = null;
   let prepareAudioPromise = null;
@@ -112,6 +122,10 @@ export function createPlaygroundRuntime(
     null;
   let currentSourceName = null;
   let playbackState = "stopped";
+  let logicWorker = null;
+  let workerGlobals = null;
+  const workerKeyboardHandlers =
+    new Map();
 
   function emitStatus(message) {
     options.onStatus?.(message);
@@ -704,6 +718,146 @@ export function createPlaygroundRuntime(
       );
     }
     keyboardHandlers.clear();
+    for (const handler of workerKeyboardHandlers.values()) {
+      window.removeEventListener(
+        handler.eventType,
+        handler.listener
+      );
+    }
+    workerKeyboardHandlers.clear();
+  }
+
+  function stopLogicWorker() {
+    if (!logicWorker) {
+      return;
+    }
+    logicWorker.postMessage({ type: "stop" });
+    logicWorker.terminate();
+    logicWorker = null;
+    workerGlobals = null;
+  }
+
+  function serializeKeyboardEvent(event) {
+    return {
+      type: event.type,
+      key: event.key,
+      code: event.code,
+      repeat: event.repeat,
+      altKey: event.altKey,
+      ctrlKey: event.ctrlKey,
+      metaKey: event.metaKey,
+      shiftKey: event.shiftKey,
+    };
+  }
+
+  function registerWorkerKeyboardHandler(
+    id,
+    eventType
+  ) {
+    const listener = (event) => {
+      logicWorker?.postMessage({
+        type: "keyboard",
+        id,
+        event: serializeKeyboardEvent(event),
+      });
+    };
+    workerKeyboardHandlers.set(id, {
+      eventType,
+      listener,
+    });
+    window.addEventListener(eventType, listener);
+  }
+
+  async function invokeWorkerCommand(
+    command,
+    args
+  ) {
+    const globals = workerGlobals;
+    if (!globals) {
+      throw new Error("Playground Worker is not running");
+    }
+
+    if (command.startsWith("fm.")) {
+      const method = command.slice(3);
+      if (typeof globals.fm[method] !== "function") {
+        throw new Error(`Unsupported fm method: ${method}`);
+      }
+      return globals.fm[method](...args);
+    }
+    if (command.startsWith("sample.")) {
+      const method = command.slice(7);
+      if (typeof globals.sample[method] !== "function") {
+        throw new Error(`Unsupported sample method: ${method}`);
+      }
+      return globals.sample[method](...args);
+    }
+    if (command.startsWith("stream.")) {
+      const method = command.slice(7);
+      if (typeof globals.stream[method] !== "function") {
+        throw new Error(`Unsupported stream method: ${method}`);
+      }
+      return globals.stream[method](...args);
+    }
+    if (command.startsWith("dac.")) {
+      const method = command.slice(4);
+      if (typeof globals.dac[method] !== "function") {
+        throw new Error(`Unsupported dac method: ${method}`);
+      }
+      return globals.dac[method](...args);
+    }
+
+    switch (command) {
+      case "write":
+      case "play":
+      case "psgTone":
+      case "psgNoise":
+      case "setMasterVolume":
+      case "getMasterVolume":
+        return globals[command](...args);
+      case "psg.write":
+        return globals.psg.write(...args);
+      case "stopAll":
+        return globals.stopAll();
+      default:
+        throw new Error(`Unsupported Worker command: ${command}`);
+    }
+  }
+
+  function handleWorkerMessage(event) {
+    const message = event.data ?? {};
+    if (message.type === "command" || message.type === "request") {
+      if (message.command === "keyboard.register") {
+        registerWorkerKeyboardHandler(
+          message.args[0],
+          message.args[1]
+        );
+        return;
+      }
+      if (message.command === "log" || message.command === "warn" || message.command === "error") {
+        const prefix = message.command === "log" ? "" : `[${message.command}] `;
+        emitLog(`${prefix}${formatLogArgs(message.args)}`);
+        return;
+      }
+      void Promise.resolve(
+        invokeWorkerCommand(
+          message.command,
+          message.args ?? []
+        )
+      ).then(
+        (value) => {
+          if (message.type === "request") {
+            logicWorker?.postMessage({ type: "response", id: message.id, value });
+          }
+        },
+        (error) => {
+          if (message.type === "request") {
+            logicWorker?.postMessage({ type: "response", id: message.id, error: error?.message ?? String(error) });
+          } else {
+            emitLog(error?.stack ?? String(error));
+          }
+        }
+      );
+    }
   }
 
   function commitKeyboardHandlers(definitions) {
@@ -829,6 +983,14 @@ export function createPlaygroundRuntime(
     const pg = {
       fm,
       dac: {
+        loadBase64: async (name, encoded) => {
+          dacBanks.set(name, decodeDacBase64(encoded));
+        },
+        playStream: (name, { atSamples = 0 } = {}) => {
+          const entries = dacBanks.get(name);
+          if (!entries) throw new Error(`Unknown DAC bank: ${name}`);
+          scheduleWritesSamples(fm, atSamples, entries);
+        },
         schedule: (start, entries) => scheduleWritesSamples(fm, start, entries.map(([offset, value]) => [offset, 0, 0x2a, value])),
         scheduleBase64: (start, encoded) => scheduleDacBase64(fm, start, encoded),
       },
@@ -1103,6 +1265,10 @@ export function createPlaygroundRuntime(
   }
 
   function scheduleDacBase64(fm, startSamples, encoded) {
+    scheduleWritesSamples(fm, startSamples, decodeDacBase64(encoded));
+  }
+
+  function decodeDacBase64(encoded) {
     const binary = atob(encoded);
     const bytes = Uint8Array.from(binary, (character) => character.charCodeAt(0));
     const view = new DataView(bytes.buffer);
@@ -1110,7 +1276,7 @@ export function createPlaygroundRuntime(
     for (let offset = 0; offset < bytes.length; offset += 5) {
       entries.push([view.getUint32(offset, true), 0, 0x2a, bytes[offset + 4]]);
     }
-    scheduleWritesSamples(fm, startSamples, entries);
+    return entries;
   }
 
 
@@ -1134,7 +1300,106 @@ export function createPlaygroundRuntime(
     );
   }
 
-  async function playSource(sourceCode) {
+  async function playSourceInWorker(sourceCode) {
+    if (typeof Worker !== "function") {
+      throw new Error(
+        "Worker execution is not available in this environment"
+      );
+    }
+
+    currentRunToken += 1;
+    const runToken = currentRunToken;
+    await ensureReady();
+    stopLogicWorker();
+    clearKeyboardHandlers();
+    liveApi.stopAllLoops();
+    liveApi.clearRunFxChain();
+    setPlaybackState("running");
+    emitStatus("Starting Playground Worker...");
+    emitRuntimeState("Running");
+
+    const { globals } =
+      createExecutionGlobals(runToken);
+    workerGlobals = globals;
+    const worker = new Worker(logicWorkerUrl, {
+      type: "module",
+    });
+    logicWorker = worker;
+
+    await new Promise((resolve, reject) => {
+      const fail = (error) => {
+        if (logicWorker === worker) {
+          stopLogicWorker();
+        }
+        reject(error);
+      };
+      worker.onmessage = (event) => {
+        const message = event.data ?? {};
+        if (message.type === "complete") {
+          const loopCount = message.loopCount ?? 0;
+          const keyboardHandlerCount =
+            message.keyboardHandlerCount ?? 0;
+          emitStatus(
+            loopCount > 0
+              ? `Running ${loopCount} live loop(s) in Worker.`
+              : keyboardHandlerCount > 0
+                ? `Running ${keyboardHandlerCount} keyboard handler(s) in Worker.`
+                : "Done."
+          );
+          if (loopCount === 0 && keyboardHandlerCount === 0) {
+            setPlaybackState("stopped");
+          }
+          emitRuntimeState("Audio ready");
+          resolve();
+          return;
+        }
+        if (message.type === "execution-error") {
+          const error = new Error(message.message);
+          error.stack = message.stack ?? error.stack;
+          fail(error);
+          return;
+        }
+        if (message.type === "log") {
+          emitLog(message.message);
+          return;
+        }
+        handleWorkerMessage(event);
+      };
+      worker.onerror = (event) => {
+        fail(new Error(event.message || "Playground Worker failed"));
+      };
+      worker.postMessage({
+        type: "run",
+        sourceCode,
+        presets,
+      });
+    });
+  }
+
+  async function playSource(
+    sourceCode,
+    playOptions = {}
+  ) {
+    const execution =
+      playOptions.execution ??
+      defaultExecution;
+    if (execution === "worker") {
+      try {
+        return await playSourceInWorker(sourceCode);
+      } catch (error) {
+        setPlaybackState("stopped");
+        emitStatus(`Error: ${error.message}`);
+        emitRuntimeState("Error");
+        emitLog(error?.stack ?? String(error));
+        throw error;
+      }
+    }
+    if (execution !== "main") {
+      throw new Error(
+        `Unknown execution mode: ${execution}`
+      );
+    }
+    stopLogicWorker();
     currentRunToken += 1;
     const runToken =
       currentRunToken;
@@ -1264,7 +1529,10 @@ export function createPlaygroundRuntime(
     return sourceMap.get(name) ?? null;
   }
 
-  async function play(name) {
+  async function play(
+    name,
+    playOptions = {}
+  ) {
     const sourceCode =
       sourceMap.get(name);
 
@@ -1275,12 +1543,13 @@ export function createPlaygroundRuntime(
     }
 
     currentSourceName = name;
-    await playSource(sourceCode);
+    await playSource(sourceCode, playOptions);
   }
 
   function stop() {
     currentRunToken += 1;
     runtime.sampleClockStartTime = null;
+    stopLogicWorker();
     clearKeyboardHandlers();
     liveApi.stopAllLoops();
     stopAllAudio();
@@ -1347,8 +1616,7 @@ export function createPlaygroundRuntime(
   }
 
   return {
-    logicWorkerUrl:
-      options.logicWorkerUrl ?? null,
+    logicWorkerUrl,
     initialize,
     ensureReady,
     load,

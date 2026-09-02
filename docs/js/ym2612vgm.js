@@ -1103,6 +1103,13 @@ export function exportYm2612VgmToPlaygroundJavaScript(source, options = {}) {
     lines.push(options.scheduled ? "// Register writes are scheduled at VGM sample positions (44100 Hz)." : "// Timing uses VGM sample units at 44100 Hz via sleepSamples().");
     lines.push("");
   }
+  const dacEvents = tracks[0].events.filter((event) => event.port === 0 && event.register === 0x2a);
+  if (!options.scheduled && dacEvents.length > 0) {
+    lines.push('livePrepare("vgm-dac", async () => {');
+    lines.push(`  await dac.loadBase64("vgm-dac", ${JSON.stringify(encodeDacSchedule(dacEvents))});`);
+    lines.push("});");
+    lines.push("");
+  }
 
   const renderOrder = tracks[0].events.length > 0
     ? tracks
@@ -1133,7 +1140,7 @@ function renderPlaygroundTrack(track, totalLoopSamples, scheduled) {
     : [];
   if (dacEvents.length > 0) {
     lines.push("  const dacStart = beginSampleSchedule();");
-    lines.push(`  dac.scheduleBase64(dacStart, ${JSON.stringify(encodeDacSchedule(dacEvents))});`);
+    lines.push('  dac.playStream("vgm-dac", { atSamples: dacStart });');
   }
   if (scheduled) lines.push("  const cycleStart = beginSampleSchedule();", "  scheduleWritesSamples(cycleStart, [");
   let cursor = 0;

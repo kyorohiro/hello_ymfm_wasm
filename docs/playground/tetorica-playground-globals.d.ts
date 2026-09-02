@@ -716,6 +716,8 @@ declare function beginSampleSchedule(): number;
 /** Queue [offsetSamples, port, register, value] writes for the current VGM cycle. */
 declare function scheduleWritesSamples(startSamples: number, entries: Array<[number, number, number, number]>): void;
 declare const dac: {
+  loadBase64(name: string, encoded: string): Promise<void>;
+  playStream(name: string, options?: { atSamples?: number }): void;
   schedule(startSamples: number, entries: Array<[number, number]>): void;
   scheduleBase64(startSamples: number, encoded: string): void;
 };

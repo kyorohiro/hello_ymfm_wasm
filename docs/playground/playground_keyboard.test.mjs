@@ -92,6 +92,60 @@ test(
   }
 );
 
+test(
+  "worker execution is opt-in for a loaded source",
+  async () => {
+    const originalWindow = globalThis.window;
+    const originalWorker = globalThis.Worker;
+    const createdWorkers = [];
+    globalThis.window = {
+      addEventListener() {},
+      removeEventListener() {},
+      setTimeout,
+    };
+    globalThis.Worker = class FakeWorker {
+      constructor(url, options) {
+        this.url = url;
+        this.options = options;
+        createdWorkers.push(this);
+      }
+
+      postMessage(message) {
+        if (message.type === "run") {
+          queueMicrotask(() => {
+            this.onmessage?.({
+              data: {
+                type: "complete",
+                loopCount: 0,
+                keyboardHandlerCount: 0,
+              },
+            });
+          });
+        }
+      }
+
+      terminate() {}
+    };
+
+    try {
+      const runtime = createPlaygroundRuntime({
+        megaDrive: createMegaDriveStub(),
+        guardExecution: false,
+      });
+      runtime.put("game", "context.started = true;");
+      await runtime.play("game", { execution: "worker" });
+
+      assert.equal(createdWorkers.length, 1);
+      assert.equal(createdWorkers[0].options.type, "module");
+      assert.match(createdWorkers[0].url, /playground_logic_worker\.js$/);
+      runtime.stop();
+    } finally {
+      globalThis.window = originalWindow;
+      globalThis.Worker = originalWorker;
+    }
+  }
+);
+
 function dispatch(listeners, type) {
   for (const listener of listeners.get(type) ?? []) {
     listener({ type });

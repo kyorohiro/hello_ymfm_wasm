@@ -139,6 +139,12 @@
           browser game or another small app.
         </p>
 
+        <p>
+          Pass <code>{ execution: "worker" }</code> to
+          <code>pg.play()</code> to keep game code off the main thread. The
+          default remains main-thread execution for compatibility.
+        </p>
+
         <p class="meta">
           Source:
           <a href="https://github.com/kyorohiro/hello_ymfm_wasm/blob/main/web/playground_runtime.js">
@@ -192,7 +198,9 @@ liveLoop("lead", async () => {
 });
 `);
 
-await pg.play("stage1");</pre>
+await pg.play("stage1", {
+  execution: "worker",
+});</pre>
 
         <div class="actions">
           <button id="playButton" type="button">Play</button>
@@ -313,7 +321,9 @@ liveLoop("lead", async () => {
 
           try {
             await pg.initialize();
-            await pg.play("stage1");
+            await pg.play("stage1", {
+              execution: "worker",
+            });
           } catch (error) {
             console.error(error);
             status.textContent =
