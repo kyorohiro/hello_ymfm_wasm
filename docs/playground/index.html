@@ -59,12 +59,6 @@
         margin-bottom: 14px;
       }
 
-      .topbar-links {
-        display: flex;
-        gap: 8px;
-        flex-wrap: wrap;
-      }
-
       h1,
       h2 {
         margin: 0;
@@ -118,6 +112,63 @@
         gap: 8px;
         flex-wrap: wrap;
         margin-bottom: 12px;
+      }
+
+      .toolbar-menu {
+        position: relative;
+      }
+
+      .toolbar-menu > summary {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 34px;
+        padding: 6px 12px;
+        border-radius: 999px;
+        border: 1px solid rgba(126, 56, 28, 0.16);
+        color: white;
+        background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+        font-weight: 700;
+        cursor: pointer;
+        list-style: none;
+      }
+
+      .toolbar-menu > summary::-webkit-details-marker {
+        display: none;
+      }
+
+      .toolbar-menu-panel {
+        position: absolute;
+        z-index: 20;
+        top: calc(100% + 6px);
+        right: 0;
+        display: grid;
+        min-width: 184px;
+        padding: 6px;
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        background: var(--panel);
+        box-shadow: 0 14px 28px rgba(90, 62, 30, 0.2);
+      }
+
+      .toolbar-menu-panel button,
+      .toolbar-menu-panel .link-button {
+        width: 100%;
+        border: 0;
+        border-radius: 9px;
+        color: var(--ink);
+        background: transparent;
+        text-align: left;
+        font-weight: 700;
+      }
+
+      .toolbar-menu-panel button:hover,
+      .toolbar-menu-panel .link-button:hover {
+        background: rgba(180, 87, 47, 0.12);
+      }
+
+      .toolbar-menu--main {
+        margin-left: auto;
       }
 
       .volume-control {
@@ -794,15 +845,19 @@
               drop down to raw YM2612 control when you want to.
             </p>
           </div>
-          <div class="topbar-links">
-            <a class="link-button" href="./cassette-gen.html">Cassette Generator</a>
-            <a class="link-button" href="../index.html">Back</a>
-          </div>
         </div>
 
         <div class="toolbar">
           <button id="runButton" type="button">Run</button>
           <button id="stopButton" type="button">Stop</button>
+          <details class="toolbar-menu" id="importVgmMenu">
+            <summary>Import VGM</summary>
+            <div class="toolbar-menu-panel">
+              <button id="importVgmRawButton" type="button">Import VGM (Raw)</button>
+              <button id="importVgmLowButton" type="button">Import VGM (Low)</button>
+            </div>
+          </details>
+          <button id="importCassetteButton" type="button">Import Cassette</button>
           <label class="checkbox-label">
             <input id="workerExecution" type="checkbox">
             Run in Worker
@@ -833,13 +888,19 @@
             <option value="psg-noise">PSG Noise</option>
           </select>
           <button id="loadExampleButton" type="button">Load Example</button>
-          <button id="importCassetteButton" type="button">Import Cassette</button>
           <label class="volume-control" for="masterVolumeRange">
             <span>Vol</span>
             <input id="masterVolumeRange" type="range" min="0" max="380" value="100" step="1">
             <span id="masterVolumeValue" class="volume-readout">100%</span>
           </label>
           <span id="runtimeState" class="pill">Audio idle</span>
+          <details class="toolbar-menu toolbar-menu--main" id="mainMenu">
+            <summary aria-label="More playground actions">Menu</summary>
+            <div class="toolbar-menu-panel">
+              <a class="link-button" href="./cassette-gen.html">Cassette Generator</a>
+              <a class="link-button" href="../index.html">Back</a>
+            </div>
+          </details>
         </div>
 
         <div class="status" id="status">Ready.</div>

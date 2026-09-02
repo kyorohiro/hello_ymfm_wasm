@@ -4,18 +4,18 @@
 
 ## Release / Sync
 
-- [ ] Web runtime example / itch Playground の release を実際に生成して、Worker URL が 404 にならないことを確認する。
+- [ ] `package_web_runtime_release.sh`、`package_web_runtime_exsample.sh`、`package_itch_playground.sh` で release を実際に生成する。展開後に Worker URL が 404 にならず、Main thread / Worker の両モードで Playground を起動できることを確認する。
 
 ## Worker Playground
 
-- [ ] Worker で FX/noise の複合オブジェクトと再実行・停止時の `liveCleanup()` を実ブラウザで回帰確認する。
+- [ ] Worker で FX/noise の複合オブジェクト、Stop/Run、再実行時の `liveCleanup()` を実ブラウザで回帰確認する。
 
 ## DAC / VGM Stream
 
-- [ ] `dacLookaheadSeconds` の実機値を調整する。既定は 0.25 秒で、曲・端末ごとの安定下限を確認する。
+- [ ] `dacLookaheadSeconds` の実機値を調整する。既定は `0.25` 秒で、曲・端末ごとの安定下限と開始遅延を確認する。
 - [ ] `dac.loadBase64()` の Base64 展開を Main thread から外す。
-- [ ] 長尺 VGM の DAC 再生、Stop/Run、繰り返し再生を確認する。
-- [ ] `Copy JavaScript` と `Copy Scheduled JavaScript` の DAC 再生結果を比較する。
+- [ ] 長尺 VGM の DAC 再生、Stop/Run、繰り返し再生を Main thread / Worker の両方で確認する。
+- [ ] `Copy JavaScript` と `Copy Scheduled JavaScript` の DAC 再生結果、開始時の停止、ノイズ量を比較する。
 
 ## PC-98 Chips
 

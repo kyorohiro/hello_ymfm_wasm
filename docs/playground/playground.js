@@ -22,6 +22,12 @@ import {
   loadPlaygroundCassette,
 } from "./playground_cassette.js";
 import {
+  maybeDecodeVgmFile,
+} from "../js/vgm_file.js";
+import {
+  Ym2612VGM,
+} from "../js/ym2612vgm.js";
+import {
   createPlaygroundRuntime,
 } from "../js/playground_runtime.js";
 import { createPlaygroundUi } from "./playground_ui.js";
@@ -72,6 +78,12 @@ const importCassetteButton =
   document.getElementById(
     "importCassetteButton"
   );
+const importVgmMenu =
+  document.getElementById("importVgmMenu");
+const importVgmRawButton =
+  document.getElementById("importVgmRawButton");
+const importVgmLowButton =
+  document.getElementById("importVgmLowButton");
 const exampleSelect =
   document.getElementById(
     "exampleSelect"
@@ -197,6 +209,13 @@ cassetteImportInput.style.display =
 document.body.appendChild(
   cassetteImportInput
 );
+const vgmImportInput =
+  document.createElement("input");
+vgmImportInput.type = "file";
+vgmImportInput.accept = ".vgm,.vgz,audio/vgm,application/octet-stream";
+vgmImportInput.style.display = "none";
+document.body.appendChild(vgmImportInput);
+let pendingVgmImportMode = "raw";
 const cassetteExamples = new Map();
 const operatorTab =
   createPlaygroundOperatorTab({
@@ -421,6 +440,28 @@ function promptTfiInsert() {
 function promptCassetteImport() {
   cassetteImportInput.value = "";
   cassetteImportInput.click();
+}
+
+function promptVgmImport(mode) {
+  pendingVgmImportMode = mode;
+  if (importVgmMenu) importVgmMenu.open = false;
+  vgmImportInput.value = "";
+  vgmImportInput.click();
+}
+
+async function importVgmFile(file, mode) {
+  const decoded = await maybeDecodeVgmFile(
+    await file.arrayBuffer()
+  );
+  const vgm = new Ym2612VGM(decoded, { logger: null });
+  const source = vgm.exportPlaygroundJavaScript({
+    scheduled: mode === "low",
+  });
+
+  setEditorValue(source);
+  setStatus(
+    `Imported ${file.name} as ${mode === "low" ? "Low" : "Raw"} Playground JavaScript.`
+  );
 }
 
 function installTfiEditorDropTarget() {
@@ -885,6 +926,20 @@ importCassetteButton?.addEventListener(
   }
 );
 
+importVgmRawButton?.addEventListener(
+  "click",
+  () => {
+    promptVgmImport("raw");
+  }
+);
+
+importVgmLowButton?.addEventListener(
+  "click",
+  () => {
+    promptVgmImport("low");
+  }
+);
+
 tfiImportInput.addEventListener(
   "change",
   () => {
@@ -923,6 +978,27 @@ cassetteImportInput.addEventListener(
         );
       }
     );
+  }
+);
+
+vgmImportInput.addEventListener(
+  "change",
+  () => {
+    const file = vgmImportInput.files?.[0];
+
+    if (!file) {
+      return;
+    }
+
+    void importVgmFile(
+      file,
+      pendingVgmImportMode
+    ).catch((error) => {
+      console.error(error);
+      setStatus(
+        `Failed to import VGM: ${error.message}`
+      );
+    });
   }
 );
 
