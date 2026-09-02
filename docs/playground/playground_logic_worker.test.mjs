@@ -54,6 +54,11 @@ test("Worker runs multiple loops, keyboard input, and Stop/Run lifecycle", async
       scaleIntervals: {},
       sourceCode: `
         onKeyboardPressKey("jump", () => write(0x22, 0x08));
+        const filter = fx.filter({ cutoff: 1200 });
+        const layered = fx.parallel(fx.branch(filter));
+        fx.setChain([layered]);
+        const cycleStart = beginSampleSchedule();
+        scheduleWritesSamples(cycleStart, [[0, 0, 0x2a, 0x80]]);
         liveCleanup(["bass", "lead"], () => write(0x22, 0x00));
         liveLoop("bass", async () => {
           fm.keyOn(CH1);
@@ -71,6 +76,11 @@ test("Worker runs multiple loops, keyboard input, and Stop/Run lifecycle", async
     assert.equal(firstComplete?.keyboardHandlerCount, 1);
     await waitFor(() => worker.messages.some((message) => message.command === "fm.keyOn" && message.args[0] === 0));
     await waitFor(() => worker.messages.some((message) => message.command === "fm.keyOn" && message.args[0] === 1));
+    assert.ok(worker.messages.some((message) => message.command === "fx.compose" && message.args[1] === "branch"));
+    assert.ok(worker.messages.some((message) => message.command === "fx.compose" && message.args[1] === "parallel"));
+    assert.ok(worker.messages.some((message) => message.command === "fx.setChain"));
+
+    assert.ok(worker.messages.some((message) => message.command === "scheduleWritesSamples"));
 
     await worker.send({
       type: "keyboard",
@@ -104,4 +114,33 @@ test("Worker runs multiple loops, keyboard input, and Stop/Run lifecycle", async
     await worker.send({ type: "stop" });
   }
 
+});
+
+test("Worker resets the sample clock before a stopped VGM loop runs again", async () => {
+  const worker = createWorkerHarness();
+  const sourceCode = `
+    liveLoop("pcm", async () => {
+      write(0x2a, 0x80);
+      await sleepSamples(4410);
+    });
+  `;
+  const pcmWrites = () => worker.messages.filter(
+    (message) => message.command === "write" && message.args[0] === 0x2a
+  ).length;
+
+  try {
+    await worker.send({ type: "run", presets: {}, scaleIntervals: {}, sourceCode });
+    await waitFor(() => pcmWrites() >= 1);
+    await new Promise((resolve) => setTimeout(resolve, 380));
+    await worker.send({ type: "stop" });
+
+    const writesBeforeRestart = pcmWrites();
+    await worker.send({ type: "run", presets: {}, scaleIntervals: {}, sourceCode });
+    await waitFor(() => pcmWrites() > writesBeforeRestart);
+    await new Promise((resolve) => setTimeout(resolve, 20));
+
+    assert.equal(pcmWrites(), writesBeforeRestart + 1);
+  } finally {
+    await worker.send({ type: "stop" });
+  }
 });

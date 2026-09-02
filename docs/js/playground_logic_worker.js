@@ -18,6 +18,8 @@ function request(command, args = [], loopContext = null) {
 function createClock(run) {
   let bpm = 120;
   let clockStart = performance.now() / 1000;
+  let sampleClockStart = null;
+  let dacLookaheadSeconds = 0.25;
 
   function secondsPerBeat() {
     return 60 / bpm;
@@ -39,11 +41,32 @@ function createClock(run) {
     }
   }
 
+  async function sleepUntil(targetSeconds, loopContext) {
+    const token = run.token;
+    await new Promise((resolve) => setTimeout(() => {
+      run.currentLoop = loopContext;
+      resolve();
+    }, Math.max(0, targetSeconds - performance.now() / 1000) * 1000));
+    if (run.stopped || token !== run.token) {
+      throw new Error("Run stopped");
+    }
+  }
+
   return {
     currentBeat,
     sleep,
     async sleepSamples(samples, sampleRate = 44100) {
-      await sleep((Math.max(0, Number(samples) || 0)) / Math.max(1, Number(sampleRate) || 44100));
+      const duration = Math.max(0, Number(samples) || 0) / Math.max(1, Number(sampleRate) || 44100);
+      const loopContext = run.currentLoop;
+      if (!loopContext) {
+        await sleep(duration);
+        return;
+      }
+      if (sampleClockStart === null) {
+        sampleClockStart = performance.now() / 1000 + dacLookaheadSeconds;
+      }
+      loopContext.sampleCursorSeconds = (loopContext.sampleCursorSeconds ?? 0) + duration;
+      await sleepUntil(sampleClockStart + loopContext.sampleCursorSeconds, loopContext);
     },
     async beat(beats = 1) {
       const context = run.currentLoop;
@@ -67,6 +90,18 @@ function createClock(run) {
       bpm = next;
       clockStart = performance.now() / 1000 - position * secondsPerBeat();
     },
+    beginSampleSchedule() {
+      if (sampleClockStart === null) {
+        sampleClockStart = performance.now() / 1000 + dacLookaheadSeconds;
+      }
+      return Math.round((run.currentLoop?.sampleCursorSeconds ?? 0) * 44100);
+    },
+    setDacLookahead(value) {
+      dacLookaheadSeconds = Math.max(0, Number(value) || 0);
+    },
+    resetSampleClock() {
+      sampleClockStart = null;
+    },
   };
 }
 
@@ -86,6 +121,7 @@ function createRun(sourceCode, presets, scaleIntervals) {
     currentLoop: null,
   };
   const clock = createClock(run);
+  run.resetSampleClock = () => clock.resetSampleClock();
   const commandProxy = (command) => (...args) => postCommand(command, args);
   const requestProxy = (command) => (...args) => request(command, args, run.currentLoop);
   const fm = new Proxy({}, {
@@ -98,7 +134,11 @@ function createRun(sourceCode, presets, scaleIntervals) {
   });
   const sample = new Proxy({}, { get: (_target, property) => requestProxy(`sample.${String(property)}`) });
   const stream = new Proxy({}, { get: (_target, property) => requestProxy(`stream.${String(property)}`) });
-  const psg = { write: commandProxy("psg.write") };
+  const psg = new Proxy({}, {
+    get(_target, property) {
+      return commandProxy(`psg.${String(property)}`);
+    },
+  });
   const dac = {
     loadBase64: (...args) => request("dac.loadBase64", args, run.currentLoop),
     playStream: (...args) => postCommand("dac.playStream", args),
@@ -141,6 +181,11 @@ function createRun(sourceCode, presets, scaleIntervals) {
     get(_target, method) {
       if (method === "setChain") return (effects) => postCommand("fx.setChain", [effects.map(handleId)]);
       if (method === "clear") return () => postCommand("fx.clear");
+      if (method === "branch" || method === "parallel") return (...effects) => {
+        const id = createHandle("fx");
+        postCommand("fx.compose", [id, String(method), effects.map(handleId)]);
+        return fxHandle(id);
+      };
       return (options = {}) => {
         const id = createHandle("fx");
         postCommand("fx.create", [id, String(method), options]);
@@ -182,6 +227,7 @@ function createRun(sourceCode, presets, scaleIntervals) {
     for (const cleanup of run.cleanups) {
       await cleanup.fn();
     }
+    run.resetSampleClock();
     // In Worker mode this is the sole source of audio-control commands.
     postCommand("audio.stopAll");
     postCommand("fx.detach");
@@ -269,8 +315,14 @@ function createRun(sourceCode, presets, scaleIntervals) {
     psgNoise: (...args) => postCommand("psgNoise", args),
     setMasterVolume: (...args) => request("setMasterVolume", args, run.currentLoop),
     getMasterVolume: () => request("getMasterVolume", [], run.currentLoop),
-    setDacLookahead: (...args) => request("setDacLookahead", args),
+    setDacLookahead: async (...args) => {
+      const value = await request("setDacLookahead", args, run.currentLoop);
+      clock.setDacLookahead(value);
+      return value;
+    },
     getDacLookahead: () => request("getDacLookahead"),
+    beginSampleSchedule: () => clock.beginSampleSchedule(),
+    scheduleWritesSamples: (start, entries) => postCommand("scheduleWritesSamples", [start, entries]),
     control: (voice, options) => postCommand("noise.control", [handleId(voice), options]),
     sleep: clock.sleep,
     sleepSamples: clock.sleepSamples,
@@ -296,6 +348,7 @@ function createRun(sourceCode, presets, scaleIntervals) {
     tween,
     noteToBlockFnum,
     noteLerp,
+    presets,
   };
   globals.pg = { ...globals };
 
@@ -355,6 +408,7 @@ self.onmessage = async (event) => {
       currentRun.stopped = false;
       currentRun.generation += 1;
       currentRun.runningLoops.clear();
+      currentRun.resetSampleClock();
     }
     try {
       await currentRun.execute(message.sourceCode);

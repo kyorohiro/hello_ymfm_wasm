@@ -117,7 +117,7 @@ export function createPlaygroundRuntime(
     );
   defaultLogicWorkerUrl.searchParams.set(
     "v",
-    "20260903-10"
+    "20260903-12"
   );
   const logicWorkerUrl =
     options.logicWorkerUrl ??
@@ -835,6 +835,13 @@ export function createPlaygroundRuntime(
     if (command === "fx.setChain") {
       return globals.fx.setChain(args[0].map((id) => workerAudioHandles.get(id)));
     }
+    if (command === "fx.compose") {
+      const [id, method, handleIds] = args;
+      const factory = globals.fx[method];
+      if (typeof factory !== "function") throw new Error(`Unsupported FX composition: ${method}`);
+      workerAudioHandles.set(id, factory(...handleIds.map((handleId) => workerAudioHandles.get(handleId))));
+      return;
+    }
     if (command === "fx.clear") return globals.fx.clear();
     if (command === "fx.detach") return megaDrive.clearFXChain();
     if (command === "audio.stopAll") return stopAllAudio();
@@ -863,6 +870,13 @@ export function createPlaygroundRuntime(
         throw new Error(`Unsupported fm method: ${method}`);
       }
       return globals.fm[method](...args);
+    }
+    if (command.startsWith("psg.")) {
+      const method = command.slice(4);
+      if (typeof globals.psg[method] !== "function") {
+        throw new Error(`Unsupported psg method: ${method}`);
+      }
+      return globals.psg[method](...args);
     }
     if (command.startsWith("sample.")) {
       const method = command.slice(7);
@@ -908,9 +922,8 @@ export function createPlaygroundRuntime(
       case "getDacLookahead":
       case "noteToBlockFnum":
       case "noteLerp":
+      case "scheduleWritesSamples":
         return globals[command](...args);
-      case "psg.write":
-        return globals.psg.write(...args);
       case "stopAll":
         return globals.stopAll();
       default:
@@ -1042,12 +1055,33 @@ export function createPlaygroundRuntime(
       list: () =>
         megaDrive.stream.list(),
     };
+    const dacApi = {
+      loadBase64: async (name, encoded) => {
+        fm.loadDacBank(
+          name,
+          decodeDacBase64Bytes(encoded)
+        );
+      },
+      playStream: (name, { atSamples = 0 } = {}) => {
+        const origin = runtime.sampleClockStartTime ??
+          (megaDrive.audioContext.currentTime +
+            runtime.dacLookaheadSeconds);
+        runtime.sampleClockStartTime = origin;
+        fm.playDacBank(
+          name,
+          origin + Math.max(0, Number(atSamples) || 0) / 44100
+        );
+      },
+      schedule: (start, entries) => scheduleWritesSamples(fm, start, entries.map(([offset, value]) => [offset, 0, 0x2a, value])),
+      scheduleBase64: (start, encoded) => scheduleDacBase64(fm, start, encoded),
+    };
     const livePrepareApi = {
       fm,
       fx,
       psg,
       sample: sampleApi,
       stream: streamApi,
+      dac: dacApi,
       noise: noiseApi,
       control: controlNoiseVoice,
       log: (...args) => {
@@ -1075,26 +1109,7 @@ export function createPlaygroundRuntime(
     };
     const pg = {
       fm,
-      dac: {
-        loadBase64: async (name, encoded) => {
-          fm.loadDacBank(
-            name,
-            decodeDacBase64Bytes(encoded)
-          );
-        },
-        playStream: (name, { atSamples = 0 } = {}) => {
-          const origin = runtime.sampleClockStartTime ??
-            (megaDrive.audioContext.currentTime +
-              runtime.dacLookaheadSeconds);
-          runtime.sampleClockStartTime = origin;
-          fm.playDacBank(
-            name,
-            origin + Math.max(0, Number(atSamples) || 0) / 44100
-          );
-        },
-        schedule: (start, entries) => scheduleWritesSamples(fm, start, entries.map(([offset, value]) => [offset, 0, 0x2a, value])),
-        scheduleBase64: (start, encoded) => scheduleDacBase64(fm, start, encoded),
-      },
+      dac: dacApi,
       fx,
       psg,
       context: runtime.context,
@@ -1119,6 +1134,7 @@ export function createPlaygroundRuntime(
       OP3: 2,
       OP4: 3,
       presets,
+      FM_PRESETS: presets,
       livePrepare: (name, fn) =>
         liveApi.livePrepare(
           name,
@@ -1315,6 +1331,7 @@ export function createPlaygroundRuntime(
         OP3: pg.OP3,
         OP4: pg.OP4,
         FM_PRESETS: presets,
+        presets: pg.presets,
         sample: pg.sample,
         stream: pg.stream,
         control: pg.control,
