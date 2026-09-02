@@ -45,6 +45,7 @@ const exportParseInfoButton = document.getElementById("exportParseInfoButton");
 const exportSnapshotTfiButton = document.getElementById("exportSnapshotTfiButton");
 const exportSnapshotButton = document.getElementById("exportSnapshotButton");
 const exportJavaScriptButton = document.getElementById("exportJavaScriptButton");
+const exportScheduledJavaScriptButton = document.getElementById("exportScheduledJavaScriptButton");
 const copyJavaScriptButton = document.getElementById("copyJavaScriptButton");
 const autoExportSnapshotCheckbox = document.getElementById("autoExportSnapshotCheckbox");
 const monoMixCheckbox = document.getElementById("monoMixCheckbox");
@@ -101,6 +102,7 @@ let lastStreamingStatusSuffix = "";
 let lastStreamingStatusAt = 0;
 let lastParseInfo = null;
 let lastExportedJavaScript = "";
+let lastScheduledJavaScript = "";
 let masterVolume = 1;
 let playbackPreparePromise = null;
 let activeYm2203ModuleFactoryPromise = null;
@@ -1966,6 +1968,7 @@ function updatePlaybackButtons(state = {}) {
   exportSnapshotTfiButton.disabled = !hasBuffer;
   exportSnapshotButton.disabled = !hasBuffer;
   exportJavaScriptButton.disabled = !hasJavaScriptExport;
+  exportScheduledJavaScriptButton.disabled = !hasJavaScriptExport;
   copyJavaScriptButton.disabled = !hasJavaScriptExport;
 }
 
@@ -2044,6 +2047,12 @@ function buildPlaygroundJavaScriptExport(vgm) {
   return vgm.exportPlaygroundJavaScript();
 }
 
+function buildScheduledPlaygroundJavaScriptExport(vgm) {
+  return currentChipKind === "ym2612"
+    ? vgm.exportPlaygroundJavaScript({ scheduled: true })
+    : "";
+}
+
 function downloadJavaScriptExport() {
   if (!lastExportedJavaScript) {
     return;
@@ -2057,6 +2066,19 @@ function downloadJavaScriptExport() {
   anchor.click();
   URL.revokeObjectURL(url);
   setStatus("Exported Playground JavaScript.");
+}
+
+function downloadScheduledJavaScriptExport() {
+  if (!lastScheduledJavaScript) return;
+  const blob = new Blob([lastScheduledJavaScript], { type: "text/javascript" });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  const stem = lastLoadedFileName.replace(/\.[^.]+$/, "") || "vgm";
+  anchor.download = `${stem}_playground_scheduled.js`;
+  anchor.click();
+  URL.revokeObjectURL(url);
+  setStatus("Exported scheduled Playground JavaScript.");
 }
 
 async function copyJavaScriptExport() {
@@ -2332,6 +2354,7 @@ async function handleFile(file) {
   currentBuffer = null;
   lastParseInfo = null;
   lastExportedJavaScript = "";
+  lastScheduledJavaScript = "";
   playButton.disabled = true;
   channelMonitor = createChannelMonitorState();
   renderChannelMonitor();
@@ -2416,6 +2439,7 @@ async function handleFile(file) {
   currentBuffer = buffer;
   lastParseInfo = buildParseInfo(buffer, file.name, vgm);
   lastExportedJavaScript = buildPlaygroundJavaScriptExport(vgm);
+  lastScheduledJavaScript = buildScheduledPlaygroundJavaScriptExport(vgm);
   extractedTfiPatches = extractTfiPatchesFromVgm(buffer);
   exportAllTfiButton.disabled = extractedTfiPatches.length === 0;
   updatePlaybackButtons({});
@@ -2538,6 +2562,10 @@ exportSnapshotButton.addEventListener("click", () => {
 
 exportJavaScriptButton.addEventListener("click", () => {
   downloadJavaScriptExport();
+});
+
+exportScheduledJavaScriptButton.addEventListener("click", () => {
+  downloadScheduledJavaScriptExport();
 });
 
 copyJavaScriptButton.addEventListener("click", async () => {

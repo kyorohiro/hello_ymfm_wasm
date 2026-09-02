@@ -263,6 +263,13 @@ export class YM2612WorkletTransport {
     });
   }
 
+  scheduleWrites(entries) {
+    this.node.port.postMessage({
+      type: "schedule-writes",
+      entries,
+    });
+  }
+
   getIrq() {
     return this.irqAsserted;
   }
@@ -810,6 +817,13 @@ export class YM2612Synth {
       validRegister,
       validValue
     );
+  }
+
+  scheduleWrites(entries) {
+    if (typeof this.transport.scheduleWrites !== "function") {
+      throw new Error("Scheduled writes require an AudioWorklet transport");
+    }
+    this.transport.scheduleWrites(entries);
   }
 
   /**

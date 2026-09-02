@@ -24,6 +24,7 @@ class YM2612Processor extends AudioWorkletProcessor {
     this.ym2612 = null;
     this.psg = null;
     this.pendingCommands = [];
+    this.scheduledCommands = [];
     this.envelopeRmsBuckets = [];
     this.envelopeBucketSize = 512;
     this.envelopeMessageSize = 16;
@@ -110,6 +111,13 @@ class YM2612Processor extends AudioWorkletProcessor {
   }
 
   applyCommand(command) {
+    if (command.type === "schedule-writes") {
+      for (const entry of command.entries ?? []) {
+        this.scheduledCommands.push(entry);
+      }
+      this.scheduledCommands.sort((a, b) => a.time - b.time);
+      return;
+    }
     if (command.type === "write") {
       this.ym2612.writeRegister(
         command.register,
@@ -175,40 +183,40 @@ class YM2612Processor extends AudioWorkletProcessor {
       return true;
     }
 
-    const { left, right } =
-      this.ym2612.generateStereo(leftOut.length);
-
-    if (this.psg) {
-      const psg =
-        this.psg.generateStereo(
-          leftOut.length
-        );
-
-      for (
-        let index = 0;
-        index < leftOut.length;
-        index += 1
-      ) {
-        left[index] = clampSample(
-          left[index] * YM_GAIN +
-            psg.left[index] * PSG_GAIN
-        );
-        right[index] = clampSample(
-          right[index] * YM_GAIN +
-            psg.right[index] * PSG_GAIN
-        );
-      }
+    let offset = 0;
+    const endFrame = currentFrame + leftOut.length;
+    while (this.scheduledCommands.length > 0) {
+      const command = this.scheduledCommands[0];
+      const frame = Math.round(command.time * sampleRate);
+      if (frame >= endFrame) break;
+      this.scheduledCommands.shift();
+      const eventOffset = Math.max(offset, frame - currentFrame);
+      this.renderFrames(leftOut, rightOut, offset, eventOffset - offset);
+      offset = eventOffset;
+      this.ym2612.writeRegister(command.register, command.value, command.port);
     }
-
-    leftOut.set(left);
-    rightOut.set(right);
-    this.capturePcm(left, right);
+    this.renderFrames(leftOut, rightOut, offset, leftOut.length - offset);
+    this.capturePcm(leftOut, rightOut);
     this.captureOutputEnvelope(
-      left,
-      right
+      leftOut,
+      rightOut
     );
 
     return true;
+  }
+
+  renderFrames(leftOut, rightOut, offset, frames) {
+    if (frames <= 0) return;
+    const { left, right } = this.ym2612.generateStereo(frames);
+    if (this.psg) {
+      const psg = this.psg.generateStereo(frames);
+      for (let index = 0; index < frames; index += 1) {
+        left[index] = clampSample(left[index] * YM_GAIN + psg.left[index] * PSG_GAIN);
+        right[index] = clampSample(right[index] * YM_GAIN + psg.right[index] * PSG_GAIN);
+      }
+    }
+    leftOut.set(left, offset);
+    rightOut.set(right, offset);
   }
 
   captureOutputEnvelope(left, right) {

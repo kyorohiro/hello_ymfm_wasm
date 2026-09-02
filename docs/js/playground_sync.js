@@ -201,6 +201,9 @@ export function createFmProxy(
         value
       );
     },
+    scheduleWrites(entries) {
+      targetSynth.scheduleWrites(entries);
+    },
     writeAddress(port, register) {
       targetSynth.writeAddress(
         port,

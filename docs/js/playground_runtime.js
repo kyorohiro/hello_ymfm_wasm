@@ -864,6 +864,10 @@ export function createPlaygroundRuntime(
           fm,
           ...args
         ),
+      beginSampleSchedule: () =>
+        beginSampleSchedule(),
+      scheduleWritesSamples: (start, entries) =>
+        scheduleWritesSamples(fm, start, entries),
       sleep: (seconds) =>
         clockApi.sleep(
           seconds,
@@ -972,6 +976,10 @@ export function createPlaygroundRuntime(
           ),
         write: (...args) =>
           pg.write(...args),
+        beginSampleSchedule: () =>
+          pg.beginSampleSchedule(),
+        scheduleWritesSamples: (start, entries) =>
+          pg.scheduleWritesSamples(start, entries),
         sleep: (seconds) =>
           pg.sleep(seconds),
         sleepSamples: (
@@ -1062,6 +1070,29 @@ export function createPlaygroundRuntime(
     throw new Error(
       "write(register, value) or write(port, register, value) is required"
     );
+  }
+
+  function beginSampleSchedule() {
+    if (runtime.sampleClockStartTime === null) {
+      runtime.sampleClockStartTime =
+        megaDrive.audioContext.currentTime + 0.25;
+    }
+    return Math.round(
+      (currentLoopContext?.sampleCursorSeconds ?? 0) * 44100
+    );
+  }
+
+  function scheduleWritesSamples(fm, startSamples, entries) {
+    const start = Math.max(0, Number(startSamples) || 0);
+    const origin = runtime.sampleClockStartTime ??
+      (megaDrive.audioContext.currentTime + 0.25);
+    runtime.sampleClockStartTime = origin;
+    fm.scheduleWrites(entries.map(([offset, port, register, value]) => ({
+      time: origin + (start + Number(offset)) / 44100,
+      port: Number(port),
+      register: Number(register),
+      value: Number(value),
+    })));
   }
 
   function sleepSamples(

@@ -601,6 +601,8 @@ type FMApi = {
   noteOff(channel: YM2612Channel): void;
   /** Compact YM2612 register write: port, register, value. */
   write(port: number, register: number, value: number): void;
+  /** Queue raw YM2612 writes at AudioContext times. */
+  scheduleWrites(entries: Array<{ time: number; port: number; register: number; value: number }>): void;
   /** Write one YM2612 register number to the address port. */
   writeAddress(port: number, register: number): void;
   /** Write one value to the YM2612 data port. */
@@ -709,6 +711,10 @@ declare function write(port: number, register: number, value: number): void;
 declare function sleep(seconds: number): Promise<void>;
 /** Wait for VGM-style sample units. Default sampleRate is 44100. */
 declare function sleepSamples(samples: number, sampleRate?: number): Promise<void>;
+/** Return the current liveLoop cycle start in VGM sample units. */
+declare function beginSampleSchedule(): number;
+/** Queue [offsetSamples, port, register, value] writes for the current VGM cycle. */
+declare function scheduleWritesSamples(startSamples: number, entries: Array<[number, number, number, number]>): void;
 /** Wait for a number of beat units. */
 declare function beat(beats?: number): Promise<void>;
 /** Wait for the next integer beat boundary. */
@@ -790,6 +796,8 @@ type PlaygroundAPI = {
   };
   sleep: (seconds: number) => Promise<void>;
   sleepSamples: (samples: number, sampleRate?: number) => Promise<void>;
+  beginSampleSchedule: () => number;
+  scheduleWritesSamples: (startSamples: number, entries: Array<[number, number, number, number]>) => void;
   beat: (beats?: number) => Promise<void>;
   nextBeat: () => Promise<void>;
   tween: (seconds: number, fn: (t: number) => void | Promise<void>) => Promise<void>;
