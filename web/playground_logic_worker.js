@@ -204,12 +204,37 @@ function createRun(sourceCode, presets, scaleIntervals) {
     const rootMidi = noteToMidi(root);
     return Array.from({ length: Math.max(0, Number(octaves) || 0) }, (_, octave) => intervals.map((interval) => midiToNote(rootMidi + octave * 12 + interval))).flat();
   };
+  const chordIntervals = {
+    major: [0, 4, 7], minor: [0, 3, 7], major7: [0, 4, 7, 11],
+    minor7: [0, 3, 7, 10], dominant7: [0, 4, 7, 10],
+  };
+  const chord = (root, name) => {
+    const intervals = chordIntervals[name];
+    if (!intervals) throw new Error(`Unsupported chord: ${name}`);
+    const rootMidi = noteToMidi(root);
+    return intervals.map((interval) => midiToNote(rootMidi + interval));
+  };
+  const tween = async (seconds, fn) => {
+    if (typeof fn !== "function") throw new Error("tween(seconds, fn) requires a callback");
+    const duration = Math.max(0, Number(seconds) || 0);
+    if (duration === 0) return fn(1);
+    const startedAt = performance.now();
+    await fn(0);
+    while (true) {
+      const progress = Math.min(1, (performance.now() - startedAt) / (duration * 1000));
+      if (progress >= 1) break;
+      await clock.sleep(Math.min(1 / 60, duration / 16));
+      await fn(Math.min(1, (performance.now() - startedAt) / (duration * 1000)));
+    }
+    await fn(1);
+  };
   const globals = {
     console: {
       log: (...args) => postCommand("log", args),
       warn: (...args) => postCommand("warn", args),
       error: (...args) => postCommand("error", args),
     },
+    log: (...args) => postCommand("log", args),
     fm, fx, psg, dac, sample, stream, noise,
     context: run.context,
     FM_PRESETS: presets,
@@ -244,6 +269,10 @@ function createRun(sourceCode, presets, scaleIntervals) {
     randInt: (min, max) => Math.floor(Number(min) + Math.random() * (Number(max) - Number(min) + 1)),
     lerp: (a, b, amount) => Number(a) + (Number(b) - Number(a)) * Number(amount),
     scale,
+    chord,
+    tween,
+    noteToBlockFnum: (note) => request("noteToBlockFnum", [note], run.currentLoop),
+    noteLerp: (from, to, amount) => request("noteLerp", [from, to, amount], run.currentLoop),
   };
   globals.pg = { ...globals };
 

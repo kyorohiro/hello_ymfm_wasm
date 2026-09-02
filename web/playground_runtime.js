@@ -117,7 +117,7 @@ export function createPlaygroundRuntime(
     );
   defaultLogicWorkerUrl.searchParams.set(
     "v",
-    "20260903-2"
+    "20260903-3"
   );
   const logicWorkerUrl =
     options.logicWorkerUrl ??
@@ -902,6 +902,8 @@ export function createPlaygroundRuntime(
       case "getMasterVolume":
       case "setDacLookahead":
       case "getDacLookahead":
+      case "noteToBlockFnum":
+      case "noteLerp":
         return globals[command](...args);
       case "psg.write":
         return globals.psg.write(...args);
