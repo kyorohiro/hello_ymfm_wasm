@@ -58,6 +58,40 @@ test(
   }
 );
 
+test(
+  "write is available from liveLoop callbacks",
+  async () => {
+    const originalWindow = globalThis.window;
+    const writes = [];
+    globalThis.window = {
+      addEventListener() {},
+      removeEventListener() {},
+      setTimeout,
+    };
+
+    try {
+      const megaDrive = createMegaDriveStub();
+      megaDrive.fm.write = (...args) => writes.push(args);
+      const runtime = createPlaygroundRuntime({
+        megaDrive,
+        guardExecution: false,
+      });
+
+      runtime.put(
+        "vgm-write",
+        "liveLoop('vgm-write', async () => { write(0x28, 0xf0); await sleepSamples(735); });"
+      );
+      await runtime.play("vgm-write");
+      await new Promise((resolve) => setTimeout(resolve, 25));
+      runtime.stop();
+
+      assert.deepEqual(writes[0], [0, 0x28, 0xf0]);
+    } finally {
+      globalThis.window = originalWindow;
+    }
+  }
+);
+
 function dispatch(listeners, type) {
   for (const listener of listeners.get(type) ?? []) {
     listener({ type });

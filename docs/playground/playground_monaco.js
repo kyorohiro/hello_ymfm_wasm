@@ -125,6 +125,62 @@ function registerMonacoSignatureHelp(
       ],
     },
     {
+      prefixes: ["write("],
+      label:
+        "write(register: number, value: number): void",
+      parameters: [
+        {
+          label: "register: number",
+          documentation:
+            "YM2612 register number on port 0, such as 0x22 or 0x28.",
+        },
+        {
+          label: "value: number",
+          documentation:
+            "Value written to that register.",
+        },
+      ],
+    },
+    {
+      prefixes: ["write("],
+      label:
+        "write(port: number, register: number, value: number): void",
+      parameters: [
+        {
+          label: "port: number",
+          documentation:
+            "YM2612 port 0 or 1.",
+        },
+        {
+          label: "register: number",
+          documentation:
+            "YM2612 register number such as 0x22 or 0x28.",
+        },
+        {
+          label: "value: number",
+          documentation:
+            "Value written to that register.",
+        },
+      ],
+    },
+    {
+      prefixes: ["sleepSamples(", "pg.sleepSamples("],
+      label:
+        "sleepSamples(samples: number, sampleRate?: number): Promise<void>",
+      parameters: [
+        {
+          label: "samples: number",
+          documentation:
+            "Sample units to wait, defaulting to VGM-style 44.1kHz timing.",
+        },
+        {
+          label: "sampleRate?: number",
+          documentation:
+            "Optional sample-rate basis. Defaults to 44100.",
+        },
+      ],
+    },
+    {
       prefixes: ["fm.write("],
       label:
         "fm.write(port: number, register: number, value: number): void",

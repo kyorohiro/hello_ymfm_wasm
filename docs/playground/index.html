@@ -899,6 +899,7 @@
               <li><code>pg</code> is the main playground helper namespace</li>
               <li><code>pg.play("C4", { channel: CH1, duration: 0.2 })</code> plays one note</li>
               <li><code>pg.sleep(0.25)</code> waits in seconds</li>
+              <li><code>sleepSamples(735)</code> waits in VGM-style 44.1kHz sample units</li>
               <li><code>pg.liveLoop("bass", async () =&gt; {})</code> keeps a named loop alive</li>
               <li><code>pg.setBpm(120)</code>, <code>await pg.beat(1)</code>, <code>await pg.nextBeat()</code>, <code>await pg.tween(1, (t) =&gt; {})</code></li>
               <li><code>pg.setMasterVolume(1.5)</code>, <code>pg.getMasterVolume()</code></li>
@@ -917,6 +918,8 @@
               <li><code>pg.fm</code> points to the same YM2612 layer</li>
               <li><code>fm.setPreset(CH1, pg.presets["one-op-basic"])</code> applies one preset</li>
               <li><code>fm.setFrequency(CH1, 4, 553)</code>, <code>fm.keyOn(CH1)</code>, <code>fm.keyOff(CH1)</code> expose the YM2612 note trigger flow</li>
+              <li><code>write(register, value)</code> sends one YM2612 register write on port 0</li>
+              <li><code>write(port, register, value)</code> sends one YM2612 register write with an explicit port</li>
               <li><code>fm.write(port, register, value)</code> sends one YM2612 register write</li>
               <li><code>fm.writeAddress(port, register)</code>, <code>fm.writeData(value)</code> follow the YM2612 address/data flow</li>
               <li><code>fm.read(offset)</code>, <code>fm.readStatus()</code>, <code>fm.getIrq()</code> expose low-level chip state where available</li>

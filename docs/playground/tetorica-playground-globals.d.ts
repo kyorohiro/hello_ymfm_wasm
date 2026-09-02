@@ -701,8 +701,14 @@ declare function liveCleanup(names: string[], fn: () => Promise<void> | void): v
 declare function livePrepare(name: string, fn: (context: { fx: FXApi; fm: FMApi; psg: PSGApi; sample: PlaygroundSampleAPI; stream: PlaygroundStreamAPI; noise: PlaygroundNoiseAPI; log: (...args: unknown[]) => void }) => Promise<any> | any): Promise<any>;
 /** Play one note through the current synth setup. */
 declare function play(note: string, options?: PlaygroundPlayOptions): Promise<void>;
+/** Compact YM2612 write helper. Defaults to port 0 when omitted. */
+declare function write(register: number, value: number): void;
+/** Compact YM2612 write helper with explicit port. */
+declare function write(port: number, register: number, value: number): void;
 /** Wait for a number of seconds. */
 declare function sleep(seconds: number): Promise<void>;
+/** Wait for VGM-style sample units. Default sampleRate is 44100. */
+declare function sleepSamples(samples: number, sampleRate?: number): Promise<void>;
 /** Wait for a number of beat units. */
 declare function beat(beats?: number): Promise<void>;
 /** Wait for the next integer beat boundary. */
@@ -778,7 +784,12 @@ type PlaygroundAPI = {
   presets: typeof FM_PRESETS;
   /** Play one note through the current synth setup. */
   play(note: string, options?: PlaygroundPlayOptions): Promise<void>;
+  write: {
+    (register: number, value: number): void;
+    (port: number, register: number, value: number): void;
+  };
   sleep: (seconds: number) => Promise<void>;
+  sleepSamples: (samples: number, sampleRate?: number) => Promise<void>;
   beat: (beats?: number) => Promise<void>;
   nextBeat: () => Promise<void>;
   tween: (seconds: number, fn: (t: number) => void | Promise<void>) => Promise<void>;

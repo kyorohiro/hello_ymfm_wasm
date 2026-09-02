@@ -94,6 +94,7 @@ export function createPlaygroundRuntime(
       new Map(),
     livePrepared: new Map(),
     context: {},
+    sampleClockStartTime: null,
   };
   const preparedFxUnits =
     new WeakSet();
@@ -858,9 +859,23 @@ export function createPlaygroundRuntime(
           note,
           playOptions
         ),
+      write: (...args) =>
+        writeYm2612(
+          fm,
+          ...args
+        ),
       sleep: (seconds) =>
         clockApi.sleep(
           seconds,
+          runToken
+        ),
+      sleepSamples: (
+        samples,
+        sampleRate = 44100
+      ) =>
+        sleepSamples(
+          samples,
+          sampleRate,
           runToken
         ),
       beat: clockApi.beat,
@@ -955,8 +970,18 @@ export function createPlaygroundRuntime(
             note,
             playOptions
           ),
+        write: (...args) =>
+          pg.write(...args),
         sleep: (seconds) =>
           pg.sleep(seconds),
+        sleepSamples: (
+          samples,
+          sampleRate
+        ) =>
+          pg.sleepSamples(
+            samples,
+            sampleRate
+          ),
         beat: pg.beat,
         nextBeat: pg.nextBeat,
         setBpm: pg.setBpm,
@@ -1012,6 +1037,51 @@ export function createPlaygroundRuntime(
         log: pg.log,
       },
     };
+  }
+
+  function writeYm2612(
+    fm,
+    ...args
+  ) {
+    if (args.length === 2) {
+      fm.write(
+        0,
+        Number(args[0]),
+        Number(args[1])
+      );
+      return;
+    }
+    if (args.length === 3) {
+      fm.write(
+        Number(args[0]),
+        Number(args[1]),
+        Number(args[2])
+      );
+      return;
+    }
+    throw new Error(
+      "write(register, value) or write(port, register, value) is required"
+    );
+  }
+
+  function sleepSamples(
+    samples,
+    sampleRate = 44100,
+    runToken
+  ) {
+    const validSamples = Math.max(
+      0,
+      Number(samples) || 0
+    );
+    const validRate = Math.max(
+      1,
+      Number(sampleRate) || 44100
+    );
+    return clockApi.sleepSamples(
+      validSamples,
+      validRate,
+      runToken
+    );
   }
 
   async function playSource(sourceCode) {

@@ -92,6 +92,66 @@ export function createPlaygroundClock(
     }
   }
 
+  async function sleepSamples(
+    samples,
+    sampleRate = 44100,
+    runToken = getCurrentRunToken()
+  ) {
+    const duration = Math.max(
+      0,
+      Number(samples) || 0
+    ) / Math.max(
+      1,
+      Number(sampleRate) || 44100
+    );
+    const loopState =
+      getCurrentLoopContext();
+
+    if (!loopState) {
+      await sleep(duration, runToken);
+      return;
+    }
+
+    if (
+      runtime.sampleClockStartTime ===
+      null
+    ) {
+      runtime.sampleClockStartTime =
+        nowSeconds();
+    }
+
+    const effectiveToken = loopState.runToken;
+    const targetOffset =
+      (loopState.sampleCursorSeconds ?? 0) +
+      duration;
+    loopState.sampleCursorSeconds =
+      targetOffset;
+    const waitMs = Math.max(
+      0,
+      (runtime.sampleClockStartTime +
+        targetOffset -
+        nowSeconds()) *
+        1000
+    );
+
+    await new Promise((resolve) => {
+      setTimer(() => {
+        resolveWithLoopContext(
+          resolve,
+          undefined,
+          loopState
+        );
+      }, waitMs);
+    });
+
+    if (
+      loopState.stopped ||
+      effectiveToken !== loopState.runToken
+    ) {
+      throw new Error("Run stopped");
+    }
+  }
+
   async function waitForBeat(
     targetBeat,
     runToken = getCurrentRunToken(),
@@ -279,6 +339,7 @@ export function createPlaygroundClock(
     beatsToSeconds,
     currentBeat,
     sleep,
+    sleepSamples,
     waitForBeat,
     beat,
     nextBeat,

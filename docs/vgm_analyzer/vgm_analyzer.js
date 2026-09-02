@@ -44,6 +44,8 @@ const exportAllTfiButton = document.getElementById("exportAllTfiButton");
 const exportParseInfoButton = document.getElementById("exportParseInfoButton");
 const exportSnapshotTfiButton = document.getElementById("exportSnapshotTfiButton");
 const exportSnapshotButton = document.getElementById("exportSnapshotButton");
+const exportJavaScriptButton = document.getElementById("exportJavaScriptButton");
+const copyJavaScriptButton = document.getElementById("copyJavaScriptButton");
 const autoExportSnapshotCheckbox = document.getElementById("autoExportSnapshotCheckbox");
 const monoMixCheckbox = document.getElementById("monoMixCheckbox");
 const status = document.getElementById("status");
@@ -98,6 +100,7 @@ let playbackUiRenderScheduled = false;
 let lastStreamingStatusSuffix = "";
 let lastStreamingStatusAt = 0;
 let lastParseInfo = null;
+let lastExportedJavaScript = "";
 let masterVolume = 1;
 let playbackPreparePromise = null;
 let activeYm2203ModuleFactoryPromise = null;
@@ -1953,6 +1956,7 @@ function updatePlaybackButtons(state = {}) {
   const hasBuffer = Boolean(currentBuffer);
   const playing = Boolean(state.playing);
   const paused = Boolean(state.paused);
+  const hasJavaScriptExport = hasBuffer && currentChipKind === "ym2612" && lastExportedJavaScript !== "";
   playButton.disabled = !hasBuffer || playing;
   replayButton.disabled = !hasBuffer;
   pauseButton.disabled = !playing;
@@ -1961,6 +1965,8 @@ function updatePlaybackButtons(state = {}) {
   exportParseInfoButton.disabled = !hasBuffer || !lastParseInfo;
   exportSnapshotTfiButton.disabled = !hasBuffer;
   exportSnapshotButton.disabled = !hasBuffer;
+  exportJavaScriptButton.disabled = !hasJavaScriptExport;
+  copyJavaScriptButton.disabled = !hasJavaScriptExport;
 }
 
 function buildParseInfo(buffer, fileName, vgm) {
@@ -2029,6 +2035,53 @@ function downloadParseInfo() {
   anchor.click();
   URL.revokeObjectURL(url);
   setStatus("Exported parse info JSON.");
+}
+
+function buildPlaygroundJavaScriptExport(vgm) {
+  if (currentChipKind !== "ym2612") {
+    return "";
+  }
+  return vgm.exportPlaygroundJavaScript();
+}
+
+function downloadJavaScriptExport() {
+  if (!lastExportedJavaScript) {
+    return;
+  }
+  const blob = new Blob([lastExportedJavaScript], { type: "text/javascript" });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  const stem = lastLoadedFileName.replace(/\.[^.]+$/, "") || "vgm";
+  anchor.download = `${stem}_playground.js`;
+  anchor.click();
+  URL.revokeObjectURL(url);
+  setStatus("Exported Playground JavaScript.");
+}
+
+async function copyJavaScriptExport() {
+  if (!lastExportedJavaScript) {
+    return;
+  }
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(lastExportedJavaScript);
+    } else {
+      const textarea = document.createElement("textarea");
+      textarea.value = lastExportedJavaScript;
+      textarea.setAttribute("readonly", "");
+      textarea.style.position = "fixed";
+      textarea.style.opacity = "0";
+      document.body.append(textarea);
+      textarea.select();
+      document.execCommand("copy");
+      textarea.remove();
+    }
+    setStatus("Copied Playground JavaScript.");
+  } catch (error) {
+    console.error(error);
+    setStatus(`Error: ${error.message}`);
+  }
 }
 
 async function playCurrentVgm() {
@@ -2278,6 +2331,7 @@ async function handleFile(file) {
   const rawBuffer = await file.arrayBuffer();
   currentBuffer = null;
   lastParseInfo = null;
+  lastExportedJavaScript = "";
   playButton.disabled = true;
   channelMonitor = createChannelMonitorState();
   renderChannelMonitor();
@@ -2295,6 +2349,8 @@ async function handleFile(file) {
     resumeButton.disabled = true;
     replayButton.disabled = true;
     stopButton.disabled = true;
+    exportJavaScriptButton.disabled = true;
+    copyJavaScriptButton.disabled = true;
     setStatus(`Error: ${error.message}`);
     return;
   }
@@ -2310,6 +2366,8 @@ async function handleFile(file) {
     resumeButton.disabled = true;
     replayButton.disabled = true;
     stopButton.disabled = true;
+    exportJavaScriptButton.disabled = true;
+    copyJavaScriptButton.disabled = true;
     setStatus(`Error: ${error.message}`);
     return;
   }
@@ -2357,6 +2415,7 @@ async function handleFile(file) {
   commandsOutput.textContent = events.join("\n");
   currentBuffer = buffer;
   lastParseInfo = buildParseInfo(buffer, file.name, vgm);
+  lastExportedJavaScript = buildPlaygroundJavaScriptExport(vgm);
   extractedTfiPatches = extractTfiPatchesFromVgm(buffer);
   exportAllTfiButton.disabled = extractedTfiPatches.length === 0;
   updatePlaybackButtons({});
@@ -2475,6 +2534,14 @@ exportSnapshotTfiButton.addEventListener("click", () => {
 
 exportSnapshotButton.addEventListener("click", () => {
   downloadSnapshot("manual");
+});
+
+exportJavaScriptButton.addEventListener("click", () => {
+  downloadJavaScriptExport();
+});
+
+copyJavaScriptButton.addEventListener("click", async () => {
+  await copyJavaScriptExport();
 });
 
 function setOutputTab(tabName) {
