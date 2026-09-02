@@ -4,6 +4,9 @@
 コードを Logic Worker で評価する。音声処理と Web Audio のオブジェクト操作は
 Main thread で行い、Worker から FIFO のコマンドとして渡す。
 
+Playground の通常 API は両実行モードで同じ名前・書き方を使う。Worker は
+`AudioBuffer` や `AudioNode` の実体を直接扱わず、音声操作を Main thread へ委譲する。
+
 ## 共通 API
 
 次の API は Main thread 実行と Worker 実行の両方で使える。
@@ -14,16 +17,19 @@ Main thread で行い、Worker から FIFO のコマンドとして渡す。
 - `onKeyboardPressKey()`、`onKeyboardReleaseKey()`
 - `sample`、`stream`、`dac`
 - `fx`、`noise`、`control()`
+- `beginSampleSchedule()`、`scheduleWritesSamples()`
 - `choose()`、`cycle()`、`rand()`、`rrange()`、`randInt()`、`lerp()`、`scale()`、`chord()`、`noteToBlockFnum()`、`noteLerp()`
-- `context`、`CH1` - `CH6`、`OP1` - `OP4`、`FM_PRESETS`、`log()`、`console`
+- `context`、`CH1` - `CH6`、`OP1` - `OP4`、`FM_PRESETS`、`pg.presets`、`log()`、`console`
 
 `play()`、`sleep*()`、`beat()`、`nextBeat()`、`tween()` は、どちらの実行モードでも
 `await` して使う。
 
-## 実行モード共通の挙動
+## Worker 実行の仕組み
 
 - 音声命令は Worker から Main thread へ FIFO で送られる。値を返さない操作は、
   Main thread の Web Audio 操作が完了する前に Worker の次の JavaScript 行へ進む。
+- Main thread は受け取った命令を FIFO で実行する。`run` と `stop` は Worker 側でも
+  直列化され、Stop の cleanup / 音声停止 / dispose が完了する前に次の Run を評価しない。
 - `fm.read()`、`fm.readStatus()`、`fm.getIrq()`、`sample.isLoaded()`、`sample.list()`、
   `stream.isLoaded()`、`stream.list()` は Worker でも `await` して値を取得できる。
 - Worker の `sample.load()` / `play()`、`stream.load()` / `play()`、`dac.loadBase64()`、
@@ -33,7 +39,7 @@ Main thread で行い、Worker から FIFO のコマンドとして渡す。
   `fx.parallel()` と各 effect の `param.get()` / `param.set()` / `param.rampTo()` を
   Main thread 実行と同じ書き方で使える。
 - Worker の `noise.create()` が返す voice は `start()`、`stop()`、`dispose()`、
-  `attack`、`release`、`gain`、`pan`、`filter.set()`、`filter.cutoff`、`filter.q` の
+  `type`、`attack`、`release`、`gain`、`pan`、`filter.set()`、`filter.cutoff`、`filter.q` の
   remote handle を提供する。Main thread の voice を直接操作するコードは Worker では
   動かない。
 - キーボード callback の event は serializable な
@@ -60,8 +66,10 @@ portable handle に統一する。
 
 - 同じ実行モードでの Run は `context` と `livePrepare(name, fn)` の結果を維持し、
   source を再評価する。
-- Worker は Run のたびに terminate しない。`runtime.finalize()` のみが Worker を
-  terminate し、保持している音声 handle を dispose する。
+- Worker は Run のたびに terminate しない。`runtime.finalize()` でのみ Worker 自体を
+  terminate する。
 - Worker モードで Stop を押すと、Main thread は停止要求だけを送る。Worker は
   `liveCleanup()` を実行した後、`audio.stopAll`、`fx.detach`、音声 handle の dispose を
   順に発行し、`context`、`livePrepare()` cache、keyboard 定義を破棄する。
+- Playground UI の `Run in Worker` は再生中に disabled となる。Stop 後にのみ Main thread /
+  Worker の実行モードを切り替えられる。
