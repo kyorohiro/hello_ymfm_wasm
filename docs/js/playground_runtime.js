@@ -117,7 +117,7 @@ export function createPlaygroundRuntime(
     );
   defaultLogicWorkerUrl.searchParams.set(
     "v",
-    "20260903-14"
+    "20260903-15"
   );
   const logicWorkerUrl =
     options.logicWorkerUrl ??
@@ -136,6 +136,7 @@ export function createPlaygroundRuntime(
   let workerGlobals = null;
   let workerCommandQueue = Promise.resolve();
   let resolveLogicWorkerStop = null;
+  const workerRunRequests = [];
   const workerAudioHandles = new Map();
   const workerKeyboardHandlers =
     new Map();
@@ -973,6 +974,50 @@ export function createPlaygroundRuntime(
     }
   }
 
+  function installLogicWorkerHandlers(worker) {
+    worker.onmessage = (event) => {
+      const message = event.data ?? {};
+      if (message.type === "complete") {
+        const loopCount = message.loopCount ?? 0;
+        const keyboardHandlerCount = message.keyboardHandlerCount ?? 0;
+        emitStatus(
+          loopCount > 0
+            ? `Running ${loopCount} live loop(s) in Worker.`
+            : keyboardHandlerCount > 0
+              ? `Running ${keyboardHandlerCount} keyboard handler(s) in Worker.`
+              : "Done."
+        );
+        if (loopCount === 0 && keyboardHandlerCount === 0) {
+          setPlaybackState("stopped");
+        }
+        emitRuntimeState("Audio ready");
+        workerRunRequests.shift()?.resolve();
+        return;
+      }
+      if (message.type === "execution-error") {
+        const error = new Error(message.message);
+        error.stack = message.stack ?? error.stack;
+        workerRunRequests.shift()?.reject(error);
+        return;
+      }
+      if (message.type === "stopped") {
+        void workerCommandQueue.finally(() => resolveLogicWorkerStop?.());
+        return;
+      }
+      if (message.type === "log") {
+        emitLog(message.message);
+        return;
+      }
+      handleWorkerMessage(event);
+    };
+    worker.onerror = (event) => {
+      const error = new Error(event.message || "Playground Worker failed");
+      while (workerRunRequests.length > 0) {
+        workerRunRequests.shift().reject(error);
+      }
+    };
+  }
+
   function commitKeyboardHandlers(definitions) {
     clearKeyboardHandlers();
 
@@ -1465,57 +1510,15 @@ export function createPlaygroundRuntime(
     const { globals } =
       createExecutionGlobals(runToken);
     workerGlobals = globals;
+    const isNewWorker = !logicWorker;
     const worker = logicWorker ?? new Worker(logicWorkerUrl, {
       type: "module",
     });
     logicWorker = worker;
+    if (isNewWorker) installLogicWorkerHandlers(worker);
 
     await new Promise((resolve, reject) => {
-      const fail = (error) => {
-        if (logicWorker === worker) {
-          stopLogicWorker();
-        }
-        reject(error);
-      };
-      worker.onmessage = (event) => {
-        const message = event.data ?? {};
-        if (message.type === "complete") {
-          const loopCount = message.loopCount ?? 0;
-          const keyboardHandlerCount =
-            message.keyboardHandlerCount ?? 0;
-          emitStatus(
-            loopCount > 0
-              ? `Running ${loopCount} live loop(s) in Worker.`
-              : keyboardHandlerCount > 0
-                ? `Running ${keyboardHandlerCount} keyboard handler(s) in Worker.`
-                : "Done."
-          );
-          if (loopCount === 0 && keyboardHandlerCount === 0) {
-            setPlaybackState("stopped");
-          }
-          emitRuntimeState("Audio ready");
-          resolve();
-          return;
-        }
-        if (message.type === "execution-error") {
-          const error = new Error(message.message);
-          error.stack = message.stack ?? error.stack;
-          fail(error);
-          return;
-        }
-        if (message.type === "stopped") {
-          resolveLogicWorkerStop?.();
-          return;
-        }
-        if (message.type === "log") {
-          emitLog(message.message);
-          return;
-        }
-        handleWorkerMessage(event);
-      };
-      worker.onerror = (event) => {
-        fail(new Error(event.message || "Playground Worker failed"));
-      };
+      workerRunRequests.push({ resolve, reject });
       worker.postMessage({
         type: "run",
         sourceCode,

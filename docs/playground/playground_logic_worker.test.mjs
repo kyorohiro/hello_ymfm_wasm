@@ -29,8 +29,12 @@ function createWorkerHarness() {
   });
   return {
     messages,
+    post(data) {
+      context.self.onmessage({ data });
+    },
     async send(data) {
-      await context.self.onmessage({ data });
+      this.post(data);
+      await new Promise((resolve) => setTimeout(resolve, 0));
     },
   };
 }
@@ -162,5 +166,33 @@ test("Worker keeps context across Run and clears it on Stop", async () => {
   });
 
   assert.equal(worker.messages.at(-1)?.type, "complete");
+  await worker.send({ type: "stop" });
+});
+
+test("Worker serializes an immediate Stop then Run", async () => {
+  const worker = createWorkerHarness();
+  await worker.send({
+    type: "run",
+    presets: {},
+    scaleIntervals: {},
+    sourceCode: "liveCleanup(['loop'], async () => { await Promise.resolve(); write(0x22, 0); }); liveLoop('loop', async () => { await sleep(1); });",
+  });
+
+  worker.post({ type: "stop" });
+  worker.post({
+    type: "run",
+    presets: {},
+    scaleIntervals: {},
+    sourceCode: "liveLoop('next', async () => { await sleep(1); });",
+  });
+  await waitFor(() => worker.messages.filter((message) => message.type === "complete").length === 2);
+
+  const stoppedIndex = worker.messages.findIndex((message) => message.type === "stopped");
+  const secondCompleteIndex = worker.messages.reduce(
+    (index, message, currentIndex) => message.type === "complete" ? currentIndex : index,
+    -1
+  );
+  assert.ok(stoppedIndex >= 0);
+  assert.ok(stoppedIndex < secondCompleteIndex);
   await worker.send({ type: "stop" });
 });

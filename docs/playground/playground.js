@@ -524,6 +524,7 @@ const runtime =
     },
     onRuntimeState(nextState) {
       setRuntimeState(nextState);
+      syncWorkerExecutionLock();
     },
     onLog(line) {
       logLine(line);
@@ -547,6 +548,13 @@ const runtime =
     },
   });
 
+function syncWorkerExecutionLock() {
+  if (workerExecution) {
+    workerExecution.disabled =
+      runtime.getState().playback === "running";
+  }
+}
+
 updateMasterVolumeUi();
 masterVolumeRange?.addEventListener(
   "input",
@@ -561,6 +569,7 @@ masterVolumeRange?.addEventListener(
 
 async function runCode() {
   runButton.disabled = true;
+  if (workerExecution) workerExecution.disabled = true;
   clearConsole();
 
   try {
@@ -580,12 +589,14 @@ async function runCode() {
     console.error(error);
   } finally {
     runButton.disabled = false;
+    syncWorkerExecutionLock();
   }
 }
 
 function stopRun() {
   runtime.stop();
   runButton.disabled = false;
+  syncWorkerExecutionLock();
 }
 
 function loadExample() {
