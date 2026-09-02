@@ -715,6 +715,10 @@ declare function sleepSamples(samples: number, sampleRate?: number): Promise<voi
 declare function beginSampleSchedule(): number;
 /** Queue [offsetSamples, port, register, value] writes for the current VGM cycle. */
 declare function scheduleWritesSamples(startSamples: number, entries: Array<[number, number, number, number]>): void;
+declare const dac: {
+  schedule(startSamples: number, entries: Array<[number, number]>): void;
+  scheduleBase64(startSamples: number, encoded: string): void;
+};
 /** Wait for a number of beat units. */
 declare function beat(beats?: number): Promise<void>;
 /** Wait for the next integer beat boundary. */

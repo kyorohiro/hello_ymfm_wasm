@@ -90,7 +90,8 @@ test("scheduled export expands YM2612 DAC stream data while readable export omit
   const readable = exportYm2612VgmToPlaygroundJavaScript(buffer);
   const scheduled = exportYm2612VgmToPlaygroundJavaScript(buffer, { scheduled: true });
 
-  assert.doesNotMatch(readable, /0x2a/);
+  assert.match(readable, /dac\.scheduleBase64\(dacStart, "/);
+  assert.doesNotMatch(readable, /\[1, 0x70\]/);
   assert.match(scheduled, /\[1, 0, 0x2a, 0x70\]/);
   assert.match(scheduled, /\[2, 0, 0x2a, 0x80\]/);
   assert.match(scheduled, /\[3, 0, 0x2a, 0x90\]/);

@@ -204,6 +204,9 @@ export function createFmProxy(
     scheduleWrites(entries) {
       targetSynth.scheduleWrites(entries);
     },
+    clearScheduledWrites() {
+      targetSynth.clearScheduledWrites();
+    },
     writeAddress(port, register) {
       targetSynth.writeAddress(
         port,

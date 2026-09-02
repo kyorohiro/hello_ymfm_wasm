@@ -1064,7 +1064,7 @@ export function exportYm2612VgmToPlaygroundJavaScript(source, options = {}) {
     { name: "ch5", events: [], currentTime: 0 },
   ];
   let timeSamples = 0;
-  const includeDac = options.includeDac ?? options.scheduled === true;
+  const includeDac = true;
   const writeRegister = (register, value, port = 0) => {
     if (!includeDac && port === 0 && register === 0x2a) {
       return;
@@ -1128,9 +1128,17 @@ export function exportYm2612VgmToPlaygroundJavaScript(source, options = {}) {
 function renderPlaygroundTrack(track, totalLoopSamples, scheduled) {
   /** @type {string[]} */
   const lines = [`liveLoop(${JSON.stringify(track.name)}, async () => {`];
+  const dacEvents = !scheduled && track.name === "global"
+    ? track.events.filter((event) => event.port === 0 && event.register === 0x2a)
+    : [];
+  if (dacEvents.length > 0) {
+    lines.push("  const dacStart = beginSampleSchedule();");
+    lines.push(`  dac.scheduleBase64(dacStart, ${JSON.stringify(encodeDacSchedule(dacEvents))});`);
+  }
   if (scheduled) lines.push("  const cycleStart = beginSampleSchedule();", "  scheduleWritesSamples(cycleStart, [");
   let cursor = 0;
   for (const event of track.events) {
+    if (!scheduled && event.port === 0 && event.register === 0x2a) continue;
     if (event.comment) {
       lines.push(`  ${scheduled ? "  " : ""}// ${event.comment}`);
     }
@@ -1152,6 +1160,23 @@ function renderPlaygroundTrack(track, totalLoopSamples, scheduled) {
   lines.push("});");
   return lines;
 }
+
+function encodeDacSchedule(events) {
+  const bytes = new Uint8Array(events.length * 5);
+  const view = new DataView(bytes.buffer);
+  for (let index = 0; index < events.length; index += 1) {
+    const event = events[index];
+    const offset = index * 5;
+    view.setUint32(offset, event.timeSamples, true);
+    bytes[offset + 4] = event.value;
+  }
+  let binary = "";
+  for (let offset = 0; offset < bytes.length; offset += 0x8000) {
+    binary += String.fromCharCode(...bytes.subarray(offset, offset + 0x8000));
+  }
+  return btoa(binary);
+}
+
 
 /**
  * @param {0|1} port

@@ -118,6 +118,10 @@ class YM2612Processor extends AudioWorkletProcessor {
       this.scheduledCommands.sort((a, b) => a.time - b.time);
       return;
     }
+    if (command.type === "clear-scheduled-writes") {
+      this.scheduledCommands.length = 0;
+      return;
+    }
     if (command.type === "write") {
       this.ym2612.writeRegister(
         command.register,

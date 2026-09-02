@@ -300,6 +300,8 @@ export function createPlaygroundRuntime(
   }
 
   function stopAllAudio() {
+    synth?.clearScheduledWrites?.();
+    synth?.write?.(0, 0x2b, 0x00);
     stopAllNotes();
     megaDrive.sample.stopAll();
     megaDrive.stream.stop();
@@ -826,6 +828,10 @@ export function createPlaygroundRuntime(
     };
     const pg = {
       fm,
+      dac: {
+        schedule: (start, entries) => scheduleWritesSamples(fm, start, entries.map(([offset, value]) => [offset, 0, 0x2a, value])),
+        scheduleBase64: (start, encoded) => scheduleDacBase64(fm, start, encoded),
+      },
       fx,
       psg,
       context: runtime.context,
@@ -955,6 +961,7 @@ export function createPlaygroundRuntime(
           playgroundConsole,
         pg,
         fm,
+        dac: pg.dac,
         fx,
         psg,
         sample: pg.sample,
@@ -1094,6 +1101,18 @@ export function createPlaygroundRuntime(
       value: Number(value),
     })));
   }
+
+  function scheduleDacBase64(fm, startSamples, encoded) {
+    const binary = atob(encoded);
+    const bytes = Uint8Array.from(binary, (character) => character.charCodeAt(0));
+    const view = new DataView(bytes.buffer);
+    const entries = [];
+    for (let offset = 0; offset < bytes.length; offset += 5) {
+      entries.push([view.getUint32(offset, true), 0, 0x2a, bytes[offset + 4]]);
+    }
+    scheduleWritesSamples(fm, startSamples, entries);
+  }
+
 
   function sleepSamples(
     samples,
@@ -1261,6 +1280,7 @@ export function createPlaygroundRuntime(
 
   function stop() {
     currentRunToken += 1;
+    runtime.sampleClockStartTime = null;
     clearKeyboardHandlers();
     liveApi.stopAllLoops();
     stopAllAudio();
