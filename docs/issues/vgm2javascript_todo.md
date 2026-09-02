@@ -10,7 +10,6 @@
 
 - [ ] Main thread 実行と `execution: "worker"` 実行の API 差分を一覧化する。
 - [ ] Worker で FX/noise の複合オブジェクトと再実行・停止時の `liveCleanup()` を実ブラウザで回帰確認する。
-- [ ] Worker の複数 `liveLoop()`、キーボード、Stop/Run を自動テストへ追加する。
 
 ## DAC / VGM Stream
 

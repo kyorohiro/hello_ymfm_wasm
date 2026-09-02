@@ -1,0 +1,107 @@
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import test from "node:test";
+import vm from "node:vm";
+
+const workerSource = readFileSync(
+  new URL("../js/playground_logic_worker.js", import.meta.url),
+  "utf8"
+);
+
+function createWorkerHarness() {
+  const messages = [];
+  const context = {
+    Error,
+    Map,
+    Math,
+    Promise,
+    Set,
+    performance,
+    clearTimeout,
+    postMessage(message) {
+      messages.push(message);
+    },
+    self: {},
+    setTimeout,
+  };
+  vm.runInNewContext(workerSource, context, {
+    filename: "playground_logic_worker.js",
+  });
+  return {
+    messages,
+    async send(data) {
+      await context.self.onmessage({ data });
+    },
+  };
+}
+
+async function waitFor(predicate, timeoutMs = 100) {
+  const deadline = performance.now() + timeoutMs;
+  while (!predicate()) {
+    if (performance.now() >= deadline) {
+      throw new Error("Timed out waiting for Worker command");
+    }
+    await new Promise((resolve) => setTimeout(resolve, 1));
+  }
+}
+
+test("Worker runs multiple loops, keyboard input, and Stop/Run lifecycle", async () => {
+  const worker = createWorkerHarness();
+  try {
+    await worker.send({
+      type: "run",
+      presets: {},
+      scaleIntervals: {},
+      sourceCode: `
+        onKeyboardPressKey("jump", () => write(0x22, 0x08));
+        liveCleanup(["bass", "lead"], () => write(0x22, 0x00));
+        liveLoop("bass", async () => {
+          fm.keyOn(CH1);
+          await sleep(0.002);
+        });
+        liveLoop("lead", async () => {
+          fm.keyOn(CH2);
+          await sleep(0.002);
+        });
+      `,
+    });
+
+    const firstComplete = worker.messages.find((message) => message.type === "complete");
+    assert.equal(firstComplete?.loopCount, 2);
+    assert.equal(firstComplete?.keyboardHandlerCount, 1);
+    await waitFor(() => worker.messages.some((message) => message.command === "fm.keyOn" && message.args[0] === 0));
+    await waitFor(() => worker.messages.some((message) => message.command === "fm.keyOn" && message.args[0] === 1));
+
+    await worker.send({
+      type: "keyboard",
+      id: "keydown:jump",
+      event: { key: "z", code: "KeyZ" },
+    });
+    assert.ok(worker.messages.some((message) => message.command === "write" && message.args[1] === 0x08));
+
+    await worker.send({ type: "stop" });
+    assert.deepEqual(
+      worker.messages.slice(-4).map((message) => message.type === "command" ? message.command : message.type),
+      ["write", "audio.stopAll", "fx.detach", "stopped"]
+    );
+
+    await worker.send({
+      type: "run",
+      presets: {},
+      scaleIntervals: {},
+      sourceCode: `
+        liveLoop("pad", async () => {
+          fm.keyOn(CH3);
+          await sleep(0.002);
+        });
+      `,
+    });
+    const secondComplete = worker.messages.filter((message) => message.type === "complete").at(-1);
+    assert.equal(secondComplete?.loopCount, 1);
+    assert.equal(secondComplete?.keyboardHandlerCount, 1);
+    await waitFor(() => worker.messages.some((message) => message.command === "fm.keyOn" && message.args[0] === 2));
+  } finally {
+    await worker.send({ type: "stop" });
+  }
+
+});
