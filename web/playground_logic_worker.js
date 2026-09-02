@@ -119,6 +119,7 @@ function createRun(sourceCode, presets, scaleIntervals) {
     cleanups: [],
     collectingCleanups: null,
     currentLoop: null,
+    audioHandles: new Set(),
   };
   const clock = createClock(run);
   run.resetSampleClock = () => clock.resetSampleClock();
@@ -146,7 +147,11 @@ function createRun(sourceCode, presets, scaleIntervals) {
     scheduleBase64: (...args) => postCommand("dac.scheduleBase64", args),
   };
   let nextAudioHandle = 1;
-  const createHandle = (kind) => `${kind}-${nextAudioHandle++}`;
+  const createHandle = (kind) => {
+    const id = `${kind}-${nextAudioHandle++}`;
+    run.audioHandles.add(id);
+    return id;
+  };
   const handleId = (value) => value?.__playgroundHandle ?? value;
   const control = (id, path) => ({
     get: () => request("audio.get", [id, path], run.currentLoop),
@@ -197,14 +202,14 @@ function createRun(sourceCode, presets, scaleIntervals) {
     create(options = {}) {
       const id = createHandle("noise");
       postCommand("noise.create", [id, options]);
-      return noiseHandle(id);
+      return { ...noiseHandle(id), type: options.type ?? "white" };
     },
     stopAll: () => postCommand("noise.stopAll"),
   };
 
   const livePrepare = async (name, fn) => {
     if (run.prepared.has(name)) return run.prepared.get(name);
-    const value = await fn({ fm, fx, psg, sample, stream, dac, noise, control: (voice, options) => postCommand("noise.control", [handleId(voice), options]), context: run.context });
+    const value = await fn({ fm, fx, psg, sample, stream, dac, noise, control: (voice, options) => postCommand("noise.control", [handleId(voice), options]), context: run.context, log: (...args) => postCommand("log", args) });
     run.prepared.set(name, value);
     return value;
   };
@@ -231,6 +236,13 @@ function createRun(sourceCode, presets, scaleIntervals) {
     // In Worker mode this is the sole source of audio-control commands.
     postCommand("audio.stopAll");
     postCommand("fx.detach");
+    postCommand("audio.disposeHandles", [[...run.audioHandles]]);
+    run.audioHandles.clear();
+    run.prepared.clear();
+    run.cleanups = [];
+    run.keyboard.clear();
+    run.loops.clear();
+    for (const key of Object.keys(run.context)) delete run.context[key];
   };
   const registerKeyboard = (eventType, name, fn) => {
     if (typeof name !== "string" || !name || typeof fn !== "function") throw new Error("Keyboard handler requires a name and callback");

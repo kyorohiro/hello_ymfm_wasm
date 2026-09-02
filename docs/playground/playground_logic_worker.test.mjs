@@ -91,8 +91,8 @@ test("Worker runs multiple loops, keyboard input, and Stop/Run lifecycle", async
 
     await worker.send({ type: "stop" });
     assert.deepEqual(
-      worker.messages.slice(-4).map((message) => message.type === "command" ? message.command : message.type),
-      ["write", "audio.stopAll", "fx.detach", "stopped"]
+      worker.messages.slice(-5).map((message) => message.type === "command" ? message.command : message.type),
+      ["write", "audio.stopAll", "fx.detach", "audio.disposeHandles", "stopped"]
     );
 
     await worker.send({
@@ -108,7 +108,7 @@ test("Worker runs multiple loops, keyboard input, and Stop/Run lifecycle", async
     });
     const secondComplete = worker.messages.filter((message) => message.type === "complete").at(-1);
     assert.equal(secondComplete?.loopCount, 1);
-    assert.equal(secondComplete?.keyboardHandlerCount, 1);
+    assert.equal(secondComplete?.keyboardHandlerCount, 0);
     await waitFor(() => worker.messages.some((message) => message.command === "fm.keyOn" && message.args[0] === 2));
   } finally {
     await worker.send({ type: "stop" });
@@ -143,4 +143,24 @@ test("Worker resets the sample clock before a stopped VGM loop runs again", asyn
   } finally {
     await worker.send({ type: "stop" });
   }
+});
+
+test("Worker keeps context across Run and clears it on Stop", async () => {
+  const worker = createWorkerHarness();
+  const incrementSource = "context.count = (context.count ?? 0) + 1;";
+
+  await worker.send({ type: "run", presets: {}, scaleIntervals: {}, sourceCode: incrementSource });
+  await worker.send({ type: "run", presets: {}, scaleIntervals: {}, sourceCode: incrementSource });
+  assert.equal(worker.messages.filter((message) => message.type === "complete").length, 2);
+
+  await worker.send({ type: "stop" });
+  await worker.send({
+    type: "run",
+    presets: {},
+    scaleIntervals: {},
+    sourceCode: "if (context.count !== undefined) throw new Error('context was not cleared');",
+  });
+
+  assert.equal(worker.messages.at(-1)?.type, "complete");
+  await worker.send({ type: "stop" });
 });

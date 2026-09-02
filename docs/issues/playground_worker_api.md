@@ -63,4 +63,5 @@ portable handle に統一する。
 - Worker は Run のたびに terminate しない。`runtime.finalize()` のみが Worker を
   terminate し、保持している音声 handle を dispose する。
 - Worker モードで Stop を押すと、Main thread は停止要求だけを送る。Worker は
-  `liveCleanup()` を実行した後、`audio.stopAll` と `fx.detach` を順に発行する。
+  `liveCleanup()` を実行した後、`audio.stopAll`、`fx.detach`、音声 handle の dispose を
+  順に発行し、`context`、`livePrepare()` cache、keyboard 定義を破棄する。

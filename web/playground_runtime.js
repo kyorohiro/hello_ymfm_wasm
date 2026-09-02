@@ -117,7 +117,7 @@ export function createPlaygroundRuntime(
     );
   defaultLogicWorkerUrl.searchParams.set(
     "v",
-    "20260903-12"
+    "20260903-14"
   );
   const logicWorkerUrl =
     options.logicWorkerUrl ??
@@ -845,6 +845,13 @@ export function createPlaygroundRuntime(
     if (command === "fx.clear") return globals.fx.clear();
     if (command === "fx.detach") return megaDrive.clearFXChain();
     if (command === "audio.stopAll") return stopAllAudio();
+    if (command === "audio.disposeHandles") {
+      for (const id of args[0] ?? []) {
+        workerAudioHandles.get(id)?.dispose?.();
+        workerAudioHandles.delete(id);
+      }
+      return;
+    }
     if (command === "noise.create") {
       const [id, options] = args;
       workerAudioHandles.set(id, globals.noise.create(options));
@@ -1084,6 +1091,7 @@ export function createPlaygroundRuntime(
       dac: dacApi,
       noise: noiseApi,
       control: controlNoiseVoice,
+      context: runtime.context,
       log: (...args) => {
         emitLog(
           formatLogArgs(args)
