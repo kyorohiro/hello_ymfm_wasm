@@ -128,6 +128,7 @@ export function createPlaygroundRuntime(
   let playbackState = "stopped";
   let logicWorker = null;
   let workerGlobals = null;
+  const workerAudioHandles = new Map();
   const workerKeyboardHandlers =
     new Map();
 
@@ -755,6 +756,10 @@ export function createPlaygroundRuntime(
     logicWorker.terminate();
     logicWorker = null;
     workerGlobals = null;
+    for (const value of workerAudioHandles.values()) {
+      value?.dispose?.();
+    }
+    workerAudioHandles.clear();
   }
 
   function serializeKeyboardEvent(event) {
@@ -795,6 +800,36 @@ export function createPlaygroundRuntime(
     const globals = workerGlobals;
     if (!globals) {
       throw new Error("Playground Worker is not running");
+    }
+
+    if (command === "fx.create") {
+      const [id, method, options] = args;
+      const factory = globals.fx[method];
+      if (typeof factory !== "function") throw new Error(`Unsupported FX: ${method}`);
+      workerAudioHandles.set(id, factory(options));
+      return;
+    }
+    if (command === "fx.setChain") {
+      return globals.fx.setChain(args[0].map((id) => workerAudioHandles.get(id)));
+    }
+    if (command === "fx.clear") return globals.fx.clear();
+    if (command === "noise.create") {
+      const [id, options] = args;
+      workerAudioHandles.set(id, globals.noise.create(options));
+      return;
+    }
+    if (command === "noise.stopAll") return globals.noise.stopAll();
+    if (command === "noise.control") {
+      return globals.control(workerAudioHandles.get(args[0]), args[1]);
+    }
+    if (command === "audio.call" || command === "audio.get") {
+      const [id, path] = args;
+      let target = workerAudioHandles.get(id);
+      for (const segment of path) target = target?.[segment];
+      if (!target) throw new Error(`Unknown audio handle: ${id}`);
+      if (command === "audio.get") return target.get();
+      const [, , method, methodArgs] = args;
+      return target[method](...methodArgs);
     }
 
     if (command.startsWith("fm.")) {

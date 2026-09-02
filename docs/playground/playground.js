@@ -62,6 +62,8 @@ const runButton =
   document.getElementById("runButton");
 const stopButton =
   document.getElementById("stopButton");
+const workerExecution =
+  document.getElementById("workerExecution");
 const loadExampleButton =
   document.getElementById(
     "loadExampleButton"
@@ -567,7 +569,12 @@ async function runCode() {
       getEditorValue()
     );
     await runtime.play(
-      "__editor__"
+      "__editor__",
+      {
+        execution: workerExecution?.checked
+          ? "worker"
+          : "main",
+      }
     );
   } catch (error) {
     console.error(error);

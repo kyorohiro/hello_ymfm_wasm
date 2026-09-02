@@ -96,10 +96,52 @@ function createRun(sourceCode, presets) {
     schedule: (...args) => postCommand("dac.schedule", args),
     scheduleBase64: (...args) => postCommand("dac.scheduleBase64", args),
   };
+  let nextAudioHandle = 1;
+  const createHandle = (kind) => `${kind}-${nextAudioHandle++}`;
+  const handleId = (value) => value?.__playgroundHandle ?? value;
+  const control = (id, path) => ({
+    get: () => request("audio.get", [id, path]),
+    set: (value) => postCommand("audio.call", [id, path, "set", [value]]),
+    rampTo: (value, seconds) => postCommand("audio.call", [id, path, "rampTo", [value, seconds]]),
+  });
+  const noiseHandle = (id) => ({
+    __playgroundHandle: id,
+    start: () => postCommand("audio.call", [id, [], "start", []]),
+    stop: () => postCommand("audio.call", [id, [], "stop", []]),
+    dispose: () => postCommand("audio.call", [id, [], "dispose", []]),
+    attack: control(id, ["attack"]),
+    release: control(id, ["release"]),
+    gain: control(id, ["gain"]),
+    pan: control(id, ["pan"]),
+    filter: {
+      set: (...args) => postCommand("audio.call", [id, ["filter"], "set", args]),
+      cutoff: control(id, ["filter", "cutoff"]),
+      q: control(id, ["filter", "q"]),
+    },
+  });
+  const fx = new Proxy({}, {
+    get(_target, method) {
+      if (method === "setChain") return (effects) => postCommand("fx.setChain", [effects.map(handleId)]);
+      if (method === "clear") return () => postCommand("fx.clear");
+      return (options = {}) => {
+        const id = createHandle("fx");
+        postCommand("fx.create", [id, String(method), options]);
+        return { __playgroundHandle: id };
+      };
+    },
+  });
+  const noise = {
+    create(options = {}) {
+      const id = createHandle("noise");
+      postCommand("noise.create", [id, options]);
+      return noiseHandle(id);
+    },
+    stopAll: () => postCommand("noise.stopAll"),
+  };
 
   const livePrepare = async (name, fn) => {
     if (run.prepared.has(name)) return run.prepared.get(name);
-    const value = await fn({ fm, psg, sample, stream, dac, context: run.context });
+    const value = await fn({ fm, fx, psg, sample, stream, dac, noise, control: (voice, options) => postCommand("noise.control", [handleId(voice), options]), context: run.context });
     run.prepared.set(name, value);
     return value;
   };
@@ -122,7 +164,7 @@ function createRun(sourceCode, presets) {
       warn: (...args) => postCommand("warn", args),
       error: (...args) => postCommand("error", args),
     },
-    fm, psg, dac, sample, stream,
+    fm, fx, psg, dac, sample, stream, noise,
     context: run.context,
     FM_PRESETS: presets,
     CH1: 0, CH2: 1, CH3: 2, CH4: 3, CH5: 4, CH6: 5,
@@ -135,6 +177,7 @@ function createRun(sourceCode, presets) {
     getMasterVolume: () => request("getMasterVolume"),
     setDacLookahead: (...args) => request("setDacLookahead", args),
     getDacLookahead: () => request("getDacLookahead"),
+    control: (voice, options) => postCommand("noise.control", [handleId(voice), options]),
     sleep: clock.sleep,
     sleepSamples: clock.sleepSamples,
     beat: clock.beat,
