@@ -168,7 +168,7 @@ test(
 
       assert.equal(createdWorkers.length, 1);
       assert.equal(createdWorkers[0].options.type, "module");
-      assert.match(createdWorkers[0].url, /playground_logic_worker\.js$/);
+      assert.match(createdWorkers[0].url, /playground_logic_worker\.js(?:\?|$)/);
       runtime.stop();
     } finally {
       globalThis.window = originalWindow;

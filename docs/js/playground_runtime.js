@@ -110,12 +110,18 @@ export function createPlaygroundRuntime(
     options.guardExecution !== false;
   const defaultExecution =
     options.execution ?? "main";
-  const logicWorkerUrl =
-    options.logicWorkerUrl ??
+  const defaultLogicWorkerUrl =
     new URL(
       "./playground_logic_worker.js",
       import.meta.url
-    ).href;
+    );
+  defaultLogicWorkerUrl.searchParams.set(
+    "v",
+    "20260902-2"
+  );
+  const logicWorkerUrl =
+    options.logicWorkerUrl ??
+    defaultLogicWorkerUrl.href;
 
   let synth = null;
   let prepareAudioPromise = null;
@@ -128,6 +134,7 @@ export function createPlaygroundRuntime(
   let playbackState = "stopped";
   let logicWorker = null;
   let workerGlobals = null;
+  let resolveLogicWorkerStop = null;
   const workerAudioHandles = new Map();
   const workerKeyboardHandlers =
     new Map();
@@ -750,16 +757,24 @@ export function createPlaygroundRuntime(
 
   function stopLogicWorker() {
     if (!logicWorker) {
-      return;
+      return Promise.resolve();
     }
-    logicWorker.postMessage({ type: "stop" });
-    logicWorker.terminate();
-    logicWorker = null;
-    workerGlobals = null;
-    for (const value of workerAudioHandles.values()) {
-      value?.dispose?.();
-    }
-    workerAudioHandles.clear();
+    const worker = logicWorker;
+    return new Promise((resolve) => {
+      const finish = () => {
+        if (logicWorker !== worker) return;
+        worker.terminate();
+        logicWorker = null;
+        workerGlobals = null;
+        resolveLogicWorkerStop = null;
+        for (const value of workerAudioHandles.values()) value?.dispose?.();
+        workerAudioHandles.clear();
+        resolve();
+      };
+      resolveLogicWorkerStop = finish;
+      worker.postMessage({ type: "stop" });
+      setTimeout(finish, 100);
+    });
   }
 
   function serializeKeyboardEvent(event) {
@@ -1403,7 +1418,7 @@ export function createPlaygroundRuntime(
     currentRunToken += 1;
     const runToken = currentRunToken;
     await ensureReady();
-    stopLogicWorker();
+    await stopLogicWorker();
     clearKeyboardHandlers();
     liveApi.stopAllLoops();
     liveApi.clearRunFxChain();
@@ -1452,6 +1467,10 @@ export function createPlaygroundRuntime(
           fail(error);
           return;
         }
+        if (message.type === "stopped") {
+          resolveLogicWorkerStop?.();
+          return;
+        }
         if (message.type === "log") {
           emitLog(message.message);
           return;
@@ -1465,6 +1484,7 @@ export function createPlaygroundRuntime(
         type: "run",
         sourceCode,
         presets,
+        scaleIntervals: SCALE_INTERVALS,
       });
     });
   }
@@ -1492,7 +1512,7 @@ export function createPlaygroundRuntime(
         `Unknown execution mode: ${execution}`
       );
     }
-    stopLogicWorker();
+    await stopLogicWorker();
     currentRunToken += 1;
     const runToken =
       currentRunToken;
@@ -1642,7 +1662,7 @@ export function createPlaygroundRuntime(
   function stop() {
     currentRunToken += 1;
     runtime.sampleClockStartTime = null;
-    stopLogicWorker();
+    void stopLogicWorker();
     clearKeyboardHandlers();
     liveApi.stopAllLoops();
     stopAllAudio();

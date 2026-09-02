@@ -6,12 +6,12 @@ function postCommand(command, args = []) {
   postMessage({ type: "command", command, args });
 }
 
-function request(command, args = []) {
+function request(command, args = [], loopContext = null) {
   const id = nextRequestId;
   nextRequestId += 1;
   postMessage({ type: "request", id, command, args });
   return new Promise((resolve, reject) => {
-    pendingRequests.set(id, { resolve, reject });
+    pendingRequests.set(id, { resolve, reject, loopContext });
   });
 }
 
@@ -29,7 +29,11 @@ function createClock(run) {
 
   async function sleep(seconds) {
     const token = run.token;
-    await new Promise((resolve) => setTimeout(resolve, Math.max(0, Number(seconds) || 0) * 1000));
+    const loopContext = run.currentLoop;
+    await new Promise((resolve) => setTimeout(() => {
+      run.currentLoop = loopContext;
+      resolve();
+    }, Math.max(0, Number(seconds) || 0) * 1000));
     if (run.stopped || token !== run.token) {
       throw new Error("Run stopped");
     }
@@ -66,7 +70,7 @@ function createClock(run) {
   };
 }
 
-function createRun(sourceCode, presets) {
+function createRun(sourceCode, presets, scaleIntervals) {
   const run = {
     token: 1,
     stopped: false,
@@ -74,11 +78,12 @@ function createRun(sourceCode, presets) {
     loops: new Map(),
     prepared: new Map(),
     keyboard: new Map(),
+    cleanups: [],
     currentLoop: null,
   };
   const clock = createClock(run);
   const commandProxy = (command) => (...args) => postCommand(command, args);
-  const requestProxy = (command) => (...args) => request(command, args);
+  const requestProxy = (command) => (...args) => request(command, args, run.currentLoop);
   const fm = new Proxy({}, {
     get(_target, property) {
       if (property === "read" || property === "readStatus" || property === "getIrq") {
@@ -91,7 +96,7 @@ function createRun(sourceCode, presets) {
   const stream = new Proxy({}, { get: (_target, property) => requestProxy(`stream.${String(property)}`) });
   const psg = { write: commandProxy("psg.write") };
   const dac = {
-    loadBase64: (...args) => request("dac.loadBase64", args),
+    loadBase64: (...args) => request("dac.loadBase64", args, run.currentLoop),
     playStream: (...args) => postCommand("dac.playStream", args),
     schedule: (...args) => postCommand("dac.schedule", args),
     scheduleBase64: (...args) => postCommand("dac.scheduleBase64", args),
@@ -100,7 +105,7 @@ function createRun(sourceCode, presets) {
   const createHandle = (kind) => `${kind}-${nextAudioHandle++}`;
   const handleId = (value) => value?.__playgroundHandle ?? value;
   const control = (id, path) => ({
-    get: () => request("audio.get", [id, path]),
+    get: () => request("audio.get", [id, path], run.currentLoop),
     set: (value) => postCommand("audio.call", [id, path, "set", [value]]),
     rampTo: (value, seconds) => postCommand("audio.call", [id, path, "rampTo", [value, seconds]]),
   });
@@ -150,6 +155,20 @@ function createRun(sourceCode, presets) {
     if (typeof fn !== "function") throw new Error("liveLoop(name, fn) requires a callback");
     run.loops.set(name, fn);
   };
+  const liveCleanup = (names, fn) => {
+    if (!Array.isArray(names) || names.length === 0 || typeof fn !== "function") {
+      throw new Error("liveCleanup(names, fn) requires loop names and a callback");
+    }
+    run.cleanups.push({ names, fn });
+  };
+  run.stop = async () => {
+    if (run.stopped) return;
+    run.stopped = true;
+    run.token += 1;
+    for (const cleanup of run.cleanups) {
+      await cleanup.fn();
+    }
+  };
   const registerKeyboard = (eventType, name, fn) => {
     if (typeof name !== "string" || !name || typeof fn !== "function") throw new Error("Keyboard handler requires a name and callback");
     const id = `${eventType}:${name}`;
@@ -158,6 +177,22 @@ function createRun(sourceCode, presets) {
   };
   const choose = (values) => values[Math.floor(Math.random() * values.length)];
   const cycle = (values, index = 0) => values[Math.abs(Number(index) || 0) % values.length];
+  const noteToMidi = (noteName) => {
+    const match = /^([A-G](?:#|b)?)(-?\d+)$/.exec(String(noteName).trim());
+    const semitones = { C: 0, "C#": 1, Db: 1, D: 2, "D#": 3, Eb: 3, E: 4, F: 5, "F#": 6, Gb: 6, G: 7, "G#": 8, Ab: 8, A: 9, "A#": 10, Bb: 10, B: 11 };
+    if (!match || semitones[match[1]] === undefined) throw new Error(`Unsupported note name: ${noteName}`);
+    return (Number(match[2]) + 1) * 12 + semitones[match[1]];
+  };
+  const midiToNote = (midi) => {
+    const names = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+    return `${names[((midi % 12) + 12) % 12]}${Math.floor(midi / 12) - 1}`;
+  };
+  const scale = (root, name, octaves = 1) => {
+    const intervals = scaleIntervals[name];
+    if (!intervals) throw new Error(`Unknown scale: ${name}`);
+    const rootMidi = noteToMidi(root);
+    return Array.from({ length: Math.max(0, Number(octaves) || 0) }, (_, octave) => intervals.map((interval) => midiToNote(rootMidi + octave * 12 + interval))).flat();
+  };
   const globals = {
     console: {
       log: (...args) => postCommand("log", args),
@@ -170,11 +205,11 @@ function createRun(sourceCode, presets) {
     CH1: 0, CH2: 1, CH3: 2, CH4: 3, CH5: 4, CH6: 5,
     OP1: 0, OP2: 1, OP3: 2, OP4: 3,
     write: (...args) => postCommand("write", args),
-    play: (...args) => request("play", args),
+    play: (...args) => request("play", args, run.currentLoop),
     psgTone: (...args) => postCommand("psgTone", args),
     psgNoise: (...args) => postCommand("psgNoise", args),
-    setMasterVolume: (...args) => request("setMasterVolume", args),
-    getMasterVolume: () => request("getMasterVolume"),
+    setMasterVolume: (...args) => request("setMasterVolume", args, run.currentLoop),
+    getMasterVolume: () => request("getMasterVolume", [], run.currentLoop),
     setDacLookahead: (...args) => request("setDacLookahead", args),
     getDacLookahead: () => request("getDacLookahead"),
     control: (voice, options) => postCommand("noise.control", [handleId(voice), options]),
@@ -185,6 +220,9 @@ function createRun(sourceCode, presets) {
     setBpm: clock.setBpm,
     livePrepare,
     liveLoop,
+    liveCleanup,
+    stopLoop: (name) => run.loops.delete(name),
+    stopAllLoops: () => run.loops.clear(),
     onKeyboardPressKey: (name, fn) => registerKeyboard("keydown", name, fn),
     onKeyboardReleaseKey: (name, fn) => registerKeyboard("keyup", name, fn),
     stopAll: () => postCommand("stopAll"),
@@ -194,6 +232,7 @@ function createRun(sourceCode, presets) {
     rrange: (min, max) => Number(min) + Math.random() * (Number(max) - Number(min)),
     randInt: (min, max) => Math.floor(Number(min) + Math.random() * (Number(max) - Number(min) + 1)),
     lerp: (a, b, amount) => Number(a) + (Number(b) - Number(a)) * Number(amount),
+    scale,
   };
   globals.pg = { ...globals };
 
@@ -207,7 +246,7 @@ function createRun(sourceCode, presets) {
     await userFunction(...Object.values(globals));
     for (const [name, fn] of run.loops) {
       void (async () => {
-        while (!run.stopped) {
+        while (!run.stopped && run.loops.has(name)) {
           try {
             run.currentLoop = { name, cursorBeat: clock.currentBeat?.() ?? 0 };
             await fn();
@@ -227,8 +266,8 @@ function createRun(sourceCode, presets) {
 self.onmessage = async (event) => {
   const message = event.data;
   if (message.type === "run") {
-    currentRun?.stop?.();
-    currentRun = createRun(message.sourceCode, message.presets ?? {});
+    await currentRun?.stop?.();
+    currentRun = createRun(message.sourceCode, message.presets ?? {}, message.scaleIntervals ?? {});
     try {
       await currentRun.execute();
       postMessage({ type: "complete", loopCount: currentRun.loops.size, keyboardHandlerCount: currentRun.keyboard.size });
@@ -241,12 +280,13 @@ self.onmessage = async (event) => {
     const pending = pendingRequests.get(message.id);
     if (!pending) return;
     pendingRequests.delete(message.id);
+    if (pending.loopContext && currentRun) currentRun.currentLoop = pending.loopContext;
     message.error ? pending.reject(new Error(message.error)) : pending.resolve(message.value);
     return;
   }
   if (message.type === "keyboard") currentRun?.handleKeyboard(message.id, message.event);
   if (message.type === "stop" && currentRun) {
-    currentRun.stopped = true;
-    currentRun.token += 1;
+    await currentRun.stop();
+    postMessage({ type: "stopped" });
   }
 };
