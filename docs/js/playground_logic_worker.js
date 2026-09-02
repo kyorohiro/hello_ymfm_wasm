@@ -76,6 +76,8 @@ function createRun(sourceCode, presets, scaleIntervals) {
     stopped: false,
     context: {},
     loops: new Map(),
+    runningLoops: new Set(),
+    collectingLoops: null,
     prepared: new Map(),
     keyboard: new Map(),
     cleanups: [],
@@ -162,7 +164,7 @@ function createRun(sourceCode, presets, scaleIntervals) {
   const liveLoop = (name, fn) => {
     if (typeof name !== "string" || !name) throw new Error("liveLoop(name, fn) requires a non-empty name");
     if (typeof fn !== "function") throw new Error("liveLoop(name, fn) requires a callback");
-    run.loops.set(name, fn);
+    (run.collectingLoops ?? run.loops).set(name, fn);
   };
   const liveCleanup = (names, fn) => {
     if (!Array.isArray(names) || names.length === 0 || typeof fn !== "function") {
@@ -249,16 +251,25 @@ function createRun(sourceCode, presets, scaleIntervals) {
     const handler = run.keyboard.get(id);
     if (handler) handler(event);
   };
-  run.execute = async () => {
+  run.execute = async (nextSourceCode = sourceCode) => {
+    run.collectingLoops = new Map();
     const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
-    const userFunction = new AsyncFunction(...Object.keys(globals), `"use strict";\n${sourceCode}`);
+    const userFunction = new AsyncFunction(...Object.keys(globals), `"use strict";\n${nextSourceCode}`);
     await userFunction(...Object.values(globals));
-    for (const [name, fn] of run.loops) {
+    const definitions = run.collectingLoops;
+    run.collectingLoops = null;
+    for (const name of run.loops.keys()) {
+      if (!definitions.has(name)) run.loops.delete(name);
+    }
+    for (const [name, fn] of definitions) run.loops.set(name, fn);
+    for (const name of definitions.keys()) {
+      if (run.runningLoops.has(name)) continue;
+      run.runningLoops.add(name);
       void (async () => {
         while (!run.stopped && run.loops.has(name)) {
           try {
             run.currentLoop = { name, cursorBeat: clock.currentBeat?.() ?? 0 };
-            await fn();
+            await run.loops.get(name)();
           } catch (error) {
             if (!run.stopped) postMessage({ type: "log", level: "error", message: `[liveLoop:${name}] ${error?.stack ?? String(error)}` });
             await new Promise((resolve) => setTimeout(resolve, 16));
@@ -266,6 +277,7 @@ function createRun(sourceCode, presets, scaleIntervals) {
             run.currentLoop = null;
           }
         }
+        run.runningLoops.delete(name);
       })();
     }
   };
@@ -276,14 +288,10 @@ self.onmessage = async (event) => {
   const message = event.data;
   if (message.type === "run") {
     const previousRun = currentRun;
-    await previousRun?.stop?.();
-    currentRun = createRun(message.sourceCode, message.presets ?? {}, message.scaleIntervals ?? {});
-    if (previousRun) {
-      currentRun.context = previousRun.context;
-      currentRun.prepared = previousRun.prepared;
-    }
+    currentRun = previousRun ?? createRun(message.sourceCode, message.presets ?? {}, message.scaleIntervals ?? {});
+    currentRun.stopped = false;
     try {
-      await currentRun.execute();
+      await currentRun.execute(message.sourceCode);
       postMessage({ type: "complete", loopCount: currentRun.loops.size, keyboardHandlerCount: currentRun.keyboard.size });
     } catch (error) {
       postMessage({ type: "execution-error", message: error?.message ?? String(error), stack: error?.stack });
