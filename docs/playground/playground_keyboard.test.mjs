@@ -284,6 +284,12 @@ test(
         }
         if (message.type === "stop") {
           queueMicrotask(() => {
+            this.onmessage?.({
+              data: { type: "command", command: "audio.stopAll", args: [] },
+            });
+            this.onmessage?.({
+              data: { type: "command", command: "fx.detach", args: [] },
+            });
             this.onmessage?.({ data: { type: "stopped" } });
           });
         }
@@ -295,18 +301,35 @@ test(
     };
 
     try {
+      const megaDrive = createMegaDriveStub();
+      let stopAllCount = 0;
+      let clearFxCount = 0;
+      megaDrive.sample.stopAll = () => { stopAllCount += 1; };
+      megaDrive.clearFXChain = () => {
+        clearFxCount += 1;
+        return [];
+      };
       const runtime = createPlaygroundRuntime({
-        megaDrive: createMegaDriveStub(),
+        megaDrive,
         guardExecution: false,
       });
       runtime.put("game", "liveLoop('game', async () => {});");
       await runtime.play("game", { execution: "worker" });
+      clearFxCount = 0;
       dispatch(listeners, "keydown", { key: "z", code: "KeyZ" });
       runtime.stop();
+
+      // Stop only posts an intent to the Worker. Its commands perform the
+      // audio stop and FX detachment on the main thread.
+      assert.equal(stopAllCount, 0);
+      assert.equal(clearFxCount, 0);
+      await new Promise((resolve) => setTimeout(resolve, 0));
 
       assert.ok(messages.some((message) => message.type === "keyboard" && message.id === "keydown:jump"));
       assert.ok(messages.some((message) => message.type === "stop"));
       assert.equal(messages.filter((message) => message.type === "run").length, 1);
+      assert.equal(stopAllCount, 1);
+      assert.equal(clearFxCount, 1);
     } finally {
       globalThis.window = originalWindow;
       globalThis.Worker = originalWorker;

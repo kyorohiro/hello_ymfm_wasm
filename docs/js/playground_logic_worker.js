@@ -73,6 +73,7 @@ function createClock(run) {
 function createRun(sourceCode, presets, scaleIntervals) {
   const run = {
     token: 1,
+    generation: 1,
     stopped: false,
     context: {},
     loops: new Map(),
@@ -177,9 +178,13 @@ function createRun(sourceCode, presets, scaleIntervals) {
     if (run.stopped) return;
     run.stopped = true;
     run.token += 1;
+    run.generation += 1;
     for (const cleanup of run.cleanups) {
       await cleanup.fn();
     }
+    // In Worker mode this is the sole source of audio-control commands.
+    postCommand("audio.stopAll");
+    postCommand("fx.detach");
   };
   const registerKeyboard = (eventType, name, fn) => {
     if (typeof name !== "string" || !name || typeof fn !== "function") throw new Error("Keyboard handler requires a name and callback");
@@ -321,8 +326,9 @@ function createRun(sourceCode, presets, scaleIntervals) {
     for (const name of definitions.keys()) {
       if (run.runningLoops.has(name)) continue;
       run.runningLoops.add(name);
+      const generation = run.generation;
       void (async () => {
-        while (!run.stopped && run.loops.has(name)) {
+        while (!run.stopped && generation === run.generation && run.loops.has(name)) {
           try {
             run.currentLoop = { name, cursorBeat: clock.currentBeat?.() ?? 0 };
             await run.loops.get(name)();
@@ -333,7 +339,7 @@ function createRun(sourceCode, presets, scaleIntervals) {
             run.currentLoop = null;
           }
         }
-        run.runningLoops.delete(name);
+        if (generation === run.generation) run.runningLoops.delete(name);
       })();
     }
   };
@@ -345,7 +351,11 @@ self.onmessage = async (event) => {
   if (message.type === "run") {
     const previousRun = currentRun;
     currentRun = previousRun ?? createRun(message.sourceCode, message.presets ?? {}, message.scaleIntervals ?? {});
-    currentRun.stopped = false;
+    if (currentRun.stopped) {
+      currentRun.stopped = false;
+      currentRun.generation += 1;
+      currentRun.runningLoops.clear();
+    }
     try {
       await currentRun.execute(message.sourceCode);
       postMessage({ type: "complete", loopCount: currentRun.loops.size, keyboardHandlerCount: currentRun.keyboard.size });

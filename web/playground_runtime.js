@@ -117,7 +117,7 @@ export function createPlaygroundRuntime(
     );
   defaultLogicWorkerUrl.searchParams.set(
     "v",
-    "20260903-5"
+    "20260903-10"
   );
   const logicWorkerUrl =
     options.logicWorkerUrl ??
@@ -134,6 +134,7 @@ export function createPlaygroundRuntime(
   let playbackState = "stopped";
   let logicWorker = null;
   let workerGlobals = null;
+  let workerCommandQueue = Promise.resolve();
   let resolveLogicWorkerStop = null;
   const workerAudioHandles = new Map();
   const workerKeyboardHandlers =
@@ -776,6 +777,7 @@ export function createPlaygroundRuntime(
     logicWorker?.terminate();
     logicWorker = null;
     workerGlobals = null;
+    workerCommandQueue = Promise.resolve();
     resolveLogicWorkerStop = null;
     for (const value of workerAudioHandles.values()) {
       value?.dispose?.();
@@ -834,6 +836,8 @@ export function createPlaygroundRuntime(
       return globals.fx.setChain(args[0].map((id) => workerAudioHandles.get(id)));
     }
     if (command === "fx.clear") return globals.fx.clear();
+    if (command === "fx.detach") return megaDrive.clearFXChain();
+    if (command === "audio.stopAll") return stopAllAudio();
     if (command === "noise.create") {
       const [id, options] = args;
       workerAudioHandles.set(id, globals.noise.create(options));
@@ -929,25 +933,23 @@ export function createPlaygroundRuntime(
         emitLog(`${prefix}${formatLogArgs(message.args)}`);
         return;
       }
-      void Promise.resolve(
-        invokeWorkerCommand(
-          message.command,
-          message.args ?? []
-        )
-      ).then(
-        (value) => {
-          if (message.type === "request") {
-            logicWorker?.postMessage({ type: "response", id: message.id, value });
+      workerCommandQueue = workerCommandQueue
+        .catch(() => undefined)
+        .then(() => invokeWorkerCommand(message.command, message.args ?? []))
+        .then(
+          (value) => {
+            if (message.type === "request") {
+              logicWorker?.postMessage({ type: "response", id: message.id, value });
+            }
+          },
+          (error) => {
+            if (message.type === "request") {
+              logicWorker?.postMessage({ type: "response", id: message.id, error: error?.message ?? String(error) });
+            } else {
+              emitLog(error?.stack ?? String(error));
+            }
           }
-        },
-        (error) => {
-          if (message.type === "request") {
-            logicWorker?.postMessage({ type: "response", id: message.id, error: error?.message ?? String(error) });
-          } else {
-            emitLog(error?.stack ?? String(error));
-          }
-        }
-      );
+        );
     }
   }
 
@@ -1671,17 +1673,21 @@ export function createPlaygroundRuntime(
   function stop() {
     currentRunToken += 1;
     runtime.sampleClockStartTime = null;
-    void stopLogicWorker();
+    const workerMode = Boolean(logicWorker);
+    if (workerMode) void stopLogicWorker();
     clearKeyboardHandlers();
-    liveApi.stopAllLoops();
-    stopAllAudio();
-    liveApi.flushLiveCleanups(
-      new Set()
-    );
-    liveApi.clearRunFxChain();
-    liveApi.clearPrepared();
-    runtime.context = {};
-    megaDrive.stopRecordingPlayback?.();
+    // Worker mode stops through its FIFO audio.stopAll/fx.detach commands.
+    if (!workerMode) {
+      liveApi.stopAllLoops();
+      stopAllAudio();
+      liveApi.flushLiveCleanups(
+        new Set()
+      );
+      liveApi.clearRunFxChain();
+      liveApi.clearPrepared();
+      runtime.context = {};
+      megaDrive.stopRecordingPlayback?.();
+    }
     setPlaybackState("stopped");
     emitStatus("Stopped.");
     emitRuntimeState(
