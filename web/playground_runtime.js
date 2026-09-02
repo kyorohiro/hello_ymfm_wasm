@@ -51,6 +51,8 @@ const SCALE_INTERVALS = {
  *   segaPsgWasmUrl?: string,
  *   presets?: Record<string, object>,
  *   logicWorkerUrl?: string | null,
+ *   execution?: "main" | "worker",
+ *   dacLookaheadSeconds?: number,
  *   guardExecution?: boolean,
  *   onStatus?: ((message: string) => void) | null,
  *   onRuntimeState?: ((state: string) => void) | null,
@@ -95,6 +97,10 @@ export function createPlaygroundRuntime(
     livePrepared: new Map(),
     context: {},
     sampleClockStartTime: null,
+    dacLookaheadSeconds: Math.max(
+      0,
+      Number(options.dacLookaheadSeconds) || 0.25
+    ),
   };
   const preparedFxUnits =
     new WeakSet();
@@ -102,6 +108,20 @@ export function createPlaygroundRuntime(
     new Set();
   const guardExecution =
     options.guardExecution !== false;
+  const defaultExecution =
+    options.execution ?? "main";
+  const defaultLogicWorkerUrl =
+    new URL(
+      "./playground_logic_worker.js",
+      import.meta.url
+    );
+  defaultLogicWorkerUrl.searchParams.set(
+    "v",
+    "20260903-2"
+  );
+  const logicWorkerUrl =
+    options.logicWorkerUrl ??
+    defaultLogicWorkerUrl.href;
 
   let synth = null;
   let prepareAudioPromise = null;
@@ -112,6 +132,12 @@ export function createPlaygroundRuntime(
     null;
   let currentSourceName = null;
   let playbackState = "stopped";
+  let logicWorker = null;
+  let workerGlobals = null;
+  let resolveLogicWorkerStop = null;
+  const workerAudioHandles = new Map();
+  const workerKeyboardHandlers =
+    new Map();
 
   function emitStatus(message) {
     options.onStatus?.(message);
@@ -157,6 +183,21 @@ export function createPlaygroundRuntime(
 
   function getMasterVolume() {
     return megaDrive.getMasterVolume();
+  }
+
+  function setDacLookahead(seconds) {
+    const value = Number(seconds);
+    if (!Number.isFinite(value) || value < 0) {
+      throw new Error(
+        "DAC lookahead must be a non-negative number"
+      );
+    }
+    runtime.dacLookaheadSeconds = value;
+    return value;
+  }
+
+  function getDacLookahead() {
+    return runtime.dacLookaheadSeconds;
   }
 
   function controlNoiseVoice(
@@ -300,6 +341,9 @@ export function createPlaygroundRuntime(
   }
 
   function stopAllAudio() {
+    synth?.clearScheduledWrites?.();
+    synth?.clearDacPlayback?.();
+    synth?.write?.(0, 0x2b, 0x00);
     stopAllNotes();
     megaDrive.sample.stopAll();
     megaDrive.stream.stop();
@@ -702,6 +746,207 @@ export function createPlaygroundRuntime(
       );
     }
     keyboardHandlers.clear();
+    for (const handler of workerKeyboardHandlers.values()) {
+      window.removeEventListener(
+        handler.eventType,
+        handler.listener
+      );
+    }
+    workerKeyboardHandlers.clear();
+  }
+
+  function stopLogicWorker() {
+    if (!logicWorker) {
+      return Promise.resolve();
+    }
+    const worker = logicWorker;
+    return new Promise((resolve) => {
+      const finish = () => {
+        if (logicWorker !== worker) return;
+        resolveLogicWorkerStop = null;
+        resolve();
+      };
+      resolveLogicWorkerStop = finish;
+      worker.postMessage({ type: "stop" });
+      setTimeout(finish, 100);
+    });
+  }
+
+  function terminateLogicWorker() {
+    logicWorker?.terminate();
+    logicWorker = null;
+    workerGlobals = null;
+    resolveLogicWorkerStop = null;
+    for (const value of workerAudioHandles.values()) {
+      value?.dispose?.();
+    }
+    workerAudioHandles.clear();
+  }
+
+  function serializeKeyboardEvent(event) {
+    return {
+      type: event.type,
+      key: event.key,
+      code: event.code,
+      repeat: event.repeat,
+      altKey: event.altKey,
+      ctrlKey: event.ctrlKey,
+      metaKey: event.metaKey,
+      shiftKey: event.shiftKey,
+    };
+  }
+
+  function registerWorkerKeyboardHandler(
+    id,
+    eventType
+  ) {
+    const listener = (event) => {
+      logicWorker?.postMessage({
+        type: "keyboard",
+        id,
+        event: serializeKeyboardEvent(event),
+      });
+    };
+    workerKeyboardHandlers.set(id, {
+      eventType,
+      listener,
+    });
+    window.addEventListener(eventType, listener);
+  }
+
+  async function invokeWorkerCommand(
+    command,
+    args
+  ) {
+    const globals = workerGlobals;
+    if (!globals) {
+      throw new Error("Playground Worker is not running");
+    }
+
+    if (command === "fx.create") {
+      const [id, method, options] = args;
+      const factory = globals.fx[method];
+      if (typeof factory !== "function") throw new Error(`Unsupported FX: ${method}`);
+      workerAudioHandles.set(id, factory(options));
+      return;
+    }
+    if (command === "fx.setChain") {
+      return globals.fx.setChain(args[0].map((id) => workerAudioHandles.get(id)));
+    }
+    if (command === "fx.clear") return globals.fx.clear();
+    if (command === "noise.create") {
+      const [id, options] = args;
+      workerAudioHandles.set(id, globals.noise.create(options));
+      return;
+    }
+    if (command === "noise.stopAll") return globals.noise.stopAll();
+    if (command === "noise.control") {
+      return globals.control(workerAudioHandles.get(args[0]), args[1]);
+    }
+    if (command === "audio.call" || command === "audio.get") {
+      const [id, path] = args;
+      let target = workerAudioHandles.get(id);
+      for (const segment of path) target = target?.[segment];
+      if (!target) throw new Error(`Unknown audio handle: ${id}`);
+      if (command === "audio.get") return target.get();
+      const [, , method, methodArgs] = args;
+      return target[method](...methodArgs);
+    }
+
+    if (command.startsWith("fm.")) {
+      const method = command.slice(3);
+      if (typeof globals.fm[method] !== "function") {
+        throw new Error(`Unsupported fm method: ${method}`);
+      }
+      return globals.fm[method](...args);
+    }
+    if (command.startsWith("sample.")) {
+      const method = command.slice(7);
+      if (typeof globals.sample[method] !== "function") {
+        throw new Error(`Unsupported sample method: ${method}`);
+      }
+      const value = await globals.sample[method](...args);
+      if (method === "isLoaded" || method === "list") {
+        return value;
+      }
+      // AudioBuffer and voice objects contain AudioNodes and cannot cross the
+      // Worker boundary. Worker callers use these operations for their side
+      // effects, so resolve after the main-thread operation completes.
+      return undefined;
+    }
+    if (command.startsWith("stream.")) {
+      const method = command.slice(7);
+      if (typeof globals.stream[method] !== "function") {
+        throw new Error(`Unsupported stream method: ${method}`);
+      }
+      const value = await globals.stream[method](...args);
+      if (method === "isLoaded" || method === "list") {
+        return value;
+      }
+      return undefined;
+    }
+    if (command.startsWith("dac.")) {
+      const method = command.slice(4);
+      if (typeof globals.dac[method] !== "function") {
+        throw new Error(`Unsupported dac method: ${method}`);
+      }
+      return globals.dac[method](...args);
+    }
+
+    switch (command) {
+      case "write":
+      case "play":
+      case "psgTone":
+      case "psgNoise":
+      case "setMasterVolume":
+      case "getMasterVolume":
+      case "setDacLookahead":
+      case "getDacLookahead":
+        return globals[command](...args);
+      case "psg.write":
+        return globals.psg.write(...args);
+      case "stopAll":
+        return globals.stopAll();
+      default:
+        throw new Error(`Unsupported Worker command: ${command}`);
+    }
+  }
+
+  function handleWorkerMessage(event) {
+    const message = event.data ?? {};
+    if (message.type === "command" || message.type === "request") {
+      if (message.command === "keyboard.register") {
+        registerWorkerKeyboardHandler(
+          message.args[0],
+          message.args[1]
+        );
+        return;
+      }
+      if (message.command === "log" || message.command === "warn" || message.command === "error") {
+        const prefix = message.command === "log" ? "" : `[${message.command}] `;
+        emitLog(`${prefix}${formatLogArgs(message.args)}`);
+        return;
+      }
+      void Promise.resolve(
+        invokeWorkerCommand(
+          message.command,
+          message.args ?? []
+        )
+      ).then(
+        (value) => {
+          if (message.type === "request") {
+            logicWorker?.postMessage({ type: "response", id: message.id, value });
+          }
+        },
+        (error) => {
+          if (message.type === "request") {
+            logicWorker?.postMessage({ type: "response", id: message.id, error: error?.message ?? String(error) });
+          } else {
+            emitLog(error?.stack ?? String(error));
+          }
+        }
+      );
+    }
   }
 
   function commitKeyboardHandlers(definitions) {
@@ -826,6 +1071,26 @@ export function createPlaygroundRuntime(
     };
     const pg = {
       fm,
+      dac: {
+        loadBase64: async (name, encoded) => {
+          fm.loadDacBank(
+            name,
+            decodeDacBase64Bytes(encoded)
+          );
+        },
+        playStream: (name, { atSamples = 0 } = {}) => {
+          const origin = runtime.sampleClockStartTime ??
+            (megaDrive.audioContext.currentTime +
+              runtime.dacLookaheadSeconds);
+          runtime.sampleClockStartTime = origin;
+          fm.playDacBank(
+            name,
+            origin + Math.max(0, Number(atSamples) || 0) / 44100
+          );
+        },
+        schedule: (start, entries) => scheduleWritesSamples(fm, start, entries.map(([offset, value]) => [offset, 0, 0x2a, value])),
+        scheduleBase64: (start, encoded) => scheduleDacBase64(fm, start, encoded),
+      },
       fx,
       psg,
       context: runtime.context,
@@ -837,6 +1102,8 @@ export function createPlaygroundRuntime(
       psgNoise,
       setMasterVolume,
       getMasterVolume,
+      setDacLookahead,
+      getDacLookahead,
       CH1: 0,
       CH2: 1,
       CH3: 2,
@@ -864,6 +1131,10 @@ export function createPlaygroundRuntime(
           fm,
           ...args
         ),
+      beginSampleSchedule: () =>
+        beginSampleSchedule(),
+      scheduleWritesSamples: (start, entries) =>
+        scheduleWritesSamples(fm, start, entries),
       sleep: (seconds) =>
         clockApi.sleep(
           seconds,
@@ -951,6 +1222,7 @@ export function createPlaygroundRuntime(
           playgroundConsole,
         pg,
         fm,
+        dac: pg.dac,
         fx,
         psg,
         sample: pg.sample,
@@ -963,6 +1235,10 @@ export function createPlaygroundRuntime(
           pg.setMasterVolume,
         getMasterVolume:
           pg.getMasterVolume,
+        setDacLookahead:
+          pg.setDacLookahead,
+        getDacLookahead:
+          pg.getDacLookahead,
         livePrepare: (name, fn) =>
           pg.livePrepare(name, fn),
         play: (note, playOptions) =>
@@ -972,6 +1248,10 @@ export function createPlaygroundRuntime(
           ),
         write: (...args) =>
           pg.write(...args),
+        beginSampleSchedule: () =>
+          pg.beginSampleSchedule(),
+        scheduleWritesSamples: (start, entries) =>
+          pg.scheduleWritesSamples(start, entries),
         sleep: (seconds) =>
           pg.sleep(seconds),
         sleepSamples: (
@@ -1064,6 +1344,56 @@ export function createPlaygroundRuntime(
     );
   }
 
+  function beginSampleSchedule() {
+    if (runtime.sampleClockStartTime === null) {
+      runtime.sampleClockStartTime =
+        megaDrive.audioContext.currentTime +
+        runtime.dacLookaheadSeconds;
+    }
+    return Math.round(
+      (currentLoopContext?.sampleCursorSeconds ?? 0) * 44100
+    );
+  }
+
+  function scheduleWritesSamples(fm, startSamples, entries) {
+    const start = Math.max(0, Number(startSamples) || 0);
+    const origin = runtime.sampleClockStartTime ??
+      (megaDrive.audioContext.currentTime +
+        runtime.dacLookaheadSeconds);
+    runtime.sampleClockStartTime = origin;
+    fm.scheduleWrites(entries.map(([offset, port, register, value]) => ({
+      time: origin + (start + Number(offset)) / 44100,
+      port: Number(port),
+      register: Number(register),
+      value: Number(value),
+    })));
+  }
+
+  function scheduleDacBase64(fm, startSamples, encoded) {
+    scheduleWritesSamples(fm, startSamples, decodeDacBase64(encoded));
+  }
+
+  function decodeDacBase64(encoded) {
+    const binary = atob(encoded);
+    const bytes = Uint8Array.from(binary, (character) => character.charCodeAt(0));
+    const view = new DataView(bytes.buffer);
+    const entries = [];
+    for (let offset = 0; offset < bytes.length; offset += 5) {
+      entries.push([view.getUint32(offset, true), 0, 0x2a, bytes[offset + 4]]);
+    }
+    return entries;
+  }
+
+  function decodeDacBase64Bytes(encoded) {
+    const binary = atob(encoded);
+    const bytes = new Uint8Array(binary.length);
+    for (let index = 0; index < binary.length; index += 1) {
+      bytes[index] = binary.charCodeAt(index);
+    }
+    return bytes;
+  }
+
+
   function sleepSamples(
     samples,
     sampleRate = 44100,
@@ -1084,7 +1414,112 @@ export function createPlaygroundRuntime(
     );
   }
 
-  async function playSource(sourceCode) {
+  async function playSourceInWorker(sourceCode) {
+    if (typeof Worker !== "function") {
+      throw new Error(
+        "Worker execution is not available in this environment"
+      );
+    }
+
+    currentRunToken += 1;
+    const runToken = currentRunToken;
+    await ensureReady();
+    clearKeyboardHandlers();
+    liveApi.stopAllLoops();
+    if (!logicWorker) {
+      liveApi.clearRunFxChain();
+    }
+    setPlaybackState("running");
+    emitStatus("Starting Playground Worker...");
+    emitRuntimeState("Running");
+
+    const { globals } =
+      createExecutionGlobals(runToken);
+    workerGlobals = globals;
+    const worker = logicWorker ?? new Worker(logicWorkerUrl, {
+      type: "module",
+    });
+    logicWorker = worker;
+
+    await new Promise((resolve, reject) => {
+      const fail = (error) => {
+        if (logicWorker === worker) {
+          stopLogicWorker();
+        }
+        reject(error);
+      };
+      worker.onmessage = (event) => {
+        const message = event.data ?? {};
+        if (message.type === "complete") {
+          const loopCount = message.loopCount ?? 0;
+          const keyboardHandlerCount =
+            message.keyboardHandlerCount ?? 0;
+          emitStatus(
+            loopCount > 0
+              ? `Running ${loopCount} live loop(s) in Worker.`
+              : keyboardHandlerCount > 0
+                ? `Running ${keyboardHandlerCount} keyboard handler(s) in Worker.`
+                : "Done."
+          );
+          if (loopCount === 0 && keyboardHandlerCount === 0) {
+            setPlaybackState("stopped");
+          }
+          emitRuntimeState("Audio ready");
+          resolve();
+          return;
+        }
+        if (message.type === "execution-error") {
+          const error = new Error(message.message);
+          error.stack = message.stack ?? error.stack;
+          fail(error);
+          return;
+        }
+        if (message.type === "stopped") {
+          resolveLogicWorkerStop?.();
+          return;
+        }
+        if (message.type === "log") {
+          emitLog(message.message);
+          return;
+        }
+        handleWorkerMessage(event);
+      };
+      worker.onerror = (event) => {
+        fail(new Error(event.message || "Playground Worker failed"));
+      };
+      worker.postMessage({
+        type: "run",
+        sourceCode,
+        presets,
+        scaleIntervals: SCALE_INTERVALS,
+      });
+    });
+  }
+
+  async function playSource(
+    sourceCode,
+    playOptions = {}
+  ) {
+    const execution =
+      playOptions.execution ??
+      defaultExecution;
+    if (execution === "worker") {
+      try {
+        return await playSourceInWorker(sourceCode);
+      } catch (error) {
+        setPlaybackState("stopped");
+        emitStatus(`Error: ${error.message}`);
+        emitRuntimeState("Error");
+        emitLog(error?.stack ?? String(error));
+        throw error;
+      }
+    }
+    if (execution !== "main") {
+      throw new Error(
+        `Unknown execution mode: ${execution}`
+      );
+    }
+    await stopLogicWorker();
     currentRunToken += 1;
     const runToken =
       currentRunToken;
@@ -1214,7 +1649,10 @@ export function createPlaygroundRuntime(
     return sourceMap.get(name) ?? null;
   }
 
-  async function play(name) {
+  async function play(
+    name,
+    playOptions = {}
+  ) {
     const sourceCode =
       sourceMap.get(name);
 
@@ -1225,11 +1663,13 @@ export function createPlaygroundRuntime(
     }
 
     currentSourceName = name;
-    await playSource(sourceCode);
+    await playSource(sourceCode, playOptions);
   }
 
   function stop() {
     currentRunToken += 1;
+    runtime.sampleClockStartTime = null;
+    void stopLogicWorker();
     clearKeyboardHandlers();
     liveApi.stopAllLoops();
     stopAllAudio();
@@ -1255,6 +1695,7 @@ export function createPlaygroundRuntime(
 
   async function finalize() {
     stop();
+    terminateLogicWorker();
     sourceMap.clear();
     currentSourceName = null;
     synth = null;
@@ -1296,8 +1737,7 @@ export function createPlaygroundRuntime(
   }
 
   return {
-    logicWorkerUrl:
-      options.logicWorkerUrl ?? null,
+    logicWorkerUrl,
     initialize,
     ensureReady,
     load,

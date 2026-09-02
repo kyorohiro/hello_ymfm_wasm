@@ -4,9 +4,6 @@
 
 ## Release / Sync
 
-- [ ] `docs/js` の Playground Runtime、DAC、Worker の変更を `web/` に同期する。
-- [ ] `scripts/sync_web_js_to_docs.sh` に Worker を含め、同期後も Worker ファイルが失われないようにする。
-- [ ] `scripts/package_web_runtime_release.sh` に Worker を同梱する。
 - [ ] Web runtime example / itch Playground の release を実際に生成して、Worker URL が 404 にならないことを確認する。
 
 ## Worker Playground
