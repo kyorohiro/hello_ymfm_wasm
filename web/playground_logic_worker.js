@@ -411,8 +411,9 @@ function createRun(sourceCode, presets, scaleIntervals) {
   return run;
 }
 
-self.onmessage = async (event) => {
-  const message = event.data;
+let lifecycleQueue = Promise.resolve();
+
+async function handleLifecycleMessage(message) {
   if (message.type === "run") {
     const previousRun = currentRun;
     currentRun = previousRun ?? createRun(message.sourceCode, message.presets ?? {}, message.scaleIntervals ?? {});
@@ -430,6 +431,14 @@ self.onmessage = async (event) => {
     }
     return;
   }
+  if (message.type === "stop" && currentRun) {
+    await currentRun.stop();
+    postMessage({ type: "stopped" });
+  }
+}
+
+self.onmessage = (event) => {
+  const message = event.data;
   if (message.type === "response") {
     const pending = pendingRequests.get(message.id);
     if (!pending) return;
@@ -438,9 +447,11 @@ self.onmessage = async (event) => {
     message.error ? pending.reject(new Error(message.error)) : pending.resolve(message.value);
     return;
   }
-  if (message.type === "keyboard") currentRun?.handleKeyboard(message.id, message.event);
-  if (message.type === "stop" && currentRun) {
-    await currentRun.stop();
-    postMessage({ type: "stopped" });
+  if (message.type === "keyboard") {
+    currentRun?.handleKeyboard(message.id, message.event);
+    return;
   }
+  lifecycleQueue = lifecycleQueue
+    .catch(() => undefined)
+    .then(() => handleLifecycleMessage(message));
 };
