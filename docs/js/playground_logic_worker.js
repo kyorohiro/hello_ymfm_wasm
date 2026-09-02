@@ -124,6 +124,15 @@ function createRun(sourceCode, presets, scaleIntervals) {
       q: control(id, ["filter", "q"]),
     },
   });
+  const fxHandle = (id) => new Proxy(
+    { __playgroundHandle: id },
+    {
+      get(target, property) {
+        if (property === "__playgroundHandle") return target.__playgroundHandle;
+        return control(id, [String(property)]);
+      },
+    }
+  );
   const fx = new Proxy({}, {
     get(_target, method) {
       if (method === "setChain") return (effects) => postCommand("fx.setChain", [effects.map(handleId)]);
@@ -131,7 +140,7 @@ function createRun(sourceCode, presets, scaleIntervals) {
       return (options = {}) => {
         const id = createHandle("fx");
         postCommand("fx.create", [id, String(method), options]);
-        return { __playgroundHandle: id };
+        return fxHandle(id);
       };
     },
   });
