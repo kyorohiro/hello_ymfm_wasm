@@ -93,6 +93,37 @@ test(
 );
 
 test(
+  "liveCleanup runs when a rerun removes its loop",
+  async () => {
+    const originalWindow = globalThis.window;
+    globalThis.window = {
+      addEventListener() {},
+      removeEventListener() {},
+      setTimeout,
+    };
+
+    try {
+      const runtime = createPlaygroundRuntime({
+        megaDrive: createMegaDriveStub(),
+        guardExecution: false,
+      });
+      runtime.put(
+        "ocean",
+        "liveCleanup(['ocean'], () => { context.cleaned = (context.cleaned || 0) + 1; }); liveLoop('ocean', async () => { await sleep(1); });"
+      );
+      await runtime.play("ocean");
+      runtime.put("ocean", "");
+      await runtime.play("ocean");
+
+      assert.equal(runtime.context.cleaned, 1);
+      runtime.stop();
+    } finally {
+      globalThis.window = originalWindow;
+    }
+  }
+);
+
+test(
   "worker execution is opt-in for a loaded source",
   async () => {
     const originalWindow = globalThis.window;
