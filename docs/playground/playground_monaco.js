@@ -662,6 +662,30 @@ export async function initializePlaygroundMonaco(
           value
         );
       },
+      replaceAll(value) {
+        // Keep example changes in Monaco's normal Ctrl/Cmd+Z history.
+        monacoEditor.pushUndoStop();
+        monacoEditor.executeEdits(
+          "tetorica-load-example",
+          [
+            {
+              range:
+                monacoModel.getFullModelRange(),
+              text: value,
+              forceMoveMarkers: true,
+            },
+          ]
+        );
+        monacoEditor.pushUndoStop();
+        monacoEditor.setPosition({
+          lineNumber: 1,
+          column: 1,
+        });
+        monacoEditor.revealPositionInCenterIfOutsideViewport(
+          monacoEditor.getPosition()
+        );
+        monacoEditor.focus();
+      },
       getCursorOffset() {
         const selection =
           monacoEditor.getSelection();

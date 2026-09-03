@@ -538,6 +538,19 @@ function setEditorValue(value) {
   editorAdapter.setValue(value);
 }
 
+function replaceEditorValue(value) {
+  if (
+    typeof editorAdapter.replaceAll ===
+    "function"
+  ) {
+    editorAdapter.replaceAll(value);
+    return;
+  }
+
+  setEditorValue(value);
+  editorAdapter.focus();
+}
+
 const ui =
   createPlaygroundUi({
     status,
@@ -652,7 +665,7 @@ function loadExample() {
     cassetteExamples.get(exampleName) ??
     EXAMPLES[exampleName] ??
     EXAMPLES.single;
-  setEditorValue(nextCode);
+  replaceEditorValue(nextCode);
   setStatus(
     `Loaded example: ${exampleName}`
   );
