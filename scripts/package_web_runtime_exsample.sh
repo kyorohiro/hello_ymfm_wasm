@@ -48,8 +48,15 @@ playground_runtime.js
 playground_sync.js
 segapsg.js
 segapsg_api.js
+opn_fm_synth.js
 stereo-width-worklet.js
 tfi.js
+ym2203.js
+ym2203audioengine.js
+ym2203synth.js
+ym2608.js
+ym2608audioengine.js
+ym2608synth.js
 vgm-output-worklet.js
 vgmplayer.js
 vgm_runtime.js
@@ -67,6 +74,10 @@ nuked_opn2_wasm.js
 nuked_opn2_wasm.wasm
 segapsg_wasm.js
 segapsg_wasm.wasm
+ym2203_wasm.js
+ym2203_wasm.wasm
+ym2608_wasm.js
+ym2608_wasm.wasm
 "
 
 NUKED_LICENSE_DIR="${ROOT_DIR}/third_party/nuked-opn2"

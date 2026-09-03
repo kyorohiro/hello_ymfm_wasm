@@ -40,6 +40,7 @@ megasynth_fx.js
 megasynth_looper.js
 megasynth_recording.js
 megadrive-fm-presets.js
+opn_fm_synth.js
 pitch.js
 playground_clock.js
 playground_execution.js
@@ -53,6 +54,12 @@ segapsg.js
 segapsg_api.js
 stereo-width-worklet.js
 tfi.js
+ym2203.js
+ym2203audioengine.js
+ym2203synth.js
+ym2608.js
+ym2608audioengine.js
+ym2608synth.js
 vgm_file.js
 ym2612vgm.js
 ym2612-worklet.js
@@ -73,6 +80,10 @@ nuked_opn2_wasm.js
 nuked_opn2_wasm.wasm
 segapsg_wasm.js
 segapsg_wasm.wasm
+ym2203_wasm.js
+ym2203_wasm.wasm
+ym2608_wasm.js
+ym2608_wasm.wasm
 "
 
 NUKED_LICENSE_DIR="${ROOT_DIR}/third_party/nuked-opn2"

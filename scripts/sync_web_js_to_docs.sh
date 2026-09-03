@@ -18,6 +18,7 @@ megasynth_fx.js
 megasynth_looper.js
 megasynth_recording.js
 megadrive-fm-presets.js
+opn_fm_synth.js
 pitch.js
 playground_runtime.js
 playground_clock.js
@@ -37,8 +38,10 @@ vgmplayer.js
 vgm_runtime.js
 ym2203.js
 ym2203audioengine.js
+ym2203synth.js
 ym2608.js
 ym2608audioengine.js
+ym2608synth.js
 ym2612-worklet.js
 ym2612-worklet-nuked.js
 ym2612.js

@@ -201,6 +201,21 @@ export function createFmProxy(
         value
       );
     },
+    scheduleWrites(entries) {
+      targetSynth.scheduleWrites(entries);
+    },
+    clearScheduledWrites() {
+      targetSynth.clearScheduledWrites();
+    },
+    loadDacBank(name, bytes) {
+      targetSynth.loadDacBank(name, bytes);
+    },
+    playDacBank(name, time) {
+      targetSynth.playDacBank(name, time);
+    },
+    clearDacPlayback() {
+      targetSynth.clearDacPlayback();
+    },
     writeAddress(port, register) {
       targetSynth.writeAddress(
         port,
