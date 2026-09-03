@@ -1045,6 +1045,9 @@ function formatOffset(value) {
  * @param {ArrayBuffer | ArrayBufferView | Ym2612VGM} source
  * @param {{
  *   includeHeaderComment?: boolean,
+ *   includeDac?: boolean,
+ *   dacBase64?: boolean,
+ *   scheduled?: boolean,
  *   totalLoopSamples?: number | null,
  * }} [options]
  * @returns {string}
@@ -1064,9 +1067,13 @@ export function exportYm2612VgmToPlaygroundJavaScript(source, options = {}) {
     { name: "ch5", events: [], currentTime: 0 },
   ];
   let timeSamples = 0;
-  const includeDac = options.includeDac ?? options.scheduled === true;
+  const includeDac = options.includeDac !== false;
   const writeRegister = (register, value, port = 0) => {
-    if (!includeDac && port === 0 && register === 0x2a) {
+    if (
+      !includeDac &&
+      port === 0 &&
+      (register === 0x2a || register === 0x2b)
+    ) {
       return;
     }
     const target = getYm2612WriteTarget(port, register, value);
@@ -1103,13 +1110,26 @@ export function exportYm2612VgmToPlaygroundJavaScript(source, options = {}) {
     lines.push(options.scheduled ? "// Register writes are scheduled at VGM sample positions (44100 Hz)." : "// Timing uses VGM sample units at 44100 Hz via sleepSamples().");
     lines.push("");
   }
+  const dacEvents = tracks[0].events.filter((event) => event.port === 0 && event.register === 0x2a);
+  const useDacBase64 = !options.scheduled && options.dacBase64 !== false;
+  if (useDacBase64 && dacEvents.length > 0) {
+    lines.push('livePrepare("vgm-dac", async () => {');
+    lines.push(`  await dac.loadBase64("vgm-dac", ${JSON.stringify(encodeDacSchedule(dacEvents))});`);
+    lines.push("});");
+    lines.push("");
+  }
 
   const renderOrder = tracks[0].events.length > 0
     ? tracks
     : tracks.slice(1);
   for (let index = 0; index < renderOrder.length; index += 1) {
     const track = renderOrder[index];
-    const trackLines = renderPlaygroundTrack(track, totalLoopSamples, options.scheduled === true);
+    const trackLines = renderPlaygroundTrack(
+      track,
+      totalLoopSamples,
+      options.scheduled === true,
+      useDacBase64
+    );
     for (const line of trackLines) {
       lines.push(line);
     }
@@ -1125,12 +1145,20 @@ export function exportYm2612VgmToPlaygroundJavaScript(source, options = {}) {
  * @param {number} totalLoopSamples
  * @returns {string[]}
  */
-function renderPlaygroundTrack(track, totalLoopSamples, scheduled) {
+function renderPlaygroundTrack(track, totalLoopSamples, scheduled, useDacBase64) {
   /** @type {string[]} */
   const lines = [`liveLoop(${JSON.stringify(track.name)}, async () => {`];
+  const dacEvents = useDacBase64 && track.name === "global"
+    ? track.events.filter((event) => event.port === 0 && event.register === 0x2a)
+    : [];
+  if (dacEvents.length > 0) {
+    lines.push("  const dacStart = beginSampleSchedule();");
+    lines.push('  dac.playStream("vgm-dac", { atSamples: dacStart });');
+  }
   if (scheduled) lines.push("  const cycleStart = beginSampleSchedule();", "  scheduleWritesSamples(cycleStart, [");
   let cursor = 0;
   for (const event of track.events) {
+    if (useDacBase64 && event.port === 0 && event.register === 0x2a) continue;
     if (event.comment) {
       lines.push(`  ${scheduled ? "  " : ""}// ${event.comment}`);
     }
@@ -1151,6 +1179,22 @@ function renderPlaygroundTrack(track, totalLoopSamples, scheduled) {
   }
   lines.push("});");
   return lines;
+}
+
+function encodeDacSchedule(events) {
+  const bytes = new Uint8Array(events.length * 5);
+  const view = new DataView(bytes.buffer);
+  for (let index = 0; index < events.length; index += 1) {
+    const event = events[index];
+    const offset = index * 5;
+    view.setUint32(offset, event.timeSamples, true);
+    bytes[offset + 4] = event.value;
+  }
+  let binary = "";
+  for (let offset = 0; offset < bytes.length; offset += 0x8000) {
+    binary += String.fromCharCode(...bytes.subarray(offset, offset + 0x8000));
+  }
+  return btoa(binary);
 }
 
 /**

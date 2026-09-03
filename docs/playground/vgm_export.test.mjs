@@ -88,14 +88,32 @@ test("scheduled export expands YM2612 DAC stream data while readable export omit
   ]));
 
   const readable = exportYm2612VgmToPlaygroundJavaScript(buffer);
+  const rawDac = exportYm2612VgmToPlaygroundJavaScript(buffer, {
+    dacBase64: false,
+  });
   const scheduled = exportYm2612VgmToPlaygroundJavaScript(buffer, { scheduled: true });
 
   assert.match(readable, /await dac\.loadBase64\("vgm-dac", "/);
   assert.match(readable, /dac\.playStream\("vgm-dac", \{ atSamples: dacStart \}\)/);
   assert.doesNotMatch(readable, /\[1, 0x70\]/);
+  assert.doesNotMatch(rawDac, /dac\.loadBase64|dac\.playStream/);
+  assert.match(rawDac, /write\(0x2a, 0x70\)/);
   assert.match(scheduled, /\[1, 0, 0x2a, 0x70\]/);
   assert.match(scheduled, /\[2, 0, 0x2a, 0x80\]/);
   assert.match(scheduled, /\[3, 0, 0x2a, 0x90\]/);
+});
+
+test("export can omit DAC data and DAC enable writes", () => {
+  const script = exportYm2612VgmToPlaygroundJavaScript(
+    createVgmBuffer(Uint8Array.from([
+      0x52, 0x2b, 0x80,
+      0x52, 0x2a, 0x70,
+      0x66,
+    ])),
+    { includeDac: false }
+  );
+
+  assert.doesNotMatch(script, /0x2a|0x2b|dac\./);
 });
 
 test("scheduled export handles large DAC write tracks without argument spreading", () => {

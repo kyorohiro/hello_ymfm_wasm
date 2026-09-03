@@ -80,10 +80,16 @@ const importCassetteButton =
   );
 const importVgmMenu =
   document.getElementById("importVgmMenu");
-const importVgmRawButton =
-  document.getElementById("importVgmRawButton");
-const importVgmLowButton =
-  document.getElementById("importVgmLowButton");
+const cancelVgmImportButton =
+  document.getElementById("cancelVgmImportButton");
+const convertVgmButton =
+  document.getElementById("convertVgmButton");
+const includeDacInput =
+  document.getElementById("includeDacInput");
+const dacBase64Input =
+  document.getElementById("dacBase64Input");
+const dacBase64Label =
+  document.getElementById("dacBase64Label");
 const exampleSelect =
   document.getElementById(
     "exampleSelect"
@@ -215,7 +221,11 @@ vgmImportInput.type = "file";
 vgmImportInput.accept = ".vgm,.vgz,audio/vgm,application/octet-stream";
 vgmImportInput.style.display = "none";
 document.body.appendChild(vgmImportInput);
-let pendingVgmImportMode = "raw";
+let pendingVgmImportOptions = {
+  mode: "write",
+  includeDac: true,
+  dacBase64: true,
+};
 const cassetteExamples = new Map();
 const operatorTab =
   createPlaygroundOperatorTab({
@@ -442,25 +452,27 @@ function promptCassetteImport() {
   cassetteImportInput.click();
 }
 
-function promptVgmImport(mode) {
-  pendingVgmImportMode = mode;
+function promptVgmImport(options) {
+  pendingVgmImportOptions = options;
   if (importVgmMenu) importVgmMenu.open = false;
   vgmImportInput.value = "";
   vgmImportInput.click();
 }
 
-async function importVgmFile(file, mode) {
+async function importVgmFile(file, options) {
   const decoded = await maybeDecodeVgmFile(
     await file.arrayBuffer()
   );
   const vgm = new Ym2612VGM(decoded, { logger: null });
   const source = vgm.exportPlaygroundJavaScript({
-    scheduled: mode === "low",
+    scheduled: options.mode === "schedule",
+    includeDac: options.includeDac,
+    dacBase64: options.dacBase64,
   });
 
   setEditorValue(source);
   setStatus(
-    `Imported ${file.name} as ${mode === "low" ? "Low" : "Raw"} Playground JavaScript.`
+    `Imported ${file.name} with ${options.mode === "schedule" ? "Schedule" : "Write"} timing.`
   );
 }
 
@@ -926,17 +938,46 @@ importCassetteButton?.addEventListener(
   }
 );
 
-importVgmRawButton?.addEventListener(
+convertVgmButton?.addEventListener(
   "click",
   () => {
-    promptVgmImport("raw");
+    const selectedMode = document.querySelector(
+      'input[name="vgmImportMode"]:checked'
+    );
+    promptVgmImport(
+      {
+        mode: selectedMode?.value ?? "write",
+        includeDac: includeDacInput?.checked ?? true,
+        dacBase64: dacBase64Input?.checked ?? true,
+      }
+    );
   }
 );
 
-importVgmLowButton?.addEventListener(
+function syncDacBase64Option() {
+  const selectedMode = document.querySelector(
+    'input[name="vgmImportMode"]:checked'
+  );
+  const canUseBase64 = selectedMode?.value !== "schedule";
+  if (dacBase64Input) {
+    dacBase64Input.disabled = !canUseBase64;
+  }
+  if (dacBase64Label) {
+    dacBase64Label.title = canUseBase64
+      ? "Store DAC data as one Base64 stream."
+      : "Schedule output always keeps DAC as raw register writes.";
+  }
+}
+
+document.querySelectorAll('input[name="vgmImportMode"]').forEach(
+  (input) => input.addEventListener("change", syncDacBase64Option)
+);
+syncDacBase64Option();
+
+cancelVgmImportButton?.addEventListener(
   "click",
   () => {
-    promptVgmImport("low");
+    if (importVgmMenu) importVgmMenu.open = false;
   }
 );
 
@@ -992,7 +1033,7 @@ vgmImportInput.addEventListener(
 
     void importVgmFile(
       file,
-      pendingVgmImportMode
+      pendingVgmImportOptions
     ).catch((error) => {
       console.error(error);
       setStatus(
