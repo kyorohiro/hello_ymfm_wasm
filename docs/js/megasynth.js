@@ -5,6 +5,7 @@ import {
   YM2612Synth,
   YM2612WorkletTransport,
 } from "./ym2612synth.js";
+import { YM2612_CLOCK } from "./ym2612.js";
 export {
   createFXBranch,
   createBitcrusherFX,
@@ -32,6 +33,11 @@ const NATIVE_FETCH =
   "function"
     ? globalThis.fetch.bind(globalThis)
     : null;
+
+// YM2612 outputs one mixed sample every 144 master clocks.
+// Keep its clock domain intact and let Web Audio resample for the device.
+const YM2612_NATIVE_SAMPLE_RATE =
+  Math.floor(YM2612_CLOCK / 144);
 
 /**
  * @typedef {import("./megasynth_fx.js").AnyFXUnit} AnyFXUnit
@@ -123,6 +129,7 @@ const NATIVE_FETCH =
  *   stereoWidthWorkletUrl?: string,
  *   bitcrusherWorkletUrl?: string,
  *   ym2612WasmUrl?: string,
+ *   chipSampleRate?: number,
  *   masterVolume?: number,
  *   sampleOutputNode?: AudioNode | null,
  * }} MegaSynthOptions
@@ -258,6 +265,10 @@ export class MegaSynth {
 
     this.ym2612WasmUrl =
       options.ym2612WasmUrl ?? "./generated/ym2612_wasm.wasm";
+    this.chipSampleRate = clampChipSampleRate(
+      options.chipSampleRate ??
+        YM2612_NATIVE_SAMPLE_RATE
+    );
 
     /**
      * Optional. When set, the worklet also loads a Sega PSG core and mixes
@@ -654,9 +665,15 @@ export class MegaSynth {
     return this.state === "starting";
   }
 
+  #createAudioContext() {
+    return new AudioContext({
+      sampleRate: this.chipSampleRate,
+    });
+  }
+
   async #initialize() {
     if (!this.audioContext) {
-      this.audioContext = new AudioContext();
+      this.audioContext = this.#createAudioContext();
     }
 
     if (this.audioContext.state !== "running") {
@@ -896,7 +913,7 @@ export class MegaSynth {
 
     const audioContext =
       this.audioContext ??
-      new AudioContext();
+      this.#createAudioContext();
 
     if (!this.audioContext) {
       this.audioContext =
@@ -1252,7 +1269,7 @@ export class MegaSynth {
 
     const audioContext =
       this.audioContext ??
-      new AudioContext();
+      this.#createAudioContext();
 
     if (!this.audioContext) {
       this.audioContext =
@@ -1814,6 +1831,16 @@ function clampMasterVolume(value) {
     MAX_MASTER_VOLUME,
     Math.max(0, numeric)
   );
+}
+
+function clampChipSampleRate(value) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) {
+    throw new Error(
+      `chipSampleRate must be a finite number, got ${value}`
+    );
+  }
+  return Math.max(8000, Math.round(numeric));
 }
 
 /**
