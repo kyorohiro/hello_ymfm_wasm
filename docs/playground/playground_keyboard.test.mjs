@@ -93,6 +93,50 @@ test(
 );
 
 test(
+  "PSG tone and noise helpers are available through the playground API",
+  async () => {
+    const originalWindow = globalThis.window;
+    globalThis.window = {
+      addEventListener() {},
+      removeEventListener() {},
+      setTimeout,
+    };
+
+    try {
+      const calls = [];
+      const megaDrive = createMegaDriveStub();
+      megaDrive.psg = {
+        tone(...args) { calls.push(["tone", ...args]); },
+        off(...args) { calls.push(["off", ...args]); },
+        noise(...args) { calls.push(["noise", ...args]); },
+        noiseOff(...args) { calls.push(["noiseOff", ...args]); },
+        reset() {},
+      };
+      const runtime = createPlaygroundRuntime({
+        megaDrive,
+        guardExecution: false,
+      });
+      runtime.put(
+        "psg-api",
+        "psg.tone(PSG1, { note: 'C4', volume: 0.8 }); psg.noise({ type: 'white', rate: 'high' }); psg.off(PSG1); psg.noiseOff();"
+      );
+
+      await runtime.play("psg-api");
+
+      assert.deepEqual(calls, [
+        ["tone", 0, { note: "C4", volume: 0.8 }],
+        ["noise", { type: "white", rate: "high" }],
+        ["off", 0],
+        ["noiseOff"],
+      ]);
+      runtime.stop();
+    } finally {
+      globalThis.window = originalWindow;
+    }
+  }
+);
+
+test(
   "liveCleanup runs when a rerun removes its loop",
   async () => {
     const originalWindow = globalThis.window;

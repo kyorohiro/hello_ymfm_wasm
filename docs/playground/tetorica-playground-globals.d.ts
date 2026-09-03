@@ -626,9 +626,31 @@ type PSGApi = {
   reset(): void;
   /** Reset both PSG and YM2612 state. */
   resetAll(): void;
+  /** Set and enable one tone channel. Provide period, frequency, or note. */
+  tone(channel: 0 | 1 | 2, options: {
+    period?: number;
+    frequency?: number;
+    note?: string;
+    volume?: number;
+    attenuation?: number;
+  }): number;
+  /** Silence one tone channel while keeping its last frequency. */
+  off(channel: 0 | 1 | 2): void;
+  /** Set and enable the PSG noise channel. */
+  noise(options?: {
+    type?: "white" | "periodic";
+    rate?: "low" | "medium" | "high" | "tone3";
+    volume?: number;
+    attenuation?: number;
+  }): number;
+  /** Silence the PSG noise channel. */
+  noiseOff(): void;
 };
 
 declare const psg: PSGApi;
+declare const PSG1: 0;
+declare const PSG2: 1;
+declare const PSG3: 2;
 
 /** Write one PSG tone channel period + attenuation pair. Channel is 0..2. */
 declare function psgTone(channel: number, period: number, attenuation?: number): void;
@@ -798,6 +820,9 @@ type PlaygroundAPI = {
   ) => void;
   psgTone: (channel: number, period: number, attenuation?: number) => void;
   psgNoise: (mode: number, attenuation?: number) => void;
+  PSG1: 0;
+  PSG2: 1;
+  PSG3: 2;
   /** Built-in preset table. */
   presets: typeof FM_PRESETS;
   /** Play one note through the current synth setup. */

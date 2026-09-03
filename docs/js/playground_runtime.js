@@ -347,6 +347,7 @@ export function createPlaygroundRuntime(
     synth?.clearDacPlayback?.();
     synth?.write?.(0, 0x2b, 0x00);
     stopAllNotes();
+    megaDrive.psg?.reset?.();
     megaDrive.sample.stopAll();
     megaDrive.stream.stop();
     noiseApi.stopAll();
@@ -1200,6 +1201,9 @@ export function createPlaygroundRuntime(
       CH4: 3,
       CH5: 4,
       CH6: 5,
+      PSG1: 0,
+      PSG2: 1,
+      PSG3: 2,
       OP1: 0,
       OP2: 1,
       OP3: 2,
@@ -1397,6 +1401,9 @@ export function createPlaygroundRuntime(
         CH4: pg.CH4,
         CH5: pg.CH5,
         CH6: pg.CH6,
+        PSG1: pg.PSG1,
+        PSG2: pg.PSG2,
+        PSG3: pg.PSG3,
         OP1: pg.OP1,
         OP2: pg.OP2,
         OP3: pg.OP3,

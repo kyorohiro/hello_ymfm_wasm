@@ -162,6 +162,7 @@ const megaDrive =
   new MegaDriveSynth({
     workletUrl: "../js/ym2612-worklet.js",
     ym2612WasmUrl: "../generated/ym2612_wasm.wasm",
+    segaPsgWasmUrl: "../generated/segapsg_wasm.wasm",
   });
 
 await megaDrive.start();
@@ -190,7 +191,11 @@ synth.noteOn(0, 4, 553);
 
 setTimeout(() => {
   synth.noteOff(0);
-}, 1000);</pre>
+}, 1000);
+
+// PSG is optional. With segaPsgWasmUrl enabled:
+megaDrive.psg.tone(0, { note: "C4", volume: 0.4 });
+setTimeout(() => megaDrive.psg.off(0), 1000);</pre>
 
         <div class="actions">
           <button id="playButton" type="button">Play</button>
@@ -251,6 +256,7 @@ Audio output</pre>
         new MegaDriveSynth({
           workletUrl: "../js/ym2612-worklet.js",
           ym2612WasmUrl: "../generated/ym2612_wasm.wasm",
+          segaPsgWasmUrl: "../generated/segapsg_wasm.wasm",
         });
 
       let synth = null;

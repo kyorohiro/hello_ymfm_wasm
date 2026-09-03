@@ -1281,48 +1281,61 @@ fm.writeDac(0x80);
 fm.setDacEnabled(false);
 `,
   "psg-scale": `// Sega PSG (SN76489-compatible) tone on channel 0, mixed into the same
-// output as fm. Use the small helper first, then fall back to raw psg.write(...)
-// if you want exact register-level control.
+// output as fm. psg.write(...) remains available for raw register experiments.
 psg.reset();
 
-// C4..C5 tone periods for PSG channel 0 (clock 3579545 Hz).
-const notes = [
-  { name: "C4", period: 428 },
-  { name: "D4", period: 381 },
-  { name: "E4", period: 339 },
-  { name: "F4", period: 320 },
-  { name: "G4", period: 285 },
-  { name: "A4", period: 254 },
-  { name: "B4", period: 226 },
-  { name: "C5", period: 214 },
-];
+const notes = ["C4", "D4", "E4", "F4", "G4", "A4", "B4", "C5"];
 
 for (const note of notes) {
-  pg.psgTone(0, note.period, 0);
+  psg.tone(PSG1, { note, volume: 0.8 });
   await sleep(0.15);
 }
 
-pg.psgTone(0, 0, 15);
+psg.off(PSG1);
 `,
-  "psg-noise": `// Sega PSG noise channel.
-// mode uses the PSG noise register bits:
-// 0..3  = periodic noise
-// 4..7  = white noise
+  "psg-noise": `// Sega PSG noise channel. "tone3" follows PSG3's frequency.
 psg.reset();
 
+/** @type {Array<{ type: "white" | "periodic", rate: "low" | "medium" | "high" | "tone3", volume: number, duration: number }>} */
 const bursts = [
-  { mode: 4, attenuation: 2, duration: 0.08 },
-  { mode: 5, attenuation: 3, duration: 0.08 },
-  { mode: 6, attenuation: 2, duration: 0.08 },
-  { mode: 7, attenuation: 1, duration: 0.14 },
+  { type: "white", rate: "low", volume: 0.7, duration: 0.08 },
+  { type: "white", rate: "medium", volume: 0.65, duration: 0.08 },
+  { type: "white", rate: "high", volume: 0.7, duration: 0.08 },
+  { type: "periodic", rate: "tone3", volume: 0.8, duration: 0.14 },
 ];
 
 for (const burst of bursts) {
-  pg.psgNoise(burst.mode, burst.attenuation);
+  psg.noise(burst);
   await sleep(burst.duration);
-  pg.psgNoise(burst.mode, 15);
+  psg.noiseOff();
   await sleep(0.05);
 }
+`,
+  "psg-ocean": `// A deliberately coarse "ocean" using the PSG's single noise channel.
+// PSG3 is muted, but its frequency drives the noise with rate: "tone3".
+setBpm(36);
+psg.reset();
+
+liveCleanup(["psg-ocean"], () => {
+  psg.noiseOff();
+  psg.off(PSG3);
+});
+
+liveLoop("psg-ocean", async () => {
+  const swell = choose([0.12, 0.18, 0.26, 0.38, 0.5, 0.34, 0.22]);
+  // A PSG tone cannot go below about 109 Hz. Periodic noise divides this
+  // down again, giving a slow 6.8..11 Hz surf-like pulse.
+  const wavePeriod = choose([0x3ff, 0x360, 0x300, 0x2a0]);
+
+  // The tone stays silent while its period colors the periodic noise.
+  psg.tone(PSG3, { period: wavePeriod, attenuation: 15 });
+  psg.noise({ type: "periodic", rate: "tone3", volume: swell });
+  await beat(0.375);
+
+  // A small white-noise crest keeps the texture from sounding static.
+  psg.noise({ type: "white", rate: "low", volume: swell * 0.25 });
+  await beat(0.125);
+});
 `,
   "fx-loop-minor": `setBpm(120);
 

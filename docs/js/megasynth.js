@@ -6,6 +6,7 @@ import {
   YM2612WorkletTransport,
 } from "./ym2612synth.js";
 import { YM2612_CLOCK } from "./ym2612.js";
+import { createSegaPsgApi } from "./segapsg_api.js";
 export {
   createFXBranch,
   createBitcrusherFX,
@@ -129,6 +130,7 @@ const YM2612_NATIVE_SAMPLE_RATE =
  *   stereoWidthWorkletUrl?: string,
  *   bitcrusherWorkletUrl?: string,
  *   ym2612WasmUrl?: string,
+ *   segaPsgWasmUrl?: string | null,
  *   chipSampleRate?: number,
  *   masterVolume?: number,
  *   sampleOutputNode?: AudioNode | null,
@@ -796,7 +798,7 @@ export class MegaSynth {
 
     if (psgWasmBinary) {
       const node = this.node;
-      this.psg = {
+      this.psg = createSegaPsgApi({
         write(value) {
           node.port.postMessage({
             type: "psg-write",
@@ -813,7 +815,7 @@ export class MegaSynth {
             type: "reset",
           });
         },
-      };
+      });
     }
 
     this.#ensureRecordingManager();

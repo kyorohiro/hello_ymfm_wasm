@@ -421,6 +421,7 @@ function createRun(sourceCode, presets, scaleIntervals) {
     context: run.context,
     FM_PRESETS: presets,
     CH1: 0, CH2: 1, CH3: 2, CH4: 3, CH5: 4, CH6: 5,
+    PSG1: 0, PSG2: 1, PSG3: 2,
     OP1: 0, OP2: 1, OP3: 2, OP4: 3,
     write: (...args) => postCommand("write", args),
     play: (...args) => request("play", args, run.currentLoop),
