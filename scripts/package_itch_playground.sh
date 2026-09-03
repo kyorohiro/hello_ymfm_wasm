@@ -56,6 +56,8 @@ playground_sync.js
 segapsg.js
 stereo-width-worklet.js
 tfi.js
+vgm_file.js
+ym2612vgm.js
 ym2612-worklet.js
 ym2612-worklet-nuked.js
 ym2612.js
