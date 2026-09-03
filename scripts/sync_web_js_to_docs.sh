@@ -39,9 +39,11 @@ vgm_runtime.js
 ym2203.js
 ym2203audioengine.js
 ym2203synth.js
+ym2203-worklet.js
 ym2608.js
 ym2608audioengine.js
 ym2608synth.js
+ym2608-worklet.js
 ym2612-worklet.js
 ym2612-worklet-nuked.js
 ym2612.js
@@ -66,6 +68,9 @@ done
 
 perl -0pi -e 's#"\./generated/ym2612_wasm\.js"#"../generated/ym2612_wasm.js"#g' \
   "${DOCS_JS_DIR}/ym2612-worklet.js"
+
+perl -0pi -e 's#"\./generated/ym2203_wasm\.js"#"../generated/ym2203_wasm.js"#g' "${DOCS_JS_DIR}/ym2203-worklet.js"
+perl -0pi -e 's#"\./generated/ym2608_wasm\.js"#"../generated/ym2608_wasm.js"#g' "${DOCS_JS_DIR}/ym2608-worklet.js"
 
 perl -0pi -e 's#"\./generated/segapsg_wasm\.js"#"../generated/segapsg_wasm.js"#g' \
   "${DOCS_JS_DIR}/ym2612-worklet.js"

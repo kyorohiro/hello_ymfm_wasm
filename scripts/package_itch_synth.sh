@@ -38,9 +38,11 @@ tfi.js
 ym2203.js
 ym2203audioengine.js
 ym2203synth.js
+ym2203-worklet.js
 ym2608.js
 ym2608audioengine.js
 ym2608synth.js
+ym2608-worklet.js
 ym2612.js
 ym2612synth.js
 ym2612-worklet.js
