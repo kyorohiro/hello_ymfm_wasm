@@ -5,11 +5,13 @@ import {
   Ym2612VGM,
   describeYm2612Write,
   exportYm2612VgmToPlaygroundJavaScript,
+  exportYm2608FmVgmToPlaygroundJavaScript,
   getYm2612WriteTarget,
 } from "../js/ym2612vgm.js";
 
 function createVgmBuffer(commands, options = {}) {
-  const dataOffset = 0x40;
+  const dataOffset = options.dataOffset ??
+    (options.ym2608Clock ? 0x100 : 0x40);
   const totalLength = Math.max(0x4c, dataOffset + commands.length);
   const bytes = new Uint8Array(totalLength);
   bytes[0] = 0x56;
@@ -20,6 +22,10 @@ function createVgmBuffer(commands, options = {}) {
   view.setUint32(0x08, 0x00000150, true);
   view.setUint32(0x18, options.totalSamples ?? 0, true);
   view.setUint32(0x2c, options.ym2612Clock ?? 7670454, true);
+  view.setUint32(0x34, dataOffset - 0x34, true);
+  if (options.ym2608Clock) {
+    view.setUint32(0x48, options.ym2608Clock, true);
+  }
   bytes.set(commands, dataOffset);
   return bytes.buffer;
 }
@@ -80,6 +86,37 @@ test("register helpers classify channel-scoped and global writes", () => {
   assert.deepEqual(getYm2612WriteTarget(1, 0x30, 0x24), { scope: "channel", channel: 3 });
   assert.equal(describeYm2612Write(0, 0x28, 0xf0), "CH0: KEY ON OP1-4");
   assert.equal(describeYm2612Write(0, 0x28, 0x00), "CH0: KEY OFF");
+});
+
+test("YM2608 FM-only export preserves FM and drops SSG and ADPCM registers", () => {
+  const buffer = createVgmBuffer(
+    Uint8Array.from([
+      0x56, 0x22, 0x08,
+      0x56, 0x00, 0x7f,
+      0x56, 0x30, 0x71,
+      0x57, 0x30, 0x24,
+      0x56, 0xa0, 0x00,
+      0x56, 0xa4, 0x22,
+      0x61, 0xe0, 0x01,
+      0x57, 0x10, 0xff,
+      0x56, 0x28, 0xf0,
+      0x66,
+    ]),
+    { ym2612Clock: 0, ym2608Clock: 7987200 }
+  );
+
+  const script = exportYm2608FmVgmToPlaygroundJavaScript(buffer, {
+    scheduled: true,
+  });
+
+  assert.match(script, /YM2608 VGM FM registers only/);
+  assert.match(script, /\[0, 0, 0x22, 0x08\]/);
+  assert.match(script, /\[0, 0, 0x30, 0x71\]/);
+  assert.match(script, /\[0, 1, 0x30, 0x24\]/);
+  assert.match(script, /\[0, 0, 0xa4, 0x22\]/);
+  assert.match(script, /\[0, 0, 0xa0, 0x15\]/);
+  assert.match(script, /\[480, 0, 0x28, 0xf0\]/);
+  assert.doesNotMatch(script, /0x00, 0x7f|0x10, 0xff/);
 });
 
 test("scheduled export expands YM2612 DAC stream data while readable export omits it", () => {

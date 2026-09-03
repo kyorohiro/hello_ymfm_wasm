@@ -1,4 +1,7 @@
-import { Ym2612VGM } from "../js/ym2612vgm.js";
+import {
+  Ym2612VGM,
+  exportYm2608FmVgmToPlaygroundJavaScript,
+} from "../js/ym2612vgm.js";
 import { createTfiFromPreset } from "../js/tfi.js";
 import ym2612ModuleFactory from "../generated/ym2612_wasm.js";
 import nukedOpn2ModuleFactory from "../generated/nuked_opn2_wasm.js";
@@ -1959,7 +1962,10 @@ function updatePlaybackButtons(state = {}) {
   const hasBuffer = Boolean(currentBuffer);
   const playing = Boolean(state.playing);
   const paused = Boolean(state.paused);
-  const hasJavaScriptExport = hasBuffer && currentChipKind === "ym2612" && lastExportedJavaScript !== "";
+  const hasJavaScriptExport =
+    hasBuffer &&
+    (currentChipKind === "ym2612" || currentChipKind === "ym2608") &&
+    lastExportedJavaScript !== "";
   playButton.disabled = !hasBuffer || playing;
   replayButton.disabled = !hasBuffer;
   pauseButton.disabled = !playing;
@@ -2043,13 +2049,20 @@ function downloadParseInfo() {
 }
 
 function buildPlaygroundJavaScriptExport(vgm) {
-  if (currentChipKind !== "ym2612") {
-    return "";
+  if (currentChipKind === "ym2608") {
+    return exportYm2608FmVgmToPlaygroundJavaScript(vgm);
   }
-  return vgm.exportPlaygroundJavaScript();
+  return currentChipKind === "ym2612"
+    ? vgm.exportPlaygroundJavaScript()
+    : "";
 }
 
 function buildScheduledPlaygroundJavaScriptExport(vgm) {
+  if (currentChipKind === "ym2608") {
+    return exportYm2608FmVgmToPlaygroundJavaScript(vgm, {
+      scheduled: true,
+    });
+  }
   return currentChipKind === "ym2612"
     ? vgm.exportPlaygroundJavaScript({ scheduled: true })
     : "";
