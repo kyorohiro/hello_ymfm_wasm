@@ -18,12 +18,15 @@ function createWorkerHarness() {
     Set,
     performance,
     clearTimeout,
+    fetch() {
+      return Promise.resolve("network");
+    },
     postMessage(message) {
       messages.push(message);
     },
-    self: {},
     setTimeout,
   };
+  context.self = context;
   vm.runInNewContext(workerSource, context, {
     filename: "playground_logic_worker.js",
   });
@@ -118,6 +121,37 @@ test("Worker runs multiple loops, keyboard input, and Stop/Run lifecycle", async
     await worker.send({ type: "stop" });
   }
 
+});
+
+test("Worker blocks network access in source and liveLoop callbacks", async () => {
+  const worker = createWorkerHarness();
+  try {
+    await worker.send({
+      type: "run",
+      presets: {},
+      scaleIntervals: {},
+      sourceCode: 'await fetch("https://example.com/");',
+    });
+    await waitFor(() => worker.messages.some((message) => message.type === "execution-error"));
+    assert.match(
+      worker.messages.find((message) => message.type === "execution-error")?.message ?? "",
+      /Network access is disabled/
+    );
+
+    await worker.send({
+      type: "run",
+      presets: {},
+      scaleIntervals: {},
+      sourceCode: `
+        liveLoop("network", async () => {
+          await fetch("https://example.com/");
+        });
+      `,
+    });
+    await waitFor(() => worker.messages.some((message) => message.type === "log" && /Network access is disabled/.test(message.message)));
+  } finally {
+    await worker.send({ type: "stop" });
+  }
 });
 
 test("Worker resets the sample clock before a stopped VGM loop runs again", async () => {

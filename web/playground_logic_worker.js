@@ -2,6 +2,107 @@ let currentRun = null;
 let nextRequestId = 1;
 const pendingRequests = new Map();
 
+const NETWORK_DISABLED_MESSAGE =
+  "Network access is disabled in Tetorica FM2612 Playground.";
+
+let activeWorkerGuardState = null;
+
+function installWorkerExecutionGuards(realm = self) {
+  if (activeWorkerGuardState?.realm === realm) {
+    activeWorkerGuardState.count += 1;
+    return createWorkerGuardRelease(
+      activeWorkerGuardState
+    );
+  }
+
+  const restoreSteps = [];
+  const blocked = () => {
+    throw new Error(NETWORK_DISABLED_MESSAGE);
+  };
+
+  for (const property of [
+    "fetch",
+    "XMLHttpRequest",
+    "WebSocket",
+    "EventSource",
+  ]) {
+    patchWorkerProperty(
+      realm,
+      property,
+      property === "fetch"
+        ? blocked
+        : function BlockedNetworkApi() {
+            blocked();
+          },
+      restoreSteps
+    );
+  }
+
+  if (realm.navigator) {
+    patchWorkerProperty(
+      realm.navigator,
+      "sendBeacon",
+      blocked,
+      restoreSteps
+    );
+  }
+
+  activeWorkerGuardState = {
+    realm,
+    count: 1,
+    restoreSteps,
+  };
+  return createWorkerGuardRelease(
+    activeWorkerGuardState
+  );
+}
+
+function createWorkerGuardRelease(state) {
+  let released = false;
+  return () => {
+    if (released) return;
+    released = true;
+    state.count -= 1;
+    if (state.count > 0) return;
+    for (let index = state.restoreSteps.length - 1; index >= 0; index -= 1) {
+      state.restoreSteps[index]();
+    }
+    if (activeWorkerGuardState === state) {
+      activeWorkerGuardState = null;
+    }
+  };
+}
+
+async function executeWithWorkerGuards(callback) {
+  const restore = installWorkerExecutionGuards();
+  try {
+    return await callback();
+  } finally {
+    restore();
+  }
+}
+
+function patchWorkerProperty(target, property, replacement, restoreSteps) {
+  if (!target) return;
+  const hadOwn = Object.prototype.hasOwnProperty.call(target, property);
+  const original = target[property];
+  try {
+    target[property] = replacement;
+  } catch (_error) {
+    return;
+  }
+  if (target[property] !== replacement) return;
+  restoreSteps.push(() => {
+    if (hadOwn) {
+      target[property] = original;
+    } else if (original === undefined) {
+      delete target[property];
+    } else {
+      target[property] = original;
+    }
+  });
+}
+
 function postCommand(command, args = []) {
   postMessage({ type: "command", command, args });
 }
@@ -366,14 +467,25 @@ function createRun(sourceCode, presets, scaleIntervals) {
 
   run.handleKeyboard = (id, event) => {
     const handler = run.keyboard.get(id);
-    if (handler) handler(event);
+    if (!handler) return;
+    void executeWithWorkerGuards(
+      () => handler(event)
+    ).catch((error) => {
+      postMessage({
+        type: "log",
+        level: "error",
+        message: `[keyboard:${id}] ${error?.stack ?? String(error)}`,
+      });
+    });
   };
   run.execute = async (nextSourceCode = sourceCode) => {
     run.collectingLoops = new Map();
     run.collectingCleanups = [];
     const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
     const userFunction = new AsyncFunction(...Object.keys(globals), `"use strict";\n${nextSourceCode}`);
-    await userFunction(...Object.values(globals));
+    await executeWithWorkerGuards(
+      () => userFunction(...Object.values(globals))
+    );
     const definitions = run.collectingLoops;
     const cleanupDefinitions = run.collectingCleanups;
     run.collectingLoops = null;
@@ -384,7 +496,9 @@ function createRun(sourceCode, presets, scaleIntervals) {
     for (const [name, fn] of definitions) run.loops.set(name, fn);
     for (const cleanup of run.cleanups) {
       if (!cleanup.names.some((name) => run.loops.has(name))) {
-        await cleanup.fn();
+        await executeWithWorkerGuards(
+          () => cleanup.fn()
+        );
       }
     }
     run.cleanups = cleanupDefinitions;
@@ -396,7 +510,9 @@ function createRun(sourceCode, presets, scaleIntervals) {
         while (!run.stopped && generation === run.generation && run.loops.has(name)) {
           try {
             run.currentLoop = { name, cursorBeat: clock.currentBeat?.() ?? 0 };
-            await run.loops.get(name)();
+            await executeWithWorkerGuards(
+              () => run.loops.get(name)()
+            );
           } catch (error) {
             if (!run.stopped) postMessage({ type: "log", level: "error", message: `[liveLoop:${name}] ${error?.stack ?? String(error)}` });
             await new Promise((resolve) => setTimeout(resolve, 16));

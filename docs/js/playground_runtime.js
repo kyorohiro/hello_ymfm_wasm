@@ -368,6 +368,16 @@ export function createPlaygroundRuntime(
       },
     });
 
+  function executeUserCallback(callback) {
+    return executeWithPlaygroundGuards(
+      callback,
+      window,
+      {
+        enabled: guardExecution,
+      }
+    );
+  }
+
   const liveApi =
     createPlaygroundLive({
       runtime,
@@ -384,6 +394,7 @@ export function createPlaygroundRuntime(
       },
       logLine: emitLog,
       setStatus: emitStatus,
+      executeCallback: executeUserCallback,
     });
 
   function psgTone(
@@ -1023,7 +1034,14 @@ export function createPlaygroundRuntime(
 
     for (const [id, definition] of definitions) {
       const listener = (event) => {
-        definition.fn(event);
+        void executeUserCallback(
+          () => definition.fn(event)
+        ).catch((error) => {
+          emitLog(
+            `[keyboard:${definition.name}] ${error?.stack ?? String(error)}`
+          );
+          emitStatus("Keyboard handler error");
+        });
       };
       keyboardHandlers.set(
         id,

@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { createPitchFromMidi } from "../synth/synth_keyboard.js";
+import { createPitchFromMidi } from "../js/pitch.js";
 import {
   createPlaygroundMusic,
   lerp,

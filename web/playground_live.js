@@ -10,6 +10,8 @@ export function createPlaygroundLive(
     setCurrentLoopContext,
     logLine,
     setStatus,
+    executeCallback = (callback) =>
+      callback(),
   } = options;
 
   function markPreparedFxUnits(value) {
@@ -325,7 +327,9 @@ export function createPlaygroundLive(
 
         try {
           setCurrentLoopContext(state);
-          await state.currentFn();
+          await executeCallback(
+            () => state.currentFn()
+          );
           state.stableFn =
             state.currentFn;
           state.hasStableRun = true;
@@ -469,21 +473,31 @@ export function createPlaygroundLive(
         continue;
       }
 
-      runtime.liveCleanupHooks.delete(
-        id
-      );
+      runLiveCleanup(id, definition);
+    }
+  }
 
-      try {
-        definition.fn();
-      } catch (error) {
-        console.error(error);
-        logLine(
-          `[liveCleanup:${definition.names.join(",")}] ${error?.stack ?? String(error)}`
-        );
-        setStatus(
-          "Cleanup error"
-        );
-      }
+  function runLiveCleanup(id, definition) {
+    runtime.liveCleanupHooks.delete(id);
+    try {
+      const result = executeCallback(
+        () => definition.fn()
+      );
+      Promise.resolve(result).catch(
+        (error) => {
+          console.error(error);
+          logLine(
+            `[liveCleanup:${definition.names.join(",")}] ${error?.stack ?? String(error)}`
+          );
+          setStatus("Cleanup error");
+        }
+      );
+    } catch (error) {
+      console.error(error);
+      logLine(
+        `[liveCleanup:${definition.names.join(",")}] ${error?.stack ?? String(error)}`
+      );
+      setStatus("Cleanup error");
     }
   }
 
@@ -505,12 +519,12 @@ export function createPlaygroundLive(
     ] of runtime.liveCleanupHooks.entries()) {
       if (
         definition.cleanupScope ===
-          cleanupScope &&
+        cleanupScope &&
         !activeDefinitionIds.has(id)
       ) {
-        runtime.liveCleanupHooks.delete(
-          id
-        );
+        // Replacing a source removes its old definition. Run it before
+        // discarding it so persistent voices and effects are released.
+        runLiveCleanup(id, definition);
       }
     }
 

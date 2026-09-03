@@ -87,6 +87,24 @@ test(
 );
 
 test(
+  "rejects deflate data that exceeds the expanded size limit despite a small header",
+  async () => {
+    const expanded = new Uint8Array(
+      16 * 1024 * 1024 + 1
+    );
+    const archive = createDeflatedZip(
+      [["examples/oversized.js", expanded]],
+      { reportedUncompressedSize: 1 }
+    );
+
+    await assert.rejects(
+      () => loadPlaygroundCassette(archive),
+      /expanded size limit/
+    );
+  }
+);
+
+test(
   "rejects paths that escape the cassette archive",
   async () => {
     const archive = createStoredZip([
@@ -104,11 +122,15 @@ function createStoredZip(entries) {
   return createZip(entries, false);
 }
 
-function createDeflatedZip(entries) {
-  return createZip(entries, true);
+function createDeflatedZip(entries, options) {
+  return createZip(entries, true, options);
 }
 
-function createZip(entries, useDeflate) {
+function createZip(
+  entries,
+  useDeflate,
+  options = {}
+) {
   const localParts = [];
   const centralParts = [];
   let localOffset = 0;
@@ -123,6 +145,9 @@ function createZip(entries, useDeflate) {
         deflateRawSync(uncompressed)
       )
       : uncompressed;
+    const reportedUncompressedSize =
+      options.reportedUncompressedSize ??
+      uncompressed.length;
     const localHeader = new Uint8Array(
       30 + pathBytes.length
     );
@@ -141,7 +166,7 @@ function createZip(entries, useDeflate) {
     localView.setUint32(18, data.length, true);
     localView.setUint32(
       22,
-      uncompressed.length,
+      reportedUncompressedSize,
       true
     );
     localHeader.set(pathBytes, 30);
@@ -166,7 +191,7 @@ function createZip(entries, useDeflate) {
     centralView.setUint32(20, data.length, true);
     centralView.setUint32(
       24,
-      uncompressed.length,
+      reportedUncompressedSize,
       true
     );
     centralView.setUint32(42, localOffset, true);

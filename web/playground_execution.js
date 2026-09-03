@@ -4,6 +4,8 @@ const NETWORK_DISABLED_MESSAGE =
 const NAVIGATION_DISABLED_MESSAGE =
   "Navigation is disabled in Tetorica FM2612 Playground.";
 
+const activeGuardStates = new WeakMap();
+
 /**
  * @typedef {{
  *   enabled?: boolean,
@@ -20,6 +22,24 @@ export function installPlaygroundExecutionGuards(
 
   if (!enabled) {
     return () => {};
+  }
+
+  if (
+    !realm ||
+    (typeof realm !== "object" &&
+      typeof realm !== "function")
+  ) {
+    return () => {};
+  }
+
+  const existingState =
+    activeGuardStates.get(realm);
+  if (existingState) {
+    existingState.count += 1;
+    return createGuardRelease(
+      realm,
+      existingState
+    );
   }
 
   const restoreSteps = [];
@@ -144,15 +164,34 @@ export function installPlaygroundExecutionGuards(
     );
   }
 
+  const state = {
+    count: 1,
+    restoreSteps,
+  };
+  activeGuardStates.set(realm, state);
+  return createGuardRelease(realm, state);
+}
+
+function createGuardRelease(realm, state) {
+  let released = false;
   return () => {
+    if (released) {
+      return;
+    }
+    released = true;
+    state.count -= 1;
+    if (state.count > 0) {
+      return;
+    }
     for (
       let index =
-        restoreSteps.length - 1;
+        state.restoreSteps.length - 1;
       index >= 0;
       index -= 1
     ) {
-      restoreSteps[index]();
+      state.restoreSteps[index]();
     }
+    activeGuardStates.delete(realm);
   };
 }
 

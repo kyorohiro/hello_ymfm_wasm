@@ -169,6 +169,9 @@ async function readZipEntries(bytes) {
   }
 
   const entries = [];
+  const readState = {
+    totalUncompressedBytes: 0,
+  };
   let offset = centralDirectoryOffset;
   let totalUncompressedSize = 0;
 
@@ -266,6 +269,7 @@ async function readZipEntries(bytes) {
           compressedSize,
           uncompressedSize,
           compression,
+          readState,
         }),
       });
     }
@@ -309,6 +313,7 @@ async function readZipEntryData(entry) {
     compressedSize,
     uncompressedSize,
     compression,
+    readState,
   } = entry;
 
   requireSignature(
@@ -342,7 +347,11 @@ async function readZipEntryData(entry) {
   );
   const result = compression === ZIP_STORED
     ? compressed
-    : await inflateRaw(compressed);
+    : await inflateRaw(
+      compressed,
+      MAX_CASSETTE_BYTES -
+        readState.totalUncompressedBytes
+    );
 
   if (result.byteLength !== uncompressedSize) {
     throw new Error(
@@ -350,10 +359,25 @@ async function readZipEntryData(entry) {
     );
   }
 
+  if (
+    readState.totalUncompressedBytes +
+      result.byteLength >
+    MAX_CASSETTE_BYTES
+  ) {
+    throw new Error(
+      "Cassette zip exceeds the 16 MiB expanded size limit."
+    );
+  }
+  readState.totalUncompressedBytes +=
+    result.byteLength;
+
   return result;
 }
 
-async function inflateRaw(compressed) {
+async function inflateRaw(
+  compressed,
+  maxOutputBytes
+) {
   if (typeof DecompressionStream !== "function") {
     throw new Error(
       "Cassette zip requires browser deflate support."
@@ -365,10 +389,37 @@ async function inflateRaw(compressed) {
     .pipeThrough(
       new DecompressionStream("deflate-raw")
     );
-  const buffer = await new Response(stream)
-    .arrayBuffer();
+  const reader = stream.getReader();
+  const chunks = [];
+  let totalBytes = 0;
 
-  return new Uint8Array(buffer);
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) {
+        break;
+      }
+
+      totalBytes += value.byteLength;
+      if (totalBytes > maxOutputBytes) {
+        await reader.cancel();
+        throw new Error(
+          "Cassette zip exceeds the 16 MiB expanded size limit."
+        );
+      }
+      chunks.push(value);
+    }
+  } finally {
+    reader.releaseLock();
+  }
+
+  const result = new Uint8Array(totalBytes);
+  let offset = 0;
+  for (const chunk of chunks) {
+    result.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return result;
 }
 
 function decodeZipPath(bytes) {

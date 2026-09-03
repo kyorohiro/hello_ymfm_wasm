@@ -249,6 +249,27 @@ test(
 );
 
 test(
+  "overlapping guards stay active until every callback finishes",
+  () => {
+    const realm = createFakeRealm();
+    const originalFetch = realm.fetch;
+    const firstRestore =
+      installPlaygroundExecutionGuards(realm);
+    const secondRestore =
+      installPlaygroundExecutionGuards(realm);
+
+    firstRestore();
+    assert.throws(
+      () => realm.fetch(),
+      /Network access is disabled/
+    );
+
+    secondRestore();
+    assert.equal(realm.fetch, originalFetch);
+  }
+);
+
+test(
   "guards can be disabled explicitly for self-hosted use",
   async () => {
     const realm = createFakeRealm();

@@ -10,6 +10,8 @@ export function createPlaygroundLive(
     setCurrentLoopContext,
     logLine,
     setStatus,
+    executeCallback = (callback) =>
+      callback(),
   } = options;
 
   function markPreparedFxUnits(value) {
@@ -325,7 +327,9 @@ export function createPlaygroundLive(
 
         try {
           setCurrentLoopContext(state);
-          await state.currentFn();
+          await executeCallback(
+            () => state.currentFn()
+          );
           state.stableFn =
             state.currentFn;
           state.hasStableRun = true;
@@ -476,7 +480,18 @@ export function createPlaygroundLive(
   function runLiveCleanup(id, definition) {
     runtime.liveCleanupHooks.delete(id);
     try {
-      definition.fn();
+      const result = executeCallback(
+        () => definition.fn()
+      );
+      Promise.resolve(result).catch(
+        (error) => {
+          console.error(error);
+          logLine(
+            `[liveCleanup:${definition.names.join(",")}] ${error?.stack ?? String(error)}`
+          );
+          setStatus("Cleanup error");
+        }
+      );
     } catch (error) {
       console.error(error);
       logLine(

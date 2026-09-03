@@ -22,13 +22,9 @@ cassette-gen.html
 playground.js
 playground_cassette.js
 playground_cassette_generator.js
-playground_clock.js
 playground_examples.js
-playground_execution.js
-playground_live.js
 playground_monaco.js
 playground_monaco_completion.js
-playground_music.js
 playground_operator_tab.js
 playground_query.js
 playground_sync.js
@@ -213,11 +209,7 @@ perl -0pi -e 's#"\./playground\.js"#"./playground.js"#g; s#"\.\./js/#"./js/#g; s
   "${STAGE_DIR}/playground_sync.js" \
   "${STAGE_DIR}/playground_operator_tab.js" \
   "${STAGE_DIR}/playground_query.js" \
-  "${STAGE_DIR}/playground_clock.js" \
-  "${STAGE_DIR}/playground_execution.js" \
   "${STAGE_DIR}/playground_examples.js" \
-  "${STAGE_DIR}/playground_live.js" \
-  "${STAGE_DIR}/playground_music.js" \
   "${STAGE_DIR}/playground_ui.js"
 
 (
