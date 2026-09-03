@@ -39,8 +39,9 @@ test("PSG noise API maps type and rate without hiding raw writes", () => {
     }),
     3
   );
+  psg.noiseVolume(0.5);
   psg.noiseOff();
   psg.write(0xe7);
 
-  assert.deepEqual(writes, [0xe3, 0xf2, 0xff, 0xe7]);
+  assert.deepEqual(writes, [0xe3, 0xf2, 0xf7, 0xff, 0xe7]);
 });

@@ -643,6 +643,8 @@ type PSGApi = {
     volume?: number;
     attenuation?: number;
   }): number;
+  /** Change PSG noise volume without resetting its shift register. */
+  noiseVolume(volume: number): void;
   /** Silence the PSG noise channel. */
   noiseOff(): void;
 };

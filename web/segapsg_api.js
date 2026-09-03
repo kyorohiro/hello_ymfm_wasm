@@ -50,6 +50,9 @@ export function createSegaPsgApi(transport) {
       rawWrite(0xf0 | attenuation);
       return mode;
     },
+    noiseVolume(volume) {
+      rawWrite(0xf0 | resolveAttenuation({ volume }));
+    },
     noiseOff() {
       rawWrite(0xff);
     },

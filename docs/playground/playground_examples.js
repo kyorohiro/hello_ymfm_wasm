@@ -1311,30 +1311,37 @@ for (const burst of bursts) {
   await sleep(0.05);
 }
 `,
-  "psg-ocean": `// A deliberately coarse "ocean" using the PSG's single noise channel.
-// PSG3 is muted, but its frequency drives the noise with rate: "tone3".
-setBpm(36);
+  "psg-ocean": `// A deliberately coarse, slow "ocean" using the PSG's single noise channel.
+// Periodic PSG noise is a narrow pulse train, so this uses white noise only.
+setBpm(24);
 psg.reset();
 
 liveCleanup(["psg-ocean"], () => {
   psg.noiseOff();
-  psg.off(PSG3);
 });
 
 liveLoop("psg-ocean", async () => {
-  const swell = choose([0.12, 0.18, 0.26, 0.38, 0.5, 0.34, 0.22]);
-  // A PSG tone cannot go below about 109 Hz. Periodic noise divides this
-  // down again, giving a slow 6.8..11 Hz surf-like pulse.
-  const wavePeriod = choose([0x3ff, 0x360, 0x300, 0x2a0]);
+  psg.noise({ type: "white", rate: "low", volume: 0.06 });
 
-  // The tone stays silent while its period colors the periodic noise.
-  psg.tone(PSG3, { period: wavePeriod, attenuation: 15 });
-  psg.noise({ type: "periodic", rate: "tone3", volume: swell });
-  await beat(0.375);
+  // ---- The wave slowly approaches. ----
+  for (const volume of [0.06, 0.14, 0.2, 0.27, 0.34, 0.42]) {
+    psg.noiseVolume(volume);
+    await beat(0.22);
+  }
 
-  // A small white-noise crest keeps the texture from sounding static.
-  psg.noise({ type: "white", rate: "low", volume: swell * 0.25 });
-  await beat(0.125);
+  // ---- A soft crest. ----
+  for (const volume of [0.34, 0.48, 0.62, 0.5, 0.38]) {
+    psg.noiseVolume(volume);
+    await beat(0.14);
+  }
+
+  // ---- The water recedes, with a small returning ripple. ----
+  for (const volume of [0.3, 0.22, 0.15, 0.1, 0.05, 0.1]) {
+    psg.noiseVolume(volume);
+    await beat(0.12);
+  }
+
+  await beat(choose([0.5, 0.75, 1, 1.25]));
 });
 `,
   "fx-loop-minor": `setBpm(120);
