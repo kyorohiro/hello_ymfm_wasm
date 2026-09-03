@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import {
   Ym2612VGM,
   describeYm2612Write,
+  exportYm2203FmVgmToPlaygroundJavaScript,
   exportYm2612VgmToPlaygroundJavaScript,
   exportYm2608FmVgmToPlaygroundJavaScript,
   getYm2612WriteTarget,
@@ -11,7 +12,7 @@ import {
 
 function createVgmBuffer(commands, options = {}) {
   const dataOffset = options.dataOffset ??
-    (options.ym2608Clock ? 0x100 : 0x40);
+    (options.ym2203Clock || options.ym2608Clock ? 0x100 : 0x40);
   const totalLength = Math.max(0x4c, dataOffset + commands.length);
   const bytes = new Uint8Array(totalLength);
   bytes[0] = 0x56;
@@ -23,6 +24,9 @@ function createVgmBuffer(commands, options = {}) {
   view.setUint32(0x18, options.totalSamples ?? 0, true);
   view.setUint32(0x2c, options.ym2612Clock ?? 7670454, true);
   view.setUint32(0x34, dataOffset - 0x34, true);
+  if (options.ym2203Clock) {
+    view.setUint32(0x44, options.ym2203Clock, true);
+  }
   if (options.ym2608Clock) {
     view.setUint32(0x48, options.ym2608Clock, true);
   }
@@ -117,6 +121,34 @@ test("YM2608 FM-only export preserves FM and drops SSG and ADPCM registers", () 
   assert.match(script, /\[0, 0, 0xa0, 0x15\]/);
   assert.match(script, /\[480, 0, 0x28, 0xf0\]/);
   assert.doesNotMatch(script, /0x00, 0x7f|0x10, 0xff/);
+});
+
+test("YM2203 FM-only export preserves three FM channels and enables YM2612 pan", () => {
+  const buffer = createVgmBuffer(
+    Uint8Array.from([
+      0x55, 0x00, 0x7f,
+      0x55, 0x30, 0x71,
+      0x55, 0xa0, 0x00,
+      0x55, 0xa4, 0x22,
+      0x61, 0xe0, 0x01,
+      0x55, 0x28, 0xf0,
+      0x66,
+    ]),
+    { ym2612Clock: 0, ym2203Clock: 3993600 }
+  );
+
+  const script = exportYm2203FmVgmToPlaygroundJavaScript(buffer, {
+    scheduled: true,
+  });
+
+  assert.match(script, /YM2203 VGM FM registers only/);
+  assert.match(script, /\[0, 0, 0xb4, 0xc0\]/);
+  assert.match(script, /\[0, 0, 0x30, 0x71\]/);
+  assert.match(script, /\[0, 0, 0xa4, 0x21\]/);
+  assert.match(script, /\[0, 0, 0xa0, 0x0b\]/);
+  assert.match(script, /\[480, 0, 0x28, 0xf0\]/);
+  assert.doesNotMatch(script, /0x00, 0x7f/);
+  assert.doesNotMatch(script, /liveLoop\("ch3"/);
 });
 
 test("scheduled export expands YM2612 DAC stream data while readable export omits it", () => {

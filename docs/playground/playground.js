@@ -26,6 +26,7 @@ import {
 } from "../js/vgm_file.js";
 import {
   Ym2612VGM,
+  exportYm2203FmVgmToPlaygroundJavaScript,
   exportYm2608FmVgmToPlaygroundJavaScript,
 } from "../js/ym2612vgm.js";
 import {
@@ -464,7 +465,15 @@ async function importVgmFile(file, options) {
   const isYm2608Only =
     vgm.header.ym2608Clock > 0 &&
     vgm.header.ym2612Clock === 0;
-  const source = isYm2608Only
+  const isYm2203Only =
+    vgm.header.ym2203Clock > 0 &&
+    vgm.header.ym2612Clock === 0 &&
+    vgm.header.ym2608Clock === 0;
+  const source = isYm2203Only
+    ? exportYm2203FmVgmToPlaygroundJavaScript(vgm, {
+      scheduled: options.mode === "schedule",
+    })
+    : isYm2608Only
     ? exportYm2608FmVgmToPlaygroundJavaScript(vgm, {
       scheduled: options.mode === "schedule",
     })
@@ -478,6 +487,8 @@ async function importVgmFile(file, options) {
   setStatus(
     isYm2608Only
       ? `Imported ${file.name} as YM2608 FM only (${options.mode === "schedule" ? "Schedule" : "Write"} timing; SSG, Rhythm, and ADPCM-B omitted).`
+      : isYm2203Only
+        ? `Imported ${file.name} as YM2203 FM only (${options.mode === "schedule" ? "Schedule" : "Write"} timing; SSG omitted).`
       : `Imported ${file.name} with ${options.mode === "schedule" ? "Schedule" : "Write"} timing.`
   );
 }
