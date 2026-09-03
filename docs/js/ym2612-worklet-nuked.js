@@ -7,7 +7,7 @@ import segaPsgModuleFactory from "../generated/segapsg_wasm.js";
 import { SegaPSG, SEGAPSG_CLOCK } from "./segapsg.js";
 
 // Same mix balance as GenesisAudioEngine.process() in genesisaudioengine.js.
-const YM_GAIN = 2.0;
+const YM_GAIN = 0.9;
 const PSG_GAIN = 0.35;
 
 function clampSample(value) {

@@ -4,8 +4,9 @@ import segaPsgModuleFactory from "../generated/segapsg_wasm.js";
 import { SegaPSG, SEGAPSG_CLOCK } from "./segapsg.js";
 
 // Same mix balance as GenesisAudioEngine.process() in genesisaudioengine.js.
-const YM_GAIN = 2.0;
+const YM_GAIN = 0.9;
 const PSG_GAIN = 0.35;
+const VGM_SAMPLE_RATE = 44100;
 
 function clampSample(value) {
   if (value < -1) {
@@ -258,7 +259,13 @@ class YM2612Processor extends AudioWorkletProcessor {
         (stream.data[offset + 1] << 8) |
         (stream.data[offset + 2] << 16) |
         (stream.data[offset + 3] << 24);
-      nextFrame = Math.min(nextFrame, stream.startFrame + (samples >>> 0));
+      nextFrame = Math.min(
+        nextFrame,
+        this.dacSampleOffsetToFrame(
+          stream,
+          samples >>> 0
+        )
+      );
     }
     return nextFrame;
   }
@@ -272,7 +279,14 @@ class YM2612Processor extends AudioWorkletProcessor {
           (stream.data[offset + 1] << 8) |
           (stream.data[offset + 2] << 16) |
           (stream.data[offset + 3] << 24);
-        if (stream.startFrame + (samples >>> 0) > frame) break;
+        if (
+          this.dacSampleOffsetToFrame(
+            stream,
+            samples >>> 0
+          ) > frame
+        ) {
+          break;
+        }
         this.ym2612.writeRegister(0x2a, stream.data[offset + 4], 0);
         stream.offset += 5;
       }
@@ -280,6 +294,14 @@ class YM2612Processor extends AudioWorkletProcessor {
         this.dacStreams.splice(index, 1);
       }
     }
+  }
+
+  // VGM offsets are 44.1 kHz samples; AudioWorklet frames follow the device rate.
+  dacSampleOffsetToFrame(stream, sampleOffset) {
+    return stream.startFrame + Math.round(
+      sampleOffset * sampleRate /
+        VGM_SAMPLE_RATE
+    );
   }
 
   renderFrames(leftOut, rightOut, offset, frames) {

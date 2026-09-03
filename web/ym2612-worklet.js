@@ -4,8 +4,9 @@ import segaPsgModuleFactory from "./generated/segapsg_wasm.js";
 import { SegaPSG, SEGAPSG_CLOCK } from "./segapsg.js";
 
 // Same mix balance as GenesisAudioEngine.process() in genesisaudioengine.js.
-const YM_GAIN = 2.0;
+const YM_GAIN = 0.9;
 const PSG_GAIN = 0.35;
+const VGM_SAMPLE_RATE = 44100;
 
 function clampSample(value) {
   if (value < -1) {
@@ -24,6 +25,9 @@ class YM2612Processor extends AudioWorkletProcessor {
     this.ym2612 = null;
     this.psg = null;
     this.pendingCommands = [];
+    this.scheduledCommands = [];
+    this.dacBanks = new Map();
+    this.dacStreams = [];
     this.envelopeRmsBuckets = [];
     this.envelopeBucketSize = 512;
     this.envelopeMessageSize = 16;
@@ -110,6 +114,44 @@ class YM2612Processor extends AudioWorkletProcessor {
   }
 
   applyCommand(command) {
+    if (command.type === "schedule-writes") {
+      for (const entry of command.entries ?? []) {
+        this.scheduledCommands.push(entry);
+      }
+      this.scheduledCommands.sort((a, b) => a.time - b.time);
+      return;
+    }
+    if (command.type === "clear-scheduled-writes") {
+      this.scheduledCommands.length = 0;
+      return;
+    }
+    if (command.type === "load-dac-bank") {
+      this.dacBanks.set(
+        command.name,
+        new Uint8Array(command.data)
+      );
+      return;
+    }
+    if (command.type === "play-dac-bank") {
+      const data = this.dacBanks.get(command.name);
+      if (!data) {
+        this.port.postMessage({
+          type: "error",
+          message: `Unknown DAC bank: ${command.name}`,
+        });
+        return;
+      }
+      this.dacStreams.push({
+        data,
+        startFrame: Math.round(command.time * sampleRate),
+        offset: 0,
+      });
+      return;
+    }
+    if (command.type === "clear-dac-playback") {
+      this.dacStreams.length = 0;
+      return;
+    }
     if (command.type === "write") {
       this.ym2612.writeRegister(
         command.register,
@@ -175,40 +217,105 @@ class YM2612Processor extends AudioWorkletProcessor {
       return true;
     }
 
-    const { left, right } =
-      this.ym2612.generateStereo(leftOut.length);
-
-    if (this.psg) {
-      const psg =
-        this.psg.generateStereo(
-          leftOut.length
-        );
-
-      for (
-        let index = 0;
-        index < leftOut.length;
-        index += 1
-      ) {
-        left[index] = clampSample(
-          left[index] * YM_GAIN +
-            psg.left[index] * PSG_GAIN
-        );
-        right[index] = clampSample(
-          right[index] * YM_GAIN +
-            psg.right[index] * PSG_GAIN
+    let offset = 0;
+    const endFrame = currentFrame + leftOut.length;
+    while (true) {
+      const scheduled = this.scheduledCommands[0];
+      const scheduledFrame = scheduled
+        ? Math.round(scheduled.time * sampleRate)
+        : Infinity;
+      const dacFrame = this.nextDacFrame();
+      const frame = Math.min(scheduledFrame, dacFrame);
+      if (frame >= endFrame) break;
+      const eventOffset = Math.max(offset, frame - currentFrame);
+      this.renderFrames(leftOut, rightOut, offset, eventOffset - offset);
+      offset = eventOffset;
+      if (scheduledFrame === frame) {
+        this.scheduledCommands.shift();
+        this.ym2612.writeRegister(
+          scheduled.register,
+          scheduled.value,
+          scheduled.port
         );
       }
+      this.writeDueDacFrames(frame);
     }
-
-    leftOut.set(left);
-    rightOut.set(right);
-    this.capturePcm(left, right);
+    this.renderFrames(leftOut, rightOut, offset, leftOut.length - offset);
+    this.capturePcm(leftOut, rightOut);
     this.captureOutputEnvelope(
-      left,
-      right
+      leftOut,
+      rightOut
     );
 
     return true;
+  }
+
+  nextDacFrame() {
+    let nextFrame = Infinity;
+    for (const stream of this.dacStreams) {
+      if (stream.offset + 5 > stream.data.length) continue;
+      const offset = stream.offset;
+      const samples = stream.data[offset] |
+        (stream.data[offset + 1] << 8) |
+        (stream.data[offset + 2] << 16) |
+        (stream.data[offset + 3] << 24);
+      nextFrame = Math.min(
+        nextFrame,
+        this.dacSampleOffsetToFrame(
+          stream,
+          samples >>> 0
+        )
+      );
+    }
+    return nextFrame;
+  }
+
+  writeDueDacFrames(frame) {
+    for (let index = this.dacStreams.length - 1; index >= 0; index -= 1) {
+      const stream = this.dacStreams[index];
+      while (stream.offset + 5 <= stream.data.length) {
+        const offset = stream.offset;
+        const samples = stream.data[offset] |
+          (stream.data[offset + 1] << 8) |
+          (stream.data[offset + 2] << 16) |
+          (stream.data[offset + 3] << 24);
+        if (
+          this.dacSampleOffsetToFrame(
+            stream,
+            samples >>> 0
+          ) > frame
+        ) {
+          break;
+        }
+        this.ym2612.writeRegister(0x2a, stream.data[offset + 4], 0);
+        stream.offset += 5;
+      }
+      if (stream.offset + 5 > stream.data.length) {
+        this.dacStreams.splice(index, 1);
+      }
+    }
+  }
+
+  // VGM offsets are 44.1 kHz samples; AudioWorklet frames follow the device rate.
+  dacSampleOffsetToFrame(stream, sampleOffset) {
+    return stream.startFrame + Math.round(
+      sampleOffset * sampleRate /
+        VGM_SAMPLE_RATE
+    );
+  }
+
+  renderFrames(leftOut, rightOut, offset, frames) {
+    if (frames <= 0) return;
+    const { left, right } = this.ym2612.generateStereo(frames);
+    if (this.psg) {
+      const psg = this.psg.generateStereo(frames);
+      for (let index = 0; index < frames; index += 1) {
+        left[index] = clampSample(left[index] * YM_GAIN + psg.left[index] * PSG_GAIN);
+        right[index] = clampSample(right[index] * YM_GAIN + psg.right[index] * PSG_GAIN);
+      }
+    }
+    leftOut.set(left, offset);
+    rightOut.set(right, offset);
   }
 
   captureOutputEnvelope(left, right) {
