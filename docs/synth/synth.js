@@ -3,6 +3,7 @@ import {
   FM_PRESET_ORDER,
   MegaSynthLooper,
 } from "../js/megasynth.js";
+import { YM2612_CLOCK } from "../js/ym2612.js";
 import {
   createTfiFromPreset,
   parseTfi,
@@ -57,6 +58,9 @@ const activeWorkletUrl = useNukedEngine
 const activeYm2612WasmUrl = useNukedEngine
   ? "../generated/nuked_opn2_wasm.wasm"
   : "../generated/ym2612_wasm.wasm";
+// Keep the chip in its native clock domain; Web Audio resamples for output.
+const YM2612_NATIVE_SAMPLE_RATE =
+  Math.floor(YM2612_CLOCK / 144);
 
 if (useNukedEngine) {
   const pageTitle =
@@ -2273,7 +2277,10 @@ async function initializeDirectAudio() {
 async function ensureAudioReady() {
   if (!audioContext) {
     audioContext =
-      new AudioContext();
+      new AudioContext({
+        sampleRate:
+          YM2612_NATIVE_SAMPLE_RATE,
+      });
   }
 
   if (
