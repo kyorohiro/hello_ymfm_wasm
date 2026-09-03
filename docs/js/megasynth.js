@@ -7,6 +7,7 @@ import {
 } from "./ym2612synth.js";
 import { YM2612_CLOCK } from "./ym2612.js";
 import { createSegaPsgApi } from "./segapsg_api.js";
+import { TetoricaAudioRuntime } from "./tetorica_audio_runtime.js";
 export {
   createFXBranch,
   createBitcrusherFX,
@@ -247,8 +248,31 @@ export class MegaSynth {
    * @param {MegaSynthOptions} [options]
    */
   constructor(options = {}) {
-    this.ownsAudioContext =
-      !options.audioContext;
+    this.audio = new TetoricaAudioRuntime({
+      audioContext: options.audioContext,
+      outputNode: options.outputNode,
+      sampleOutputNode: options.sampleOutputNode,
+      masterVolume: clampMasterVolume(options.masterVolume ?? 1),
+    });
+    for (const property of [
+      "ownsAudioContext",
+      "audioContext",
+      "outputNode",
+      "sampleOutputNode",
+      "masterVolume",
+      "masterInputNode",
+      "masterOutputNode",
+      "fxChain",
+      "sampleBuffers",
+      "sampleVoices",
+      "streamEntries",
+    ]) {
+      Object.defineProperty(this, property, {
+        configurable: true,
+        get: () => this.audio[property],
+        set: (value) => { this.audio[property] = value; },
+      });
+    }
 
     this.workletUrl =
       options.workletUrl ?? "./ym2612-worklet.js";
@@ -281,22 +305,7 @@ export class MegaSynth {
     this.segaPsgWasmUrl =
       options.segaPsgWasmUrl ?? null;
 
-    this.audioContext =
-      options.audioContext ?? null;
-
-    this.outputNode =
-      options.outputNode ?? null;
-    this.masterVolume =
-      clampMasterVolume(
-        options.masterVolume ?? 1
-      );
-    this.sampleOutputNode =
-      options.sampleOutputNode ?? null;
-
     this.node = null;
-    this.masterInputNode = null;
-    this.masterOutputNode = null;
-    this.fxChain = [];
     this.recordingManager = null;
     this._recordingHooksInstalled =
       false;
@@ -308,11 +317,8 @@ export class MegaSynth {
     /** @type {{ write(value: number): void, reset(): void } | null} */
     this.psg = null;
 
-    this.sampleBuffers = new Map();
-    this.sampleVoices = new Set();
     /** @type {MegaSynthSampleAPI} */
     this.sample = this.#createSampleApi();
-    this.streamEntries = new Map();
     /** @type {MegaSynthStreamAPI} */
     this.stream = this.#createStreamApi();
 
@@ -424,32 +430,14 @@ export class MegaSynth {
     effects = [],
     options = {}
   ) {
-    if (!Array.isArray(effects)) {
-      throw new Error(
-        "FX chain must be an array"
-      );
-    }
-
-    const previousChain =
-      this.fxChain.slice();
-    this.fxChain = effects.slice();
-
-    if (this.masterInputNode) {
-      this.#rebuildFXChain();
-    }
-
-    if (options.dispose) {
-      for (const effect of previousChain) {
-        effect?.dispose?.();
-      }
-    }
+    this.audio.setFXChain(effects, options);
   }
 
   /**
    * @returns {AnyFXUnit[]}
    */
   getFXChain() {
-    return this.fxChain.slice();
+    return this.audio.getFXChain();
   }
 
   /**
@@ -457,11 +445,7 @@ export class MegaSynth {
    * @returns {MegaSynth}
    */
   connect(effect) {
-    this.fxChain.push(effect);
-
-    if (this.masterInputNode) {
-      this.#rebuildFXChain();
-    }
+    this.audio.connect(effect);
 
     return this;
   }
@@ -471,21 +455,7 @@ export class MegaSynth {
    * @returns {AnyFXUnit[]}
    */
   clearFXChain(options = {}) {
-    const previousChain =
-      this.fxChain.slice();
-    this.fxChain = [];
-
-    if (this.masterInputNode) {
-      this.#rebuildFXChain();
-    }
-
-    if (options.dispose) {
-      for (const effect of previousChain) {
-        effect?.dispose?.();
-      }
-    }
-
-    return previousChain;
+    return this.audio.clearFXChain(options);
   }
 
   /**
@@ -493,15 +463,7 @@ export class MegaSynth {
    * @returns {MegaSynth}
    */
   connectOutput(node = null) {
-    this.outputNode =
-      node ??
-      this.outputNode ??
-      this.audioContext?.destination ??
-      null;
-
-    if (this.masterInputNode) {
-      this.#rebuildFXChain();
-    }
+    this.audio.connectOutput(node);
 
     return this;
   }
@@ -518,13 +480,7 @@ export class MegaSynth {
   setMasterVolume(volume) {
     const nextVolume =
       clampMasterVolume(volume);
-    this.masterVolume =
-      nextVolume;
-
-    if (this.masterOutputNode) {
-      this.masterOutputNode.gain.value =
-        nextVolume;
-    }
+    this.audio.setMasterVolume(nextVolume);
 
     this.#emit({
       type: "setMasterVolume",
@@ -756,16 +712,8 @@ export class MegaSynth {
         }
       );
 
-    this.masterInputNode =
-      this.audioContext.createGain();
-    this.masterOutputNode =
-      this.audioContext.createGain();
-    this.masterOutputNode.gain.value =
-      this.masterVolume;
-    this.node.connect(
-      this.masterInputNode
-    );
-    this.#rebuildFXChain();
+    this.audio.ensureRouting(this.audioContext);
+    this.audio.connectChipOutput(this.node);
 
     const workletReady =
       this.#waitForWorkletReady();

@@ -32,6 +32,7 @@ segapsg.js
 segapsg_api.js
 stereo-width-worklet.js
 tfi.js
+tetorica_audio_runtime.js
 vgm_file.js
 vgm-output-worklet.js
 vgmplayer.js

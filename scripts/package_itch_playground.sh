@@ -54,6 +54,7 @@ segapsg.js
 segapsg_api.js
 stereo-width-worklet.js
 tfi.js
+tetorica_audio_runtime.js
 ym2203.js
 ym2203audioengine.js
 ym2203synth.js
