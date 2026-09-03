@@ -1111,10 +1111,11 @@ export function exportYm2612VgmToPlaygroundJavaScript(source, options = {}) {
     lines.push("");
   }
   const dacEvents = tracks[0].events.filter((event) => event.port === 0 && event.register === 0x2a);
-  const useDacBase64 = !options.scheduled && options.dacBase64 !== false;
+  const useDacBase64 = options.dacBase64 !== false;
   if (useDacBase64 && dacEvents.length > 0) {
+    const encodedDac = JSON.stringify(encodeDacSchedule(dacEvents));
     lines.push('livePrepare("vgm-dac", async () => {');
-    lines.push(`  await dac.loadBase64("vgm-dac", ${JSON.stringify(encodeDacSchedule(dacEvents))});`);
+    lines.push(`  await dac.loadBase64("vgm-dac", ${encodedDac});`);
     lines.push("});");
     lines.push("");
   }
@@ -1151,11 +1152,16 @@ function renderPlaygroundTrack(track, totalLoopSamples, scheduled, useDacBase64)
   const dacEvents = useDacBase64 && track.name === "global"
     ? track.events.filter((event) => event.port === 0 && event.register === 0x2a)
     : [];
-  if (dacEvents.length > 0) {
+  if (scheduled) {
+    lines.push("  const cycleStart = beginSampleSchedule();");
+    if (dacEvents.length > 0) {
+      lines.push('  dac.playStream("vgm-dac", { atSamples: cycleStart });');
+    }
+    lines.push("  scheduleWritesSamples(cycleStart, [");
+  } else if (dacEvents.length > 0) {
     lines.push("  const dacStart = beginSampleSchedule();");
     lines.push('  dac.playStream("vgm-dac", { atSamples: dacStart });');
   }
-  if (scheduled) lines.push("  const cycleStart = beginSampleSchedule();", "  scheduleWritesSamples(cycleStart, [");
   let cursor = 0;
   for (const event of track.events) {
     if (useDacBase64 && event.port === 0 && event.register === 0x2a) continue;

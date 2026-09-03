@@ -70,10 +70,6 @@ const stopButton =
   document.getElementById("stopButton");
 const workerExecution =
   document.getElementById("workerExecution");
-const loadExampleButton =
-  document.getElementById(
-    "loadExampleButton"
-  );
 const importCassetteButton =
   document.getElementById(
     "importCassetteButton"
@@ -100,10 +96,6 @@ const editorHost =
   document.getElementById(
     "editorHost"
   );
-const editorNote =
-  document.getElementById(
-    "editorNote"
-  );
 const status =
   document.getElementById("status");
 const runtimeState =
@@ -122,6 +114,8 @@ const consoleOutput =
   document.getElementById(
     "consoleOutput"
   );
+const codeTab =
+  document.getElementById("codeTab");
 const consoleTab =
   document.getElementById(
     "consoleTab"
@@ -138,6 +132,8 @@ const consolePanel =
   document.getElementById(
     "consolePanel"
   );
+const codePanel =
+  document.getElementById("codePanel");
 const helpersPanel =
   document.getElementById(
     "helpersPanel"
@@ -532,12 +528,7 @@ function installTfiEditorDropTarget() {
   }
 }
 
-function setEditorNote(message) {
-  if (editorNote) {
-    editorNote.textContent =
-      message;
-  }
-}
+function setEditorNote(_message) {}
 
 function getEditorValue() {
   return editorAdapter.getValue();
@@ -552,10 +543,12 @@ const ui =
     status,
     runtimeState,
     consoleOutput,
+    codeTab,
     consoleTab,
     helpersTab,
     operatorTabButton,
     consolePanel,
+    codePanel,
     helpersPanel,
     operatorPanel,
   });
@@ -924,8 +917,8 @@ stopButton.addEventListener(
   }
 );
 
-loadExampleButton.addEventListener(
-  "click",
+exampleSelect.addEventListener(
+  "change",
   () => {
     loadExample();
   }
@@ -958,14 +951,15 @@ function syncDacBase64Option() {
   const selectedMode = document.querySelector(
     'input[name="vgmImportMode"]:checked'
   );
-  const canUseBase64 = selectedMode?.value !== "schedule";
+  const mode = selectedMode?.value ?? "write";
   if (dacBase64Input) {
-    dacBase64Input.disabled = !canUseBase64;
+    dacBase64Input.disabled = false;
   }
   if (dacBase64Label) {
-    dacBase64Label.title = canUseBase64
-      ? "Store DAC data as one Base64 stream."
-      : "Schedule output always keeps DAC as raw register writes.";
+    dacBase64Label.hidden = false;
+    dacBase64Label.title = mode === "schedule"
+      ? "Preload DAC as a Base64 stream without scheduling every DAC write."
+      : "Store DAC data as one Base64 stream.";
   }
 }
 
@@ -1047,7 +1041,7 @@ applyInitialSourceFromQuery();
 void applyCassetteFromQuery();
 applySimpleModeFromQuery();
 clearConsole();
-setBottomTab("console");
+setBottomTab("code");
 setRuntimeState("Audio idle");
 ui.installBottomTabHandlers();
 installTfiEditorDropTarget();

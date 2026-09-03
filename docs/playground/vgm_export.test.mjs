@@ -46,7 +46,13 @@ test("exportYm2612VgmToPlaygroundJavaScript separates global and channel timing"
   assert.match(script, /write\(0x28, 0x00\)/);
   assert.match(script, /await sleepSamples\(1215\)/);
 
-  const scheduled = exportYm2612VgmToPlaygroundJavaScript(buffer, { scheduled: true });
+  const scheduled = exportYm2612VgmToPlaygroundJavaScript(buffer, {
+    scheduled: true,
+    dacBase64: false,
+  });
+  const scheduledBase64 = exportYm2612VgmToPlaygroundJavaScript(buffer, {
+    scheduled: true,
+  });
   assert.match(scheduled, /scheduleWritesSamples\(cycleStart, \[/);
   assert.match(scheduled, /\[480, 0, 0x28, 0xf0\]/);
 });
@@ -91,7 +97,13 @@ test("scheduled export expands YM2612 DAC stream data while readable export omit
   const rawDac = exportYm2612VgmToPlaygroundJavaScript(buffer, {
     dacBase64: false,
   });
-  const scheduled = exportYm2612VgmToPlaygroundJavaScript(buffer, { scheduled: true });
+  const scheduled = exportYm2612VgmToPlaygroundJavaScript(buffer, {
+    scheduled: true,
+    dacBase64: false,
+  });
+  const scheduledBase64 = exportYm2612VgmToPlaygroundJavaScript(buffer, {
+    scheduled: true,
+  });
 
   assert.match(readable, /await dac\.loadBase64\("vgm-dac", "/);
   assert.match(readable, /dac\.playStream\("vgm-dac", \{ atSamples: dacStart \}\)/);
@@ -101,6 +113,9 @@ test("scheduled export expands YM2612 DAC stream data while readable export omit
   assert.match(scheduled, /\[1, 0, 0x2a, 0x70\]/);
   assert.match(scheduled, /\[2, 0, 0x2a, 0x80\]/);
   assert.match(scheduled, /\[3, 0, 0x2a, 0x90\]/);
+  assert.match(scheduledBase64, /await dac\.loadBase64\("vgm-dac", "/);
+  assert.match(scheduledBase64, /dac\.playStream\("vgm-dac", \{ atSamples: cycleStart \}\)/);
+  assert.doesNotMatch(scheduledBase64, /\[1, 0, 0x2a, 0x70\]/);
 });
 
 test("export can omit DAC data and DAC enable writes", () => {
@@ -128,7 +143,7 @@ test("scheduled export handles large DAC write tracks without argument spreading
 
   const script = exportYm2612VgmToPlaygroundJavaScript(
     createVgmBuffer(dacWrites),
-    { scheduled: true }
+    { scheduled: true, dacBase64: false }
   );
 
   assert.match(script, /\[0, 0, 0x2a, 0x00\]/);

@@ -5,10 +5,12 @@ export function createPlaygroundUi(
     status,
     runtimeState,
     consoleOutput,
+    codeTab,
     consoleTab,
     helpersTab,
     operatorTabButton,
     consolePanel,
+    codePanel,
     helpersPanel,
     operatorPanel,
   } = options;
@@ -43,6 +45,11 @@ export function createPlaygroundUi(
 
   function setBottomTab(tabName) {
     const tabs = [
+      {
+        name: "code",
+        button: codeTab,
+        panel: codePanel,
+      },
       {
         name: "console",
         button: consoleTab,
@@ -79,9 +86,10 @@ export function createPlaygroundUi(
     direction
   ) {
     const tabs = [
+      codeTab,
       consoleTab,
-      helpersTab,
       operatorTabButton,
+      helpersTab,
     ].filter(Boolean);
     const currentIndex =
       tabs.indexOf(activeTab);
@@ -97,17 +105,26 @@ export function createPlaygroundUi(
       tabs.length;
     tabs[nextIndex]?.focus();
     setBottomTab(
-      tabs[nextIndex] ===
+      tabs[nextIndex] === codeTab
+        ? "code"
+        : tabs[nextIndex] ===
         consoleTab
         ? "console"
         : tabs[nextIndex] ===
-            helpersTab
-          ? "helpers"
-          : "operator"
+            operatorTabButton
+          ? "operator"
+          : "helpers"
     );
   }
 
   function installBottomTabHandlers() {
+    codeTab?.addEventListener(
+      "click",
+      () => {
+        setBottomTab("code");
+      }
+    );
+
     consoleTab?.addEventListener(
       "click",
       () => {
@@ -130,9 +147,10 @@ export function createPlaygroundUi(
     );
 
     for (const tabButton of [
+      codeTab,
       consoleTab,
-      helpersTab,
       operatorTabButton,
+      helpersTab,
     ]) {
       tabButton?.addEventListener(
         "keydown",

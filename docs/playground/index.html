@@ -7,14 +7,14 @@
     <style>
       :root {
         color-scheme: light;
-        --bg: #f4efe4;
-        --panel: #fffaf0;
-        --ink: #1f1b16;
-        --accent: #b4572f;
-        --accent-dark: #7e381c;
-        --line: #d7c8ac;
-        --code: #2b241d;
-        --code-ink: #f6ead7;
+        --bg: #f0f2f5;
+        --panel: #fbfcfe;
+        --ink: #20252c;
+        --accent: #1f6feb;
+        --accent-dark: #1554ac;
+        --line: #cbd3dd;
+        --code: #1e232b;
+        --code-ink: #dce4ed;
         --pill-bg: #343a4a;
         --pill-border: #6e7a92;
         --pill-ink: #f7f3ea;
@@ -27,27 +27,82 @@
 
       body {
         margin: 0;
-        min-height: 100vh;
+        height: 100vh;
+        height: 100dvh;
+        overflow: hidden;
         font-family: "Avenir Next", "Helvetica Neue", Helvetica, Arial, sans-serif;
         color: var(--ink);
         background:
-          radial-gradient(circle at top left, #fff8df 0, transparent 28%),
-          radial-gradient(circle at bottom right, #f0d8ba 0, transparent 24%),
-          linear-gradient(160deg, var(--bg), #eadfc9 60%, #e0cfb5);
+          linear-gradient(180deg, #f7f8fa, var(--bg));
       }
 
       main {
-        max-width: 1280px;
+        max-width: 1180px;
         margin: 0 auto;
-        padding: 28px 16px 40px;
+        display: flex;
+        height: 100vh;
+        height: 100dvh;
+        min-height: 0;
+        padding: 66px 16px 42px;
+      }
+
+      main > .panel {
+        display: flex;
+        flex: 1;
+        flex-direction: column;
+        min-height: 0;
+      }
+
+      .app-bar {
+        position: fixed;
+        z-index: 50;
+        top: 0;
+        left: 0;
+        right: 0;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        min-height: 48px;
+        padding: 6px 12px;
+        border-bottom: 1px solid var(--line);
+        background: #ffffff;
+        box-shadow: 0 2px 8px rgba(30, 42, 56, 0.08);
+      }
+
+      .app-bar .toolbar-menu-panel {
+        right: auto;
+        left: 0;
+      }
+
+      .app-bar-leading {
+        display: flex;
+        align-items: center;
+        min-width: 0;
+        gap: 10px;
+      }
+
+      .app-bar-brand {
+        min-width: 0;
+      }
+
+      .app-bar-brand h1 {
+        font-size: 0.9rem;
+        white-space: nowrap;
+      }
+
+      .app-bar-brand .subtext {
+        overflow: hidden;
+        max-width: 680px;
+        text-overflow: ellipsis;
+        white-space: nowrap;
       }
 
       .panel {
         background: color-mix(in srgb, var(--panel) 90%, white 10%);
         border: 1px solid var(--line);
-        border-radius: 24px;
-        padding: 22px;
-        box-shadow: 0 18px 40px rgba(90, 62, 30, 0.12);
+        border-radius: 0;
+        padding: 0;
+        box-shadow: none;
       }
 
       .topbar {
@@ -56,7 +111,7 @@
         justify-content: space-between;
         gap: 16px;
         flex-wrap: wrap;
-        margin-bottom: 14px;
+        margin-bottom: 0;
       }
 
       h1,
@@ -67,7 +122,8 @@
       }
 
       h1 {
-        font-size: clamp(1.8rem, 4vw, 3rem);
+        font-size: clamp(1rem, 2.2vw, 1.35rem);
+        letter-spacing: -0.02em;
       }
 
       h2 {
@@ -95,9 +151,10 @@
       }
 
       .subtext {
-        max-width: 720px;
+        max-width: 760px;
         color: rgba(31, 27, 22, 0.8);
-        font-size: 0.92rem;
+        font-size: 0.72rem;
+        line-height: 1.35;
       }
 
       .link-button,
@@ -111,7 +168,17 @@
         align-items: center;
         gap: 8px;
         flex-wrap: wrap;
-        margin-bottom: 12px;
+        min-height: 42px;
+        margin-bottom: 0;
+        padding: 4px 6px;
+        border: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.72);
+      }
+
+      .topbar-actions {
+        display: flex;
+        align-items: center;
+        gap: 8px;
       }
 
       .toolbar-menu {
@@ -167,6 +234,34 @@
         background: rgba(180, 87, 47, 0.12);
       }
 
+      .toolbar-menu-panel .toolbar-menu {
+        position: static;
+      }
+
+      .toolbar-menu-panel .toolbar-menu > summary {
+        display: block;
+        min-height: 0;
+        padding: 6px 8px;
+        border: 0;
+        border-radius: 9px;
+        color: var(--ink);
+        background: transparent;
+        text-align: left;
+      }
+
+      .toolbar-menu-panel .toolbar-menu[open] > summary {
+        background: rgba(180, 87, 47, 0.12);
+      }
+
+      .toolbar-menu-panel .toolbar-menu-panel {
+        position: static;
+        min-width: 0;
+        padding: 4px 0 0;
+        border: 0;
+        border-radius: 0;
+        box-shadow: none;
+      }
+
       .vgm-import-options {
         display: grid;
         gap: 8px;
@@ -218,6 +313,18 @@
         gap: 6px;
       }
 
+      .vgm-import-actions button {
+        border: 1px solid rgba(126, 56, 28, 0.18);
+        background: rgba(255, 255, 255, 0.72);
+        color: var(--ink);
+        text-align: center;
+      }
+
+      .vgm-import-actions #convertVgmButton {
+        color: white;
+        background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+      }
+
       .vgm-import-toggle {
         display: flex;
         align-items: center;
@@ -235,10 +342,10 @@
         display: inline-flex;
         align-items: center;
         gap: 8px;
-        padding: 4px 10px;
-        border-radius: 999px;
-        border: 1px solid rgba(126, 56, 28, 0.16);
-        background: rgba(255, 255, 255, 0.7);
+        padding: 2px 6px;
+        border-radius: 0;
+        border: 0;
+        background: transparent;
         color: var(--ink);
         font-size: 0.84rem;
         font-weight: 700;
@@ -257,17 +364,17 @@
       button,
       .link-button,
       select {
-        min-height: 34px;
-        padding: 6px 12px;
-        border-radius: 999px;
-        border: 1px solid rgba(126, 56, 28, 0.16);
+        min-height: 28px;
+        padding: 4px 9px;
+        border-radius: 3px;
+        border: 1px solid var(--line);
       }
 
       button,
       .link-button {
         appearance: none;
         color: white;
-        background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+        background: var(--accent);
         font-weight: 700;
         cursor: pointer;
         text-decoration: none;
@@ -284,13 +391,13 @@
       }
 
       .status {
-        min-height: 1.3em;
-        margin-bottom: 12px;
-        font-size: 0.88rem;
+        min-width: 0;
+        font-size: 0.74rem;
         font-weight: 700;
+        color: rgba(31, 27, 22, 0.78);
       }
 
-      #codeCard {
+      #codePanel {
         position: relative;
       }
 
@@ -312,7 +419,18 @@
       body.mode-simple .topbar,
       body.mode-simple .toolbar,
       body.mode-simple .status,
-      body.mode-simple #bottomPanels {
+      body.mode-simple .tabbar,
+      body.mode-simple #consolePanel,
+      body.mode-simple #helpersPanel,
+      body.mode-simple #operatorPanel {
+        display: none;
+      }
+
+      body.mode-simple .app-bar {
+        display: none;
+      }
+
+      body.mode-simple .status-bar {
         display: none;
       }
 
@@ -320,15 +438,11 @@
         display: flex;
       }
 
-      .layout {
-        display: block;
-      }
-
       .card {
-        padding: 14px;
-        border-radius: 18px;
+        padding: 0;
+        border-radius: 0;
         border: 1px solid var(--line);
-        background: rgba(255, 255, 255, 0.38);
+        background: var(--panel);
       }
 
       textarea,
@@ -341,9 +455,9 @@
       textarea,
       .editor-host {
         width: 100%;
-        min-height: 420px;
-        border-radius: 16px;
-        border: 1px solid rgba(43, 36, 29, 0.12);
+        min-height: 320px;
+        border-radius: 0;
+        border: 0;
         background: var(--code);
         color: var(--code-ink);
       }
@@ -427,23 +541,118 @@
       .tabbar {
         display: flex;
         align-items: center;
-        gap: 8px;
-        margin-bottom: 12px;
+        gap: 0;
+        margin: 0;
+        padding: 0 6px;
+        border-bottom: 1px solid var(--line);
+        background: #edf0f4;
+      }
+
+      #workPanels {
+        display: flex;
+        flex: 1;
+        flex-direction: column;
+        min-height: 0;
+      }
+
+      .tab-panel:not([hidden]) {
+        flex: 1;
+        min-height: 0;
+      }
+
+      #codePanel:not([hidden]) {
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+        overflow: hidden;
+      }
+
+      #codePanel textarea,
+      #codePanel .editor-host[data-ready="true"] {
+        flex: 1;
+        min-height: 0;
+      }
+
+      #codePanel textarea {
+        overflow: auto;
+      }
+
+      #codePanel .editor-host[data-ready="true"] {
+        overflow: hidden;
+      }
+
+      #helpersPanel,
+      #operatorPanel,
+      #consolePanel {
+        overflow: auto;
       }
 
       .tab-button {
-        min-height: 30px;
-        padding: 4px 10px;
-        border-radius: 999px;
-        border: 1px solid rgba(126, 56, 28, 0.18);
-        background: rgba(255, 255, 255, 0.72);
+        min-height: 34px;
+        padding: 6px 12px;
+        border: 0;
+        border-right: 1px solid var(--line);
+        border-radius: 0;
+        background: transparent;
         color: var(--ink);
         font-weight: 700;
       }
 
       .tab-button[aria-selected="true"] {
+        color: var(--ink);
+        background: var(--panel);
+        box-shadow: inset 0 2px 0 var(--accent);
+      }
+
+      #codePanel .section-heading {
+        display: none;
+      }
+
+      #consolePanel pre {
+        min-height: 100%;
+        border-radius: 0;
+      }
+
+      .status-bar {
+        position: fixed;
+        z-index: 50;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        display: flex;
+        align-items: center;
+        min-height: 28px;
+        gap: 10px;
+        padding: 2px 10px;
+        border-top: 1px solid #164f9a;
+        background: var(--accent-dark);
         color: white;
-        background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+      }
+
+      .status-bar .pill,
+      .status-bar .status,
+      .status-bar .volume-control {
+        color: white;
+      }
+
+      .status-bar .pill {
+        min-height: 20px;
+        padding: 1px 5px;
+        border: 0;
+        border-radius: 0;
+        background: transparent;
+      }
+
+      .status-bar .status {
+        color: rgba(255, 255, 255, 0.86);
+      }
+
+      .status-bar .volume-control {
+        margin-left: auto;
+      }
+
+      .status-bar .volume-control input[type="range"] {
+        width: 92px;
       }
 
       .tab-panel[hidden] {
@@ -892,55 +1101,69 @@
           min-height: 320px;
         }
       }
+
+      @media (max-width: 640px) {
+        .app-bar-brand .subtext {
+          display: none;
+        }
+      }
     </style>
   </head>
   <body>
+    <nav class="app-bar" aria-label="Playground navigation">
+      <div class="app-bar-leading">
+        <details class="toolbar-menu" id="mainMenu">
+          <summary aria-label="Playground menu">Menu</summary>
+          <div class="toolbar-menu-panel">
+            <details class="toolbar-menu" id="importVgmMenu">
+              <summary>Import VGM</summary>
+              <div class="toolbar-menu-panel">
+                <fieldset class="vgm-import-options">
+                  <legend>Output timing</legend>
+                  <div class="vgm-import-mode">
+                    <label>
+                      <input type="radio" name="vgmImportMode" value="schedule">
+                      Schedule
+                    </label>
+                    <label>
+                      <input type="radio" name="vgmImportMode" value="write" checked>
+                      Write
+                    </label>
+                  </div>
+                  <label class="vgm-import-toggle">
+                    <input id="includeDacInput" type="checkbox" checked>
+                    Include DAC
+                  </label>
+                  <label class="vgm-import-toggle" id="dacBase64Label">
+                    <input id="dacBase64Input" type="checkbox" checked>
+                    DAC use Base64
+                  </label>
+                  <div class="vgm-import-actions">
+                    <button id="cancelVgmImportButton" type="button">Cancel</button>
+                    <button id="convertVgmButton" type="button">Convert VGM...</button>
+                  </div>
+                </fieldset>
+              </div>
+            </details>
+            <button id="importCassetteButton" type="button">Import Cassette</button>
+            <a class="link-button" href="./cassette-gen.html">Open Cassette Generator</a>
+          </div>
+        </details>
+        <div class="app-bar-brand">
+          <h1 id="pageTitle">Tetorica FM2612 Playground</h1>
+          <p class="subtext">
+            Write a few lines of JavaScript, run them in the browser, then
+            drop down to raw YM2612 control when you want to.
+          </p>
+        </div>
+      </div>
+      <a class="link-button" href="../index.html">Back</a>
+    </nav>
     <main>
       <section class="panel">
-        <div class="topbar">
-          <div>
-            <h1 id="pageTitle">Tetorica FM2612 Playground</h1>
-            <p class="subtext">
-              Write a few lines of JavaScript, run them in the browser, then
-              drop down to raw YM2612 control when you want to.
-            </p>
-          </div>
-        </div>
-
         <div class="toolbar">
           <button id="runButton" type="button">Run</button>
           <button id="stopButton" type="button">Stop</button>
-          <details class="toolbar-menu" id="importVgmMenu">
-            <summary>Import VGM</summary>
-            <div class="toolbar-menu-panel">
-              <fieldset class="vgm-import-options">
-                <legend>Output timing</legend>
-                <div class="vgm-import-mode">
-                  <label>
-                    <input type="radio" name="vgmImportMode" value="schedule">
-                    Schedule
-                  </label>
-                  <label>
-                    <input type="radio" name="vgmImportMode" value="write" checked>
-                    Write
-                  </label>
-                </div>
-                <label class="vgm-import-toggle">
-                  <input id="includeDacInput" type="checkbox" checked>
-                  Include DAC
-                </label>
-                <label class="vgm-import-toggle" id="dacBase64Label">
-                  <input id="dacBase64Input" type="checkbox" checked>
-                  DAC use Base64
-                </label>
-                <div class="vgm-import-actions">
-                  <button id="cancelVgmImportButton" type="button">Cancel</button>
-                  <button id="convertVgmButton" type="button">Convert VGM...</button>
-                </div>
-              </fieldset>
-            </div>
-          </details>
-          <button id="importCassetteButton" type="button">Import Cassette</button>
           <label class="checkbox-label">
             <input id="workerExecution" type="checkbox">
             Run in Worker
@@ -970,60 +1193,29 @@
             <option value="psg-scale">PSG Scale</option>
             <option value="psg-noise">PSG Noise</option>
           </select>
-          <button id="loadExampleButton" type="button">Load Example</button>
-          <label class="volume-control" for="masterVolumeRange">
-            <span>Vol</span>
-            <input id="masterVolumeRange" type="range" min="0" max="380" value="100" step="1">
-            <span id="masterVolumeValue" class="volume-readout">100%</span>
-          </label>
-          <span id="runtimeState" class="pill">Audio idle</span>
-          <details class="toolbar-menu toolbar-menu--main" id="mainMenu">
-            <summary aria-label="More playground actions">Menu</summary>
-            <div class="toolbar-menu-panel">
-              <a class="link-button" href="./cassette-gen.html">Cassette Generator</a>
-              <a class="link-button" href="../index.html">Back</a>
-            </div>
-          </details>
         </div>
 
-        <div class="status" id="status">Ready.</div>
-
-        <div class="layout">
-          <section class="card" id="codeCard">
-            <div class="run-overlay" id="runOverlay"></div>
-            <div class="section-heading">
-              <h2>Code</h2>
-              <span class="shortcut-hint">Ctrl/Cmd+Shift+Space/I · Ctrl/Cmd+Space/I</span>
-            </div>
-            <div id="editorHost" class="editor-host" data-ready="false"></div>
-            <textarea id="editor" spellcheck="false"></textarea>
-            <p id="editorNote" class="editor-note">
-              Monaco editor is loading. If it cannot load, the fallback textarea stays active.
-            </p>
-          </section>
-        </div>
-
-        <section class="card" id="bottomPanels" style="margin-top: 16px;">
+        <section class="card" id="workPanels">
           <div class="tabbar" role="tablist" aria-label="Playground panels">
+            <button
+              id="codeTab"
+              class="tab-button"
+              type="button"
+              role="tab"
+              aria-selected="true"
+              aria-controls="codePanel"
+            >
+              Code
+            </button>
             <button
               id="consoleTab"
               class="tab-button"
               type="button"
               role="tab"
-              aria-selected="true"
+              aria-selected="false"
               aria-controls="consolePanel"
             >
               Console
-            </button>
-            <button
-              id="helpersTab"
-              class="tab-button"
-              type="button"
-              role="tab"
-              aria-selected="false"
-              aria-controls="helpersPanel"
-            >
-              Helpers
             </button>
             <button
               id="operatorTabButton"
@@ -1035,9 +1227,29 @@
             >
               Operator
             </button>
+            <button
+              id="helpersTab"
+              class="tab-button"
+              type="button"
+              role="tab"
+              aria-selected="false"
+              aria-controls="helpersPanel"
+            >
+              Helper
+            </button>
           </div>
 
-          <section id="consolePanel" class="tab-panel" role="tabpanel" aria-labelledby="consoleTab">
+          <section id="codePanel" class="tab-panel" role="tabpanel" aria-labelledby="codeTab">
+            <div class="run-overlay" id="runOverlay"></div>
+            <div class="section-heading">
+              <h2>Code</h2>
+              <span class="shortcut-hint">Ctrl/Cmd+Shift+Space/I · Ctrl/Cmd+Space/I</span>
+            </div>
+            <div id="editorHost" class="editor-host" data-ready="false"></div>
+            <textarea id="editor" spellcheck="false"></textarea>
+          </section>
+
+          <section id="consolePanel" class="tab-panel" role="tabpanel" aria-labelledby="consoleTab" hidden>
             <pre id="consoleOutput"></pre>
           </section>
 
@@ -1122,6 +1334,16 @@
         </section>
       </section>
     </main>
+
+    <footer class="status-bar">
+      <span id="runtimeState" class="pill">Audio idle</span>
+      <span class="status" id="status">Ready.</span>
+      <label class="volume-control" for="masterVolumeRange">
+        <span>Vol</span>
+        <input id="masterVolumeRange" type="range" min="0" max="380" value="100" step="1">
+        <span id="masterVolumeValue" class="volume-readout">100%</span>
+      </label>
+    </footer>
 
     <script type="module" src="./playground.js"></script>
   </body>
