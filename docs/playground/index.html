@@ -7,18 +7,19 @@
     <style>
       :root {
         color-scheme: light;
-        --bg: #f0f2f5;
-        --panel: #fbfcfe;
-        --ink: #20252c;
-        --accent: #1f6feb;
-        --accent-dark: #1554ac;
-        --line: #cbd3dd;
-        --code: #1e232b;
-        --code-ink: #dce4ed;
-        --pill-bg: #343a4a;
-        --pill-border: #6e7a92;
-        --pill-ink: #f7f3ea;
-        --pill-muted: #bfc9db;
+        --bg: #f1f2ef;
+        --panel: #fffefa;
+        --ink: #252b2e;
+        --accent: #119aa7;
+        --accent-dark: #087680;
+        --accent-warm: #eb5d2d;
+        --line: #c4c6bd;
+        --code: #1d2529;
+        --code-ink: #dce6e3;
+        --pill-bg: #334248;
+        --pill-border: #6a7d7d;
+        --pill-ink: #f7f3e8;
+        --pill-muted: #c7d5d2;
       }
 
       * {
@@ -32,18 +33,17 @@
         overflow: hidden;
         font-family: "Avenir Next", "Helvetica Neue", Helvetica, Arial, sans-serif;
         color: var(--ink);
-        background:
-          linear-gradient(180deg, #f7f8fa, var(--bg));
+        background: var(--bg);
       }
 
       main {
-        max-width: 1180px;
+        max-width: 1220px;
         margin: 0 auto;
         display: flex;
         height: 100vh;
         height: 100dvh;
         min-height: 0;
-        padding: 66px 16px 42px;
+        padding: 70px 20px 42px;
       }
 
       main > .panel {
@@ -51,6 +51,9 @@
         flex: 1;
         flex-direction: column;
         min-height: 0;
+        overflow: hidden;
+        border-radius: 16px;
+        box-shadow: 0 8px 24px rgba(55, 64, 61, 0.12);
       }
 
       .app-bar {
@@ -62,11 +65,11 @@
         display: flex;
         align-items: center;
         justify-content: space-between;
-        min-height: 48px;
-        padding: 6px 12px;
+        min-height: 54px;
+        padding: 7px 14px;
         border-bottom: 1px solid var(--line);
         background: #ffffff;
-        box-shadow: 0 2px 8px rgba(30, 42, 56, 0.08);
+        box-shadow: 0 1px 6px rgba(55, 64, 61, 0.1);
       }
 
       .app-bar .toolbar-menu-panel {
@@ -86,7 +89,8 @@
       }
 
       .app-bar-brand h1 {
-        font-size: 0.9rem;
+        font-size: 1rem;
+        letter-spacing: -0.03em;
         white-space: nowrap;
       }
 
@@ -98,9 +102,9 @@
       }
 
       .panel {
-        background: color-mix(in srgb, var(--panel) 90%, white 10%);
+        background: var(--panel);
         border: 1px solid var(--line);
-        border-radius: 0;
+        border-radius: 16px;
         padding: 0;
         box-shadow: none;
       }
@@ -168,11 +172,12 @@
         align-items: center;
         gap: 8px;
         flex-wrap: wrap;
-        min-height: 42px;
+        min-height: 50px;
         margin-bottom: 0;
-        padding: 4px 6px;
-        border: 1px solid var(--line);
-        background: rgba(255, 255, 255, 0.72);
+        padding: 7px 12px;
+        border: 0;
+        border-bottom: 1px solid var(--line);
+        background: #ffffff;
       }
 
       .topbar-actions {
@@ -191,10 +196,11 @@
         justify-content: center;
         min-height: 34px;
         padding: 6px 12px;
-        border-radius: 999px;
-        border: 1px solid rgba(126, 56, 28, 0.16);
+        border-radius: 10px;
+        border: 1px solid rgba(7, 99, 108, 0.4);
         color: white;
-        background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+        background: linear-gradient(180deg, #17abb9, var(--accent-dark));
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.34), 0 1px 2px rgba(6, 83, 91, 0.22);
         font-weight: 700;
         cursor: pointer;
         list-style: none;
@@ -213,9 +219,9 @@
         min-width: 184px;
         padding: 6px;
         border: 1px solid var(--line);
-        border-radius: 14px;
+        border-radius: 12px;
         background: var(--panel);
-        box-shadow: 0 14px 28px rgba(90, 62, 30, 0.2);
+        box-shadow: 0 10px 22px rgba(55, 64, 61, 0.18);
       }
 
       .toolbar-menu-panel button,
@@ -231,7 +237,7 @@
 
       .toolbar-menu-panel button:hover,
       .toolbar-menu-panel .link-button:hover {
-        background: rgba(180, 87, 47, 0.12);
+        background: rgba(17, 154, 167, 0.12);
       }
 
       .toolbar-menu-panel .toolbar-menu {
@@ -250,7 +256,7 @@
       }
 
       .toolbar-menu-panel .toolbar-menu[open] > summary {
-        background: rgba(180, 87, 47, 0.12);
+        background: rgba(17, 154, 167, 0.12);
       }
 
       .toolbar-menu-panel .toolbar-menu-panel {
@@ -322,7 +328,7 @@
 
       .vgm-import-actions #convertVgmButton {
         color: white;
-        background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+        background: linear-gradient(180deg, #f57948, var(--accent-warm));
       }
 
       .vgm-import-toggle {
@@ -366,7 +372,7 @@
       select {
         min-height: 28px;
         padding: 4px 9px;
-        border-radius: 3px;
+        border-radius: 8px;
         border: 1px solid var(--line);
       }
 
@@ -374,10 +380,17 @@
       .link-button {
         appearance: none;
         color: white;
-        background: var(--accent);
+        background: linear-gradient(180deg, #18acba, var(--accent-dark));
         font-weight: 700;
         cursor: pointer;
         text-decoration: none;
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.32), 0 2px 0 rgba(6, 83, 91, 0.3);
+      }
+
+      #stopButton {
+        border-color: rgba(143, 58, 31, 0.58);
+        background: linear-gradient(180deg, #f67b4a, var(--accent-warm));
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3), 0 2px 0 rgba(143, 58, 31, 0.3);
       }
 
       button:disabled {
@@ -441,7 +454,7 @@
       .card {
         padding: 0;
         border-radius: 0;
-        border: 1px solid var(--line);
+        border: 0;
         background: var(--panel);
       }
 
@@ -456,7 +469,7 @@
       .editor-host {
         width: 100%;
         min-height: 320px;
-        border-radius: 0;
+        border-radius: 0 0 14px 14px;
         border: 0;
         background: var(--code);
         color: var(--code-ink);
@@ -543,9 +556,9 @@
         align-items: center;
         gap: 0;
         margin: 0;
-        padding: 0 6px;
+        padding: 6px 12px 0;
         border-bottom: 1px solid var(--line);
-        background: #edf0f4;
+        background: #f5f5f1;
       }
 
       #workPanels {
@@ -588,12 +601,12 @@
       }
 
       .tab-button {
-        min-height: 34px;
-        padding: 6px 12px;
-        border: 0;
-        border-right: 1px solid var(--line);
-        border-radius: 0;
-        background: transparent;
+        min-height: 36px;
+        padding: 6px 16px;
+        border: 1px solid transparent;
+        border-bottom: 0;
+        border-radius: 10px 10px 0 0;
+        background: rgba(255, 255, 255, 0.3);
         color: var(--ink);
         font-weight: 700;
       }
@@ -601,7 +614,8 @@
       .tab-button[aria-selected="true"] {
         color: var(--ink);
         background: var(--panel);
-        box-shadow: inset 0 2px 0 var(--accent);
+        border-color: var(--line);
+        box-shadow: inset 0 3px 0 var(--accent);
       }
 
       #codePanel .section-heading {
@@ -624,15 +638,15 @@
         min-height: 28px;
         gap: 10px;
         padding: 2px 10px;
-        border-top: 1px solid #164f9a;
-        background: var(--accent-dark);
-        color: white;
+        border-top: 2px solid var(--accent);
+        background: #ffffff;
+        color: var(--ink);
       }
 
       .status-bar .pill,
       .status-bar .status,
       .status-bar .volume-control {
-        color: white;
+        color: var(--ink);
       }
 
       .status-bar .pill {
@@ -644,7 +658,7 @@
       }
 
       .status-bar .status {
-        color: rgba(255, 255, 255, 0.86);
+        color: rgba(37, 43, 46, 0.74);
       }
 
       .status-bar .volume-control {
