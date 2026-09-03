@@ -31,6 +31,7 @@ megasynth_recording.js
 megadrive-fm-presets.js
 pitch.js
 segapsg.js
+segapsg_api.js
 stereo-width-worklet.js
 tfi.js
 ym2612.js

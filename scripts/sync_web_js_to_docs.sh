@@ -28,6 +28,7 @@ playground_music.js
 playground_noise.js
 playground_sync.js
 segapsg.js
+segapsg_api.js
 stereo-width-worklet.js
 tfi.js
 vgm_file.js
