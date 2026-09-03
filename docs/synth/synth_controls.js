@@ -36,6 +36,7 @@ export function createParamControl(config) {
     showLabel = true,
     booleanMode = false,
     category = "",
+    wheelAdjust = true,
   } = config;
 
   const wrapper =
@@ -202,22 +203,24 @@ export function createParamControl(config) {
     endDrag
   );
 
-  wrapper.addEventListener(
-    "wheel",
-    (event) => {
-      event.preventDefault();
-      if (booleanMode) {
-        applyValue(!currentValue);
-        return;
-      }
-      const direction =
-        event.deltaY < 0
-          ? step
-          : -step;
-      applyValue(currentValue + direction);
-    },
-    { passive: false }
-  );
+  if (wheelAdjust) {
+    wrapper.addEventListener(
+      "wheel",
+      (event) => {
+        event.preventDefault();
+        if (booleanMode) {
+          applyValue(!currentValue);
+          return;
+        }
+        const direction =
+          event.deltaY < 0
+            ? step
+            : -step;
+        applyValue(currentValue + direction);
+      },
+      { passive: false }
+    );
+  }
 
   if (showLabel) {
     wrapper.appendChild(labelElement);
@@ -317,6 +320,7 @@ export function buildCommonControls({
   referenceColumnCount = defs.length,
   gapPx = 4,
   onHelpToggle = null,
+  wheelAdjust = true,
 }) {
   root.innerHTML = "";
   root.style.display = "grid";
@@ -331,6 +335,7 @@ export function buildCommonControls({
       createParamControl({
         ...config,
         showLabel: false,
+        wheelAdjust,
         value: state[config.id],
         onChange: (nextValue) => {
           onChange(config.id, nextValue);
@@ -418,6 +423,7 @@ export function buildOperatorControls({
   operatorStates,
   controlsMap,
   onChange,
+  wheelAdjust = true,
 }) {
   root.innerHTML = "";
 
@@ -449,6 +455,7 @@ export function buildOperatorControls({
         createParamControl({
           ...config,
           showLabel: false,
+          wheelAdjust,
           value:
             operatorStates[operator][
               config.id

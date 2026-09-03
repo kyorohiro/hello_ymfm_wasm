@@ -616,6 +616,7 @@ export function createPlaygroundOperatorTab(
         step: 1,
         booleanMode: true,
         category: "modulation",
+        wheelAdjust: false,
         value:
           channel3SpecialState.enabled,
         onChange: (nextValue) => {
@@ -643,6 +644,7 @@ export function createPlaygroundOperatorTab(
           max: 7,
           step: 1,
           category: "pitch",
+          wheelAdjust: false,
           value:
             channel3SpecialState
               .frequencies[operator]
@@ -691,6 +693,7 @@ export function createPlaygroundOperatorTab(
           max: 2047,
           step: 1,
           category: "pitch",
+          wheelAdjust: false,
           value:
             channel3SpecialState
               .frequencies[operator]
@@ -761,6 +764,7 @@ export function createPlaygroundOperatorTab(
     referenceColumnCount:
       OPERATOR_PARAM_DEFS.length,
     gapPx: 4,
+    wheelAdjust: false,
     onChange(id, value) {
       if (
         id === "lfoEnabled" ||
@@ -806,6 +810,7 @@ export function createPlaygroundOperatorTab(
     operatorStates:
       currentState().operators,
     controlsMap: operatorControls,
+    wheelAdjust: false,
     onChange(operator, id, value) {
       currentState().operators[operator][
         id
