@@ -227,30 +227,25 @@ let editorAdapter =
   createTextareaEditorAdapter(
     editor
   );
-const tfiImportInput =
-  document.createElement("input");
-tfiImportInput.type = "file";
-tfiImportInput.accept = ".tfi,application/octet-stream";
-tfiImportInput.style.display =
-  "none";
-document.body.appendChild(
-  tfiImportInput
+
+function createImportInput(accept) {
+  const input = document.createElement("input");
+  input.type = "file";
+  input.accept = accept;
+  input.style.display = "none";
+  document.body.appendChild(input);
+  return input;
+}
+
+const tfiImportInput = createImportInput(
+  ".tfi,application/octet-stream"
 );
-const cassetteImportInput =
-  document.createElement("input");
-cassetteImportInput.type = "file";
-cassetteImportInput.accept = ".zip,application/zip";
-cassetteImportInput.style.display =
-  "none";
-document.body.appendChild(
-  cassetteImportInput
+const cassetteImportInput = createImportInput(
+  ".zip,application/zip"
 );
-const vgmImportInput =
-  document.createElement("input");
-vgmImportInput.type = "file";
-vgmImportInput.accept = ".vgm,.vgz,audio/vgm,application/octet-stream";
-vgmImportInput.style.display = "none";
-document.body.appendChild(vgmImportInput);
+const vgmImportInput = createImportInput(
+  ".vgm,.vgz,audio/vgm,application/octet-stream"
+);
 let pendingVgmImportOptions = {
   mode: "write",
   includeDac: true,
@@ -491,11 +486,11 @@ function promptVgmImport(options) {
   vgmImportInput.click();
 }
 
-async function importVgmFile(file, options) {
-  const decoded = await maybeDecodeVgmFile(
-    await file.arrayBuffer()
-  );
-  const vgm = new Ym2612VGM(decoded, { logger: null });
+function resolveVgmImportStrategy(
+  vgm,
+  selectedChip,
+  options
+) {
   const isYm2608Only =
     vgm.header.ym2608Clock > 0 &&
     vgm.header.ym2612Clock === 0;
@@ -510,39 +505,68 @@ async function importVgmFile(file, options) {
   const useNativeYm2203 = isYm2203Only && selectedChip === "ym2203";
   const useNativeYm2608 = isYm2608Only && selectedChip === "ym2608";
   const useNativeYm2610 = isYm2610Only && selectedChip === "ym2610";
-  const source = useNativeYm2203
-    ? exportYm2203VgmToPlaygroundJavaScript(vgm, { scheduled: false })
-    : useNativeYm2608
-    ? exportYm2608VgmToPlaygroundJavaScript(vgm, { scheduled: false })
-    : useNativeYm2610
-    ? exportYm2610BVgmToPlaygroundJavaScript(vgm, { scheduled: false })
-    : isYm2203Only
-    ? exportYm2203FmVgmToPlaygroundJavaScript(vgm, {
-      scheduled: options.mode === "schedule",
-    })
-    : isYm2608Only
-    ? exportYm2608FmVgmToPlaygroundJavaScript(vgm, {
-      scheduled: options.mode === "schedule",
-    })
-    : vgm.exportPlaygroundJavaScript({
+  const scheduled = options.mode === "schedule";
+  const timing = scheduled ? "Schedule" : "Write";
+
+  if (useNativeYm2610) {
+    return {
+      source: exportYm2610BVgmToPlaygroundJavaScript(vgm, { scheduled: false }),
+      statusMessage: "for native Neo Geo YM2610 FM (Write timing; SSG and ADPCM omitted)",
+    };
+  }
+
+  if (useNativeYm2608) {
+    return {
+      source: exportYm2608VgmToPlaygroundJavaScript(vgm, { scheduled: false }),
+      statusMessage: "for native YM2608 FM (Write timing; SSG, Rhythm, and ADPCM-B omitted)",
+    };
+  }
+
+  if (useNativeYm2203) {
+    return {
+      source: exportYm2203VgmToPlaygroundJavaScript(vgm, { scheduled: false }),
+      statusMessage: "for native YM2203 FM (Write timing; SSG omitted)",
+    };
+  }
+
+  if (isYm2608Only) {
+    return {
+      source: exportYm2608FmVgmToPlaygroundJavaScript(vgm, { scheduled }),
+      statusMessage: `as YM2608 FM only (${timing} timing; SSG, Rhythm, and ADPCM-B omitted)`,
+    };
+  }
+
+  if (isYm2203Only) {
+    return {
+      source: exportYm2203FmVgmToPlaygroundJavaScript(vgm, { scheduled }),
+      statusMessage: `as YM2203 FM only (${timing} timing; SSG omitted)`,
+    };
+  }
+
+  return {
+    source: vgm.exportPlaygroundJavaScript({
       scheduled: options.mode === "schedule",
       includeDac: options.includeDac,
       dacBase64: options.dacBase64,
-    });
+    }),
+    statusMessage: `with ${timing} timing`,
+  };
+}
 
-  setEditorValue(source);
+async function importVgmFile(file, options) {
+  const decoded = await maybeDecodeVgmFile(
+    await file.arrayBuffer()
+  );
+  const vgm = new Ym2612VGM(decoded, { logger: null });
+  const strategy = resolveVgmImportStrategy(
+    vgm,
+    selectedChip,
+    options
+  );
+
+  setEditorValue(strategy.source);
   setStatus(
-    useNativeYm2610
-      ? `Imported ${file.name} for native Neo Geo YM2610 FM (Write timing; SSG and ADPCM omitted).`
-      : useNativeYm2608
-      ? `Imported ${file.name} for native YM2608 FM (Write timing; SSG, Rhythm, and ADPCM-B omitted).`
-      : useNativeYm2203
-        ? `Imported ${file.name} for native YM2203 FM (Write timing; SSG omitted).`
-      : isYm2608Only
-      ? `Imported ${file.name} as YM2608 FM only (${options.mode === "schedule" ? "Schedule" : "Write"} timing; SSG, Rhythm, and ADPCM-B omitted).`
-      : isYm2203Only
-        ? `Imported ${file.name} as YM2203 FM only (${options.mode === "schedule" ? "Schedule" : "Write"} timing; SSG omitted).`
-      : `Imported ${file.name} with ${options.mode === "schedule" ? "Schedule" : "Write"} timing.`
+    `Imported ${file.name} ${strategy.statusMessage}.`
   );
 }
 
@@ -647,8 +671,8 @@ const {
   formatLogArgs,
   setBottomTab,
 } = ui;
-const runtime =
-  createPlaygroundRuntime({
+function createRuntime() {
+  return createPlaygroundRuntime({
     megaDrive,
     presets:
       playgroundPresets,
@@ -680,6 +704,9 @@ const runtime =
       );
     },
   });
+}
+
+const runtime = createRuntime();
 
 function syncWorkerExecutionLock() {
   if (workerExecution) {
@@ -745,31 +772,24 @@ function loadExample() {
   );
 }
 
-async function loadCassetteSource(
-  source,
-  name
-) {
-  const cassette =
-    await loadPlaygroundCassette(
-      source,
-      { name }
-    );
-  const parsedTimbres = cassette.timbres.map(
-    (timbre) => ({
+function parseCassetteAssets(cassette) {
+  return {
+    cassette,
+    timbres: cassette.timbres.map((timbre) => ({
       ...timbre,
       preset: parseTfi(timbre.bytes),
-    })
-  );
-  const exampleEntries = cassette.examples.map(
-    (example) => ({
-      optionValue:
-        `cassette:${cassette.id}/${example.name}`,
+    })),
+    examples: cassette.examples.map((example) => ({
+      optionValue: `cassette:${cassette.id}/${example.name}`,
       name: example.name,
       source: example.source,
-    })
-  );
+    })),
+    samples: cassette.samples,
+  };
+}
 
-  for (const timbre of parsedTimbres) {
+function validateCassetteConflicts(assets) {
+  for (const timbre of assets.timbres) {
     if (
       Object.prototype.hasOwnProperty.call(
         runtime.presets,
@@ -782,34 +802,27 @@ async function loadCassetteSource(
     }
   }
 
-  for (const sampleEntry of cassette.samples) {
-    if (
-      runtime.sample.isLoaded(sampleEntry.name)
-    ) {
+  for (const sampleEntry of assets.samples) {
+    if (runtime.sample.isLoaded(sampleEntry.name)) {
       throw new Error(
         `Cassette sample "${sampleEntry.name}" is already loaded.`
       );
     }
   }
 
-  for (const example of exampleEntries) {
+  for (const example of assets.examples) {
     if (cassetteExamples.has(example.optionValue)) {
       throw new Error(
         `Cassette example "${example.name}" is already loaded.`
       );
     }
   }
+}
 
-  for (const timbre of parsedTimbres) {
-    playgroundPresets[timbre.name] =
-      timbre.preset;
-    runtime.presets[timbre.name] =
-      timbre.preset;
-  }
-
-  if (cassette.samples.length > 0) {
+async function registerCassetteAssets(assets) {
+  if (assets.samples.length > 0) {
     await runtime.ensureReady();
-    for (const sampleEntry of cassette.samples) {
+    for (const sampleEntry of assets.samples) {
       await runtime.sample.load(
         sampleEntry.name,
         sampleEntry.bytes.buffer
@@ -817,49 +830,64 @@ async function loadCassetteSource(
     }
   }
 
-  for (const example of exampleEntries) {
+  for (const timbre of assets.timbres) {
+    playgroundPresets[timbre.name] = timbre.preset;
+    runtime.presets[timbre.name] = timbre.preset;
+  }
+
+  for (const example of assets.examples) {
     cassetteExamples.set(
       example.optionValue,
       example.source
     );
   }
+}
 
-  for (const example of exampleEntries) {
-    const option = document.createElement(
-      "option"
-    );
+function appendCassetteExamplesToUi(assets) {
+  for (const example of assets.examples) {
+    const option = document.createElement("option");
     option.value = example.optionValue;
     option.textContent =
-      `${cassette.id}: ${example.name}`;
+      `${assets.cassette.id}: ${example.name}`;
     exampleSelect.appendChild(option);
   }
 
-  const firstExample = exampleEntries[0];
+  const firstExample = assets.examples[0];
   if (firstExample) {
-    exampleSelect.value =
-      firstExample.optionValue;
+    exampleSelect.value = firstExample.optionValue;
     loadExample();
   }
+}
 
+function formatCassetteStatus(assets) {
   const statusParts = [];
-  if (parsedTimbres.length > 0) {
-    statusParts.push(
-      `${parsedTimbres.length} timbre(s)`
-    );
+  if (assets.timbres.length > 0) {
+    statusParts.push(`${assets.timbres.length} timbre(s)`);
   }
-  if (exampleEntries.length > 0) {
-    statusParts.push(
-      `${exampleEntries.length} example(s)`
-    );
+  if (assets.examples.length > 0) {
+    statusParts.push(`${assets.examples.length} example(s)`);
   }
-  if (cassette.samples.length > 0) {
-    statusParts.push(
-      `${cassette.samples.length} sample(s)`
-    );
+  if (assets.samples.length > 0) {
+    statusParts.push(`${assets.samples.length} sample(s)`);
   }
-  setStatus(
-    `Loaded cassette ${cassette.id}${statusParts.length > 0 ? `: ${statusParts.join(", ")}.` : "."}`
-  );
+
+  return `Loaded cassette ${assets.cassette.id}${statusParts.length > 0 ? `: ${statusParts.join(", ")}.` : "."}`;
+}
+
+async function loadCassetteSource(
+  source,
+  name
+) {
+  const cassette =
+    await loadPlaygroundCassette(
+      source,
+      { name }
+    );
+  const assets = parseCassetteAssets(cassette);
+  validateCassetteConflicts(assets);
+  await registerCassetteAssets(assets);
+  appendCassetteExamplesToUi(assets);
+  setStatus(formatCassetteStatus(assets));
 }
 
 async function loadCassetteFile(file) {
@@ -990,170 +1018,177 @@ function applySimpleModeFromQuery() {
   }
 }
 
-runButton.addEventListener(
-  "click",
-  () => {
-    void runCode();
-  }
-);
+function installPlaygroundEventHandlers() {
+  runButton.addEventListener(
+    "click",
+    () => {
+      void runCode();
+    }
+  );
 
-stopButton.addEventListener(
-  "click",
-  () => {
-    stopRun();
-  }
-);
+  stopButton.addEventListener(
+    "click",
+    () => {
+      stopRun();
+    }
+  );
 
-exampleSelect.addEventListener(
-  "change",
-  () => {
-    loadExample();
-  }
-);
+  exampleSelect.addEventListener(
+    "change",
+    () => {
+      loadExample();
+    }
+  );
 
-importCassetteButton?.addEventListener(
-  "click",
-  () => {
-    promptCassetteImport();
-  }
-);
+  importCassetteButton?.addEventListener(
+    "click",
+    () => {
+      promptCassetteImport();
+    }
+  );
 
-convertVgmButton?.addEventListener(
-  "click",
-  () => {
+  convertVgmButton?.addEventListener(
+    "click",
+    () => {
+      const selectedMode = document.querySelector(
+        'input[name="vgmImportMode"]:checked'
+      );
+      promptVgmImport(
+        {
+          mode: selectedMode?.value ?? "write",
+          includeDac: includeDacInput?.checked ?? true,
+          dacBase64: dacBase64Input?.checked ?? true,
+        }
+      );
+    }
+  );
+
+  function syncDacBase64Option() {
     const selectedMode = document.querySelector(
       'input[name="vgmImportMode"]:checked'
     );
-    promptVgmImport(
-      {
-        mode: selectedMode?.value ?? "write",
-        includeDac: includeDacInput?.checked ?? true,
-        dacBase64: dacBase64Input?.checked ?? true,
-      }
-    );
+    const mode = selectedMode?.value ?? "write";
+    if (dacBase64Input) {
+      dacBase64Input.disabled = false;
+    }
+    if (dacBase64Label) {
+      dacBase64Label.hidden = false;
+      dacBase64Label.title = mode === "schedule"
+        ? "Preload DAC as a Base64 stream without scheduling every DAC write."
+        : "Store DAC data as one Base64 stream.";
+    }
   }
-);
 
-function syncDacBase64Option() {
-  const selectedMode = document.querySelector(
-    'input[name="vgmImportMode"]:checked'
+  document.querySelectorAll('input[name="vgmImportMode"]').forEach(
+    (input) => input.addEventListener("change", syncDacBase64Option)
   );
-  const mode = selectedMode?.value ?? "write";
-  if (dacBase64Input) {
-    dacBase64Input.disabled = false;
-  }
-  if (dacBase64Label) {
-    dacBase64Label.hidden = false;
-    dacBase64Label.title = mode === "schedule"
-      ? "Preload DAC as a Base64 stream without scheduling every DAC write."
-      : "Store DAC data as one Base64 stream.";
-  }
-}
+  syncDacBase64Option();
 
-document.querySelectorAll('input[name="vgmImportMode"]').forEach(
-  (input) => input.addEventListener("change", syncDacBase64Option)
-);
-syncDacBase64Option();
-
-cancelVgmImportButton?.addEventListener(
-  "click",
-  () => {
-    if (importVgmMenu) importVgmMenu.open = false;
-  }
-);
-
-tfiImportInput.addEventListener(
-  "change",
-  () => {
-    const file =
-      tfiImportInput.files?.[0];
-
-    if (!file) {
-      return;
+  cancelVgmImportButton?.addEventListener(
+    "click",
+    () => {
+      if (importVgmMenu) importVgmMenu.open = false;
     }
+  );
 
-    void insertTfiFile(file).catch(
-      (error) => {
-        setStatus(
-          `Failed to import TFI: ${error.message}`
-        );
+  tfiImportInput.addEventListener(
+    "change",
+    () => {
+      const file =
+        tfiImportInput.files?.[0];
+
+      if (!file) {
+        return;
       }
-    );
-  }
-);
 
-cassetteImportInput.addEventListener(
-  "change",
-  () => {
-    const file =
-      cassetteImportInput.files?.[0];
-
-    if (!file) {
-      return;
+      void insertTfiFile(file).catch(
+        (error) => {
+          setStatus(
+            `Failed to import TFI: ${error.message}`
+          );
+        }
+      );
     }
+  );
 
-    void loadCassetteFile(file).catch(
-      (error) => {
+  cassetteImportInput.addEventListener(
+    "change",
+    () => {
+      const file =
+        cassetteImportInput.files?.[0];
+
+      if (!file) {
+        return;
+      }
+
+      void loadCassetteFile(file).catch(
+        (error) => {
+          console.error(error);
+          setStatus(
+            `Failed to load cassette: ${error.message}`
+          );
+        }
+      );
+    }
+  );
+
+  vgmImportInput.addEventListener(
+    "change",
+    () => {
+      const file = vgmImportInput.files?.[0];
+
+      if (!file) {
+        return;
+      }
+
+      void importVgmFile(
+        file,
+        pendingVgmImportOptions
+      ).catch((error) => {
         console.error(error);
         setStatus(
-          `Failed to load cassette: ${error.message}`
+          `Failed to import VGM: ${error.message}`
         );
-      }
-    );
-  }
-);
-
-vgmImportInput.addEventListener(
-  "change",
-  () => {
-    const file = vgmImportInput.files?.[0];
-
-    if (!file) {
-      return;
+      });
     }
+  );
+}
 
-    void importVgmFile(
-      file,
-      pendingVgmImportOptions
-    ).catch((error) => {
-      console.error(error);
-      setStatus(
-        `Failed to import VGM: ${error.message}`
-      );
-    });
-  }
-);
+function bootPlayground() {
+  applyInitialSourceFromQuery();
+  void applyCassetteFromQuery();
+  applySimpleModeFromQuery();
+  clearConsole();
+  setBottomTab("code");
+  setRuntimeState("Audio idle");
+  installPlaygroundEventHandlers();
+  ui.installBottomTabHandlers();
+  installTfiEditorDropTarget();
+  void initializePlaygroundMonaco({
+    chip: selectedChip,
+    editor,
+    editorHost,
+    getEditorValue,
+    setEditorNote,
+    setEditorAdapter: (nextAdapter) => {
+      editorAdapter = nextAdapter;
+    },
+    onMonacoEditorReady({
+      monacoEditor,
+    }) {
+      monacoEditor.addAction({
+        id: "tetorica-insert-tfi-object",
+        label:
+          "File (TFI) Import...",
+        contextMenuGroupId:
+          "navigation",
+        contextMenuOrder: 1.5,
+        run() {
+          promptTfiInsert();
+        },
+      });
+    },
+  });
+}
 
-applyInitialSourceFromQuery();
-void applyCassetteFromQuery();
-applySimpleModeFromQuery();
-clearConsole();
-setBottomTab("code");
-setRuntimeState("Audio idle");
-ui.installBottomTabHandlers();
-installTfiEditorDropTarget();
-void initializePlaygroundMonaco({
-  chip: selectedChip,
-  editor,
-  editorHost,
-  getEditorValue,
-  setEditorNote,
-  setEditorAdapter: (nextAdapter) => {
-    editorAdapter = nextAdapter;
-  },
-  onMonacoEditorReady({
-    monacoEditor,
-  }) {
-    monacoEditor.addAction({
-      id: "tetorica-insert-tfi-object",
-      label:
-        "File (TFI) Import...",
-      contextMenuGroupId:
-        "navigation",
-      contextMenuOrder: 1.5,
-      run() {
-        promptTfiInsert();
-      },
-    });
-  },
-});
+bootPlayground();

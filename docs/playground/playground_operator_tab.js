@@ -8,6 +8,7 @@ import {
 } from "../synth/synth_controls.js";
 
 const OPERATOR_NUMBERS = [1, 2, 3, 4];
+const SPECIAL_MODE_CHANNEL = 2;
 const COMMON_PARAM_DEFS = [
   { id: "algorithm", label: "ALGO", min: 0, max: 7, step: 1, category: "routing" },
   { id: "feedback", label: "FB", min: 0, max: 7, step: 1, category: "routing" },
@@ -460,36 +461,49 @@ export function createPlaygroundOperatorTab(
       synth.setChannel3SpecialMode(
         channel3SpecialState.enabled
       );
-      for (let operator = 1; operator <= 4; operator += 1) {
-        const entry =
-          channel3SpecialState.frequencies[
-            operator
-          ];
-        synth.setChannel3SpecialFrequency(
-          displayOperatorToApiOperator(
-            operator
-          ),
-          entry.block,
-          entry.fnum
-        );
-        if (operator === 4) {
-          synth.setFrequency(
-            2,
-            entry.block,
-            entry.fnum
-          );
-        }
+      for (const operator of OPERATOR_NUMBERS) {
+        applyChannel3SpecialOperator(operator);
       }
-      synth.setPan(
-        channel,
-        state.left,
-        state.right,
-        state.ams,
-        state.pms
-      );
+      applyPanToSynth(channel);
     } finally {
       endRefreshBatch();
     }
+  }
+
+  function applyChannel3SpecialOperator(operator) {
+    if (!synth) {
+      return;
+    }
+
+    const entry =
+      channel3SpecialState.frequencies[operator];
+    synth.setChannel3SpecialFrequency(
+      displayOperatorToApiOperator(operator),
+      entry.block,
+      entry.fnum
+    );
+    if (operator === 4) {
+      synth.setFrequency(
+        SPECIAL_MODE_CHANNEL,
+        entry.block,
+        entry.fnum
+      );
+    }
+  }
+
+  function applyPanToSynth(channel) {
+    if (!synth) {
+      return;
+    }
+
+    const state = stateByChannel[channel];
+    synth.setPan(
+      channel,
+      state.left,
+      state.right,
+      state.ams,
+      state.pms
+    );
   }
 
   function updatePanUi() {
@@ -653,28 +667,7 @@ export function createPlaygroundOperatorTab(
             channel3SpecialState
               .frequencies[operator]
               .block = nextValue;
-            synth?.setChannel3SpecialFrequency(
-              displayOperatorToApiOperator(
-                operator
-              ),
-              channel3SpecialState
-                .frequencies[operator]
-                .block,
-              channel3SpecialState
-                .frequencies[operator]
-                .fnum
-            );
-            if (operator === 4) {
-              synth?.setFrequency(
-                2,
-                channel3SpecialState
-                  .frequencies[operator]
-                  .block,
-                channel3SpecialState
-                  .frequencies[operator]
-                  .fnum
-              );
-            }
+            applyChannel3SpecialOperator(operator);
             updateSpecialUi();
           },
         });
@@ -702,28 +695,7 @@ export function createPlaygroundOperatorTab(
             channel3SpecialState
               .frequencies[operator]
               .fnum = nextValue;
-            synth?.setChannel3SpecialFrequency(
-              displayOperatorToApiOperator(
-                operator
-              ),
-              channel3SpecialState
-                .frequencies[operator]
-                .block,
-              channel3SpecialState
-                .frequencies[operator]
-                .fnum
-            );
-            if (operator === 4) {
-              synth?.setFrequency(
-                2,
-                channel3SpecialState
-                  .frequencies[operator]
-                  .block,
-                channel3SpecialState
-                  .frequencies[operator]
-                  .fnum
-              );
-            }
+            applyChannel3SpecialOperator(operator);
             updateSpecialUi();
           },
         });
@@ -894,15 +866,7 @@ export function createPlaygroundOperatorTab(
       currentState().left =
         panLeft.checked;
       markDirty();
-      if (synth) {
-        synth.setPan(
-          selectedChannel,
-          currentState().left,
-          currentState().right,
-          currentState().ams,
-          currentState().pms
-        );
-      }
+      applyPanToSynth(selectedChannel);
     }
   );
 
@@ -912,15 +876,7 @@ export function createPlaygroundOperatorTab(
       currentState().right =
         panRight.checked;
       markDirty();
-      if (synth) {
-        synth.setPan(
-          selectedChannel,
-          currentState().left,
-          currentState().right,
-          currentState().ams,
-          currentState().pms
-        );
-      }
+      applyPanToSynth(selectedChannel);
     }
   );
 

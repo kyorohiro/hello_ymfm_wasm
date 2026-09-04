@@ -43,31 +43,31 @@ export function createPlaygroundUi(
       .join(" ");
   }
 
-  function setBottomTab(tabName) {
-    const tabs = [
-      {
-        name: "code",
-        button: codeTab,
-        panel: codePanel,
-      },
-      {
-        name: "console",
-        button: consoleTab,
-        panel: consolePanel,
-      },
-      {
-        name: "helpers",
-        button: helpersTab,
-        panel: helpersPanel,
-      },
-      {
-        name: "operator",
-        button: operatorTabButton,
-        panel: operatorPanel,
-      },
-    ];
+  const bottomTabs = [
+    {
+      name: "code",
+      button: codeTab,
+      panel: codePanel,
+    },
+    {
+      name: "console",
+      button: consoleTab,
+      panel: consolePanel,
+    },
+    {
+      name: "operator",
+      button: operatorTabButton,
+      panel: operatorPanel,
+    },
+    {
+      name: "helpers",
+      button: helpersTab,
+      panel: helpersPanel,
+    },
+  ];
 
-    for (const tab of tabs) {
+  function setBottomTab(tabName) {
+    for (const tab of bottomTabs) {
       const isSelected =
         tab.name === tabName;
       tab.button?.setAttribute(
@@ -85,14 +85,12 @@ export function createPlaygroundUi(
     activeTab,
     direction
   ) {
-    const tabs = [
-      codeTab,
-      consoleTab,
-      operatorTabButton,
-      helpersTab,
-    ].filter(Boolean);
-    const currentIndex =
-      tabs.indexOf(activeTab);
+    const tabs = bottomTabs.filter(
+      (tab) => Boolean(tab.button)
+    );
+    const currentIndex = tabs.findIndex(
+      (tab) => tab.button === activeTab
+    );
 
     if (currentIndex === -1) {
       return;
@@ -103,55 +101,19 @@ export function createPlaygroundUi(
         direction +
         tabs.length) %
       tabs.length;
-    tabs[nextIndex]?.focus();
-    setBottomTab(
-      tabs[nextIndex] === codeTab
-        ? "code"
-        : tabs[nextIndex] ===
-        consoleTab
-        ? "console"
-        : tabs[nextIndex] ===
-            operatorTabButton
-          ? "operator"
-          : "helpers"
-    );
+    tabs[nextIndex]?.button?.focus();
+    setBottomTab(tabs[nextIndex].name);
   }
 
   function installBottomTabHandlers() {
-    codeTab?.addEventListener(
-      "click",
-      () => {
-        setBottomTab("code");
-      }
-    );
-
-    consoleTab?.addEventListener(
-      "click",
-      () => {
-        setBottomTab("console");
-      }
-    );
-
-    helpersTab?.addEventListener(
-      "click",
-      () => {
-        setBottomTab("helpers");
-      }
-    );
-
-    operatorTabButton?.addEventListener(
-      "click",
-      () => {
-        setBottomTab("operator");
-      }
-    );
-
-    for (const tabButton of [
-      codeTab,
-      consoleTab,
-      operatorTabButton,
-      helpersTab,
-    ]) {
+    for (const { name, button } of bottomTabs) {
+      const tabButton = button;
+      tabButton?.addEventListener(
+        "click",
+        () => {
+          setBottomTab(name);
+        }
+      );
       tabButton?.addEventListener(
         "keydown",
         (event) => {
