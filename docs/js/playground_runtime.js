@@ -1775,12 +1775,40 @@ export function Playground(
 
 function formatLogArgs(args) {
   return args
-    .map((value) =>
-      typeof value === "string"
-        ? value
-        : safeStringify(value)
-    )
+    .map((value) => formatLogValue(value))
     .join(" ");
+}
+
+function formatLogValue(value) {
+  if (typeof value === "string") {
+    return value;
+  }
+  if (value instanceof ArrayBuffer) {
+    return formatBinaryLogValue(
+      new Uint8Array(value),
+      "ArrayBuffer"
+    );
+  }
+  if (ArrayBuffer.isView(value)) {
+    return formatBinaryLogValue(
+      new Uint8Array(
+        value.buffer,
+        value.byteOffset,
+        value.byteLength
+      ),
+      value.constructor.name
+    );
+  }
+  return safeStringify(value);
+}
+
+function formatBinaryLogValue(bytes, label) {
+  const preview = Array.from(
+    bytes.subarray(0, 16),
+    (value) => value.toString(16).padStart(2, "0")
+  ).join(" ");
+  const suffix = bytes.byteLength > 16 ? " ..." : "";
+  return `${label}(${bytes.byteLength}) [${preview}${suffix}]`;
 }
 
 function safeStringify(value) {

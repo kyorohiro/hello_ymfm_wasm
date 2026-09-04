@@ -27,6 +27,7 @@ import {
 } from "./playground_cassette.js";
 import {
   createVirtualFileSystem,
+  createVirtualFileRuntimeSource,
   normalizeVirtualPath,
   resolveVirtualDynamicImports,
 } from "./playground_virtual_files.js";
@@ -113,6 +114,7 @@ const editorHost =
   );
 const fileExplorerList = document.getElementById("fileExplorerList");
 const newFileButton = document.getElementById("newFileButton");
+const importFileButton = document.getElementById("importFileButton");
 const renameFileButton = document.getElementById("renameFileButton");
 const deleteFileButton = document.getElementById("deleteFileButton");
 const status =
@@ -275,6 +277,7 @@ const cassetteImportInput = createImportInput(
 const vgmImportInput = createImportInput(
   ".vgm,.vgz,audio/vgm,application/octet-stream"
 );
+const virtualFileImportInput = createImportInput("*");
 let pendingVgmImportOptions = {
   mode: "write",
   includeDac: true,
@@ -769,6 +772,35 @@ function createVirtualFile() {
   }
 }
 
+function promptVirtualFileImport() {
+  virtualFileImportInput.value = "";
+  virtualFileImportInput.click();
+}
+
+async function importVirtualFile(file) {
+  const path = window.prompt(
+    "Import file path",
+    `/${file.name}`
+  );
+  if (!path) {
+    return;
+  }
+  const normalizedPath = normalizeVirtualPath(path);
+  if (
+    virtualFiles.has(normalizedPath) &&
+    !window.confirm(`Replace ${normalizedPath}?`)
+  ) {
+    return;
+  }
+
+  virtualFiles.writeBinary(
+    normalizedPath,
+    new Uint8Array(await file.arrayBuffer())
+  );
+  renderVirtualFileExplorer();
+  setStatus(`Imported binary file: ${normalizedPath}`);
+}
+
 function renameActiveVirtualFile() {
   const path = window.prompt("Rename file", activeVirtualPath);
   if (!path || path === activeVirtualPath) {
@@ -911,11 +943,13 @@ async function runCode() {
       virtualFiles,
       entryFile.data,
       "/index.js",
-      createJavaScriptDataUrl
+      (moduleSource, modulePath) => createJavaScriptDataUrl(
+        `${createVirtualFileRuntimeSource(virtualFiles, modulePath)}\n${moduleSource}`
+      )
     );
     runtime.put(
       "__editor__",
-      source
+      `${createVirtualFileRuntimeSource(virtualFiles, "/index.js", { install: true })}\n${source}`
     );
     await runtime.play(
       "__editor__",
@@ -1223,6 +1257,7 @@ function applySimpleModeFromQuery() {
 function installPlaygroundEventHandlers() {
   exportCassetteButton?.addEventListener("click", exportCassette);
   newFileButton?.addEventListener("click", createVirtualFile);
+  importFileButton?.addEventListener("click", promptVirtualFileImport);
   renameFileButton?.addEventListener("click", renameActiveVirtualFile);
   deleteFileButton?.addEventListener("click", deleteActiveVirtualFile);
 
@@ -1315,6 +1350,19 @@ runButton.addEventListener(
           );
         }
       );
+    }
+  );
+
+  virtualFileImportInput.addEventListener(
+    "change",
+    () => {
+      const file = virtualFileImportInput.files?.[0];
+      if (!file) {
+        return;
+      }
+      void importVirtualFile(file).catch((error) => {
+        setStatus(`Failed to import file: ${error.message}`);
+      });
     }
   );
 

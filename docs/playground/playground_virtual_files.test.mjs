@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 
 import {
   createVirtualFileSystem,
+  createVirtualFileRuntimeSource,
   normalizeVirtualPath,
   resolveVirtualDynamicImports,
 } from "./playground_virtual_files.js";
@@ -56,4 +57,25 @@ test("rewrites relative dynamic imports recursively", () => {
   assert.equal(source, 'await import("blob:/lib/hello.js");');
   assert.equal(modules[0].path, "/lib/note.js");
   assert.match(modules[1].moduleSource, /blob:\/lib\/note.js/);
+});
+
+test("runtime file API reads relative text, binary, and JSON files", async () => {
+  const files = createVirtualFileSystem([
+    { path: "/index.js", data: "" },
+    { path: "/config.json", data: '{"tempo":120}' },
+    { path: "/samples/hit.bin", data: new Uint8Array([4, 5]) },
+  ]);
+  const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
+  const read = new AsyncFunction(
+    `${createVirtualFileRuntimeSource(files, "/index.js", { install: true })}
+     return {
+       config: await file("./config.json", { type: "json" }),
+       bytes: Array.from(new Uint8Array(await file("./samples/hit.bin", { type: "arrayBuffer" }))),
+     };`
+  );
+
+  assert.deepEqual(await read(), {
+    config: { tempo: 120 },
+    bytes: [4, 5],
+  });
 });

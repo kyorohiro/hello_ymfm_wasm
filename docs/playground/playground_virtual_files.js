@@ -139,6 +139,58 @@ export function resolveVirtualDynamicImports(
   return replaceImports(source, currentPath);
 }
 
+export function createVirtualFileRuntimeSource(
+  fileSystem,
+  currentPath,
+  options = {}
+) {
+  const files = {};
+
+  for (const entry of fileSystem.list()) {
+    files[entry.path] = {
+      type: entry.type,
+      data: entry.type === "text"
+        ? entry.data
+        : encodeBase64(entry.data),
+    };
+  }
+
+  const storeSource = options.install
+    ? `globalThis.__tetoricaVirtualFiles = ${JSON.stringify(files)};`
+    : "";
+  const currentPathSource = JSON.stringify(currentPath);
+
+  return `
+${storeSource}
+const file = async (path, options = {}) => {
+  const input = String(path ?? "");
+  const parts = input.startsWith("/")
+    ? []
+    : ${currentPathSource}.split("/").slice(0, -1).filter(Boolean);
+  for (const part of input.split("/")) {
+    if (!part || part === ".") continue;
+    if (part === "..") {
+      if (parts.length === 0) throw new Error("Virtual file path escapes the project: " + input);
+      parts.pop();
+      continue;
+    }
+    if (part.includes("\\\\")) throw new Error("Virtual file path contains a backslash: " + input);
+    parts.push(part);
+  }
+  const resolvedPath = "/" + parts.join("/");
+  const entry = globalThis.__tetoricaVirtualFiles?.[resolvedPath];
+  if (!entry) throw new Error("Virtual file not found: " + resolvedPath);
+  const type = options.type ?? "text";
+  const bytes = entry.type === "text"
+    ? new TextEncoder().encode(entry.data)
+    : Uint8Array.from(atob(entry.data), (char) => char.charCodeAt(0));
+  if (type === "text") return entry.type === "text" ? entry.data : new TextDecoder().decode(bytes);
+  if (type === "arrayBuffer") return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
+  if (type === "json") return JSON.parse(entry.type === "text" ? entry.data : new TextDecoder().decode(bytes));
+  throw new Error("Unsupported virtual file type: " + type);
+};`;
+}
+
 function writeVirtualFile(files, path, data) {
   const normalizedPath = normalizeVirtualPath(path);
   if (typeof data === "string") {
@@ -172,4 +224,15 @@ function toUint8Array(data) {
     return new Uint8Array(data);
   }
   throw new TypeError("Virtual file data must be text or binary bytes.");
+}
+
+function encodeBase64(bytes) {
+  let binary = "";
+  const chunkSize = 0x8000;
+  for (let offset = 0; offset < bytes.length; offset += chunkSize) {
+    binary += String.fromCharCode(
+      ...bytes.subarray(offset, offset + chunkSize)
+    );
+  }
+  return btoa(binary);
 }

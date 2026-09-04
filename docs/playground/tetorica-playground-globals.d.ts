@@ -796,6 +796,29 @@ declare function setDacLookahead(seconds: number): number;
 declare function getDacLookahead(): number;
 /** Write one line into the playground console area. */
 declare function log(...args: unknown[]): void;
+/** Read a text or binary file stored in the current Virtual FS project. */
+declare function file(path: string): Promise<string>;
+/** Read a binary file stored in the current Virtual FS project. */
+declare function file(
+  path: string,
+  options: { type: "arrayBuffer" }
+): Promise<ArrayBuffer>;
+/** Read and parse a JSON file stored in the current Virtual FS project. */
+declare function file<T = unknown>(
+  path: string,
+  options: { type: "json" }
+): Promise<T>;
+/** Read a text file stored in the current Virtual FS project. */
+declare function file(
+  path: string,
+  options: { type: "text" }
+): Promise<string>;
+/** Console output captured by the Playground Console tab. */
+declare const console: {
+  log(...args: unknown[]): void;
+  warn(...args: unknown[]): void;
+  error(...args: unknown[]): void;
+};
 /** Browser timer helper available in playground examples. */
 declare function setInterval(handler: () => void, timeout?: number): number;
 /** Browser timer helper available in playground examples. */
