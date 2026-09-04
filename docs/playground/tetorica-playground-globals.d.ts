@@ -813,6 +813,8 @@ declare function file(
   path: string,
   options: { type: "text" }
 ): Promise<string>;
+/** Convert 42-byte TFI data into a preset accepted by `fm.setPreset()`. */
+declare function tfiToPreset(data: ArrayBuffer | Uint8Array): YM2612Preset;
 /** Console output captured by the Playground Console tab. */
 declare const console: {
   log(...args: unknown[]): void;
@@ -850,6 +852,8 @@ type PlaygroundAPI = {
   PSG3: 2;
   /** Built-in preset table. */
   presets: typeof FM_PRESETS;
+  /** Convert 42-byte TFI data into a preset accepted by `fm.setPreset()`. */
+  tfiToPreset: (data: ArrayBuffer | Uint8Array) => YM2612Preset;
   /** Play one note through the current synth setup. */
   play(note: string, options?: PlaygroundPlayOptions): Promise<void>;
   write: {

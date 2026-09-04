@@ -2,6 +2,47 @@ let currentRun = null;
 let nextRequestId = 1;
 const pendingRequests = new Map();
 
+function tfiToPreset(data) {
+  const bytes = data instanceof Uint8Array
+    ? data
+    : new Uint8Array(data);
+  if (bytes.length !== 42) {
+    throw new Error("TFI data must be exactly 42 bytes");
+  }
+
+  const preset = {
+    algorithm: tfiByte(bytes[0], "algorithm", 7),
+    feedback: tfiByte(bytes[1], "feedback", 7),
+    operators: [],
+  };
+  const fileOrder = [0, 2, 1, 3];
+  const detune = [7, 6, 5, 0, 1, 2, 3];
+
+  for (let block = 0; block < 4; block += 1) {
+    const base = 2 + block * 10;
+    preset.operators[fileOrder[block]] = {
+      multi: tfiByte(bytes[base], "multi", 15),
+      dt: detune[tfiByte(bytes[base + 1], "detune", 6)],
+      tl: tfiByte(bytes[base + 2], "tl", 127),
+      rs: tfiByte(bytes[base + 3], "rs", 3),
+      ar: tfiByte(bytes[base + 4], "ar", 31),
+      d1r: tfiByte(bytes[base + 5], "d1r", 31),
+      d2r: tfiByte(bytes[base + 6], "d2r", 31),
+      rr: tfiByte(bytes[base + 7], "rr", 15),
+      sl: tfiByte(bytes[base + 8], "sl", 15),
+      ssg: tfiByte(bytes[base + 9], "ssg", 15),
+    };
+  }
+  return preset;
+}
+
+function tfiByte(value, name, maximum) {
+  if (!Number.isInteger(value) || value < 0 || value > maximum) {
+    throw new Error(`Invalid TFI ${name}: ${value}`);
+  }
+  return value;
+}
+
 const NETWORK_DISABLED_MESSAGE =
   "Network access is disabled in Tetorica FM2612 Playground.";
 
@@ -421,6 +462,7 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}) {
     fm, fx, psg, dac, sample, stream, noise,
     context: run.context,
     FM_PRESETS: presets,
+    tfiToPreset,
     CH1: 0, CH2: 1, CH3: 2, CH4: 3, CH5: 4, CH6: 5,
     PSG1: 0, PSG2: 1, PSG3: 2,
     OP1: 0, OP2: 1, OP3: 2, OP4: 3,
