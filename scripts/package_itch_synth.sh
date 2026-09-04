@@ -30,6 +30,7 @@ megasynth_fx.js
 megasynth_recording.js
 megadrive-fm-presets.js
 opn_fm_synth.js
+opn_runtime_synth.js
 pitch.js
 segapsg.js
 segapsg_api.js

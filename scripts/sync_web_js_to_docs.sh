@@ -20,6 +20,7 @@ megasynth_recording.js
 megadrive-fm-presets.js
 opn_fm_synth.js
 opn_fm_vgm.js
+opn_runtime_synth.js
 pitch.js
 playground_runtime.js
 playground_clock.js
@@ -34,6 +35,7 @@ segapsg_api.js
 stereo-width-worklet.js
 tfi.js
 tetorica_audio_runtime.js
+tetorica_synth.js
 vgm_file.js
 vgm-output-worklet.js
 vgmplayer.js

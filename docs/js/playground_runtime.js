@@ -1,7 +1,7 @@
 import {
-  MegaDriveSynth,
   FM_PRESETS,
 } from "./megasynth.js";
+import { createTetoricaSynth } from "./tetorica_synth.js";
 import {
   createPitchFromMidi,
 } from "./pitch.js";
@@ -43,7 +43,9 @@ const SCALE_INTERVALS = {
 
 /**
  * @param {{
- *   megaDrive?: MegaDriveSynth | null,
+ *   synth?: object | null,
+ *   megaDrive?: object | null,
+ *   chip?: "ym2612" | "ym2203" | "ym2608",
  *   workletUrl?: string,
  *   audioWorkletUrl?: string,
  *   ym2612WasmUrl?: string,
@@ -56,7 +58,7 @@ const SCALE_INTERVALS = {
  *   onStatus?: ((message: string) => void) | null,
  *   onRuntimeState?: ((state: string) => void) | null,
  *   onLog?: ((line: string) => void) | null,
- *   onReady?: ((context: { synth: object, megaDrive: MegaDriveSynth }) => void) | null,
+ *   onReady?: ((context: { synth: object, megaDrive: object }) => void) | null,
  *   onMegaDriveEvent?: ((event: object) => void) | null,
  * }} [options]
  */
@@ -64,8 +66,10 @@ export function createPlaygroundRuntime(
   options = {}
 ) {
   const megaDrive =
+    options.synth ??
     options.megaDrive ??
-    new MegaDriveSynth({
+    createTetoricaSynth({
+      chip: options.chip,
       workletUrl:
         options.audioWorkletUrl ??
         options.workletUrl ??
@@ -73,6 +77,13 @@ export function createPlaygroundRuntime(
       ym2612WasmUrl:
         options.ym2612WasmUrl ??
         "./generated/ym2612_wasm.wasm",
+      wasmUrl:
+        options.wasmUrl ??
+        (options.chip === "ym2203"
+          ? options.ym2203WasmUrl ?? "./generated/ym2203_wasm.wasm"
+          : options.chip === "ym2608"
+            ? options.ym2608WasmUrl ?? "./generated/ym2608_wasm.wasm"
+            : undefined),
       segaPsgWasmUrl:
         options.segaPsgWasmUrl ??
         "./generated/segapsg_wasm.wasm",
@@ -85,6 +96,13 @@ export function createPlaygroundRuntime(
     createPlaygroundNoiseApi(
       megaDrive
     );
+  const capabilities =
+    megaDrive.capabilities ?? {
+      chip: "ym2612",
+      fmChannels: 6,
+      psg: Boolean(megaDrive.psg),
+      dac: true,
+    };
   const sourceMap =
     new Map();
   const runtime = {
@@ -358,7 +376,7 @@ export function createPlaygroundRuntime(
 
     for (
       let channel = 0;
-      channel < 6;
+      channel < capabilities.fmChannels;
       channel += 1
     ) {
       synth.noteOff(channel);
@@ -368,9 +386,11 @@ export function createPlaygroundRuntime(
   }
 
   function stopAllAudio() {
-    synth?.clearScheduledWrites?.();
-    synth?.clearDacPlayback?.();
-    synth?.write?.(0, 0x2b, 0x00);
+    if (capabilities.dac) {
+      synth?.clearScheduledWrites?.();
+      synth?.clearDacPlayback?.();
+      synth?.write?.(0, 0x2b, 0x00);
+    }
     stopAllNotes();
     megaDrive.psg?.reset?.();
     megaDrive.sample.stopAll();
@@ -468,9 +488,9 @@ export function createPlaygroundRuntime(
         "psgTone attenuation must be 0..15"
       );
     }
-    if (!megaDrive.psg) {
+    if (!capabilities.psg || !megaDrive.psg) {
       throw new Error(
-        "PSG is not available"
+        "Mega Drive PSG is only available when ?chip=ym2612"
       );
     }
 
@@ -523,9 +543,9 @@ export function createPlaygroundRuntime(
         "psgNoise attenuation must be 0..15"
       );
     }
-    if (!megaDrive.psg) {
+    if (!capabilities.psg || !megaDrive.psg) {
       throw new Error(
-        "PSG is not available"
+        "Mega Drive PSG is only available when ?chip=ym2612"
       );
     }
 
@@ -535,6 +555,14 @@ export function createPlaygroundRuntime(
     megaDrive.psg.write(
       0xf0 | normalizedAttenuation
     );
+  }
+
+  function requireDac() {
+    if (!capabilities.dac) {
+      throw new Error(
+        "YM2612 DAC is only available when ?chip=ym2612"
+      );
+    }
   }
 
   function createFxApi() {
@@ -1005,12 +1033,14 @@ export function createPlaygroundRuntime(
     };
     const dacApi = {
       loadBase64: async (name, encoded) => {
+        requireDac();
         fm.loadDacBank(
           name,
           decodeDacBase64Bytes(encoded)
         );
       },
       playStream: (name, { atSamples = 0 } = {}) => {
+        requireDac();
         const origin = runtime.sampleClockStartTime ??
           (megaDrive.audioContext.currentTime +
             runtime.dacLookaheadSeconds);
@@ -1020,8 +1050,14 @@ export function createPlaygroundRuntime(
           origin + Math.max(0, Number(atSamples) || 0) / 44100
         );
       },
-      schedule: (start, entries) => scheduleWritesSamples(fm, start, entries.map(([offset, value]) => [offset, 0, 0x2a, value])),
-      scheduleBase64: (start, encoded) => scheduleDacBase64(fm, start, encoded),
+      schedule: (start, entries) => {
+        requireDac();
+        return scheduleWritesSamples(fm, start, entries.map(([offset, value]) => [offset, 0, 0x2a, value]));
+      },
+      scheduleBase64: (start, encoded) => {
+        requireDac();
+        return scheduleDacBase64(fm, start, encoded);
+      },
     };
     const livePrepareApi = {
       fm,
@@ -1664,6 +1700,8 @@ export function createPlaygroundRuntime(
     }
 
     return {
+      chip: capabilities.chip,
+      capabilities,
       audio,
       playback: playbackState,
       currentSourceName,
@@ -1694,6 +1732,9 @@ export function createPlaygroundRuntime(
     },
     get megaDrive() {
       return megaDrive;
+    },
+    get capabilities() {
+      return capabilities;
     },
     get fm() {
       return synth;

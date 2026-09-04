@@ -49,10 +49,12 @@ playground_sync.js
 segapsg.js
 segapsg_api.js
 opn_fm_synth.js
+opn_runtime_synth.js
 opn_fm_vgm.js
 stereo-width-worklet.js
 tfi.js
 tetorica_audio_runtime.js
+tetorica_synth.js
 ym2203.js
 ym2203audioengine.js
 ym2203synth.js

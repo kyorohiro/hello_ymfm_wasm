@@ -7,8 +7,14 @@ import {
 } from "../js/ym2203synth.js";
 import {
   YM2608DirectTransport,
+  YM2608RuntimeSynth,
   YM2608Synth,
 } from "../js/ym2608synth.js";
+import { OPNWorkletTransport } from "../js/opn_fm_synth.js";
+import {
+  createTetoricaSynth,
+  normalizeTetoricaChip,
+} from "../js/tetorica_synth.js";
 
 function createTransport() {
   const writes = [];
@@ -90,4 +96,37 @@ test("direct transports map high-level ports to each WASM address/data bus", () 
     { offset: 2, value: 0xa4 },
     { offset: 3, value: 0x2c },
   ]);
+});
+
+test("worklet transport keeps the OPN port/register/value protocol", () => {
+  const messages = [];
+  const transport = new OPNWorkletTransport({
+    port: { postMessage(message) { messages.push(message); } },
+  }, { chipName: "YM2608", portCount: 2 });
+
+  transport.write(1, 0xa4, 0x2c);
+  transport.reset();
+
+  assert.deepEqual(messages, [
+    { type: "write", port: 1, register: 0xa4, value: 0x2c },
+    { type: "reset" },
+  ]);
+  assert.throws(() => transport.write(2, 0, 0), /port must be an integer in range/);
+});
+
+test("Tetorica synth factory selects the requested chip and capabilities", () => {
+  const ym2608 = createTetoricaSynth({ chip: "ym2608" });
+  assert.ok(ym2608 instanceof YM2608RuntimeSynth);
+  assert.deepEqual(ym2608.capabilities, {
+    chip: "ym2608",
+    fmChannels: 6,
+    psg: false,
+    dac: false,
+    recorder: false,
+  });
+  assert.equal(ym2608.getMasterVolume(), 1);
+  assert.equal(ym2608.setMasterVolume(1.5), 1.5);
+  assert.equal(ym2608.getMasterVolume(), 1.5);
+  assert.equal(normalizeTetoricaChip(), "ym2612");
+  assert.throws(() => normalizeTetoricaChip("invalid"), /Unsupported Tetorica chip/);
 });

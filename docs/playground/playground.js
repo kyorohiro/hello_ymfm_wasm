@@ -1,8 +1,11 @@
 import {
-  MegaDriveSynth,
   FM_PRESET_ORDER,
   FM_PRESETS,
 } from "../js/megasynth.js";
+import {
+  createTetoricaSynth,
+  normalizeTetoricaChip,
+} from "../js/tetorica_synth.js";
 import {
   createTfiOperatorObjectText,
   createTfiPresetObjectText,
@@ -152,21 +155,35 @@ const operatorTabRoot =
 // Experimental: ?engine=nuked swaps the YM2612 core for Nuked-OPN2
 // (https://github.com/nukeykt/Nuked-OPN2) instead of the default ymfm
 // backend.
+const playgroundSearch = new URLSearchParams(
+  window.location.search
+);
+const selectedChip = normalizeTetoricaChip(
+  playgroundSearch.get("chip")
+);
 const useNukedEngine =
-  new URLSearchParams(
-    window.location.search
-  ).get("engine") === "nuked";
+  selectedChip === "ym2612" &&
+  playgroundSearch.get("engine") === "nuked";
 
 const megaDrive =
-  new MegaDriveSynth({
+  createTetoricaSynth({
+    chip: selectedChip,
     workletUrl: useNukedEngine
       ? "../js/ym2612-worklet-nuked.js"
-      : "../js/ym2612-worklet.js",
+      : `../js/${selectedChip}-worklet.js`,
     ym2612WasmUrl: useNukedEngine
       ? "../generated/nuked_opn2_wasm.wasm"
       : "../generated/ym2612_wasm.wasm",
+    wasmUrl:
+      selectedChip === "ym2203"
+        ? "../generated/ym2203_wasm.wasm"
+        : selectedChip === "ym2608"
+          ? "../generated/ym2608_wasm.wasm"
+          : undefined,
     segaPsgWasmUrl:
-      "../generated/segapsg_wasm.wasm",
+      selectedChip === "ym2612"
+        ? "../generated/segapsg_wasm.wasm"
+        : null,
   });
 
 if (useNukedEngine) {
@@ -180,6 +197,12 @@ if (useNukedEngine) {
   badge.textContent =
     "Nuked-OPN2 engine";
   pageTitle?.appendChild(badge);
+}
+
+if (selectedChip !== "ym2612") {
+  document.title = `Tetorica ${selectedChip.toUpperCase()} Playground`;
+  const pageTitle = document.getElementById("pageTitle");
+  if (pageTitle) pageTitle.firstChild.textContent = `Tetorica ${selectedChip.toUpperCase()} Playground`;
 }
 
 let synth = null;

@@ -74,6 +74,35 @@ export class OPNDirectTransport {
   }
 }
 
+/**
+ * Worklet transport shared by browser-hosted OPN chips. The worklet protocol
+ * uses the same port/register/value shape as the high-level FM API.
+ */
+export class OPNWorkletTransport {
+  constructor(node, { portCount, chipName }) {
+    if (!node?.port?.postMessage) {
+      throw new Error(`${chipName}WorkletTransport requires an AudioWorkletNode`);
+    }
+    this.node = node;
+    this.portCount = portCount;
+    this.chipName = chipName;
+  }
+
+  reset() {
+    this.node.port.postMessage({ type: "reset" });
+  }
+
+  write(port, register, value) {
+    assertRange("port", port, 0, this.portCount - 1);
+    this.node.port.postMessage({
+      type: "write",
+      port,
+      register,
+      value,
+    });
+  }
+}
+
 export class OPNFMSynth {
   constructor({
     transport,
