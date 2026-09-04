@@ -206,7 +206,7 @@ function createClock(run) {
   };
 }
 
-function createRun(sourceCode, presets, scaleIntervals) {
+function createRun(sourceCode, presets, scaleIntervals, capabilities = {}) {
   const run = {
     token: 1,
     generation: 1,
@@ -236,17 +236,18 @@ function createRun(sourceCode, presets, scaleIntervals) {
   });
   const sample = new Proxy({}, { get: (_target, property) => requestProxy(`sample.${String(property)}`) });
   const stream = new Proxy({}, { get: (_target, property) => requestProxy(`stream.${String(property)}`) });
-  const psg = new Proxy({}, {
+  const unavailable = (name) => () => { throw new Error(`${name} is not available for ${capabilities.chip ?? "this chip"}`); };
+  const psg = capabilities.psg ? new Proxy({}, {
     get(_target, property) {
       return commandProxy(`psg.${String(property)}`);
     },
-  });
-  const dac = {
+  }) : new Proxy({}, { get: () => unavailable("Mega Drive PSG") });
+  const dac = capabilities.dac ? {
     loadBase64: (...args) => request("dac.loadBase64", args, run.currentLoop),
     playStream: (...args) => postCommand("dac.playStream", args),
     schedule: (...args) => postCommand("dac.schedule", args),
     scheduleBase64: (...args) => postCommand("dac.scheduleBase64", args),
-  };
+  } : new Proxy({}, { get: () => unavailable("YM2612 DAC") });
   let nextAudioHandle = 1;
   const createHandle = (kind) => {
     const id = `${kind}-${nextAudioHandle++}`;
@@ -425,8 +426,8 @@ function createRun(sourceCode, presets, scaleIntervals) {
     OP1: 0, OP2: 1, OP3: 2, OP4: 3,
     write: (...args) => postCommand("write", args),
     play: (...args) => request("play", args, run.currentLoop),
-    psgTone: (...args) => postCommand("psgTone", args),
-    psgNoise: (...args) => postCommand("psgNoise", args),
+    psgTone: capabilities.psg ? (...args) => postCommand("psgTone", args) : unavailable("Mega Drive PSG"),
+    psgNoise: capabilities.psg ? (...args) => postCommand("psgNoise", args) : unavailable("Mega Drive PSG"),
     setMasterVolume: (...args) => request("setMasterVolume", args, run.currentLoop),
     getMasterVolume: () => request("getMasterVolume", [], run.currentLoop),
     setDacLookahead: async (...args) => {
@@ -533,7 +534,7 @@ let lifecycleQueue = Promise.resolve();
 async function handleLifecycleMessage(message) {
   if (message.type === "run") {
     const previousRun = currentRun;
-    currentRun = previousRun ?? createRun(message.sourceCode, message.presets ?? {}, message.scaleIntervals ?? {});
+    currentRun = previousRun ?? createRun(message.sourceCode, message.presets ?? {}, message.scaleIntervals ?? {}, message.capabilities ?? {});
     if (currentRun.stopped) {
       currentRun.stopped = false;
       currentRun.generation += 1;

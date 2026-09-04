@@ -1462,6 +1462,7 @@ export function createPlaygroundRuntime(
         sourceCode,
         presets,
         scaleIntervals: SCALE_INTERVALS,
+        capabilities,
       });
     });
   }

@@ -32,6 +32,8 @@ import {
   exportYm2203FmVgmToPlaygroundJavaScript,
   exportYm2608FmVgmToPlaygroundJavaScript,
 } from "../js/ym2612vgm.js";
+import { exportYm2203VgmToPlaygroundJavaScript } from "../js/ym2203vgm.js";
+import { exportYm2608VgmToPlaygroundJavaScript } from "../js/ym2608vgm.js";
 import {
   createPlaygroundRuntime,
 } from "../js/playground_runtime.js";
@@ -492,7 +494,13 @@ async function importVgmFile(file, options) {
     vgm.header.ym2203Clock > 0 &&
     vgm.header.ym2612Clock === 0 &&
     vgm.header.ym2608Clock === 0;
-  const source = isYm2203Only
+  const useNativeYm2203 = isYm2203Only && selectedChip === "ym2203";
+  const useNativeYm2608 = isYm2608Only && selectedChip === "ym2608";
+  const source = useNativeYm2203
+    ? exportYm2203VgmToPlaygroundJavaScript(vgm, { scheduled: false })
+    : useNativeYm2608
+    ? exportYm2608VgmToPlaygroundJavaScript(vgm, { scheduled: false })
+    : isYm2203Only
     ? exportYm2203FmVgmToPlaygroundJavaScript(vgm, {
       scheduled: options.mode === "schedule",
     })
@@ -508,7 +516,11 @@ async function importVgmFile(file, options) {
 
   setEditorValue(source);
   setStatus(
-    isYm2608Only
+    useNativeYm2608
+      ? `Imported ${file.name} for native YM2608 FM (Write timing; SSG, Rhythm, and ADPCM-B omitted).`
+      : useNativeYm2203
+        ? `Imported ${file.name} for native YM2203 FM (Write timing; SSG omitted).`
+      : isYm2608Only
       ? `Imported ${file.name} as YM2608 FM only (${options.mode === "schedule" ? "Schedule" : "Write"} timing; SSG, Rhythm, and ADPCM-B omitted).`
       : isYm2203Only
         ? `Imported ${file.name} as YM2203 FM only (${options.mode === "schedule" ? "Schedule" : "Write"} timing; SSG omitted).`
@@ -1103,6 +1115,7 @@ setRuntimeState("Audio idle");
 ui.installBottomTabHandlers();
 installTfiEditorDropTarget();
 void initializePlaygroundMonaco({
+  chip: selectedChip,
   editor,
   editorHost,
   getEditorValue,

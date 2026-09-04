@@ -355,31 +355,14 @@ function registerMonacoSignatureHelp(
 }
 
 async function registerMonacoPlaygroundGlobals(
-  monaco
+  monaco,
+  chip = "ym2612"
 ) {
-  const declarationsUrl =
-    new URL(
-      "./tetorica-playground-globals.d.ts",
-      import.meta.url
-    );
-  const response =
-    await fetch(
-      declarationsUrl
-    );
-
-  if (!response.ok) {
-    throw new Error(
-      `Failed to load playground type declarations: ${response.status}`
-    );
+  for (const name of ["tetorica-playground-globals", `tetorica-playground-${chip}`]) {
+    const response = await fetch(new URL(`./${name}.d.ts`, import.meta.url));
+    if (!response.ok) throw new Error(`Failed to load playground type declarations: ${response.status}`);
+    monaco.languages.typescript.javascriptDefaults.addExtraLib(await response.text(), `file:///${name}.d.ts`);
   }
-
-  const declarations =
-    await response.text();
-
-  monaco.languages.typescript.javascriptDefaults.addExtraLib(
-    declarations,
-    "file:///tetorica-playground-globals.d.ts"
-  );
 }
 
 function loadMonacoLoader() {
@@ -516,9 +499,7 @@ export async function initializePlaygroundMonaco(
     registerMonacoSignatureHelp(
       monaco
     );
-    await registerMonacoPlaygroundGlobals(
-      monaco
-    );
+    await registerMonacoPlaygroundGlobals(monaco, options.chip);
 
     const modelUri =
       monaco.Uri.parse(
