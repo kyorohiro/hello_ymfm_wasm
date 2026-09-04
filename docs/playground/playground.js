@@ -257,6 +257,8 @@ const operatorTab =
       playgroundPresets,
     presetOrder:
       FM_PRESET_ORDER,
+    channelCount:
+      megaDrive.capabilities.fmChannels,
     onStatus(message) {
       setStatus(message);
     },

@@ -7,7 +7,6 @@ import {
   displayOperatorToApiOperator,
 } from "../synth/synth_controls.js";
 
-const CHANNEL_COUNT = 6;
 const OPERATOR_NUMBERS = [1, 2, 3, 4];
 const COMMON_PARAM_DEFS = [
   { id: "algorithm", label: "ALGO", min: 0, max: 7, step: 1, category: "routing" },
@@ -234,6 +233,7 @@ export function createPlaygroundOperatorTab(
     presets,
     presetOrder,
     onStatus,
+    channelCount = 6,
   } = options;
 
   if (!root) {
@@ -244,7 +244,7 @@ export function createPlaygroundOperatorTab(
 
   const stateByChannel =
     Array.from(
-      { length: CHANNEL_COUNT },
+      { length: channelCount },
       () =>
         createChannelStateFromPreset(
           "one-op-basic",
@@ -834,7 +834,7 @@ export function createPlaygroundOperatorTab(
 
   for (
     let channel = 0;
-    channel < CHANNEL_COUNT;
+    channel < channelCount;
     channel += 1
   ) {
     const option =
@@ -940,7 +940,7 @@ export function createPlaygroundOperatorTab(
     syncReset() {
       for (
         let channel = 0;
-        channel < CHANNEL_COUNT;
+        channel < channelCount;
         channel += 1
       ) {
         stateByChannel[channel] =

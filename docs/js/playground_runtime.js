@@ -1111,9 +1111,9 @@ export function createPlaygroundRuntime(
       CH1: 0,
       CH2: 1,
       CH3: 2,
-      CH4: 3,
-      CH5: 4,
-      CH6: 5,
+      ...(capabilities.fmChannels >= 4
+        ? { CH4: 3, CH5: 4, CH6: 5 }
+        : {}),
       PSG1: 0,
       PSG2: 1,
       PSG3: 2,
@@ -1311,9 +1311,9 @@ export function createPlaygroundRuntime(
         CH1: pg.CH1,
         CH2: pg.CH2,
         CH3: pg.CH3,
-        CH4: pg.CH4,
-        CH5: pg.CH5,
-        CH6: pg.CH6,
+        ...(capabilities.fmChannels >= 4
+          ? { CH4: pg.CH4, CH5: pg.CH5, CH6: pg.CH6 }
+          : {}),
         PSG1: pg.PSG1,
         PSG2: pg.PSG2,
         PSG3: pg.PSG3,
