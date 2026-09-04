@@ -27,6 +27,7 @@ playground_operator_tab.js
 playground_query.js
 playground_sync.js
 playground_ui.js
+playground_virtual_files.js
 tetorica-playground-globals.d.ts
 "
 
