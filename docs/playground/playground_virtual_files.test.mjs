@@ -79,3 +79,29 @@ test("runtime file API reads relative text, binary, and JSON files", async () =>
     bytes: [4, 5],
   });
 });
+
+test("runtime sample.load reads a virtual binary without format filtering", async () => {
+  const files = createVirtualFileSystem([
+    { path: "/index.js", data: "" },
+    { path: "/samples/hit.mp3", data: new Uint8Array([6, 7, 8]) },
+  ]);
+  const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
+  const load = new AsyncFunction(
+    "sample",
+    `${createVirtualFileRuntimeSource(files, "/index.js", { install: true })}
+     await sample.loadFile("/samples/hit.mp3");
+     await sample.load("hit-alias", "/samples/hit.mp3");
+     return sample.calls;`
+  );
+  const sample = {
+    calls: [],
+    async load(name, bytes) {
+      this.calls.push({ name, bytes: Array.from(new Uint8Array(bytes)) });
+    },
+  };
+
+  assert.deepEqual(await load(sample), [
+    { name: "/samples/hit.mp3", bytes: [6, 7, 8] },
+    { name: "hit-alias", bytes: [6, 7, 8] },
+  ]);
+});

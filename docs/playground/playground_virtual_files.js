@@ -158,6 +158,35 @@ export function createVirtualFileRuntimeSource(
   const storeSource = options.install
     ? `globalThis.__tetoricaVirtualFiles = ${JSON.stringify(files)};`
     : "";
+  const sampleFileSource = options.install
+    ? `
+if (typeof sample !== "undefined") {
+  const loadSample = sample.load.bind(sample);
+  sample.load = async (name, source) => {
+    if (
+      typeof source === "string" &&
+      globalThis.__tetoricaVirtualFiles?.[source]
+    ) {
+      return loadSample(
+        name,
+        await file(source, { type: "arrayBuffer" })
+      );
+    }
+    if (
+      source === undefined &&
+      typeof name === "string" &&
+      globalThis.__tetoricaVirtualFiles?.[name]
+    ) {
+      return loadSample(
+        name,
+        await file(name, { type: "arrayBuffer" })
+      );
+    }
+    return loadSample(name, source);
+  };
+  sample.loadFile = (path) => sample.load(path);
+}`
+    : "";
   const currentPathSource = JSON.stringify(currentPath);
 
   return `
@@ -188,7 +217,8 @@ const file = async (path, options = {}) => {
   if (type === "arrayBuffer") return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
   if (type === "json") return JSON.parse(entry.type === "text" ? entry.data : new TextDecoder().decode(bytes));
   throw new Error("Unsupported virtual file type: " + type);
-};`;
+};
+${sampleFileSource}`;
 }
 
 function writeVirtualFile(files, path, data) {

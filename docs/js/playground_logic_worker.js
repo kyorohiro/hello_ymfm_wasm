@@ -275,7 +275,12 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}) {
       return commandProxy(`fm.${String(property)}`);
     },
   });
-  const sample = new Proxy({}, { get: (_target, property) => requestProxy(`sample.${String(property)}`) });
+  const sample = new Proxy({}, {
+    get(target, property) {
+      if (property in target) return target[property];
+      return requestProxy(`sample.${String(property)}`);
+    },
+  });
   const stream = new Proxy({}, { get: (_target, property) => requestProxy(`stream.${String(property)}`) });
   const unavailable = (name) => () => { throw new Error(`${name} is not available for ${capabilities.chip ?? "this chip"}`); };
   const psg = capabilities.psg ? new Proxy({}, {

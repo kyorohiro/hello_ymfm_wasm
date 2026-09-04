@@ -160,6 +160,8 @@ type PlaygroundSampleVoice = {
 type PlaygroundSampleAPI = {
   load(source: string): Promise<AudioBuffer>;
   load(name: string, source: string | ArrayBuffer | AudioBuffer): Promise<AudioBuffer>;
+  /** Load a Virtual FS audio file using its path as the sample name. */
+  loadFile(path: string): Promise<AudioBuffer>;
   play(name: string, options?: PlaygroundSamplePlayOptions): Promise<PlaygroundSampleVoice>;
   stop(name?: string): void;
   stopAll(): void;
