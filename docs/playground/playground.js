@@ -22,8 +22,14 @@ import {
   resolveInitialSourceFromQuery,
 } from "./playground_query.js";
 import {
+  createPlaygroundCassetteZip,
   loadPlaygroundCassette,
 } from "./playground_cassette.js";
+import {
+  createVirtualFileSystem,
+  normalizeVirtualPath,
+  resolveVirtualDynamicImports,
+} from "./playground_virtual_files.js";
 import {
   maybeDecodeVgmFile,
 } from "../js/vgm_file.js";
@@ -82,6 +88,7 @@ const importCassetteButton =
   document.getElementById(
     "importCassetteButton"
   );
+const exportCassetteButton = document.getElementById("exportCassetteButton");
 const importVgmMenu =
   document.getElementById("importVgmMenu");
 const cancelVgmImportButton =
@@ -104,6 +111,10 @@ const editorHost =
   document.getElementById(
     "editorHost"
   );
+const fileExplorerList = document.getElementById("fileExplorerList");
+const newFileButton = document.getElementById("newFileButton");
+const renameFileButton = document.getElementById("renameFileButton");
+const deleteFileButton = document.getElementById("deleteFileButton");
 const status =
   document.getElementById("status");
 const runtimeState =
@@ -227,6 +238,11 @@ let editorAdapter =
   createTextareaEditorAdapter(
     editor
   );
+const virtualFiles = createVirtualFileSystem([
+  { path: "/index.js", data: "" },
+]);
+let activeVirtualPath = "/index.js";
+let activeVirtualModuleUrls = [];
 
 function createImportInput(accept) {
   const input = document.createElement("input");
@@ -479,6 +495,37 @@ function promptCassetteImport() {
   cassetteImportInput.click();
 }
 
+function exportCassette() {
+  try {
+    saveActiveVirtualFile();
+    const zip = createPlaygroundCassetteZip(
+      virtualFiles.list()
+    );
+    const name = window.prompt(
+      "Cassette name",
+      "my-project"
+    );
+    if (!name) {
+      return;
+    }
+    const normalizedName = name
+      .trim()
+      .replace(/\.cassette\.zip$/i, "")
+      .replace(/[^A-Za-z0-9_-]/g, "-") || "cassette";
+    const url = URL.createObjectURL(
+      new Blob([zip], { type: "application/zip" })
+    );
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${normalizedName}.cassette.zip`;
+    link.click();
+    URL.revokeObjectURL(url);
+    setStatus(`Exported ${link.download}.`);
+  } catch (error) {
+    setStatus(`Failed to export cassette: ${error.message}`);
+  }
+}
+
 function promptVgmImport(options) {
   pendingVgmImportOptions = options;
   if (importVgmMenu) importVgmMenu.open = false;
@@ -633,7 +680,116 @@ function getEditorValue() {
 }
 
 function setEditorValue(value) {
-  editorAdapter.setValue(value);
+  const text = String(value);
+  virtualFiles.writeText(activeVirtualPath, text);
+  editorAdapter.setValue(text);
+}
+
+function saveActiveVirtualFile() {
+  virtualFiles.writeText(
+    activeVirtualPath,
+    getEditorValue()
+  );
+}
+
+function showVirtualFile(file) {
+  editorAdapter.openVirtualFile?.(
+    file.path,
+    file.data
+  );
+  editorAdapter.setValue(file.data);
+}
+
+function renderVirtualFileExplorer() {
+  fileExplorerList.replaceChildren();
+  const files = virtualFiles.list().sort(
+    (left, right) => left.path.localeCompare(right.path)
+  );
+
+  for (const file of files) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "file-entry";
+    button.textContent = file.path.slice(1);
+    button.setAttribute(
+      "aria-current",
+      file.path === activeVirtualPath ? "true" : "false"
+    );
+    button.addEventListener("click", () => {
+      openVirtualFile(file.path);
+    });
+    fileExplorerList.appendChild(button);
+  }
+}
+
+function openVirtualFile(path) {
+  const file = virtualFiles.get(path);
+  if (!file) {
+    return;
+  }
+  if (file.type !== "text") {
+    setStatus(`${path} is a binary file and cannot be edited here.`);
+    return;
+  }
+
+  saveActiveVirtualFile();
+  activeVirtualPath = file.path;
+  showVirtualFile(file);
+  editorAdapter.focus();
+  renderVirtualFileExplorer();
+}
+
+function createVirtualFile() {
+  const path = window.prompt("New file path", "/lib/new-file.js");
+  if (!path) {
+    return;
+  }
+  try {
+    const normalizedPath = normalizeVirtualPath(path);
+    if (virtualFiles.has(normalizedPath)) {
+      throw new Error("A file already exists at that path.");
+    }
+    virtualFiles.writeText(normalizedPath, "");
+    openVirtualFile(normalizedPath);
+  } catch (error) {
+    setStatus(`Could not create file: ${error.message}`);
+  }
+}
+
+function renameActiveVirtualFile() {
+  const path = window.prompt("Rename file", activeVirtualPath);
+  if (!path || path === activeVirtualPath) {
+    return;
+  }
+  try {
+    const normalizedPath = normalizeVirtualPath(path);
+    if (virtualFiles.has(normalizedPath)) {
+      throw new Error("A file already exists at that path.");
+    }
+    saveActiveVirtualFile();
+    const currentFile = virtualFiles.get(activeVirtualPath);
+    virtualFiles.writeText(normalizedPath, currentFile.data);
+    virtualFiles.delete(activeVirtualPath);
+    activeVirtualPath = normalizedPath;
+    renderVirtualFileExplorer();
+  } catch (error) {
+    setStatus(`Could not rename file: ${error.message}`);
+  }
+}
+
+function deleteActiveVirtualFile() {
+  if (activeVirtualPath === "/index.js") {
+    setStatus("/index.js is the project entry point and cannot be deleted.");
+    return;
+  }
+  if (!window.confirm(`Delete ${activeVirtualPath}?`)) {
+    return;
+  }
+  saveActiveVirtualFile();
+  virtualFiles.delete(activeVirtualPath);
+  activeVirtualPath = "/index.js";
+  showVirtualFile(virtualFiles.get(activeVirtualPath));
+  renderVirtualFileExplorer();
 }
 
 function replaceEditorValue(value) {
@@ -731,11 +887,36 @@ async function runCode() {
   runButton.disabled = true;
   if (workerExecution) workerExecution.disabled = true;
   clearConsole();
+  const moduleUrls = [];
+  let retainedModuleUrls = false;
+  revokeVirtualModuleUrls();
 
   try {
+    saveActiveVirtualFile();
+    const entryFile = virtualFiles.get("/index.js");
+    if (!entryFile || entryFile.type !== "text") {
+      throw new Error("Project entry point /index.js is missing.");
+    }
+    const source = resolveVirtualDynamicImports(
+      virtualFiles,
+      entryFile.data,
+      "/index.js",
+      (moduleSource) => {
+        const url = URL.createObjectURL(
+          new Blob([moduleSource], { type: "text/javascript" })
+        );
+        moduleUrls.push(url);
+        return url;
+      }
+    );
+    if (workerExecution?.checked && moduleUrls.length > 0) {
+      throw new Error(
+        "Worker execution does not support Virtual FS imports yet. Turn off Worker execution."
+      );
+    }
     runtime.put(
       "__editor__",
-      getEditorValue()
+      source
     );
     await runtime.play(
       "__editor__",
@@ -745,9 +926,16 @@ async function runCode() {
           : "main",
       }
     );
+    activeVirtualModuleUrls = moduleUrls;
+    retainedModuleUrls = true;
   } catch (error) {
     console.error(error);
   } finally {
+    if (!retainedModuleUrls) {
+      for (const url of moduleUrls) {
+        URL.revokeObjectURL(url);
+      }
+    }
     runButton.disabled = false;
     syncWorkerExecutionLock();
   }
@@ -755,8 +943,16 @@ async function runCode() {
 
 function stopRun() {
   runtime.stop();
+  revokeVirtualModuleUrls();
   runButton.disabled = false;
   syncWorkerExecutionLock();
+}
+
+function revokeVirtualModuleUrls() {
+  for (const url of activeVirtualModuleUrls) {
+    URL.revokeObjectURL(url);
+  }
+  activeVirtualModuleUrls = [];
 }
 
 function loadExample() {
@@ -874,6 +1070,27 @@ function formatCassetteStatus(assets) {
   return `Loaded cassette ${assets.cassette.id}${statusParts.length > 0 ? `: ${statusParts.join(", ")}.` : "."}`;
 }
 
+function restoreVirtualFilesFromCassette(cassette) {
+  const textExtensions = /\.(?:js|json|md|txt)$/i;
+  const previousSource = getEditorValue();
+  virtualFiles.replace(
+    Array.from(cassette.files, ([path, bytes]) => ({
+      path: `/${path}`,
+      data: textExtensions.test(path)
+        ? new TextDecoder().decode(bytes)
+        : bytes,
+    }))
+  );
+
+  if (!virtualFiles.has("/index.js")) {
+    virtualFiles.writeText("/index.js", previousSource);
+  }
+  editorAdapter.syncVirtualFiles?.(virtualFiles.list());
+  activeVirtualPath = "/index.js";
+  showVirtualFile(virtualFiles.get(activeVirtualPath));
+  renderVirtualFileExplorer();
+}
+
 async function loadCassetteSource(
   source,
   name
@@ -883,6 +1100,7 @@ async function loadCassetteSource(
       source,
       { name }
     );
+  restoreVirtualFilesFromCassette(cassette);
   const assets = parseCassetteAssets(cassette);
   validateCassetteConflicts(assets);
   await registerCassetteAssets(assets);
@@ -1019,7 +1237,12 @@ function applySimpleModeFromQuery() {
 }
 
 function installPlaygroundEventHandlers() {
-  runButton.addEventListener(
+  exportCassetteButton?.addEventListener("click", exportCassette);
+  newFileButton?.addEventListener("click", createVirtualFile);
+  renameFileButton?.addEventListener("click", renameActiveVirtualFile);
+  deleteFileButton?.addEventListener("click", deleteActiveVirtualFile);
+
+runButton.addEventListener(
     "click",
     () => {
       void runCode();
@@ -1161,6 +1384,7 @@ function bootPlayground() {
   clearConsole();
   setBottomTab("code");
   setRuntimeState("Audio idle");
+  renderVirtualFileExplorer();
   installPlaygroundEventHandlers();
   ui.installBottomTabHandlers();
   installTfiEditorDropTarget();
@@ -1169,6 +1393,9 @@ function bootPlayground() {
     editor,
     editorHost,
     getEditorValue,
+    listVirtualFiles() {
+      return virtualFiles.list();
+    },
     setEditorNote,
     setEditorAdapter: (nextAdapter) => {
       editorAdapter = nextAdapter;
