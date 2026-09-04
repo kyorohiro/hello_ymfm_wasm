@@ -45,7 +45,7 @@ const SCALE_INTERVALS = {
  * @param {{
  *   synth?: object | null,
  *   megaDrive?: object | null,
- *   chip?: "ym2612" | "ym2203" | "ym2608",
+ *   chip?: "ym2612" | "ym2203" | "ym2608" | "ym2610",
  *   workletUrl?: string,
  *   audioWorkletUrl?: string,
  *   ym2612WasmUrl?: string,
@@ -73,7 +73,9 @@ export function createPlaygroundRuntime(
       workletUrl:
         options.audioWorkletUrl ??
         options.workletUrl ??
-        "./ym2612-worklet.js",
+        (options.chip === "ym2610"
+          ? "./ym2610b-worklet.js"
+          : "./ym2612-worklet.js"),
       ym2612WasmUrl:
         options.ym2612WasmUrl ??
         "./generated/ym2612_wasm.wasm",
@@ -83,6 +85,8 @@ export function createPlaygroundRuntime(
           ? options.ym2203WasmUrl ?? "./generated/ym2203_wasm.wasm"
           : options.chip === "ym2608"
             ? options.ym2608WasmUrl ?? "./generated/ym2608_wasm.wasm"
+            : options.chip === "ym2610"
+              ? options.ym2610bWasmUrl ?? "./generated/ym2610b_wasm.wasm"
             : undefined),
       segaPsgWasmUrl:
         options.segaPsgWasmUrl ??
@@ -1111,9 +1115,9 @@ export function createPlaygroundRuntime(
       CH1: 0,
       CH2: 1,
       CH3: 2,
-      ...(capabilities.fmChannels >= 4
-        ? { CH4: 3, CH5: 4, CH6: 5 }
-        : {}),
+      ...(capabilities.fmChannels >= 4 ? { CH4: 3 } : {}),
+      ...(capabilities.fmChannels >= 5 ? { CH5: 4 } : {}),
+      ...(capabilities.fmChannels >= 6 ? { CH6: 5 } : {}),
       PSG1: 0,
       PSG2: 1,
       PSG3: 2,
@@ -1311,9 +1315,9 @@ export function createPlaygroundRuntime(
         CH1: pg.CH1,
         CH2: pg.CH2,
         CH3: pg.CH3,
-        ...(capabilities.fmChannels >= 4
-          ? { CH4: pg.CH4, CH5: pg.CH5, CH6: pg.CH6 }
-          : {}),
+        ...(capabilities.fmChannels >= 4 ? { CH4: pg.CH4 } : {}),
+        ...(capabilities.fmChannels >= 5 ? { CH5: pg.CH5 } : {}),
+        ...(capabilities.fmChannels >= 6 ? { CH6: pg.CH6 } : {}),
         PSG1: pg.PSG1,
         PSG2: pg.PSG2,
         PSG3: pg.PSG3,

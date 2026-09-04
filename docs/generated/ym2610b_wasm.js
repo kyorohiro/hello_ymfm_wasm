@@ -153,6 +153,54 @@ readAsync = async (filename, binary = true) => {
 } else
 if (ENVIRONMENT_IS_SHELL) {
 
+  readBinary = (f) => {
+    if (globalThis.readbuffer) {
+      return new Uint8Array(readbuffer(f));
+    }
+    let data = read(f, 'binary');
+    assert(typeof data == 'object');
+    return data;
+  };
+
+  readAsync = async (f) => readBinary(f);
+
+  globalThis.clearTimeout ??= (id) => {};
+
+  // v8 and jsc both use `arguments`. spidermonkey uses `scriptArgs`
+  programArgs = globalThis.arguments ?? globalThis.scriptArgs;
+
+  if (globalThis.quit) {
+    quit_ = (status, toThrow) => {
+      // Unlike node which has process.exitCode, d8 has no such mechanism. So we
+      // have no way to set the exit code and then let the program exit with
+      // that code when it naturally stops running (say, when all setTimeouts
+      // have completed). For that reason, we must call `quit` - the only way to
+      // set the exit code - but quit also halts immediately.  To increase
+      // consistency with node (and the web) we schedule the actual quit call
+      // using a setTimeout to give the current stack and any exception handlers
+      // a chance to run.  This enables features such as addOnPostRun (which
+      // expected to be able to run code after main returns).
+      setTimeout(() => {
+        if (!(toThrow instanceof ExitStatus)) {
+          let toLog = toThrow;
+          if (toThrow && typeof toThrow == 'object' && toThrow.stack) {
+            toLog = [toThrow, toThrow.stack];
+          }
+          err(`exiting due to exception: ${toLog}`);
+        }
+        quit(status);
+      });
+      throw toThrow;
+    };
+  }
+
+  if (globalThis.print) {
+    // Use `print` to implement console.log/error/warn as needed.
+    globalThis.console ??= /** @type{!Console} */({});
+    console.log ??= /** @type{!function(this:Console, ...*): undefined} */ (print);
+    console.warn ??= console.error ??= /** @type{!function(this:Console, ...*): undefined} */ (globalThis.printErr ?? print);
+  }
+
 } else
 
 // Note that this includes Node.js workers when relevant (pthreads is enabled).
@@ -210,8 +258,6 @@ var NODEFS = 'NODEFS is no longer included by default; build with -lnodefs.js';
 
 // perform assertions in shell.js after we set up out() and err(), as otherwise
 // if an assertion fails it cannot print the message
-
-assert(!ENVIRONMENT_IS_SHELL, 'shell environment detected but not enabled at build time (add `shell` to `-sENVIRONMENT` to enable)');
 
 // end include: shell.js
 
@@ -540,6 +586,10 @@ var wasmBinaryFile;
 
 function findWasmBinary() {
 
+  if (ENVIRONMENT_IS_SHELL) {
+    return 'ym2610b_wasm.wasm';
+  }
+
   if (Module['locateFile']) {
     return locateFile('ym2610b_wasm.wasm');
   }
@@ -602,6 +652,8 @@ async function instantiateAsync(binary, binaryFile, imports) {
       // Reference:
       //   https://github.com/emscripten-core/emscripten/pull/16917
       && !ENVIRONMENT_IS_NODE
+      // Shell environments don't have fetch.
+      && !ENVIRONMENT_IS_SHELL
      ) {
     try {
       var response = fetch(binaryFile, { credentials: 'same-origin' });

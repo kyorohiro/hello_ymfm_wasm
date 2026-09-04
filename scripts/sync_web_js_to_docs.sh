@@ -53,6 +53,7 @@ ym2610baudioengine.js
 ym2610b-worklet.js
 ym2610bsynth.js
 ym2610bvgm.js
+tetorica_synth.js
 ym2203vgm.js
 ym2608vgm.js
 ym2612-worklet.js
@@ -82,6 +83,7 @@ perl -0pi -e 's#"\./generated/ym2612_wasm\.js"#"../generated/ym2612_wasm.js"#g' 
 
 perl -0pi -e 's#"\./generated/ym2203_wasm\.js"#"../generated/ym2203_wasm.js"#g' "${DOCS_JS_DIR}/ym2203-worklet.js"
 perl -0pi -e 's#"\./generated/ym2608_wasm\.js"#"../generated/ym2608_wasm.js"#g' "${DOCS_JS_DIR}/ym2608-worklet.js"
+perl -0pi -e 's#"\./generated/ym2610b_wasm\.js"#"../generated/ym2610b_wasm.js"#g' "${DOCS_JS_DIR}/ym2610b-worklet.js"
 
 perl -0pi -e 's#"\./generated/segapsg_wasm\.js"#"../generated/segapsg_wasm.js"#g' \
   "${DOCS_JS_DIR}/ym2612-worklet.js"

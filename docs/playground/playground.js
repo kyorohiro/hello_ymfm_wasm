@@ -34,6 +34,7 @@ import {
 } from "../js/ym2612vgm.js";
 import { exportYm2203VgmToPlaygroundJavaScript } from "../js/ym2203vgm.js";
 import { exportYm2608VgmToPlaygroundJavaScript } from "../js/ym2608vgm.js";
+import { exportYm2610BVgmToPlaygroundJavaScript } from "../js/ym2610bvgm.js";
 import {
   createPlaygroundRuntime,
 } from "../js/playground_runtime.js";
@@ -166,13 +167,17 @@ const selectedChip = normalizeTetoricaChip(
 const useNukedEngine =
   selectedChip === "ym2612" &&
   playgroundSearch.get("engine") === "nuked";
+const selectedWorkletChip =
+  selectedChip === "ym2610"
+    ? "ym2610b"
+    : selectedChip;
 
 const megaDrive =
   createTetoricaSynth({
     chip: selectedChip,
     workletUrl: useNukedEngine
       ? "../js/ym2612-worklet-nuked.js"
-      : `../js/${selectedChip}-worklet.js`,
+      : `../js/${selectedWorkletChip}-worklet.js`,
     ym2612WasmUrl: useNukedEngine
       ? "../generated/nuked_opn2_wasm.wasm"
       : "../generated/ym2612_wasm.wasm",
@@ -181,6 +186,8 @@ const megaDrive =
         ? "../generated/ym2203_wasm.wasm"
         : selectedChip === "ym2608"
           ? "../generated/ym2608_wasm.wasm"
+          : selectedChip === "ym2610"
+            ? "../generated/ym2610b_wasm.wasm"
           : undefined,
     segaPsgWasmUrl:
       selectedChip === "ym2612"
@@ -496,12 +503,19 @@ async function importVgmFile(file, options) {
     vgm.header.ym2203Clock > 0 &&
     vgm.header.ym2612Clock === 0 &&
     vgm.header.ym2608Clock === 0;
+  const isYm2610Only =
+    vgm.header.ym2610Clock > 0 &&
+    vgm.header.ym2612Clock === 0 &&
+    vgm.header.ym2608Clock === 0;
   const useNativeYm2203 = isYm2203Only && selectedChip === "ym2203";
   const useNativeYm2608 = isYm2608Only && selectedChip === "ym2608";
+  const useNativeYm2610 = isYm2610Only && selectedChip === "ym2610";
   const source = useNativeYm2203
     ? exportYm2203VgmToPlaygroundJavaScript(vgm, { scheduled: false })
     : useNativeYm2608
     ? exportYm2608VgmToPlaygroundJavaScript(vgm, { scheduled: false })
+    : useNativeYm2610
+    ? exportYm2610BVgmToPlaygroundJavaScript(vgm, { scheduled: false })
     : isYm2203Only
     ? exportYm2203FmVgmToPlaygroundJavaScript(vgm, {
       scheduled: options.mode === "schedule",
@@ -518,7 +532,9 @@ async function importVgmFile(file, options) {
 
   setEditorValue(source);
   setStatus(
-    useNativeYm2608
+    useNativeYm2610
+      ? `Imported ${file.name} for native Neo Geo YM2610 FM (Write timing; SSG and ADPCM omitted).`
+      : useNativeYm2608
       ? `Imported ${file.name} for native YM2608 FM (Write timing; SSG, Rhythm, and ADPCM-B omitted).`
       : useNativeYm2203
         ? `Imported ${file.name} for native YM2203 FM (Write timing; SSG omitted).`

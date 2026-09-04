@@ -362,9 +362,9 @@ async function registerMonacoPlaygroundGlobals(
     const response = await fetch(new URL(`./${name}.d.ts`, import.meta.url));
     if (!response.ok) throw new Error(`Failed to load playground type declarations: ${response.status}`);
     let declarations = await response.text();
-    if (chip === "ym2203" && name === "tetorica-playground-globals") {
-      // YM2203 exposes only its three FM channels in the Playground.
-      declarations = declarations.replace(/declare const CH[456]: [345];\n/g, "");
+    if ((chip === "ym2203" || chip === "ym2610") && name === "tetorica-playground-globals") {
+      // YM2203 has three channels; Neo Geo YM2610 exposes four.
+      declarations = declarations.replace(chip === "ym2203" ? /declare const CH[456]: [345];\n/g : /declare const CH[56]: [45];\n/g, "");
     }
     monaco.languages.typescript.javascriptDefaults.addExtraLib(declarations, `file:///${name}.d.ts`);
   }

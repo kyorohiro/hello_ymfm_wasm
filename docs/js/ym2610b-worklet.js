@@ -1,4 +1,4 @@
-import ym2610bModuleFactory from "./generated/ym2610b_wasm.js";
+import ym2610bModuleFactory from "../generated/ym2610b_wasm.js";
 import { Ym2610B, YM2610B_CLOCK } from "./ym2610b.js";
 
 class YM2610BProcessor extends AudioWorkletProcessor {
