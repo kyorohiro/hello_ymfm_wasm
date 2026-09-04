@@ -480,7 +480,9 @@ export async function initializePlaygroundMonaco(
           "es2020",
         ],
         module:
-          monaco.languages.typescript.ModuleKind.ES2022,
+          monaco.languages.typescript.ModuleKind.ESNext,
+        moduleResolution:
+          monaco.languages.typescript.ModuleResolutionKind.NodeJs,
         moduleDetection:
           "force",
         target:
@@ -508,7 +510,7 @@ export async function initializePlaygroundMonaco(
 
     const modelUri =
       monaco.Uri.parse(
-        "file:///playground/main.mjs"
+        "file:///project/index.js"
       );
     const existingModel =
       monaco.editor.getModel(
@@ -585,6 +587,38 @@ export async function initializePlaygroundMonaco(
           },
         }
       );
+    let currentModel = monacoModel;
+
+    function getModelForVirtualPath(path, source) {
+      const uri = monaco.Uri.parse(
+        `file:///project${path}`
+      );
+      const existing = monaco.editor.getModel(uri);
+      if (existing) {
+        return existing;
+      }
+      return monaco.editor.createModel(
+        source,
+        "javascript",
+        uri
+      );
+    }
+
+    function syncVirtualFiles(files) {
+      for (const file of files) {
+        if (
+          file.type === "text" &&
+          file.path.endsWith(".js")
+        ) {
+          getModelForVirtualPath(
+            file.path,
+            file.data
+          );
+        }
+      }
+    }
+
+    syncVirtualFiles(options.listVirtualFiles?.() ?? []);
 
     const triggerParameterHints =
       () => {
@@ -641,13 +675,18 @@ export async function initializePlaygroundMonaco(
     setEditorAdapter({
       kind: "monaco",
       getValue() {
-        return monacoModel.getValue();
+        return currentModel.getValue();
       },
       setValue(value) {
-        monacoModel.setValue(
+        currentModel.setValue(
           value
         );
       },
+      openVirtualFile(path, source) {
+        currentModel = getModelForVirtualPath(path, source);
+        monacoEditor.setModel(currentModel);
+      },
+      syncVirtualFiles,
       replaceAll(value) {
         // Keep example changes in Monaco's normal Ctrl/Cmd+Z history.
         monacoEditor.pushUndoStop();
@@ -656,7 +695,7 @@ export async function initializePlaygroundMonaco(
           [
             {
               range:
-                monacoModel.getFullModelRange(),
+                currentModel.getFullModelRange(),
               text: value,
               forceMoveMarkers: true,
             },
@@ -680,10 +719,10 @@ export async function initializePlaygroundMonaco(
           monacoEditor.getPosition();
 
         if (!position) {
-          return monacoModel.getValueLength();
+          return currentModel.getValueLength();
         }
 
-        return monacoModel.getOffsetAt(
+        return currentModel.getOffsetAt(
           position
         );
       },
@@ -692,8 +731,8 @@ export async function initializePlaygroundMonaco(
           monacoEditor.getSelection();
         const position =
           monacoEditor.getPosition() ??
-          monacoModel.getPositionAt(
-            monacoModel.getValueLength()
+          currentModel.getPositionAt(
+            currentModel.getValueLength()
           );
         const range =
           selection ??

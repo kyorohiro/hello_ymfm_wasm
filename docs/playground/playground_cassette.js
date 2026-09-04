@@ -1,3 +1,8 @@
+import {
+  strToU8,
+  zipSync,
+} from "./vendor/fflate.js";
+
 const ZIP_LOCAL_FILE_HEADER = 0x04034b50;
 const ZIP_CENTRAL_DIRECTORY_HEADER = 0x02014b50;
 const ZIP_END_OF_CENTRAL_DIRECTORY = 0x06054b50;
@@ -16,6 +21,33 @@ const CASSETTE_DIRECTORIES = {
     ".m4a",
   ]),
 };
+
+export function createPlaygroundCassetteZip(files) {
+  const entries = {};
+
+  for (const file of files) {
+    const path = String(file.path ?? "").replace(/^\//, "");
+    validateZipPath(path);
+    if (Object.hasOwn(entries, path)) {
+      throw new Error(`Duplicate cassette file path "${path}".`);
+    }
+    entries[path] = file.type === "text"
+      ? strToU8(file.data)
+      : new Uint8Array(file.data);
+  }
+
+  if (Object.keys(entries).length === 0) {
+    throw new Error("Cassette must contain at least one file.");
+  }
+
+  const zip = zipSync(entries, { level: 6 });
+  if (zip.byteLength > MAX_CASSETTE_BYTES) {
+    throw new Error(
+      "Cassette exceeds the 16 MiB loader limit."
+    );
+  }
+  return zip;
+}
 
 export async function loadPlaygroundCassette(
   source,
@@ -36,6 +68,7 @@ export async function loadPlaygroundCassette(
     id: createCassetteId(
       options.name
     ),
+    files: new Map(),
     timbres: [],
     examples: [],
     samples: [],
@@ -43,6 +76,15 @@ export async function loadPlaygroundCassette(
   const namesByCategory = new Map();
 
   for (const entry of zipEntries) {
+    if (cassette.files.has(entry.path)) {
+      throw new Error(
+        `Duplicate cassette file path "${entry.path}".`
+      );
+    }
+
+    const bytes = await entry.read();
+    cassette.files.set(entry.path, bytes);
+
     const descriptor = describeCassettePath(
       entry.path
     );
@@ -69,7 +111,6 @@ export async function loadPlaygroundCassette(
     }
     names.add(descriptor.name);
 
-    const bytes = await entry.read();
     const item = {
       name: descriptor.name,
       path: entry.path,

@@ -8,6 +8,8 @@ Tetorica Playground の Code Input Tab を、VS Code に近い複数ファイル
 - 新しい project format は作らない。Cassette を唯一の配布・保存形式として拡張する。
 - `cassette.json` は作らない。ZIP 内のファイル構造を形式とする。
 - Cassette 内の全 ZIP entry を Virtual FS として保持する。
+- Cassette の正本は Virtual FS とする。`timbres/`、`samples/`、`examples/` は既存
+  Cassette を扱うための互換ビューであり、新しい manifest や別 format は追加しない。
 - archive root の `index.js` が存在するとき、それを Run の entry point とする。
 - `timbres/`、`samples/`、`examples/` は既存 Cassette v1 と同じ意味を保ち、
   従来どおり自動検出する。
@@ -52,16 +54,21 @@ example などのメタデータを書く案があった。
 
 ## 実装順
 
-1. Cassette loader が全 ZIP entry を正規化済み path の `Map` として返し、既存の
+1. [x] Cassette loader が全 ZIP entry を path の `Map` として返し、既存の
    `timbres` / `samples` / `examples` をその Map から検出するようにする。
-2. `Map<string, VirtualFile>` の Virtual FS と、text / binary 読み出し API を実装する。
-3. Code tab に Explorer と複数 text file の編集を追加し、既存の単一コードは
+2. [x] `Map<string, VirtualFile>` の Virtual FS と、text / binary / JSON 読み出し API を
+   実装する。
+3. [ ] Code tab に Explorer と複数 text file の編集を追加し、既存の単一コードは
    `/index.js` として移行する。
-4. `/index.js` を実行し、最初は string literal の relative dynamic import と `file()` を
+4. [ ] `/index.js` を実行し、最初は string literal の relative dynamic import と `file()` を
    解決する。
-5. Cassette import 時に Virtual FS と Monaco model を復元し、`/index.js` を開く。
-6. static import/export、Worker 実行、Cassette export は main-thread の最小構成が
+5. [ ] Cassette import 時に Virtual FS と Monaco model を復元し、`/index.js` を開く。
+6. [ ] static import/export、Worker 実行、Cassette export は main-thread の最小構成が
    安定してから追加する。
+
+補完・定義ジャンプは step 3 で複数 Monaco Model を実際に接続した後に確認する。
+期待どおりに機能しない場合は、実行方式を増やす前に Virtual FS の URI 規約と
+module import の仕様を見直す。
 
 ## 元の要件
 

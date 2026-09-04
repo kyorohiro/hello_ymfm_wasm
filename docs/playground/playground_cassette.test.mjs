@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { deflateRawSync } from "node:zlib";
 
 import {
+  createPlaygroundCassetteZip,
   loadPlaygroundCassette,
 } from "./playground_cassette.js";
 
@@ -52,8 +53,51 @@ test(
       ),
       ["hit"]
     );
+    assert.equal(
+      new TextDecoder().decode(
+        cassette.files.get("README.md")
+      ),
+      "Optional documentation"
+    );
   }
 );
+
+test(
+  "keeps project files outside the legacy cassette categories",
+  async () => {
+    const cassette = await loadPlaygroundCassette(
+      createStoredZip([
+        ["index.js", "const bass = await import('./bass.js');"],
+        ["bass.js", "export function playBass() {}"],
+        ["lib/chord.js", "export const chord = [];"],
+      ])
+    );
+
+    assert.deepEqual(
+      Array.from(cassette.files.keys()),
+      ["index.js", "bass.js", "lib/chord.js"]
+    );
+    assert.equal(cassette.examples.length, 0);
+  }
+);
+
+test("round-trips Virtual FS files through a cassette zip", async () => {
+  const zip = createPlaygroundCassetteZip([
+    { path: "/index.js", type: "text", data: "await play('C4');" },
+    { path: "/lib/hello.js", type: "text", data: "export const hi = 1;" },
+    { path: "/samples/hit.bin", type: "binary", data: new Uint8Array([1, 2]) },
+  ]);
+  const cassette = await loadPlaygroundCassette(zip);
+
+  assert.equal(
+    new TextDecoder().decode(cassette.files.get("index.js")),
+    "await play('C4');"
+  );
+  assert.deepEqual(
+    cassette.files.get("samples/hit.bin"),
+    new Uint8Array([1, 2])
+  );
+});
 
 test(
   "rejects duplicate public sample names",

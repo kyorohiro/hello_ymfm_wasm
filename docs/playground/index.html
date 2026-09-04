@@ -580,6 +580,65 @@
         overflow: hidden;
       }
 
+      .code-workspace {
+        display: flex;
+        flex: 1;
+        min-height: 0;
+      }
+
+      .file-explorer {
+        flex: 0 0 190px;
+        overflow: auto;
+        padding: 10px;
+        background: #202329;
+        color: #dbe2e8;
+      }
+
+      .file-explorer-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 6px;
+        margin-bottom: 8px;
+        font-size: 0.7rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+      }
+
+      .file-explorer-actions {
+        display: flex;
+        gap: 4px;
+      }
+
+      .file-explorer-actions button {
+        min-width: 24px;
+        min-height: 24px;
+        padding: 0 5px;
+      }
+
+      .file-entry {
+        display: block;
+        width: 100%;
+        padding: 5px 6px;
+        border: 0;
+        border-radius: 4px;
+        color: inherit;
+        background: transparent;
+        text-align: left;
+        font: 0.78rem/1.35 "SFMono-Regular", Menlo, Consolas, monospace;
+      }
+
+      .file-entry:hover,
+      .file-entry[aria-current="true"] {
+        background: rgba(87, 188, 198, 0.24);
+      }
+
+      .code-workspace .editor-host,
+      .code-workspace textarea {
+        min-width: 0;
+        border-radius: 0;
+      }
+
       #codePanel textarea,
       #codePanel .editor-host[data-ready="true"] {
         flex: 1;
@@ -1160,6 +1219,7 @@
               </div>
             </details>
             <button id="importCassetteButton" type="button">Import Cassette</button>
+            <button id="exportCassetteButton" type="button">Export Cassette</button>
             <a class="link-button" href="./cassette-gen.html">Open Cassette Generator</a>
           </div>
         </details>
@@ -1260,8 +1320,21 @@
               <h2>Code</h2>
               <span class="shortcut-hint">Ctrl/Cmd+Shift+Space/I · Ctrl/Cmd+Space/I</span>
             </div>
-            <div id="editorHost" class="editor-host" data-ready="false"></div>
-            <textarea id="editor" spellcheck="false"></textarea>
+            <div class="code-workspace">
+              <aside id="fileExplorer" class="file-explorer" aria-label="Project files">
+                <div class="file-explorer-header">
+                  <span>FILES</span>
+                  <span class="file-explorer-actions">
+                    <button id="newFileButton" type="button" title="New file">+</button>
+                    <button id="renameFileButton" type="button" title="Rename file">R</button>
+                    <button id="deleteFileButton" type="button" title="Delete file">-</button>
+                  </span>
+                </div>
+                <div id="fileExplorerList"></div>
+              </aside>
+              <div id="editorHost" class="editor-host" data-ready="false"></div>
+              <textarea id="editor" spellcheck="false"></textarea>
+            </div>
           </section>
 
           <section id="consolePanel" class="tab-panel" role="tabpanel" aria-labelledby="consoleTab" hidden>
