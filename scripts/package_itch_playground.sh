@@ -41,6 +41,7 @@ megasynth_looper.js
 megasynth_recording.js
 megadrive-fm-presets.js
 opn_fm_synth.js
+opn_fm_vgm.js
 pitch.js
 playground_clock.js
 playground_execution.js

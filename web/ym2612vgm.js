@@ -1,3 +1,9 @@
+import {
+  createOpnFmWriteTranslator,
+  isYm2203FmRegister,
+  isYm2608FmRegister,
+} from "./opn_fm_vgm.js";
+
 /**
  * @typedef {Object} Ym2612VgmHeader
  * @property {string} ident
@@ -1262,132 +1268,6 @@ function exportOpnFmVgmToPlaygroundJavaScript(source, options, chipKind, targetC
     }
   }
   return lines.join("\n");
-}
-
-function isYm2608FmRegister(port, register) {
-  if (port === 0 && (register === 0x22 || register === 0x27 || register === 0x28)) {
-    return true;
-  }
-  return register >= 0x30 && register <= 0xb6;
-}
-
-function isYm2203FmRegister(port, register) {
-  if (port !== 0) {
-    return false;
-  }
-  if (register === 0x27 || register === 0x28) {
-    return true;
-  }
-  return register >= 0x30 && register <= 0xb2;
-}
-
-function createOpnFmWriteTranslator(
-  sourceClock,
-  writeRegister,
-  isFmRegister
-) {
-  const normalizedSourceClock =
-    (Number(sourceClock) & 0x3fffffff) ||
-    YM2612_VGM_CLOCK;
-  const frequencies = Array.from(
-    { length: 9 },
-    () => ({ low: 0, high: 0 })
-  );
-
-  return (register, value, port = 0) => {
-    if (!isFmRegister(port, register)) {
-      return;
-    }
-
-    const frequency = getOpnFrequencyRegister(
-      port,
-      register
-    );
-    if (!frequency) {
-      writeRegister(register, value, port);
-      return;
-    }
-
-    const state = frequencies[frequency.index];
-    state[frequency.part] = value;
-    const scaled = scaleOpnFrequency(
-      state.low,
-      state.high,
-      normalizedSourceClock
-    );
-
-    // A frequency pair is rewritten together so a clock conversion cannot
-    // leave the target chip with an old high or low FNUM byte.
-    writeRegister(
-      frequency.highRegister,
-      scaled.high,
-      frequency.port
-    );
-    writeRegister(
-      frequency.lowRegister,
-      scaled.low,
-      frequency.port
-    );
-  };
-}
-
-function getOpnFrequencyRegister(port, register) {
-  if (register >= 0xa0 && register <= 0xa2) {
-    const channel = register - 0xa0;
-    return {
-      index: port * 3 + channel,
-      part: "low",
-      port,
-      lowRegister: register,
-      highRegister: register + 4,
-    };
-  }
-  if (register >= 0xa4 && register <= 0xa6) {
-    const channel = register - 0xa4;
-    return {
-      index: port * 3 + channel,
-      part: "high",
-      port,
-      lowRegister: register - 4,
-      highRegister: register,
-    };
-  }
-  if (port === 0 && register >= 0xa8 && register <= 0xaa) {
-    return {
-      index: 6 + register - 0xa8,
-      part: "low",
-      port,
-      lowRegister: register,
-      highRegister: register + 4,
-    };
-  }
-  if (port === 0 && register >= 0xac && register <= 0xae) {
-    return {
-      index: 6 + register - 0xac,
-      part: "high",
-      port,
-      lowRegister: register - 4,
-      highRegister: register,
-    };
-  }
-  return null;
-}
-
-function scaleOpnFrequency(low, high, sourceClock) {
-  let block = (high >> 3) & 0x07;
-  let fnum = ((high & 0x07) << 8) | low;
-  fnum = Math.round(
-    fnum * sourceClock / YM2612_VGM_CLOCK
-  );
-  while (fnum > 0x7ff && block < 7) {
-    fnum = Math.round(fnum / 2);
-    block += 1;
-  }
-  fnum = Math.min(0x7ff, fnum);
-  return {
-    low: fnum & 0xff,
-    high: (high & 0xc0) | (block << 3) | ((fnum >> 8) & 0x07),
-  };
 }
 
 /**
