@@ -242,7 +242,6 @@ const virtualFiles = createVirtualFileSystem([
   { path: "/index.js", data: "" },
 ]);
 let activeVirtualPath = "/index.js";
-let activeVirtualModuleUrls = [];
 
 function createImportInput(accept) {
   const input = document.createElement("input");
@@ -251,6 +250,20 @@ function createImportInput(accept) {
   input.style.display = "none";
   document.body.appendChild(input);
   return input;
+}
+
+function createJavaScriptDataUrl(source) {
+  const bytes = new TextEncoder().encode(source);
+  let binary = "";
+  const chunkSize = 0x8000;
+
+  for (let offset = 0; offset < bytes.length; offset += chunkSize) {
+    binary += String.fromCharCode(
+      ...bytes.subarray(offset, offset + chunkSize)
+    );
+  }
+
+  return `data:text/javascript;base64,${btoa(binary)}`;
 }
 
 const tfiImportInput = createImportInput(
@@ -887,9 +900,6 @@ async function runCode() {
   runButton.disabled = true;
   if (workerExecution) workerExecution.disabled = true;
   clearConsole();
-  const moduleUrls = [];
-  let retainedModuleUrls = false;
-  revokeVirtualModuleUrls();
 
   try {
     saveActiveVirtualFile();
@@ -901,19 +911,8 @@ async function runCode() {
       virtualFiles,
       entryFile.data,
       "/index.js",
-      (moduleSource) => {
-        const url = URL.createObjectURL(
-          new Blob([moduleSource], { type: "text/javascript" })
-        );
-        moduleUrls.push(url);
-        return url;
-      }
+      createJavaScriptDataUrl
     );
-    if (workerExecution?.checked && moduleUrls.length > 0) {
-      throw new Error(
-        "Worker execution does not support Virtual FS imports yet. Turn off Worker execution."
-      );
-    }
     runtime.put(
       "__editor__",
       source
@@ -926,16 +925,9 @@ async function runCode() {
           : "main",
       }
     );
-    activeVirtualModuleUrls = moduleUrls;
-    retainedModuleUrls = true;
   } catch (error) {
     console.error(error);
   } finally {
-    if (!retainedModuleUrls) {
-      for (const url of moduleUrls) {
-        URL.revokeObjectURL(url);
-      }
-    }
     runButton.disabled = false;
     syncWorkerExecutionLock();
   }
@@ -943,16 +935,8 @@ async function runCode() {
 
 function stopRun() {
   runtime.stop();
-  revokeVirtualModuleUrls();
   runButton.disabled = false;
   syncWorkerExecutionLock();
-}
-
-function revokeVirtualModuleUrls() {
-  for (const url of activeVirtualModuleUrls) {
-    URL.revokeObjectURL(url);
-  }
-  activeVirtualModuleUrls = [];
 }
 
 function loadExample() {
