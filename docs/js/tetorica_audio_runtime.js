@@ -906,6 +906,12 @@ export class TetoricaAudioRuntime {
     return previous;
   }
 
+  disposeFXChain() {
+    const previous = this.fxChain;
+    this.fxChain = [];
+    for (const effect of previous) effect?.dispose?.();
+  }
+
   connectOutput(node = null) {
     this.outputNode = node ?? this.outputNode ?? this.audioContext?.destination ?? null;
     this.rebuildFXChain();

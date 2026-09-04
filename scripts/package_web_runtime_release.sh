@@ -98,12 +98,6 @@ if [ ! -f "${GENERATED_DIR}/segapsg_wasm.js" ] || [ ! -f "${GENERATED_DIR}/segap
   exit 1
 fi
 
-if [ ! -f "${GENERATED_DIR}/ym2203_wasm.js" ] || [ ! -f "${GENERATED_DIR}/ym2203_wasm.wasm" ] || [ ! -f "${GENERATED_DIR}/ym2608_wasm.js" ] || [ ! -f "${GENERATED_DIR}/ym2608_wasm.wasm" ]; then
-  echo "error: YM2203/YM2608 WASM files are missing in ${GENERATED_DIR}" >&2
-  echo "hint: run sh scripts/build_ym2203_wasm.sh and sh scripts/build_ym2608_wasm.sh first" >&2
-  exit 1
-fi
-
 if [ ! -f "${GENERATED_DIR}/nuked_opn2_wasm.js" ] || [ ! -f "${GENERATED_DIR}/nuked_opn2_wasm.wasm" ]; then
   echo "error: Nuked-OPN2 WASM files are missing in ${GENERATED_DIR}" >&2
   echo "hint: run sh scripts/build_nuked_opn2_wasm.sh first" >&2
@@ -134,10 +128,12 @@ mkdir -p "${STAGE_DIR}/generated" "${STAGE_DIR}/samples" "${STAGE_DIR}/licenses/
   cp "${GENERATED_DIR}/nuked_opn2_wasm.wasm" "${STAGE_DIR}/generated/nuked_opn2_wasm.wasm"
   cp "${GENERATED_DIR}/segapsg_wasm.js" "${STAGE_DIR}/generated/segapsg_wasm.js"
   cp "${GENERATED_DIR}/segapsg_wasm.wasm" "${STAGE_DIR}/generated/segapsg_wasm.wasm"
-  cp "${GENERATED_DIR}/ym2203_wasm.js" "${STAGE_DIR}/generated/ym2203_wasm.js"
-  cp "${GENERATED_DIR}/ym2203_wasm.wasm" "${STAGE_DIR}/generated/ym2203_wasm.wasm"
-  cp "${GENERATED_DIR}/ym2608_wasm.js" "${STAGE_DIR}/generated/ym2608_wasm.js"
-  cp "${GENERATED_DIR}/ym2608_wasm.wasm" "${STAGE_DIR}/generated/ym2608_wasm.wasm"
+  for chip in ym2203 ym2608; do
+    if [ -f "${GENERATED_DIR}/${chip}_wasm.js" ] && [ -f "${GENERATED_DIR}/${chip}_wasm.wasm" ]; then
+      cp "${GENERATED_DIR}/${chip}_wasm.js" "${STAGE_DIR}/generated/${chip}_wasm.js"
+      cp "${GENERATED_DIR}/${chip}_wasm.wasm" "${STAGE_DIR}/generated/${chip}_wasm.wasm"
+    fi
+  done
   cp -R "${PLAYGROUND_SAMPLES_DIR}/." "${STAGE_DIR}/samples/"
   cp "${LICENSE_FILE}" "${STAGE_DIR}/LICENSE"
 

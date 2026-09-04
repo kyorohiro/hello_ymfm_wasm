@@ -83,10 +83,6 @@ nuked_opn2_wasm.js
 nuked_opn2_wasm.wasm
 segapsg_wasm.js
 segapsg_wasm.wasm
-ym2203_wasm.js
-ym2203_wasm.wasm
-ym2608_wasm.js
-ym2608_wasm.wasm
 "
 
 NUKED_LICENSE_DIR="${ROOT_DIR}/third_party/nuked-opn2"
@@ -186,6 +182,13 @@ for file in ${GENERATED_FILES}; do
   fi
 
   cp "${src}" "${dst}"
+done
+
+for chip in ym2203 ym2608; do
+  if [ -f "${DOCS_GENERATED_DIR}/${chip}_wasm.js" ] && [ -f "${DOCS_GENERATED_DIR}/${chip}_wasm.wasm" ]; then
+    cp "${DOCS_GENERATED_DIR}/${chip}_wasm.js" "${STAGE_DIR}/generated/${chip}_wasm.js"
+    cp "${DOCS_GENERATED_DIR}/${chip}_wasm.wasm" "${STAGE_DIR}/generated/${chip}_wasm.wasm"
+  fi
 done
 
 cp -R "${PLAYGROUND_SAMPLES_DIR}/." "${STAGE_DIR}/samples/"
