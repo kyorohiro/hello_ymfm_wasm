@@ -7,6 +7,10 @@ export function isYm2608FmRegister(port, register) {
   return register >= 0x30 && register <= 0xb6;
 }
 
+export function isYm2610FmRegister(port, register) {
+  return isYm2608FmRegister(port, register);
+}
+
 export function isYm2203FmRegister(port, register) {
   if (port !== 0) return false;
   if (register === 0x27 || register === 0x28) return true;

@@ -1,6 +1,7 @@
 import {
   createOpnFmWriteTranslator,
   isYm2203FmRegister,
+  isYm2610FmRegister,
   isYm2608FmRegister,
 } from "./opn_fm_vgm.js";
 
@@ -11,6 +12,7 @@ import {
  * @property {number} ym2612Clock
  * @property {number} ym2203Clock
  * @property {number} ym2608Clock
+ * @property {number} ym2610Clock
  * @property {number} totalSamples
  * @property {number} loopOffset
  * @property {number} loopSamples
@@ -40,6 +42,8 @@ import {
  * @property {number} value
  */
 
+/** @typedef {{ type: "ym2610-write", port: 0|1, register: number, value: number }} Ym2610WriteEvent */
+
 /**
  * @typedef {Object} SegaPsgWriteEvent
  * @property {"psg-write"} type
@@ -58,7 +62,7 @@ import {
  */
 
 /**
- * @typedef {Ym2612WriteEvent | Ym2203WriteEvent | Ym2608WriteEvent | SegaPsgWriteEvent | Ym2612WaitEvent | Ym2612EndEvent} Ym2612VgmEvent
+ * @typedef {Ym2612WriteEvent | Ym2203WriteEvent | Ym2608WriteEvent | Ym2610WriteEvent | SegaPsgWriteEvent | Ym2612WaitEvent | Ym2612EndEvent} Ym2612VgmEvent
  */
 
 /**
@@ -211,6 +215,7 @@ export class Ym2612VGM {
     const ym2612Clock = readUint32LE(this.view, 0x2c);
     const ym2203Clock = readUint32LE(this.view, 0x44);
     const ym2608Clock = readUint32LE(this.view, 0x48);
+    const ym2610Clock = readUint32LE(this.view, 0x4c);
     const totalSamples = readUint32LE(this.view, 0x18);
     const loopOffsetRaw = readUint32LE(this.view, 0x1c);
     const loopSamples = readUint32LE(this.view, 0x20);
@@ -228,6 +233,7 @@ export class Ym2612VGM {
       ym2612Clock,
       ym2203Clock,
       ym2608Clock,
+      ym2610Clock,
       totalSamples,
       loopOffset,
       loopSamples,
@@ -438,6 +444,14 @@ export class Ym2612VGM {
         this.position += 3;
         return { type: "ym2608-write", port: 1, register, value };
       }
+      case 0x58:
+      case 0x59: {
+        this.#ensureAvailable(3);
+        const register = this.bytes[this.position + 1];
+        const value = this.bytes[this.position + 2];
+        this.position += 3;
+        return { type: "ym2610-write", port: command - 0x58, register, value };
+      }
       case 0x67: {
         this.#ensureAvailable(7);
         if (this.bytes[this.position + 1] !== 0x66) {
@@ -546,6 +560,12 @@ export class Ym2612VGM {
       const ym2608 = targets.ym2608;
       if (ym2608 && typeof ym2608.writeRegister === "function") {
         ym2608.writeRegister(event.register, event.value, event.port);
+      }
+    }
+    if (event.type === "ym2610-write") {
+      const ym2610 = targets.ym2610;
+      if (ym2610 && typeof ym2610.writeRegister === "function") {
+        ym2610.writeRegister(event.register, event.value, event.port);
       }
     }
     if (event.type === "psg-write") {
@@ -1124,6 +1144,11 @@ export function exportYm2608VgmToPlaygroundJavaScript(source, options = {}) {
   return exportOpnFmVgmToPlaygroundJavaScript(source, options, "ym2608", "ym2608");
 }
 
+/** Export YM2610B FM writes while omitting SSG and ADPCM registers. */
+export function exportYm2610BVgmToPlaygroundJavaScript(source, options = {}) {
+  return exportOpnFmVgmToPlaygroundJavaScript(source, options, "ym2610", "ym2610");
+}
+
 function exportOpnFmVgmToPlaygroundJavaScript(source, options, chipKind, targetChip) {
   const parser = source instanceof Ym2612VGM
     ? new Ym2612VGM(source.bytes, { logger: null })
@@ -1173,12 +1198,14 @@ function exportOpnFmVgmToPlaygroundJavaScript(source, options, chipKind, targetC
         recordWrite,
         isYm2203FmRegister
       )
+      : chipKind === "ym2610" && convertFrequency
+        ? createOpnFmWriteTranslator(parser.header.ym2610Clock, recordWrite, isYm2610FmRegister)
       : chipKind === "ym2612"
         ? recordWrite
       : (register, value, port = 0) => {
         const isFmRegister = chipKind === "ym2608"
           ? isYm2608FmRegister
-          : isYm2203FmRegister;
+          : chipKind === "ym2610" ? isYm2610FmRegister : isYm2203FmRegister;
         if (isFmRegister(port, register)) {
           recordWrite(register, value, port);
         }
@@ -1187,6 +1214,8 @@ function exportOpnFmVgmToPlaygroundJavaScript(source, options, chipKind, targetC
     ? { ym2608: { writeRegister } }
     : chipKind === "ym2203"
       ? { ym2203: { writeRegister } }
+      : chipKind === "ym2610"
+        ? { ym2610: { writeRegister } }
       : { writeRegister };
 
   while (true) {

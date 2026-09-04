@@ -52,6 +52,7 @@ ym2610b.js
 ym2610baudioengine.js
 ym2610b-worklet.js
 ym2610bsynth.js
+ym2610bvgm.js
 ym2203vgm.js
 ym2608vgm.js
 ym2612-worklet.js

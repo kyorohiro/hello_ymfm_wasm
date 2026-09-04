@@ -15,11 +15,12 @@ import {
 import {
   exportYm2608VgmToPlaygroundJavaScript,
 } from "../js/ym2608vgm.js";
+import { exportYm2610BVgmToPlaygroundJavaScript } from "../js/ym2610bvgm.js";
 
 function createVgmBuffer(commands, options = {}) {
   const dataOffset = options.dataOffset ??
-    (options.ym2203Clock || options.ym2608Clock ? 0x100 : 0x40);
-  const totalLength = Math.max(0x4c, dataOffset + commands.length);
+    (options.ym2203Clock || options.ym2608Clock || options.ym2610Clock ? 0x100 : 0x40);
+  const totalLength = Math.max(0x50, dataOffset + commands.length);
   const bytes = new Uint8Array(totalLength);
   bytes[0] = 0x56;
   bytes[1] = 0x67;
@@ -36,9 +37,26 @@ function createVgmBuffer(commands, options = {}) {
   if (options.ym2608Clock) {
     view.setUint32(0x48, options.ym2608Clock, true);
   }
+  if (options.ym2610Clock) view.setUint32(0x4c, options.ym2610Clock, true);
   bytes.set(commands, dataOffset);
   return bytes.buffer;
 }
+
+test("YM2610B native export keeps FM writes and omits SSG and ADPCM", () => {
+  const buffer = createVgmBuffer(Uint8Array.from([
+    0x58, 0x22, 0x08,
+    0x58, 0x30, 0x71,
+    0x59, 0xa4, 0x22,
+    0x58, 0x08, 0xff,
+    0x58, 0x10, 0xff,
+    0x66,
+  ]), { ym2610Clock: 8000000 });
+  const script = exportYm2610BVgmToPlaygroundJavaScript(buffer);
+  assert.match(script, /write\(0x22, 0x08\)/);
+  assert.match(script, /write\(1, 0xa4, 0x22\)/);
+  assert.doesNotMatch(script, /0x8, 0xff/);
+  assert.doesNotMatch(script, /0x10, 0xff/);
+});
 
 test("exportYm2612VgmToPlaygroundJavaScript separates global and channel timing", () => {
   const buffer = createVgmBuffer(
