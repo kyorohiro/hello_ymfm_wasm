@@ -241,6 +241,32 @@ let editorAdapter =
     editor
   );
 const SYSTEM_EXAMPLE_PREFIX = "/sys/examples/";
+const SYSTEM_EXAMPLE_ORDER = [
+  "single",
+  "8-bit-arcade-sweep",
+  "live-loop",
+  "fx-loop-minor",
+  "fx-loop-major",
+  "guitar-fx-chain",
+  "ambient-choir-sample",
+  "noise-ocean",
+  "wind-noise",
+  "just-intonation-chorus",
+  "slicer-sweep",
+  "fx-motion",
+  "parallel-fx",
+  "sonic-pi-sample-choir",
+  "fm-direct",
+  "fm-api-beep",
+  "pg-context-init",
+  "fm-low-level-note",
+  "raw-write-beep",
+  "channel3-special-mode",
+  "dac-byte-stream",
+  "psg-scale",
+  "psg-noise",
+  "psg-ocean",
+];
 const systemExampleFiles = Object.entries(EXAMPLES).map(
   ([name, source]) => ({
     path: `${SYSTEM_EXAMPLE_PREFIX}${name}.js`,
@@ -266,6 +292,16 @@ function formatSystemExampleLabel(path) {
     .split("-")
     .map((word) => word ? `${word[0].toUpperCase()}${word.slice(1)}` : word)
     .join(" ");
+}
+
+function projectFileOrder(left, right) {
+  const rank = (path) => {
+    if (path === "/index.js") return 0;
+    if (path.startsWith("/examples/")) return 1;
+    return 2;
+  };
+  return rank(left.path) - rank(right.path) ||
+    left.path.localeCompare(right.path);
 }
 
 function restoreSystemExampleFiles() {
@@ -772,7 +808,7 @@ function renderRunFileOptions() {
         file.path.endsWith(".js") &&
         !isSystemVirtualPath(file.path)
     )
-    .sort((left, right) => left.path.localeCompare(right.path));
+    .sort(projectFileOrder);
   const projectGroup = document.createElement("optgroup");
   projectGroup.label = "Project files";
 
@@ -786,7 +822,21 @@ function renderRunFileOptions() {
 
   const exampleGroup = document.createElement("optgroup");
   exampleGroup.label = "Built-in examples";
-  for (const file of systemExampleFiles) {
+  const systemFilesByName = new Map(
+    systemExampleFiles.map((file) => [
+      file.path.slice(SYSTEM_EXAMPLE_PREFIX.length, -3),
+      file,
+    ])
+  );
+  const orderedSystemFiles = [
+    ...SYSTEM_EXAMPLE_ORDER.map((name) => systemFilesByName.get(name)),
+    ...systemExampleFiles.filter(
+      (file) => !SYSTEM_EXAMPLE_ORDER.includes(
+        file.path.slice(SYSTEM_EXAMPLE_PREFIX.length, -3)
+      )
+    ),
+  ].filter(Boolean);
+  for (const file of orderedSystemFiles) {
     const option = document.createElement("option");
     option.value = file.path;
     option.textContent = formatSystemExampleLabel(file.path);
@@ -804,7 +854,7 @@ function renderVirtualFileExplorer() {
   fileExplorerList.replaceChildren();
   const files = virtualFiles.list()
     .filter((file) => !isSystemVirtualPath(file.path))
-    .sort((left, right) => left.path.localeCompare(right.path));
+    .sort(projectFileOrder);
 
   for (const file of files) {
     const button = document.createElement("button");
