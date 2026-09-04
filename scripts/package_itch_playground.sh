@@ -65,6 +65,8 @@ ym2608synth.js
 ym2608-worklet.js
 vgm_file.js
 ym2612vgm.js
+ym2203vgm.js
+ym2608vgm.js
 ym2612-worklet.js
 ym2612-worklet-nuked.js
 ym2612.js

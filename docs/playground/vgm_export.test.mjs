@@ -9,6 +9,12 @@ import {
   exportYm2608FmVgmToPlaygroundJavaScript,
   getYm2612WriteTarget,
 } from "../js/ym2612vgm.js";
+import {
+  exportYm2203VgmToPlaygroundJavaScript,
+} from "../js/ym2203vgm.js";
+import {
+  exportYm2608VgmToPlaygroundJavaScript,
+} from "../js/ym2608vgm.js";
 
 function createVgmBuffer(commands, options = {}) {
   const dataOffset = options.dataOffset ??
@@ -149,6 +155,31 @@ test("YM2203 FM-only export preserves three FM channels and enables YM2612 pan",
   assert.match(script, /\[480, 0, 0x28, 0xf0\]/);
   assert.doesNotMatch(script, /0x00, 0x7f/);
   assert.doesNotMatch(script, /liveLoop\("ch3"/);
+});
+
+test("native OPN exports preserve FNUM and omit YM2612 compatibility writes", () => {
+  const ym2203 = createVgmBuffer(
+    Uint8Array.from([0x55, 0xa0, 0x00, 0x55, 0xa4, 0x22, 0x66]),
+    { ym2612Clock: 0, ym2203Clock: 3993600 }
+  );
+  const ym2608 = createVgmBuffer(
+    Uint8Array.from([0x56, 0xa0, 0x00, 0x56, 0xa4, 0x22, 0x66]),
+    { ym2612Clock: 0, ym2608Clock: 7987200 }
+  );
+
+  const ym2203Script = exportYm2203VgmToPlaygroundJavaScript(ym2203, {
+    scheduled: true,
+  });
+  const ym2608Script = exportYm2608VgmToPlaygroundJavaScript(ym2608, {
+    scheduled: true,
+  });
+
+  assert.match(ym2203Script, /\[0, 0, 0xa4, 0x22\]/);
+  assert.match(ym2203Script, /\[0, 0, 0xa0, 0x00\]/);
+  assert.doesNotMatch(ym2203Script, /0xb4, 0xc0|FNUM converted/);
+  assert.match(ym2608Script, /\[0, 0, 0xa4, 0x22\]/);
+  assert.match(ym2608Script, /\[0, 0, 0xa0, 0x00\]/);
+  assert.doesNotMatch(ym2608Script, /FNUM converted/);
 });
 
 test("scheduled export expands YM2612 DAC stream data while readable export omits it", () => {

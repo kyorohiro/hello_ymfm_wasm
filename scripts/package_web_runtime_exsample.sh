@@ -68,6 +68,8 @@ ym2612-worklet-nuked.js
 ym2612.js
 ym2612synth.js
 ym2612vgm.js
+ym2203vgm.js
+ym2608vgm.js
 "
 
 GENERATED_FILES="
