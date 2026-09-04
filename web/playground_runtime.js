@@ -932,7 +932,13 @@ export function createPlaygroundRuntime(
       handleWorkerMessage(event);
     };
     worker.onerror = (event) => {
-      const error = new Error(event.message || "Playground Worker failed");
+      const location = event.filename
+        ? ` (${event.filename}:${event.lineno ?? 0}:${event.colno ?? 0})`
+        : "";
+      const error = new Error(
+        `${event.message || "Playground Worker failed"}${location}`
+      );
+      emitLog(error.message);
       while (workerRunRequests.length > 0) {
         workerRunRequests.shift().reject(error);
       }
