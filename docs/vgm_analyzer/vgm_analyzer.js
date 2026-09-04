@@ -967,6 +967,7 @@ function renderHeader(header) {
     `ym2612Clock: ${header.ym2612Clock}`,
     `ym2203Clock: ${header.ym2203Clock}`,
     `ym2608Clock: ${header.ym2608Clock}`,
+    `ym2610Clock: ${header.ym2610Clock}`,
     `totalSamples: ${header.totalSamples}`,
     `loopOffset: ${formatHex(header.loopOffset, 8)}`,
     `loopSamples: ${header.loopSamples}`,
@@ -1159,6 +1160,9 @@ function renderEvent(event, index) {
   }
   if (event.type === "ym2608-write") {
     return `${String(index).padStart(3, " ")}: ym2608 port=${event.port} register=${formatHex(event.register)} value=${formatHex(event.value)}`;
+  }
+  if (event.type === "ym2610-write") {
+    return `${String(index).padStart(3, " ")}: ym2610 port=${event.port} register=${formatHex(event.register)} value=${formatHex(event.value)}`;
   }
   if (event.type === "psg-write") {
     return `${String(index).padStart(3, " ")}: psg write value=${formatHex(event.value)}`;
