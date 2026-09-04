@@ -63,6 +63,10 @@ ym2608.js
 ym2608audioengine.js
 ym2608synth.js
 ym2608-worklet.js
+ym2610b.js
+ym2610bsynth.js
+ym2610bvgm.js
+ym2610b-worklet.js
 vgm-output-worklet.js
 vgmplayer.js
 vgm_runtime.js
@@ -168,7 +172,7 @@ for file in ${GENERATED_FILES}; do
   cp "${src}" "${dst}"
 done
 
-for chip in ym2203 ym2608; do
+for chip in ym2203 ym2608 ym2610b; do
   if [ -f "${DOCS_GENERATED_DIR}/${chip}_wasm.js" ] && [ -f "${DOCS_GENERATED_DIR}/${chip}_wasm.wasm" ]; then
     cp "${DOCS_GENERATED_DIR}/${chip}_wasm.js" "${STAGE_DIR}/generated/${chip}_wasm.js"
     cp "${DOCS_GENERATED_DIR}/${chip}_wasm.wasm" "${STAGE_DIR}/generated/${chip}_wasm.wasm"

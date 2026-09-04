@@ -20,6 +20,7 @@ vgm_analyzer.js
 
 JS_FILES="
 genesisaudioengine.js
+opn_fm_vgm.js
 segapsg.js
 tfi.js
 vgm_file.js

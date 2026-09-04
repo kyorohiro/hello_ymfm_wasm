@@ -29,6 +29,10 @@ playground_sync.js
 playground_ui.js
 playground_virtual_files.js
 tetorica-playground-globals.d.ts
+tetorica-playground-ym2203.d.ts
+tetorica-playground-ym2608.d.ts
+tetorica-playground-ym2610.d.ts
+tetorica-playground-ym2612.d.ts
 "
 
 RUNTIME_FILES="
@@ -65,6 +69,10 @@ ym2608.js
 ym2608audioengine.js
 ym2608synth.js
 ym2608-worklet.js
+ym2610b.js
+ym2610bsynth.js
+ym2610bvgm.js
+ym2610b-worklet.js
 vgm_file.js
 ym2612vgm.js
 ym2203vgm.js
@@ -188,7 +196,7 @@ for file in ${GENERATED_FILES}; do
   cp "${src}" "${dst}"
 done
 
-for chip in ym2203 ym2608; do
+for chip in ym2203 ym2608 ym2610b; do
   if [ -f "${DOCS_GENERATED_DIR}/${chip}_wasm.js" ] && [ -f "${DOCS_GENERATED_DIR}/${chip}_wasm.wasm" ]; then
     cp "${DOCS_GENERATED_DIR}/${chip}_wasm.js" "${STAGE_DIR}/generated/${chip}_wasm.js"
     cp "${DOCS_GENERATED_DIR}/${chip}_wasm.wasm" "${STAGE_DIR}/generated/${chip}_wasm.wasm"
@@ -223,7 +231,7 @@ EOF
 # Make the playground runnable from itch.io as a standalone app.
 perl -0pi -e 's#<a class="link-button" href="\.\./index\.html">Back</a>##g' \
   "${STAGE_DIR}/index.html"
-perl -0pi -e 's#"\./playground\.js"#"./playground.js"#g; s#"\.\./js/#"./js/#g; s#"\.\./synth/#"./synth/#g; s#"\.\./generated/#"./generated/#g' \
+perl -0pi -e 's#"\./playground\.js"#"./playground.js"#g; s#\.\./js/#./js/#g; s#\.\./synth/#./synth/#g; s#\.\./generated/#./generated/#g' \
   "${STAGE_DIR}/index.html" \
   "${STAGE_DIR}/playground.js" \
   "${STAGE_DIR}/playground_monaco.js" \

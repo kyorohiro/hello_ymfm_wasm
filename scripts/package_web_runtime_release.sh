@@ -133,7 +133,7 @@ mkdir -p "${STAGE_DIR}/generated" "${STAGE_DIR}/samples" "${STAGE_DIR}/licenses/
   cp "${GENERATED_DIR}/nuked_opn2_wasm.wasm" "${STAGE_DIR}/generated/nuked_opn2_wasm.wasm"
   cp "${GENERATED_DIR}/segapsg_wasm.js" "${STAGE_DIR}/generated/segapsg_wasm.js"
   cp "${GENERATED_DIR}/segapsg_wasm.wasm" "${STAGE_DIR}/generated/segapsg_wasm.wasm"
-  for chip in ym2203 ym2608; do
+  for chip in ym2203 ym2608 ym2610b; do
     if [ -f "${GENERATED_DIR}/${chip}_wasm.js" ] && [ -f "${GENERATED_DIR}/${chip}_wasm.wasm" ]; then
       cp "${GENERATED_DIR}/${chip}_wasm.js" "${STAGE_DIR}/generated/${chip}_wasm.js"
       cp "${GENERATED_DIR}/${chip}_wasm.wasm" "${STAGE_DIR}/generated/${chip}_wasm.wasm"
