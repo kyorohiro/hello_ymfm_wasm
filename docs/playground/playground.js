@@ -102,9 +102,9 @@ const dacBase64Input =
   document.getElementById("dacBase64Input");
 const dacBase64Label =
   document.getElementById("dacBase64Label");
-const exampleSelect =
+const runFileSelect =
   document.getElementById(
-    "exampleSelect"
+    "runFileSelect"
   );
 const editor =
   document.getElementById("editor");
@@ -240,12 +240,44 @@ let editorAdapter =
   createTextareaEditorAdapter(
     editor
   );
+const SYSTEM_EXAMPLE_PREFIX = "/sys/examples/";
+const systemExampleFiles = Object.entries(EXAMPLES).map(
+  ([name, source]) => ({
+    path: `${SYSTEM_EXAMPLE_PREFIX}${name}.js`,
+    data: source,
+  })
+);
 const virtualFiles = createVirtualFileSystem([
-  { path: "/index.js", data: "" },
+  // A new project starts with the previous Live Loop example as its entry point.
+  { path: "/index.js", data: EXAMPLES["live-loop"] },
+  ...systemExampleFiles,
 ]);
 let activeVirtualPath = "/index.js";
+let runVirtualPath = "/index.js";
 const virtualPresetIds = new Map();
-const virtualExamplePaths = new Map();
+
+function isSystemVirtualPath(path) {
+  return path.startsWith("/sys/");
+}
+
+function formatSystemExampleLabel(path) {
+  return path
+    .slice(SYSTEM_EXAMPLE_PREFIX.length, -3)
+    .split("-")
+    .map((word) => word ? `${word[0].toUpperCase()}${word.slice(1)}` : word)
+    .join(" ");
+}
+
+function restoreSystemExampleFiles() {
+  for (const file of virtualFiles.list()) {
+    if (isSystemVirtualPath(file.path)) {
+      virtualFiles.delete(file.path);
+    }
+  }
+  for (const file of systemExampleFiles) {
+    virtualFiles.writeText(file.path, file.data);
+  }
+}
 
 function createImportInput(accept) {
   const input = document.createElement("input");
@@ -332,6 +364,9 @@ function createTextareaEditorAdapter(
     },
     setValue(value) {
       textarea.value = value;
+    },
+    setReadOnly(readOnly) {
+      textarea.readOnly = readOnly;
     },
     getCursorOffset() {
       return textarea.selectionStart ??
@@ -517,7 +552,9 @@ function exportCassette() {
   try {
     saveActiveVirtualFile();
     const zip = createPlaygroundCassetteZip(
-      virtualFiles.list()
+      virtualFiles.list().filter(
+        (file) => !isSystemVirtualPath(file.path)
+      )
     );
     const name = window.prompt(
       "Cassette name",
@@ -698,12 +735,18 @@ function getEditorValue() {
 }
 
 function setEditorValue(value) {
+  if (isSystemVirtualPath(activeVirtualPath)) {
+    return;
+  }
   const text = String(value);
   virtualFiles.writeText(activeVirtualPath, text);
   editorAdapter.setValue(text);
 }
 
 function saveActiveVirtualFile() {
+  if (isSystemVirtualPath(activeVirtualPath)) {
+    return;
+  }
   virtualFiles.writeText(
     activeVirtualPath,
     getEditorValue()
@@ -715,14 +758,53 @@ function showVirtualFile(file) {
     file.path,
     file.data
   );
+  editorAdapter.setReadOnly?.(isSystemVirtualPath(file.path));
   editorAdapter.setValue(file.data);
+}
+
+function renderRunFileOptions() {
+  const previousPath = runVirtualPath;
+  runFileSelect.replaceChildren();
+  const projectFiles = virtualFiles.list()
+    .filter(
+      (file) =>
+        file.type === "text" &&
+        file.path.endsWith(".js") &&
+        !isSystemVirtualPath(file.path)
+    )
+    .sort((left, right) => left.path.localeCompare(right.path));
+  const projectGroup = document.createElement("optgroup");
+  projectGroup.label = "Project files";
+
+  for (const file of projectFiles) {
+    const option = document.createElement("option");
+    option.value = file.path;
+    option.textContent = file.path;
+    projectGroup.appendChild(option);
+  }
+  runFileSelect.appendChild(projectGroup);
+
+  const exampleGroup = document.createElement("optgroup");
+  exampleGroup.label = "Built-in examples";
+  for (const file of systemExampleFiles) {
+    const option = document.createElement("option");
+    option.value = file.path;
+    option.textContent = formatSystemExampleLabel(file.path);
+    exampleGroup.appendChild(option);
+  }
+  runFileSelect.appendChild(exampleGroup);
+
+  runVirtualPath = virtualFiles.has(previousPath)
+    ? previousPath
+    : "/index.js";
+  runFileSelect.value = runVirtualPath;
 }
 
 function renderVirtualFileExplorer() {
   fileExplorerList.replaceChildren();
-  const files = virtualFiles.list().sort(
-    (left, right) => left.path.localeCompare(right.path)
-  );
+  const files = virtualFiles.list()
+    .filter((file) => !isSystemVirtualPath(file.path))
+    .sort((left, right) => left.path.localeCompare(right.path));
 
   for (const file of files) {
     const button = document.createElement("button");
@@ -764,11 +846,14 @@ function createVirtualFile() {
   }
   try {
     const normalizedPath = normalizeVirtualPath(path);
+    if (isSystemVirtualPath(normalizedPath)) {
+      throw new Error("/sys is reserved for built-in files.");
+    }
     if (virtualFiles.has(normalizedPath)) {
       throw new Error("A file already exists at that path.");
     }
     virtualFiles.writeText(normalizedPath, "");
-    registerVirtualExample(normalizedPath);
+    renderRunFileOptions();
     openVirtualFile(normalizedPath);
   } catch (error) {
     setStatus(`Could not create file: ${error.message}`);
@@ -789,6 +874,10 @@ async function importVirtualFile(file) {
     return;
   }
   const normalizedPath = normalizeVirtualPath(path);
+  if (isSystemVirtualPath(normalizedPath)) {
+    setStatus("/sys is reserved for built-in files.");
+    return;
+  }
   if (
     virtualFiles.has(normalizedPath) &&
     !window.confirm(`Replace ${normalizedPath}?`)
@@ -802,6 +891,7 @@ async function importVirtualFile(file) {
   );
   registerVirtualTfiPreset(normalizedPath);
   renderVirtualFileExplorer();
+  renderRunFileOptions();
   setStatus(`Imported binary file: ${normalizedPath}`);
 }
 
@@ -841,12 +931,19 @@ function clearVirtualTfiPresets() {
 }
 
 function renameActiveVirtualFile() {
+  if (isSystemVirtualPath(activeVirtualPath)) {
+    setStatus("System example files are read-only.");
+    return;
+  }
   const path = window.prompt("Rename file", activeVirtualPath);
   if (!path || path === activeVirtualPath) {
     return;
   }
   try {
     const normalizedPath = normalizeVirtualPath(path);
+    if (isSystemVirtualPath(normalizedPath)) {
+      throw new Error("/sys is reserved for built-in files.");
+    }
     if (virtualFiles.has(normalizedPath)) {
       throw new Error("A file already exists at that path.");
     }
@@ -854,16 +951,23 @@ function renameActiveVirtualFile() {
     const currentFile = virtualFiles.get(activeVirtualPath);
     virtualFiles.writeText(normalizedPath, currentFile.data);
     virtualFiles.delete(activeVirtualPath);
-    unregisterVirtualExample(activeVirtualPath);
+    const previousPath = activeVirtualPath;
     activeVirtualPath = normalizedPath;
-    registerVirtualExample(normalizedPath);
+    if (runVirtualPath === previousPath) {
+      runVirtualPath = normalizedPath;
+    }
     renderVirtualFileExplorer();
+    renderRunFileOptions();
   } catch (error) {
     setStatus(`Could not rename file: ${error.message}`);
   }
 }
 
 function deleteActiveVirtualFile() {
+  if (isSystemVirtualPath(activeVirtualPath)) {
+    setStatus("System example files are read-only.");
+    return;
+  }
   if (activeVirtualPath === "/index.js") {
     setStatus("/index.js is the project entry point and cannot be deleted.");
     return;
@@ -872,24 +976,14 @@ function deleteActiveVirtualFile() {
     return;
   }
   saveActiveVirtualFile();
-  unregisterVirtualExample(activeVirtualPath);
+  if (runVirtualPath === activeVirtualPath) {
+    runVirtualPath = "/index.js";
+  }
   virtualFiles.delete(activeVirtualPath);
   activeVirtualPath = "/index.js";
   showVirtualFile(virtualFiles.get(activeVirtualPath));
   renderVirtualFileExplorer();
-}
-
-function replaceEditorValue(value) {
-  if (
-    typeof editorAdapter.replaceAll ===
-    "function"
-  ) {
-    editorAdapter.replaceAll(value);
-    return;
-  }
-
-  setEditorValue(value);
-  editorAdapter.focus();
+  renderRunFileOptions();
 }
 
 const ui =
@@ -977,21 +1071,21 @@ async function runCode() {
 
   try {
     saveActiveVirtualFile();
-    const entryFile = virtualFiles.get("/index.js");
+    const entryFile = virtualFiles.get(runVirtualPath);
     if (!entryFile || entryFile.type !== "text") {
-      throw new Error("Project entry point /index.js is missing.");
+      throw new Error(`Run file ${runVirtualPath} is missing.`);
     }
     const source = resolveVirtualDynamicImports(
       virtualFiles,
       entryFile.data,
-      "/index.js",
+      runVirtualPath,
       (moduleSource, modulePath) => createJavaScriptDataUrl(
         `${createVirtualFileRuntimeSource(virtualFiles, modulePath)}\n${moduleSource}`
       )
     );
     runtime.put(
       "__editor__",
-      `${createVirtualFileRuntimeSource(virtualFiles, "/index.js", { install: true })}\n${source}`
+      `${createVirtualFileRuntimeSource(virtualFiles, runVirtualPath, { install: true })}\n${source}`
     );
     await runtime.play(
       "__editor__",
@@ -1013,67 +1107,6 @@ function stopRun() {
   runtime.stop();
   runButton.disabled = false;
   syncWorkerExecutionLock();
-}
-
-function loadExample() {
-  const exampleName =
-    exampleSelect.value;
-  const virtualPath = virtualExamplePaths.get(exampleName);
-  const virtualExample = virtualPath
-    ? virtualFiles.get(virtualPath)
-    : null;
-  const nextCode = virtualExample?.type === "text"
-    ? virtualExample.data
-    : cassetteExamples.get(exampleName) ??
-      EXAMPLES[exampleName] ??
-      EXAMPLES.single;
-  replaceEditorValue(nextCode);
-  setStatus(
-    `Loaded example: ${exampleName}`
-  );
-}
-
-function registerVirtualExample(path) {
-  if (!path.startsWith("/examples/") || !path.endsWith(".js")) {
-    return;
-  }
-  const file = virtualFiles.get(path);
-  if (!file || file.type !== "text") {
-    return;
-  }
-
-  const optionValue = `vfs-example:${path}`;
-  if (virtualExamplePaths.has(optionValue)) {
-    return;
-  }
-  virtualExamplePaths.set(optionValue, path);
-  const option = document.createElement("option");
-  option.value = optionValue;
-  option.textContent = path.slice(1);
-  exampleSelect.appendChild(option);
-}
-
-function unregisterVirtualExample(path) {
-  const optionValue = `vfs-example:${path}`;
-  virtualExamplePaths.delete(optionValue);
-  for (const option of exampleSelect.options) {
-    if (option.value === optionValue) {
-      option.remove();
-      break;
-    }
-  }
-}
-
-function clearVirtualExamples() {
-  for (const path of Array.from(virtualExamplePaths.values())) {
-    unregisterVirtualExample(path);
-  }
-}
-
-function registerVirtualExamples() {
-  for (const file of virtualFiles.list()) {
-    registerVirtualExample(file.path);
-  }
 }
 
 function parseCassetteAssets(cassette) {
@@ -1149,19 +1182,7 @@ async function registerCassetteAssets(assets) {
 }
 
 function appendCassetteExamplesToUi(assets) {
-  for (const example of assets.examples) {
-    const option = document.createElement("option");
-    option.value = example.optionValue;
-    option.textContent =
-      `${assets.cassette.id}: ${example.name}`;
-    exampleSelect.appendChild(option);
-  }
-
-  const firstExample = assets.examples[0];
-  if (firstExample) {
-    exampleSelect.value = firstExample.optionValue;
-    loadExample();
-  }
+  renderRunFileOptions();
 }
 
 function formatCassetteStatus(assets) {
@@ -1183,7 +1204,6 @@ function restoreVirtualFilesFromCassette(cassette) {
   const textExtensions = /\.(?:js|json|md|txt)$/i;
   const previousSource = getEditorValue();
   clearVirtualTfiPresets();
-  clearVirtualExamples();
   virtualFiles.replace(
     Array.from(cassette.files, ([path, bytes]) => ({
       path: `/${path}`,
@@ -1196,12 +1216,14 @@ function restoreVirtualFilesFromCassette(cassette) {
   if (!virtualFiles.has("/index.js")) {
     virtualFiles.writeText("/index.js", previousSource);
   }
+  restoreSystemExampleFiles();
   editorAdapter.syncVirtualFiles?.(virtualFiles.list());
   registerVirtualTfiPresets();
-  registerVirtualExamples();
   activeVirtualPath = "/index.js";
   showVirtualFile(virtualFiles.get(activeVirtualPath));
   renderVirtualFileExplorer();
+  runVirtualPath = "/index.js";
+  renderRunFileOptions();
 }
 
 async function loadCassetteSource(
@@ -1269,11 +1291,6 @@ function applyInitialSourceFromQuery() {
       window.location.search,
       EXAMPLES
     );
-
-  if (result.exampleName) {
-    exampleSelect.value =
-      result.exampleName;
-  }
 
   setEditorValue(result.source);
 
@@ -1370,10 +1387,12 @@ runButton.addEventListener(
     }
   );
 
-  exampleSelect.addEventListener(
+  runFileSelect.addEventListener(
     "change",
     () => {
-      loadExample();
+      runVirtualPath = runFileSelect.value;
+      openVirtualFile(runVirtualPath);
+      setStatus(`Run file: ${runVirtualPath}`);
     }
   );
 
@@ -1512,6 +1531,7 @@ function bootPlayground() {
   setBottomTab("code");
   setRuntimeState("Audio idle");
   renderVirtualFileExplorer();
+  renderRunFileOptions();
   installPlaygroundEventHandlers();
   ui.installBottomTabHandlers();
   installTfiEditorDropTarget();

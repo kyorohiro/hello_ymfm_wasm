@@ -686,6 +686,9 @@ export async function initializePlaygroundMonaco(
         currentModel = getModelForVirtualPath(path, source);
         monacoEditor.setModel(currentModel);
       },
+      setReadOnly(readOnly) {
+        monacoEditor.updateOptions({ readOnly });
+      },
       syncVirtualFiles,
       replaceAll(value) {
         // Keep example changes in Monaco's normal Ctrl/Cmd+Z history.
