@@ -244,6 +244,8 @@ const virtualFiles = createVirtualFileSystem([
   { path: "/index.js", data: "" },
 ]);
 let activeVirtualPath = "/index.js";
+const virtualPresetIds = new Map();
+const virtualExamplePaths = new Map();
 
 function createImportInput(accept) {
   const input = document.createElement("input");
@@ -766,6 +768,7 @@ function createVirtualFile() {
       throw new Error("A file already exists at that path.");
     }
     virtualFiles.writeText(normalizedPath, "");
+    registerVirtualExample(normalizedPath);
     openVirtualFile(normalizedPath);
   } catch (error) {
     setStatus(`Could not create file: ${error.message}`);
@@ -797,8 +800,44 @@ async function importVirtualFile(file) {
     normalizedPath,
     new Uint8Array(await file.arrayBuffer())
   );
+  registerVirtualTfiPreset(normalizedPath);
   renderVirtualFileExplorer();
   setStatus(`Imported binary file: ${normalizedPath}`);
+}
+
+function registerVirtualTfiPreset(path) {
+  if (!path.startsWith("/presets/") || !path.endsWith(".tfi")) {
+    return;
+  }
+  const virtualFile = virtualFiles.get(path);
+  if (!virtualFile || virtualFile.type !== "binary") {
+    return;
+  }
+
+  const presetId = `vfs:${path}`;
+  const preset = parseTfi(virtualFile.data);
+  virtualPresetIds.set(path, presetId);
+  playgroundPresets[presetId] = preset;
+  runtime.presets[presetId] = preset;
+  operatorTab.registerPresetOption(
+    presetId,
+    path.slice("/presets/".length)
+  );
+}
+
+function registerVirtualTfiPresets() {
+  for (const file of virtualFiles.list()) {
+    registerVirtualTfiPreset(file.path);
+  }
+}
+
+function clearVirtualTfiPresets() {
+  for (const presetId of virtualPresetIds.values()) {
+    delete playgroundPresets[presetId];
+    delete runtime.presets[presetId];
+    operatorTab.removePresetOption(presetId);
+  }
+  virtualPresetIds.clear();
 }
 
 function renameActiveVirtualFile() {
@@ -815,7 +854,9 @@ function renameActiveVirtualFile() {
     const currentFile = virtualFiles.get(activeVirtualPath);
     virtualFiles.writeText(normalizedPath, currentFile.data);
     virtualFiles.delete(activeVirtualPath);
+    unregisterVirtualExample(activeVirtualPath);
     activeVirtualPath = normalizedPath;
+    registerVirtualExample(normalizedPath);
     renderVirtualFileExplorer();
   } catch (error) {
     setStatus(`Could not rename file: ${error.message}`);
@@ -831,6 +872,7 @@ function deleteActiveVirtualFile() {
     return;
   }
   saveActiveVirtualFile();
+  unregisterVirtualExample(activeVirtualPath);
   virtualFiles.delete(activeVirtualPath);
   activeVirtualPath = "/index.js";
   showVirtualFile(virtualFiles.get(activeVirtualPath));
@@ -976,14 +1018,62 @@ function stopRun() {
 function loadExample() {
   const exampleName =
     exampleSelect.value;
-  const nextCode =
-    cassetteExamples.get(exampleName) ??
-    EXAMPLES[exampleName] ??
-    EXAMPLES.single;
+  const virtualPath = virtualExamplePaths.get(exampleName);
+  const virtualExample = virtualPath
+    ? virtualFiles.get(virtualPath)
+    : null;
+  const nextCode = virtualExample?.type === "text"
+    ? virtualExample.data
+    : cassetteExamples.get(exampleName) ??
+      EXAMPLES[exampleName] ??
+      EXAMPLES.single;
   replaceEditorValue(nextCode);
   setStatus(
     `Loaded example: ${exampleName}`
   );
+}
+
+function registerVirtualExample(path) {
+  if (!path.startsWith("/examples/") || !path.endsWith(".js")) {
+    return;
+  }
+  const file = virtualFiles.get(path);
+  if (!file || file.type !== "text") {
+    return;
+  }
+
+  const optionValue = `vfs-example:${path}`;
+  if (virtualExamplePaths.has(optionValue)) {
+    return;
+  }
+  virtualExamplePaths.set(optionValue, path);
+  const option = document.createElement("option");
+  option.value = optionValue;
+  option.textContent = path.slice(1);
+  exampleSelect.appendChild(option);
+}
+
+function unregisterVirtualExample(path) {
+  const optionValue = `vfs-example:${path}`;
+  virtualExamplePaths.delete(optionValue);
+  for (const option of exampleSelect.options) {
+    if (option.value === optionValue) {
+      option.remove();
+      break;
+    }
+  }
+}
+
+function clearVirtualExamples() {
+  for (const path of Array.from(virtualExamplePaths.values())) {
+    unregisterVirtualExample(path);
+  }
+}
+
+function registerVirtualExamples() {
+  for (const file of virtualFiles.list()) {
+    registerVirtualExample(file.path);
+  }
 }
 
 function parseCassetteAssets(cassette) {
@@ -1047,6 +1137,7 @@ async function registerCassetteAssets(assets) {
   for (const timbre of assets.timbres) {
     playgroundPresets[timbre.name] = timbre.preset;
     runtime.presets[timbre.name] = timbre.preset;
+    operatorTab.registerPresetOption(timbre.name);
   }
 
   for (const example of assets.examples) {
@@ -1091,6 +1182,8 @@ function formatCassetteStatus(assets) {
 function restoreVirtualFilesFromCassette(cassette) {
   const textExtensions = /\.(?:js|json|md|txt)$/i;
   const previousSource = getEditorValue();
+  clearVirtualTfiPresets();
+  clearVirtualExamples();
   virtualFiles.replace(
     Array.from(cassette.files, ([path, bytes]) => ({
       path: `/${path}`,
@@ -1104,6 +1197,8 @@ function restoreVirtualFilesFromCassette(cassette) {
     virtualFiles.writeText("/index.js", previousSource);
   }
   editorAdapter.syncVirtualFiles?.(virtualFiles.list());
+  registerVirtualTfiPresets();
+  registerVirtualExamples();
   activeVirtualPath = "/index.js";
   showVirtualFile(virtualFiles.get(activeVirtualPath));
   renderVirtualFileExplorer();

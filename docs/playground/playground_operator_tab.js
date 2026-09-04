@@ -835,6 +835,29 @@ export function createPlaygroundOperatorTab(
     );
   }
 
+  function registerPresetOption(presetName, label) {
+    for (const option of presetSelect.options) {
+      if (option.value === presetName) {
+        return;
+      }
+    }
+
+    const option = document.createElement("option");
+    option.value = presetName;
+    option.textContent =
+      label ?? presets[presetName]?.label ?? presetName;
+    presetSelect.appendChild(option);
+  }
+
+  function removePresetOption(presetName) {
+    for (const option of presetSelect.options) {
+      if (option.value === presetName) {
+        option.remove();
+        break;
+      }
+    }
+  }
+
   channelSelect.addEventListener(
     "change",
     () => {
@@ -884,6 +907,8 @@ export function createPlaygroundOperatorTab(
   updateControlsUi();
 
   return {
+    registerPresetOption,
+    removePresetOption,
     attachSynth(nextSynth) {
       synth = nextSynth;
 
