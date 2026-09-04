@@ -260,6 +260,8 @@ export class MegaSynth {
       "sampleBuffers",
       "sampleVoices",
       "streamEntries",
+      "noiseVoices",
+      "audioHandles",
     ]) {
       Object.defineProperty(this, property, {
         configurable: true,
@@ -324,6 +326,7 @@ export class MegaSynth {
           this.resume(),
       })
     );
+    this.noise = this.audio.createNoiseApi();
 
     /** @type {Promise<void> | null} */
     this.readyPromise = null;

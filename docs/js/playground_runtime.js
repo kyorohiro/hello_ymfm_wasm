@@ -2,7 +2,6 @@ import {
   MegaDriveSynth,
   FM_PRESETS,
 } from "./megasynth.js";
-import * as megaSynthFx from "./megasynth_fx.js";
 import {
   createPitchFromMidi,
 } from "./pitch.js";
@@ -137,9 +136,35 @@ export function createPlaygroundRuntime(
   let workerCommandQueue = Promise.resolve();
   let resolveLogicWorkerStop = null;
   const workerRunRequests = [];
-  const workerAudioHandles = new Map();
+  // Test doubles may not expose an audio runtime; production handles live there.
+  const fallbackAudioHandles = new Map();
   const workerKeyboardHandlers =
     new Map();
+
+  function setWorkerAudioHandle(id, value) {
+    if (megaDrive.audio?.setAudioHandle) {
+      return megaDrive.audio.setAudioHandle(id, value);
+    }
+    fallbackAudioHandles.get(id)?.dispose?.();
+    fallbackAudioHandles.set(id, value);
+    return value;
+  }
+
+  function getWorkerAudioHandle(id) {
+    return megaDrive.audio?.getAudioHandle?.(id) ??
+      fallbackAudioHandles.get(id);
+  }
+
+  function disposeWorkerAudioHandles(ids) {
+    if (megaDrive.audio?.disposeAudioHandles) {
+      megaDrive.audio.disposeAudioHandles(ids);
+      return;
+    }
+    for (const id of ids ?? [...fallbackAudioHandles.keys()]) {
+      fallbackAudioHandles.get(id)?.dispose?.();
+      fallbackAudioHandles.delete(id);
+    }
+  }
 
   function emitStatus(message) {
     options.onStatus?.(message);
@@ -513,163 +538,21 @@ export function createPlaygroundRuntime(
   }
 
   function createFxApi() {
-    if (!megaDrive.audioContext) {
-      throw new Error(
-        "Audio is not ready yet"
-      );
+    if (megaDrive.audio?.createFXApi) {
+      return megaDrive.audio.createFXApi({
+        getBeatSeconds: () =>
+          clockApi.beatsToSeconds(1),
+      });
     }
 
-    return {
-      gain(fxOptions = {}) {
-        return megaSynthFx.createGainFX(
-          megaDrive.audioContext,
-          fxOptions
-        );
+    // Defer this error so non-FX scripts work with lightweight test doubles.
+    return new Proxy({}, {
+      get() {
+        return () => {
+          throw new Error("FX requires TetoricaAudioRuntime");
+        };
       },
-      eq(fxOptions = {}) {
-        return megaSynthFx.createEqFX(
-          megaDrive.audioContext,
-          fxOptions
-        );
-      },
-      radioTone(fxOptions = {}) {
-        return megaSynthFx.createRadioToneFX(
-          megaDrive.audioContext,
-          fxOptions
-        );
-      },
-      lofi(fxOptions = {}) {
-        return megaSynthFx.createLofiFX(
-          megaDrive.audioContext,
-          fxOptions
-        );
-      },
-      stereoWidth(fxOptions = {}) {
-        return megaSynthFx.createStereoWidthFX(
-          megaDrive.audioContext,
-          fxOptions
-        );
-      },
-      bitcrusher(fxOptions = {}) {
-        return megaSynthFx.createBitcrusherFX(
-          megaDrive.audioContext,
-          fxOptions
-        );
-      },
-      filter(fxOptions = {}) {
-        return megaSynthFx.createFilterFX(
-          megaDrive.audioContext,
-          fxOptions
-        );
-      },
-      delay(fxOptions = {}) {
-        return megaSynthFx.createDelayFX(
-          megaDrive.audioContext,
-          fxOptions
-        );
-      },
-      distortion(fxOptions = {}) {
-        return megaSynthFx.createDistortionFX(
-          megaDrive.audioContext,
-          fxOptions
-        );
-      },
-      compressor(fxOptions = {}) {
-        return megaSynthFx.createCompressorFX(
-          megaDrive.audioContext,
-          fxOptions
-        );
-      },
-      gate(fxOptions = {}) {
-        return megaSynthFx.createGateFX(
-          megaDrive.audioContext,
-          fxOptions
-        );
-      },
-      wobble(fxOptions = {}) {
-        return megaSynthFx.createWobbleFX(
-          megaDrive.audioContext,
-          {
-            ...fxOptions,
-            getBeatSeconds: () =>
-              clockApi.beatsToSeconds(1),
-          }
-        );
-      },
-      flanger(fxOptions = {}) {
-        return megaSynthFx.createFlangerFX(
-          megaDrive.audioContext,
-          {
-            ...fxOptions,
-            getBeatSeconds: () =>
-              clockApi.beatsToSeconds(1),
-          }
-        );
-      },
-      chorus(fxOptions = {}) {
-        return megaSynthFx.createChorusFX(
-          megaDrive.audioContext,
-          {
-            ...fxOptions,
-            getBeatSeconds: () =>
-              clockApi.beatsToSeconds(1),
-          }
-        );
-      },
-      tapeSaturation(fxOptions = {}) {
-        return megaSynthFx.createTapeSaturationFX(
-          megaDrive.audioContext,
-          fxOptions
-        );
-      },
-      reverb(fxOptions = {}) {
-        return megaSynthFx.createReverbFX(
-          megaDrive.audioContext,
-          fxOptions
-        );
-      },
-      branch(...effects) {
-        return megaSynthFx.createFXBranch(
-          ...effects
-        );
-      },
-      parallel(...branches) {
-        return megaSynthFx.createFXParallel(
-          megaDrive.audioContext,
-          ...branches
-        );
-      },
-      slicer(fxOptions = {}) {
-        if (
-          typeof megaSynthFx.createSlicerFX !==
-            "function"
-        ) {
-          throw new Error(
-            "fx.slicer() is not available in the current megasynth_fx.js build"
-          );
-        }
-
-        return megaSynthFx.createSlicerFX(
-          megaDrive.audioContext,
-          {
-            ...fxOptions,
-            getBeatSeconds: () =>
-              clockApi.beatsToSeconds(1),
-          }
-        );
-      },
-      setChain(effects = []) {
-        megaDrive.setFXChain(
-          effects
-        );
-        return effects;
-      },
-      clear(fxOptions = {}) {
-        return megaDrive.clearFXChain(
-          fxOptions
-        );
-      },
-    };
+    });
   }
 
   async function ensureReady() {
@@ -792,10 +675,7 @@ export function createPlaygroundRuntime(
     workerGlobals = null;
     workerCommandQueue = Promise.resolve();
     resolveLogicWorkerStop = null;
-    for (const value of workerAudioHandles.values()) {
-      value?.dispose?.();
-    }
-    workerAudioHandles.clear();
+    disposeWorkerAudioHandles();
   }
 
   function serializeKeyboardEvent(event) {
@@ -842,41 +722,38 @@ export function createPlaygroundRuntime(
       const [id, method, options] = args;
       const factory = globals.fx[method];
       if (typeof factory !== "function") throw new Error(`Unsupported FX: ${method}`);
-      workerAudioHandles.set(id, factory(options));
+      setWorkerAudioHandle(id, factory(options));
       return;
     }
     if (command === "fx.setChain") {
-      return globals.fx.setChain(args[0].map((id) => workerAudioHandles.get(id)));
+      return globals.fx.setChain(args[0].map((id) => getWorkerAudioHandle(id)));
     }
     if (command === "fx.compose") {
       const [id, method, handleIds] = args;
       const factory = globals.fx[method];
       if (typeof factory !== "function") throw new Error(`Unsupported FX composition: ${method}`);
-      workerAudioHandles.set(id, factory(...handleIds.map((handleId) => workerAudioHandles.get(handleId))));
+      setWorkerAudioHandle(id, factory(...handleIds.map((handleId) => getWorkerAudioHandle(handleId))));
       return;
     }
     if (command === "fx.clear") return globals.fx.clear();
     if (command === "fx.detach") return megaDrive.clearFXChain();
     if (command === "audio.stopAll") return stopAllAudio();
     if (command === "audio.disposeHandles") {
-      for (const id of args[0] ?? []) {
-        workerAudioHandles.get(id)?.dispose?.();
-        workerAudioHandles.delete(id);
-      }
+      disposeWorkerAudioHandles(args[0]);
       return;
     }
     if (command === "noise.create") {
       const [id, options] = args;
-      workerAudioHandles.set(id, globals.noise.create(options));
+      setWorkerAudioHandle(id, globals.noise.create(options));
       return;
     }
     if (command === "noise.stopAll") return globals.noise.stopAll();
     if (command === "noise.control") {
-      return globals.control(workerAudioHandles.get(args[0]), args[1]);
+      return globals.control(getWorkerAudioHandle(args[0]), args[1]);
     }
     if (command === "audio.call" || command === "audio.get") {
       const [id, path] = args;
-      let target = workerAudioHandles.get(id);
+      let target = getWorkerAudioHandle(id);
       for (const segment of path) target = target?.[segment];
       if (!target) throw new Error(`Unknown audio handle: ${id}`);
       if (command === "audio.get") return target.get();

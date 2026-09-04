@@ -1,3 +1,5 @@
+import * as fx from "./megasynth_fx.js";
+
 /**
  * Chip-independent browser audio state shared by Tetorica synths.
  *
@@ -17,8 +19,11 @@ export class TetoricaAudioRuntime {
     this.sampleBuffers = new Map();
     this.sampleVoices = new Set();
     this.streamEntries = new Map();
+    this.noiseVoices = new Set();
+    this.audioHandles = new Map();
     this.sample = null;
     this.stream = null;
+    this.noise = null;
   }
 
   setMediaApis(sample, stream) {
@@ -95,6 +100,190 @@ export class TetoricaAudioRuntime {
       list: () =>
         Array.from(this.streamEntries.keys()),
     };
+  }
+
+  createNoiseApi() {
+    if (this.noise) return this.noise;
+
+    this.noise = {
+      create: (options = {}) => this.createNoiseVoice(options),
+      stopAll: () => this.stopNoise(),
+    };
+    return this.noise;
+  }
+
+  createFXApi(options = {}) {
+    if (!this.audioContext) throw new Error("Audio is not ready yet");
+
+    const withBeatSeconds = (fxOptions = {}) => ({
+      ...fxOptions,
+      getBeatSeconds: options.getBeatSeconds ?? (() => 0.5),
+    });
+    const context = this.audioContext;
+    return {
+      gain: (fxOptions = {}) => fx.createGainFX(context, fxOptions),
+      eq: (fxOptions = {}) => fx.createEqFX(context, fxOptions),
+      radioTone: (fxOptions = {}) => fx.createRadioToneFX(context, fxOptions),
+      lofi: (fxOptions = {}) => fx.createLofiFX(context, fxOptions),
+      stereoWidth: (fxOptions = {}) => fx.createStereoWidthFX(context, fxOptions),
+      bitcrusher: (fxOptions = {}) => fx.createBitcrusherFX(context, fxOptions),
+      filter: (fxOptions = {}) => fx.createFilterFX(context, fxOptions),
+      delay: (fxOptions = {}) => fx.createDelayFX(context, fxOptions),
+      distortion: (fxOptions = {}) => fx.createDistortionFX(context, fxOptions),
+      compressor: (fxOptions = {}) => fx.createCompressorFX(context, fxOptions),
+      gate: (fxOptions = {}) => fx.createGateFX(context, fxOptions),
+      wobble: (fxOptions = {}) => fx.createWobbleFX(context, withBeatSeconds(fxOptions)),
+      flanger: (fxOptions = {}) => fx.createFlangerFX(context, withBeatSeconds(fxOptions)),
+      chorus: (fxOptions = {}) => fx.createChorusFX(context, withBeatSeconds(fxOptions)),
+      tapeSaturation: (fxOptions = {}) => fx.createTapeSaturationFX(context, fxOptions),
+      reverb: (fxOptions = {}) => fx.createReverbFX(context, fxOptions),
+      branch: (...effects) => fx.createFXBranch(...effects),
+      parallel: (...branches) => fx.createFXParallel(context, ...branches),
+      slicer: (fxOptions = {}) => fx.createSlicerFX(context, withBeatSeconds(fxOptions)),
+      setChain: (effects = []) => {
+        this.setFXChain(effects);
+        return effects;
+      },
+      clear: (fxOptions = {}) => this.clearFXChain(fxOptions),
+    };
+  }
+
+  setAudioHandle(id, value) {
+    this.disposeAudioHandle(id);
+    this.audioHandles.set(String(id), value);
+    return value;
+  }
+
+  getAudioHandle(id) {
+    return this.audioHandles.get(String(id)) ?? null;
+  }
+
+  disposeAudioHandle(id) {
+    const key = String(id);
+    const value = this.audioHandles.get(key);
+    value?.dispose?.();
+    this.audioHandles.delete(key);
+  }
+
+  disposeAudioHandles(ids = this.audioHandles.keys()) {
+    for (const id of [...ids]) this.disposeAudioHandle(id);
+  }
+
+  createNoiseVoice(options = {}) {
+    const audioContext = this.audioContext;
+    if (!audioContext) {
+      throw new Error("noise.create() requires MegaSynth to be initialized first");
+    }
+
+    const attackSeconds = clampNumber(options.attack, 0, 0, 60);
+    const releaseSeconds = clampNumber(options.release, 0, 0, 60);
+    const targetGain = clampNumber(options.gain, 0.3, 0, 8);
+    const gainNode = audioContext.createGain();
+    const filterNode = audioContext.createBiquadFilter();
+    const hasStereoPanner = typeof audioContext.createStereoPanner === "function";
+    const pannerNode = hasStereoPanner ? audioContext.createStereoPanner() : audioContext.createGain();
+
+    filterNode.type = "lowpass";
+    filterNode.frequency.value = 1600;
+    filterNode.Q.value = 0.2;
+    gainNode.gain.value = attackSeconds > 0 ? 0 : targetGain;
+    if (hasStereoPanner) pannerNode.pan.value = clampNumber(options.pan, 0, -1, 1);
+
+    filterNode.connect(gainNode);
+    gainNode.connect(pannerNode);
+    pannerNode.connect(this.mediaOutputNode());
+
+    const voice = {
+      type: normalizeNoiseType(options.type),
+      attack: createSimpleParamControl(
+        () => voice.attackSeconds,
+        (value) => (voice.attackSeconds = clampNumber(value, voice.attackSeconds, 0, 60))
+      ),
+      release: createSimpleParamControl(
+        () => voice.releaseSeconds,
+        (value) => (voice.releaseSeconds = clampNumber(value, voice.releaseSeconds, 0, 60))
+      ),
+      gain: createAudioParamControl(audioContext, gainNode.gain, { min: 0, max: 8 }),
+      pan: hasStereoPanner
+        ? createAudioParamControl(audioContext, pannerNode.pan, { min: -1, max: 1 })
+        : createFixedParamControl(),
+      filter: {
+        set(type, frequency, q = filterNode.Q.value) {
+          filterNode.type = String(type);
+          voice.filter.cutoff.set(frequency);
+          voice.filter.q.set(q);
+        },
+        cutoff: createAudioParamControl(audioContext, filterNode.frequency, { min: 10, max: 20000 }),
+        q: createAudioParamControl(audioContext, filterNode.Q, { min: 0.0001, max: 1000 }),
+      },
+      start: () => {
+        if (voice.disposed) throw new Error("noise voice has already been disposed");
+        if (voice.source) return;
+
+        const source = audioContext.createBufferSource();
+        source.buffer = createNoiseBuffer(audioContext, voice.type);
+        source.loop = true;
+        source.connect(filterNode);
+        source.addEventListener("ended", () => {
+          if (voice.source === source) voice.source = null;
+          try { source.disconnect(); } catch {}
+        }, { once: true });
+        voice.source = source;
+
+        const now = audioContext.currentTime;
+        gainNode.gain.cancelScheduledValues(now);
+        if (voice.attackSeconds > 0) {
+          gainNode.gain.setValueAtTime(0, now);
+          gainNode.gain.linearRampToValueAtTime(voice.gain.get(), now + voice.attackSeconds);
+        } else {
+          gainNode.gain.setValueAtTime(voice.gain.get(), now);
+        }
+        source.start();
+      },
+      stop: () => {
+        if (!voice.source) return;
+        const source = voice.source;
+        voice.source = null;
+        const now = audioContext.currentTime;
+        gainNode.gain.cancelScheduledValues(now);
+        gainNode.gain.setValueAtTime(gainNode.gain.value, now);
+        if (voice.releaseSeconds > 0) {
+          gainNode.gain.linearRampToValueAtTime(0, now + voice.releaseSeconds);
+          source.stop(now + voice.releaseSeconds);
+        } else {
+          source.stop();
+        }
+      },
+      dispose: () => {
+        if (voice.disposed) return;
+        voice.stop();
+        voice.disposed = true;
+        this.noiseVoices.delete(voice);
+        try { filterNode.disconnect(); } catch {}
+        try { gainNode.disconnect(); } catch {}
+        try { pannerNode.disconnect(); } catch {}
+      },
+      source: null,
+      disposed: false,
+      attackSeconds,
+      releaseSeconds,
+    };
+
+    this.noiseVoices.add(voice);
+    if (options.autoStart !== false) voice.start();
+    return voice;
+  }
+
+  stopNoise() {
+    for (const voice of this.noiseVoices) voice.stop();
+  }
+
+  disposeNoise() {
+    for (const voice of [...this.noiseVoices]) voice.dispose();
+  }
+
+  mediaOutputNode() {
+    return this.sampleOutputNode ?? this.masterInputNode ?? this.outputNode ?? this.audioContext.destination;
   }
 
   async loadSample(name, source, options = {}) {
@@ -741,6 +930,8 @@ export class TetoricaAudioRuntime {
     for (const name of this.stream?.list?.() ?? []) {
       this.stream.unload(name);
     }
+    this.disposeNoise();
+    this.disposeAudioHandles();
   }
 
   rebuildFXChain() {
@@ -765,6 +956,117 @@ const NATIVE_FETCH =
   "function"
     ? globalThis.fetch.bind(globalThis)
     : null;
+
+const NOISE_BUFFER_SECONDS = 8;
+const NOISE_TYPES = new Set(["white", "pink", "brown", "gray", "clip"]);
+const NOISE_BUFFER_CACHE = new WeakMap();
+
+function clampNumber(value, fallback, min = -Infinity, max = Infinity) {
+  const next = Number.isFinite(Number(value)) ? Number(value) : fallback;
+  return Math.min(max, Math.max(min, next));
+}
+
+function createAudioParamControl(audioContext, audioParam, options = {}) {
+  const min = options.min ?? -Infinity;
+  const max = options.max ?? Infinity;
+  return {
+    get: () => audioParam.value,
+    set(value) {
+      const next = clampNumber(value, audioParam.value, min, max);
+      audioParam.setValueAtTime(next, audioContext.currentTime);
+      return next;
+    },
+    rampTo(value, seconds = 0.02) {
+      const next = clampNumber(value, audioParam.value, min, max);
+      const now = audioContext.currentTime;
+      audioParam.cancelScheduledValues(now);
+      audioParam.setValueAtTime(audioParam.value, now);
+      audioParam.linearRampToValueAtTime(next, now + Math.max(0, Number(seconds) || 0));
+      return next;
+    },
+  };
+}
+
+function createSimpleParamControl(getter, setter) {
+  return { get: getter, set: setter };
+}
+
+function createFixedParamControl() {
+  return { get: () => 0, set: () => 0, rampTo: () => 0 };
+}
+
+function normalizeNoiseType(type) {
+  return NOISE_TYPES.has(type) ? type : "white";
+}
+
+function createNoiseBuffer(audioContext, type) {
+  let buffers = NOISE_BUFFER_CACHE.get(audioContext);
+  if (!buffers) {
+    buffers = new Map();
+    NOISE_BUFFER_CACHE.set(audioContext, buffers);
+  }
+
+  const normalizedType = normalizeNoiseType(type);
+  const existing = buffers.get(normalizedType);
+  if (existing) return existing;
+
+  const buffer = audioContext.createBuffer(
+    1,
+    Math.max(1, Math.floor(audioContext.sampleRate * NOISE_BUFFER_SECONDS)),
+    audioContext.sampleRate
+  );
+  const data = buffer.getChannelData(0);
+  if (normalizedType === "pink") fillPinkNoise(data);
+  else if (normalizedType === "brown") fillBrownNoise(data);
+  else if (normalizedType === "gray") fillGrayNoise(data);
+  else if (normalizedType === "clip") fillClipNoise(data);
+  else fillWhiteNoise(data);
+  buffers.set(normalizedType, buffer);
+  return buffer;
+}
+
+function fillWhiteNoise(data) {
+  for (let index = 0; index < data.length; index += 1) data[index] = Math.random() * 2 - 1;
+}
+
+function fillPinkNoise(data) {
+  let b0 = 0; let b1 = 0; let b2 = 0; let b3 = 0; let b4 = 0; let b5 = 0; let b6 = 0;
+  for (let index = 0; index < data.length; index += 1) {
+    const white = Math.random() * 2 - 1;
+    b0 = 0.99886 * b0 + white * 0.0555179;
+    b1 = 0.99332 * b1 + white * 0.0750759;
+    b2 = 0.969 * b2 + white * 0.153852;
+    b3 = 0.8665 * b3 + white * 0.3104856;
+    b4 = 0.55 * b4 + white * 0.5329522;
+    b5 = -0.7616 * b5 - white * 0.016898;
+    data[index] = (b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362) * 0.11;
+    b6 = white * 0.115926;
+  }
+}
+
+function fillBrownNoise(data) {
+  let lastOut = 0;
+  for (let index = 0; index < data.length; index += 1) {
+    lastOut = (lastOut + 0.02 * (Math.random() * 2 - 1)) / 1.02;
+    data[index] = lastOut * 3.5;
+  }
+}
+
+function fillGrayNoise(data) {
+  let previous = 0;
+  for (let index = 0; index < data.length; index += 1) {
+    const white = Math.random() * 2 - 1;
+    data[index] = (white - previous * 0.985) * 0.75;
+    previous = white;
+  }
+}
+
+function fillClipNoise(data) {
+  for (let index = 0; index < data.length; index += 1) {
+    const white = Math.random() * 2 - 1;
+    data[index] = white > 0.2 ? 1 : white < -0.2 ? -1 : 0;
+  }
+}
 
 async function decodeAudioBuffer(
   audioContext,
