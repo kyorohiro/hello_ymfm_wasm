@@ -22,7 +22,7 @@ test("all import modes support channel splitting and combined output with DAC fi
       const names = ["fm", "liveLoop", "sleepSamples", "write", "livePrepare", "dac", "file", "beginSampleSchedule", "scheduleWritesSamples", ...Array.from({ length: 6 }, (_, i) => `CH${i + 1}`), "OP1", "OP2", "OP3", "OP4"];
       const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
       await new AsyncFunction(...names, source)(synth, (name, fn) => loops.push({ name, fn }), async (n) => { clock += n; }, (...args) => record(...(args.length === 2 ? [0, ...args] : args)), async (_name, fn) => fn(), { load() {}, playStream() {} }, async () => new ArrayBuffer(5), () => 0, (_start, entries) => actual.push(...entries.map(([time, ...rest]) => [time, ...rest])), 0, 1, 2, 3, 4, 5, 0, 1, 2, 3);
-      assert.deepEqual(loops.map((loop) => loop.name), splitChannels ? (mode === "high" ? ["global", "ch0", "ch3"] : ["global", "ch0", "ch1", "ch2", "ch3", "ch4", "ch5"]) : ["vgm"]);
+      assert.deepEqual(loops.map((loop) => loop.name), splitChannels ? (mode === "high" ? ["global", "ch1", "ch4"] : ["global", "ch1", "ch2", "ch3", "ch4", "ch5", "ch6"]) : ["vgm"]);
       for (const loop of loops) { clock = 0; await loop.fn(); assert.equal(clock, 3); }
       const expected = [[0, 0, 0x22, 8], [0, 0, 0x40, 20], [0, 1, 0x40, 21], [3, 0, 0x40, 22]];
       if (splitChannels) {
@@ -282,7 +282,7 @@ test("exportPlaygroundJavaScript keeps port 1 writes on the correct channel loop
   const parser = new Ym2612VGM(buffer, { logger: null });
   const script = parser.exportPlaygroundJavaScript({ includeHeaderComment: false });
 
-  assert.match(script, /liveLoop\("ch3", async \(\) => \{/);
+  assert.match(script, /liveLoop\("ch4", async \(\) => \{/);
   assert.match(script, /write\(1, 0x30, 0x24\)/);
   assert.match(script, /write\(1, 0xb4, 0xc7\)/);
 });
@@ -350,7 +350,7 @@ test("YM2203 FM-only export preserves three FM channels and enables YM2612 pan",
   assert.match(script, /\[0, 0, 0xa0, 0x0b\]/);
   assert.match(script, /\[480, 0, 0x28, 0xf0\]/);
   assert.doesNotMatch(script, /0x00, 0x7f/);
-  assert.doesNotMatch(script, /liveLoop\("ch3"/);
+  assert.doesNotMatch(script, /liveLoop\("ch4"/);
 });
 
 test("native OPN exports preserve FNUM and omit YM2612 compatibility writes", () => {

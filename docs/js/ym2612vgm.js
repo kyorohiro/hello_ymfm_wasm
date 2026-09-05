@@ -1156,12 +1156,12 @@ function exportOpnFmVgmToPlaygroundJavaScript(source, options, chipKind, targetC
   /** @type {Array<{ name: string, events: Array<{ timeSamples: number, port: 0 | 1, register: number, value: number, comment: string | null }>, currentTime: number }>} */
   const tracks = [
     { name: "global", events: [], currentTime: 0 },
-    { name: "ch0", events: [], currentTime: 0 },
     { name: "ch1", events: [], currentTime: 0 },
     { name: "ch2", events: [], currentTime: 0 },
     { name: "ch3", events: [], currentTime: 0 },
     { name: "ch4", events: [], currentTime: 0 },
     { name: "ch5", events: [], currentTime: 0 },
+    { name: "ch6", events: [], currentTime: 0 },
   ];
   let timeSamples = 0;
   const orderedEvents = [];
