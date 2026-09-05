@@ -817,12 +817,13 @@ declare function file(
 ): Promise<string>;
 /** Convert 42-byte TFI data into a preset accepted by `fm.setPreset()`. */
 declare function tfiToPreset(data: ArrayBuffer | Uint8Array): YM2612Preset;
-/** Console output captured by the Playground Console tab. */
-declare const console: {
+/** Console methods captured by the Playground Console tab. */
+interface Console {
   log(...args: unknown[]): void;
   warn(...args: unknown[]): void;
   error(...args: unknown[]): void;
-};
+}
+declare var console: Console;
 /** Browser timer helper available in playground examples. */
 declare function setInterval(handler: () => void, timeout?: number): number;
 /** Browser timer helper available in playground examples. */
