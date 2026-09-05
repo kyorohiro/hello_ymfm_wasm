@@ -3,6 +3,7 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="describedby" href="../llms.txt" type="text/markdown">
     <title>Tetorica FM2612 Playground</title>
     <style>
       :root {
@@ -1419,6 +1420,10 @@
           </section>
 
           <section id="helpersPanel" class="tab-panel" role="tabpanel" aria-labelledby="helpersTab" hidden>
+            <p class="subtext" style="margin-bottom: 14px;">
+              Generating Playground code with an AI?
+              <a href="../for-ai.html">Open For AI documentation</a> for type definitions and working examples.
+            </p>
             <h2>pg</h2>
             <ul class="helper-list">
               <li><code>pg</code> is the main playground helper namespace</li>
@@ -1436,12 +1441,40 @@
               <li><code>pg.stopLoop(name)</code>, <code>pg.stopAllLoops()</code>, <code>pg.stopAll()</code></li>
             </ul>
 
+            <h2 style="margin-top: 14px;">Live coding and files</h2>
+            <ul class="helper-list">
+              <li>Top-level <code>await</code> is available; press <code>Run</code> again to replace named loops</li>
+              <li><code>context</code> (also <code>pg.context</code>) keeps values between runs until <code>Stop</code></li>
+              <li><code>livePrepare("name", setup)</code> creates a resource once and reuses it on later runs</li>
+              <li><code>liveCleanup(["bass", "drums"], cleanup)</code> runs cleanup after those loops disappear</li>
+              <li><code>onKeyboardPressKey("play-c", event =&gt; ...)</code> and <code>onKeyboardReleaseKey(...)</code> register replaceable keyboard handlers</li>
+              <li><code>log(value)</code> and <code>console.log(value)</code> write to the Console tab</li>
+              <li><code>await file("./notes.txt")</code>, <code>await file("./data.json", { type: "json" })</code>, <code>await file("./sound.wav", { type: "arrayBuffer" })</code> read project files relative to the running file</li>
+              <li><code>tfiToPreset(await file("./bass.tfi", { type: "arrayBuffer" }))</code> converts a 42-byte TFI file for <code>fm.setPreset()</code></li>
+            </ul>
+
+            <h2 style="margin-top: 14px;">sample and noise</h2>
+            <ul class="helper-list">
+              <li><code>await sample.load("sonic-pi/ambi-choir")</code> loads a built-in sample</li>
+              <li><code>await sample.loadFile("/samples/hit.wav")</code> loads audio from the project</li>
+              <li><code>await sample.play("name", { gain: 0.8, playbackRate: 0.5, pan: -0.5, loop: true, fadeIn: 0.1 })</code></li>
+              <li><code>sample.stop("name")</code>, <code>sample.stopAll()</code>, <code>sample.list()</code></li>
+              <li><code>noise.create({ type: "pink", gain: 0.1, pan: 0 })</code> creates a controllable noise voice; types are <code>white</code>, <code>pink</code>, <code>brown</code>, <code>gray</code>, and <code>clip</code></li>
+              <li><code>control(voice, { gain: 0.2, cutoff: 1800, q: 0.8, slide: 1 })</code> changes a noise voice smoothly</li>
+              <li><code>voice.stop()</code> stops one voice; <code>noise.stopAll()</code> stops every noise voice</li>
+            </ul>
+
             <h2 style="margin-top: 14px;">fm</h2>
             <ul class="helper-list">
               <li><code>fm</code> is the raw <code>YM2612Synth</code> layer</li>
               <li><code>await play("C4")</code> plays one note</li>
               <li><code>pg.fm</code> points to the same YM2612 layer</li>
+              <li>Channels are <code>CH1</code> through <code>CH6</code>; logical operators are <code>OP1</code> through <code>OP4</code></li>
               <li><code>fm.setPreset(CH1, pg.presets["one-op-basic"])</code> applies one preset</li>
+              <li><code>fm.setOperator(CH1, OP1, { multi: 1, tl: 20, ar: 24, d1r: 8, d2r: 4, sl: 6, rr: 8 })</code></li>
+              <li>Operator ranges: <code>multi 0..15</code>, <code>tl 0..127</code> (lower is louder), <code>ar/d1r/d2r 0..31</code>, <code>sl/rr 0..15</code></li>
+              <li><code>fm.setAlgo(CH1, 7, 0)</code> sets algorithm and feedback (<code>0..7</code>)</li>
+              <li><code>fm.setPan(CH1, true, true, 0, 0)</code> sets left, right, AMS (<code>0..3</code>), and PMS (<code>0..7</code>)</li>
               <li><code>fm.setFrequency(CH1, 4, 553)</code>, <code>fm.keyOn(CH1)</code>, <code>fm.keyOff(CH1)</code> expose the YM2612 note trigger flow</li>
               <li><code>write(register, value)</code> sends one YM2612 register write on port 0</li>
               <li><code>write(port, register, value)</code> sends one YM2612 register write with an explicit port</li>
@@ -1456,6 +1489,9 @@
               <li><code>pg.psg</code> points to the same PSG layer</li>
               <li><code>pg.psgTone(channel, period, attenuation)</code> writes one PSG tone note helper for channel <code>0..2</code></li>
               <li><code>pg.psgNoise(mode, attenuation)</code> writes one PSG noise helper using raw mode <code>0..7</code></li>
+              <li><code>psg.tone(PSG1, { note: "C4", volume: 0.5 })</code>; channels are <code>PSG1</code>, <code>PSG2</code>, and <code>PSG3</code></li>
+              <li><code>psg.noise({ type: "white", rate: "medium", volume: 0.25 })</code>; rates are <code>low</code>, <code>medium</code>, <code>high</code>, and <code>tone3</code></li>
+              <li><code>psg.off(PSG1)</code> and <code>psg.noiseOff()</code> silence tone and noise channels</li>
               <li><code>psg.write(value)</code> sends one raw PSG register byte (tone/noise/attenuation, same format as <code>docs/demos/psg.html</code>)</li>
               <li><code>psg.reset()</code> resets only PSG</li>
               <li><code>psg.resetAll()</code> resets both PSG and YM2612</li>
@@ -1465,18 +1501,20 @@
             <ul class="helper-list">
               <li><code>fx</code> is the master FX helper layer</li>
               <li><code>pg.fx</code> points to the same FX helper layer</li>
-              <li><code>fx.eq(...)</code>, <code>fx.filter(...)</code>, <code>fx.delay(...)</code>, <code>fx.distortion(...)</code>, <code>fx.compressor(...)</code>, <code>fx.gate(...)</code>, <code>fx.wobble(...)</code>, <code>fx.flanger(...)</code>, <code>fx.reverb(...)</code>, <code>fx.slicer(...)</code></li>
+              <li><code>fx.gain(...)</code>, <code>fx.eq(...)</code>, <code>fx.filter(...)</code>, <code>fx.delay(...)</code>, <code>fx.distortion(...)</code>, <code>fx.compressor(...)</code>, <code>fx.gate(...)</code></li>
+              <li><code>fx.radioTone(...)</code>, <code>fx.lofi(...)</code>, <code>fx.stereoWidth(...)</code>, <code>fx.bitcrusher(...)</code>, <code>fx.wobble(...)</code>, <code>fx.flanger(...)</code>, <code>fx.chorus(...)</code>, <code>fx.tapeSaturation(...)</code>, <code>fx.reverb(...)</code>, <code>fx.slicer(...)</code></li>
               <li><code>fx.setChain([filter, delay])</code> replaces the master FX chain</li>
+              <li><code>fx.setChain([fx.parallel(fx.branch(filter), fx.branch(delay, reverb))])</code> creates parallel branches</li>
+              <li><code>fx.clear()</code> removes and disposes the current master FX chain</li>
               <li><code>eq.bass.set(...)</code>, <code>eq.mid.rampTo(...)</code>, <code>eq.treble.set(...)</code></li>
               <li><code>filter.cutoff.set(...)</code>, <code>filter.cutoff.rampTo(...)</code></li>
             </ul>
 
             <h2 style="margin-top: 14px;">Note</h2>
             <p class="subtext">
-              This first version already includes a small <code>liveLoop()</code>
-              runtime with shared BPM/beat timing. It is enough to start trying
-              Sonic Pi style loop ideas on top of YM2612, though hot reload and
-              safer live coding behavior still need more work.
+              Names passed to <code>liveLoop()</code>, <code>livePrepare()</code>, and
+              keyboard handlers identify replaceable live state. Reuse the same
+              name when editing a part, and use different names for independent parts.
             </p>
             <p class="subtext">
               Shared Playground URLs may include JavaScript source via <code>?src=</code>.

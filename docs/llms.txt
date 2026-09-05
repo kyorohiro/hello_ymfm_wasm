@@ -1,0 +1,32 @@
+# Tetorica Playground (hello_ymfm_wasm)
+
+> Browser-based JavaScript playground, documentation, and WebAssembly tools for YM2612, YM2608, YM2203, and YM2610 FM synthesis.
+
+Use the common Playground type definitions together with the type definition for the selected sound chip. The canonical examples are code that runs in the Playground.
+
+## Documentation
+
+- [For AI](./for-ai.html): AI-oriented entry point, execution contract, type definitions, and representative examples
+- [Documentation](./index.html): Human-oriented project documentation and demos
+- [Playground](./playground/): Interactive JavaScript Playground
+
+## Type definitions
+
+- [Common Playground API](./playground/tetorica-playground-globals.d.ts): Globals, live coding, samples, noise, effects, files, FM, and PSG APIs
+- [YM2612 selection](./playground/tetorica-playground-ym2612.d.ts): Mega Drive / Genesis configuration
+- [YM2608 selection](./playground/tetorica-playground-ym2608.d.ts): PC-98 configuration
+- [YM2203 selection](./playground/tetorica-playground-ym2203.d.ts): Three-channel PC-98 configuration
+- [YM2610 selection](./playground/tetorica-playground-ym2610.d.ts): Neo Geo configuration
+
+## Examples
+
+- [Canonical example source](./playground/playground_examples.js): Built-in examples used by the Playground
+- [Live Loop](./playground/?ex=live-loop): Tempo, notes, and named loops
+- [Ambient Choir Sample](./playground/?ex=ambient-choir-sample): Sample loading, effects, and live state
+- [FM API Beep](./playground/?ex=fm-api-beep): Direct YM2612 setup
+- [PSG Scale](./playground/?ex=psg-scale): SN76489-compatible tone API
+- [Parallel FX](./playground/?ex=parallel-fx): Branched effect routing
+
+## Source
+
+- [GitHub repository](https://github.com/kyorohiro/hello_ymfm_wasm)

@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="describedby" href="./llms.txt" type="text/markdown">
+    <title>Tetorica Playground — For AI</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #f4efe4;
+        --panel: #fffaf0;
+        --ink: #1f1b16;
+        --accent: #7e381c;
+        --line: #d7c8ac;
+        --code: #24211d;
+      }
+
+      * { box-sizing: border-box; }
+
+      body {
+        margin: 0;
+        color: var(--ink);
+        background: var(--bg);
+        font-family: "Avenir Next", "Helvetica Neue", Helvetica, Arial, sans-serif;
+      }
+
+      main {
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 40px 20px 64px;
+      }
+
+      article {
+        padding: clamp(22px, 5vw, 42px);
+        border: 1px solid var(--line);
+        border-radius: 22px;
+        background: var(--panel);
+      }
+
+      h1, h2 { line-height: 1.1; }
+      h1 { margin: 0 0 12px; }
+      h2 { margin: 30px 0 10px; }
+      p, li { line-height: 1.6; }
+      a { color: var(--accent); }
+      code {
+        padding: 1px 5px;
+        border-radius: 5px;
+        background: rgba(126, 56, 28, 0.09);
+        font-family: "SFMono-Regular", Menlo, Consolas, monospace;
+      }
+      pre {
+        overflow: auto;
+        padding: 16px;
+        border-radius: 12px;
+        color: #f5efe5;
+        background: var(--code);
+      }
+      pre code { padding: 0; background: transparent; }
+      .back { display: inline-block; margin-bottom: 22px; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <a class="back" href="./index.html">Back to documentation</a>
+      <article>
+        <h1>Tetorica Playground — For AI</h1>
+        <p>
+          Use these type definitions and working examples when generating
+          JavaScript for the Tetorica browser Playground.
+        </p>
+
+        <h2>Type definitions</h2>
+        <ul>
+          <li><a href="./playground/tetorica-playground-globals.d.ts">Common Playground API</a></li>
+          <li><a href="./playground/tetorica-playground-ym2612.d.ts">YM2612 / Mega Drive selection</a></li>
+          <li><a href="./playground/tetorica-playground-ym2608.d.ts">YM2608 / PC-98 selection</a></li>
+          <li><a href="./playground/tetorica-playground-ym2203.d.ts">YM2203 / PC-98 selection</a></li>
+          <li><a href="./playground/tetorica-playground-ym2610.d.ts">YM2610 / Neo Geo selection</a></li>
+        </ul>
+        <p>
+          Read the common API and the one chip-selection file that matches the
+          target Playground.
+        </p>
+
+        <h2>Working examples</h2>
+        <p>
+          The canonical example source is
+          <a href="./playground/playground_examples.js">playground_examples.js</a>.
+          The following links load representative examples into the Playground.
+          Loading an example does not run it automatically.
+        </p>
+        <ul>
+          <li><a href="./playground/?ex=live-loop">Live Loop</a> — tempo, notes, and named loops</li>
+          <li><a href="./playground/?ex=ambient-choir-sample">Ambient Choir Sample</a> — sample loading, FX, and live state</li>
+          <li><a href="./playground/?ex=noise-ocean">Noise Ocean</a> — generated noise and parameter control</li>
+          <li><a href="./playground/?ex=fm-api-beep">FM API Beep</a> — direct YM2612 setup</li>
+          <li><a href="./playground/?ex=psg-scale">PSG Scale</a> — SN76489-compatible tone API</li>
+          <li><a href="./playground/?ex=parallel-fx">Parallel FX</a> — branched effect routing</li>
+        </ul>
+
+        <h2>Execution contract</h2>
+        <ul>
+          <li>Generate JavaScript, not TypeScript.</li>
+          <li>Top-level <code>await</code> is supported.</li>
+          <li>Playground APIs are available as globals and through <code>pg</code>.</li>
+          <li>Use stable, unique names for independent <code>liveLoop()</code> and <code>livePrepare()</code> state.</li>
+          <li>Project files are read with <code>file()</code>; relative paths resolve from the running file.</li>
+          <li>Network APIs and external package installation are unavailable during user-code execution.</li>
+        </ul>
+
+        <h2>Suggested prompt context</h2>
+        <pre><code>You are writing JavaScript for the Tetorica Playground.
+Use only APIs declared in the linked common and selected-chip .d.ts files.
+Follow the canonical working examples.
+Return JavaScript that can be pasted into the Playground and run directly.</code></pre>
+      </article>
+    </main>
+  </body>
+</html>
