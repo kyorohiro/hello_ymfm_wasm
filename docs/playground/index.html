@@ -278,6 +278,24 @@
         border: 0;
       }
 
+      #vgmImportDialog {
+        width: min(420px, calc(100vw - 32px));
+        padding: 20px;
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        color: var(--ink);
+        background: var(--panel);
+      }
+
+      #vgmImportDialog::backdrop {
+        background: rgba(0, 0, 0, 0.4);
+      }
+
+      #vgmImportFilename {
+        margin: 10px 0 16px;
+        overflow-wrap: anywhere;
+      }
+
       .vgm-import-options legend {
         padding: 0;
         color: rgba(31, 27, 22, 0.68);
@@ -1249,9 +1267,10 @@
         <details class="toolbar-menu" id="mainMenu">
           <summary aria-label="Playground menu">Menu</summary>
           <div class="toolbar-menu-panel">
-            <details class="toolbar-menu" id="importVgmMenu">
-              <summary>Import VGM</summary>
-              <div class="toolbar-menu-panel">
+            <button id="importVgmButton" type="button">Import VGM</button>
+            <dialog id="vgmImportDialog" aria-labelledby="vgmImportTitle" aria-describedby="vgmImportFilename">
+                <h2 id="vgmImportTitle">Import VGM</h2>
+                <p id="vgmImportFilename"></p>
                 <fieldset class="vgm-import-options">
                   <legend>Output timing</legend>
                   <div class="vgm-import-mode">
@@ -1278,11 +1297,10 @@
                   </label>
                   <div class="vgm-import-actions">
                     <button id="cancelVgmImportButton" type="button">Cancel</button>
-                    <button id="convertVgmButton" type="button">Convert VGM...</button>
+                    <button id="convertVgmButton" type="button">Convert VGM</button>
                   </div>
                 </fieldset>
-              </div>
-            </details>
+            </dialog>
             <button id="importCassetteButton" type="button">Import Cassette</button>
             <button id="exportCassetteButton" type="button">Export Cassette</button>
           </div>

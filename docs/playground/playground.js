@@ -100,8 +100,9 @@ const importCassetteButton =
     "importCassetteButton"
   );
 const exportCassetteButton = document.getElementById("exportCassetteButton");
-const importVgmMenu =
-  document.getElementById("importVgmMenu");
+const importVgmButton = document.getElementById("importVgmButton");
+const vgmImportDialog = document.getElementById("vgmImportDialog");
+const vgmImportFilename = document.getElementById("vgmImportFilename");
 const cancelVgmImportButton =
   document.getElementById("cancelVgmImportButton");
 const convertVgmButton =
@@ -355,11 +356,7 @@ const vgmImportInput = createImportInput(
   ".vgm,.vgz,audio/vgm,application/octet-stream"
 );
 const virtualFileImportInput = createImportInput("*");
-let pendingVgmImportOptions = {
-  mode: "write",
-  includeDac: true,
-  dacBase64: true,
-};
+let pendingVgmImportFile = null;
 const cassetteExamples = new Map();
 const operatorTab =
   createPlaygroundOperatorTab({
@@ -627,9 +624,8 @@ function exportCassette() {
   }
 }
 
-function promptVgmImport(options) {
-  pendingVgmImportOptions = options;
-  if (importVgmMenu) importVgmMenu.open = false;
+function promptVgmImport() {
+  pendingVgmImportFile = null;
   vgmImportInput.value = "";
   vgmImportInput.click();
 }
@@ -1453,6 +1449,12 @@ function setExpandedMode(expanded) {
 }
 
 function installPlaygroundEventHandlers() {
+  document.body.append(vgmImportDialog);
+  importVgmButton.addEventListener("click", promptVgmImport);
+  vgmImportDialog.addEventListener("close", () => {
+    pendingVgmImportFile = null;
+    runButton.focus();
+  });
   exportCassetteButton?.addEventListener("click", exportCassette);
   newFileButton?.addEventListener("click", createVirtualFile);
   importFileButton?.addEventListener("click", promptVirtualFileImport);
@@ -1515,13 +1517,18 @@ runButton.addEventListener(
       const selectedMode = document.querySelector(
         'input[name="vgmImportMode"]:checked'
       );
-      promptVgmImport(
-        {
+      const file = pendingVgmImportFile;
+      if (!file) return;
+      const options = {
           mode: selectedMode?.value ?? "write",
           includeDac: includeDacInput?.checked ?? true,
           dacBase64: dacBase64Input?.checked ?? true,
-        }
-      );
+      };
+      vgmImportDialog.close();
+      pendingVgmImportFile = null;
+      void importVgmFile(file, options).catch((error) => {
+        setStatus(`Failed to import VGM: ${error.message}`);
+      });
     }
   );
 
@@ -1551,7 +1558,8 @@ runButton.addEventListener(
   cancelVgmImportButton?.addEventListener(
     "click",
     () => {
-      if (importVgmMenu) importVgmMenu.open = false;
+      vgmImportDialog.close();
+      pendingVgmImportFile = null;
     }
   );
 
@@ -1618,15 +1626,10 @@ runButton.addEventListener(
         return;
       }
 
-      void importVgmFile(
-        file,
-        pendingVgmImportOptions
-      ).catch((error) => {
-        console.error(error);
-        setStatus(
-          `Failed to import VGM: ${error.message}`
-        );
-      });
+      pendingVgmImportFile = file;
+      vgmImportFilename.textContent = file.name;
+      mainMenu.open = false;
+      vgmImportDialog.showModal();
     }
   );
 }
