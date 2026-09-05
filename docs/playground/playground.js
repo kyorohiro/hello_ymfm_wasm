@@ -651,39 +651,40 @@ function resolveVgmImportStrategy(
   const useNativeYm2608 = isYm2608Only && selectedChip === "ym2608";
   const useNativeYm2610 = isYm2610Only && selectedChip === "ym2610";
   const scheduled = options.mode === "schedule";
+  const splitChannels = options.splitChannels;
   const timing = scheduled ? "Schedule" : "Write";
 
   if (useNativeYm2610) {
     return {
-      source: exportYm2610BVgmToPlaygroundJavaScript(vgm, { scheduled: false }),
+      source: exportYm2610BVgmToPlaygroundJavaScript(vgm, { scheduled: false, splitChannels }),
       statusMessage: "for native Neo Geo YM2610 FM (Write timing; SSG and ADPCM omitted)",
     };
   }
 
   if (useNativeYm2608) {
     return {
-      source: exportYm2608VgmToPlaygroundJavaScript(vgm, { scheduled: false }),
+      source: exportYm2608VgmToPlaygroundJavaScript(vgm, { scheduled: false, splitChannels }),
       statusMessage: "for native YM2608 FM (Write timing; SSG, Rhythm, and ADPCM-B omitted)",
     };
   }
 
   if (useNativeYm2203) {
     return {
-      source: exportYm2203VgmToPlaygroundJavaScript(vgm, { scheduled: false }),
+      source: exportYm2203VgmToPlaygroundJavaScript(vgm, { scheduled: false, splitChannels }),
       statusMessage: "for native YM2203 FM (Write timing; SSG omitted)",
     };
   }
 
   if (isYm2608Only) {
     return {
-      source: exportYm2608FmVgmToPlaygroundJavaScript(vgm, { scheduled }),
+      source: exportYm2608FmVgmToPlaygroundJavaScript(vgm, { scheduled, splitChannels }),
       statusMessage: `as YM2608 FM only (${timing} timing; SSG, Rhythm, and ADPCM-B omitted)`,
     };
   }
 
   if (isYm2203Only) {
     return {
-      source: exportYm2203FmVgmToPlaygroundJavaScript(vgm, { scheduled }),
+      source: exportYm2203FmVgmToPlaygroundJavaScript(vgm, { scheduled, splitChannels }),
       statusMessage: `as YM2203 FM only (${timing} timing; SSG omitted)`,
     };
   }
@@ -692,6 +693,7 @@ function resolveVgmImportStrategy(
     source: vgm.exportPlaygroundJavaScript({
       scheduled: options.mode === "schedule",
       high: options.mode === "high",
+      splitChannels,
       includeDac: options.includeDac,
       dacBase64: options.dacBase64,
       writeDacFile: options.writeDacFile,
@@ -1555,6 +1557,7 @@ runButton.addEventListener(
       }
       const options = {
           targetPath,
+          splitChannels: document.getElementById("splitVgmChannelsInput").checked,
           mode: selectedMode?.value ?? "write",
           includeDac: includeDacInput?.checked ?? true,
           dacBase64: dacBase64Input?.checked ?? true,

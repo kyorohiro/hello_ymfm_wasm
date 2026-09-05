@@ -2,6 +2,38 @@ import test from "node:test";
 import { YM2612Synth } from "../../web/ym2612synth.js";
 import assert from "node:assert/strict";
 
+test("all import modes support channel splitting and combined output with DAC files", async () => {
+  const bytes = createVgmBuffer([0x52, 0x22, 8, 0x52, 0x40, 20, 0x53, 0x40, 21, 0x52, 0x2a, 0x81, 0x61, 3, 0, 0x52, 0x40, 22, 0x66]);
+  for (const mode of ["write", "schedule", "high"]) {
+    for (const splitChannels of [false, true]) {
+      let files = 0;
+      const source = exportYm2612VgmToPlaygroundJavaScript(bytes, {
+        high: mode === "high", scheduled: mode === "schedule", splitChannels,
+        writeDacFile() { files++; return "/dac.dat"; },
+      });
+      assert.equal(files, 1);
+      assert.equal((source.match(/dac.playStream/g) ?? []).length, 1);
+      const loops = [];
+      const actual = [];
+      let clock = 0;
+      const record = (port, register, value) => actual.push([clock, port, register, value]);
+      const synth = new YM2612Synth({ transport: { write: record } });
+      actual.length = 0;
+      const names = ["fm", "liveLoop", "sleepSamples", "write", "livePrepare", "dac", "file", "beginSampleSchedule", "scheduleWritesSamples", ...Array.from({ length: 6 }, (_, i) => `CH${i + 1}`), "OP1", "OP2", "OP3", "OP4"];
+      const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
+      await new AsyncFunction(...names, source)(synth, (name, fn) => loops.push({ name, fn }), async (n) => { clock += n; }, (...args) => record(...(args.length === 2 ? [0, ...args] : args)), async (_name, fn) => fn(), { load() {}, playStream() {} }, async () => new ArrayBuffer(5), () => 0, (_start, entries) => actual.push(...entries.map(([time, ...rest]) => [time, ...rest])), 0, 1, 2, 3, 4, 5, 0, 1, 2, 3);
+      assert.deepEqual(loops.map((loop) => loop.name), splitChannels ? (mode === "high" ? ["global", "ch0", "ch3"] : ["global", "ch0", "ch1", "ch2", "ch3", "ch4", "ch5"]) : ["vgm"]);
+      for (const loop of loops) { clock = 0; await loop.fn(); assert.equal(clock, 3); }
+      const expected = [[0, 0, 0x22, 8], [0, 0, 0x40, 20], [0, 1, 0x40, 21], [3, 0, 0x40, 22]];
+      if (splitChannels) {
+        const order = (a, b) => a[0] - b[0] || a[1] - b[1] || a[2] - b[2];
+        actual.sort(order); expected.sort(order);
+      }
+      assert.deepEqual(actual, expected);
+    }
+  }
+});
+
 test("High inlines small groups and formats large one-off groups across lines", () => {
   for (const count of [2, 3, 4, 5]) {
     const commands = [];

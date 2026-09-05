@@ -1179,6 +1179,7 @@ function exportOpnFmVgmToPlaygroundJavaScript(source, options, chipKind, targetC
     const target = getYm2612WriteTarget(port, register, value);
     const trackIndex = target.scope === "channel" ? target.channel + 1 : 0;
     const recordedEvent = {
+      sequence: orderedEvents.length,
       timeSamples,
       port,
       register,
@@ -1236,13 +1237,15 @@ function exportOpnFmVgmToPlaygroundJavaScript(source, options, chipKind, targetC
 
   if (chipKind === "ym2203" && targetChip === "ym2612") {
     for (let channel = 0; channel < 3; channel += 1) {
-      tracks[channel + 1].events.unshift({
+      const panEvent = {
         timeSamples: 0,
         port: 0,
         register: 0xb4 + channel,
         value: 0xc0,
         comment: `CH${channel}: PAN L+R (YM2203 mono)`,
-      });
+      };
+      tracks[channel + 1].events.unshift(panEvent);
+      orderedEvents.splice(channel, 0, panEvent);
     }
   }
 
@@ -1250,6 +1253,11 @@ function exportOpnFmVgmToPlaygroundJavaScript(source, options, chipKind, targetC
     ? timeSamples
     : Math.max(0, Math.floor(options.totalLoopSamples));
   if (options.high === true && chipKind === "ym2612") {
+    if (options.splitChannels === true) {
+      return tracks.filter((track) => track.events.length > 0).map((track) =>
+        `{\n${renderHighPlaygroundEvents(track.events, totalLoopSamples, options, track.name)}\n}`
+      ).join("\n\n");
+    }
     return renderHighPlaygroundEvents(orderedEvents, totalLoopSamples, options);
   }
   /** @type {string[]} */
@@ -1288,7 +1296,9 @@ function exportOpnFmVgmToPlaygroundJavaScript(source, options, chipKind, targetC
   const chipTracks = chipKind === "ym2203"
     ? tracks.slice(0, 4)
     : tracks;
-  const renderOrder = chipTracks[0].events.length > 0
+  const renderOrder = options.splitChannels === false
+    ? [{ name: "vgm", events: orderedEvents }]
+    : chipTracks[0].events.length > 0
     ? chipTracks
     : chipTracks.slice(1);
   for (let index = 0; index < renderOrder.length; index += 1) {
@@ -1341,7 +1351,8 @@ function collectHighOperatorGroups(events) {
     if (!first) continue;
     const entries = [first];
     let end = i + 1;
-    while (end < events.length && events[end].timeSamples === events[i].timeSamples) {
+    while (end < events.length && events[end].timeSamples === events[i].timeSamples &&
+        events[end].sequence === events[end - 1].sequence + 1) {
       const next = decodeHighOperator(events[end]);
       if (!next || next.channel !== first.channel) break;
       entries.push(next);
@@ -1367,7 +1378,7 @@ function collectHighOperatorGroups(events) {
   return { groups, settings };
 }
 
-function renderHighPlaygroundEvents(events, totalLoopSamples, options) {
+function renderHighPlaygroundEvents(events, totalLoopSamples, options, loopName = "vgm") {
   const { groups, settings } = collectHighOperatorGroups(events);
   const dacEvents = options.dacBase64 !== false
     ? events.filter((event) => event.port === 0 && event.register === 0x2a)
@@ -1391,7 +1402,7 @@ function renderHighPlaygroundEvents(events, totalLoopSamples, options) {
       : `  await dac.loadBase64("vgm-dac", ${JSON.stringify(encodeDacSchedule(dacEvents))});`);
     lines.push('});', '');
   }
-  lines.push('liveLoop("vgm", async () => {');
+  lines.push(`liveLoop(${JSON.stringify(loopName)}, async () => {`);
   if (dacEvents.length > 0) {
     lines.push('  const dacStart = beginSampleSchedule();');
     lines.push('  dac.playStream("vgm-dac", { atSamples: dacStart });');
@@ -1430,7 +1441,7 @@ function renderHighPlaygroundEvents(events, totalLoopSamples, options) {
       lines.push(`  fm.setDacEnabled(${value === 0x80});`);
     } else if (offset >= 0 && offset < 3 && value <= 0x3f &&
         next?.port === port && next.register === 0xa0 + offset &&
-        next.timeSamples === event.timeSamples) {
+        next.timeSamples === event.timeSamples && next.sequence === event.sequence + 1) {
       lines.push(`  fm.setFrequency(CH${port * 3 + offset + 1}, ${value >> 3}, ${((value & 7) << 8) | next.value});`);
       index += 1;
     } else if (port === 0 && register === 0x28 && (value & 8) === 0 &&
@@ -1456,7 +1467,7 @@ function renderHighPlaygroundEvents(events, totalLoopSamples, options) {
 function renderPlaygroundTrack(track, totalLoopSamples, scheduled, useDacBase64) {
   /** @type {string[]} */
   const lines = [`liveLoop(${JSON.stringify(track.name)}, async () => {`];
-  const dacEvents = useDacBase64 && track.name === "global"
+  const dacEvents = useDacBase64
     ? track.events.filter((event) => event.port === 0 && event.register === 0x2a)
     : [];
   if (scheduled) {
