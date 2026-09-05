@@ -1425,8 +1425,11 @@ function compactHighEvents(events) {
       state.set(key, e.value);
     } else {
       retained.push(e);
-      // KEY and DAC data do not change the tracked parameters. Everything else is a barrier.
-      if (!(e.port === 0 && (r === 0x28 || r === 0x2a))) {
+      // Frequency/latch writes cannot change operator parameters or pan/algorithm.
+      // Retain the writes, but invalidate only pitch knowledge.
+      if (r >= 0xa0 && r <= 0xaf) {
+        pitches.clear();
+      } else if (!(e.port === 0 && (r === 0x28 || r === 0x2a))) {
         state.clear();
         pitches.clear();
       }

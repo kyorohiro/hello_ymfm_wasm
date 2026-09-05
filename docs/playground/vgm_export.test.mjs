@@ -518,3 +518,27 @@ test("Compact keeps latch-dependent pitch, partial KEY, LFO and sounding TL writ
   assert.match(source,/tl: 21/);
   assert.doesNotMatch(source,/await keySamples/);
 });
+
+test("Compact retains TL knowledge across unpaired pitch writes and sums the waits", async () => {
+  const bytes = createVgmBuffer([
+    0x52,0x40,20,0x52,0xa4,0x22,0x70,0x52,0xa0,0x1d,
+    0x72,0x52,0x40,20,0x71,0x52,0x28,0xf0,
+    0x61,100,0,0x52,0x28,0,
+    0x52,0x40,21,0x52,0xa0,0x20,0x72,0x52,0x40,21,0x71,
+    0x52,0x28,0xf0,0x61,100,0,0x52,0x28,0,0x66,
+  ]);
+  for (const splitChannels of [false,true]) {
+    const source=exportYm2612VgmToPlaygroundJavaScript(bytes,{compact:true,splitChannels});
+    assert.equal((source.match(/tl: 20/g)??[]).length,1);
+    assert.equal((source.match(/tl: 21/g)??[]).length,1);
+    assert.equal((source.match(/await sleepSamples\(5\)/g)??[]).length,2);
+    const trace=[]; let time=0; let loop;
+    const AsyncFunction=Object.getPrototypeOf(async function(){}).constructor;
+    await new AsyncFunction('fm','write','CH1','OP1','liveLoop','sleepSamples',source)(
+      {setOperator(_ch,_op,p){trace.push([time,'tl',p.tl]);},keyOn(){trace.push([time,'on']);},keyOff(){trace.push([time,'off']);}},
+      ()=>{},0,0,(_n,fn)=>{loop=fn;},async n=>{time+=n;});
+    await loop();await loop();
+    assert.deepEqual(trace,[[0,'tl',20],[6,'on'],[106,'off'],[106,'tl',21],[111,'on'],[211,'off'],
+      [211,'tl',20],[217,'on'],[317,'off'],[317,'tl',21],[322,'on'],[422,'off']]);
+  }
+});
