@@ -195,3 +195,30 @@ Scheduleでも差が出る場合は、同時刻の順序や共有レジスター
 
 第2段階の共通音声予約、元VGMのチャンネル間順序の保証、およびsetTiming()は未実装。
 実機でのノイズ改善も未確認であり、今回の共通タイマー化だけで解消したとは判断しない。
+
+
+## 追加実装: Schedule の予約キューと設定
+
+```js
+// ループを始める前に設定。await を付けると Worker / Main 共通で使える。
+await pg.setTiming({ lookaheadSeconds: 0.25, schedulerIntervalMs: 10 });
+console.log(await pg.getTiming());
+```
+
+- Schedule 出力 (`scheduleWritesSamples`) は全 CH 共通の予約キューを使用。
+  AudioContext の現在時刻から lookaheadSeconds 先までを AudioWorklet に渡し、
+  schedulerIntervalMs ごとに補充する。遅れて起床しても元の絶対時刻を保持する。
+- 既定値は先読み 250ms、補充間隔 10ms。負荷が高い環境では先読みを 0.5 秒などに
+  増やせる。先読みを増やすと再生開始までの待ち時間も増える。
+- DAC バンクも同じ開始時刻と先読み設定を使用する。バンクは従来通り事前転送。
+- 既存 setDacLookahead/getDacLookahead と先読み値を共有する。
+- 設定変更は既存の予約時刻を移動しない。開始余裕の変更は Stop 後、次のループ開始前に行う。
+- Worker 起動時にも設定を渡す。Worker 内での変更は await が必要。
+- Stop は未転送キューと既存の Worklet 予約を破棄する。
+- Write / High の通常の即時 API は先読み実行しない。前段で実装した共通タイマーを使用する。
+  fm.scheduleWrites の直接呼び出しも従来通り直接予約する。
+- 異なる CH から届く同時刻の書き込みは到着順。元 VGM の全 CH 横断順序の完全復元は未実装。
+- JavaScript 停止が先読み時間を超える場合まで保証する機能ではない。
+
+自動テストで先読み範囲、絶対時刻、同時刻の順序、単一補充タイマー、キャンセル、設定検証を確認。
+実環境での音声確認は別途必要。

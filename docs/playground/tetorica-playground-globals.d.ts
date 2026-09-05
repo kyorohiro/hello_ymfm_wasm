@@ -897,9 +897,16 @@ type PlaygroundAPI = {
   stopAll: () => void;
   setMasterVolume: (volume: number) => number;
   getMasterVolume: () => number;
+  setTiming: typeof setTiming;
+  getTiming: typeof getTiming;
   setDacLookahead: (seconds: number) => number;
   getDacLookahead: () => number;
   log: (...args: unknown[]) => void;
 };
 
 declare var pg: PlaygroundAPI;
+
+interface PlaygroundTiming { lookaheadSeconds: number; schedulerIntervalMs: number; }
+/** Configure Schedule lookahead and refill interval before starting loops. Await in Worker mode. */
+declare function setTiming(options: Partial<PlaygroundTiming>): PlaygroundTiming | Promise<PlaygroundTiming>;
+declare function getTiming(): PlaygroundTiming | Promise<PlaygroundTiming>;

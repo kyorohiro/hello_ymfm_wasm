@@ -1,3 +1,4 @@
+import { createAudioScheduler } from "./playground_audio_scheduler.js";
 import {
   FM_PRESETS,
 } from "./megasynth.js";
@@ -124,6 +125,17 @@ export function createPlaygroundRuntime(
       Number(options.dacLookaheadSeconds) || 0.25
     ),
   };
+  const audioScheduler = createAudioScheduler({
+    now: () => megaDrive.audioContext?.currentTime ?? 0,
+    send: (entries) => synth.scheduleWrites(entries),
+  });
+  audioScheduler.setTiming({ lookaheadSeconds: runtime.dacLookaheadSeconds, schedulerIntervalMs: Math.min(10, Math.max(1, runtime.dacLookaheadSeconds * 1000)) });
+  function setTiming(options) {
+    const timing = audioScheduler.setTiming(options);
+    runtime.dacLookaheadSeconds = timing.lookaheadSeconds;
+    return timing;
+  }
+  function getTiming() { return audioScheduler.getTiming(); }
   const preparedFxUnits =
     new WeakSet();
   const activeNotes =
@@ -242,7 +254,7 @@ export function createPlaygroundRuntime(
         "DAC lookahead must be a non-negative number"
       );
     }
-    runtime.dacLookaheadSeconds = value;
+    setTiming({ lookaheadSeconds: value, schedulerIntervalMs: Math.min(getTiming().schedulerIntervalMs, Math.max(1, value * 1000)) });
     return value;
   }
 
@@ -391,6 +403,7 @@ export function createPlaygroundRuntime(
   }
 
   function stopAllAudio() {
+    audioScheduler.clear();
     if (capabilities.dac) {
       synth?.clearScheduledWrites?.();
       synth?.clearDacPlayback?.();
@@ -849,6 +862,8 @@ export function createPlaygroundRuntime(
       case "psgNoise":
       case "setMasterVolume":
       case "getMasterVolume":
+      case "setTiming":
+      case "getTiming":
       case "setDacLookahead":
       case "getDacLookahead":
       case "noteToBlockFnum":
@@ -1124,6 +1139,8 @@ export function createPlaygroundRuntime(
       psgNoise,
       setMasterVolume,
       getMasterVolume,
+      setTiming,
+      getTiming,
       setDacLookahead,
       getDacLookahead,
       CH1: 0,
@@ -1262,6 +1279,8 @@ export function createPlaygroundRuntime(
           pg.setMasterVolume,
         getMasterVolume:
           pg.getMasterVolume,
+        setTiming,
+        getTiming,
         setDacLookahead:
           pg.setDacLookahead,
         getDacLookahead:
@@ -1393,7 +1412,7 @@ export function createPlaygroundRuntime(
       (megaDrive.audioContext.currentTime +
         runtime.dacLookaheadSeconds);
     runtime.sampleClockStartTime = origin;
-    fm.scheduleWrites(entries.map(([offset, port, register, value]) => ({
+    audioScheduler.enqueue(entries.map(([offset, port, register, value]) => ({
       time: origin + (start + Number(offset)) / 44100,
       port: Number(port),
       register: Number(register),
@@ -1483,6 +1502,7 @@ export function createPlaygroundRuntime(
         presets,
         scaleIntervals: SCALE_INTERVALS,
         capabilities,
+        timing: getTiming(),
       });
     });
   }
@@ -1749,6 +1769,8 @@ export function createPlaygroundRuntime(
     getState,
     setMasterVolume,
     getMasterVolume,
+    setTiming,
+    getTiming,
     get presets() {
       return presets;
     },

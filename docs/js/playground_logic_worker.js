@@ -258,7 +258,7 @@ function createClock(run) {
   };
 }
 
-function createRun(sourceCode, presets, scaleIntervals, capabilities = {}) {
+function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timing = {}) {
   const run = {
     token: 1,
     generation: 1,
@@ -275,6 +275,7 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}) {
     audioHandles: new Set(),
   };
   const clock = createClock(run);
+  clock.setDacLookahead(timing.lookaheadSeconds ?? 0.25);
   run.resetSampleClock = () => clock.resetSampleClock();
   const commandProxy = (command) => (...args) => postCommand(command, args);
   const requestProxy = (command) => (...args) => request(command, args, run.currentLoop);
@@ -490,6 +491,12 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}) {
     psgNoise: capabilities.psg ? (...args) => postCommand("psgNoise", args) : unavailable("Mega Drive PSG"),
     setMasterVolume: (...args) => request("setMasterVolume", args, run.currentLoop),
     getMasterVolume: () => request("getMasterVolume", [], run.currentLoop),
+    setTiming: async (options) => {
+      const timing = await request("setTiming", [options], run.currentLoop);
+      clock.setDacLookahead(timing.lookaheadSeconds);
+      return timing;
+    },
+    getTiming: () => request("getTiming"),
     setDacLookahead: async (...args) => {
       const value = await request("setDacLookahead", args, run.currentLoop);
       clock.setDacLookahead(value);
@@ -596,7 +603,7 @@ let lifecycleQueue = Promise.resolve();
 async function handleLifecycleMessage(message) {
   if (message.type === "run") {
     const previousRun = currentRun;
-    currentRun = previousRun ?? createRun(message.sourceCode, message.presets ?? {}, message.scaleIntervals ?? {}, message.capabilities ?? {});
+    currentRun = previousRun ?? createRun(message.sourceCode, message.presets ?? {}, message.scaleIntervals ?? {}, message.capabilities ?? {}, message.timing ?? {});
     if (currentRun.stopped) {
       currentRun.stopped = false;
       currentRun.generation += 1;
