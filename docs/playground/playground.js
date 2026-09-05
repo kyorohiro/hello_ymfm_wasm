@@ -38,6 +38,7 @@ import {
   Ym2612VGM,
   exportYm2203FmVgmToPlaygroundJavaScript,
   exportYm2608FmVgmToPlaygroundJavaScript,
+  exportYm2610FmVgmToPlaygroundJavaScript,
 } from "../js/ym2612vgm.js";
 import { exportYm2203VgmToPlaygroundJavaScript } from "../js/ym2203vgm.js";
 import { exportYm2608VgmToPlaygroundJavaScript } from "../js/ym2608vgm.js";
@@ -650,44 +651,49 @@ function resolveVgmImportStrategy(
   const useNativeYm2203 = isYm2203Only && selectedChip === "ym2203";
   const useNativeYm2608 = isYm2608Only && selectedChip === "ym2608";
   const useNativeYm2610 = isYm2610Only && selectedChip === "ym2610";
-  if (options.mode === "compact" && (!vgm.header.ym2612Clock || selectedChip !== "ym2612")) {
-    throw new Error("Compact Note-ish requires a YM2612 VGM and the YM2612 target chip.");
-  }
   const scheduled = options.mode === "schedule";
   const splitChannels = options.splitChannels;
-  const timing = scheduled ? "Schedule" : "Write";
+  const timing = options.mode === "compact" ? "Compact Note-ish" : options.mode === "high" ? "High" : scheduled ? "Schedule" : "Write";
+  const fmOptions = { ...options, scheduled, high: options.mode === "high", compact: options.mode === "compact", splitChannels };
 
   if (useNativeYm2610) {
     return {
-      source: exportYm2610BVgmToPlaygroundJavaScript(vgm, { scheduled: false, splitChannels }),
-      statusMessage: "for native Neo Geo YM2610 FM (Write timing; SSG and ADPCM omitted)",
+      source: exportYm2610BVgmToPlaygroundJavaScript(vgm, { ...fmOptions, scheduled: false }),
+      statusMessage: `for native Neo Geo YM2610 FM (${scheduled ? "Write" : timing}; SSG and ADPCM omitted)`,
     };
   }
 
   if (useNativeYm2608) {
     return {
-      source: exportYm2608VgmToPlaygroundJavaScript(vgm, { scheduled: false, splitChannels }),
-      statusMessage: "for native YM2608 FM (Write timing; SSG, Rhythm, and ADPCM-B omitted)",
+      source: exportYm2608VgmToPlaygroundJavaScript(vgm, { ...fmOptions, scheduled: false }),
+      statusMessage: `for native YM2608 FM (${scheduled ? "Write" : timing}; SSG, Rhythm, and ADPCM-B omitted)`,
     };
   }
 
   if (useNativeYm2203) {
     return {
-      source: exportYm2203VgmToPlaygroundJavaScript(vgm, { scheduled: false, splitChannels }),
-      statusMessage: "for native YM2203 FM (Write timing; SSG omitted)",
+      source: exportYm2203VgmToPlaygroundJavaScript(vgm, { ...fmOptions, scheduled: false }),
+      statusMessage: `for native YM2203 FM (${scheduled ? "Write" : timing}; SSG omitted)`,
+    };
+  }
+
+  if (isYm2610Only) {
+    return {
+      source: exportYm2610FmVgmToPlaygroundJavaScript(vgm, fmOptions),
+      statusMessage: `as Neo Geo FM only (${timing}; SSG and ADPCM omitted)`,
     };
   }
 
   if (isYm2608Only) {
     return {
-      source: exportYm2608FmVgmToPlaygroundJavaScript(vgm, { scheduled, splitChannels }),
+      source: exportYm2608FmVgmToPlaygroundJavaScript(vgm, fmOptions),
       statusMessage: `as YM2608 FM only (${timing} timing; SSG, Rhythm, and ADPCM-B omitted)`,
     };
   }
 
   if (isYm2203Only) {
     return {
-      source: exportYm2203FmVgmToPlaygroundJavaScript(vgm, { scheduled, splitChannels }),
+      source: exportYm2203FmVgmToPlaygroundJavaScript(vgm, fmOptions),
       statusMessage: `as YM2203 FM only (${timing} timing; SSG omitted)`,
     };
   }

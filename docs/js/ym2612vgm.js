@@ -1152,6 +1152,11 @@ export function exportYm2610BVgmToPlaygroundJavaScript(source, options = {}) {
   return exportOpnFmVgmToPlaygroundJavaScript(source, options, "ym2610", "ym2610");
 }
 
+/** Export Neo Geo FM through the YM2612 compatibility target. */
+export function exportYm2610FmVgmToPlaygroundJavaScript(source, options = {}) {
+  return exportOpnFmVgmToPlaygroundJavaScript(source, options, "ym2610", "ym2612");
+}
+
 function exportOpnFmVgmToPlaygroundJavaScript(source, options, chipKind, targetChip) {
   const parser = source instanceof Ym2612VGM
     ? new Ym2612VGM(source.bytes, { logger: null })
@@ -1255,9 +1260,12 @@ function exportOpnFmVgmToPlaygroundJavaScript(source, options, chipKind, targetC
   const totalLoopSamples = options.totalLoopSamples == null
     ? timeSamples
     : Math.max(0, Math.floor(options.totalLoopSamples));
-  if ((options.high === true || options.compact === true) && chipKind === "ym2612") {
+  if ((options.high === true || options.compact === true)) {
     if (options.compact) options = { ...options, noteish: true };
-    options = { ...options, noteClock: parser.header.ym2612Clock & 0x3fffffff,
+    options = { ...options,
+      nativeOpn: chipKind !== "ym2612" && targetChip !== "ym2612",
+      noteClock: targetChip === "ym2612" ? YM2612_VGM_CLOCK :
+        (parser.header[`${chipKind}Clock`] & 0x3fffffff) * (chipKind === "ym2203" ? 2 : 1),
       noteSpecial: orderedEvents.some(e => e.port === 0 && e.register === 0x27 && (e.value & 0xc0)),
       noteDac: orderedEvents.some(e => e.port === 0 && e.register === 0x2b && (e.value & 0x80)) };
     const compactEvents = options.compact ? compactHighEvents(orderedEvents) : null;
@@ -1448,7 +1456,7 @@ function renderHighPlaygroundEvents(events, totalLoopSamples, options, loopName 
     options.noteish ? "// Note-ish High: nearest semitone (A4=440 Hz); KEY, patch and timing preserved. CH3 special/DAC channels keep raw pitch." : "// High import: FM register values preserved; timing in 44100 Hz samples.",
   ];
   for (const setting of settings.values()) {
-    if (setting.name) {
+    if (setting.name && !options.nativeOpn) {
       lines.push("/** @type {Array<[YM2612Operator, YM2612OperatorParams]>} */");
       lines.push(`const ${setting.name} = [`);
       for (const entry of setting.entries) lines.push(`  [OP${entry.operator}, ${entry.literal}],`);
@@ -1482,7 +1490,9 @@ function renderHighPlaygroundEvents(events, totalLoopSamples, options, loopName 
     const group = groups.get(index);
     if (group) {
       const first = group.entries[0];
-      if (group.entries.length === 1) {
+      if (options.nativeOpn) {
+        for (const entry of group.entries) lines.push(`  fm.setOperator(CH${entry.channel}, OP${entry.operator}, ${entry.literal});`);
+      } else if (group.entries.length === 1) {
         lines.push(`  fm.setOperator(CH${first.channel}, OP${first.operator}, ${first.literal});`);
       } else if (group.entries.length > 4 && !group.setting.name) {
         lines.push(`  fm.setOperators(CH${first.channel}, [`);

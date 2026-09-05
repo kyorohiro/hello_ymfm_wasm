@@ -542,3 +542,33 @@ test("Compact retains TL knowledge across unpaired pitch writes and sums the wai
       [211,'tl',20],[217,'on'],[317,'off'],[317,'tl',21],[322,'on'],[422,'off']]);
   }
 });
+
+test("native PC-98 and Neo Geo exports execute High and Compact using FM-only APIs", async () => {
+  const {YM2203Synth}=await import('../../web/ym2203synth.js');
+  const {YM2608Synth}=await import('../../web/ym2608synth.js');
+  const {YM2610BSynth}=await import('../../web/ym2610bsynth.js');
+  for (const [chip,clock,command,exporter,Synth] of [
+    ['ym2203',4000000,0x55,exportYm2203VgmToPlaygroundJavaScript,YM2203Synth],
+    ['ym2608',8000000,0x56,exportYm2608VgmToPlaygroundJavaScript,YM2608Synth],
+    ['ym2610',8000000,0x58,exportYm2610BVgmToPlaygroundJavaScript,YM2610BSynth],
+  ]) {
+    const bytes=createVgmBuffer([command,0,123,command,0x40,20,command,0x44,21,
+      command,0xa4,0x22,command,0xa0,0x1d,command,0x28,0xf0,0x61,100,0,command,0x28,0,0x66],
+      {ym2612Clock:0,[`${chip}Clock`]:clock});
+    for(const compact of [false,true]) for(const splitChannels of [false,true]) {
+      const source=exporter(bytes,{high:true,compact,splitChannels});
+      assert.doesNotMatch(source,/fm.setOperators/);
+      assert.match(source,compact ? /setNoteFrequency\(CH1/ : /fm.setFrequency\(CH1/);
+      const writes=[];let loop;let time=0;
+      const fm=new Synth({transport:{write:(p,r,v)=>writes.push([time,p,r,v])}});
+      writes.length=0;
+      const AsyncFunction=Object.getPrototypeOf(async function(){}).constructor;
+      await new AsyncFunction('fm','write','CH1','OP1','OP2','OP3','OP4','liveLoop','sleepSamples',source)(
+        fm,(...a)=>writes.push([time,...a]),0,0,1,2,3,(_n,fn)=>{loop=fn;},async n=>{time+=n;});
+      await loop();
+      assert.equal(time,100);
+      assert.deepEqual(writes.filter(w=>w[2]===0x28),[[0,0,0x28,0xf0],[100,0,0x28,0]]);
+      assert.ok(writes.every(w=>w[2]!==0));
+    }
+  }
+});
