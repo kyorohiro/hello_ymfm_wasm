@@ -694,10 +694,13 @@ function resolveVgmImportStrategy(
   return {
     source: vgm.exportPlaygroundJavaScript({
       scheduled: options.mode === "schedule",
+      high: options.mode === "high",
       includeDac: options.includeDac,
       dacBase64: options.dacBase64,
     }),
-    statusMessage: `with ${timing} timing`,
+    statusMessage: options.mode === "high"
+      ? "as High (YM2612 frequency/key operations; raw DAC writes)"
+      : `with ${timing} timing`,
   };
 }
 
@@ -1528,11 +1531,13 @@ runButton.addEventListener(
     );
     const mode = selectedMode?.value ?? "write";
     if (dacBase64Input) {
-      dacBase64Input.disabled = false;
+      dacBase64Input.disabled = mode === "high";
     }
     if (dacBase64Label) {
       dacBase64Label.hidden = false;
-      dacBase64Label.title = mode === "schedule"
+      dacBase64Label.title = mode === "high"
+        ? "High keeps DAC writes in their original order."
+        : mode === "schedule"
         ? "Preload DAC as a Base64 stream without scheduling every DAC write."
         : "Store DAC data as one Base64 stream.";
     }

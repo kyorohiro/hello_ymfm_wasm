@@ -1,5 +1,47 @@
 import test from "node:test";
+import { YM2612Synth } from "../../web/ym2612synth.js";
 import assert from "node:assert/strict";
+
+test("High preserves exact writes, tiny waits, all channels, partial keys and DAC", async () => {
+  const commands = [];
+  const expected = [];
+  let time = 0;
+  const write = (port, register, value) => {
+    commands.push(port ? 0x53 : 0x52, register, value);
+    expected.push([time, port, register, value]);
+  };
+  for (let channel = 0; channel < 6; channel++) {
+    const port = Math.floor(channel / 3);
+    const offset = channel % 3;
+    const code = channel < 3 ? channel : channel + 1;
+    write(port, 0xa4 + offset, 0x22);
+    write(port, 0xa0 + offset, 0x83);
+    write(0, 0x28, 0x50 | code);
+    commands.push(0x61, 1, 0);
+    time++;
+    write(0, 0x28, code);
+  }
+  write(0, 0xa4, 0x22);
+  write(0, 0x22, 8); // Intervening global write prevents grouping.
+  write(0, 0xa0, 0x83);
+  write(0, 0x2b, 0x80);
+  write(0, 0x2a, 0x88);
+  commands.push(0x66);
+  const source = exportYm2612VgmToPlaygroundJavaScript(createVgmBuffer(commands), { high: true });
+  assert.match(source, /fm.setFrequency/);
+  assert.match(source, /fm.keyOn/);
+  assert.match(source, /fm.keyOff/);
+  const actual = [];
+  let clock = 0;
+  const record = (port, register, value) => actual.push([clock, port, register, value]);
+  const synth = new YM2612Synth({ transport: { write: record } });
+  actual.length = 0;
+  const names = ["fm", "liveLoop", "sleepSamples", "write", ...Array.from({ length: 6 }, (_, i) => `CH${i + 1}`), "OP1", "OP2", "OP3", "OP4"];
+  let run;
+  new Function(...names, source)(synth, (_name, fn) => { run = fn; }, async (samples) => { clock += samples; }, (...args) => record(...(args.length === 2 ? [0, ...args] : args)), 0, 1, 2, 3, 4, 5, 0, 1, 2, 3);
+  await run();
+  assert.deepEqual(actual, expected);
+});
 
 import {
   Ym2612VGM,

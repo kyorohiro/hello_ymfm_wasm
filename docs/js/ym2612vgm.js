@@ -1164,6 +1164,7 @@ function exportOpnFmVgmToPlaygroundJavaScript(source, options, chipKind, targetC
     { name: "ch5", events: [], currentTime: 0 },
   ];
   let timeSamples = 0;
+  const orderedEvents = [];
   const includeDac =
     chipKind === "ym2612" &&
     options.includeDac !== false;
@@ -1177,13 +1178,15 @@ function exportOpnFmVgmToPlaygroundJavaScript(source, options, chipKind, targetC
     }
     const target = getYm2612WriteTarget(port, register, value);
     const trackIndex = target.scope === "channel" ? target.channel + 1 : 0;
-    tracks[trackIndex].events.push({
+    const recordedEvent = {
       timeSamples,
       port,
       register,
       value,
       comment: describeYm2612Write(port, register, value),
-    });
+    };
+    tracks[trackIndex].events.push(recordedEvent);
+    orderedEvents.push(recordedEvent);
   };
   const convertFrequency = targetChip === "ym2612";
   const writeRegister = chipKind === "ym2608" && convertFrequency
@@ -1246,6 +1249,9 @@ function exportOpnFmVgmToPlaygroundJavaScript(source, options, chipKind, targetC
   const totalLoopSamples = options.totalLoopSamples == null
     ? timeSamples
     : Math.max(0, Math.floor(options.totalLoopSamples));
+  if (options.high === true && chipKind === "ym2612") {
+    return renderHighPlaygroundEvents(orderedEvents, totalLoopSamples);
+  }
   /** @type {string[]} */
   const lines = [];
   if (options.includeHeaderComment !== false) {
@@ -1304,6 +1310,46 @@ function exportOpnFmVgmToPlaygroundJavaScript(source, options, chipKind, targetC
  * @param {number} totalLoopSamples
  * @returns {string[]}
  */
+function renderHighPlaygroundEvents(events, totalLoopSamples) {
+  const lines = [
+    "// High import: exact register values and original write order; timing in 44100 Hz samples.",
+    'liveLoop("vgm", async () => {',
+  ];
+  let cursor = 0;
+  for (let index = 0; index < events.length; index += 1) {
+    const event = events[index];
+    const { port, register, value } = event;
+    if (event.timeSamples > cursor) {
+      lines.push(`  await sleepSamples(${event.timeSamples - cursor});`);
+    }
+    cursor = event.timeSamples;
+    const offset = register - 0xa4;
+    const next = events[index + 1];
+    if (offset >= 0 && offset < 3 && value <= 0x3f &&
+        next?.port === port && next.register === 0xa0 + offset &&
+        next.timeSamples === event.timeSamples) {
+      lines.push(`  fm.setFrequency(CH${port * 3 + offset + 1}, ${value >> 3}, ${((value & 7) << 8) | next.value});`);
+      index += 1;
+    } else if (port === 0 && register === 0x28 && (value & 8) === 0 &&
+        [0, 1, 2, 4, 5, 6].includes(value & 7)) {
+      const code = value & 7;
+      const channel = code < 3 ? code + 1 : code;
+      const mask = value >> 4;
+      const operators = [0, 1, 2, 3].filter((op) => mask & (1 << op));
+      lines.push(mask === 0
+        ? `  fm.keyOff(CH${channel});`
+        : `  fm.keyOn(CH${channel}${mask === 15 ? "" : `, [${operators.map((op) => `OP${op + 1}`).join(", ")}]`});`);
+    } else {
+      if (event.comment) lines.push(`  // ${event.comment}`);
+      lines.push(`  ${formatPlaygroundWrite(port, register, value)};`);
+    }
+  }
+  const tail = Math.max(0, totalLoopSamples - cursor);
+  if (tail > 0 || events.length === 0) lines.push(`  await sleepSamples(${Math.max(1, tail)});`);
+  lines.push("});");
+  return lines.join("\n");
+}
+
 function renderPlaygroundTrack(track, totalLoopSamples, scheduled, useDacBase64) {
   /** @type {string[]} */
   const lines = [`liveLoop(${JSON.stringify(track.name)}, async () => {`];
