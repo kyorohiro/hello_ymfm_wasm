@@ -46,8 +46,6 @@ const exportAllTfiButton = document.getElementById("exportAllTfiButton");
 const exportParseInfoButton = document.getElementById("exportParseInfoButton");
 const exportSnapshotTfiButton = document.getElementById("exportSnapshotTfiButton");
 const exportSnapshotButton = document.getElementById("exportSnapshotButton");
-const autoExportSnapshotCheckbox = document.getElementById("autoExportSnapshotCheckbox");
-const monoMixCheckbox = document.getElementById("monoMixCheckbox");
 const status = document.getElementById("status");
 const channelGrid = document.getElementById("channelGrid");
 const headerOutput = document.getElementById("headerOutput");
@@ -90,7 +88,6 @@ let noteishDirty = false;
 let lastNoteishSignature = "";
 let lastLoadedFileName = "snapshot";
 let psgMuted = false;
-let monoMixEnabled = false;
 let lastYm2612DacEnable = 0x00;
 let monitorToggleHandlerBound = false;
 let workletQueueMultiplier = 2;
@@ -920,14 +917,6 @@ function togglePsgMute() {
   renderMonitorToggles();
   if (engine && typeof engine.setPsgMuted === "function") {
     engine.setPsgMuted(psgMuted);
-  }
-  flushPendingAudio();
-}
-
-function updateMonoMix() {
-  monoMixEnabled = monoMixCheckbox.checked;
-  if (engine && typeof engine.setMonoMix === "function") {
-    engine.setMonoMix(monoMixEnabled);
   }
   flushPendingAudio();
 }
@@ -1880,9 +1869,6 @@ async function ensurePlaybackReady(vgm) {
   if (typeof engine.setPsgMuted === "function") {
     engine.setPsgMuted(psgMuted);
   }
-  if (typeof engine.setMonoMix === "function") {
-    engine.setMonoMix(monoMixEnabled);
-  }
   if (!player) {
     player = new VgmPlayer(engine);
   }
@@ -2240,9 +2226,6 @@ async function startWorkletStream(sampleRate) {
         stopActiveStream();
       }
       requestPlaybackUiRender("");
-      if (autoExportSnapshotCheckbox.checked) {
-        downloadSnapshot("ended");
-      }
       setStatus(`Ready.${currentStatusSuffix()}`);
       return;
     }
@@ -2268,9 +2251,6 @@ function startScriptProcessorStream() {
     if (!stats.playing && !stats.paused && stats.queuedFrames === 0) {
       stopActiveStream();
       requestPlaybackUiRender("");
-      if (autoExportSnapshotCheckbox.checked) {
-        downloadSnapshot("ended");
-      }
       setStatus(`Ready.${currentStatusSuffix()}`);
     }
   };
@@ -2440,10 +2420,6 @@ loopCheckbox.addEventListener("change", () => {
   if (player) {
     player.setLoopEnabled(loopCheckbox.checked);
   }
-});
-
-monoMixCheckbox.addEventListener("change", () => {
-  updateMonoMix();
 });
 
 prefetchFactorSelect.addEventListener("change", () => {
