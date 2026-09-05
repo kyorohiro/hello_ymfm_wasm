@@ -445,3 +445,28 @@ test("scheduled export handles large DAC write tracks without argument spreading
   assert.match(script, /\[0, 0, 0x2a, 0x00\]/);
   assert.match(script, /\[0, 0, 0x2a, 0x4f\]/);
 });
+
+test("Note-ish High rounds pitch only and preserves KEY and timing", async () => {
+  const bytes = createVgmBuffer([0x52,0xa4,0x22,0x52,0xa0,0x1d,0x52,0x28,0xf0,0x61,100,0,0x52,0x28,0,0x66]);
+  const source = exportYm2612VgmToPlaygroundJavaScript(bytes, { high: true, noteish: true });
+  assert.match(source, /setNoteFrequency\(CH1, "A3", 4\)/);
+  const calls = [];
+  let loop;
+  const AsyncFunction = Object.getPrototypeOf(async function(){}).constructor;
+  await new AsyncFunction('fm','CH1','liveLoop','sleepSamples',source)(
+    { setFrequency: (...a) => calls.push(['pitch',...a]), keyOn: c=>calls.push(['on',c]), keyOff:c=>calls.push(['off',c]) },
+    0, (_n,fn)=>{loop=fn;}, async n=>calls.push(['wait',n]));
+  await loop();
+  assert.deepEqual(calls.slice(1), [['on',0],['wait',100],['off',0]]);
+  const [, , block, fnum] = calls[0];
+  const ratio = fnum * 2 ** block / (541 * 2 ** 4);
+  assert.ok(Math.abs(1200 * Math.log2(ratio)) < 51);
+  assert.ok(Math.abs(fnum * 7670454 * 2 ** (block-1) / (144*2**20) - 220) < 1);
+});
+
+test("Note-ish leaves CH3 special-mode pitch unchanged even with split channels", () => {
+  const bytes = createVgmBuffer([0x52,0x27,0x40,0x52,0xa6,0x22,0x52,0xa2,0x1d,0x66]);
+  const source = exportYm2612VgmToPlaygroundJavaScript(bytes, {high:true,noteish:true,splitChannels:true});
+  assert.match(source, /fm.setFrequency\(CH3, 4, 541\)/);
+  assert.doesNotMatch(source, /const notePitches/);
+});

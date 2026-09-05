@@ -1253,6 +1253,9 @@ function exportOpnFmVgmToPlaygroundJavaScript(source, options, chipKind, targetC
     ? timeSamples
     : Math.max(0, Math.floor(options.totalLoopSamples));
   if (options.high === true && chipKind === "ym2612") {
+    options = { ...options, noteClock: parser.header.ym2612Clock & 0x3fffffff,
+      noteSpecial: orderedEvents.some(e => e.port === 0 && e.register === 0x27 && (e.value & 0xc0)),
+      noteDac: orderedEvents.some(e => e.port === 0 && e.register === 0x2b && (e.value & 0x80)) };
     if (options.splitChannels === true) {
       return tracks.filter((track) => track.events.length > 0).map((track) =>
         `{\n${renderHighPlaygroundEvents(track.events, totalLoopSamples, options, track.name)}\n}`
@@ -1380,11 +1383,12 @@ function collectHighOperatorGroups(events) {
 
 function renderHighPlaygroundEvents(events, totalLoopSamples, options, loopName = "vgm") {
   const { groups, settings } = collectHighOperatorGroups(events);
+  const notePitches = new Map();
   const dacEvents = options.dacBase64 !== false
     ? events.filter((event) => event.port === 0 && event.register === 0x2a)
     : [];
   const lines = [
-    "// High import: FM register values preserved; timing in 44100 Hz samples.",
+    options.noteish ? "// Note-ish High: nearest semitone (A4=440 Hz); KEY, patch and timing preserved. CH3 special/DAC channels keep raw pitch." : "// High import: FM register values preserved; timing in 44100 Hz samples.",
   ];
   for (const setting of settings.values()) {
     if (setting.name) {
@@ -1442,7 +1446,26 @@ function renderHighPlaygroundEvents(events, totalLoopSamples, options, loopName 
     } else if (offset >= 0 && offset < 3 && value <= 0x3f &&
         next?.port === port && next.register === 0xa0 + offset &&
         next.timeSamples === event.timeSamples && next.sequence === event.sequence + 1) {
-      lines.push(`  fm.setFrequency(CH${port * 3 + offset + 1}, ${value >> 3}, ${((value & 7) << 8) | next.value});`);
+      const channel = port * 3 + offset + 1;
+      const block = value >> 3, fnum = ((value & 7) << 8) | next.value;
+      if (options.noteish && options.noteClock > 0 && fnum > 0 &&
+          !(channel === 3 && options.noteSpecial) && !(channel === 6 && options.noteDac)) {
+        const hz = fnum * options.noteClock * 2 ** (block - 1) / (144 * 2 ** 20);
+        const midiFloat = 69 + 12 * Math.log2(hz / 440);
+        const midi = Math.round(midiFloat);
+        const name = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"][((midi % 12) + 12) % 12] + (Math.floor(midi / 12) - 1);
+        let targetBlock = block;
+        let targetFnum = fnum * 2 ** ((midi - midiFloat) / 12);
+        while (targetFnum > 2047 && targetBlock < 7) { targetFnum /= 2; targetBlock++; }
+        if (Math.round(targetFnum) > 2047 || Math.round(targetFnum) < 1) {
+          lines.push(`  fm.setFrequency(CH${channel}, ${block}, ${fnum}); // Note-ish out of range`);
+        } else {
+          const key = `${name}/${targetBlock}`;
+          notePitches.set(key, [targetBlock, Math.round(targetFnum)]);
+          lines.push(`  // ${name}: original BLOCK=${block} FNUM=${fnum}; rounding ${(100 * (midi - midiFloat)).toFixed(2)} cents`);
+          lines.push(`  setNoteFrequency(CH${channel}, ${JSON.stringify(name)}, ${targetBlock});`);
+        }
+      } else lines.push(`  fm.setFrequency(CH${channel}, ${block}, ${fnum});`);
       index += 1;
     } else if (port === 0 && register === 0x28 && (value & 8) === 0 &&
         [0, 1, 2, 4, 5, 6].includes(value & 7)) {
@@ -1461,6 +1484,15 @@ function renderHighPlaygroundEvents(events, totalLoopSamples, options, loopName 
   const tail = Math.max(0, totalLoopSamples - cursor);
   if (tail > 0 || events.length === 0) lines.push(`  await sleepSamples(${Math.max(1, tail)});`);
   lines.push("});");
+  if (notePitches.size) lines.unshift(
+    `// Note-ish pitch table calculated for VGM clock ${options.noteClock} Hz; independent of noteToBlockFnum().`,
+    "/** @type {Record<string, [number, number]>} */",
+    `const notePitches = ${JSON.stringify(Object.fromEntries(notePitches), null, 2)};`,
+    "/** @param {YM2612Channel} channel @param {string} note @param {number} block */",
+    "function setNoteFrequency(channel, note, block) {",
+    '  const [pitchBlock, fnum] = notePitches[`${note}/${block}`];',
+    "  fm.setFrequency(channel, pitchBlock, fnum);",
+    "}", "");
   return lines.join("\n");
 }
 

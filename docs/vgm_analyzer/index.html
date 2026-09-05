@@ -566,6 +566,10 @@
             <option value="4">x4</option>
           </select>
           <button id="exportAllTfiButton" type="button" disabled>Export All TFI ZIP</button>
+          <label for="mmlBpmInput">MML BPM</label>
+          <input id="mmlBpmInput" type="number" min="1" max="999" step="any" value="120" style="width: 5em" title="Manual tempo for analysis MML lengths; not detected BPM">
+          <button id="exportMmlButton" type="button" disabled title="Analysis MML (YM2612 FM only); not driver-compatible">Export MML</button>
+          <small>MML: analysis only, YM2612 FM. BPM is manual, not detected.</small>
           <button id="exportParseInfoButton" type="button" disabled>Export Parse Info</button>
           <button id="exportSnapshotTfiButton" type="button" disabled>Export Snapshot TFI</button>
           <button id="exportSnapshotButton" type="button" disabled>Export Snapshot</button>

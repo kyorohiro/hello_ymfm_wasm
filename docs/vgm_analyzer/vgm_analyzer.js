@@ -1,3 +1,4 @@
+import { exportAnalysisMml } from "./vgm_mml.js";
 import {
   Ym2612VGM,
 } from "../js/ym2612vgm.js";
@@ -43,6 +44,8 @@ const workletQueueSelect = document.getElementById("workletQueueSelect");
 const masterVolumeRange = document.getElementById("masterVolumeRange");
 const masterVolumeValue = document.getElementById("masterVolumeValue");
 const exportAllTfiButton = document.getElementById("exportAllTfiButton");
+const exportMmlButton = document.getElementById("exportMmlButton");
+const mmlBpmInput = document.getElementById("mmlBpmInput");
 const exportParseInfoButton = document.getElementById("exportParseInfoButton");
 const exportSnapshotTfiButton = document.getElementById("exportSnapshotTfiButton");
 const exportSnapshotButton = document.getElementById("exportSnapshotButton");
@@ -1943,6 +1946,7 @@ function stopActiveStream() {
 
 function updatePlaybackButtons(state = {}) {
   const hasBuffer = Boolean(currentBuffer);
+  exportMmlButton.disabled = !hasBuffer || currentChipKind !== "ym2612";
   const playing = Boolean(state.playing);
   const paused = Boolean(state.paused);
   playButton.disabled = !hasBuffer || playing;
@@ -2263,6 +2267,7 @@ async function handleFile(file) {
   lastLoadedFileName = file.name;
   const rawBuffer = await file.arrayBuffer();
   currentBuffer = null;
+  exportMmlButton.disabled = true;
   lastParseInfo = null;
   playButton.disabled = true;
   channelMonitor = createChannelMonitorState();
@@ -2522,3 +2527,19 @@ ensureChannelMonitorRenderTimer();
 ensureNoteishRenderTimer();
 renderChannelMonitor();
 renderNoteishGrid();
+
+exportMmlButton.addEventListener("click", () => {
+  if (!currentBuffer || !mmlBpmInput.reportValidity()) return;
+  try {
+    const text = exportAnalysisMml(currentBuffer, { bpm: Number(mmlBpmInput.value), fileName: lastLoadedFileName });
+    const url = URL.createObjectURL(new Blob([text], { type: "text/plain;charset=utf-8" }));
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `${lastLoadedFileName.replace(/\.[^.]+$/, "") || "analysis"}.mml`;
+    anchor.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    setStatus("Exported analysis MML (YM2612 FM only). See output comments for unconverted operations.");
+  } catch (error) {
+    setStatus(`MML export failed: ${error.message}`);
+  }
+});

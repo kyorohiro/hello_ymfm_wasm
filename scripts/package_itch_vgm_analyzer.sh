@@ -16,6 +16,8 @@ LICENSE_FILE="${ROOT_DIR}/LICENSE"
 ANALYZER_FILES="
 index.html
 vgm_analyzer.js
+vgm_mml.js
+vgm_mml_music.js
 "
 
 JS_FILES="
@@ -155,7 +157,7 @@ EOF
 # Make the analyzer runnable from itch.io as a standalone app.
 perl -0pi -e 's#<a class="link-button" href="\.\./index\.html">Back</a>##g' "${STAGE_DIR}/index.html"
 perl -0pi -e 's#"\.\./js/#"./js/#g; s#"\.\./generated/#"./generated/#g' \
-  "${STAGE_DIR}/index.html" "${STAGE_DIR}/vgm_analyzer.js"
+  "${STAGE_DIR}/index.html" "${STAGE_DIR}/vgm_analyzer.js" "${STAGE_DIR}/vgm_mml.js"
 perl -0pi -e 's#\.\./js/vgm-output-worklet\.js#./js/vgm-output-worklet.js#g' \
   "${STAGE_DIR}/index.html"
 

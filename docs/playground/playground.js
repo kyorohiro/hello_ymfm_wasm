@@ -693,12 +693,15 @@ function resolveVgmImportStrategy(
     source: vgm.exportPlaygroundJavaScript({
       scheduled: options.mode === "schedule",
       high: options.mode === "high",
+      noteish: options.noteish,
       splitChannels,
       includeDac: options.includeDac,
       dacBase64: options.dacBase64,
       writeDacFile: options.writeDacFile,
     }),
-    statusMessage: options.mode === "high"
+    statusMessage: options.mode === "high" && options.noteish
+      ? "as Note-ish High (named pitches; nearest semitone)"
+      : options.mode === "high"
       ? "as High (YM2612 frequency/key operations)"
       : `with ${timing} timing`,
   };
@@ -1557,6 +1560,7 @@ runButton.addEventListener(
       }
       const options = {
           targetPath,
+          noteish: selectedMode?.value === "high" && document.getElementById("noteishVgmInput").checked,
           splitChannels: document.getElementById("splitVgmChannelsInput").checked,
           mode: selectedMode?.value ?? "write",
           includeDac: includeDacInput?.checked ?? true,
@@ -1575,6 +1579,7 @@ runButton.addEventListener(
       'input[name="vgmImportMode"]:checked'
     );
     const mode = selectedMode?.value ?? "write";
+    document.getElementById("noteishVgmInput").disabled = mode !== "high";
     if (dacBase64Input) {
       dacBase64Input.disabled = false;
     }
