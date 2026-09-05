@@ -83,6 +83,16 @@ const runButton =
   document.getElementById("runButton");
 const stopButton =
   document.getElementById("stopButton");
+const expandButton =
+  document.getElementById("expandButton");
+const mainMenu =
+  document.getElementById("mainMenu");
+const mainMenuHome =
+  document.getElementById("mainMenuHome");
+const toolbar =
+  document.querySelector(".toolbar");
+const statusBar =
+  document.querySelector(".status-bar");
 const workerExecution =
   document.getElementById("workerExecution");
 const importCassetteButton =
@@ -1410,12 +1420,61 @@ function applySimpleModeFromQuery() {
   }
 }
 
+function setExpandedMode(expanded) {
+  document.body.classList.toggle(
+    "mode-expanded",
+    expanded
+  );
+  expandButton?.setAttribute(
+    "aria-pressed",
+    expanded ? "true" : "false"
+  );
+  expandButton?.setAttribute(
+    "aria-label",
+    expanded ? "Collapse editor" : "Expand editor"
+  );
+  if (expandButton) {
+    expandButton.title =
+      expanded ? "Collapse editor" : "Expand editor";
+  }
+
+  if (expanded) {
+    runButton.before(mainMenu);
+    toolbar?.after(statusBar);
+    return;
+  }
+
+  mainMenu.open = false;
+  mainMenuHome?.before(mainMenu);
+  document.body.append(statusBar);
+}
+
 function installPlaygroundEventHandlers() {
   exportCassetteButton?.addEventListener("click", exportCassette);
   newFileButton?.addEventListener("click", createVirtualFile);
   importFileButton?.addEventListener("click", promptVirtualFileImport);
   renameFileButton?.addEventListener("click", renameActiveVirtualFile);
   deleteFileButton?.addEventListener("click", deleteActiveVirtualFile);
+  expandButton?.addEventListener(
+    "click",
+    () => {
+      setExpandedMode(
+        !document.body.classList.contains("mode-expanded")
+      );
+    }
+  );
+  document.addEventListener(
+    "keydown",
+    (event) => {
+      if (
+        event.key === "Escape" &&
+        document.body.classList.contains("mode-expanded")
+      ) {
+        setExpandedMode(false);
+        expandButton?.focus();
+      }
+    }
+  );
 
 runButton.addEventListener(
     "click",

@@ -344,6 +344,66 @@
         margin-left: auto;
       }
 
+      .expand-button {
+        width: 32px;
+        min-width: 32px;
+        margin-left: auto;
+        padding: 4px;
+      }
+
+      .expand-button svg {
+        display: block;
+        width: 16px;
+        height: 16px;
+        margin: auto;
+        fill: none;
+        stroke: currentColor;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        stroke-width: 2;
+      }
+
+      .expand-button .collapse-icon {
+        display: none;
+      }
+
+      body.mode-expanded .app-bar {
+        display: none;
+      }
+
+      body.mode-expanded main {
+        max-width: none;
+        padding: 0;
+      }
+
+      body.mode-expanded main > .panel {
+        border: 0;
+        border-radius: 0;
+        box-shadow: none;
+      }
+
+      body.mode-expanded .toolbar .toolbar-menu-panel {
+        right: auto;
+        left: 0;
+      }
+
+      body.mode-expanded .status-bar {
+        position: static;
+        z-index: 10;
+        flex: 0 0 auto;
+        order: initial;
+        border-top: 0;
+        border-bottom: 1px solid var(--line);
+      }
+
+      body.mode-expanded .expand-button .expand-icon {
+        display: none;
+      }
+
+      body.mode-expanded .expand-button .collapse-icon {
+        display: block;
+      }
+
       .volume-control {
         display: inline-flex;
         align-items: center;
@@ -1222,6 +1282,7 @@
             <button id="exportCassetteButton" type="button">Export Cassette</button>
           </div>
         </details>
+        <span id="mainMenuHome" hidden></span>
         <div class="app-bar-brand">
           <h1 id="pageTitle">Tetorica FM2612 Playground</h1>
           <p class="subtext">
@@ -1268,6 +1329,21 @@
             <option value="psg-noise">PSG Noise</option>
             <option value="psg-ocean">PSG Ocean</option>
           </select>
+          <button
+            id="expandButton"
+            class="expand-button"
+            type="button"
+            aria-label="Expand editor"
+            aria-pressed="false"
+            title="Expand editor"
+          >
+            <svg class="expand-icon" viewBox="0 0 20 20" aria-hidden="true">
+              <path d="M7 3H3v4M13 3h4v4M17 13v4h-4M7 17H3v-4" />
+            </svg>
+            <svg class="collapse-icon" viewBox="0 0 20 20" aria-hidden="true">
+              <path d="M3 7h4V3M17 7h-4V3M13 17v-4h4M7 17v-4H3" />
+            </svg>
+          </button>
         </div>
 
         <section class="card" id="workPanels">

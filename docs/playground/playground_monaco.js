@@ -484,7 +484,7 @@ export async function initializePlaygroundMonaco(
         moduleResolution:
           monaco.languages.typescript.ModuleResolutionKind.NodeJs,
         moduleDetection:
-          "force",
+          monaco.languages.typescript.ModuleDetectionKind?.Force ?? 3,
         target:
           monaco.languages.typescript.ScriptTarget.ES2020,
       }
