@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 import vm from "node:vm";
+import { createDeadlineScheduler } from "../js/playground_clock.js";
 
 const workerSource = readFileSync(
   new URL("../js/playground_logic_worker.js", import.meta.url),
@@ -11,6 +12,7 @@ const workerSource = readFileSync(
 function createWorkerHarness() {
   const messages = [];
   const context = {
+    createDeadlineScheduler,
     Error,
     Map,
     Math,
@@ -27,7 +29,7 @@ function createWorkerHarness() {
     setTimeout,
   };
   context.self = context;
-  vm.runInNewContext(workerSource, context, {
+  vm.runInNewContext(workerSource.replace(/^import .*playground_clock.js";\n/m, ""), context, {
     filename: "playground_logic_worker.js",
   });
   return {
@@ -62,6 +64,38 @@ async function waitFor(predicate, timeoutMs = 100) {
     await new Promise((resolve) => setTimeout(resolve, 1));
   }
 }
+
+test("Worker sample positions advance across loop cycles", async () => {
+  const worker = createWorkerHarness();
+  try {
+    await worker.send({
+      type: "run", presets: {}, scaleIntervals: {},
+      sourceCode: `
+        let cycles = 0;
+        liveLoop("timeline", async () => {
+          scheduleWritesSamples(beginSampleSchedule(), [[0, 0, 0x22, 0]]);
+          await sleepSamples(441);
+          if (++cycles === 3) stopLoop("timeline");
+        });
+      `,
+    });
+    await waitFor(() => worker.messages.filter((m) => m.command === "scheduleWritesSamples").length >= 3, 1000);
+    assert.deepEqual(worker.messages.filter((m) => m.command === "scheduleWritesSamples").map((m) => m.args[0]), [0, 441, 882]);
+  } finally {
+    await worker.send({ type: "stop" });
+  }
+});
+
+test("Worker Stop cancels a long wait without resuming user code", async () => {
+  const worker = createWorkerHarness();
+  await worker.send({
+    type: "run", presets: {}, scaleIntervals: {},
+    sourceCode: 'liveLoop("long", async () => { await sleep(60); write(0x22, 8); });',
+  });
+  await worker.send({ type: "stop" });
+  assert.ok(worker.messages.some((m) => m.type === "stopped"));
+  assert.ok(!worker.messages.some((m) => m.command === "write"));
+});
 
 test("Worker runs multiple loops, keyboard input, and Stop/Run lifecycle", async () => {
   const worker = createWorkerHarness();

@@ -1,3 +1,5 @@
+import { createDeadlineScheduler } from "./playground_clock.js";
+
 let currentRun = null;
 let nextRequestId = 1;
 const pendingRequests = new Map();
@@ -158,6 +160,7 @@ function request(command, args = [], loopContext = null) {
 }
 
 function createClock(run) {
+  const scheduler = createDeadlineScheduler({ now: () => performance.now() / 1000 });
   let bpm = 120;
   let clockStart = performance.now() / 1000;
   let sampleClockStart = null;
@@ -174,27 +177,35 @@ function createClock(run) {
   async function sleep(seconds) {
     const token = run.token;
     const loopContext = run.currentLoop;
-    await new Promise((resolve) => setTimeout(() => {
+    await new Promise((resolve) => scheduler.wait(performance.now() / 1000 + Math.max(0, Number(seconds) || 0), () => {
       run.currentLoop = loopContext;
       resolve();
-    }, Math.max(0, Number(seconds) || 0) * 1000));
-    if (run.stopped || token !== run.token) {
+    }, loopContext));
+    if (run.stopped || token !== run.token || loopContext?.stopped || (loopContext && !run.loops.has(loopContext.name))) {
       throw new Error("Run stopped");
     }
   }
 
   async function sleepUntil(targetSeconds, loopContext) {
     const token = run.token;
-    await new Promise((resolve) => setTimeout(() => {
+    await new Promise((resolve) => scheduler.wait(targetSeconds, () => {
       run.currentLoop = loopContext;
       resolve();
-    }, Math.max(0, targetSeconds - performance.now() / 1000) * 1000));
-    if (run.stopped || token !== run.token) {
+    }, loopContext));
+    if (run.stopped || token !== run.token || loopContext?.stopped || (loopContext && !run.loops.has(loopContext.name))) {
       throw new Error("Run stopped");
     }
   }
 
   return {
+    cancelWaits: scheduler.cancel,
+    cancelLoop(name) {
+      scheduler.cancel((owner) => {
+        if (!owner || (name !== undefined && owner.name !== name)) return false;
+        owner.stopped = true;
+        return true;
+      });
+    },
     currentBeat,
     sleep,
     async sleepSamples(samples, sampleRate = 44100) {
@@ -377,6 +388,7 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}) {
     if (run.stopped) return;
     run.stopped = true;
     run.token += 1;
+    clock.cancelWaits();
     run.generation += 1;
     for (const cleanup of run.cleanups) {
       await cleanup.fn();
@@ -495,8 +507,8 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}) {
     livePrepare,
     liveLoop,
     liveCleanup,
-    stopLoop: (name) => run.loops.delete(name),
-    stopAllLoops: () => run.loops.clear(),
+    stopLoop: (name) => { run.loops.delete(name); clock.cancelLoop(name); },
+    stopAllLoops: () => { run.loops.clear(); clock.cancelLoop(); },
     onKeyboardPressKey: (name, fn) => registerKeyboard("keydown", name, fn),
     onKeyboardReleaseKey: (name, fn) => registerKeyboard("keyup", name, fn),
     stopAll: () => postCommand("stopAll"),
@@ -541,7 +553,7 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}) {
     run.collectingLoops = null;
     run.collectingCleanups = null;
     for (const name of run.loops.keys()) {
-      if (!definitions.has(name)) run.loops.delete(name);
+      if (!definitions.has(name)) { run.loops.delete(name); clock.cancelLoop(name); }
     }
     for (const [name, fn] of definitions) run.loops.set(name, fn);
     for (const cleanup of run.cleanups) {
@@ -556,14 +568,16 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}) {
       if (run.runningLoops.has(name)) continue;
       run.runningLoops.add(name);
       const generation = run.generation;
+      const loopContext = { name, cursorBeat: clock.currentBeat?.() ?? 0, sampleCursorSeconds: 0 };
       void (async () => {
         while (!run.stopped && generation === run.generation && run.loops.has(name)) {
           try {
-            run.currentLoop = { name, cursorBeat: clock.currentBeat?.() ?? 0 };
+            run.currentLoop = loopContext;
             await executeWithWorkerGuards(
               () => run.loops.get(name)()
             );
           } catch (error) {
+            if (error?.message === "Run stopped") break;
             if (!run.stopped) postMessage({ type: "log", level: "error", message: `[liveLoop:${name}] ${error?.stack ?? String(error)}` });
             await new Promise((resolve) => setTimeout(resolve, 16));
           } finally {

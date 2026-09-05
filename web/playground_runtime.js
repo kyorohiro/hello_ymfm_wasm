@@ -446,6 +446,7 @@ export function createPlaygroundRuntime(
       logLine: emitLog,
       setStatus: emitStatus,
       executeCallback: executeUserCallback,
+      cancelWaits: clockApi.cancelWaits,
     });
 
   function psgTone(
@@ -1658,6 +1659,7 @@ export function createPlaygroundRuntime(
 
   function stop() {
     currentRunToken += 1;
+    clockApi.cancelWaits();
     runtime.sampleClockStartTime = null;
     const workerMode = Boolean(logicWorker);
     if (workerMode) void stopLogicWorker();

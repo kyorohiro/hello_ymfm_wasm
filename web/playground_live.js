@@ -8,6 +8,7 @@ export function createPlaygroundLive(
     currentBeat,
     getCurrentLoopContext,
     setCurrentLoopContext,
+    cancelWaits = () => {},
     logLine,
     setStatus,
     executeCallback = (callback) =>
@@ -283,12 +284,14 @@ export function createPlaygroundLive(
 
     state.stopped = true;
     state.runToken += 1;
+    cancelWaits(state);
   }
 
   function stopAllLoops() {
     for (const state of runtime.liveLoops.values()) {
       state.stopped = true;
       state.runToken += 1;
+      cancelWaits(state);
     }
   }
 

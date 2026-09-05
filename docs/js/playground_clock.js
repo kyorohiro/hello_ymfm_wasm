@@ -1,3 +1,76 @@
+/** One deadline timer, with a separate task per continuation so microtasks drain
+ * before another loop's context is restored. No per-loop deadline timers. */
+export function createDeadlineScheduler({
+  now,
+  setTimer = (fn, ms) => setTimeout(fn, ms),
+  clearTimer = (id) => clearTimeout(id),
+  createTaskChannel = () => typeof MessageChannel === "function" ? new MessageChannel() : null,
+}) {
+  const pending = [];
+  let timer = null;
+  let deadline = Infinity;
+  let channel = null;
+  let taskQueued = false;
+  let serial = 0;
+
+  function closeChannel() {
+    channel?.port1.close();
+    channel?.port2.close();
+    channel = null;
+  }
+
+  function arm() {
+    pending.sort((a, b) => a.at - b.at || a.serial - b.serial);
+    if (taskQueued) return;
+    const next = pending[0]?.at ?? Infinity;
+    if (next === Infinity) closeChannel();
+    if (next === deadline) return;
+    if (timer !== null) clearTimer(timer);
+    timer = null;
+    deadline = next;
+    if (next === Infinity) { closeChannel(); return; }
+    timer = setTimer(() => {
+      timer = null;
+      deadline = Infinity;
+      dispatch();
+    }, Math.max(0, (next - now()) * 1000));
+  }
+
+  function dispatch() {
+    taskQueued = false;
+    const entry = pending[0];
+    if (!entry || entry.at > now()) { arm(); return; }
+    pending.shift();
+    entry.resume();
+    // Do not resolve another loop in this task: await chains must finish first.
+    if (pending[0]?.at <= now()) {
+      channel ??= createTaskChannel();
+      if (channel) {
+        taskQueued = true;
+        channel.port1.onmessage = dispatch;
+        channel.port2.postMessage(null);
+        return;
+      }
+    }
+    arm();
+  }
+
+  return {
+    wait(at, resume, owner) {
+      pending.push({ at, resume, owner, serial: serial++ });
+      arm();
+    },
+    cancel(owner) {
+      // Wake cancelled waits promptly; callers check their captured generation.
+      for (const entry of pending) {
+        if (owner === undefined || entry.owner === owner ||
+            (typeof owner === "function" && owner(entry.owner))) entry.at = -Infinity;
+      }
+      arm();
+    },
+  };
+}
+
 export function createPlaygroundClock(
   options
 ) {
@@ -10,6 +83,13 @@ export function createPlaygroundClock(
     setTimer = (fn, delayMs) =>
       window.setTimeout(fn, delayMs),
   } = options;
+
+  const scheduler = createDeadlineScheduler({
+    now: nowSeconds,
+    setTimer,
+    clearTimer: options.clearTimer,
+    createTaskChannel: options.createTaskChannel,
+  });
 
   function nowSeconds() {
     const audioContext =
@@ -73,13 +153,13 @@ export function createPlaygroundClock(
     );
 
     await new Promise((resolve) => {
-      setTimer(() => {
+      scheduler.wait(nowSeconds() + waitMs / 1000, () => {
         resolveWithLoopContext(
           resolve,
           undefined,
           loopState
         );
-      }, waitMs);
+      }, loopState);
     });
 
     if (
@@ -126,22 +206,15 @@ export function createPlaygroundClock(
       duration;
     loopState.sampleCursorSeconds =
       targetOffset;
-    const waitMs = Math.max(
-      0,
-      (runtime.sampleClockStartTime +
-        targetOffset -
-        nowSeconds()) *
-        1000
-    );
 
     await new Promise((resolve) => {
-      setTimer(() => {
+      scheduler.wait(runtime.sampleClockStartTime + targetOffset, () => {
         resolveWithLoopContext(
           resolve,
           undefined,
           loopState
         );
-      }, waitMs);
+      }, loopState);
     });
 
     if (
@@ -164,20 +237,15 @@ export function createPlaygroundClock(
     const targetTime =
       runtime.clockStartTime +
       beatsToSeconds(targetBeat);
-    const waitMs = Math.max(
-      0,
-      (targetTime - nowSeconds()) *
-        1000
-    );
 
     await new Promise((resolve) => {
-      setTimer(() => {
+      scheduler.wait(targetTime, () => {
         resolveWithLoopContext(
           resolve,
           undefined,
           loopState
         );
-      }, waitMs);
+      }, loopState);
     });
 
     if (
@@ -334,6 +402,7 @@ export function createPlaygroundClock(
   }
 
   return {
+    cancelWaits: scheduler.cancel,
     nowSeconds,
     ensureMusicClock,
     beatsToSeconds,
