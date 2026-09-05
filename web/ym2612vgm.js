@@ -1448,12 +1448,18 @@ function renderHighPlaygroundEvents(events, totalLoopSamples, options, loopName 
         next.timeSamples === event.timeSamples && next.sequence === event.sequence + 1) {
       const channel = port * 3 + offset + 1;
       const block = value >> 3, fnum = ((value & 7) << 8) | next.value;
-      if (options.noteish && options.noteClock > 0 && fnum > 0 &&
-          !(channel === 3 && options.noteSpecial) && !(channel === 6 && options.noteDac)) {
+      const canNamePitch = options.noteClock > 0 && fnum > 0 &&
+          !(channel === 3 && options.noteSpecial) && !(channel === 6 && options.noteDac);
+      if (canNamePitch) {
         const hz = fnum * options.noteClock * 2 ** (block - 1) / (144 * 2 ** 20);
         const midiFloat = 69 + 12 * Math.log2(hz / 440);
         const midi = Math.round(midiFloat);
         const name = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"][((midi % 12) + 12) % 12] + (Math.floor(midi / 12) - 1);
+        if (!options.noteish) {
+          lines.push(`  fm.setFrequency(CH${channel}, ${block}, ${fnum}); // ${name}`);
+          index += 1;
+          continue;
+        }
         let targetBlock = block;
         let targetFnum = fnum * 2 ** ((midi - midiFloat) / 12);
         while (targetFnum > 2047 && targetBlock < 7) { targetFnum /= 2; targetBlock++; }

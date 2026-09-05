@@ -1675,6 +1675,7 @@ runButton.addEventListener(
       vgmImportTarget.value = `/${outputName}.js`;
       vgmImportTarget.setCustomValidity("");
       mainMenu.open = false;
+      document.getElementById("noteishVgmInput").checked = false;
       vgmImportDialog.showModal();
     }
   );
