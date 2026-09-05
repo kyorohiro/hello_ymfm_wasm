@@ -42,6 +42,17 @@ function createWorkerHarness() {
   };
 }
 
+test("Worker forwards ordered operator entries without changing their values", async () => {
+  const worker = createWorkerHarness();
+  await worker.send({
+    type: "run", presets: {}, scaleIntervals: {},
+    sourceCode: 'fm.setOperators(CH4, [[OP1, { tl: 20 }], [OP3, { dt: 3, multi: 4 }], [OP1, { tl: 20 }]]);',
+  });
+  const command = worker.messages.find((message) => message.command === "fm.setOperators");
+  assert.deepEqual(JSON.parse(JSON.stringify(command?.args)), [3, [[0, { tl: 20 }], [2, { dt: 3, multi: 4 }], [0, { tl: 20 }]]]);
+  await worker.send({ type: "stop" });
+});
+
 async function waitFor(predicate, timeoutMs = 100) {
   const deadline = performance.now() + timeoutMs;
   while (!predicate()) {

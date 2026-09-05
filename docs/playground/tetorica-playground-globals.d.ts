@@ -577,6 +577,8 @@ type FMApi = {
   setPreset(channel: YM2612Channel, preset: YM2612Preset): void;
   /** Partially update one logical operator `0..3`. */
   setOperator(channel: YM2612Channel, operator: YM2612Operator, params: YM2612OperatorParams): void;
+  /** Apply entries in array order; fields within each entry use setOperator's order. YM2612 only. */
+  setOperators(channel: YM2612Channel, entries: Array<[YM2612Operator, YM2612OperatorParams]>): void;
   /** Set channel algorithm and feedback. */
   setAlgo(channel: YM2612Channel, algorithm: YM2612Algorithm, feedback?: YM2612Feedback): void;
   /** Set left/right output plus AMS/PMS on one channel. */

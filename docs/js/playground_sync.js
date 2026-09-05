@@ -105,6 +105,9 @@ export function createFmProxy(
         params
       );
     },
+    setOperators(channel, entries) {
+      targetSynth.setOperators(channel, entries);
+    },
     setAlgo(
       channel,
       algorithm,

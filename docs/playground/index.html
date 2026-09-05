@@ -1505,6 +1505,7 @@
               <li><code>pg.fm</code> points to the same YM2612 layer</li>
               <li>Channels are <code>CH1</code> through <code>CH6</code>; logical operators are <code>OP1</code> through <code>OP4</code></li>
               <li><code>fm.setPreset(CH1, pg.presets["one-op-basic"])</code> applies one preset</li>
+              <li><code>fm.setOperators(CH1, [[OP1, { tl: 20 }], [OP3, { tl: 24 }]])</code> applies partial settings in array order (YM2612). Repeated operators are allowed. Fields within each entry follow <code>setOperator()</code>'s register order.</li>
               <li><code>fm.setOperator(CH1, OP1, { multi: 1, tl: 20, ar: 24, d1r: 8, d2r: 4, sl: 6, rr: 8 })</code></li>
               <li>Operator ranges: <code>multi 0..15</code>, <code>tl 0..127</code> (lower is louder), <code>ar/d1r/d2r 0..31</code>, <code>sl/rr 0..15</code></li>
               <li><code>fm.setAlgo(CH1, 7, 0)</code> sets algorithm and feedback (<code>0..7</code>)</li>

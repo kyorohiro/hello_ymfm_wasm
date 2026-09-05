@@ -414,9 +414,7 @@ export class YM2612Synth {
   setOperator(channel, operator, params) {
     assertChannel(channel);
     assertOperator(operator);
-    if (!params || typeof params !== "object") {
-      throw new Error("params must be an object");
-    }
+    params = validateOperatorParams(params);
 
     const state = this.channels[channel].operators[operator];
     const { port, channelOffset } = splitChannel(channel);
@@ -505,6 +503,26 @@ export class YM2612Synth {
       // base 0x90
       this._write(port, 0x90 + channelOffset + slotOffset, state.ssg);
     }
+  }
+
+  /**
+   * Apply partial operator settings in array order, preserving repeated entries.
+   * All inputs are validated before any state change or register write.
+   * Fields within each entry use setOperator's register order.
+   * @param {number} channel
+   * @param {Array<[number, YM2612OperatorParams]>} entries
+   * @returns {void}
+   */
+  setOperators(channel, entries) {
+    assertChannel(channel);
+    if (!Array.isArray(entries)) throw new Error("entries must be an array");
+    const validated = Array.from(entries, (entry) => {
+      if (!Array.isArray(entry) || entry.length !== 2) throw new Error("entry must be [operator, params]");
+      const [operator, params] = entry;
+      assertOperator(operator);
+      return [operator, validateOperatorParams(params)];
+    });
+    for (const [operator, params] of validated) this.setOperator(channel, operator, params);
   }
 
   /**
@@ -1070,6 +1088,21 @@ function createDefaultChannelState() {
       { ...DEFAULT_OPERATOR_STATE },
     ],
   };
+}
+
+function validateOperatorParams(params) {
+  if (!params || typeof params !== "object" || Array.isArray(params)) {
+    throw new Error("params must be an object");
+  }
+  const result = {};
+  const ranges = { dt: 7, multi: 15, tl: 127, rs: 3, ar: 31, d1r: 31, sr: 31, d2r: 31, sl: 15, rr: 15, ssg: 15 };
+  for (const [name, max] of Object.entries(ranges)) {
+    const value = params[name];
+    if (value !== undefined) result[name] = validateRange(name, value, 0, max);
+  }
+  const am = params.am;
+  if (am !== undefined) result.am = validateBoolean("am", am);
+  return result;
 }
 
 function splitChannel(channel) {

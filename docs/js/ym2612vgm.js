@@ -1314,13 +1314,75 @@ function exportOpnFmVgmToPlaygroundJavaScript(source, options, chipKind, targetC
  * @param {number} totalLoopSamples
  * @returns {string[]}
  */
+function decodeHighOperator(event) {
+  const { register, value, port } = event;
+  const family = register & 0xf0;
+  const offset = register & 3;
+  if (family < 0x30 || family > 0x90 || offset === 3) return null;
+  const masks = { 0x30: 0x7f, 0x40: 0x7f, 0x50: 0xdf, 0x60: 0x9f, 0x70: 0x1f, 0x80: 0xff, 0x90: 0x0f };
+  if ((value & masks[family]) !== value) return null;
+  const params = family === 0x30 ? { dt: value >> 4, multi: value & 15 }
+    : family === 0x40 ? { tl: value }
+    : family === 0x50 ? { rs: value >> 6, ar: value & 31 }
+    : family === 0x60 ? { am: Boolean(value & 0x80), d1r: value & 31 }
+    : family === 0x70 ? { d2r: value }
+    : family === 0x80 ? { sl: value >> 4, rr: value & 15 }
+    : { ssg: value };
+  const operator = [1, 3, 2, 4][(register >> 2) & 3];
+  const literal = `{ ${Object.entries(params).map(([name, v]) => `${name}: ${v}`).join(", ")} }`;
+  return { channel: port * 3 + offset + 1, operator, literal };
+}
+
+function collectHighOperatorGroups(events) {
+  const groups = new Map();
+  const settings = new Map();
+  for (let i = 0; i < events.length; i++) {
+    const first = decodeHighOperator(events[i]);
+    if (!first) continue;
+    const entries = [first];
+    let end = i + 1;
+    while (end < events.length && events[end].timeSamples === events[i].timeSamples) {
+      const next = decodeHighOperator(events[end]);
+      if (!next || next.channel !== first.channel) break;
+      entries.push(next);
+      end++;
+    }
+    const literal = `[${entries.map((entry) => `[OP${entry.operator}, ${entry.literal}]`).join(", ")}]`;
+    const setting = settings.get(literal) ?? { literal, entries, count: 0, name: null, entryCount: entries.length };
+    setting.count++;
+    settings.set(literal, setting);
+    groups.set(i, { entries, end, setting });
+    i = end - 1;
+  }
+  let serial = 0;
+  for (const setting of settings.values()) {
+    // Include declaration overhead when deciding whether sharing saves space.
+    const name = `operators${String(serial + 1).padStart(3, "0")}`;
+    if (setting.entryCount > 4 && setting.count > 1 && (setting.literal.length - name.length) * setting.count >
+        setting.literal.length + name.length + 10) {
+      setting.name = name;
+      serial++;
+    }
+  }
+  return { groups, settings };
+}
+
 function renderHighPlaygroundEvents(events, totalLoopSamples, options) {
+  const { groups, settings } = collectHighOperatorGroups(events);
   const dacEvents = options.dacBase64 !== false
     ? events.filter((event) => event.port === 0 && event.register === 0x2a)
     : [];
   const lines = [
     "// High import: FM register values preserved; timing in 44100 Hz samples.",
   ];
+  for (const setting of settings.values()) {
+    if (setting.name) {
+      lines.push("/** @type {Array<[YM2612Operator, YM2612OperatorParams]>} */");
+      lines.push(`const ${setting.name} = [`);
+      for (const entry of setting.entries) lines.push(`  [OP${entry.operator}, ${entry.literal}],`);
+      lines.push("];");
+    }
+  }
   if (dacEvents.length > 0) {
     const path = options.writeDacFile?.(encodeDacScheduleBytes(dacEvents));
     lines.push('await livePrepare("vgm-dac", async () => {');
@@ -1345,7 +1407,28 @@ function renderHighPlaygroundEvents(events, totalLoopSamples, options) {
     cursor = event.timeSamples;
     const offset = register - 0xa4;
     const next = events[index + 1];
-    if (offset >= 0 && offset < 3 && value <= 0x3f &&
+    const group = groups.get(index);
+    if (group) {
+      const first = group.entries[0];
+      if (group.entries.length === 1) {
+        lines.push(`  fm.setOperator(CH${first.channel}, OP${first.operator}, ${first.literal});`);
+      } else if (group.entries.length > 4 && !group.setting.name) {
+        lines.push(`  fm.setOperators(CH${first.channel}, [`);
+        for (const entry of group.entries) lines.push(`    [OP${entry.operator}, ${entry.literal}],`);
+        lines.push("  ]);");
+      } else {
+        lines.push(`  fm.setOperators(CH${first.channel}, ${group.setting.name ?? group.setting.literal});`);
+      }
+      index = group.end - 1;
+    } else if (register >= 0xb0 && register <= 0xb2 && value <= 0x3f) {
+      lines.push(`  fm.setAlgo(CH${port * 3 + register - 0xb0 + 1}, ${value & 7}, ${value >> 3});`);
+    } else if (register >= 0xb4 && register <= 0xb6 && (value & 8) === 0) {
+      lines.push(`  fm.setPan(CH${port * 3 + register - 0xb4 + 1}, ${Boolean(value & 0x80)}, ${Boolean(value & 0x40)}, ${(value >> 4) & 3}, ${value & 7});`);
+    } else if (port === 0 && register === 0x22 && value <= 15) {
+      lines.push(`  fm.setLfo(${Boolean(value & 8)}, ${value & 7});`);
+    } else if (port === 0 && register === 0x2b && (value === 0 || value === 0x80)) {
+      lines.push(`  fm.setDacEnabled(${value === 0x80});`);
+    } else if (offset >= 0 && offset < 3 && value <= 0x3f &&
         next?.port === port && next.register === 0xa0 + offset &&
         next.timeSamples === event.timeSamples) {
       lines.push(`  fm.setFrequency(CH${port * 3 + offset + 1}, ${value >> 3}, ${((value & 7) << 8) | next.value});`);

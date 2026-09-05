@@ -111,6 +111,9 @@ export function createFmProxy(
   targetSynth
 ) {
   return {
+    setOperators(channel, entries) {
+      targetSynth.setOperators(channel, entries);
+    },
     reset() {
       targetSynth.reset();
     },

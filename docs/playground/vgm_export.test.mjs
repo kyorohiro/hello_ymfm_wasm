@@ -2,6 +2,74 @@ import test from "node:test";
 import { YM2612Synth } from "../../web/ym2612synth.js";
 import assert from "node:assert/strict";
 
+test("High inlines small groups and formats large one-off groups across lines", () => {
+  for (const count of [2, 3, 4, 5]) {
+    const commands = [];
+    const repetitions = count <= 4 ? 20 : 1;
+    for (let repeat = 0; repeat < repetitions; repeat++) {
+      for (let i = 0; i < count; i++) commands.push(0x52, 0x40, i);
+      commands.push(0x70);
+    }
+    commands.push(0x66);
+    const source = exportYm2612VgmToPlaygroundJavaScript(createVgmBuffer(commands), { high: true });
+    assert.doesNotMatch(source, /const operators/);
+    if (count <= 4) assert.match(source, /fm.setOperators\(CH1, \[\[OP1,/);
+    else assert.match(source, /fm.setOperators\(CH1, \[\n    \[OP1,/);
+  }
+});
+
+test("High keeps repeated single operator settings inline for readability", () => {
+  const commands = [];
+  for (let i = 0; i < 20; i++) commands.push(0x52, 0x40, 20, 0x70);
+  commands.push(0x66);
+  const source = exportYm2612VgmToPlaygroundJavaScript(createVgmBuffer(commands), { high: true });
+  assert.doesNotMatch(source, /const operators/);
+  assert.equal(source.split("fm.setOperator(CH1, OP1, { tl: 20 });").length - 1, 20);
+});
+
+test("High operator grouping and constants reproduce register values, order and waits", async () => {
+  const commands = [];
+  const expected = [];
+  let time = 0;
+  const write = (port, register, value) => {
+    commands.push(port ? 0x53 : 0x52, register, value);
+    expected.push([time, port, register, value]);
+  };
+  for (let channel = 0; channel < 6; channel++) {
+    const port = Math.floor(channel / 3), offset = channel % 3;
+    for (let repeat = 0; repeat < 4; repeat++) {
+      for (const [register, value] of [[0x40, 20], [0x34, 0x36], [0x40, 20], [0x58, 0xdf], [0x6c, 0x9f], [0x70, 31], [0x84, 0xff], [0x98, 15]]) {
+        write(port, register + offset, value);
+      }
+      commands.push(0x61, 3, 0); time += 3;
+    }
+    write(port, 0x40 + offset, 21 + channel);
+    write(0, 0x27, 0x40); // Global operation is a grouping boundary.
+    write(port, 0x44 + offset, 22);
+    for (const [register, value] of [[0x30, 0x80], [0x50, 0x20], [0x60, 0x40], [0x90, 0x80], [0xb0, 0x80], [0xb4, 8]]) write(port, register + offset, value);
+    write(port, 0xb0 + offset, 0x3f);
+    write(port, 0xb4 + offset, 0xf7);
+  }
+  write(0, 0x22, 15);
+  write(0, 0x2b, 0x80);
+  commands.push(0x66);
+  const source = exportYm2612VgmToPlaygroundJavaScript(createVgmBuffer(commands), { high: true });
+  assert.match(source, /const operators001/);
+  assert.match(source, /\/\*\* @type \{Array<\[YM2612Operator, YM2612OperatorParams\]>\} \*\/\nconst operators001/);
+  assert.match(source, /fm.setOperators/);
+  assert.match(source, /fm.setOperator\(/);
+  assert.match(source, /write\(0x27/);
+  const actual = [];
+  let clock = 0, run;
+  const record = (port, register, value) => actual.push([clock, port, register, value]);
+  const synth = new YM2612Synth({ transport: { write: record } });
+  actual.length = 0;
+  const names = ["fm", "liveLoop", "sleepSamples", "write", ...Array.from({ length: 6 }, (_, i) => `CH${i + 1}`), "OP1", "OP2", "OP3", "OP4"];
+  new Function(...names, source)(synth, (_name, fn) => { run = fn; }, async (samples) => { clock += samples; }, (...args) => record(...(args.length === 2 ? [0, ...args] : args)), 0, 1, 2, 3, 4, 5, 0, 1, 2, 3);
+  await run();
+  assert.deepEqual(actual, expected);
+});
+
 test("DAC file export preserves packed timestamps and generates a file reader", () => {
   for (const mode of ["write", "schedule", "high"]) {
     let data;
