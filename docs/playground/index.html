@@ -1441,15 +1441,22 @@
               <li><code>pg.stopLoop(name)</code>, <code>pg.stopAllLoops()</code>, <code>pg.stopAll()</code></li>
             </ul>
 
-            <h2 style="margin-top: 14px;">Live coding and files</h2>
+            <h2 style="margin-top: 14px;">Live coding</h2>
             <ul class="helper-list">
               <li>Top-level <code>await</code> is available; press <code>Run</code> again to replace named loops</li>
               <li><code>context</code> (also <code>pg.context</code>) keeps values between runs until <code>Stop</code></li>
               <li><code>livePrepare("name", setup)</code> creates a resource once and reuses it on later runs</li>
               <li><code>liveCleanup(["bass", "drums"], cleanup)</code> runs cleanup after those loops disappear</li>
               <li><code>onKeyboardPressKey("play-c", event =&gt; ...)</code> and <code>onKeyboardReleaseKey(...)</code> register replaceable keyboard handlers</li>
-              <li><code>log(value)</code> and <code>console.log(value)</code> write to the Console tab</li>
+            </ul>
+
+            <h2 style="margin-top: 14px;">Files, imports, and console</h2>
+            <ul class="helper-list">
+              <li>Use the <code>FILES</code> buttons to create, import, rename, and delete project files</li>
               <li><code>await file("./notes.txt")</code>, <code>await file("./data.json", { type: "json" })</code>, <code>await file("./sound.wav", { type: "arrayBuffer" })</code> read project files relative to the running file</li>
+              <li><code>const { bass } = await import("./lib/bass.js")</code> dynamically imports a project JavaScript module</li>
+              <li>Imported modules may use <code>export</code> and nested relative <code>import()</code>; use dynamic <code>import()</code> instead of a top-level static <code>import</code></li>
+              <li><code>log(value)</code>, <code>console.log(value)</code>, <code>console.warn(value)</code>, and <code>console.error(value)</code> write to the Console tab</li>
               <li><code>tfiToPreset(await file("./bass.tfi", { type: "arrayBuffer" }))</code> converts a 42-byte TFI file for <code>fm.setPreset()</code></li>
             </ul>
 
