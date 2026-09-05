@@ -305,13 +305,10 @@ function projectFileOrder(left, right) {
 }
 
 function restoreSystemExampleFiles() {
-  for (const file of virtualFiles.list()) {
-    if (isSystemVirtualPath(file.path)) {
-      virtualFiles.delete(file.path);
-    }
-  }
   for (const file of systemExampleFiles) {
-    virtualFiles.writeText(file.path, file.data);
+    if (!virtualFiles.has(file.path)) {
+      virtualFiles.writeText(file.path, file.data);
+    }
   }
 }
 
@@ -589,7 +586,10 @@ function exportCassette() {
     saveActiveVirtualFile();
     const zip = createPlaygroundCassetteZip(
       virtualFiles.list().filter(
-        (file) => !isSystemVirtualPath(file.path)
+        (file) => !isSystemVirtualPath(file.path) ||
+          file.data !== systemExampleFiles.find(
+            (example) => example.path === file.path
+          )?.data
       )
     );
     const name = window.prompt(
@@ -771,18 +771,12 @@ function getEditorValue() {
 }
 
 function setEditorValue(value) {
-  if (isSystemVirtualPath(activeVirtualPath)) {
-    return;
-  }
   const text = String(value);
   virtualFiles.writeText(activeVirtualPath, text);
   editorAdapter.setValue(text);
 }
 
 function saveActiveVirtualFile() {
-  if (isSystemVirtualPath(activeVirtualPath)) {
-    return;
-  }
   virtualFiles.writeText(
     activeVirtualPath,
     getEditorValue()
@@ -794,7 +788,7 @@ function showVirtualFile(file) {
     file.path,
     file.data
   );
-  editorAdapter.setReadOnly?.(isSystemVirtualPath(file.path));
+  editorAdapter.setReadOnly?.(false);
   editorAdapter.setValue(file.data);
 }
 
@@ -982,7 +976,7 @@ function clearVirtualTfiPresets() {
 
 function renameActiveVirtualFile() {
   if (isSystemVirtualPath(activeVirtualPath)) {
-    setStatus("System example files are read-only.");
+    setStatus("Built-in example files cannot be renamed.");
     return;
   }
   const path = window.prompt("Rename file", activeVirtualPath);
@@ -1015,7 +1009,7 @@ function renameActiveVirtualFile() {
 
 function deleteActiveVirtualFile() {
   if (isSystemVirtualPath(activeVirtualPath)) {
-    setStatus("System example files are read-only.");
+    setStatus("Built-in example files cannot be deleted.");
     return;
   }
   if (activeVirtualPath === "/index.js") {
