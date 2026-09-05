@@ -23,6 +23,7 @@ opn_fm_vgm.js
 opn_runtime_synth.js
 pitch.js
 playground_runtime.js
+playground_audio_scheduler.js
 playground_clock.js
 playground_execution.js
 playground_live.js

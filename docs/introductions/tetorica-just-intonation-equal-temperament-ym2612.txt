@@ -1,0 +1,445 @@
+Just Intonation and Equal Temperament with JavaScript and Sega Genesis / Mega Drive YM2612
+
+Article concept
+
+Use Tetorica FM2612 Playground and the YM2612 to explain and actually
+hear the relationship between:
+
+-   absolute pitch and tuning
+-   frequency ratios
+-   the harmonic series
+-   perfect fifths (3/2)
+-   just intonation
+-   Pythagorean tuning
+-   12-tone equal temperament
+-   sharps and flats
+-   continuous pitch, bending, and microtones
+-   FM frequency ratios
+
+The important idea is that music does not have to begin with note names
+such as C, D, E. It can begin with one reference sound and relationships
+between frequencies.
+
+------------------------------------------------------------------------
+
+1. Is 440 Hz the beginning?
+
+Today, A4 = 440 Hz is a common tuning reference.
+
+But 440 Hz is not the mathematical origin of musical intervals.
+
+For interval calculations, the absolute frequency is not essential. What
+matters is the ratio between two sounds.
+
+For example, start with any frequency:
+
+    const base = 440;
+
+or even think abstractly:
+
+    const base = 1;
+
+Then:
+
+    octave = base * 2;
+    fifth  = base * 3 / 2;
+    fourth = base * 4 / 3;
+
+The same interval relationships work no matter which absolute frequency
+is chosen.
+
+Historically, people did not need to measure a sound in Hz first. A
+vibrating string could simply be treated as the reference. Changing its
+length produced simple ratios.
+
+For strings with the same tension and mass per unit length:
+
+    string length 1     -> frequency ratio 1/1
+    string length 1/2   -> frequency ratio 2/1 (octave)
+    string length 2/3   -> frequency ratio 3/2 (perfect fifth)
+    string length 3/4   -> frequency ratio 4/3 (perfect fourth)
+
+So the starting point can simply be:
+
+    "This sound is 1."
+
+------------------------------------------------------------------------
+
+2. Why 3/2?
+
+The ratio 3/2 appears naturally from the harmonic series.
+
+For a fundamental frequency f:
+
+    f, 2f, 3f, 4f, 5f, 6f, ...
+
+The second harmonic is one octave above the fundamental:
+
+    2 / 1
+
+The third harmonic is 3f. Bring it down one octave:
+
+    3 / 2
+
+This gives the perfect fifth.
+
+Other simple ratios also appear:
+
+    2/1  octave
+    3/2  perfect fifth
+    4/3  perfect fourth
+    5/4  major third
+    6/5  minor third
+
+This is one reason simple integer ratios are closely connected to
+consonance.
+
+------------------------------------------------------------------------
+
+3. Building notes by fifths
+
+Repeated perfect fifths produce a familiar sequence:
+
+    C -> G -> D -> A -> E -> B -> F# -> C# ...
+
+Mathematically, repeatedly multiply by:
+
+    3 / 2
+
+and move the result back into the desired octave when necessary.
+
+Going in the opposite direction gives the flat side:
+
+    C -> F -> Bb -> Eb -> Ab -> Db ...
+
+This idea is closely associated with Pythagorean tuning.
+
+However, twelve perfect fifths do not exactly equal seven octaves:
+
+    (3/2)^12 != 2^7
+
+The small difference is the Pythagorean comma.
+
+This is one reason tuning systems become interesting: simple ratios do
+not fit perfectly into a closed twelve-note system.
+
+------------------------------------------------------------------------
+
+4. Just intonation
+
+Just intonation tries to make important intervals use simple integer
+ratios.
+
+For a major triad:
+
+    root        1/1
+    major third 5/4
+    fifth       3/2
+
+So a major chord can have the ratio:
+
+    4 : 5 : 6
+
+In JavaScript:
+
+    const root = 440;
+
+    const justMajor = [
+      root,
+      root * 5 / 4,
+      root * 3 / 2,
+    ];
+
+The relationships are extremely simple.
+
+But a difficulty appears when changing keys or trying to build one fixed
+keyboard that works equally well everywhere. A pitch derived as C# in
+one harmonic context and a pitch derived as Db in another context do not
+necessarily have exactly the same frequency.
+
+In equal temperament, C# and Db are mapped to the same key. In
+ratio-based tuning systems, their histories and exact pitches can
+differ.
+
+------------------------------------------------------------------------
+
+5. 12-tone equal temperament
+
+12-tone equal temperament divides an octave into twelve equal
+logarithmic steps.
+
+If n is the number of semitones from a reference frequency f0:
+
+    f = f0 * 2^(n / 12)
+
+JavaScript:
+
+    function frequency(pitch, base = 440) {
+      return base * 2 ** (pitch / 12);
+    }
+
+Examples with A4 = 440 Hz:
+
+    pitch = -12  -> A3 = 220 Hz
+    pitch =   0  -> A4 = 440 Hz
+    pitch =  12  -> A5 = 880 Hz
+
+Every 12 semitones doubles the frequency.
+
+The important point is that n does not have to be an integer.
+
+------------------------------------------------------------------------
+
+6. Pitch as a continuous coordinate
+
+Tetorica can treat one semitone as 1.0:
+
+    0     reference pitch
+    1     one semitone up
+    2     one whole tone up
+    7     seven semitones up
+    12    one octave up
+    -12   one octave down
+
+Because the equal-temperament equation accepts real numbers, fractional
+values work too:
+
+    0.5   50 cents above the reference
+    0.1   10 cents above the reference
+    -0.2  20 cents below the reference
+
+Since one semitone is 100 cents:
+
+    0.01 pitch = 1 cent
+
+This makes pitch a continuous number line rather than only a note
+number.
+
+The same representation can describe:
+
+-   ordinary notes
+-   octave changes
+-   transposition
+-   pitch bends / choking
+-   portamento
+-   vibrato
+-   microtones
+-   tuning differences
+
+For example, a bend from the current pitch to one whole tone above can
+move continuously:
+
+    0 -> 0.2 -> 0.5 -> 1.0 -> 1.5 -> 2.0
+
+No separate pitch-bend coordinate system is required.
+
+------------------------------------------------------------------------
+
+7. Converting frequency ratios into Tetorica pitch
+
+A frequency ratio can be converted into the same semitone coordinate:
+
+    pitch = 12 * log2(ratio)
+
+JavaScript:
+
+    function ratioToPitch(ratio) {
+      return 12 * Math.log2(ratio);
+    }
+
+Examples:
+
+    ratioToPitch(2 / 1)  -> 12
+    ratioToPitch(3 / 2)  -> about 7.01955
+    ratioToPitch(5 / 4)  -> about 3.86314
+
+Therefore a major chord can be represented in two ways.
+
+12-tone equal temperament:
+
+    [0, 4, 7]
+
+Just intonation:
+
+    [
+      0,
+      12 * Math.log2(5 / 4),
+      12 * Math.log2(3 / 2),
+    ]
+
+Both fit on exactly the same Tetorica pitch axis.
+
+This is useful because Tetorica does not need separate representations
+for equal temperament and just intonation.
+
+------------------------------------------------------------------------
+
+8. Hear the difference
+
+A useful Tetorica experiment is to play the same YM2612 preset with two
+tunings.
+
+Equal temperament:
+
+    const equal = [
+      root,
+      root * 2 ** (4 / 12),
+      root * 2 ** (7 / 12),
+    ];
+
+Just intonation:
+
+    const just = [
+      root,
+      root * 5 / 4,
+      root * 3 / 2,
+    ];
+
+Then provide a simple comparison:
+
+    Equal Temperament
+    Just Intonation
+    Both / Alternate
+
+Listen especially to beating and the stability of sustained intervals.
+
+The major third is a particularly clear example.
+
+Equal-temperament major third:
+
+    4 semitones = 400 cents
+
+Just major third:
+
+    5/4
+    = 12 * log2(5/4) semitones
+    = about 386.31 cents
+
+Difference:
+
+    about 13.69 cents
+
+The perfect fifth differs much less:
+
+    Equal temperament: 700 cents
+    Just 3/2 fifth:     about 701.96 cents
+
+------------------------------------------------------------------------
+
+9. Why do C# and Db have two names?
+
+On a modern 12-tone equal-tempered keyboard:
+
+    C# = Db
+
+They use the same physical key and the same frequency.
+
+Historically and mathematically, however, the two spellings can describe
+pitches reached through different harmonic relationships.
+
+Once simple ratios are followed strictly, the pitch system does not
+naturally collapse into exactly twelve equally spaced values.
+
+Equal temperament solves this practical problem by defining every
+semitone with the same ratio:
+
+    2^(1/12)
+
+This allows modulation and transposition while keeping a fixed
+twelve-note keyboard.
+
+The cost is that most intervals are slightly adjusted away from simple
+integer ratios.
+
+------------------------------------------------------------------------
+
+10. Connection to FM synthesis
+
+This topic fits the YM2612 especially well because FM synthesis also
+makes frequency ratios important.
+
+In FM synthesis, changing the frequency relationship between carrier and
+modulator dramatically changes the spectrum.
+
+Simple ratios such as:
+
+    1 : 1
+    2 : 1
+    3 : 2
+    3 : 1
+    4 : 1
+
+produce different harmonic structures.
+
+So Tetorica can connect two subjects that are often taught separately:
+
+    harmonic series
+        ->
+    integer ratios
+        ->
+    musical intervals
+        ->
+    tuning systems
+        ->
+    just intonation vs equal temperament
+        ->
+    continuous pitch
+        ->
+    FM operator frequency ratios
+        ->
+    YM2612 sound design
+
+The same Playground can be used to hear all of them.
+
+------------------------------------------------------------------------
+
+Possible article title
+
+Primary:
+
+    Just Intonation and Equal Temperament with JavaScript and Sega Genesis / Mega Drive YM2612
+
+Alternative:
+
+    Hear the Difference: Just Intonation vs Equal Temperament with JavaScript and YM2612
+
+Possible later article focused specifically on chorus/beating:
+
+    Just Intonation Chorus with JavaScript and Sega Genesis / Mega Drive YM2612
+
+------------------------------------------------------------------------
+
+Main idea for Tetorica
+
+Do not begin by assuming that pitch must be written as C, D, E, F…
+
+A useful underlying representation is:
+
+    pitch = distance in semitones from a reference
+
+where pitch is a floating-point number.
+
+Then:
+
+    frequency = baseFrequency * 2 ** (pitch / 12)
+
+and:
+
+    pitch = 12 * Math.log2(frequencyRatio)
+
+This gives one common representation for:
+
+-   note names
+-   intervals
+-   chords
+-   transposition
+-   octaves
+-   tuning systems
+-   pitch bends
+-   vibrato
+-   microtones
+-   frequency ratios
+
+Tetorica can expose this mathematical layer while still allowing
+user-defined helpers for conventional notation such as note names, MML,
+scale degrees, or other composition styles.

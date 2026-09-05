@@ -47,6 +47,7 @@ opn_fm_synth.js
 opn_runtime_synth.js
 opn_fm_vgm.js
 pitch.js
+playground_audio_scheduler.js
 playground_clock.js
 playground_execution.js
 playground_live.js

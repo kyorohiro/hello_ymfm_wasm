@@ -38,6 +38,7 @@ megasynth.js
 megasynth_looper.js
 megasynth_recording.js
 pitch.js
+playground_audio_scheduler.js
 playground_clock.js
 playground_execution.js
 playground_live.js
