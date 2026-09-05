@@ -650,6 +650,9 @@ function resolveVgmImportStrategy(
   const useNativeYm2203 = isYm2203Only && selectedChip === "ym2203";
   const useNativeYm2608 = isYm2608Only && selectedChip === "ym2608";
   const useNativeYm2610 = isYm2610Only && selectedChip === "ym2610";
+  if (options.mode === "compact" && (!vgm.header.ym2612Clock || selectedChip !== "ym2612")) {
+    throw new Error("Compact Note-ish requires a YM2612 VGM and the YM2612 target chip.");
+  }
   const scheduled = options.mode === "schedule";
   const splitChannels = options.splitChannels;
   const timing = scheduled ? "Schedule" : "Write";
@@ -693,13 +696,16 @@ function resolveVgmImportStrategy(
     source: vgm.exportPlaygroundJavaScript({
       scheduled: options.mode === "schedule",
       high: options.mode === "high",
+      compact: options.mode === "compact",
       noteish: options.noteish,
       splitChannels,
       includeDac: options.includeDac,
       dacBase64: options.dacBase64,
       writeDacFile: options.writeDacFile,
     }),
-    statusMessage: options.mode === "high" && options.noteish
+    statusMessage: options.mode === "compact"
+      ? "as Compact Note-ish (YM2612; original sample timing)"
+      : options.mode === "high" && options.noteish
       ? "as Note-ish High (named pitches; nearest semitone)"
       : options.mode === "high"
       ? "as High (YM2612 frequency/key operations)"

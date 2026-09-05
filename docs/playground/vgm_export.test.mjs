@@ -470,3 +470,51 @@ test("Note-ish leaves CH3 special-mode pitch unchanged even with split channels"
   assert.match(source, /fm.setFrequency\(CH3, 4, 541\)/);
   assert.doesNotMatch(source, /const notePitches/);
 });
+
+test("Compact preserves two-cycle state changes and KEY times with both channel layouts", async () => {
+  const pitch = [0x52,0xa4,0x22,0x52,0xa0,0x1d];
+  const commands = [];
+  for (let i=0;i<3;i++) commands.push(...pitch,0x70,0x52,0x40,20,0x71,0x52,0x28,0xf0,0x61,100,0,0x52,0x28,0,0x61,40,0);
+  commands.push(0x52,0x40,30,0x52,0xa4,0x2a,0x52,0xa0,0x1d,0x61,20,0,0x66);
+  const bytes = createVgmBuffer(commands);
+  async function execute(source) {
+    let time=0;
+    const loops=[];
+    const state=new Map();
+    const trace=[];
+    const record=(port,reg,value)=>{
+      const k=`${port}/${reg}`;
+      if(reg===0x28 || state.get(k)!==value) trace.push([time,port,reg,value]);
+      state.set(k,value);
+    };
+    const fm=new YM2612Synth({transport:{write:record}});
+    state.clear();trace.length=0;
+    const names=['fm','write','liveLoop','sleepSamples',...Array.from({length:6},(_,i)=>`CH${i+1}`),'OP1','OP2','OP3','OP4'];
+    const AsyncFunction=Object.getPrototypeOf(async function(){}).constructor;
+    await new AsyncFunction(...names,source)(fm,(...args)=>record(...(args.length===2?[0,...args]:args)),(_n,fn)=>loops.push(fn),async n=>{time+=n;},0,1,2,3,4,5,0,1,2,3);
+    for(let cycle=0;cycle<2;cycle++) for(const loop of loops) await loop();
+    return {trace,time};
+  }
+  for(const splitChannels of [false,true]) {
+    const normal=exportYm2612VgmToPlaygroundJavaScript(bytes,{high:true,noteish:true,splitChannels});
+    const compact=exportYm2612VgmToPlaygroundJavaScript(bytes,{compact:true,splitChannels});
+    assert.match(compact,/await keySamples\(CH1, 100\)/);
+    assert.ok((compact.match(/setNoteFrequency\(CH1/g)??[]).length < (normal.match(/setNoteFrequency\(CH1/g)??[]).length);
+    assert.deepEqual(await execute(compact),await execute(normal));
+  }
+});
+
+test("Compact keeps latch-dependent pitch, partial KEY, LFO and sounding TL writes", () => {
+  const bytes=createVgmBuffer([
+    0x52,0xa4,0x22,0x52,0xa0,0x1d,0x52,0xa4,0x22,0x52,0xa0,0x1d,
+    0x52,0xa1,0x20,
+    0x52,0x22,8,0x52,0x22,8,
+    0x52,0x28,0x10,0x70,0x52,0x40,20,0x70,0x52,0x28,0,
+    0x52,0x28,0xf0,0x70,0x52,0x40,21,0x70,0x52,0x28,0,0x66]);
+  const source=exportYm2612VgmToPlaygroundJavaScript(bytes,{compact:true});
+  assert.equal((source.match(/setNoteFrequency\(CH1/g)??[]).length,2);
+  assert.equal((source.match(/fm.setLfo/g)??[]).length,2);
+  assert.match(source,/fm.keyOn\(CH1, \[OP1\]\)/);
+  assert.match(source,/tl: 21/);
+  assert.doesNotMatch(source,/await keySamples/);
+});

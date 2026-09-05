@@ -1076,6 +1076,9 @@ function formatOffset(value) {
  *   includeDac?: boolean,
  *   dacBase64?: boolean,
  *   scheduled?: boolean,
+ *   high?: boolean,
+ *   noteish?: boolean,
+ *   compact?: boolean,
  *   totalLoopSamples?: number | null,
  * }} [options]
  * @returns {string}
@@ -1252,16 +1255,19 @@ function exportOpnFmVgmToPlaygroundJavaScript(source, options, chipKind, targetC
   const totalLoopSamples = options.totalLoopSamples == null
     ? timeSamples
     : Math.max(0, Math.floor(options.totalLoopSamples));
-  if (options.high === true && chipKind === "ym2612") {
+  if ((options.high === true || options.compact === true) && chipKind === "ym2612") {
+    if (options.compact) options = { ...options, noteish: true };
     options = { ...options, noteClock: parser.header.ym2612Clock & 0x3fffffff,
       noteSpecial: orderedEvents.some(e => e.port === 0 && e.register === 0x27 && (e.value & 0xc0)),
       noteDac: orderedEvents.some(e => e.port === 0 && e.register === 0x2b && (e.value & 0x80)) };
+    const compactEvents = options.compact ? compactHighEvents(orderedEvents) : null;
+    const retained = compactEvents ? new Set(compactEvents) : null;
     if (options.splitChannels === true) {
       return tracks.filter((track) => track.events.length > 0).map((track) =>
-        `{\n${renderHighPlaygroundEvents(track.events, totalLoopSamples, options, track.name)}\n}`
+        `{\n${renderHighPlaygroundEvents(retained ? track.events.filter(e => retained.has(e)) : track.events, totalLoopSamples, options, track.name)}\n}`
       ).join("\n\n");
     }
-    return renderHighPlaygroundEvents(orderedEvents, totalLoopSamples, options);
+    return renderHighPlaygroundEvents(compactEvents ?? orderedEvents, totalLoopSamples, options);
   }
   /** @type {string[]} */
   const lines = [];
@@ -1381,6 +1387,54 @@ function collectHighOperatorGroups(events) {
   return { groups, settings };
 }
 
+/** Conservative per-export state tracking; first writes survive every loop iteration. */
+function compactHighEvents(events) {
+  const retained = [];
+  const state = new Map();
+  const pitches = new Map();
+  // Removing a frequency pair is safe only when no later low write can consume its latch.
+  let pairedFrequencyOnly = true;
+  for (let i = 0; i < events.length; i++) {
+    const e = events[i];
+    if (e.port === 0 && e.register === 0x27 && (e.value & 0xc0)) pairedFrequencyOnly = false;
+    if (e.register >= 0xa0 && e.register <= 0xaf) {
+      const next = events[i + 1];
+      if (e.register >= 0xa4 && e.register <= 0xa6 && e.value <= 0x3f &&
+          next?.register === e.register - 4 && next.port === e.port &&
+          next.timeSamples === e.timeSamples && next.sequence === e.sequence + 1) i++;
+      else pairedFrequencyOnly = false;
+    }
+  }
+  for (let i = 0; i < events.length; i++) {
+    const e = events[i];
+    const r = e.register;
+    if (pairedFrequencyOnly && r >= 0xa4 && r <= 0xa6) {
+      const low = events[++i];
+      const key = `${e.port}/${r}`;
+      const value = e.value * 256 + low.value;
+      if (pitches.get(key) !== value) retained.push(e, low);
+      pitches.set(key, value);
+      continue;
+    }
+    // Plain operator parameters (not SSG-EG), algorithm/feedback and pan.
+    const safe = (r & 3) < 3 && ((r >= 0x30 && r <= 0x8f) ||
+      (r >= 0xb0 && r <= 0xb2) || (r >= 0xb4 && r <= 0xb6));
+    const key = `${e.port}/${r}`;
+    if (safe) {
+      if (state.get(key) !== e.value) retained.push(e);
+      state.set(key, e.value);
+    } else {
+      retained.push(e);
+      // KEY and DAC data do not change the tracked parameters. Everything else is a barrier.
+      if (!(e.port === 0 && (r === 0x28 || r === 0x2a))) {
+        state.clear();
+        pitches.clear();
+      }
+    }
+  }
+  return retained;
+}
+
 function renderHighPlaygroundEvents(events, totalLoopSamples, options, loopName = "vgm") {
   const { groups, settings } = collectHighOperatorGroups(events);
   const notePitches = new Map();
@@ -1490,6 +1544,22 @@ function renderHighPlaygroundEvents(events, totalLoopSamples, options, loopName 
   const tail = Math.max(0, totalLoopSamples - cursor);
   if (tail > 0 || events.length === 0) lines.push(`  await sleepSamples(${Math.max(1, tail)});`);
   lines.push("});");
+  if (options.compact) {
+    let used = false;
+    for (let i = 0; i + 2 < lines.length; i++) {
+      const on = /^  fm\.keyOn\((CH[1-6])\);$/.exec(lines[i]);
+      const wait = /^  await sleepSamples\((\d+)\);$/.exec(lines[i + 1]);
+      if (on && wait && lines[i + 2] === `  fm.keyOff(${on[1]});`) {
+        lines.splice(i, 3, `  await keySamples(${on[1]}, ${wait[1]});`);
+        used = true;
+      }
+    }
+    if (used) lines.unshift(
+      "/** @param {YM2612Channel} channel @param {number} samples */",
+      "async function keySamples(channel, samples) {",
+      "  fm.keyOn(channel);", "  await sleepSamples(samples);", "  fm.keyOff(channel);", "}", "");
+    lines.unshift("// Compact Note-ish: repeated safe state writes removed; original sample positions retained.");
+  }
   if (notePitches.size) lines.unshift(
     `// Note-ish pitch table calculated for VGM clock ${options.noteClock} Hz; independent of noteToBlockFnum().`,
     "/** @type {Record<string, [number, number]>} */",
