@@ -3,18 +3,39 @@ import { YM2612Synth } from "../../web/ym2612synth.js";
 import assert from "node:assert/strict";
 
 test("DAC file export preserves packed timestamps and generates a file reader", () => {
-  for (const scheduled of [false, true]) {
+  for (const mode of ["write", "schedule", "high"]) {
     let data;
     const source = exportYm2612VgmToPlaygroundJavaScript(createVgmBuffer([
       0x52, 0x2a, 0x81, 0x61, 3, 0, 0x52, 0x2a, 0x92, 0x66,
     ]), {
-      scheduled,
+      scheduled: mode === "schedule",
+      high: mode === "high",
       writeDacFile(bytes) { data = bytes; return "/vgmdat-test.dat"; },
     });
     assert.deepEqual(Array.from(data), [0, 0, 0, 0, 0x81, 3, 0, 0, 0, 0x92]);
     assert.match(source, /await dac.load\("vgm-dac", await file\("\/vgmdat-test.dat", \{ type: "arrayBuffer" \}\)\)/);
     assert.doesNotMatch(source, /loadBase64/);
   }
+});
+
+test("High keeps large DAC streams out of generated code", () => {
+  const commands = [0x52, 0x2b, 0x80];
+  const count = 100000;
+  for (let i = 0; i < count; i++) commands.push(0x52, 0x2a, i & 255, 0x70);
+  commands.push(0x52, 0x28, 0, 0x66);
+  let data;
+  const source = exportYm2612VgmToPlaygroundJavaScript(createVgmBuffer(commands), {
+    high: true,
+    writeDacFile(bytes) { data = bytes; return "/vgmdat-large.dat"; },
+  });
+  assert.equal(data.length, count * 5);
+  const last = new DataView(data.buffer);
+  assert.equal(last.getUint32((count - 1) * 5, true), count - 1);
+  assert.equal(data.at(-1), (count - 1) & 255);
+  assert.ok(source.split("\n").length < 25);
+  assert.doesNotMatch(source, /write\(0x2a,/);
+  assert.match(source, /dac.playStream/);
+  assert.match(source, /sleepSamples\(100000\)/);
 });
 
 test("High preserves exact writes, tiny waits, all channels, partial keys and DAC", async () => {
@@ -42,7 +63,7 @@ test("High preserves exact writes, tiny waits, all channels, partial keys and DA
   write(0, 0x2b, 0x80);
   write(0, 0x2a, 0x88);
   commands.push(0x66);
-  const source = exportYm2612VgmToPlaygroundJavaScript(createVgmBuffer(commands), { high: true });
+  const source = exportYm2612VgmToPlaygroundJavaScript(createVgmBuffer(commands), { high: true, dacBase64: false });
   assert.match(source, /fm.setFrequency/);
   assert.match(source, /fm.keyOn/);
   assert.match(source, /fm.keyOff/);

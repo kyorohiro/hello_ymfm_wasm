@@ -103,6 +103,7 @@ const exportCassetteButton = document.getElementById("exportCassetteButton");
 const importVgmButton = document.getElementById("importVgmButton");
 const vgmImportDialog = document.getElementById("vgmImportDialog");
 const vgmImportFilename = document.getElementById("vgmImportFilename");
+const vgmImportTarget = document.getElementById("vgmImportTarget");
 const cancelVgmImportButton =
   document.getElementById("cancelVgmImportButton");
 const convertVgmButton =
@@ -696,12 +697,13 @@ function resolveVgmImportStrategy(
       writeDacFile: options.writeDacFile,
     }),
     statusMessage: options.mode === "high"
-      ? "as High (YM2612 frequency/key operations; raw DAC writes)"
+      ? "as High (YM2612 frequency/key operations)"
       : `with ${timing} timing`,
   };
 }
 
 async function importVgmFile(file, options) {
+  const targetPath = normalizeVirtualPath(options.targetPath ?? "/index.js");
   const decoded = await maybeDecodeVgmFile(
     await file.arrayBuffer()
   );
@@ -724,10 +726,16 @@ async function importVgmFile(file, options) {
   );
 
   for (const { path, bytes } of dacFiles) virtualFiles.writeBinary(path, bytes);
-  setEditorValue(strategy.source);
+  saveActiveVirtualFile();
+  virtualFiles.writeText(targetPath, strategy.source);
+  activeVirtualPath = targetPath;
+  runVirtualPath = targetPath;
+  showVirtualFile(virtualFiles.get(targetPath));
   renderVirtualFileExplorer();
+  renderRunFileOptions();
+  setBottomTab("code");
   setStatus(
-    `Imported ${file.name} ${strategy.statusMessage}.`
+    `Imported ${file.name} into ${targetPath} ${strategy.statusMessage}.`
   );
 }
 
@@ -1533,7 +1541,20 @@ runButton.addEventListener(
       );
       const file = pendingVgmImportFile;
       if (!file) return;
+      let targetPath;
+      try {
+        targetPath = normalizeVirtualPath(vgmImportTarget.value.trim());
+        if (!targetPath.endsWith(".js")) throw new Error("Use a .js file path.");
+        if (isSystemVirtualPath(targetPath)) throw new Error("/sys is reserved for built-in files.");
+        if (virtualFiles.get(targetPath)?.type === "binary") throw new Error("Choose a text file or a new path.");
+        vgmImportTarget.setCustomValidity("");
+      } catch (error) {
+        vgmImportTarget.setCustomValidity(error.message);
+        vgmImportTarget.reportValidity();
+        return;
+      }
       const options = {
+          targetPath,
           mode: selectedMode?.value ?? "write",
           includeDac: includeDacInput?.checked ?? true,
           dacBase64: dacBase64Input?.checked ?? true,
@@ -1552,13 +1573,11 @@ runButton.addEventListener(
     );
     const mode = selectedMode?.value ?? "write";
     if (dacBase64Input) {
-      dacBase64Input.disabled = mode === "high";
+      dacBase64Input.disabled = false;
     }
     if (dacBase64Label) {
       dacBase64Label.hidden = false;
-      dacBase64Label.title = mode === "high"
-        ? "High keeps DAC writes in their original order."
-        : mode === "schedule"
+      dacBase64Label.title = mode === "schedule"
         ? "Preload DAC from a virtual .dat file without scheduling every DAC write."
         : "Store DAC data in a virtual .dat file loaded with file().";
     }
@@ -1642,6 +1661,11 @@ runButton.addEventListener(
 
       pendingVgmImportFile = file;
       vgmImportFilename.textContent = file.name;
+      const outputName = file.name
+        .replace(/\.(?:vgm|vgz)$/i, "")
+        .replace(/[\\/]/g, "_") || "imported";
+      vgmImportTarget.value = `/${outputName}.js`;
+      vgmImportTarget.setCustomValidity("");
       mainMenu.open = false;
       vgmImportDialog.showModal();
     }

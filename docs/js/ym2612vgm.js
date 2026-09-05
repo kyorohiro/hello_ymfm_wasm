@@ -1250,7 +1250,7 @@ function exportOpnFmVgmToPlaygroundJavaScript(source, options, chipKind, targetC
     ? timeSamples
     : Math.max(0, Math.floor(options.totalLoopSamples));
   if (options.high === true && chipKind === "ym2612") {
-    return renderHighPlaygroundEvents(orderedEvents, totalLoopSamples);
+    return renderHighPlaygroundEvents(orderedEvents, totalLoopSamples, options);
   }
   /** @type {string[]} */
   const lines = [];
@@ -1314,15 +1314,31 @@ function exportOpnFmVgmToPlaygroundJavaScript(source, options, chipKind, targetC
  * @param {number} totalLoopSamples
  * @returns {string[]}
  */
-function renderHighPlaygroundEvents(events, totalLoopSamples) {
+function renderHighPlaygroundEvents(events, totalLoopSamples, options) {
+  const dacEvents = options.dacBase64 !== false
+    ? events.filter((event) => event.port === 0 && event.register === 0x2a)
+    : [];
   const lines = [
-    "// High import: exact register values and original write order; timing in 44100 Hz samples.",
-    'liveLoop("vgm", async () => {',
+    "// High import: FM register values preserved; timing in 44100 Hz samples.",
   ];
+  if (dacEvents.length > 0) {
+    const path = options.writeDacFile?.(encodeDacScheduleBytes(dacEvents));
+    lines.push('await livePrepare("vgm-dac", async () => {');
+    lines.push(path
+      ? `  await dac.load("vgm-dac", await file(${JSON.stringify(path)}, { type: "arrayBuffer" }));`
+      : `  await dac.loadBase64("vgm-dac", ${JSON.stringify(encodeDacSchedule(dacEvents))});`);
+    lines.push('});', '');
+  }
+  lines.push('liveLoop("vgm", async () => {');
+  if (dacEvents.length > 0) {
+    lines.push('  const dacStart = beginSampleSchedule();');
+    lines.push('  dac.playStream("vgm-dac", { atSamples: dacStart });');
+  }
   let cursor = 0;
   for (let index = 0; index < events.length; index += 1) {
     const event = events[index];
     const { port, register, value } = event;
+    if (dacEvents.length > 0 && port === 0 && register === 0x2a) continue;
     if (event.timeSamples > cursor) {
       lines.push(`  await sleepSamples(${event.timeSamples - cursor});`);
     }

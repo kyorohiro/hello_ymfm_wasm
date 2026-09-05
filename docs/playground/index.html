@@ -1271,6 +1271,11 @@
             <dialog id="vgmImportDialog" aria-labelledby="vgmImportTitle" aria-describedby="vgmImportFilename">
                 <h2 id="vgmImportTitle">Import VGM</h2>
                 <p id="vgmImportFilename"></p>
+                <label for="vgmImportTarget">Output file</label>
+                <input id="vgmImportTarget" type="text" value="/index.js" required
+                  aria-describedby="vgmImportTargetHint"
+                  style="width: 100%; margin: 6px 0; padding: 8px; font: inherit;">
+                <p id="vgmImportTargetHint" class="subtext">Project JavaScript path. Existing file contents will be replaced.</p>
                 <fieldset class="vgm-import-options">
                   <legend>Output timing</legend>
                   <div class="vgm-import-mode">
