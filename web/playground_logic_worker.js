@@ -289,6 +289,7 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}) {
     },
   }) : new Proxy({}, { get: () => unavailable("Mega Drive PSG") });
   const dac = capabilities.dac ? {
+    load: (...args) => request("dac.load", args, run.currentLoop),
     loadBase64: (...args) => request("dac.loadBase64", args, run.currentLoop),
     playStream: (...args) => postCommand("dac.playStream", args),
     schedule: (...args) => postCommand("dac.schedule", args),

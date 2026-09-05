@@ -693,6 +693,7 @@ function resolveVgmImportStrategy(
       high: options.mode === "high",
       includeDac: options.includeDac,
       dacBase64: options.dacBase64,
+      writeDacFile: options.writeDacFile,
     }),
     statusMessage: options.mode === "high"
       ? "as High (YM2612 frequency/key operations; raw DAC writes)"
@@ -705,13 +706,26 @@ async function importVgmFile(file, options) {
     await file.arrayBuffer()
   );
   const vgm = new Ym2612VGM(decoded, { logger: null });
+  const dacFiles = [];
   const strategy = resolveVgmImportStrategy(
     vgm,
     selectedChip,
-    options
+    {
+      ...options,
+      writeDacFile(bytes) {
+        let path;
+        do {
+          path = `/vgmdat-${crypto.randomUUID()}.dat`;
+        } while (virtualFiles.has(path));
+        dacFiles.push({ path, bytes });
+        return path;
+      },
+    }
   );
 
+  for (const { path, bytes } of dacFiles) virtualFiles.writeBinary(path, bytes);
   setEditorValue(strategy.source);
+  renderVirtualFileExplorer();
   setStatus(
     `Imported ${file.name} ${strategy.statusMessage}.`
   );
@@ -1545,8 +1559,8 @@ runButton.addEventListener(
       dacBase64Label.title = mode === "high"
         ? "High keeps DAC writes in their original order."
         : mode === "schedule"
-        ? "Preload DAC as a Base64 stream without scheduling every DAC write."
-        : "Store DAC data as one Base64 stream.";
+        ? "Preload DAC from a virtual .dat file without scheduling every DAC write."
+        : "Store DAC data in a virtual .dat file loaded with file().";
     }
   }
 

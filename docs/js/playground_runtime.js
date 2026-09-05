@@ -1043,6 +1043,12 @@ export function createPlaygroundRuntime(
         megaDrive.stream.list(),
     };
     const dacApi = {
+      load: async (name, data) => {
+        requireDac();
+        const bytes = data instanceof Uint8Array ? data : new Uint8Array(data);
+        if (bytes.byteLength % 5 !== 0) throw new Error("Invalid DAC data length");
+        fm.loadDacBank(name, bytes);
+      },
       loadBase64: async (name, encoded) => {
         requireDac();
         fm.loadDacBank(
@@ -1784,40 +1790,12 @@ export function Playground(
 
 function formatLogArgs(args) {
   return args
-    .map((value) => formatLogValue(value))
+    .map((value) =>
+      typeof value === "string"
+        ? value
+        : safeStringify(value)
+    )
     .join(" ");
-}
-
-function formatLogValue(value) {
-  if (typeof value === "string") {
-    return value;
-  }
-  if (value instanceof ArrayBuffer) {
-    return formatBinaryLogValue(
-      new Uint8Array(value),
-      "ArrayBuffer"
-    );
-  }
-  if (ArrayBuffer.isView(value)) {
-    return formatBinaryLogValue(
-      new Uint8Array(
-        value.buffer,
-        value.byteOffset,
-        value.byteLength
-      ),
-      value.constructor.name
-    );
-  }
-  return safeStringify(value);
-}
-
-function formatBinaryLogValue(bytes, label) {
-  const preview = Array.from(
-    bytes.subarray(0, 16),
-    (value) => value.toString(16).padStart(2, "0")
-  ).join(" ");
-  const suffix = bytes.byteLength > 16 ? " ..." : "";
-  return `${label}(${bytes.byteLength}) [${preview}${suffix}]`;
 }
 
 function safeStringify(value) {

@@ -1274,9 +1274,13 @@ function exportOpnFmVgmToPlaygroundJavaScript(source, options, chipKind, targetC
     chipKind === "ym2612" &&
     options.dacBase64 !== false;
   if (useDacBase64 && dacEvents.length > 0) {
-    const encodedDac = JSON.stringify(encodeDacSchedule(dacEvents));
+    const dacBytes = encodeDacScheduleBytes(dacEvents);
+    const dacPath = options.writeDacFile?.(dacBytes);
+    const encodedDac = dacPath ? null : JSON.stringify(encodeDacSchedule(dacEvents));
     lines.push('livePrepare("vgm-dac", async () => {');
-    lines.push(`  await dac.loadBase64("vgm-dac", ${encodedDac});`);
+    lines.push(dacPath
+      ? `  await dac.load("vgm-dac", await file(${JSON.stringify(dacPath)}, { type: "arrayBuffer" }));`
+      : `  await dac.loadBase64("vgm-dac", ${encodedDac});`);
     lines.push("});");
     lines.push("");
   }
@@ -1391,7 +1395,7 @@ function renderPlaygroundTrack(track, totalLoopSamples, scheduled, useDacBase64)
   return lines;
 }
 
-function encodeDacSchedule(events) {
+function encodeDacScheduleBytes(events) {
   const bytes = new Uint8Array(events.length * 5);
   const view = new DataView(bytes.buffer);
   for (let index = 0; index < events.length; index += 1) {
@@ -1400,6 +1404,11 @@ function encodeDacSchedule(events) {
     view.setUint32(offset, event.timeSamples, true);
     bytes[offset + 4] = event.value;
   }
+  return bytes;
+}
+
+function encodeDacSchedule(events) {
+  const bytes = encodeDacScheduleBytes(events);
   let binary = "";
   for (let offset = 0; offset < bytes.length; offset += 0x8000) {
     binary += String.fromCharCode(...bytes.subarray(offset, offset + 0x8000));

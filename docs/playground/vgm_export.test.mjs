@@ -2,6 +2,21 @@ import test from "node:test";
 import { YM2612Synth } from "../../web/ym2612synth.js";
 import assert from "node:assert/strict";
 
+test("DAC file export preserves packed timestamps and generates a file reader", () => {
+  for (const scheduled of [false, true]) {
+    let data;
+    const source = exportYm2612VgmToPlaygroundJavaScript(createVgmBuffer([
+      0x52, 0x2a, 0x81, 0x61, 3, 0, 0x52, 0x2a, 0x92, 0x66,
+    ]), {
+      scheduled,
+      writeDacFile(bytes) { data = bytes; return "/vgmdat-test.dat"; },
+    });
+    assert.deepEqual(Array.from(data), [0, 0, 0, 0, 0x81, 3, 0, 0, 0, 0x92]);
+    assert.match(source, /await dac.load\("vgm-dac", await file\("\/vgmdat-test.dat", \{ type: "arrayBuffer" \}\)\)/);
+    assert.doesNotMatch(source, /loadBase64/);
+  }
+});
+
 test("High preserves exact writes, tiny waits, all channels, partial keys and DAC", async () => {
   const commands = [];
   const expected = [];

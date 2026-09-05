@@ -1043,6 +1043,12 @@ export function createPlaygroundRuntime(
         megaDrive.stream.list(),
     };
     const dacApi = {
+      load: async (name, data) => {
+        requireDac();
+        const bytes = data instanceof Uint8Array ? data : new Uint8Array(data);
+        if (bytes.byteLength % 5 !== 0) throw new Error("Invalid DAC data length");
+        fm.loadDacBank(name, bytes);
+      },
       loadBase64: async (name, encoded) => {
         requireDac();
         fm.loadDacBank(
