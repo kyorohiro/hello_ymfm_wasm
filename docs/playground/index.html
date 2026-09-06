@@ -1324,16 +1324,22 @@
               <form method="dialog" class="vgm-import-dialog-form">
                 <h2>Export Cassette</h2>
                 <p id="cassetteLicenseInherited" class="subtext"></p>
-                <label for="cassetteLicenseSelect">License</label>
+                <label for="cassetteWorkTypeSelect">Work type</label>
+                <select id="cassetteWorkTypeSelect">
+                  <option value="NONE" selected>None</option>
+                  <option value="ORIGINAL">Original</option>
+                  <option value="TRANSCRIPTION">Transcription / Cover</option>
+                </select>
+                <small class="subtext">Transcription / Cover identifies an existing work; it does not grant rights to the original.</small>
+                <label for="cassetteLicenseSelect">License for author's contribution</label>
                 <select id="cassetteLicenseSelect" title="License for this Cassette">
                   <option value="NONE" selected>None</option>
                   <option value="PRIVATE">Private Only</option>
                   <option value="CC0-1.0">CC0</option>
                   <option value="CC-BY-4.0">CC BY 4.0</option>
-                  <option value="TRANSCRIPTION">Transcription / Cover</option>
                   <option value="CUSTOM">Custom (*)</option>
                 </select>
-                <small class="subtext">None: unspecified · Private: reuse not granted · CC0: free reuse · CC BY: attribution required · Transcription/Cover: original rights are not granted</small>
+                <small class="subtext">None: unspecified · Private: reuse not granted · CC0: free reuse · CC BY: attribution required</small>
                 <label for="cassetteLicenseCustomName">Custom license / credit</label>
                 <input id="cassetteLicenseCustomName" type="text" placeholder="e.g. CC BY-NC 4.0 or personal terms">
                 <div class="vgm-import-actions">

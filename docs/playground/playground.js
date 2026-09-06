@@ -103,6 +103,7 @@ const importCassetteButton =
 const exportCassetteButton = document.getElementById("exportCassetteButton");
 const cassetteExportDialog = document.getElementById("cassetteExportDialog");
 const cassetteLicenseSelect = document.getElementById("cassetteLicenseSelect");
+const cassetteWorkTypeSelect = document.getElementById("cassetteWorkTypeSelect");
 const cassetteLicenseCustomName = document.getElementById("cassetteLicenseCustomName");
 const cassetteLicenseInherited = document.getElementById("cassetteLicenseInherited");
 const confirmCassetteExportButton = document.getElementById("confirmCassetteExportButton");
@@ -597,23 +598,22 @@ function promptCassetteImport() {
 }
 
 function promptCassetteExport() {
-  if (!currentCassetteMetadata) {
-    const metadataFile = virtualFiles.get("/metadata.json");
-    if (metadataFile?.type === "text") {
-      try {
-        currentCassetteMetadata = JSON.parse(metadataFile.data);
-      } catch {
-        currentCassetteMetadata = null;
-      }
+  const metadataFile = virtualFiles.get("/metadata.json");
+  if (metadataFile?.type === "text") {
+    try {
+      currentCassetteMetadata = JSON.parse(metadataFile.data);
+    } catch {
+      setStatus("metadata.json is not valid JSON; using the previous license metadata.");
     }
   }
-  const license = currentCassetteMetadata?.license ?? { type: "NONE" };
-  cassetteLicenseSelect.value = license.type;
-  cassetteLicenseCustomName.value = license.name ?? "";
+  const license = currentCassetteMetadata?.license ?? "NONE";
+  cassetteLicenseSelect.value = typeof license === "object" ? license.type : license;
+  cassetteWorkTypeSelect.value = currentCassetteMetadata?.workType ?? "NONE";
+  cassetteLicenseCustomName.value = currentCassetteMetadata?.licenseName ?? license?.name ?? "";
   cassetteLicenseInherited.textContent = currentCassetteMetadata
-    ? `Inherited from the current Cassette metadata: ${license.type}${license.name ? ` (${license.name})` : ""}.`
-    : "No existing Cassette license metadata. The default is None.";
-  cassetteLicenseCustomName.disabled = license.type !== "CUSTOM";
+    ? `Inherited from the current Cassette metadata: ${currentCassetteMetadata.workType ?? "NONE"} / ${cassetteLicenseSelect.value}${cassetteLicenseCustomName.value ? ` (${cassetteLicenseCustomName.value})` : ""}.`
+    : "No existing Cassette metadata. Work Type and License default to None.";
+  cassetteLicenseCustomName.disabled = cassetteLicenseSelect.value !== "CUSTOM";
   cassetteExportDialog.showModal();
 }
 
@@ -630,16 +630,16 @@ function exportCassette() {
       {
         license: cassetteLicenseSelect?.value ?? "NONE",
         licenseName: cassetteLicenseCustomName?.value ?? "",
+        workType: cassetteWorkTypeSelect?.value ?? "NONE",
       }
     );
     currentCassetteMetadata = {
       version: 1,
-      license: {
-        type: cassetteLicenseSelect?.value ?? "NONE",
-        ...(cassetteLicenseSelect?.value === "CUSTOM" && cassetteLicenseCustomName?.value
-          ? { name: cassetteLicenseCustomName.value.trim() }
-          : {}),
-      },
+      workType: cassetteWorkTypeSelect?.value ?? "NONE",
+      license: cassetteLicenseSelect?.value ?? "NONE",
+      ...(cassetteLicenseSelect?.value === "CUSTOM" && cassetteLicenseCustomName?.value
+        ? { licenseName: cassetteLicenseCustomName.value.trim() }
+        : {}),
     };
     const name = window.prompt(
       "Cassette name",
@@ -660,7 +660,7 @@ function exportCassette() {
     link.download = `${normalizedName}.cassette.zip`;
     link.click();
     URL.revokeObjectURL(url);
-    setStatus(`Exported ${link.download} (${cassetteLicenseSelect?.value ?? "NONE"}).`);
+    setStatus(`Exported ${link.download} (${cassetteWorkTypeSelect?.value ?? "NONE"} / ${cassetteLicenseSelect?.value ?? "NONE"}).`);
   } catch (error) {
     setStatus(`Failed to export cassette: ${error.message}`);
   }
@@ -785,6 +785,7 @@ async function importVgmFile(file, options) {
   for (const { path, bytes } of dacFiles) virtualFiles.writeBinary(path, bytes);
   saveActiveVirtualFile();
   virtualFiles.writeText(targetPath, strategy.source);
+  currentCassetteMetadata = { version: 1, workType: "TRANSCRIPTION", license: "NONE" };
   activeVirtualPath = targetPath;
   runVirtualPath = targetPath;
   showVirtualFile(virtualFiles.get(targetPath));
@@ -1319,8 +1320,9 @@ function appendCassetteExamplesToUi(assets) {
 
 function formatCassetteStatus(assets) {
   const statusParts = [];
-  const license = assets.cassette.metadata?.license?.type ?? "NONE";
-  statusParts.push(`license ${license}`);
+  const license = assets.cassette.metadata?.license ?? "NONE";
+  const workType = assets.cassette.metadata?.workType ?? "NONE";
+  statusParts.push(`${workType} / license ${typeof license === "object" ? license.type : license}`);
   if (assets.timbres.length > 0) {
     statusParts.push(`${assets.timbres.length} timbre(s)`);
   }
@@ -1344,7 +1346,7 @@ function restoreVirtualFilesFromCassette(cassette) {
       data: textExtensions.test(path)
         ? new TextDecoder().decode(bytes)
         : bytes,
-    })).filter((file) => file.path !== "/metadata.json")
+    }))
   );
 
   if (!virtualFiles.has("/index.js")) {

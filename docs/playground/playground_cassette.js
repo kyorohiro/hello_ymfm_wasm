@@ -41,17 +41,17 @@ export function createPlaygroundCassetteZip(files, options = {}) {
   }
 
   const licenseType = normalizeCassetteLicense(options.license);
+  const workType = normalizeCassetteWorkType(options.workType);
   if (Object.hasOwn(entries, "metadata.json")) {
     throw new Error("metadata.json is reserved for cassette metadata.");
   }
   entries["metadata.json"] = strToU8(JSON.stringify({
     version: 1,
-    license: {
-      type: licenseType,
-      ...(licenseType === "CUSTOM" && options.licenseName
-        ? { name: String(options.licenseName).trim() }
-        : {}),
-    },
+    workType,
+    license: licenseType,
+    ...(licenseType === "CUSTOM" && options.licenseName
+      ? { licenseName: String(options.licenseName).trim() }
+      : {}),
   }, null, 2) + "\n");
 
   const zip = zipSync(entries, { level: 6 });
@@ -86,7 +86,7 @@ export async function loadPlaygroundCassette(
     timbres: [],
     examples: [],
     samples: [],
-    metadata: { version: 1, license: { type: "NONE" } },
+    metadata: { version: 1, workType: "NONE", license: "NONE" },
   };
   const namesByCategory = new Map();
 
@@ -158,26 +158,33 @@ const CASSETTE_LICENSE_TYPES = new Set([
   "PRIVATE",
   "CC0-1.0",
   "CC-BY-4.0",
-  "TRANSCRIPTION",
   "CUSTOM",
   "NONE",
 ]);
 
 function normalizeCassetteLicense(value) {
-  const type = String(value ?? "NONE").toUpperCase();
+  const type = String(typeof value === "object" ? value?.type : value ?? "NONE").toUpperCase();
   return CASSETTE_LICENSE_TYPES.has(type) ? type : "NONE";
+}
+
+function normalizeCassetteWorkType(value) {
+  const type = String(value ?? "NONE").toUpperCase();
+  return type === "TRANSCRIPTION"
+    ? "TRANSCRIPTION"
+    : type === "ORIGINAL" ? "ORIGINAL" : "NONE";
 }
 
 function normalizeCassetteMetadata(value) {
   const metadata = value && typeof value === "object" ? value : {};
+  const legacyLicense = metadata.license && typeof metadata.license === "object"
+    ? metadata.license
+    : null;
   return {
     ...metadata,
     version: Number.isInteger(metadata.version) ? metadata.version : 1,
-    license: {
-      ...(metadata.license && typeof metadata.license === "object" ? metadata.license : {}),
-      type: normalizeCassetteLicense(metadata.license?.type),
-      ...(metadata.license?.name ? { name: String(metadata.license.name) } : {}),
-    },
+    workType: normalizeCassetteWorkType(metadata.workType),
+    license: normalizeCassetteLicense(metadata.license),
+    ...(legacyLicense?.name ? { licenseName: String(legacyLicense.name) } : {}),
   };
 }
 
