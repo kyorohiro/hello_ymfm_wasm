@@ -72,6 +72,7 @@ type YM2612Preset = {
  * much easier for Monaco to complete.
  */
 type MegaDriveFmPresetName =
+  | "sine"
   | "one-op-basic"
   | "one-op-flute"
   | "two-op-bell"
@@ -731,6 +732,8 @@ declare function liveCleanup(names: string[], fn: () => Promise<void> | void): v
 declare function livePrepare(name: string, fn: (context: { fx: FXApi; fm: FMApi; psg: PSGApi; sample: PlaygroundSampleAPI; stream: PlaygroundStreamAPI; noise: PlaygroundNoiseAPI; log: (...args: unknown[]) => void }) => Promise<any> | any): Promise<any>;
 /** Play one note through the current synth setup. */
 declare function play(note: string, options?: PlaygroundPlayOptions): Promise<void>;
+/** Play one YM2612 tone in Hz with the current voice. Default duration: 2 seconds. */
+declare function sound(channel: YM2612Channel, hz: number, seconds?: number): Promise<void>;
 /** Compact YM2612 write helper. Defaults to port 0 when omitted. */
 declare function write(register: number, value: number): void;
 /** Compact YM2612 write helper with explicit port. */
@@ -863,6 +866,7 @@ type PlaygroundAPI = {
   tfiToPreset: (data: ArrayBuffer | Uint8Array) => YM2612Preset;
   /** Play one note through the current synth setup. */
   play(note: string, options?: PlaygroundPlayOptions): Promise<void>;
+  sound(channel: YM2612Channel, hz: number, seconds?: number): Promise<void>;
   write: {
     (register: number, value: number): void;
     (port: number, register: number, value: number): void;

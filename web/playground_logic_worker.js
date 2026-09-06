@@ -487,6 +487,7 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
     OP1: 0, OP2: 1, OP3: 2, OP4: 3,
     write: (...args) => postCommand("write", args),
     play: (...args) => request("play", args, run.currentLoop),
+    sound: (...args) => request("sound", args, run.currentLoop),
     psgTone: capabilities.psg ? (...args) => postCommand("psgTone", args) : unavailable("Mega Drive PSG"),
     psgNoise: capabilities.psg ? (...args) => postCommand("psgNoise", args) : unavailable("Mega Drive PSG"),
     setMasterVolume: (...args) => request("setMasterVolume", args, run.currentLoop),

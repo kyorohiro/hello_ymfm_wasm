@@ -346,16 +346,26 @@
         <p>
           Welcome to the world of YM2612.
         </p>
+        <script type="text/plain" id="example-hello-ym2612-scale">
+fm.setPreset(CH1, FM_PRESETS["one-op-basic"]);
+
+const notes = ["C4", "D4", "E4", "F4", "G4", "A4", "B4", "C5"];
+
+for (const note of notes) {
+  await play(note, { channel: CH1, duration: 0.3 });
+  await sleep(0.1);
+}
+</script>
         <iframe
           class="playground-frame"
-          src="../playground/index.html?mode=simple&src=Zm0uc2V0UHJlc2V0KENIMSwgRk1fUFJFU0VUU1sib25lLW9wLWJhc2ljIl0pOwoKY29uc3Qgbm90ZXMgPSBbIkM0IiwgIkQ0IiwgIkU0IiwgIkY0IiwgIkc0IiwgIkE0IiwgIkI0IiwgIkM1Il07Cgpmb3IgKGNvbnN0IG5vdGUgb2Ygbm90ZXMpIHsKICBhd2FpdCBwbGF5KG5vdGUsIHsgY2hhbm5lbDogQ0gxLCBkdXJhdGlvbjogMC4zIH0pOwogIGF3YWl0IHNsZWVwKDAuMSk7Cn0K"
+          data-playground-src="example-hello-ym2612-scale"
           title="YM2612 Playground"
           allow="autoplay"
           loading="lazy"
           style="height: 560px;"
         ></iframe>
         <p>
-          <a href="../playground/index.html?src=Zm0uc2V0UHJlc2V0KENIMSwgRk1fUFJFU0VUU1sib25lLW9wLWJhc2ljIl0pOwoKY29uc3Qgbm90ZXMgPSBbIkM0IiwgIkQ0IiwgIkU0IiwgIkY0IiwgIkc0IiwgIkE0IiwgIkI0IiwgIkM1Il07Cgpmb3IgKGNvbnN0IG5vdGUgb2Ygbm90ZXMpIHsKICBhd2FpdCBwbGF5KG5vdGUsIHsgY2hhbm5lbDogQ0gxLCBkdXJhdGlvbjogMC4zIH0pOwogIGF3YWl0IHNsZWVwKDAuMSk7Cn0K">Open the full Playground (with console, examples, and the operator editor) &rarr;</a>
+          <a data-playground-src="example-hello-ym2612-scale">Open the full Playground (with console, examples, and the operator editor) &rarr;</a>
         </p>
       </section>
 
@@ -381,9 +391,31 @@
           There are more parameters too, such as <code>DT</code>, <code>MULTI</code>, and <code>TL</code>.
           But first, here is a small example patch so you can see what "setting a sound" looks like in code.
         </p>
+        <script type="text/plain" id="example-fm-patch-basic">
+fm.reset();
+
+// Same 4-operator patch as MEGADRIVE_FM_PRESETS["one-op-basic"],
+// written out by hand instead of using fm.setPreset().
+fm.setAlgo(CH1, 7, 0);
+
+// OP1, OP2, OP3: tl = 127 means "as quiet as possible" -> effectively silent.
+fm.setOperator(CH1, OP1, { dt: 0, multi: 1, tl: 127, ar: 31, d1r: 0, d2r: 0, sl: 0, rr: 15 });
+fm.setOperator(CH1, OP2, { dt: 0, multi: 1, tl: 127, ar: 31, d1r: 0, d2r: 0, sl: 0, rr: 15 });
+fm.setOperator(CH1, OP3, { dt: 0, multi: 1, tl: 127, ar: 31, d1r: 0, d2r: 0, sl: 0, rr: 15 });
+
+// OP4 is the only one that actually makes sound.
+fm.setOperator(CH1, OP4, { dt: 0, multi: 1, tl: 8, ar: 22, d1r: 6, d2r: 3, sl: 3, rr: 8 });
+
+const notes = ["C4", "D4", "E4", "F4", "G4", "A4", "B4", "C5"];
+
+for (const note of notes) {
+  await play(note, { channel: CH1, duration: 0.3 });
+  await sleep(0.1);
+}
+</script>
         <iframe
           class="playground-frame"
-          src="../playground/index.html?mode=simple&src=Zm0ucmVzZXQoKTsKCi8vIFNhbWUgNC1vcGVyYXRvciBwYXRjaCBhcyBNRUdBRFJJVkVfRk1fUFJFU0VUU1sib25lLW9wLWJhc2ljIl0sCi8vIHdyaXR0ZW4gb3V0IGJ5IGhhbmQgaW5zdGVhZCBvZiB1c2luZyBmbS5zZXRQcmVzZXQoKS4KZm0uc2V0QWxnbyhDSDEsIDcsIDApOwoKLy8gT1AxLCBPUDIsIE9QMzogdGwgPSAxMjcgbWVhbnMgImFzIHF1aWV0IGFzIHBvc3NpYmxlIiAtPiBlZmZlY3RpdmVseSBzaWxlbnQuCmZtLnNldE9wZXJhdG9yKENIMSwgT1AxLCB7IGR0OiAwLCBtdWx0aTogMSwgdGw6IDEyNywgYXI6IDMxLCBkMXI6IDAsIGQycjogMCwgc2w6IDAsIHJyOiAxNSB9KTsKZm0uc2V0T3BlcmF0b3IoQ0gxLCBPUDIsIHsgZHQ6IDAsIG11bHRpOiAxLCB0bDogMTI3LCBhcjogMzEsIGQxcjogMCwgZDJyOiAwLCBzbDogMCwgcnI6IDE1IH0pOwpmbS5zZXRPcGVyYXRvcihDSDEsIE9QMywgeyBkdDogMCwgbXVsdGk6IDEsIHRsOiAxMjcsIGFyOiAzMSwgZDFyOiAwLCBkMnI6IDAsIHNsOiAwLCBycjogMTUgfSk7CgovLyBPUDQgaXMgdGhlIG9ubHkgb25lIHRoYXQgYWN0dWFsbHkgbWFrZXMgc291bmQuCmZtLnNldE9wZXJhdG9yKENIMSwgT1A0LCB7IGR0OiAwLCBtdWx0aTogMSwgdGw6IDgsIGFyOiAyMiwgZDFyOiA2LCBkMnI6IDMsIHNsOiAzLCBycjogOCB9KTsKCmNvbnN0IG5vdGVzID0gWyJDNCIsICJENCIsICJFNCIsICJGNCIsICJHNCIsICJBNCIsICJCNCIsICJDNSJdOwoKZm9yIChjb25zdCBub3RlIG9mIG5vdGVzKSB7CiAgYXdhaXQgcGxheShub3RlLCB7IGNoYW5uZWw6IENIMSwgZHVyYXRpb246IDAuMyB9KTsKICBhd2FpdCBzbGVlcCgwLjEpOwp9Cg"
+          data-playground-src="example-fm-patch-basic"
           title="FM sound patch example"
           allow="autoplay"
           loading="lazy"
@@ -724,5 +756,6 @@
 
       installDeferredIframes();
     </script>
+    <script src="./playground-embed.js"></script>
   </body>
 </html>

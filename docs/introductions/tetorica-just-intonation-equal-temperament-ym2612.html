@@ -306,9 +306,35 @@ pre {white-space:pre-wrap;overflow-wrap:anywhere;background:#f0e6d4;padding:18px
 <p>Today, <strong>A4 = 440 Hz</strong> is a widely used tuning reference. It is also the standard musical pitch specified in <a href="https://www.iso.org/standard/3601.html">ISO 16</a>.</p>
 <p>You may have heard the story that a baby's cry is 440 Hz. It is an evocative connection, but a cry does not stay at one fixed pitch: <a href="https://pubmed.ncbi.nlm.nih.gov/10577825/">research on newborn cries</a> describes fundamental frequencies around 400–600 Hz.</p>
 <p>So let's use 440 Hz as the starting sound for this explanation. We do not need to assume that it was a special number when music theory began. Here, it gives us a familiar reference from which to explore relationships between sounds.</p>
-<p><strong>Let's hear it on the YM2612.</strong> Press Run in the Playground below to hear a sustained tone for three seconds. The code starts with the frequency; the helper functions below turn it into chip settings.</p>
-<iframe class="playground-frame" src="../playground/index.html?mode=simple&amp;src=Ly8gT3VyIHN0YXJ0aW5nIHNvdW5kOiBBNCwgdGFyZ2V0aW5nIDQ0MCBIei4KY29uc3QgZnJlcXVlbmN5ID0gNDQwOwphd2FpdCBzb3VuZChbZnJlcXVlbmN5XSwgMyk7CgovLyBZTTI2MTIgYnJpZGdlOiBIeiAtPiB0aGUgY2xvc2VzdCBpbnRlZ2VyIEJMT0NLL0ZOVU0gcGFpci4KZnVuY3Rpb24gcGl0Y2hGcm9tSHooaHopIHsKICBjb25zdCBjbG9jayA9IDc2NzA0NTQ7CiAgbGV0IGJlc3Q7CiAgZm9yIChsZXQgYmxvY2sgPSAwOyBibG9jayA8IDg7IGJsb2NrKyspIHsKICAgIGNvbnN0IHVuaXQgPSBjbG9jayAqIDIgKiogKGJsb2NrIC0gMSkgLyAoMTQ0ICogMiAqKiAyMCk7CiAgICBjb25zdCBmbnVtID0gTWF0aC5tYXgoMSwgTWF0aC5taW4oMjA0NywgTWF0aC5yb3VuZChoeiAvIHVuaXQpKSk7CiAgICBjb25zdCBhY3R1YWwgPSBmbnVtICogdW5pdDsKICAgIGlmICghYmVzdCB8fCBNYXRoLmFicyhhY3R1YWwgLSBoeikgPCBNYXRoLmFicyhiZXN0LmFjdHVhbCAtIGh6KSkgewogICAgICBiZXN0ID0geyBibG9jaywgZm51bSwgYWN0dWFsIH07CiAgICB9CiAgfQogIHJldHVybiBiZXN0Owp9CgpmdW5jdGlvbiBwcmVwYXJlVm9pY2UoY2hhbm5lbCkgewogIGZtLnNldEFsZ28oY2hhbm5lbCwgNywgMCk7IC8vIE9uZSBhdWRpYmxlIHNpbmUtYmFzZWQgb3BlcmF0b3I7IHRoZSBvdGhlciBjYXJyaWVycyBhcmUgbXV0ZWQuCiAgZm0uc2V0UGFuKGNoYW5uZWwsIHRydWUsIHRydWUpOwogIGZvciAoY29uc3QgW29wZXJhdG9yLCBtdWx0aSwgdGxdIG9mIC8qKiBAdHlwZSB7Y29uc3R9ICovIChbCiAgICBbT1AxLCAxLCAzMl0sIFtPUDIsIDEsIDEyN10sIFtPUDMsIDEsIDEyN10sIFtPUDQsIDEsIDEyN10sCiAgXSkpIHsKICAgIGZtLnNldE9wZXJhdG9yKGNoYW5uZWwsIG9wZXJhdG9yLCB7CiAgICAgIGR0OiAwLCBtdWx0aSwgdGwsIGFyOiAzMSwgcnM6IDAsIGFtOiBmYWxzZSwKICAgICAgZDFyOiAwLCBkMnI6IDAsIHNsOiAwLCBycjogMTUsIHNzZzogMCwKICAgIH0pOwogIH0KfQoKYXN5bmMgZnVuY3Rpb24gc291bmQoZnJlcXVlbmNpZXMsIHNlY29uZHMgPSAyKSB7CiAgY29uc3QgY2hhbm5lbHMgPSAvKiogQHR5cGUge2NvbnN0fSAqLyAoW0NIMSwgQ0gyLCBDSDNdKTsKICBmcmVxdWVuY2llcy5mb3JFYWNoKChoeiwgaSkgPT4gewogICAgY29uc3QgY2hhbm5lbCA9IGNoYW5uZWxzW2ldOwogICAgcHJlcGFyZVZvaWNlKGNoYW5uZWwpOwogICAgY29uc3QgcGl0Y2ggPSBwaXRjaEZyb21Ieihoeik7CiAgICBjb25zb2xlLmxvZyhgVGFyZ2V0ICR7aHoudG9GaXhlZCgzKX0gSHogLT4gY2hpcCAke3BpdGNoLmFjdHVhbC50b0ZpeGVkKDMpfSBIemApOwogICAgZm0uc2V0RnJlcXVlbmN5KGNoYW5uZWwsIHBpdGNoLmJsb2NrLCBwaXRjaC5mbnVtKTsKICAgIGZtLmtleU9uKGNoYW5uZWwpOwogIH0pOwogIGF3YWl0IHNsZWVwKHNlY29uZHMpOwogIGZyZXF1ZW5jaWVzLmZvckVhY2goKF9oeiwgaSkgPT4gZm0ua2V5T2ZmKGNoYW5uZWxzW2ldKSk7CiAgYXdhaXQgc2xlZXAoMC4yNSk7Cn0K" title="Playground: hear a 440 Hz reference tone" loading="lazy" allow="autoplay" style="height:640px;width:100%;border:1px solid var(--line);border-radius:14px"></iframe>
-<p>The YM2612 uses integer frequency settings, so the tone is the closest available approximation to 440 Hz. The code logs both the requested frequency and the resulting chip frequency.</p>
+<p><strong>Let's hear it on the YM2612.</strong> Press Run in the Playground below to hear a sustained tone for three seconds. The example sets a simple voice and calls <code>sound(CH1, 440, 3)</code>: channel, frequency in Hz, and duration in seconds.</p>
+<script type="text/plain" id="example-440hz">
+// A simple, one-op-basic-like voice.
+fm.setPreset(CH1, FM_PRESETS["one-op-basic"]);
+
+// Our starting sound: A4, targeting 440 Hz.
+await sound(CH1, 440, 3);
+
+// Play one tone in Hz using the voice already set on this channel.
+/** @param {YM2612Channel} channel */
+async function sound(channel, hz, seconds = 2) {
+  // YM2612 pitch is stored as a block and an integer frequency number.
+  let block = 0;
+  let fnum = hz * 144 * 2 ** 21 / 7670454;
+  while (fnum > 2047 && block < 7) {
+    fnum /= 2;
+    block++;
+  }
+  fm.setFrequency(channel, block, Math.max(1, Math.min(2047, Math.round(fnum))));
+  fm.keyOn(channel);
+  try {
+    await sleep(seconds);
+  } finally {
+    fm.keyOff(channel);
+  }
+}
+</script>
+<iframe class="playground-frame" data-playground-src="example-440hz" title="Playground: hear a 440 Hz reference tone" loading="lazy" allow="autoplay" style="height:640px;width:100%;border:1px solid var(--line);border-radius:14px"></iframe>
+<p>The YM2612 uses integer frequency settings, so the tone is an approximation to 440 Hz. The local <code>sound</code> function below the example converts Hz to chip settings.</p>
 </section>
 <section class="panel">
 <h2>2. Build more notes from one pure fifth</h2>
@@ -317,9 +343,64 @@ pre {white-space:pre-wrap;overflow-wrap:anywhere;background:#f0e6d4;padding:18px
 <pre><code>C → G → D → A → E → B → F♯
   → C♯ → G♯ → D♯ → A♯ → E♯ → B♯</code></pre>
 <p>In twelve-tone equal temperament, E♯ shares a pitch with F, and B♯ with C. The first twelve entries therefore cover all twelve pitch classes. But with exact <code>3/2</code> ratios, the final B♯ does not land exactly on the starting C after adjusting octaves. The note names describe the chain; they do not guarantee that it closes.</p>
-<p><strong>Let's write that process as a for loop.</strong> Keep the 440 Hz sound from the first example. This time, multiply its frequency by <code>2/3</code> at each step: a pure fifth downward, the reverse of the <code>3/2</code> chain above. Multiply by two when the result falls below 440 Hz. Starting on A, this gives A → D → G → C → F → B♭ → E♭ → A♭ → D♭ → G♭ → C♭ → F♭ → B𝄫. The code calculates frequencies directly; it does not use equal-tempered note-name playback.</p>
-<iframe class="playground-frame" src="../playground/index.html?mode=simple&amp;src=Ly8gS2VlcCB0aGUgZmlyc3QgZXhhbXBsZSdzIDQ0MCBIeiBzb3VuZCwgdGhlbiBtdWx0aXBseSBpdHMgZnJlcXVlbmN5Lgpjb25zdCBiYXNlID0gNDQwOwpsZXQgZnJlcXVlbmN5ID0gYmFzZTsKCmZvciAobGV0IHN0ZXAgPSAwOyBzdGVwIDw9IDEyOyBzdGVwKyspIHsKICBjb25zb2xlLmxvZyhgU3RlcCAke3N0ZXB9OiAke2ZyZXF1ZW5jeS50b0ZpeGVkKDMpfSBIemApOwogIGF3YWl0IHNvdW5kKFtmcmVxdWVuY3ldLCAwLjYpOwoKICBmcmVxdWVuY3kgKj0gMiAvIDM7IC8vIERvd24gb25lIHB1cmUgZmlmdGgsIHdpdGhvdXQgbG9va2luZyB1cCBhIG5vdGUgbmFtZS4KICB3aGlsZSAoZnJlcXVlbmN5IDwgYmFzZSkgewogICAgZnJlcXVlbmN5ICo9IDI7IC8vIEJyaW5nIGl0IGJhY2sgaW50byB0aGUgb2N0YXZlIGZyb20gNDQwIHRvIDg4MCBIei4KICB9Cn0KCi8vIFlNMjYxMiBicmlkZ2U6IEh6IC0-IHRoZSBjbG9zZXN0IGludGVnZXIgQkxPQ0svRk5VTSBwYWlyLgpmdW5jdGlvbiBwaXRjaEZyb21IeihoeikgewogIGNvbnN0IGNsb2NrID0gNzY3MDQ1NDsKICBsZXQgYmVzdDsKICBmb3IgKGxldCBibG9jayA9IDA7IGJsb2NrIDwgODsgYmxvY2srKykgewogICAgY29uc3QgdW5pdCA9IGNsb2NrICogMiAqKiAoYmxvY2sgLSAxKSAvICgxNDQgKiAyICoqIDIwKTsKICAgIGNvbnN0IGZudW0gPSBNYXRoLm1heCgxLCBNYXRoLm1pbigyMDQ3LCBNYXRoLnJvdW5kKGh6IC8gdW5pdCkpKTsKICAgIGNvbnN0IGFjdHVhbCA9IGZudW0gKiB1bml0OwogICAgaWYgKCFiZXN0IHx8IE1hdGguYWJzKGFjdHVhbCAtIGh6KSA8IE1hdGguYWJzKGJlc3QuYWN0dWFsIC0gaHopKSB7CiAgICAgIGJlc3QgPSB7IGJsb2NrLCBmbnVtLCBhY3R1YWwgfTsKICAgIH0KICB9CiAgcmV0dXJuIGJlc3Q7Cn0KCmZ1bmN0aW9uIHByZXBhcmVWb2ljZShjaGFubmVsKSB7CiAgZm0uc2V0QWxnbyhjaGFubmVsLCA3LCAwKTsgLy8gT25lIGF1ZGlibGUgc2luZS1iYXNlZCBvcGVyYXRvcjsgdGhlIG90aGVyIGNhcnJpZXJzIGFyZSBtdXRlZC4KICBmbS5zZXRQYW4oY2hhbm5lbCwgdHJ1ZSwgdHJ1ZSk7CiAgZm9yIChjb25zdCBbb3BlcmF0b3IsIG11bHRpLCB0bF0gb2YgLyoqIEB0eXBlIHtjb25zdH0gKi8gKFsKICAgIFtPUDEsIDEsIDMyXSwgW09QMiwgMSwgMTI3XSwgW09QMywgMSwgMTI3XSwgW09QNCwgMSwgMTI3XSwKICBdKSkgewogICAgZm0uc2V0T3BlcmF0b3IoY2hhbm5lbCwgb3BlcmF0b3IsIHsKICAgICAgZHQ6IDAsIG11bHRpLCB0bCwgYXI6IDMxLCByczogMCwgYW06IGZhbHNlLAogICAgICBkMXI6IDAsIGQycjogMCwgc2w6IDAsIHJyOiAxNSwgc3NnOiAwLAogICAgfSk7CiAgfQp9Cgphc3luYyBmdW5jdGlvbiBzb3VuZChmcmVxdWVuY2llcywgc2Vjb25kcyA9IDIpIHsKICBjb25zdCBjaGFubmVscyA9IC8qKiBAdHlwZSB7Y29uc3R9ICovIChbQ0gxLCBDSDIsIENIM10pOwogIGZyZXF1ZW5jaWVzLmZvckVhY2goKGh6LCBpKSA9PiB7CiAgICBjb25zdCBjaGFubmVsID0gY2hhbm5lbHNbaV07CiAgICBwcmVwYXJlVm9pY2UoY2hhbm5lbCk7CiAgICBjb25zdCBwaXRjaCA9IHBpdGNoRnJvbUh6KGh6KTsKICAgIGNvbnNvbGUubG9nKGBUYXJnZXQgJHtoei50b0ZpeGVkKDMpfSBIeiAtPiBjaGlwICR7cGl0Y2guYWN0dWFsLnRvRml4ZWQoMyl9IEh6YCk7CiAgICBmbS5zZXRGcmVxdWVuY3koY2hhbm5lbCwgcGl0Y2guYmxvY2ssIHBpdGNoLmZudW0pOwogICAgZm0ua2V5T24oY2hhbm5lbCk7CiAgfSk7CiAgYXdhaXQgc2xlZXAoc2Vjb25kcyk7CiAgZnJlcXVlbmNpZXMuZm9yRWFjaCgoX2h6LCBpKSA9PiBmbS5rZXlPZmYoY2hhbm5lbHNbaV0pKTsKICBhd2FpdCBzbGVlcCgwLjI1KTsKfQo" title="Playground: build a chain of pure fifths from 440 Hz" loading="lazy" allow="autoplay" style="height:640px;width:100%;border:1px solid var(--line);border-radius:14px"></iframe>
-<p>The loop plays the starting sound and twelve successive steps, all folded into the octave from 440 to 880 Hz. B𝄫 means B double-flat, which shares a pitch with A in equal temperament. The pure fifth chain does not close exactly: its final frequency is about 868.156 Hz, or 434.078 Hz one octave lower, roughly 23.46 cents below our starting A. The YM2612 approximates each calculated frequency with its available settings.</p>
+<p><strong>Let's write that process as a for loop.</strong> Keep the 440 Hz sound from the first example. This time, multiply its frequency by <code>2/3</code> at each step: a pure fifth downward, the reverse of the <code>3/2</code> chain above. Move each result by octaves to keep it close to the starting A. Starting on A, this gives A → D → G → C → F → B♭ → E♭ → A♭ → D♭ → G♭ → C♭ → F♭ → B𝄫. The code calculates frequencies directly; it does not use equal-tempered note-name playback.</p>
+<script type="text/plain" id="example-fifths-chain">
+// A simple, one-op-basic-like voice.
+fm.setPreset(CH1, FM_PRESETS["one-op-basic"]);
+fm.setPreset(CH2, FM_PRESETS["one-op-basic"]);
+
+// Keep A4 sounding against each note generated by pure fifths.
+const base = 440;
+
+for (let i = 0; i <= 12; i++) {
+  let frequency = base * (3 / 2) ** i;
+
+  // Move the note to the octave closest to A4.
+  while (frequency > base * Math.sqrt(2)) {
+    frequency /= 2;
+  }
+
+  while (frequency < base / Math.sqrt(2)) {
+    frequency *= 2;
+  }
+
+  console.log(`Step ${i}: ${frequency.toFixed(3)} Hz`);
+
+  await Promise.all([
+    sound(CH1, base),
+    sound(CH2, frequency),
+  ]);
+
+  await sleep(0.25);
+}
+
+// Play one tone in Hz using the voice already set on this channel.
+/** @param {YM2612Channel} channel */
+async function sound(channel, hz, seconds = 2) {
+  // YM2612 pitch is stored as a block and an integer frequency number.
+  let block = 0;
+  let fnum = hz * 144 * 2 ** 21 / 7670454;
+
+  while (fnum > 2047 && block < 7) {
+    fnum /= 2;
+    block++;
+  }
+
+  const roundedFnum = Math.round(fnum);
+  const safeFnum = Math.max(1, Math.min(2047, roundedFnum));
+
+  fm.setFrequency(channel, block, safeFnum);
+  fm.keyOn(channel);
+
+  try {
+    await sleep(seconds);
+  } finally {
+    fm.keyOff(channel);
+  }
+}
+</script>
+<iframe class="playground-frame" data-playground-src="example-fifths-chain" title="Playground: build a chain of pure fifths from 440 Hz" loading="lazy" allow="autoplay" style="height:640px;width:100%;border:1px solid var(--line);border-radius:14px"></iframe>
+<p>Each step plays two sounds together: the unchanged 440 Hz reference on CH1 and the calculated frequency on CH2. <code>sound(channel, hz)</code> plays one tone; <code>Promise.all</code> starts the two calls together and waits for both to finish. After twelve steps, the second target is about <strong>434.078 Hz</strong>, roughly <strong>23.46 cents</strong> below the starting A. Listen for the beating between the two nearby pitches. The YM2612 approximates the requested frequencies with its available settings.</p>
 <p><strong>Where does just intonation enter?</strong> Building notes from pure fifths and octaves is called <a href="https://tuning.ableton.com/glossary/pythagorean-tuning/">Pythagorean tuning</a>. It is one form of just intonation, using ratios built from 2 and 3. The familiar five-limit approach also uses 5, giving us intervals such as <code>5/4</code> for a pure major third. Four pure fifths, brought back into one octave, give <code>81/64</code> instead: these two thirds are close, but different.</p>
 <p>The harmonic series offers another way to examine these ratios: its frequencies are <code>f, 2f, 3f, 4f, 5f…</code>. The third and second harmonics have the ratio <code>3/2</code>; the fifth and fourth have <code>5/4</code>. Listing harmonics of one fixed sound and repeatedly multiplying the previous note by <code>3/2</code> are different processes. Next, let's listen to individual ratios and compare their sound.</p>
 </section>
@@ -327,9 +408,96 @@ pre {white-space:pre-wrap;overflow-wrap:anywhere;background:#f0e6d4;padding:18px
 <p class="kicker">Try it · edit the JavaScript</p>
 <h2>3. One reference, two sounds</h2>
 <p>Press Run in the Playground below. First hear the reference, then the upper sound, then both together. Change <code>ratio</code> from <code>3 / 2</code> to <code>5 / 4</code> and run it again. What changed?</p>
-<p>Next change <code>base</code> from 220 to 440. The register changes, but the ratio stays the same. The code begins with the values to edit; the functions below translate them into chip settings.</p>
-<iframe class="playground-frame" src="../playground/index.html?mode=simple&amp;src=Ly8gQ2hhbmdlIHRoZSByZWZlcmVuY2UgYW5kIHRoZSByYXRpbywgdGhlbiBSdW4gYWdhaW4uCmNvbnN0IGJhc2UgPSAyMjA7CmNvbnN0IHJhdGlvID0gMyAvIDI7IC8vIFRyeSAyLzEgKG9jdGF2ZSksIDQvMyAoZm91cnRoKSwgb3IgNS80ICh0aGlyZCkuCgphd2FpdCBzb3VuZChbYmFzZV0sIDEpOwphd2FpdCBzb3VuZChbYmFzZSAqIHJhdGlvXSwgMSk7CmF3YWl0IHNvdW5kKFtiYXNlLCBiYXNlICogcmF0aW9dLCAzKTsKCi8vIFlNMjYxMiBicmlkZ2U6IEh6IC0-IHRoZSBjbG9zZXN0IGludGVnZXIgQkxPQ0svRk5VTSBwYWlyLgpmdW5jdGlvbiBwaXRjaEZyb21IeihoeikgewogIGNvbnN0IGNsb2NrID0gNzY3MDQ1NDsKICBsZXQgYmVzdDsKICBmb3IgKGxldCBibG9jayA9IDA7IGJsb2NrIDwgODsgYmxvY2srKykgewogICAgY29uc3QgdW5pdCA9IGNsb2NrICogMiAqKiAoYmxvY2sgLSAxKSAvICgxNDQgKiAyICoqIDIwKTsKICAgIGNvbnN0IGZudW0gPSBNYXRoLm1heCgxLCBNYXRoLm1pbigyMDQ3LCBNYXRoLnJvdW5kKGh6IC8gdW5pdCkpKTsKICAgIGNvbnN0IGFjdHVhbCA9IGZudW0gKiB1bml0OwogICAgaWYgKCFiZXN0IHx8IE1hdGguYWJzKGFjdHVhbCAtIGh6KSA8IE1hdGguYWJzKGJlc3QuYWN0dWFsIC0gaHopKSB7CiAgICAgIGJlc3QgPSB7IGJsb2NrLCBmbnVtLCBhY3R1YWwgfTsKICAgIH0KICB9CiAgcmV0dXJuIGJlc3Q7Cn0KCmZ1bmN0aW9uIHByZXBhcmVWb2ljZShjaGFubmVsKSB7CiAgZm0uc2V0QWxnbyhjaGFubmVsLCA3LCAwKTsgLy8gQWRkaXRpdmU6IGZvdXIgaW5kZXBlbmRlbnQgY2FycmllcnMuCiAgZm0uc2V0UGFuKGNoYW5uZWwsIHRydWUsIHRydWUpOwogIGZvciAoY29uc3QgW29wZXJhdG9yLCBtdWx0aSwgdGxdIG9mIC8qKiBAdHlwZSB7Y29uc3R9ICovIChbCiAgICBbT1AxLCAxLCAzMl0sIFtPUDIsIDIsIDQ4XSwgW09QMywgMywgNTZdLCBbT1A0LCA1LCA2MF0sCiAgXSkpIHsKICAgIGZtLnNldE9wZXJhdG9yKGNoYW5uZWwsIG9wZXJhdG9yLCB7CiAgICAgIGR0OiAwLCBtdWx0aSwgdGwsIGFyOiAzMSwgcnM6IDAsIGFtOiBmYWxzZSwKICAgICAgZDFyOiAwLCBkMnI6IDAsIHNsOiAwLCBycjogMTUsIHNzZzogMCwKICAgIH0pOwogIH0KfQoKYXN5bmMgZnVuY3Rpb24gc291bmQoZnJlcXVlbmNpZXMsIHNlY29uZHMgPSAyKSB7CiAgY29uc3QgY2hhbm5lbHMgPSAvKiogQHR5cGUge2NvbnN0fSAqLyAoW0NIMSwgQ0gyLCBDSDNdKTsKICBmcmVxdWVuY2llcy5mb3JFYWNoKChoeiwgaSkgPT4gewogICAgY29uc3QgY2hhbm5lbCA9IGNoYW5uZWxzW2ldOwogICAgcHJlcGFyZVZvaWNlKGNoYW5uZWwpOwogICAgY29uc3QgcGl0Y2ggPSBwaXRjaEZyb21Ieihoeik7CiAgICBjb25zb2xlLmxvZyhgVGFyZ2V0ICR7aHoudG9GaXhlZCgzKX0gSHogLT4gY2hpcCAke3BpdGNoLmFjdHVhbC50b0ZpeGVkKDMpfSBIemApOwogICAgZm0uc2V0RnJlcXVlbmN5KGNoYW5uZWwsIHBpdGNoLmJsb2NrLCBwaXRjaC5mbnVtKTsKICAgIGZtLmtleU9uKGNoYW5uZWwpOwogIH0pOwogIGF3YWl0IHNsZWVwKHNlY29uZHMpOwogIGZyZXF1ZW5jaWVzLmZvckVhY2goKF9oeiwgaSkgPT4gZm0ua2V5T2ZmKGNoYW5uZWxzW2ldKSk7CiAgYXdhaXQgc2xlZXAoMC4yNSk7Cn0K" title="Playground: explore frequency ratios" loading="lazy" allow="autoplay" style="height:640px;width:100%;border:1px solid var(--line);border-radius:14px"></iframe>
-<p><a href="../playground/index.html?src=Ly8gQ2hhbmdlIHRoZSByZWZlcmVuY2UgYW5kIHRoZSByYXRpbywgdGhlbiBSdW4gYWdhaW4uCmNvbnN0IGJhc2UgPSAyMjA7CmNvbnN0IHJhdGlvID0gMyAvIDI7IC8vIFRyeSAyLzEgKG9jdGF2ZSksIDQvMyAoZm91cnRoKSwgb3IgNS80ICh0aGlyZCkuCgphd2FpdCBzb3VuZChbYmFzZV0sIDEpOwphd2FpdCBzb3VuZChbYmFzZSAqIHJhdGlvXSwgMSk7CmF3YWl0IHNvdW5kKFtiYXNlLCBiYXNlICogcmF0aW9dLCAzKTsKCi8vIFlNMjYxMiBicmlkZ2U6IEh6IC0+IHRoZSBjbG9zZXN0IGludGVnZXIgQkxPQ0svRk5VTSBwYWlyLgpmdW5jdGlvbiBwaXRjaEZyb21IeihoeikgewogIGNvbnN0IGNsb2NrID0gNzY3MDQ1NDsKICBsZXQgYmVzdDsKICBmb3IgKGxldCBibG9jayA9IDA7IGJsb2NrIDwgODsgYmxvY2srKykgewogICAgY29uc3QgdW5pdCA9IGNsb2NrICogMiAqKiAoYmxvY2sgLSAxKSAvICgxNDQgKiAyICoqIDIwKTsKICAgIGNvbnN0IGZudW0gPSBNYXRoLm1heCgxLCBNYXRoLm1pbigyMDQ3LCBNYXRoLnJvdW5kKGh6IC8gdW5pdCkpKTsKICAgIGNvbnN0IGFjdHVhbCA9IGZudW0gKiB1bml0OwogICAgaWYgKCFiZXN0IHx8IE1hdGguYWJzKGFjdHVhbCAtIGh6KSA8IE1hdGguYWJzKGJlc3QuYWN0dWFsIC0gaHopKSB7CiAgICAgIGJlc3QgPSB7IGJsb2NrLCBmbnVtLCBhY3R1YWwgfTsKICAgIH0KICB9CiAgcmV0dXJuIGJlc3Q7Cn0KCmZ1bmN0aW9uIHByZXBhcmVWb2ljZShjaGFubmVsKSB7CiAgZm0uc2V0QWxnbyhjaGFubmVsLCA3LCAwKTsgLy8gQWRkaXRpdmU6IGZvdXIgaW5kZXBlbmRlbnQgY2FycmllcnMuCiAgZm0uc2V0UGFuKGNoYW5uZWwsIHRydWUsIHRydWUpOwogIGZvciAoY29uc3QgW29wZXJhdG9yLCBtdWx0aSwgdGxdIG9mIFsKICAgIFtPUDEsIDEsIDMyXSwgW09QMiwgMiwgNDhdLCBbT1AzLCAzLCA1Nl0sIFtPUDQsIDUsIDYwXSwKICBdKSB7CiAgICBmbS5zZXRPcGVyYXRvcihjaGFubmVsLCBvcGVyYXRvciwgewogICAgICBkdDogMCwgbXVsdGksIHRsLCBhcjogMzEsIHJzOiAwLCBhbTogZmFsc2UsCiAgICAgIGQxcjogMCwgZDJyOiAwLCBzbDogMCwgcnI6IDE1LCBzc2c6IDAsCiAgICB9KTsKICB9Cn0KCmFzeW5jIGZ1bmN0aW9uIHNvdW5kKGZyZXF1ZW5jaWVzLCBzZWNvbmRzID0gMikgewogIGNvbnN0IGNoYW5uZWxzID0gW0NIMSwgQ0gyLCBDSDNdOwogIGZyZXF1ZW5jaWVzLmZvckVhY2goKGh6LCBpKSA9PiB7CiAgICBjb25zdCBjaGFubmVsID0gY2hhbm5lbHNbaV07CiAgICBwcmVwYXJlVm9pY2UoY2hhbm5lbCk7CiAgICBjb25zdCBwaXRjaCA9IHBpdGNoRnJvbUh6KGh6KTsKICAgIGNvbnNvbGUubG9nKGBUYXJnZXQgJHtoei50b0ZpeGVkKDMpfSBIeiAtPiBjaGlwICR7cGl0Y2guYWN0dWFsLnRvRml4ZWQoMyl9IEh6YCk7CiAgICBmbS5zZXRGcmVxdWVuY3koY2hhbm5lbCwgcGl0Y2guYmxvY2ssIHBpdGNoLmZudW0pOwogICAgZm0ua2V5T24oY2hhbm5lbCk7CiAgfSk7CiAgYXdhaXQgc2xlZXAoc2Vjb25kcyk7CiAgZnJlcXVlbmNpZXMuZm9yRWFjaCgoX2h6LCBpKSA9PiBmbS5rZXlPZmYoY2hhbm5lbHNbaV0pKTsKICBhd2FpdCBzbGVlcCgwLjI1KTsKfQo=" target="_blank" rel="noopener noreferrer">Open this example in the full Playground ↗</a> · <a href="./tuning-ratios.js">JavaScript source</a></p>
+<p>Next change <code>base</code> from 220 to 440. The register changes, but the ratio stays the same. Change the values at the top, then run the example again.</p>
+<script type="text/plain" id="example-frequency-ratios">
+// A simple, one-op-basic-like voice.
+fm.setPreset(CH1, FM_PRESETS["one-op-basic"]);
+fm.setPreset(CH2, FM_PRESETS["one-op-basic"]);
+
+// Change the reference and the ratio, then Run again.
+const base = 220;
+const ratio = 3 / 2; // Try 2/1 (octave), 4/3 (fourth), or 5/4 (third).
+
+await sound(CH1, base, 1);
+await sound(CH1, base * ratio, 1);
+await Promise.all([
+  sound(CH1, base, 3),
+  sound(CH2, base * ratio, 3),
+]);
+
+// Play one tone in Hz using the voice already set on this channel.
+/** @param {YM2612Channel} channel */
+async function sound(channel, hz, seconds = 2) {
+  // YM2612 pitch is stored as a block and an integer frequency number.
+  let block = 0;
+  let fnum = hz * 144 * 2 ** 21 / 7670454;
+  while (fnum > 2047 && block < 7) {
+    fnum /= 2;
+    block++;
+  }
+  fm.setFrequency(channel, block, Math.max(1, Math.min(2047, Math.round(fnum))));
+  fm.keyOn(channel);
+  try {
+    await sleep(seconds);
+  } finally {
+    fm.keyOff(channel);
+  }
+}
+</script>
+<iframe class="playground-frame" data-playground-src="example-frequency-ratios" title="Playground: explore frequency ratios" loading="lazy" allow="autoplay" style="height:640px;width:100%;border:1px solid var(--line);border-radius:14px"></iframe>
+<script type="text/plain" id="example-ratios-full">
+// Change the reference and the ratio, then Run again.
+const base = 220;
+const ratio = 3 / 2; // Try 2/1 (octave), 4/3 (fourth), or 5/4 (third).
+
+await sound([base], 1);
+await sound([base * ratio], 1);
+await sound([base, base * ratio], 3);
+
+// YM2612 bridge: Hz -> the closest integer BLOCK/FNUM pair.
+function pitchFromHz(hz) {
+  const clock = 7670454;
+  let best;
+  for (let block = 0; block < 8; block++) {
+    const unit = clock * 2 ** (block - 1) / (144 * 2 ** 20);
+    const fnum = Math.max(1, Math.min(2047, Math.round(hz / unit)));
+    const actual = fnum * unit;
+    if (!best || Math.abs(actual - hz) < Math.abs(best.actual - hz)) {
+      best = { block, fnum, actual };
+    }
+  }
+  return best;
+}
+
+function prepareVoice(channel) {
+  fm.setAlgo(channel, 7, 0); // Additive: four independent carriers.
+  fm.setPan(channel, true, true);
+  for (const [operator, multi, tl] of [
+    [OP1, 1, 32], [OP2, 2, 48], [OP3, 3, 56], [OP4, 5, 60],
+  ]) {
+    fm.setOperator(channel, operator, {
+      dt: 0, multi, tl, ar: 31, rs: 0, am: false,
+      d1r: 0, d2r: 0, sl: 0, rr: 15, ssg: 0,
+    });
+  }
+}
+
+async function sound(frequencies, seconds = 2) {
+  const channels = [CH1, CH2, CH3];
+  frequencies.forEach((hz, i) => {
+    const channel = channels[i];
+    prepareVoice(channel);
+    const pitch = pitchFromHz(hz);
+    console.log(`Target ${hz.toFixed(3)} Hz -> chip ${pitch.actual.toFixed(3)} Hz`);
+    fm.setFrequency(channel, pitch.block, pitch.fnum);
+    fm.keyOn(channel);
+  });
+  await sleep(seconds);
+  frequencies.forEach((_hz, i) => fm.keyOff(channels[i]));
+  await sleep(0.25);
+}
+</script>
+<p><a data-playground-src="example-ratios-full" target="_blank" rel="noopener noreferrer">Open this example in the full Playground ↗</a> · <a href="./tuning-ratios.js">JavaScript source</a></p>
 <p class="muted">Each example ends by releasing its notes. Use Stop before starting another Playground. The same additive patch includes harmonics 1, 2, 3 and 5, with the upper harmonics quieter.</p>
 </section>
 <section class="panel">
@@ -344,8 +512,101 @@ pre {white-space:pre-wrap;overflow-wrap:anywhere;background:#f0e6d4;padding:18px
 <p>The equal-tempered major third is about 13.69 cents wider than 5/4. Its fifth is about 1.96 cents narrower than 3/2. The experiment changes these ratios while holding the root and patch fixed.</p>
 <h3>Build the chord yourself</h3>
 <p>Run with <code>tuning = "just"</code>, then change it to <code>"equal"</code>. The root and patch stay fixed. Listen especially to the sustained major third. Try keeping only the first two ratios to focus on that interval.</p>
-<iframe class="playground-frame" src="../playground/index.html?mode=simple&amp;src=Ly8gQ2hvb3NlICJqdXN0IiBvciAiZXF1YWwiLCB0aGVuIFJ1biBhZ2Fpbi4KY29uc3QgdHVuaW5nID0gImp1c3QiOwpjb25zdCBiYXNlID0gMjIwOwpjb25zdCByYXRpb3MgPSB0dW5pbmcgPT09ICJqdXN0IgogID8gWzEsIDUgLyA0LCAzIC8gMl0KICA6IFsxLCAyICoqICg0IC8gMTIpLCAyICoqICg3IC8gMTIpXTsKCi8vIFRyeSByYXRpb3Muc2xpY2UoMCwgMikgdG8gaGVhciBqdXN0IHRoZSBtYWpvciB0aGlyZC4KYXdhaXQgc291bmQocmF0aW9zLm1hcChyYXRpbyA9PiBiYXNlICogcmF0aW8pLCA0KTsKCi8vIFlNMjYxMiBicmlkZ2U6IEh6IC0-IHRoZSBjbG9zZXN0IGludGVnZXIgQkxPQ0svRk5VTSBwYWlyLgpmdW5jdGlvbiBwaXRjaEZyb21IeihoeikgewogIGNvbnN0IGNsb2NrID0gNzY3MDQ1NDsKICBsZXQgYmVzdDsKICBmb3IgKGxldCBibG9jayA9IDA7IGJsb2NrIDwgODsgYmxvY2srKykgewogICAgY29uc3QgdW5pdCA9IGNsb2NrICogMiAqKiAoYmxvY2sgLSAxKSAvICgxNDQgKiAyICoqIDIwKTsKICAgIGNvbnN0IGZudW0gPSBNYXRoLm1heCgxLCBNYXRoLm1pbigyMDQ3LCBNYXRoLnJvdW5kKGh6IC8gdW5pdCkpKTsKICAgIGNvbnN0IGFjdHVhbCA9IGZudW0gKiB1bml0OwogICAgaWYgKCFiZXN0IHx8IE1hdGguYWJzKGFjdHVhbCAtIGh6KSA8IE1hdGguYWJzKGJlc3QuYWN0dWFsIC0gaHopKSB7CiAgICAgIGJlc3QgPSB7IGJsb2NrLCBmbnVtLCBhY3R1YWwgfTsKICAgIH0KICB9CiAgcmV0dXJuIGJlc3Q7Cn0KCmZ1bmN0aW9uIHByZXBhcmVWb2ljZShjaGFubmVsKSB7CiAgZm0uc2V0QWxnbyhjaGFubmVsLCA3LCAwKTsgLy8gQWRkaXRpdmU6IGZvdXIgaW5kZXBlbmRlbnQgY2FycmllcnMuCiAgZm0uc2V0UGFuKGNoYW5uZWwsIHRydWUsIHRydWUpOwogIGZvciAoY29uc3QgW29wZXJhdG9yLCBtdWx0aSwgdGxdIG9mIC8qKiBAdHlwZSB7Y29uc3R9ICovIChbCiAgICBbT1AxLCAxLCAzMl0sIFtPUDIsIDIsIDQ4XSwgW09QMywgMywgNTZdLCBbT1A0LCA1LCA2MF0sCiAgXSkpIHsKICAgIGZtLnNldE9wZXJhdG9yKGNoYW5uZWwsIG9wZXJhdG9yLCB7CiAgICAgIGR0OiAwLCBtdWx0aSwgdGwsIGFyOiAzMSwgcnM6IDAsIGFtOiBmYWxzZSwKICAgICAgZDFyOiAwLCBkMnI6IDAsIHNsOiAwLCBycjogMTUsIHNzZzogMCwKICAgIH0pOwogIH0KfQoKYXN5bmMgZnVuY3Rpb24gc291bmQoZnJlcXVlbmNpZXMsIHNlY29uZHMgPSAyKSB7CiAgY29uc3QgY2hhbm5lbHMgPSAvKiogQHR5cGUge2NvbnN0fSAqLyAoW0NIMSwgQ0gyLCBDSDNdKTsKICBmcmVxdWVuY2llcy5mb3JFYWNoKChoeiwgaSkgPT4gewogICAgY29uc3QgY2hhbm5lbCA9IGNoYW5uZWxzW2ldOwogICAgcHJlcGFyZVZvaWNlKGNoYW5uZWwpOwogICAgY29uc3QgcGl0Y2ggPSBwaXRjaEZyb21Ieihoeik7CiAgICBjb25zb2xlLmxvZyhgVGFyZ2V0ICR7aHoudG9GaXhlZCgzKX0gSHogLT4gY2hpcCAke3BpdGNoLmFjdHVhbC50b0ZpeGVkKDMpfSBIemApOwogICAgZm0uc2V0RnJlcXVlbmN5KGNoYW5uZWwsIHBpdGNoLmJsb2NrLCBwaXRjaC5mbnVtKTsKICAgIGZtLmtleU9uKGNoYW5uZWwpOwogIH0pOwogIGF3YWl0IHNsZWVwKHNlY29uZHMpOwogIGZyZXF1ZW5jaWVzLmZvckVhY2goKF9oeiwgaSkgPT4gZm0ua2V5T2ZmKGNoYW5uZWxzW2ldKSk7CiAgYXdhaXQgc2xlZXAoMC4yNSk7Cn0K" title="Playground: just and equal-tempered chords" loading="lazy" allow="autoplay" style="height:640px;width:100%;border:1px solid var(--line);border-radius:14px"></iframe>
-<p><a href="../playground/index.html?src=Ly8gQ2hvb3NlICJqdXN0IiBvciAiZXF1YWwiLCB0aGVuIFJ1biBhZ2Fpbi4KY29uc3QgdHVuaW5nID0gImp1c3QiOwpjb25zdCBiYXNlID0gMjIwOwpjb25zdCByYXRpb3MgPSB0dW5pbmcgPT09ICJqdXN0IgogID8gWzEsIDUgLyA0LCAzIC8gMl0KICA6IFsxLCAyICoqICg0IC8gMTIpLCAyICoqICg3IC8gMTIpXTsKCi8vIFRyeSByYXRpb3Muc2xpY2UoMCwgMikgdG8gaGVhciBqdXN0IHRoZSBtYWpvciB0aGlyZC4KYXdhaXQgc291bmQocmF0aW9zLm1hcChyYXRpbyA9PiBiYXNlICogcmF0aW8pLCA0KTsKCi8vIFlNMjYxMiBicmlkZ2U6IEh6IC0+IHRoZSBjbG9zZXN0IGludGVnZXIgQkxPQ0svRk5VTSBwYWlyLgpmdW5jdGlvbiBwaXRjaEZyb21IeihoeikgewogIGNvbnN0IGNsb2NrID0gNzY3MDQ1NDsKICBsZXQgYmVzdDsKICBmb3IgKGxldCBibG9jayA9IDA7IGJsb2NrIDwgODsgYmxvY2srKykgewogICAgY29uc3QgdW5pdCA9IGNsb2NrICogMiAqKiAoYmxvY2sgLSAxKSAvICgxNDQgKiAyICoqIDIwKTsKICAgIGNvbnN0IGZudW0gPSBNYXRoLm1heCgxLCBNYXRoLm1pbigyMDQ3LCBNYXRoLnJvdW5kKGh6IC8gdW5pdCkpKTsKICAgIGNvbnN0IGFjdHVhbCA9IGZudW0gKiB1bml0OwogICAgaWYgKCFiZXN0IHx8IE1hdGguYWJzKGFjdHVhbCAtIGh6KSA8IE1hdGguYWJzKGJlc3QuYWN0dWFsIC0gaHopKSB7CiAgICAgIGJlc3QgPSB7IGJsb2NrLCBmbnVtLCBhY3R1YWwgfTsKICAgIH0KICB9CiAgcmV0dXJuIGJlc3Q7Cn0KCmZ1bmN0aW9uIHByZXBhcmVWb2ljZShjaGFubmVsKSB7CiAgZm0uc2V0QWxnbyhjaGFubmVsLCA3LCAwKTsgLy8gQWRkaXRpdmU6IGZvdXIgaW5kZXBlbmRlbnQgY2FycmllcnMuCiAgZm0uc2V0UGFuKGNoYW5uZWwsIHRydWUsIHRydWUpOwogIGZvciAoY29uc3QgW29wZXJhdG9yLCBtdWx0aSwgdGxdIG9mIFsKICAgIFtPUDEsIDEsIDMyXSwgW09QMiwgMiwgNDhdLCBbT1AzLCAzLCA1Nl0sIFtPUDQsIDUsIDYwXSwKICBdKSB7CiAgICBmbS5zZXRPcGVyYXRvcihjaGFubmVsLCBvcGVyYXRvciwgewogICAgICBkdDogMCwgbXVsdGksIHRsLCBhcjogMzEsIHJzOiAwLCBhbTogZmFsc2UsCiAgICAgIGQxcjogMCwgZDJyOiAwLCBzbDogMCwgcnI6IDE1LCBzc2c6IDAsCiAgICB9KTsKICB9Cn0KCmFzeW5jIGZ1bmN0aW9uIHNvdW5kKGZyZXF1ZW5jaWVzLCBzZWNvbmRzID0gMikgewogIGNvbnN0IGNoYW5uZWxzID0gW0NIMSwgQ0gyLCBDSDNdOwogIGZyZXF1ZW5jaWVzLmZvckVhY2goKGh6LCBpKSA9PiB7CiAgICBjb25zdCBjaGFubmVsID0gY2hhbm5lbHNbaV07CiAgICBwcmVwYXJlVm9pY2UoY2hhbm5lbCk7CiAgICBjb25zdCBwaXRjaCA9IHBpdGNoRnJvbUh6KGh6KTsKICAgIGNvbnNvbGUubG9nKGBUYXJnZXQgJHtoei50b0ZpeGVkKDMpfSBIeiAtPiBjaGlwICR7cGl0Y2guYWN0dWFsLnRvRml4ZWQoMyl9IEh6YCk7CiAgICBmbS5zZXRGcmVxdWVuY3koY2hhbm5lbCwgcGl0Y2guYmxvY2ssIHBpdGNoLmZudW0pOwogICAgZm0ua2V5T24oY2hhbm5lbCk7CiAgfSk7CiAgYXdhaXQgc2xlZXAoc2Vjb25kcyk7CiAgZnJlcXVlbmNpZXMuZm9yRWFjaCgoX2h6LCBpKSA9PiBmbS5rZXlPZmYoY2hhbm5lbHNbaV0pKTsKICBhd2FpdCBzbGVlcCgwLjI1KTsKfQo=" target="_blank" rel="noopener noreferrer">Open this example in the full Playground ↗</a> · <a href="./tuning-chords.js">JavaScript source</a></p>
+<script type="text/plain" id="example-just-equal-chords">
+// A simple, one-op-basic-like voice.
+fm.setPreset(CH1, FM_PRESETS["one-op-basic"]);
+fm.setPreset(CH2, FM_PRESETS["one-op-basic"]);
+fm.setPreset(CH3, FM_PRESETS["one-op-basic"]);
+
+// Choose "just" or "equal", then Run again.
+const tuning = "just";
+const base = 220;
+const ratios = tuning === "just"
+  ? [1, 5 / 4, 3 / 2]
+  : [1, 2 ** (4 / 12), 2 ** (7 / 12)];
+
+// Remove the CH3 line to hear just the major third.
+await Promise.all([
+  sound(CH1, base * ratios[0], 4),
+  sound(CH2, base * ratios[1], 4),
+  sound(CH3, base * ratios[2], 4),
+]);
+
+// Play one tone in Hz using the voice already set on this channel.
+/** @param {YM2612Channel} channel */
+async function sound(channel, hz, seconds = 2) {
+  // YM2612 pitch is stored as a block and an integer frequency number.
+  let block = 0;
+  let fnum = hz * 144 * 2 ** 21 / 7670454;
+  while (fnum > 2047 && block < 7) {
+    fnum /= 2;
+    block++;
+  }
+  fm.setFrequency(channel, block, Math.max(1, Math.min(2047, Math.round(fnum))));
+  fm.keyOn(channel);
+  try {
+    await sleep(seconds);
+  } finally {
+    fm.keyOff(channel);
+  }
+}
+</script>
+<iframe class="playground-frame" data-playground-src="example-just-equal-chords" title="Playground: just and equal-tempered chords" loading="lazy" allow="autoplay" style="height:640px;width:100%;border:1px solid var(--line);border-radius:14px"></iframe>
+<script type="text/plain" id="example-chords-full">
+// Choose "just" or "equal", then Run again.
+const tuning = "just";
+const base = 220;
+const ratios = tuning === "just"
+  ? [1, 5 / 4, 3 / 2]
+  : [1, 2 ** (4 / 12), 2 ** (7 / 12)];
+
+// Try ratios.slice(0, 2) to hear just the major third.
+await sound(ratios.map(ratio => base * ratio), 4);
+
+// YM2612 bridge: Hz -> the closest integer BLOCK/FNUM pair.
+function pitchFromHz(hz) {
+  const clock = 7670454;
+  let best;
+  for (let block = 0; block < 8; block++) {
+    const unit = clock * 2 ** (block - 1) / (144 * 2 ** 20);
+    const fnum = Math.max(1, Math.min(2047, Math.round(hz / unit)));
+    const actual = fnum * unit;
+    if (!best || Math.abs(actual - hz) < Math.abs(best.actual - hz)) {
+      best = { block, fnum, actual };
+    }
+  }
+  return best;
+}
+
+function prepareVoice(channel) {
+  fm.setAlgo(channel, 7, 0); // Additive: four independent carriers.
+  fm.setPan(channel, true, true);
+  for (const [operator, multi, tl] of [
+    [OP1, 1, 32], [OP2, 2, 48], [OP3, 3, 56], [OP4, 5, 60],
+  ]) {
+    fm.setOperator(channel, operator, {
+      dt: 0, multi, tl, ar: 31, rs: 0, am: false,
+      d1r: 0, d2r: 0, sl: 0, rr: 15, ssg: 0,
+    });
+  }
+}
+
+async function sound(frequencies, seconds = 2) {
+  const channels = [CH1, CH2, CH3];
+  frequencies.forEach((hz, i) => {
+    const channel = channels[i];
+    prepareVoice(channel);
+    const pitch = pitchFromHz(hz);
+    console.log(`Target ${hz.toFixed(3)} Hz -> chip ${pitch.actual.toFixed(3)} Hz`);
+    fm.setFrequency(channel, pitch.block, pitch.fnum);
+    fm.keyOn(channel);
+  });
+  await sleep(seconds);
+  frequencies.forEach((_hz, i) => fm.keyOff(channels[i]));
+  await sleep(0.25);
+}
+</script>
+<p><a data-playground-src="example-chords-full" target="_blank" rel="noopener noreferrer">Open this example in the full Playground ↗</a> · <a href="./tuning-chords.js">JavaScript source</a></p>
 <p>For a deeper listening explanation, see Joe Wolfe’s <a href="https://www.phys.unsw.edu.au/jw/tartini-temperament.html" target="_blank" rel="noopener noreferrer">UNSW introduction to tones and temperament</a>.</p>
 </section>
 <section class="panel">
@@ -369,8 +630,95 @@ const just = [0, ratioToPitch(5/4), ratioToPitch(3/2)];
 <p>This is an article-defined coordinate system, not a new Tetorica API. At the chip boundary, frequencies must become integer BLOCK/FNUM values. Mathematical continuity does not make the YM2612 infinitely precise.</p>
 <h3>Try a fractional pitch</h3>
 <p>Run with the pure third, then replace <code>pitch</code> with <code>4</code>. Try <code>4.1</code> next. You are moving on the same pitch axis; there is no need to choose a new note-name system.</p>
-<iframe class="playground-frame" src="../playground/index.html?mode=simple&amp;src=Ly8gQSBwaXRjaCBjb29yZGluYXRlIG1lYXN1cmVkIGluIHNlbWl0b25lcyBmcm9tIGJhc2UuCmNvbnN0IGJhc2UgPSAyMjA7CmNvbnN0IHBpdGNoID0gMTIgKiBNYXRoLmxvZzIoNSAvIDQpOyAvLyAzLjg2My4uLjsgdHJ5IDQgb3IgNC4xLgpjb25zdCBmcmVxdWVuY3kgPSBiYXNlICogMiAqKiAocGl0Y2ggLyAxMik7Cgpjb25zb2xlLmxvZygiU2VtaXRvbmVzOiIsIHBpdGNoLCAiQ2VudHM6IiwgcGl0Y2ggKiAxMDApOwphd2FpdCBzb3VuZChbYmFzZSwgZnJlcXVlbmN5XSwgMyk7CgovLyBZTTI2MTIgYnJpZGdlOiBIeiAtPiB0aGUgY2xvc2VzdCBpbnRlZ2VyIEJMT0NLL0ZOVU0gcGFpci4KZnVuY3Rpb24gcGl0Y2hGcm9tSHooaHopIHsKICBjb25zdCBjbG9jayA9IDc2NzA0NTQ7CiAgbGV0IGJlc3Q7CiAgZm9yIChsZXQgYmxvY2sgPSAwOyBibG9jayA8IDg7IGJsb2NrKyspIHsKICAgIGNvbnN0IHVuaXQgPSBjbG9jayAqIDIgKiogKGJsb2NrIC0gMSkgLyAoMTQ0ICogMiAqKiAyMCk7CiAgICBjb25zdCBmbnVtID0gTWF0aC5tYXgoMSwgTWF0aC5taW4oMjA0NywgTWF0aC5yb3VuZChoeiAvIHVuaXQpKSk7CiAgICBjb25zdCBhY3R1YWwgPSBmbnVtICogdW5pdDsKICAgIGlmICghYmVzdCB8fCBNYXRoLmFicyhhY3R1YWwgLSBoeikgPCBNYXRoLmFicyhiZXN0LmFjdHVhbCAtIGh6KSkgewogICAgICBiZXN0ID0geyBibG9jaywgZm51bSwgYWN0dWFsIH07CiAgICB9CiAgfQogIHJldHVybiBiZXN0Owp9CgpmdW5jdGlvbiBwcmVwYXJlVm9pY2UoY2hhbm5lbCkgewogIGZtLnNldEFsZ28oY2hhbm5lbCwgNywgMCk7IC8vIEFkZGl0aXZlOiBmb3VyIGluZGVwZW5kZW50IGNhcnJpZXJzLgogIGZtLnNldFBhbihjaGFubmVsLCB0cnVlLCB0cnVlKTsKICBmb3IgKGNvbnN0IFtvcGVyYXRvciwgbXVsdGksIHRsXSBvZiAvKiogQHR5cGUge2NvbnN0fSAqLyAoWwogICAgW09QMSwgMSwgMzJdLCBbT1AyLCAyLCA0OF0sIFtPUDMsIDMsIDU2XSwgW09QNCwgNSwgNjBdLAogIF0pKSB7CiAgICBmbS5zZXRPcGVyYXRvcihjaGFubmVsLCBvcGVyYXRvciwgewogICAgICBkdDogMCwgbXVsdGksIHRsLCBhcjogMzEsIHJzOiAwLCBhbTogZmFsc2UsCiAgICAgIGQxcjogMCwgZDJyOiAwLCBzbDogMCwgcnI6IDE1LCBzc2c6IDAsCiAgICB9KTsKICB9Cn0KCmFzeW5jIGZ1bmN0aW9uIHNvdW5kKGZyZXF1ZW5jaWVzLCBzZWNvbmRzID0gMikgewogIGNvbnN0IGNoYW5uZWxzID0gLyoqIEB0eXBlIHtjb25zdH0gKi8gKFtDSDEsIENIMiwgQ0gzXSk7CiAgZnJlcXVlbmNpZXMuZm9yRWFjaCgoaHosIGkpID0-IHsKICAgIGNvbnN0IGNoYW5uZWwgPSBjaGFubmVsc1tpXTsKICAgIHByZXBhcmVWb2ljZShjaGFubmVsKTsKICAgIGNvbnN0IHBpdGNoID0gcGl0Y2hGcm9tSHooaHopOwogICAgY29uc29sZS5sb2coYFRhcmdldCAke2h6LnRvRml4ZWQoMyl9IEh6IC0-IGNoaXAgJHtwaXRjaC5hY3R1YWwudG9GaXhlZCgzKX0gSHpgKTsKICAgIGZtLnNldEZyZXF1ZW5jeShjaGFubmVsLCBwaXRjaC5ibG9jaywgcGl0Y2guZm51bSk7CiAgICBmbS5rZXlPbihjaGFubmVsKTsKICB9KTsKICBhd2FpdCBzbGVlcChzZWNvbmRzKTsKICBmcmVxdWVuY2llcy5mb3JFYWNoKChfaHosIGkpID0-IGZtLmtleU9mZihjaGFubmVsc1tpXSkpOwogIGF3YWl0IHNsZWVwKDAuMjUpOwp9Cg" title="Playground: fractional semitone coordinates" loading="lazy" allow="autoplay" style="height:640px;width:100%;border:1px solid var(--line);border-radius:14px"></iframe>
-<p><a href="../playground/index.html?src=Ly8gQSBwaXRjaCBjb29yZGluYXRlIG1lYXN1cmVkIGluIHNlbWl0b25lcyBmcm9tIGJhc2UuCmNvbnN0IGJhc2UgPSAyMjA7CmNvbnN0IHBpdGNoID0gMTIgKiBNYXRoLmxvZzIoNSAvIDQpOyAvLyAzLjg2My4uLjsgdHJ5IDQgb3IgNC4xLgpjb25zdCBmcmVxdWVuY3kgPSBiYXNlICogMiAqKiAocGl0Y2ggLyAxMik7Cgpjb25zb2xlLmxvZygiU2VtaXRvbmVzOiIsIHBpdGNoLCAiQ2VudHM6IiwgcGl0Y2ggKiAxMDApOwphd2FpdCBzb3VuZChbYmFzZSwgZnJlcXVlbmN5XSwgMyk7CgovLyBZTTI2MTIgYnJpZGdlOiBIeiAtPiB0aGUgY2xvc2VzdCBpbnRlZ2VyIEJMT0NLL0ZOVU0gcGFpci4KZnVuY3Rpb24gcGl0Y2hGcm9tSHooaHopIHsKICBjb25zdCBjbG9jayA9IDc2NzA0NTQ7CiAgbGV0IGJlc3Q7CiAgZm9yIChsZXQgYmxvY2sgPSAwOyBibG9jayA8IDg7IGJsb2NrKyspIHsKICAgIGNvbnN0IHVuaXQgPSBjbG9jayAqIDIgKiogKGJsb2NrIC0gMSkgLyAoMTQ0ICogMiAqKiAyMCk7CiAgICBjb25zdCBmbnVtID0gTWF0aC5tYXgoMSwgTWF0aC5taW4oMjA0NywgTWF0aC5yb3VuZChoeiAvIHVuaXQpKSk7CiAgICBjb25zdCBhY3R1YWwgPSBmbnVtICogdW5pdDsKICAgIGlmICghYmVzdCB8fCBNYXRoLmFicyhhY3R1YWwgLSBoeikgPCBNYXRoLmFicyhiZXN0LmFjdHVhbCAtIGh6KSkgewogICAgICBiZXN0ID0geyBibG9jaywgZm51bSwgYWN0dWFsIH07CiAgICB9CiAgfQogIHJldHVybiBiZXN0Owp9CgpmdW5jdGlvbiBwcmVwYXJlVm9pY2UoY2hhbm5lbCkgewogIGZtLnNldEFsZ28oY2hhbm5lbCwgNywgMCk7IC8vIEFkZGl0aXZlOiBmb3VyIGluZGVwZW5kZW50IGNhcnJpZXJzLgogIGZtLnNldFBhbihjaGFubmVsLCB0cnVlLCB0cnVlKTsKICBmb3IgKGNvbnN0IFtvcGVyYXRvciwgbXVsdGksIHRsXSBvZiBbCiAgICBbT1AxLCAxLCAzMl0sIFtPUDIsIDIsIDQ4XSwgW09QMywgMywgNTZdLCBbT1A0LCA1LCA2MF0sCiAgXSkgewogICAgZm0uc2V0T3BlcmF0b3IoY2hhbm5lbCwgb3BlcmF0b3IsIHsKICAgICAgZHQ6IDAsIG11bHRpLCB0bCwgYXI6IDMxLCByczogMCwgYW06IGZhbHNlLAogICAgICBkMXI6IDAsIGQycjogMCwgc2w6IDAsIHJyOiAxNSwgc3NnOiAwLAogICAgfSk7CiAgfQp9Cgphc3luYyBmdW5jdGlvbiBzb3VuZChmcmVxdWVuY2llcywgc2Vjb25kcyA9IDIpIHsKICBjb25zdCBjaGFubmVscyA9IFtDSDEsIENIMiwgQ0gzXTsKICBmcmVxdWVuY2llcy5mb3JFYWNoKChoeiwgaSkgPT4gewogICAgY29uc3QgY2hhbm5lbCA9IGNoYW5uZWxzW2ldOwogICAgcHJlcGFyZVZvaWNlKGNoYW5uZWwpOwogICAgY29uc3QgcGl0Y2ggPSBwaXRjaEZyb21Ieihoeik7CiAgICBjb25zb2xlLmxvZyhgVGFyZ2V0ICR7aHoudG9GaXhlZCgzKX0gSHogLT4gY2hpcCAke3BpdGNoLmFjdHVhbC50b0ZpeGVkKDMpfSBIemApOwogICAgZm0uc2V0RnJlcXVlbmN5KGNoYW5uZWwsIHBpdGNoLmJsb2NrLCBwaXRjaC5mbnVtKTsKICAgIGZtLmtleU9uKGNoYW5uZWwpOwogIH0pOwogIGF3YWl0IHNsZWVwKHNlY29uZHMpOwogIGZyZXF1ZW5jaWVzLmZvckVhY2goKF9oeiwgaSkgPT4gZm0ua2V5T2ZmKGNoYW5uZWxzW2ldKSk7CiAgYXdhaXQgc2xlZXAoMC4yNSk7Cn0K" target="_blank" rel="noopener noreferrer">Open this example in the full Playground ↗</a> · <a href="./tuning-pitch.js">JavaScript source</a></p>
+<script type="text/plain" id="example-fractional-semitones">
+// A simple, one-op-basic-like voice.
+fm.setPreset(CH1, FM_PRESETS["one-op-basic"]);
+fm.setPreset(CH2, FM_PRESETS["one-op-basic"]);
+
+// A pitch coordinate measured in semitones from base.
+const base = 220;
+const pitch = 12 * Math.log2(5 / 4); // 3.863...; try 4 or 4.1.
+const frequency = base * 2 ** (pitch / 12);
+
+console.log("Semitones:", pitch, "Cents:", pitch * 100);
+await Promise.all([
+  sound(CH1, base, 3),
+  sound(CH2, frequency, 3),
+]);
+
+// Play one tone in Hz using the voice already set on this channel.
+/** @param {YM2612Channel} channel */
+async function sound(channel, hz, seconds = 2) {
+  // YM2612 pitch is stored as a block and an integer frequency number.
+  let block = 0;
+  let fnum = hz * 144 * 2 ** 21 / 7670454;
+  while (fnum > 2047 && block < 7) {
+    fnum /= 2;
+    block++;
+  }
+  fm.setFrequency(channel, block, Math.max(1, Math.min(2047, Math.round(fnum))));
+  fm.keyOn(channel);
+  try {
+    await sleep(seconds);
+  } finally {
+    fm.keyOff(channel);
+  }
+}
+</script>
+<iframe class="playground-frame" data-playground-src="example-fractional-semitones" title="Playground: fractional semitone coordinates" loading="lazy" allow="autoplay" style="height:640px;width:100%;border:1px solid var(--line);border-radius:14px"></iframe>
+<script type="text/plain" id="example-pitch-full">
+// A pitch coordinate measured in semitones from base.
+const base = 220;
+const pitch = 12 * Math.log2(5 / 4); // 3.863...; try 4 or 4.1.
+const frequency = base * 2 ** (pitch / 12);
+
+console.log("Semitones:", pitch, "Cents:", pitch * 100);
+await sound([base, frequency], 3);
+
+// YM2612 bridge: Hz -> the closest integer BLOCK/FNUM pair.
+function pitchFromHz(hz) {
+  const clock = 7670454;
+  let best;
+  for (let block = 0; block < 8; block++) {
+    const unit = clock * 2 ** (block - 1) / (144 * 2 ** 20);
+    const fnum = Math.max(1, Math.min(2047, Math.round(hz / unit)));
+    const actual = fnum * unit;
+    if (!best || Math.abs(actual - hz) < Math.abs(best.actual - hz)) {
+      best = { block, fnum, actual };
+    }
+  }
+  return best;
+}
+
+function prepareVoice(channel) {
+  fm.setAlgo(channel, 7, 0); // Additive: four independent carriers.
+  fm.setPan(channel, true, true);
+  for (const [operator, multi, tl] of [
+    [OP1, 1, 32], [OP2, 2, 48], [OP3, 3, 56], [OP4, 5, 60],
+  ]) {
+    fm.setOperator(channel, operator, {
+      dt: 0, multi, tl, ar: 31, rs: 0, am: false,
+      d1r: 0, d2r: 0, sl: 0, rr: 15, ssg: 0,
+    });
+  }
+}
+
+async function sound(frequencies, seconds = 2) {
+  const channels = [CH1, CH2, CH3];
+  frequencies.forEach((hz, i) => {
+    const channel = channels[i];
+    prepareVoice(channel);
+    const pitch = pitchFromHz(hz);
+    console.log(`Target ${hz.toFixed(3)} Hz -> chip ${pitch.actual.toFixed(3)} Hz`);
+    fm.setFrequency(channel, pitch.block, pitch.fnum);
+    fm.keyOn(channel);
+  });
+  await sleep(seconds);
+  frequencies.forEach((_hz, i) => fm.keyOff(channels[i]));
+  await sleep(0.25);
+}
+</script>
+<p><a data-playground-src="example-pitch-full" target="_blank" rel="noopener noreferrer">Open this example in the full Playground ↗</a> · <a href="./tuning-pitch.js">JavaScript source</a></p>
 <p class="muted">The example helpers use Hz directly rather than the Playground note-name reference. The full Playground console shows target and approximated chip frequencies. Small residual errors remain because BLOCK/FNUM is discrete; pure mathematical ratios are targets, not exact chip guarantees.</p>
 
 </section>
@@ -381,4 +729,6 @@ const just = [0, ratioToPitch(5/4), ratioToPitch(3/2)];
 <p>The useful connection is the question: <strong>what changes when one frequency is related to another?</strong> Start with a reference, choose a ratio, then listen.</p>
 <a class="link-button" href="./index.html">Explore FM operators</a> <a class="link-button" href="../playground/index.html" target="_blank" rel="noopener noreferrer">Open Playground ↗</a>
 </section>
-</main></body></html>
+</main>
+<script src="./playground-embed.js"></script>
+</body></html>

@@ -858,6 +858,7 @@ export function createPlaygroundRuntime(
     switch (command) {
       case "write":
       case "play":
+      case "sound":
       case "psgTone":
       case "psgNoise":
       case "setMasterVolume":
@@ -1007,6 +1008,7 @@ export function createPlaygroundRuntime(
     const psg = megaDrive.psg;
     const musicApi =
       createPlaygroundMusic({
+        chip: capabilities.chip,
         noteToSemitone:
           NOTE_TO_SEMITONE,
         scaleIntervals:
@@ -1165,6 +1167,7 @@ export function createPlaygroundRuntime(
           fn,
           livePrepareApi
         ),
+      sound: (channel, hz, seconds) => musicApi.sound(channel, hz, seconds),
       play: (note, playOptions) =>
         musicApi.play(
           note,
@@ -1287,6 +1290,7 @@ export function createPlaygroundRuntime(
           pg.getDacLookahead,
         livePrepare: (name, fn) =>
           pg.livePrepare(name, fn),
+        sound: (channel, hz, seconds) => pg.sound(channel, hz, seconds),
         play: (note, playOptions) =>
           pg.play(
             note,
