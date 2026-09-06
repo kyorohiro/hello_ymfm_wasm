@@ -17,11 +17,12 @@ If that sounds interesting, let&apos;s keep going.
 
 # Tetorica FM2612 (hello_ymfm_wasm)
 
-This repository has three goals:
+This repository has four goals:
 
 - To understand the YM2612 chip.
 - To create documentation that helps anyone understand the YM2612 chip.
 - To create documentation that helps anyone embed YM2612 audio in a browser app or game.
+- To preserve older game music and sound chip technology as cultural heritage that people today can read, investigate, learn from, and reconstruct—not only archive and play back.
 
 ## What this repository provides
 
