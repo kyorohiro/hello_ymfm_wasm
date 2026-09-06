@@ -370,8 +370,9 @@
         <p>
           On the YM2612, those ideas are controlled with parameters such as
           <code>AR</code>, <code>D1R</code>, <code>D2R</code>, <code>SL</code>, and <code>RR</code>.
-          They decide how fast the sound rises, how it falls after the peak, how long it stays,
-          and how it disappears after key off.
+          They control the rise, the fall after the peak, the later decay while a note is held,
+          and the fade after key off. Unlike a simple ADSR with a flat sustain stage,
+          the YM2612 can keep fading while the key is held: that later decay is controlled by <code>D2R</code>.
         </p>
         <div class="diagram">
           <img src="./adsr_diagram.svg" alt="ADSR envelope diagram">
@@ -399,6 +400,25 @@
         </p>
         <p>
           So why not start with just one operator first?
+        </p>
+        <h3>Try this: shape one sound</h3>
+        <p>Change one setting at a time, then press and hold <strong>Hold to Play</strong> to compare.
+          Let go to hear the release; use <strong>Stop</strong> when you want to stop playback.</p>
+        <ol>
+          <li><strong>Change the attack.</strong> In OP1, compare <code>AR = 31</code> with <code>AR = 12</code>.
+            Listen for a sharp start versus a slower rise, and compare the Envelope display.</li>
+          <li><strong>Hear the release.</strong> Set <code>AR = 31</code>, <code>D1R = 0</code>, and <code>D2R = 0</code>
+            so the sound stays audible while held. Compare <code>RR = 15</code> with <code>RR = 4</code>,
+            releasing the button each time. Which leaves a longer tail?</li>
+          <li><strong>Separate pitch from level.</strong> Compare <code>MULTI = 1</code> and <code>MULTI = 2</code>,
+            then restore <code>MULTI = 1</code> and raise <code>TL</code> from 0 to 32.
+            Listen for the difference between changing pitch and making the sound quieter.</li>
+        </ol>
+        <p>
+          <strong>Reading the numbers:</strong> TL is attenuation, so a larger value means a quieter operator.
+          AR, D1R, D2R, and RR are rates, not durations in seconds: larger values generally mean faster changes.
+          SL sets the level where the first decay gives way to the later decay; it does not set a hold time.
+          The Envelope drawing is a guide to the shape, not a measured time or volume scale.
         </p>
         <div class="demo-loader" data-demo-loader>
           <p>Load the 1 Operator Demo when you want to explore a single operator's sound and envelope.</p>
@@ -441,6 +461,25 @@
           There are 8 fixed algorithms to choose from per channel. Algorithm 7 is the simplest to start with:
           all 4 operators are carriers, wired straight to the output with no modulation between them, so you can
           hear each operator's raw contribution before adding modulation back in.
+        </p>
+        <h3>Try this: connect two operators</h3>
+        <p>
+          Load the <strong>Plain Dual</strong> preset in Common, then use the Common / OP1 / OP2 tabs.
+          The routing label shows the active pair using the demo's OP1 and OP2 names.
+        </p>
+        <ol>
+          <li><strong>Compare the connection.</strong> With <code>FB = 0</code>, switch between Parallel and Serial,
+            playing after each change. Parallel mixes two audible operators; Serial sends OP1 into OP2.</li>
+          <li><strong>Change the modulator.</strong> In Serial, vary OP1's TL, then its MULTI.
+            OP1 now shapes the sound of OP2 instead of being mixed directly into the output.
+            Return to Parallel and repeat the TL comparison.</li>
+          <li><strong>Add feedback.</strong> Return to Serial and compare <code>FB = 0</code>, 3, and 6 in Common.
+            Listen to how the texture changes while leaving the operator settings alone.</li>
+        </ol>
+        <p>
+          <strong>Feedback</strong> sends some of OP1's output back into itself.
+          The FB value controls its strength; zero turns it off.
+          Its audible effect depends on the operator settings and the connection, so compare it in both modes.
         </p>
         <div class="demo-loader" data-demo-loader>
           <p>Load the 2 Operator Demo when you want to compare carrier/modulator behavior more directly.</p>
@@ -498,6 +537,21 @@
           (archived) and its bulk archives:
           <a href="https://archive.org/details/Project2612CompleteArchive20180623681Sets.7z">Project 2612 Complete Archive (2018-06-23, 681 sets)</a> and
           <a href="https://archive.org/details/project-2612-complete-archive-2021-07-12-704-sets.-7z">Project 2612 Complete Archive (2021-07-12, 704 sets)</a>.
+        </p>
+        <h3>Try this: follow a sound back to its settings</h3>
+        <ol>
+          <li><strong>Find a sound.</strong> Load a VGM or VGZ file, play it, and watch which channels become active.
+            Pause during a sound you want to study.</li>
+          <li><strong>Inspect its construction.</strong> Look at that channel's algorithm, operator levels,
+            and envelope parameters. Identify which operators feed the output and which shape another operator.</li>
+          <li><strong>Bring it back to sound design.</strong> Click <strong>Export Snapshot TFI</strong>,
+            unzip the download, and select the channel's TFI file. Load it into the
+            <a href="../synth/index.html">Synth</a> using its TFI file input.
+            Play a note, change one parameter, and compare it with the original.</li>
+        </ol>
+        <p>
+          A patch captures settings at one moment. The original performance may also change pitch, levels,
+          and other registers over time, so a TFI patch alone does not reproduce the whole phrase.
         </p>
         <div class="demo-loader" data-demo-loader>
           <p>Load the Analyzer when you want to inspect real VGM files, watch register changes, and extract patches.</p>
