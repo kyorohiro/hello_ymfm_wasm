@@ -9,10 +9,12 @@ export function createPlaygroundUi(
     consoleTab,
     helpersTab,
     operatorTabButton,
+    keyboardTab,
     consolePanel,
     codePanel,
     helpersPanel,
     operatorPanel,
+    keyboardPanel,
   } = options;
 
   function setStatus(message) {
@@ -86,6 +88,11 @@ export function createPlaygroundUi(
       name: "operator",
       button: operatorTabButton,
       panel: operatorPanel,
+    },
+    {
+      name: "keyboard",
+      button: keyboardTab,
+      panel: keyboardPanel,
     },
     {
       name: "helpers",

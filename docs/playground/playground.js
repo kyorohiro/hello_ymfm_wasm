@@ -14,6 +14,7 @@ import {
 import {
   createPlaygroundOperatorTab,
 } from "./playground_operator_tab.js";
+import { createPlaygroundOperatorKeyboard } from "./playground_operator_keyboard.js";
 import { EXAMPLES } from "./playground_examples.js";
 import { initializePlaygroundMonaco } from "./playground_monaco.js";
 import {
@@ -186,6 +187,9 @@ const operatorTabRoot =
   document.getElementById(
     "operatorTabRoot"
   );
+const keyboardTab = document.getElementById("keyboardTab");
+const keyboardPanel = document.getElementById("keyboardPanel");
+const operatorKeyboardRoot = document.getElementById("operatorKeyboardRoot");
 
 // Experimental: ?engine=nuked swaps the YM2612 core for Nuked-OPN2
 // (https://github.com/nukeykt/Nuked-OPN2) instead of the default ymfm
@@ -381,6 +385,31 @@ const operatorTab =
       setStatus(message);
     },
   });
+const operatorKeyboard = createPlaygroundOperatorKeyboard({
+  root: operatorKeyboardRoot,
+  channelCount: megaDrive.capabilities.fmChannels,
+  presets: playgroundPresets,
+  presetOrder: FM_PRESET_ORDER,
+  onChannelChange(channel) {
+    operatorTab.selectChannel?.(channel);
+  },
+  onPresetChange(channel, presetName) {
+    if (presetName) {
+      if (channel === null) {
+        const selectedChannel = operatorTab.getSelectedChannel?.() ?? 0;
+        for (let target = 0; target < megaDrive.capabilities.fmChannels; target += 1) {
+          operatorTab.selectPreset?.(target, presetName);
+        }
+        operatorTab.selectChannel?.(selectedChannel);
+      } else {
+        operatorTab.selectPreset?.(channel, presetName);
+      }
+    }
+  },
+  onStatus(message) {
+    setStatus(message);
+  },
+});
 
 function updateMasterVolumeUi() {
   const masterVolume =
@@ -1198,10 +1227,12 @@ const ui =
     consoleTab,
     helpersTab,
     operatorTabButton,
+    keyboardTab,
     consolePanel,
     codePanel,
     helpersPanel,
     operatorPanel,
+    keyboardPanel,
   });
 const {
   setStatus,
@@ -1229,6 +1260,7 @@ function createRuntime() {
     onReady(context) {
       synth = context.synth;
       operatorTab.attachSynth(synth);
+      operatorKeyboard.attachSynth(synth);
       applyMasterVolume();
     },
     onMegaDriveEvent(event) {

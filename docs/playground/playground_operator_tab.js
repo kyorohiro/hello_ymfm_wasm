@@ -103,7 +103,7 @@ function createDefaultOperatorState(
 
 function createDefaultChannelState() {
   return {
-    presetName: "one-op-basic",
+    presetName: "",
     algorithm: 7,
     feedback: 0,
     ams: 0,
@@ -248,7 +248,7 @@ export function createPlaygroundOperatorTab(
       { length: channelCount },
       () =>
         createChannelStateFromPreset(
-          "one-op-basic",
+          "",
           presets
         )
     );
@@ -821,6 +821,11 @@ export function createPlaygroundOperatorTab(
     );
   }
 
+  const currentOption = document.createElement("option");
+  currentOption.value = "";
+  currentOption.textContent = "Current";
+  presetSelect.appendChild(currentOption);
+
   for (const presetName of presetOrder) {
     const option =
       document.createElement(
@@ -871,6 +876,10 @@ export function createPlaygroundOperatorTab(
   presetSelect.addEventListener(
     "change",
     () => {
+      if (!presetSelect.value) {
+        currentState().presetName = "";
+        return;
+      }
       replaceCurrentState(
         createChannelStateFromPreset(
           presetSelect.value,
@@ -909,6 +918,22 @@ export function createPlaygroundOperatorTab(
   return {
     registerPresetOption,
     removePresetOption,
+    selectChannel(channel) {
+      selectedChannel = Math.max(0, Math.min(channelCount - 1, Number(channel) || 0));
+      channelSelect.value = String(selectedChannel);
+      updateControlsUi();
+    },
+    selectPreset(channel, presetName) {
+      selectedChannel = Math.max(0, Math.min(channelCount - 1, Number(channel) || 0));
+      channelSelect.value = String(selectedChannel);
+      if (presets[presetName]) {
+        replaceCurrentState(createChannelStateFromPreset(presetName, presets));
+        updateControlsUi();
+      }
+    },
+    getSelectedChannel() {
+      return selectedChannel;
+    },
     attachSynth(nextSynth) {
       synth = nextSynth;
 
@@ -926,7 +951,7 @@ export function createPlaygroundOperatorTab(
       ) {
         stateByChannel[channel] =
           createChannelStateFromPreset(
-            "one-op-basic",
+            "",
             presets
           );
       }

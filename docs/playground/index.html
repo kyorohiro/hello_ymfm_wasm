@@ -819,6 +819,61 @@
         margin-bottom: 10px;
       }
 
+      .playground-keyboard-toolbar {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-bottom: 10px;
+      }
+
+      .playground-keyboard-toolbar > div {
+        display: flex;
+        gap: 5px;
+      }
+
+      .playground-keyboard-tools {
+        margin-bottom: 10px;
+      }
+
+      .playground-keyboard {
+        display: grid;
+        gap: 5px;
+        max-width: 960px;
+      }
+
+      .playground-keyboard .key-row {
+        display: grid;
+        grid-template-columns: repeat(10, minmax(42px, 1fr));
+        gap: 4px;
+      }
+
+      .playground-keyboard .key {
+        min-height: 54px;
+        padding: 5px;
+        border: 1px solid rgba(70, 83, 106, 0.38);
+        border-radius: 7px;
+        background: rgba(255, 255, 255, 0.72);
+        color: var(--ink);
+        cursor: pointer;
+      }
+
+      .playground-keyboard .key strong,
+      .playground-keyboard .key span,
+      .playground-keyboard .key small {
+        display: block;
+      }
+
+      .playground-keyboard .key small {
+        font-size: 9px;
+        opacity: 0.68;
+      }
+
+      .playground-keyboard .key.is-active {
+        background: #f2c94c;
+        border-color: #8a6813;
+      }
+
       .operator-stack {
         display: grid;
         gap: 7px;
@@ -1446,6 +1501,9 @@
             >
               Operator
             </button>
+            <button id="keyboardTab" class="tab-button" type="button" role="tab" aria-selected="false" aria-controls="keyboardPanel">
+              Keyboard
+            </button>
             <button
               id="helpersTab"
               class="tab-button"
@@ -1608,6 +1666,9 @@
 
           <section id="operatorPanel" class="tab-panel" role="tabpanel" aria-labelledby="operatorTabButton" hidden>
             <div id="operatorTabRoot"></div>
+          </section>
+          <section id="keyboardPanel" class="tab-panel" role="tabpanel" aria-labelledby="keyboardTab" hidden>
+            <div id="operatorKeyboardRoot"></div>
           </section>
         </section>
       </section>
