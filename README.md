@@ -11,6 +11,8 @@ By reading and replaying them, we can study how people actually used the chip an
 With Tetorica, we prepared an environment where you can try it directly from JavaScript.
 If that sounds interesting, let&apos;s keep going.
 
+![Tetorica FM2612 Playground](docs/tetorica_fm2612_playground_screen_shot.png)
+
 # Tetorica FM2612 (hello_ymfm_wasm)
 
 This repository has three goals:
