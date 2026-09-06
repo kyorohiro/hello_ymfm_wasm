@@ -35,14 +35,14 @@
       main {
         max-width: 1180px;
         margin: 0 auto;
-        padding: 32px 16px 48px;
+        padding: 12px;
       }
 
       .panel {
         background: color-mix(in srgb, var(--panel) 90%, white 10%);
         border: 1px solid var(--line);
-        border-radius: 24px;
-        padding: 22px;
+        border-radius: 14px;
+        padding: 16px;
         box-shadow: 0 18px 40px rgba(90, 62, 30, 0.12);
       }
 
@@ -53,7 +53,7 @@
       }
 
       h1 {
-        font-size: clamp(2rem, 4vw, 3.2rem);
+        font-size: clamp(1.35rem, 2.6vw, 2rem);
       }
 
       h2 {
@@ -121,10 +121,10 @@
 
       .editor-layout {
         display: grid;
-        grid-template-columns: minmax(360px, 0.95fr) minmax(0, 1.45fr);
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
         gap: 16px;
         align-items: start;
-        margin: 18px 0;
+        margin: 12px 0;
       }
 
       .controls {
@@ -134,7 +134,7 @@
       }
 
       .controls.compact {
-        grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
+        grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 8px;
       }
 
@@ -165,8 +165,8 @@
       }
 
       .controls.compact .control {
-        padding: 8px 10px;
-        border-radius: 12px;
+        padding: 6px 8px;
+        border-radius: 6px;
       }
 
       .control label {
@@ -217,7 +217,7 @@
         appearance: none;
         border: 0;
         border-radius: 999px;
-        padding: 12px 18px;
+        padding: 9px 14px;
         font: inherit;
         font-weight: 700;
         color: white;
@@ -242,7 +242,7 @@
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
         gap: 16px;
-        margin: 18px 0;
+        margin: 12px 0;
       }
 
       .visual {
@@ -290,7 +290,7 @@
         word-break: break-word;
       }
 
-      @media (max-width: 920px) {
+      @media (max-width: 640px) {
         .hero-header {
           flex-direction: column;
           align-items: stretch;
@@ -304,6 +304,75 @@
           grid-template-columns: 1fr;
         }
       }
+      .hero-header { align-items: center; gap: 10px; }
+      .hero-header h1 { margin: 0; }
+      .lang-toggle { align-self: center; padding: 3px; gap: 3px; }
+      .lang-toggle button { padding: 6px 10px; font-size: 0.8rem; }
+      .actions { margin: 12px 0 6px; gap: 8px; }
+      .status { font-size: 0.8rem; }
+      .control-section { padding: 8px; border-radius: 8px; }
+      .controls-stack { gap: 8px; }
+      .control-section h2 { margin-bottom: 6px; }
+      .control label { display: flex; justify-content: space-between; }
+      input[type="range"] { margin: 3px 0; min-height: 20px; accent-color: var(--accent); }
+      .hero-visual { padding: 10px; border-radius: 8px; }
+      .optional-panel { padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; margin-top: 8px; }
+      .visuals { gap: 8px; margin: 8px 0; }
+      .visuals .optional-panel { margin: 0; }
+      summary { cursor: pointer; font-size: 0.85rem; font-weight: 700; }
+      summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+      .optional-panel[open] > summary { margin-bottom: 10px; }
+      @media (max-width: 640px) {
+        main { padding: 8px; }
+        .panel { padding: 10px; }
+        .hero-header { flex-direction: row; }
+        .lang-toggle { align-self: center; }
+        .hero-visual { position: static; }
+        .hero-visual canvas { height: 180px; }
+      }
+      .visual-tabs { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 10px; }
+      .visual-tabs button { padding: 8px 10px; border-radius: 6px; box-shadow: none; font-size: 0.75rem; background: #eee3d3; color: var(--ink); }
+      .visual-tabs button[aria-selected="true"] { background: var(--accent-dark); color: white; }
+      .visual-tabs button:focus-visible, .visual-tab-panel:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+      .visual-tab-panel { height: 240px; overflow: auto; }
+      .visual-tab-panel[hidden] { display: none; }
+      .hero-visual .visual-tab-panel canvas { height: 220px; }
+      .hero-copy { display: flex; align-items: center; gap: 8px; }
+      .back-icon { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 32px; width: 32px; height: 32px; border-radius: 6px; color: var(--ink); text-decoration: none; font-size: 1.3rem; }
+      .back-icon:hover { background: rgba(43, 36, 29, 0.08); }
+      .back-icon:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+      .editor-layout { grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); gap: 10px; }
+      .hero-visual, .controls-stack { order: initial; }
+      .transport { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 8px; margin-top: 10px; margin-bottom: -24px; position: relative; z-index: 1; }
+      .hero-visual { margin-bottom: 16px; }
+      .transport .actions { flex-direction: row; justify-content: flex-end; margin: 0; margin-left: auto; }
+      .transport button { padding: 9px 10px; font-size: 0.8rem; border-radius: 8px; }
+      .transport .status { font-size: 0.72rem; overflow-wrap: anywhere; }
+      @media (max-width: 1000px) {
+        .editor-layout { grid-template-columns: minmax(0, 1fr); }
+        .hero-visual { position: static; }
+      }
+      .controls.compact .control {
+        display: grid;
+        grid-template-columns: 5em minmax(0, 1fr);
+        align-items: center;
+        column-gap: 8px;
+        row-gap: 2px;
+      }
+      .controls.compact .control label { margin: 0; gap: 4px; }
+      .controls.compact .control input[type="range"] { min-width: 0; margin: 0; }
+      .controls.compact .control small { grid-column: 1 / -1; margin: 0; }
+      .control-section { position: relative; padding-top: 12px; }
+      .control-section h2 {
+        position: absolute;
+        top: 0;
+        left: 10px;
+        transform: translateY(-50%);
+        margin: 0;
+        padding: 0 5px;
+        background: var(--panel);
+        line-height: 1.1;
+      }
     </style>
   </head>
   <body>
@@ -311,23 +380,9 @@
       <section class="panel">
         <div class="hero-header">
           <div class="hero-copy">
+            <a class="back-icon" id="backLink" href="../index.html" aria-label="Back" title="Back"><span aria-hidden="true">←</span></a>
             <h1 id="pageTitle">YM2612 1 Operator Demo</h1>
-            <p id="introLine1">
-              This page keeps the setup small: one audible operator, three muted operators,
-              and a few parameters you can change without reading the whole FM algorithm story first.
-            </p>
-            <p id="introLine2">
-              YM2612 operators use a fixed sine-based waveform. This demo changes the operator settings,
-              not a selectable oscillator shape.
-            </p>
-            <p class="meta">
-              <span id="sourceLabel">Source</span>:
-              <a href="https://github.com/kyorohiro/hello_ymfm_wasm/blob/main/docs/demos/operator1.html">docs/demos/operator1.html</a>
-              |
-              <span id="relatedCodeLabel">Related code</span>:
-              <a href="https://github.com/kyorohiro/hello_ymfm_wasm/blob/main/web/ym2612.js">web/ym2612.js</a>,
-              <a href="https://github.com/kyorohiro/hello_ymfm_wasm/blob/main/ex03_beep.cpp">ex03_beep.cpp</a>
-            </p>
+
           </div>
 
           <div class="lang-toggle" aria-label="Language toggle">
@@ -337,6 +392,33 @@
         </div>
 
         <div class="editor-layout">
+          <section class="visual hero-visual">
+            <div class="visual-tabs" role="tablist" aria-label="Visualizations">
+              <button id="envelopeTitle" type="button" role="tab" aria-selected="true" aria-controls="envelopePanel" tabindex="0">Envelope</button>
+              <button id="waveformTitle" type="button" role="tab" aria-selected="false" aria-controls="waveformPanel" tabindex="-1">Waveform</button>
+              <button id="spectrumTitle" type="button" role="tab" aria-selected="false" aria-controls="spectrumPanel" tabindex="-1">Spectrum</button>
+              <button id="summaryTitle" type="button" role="tab" aria-selected="false" aria-controls="registerPanel" tabindex="-1">Current Register Intent</button>
+            </div>
+            <div id="envelopePanel" class="visual-tab-panel" role="tabpanel" aria-labelledby="envelopeTitle" tabindex="0">
+              <canvas id="envelopeCanvas" width="480" height="220"></canvas>
+            </div>
+            <div id="waveformPanel" class="visual-tab-panel" role="tabpanel" aria-labelledby="waveformTitle" tabindex="0" hidden>
+              <canvas id="waveCanvas" width="480" height="180"></canvas>
+            </div>
+            <div id="spectrumPanel" class="visual-tab-panel" role="tabpanel" aria-labelledby="spectrumTitle" tabindex="0" hidden>
+              <canvas id="spectrumCanvas" width="480" height="180"></canvas>
+            </div>
+            <div id="registerPanel" class="visual-tab-panel" role="tabpanel" aria-labelledby="summaryTitle" tabindex="0" hidden>
+              <pre id="summaryOutput"></pre>
+            </div>
+            <div class="transport">
+              <div class="status" id="status">Ready.</div>
+              <div class="actions">
+                <button id="playButton" type="button">Hold to Play</button>
+                <button id="stopButton" type="button">Stop</button>
+              </div>
+            </div>
+          </section>
           <div class="controls-stack">
             <section class="control-section">
               <h2 id="commonTitle">Common</h2>
@@ -400,33 +482,28 @@
               </div>
             </section>
           </div>
-          <section class="visual hero-visual">
-            <h2 id="envelopeTitle">Envelope</h2>
-            <canvas id="envelopeCanvas" width="480" height="220"></canvas>
-          </section>
+
         </div>
 
-        <div class="actions">
-          <button id="playButton" type="button">Hold to Play</button>
-          <button id="stopButton" type="button">Stop</button>
-          <a class="link-button" id="backLink" href="../index.html">Back</a>
-        </div>
-
-        <div class="status" id="status">Ready.</div>
-
-        <div class="visuals">
-          <section class="visual">
-            <h2 id="waveformTitle">Waveform</h2>
-            <canvas id="waveCanvas" width="480" height="180"></canvas>
-          </section>
-          <section class="visual">
-            <h2 id="spectrumTitle">Spectrum</h2>
-            <canvas id="spectrumCanvas" width="480" height="180"></canvas>
-          </section>
-        </div>
-
-        <h2 id="summaryTitle">Current Register Intent</h2>
-        <pre id="summaryOutput"></pre>
+        <details class="optional-panel">
+          <summary id="aboutTitle">About this demo</summary>
+            <p id="introLine1">
+              This page keeps the setup small: one audible operator, three muted operators,
+              and a few parameters you can change without reading the whole FM algorithm story first.
+            </p>
+            <p id="introLine2">
+              YM2612 operators use a fixed sine-based waveform. This demo changes the operator settings,
+              not a selectable oscillator shape.
+            </p>
+            <p class="meta">
+              <span id="sourceLabel">Source</span>:
+              <a href="https://github.com/kyorohiro/hello_ymfm_wasm/blob/main/docs/demos/operator1.html">docs/demos/operator1.html</a>
+              |
+              <span id="relatedCodeLabel">Related code</span>:
+              <a href="https://github.com/kyorohiro/hello_ymfm_wasm/blob/main/web/ym2612.js">web/ym2612.js</a>,
+              <a href="https://github.com/kyorohiro/hello_ymfm_wasm/blob/main/ex03_beep.cpp">ex03_beep.cpp</a>
+            </p>
+        </details>
       </section>
     </main>
 
@@ -524,6 +601,7 @@
           playButton: "Hold to Play",
           stopButton: "Stop",
           backLink: "Back",
+          aboutTitle: "About this demo",
           waveformTitle: "Waveform",
           spectrumTitle: "Spectrum",
           summaryTitle: "Current Register Intent",
@@ -570,6 +648,7 @@
           playButton: "押している間再生",
           stopButton: "停止",
           backLink: "戻る",
+          aboutTitle: "このデモについて",
           waveformTitle: "波形",
           spectrumTitle: "スペクトラム",
           summaryTitle: "現在のレジスタ設定意図",
@@ -627,9 +706,11 @@
         document.getElementById("envelopeTitle").textContent = t("envelopeTitle");
         playButton.textContent = t("playButton");
         stopButton.textContent = t("stopButton");
-        backLink.textContent = t("backLink");
+        backLink.setAttribute("aria-label", t("backLink"));
+        backLink.title = t("backLink");
         document.getElementById("waveformTitle").textContent = t("waveformTitle");
         document.getElementById("spectrumTitle").textContent = t("spectrumTitle");
+        document.getElementById("aboutTitle").textContent = t("aboutTitle");
         document.getElementById("summaryTitle").textContent = t("summaryTitle");
         if (!playbackActive && !releaseRequested) {
           setStatus(t("statusReady"));
@@ -1248,6 +1329,30 @@
           requestRelease();
         }
       });
+
+      const visualTabs = Array.from(document.querySelectorAll('.visual-tabs [role="tab"]'));
+      function selectVisualTab(selected) {
+        for (const tab of visualTabs) {
+          const active = tab === selected;
+          tab.setAttribute("aria-selected", String(active));
+          tab.tabIndex = active ? 0 : -1;
+          document.getElementById(tab.getAttribute("aria-controls")).hidden = !active;
+        }
+      }
+      for (const [index, tab] of visualTabs.entries()) {
+        tab.addEventListener("click", () => selectVisualTab(tab));
+        tab.addEventListener("keydown", (event) => {
+          let next;
+          if (event.key === "ArrowRight") next = (index + 1) % visualTabs.length;
+          else if (event.key === "ArrowLeft") next = (index + visualTabs.length - 1) % visualTabs.length;
+          else if (event.key === "Home") next = 0;
+          else if (event.key === "End") next = visualTabs.length - 1;
+          else return;
+          event.preventDefault();
+          selectVisualTab(visualTabs[next]);
+          visualTabs[next].focus();
+        });
+      }
 
       updateLanguageUI();
       updateLabelsAndSummary();
