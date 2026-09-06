@@ -535,14 +535,14 @@
         <h1 id="pageTitle">Tetorica FM2612 VGM Analyzer</h1>
         <div class="actions">
           <label class="file-input-group">
-            <span class="file-input-label">VGM / VGZ File</span>
-            <input id="fileInput" type="file" accept=".vgm,.vgz,application/octet-stream">
+            <span class="file-input-label">VGM / VGZ / S98 File</span>
+            <input id="fileInput" type="file" accept=".vgm,.vgz,.s98,application/octet-stream">
           </label>
           <label class="file-input-group is-optional">
             <span class="file-input-label">Optional: ym2608_adpcm_rom.bin (YM2610 ADPCM support is experimental)</span>
             <input id="ym2608RomInput" type="file" accept=".bin,.rom,application/octet-stream">
           </label>
-          <button id="playButton" type="button" disabled>Play VGM</button>
+          <button id="playButton" type="button" disabled>Play</button>
           <button id="pauseButton" type="button" disabled>Pause</button>
           <button id="resumeButton" type="button" disabled>Resume</button>
           <button id="replayButton" type="button" disabled>Replay</button>
@@ -579,7 +579,7 @@
             <span id="masterVolumeValue" class="volume-readout">100%</span>
           </label>
         </div>
-        <div class="status" id="status">Choose a .vgm file for analysis.</div>
+        <div class="status" id="status">Choose a .vgm, .vgz or .s98 file for analysis. S98: single YM2203 / YM2608 / YM2612 device.</div>
 
         <div class="tabbar" role="tablist" aria-label="Analyzer output panels">
           <button

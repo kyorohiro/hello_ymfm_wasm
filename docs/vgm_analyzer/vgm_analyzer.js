@@ -10,6 +10,7 @@ import { createGenesisAudioEngine } from "../js/genesisaudioengine.js";
 import { createYm2203AudioEngine } from "../js/ym2203audioengine.js";
 import { createYm2608AudioEngine } from "../js/ym2608audioengine.js";
 import { VgmPlayer } from "../js/vgmplayer.js";
+import { looksLikeS98, convertS98ToVgm } from "../js/s98_file.js";
 import { maybeDecodeVgmFile } from "../js/vgm_file.js";
 
 // Experimental: ?engine=nuked swaps the YM2612 core for Nuked-OPN2
@@ -2276,11 +2277,15 @@ async function handleFile(file) {
   renderNoteishGrid();
 
   let buffer;
+  let sourceHeader = null;
   try {
     buffer = await maybeDecodeVgmFile(rawBuffer);
+    if (looksLikeS98(buffer)) {
+      ({ buffer, sourceHeader } = convertS98ToVgm(buffer));
+    }
   } catch (error) {
     console.error(error);
-    headerOutput.textContent = "Failed to decode VGM/VGZ file.";
+    headerOutput.textContent = "Failed to decode VGM/VGZ/S98 file.";
     commandsOutput.textContent = error.message;
     pauseButton.disabled = true;
     resumeButton.disabled = true;
@@ -2323,7 +2328,9 @@ async function handleFile(file) {
   renderChannelMonitor();
   requestNoteishRender();
   renderNoteishGrid();
-  headerOutput.textContent = renderHeader(vgm.header);
+  headerOutput.textContent = sourceHeader
+    ? `${JSON.stringify(sourceHeader, null, 2)}\n\nNormalized VGM header (command offsets below refer to VGM):\n${renderHeader(vgm.header)}`
+    : renderHeader(vgm.header);
   commandUsageOutput.textContent = renderCommandUsage(vgm.analyzeCommandUsage());
   commandUsageOutput.textContent += "\n";
   dataBlocksOutput.textContent = renderDataBlocks(vgm.dataBlockSummary());
@@ -2348,6 +2355,10 @@ async function handleFile(file) {
   commandsOutput.textContent = events.join("\n");
   currentBuffer = buffer;
   lastParseInfo = buildParseInfo(buffer, file.name, vgm);
+  if (sourceHeader) {
+    lastParseInfo.sourceHeader = sourceHeader;
+    lastParseInfo.commandFormat = "VGM (normalized from S98)";
+  }
   extractedTfiPatches = extractTfiPatchesFromVgm(buffer);
   exportAllTfiButton.disabled = extractedTfiPatches.length === 0;
   updatePlaybackButtons({});

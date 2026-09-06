@@ -26,6 +26,7 @@ opn_fm_vgm.js
 segapsg.js
 tfi.js
 vgm_file.js
+s98_file.js
 vgm-output-worklet.js
 vgmplayer.js
 ym2203.js

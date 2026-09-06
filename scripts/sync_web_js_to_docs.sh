@@ -38,6 +38,7 @@ tfi.js
 tetorica_audio_runtime.js
 tetorica_synth.js
 vgm_file.js
+s98_file.js
 vgm-output-worklet.js
 vgmplayer.js
 vgm_runtime.js
