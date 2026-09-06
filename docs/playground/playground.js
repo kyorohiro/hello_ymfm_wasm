@@ -390,6 +390,7 @@ const operatorKeyboard = createPlaygroundOperatorKeyboard({
   channelCount: megaDrive.capabilities.fmChannels,
   presets: playgroundPresets,
   presetOrder: FM_PRESET_ORDER,
+  ensureAudioReady: () => runtime.ensureReady(),
   onChannelChange(channel) {
     operatorTab.selectChannel?.(channel);
   },

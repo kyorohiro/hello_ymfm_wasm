@@ -22,6 +22,7 @@ export function createPlaygroundOperatorKeyboard({
   presetOrder = [],
   onChannelChange,
   onPresetChange,
+  ensureAudioReady,
   onStatus,
 }) {
   const state = createFretboardState();
@@ -29,6 +30,7 @@ export function createPlaygroundOperatorKeyboard({
   let channelMode = "fixed";
   let fixedChannel = 0;
   let roundRobinChannel = 0;
+  let preparing = false;
   let layout = createFretboardLayout({ state, ...REFERENCE });
   const held = new Map();
 
@@ -54,6 +56,7 @@ export function createPlaygroundOperatorKeyboard({
       <span id="playgroundKeyboardStrings"></span>
     </div>
     <div class="playground-keyboard" id="playgroundKeyboardKeys"></div>
+    <p class="subtext" id="playgroundKeyboardStatus">Audio idle</p>
     <p class="subtext">Click a key or use the number and letter rows. The selected Operator channel is used.</p>
   `;
 
@@ -65,6 +68,15 @@ export function createPlaygroundOperatorKeyboard({
   const positionRoot = root.querySelector("#playgroundKeyboardPosition");
   const fretRoot = root.querySelector("#playgroundKeyboardFret");
   const stringsRoot = root.querySelector("#playgroundKeyboardStrings");
+  const keyboardStatus = root.querySelector("#playgroundKeyboardStatus");
+
+  function setPreparing(nextPreparing) {
+    preparing = nextPreparing;
+    root.dataset.audioState = nextPreparing ? "preparing" : "ready";
+    keyboardStatus.textContent = nextPreparing
+      ? "Preparing audio..."
+      : "Audio ready";
+  }
 
   for (let channel = 0; channel < channelCount; channel += 1) {
     const option = document.createElement("option");
@@ -135,8 +147,20 @@ export function createPlaygroundOperatorKeyboard({
     });
   }
 
-  function press(entry, button) {
-    if (held.has(entry.key) || !synth) return;
+  async function press(entry, button) {
+    if (held.has(entry.key) || preparing) return;
+    if (!synth && ensureAudioReady) {
+      setPreparing(true);
+      try {
+        await ensureAudioReady();
+      } catch (error) {
+        setPreparing(false);
+        onStatus?.(`Audio could not start: ${error.message}`);
+        return;
+      }
+      setPreparing(false);
+    }
+    if (!synth) return;
     const channel = channelMode === "roundRobin"
       ? roundRobinChannel++ % channelCount
       : fixedChannel;
@@ -164,7 +188,7 @@ export function createPlaygroundOperatorKeyboard({
     const entry = findLayoutEntry(layout.entries, event.key);
     if (!entry) return;
     event.preventDefault();
-    press(entry, keysRoot.querySelector(`[data-key="${CSS.escape(entry.key)}"]`));
+    void press(entry, keysRoot.querySelector(`[data-key="${CSS.escape(entry.key)}"]`));
   }
 
   function onKeyUp(event) {
@@ -184,6 +208,7 @@ export function createPlaygroundOperatorKeyboard({
       for (const note of held.values()) synth?.noteOff(note.channel);
       held.clear();
       synth = nextSynth;
+      setPreparing(false);
     },
     dispose() {
       for (const note of held.values()) synth?.noteOff(note.channel);
