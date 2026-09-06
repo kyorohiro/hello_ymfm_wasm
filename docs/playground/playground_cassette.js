@@ -22,7 +22,7 @@ const CASSETTE_DIRECTORIES = {
   ]),
 };
 
-export function createPlaygroundCassetteZip(files) {
+export function createPlaygroundCassetteZip(files, options = {}) {
   const entries = {};
 
   for (const file of files) {
@@ -39,6 +39,20 @@ export function createPlaygroundCassetteZip(files) {
   if (Object.keys(entries).length === 0) {
     throw new Error("Cassette must contain at least one file.");
   }
+
+  const licenseType = normalizeCassetteLicense(options.license);
+  if (Object.hasOwn(entries, "metadata.json")) {
+    throw new Error("metadata.json is reserved for cassette metadata.");
+  }
+  entries["metadata.json"] = strToU8(JSON.stringify({
+    version: 1,
+    license: {
+      type: licenseType,
+      ...(licenseType === "CUSTOM" && options.licenseName
+        ? { name: String(options.licenseName).trim() }
+        : {}),
+    },
+  }, null, 2) + "\n");
 
   const zip = zipSync(entries, { level: 6 });
   if (zip.byteLength > MAX_CASSETTE_BYTES) {
@@ -72,6 +86,7 @@ export async function loadPlaygroundCassette(
     timbres: [],
     examples: [],
     samples: [],
+    metadata: { version: 1, license: { type: "NONE" } },
   };
   const namesByCategory = new Map();
 
@@ -84,6 +99,16 @@ export async function loadPlaygroundCassette(
 
     const bytes = await entry.read();
     cassette.files.set(entry.path, bytes);
+
+    if (entry.path === "metadata.json") {
+      try {
+        const metadata = JSON.parse(new TextDecoder().decode(bytes));
+        cassette.metadata = normalizeCassetteMetadata(metadata);
+      } catch (error) {
+        throw new Error(`Invalid cassette metadata.json: ${error.message}`);
+      }
+      continue;
+    }
 
     const descriptor = describeCassettePath(
       entry.path
@@ -127,6 +152,33 @@ export async function loadPlaygroundCassette(
   }
 
   return cassette;
+}
+
+const CASSETTE_LICENSE_TYPES = new Set([
+  "PRIVATE",
+  "CC0-1.0",
+  "CC-BY-4.0",
+  "TRANSCRIPTION",
+  "CUSTOM",
+  "NONE",
+]);
+
+function normalizeCassetteLicense(value) {
+  const type = String(value ?? "NONE").toUpperCase();
+  return CASSETTE_LICENSE_TYPES.has(type) ? type : "NONE";
+}
+
+function normalizeCassetteMetadata(value) {
+  const metadata = value && typeof value === "object" ? value : {};
+  return {
+    ...metadata,
+    version: Number.isInteger(metadata.version) ? metadata.version : 1,
+    license: {
+      ...(metadata.license && typeof metadata.license === "object" ? metadata.license : {}),
+      type: normalizeCassetteLicense(metadata.license?.type),
+      ...(metadata.license?.name ? { name: String(metadata.license.name) } : {}),
+    },
+  };
 }
 
 function createCassetteId(name) {

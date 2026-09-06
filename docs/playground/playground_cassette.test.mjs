@@ -99,6 +99,36 @@ test("round-trips Virtual FS files through a cassette zip", async () => {
   );
 });
 
+test("round-trips cassette license metadata and defaults old archives to NONE", async () => {
+  const archive = createPlaygroundCassetteZip([
+    { path: "/index.js", type: "text", data: "await play('C4');" },
+  ], { license: "CC-BY-4.0" });
+  const cassette = await loadPlaygroundCassette(archive);
+  assert.equal(cassette.metadata.license.type, "CC-BY-4.0");
+
+  const oldArchive = createStoredZip([["examples/old.js", "await sleep(1);"]]);
+  const oldCassette = await loadPlaygroundCassette(oldArchive);
+  assert.equal(oldCassette.metadata.license.type, "NONE");
+});
+
+test("unknown cassette license values become NONE", async () => {
+  const archive = createPlaygroundCassetteZip([
+    { path: "/index.js", type: "text", data: "" },
+  ], { license: "not-a-license" });
+  const cassette = await loadPlaygroundCassette(archive);
+  assert.equal(cassette.metadata.license.type, "NONE");
+});
+
+test("custom cassette license keeps the author supplied label", async () => {
+  const cassette = await loadPlaygroundCassette(createPlaygroundCassetteZip([
+    { path: "/index.js", type: "text", data: "" },
+  ], { license: "CUSTOM", licenseName: "CC BY-NC 4.0 / see credits" }));
+  assert.deepEqual(cassette.metadata.license, {
+    type: "CUSTOM",
+    name: "CC BY-NC 4.0 / see credits",
+  });
+});
+
 test(
   "rejects duplicate public sample names",
   async () => {

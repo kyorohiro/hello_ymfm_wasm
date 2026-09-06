@@ -93,6 +93,16 @@ details. It is not included in the packaged release/embed builds
 (`scripts/package_*.sh`), so anyone embedding only the default ymfm build is
 unaffected.
 
+### Sonic Pi sample assets (`docs/playground/samples/sonic-pi/`)
+
+The audio files in `docs/playground/samples/sonic-pi/` are sample assets from
+[Sonic Pi](https://github.com/sonic-pi-net/sonic-pi), used by the Playground for
+sample playback and experiments. They are separate from the Tetorica source
+code and are documented as **CC0 1.0** by Sonic Pi. See the upstream
+[license](https://github.com/sonic-pi-net/sonic-pi/blob/stable/LICENSE.md),
+[sample documentation](https://github.com/sonic-pi-net/sonic-pi/blob/stable/etc/samples/README.md),
+and the local [sample notes](docs/playground/samples/sonic-pi/README.md).
+
 ## Links
 
 - `ymfm` repository:

@@ -1320,6 +1320,28 @@
             </dialog>
             <button id="importCassetteButton" type="button">Import Cassette</button>
             <button id="exportCassetteButton" type="button">Export Cassette</button>
+            <dialog id="cassetteExportDialog">
+              <form method="dialog" class="vgm-import-dialog-form">
+                <h2>Export Cassette</h2>
+                <p id="cassetteLicenseInherited" class="subtext"></p>
+                <label for="cassetteLicenseSelect">License</label>
+                <select id="cassetteLicenseSelect" title="License for this Cassette">
+                  <option value="NONE" selected>None</option>
+                  <option value="PRIVATE">Private Only</option>
+                  <option value="CC0-1.0">CC0</option>
+                  <option value="CC-BY-4.0">CC BY 4.0</option>
+                  <option value="TRANSCRIPTION">Transcription / Cover</option>
+                  <option value="CUSTOM">Custom (*)</option>
+                </select>
+                <small class="subtext">None: unspecified · Private: reuse not granted · CC0: free reuse · CC BY: attribution required · Transcription/Cover: original rights are not granted</small>
+                <label for="cassetteLicenseCustomName">Custom license / credit</label>
+                <input id="cassetteLicenseCustomName" type="text" placeholder="e.g. CC BY-NC 4.0 or personal terms">
+                <div class="vgm-import-actions">
+                  <button id="cancelCassetteExportButton" value="cancel" type="submit">Cancel</button>
+                  <button id="confirmCassetteExportButton" value="default" type="submit">Export</button>
+                </div>
+              </form>
+            </dialog>
           </div>
         </details>
         <span id="mainMenuHome" hidden></span>
