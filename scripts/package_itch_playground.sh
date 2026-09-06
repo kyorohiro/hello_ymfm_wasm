@@ -24,6 +24,7 @@ playground_examples.js
 playground_monaco.js
 playground_monaco_completion.js
 playground_operator_tab.js
+playground_operator_keyboard.js
 playground_query.js
 playground_sync.js
 playground_ui.js
@@ -239,6 +240,7 @@ perl -0pi -e 's#"\./playground\.js"#"./playground.js"#g; s#\.\./js/#./js/#g; s#\
   "${STAGE_DIR}/playground_monaco_completion.js" \
   "${STAGE_DIR}/playground_sync.js" \
   "${STAGE_DIR}/playground_operator_tab.js" \
+  "${STAGE_DIR}/playground_operator_keyboard.js" \
   "${STAGE_DIR}/playground_query.js" \
   "${STAGE_DIR}/playground_examples.js" \
   "${STAGE_DIR}/playground_ui.js"
