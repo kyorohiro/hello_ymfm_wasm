@@ -12,6 +12,7 @@ With Tetorica, we prepared an environment where you can try it directly from Jav
 If that sounds interesting, let&apos;s keep going.
 
 ![Tetorica FM2612 Playground](docs/tetorica_fm2612_playground_screen_shot.png)
+[Tetorica FM2612 Playground](https://kyorohiro.github.io/hello_ymfm_wasm/playground/index.html)
 
 # Tetorica FM2612 (hello_ymfm_wasm)
 
