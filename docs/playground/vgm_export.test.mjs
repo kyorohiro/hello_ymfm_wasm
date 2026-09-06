@@ -572,3 +572,61 @@ test("native PC-98 and Neo Geo exports execute High and Compact using FM-only AP
     }
   }
 });
+
+test("S98 imports produce executable Playground writes with preserved sample timing", async () => {
+  const { convertS98ToVgm } = await import('../js/s98_file.js');
+  for (const [type, exporter] of [[2, exportYm2203VgmToPlaygroundJavaScript], [4, exportYm2608VgmToPlaygroundJavaScript], [3, exportYm2612VgmToPlaygroundJavaScript]]) {
+    for (const version of [1, 2, 3]) {
+      if (version === 1 && type !== 4) continue;
+      const offset = version === 1 ? 32 : version === 2 ? 64 : 48;
+      const commands = [0, 0x40, 20, 255, 0, 0x40, 30, 254, 0, 253];
+      const bytes = new Uint8Array(offset + commands.length);
+      bytes.set([83, 57, 56, 48 + version]);
+      const view = new DataView(bytes.buffer);
+      view.setUint32(4, 1, true);
+      view.setUint32(8, 1000, true);
+      view.setUint32(20, offset, true);
+      if (version >= 2) {
+        view.setUint32(28, 1, true);
+        view.setUint32(32, type, true);
+        view.setUint32(36, 7987200, true);
+      }
+      bytes.set(commands, offset);
+      const normalized = convertS98ToVgm(bytes).buffer;
+      for (const mode of ["high", "compact"]) {
+        for (const splitChannels of [false, true]) {
+          const readable = exporter(normalized, {
+            high: mode === "high", compact: mode === "compact", splitChannels,
+          });
+          assert.match(readable, /fm.setOperator/);
+          assert.doesNotMatch(readable, /write\(/);
+          const readableLoops = [];
+          const trace = [];
+          let clock = 0;
+          const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
+          await new AsyncFunction('fm', 'CH1', 'OP1', 'liveLoop', 'sleepSamples', readable)(
+            { setOperator: (_channel, _op, params) => trace.push([clock, params.tl]) },
+            0, 0, (_name, fn) => readableLoops.push(fn), async n => { clock += n; }
+          );
+          for (const loop of readableLoops) await loop();
+          assert.deepEqual(trace, [[0, 20], [44, 30]]);
+          assert.equal(clock, 132);
+        }
+      }
+      const source = exporter(normalized, { splitChannels: false, scheduled: false });
+      const loops = [];
+      const writes = [];
+      let time = 0;
+      const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
+      await new AsyncFunction('liveLoop', 'write', 'sleepSamples', source)(
+        (_name, fn) => loops.push(fn),
+        (...args) => writes.push([time, ...args]),
+        async (samples) => { time += samples; }
+      );
+      assert.equal(loops.length, 1);
+      await loops[0]();
+      assert.deepEqual(writes.map(([sample, ...args]) => [sample, ...args.slice(-2)]), [[0, 0x40, 20], [44, 0x40, 30]]);
+      assert.equal(time, 132);
+    }
+  }
+});

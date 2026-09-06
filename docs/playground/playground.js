@@ -32,6 +32,7 @@ import {
   normalizeVirtualPath,
   resolveVirtualDynamicImports,
 } from "./playground_virtual_files.js";
+import { looksLikeS98, convertS98ToVgm } from "../js/s98_file.js";
 import {
   maybeDecodeVgmFile,
 } from "../js/vgm_file.js";
@@ -365,7 +366,7 @@ const cassetteImportInput = createImportInput(
   ".zip,application/zip"
 );
 const vgmImportInput = createImportInput(
-  ".vgm,.vgz,audio/vgm,application/octet-stream"
+  ".vgm,.vgz,.s98,audio/vgm,application/octet-stream"
 );
 const virtualFileImportInput = createImportInput("*");
 let pendingVgmImportFile = null;
@@ -864,7 +865,10 @@ async function importVgmFile(file, options) {
   const decoded = await maybeDecodeVgmFile(
     await file.arrayBuffer()
   );
-  const vgm = new Ym2612VGM(decoded, { logger: null });
+  const buffer = looksLikeS98(decoded)
+    ? convertS98ToVgm(decoded).buffer
+    : decoded;
+  const vgm = new Ym2612VGM(buffer, { logger: null });
   const dacFiles = [];
   const strategy = resolveVgmImportStrategy(
     vgm,
@@ -1749,7 +1753,7 @@ runButton.addEventListener(
       vgmImportDialog.close();
       pendingVgmImportFile = null;
       void importVgmFile(file, options).catch((error) => {
-        setStatus(`Failed to import VGM: ${error.message}`);
+        setStatus(`Failed to import VGM/S98: ${error.message}`);
       });
     }
   );
@@ -1850,7 +1854,7 @@ runButton.addEventListener(
       pendingVgmImportFile = file;
       vgmImportFilename.textContent = file.name;
       const outputName = file.name
-        .replace(/\.(?:vgm|vgz)$/i, "")
+        .replace(/\.(?:vgm|vgz|s98)$/i, "")
         .replace(/[\\/]/g, "_") || "imported";
       vgmImportTarget.value = `/${outputName}.js`;
       vgmImportTarget.setCustomValidity("");

@@ -1322,9 +1322,10 @@
         <details class="toolbar-menu" id="mainMenu">
           <summary aria-label="Playground menu">Menu</summary>
           <div class="toolbar-menu-panel">
-            <button id="importVgmButton" type="button">Import VGM</button>
+            <button id="importVgmButton" type="button">Import VGM / S98</button>
             <dialog id="vgmImportDialog" aria-labelledby="vgmImportTitle" aria-describedby="vgmImportFilename">
-                <h2 id="vgmImportTitle">Import VGM</h2>
+                <h2 id="vgmImportTitle">Import VGM / S98</h2>
+                <p class="subtext">VGM, VGZ and S98 v0–v3. S98 supports a single YM2203, YM2608 or YM2612. YM2203 / YM2608 imports include FM only; SSG, rhythm and ADPCM are omitted. Select the matching Playground chip for native FM playback.</p>
                 <p id="vgmImportFilename"></p>
                 <label for="vgmImportTarget">Output file</label>
                 <input id="vgmImportTarget" type="text" value="/index.js" required
@@ -1369,7 +1370,7 @@
                   </label>
                   <div class="vgm-import-actions">
                     <button id="cancelVgmImportButton" type="button">Cancel</button>
-                    <button id="convertVgmButton" type="button">Convert VGM</button>
+                    <button id="convertVgmButton" type="button">Convert</button>
                   </div>
                 </fieldset>
             </dialog>

@@ -76,6 +76,7 @@ ym2610bsynth.js
 ym2610bvgm.js
 ym2610b-worklet.js
 vgm_file.js
+s98_file.js
 ym2612vgm.js
 ym2203vgm.js
 ym2608vgm.js
