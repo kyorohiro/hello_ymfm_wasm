@@ -528,11 +528,22 @@
       }
 
     </style>
+    <link rel="stylesheet" href="./analyzer_theme.css">
   </head>
   <body>
     <main>
       <section class="panel">
-        <h1 id="pageTitle">Tetorica FM2612 VGM Analyzer</h1>
+        <header class="instrument-header">
+          <div class="instrument-brand">
+            <h1 id="pageTitle"><span class="brand-name">Tetorica</span><span class="brand-model"><span>FM</span>2612</span><span class="brand-analyzer">Analyzer</span></h1>
+            <p class="brand-caption">VGM Inspector &amp; Visualizer</p>
+          </div>
+          <div class="instrument-specs" aria-label="Supported formats and sound chips">
+            <div><span class="spec-label">Register log formats</span><strong>VGM / VGZ / S98</strong></div>
+            <div><span class="spec-label">Sound chip analysis</span><strong>YM2612 / YM2203 / YM2608</strong></div>
+            <div><span class="spec-label">Tetorica sound laboratory</span><span>Explore the music. Read the machine.</span></div>
+          </div>
+        </header>
         <div class="actions">
           <label class="file-input-group">
             <span class="file-input-label">VGM / VGZ / S98 File</span>
@@ -668,6 +679,7 @@
             <pre id="notesDialogOutput" class="notes-dialog-output">No notes yet.</pre>
           </div>
         </dialog>
+        <footer class="instrument-footer"><span>Tetorica</span><strong>FM SOUND LABORATORY</strong><span>Inspect · Learn · Reconstruct</span></footer>
       </section>
     </main>
 

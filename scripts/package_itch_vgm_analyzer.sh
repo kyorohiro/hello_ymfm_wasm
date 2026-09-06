@@ -15,6 +15,7 @@ LICENSE_FILE="${ROOT_DIR}/LICENSE"
 
 ANALYZER_FILES="
 index.html
+analyzer_theme.css
 vgm_analyzer.js
 vgm_mml.js
 vgm_mml_music.js
