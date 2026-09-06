@@ -2,7 +2,8 @@
 <html lang="en">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Hear Ratios: Just Intonation and Equal Temperament with YM2612</title>
+<title>Just Intonation and Equal Temperament with JavaScript and Sega Genesis / Mega Drive YM2612</title>
+<!--title>Hear Ratios: Just Intonation and Equal Temperament with YM2612</title-->
 <style>
       :root {
         color-scheme: light;
@@ -343,7 +344,7 @@ async function sound(channel, hz, seconds = 2) {
 <pre><code>C → G → D → A → E → B → F♯
   → C♯ → G♯ → D♯ → A♯ → E♯ → B♯</code></pre>
 <p>In twelve-tone equal temperament, E♯ shares a pitch with F, and B♯ with C. The first twelve entries therefore cover all twelve pitch classes. But with exact <code>3/2</code> ratios, the final B♯ does not land exactly on the starting C after adjusting octaves. The note names describe the chain; they do not guarantee that it closes.</p>
-<p><strong>Let's write that process as a for loop.</strong> Keep the 440 Hz sound from the first example. This time, multiply its frequency by <code>2/3</code> at each step: a pure fifth downward, the reverse of the <code>3/2</code> chain above. Move each result by octaves to keep it close to the starting A. Starting on A, this gives A → D → G → C → F → B♭ → E♭ → A♭ → D♭ → G♭ → C♭ → F♭ → B𝄫. The code calculates frequencies directly; it does not use equal-tempered note-name playback.</p>
+<p><strong>Let's write that process as a for loop.</strong> Keep the 440 Hz sound from the first example. This time, multiply its frequency by <code>3/2</code> at each step: a pure fifth downward, the reverse of the <code>3/2</code> chain above. Move each result by octaves to keep it close to the starting A. Starting on A, this gives A → D → G → C → F → B♭ → E♭ → A♭ → D♭ → G♭ → C♭ → F♭ → B𝄫. The code calculates frequencies directly; it does not use equal-tempered note-name playback.</p>
 <script type="text/plain" id="example-fifths-chain">
 // A simple, one-op-basic-like voice.
 fm.setPreset(CH1, FM_PRESETS["one-op-basic"]);
