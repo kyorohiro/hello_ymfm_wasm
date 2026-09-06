@@ -188,6 +188,10 @@ Work Type:
 - VGM Import時の Transcription 初期値
 - 既存Cassetteとの後方互換性
 
+既存の `metadata.json` に作者独自のフィールドがある場合は、Export時に削除・初期化しない。
+`workType` と `license`（およびCustomの表示名）のみExport UIの選択値で更新し、
+その他のmetadataフィールドはそのまま引き継ぐ。
+
 
 今回は以下を実装しないでください。
 

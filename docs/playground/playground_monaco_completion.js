@@ -1837,4 +1837,150 @@ export function registerMonacoCompletions(
       },
     }
   );
+
+  // metadata.json is intentionally kept as ordinary JSON in the cassette so
+  // users can extend it with their own fields. These suggestions document the
+  // fields understood by the playground without hiding Monaco's normal JSON
+  // editing support.
+  monaco.languages.registerCompletionItemProvider(
+    "json",
+    {
+      triggerCharacters: [
+        '"',
+        ":",
+        " ",
+      ],
+      provideCompletionItems(
+        model,
+        position
+      ) {
+        const modelPath = model.uri?.path ?? "";
+        if (
+          !modelPath.endsWith(
+            "/metadata.json"
+          )
+        ) {
+          return { suggestions: [] };
+        }
+
+        const linePrefix =
+          model.getLineContent(
+            position.lineNumber
+          ).slice(0, position.column - 1);
+        const beforeCursor = model
+          .getValue()
+          .slice(
+            0,
+            model.getOffsetAt(position)
+          );
+        const word =
+          model.getWordUntilPosition(
+            position
+          );
+        const range = {
+          startLineNumber:
+            position.lineNumber,
+          endLineNumber:
+            position.lineNumber,
+          startColumn: word.startColumn,
+          endColumn: word.endColumn,
+        };
+        const item = (
+          label,
+          insertText,
+          documentation,
+          kindValue = kind.Property
+        ) => ({
+          label,
+          kind: kindValue,
+          insertText,
+          insertTextRules: snippet,
+          documentation,
+          range,
+        });
+        const suggestions = [];
+
+        if (
+          /(?:^|[{,])\s*"?[^":]*$/.test(linePrefix) ||
+          (/^\s*$/.test(linePrefix) &&
+            /[{,]\s*$/.test(beforeCursor))
+        ) {
+          suggestions.push(
+            item(
+              "version",
+              '"version": 1,',
+              "Metadata schema version."
+            ),
+            item(
+              "workType",
+              '"workType": "${1:NONE}",',
+              "NONE, ORIGINAL, or TRANSCRIPTION."
+            ),
+            item(
+              "license",
+              '"license": "${1:NONE}",',
+              "NONE, PRIVATE, CC0-1.0, CC-BY-4.0, or CUSTOM."
+            ),
+            item(
+              "licenseName",
+              '"licenseName": "${1:License name}",',
+              "Optional name for a custom license."
+            )
+          );
+        }
+
+        if (
+          /"workType"\s*:\s*"[^" ]*$/.test(
+            linePrefix
+          )
+        ) {
+          suggestions.push(
+            item(
+              "NONE",
+              '"NONE"',
+              "No work type specified.",
+              kind.Enum
+            ),
+            item(
+              "ORIGINAL",
+              '"ORIGINAL"',
+              "Original work.",
+              kind.Enum
+            ),
+            item(
+              "TRANSCRIPTION",
+              '"TRANSCRIPTION"',
+              "Transcription or cover of an existing work.",
+              kind.Enum
+            )
+          );
+        }
+
+        if (
+          /"license"\s*:\s*"[^" ]*$/.test(
+            linePrefix
+          )
+        ) {
+          for (const value of [
+            ["NONE", "No license specified."],
+            ["PRIVATE", "Private or local use."],
+            ["CC0-1.0", "Creative Commons CC0 1.0."],
+            ["CC-BY-4.0", "Creative Commons Attribution 4.0."],
+            ["CUSTOM", "Use licenseName for a custom license."],
+          ]) {
+            suggestions.push(
+              item(
+                value[0],
+                `"${value[0]}"`,
+                value[1],
+                kind.Enum
+              )
+            );
+          }
+        }
+
+        return { suggestions };
+      },
+    }
+  );
 }

@@ -129,6 +129,20 @@ test("custom cassette license keeps the author supplied label", async () => {
   assert.equal(cassette.metadata.licenseName, "CC BY-NC 4.0 / see credits");
 });
 
+test("export preserves custom metadata fields while updating license fields", async () => {
+  const cassette = await loadPlaygroundCassette(createPlaygroundCassetteZip([
+    { path: "/index.js", type: "text", data: "" },
+  ], {
+    workType: "ORIGINAL",
+    license: "CC0-1.0",
+    metadata: { title: "My study", author: "Tetorica", tags: ["fm", "demo"] },
+  }));
+  const metadata = cassette.metadata;
+  assert.deepEqual(metadata.tags, ["fm", "demo"]);
+  assert.equal(metadata.title, "My study");
+  assert.equal(metadata.license, "CC0-1.0");
+});
+
 test(
   "rejects duplicate public sample names",
   async () => {

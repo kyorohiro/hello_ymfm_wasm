@@ -595,11 +595,22 @@ export async function initializePlaygroundMonaco(
       );
       const existing = monaco.editor.getModel(uri);
       if (existing) {
+        const language = path.endsWith(".json")
+          ? "json"
+          : "javascript";
+        if (existing.getLanguageId() !== language) {
+          monaco.editor.setModelLanguage(
+            existing,
+            language
+          );
+        }
         return existing;
       }
       return monaco.editor.createModel(
         source,
-        "javascript",
+        path.endsWith(".json")
+          ? "json"
+          : "javascript",
         uri
       );
     }
@@ -608,7 +619,10 @@ export async function initializePlaygroundMonaco(
       for (const file of files) {
         if (
           file.type === "text" &&
-          file.path.endsWith(".js")
+          (
+            file.path.endsWith(".js") ||
+            file.path.endsWith(".json")
+          )
         ) {
           getModelForVirtualPath(
             file.path,

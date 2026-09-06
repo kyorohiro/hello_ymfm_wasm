@@ -42,17 +42,28 @@ export function createPlaygroundCassetteZip(files, options = {}) {
 
   const licenseType = normalizeCassetteLicense(options.license);
   const workType = normalizeCassetteWorkType(options.workType);
-  if (Object.hasOwn(entries, "metadata.json")) {
-    throw new Error("metadata.json is reserved for cassette metadata.");
+  const metadataFileName = options.metadataFileName === "cassette.metadata.js"
+    ? "cassette.metadata.js"
+    : "metadata.json";
+  if (Object.hasOwn(entries, "metadata.json") || Object.hasOwn(entries, "cassette.metadata.js")) {
+    throw new Error("Cassette metadata files are reserved for cassette metadata.");
   }
-  entries["metadata.json"] = strToU8(JSON.stringify({
+  const existingMetadata = options.metadata && typeof options.metadata === "object"
+    ? options.metadata
+    : {};
+  const metadata = {
+    ...existingMetadata,
     version: 1,
     workType,
     license: licenseType,
     ...(licenseType === "CUSTOM" && options.licenseName
       ? { licenseName: String(options.licenseName).trim() }
       : {}),
-  }, null, 2) + "\n");
+  };
+  const metadataSource = metadataFileName === "cassette.metadata.js"
+    ? `/** @type {CassetteMetadata} */\nexport default ${JSON.stringify(metadata, null, 2)};\n`
+    : `${JSON.stringify(metadata, null, 2)}\n`;
+  entries[metadataFileName] = strToU8(metadataSource);
 
   const zip = zipSync(entries, { level: 6 });
   if (zip.byteLength > MAX_CASSETTE_BYTES) {
@@ -110,6 +121,18 @@ export async function loadPlaygroundCassette(
       continue;
     }
 
+    if (entry.path === "cassette.metadata.js") {
+      try {
+        const source = new TextDecoder().decode(bytes);
+        cassette.metadata = normalizeCassetteMetadata(
+          parseCassetteMetadataModule(source)
+        );
+      } catch (error) {
+        throw new Error(`Invalid cassette.metadata.js: ${error.message}`);
+      }
+      continue;
+    }
+
     const descriptor = describeCassettePath(
       entry.path
     );
@@ -152,6 +175,16 @@ export async function loadPlaygroundCassette(
   }
 
   return cassette;
+}
+
+function parseCassetteMetadataModule(source) {
+  const match = String(source).match(
+    /export\s+default\s+([\s\S]*?)\s*;?\s*$/
+  );
+  if (!match) {
+    throw new Error("expected export default object");
+  }
+  return JSON.parse(match[1]);
 }
 
 const CASSETTE_LICENSE_TYPES = new Set([
