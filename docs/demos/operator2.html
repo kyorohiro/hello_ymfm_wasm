@@ -261,35 +261,94 @@
           position: static;
         }
       }
+      main { padding: 12px; }
+      .panel { padding: 16px; border-radius: 14px; }
+      .demo-header { display: flex; align-items: center; gap: 8px; }
+      h1 { margin: 0; font-size: clamp(1.35rem, 2.6vw, 2rem); }
+      .back-icon { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 32px; height: 32px; color: var(--ink); border-radius: 6px; text-decoration: none; font-size: 1.3rem; }
+      .back-icon:hover { background: #eee3d3; }
+      .editor-layout { grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); gap: 10px; margin: 18px 0 12px; }
+      .hero-visual, .controls-stack { order: initial; }
+      .controls-stack { gap: 16px; min-width: 0; }
+      .controls, .controls.compact { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+      .control-section { position: relative; padding: 12px 8px 8px; border-radius: 8px; }
+      .control-section h2 { position: absolute; top: 0; left: 10px; transform: translateY(-50%); margin: 0; padding: 0 5px; background: var(--panel); line-height: 1.1; }
+      .controls .control { display: grid; grid-template-columns: 5em minmax(0, 1fr); align-items: center; gap: 2px 8px; padding: 6px 8px; border-radius: 6px; }
+      .controls .control label { display: flex; justify-content: space-between; gap: 4px; margin: 0; font-size: 0.84rem; }
+      .controls .control small { grid-column: 1 / -1; margin: 0; line-height: 1.2; font-size: 0.72rem; }
+      input[type="range"], select { min-width: 0; margin: 0; accent-color: var(--accent); }
+      input[type="range"] { min-height: 20px; }
+      select { font: inherit; font-size: 0.78rem; }
+      .hero-visual { padding: 10px; border-radius: 8px; margin-bottom: 16px; }
+      .tabs { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 10px; }
+      .tabs button { padding: 8px 10px; border-radius: 6px; box-shadow: none; font-size: 0.75rem; background: #eee3d3; color: var(--ink); }
+      .tabs button[aria-selected="true"] { background: var(--accent-dark); color: white; }
+      [role="tabpanel"][hidden] { display: none; }
+      .visual-tab-panel { height: 240px; overflow: auto; }
+      .hero-visual canvas { height: 220px; }
+      .operator-tabs { margin: -25px 0 8px; width: fit-content; padding: 0 4px; background: var(--panel); }
+      .operator-tabs button { padding: 5px 12px; }
+      .operator-section { margin-top: 6px; }
+      .transport { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 8px; margin: 10px 0 -24px; position: relative; z-index: 1; }
+      .transport .actions { margin: 0 0 0 auto; gap: 8px; }
+      .transport button { padding: 9px 10px; font-size: 0.8rem; border-radius: 8px; }
+      .transport .status { font-size: 0.72rem; overflow-wrap: anywhere; }
+      .about { padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; margin-top: 8px; }
+      summary { cursor: pointer; font-size: 0.85rem; font-weight: 700; }
+      .about[open] summary { margin-bottom: 10px; }
+      button:focus-visible, a:focus-visible, summary:focus-visible, [role="tabpanel"]:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+      @media (max-width: 1000px) {
+        .editor-layout { grid-template-columns: minmax(0, 1fr); }
+        .hero-visual { position: static; }
+      }
+      @media (max-width: 640px) {
+        main { padding: 8px; }
+        .panel { padding: 10px; }
+      }
+      .algorithm-flow { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; margin-top: 12px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: rgba(255,255,255,0.4); font-size: 0.82rem; }
+      #algorithmLabel, #algorithmFeedback { color: var(--accent-dark); }
+      #algorithmRoute { font-weight: 700; }
     </style>
   </head>
   <body>
     <main>
       <section class="panel">
-        <h1>YM2612 2 Operator Demo</h1>
-        <p>
-          This page steps beyond the 1-operator case. Here you can switch between
-          <strong>parallel</strong> and <strong>serial</strong> relationships, then add
-          <strong>feedback</strong> to operator 1 and listen to how the tone changes.
-        </p>
-        <p>
-          In serial mode, the main active pair is built from the first and third operator slots
-          on channel 1, matching the way ymfm wires the internal 4-operator flow.
-          In parallel mode, the same two slots are left audible as separate carriers.
-        </p>
-        <p class="meta">
-          Source:
-          <a href="https://github.com/kyorohiro/hello_ymfm_wasm/blob/main/docs/demos/operator2.html">docs/demos/operator2.html</a>
-          |
-          Related code:
-          <a href="https://github.com/kyorohiro/hello_ymfm_wasm/blob/main/web/ym2612.js">web/ym2612.js</a>,
-          <a href="https://github.com/kyorohiro/hello_ymfm_wasm/blob/main/ex03_beep.cpp">ex03_beep.cpp</a>
-        </p>
-
+        <header class="demo-header"><a class="back-icon" href="../index.html" aria-label="Back" title="Back">←</a><h1>YM2612 2 Operator Demo</h1></header>
+        <div class="algorithm-flow" aria-label="Active operator signal flow">
+          <strong id="algorithmLabel">ALGO 7 · Parallel</strong>
+          <span id="algorithmRoute">(OP1 + OP2) → OUT</span>
+          <span id="algorithmFeedback">FB off</span>
+        </div>
         <div class="editor-layout">
+          <section class="visual hero-visual">
+            <div class="tabs" role="tablist" aria-label="Visualizations">
+              <button id="envelopeTab" type="button" role="tab" aria-selected="true" aria-controls="envelopePanel" tabindex="0">Envelope / Output</button>
+              <button id="waveTab" type="button" role="tab" aria-selected="false" aria-controls="wavePanel" tabindex="-1">Waveform</button>
+              <button id="spectrumTab" type="button" role="tab" aria-selected="false" aria-controls="spectrumPanel" tabindex="-1">Spectrum</button>
+              <button id="registerTab" type="button" role="tab" aria-selected="false" aria-controls="registerPanel" tabindex="-1">Current Register Intent</button>
+            </div>
+            <div id="envelopePanel" class="visual-tab-panel" role="tabpanel" aria-labelledby="envelopeTab" tabindex="0"><canvas id="envelopeCanvas" width="480" height="220"></canvas></div>
+            <div id="wavePanel" class="visual-tab-panel" role="tabpanel" aria-labelledby="waveTab" tabindex="0" hidden><canvas id="waveCanvas" width="480" height="180"></canvas></div>
+            <div id="spectrumPanel" class="visual-tab-panel" role="tabpanel" aria-labelledby="spectrumTab" tabindex="0" hidden><canvas id="spectrumCanvas" width="480" height="180"></canvas></div>
+            <div id="registerPanel" class="visual-tab-panel" role="tabpanel" aria-labelledby="registerTab" tabindex="0" hidden><pre id="summaryOutput"></pre></div>
+            <div class="transport">
+              <div class="status" id="status">Ready.</div>
+              <div class="actions">
+                <button id="playButton" type="button">Hold to Play</button>
+                <button id="stopButton" type="button">Stop</button>
+              </div>
+            </div>
+          </section>
           <div class="controls-stack">
-            <section class="control-section">
-              <h2>Common</h2>
+
+
+            <section class="control-section operator-section">
+              <div class="tabs operator-tabs" role="tablist" aria-label="Common and operator settings">
+                <button id="commonTab" type="button" role="tab" aria-selected="true" aria-controls="commonPanel" tabindex="0">Common</button>
+                <button id="op1Tab" type="button" role="tab" aria-selected="false" aria-controls="op1Panel" tabindex="-1">OP1</button>
+                <button id="op2Tab" type="button" role="tab" aria-selected="false" aria-controls="op2Panel" tabindex="-1">OP2</button>
+              </div>
+              <div id="commonPanel" role="tabpanel" aria-labelledby="commonTab">
               <div class="controls">
                 <div class="control">
                   <label for="preset">Preset</label>
@@ -337,10 +396,8 @@
                   <small>Octave-like block value.</small>
                 </div>
               </div>
-            </section>
-
-            <section class="control-section">
-              <h2>OP1</h2>
+              </div>
+              <div id="op1Panel" role="tabpanel" aria-labelledby="op1Tab" hidden>
               <div class="controls compact">
                 <div class="control">
                   <label for="op1dt">DT <span class="value" id="op1dtValue">0</span></label>
@@ -383,10 +440,8 @@
                   <small>Release rate.</small>
                 </div>
               </div>
-            </section>
-
-            <section class="control-section">
-              <h2>OP2</h2>
+              </div>
+              <div id="op2Panel" role="tabpanel" aria-labelledby="op2Tab" hidden>
               <div class="controls compact">
                 <div class="control">
                   <label for="op2dt">DT <span class="value" id="op2dtValue">0</span></label>
@@ -429,35 +484,34 @@
                   <small>Release rate.</small>
                 </div>
               </div>
+              </div>
             </section>
+
+
           </div>
-          <section class="visual hero-visual">
-            <h2>Envelope / Output</h2>
-            <canvas id="envelopeCanvas" width="480" height="220"></canvas>
-          </section>
         </div>
+<details class="about"><summary>About this demo</summary>
+        <p>
+          This page steps beyond the 1-operator case. Here you can switch between
+          <strong>parallel</strong> and <strong>serial</strong> relationships, then add
+          <strong>feedback</strong> to operator 1 and listen to how the tone changes.
+        </p>
+        <p>
+          In serial mode, the main active pair is built from the first and third operator slots
+          on channel 1, matching the way ymfm wires the internal 4-operator flow.
+          In parallel mode, the same two slots are left audible as separate carriers.
+        </p>
+        <p class="meta">
+          Source:
+          <a href="https://github.com/kyorohiro/hello_ymfm_wasm/blob/main/docs/demos/operator2.html">docs/demos/operator2.html</a>
+          |
+          Related code:
+          <a href="https://github.com/kyorohiro/hello_ymfm_wasm/blob/main/web/ym2612.js">web/ym2612.js</a>,
+          <a href="https://github.com/kyorohiro/hello_ymfm_wasm/blob/main/ex03_beep.cpp">ex03_beep.cpp</a>
+        </p>
 
-        <div class="actions">
-          <button id="playButton" type="button">Hold to Play</button>
-          <button id="stopButton" type="button">Stop</button>
-          <a class="link-button" href="../index.html">Back</a>
-        </div>
+</details>
 
-        <div class="status" id="status">Ready.</div>
-
-        <div class="visuals">
-          <section class="visual">
-            <h2>Waveform</h2>
-            <canvas id="waveCanvas" width="480" height="180"></canvas>
-          </section>
-          <section class="visual">
-            <h2>Spectrum</h2>
-            <canvas id="spectrumCanvas" width="480" height="180"></canvas>
-          </section>
-        </div>
-
-        <h2>Current Register Intent</h2>
-        <pre id="summaryOutput"></pre>
       </section>
     </main>
 
@@ -1226,6 +1280,15 @@
         const high = ((settings.block & 0x07) << 3) | ((settings.fnum >> 8) & 0x07);
         const low = settings.fnum & 0xff;
         const algorithm = settings.mode === "serial" ? 4 : 7;
+        document.getElementById("algorithmLabel").textContent =
+          `ALGO ${algorithm} · ${settings.mode === "serial" ? "Serial" : "Parallel"}`;
+        document.getElementById("algorithmRoute").textContent = settings.mode === "serial"
+          ? "OP1 → OP2 → OUT"
+          : "(OP1 + OP2) → OUT";
+        document.getElementById("algorithmFeedback").textContent = settings.feedback === 0
+          ? "FB off"
+          : `FB ${settings.feedback} · OP1 ↺`;
+
 
         summaryOutput.textContent = [
           "Audible channel: channel 1",
@@ -1570,6 +1633,32 @@
           requestRelease();
         }
       });
+
+      for (const tablist of document.querySelectorAll('[role="tablist"]')) {
+        const tabs = Array.from(tablist.querySelectorAll('[role="tab"]'));
+        function selectTab(selected) {
+          for (const tab of tabs) {
+            const active = tab === selected;
+            tab.setAttribute("aria-selected", String(active));
+            tab.tabIndex = active ? 0 : -1;
+            document.getElementById(tab.getAttribute("aria-controls")).hidden = !active;
+          }
+        }
+        for (const [index, tab] of tabs.entries()) {
+          tab.addEventListener("click", () => selectTab(tab));
+          tab.addEventListener("keydown", (event) => {
+            let next;
+            if (event.key === "ArrowRight") next = (index + 1) % tabs.length;
+            else if (event.key === "ArrowLeft") next = (index + tabs.length - 1) % tabs.length;
+            else if (event.key === "Home") next = 0;
+            else if (event.key === "End") next = tabs.length - 1;
+            else return;
+            event.preventDefault();
+            selectTab(tabs[next]);
+            tabs[next].focus();
+          });
+        }
+      }
 
       applyPreset("plain-dual");
       updateLabelsAndSummary();
