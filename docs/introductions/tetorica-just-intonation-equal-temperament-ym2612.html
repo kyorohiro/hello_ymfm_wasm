@@ -1,314 +1,415 @@
 <!doctype html>
 <html lang="en">
+
 <head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Just Intonation and Equal Temperament with JavaScript and Sega Genesis / Mega Drive YM2612</title>
-<!--title>Hear Ratios: Just Intonation and Equal Temperament with YM2612</title-->
-<style>
-      :root {
-        color-scheme: light;
-        --bg: #f4efe4;
-        --panel: #fffaf0;
-        --ink: #1f1b16;
-        --accent: #b4572f;
-        --accent-dark: #7e381c;
-        --line: #d7c8ac;
-      }
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Just Intonation and Equal Temperament with JavaScript and Sega Genesis / Mega Drive YM2612</title>
+  <!--title>Hear Ratios: Just Intonation and Equal Temperament with YM2612</title-->
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f4efe4;
+      --panel: #fffaf0;
+      --ink: #1f1b16;
+      --accent: #b4572f;
+      --accent-dark: #7e381c;
+      --line: #d7c8ac;
+    }
 
-      * {
-        box-sizing: border-box;
-      }
+    * {
+      box-sizing: border-box;
+    }
 
-      body {
-        margin: 0;
-        min-height: 100vh;
-        font-family: "Avenir Next", "Helvetica Neue", Helvetica, Arial, sans-serif;
-        color: var(--ink);
-        background:
-          radial-gradient(circle at top left, #fff8df 0, transparent 28%),
-          radial-gradient(circle at bottom right, #f0d8ba 0, transparent 24%),
-          linear-gradient(160deg, var(--bg), #eadfc9 60%, #e0cfb5);
-      }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Avenir Next", "Helvetica Neue", Helvetica, Arial, sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at top left, #fff8df 0, transparent 28%),
+        radial-gradient(circle at bottom right, #f0d8ba 0, transparent 24%),
+        linear-gradient(160deg, var(--bg), #eadfc9 60%, #e0cfb5);
+    }
 
-      main {
-        max-width: 980px;
-        margin: 0 auto;
-        padding: 48px 20px 64px;
-      }
+    main {
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 48px 20px 64px;
+    }
 
-      .panel {
-        background: color-mix(in srgb, var(--panel) 90%, white 10%);
-        border: 1px solid var(--line);
-        border-radius: 24px;
-        padding: 28px;
-        box-shadow: 0 18px 40px rgba(90, 62, 30, 0.12);
-        margin-bottom: 24px;
-      }
+    .panel {
+      background: color-mix(in srgb, var(--panel) 90%, white 10%);
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      padding: 28px;
+      box-shadow: 0 18px 40px rgba(90, 62, 30, 0.12);
+      margin-bottom: 24px;
+    }
 
-      h1, h2, h3 {
-        margin: 0 0 12px;
-        line-height: 1.15;
-        letter-spacing: -0.04em;
-      }
+    h1,
+    h2,
+    h3 {
+      margin: 0 0 12px;
+      line-height: 1.15;
+      letter-spacing: -0.04em;
+    }
 
-      h1 {
-        font-size: clamp(2rem, 4vw, 3.2rem);
-      }
+    h1 {
+      font-size: clamp(2rem, 4vw, 3.2rem);
+    }
 
-      h2 {
-        margin-top: 28px;
-        font-size: 1.35rem;
-      }
+    h2 {
+      margin-top: 28px;
+      font-size: 1.35rem;
+    }
 
-      h3 {
-        margin-top: 20px;
-        font-size: 1.05rem;
-      }
+    h3 {
+      margin-top: 20px;
+      font-size: 1.05rem;
+    }
 
-      p, li {
-        line-height: 1.6;
-      }
+    p,
+    li {
+      line-height: 1.6;
+    }
 
-      p {
-        margin: 0 0 16px;
-      }
+    p {
+      margin: 0 0 16px;
+    }
 
-      ul, ol {
-        margin: 0 0 16px 20px;
-      }
+    ul,
+    ol {
+      margin: 0 0 16px 20px;
+    }
 
-      code {
-        font-family: "SFMono-Regular", Menlo, Consolas, monospace;
-      }
+    code {
+      font-family: "SFMono-Regular", Menlo, Consolas, monospace;
+    }
 
-      .figure {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 16px;
-        margin: 0 0 16px;
-      }
+    .figure {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      margin: 0 0 16px;
+    }
 
-      .figure .box {
-        flex: 1 1 160px;
-        border: 1px solid var(--line);
-        border-radius: 14px;
-        padding: 14px 16px;
-        background: rgba(255, 255, 255, 0.5);
-      }
+    .figure .box {
+      flex: 1 1 160px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 14px 16px;
+      background: rgba(255, 255, 255, 0.5);
+    }
 
-      .figure .box strong {
-        display: block;
-        margin-bottom: 4px;
-      }
+    .figure .box strong {
+      display: block;
+      margin-bottom: 4px;
+    }
 
-      .algo-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: 12px;
-        margin: 20px 0 12px;
-      }
+    .algo-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 12px;
+      margin: 20px 0 12px;
+    }
 
-      .algo-button {
-        display: block;
-        width: 100%;
-        text-align: left;
-        cursor: pointer;
-        font: inherit;
-        color: inherit;
-        border: 1px solid var(--line);
-        border-radius: 14px;
-        padding: 12px 14px;
-        background: rgba(255, 255, 255, 0.5);
-        transition: transform 140ms ease, box-shadow 140ms ease, border-color 140ms ease;
-      }
+    .algo-button {
+      display: block;
+      width: 100%;
+      text-align: left;
+      cursor: pointer;
+      font: inherit;
+      color: inherit;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 12px 14px;
+      background: rgba(255, 255, 255, 0.5);
+      transition: transform 140ms ease, box-shadow 140ms ease, border-color 140ms ease;
+    }
 
-      .algo-button:hover {
-        transform: translateY(-2px);
-        border-color: var(--accent);
-        box-shadow: 0 14px 28px rgba(126, 56, 28, 0.16);
-      }
+    .algo-button:hover {
+      transform: translateY(-2px);
+      border-color: var(--accent);
+      box-shadow: 0 14px 28px rgba(126, 56, 28, 0.16);
+    }
 
-      .algo-button.is-active {
-        border-color: var(--accent);
-        background: color-mix(in srgb, var(--accent) 14%, white 86%);
-      }
+    .algo-button.is-active {
+      border-color: var(--accent);
+      background: color-mix(in srgb, var(--accent) 14%, white 86%);
+    }
 
-      .algo-button strong {
-        display: block;
-        margin-bottom: 4px;
-      }
+    .algo-button strong {
+      display: block;
+      margin-bottom: 4px;
+    }
 
-      .algo-button span {
-        font-size: 0.85rem;
-        opacity: 0.85;
-      }
+    .algo-button span {
+      font-size: 0.85rem;
+      opacity: 0.85;
+    }
 
-      .algo-status {
-        margin-bottom: 0;
-        font-size: 0.9rem;
-        opacity: 0.85;
-      }
+    .algo-status {
+      margin-bottom: 0;
+      font-size: 0.9rem;
+      opacity: 0.85;
+    }
 
-      .playground-frame {
-        width: 100%;
-        height: 640px;
-        border: 1px solid var(--line);
-        border-radius: 18px;
-        background: white;
-      }
+    .playground-frame {
+      width: 100%;
+      height: 640px;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: white;
+    }
 
+    .hero-media {
+      display: grid;
+      grid-template-columns: minmax(0, 1.2fr) minmax(260px, 0.8fr);
+      gap: 20px;
+      align-items: stretch;
+      margin-top: 24px;
+    }
+
+    .hero-stack {
+      display: grid;
+      gap: 16px;
+    }
+
+    .hero-card {
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 16px;
+      background: rgba(255, 255, 255, 0.55);
+    }
+
+    .hero-card img {
+      display: block;
+      max-width: 100%;
+      height: auto;
+      margin: 0 auto;
+    }
+
+    .hero-card--logos {
+      display: grid;
+      gap: 14px;
+    }
+
+    .hero-card--art {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .hero-card--art img {
+      width: 100%;
+      border-radius: 12px;
+    }
+
+    .hero-caption {
+      margin: 12px 0 0;
+      font-size: 0.92rem;
+      opacity: 0.82;
+    }
+
+    .diagram {
+      margin: 20px 0 18px;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 12px;
+      background: rgba(255, 255, 255, 0.42);
+    }
+
+    .diagram img {
+      display: block;
+      width: 100%;
+      height: auto;
+      border-radius: 12px;
+    }
+
+    .demo-loader {
+      margin-top: 18px;
+      border: 1px dashed var(--line);
+      border-radius: 18px;
+      padding: 20px;
+      background: rgba(255, 255, 255, 0.36);
+    }
+
+    .demo-loader p {
+      margin-bottom: 12px;
+    }
+
+    .demo-loader .playground-frame {
+      margin-top: 14px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 16px;
+      margin-top: 24px;
+    }
+
+    .card {
+      display: block;
+      text-decoration: none;
+      color: inherit;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 18px;
+      background: rgba(255, 255, 255, 0.45);
+      transition: transform 140ms ease, box-shadow 140ms ease, border-color 140ms ease;
+    }
+
+    .card:hover {
+      transform: translateY(-2px);
+      border-color: var(--accent);
+      box-shadow: 0 14px 28px rgba(126, 56, 28, 0.16);
+    }
+
+    .card strong {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 1.05rem;
+    }
+
+    .link-button {
+      display: inline-block;
+      margin-top: 16px;
+      border-radius: 999px;
+      padding: 12px 18px;
+      font-weight: 700;
+      color: white;
+      background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+      text-decoration: none;
+    }
+
+    @media (max-width: 760px) {
       .hero-media {
-        display: grid;
-        grid-template-columns: minmax(0, 1.2fr) minmax(260px, 0.8fr);
-        gap: 20px;
-        align-items: stretch;
-        margin-top: 24px;
+        grid-template-columns: 1fr;
       }
+    }
 
-      .hero-stack {
-        display: grid;
-        gap: 16px;
-      }
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+      margin: 18px 0
+    }
 
-      .hero-card {
-        border: 1px solid var(--line);
-        border-radius: 18px;
-        padding: 16px;
-        background: rgba(255, 255, 255, 0.55);
-      }
+    .controls label {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap
+    }
 
-      .hero-card img {
-        display: block;
-        max-width: 100%;
-        height: auto;
-        margin: 0 auto;
-      }
+    button,
+    select,
+    input {
+      font: inherit
+    }
 
-      .hero-card--logos {
-        display: grid;
-        gap: 14px;
-      }
+    button,
+    select {
+      padding: 10px 14px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: var(--panel);
+      color: var(--ink)
+    }
 
-      .hero-card--art {
-        display: flex;
-        flex-direction: column;
-        justify-content: space-between;
-      }
+    button {
+      cursor: pointer
+    }
 
-      .hero-card--art img {
-        width: 100%;
-        border-radius: 12px;
-      }
+    button:focus-visible,
+    a:focus-visible,
+    input:focus-visible,
+    select:focus-visible {
+      outline: 3px solid var(--accent);
+      outline-offset: 3px
+    }
 
-      .hero-caption {
-        margin: 12px 0 0;
-        font-size: 0.92rem;
-        opacity: 0.82;
-      }
+    button[aria-pressed="true"] {
+      background: var(--accent);
+      color: white
+    }
 
-      .diagram {
-        margin: 20px 0 18px;
-        border: 1px solid var(--line);
-        border-radius: 18px;
-        padding: 12px;
-        background: rgba(255, 255, 255, 0.42);
-      }
+    pre {
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      background: #f0e6d4;
+      padding: 18px;
+      border-radius: 14px;
+      line-height: 1.6
+    }
 
-      .diagram img {
-        display: block;
-        width: 100%;
-        height: auto;
-        border-radius: 12px;
-      }
+    .table-wrap {
+      overflow-x: auto
+    }
 
-      .demo-loader {
-        margin-top: 18px;
-        border: 1px dashed var(--line);
-        border-radius: 18px;
-        padding: 20px;
-        background: rgba(255, 255, 255, 0.36);
-      }
+    table {
+      border-collapse: collapse;
+      width: 100%
+    }
 
-      .demo-loader p {
-        margin-bottom: 12px;
-      }
+    th,
+    td {
+      text-align: left;
+      padding: 12px;
+      border-bottom: 1px solid var(--line)
+    }
 
-      .demo-loader .playground-frame {
-        margin-top: 14px;
-      }
+    .kicker {
+      color: var(--accent-dark);
+      font-size: .85rem;
+      letter-spacing: .1em;
+      text-transform: uppercase
+    }
 
-      .grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-        gap: 16px;
-        margin-top: 24px;
-      }
+    #status {
+      min-height: 3em
+    }
 
-      .card {
-        display: block;
-        text-decoration: none;
-        color: inherit;
-        border: 1px solid var(--line);
-        border-radius: 18px;
-        padding: 18px;
-        background: rgba(255, 255, 255, 0.45);
-        transition: transform 140ms ease, box-shadow 140ms ease, border-color 140ms ease;
-      }
+    .formula {
+      font-size: clamp(1.2rem, 3vw, 1.9rem);
+      padding: 16px 0
+    }
 
-      .card:hover {
-        transform: translateY(-2px);
-        border-color: var(--accent);
-        box-shadow: 0 14px 28px rgba(126, 56, 28, 0.16);
-      }
+    .muted {
+      font-size: .9rem;
+      color: #655746
+    }
+  </style>
+</head>
 
-      .card strong {
-        display: block;
-        margin-bottom: 8px;
-        font-size: 1.05rem;
-      }
+<body>
+  <main>
 
-      .link-button {
-        display: inline-block;
-        margin-top: 16px;
-        border-radius: 999px;
-        padding: 12px 18px;
-        font-weight: 700;
-        color: white;
-        background: linear-gradient(135deg, var(--accent), var(--accent-dark));
-        text-decoration: none;
-      }
-
-      @media (max-width: 760px) {
-        .hero-media {
-          grid-template-columns: 1fr;
-        }
-      }
-    
-.controls {display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin:18px 0}
-.controls label {display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-button,select,input {font:inherit} button,select {padding:10px 14px;border:1px solid var(--line);border-radius:10px;background:var(--panel);color:var(--ink)}
-button {cursor:pointer} button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible {outline:3px solid var(--accent);outline-offset:3px}
-button[aria-pressed="true"] {background:var(--accent);color:white}
-pre {white-space:pre-wrap;overflow-wrap:anywhere;background:#f0e6d4;padding:18px;border-radius:14px;line-height:1.6}
-.table-wrap {overflow-x:auto} table {border-collapse:collapse;width:100%} th,td {text-align:left;padding:12px;border-bottom:1px solid var(--line)}
-.kicker {color:var(--accent-dark);font-size:.85rem;letter-spacing:.1em;text-transform:uppercase}
-#status {min-height:3em} .formula {font-size:clamp(1.2rem,3vw,1.9rem);padding:16px 0} .muted {font-size:.9rem;color:#655746}
-</style></head>
-<body><main>
-<header class="panel">
-<p class="kicker">Tetorica · sound experiments / 02</p>
-<h1>Start with one sound.<br>Hear the ratios.</h1>
-<p>Just intonation and equal temperament with JavaScript and the Sega Genesis / Mega Drive YM2612.</p>
-<p>Before C, D and E, there can be one reference sound. Call its frequency <strong>1</strong>. An octave is twice that frequency. A pure fifth is one and a half times it. Let’s build from there—and listen.</p>
-<a href="./index.html">← FM introduction</a> · <a href="#listen">Jump to the Playground experiment</a>
-</header>
-<section class="panel">
-<h2>1. Does music begin at 440 Hz?</h2>
-<p>Today, <strong>A4 = 440 Hz</strong> is a widely used tuning reference. It is also the standard musical pitch specified in <a href="https://www.iso.org/standard/3601.html">ISO 16</a>.</p>
-<p>You may have heard the story that a baby's cry is 440 Hz. It is an evocative connection, but a cry does not stay at one fixed pitch: <a href="https://pubmed.ncbi.nlm.nih.gov/10577825/">research on newborn cries</a> describes fundamental frequencies around 400–600 Hz.</p>
-<p>So let's use 440 Hz as the starting sound for this explanation. We do not need to assume that it was a special number when music theory began. Here, it gives us a familiar reference from which to explore relationships between sounds.</p>
-<p><strong>Let's hear it on the YM2612.</strong> Press Run in the Playground below to hear a sustained tone for three seconds. The example sets a simple voice and calls <code>sound(CH1, 440, 3)</code>: channel, frequency in Hz, and duration in seconds.</p>
-<script type="text/plain" id="example-440hz">
+    <header class="panel">
+      <p class="kicker">Tetorica · sound experiments / 02</p>
+      <h1>Start with one sound.<br>Hear the ratios.</h1>
+      <p>Just intonation and equal temperament with JavaScript and the Sega Genesis / Mega Drive YM2612.</p>
+      <p>Before C, D and E, there can be one reference sound. Call its frequency <strong>1</strong>. An octave is twice
+        that frequency. A pure fifth is one and a half times it. Let’s build from there—and listen.</p>
+      <a href="./index.html">← FM introduction</a> · <a href="#listen">Jump to the Playground experiment</a>
+    </header>
+    <section class="panel">
+      <h2>1. Does music begin at 440 Hz?</h2>
+      <p>Today, <strong>A4 = 440 Hz</strong> is a widely used tuning reference. It is also the standard musical pitch
+        specified in <a href="https://www.iso.org/standard/3601.html">ISO 16</a>.</p>
+      <p>You may have heard the story that a baby's cry is 440 Hz. It is an evocative connection, but a cry does not
+        stay at one fixed pitch: <a href="https://pubmed.ncbi.nlm.nih.gov/10577825/">research on newborn cries</a>
+        describes fundamental frequencies around 400–600 Hz.</p>
+      <p>So let's use 440 Hz as the starting sound for this explanation. We do not need to assume that it was a special
+        number when music theory began. Here, it gives us a familiar reference from which to explore relationships
+        between sounds.</p>
+      <p><strong>Let's hear it on the YM2612.</strong> Press Run in the Playground below to hear a sustained tone for
+        three seconds. The example sets a simple voice and calls <code>sound(CH1, 440, 3)</code>: channel, frequency in
+        Hz, and duration in seconds.</p>
+      <script type="text/plain" id="example-440hz">
 // A simple, one-op-basic-like voice.
 fm.setPreset(CH1, FM_PRESETS["one-op-basic"]);
 
@@ -334,18 +435,43 @@ async function sound(channel, hz, seconds = 2) {
   }
 }
 </script>
-<iframe class="playground-frame" data-playground-src="example-440hz" title="Playground: hear a 440 Hz reference tone" loading="lazy" allow="autoplay" style="height:640px;width:100%;border:1px solid var(--line);border-radius:14px"></iframe>
-<p>The YM2612 uses integer frequency settings, so the tone is an approximation to 440 Hz. The local <code>sound</code> function below the example converts Hz to chip settings.</p>
-</section>
-<section class="panel">
-<h2>2. Build more notes from one pure fifth</h2>
-<p>How can one reference sound lead to a collection of notes? One approach is to choose a <strong>pure fifth</strong>, the frequency ratio <code>3/2</code>, and repeat it. Each new sound becomes the starting point for the next fifth. Divide by two whenever you need to bring it back into the starting octave.</p>
-<p>Starting on C, the note names follow this chain:</p>
-<pre><code>C → G → D → A → E → B → F♯
-  → C♯ → G♯ → D♯ → A♯ → E♯ → B♯</code></pre>
-<p>In twelve-tone equal temperament, E♯ shares a pitch with F, and B♯ with C. The first twelve entries therefore cover all twelve pitch classes. But with exact <code>3/2</code> ratios, the final B♯ does not land exactly on the starting C after adjusting octaves. The note names describe the chain; they do not guarantee that it closes.</p>
-<p><strong>Let's write that process as a for loop.</strong> Keep the 440 Hz sound from the first example. This time, multiply its frequency by <code>3/2</code> at each step: a pure fifth downward, the reverse of the <code>3/2</code> chain above. Move each result by octaves to keep it close to the starting A. Starting on A, this gives A → D → G → C → F → B♭ → E♭ → A♭ → D♭ → G♭ → C♭ → F♭ → B𝄫. The code calculates frequencies directly; it does not use equal-tempered note-name playback.</p>
-<script type="text/plain" id="example-fifths-chain">
+      <iframe class="playground-frame" data-playground-src="example-440hz"
+        title="Playground: hear a 440 Hz reference tone" loading="lazy" allow="autoplay"
+        style="height:640px;width:100%;border:1px solid var(--line);border-radius:14px"></iframe>
+      <p>The YM2612 uses integer frequency settings, so the tone is an approximation to 440 Hz. The local
+        <code>sound</code> function below the example converts Hz to chip settings.
+      </p>
+    </section>
+    <section class="panel">
+      <h2>2. Build more notes from one pure fifth</h2>
+
+      <p>How can one reference sound lead to a collection of notes? One approach is to choose a <strong>pure
+          fifth</strong>, the frequency ratio <code>3/2</code>, and repeat it. Each new sound becomes the starting point
+        for the next fifth. When the frequency becomes too high, divide it by two to move it back near the starting
+        register.</p>
+
+      <p>Starting on C, the note names follow this chain:</p>
+
+      <pre><code>C → G → D → A → E → B → F♯
+→ C♯ → G♯ → D♯ → A♯ → E♯ → B♯</code></pre>
+
+      <p>In twelve-tone equal temperament, E♯ shares a pitch with F, and B♯ with C. The first twelve steps therefore
+        pass through all twelve pitch classes. But with exact <code>3/2</code> ratios, twelve pure fifths do not return
+        exactly to the starting pitch after octave adjustment. The note names describe the chain; they do not guarantee
+        that it closes.</p>
+
+      <p><strong>Let's write that process as a for loop.</strong> Keep the 440 Hz sound from the first example as a
+        reference. Starting from A, multiply the frequency by <code>3/2</code> at each step: one pure fifth upward.
+        Then shift the result by octaves so that it stays close to the starting A.</p>
+
+      <p>Starting on A, this gives:</p>
+
+      <pre><code>A → E → B → F♯ → C♯ → G♯ → D♯
+→ A♯ → E♯ → B♯ → F𝄪 → C𝄪 → G𝄪</code></pre>
+
+      <p>The code calculates frequencies directly; it does not use equal-tempered note-name playback.</p>
+
+      <script type="text/plain" id="example-fifths-chain">
 // A simple, one-op-basic-like voice.
 fm.setPreset(CH1, FM_PRESETS["one-op-basic"]);
 fm.setPreset(CH2, FM_PRESETS["one-op-basic"]);
@@ -400,17 +526,41 @@ async function sound(channel, hz, seconds = 2) {
   }
 }
 </script>
-<iframe class="playground-frame" data-playground-src="example-fifths-chain" title="Playground: build a chain of pure fifths from 440 Hz" loading="lazy" allow="autoplay" style="height:640px;width:100%;border:1px solid var(--line);border-radius:14px"></iframe>
-<p>Each step plays two sounds together: the unchanged 440 Hz reference on CH1 and the calculated frequency on CH2. <code>sound(channel, hz)</code> plays one tone; <code>Promise.all</code> starts the two calls together and waits for both to finish. After twelve steps, the second target is about <strong>434.078 Hz</strong>, roughly <strong>23.46 cents</strong> below the starting A. Listen for the beating between the two nearby pitches. The YM2612 approximates the requested frequencies with its available settings.</p>
-<p><strong>Where does just intonation enter?</strong> Building notes from pure fifths and octaves is called <a href="https://tuning.ableton.com/glossary/pythagorean-tuning/">Pythagorean tuning</a>. It is one form of just intonation, using ratios built from 2 and 3. The familiar five-limit approach also uses 5, giving us intervals such as <code>5/4</code> for a pure major third. Four pure fifths, brought back into one octave, give <code>81/64</code> instead: these two thirds are close, but different.</p>
-<p>The harmonic series offers another way to examine these ratios: its frequencies are <code>f, 2f, 3f, 4f, 5f…</code>. The third and second harmonics have the ratio <code>3/2</code>; the fifth and fourth have <code>5/4</code>. Listing harmonics of one fixed sound and repeatedly multiplying the previous note by <code>3/2</code> are different processes. Next, let's listen to individual ratios and compare their sound.</p>
-</section>
-<section class="panel" id="listen">
-<p class="kicker">Try it · edit the JavaScript</p>
-<h2>3. One reference, two sounds</h2>
-<p>Press Run in the Playground below. First hear the reference, then the upper sound, then both together. Change <code>ratio</code> from <code>3 / 2</code> to <code>5 / 4</code> and run it again. What changed?</p>
-<p>Next change <code>base</code> from 220 to 440. The register changes, but the ratio stays the same. Change the values at the top, then run the example again.</p>
-<script type="text/plain" id="example-frequency-ratios">
+
+      <iframe class="playground-frame" data-playground-src="example-fifths-chain"
+        title="Playground: build a chain of pure fifths from 440 Hz" loading="lazy" allow="autoplay"
+        style="height:640px;width:100%;border:1px solid var(--line);border-radius:14px"></iframe>
+
+      <p>Each step plays two sounds together: the unchanged 440 Hz reference on CH1 and the calculated frequency on CH2.
+        <code>sound(channel, hz)</code> plays one tone; <code>Promise.all</code> starts the two calls together and waits
+        for both to finish. After twelve pure fifths, the octave-adjusted target is about <strong>446.0 Hz</strong>,
+        roughly <strong>23.46 cents above</strong> the starting A. Listen for the beating between the two nearby
+        pitches.
+        The YM2612 approximates the requested frequencies with its available settings.
+      </p>
+
+      <p><strong>Where does just intonation enter?</strong> Building notes from pure fifths and octaves is called <a
+          href="https://tuning.ableton.com/glossary/pythagorean-tuning/">Pythagorean tuning</a>. It is one form of just
+        intonation, using ratios built from 2 and 3. The familiar five-limit approach also uses 5, giving us intervals
+        such as <code>5/4</code> for a pure major third. Four pure fifths, brought back into one octave, give
+        <code>81/64</code> instead: these two thirds are close, but different.
+      </p>
+
+      <p>The harmonic series offers another way to examine these ratios: its frequencies are
+        <code>f, 2f, 3f, 4f, 5f…</code>. The third and second harmonics have the ratio <code>3/2</code>; the fifth and
+        fourth have <code>5/4</code>. Listing harmonics of one fixed sound and repeatedly multiplying the previous note
+        by <code>3/2</code> are different processes. Next, let's listen to individual ratios and compare their sound.
+      </p>
+    </section>
+    <section class="panel" id="listen">
+      <p class="kicker">Try it · edit the JavaScript</p>
+      <h2>3. One reference, two sounds</h2>
+      <p>Press Run in the Playground below. First hear the reference, then the upper sound, then both together. Change
+        <code>ratio</code> from <code>3 / 2</code> to <code>5 / 4</code> and run it again. What changed?
+      </p>
+      <p>Next change <code>base</code> from 220 to 440. The register changes, but the ratio stays the same. Change the
+        values at the top, then run the example again.</p>
+      <script type="text/plain" id="example-frequency-ratios">
 // A simple, one-op-basic-like voice.
 fm.setPreset(CH1, FM_PRESETS["one-op-basic"]);
 fm.setPreset(CH2, FM_PRESETS["one-op-basic"]);
@@ -445,8 +595,10 @@ async function sound(channel, hz, seconds = 2) {
   }
 }
 </script>
-<iframe class="playground-frame" data-playground-src="example-frequency-ratios" title="Playground: explore frequency ratios" loading="lazy" allow="autoplay" style="height:640px;width:100%;border:1px solid var(--line);border-radius:14px"></iframe>
-<script type="text/plain" id="example-ratios-full">
+      <iframe class="playground-frame" data-playground-src="example-frequency-ratios"
+        title="Playground: explore frequency ratios" loading="lazy" allow="autoplay"
+        style="height:640px;width:100%;border:1px solid var(--line);border-radius:14px"></iframe>
+      <script type="text/plain" id="example-ratios-full">
 // Change the reference and the ratio, then Run again.
 const base = 220;
 const ratio = 3 / 2; // Try 2/1 (octave), 4/3 (fourth), or 5/4 (third).
@@ -498,22 +650,55 @@ async function sound(frequencies, seconds = 2) {
   await sleep(0.25);
 }
 </script>
-<p><a data-playground-src="example-ratios-full" target="_blank" rel="noopener noreferrer">Open this example in the full Playground ↗</a> · <a href="./tuning-ratios.js">JavaScript source</a></p>
-<p class="muted">Each example ends by releasing its notes. Use Stop before starting another Playground. The same additive patch includes harmonics 1, 2, 3 and 5, with the upper harmonics quieter.</p>
-</section>
-<section class="panel">
-<h2>4. Equal steps, different thirds</h2>
-<p>Twelve-tone equal temperament divides the octave into twelve equal <em>ratios</em>, not twelve equal differences in Hz.</p>
-<div class="formula"><code>frequency = base * 2 ** (semitones / 12)</code></div>
-<div class="table-wrap"><table><thead><tr><th>Interval</th><th>Just ratio</th><th>Just cents</th><th>Equal cents</th></tr></thead><tbody>
-<tr><td>Major third</td><td>5/4</td><td>386.31</td><td>400</td></tr>
-<tr><td>Perfect fifth</td><td>3/2</td><td>701.96</td><td>700</td></tr>
-<tr><td>Octave</td><td>2/1</td><td>1200</td><td>1200</td></tr>
-</tbody></table></div>
-<p>The equal-tempered major third is about 13.69 cents wider than 5/4. Its fifth is about 1.96 cents narrower than 3/2. The experiment changes these ratios while holding the root and patch fixed.</p>
-<h3>Build the chord yourself</h3>
-<p>Run with <code>tuning = "just"</code>, then change it to <code>"equal"</code>. The root and patch stay fixed. Listen especially to the sustained major third. Try keeping only the first two ratios to focus on that interval.</p>
-<script type="text/plain" id="example-just-equal-chords">
+      <p><a data-playground-src="example-ratios-full" target="_blank" rel="noopener noreferrer">Open this example in the
+          full Playground ↗</a> · <a href="./tuning-ratios.js">JavaScript source</a></p>
+      <p class="muted">Each example ends by releasing its notes. Use Stop before starting another Playground. The same
+        additive patch includes harmonics 1, 2, 3 and 5, with the upper harmonics quieter.</p>
+    </section>
+    <section class="panel">
+      <h2>4. Equal steps, different thirds</h2>
+      <p>Twelve-tone equal temperament divides the octave into twelve equal <em>ratios</em>, not twelve equal
+        differences in Hz.</p>
+      <div class="formula"><code>frequency = base * 2 ** (semitones / 12)</code></div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Interval</th>
+              <th>Just ratio</th>
+              <th>Just cents</th>
+              <th>Equal cents</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Major third</td>
+              <td>5/4</td>
+              <td>386.31</td>
+              <td>400</td>
+            </tr>
+            <tr>
+              <td>Perfect fifth</td>
+              <td>3/2</td>
+              <td>701.96</td>
+              <td>700</td>
+            </tr>
+            <tr>
+              <td>Octave</td>
+              <td>2/1</td>
+              <td>1200</td>
+              <td>1200</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p>The equal-tempered major third is about 13.69 cents wider than 5/4. Its fifth is about 1.96 cents narrower than
+        3/2. The experiment changes these ratios while holding the root and patch fixed.</p>
+      <h3>Build the chord yourself</h3>
+      <p>Run with <code>tuning = "just"</code>, then change it to <code>"equal"</code>. The root and patch stay fixed.
+        Listen especially to the sustained major third. Try keeping only the first two ratios to focus on that interval.
+      </p>
+      <script type="text/plain" id="example-just-equal-chords">
 // A simple, one-op-basic-like voice.
 fm.setPreset(CH1, FM_PRESETS["one-op-basic"]);
 fm.setPreset(CH2, FM_PRESETS["one-op-basic"]);
@@ -552,8 +737,10 @@ async function sound(channel, hz, seconds = 2) {
   }
 }
 </script>
-<iframe class="playground-frame" data-playground-src="example-just-equal-chords" title="Playground: just and equal-tempered chords" loading="lazy" allow="autoplay" style="height:640px;width:100%;border:1px solid var(--line);border-radius:14px"></iframe>
-<script type="text/plain" id="example-chords-full">
+      <iframe class="playground-frame" data-playground-src="example-just-equal-chords"
+        title="Playground: just and equal-tempered chords" loading="lazy" allow="autoplay"
+        style="height:640px;width:100%;border:1px solid var(--line);border-radius:14px"></iframe>
+      <script type="text/plain" id="example-chords-full">
 // Choose "just" or "equal", then Run again.
 const tuning = "just";
 const base = 220;
@@ -607,31 +794,42 @@ async function sound(frequencies, seconds = 2) {
   await sleep(0.25);
 }
 </script>
-<p><a data-playground-src="example-chords-full" target="_blank" rel="noopener noreferrer">Open this example in the full Playground ↗</a> · <a href="./tuning-chords.js">JavaScript source</a></p>
-<p>For a deeper listening explanation, see Joe Wolfe’s <a href="https://www.phys.unsw.edu.au/jw/tartini-temperament.html" target="_blank" rel="noopener noreferrer">UNSW introduction to tones and temperament</a>.</p>
-</section>
-<section class="panel">
-<h2>5. Why don’t twelve pure fifths close the circle?</h2>
-<pre><code>C → G → D → A → E → B → F♯ → C♯ …
+      <p><a data-playground-src="example-chords-full" target="_blank" rel="noopener noreferrer">Open this example in the
+          full Playground ↗</a> · <a href="./tuning-chords.js">JavaScript source</a></p>
+      <p>For a deeper listening explanation, see Joe Wolfe’s <a
+          href="https://www.phys.unsw.edu.au/jw/tartini-temperament.html" target="_blank" rel="noopener noreferrer">UNSW
+          introduction to tones and temperament</a>.</p>
+    </section>
+    <section class="panel">
+      <h2>5. Why don’t twelve pure fifths close the circle?</h2>
+      <pre><code>C → G → D → A → E → B → F♯ → C♯ …
 (3/2) ** 12 / 2 ** 7 ≈ 1.01364
 1200 * Math.log2((3/2) ** 12 / 2 ** 7) ≈ 23.46 cents</code></pre>
-<p>Twelve pure fifths land slightly above seven octaves. That difference is the Pythagorean comma. Building pitches from pure fifths is associated with Pythagorean tuning; adding pure 5/4 thirds introduces a different set of relationships.</p>
-<p>Four pure fifths, brought into one octave, give <code>81/64</code>. That is not <code>5/4</code>: their ratio is <code>81/80</code>, the syntonic comma. “Just intonation” therefore does not mean one universal twelve-key layout with every possible interval pure.</p>
-<p>On a twelve-tone equal-tempered keyboard, C♯ and D♭ share a pitch. In other tunings their exact relationship depends on how those pitches are constructed. Even when they sound alike, their spellings can still describe different musical roles.</p>
-</section>
-<section class="panel">
-<h2>6. Pitch can be a continuous coordinate</h2>
-<p>Define pitch as a distance in semitones from your own reference. It need not be an integer.</p>
-<pre><code>const ratioToPitch = ratio => 12 * Math.log2(ratio);
+      <p>Twelve pure fifths land slightly above seven octaves. That difference is the Pythagorean comma. Building
+        pitches from pure fifths is associated with Pythagorean tuning; adding pure 5/4 thirds introduces a different
+        set of relationships.</p>
+      <p>Four pure fifths, brought into one octave, give <code>81/64</code>. That is not <code>5/4</code>: their ratio
+        is <code>81/80</code>, the syntonic comma. “Just intonation” therefore does not mean one universal twelve-key
+        layout with every possible interval pure.</p>
+      <p>On a twelve-tone equal-tempered keyboard, C♯ and D♭ share a pitch. In other tunings their exact relationship
+        depends on how those pitches are constructed. Even when they sound alike, their spellings can still describe
+        different musical roles.</p>
+    </section>
+    <section class="panel">
+      <h2>6. Pitch can be a continuous coordinate</h2>
+      <p>Define pitch as a distance in semitones from your own reference. It need not be an integer.</p>
+      <pre><code>const ratioToPitch = ratio => 12 * Math.log2(ratio);
 const pitchToHz = (pitch, base = 220) => base * 2 ** (pitch / 12);
 
 const equal = [0, 4, 7];
 const just = [0, ratioToPitch(5/4), ratioToPitch(3/2)];
 // 0.01 semitone = 1 cent. A smooth bend can use fractional values.</code></pre>
-<p>This is an article-defined coordinate system, not a new Tetorica API. At the chip boundary, frequencies must become integer BLOCK/FNUM values. Mathematical continuity does not make the YM2612 infinitely precise.</p>
-<h3>Try a fractional pitch</h3>
-<p>Run with the pure third, then replace <code>pitch</code> with <code>4</code>. Try <code>4.1</code> next. You are moving on the same pitch axis; there is no need to choose a new note-name system.</p>
-<script type="text/plain" id="example-fractional-semitones">
+      <p>This is an article-defined coordinate system, not a new Tetorica API. At the chip boundary, frequencies must
+        become integer BLOCK/FNUM values. Mathematical continuity does not make the YM2612 infinitely precise.</p>
+      <h3>Try a fractional pitch</h3>
+      <p>Run with the pure third, then replace <code>pitch</code> with <code>4</code>. Try <code>4.1</code> next. You
+        are moving on the same pitch axis; there is no need to choose a new note-name system.</p>
+      <script type="text/plain" id="example-fractional-semitones">
 // A simple, one-op-basic-like voice.
 fm.setPreset(CH1, FM_PRESETS["one-op-basic"]);
 fm.setPreset(CH2, FM_PRESETS["one-op-basic"]);
@@ -666,8 +864,10 @@ async function sound(channel, hz, seconds = 2) {
   }
 }
 </script>
-<iframe class="playground-frame" data-playground-src="example-fractional-semitones" title="Playground: fractional semitone coordinates" loading="lazy" allow="autoplay" style="height:640px;width:100%;border:1px solid var(--line);border-radius:14px"></iframe>
-<script type="text/plain" id="example-pitch-full">
+      <iframe class="playground-frame" data-playground-src="example-fractional-semitones"
+        title="Playground: fractional semitone coordinates" loading="lazy" allow="autoplay"
+        style="height:640px;width:100%;border:1px solid var(--line);border-radius:14px"></iframe>
+      <script type="text/plain" id="example-pitch-full">
 // A pitch coordinate measured in semitones from base.
 const base = 220;
 const pitch = 12 * Math.log2(5 / 4); // 3.863...; try 4 or 4.1.
@@ -719,17 +919,28 @@ async function sound(frequencies, seconds = 2) {
   await sleep(0.25);
 }
 </script>
-<p><a data-playground-src="example-pitch-full" target="_blank" rel="noopener noreferrer">Open this example in the full Playground ↗</a> · <a href="./tuning-pitch.js">JavaScript source</a></p>
-<p class="muted">The example helpers use Hz directly rather than the Playground note-name reference. The full Playground console shows target and approximated chip frequencies. Small residual errors remain because BLOCK/FNUM is discrete; pure mathematical ratios are targets, not exact chip guarantees.</p>
+      <p><a data-playground-src="example-pitch-full" target="_blank" rel="noopener noreferrer">Open this example in the
+          full Playground ↗</a> · <a href="./tuning-pitch.js">JavaScript source</a></p>
+      <p class="muted">The example helpers use Hz directly rather than the Playground note-name reference. The full
+        Playground console shows target and approximated chip frequencies. Small residual errors remain because
+        BLOCK/FNUM is discrete; pure mathematical ratios are targets, not exact chip guarantees.</p>
 
-</section>
-<section class="panel">
-<h2>7. From intervals to FM ratios</h2>
-<p>So far we compared separate voices. FM synthesis relates oscillators inside a voice: changing the modulator-to-carrier frequency ratio changes the spectrum. Harmonic relationships can produce harmonic spectra; other ratios can produce inharmonic components.</p>
-<p>A 3:2 operator ratio is not the same experiment as playing a 3:2 musical interval. Routing, modulation depth, envelopes and feedback also matter. The YM2612’s MULTI settings are discrete (0 means one-half; 1–15 are integer multipliers), so not every arbitrary ratio can be dialled in with MULTI alone.</p>
-<p>The useful connection is the question: <strong>what changes when one frequency is related to another?</strong> Start with a reference, choose a ratio, then listen.</p>
-<a class="link-button" href="./index.html">Explore FM operators</a> <a class="link-button" href="../playground/index.html" target="_blank" rel="noopener noreferrer">Open Playground ↗</a>
-</section>
-</main>
-<script src="./playground-embed.js"></script>
-</body></html>
+    </section>
+    <section class="panel">
+      <h2>7. From intervals to FM ratios</h2>
+      <p>So far we compared separate voices. FM synthesis relates oscillators inside a voice: changing the
+        modulator-to-carrier frequency ratio changes the spectrum. Harmonic relationships can produce harmonic spectra;
+        other ratios can produce inharmonic components.</p>
+      <p>A 3:2 operator ratio is not the same experiment as playing a 3:2 musical interval. Routing, modulation depth,
+        envelopes and feedback also matter. The YM2612’s MULTI settings are discrete (0 means one-half; 1–15 are integer
+        multipliers), so not every arbitrary ratio can be dialled in with MULTI alone.</p>
+      <p>The useful connection is the question: <strong>what changes when one frequency is related to another?</strong>
+        Start with a reference, choose a ratio, then listen.</p>
+      <a class="link-button" href="./index.html">Explore FM operators</a> <a class="link-button"
+        href="../playground/index.html" target="_blank" rel="noopener noreferrer">Open Playground ↗</a>
+    </section>
+  </main>
+  <script src="./playground-embed.js"></script>
+</body>
+
+</html>
