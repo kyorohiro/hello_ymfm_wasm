@@ -437,61 +437,76 @@ async function sound(channel, hz, seconds = 2) {
       </p>
     </section>
     <section class="panel">
-      <h2>2. Build more notes from one pure fifth</h2>
+      <h2>2. Just intonation: choose simple ratios</h2>
+      <p>Start with 440 Hz. To explore just intonation, choose simple whole-number ratios relative to that reference.
+        We can try a third, a fourth, or a fifth; the fifth does not have to come first.</p>
+      <table>
+        <thead><tr><th>Ratio to the reference</th><th>Frequency</th><th>Interval</th></tr></thead>
+        <tbody>
+          <tr><td>1/1</td><td>440 Hz</td><td>Unison</td></tr>
+          <tr><td>5/4</td><td>550 Hz</td><td>Pure major third</td></tr>
+          <tr><td>4/3</td><td>586.67 Hz (approximately)</td><td>Pure fourth</td></tr>
+          <tr><td>3/2</td><td>660 Hz</td><td>Pure fifth</td></tr>
+        </tbody>
+      </table>
+      <p>Each frequency is calculated from the same 440 Hz reference, not from the preceding result.
+        This is a small selection of intervals to explore, not a complete scale.</p>
+      <h3>Double the frequency: one octave up</h3>
+      <p><strong>880 Hz is one octave above 440 Hz.</strong> Multiplying a frequency by two moves it up one octave;
+        dividing by two moves it down one octave. We can therefore compare pitches within one octave,
+        from 440 Hz up to 880 Hz, by repeatedly doubling or halving them.</p>
+      <p>One way to find simple ratios is to start with integer multiples of 440 Hz, then bring them into that octave:</p>
+      <ul>
+        <li><strong>2 times:</strong> 880 Hz is the upper octave boundary. Halve it to return to 440 Hz.</li>
+        <li><strong>3 times:</strong> 1320 Hz ÷ 2 = 660 Hz, or <code>440 × 3/2</code>.</li>
+        <li><strong>4 times:</strong> 1760 Hz ÷ 2 ÷ 2 = 440 Hz, the starting pitch again.</li>
+        <li><strong>5 times:</strong> 2200 Hz ÷ 2 ÷ 2 = 550 Hz, or <code>440 × 5/4</code>.</li>
+      </ul>
+      <pre><code>const base = 440;
+const n = 5;
+let frequency = base * n;
 
-      <p>How can one reference sound lead to a collection of notes? One approach is to choose a <strong>pure
-          fifth</strong>, the frequency ratio <code>3/2</code>, and repeat it. Each new sound becomes the starting point
-        for the next fifth. When the frequency becomes too high, divide it by two to move it back near the starting
-        register.</p>
+while (frequency >= base * 2) {
+  frequency /= 2;
+}
+// 550 Hz: the fifth harmonic, moved down two octaves.</code></pre>
+      <p>The loop treats 880 Hz as the start of the next octave and returns it to 440 Hz.
+        It always starts from <code>base × n</code>; it does not multiply the previous result by <code>3/2</code>.</p>
+      <h3>Why not multiply by 4 or 5 as well?</h3>
+      <p><strong>We can—and tuning systems do use that idea.</strong> Multiplying by 4 only moves a sound up two
+        octaves, so bringing it back adds no new pitch class. Multiplying by 5 introduces a different possibility:
+        <code>440 × 5 ÷ 4 = 550 Hz</code>, a pure major third.</p>
+      <p>We can combine the steps too. From 550 Hz, multiply by 3 and halve the result:
+        <code>550 × 3 ÷ 2 = 825 Hz</code>. Its ratio to the original reference is <code>15/8</code>.
+        Combining factors of 2, 3, and 5 is the basis of five-limit just intonation.</p>
+      <p>The difficulty is not producing these sounds. It is fitting the different routes into one fixed set of notes.
+        Four fifths from 440 Hz give <code>440 × 81/64 = 556.875 Hz</code>, while the direct pure third gives
+        <code>440 × 5/4 = 550 Hz</code>. Both serve as a major third, but one fixed key cannot have both frequencies
+        at once. More choices give us more ways to tune a chord, and more decisions when chords or keys change.</p>
+      <p>So the question is not “Why was the other approach never used?” It is “Which relationships do we want to keep
+        exact, and how do we handle the ones that disagree?” Pythagorean tuning, five-limit just intonation,
+        and temperaments make different choices. This is a way to explore those choices, not a single origin story
+        for all modern music. See <a href="https://math.ucr.edu/home/baez/tuning_book/">John Baez's
+        discussion of just intonation</a> for more background.</p>
+      <p>Integer multiples are one way to explore just ratios, not the only way.
+        The fourth, <code>4/3</code>, does not come from an integer multiple of the reference followed only by halving.
+        It is the ratio between the fourth and third harmonics; it also complements a pure fifth to make an octave:
+        <code>(3/2) × (4/3) = 2</code>.</p>
 
-      <p>Starting on C, the note names follow this chain:</p>
-
-      <pre><code>C → G → D → A → E → B → F♯
-→ C♯ → G♯ → D♯ → A♯ → E♯ → B♯</code></pre>
-
-      <p>In twelve-tone equal temperament, E♯ shares a pitch with F, and B♯ with C. The first twelve steps therefore
-        pass through all twelve pitch classes. But with exact <code>3/2</code> ratios, twelve pure fifths do not return
-        exactly to the starting pitch after octave adjustment. The note names describe the chain; they do not guarantee
-        that it closes.</p>
-
-      <p><strong>Let's write that process as a for loop.</strong> Keep the 440 Hz sound from the first example as a
-        reference. Starting from A, multiply the frequency by <code>3/2</code> at each step: one pure fifth upward.
-        Then shift the result by octaves so that it stays close to the starting A.</p>
-
-      <p>Starting on A, this gives:</p>
-
-      <pre><code>A → E → B → F♯ → C♯ → G♯ → D♯
-→ A♯ → E♯ → B♯ → F𝄪 → C𝄪 → G𝄪</code></pre>
-
-      <p>The code calculates frequencies directly; it does not use equal-tempered note-name playback.</p>
-
-      <script type="text/plain" id="example-fifths-chain">
-// A simple, one-op-basic-like voice.
+      <p>Keep the reference on CH1 and listen to each ratio on CH2. The code uses <code>440 * 4 / 3</code>,
+        so the rounded number in the table does not affect the calculation.</p>
+      <script type="text/plain" id="example-just-ratios">
 fm.setPreset(CH1, FM_PRESETS["sine"]);
 fm.setPreset(CH2, FM_PRESETS["sine"]);
 
-// Keep A4 sounding against each note generated by pure fifths.
 const base = 440;
+const ratios = [1 / 1, 5 / 4, 4 / 3, 3 / 2];
 
-for (let i = 0; i <= 12; i++) {
-  let frequency = base * (3 / 2) ** i;
-
-  // Move the note to the octave closest to A4.
-  while (frequency > base * Math.sqrt(2)) {
-    frequency /= 2;
-  }
-
-  while (frequency < base / Math.sqrt(2)) {
-    frequency *= 2;
-  }
-
-  console.log(`Step ${i}: ${frequency.toFixed(3)} Hz`);
-
+for (const ratio of ratios) {
   await Promise.all([
     sound(CH1, base),
-    sound(CH2, frequency),
+    sound(CH2, base * ratio),
   ]);
-
   await sleep(0.25);
 }
 
@@ -501,7 +516,6 @@ async function sound(channel, hz, seconds = 2) {
   const { block, fnum } = hzToBlockFnum(hz);
   fm.setFrequency(channel, block, fnum);
   fm.keyOn(channel);
-
   try {
     await sleep(seconds);
   } finally {
@@ -509,31 +523,94 @@ async function sound(channel, hz, seconds = 2) {
   }
 }
 </script>
-
-      <iframe class="playground-frame" data-playground-src="example-fifths-chain"
-        title="Playground: build a chain of pure fifths from 440 Hz" loading="lazy" allow="autoplay"
+      <iframe class="playground-frame" data-playground-src="example-just-ratios"
+        title="Playground: simple just-intonation ratios from 440 Hz" loading="lazy" allow="autoplay"
         style="height:640px;width:100%;border:1px solid var(--line);border-radius:14px"></iframe>
+      <h3>Try your own route</h3>
+      <p>Change only <code>multipliers</code> and press Run. <code>[4]</code> returns to the reference;
+        <code>[5]</code> makes a pure third; <code>[5, 3]</code> goes through 550 Hz to 825 Hz.
+        <code>[3, 3, 3, 3]</code> reaches the different third made by four fifths.
+        Try <code>[7]</code> too: the result is 770 Hz, or <code>7/4</code> of the reference.
+        Ratios involving 7 take this experiment beyond five-limit just intonation.</p>
+      <script type="text/plain" id="example-multiplier-route">
+fm.setPreset(CH1, FM_PRESETS["sine"]);
+fm.setPreset(CH2, FM_PRESETS["sine"]);
 
-      <p>Each step plays two sounds together: the unchanged 440 Hz reference on CH1 and the calculated frequency on CH2.
-        <code>sound(channel, hz)</code> plays one tone; <code>Promise.all</code> starts the two calls together and waits
-        for both to finish. After twelve pure fifths, the octave-adjusted target is about <strong>446.0 Hz</strong>,
-        roughly <strong>23.46 cents above</strong> the starting A. Listen for the beating between the two nearby
-        pitches.
-        The YM2612 approximates the requested frequencies with its available settings.
-      </p>
+const base = 440;
+const multipliers = [5, 3]; // Try [4], [5], [3, 3, 3, 3], or [7].
+let frequency = base;
 
-      <p><strong>Where does just intonation enter?</strong> Building notes from pure fifths and octaves is called <a
-          href="https://tuning.ableton.com/glossary/pythagorean-tuning/">Pythagorean tuning</a>. It is one form of just
-        intonation, using ratios built from 2 and 3. The familiar five-limit approach also uses 5, giving us intervals
-        such as <code>5/4</code> for a pure major third. Four pure fifths, brought back into one octave, give
-        <code>81/64</code> instead: these two thirds are close, but different.
-      </p>
+for (const n of multipliers) {
+  frequency *= n;
+  while (frequency >= base * 2) frequency /= 2;
 
-      <p>The harmonic series offers another way to examine these ratios: its frequencies are
-        <code>f, 2f, 3f, 4f, 5f…</code>. The third and second harmonics have the ratio <code>3/2</code>; the fifth and
-        fourth have <code>5/4</code>. Listing harmonics of one fixed sound and repeatedly multiplying the previous note
-        by <code>3/2</code> are different processes. Next, let's listen to individual ratios and compare their sound.
-      </p>
+  console.log(`${n} times, moved down by octaves: ${frequency} Hz`);
+  await Promise.all([
+    sound(CH1, base),
+    sound(CH2, frequency),
+  ]);
+  await sleep(0.25);
+}
+
+// Play one tone in Hz using the voice already set on this channel.
+/** @param {YM2612Channel} channel */
+async function sound(channel, hz, seconds = 2) {
+  const { block, fnum } = hzToBlockFnum(hz);
+  fm.setFrequency(channel, block, fnum);
+  fm.keyOn(channel);
+  try {
+    await sleep(seconds);
+  } finally {
+    fm.keyOff(channel);
+  }
+}
+</script>
+      <iframe class="playground-frame" data-playground-src="example-multiplier-route"
+        title="Playground: explore different frequency multipliers" loading="lazy" allow="autoplay"
+        style="height:640px;width:100%;border:1px solid var(--line);border-radius:14px"></iframe>
+      <h3>Two routes, two different thirds</h3>
+      <p>Now compare 550 Hz and 556.875 Hz against 440 Hz. Finally, hear the two thirds together.
+        Listen for the pulsing, or beating, between these nearby frequencies. Neither calculation is a mistake:
+        the routes preserve different relationships.</p>
+      <script type="text/plain" id="example-two-thirds">
+fm.setPreset(CH1, FM_PRESETS["sine"]);
+fm.setPreset(CH2, FM_PRESETS["sine"]);
+
+const base = 440;
+const directThird = base * 5 / 4;       // 550 Hz
+const fifthsThird = base * 3 ** 4 / 64; // 556.875 Hz
+
+// First compare each third against the same reference.
+for (const third of [directThird, fifthsThird]) {
+  await Promise.all([
+    sound(CH1, base),
+    sound(CH2, third),
+  ]);
+  await sleep(0.25);
+}
+
+// Then hear the two different thirds together.
+await Promise.all([
+  sound(CH1, directThird, 4),
+  sound(CH2, fifthsThird, 4),
+]);
+
+// Play one tone in Hz using the voice already set on this channel.
+/** @param {YM2612Channel} channel */
+async function sound(channel, hz, seconds = 2) {
+  const { block, fnum } = hzToBlockFnum(hz);
+  fm.setFrequency(channel, block, fnum);
+  fm.keyOn(channel);
+  try {
+    await sleep(seconds);
+  } finally {
+    fm.keyOff(channel);
+  }
+}
+</script>
+      <iframe class="playground-frame" data-playground-src="example-two-thirds"
+        title="Playground: compare the pure and Pythagorean major thirds" loading="lazy" allow="autoplay"
+        style="height:640px;width:100%;border:1px solid var(--line);border-radius:14px"></iframe>
     </section>
     <section class="panel" id="listen">
       <p class="kicker">Try it · edit the JavaScript</p>
@@ -633,7 +710,101 @@ async function sound(frequencies, seconds = 2) {
         additive patch includes harmonics 1, 2, 3 and 5, with the upper harmonics quieter.</p>
     </section>
     <section class="panel">
-      <h2>4. Equal steps, different thirds</h2>
+      <h2>4. Pythagorean tuning: repeat one pure fifth</h2>
+
+      <p>Now try a different construction rule. Choose a <strong>pure
+          fifth</strong>, the frequency ratio <code>3/2</code>, and repeat it. Each new sound becomes the starting point
+        for the next fifth. When the frequency becomes too high, divide it by two to move it back near the starting
+        register.</p>
+
+      <p>Starting on C, the note names follow this chain:</p>
+
+      <pre><code>C → G → D → A → E → B → F♯
+→ C♯ → G♯ → D♯ → A♯ → E♯ → B♯</code></pre>
+
+      <p>In twelve-tone equal temperament, E♯ shares a pitch with F, and B♯ with C. The first twelve steps therefore
+        pass through all twelve pitch classes. But with exact <code>3/2</code> ratios, twelve pure fifths do not return
+        exactly to the starting pitch after octave adjustment. The note names describe the chain; they do not guarantee
+        that it closes.</p>
+
+      <p><strong>Let's write that process as a for loop.</strong> Keep the 440 Hz sound from the first example as a
+        reference. Starting from A, multiply the frequency by <code>3/2</code> at each step: one pure fifth upward.
+        Then shift the result by octaves so that it stays close to the starting A.</p>
+
+      <p>Starting on A, this gives:</p>
+
+      <pre><code>A → E → B → F♯ → C♯ → G♯ → D♯
+→ A♯ → E♯ → B♯ → F𝄪 → C𝄪 → G𝄪</code></pre>
+
+      <p>The code calculates frequencies directly; it does not use equal-tempered note-name playback.</p>
+
+      <script type="text/plain" id="example-fifths-chain">
+// A simple, one-op-basic-like voice.
+fm.setPreset(CH1, FM_PRESETS["sine"]);
+fm.setPreset(CH2, FM_PRESETS["sine"]);
+
+// Keep A4 sounding against each note generated by pure fifths.
+const base = 440;
+
+for (let i = 0; i <= 12; i++) {
+  let frequency = base * (3 / 2) ** i;
+
+  // Move the note to the octave closest to A4.
+  while (frequency > base * Math.sqrt(2)) {
+    frequency /= 2;
+  }
+
+  while (frequency < base / Math.sqrt(2)) {
+    frequency *= 2;
+  }
+
+  console.log(`Step ${i}: ${frequency.toFixed(3)} Hz`);
+
+  await Promise.all([
+    sound(CH1, base),
+    sound(CH2, frequency),
+  ]);
+
+  await sleep(0.25);
+}
+
+// Play one tone in Hz using the voice already set on this channel.
+/** @param {YM2612Channel} channel */
+async function sound(channel, hz, seconds = 2) {
+  const { block, fnum } = hzToBlockFnum(hz);
+  fm.setFrequency(channel, block, fnum);
+  fm.keyOn(channel);
+
+  try {
+    await sleep(seconds);
+  } finally {
+    fm.keyOff(channel);
+  }
+}
+</script>
+
+      <iframe class="playground-frame" data-playground-src="example-fifths-chain"
+        title="Playground: build a chain of pure fifths from 440 Hz" loading="lazy" allow="autoplay"
+        style="height:640px;width:100%;border:1px solid var(--line);border-radius:14px"></iframe>
+
+      <p>Each step plays two sounds together: the unchanged 440 Hz reference on CH1 and the calculated frequency on CH2.
+        <code>sound(channel, hz)</code> plays one tone; <code>Promise.all</code> starts the two calls together and waits
+        for both to finish. After twelve pure fifths, the octave-adjusted target is about <strong>446.0 Hz</strong>,
+        roughly <strong>23.46 cents above</strong> the starting A. Listen for the beating between the two nearby
+        pitches.
+        The YM2612 approximates the requested frequencies with its available settings.
+      </p>
+
+      <p>This construction is called <a href="https://tuning.ableton.com/glossary/pythagorean-tuning/">Pythagorean tuning</a>:
+        build the pitches from pure fifths and octaves. It is often classified as 3-limit just intonation,
+        but we explain it separately here because its construction rule is different from choosing ratios
+        such as <code>5/4</code> directly against a reference.</p>
+      <p>For example, four pure fifths, brought into one octave, give <code>81/64</code>.
+        That differs from the pure major third <code>5/4</code> we heard earlier.
+        Both use exact ratios, but they choose different thirds.</p>
+    </section>
+    <section class="panel">
+      <h2>5. Equal steps, different thirds</h2>
       <p>Twelve-tone equal temperament divides the octave into twelve equal <em>ratios</em>, not twelve equal
         differences in Hz.</p>
       <div class="formula"><code>frequency = base * 2 ** (semitones / 12)</code></div>
@@ -772,7 +943,7 @@ async function sound(frequencies, seconds = 2) {
           introduction to tones and temperament</a>.</p>
     </section>
     <section class="panel">
-      <h2>5. Why don’t twelve pure fifths close the circle?</h2>
+      <h2>6. Why don’t twelve pure fifths close the circle?</h2>
       <pre><code>C → G → D → A → E → B → F♯ → C♯ …
 (3/2) ** 12 / 2 ** 7 ≈ 1.01364
 1200 * Math.log2((3/2) ** 12 / 2 ** 7) ≈ 23.46 cents</code></pre>
@@ -787,7 +958,7 @@ async function sound(frequencies, seconds = 2) {
         different musical roles.</p>
     </section>
     <section class="panel">
-      <h2>6. Pitch can be a continuous coordinate</h2>
+      <h2>7. Pitch can be a continuous coordinate</h2>
       <p>Define pitch as a distance in semitones from your own reference. It need not be an integer.</p>
       <pre><code>const ratioToPitch = ratio => 12 * Math.log2(ratio);
 const pitchToHz = (pitch, base = 220) => base * 2 ** (pitch / 12);
@@ -892,7 +1063,7 @@ async function sound(frequencies, seconds = 2) {
 
     </section>
     <section class="panel">
-      <h2>7. From intervals to FM ratios</h2>
+      <h2>8. From intervals to FM ratios</h2>
       <p>So far we compared separate voices. FM synthesis relates oscillators inside a voice: changing the
         modulator-to-carrier frequency ratio changes the spectrum. Harmonic relationships can produce harmonic spectra;
         other ratios can produce inharmonic components.</p>
