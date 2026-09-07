@@ -141,3 +141,38 @@ test("ADPCM-B parser rejects malformed blocks and skips second-chip data explici
   assert.match(warnings[0], /second YM2608/);
   assert.equal(parser.step().type, "end");
 });
+
+test("YM2608 source mutes silence only the selected output and preserve playback state", async () => {
+  for (const source of ["ssg", "rhythm", "adpcmB"]) {
+    const chip = await createChip(), reference = await createChip();
+    const engine = new Ym2608AudioEngine(chip, chip.sampleRate(), 44100);
+    const methods = { ssg: "setSsgMuted", rhythm: "setRhythmMuted", adpcmB: "setAdpcmBMuted" };
+    try {
+      for (const c of [chip, reference]) {
+        if (source === "ssg") {
+          write(c, 0, 0, 100); write(c, 0, 7, 0x3e); write(c, 0, 8, 15);
+        } else if (source === "rhythm") {
+          c.loadAdpcmARom(new Uint8Array(8192).fill(0x77));
+          write(c, 0, 0x11, 0x3f); write(c, 0, 0x18, 0xdf); write(c, 0, 0x10, 1);
+        } else {
+          c.loadAdpcmBMemory(new Uint8Array(4096).fill(0x77));
+          for (const [r, v] of [[1, 0xc2], [4, 127], [9, 255], [10, 255], [11, 255], [12, 255], [13, 255], [0, 0xb0]]) write(c, 1, r, v);
+        }
+      }
+      const initial = chip.generateStereo(2048);
+      assert.deepEqual(initial, reference.generateStereo(2048));
+      assert.ok(peak(initial.left) > 0.01, source);
+      // Other source mutes must not silence this source.
+      for (const [name, method] of Object.entries(methods)) if (name !== source) engine[method](true);
+      assert.deepEqual(chip.generateStereo(1024), reference.generateStereo(1024));
+      engine[methods[source]](true);
+      chip.generateStereo(16); reference.generateStereo(16); // cached FM/ADPCM output boundary
+      const silent = chip.generateStereo(1024); reference.generateStereo(1024);
+      assert.equal(peak(silent.left), 0, source);
+      assert.equal(peak(silent.right), 0, source);
+      engine[methods[source]](false);
+      chip.generateStereo(16); reference.generateStereo(16);
+      assert.deepEqual(chip.generateStereo(1024), reference.generateStereo(1024), `${source} must keep running while muted`);
+    } finally { chip.dispose(); reference.dispose(); }
+  }
+});

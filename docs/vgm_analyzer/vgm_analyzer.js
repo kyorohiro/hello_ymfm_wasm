@@ -1,3 +1,4 @@
+import { sourcesForChip, applySourceMutes, allSourcesMuted } from "./source_mutes.js";
 import { createPsgMonitor, describePsgMonitor, observePsgEngine } from "./psg_monitor.js";
 import { exportAnalysisMml } from "./vgm_mml.js";
 import {
@@ -97,7 +98,7 @@ let channelMonitorDirty = false;
 let noteishDirty = false;
 let lastNoteishSignature = "";
 let lastLoadedFileName = "snapshot";
-let psgMuted = false;
+const sourceMutes = { psg: false, ssg: false, rhythm: false, adpcmB: false };
 let lastYm2612DacEnable = 0x00;
 let monitorToggleHandlerBound = false;
 let workletQueueMultiplier = 2;
@@ -216,13 +217,15 @@ function renderMonitorToggles() {
   ensureMonitorToggleHandler();
   monitorToggles.innerHTML = "";
 
-  if (currentChipKind === "ym2612") {
-    const psgButton = document.createElement("button");
-    psgButton.type = "button";
-    psgButton.className = `channel-toggle${psgMuted ? " is-muted" : ""}`;
-    psgButton.textContent = psgMuted ? "PSG Muted" : "PSG On";
-    psgButton.setAttribute("data-monitor-toggle-kind", "psg");
-    monitorToggles.append(psgButton);
+  for (const source of sourcesForChip(currentChipKind)) {
+    const button = document.createElement("button");
+    const muted = sourceMutes[source.key];
+    button.type = "button";
+    button.className = `channel-toggle${muted ? " is-muted" : ""}`;
+    button.textContent = `${source.label} ${muted ? "Off" : "On"}`;
+    button.setAttribute("aria-pressed", String(!muted));
+    button.setAttribute("data-monitor-toggle-kind", source.key);
+    monitorToggles.append(button);
   }
 
   channelMonitor.forEach((channel) => {
@@ -252,8 +255,8 @@ function ensureMonitorToggleHandler() {
     }
     event.preventDefault();
     const kind = target.getAttribute("data-monitor-toggle-kind");
-    if (kind === "psg") {
-      togglePsgMute();
+    if (sourcesForChip(currentChipKind).some((source) => source.key === kind)) {
+      toggleSourceMute(kind);
       return;
     }
     if (kind === "channel") {
@@ -420,9 +423,9 @@ function requestNoteishRender() {
 }
 
 function renderPsgMonitor() {
-  const state = describePsgMonitor(psgMonitor, psgMuted);
+  const state = describePsgMonitor(psgMonitor, psgMonitor.kind === "ssg" ? sourceMutes.ssg : sourceMutes.psg);
   const title = document.getElementById("psgMonitorTitle");
-  title.textContent = state.kind === "ssg" ? `${currentChipKind.toUpperCase()} SSG` : `Sega PSG${psgMuted ? " · Muted" : ""}`;
+  title.textContent = state.kind === "ssg" ? `${currentChipKind.toUpperCase()} SSG${sourceMutes.ssg ? " · Muted" : ""}` : `Sega PSG${sourceMutes.psg ? " · Muted" : ""}`;
   const token = (label, value, ...registers) => renderChannelChip(label, value,
     Math.max(0, ...registers.map((r) => psgMonitor.changedAt[r])), "166 214 148");
   const card = (name, content) => `<section class="channel-card"><div class="channel-head"><span class="channel-title">${name}</span></div><div class="channel-row">${content}</div></section>`;
@@ -962,22 +965,21 @@ function flushPendingAudio() {
   }
 }
 
-function togglePsgMute() {
-  psgMuted = !psgMuted;
+function toggleSourceMute(kind) {
+  sourceMutes[kind] = !sourceMutes[kind];
+  try {
+    if (engine) applySourceMutes(engine, currentChipKind, sourceMutes);
+  } catch (error) {
+    sourceMutes[kind] = !sourceMutes[kind];
+    setStatus(`Error: ${error.message}`);
+  }
   requestChannelMonitorRender();
   renderMonitorToggles();
-  if (engine && typeof engine.setPsgMuted === "function") {
-    engine.setPsgMuted(psgMuted);
-  }
   flushPendingAudio();
 }
 
 function allAudibleSourcesMuted() {
-  if (currentChipKind === "ym2203" || currentChipKind === "ym2608") {
-    return channelMonitor.length > 0 &&
-      channelMonitor.every((channel) => channel.muted);
-  }
-  return psgMuted && channelMuteStates.every((muted) => muted);
+  return allSourcesMuted(currentChipKind, channelMonitor, sourceMutes);
 }
 
 function applyAnalyzerMuteToBuffer(left, right, frames) {
@@ -1791,7 +1793,8 @@ function buildSnapshotData(reason = "manual") {
       audioProgress: stats.audioProgress,
     } : null,
     chip: currentChipKind,
-    psgSsg: describePsgMonitor(psgMonitor, psgMuted),
+    sourceMutes: { ...sourceMutes },
+    psgSsg: describePsgMonitor(psgMonitor, psgMonitor.kind === "ssg" ? sourceMutes.ssg : sourceMutes.psg),
     channels: channelMonitor.map((channel) => ({
       channel: channel.channel,
       keyOn: channel.keyOn,
@@ -1968,9 +1971,7 @@ async function ensurePlaybackReady(vgm) {
       baseEngineWriteYm2612 = engine.writeYm2612.bind(engine);
     }
   }
-  if (typeof engine.setPsgMuted === "function") {
-    engine.setPsgMuted(psgMuted);
-  }
+  applySourceMutes(engine, currentChipKind, sourceMutes);
   if (!player) {
     player = new VgmPlayer(engine);
   }

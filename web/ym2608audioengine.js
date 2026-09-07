@@ -13,6 +13,7 @@ export class Ym2608AudioEngine {
     this._chipSampleRate = chipSampleRate;
     this._sampleRate = outputSampleRate;
     this._masterVolume = clampMasterVolume(masterVolume);
+    this._sourceMuteMask = 0;
     this._resampleRemainder = 0;
   }
 
@@ -81,6 +82,16 @@ export class Ym2608AudioEngine {
 
   clearAdpcmBMemory() {
     this.ym2608.clearAdpcmBMemory();
+  }
+
+  setSsgMuted(muted) { this.setSourceMuted(1, muted); }
+  setRhythmMuted(muted) { this.setSourceMuted(2, muted); }
+  setAdpcmBMuted(muted) { this.setSourceMuted(4, muted); }
+
+  setSourceMuted(bit, muted) {
+    const mask = muted ? this._sourceMuteMask | bit : this._sourceMuteMask & ~bit;
+    this.ym2608.setSourceMuteMask(mask);
+    this._sourceMuteMask = mask;
   }
 
   writePsg(_value) {}

@@ -1414,6 +1414,7 @@ var _ym2608_sample_rate = Module['_ym2608_sample_rate'] = makeInvalidEarlyAccess
 var _ym2608_load_adpcm_a_rom = Module['_ym2608_load_adpcm_a_rom'] = makeInvalidEarlyAccess('_ym2608_load_adpcm_a_rom');
 var _ym2608_clear_adpcm_b_memory = Module['_ym2608_clear_adpcm_b_memory'] = makeInvalidEarlyAccess('_ym2608_clear_adpcm_b_memory');
 var _ym2608_load_adpcm_b_memory = Module['_ym2608_load_adpcm_b_memory'] = makeInvalidEarlyAccess('_ym2608_load_adpcm_b_memory');
+var _ym2608_set_source_mute_mask = Module['_ym2608_set_source_mute_mask'] = makeInvalidEarlyAccess('_ym2608_set_source_mute_mask');
 var _ym2608_generate = Module['_ym2608_generate'] = makeInvalidEarlyAccess('_ym2608_generate');
 var _fflush = Module['_fflush'] = makeInvalidEarlyAccess('_fflush');
 var _strerror = Module['_strerror'] = makeInvalidEarlyAccess('_strerror');
@@ -1443,6 +1444,7 @@ function assignWasmExports(wasmExports) {
   assert(typeof wasmExports['ym2608_load_adpcm_a_rom'] != 'undefined', 'missing Wasm export: ym2608_load_adpcm_a_rom');
   assert(typeof wasmExports['ym2608_clear_adpcm_b_memory'] != 'undefined', 'missing Wasm export: ym2608_clear_adpcm_b_memory');
   assert(typeof wasmExports['ym2608_load_adpcm_b_memory'] != 'undefined', 'missing Wasm export: ym2608_load_adpcm_b_memory');
+  assert(typeof wasmExports['ym2608_set_source_mute_mask'] != 'undefined', 'missing Wasm export: ym2608_set_source_mute_mask');
   assert(typeof wasmExports['ym2608_generate'] != 'undefined', 'missing Wasm export: ym2608_generate');
   assert(typeof wasmExports['fflush'] != 'undefined', 'missing Wasm export: fflush');
   assert(typeof wasmExports['strerror'] != 'undefined', 'missing Wasm export: strerror');
@@ -1469,6 +1471,7 @@ function assignWasmExports(wasmExports) {
   _ym2608_load_adpcm_a_rom = Module['_ym2608_load_adpcm_a_rom'] = createExportWrapper('ym2608_load_adpcm_a_rom', wasmExports['ym2608_load_adpcm_a_rom'], 4);
   _ym2608_clear_adpcm_b_memory = Module['_ym2608_clear_adpcm_b_memory'] = createExportWrapper('ym2608_clear_adpcm_b_memory', wasmExports['ym2608_clear_adpcm_b_memory'], 1);
   _ym2608_load_adpcm_b_memory = Module['_ym2608_load_adpcm_b_memory'] = createExportWrapper('ym2608_load_adpcm_b_memory', wasmExports['ym2608_load_adpcm_b_memory'], 4);
+  _ym2608_set_source_mute_mask = Module['_ym2608_set_source_mute_mask'] = createExportWrapper('ym2608_set_source_mute_mask', wasmExports['ym2608_set_source_mute_mask'], 2);
   _ym2608_generate = Module['_ym2608_generate'] = createExportWrapper('ym2608_generate', wasmExports['ym2608_generate'], 4);
   _fflush = Module['_fflush'] = createExportWrapper('fflush', wasmExports['fflush'], 1);
   _strerror = Module['_strerror'] = createExportWrapper('strerror', wasmExports['strerror'], 1);

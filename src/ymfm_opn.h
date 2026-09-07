@@ -509,6 +509,9 @@ public:
 	void ssg_override(ssg_override &intf) { m_ssg.override(intf); }
 	void set_fidelity(opn_fidelity fidelity) { m_fidelity = fidelity; update_prescale(m_fm.clock_prescale()); }
 
+	// Host output controls; clocks and register state continue while muted.
+	void set_adpcm_mute(bool rhythm, bool delta_t) { m_rhythm_muted = rhythm; m_delta_t_muted = delta_t; }
+
 	// reset
 	void reset();
 
@@ -550,6 +553,9 @@ protected:
 	// internal helpers
 	void update_prescale(uint8_t prescale);
 	void clock_fm_and_adpcm();
+
+	bool m_rhythm_muted = false;
+	bool m_delta_t_muted = false;
 
 	// internal state
 	opn_fidelity m_fidelity;            // configured fidelity

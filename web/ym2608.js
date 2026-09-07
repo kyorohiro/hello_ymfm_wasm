@@ -37,6 +37,7 @@ export class Ym2608 {
       loadAdpcmARom: optionalCwrap(module, "ym2608_load_adpcm_a_rom", null, ["number", "number", "number", "number"]),
       loadAdpcmBMemory: optionalCwrap(module, "ym2608_load_adpcm_b_memory", null, ["number", "number", "number", "number"]),
       clearAdpcmBMemory: optionalCwrap(module, "ym2608_clear_adpcm_b_memory", null, ["number"]),
+      setSourceMuteMask: optionalCwrap(module, "ym2608_set_source_mute_mask", null, ["number", "number"]),
       generate: module.cwrap("ym2608_generate", null, ["number", "number", "number", "number"]),
     };
 
@@ -174,6 +175,11 @@ export class Ym2608 {
       throw new Error("This YM2608 runtime does not support ADPCM-B memory. Rebuild or reload the generated wasm runtime.");
     }
     this.api.clearAdpcmBMemory(this.handle);
+  }
+
+  setSourceMuteMask(mask) {
+    if (!this.api.setSourceMuteMask) throw new Error("Reload the generated YM2608 WASM runtime to use source mute controls.");
+    this.api.setSourceMuteMask(this.handle, mask);
   }
 
   generateStereo(frames) {

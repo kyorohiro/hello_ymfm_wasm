@@ -32,6 +32,7 @@ export class Ym2203 {
       readStatus: optionalCwrap(module, "ym2203_read_status", "number", ["number"]),
       getIrq: optionalCwrap(module, "ym2203_get_irq", "number", ["number"]),
       sampleRate: module.cwrap("ym2203_sample_rate", "number", ["number", "number"]),
+      setSourceMuteMask: optionalCwrap(module, "ym2203_set_source_mute_mask", null, ["number", "number"]),
       generate: module.cwrap("ym2203_generate", null, ["number", "number", "number", "number"]),
     };
 
@@ -110,6 +111,11 @@ export class Ym2203 {
 
   sampleRate(clock = YM2203_CLOCK) {
     return this.api.sampleRate(this.handle, clock);
+  }
+
+  setSourceMuteMask(mask) {
+    if (!this.api.setSourceMuteMask) throw new Error("Reload the generated YM2203 WASM runtime to use source mute controls.");
+    this.api.setSourceMuteMask(this.handle, mask);
   }
 
   generateStereo(frames) {

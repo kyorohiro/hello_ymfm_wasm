@@ -30,7 +30,7 @@ export function applyPsgWrite(state, value, now) {
 export function describePsgMonitor(state, muted = false) {
   const r = state.registers;
   if (state.kind === 'ssg') {
-    return { chip: state.chip, kind: state.kind, channels: [0, 1, 2].map((ch) => ({
+    return { chip: state.chip, kind: state.kind, muted, channels: [0, 1, 2].map((ch) => ({
       name: `CH ${'ABC'[ch]}`, period: r[ch * 2] | (r[ch * 2 + 1] << 8),
       toneEnabled: !(r[7] & (1 << ch)), noiseEnabled: !(r[7] & (8 << ch)),
       volume: r[8 + ch] & 15, envelope: !!(r[8 + ch] & 16),

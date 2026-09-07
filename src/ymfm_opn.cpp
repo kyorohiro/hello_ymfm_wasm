@@ -1406,8 +1406,8 @@ void ym2608::clock_fm_and_adpcm()
 	m_fm.output(m_last_fm.clear(), 1, 32767, fmmask);
 
 	// mix in the ADPCM and clamp
-	m_adpcm_a.output(m_last_fm, 0x3f);
-	m_adpcm_b.output(m_last_fm, 1);
+	if (!m_rhythm_muted) m_adpcm_a.output(m_last_fm, 0x3f);
+	if (!m_delta_t_muted) m_adpcm_b.output(m_last_fm, 1);
 	m_last_fm.clamp16();
 }
 

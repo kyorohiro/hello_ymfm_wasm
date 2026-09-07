@@ -25,6 +25,6 @@ em++ -std=c++14 \
   -sENVIRONMENT=web,worker,shell \
   -sALLOW_MEMORY_GROWTH=1 \
   -sEXPORT_ALL=1 \
-  -sEXPORTED_FUNCTIONS='["_ym2203_create","_ym2203_destroy","_ym2203_reset","_ym2203_write","_ym2203_read","_ym2203_read_status","_ym2203_get_irq","_ym2203_sample_rate","_ym2203_generate","_malloc","_free"]' \
+  -sEXPORTED_FUNCTIONS='["_ym2203_create","_ym2203_destroy","_ym2203_reset","_ym2203_write","_ym2203_read","_ym2203_read_status","_ym2203_get_irq","_ym2203_sample_rate","_ym2203_generate","_ym2203_set_source_mute_mask","_malloc","_free"]' \
   -sEXPORTED_RUNTIME_METHODS='["cwrap","HEAPF32"]' \
   -o "$OUT_DIR/ym2203_wasm.js"

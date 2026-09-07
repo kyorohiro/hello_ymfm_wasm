@@ -20,6 +20,7 @@ struct ym2203_handle
 {
     ym2203_wasm_interface intf;
     ymfm::ym2203 chip;
+    uint32_t source_mute_mask = 0;
 
     ym2203_handle() : intf(), chip(intf)
     {
@@ -86,6 +87,12 @@ uint32_t ym2203_sample_rate(void *ptr, uint32_t clock)
     return cast_handle(ptr)->chip.sample_rate(clock);
 }
 
+void ym2203_set_source_mute_mask(void *ptr, uint32_t mask)
+{
+    auto *handle = cast_handle(ptr);
+    handle->source_mute_mask = mask;
+}
+
 void ym2203_generate(void *ptr, float *left, float *right, uint32_t frames)
 {
     auto *handle = cast_handle(ptr);
@@ -97,7 +104,7 @@ void ym2203_generate(void *ptr, float *left, float *right, uint32_t frames)
         // Match examples/vgmrender by summing them into both channels.
         int32_t mix = 0;
         for (uint32_t out = 0; out < ymfm::ym2203::OUTPUTS; out++)
-            mix += output.data[out];
+            if (out == 0 || !(handle->source_mute_mask & 1)) mix += output.data[out];
         left[index] = right[index] = normalize_sample(mix);
     }
 }

@@ -1339,6 +1339,7 @@ var _ym2203_read = Module['_ym2203_read'] = makeInvalidEarlyAccess('_ym2203_read
 var _ym2203_read_status = Module['_ym2203_read_status'] = makeInvalidEarlyAccess('_ym2203_read_status');
 var _ym2203_get_irq = Module['_ym2203_get_irq'] = makeInvalidEarlyAccess('_ym2203_get_irq');
 var _ym2203_sample_rate = Module['_ym2203_sample_rate'] = makeInvalidEarlyAccess('_ym2203_sample_rate');
+var _ym2203_set_source_mute_mask = Module['_ym2203_set_source_mute_mask'] = makeInvalidEarlyAccess('_ym2203_set_source_mute_mask');
 var _ym2203_generate = Module['_ym2203_generate'] = makeInvalidEarlyAccess('_ym2203_generate');
 var _fflush = Module['_fflush'] = makeInvalidEarlyAccess('_fflush');
 var _strerror = Module['_strerror'] = makeInvalidEarlyAccess('_strerror');
@@ -1364,6 +1365,7 @@ function assignWasmExports(wasmExports) {
   assert(typeof wasmExports['ym2203_read_status'] != 'undefined', 'missing Wasm export: ym2203_read_status');
   assert(typeof wasmExports['ym2203_get_irq'] != 'undefined', 'missing Wasm export: ym2203_get_irq');
   assert(typeof wasmExports['ym2203_sample_rate'] != 'undefined', 'missing Wasm export: ym2203_sample_rate');
+  assert(typeof wasmExports['ym2203_set_source_mute_mask'] != 'undefined', 'missing Wasm export: ym2203_set_source_mute_mask');
   assert(typeof wasmExports['ym2203_generate'] != 'undefined', 'missing Wasm export: ym2203_generate');
   assert(typeof wasmExports['fflush'] != 'undefined', 'missing Wasm export: fflush');
   assert(typeof wasmExports['strerror'] != 'undefined', 'missing Wasm export: strerror');
@@ -1386,6 +1388,7 @@ function assignWasmExports(wasmExports) {
   _ym2203_read_status = Module['_ym2203_read_status'] = createExportWrapper('ym2203_read_status', wasmExports['ym2203_read_status'], 1);
   _ym2203_get_irq = Module['_ym2203_get_irq'] = createExportWrapper('ym2203_get_irq', wasmExports['ym2203_get_irq'], 1);
   _ym2203_sample_rate = Module['_ym2203_sample_rate'] = createExportWrapper('ym2203_sample_rate', wasmExports['ym2203_sample_rate'], 2);
+  _ym2203_set_source_mute_mask = Module['_ym2203_set_source_mute_mask'] = createExportWrapper('ym2203_set_source_mute_mask', wasmExports['ym2203_set_source_mute_mask'], 2);
   _ym2203_generate = Module['_ym2203_generate'] = createExportWrapper('ym2203_generate', wasmExports['ym2203_generate'], 4);
   _fflush = Module['_fflush'] = createExportWrapper('fflush', wasmExports['fflush'], 1);
   _strerror = Module['_strerror'] = createExportWrapper('strerror', wasmExports['strerror'], 1);

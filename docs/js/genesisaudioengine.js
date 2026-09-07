@@ -5,6 +5,7 @@ export class GenesisAudioEngine {
   constructor(ym2612, psg, sampleRate, masterVolume = 1) {
     this.ym2612 = ym2612;
     this.psg = psg;
+    this._psgMuted = false;
     this._sampleRate = sampleRate;
     this._masterVolume = clampMasterVolume(masterVolume);
   }
@@ -75,6 +76,8 @@ export class GenesisAudioEngine {
     this.ym2612.writeRegister(register, value, port);
   }
 
+  setPsgMuted(muted) { this._psgMuted = Boolean(muted); }
+
   writePsg(value) {
     this.psg.write(value);
   }
@@ -89,13 +92,14 @@ export class GenesisAudioEngine {
 
     const ym = this.ym2612.generateStereo(frames);
     const psg = this.psg.generateStereo(frames);
+    const psgGain = this._psgMuted ? 0 : 0.35;
 
     for (let index = 0; index < frames; index += 1) {
       left[index] =
-        (ym.left[index] * 0.9 + psg.left[index] * 0.35) *
+        (ym.left[index] * 0.9 + psg.left[index] * psgGain) *
         this._masterVolume;
       right[index] =
-        (ym.right[index] * 0.9 + psg.right[index] * 0.35) *
+        (ym.right[index] * 0.9 + psg.right[index] * psgGain) *
         this._masterVolume;
     }
   }

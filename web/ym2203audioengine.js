@@ -13,6 +13,7 @@ export class Ym2203AudioEngine {
     this._chipSampleRate = chipSampleRate;
     this._sampleRate = outputSampleRate;
     this._masterVolume = clampMasterVolume(masterVolume);
+    this._sourceMuteMask = 0;
     this._resampleRemainder = 0;
   }
 
@@ -68,6 +69,14 @@ export class Ym2203AudioEngine {
   writeYm2203(register, value) {
     this.ym2203.write(0, register);
     this.ym2203.write(1, value);
+  }
+
+  setSsgMuted(muted) { this.setSourceMuted(1, muted); }
+
+  setSourceMuted(bit, muted) {
+    const mask = muted ? this._sourceMuteMask | bit : this._sourceMuteMask & ~bit;
+    this.ym2203.setSourceMuteMask(mask);
+    this._sourceMuteMask = mask;
   }
 
   writePsg(_value) {}

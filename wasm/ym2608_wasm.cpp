@@ -43,6 +43,7 @@ struct ym2608_handle
 {
     ym2608_wasm_interface intf;
     ymfm::ym2608 chip;
+    uint32_t source_mute_mask = 0;
 
     ym2608_handle() : intf(), chip(intf)
     {
@@ -141,6 +142,13 @@ void ym2608_load_adpcm_b_memory(void *ptr, uint32_t offset, const uint8_t *data,
         memory[offset + index] = data[index];
 }
 
+void ym2608_set_source_mute_mask(void *ptr, uint32_t mask)
+{
+    auto *handle = cast_handle(ptr);
+    handle->source_mute_mask = mask;
+    handle->chip.set_adpcm_mute((mask & 2) != 0, (mask & 4) != 0);
+}
+
 void ym2608_generate(void *ptr, float *left, float *right, uint32_t frames)
 {
     auto *handle = cast_handle(ptr);
@@ -149,8 +157,9 @@ void ym2608_generate(void *ptr, float *left, float *right, uint32_t frames)
         ymfm::ym2608::output_data output;
         handle->chip.generate(&output);
         // Match examples/vgmrender: SSG is a separate mono output.
-        left[index] = normalize_sample(output.data[0] + output.data[2]);
-        right[index] = normalize_sample(output.data[1] + output.data[2]);
+        const int32_t ssg = (handle->source_mute_mask & 1) ? 0 : output.data[2];
+        left[index] = normalize_sample(output.data[0] + ssg);
+        right[index] = normalize_sample(output.data[1] + ssg);
     }
 }
 

@@ -96,3 +96,18 @@ test("YM2203 VGM FM output is also present in both mono channels", async () => {
   assert.ok(new Set(pcm.left).size > 2);
   assert.deepEqual(pcm.left, pcm.right);
 });
+
+test("YM2203 SSG mute preserves tone registers, later writes and reset preference", async () => {
+  const engine = await Ym2203AudioEngine.create({ym2203ModuleFactory: moduleFactory, ym2203ModuleOptions: {wasmBinary}});
+  try {
+    const setup = () => { engine.writeYm2203(0, 100); engine.writeYm2203(7, 0x3e); engine.writeYm2203(8, 15); };
+    setup(); assert.ok(peak(engine.processFrames(256).left) > 0.1);
+    engine.setSsgMuted(true);
+    engine.writeYm2203(0, 50);
+    assert.equal(peak(engine.processFrames(256).left), 0);
+    engine.ym2203.write(0, 0); assert.equal(engine.ym2203.read(1), 50);
+    engine.setSsgMuted(false); assert.ok(peak(engine.processFrames(256).left) > 0.1);
+    engine.setSsgMuted(true); engine.reset(); setup();
+    assert.equal(peak(engine.processFrames(256).left), 0);
+  } finally { engine.dispose(); }
+});
