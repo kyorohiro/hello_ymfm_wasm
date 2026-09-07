@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>From Sound Chip to Beep: YM2612 in JavaScript</title>
+  <style>
+    :root { color-scheme: light; --ink: #1f1b16; --accent: #7e381c; --line: #d7c8ac; }
+    * { box-sizing: border-box; }
+    body { margin: 0; color: var(--ink); background: #f4efe4; font-family: "Avenir Next", "Helvetica Neue", Arial, sans-serif; line-height: 1.65; }
+    main { max-width: 980px; margin: auto; padding: 32px 20px 64px; }
+    section, header { background: #fffaf0; border: 1px solid var(--line); border-radius: 24px; padding: 28px; margin: 20px 0; }
+    h1, h2, h3 { line-height: 1.2; letter-spacing: -.03em; }
+    h1 { font-size: clamp(2rem, 4vw, 3rem); }
+    h2 { font-size: 1.5rem; }
+    a { color: var(--accent); }
+    code { font-family: "SFMono-Regular", Menlo, Consolas, monospace; }
+    pre { overflow-x: auto; padding: 16px; border-radius: 12px; background: #29231e; color: #fff5e6; line-height: 1.6; }
+    .table-scroll { overflow-x: auto; }
+    table { border-collapse: collapse; width: 100%; }
+    th, td { text-align: left; padding: 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+    .route { padding: 16px; border: 1px solid var(--line); border-radius: 12px; text-align: center; }
+    iframe { display: block; width: 100%; height: 720px; border: 1px solid var(--line); border-radius: 14px; background: white; }
+    @media (max-width: 600px) { main { padding: 16px 10px 40px; } section, header { padding: 18px; } }
+  </style>
+</head>
+<body>
+<main>
+  <nav aria-label="Back"><a href="./index.html">← Introductions</a></nav>
+  <header>
+    <h1>From Sound Chip to Beep</h1>
+    <p>Control the Sega Genesis / Mega Drive YM2612 with JavaScript, one register at a time.</p>
+    <p>This is the browser companion to the <a href="../tutorials/ex00.md">chip basics</a> and
+      <a href="../tutorials/ex03.md">C++ beep tutorial</a>. We will use one channel and one audible operator.
+      You can edit and run the complete example below in Playground.</p>
+  </header>
+
+  <section>
+    <h2>1. What does the chip do?</h2>
+    <p>The YM2612 makes sound from settings written by a program. It has six FM channels,
+      each with four operators. An operator produces a sine-based signal and controls its loudness over time
+      with an envelope. Operators can become audible output or modulate other operators.</p>
+    <p>For our first beep, we only need a steady tone: one audible operator, no modulation, and no feedback.</p>
+    <div class="route">JavaScript → register settings → YM2612 emulator → audio → speakers</div>
+    <p>On the original hardware, the CPU sends bytes through the chip's data bus and a clock drives the chip.
+      Here, Playground runs the emulator and sends its generated samples to browser audio.
+      We only need to supply the settings and the timing.</p>
+  </section>
+
+  <section>
+    <h2>2. A register is a small setting</h2>
+    <p>A register has an address and holds a byte. The address chooses what to change; the byte supplies the setting.
+      JavaScript's <code>0x</code> prefix means hexadecimal: <code>0x07</code> is 7 and <code>0x7f</code> is 127.</p>
+    <pre><code>write(0xb0, 0x07); // CH1: algorithm 7, feedback 0</code></pre>
+    <p>This <code>write(address, value)</code> helper is provided by Playground. It combines the two bus writes
+      used in the C++ tutorial: select a register, then send its value.</p>
+    <pre><code>// C++ / chip bus interface:
+chip.write(0, 0xb0); // Select a register in bank 0.
+chip.write(1, 0x07); // Send its value.
+
+// JavaScript / Playground:
+write(0xb0, 0x07);</code></pre>
+    <p>Most channel registers are divided into two banks: bank 0 for CH1–CH3 and bank 1 for CH4–CH6.
+      Playground calls this bank argument <code>port</code>. You can make it explicit with
+      <code>write(0, 0xb0, 0x07)</code>. The two-argument form defaults to bank 0.</p>
+    <p>The C++ bus offsets are different: 0 and 1 select/write bank 0; 2 and 3 select/write bank 1.
+      For this beep, all writes use bank 0.</p>
+  </section>
+
+  <section>
+    <h2>3. Choose a simple voice</h2>
+    <p>Algorithm 7 connects all four operators directly to the output, in parallel.
+      We make OP1–OP3 very quiet and leave OP4 audible.</p>
+    <div class="route">ALG 7: OP1 + OP2 + OP3 + <strong>OP4</strong> → OUT<br>OP1–OP3 quiet · OP4 audible · FB off</div>
+    <p>The four hardware slot offsets are <code>0, 4, 8, 12</code>.
+      Adding an offset to a register group's base address selects a slot.
+      The last offset, 12 (<code>0x0c</code>), selects OP4; for example, its total level is at <code>0x4c</code>.</p>
+    <p>These are hardware address offsets, not Playground's <code>OP1</code>–<code>OP4</code> constants.
+      The two middle slots have a different logical order; they receive identical settings here.</p>
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>CH1 register group</th><th>Setting</th><th>Our beep</th></tr></thead>
+        <tbody>
+          <tr><td><code>0x30 + offset</code></td><td>DT / MULTI: detune and frequency multiplier</td><td><code>0x01</code>: no detune, ×1</td></tr>
+          <tr><td><code>0x40 + offset</code></td><td>TL: attenuation</td><td><code>0x7f</code> for quiet slots; <code>0x00</code> for OP4. Higher means quieter.</td></tr>
+          <tr><td><code>0x50 + offset</code></td><td>AR: attack rate</td><td><code>0x1f</code>: fastest attack, rate scaling off</td></tr>
+          <tr><td><code>0x80 + offset</code></td><td>SL / RR: sustain level threshold and release rate</td><td><code>0x0f</code>: SL 0, fastest release</td></tr>
+          <tr><td><code>0xb0</code></td><td>Algorithm / feedback</td><td><code>0x07</code>: algorithm 7, feedback off</td></tr>
+          <tr><td><code>0xb4</code></td><td>Stereo output / LFO sensitivity</td><td><code>0xc0</code>: left and right enabled, sensitivity 0</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>We begin with <code>fm.reset()</code>. This leaves the two decay rates, D1R and D2R, at zero,
+      so the tone stays steady until key off. Release then makes it fade quickly.</p>
+  </section>
+
+  <section>
+    <h2>4. Set the pitch, then press the key</h2>
+    <p>The chip stores pitch as a range called <code>BLOCK</code> and an 11-bit number called <code>FNUM</code>.
+      The C++ beep uses BLOCK 4 and FNUM <code>0x269</code>. They occupy two registers:</p>
+    <pre><code>write(0xa4, 0x22); // High: (BLOCK 4 &lt;&lt; 3) | upper FNUM bits 2
+write(0xa0, 0x69); // Low: remaining eight FNUM bits</code></pre>
+    <p>Write the high part first, then the low part. The low write commits the combined pitch.
+      These values reproduce the tutorial's pitch; they are not a frequency in Hz.</p>
+    <p>Finally, register <code>0x28</code> controls key on and key off.
+      In <code>0xf0</code>, the upper four bits turn on all four operators and the lower bits select CH1.
+      Key on starts the envelopes; it does not choose the voice or pitch.</p>
+    <pre><code>write(0x28, 0xf0); // CH1: key on
+await sleep(3);    // Let it sound for three seconds.
+write(0x28, 0x00); // CH1: key off</code></pre>
+  </section>
+
+  <section>
+    <h2>5. Play the beep</h2>
+    <p>Press Run in Playground. This is the complete JavaScript version of the register setup in
+      <a href="../tutorials/ex03_beep.cpp">ex03_beep.cpp</a>, followed by a timed key off.
+      Playground provides <code>fm</code>, <code>write</code>, and <code>sleep</code>.</p>
+    <script type="text/plain" id="example-register-beep">
+fm.reset();
+
+// Set the four hardware slots of CH1. Only OP4 is audible.
+for (const offset of [0, 4, 8, 12]) {
+  write(0x30 + offset, 0x01); // No detune, multiplier 1.
+  write(0x40 + offset, offset === 12 ? 0x00 : 0x7f);
+  write(0x50 + offset, 0x1f); // Fast attack.
+  write(0x80 + offset, 0x0f); // Fast release.
+}
+
+write(0xb0, 0x07); // Algorithm 7, feedback off.
+write(0xb4, 0xc0); // Left and right output.
+
+write(0xa4, 0x22); // Pitch high: BLOCK 4, upper FNUM bits 2.
+write(0xa0, 0x69); // Pitch low: FNUM = 0x269.
+
+write(0x28, 0xf0); // Key on CH1.
+await sleep(3);
+write(0x28, 0x00); // Key off CH1.
+await sleep(0.1);  // Allow the release to finish.
+    </script>
+    <iframe data-playground-src="example-register-beep" title="Playground: YM2612 register beep" allow="autoplay" loading="lazy"></iframe>
+    <p><a data-playground-src="example-register-beep" target="_blank" rel="noopener noreferrer">Open in full Playground →</a></p>
+    <h3>Change one thing and listen</h3>
+    <ul>
+      <li>Change OP4's TL from <code>0x00</code> to <code>0x20</code> in the conditional expression: a quieter beep.</li>
+      <li>Change pitch high from <code>0x22</code> to <code>0x2a</code>: BLOCK rises from 4 to 5, one octave higher.</li>
+      <li>Change <code>sleep(3)</code> to <code>sleep(0.3)</code>: a shorter beep.</li>
+      <li>Change stereo output from <code>0xc0</code> to <code>0x80</code> or <code>0x40</code>: left only or right only.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>6. From register bytes to musical controls</h2>
+    <p>Once the register version makes sense, Playground's named methods let you express the same channel settings more directly:</p>
+    <pre><code>fm.setAlgo(CH1, 7, 0);          // write(0xb0, 0x07)
+fm.setPan(CH1, true, true);    // write(0xb4, 0xc0)
+fm.setFrequency(CH1, 4, 0x269); // writes 0xa4 and 0xa0
+fm.keyOn(CH1);                // write(0x28, 0xf0)
+await sleep(3);
+fm.keyOff(CH1);               // write(0x28, 0x00)</code></pre>
+    <p>This fragment replaces the channel and playback lines; it still needs the operator setup above.
+      The sound comes from the same sequence: configure the voice, set the pitch, key on, wait, key off.</p>
+    <p>Next, <a href="./index.html">explore operators and FM sound design</a>, or
+      <a href="./tetorica-just-intonation-equal-temperament-ym2612.html">use one tone to explore tuning and musical intervals</a>.</p>
+  </section>
+</main>
+<script src="./playground-embed.js"></script>
+</body>
+</html>
