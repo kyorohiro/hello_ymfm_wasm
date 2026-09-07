@@ -25,6 +25,6 @@ em++ -std=c++14 \
   -sENVIRONMENT=web,worker,shell \
   -sALLOW_MEMORY_GROWTH=1 \
   -sEXPORT_ALL=1 \
-  -sEXPORTED_FUNCTIONS='["_ym2608_create","_ym2608_destroy","_ym2608_reset","_ym2608_write","_ym2608_read","_ym2608_read_status","_ym2608_read_status_hi","_ym2608_get_irq","_ym2608_sample_rate","_ym2608_load_adpcm_a_rom","_ym2608_generate","_malloc","_free"]' \
+  -sEXPORTED_FUNCTIONS='["_ym2608_create","_ym2608_destroy","_ym2608_reset","_ym2608_write","_ym2608_read","_ym2608_read_status","_ym2608_read_status_hi","_ym2608_get_irq","_ym2608_sample_rate","_ym2608_load_adpcm_a_rom","_ym2608_load_adpcm_b_memory","_ym2608_clear_adpcm_b_memory","_ym2608_generate","_malloc","_free"]' \
   -sEXPORTED_RUNTIME_METHODS='["cwrap","HEAPF32","HEAPU8"]' \
   -o "$OUT_DIR/ym2608_wasm.js"

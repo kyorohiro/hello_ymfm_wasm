@@ -49,6 +49,7 @@ export class Ym2608AudioEngine {
 
   reset() {
     this.ym2608.reset();
+    this.clearAdpcmBMemory();
     this._resampleRemainder = 0;
   }
 
@@ -72,6 +73,14 @@ export class Ym2608AudioEngine {
 
   loadAdpcmARom(bytes, offset = 0) {
     this.ym2608.loadAdpcmARom(bytes, offset);
+  }
+
+  loadAdpcmBMemory(bytes, offset = 0, memorySize) {
+    this.ym2608.loadAdpcmBMemory(bytes, offset, memorySize);
+  }
+
+  clearAdpcmBMemory() {
+    this.ym2608.clearAdpcmBMemory();
   }
 
   writePsg(_value) {}

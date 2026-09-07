@@ -11,6 +11,8 @@ struct ym2608_wasm_interface : public ymfm::ymfm_interface
 {
     bool irq_asserted = false;
     std::vector<uint8_t> adpcm_a_rom;
+    // The core addresses up to 16 address bits shifted by 5 (8-bit DRAM).
+    std::vector<uint8_t> adpcm_b_memory = std::vector<uint8_t>(0x200000, 0);
 
     uint8_t ymfm_external_read(ymfm::access_class type, uint32_t address) override
     {
@@ -20,7 +22,15 @@ struct ym2608_wasm_interface : public ymfm::ymfm_interface
                 ? adpcm_a_rom[address]
                 : 0;
         }
+        if (type == ymfm::ACCESS_ADPCM_B)
+            return address < adpcm_b_memory.size() ? adpcm_b_memory[address] : 0;
         return 0;
+    }
+
+    void ymfm_external_write(ymfm::access_class type, uint32_t address, uint8_t data) override
+    {
+        if (type == ymfm::ACCESS_ADPCM_B && address < adpcm_b_memory.size())
+            adpcm_b_memory[address] = data;
     }
 
     void ymfm_update_irq(bool asserted) override
@@ -115,6 +125,22 @@ void ym2608_load_adpcm_a_rom(void *ptr, uint32_t offset, const uint8_t *data, ui
         rom[offset + index] = data[index];
 }
 
+void ym2608_clear_adpcm_b_memory(void *ptr)
+{
+    auto &memory = cast_handle(ptr)->intf.adpcm_b_memory;
+    for (auto &byte : memory)
+        byte = 0;
+}
+
+void ym2608_load_adpcm_b_memory(void *ptr, uint32_t offset, const uint8_t *data, uint32_t length)
+{
+    auto &memory = cast_handle(ptr)->intf.adpcm_b_memory;
+    if (offset > memory.size() || length > memory.size() - offset)
+        return;
+    for (uint32_t index = 0; index < length; index++)
+        memory[offset + index] = data[index];
+}
+
 void ym2608_generate(void *ptr, float *left, float *right, uint32_t frames)
 {
     auto *handle = cast_handle(ptr);
@@ -122,8 +148,9 @@ void ym2608_generate(void *ptr, float *left, float *right, uint32_t frames)
     {
         ymfm::ym2608::output_data output;
         handle->chip.generate(&output);
-        left[index] = normalize_sample(output.data[0]);
-        right[index] = normalize_sample(output.data[1]);
+        // Match examples/vgmrender: SSG is a separate mono output.
+        left[index] = normalize_sample(output.data[0] + output.data[2]);
+        right[index] = normalize_sample(output.data[1] + output.data[2]);
     }
 }
 

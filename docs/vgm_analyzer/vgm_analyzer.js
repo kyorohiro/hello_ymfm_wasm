@@ -1140,6 +1140,9 @@ async function loadYm2608ModuleFactory() {
 }
 
 function renderEvent(event, index) {
+  if (event.type === "ym2608-adpcm-b-data") {
+    return `${String(index).padStart(3, " ")}: ym2608 ADPCM-B chip=${event.chipIndex} offset=${formatHex(event.offset)} size=${event.data.length}`;
+  }
   if (event.type === "ym2612-write") {
     return `${String(index).padStart(3, " ")}: write port=${event.port} register=${formatHex(event.register)} value=${formatHex(event.value)}`;
   }

@@ -19,6 +19,8 @@ import { Ym2612VGM } from "./ym2612vgm.js";
  *   sampleRate(): number,
  *   writeYm2612(port: number, register: number, value: number): void,
  *   writeYm2608?(port: number, register: number, value: number): void,
+ *   loadAdpcmBMemory?(data: Uint8Array, offset: number, memorySize: number): void,
+ *   clearAdpcmBMemory?(): void,
  *   writeYm2203?(register: number, value: number): void,
  *   writePsg(value: number): void,
  *   processFrames(frames: number): { left: Float32Array, right: Float32Array },
@@ -69,6 +71,7 @@ export class VgmPlayer {
    */
   load(buffer, options = {}) {
     this.parser = new Ym2612VGM(buffer, options);
+    this.engine.clearAdpcmBMemory?.();
     this.waitAccumulator = 0;
     this.chunkQueue = [];
     this.queuedFrames = 0;
@@ -315,7 +318,12 @@ export class VgmPlayer {
         ? { writeRegister: (register, value) => this.engine.writeYm2203(register, value) }
         : undefined;
       const ym2608Target = typeof this.engine.writeYm2608 === "function"
-        ? { writeRegister: (register, value, port = 0) => this.engine.writeYm2608(port, register, value) }
+        ? {
+          writeRegister: (register, value, port = 0) => this.engine.writeYm2608(port, register, value),
+          loadAdpcmBMemory: typeof this.engine.loadAdpcmBMemory === "function"
+            ? (data, offset, memorySize) => this.engine.loadAdpcmBMemory(data, offset, memorySize)
+            : undefined,
+        }
         : undefined;
       const event = this.parser.playStep({
         ym2612: ym2612Target,

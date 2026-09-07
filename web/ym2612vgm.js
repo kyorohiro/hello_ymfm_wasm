@@ -43,6 +43,7 @@ import {
  */
 
 /** @typedef {{ type: "ym2610-write", port: 0|1, register: number, value: number }} Ym2610WriteEvent */
+/** @typedef {{ type: "ym2608-adpcm-b-data", data: Uint8Array, offset: number, memorySize: number, chipIndex: number }} Ym2608AdpcmBDataEvent */
 
 /**
  * @typedef {Object} SegaPsgWriteEvent
@@ -62,7 +63,7 @@ import {
  */
 
 /**
- * @typedef {Ym2612WriteEvent | Ym2203WriteEvent | Ym2608WriteEvent | Ym2610WriteEvent | SegaPsgWriteEvent | Ym2612WaitEvent | Ym2612EndEvent} Ym2612VgmEvent
+ * @typedef {Ym2612WriteEvent | Ym2203WriteEvent | Ym2608WriteEvent | Ym2608AdpcmBDataEvent | Ym2610WriteEvent | SegaPsgWriteEvent | Ym2612WaitEvent | Ym2612EndEvent} Ym2612VgmEvent
  */
 
 /**
@@ -278,7 +279,7 @@ export class Ym2612VGM {
         return;
       }
       const dataType = this.bytes[position + 2];
-      const size = readUint32LE(this.view, position + 3);
+      const size = readUint32LE(this.view, position + 3) & 0x7fffffff;
       const dataStart = position + 7;
       const data = this.bytes.slice(dataStart, dataStart + size);
       blocks.push({
@@ -315,7 +316,7 @@ export class Ym2612VGM {
     this.#scanRawCommands((command, position, index) => {
       if (command === 0x67) {
         const dataType = this.bytes[position + 2];
-        const size = readUint32LE(this.view, position + 3);
+        const size = readUint32LE(this.view, position + 3) & 0x7fffffff;
         lines.push(
           `${String(index).padStart(4, " ")} @${formatOffset(position)} cmd=0x67 type=0x${dataType.toString(16).padStart(2, "0")} size=${size}`,
         );
@@ -458,8 +459,20 @@ export class Ym2612VGM {
           throw new Error("Invalid VGM data block header");
         }
         const dataType = this.bytes[this.position + 2];
-        const size = readUint32LE(this.view, this.position + 3);
+        const rawSize = readUint32LE(this.view, this.position + 3);
+        const size = dataType === 0x81 ? rawSize & 0x7fffffff : rawSize;
         this.#ensureAvailable(7 + size);
+        if (dataType === 0x81) {
+          if (size < 8) throw new Error("Invalid YM2608 ADPCM-B data block: missing memory header");
+          const memorySize = readUint32LE(this.view, this.position + 7);
+          const offset = readUint32LE(this.view, this.position + 11);
+          if (memorySize > 0x200000 || offset > memorySize || size - 8 > memorySize - offset) {
+            throw new RangeError("Invalid YM2608 ADPCM-B data block: sample memory range");
+          }
+          const data = this.bytes.slice(this.position + 15, this.position + 7 + size);
+          this.position += 7 + size;
+          return { type: "ym2608-adpcm-b-data", data, offset, memorySize, chipIndex: rawSize >>> 31 };
+        }
         this.#storeDataBlock(dataType, this.position + 7, size);
         this.position += 7 + size;
         return this.step();
@@ -529,7 +542,7 @@ export class Ym2612VGM {
    * @param {{
    *   ym2612?: { writeRegister(register: number, value: number, port?: number): void },
    *   ym2203?: { writeRegister(register: number, value: number): void },
-   *   ym2608?: { writeRegister(register: number, value: number, port?: number): void },
+   *   ym2608?: { writeRegister(register: number, value: number, port?: number): void, loadAdpcmBMemory?(data: Uint8Array, offset: number, memorySize: number): void },
    *   psg?: { write(data: number): void },
    *   writeRegister?: (register: number, value: number, port?: number) => void
    * }} targets
@@ -537,6 +550,15 @@ export class Ym2612VGM {
    */
   playStep(targets) {
     const event = this.step();
+    if (event.type === "ym2608-adpcm-b-data") {
+      if (event.chipIndex !== 0) {
+        this.#warn("Skipping ADPCM-B data for the unsupported second YM2608 chip");
+      } else if (typeof targets.ym2608?.loadAdpcmBMemory === "function") {
+        targets.ym2608.loadAdpcmBMemory(event.data, event.offset, event.memorySize);
+      } else {
+        this.#warn("YM2608 ADPCM-B data requires a playback target with sample memory support");
+      }
+    }
     if (this.pendingYm2612DataBankWrite) {
       const ym2612 = targets.ym2612 || targets;
       if (ym2612 && typeof ym2612.writeRegister === "function") {
@@ -1910,7 +1932,7 @@ function rawCommandLength(bytes, view, position) {
     return 1;
   }
   if (command === 0x67) {
-    return 7 + readUint32LE(view, position + 3);
+    return 7 + (readUint32LE(view, position + 3) & 0x7fffffff);
   }
   if (command === 0x68) {
     return 12;

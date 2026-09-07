@@ -1,4 +1,5 @@
 export const YM2608_CLOCK = 8000000;
+export const YM2608_ADPCM_B_MEMORY_SIZE = 0x200000;
 
 export class Ym2608 {
   constructor(module, handle, api) {
@@ -34,6 +35,8 @@ export class Ym2608 {
       getIrq: optionalCwrap(module, "ym2608_get_irq", "number", ["number"]),
       sampleRate: module.cwrap("ym2608_sample_rate", "number", ["number", "number"]),
       loadAdpcmARom: optionalCwrap(module, "ym2608_load_adpcm_a_rom", null, ["number", "number", "number", "number"]),
+      loadAdpcmBMemory: optionalCwrap(module, "ym2608_load_adpcm_b_memory", null, ["number", "number", "number", "number"]),
+      clearAdpcmBMemory: optionalCwrap(module, "ym2608_clear_adpcm_b_memory", null, ["number"]),
       generate: module.cwrap("ym2608_generate", null, ["number", "number", "number", "number"]),
     };
 
@@ -143,6 +146,34 @@ export class Ym2608 {
     } finally {
       this.module._free(ptr);
     }
+  }
+
+  loadAdpcmBMemory(bytes, offset = 0, memorySize = YM2608_ADPCM_B_MEMORY_SIZE) {
+    if (!(bytes instanceof Uint8Array)) {
+      throw new Error("loadAdpcmBMemory(bytes) expects a Uint8Array");
+    }
+    if (!Number.isInteger(memorySize) || memorySize < 0 || memorySize > YM2608_ADPCM_B_MEMORY_SIZE ||
+        !Number.isInteger(offset) || offset < 0 || offset > memorySize || bytes.length > memorySize - offset) {
+      throw new RangeError("YM2608 ADPCM-B data exceeds the sample memory range");
+    }
+    if (typeof this.api.loadAdpcmBMemory !== "function") {
+      throw new Error("This YM2608 runtime does not support ADPCM-B memory. Rebuild or reload the generated wasm runtime.");
+    }
+    if (bytes.length === 0) return;
+    const ptr = this.module._malloc(bytes.length);
+    try {
+      this.module.HEAPU8.set(bytes, ptr);
+      this.api.loadAdpcmBMemory(this.handle, offset, ptr, bytes.length);
+    } finally {
+      this.module._free(ptr);
+    }
+  }
+
+  clearAdpcmBMemory() {
+    if (typeof this.api.clearAdpcmBMemory !== "function") {
+      throw new Error("This YM2608 runtime does not support ADPCM-B memory. Rebuild or reload the generated wasm runtime.");
+    }
+    this.api.clearAdpcmBMemory(this.handle);
   }
 
   generateStereo(frames) {
