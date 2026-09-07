@@ -93,17 +93,12 @@ void ym2203_generate(void *ptr, float *left, float *right, uint32_t frames)
     {
         ymfm::ym2203::output_data output;
         handle->chip.generate(&output);
-        int32_t mix_left = 0;
-        int32_t mix_right = 0;
+        // YM2203 has one FM output and three SSG outputs, all mono.
+        // Match examples/vgmrender by summing them into both channels.
+        int32_t mix = 0;
         for (uint32_t out = 0; out < ymfm::ym2203::OUTPUTS; out++)
-        {
-            if ((out & 1U) == 0)
-                mix_left += output.data[out];
-            else
-                mix_right += output.data[out];
-        }
-        right[index] = normalize_sample(mix_right);
-        left[index] = normalize_sample(mix_left);
+            mix += output.data[out];
+        left[index] = right[index] = normalize_sample(mix);
     }
 }
 
