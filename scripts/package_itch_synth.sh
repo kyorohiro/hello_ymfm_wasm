@@ -111,7 +111,7 @@ rm -f "${ZIP_PATH}"
 mkdir -p "${STAGE_DIR}/js" "${STAGE_DIR}/generated" "${STAGE_DIR}/licenses/nuked-opn2"
 
 cp "${SOURCE_HTML}" "${STAGE_DIR}/index.html"
-perl -0pi -e 's#\s*<link rel="manifest" href="\.\./manifest\.webmanifest">##g; s#\s*<link rel="icon" href="\.\./favicon\.ico" sizes="any">##g; s#\s*<script src="\.\./sw-register\.js"></script>##g' "${STAGE_DIR}/index.html"
+perl -0pi -e 's#\s*<link rel="manifest" href="\.\./[^\"]+\.webmanifest">##g; s#\s*<link rel="icon" href="\.\./[^\"]+\.ico" sizes="any">##g; s#\s*<script src="\.\./sw-register\.js"></script>##g' "${STAGE_DIR}/index.html"
 
 for file in ${SYNTH_FILES}; do
   src="${SYNTH_SUPPORT_DIR}/${file}"

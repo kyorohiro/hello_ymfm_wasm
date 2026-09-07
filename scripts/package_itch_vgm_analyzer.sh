@@ -99,7 +99,7 @@ for file in ${ANALYZER_FILES}; do
 
   cp "${src}" "${dst}"
 done
-perl -0pi -e 's#\s*<link rel="manifest" href="\.\./manifest\.webmanifest">##g; s#\s*<link rel="icon" href="\.\./favicon\.ico" sizes="any">##g; s#\s*<script src="\.\./sw-register\.js"></script>##g' "${STAGE_DIR}/index.html"
+perl -0pi -e 's#\s*<link rel="manifest" href="\.\./[^\"]+\.webmanifest">##g; s#\s*<link rel="icon" href="\.\./[^\"]+\.ico" sizes="any">##g; s#\s*<script src="\.\./sw-register\.js"></script>##g' "${STAGE_DIR}/index.html"
 
 for file in ${JS_FILES}; do
   src="${DOCS_JS_DIR}/${file}"
