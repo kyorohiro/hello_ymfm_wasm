@@ -54,6 +54,7 @@ opn_runtime_synth.js
 opn_fm_vgm.js
 stereo-width-worklet.js
 tfi.js
+vgi.js
 tetorica_audio_runtime.js
 tetorica_synth.js
 ym2203.js
