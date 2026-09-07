@@ -232,6 +232,7 @@ This package includes two YM2612 engine options:
 EOF
 
 # Make the playground runnable from itch.io as a standalone app.
+perl -0pi -e 's#\s*<link rel="manifest" href="\.\./manifest\.webmanifest">##g; s#\s*<link rel="icon" href="\.\./favicon\.ico" sizes="any">##g; s#\s*<script src="\.\./sw-register\.js"></script>##g' "${STAGE_DIR}/index.html"
 perl -0pi -e 's#<a class="link-button" href="\.\./index\.html">Back</a>##g' \
   "${STAGE_DIR}/index.html"
 perl -0pi -e 's#"\./playground\.js"#"./playground.js"#g; s#\.\./js/#./js/#g; s#\.\./synth/#./synth/#g; s#\.\./generated/#./generated/#g' \
