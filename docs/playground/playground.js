@@ -36,7 +36,7 @@ import {
   resolveVirtualDynamicImports,
 } from "./playground_virtual_files.js";
 import { looksLikeS98, convertS98ToVgm } from "../js/s98_file.js";
-import { zipSync } from "./vendor/fflate.js";
+import { unzipSync, zipSync } from "./vendor/fflate.js";
 import {
   maybeDecodeVgmFile,
 } from "../js/vgm_file.js";
@@ -109,6 +109,7 @@ const importCassetteButton =
 const exportCassetteButton = document.getElementById("exportCassetteButton");
 const exportTfiButton = document.getElementById("exportTfiButton");
 const exportVgiButton = document.getElementById("exportVgiButton");
+const fileExplorer = document.getElementById("fileExplorer");
 const cassetteExportDialog = document.getElementById("cassetteExportDialog");
 const cassetteLicenseSelect = document.getElementById("cassetteLicenseSelect");
 const cassetteWorkTypeSelect = document.getElementById("cassetteWorkTypeSelect");
@@ -1142,6 +1143,42 @@ async function importVirtualFile(file) {
   setStatus(`Imported binary file: ${normalizedPath}`);
 }
 
+async function importDroppedFiles(file) {
+  const isZip = file.name.toLowerCase().endsWith(".zip");
+  const entries = isZip
+    ? unzipSync(new Uint8Array(await file.arrayBuffer()))
+    : { [file.name]: new Uint8Array(await file.arrayBuffer()) };
+  let imported = 0;
+  for (const [name, bytes] of Object.entries(entries)) {
+    if (!name || name.endsWith("/") || name === "metadata.json" || name === "cassette.metadata.js") continue;
+    const normalizedPath = normalizeVirtualPath(`/${name}`);
+    if (isSystemVirtualPath(normalizedPath)) continue;
+    virtualFiles.writeBinary(normalizedPath, bytes);
+    registerVirtualTfiPreset(normalizedPath);
+    imported += 1;
+  }
+  if (imported === 0) throw new Error("The dropped file contains no importable files.");
+  renderVirtualFileExplorer();
+  renderRunFileOptions();
+  setStatus(`Imported ${imported} file${imported === 1 ? "" : "s"} into FILES.`);
+}
+
+function installFileExplorerDropTarget() {
+  if (!fileExplorer) return;
+  fileExplorer.addEventListener("dragover", (event) => {
+    if (Array.from(event.dataTransfer?.items ?? []).some((item) => item.kind === "file")) {
+      event.preventDefault();
+      event.dataTransfer.dropEffect = "copy";
+    }
+  });
+  fileExplorer.addEventListener("drop", (event) => {
+    const file = event.dataTransfer?.files?.[0];
+    if (!file) return;
+    event.preventDefault();
+    void importDroppedFiles(file).catch((error) => setStatus(`Failed to import dropped file: ${error.message}`));
+  });
+}
+
 function registerVirtualTfiPreset(path) {
   if (!path.startsWith("/presets/") || !path.endsWith(".tfi")) {
     return;
@@ -1919,7 +1956,8 @@ function bootPlayground() {
   renderRunFileOptions();
   installPlaygroundEventHandlers();
   ui.installBottomTabHandlers();
-  installTfiEditorDropTarget();
+installTfiEditorDropTarget();
+installFileExplorerDropTarget();
   void initializePlaygroundMonaco({
     chip: selectedChip,
     editor,
