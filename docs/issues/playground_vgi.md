@@ -92,8 +92,9 @@ The byte length is authoritative: TFI is 42 bytes and VGI is 43 bytes. File exte
 - [x] Add TFI/VGI import to the Synth page.
 - [x] Add VGI export to the Synth page.
 - [ ] Add VGI decoding to `playground_logic_worker.js`.
-- [ ] Add `vgi` / `vgi-id` query parameters to Playground startup parsing.
-- [ ] Add tests for one VGI, multiple VGI files, invalid length, and AMS/PMS/pan mapping.
+- [x] Add `vgi` / `vgi-id` query parameters to Playground startup parsing.
+- [x] Add CH1-CH6 TFI/VGI ZIP export buttons to Playground.
+- [x] Add tests for one VGI, multiple VGI files, invalid length, and AMS/PMS/pan mapping.
 
 ## Important edge cases
 

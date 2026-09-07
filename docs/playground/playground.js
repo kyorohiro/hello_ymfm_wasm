@@ -9,9 +9,10 @@ import {
 import {
   createTfiOperatorObjectText,
   createTfiPresetObjectText,
+  createTfiFromPreset,
   parseTfi,
 } from "../js/tfi.js";
-import { parseVgi } from "../js/vgi.js";
+import { createVgiFromPreset, parseVgi } from "../js/vgi.js";
 import {
   createPlaygroundOperatorTab,
 } from "./playground_operator_tab.js";
@@ -35,6 +36,7 @@ import {
   resolveVirtualDynamicImports,
 } from "./playground_virtual_files.js";
 import { looksLikeS98, convertS98ToVgm } from "../js/s98_file.js";
+import { zipSync } from "./vendor/fflate.js";
 import {
   maybeDecodeVgmFile,
 } from "../js/vgm_file.js";
@@ -105,6 +107,8 @@ const importCassetteButton =
     "importCassetteButton"
   );
 const exportCassetteButton = document.getElementById("exportCassetteButton");
+const exportTfiButton = document.getElementById("exportTfiButton");
+const exportVgiButton = document.getElementById("exportVgiButton");
 const cassetteExportDialog = document.getElementById("cassetteExportDialog");
 const cassetteLicenseSelect = document.getElementById("cassetteLicenseSelect");
 const cassetteWorkTypeSelect = document.getElementById("cassetteWorkTypeSelect");
@@ -1674,6 +1678,30 @@ function installPlaygroundEventHandlers() {
       promptCassetteExport();
     }
   });
+  const exportCurrentPresets = (format) => {
+    const files = {};
+    for (let channel = 0; channel < 6; channel += 1) {
+      const preset = operatorTab.getChannelPreset?.(channel);
+      if (!preset) continue;
+      const bytes = format === "vgi"
+        ? createVgiFromPreset(preset)
+        : createTfiFromPreset(preset);
+      files[`ch${channel + 1}.${format}`] = bytes;
+    }
+    if (Object.keys(files).length === 0) {
+      setStatus("No operator states are available to export.");
+      return;
+    }
+    const extension = format === "vgi" ? "vgi" : "tfi";
+    const anchor = document.createElement("a");
+    anchor.href = URL.createObjectURL(new Blob([zipSync(files)], { type: "application/zip" }));
+    anchor.download = `playground_${extension}_presets.zip`;
+    anchor.click();
+    URL.revokeObjectURL(anchor.href);
+    setStatus(`Exported CH1-CH6 ${extension.toUpperCase()} presets as ZIP.`);
+  };
+  exportTfiButton?.addEventListener("click", () => exportCurrentPresets("tfi"));
+  exportVgiButton?.addEventListener("click", () => exportCurrentPresets("vgi"));
   cassetteLicenseSelect?.addEventListener("change", () => {
     cassetteLicenseCustomName.disabled = cassetteLicenseSelect.value !== "CUSTOM";
   });

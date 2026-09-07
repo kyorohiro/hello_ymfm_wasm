@@ -934,6 +934,22 @@ export function createPlaygroundOperatorTab(
     getSelectedChannel() {
       return selectedChannel;
     },
+    getChannelPreset(channel = selectedChannel) {
+      const state = stateByChannel[Math.max(0, Math.min(channelCount - 1, Number(channel) || 0))];
+      return {
+        algorithm: state.algorithm,
+        feedback: state.feedback,
+        ams: state.ams,
+        pms: state.pms,
+        pan: { left: state.left, right: state.right },
+        operators: {
+          1: { ...state.operators[1] },
+          2: { ...state.operators[2] },
+          3: { ...state.operators[3] },
+          4: { ...state.operators[4] },
+        },
+      };
+    },
     attachSynth(nextSynth) {
       synth = nextSynth;
 
