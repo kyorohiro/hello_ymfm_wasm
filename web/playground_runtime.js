@@ -858,7 +858,6 @@ export function createPlaygroundRuntime(
     switch (command) {
       case "write":
       case "play":
-      case "sound":
       case "psgTone":
       case "psgNoise":
       case "setMasterVolume":
@@ -867,6 +866,7 @@ export function createPlaygroundRuntime(
       case "getTiming":
       case "setDacLookahead":
       case "getDacLookahead":
+      case "hzToBlockFnum":
       case "noteToBlockFnum":
       case "noteLerp":
       case "scheduleWritesSamples":
@@ -1008,7 +1008,6 @@ export function createPlaygroundRuntime(
     const psg = megaDrive.psg;
     const musicApi =
       createPlaygroundMusic({
-        chip: capabilities.chip,
         noteToSemitone:
           NOTE_TO_SEMITONE,
         scaleIntervals:
@@ -1167,7 +1166,6 @@ export function createPlaygroundRuntime(
           fn,
           livePrepareApi
         ),
-      sound: (channel, hz, seconds) => musicApi.sound(channel, hz, seconds),
       play: (note, playOptions) =>
         musicApi.play(
           note,
@@ -1251,6 +1249,7 @@ export function createPlaygroundRuntime(
         musicApi.scale,
       chord:
         musicApi.chord,
+      hzToBlockFnum: musicApi.hzToBlockFnum,
       noteToBlockFnum:
         musicApi.noteToBlockFnum,
       noteLerp:
@@ -1290,7 +1289,6 @@ export function createPlaygroundRuntime(
           pg.getDacLookahead,
         livePrepare: (name, fn) =>
           pg.livePrepare(name, fn),
-        sound: (channel, hz, seconds) => pg.sound(channel, hz, seconds),
         play: (note, playOptions) =>
           pg.play(
             note,
@@ -1346,6 +1344,7 @@ export function createPlaygroundRuntime(
         lerp: pg.lerp,
         scale: pg.scale,
         chord: pg.chord,
+        hzToBlockFnum: pg.hzToBlockFnum,
         noteToBlockFnum:
           pg.noteToBlockFnum,
         noteLerp:

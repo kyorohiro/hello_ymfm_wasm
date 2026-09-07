@@ -732,8 +732,6 @@ declare function liveCleanup(names: string[], fn: () => Promise<void> | void): v
 declare function livePrepare(name: string, fn: (context: { fx: FXApi; fm: FMApi; psg: PSGApi; sample: PlaygroundSampleAPI; stream: PlaygroundStreamAPI; noise: PlaygroundNoiseAPI; log: (...args: unknown[]) => void }) => Promise<any> | any): Promise<any>;
 /** Play one note through the current synth setup. */
 declare function play(note: string, options?: PlaygroundPlayOptions): Promise<void>;
-/** Play one YM2612 tone in Hz with the current voice. Default duration: 2 seconds. */
-declare function sound(channel: YM2612Channel, hz: number, seconds?: number): Promise<void>;
 /** Compact YM2612 write helper. Defaults to port 0 when omitted. */
 declare function write(register: number, value: number): void;
 /** Compact YM2612 write helper with explicit port. */
@@ -771,6 +769,8 @@ declare function scale(root: string, name: string, octaves?: number): string[];
 declare function chord(root: string, name: "major" | "minor" | "major7" | "minor7" | "dominant7"): string[];
 /** Convert one note name into raw YM2612 BLOCK / F-NUM values. */
 declare function noteToBlockFnum(note: string): { block: number; fnum: number };
+/** Convert Hz to YM2612 BLOCK/FNUM. Clock defaults to 7670454 Hz. */
+declare function hzToBlockFnum(hz: number, clock?: number): { block: number; fnum: number };
 /** Interpolate between two numbers. */
 declare function lerp(a: number, b: number, t: number): number;
 /** Interpolate between two note names and return YM2612 BLOCK / F-NUM. */
@@ -866,7 +866,6 @@ type PlaygroundAPI = {
   tfiToPreset: (data: ArrayBuffer | Uint8Array) => YM2612Preset;
   /** Play one note through the current synth setup. */
   play(note: string, options?: PlaygroundPlayOptions): Promise<void>;
-  sound(channel: YM2612Channel, hz: number, seconds?: number): Promise<void>;
   write: {
     (register: number, value: number): void;
     (port: number, register: number, value: number): void;
@@ -886,6 +885,7 @@ type PlaygroundAPI = {
   scale: (root: string, name: string, octaves?: number) => string[];
   chord: (root: string, name: "major" | "minor" | "major7" | "minor7" | "dominant7") => string[];
   noteToBlockFnum: (note: string) => { block: number; fnum: number };
+  hzToBlockFnum: (hz: number, clock?: number) => { block: number; fnum: number };
   noteLerp: (from: string, to: string, t: number) => { block: number; fnum: number };
   choose: <T>(values: T[]) => T;
   cycle: {

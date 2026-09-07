@@ -1,3 +1,5 @@
+import { hzToBlockFnum } from "./pitch.js";
+
 const CHORD_INTERVALS = {
   major: [0, 4, 7],
   minor: [0, 3, 7],
@@ -86,32 +88,6 @@ export function createPlaygroundMusic(
       block: pitch.block,
       fnum: pitch.fnum,
     };
-  }
-
-  async function sound(channel, hz, seconds = 2) {
-    if (options.chip && options.chip !== "ym2612") {
-      throw new Error("sound() currently supports the YM2612 Playground");
-    }
-    if (!Number.isFinite(hz) || hz <= 0 || !Number.isFinite(seconds) || seconds < 0) {
-      throw new Error("sound() requires a positive frequency and a non-negative duration");
-    }
-    const currentSynth = synth();
-    if (!currentSynth) throw new Error("Audio is not ready yet");
-    let best;
-    for (let block = 0; block < 8; block++) {
-      const unit = 7670454 * 2 ** (block - 1) / (144 * 2 ** 20);
-      const fnum = Math.max(1, Math.min(2047, Math.round(hz / unit)));
-      const error = Math.abs(fnum * unit - hz);
-      if (!best || error < best.error) best = { block, fnum, error };
-    }
-    currentSynth.noteOn(channel, best.block, best.fnum);
-    activeNotes.add(channel);
-    try {
-      await sleep(seconds);
-    } finally {
-      currentSynth.noteOff(channel);
-      activeNotes.delete(channel);
-    }
   }
 
   async function play(
@@ -351,7 +327,7 @@ export function createPlaygroundMusic(
     noteToBlockFnum,
     noteLerp,
     play,
-    sound,
+    hzToBlockFnum,
     midiToNoteName,
     scale,
     chord,
