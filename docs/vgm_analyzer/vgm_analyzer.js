@@ -1,3 +1,4 @@
+import { createPsgMonitor, describePsgMonitor, observePsgEngine } from "./psg_monitor.js";
 import { exportAnalysisMml } from "./vgm_mml.js";
 import {
   Ym2612VGM,
@@ -85,6 +86,8 @@ let extractedTfiPatches = [];
 let channelMuteStates = [false, false, false, false, false, false];
 let currentChipKind = "ym2612";
 let channelMonitor = createChannelMonitorState();
+let psgMonitor = createPsgMonitor(currentChipKind);
+let psgHighlightActive = false;
 let baseEngineWriteYm2612 = null;
 let baseEngineWriteYm2203 = null;
 let baseEngineWriteYm2608 = null;
@@ -382,10 +385,12 @@ function ensureChannelMonitorRenderTimer() {
     return;
   }
   channelMonitorRenderTimer = window.setInterval(() => {
-    if (!channelMonitorDirty && !hasRecentChannelChanges()) {
+    const psgRecent = psgMonitor.changedAt.some((time) => changeAgeOpacity(time) > 0);
+    if (!channelMonitorDirty && !hasRecentChannelChanges() && !psgRecent && !psgHighlightActive) {
       return;
     }
     renderChannelMonitor();
+    psgHighlightActive = psgRecent;
     channelMonitorDirty = false;
   }, 120);
 }
@@ -414,7 +419,45 @@ function requestNoteishRender() {
   noteishDirty = true;
 }
 
+function renderPsgMonitor() {
+  const state = describePsgMonitor(psgMonitor, psgMuted);
+  const title = document.getElementById("psgMonitorTitle");
+  title.textContent = state.kind === "ssg" ? `${currentChipKind.toUpperCase()} SSG` : `Sega PSG${psgMuted ? " · Muted" : ""}`;
+  const token = (label, value, ...registers) => renderChannelChip(label, value,
+    Math.max(0, ...registers.map((r) => psgMonitor.changedAt[r])), "166 214 148");
+  const card = (name, content) => `<section class="channel-card"><div class="channel-head"><span class="channel-title">${name}</span></div><div class="channel-row">${content}</div></section>`;
+  let cards = state.channels.map((channel, i) => card(channel.name,
+    token("PERIOD", channel.period, i * 2, ...(state.kind === "ssg" ? [i * 2 + 1] : [])) +
+    (state.kind === "ssg" ?
+      token("TONE", channel.toneEnabled ? "ON" : "OFF", 7) +
+      token("NOISE", channel.noiseEnabled ? "ON" : "OFF", 7) +
+      token("VOLUME", channel.envelope ? "ENV" : channel.volume, 8 + i) :
+      token("ATTENUATION", channel.attenuation === 15 ? "15 · MUTE" : channel.attenuation, i * 2 + 1))
+  )).join("");
+  if (state.kind === "ssg") {
+    cards += card("Shared Noise / Envelope", token("NOISE PERIOD", state.noisePeriod, 6) +
+      token("ENV PERIOD", state.envelope.period, 11, 12) + token("SHAPE", state.envelope.shape, 13) +
+      ["continue", "attack", "alternate", "hold"].map((key) => token(key.toUpperCase(), state.envelope[key] ? "ON" : "OFF", 13)).join(""));
+  } else {
+    cards += card("Noise", token("MODE", state.noise.mode, 6) +
+      token("RATE", state.noise.tone3Linked ? `Tone 3 · period ${state.channels[2].period}` : [16, 32, 64][state.noise.rate], 6, ...(state.noise.tone3Linked ? [4] : [])) +
+      token("ATTENUATION", state.noise.attenuation === 15 ? "15 · MUTE" : state.noise.attenuation, 7));
+  }
+  document.getElementById("psgMonitorGrid").innerHTML = cards;
+  document.getElementById("psgMonitorRegisters").innerHTML = state.registers.map((value, r) => token(`R${r.toString(16).toUpperCase().padStart(2, "0")}`, `0x${value.toString(16).toUpperCase().padStart(2, "0")}`, r)).join("");
+}
+
+function resetPsgMonitor() {
+  psgMonitor = createPsgMonitor(currentChipKind);
+  requestChannelMonitorRender();
+}
+
+function observePsgPlaybackEngine() {
+  observePsgEngine(engine, () => psgMonitor, requestChannelMonitorRender, resetPsgMonitor);
+}
+
 function renderChannelMonitor() {
+  renderPsgMonitor();
   channelGrid.innerHTML = "";
   renderMonitorToggles();
   for (const channel of channelMonitor) {
@@ -843,7 +886,7 @@ function renderOperatorTokens(operator) {
     renderParamToken("D2R", operator.d2r, operator.changedAt.d2r, "255 186 150"),
     renderParamToken("SL", operator.sl, operator.changedAt.sl, "255 186 150"),
     renderParamToken("RR", operator.rr, operator.changedAt.rr, "255 186 150"),
-    renderParamToken("SSG", operator.ssg, operator.changedAt.ssg, "166 214 148"),
+    renderParamToken("SSG-EG", operator.ssg, operator.changedAt.ssg, "166 214 148"),
   ].join("");
 }
 
@@ -921,6 +964,7 @@ function flushPendingAudio() {
 
 function togglePsgMute() {
   psgMuted = !psgMuted;
+  requestChannelMonitorRender();
   renderMonitorToggles();
   if (engine && typeof engine.setPsgMuted === "function") {
     engine.setPsgMuted(psgMuted);
@@ -1746,6 +1790,8 @@ function buildSnapshotData(reason = "manual") {
       totalSamples: stats.totalSamples,
       audioProgress: stats.audioProgress,
     } : null,
+    chip: currentChipKind,
+    psgSsg: describePsgMonitor(psgMonitor, psgMuted),
     channels: channelMonitor.map((channel) => ({
       channel: channel.channel,
       keyOn: channel.keyOn,
@@ -1899,6 +1945,7 @@ async function ensurePlaybackReady(vgm) {
         ym2203Clock: vgm.header.ym2203Clock,
         masterVolume,
       });
+      observePsgPlaybackEngine();
       baseEngineWriteYm2203 = engine.writeYm2203.bind(engine);
     } else if (currentChipKind === "ym2608") {
       engine = await createYm2608AudioEngine({
@@ -1909,6 +1956,7 @@ async function ensurePlaybackReady(vgm) {
       if (ym2608AdpcmARomBytes) {
         engine.loadAdpcmARom(ym2608AdpcmARomBytes);
       }
+      observePsgPlaybackEngine();
       baseEngineWriteYm2608 = engine.writeYm2608.bind(engine);
     } else {
       engine = await createGenesisAudioEngine({
@@ -1916,6 +1964,7 @@ async function ensurePlaybackReady(vgm) {
         segaPsgModuleFactory,
         masterVolume,
       });
+      observePsgPlaybackEngine();
       baseEngineWriteYm2612 = engine.writeYm2612.bind(engine);
     }
   }
@@ -2098,6 +2147,7 @@ async function playCurrentVgm() {
 
     const { sampleRate } = await ensurePlaybackReady(parser);
     channelMonitor = createChannelMonitorState();
+    resetPsgMonitor();
     renderChannelMonitor();
     requestNoteishRender();
     renderNoteishGrid();
@@ -2314,6 +2364,8 @@ function startScriptProcessorStream() {
 }
 
 async function handleFile(file) {
+  stopActiveStream();
+  player?.pause();
   setStatus(`Loading ${file.name}...`);
   lastLoadedFileName = file.name;
   const rawBuffer = await file.arrayBuffer();
@@ -2322,6 +2374,7 @@ async function handleFile(file) {
   lastParseInfo = null;
   playButton.disabled = true;
   channelMonitor = createChannelMonitorState();
+  resetPsgMonitor();
   renderChannelMonitor();
   requestNoteishRender();
   renderNoteishGrid();
@@ -2375,6 +2428,7 @@ async function handleFile(file) {
   }
   currentChipKind = nextChipKind;
   channelMonitor = createChannelMonitorState();
+  resetPsgMonitor();
   renderChannelMonitor();
   requestNoteishRender();
   renderNoteishGrid();

@@ -641,9 +641,13 @@
         </div>
 
         <section id="operatorInfoPanel" class="tab-panel" role="tabpanel" aria-labelledby="operatorInfoTab">
-          <h2>6 Channel Monitor / PSG</h2>
+          <h2>FM Channel Monitor</h2>
           <div id="monitorToggles" class="monitor-toggles"></div>
           <div id="channelGrid" class="channel-grid"></div>
+          <h2 id="psgMonitorTitle">Sega PSG</h2>
+          <p class="noteish-help">Register settings at the generated audio position; playback may follow slightly later. These are not live audio levels.</p>
+          <div id="psgMonitorGrid" class="channel-grid"></div>
+          <details><summary>PSG / SSG registers</summary><div id="psgMonitorRegisters" class="channel-row"></div></details>
         </section>
 
         <section id="noteishPanel" class="tab-panel" role="tabpanel" aria-labelledby="noteishTab" hidden>
