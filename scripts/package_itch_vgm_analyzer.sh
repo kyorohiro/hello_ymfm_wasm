@@ -17,6 +17,8 @@ ANALYZER_FILES="
 index.html
 analyzer_theme.css
 vgm_analyzer.js
+psg_monitor.js
+source_mutes.js
 vgm_mml.js
 vgm_mml_music.js
 "
