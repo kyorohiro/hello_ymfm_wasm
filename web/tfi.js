@@ -253,21 +253,23 @@ function normalizePreset(preset) {
     throw new Error("preset must be an object");
   }
 
+  const operators = preset.operators || [];
+  const offset = operators[0] !== undefined ? 0 : 1;
   return {
     algorithm: validateRange("algorithm", preset.algorithm ?? 7, 0, 7),
     feedback: validateRange("feedback", preset.feedback ?? 0, 0, 7),
     operators: [
       normalizeOperatorPreset(
-        preset.operators?.[0]
+        operators[offset]
       ),
       normalizeOperatorPreset(
-        preset.operators?.[1]
+        operators[offset + 1]
       ),
       normalizeOperatorPreset(
-        preset.operators?.[2]
+        operators[offset + 2]
       ),
       normalizeOperatorPreset(
-        preset.operators?.[3]
+        operators[offset + 3]
       ),
     ],
   };

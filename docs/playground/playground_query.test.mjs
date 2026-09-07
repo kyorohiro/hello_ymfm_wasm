@@ -2,10 +2,12 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { createTfiFromPreset } from "../js/tfi.js";
+import { createVgiFromPreset } from "../js/vgi.js";
 import {
   decodeBase64Source,
   loadTfiPresetsFromQuery,
   resolveInitialSourceFromQuery,
+  loadVgiPresetsFromQuery,
 } from "./playground_query.js";
 
 function encodeBytes(bytes) {
@@ -108,6 +110,28 @@ test(
       result.presets.bell.algorithm,
       4
     );
+  }
+);
+
+test(
+  "loads a VGI and preserves pan and LFO sensitivity",
+  () => {
+    const bytes = createVgiFromPreset({
+      algorithm: 4,
+      feedback: 2,
+      ams: 2,
+      pms: 5,
+      pan: { left: false, right: true },
+      operators: [{}, {}, {}, {}],
+    });
+    const result = loadVgiPresetsFromQuery(
+      `?vgi=${encodeBytes(bytes)}&vgi-id=bell`
+    );
+    assert.deepEqual(result.loadedIds, ["bell"]);
+    assert.equal(result.errors.length, 0);
+    assert.equal(result.presets.bell.ams, 2);
+    assert.equal(result.presets.bell.pms, 5);
+    assert.deepEqual(result.presets.bell.pan, { left: false, right: true });
   }
 );
 

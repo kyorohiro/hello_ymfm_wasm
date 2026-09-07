@@ -1,4 +1,5 @@
 import { parseTfi, TFI_FILE_SIZE } from "../js/tfi.js";
+import { parseVgi, VGI_FILE_SIZE } from "../js/vgi.js";
 
 const SIMPLE_TFI_ID_PATTERN = /^[A-Za-z0-9_-]+$/;
 
@@ -144,17 +145,27 @@ export function resolveInitialSourceFromQuery(
 export function loadTfiPresetsFromQuery(
   search
 ) {
+  return loadPresetsFromQuery(search, "tfi", "tfi-id", TFI_FILE_SIZE, parseTfi, "TFI");
+}
+
+export function loadVgiPresetsFromQuery(
+  search
+) {
+  return loadPresetsFromQuery(search, "vgi", "vgi-id", VGI_FILE_SIZE, parseVgi, "VGI");
+}
+
+function loadPresetsFromQuery(search, valueKey, idKey, fileSize, parse, label) {
   const params =
     new URLSearchParams(
       normalizeSearch(search)
     );
   const encodedTfiList =
     splitCommaValues(
-      params.get("tfi")
+      params.get(valueKey)
     );
   const tfiIds =
     splitCommaValues(
-      params.get("tfi-id")
+      params.get(idKey)
     );
 
   const presets = {};
@@ -177,7 +188,7 @@ export function loadTfiPresetsFromQuery(
     tfiIds.length === 0
   ) {
     errors.push(
-      "Both ?tfi= and ?tfi-id= are required to load URL TFI presets."
+      `Both ?${valueKey}= and ?${idKey}= are required to load URL ${label} presets.`
     );
     return {
       presets,
@@ -191,7 +202,7 @@ export function loadTfiPresetsFromQuery(
     tfiIds.length
   ) {
     errors.push(
-      `Mismatched TFI parameter counts: tfi=${encodedTfiList.length}, tfi-id=${tfiIds.length}.`
+      `Mismatched ${label} parameter counts: ${valueKey}=${encodedTfiList.length}, ${idKey}=${tfiIds.length}.`
     );
   }
 
@@ -213,7 +224,7 @@ export function loadTfiPresetsFromQuery(
       )
     ) {
       errors.push(
-        `Ignored URL TFI preset with invalid id "${id}".`
+        `Ignored URL ${label} preset with invalid id "${id}".`
       );
       continue;
     }
@@ -225,7 +236,7 @@ export function loadTfiPresetsFromQuery(
       )
     ) {
       errors.push(
-        `Ignored duplicate URL TFI preset id "${id}".`
+        `Ignored duplicate URL ${label} preset id "${id}".`
       );
       continue;
     }
@@ -237,29 +248,29 @@ export function loadTfiPresetsFromQuery(
 
     if (!bytes) {
       errors.push(
-        `Failed to decode URL TFI preset "${id}".`
+        `Failed to decode URL ${label} preset "${id}".`
       );
       continue;
     }
 
     if (
       bytes.length !==
-      TFI_FILE_SIZE
+      fileSize
     ) {
       errors.push(
-        `Ignored URL TFI preset "${id}" because it is ${bytes.length} bytes, expected ${TFI_FILE_SIZE}.`
+        `Ignored URL ${label} preset "${id}" because it is ${bytes.length} bytes, expected ${fileSize}.`
       );
       continue;
     }
 
     try {
-      presets[id] = parseTfi(
+      presets[id] = parse(
         bytes
       );
       loadedIds.push(id);
     } catch (error) {
       errors.push(
-        `Failed to parse URL TFI preset "${id}": ${error.message}`
+        `Failed to parse URL ${label} preset "${id}": ${error.message}`
       );
     }
   }

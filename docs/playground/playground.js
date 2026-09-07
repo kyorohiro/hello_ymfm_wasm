@@ -11,6 +11,7 @@ import {
   createTfiPresetObjectText,
   parseTfi,
 } from "../js/tfi.js";
+import { parseVgi } from "../js/vgi.js";
 import {
   createPlaygroundOperatorTab,
 } from "./playground_operator_tab.js";
@@ -20,6 +21,7 @@ import { initializePlaygroundMonaco } from "./playground_monaco.js";
 import {
   decodeBase64Bytes,
   loadTfiPresetsFromQuery,
+  loadVgiPresetsFromQuery,
   resolveInitialSourceFromQuery,
 } from "./playground_query.js";
 import {
@@ -256,9 +258,14 @@ const urlTfiResult =
   loadTfiPresetsFromQuery(
     window.location.search
   );
+const urlVgiResult =
+  loadVgiPresetsFromQuery(
+    window.location.search
+  );
 const playgroundPresets = {
   ...FM_PRESETS,
   ...urlTfiResult.presets,
+  ...urlVgiResult.presets,
 };
 let editorAdapter =
   createTextareaEditorAdapter(
@@ -360,7 +367,7 @@ function createJavaScriptDataUrl(source) {
 }
 
 const tfiImportInput = createImportInput(
-  ".tfi,application/octet-stream"
+  ".tfi,.vgi,application/octet-stream"
 );
 const cassetteImportInput = createImportInput(
   ".zip,application/zip"
@@ -610,9 +617,8 @@ function appendTextAtEnd(
 async function insertTfiFile(
   file
 ) {
-  const preset = parseTfi(
-    await file.arrayBuffer()
-  );
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  const preset = bytes.length === 43 ? parseVgi(bytes) : parseTfi(bytes);
   insertParsedTfiPreset(
     preset,
     file.name
@@ -948,7 +954,7 @@ function installTfiEditorDropTarget() {
         void insertTfiFile(file).catch(
           (error) => {
             setStatus(
-              `Failed to import TFI: ${error.message}`
+              `Failed to import TFI/VGI: ${error.message}`
             );
           }
         );
@@ -1555,6 +1561,11 @@ function applyInitialSourceFromQuery() {
       `Loaded ${urlTfiResult.loadedIds.length} URL TFI preset(s): ${urlTfiResult.loadedIds.join(", ")}.`
     );
   }
+  if (urlVgiResult.loadedIds.length > 0) {
+    statusParts.push(
+      `Loaded ${urlVgiResult.loadedIds.length} URL VGI preset(s): ${urlVgiResult.loadedIds.join(", ")}.`
+    );
+  }
   if (
     urlTfiResult.errors.length >
     0
@@ -1571,6 +1582,10 @@ function applyInitialSourceFromQuery() {
         "Some URL TFI presets were ignored."
       );
     }
+  }
+  for (const errorMessage of urlVgiResult.errors) {
+    console.warn(errorMessage);
+    if (statusParts.length === 0) statusParts.push("Some URL VGI presets were ignored.");
   }
   if (
     statusParts.length > 0
@@ -1801,7 +1816,7 @@ runButton.addEventListener(
       void insertTfiFile(file).catch(
         (error) => {
           setStatus(
-            `Failed to import TFI: ${error.message}`
+            `Failed to import TFI/VGI: ${error.message}`
           );
         }
       );

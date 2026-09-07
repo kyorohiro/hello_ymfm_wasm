@@ -13,6 +13,7 @@ import { createPlaygroundMusic } from "./playground_music.js";
 import { createPlaygroundNoiseApi } from "./playground_noise.js";
 import { createFmProxy } from "./playground_sync.js";
 import { parseTfi } from "./tfi.js";
+import { parseVgi } from "./vgi.js";
 
 const REFERENCE_MIDI = 62;
 const REFERENCE_BLOCK = 4;
@@ -1160,6 +1161,7 @@ export function createPlaygroundRuntime(
       presets,
       FM_PRESETS: presets,
       tfiToPreset: parseTfi,
+      vgiToPreset: parseVgi,
       livePrepare: (name, fn) =>
         liveApi.livePrepare(
           name,
@@ -1364,6 +1366,7 @@ export function createPlaygroundRuntime(
         OP4: pg.OP4,
         FM_PRESETS: presets,
         tfiToPreset: pg.tfiToPreset,
+        vgiToPreset: pg.vgiToPreset,
         presets: pg.presets,
         sample: pg.sample,
         stream: pg.stream,

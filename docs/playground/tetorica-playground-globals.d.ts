@@ -824,6 +824,8 @@ declare function file(
 ): Promise<string>;
 /** Convert 42-byte TFI data into a preset accepted by `fm.setPreset()`. */
 declare function tfiToPreset(data: ArrayBuffer | Uint8Array): YM2612Preset;
+/** Convert 43-byte VGI data into a preset accepted by `fm.setPreset()`. */
+declare function vgiToPreset(data: ArrayBuffer | Uint8Array): YM2612Preset;
 /** Console methods captured by the Playground Console tab. */
 interface Console {
   log(...args: unknown[]): void;
@@ -864,6 +866,7 @@ type PlaygroundAPI = {
   presets: typeof FM_PRESETS;
   /** Convert 42-byte TFI data into a preset accepted by `fm.setPreset()`. */
   tfiToPreset: (data: ArrayBuffer | Uint8Array) => YM2612Preset;
+  vgiToPreset: (data: ArrayBuffer | Uint8Array) => YM2612Preset;
   /** Play one note through the current synth setup. */
   play(note: string, options?: PlaygroundPlayOptions): Promise<void>;
   write: {

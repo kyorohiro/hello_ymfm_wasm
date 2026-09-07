@@ -8,6 +8,9 @@ import {
 export const VGI_FILE_SIZE = 43;
 
 function bytesOf(data) {
+  if (typeof data === "string") {
+    throw new TypeError("VGI data is binary; read it with file(path, { type: \"arrayBuffer\" })");
+  }
   if (data instanceof Uint8Array) return data;
   if (data instanceof ArrayBuffer) return new Uint8Array(data);
   return new Uint8Array(data);
@@ -47,6 +50,7 @@ export function parseVgi(data) {
     b4: bytes[2],
     ams: (bytes[2] >> 4) & 0x03,
     pms: bytes[2] & 0x07,
+    pan: { left: (bytes[2] & 0x80) !== 0, right: (bytes[2] & 0x40) !== 0 },
     operators: [],
   };
   for (let block = 0; block < TFI_OPERATOR_FILE_ORDER.length; block += 1) {
@@ -62,7 +66,14 @@ export function createVgiFromPreset(preset) {
   const bytes = new Uint8Array(VGI_FILE_SIZE);
   bytes[0] = value("algorithm", preset.algorithm ?? 7, 7);
   bytes[1] = value("feedback", preset.feedback ?? 0, 7);
-  bytes[2] = value("b4", preset.b4 ?? 0, 255);
+  const pan = preset.pan || {};
+  const panBits = (pan.left === undefined ? true : pan.left) ? 0x80 : 0;
+  const rightBits = (pan.right === undefined ? true : pan.right) ? 0x40 : 0;
+  bytes[2] = value(
+    "b4",
+    preset.b4 ?? (panBits | rightBits | ((preset.ams ?? 0) << 4) | (preset.pms ?? 0)),
+    255
+  );
   const operators = preset.operators || {};
   const oneBased = operators[0] === undefined && operators[1] !== undefined;
   for (let block = 0; block < TFI_OPERATOR_FILE_ORDER.length; block += 1) {

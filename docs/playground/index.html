@@ -1584,6 +1584,7 @@
               <li>Imported modules may use <code>export</code> and nested relative <code>import()</code>; use dynamic <code>import()</code> instead of a top-level static <code>import</code></li>
               <li><code>log(value)</code>, <code>console.log(value)</code>, <code>console.warn(value)</code>, and <code>console.error(value)</code> write to the Console tab</li>
               <li><code>tfiToPreset(await file("./bass.tfi", { type: "arrayBuffer" }))</code> converts a 42-byte TFI file for <code>fm.setPreset()</code></li>
+              <li><code>vgiToPreset(await file("./bass.vgi", { type: "arrayBuffer" }))</code> converts a 43-byte VGI file for <code>fm.setPreset()</code> (binary files require <code>type: "arrayBuffer"</code>)</li>
             </ul>
 
             <h2 style="margin-top: 14px;">sample and noise</h2>
@@ -1662,6 +1663,7 @@
               <li><code>?cassette=...</code> loads a small Base64URL-encoded cassette zip</li>
               <li><code>?tfi=...&amp;tfi-id=bass</code> loads one URL TFI preset with id <code>bass</code></li>
               <li><code>?tfi=...,...</code> with <code>?tfi-id=a,b</code> loads multiple URL TFI presets</li>
+              <li><code>?vgi=...&amp;vgi-id=bass</code> loads one URL VGI preset with id <code>bass</code></li>
             </ul>
           </section>
 
