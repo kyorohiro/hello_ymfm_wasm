@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>YM2612Synth TFI Import Demo</title>
+    <title>YM2612Synth TFI / VGI Import Demo</title>
     <style>
       :root {
         color-scheme: light;
@@ -133,10 +133,10 @@
   <body>
     <main>
       <section class="panel">
-        <h1>YM2612Synth TFI Import Demo</h1>
+        <h1>YM2612Synth TFI / VGI Import Demo</h1>
 
         <p>
-          Load a 42-byte TFI patch, convert it into a
+          Load a 42-byte TFI or 43-byte VGI patch, convert it into a
           <code>YM2612Synth</code> preset, and play one test note through the
           direct YM2612 WASM path.
         </p>
@@ -149,16 +149,16 @@
         </p>
 
         <div class="actions">
-          <input id="tfiFile" type="file" accept=".tfi,application/octet-stream">
+          <input id="tfiFile" type="file" accept=".tfi,.vgi,application/octet-stream">
           <button id="playButton" type="button" disabled>Play Test Note</button>
           <button id="stopButton" type="button" disabled>Stop</button>
           <a class="link-button" href="../../index.html">Back</a>
         </div>
 
-        <div id="status" class="status">Load a TFI file.</div>
+        <div id="status" class="status">Load a TFI or VGI file.</div>
 
         <h2>Summary</h2>
-        <div id="summary" class="summary">No TFI loaded.</div>
+        <div id="summary" class="summary">No patch loaded.</div>
 
         <h2>Converted Preset</h2>
         <pre id="presetJson">{}</pre>

@@ -23,7 +23,7 @@
  * Preset shape shared between `web/tfi.js` and `YM2612Synth.setPreset()`.
  *
  * Operators are exposed in logical order:
- * `0, 1, 2, 3`.
+ * `1, 2, 3, 4`.
  *
  * @typedef {object} TfiPreset
  * @property {number} algorithm
@@ -53,7 +53,7 @@ export const TFI_FILE_SIZE = 42;
 //
 // This table converts one TFI operator block index into the synth's
 // public logical operator number.
-export const TFI_OPERATOR_FILE_ORDER = [0, 2, 1, 3];
+export const TFI_OPERATOR_FILE_ORDER = [1, 3, 2, 4];
 
 const TFI_OPERATOR_SIZE = 10;
 const TFI_OPERATOR_DATA_START = 2;
@@ -162,7 +162,7 @@ export function createTfiPresetObjectText(preset) {
 /**
  * Build a 42-byte TFI file from a logical YM2612 preset.
  *
- * The input preset uses logical operator numbers `0, 1, 2, 3`.
+ * The input preset uses logical operator numbers `1, 2, 3, 4`.
  * The produced TFI bytes are written in physical file order `S1, S3, S2, S4`.
  *
  * @param {TfiPreset} preset

@@ -389,10 +389,11 @@ export class YM2612Synth {
     }
 
     if (preset.operators && typeof preset.operators === "object") {
+      const operatorIndexOffset = preset.operators[0] !== undefined ? 0 : 1;
       for (let operator = 0; operator < OPERATOR_COUNT; operator += 1) {
         const params = getPresetOperatorParams(
           preset,
-          operator
+          operator + operatorIndexOffset
         );
         if (params) {
           this.setOperator(channel, operator, params);

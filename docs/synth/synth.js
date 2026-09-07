@@ -8,6 +8,8 @@ import {
   createTfiFromPreset,
   parseTfi,
 } from "../js/tfi.js";
+import { parseVgi } from "../js/vgi.js";
+import { createVgiFromPreset } from "../js/vgi.js";
 import {
   buildKeyboard as buildKeyboardView,
   createFretboardLayout,
@@ -114,6 +116,10 @@ const tfiFileInput =
 const exportTfiButton =
   document.getElementById(
     "exportTfiButton"
+  );
+const exportVgiButton =
+  document.getElementById(
+    "exportVgiButton"
   );
 const masterVolumeRange =
   document.getElementById(
@@ -1308,12 +1314,12 @@ function updateTfiSummary() {
 
   if (!importedTfiName) {
     tfiSummary.textContent =
-      "TFI: none";
+      "TFI/VGI: none";
     return;
   }
 
   tfiSummary.textContent =
-    `TFI: ${importedTfiName} -> Custom`;
+    `TFI/VGI: ${importedTfiName} -> Custom`;
 }
 
 function applyPresetState(
@@ -1521,6 +1527,10 @@ function createTfiExportName() {
         : currentPresetName;
 
   return `${baseName}.tfi`;
+}
+
+function createVgiExportName() {
+  return createTfiExportName().replace(/\.tfi$/i, ".vgi");
 }
 
 function renderAlgorithmDiagram() {
@@ -2418,12 +2428,11 @@ function buildTfiLoader() {
       try {
         const arrayBuffer =
           await file.arrayBuffer();
-        const preset =
-          parseTfi(
-            new Uint8Array(
-              arrayBuffer
-            )
-          );
+        const bytes = new Uint8Array(arrayBuffer);
+        // The file length is authoritative: TFI is 42 bytes and VGI is 43.
+        // This also avoids routing a renamed VGI file through parseTfi().
+        const isVgi = bytes.length === 43;
+        const preset = isVgi ? parseVgi(bytes) : parseTfi(bytes);
 
         stopAllNotes();
         applyImportedTfiPreset(
@@ -2431,13 +2440,13 @@ function buildTfiLoader() {
           preset
         );
         setStatus(
-          `Loaded TFI ${file.name}.`
+          `Loaded ${isVgi ? "VGI" : "TFI"} ${file.name}.`
         );
       } catch (error) {
         importedTfiName = "";
         updateTfiSummary();
         setStatus(
-          `Failed to load TFI: ${error.message}`
+          `Failed to load TFI/VGI: ${error.message}`
         );
       } finally {
         tfiFileInput.value = "";
@@ -2498,6 +2507,30 @@ function buildTfiExporter() {
   );
 }
 
+function buildVgiExporter() {
+  if (!exportVgiButton) return;
+  exportVgiButton.addEventListener("click", () => {
+    try {
+      const preset = buildCurrentPresetState();
+      const bytes = createVgiFromPreset({
+        ...preset,
+        b4: 0xc0 | ((preset.ams ?? 0) << 4) | (preset.pms ?? 0),
+      });
+      const url = URL.createObjectURL(new Blob([bytes], { type: "application/octet-stream" }));
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = createVgiExportName();
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      URL.revokeObjectURL(url);
+      setStatus(`Exported ${anchor.download}.`);
+    } catch (error) {
+      setStatus(`Failed to export VGI: ${error.message}`);
+    }
+  });
+}
+
 inputController =
   createSynthInputController({
     getKeyLayout: () =>
@@ -2556,6 +2589,7 @@ buildChannel3SpecialControls();
 buildPresetSelect();
 buildTfiLoader();
 buildTfiExporter();
+buildVgiExporter();
 looperStartButton?.addEventListener(
   "click",
   () => {

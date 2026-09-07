@@ -5,6 +5,7 @@ import {
   YM2612Synth,
 } from "../../js/ym2612synth.js";
 import { parseTfi } from "../../js/tfi.js";
+import { parseVgi } from "../../js/vgi.js";
 
 const statusElement = document.getElementById("status");
 const summaryElement = document.getElementById("summary");
@@ -18,6 +19,7 @@ let currentSource = null;
 let ym2612 = null;
 let synth = null;
 let currentPreset = null;
+let currentFormat = null;
 
 function setStatus(message) {
   statusElement.textContent = message;
@@ -25,7 +27,7 @@ function setStatus(message) {
 
 function renderPreset(preset) {
   if (!preset) {
-    summaryElement.textContent = "No TFI loaded.";
+    summaryElement.textContent = "No patch loaded.";
     presetElement.textContent = "{}";
     return;
   }
@@ -107,21 +109,26 @@ fileInput.addEventListener("change", async (event) => {
 
   try {
     const arrayBuffer = await file.arrayBuffer();
-    currentPreset = parseTfi(new Uint8Array(arrayBuffer));
+    const bytes = new Uint8Array(arrayBuffer);
+    currentFormat = file.name.toLowerCase().endsWith(".vgi") || bytes.length === 43
+      ? "VGI"
+      : "TFI";
+    currentPreset = currentFormat === "VGI" ? parseVgi(bytes) : parseTfi(bytes);
     renderPreset(currentPreset);
     playButton.disabled = false;
-    setStatus(`Loaded ${file.name}. Ready to play.`);
+    setStatus(`Loaded ${file.name} (${currentFormat}). Ready to play.`);
   } catch (error) {
     currentPreset = null;
     renderPreset(null);
     playButton.disabled = true;
-    setStatus(`Failed to parse TFI: ${error.message}`);
+    currentFormat = null;
+    setStatus(`Failed to parse patch: ${error.message}`);
   }
 });
 
 playButton.addEventListener("click", async () => {
   if (!currentPreset) {
-    setStatus("Load a TFI file first.");
+    setStatus("Load a TFI or VGI file first.");
     return;
   }
 
@@ -144,7 +151,7 @@ playButton.addEventListener("click", async () => {
       setStatus("Playback finished.");
     }, { once: true });
     currentSource.start();
-    setStatus("Playing loaded TFI with YM2612Synth.");
+    setStatus(`Playing loaded ${currentFormat} with YM2612Synth.`);
   } catch (error) {
     stopCurrentSource();
     stopButton.disabled = true;

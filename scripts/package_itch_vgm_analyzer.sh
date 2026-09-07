@@ -26,6 +26,7 @@ genesisaudioengine.js
 opn_fm_vgm.js
 segapsg.js
 tfi.js
+vgi.js
 vgm_file.js
 s98_file.js
 vgm-output-worklet.js
@@ -110,6 +111,10 @@ for file in ${JS_FILES}; do
 
   cp "${src}" "${dst}"
 done
+
+# vgi.js is shared with the web runtime; docs/js/vgi.js is a source-tree
+# re-export, while the standalone analyzer package needs the implementation.
+cp "${ROOT_DIR}/web/vgi.js" "${STAGE_DIR}/js/vgi.js"
 
 for file in ${GENERATED_FILES}; do
   src="${DOCS_GENERATED_DIR}/${file}"

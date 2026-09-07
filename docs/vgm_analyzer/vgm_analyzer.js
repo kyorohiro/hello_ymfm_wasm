@@ -3,6 +3,7 @@ import {
   Ym2612VGM,
 } from "../js/ym2612vgm.js";
 import { createTfiFromPreset } from "../js/tfi.js";
+import { createVgiFromPreset } from "../js/vgi.js";
 import ym2612ModuleFactory from "../generated/ym2612_wasm.js";
 import nukedOpn2ModuleFactory from "../generated/nuked_opn2_wasm.js";
 import segaPsgModuleFactory from "../generated/segapsg_wasm.js";
@@ -45,10 +46,12 @@ const workletQueueSelect = document.getElementById("workletQueueSelect");
 const masterVolumeRange = document.getElementById("masterVolumeRange");
 const masterVolumeValue = document.getElementById("masterVolumeValue");
 const exportAllTfiButton = document.getElementById("exportAllTfiButton");
+const exportAllVgiButton = document.getElementById("exportAllVgiButton");
 const exportMmlButton = document.getElementById("exportMmlButton");
 const mmlBpmInput = document.getElementById("mmlBpmInput");
 const exportParseInfoButton = document.getElementById("exportParseInfoButton");
 const exportSnapshotTfiButton = document.getElementById("exportSnapshotTfiButton");
+const exportSnapshotVgiButton = document.getElementById("exportSnapshotVgiButton");
 const exportSnapshotButton = document.getElementById("exportSnapshotButton");
 const status = document.getElementById("status");
 const channelGrid = document.getElementById("channelGrid");
@@ -1195,6 +1198,7 @@ function createDefaultTfiPreset() {
   return {
     algorithm: 7,
     feedback: 0,
+    b4: 0,
     operators: {
       1: { ...DEFAULT_OPERATOR_PRESET },
       2: { ...DEFAULT_OPERATOR_PRESET },
@@ -1217,6 +1221,7 @@ function cloneTfiPreset(preset) {
   return {
     algorithm: preset.algorithm,
     feedback: preset.feedback,
+    b4: preset.b4,
     operators: {
       1: { ...preset.operators[1] },
       2: { ...preset.operators[2] },
@@ -1230,6 +1235,7 @@ function presetSignature(preset) {
   return JSON.stringify([
     preset.algorithm,
     preset.feedback,
+    preset.b4,
     preset.operators[1].multi,
     preset.operators[1].dt,
     preset.operators[1].tl,
@@ -1517,6 +1523,12 @@ function extractTfiPatchesFromVgm(buffer) {
       continue;
     }
 
+    if (event.register >= 0xb4 && event.register <= 0xb6) {
+      const channel = channelBase + (event.register - 0xb4);
+      presets[channel].b4 = event.value & 0xff;
+      continue;
+    }
+
     if (event.port === 0 && event.register === 0x28) {
       const operatorMask = (event.value >> 4) & 0x0f;
       const channel = decodeKeyOnChannel(event.value);
@@ -1699,6 +1711,22 @@ function downloadAllTfiZip() {
   setStatus(`Exported ${extractedTfiPatches.length} TFI patches as ZIP.`);
 }
 
+function downloadAllVgiZip() {
+  if (extractedTfiPatches.length === 0) return;
+  const files = extractedTfiPatches.map((patch) => ({
+    name: `${patch.label}.vgi`,
+    data: createVgiFromPreset(patch.preset),
+  }));
+  const blob = createStoredZip(files);
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = "all_vgi_patches.zip";
+  anchor.click();
+  URL.revokeObjectURL(url);
+  setStatus(`Exported ${extractedTfiPatches.length} VGI patches as ZIP.`);
+}
+
 function buildSnapshotData(reason = "manual") {
   const stats = player ? player.stats() : null;
   return {
@@ -1752,6 +1780,7 @@ function createTfiPresetFromChannelSnapshot(channel) {
   return {
     algorithm: channel.algorithm & 0x07,
     feedback: channel.feedback & 0x07,
+    b4: channel.b4Value & 0xff,
     operators: {
       1: {
         multi: channel.operators[1].multi & 0x0f,
@@ -1823,6 +1852,23 @@ function downloadSnapshotTfiZip() {
   anchor.click();
   URL.revokeObjectURL(url);
   setStatus("Exported snapshot TFI ZIP.");
+}
+
+function downloadSnapshotVgiZip() {
+  if (!currentBuffer) return;
+  const files = channelMonitor.map((channel) => ({
+    name: `snapshot_ch${channel.channel + 1}.vgi`,
+    data: createVgiFromPreset(createTfiPresetFromChannelSnapshot(channel)),
+  }));
+  const blob = createStoredZip(files);
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  const stem = lastLoadedFileName.replace(/\.[^.]+$/, "") || "snapshot";
+  anchor.download = `${stem}_snapshot_vgi.zip`;
+  anchor.click();
+  URL.revokeObjectURL(url);
+  setStatus("Exported snapshot VGI ZIP.");
 }
 
 async function ensurePlaybackReady(vgm) {
@@ -1957,6 +2003,7 @@ function updatePlaybackButtons(state = {}) {
   stopButton.disabled = !hasBuffer || (!playing && !paused);
   exportParseInfoButton.disabled = !hasBuffer || !lastParseInfo;
   exportSnapshotTfiButton.disabled = !hasBuffer;
+  exportSnapshotVgiButton.disabled = !hasBuffer;
   exportSnapshotButton.disabled = !hasBuffer;
 }
 
@@ -2361,6 +2408,7 @@ async function handleFile(file) {
   }
   extractedTfiPatches = extractTfiPatchesFromVgm(buffer);
   exportAllTfiButton.disabled = extractedTfiPatches.length === 0;
+  exportAllVgiButton.disabled = extractedTfiPatches.length === 0;
   updatePlaybackButtons({});
   setStatus(`Parsed ${file.name} (${currentChipKind.toUpperCase()}).${currentStatusSuffix()}`);
 }
@@ -2463,12 +2511,20 @@ exportAllTfiButton.addEventListener("click", () => {
   downloadAllTfiZip();
 });
 
+exportAllVgiButton.addEventListener("click", () => {
+  downloadAllVgiZip();
+});
+
 exportParseInfoButton.addEventListener("click", () => {
   downloadParseInfo();
 });
 
 exportSnapshotTfiButton.addEventListener("click", () => {
   downloadSnapshotTfiZip();
+});
+
+exportSnapshotVgiButton.addEventListener("click", () => {
+  downloadSnapshotVgiZip();
 });
 
 exportSnapshotButton.addEventListener("click", () => {
@@ -2534,6 +2590,7 @@ notesDialogCloseButton.addEventListener("click", () => {
 });
 
 exportAllTfiButton.disabled = extractedTfiPatches.length === 0;
+exportAllVgiButton.disabled = extractedTfiPatches.length === 0;
 ensureChannelMonitorRenderTimer();
 ensureNoteishRenderTimer();
 renderChannelMonitor();
