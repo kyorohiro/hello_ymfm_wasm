@@ -83,14 +83,16 @@ test('recent notes fade, expire, deduplicate and never dim the current note', ()
   assert.doesNotMatch(active,/data-fret-ghost="60"/);
 });
 
-test('hand stays put whenever any reachable string fits, across all pitch pairs', async () => {
+test('preferred range wins, then hand stays put across all pitch pairs', async () => {
   const { selectFretPosition } = await import('./fretboard.js');
   for (const strings of [6,7,8]) {
     for (let a=30;a<=88;a++) {
       const previous=selectFretPosition(a,null,strings);
       if(!previous) continue;
       for(let b=30;b<=88;b++) {
-        const candidates=getFretCandidates(b,strings).filter(p=>p.fret<12 || strings-p.stringIndex<=4);
+        const available=getFretCandidates(b,strings).filter(p=>p.fret<12 || strings-p.stringIndex<=4);
+        const standard=available.filter(p=>strings-p.stringIndex<=6 && p.fret<=21);
+        const candidates=standard.length ? standard : available;
         const next=selectFretPosition(b,previous,strings);
         if(!candidates.length) { assert.equal(next,null); continue; }
         assert.ok(candidates.some(p=>p.stringIndex===next.stringIndex && p.fret===next.fret));
@@ -120,4 +122,16 @@ test('channel tracker retains historical coordinates, releases highlight and iso
   assert.doesNotMatch(svg,/data-fret-note=/);
   assert.match(svg,/data-fret-ghost="64"/);
   assert.deepEqual(b.update([],72,true,200).activePositions.get(72),old);
+});
+
+test('prefer six strings and 21 frets even when an extended position is closer', async () => {
+  const { selectFretPosition } = await import('./fretboard.js');
+  const bass=selectFretPosition(40,{stringIndex:0,fret:10,handStart:8},8);
+  assert.equal(8-bass.stringIndex,6);
+  assert.equal(bass.fret,0);
+  const high=selectFretPosition(83,{stringIndex:6,fret:24,handStart:20},8);
+  assert.equal(8-high.stringIndex,1);
+  assert.equal(high.fret,19);
+  assert.equal(8-selectFretPosition(30,null,8).stringIndex,8);
+  assert.equal(selectFretPosition(88,null,8).fret,24);
 });

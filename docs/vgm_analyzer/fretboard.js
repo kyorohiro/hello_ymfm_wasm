@@ -35,8 +35,10 @@ export function noteToFretPosition(note, strings = 8) {
 }
 // Keep a five-fret window (four-fret span) until no candidate fits.
 export function selectFretPosition(note, previous = null, strings = 8) {
-  const candidates = getFretCandidates(note, strings)
+  const available = getFretCandidates(note, strings)
     .filter(p => p.fret < 12 || strings - p.stringIndex <= 4);
+  const standard = available.filter(p => strings - p.stringIndex <= 6 && p.fret <= 21);
+  const candidates = standard.length ? standard : available;
   if (!candidates.length) return null;
   if (!previous) {
     const preferred = noteToFretPosition(note, strings);

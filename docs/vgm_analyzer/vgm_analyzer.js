@@ -1,5 +1,5 @@
 import { midiChipKind } from "./vgm_notes.js";
-import { renderFretboard, FRET_TRAIL_MS, createFretboardTracker } from "./fretboard.js?v=hand-position-1";
+import { renderFretboard, FRET_TRAIL_MS, createFretboardTracker } from "./fretboard.js?v=hand-position-2";
 import { exportAnalysisMidi } from "./vgm_midi.js";
 import { createRf5c164Monitor, describeRf5c164Monitor, observeRf5c164Engine } from "./rf5c164_monitor.js";
 import { sourcesForChip, applySourceMutes, allSourcesMuted } from "./source_mutes.js";
