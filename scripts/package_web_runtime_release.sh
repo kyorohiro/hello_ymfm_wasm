@@ -16,6 +16,7 @@ LICENSE_FILE="${ROOT_DIR}/LICENSE"
 RUNTIME_FILES="
 bitcrusher-worklet.js
 genesisaudioengine.js
+rf5c164.js
 looper.js
 megadrive-fm-presets.js
 megasynth_fx.js
@@ -135,7 +136,7 @@ mkdir -p "${STAGE_DIR}/generated" "${STAGE_DIR}/samples" "${STAGE_DIR}/licenses/
   cp "${GENERATED_DIR}/nuked_opn2_wasm.wasm" "${STAGE_DIR}/generated/nuked_opn2_wasm.wasm"
   cp "${GENERATED_DIR}/segapsg_wasm.js" "${STAGE_DIR}/generated/segapsg_wasm.js"
   cp "${GENERATED_DIR}/segapsg_wasm.wasm" "${STAGE_DIR}/generated/segapsg_wasm.wasm"
-  for chip in ym2203 ym2608 ym2610b; do
+  for chip in ym2203 ym2608 ym2610b rf5c164; do
     if [ -f "${GENERATED_DIR}/${chip}_wasm.js" ] && [ -f "${GENERATED_DIR}/${chip}_wasm.wasm" ]; then
       cp "${GENERATED_DIR}/${chip}_wasm.js" "${STAGE_DIR}/generated/${chip}_wasm.js"
       cp "${GENERATED_DIR}/${chip}_wasm.wasm" "${STAGE_DIR}/generated/${chip}_wasm.wasm"
@@ -143,12 +144,16 @@ mkdir -p "${STAGE_DIR}/generated" "${STAGE_DIR}/samples" "${STAGE_DIR}/licenses/
   done
   cp -R "${PLAYGROUND_SAMPLES_DIR}/." "${STAGE_DIR}/samples/"
   cp "${LICENSE_FILE}" "${STAGE_DIR}/LICENSE"
+mkdir -p "${STAGE_DIR}/licenses/mame-rf5c164"
+cp "${ROOT_DIR}/third_party/mame-rf5c164/LICENSE" "${ROOT_DIR}/third_party/mame-rf5c164/README.md" "${STAGE_DIR}/licenses/mame-rf5c164/"
 
   for file in ${NUKED_LICENSE_FILES}; do
     cp "${NUKED_LICENSE_DIR}/${file}" "${STAGE_DIR}/licenses/nuked-opn2/${file}"
   done
 
   cat > "${STAGE_DIR}/THIRD_PARTY_LICENSES.txt" <<EOF
+RF5C164: MAME adaptation, BSD-3-Clause. See licenses/mame-rf5c164/LICENSE and README.md.
+
 This package includes two YM2612 engine options:
 
 - Default engine: ymfm

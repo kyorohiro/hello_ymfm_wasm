@@ -12,6 +12,8 @@ import {
  * @property {number} ym2612Clock
  * @property {number} ym2203Clock
  * @property {number} ym2608Clock
+ * @property {number} rf5c164Clock
+ * @property {number} psgClock
  * @property {number} ym2610Clock
  * @property {number} totalSamples
  * @property {number} loopOffset
@@ -43,6 +45,7 @@ import {
  */
 
 /** @typedef {{ type: "ym2610-write", port: 0|1, register: number, value: number }} Ym2610WriteEvent */
+/** @typedef {{ type: "rf5c164-write", register: number, value: number, chipIndex: number } | { type: "rf5c164-memory-write", offset: number, value: number, chipIndex: number } | { type: "rf5c164-data", offset: number, data: Uint8Array, chipIndex: number }} Rf5c164Event */
 /** @typedef {{ type: "ym2608-adpcm-b-data", data: Uint8Array, offset: number, memorySize: number, chipIndex: number }} Ym2608AdpcmBDataEvent */
 
 /**
@@ -63,7 +66,7 @@ import {
  */
 
 /**
- * @typedef {Ym2612WriteEvent | Ym2203WriteEvent | Ym2608WriteEvent | Ym2608AdpcmBDataEvent | Ym2610WriteEvent | SegaPsgWriteEvent | Ym2612WaitEvent | Ym2612EndEvent} Ym2612VgmEvent
+ * @typedef {Rf5c164Event | Ym2612WriteEvent | Ym2203WriteEvent | Ym2608WriteEvent | Ym2608AdpcmBDataEvent | Ym2610WriteEvent | SegaPsgWriteEvent | Ym2612WaitEvent | Ym2612EndEvent} Ym2612VgmEvent
  */
 
 /**
@@ -174,6 +177,7 @@ export class Ym2612VGM {
     this.logger = options.logger === undefined ? console : options.logger;
     /** @type {Map<number, Uint8Array>} */
     this.dataBanks = new Map();
+    this.rf5c164BlocksSeen = new Set();
     /** @type {Uint8Array[]} */
     this.dataBlocks = [];
     /** @type {Array<{ type: number, size: number, preview: string }>} */
@@ -214,9 +218,7 @@ export class Ym2612VGM {
 
     const version = readUint32LE(this.view, 0x08);
     const ym2612Clock = readUint32LE(this.view, 0x2c);
-    const ym2203Clock = readUint32LE(this.view, 0x44);
-    const ym2608Clock = readUint32LE(this.view, 0x48);
-    const ym2610Clock = readUint32LE(this.view, 0x4c);
+
     const totalSamples = readUint32LE(this.view, 0x18);
     const loopOffsetRaw = readUint32LE(this.view, 0x1c);
     const loopSamples = readUint32LE(this.view, 0x20);
@@ -226,6 +228,13 @@ export class Ym2612VGM {
       ? (dataOffsetRaw === 0 ? 0x40 : 0x34 + dataOffsetRaw)
       : 0x40;
 
+    const extendedClock = (offset) => offset + 4 <= dataOffset && offset + 4 <= this.bytes.length
+      ? readUint32LE(this.view, offset) : 0;
+    const ym2203Clock = extendedClock(0x44);
+    const ym2608Clock = extendedClock(0x48);
+    const ym2610Clock = extendedClock(0x4c);
+    const rf5c164Clock = version >= 0x151 ? extendedClock(0x6c) : 0;
+    const psgClock = readUint32LE(this.view, 0x0c);
     const loopOffset = loopOffsetRaw === 0 ? 0 : 0x1c + loopOffsetRaw;
 
     return {
@@ -235,6 +244,8 @@ export class Ym2612VGM {
       ym2203Clock,
       ym2608Clock,
       ym2610Clock,
+      rf5c164Clock,
+      psgClock,
       totalSamples,
       loopOffset,
       loopSamples,
@@ -248,6 +259,8 @@ export class Ym2612VGM {
   reset() {
     this.position = this.header.dataOffset;
     this.ended = false;
+    this.dataBanks.delete(2);
+    this.rf5c164BlocksSeen.clear();
     this.dataBankCursor = 0;
     this.pendingYm2612DataBankWrite = null;
     for (const stream of this.streams.values()) {
@@ -453,6 +466,21 @@ export class Ym2612VGM {
         this.position += 3;
         return { type: "ym2610-write", port: command - 0x58, register, value };
       }
+      case 0xb1: {
+        this.#ensureAvailable(3);
+        const register = this.bytes[this.position + 1];
+        const value = this.bytes[this.position + 2];
+        this.position += 3;
+        return { type: "rf5c164-write", register: register & 0x7f, value, chipIndex: register >>> 7 };
+      }
+      case 0xc2: {
+        this.#ensureAvailable(4);
+        const offset = readUint16LE(this.view, this.position + 1);
+        const value = this.bytes[this.position + 3];
+        if (offset > 0xfff) throw new RangeError("RF5C164 memory window exceeds 4 KiB");
+        this.position += 4;
+        return { type: "rf5c164-memory-write", offset, value, chipIndex: 0 };
+      }
       case 0x67: {
         this.#ensureAvailable(7);
         if (this.bytes[this.position + 1] !== 0x66) {
@@ -460,8 +488,21 @@ export class Ym2612VGM {
         }
         const dataType = this.bytes[this.position + 2];
         const rawSize = readUint32LE(this.view, this.position + 3);
-        const size = dataType === 0x81 ? rawSize & 0x7fffffff : rawSize;
+        const size = rawSize & 0x7fffffff;
         this.#ensureAvailable(7 + size);
+        if (dataType === 0xc1) {
+          if (size < 2) throw new Error("Invalid RF5C164 RAM block header");
+          const offset = readUint16LE(this.view, this.position + 7);
+          const data = this.bytes.slice(this.position + 9, this.position + 7 + size);
+          if (data.length > 65536 - offset) throw new RangeError("RF5C164 RAM block range");
+          this.position += 7 + size;
+          return { type: "rf5c164-data", offset, data, chipIndex: rawSize >>> 31 };
+        }
+        if (dataType === 0x02 && rawSize >>> 31) {
+          this.#warn("Skipping data for unsupported second RF5C164 chip");
+          this.position += 7 + size;
+          return this.step();
+        }
         if (dataType === 0x81) {
           if (size < 8) throw new Error("Invalid YM2608 ADPCM-B data block: missing memory header");
           const memorySize = readUint32LE(this.view, this.position + 7);
@@ -499,6 +540,20 @@ export class Ym2612VGM {
 
     if (command === 0x68) {
       this.#ensureAvailable(12);
+      if (this.bytes[this.position + 1] !== 0x66) throw new Error("Invalid PCM RAM write header");
+      const dataType = this.bytes[this.position + 2];
+      if ((dataType & 0x7f) === 2) {
+        const offset = readUint24LE(this.bytes, this.position + 6);
+        const readOffset = readUint24LE(this.bytes, this.position + 3);
+        const size = readUint24LE(this.bytes, this.position + 9) || 0x1000000;
+        const chipIndex = dataType >>> 7;
+        const bank = this.dataBanks.get(2);
+        if (!chipIndex && (!bank || readOffset > bank.length || size > bank.length - readOffset || offset > 65536 || size > 65536 - offset)) {
+          throw new RangeError("RF5C164 PCM RAM transfer range");
+        }
+        this.position += 12;
+        return { type: "rf5c164-data", offset, data: chipIndex ? new Uint8Array() : bank.slice(readOffset, readOffset + size), chipIndex };
+      }
       this.#storePcmRamWrite(this.position);
       this.position += 12;
       return this.step();
@@ -550,6 +605,19 @@ export class Ym2612VGM {
    */
   playStep(targets) {
     const event = this.step();
+    if (event.type.startsWith("rf5c164-")) {
+      if (event.chipIndex) {
+        this.#warn("Skipping data for unsupported second RF5C164 chip");
+      } else if (!targets.rf5c164) {
+        this.#warn("RF5C164 event requires a PCM playback target");
+      } else if (event.type === "rf5c164-write") {
+        targets.rf5c164.writeRegister(event.register, event.value);
+      } else if (event.type === "rf5c164-memory-write") {
+        targets.rf5c164.writeMemory(event.offset, event.value);
+      } else {
+        targets.rf5c164.loadBankedMemory(event.data, event.offset);
+      }
+    }
     if (event.type === "ym2608-adpcm-b-data") {
       if (event.chipIndex !== 0) {
         this.#warn("Skipping ADPCM-B data for the unsupported second YM2608 chip");
@@ -804,6 +872,7 @@ export class Ym2612VGM {
       this.#ensureAvailable(5);
       const stream = this.#streamState(this.bytes[this.position + 1]);
       stream.chipType = this.bytes[this.position + 2];
+      if ((stream.chipType & 0x7f) === 0x10) this.#warn("RF5C164 DAC stream playback is not supported yet");
       stream.port = this.bytes[this.position + 3];
       stream.register = this.bytes[this.position + 4];
       this.position += 5;
@@ -991,6 +1060,8 @@ export class Ym2612VGM {
     }
     const dataIndex = stream.dataOffset + stream.cursor;
     const value = stream.data[dataIndex];
+    // An unsupported RF5 stream must never write into the YM2612.
+    if ((stream.chipType & 0x7f) === 0x10) { stream.active = false; return; }
     const ym2612 = targets.ym2612 || targets;
     if (ym2612 && typeof ym2612.writeRegister === "function") {
       ym2612.writeRegister(stream.register, value, stream.port);
@@ -1047,6 +1118,16 @@ export class Ym2612VGM {
    */
   #storeDataBlock(dataType, dataOffset, size) {
     const data = this.bytes.slice(dataOffset, dataOffset + size);
+    if (dataType === 2) {
+      // Recorded banks are appended once per file position, including on loops.
+      if (this.rf5c164BlocksSeen.has(dataOffset)) return;
+      this.rf5c164BlocksSeen.add(dataOffset);
+      const old = this.dataBanks.get(2) || new Uint8Array();
+      const joined = new Uint8Array(old.length + data.length);
+      joined.set(old); joined.set(data, old.length);
+      this.dataBanks.set(2, joined);
+      return;
+    }
     if (dataType <= 0x3f) {
       this.dataBanks.set(dataType, data);
       this.dataBlocks.push(data);

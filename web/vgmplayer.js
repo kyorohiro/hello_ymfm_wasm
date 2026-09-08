@@ -22,6 +22,10 @@ import { Ym2612VGM } from "./ym2612vgm.js";
  *   loadAdpcmBMemory?(data: Uint8Array, offset: number, memorySize: number): void,
  *   clearAdpcmBMemory?(): void,
  *   writeYm2203?(register: number, value: number): void,
+ *   writeRf5c164?(register: number, value: number): void,
+ *   writeRf5c164Memory?(offset: number, value: number): void,
+ *   loadRf5c164Memory?(data: Uint8Array, offset: number): void,
+ *   clearRf5c164Memory?(): void,
  *   writePsg(value: number): void,
  *   processFrames(frames: number): { left: Float32Array, right: Float32Array },
  * }} VgmPlaybackEngine
@@ -72,6 +76,7 @@ export class VgmPlayer {
   load(buffer, options = {}) {
     this.parser = new Ym2612VGM(buffer, options);
     this.engine.clearAdpcmBMemory?.();
+    this.engine.clearRf5c164Memory?.();
     this.waitAccumulator = 0;
     this.chunkQueue = [];
     this.queuedFrames = 0;
@@ -325,7 +330,13 @@ export class VgmPlayer {
             : undefined,
         }
         : undefined;
+      const rf5c164Target = typeof this.engine.writeRf5c164 === "function" ? {
+        writeRegister: (register, value) => this.engine.writeRf5c164(register, value),
+        writeMemory: (offset, value) => this.engine.writeRf5c164Memory(offset, value),
+        loadBankedMemory: (data, offset) => this.engine.loadRf5c164Memory(data, offset),
+      } : undefined;
       const event = this.parser.playStep({
+        rf5c164: rf5c164Target,
         ym2612: ym2612Target,
         ym2203: ym2203Target,
         ym2608: ym2608Target,

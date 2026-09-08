@@ -12,6 +12,7 @@ DOCS_JS_DIR="${ROOT_DIR}/docs/js"
 SYNC_FILES="
 bitcrusher-worklet.js
 genesisaudioengine.js
+rf5c164.js
 looper.js
 megasynth.js
 megasynth_fx.js
@@ -107,3 +108,6 @@ perl -0pi -e 's#"\./generated/ym2612_wasm\.js"#"../generated/ym2612_wasm.js"#g' 
   "${DOCS_JS_DIR}/bitcrusher-worklet.js"
 
 echo "done: synced shared web runtime files into docs/js"
+
+mkdir -p "${ROOT_DIR}/docs/licenses/mame-rf5c164"
+cp "${ROOT_DIR}/third_party/mame-rf5c164/LICENSE" "${ROOT_DIR}/third_party/mame-rf5c164/README.md" "${ROOT_DIR}/docs/licenses/mame-rf5c164/"

@@ -78,6 +78,16 @@ The following files and directories in this repository are ymfm-originated works
 - `examples/`
 - [GeneralInfo.md](https://github.com/aaronsgiles/ymfm/blob/main/GeneralInfo.md)
 
+### MAME RF5C164 (`third_party/mame-rf5c164/`)
+
+The RF5C164 PCM engine used for Mega-CD / Sega CD VGM playback is adapted from
+[MAME's RF5C68 / RF5C164 implementation](https://github.com/mamedev/mame/blob/d0f1c15a0f6df2dd51a754cb46e6175b7079c8f2/src/devices/sound/rf5c68.cpp)
+by Olivier Galibert and Aaron Giles. The adapted core and its generated
+`rf5c164_wasm.wasm` build use the **BSD 3-Clause License**.
+See [the license](third_party/mame-rf5c164/LICENSE) and
+[source and adaptation notes](third_party/mame-rf5c164/README.md).
+Packages containing this engine include these notices under `licenses/mame-rf5c164/`.
+
 ### Nuked-OPN2 (`third_party/nuked-opn2/`)
 
 `third_party/nuked-opn2/` vendors [Nuked-OPN2](https://github.com/nukeykt/Nuked-OPN2)

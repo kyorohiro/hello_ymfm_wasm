@@ -25,6 +25,7 @@ vgm_mml_music.js
 
 JS_FILES="
 genesisaudioengine.js
+rf5c164.js
 opn_fm_vgm.js
 segapsg.js
 tfi.js
@@ -52,6 +53,8 @@ nuked_opn2_wasm.js
 nuked_opn2_wasm.wasm
 segapsg_wasm.js
 segapsg_wasm.wasm
+rf5c164_wasm.js
+rf5c164_wasm.wasm
 "
 
 NUKED_LICENSE_DIR="${ROOT_DIR}/third_party/nuked-opn2"
@@ -132,6 +135,8 @@ for file in ${GENERATED_FILES}; do
 done
 
 cp "${LICENSE_FILE}" "${STAGE_DIR}/LICENSE"
+mkdir -p "${STAGE_DIR}/licenses/mame-rf5c164"
+cp "${ROOT_DIR}/third_party/mame-rf5c164/LICENSE" "${ROOT_DIR}/third_party/mame-rf5c164/README.md" "${STAGE_DIR}/licenses/mame-rf5c164/"
 
 for file in ${NUKED_LICENSE_FILES}; do
   src="${NUKED_LICENSE_DIR}/${file}"
@@ -146,6 +151,8 @@ for file in ${NUKED_LICENSE_FILES}; do
 done
 
 cat > "${STAGE_DIR}/THIRD_PARTY_LICENSES.txt" <<EOF
+RF5C164: MAME adaptation, BSD-3-Clause. See licenses/mame-rf5c164/LICENSE and README.md.
+
 This package includes two YM2612 engine options:
 
 - Default engine: ymfm

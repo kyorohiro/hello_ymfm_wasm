@@ -1,10 +1,14 @@
 import { Ym2612, YM2612_CLOCK } from "./ym2612.js";
 import { SegaPSG, SEGAPSG_CLOCK } from "./segapsg.js";
 
+import { Rf5c164 } from "./rf5c164.js";
+
 export class GenesisAudioEngine {
-  constructor(ym2612, psg, sampleRate, masterVolume = 1) {
+  constructor(ym2612, psg, sampleRate, masterVolume = 1, pcm = null) {
     this.ym2612 = ym2612;
     this.psg = psg;
+    this.pcm = pcm;
+    this._pcmMuted = false;
     this._psgMuted = false;
     this._sampleRate = sampleRate;
     this._masterVolume = clampMasterVolume(masterVolume);
@@ -19,6 +23,9 @@ export class GenesisAudioEngine {
       ym2612Clock = YM2612_CLOCK,
       psgClock = SEGAPSG_CLOCK,
       masterVolume = 1,
+      rf5c164ModuleFactory,
+      rf5c164ModuleOptions,
+      rf5c164Clock = 0,
     } = options;
 
     if (!ym2612ModuleFactory) {
@@ -40,22 +47,33 @@ export class GenesisAudioEngine {
       clock: psgClock,
     });
 
+    let pcm = null;
+    try {
+      if (rf5c164Clock) pcm = await Rf5c164.create({
+        moduleFactory: rf5c164ModuleFactory, moduleOptions: rf5c164ModuleOptions,
+        sampleRate, clock: rf5c164Clock,
+      });
+    } catch (error) { ym2612.dispose(); psg.dispose(); throw error; }
     return new GenesisAudioEngine(
       ym2612,
       psg,
       sampleRate,
-      masterVolume
+      masterVolume,
+      pcm
     );
   }
 
   dispose() {
     this.ym2612.dispose();
     this.psg.dispose();
+    this.pcm?.dispose();
   }
 
   reset() {
     this.ym2612.reset();
     this.psg.reset();
+    this.pcm?.reset();
+    this.clearRf5c164Memory();
   }
 
   sampleRate() {
@@ -78,6 +96,16 @@ export class GenesisAudioEngine {
 
   setPsgMuted(muted) { this._psgMuted = Boolean(muted); }
 
+  setPcmMuted(muted) { this._pcmMuted = Boolean(muted); }
+  clearRf5c164Memory() { this.pcm?.clearMemory(); }
+  writeRf5c164(register, value) { this.#requirePcm().writeRegister(register, value); }
+  writeRf5c164Memory(offset, value) { this.#requirePcm().writeMemory(offset, value); }
+  loadRf5c164Memory(data, offset) { this.#requirePcm().loadBankedMemory(data, offset); }
+  #requirePcm() {
+    if (!this.pcm) throw new Error("RF5C164 playback requires a PCM-enabled engine");
+    return this.pcm;
+  }
+
   writePsg(value) {
     this.psg.write(value);
   }
@@ -92,14 +120,16 @@ export class GenesisAudioEngine {
 
     const ym = this.ym2612.generateStereo(frames);
     const psg = this.psg.generateStereo(frames);
+    const pcm = this.pcm?.generateStereo(frames);
+    const pcmGain = this._pcmMuted ? 0 : 1;
     const psgGain = this._psgMuted ? 0 : 0.35;
 
     for (let index = 0; index < frames; index += 1) {
       left[index] =
-        (ym.left[index] * 0.9 + psg.left[index] * psgGain) *
+        (ym.left[index] * 0.9 + psg.left[index] * psgGain + (pcm ? pcm.left[index] * pcmGain : 0)) *
         this._masterVolume;
       right[index] =
-        (ym.right[index] * 0.9 + psg.right[index] * psgGain) *
+        (ym.right[index] * 0.9 + psg.right[index] * psgGain + (pcm ? pcm.right[index] * pcmGain : 0)) *
         this._masterVolume;
     }
   }

@@ -86,6 +86,9 @@ let workletModuleReady = false;
 let extractedTfiPatches = [];
 let channelMuteStates = [false, false, false, false, false, false];
 let currentChipKind = "ym2612";
+let currentHasPcm = false;
+let engineClockKey = null;
+const sourceChipKind = () => currentHasPcm && currentChipKind === "ym2612" ? "megacd" : currentChipKind;
 let channelMonitor = createChannelMonitorState();
 let psgMonitor = createPsgMonitor(currentChipKind);
 let psgHighlightActive = false;
@@ -98,7 +101,7 @@ let channelMonitorDirty = false;
 let noteishDirty = false;
 let lastNoteishSignature = "";
 let lastLoadedFileName = "snapshot";
-const sourceMutes = { psg: false, ssg: false, rhythm: false, adpcmB: false };
+const sourceMutes = { psg: false, ssg: false, rhythm: false, adpcmB: false, pcm: false };
 let lastYm2612DacEnable = 0x00;
 let monitorToggleHandlerBound = false;
 let workletQueueMultiplier = 2;
@@ -217,7 +220,7 @@ function renderMonitorToggles() {
   ensureMonitorToggleHandler();
   monitorToggles.innerHTML = "";
 
-  for (const source of sourcesForChip(currentChipKind)) {
+  for (const source of sourcesForChip(sourceChipKind())) {
     const button = document.createElement("button");
     const muted = sourceMutes[source.key];
     button.type = "button";
@@ -255,7 +258,7 @@ function ensureMonitorToggleHandler() {
     }
     event.preventDefault();
     const kind = target.getAttribute("data-monitor-toggle-kind");
-    if (sourcesForChip(currentChipKind).some((source) => source.key === kind)) {
+    if (sourcesForChip(sourceChipKind()).some((source) => source.key === kind)) {
       toggleSourceMute(kind);
       return;
     }
@@ -968,7 +971,7 @@ function flushPendingAudio() {
 function toggleSourceMute(kind) {
   sourceMutes[kind] = !sourceMutes[kind];
   try {
-    if (engine) applySourceMutes(engine, currentChipKind, sourceMutes);
+    if (engine) applySourceMutes(engine, sourceChipKind(), sourceMutes);
   } catch (error) {
     sourceMutes[kind] = !sourceMutes[kind];
     setStatus(`Error: ${error.message}`);
@@ -979,7 +982,7 @@ function toggleSourceMute(kind) {
 }
 
 function allAudibleSourcesMuted() {
-  return allSourcesMuted(currentChipKind, channelMonitor, sourceMutes);
+  return allSourcesMuted(sourceChipKind(), channelMonitor, sourceMutes);
 }
 
 function applyAnalyzerMuteToBuffer(left, right, frames) {
@@ -998,6 +1001,7 @@ function renderHeader(header) {
   return [
     `ident: ${header.ident}`,
     `version: ${formatHex(header.version, 8)}`,
+    `rf5c164Clock: ${header.rf5c164Clock}`,
     `ym2612Clock: ${header.ym2612Clock}`,
     `ym2203Clock: ${header.ym2203Clock}`,
     `ym2608Clock: ${header.ym2608Clock}`,
@@ -1010,6 +1014,7 @@ function renderHeader(header) {
 }
 
 function detectPlaybackChipKind(header) {
+  if (header.rf5c164Clock > 0) return "ym2612";
   if (header.ym2203Clock > 0 && header.ym2612Clock === 0) {
     return "ym2203";
   }
@@ -1186,6 +1191,12 @@ async function loadYm2608ModuleFactory() {
 }
 
 function renderEvent(event, index) {
+  if (event.type.startsWith("rf5c164-")) {
+    const detail = event.type === "rf5c164-data"
+      ? `${event.data.length} bytes @${formatHex(event.offset, 4)}`
+      : JSON.stringify(event);
+    return `${String(index).padStart(3, " ")}: ${event.type} ${detail}`;
+  }
   if (event.type === "ym2608-adpcm-b-data") {
     return `${String(index).padStart(3, " ")}: ym2608 ADPCM-B chip=${event.chipIndex} offset=${formatHex(event.offset)} size=${event.data.length}`;
   }
@@ -1792,7 +1803,7 @@ function buildSnapshotData(reason = "manual") {
       totalSamples: stats.totalSamples,
       audioProgress: stats.audioProgress,
     } : null,
-    chip: currentChipKind,
+    chip: sourceChipKind(),
     sourceMutes: { ...sourceMutes },
     psgSsg: describePsgMonitor(psgMonitor, psgMonitor.kind === "ssg" ? sourceMutes.ssg : sourceMutes.psg),
     channels: channelMonitor.map((channel) => ({
@@ -1925,8 +1936,10 @@ function downloadSnapshotVgiZip() {
 
 async function ensurePlaybackReady(vgm) {
   const nextChipKind = detectPlaybackChipKind(vgm.header);
+  const nextClockKey = JSON.stringify([nextChipKind, vgm.header.ym2612Clock, vgm.header.psgClock,
+    vgm.header.rf5c164Clock, vgm.header.ym2203Clock, vgm.header.ym2608Clock]);
 
-  if (engine && currentChipKind !== nextChipKind) {
+  if (engine && (currentChipKind !== nextChipKind || engineClockKey !== nextClockKey)) {
     stopActiveStream();
     if (typeof engine.dispose === "function") {
       engine.dispose();
@@ -1940,6 +1953,7 @@ async function ensurePlaybackReady(vgm) {
   }
 
   currentChipKind = nextChipKind;
+  currentHasPcm = Boolean(vgm.header.rf5c164Clock);
 
   if (!engine) {
     if (currentChipKind === "ym2203") {
@@ -1965,13 +1979,19 @@ async function ensurePlaybackReady(vgm) {
       engine = await createGenesisAudioEngine({
         ym2612ModuleFactory: activeYm2612ModuleFactory,
         segaPsgModuleFactory,
+        ym2612Clock: (vgm.header.ym2612Clock & 0x3fffffff) || undefined,
+        psgClock: (vgm.header.psgClock & 0x3fffffff) || undefined,
+        rf5c164Clock: vgm.header.rf5c164Clock & 0x3fffffff,
+        rf5c164ModuleFactory: currentHasPcm
+          ? (await import("../generated/rf5c164_wasm.js")).default : undefined,
         masterVolume,
       });
       observePsgPlaybackEngine();
       baseEngineWriteYm2612 = engine.writeYm2612.bind(engine);
     }
   }
-  applySourceMutes(engine, currentChipKind, sourceMutes);
+  engineClockKey = nextClockKey;
+  applySourceMutes(engine, sourceChipKind(), sourceMutes);
   if (!player) {
     player = new VgmPlayer(engine);
   }
@@ -2428,6 +2448,7 @@ async function handleFile(file) {
     workletModuleReady = false;
   }
   currentChipKind = nextChipKind;
+  currentHasPcm = Boolean(vgm.header.rf5c164Clock);
   channelMonitor = createChannelMonitorState();
   resetPsgMonitor();
   renderChannelMonitor();
@@ -2468,7 +2489,7 @@ async function handleFile(file) {
   exportAllTfiButton.disabled = extractedTfiPatches.length === 0;
   exportAllVgiButton.disabled = extractedTfiPatches.length === 0;
   updatePlaybackButtons({});
-  setStatus(`Parsed ${file.name} (${currentChipKind.toUpperCase()}).${currentStatusSuffix()}`);
+  setStatus(`Parsed ${file.name} (${currentHasPcm ? "MEGA-CD" : currentChipKind.toUpperCase()}).${currentStatusSuffix()}`);
 }
 
 async function handleYm2608RomFile(file) {

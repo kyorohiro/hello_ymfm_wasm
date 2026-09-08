@@ -1,11 +1,12 @@
 const SOURCES = {
+  pcm: { key: "pcm", label: "PCM", method: "setPcmMuted" },
   psg: { key: "psg", label: "PSG", method: "setPsgMuted" },
   ssg: { key: "ssg", label: "SSG", method: "setSsgMuted" },
   rhythm: { key: "rhythm", label: "Rhythm", method: "setRhythmMuted" },
   adpcmB: { key: "adpcmB", label: "ADPCM-B", method: "setAdpcmBMuted" },
 };
 export function sourcesForChip(chip) {
-  return (chip === "ym2608" ? ["ssg", "rhythm", "adpcmB"] : chip === "ym2203" ? ["ssg"] : ["psg"])
+  return (chip === "megacd" ? ["psg", "pcm"] : chip === "ym2608" ? ["ssg", "rhythm", "adpcmB"] : chip === "ym2203" ? ["ssg"] : ["psg"])
     .map((key) => SOURCES[key]);
 }
 export function applySourceMutes(engine, chip, muted) {
