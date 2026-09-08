@@ -1,3 +1,4 @@
+import { createRf5c164Monitor, describeRf5c164Monitor, observeRf5c164Engine } from "./rf5c164_monitor.js";
 import { sourcesForChip, applySourceMutes, allSourcesMuted } from "./source_mutes.js";
 import { createPsgMonitor, describePsgMonitor, observePsgEngine } from "./psg_monitor.js";
 import { exportAnalysisMml } from "./vgm_mml.js";
@@ -87,6 +88,8 @@ let extractedTfiPatches = [];
 let channelMuteStates = [false, false, false, false, false, false];
 let currentChipKind = "ym2612";
 let currentHasPcm = false;
+let currentPcmClock = 0;
+let pcmMonitor = createRf5c164Monitor();
 let engineClockKey = null;
 const sourceChipKind = () => currentHasPcm && currentChipKind === "ym2612" ? "megacd" : currentChipKind;
 let channelMonitor = createChannelMonitorState();
@@ -391,7 +394,8 @@ function ensureChannelMonitorRenderTimer() {
     return;
   }
   channelMonitorRenderTimer = window.setInterval(() => {
-    const psgRecent = psgMonitor.changedAt.some((time) => changeAgeOpacity(time) > 0);
+    const psgRecent = psgMonitor.changedAt.some((time) => changeAgeOpacity(time) > 0) ||
+      changeAgeOpacity(pcmMonitor.changedAt) > 0 || pcmMonitor.channels.some((channel) => changeAgeOpacity(channel.changedAt) > 0);
     if (!channelMonitorDirty && !hasRecentChannelChanges() && !psgRecent && !psgHighlightActive) {
       return;
     }
@@ -453,17 +457,42 @@ function renderPsgMonitor() {
   document.getElementById("psgMonitorRegisters").innerHTML = state.registers.map((value, r) => token(`R${r.toString(16).toUpperCase().padStart(2, "0")}`, `0x${value.toString(16).toUpperCase().padStart(2, "0")}`, r)).join("");
 }
 
+function renderPcmMonitor() {
+  const state = describeRf5c164Monitor(pcmMonitor, currentHasPcm, currentPcmClock, sourceMutes.pcm);
+  document.getElementById("pcmMonitorTitle").textContent = `RF5C164 PCM${state.used ? (state.muted ? " · Muted" : " · Used") : " · Not used"}`;
+  document.getElementById("pcmMonitorStatus").textContent = !currentBuffer ? "No file loaded." : !state.used
+    ? "RF5C164 is not used by this file (VGM header)."
+    : `Clock: ${state.clock.toLocaleString()} Hz · Chip: ${state.enabled ? "ON" : "OFF"} · Channels enabled: ${state.channels.filter((c) => c.enabled).length} / 8 · Register writes: ${state.writes} · RAM transfers: ${state.memoryWrites} (${state.transferredBytes.toLocaleString()} bytes)`;
+  const grid = document.getElementById("pcmMonitorGrid");
+  grid.hidden = !state.used;
+  document.getElementById("pcmMonitorHelp").hidden = !state.used;
+  if (!state.used) { grid.innerHTML = ""; return; }
+  const token = (label, value, time) => renderChannelChip(label, value, time, "166 214 148");
+  grid.innerHTML = `<section class="channel-card"><div class="channel-head"><span class="channel-title">Shared control</span></div><div class="channel-row">${token("CHIP", state.enabled ? "ON" : "OFF", pcmMonitor.changedAt)}${token("SELECTED", state.selectedChannel, pcmMonitor.changedAt)}${token("RAM BANK", state.ramBank, pcmMonitor.changedAt)}</div></section>` +
+    state.channels.map((channel, i) => {
+      const t = pcmMonitor.channels[i].changedAt;
+      return `<section class="channel-card"><div class="channel-head"><span class="channel-title">${channel.name}</span></div><div class="channel-row">${
+        token("CHANNEL", channel.enabled ? "ON" : "OFF", t) + token("VOLUME", channel.volume, t) +
+        token("PAN L / R", `${channel.panLeft} / ${channel.panRight}`, t) + token("STEP", channel.step, t) +
+        token("START", formatHex(channel.startAddress, 4), t) + token("LOOP", formatHex(channel.loopAddress, 4), t)
+      }</div></section>`;
+    }).join("");
+}
+
 function resetPsgMonitor() {
+  pcmMonitor = createRf5c164Monitor();
   psgMonitor = createPsgMonitor(currentChipKind);
   requestChannelMonitorRender();
 }
 
 function observePsgPlaybackEngine() {
   observePsgEngine(engine, () => psgMonitor, requestChannelMonitorRender, resetPsgMonitor);
+  observeRf5c164Engine(engine, () => pcmMonitor, requestChannelMonitorRender);
 }
 
 function renderChannelMonitor() {
   renderPsgMonitor();
+  renderPcmMonitor();
   channelGrid.innerHTML = "";
   renderMonitorToggles();
   for (const channel of channelMonitor) {
@@ -1803,6 +1832,7 @@ function buildSnapshotData(reason = "manual") {
       totalSamples: stats.totalSamples,
       audioProgress: stats.audioProgress,
     } : null,
+    rf5c164: describeRf5c164Monitor(pcmMonitor, currentHasPcm, currentPcmClock, sourceMutes.pcm),
     chip: sourceChipKind(),
     sourceMutes: { ...sourceMutes },
     psgSsg: describePsgMonitor(psgMonitor, psgMonitor.kind === "ssg" ? sourceMutes.ssg : sourceMutes.psg),
@@ -1954,6 +1984,7 @@ async function ensurePlaybackReady(vgm) {
 
   currentChipKind = nextChipKind;
   currentHasPcm = Boolean(vgm.header.rf5c164Clock);
+  currentPcmClock = vgm.header.rf5c164Clock & 0x3fffffff;
 
   if (!engine) {
     if (currentChipKind === "ym2203") {
@@ -2449,6 +2480,7 @@ async function handleFile(file) {
   }
   currentChipKind = nextChipKind;
   currentHasPcm = Boolean(vgm.header.rf5c164Clock);
+  currentPcmClock = vgm.header.rf5c164Clock & 0x3fffffff;
   channelMonitor = createChannelMonitorState();
   resetPsgMonitor();
   renderChannelMonitor();
