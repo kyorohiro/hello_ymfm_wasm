@@ -888,7 +888,7 @@ function renderNoteishOverviewGraph() {
       const opacity = detailed ? 1 : Math.max(0.14, 1 - (age / NOTEISH_HISTORY_WINDOW_MS));
       dots += `<circle cx="${x}" cy="${y}" r="${detailed ? 4.5 : 1.8}" fill="${channelColors[index]}" fill-opacity="${opacity.toFixed(3)}" />`;
       if (lastPoint) {
-        path += `<line x1="${lastPoint.x}" y1="${lastPoint.y}" x2="${x}" y2="${y}" stroke="${channelColors[index]}" stroke-width="2.5" stroke-linecap="round" />`;
+        path += `<line x1="${lastPoint.x}" y1="${lastPoint.y}" x2="${x}" y2="${y}" stroke="${channelColors[index]}" stroke-width="2.5" stroke-opacity="0.25" stroke-linecap="round" />`;
       }
       lastPoint = { x, y };
     }
