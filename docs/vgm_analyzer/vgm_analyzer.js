@@ -1,3 +1,4 @@
+import { midiChipKind } from "./vgm_notes.js";
 import { exportAnalysisMidi } from "./vgm_midi.js";
 import { createRf5c164Monitor, describeRf5c164Monitor, observeRf5c164Engine } from "./rf5c164_monitor.js";
 import { sourcesForChip, applySourceMutes, allSourcesMuted } from "./source_mutes.js";
@@ -2518,7 +2519,7 @@ async function handleFile(file) {
 
   commandsOutput.textContent = events.join("\n");
   currentBuffer = buffer;
-  midiExportAvailable = Boolean(vgm.header.ym2612Clock & 0x3fffffff);
+  midiExportAvailable = Boolean(midiChipKind(vgm.header));
   lastParseInfo = buildParseInfo(buffer, file.name, vgm);
   if (sourceHeader) {
     lastParseInfo.sourceHeader = sourceHeader;
@@ -2740,6 +2741,6 @@ exportMidiButton.addEventListener("click", () => {
     anchor.download = `${lastLoadedFileName.replace(/\.[^.]+$/, "") || "analysis"}.mid`;
     anchor.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
-    setStatus(`Exported MIDI: ${result.noteCount} notes, ${result.skippedNotes} omitted intervals. YM2612 FM only; no grid quantization. PSG/PCM and FM timbres are omitted. Details are in MIDI text events.`);
+    setStatus(`Exported MIDI: ${result.noteCount} notes, ${result.bendCount} pitch bends, ${result.skippedNotes} omitted intervals. ${result.chipName} FM only; no grid quantization. SSG/PSG/PCM and FM timbres are omitted. Details are in MIDI text events.`);
   } catch (error) { setStatus(`MIDI export failed: ${error.message}`); }
 });

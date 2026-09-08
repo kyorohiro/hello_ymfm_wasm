@@ -1,4 +1,4 @@
-import { extractYm2612Notes } from './vgm_notes.js';
+import { extractOpnNotes } from './vgm_notes.js';
 
 const PPQN = 960;
 const utf8 = text => new TextEncoder().encode(text);
@@ -35,13 +35,14 @@ export function exportAnalysisMidi(source, { bpm = 120, fileName = 'VGM' } = {})
   if (!Number.isFinite(bpm) || bpm <= 0 || tempo < 1 || tempo > 0xffffff) {
     throw new RangeError('BPM must fit the MIDI tempo range (approximately 3.58–60000000)');
   }
-  const { channels, time, warnings: extractionWarnings, parserHeader } = extractYm2612Notes(source);
-  const warnings = ['YM2612 FM notes only; PSG, PCM and FM timbres are not reproduced.',
-    'Base FNUM pitch rounded to semitones; bends become note changes. Velocity is fixed at 100.'];
+  const { chipKind, chipName, channels, time, warnings: extractionWarnings, parserHeader } = extractOpnNotes(source);
+  const warnings = [`${chipName} FM notes only; SSG, PSG, PCM and FM timbres are not reproduced.`,
+    'KEY intervals become notes; FNUM changes become Pitch Bend. Chip LFO is not synthesized. Velocity is fixed at 100.'];
   for (const [message, entry] of extractionWarnings) warnings.push(`${message} (${entry.count})`);
   if (parserHeader.loopOffset) warnings.push('VGM loop is not expanded; one pass is exported.');
   const tick = sample => Math.round(sample * 1000000 * PPQN / (44100 * tempo));
-  let noteCount = 0, skippedNotes = 0;
+  let noteCount = 0, skippedNotes = 0, bendCount = 0;
+  const bendRanges = [];
   const tracks = channels.map((channel, index) => {
     const notes = [];
     for (const n of channel.notes) {
@@ -49,24 +50,54 @@ export function exportAnalysisMidi(source, { bpm = 120, fileName = 'VGM' } = {})
       const pitch = n.midi === null ? null : Math.round(n.midi);
       if (pitch === null || !Number.isFinite(pitch) || pitch < 0 || pitch > 127) { skippedNotes++; continue; }
       const previous = notes.at(-1);
-      // Keep a held note across same-semitone FNUM writes, but preserve KEY retriggers.
-      if (previous && previous.key === n.key && previous.end === n.start && previous.pitch === pitch) previous.end = n.end;
-      else notes.push({ ...n, pitch });
+      // The extractor splits pitches for MML; restore each continuous KEY interval for MIDI.
+      if (previous && previous.key === n.key && previous.end === n.start) {
+        previous.end = n.end;
+        previous.pitches.push({ sample: n.start, midi: n.midi });
+      } else notes.push({ ...n, pitch, pitches: [{ sample: n.start, midi: n.midi }] });
     }
+    let excursion = 0;
+    for (const n of notes) for (const point of n.pitches) excursion = Math.max(excursion, Math.abs(point.midi - n.pitch));
+    // Positive MIDI bend ends at 8191, negative at -8192. Leave room at both ends.
+    const requiredRange = Math.max(2, Math.ceil(excursion * 8192 / 8191));
+    const range = Math.min(127, requiredRange);
+    bendRanges.push(range);
+    if (requiredRange > 127) warnings.push(`${chipName} CH${index+1}: pitch bend exceeds 127 semitones and is clipped.`);
+    const bend = delta => Math.max(0, Math.min(16383, Math.round(8192 + delta * 8192 / range)));
+    const bendBytes = value => [0xe0 | index, value & 127, value >>> 7];
     const events = [
-      { tick: 0, order: -2, bytes: textMeta(3, `YM2612 CH${index+1}`) },
+      { tick: 0, order: -2, bytes: textMeta(3, `${chipName} CH${index+1}`) },
       { tick: 0, order: -1, bytes: [0xc0 | index, 0] },
     ];
+    // RPN 0: Pitch Bend Sensitivity, followed by RPN null to finish data entry.
+    for (const [controller, value] of [[101,0],[100,0],[6,range],[38,0],[101,127],[100,127]]) {
+      events.push({ tick: 0, order: -1, bytes: [0xb0 | index, controller, value] });
+    }
+    events.push({ tick: 0, order: -1, bytes: bendBytes(8192) });
     for (const n of notes) {
       const start = tick(n.start), end = tick(n.end);
       if (end <= start) { skippedNotes++; continue; }
-      events.push({tick:start,order:1,bytes:[0x90 | index,n.pitch,100]},
+      // Several writes may round to one MIDI tick; only the last pitch at that tick matters.
+      const points = new Map();
+      for (const point of n.pitches) {
+        const at = tick(point.sample);
+        if (at < end) points.set(at, bend(point.midi - n.pitch));
+      }
+      let previousBend = null;
+      for (const [at, value] of points) {
+        if (value === previousBend) continue;
+        events.push({tick:at,order:1,bytes:bendBytes(value)});
+        previousBend = value;
+        bendCount++;
+      }
+      events.push({tick:start,order:2,bytes:[0x90 | index,n.pitch,100]},
         {tick:end,order:0,bytes:[0x80 | index,n.pitch,0]});
       noteCount++;
     }
+    events.push({tick:tick(time),order:3,bytes:bendBytes(8192)});
     return track(events, tick(time));
   });
-  if (!noteCount) throw new Error('No convertible YM2612 FM notes found');
+  if (!noteCount) throw new Error(`No convertible ${chipName} FM notes found`);
   if (skippedNotes) warnings.push(`${skippedNotes} unknown, out-of-range or sub-tick note intervals omitted.`);
   const conductor = track([
     {tick:0,order:0,bytes:textMeta(3,String(fileName).replace(/[\r\n]/g,' '))},
@@ -74,6 +105,6 @@ export function exportAnalysisMidi(source, { bpm = 120, fileName = 'VGM' } = {})
     {tick:0,order:2,bytes:textMeta(1,'Manual tempo; original timing retained without grid quantization.')},
     ...warnings.map(message=>({tick:0,order:3,bytes:textMeta(1,message)})),
   ],tick(time));
-  const header = new Uint8Array([...utf8('MThd'), ...be32(6), ...be16(1), ...be16(7), ...be16(PPQN)]);
-  return { bytes: concat([header,conductor,...tracks]), noteCount, skippedNotes, warnings, ppqn:PPQN, tempo };
+  const header = new Uint8Array([...utf8('MThd'), ...be32(6), ...be16(1), ...be16(tracks.length + 1), ...be16(PPQN)]);
+  return { chipKind, chipName, bytes: concat([header,conductor,...tracks]), noteCount, skippedNotes, bendCount, bendRanges, warnings, ppqn:PPQN, tempo };
 }

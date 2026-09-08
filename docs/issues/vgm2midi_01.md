@@ -1,0 +1,113 @@
+# VGM → MIDI 出力（第1段階）
+
+更新日: 2026-09-08
+状態: Analyzer の Export MIDI を実装済み。DAW での読み込み・ブラウザー操作は未確認。
+
+## 目的
+
+VGM の音符抽出結果を MIDI として保存し、DAW のピアノロールで確認・編集できるようにする。
+量子化と MML の整形は後続段階。まず抽出した音符と元のタイミングを見える形にする。
+
+## 使い方
+
+1. VGM Analyzer を再読み込みして、YM2612 / YM2203 / YM2608 のいずれかを含む VGM / VGZ を開く。
+2. `Export BPM` に基準テンポを指定する（初期値120、自動推定ではない）。
+3. `Export MIDI` で `.mid` を保存する。再生を開始しなくても書き出せる。
+
+YM2612 / YM2203 / YM2608 の単一音源 S98 は既存の VGM 正規化後に同じ経路を使う。
+対応する FM 音源を含まないファイル（RF5C164 単独など）ではボタンを無効にする。
+従来の Export MML は非表示のまま。
+
+## 出力仕様
+
+- Standard MIDI File format 1、960 ticks / quarter。
+- テンポ・説明のトラック1本と音源ごとの FM トラック。
+  YM2612 / YM2608 は6本、YM2203 は3本。MIDI チャンネルは1〜6または1〜3。
+  打楽器チャンネルへの割り当ては行わない。
+- 元の44100 Hzサンプル時刻から絶対 tick に変換。拍のグリッドへの量子化はしない。
+  テンポメタイベントに保存する整数値から tick を計算し、BPM を変えても
+  秒単位の再生位置が tick 丸めの範囲で維持される。
+- FNUM / BLOCK と VGM クロックから音高を推定。キーオン時の最寄りの MIDI ノートを基準にし、
+  半音未満の差とキーオン中の音高変更を Pitch Bend にする。
+- KEY ON / OFF に従って音符を作る。同じキーオン中の連続した有効音高区間を連結し、
+  半音をまたぐ音高変更でも打ち直さない。KEY の打ち直しは別音符にする。
+  同時刻の出力順は Note Off → Pitch Bend → Note On。
+- MIDI Program 0（GM 音源ではピアノ）、Velocity 100 固定。
+  FM パッチを GM 音色へ変換しているわけではない。
+- VGM 終端までの末尾の無音を保持し、鳴り続けたキーは終端で閉じる。
+  VGM のループは展開せず1回分を出力する。
+- 不明音高、MIDI 範囲外、tick 丸めで長さがなくなる音符は省略し、件数を表示する。
+  制限と抽出時の警告は MIDI 内のテキストメタイベントにも保存する。
+
+仕様確認先: [MIDI Association — Standard MIDI Files](https://midi.org/standard-midi-files)、
+[Mido — MIDI files / tempo](https://mido.github.io/mido/files/midi.html)。
+
+## 実装
+
+- `docs/vgm_analyzer/vgm_notes.js`: 既存 MML の音符抽出部分を共通化。
+  サンプル単位の開始・終了、浮動小数の MIDI 音高、KEY ID、パッチ ID を保持。
+- `docs/vgm_analyzer/vgm_midi.js`: MIDI バイナリ出力。量子化処理を経由しない。
+- `docs/vgm_analyzer/vgm_mml.js`: 共通の抽出結果を従来の量子化・MML 出力に渡す。
+- `docs/vgm_analyzer/index.html` / `vgm_analyzer.js`: Export MIDI ボタン、BPM、保存処理。
+- `scripts/package_itch_vgm_analyzer.sh`: 新規モジュールを配布に含める。
+
+## 確認
+
+```sh
+node --test docs/vgm_analyzer/vgm_midi.test.mjs docs/vgm_analyzer/vgm_mml.test.mjs docs/vgm_analyzer/vgm_mml_music.test.mjs
+```
+
+計23テスト通過（YM2203 / YM2608・Pitch Bend 対応テストを含む）。MIDI バイナリを別の読み取り処理で再解析して、ヘッダー・
+トラック長・可変長 delta・テンポ・Note On/Off・トラック終端を確認。
+同音の打ち直し、別チャンネル、音高変更、末尾無音、BPM 変更時の実時間、
+グリッド外の時刻、非対応音符・警告を確認。共通化後の既存 MML テストも通過。
+
+## 制限・次の段階
+
+- [ ] DAW で MIDI 読込、ピアノロール、再生を確認。
+- [ ] 実曲でキー・音高の抽出品質を確認し、必要なら抽出部分を改善。
+- [x] FNUM / BLOCK・分周設定の変化を Pitch Bend として出力。
+- [ ] チップ内部 LFO によるビブラートの再現。
+- [ ] 音量・パン・音色マッピング。
+- [x] YM2203 / YM2608 の FM 対応。
+- [ ] SSG / PSG / PCM の扱い。
+- [ ] MIDI 読込 → 量子化 → MML 出力。
+
+現状では部分 KEY、CH3 特殊モード、DAC モードの音高は不明として省略。
+FM オペレーターの倍率・デチューン・LFO・リリース音長も再現しない。
+音源の忠実な再生ではなく、通常 FM 音符の抽出結果を編集するための出力。
+
+## YM2203 / YM2608 の FM 対応（2026-09-08）
+
+- MIDI の音源選択を `midiChipKind()` に集約し、画面のボタン有効化にも使用。
+- `extractOpnNotes()` で音源ごとのクロック、チャンネル数、書き込み先を切り替える。
+  既存の `extractYm2612Notes()` は YM2612 専用の入口として残し、MML の対象範囲は変えない。
+- YM2203 の FM は標準クロック / 72、YM2608 は標準クロック / 144 を基準に音高計算。
+  `0x2D〜0x2F` のプリスケーラー変更を追跡し、キーオン中なら音高の区間を分ける。
+- YM2203 の KEY レジスタ bit 2 は、同梱 ymfm コアと同じくチャンネル選択には使わない。
+- YM2608 の `0x29` bit 7 を追跡し、6chモードが有効な区間だけ CH4〜6 を出力。
+  SSG・リズム・ADPCM-B の書き込みを FM 音符や YM2612 DAC 設定として解釈しない。
+- 複数種類の対応 FM 音源を含む場合は YM2612 → YM2608 → YM2203 の優先順で1種類を選択。
+  選択しなかった音源と2台目は警告し、別音源のレジスタを混ぜない。
+- MIDI トラック名・出力結果に実際の音源名を記載。
+- 追加テスト: 3ch / 6ch、クロックによる音高、port 1、非FM書き込みの除外、
+  プリスケーラー変更、6ch有効化、混在音源の分離。既存 YM2612・MML を含め20テスト通過。
+- 実曲の DAW 読込・ブラウザーでの保存操作は未確認。
+
+## Pitch Bend 対応
+
+- 同じ KEY ID の連続した音高区間を1音符に戻し、途中の音高は14 bit Pitch Bend に変換。
+  既存 MML の区間分割・量子化は変更しない。
+- MIDI チャンネルごとに必要なベンド幅を計算（最小±2半音、最大±127半音）。
+  RPN 0 の Pitch Bend Sensitivity を先頭に書き込み、設定後は RPN null に戻す。
+  最大範囲を超える場合はクリップして MIDI の警告テキストに記録。
+- 各 Note On より前に初期音高のベンドを設定。前の音符の値を持ち越さない。
+  同じ tick 内の音高変更は最後の値を採用し、同値の連続ベンドは省略。
+  トラック終端ではベンドを中央に戻す。
+- 部分 KEY・特殊モードなど不明音高の区間は引き続き省略。その区間をまたいで音符を連結しない。
+- 半音未満の揺れ、上下のベンド値から復元した音高、打ち直し時のイベント順、
+  チャンネル間の独立性、同 tick 内の複数変更をテスト。MIDI / MML 関連23テスト通過。
+- チップ内部の LFO は再現しない。対応するのはログに現れる音高設定の変化。
+  DAW / 音源が RPN のベンド幅設定を反映するかの実動作確認は残る。
+
+仕様確認先: [Roland MIDI Implementation — Pitch Bend Sensitivity](https://static.roland.com/assets/media/pdf/FANTOM-06_07_08_MIDI_Imple_eng01_W.pdf)。

@@ -1,7 +1,15 @@
 import { Ym2612VGM } from "../js/ym2612vgm.js";
 
 /** Extract unquantized FM note intervals in 44100 Hz sample time. */
+export function midiChipKind(header) {
+  return ['ym2612', 'ym2608', 'ym2203'].find(kind => (header[`${kind}Clock`] & 0x3fffffff) > 0) ?? null;
+}
+
 export function extractYm2612Notes(source) {
+  return extractOpnNotes(source, { chipKind: 'ym2612' });
+}
+
+export function extractOpnNotes(source, { chipKind = null } = {}) {
   let time = 0;
   const warnings = new Map();
   const warn = (message) => {
@@ -11,14 +19,23 @@ export function extractYm2612Notes(source) {
     warnings.set(message, entry);
   };
   const parser = new Ym2612VGM(source, { logger: { warn } });
-  const clock = parser.header.ym2612Clock & 0x3fffffff;
-  if (!clock) throw new Error("Note extraction currently supports YM2612 FM only");
-  if (parser.header.ym2612Clock & 0x40000000) warn("Dual YM2612: only the first chip is converted");
+  chipKind ??= midiChipKind(parser.header);
+  if (!['ym2612', 'ym2203', 'ym2608'].includes(chipKind)) throw new Error('MIDI supports YM2612 / YM2203 / YM2608 FM');
+  const chipName = chipKind.toUpperCase();
+  const clock = parser.header[`${chipKind}Clock`] & 0x3fffffff;
+  if (!clock) throw new Error(`Note extraction requires ${chipName} FM`);
+  if (parser.header[`${chipKind}Clock`] & 0x40000000) warn(`Dual ${chipName}: only the first chip is converted`);
+  for (const other of ['ym2612','ym2203','ym2608']) {
+    if (other !== chipKind && (parser.header[`${other}Clock`] & 0x3fffffff)) warn(`${other.toUpperCase()} FM omitted; exporting ${chipName}`);
+  }
+  const channelCount = chipKind === 'ym2203' ? 3 : 6;
+  let prescale = 6;
+  let sixChannelMode = chipKind !== 'ym2608';
   let mode = 0;
   let dac = false;
   let highLatch = 0;
   const patches = new Map();
-  const channels = Array.from({ length: 6 }, () => ({ fnum: 0, block: 0, mask: 0, active: null, cursor: 0, patch: {}, lines: [], notes: [], serial: 0 }));
+  const channels = Array.from({ length: channelCount }, () => ({ fnum: 0, block: 0, mask: 0, active: null, cursor: 0, patch: {}, lines: [], notes: [], serial: 0 }));
   function finish(ch, endReason = "split") {
     if (!ch.active) return;
     const n = ch.active;
@@ -27,12 +44,13 @@ export function extractYm2612Notes(source) {
     ch.active = null;
   }
   function begin(ch, index) {
+    if (index >= 3 && !sixChannelMode) return;
 
     const patch = JSON.stringify(Object.fromEntries(Object.entries(ch.patch).sort()));
     if (!patches.has(patch)) patches.set(patch, patches.size + 1);
     const id = patches.get(patch);
 
-    const hz = ch.fnum * clock * 2 ** (ch.block - 1) / (144 * 2 ** 20);
+    const hz = ch.fnum * clock * 2 ** (ch.block - 1) / (prescale * channelCount * 4 * 2 ** 20);
     const midi = hz > 0 ? 69 + 12 * Math.log2(hz / 440) : NaN;
     const rounded = Math.round(midi);
     const uncertain = ch.mask !== 15 || (index === 2 && mode !== 0) || (index === 5 && dac) || !Number.isFinite(midi);
@@ -41,8 +59,29 @@ export function extractYm2612Notes(source) {
     ch.active = { start: time, token, midi: uncertain ? null : midi, preset: id, key: ch.serial, info: `fnum=${ch.fnum} block=${ch.block} cents=${Number.isFinite(midi) ? ((midi - rounded) * 100).toFixed(2) : "unknown"}` };
   }
   function write(register, value, port = 0) {
-    if (port === 0 && register === 0x2a) { warn("DAC samples omitted"); return; }
-    if (port === 0 && (register === 0x27 || register === 0x2b)) {
+    if (chipKind !== 'ym2612') {
+      if (port === 0 && register >= 0x2d && register <= 0x2f) {
+        const next = register === 0x2d ? 6 : register === 0x2f ? 2 : prescale === 6 ? 3 : prescale;
+        if (next !== prescale) {
+          channels.forEach(ch => finish(ch));
+          prescale = next;
+          channels.forEach((ch,i) => { if (ch.mask) begin(ch,i); });
+        }
+        return;
+      }
+      if (chipKind === 'ym2608' && port === 0 && register === 0x29) {
+        channels.slice(3).forEach(ch => finish(ch));
+        sixChannelMode = Boolean(value & 0x80);
+        channels.forEach((ch,i) => { if (i >= 3 && ch.mask) begin(ch,i); });
+        return;
+      }
+      if ((port === 0 && register < 0x20) || (port === 1 && register < 0x30)) {
+        warn(port === 0 && register < 0x10 ? 'SSG writes omitted' : 'ADPCM writes omitted');
+        return;
+      }
+    }
+    if (chipKind === 'ym2612' && port === 0 && register === 0x2a) { warn("DAC samples omitted"); return; }
+    if (port === 0 && (register === 0x27 || (chipKind === 'ym2612' && register === 0x2b))) {
       const index = register === 0x27 ? 2 : 5;
       const ch = channels[index];
       finish(ch);
@@ -53,7 +92,7 @@ export function extractYm2612Notes(source) {
       return;
     }
     if (port === 0 && register === 0x28) {
-      const index = (value & 3) + ((value & 4) ? 3 : 0);
+      const index = (value & 3) + ((chipKind !== 'ym2203' && (value & 4)) ? 3 : 0);
       if ((value & 3) === 3) { warn("Invalid KEY channel omitted"); return; }
       const ch = channels[index];
       finish(ch, value >> 4 ? "retrigger" : "keyOff");
@@ -80,19 +119,20 @@ export function extractYm2612Notes(source) {
       if (ch.active) ch.lines.push(`; sample=${time} sounding patch write reg=0x${register.toString(16)} value=0x${value.toString(16)}`);
       return;
     }
-    warn(`Unconverted YM2612 register port=${port} reg=0x${register.toString(16)}`);
+    warn(`Unconverted ${chipName} register port=${port} reg=0x${register.toString(16)}`);
   }
-  const targets = { writeRegister: write, psg: { write: () => warn("PSG writes omitted") } };
+  const targets = { [chipKind]: { writeRegister: write }, psg: { write: () => warn("PSG writes omitted") } };
+  if (chipKind === 'ym2608') targets.ym2608.loadAdpcmBMemory = () => warn('ADPCM-B samples omitted');
   while (true) {
     const event = parser.playStep(targets);
     if (event.type === "wait") parser.consumeWait(targets, event.samples, n => { time += n; });
     else if (event.type === "end") break;
-    else if (["ym2203-write", "ym2608-write", "ym2610-write"].includes(event.type)) warn(`${event.type} omitted`);
+    else if (["ym2612-write", "ym2203-write", "ym2608-write", "ym2610-write"].includes(event.type) && event.type !== `${chipKind}-write`) warn(`${event.type} omitted`);
   }
   for (const ch of channels) {
     if (ch.active) ch.lines.push("; KEY still on at VGM end; interval truncated");
     finish(ch, "vgmEnd");
 
   }
-  return { channels, time, clock, parserHeader: parser.header, warnings, patches };
+  return { chipKind, chipName, channels, time, clock, parserHeader: parser.header, warnings, patches };
 }
