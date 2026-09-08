@@ -659,13 +659,20 @@
 
         <section id="noteishPanel" class="tab-panel" role="tabpanel" aria-labelledby="noteishTab" hidden>
           <h2>Channel Note-ish View</h2>
+          <label class="noteish-mode-control">Display
+            <select id="noteishMode">
+              <option value="normal">Normal</option>
+              <option value="detail">Detailed — semitone keyboard</option>
+            </select>
+          </label>
+          <p id="noteishDetailHelp" class="noteish-help" hidden>Each channel shows C1–C7 in semitone steps. Scroll horizontally to inspect the keyboard (arrow keys when focused). Orange: observed range. Blue: current pitch; gray: key off. Notes outside C1–C7 appear only in the text readout. The top graph shows the full C1–C7 range in semitone rows. Use page scrolling or browser zoom to view it.</p>
           <p class="noteish-help">
             Rough note estimate from each channel's current BLOCK and FNUM.
             It ignores operator MULTI / DT, channel 3 special mode, and pitch LFO.
           </p>
           <div class="noteish-overview">
             <p class="noteish-overview-caption">Top graph: time on X, pitch range on Y, CH1 to CH6 overlaid.</p>
-            <div id="noteishOverview"></div>
+            <div id="noteishOverview" role="region" aria-label="Recent channel pitch history"></div>
           </div>
           <div id="noteishGrid" class="noteish-grid"></div>
         </section>

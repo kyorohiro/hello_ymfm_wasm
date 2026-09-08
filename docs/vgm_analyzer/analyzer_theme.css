@@ -1,4 +1,10 @@
 /* Red enamel and ivory instrument panels, matching the analyzer artwork. */
+.noteish-mode-control { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 12px; }
+#noteishPanel.is-detailed .noteish-grid { grid-template-columns: minmax(0, 1fr); }
+#noteishPanel.is-detailed .noteish-graph { overflow-x: auto; }
+#noteishPanel.is-detailed .noteish-graph svg { width: 2660px; max-width: none; height: 112px; }
+.noteish-graph:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+#noteishPanel.is-detailed #noteishOverview svg { height: 1810px; }
 :root {
   --bg: #eee5d9;
   --panel: #fff8ee;

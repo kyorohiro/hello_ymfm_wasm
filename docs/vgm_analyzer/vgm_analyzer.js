@@ -77,6 +77,8 @@ const parsedOutputPanel = document.getElementById("parsedOutputPanel");
 const noteishPanel = document.getElementById("noteishPanel");
 const noteishOverview = document.getElementById("noteishOverview");
 const noteishGrid = document.getElementById("noteishGrid");
+const noteishMode = document.getElementById("noteishMode");
+const noteishDetailHelp = document.getElementById("noteishDetailHelp");
 const notesDialog = document.getElementById("notesDialog");
 const notesDialogTitle = document.getElementById("notesDialogTitle");
 const notesDialogOutput = document.getElementById("notesDialogOutput");
@@ -710,6 +712,7 @@ function noteishGraphX(midiFloat) {
 }
 
 function renderNoteishGraph(channel, estimated) {
+  if (noteishMode.value === "detail") return renderNoteishKeyboard(channel, estimated);
   const axisY = 26;
   const ticks = [24, 36, 48, 60, 72, 84, 96];
   const tickLabels = ["C1", "C2", "C3", "C4", "C5", "C6", "C7"];
@@ -778,14 +781,43 @@ function renderNoteishGraph(channel, estimated) {
   `;
 }
 
+function renderNoteishKeyboard(channel, estimated) {
+  const x = midi => 34 + (midi - NOTEISH_GRAPH_MIN_MIDI) * 36;
+  const keys = Array.from({ length: 73 }, (_, index) => {
+    const midi = NOTEISH_GRAPH_MIN_MIDI + index;
+    const black = [1, 3, 6, 8, 10].includes(midi % 12);
+    return `<rect x="${x(midi) - 18}" y="34" width="36" height="64" fill="${black ? '#383838' : '#fffdf7'}" stroke="#b9a38e" />
+      <text x="${x(midi)}" y="88" text-anchor="middle" font-size="12" fill="${black ? '#fffdf7' : '#42382e'}">${midiToNoteName(midi)}</text>`;
+  }).join("");
+  let range = "";
+  if (channel.noteMinMidi !== null && channel.noteMaxMidi !== null &&
+      channel.noteMaxMidi >= NOTEISH_GRAPH_MIN_MIDI && channel.noteMinMidi <= NOTEISH_GRAPH_MAX_MIDI) {
+    range = `<line x1="${x(clamp(channel.noteMinMidi, 24, 96))}" x2="${x(clamp(channel.noteMaxMidi, 24, 96))}" y1="56" y2="56" stroke="#ef8f6b" stroke-width="8" stroke-linecap="round" />`;
+  }
+  let marker = "";
+  const midi = estimated.midiFloat;
+  if (midi !== null && midi >= NOTEISH_GRAPH_MIN_MIDI && midi <= NOTEISH_GRAPH_MAX_MIDI) {
+    const color = channel.keyOn ? '#007c91' : '#777';
+    marker = `<line x1="${x(midi)}" x2="${x(midi)}" y1="30" y2="73" stroke="${color}" stroke-width="3" />
+      <circle cx="${x(midi)}" cy="56" r="6" fill="${color}" />
+      <text x="${x(midi)}" y="21" text-anchor="middle" font-size="14" font-weight="bold" fill="${color}">${estimated.note}</text>`;
+  }
+  return `<svg viewBox="0 0 2660 112" aria-hidden="true">${keys}${range}${marker}</svg>`;
+}
+
 function noteishOverviewY(midiFloat) {
   const normalized =
     (clamp(midiFloat, NOTEISH_GRAPH_MIN_MIDI, NOTEISH_GRAPH_MAX_MIDI) - NOTEISH_GRAPH_MIN_MIDI) /
     (NOTEISH_GRAPH_MAX_MIDI - NOTEISH_GRAPH_MIN_MIDI);
-  return 176 - (normalized * 144);
+  return noteishMode.value === "detail"
+    ? 36 + (NOTEISH_GRAPH_MAX_MIDI - clamp(midiFloat, NOTEISH_GRAPH_MIN_MIDI, NOTEISH_GRAPH_MAX_MIDI)) * 24
+    : 176 - normalized * 144;
 }
 
 function renderNoteishOverviewGraph() {
+  const detailed = noteishMode.value === "detail";
+  const bottom = detailed ? 1776 : 176;
+  const height = detailed ? 1810 : 210;
   const now = performance.now();
   const ticks = [24, 36, 48, 60, 72, 84, 96];
   const tickLabels = ["C1", "C2", "C3", "C4", "C5", "C6", "C7"];
@@ -798,11 +830,15 @@ function renderNoteishOverviewGraph() {
     "#62d7dd",
   ];
 
-  const horizontalTicks = ticks.map((tick, index) => {
+  const pitchTicks = detailed ? Array.from({ length: 73 }, (_, i) => 24 + i) : ticks;
+  const horizontalTicks = pitchTicks.map((tick, index) => {
     const y = noteishOverviewY(tick);
+    const black = [1, 3, 6, 8, 10].includes(tick % 12);
+    const band = detailed ? `<rect x="0" y="${y - 12}" width="736" height="24" fill="${black ? "#e4dcd1" : "#fffdf7"}" />` : "";
     return `
+      ${band}
       <line x1="42" y1="${y}" x2="736" y2="${y}" stroke="rgba(91,74,51,0.12)" stroke-width="1" />
-      <text x="36" y="${y + 4}" text-anchor="end" font-size="11" fill="#7a6547">${tickLabels[index]}</text>
+      <text x="36" y="${y + 4}" text-anchor="end" font-size="11" fill="#7a6547">${detailed ? midiToNoteName(tick) : tickLabels[index]}</text>
     `;
   }).join("");
 
@@ -810,8 +846,8 @@ function renderNoteishOverviewGraph() {
     const x = 42 + ((seconds / 8) * 694);
     const label = seconds === 8 ? "now" : `-${8 - seconds}s`;
     return `
-      <line x1="${x}" y1="24" x2="${x}" y2="176" stroke="rgba(91,74,51,0.12)" stroke-width="1" />
-      <text x="${x}" y="196" text-anchor="middle" font-size="11" fill="#7a6547">${label}</text>
+      <line x1="${x}" y1="24" x2="${x}" y2="${bottom}" stroke="rgba(91,74,51,0.12)" stroke-width="1" />
+      <text x="${x}" y="${bottom + 20}" text-anchor="middle" font-size="11" fill="#7a6547">${label}</text>
     `;
   }).join("");
 
@@ -829,8 +865,8 @@ function renderNoteishOverviewGraph() {
       const age = now - point.time;
       const x = 42 + (694 * (1 - clamp(age / NOTEISH_HISTORY_WINDOW_MS, 0, 1)));
       const y = noteishOverviewY(point.midiFloat);
-      const opacity = Math.max(0.14, 1 - (age / NOTEISH_HISTORY_WINDOW_MS));
-      dots += `<circle cx="${x}" cy="${y}" r="1.8" fill="${channelColors[index]}" fill-opacity="${opacity.toFixed(3)}" />`;
+      const opacity = detailed ? 1 : Math.max(0.14, 1 - (age / NOTEISH_HISTORY_WINDOW_MS));
+      dots += `<circle cx="${x}" cy="${y}" r="${detailed ? 4.5 : 1.8}" fill="${channelColors[index]}" fill-opacity="${opacity.toFixed(3)}" />`;
       if (lastPoint) {
         path += `<line x1="${lastPoint.x}" y1="${lastPoint.y}" x2="${x}" y2="${y}" stroke="${channelColors[index]}" stroke-width="2.5" stroke-linecap="round" />`;
       }
@@ -855,8 +891,8 @@ function renderNoteishOverviewGraph() {
   });
 
   noteishOverview.innerHTML = `
-    <svg viewBox="0 0 760 210" aria-hidden="true">
-      <rect x="42" y="24" width="694" height="152" rx="10" fill="rgba(255,255,255,0.35)" stroke="rgba(91,74,51,0.18)" />
+    <svg viewBox="0 0 760 ${height}" ${detailed ? 'preserveAspectRatio="none"' : ""} aria-hidden="true">
+      <rect x="42" y="24" width="694" height="${bottom - 24}" rx="10" fill="rgba(255,255,255,0.35)" stroke="rgba(91,74,51,0.18)" />
       ${horizontalTicks}
       ${verticalTicks}
       ${channelSvg}
@@ -871,7 +907,8 @@ function renderNoteishGrid() {
   }
   lastNoteishSignature = signature;
   renderNoteishOverviewGraph();
-  noteishGrid.innerHTML = "";
+  // Retain scroll containers across live updates, including their keyboard focus.
+  const existingCards = Array.from(noteishGrid.children);
 
   for (const channel of channelMonitor) {
     const estimated = estimateChannelNoteish(channel);
@@ -883,7 +920,10 @@ function renderNoteishGrid() {
       estimated.cents === null
         ? "no base note"
         : `${estimated.cents >= 0 ? "+" : ""}${estimated.cents} cents`;
-    const card = document.createElement("section");
+    const card = existingCards[channel.channel] ?? document.createElement("section");
+    const previousGraph = card.querySelector(".noteish-graph");
+    const scrollLeft = previousGraph?.scrollLeft ?? 0;
+    const graphFocused = previousGraph && document.activeElement === previousGraph;
     card.className = `noteish-card${channel.keyOn ? " is-key-on" : ""}`;
     card.innerHTML = `
       <div class="noteish-head">
@@ -909,8 +949,20 @@ function renderNoteishGrid() {
         </button>
       </div>
     `;
-    noteishGrid.append(card);
+    const graph = card.querySelector(".noteish-graph");
+    if (previousGraph) {
+      previousGraph.innerHTML = graph.innerHTML;
+      graph.replaceWith(previousGraph);
+    }
+    const viewport = previousGraph ?? graph;
+    viewport.tabIndex = noteishMode.value === "detail" ? 0 : -1;
+    viewport.setAttribute("role", "region");
+    viewport.setAttribute("aria-label", `CH${channel.channel + 1} pitch keyboard: ${estimated.note}`);
+    if (!card.isConnected) noteishGrid.append(card);
+    viewport.scrollLeft = scrollLeft;
+    if (graphFocused) viewport.focus({ preventScroll: true });
   }
+  existingCards.slice(channelMonitor.length).forEach(card => card.remove());
 }
 
 function renderOperatorTokens(operator) {
@@ -2687,6 +2739,21 @@ parsedOutputTab.addEventListener("click", () => {
 
 noteishTab.addEventListener("click", () => {
   setOutputTab("noteish");
+});
+
+noteishMode.addEventListener("change", () => {
+  const detailed = noteishMode.value === "detail";
+  noteishPanel.classList.toggle("is-detailed", detailed);
+  noteishDetailHelp.hidden = !detailed;
+  requestNoteishRender();
+  renderNoteishGrid();
+  if (detailed) {
+    Array.from(noteishGrid.children).forEach((card, index) => {
+      const viewport = card.querySelector(".noteish-graph");
+      const midi = estimateChannelNoteish(channelMonitor[index]).midiFloat ?? 60;
+      viewport.scrollLeft = 34 + (clamp(midi, 24, 96) - 24) * 36 - viewport.clientWidth / 2;
+    });
+  }
 });
 
 noteishGrid.addEventListener("pointerdown", (event) => {
