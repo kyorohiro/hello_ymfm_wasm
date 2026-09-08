@@ -1,3 +1,4 @@
+import { exportAnalysisMidi } from "./vgm_midi.js";
 import { createRf5c164Monitor, describeRf5c164Monitor, observeRf5c164Engine } from "./rf5c164_monitor.js";
 import { sourcesForChip, applySourceMutes, allSourcesMuted } from "./source_mutes.js";
 import { createPsgMonitor, describePsgMonitor, observePsgEngine } from "./psg_monitor.js";
@@ -50,6 +51,8 @@ const masterVolumeRange = document.getElementById("masterVolumeRange");
 const masterVolumeValue = document.getElementById("masterVolumeValue");
 const exportAllTfiButton = document.getElementById("exportAllTfiButton");
 const exportAllVgiButton = document.getElementById("exportAllVgiButton");
+let midiExportAvailable = false;
+const exportMidiButton = document.getElementById("exportMidiButton");
 const exportMmlButton = document.getElementById("exportMmlButton");
 const mmlBpmInput = document.getElementById("mmlBpmInput");
 const exportParseInfoButton = document.getElementById("exportParseInfoButton");
@@ -2098,6 +2101,7 @@ function stopActiveStream() {
 function updatePlaybackButtons(state = {}) {
   const hasBuffer = Boolean(currentBuffer);
   exportMmlButton.disabled = !hasBuffer || currentChipKind !== "ym2612";
+  exportMidiButton.disabled = !hasBuffer || !midiExportAvailable;
   const playing = Boolean(state.playing);
   const paused = Boolean(state.paused);
   playButton.disabled = !hasBuffer || playing;
@@ -2423,6 +2427,8 @@ async function handleFile(file) {
   const rawBuffer = await file.arrayBuffer();
   currentBuffer = null;
   exportMmlButton.disabled = true;
+  exportMidiButton.disabled = true;
+  midiExportAvailable = false;
   lastParseInfo = null;
   playButton.disabled = true;
   channelMonitor = createChannelMonitorState();
@@ -2512,6 +2518,7 @@ async function handleFile(file) {
 
   commandsOutput.textContent = events.join("\n");
   currentBuffer = buffer;
+  midiExportAvailable = Boolean(vgm.header.ym2612Clock & 0x3fffffff);
   lastParseInfo = buildParseInfo(buffer, file.name, vgm);
   if (sourceHeader) {
     lastParseInfo.sourceHeader = sourceHeader;
@@ -2721,4 +2728,18 @@ exportMmlButton.addEventListener("click", () => {
   } catch (error) {
     setStatus(`MML export failed: ${error.message}`);
   }
+});
+
+exportMidiButton.addEventListener("click", () => {
+  if (!currentBuffer || !mmlBpmInput.reportValidity()) return;
+  try {
+    const result = exportAnalysisMidi(currentBuffer, { bpm: Number(mmlBpmInput.value), fileName: lastLoadedFileName });
+    const url = URL.createObjectURL(new Blob([result.bytes], { type: "audio/midi" }));
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `${lastLoadedFileName.replace(/\.[^.]+$/, "") || "analysis"}.mid`;
+    anchor.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    setStatus(`Exported MIDI: ${result.noteCount} notes, ${result.skippedNotes} omitted intervals. YM2612 FM only; no grid quantization. PSG/PCM and FM timbres are omitted. Details are in MIDI text events.`);
+  } catch (error) { setStatus(`MIDI export failed: ${error.message}`); }
 });

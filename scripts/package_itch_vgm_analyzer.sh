@@ -21,6 +21,8 @@ psg_monitor.js
 rf5c164_monitor.js
 source_mutes.js
 vgm_mml.js
+vgm_notes.js
+vgm_midi.js
 vgm_mml_music.js
 "
 

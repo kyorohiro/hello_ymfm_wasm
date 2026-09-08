@@ -589,10 +589,11 @@
           </select>
           <button id="exportAllTfiButton" type="button" disabled>Export All TFI ZIP</button>
           <button id="exportAllVgiButton" type="button" disabled>Export All VGI ZIP</button>
-          <label for="mmlBpmInput">MML BPM</label>
-          <input id="mmlBpmInput" type="number" min="1" max="999" step="any" value="120" style="width: 5em" title="Manual tempo for analysis MML lengths; not detected BPM">
+          <label for="mmlBpmInput">Export BPM</label>
+          <input id="mmlBpmInput" type="number" min="4" max="999" step="any" value="120" style="width: 5em" title="Manual tempo for MIDI / MML export; not detected BPM">
+          <button id="exportMidiButton" type="button" disabled title="YM2612 FM notes; original timing, no grid quantization">Export MIDI</button>
           <button id="exportMmlButton" type="button" disabled hidden title="Analysis MML (YM2612 FM only); not driver-compatible">Export MML</button>
-          <small>MML: analysis only, YM2612 FM. BPM is manual, not detected.</small>
+          <small>MIDI: YM2612 FM notes, original timing. BPM is manual; FM timbres, PSG and PCM are omitted.</small>
           <button id="exportParseInfoButton" type="button" disabled>Export Parse Info</button>
           <button id="exportSnapshotTfiButton" type="button" disabled>Export Snapshot TFI</button>
           <button id="exportSnapshotVgiButton" type="button" disabled>Export Snapshot VGI</button>
