@@ -1,13 +1,14 @@
 // Register state only: envelope phase, LFSR state and PCM levels are not inferred.
 export function createPsgMonitor(chip) {
-  return { chip, kind: chip === 'ym2203' || chip === 'ym2608' ? 'ssg' : 'psg',
-    registers: chip === 'ym2203' || chip === 'ym2608' ? Array(14).fill(0) : [0, 15, 0, 15, 0, 15, 0, 15],
+  return { chip, kind: ['ym2203','ym2608','ym2610'].includes(chip) ? 'ssg' : 'psg',
+    registers: ['ym2203','ym2608','ym2610'].includes(chip) ? Array(14).fill(0) : [0, 15, 0, 15, 0, 15, 0, 15],
     changedAt: Array(14).fill(0), latchedRegister: 0 };
 }
 
 export function applySsgWrite(state, port, register, value, now) {
   if (state.kind !== 'ssg' || port !== 0) return false;
   if (register >= 0x2d && register <= 0x2f) {
+    if (state.chip === "ym2610") return false;
     const old = state.prescale ?? 6;
     state.prescale = register === 0x2d ? 6 : register === 0x2f ? 2 : old === 6 ? 3 : old;
     return true;
@@ -57,6 +58,7 @@ export function observePsgEngine(engine, getState, onChange, onReset, now = () =
   observed.add(engine);
   for (const [method, decode] of [
     ['writeYm2203', (s, a) => applySsgWrite(s, 0, a[0], a[1], now())],
+    ['writeYm2610B', (s, a) => applySsgWrite(s, a[0], a[1], a[2], now())],
     ['writeYm2608', (s, a) => applySsgWrite(s, a[0], a[1], a[2], now())],
     ['writePsg', (s, a) => applyPsgWrite(s, a[0], now())],
   ]) {

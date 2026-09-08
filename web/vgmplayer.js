@@ -1,4 +1,4 @@
-import { Ym2612VGM } from "./ym2612vgm.js";
+import { Ym2612VGM } from "./ym2612vgm.js?v=ym2610-vgm-2";
 
 /**
  * One rendered stereo chunk waiting to be copied into the audio callback
@@ -76,6 +76,7 @@ export class VgmPlayer {
   load(buffer, options = {}) {
     this.parser = new Ym2612VGM(buffer, options);
     this.engine.clearAdpcmBMemory?.();
+    this.engine.clearAdpcmRoms?.();
     this.engine.clearRf5c164Memory?.();
     this.waitAccumulator = 0;
     this.chunkQueue = [];
@@ -330,6 +331,10 @@ export class VgmPlayer {
             : undefined,
         }
         : undefined;
+      const ym2610Target = typeof this.engine.writeYm2610B === 'function' ? {
+        writeRegister:(register,value,port=0)=>this.engine.writeYm2610B(port,register,value),
+        loadAdpcmRom:(...args)=>this.engine.loadAdpcmRom(...args),
+      } : undefined;
       const rf5c164Target = typeof this.engine.writeRf5c164 === "function" ? {
         writeRegister: (register, value) => this.engine.writeRf5c164(register, value),
         writeMemory: (offset, value) => this.engine.writeRf5c164Memory(offset, value),
@@ -340,7 +345,8 @@ export class VgmPlayer {
         ym2612: ym2612Target,
         ym2203: ym2203Target,
         ym2608: ym2608Target,
-        psg: { write: (value) => this.engine.writePsg(value) },
+        ym2610: ym2610Target,
+        psg: { write: (value) => this.engine.writePsg?.(value) },
       });
       this.processedEvents += 1;
 
@@ -350,7 +356,8 @@ export class VgmPlayer {
             ym2612: ym2612Target,
             ym2203: ym2203Target,
             ym2608: ym2608Target,
-            psg: { write: (value) => this.engine.writePsg(value) },
+        ym2610: ym2610Target,
+            psg: { write: (value) => this.engine.writePsg?.(value) },
           },
           event.samples,
           (vgmSamples) => this.#renderWaitSegment(vgmSamples),

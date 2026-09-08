@@ -10,10 +10,14 @@ export class Ym2610B {
     this.bufferFrames = 0;
   }
 
-  static async create({ moduleFactory, moduleOptions } = {}) {
+  static async create({ moduleFactory, moduleOptions, variant = true } = {}) {
     if (!moduleFactory) throw new Error("moduleFactory is required");
     const module = await moduleFactory(moduleOptions ?? {});
     const api = {
+      createVariant: module.cwrap("ym2610b_create_variant", "number", ["number"]),
+      loadRom: module.cwrap("ym2610b_load_rom", "number", ["number","number","number","number","number","number"]),
+      clearRoms: module.cwrap("ym2610b_clear_roms", null, ["number"]),
+      mute: module.cwrap("ym2610b_set_source_mute_mask", null, ["number","number"]),
       create: module.cwrap("ym2610b_create", "number", []),
       destroy: module.cwrap("ym2610b_destroy", null, ["number"]),
       reset: module.cwrap("ym2610b_reset", null, ["number"]),
@@ -25,7 +29,7 @@ export class Ym2610B {
       sampleRate: module.cwrap("ym2610b_sample_rate", "number", ["number", "number"]),
       generate: module.cwrap("ym2610b_generate", null, ["number", "number", "number", "number"]),
     };
-    return new Ym2610B(module, api.create(), api);
+    return new Ym2610B(module, variant ? api.create() : api.createVariant(0), api);
   }
 
   dispose() {
@@ -37,6 +41,20 @@ export class Ym2610B {
     this.handle = 0;
   }
 
+  clearAdpcmRoms() { this.api.clearRoms(this.handle); }
+  setSourceMuteMask(mask) { this.api.mute(this.handle, mask); }
+  loadAdpcmRom(type, bytes, offset = 0, size = offset + bytes.length) {
+    if (!(bytes instanceof Uint8Array) || ![0,1].includes(type) ||
+      !Number.isInteger(offset) || !Number.isInteger(size) || offset < 0 || size < 0 ||
+      size > 0x1000000 || offset > size || bytes.length > size-offset) throw new RangeError('Invalid YM2610 ADPCM ROM range');
+    if (!bytes.length) { this.api.loadRom(this.handle,type,size,offset,0,0); return; }
+    const ptr = this.module._malloc(bytes.length);
+    if (!ptr) throw new Error('ADPCM ROM allocation failed');
+    try {
+      this.module.HEAPU8.set(bytes,ptr);
+      if (!this.api.loadRom(this.handle,type,size,offset,ptr,bytes.length)) throw new Error('ADPCM ROM load failed');
+    } finally { this.module._free(ptr); }
+  }
   reset() { this.api.reset(this.handle); }
   write(offset, data) { this.api.write(this.handle, offset, data); }
   read(offset) { return this.api.read(this.handle, offset); }

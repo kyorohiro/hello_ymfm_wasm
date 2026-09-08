@@ -503,6 +503,15 @@ export class Ym2612VGM {
           this.position += 7 + size;
           return this.step();
         }
+        if (dataType === 0x82 || dataType === 0x83) {
+          if (size < 8) throw new Error('Invalid YM2610 ROM block header');
+          const memorySize = readUint32LE(this.view, this.position + 7);
+          const offset = readUint32LE(this.view, this.position + 11);
+          if (memorySize > 0x1000000 || offset > memorySize || size-8 > memorySize-offset) throw new RangeError('Invalid YM2610 ROM range');
+          const data = this.bytes.slice(this.position+15,this.position+7+size);
+          this.position += 7+size;
+          return { type:'ym2610-rom-data', romType:dataType-0x82, data, offset, memorySize, chipIndex:rawSize >>> 31 };
+        }
         if (dataType === 0x81) {
           if (size < 8) throw new Error("Invalid YM2608 ADPCM-B data block: missing memory header");
           const memorySize = readUint32LE(this.view, this.position + 7);
@@ -652,6 +661,11 @@ export class Ym2612VGM {
         ym2608.writeRegister(event.register, event.value, event.port);
       }
     }
+    if (event.type === 'ym2610-rom-data') {
+      if (event.chipIndex) this.#warn('Skipping second YM2610 ROM');
+      else if (targets.ym2610?.loadAdpcmRom) targets.ym2610.loadAdpcmRom(event.romType,event.data,event.offset,event.memorySize);
+      else this.#warn('YM2610 ROM requires an ADPCM playback target');
+    }
     if (event.type === "ym2610-write") {
       const ym2610 = targets.ym2610;
       if (ym2610 && typeof ym2610.writeRegister === "function") {
@@ -776,6 +790,9 @@ export class Ym2612VGM {
     }
     if (command === 0x56 || command === 0x57) {
       return `cmd=0x${command.toString(16)} ym2608 port=${command === 0x56 ? 0 : 1} register=${formatHexNumber(this.bytes[position + 1])} value=${formatHexNumber(this.bytes[position + 2])}`;
+    }
+    if (command === 0x58 || command === 0x59) {
+      return `cmd=0x${command.toString(16)} ym2610 port=${command - 0x58} register=${formatHexNumber(this.bytes[position + 1])} value=${formatHexNumber(this.bytes[position + 2])}`;
     }
     if (command === 0x61) {
       return `cmd=0x61 wait=${readUint16LE(this.view, position + 1)}`;
@@ -2003,7 +2020,7 @@ function rawCommandLength(bytes, view, position) {
   if (command === 0x55) {
     return 3;
   }
-  if (command === 0x56 || command === 0x57) {
+  if (command === 0x56 || command === 0x57 || command === 0x58 || command === 0x59) {
     return 3;
   }
   if (command === 0x61) {

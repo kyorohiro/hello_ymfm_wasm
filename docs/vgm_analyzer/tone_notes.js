@@ -1,5 +1,5 @@
-import { Ym2612VGM } from '../js/ym2612vgm.js';
-import { createPsgMonitor, applySsgWrite, applyPsgWrite, describePsgMonitor } from './psg_monitor.js?v=tone-notes-1';
+import { Ym2612VGM } from '../js/ym2612vgm.js?v=ym2610-vgm-2';
+import { createPsgMonitor, applySsgWrite, applyPsgWrite, describePsgMonitor } from './psg_monitor.js?v=ym2610-vgm-2';
 
 // YMFM ssg_effective_clock(): OPN /2, OPNA /4 at the default prescaler.
 export function describeToneNotes(state, clock) {
@@ -22,7 +22,7 @@ export function extractToneNotes(source, chipKind) {
   const warnings = new Map();
   const warn = text => warnings.set(text, {count:1});
   const groups = [];
-  if (['ym2203','ym2608'].includes(chipKind)) groups.push({kind:chipKind,state:createPsgMonitor(chipKind),clock:parser.header[`${chipKind}Clock`] & 0x3fffffff});
+  if (['ym2203','ym2608','ym2610'].includes(chipKind)) groups.push({kind:chipKind,state:createPsgMonitor(chipKind),clock:parser.header[`${chipKind}Clock`] & 0x3fffffff});
   if (parser.header.psgClock & 0x3fffffff) groups.push({kind:'psg',state:createPsgMonitor('ym2612'),clock:parser.header.psgClock & 0x3fffffff});
   for (const g of groups) {
     g.channels = [0,1,2].map(i=>({name:`${g.kind === 'psg' ? 'PSG' : `${g.kind.toUpperCase()} SSG`} ${i+1}`, notes:[],active:null,serial:0}));
@@ -49,7 +49,7 @@ export function extractToneNotes(source, chipKind) {
       targets.psg={write:value=>{applyPsgWrite(g.state,value,time);update(g);}};
       warn('PSG noise channel omitted; tone period zero follows Sega PSG (1024).');
       if(parser.header.psgClock & 0x40000000) warn('Dual PSG: only first chip converted');
-    } else targets[g.kind]={writeRegister:(r,v,p=0)=>{if(applySsgWrite(g.state,p,r,v,time)) update(g,p===0 && r===13);}, loadAdpcmBMemory:()=>{}};
+    } else targets[g.kind]={writeRegister:(r,v,p=0)=>{if(applySsgWrite(g.state,p,r,v,time)) update(g,p===0 && r===13);}, loadAdpcmBMemory:()=>{}, loadAdpcmRom:()=>{}};
   }
   while(true) {
     const event=parser.playStep(targets);

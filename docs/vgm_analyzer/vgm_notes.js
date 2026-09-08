@@ -1,8 +1,8 @@
-import { Ym2612VGM } from "../js/ym2612vgm.js";
+import { Ym2612VGM } from "../js/ym2612vgm.js?v=ym2610-vgm-2";
 
 /** Extract unquantized FM note intervals in 44100 Hz sample time. */
 export function midiChipKind(header) {
-  return ['ym2612', 'ym2608', 'ym2203'].find(kind => (header[`${kind}Clock`] & 0x3fffffff) > 0) ?? ((header.psgClock & 0x3fffffff) ? 'psg' : null);
+  return ['ym2612', 'ym2608', 'ym2203', 'ym2610'].find(kind => (header[`${kind}Clock`] & 0x3fffffff) > 0) ?? ((header.psgClock & 0x3fffffff) ? 'psg' : null);
 }
 
 export function extractYm2612Notes(source) {
@@ -20,12 +20,12 @@ export function extractOpnNotes(source, { chipKind = null } = {}) {
   };
   const parser = new Ym2612VGM(source, { logger: { warn } });
   chipKind ??= midiChipKind(parser.header);
-  if (!['ym2612', 'ym2203', 'ym2608'].includes(chipKind)) throw new Error('MIDI supports YM2612 / YM2203 / YM2608 FM');
-  const chipName = chipKind.toUpperCase();
+  if (!['ym2612', 'ym2203', 'ym2608', 'ym2610'].includes(chipKind)) throw new Error('MIDI supports YM2612 / YM2203 / YM2608 FM');
+  const chipName = chipKind === "ym2610" && (parser.header.ym2610Clock & 0x80000000) ? "YM2610B" : chipKind.toUpperCase();
   const clock = parser.header[`${chipKind}Clock`] & 0x3fffffff;
   if (!clock) throw new Error(`Note extraction requires ${chipName} FM`);
   if (parser.header[`${chipKind}Clock`] & 0x40000000) warn(`Dual ${chipName}: only the first chip is converted`);
-  for (const other of ['ym2612','ym2203','ym2608']) {
+  for (const other of ['ym2612','ym2203','ym2608','ym2610']) {
     if (other !== chipKind && (parser.header[`${other}Clock`] & 0x3fffffff)) warn(`${other.toUpperCase()} FM omitted; exporting ${chipName}`);
   }
   const channelCount = chipKind === 'ym2203' ? 3 : 6;
@@ -44,6 +44,7 @@ export function extractOpnNotes(source, { chipKind = null } = {}) {
     ch.active = null;
   }
   function begin(ch, index) {
+    if (chipKind === "ym2610" && !(parser.header.ym2610Clock & 0x80000000) && [0,3].includes(index)) return;
     if (index >= 3 && !sixChannelMode) return;
 
     const patch = JSON.stringify(Object.fromEntries(Object.entries(ch.patch).sort()));
@@ -60,7 +61,7 @@ export function extractOpnNotes(source, { chipKind = null } = {}) {
   }
   function write(register, value, port = 0) {
     if (chipKind !== 'ym2612') {
-      if (port === 0 && register >= 0x2d && register <= 0x2f) {
+      if (chipKind !== "ym2610" && port === 0 && register >= 0x2d && register <= 0x2f) {
         const next = register === 0x2d ? 6 : register === 0x2f ? 2 : prescale === 6 ? 3 : prescale;
         if (next !== prescale) {
           channels.forEach(ch => finish(ch));
@@ -122,6 +123,7 @@ export function extractOpnNotes(source, { chipKind = null } = {}) {
     warn(`Unconverted ${chipName} register port=${port} reg=0x${register.toString(16)}`);
   }
   const targets = { [chipKind]: { writeRegister: write }, psg: { write: () => warn("PSG writes omitted") } };
+  if (chipKind === 'ym2610') targets.ym2610.loadAdpcmRom = () => warn('ADPCM ROM samples omitted');
   if (chipKind === 'ym2608') targets.ym2608.loadAdpcmBMemory = () => warn('ADPCM-B samples omitted');
   while (true) {
     const event = parser.playStep(targets);

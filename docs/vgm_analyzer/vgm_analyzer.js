@@ -1,14 +1,15 @@
-import { describeToneNotes } from './tone_notes.js';
-import { midiChipKind } from "./vgm_notes.js?v=tone-notes-1";
+import { createYm2610BAudioEngine } from '../js/ym2610baudioengine.js';
+import { describeToneNotes } from './tone_notes.js?v=ym2610-vgm-2';
+import { midiChipKind } from "./vgm_notes.js?v=ym2610-vgm-2";
 import { renderFretboard, FRET_TRAIL_MS, createFretboardTracker } from "./fretboard.js?v=hand-position-2";
-import { exportAnalysisMidi } from "./vgm_midi.js?v=tone-notes-1";
+import { exportAnalysisMidi } from "./vgm_midi.js?v=ym2610-vgm-2";
 import { createRf5c164Monitor, describeRf5c164Monitor, observeRf5c164Engine } from "./rf5c164_monitor.js";
-import { sourcesForChip, applySourceMutes, allSourcesMuted } from "./source_mutes.js";
-import { createPsgMonitor, describePsgMonitor, observePsgEngine } from "./psg_monitor.js?v=tone-notes-1";
+import { sourcesForChip, applySourceMutes, allSourcesMuted } from "./source_mutes.js?v=ym2610-vgm-2";
+import { createPsgMonitor, describePsgMonitor, observePsgEngine } from "./psg_monitor.js?v=ym2610-vgm-2";
 import { exportAnalysisMml } from "./vgm_mml.js";
 import {
   Ym2612VGM,
-} from "../js/ym2612vgm.js";
+} from "../js/ym2612vgm.js?v=ym2610-vgm-2";
 import { createTfiFromPreset } from "../js/tfi.js";
 import { createVgiFromPreset } from "../js/vgi.js";
 import ym2612ModuleFactory from "../generated/ym2612_wasm.js";
@@ -17,7 +18,7 @@ import segaPsgModuleFactory from "../generated/segapsg_wasm.js";
 import { createGenesisAudioEngine } from "../js/genesisaudioengine.js";
 import { createYm2203AudioEngine } from "../js/ym2203audioengine.js";
 import { createYm2608AudioEngine } from "../js/ym2608audioengine.js";
-import { VgmPlayer } from "../js/vgmplayer.js";
+import { VgmPlayer } from "../js/vgmplayer.js?v=ym2610-vgm-2";
 import { looksLikeS98, convertS98ToVgm } from "../js/s98_file.js";
 import { maybeDecodeVgmFile } from "../js/vgm_file.js";
 
@@ -110,6 +111,7 @@ let psgHighlightActive = false;
 let baseEngineWriteYm2612 = null;
 let baseEngineWriteYm2203 = null;
 let baseEngineWriteYm2608 = null;
+let baseEngineWriteYm2610 = null;
 let channelMonitorRenderTimer = null;
 let noteishRenderTimer = null;
 let channelMonitorDirty = false;
@@ -247,6 +249,7 @@ function renderMonitorToggles() {
   }
 
   channelMonitor.forEach((channel) => {
+    if (channel.unavailable) return;
     const button = document.createElement("button");
     button.type = "button";
     button.className = `channel-toggle${channel.muted ? " is-muted" : ""}`;
@@ -301,7 +304,8 @@ function createChannelMonitorState() {
     noteSequence: [],
     noteSequenceOpen: false,
     lastSequenceNote: null,
-    muted: channelMuteStates[index],
+    muted: channelMuteStates[index] || (currentChipKind === "ym2610" && !(noteishHeader.ym2610Clock & 0x80000000) && [0,3].includes(index)),
+    unavailable: currentChipKind === "ym2610" && !(noteishHeader.ym2610Clock & 0x80000000) && [0,3].includes(index),
     b4Value: 0xc0,
     specialMode: false,
     specialFrequencies: {
@@ -380,6 +384,7 @@ function renderParamToken(label, value, changedAt, hue = "255 184 92") {
 
 function hasRecentChannelChanges() {
   for (const channel of channelMonitor) {
+    if (channel.unavailable) continue;
     for (const value of Object.values(channel.changedAt)) {
       if (changeAgeOpacity(value) > 0) {
         return true;
@@ -451,7 +456,7 @@ function requestNoteishRender() {
 function renderPsgMonitor() {
   const state = describePsgMonitor(psgMonitor, psgMonitor.kind === "ssg" ? sourceMutes.ssg : sourceMutes.psg);
   const title = document.getElementById("psgMonitorTitle");
-  title.textContent = state.kind === "ssg" ? `${currentChipKind.toUpperCase()} SSG${sourceMutes.ssg ? " · Muted" : ""}` : `Sega PSG${sourceMutes.psg ? " · Muted" : ""}`;
+  title.textContent = state.kind === "ssg" ? `${(currentChipKind === "ym2610" && (noteishHeader.ym2610Clock & 0x80000000) ? "YM2610B" : currentChipKind.toUpperCase())} SSG${sourceMutes.ssg ? " · Muted" : ""}` : `Sega PSG${sourceMutes.psg ? " · Muted" : ""}`;
   const token = (label, value, ...registers) => renderChannelChip(label, value,
     Math.max(0, ...registers.map((r) => psgMonitor.changedAt[r])), "166 214 148");
   const card = (name, content) => `<section class="channel-card"><div class="channel-head"><span class="channel-title">${name}</span></div><div class="channel-row">${content}</div></section>`;
@@ -500,7 +505,7 @@ function renderPcmMonitor() {
 
 function noteishChannels() {
   const fm = noteishHeader.psgClock && !noteishHeader[`${currentChipKind}Clock`] ? [] : channelMonitor;
-  return [...fm, ...toneChannels];
+  return [...fm.filter(ch=>!ch.unavailable), ...toneChannels];
 }
 
 function updateToneMonitor() {
@@ -510,6 +515,7 @@ function updateToneMonitor() {
   const now = performance.now();
   describeToneNotes(psgMonitor, clock).forEach((note,i)=>{
     const ch = toneChannels[i];
+    ch.unavailable = false;
     const midi = note.keyOn ? note.midi : null;
     if (ch.keyOn !== note.keyOn || ch.toneMidi !== note.midi) {
       ch.noteHistory.push({time:now,midiFloat:midi});
@@ -544,6 +550,7 @@ function renderChannelMonitor() {
   channelGrid.innerHTML = "";
   renderMonitorToggles();
   for (const channel of channelMonitor) {
+    if (channel.unavailable) continue;
     const card = document.createElement("section");
     card.className = `channel-card${channel.keyOn ? " is-key-on" : ""}`;
     const pan = `${channel.panLeft ? "L" : "-"}${channel.panRight ? "R" : "-"}`;
@@ -579,7 +586,7 @@ function renderChannelMonitor() {
     channelGrid.append(card);
   }
 
-  if (currentChipKind === "ym2612" || currentChipKind === "ym2608") {
+  if (["ym2612", "ym2608", "ym2610"].includes(currentChipKind)) {
     const specialCard = document.createElement("section");
     const ch3 = channelMonitor[2];
     specialCard.className = `channel-card${ch3?.keyOn ? " is-key-on" : ""}`;
@@ -629,6 +636,11 @@ function estimateChannelNoteish(channel) {
     };
   }
 
+  if (currentChipKind === 'ym2610') {
+    const hz = channel.fnum * (noteishHeader.ym2610Clock & 0x3fffffff) * 2**(channel.block-1) / (144 * 2**20);
+    const midi = 69 + 12*Math.log2(hz/440);
+    return {midiFloat:midi,note:`~${midiToNoteName(Math.round(midi))}`,cents:Math.round((midi-Math.round(midi))*100)};
+  }
   const ratio =
     (channel.fnum / NOTEISH_REFERENCE_FNUM) *
     Math.pow(2, channel.block - NOTEISH_REFERENCE_BLOCK);
@@ -1078,12 +1090,12 @@ function toggleChannelMute(channelIndex) {
     return;
   }
 
-  if ((currentChipKind === "ym2612" || currentChipKind === "ym2608")) {
+  if ((["ym2612", "ym2608", "ym2610"].includes(currentChipKind))) {
     const port = channelIndex < 3 ? 0 : 1;
     const register = 0xb4 + (channelIndex % 3);
     const writePort = currentChipKind === "ym2612"
       ? baseEngineWriteYm2612
-      : baseEngineWriteYm2608;
+      : currentChipKind === "ym2610" ? baseEngineWriteYm2610 : baseEngineWriteYm2608;
     if (typeof writePort === "function") {
       writePort(port, register, effectivePanValue(channel));
     }
@@ -1160,6 +1172,7 @@ function renderHeader(header) {
 }
 
 function detectPlaybackChipKind(header) {
+  if ((header.ym2610Clock & 0x3fffffff) && !header.ym2612Clock && !header.ym2203Clock && !header.ym2608Clock) return "ym2610";
   if (header.rf5c164Clock > 0) return "ym2612";
   if (header.ym2203Clock > 0 && header.ym2612Clock === 0) {
     return "ym2203";
@@ -1509,6 +1522,13 @@ function decodeKeyOnChannel(value) {
 }
 
 function applyYm2612WriteToMonitor(port, register, value) {
+  if (currentChipKind === 'ym2610') {
+    if (port === 0 && register < 0x20 || port === 1 && register < 0x30) return;
+    if (!(noteishHeader.ym2610Clock & 0x80000000)) {
+      const index = register === 0x28 && port === 0 ? decodeKeyOnChannel(value) : port*3 + (register&3);
+      if ((register === 0x28 || register >= 0x30) && [0,3].includes(index)) return;
+    }
+  }
   let changed = false;
   const now = performance.now();
   const channelBase = port === 0 ? 0 : 3;
@@ -2084,7 +2104,7 @@ function downloadSnapshotVgiZip() {
 async function ensurePlaybackReady(vgm) {
   const nextChipKind = detectPlaybackChipKind(vgm.header);
   const nextClockKey = JSON.stringify([nextChipKind, vgm.header.ym2612Clock, vgm.header.psgClock,
-    vgm.header.rf5c164Clock, vgm.header.ym2203Clock, vgm.header.ym2608Clock]);
+    vgm.header.rf5c164Clock, vgm.header.ym2203Clock, vgm.header.ym2608Clock, vgm.header.ym2610Clock]);
 
   if (engine && (currentChipKind !== nextChipKind || engineClockKey !== nextClockKey)) {
     stopActiveStream();
@@ -2096,6 +2116,7 @@ async function ensurePlaybackReady(vgm) {
     baseEngineWriteYm2612 = null;
     baseEngineWriteYm2203 = null;
     baseEngineWriteYm2608 = null;
+    baseEngineWriteYm2610 = null;
     workletModuleReady = false;
   }
 
@@ -2105,7 +2126,15 @@ async function ensurePlaybackReady(vgm) {
   currentPcmClock = vgm.header.rf5c164Clock & 0x3fffffff;
 
   if (!engine) {
-    if (currentChipKind === "ym2203") {
+    if (currentChipKind === "ym2610") {
+      engine = await createYm2610BAudioEngine({
+        moduleFactory: (await import('../generated/ym2610b_wasm.js?v=ym2610-vgm-2')).default,
+        clock: vgm.header.ym2610Clock & 0x3fffffff,
+        variant: Boolean(vgm.header.ym2610Clock & 0x80000000), masterVolume,
+      });
+      observePsgPlaybackEngine();
+      baseEngineWriteYm2610 = engine.writeYm2610B.bind(engine);
+    } else if (currentChipKind === "ym2203") {
       engine = await createYm2203AudioEngine({
         ym2203ModuleFactory: await loadYm2203ModuleFactory(),
         ym2203Clock: vgm.header.ym2203Clock,
@@ -2324,10 +2353,10 @@ async function playCurrentVgm() {
     renderNoteishGrid();
     engine.reset();
     lastYm2612DacEnable = 0x00;
-    if ((currentChipKind === "ym2612" || currentChipKind === "ym2608")) {
+    if ((["ym2612", "ym2608", "ym2610"].includes(currentChipKind))) {
       const baseWriteFm = currentChipKind === "ym2612"
         ? baseEngineWriteYm2612
-        : baseEngineWriteYm2608;
+        : currentChipKind === "ym2610" ? baseEngineWriteYm2610 : baseEngineWriteYm2608;
       if (typeof baseWriteFm === "function") {
         if (currentChipKind === "ym2612") {
           engine.writeYm2612 = (port, register, value) => {
@@ -2348,14 +2377,14 @@ async function playCurrentVgm() {
             baseEngineWriteYm2612(port, register, value);
           };
         } else {
-          engine.writeYm2608 = (port, register, value) => {
+          engine[currentChipKind === "ym2610" ? "writeYm2610B" : "writeYm2608"] = (port, register, value) => {
             applyYm2612WriteToMonitor(port, register, value);
             if (register >= 0xb4 && register <= 0xb6) {
               const channelIndex = (port === 0 ? 0 : 3) + (register - 0xb4);
-              baseEngineWriteYm2608(port, register, effectivePanValue(channelMonitor[channelIndex]));
+              baseWriteFm(port, register, effectivePanValue(channelMonitor[channelIndex]));
               return;
             }
-            baseEngineWriteYm2608(port, register, value);
+            baseWriteFm(port, register, value);
           };
         }
       }
@@ -2597,6 +2626,7 @@ async function handleFile(file) {
     baseEngineWriteYm2612 = null;
     baseEngineWriteYm2203 = null;
     baseEngineWriteYm2608 = null;
+    baseEngineWriteYm2610 = null;
     workletModuleReady = false;
   }
   currentChipKind = nextChipKind;
@@ -2644,7 +2674,7 @@ async function handleFile(file) {
   exportAllTfiButton.disabled = extractedTfiPatches.length === 0;
   exportAllVgiButton.disabled = extractedTfiPatches.length === 0;
   updatePlaybackButtons({});
-  setStatus(`Parsed ${file.name} (${currentHasPcm ? "MEGA-CD" : currentChipKind.toUpperCase()}).${currentStatusSuffix()}`);
+  setStatus(`Parsed ${file.name} (${currentHasPcm ? "MEGA-CD" : (currentChipKind === "ym2610" && (noteishHeader.ym2610Clock & 0x80000000) ? "YM2610B" : currentChipKind.toUpperCase())}).${currentStatusSuffix()}`);
 }
 
 async function handleYm2608RomFile(file) {

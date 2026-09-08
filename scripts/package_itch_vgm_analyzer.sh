@@ -29,6 +29,8 @@ vgm_mml_music.js
 "
 
 JS_FILES="
+ym2610b.js
+ym2610baudioengine.js
 genesisaudioengine.js
 rf5c164.js
 opn_fm_vgm.js
@@ -48,6 +50,8 @@ ym2612vgm.js
 "
 
 GENERATED_FILES="
+ym2610b_wasm.js
+ym2610b_wasm.wasm
 ym2203_wasm.js
 ym2203_wasm.wasm
 ym2608_wasm.js
@@ -178,8 +182,9 @@ EOF
 
 # Make the analyzer runnable from itch.io as a standalone app.
 perl -0pi -e 's#<a class="link-button" href="\.\./index\.html">Back</a>##g' "${STAGE_DIR}/index.html"
-perl -0pi -e 's#"\.\./js/#"./js/#g; s#"\.\./generated/#"./generated/#g' \
-  "${STAGE_DIR}/index.html" "${STAGE_DIR}/vgm_analyzer.js" "${STAGE_DIR}/vgm_mml.js"
+perl -0pi -e "s#(['\"])\\.\\./js/#\$1./js/#g; s#(['\"])\\.\\./generated/#\$1./generated/#g" \
+  "${STAGE_DIR}/index.html" "${STAGE_DIR}/vgm_analyzer.js" "${STAGE_DIR}/vgm_mml.js" \
+  "${STAGE_DIR}/vgm_notes.js" "${STAGE_DIR}/tone_notes.js" "${STAGE_DIR}/vgm_midi.js"
 perl -0pi -e 's#\.\./js/vgm-output-worklet\.js#./js/vgm-output-worklet.js#g' \
   "${STAGE_DIR}/index.html"
 

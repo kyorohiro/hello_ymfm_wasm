@@ -30,7 +30,7 @@ This repository has four goals:
 - a reusable `Playground(...)` runtime layer for browser games and app embedding
 - a browser playground for trying YM2612 control and live coding from JavaScript
 - a browser synth app for hands-on YM2612 sound design
-- a Genesis-oriented VGM analyzer for playback, inspection, and patch extraction
+- a VGM analyzer for playback, inspection, and patch extraction, including YM2610 / YM2610B FM, SSG and ADPCM-A/B playback from embedded VGM ROM blocks
 
 ## Download
 

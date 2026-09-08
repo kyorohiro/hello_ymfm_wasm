@@ -1,8 +1,8 @@
-import { Ym2610B, YM2610B_CLOCK } from "./ym2610b.js";
+import { Ym2610B, YM2610B_CLOCK } from "./ym2610b.js?v=ym2610-vgm-1";
 
 const DEFAULT_OUTPUT_SAMPLE_RATE = 44100;
 
-/** FM-only browser audio engine for the YM2610B core. */
+/** YM2610 / YM2610B FM, SSG and ADPCM playback engine. */
 export class Ym2610BAudioEngine {
   constructor(chip, chipSampleRate, outputSampleRate, masterVolume = 1) {
     this.chip = chip;
@@ -10,12 +10,14 @@ export class Ym2610BAudioEngine {
     this.outputSampleRate = outputSampleRate;
     this.masterVolume = clampVolume(masterVolume);
     this.remainder = 0;
+    this.sourceMuteMask = 0;
   }
 
   static async create(options = {}) {
     const chip = await Ym2610B.create({
       moduleFactory: options.moduleFactory,
       moduleOptions: options.moduleOptions,
+      variant: options.variant ?? true,
     });
     return new Ym2610BAudioEngine(
       chip,
@@ -26,7 +28,7 @@ export class Ym2610BAudioEngine {
   }
 
   dispose() { this.chip.dispose(); }
-  reset() { this.chip.reset(); this.remainder = 0; }
+  reset() { this.chip.reset(); this.clearAdpcmRoms(); this.remainder = 0; }
   sampleRate() { return this.outputSampleRate; }
   setMasterVolume(value) { this.masterVolume = clampVolume(value); return this.masterVolume; }
   getMasterVolume() { return this.masterVolume; }
@@ -35,6 +37,15 @@ export class Ym2610BAudioEngine {
     this.chip.write((port * 2) + 1, value);
   }
 
+  loadAdpcmRom(type, data, offset, size) { this.chip.loadAdpcmRom(type, data, offset, size); }
+  clearAdpcmRoms() { this.chip.clearAdpcmRoms?.(); }
+  setSsgMuted(muted) { this.setSourceMuted(1, muted); }
+  setRhythmMuted(muted) { this.setSourceMuted(2, muted); }
+  setAdpcmBMuted(muted) { this.setSourceMuted(4, muted); }
+  setSourceMuted(bit, muted) {
+    this.sourceMuteMask = muted ? this.sourceMuteMask | bit : this.sourceMuteMask & ~bit;
+    this.chip.setSourceMuteMask(this.sourceMuteMask);
+  }
   process(left, right, frames) {
     if (!(left instanceof Float32Array) || !(right instanceof Float32Array)) {
       throw new Error("process expects Float32Array buffers");

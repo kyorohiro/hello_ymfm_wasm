@@ -1,6 +1,6 @@
-import { extractToneNotes } from './tone_notes.js';
-import { Ym2612VGM } from '../js/ym2612vgm.js';
-import { extractOpnNotes, midiChipKind } from './vgm_notes.js?v=tone-notes-1';
+import { extractToneNotes } from './tone_notes.js?v=ym2610-vgm-2';
+import { Ym2612VGM } from '../js/ym2612vgm.js?v=ym2610-vgm-2';
+import { extractOpnNotes, midiChipKind } from './vgm_notes.js?v=ym2610-vgm-2';
 
 const PPQN = 960;
 const utf8 = text => new TextEncoder().encode(text);
@@ -44,9 +44,9 @@ export function exportAnalysisMidi(source, { bpm = 120, fileName = 'VGM' } = {})
   const tones = extractToneNotes(source, chipKind);
   const channels = [...fm.channels, ...tones.channels];
   const time = tones.time;
-  const chipName = chipKind.toUpperCase();
+  const chipName = chipKind === 'ym2610' && (parserHeader.ym2610Clock & 0x80000000) ? 'YM2610B' : chipKind.toUpperCase();
   const extractionWarnings = new Map([...fm.warnings, ...tones.warnings]);
-  if (['ym2203','ym2608'].includes(chipKind)) extractionWarnings.delete('SSG writes omitted');
+  if (['ym2203','ym2608','ym2610'].includes(chipKind)) extractionWarnings.delete('SSG writes omitted');
   if (parserHeader.psgClock & 0x3fffffff) extractionWarnings.delete('PSG writes omitted');
   const warnings = ['FM and SSG/PSG tone notes; PCM, noise and original timbres are not reproduced.',
     'Pitch changes become Pitch Bend. Chip LFO and SSG envelope phase are not synthesized. Velocity is fixed at 100.'];

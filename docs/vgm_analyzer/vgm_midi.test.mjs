@@ -180,3 +180,16 @@ test('combined FM SSG PSG tracks skip MIDI percussion channel',()=>{
   assert.equal(notes(d.tracks[10])[0].status,0x9a);
   assert.ok(d.tracks.flat().filter(e=>e.status!==255).every(e=>(e.status&15)!==9));
 });
+test('YM2610/B MIDI selects hardware FM channels and includes SSG',()=>{
+ for(const variant of [false,true]) {
+  const src=vgm([0x58,0xa4,0x22,0x58,0xa0,0x69,0x58,0x28,0xf0,
+    0x58,0xa5,0x22,0x58,0xa1,0x69,0x58,0x28,0xf1,
+    0x58,7,0x3e,0x58,0,28,0x58,1,1,0x58,8,15,...wait(1000),0x66],0);
+  new DataView(src.buffer).setUint32(0x4c,(8000000|(variant?0x80000000:0))>>>0,true);
+  const result=exportAnalysisMidi(src),d=decode(result.bytes);
+  assert.equal(result.chipName,variant?'YM2610B':'YM2610');
+  assert.equal(notes(d.tracks[1]).length,variant?2:0);
+  assert.equal(notes(d.tracks[2]).length,2);
+  assert.equal(notes(d.tracks[7])[0].data[0],69);
+ }
+});

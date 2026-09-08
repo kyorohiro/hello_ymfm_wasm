@@ -666,6 +666,8 @@ public:
 	void ssg_override(ssg_override &intf) { m_ssg.override(intf); }
 	void set_fidelity(opn_fidelity fidelity) { m_fidelity = fidelity; update_prescale(); }
 
+	void set_adpcm_mute(bool a, bool b) { m_adpcm_a_muted = a; m_adpcm_b_muted = b; }
+
 	// reset
 	void reset();
 
@@ -709,6 +711,8 @@ protected:
 	void clock_fm_and_adpcm();
 
 	// internal state
+	bool m_adpcm_a_muted = false;
+	bool m_adpcm_b_muted = false;
 	opn_fidelity m_fidelity;            // configured fidelity
 	uint16_t m_address;                 // address register
 	uint8_t const m_fm_mask;            // FM channel mask
