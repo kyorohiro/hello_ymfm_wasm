@@ -1,5 +1,5 @@
 import { midiChipKind } from "./vgm_notes.js";
-import { renderFretboard, FRET_TRAIL_MS } from "./fretboard.js?v=fret-trail-1";
+import { renderFretboard, FRET_TRAIL_MS, createFretboardTracker } from "./fretboard.js?v=hand-position-1";
 import { exportAnalysisMidi } from "./vgm_midi.js";
 import { createRf5c164Monitor, describeRf5c164Monitor, observeRf5c164Engine } from "./rf5c164_monitor.js";
 import { sourcesForChip, applySourceMutes, allSourcesMuted } from "./source_mutes.js";
@@ -721,16 +721,19 @@ function noteishGraphX(midiFloat) {
   return 16 + (normalized * 188);
 }
 
+const fretboardTrackers = new WeakMap();
+
 function renderNoteishGraph(channel, estimated) {
   if (noteishInstrument.value === "fretboard") {
-    const now = performance.now();
-    const history = channel.noteHistory.map((point, index, points) => ({
-      note: point.midiFloat,
-      ageMs: now - (points[index + 1]?.time ?? point.time),
-    }));
-    return renderFretboard([estimated.midiFloat], {
-      strings: Number(fretboardStrings.value), keyOn: channel.keyOn, history,
-    });
+    const strings = Number(fretboardStrings.value);
+    let entry = fretboardTrackers.get(channel);
+    if (!entry || entry.strings !== strings) {
+      entry = { strings, tracker: createFretboardTracker(strings) };
+      fretboardTrackers.set(channel, entry);
+    }
+    return renderFretboard([estimated.midiFloat], entry.tracker.update(
+      channel.noteHistory, estimated.midiFloat, channel.keyOn, performance.now()
+    ));
   }
   if (noteishMode.value === "detail") return renderNoteishKeyboard(channel, estimated);
   const axisY = 26;

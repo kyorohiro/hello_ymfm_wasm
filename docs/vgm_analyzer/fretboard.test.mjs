@@ -82,3 +82,42 @@ test('recent notes fade, expire, deduplicate and never dim the current note', ()
   assert.match(active,/data-fret-note="60"/);
   assert.doesNotMatch(active,/data-fret-ghost="60"/);
 });
+
+test('hand stays put whenever any reachable string fits, across all pitch pairs', async () => {
+  const { selectFretPosition } = await import('./fretboard.js');
+  for (const strings of [6,7,8]) {
+    for (let a=30;a<=88;a++) {
+      const previous=selectFretPosition(a,null,strings);
+      if(!previous) continue;
+      for(let b=30;b<=88;b++) {
+        const candidates=getFretCandidates(b,strings).filter(p=>p.fret<12 || strings-p.stringIndex<=4);
+        const next=selectFretPosition(b,previous,strings);
+        if(!candidates.length) { assert.equal(next,null); continue; }
+        assert.ok(candidates.some(p=>p.stringIndex===next.stringIndex && p.fret===next.fret));
+        assert.ok(next.fret>=next.handStart && next.fret<=next.handStart+4);
+        if(candidates.some(p=>p.fret>=previous.handStart && p.fret<=previous.handStart+4)) {
+          assert.equal(next.handStart,previous.handStart,`hand moved for ${a} -> ${b}`);
+        }
+      }
+    }
+  }
+});
+
+test('channel tracker retains historical coordinates, releases highlight and isolates hands', async () => {
+  const { createFretboardTracker } = await import('./fretboard.js');
+  const a=createFretboardTracker(6), b=createFretboardTracker(6);
+  const first={midiFloat:72,time:0};
+  const initial=a.update([first],72,true,0);
+  const old={...initial.activePositions.get(72)};
+  const second={midiFloat:64,time:100};
+  const moved=a.update([first,second],64,true,100);
+  assert.equal(moved.activePositions.get(64).handStart,old.handStart);
+  assert.deepEqual(moved.history[0].position,old);
+  const off={midiFloat:null,time:200};
+  const released=a.update([first,second,off],64,false,200);
+  assert.equal(released.activePositions.size,0);
+  const svg=renderFretboard([64],released);
+  assert.doesNotMatch(svg,/data-fret-note=/);
+  assert.match(svg,/data-fret-ghost="64"/);
+  assert.deepEqual(b.update([],72,true,200).activePositions.get(72),old);
+});
