@@ -19,11 +19,16 @@ export function getFretCandidates(note, strings = 8) {
   });
 }
 export function noteToFretPosition(note, strings = 8) {
-  const opens = tuning(strings);
-  // Fixed pitch bands: each string owns [its open pitch, next open pitch).
-  // The highest string owns the remaining range. Adding bass strings never
-  // changes the string number or fret used by an already representable pitch.
-  const band = opens.findLastIndex(open => note >= open);
+  tuning(strings);
+  // Fixed contiguous bands with at most a four-fret jump between
+  // adjacent pitches. Do not return to a lower string in the next octave:
+  // that creates large sideways jumps despite a small pitch change.
+  const bands = [
+    [34, 8], [39, 7], [47, 6], [53, 5], [59, 4],
+    [65, 3], [71, 2], [88, 1],
+  ];
+  const stringNumber = bands.find(([upper]) => note <= upper)?.[1];
+  const band = strings - stringNumber;
   return getFretCandidates(note, strings).sort((a, b) =>
     Math.abs(a.stringIndex - band) - Math.abs(b.stringIndex - band) || a.fret - b.fret
   )[0] ?? null;

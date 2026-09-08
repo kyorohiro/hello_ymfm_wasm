@@ -1,5 +1,5 @@
 import { midiChipKind } from "./vgm_notes.js";
-import { renderFretboard } from "./fretboard.js";
+import { renderFretboard } from "./fretboard.js?v=pitch-bands-3";
 import { exportAnalysisMidi } from "./vgm_midi.js";
 import { createRf5c164Monitor, describeRf5c164Monitor, observeRf5c164Engine } from "./rf5c164_monitor.js";
 import { sourcesForChip, applySourceMutes, allSourcesMuted } from "./source_mutes.js";
