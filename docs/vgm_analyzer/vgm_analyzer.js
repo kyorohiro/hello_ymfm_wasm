@@ -1,4 +1,5 @@
 import { midiChipKind } from "./vgm_notes.js";
+import { renderFretboard } from "./fretboard.js";
 import { exportAnalysisMidi } from "./vgm_midi.js";
 import { createRf5c164Monitor, describeRf5c164Monitor, observeRf5c164Engine } from "./rf5c164_monitor.js";
 import { sourcesForChip, applySourceMutes, allSourcesMuted } from "./source_mutes.js";
@@ -78,6 +79,8 @@ const noteishPanel = document.getElementById("noteishPanel");
 const noteishOverview = document.getElementById("noteishOverview");
 const noteishGrid = document.getElementById("noteishGrid");
 const noteishMode = document.getElementById("noteishMode");
+const noteishInstrument = document.getElementById("noteishInstrument");
+const fretboardStrings = document.getElementById("fretboardStrings");
 const noteishDetailHelp = document.getElementById("noteishDetailHelp");
 const notesDialog = document.getElementById("notesDialog");
 const notesDialogTitle = document.getElementById("notesDialogTitle");
@@ -712,6 +715,9 @@ function noteishGraphX(midiFloat) {
 }
 
 function renderNoteishGraph(channel, estimated) {
+  if (noteishInstrument.value === "fretboard") {
+    return renderFretboard([estimated.midiFloat], { strings: Number(fretboardStrings.value), keyOn: channel.keyOn });
+  }
   if (noteishMode.value === "detail") return renderNoteishKeyboard(channel, estimated);
   const axisY = 26;
   const ticks = [24, 36, 48, 60, 72, 84, 96];
@@ -955,9 +961,9 @@ function renderNoteishGrid() {
       graph.replaceWith(previousGraph);
     }
     const viewport = previousGraph ?? graph;
-    viewport.tabIndex = noteishMode.value === "detail" ? 0 : -1;
+    viewport.tabIndex = noteishMode.value === "detail" && noteishInstrument.value !== "fretboard" ? 0 : -1;
     viewport.setAttribute("role", "region");
-    viewport.setAttribute("aria-label", `CH${channel.channel + 1} pitch keyboard: ${estimated.note}`);
+    viewport.setAttribute("aria-label", `CH${channel.channel + 1} pitch display: ${channel.keyOn ? estimated.note : 'key off'}`);
     if (!card.isConnected) noteishGrid.append(card);
     viewport.scrollLeft = scrollLeft;
     if (graphFocused) viewport.focus({ preventScroll: true });
@@ -2747,7 +2753,7 @@ noteishMode.addEventListener("change", () => {
   noteishDetailHelp.hidden = !detailed;
   requestNoteishRender();
   renderNoteishGrid();
-  if (detailed) {
+  if (detailed && noteishInstrument.value !== "fretboard") {
     Array.from(noteishGrid.children).forEach((card, index) => {
       const viewport = card.querySelector(".noteish-graph");
       const midi = estimateChannelNoteish(channelMonitor[index]).midiFloat ?? 60;
@@ -2755,6 +2761,16 @@ noteishMode.addEventListener("change", () => {
     });
   }
 });
+
+function updateNoteishInstrument() {
+  const fretboard = noteishInstrument.value === "fretboard";
+  noteishPanel.classList.toggle("is-fretboard", fretboard);
+  document.getElementById("fretboardOptions").hidden = !fretboard;
+  requestNoteishRender();
+  renderNoteishGrid();
+}
+noteishInstrument.addEventListener("change", updateNoteishInstrument);
+fretboardStrings.addEventListener("change", updateNoteishInstrument);
 
 noteishGrid.addEventListener("pointerdown", (event) => {
   const target = event.target instanceof Element

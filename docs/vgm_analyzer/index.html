@@ -659,6 +659,22 @@
 
         <section id="noteishPanel" class="tab-panel" role="tabpanel" aria-labelledby="noteishTab" hidden>
           <h2>Channel Note-ish View</h2>
+          <label class="noteish-mode-control">Channel pitch display
+            <select id="noteishInstrument">
+              <option value="keyboard">Keyboard</option>
+              <option value="fretboard">Fretboard</option>
+            </select>
+          </label>
+          <div id="fretboardOptions" hidden>
+            <label class="noteish-mode-control">Strings
+              <select id="fretboardStrings">
+                <option value="6">6 — E2–E6</option>
+                <option value="7">7 — B1–E6</option>
+                <option value="8" selected>8 — F#1–E6</option>
+              </select>
+            </label>
+            <p class="noteish-help">Fixed pitch positions, 0–24 frets. High strings at the top, low strings at the bottom. Blue marks the current note and clears on key off. Arrows indicate notes outside the range. This is a pitch display, not fingering or TAB.</p>
+          </div>
           <label class="noteish-mode-control">Display
             <select id="noteishMode">
               <option value="normal">Normal</option>
