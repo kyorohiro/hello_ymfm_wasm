@@ -144,3 +144,5 @@ pre { border: 1px solid var(--line); border-radius: 7px; background: #fffaf1; co
 #noteishPanel.is-fretboard .noteish-graph svg { width: 100%; max-width: 100%; height: auto; }
 #noteishPanel.is-fretboard #noteishDetailHelp { display: none; }
 .fretboard-caption { font-size: 0.8rem; color: #5b4a33; margin-top: 6px; }
+
+.noteish-actions[hidden] { display: none; }

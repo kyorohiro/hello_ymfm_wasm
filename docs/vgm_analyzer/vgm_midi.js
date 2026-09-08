@@ -1,4 +1,6 @@
-import { extractOpnNotes } from './vgm_notes.js';
+import { extractToneNotes } from './tone_notes.js';
+import { Ym2612VGM } from '../js/ym2612vgm.js';
+import { extractOpnNotes, midiChipKind } from './vgm_notes.js?v=tone-notes-1';
 
 const PPQN = 960;
 const utf8 = text => new TextEncoder().encode(text);
@@ -35,15 +37,26 @@ export function exportAnalysisMidi(source, { bpm = 120, fileName = 'VGM' } = {})
   if (!Number.isFinite(bpm) || bpm <= 0 || tempo < 1 || tempo > 0xffffff) {
     throw new RangeError('BPM must fit the MIDI tempo range (approximately 3.58–60000000)');
   }
-  const { chipKind, chipName, channels, time, warnings: extractionWarnings, parserHeader } = extractOpnNotes(source);
-  const warnings = [`${chipName} FM notes only; SSG, PSG, PCM and FM timbres are not reproduced.`,
-    'KEY intervals become notes; FNUM changes become Pitch Bend. Chip LFO is not synthesized. Velocity is fixed at 100.'];
+  const parserHeader = new Ym2612VGM(source).header;
+  const chipKind = midiChipKind(parserHeader);
+  if (!chipKind) throw new Error('MIDI requires YM2612 / YM2203 / YM2608 or PSG');
+  const fm = chipKind === 'psg' ? {channels:[],warnings:new Map()} : extractOpnNotes(source);
+  const tones = extractToneNotes(source, chipKind);
+  const channels = [...fm.channels, ...tones.channels];
+  const time = tones.time;
+  const chipName = chipKind.toUpperCase();
+  const extractionWarnings = new Map([...fm.warnings, ...tones.warnings]);
+  if (['ym2203','ym2608'].includes(chipKind)) extractionWarnings.delete('SSG writes omitted');
+  if (parserHeader.psgClock & 0x3fffffff) extractionWarnings.delete('PSG writes omitted');
+  const warnings = ['FM and SSG/PSG tone notes; PCM, noise and original timbres are not reproduced.',
+    'Pitch changes become Pitch Bend. Chip LFO and SSG envelope phase are not synthesized. Velocity is fixed at 100.'];
   for (const [message, entry] of extractionWarnings) warnings.push(`${message} (${entry.count})`);
   if (parserHeader.loopOffset) warnings.push('VGM loop is not expanded; one pass is exported.');
   const tick = sample => Math.round(sample * 1000000 * PPQN / (44100 * tempo));
   let noteCount = 0, skippedNotes = 0, bendCount = 0;
   const bendRanges = [];
   const tracks = channels.map((channel, index) => {
+    const midiChannel = index >= 9 ? index + 1 : index;
     const notes = [];
     for (const n of channel.notes) {
       if (n.end <= n.start) continue;
@@ -64,14 +77,14 @@ export function exportAnalysisMidi(source, { bpm = 120, fileName = 'VGM' } = {})
     bendRanges.push(range);
     if (requiredRange > 127) warnings.push(`${chipName} CH${index+1}: pitch bend exceeds 127 semitones and is clipped.`);
     const bend = delta => Math.max(0, Math.min(16383, Math.round(8192 + delta * 8192 / range)));
-    const bendBytes = value => [0xe0 | index, value & 127, value >>> 7];
+    const bendBytes = value => [0xe0 | midiChannel, value & 127, value >>> 7];
     const events = [
-      { tick: 0, order: -2, bytes: textMeta(3, `${chipName} CH${index+1}`) },
-      { tick: 0, order: -1, bytes: [0xc0 | index, 0] },
+      { tick: 0, order: -2, bytes: textMeta(3, channel.name ?? `${chipName} CH${index+1}`) },
+      { tick: 0, order: -1, bytes: [0xc0 | midiChannel, 0] },
     ];
     // RPN 0: Pitch Bend Sensitivity, followed by RPN null to finish data entry.
     for (const [controller, value] of [[101,0],[100,0],[6,range],[38,0],[101,127],[100,127]]) {
-      events.push({ tick: 0, order: -1, bytes: [0xb0 | index, controller, value] });
+      events.push({ tick: 0, order: -1, bytes: [0xb0 | midiChannel, controller, value] });
     }
     events.push({ tick: 0, order: -1, bytes: bendBytes(8192) });
     for (const n of notes) {
@@ -90,14 +103,14 @@ export function exportAnalysisMidi(source, { bpm = 120, fileName = 'VGM' } = {})
         previousBend = value;
         bendCount++;
       }
-      events.push({tick:start,order:2,bytes:[0x90 | index,n.pitch,100]},
-        {tick:end,order:0,bytes:[0x80 | index,n.pitch,0]});
+      events.push({tick:start,order:2,bytes:[0x90 | midiChannel,n.pitch,100]},
+        {tick:end,order:0,bytes:[0x80 | midiChannel,n.pitch,0]});
       noteCount++;
     }
     events.push({tick:tick(time),order:3,bytes:bendBytes(8192)});
     return track(events, tick(time));
   });
-  if (!noteCount) throw new Error(`No convertible ${chipName} FM notes found`);
+  if (!noteCount) throw new Error(`No convertible ${chipName} FM / tone notes found`);
   if (skippedNotes) warnings.push(`${skippedNotes} unknown, out-of-range or sub-tick note intervals omitted.`);
   const conductor = track([
     {tick:0,order:0,bytes:textMeta(3,String(fileName).replace(/[\r\n]/g,' '))},

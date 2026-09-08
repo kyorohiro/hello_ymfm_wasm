@@ -2,7 +2,7 @@ import { Ym2612VGM } from "../js/ym2612vgm.js";
 
 /** Extract unquantized FM note intervals in 44100 Hz sample time. */
 export function midiChipKind(header) {
-  return ['ym2612', 'ym2608', 'ym2203'].find(kind => (header[`${kind}Clock`] & 0x3fffffff) > 0) ?? null;
+  return ['ym2612', 'ym2608', 'ym2203'].find(kind => (header[`${kind}Clock`] & 0x3fffffff) > 0) ?? ((header.psgClock & 0x3fffffff) ? 'psg' : null);
 }
 
 export function extractYm2612Notes(source) {

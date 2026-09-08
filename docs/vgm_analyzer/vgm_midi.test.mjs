@@ -72,19 +72,19 @@ function opnVgm(kind, registers, clock) {
   v.setUint32(kind==='ym2203'?0x44:0x48,clock,true);return b;
 }
 const opnOn=(command,key=0)=>[command,0xa4,0x22,command,0xa0,0x1d,0x55===command?0x55:0x56,0x28,0xf0|key];
-test('YM2203 exports three FM tracks at clock/72; non-FM writes never become notes',()=>{
+test('YM2203 exports three FM and three SSG tracks at their own clocks',()=>{
   const source=opnVgm('ym2203',[0x55,0,255,0x55,8,15,...opnOn(0x55,4),0x55,0x2b,128,...wait(22050),0x55,0x28,4,0x66],3835227);
   const result=exportAnalysisMidi(source),d=decode(result.bytes);
-  assert.equal(result.chipName,'YM2203');assert.equal(d.tracks.length,4);
+  assert.equal(result.chipName,'YM2203');assert.equal(d.tracks.length,7);
   // YM2203 ignores KEY bit 2; half the YM2612 clock gives the same FM pitch.
   assert.deepEqual(notes(d.tracks[1]).map(e=>[e.tick,e.data[0]]),[[0,57],[960,57]]);
-  assert.ok(result.warnings.some(w=>w.includes('SSG writes omitted')));
+  assert.equal(notes(d.tracks[4]).length,2);
 });
 test('YM2608 exports both FM ports; rhythm and ADPCM-B/DAC-like addresses are excluded',()=>{
   const source=opnVgm('ym2608',[0x56,0x29,0x80,0x56,0x10,255,0x57,0,128,0x57,0x10,255,
     ...opnOn(0x56),...opnOn(0x57,4),0x56,0x2b,128,...wait(22050),0x56,0x28,0,0x56,0x28,4,0x66],7670454);
   const result=exportAnalysisMidi(source),d=decode(result.bytes);
-  assert.equal(result.chipName,'YM2608');assert.equal(d.tracks.length,7);assert.equal(result.noteCount,2);
+  assert.equal(result.chipName,'YM2608');assert.equal(d.tracks.length,10);assert.equal(result.noteCount,2);
   assert.equal(notes(d.tracks[1])[0].data[0],57);assert.equal(notes(d.tracks[4])[0].data[0],57);
   assert.equal(new TextDecoder().decode(d.tracks[4][0].data),'YM2608 CH4');
   assert.ok(result.warnings.some(w=>w.includes('ADPCM writes omitted')));
@@ -147,4 +147,36 @@ test('multiple pitch changes in one tick use the final value without extra notes
   assert.equal(result.noteCount,1);
   assert.equal(t.filter(e=>e.status===0xe0&&e.tick===0).length,2); // setup center + final pitch at tick zero
   assert.deepEqual(notes(t).map(e=>e.status),[0x90,0x80]);
+});
+
+test('SSG-only melody exports pitch, mixer off, retrigger and bends without FM notes',()=>{
+  for(const kind of ['ym2203','ym2608']) {
+    const c=kind==='ym2203'?0x55:0x56;
+    // Effective SSG clock 2 MHz; period 284 is near A4.
+    const src=opnVgm(kind,[c,7,0x3e,c,0,28,c,1,1,c,8,15,...wait(1000),
+      c,0,30,...wait(1000),c,8,0,...wait(500),c,8,15,...wait(1000),c,7,0x3f,0x66],kind==='ym2203'?4000000:8000000);
+    const r=exportAnalysisMidi(src), d=decode(r.bytes), index=kind==='ym2203'?4:7;
+    assert.equal(r.noteCount,2);
+    assert.equal(notes(d.tracks[index])[0].data[0],69);
+    assert.equal(notes(d.tracks[1]).length,0);
+    assert.ok(d.tracks[index].some(e=>(e.status&0xf0)===0xe0 && e.tick>0));
+    assert.match(new TextDecoder().decode(d.tracks[index][0].data),/SSG 1/);
+  }
+});
+test('PSG-only tones respect latch/data and attenuation; noise produces no notes',()=>{
+  const src=vgm([0x50,0x8e,0x50,0x0f,0x50,0x90,...wait(1000),0x50,0x9f,
+    0x50,0xe4,0x50,0xf0,...wait(1000),0x66],0);
+  new DataView(src.buffer).setUint32(0x0c,3579545,true);
+  const r=exportAnalysisMidi(src),d=decode(r.bytes);
+  assert.equal(d.tracks.length,4);assert.equal(r.noteCount,1);
+  assert.equal(notes(d.tracks[1])[0].data[0],69);
+  assert.ok(notes(d.tracks[1])[1].tick<d.tracks[1].at(-1).tick);
+});
+test('combined FM SSG PSG tracks skip MIDI percussion channel',()=>{
+  const src=opnVgm('ym2608',[0x50,0x8e,0x50,0x0f,0x50,0x90,...wait(1000),0x66],8000000);
+  new DataView(src.buffer).setUint32(0x0c,3579545,true);
+  const d=decode(exportAnalysisMidi(src).bytes);
+  assert.equal(d.tracks.length,13);
+  assert.equal(notes(d.tracks[10])[0].status,0x9a);
+  assert.ok(d.tracks.flat().filter(e=>e.status!==255).every(e=>(e.status&15)!==9));
 });

@@ -1,9 +1,10 @@
-import { midiChipKind } from "./vgm_notes.js";
+import { describeToneNotes } from './tone_notes.js';
+import { midiChipKind } from "./vgm_notes.js?v=tone-notes-1";
 import { renderFretboard, FRET_TRAIL_MS, createFretboardTracker } from "./fretboard.js?v=hand-position-2";
-import { exportAnalysisMidi } from "./vgm_midi.js";
+import { exportAnalysisMidi } from "./vgm_midi.js?v=tone-notes-1";
 import { createRf5c164Monitor, describeRf5c164Monitor, observeRf5c164Engine } from "./rf5c164_monitor.js";
 import { sourcesForChip, applySourceMutes, allSourcesMuted } from "./source_mutes.js";
-import { createPsgMonitor, describePsgMonitor, observePsgEngine } from "./psg_monitor.js";
+import { createPsgMonitor, describePsgMonitor, observePsgEngine } from "./psg_monitor.js?v=tone-notes-1";
 import { exportAnalysisMml } from "./vgm_mml.js";
 import {
   Ym2612VGM,
@@ -103,6 +104,8 @@ let engineClockKey = null;
 const sourceChipKind = () => currentHasPcm && currentChipKind === "ym2612" ? "megacd" : currentChipKind;
 let channelMonitor = createChannelMonitorState();
 let psgMonitor = createPsgMonitor(currentChipKind);
+let noteishHeader = {};
+let toneChannels = [];
 let psgHighlightActive = false;
 let baseEngineWriteYm2612 = null;
 let baseEngineWriteYm2203 = null;
@@ -415,7 +418,7 @@ function ensureChannelMonitorRenderTimer() {
 }
 
 function hasRecentFretboardHistory() {
-  return noteishInstrument.value === "fretboard" && channelMonitor.some(channel => {
+  return noteishInstrument.value === "fretboard" && noteishChannels().some(channel => {
     const last = channel.noteHistory.at(-1);
     return last && performance.now() - last.time <= FRET_TRAIL_MS + 200;
   });
@@ -495,14 +498,43 @@ function renderPcmMonitor() {
     }).join("");
 }
 
+function noteishChannels() {
+  const fm = noteishHeader.psgClock && !noteishHeader[`${currentChipKind}Clock`] ? [] : channelMonitor;
+  return [...fm, ...toneChannels];
+}
+
+function updateToneMonitor() {
+  const clock = (psgMonitor.kind === 'ssg' ? noteishHeader[`${currentChipKind}Clock`] : noteishHeader.psgClock) & 0x3fffffff;
+  if (!clock) { toneChannels = []; return; }
+  if (!toneChannels.length) toneChannels = createChannelMonitorState().slice(0,3).map(ch=>({...ch, tone:true, toneMidi:null}));
+  const now = performance.now();
+  describeToneNotes(psgMonitor, clock).forEach((note,i)=>{
+    const ch = toneChannels[i];
+    const midi = note.keyOn ? note.midi : null;
+    if (ch.keyOn !== note.keyOn || ch.toneMidi !== note.midi) {
+      ch.noteHistory.push({time:now,midiFloat:midi});
+      if (note.keyOn) {
+        ch.noteMinMidi = ch.noteMinMidi === null ? midi : Math.min(ch.noteMinMidi,midi);
+        ch.noteMaxMidi = ch.noteMaxMidi === null ? midi : Math.max(ch.noteMaxMidi,midi);
+      }
+    }
+    ch.keyOn=note.keyOn; ch.toneMidi=note.midi; ch.label=note.name; ch.period=note.period;
+    ch.envelope=note.envelope; ch.noise=note.noise;
+    pruneChannelNoteHistory(ch,now);
+  });
+  requestNoteishRender();
+}
+
 function resetPsgMonitor() {
   pcmMonitor = createRf5c164Monitor();
   psgMonitor = createPsgMonitor(currentChipKind);
+  toneChannels = [];
+  updateToneMonitor();
   requestChannelMonitorRender();
 }
 
 function observePsgPlaybackEngine() {
-  observePsgEngine(engine, () => psgMonitor, requestChannelMonitorRender, resetPsgMonitor);
+  observePsgEngine(engine, () => psgMonitor, () => { updateToneMonitor(); requestChannelMonitorRender(); }, resetPsgMonitor);
   observeRf5c164Engine(engine, () => pcmMonitor, requestChannelMonitorRender);
 }
 
@@ -584,6 +616,11 @@ function midiToNoteName(midi) {
 }
 
 function estimateChannelNoteish(channel) {
+  if (channel.tone) {
+    const midi = channel.toneMidi;
+    return { midiFloat:midi, note:midi === null ? 'No pitch' : `~${midiToNoteName(Math.round(midi))}`,
+      cents:midi === null ? null : Math.round((midi-Math.round(midi))*100) };
+  }
   if (channel.fnum <= 0) {
     return {
       note: "No pitch",
@@ -695,8 +732,9 @@ function showChannelCompactNotes(channelIndex) {
 }
 
 function buildNoteishSignature() {
-  return JSON.stringify(channelMonitor.map((channel) => [
+  return JSON.stringify(noteishChannels().map((channel) => [
     channel.keyOn,
+    channel.toneMidi,
     channel.block,
     channel.fnum,
     channel.algorithm,
@@ -850,7 +888,7 @@ function renderNoteishOverviewGraph() {
     "#7fdc86",
     "#72a8ff",
     "#bd86ff",
-    "#62d7dd",
+    "#62d7dd", "#25794b", "#a85520", "#506fbd",
   ];
 
   const pitchTicks = detailed ? Array.from({ length: 73 }, (_, i) => 24 + i) : ticks;
@@ -875,7 +913,7 @@ function renderNoteishOverviewGraph() {
   }).join("");
 
   let channelSvg = "";
-  channelMonitor.forEach((channel, index) => {
+  noteishChannels().forEach((channel, index) => {
     pruneChannelNoteHistory(channel, now);
     let lastPoint = null;
     let path = "";
@@ -909,7 +947,7 @@ function renderNoteishOverviewGraph() {
       ${path}
       ${dots}
       ${marker}
-      <text x="${708 + (index % 2) * 34}" y="${34 + Math.floor(index / 2) * 18}" font-size="11" fill="${channelColors[index]}">CH${index + 1}</text>
+      <text x="${675 + (index % 2) * 45}" y="${34 + Math.floor(index / 2) * 18}" font-size="11" fill="${channelColors[index]}">${channel.label ?? `CH${index + 1}`}</text>
     `;
   });
 
@@ -933,7 +971,7 @@ function renderNoteishGrid() {
   // Retain scroll containers across live updates, including their keyboard focus.
   const existingCards = Array.from(noteishGrid.children);
 
-  for (const channel of channelMonitor) {
+  for (const [cardIndex, channel] of noteishChannels().entries()) {
     const estimated = estimateChannelNoteish(channel);
     const rangeText =
       channel.noteMinMidi === null || channel.noteMaxMidi === null
@@ -943,14 +981,14 @@ function renderNoteishGrid() {
       estimated.cents === null
         ? "no base note"
         : `${estimated.cents >= 0 ? "+" : ""}${estimated.cents} cents`;
-    const card = existingCards[channel.channel] ?? document.createElement("section");
+    const card = existingCards[cardIndex] ?? document.createElement("section");
     const previousGraph = card.querySelector(".noteish-graph");
     const scrollLeft = previousGraph?.scrollLeft ?? 0;
     const graphFocused = previousGraph && document.activeElement === previousGraph;
     card.className = `noteish-card${channel.keyOn ? " is-key-on" : ""}`;
     card.innerHTML = `
       <div class="noteish-head">
-        <span class="noteish-title">CH${channel.channel + 1}</span>
+        <span class="noteish-title">${channel.label ?? `CH${channel.channel + 1}`}</span>
         <span class="noteish-state">${channel.keyOn ? "key on" : "key off"}</span>
       </div>
       <div class="noteish-row">
@@ -962,11 +1000,11 @@ function renderNoteishGrid() {
       </div>
       <div class="noteish-meta">
         RANGE ${rangeText}<br>
-        BLOCK ${channel.block}<br>
+        ${channel.tone ? `PERIOD ${channel.period}<br>Envelope ${channel.envelope ? "on (estimated)" : "off"} / Noise ${channel.noise ? "mixed" : "off"}` : `BLOCK ${channel.block}<br>
         FNUM ${channel.fnum}<br>
-        ALG ${channel.algorithm} / FB ${channel.feedback}
+        ALG ${channel.algorithm} / FB ${channel.feedback}`}
       </div>
-      <div class="noteish-actions">
+      <div class="noteish-actions" ${channel.tone ? "hidden" : ""}>
         <button class="noteish-button" type="button" data-show-notes="${channel.channel}">
           Show Notes
         </button>
@@ -985,7 +1023,7 @@ function renderNoteishGrid() {
     viewport.scrollLeft = scrollLeft;
     if (graphFocused) viewport.focus({ preventScroll: true });
   }
-  existingCards.slice(channelMonitor.length).forEach(card => card.remove());
+  existingCards.slice(noteishChannels().length).forEach(card => card.remove());
 }
 
 function renderOperatorTokens(operator) {
@@ -2062,6 +2100,7 @@ async function ensurePlaybackReady(vgm) {
   }
 
   currentChipKind = nextChipKind;
+  noteishHeader = vgm.header;
   currentHasPcm = Boolean(vgm.header.rf5c164Clock);
   currentPcmClock = vgm.header.rf5c164Clock & 0x3fffffff;
 
@@ -2561,6 +2600,7 @@ async function handleFile(file) {
     workletModuleReady = false;
   }
   currentChipKind = nextChipKind;
+  noteishHeader = vgm.header;
   currentHasPcm = Boolean(vgm.header.rf5c164Clock);
   currentPcmClock = vgm.header.rf5c164Clock & 0x3fffffff;
   channelMonitor = createChannelMonitorState();
@@ -2773,7 +2813,7 @@ noteishMode.addEventListener("change", () => {
   if (detailed && noteishInstrument.value !== "fretboard") {
     Array.from(noteishGrid.children).forEach((card, index) => {
       const viewport = card.querySelector(".noteish-graph");
-      const midi = estimateChannelNoteish(channelMonitor[index]).midiFloat ?? 60;
+      const midi = estimateChannelNoteish(noteishChannels()[index]).midiFloat ?? 60;
       viewport.scrollLeft = 34 + (clamp(midi, 24, 96) - 24) * 36 - viewport.clientWidth / 2;
     });
   }
@@ -2841,6 +2881,6 @@ exportMidiButton.addEventListener("click", () => {
     anchor.download = `${lastLoadedFileName.replace(/\.[^.]+$/, "") || "analysis"}.mid`;
     anchor.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
-    setStatus(`Exported MIDI: ${result.noteCount} notes, ${result.bendCount} pitch bends, ${result.skippedNotes} omitted intervals. ${result.chipName} FM only; no grid quantization. SSG/PSG/PCM and FM timbres are omitted. Details are in MIDI text events.`);
+    setStatus(`Exported MIDI: ${result.noteCount} notes, ${result.bendCount} pitch bends, ${result.skippedNotes} omitted intervals. ${result.chipName} FM + SSG/PSG tones; no grid quantization. Noise, PCM and original timbres are omitted. Details are in MIDI text events.`);
   } catch (error) { setStatus(`MIDI export failed: ${error.message}`); }
 });

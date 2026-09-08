@@ -591,9 +591,9 @@
           <button id="exportAllVgiButton" type="button" disabled>Export All VGI ZIP</button>
           <label for="mmlBpmInput">Export BPM</label>
           <input id="mmlBpmInput" type="number" min="4" max="999" step="any" value="120" style="width: 5em" title="Manual tempo for MIDI / MML export; not detected BPM">
-          <button id="exportMidiButton" type="button" disabled title="YM2612 / YM2203 / YM2608 FM notes; original timing, no grid quantization">Export MIDI</button>
+          <button id="exportMidiButton" type="button" disabled title="FM + SSG / PSG tone notes; original timing, no grid quantization">Export MIDI</button>
           <button id="exportMmlButton" type="button" disabled hidden title="Analysis MML (YM2612 FM only); not driver-compatible">Export MML</button>
-          <small>MIDI: YM2612 / YM2203 / YM2608 FM notes + Pitch Bend, original timing. BPM is manual; FM timbres, SSG, PSG and PCM are omitted.</small>
+          <small>MIDI: FM + SSG / PSG tones with Pitch Bend and original timing. BPM is manual; noise, PCM, envelope phase and original timbres are omitted.</small>
           <button id="exportParseInfoButton" type="button" disabled>Export Parse Info</button>
           <button id="exportSnapshotTfiButton" type="button" disabled>Export Snapshot TFI</button>
           <button id="exportSnapshotVgiButton" type="button" disabled>Export Snapshot VGI</button>
@@ -687,7 +687,7 @@
             It ignores operator MULTI / DT, channel 3 special mode, and pitch LFO.
           </p>
           <div class="noteish-overview">
-            <p class="noteish-overview-caption">Top graph: time on X, pitch range on Y, CH1 to CH6 overlaid.</p>
+            <p class="noteish-overview-caption">Top graph: time on X, pitch range on Y, FM and SSG / PSG tone channels overlaid.</p>
             <div id="noteishOverview" role="region" aria-label="Recent channel pitch history"></div>
           </div>
           <div id="noteishGrid" class="noteish-grid"></div>
@@ -729,6 +729,6 @@
       </section>
     </main>
 
-    <script type="module" src="./vgm_analyzer.js?v=hand-position-2"></script>
+    <script type="module" src="./vgm_analyzer.js?v=tone-notes-1"></script>
   </body>
 </html>

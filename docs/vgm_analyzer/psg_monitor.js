@@ -6,7 +6,13 @@ export function createPsgMonitor(chip) {
 }
 
 export function applySsgWrite(state, port, register, value, now) {
-  if (state.kind !== 'ssg' || port !== 0 || register < 0 || register > 13) return false;
+  if (state.kind !== 'ssg' || port !== 0) return false;
+  if (register >= 0x2d && register <= 0x2f) {
+    const old = state.prescale ?? 6;
+    state.prescale = register === 0x2d ? 6 : register === 0x2f ? 2 : old === 6 ? 3 : old;
+    return true;
+  }
+  if (register < 0 || register > 13) return false;
   const masks = [255, 15, 255, 15, 255, 15, 31, 255, 31, 31, 31, 255, 255, 15];
   const next = value & masks[register];
   if (state.registers[register] !== next || register === 13) state.changedAt[register] = now;
