@@ -35,17 +35,26 @@ export function renderFretboard(notes, { strings = 8, keyOn = true } = {}) {
   const y = index => 43 + (strings - 1 - index) * 27;
   const pitches = [...new Set(keyOn ? notes.filter(Number.isFinite).map(Math.round) : [])];
   let svg = `<svg viewBox="0 0 784 ${height}" role="img" aria-label="${strings}-string pitch fretboard">`;
-  svg += `<rect x="45" y="28" width="726" height="${strings * 27}" rx="5" fill="#f2e0c7" />`;
+  const nutX = 74;
+  const boardBottom = 28 + strings * 27;
+  svg += `<rect x="45" y="28" width="29" height="${strings * 27}" fill="#c5c0b9" />
+    <rect x="${nutX}" y="28" width="697" height="${strings * 27}" fill="#f2e0c7" />`;
   for (let fret = 0; fret <= 24; fret++) {
-    svg += `<text x="${x(fret)}" y="17" text-anchor="middle" font-size="10" fill="#5b4a33">${fret}</text>`;
-    if (fret > 0) svg += `<line x1="${x(fret) - 14}" x2="${x(fret) - 14}" y1="28" y2="${height - 7}" stroke="#b9a38e" />`;
+    const fretX = nutX + fret * 29;
+    svg += `<text x="${fretX - 5}" y="17" text-anchor="end" font-size="10" fill="#5b4a33">${fret}</text>`;
+    if (fret > 0) svg += `<line x1="${fretX}" x2="${fretX}" y1="28" y2="${boardBottom}" stroke="#a18f7d" stroke-width="2" />`;
   }
+  // Inlays sit between strings; the octave has a pair of dots.
+  const middleY = (y(0) + y(strings - 1)) / 2 - 27;
+  for (const fret of [3, 5, 7, 9, 12, 15, 17, 19]) {
+    for (const offset of fret === 12 ? [-27, 27] : [0]) {
+      svg += `<circle cx="${x(fret)}" cy="${middleY + offset}" r="5" fill="#8e745b" />`;
+    }
+  }
+  svg += `<rect x="${nutX - 3}" y="28" width="6" height="${strings * 27}" fill="#fff9e9" stroke="#897e70" />`;
   opens.forEach((open, index) => {
     svg += `<text x="37" y="${y(index) + 4}" text-anchor="end" font-size="11" fill="#5b4a33">${strings - index} ${name(open)}</text>
       <line x1="45" x2="771" y1="${y(index)}" y2="${y(index)}" stroke="#927b63" stroke-width="${1 + (strings - index) * 0.12}" />`;
-    for (const fret of [3, 5, 7, 9, 12, 15, 17, 19, 21, 24]) {
-      svg += `<circle cx="${x(fret)}" cy="${y(index)}" r="2" fill="#b9a38e" />`;
-    }
   });
   const outside = [];
   for (const note of pitches) {
