@@ -1,5 +1,5 @@
 import { midiChipKind } from "./vgm_notes.js";
-import { renderFretboard } from "./fretboard.js?v=pitch-bands-3";
+import { renderFretboard, FRET_TRAIL_MS } from "./fretboard.js?v=fret-trail-1";
 import { exportAnalysisMidi } from "./vgm_midi.js";
 import { createRf5c164Monitor, describeRf5c164Monitor, observeRf5c164Engine } from "./rf5c164_monitor.js";
 import { sourcesForChip, applySourceMutes, allSourcesMuted } from "./source_mutes.js";
@@ -414,6 +414,13 @@ function ensureChannelMonitorRenderTimer() {
   }, 120);
 }
 
+function hasRecentFretboardHistory() {
+  return noteishInstrument.value === "fretboard" && channelMonitor.some(channel => {
+    const last = channel.noteHistory.at(-1);
+    return last && performance.now() - last.time <= FRET_TRAIL_MS + 200;
+  });
+}
+
 function ensureNoteishRenderTimer() {
   if (noteishRenderTimer) {
     return;
@@ -422,7 +429,7 @@ function ensureNoteishRenderTimer() {
     if (noteishPanel.hidden) {
       return;
     }
-    if (!noteishDirty && !player?.isPlaying?.() && !hasRecentChannelChanges()) {
+    if (!noteishDirty && !player?.isPlaying?.() && !hasRecentChannelChanges() && !hasRecentFretboardHistory()) {
       return;
     }
     renderNoteishGrid();
@@ -699,7 +706,7 @@ function buildNoteishSignature() {
     channel.noteHistory.length,
     channel.noteHistory[channel.noteHistory.length - 1]?.time ?? 0,
     channel.noteHistory[channel.noteHistory.length - 1]?.midiFloat ?? null,
-    player?.isPlaying?.() ? Math.floor(performance.now() / 200) : 0,
+    (player?.isPlaying?.() || hasRecentFretboardHistory()) ? Math.floor(performance.now() / 90) : 0,
   ]));
 }
 
@@ -716,7 +723,14 @@ function noteishGraphX(midiFloat) {
 
 function renderNoteishGraph(channel, estimated) {
   if (noteishInstrument.value === "fretboard") {
-    return renderFretboard([estimated.midiFloat], { strings: Number(fretboardStrings.value), keyOn: channel.keyOn });
+    const now = performance.now();
+    const history = channel.noteHistory.map((point, index, points) => ({
+      note: point.midiFloat,
+      ageMs: now - (points[index + 1]?.time ?? point.time),
+    }));
+    return renderFretboard([estimated.midiFloat], {
+      strings: Number(fretboardStrings.value), keyOn: channel.keyOn, history,
+    });
   }
   if (noteishMode.value === "detail") return renderNoteishKeyboard(channel, estimated);
   const axisY = 26;

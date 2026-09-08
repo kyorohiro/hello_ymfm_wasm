@@ -33,7 +33,9 @@ export function noteToFretPosition(note, strings = 8) {
     Math.abs(a.stringIndex - band) - Math.abs(b.stringIndex - band) || a.fret - b.fret
   )[0] ?? null;
 }
-export function renderFretboard(notes, { strings = 8, keyOn = true } = {}) {
+export const FRET_TRAIL_MS = 2500;
+
+export function renderFretboard(notes, { strings = 8, keyOn = true, history = [] } = {}) {
   const opens = tuning(strings);
   const height = 62 + strings * 27;
   const x = fret => 60 + fret * 29;
@@ -61,6 +63,21 @@ export function renderFretboard(notes, { strings = 8, keyOn = true } = {}) {
     svg += `<text x="37" y="${y(index) + 4}" text-anchor="end" font-size="11" fill="#5b4a33">${strings - index} ${name(open)}</text>
       <line x1="45" x2="771" y1="${y(index)}" y2="${y(index)}" stroke="#927b63" stroke-width="${1 + (strings - index) * 0.12}" />`;
   });
+  // One ghost per pitch; repeated notes refresh it rather than darkening it.
+  const ghosts = new Map();
+  for (const { note, ageMs } of history) {
+    if (!Number.isFinite(note) || !Number.isFinite(ageMs) || ageMs < 0 || ageMs >= FRET_TRAIL_MS) continue;
+    const pitch = Math.round(note);
+    if (pitches.includes(pitch)) continue;
+    ghosts.set(pitch, Math.min(ageMs, ghosts.get(pitch) ?? Infinity));
+  }
+  for (const [note, ageMs] of ghosts) {
+    const position = noteToFretPosition(note, strings);
+    if (!position) continue;
+    const opacity = (0.55 * (1 - ageMs / FRET_TRAIL_MS)).toFixed(3);
+    svg += `<g data-fret-ghost="${note}" opacity="${opacity}"><circle cx="${x(position.fret)}" cy="${y(position.stringIndex)}" r="12" fill="#007c91" />
+      <text x="${x(position.fret)}" y="${y(position.stringIndex) + 4}" text-anchor="middle" font-size="9" fill="white">${name(note)}</text></g>`;
+  }
   const outside = [];
   for (const note of pitches) {
     const position = noteToFretPosition(note, strings);

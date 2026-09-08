@@ -68,3 +68,17 @@ test('adjacent pitches never jump by more than four frets, including octave boun
     assert.equal(noteToFretPosition(71,strings).fret,12);
   }
 });
+
+test('recent notes fade, expire, deduplicate and never dim the current note', () => {
+  const history = [{note:60,ageMs:1250},{note:60,ageMs:0},{note:64,ageMs:1250},
+    {note:67,ageMs:2500},{note:null,ageMs:0},{note:24,ageMs:0}];
+  const released = renderFretboard([], {keyOn:false,history});
+  assert.equal((released.match(/data-fret-ghost="60"/g)||[]).length,1);
+  assert.match(released,/data-fret-ghost="60" opacity="0.550"/);
+  assert.match(released,/data-fret-ghost="64" opacity="0.275"/);
+  assert.doesNotMatch(released,/data-fret-ghost="(?:67|24)"/);
+  assert.doesNotMatch(released,/data-fret-note=/);
+  const active = renderFretboard([60], {history});
+  assert.match(active,/data-fret-note="60"/);
+  assert.doesNotMatch(active,/data-fret-ghost="60"/);
+});
