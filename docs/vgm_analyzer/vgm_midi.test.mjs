@@ -219,3 +219,27 @@ test('MIDI ignores high-only intermediate pitches but keeps genuine low commits'
     }
   }
 });
+
+test('MIDI folds only fresh onset pitch setup, preserving KEY times and later bends',()=>{
+  for(const gap of [0,4,5,8,9,100]) for(const initialLow of [0x9e,0]) {
+    const old=[0x52,0xa5,initialLow?0x2b:0,0x52,0xa1,initialLow];
+    const pitch=[0x52,0xa5,0x2b,0x52,0xa1,0x0b];
+    const tail=[...wait(1000),0x52,0xa1,0xc6,...wait(1000),0x52,0x28,1,0x66];
+    const actual=decode(exportAnalysisMidi(vgm([...old,...wait(1000),0x52,0x28,0xf1,...wait(gap),...pitch,...tail])).bytes).tracks[2];
+    const expected=decode(exportAnalysisMidi(vgm([...old,...wait(1000),...pitch,0x52,0x28,0xf1,...wait(gap),...tail])).bytes).tracks[2];
+    const musical=t=>t.filter(e=>[0x80,0x90,0xe0].includes(e.status&0xf0));
+    if(gap<=8) assert.deepEqual(musical(actual),musical(expected));
+    else if(initialLow) assert.notEqual(notes(actual)[0].data[0],notes(expected)[0].data[0]);
+    else assert.equal(notes(actual)[0].tick,Math.round((1000+gap)*1920/44100));
+    assert.ok(actual.some(e=>(e.status&0xf0)===0xe0 && e.tick>80 && e.tick<100));
+  }
+});
+
+test('MIDI preserves a short pitch change after a held-key retrigger',()=>{
+  const src=vgm([...on,...wait(1000),0x52,0x28,0xf0,...wait(5),
+    0x52,0xa4,0x2b,0x52,0xa0,0x0b,...wait(1000),0x52,0x28,0,0x66]);
+  const track=decode(exportAnalysisMidi(src).bytes).tracks[1];
+  const ons=notes(track).filter(e=>(e.status&0xf0)===0x90);
+  assert.equal(ons.length,2);
+  assert.equal(ons[0].data[0],ons[1].data[0]);
+});

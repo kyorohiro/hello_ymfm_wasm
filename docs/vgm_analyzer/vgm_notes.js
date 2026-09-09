@@ -96,10 +96,12 @@ export function extractOpnNotes(source, { chipKind = null } = {}) {
       const index = (value & 3) + ((chipKind !== 'ym2203' && (value & 4)) ? 3 : 0);
       if ((value & 3) === 3) { warn("Invalid KEY channel omitted"); return; }
       const ch = channels[index];
+      const freshOnset = ch.mask === 0 && (value >> 4) === 15;
       finish(ch, value >> 4 ? "retrigger" : "keyOff");
       ch.mask = value >> 4;
       ch.serial++;
       if (ch.mask) begin(ch, index);
+      if (ch.active) ch.active.freshOnset = freshOnset;
       return;
     }
     const slot = register & 3;
@@ -108,7 +110,7 @@ export function extractOpnNotes(source, { chipKind = null } = {}) {
     if (slot < 3 && register >= 0xa0 && register <= 0xa2) {
       const ch = channels[index];
       if (ch.active) ch.lines.push(`; sample=${time} pitch change during KEY ON (bend), interval split`);
-      finish(ch);
+      finish(ch, "pitch");
       ch.fnum = ((highLatch & 7) << 8) | value;
       ch.block = (highLatch >> 3) & 7;
       if (ch.mask) begin(ch, index);

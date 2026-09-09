@@ -2,7 +2,7 @@ import { createYm2610BAudioEngine } from '../js/ym2610baudioengine.js';
 import { describeToneNotes } from './tone_notes.js?v=ym2610-vgm-2';
 import { midiChipKind } from "./vgm_notes.js?v=ym2610-vgm-2";
 import { renderFretboard, FRET_TRAIL_MS, createFretboardTracker } from "./fretboard.js?v=hand-position-2";
-import { exportAnalysisMidi } from "./vgm_midi.js?v=ym2610-vgm-2";
+import { exportAnalysisMidi } from "./vgm_midi.js?v=midi-onset-1";
 import { createRf5c164Monitor, describeRf5c164Monitor, observeRf5c164Engine } from "./rf5c164_monitor.js";
 import { sourcesForChip, applySourceMutes, allSourcesMuted } from "./source_mutes.js?v=ym2610-vgm-2";
 import { createPsgMonitor, describePsgMonitor, observePsgEngine } from "./psg_monitor.js?v=ym2610-vgm-2";

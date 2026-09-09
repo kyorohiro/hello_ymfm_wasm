@@ -1,6 +1,6 @@
 import { extractToneNotes } from './tone_notes.js?v=ym2610-vgm-2';
 import { Ym2612VGM } from '../js/ym2612vgm.js?v=ym2610-vgm-2';
-import { extractOpnNotes, midiChipKind } from './vgm_notes.js?v=ym2610-vgm-2';
+import { extractOpnNotes, midiChipKind } from './vgm_notes.js?v=midi-onset-1';
 
 const PPQN = 960;
 const utf8 = text => new TextEncoder().encode(text);
@@ -58,7 +58,18 @@ export function exportAnalysisMidi(source, { bpm = 120, fileName = 'VGM' } = {})
   const tracks = channels.map((channel, index) => {
     const midiChannel = index >= 9 ? index + 1 : index;
     const notes = [];
-    for (const n of channel.notes) {
+    for (let i = 0; i < channel.notes.length; i++) {
+      let n = channel.notes[i];
+      const next = channel.notes[i + 1];
+      // Only the first pitch commit following a fresh full KEY ON is folded
+      // into the onset. Preserve its KEY time and all subsequent bends.
+      if (n.freshOnset && n.endReason === "pitch" &&
+          n.end - n.start >= 0 && n.end - n.start <= 8 &&
+          next?.key === n.key && next.start === n.end &&
+          Number.isFinite(next.midi) && next.midi !== null) {
+        n = { ...next, start: n.start };
+        i++;
+      }
       if (n.end <= n.start) continue;
       const pitch = n.midi === null ? null : Math.round(n.midi);
       if (pitch === null || !Number.isFinite(pitch) || pitch < 0 || pitch > 127) { skippedNotes++; continue; }

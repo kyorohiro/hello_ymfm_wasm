@@ -173,3 +173,15 @@ KEY ON 直後の旧音程区間を除去する意味ではない）。
 - 提供された Neo-Geo Logo を表示処理に流し、CH2 / 3 / 5 / 6 の各発音で旧音程の余分な点が
   残らず、確定音程と KEY OFF の区切りが残ることを確認。
 - 関連自動テスト 88 件成功。ブラウザー上の描画は未確認。
+
+### MIDI 発音開始補正
+
+MIDI も Note-ish と同じ 8 samples 以内の開始補正を適用。
+抽出時に「OFF → 全 OP KEY ON」と「low write による区間終了」を記録し、
+MIDI 化時だけ、その最初の旧音程区間を直後の確定音程にまとめる。
+開始時刻は元の KEY ON、終了時刻は元の KEY OFF を維持する。
+後続の pitch bend、保持中の再 KEY ON、8 samples を超える更新は補正しない。
+SSG / PSG、Raw、Playground export の動作は変更しない。
+
+境界・ゼロ FNUM からの開始・後続 bend・保持中再 KEY ON の回帰テストを追加。
+関連テスト 90 件成功。提供された Neo-Geo Logo の MIDI 書き出しも実行済み。
