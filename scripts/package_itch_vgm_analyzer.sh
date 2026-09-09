@@ -26,6 +26,10 @@ tone_notes.js
 fretboard.js
 vgm_midi.js
 vgm_mml_music.js
+note_timeline.js
+note_timeline_view.js
+note_timeline_worker.js
+seek_playback.js
 "
 
 JS_FILES="
@@ -184,7 +188,8 @@ EOF
 perl -0pi -e 's#<a class="link-button" href="\.\./index\.html">Back</a>##g' "${STAGE_DIR}/index.html"
 perl -0pi -e "s#(['\"])\\.\\./js/#\$1./js/#g; s#(['\"])\\.\\./generated/#\$1./generated/#g" \
   "${STAGE_DIR}/index.html" "${STAGE_DIR}/vgm_analyzer.js" "${STAGE_DIR}/vgm_mml.js" \
-  "${STAGE_DIR}/vgm_notes.js" "${STAGE_DIR}/tone_notes.js" "${STAGE_DIR}/vgm_midi.js"
+  "${STAGE_DIR}/vgm_notes.js" "${STAGE_DIR}/tone_notes.js" "${STAGE_DIR}/vgm_midi.js" \
+  "${STAGE_DIR}/note_timeline_worker.js"
 perl -0pi -e 's#\.\./js/vgm-output-worklet\.js#./js/vgm-output-worklet.js#g' \
   "${STAGE_DIR}/index.html"
 
