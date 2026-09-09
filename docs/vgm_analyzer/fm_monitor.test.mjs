@@ -133,3 +133,24 @@ test('Note-ish keeps onset when no pitch follows and keeps held-key retriggers',
   m.write(0xa1,0x0b);
   assert.deepEqual(Array.from(ch.noteHistory,p=>p.midiFloat),[926,779]);
 });
+
+test('onset cleanup stays dense when old history expires during KEY ON or before commit',()=>{
+  for(const scenario of ['at-key-on','partial','all']) {
+    const m=onsetMonitor(),c=m.context,ch=c.channelMonitor[1];
+    let now=scenario==='at-key-on'?10000:7000;
+    c.performance.now=()=>now;
+    ch.noteHistory=[{time:0,midiFloat:600},{time:1000,midiFloat:null},{time:6500,midiFloat:700}];
+    m.write(0xa5,0x2b);m.write(0xa1,0x9e);m.write(0x28,0xf1);
+    if(scenario!=='at-key-on') {
+      now=scenario==='all'?20000:10000;
+      c.pruneChannelNoteHistory(ch);
+    }
+    c.player.processedWaitSamples=5;
+    assert.doesNotThrow(()=>m.write(0xa1,0x0b));
+    assert.doesNotThrow(()=>c.pruneChannelNoteHistory(ch));
+    assert.deepEqual(Array.from(ch.noteHistory,p=>p.midiFloat),scenario==='all'?[779]:[700,779]);
+    assert.ok(Array.from(ch.noteHistory).every(p=>p && p.time>=now-8000));
+    m.write(0x28,1);
+    assert.equal(ch.noteHistory.at(-1).midiFloat,null);
+  }
+});

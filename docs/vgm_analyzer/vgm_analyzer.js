@@ -685,10 +685,13 @@ function pruneChannelNoteHistory(channel, now = performance.now()) {
 function beginNoteishOnset(channel, wasKeyOn, mask) {
   channel.noteishOnset = null;
   if (wasKeyOn || mask !== 15 || !player) return;
+  // Keep the actual points: pruning can shrink the live array while this
+  // onset is pending. Restoring an old length would create sparse entries.
+  const history = channel.noteHistory.slice();
+  if (history.length) history[history.length - 1] = { ...history.at(-1) };
   channel.noteishOnset = {
     sample: player.processedWaitSamples,
-    historyLength: channel.noteHistory.length,
-    lastPoint: channel.noteHistory.length ? { ...channel.noteHistory.at(-1) } : null,
+    history,
     sequenceLength: channel.noteSequence.length,
     lastSequenceNote: channel.lastSequenceNote,
     min: channel.noteMinMidi, max: channel.noteMaxMidi,
@@ -702,8 +705,8 @@ function settleNoteishOnset(channel) {
   const elapsed = player.processedWaitSamples - onset.sample;
   if (elapsed < 0 || elapsed > 8) return;
   // Remove only the provisional KEY ON point; keep every later pitch commit.
-  channel.noteHistory.length = onset.historyLength;
-  if (onset.lastPoint) channel.noteHistory[onset.historyLength - 1] = onset.lastPoint;
+  const cutoff = performance.now() - NOTEISH_HISTORY_WINDOW_MS;
+  channel.noteHistory = onset.history.filter(point => point.time >= cutoff);
   channel.noteSequence.length = onset.sequenceLength;
   channel.lastSequenceNote = onset.lastSequenceNote;
   channel.noteMinMidi = onset.min;
