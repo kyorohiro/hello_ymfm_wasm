@@ -193,3 +193,29 @@ test('YM2610/B MIDI selects hardware FM channels and includes SSG',()=>{
   assert.equal(notes(d.tracks[7])[0].data[0],69);
  }
 });
+
+test('MIDI ignores high-only intermediate pitches but keeps genuine low commits', async()=>{
+  const {extractOpnNotes}=await import('./vgm_notes.js');
+  for(const [command,offset,clock] of [[0x52,0x2c,7670454],[0x55,0x44,3835227],[0x56,0x48,7670454],[0x58,0x4c,0x80750ab6]]) {
+    const make=commands=>{
+      const bytes=vgm(commands,0);
+      new DataView(bytes.buffer).setUint32(offset,clock,true);
+      return bytes;
+    };
+    for(const low of [0x21,0xb6]) for(const gap of [2,100]) {
+      const prefix=[command,0xa5,0x23,command,0xa1,low,command,0x28,0xf1,...wait(100)];
+      const suffix=[command,0xa1,0xc6,...wait(1000),command,0x28,1,0x66];
+      const separated=make([...prefix,command,0xa5,0x2b,...wait(gap),...suffix]);
+      const adjacent=make([...prefix,...wait(gap),command,0xa5,0x2b,...suffix]);
+      const extracted=extractOpnNotes(separated).channels[1].notes;
+      assert.deepEqual(extracted.map(n=>[n.start,n.end]),[[0,100+gap],[100+gap,1100+gap]]);
+      assert.match(extracted[0].info,/block=4/);
+      assert.match(extracted[1].info,/fnum=966 block=5/);
+      assert.deepEqual(exportAnalysisMidi(separated).bytes,exportAnalysisMidi(adjacent).bytes);
+
+      const real=make([...prefix,command,0xa5,0x2b,command,0xa1,low,...wait(gap),...suffix]);
+      assert.deepEqual(extractOpnNotes(real).channels[1].notes.map(n=>[n.start,n.end]),
+        [[0,100],[100,100+gap],[100+gap,1100+gap]]);
+    }
+  }
+});

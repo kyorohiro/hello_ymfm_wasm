@@ -104,6 +104,7 @@ let pcmMonitor = createRf5c164Monitor();
 let engineClockKey = null;
 const sourceChipKind = () => currentHasPcm && currentChipKind === "ym2612" ? "megacd" : currentChipKind;
 let channelMonitor = createChannelMonitorState();
+let monitorFrequencyHigh = [0, 0];
 let psgMonitor = createPsgMonitor(currentChipKind);
 let noteishHeader = {};
 let toneChannels = [];
@@ -679,6 +680,36 @@ function pruneChannelNoteHistory(channel, now = performance.now()) {
   }
 }
 
+// Display-only onset cleanup: at most 8 VGM samples (~0.18 ms), and
+// only the first low write after a fresh full KEY ON. Audio/MIDI stay exact.
+function beginNoteishOnset(channel, wasKeyOn, mask) {
+  channel.noteishOnset = null;
+  if (wasKeyOn || mask !== 15 || !player) return;
+  channel.noteishOnset = {
+    sample: player.processedWaitSamples,
+    historyLength: channel.noteHistory.length,
+    lastPoint: channel.noteHistory.length ? { ...channel.noteHistory.at(-1) } : null,
+    sequenceLength: channel.noteSequence.length,
+    lastSequenceNote: channel.lastSequenceNote,
+    min: channel.noteMinMidi, max: channel.noteMaxMidi,
+  };
+}
+
+function settleNoteishOnset(channel) {
+  const onset = channel.noteishOnset;
+  channel.noteishOnset = null;
+  if (!onset || !player) return;
+  const elapsed = player.processedWaitSamples - onset.sample;
+  if (elapsed < 0 || elapsed > 8) return;
+  // Remove only the provisional KEY ON point; keep every later pitch commit.
+  channel.noteHistory.length = onset.historyLength;
+  if (onset.lastPoint) channel.noteHistory[onset.historyLength - 1] = onset.lastPoint;
+  channel.noteSequence.length = onset.sequenceLength;
+  channel.lastSequenceNote = onset.lastSequenceNote;
+  channel.noteMinMidi = onset.min;
+  channel.noteMaxMidi = onset.max;
+}
+
 function recordChannelNoteHistory(channelIndex, midiFloat) {
   const channel = channelMonitor[channelIndex];
   if (!channel) {
@@ -959,7 +990,7 @@ function renderNoteishOverviewGraph() {
       ${path}
       ${dots}
       ${marker}
-      <text x="${675 + (index % 2) * 45}" y="${34 + Math.floor(index / 2) * 18}" font-size="11" fill="${channelColors[index]}">${channel.label ?? `CH${index + 1}`}</text>
+      <text x="${675 + (index % 2) * 45}" y="${34 + Math.floor(index / 2) * 18}" font-size="11" fill="${channelColors[index]}">${channel.label ?? `CH${channel.channel + 1}`}</text>
     `;
   });
 
@@ -1188,6 +1219,13 @@ function detectPlaybackChipKind(header) {
 }
 
 function applyYm2203WriteToMonitor(register, value) {
+  // OPN high writes only latch; low writes commit the pitch. Both ports
+  // share the normal latch, with a separate latch for CH3 special mode.
+  if ((register & 0xf0) === 0xa0 && (register & 3) < 3 && (register & 4)) {
+    monitorFrequencyHigh[(register & 8) ? 1 : 0] = value & 0x3f;
+    return;
+  }
+
   let changed = false;
   const now = performance.now();
 
@@ -1195,6 +1233,7 @@ function applyYm2203WriteToMonitor(register, value) {
     const channel = value & 0x03;
     if (channel <= 2) {
       const wasKeyOn = channelMonitor[channel].keyOn;
+      beginNoteishOnset(channelMonitor[channel], wasKeyOn, (value >> 4) & 15);
       channelMonitor[channel].keyOn = ((value >> 4) & 0x0f) !== 0;
       channelMonitor[channel].changedAt.keyOn = now;
       if (channelMonitor[channel].keyOn) {
@@ -1223,27 +1262,9 @@ function applyYm2203WriteToMonitor(register, value) {
     if (!state) {
       return;
     }
-    state.fnum = (state.fnum & 0x700) | value;
-    state.changedAt.fnum = now;
-    updateChannelObservedRange(channel);
-    if (state.keyOn) {
-      const estimated = estimateChannelNoteish(state);
-      recordChannelNoteHistory(channel, estimated.midiFloat);
-      appendChannelNoteSequence(channel, estimated.midiFloat, false);
-    }
-    requestChannelMonitorRender();
-    requestNoteishRender();
-    return;
-  }
-
-  if (register >= 0xa4 && register <= 0xa6) {
-    const channel = register - 0xa4;
-    const state = channelMonitor[channel];
-    if (!state) {
-      return;
-    }
-    state.block = (value >> 3) & 0x07;
-    state.fnum = ((value & 0x07) << 8) | (state.fnum & 0xff);
+    settleNoteishOnset(state);
+    state.block = monitorFrequencyHigh[0] >> 3;
+    state.fnum = ((monitorFrequencyHigh[0] & 7) << 8) | value;
     state.changedAt.block = now;
     state.changedAt.fnum = now;
     updateChannelObservedRange(channel);
@@ -1522,6 +1543,13 @@ function decodeKeyOnChannel(value) {
 }
 
 function applyYm2612WriteToMonitor(port, register, value) {
+  // OPN high writes only latch; low writes commit the pitch. Both ports
+  // share the normal latch, with a separate latch for CH3 special mode.
+  if ((register & 0xf0) === 0xa0 && (register & 3) < 3 && (register & 4)) {
+    monitorFrequencyHigh[(register & 8) ? 1 : 0] = value & 0x3f;
+    return;
+  }
+
   if (currentChipKind === 'ym2610') {
     if (port === 0 && register < 0x20 || port === 1 && register < 0x30) return;
     if (!(noteishHeader.ym2610Clock & 0x80000000)) {
@@ -1545,6 +1573,7 @@ function applyYm2612WriteToMonitor(port, register, value) {
     const channel = decodeKeyOnChannel(value);
     if (channel !== null) {
       const wasKeyOn = channelMonitor[channel].keyOn;
+      beginNoteishOnset(channelMonitor[channel], wasKeyOn, (value >> 4) & 15);
       channelMonitor[channel].keyOn = ((value >> 4) & 0x0f) !== 0;
       channelMonitor[channel].changedAt.keyOn = now;
       if (channelMonitor[channel].keyOn) {
@@ -1570,26 +1599,10 @@ function applyYm2612WriteToMonitor(port, register, value) {
   if (register >= 0xa0 && register <= 0xa2) {
     const channel = channelBase + (register - 0xa0);
     const state = channelMonitor[channel];
-    state.fnum = (state.fnum & 0x700) | value;
-    channelMonitor[channel].changedAt.fnum = now;
-    updateChannelObservedRange(channel);
-    if (state.keyOn) {
-      const estimated = estimateChannelNoteish(state);
-      recordChannelNoteHistory(channel, estimated.midiFloat);
-      appendChannelNoteSequence(channel, estimated.midiFloat, false);
-    }
-    changed = true;
-    requestChannelMonitorRender();
-    requestNoteishRender();
-    return;
-  }
-
-  if (register >= 0xa4 && register <= 0xa6) {
-    const channel = channelBase + (register - 0xa4);
-    const state = channelMonitor[channel];
-    state.block = (value >> 3) & 0x07;
-    state.fnum = ((value & 0x07) << 8) | (state.fnum & 0xff);
-    channelMonitor[channel].changedAt.block = now;
+    settleNoteishOnset(state);
+    state.block = monitorFrequencyHigh[0] >> 3;
+    state.fnum = ((monitorFrequencyHigh[0] & 7) << 8) | value;
+    state.changedAt.block = now;
     channelMonitor[channel].changedAt.fnum = now;
     updateChannelObservedRange(channel);
     if (state.keyOn) {
@@ -1606,17 +1619,8 @@ function applyYm2612WriteToMonitor(port, register, value) {
   if (port === 0 && register >= 0xa8 && register <= 0xaa) {
     const operator = register === 0xa8 ? 3 : register === 0xa9 ? 1 : 2;
     const state = channelMonitor[2].specialFrequencies[operator];
-    state.fnum = (state.fnum & 0x700) | value;
-    state.changedAt.fnum = now;
-    requestChannelMonitorRender();
-    return;
-  }
-
-  if (port === 0 && register >= 0xac && register <= 0xae) {
-    const operator = register === 0xac ? 3 : register === 0xad ? 1 : 2;
-    const state = channelMonitor[2].specialFrequencies[operator];
-    state.block = (value >> 3) & 0x07;
-    state.fnum = ((value & 0x07) << 8) | (state.fnum & 0xff);
+    state.block = monitorFrequencyHigh[1] >> 3;
+    state.fnum = ((monitorFrequencyHigh[1] & 7) << 8) | value;
     state.changedAt.block = now;
     state.changedAt.fnum = now;
     requestChannelMonitorRender();
@@ -2347,6 +2351,7 @@ async function playCurrentVgm() {
 
     const { sampleRate } = await ensurePlaybackReady(parser);
     channelMonitor = createChannelMonitorState();
+    monitorFrequencyHigh = [0, 0];
     resetPsgMonitor();
     renderChannelMonitor();
     requestNoteishRender();
@@ -2576,6 +2581,7 @@ async function handleFile(file) {
   lastParseInfo = null;
   playButton.disabled = true;
   channelMonitor = createChannelMonitorState();
+  monitorFrequencyHigh = [0, 0];
   resetPsgMonitor();
   renderChannelMonitor();
   requestNoteishRender();
@@ -2634,6 +2640,7 @@ async function handleFile(file) {
   currentHasPcm = Boolean(vgm.header.rf5c164Clock);
   currentPcmClock = vgm.header.rf5c164Clock & 0x3fffffff;
   channelMonitor = createChannelMonitorState();
+  monitorFrequencyHigh = [0, 0];
   resetPsgMonitor();
   renderChannelMonitor();
   requestNoteishRender();
