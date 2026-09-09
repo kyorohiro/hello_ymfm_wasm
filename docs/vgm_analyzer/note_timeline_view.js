@@ -15,11 +15,12 @@ export function createNoteTimeline(root,{onSelect, onPlay,onPause,onCancel}) {
   const el=role=>root.querySelector(`[data-role="${role}"]`);
   const canvas=root.querySelector('canvas'),scroll=el('scroll'),status=el('status');
   const play=root.querySelector('[data-action="play"]'),cancel=root.querySelector('[data-action="cancel"]');
-  let loopSamples=0;
+  let loopSamples=0,active=false,pendingBuffer=null,analysisBuffer=null;
   let worker=null,duration=0,start=0,cursor=0,pps=100,width=700,height=230,detailed=false,ready=false;
   let request=0,channels=[],names=[],frame=0,busy=false;
   const span=()=>Math.max(1,width-48)/pps*rate;
   function resize(){
+    if(!active)return;
     width=Math.max(260,scroll.clientWidth);height=detailed?1810:230;
     canvas.style.width=width+'px';canvas.style.height=height+'px';scroll.style.height=height+'px';
     const dpr=Math.min(2,devicePixelRatio||1);canvas.width=Math.round(width*dpr);canvas.height=Math.round(height*dpr);
@@ -28,13 +29,15 @@ export function createNoteTimeline(root,{onSelect, onPlay,onPause,onCancel}) {
     view();
   }
   function view(){
+    if(!active)return;
     start=(scroll.scrollLeft/Math.max(1,scroll.scrollWidth-width))*Math.max(0,duration-span());
     if(worker&&ready)worker.postMessage({type:'view',id:++request,start,end:start+span(),limit:Math.max(1000,Math.floor(width*4))});
     draw();
   }
   function draw(){
-    if(frame)return;
+    if(!active||frame)return;
     frame=requestAnimationFrame(()=>{frame=0;
+      if(!active)return;
       const ctx=canvas.getContext('2d'),bottom=height-30;
       ctx.clearRect(0,0,width,height);ctx.fillStyle='#fffdf7';ctx.fillRect(0,0,width,height);
       const y=p=>24+(96-p)/72*(bottom-24),x=s=>48+(s-start)/rate*pps;
@@ -74,6 +77,7 @@ export function createNoteTimeline(root,{onSelect, onPlay,onPause,onCancel}) {
     if(notify)onSelect(cursor);draw();
   }
   function clear(){
+    pendingBuffer=null;analysisBuffer=null;
     worker?.terminate();worker=null;ready=false;duration=0;channels=[];names=[];cursor=0;scroll.scrollLeft=0;
     el('legend').textContent='';status.textContent='Load a file to inspect notes.';play.disabled=true;resize();
   }
@@ -94,13 +98,28 @@ export function createNoteTimeline(root,{onSelect, onPlay,onPause,onCancel}) {
   new ResizeObserver(resize).observe(scroll);
   return {
     clear, selected:()=>cursor,
+    active(value){
+      if(active===value)return;
+      active=value;
+      if(!active){
+        if(frame)cancelAnimationFrame(frame);frame=0;
+        if(worker&&!ready){worker.terminate();worker=null;pendingBuffer=analysisBuffer;analysisBuffer=null;}
+        return;
+      }
+      if(pendingBuffer){const buffer=pendingBuffer;pendingBuffer=null;this.load(buffer);}
+      else resize();
+    },
     load(buffer){
-      clear();status.textContent='Analyzing notes in background…';
+      clear();
+      if(!active){pendingBuffer=buffer;return;}
+      analysisBuffer=buffer;
+      status.textContent='Analyzing notes in background…';
       worker=new Worker(new URL('./note_timeline_worker.js',import.meta.url),{type:'module'});
       worker.onerror=()=>{status.textContent='Note analysis failed. Reload the file to retry.';};
       worker.onmessage=({data})=>{
         if(data.type==='error'){status.textContent=data.message;return;}
         if(data.type==='ready'){
+          analysisBuffer=null;
           duration=data.duration;loopSamples=data.loopSamples||0;names=data.names;ready=true;play.disabled=false;
           status.textContent=`${(duration/rate).toFixed(2)} seconds · click to set cursor`;
           el('legend').replaceChildren(...names.map((n,i)=>{const s=document.createElement('span');s.textContent=n+'  ';s.style.color=colors[i%colors.length];return s;}));

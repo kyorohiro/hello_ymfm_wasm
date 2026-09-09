@@ -1,4 +1,4 @@
-import { createNoteTimeline } from './note_timeline_view.js';
+import { createNoteTimeline } from './note_timeline_view.js?v=noteish-tabs-1';
 import { seekPlayback } from './seek_playback.js';
 import { createYm2610BAudioEngine } from '../js/ym2610baudioengine.js';
 import { describeToneNotes } from './tone_notes.js?v=ym2610-vgm-2';
@@ -83,6 +83,7 @@ const noteishPanel = document.getElementById("noteishPanel");
 const noteishOverview = document.getElementById("noteishOverview");
 const noteishGrid = document.getElementById("noteishGrid");
 const noteishMode = document.getElementById("noteishMode");
+let noteishViewMode = "live";
 const noteishInstrument = document.getElementById("noteishInstrument");
 const fretboardStrings = document.getElementById("fretboardStrings");
 const noteishDetailHelp = document.getElementById("noteishDetailHelp");
@@ -1020,12 +1021,19 @@ function renderNoteishOverviewGraph() {
 }
 
 function renderNoteishGrid() {
+  if (typeof noteishViewMode !== 'undefined') {
+    if (noteishPanel.hidden) return;
+    if (noteishViewMode === 'live' || noteishViewMode === 'song') {
+      renderNoteishOverviewGraph();
+      if (noteishViewMode === 'song') return;
+    }
+  }
   const signature = buildNoteishSignature();
   if (signature === lastNoteishSignature && !noteishDirty) {
     return;
   }
   lastNoteishSignature = signature;
-  renderNoteishOverviewGraph();
+  if (typeof noteishViewMode === 'undefined') renderNoteishOverviewGraph();
   // Retain scroll containers across live updates, including their keyboard focus.
   const existingCards = Array.from(noteishGrid.children);
 
@@ -2780,12 +2788,7 @@ var songTimeline = createNoteTimeline(document.getElementById('noteTimeline'), {
   onPause: () => pauseButton.click(),
   onCancel: () => timelineSeekController?.abort(),
 });
-document.getElementById('noteTimelineMode').addEventListener('change', event => {
-  const live = event.target.value === 'live';
-  document.getElementById('noteTimeline').hidden = live;
-  noteishOverview.hidden = !live;
-  requestNoteishRender();
-});
+
 
 playButton.addEventListener("click", async () => {
   if (player?.isPaused() && !timelineSelectionPending) {
@@ -2898,6 +2901,7 @@ function setOutputTab(tabName) {
   operatorInfoPanel.hidden = !isOperatorInfo;
   parsedOutputPanel.hidden = tabName !== "parsed-output";
   noteishPanel.hidden = tabName !== "noteish";
+  songTimeline.active(tabName === "noteish" && noteishViewMode === "song");
   if (tabName === "noteish") {
     requestNoteishRender();
     renderNoteishGrid();
@@ -2916,29 +2920,48 @@ noteishTab.addEventListener("click", () => {
   setOutputTab("noteish");
 });
 
-noteishMode.addEventListener("change", () => {
-  const detailed = noteishMode.value === "detail";
-  noteishPanel.classList.toggle("is-detailed", detailed);
-  noteishDetailHelp.hidden = !detailed;
-  requestNoteishRender();
-  renderNoteishGrid();
-  if (detailed && noteishInstrument.value !== "fretboard") {
-    Array.from(noteishGrid.children).forEach((card, index) => {
-      const viewport = card.querySelector(".noteish-graph");
-      const midi = estimateChannelNoteish(noteishChannels()[index]).midiFloat ?? 60;
-      viewport.scrollLeft = 34 + (clamp(midi, 24, 96) - 24) * 36 - viewport.clientWidth / 2;
-    });
+function setNoteishView(mode) {
+  if (!['live', 'song', 'fretboard', 'keyboard'].includes(mode)) return;
+  noteishViewMode = mode;
+  const paneIds = { live: 'noteLivePane', song: 'noteSongPane', fretboard: 'noteFretPane', keyboard: 'noteKeyboardPane' };
+  for (const button of document.querySelectorAll('[data-noteish-view]')) {
+    const selected = button.dataset.noteishView === mode;
+    button.setAttribute('aria-selected', String(selected));
+    button.tabIndex = selected ? 0 : -1;
   }
-});
-
-function updateNoteishInstrument() {
-  const fretboard = noteishInstrument.value === "fretboard";
-  noteishPanel.classList.toggle("is-fretboard", fretboard);
-  document.getElementById("fretboardOptions").hidden = !fretboard;
+  for (const [key,id] of Object.entries(paneIds)) document.getElementById(id).hidden = key !== mode;
+  noteishMode.value = mode === 'live' || mode === 'fretboard' ? 'normal' : 'detail';
+  noteishInstrument.value = mode === 'fretboard' ? 'fretboard' : 'keyboard';
+  document.getElementById('noteTimelineMode').value = mode === 'song' ? 'score' : 'live';
+  noteishPanel.classList.toggle('is-detailed', mode === 'song' || mode === 'keyboard');
+  noteishPanel.classList.toggle('is-fretboard', mode === 'fretboard');
+  document.getElementById('fretboardOptions').hidden = mode !== 'fretboard';
+  noteishGrid.hidden = mode === 'song';
+  if (!noteishGrid.hidden) document.getElementById(paneIds[mode]).append(noteishGrid);
+  songTimeline.mode('detail');
+  songTimeline.active(!noteishPanel.hidden && mode === 'song');
+  lastNoteishSignature = null;
   requestNoteishRender();
   renderNoteishGrid();
 }
-noteishInstrument.addEventListener("change", updateNoteishInstrument);
+const viewTabs = Array.from(document.querySelectorAll('[data-noteish-view]'));
+for (const button of viewTabs) {
+  button.addEventListener('click', () => setNoteishView(button.dataset.noteishView));
+  button.addEventListener('keydown', event => {
+    const index = viewTabs.indexOf(button);
+    const next = event.key === 'ArrowRight' ? (index + 1) % 4
+      : event.key === 'ArrowLeft' ? (index + 3) % 4
+      : event.key === 'Home' ? 0 : event.key === 'End' ? 3 : -1;
+    if (next < 0) return;
+    event.preventDefault();
+    setNoteishView(viewTabs[next].dataset.noteishView);
+    viewTabs[next].focus();
+  });
+}
+function updateNoteishInstrument() {
+  requestNoteishRender();
+  renderNoteishGrid();
+}
 fretboardStrings.addEventListener("change", updateNoteishInstrument);
 
 noteishGrid.addEventListener("pointerdown", (event) => {

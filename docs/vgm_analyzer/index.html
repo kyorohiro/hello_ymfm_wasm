@@ -364,6 +364,8 @@
         display: none;
       }
 
+      #noteishPanel [hidden] { display: none !important; }
+
       .noteish-grid {
         display: grid;
         grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -664,12 +666,18 @@
 
         <section id="noteishPanel" class="tab-panel" role="tabpanel" aria-labelledby="noteishTab" hidden>
           <h2>Channel Note-ish View</h2>
-          <label class="noteish-mode-control">Channel pitch display
-            <select id="noteishInstrument">
-              <option value="keyboard">Keyboard</option>
-              <option value="fretboard">Fretboard</option>
-            </select>
-          </label>
+          <div id="noteishViewTabs" class="tabbar" role="tablist" aria-label="Note-ish views">
+            <button id="noteLiveTab" class="tab-button" type="button" role="tab" data-noteish-view="live" aria-controls="noteLivePane" aria-selected="true">Live History</button>
+            <button id="noteSongTab" class="tab-button" type="button" role="tab" data-noteish-view="song" aria-controls="noteSongPane" aria-selected="false" tabindex="-1">Song Timeline</button>
+            <button id="noteFretTab" class="tab-button" type="button" role="tab" data-noteish-view="fretboard" aria-controls="noteFretPane" aria-selected="false" tabindex="-1">Fretboard</button>
+            <button id="noteKeyboardTab" class="tab-button" type="button" role="tab" data-noteish-view="keyboard" aria-controls="noteKeyboardPane" aria-selected="false" tabindex="-1">Semantic Keyboard</button>
+          </div>
+          <div hidden>
+            <select id="noteishInstrument"><option value="keyboard">Keyboard</option><option value="fretboard">Fretboard</option></select>
+            <select id="noteishMode"><option value="normal">Normal</option><option value="detail">Detailed</option></select>
+            <select id="noteTimelineMode"><option value="live">Live</option><option value="score">Song</option></select>
+          </div>
+          <section id="noteFretPane" role="tabpanel" aria-labelledby="noteFretTab" hidden>
           <div id="fretboardOptions" hidden>
             <label class="noteish-mode-control">Strings
               <select id="fretboardStrings">
@@ -680,24 +688,19 @@
             </label>
             <p class="noteish-help">Position follows each channel: stay within a five-fret window when possible. Prefer strings 1–6 and frets 0–21; use the extended range only when needed. At fret 12 and above, use strings 1–4. High strings at the top, low strings at the bottom. Solid blue marks the current note. Previous notes fade over 2.5 seconds, including after key off. Arrows indicate notes outside the range. This is a pitch display, not fingering or TAB.</p>
           </div>
-          <label class="noteish-mode-control">Display
-            <select id="noteishMode">
-              <option value="normal">Normal</option>
-              <option value="detail">Detailed — semitone keyboard</option>
-            </select>
-          </label>
-          <p id="noteishDetailHelp" class="noteish-help" hidden>Each channel shows C1–C7 in semitone steps. Scroll horizontally to inspect the keyboard (arrow keys when focused). Orange: observed range. Blue: current pitch; gray: key off. Notes outside C1–C7 appear only in the text readout. The top graph shows the full C1–C7 range in semitone rows. Use page scrolling or browser zoom to view it.</p>
-          <p class="noteish-help">
-            Rough note estimate from each channel's current BLOCK and FNUM.
-            It ignores operator MULTI / DT, channel 3 special mode, and pitch LFO.
-          </p>
-          <div class="noteish-overview">
-            <p class="noteish-overview-caption">Time runs from left to right. Inspect notes before playback, scroll to revisit a phrase, or click to choose a playback position.</p>
-            <label>Top graph <select id="noteTimelineMode"><option value="score">Song timeline</option><option value="live">Live history</option></select></label>
+          </section>
+          <section id="noteKeyboardPane" role="tabpanel" aria-labelledby="noteKeyboardTab" hidden>
+            <p id="noteishDetailHelp" class="noteish-help">C1–C7 in semitone steps. Scroll horizontally to inspect the keyboard. Orange: observed range. Blue: current pitch; gray: key off.</p>
+          </section>
+          <section id="noteLivePane" role="tabpanel" aria-labelledby="noteLiveTab">
+            <p class="noteish-help">Recent pitch history across all channels. Time flows from right to left.</p>
+            <div class="noteish-overview"><div id="noteishOverview" role="region" aria-label="Recent channel pitch history"></div></div>
+            <div id="noteishGrid" class="noteish-grid"></div>
+          </section>
+          <section id="noteSongPane" role="tabpanel" aria-labelledby="noteSongTab" hidden>
+            <p class="noteish-help">Follow the melody from left to right in semitone rows. Scroll or zoom, click to choose a playback position, then Play.</p>
             <div id="noteTimeline"></div>
-            <div id="noteishOverview" hidden role="region" aria-label="Recent channel pitch history"></div>
-          </div>
-          <div id="noteishGrid" class="noteish-grid"></div>
+          </section>
         </section>
 
         <section id="parsedOutputPanel" class="tab-panel" role="tabpanel" aria-labelledby="parsedOutputTab" hidden>
@@ -736,6 +739,6 @@
       </section>
     </main>
 
-    <script type="module" src="./vgm_analyzer.js?v=queue-flush-1"></script>
+    <script type="module" src="./vgm_analyzer.js?v=noteish-live-cards-1"></script>
   </body>
 </html>
