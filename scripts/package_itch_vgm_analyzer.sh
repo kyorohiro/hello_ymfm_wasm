@@ -24,6 +24,7 @@ vgm_mml.js
 vgm_notes.js
 tone_notes.js
 fretboard.js
+fretboard_all.js
 vgm_midi.js
 vgm_mml_music.js
 note_timeline.js
