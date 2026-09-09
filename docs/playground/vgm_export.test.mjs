@@ -742,3 +742,23 @@ test("native Raw, Scheduled and exact High preserve separated pitch writes and t
     assert.equal(time,9);
   }
 });
+
+test("Compact onset cleanup is opt-in and preserves KEY timing and later bends", async()=>{
+  for(const splitChannels of [false,true]) for(const gap of [5,8,9]) {
+    const bytes=createVgmBuffer([
+      0x52,0xa5,0x2b,0x52,0xa1,0x9e,0x61,100,0,0x52,0x28,0xf1,
+      0x61,gap,0,0x52,0xa5,0x2b,0x52,0xa1,0x0b,
+      0x70,0x52,0xa1,0xc6,0x61,100,0,0x52,0x28,1,0x66]);
+    const base={compact:true,splitChannels};
+    const defaultSource=exportYm2612VgmToPlaygroundJavaScript(bytes,base);
+    assert.equal(defaultSource,exportYm2612VgmToPlaygroundJavaScript(bytes,{...base,cleanNoteOnset:false}));
+    const original=await runPitchExport(defaultSource);
+    const cleaned=await runPitchExport(exportYm2612VgmToPlaygroundJavaScript(bytes,{...base,cleanNoteOnset:true}));
+    assert.deepEqual(cleaned.keys,original.keys);
+    assert.deepEqual(cleaned.durations,original.durations);
+    assert.deepEqual(cleaned.pitches.map(p=>p[0]),[0,gap<=8?100:100+gap,101+gap]);
+    assert.deepEqual(original.pitches.map(p=>p[0]),[0,100+gap,101+gap]);
+    assert.equal(exportYm2612VgmToPlaygroundJavaScript(bytes,{high:true,cleanNoteOnset:true}),
+      exportYm2612VgmToPlaygroundJavaScript(bytes,{high:true}));
+  }
+});

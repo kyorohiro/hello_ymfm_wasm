@@ -185,3 +185,13 @@ SSG / PSG、Raw、Playground export の動作は変更しない。
 
 境界・ゼロ FNUM からの開始・後続 bend・保持中再 KEY ON の回帰テストを追加。
 関連テスト 90 件成功。提供された Neo-Geo Logo の MIDI 書き出しも実行済み。
+
+### Playground Compact Note-ish の任意補正
+
+- Import に「Compact Note-ish: merge pitch setup within 8 samples after KEY ON」を追加。
+  初期値 OFF、Compact 選択時のみ有効。API は cleanNoteOnset: true。
+- ON では fresh full KEY ON 直後の最初の確定音程を KEY ON 直前に設定する。
+  KEY 時刻・曲長・後続 bend は維持。CH3 特殊モード / DAC 対象 CH は補正しない。
+- OFF の出力は従来と同じ。上位ラッチ更新中の誤った中間音を出さない既存修正とは別のオプション。
+- チャンネル分割あり / なし、8 samples の境界、既定 OFF、通常 High には作用しないことを検証。
+  Export / MIDI 関連テスト 50 件成功。

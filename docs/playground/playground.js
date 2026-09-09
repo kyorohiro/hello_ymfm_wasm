@@ -856,6 +856,7 @@ function resolveVgmImportStrategy(
       high: options.mode === "high",
       compact: options.mode === "compact",
       noteish: options.noteish,
+      cleanNoteOnset: options.cleanNoteOnset,
       splitChannels,
       includeDac: options.includeDac,
       dacBase64: options.dacBase64,
@@ -1824,6 +1825,7 @@ runButton.addEventListener(
       }
       const options = {
           targetPath,
+          cleanNoteOnset: selectedMode?.value === "compact" && document.getElementById("cleanNoteOnsetInput").checked,
           noteish: selectedMode?.value === "high" && document.getElementById("noteishVgmInput").checked,
           splitChannels: document.getElementById("splitVgmChannelsInput").checked,
           mode: selectedMode?.value ?? "write",
@@ -1843,6 +1845,7 @@ runButton.addEventListener(
       'input[name="vgmImportMode"]:checked'
     );
     const mode = selectedMode?.value ?? "write";
+    document.getElementById("cleanNoteOnsetInput").disabled = mode !== "compact";
     document.getElementById("noteishVgmInput").disabled = mode !== "high";
     if (dacBase64Input) {
       dacBase64Input.disabled = false;
@@ -1940,6 +1943,7 @@ runButton.addEventListener(
       vgmImportTarget.setCustomValidity("");
       mainMenu.open = false;
       document.getElementById("noteishVgmInput").checked = false;
+      document.getElementById("cleanNoteOnsetInput").checked = false;
       vgmImportDialog.showModal();
     }
   );

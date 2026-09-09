@@ -1198,6 +1198,7 @@ function formatOffset(value) {
  *   scheduled?: boolean,
  *   high?: boolean,
  *   noteish?: boolean,
+ *   cleanNoteOnset?: boolean,
  *   compact?: boolean,
  *   totalLoopSamples?: number | null,
  * }} [options]
@@ -1402,6 +1403,31 @@ function exportOpnFmVgmToPlaygroundJavaScript(source, options, chipKind, targetC
           fnum: ((highLatches[0] & 7) << 8) | e.value,
         };
       }
+    }
+    if (options.compact && options.cleanNoteOnset === true) {
+      const masks = Array(6).fill(0);
+      const pending = Array(6).fill(null);
+      for (const e of orderedEvents) {
+        if (e.port === 0 && e.register === 0x28 && (e.value & 3) < 3) {
+          const ch = (e.value & 3) + ((e.value & 4) ? 3 : 0);
+          const mask = e.value >> 4;
+          pending[ch] = masks[ch] === 0 && mask === 15 ? e : null;
+          masks[ch] = mask;
+        } else if (e.noteCommit) {
+          const ch = e.noteCommit.channel - 1;
+          const onset = pending[ch];
+          pending[ch] = null;
+          if (!onset || e.timeSamples - onset.timeSamples > 8 ||
+              (ch === 2 && options.noteSpecial) || (ch === 5 && options.noteDac)) continue;
+          // Emit the first committed pitch immediately before KEY ON.
+          // Later high-only writes remain harmless latch writes.
+          e.timeSamples = onset.timeSamples;
+          e.sequence = onset.sequence - 0.5;
+        }
+      }
+      const byTime = (a, b) => a.timeSamples - b.timeSamples || a.sequence - b.sequence;
+      orderedEvents.sort(byTime);
+      for (const track of tracks) track.events.sort(byTime);
     }
     const compactEvents = options.compact ? compactHighEvents(orderedEvents) : null;
     const retained = compactEvents ? new Set(compactEvents) : null;
