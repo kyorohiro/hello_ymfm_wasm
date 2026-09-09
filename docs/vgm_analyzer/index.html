@@ -370,6 +370,11 @@
         gap: 14px;
       }
 
+      .timeline-controls { display:flex; flex-wrap:wrap; gap:12px; align-items:center; margin:12px 0; }
+      .timeline-controls input[type=number] { width:100px; }
+      .timeline-scroll { position:relative; overflow-x:auto; overflow-y:hidden; width:100%; }
+      .timeline-scroll canvas { position:sticky; left:0; display:block; cursor:crosshair; }
+      .timeline-spacer { position:absolute; height:1px; top:0; left:0; pointer-events:none; }
       .noteish-overview {
         margin: 0 0 18px;
         border: 1px solid var(--line);
@@ -687,8 +692,10 @@
             It ignores operator MULTI / DT, channel 3 special mode, and pitch LFO.
           </p>
           <div class="noteish-overview">
-            <p class="noteish-overview-caption">Top graph: time on X, pitch range on Y, FM and SSG / PSG tone channels overlaid.</p>
-            <div id="noteishOverview" role="region" aria-label="Recent channel pitch history"></div>
+            <p class="noteish-overview-caption">Time runs from left to right. Inspect notes before playback, scroll to revisit a phrase, or click to choose a playback position.</p>
+            <label>Top graph <select id="noteTimelineMode"><option value="score">Song timeline</option><option value="live">Live history</option></select></label>
+            <div id="noteTimeline"></div>
+            <div id="noteishOverview" hidden role="region" aria-label="Recent channel pitch history"></div>
           </div>
           <div id="noteishGrid" class="noteish-grid"></div>
         </section>
@@ -729,6 +736,6 @@
       </section>
     </main>
 
-    <script type="module" src="./vgm_analyzer.js?v=onset-history-2"></script>
+    <script type="module" src="./vgm_analyzer.js?v=song-timeline-1"></script>
   </body>
 </html>

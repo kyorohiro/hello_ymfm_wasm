@@ -1,3 +1,5 @@
+import { createNoteTimeline } from './note_timeline_view.js';
+import { seekPlayback } from './seek_playback.js';
 import { createYm2610BAudioEngine } from '../js/ym2610baudioengine.js';
 import { describeToneNotes } from './tone_notes.js?v=ym2610-vgm-2';
 import { midiChipKind } from "./vgm_notes.js?v=ym2610-vgm-2";
@@ -714,6 +716,7 @@ function settleNoteishOnset(channel) {
 }
 
 function recordChannelNoteHistory(channelIndex, midiFloat) {
+  if (typeof timelineSeekController !== "undefined" && timelineSeekController) return;
   const channel = channelMonitor[channelIndex];
   if (!channel) {
     return;
@@ -744,6 +747,7 @@ function noteNameFromMidiFloat(midiFloat) {
 }
 
 function appendChannelNoteSequence(channelIndex, midiFloat, force = false) {
+  if (typeof timelineSeekController !== "undefined" && timelineSeekController) return;
   const channel = channelMonitor[channelIndex];
   if (!channel) {
     return;
@@ -922,6 +926,14 @@ function noteishOverviewY(midiFloat) {
 }
 
 function renderNoteishOverviewGraph() {
+  if (typeof songTimeline !== 'undefined' && document.getElementById('noteTimelineMode').value === 'score') {
+    songTimeline.mode(noteishMode.value);
+    if (player?.isPlaying() && !timelineSelectionPending && !timelineSeekController) {
+      const queued = player.queuedFrames + (activeStream?.workletQueuedFrames ?? 0);
+      songTimeline.cursor(Math.max(0, player.processedWaitSamples - queued * 44100 / player.sampleRate()), true, loopCheckbox.checked);
+    }
+    return;
+  }
   const detailed = noteishMode.value === "detail";
   const bottom = detailed ? 1776 : 176;
   const height = detailed ? 1810 : 210;
@@ -2334,7 +2346,8 @@ function downloadParseInfo() {
   setStatus("Exported parse info JSON.");
 }
 
-async function playCurrentVgm() {
+async function playCurrentVgm(startSample = 0) {
+  if (timelineSeekController) return;
   if (!currentBuffer) {
     return;
   }
@@ -2411,6 +2424,20 @@ async function playCurrentVgm() {
     }
     player.reset();
     player.setLoopEnabled(loopCheckbox.checked);
+    if (startSample > 0) {
+      timelineSeekController = new AbortController();
+      songTimeline.busy(true, 'Moving to cursor…');
+      try {
+        await seekPlayback(player, startSample, {
+          signal: timelineSeekController.signal,
+          onProgress: p => songTimeline.busy(true, `Moving to cursor… ${Math.round(p * 100)}%`),
+        });
+      } finally {
+        timelineSeekController = null;
+        songTimeline.busy(false);
+      }
+    }
+    timelineSelectionPending = false;
     player.play();
     const started = await startWorkletStream(sampleRate) || startScriptProcessorStream();
     if (!started) {
@@ -2420,8 +2447,11 @@ async function playCurrentVgm() {
     updatePlaybackButtons(player.stats());
       setStatus(`Streaming VGM at ${sampleRate} Hz...${currentStatusSuffix()}`);
   } catch (error) {
-    console.error(error);
-    setStatus(`Error: ${error.message}`);
+    stopActiveStream();
+    player?.stop();
+    timelineSelectionPending = true;
+    if (error.name === 'AbortError') setStatus('Seek cancelled. Cursor retained.');
+    else { console.error(error); setStatus(`Error: ${error.message}`); }
   } finally {
     updatePlaybackButtons(player ? player.stats() : {});
   }
@@ -2460,6 +2490,7 @@ function scheduleWorkletPump() {
 }
 
 function pumpWorkletChunks(targetFrames = currentWorkletTargetFrames()) {
+  if (player?.isPaused()) return;
   if (!activeStream || activeStream.mode !== "worklet") {
     return;
   }
@@ -2556,6 +2587,7 @@ function startScriptProcessorStream() {
   node.onaudioprocess = (event) => {
     const left = event.outputBuffer.getChannelData(0);
     const right = event.outputBuffer.getChannelData(1);
+    if (player.isPaused()) { left.fill(0); right.fill(0); return; }
     player.process(left, right, bufferSize);
     applyAnalyzerMuteToBuffer(left, right, bufferSize);
     const stats = player.stats();
@@ -2572,6 +2604,9 @@ function startScriptProcessorStream() {
 }
 
 async function handleFile(file) {
+  timelineSeekController?.abort();
+  songTimeline.clear();
+  timelineSelectionPending = true;
   stopActiveStream();
   player?.pause();
   setStatus(`Loading ${file.name}...`);
@@ -2674,6 +2709,7 @@ async function handleFile(file) {
 
   commandsOutput.textContent = events.join("\n");
   currentBuffer = buffer;
+  songTimeline.load(buffer);
   midiExportAvailable = Boolean(midiChipKind(vgm.header));
   lastParseInfo = buildParseInfo(buffer, file.name, vgm);
   if (sourceHeader) {
@@ -2716,27 +2752,55 @@ ym2608RomInput?.addEventListener("change", async (event) => {
   await handleYm2608RomFile(file);
 });
 
-playButton.addEventListener("click", async () => {
-  await playCurrentVgm();
+let timelineSelectionPending = false;
+let timelineSeekController = null;
+async function resumeTimelinePlayback() {
+  if (!player || timelineSeekController) return;
+  if (timelineSelectionPending) { await playCurrentVgm(songTimeline.selected()); return; }
+  player.resume();
+  await audioContext?.resume();
+  scheduleWorkletPump();
+  updatePlaybackButtons(player.stats());
+  setStatus("Resumed.");
+}
+var songTimeline = createNoteTimeline(document.getElementById('noteTimeline'), {
+  onSelect() {
+    timelineSelectionPending = true;
+    if (player?.isPlaying()) pauseButton.click();
+  },
+  onPlay: async sample => {
+    if (player?.isPaused() && !timelineSelectionPending) await resumeTimelinePlayback();
+    else await playCurrentVgm(sample);
+  },
+  onPause: () => pauseButton.click(),
+  onCancel: () => timelineSeekController?.abort(),
+});
+document.getElementById('noteTimelineMode').addEventListener('change', event => {
+  const live = event.target.value === 'live';
+  document.getElementById('noteTimeline').hidden = live;
+  noteishOverview.hidden = !live;
+  requestNoteishRender();
 });
 
-pauseButton.addEventListener("click", () => {
+playButton.addEventListener("click", async () => {
+  if (player?.isPaused() && !timelineSelectionPending) {
+    await resumeTimelinePlayback();
+    return;
+  }
+  await playCurrentVgm(songTimeline.selected());
+});
+
+pauseButton.addEventListener("click", async () => {
   if (!player) {
     return;
   }
   player.pause();
+  await audioContext?.suspend();
   updatePlaybackButtons(player.stats());
   setStatus("Paused.");
 });
 
-resumeButton.addEventListener("click", () => {
-  if (!player) {
-    return;
-  }
-  player.resume();
-  updatePlaybackButtons(player.stats());
-  setStatus("Resumed.");
-});
+resumeButton.addEventListener("click", resumeTimelinePlayback);
 
 replayButton.addEventListener("click", async () => {
   if (!currentBuffer) {
@@ -2746,6 +2810,9 @@ replayButton.addEventListener("click", async () => {
 });
 
 stopButton.addEventListener("click", () => {
+  timelineSeekController?.abort();
+  timelineSelectionPending = false;
+  songTimeline.cursor(0, false);
   stopActiveStream();
   if (player) {
     player.stop();
