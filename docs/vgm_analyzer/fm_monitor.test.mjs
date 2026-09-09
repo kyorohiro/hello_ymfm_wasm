@@ -184,7 +184,7 @@ test('keyboard updates keep the scrolling element attached without forcing its p
 });
 
 test('song mode and hidden Note-ish panel skip channel-card calculations',()=>{
-  for(const mode of ['live','song','fretboard','keyboard']) for(const hidden of [false,true]){
+  for(const mode of ['live','song','fretboard','fretboard-all','keyboard']) for(const hidden of [false,true]){
     if(!hidden && mode!=='song')continue;
     let overview=0;
     const c=vm.createContext({
@@ -212,4 +212,20 @@ test('Live History renders the overview and the compact channel cards',()=>{
   vm.runInContext(source.slice(a,source.indexOf('\n}',a)+2),c);
   c.renderNoteishGrid();
   assert.equal(overview,1);assert.equal(cardCalculation,1);
+});
+
+test('Fretboard All renders only the combined board',()=>{
+ let draws=0;
+ const c=vm.createContext({
+  noteishViewMode:'fretboard-all',noteishPanel:{hidden:false},
+  renderAllChannelFretboard(){draws++;},
+  renderNoteishOverviewGraph(){assert.fail('unselected overview rendered');},
+  buildNoteishSignature(){assert.fail('individual cards calculated');},
+ });
+ const a=source.indexOf('function renderNoteishGrid()');
+ vm.runInContext(source.slice(a,source.indexOf('\n}',a)+2),c);
+ c.renderNoteishGrid();
+ assert.equal(draws,1);
+ c.noteishPanel.hidden=true;c.renderNoteishGrid();
+ assert.equal(draws,1);
 });

@@ -1,3 +1,4 @@
+import { renderAllFretboard } from './fretboard_all.js';
 import { createNoteTimeline } from './note_timeline_view.js?v=noteish-tabs-1';
 import { seekPlayback } from './seek_playback.js';
 import { createYm2610BAudioEngine } from '../js/ym2610baudioengine.js';
@@ -1020,9 +1021,26 @@ function renderNoteishOverviewGraph() {
   `;
 }
 
+function renderAllChannelFretboard() {
+  const strings = Number(fretboardStrings.value), now = performance.now();
+  const layers = noteishChannels().map(channel => {
+    pruneChannelNoteHistory(channel, now);
+    const note = estimateChannelNoteish(channel).midiFloat;
+    let entry = fretboardTrackers.get(channel);
+    if (!entry || entry.strings !== strings) {
+      entry = { strings, tracker: createFretboardTracker(strings) };
+      fretboardTrackers.set(channel, entry);
+    }
+    return { ...entry.tracker.update(channel.noteHistory, note, channel.keyOn, now),
+      note, label: channel.label ?? `CH${channel.channel + 1}` };
+  });
+  document.getElementById('allFretboardGraph').innerHTML = renderAllFretboard(layers, strings);
+}
+
 function renderNoteishGrid() {
   if (typeof noteishViewMode !== 'undefined') {
     if (noteishPanel.hidden) return;
+    if (noteishViewMode === 'fretboard-all') { renderAllChannelFretboard(); return; }
     if (noteishViewMode === 'live' || noteishViewMode === 'song') {
       renderNoteishOverviewGraph();
       if (noteishViewMode === 'song') return;
@@ -2930,22 +2948,25 @@ noteishTab.addEventListener("click", () => {
 });
 
 function setNoteishView(mode) {
-  if (!['live', 'song', 'fretboard', 'keyboard'].includes(mode)) return;
+  if (!['live', 'song', 'fretboard', 'fretboard-all', 'keyboard'].includes(mode)) return;
   noteishViewMode = mode;
-  const paneIds = { live: 'noteLivePane', song: 'noteSongPane', fretboard: 'noteFretPane', keyboard: 'noteKeyboardPane' };
+  const paneIds = { live: 'noteLivePane', song: 'noteSongPane', fretboard: 'noteFretPane', 'fretboard-all': 'noteAllFretPane', keyboard: 'noteKeyboardPane' };
   for (const button of document.querySelectorAll('[data-noteish-view]')) {
     const selected = button.dataset.noteishView === mode;
     button.setAttribute('aria-selected', String(selected));
     button.tabIndex = selected ? 0 : -1;
   }
   for (const [key,id] of Object.entries(paneIds)) document.getElementById(id).hidden = key !== mode;
-  noteishMode.value = mode === 'live' || mode === 'fretboard' ? 'normal' : 'detail';
-  noteishInstrument.value = mode === 'fretboard' ? 'fretboard' : 'keyboard';
+  const fretboard = mode === 'fretboard' || mode === 'fretboard-all';
+  noteishMode.value = mode === 'live' || fretboard ? 'normal' : 'detail';
+  noteishInstrument.value = fretboard ? 'fretboard' : 'keyboard';
   document.getElementById('noteTimelineMode').value = mode === 'song' ? 'score' : 'live';
   noteishPanel.classList.toggle('is-detailed', mode === 'song' || mode === 'keyboard');
-  noteishPanel.classList.toggle('is-fretboard', mode === 'fretboard');
-  document.getElementById('fretboardOptions').hidden = mode !== 'fretboard';
-  noteishGrid.hidden = mode === 'song';
+  noteishPanel.classList.toggle('is-fretboard', fretboard);
+  const fretOptions = document.getElementById('fretboardOptions');
+  fretOptions.hidden = !fretboard;
+  if (fretboard) document.getElementById(paneIds[mode]).prepend(fretOptions);
+  noteishGrid.hidden = mode === 'song' || mode === 'fretboard-all';
   if (!noteishGrid.hidden) document.getElementById(paneIds[mode]).append(noteishGrid);
   songTimeline.mode('detail');
   songTimeline.active(!noteishPanel.hidden && mode === 'song');
@@ -2958,9 +2979,9 @@ for (const button of viewTabs) {
   button.addEventListener('click', () => setNoteishView(button.dataset.noteishView));
   button.addEventListener('keydown', event => {
     const index = viewTabs.indexOf(button);
-    const next = event.key === 'ArrowRight' ? (index + 1) % 4
-      : event.key === 'ArrowLeft' ? (index + 3) % 4
-      : event.key === 'Home' ? 0 : event.key === 'End' ? 3 : -1;
+    const next = event.key === 'ArrowRight' ? (index + 1) % viewTabs.length
+      : event.key === 'ArrowLeft' ? (index + viewTabs.length - 1) % viewTabs.length
+      : event.key === 'Home' ? 0 : event.key === 'End' ? viewTabs.length - 1 : -1;
     if (next < 0) return;
     event.preventDefault();
     setNoteishView(viewTabs[next].dataset.noteishView);

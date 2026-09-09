@@ -670,6 +670,7 @@
             <button id="noteLiveTab" class="tab-button" type="button" role="tab" data-noteish-view="live" aria-controls="noteLivePane" aria-selected="true">Live History</button>
             <button id="noteSongTab" class="tab-button" type="button" role="tab" data-noteish-view="song" aria-controls="noteSongPane" aria-selected="false" tabindex="-1">Song Timeline</button>
             <button id="noteFretTab" class="tab-button" type="button" role="tab" data-noteish-view="fretboard" aria-controls="noteFretPane" aria-selected="false" tabindex="-1">Fretboard</button>
+            <button id="noteAllFretTab" class="tab-button" type="button" role="tab" data-noteish-view="fretboard-all" aria-controls="noteAllFretPane" aria-selected="false" tabindex="-1">Fretboard (All)</button>
             <button id="noteKeyboardTab" class="tab-button" type="button" role="tab" data-noteish-view="keyboard" aria-controls="noteKeyboardPane" aria-selected="false" tabindex="-1">Semantic Keyboard</button>
           </div>
           <div hidden>
@@ -686,8 +687,12 @@
                 <option value="8" selected>8 — F#1–E6</option>
               </select>
             </label>
-            <p class="noteish-help">Position follows each channel: stay within a five-fret window when possible. Prefer strings 1–6 and frets 0–21; use the extended range only when needed. At fret 12 and above, use strings 1–4. High strings at the top, low strings at the bottom. Solid blue marks the current note. Previous notes fade over 2.5 seconds, including after key off. Arrows indicate notes outside the range. This is a pitch display, not fingering or TAB.</p>
+            <p class="noteish-help">Position follows each channel: stay within a five-fret window when possible. Prefer strings 1–6 and frets 0–21; use the extended range only when needed. At fret 12 and above, use strings 1–4. High strings at the top, low strings at the bottom. Solid marks show current notes. Previous notes fade over 2.5 seconds, including after key off. Arrows indicate notes outside the range. This is a pitch display, not fingering or TAB.</p>
           </div>
+          </section>
+          <section id="noteAllFretPane" role="tabpanel" aria-labelledby="noteAllFretTab" hidden>
+            <p class="noteish-help">All FM and SSG / PSG tone channels on one fretboard. Colors identify channels; shared positions use colored sectors. Each channel keeps its own position choice. This is a pitch map, not a playable chord or fingering.</p>
+            <div id="allFretboardGraph" class="noteish-graph"></div>
           </section>
           <section id="noteKeyboardPane" role="tabpanel" aria-labelledby="noteKeyboardTab" hidden>
             <p id="noteishDetailHelp" class="noteish-help">C1–C7 in semitone steps. Scroll horizontally to inspect the keyboard. Orange: observed range. Blue: current pitch; gray: key off.</p>
@@ -739,6 +744,6 @@
       </section>
     </main>
 
-    <script type="module" src="./vgm_analyzer.js?v=noteish-live-cards-1"></script>
+    <script type="module" src="./vgm_analyzer.js?v=fretboard-all-1"></script>
   </body>
 </html>
