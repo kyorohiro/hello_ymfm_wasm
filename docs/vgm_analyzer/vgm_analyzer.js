@@ -2582,6 +2582,7 @@ async function startWorkletStream(sampleRate) {
       if (activeStream === stream) {
         stopActiveStream();
       }
+      resetTimelineToStart();
       requestPlaybackUiRender("");
       setStatus(`Ready.${currentStatusSuffix()}`);
       return;
@@ -2608,6 +2609,7 @@ function startScriptProcessorStream() {
 
     if (!stats.playing && !stats.paused && stats.queuedFrames === 0) {
       stopActiveStream();
+      resetTimelineToStart();
       requestPlaybackUiRender("");
       setStatus(`Ready.${currentStatusSuffix()}`);
     }
@@ -2767,6 +2769,14 @@ ym2608RomInput?.addEventListener("change", async (event) => {
 
 let timelineSelectionPending = false;
 let timelineSeekController = null;
+function resetTimelineToStart() {
+  // Un-stick the timeline's busy flag first: it may still be true from an
+  // in-flight cursor seek whose own cleanup hasn't run yet, which would
+  // otherwise make the cursor(0) reset below a silent no-op.
+  songTimeline.busy(false);
+  songTimeline.cursor(0, false);
+  timelineSelectionPending = false;
+}
 async function resumeTimelinePlayback() {
   if (!player || timelineSeekController) return;
   if (timelineSelectionPending) { await playCurrentVgm(songTimeline.selected()); return; }
@@ -2819,8 +2829,7 @@ replayButton.addEventListener("click", async () => {
 
 stopButton.addEventListener("click", () => {
   timelineSeekController?.abort();
-  timelineSelectionPending = false;
-  songTimeline.cursor(0, false);
+  resetTimelineToStart();
   stopActiveStream();
   if (player) {
     player.stop();
