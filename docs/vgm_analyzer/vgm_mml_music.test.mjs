@@ -38,3 +38,30 @@ test('small fluctuations merge only within same key, preset and semitone', () =>
   assert.equal(notes[0].sources.length,2);
   assert.equal(notes[1].midi,61);
 });
+
+test('strict sixteenths have no sub-grid notes, gaps or explicit tick lengths',async()=>{
+ const {quantizeSixteenthNotes}=await import('./vgm_mml_music.js');
+ const source=[note(1000,4300),note(4400,6500,62),note(7000,13000,64),note(42000,190000,67)];
+ const events=quantizeSixteenthNotes(source,200000,120);
+ for(const e of events){assert.equal(e.start%120,0);assert.equal(e.end%120,0);assert.ok(e.end-e.start>=120);}
+ const text=writeMml(events,{sixteenth:true,details:false});
+ assert.doesNotMatch(text,/%|\b[cr]32|Details/);
+ assert.match(text,/\^/);
+});
+test('sub-grid collisions choose a representative without cumulative timing drift',async()=>{
+ const {quantizeSixteenthNotes}=await import('./vgm_mml_music.js');
+ const source=Array.from({length:100},(_,i)=>note(i,i+1,60+i%12));
+ const events=quantizeSixteenthNotes(source,100,120);
+ assert.equal(events.length,1);assert.equal(events[0].end,120);
+ const triplets=Array.from({length:100},(_,i)=>note(i*7350,(i+1)*7350));
+ const result=quantizeSixteenthNotes(triplets,735000,120);
+ assert.equal(result.at(-1).end,Math.round(16000/120)*120);
+});
+test('sixteenth quantization folds stale onset and preserves aligned retriggers',async()=>{
+ const {quantizeSixteenthNotes}=await import('./vgm_mml_music.js');
+ const events=quantizeSixteenthNotes([
+ {...note(0,5,79,1),freshOnset:true,endReason:'pitch'},
+ note(5,11025,76,1),note(11025,22050,76,2),
+ ],22050,120);
+ assert.deepEqual(events.map(e=>[e.type,e.start,e.end,e.midi]),[['note',0,240,76],['note',240,480,76]]);
+});

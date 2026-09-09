@@ -56,7 +56,14 @@ export function quantizeNotes(source, totalSamples, bpm) {
   return events;
 }
 
-function length(ticks) {
+function length(ticks, sixteenth = false) {
+  if(sixteenth) {
+    if(!Number.isInteger(ticks)||ticks<=0||ticks%120!==0)throw new RangeError("Duration must be a positive multiple of a sixteenth");
+    const values=[[2880,'1.'],[1920,'1'],[1440,'2.'],[960,'2'],[720,'4.'],[480,'4'],[360,'8.'],[240,'8'],[120,'16']];
+    const parts=[];
+    for(const [value,token] of values)while(ticks>=value){parts.push(token);ticks-=value;}
+    return parts.join('^');
+  }
   for (const denominator of [1, 2, 4, 8, 16, 32]) {
     if (ticks === 1920 / denominator) return String(denominator);
     if (ticks === 2880 / denominator) return `${denominator}.`;
@@ -70,10 +77,10 @@ function length(ticks) {
 }
 
 /** Writer consumes musical endpoints only; raw samples are used solely in detail comments. */
-export function writeMml(events) {
+export function writeMml(events, { sixteenth = false, details: includeDetails = true } = {}) {
   const counts = new Map();
   for (const e of events) {
-    const value = length(e.end - e.start);
+    const value = length(e.end - e.start, sixteenth);
     if (/^\d+$/.test(value)) counts.set(value, (counts.get(value) ?? 0) + 1);
   }
   const best = [...counts].sort((a, b) => b[1] - a[1])[0];
@@ -82,7 +89,7 @@ export function writeMml(events) {
   const details = [];
   let octave, preset, gate = 100, noteId = 0;
   for (const e of events) {
-    let duration = length(e.end - e.start);
+    let duration = length(e.end - e.start, sixteenth);
     if (duration === defaultLength) duration = '';
     if (e.type === 'rest') { tokens.push(`r${duration}`); continue; }
     noteId++;
@@ -96,6 +103,7 @@ export function writeMml(events) {
       pitch = ['c', 'c+', 'd', 'd+', 'e', 'f', 'f+', 'g', 'g+', 'a', 'a+', 'b'][((e.midi % 12) + 12) % 12];
     }
     tokens.push(pitch + duration);
+    if (!includeDetails) continue;
     details.push(`; N${noteId} ticks=${e.start}..${e.end} gate=${e.gate}% errors(samples): start=${e.startErrorSamples.toFixed(2)} end=${e.endErrorSamples.toFixed(2)} keyOff=${e.gateErrorSamples.toFixed(2)}`);
     for (const s of e.sources) details.push(`; N${noteId} start=${s.start} samples=${s.end - s.start} end=${s.end} reason=${s.endReason ?? "unknown"} key=${s.key} ${s.info}`);
   }
@@ -106,5 +114,53 @@ export function writeMml(events) {
     line += (line ? ' ' : '') + token;
   }
   if (line) lines.push(line);
+  if (!includeDetails) return lines.join('\n');
   return lines.join('\n') + '\n\n; Details (N numbers follow notes in the body)\n' + details.join('\n');
+}
+
+/** Strict sixteenth-note transcription. Colliding sub-grid notes use the
+ * longer source interval (later interval wins ties), without shifting the song. */
+export function quantizeSixteenthNotes(source, totalSamples, bpm) {
+  if(!Number.isFinite(bpm)||bpm<=0)throw new RangeError('Invalid BPM');
+  const scale=bpm*480/(44100*60),cell=120;
+  const snap=s=>Math.max(0,Math.round(s*scale/cell)*cell);
+  const merged=[];
+  for(let i=0;i<source.length;i++){
+    let n=source[i],next=source[i+1];
+    if(n.freshOnset && n.endReason==='pitch' && n.end-n.start<=8 &&
+       next?.key===n.key && next.start===n.end && Number.isFinite(next.midi)){
+      n={...next,start:n.start};i++;
+    }
+    if(n.end<=n.start)continue;
+    const previous=merged.at(-1);
+    if(previous && previous.key===n.key && previous.preset===n.preset &&
+       previous.end===n.start && Number.isFinite(previous.midi) && Number.isFinite(n.midi) &&
+       Math.round(previous.midi)===Math.round(n.midi)){
+      previous.end=n.end;previous.sources.push(n);
+    }else merged.push({...n,sources:[n]});
+  }
+  const selected=[];
+  for(const n of merged){
+    const candidate={n,start:snap(n.start),end:Math.max(snap(n.start)+cell,snap(n.end))};
+    const previous=selected.at(-1);
+    if(previous && candidate.start<previous.end){
+      if(candidate.start===previous.start){
+        if(n.end-n.start < previous.n.end-previous.n.start)continue;
+        selected.pop();
+      }else previous.end=candidate.start;
+    }
+    selected.push(candidate);
+  }
+  const events=[];let cursor=0;
+  for(const {n,start,end} of selected){
+    if(start>cursor)events.push({type:'rest',start:cursor,end:start});
+    events.push({type:'note',start,end,gate:100,midi:Number.isFinite(n.midi)?Math.round(n.midi):null,
+      preset:n.preset??1,sources:n.sources,
+      startErrorSamples:start/scale-n.start,endErrorSamples:end/scale-n.end,
+      gateErrorSamples:end/scale-n.end});
+    cursor=end;
+  }
+  const end=Math.max(cursor,snap(totalSamples));
+  if(end>cursor)events.push({type:'rest',start:cursor,end});
+  return events;
 }

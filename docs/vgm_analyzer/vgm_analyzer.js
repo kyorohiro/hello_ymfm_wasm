@@ -9,7 +9,7 @@ import { exportAnalysisMidi } from "./vgm_midi.js?v=midi-onset-1";
 import { createRf5c164Monitor, describeRf5c164Monitor, observeRf5c164Engine } from "./rf5c164_monitor.js";
 import { sourcesForChip, applySourceMutes, allSourcesMuted } from "./source_mutes.js?v=ym2610-vgm-2";
 import { createPsgMonitor, describePsgMonitor, observePsgEngine } from "./psg_monitor.js?v=ym2610-vgm-2";
-import { exportAnalysisMml } from "./vgm_mml.js";
+import { exportMucomMml, exportOpnavoidMml } from "./vgm_mml.js?v=mml-formats-1";
 import {
   Ym2612VGM,
 } from "../js/ym2612vgm.js?v=ym2610-vgm-2";
@@ -62,6 +62,7 @@ let midiExportAvailable = false;
 const exportMidiButton = document.getElementById("exportMidiButton");
 const exportMmlButton = document.getElementById("exportMmlButton");
 const mmlBpmInput = document.getElementById("mmlBpmInput");
+const mmlFormatDialog = document.getElementById("mmlFormatDialog");
 const exportParseInfoButton = document.getElementById("exportParseInfoButton");
 const exportSnapshotTfiButton = document.getElementById("exportSnapshotTfiButton");
 const exportSnapshotVgiButton = document.getElementById("exportSnapshotVgiButton");
@@ -2294,7 +2295,7 @@ function stopActiveStream() {
 
 function updatePlaybackButtons(state = {}) {
   const hasBuffer = Boolean(currentBuffer);
-  exportMmlButton.disabled = !hasBuffer || currentChipKind !== "ym2612";
+  exportMmlButton.disabled = !hasBuffer || !["ym2612", "ym2203", "ym2608", "ym2610"].includes(midiChipKind(noteishHeader));
   exportMidiButton.disabled = !hasBuffer || !midiExportAvailable;
   const playing = Boolean(state.playing);
   const paused = Boolean(state.paused);
@@ -3020,20 +3021,30 @@ ensureNoteishRenderTimer();
 renderChannelMonitor();
 renderNoteishGrid();
 
-exportMmlButton.addEventListener("click", () => {
+function downloadMml(format) {
   if (!currentBuffer || !mmlBpmInput.reportValidity()) return;
   try {
-    const text = exportAnalysisMml(currentBuffer, { bpm: Number(mmlBpmInput.value), fileName: lastLoadedFileName });
+    const options = { bpm: Number(mmlBpmInput.value), fileName: lastLoadedFileName };
+    const text = format === "mucom88" ? exportMucomMml(currentBuffer, options) : exportOpnavoidMml(currentBuffer, options);
     const url = URL.createObjectURL(new Blob([text], { type: "text/plain;charset=utf-8" }));
     const anchor = document.createElement("a");
     anchor.href = url;
     anchor.download = `${lastLoadedFileName.replace(/\.[^.]+$/, "") || "analysis"}.mml`;
     anchor.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
-    setStatus("Exported analysis MML (YM2612 FM only). See output comments for unconverted operations.");
+    setStatus(`Exported ${format === "mucom88" ? "MUCOM88" : "OPNAVOID"} FM MML on a sixteenth-note grid.`);
   } catch (error) {
     setStatus(`MML export failed: ${error.message}`);
   }
+}
+
+exportMmlButton.addEventListener("click", () => {
+  if (!currentBuffer || !mmlBpmInput.reportValidity()) return;
+  if (typeof mmlFormatDialog.showModal === "function") mmlFormatDialog.showModal();
+  else downloadMml("opnavoid");
+});
+mmlFormatDialog.addEventListener("close", () => {
+  if (["mucom88", "opnavoid"].includes(mmlFormatDialog.returnValue)) downloadMml(mmlFormatDialog.returnValue);
 });
 
 exportMidiButton.addEventListener("click", () => {

@@ -599,7 +599,7 @@
           <label for="mmlBpmInput">Export BPM</label>
           <input id="mmlBpmInput" type="number" min="4" max="999" step="any" value="120" style="width: 5em" title="Manual tempo for MIDI / MML export; not detected BPM">
           <button id="exportMidiButton" type="button" disabled title="FM + SSG / PSG tone notes; original timing, no grid quantization">Export MIDI</button>
-          <button id="exportMmlButton" type="button" disabled hidden title="Analysis MML (YM2612 FM only); not driver-compatible">Export MML</button>
+          <button id="exportMmlButton" type="button" disabled title="Export FM MML for OPNAvoid or MUCOM88; minimum 1/16">Export MML</button>
           <small>MIDI: FM + SSG / PSG tones with Pitch Bend and original timing. BPM is manual; noise, PCM, envelope phase and original timbres are omitted.</small>
           <button id="exportParseInfoButton" type="button" disabled>Export Parse Info</button>
           <button id="exportSnapshotTfiButton" type="button" disabled>Export Snapshot TFI</button>
@@ -740,10 +740,19 @@
             <pre id="notesDialogOutput" class="notes-dialog-output">No notes yet.</pre>
           </div>
         </dialog>
+        <dialog id="mmlFormatDialog" aria-labelledby="mmlFormatTitle">
+          <form method="dialog">
+            <h3 id="mmlFormatTitle">Export MML format</h3>
+            <p>Choose the FM MML dialect.</p>
+            <button value="mucom88">MUCOM88</button>
+            <button value="opnavoid">OPNAVOID</button>
+            <button value="cancel">Cancel</button>
+          </form>
+        </dialog>
         <footer class="instrument-footer"><span>Tetorica</span><strong>FM SOUND LABORATORY</strong><span>Inspect · Learn · Reconstruct</span></footer>
       </section>
     </main>
 
-    <script type="module" src="./vgm_analyzer.js?v=fretboard-all-1"></script>
+    <script type="module" src="./vgm_analyzer.js?v=opnavoid-mml-1"></script>
   </body>
 </html>

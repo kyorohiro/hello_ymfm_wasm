@@ -1,6 +1,9 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { exportAnalysisMml } from "./vgm_mml.js";
+import { exportAnalysisMml as exportMml } from "./vgm_mml.js";
+import { exportMucomMml } from "./vgm_mml.js";
+
+const exportAnalysisMml = (source, options = {}) => exportMml(source, {quantization:"raw",details:true,...options});
 
 function vgm(commands, clock = 7670454) {
   const bytes = new Uint8Array(0x100 + commands.length);
@@ -63,4 +66,69 @@ test("frequency commits split a held note without losing original timestamps", (
   assert.match(text, /pitch change during KEY ON/);
   assert.match(text, /start=0 samples=22050/);
   assert.match(text, /start=22050 samples=22050/);
+});
+
+test('default export is readable sixteenth MML without per-note timing details',()=>{
+ const source=vgm([...on,0x61,0x31,0x27,0x52,0x28,0,0x61,3,0,0x52,0x28,0xf0,
+  0x61,0x40,0x42,0x52,0x28,0,0x66]);
+ const text=exportMml(source);
+ assert.match(text,/minimum 1\/16/);
+ assert.doesNotMatch(text,/%\d|; N\d|Details|sounding patch write/);
+ assert.match(text,/t120/);
+});
+
+test('MUCOM88 export uses method-one voices and OPNA FM track letters', () => {
+  const text = exportMucomMml(vgm([...on, ...quarter, 0x52, 0x28, 0, 0x66]), { bpm: 120 });
+  assert.match(text, /; VGM Analyzer MML for MUCOM88/);
+  assert.match(text, /^  @\d+\n\d+,\d+\n/m);
+  assert.match(text, /^\d+(,\d+){8} ; OP1$/m);
+  assert.match(text, /^A T120 v15 p3 /m);
+  assert.doesNotMatch(text, /T184|V127|OPNAVOID/);
+});
+test('sixteenth MML also exports native PC98 and Neo Geo FM',()=>{
+ for(const [command,offset,clock] of [[0x55,0x44,4000000],[0x56,0x48,8000000],[0x58,0x4c,8000000]]){
+  const source=vgm([command,0xa5,0x2b,command,0xa1,0x0b,command,0x28,0xf1,...quarter,command,0x28,1,0x66],0);
+  new DataView(source.buffer).setUint32(offset,clock,true);
+  const text=exportMml(source);
+  assert.match(text,/; CH2\n@1 o\d [a-g][+]?4/);
+  assert.doesNotMatch(text,/%\d/);
+ }
+});
+
+// Public OPNAvoid compiler compatibility is also checked separately; these
+// fixtures protect the conversion without vendoring the third-party compiler.
+import { exportOpnavoidMml } from './vgm_mml.js';
+test('OPNAvoid uses real instrument definitions, hardware operator order, and channel prefixes', () => {
+  const commands = [0x52, 0xb0, 0x2d];
+  for (const [index, offset] of [0, 8, 4, 12].entries()) {
+    for (const [base, value] of [[0x30, 0x21 + index], [0x40, 11 + index],
+      [0x50, 0x80 | (21 + index)], [0x60, 0x80 | (3 + index)],
+      [0x70, 7 + index], [0x80, 0x45 + index]]) commands.push(0x52, base + offset, value);
+  }
+  const text = exportOpnavoidMml(vgm([...commands, ...on, ...quarter, 0x66]));
+  const values = text.match(/^@0 = \{ (.*) \}/m)[1].split(', ').map(Number);
+  assert.equal(values.length, 42);
+  assert.deepEqual(values.slice(0, 2), [5, 5]);
+  for (let i = 0; i < 4; i++) assert.deepEqual(values.slice(2 + i * 10, 12 + i * 10),
+    [21+i, 3+i, 7+i, 5+i, 4, 11+i, 2, 1+i, 2, 1]);
+  assert.match(text, /^A T184 V127 p3 @0 o3 a4$/m);
+  assert.doesNotMatch(text, /^[BCDEF] /m);
+});
+test('OPNAvoid splits long notes with repeated pitch and ties, and long rests without ties', () => {
+  const wait = [0x61, 0xff, 0xff];
+  const text = exportOpnavoidMml(vgm([...on, ...wait, ...wait, ...wait,
+    0x52, 0x28, 0, ...wait, ...wait, ...wait, 0x66]));
+  const body = text.split('\n').filter(line => line.startsWith('A ')).join(' ');
+  assert.match(body, /a1& a1&/);
+  assert.match(body, /r1 r1/);
+  assert.doesNotMatch(body, /\^|1\.|r\d+&|q8|t120/);
+});
+test('OPNAvoid reports pitch omissions and validates target timing limits', () => {
+  const source = vgm([...on, ...quarter, 0x52, 0x28, 0, 0x52, 0x28, 0x10, ...quarter, 0x66]);
+  const text = exportOpnavoidMml(source);
+  assert.match(text, /1 unknown\/out-of-range intervals replaced with rests/);
+  assert.match(text, /^A .*a4 r4$/m);
+  for (const bpm of [0, 33, 1000, NaN, Infinity]) assert.throws(() => exportOpnavoidMml(source, {bpm}), /34 to 999/);
+  assert.match(exportOpnavoidMml(source, {bpm: 120.5}), /manual BPM=120.5/);
+  assert.throws(() => exportOpnavoidMml(vgm([0x66])), /No FM notes/);
 });
