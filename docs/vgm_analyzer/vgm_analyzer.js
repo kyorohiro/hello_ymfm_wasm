@@ -1041,10 +1041,9 @@ function renderNoteishGrid() {
         : `${estimated.cents >= 0 ? "+" : ""}${estimated.cents} cents`;
     const card = existingCards[cardIndex] ?? document.createElement("section");
     const previousGraph = card.querySelector(".noteish-graph");
-    const scrollLeft = previousGraph?.scrollLeft ?? 0;
-    const graphFocused = previousGraph && document.activeElement === previousGraph;
+    const content = document.createElement("section");
     card.className = `noteish-card${channel.keyOn ? " is-key-on" : ""}`;
-    card.innerHTML = `
+    content.innerHTML = `
       <div class="noteish-head">
         <span class="noteish-title">${channel.label ?? `CH${channel.channel + 1}`}</span>
         <span class="noteish-state">${channel.keyOn ? "key on" : "key off"}</span>
@@ -1068,18 +1067,24 @@ function renderNoteishGrid() {
         </button>
       </div>
     `;
-    const graph = card.querySelector(".noteish-graph");
     if (previousGraph) {
-      previousGraph.innerHTML = graph.innerHTML;
-      graph.replaceWith(previousGraph);
+      // Never detach the scrolling element or assign scrollLeft during playback:
+      // either interrupts scrollbar dragging and trackpad momentum.
+      for (const selector of [".noteish-head", ".noteish-row", ".noteish-meta", ".noteish-actions"]) {
+        const current = card.querySelector(selector);
+        const next = content.querySelector(selector);
+        current.innerHTML = next.innerHTML;
+        current.hidden = next.hidden;
+      }
+      previousGraph.innerHTML = content.querySelector(".noteish-graph").innerHTML;
+    } else {
+      card.innerHTML = content.innerHTML;
     }
-    const viewport = previousGraph ?? graph;
+    const viewport = previousGraph ?? card.querySelector(".noteish-graph");
     viewport.tabIndex = noteishMode.value === "detail" && noteishInstrument.value !== "fretboard" ? 0 : -1;
     viewport.setAttribute("role", "region");
     viewport.setAttribute("aria-label", `CH${channel.channel + 1} pitch display: ${channel.keyOn ? estimated.note : 'key off'}`);
     if (!card.isConnected) noteishGrid.append(card);
-    viewport.scrollLeft = scrollLeft;
-    if (graphFocused) viewport.focus({ preventScroll: true });
   }
   existingCards.slice(noteishChannels().length).forEach(card => card.remove());
 }

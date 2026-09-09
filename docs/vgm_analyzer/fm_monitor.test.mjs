@@ -154,3 +154,31 @@ test('onset cleanup stays dense when old history expires during KEY ON or before
     assert.equal(ch.noteHistory.at(-1).midiFloat,null);
   }
 });
+
+test('keyboard updates keep the scrolling element attached without forcing its position',()=>{
+  const viewport={innerHTML:'old keyboard',setAttribute(){}};
+  Object.defineProperty(viewport,'scrollLeft',{
+    get:()=>240,
+    set(){assert.fail('render must not override an active scroll');},
+  });
+  const selectors=['.noteish-head','.noteish-row','.noteish-meta','.noteish-actions'];
+  const nodes=Object.fromEntries(selectors.map(s=>[s,{innerHTML:'old',hidden:false}]));
+  const card={isConnected:true,querySelector:s=>s==='.noteish-graph'?viewport:nodes[s]};
+  Object.defineProperty(card,'innerHTML',{set(){assert.fail('render detached the scroll viewport');}});
+  const contentNodes=Object.fromEntries([...selectors,'.noteish-graph'].map(s=>[s,{innerHTML:'updated',hidden:false}]));
+  const context=vm.createContext({
+    buildNoteishSignature:()=>Math.random(),lastNoteishSignature:null,noteishDirty:true,
+    renderNoteishOverviewGraph(){},noteishGrid:{children:[card]},
+    noteishChannels:()=>[{channel:1,keyOn:true,noteMinMidi:null,noteMaxMidi:null}],
+    estimateChannelNoteish:()=>({note:'E5',cents:0}),
+    renderNoteishGraph:()=>'<svg></svg>',
+    document:{createElement:()=>({innerHTML:'',querySelector:s=>contentNodes[s]})},
+    noteishMode:{value:'detail'},noteishInstrument:{value:'keyboard'},
+  });
+  const a=source.indexOf('function renderNoteishGrid()');
+  vm.runInContext(source.slice(a,source.indexOf('\n}',a)+2),context);
+  context.renderNoteishGrid();context.renderNoteishGrid();
+  assert.equal(card.querySelector('.noteish-graph'),viewport);
+  assert.equal(viewport.scrollLeft,240);
+  assert.equal(viewport.innerHTML,'updated');
+});
