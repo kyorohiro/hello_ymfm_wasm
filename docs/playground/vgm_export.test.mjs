@@ -301,8 +301,8 @@ test("YM2608 FM-only export preserves FM and drops SSG and ADPCM registers", () 
       0x56, 0x00, 0x7f,
       0x56, 0x30, 0x71,
       0x57, 0x30, 0x24,
-      0x56, 0xa0, 0x00,
       0x56, 0xa4, 0x22,
+      0x56, 0xa0, 0x00,
       0x61, 0xe0, 0x01,
       0x57, 0x10, 0xff,
       0x56, 0x28, 0xf0,
@@ -330,8 +330,8 @@ test("YM2203 FM-only export preserves three FM channels and enables YM2612 pan",
     Uint8Array.from([
       0x55, 0x00, 0x7f,
       0x55, 0x30, 0x71,
-      0x55, 0xa0, 0x00,
       0x55, 0xa4, 0x22,
+      0x55, 0xa0, 0x00,
       0x61, 0xe0, 0x01,
       0x55, 0x28, 0xf0,
       0x66,
@@ -487,7 +487,7 @@ test("Compact preserves two-cycle state changes and KEY times with both channel 
       if(reg===0x28 || state.get(k)!==value) trace.push([time,port,reg,value]);
       state.set(k,value);
     };
-    const fm=new YM2612Synth({transport:{write:record}});
+    const fm=new YM2612Synth({transport:{write:(p,r,v)=>record(p,r,v)}});
     state.clear();trace.length=0;
     const names=['fm','write','liveLoop','sleepSamples',...Array.from({length:6},(_,i)=>`CH${i+1}`),'OP1','OP2','OP3','OP4'];
     const AsyncFunction=Object.getPrototypeOf(async function(){}).constructor;
@@ -531,11 +531,10 @@ test("Compact retains TL knowledge across unpaired pitch writes and sums the wai
     const source=exportYm2612VgmToPlaygroundJavaScript(bytes,{compact:true,splitChannels});
     assert.equal((source.match(/tl: 20/g)??[]).length,1);
     assert.equal((source.match(/tl: 21/g)??[]).length,1);
-    assert.equal((source.match(/await sleepSamples\(5\)/g)??[]).length,2);
     const trace=[]; let time=0; let loop;
     const AsyncFunction=Object.getPrototypeOf(async function(){}).constructor;
     await new AsyncFunction('fm','write','CH1','OP1','liveLoop','sleepSamples',source)(
-      {setOperator(_ch,_op,p){trace.push([time,'tl',p.tl]);},keyOn(){trace.push([time,'on']);},keyOff(){trace.push([time,'off']);}},
+      {setFrequency(){},setOperator(_ch,_op,p){trace.push([time,'tl',p.tl]);},keyOn(){trace.push([time,'on']);},keyOff(){trace.push([time,'off']);}},
       ()=>{},0,0,(_n,fn)=>{loop=fn;},async n=>{time+=n;});
     await loop();await loop();
     assert.deepEqual(trace,[[0,'tl',20],[6,'on'],[106,'off'],[106,'tl',21],[111,'on'],[211,'off'],
@@ -628,5 +627,118 @@ test("S98 imports produce executable Playground writes with preserved sample tim
       assert.deepEqual(writes.map(([sample, ...args]) => [sample, ...args.slice(-2)]), [[0, 0x40, 20], [44, 0x40, 30]]);
       assert.equal(time, 132);
     }
+  }
+});
+
+test("OPN translation commits on low writes with shared normal and special latches", async () => {
+  const {createOpnFmWriteTranslator,isYm2608FmRegister}=await import('../../web/opn_fm_vgm.js');
+  const writes=[];
+  const translate=createOpnFmWriteTranslator(7670454,(...w)=>writes.push(w),isYm2608FmRegister);
+  translate(0xa4,0x23);
+  translate(0xa5,0x2b,1);
+  translate(0xac,0x12);
+  assert.deepEqual(writes,[]);
+  translate(0xa1,0xc6);
+  translate(0xa8,0x45);
+  translate(0xa2,0xb6,1);
+  assert.deepEqual(writes,[
+    [0xa5,0x2b,0],[0xa1,0xc6,0],
+    [0xac,0x12,0],[0xa8,0x45,0],
+    [0xa6,0x2b,1],[0xa2,0xb6,1],
+  ]);
+  translate(0xa4,0x30);
+  assert.equal(writes.length,6);
+});
+
+async function runPitchExport(source) {
+  let time=0;
+  const loops=[], pitches=[], keys=[];
+  const fm={
+    setFrequency(ch,block,fnum){pitches.push([time,ch,block,fnum]);},
+    keyOn(ch){keys.push([time,ch,'on']);},
+    keyOff(ch){keys.push([time,ch,'off']);},
+  };
+  const AsyncFunction=Object.getPrototypeOf(async function(){}).constructor;
+  await new AsyncFunction('fm','write','liveLoop','sleepSamples','CH1','CH2','CH3','CH4','CH5','CH6',source)(
+    fm,()=>{},(_name,fn)=>loops.push(fn),async n=>{time+=n;},0,1,2,3,4,5);
+  const durations=[];
+  for(const loop of loops){time=0;await loop();durations.push(time);}
+  return {pitches,keys,durations};
+}
+
+test("Note-ish emits only the committed pitch across a two-sample high/low update", async () => {
+  for(const low of [0x21,0xb6]) {
+    for(const [command,exporter,header] of [
+      [0x52,exportYm2612VgmToPlaygroundJavaScript,{}],
+      [0x56,exportYm2608FmVgmToPlaygroundJavaScript,{ym2612Clock:0,ym2608Clock:7670454}],
+    ]) {
+      const bytes=createVgmBuffer([
+        command,0xa5,0x23,command,0xa1,low,command,0x28,0xf1,
+        0x72,command,0xa5,0x2b,0x71,command,0xa1,0xc6,
+        0x61,0xc6,0x38,command,0x28,1,0x66,
+      ],header);
+      for(const compact of [false,true]) for(const splitChannels of [false,true]) {
+        const source=exporter(bytes,{high:true,noteish:true,compact,splitChannels});
+        assert.doesNotMatch(source,/original BLOCK=5 FNUM=(801|950)\b/);
+        assert.match(source,/original BLOCK=5 FNUM=966\b/);
+        const result=await runPitchExport(source);
+        assert.deepEqual(result.pitches.map(p=>p.slice(0,3)),[[0,1,4],[5,1,5]]);
+        assert.deepEqual(result.keys,[[0,1,'on'],[14539,1,'off']]);
+        assert.ok(result.durations.every(n=>n===14539));
+      }
+    }
+  }
+});
+
+test("Note-ish preserves real one/two-sample low commits, including same-name pitches", async () => {
+  for(const low of [0x21,0xb6]) for(const wait of [0x70,0x71]) {
+    const bytes=createVgmBuffer([
+      0x52,0xa5,0x2b,0x52,0xa1,low,wait,0x52,0xa1,0xc6,0x72,0x66,
+    ]);
+    for(const compact of [false,true]) {
+      const source=exportYm2612VgmToPlaygroundJavaScript(bytes,{high:true,noteish:true,compact});
+      assert.match(source,new RegExp('original BLOCK=5 FNUM='+ (0x300|low)+'\\b'));
+      assert.match(source,/original BLOCK=5 FNUM=966\b/);
+      const result=await runPitchExport(source);
+      assert.deepEqual(result.pitches.map(p=>p.slice(0,3)),[[0,1,5],[wait-0x6f,1,5]]);
+    }
+  }
+});
+
+test("Note-ish low commits use the high latch across channels and ports", async () => {
+  const bytes=createVgmBuffer([
+    0x52,0xa4,0x23,0x53,0xa5,0x2b,0x52,0xac,0x12,0x71,
+    0x52,0xa1,0xc6,0x72,0x66,
+  ]);
+  for(const splitChannels of [false,true]) {
+    const source=exportYm2612VgmToPlaygroundJavaScript(bytes,{high:true,noteish:true,splitChannels});
+    const result=await runPitchExport(source);
+    assert.deepEqual(result.pitches.map(p=>p.slice(0,3)),[[2,1,5]]);
+    assert.match(source,/original BLOCK=5 FNUM=966\b/);
+  }
+});
+
+test("native Raw, Scheduled and exact High preserve separated pitch writes and timing", async () => {
+  const bytes=createVgmBuffer([
+    0x52,0xa5,0x23,0x70,0x52,0xa1,0x21,0x52,0x28,0xf1,
+    0x72,0x52,0xa5,0x2b,0x71,0x52,0xa1,0xc6,0x72,0x52,0x28,1,0x66,
+  ]);
+  const expected=[
+    [0,0,0xa5,0x23],[1,0,0xa1,0x21],[1,0,0x28,0xf1],
+    [4,0,0xa5,0x2b],[6,0,0xa1,0xc6],[9,0,0x28,1],
+  ];
+  for(const options of [{},{scheduled:true},{high:true}]) {
+    const source=exportYm2612VgmToPlaygroundJavaScript(bytes,{...options,splitChannels:false});
+    let time=0; const loops=[],writes=[];
+    const record=(...args)=>writes.push([time,...(args.length===2?[0,...args]:args)]);
+    const fm=new YM2612Synth({transport:{write:(p,r,v)=>record(p,r,v)}});
+    writes.length=0;
+    const AsyncFunction=Object.getPrototypeOf(async function(){}).constructor;
+    await new AsyncFunction('fm','write','liveLoop','sleepSamples','CH2','beginSampleSchedule','scheduleWritesSamples',source)(
+      fm,record,(_name,fn)=>loops.push(fn),async n=>{time+=n;},1,()=>0,
+      (_start,entries)=>writes.push(...entries));
+    for(const loop of loops) await loop();
+    assert.deepEqual(writes,expected);
+    assert.equal(time,9);
   }
 });

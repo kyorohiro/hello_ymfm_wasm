@@ -20,7 +20,9 @@ export function isYm2203FmRegister(port, register) {
 export function createOpnFmWriteTranslator(sourceClock, writeRegister, isFmRegister) {
   const normalizedSourceClock =
     (Number(sourceClock) & 0x3fffffff) || YM2612_VGM_CLOCK;
-  const frequencies = Array.from({ length: 9 }, () => ({ low: 0, high: 0 }));
+  // OPN has shared high latches for normal and CH3-special frequencies,
+  // not a separate live high byte for each channel. Only a low write commits.
+  const highLatches = [0, 0];
 
   return (register, value, port = 0) => {
     if (!isFmRegister(port, register)) return;
@@ -31,9 +33,12 @@ export function createOpnFmWriteTranslator(sourceClock, writeRegister, isFmRegis
       return;
     }
 
-    const state = frequencies[frequency.index];
-    state[frequency.part] = value;
-    const scaled = scaleOpnFrequency(state.low, state.high, normalizedSourceClock);
+    const latch = (register & 8) ? 1 : 0;
+    if (frequency.part === 'high') {
+      highLatches[latch] = value & 0x3f;
+      return;
+    }
+    const scaled = scaleOpnFrequency(value, highLatches[latch], normalizedSourceClock);
 
     // Keep the target FNUM pair coherent after clock conversion.
     writeRegister(frequency.highRegister, scaled.high, frequency.port);

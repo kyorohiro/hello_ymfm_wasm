@@ -1388,6 +1388,21 @@ function exportOpnFmVgmToPlaygroundJavaScript(source, options, chipKind, targetC
         (parser.header[`${chipKind}Clock`] & 0x3fffffff) * (chipKind === "ym2203" ? 2 : 1),
       noteSpecial: orderedEvents.some(e => e.port === 0 && e.register === 0x27 && (e.value & 0xc0)),
       noteDac: orderedEvents.some(e => e.port === 0 && e.register === 0x2b && (e.value & 0x80)) };
+    if (options.noteish) {
+      const highLatches = [0, 0];
+      // Annotate committed pitches before channel splitting or compaction so
+      // cross-channel/port latch writes retain their original ordering.
+      for (const e of orderedEvents) {
+        if ((e.register & 0xf0) !== 0xa0 || (e.register & 3) === 3) continue;
+        const latch = (e.register & 8) ? 1 : 0;
+        if (e.register & 4) highLatches[latch] = e.value & 0x3f;
+        else if (!latch) e.noteCommit = {
+          channel: e.port * 3 + (e.register & 3) + 1,
+          block: highLatches[0] >> 3,
+          fnum: ((highLatches[0] & 7) << 8) | e.value,
+        };
+      }
+    }
     const compactEvents = options.compact ? compactHighEvents(orderedEvents) : null;
     const retained = compactEvents ? new Set(compactEvents) : null;
     if (options.splitChannels === true) {
@@ -1630,11 +1645,13 @@ function renderHighPlaygroundEvents(events, totalLoopSamples, options, loopName 
       lines.push(`  fm.setLfo(${Boolean(value & 8)}, ${value & 7});`);
     } else if (port === 0 && register === 0x2b && (value === 0 || value === 0x80)) {
       lines.push(`  fm.setDacEnabled(${value === 0x80});`);
-    } else if (offset >= 0 && offset < 3 && value <= 0x3f &&
+    } else if ((options.noteish && event.noteCommit) || (offset >= 0 && offset < 3 && value <= 0x3f &&
         next?.port === port && next.register === 0xa0 + offset &&
-        next.timeSamples === event.timeSamples && next.sequence === event.sequence + 1) {
-      const channel = port * 3 + offset + 1;
-      const block = value >> 3, fnum = ((value & 7) << 8) | next.value;
+        next.timeSamples === event.timeSamples && next.sequence === event.sequence + 1)) {
+      const commit = options.noteish ? event.noteCommit : null;
+      const channel = commit?.channel ?? port * 3 + offset + 1;
+      const block = commit?.block ?? (value >> 3);
+      const fnum = commit?.fnum ?? (((value & 7) << 8) | next.value);
       const canNamePitch = options.noteClock > 0 && fnum > 0 &&
           !(channel === 3 && options.noteSpecial) && !(channel === 6 && options.noteDac);
       if (canNamePitch) {
@@ -1644,7 +1661,7 @@ function renderHighPlaygroundEvents(events, totalLoopSamples, options, loopName 
         const name = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"][((midi % 12) + 12) % 12] + (Math.floor(midi / 12) - 1);
         if (!options.noteish) {
           lines.push(`  fm.setFrequency(CH${channel}, ${block}, ${fnum}); // ${name}`);
-          index += 1;
+          index += commit ? 0 : 1;
           continue;
         }
         let targetBlock = block;
@@ -1659,7 +1676,7 @@ function renderHighPlaygroundEvents(events, totalLoopSamples, options, loopName 
           lines.push(`  setNoteFrequency(CH${channel}, ${JSON.stringify(name)}, ${targetBlock});`);
         }
       } else lines.push(`  fm.setFrequency(CH${channel}, ${block}, ${fnum});`);
-      index += 1;
+      index += commit ? 0 : 1;
     } else if (port === 0 && register === 0x28 && (value & 8) === 0 &&
         [0, 1, 2, 4, 5, 6].includes(value & 7)) {
       const code = value & 7;
