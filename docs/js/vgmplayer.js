@@ -179,6 +179,15 @@ export class VgmPlayer {
   }
 
   /**
+   * Discard already-generated audio after a live mute/parameter change.
+   * Keep the parser, chip state, fractional sample timing and play/pause state.
+   */
+  clearQueuedAudio() {
+    this.chunkQueue = [];
+    this.queuedFrames = 0;
+  }
+
+  /**
    * @param {number} steps
    * @returns {void}
    */

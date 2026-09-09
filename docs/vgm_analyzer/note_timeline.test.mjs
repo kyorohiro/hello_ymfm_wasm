@@ -92,3 +92,26 @@ test('timeline cursor wraps into the loop section without losing the intro',asyn
  assert.equal(at(290,200,80,true),130);
  assert.equal(at(290,200,80,false),200);
 });
+
+test('mute flush discards queued sound without resetting parser, chip or pause state',()=>{
+ for(const paused of [false,true]) {
+  const e=engine(55555),p=new VgmPlayer(e);
+  p.load(vgm([0x52,0x40,10,0x61,100,0,0x52,0x40,20,0x61,100,0,0x66]));
+  p.play();p.process(new Float32Array(10),new Float32Array(10),10);
+  assert.ok(p.queuedFrames>0);
+  if(paused)p.pause();
+  const position=p.parser.position,samples=p.processedWaitSamples,remainder=p.waitAccumulator;
+  e.reset=()=>assert.fail('flush reset the chip');
+  p.clearQueuedAudio();
+  assert.equal(p.queuedFrames,0);assert.deepEqual(p.chunkQueue,[]);
+  assert.equal(p.parser.position,position);assert.equal(p.processedWaitSamples,samples);
+  assert.equal(p.waitAccumulator,remainder);assert.equal(p.isPaused(),paused);
+  assert.equal(p.isPlaying(),!paused);
+  p.clearQueuedAudio(); // repeated mute toggles are safe
+  p.resume();
+  const left=new Float32Array(10);
+  p.process(left,new Float32Array(10),10);
+  assert.ok(left.some(n=>n!==0));
+  assert.ok(p.processedWaitSamples>samples);
+ }
+});
