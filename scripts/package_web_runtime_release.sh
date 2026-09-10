@@ -51,6 +51,11 @@ ym2608.js
 ym2608audioengine.js
 ym2608synth.js
 ym2608-worklet.js
+ym2610b.js
+ym2610baudioengine.js
+ym2610bsynth.js
+ym2610bvgm.js
+ym2610b-worklet.js
 vgm-output-worklet.js
 vgm_runtime.js
 vgmplayer.js

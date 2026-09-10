@@ -67,6 +67,7 @@ ym2608audioengine.js
 ym2608synth.js
 ym2608-worklet.js
 ym2610b.js
+ym2610baudioengine.js
 ym2610bsynth.js
 ym2610bvgm.js
 ym2610b-worklet.js
@@ -152,6 +153,10 @@ for file in ${INFO_FILES}; do
 
   cp "${src}" "${dst}"
 done
+
+# The packaged reference page returns to the package's landing page.
+perl -0pi -e 's#href="\./index\.html"#href="../index.html"#g' \
+  "${STAGE_DIR}/info/ym2612synth_audioworklet.html"
 
 for file in ${JS_FILES}; do
   src="${DOCS_JS_DIR}/${file}"
