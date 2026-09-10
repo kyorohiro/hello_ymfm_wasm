@@ -1,4 +1,4 @@
-import { Ym2612VGM } from "./ym2612vgm.js?v=ym2610-vgm-2";
+import { Ym2612VGM } from "./ym2612vgm.js?v=pwm-2";
 
 /**
  * One rendered stereo chunk waiting to be copied into the audio callback
@@ -350,6 +350,7 @@ export class VgmPlayer {
         loadBankedMemory: (data, offset) => this.engine.loadRf5c164Memory(data, offset),
       } : undefined;
       const event = this.parser.playStep({
+        pwm: { writeRegister: (register, value) => this.engine.writePwm?.(register, value) },
         rf5c164: rf5c164Target,
         ym2612: ym2612Target,
         ym2203: ym2203Target,
@@ -362,6 +363,7 @@ export class VgmPlayer {
       if (event.type === "wait") {
         this.parser.consumeWait(
           {
+            pwm: { writeRegister: (register, value) => this.engine.writePwm?.(register, value) },
             ym2612: ym2612Target,
             ym2203: ym2203Target,
             ym2608: ym2608Target,

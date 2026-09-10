@@ -178,6 +178,8 @@ export class Ym2612VGM {
     /** @type {Map<number, Uint8Array>} */
     this.dataBanks = new Map();
     this.rf5c164BlocksSeen = new Set();
+    this.pwmBlocks = [];
+    this.pwmBlocksSeen = new Set();
     /** @type {Uint8Array[]} */
     this.dataBlocks = [];
     /** @type {Array<{ type: number, size: number, preview: string }>} */
@@ -234,6 +236,7 @@ export class Ym2612VGM {
     const ym2608Clock = extendedClock(0x48);
     const ym2610Clock = extendedClock(0x4c);
     const rf5c164Clock = version >= 0x151 ? extendedClock(0x6c) : 0;
+    const pwmClock = version >= 0x151 ? extendedClock(0x70) : 0;
     const psgClock = readUint32LE(this.view, 0x0c);
     const loopOffset = loopOffsetRaw === 0 ? 0 : 0x1c + loopOffsetRaw;
 
@@ -245,6 +248,7 @@ export class Ym2612VGM {
       ym2608Clock,
       ym2610Clock,
       rf5c164Clock,
+      pwmClock,
       psgClock,
       totalSamples,
       loopOffset,
@@ -260,6 +264,9 @@ export class Ym2612VGM {
     this.position = this.header.dataOffset;
     this.ended = false;
     this.dataBanks.delete(2);
+    this.dataBanks.delete(3);
+    this.pwmBlocks = [];
+    this.pwmBlocksSeen.clear();
     this.rf5c164BlocksSeen.clear();
     this.dataBankCursor = 0;
     this.pendingYm2612DataBankWrite = null;
@@ -466,6 +473,13 @@ export class Ym2612VGM {
         this.position += 3;
         return { type: "ym2610-write", port: command - 0x58, register, value };
       }
+      case 0xb2: {
+        this.#ensureAvailable(3);
+        const packed = this.bytes[this.position + 1];
+        const value = ((packed & 15) << 8) | this.bytes[this.position + 2];
+        this.position += 3;
+        return { type: "pwm-write", register: packed >> 4, value };
+      }
       case 0xb1: {
         this.#ensureAvailable(3);
         const register = this.bytes[this.position + 1];
@@ -614,6 +628,11 @@ export class Ym2612VGM {
    */
   playStep(targets) {
     const event = this.step();
+    if (event.type === "pwm-write") {
+      if (targets.pwm) targets.pwm.writeRegister(event.register, event.value);
+      else this.#warn("PWM write requires a PWM playback target");
+      return event;
+    }
     if (event.type.startsWith("rf5c164-")) {
       if (event.chipIndex) {
         this.#warn("Skipping data for unsupported second RF5C164 chip");
@@ -924,6 +943,11 @@ export class Ym2612VGM {
     }
     if (command === 0x94) {
       this.#ensureAvailable(2);
+      if (this.bytes[this.position + 1] === 0xff) {
+        for (const stream of this.streams.values()) stream.active = false;
+        this.position += 2;
+        return;
+      }
       const stream = this.#streamState(this.bytes[this.position + 1]);
       stream.active = false;
       this.position += 2;
@@ -934,6 +958,12 @@ export class Ym2612VGM {
       const stream = this.#streamState(this.bytes[this.position + 1]);
       const blockId = readUint16LE(this.view, this.position + 2);
       const flags = this.bytes[this.position + 4];
+      if ((stream.chipType & 0x7f) === 0x11) {
+        const block = this.pwmBlocks[blockId] || null;
+        this.#startStream(stream, block, 0, 3 | ((flags & 1) << 7) | (flags & 0x10), 0);
+        this.position += 5;
+        return;
+      }
       const block = this.dataBlocks[blockId] || null;
       this.#startStream(stream, block, 0, flags, block ? block.length : 0);
       this.position += 5;
@@ -965,6 +995,31 @@ export class Ym2612VGM {
    * @returns {void}
    */
   #startStream(stream, data, start, mode, length) {
+    if ((stream.chipType & 0x7f) === 0x11) {
+      if (start === 0xffffffff) start = stream.pwmStart || 0;
+      stream.pwmStart = start;
+      const stride = stream.stepSize * 2;
+      const offset = start + stream.stepBase * 2;
+      const available = data ? Math.max(0, Math.floor((data.length - offset - 2) / stride) + 1) : 0;
+      const kind = mode & 15;
+      let count = available;
+      if (kind === 1) count = Math.min(count, length);
+      else if (kind === 2) count = Math.min(count, Math.floor(length * stream.frequency / 1000));
+      else if (kind !== 0 && kind !== 3) {
+        this.#warn("Unsupported PWM stream length mode"); count = 0;
+      }
+      stream.data = data;
+      stream.dataOffset = offset;
+      stream.pwmCount = kind === 0 && stream.pwmCount ? Math.min(count, stream.pwmCount) : count;
+      stream.cursor = 0;
+      // First write belongs to the start time, before the first wait segment.
+      stream.sampleRemainder = 44100;
+      stream.loop = Boolean(mode & 0x80);
+      stream.pwmReverse = Boolean(mode & 0x10);
+      stream.active = stream.chipType === 0x11 && stream.pwmCount > 0 && stream.frequency > 0;
+      if (stream.chipType !== 0x11) this.#warn("Second PWM chip is unsupported");
+      return;
+    }
     if (!data || start >= data.length) {
       stream.active = false;
       this.#warn("Skipping DAC stream start because no matching data block was loaded");
@@ -1067,6 +1122,19 @@ export class Ym2612VGM {
     if (!stream.data || !stream.active) {
       return;
     }
+    if ((stream.chipType & 0x7f) === 0x11) {
+      const index = stream.pwmReverse ? stream.pwmCount - 1 - stream.cursor : stream.cursor;
+      const offset = stream.dataOffset + index * stream.stepSize * 2;
+      const value = (stream.data[offset] | (stream.data[offset + 1] << 8)) & 0xfff;
+      if (targets.pwm) targets.pwm.writeRegister(stream.register, value);
+      else this.#warn("PWM stream requires a PWM playback target");
+      stream.cursor++;
+      if (stream.cursor >= stream.pwmCount) {
+        if (stream.loop) stream.cursor = 0;
+        else stream.active = false;
+      }
+      return;
+    }
     if (stream.cursor >= stream.dataLength) {
       if (stream.loop) {
         stream.cursor = 0;
@@ -1134,7 +1202,18 @@ export class Ym2612VGM {
    * @returns {void}
    */
   #storeDataBlock(dataType, dataOffset, size) {
-    const data = this.bytes.slice(dataOffset, dataOffset + size);
+    let data = this.bytes.slice(dataOffset, dataOffset + size);
+    if (dataType === 3 || dataType === 0x43) {
+      if (this.pwmBlocksSeen.has(dataOffset)) return;
+      if (dataType === 0x43) data = decodePwmBlock(data);
+      this.pwmBlocksSeen.add(dataOffset);
+      this.pwmBlocks.push(data);
+      const old = this.dataBanks.get(3) || new Uint8Array();
+      const joined = new Uint8Array(old.length + data.length);
+      joined.set(old); joined.set(data, old.length);
+      this.dataBanks.set(3, joined);
+      return;
+    }
     if (dataType === 2) {
       // Recorded banks are appended once per file position, including on loops.
       if (this.rf5c164BlocksSeen.has(dataOffset)) return;
@@ -1161,6 +1240,29 @@ export class Ym2612VGM {
       `Skipping unsupported VGM data block 0x${dataType.toString(16).padStart(2, "0")} (size=${size})`,
     );
   }
+}
+
+// Original decoder based on the VGM format specification, not emulator code.
+// Initial scope: n-bit copy/shift compression. Table/DPCM formats fail clearly.
+export function decodePwmBlock(data) {
+  if (data.length < 10) throw new Error("Truncated compressed PWM header");
+  const view = new DataView(data.buffer, data.byteOffset, data.byteLength);
+  const size = view.getUint32(1, true), bits = data[5], packed = data[6], subtype = data[7];
+  if (data[0] !== 0 || subtype > 1) throw new Error("Unsupported PWM compression: table/DPCM is not implemented");
+  if (bits < 1 || bits > 16 || packed < 1 || packed > bits) throw new Error("Invalid PWM compression bit width");
+  const width = Math.ceil(bits / 8), count = size / width;
+  if (size > 64 * 1024 * 1024 || !Number.isInteger(count) || count * packed > (data.length - 10) * 8)
+    throw new Error("Invalid or oversized compressed PWM data");
+  const output = new Uint8Array(size), add = view.getUint16(8, true);
+  let bit = 80;
+  for (let i = 0; i < count; i++) {
+    let value = 0;
+    for (let j = 0; j < packed; j++, bit++) value = (value << 1) | ((data[bit >> 3] >> (7 - (bit & 7))) & 1);
+    value = ((subtype === 1 ? value << (bits - packed) : value) + add) & ((1 << bits) - 1);
+    output[i * width] = value & 255;
+    if (width === 2) output[i * width + 1] = value >> 8;
+  }
+  return output;
 }
 
 /**

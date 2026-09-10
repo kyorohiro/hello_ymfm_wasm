@@ -1,4 +1,5 @@
 const SOURCES = {
+  pwm: { key: "pwm", label: "PWM", method: "setPwmMuted" },
   pcm: { key: "pcm", label: "PCM", method: "setPcmMuted" },
   psg: { key: "psg", label: "PSG", method: "setPsgMuted" },
   ssg: { key: "ssg", label: "SSG", method: "setSsgMuted" },
@@ -6,6 +7,7 @@ const SOURCES = {
   adpcmB: { key: "adpcmB", label: "ADPCM-B", method: "setAdpcmBMuted" },
 };
 export function sourcesForChip(chip) {
+  if (chip === '32x') return [SOURCES.psg, SOURCES.pwm];
   if (chip === 'ym2610') return [SOURCES.ssg, {...SOURCES.rhythm, label:'ADPCM-A'}, SOURCES.adpcmB];
   return (chip === "megacd" ? ["psg", "pcm"] : chip === "ym2608" ? ["ssg", "rhythm", "adpcmB"] : chip === "ym2203" ? ["ssg"] : ["psg"])
     .map((key) => SOURCES[key]);

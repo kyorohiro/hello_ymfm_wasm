@@ -8,21 +8,21 @@ import { midiChipKind } from "./vgm_notes.js?v=ym2610-vgm-2";
 import { renderFretboard, FRET_TRAIL_MS, createFretboardTracker } from "./fretboard.js?v=hand-position-2";
 import { exportAnalysisMidi } from "./vgm_midi.js?v=midi-onset-1";
 import { createRf5c164Monitor, describeRf5c164Monitor, observeRf5c164Engine } from "./rf5c164_monitor.js";
-import { sourcesForChip, applySourceMutes, allSourcesMuted } from "./source_mutes.js?v=ym2610-vgm-2";
+import { sourcesForChip, applySourceMutes, allSourcesMuted } from "./source_mutes.js?v=pwm-1";
 import { createPsgMonitor, describePsgMonitor, observePsgEngine } from "./psg_monitor.js?v=ym2610-vgm-2";
 import { exportMucomMml, exportOpnavoidMml } from "./vgm_mml.js?v=mml-formats-1";
 import {
   Ym2612VGM,
-} from "../js/ym2612vgm.js?v=ym2610-vgm-2";
+} from "../js/ym2612vgm.js?v=pwm-2";
 import { createTfiFromPreset } from "../js/tfi.js";
 import { createVgiFromPreset } from "../js/vgi.js";
 import ym2612ModuleFactory from "../generated/ym2612_wasm.js";
 import nukedOpn2ModuleFactory from "../generated/nuked_opn2_wasm.js";
 import segaPsgModuleFactory from "../generated/segapsg_wasm.js";
-import { createGenesisAudioEngine } from "../js/genesisaudioengine.js";
+import { createGenesisAudioEngine } from "../js/genesisaudioengine.js?v=pwm-2";
 import { createYm2203AudioEngine } from "../js/ym2203audioengine.js";
 import { createYm2608AudioEngine } from "../js/ym2608audioengine.js";
-import { VgmPlayer } from "../js/vgmplayer.js?v=queue-flush-1";
+import { VgmPlayer } from "../js/vgmplayer.js?v=pwm-2";
 import { looksLikeS98, convertS98ToVgm } from "../js/s98_file.js";
 import { maybeDecodeVgmFile } from "../js/vgm_file.js";
 
@@ -112,7 +112,7 @@ let currentHasPcm = false;
 let currentPcmClock = 0;
 let pcmMonitor = createRf5c164Monitor();
 let engineClockKey = null;
-const sourceChipKind = () => currentHasPcm && currentChipKind === "ym2612" ? "megacd" : currentChipKind;
+const sourceChipKind = () => noteishHeader?.pwmClock && currentChipKind === "ym2612" ? "32x" : currentHasPcm && currentChipKind === "ym2612" ? "megacd" : currentChipKind;
 let channelMonitor = createChannelMonitorState();
 let monitorFrequencyHigh = [0, 0];
 let psgMonitor = createPsgMonitor(currentChipKind);
@@ -129,7 +129,7 @@ let channelMonitorDirty = false;
 let noteishDirty = false;
 let lastNoteishSignature = "";
 let lastLoadedFileName = "snapshot";
-const sourceMutes = { psg: false, ssg: false, rhythm: false, adpcmB: false, pcm: false };
+const sourceMutes = { psg: false, ssg: false, rhythm: false, adpcmB: false, pcm: false, pwm: false };
 let lastYm2612DacEnable = 0x00;
 let monitorToggleHandlerBound = false;
 let workletQueueMultiplier = 2;
@@ -1243,6 +1243,7 @@ function renderHeader(header) {
     `ident: ${header.ident}`,
     `version: ${formatHex(header.version, 8)}`,
     `rf5c164Clock: ${header.rf5c164Clock}`,
+    `pwmClock: ${header.pwmClock} (approximate PWM playback)`,
     `ym2612Clock: ${header.ym2612Clock}`,
     `ym2203Clock: ${header.ym2203Clock}`,
     `ym2608Clock: ${header.ym2608Clock}`,

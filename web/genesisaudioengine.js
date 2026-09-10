@@ -8,6 +8,7 @@ export class GenesisAudioEngine {
     this.ym2612 = ym2612;
     this.psg = psg;
     this.pcm = pcm;
+    this.pwm = new SimplePwm();
     this._pcmMuted = false;
     this._psgMuted = false;
     this._sampleRate = sampleRate;
@@ -70,6 +71,7 @@ export class GenesisAudioEngine {
   }
 
   reset() {
+    this.pwm.reset();
     this.ym2612.reset();
     this.psg.reset();
     this.pcm?.reset();
@@ -110,6 +112,9 @@ export class GenesisAudioEngine {
     this.psg.write(value);
   }
 
+  writePwm(register, value) { this.pwm.writeRegister(register, value); }
+  setPwmMuted(muted) { this.pwm.muted = Boolean(muted); }
+
   process(left, right, frames) {
     if (!(left instanceof Float32Array) || !(right instanceof Float32Array)) {
       throw new Error("process expects Float32Array buffers");
@@ -123,13 +128,14 @@ export class GenesisAudioEngine {
     const pcm = this.pcm?.generateStereo(frames);
     const pcmGain = this._pcmMuted ? 0 : 1;
     const psgGain = this._psgMuted ? 0 : 0.35;
+    const [pwmLeft, pwmRight] = this.pwm.output();
 
     for (let index = 0; index < frames; index += 1) {
       left[index] =
-        (ym.left[index] * 0.9 + psg.left[index] * psgGain + (pcm ? pcm.left[index] * pcmGain : 0)) *
+        (ym.left[index] * 0.9 + psg.left[index] * psgGain + pwmLeft + (pcm ? pcm.left[index] * pcmGain : 0)) *
         this._masterVolume;
       right[index] =
-        (ym.right[index] * 0.9 + psg.right[index] * psgGain + (pcm ? pcm.right[index] * pcmGain : 0)) *
+        (ym.right[index] * 0.9 + psg.right[index] * psgGain + pwmRight + (pcm ? pcm.right[index] * pcmGain : 0)) *
         this._masterVolume;
     }
   }
@@ -139,6 +145,39 @@ export class GenesisAudioEngine {
     const right = new Float32Array(frames);
     this.process(left, right, frames);
     return { left, right };
+  }
+}
+
+/** Original, approximate VGM PWM renderer; no FIFO or hardware timer emulation.
+ * Writes are timed by VgmPlayer. Hold each value until the next write.
+ */
+export class SimplePwm {
+  constructor() { this.muted = false; this.reset(); }
+  reset() { this.cycle = 0; this.control = 0; this.left = null; this.right = null; }
+  writeRegister(register, value) {
+    value &= 0xfff;
+    switch (register) {
+      case 0: this.control = value; break;
+      case 1: this.cycle = value; break;
+      case 2: this.left = value; break;
+      case 3: this.right = value; break;
+      case 4: this.left = this.right = value; break;
+    }
+  }
+  output() {
+    if (this.muted || this.cycle <= 1) return [0, 0];
+    // Zero/unwritten pulse widths are treated as silence in this approximation.
+    const sample = value => value == null || value === 0 ? 0
+      : Math.max(-1, Math.min(1, value / this.cycle * 2 - 1));
+    const out = [0, 0];
+    // Legacy VGM logs can omit hardware speaker-enable bits (e.g. Celtic).
+    // In this VGM approximation, absent routing means direct L/R output.
+    const lmode = (this.control & 3) || 1, rmode = ((this.control >> 2) & 3) || 1;
+    if (lmode === 1) out[0] += sample(this.left);
+    if (lmode === 2) out[1] += sample(this.left);
+    if (rmode === 1) out[1] += sample(this.right);
+    if (rmode === 2) out[0] += sample(this.right);
+    return out;
   }
 }
 
