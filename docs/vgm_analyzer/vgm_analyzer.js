@@ -1,3 +1,4 @@
+import { mountSampleExplorer } from './sample_explorer.js';
 import { renderAllFretboard } from './fretboard_all.js';
 import { createNoteTimeline } from './note_timeline_view.js?v=noteish-tabs-1';
 import { seekPlayback } from './seek_playback.js';
@@ -95,6 +96,10 @@ const notesDialogOutput = document.getElementById("notesDialogOutput");
 const notesDialogCloseButton = document.getElementById("notesDialogCloseButton");
 
 let currentBuffer = null;
+const sampleTab = document.getElementById('sampleExplorerTab');
+const samplePanel = document.getElementById('sampleExplorerPanel');
+const sampleExplorer = mountSampleExplorer(samplePanel, () => currentBuffer);
+sampleTab.addEventListener('click', () => setOutputTab('samples'));
 let audioContext = null;
 let engine = null;
 let player = null;
@@ -2638,6 +2643,7 @@ function startScriptProcessorStream() {
 }
 
 async function handleFile(file) {
+  sampleExplorer.reset();
   timelineSeekController?.abort();
   songTimeline.clear();
   timelineSelectionPending = true;
@@ -2909,6 +2915,10 @@ exportSnapshotButton.addEventListener("click", () => {
 });
 
 function setOutputTab(tabName) {
+  samplePanel.hidden = tabName !== 'samples';
+  sampleTab.setAttribute('aria-selected', String(tabName === 'samples'));
+  sampleTab.tabIndex = tabName === 'samples' ? 0 : -1;
+  if (tabName !== 'samples') sampleExplorer.stop();
   const isOperatorInfo = tabName === "operator-info";
 
   operatorInfoTab.setAttribute(

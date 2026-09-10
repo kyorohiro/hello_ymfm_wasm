@@ -648,8 +648,10 @@
           >
             Note-ish
           </button>
+          <button id="sampleExplorerTab" class="tab-button" type="button" role="tab" aria-selected="false" tabindex="-1" aria-controls="sampleExplorerPanel">Sample Explorer</button>
         </div>
 
+        <section id="sampleExplorerPanel" class="tab-panel" role="tabpanel" aria-labelledby="sampleExplorerTab" hidden></section>
         <section id="operatorInfoPanel" class="tab-panel" role="tabpanel" aria-labelledby="operatorInfoTab">
           <h2>FM Channel Monitor</h2>
           <div id="monitorToggles" class="monitor-toggles"></div>
@@ -753,6 +755,6 @@
       </section>
     </main>
 
-    <script type="module" src="./vgm_analyzer.js?v=opnavoid-mml-1"></script>
+    <script type="module" src="./vgm_analyzer.js?v=sample-explorer-1"></script>
   </body>
 </html>
