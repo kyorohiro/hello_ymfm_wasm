@@ -1,4 +1,4 @@
-import { mountSampleExplorer } from './sample_explorer.js';
+import { mountSampleExplorer } from './sample_explorer.js?v=adpcm-b-1';
 import { renderAllFretboard } from './fretboard_all.js';
 import { createNoteTimeline } from './note_timeline_view.js?v=noteish-tabs-1';
 import { seekPlayback } from './seek_playback.js';
