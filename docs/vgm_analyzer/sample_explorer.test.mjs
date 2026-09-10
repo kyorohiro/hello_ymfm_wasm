@@ -62,3 +62,38 @@ test('ADPCM-B preview uses the existing WASM decoder and produces finite audible
   assert.deepEqual(pcm.left,pcm.right);
  }finally{chip.dispose();}
 });
+function opnaVgm(commands) {
+ const b=vgm(commands);new DataView(b.buffer).setUint32(0x48,8000000,true);return b;
+}
+const owrite=(r,v)=>[0x57,r,v];
+const oblock=(offset,data)=>{const b=block(offset,data);b[2]=0x81;return b;};
+const osetup=(mode)=>[...owrite(1,mode),...owrite(2,1),...owrite(4,1),...owrite(12,255),...owrite(13,255),...owrite(10,128),...owrite(11,255)];
+test('YM2608 ROM/8-bit mode uses 32-byte units, 1-bit mode uses four; YM2610 stays isolated',async()=>{
+ const r=await extractSamples(opnaVgm([...oblock(0,new Array(512).fill(0x12)),...bblock(0,new Array(512).fill(0x34)),...osetup(1),...owrite(0,0xa0),...osetup(0),...owrite(0,0xa0),...bon,0x66]));
+ assert.deepEqual(r.samples.map(s=>[s.chip,s.byteStart,s.size]),[['ym2608',32,32],['ym2608',4,4],['ym2610',256,256]]);
+ assert.equal(r.samples[0].data[0],0x12);assert.equal(r.samples[2].data[0],0x34);
+ assert.equal(r.events[1].rate,8000000/144/2);
+});
+test('YM2608 prescaler changes rate, record and CPU playback are not mistaken for samples',async()=>{
+ const r=await extractSamples(opnaVgm([...osetup(2),0x56,0x2e,0,...owrite(0,0xa0),...owrite(0,0xc0),...owrite(0,0x80),0x66]));
+ assert.equal(r.events.length,1);assert.equal(r.events[0].prescale,3);assert.equal(r.events[0].rate,8000000/72/2);
+ assert.ok(r.warnings.some(w=>w.includes('CPU-driven')));
+});
+test('YM2608 CPU memory uploads follow the existing core end condition and retain old data',async()=>{
+ const r=await extractSamples(opnaVgm([...osetup(0),...owrite(4,2),...owrite(0,0x60),...owrite(8,1),...owrite(8,2),...owrite(8,3),...owrite(8,4),...owrite(4,1),...owrite(0,0xa0),...owrite(4,2),...owrite(0,0x60),...owrite(8,9),...owrite(4,1),...owrite(0,0xa0),0x66]));
+ assert.deepEqual([...r.samples[0].data],[1,2,3,4]);assert.deepEqual([...r.samples[1].data],[9,2,3,4]);
+});
+test('YM2608 preview produces stereo audio through its own WASM core',async()=>{
+ // The shipped build supports shell, not Node. Run its JS shell adapter in
+ // an isolated VM and supply the unmodified WASM binary explicitly.
+ const {readFile}=await import('node:fs/promises');
+ const {runInNewContext}=await import('node:vm');
+ const url=new URL('../generated/ym2608_wasm.js',import.meta.url);
+ const source=await readFile(url,'utf8');
+ const factory=runInNewContext(source.replaceAll('import.meta.url',JSON.stringify(url.href)).replace('export default Module;', 'Module;'),{console,WebAssembly,TextDecoder,TextEncoder,URL,setTimeout,clearTimeout});
+ const wasmBinary=await readFile(new URL('../generated/ym2608_wasm.wasm',import.meta.url));
+ const [{Ym2608},{configureSamplePreview}]=await Promise.all([import('../js/ym2608.js'),import('./sample_explorer.js')]);
+ const r=await extractSamples(opnaVgm([...oblock(0,new Array(512).fill(0x12)),...osetup(1),...owrite(0,0xa0),0x66]));
+ const chip=await Ym2608.create({moduleFactory:factory,moduleOptions:{wasmBinary}});
+ try{configureSamplePreview(chip,r.samples[0],r.events[0]);const pcm=chip.generateStereo(4096);assert.ok(pcm.left.every(Number.isFinite));assert.ok(pcm.left.some(v=>v!==0));assert.deepEqual(pcm.left,pcm.right);}finally{chip.dispose();}
+});

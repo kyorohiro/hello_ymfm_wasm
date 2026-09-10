@@ -7,24 +7,28 @@ export async function extractSamples(source, { signal } = {}) {
   const clock = parser.header.ym2610Clock & 0x3fffffff;
   const regs = new Uint8Array(256), samples = [], events = [], definitions = new Map();
   let retainedBytes = 0;
-  const memories = [0, 1].map(() => ({ data: new Uint8Array(0), present: new Uint8Array(0), generation: 0 }));
+  const memories = [0, 1, 2].map(() => ({ data: new Uint8Array(0), present: new Uint8Array(0), generation: 0 }));
+  const opna = new Uint8Array(16);
+  let prescale = 6, writeAddress = 0, pendingWriteStart = false;
+  const opnaUnit = () => opna[1] & 3 ? 32 : 4;
   const bregs = new Uint8Array(16);
   let time = 0;
   if (parser.header.ym2610Clock & 0x40000000) warnings.add('Second YM2610 chip is not analyzed.');
-  function observe(kind, channel, control) {
-    const previous = events.findLast(x => x.kind === kind && x.channel === channel);
+  function observe(kind, channel, control, chip = 'ym2610') {
+    const previous = events.findLast(x => x.chip === chip && x.kind === kind && x.channel === channel);
     if (previous && previous.nextControlTime == null) {
       previous.nextControlTime = time; previous.nextControl = control;
     }
   }
   function begin(kind, channel, rawStart, rawEnd, settings) {
     const romType = kind === 'adpcm-a' ? 0 : 1;
-    const memory = memories[romType], byteStart = rawStart * 256;
+    const chip = settings.chip ?? 'ym2610', unit = settings.addressUnit ?? 256;
+    const memory = memories[chip === 'ym2608' ? 2 : romType], byteStart = rawStart * unit;
     const size = romType === 0 ? ((((rawEnd + 1) * 256 - byteStart) & 0xfffff) || 0x100000)
-      : (rawEnd + 1) * 256 - byteStart;
+      : (rawEnd + 1) * unit - byteStart;
     if (size <= 0) { warnings.add('ADPCM-B wrapped address range is not extracted.'); return; }
     const byteEndExclusive = byteStart + size;
-    const key = `${kind}:${memory.generation}:${byteStart}:${byteEndExclusive}`;
+    const key = `${chip}:${kind}:${memory.generation}:${byteStart}:${byteEndExclusive}`;
     let sample = definitions.get(key);
     if (!sample) {
       if (retainedBytes + size > 64 * 1024 * 1024) throw new Error('Sample analysis exceeds the 64 MiB limit.');
@@ -34,27 +38,70 @@ export async function extractSamples(source, { signal } = {}) {
         const a = byteStart + i;
         if (memory.present[a]) { data[i] = memory.data[a]; available++; }
       }
-      sample = { id: samples.length + 1, kind, romType, generation: memory.generation,
+      sample = { id: samples.length + 1, chip, kind, romType, generation: memory.generation,
         byteStart, byteEndExclusive, size, available, data: available === size ? data : null };
       retainedBytes += sample.data ? size : 0;
       samples.push(sample); definitions.set(key, sample);
     }
     if (events.length >= 100000) throw new Error('Sample analysis exceeds 100,000 playback events.');
-    events.push({ sampleId: sample.id, kind, channel, startTime: time,
+    events.push({ sampleId: sample.id, chip, kind, channel, startTime: time,
       endTime: null, endReason: 'unknown', rawStart, rawEnd, clock, ...settings });
   }
   function apply(e) {
-    if (e.type === 'ym2610-rom-data') {
-      if (e.chipIndex) { warnings.add('Second YM2610 ROM is not analyzed.'); return; }
-      const memory = memories[e.romType];
+    if (e.type === 'ym2610-rom-data' || e.type === 'ym2608-adpcm-b-data') {
+      if (e.chipIndex) { warnings.add('Second chip sample memory is not analyzed.'); return; }
+      const memory = memories[e.type === 'ym2608-adpcm-b-data' ? 2 : e.romType];
       if (!memory) return;
       if (e.memorySize > memory.data.length) {
-        const next = new Uint8Array(e.memorySize), coverage = new Uint8Array(e.memorySize);
+        const capacity = Math.ceil(e.memorySize / 4096) * 4096;
+        const next = new Uint8Array(capacity), coverage = new Uint8Array(capacity);
         next.set(memory.data); coverage.set(memory.present); memory.data = next; memory.present = coverage;
       }
       let changed = false;
       e.data.forEach((v, i) => { const a = e.offset + i; changed ||= !memory.present[a] || memory.data[a] !== v; memory.data[a] = v; memory.present[a] = 1; });
       if (changed) memory.generation++;
+    }
+    if (e.type === 'ym2608-write') {
+      const { register: r, value: v } = e;
+      if (e.port === 0) {
+        if (r === 0x2d) prescale = 6;
+        if (r === 0x2e && prescale === 6) prescale = 3;
+        if (r === 0x2f) prescale = 2;
+        return;
+      }
+      if (r > 15) return;
+      opna[r] = v;
+      if (r === 8 && (opna[0] & 0xe0) === 0x60) {
+        // Mirror ymfm's CPU memory-write mode, including its end comparison.
+        if (pendingWriteStart) {
+          writeAddress = (opna[2] | opna[3] << 8) * opnaUnit(); pendingWriteStart = false;
+        }
+        const end = ((opna[4] | opna[5] << 8) + 1) * opnaUnit() - 1;
+        if (writeAddress !== end && writeAddress < 0x200000) {
+          apply({ type: 'ym2608-adpcm-b-data', chipIndex: 0, memorySize: writeAddress + 1,
+            offset: writeAddress++, data: Uint8Array.of(v) });
+        }
+      }
+      if (r !== 0) return;
+      pendingWriteStart = Boolean(v & 0x20);
+      if (v & 1) { writeAddress = 0; }
+      observe('adpcm-b', 1, v & 1 ? 'reset' : v & 128 ? 'restart' : 'stop', 'ym2608');
+      if (!(v & 128) || (v & 1)) return;
+      if ((v & 0x60) !== 0x20) {
+        warnings.add('YM2608 CPU-driven playback / recording is not extracted.'); return;
+      }
+      const unit = opnaUnit(), rawStart = opna[2] | opna[3] << 8, rawEnd = opna[4] | opna[5] << 8;
+      const limit = opna[12] | opna[13] << 8;
+      if (rawStart <= limit && limit < rawEnd) {
+        warnings.add('YM2608 ADPCM-B limit-wrapped playback is not extracted.'); return;
+      }
+      const deltaN = opna[9] | opna[10] << 8, chipClock = parser.header.ym2608Clock & 0x3fffffff;
+      begin('adpcm-b', 1, rawStart, rawEnd, { chip: 'ym2608', clock: chipClock,
+        addressUnit: unit, memoryMode: opna[1] & 3, limit, prescale,
+        level: opna[11], pan: opna[1] >> 6, deltaN,
+        rate: chipClock / (24 * prescale) * deltaN / 65536,
+        loop: Boolean(v & 16), speakerOff: Boolean(v & 8) });
+      return;
     }
     if (e.type !== 'ym2610-write') return;
     const { register: r, value: v } = e;
@@ -93,8 +140,9 @@ export async function extractSamples(source, { signal } = {}) {
     else apply(e);
     if (count % 4096 === 4095) await new Promise(resolve => setTimeout(resolve, 0));
   }
-  if (parser.header.ym2608Clock || parser.header.rf5c164Clock) warnings.add('YM2608 and RF5C164 sample analysis is not implemented yet.');
-  warnings.add('Initial support: YM2610 / YM2610B ADPCM-A / ADPCM-B. End times and live parameter changes are not reconstructed.');
+  if (parser.header.ym2608Clock & 0x40000000) warnings.add('Second YM2608 chip is not analyzed.');
+  if (parser.header.rf5c164Clock) warnings.add('RF5C164 sample analysis is not implemented yet.');
+  warnings.add('Initial support: YM2610 / YM2610B ADPCM-A / ADPCM-B and YM2608 ADPCM-B. Rhythm, end times and live parameter changes are not reconstructed.');
   return { samples, events, clock, warnings: [...warnings], time };
 }
 
@@ -115,11 +163,11 @@ export function mountSampleExplorer(panel, getSource) {
       if (own.signal.aborted) return;
       output.replaceChildren();
       const note = document.createElement('p'); note.textContent = result.warnings.join(' '); output.append(note);
-      if (!result.samples.length) output.append('No YM2610 ADPCM samples found.');
+      if (!result.samples.length) output.append('No supported ADPCM samples found.');
       for (const s of result.samples) {
         const row = document.createElement('details'), title = document.createElement('summary');
         const uses = result.events.filter(e => e.sampleId === s.id);
-        title.textContent = `Sample ${s.id} · YM2610 ${s.kind.toUpperCase()} · 0x${s.byteStart.toString(16)}–0x${(s.byteEndExclusive - 1).toString(16)} · ${s.size} bytes · ${uses.length} uses · ${s.data ? 'embedded' : s.available ? 'partial data' : 'missing data'}`;
+        title.textContent = `Sample ${s.id} · ${s.chip.toUpperCase()} ${s.kind.toUpperCase()} · 0x${s.byteStart.toString(16)}–0x${(s.byteEndExclusive - 1).toString(16)} · ${s.size} bytes · ${uses.length} uses · ${s.data ? 'embedded' : s.available ? 'partial data' : 'missing data'}`;
         row.append(title);
         const history = document.createElement('pre');
         history.textContent = uses.slice(0, 500).map(e => `${(e.startTime / 44100).toFixed(3)} s · ${e.kind.toUpperCase()} channel ${e.channel} · end unknown · level ${e.level}${e.totalLevel == null ? "" : `, total ${e.totalLevel}`}, pan ${e.pan} · ${e.rate.toFixed(2)} Hz${e.deltaN == null ? "" : ` · Delta-N ${e.deltaN} · repeat ${e.loop} · speaker off ${e.speakerOff}`}${e.nextControl ? ` · next ${e.nextControl} ${(e.nextControlTime / 44100).toFixed(3)} s` : ''}`).join('\n');
@@ -129,7 +177,7 @@ export function mountSampleExplorer(panel, getSource) {
           const save = document.createElement('button'); save.textContent = 'Save raw ADPCM';
           save.onclick = () => {
             const url = URL.createObjectURL(new Blob([s.data])); const a = document.createElement('a');
-            a.href = url; a.download = `ym2610-${s.kind}-${s.id}.bin`; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
+            a.href = url; a.download = `${s.chip}-${s.kind}-${s.id}.bin`; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
           };
           const selection = document.createElement('select');
           selection.setAttribute('aria-label', `Sample ${s.id} preview occurrence`);
@@ -144,13 +192,14 @@ export function mountSampleExplorer(panel, getSource) {
             let chip;
             try {
               audio ??= new AudioContext(); await audio.resume();
-              const [{ Ym2610B }, { default: factory }] = await Promise.all([
-                import('../js/ym2610b.js'), import('../generated/ym2610b_wasm.js')]);
+              const [{ [s.chip === 'ym2608' ? 'Ym2608' : 'Ym2610B']: Chip }, { default: factory }] = await Promise.all([
+                import(s.chip === 'ym2608' ? '../js/ym2608.js' : '../js/ym2610b.js'),
+                import(s.chip === 'ym2608' ? '../generated/ym2608_wasm.js' : '../generated/ym2610b_wasm.js')]);
               if (own.signal.aborted || serial !== previewSerial) return;
-              chip = await Ym2610B.create({ moduleFactory: factory });
+              chip = await Chip.create({ moduleFactory: factory });
               const e = uses[Number(selection.value)];
               configureSamplePreview(chip, s, e);
-              const rate = chip.sampleRate(result.clock);
+              const rate = chip.sampleRate(e.clock);
               if (!(e.rate > 0)) throw new Error('Sample rate is zero (Delta-N=0).');
               const frames = Math.min(Math.ceil(rate * 10), Math.ceil(s.size * 2 / e.rate * rate) + 1024);
               const pcm = chip.generateStereo(frames), buffer = audio.createBuffer(2, frames, rate);
@@ -173,6 +222,20 @@ export function mountSampleExplorer(panel, getSource) {
 
 // Preview one pass of the selected occurrence, centered; repeat is not expanded.
 export function configureSamplePreview(chip, sample, event) {
+  if (sample.chip === 'ym2608') {
+    chip.loadAdpcmBMemory(sample.data, sample.byteStart, sample.byteEndExclusive);
+    // Restore the observed prescaler through address writes.
+    chip.write(0, 0x2d);
+    if (event.prescale !== 6) chip.write(0, event.prescale === 3 ? 0x2e : 0x2f);
+    const write = (r, v) => { chip.write(2, r); chip.write(3, v); };
+    write(1, 0xc0 | event.memoryMode);
+    write(2, event.rawStart & 255); write(3, event.rawStart >> 8);
+    write(4, event.rawEnd & 255); write(5, event.rawEnd >> 8);
+    write(12, event.limit & 255); write(13, event.limit >> 8);
+    write(9, event.deltaN & 255); write(10, event.deltaN >> 8); write(11, event.level);
+    write(0, 0xa0 | (event.speakerOff ? 8 : 0));
+    return;
+  }
   chip.loadAdpcmRom(sample.romType, sample.data, sample.byteStart, sample.byteEndExclusive);
   const write = (r, v) => { const port = sample.romType === 0 ? 2 : 0; chip.write(port, r); chip.write(port + 1, v); };
   if (sample.romType === 0) {
