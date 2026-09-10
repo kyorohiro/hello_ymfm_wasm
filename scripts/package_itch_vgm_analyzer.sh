@@ -20,6 +20,7 @@ vgm_analyzer.js
 sample_explorer.js
 rf5c164_samples.js
 dac_samples.js
+pwm_samples.js
 psg_monitor.js
 rf5c164_monitor.js
 source_mutes.js
@@ -193,7 +194,7 @@ perl -0pi -e 's#<a class="link-button" href="\.\./index\.html">Back</a>##g' "${S
 perl -0pi -e "s#(['\"])\\.\\./js/#\$1./js/#g; s#(['\"])\\.\\./generated/#\$1./generated/#g" \
   "${STAGE_DIR}/index.html" "${STAGE_DIR}/vgm_analyzer.js" "${STAGE_DIR}/vgm_mml.js" \
   "${STAGE_DIR}/vgm_notes.js" "${STAGE_DIR}/tone_notes.js" "${STAGE_DIR}/vgm_midi.js" \
-  "${STAGE_DIR}/note_timeline_worker.js" "${STAGE_DIR}/sample_explorer.js"
+  "${STAGE_DIR}/note_timeline_worker.js" "${STAGE_DIR}/sample_explorer.js" "${STAGE_DIR}/pwm_samples.js"
 perl -0pi -e 's#\.\./js/vgm-output-worklet\.js#./js/vgm-output-worklet.js#g' \
   "${STAGE_DIR}/index.html"
 

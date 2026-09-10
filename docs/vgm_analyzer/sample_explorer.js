@@ -1,12 +1,14 @@
 import { createDacSamples, renderDacPreview } from './dac_samples.js';
+import { createPwmSamples, renderPwmPreview, pwmCaptureJson, pwmCaptureWav } from './pwm_samples.js';
 import { createRf5c164Samples } from './rf5c164_samples.js';
-import { Ym2612VGM } from '../js/ym2612vgm.js?v=ym2610-vgm-2';
+import { Ym2612VGM } from '../js/ym2612vgm.js?v=pwm-2';
 
 // One pass; never expands the VGM loop. Memory is resolved at each key-on.
 export async function extractSamples(source, { signal } = {}) {
   const warnings = new Set();
   const parser = new Ym2612VGM(source, { logger: { warn: m => warnings.add(m) } });
   const dac = createDacSamples();
+  const pwm = createPwmSamples();
   const rf = createRf5c164Samples(parser.header.rf5c164Clock & 0x3fffffff);
   const clock = parser.header.ym2610Clock & 0x3fffffff;
   const regs = new Uint8Array(256), samples = [], events = [], definitions = new Map();
@@ -137,6 +139,7 @@ export async function extractSamples(source, { signal } = {}) {
     }
   }
   const targets = {
+    pwm: { writeRegister: (r,v) => pwm.write(r,v,time) },
     ym2612: { writeRegister: (r,v,p=0) => dac.write(r,v,p,time) },
     ym2610: {writeRegister() {},loadAdpcmRom() {}},
     ym2608: {writeRegister() {},loadAdpcmBMemory() {}},
@@ -149,13 +152,18 @@ export async function extractSamples(source, { signal } = {}) {
     if (signal?.aborted) throw new DOMException('Cancelled', 'AbortError');
     const e = parser.playStep(targets);
     if (e.type === 'end') break;
-    if (e.type === 'wait') parser.consumeWait(targets,e.samples,n=>{time+=n;dac.advance(time);});
+    if (e.type === 'wait') parser.consumeWait(targets,e.samples,n=>{time+=n;dac.advance(time);pwm.advance(time);});
     else if (e.type === 'rf5c164-data') {} // applied through playback target
     else apply(e);
     if (count % 4096 === 4095) await new Promise(resolve => setTimeout(resolve, 0));
   }
   if (parser.header.ym2608Clock & 0x40000000) warnings.add('Second YM2608 chip is not analyzed.');
   dac.finish(time,'VGM end');
+  pwm.finish(time,'VGM end');
+  const pwmBase=samples.length;
+  for(const sample of pwm.samples)samples.push({...sample,id:sample.id+pwmBase});
+  for(const event of pwm.events)events.push({...event,sampleId:event.sampleId+pwmBase});
+  if(pwm.samples.length)warnings.add('PWM captures are mixed output, split into 10-second windows, not original instruments. Stereo preview/WAV uses approximate PWM conversion; timed JSON preserves register writes.');
   const dacBase=samples.length;
   for(const sample of dac.samples)samples.push({...sample,id:sample.id+dacBase});
   for(const event of dac.events)events.push({...event,sampleId:event.sampleId+dacBase});
@@ -187,19 +195,20 @@ export function mountSampleExplorer(panel, getSource) {
       const note = document.createElement('p'); note.textContent = result.warnings.join(' '); output.append(note);
       if (!result.samples.length) output.append('No supported samples found.');
       for (const s of result.samples) {
+        const captured = s.kind === 'dac' || s.kind === 'pwm';
         const row = document.createElement('details'), title = document.createElement('summary');
         const uses = result.events.filter(e => e.sampleId === s.id);
-        title.textContent = `Sample ${s.id} · ${s.chip.toUpperCase()} ${s.kind.toUpperCase()} · ${s.kind === 'dac' ? `captured output · ${s.boundary}` : `0x${s.byteStart.toString(16)}–0x${(s.byteEndExclusive - 1).toString(16)}`} · ${s.size} bytes · ${uses.length} uses · ${s.chip === 'rf5c164' ? `RAM snapshot · start 0x${s.startAddress.toString(16)} · loop 0x${s.loopAddress.toString(16)} · ` : ''}${s.data ? 'available' : s.available ? 'partial data' : 'missing data'}`;
+        title.textContent = `Sample ${s.id} · ${s.chip.toUpperCase()} ${s.kind.toUpperCase()} · ${captured ? `captured output · ${s.boundary}` : `0x${s.byteStart.toString(16)}–0x${(s.byteEndExclusive - 1).toString(16)}`} · ${s.size} bytes · ${uses.length} uses · ${s.chip === 'rf5c164' ? `RAM snapshot · start 0x${s.startAddress.toString(16)} · loop 0x${s.loopAddress.toString(16)} · ` : ''}${s.data ? 'available' : s.available ? 'partial data' : 'missing data'}`;
         row.append(title);
         const history = document.createElement('pre');
         history.textContent = uses.slice(0, 500).map(e => `${(e.startTime / 44100).toFixed(3)} s · ${e.kind.toUpperCase()} channel ${e.channel} · end ${e.endTime == null ? 'unknown' : (e.endTime / 44100).toFixed(3) + ' s'} · level ${e.level}${e.totalLevel == null ? "" : `, total ${e.totalLevel}`}, pan ${e.pan} · ${e.rate.toFixed(2)} Hz${e.deltaN == null ? "" : ` · Delta-N ${e.deltaN} · repeat ${e.loop} · speaker off ${e.speakerOff}`}${e.nextControl ? ` · next ${e.nextControl} ${(e.nextControlTime / 44100).toFixed(3)} s` : ''}`).join('\n');
         if (uses.length > 500) history.textContent += '\nShowing first 500 uses.';
         row.append(history);
         if (s.data) {
-          const save = document.createElement('button'); save.textContent = s.kind === 'dac' ? 'Save timed DAC JSON' : s.chip === 'rf5c164' ? 'Save 64 KiB RAM snapshot' : 'Save raw ADPCM';
+          const save = document.createElement('button'); save.textContent = captured ? `Save timed ${s.kind.toUpperCase()} JSON` : s.chip === 'rf5c164' ? 'Save 64 KiB RAM snapshot' : 'Save raw ADPCM';
           save.onclick = () => {
-            const url = URL.createObjectURL(new Blob([s.kind === 'dac' ? JSON.stringify({timebase:44100,startTime:uses[0].startTime,duration:s.duration,boundary:s.boundary,times:[...s.times],values:[...s.data]}) : s.data])); const a = document.createElement('a');
-            a.href = url; a.download = `${s.chip}-${s.kind}-${s.id}.${s.kind === 'dac' ? 'json' : 'bin'}`; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
+            const url = URL.createObjectURL(new Blob([s.kind === 'pwm' ? pwmCaptureJson(s,uses[0].startTime) : s.kind === 'dac' ? JSON.stringify({timebase:44100,startTime:uses[0].startTime,duration:s.duration,boundary:s.boundary,times:[...s.times],values:[...s.data]}) : s.data])); const a = document.createElement('a');
+            a.href = url; a.download = `${s.chip}-${s.kind}-${s.id}.${captured ? 'json' : 'bin'}`; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
           };
           const selection = document.createElement('select');
           selection.setAttribute('aria-label', `Sample ${s.id} preview occurrence`);
@@ -209,11 +218,18 @@ export function mountSampleExplorer(panel, getSource) {
             selection.append(option);
           });
           const listen = document.createElement('button'); listen.textContent = 'Preview centered (up to 10 s)';
+          if(s.kind==='pwm')listen.textContent='Preview stereo (up to 10 s)';
           listen.onclick = async () => {
             stop(); const serial = previewSerial; listen.disabled = true;
             let chip;
             try {
               audio ??= new AudioContext(); await audio.resume();
+              if(s.kind==='pwm') {
+                if(own.signal.aborted || serial!==previewSerial)return;
+                const pcm=renderPwmPreview(s),buffer=audio.createBuffer(2,pcm.left.length,44100);
+                buffer.copyToChannel(pcm.left,0);buffer.copyToChannel(pcm.right,1);
+                playing=audio.createBufferSource();playing.buffer=buffer;playing.connect(audio.destination);playing.start();return;
+              }
               if(s.kind==='dac') {
                 if(own.signal.aborted || serial!==previewSerial)return;
                 const pcm=renderDacPreview(s),buffer=audio.createBuffer(1,pcm.length,44100);
@@ -238,6 +254,14 @@ export function mountSampleExplorer(panel, getSource) {
             finally { chip?.dispose(); listen.disabled = false; }
           };
           row.append(save, selection, listen);
+          if(s.kind==='pwm') {
+            const wav=document.createElement('button');wav.textContent='Save stereo WAV';
+            wav.onclick=()=>{
+              const url=URL.createObjectURL(new Blob([pwmCaptureWav(s)],{type:'audio/wav'})),a=document.createElement('a');
+              a.href=url;a.download=`32x-pwm-${s.id}.wav`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+            };
+            row.append(wav);
+          }
         }
         output.append(row);
       }
