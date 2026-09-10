@@ -300,7 +300,7 @@ export class VgmPlayer {
     }
 
     if (this.playing) {
-      this.#fillQueue(Math.ceil(frames * this.prefetchFactor));
+      this.#fillQueue(Math.ceil(frames * this.prefetchFactor), frames);
     }
 
     if (!this.playing && !this.paused && this.queuedFrames === 0) {
@@ -318,12 +318,17 @@ export class VgmPlayer {
    * @param {number} targetFrames
    * @returns {void}
    */
-  #fillQueue(targetFrames) {
+  #fillQueue(targetFrames, requiredFrames = targetFrames) {
     let steps = 0;
+    // The normal budget limits speculative prefetch, not the audio requested
+    // by the caller. Dense direct DAC/PWM writes can need thousands of events.
+    // Retain a hard bound for malformed streams / loops with no time progress.
+    const hardLimit = Math.max(this.maxFillStepsPerProcess, 65536, requiredFrames * 64);
     while (
       this.playing &&
       this.queuedFrames < targetFrames &&
-      steps < this.maxFillStepsPerProcess
+      steps < hardLimit &&
+      (steps < this.maxFillStepsPerProcess || this.queuedFrames < requiredFrames)
     ) {
       steps += 1;
       const ym2612Target = typeof this.engine.writeYm2612 === "function"

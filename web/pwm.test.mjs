@@ -12,6 +12,22 @@ function file(commands) {
 }
 const write = (r,v) => [0xb2,(r<<4)|(v>>8),v&255];
 const setup = [...write(0,5),...write(1,100)];
+test('dense direct writes fill the requested audio without budget-induced silence',()=>{
+  const commands=[...setup,...write(4,75)];
+  for(let i=0;i<5000;i++)commands.push(...write(4,75),0x73);
+  commands.push(0x66);
+  const {l,p}=render(commands,4096,53267);
+  assert.equal(l.length,4096);assert.ok(l.every(v=>v===.5));
+  assert.ok(p.processedEvents>512);
+});
+test('dense writes do not interrupt other audio when PWM is muted',()=>{
+  const commands=[];for(let i=0;i<5000;i++)commands.push(...write(4,75),0x73);commands.push(0x66);
+  const e=engine(53267);e.setPwmMuted(true);
+  e.ym2612.generateStereo=n=>({left:new Float32Array(n).fill(.25),right:new Float32Array(n).fill(.25)});
+  const p=new VgmPlayer(e);p.load(file(commands));p.play();
+  const l=new Float32Array(4096);p.process(l,new Float32Array(4096),4096);
+  assert.ok([...l].every(v=>Math.abs(v-.225)<1e-6));
+});
 function engine(rate=44100) {
   const chip = () => ({reset(){},generateStereo(n){return {left:new Float32Array(n),right:new Float32Array(n)};}});
   return new GenesisAudioEngine(chip(),chip(),rate);
