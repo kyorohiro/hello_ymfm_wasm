@@ -1,9 +1,11 @@
+import { createRf5c164Samples } from './rf5c164_samples.js';
 import { Ym2612VGM } from '../js/ym2612vgm.js?v=ym2610-vgm-2';
 
 // One pass; never expands the VGM loop. Memory is resolved at each key-on.
 export async function extractSamples(source, { signal } = {}) {
   const warnings = new Set();
   const parser = new Ym2612VGM(source, { logger: { warn: m => warnings.add(m) } });
+  const rf = createRf5c164Samples(parser.header.rf5c164Clock & 0x3fffffff);
   const clock = parser.header.ym2610Clock & 0x3fffffff;
   const regs = new Uint8Array(256), samples = [], events = [], definitions = new Map();
   let retainedBytes = 0;
@@ -48,6 +50,7 @@ export async function extractSamples(source, { signal } = {}) {
       endTime: null, endReason: 'unknown', rawStart, rawEnd, clock, ...settings });
   }
   function apply(e) {
+    rf.apply(e, time);
     if (e.type === 'ym2610-rom-data' || e.type === 'ym2608-adpcm-b-data') {
       if (e.chipIndex) { warnings.add('Second chip sample memory is not analyzed.'); return; }
       const memory = memories[e.type === 'ym2608-adpcm-b-data' ? 2 : e.romType];
@@ -141,8 +144,11 @@ export async function extractSamples(source, { signal } = {}) {
     if (count % 4096 === 4095) await new Promise(resolve => setTimeout(resolve, 0));
   }
   if (parser.header.ym2608Clock & 0x40000000) warnings.add('Second YM2608 chip is not analyzed.');
-  if (parser.header.rf5c164Clock) warnings.add('RF5C164 sample analysis is not implemented yet.');
-  warnings.add('Initial support: YM2610 / YM2610B ADPCM-A / ADPCM-B and YM2608 ADPCM-B. Rhythm, end times and live parameter changes are not reconstructed.');
+  const baseId=samples.length;
+  for(const sample of rf.samples) samples.push({...sample,id:sample.id+baseId});
+  for(const event of rf.events) events.push({...event,sampleId:event.sampleId+baseId});
+  for(const warning of rf.warnings)warnings.add(warning);
+  warnings.add('Initial support: YM2610 / YM2610B ADPCM-A / ADPCM-B and YM2608 ADPCM-B, RF5C164 PCM. Rhythm, end times and live parameter changes are not reconstructed.');
   return { samples, events, clock, warnings: [...warnings], time };
 }
 
@@ -163,18 +169,18 @@ export function mountSampleExplorer(panel, getSource) {
       if (own.signal.aborted) return;
       output.replaceChildren();
       const note = document.createElement('p'); note.textContent = result.warnings.join(' '); output.append(note);
-      if (!result.samples.length) output.append('No supported ADPCM samples found.');
+      if (!result.samples.length) output.append('No supported samples found.');
       for (const s of result.samples) {
         const row = document.createElement('details'), title = document.createElement('summary');
         const uses = result.events.filter(e => e.sampleId === s.id);
-        title.textContent = `Sample ${s.id} · ${s.chip.toUpperCase()} ${s.kind.toUpperCase()} · 0x${s.byteStart.toString(16)}–0x${(s.byteEndExclusive - 1).toString(16)} · ${s.size} bytes · ${uses.length} uses · ${s.data ? 'embedded' : s.available ? 'partial data' : 'missing data'}`;
+        title.textContent = `Sample ${s.id} · ${s.chip.toUpperCase()} ${s.kind.toUpperCase()} · 0x${s.byteStart.toString(16)}–0x${(s.byteEndExclusive - 1).toString(16)} · ${s.size} bytes · ${uses.length} uses · ${s.chip === 'rf5c164' ? `RAM snapshot · start 0x${s.startAddress.toString(16)} · loop 0x${s.loopAddress.toString(16)} · ` : ''}${s.data ? 'available' : s.available ? 'partial data' : 'missing data'}`;
         row.append(title);
         const history = document.createElement('pre');
-        history.textContent = uses.slice(0, 500).map(e => `${(e.startTime / 44100).toFixed(3)} s · ${e.kind.toUpperCase()} channel ${e.channel} · end unknown · level ${e.level}${e.totalLevel == null ? "" : `, total ${e.totalLevel}`}, pan ${e.pan} · ${e.rate.toFixed(2)} Hz${e.deltaN == null ? "" : ` · Delta-N ${e.deltaN} · repeat ${e.loop} · speaker off ${e.speakerOff}`}${e.nextControl ? ` · next ${e.nextControl} ${(e.nextControlTime / 44100).toFixed(3)} s` : ''}`).join('\n');
+        history.textContent = uses.slice(0, 500).map(e => `${(e.startTime / 44100).toFixed(3)} s · ${e.kind.toUpperCase()} channel ${e.channel} · end ${e.endTime == null ? 'unknown' : (e.endTime / 44100).toFixed(3) + ' s'} · level ${e.level}${e.totalLevel == null ? "" : `, total ${e.totalLevel}`}, pan ${e.pan} · ${e.rate.toFixed(2)} Hz${e.deltaN == null ? "" : ` · Delta-N ${e.deltaN} · repeat ${e.loop} · speaker off ${e.speakerOff}`}${e.nextControl ? ` · next ${e.nextControl} ${(e.nextControlTime / 44100).toFixed(3)} s` : ''}`).join('\n');
         if (uses.length > 500) history.textContent += '\nShowing first 500 uses.';
         row.append(history);
         if (s.data) {
-          const save = document.createElement('button'); save.textContent = 'Save raw ADPCM';
+          const save = document.createElement('button'); save.textContent = s.chip === 'rf5c164' ? 'Save 64 KiB RAM snapshot' : 'Save raw ADPCM';
           save.onclick = () => {
             const url = URL.createObjectURL(new Blob([s.data])); const a = document.createElement('a');
             a.href = url; a.download = `${s.chip}-${s.kind}-${s.id}.bin`; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
@@ -192,15 +198,15 @@ export function mountSampleExplorer(panel, getSource) {
             let chip;
             try {
               audio ??= new AudioContext(); await audio.resume();
-              const [{ [s.chip === 'ym2608' ? 'Ym2608' : 'Ym2610B']: Chip }, { default: factory }] = await Promise.all([
-                import(s.chip === 'ym2608' ? '../js/ym2608.js' : '../js/ym2610b.js'),
-                import(s.chip === 'ym2608' ? '../generated/ym2608_wasm.js' : '../generated/ym2610b_wasm.js')]);
+              const [{ [s.chip === 'rf5c164' ? 'Rf5c164' : s.chip === 'ym2608' ? 'Ym2608' : 'Ym2610B']: Chip }, { default: factory }] = await Promise.all([
+                import(s.chip === 'rf5c164' ? '../js/rf5c164.js' : s.chip === 'ym2608' ? '../js/ym2608.js' : '../js/ym2610b.js'),
+                import(s.chip === 'rf5c164' ? '../generated/rf5c164_wasm.js' : s.chip === 'ym2608' ? '../generated/ym2608_wasm.js' : '../generated/ym2610b_wasm.js')]);
               if (own.signal.aborted || serial !== previewSerial) return;
-              chip = await Chip.create({ moduleFactory: factory });
+              chip = await Chip.create({ moduleFactory: factory, clock: uses[Number(selection.value)].clock });
               const e = uses[Number(selection.value)];
               configureSamplePreview(chip, s, e);
               const rate = chip.sampleRate(e.clock);
-              if (!(e.rate > 0)) throw new Error('Sample rate is zero (Delta-N=0).');
+              if (!(e.rate > 0)) throw new Error('Sample rate is zero.');
               const frames = Math.min(Math.ceil(rate * 10), Math.ceil(s.size * 2 / e.rate * rate) + 1024);
               const pcm = chip.generateStereo(frames), buffer = audio.createBuffer(2, frames, rate);
               buffer.copyToChannel(pcm.left, 0); buffer.copyToChannel(pcm.right, 1);
@@ -222,6 +228,13 @@ export function mountSampleExplorer(panel, getSource) {
 
 // Preview one pass of the selected occurrence, centered; repeat is not expanded.
 export function configureSamplePreview(chip, sample, event) {
+  if(sample.chip==='rf5c164') {
+    chip.loadMemory(sample.data);
+    chip.writeRegister(7,0xc0);
+    event.settings.forEach((v,r)=>chip.writeRegister(r,r===1?0xff:v));
+    chip.writeRegister(8,0xfe);
+    return;
+  }
   if (sample.chip === 'ym2608') {
     chip.loadAdpcmBMemory(sample.data, sample.byteStart, sample.byteEndExclusive);
     // Restore the observed prescaler through address writes.
