@@ -1,3 +1,4 @@
+import { createDacSamples, renderDacPreview } from './dac_samples.js';
 import { createRf5c164Samples } from './rf5c164_samples.js';
 import { Ym2612VGM } from '../js/ym2612vgm.js?v=ym2610-vgm-2';
 
@@ -5,6 +6,7 @@ import { Ym2612VGM } from '../js/ym2612vgm.js?v=ym2610-vgm-2';
 export async function extractSamples(source, { signal } = {}) {
   const warnings = new Set();
   const parser = new Ym2612VGM(source, { logger: { warn: m => warnings.add(m) } });
+  const dac = createDacSamples();
   const rf = createRf5c164Samples(parser.header.rf5c164Clock & 0x3fffffff);
   const clock = parser.header.ym2610Clock & 0x3fffffff;
   const regs = new Uint8Array(256), samples = [], events = [], definitions = new Map();
@@ -134,16 +136,30 @@ export async function extractSamples(source, { signal } = {}) {
           pan: regs[8 + ch] >> 6, rate: clock / 432, loop: false });
     }
   }
+  const targets = {
+    ym2612: { writeRegister: (r,v,p=0) => dac.write(r,v,p,time) },
+    ym2610: {writeRegister() {},loadAdpcmRom() {}},
+    ym2608: {writeRegister() {},loadAdpcmBMemory() {}},
+    ym2203: {writeRegister() {}}, psg: {write() {}},
+    rf5c164: {writeRegister() {},writeMemory() {},loadBankedMemory(data,offset) {
+      rf.apply({type:'rf5c164-data',data,offset,chipIndex:0},time);
+    }}
+  };
   for (let count = 0; ; count++) {
     if (signal?.aborted) throw new DOMException('Cancelled', 'AbortError');
-    const e = parser.step();
+    const e = parser.playStep(targets);
     if (e.type === 'end') break;
-    if (e.type === 'wait') time += e.samples;
-    else if (e.type.startsWith('stream')) warnings.add('Stream commands are not reconstructed by Sample Explorer.');
+    if (e.type === 'wait') parser.consumeWait(targets,e.samples,n=>{time+=n;dac.advance(time);});
+    else if (e.type === 'rf5c164-data') {} // applied through playback target
     else apply(e);
     if (count % 4096 === 4095) await new Promise(resolve => setTimeout(resolve, 0));
   }
   if (parser.header.ym2608Clock & 0x40000000) warnings.add('Second YM2608 chip is not analyzed.');
+  dac.finish(time,'VGM end');
+  const dacBase=samples.length;
+  for(const sample of dac.samples)samples.push({...sample,id:sample.id+dacBase});
+  for(const event of dac.events)events.push({...event,sampleId:event.sampleId+dacBase});
+  if(dac.samples.length)warnings.add('DAC captures are split at disable/end or 10-second display windows, not original sample boundaries. Preview is centered, without analog filtering.');
   const baseId=samples.length;
   for(const sample of rf.samples) samples.push({...sample,id:sample.id+baseId});
   for(const event of rf.events) events.push({...event,sampleId:event.sampleId+baseId});
@@ -173,17 +189,17 @@ export function mountSampleExplorer(panel, getSource) {
       for (const s of result.samples) {
         const row = document.createElement('details'), title = document.createElement('summary');
         const uses = result.events.filter(e => e.sampleId === s.id);
-        title.textContent = `Sample ${s.id} · ${s.chip.toUpperCase()} ${s.kind.toUpperCase()} · 0x${s.byteStart.toString(16)}–0x${(s.byteEndExclusive - 1).toString(16)} · ${s.size} bytes · ${uses.length} uses · ${s.chip === 'rf5c164' ? `RAM snapshot · start 0x${s.startAddress.toString(16)} · loop 0x${s.loopAddress.toString(16)} · ` : ''}${s.data ? 'available' : s.available ? 'partial data' : 'missing data'}`;
+        title.textContent = `Sample ${s.id} · ${s.chip.toUpperCase()} ${s.kind.toUpperCase()} · ${s.kind === 'dac' ? `captured output · ${s.boundary}` : `0x${s.byteStart.toString(16)}–0x${(s.byteEndExclusive - 1).toString(16)}`} · ${s.size} bytes · ${uses.length} uses · ${s.chip === 'rf5c164' ? `RAM snapshot · start 0x${s.startAddress.toString(16)} · loop 0x${s.loopAddress.toString(16)} · ` : ''}${s.data ? 'available' : s.available ? 'partial data' : 'missing data'}`;
         row.append(title);
         const history = document.createElement('pre');
         history.textContent = uses.slice(0, 500).map(e => `${(e.startTime / 44100).toFixed(3)} s · ${e.kind.toUpperCase()} channel ${e.channel} · end ${e.endTime == null ? 'unknown' : (e.endTime / 44100).toFixed(3) + ' s'} · level ${e.level}${e.totalLevel == null ? "" : `, total ${e.totalLevel}`}, pan ${e.pan} · ${e.rate.toFixed(2)} Hz${e.deltaN == null ? "" : ` · Delta-N ${e.deltaN} · repeat ${e.loop} · speaker off ${e.speakerOff}`}${e.nextControl ? ` · next ${e.nextControl} ${(e.nextControlTime / 44100).toFixed(3)} s` : ''}`).join('\n');
         if (uses.length > 500) history.textContent += '\nShowing first 500 uses.';
         row.append(history);
         if (s.data) {
-          const save = document.createElement('button'); save.textContent = s.chip === 'rf5c164' ? 'Save 64 KiB RAM snapshot' : 'Save raw ADPCM';
+          const save = document.createElement('button'); save.textContent = s.kind === 'dac' ? 'Save timed DAC JSON' : s.chip === 'rf5c164' ? 'Save 64 KiB RAM snapshot' : 'Save raw ADPCM';
           save.onclick = () => {
-            const url = URL.createObjectURL(new Blob([s.data])); const a = document.createElement('a');
-            a.href = url; a.download = `${s.chip}-${s.kind}-${s.id}.bin`; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
+            const url = URL.createObjectURL(new Blob([s.kind === 'dac' ? JSON.stringify({timebase:44100,startTime:uses[0].startTime,duration:s.duration,boundary:s.boundary,times:[...s.times],values:[...s.data]}) : s.data])); const a = document.createElement('a');
+            a.href = url; a.download = `${s.chip}-${s.kind}-${s.id}.${s.kind === 'dac' ? 'json' : 'bin'}`; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
           };
           const selection = document.createElement('select');
           selection.setAttribute('aria-label', `Sample ${s.id} preview occurrence`);
@@ -198,6 +214,12 @@ export function mountSampleExplorer(panel, getSource) {
             let chip;
             try {
               audio ??= new AudioContext(); await audio.resume();
+              if(s.kind==='dac') {
+                if(own.signal.aborted || serial!==previewSerial)return;
+                const pcm=renderDacPreview(s),buffer=audio.createBuffer(1,pcm.length,44100);
+                buffer.copyToChannel(pcm,0);playing=audio.createBufferSource();playing.buffer=buffer;
+                playing.connect(audio.destination);playing.start();return;
+              }
               const [{ [s.chip === 'rf5c164' ? 'Rf5c164' : s.chip === 'ym2608' ? 'Ym2608' : 'Ym2610B']: Chip }, { default: factory }] = await Promise.all([
                 import(s.chip === 'rf5c164' ? '../js/rf5c164.js' : s.chip === 'ym2608' ? '../js/ym2608.js' : '../js/ym2610b.js'),
                 import(s.chip === 'rf5c164' ? '../generated/rf5c164_wasm.js' : s.chip === 'ym2608' ? '../generated/ym2608_wasm.js' : '../generated/ym2610b_wasm.js')]);

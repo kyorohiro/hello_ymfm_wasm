@@ -19,6 +19,7 @@ analyzer_theme.css
 vgm_analyzer.js
 sample_explorer.js
 rf5c164_samples.js
+dac_samples.js
 psg_monitor.js
 rf5c164_monitor.js
 source_mutes.js
