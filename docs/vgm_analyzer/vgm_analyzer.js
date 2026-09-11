@@ -2,6 +2,7 @@ import { mountSampleExplorer } from './sample_explorer.js?v=pwm-capture-1';
 import { renderAllFretboard } from './fretboard_all.js';
 import { createNoteTimeline } from './note_timeline_view.js?v=noteish-tabs-1';
 import { seekPlayback } from './seek_playback.js';
+import { timelinePlaybackPosition } from './note_timeline.js';
 import { createYm2610BAudioEngine } from '../js/ym2610baudioengine.js';
 import { describeToneNotes } from './tone_notes.js?v=ym2610-vgm-2';
 import { midiChipKind } from "./vgm_notes.js?v=ym2610-vgm-2";
@@ -47,6 +48,33 @@ if (useNukedEngine) {
 const fileInput = document.getElementById("fileInput");
 const ym2608RomInput = document.getElementById("ym2608RomInput");
 const playButton = document.getElementById("playButton");
+const playbackSeek = document.getElementById("playbackSeek");
+const playbackSeekTime = document.getElementById("playbackSeekTime");
+let seekSelection = null;
+let seekDragging = false;
+
+function renderSeekPosition(sample) {
+  const duration = Number(playbackSeek.max);
+  const position = Math.max(0, Math.min(duration, sample || 0));
+  playbackSeek.value = String(position);
+  const time = value => {
+    const seconds = Math.floor(value / 44100);
+    return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
+  };
+  playbackSeekTime.textContent = `${time(position)} / ${time(duration)}`;
+  playbackSeek.setAttribute("aria-valuetext", playbackSeekTime.textContent);
+}
+
+function updateSeekPosition() {
+  if (seekDragging || timelineSeekController) return;
+  if (timelineSelectionPending) {
+    renderSeekPosition(seekSelection ?? songTimeline.selected());
+  } else if (player) {
+    const queued = player.queuedFrames + (activeStream?.workletQueuedFrames ?? 0);
+    const sample = Math.max(0, player.processedWaitSamples - queued * 44100 / player.sampleRate());
+    renderSeekPosition(timelinePlaybackPosition(sample, Number(playbackSeek.max), noteishHeader?.loopSamples || 0, loopCheckbox.checked));
+  }
+}
 const pauseButton = document.getElementById("pauseButton");
 const resumeButton = document.getElementById("resumeButton");
 const replayButton = document.getElementById("replayButton");
@@ -2320,6 +2348,8 @@ function stopActiveStream() {
 
 function updatePlaybackButtons(state = {}) {
   const hasBuffer = Boolean(currentBuffer);
+  playbackSeek.disabled = !hasBuffer || Number(playbackSeek.max) <= 0 || Boolean(timelineSeekController);
+  updateSeekPosition();
   exportMmlButton.disabled = !hasBuffer || !["ym2612", "ym2203", "ym2608", "ym2610"].includes(midiChipKind(noteishHeader));
   exportMidiButton.disabled = !hasBuffer || !midiExportAvailable;
   const playing = Boolean(state.playing);
@@ -2484,6 +2514,7 @@ async function playCurrentVgm(startSample = 0) {
     player.setLoopEnabled(loopCheckbox.checked);
     if (startSample > 0) {
       timelineSeekController = new AbortController();
+      playbackSeek.disabled = true;
       songTimeline.busy(true, 'Moving to cursor…');
       try {
         await seekPlayback(player, startSample, {
@@ -2496,6 +2527,7 @@ async function playCurrentVgm(startSample = 0) {
       }
     }
     timelineSelectionPending = false;
+    seekSelection = null;
     player.play();
     const started = await startWorkletStream(sampleRate) || startScriptProcessorStream();
     if (!started) {
@@ -2664,6 +2696,11 @@ function startScriptProcessorStream() {
 }
 
 async function handleFile(file) {
+  seekSelection = null;
+  seekDragging = false;
+  playbackSeek.max = "0";
+  playbackSeek.disabled = true;
+  renderSeekPosition(0);
   metadataOutput.textContent = "Loading metadata…";
   sampleExplorer.reset();
   timelineSeekController?.abort();
@@ -2775,6 +2812,8 @@ async function handleFile(file) {
   commandsOutput.textContent = events.join("\n");
   currentBuffer = buffer;
   songTimeline.load(buffer);
+  playbackSeek.max = String(Math.max(0, vgm.header.totalSamples));
+  renderSeekPosition(0);
   midiExportAvailable = Boolean(midiChipKind(vgm.header));
   lastParseInfo = buildParseInfo(buffer, file.name, vgm);
   if (sourceHeader) {
@@ -2820,6 +2859,9 @@ ym2608RomInput?.addEventListener("change", async (event) => {
 let timelineSelectionPending = false;
 let timelineSeekController = null;
 function resetTimelineToStart() {
+  seekSelection = null;
+  seekDragging = false;
+  renderSeekPosition(0);
   // Un-stick the timeline's busy flag first: it may still be true from an
   // in-flight cursor seek whose own cleanup hasn't run yet, which would
   // otherwise make the cursor(0) reset below a silent no-op.
@@ -2829,7 +2871,7 @@ function resetTimelineToStart() {
 }
 async function resumeTimelinePlayback() {
   if (!player || timelineSeekController) return;
-  if (timelineSelectionPending) { await playCurrentVgm(songTimeline.selected()); return; }
+  if (timelineSelectionPending) { await playCurrentVgm(seekSelection ?? songTimeline.selected()); return; }
   player.resume();
   await audioContext?.resume();
   scheduleWorkletPump();
@@ -2838,7 +2880,9 @@ async function resumeTimelinePlayback() {
 }
 var songTimeline = createNoteTimeline(document.getElementById('noteTimeline'), {
   onSelect() {
+    seekSelection = null;
     timelineSelectionPending = true;
+    updateSeekPosition();
     if (player?.isPlaying()) pauseButton.click();
   },
   onPlay: async sample => {
@@ -2850,12 +2894,27 @@ var songTimeline = createNoteTimeline(document.getElementById('noteTimeline'), {
 });
 
 
+playbackSeek.addEventListener("input", () => {
+  seekDragging = true;
+  renderSeekPosition(Number(playbackSeek.value));
+});
+playbackSeek.addEventListener("change", async () => {
+  const sample = Number(playbackSeek.value);
+  const wasPlaying = player?.isPlaying();
+  seekDragging = false;
+  seekSelection = sample;
+  timelineSelectionPending = true;
+  songTimeline.cursor(sample, false);
+  if (wasPlaying) await playCurrentVgm(sample);
+  else updatePlaybackButtons(player?.stats() || {});
+});
+
 playButton.addEventListener("click", async () => {
   if (player?.isPaused() && !timelineSelectionPending) {
     await resumeTimelinePlayback();
     return;
   }
-  await playCurrentVgm(songTimeline.selected());
+  await playCurrentVgm(seekSelection ?? songTimeline.selected());
 });
 
 pauseButton.addEventListener("click", async () => {

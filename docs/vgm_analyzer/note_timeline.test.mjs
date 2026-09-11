@@ -75,7 +75,7 @@ test('Play resumes a paused position but restarts from a newly selected cursor',
  let handler;const actions=[];
  const c=vm.createContext({
   playButton:{addEventListener(_type,fn){handler=fn;}},
-  player:{isPaused:()=>true},timelineSelectionPending:false,
+  player:{isPaused:()=>true},timelineSelectionPending:false,seekSelection:null,
   songTimeline:{selected:()=>44100},
   resumeTimelinePlayback:async()=>actions.push('resume'),
   playCurrentVgm:async sample=>actions.push(sample),
@@ -83,6 +83,30 @@ test('Play resumes a paused position but restarts from a newly selected cursor',
  vm.runInContext(source.slice(a,source.indexOf('\n});',a)+4),c);
  await handler();c.timelineSelectionPending=true;await handler();
  assert.deepEqual(actions,['resume',44100]);
+ c.seekSelection=88200;await handler();
+ assert.deepEqual(actions,['resume',44100,88200]);
+});
+
+test('seek bar previews a position and seeks immediately only during playback',async()=>{
+ const {readFileSync}=await import('node:fs'),vm=await import('node:vm');
+ const source=readFileSync(new URL('./vgm_analyzer.js',import.meta.url),'utf8');
+ const a=source.indexOf('playbackSeek.addEventListener("input",');
+ const handlers={},actions=[];let playing=false;
+ const c=vm.createContext({
+  playbackSeek:{value:'88200',addEventListener(type,fn){handlers[type]=fn;}},
+  seekDragging:false,seekSelection:null,timelineSelectionPending:false,
+  player:{isPlaying:()=>playing,stats:()=>({})},
+  songTimeline:{cursor:sample=>actions.push(['cursor',sample])},
+  renderSeekPosition:sample=>actions.push(['preview',sample]),
+  updatePlaybackButtons:()=>{},playCurrentVgm:async sample=>actions.push(['play',sample]),
+ });
+ vm.runInContext(source.slice(a,source.indexOf('playButton.addEventListener("click",',a)),c);
+ handlers.input();assert.equal(c.seekDragging,true);
+ await handlers.change();assert.equal(c.seekDragging,false);
+ assert.equal(c.seekSelection,88200);assert.equal(c.timelineSelectionPending,true);
+ assert.deepEqual(actions,[['preview',88200],['cursor',88200]]);
+ playing=true;c.playbackSeek.value='44100';await handlers.change();
+ assert.deepEqual(actions.slice(-2),[['cursor',44100],['play',44100]]);
 });
 
 test('timeline cursor wraps into the loop section without losing the intro',async()=>{

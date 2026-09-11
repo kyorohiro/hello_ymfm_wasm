@@ -589,6 +589,11 @@
             <input id="ym2608RomInput" type="file" accept=".bin,.rom,application/octet-stream">
           </label>
           <span class="action-break" aria-hidden="true"></span>
+          <div class="playback-seek">
+            <label for="playbackSeek">Position</label>
+            <input id="playbackSeek" type="range" min="0" max="0" step="4410" value="0" disabled>
+            <output id="playbackSeekTime" for="playbackSeek">0:00 / 0:00</output>
+          </div>
           <button id="playButton" type="button" disabled>Play</button>
           <button id="pauseButton" type="button" disabled>Pause</button>
           <button id="resumeButton" type="button" disabled>Resume</button>
