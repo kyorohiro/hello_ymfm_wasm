@@ -583,10 +583,12 @@
           <label class="file-input-group">
             <span class="file-input-label">VGM / VGZ / S98 File</span>
             <input id="fileInput" type="file" accept=".vgm,.vgz,.s98,application/octet-stream">
+            <small class="file-drop-hint">Choose a file or drop it here.</small>
           </label>
           <label class="file-input-group is-optional">
             <span class="file-input-label">Optional: ym2608_adpcm_rom.bin (YM2610 ADPCM support is experimental)</span>
             <input id="ym2608RomInput" type="file" accept=".bin,.rom,application/octet-stream">
+            <small class="file-drop-hint">Drop ROM files here, or drop music and ROM files anywhere on the page.</small>
           </label>
           <span class="action-break" aria-hidden="true"></span>
           <div class="playback-seek">
@@ -813,6 +815,6 @@
       <div id="monitorToggles" class="monitor-toggles" role="group" aria-label="Playback channel and sound source toggles"></div>
     </section>
 
-    <script type="module" src="./vgm_analyzer.js?v=pwm-capture-1"></script>
+    <script type="module" src="./vgm_analyzer.js?v=file-drop-1"></script>
   </body>
 </html>

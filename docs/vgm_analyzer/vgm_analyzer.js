@@ -2869,12 +2869,24 @@ async function handleYm2608RomFile(file) {
   setStatus(`Loaded YM2608 ADPCM-A ROM: ${file.name} (${ym2608AdpcmARomBytes.length} bytes).`);
 }
 
+// Serialize file reads so a second selection/drop cannot overwrite an in-flight load.
+let fileLoadQueue = Promise.resolve();
+function enqueueFile(file, isRom) {
+  fileLoadQueue = fileLoadQueue.then(async () => {
+    await (isRom ? handleYm2608RomFile(file) : handleFile(file));
+  }).catch((error) => {
+    console.error(error);
+    setStatus(`Error loading ${file.name}: ${error.message}`);
+  });
+  return fileLoadQueue;
+}
+
 fileInput.addEventListener("change", async (event) => {
   const file = event.target.files && event.target.files[0];
   if (!file) {
     return;
   }
-  await handleFile(file);
+  await enqueueFile(file, false);
 });
 
 ym2608RomInput?.addEventListener("change", async (event) => {
@@ -2882,7 +2894,42 @@ ym2608RomInput?.addEventListener("change", async (event) => {
   if (!file) {
     return;
   }
-  await handleYm2608RomFile(file);
+  await enqueueFile(file, true);
+});
+
+let fileDragDepth = 0;
+const isFileDrag = (event) => Array.from(event.dataTransfer?.types || []).includes("Files");
+function clearFileDrag() {
+  fileDragDepth = 0;
+  document.body.classList.remove("file-drag-active");
+}
+document.addEventListener("dragenter", (event) => {
+  if (!isFileDrag(event)) return;
+  event.preventDefault();
+  fileDragDepth += 1;
+  document.body.classList.add("file-drag-active");
+});
+document.addEventListener("dragover", (event) => {
+  if (!isFileDrag(event)) return;
+  event.preventDefault();
+  event.dataTransfer.dropEffect = "copy";
+});
+document.addEventListener("dragleave", () => {
+  if (fileDragDepth > 0 && --fileDragDepth === 0) clearFileDrag();
+});
+document.addEventListener("dragend", clearFileDrag);
+window.addEventListener("blur", clearFileDrag);
+document.addEventListener("drop", (event) => {
+  clearFileDrag();
+  const files = Array.from(event.dataTransfer?.files || []);
+  if (!isFileDrag(event) && !files.length) return;
+  // Prevent the browser from navigating to the dropped local file.
+  event.preventDefault();
+  const group = event.target.closest?.(".file-input-group");
+  const forceRom = group?.contains(ym2608RomInput);
+  for (const file of files) {
+    enqueueFile(file, forceRom || /\.(bin|rom)$/i.test(file.name));
+  }
 });
 
 let timelineSelectionPending = false;

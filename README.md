@@ -146,6 +146,8 @@ and the local [sample notes](docs/playground/samples/sonic-pi/README.md).
   - https://github.com/ulalume/megatoy
 - Maple's Garden article:
   - https://another.maple4ever.net/archives/3027/
+- Aidan Lawrence's Sega Genesis video game music player:
+  - https://www.aidanlawrence.com/hardware-sega-genesis-video-game-music-player/
 - VGM specification:
   - https://vgmrips.net/wiki/VGM_Specification
 - SMS Power:

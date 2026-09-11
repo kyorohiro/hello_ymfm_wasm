@@ -107,6 +107,12 @@ body { padding-bottom: calc(260px + env(safe-area-inset-bottom)); }
 .file-input-group { flex: 1 1 350px; min-width: 0; gap: 8px; }
 .file-input-label { color: var(--accent-dark); letter-spacing: 0.035em; }
 .file-input-group.is-optional { opacity: 1; }
+.file-drop-hint { color: #71584c; font-size: 0.75rem; }
+.file-drag-active .file-input-group {
+  outline: 2px dashed var(--accent);
+  outline-offset: 5px;
+  background: #fff3df;
+}
 .file-input-group.is-optional .file-input-label { color: #71584c; }
 input[type="file"] { width: 100%; min-width: 0; font-size: 0.82rem; color: #66554c; }
 button, .link-button, input::file-selector-button {
