@@ -50,6 +50,8 @@ const ym2608RomInput = document.getElementById("ym2608RomInput");
 const playButton = document.getElementById("playButton");
 const playbackSeek = document.getElementById("playbackSeek");
 const playbackSeekTime = document.getElementById("playbackSeekTime");
+const inlinePlaybackSeek = document.getElementById("inlinePlaybackSeek");
+const inlinePlaybackSeekTime = document.getElementById("inlinePlaybackSeekTime");
 let seekSelection = null;
 let seekDragging = false;
 
@@ -63,6 +65,10 @@ function renderSeekPosition(sample) {
   };
   playbackSeekTime.textContent = `${time(position)} / ${time(duration)}`;
   playbackSeek.setAttribute("aria-valuetext", playbackSeekTime.textContent);
+  inlinePlaybackSeek.max = playbackSeek.max;
+  inlinePlaybackSeek.value = playbackSeek.value;
+  inlinePlaybackSeekTime.textContent = playbackSeekTime.textContent;
+  inlinePlaybackSeek.setAttribute("aria-valuetext", playbackSeekTime.textContent);
 }
 
 function updateSeekPosition() {
@@ -76,11 +82,33 @@ function updateSeekPosition() {
   }
 }
 const pauseButton = document.getElementById("pauseButton");
-const resumeButton = document.getElementById("resumeButton");
 const replayButton = document.getElementById("replayButton");
 const stopButton = document.getElementById("stopButton");
 const loopCheckbox = document.getElementById("loopCheckbox");
 const monitorToggles = document.getElementById("monitorToggles");
+const inlineMonitorToggles = document.getElementById("inlineMonitorToggles");
+
+// Mirror controls share the existing playback handlers, including their error paths.
+for (const [primary, mirror] of [
+  [playButton, document.getElementById("inlinePlayButton")],
+  [pauseButton, document.getElementById("inlinePauseButton")],
+  [stopButton, document.getElementById("inlineStopButton")],
+]) {
+  const sync = () => { mirror.disabled = primary.disabled; mirror.textContent = primary.textContent; };
+  new MutationObserver(sync).observe(primary, { attributes: true, attributeFilter: ["disabled"], childList: true, characterData: true, subtree: true });
+  mirror.addEventListener("click", () => primary.click());
+  sync();
+}
+new MutationObserver(() => {
+  inlinePlaybackSeek.disabled = playbackSeek.disabled;
+  inlinePlaybackSeek.max = playbackSeek.max;
+}).observe(playbackSeek, { attributes: true, attributeFilter: ["disabled", "max"] });
+for (const type of ["input", "change"]) {
+  inlinePlaybackSeek.addEventListener(type, () => {
+    playbackSeek.value = inlinePlaybackSeek.value;
+    playbackSeek.dispatchEvent(new Event(type));
+  });
+}
 const prefetchFactorSelect = document.getElementById("prefetchFactorSelect");
 const workletQueueSelect = document.getElementById("workletQueueSelect");
 const masterVolumeRange = document.getElementById("masterVolumeRange");
@@ -318,6 +346,7 @@ function renderMonitorToggles() {
     button.setAttribute("data-channel-index", String(channel.channel));
     monitorToggles.append(button);
   });
+  inlineMonitorToggles.replaceChildren(...Array.from(monitorToggles.children, button => button.cloneNode(true)));
 }
 
 function ensureMonitorToggleHandler() {
@@ -325,7 +354,7 @@ function ensureMonitorToggleHandler() {
     return;
   }
   monitorToggleHandlerBound = true;
-  monitorToggles.addEventListener("pointerdown", (event) => {
+  const handleToggle = (event) => {
     const target = event.target instanceof Element
       ? event.target.closest("[data-monitor-toggle-kind]")
       : null;
@@ -342,7 +371,9 @@ function ensureMonitorToggleHandler() {
       const channelIndex = Number(target.getAttribute("data-channel-index"));
       toggleChannelMute(channelIndex);
     }
-  });
+  };
+  monitorToggles.addEventListener("pointerdown", handleToggle);
+  inlineMonitorToggles.addEventListener("pointerdown", handleToggle);
 }
 
 function createChannelMonitorState() {
@@ -2355,9 +2386,9 @@ function updatePlaybackButtons(state = {}) {
   const playing = Boolean(state.playing);
   const paused = Boolean(state.paused);
   playButton.disabled = !hasBuffer || playing;
+  playButton.textContent = paused ? "Resume" : "Play";
   replayButton.disabled = !hasBuffer;
   pauseButton.disabled = !playing;
-  resumeButton.disabled = !paused;
   stopButton.disabled = !hasBuffer || (!playing && !paused);
   exportParseInfoButton.disabled = !hasBuffer || !lastParseInfo;
   exportSnapshotTfiButton.disabled = !hasBuffer;
@@ -2737,7 +2768,6 @@ async function handleFile(file) {
     metadataOutput.textContent = "Metadata unavailable: file could not be decoded.";
     commandsOutput.textContent = error.message;
     pauseButton.disabled = true;
-    resumeButton.disabled = true;
     replayButton.disabled = true;
     stopButton.disabled = true;
     setStatus(`Error: ${error.message}`);
@@ -2753,7 +2783,6 @@ async function handleFile(file) {
     metadataOutput.textContent = "Metadata unavailable: file could not be parsed.";
     commandsOutput.textContent = error.message;
     pauseButton.disabled = true;
-    resumeButton.disabled = true;
     replayButton.disabled = true;
     stopButton.disabled = true;
     setStatus(`Error: ${error.message}`);
@@ -2927,7 +2956,6 @@ pauseButton.addEventListener("click", async () => {
   setStatus("Paused.");
 });
 
-resumeButton.addEventListener("click", resumeTimelinePlayback);
 
 replayButton.addEventListener("click", async () => {
   if (!currentBuffer) {

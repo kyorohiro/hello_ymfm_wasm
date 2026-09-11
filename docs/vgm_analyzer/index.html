@@ -590,22 +590,21 @@
           </label>
           <span class="action-break" aria-hidden="true"></span>
           <div class="playback-seek">
-            <label for="playbackSeek">Position</label>
-            <input id="playbackSeek" type="range" min="0" max="0" step="4410" value="0" disabled>
-            <output id="playbackSeekTime" for="playbackSeek">0:00 / 0:00</output>
+            <label for="inlinePlaybackSeek">Position</label>
+            <input id="inlinePlaybackSeek" type="range" min="0" max="0" step="4410" value="0" disabled>
+            <output id="inlinePlaybackSeekTime" for="inlinePlaybackSeek">0:00 / 0:00</output>
           </div>
-          <button id="playButton" type="button" disabled>Play</button>
-          <button id="pauseButton" type="button" disabled>Pause</button>
-          <button id="resumeButton" type="button" disabled>Resume</button>
+          <button id="inlinePlayButton" type="button" disabled>Play</button>
+          <button id="inlinePauseButton" type="button" disabled>Pause</button>
+          <button id="inlineStopButton" type="button" disabled>Stop</button>
           <button id="replayButton" type="button" disabled>Replay</button>
-          <button id="stopButton" type="button" disabled>Stop</button>
           <label><input id="loopCheckbox" type="checkbox"> Loop</label>
           <label class="volume-control" for="masterVolumeRange">
             <span>Vol</span>
             <input id="masterVolumeRange" type="range" min="0" max="380" value="100" step="1">
             <span id="masterVolumeValue" class="volume-readout">100%</span>
           </label>
-          <div id="monitorToggles" class="monitor-toggles" role="group" aria-label="Playback channel and sound source toggles"></div>
+          <div id="inlineMonitorToggles" class="monitor-toggles" role="group" aria-label="Playback channel and sound source toggles"></div>
           <label for="prefetchFactorSelect">VGM queue</label>
           <select id="prefetchFactorSelect" aria-label="VGM queue length">
             <option value="1">x1</option>
@@ -800,6 +799,19 @@
         <footer class="instrument-footer"><span>Tetorica</span><strong>FM SOUND LABORATORY</strong><span>Inspect · Learn · Reconstruct</span></footer>
       </section>
     </main>
+    <section class="playback-dock" aria-label="Playback controls">
+      <div class="playback-seek">
+        <label for="playbackSeek">Position</label>
+        <input id="playbackSeek" type="range" min="0" max="0" step="4410" value="0" disabled>
+        <output id="playbackSeekTime" for="playbackSeek">0:00 / 0:00</output>
+      </div>
+      <div class="playback-dock-buttons">
+        <button id="playButton" type="button" disabled>Play</button>
+        <button id="pauseButton" type="button" disabled>Pause</button>
+        <button id="stopButton" type="button" disabled>Stop</button>
+      </div>
+      <div id="monitorToggles" class="monitor-toggles" role="group" aria-label="Playback channel and sound source toggles"></div>
+    </section>
 
     <script type="module" src="./vgm_analyzer.js?v=pwm-capture-1"></script>
   </body>
