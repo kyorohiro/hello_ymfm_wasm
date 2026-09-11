@@ -27,6 +27,24 @@ main { padding: 24px; }
   box-shadow: 0 0 0 1px #91140e, inset 0 0 0 2px #e8b7a0,
     inset 0 4px 12px #8e3c2520, 0 10px 0 #a71a12, 0 22px 45px #6d35202a;
 }
+.page-tools {
+  position: absolute;
+  top: -20px;
+  right: 22px;
+  z-index: 1;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  max-width: calc(100% - 44px);
+}
+@media (max-width: 600px) {
+  .page-tools {
+    position: static;
+    max-width: none;
+    margin-bottom: 20px;
+  }
+}
 .instrument-header {
   display: grid;
   grid-template-columns: 1fr minmax(280px, 0.7fr);
@@ -62,6 +80,7 @@ h1 { margin: 0; letter-spacing: -0.045em; }
 .instrument-specs strong { font-size: clamp(0.9rem, 1.4vw, 1.2rem); }
 .actions, .sub-actions { align-items: center; gap: 10px; padding: 16px; border: 1px solid var(--line); border-radius: 12px; box-shadow: inset 0 0 0 2px #fffaf3; background: #fffaf340; }
 .actions { margin-top: 22px; }
+.actions .monitor-toggles { flex-basis: 100%; margin: 0; }
 .file-input-group { flex: 1 1 350px; min-width: 0; gap: 8px; }
 .file-input-label { color: var(--accent-dark); letter-spacing: 0.035em; }
 .file-input-group.is-optional { opacity: 1; }
@@ -92,6 +111,8 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 #stopButton::before { content: "■"; margin-right: 8px; }
 #replayButton::before { content: "↻"; margin-right: 8px; }
 .sub-actions { font-size: 0.78rem; }
+.export-actions { flex-direction: column; align-items: stretch; }
+.export-row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; min-width: 0; }
 .sub-actions small { color: #71584c; }
 select, input[type="number"] { padding: 7px; border: 1px solid var(--line); border-radius: 5px; background: #fffbf5; color: var(--ink); font: inherit; }
 input { accent-color: var(--accent); }

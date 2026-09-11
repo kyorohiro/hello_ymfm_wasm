@@ -64,6 +64,8 @@ const exportMidiButton = document.getElementById("exportMidiButton");
 const exportMmlButton = document.getElementById("exportMmlButton");
 const mmlBpmInput = document.getElementById("mmlBpmInput");
 const mmlFormatDialog = document.getElementById("mmlFormatDialog");
+const midiBpmInput = document.getElementById("midiBpmInput");
+const midiExportDialog = document.getElementById("midiExportDialog");
 const exportParseInfoButton = document.getElementById("exportParseInfoButton");
 const exportSnapshotTfiButton = document.getElementById("exportSnapshotTfiButton");
 const exportSnapshotVgiButton = document.getElementById("exportSnapshotVgiButton");
@@ -206,6 +208,7 @@ const CRC32_TABLE = (() => {
 
 function setStatus(message) {
   status.textContent = message;
+  status.hidden = !message;
 }
 
 function currentStatusSuffix() {
@@ -3071,18 +3074,23 @@ function downloadMml(format) {
 }
 
 exportMmlButton.addEventListener("click", () => {
-  if (!currentBuffer || !mmlBpmInput.reportValidity()) return;
-  if (typeof mmlFormatDialog.showModal === "function") mmlFormatDialog.showModal();
-  else downloadMml("opnavoid");
+  if (!currentBuffer) return;
+  mmlFormatDialog.showModal();
 });
-mmlFormatDialog.addEventListener("close", () => {
-  if (["mucom88", "opnavoid"].includes(mmlFormatDialog.returnValue)) downloadMml(mmlFormatDialog.returnValue);
+mmlFormatDialog.querySelector("form").addEventListener("submit", (event) => {
+  const format = event.submitter?.value;
+  if (["mucom88", "opnavoid"].includes(format)) downloadMml(format);
 });
 
 exportMidiButton.addEventListener("click", () => {
-  if (!currentBuffer || !mmlBpmInput.reportValidity()) return;
+  if (!currentBuffer) return;
+  midiExportDialog.showModal();
+});
+
+midiExportDialog.querySelector("form").addEventListener("submit", (event) => {
+  if (event.submitter?.value !== "export" || !currentBuffer || !midiBpmInput.reportValidity()) return;
   try {
-    const result = exportAnalysisMidi(currentBuffer, { bpm: Number(mmlBpmInput.value), fileName: lastLoadedFileName });
+    const result = exportAnalysisMidi(currentBuffer, { bpm: Number(midiBpmInput.value), fileName: lastLoadedFileName });
     const url = URL.createObjectURL(new Blob([result.bytes], { type: "audio/midi" }));
     const anchor = document.createElement("a");
     anchor.href = url;

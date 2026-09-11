@@ -563,6 +563,10 @@
   <body>
     <main>
       <section class="panel">
+        <nav class="page-tools" aria-label="Page actions">
+          <a class="link-button" href="../index.html">Back</a>
+          <button class="link-button" data-reset-offline-cache type="button">Reset Offline Cache</button>
+        </nav>
         <header class="instrument-header">
           <div class="instrument-brand">
             <h1 id="pageTitle"><span class="brand-name">Tetorica</span><span class="brand-model"><span>FM</span>2612</span><span class="brand-analyzer">Analyzer</span></h1>
@@ -571,7 +575,7 @@
           <div class="instrument-specs" aria-label="Supported formats and sound chips">
             <div><span class="spec-label">Register log formats</span><strong>VGM / VGZ / S98</strong></div>
             <div><span class="spec-label">Sound chip analysis</span><strong>YM2612 / YM2203 / YM2608 / YM2610(B)</strong></div>
-            <div><span class="spec-label">Mega-CD playback</span><strong>YM2612 + PSG + RF5C164 PCM</strong></div>
+            <div><span class="spec-label">Mega-CD / 32X playback</span><strong>YM2612 + PSG + RF5C164 PCM + PWM</strong></div>
             <div><span class="spec-label">Tetorica sound laboratory</span><span>Explore the music. Read the machine.</span></div>
           </div>
         </header>
@@ -591,10 +595,12 @@
           <button id="replayButton" type="button" disabled>Replay</button>
           <button id="stopButton" type="button" disabled>Stop</button>
           <label><input id="loopCheckbox" type="checkbox"> Loop</label>
-          <a class="link-button" href="../index.html">Back</a>
-          <button class="link-button" data-reset-offline-cache type="button">Reset Offline Cache</button>
-        </div>
-        <div class="sub-actions">
+          <label class="volume-control" for="masterVolumeRange">
+            <span>Vol</span>
+            <input id="masterVolumeRange" type="range" min="0" max="380" value="100" step="1">
+            <span id="masterVolumeValue" class="volume-readout">100%</span>
+          </label>
+          <div id="monitorToggles" class="monitor-toggles" role="group" aria-label="Playback channel and sound source toggles"></div>
           <label for="prefetchFactorSelect">VGM queue</label>
           <select id="prefetchFactorSelect" aria-label="VGM queue length">
             <option value="1">x1</option>
@@ -609,25 +615,25 @@
             <option value="3">x3</option>
             <option value="4">x4</option>
           </select>
-          <button id="exportAllTfiButton" type="button" disabled>Export All TFI ZIP</button>
-          <button id="exportAllVgiButton" type="button" disabled>Export All VGI ZIP</button>
-          <label for="mmlBpmInput">Export BPM</label>
-          <input id="mmlBpmInput" type="number" min="4" max="999" step="any" value="120" style="width: 5em" title="Manual tempo for MIDI / MML export; not detected BPM">
-          <button id="exportMidiButton" type="button" disabled title="FM + SSG / PSG tone notes; original timing, no grid quantization">Export MIDI</button>
-          <button id="exportMmlButton" type="button" disabled title="Export FM MML for OPNAvoid or MUCOM88; minimum 1/16">Export MML</button>
-          <small>MIDI: FM + SSG / PSG tones with Pitch Bend and original timing. BPM is manual; noise, PCM, envelope phase and original timbres are omitted.</small>
-          <button id="exportParseInfoButton" type="button" disabled>Export Parse Info</button>
-          <button id="exportSnapshotTfiButton" type="button" disabled>Export Snapshot TFI</button>
-          <button id="exportSnapshotVgiButton" type="button" disabled>Export Snapshot VGI</button>
-          <button id="exportSnapshotButton" type="button" disabled>Export Snapshot</button>
-          <label class="volume-control" for="masterVolumeRange">
-            <span>Vol</span>
-            <input id="masterVolumeRange" type="range" min="0" max="380" value="100" step="1">
-            <span id="masterVolumeValue" class="volume-readout">100%</span>
-          </label>
         </div>
-        <p class="noteish-help">Mega-CD VGM files automatically enable RF5C164 playback and the PCM On / Off button. Samples are loaded from the VGM file. CD-DA tracks are not included.</p>
-        <div class="status" id="status">Choose a .vgm, .vgz or .s98 file for analysis. S98: single YM2203 / YM2608 / YM2612 device.</div>
+        <div class="sub-actions export-actions" role="group" aria-labelledby="exportLabel">
+          <span id="exportLabel" class="file-input-label export-label">Export</span>
+          <div class="export-row">
+            <button id="exportAllTfiButton" type="button" disabled>All TFI ZIP</button>
+            <button id="exportAllVgiButton" type="button" disabled>All VGI ZIP</button>
+            <button id="exportSnapshotTfiButton" type="button" disabled>Snapshot TFI</button>
+            <button id="exportSnapshotVgiButton" type="button" disabled>Snapshot VGI</button>
+          </div>
+          <div class="export-row">
+            <button id="exportMidiButton" type="button" disabled title="FM + SSG / PSG tone notes; original timing, no grid quantization">MIDI</button>
+            <button id="exportMmlButton" type="button" disabled title="Export FM MML for OPNAvoid or MUCOM88; minimum 1/16">MML</button>
+          </div>
+          <div class="export-row">
+            <button id="exportParseInfoButton" type="button" disabled>VGM Info JSON</button>
+            <button id="exportSnapshotButton" type="button" disabled>Current Tone JSON</button>
+          </div>
+        </div>
+        <div class="status" id="status" hidden></div>
 
         <div class="tabbar" role="tablist" aria-label="Analyzer output panels">
           <button
@@ -669,7 +675,6 @@
         <section id="sampleExplorerPanel" class="tab-panel" role="tabpanel" aria-labelledby="sampleExplorerTab" hidden></section>
         <section id="operatorInfoPanel" class="tab-panel" role="tabpanel" aria-labelledby="operatorInfoTab">
           <h2>FM Channel Monitor</h2>
-          <div id="monitorToggles" class="monitor-toggles"></div>
           <div id="channelGrid" class="channel-grid"></div>
           <h2 id="psgMonitorTitle">Sega PSG</h2>
           <p class="noteish-help">Register settings at the generated audio position; playback may follow slightly later. These are not live audio levels.</p>
@@ -764,9 +769,27 @@
           <form method="dialog">
             <h3 id="mmlFormatTitle">Export MML format</h3>
             <p>Choose the FM MML dialect.</p>
+            <p>
+              <label for="mmlBpmInput">BPM</label>
+              <input id="mmlBpmInput" type="number" min="34" max="999" step="any" value="120" required style="width: 5em" aria-describedby="mmlBpmHelp">
+            </p>
+            <p id="mmlBpmHelp">Manual tempo (34–999 BPM), not automatically detected. Used for sixteenth-note quantization.</p>
             <button value="mucom88">MUCOM88</button>
             <button value="opnavoid">OPNAVOID</button>
-            <button value="cancel">Cancel</button>
+            <button value="cancel" formnovalidate>Cancel</button>
+          </form>
+        </dialog>
+        <dialog id="midiExportDialog" aria-labelledby="midiExportTitle">
+          <form method="dialog">
+            <h3 id="midiExportTitle">Export MIDI</h3>
+            <p>FM + SSG / PSG tones with Pitch Bend and original timing. Noise, PCM, envelope phase and original timbres are omitted.</p>
+            <p>
+              <label for="midiBpmInput">BPM</label>
+              <input id="midiBpmInput" type="number" min="4" max="999" step="any" value="120" required style="width: 5em" aria-describedby="midiBpmHelp">
+            </p>
+            <p id="midiBpmHelp">Manual tempo, not automatically detected. Original note timing is preserved; BPM sets the beat grid.</p>
+            <button value="export">Export</button>
+            <button value="cancel" formnovalidate>Cancel</button>
           </form>
         </dialog>
         <footer class="instrument-footer"><span>Tetorica</span><strong>FM SOUND LABORATORY</strong><span>Inspect · Learn · Reconstruct</span></footer>
