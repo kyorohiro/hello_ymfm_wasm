@@ -24,7 +24,7 @@ import { createYm2203AudioEngine } from "../js/ym2203audioengine.js";
 import { createYm2608AudioEngine } from "../js/ym2608audioengine.js";
 import { VgmPlayer } from "../js/vgmplayer.js?v=pwm-queue-1";
 import { looksLikeS98, convertS98ToVgm } from "../js/s98_file.js";
-import { maybeDecodeVgmFile } from "../js/vgm_file.js";
+import { maybeDecodeVgmFile, parseVgmMetadata, VGM_METADATA_FIELDS } from "../js/vgm_file.js";
 
 // Experimental: ?engine=nuked swaps the YM2612 core for Nuked-OPN2
 // (https://github.com/nukeykt/Nuked-OPN2) instead of the default ymfm
@@ -71,6 +71,22 @@ const exportSnapshotButton = document.getElementById("exportSnapshotButton");
 const status = document.getElementById("status");
 const channelGrid = document.getElementById("channelGrid");
 const headerOutput = document.getElementById("headerOutput");
+const metadataOutput = document.getElementById("metadataOutput");
+
+function renderMetadata(metadata) {
+  metadataOutput.replaceChildren();
+  for (const [key, label] of VGM_METADATA_FIELDS) {
+    if (!metadata?.[key]?.trim()) continue;
+    const term = document.createElement("dt");
+    const value = document.createElement("dd");
+    term.textContent = label;
+    value.textContent = metadata[key];
+    metadataOutput.append(term, value);
+  }
+  if (!metadataOutput.childElementCount) {
+    metadataOutput.textContent = "No GD3 metadata available.";
+  }
+}
 const commandsOutput = document.getElementById("commandsOutput");
 const commandUsageOutput = document.getElementById("commandUsageOutput");
 const dataBlocksOutput = document.getElementById("dataBlocksOutput");
@@ -2358,6 +2374,7 @@ function buildParseInfo(buffer, fileName, vgm) {
     type: "tetorica-fm2612-parse-info",
     createdAt: new Date().toISOString(),
     sourceFile: fileName,
+    metadata: parseVgmMetadata(buffer),
     header: { ...vgm.header },
     allCommands,
     commandUsage,
@@ -2644,6 +2661,7 @@ function startScriptProcessorStream() {
 }
 
 async function handleFile(file) {
+  metadataOutput.textContent = "Loading metadata…";
   sampleExplorer.reset();
   timelineSeekController?.abort();
   songTimeline.clear();
@@ -2676,6 +2694,7 @@ async function handleFile(file) {
   } catch (error) {
     console.error(error);
     headerOutput.textContent = "Failed to decode VGM/VGZ/S98 file.";
+    metadataOutput.textContent = "Metadata unavailable: file could not be decoded.";
     commandsOutput.textContent = error.message;
     pauseButton.disabled = true;
     resumeButton.disabled = true;
@@ -2691,6 +2710,7 @@ async function handleFile(file) {
   } catch (error) {
     console.error(error);
     headerOutput.textContent = "Failed to parse VGM header.";
+    metadataOutput.textContent = "Metadata unavailable: file could not be parsed.";
     commandsOutput.textContent = error.message;
     pauseButton.disabled = true;
     resumeButton.disabled = true;
@@ -2727,6 +2747,7 @@ async function handleFile(file) {
   headerOutput.textContent = sourceHeader
     ? `${JSON.stringify(sourceHeader, null, 2)}\n\nNormalized VGM header (command offsets below refer to VGM):\n${renderHeader(vgm.header)}`
     : renderHeader(vgm.header);
+  renderMetadata(parseVgmMetadata(buffer));
   commandUsageOutput.textContent = renderCommandUsage(vgm.analyzeCommandUsage());
   commandUsageOutput.textContent += "\n";
   dataBlocksOutput.textContent = renderDataBlocks(vgm.dataBlockSummary());
