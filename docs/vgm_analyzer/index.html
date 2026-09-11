@@ -628,10 +628,6 @@
         </div>
         <p class="noteish-help">Mega-CD VGM files automatically enable RF5C164 playback and the PCM On / Off button. Samples are loaded from the VGM file. CD-DA tracks are not included.</p>
         <div class="status" id="status">Choose a .vgm, .vgz or .s98 file for analysis. S98: single YM2203 / YM2608 / YM2612 device.</div>
-        <section aria-labelledby="metadataHeading">
-          <h2 id="metadataHeading">Track metadata (GD3)</h2>
-          <dl id="metadataOutput" class="track-metadata">No file loaded.</dl>
-        </section>
 
         <div class="tabbar" role="tablist" aria-label="Analyzer output panels">
           <button
@@ -730,6 +726,9 @@
         </section>
 
         <section id="parsedOutputPanel" class="tab-panel" role="tabpanel" aria-labelledby="parsedOutputTab" hidden>
+          <h2 id="metadataHeading">Track metadata (GD3)</h2>
+          <dl id="metadataOutput" class="track-metadata">No file loaded.</dl>
+
           <h2>Header</h2>
           <pre id="headerOutput">No file loaded.</pre>
 
