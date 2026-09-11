@@ -17,6 +17,7 @@ function setup(load = async () => true) {
   const input = element();
   const context = vm.createContext({
     console, playlistList: list, playlistSummary: element(), fileInput: input,
+    playlistLoopCheckbox: { checked: false }, playlistLoopControl: element(),
     document: { createElement: element }, currentBuffer: null,
     player: { pause() {} }, timelineSeekController: null,
     stopActiveStream() {}, setStatus: text => calls.push(['status', text]),
@@ -35,13 +36,14 @@ function setup(load = async () => true) {
   };
 }
 
-test('music imports keep order, load only the first track, and append without interrupting', async () => {
+test('music imports sort by name, load only the first track, and merge without interrupting', async () => {
   const p = setup();
   await p.add(['first.vgm', 'second.VGZ', 'third.s98']);
   assert.deepEqual(p.calls, [['load', 'first.vgm']]);
   assert.deepEqual(p.list.children.map(row => row.children[0].textContent), ['first.vgm', 'second.VGZ', 'third.s98']);
   await p.add(['fourth.vgm']);
   assert.equal(p.list.children.length, 4);
+  assert.deepEqual(p.list.children.map(row => row.children[0].textContent), ['first.vgm', 'fourth.vgm', 'second.VGZ', 'third.s98']);
   assert.deepEqual(p.calls, [['load', 'first.vgm']]);
 });
 
@@ -85,10 +87,10 @@ test('stopping during a track read cancels automatic playback', async () => {
 });
 
 test('invalid music does not replay the preceding track', async () => {
-  const p = setup(file => file.name !== 'broken.vgm');
-  await p.add(['first.vgm', 'broken.vgm']);
+  const p = setup(file => file.name !== 'second-broken.vgm');
+  await p.add(['first.vgm', 'second-broken.vgm']);
   await p.context.advancePlaylist();
-  assert.deepEqual(p.calls, [['load', 'first.vgm'], ['load', 'broken.vgm']]);
+  assert.deepEqual(p.calls, [['load', 'first.vgm'], ['load', 'second-broken.vgm']]);
 });
 
 test('file picker imports all selected music files and allows selecting them again', async () => {
@@ -127,3 +129,55 @@ for (const mode of ['worklet', 'script']) {
     assert.deepEqual(p.calls.filter(([type]) => type !== 'status'), [['load', 'first.vgm'], ['load', 'second.vgm'], ['play', 'second.vgm']]);
   });
 }
+
+test('numeric filename segments ignore zero padding and sort before larger numbers', async () => {
+  const p = setup();
+  await p.add(['10.vgm', '02.vgm', '001.vgm', '1.vgm', 'Track 10.s98', 'Track 2.s98']);
+  assert.deepEqual(p.list.children.map(row => row.children[0].textContent), ['001.vgm', '1.vgm', '02.vgm', '10.vgm', 'Track 2.s98', 'Track 10.s98']);
+  assert.deepEqual(p.calls, [['load', '001.vgm']]);
+});
+
+test('sorting additional imports preserves the playing track and advances in sorted order', async () => {
+  const p = setup();
+  await p.add(['02.vgm', '10.vgm']);
+  await p.add(['1.vgm', '03.vgm']);
+  assert.equal(p.list.children[1].children[0].attributes['aria-current'], 'true');
+  assert.deepEqual(p.calls, [['load', '02.vgm']]);
+  await p.context.advancePlaylist();
+  assert.deepEqual(p.calls.slice(1), [['load', '03.vgm'], ['play', '03.vgm']]);
+});
+
+test('a queued track selection retains its file when imports reorder the list', async () => {
+  const p = setup();
+  await p.add(['02.vgm', '10.vgm']);
+  const importing = p.add(['1.vgm']);
+  const selecting = p.context.selectPlaylistTrack(1, true);
+  await Promise.all([importing, selecting]);
+  assert.deepEqual(p.calls, [['load', '02.vgm'], ['load', '10.vgm'], ['play', '10.vgm']]);
+});
+
+test('playlist loop is initially off and shown only with multiple music tracks', async () => {
+  const p = setup();
+  assert.equal(p.context.playlistLoopCheckbox.checked, false);
+  assert.equal(p.context.playlistLoopControl.hidden, true);
+  await p.add(['first.vgm', 'ym2608_adpcm_rom.bin']);
+  assert.equal(p.context.playlistLoopControl.hidden, true);
+  await p.add(['second.vgm']);
+  assert.equal(p.context.playlistLoopControl.hidden, false);
+  const html = readFileSync(new URL('./index.html', import.meta.url), 'utf8');
+  assert.doesNotMatch(html.match(/<input id="playlistLoopCheckbox"[^>]*>/)[0], /\bchecked\b/);
+});
+
+test('playlist loop returns to the first track and switching it off restores final stop', async () => {
+  const p = setup();
+  await p.add(['02.vgm', '001.vgm']);
+  p.context.playlistLoopCheckbox.checked = true;
+  await p.context.advancePlaylist();
+  await p.context.advancePlaylist();
+  assert.deepEqual(p.calls, [['load', '001.vgm'], ['load', '02.vgm'], ['play', '02.vgm'], ['load', '001.vgm'], ['play', '001.vgm']]);
+  p.context.playlistLoopCheckbox.checked = false;
+  await p.context.advancePlaylist();
+  const callCount = p.calls.length;
+  await p.context.advancePlaylist();
+  assert.equal(p.calls.length, callCount);
+});

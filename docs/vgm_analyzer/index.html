@@ -583,7 +583,7 @@
           <label class="file-input-group">
             <span class="file-input-label">VGM / VGZ / S98 File</span>
             <input id="fileInput" type="file" multiple accept=".vgm,.vgz,.s98,.bin,application/octet-stream">
-            <small class="file-drop-hint">Choose or drop multiple music files to add to the playlist. Play starts sequential playback; Loop repeats the current track.</small>
+            <small class="file-drop-hint">Choose or drop multiple music files. The playlist sorts by filename, comparing numbers numerically. Play starts sequential playback; Loop repeats the current track.</small>
             <small id="romFileStatus" class="file-drop-hint">Optional: import ym2608_adpcm_rom.bin here (YM2610 ADPCM support is experimental).</small>
           </label>
           <section class="playlist" aria-label="Playlist">
@@ -601,6 +601,7 @@
           <button id="inlineStopButton" type="button" disabled>Stop</button>
           <button id="replayButton" type="button" disabled>Replay</button>
           <label><input id="loopCheckbox" type="checkbox"> Loop</label>
+          <label id="playlistLoopControl" class="playlist-loop-control" hidden title="Return to the first track after the last track finishes"><input id="playlistLoopCheckbox" type="checkbox"> Playlist loop</label>
           <label class="volume-control" for="masterVolumeRange">
             <span>Vol</span>
             <input id="masterVolumeRange" type="range" min="0" max="380" value="100" step="1">
@@ -815,6 +816,6 @@
       <div id="monitorToggles" class="monitor-toggles" role="group" aria-label="Playback channel and sound source toggles"></div>
     </section>
 
-    <script type="module" src="./vgm_analyzer.js?v=playlist-1"></script>
+    <script type="module" src="./vgm_analyzer.js?v=playlist-3"></script>
   </body>
 </html>

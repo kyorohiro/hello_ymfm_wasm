@@ -87,6 +87,8 @@ const pauseButton = document.getElementById("pauseButton");
 const replayButton = document.getElementById("replayButton");
 const stopButton = document.getElementById("stopButton");
 const loopCheckbox = document.getElementById("loopCheckbox");
+const playlistLoopCheckbox = document.getElementById("playlistLoopCheckbox");
+const playlistLoopControl = document.getElementById("playlistLoopControl");
 const monitorToggles = document.getElementById("monitorToggles");
 const inlineMonitorToggles = document.getElementById("inlineMonitorToggles");
 
@@ -2886,6 +2888,7 @@ async function handleYm2608RomFile(file) {
 
 // Playlist operations share a queue so imports and track changes finish in order.
 const playlistFiles = [];
+const playlistNameOrder = new Intl.Collator(undefined, { numeric: true, sensitivity: "base" });
 let playlistIndex = -1;
 let playlistRevision = 0;
 let fileLoadQueue = Promise.resolve();
@@ -2898,6 +2901,7 @@ function queuePlaylistTask(task) {
 }
 
 function renderPlaylist() {
+  playlistLoopControl.hidden = playlistFiles.length < 2;
   playlistSummary.textContent = playlistFiles.length
     ? `Playlist — ${playlistFiles.length} tracks · ${playlistIndex + 1} selected`
     : "Playlist — no tracks imported";
@@ -2924,20 +2928,26 @@ async function loadPlaylistTrack(index, autoplay, revision) {
 }
 
 function selectPlaylistTrack(index, autoplay) {
+  const file = playlistFiles[index];
   const revision = ++playlistRevision;
   stopActiveStream();
   player?.pause();
   timelineSeekController?.abort();
-  return queuePlaylistTask(() => loadPlaylistTrack(index, autoplay, revision));
+  return queuePlaylistTask(() => loadPlaylistTrack(playlistFiles.indexOf(file), autoplay, revision));
 }
 
 function advancePlaylist() {
-  if (playlistIndex < 0 || playlistIndex + 1 >= playlistFiles.length) return;
-  return selectPlaylistTrack(playlistIndex + 1, true);
+  if (playlistIndex < 0) return;
+  const nextIndex = playlistIndex + 1;
+  if (nextIndex < playlistFiles.length) return selectPlaylistTrack(nextIndex, true);
+  if (playlistLoopCheckbox.checked && playlistFiles.length > 1) {
+    return selectPlaylistTrack(0, true);
+  }
 }
 
 function importPlaylistFiles(files) {
   return queuePlaylistTask(async () => {
+    const selectedFile = playlistFiles[playlistIndex];
     const rejected = [];
     for (const file of files) {
       if (/\.bin$/i.test(file.name)) {
@@ -2948,6 +2958,9 @@ function importPlaylistFiles(files) {
         rejected.push(file.name);
       }
     }
+    // Stable sorting keeps equivalent numeric names (001 / 1) in import order.
+    playlistFiles.sort((a, b) => playlistNameOrder.compare(a.name, b.name));
+    playlistIndex = selectedFile ? playlistFiles.indexOf(selectedFile) : -1;
     renderPlaylist();
     if (playlistIndex < 0 && playlistFiles.length) {
       await loadPlaylistTrack(0, false, playlistRevision);
