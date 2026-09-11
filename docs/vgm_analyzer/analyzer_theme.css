@@ -108,6 +108,12 @@ body { padding-bottom: calc(260px + env(safe-area-inset-bottom)); }
 .file-input-label { color: var(--accent-dark); letter-spacing: 0.035em; }
 .file-input-group.is-optional { opacity: 1; }
 .file-drop-hint { color: #71584c; font-size: 0.75rem; }
+.playlist { flex-basis: 100%; min-width: 0; }
+.playlist p { margin: 0 0 8px; font-size: 0.85rem; }
+.playlist ol { margin: 0; padding-left: 2.5em; max-height: 220px; overflow-y: auto; }
+.playlist li { padding: 3px 0; }
+.playlist button { width: 100%; text-align: left; overflow-wrap: anywhere; }
+.playlist button[aria-current="true"] { border-color: var(--accent); background: #f4d7b8; font-weight: 700; }
 .file-drag-active .file-input-group {
   outline: 2px dashed var(--accent);
   outline-offset: 5px;

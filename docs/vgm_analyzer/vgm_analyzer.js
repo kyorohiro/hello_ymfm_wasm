@@ -46,7 +46,9 @@ if (useNukedEngine) {
 }
 
 const fileInput = document.getElementById("fileInput");
-const ym2608RomInput = document.getElementById("ym2608RomInput");
+const playlistList = document.getElementById("playlistList");
+const playlistSummary = document.getElementById("playlistSummary");
+const romFileStatus = document.getElementById("romFileStatus");
 const playButton = document.getElementById("playButton");
 const playbackSeek = document.getElementById("playbackSeek");
 const playbackSeekTime = document.getElementById("playbackSeekTime");
@@ -2466,6 +2468,7 @@ function downloadParseInfo() {
 }
 
 async function playCurrentVgm(startSample = 0) {
+  const revision = playlistRevision;
   if (timelineSeekController) return;
   if (!currentBuffer) {
     return;
@@ -2475,6 +2478,7 @@ async function playCurrentVgm(startSample = 0) {
 
   if (!isPlaybackReady()) {
     await beginPreparePlayback(parser);
+    if (revision !== playlistRevision) return;
     if (!isPlaybackReady()) {
       return;
     }
@@ -2485,6 +2489,7 @@ async function playCurrentVgm(startSample = 0) {
     stopActiveStream();
 
     const { sampleRate } = await ensurePlaybackReady(parser);
+    if (revision !== playlistRevision) return;
     channelMonitor = createChannelMonitorState();
     monitorFrequencyHigh = [0, 0];
     resetPsgMonitor();
@@ -2561,6 +2566,11 @@ async function playCurrentVgm(startSample = 0) {
     seekSelection = null;
     player.play();
     const started = await startWorkletStream(sampleRate) || startScriptProcessorStream();
+    if (revision !== playlistRevision) {
+      stopActiveStream();
+      player?.stop();
+      return;
+    }
     if (!started) {
       throw new Error("Failed to create an audio output stream");
     }
@@ -2693,6 +2703,7 @@ async function startWorkletStream(sampleRate) {
       resetTimelineToStart();
       requestPlaybackUiRender("");
       setStatus(`Ready.${currentStatusSuffix()}`);
+      advancePlaylist();
       return;
     }
     scheduleWorkletPump();
@@ -2720,6 +2731,7 @@ function startScriptProcessorStream() {
       resetTimelineToStart();
       requestPlaybackUiRender("");
       setStatus(`Ready.${currentStatusSuffix()}`);
+      advancePlaylist();
     }
   };
   node.connect(audioContext.destination);
@@ -2727,6 +2739,8 @@ function startScriptProcessorStream() {
 }
 
 async function handleFile(file) {
+  currentBuffer = null;
+  playButton.disabled = true;
   seekSelection = null;
   seekDragging = false;
   playbackSeek.max = "0";
@@ -2866,36 +2880,88 @@ async function handleYm2608RomFile(file) {
     engine.loadAdpcmARom(ym2608AdpcmARomBytes);
   }
 
+  romFileStatus.textContent = `YM2608 ADPCM-A ROM: ${file.name} (${ym2608AdpcmARomBytes.length} bytes)`;
   setStatus(`Loaded YM2608 ADPCM-A ROM: ${file.name} (${ym2608AdpcmARomBytes.length} bytes).`);
 }
 
-// Serialize file reads so a second selection/drop cannot overwrite an in-flight load.
+// Playlist operations share a queue so imports and track changes finish in order.
+const playlistFiles = [];
+let playlistIndex = -1;
+let playlistRevision = 0;
 let fileLoadQueue = Promise.resolve();
-function enqueueFile(file, isRom) {
-  fileLoadQueue = fileLoadQueue.then(async () => {
-    await (isRom ? handleYm2608RomFile(file) : handleFile(file));
-  }).catch((error) => {
+function queuePlaylistTask(task) {
+  fileLoadQueue = fileLoadQueue.then(task).catch((error) => {
     console.error(error);
-    setStatus(`Error loading ${file.name}: ${error.message}`);
+    setStatus(`Error: ${error.message}`);
   });
   return fileLoadQueue;
 }
 
-fileInput.addEventListener("change", async (event) => {
-  const file = event.target.files && event.target.files[0];
-  if (!file) {
-    return;
-  }
-  await enqueueFile(file, false);
-});
+function renderPlaylist() {
+  playlistSummary.textContent = playlistFiles.length
+    ? `Playlist — ${playlistFiles.length} tracks · ${playlistIndex + 1} selected`
+    : "Playlist — no tracks imported";
+  playlistList.replaceChildren();
+  playlistFiles.forEach((file, index) => {
+    const row = document.createElement("li");
+    const button = document.createElement("button");
+    button.type = "button";
+    button.textContent = file.name;
+    button.title = `Play ${file.name}`;
+    button.setAttribute("aria-current", index === playlistIndex ? "true" : "false");
+    button.addEventListener("click", () => selectPlaylistTrack(index, true));
+    row.appendChild(button);
+    playlistList.appendChild(row);
+  });
+}
 
-ym2608RomInput?.addEventListener("change", async (event) => {
-  const file = event.target.files && event.target.files[0];
-  if (!file) {
-    return;
-  }
-  await enqueueFile(file, true);
+async function loadPlaylistTrack(index, autoplay, revision) {
+  if (revision !== playlistRevision || !playlistFiles[index]) return;
+  playlistIndex = index;
+  renderPlaylist();
+  await handleFile(playlistFiles[index]);
+  if (autoplay && currentBuffer && revision === playlistRevision) await playCurrentVgm();
+}
+
+function selectPlaylistTrack(index, autoplay) {
+  const revision = ++playlistRevision;
+  stopActiveStream();
+  player?.pause();
+  timelineSeekController?.abort();
+  return queuePlaylistTask(() => loadPlaylistTrack(index, autoplay, revision));
+}
+
+function advancePlaylist() {
+  if (playlistIndex < 0 || playlistIndex + 1 >= playlistFiles.length) return;
+  return selectPlaylistTrack(playlistIndex + 1, true);
+}
+
+function importPlaylistFiles(files) {
+  return queuePlaylistTask(async () => {
+    const rejected = [];
+    for (const file of files) {
+      if (/\.bin$/i.test(file.name)) {
+        await handleYm2608RomFile(file);
+      } else if (/\.(vgm|vgz|s98)$/i.test(file.name)) {
+        playlistFiles.push(file);
+      } else {
+        rejected.push(file.name);
+      }
+    }
+    renderPlaylist();
+    if (playlistIndex < 0 && playlistFiles.length) {
+      await loadPlaylistTrack(0, false, playlistRevision);
+    }
+    if (rejected.length) setStatus(`Unsupported files: ${rejected.join(", ")}. Import VGM, VGZ, S98 or a YM2608 ROM .bin file.`);
+  });
+}
+
+fileInput.addEventListener("change", (event) => {
+  const files = Array.from(event.target.files || []);
+  event.target.value = "";
+  void importPlaylistFiles(files);
 });
+renderPlaylist();
 
 let fileDragDepth = 0;
 const isFileDrag = (event) => Array.from(event.dataTransfer?.types || []).includes("Files");
@@ -2925,11 +2991,7 @@ document.addEventListener("drop", (event) => {
   if (!isFileDrag(event) && !files.length) return;
   // Prevent the browser from navigating to the dropped local file.
   event.preventDefault();
-  const group = event.target.closest?.(".file-input-group");
-  const forceRom = group?.contains(ym2608RomInput);
-  for (const file of files) {
-    enqueueFile(file, forceRom || /\.(bin|rom)$/i.test(file.name));
-  }
+  void importPlaylistFiles(files);
 });
 
 let timelineSelectionPending = false;
@@ -3012,6 +3074,7 @@ replayButton.addEventListener("click", async () => {
 });
 
 stopButton.addEventListener("click", () => {
+  playlistRevision += 1;
   timelineSeekController?.abort();
   resetTimelineToStart();
   stopActiveStream();
