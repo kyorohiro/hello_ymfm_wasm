@@ -134,6 +134,9 @@ export class Ym2608 {
     if (!(bytes instanceof Uint8Array)) {
       throw new Error("loadAdpcmARom(bytes) expects a Uint8Array");
     }
+    if (!Number.isInteger(offset) || offset < 0 || offset > 0x2000 || bytes.length > 0x2000 - offset) {
+      throw new RangeError("YM2608 rhythm ROM range exceeds 8 KiB");
+    }
     if (typeof this.api.loadAdpcmARom !== "function") {
       throw new Error("This YM2608 runtime does not support loadAdpcmARom(bytes). Rebuild or reload the generated wasm runtime.");
     }
@@ -141,6 +144,7 @@ export class Ym2608 {
       return;
     }
     const ptr = this.module._malloc(bytes.length);
+    if (!ptr) throw new Error("ADPCM allocation failed");
     try {
       this.module.HEAPU8.set(bytes, ptr);
       this.api.loadAdpcmARom(this.handle, offset, ptr, bytes.length);
@@ -162,6 +166,7 @@ export class Ym2608 {
     }
     if (bytes.length === 0) return;
     const ptr = this.module._malloc(bytes.length);
+    if (!ptr) throw new Error("ADPCM allocation failed");
     try {
       this.module.HEAPU8.set(bytes, ptr);
       this.api.loadAdpcmBMemory(this.handle, offset, ptr, bytes.length);
@@ -192,10 +197,14 @@ export class Ym2608 {
     const right = new Float32Array(frames);
     left.set(this.module.HEAPF32.subarray(leftStart, leftStart + frames));
     right.set(this.module.HEAPF32.subarray(rightStart, rightStart + frames));
+    this.#syncIrq();
     return { left, right };
   }
 
   #ensureBuffers(frames) {
+    if (!Number.isInteger(frames) || frames < 0 || frames > 0x1000000) {
+      throw new RangeError("Invalid frame count");
+    }
     if (frames <= this.bufferFrames) {
       return;
     }

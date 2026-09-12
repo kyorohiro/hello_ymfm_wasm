@@ -128,10 +128,14 @@ export class Ym2203 {
     const right = new Float32Array(frames);
     left.set(this.module.HEAPF32.subarray(leftStart, leftStart + frames));
     right.set(this.module.HEAPF32.subarray(rightStart, rightStart + frames));
+    this.#syncIrq();
     return { left, right };
   }
 
   #ensureBuffers(frames) {
+    if (!Number.isInteger(frames) || frames < 0 || frames > 0x1000000) {
+      throw new RangeError("Invalid frame count");
+    }
     if (frames <= this.bufferFrames) {
       return;
     }

@@ -1,7 +1,7 @@
 #include <cstdint>
 #include <memory>
 
-#include "ymfm.h"
+#include "ymfm_wasm_interface.h"
 #include "ymfm_opn.h"
 
 namespace
@@ -13,19 +13,9 @@ struct ym2612_debug_chip : public ymfm::ym2612
     using ymfm::ym2612::m_fm;
 };
 
-struct ym2612_wasm_interface : public ymfm::ymfm_interface
-{
-    bool irq_asserted = false;
-
-    void ymfm_update_irq(bool asserted) override
-    {
-        irq_asserted = asserted;
-    }
-};
-
 struct ym2612_handle
 {
-    ym2612_wasm_interface intf;
+    ymfm_wasm_interface intf;
     ym2612_debug_chip chip;
 
     ym2612_handle() : intf(), chip(intf)
@@ -132,6 +122,7 @@ void ym2612_generate(void *ptr, float *left, float *right, uint32_t frames)
     {
         ymfm::ym2612::output_data output;
         handle->chip.generate(&output);
+        handle->intf.advance_sample(handle->chip);
         left[index] = normalize_sample(output.data[0]);
         right[index] = normalize_sample(output.data[1]);
     }
@@ -158,6 +149,7 @@ void ym2612_generate_with_internal_envelope(
     {
         ymfm::ym2612::output_data output;
         handle->chip.generate(&output);
+        handle->intf.advance_sample(handle->chip);
         left[index] = normalize_sample(output.data[0]);
         right[index] = normalize_sample(output.data[1]);
         env0[index] = (op0 != nullptr) ? normalize_attenuation(op0->debug_eg_attenuation()) : 0.0f;

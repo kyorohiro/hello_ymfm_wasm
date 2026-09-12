@@ -1,15 +1,14 @@
 #include <cstdint>
 #include <vector>
 
-#include "ymfm.h"
+#include "ymfm_wasm_interface.h"
 #include "ymfm_opn.h"
 
 namespace
 {
 
-struct ym2608_wasm_interface : public ymfm::ymfm_interface
+struct ym2608_wasm_interface : public ymfm_wasm_interface
 {
-    bool irq_asserted = false;
     std::vector<uint8_t> adpcm_a_rom;
     // The core addresses up to 16 address bits shifted by 5 (8-bit DRAM).
     std::vector<uint8_t> adpcm_b_memory = std::vector<uint8_t>(0x200000, 0);
@@ -31,11 +30,6 @@ struct ym2608_wasm_interface : public ymfm::ymfm_interface
     {
         if (type == ymfm::ACCESS_ADPCM_B && address < adpcm_b_memory.size())
             adpcm_b_memory[address] = data;
-    }
-
-    void ymfm_update_irq(bool asserted) override
-    {
-        irq_asserted = asserted;
     }
 };
 
@@ -119,6 +113,9 @@ void ym2608_load_adpcm_a_rom(void *ptr, uint32_t offset, const uint8_t *data, ui
 {
     auto *handle = cast_handle(ptr);
     auto &rom = handle->intf.adpcm_a_rom;
+    constexpr uint32_t rom_size = 0x2000; // YM2608 internal rhythm ROM.
+    if (offset > rom_size || length > rom_size - offset || (length && data == nullptr))
+        return;
     const uint32_t end = offset + length;
     if (rom.size() < end)
         rom.resize(end);
@@ -156,6 +153,7 @@ void ym2608_generate(void *ptr, float *left, float *right, uint32_t frames)
     {
         ymfm::ym2608::output_data output;
         handle->chip.generate(&output);
+        handle->intf.advance_sample(handle->chip);
         // Match examples/vgmrender: SSG is a separate mono output.
         const int32_t ssg = (handle->source_mute_mask & 1) ? 0 : output.data[2];
         left[index] = normalize_sample(output.data[0] + ssg);

@@ -1,24 +1,14 @@
 #include <cstdint>
 
-#include "ymfm.h"
+#include "ymfm_wasm_interface.h"
 #include "ymfm_opn.h"
 
 namespace
 {
 
-struct ym2203_wasm_interface : public ymfm::ymfm_interface
-{
-    bool irq_asserted = false;
-
-    void ymfm_update_irq(bool asserted) override
-    {
-        irq_asserted = asserted;
-    }
-};
-
 struct ym2203_handle
 {
-    ym2203_wasm_interface intf;
+    ymfm_wasm_interface intf;
     ymfm::ym2203 chip;
     uint32_t source_mute_mask = 0;
 
@@ -100,6 +90,7 @@ void ym2203_generate(void *ptr, float *left, float *right, uint32_t frames)
     {
         ymfm::ym2203::output_data output;
         handle->chip.generate(&output);
+        handle->intf.advance_sample(handle->chip);
         // YM2203 has one FM output and three SSG outputs, all mono.
         // Match examples/vgmrender by summing them into both channels.
         int32_t mix = 0;

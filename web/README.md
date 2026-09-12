@@ -39,6 +39,20 @@ The JS wrapper provides:
 - `generateStereo(frames)`
 - `dispose()`
 
+Audio generation accepts integer frame counts from `0` through `0x1000000`;
+invalid counts throw `RangeError` before entering WASM. This applies to all
+chip wrappers and to `generateStereoWithInternalEnvelope()`.
+
+The ymfm-backed YM2203, YM2608, YM2610/B and YM2612 timers advance with
+generated audio, at output-sample boundaries. Reads and writes do not advance
+their time. Where `setHooks()` is available, `onIrq` also reports the final IRQ
+state after a generation call. Nuked-OPN2 retains its existing clocked-write
+behavior.
+
+YM2608 `loadAdpcmARom(bytes, offset)` accepts partial writes within the 8 KiB
+internal rhythm ROM. Invalid ranges throw `RangeError`; the raw C ABI ignores
+invalid ranges without modifying the ROM.
+
 ## Playground Runtime
 
 If you want to embed Tetorica-style live code into a browser app or game,

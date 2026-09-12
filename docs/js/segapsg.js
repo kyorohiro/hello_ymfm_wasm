@@ -78,6 +78,9 @@ export class SegaPSG {
   }
 
   #ensureBuffers(frames) {
+    if (!Number.isInteger(frames) || frames < 0 || frames > 0x1000000) {
+      throw new RangeError("Invalid frame count");
+    }
     if (frames <= this.bufferFrames) {
       return;
     }

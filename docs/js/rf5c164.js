@@ -104,7 +104,6 @@ export class Rf5c164 {
   }
 
   generateStereo(frames) {
-    if (!Number.isInteger(frames) || frames < 0 || frames > 0x1000000) throw new RangeError("Invalid frame count");
     this.#ensureBuffers(frames);
     this.api.generate(this.handle, this.leftPtr, this.rightPtr, frames);
 
@@ -118,6 +117,9 @@ export class Rf5c164 {
   }
 
   #ensureBuffers(frames) {
+    if (!Number.isInteger(frames) || frames < 0 || frames > 0x1000000) {
+      throw new RangeError("Invalid frame count");
+    }
     if (frames <= this.bufferFrames) {
       return;
     }

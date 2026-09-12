@@ -1,24 +1,20 @@
 #include <cstdint>
 #include <vector>
 
-#include "ymfm.h"
+#include "ymfm_wasm_interface.h"
 #include "ymfm_opn.h"
 
 namespace
 {
 
-struct ym2610b_wasm_interface : public ymfm::ymfm_interface
+struct ym2610b_wasm_interface : public ymfm_wasm_interface
 {
-    bool irq_asserted = false;
-
     std::vector<uint8_t> rom[2];
     uint8_t ymfm_external_read(ymfm::access_class type, uint32_t address) override {
         if (type != ymfm::ACCESS_ADPCM_A && type != ymfm::ACCESS_ADPCM_B) return 0;
         const auto &data = rom[type == ymfm::ACCESS_ADPCM_B ? 1 : 0];
         return address < data.size() ? data[address] : 0;
     }
-
-    void ymfm_update_irq(bool asserted) override { irq_asserted = asserted; }
 };
 
 struct ym2610b_handle
@@ -78,6 +74,7 @@ void ym2610b_generate(void *ptr, float *left, float *right, uint32_t frames)
     {
         ymfm::ym2610b::output_data output;
         handle->chip.generate(&output);
+        handle->intf.advance_sample(handle->chip);
         left[index] = normalize_sample(output.data[0] + ((handle->mute_mask & 1) ? 0 : output.data[2]));
         right[index] = normalize_sample(output.data[1] + ((handle->mute_mask & 1) ? 0 : output.data[2]));
     }
