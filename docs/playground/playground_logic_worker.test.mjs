@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 import vm from "node:vm";
+import { hzToBlockFnum } from "../js/pitch.js";
 import { createDeadlineScheduler } from "../js/playground_clock.js";
 
 const workerSource = readFileSync(
@@ -13,6 +14,7 @@ function createWorkerHarness() {
   const messages = [];
   const context = {
     createDeadlineScheduler,
+    hzToBlockFnum,
     Error,
     Map,
     Math,
@@ -29,7 +31,7 @@ function createWorkerHarness() {
     setTimeout,
   };
   context.self = context;
-  vm.runInNewContext(workerSource.replace(/^import .*playground_clock.js";\n/m, ""), context, {
+  vm.runInNewContext(workerSource.replace(/^import .* from "\.\/(?:playground_clock|pitch)\.js";\n/gm, ""), context, {
     filename: "playground_logic_worker.js",
   });
   return {

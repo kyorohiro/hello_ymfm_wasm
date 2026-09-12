@@ -171,6 +171,7 @@ export function createPlaygroundRuntime(
   let workerGlobals = null;
   let workerCommandQueue = Promise.resolve();
   let resolveLogicWorkerStop = null;
+  let logicWorkerStopPromise = null;
   const workerRunRequests = [];
   // Test doubles may not expose an audio runtime; production handles live there.
   const fallbackAudioHandles = new Map();
@@ -704,20 +705,31 @@ export function createPlaygroundRuntime(
     if (!logicWorker) {
       return Promise.resolve();
     }
+    if (logicWorkerStopPromise) return logicWorkerStopPromise;
     const worker = logicWorker;
-    return new Promise((resolve) => {
-      const finish = () => {
-        if (logicWorker !== worker) return;
-        resolveLogicWorkerStop = null;
+    let timer;
+    let finish;
+    const stopped = new Promise((resolve) => {
+      finish = () => {
+        clearTimeout(timer);
+        if (resolveLogicWorkerStop === finish) {
+          resolveLogicWorkerStop = null;
+          logicWorkerStopPromise = null;
+        }
         resolve();
       };
-      resolveLogicWorkerStop = finish;
-      worker.postMessage({ type: "stop" });
-      setTimeout(finish, 100);
     });
+    logicWorkerStopPromise = stopped;
+    resolveLogicWorkerStop = finish;
+    timer = setTimeout(finish, 100);
+    worker.postMessage({ type: "stop" });
+    return stopped;
   }
 
   function terminateLogicWorker() {
+    const error = new DOMException("Playground Worker was terminated", "AbortError");
+    while (workerRunRequests.length > 0) workerRunRequests.shift().reject(error);
+    resolveLogicWorkerStop?.();
     logicWorker?.terminate();
     logicWorker = null;
     workerGlobals = null;
@@ -916,8 +928,12 @@ export function createPlaygroundRuntime(
 
   function installLogicWorkerHandlers(worker) {
     worker.onmessage = (event) => {
+      if (logicWorker !== worker) return;
       const message = event.data ?? {};
       if (message.type === "complete") {
+        const request = workerRunRequests.shift();
+        request?.resolve();
+        if (!request || request.runToken !== currentRunToken) return;
         const loopCount = message.loopCount ?? 0;
         const keyboardHandlerCount = message.keyboardHandlerCount ?? 0;
         emitStatus(
@@ -931,7 +947,6 @@ export function createPlaygroundRuntime(
           setPlaybackState("stopped");
         }
         emitRuntimeState("Audio ready");
-        workerRunRequests.shift()?.resolve();
         return;
       }
       if (message.type === "execution-error") {
@@ -941,7 +956,8 @@ export function createPlaygroundRuntime(
         return;
       }
       if (message.type === "stopped") {
-        void workerCommandQueue.finally(() => resolveLogicWorkerStop?.());
+        const finish = resolveLogicWorkerStop;
+        void workerCommandQueue.then(() => finish?.(), () => finish?.());
         return;
       }
       if (message.type === "log") {
@@ -951,6 +967,7 @@ export function createPlaygroundRuntime(
       handleWorkerMessage(event);
     };
     worker.onerror = (event) => {
+      if (logicWorker !== worker) return;
       const location = event.filename
         ? ` (${event.filename}:${event.lineno ?? 0}:${event.colno ?? 0})`
         : "";
@@ -1481,6 +1498,7 @@ export function createPlaygroundRuntime(
     currentRunToken += 1;
     const runToken = currentRunToken;
     await ensureReady();
+    if (runToken !== currentRunToken) return;
     clearKeyboardHandlers();
     liveApi.stopAllLoops();
     if (!logicWorker) {
@@ -1501,7 +1519,7 @@ export function createPlaygroundRuntime(
     if (isNewWorker) installLogicWorkerHandlers(worker);
 
     await new Promise((resolve, reject) => {
-      workerRunRequests.push({ resolve, reject });
+      workerRunRequests.push({ resolve, reject, runToken });
       worker.postMessage({
         type: "run",
         sourceCode,
@@ -1521,9 +1539,12 @@ export function createPlaygroundRuntime(
       playOptions.execution ??
       defaultExecution;
     if (execution === "worker") {
+      const pending = playSourceInWorker(sourceCode);
+      const runToken = currentRunToken;
       try {
-        return await playSourceInWorker(sourceCode);
+        return await pending;
       } catch (error) {
+        if (error.name === "AbortError" || runToken !== currentRunToken) throw error;
         setPlaybackState("stopped");
         emitStatus(`Error: ${error.message}`);
         emitRuntimeState("Error");
@@ -1536,12 +1557,13 @@ export function createPlaygroundRuntime(
         `Unknown execution mode: ${execution}`
       );
     }
-    await stopLogicWorker();
     currentRunToken += 1;
-    const runToken =
-      currentRunToken;
+    const runToken = currentRunToken;
+    await stopLogicWorker();
+    if (runToken !== currentRunToken) return;
 
     await ensureReady();
+    if (runToken !== currentRunToken) return;
     clearKeyboardHandlers();
     liveApi.clearRunFxChain();
     setPlaybackState("running");
@@ -1559,13 +1581,11 @@ export function createPlaygroundRuntime(
       Object.getPrototypeOf(
         async function () {}
       ).constructor;
-    const userFunction =
-      new AsyncFunction(
+    try {
+      const userFunction = new AsyncFunction(
         ...Object.keys(globals),
         `"use strict";\n${sourceCode}`
       );
-
-    try {
       await executeWithPlaygroundGuards(
         () =>
           userFunction(
@@ -1579,6 +1599,7 @@ export function createPlaygroundRuntime(
         }
       );
 
+      if (runToken !== currentRunToken) return;
       liveApi.commitLiveLoops(
         evaluationState.loopDefinitions
       );
@@ -1615,6 +1636,11 @@ export function createPlaygroundRuntime(
         );
       }
     } catch (error) {
+      if (runToken !== currentRunToken) {
+        if (error?.message === "Run stopped") return;
+        throw error;
+      }
+      setPlaybackState("stopped");
       if (
         error instanceof Error &&
         error.message ===
