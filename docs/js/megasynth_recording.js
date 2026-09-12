@@ -23,7 +23,7 @@ export class MegaSynthRecordingManager {
     this.lastRecording = null;
     this.importedRecording = null;
     this.activePlaybackRecording = null;
-    this.playbackTimers = [];
+    this.playbackTimers = new Set();
   }
 
   attachSynth(synth) {
@@ -192,15 +192,9 @@ export class MegaSynthRecordingManager {
           command.time * 1000
         );
 
-      const timerId =
-        this.setTimer(() => {
-          this._applyCommand(
-            command,
-            options
-          );
-        }, delayMs);
-
-      this.playbackTimers.push(timerId);
+      this._schedulePlayback(() => {
+        this._applyCommand(command, options);
+      }, delayMs);
     }
 
     const cycleDelayMs =
@@ -209,30 +203,31 @@ export class MegaSynthRecordingManager {
         recording.durationSeconds *
           1000
       ) + 10;
-    const cycleTimerId =
-      this.setTimer(() => {
-        if (!this.playing) {
-          return;
-        }
-
-        if (this.loopPlayback) {
-          this._playCycle(
-            recording,
-            options
-          );
-          return;
-        }
-
+    this._schedulePlayback(() => {
+      if (this.loopPlayback) {
+        this._playCycle(recording, options);
+      } else {
         this.stopPlayback();
-      }, cycleDelayMs);
-    this.playbackTimers.push(cycleTimerId);
+      }
+    }, cycleDelayMs);
+  }
+
+  _schedulePlayback(callback, delayMs) {
+    const pending = this.playbackTimers;
+    const timerId = this.setTimer(() => {
+      pending.delete(timerId);
+      // A cancelled callback must not affect a newer playback session.
+      if (this.playbackTimers !== pending || !this.playing) return;
+      callback();
+    }, delayMs);
+    pending.add(timerId);
   }
 
   stopPlayback() {
     for (const timerId of this.playbackTimers) {
       this.clearTimer(timerId);
     }
-    this.playbackTimers = [];
+    this.playbackTimers = new Set();
     this.playing = false;
     this.loopPlayback = false;
     this.activePlaybackRecording =
@@ -257,6 +252,16 @@ export class MegaSynthRecordingManager {
     if (options.ignorePatch === true) {
       return;
     }
+
+    if (initialState.lfo) this.synth.setLfo(initialState.lfo.enabled, initialState.lfo.frequency);
+    if (initialState.dac) {
+      this.synth.setDacEnabled(initialState.dac.enabled);
+      this.synth.writeDac(initialState.dac.value);
+    }
+    if (initialState.modeRegister !== undefined)
+      this.synth.setChannel3SpecialMode((initialState.modeRegister & 0x40) !== 0);
+    for (const [operator, frequency] of (initialState.channels[2]?.specialFrequencies ?? []).entries())
+      this.synth.setChannel3SpecialFrequency(operator, frequency.block, frequency.fnum);
 
     for (
       let channel = 0;
@@ -298,7 +303,9 @@ export class MegaSynthRecordingManager {
       this.synth.setPan(
         channel,
         channelState.left,
-        channelState.right
+        channelState.right,
+        channelState.ams,
+        channelState.pms
       );
     }
   }
@@ -357,8 +364,31 @@ export class MegaSynthRecordingManager {
       this.synth.setPan(
         command.channel,
         command.left,
-        command.right
+        command.right,
+        command.ams,
+        command.pms
       );
+      return;
+    }
+
+    if (command.type === "setLfo") {
+      if (!options.ignorePatch) this.synth.setLfo(command.enabled, command.frequency);
+      return;
+    }
+    if (command.type === "setDacEnabled") {
+      this.synth.setDacEnabled(command.enabled);
+      return;
+    }
+    if (command.type === "writeDac") {
+      this.synth.writeDac(command.value);
+      return;
+    }
+    if (command.type === "setChannel3SpecialMode") {
+      this.synth.setChannel3SpecialMode(command.enabled);
+      return;
+    }
+    if (command.type === "setChannel3SpecialFrequency") {
+      this.synth.setChannel3SpecialFrequency(command.operator, command.block, command.fnum);
       return;
     }
 

@@ -330,6 +330,8 @@ export class MegaSynth {
 
     /** @type {Promise<void> | null} */
     this.readyPromise = null;
+    this.closePromise = null;
+    this.initializationController = null;
     /** @type {"idle" | "starting" | "ready" | "error" | "closed"} */
     this.state = "idle";
   }
@@ -340,29 +342,41 @@ export class MegaSynth {
    * This should normally be called from a user gesture such as
    * a click, pointerdown, or keydown event.
    *
-    * @returns {Promise<MegaSynth>}
+   * Calling close() during initialization rejects start() with AbortError.
+   *
+   * @returns {Promise<MegaSynth>}
    */
   async start() {
+    if (this.closePromise) await this.closePromise;
     if (this.readyPromise) {
       await this.readyPromise;
       await this.resume();
       return this;
     }
 
+    const controller = new AbortController();
+    this.initializationController = controller;
     this.state = "starting";
-    this.readyPromise = this.#initialize();
-
-    try {
-      await this.readyPromise;
-    } catch (error) {
-      this.readyPromise = null;
-      this.state = "error";
-      throw error;
-    }
-
-    await this.resume();
-    this.state = "ready";
-
+    this.readyPromise = (async () => {
+      try {
+        await this.#initialize(controller.signal);
+        controller.signal.throwIfAborted();
+        this.state = "ready";
+      } catch (error) {
+        if (this.initializationController === controller) {
+          controller.abort();
+          this.node?.disconnect();
+          this.node?.port.close();
+          this.node = null;
+          this.fm = null;
+          this.psg = null;
+          this.readyPromise = null;
+          this.state = "error";
+        }
+        throw error;
+      }
+    })();
+    await this.readyPromise;
     return this;
   }
 
@@ -590,12 +604,29 @@ export class MegaSynth {
   /**
    * @returns {Promise<void>}
    */
-  async close() {
+  close() {
+    if (this.closePromise) return this.closePromise;
+    this.initializationController?.abort();
+    this.initializationController = null;
+    this.readyPromise = null;
+    const closing = this.#close();
+    this.closePromise = closing;
+    closing.finally(() => {
+      if (this.closePromise === closing) this.closePromise = null;
+    }).catch(() => {});
+    return closing;
+  }
+
+  async #close() {
+    this.recordingManager?.stop();
+    this.recordingManager?.stopPlayback();
+    this.recordingManager?.attachSynth(null);
     this.audio.closeMedia();
     this.audio.disposeFXChain();
 
     if (this.node) {
       this.node.disconnect();
+      this.node.port.close();
       this.node = null;
     }
 
@@ -604,6 +635,7 @@ export class MegaSynth {
     this.masterOutputNode = null;
 
     this.fm = null;
+    this.psg = null;
     this._recordingHooksInstalled =
       false;
     this.readyPromise = null;
@@ -638,27 +670,28 @@ export class MegaSynth {
     });
   }
 
-  async #initialize() {
+  async #initialize(signal) {
     if (!this.audioContext) {
       this.audioContext = this.#createAudioContext();
     }
 
     if (this.audioContext.state !== "running") {
-      await this.audioContext.resume();
+      await waitForInitialization(this.audioContext.resume(), signal);
     }
 
-    await this.audioContext.audioWorklet.addModule(
+    await waitForInitialization(this.audioContext.audioWorklet.addModule(
       this.workletUrl
-    );
+    ), signal);
     if (
       this.stereoWidthWorkletUrl &&
       this.audioContext.audioWorklet
     ) {
       try {
-        await this.audioContext.audioWorklet.addModule(
+        await waitForInitialization(this.audioContext.audioWorklet.addModule(
           this.stereoWidthWorkletUrl
-        );
+        ), signal);
       } catch (error) {
+        signal.throwIfAborted();
         console.warn(
           "Stereo width worklet load failed; falling back to built-in stereo width routing if needed.",
           error
@@ -670,10 +703,11 @@ export class MegaSynth {
       this.audioContext.audioWorklet
     ) {
       try {
-        await this.audioContext.audioWorklet.addModule(
+        await waitForInitialization(this.audioContext.audioWorklet.addModule(
           this.bitcrusherWorkletUrl
-        );
+        ), signal);
       } catch (error) {
+        signal.throwIfAborted();
         console.warn(
           "Bitcrusher worklet load failed; fx.bitcrusher() will be unavailable.",
           error
@@ -681,9 +715,9 @@ export class MegaSynth {
       }
     }
 
-    const response = await fetch(
-      this.ym2612WasmUrl
-    );
+    const response = await waitForInitialization(fetch(
+      this.ym2612WasmUrl, { signal }
+    ), signal);
 
     if (!response.ok) {
       throw new Error(
@@ -692,13 +726,13 @@ export class MegaSynth {
     }
 
     const wasmBinary =
-      await response.arrayBuffer();
+      await waitForInitialization(response.arrayBuffer(), signal);
 
     let psgWasmBinary = null;
     if (this.segaPsgWasmUrl) {
-      const psgResponse = await fetch(
-        this.segaPsgWasmUrl
-      );
+      const psgResponse = await waitForInitialization(fetch(
+        this.segaPsgWasmUrl, { signal }
+      ), signal);
 
       if (!psgResponse.ok) {
         throw new Error(
@@ -707,9 +741,10 @@ export class MegaSynth {
       }
 
       psgWasmBinary =
-        await psgResponse.arrayBuffer();
+        await waitForInitialization(psgResponse.arrayBuffer(), signal);
     }
 
+    signal.throwIfAborted();
     this.node =
       new AudioWorkletNode(
         this.audioContext,
@@ -725,7 +760,8 @@ export class MegaSynth {
     this.audio.connectChipOutput(this.node);
 
     const workletReady =
-      this.#waitForWorkletReady();
+      this.#waitForWorkletReady(this.node, signal);
+    workletReady.catch(() => {});
 
     const transferList = [wasmBinary];
     if (psgWasmBinary) {
@@ -742,6 +778,7 @@ export class MegaSynth {
     );
 
     await workletReady;
+    signal.throwIfAborted();
 
     const transport =
       new YM2612WorkletTransport(
@@ -779,42 +816,23 @@ export class MegaSynth {
     this.#installRecordingHooks();
   }
 
-  #waitForWorkletReady() {
+  #waitForWorkletReady(node, signal) {
     return new Promise((resolve, reject) => {
-      const handleMessage = (event) => {
-        const message = event.data;
-
-        if (message?.type === "ready") {
-          this.node.port.removeEventListener(
-            "message",
-            handleMessage
-          );
-
-          resolve(message);
-          return;
-        }
-
-        if (message?.type === "error") {
-          this.node.port.removeEventListener(
-            "message",
-            handleMessage
-          );
-
-          reject(
-            new Error(
-              message.message ||
-              "MegaSynth AudioWorklet initialization failed"
-            )
-          );
-        }
+      const cleanup = () => {
+        node.port.removeEventListener("message", handleMessage);
+        signal.removeEventListener("abort", onAbort);
       };
-
-      this.node.port.addEventListener(
-        "message",
-        handleMessage
-      );
-
-      this.node.port.start();
+      const onAbort = () => { cleanup(); reject(signal.reason); };
+      const handleMessage = ({ data: message }) => {
+        if (message?.type !== "ready" && message?.type !== "error") return;
+        cleanup();
+        if (message.type === "ready") resolve(message);
+        else reject(new Error(message.message || "MegaSynth AudioWorklet initialization failed"));
+      };
+      node.port.addEventListener("message", handleMessage);
+      signal.addEventListener("abort", onAbort, { once: true });
+      node.port.start();
+      if (signal.aborted) onAbort();
     });
   }
 
@@ -900,8 +918,8 @@ export class MegaSynth {
         channel,
         left,
         right,
-        ams = 0,
-        pms = 0
+        ams = undefined,
+        pms = undefined
       ) => ({
         type: "setPan",
         channel,
@@ -974,6 +992,7 @@ export class MegaSynth {
       return;
     }
 
+    const synth = this.fm;
     this.fm[methodName] = (
       ...args
     ) => {
@@ -981,7 +1000,7 @@ export class MegaSynth {
         toCommand(...args);
       const result =
         originalMethod.apply(
-          this.fm,
+          synth,
           args
         );
 
@@ -1046,4 +1065,23 @@ function clampChipSampleRate(value) {
     );
   }
   return Math.max(8000, Math.round(numeric));
+}
+
+// addModule() and arrayBuffer() do not accept AbortSignal themselves.
+async function waitForInitialization(promise, signal) {
+  let onAbort;
+  try {
+    const result = await Promise.race([
+      promise,
+      new Promise((_, reject) => {
+        onAbort = () => reject(signal.reason);
+        signal.addEventListener("abort", onAbort, { once: true });
+        if (signal.aborted) onAbort();
+      }),
+    ]);
+    signal.throwIfAborted();
+    return result;
+  } finally {
+    signal.removeEventListener("abort", onAbort);
+  }
 }
