@@ -4,12 +4,17 @@ class VgmOutputProcessor extends AudioWorkletProcessor {
     this.queue = [];
     this.queuedFrames = 0;
     this.endRequested = false;
+    this.paused = false;
     this.currentChunk = null;
     this.currentOffset = 0;
 
     this.port.onmessage = (event) => {
       const data = event.data;
       if (!data || typeof data !== "object") {
+        return;
+      }
+      if (data.type === "pause" || data.type === "resume") {
+        this.paused = data.type === "pause";
         return;
       }
       if (data.type === "enqueue") {
@@ -24,6 +29,7 @@ class VgmOutputProcessor extends AudioWorkletProcessor {
         return;
       }
       if (data.type === "flush") {
+        this.paused = false;
         this.queue = [];
         this.queuedFrames = 0;
         this.currentChunk = null;
@@ -37,6 +43,11 @@ class VgmOutputProcessor extends AudioWorkletProcessor {
     const output = outputs[0];
     const left = output[0];
     const right = output[1];
+    if (this.paused) {
+      left.fill(0);
+      right.fill(0);
+      return true;
+    }
     let writeOffset = 0;
 
     while (writeOffset < left.length) {

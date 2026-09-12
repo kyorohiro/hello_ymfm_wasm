@@ -293,7 +293,7 @@ export class VgmPlayer {
    * @returns {void}
    */
   process(left, right, frames) {
-    if (!this.parser) {
+    if (!this.parser || this.paused) {
       left.fill(0, 0, frames);
       right.fill(0, 0, frames);
       return;
@@ -389,9 +389,7 @@ export class VgmPlayer {
           } else {
             this.parser.reset();
             this.engine.reset();
-            this.waitAccumulator = 0;
-            this.chunkQueue = [];
-            this.queuedFrames = 0;
+            // Preserve rendered audio and fractional output timing across cycles.
             this.processedEvents = 0;
             this.processedWaitSamples = 0;
           }

@@ -148,3 +148,11 @@ Current core methods:
 - `setLoopEnabled(enabled)`
 - `setPrefetchFactor(factor)`
 - `setMaxFillStepsPerProcess(steps)`
+
+`pause()` preserves pending audio in both the player and output worklet;
+`resume()` continues from that position. With looping enabled, files without
+an explicit loop point repeat from the beginning without discarding their tail.
+
+`finalize()` cancels pending initialization/playback startup with `AbortError`.
+An engine that finishes loading after cancellation is disposed. A subsequent
+`initialize()` waits for the previous owned AudioContext to close before starting.

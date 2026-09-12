@@ -75,6 +75,10 @@ export function createVgmRuntime(options = {}) {
     activeStream: null,
     workletModuleReady: false,
     preparingPromise: null,
+    finalizingPromise: null,
+    controller: new AbortController(),
+    generation: 0,
+    streamGeneration: 0,
     lastErrorMessage: null,
     currentStatus: "Idle.",
     outputMode: "none",
@@ -160,6 +164,7 @@ export function createVgmRuntime(options = {}) {
   }
 
   function stopActiveStream() {
+    runtime.streamGeneration += 1;
     if (!runtime.activeStream) {
       return;
     }
@@ -182,6 +187,9 @@ export function createVgmRuntime(options = {}) {
   }
 
   async function initialize() {
+    if (runtime.finalizingPromise) await runtime.finalizingPromise;
+    if (runtime.controller.signal.aborted) runtime.controller = new AbortController();
+    const signal = runtime.controller.signal;
     if (runtime.preparingPromise) {
       return runtime.preparingPromise;
     }
@@ -195,8 +203,7 @@ export function createVgmRuntime(options = {}) {
         );
 
         if (!runtime.engine) {
-          runtime.engine =
-            await createGenesisAudioEngine({
+          await waitForRuntime(createGenesisAudioEngine({
               ym2612ModuleFactory:
                 runtime.ym2612ModuleFactory,
               ym2612ModuleOptions:
@@ -207,9 +214,16 @@ export function createVgmRuntime(options = {}) {
                 runtime.segaPsgModuleOptions,
               masterVolume:
                 runtime.masterVolume,
-            });
+            }).then(engine => {
+              if (signal.aborted) {
+                engine.dispose();
+                signal.throwIfAborted();
+              }
+              runtime.engine = engine;
+            }), signal);
         }
 
+        signal.throwIfAborted();
         if (!runtime.player) {
           runtime.player =
             new VgmPlayer(
@@ -229,8 +243,11 @@ export function createVgmRuntime(options = {}) {
             runtime.audioContext &&
             runtime.ownsAudioContext
           ) {
-            await runtime.audioContext.close();
+            const oldContext = runtime.audioContext;
+            runtime.audioContext = null;
+            await waitForRuntime(oldContext.close(), signal);
           }
+          signal.throwIfAborted();
           runtime.audioContext =
             new AudioContext({
               sampleRate,
@@ -242,21 +259,25 @@ export function createVgmRuntime(options = {}) {
           runtime.audioContext.state !==
           "running"
         ) {
-          await runtime.audioContext.resume();
+          await waitForRuntime(runtime.audioContext.resume(), signal);
         }
 
+        signal.throwIfAborted();
         setAudioState("ready");
         emitStatus("Ready.");
       })();
 
+    const preparing = runtime.preparingPromise;
     try {
-      await runtime.preparingPromise;
+      await preparing;
     } catch (error) {
-      setError(error);
+      if (!signal.aborted) setError(error);
       throw error;
     } finally {
-      runtime.preparingPromise = null;
-      emitState();
+      if (runtime.preparingPromise === preparing) {
+        runtime.preparingPromise = null;
+        emitState();
+      }
     }
   }
 
@@ -268,7 +289,9 @@ export function createVgmRuntime(options = {}) {
     buffer,
     parserOptions = {}
   ) {
+    const generation = runtime.generation;
     await initialize();
+    assertGeneration(generation);
     clearError();
     runtime.currentBuffer = buffer;
     runtime.player.load(
@@ -305,6 +328,7 @@ export function createVgmRuntime(options = {}) {
     targetFrames = 4096
   ) {
     if (
+      runtime.player?.isPaused() ||
       !runtime.activeStream ||
       runtime.activeStream.mode !==
         "worklet"
@@ -364,7 +388,12 @@ export function createVgmRuntime(options = {}) {
     emitState();
   }
 
-  async function startWorkletStream() {
+  async function startWorkletStream(signal, streamGeneration) {
+    const check = () => {
+      signal.throwIfAborted();
+      if (runtime.streamGeneration !== streamGeneration)
+        throw new DOMException("Playback was stopped", "AbortError");
+    };
     if (
       !runtime.audioContext ||
       !runtime.audioContext.audioWorklet
@@ -374,11 +403,13 @@ export function createVgmRuntime(options = {}) {
 
     if (!runtime.workletModuleReady) {
       try {
-        await runtime.audioContext.audioWorklet.addModule(
+        await waitForRuntime(runtime.audioContext.audioWorklet.addModule(
           runtime.audioWorkletUrl
-        );
+        ), signal);
+        check();
         runtime.workletModuleReady = true;
       } catch (error) {
+        check();
         console.warn(
           "AudioWorklet module load failed; falling back to ScriptProcessorNode.",
           error
@@ -387,6 +418,7 @@ export function createVgmRuntime(options = {}) {
       }
     }
 
+    check();
     const chunkFrames = 2048;
     const node = new AudioWorkletNode(
       runtime.audioContext,
@@ -410,6 +442,7 @@ export function createVgmRuntime(options = {}) {
     node.port.onmessage = (
       event
     ) => {
+      if (runtime.activeStream?.node !== node) return;
       const data = event.data || {};
       if (
         typeof data.queuedFrames ===
@@ -429,6 +462,7 @@ export function createVgmRuntime(options = {}) {
       );
     };
 
+    if (runtime.player.isPaused()) node.port.postMessage({ type: "pause" });
     node.connect(
       runtime.audioContext.destination
     );
@@ -489,7 +523,9 @@ export function createVgmRuntime(options = {}) {
   }
 
   async function play() {
+    const generation = runtime.generation;
     await initialize();
+    assertGeneration(generation);
     clearError();
     ensureLoaded();
 
@@ -497,9 +533,12 @@ export function createVgmRuntime(options = {}) {
     runtime.engine.reset();
     runtime.player.reset();
     runtime.player.play();
-    const started =
-      (await startWorkletStream()) ||
-      startScriptProcessorStream();
+    const streamGeneration = runtime.streamGeneration;
+    const workletStarted = await startWorkletStream(runtime.controller.signal, streamGeneration);
+    assertGeneration(generation);
+    if (runtime.streamGeneration !== streamGeneration)
+      throw new DOMException("Playback was stopped", "AbortError");
+    const started = workletStarted || startScriptProcessorStream();
     if (!started) {
       throw new Error(
         "Failed to create an audio output stream"
@@ -512,6 +551,8 @@ export function createVgmRuntime(options = {}) {
   function pause() {
     ensureLoaded();
     runtime.player.pause();
+    if (runtime.activeStream?.mode === "worklet")
+      runtime.activeStream.node.port.postMessage({ type: "pause" });
     emitStatus("Paused.");
     emitState();
   }
@@ -519,6 +560,10 @@ export function createVgmRuntime(options = {}) {
   function resume() {
     ensureLoaded();
     runtime.player.resume();
+    if (runtime.activeStream?.mode === "worklet") {
+      runtime.activeStream.node.port.postMessage({ type: "resume" });
+      pumpWorkletChunks();
+    }
     updateStreamingStatus();
     emitState();
   }
@@ -582,27 +627,37 @@ export function createVgmRuntime(options = {}) {
       : runtime.masterVolume;
   }
 
-  async function finalize() {
+  function assertGeneration(generation) {
+    if (runtime.generation !== generation)
+      throw new DOMException("VGM runtime was finalized", "AbortError");
+  }
+
+  function finalize() {
+    if (runtime.finalizingPromise) return runtime.finalizingPromise;
+    runtime.generation += 1;
+    runtime.controller.abort();
+    runtime.preparingPromise = null;
     stopActiveStream();
-
-    if (runtime.audioContext) {
-      if (runtime.ownsAudioContext) {
-        await runtime.audioContext.close();
-      }
-      runtime.audioContext = null;
-    }
-
-    if (runtime.engine) {
-      runtime.engine.dispose();
-      runtime.engine = null;
-    }
-
+    const context = runtime.audioContext;
+    const ownsContext = runtime.ownsAudioContext;
+    runtime.audioContext = null;
+    runtime.player?.stop();
+    runtime.engine?.dispose();
+    runtime.engine = null;
     runtime.player = null;
     runtime.currentBuffer = null;
     runtime.workletModuleReady = false;
     runtime.outputMode = "none";
     setAudioState("idle");
     emitStatus("Finalized.");
+    const closing = (async () => {
+      if (context && ownsContext) await context.close();
+    })();
+    runtime.finalizingPromise = closing;
+    closing.finally(() => {
+      if (runtime.finalizingPromise === closing) runtime.finalizingPromise = null;
+    }).catch(() => {});
+    return closing;
   }
 
   return {
@@ -634,3 +689,21 @@ export function createVgmRuntime(options = {}) {
 
 export const VgmRuntime =
   createVgmRuntime;
+
+async function waitForRuntime(promise, signal) {
+  let onAbort;
+  try {
+    const result = await Promise.race([
+      promise,
+      new Promise((_, reject) => {
+        onAbort = () => reject(signal.reason);
+        signal.addEventListener("abort", onAbort, { once: true });
+        if (signal.aborted) onAbort();
+      }),
+    ]);
+    signal.throwIfAborted();
+    return result;
+  } finally {
+    signal.removeEventListener("abort", onAbort);
+  }
+}
