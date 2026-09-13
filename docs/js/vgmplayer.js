@@ -1,4 +1,4 @@
-import { Ym2612VGM } from "./ym2612vgm.js?v=ay8910-1";
+import { Ym2612VGM } from "./ym2612vgm.js?v=ym2151-1";
 
 /**
  * One rendered stereo chunk waiting to be copied into the audio callback
@@ -22,6 +22,7 @@ import { Ym2612VGM } from "./ym2612vgm.js?v=ay8910-1";
  *   loadAdpcmBMemory?(data: Uint8Array, offset: number, memorySize: number): void,
  *   clearAdpcmBMemory?(): void,
  *   writeAy8910?(register: number, value: number): void,
+ *   writeYm2151?(register: number, value: number): void,
  *   writeYm2413?(register: number, value: number): void,
  *   writeYm2203?(register: number, value: number): void,
  *   writeRf5c164?(register: number, value: number): void,
@@ -339,6 +340,9 @@ export class VgmPlayer {
       const ay8910Target = typeof this.engine.writeAy8910 === "function"
         ? { writeRegister: (register, value) => this.engine.writeAy8910(register, value) }
         : undefined;
+      const ym2151Target = typeof this.engine.writeYm2151 === "function"
+        ? { writeRegister: (register, value) => this.engine.writeYm2151(register, value) }
+        : undefined;
       const ym2413Target = typeof this.engine.writeYm2413 === "function"
         ? { writeRegister: (register, value) => this.engine.writeYm2413(register, value) }
         : undefined;
@@ -368,6 +372,7 @@ export class VgmPlayer {
         ym2612: ym2612Target,
         ym2203: ym2203Target,
         ym2413: ym2413Target,
+        ym2151: ym2151Target,
         ay8910: ay8910Target,
         ym2608: ym2608Target,
         ym2610: ym2610Target,
@@ -382,6 +387,7 @@ export class VgmPlayer {
             ym2612: ym2612Target,
             ym2203: ym2203Target,
         ym2413: ym2413Target,
+        ym2151: ym2151Target,
         ay8910: ay8910Target,
             ym2608: ym2608Target,
         ym2610: ym2610Target,

@@ -13,6 +13,7 @@ import {
  * @property {number} ay8910Clock
  * @property {number} ay8910Type
  * @property {number} ay8910Flags
+ * @property {number} ym2151Clock
  * @property {number} ym2413Clock
  * @property {number} ym2203Clock
  * @property {number} ym2608Clock
@@ -23,6 +24,10 @@ import {
  * @property {number} loopOffset
  * @property {number} loopSamples
  * @property {number} dataOffset
+ */
+
+/**
+ * @typedef {{type:"ym2151-write",register:number,value:number}} Ym2151WriteEvent
  */
 
 /**
@@ -71,7 +76,7 @@ import {
  */
 
 /**
- * @typedef {{type:"ay8910-write",register:number,value:number,chipIndex:number} | Ym2413WriteEvent | Rf5c164Event | Ym2612WriteEvent | Ym2203WriteEvent | Ym2608WriteEvent | Ym2608AdpcmBDataEvent | Ym2610WriteEvent | SegaPsgWriteEvent | Ym2612WaitEvent | Ym2612EndEvent} Ym2612VgmEvent
+ * @typedef {{type:"ay8910-write",register:number,value:number,chipIndex:number} | Ym2151WriteEvent | Ym2413WriteEvent | Rf5c164Event | Ym2612WriteEvent | Ym2203WriteEvent | Ym2608WriteEvent | Ym2608AdpcmBDataEvent | Ym2610WriteEvent | SegaPsgWriteEvent | Ym2612WaitEvent | Ym2612EndEvent} Ym2612VgmEvent
  */
 
 /**
@@ -225,6 +230,7 @@ export class Ym2612VGM {
 
     const version = readUint32LE(this.view, 0x08);
     const ym2612Clock = readUint32LE(this.view, 0x2c);
+    const ym2151Clock = readUint32LE(this.view, 0x30);
     const ym2413Clock = readUint32LE(this.view, 0x10);
 
     const totalSamples = readUint32LE(this.view, 0x18);
@@ -243,6 +249,7 @@ export class Ym2612VGM {
     const ym2610Clock = extendedClock(0x4c);
     const rf5c164Clock = version >= 0x151 ? extendedClock(0x6c) : 0;
     const pwmClock = version >= 0x151 ? extendedClock(0x70) : 0;
+    const segaPcmClock = version >= 0x151 ? extendedClock(0x38) : 0;
     const ay8910Clock = version >= 0x151 ? extendedClock(0x74) : 0;
     const headerByte = offset => offset < dataOffset && offset < this.bytes.length ? this.bytes[offset] : 0;
     const ay8910Type = version >= 0x151 ? headerByte(0x78) : 0;
@@ -256,7 +263,7 @@ export class Ym2612VGM {
       ident,
       version,
       ym2612Clock,
-      ym2413Clock,
+      ym2413Clock, ym2151Clock, segaPcmClock,
       ay8910Clock, ay8910Type, ay8910Flags, y8950Clock, k051649Clock,
       ym2203Clock,
       ym2608Clock,
@@ -450,6 +457,12 @@ export class Ym2612VGM {
         const value = this.bytes[this.position + 2];
         this.position += 3;
         return { type: "ay8910-write", register: address & 0x7f, value, chipIndex: address >>> 7 };
+      }
+      case 0x54: {
+        this.#ensureAvailable(3);
+        const register = this.bytes[this.position + 1], value = this.bytes[this.position + 2];
+        this.position += 3;
+        return { type: "ym2151-write", register, value };
       }
       case 0x51: {
         this.#ensureAvailable(3);
@@ -648,6 +661,7 @@ export class Ym2612VGM {
    * @param {{
    *   ym2612?: { writeRegister(register: number, value: number, port?: number): void },
    *   ay8910?: { writeRegister(register: number, value: number): void },
+ *   ym2151?: { writeRegister(register: number, value: number): void },
  *   ym2413?: { writeRegister(register: number, value: number): void },
  *   ym2203?: { writeRegister(register: number, value: number): void },
    *   ym2608?: { writeRegister(register: number, value: number, port?: number): void, loadAdpcmBMemory?(data: Uint8Array, offset: number, memorySize: number): void },
@@ -701,6 +715,10 @@ export class Ym2612VGM {
     if (event.type === "ay8910-write") {
       if (event.chipIndex) throw new Error('Second AY chip: Support coming soon.');
       targets.ay8910?.writeRegister(event.register, event.value);
+      return event;
+    }
+    if (event.type === "ym2151-write") {
+      targets.ym2151?.writeRegister(event.register, event.value);
       return event;
     }
     if (event.type === "ym2413-write") {
@@ -846,6 +864,9 @@ export class Ym2612VGM {
     if (command === 0xa0) {
       return `cmd=0xa0 ay8910 register=${formatHexNumber(this.bytes[position + 1])} value=${formatHexNumber(this.bytes[position + 2])}`;
     }
+    if (command === 0x54) {
+      return `cmd=0x54 ym2151 register=${formatHexNumber(this.bytes[position + 1])} value=${formatHexNumber(this.bytes[position + 2])}`;
+    }
     if (command === 0x51) {
       return `cmd=0x51 ym2413 register=${formatHexNumber(this.bytes[position + 1])} value=${formatHexNumber(this.bytes[position + 2])}`;
     }
@@ -953,6 +974,7 @@ export class Ym2612VGM {
       this.#ensureAvailable(5);
       const stream = this.#streamState(this.bytes[this.position + 1]);
       stream.chipType = this.bytes[this.position + 2];
+      if ((stream.chipType & 0x7f) === 0x03) throw new Error('YM2151 DAC streams: Support coming soon.');
       if ((stream.chipType & 0x7f) === 0x12) throw new Error('AY DAC streams: Support coming soon.');
       if ((stream.chipType & 0x7f) === 0x10) this.#warn("RF5C164 DAC stream playback is not supported yet");
       stream.port = this.bytes[this.position + 3];
@@ -2205,7 +2227,7 @@ function rawCommandLength(bytes, view, position) {
   if (command === 0x50) {
     return 2;
   }
-  if (command === 0xa0 || command === 0x51 || command === 0x52 || command === 0x53) {
+  if (command === 0xa0 || command === 0x54 || command === 0x51 || command === 0x52 || command === 0x53) {
     return 3;
   }
   if (command === 0x55) {

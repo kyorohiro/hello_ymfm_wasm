@@ -129,3 +129,12 @@ TFI 専用タブ名を維持するか、音色タブの中で形式別に表示�
 - YM2413 の第2チップ・別モデル・他 FM チップ等との混在は、再生開始時に未対応として明示する。
 - 境界は Analyzer 内の `updateChipSupport()` に留めた。汎用 interface はまだ作らない。
 - ビルドは `sh scripts/build_ym2413_wasm.sh`。ランタイム同期・Analyzer 配布スクリプトにも追加した。
+
+## YM2151 の再生対応
+
+YM2151 の WASM / JS / AudioEngine と VGM 0x54、ヘッダー 0x30 の読み取りを追加。
+Analyzer は YM2151 単体と Sega PSG 併用を再生し、Parsed Output から情報を確認できる。
+Operator / Note-ish / 音色編集 / export は準備中として無効化する。
+8チャンネルの左右定位、タイマー、リセット、シーク、コマンド集計をテストした。
+YM2164・2基目・DAC ストリーム・Sega PCM 等との複合再生は今回の対象外。
+ビルド：`sh scripts/build_ym2151_wasm.sh`。実ブラウザでの実曲試聴は未確認。

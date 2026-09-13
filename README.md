@@ -185,3 +185,11 @@ and tone pitch, with channel and source mute controls. Instrument editing and
 MIDI/MML export for these chips are not yet available. See the
 [AY implementation notes](third_party/mame-ay8910/README.md) for supported flags
 and limitations. Build with `sh scripts/build_ay8910_wasm.sh`.
+
+### YM2151 VGM playback
+
+The VGM Analyzer supports YM2151 playback, including stereo output and optional
+Sega PSG. Instrument analysis/editing and MIDI/MML export remain unavailable.
+YM2164, a second YM2151, DAC streams and combinations with other chips such as
+Sega PCM are not supported by this engine.
+Build with `sh scripts/build_ym2151_wasm.sh`.

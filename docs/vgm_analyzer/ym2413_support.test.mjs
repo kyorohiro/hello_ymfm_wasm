@@ -10,9 +10,9 @@ function fn(name) {
 }
 const tabNames=['operatorInfoTab','noteishTab','tfiInfoTab','sampleTab'];
 const buttonNames=['exportMidiButton','exportMmlButton','exportSnapshotTfiButton','exportSnapshotVgiButton','exportSnapshotButton','exportAllTfiButton','exportAllVgiButton'];
-test('playback-only mode disables analysis, redirects stale tabs, and restores tabs for OPN',()=>{
+for (const chip of ['ym2413','ym2151']) test(`${chip} playback-only mode disables analysis and restores OPN tabs`,()=>{
   const notice={hidden:true};
-  const context={opnMonitorRoot:{},ayMonitorRoot:{},currentChipKind:'ym2413',document:{getElementById:()=>notice},selected:null,
+  const context={opnMonitorRoot:{},ayMonitorRoot:{},currentChipKind:chip,document:{getElementById:()=>notice},selected:null,
     setOutputTab(name){context.selected=name;}};
   for(const name of [...tabNames,...buttonNames])context[name]={disabled:false,title:''};
   vm.createContext(context);vm.runInContext(fn('updateChipSupport'),context);
@@ -35,4 +35,5 @@ test('chip selection recognizes YM2413 and preserves OPN selection',()=>{
   const context=vm.createContext({});vm.runInContext(fn('detectPlaybackChipKind'),context);
   assert.equal(context.detectPlaybackChipKind({ym2413Clock:3579545,psgClock:3579545}),'ym2413');
   assert.equal(context.detectPlaybackChipKind({ym2612Clock:7670454}),'ym2612');
+  assert.equal(context.detectPlaybackChipKind({ym2151Clock:3579545}),'ym2151');
 });
