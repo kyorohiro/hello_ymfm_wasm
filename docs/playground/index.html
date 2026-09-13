@@ -814,6 +814,52 @@
         display: none;
       }
 
+      #keyboardPanel:not([hidden]) {
+        overflow: auto;
+        flex: 1;
+        min-height: 0;
+        border-top: 1px solid var(--line);
+      }
+
+      /* Keep audition controls within reach without splitting the Operator editor. */
+      #operatorPanel:not([hidden]) ~ #keyboardPanel {
+        position: fixed;
+        right: max(16px, env(safe-area-inset-right));
+        bottom: max(64px, env(safe-area-inset-bottom));
+        z-index: 20;
+        width: max-content;
+        max-width: calc(100vw - 32px);
+        max-height: calc(100dvh - 96px);
+        padding: 16px;
+        border: 2px solid var(--accent);
+        border-radius: 16px;
+        background: var(--panel);
+        box-shadow: 0 8px 30px #12363b40;
+      }
+
+      #operatorPanel:not([hidden]) ~ #keyboardPanel #operatorKeyboardRoot > :not(.playground-keyboard-tools):not(.playground-keyboard-channel-tools),
+      #operatorPanel:not([hidden]) ~ #keyboardPanel .playground-keyboard-preset,
+      #operatorPanel:not([hidden]) ~ #keyboardPanel #playgroundKeyboardStrings {
+        display: none;
+      }
+
+      #operatorPanel:not([hidden]) ~ #keyboardPanel .playground-keyboard-tools {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+        margin: 0;
+      }
+
+      #operatorPanel:not([hidden]) ~ #keyboardPanel .playground-keyboard-tools > div {
+        flex-wrap: wrap;
+      }
+
+      #operatorPanel:not([hidden]) {
+        padding-bottom: 260px;
+        scroll-padding-bottom: 260px;
+      }
+
       .operator-tab-toolbar {
         display: flex;
         align-items: center;

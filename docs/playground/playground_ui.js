@@ -102,6 +102,7 @@ export function createPlaygroundUi(
   ];
 
   function setBottomTab(tabName) {
+    options.onBottomTabChange?.(tabName);
     for (const tab of bottomTabs) {
       const isSelected =
         tab.name === tabName;
@@ -111,7 +112,7 @@ export function createPlaygroundUi(
       );
       if (tab.panel) {
         tab.panel.hidden =
-          !isSelected;
+          !isSelected && !(tab.name === "keyboard" && tabName === "operator");
       }
     }
   }

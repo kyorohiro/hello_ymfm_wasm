@@ -870,12 +870,14 @@ export function createPlaygroundOperatorTab(
         channelSelect.value
       );
       updateControlsUi();
+      channelSelect.blur();
     }
   );
 
   presetSelect.addEventListener(
     "change",
     () => {
+      presetSelect.blur();
       if (!presetSelect.value) {
         currentState().presetName = "";
         return;

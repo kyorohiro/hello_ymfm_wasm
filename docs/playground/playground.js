@@ -400,6 +400,7 @@ const operatorTab =
   });
 const operatorKeyboard = createPlaygroundOperatorKeyboard({
   root: operatorKeyboardRoot,
+  getSelectedChannel: () => operatorTab.getSelectedChannel(),
   channelCount: megaDrive.capabilities.fmChannels,
   presets: playgroundPresets,
   presetOrder: FM_PRESET_ORDER,
@@ -424,6 +425,8 @@ const operatorKeyboard = createPlaygroundOperatorKeyboard({
     setStatus(message);
   },
 });
+
+operatorTabRoot.addEventListener("change", () => operatorKeyboard.syncChannel());
 
 function updateMasterVolumeUi() {
   const masterVolume =
@@ -1286,6 +1289,9 @@ const ui =
     helpersPanel,
     operatorPanel,
     keyboardPanel,
+    onBottomTabChange(tabName) {
+      operatorKeyboard.setView(tabName);
+    },
   });
 const {
   setStatus,
