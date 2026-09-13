@@ -500,7 +500,8 @@ export async function initializePlaygroundMonaco(
       }
     );
     registerMonacoCompletions(
-      monaco
+      monaco,
+      { listVirtualFiles: options.listVirtualFiles }
     );
     registerMonacoHover(monaco);
     registerMonacoSignatureHelp(
@@ -566,7 +567,7 @@ export async function initializePlaygroundMonaco(
             showEnumMembers: false,
             showEvents: false,
             showFields: true,
-            showFiles: false,
+            showFiles: true,
             showFolders: false,
             showFunctions: true,
             showInterfaces: false,

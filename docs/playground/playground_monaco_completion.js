@@ -1438,7 +1438,8 @@ function isInsideCallObject(
  */
 
 export function registerMonacoCompletions(
-  monaco
+  monaco,
+  { listVirtualFiles = () => [] } = {}
 ) {
   const kind =
     monaco.languages
@@ -1455,6 +1456,7 @@ export function registerMonacoCompletions(
         ".",
         '"',
         "'",
+        "/",
       ],
       provideCompletionItems(
         model,
@@ -1497,6 +1499,49 @@ export function registerMonacoCompletions(
               position.column,
           });
         const suggestions = [];
+        const importPath = /\bimport\s*\(\s*(["'])([^"'\n]*)$/.exec(linePrefix);
+        if (importPath && !linePrefix.trimStart().startsWith("//")) {
+          const currentPath = model.uri?.path?.replace(/^\/project(?=\/)/, "") ?? "/index.js";
+          const directory = currentPath.split("/").filter(Boolean).slice(0, -1);
+          const typed = importPath[2];
+          const tail = model.getLineContent(position.lineNumber).slice(position.column - 1);
+          const closingQuote = tail.indexOf(importPath[1]);
+          const pathRange = { ...range,
+            startColumn: position.column - typed.length,
+            endColumn: closingQuote < 0 ? position.column : position.column + closingQuote,
+          };
+          for (const file of listVirtualFiles()) {
+            if (file.type !== "text" || !/\.(?:m?js)$/i.test(file.path) || file.path === currentPath) continue;
+            const parts = file.path.split("/").filter(Boolean);
+            let common = 0;
+            while (common < directory.length && directory[common] === parts[common]) common++;
+            const relative = "../".repeat(directory.length - common) + parts.slice(common).join("/");
+            const path = typed.startsWith("/") ? file.path : relative.startsWith("../") ? relative : `./${relative}`;
+            suggestions.push({ label: path, kind: kind.File, insertText: path,
+              filterText: path, range: pathRange, detail: "Project JavaScript module" });
+          }
+          suggestions.sort((a, b) => a.label.localeCompare(b.label, "en", { numeric: true }));
+          return { suggestions };
+        }
+        // Replace the whole expression prefix so "await im" does not become
+        // "await await import(...)". Limit this snippet to statement/assignment starts.
+        const importPrefix = /^(\s*(?:(?:const|let|var)\s+(?:[A-Za-z_$][\w$]*|\{[^{}\n]*\}|\[[^\[\]\n]*\])\s*=\s*)?)([a-z]+(?:\s+[a-z]*)?)$/.exec(linePrefix);
+        const importText = importPrefix?.[2];
+        const isImportPrefix = importText && (
+          "await".startsWith(importText) || "import".startsWith(importText) ||
+          (/^await\s+/.test(importText) && "import".startsWith(importText.replace(/^await\s+/, "")))
+        );
+        if (isImportPrefix) {
+          suggestions.push({
+            label: "await import",
+            kind: kind.Snippet,
+            insertText: 'await import("${1:./module.js}")',
+            insertTextRules: snippet,
+            filterText: importPrefix[2],
+            documentation: "Load a JavaScript module asynchronously. Enter a module path or URL.",
+            range: { ...range, startColumn: importPrefix[1].length + 1 },
+          });
+        }
         const propertyAccessMatch =
           /(?:^|[^\w$])([A-Za-z_$][\w$]*)\.$/.exec(
             linePrefix
