@@ -138,3 +138,22 @@ Operator / Note-ish / 音色編集 / export は準備中として無効化する
 8チャンネルの左右定位、タイマー、リセット、シーク、コマンド集計をテストした。
 YM2164・2基目・DAC ストリーム・Sega PCM 等との複合再生は今回の対象外。
 ビルド：`sh scripts/build_ym2151_wasm.sh`。実ブラウザでの実曲試聴は未確認。
+
+## YM3812 / YMF262 の再生対応
+
+YM3812（OPL2）と YMF262（OPL3）のコアを WASM 化し、VGM 再生へ接続した。
+ヘッダーの 0x50 / 0x5C、コマンド 0x5A / 0x5E / 0x5F は再生・コマンド集計の両方で扱う。
+YMF262 は2つのレジスタポートを配送し、4出力を A+C → 左、B+D → 右へ加算する。
+OPL2 はモノラルを左右へ同じ値で出力する。
+
+Analyzer の対象音源判定・クロック変更時の再作成・配布ファイル・Play Only 表示を更新。
+解析・音色編集・MIDI/MML は無効にし、`Support coming soon.` と表示する。
+単体と Sega PSG 併用に対応。2基目、OPL DAC ストリーム、他のチップとの混在は未対応。
+Sound Blaster カード全体の PCM / DMA 等のエミュレーションは含まない。
+
+テスト：読み込み時のスキャン、両ポート、全18chの出力先、リズム・4 Operator モード、
+タイマー、PCM生成、リセット、シーク、生成分割。実曲・実ブラウザの試聴は未確認。
+ビルド：`sh scripts/build_ym3812_wasm.sh` / `sh scripts/build_ymf262_wasm.sh`。
+
+曲名だけでは対応を判断せず、VGM ヘッダーの音源を確認する。
+[照合した VGM 仕様](https://raw.githubusercontent.com/vgmrips/vgmplay-legacy/master/VGMPlay/vgmspec171.txt)

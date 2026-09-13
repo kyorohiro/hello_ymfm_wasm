@@ -10,7 +10,7 @@ function fn(name) {
 }
 const tabNames=['operatorInfoTab','noteishTab','tfiInfoTab','sampleTab'];
 const buttonNames=['exportMidiButton','exportMmlButton','exportSnapshotTfiButton','exportSnapshotVgiButton','exportSnapshotButton','exportAllTfiButton','exportAllVgiButton'];
-for (const chip of ['ym2413','ym2151']) test(`${chip} playback-only mode disables analysis and restores OPN tabs`,()=>{
+for (const chip of ['ym2413','ym2151','ym3812','ymf262']) test(`${chip} playback-only mode disables analysis and restores OPN tabs`,()=>{
   const notice={hidden:true};
   const context={opnMonitorRoot:{},ayMonitorRoot:{},currentChipKind:chip,document:{getElementById:()=>notice},selected:null,
     setOutputTab(name){context.selected=name;}};
@@ -36,4 +36,6 @@ test('chip selection recognizes YM2413 and preserves OPN selection',()=>{
   assert.equal(context.detectPlaybackChipKind({ym2413Clock:3579545,psgClock:3579545}),'ym2413');
   assert.equal(context.detectPlaybackChipKind({ym2612Clock:7670454}),'ym2612');
   assert.equal(context.detectPlaybackChipKind({ym2151Clock:3579545}),'ym2151');
+  assert.equal(context.detectPlaybackChipKind({ym3812Clock:3579545}),'ym3812');
+  assert.equal(context.detectPlaybackChipKind({ymf262Clock:14318180}),'ymf262');
 });

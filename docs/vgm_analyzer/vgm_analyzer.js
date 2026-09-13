@@ -1,3 +1,5 @@
+import {createYm3812AudioEngine} from '../js/ym3812audioengine.js';
+import {createYmf262AudioEngine} from '../js/ymf262audioengine.js';
 import {createYm2151AudioEngine} from '../js/ym2151audioengine.js';
 import {createAy8910AudioEngine, validateAyPlaybackHeader} from '../js/ay8910audioengine.js';
 import {createMsxAudioEngine} from '../js/msxaudioengine.js';
@@ -20,7 +22,7 @@ import { createPsgMonitor, describePsgMonitor, observePsgEngine } from "./psg_mo
 import { exportMucomMml, exportOpnavoidMml } from "./vgm_mml.js?v=mml-formats-1";
 import {
   Ym2612VGM,
-} from "../js/ym2612vgm.js?v=ym2151-1";
+} from "../js/ym2612vgm.js?v=opl-1";
 import { createTfiFromPreset } from "../js/tfi.js";
 import { createVgiFromPreset } from "../js/vgi.js";
 import ym2612ModuleFactory from "../generated/ym2612_wasm.js";
@@ -29,7 +31,7 @@ import segaPsgModuleFactory from "../generated/segapsg_wasm.js";
 import { createGenesisAudioEngine } from "../js/genesisaudioengine.js?v=pwm-2";
 import { createYm2203AudioEngine } from "../js/ym2203audioengine.js";
 import { createYm2608AudioEngine } from "../js/ym2608audioengine.js";
-import { VgmPlayer } from "../js/vgmplayer.js?v=ym2151-1";
+import { VgmPlayer } from "../js/vgmplayer.js?v=opl-1";
 import { looksLikeS98, convertS98ToVgm } from "../js/s98_file.js";
 import { maybeDecodeVgmFile, parseVgmMetadata, VGM_METADATA_FIELDS } from "../js/vgm_file.js";
 
@@ -387,7 +389,7 @@ function ensureMonitorToggleHandler() {
 }
 
 function createChannelMonitorState() {
-  if (["ym2151", "ym2413", "ay8910"].includes(currentChipKind)) return [];
+  if (["ym3812", "ymf262", "ym2151", "ym2413", "ay8910"].includes(currentChipKind)) return [];
   const channelCount = currentChipKind === "ym2203" ? 3 : 6;
   return Array.from({ length: channelCount }, (_, index) => ({
     channel: index,
@@ -609,7 +611,7 @@ function noteishChannels() {
 }
 
 function updateToneMonitor() {
-  if (["ym2151", "ym2413", "ay8910"].includes(currentChipKind)) { toneChannels = []; return; }
+  if (["ym3812", "ymf262", "ym2151", "ym2413", "ay8910"].includes(currentChipKind)) { toneChannels = []; return; }
   const clock = (psgMonitor.kind === 'ssg' ? noteishHeader[`${currentChipKind}Clock`] : noteishHeader.psgClock) & 0x3fffffff;
   if (!clock) { toneChannels = []; return; }
   if (!toneChannels.length) toneChannels = createChannelMonitorState().slice(0,3).map(ch=>({...ch, tone:true, toneMidi:null}));
@@ -1337,6 +1339,8 @@ function renderHeader(header) {
     `pwmClock: ${header.pwmClock} (approximate PWM playback)`,
     `ym2612Clock: ${header.ym2612Clock}`,
     `ym2203Clock: ${header.ym2203Clock}`,
+    `ym3812Clock: ${header.ym3812Clock}`,
+    `ymf262Clock: ${header.ymf262Clock}`,
     `ym2151Clock: ${header.ym2151Clock}`,
     `ym2413Clock: ${header.ym2413Clock}`,
     `ay8910Clock: ${header.ay8910Clock}, type: ${header.ay8910Type}, flags: ${header.ay8910Flags}`,
@@ -1350,6 +1354,8 @@ function renderHeader(header) {
 }
 
 function detectPlaybackChipKind(header) {
+  if (header.ymf262Clock & 0x3fffffff) return "ymf262";
+  if (header.ym3812Clock & 0x3fffffff) return "ym3812";
   if (header.ym2151Clock & 0x3fffffff) return "ym2151";
   if (header.ay8910Clock & 0x3fffffff) return "ay8910";
   if (header.ym2413Clock & 0x3fffffff) return "ym2413";
@@ -1534,6 +1540,7 @@ function renderEvent(event, index) {
     return `${String(index).padStart(3, " ")}: write port=${event.port} register=${formatHex(event.register)} value=${formatHex(event.value)}`;
   }
   if (event.type === "ay8910-write") return `${index}: ay8910 chip=${event.chipIndex} register=${formatHex(event.register)} value=${formatHex(event.value)}`;
+  if (["ym3812-write", "ymf262-write"].includes(event.type)) return `${index}: ${event.type} port=${event.port ?? 0} register=${formatHex(event.register)} value=${formatHex(event.value)}`;
   if (event.type === "ym2151-write") return `${index}: ym2151 register=${formatHex(event.register)} value=${formatHex(event.value)}`;
   if (event.type === "ym2413-write") return `${index}: ym2413 write register=${formatHex(event.register)} value=${formatHex(event.value)}`;
   if (event.type === "ym2203-write") {
@@ -2261,7 +2268,7 @@ function downloadSnapshotVgiZip() {
 async function ensurePlaybackReady(vgm) {
   const nextChipKind = detectPlaybackChipKind(vgm.header);
   const nextClockKey = JSON.stringify([nextChipKind, vgm.header.ym2612Clock, vgm.header.psgClock,
-    vgm.header.segaPcmClock, vgm.header.ym2151Clock, vgm.header.ay8910Clock, vgm.header.ay8910Type, vgm.header.ay8910Flags, vgm.header.y8950Clock, vgm.header.k051649Clock, vgm.header.ym2413Clock, vgm.header.rf5c164Clock, vgm.header.ym2203Clock, vgm.header.ym2608Clock, vgm.header.ym2610Clock]);
+    vgm.header.ym3812Clock, vgm.header.ymf262Clock, vgm.header.segaPcmClock, vgm.header.ym2151Clock, vgm.header.ay8910Clock, vgm.header.ay8910Type, vgm.header.ay8910Flags, vgm.header.y8950Clock, vgm.header.k051649Clock, vgm.header.ym2413Clock, vgm.header.rf5c164Clock, vgm.header.ym2203Clock, vgm.header.ym2608Clock, vgm.header.ym2610Clock]);
 
   if (engine && (currentChipKind !== nextChipKind || engineClockKey !== nextClockKey)) {
     stopActiveStream();
@@ -2283,7 +2290,23 @@ async function ensurePlaybackReady(vgm) {
   currentPcmClock = vgm.header.rf5c164Clock & 0x3fffffff;
 
   if (!engine) {
-    if (currentChipKind === "ym2151") {
+    if (currentChipKind === "ym3812" || currentChipKind === "ymf262") {
+      const chip = currentChipKind;
+      const otherClocks = ['ym3812Clock','ymf262Clock','ym2151Clock','segaPcmClock','ym2612Clock','ym2413Clock','ay8910Clock','ym2203Clock','ym2608Clock','ym2610Clock','rf5c164Clock','pwmClock','y8950Clock','k051649Clock'];
+      if ((vgm.header[`${chip}Clock`] & 0xc0000000) || otherClocks.some(key => key !== `${chip}Clock` && vgm.header[key]))
+        throw new Error('This OPL variant or chip combination: Support coming soon.');
+      if (chip === 'ym3812') engine = await createYm3812AudioEngine({
+        ym3812ModuleFactory: (await import('../generated/ym3812_wasm.js')).default,
+        ym3812Clock: vgm.header.ym3812Clock & 0x3fffffff,
+        segaPsgModuleFactory, psgClock: vgm.header.psgClock & 0x3fffffff, masterVolume,
+      });
+      else engine = await createYmf262AudioEngine({
+        ymf262ModuleFactory: (await import('../generated/ymf262_wasm.js')).default,
+        ymf262Clock: vgm.header.ymf262Clock & 0x3fffffff,
+        segaPsgModuleFactory, psgClock: vgm.header.psgClock & 0x3fffffff, masterVolume,
+      });
+      observePsgPlaybackEngine();
+    } else if (currentChipKind === "ym2151") {
       if ((vgm.header.ym2151Clock & 0xc0000000) || ['segaPcmClock','ym2612Clock','ym2413Clock','ay8910Clock','ym2203Clock','ym2608Clock','ym2610Clock','rf5c164Clock','pwmClock','y8950Clock','k051649Clock'].some(key => vgm.header[key]))
         throw new Error('This YM2151 variant or chip combination: Support coming soon.');
       engine = await createYm2151AudioEngine({
@@ -2454,7 +2477,7 @@ function updatePlaybackButtons(state = {}) {
 // Keep the first playback-only chip boundary local until more features are implemented.
 function updateChipSupport() {
   const ay = currentChipKind === 'ay8910';
-  const playbackOnly = ['ym2151', 'ym2413'].includes(currentChipKind) || ay;
+  const playbackOnly = ['ym3812', 'ymf262', 'ym2151', 'ym2413'].includes(currentChipKind) || ay;
   for (const tab of [operatorInfoTab, noteishTab, tfiInfoTab, sampleTab]) {
     tab.disabled = playbackOnly && !(ay && tab === operatorInfoTab);
     tab.title = tab.disabled ? 'Support coming soon.' : '';
@@ -2469,7 +2492,7 @@ function updateChipSupport() {
   notice.textContent = ay ? 'AY / YM2149 instrument editing and export: Support coming soon.' : `${currentChipKind.toUpperCase()} analysis and instrument editing: Support coming soon.`;
   opnMonitorRoot.hidden = ay;
   ayMonitorRoot.hidden = !ay;
-  if (['ym2151', 'ym2413'].includes(currentChipKind)) setOutputTab('parsed-output');
+  if (['ym3812', 'ymf262', 'ym2151', 'ym2413'].includes(currentChipKind)) setOutputTab('parsed-output');
   else if (ay && operatorInfoTab.getAttribute('aria-selected') !== 'true' && parsedOutputTab.getAttribute('aria-selected') !== 'true') setOutputTab('operator-info');
 }
 
@@ -2930,7 +2953,7 @@ async function handleFile(file) {
 
   commandsOutput.textContent = events.join("\n");
   currentBuffer = buffer;
-  if (!["ym2151", "ym2413", "ay8910"].includes(currentChipKind)) songTimeline.load(buffer);
+  if (!["ym3812", "ymf262", "ym2151", "ym2413", "ay8910"].includes(currentChipKind)) songTimeline.load(buffer);
   playbackSeek.max = String(Math.max(0, vgm.header.totalSamples));
   renderSeekPosition(0);
   midiExportAvailable = Boolean(midiChipKind(vgm.header));
@@ -2939,7 +2962,7 @@ async function handleFile(file) {
     lastParseInfo.sourceHeader = sourceHeader;
     lastParseInfo.commandFormat = "VGM (normalized from S98)";
   }
-  extractedTfiPatches = ["ym2151", "ym2413", "ay8910"].includes(currentChipKind) ? [] : extractTfiPatchesFromVgm(buffer);
+  extractedTfiPatches = ["ym3812", "ymf262", "ym2151", "ym2413", "ay8910"].includes(currentChipKind) ? [] : extractTfiPatchesFromVgm(buffer);
   tfiInfo.loadVgm(buffer, file.name);
   exportAllTfiButton.disabled = extractedTfiPatches.length === 0;
   exportAllVgiButton.disabled = extractedTfiPatches.length === 0;
@@ -3248,7 +3271,7 @@ tfiInfoTab.addEventListener('click', () => setOutputTab('tfi-info'));
 window.addEventListener('pagehide', event => { if (!event.persisted) void tfiInfo.dispose(); });
 
 function setOutputTab(tabName) {
-  if ((["ym2151", "ym2413"].includes(currentChipKind) && tabName !== "parsed-output") || (currentChipKind === "ay8910" && !["operator-info", "parsed-output"].includes(tabName))) {
+  if ((["ym3812", "ymf262", "ym2151", "ym2413"].includes(currentChipKind) && tabName !== "parsed-output") || (currentChipKind === "ay8910" && !["operator-info", "parsed-output"].includes(tabName))) {
     setStatus('Analysis and instrument editing: Support coming soon.');
     tabName = "parsed-output";
   }

@@ -56,6 +56,10 @@ vgmplayer.js
 ay8910.js
 ay8910audioengine.js
 msxaudioengine.js
+ym3812.js
+ym3812audioengine.js
+ymf262.js
+ymf262audioengine.js
 ym2151.js
 ym2151audioengine.js
 ym2413.js
@@ -83,6 +87,10 @@ ym2610b_wasm.js
 ym2610b_wasm.wasm
 ay8910_wasm.js
 ay8910_wasm.wasm
+ym3812_wasm.js
+ym3812_wasm.wasm
+ymf262_wasm.js
+ymf262_wasm.wasm
 ym2151_wasm.js
 ym2151_wasm.wasm
 ym2413_wasm.js

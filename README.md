@@ -193,3 +193,12 @@ Sega PSG. Instrument analysis/editing and MIDI/MML export remain unavailable.
 YM2164, a second YM2151, DAC streams and combinations with other chips such as
 Sega PCM are not supported by this engine.
 Build with `sh scripts/build_ym2151_wasm.sh`.
+
+### OPL2 / OPL3 VGM playback
+
+YM3812 and YMF262 VGM/VGZ files can be played in the Analyzer, with optional Sega
+PSG. OPL3 supports both register ports; its four output buses are folded into
+stereo (A+C left, B+D right). Analysis and instrument editing remain unavailable.
+Second chips, OPL DAC streams and other chip combinations are not supported.
+This does not emulate Sound Blaster PCM/DMA hardware. Build with
+`sh scripts/build_ym3812_wasm.sh` and `sh scripts/build_ymf262_wasm.sh`.
