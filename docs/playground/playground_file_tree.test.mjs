@@ -46,3 +46,37 @@ test('folder state survives rendering and file buttons open full paths', () => {
     assert.equal(root.children[0].children[0].children[0].open, false);
   } finally { globalThis.document = previous; }
 });
+
+test('folder and project root drops route move and modifier-copy operations', () => {
+  class Element {
+    children = []; listeners = {};
+    classList = { add() {}, remove() {} };
+    append(...children) { this.children.push(...children); }
+    appendChild(child) { this.append(child); }
+    replaceChildren(...children) { this.children = children; }
+    setAttribute() {}
+    addEventListener(key, value) { this.listeners[key] = value; }
+  }
+  const previous = globalThis.document;
+  globalThis.document = { createElement: () => new Element() };
+  try {
+    const root = new Element();
+    const transfers = [];
+    renderFileTree(root, [{ path: '/lib/x.js' }], {
+      selectedPath: '/lib/x.js', expanded: new Map(), onOpen() {},
+      onTransfer: (...args) => transfers.push(args),
+    });
+    const label = root.children[1].children[0].children[0].children[0];
+    const data = new Map();
+    const event = { stopPropagation() {}, preventDefault() {}, dataTransfer: {
+      setData: (key, value) => data.set(key, value), getData: key => data.get(key),
+    } };
+    label.listeners.dragstart(event);
+    assert.equal(data.get('application/x-tetorica-path'), '/lib');
+    data.set('application/x-tetorica-path', '/x.js');
+    label.ondrop(event);
+    data.set('application/x-tetorica-path', '/lib/x.js');
+    root.children[0].ondrop({ ...event, altKey: true });
+    assert.deepEqual(transfers, [['/x.js', '/lib/x.js', false], ['/lib/x.js', '/x.js', true]]);
+  } finally { globalThis.document = previous; }
+});

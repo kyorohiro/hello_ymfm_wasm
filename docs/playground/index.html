@@ -682,6 +682,7 @@
 
       .file-explorer-header {
         display: flex;
+        flex-wrap: wrap;
         align-items: center;
         justify-content: space-between;
         gap: 6px;
@@ -693,6 +694,7 @@
 
       .file-explorer-actions {
         display: flex;
+        flex-wrap: wrap;
         gap: 4px;
       }
 
@@ -703,6 +705,9 @@
       }
 
       .file-tree { list-style: none; margin: 0; padding: 0; }
+      .file-tree-root { padding: 6px 8px; margin-bottom: 4px; border-bottom: 1px solid rgba(87, 188, 198, 0.35); font-size: 0.75rem; }
+      .file-drop-target { outline: 1px solid #57bcc6; background: rgba(87, 188, 198, 0.2); }
+      .file-tree [draggable="true"] { cursor: grab; }
       .file-tree .file-tree { padding-left: 12px; }
       .file-tree summary {
         cursor: pointer;
@@ -1617,7 +1622,8 @@
                   <span class="file-explorer-actions">
                     <button id="newFileButton" type="button" title="New file">+</button>
                     <button id="importFileButton" type="button" title="Import file">I</button>
-                    <button id="renameFileButton" type="button" title="Rename file">R</button>
+                    <button id="copyFileButton" type="button" title="Copy selected file to another path">Copy</button>
+                    <button id="renameFileButton" type="button" title="Rename / Move" aria-label="Rename / Move">R</button>
                     <button id="deleteFileButton" type="button" title="Delete file">-</button>
                   </span>
                 </div>

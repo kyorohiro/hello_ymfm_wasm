@@ -21,7 +21,37 @@ export function buildFileTree(files) {
   return sorted(root);
 }
 
-export function renderFileTree(root, files, { selectedPath, expanded, onOpen }) {
+export function renderFileTree(root, files, { selectedPath, expanded, onOpen, onTransfer }) {
+  const dragType = 'application/x-tetorica-path';
+  function draggable(element, path) {
+    if (!onTransfer) return;
+    element.draggable = true;
+    element.addEventListener('dragstart', event => {
+      event.stopPropagation();
+      event.dataTransfer.setData(dragType, path);
+      event.dataTransfer.effectAllowed = 'copyMove';
+    });
+  }
+  function dropTarget(element, directory) {
+    if (!onTransfer) return;
+    element.ondragover = event => {
+      if (!Array.from(event.dataTransfer?.types || []).includes(dragType)) return;
+      event.preventDefault();
+      event.stopPropagation();
+      event.dataTransfer.dropEffect = event.ctrlKey || event.altKey ? 'copy' : 'move';
+      element.classList.add('file-drop-target');
+    };
+    element.ondragleave = () => element.classList.remove('file-drop-target');
+    element.ondrop = event => {
+      element.classList.remove('file-drop-target');
+      const source = event.dataTransfer?.getData(dragType);
+      if (!source) return;
+      event.preventDefault();
+      event.stopPropagation();
+      onTransfer(source, `${directory}/${source.split('/').pop()}`, Boolean(event.ctrlKey || event.altKey));
+    };
+  }
+  dropTarget(root, '');
   function render(nodes) {
     const list = document.createElement('ul');
     list.className = 'file-tree';
@@ -33,6 +63,8 @@ export function renderFileTree(root, files, { selectedPath, expanded, onOpen }) 
         const label = document.createElement('summary');
         label.textContent = node.name;
         label.title = node.path;
+        draggable(label, node.path);
+        dropTarget(label, node.path);
         folder.append(label, render(node.children));
         folder.addEventListener('toggle', () => expanded.set(node.path, folder.open));
         item.appendChild(folder);
@@ -43,6 +75,7 @@ export function renderFileTree(root, files, { selectedPath, expanded, onOpen }) 
         button.className = 'file-entry';
         button.textContent = node.name;
         button.title = node.path;
+        draggable(button, node.path);
         button.setAttribute('aria-current', String(node.path === selectedPath));
         button.addEventListener('click', () => { button.blur(); onOpen(node.path); });
         item.appendChild(button);
@@ -51,5 +84,13 @@ export function renderFileTree(root, files, { selectedPath, expanded, onOpen }) 
     }
     return list;
   }
-  root.replaceChildren(render(buildFileTree(files)));
+  const tree = render(buildFileTree(files));
+  if (onTransfer) {
+    const project = document.createElement('div');
+    project.className = 'file-tree-root';
+    project.textContent = 'Project /';
+    project.title = 'Drop here to move to the project root. Hold Ctrl or Option to copy.';
+    dropTarget(project, '');
+    root.replaceChildren(project, tree);
+  } else root.replaceChildren(tree);
 }

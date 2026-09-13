@@ -33,6 +33,7 @@ import {
   createVirtualFileSystem,
   createVirtualFileRuntimeSource,
   normalizeVirtualPath,
+  transferVirtualFiles,
   resolveVirtualDynamicImports,
 } from "./playground_virtual_files.js";
 import { looksLikeS98, convertS98ToVgm } from "../js/s98_file.js";
@@ -1089,6 +1090,7 @@ function renderVirtualFileExplorer() {
       selectedPath,
       expanded: expandedFileFolders,
       onOpen: openVirtualFile,
+      onTransfer: transferExplorerFiles,
     });
   renameFileButton.disabled = Boolean(activeTfiFilePath);
   deleteFileButton.disabled = Boolean(activeTfiFilePath);
@@ -1248,6 +1250,41 @@ function clearVirtualTfiPresets() {
     operatorTab.removePresetOption(presetId);
   }
   virtualPresetIds.clear();
+}
+
+function transferExplorerFiles(source, destination, copy = false) {
+  try {
+    saveActiveVirtualFile();
+    const moved = transferVirtualFiles(virtualFiles, source, destination, { copy });
+    if (!moved.length) return;
+    if (!copy) {
+      const active = moved.find(entry => entry.from === activeVirtualPath);
+      const running = moved.find(entry => entry.from === runVirtualPath);
+      const tone = moved.find(entry => entry.from === activeTfiFilePath);
+      if (active) activeVirtualPath = active.to;
+      if (running) runVirtualPath = running.to;
+      if (tone) {
+        activeTfiFilePath = tone.to;
+        tfiFileEditor.open(tone.to, virtualFiles.get(tone.to).data);
+      } else if (active) showVirtualFile(virtualFiles.get(activeVirtualPath));
+    }
+    editorAdapter.syncVirtualFiles?.(virtualFiles.list());
+    clearVirtualTfiPresets();
+    registerVirtualTfiPresets();
+    expandedFileFolders.set(normalizeVirtualPath(destination).split('/').slice(0, -1).join('/'), true);
+    renderVirtualFileExplorer();
+    renderRunFileOptions();
+    setStatus(`${copy ? "Copied" : "Moved"} ${source} to ${destination}.`);
+  } catch (error) {
+    setStatus(`Could not ${copy ? "copy" : "move"}: ${error.message}`);
+  }
+}
+
+function promptExplorerTransfer(copy) {
+  const source = activeTfiFilePath ?? activeVirtualPath;
+  const suggested = copy ? source.replace(/(\.[^/.]+)?$/, '-copy$1') : source;
+  const destination = window.prompt(`${copy ? "Copy" : "Move"} file to path`, suggested);
+  if (destination) transferExplorerFiles(source, destination, copy);
 }
 
 function renameActiveVirtualFile() {
@@ -1792,6 +1829,7 @@ function installPlaygroundEventHandlers() {
   });
   newFileButton?.addEventListener("click", createVirtualFile);
   importFileButton?.addEventListener("click", promptVirtualFileImport);
+  document.getElementById("copyFileButton")?.addEventListener("click", () => promptExplorerTransfer(true));
   renameFileButton?.addEventListener("click", renameActiveVirtualFile);
   deleteFileButton?.addEventListener("click", deleteActiveVirtualFile);
   expandButton?.addEventListener(

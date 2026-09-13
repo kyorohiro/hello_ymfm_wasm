@@ -1,6 +1,33 @@
 const textDecoder = new TextDecoder();
 const textEncoder = new TextEncoder();
 
+// Validate the whole operation before changing any files, including folder contents.
+export function transferVirtualFiles(fileSystem, source, destination, { copy = false } = {}) {
+  source = normalizeVirtualPath(source);
+  destination = normalizeVirtualPath(destination);
+  if ([source, destination].some(path => path === '/sys' || path.startsWith('/sys/'))) {
+    throw new Error('/sys is reserved for built-in files.');
+  }
+  if (source === destination) return [];
+  if (destination.startsWith(`${source}/`)) throw new Error('Cannot place a folder inside itself.');
+  const files = fileSystem.list();
+  const selected = files.filter(file => file.path === source || file.path.startsWith(`${source}/`));
+  if (!selected.length) throw new Error('Source file or folder does not exist.');
+  if (!copy && selected.some(file => file.path === '/index.js')) throw new Error('/index.js cannot be moved.');
+  const moves = selected.map(file => ({ file, path: destination + file.path.slice(source.length) }));
+  for (const { path } of moves) {
+    if (files.some(file => file.path === path || file.path.startsWith(`${path}/`) || path.startsWith(`${file.path}/`))) {
+      throw new Error(`Destination already exists or conflicts with a file: ${path}`);
+    }
+  }
+  for (const { file, path } of moves) {
+    if (file.type === 'binary') fileSystem.writeBinary(path, file.data);
+    else fileSystem.writeText(path, file.data);
+  }
+  if (!copy) for (const { file } of moves) fileSystem.delete(file.path);
+  return moves.map(({ file, path }) => ({ from: file.path, to: path }));
+}
+
 export function normalizeVirtualPath(path, basePath = "/") {
   const input = String(path ?? "");
   const base = String(basePath ?? "/");
