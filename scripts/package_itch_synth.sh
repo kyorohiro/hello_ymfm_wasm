@@ -21,8 +21,12 @@ synth_envelope.js
 synth_input.js
 synth_keyboard.js
 synth_runtime.js
+synth_preset_import.js
 "
 RUNTIME_FILES="
+vgm_file.js
+ym2612vgm.js
+opn_fm_vgm.js
 bitcrusher-worklet.js
 looper.js
 megasynth.js
@@ -112,6 +116,8 @@ rm -f "${ZIP_PATH}"
 mkdir -p "${STAGE_DIR}/js" "${STAGE_DIR}/generated" "${STAGE_DIR}/licenses/nuked-opn2"
 
 cp "${SOURCE_HTML}" "${STAGE_DIR}/index.html"
+mkdir -p "${STAGE_DIR}/playground"
+cp "${ROOT_DIR}/docs/playground/playground_vgm_presets.js" "${STAGE_DIR}/playground/"
 perl -0pi -e 's#\s*<link rel="manifest" href="\.\./[^\"]+\.webmanifest">##g; s#\s*<link rel="icon" href="\.\./[^\"]+\.ico" sizes="any">##g; s#\s*<script src="\.\./sw-register\.js"></script>##g' "${STAGE_DIR}/index.html"
 
 for file in ${SYNTH_FILES}; do
@@ -175,6 +181,7 @@ EOF
 perl -0pi -e 's#import "\\./synth\\.js";#import "./synth.js";#g' "${STAGE_DIR}/index.html"
 perl -0pi -e 's#\.\./js/([A-Za-z0-9._-]+\.js)#./js/$1#g; s#\.\./generated/#./generated/#g' "${STAGE_DIR}/synth.js"
 perl -0pi -e 's#\.\./js/([A-Za-z0-9._-]+\.js)#./js/$1#g' "${STAGE_DIR}/synth_keyboard.js" "${STAGE_DIR}/synth_runtime.js"
+perl -0pi -e 's#\.\./js/#./js/#g; s#\.\./playground/#./playground/#g' "${STAGE_DIR}/synth_preset_import.js"
 perl -0pi -e 's#\.\./js/megasynth\.js#./js/megasynth.js#g#' "${STAGE_DIR}/synth_runtime.js"
 perl -0pi -e 's#\./ym2612-worklet\.js#./js/ym2612-worklet.js#g; s#\./generated/ym2612_wasm\.wasm#./generated/ym2612_wasm.wasm#g' "${STAGE_DIR}/js/megasynth.js"
 perl -0pi -e 's#import ym2612ModuleFactory from "\\.\\./generated/ym2612_wasm\\.js";#import ym2612ModuleFactory from "../generated/ym2612_wasm.js";#g' "${STAGE_DIR}/js/ym2612-worklet.js"

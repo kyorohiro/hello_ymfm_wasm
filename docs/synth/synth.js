@@ -1,3 +1,4 @@
+import { readPresetFile } from "./synth_preset_import.js";
 import {
   FM_PRESETS,
   FM_PRESET_ORDER,
@@ -6,9 +7,7 @@ import {
 import { YM2612_CLOCK } from "../js/ym2612.js";
 import {
   createTfiFromPreset,
-  parseTfi,
 } from "../js/tfi.js";
-import { parseVgi } from "../js/vgi.js";
 import { createVgiFromPreset } from "../js/vgi.js";
 import {
   buildKeyboard as buildKeyboardView,
@@ -109,6 +108,9 @@ const operatorControlsRoot =
   document.getElementById("operatorControls");
 const operatorHeaderRoot =
   document.getElementById("operatorHeader");
+const importedPresets = new Map();
+let importedPresetSerial = 0;
+
 const presetSelect =
   document.getElementById("presetSelect");
 const tfiFileInput =
@@ -1314,7 +1316,9 @@ function updateTfiSummary() {
 
   if (!importedTfiName) {
     tfiSummary.textContent =
-      "TFI/VGI: none";
+      importedPresets.size
+        ? `${importedPresets.size} imported presets (this session)`
+        : "Drop VGM / VGZ / TFI / VGI anywhere to load.";
     return;
   }
 
@@ -1325,10 +1329,7 @@ function updateTfiSummary() {
 function applyPresetState(
   presetName
 ) {
-  const preset =
-    FM_PRESETS[
-      presetName
-    ];
+  const preset = importedPresets.get(presetName) ?? FM_PRESETS[presetName];
 
   if (!preset) {
     return;
@@ -1337,43 +1338,6 @@ function applyPresetState(
   currentPresetName =
     presetName;
   importedTfiName = "";
-  commonState.algorithm =
-    preset.algorithm ?? 7;
-  commonState.feedback =
-    preset.feedback ?? 0;
-  commonState.ams =
-    preset.ams ?? 0;
-  commonState.pms =
-    preset.pms ?? 0;
-
-  for (const operator of OPERATOR_NUMBERS) {
-    const nextOperator =
-      preset.operators?.[operator] ||
-      {};
-
-    operatorStates[operator] = {
-      ...operatorStates[operator],
-      ...nextOperator,
-    };
-  }
-
-  syncControlsFromState();
-  updateTfiSummary();
-  renderAlgorithmDiagram();
-  drawEnvelopeGuide();
-
-  if (synth) {
-    applyPatchToVoices();
-  }
-}
-
-function applyImportedTfiPreset(
-  fileName,
-  preset
-) {
-  currentPresetName =
-    "custom";
-  importedTfiName = fileName;
   commonState.algorithm =
     preset.algorithm ?? 7;
   commonState.feedback =
@@ -2400,9 +2364,11 @@ function buildPresetSelect() {
         return;
       }
 
+      stopAllNotes();
       applyPresetState(
         presetSelect.value
       );
+      presetSelect.blur();
     }
   );
 
@@ -2411,49 +2377,87 @@ function buildPresetSelect() {
 }
 
 function buildTfiLoader() {
-  if (!tfiFileInput) {
-    return;
-  }
+  if (!tfiFileInput) return;
+  const importError = document.getElementById("presetImportError");
+  let loadGeneration = 0;
+  let importedGroups = [];
 
-  tfiFileInput.addEventListener(
-    "change",
-    async (event) => {
-      const [file] =
-        event.target.files || [];
-
-      if (!file) {
-        return;
-      }
-
+  async function loadFiles(selection) {
+    const files = Array.from(selection || []);
+    if (!files.length) return;
+    const generation = ++loadGeneration;
+    tfiFileInput.value = "";
+    importError.hidden = true;
+    importError.textContent = "";
+    setStatus("Loading instruments…");
+    const batches = [];
+    const failures = [];
+    for (const file of files) {
       try {
-        const arrayBuffer =
-          await file.arrayBuffer();
-        const bytes = new Uint8Array(arrayBuffer);
-        // The file length is authoritative: TFI is 42 bytes and VGI is 43.
-        // This also avoids routing a renamed VGI file through parseTfi().
-        const isVgi = bytes.length === 43;
-        const preset = isVgi ? parseVgi(bytes) : parseTfi(bytes);
-
-        stopAllNotes();
-        applyImportedTfiPreset(
-          file.name,
-          preset
-        );
-        setStatus(
-          `Loaded ${isVgi ? "VGI" : "TFI"} ${file.name}.`
-        );
+        const bytes = new Uint8Array(await file.arrayBuffer());
+        if (generation !== loadGeneration) return;
+        const presets = await readPresetFile(bytes, file.name);
+        if (generation !== loadGeneration) return;
+        if (presets.length) batches.push({ file, presets });
+        else failures.push(`${file.name}: no supported OPN FM instruments found`);
       } catch (error) {
-        importedTfiName = "";
-        updateTfiSummary();
-        setStatus(
-          `Failed to load TFI/VGI: ${error.message}`
-        );
-      } finally {
-        tfiFileInput.value = "";
+        failures.push(`${file.name}: ${error.message}`);
       }
     }
-  );
+    if (generation !== loadGeneration) return;
 
+    const compareNames = (a, b) => a.localeCompare(b, "en", { numeric: true, sensitivity: "base" });
+    batches.sort((a, b) => compareNames(a.file.name, b.file.name));
+    for (const batch of batches) {
+      batch.presets.sort((a, b) => compareNames(a.label, b.label));
+    }
+
+    // Commit a complete selection at once. Failed imports keep the current sound.
+    if (batches.length) {
+      stopAllNotes();
+      for (const group of importedGroups) group.remove();
+      importedGroups = [];
+      importedPresets.clear();
+      const firstDefault = presetSelect.firstChild;
+      let firstPresetId = null;
+      for (const { file, presets } of batches) {
+        const group = document.createElement("optgroup");
+        group.label = file.name;
+        for (const { label, preset } of presets) {
+          const id = `imported-${++importedPresetSerial}`;
+          importedPresets.set(id, preset);
+          const option = document.createElement("option");
+          option.value = id;
+          option.textContent = label;
+          group.appendChild(option);
+          firstPresetId ??= id;
+        }
+        presetSelect.insertBefore(group, firstDefault);
+        importedGroups.push(group);
+      }
+      applyPresetState(firstPresetId);
+      tfiSummary.textContent = `${importedPresets.size} imported presets (this session)`;
+    }
+    if (failures.length) {
+      importError.textContent = `Could not load some files:\n${failures.join("\n")}\nSupported formats: VGM, VGZ, TFI, VGI. VGM/VGZ extraction supports OPN FM instruments only.${batches.length ? "" : " Previous presets were kept."}`;
+      importError.hidden = false;
+    }
+    const count = batches.reduce((sum, batch) => sum + batch.presets.length, 0);
+    setStatus(`Loaded ${count} instrument(s).${failures.length ? ` Failed: ${failures.join("; ")}` : ""}`);
+    document.activeElement?.blur?.();
+  }
+
+  tfiFileInput.addEventListener("change", event => loadFiles(event.target.files));
+  document.addEventListener("dragover", event => {
+    if (!Array.from(event.dataTransfer?.types || []).includes("Files")) return;
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "copy";
+  });
+  document.addEventListener("drop", event => {
+    if (!event.dataTransfer?.files?.length) return;
+    event.preventDefault();
+    return loadFiles(event.dataTransfer.files);
+  });
   updateTfiSummary();
 }
 

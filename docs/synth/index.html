@@ -1049,6 +1049,8 @@
           margin-left: 18px;
         }
       }
+      .preset-import-error { padding: 10px 12px; border: 1px solid #ed975b; border-radius: 8px; background: #35271f; color: #ffe1c6; font-size: 0.8rem; white-space: pre-line; overflow-wrap: anywhere; }
+
       /* The enclosure and lettering follow the Synth application icon. */
       #pageTitle {
         align-items: center;
@@ -1113,13 +1115,14 @@
               <div class="preset-row">
                 <label for="presetSelect">Preset</label>
                 <select id="presetSelect"></select>
-                <label for="tfiFile">TFI / VGI</label>
-                <input id="tfiFile" class="tfi-file" type="file" accept=".tfi,.vgi,application/octet-stream">
-                <div id="tfiSummary" class="tfi-summary">No TFI/VGI loaded.</div>
+                <label for="tfiFile">VGM / VGZ / TFI / VGI</label>
+                <input id="tfiFile" class="tfi-file" type="file" multiple accept=".vgm,.vgz,.tfi,.vgi,application/octet-stream">
+                <div id="tfiSummary" class="tfi-summary">Drop VGM / VGZ / TFI / VGI anywhere to load.</div>
                 <button id="exportTfiButton" class="toolbar-button" type="button">Export TFI</button>
                 <button id="exportVgiButton" class="toolbar-button" type="button">Export VGI</button>
                 <button class="toolbar-button" data-reset-offline-cache type="button">Reset Offline Cache</button>
               </div>
+              <p id="presetImportError" class="preset-import-error" role="alert" hidden></p>
               <div class="operator-stack">
                 <div class="operator-header-row">
                 <div class="operator-header-spacer"></div>
