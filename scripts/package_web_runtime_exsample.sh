@@ -29,6 +29,13 @@ ym2612synth_audioworklet.html
 "
 
 JS_FILES="
+msxaudioengine.js
+ay8910audioengine.js
+ay8910.js
+ym2413audioengine.js
+ym2413.js
+vgm_file.js
+s98_file.js
 bitcrusher-worklet.js
 genesisaudioengine.js
 rf5c164.js
@@ -84,6 +91,10 @@ ym2608vgm.js
 "
 
 GENERATED_FILES="
+ay8910_wasm.js
+ay8910_wasm.wasm
+ym2413_wasm.js
+ym2413_wasm.wasm
 ym2612_wasm.js
 ym2612_wasm.wasm
 nuked_opn2_wasm.js
@@ -189,6 +200,9 @@ for chip in ym2203 ym2608 ym2610b rf5c164; do
   fi
 done
 
+mkdir -p "${STAGE_DIR}/licenses/mame-ay8910"
+cp "${ROOT_DIR}/third_party/mame-ay8910/LICENSE" "${ROOT_DIR}/third_party/mame-ay8910/README.md" "${STAGE_DIR}/licenses/mame-ay8910/"
+
 cp -R "${PLAYGROUND_SAMPLES_DIR}/." "${STAGE_DIR}/samples/"
 cp "${LICENSE_FILE}" "${STAGE_DIR}/LICENSE"
 mkdir -p "${STAGE_DIR}/licenses/mame-rf5c164"
@@ -199,6 +213,8 @@ for file in ${NUKED_LICENSE_FILES}; do
 done
 
 cat > "${STAGE_DIR}/THIRD_PARTY_LICENSES.txt" <<EOF
+AY-3-8910 / YM2149: MAME adaptation, BSD-3-Clause. See licenses/mame-ay8910/.
+
 RF5C164: MAME adaptation, BSD-3-Clause. See licenses/mame-rf5c164/LICENSE and README.md.
 
 This package includes two YM2612 engine options:

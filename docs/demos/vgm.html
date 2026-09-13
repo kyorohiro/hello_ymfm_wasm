@@ -129,7 +129,7 @@
           <a href="https://github.com/kyorohiro/hello_ymfm_wasm/blob/main/docs/js/vgm-output-worklet.js">docs/js/vgm-output-worklet.js</a>
         </p>
         <div class="actions">
-          <input id="fileInput" type="file" accept=".vgm,.vgz,application/octet-stream">
+          <input id="fileInput" type="file" accept=".vgm,.vgz,.s98,application/octet-stream">
           <button id="playButton" type="button" disabled>Play VGM</button>
           <button id="pauseButton" type="button" disabled>Pause</button>
           <button id="resumeButton" type="button" disabled>Resume</button>
@@ -138,7 +138,7 @@
           <label><input id="loopCheckbox" type="checkbox"> Loop</label>
           <a class="link-button" href="../index.html">Back</a>
         </div>
-        <div class="status" id="status">Choose a .vgm file.</div>
+        <div class="status" id="status">Choose a VGM, VGZ, or S98 file.</div>
 
         <h2>Header</h2>
         <pre id="headerOutput">No file loaded.</pre>
@@ -166,8 +166,17 @@
     <script type="module">
       import { Ym2612VGM } from "../js/ym2612vgm.js";
       import ym2612ModuleFactory from "../generated/ym2612_wasm.js";
+      import rf5c164ModuleFactory from "../generated/rf5c164_wasm.js";
       import segaPsgModuleFactory from "../generated/segapsg_wasm.js";
       import { createGenesisAudioEngine } from "../js/genesisaudioengine.js";
+      import { maybeDecodeVgmFile } from "../js/vgm_file.js";
+      import { looksLikeS98, convertS98ToVgm } from "../js/s98_file.js";
+      import { createMsxAudioEngine } from "../js/msxaudioengine.js";
+      import { createAy8910AudioEngine, validateAyPlaybackHeader } from "../js/ay8910audioengine.js";
+      import { createYm2413AudioEngine } from "../js/ym2413audioengine.js";
+      import { createYm2203AudioEngine } from "../js/ym2203audioengine.js";
+      import { createYm2608AudioEngine } from "../js/ym2608audioengine.js";
+      import { createYm2610BAudioEngine } from "../js/ym2610baudioengine.js";
       import { VgmPlayer } from "../js/vgmplayer.js";
 
       const fileInput = document.getElementById("fileInput");
@@ -287,27 +296,63 @@
         }).join("\n");
       }
 
-      function looksLikeGzip(buffer) {
-        const bytes = new Uint8Array(buffer, 0, Math.min(buffer.byteLength, 2));
-        return bytes.length >= 2 && bytes[0] === 0x1f && bytes[1] === 0x8b;
-      }
-
       async function ensurePlaybackReady(vgm) {
-        if (!engine) {
-          engine = await createGenesisAudioEngine({
-            ym2612ModuleFactory,
-            segaPsgModuleFactory,
-          });
+        // Recreate for each file: chip clocks and PCM requirements can change.
+        player = null;
+        engine?.dispose();
+        engine = null;
+        if (vgm.header.ay8910Clock) {
+          validateAyPlaybackHeader(vgm.header);
+          const { default: moduleFactory } = await import("../generated/ay8910_wasm.js");
+          if (vgm.header.ym2413Clock) {
+            const { default: ym2413ModuleFactory } = await import("../generated/ym2413_wasm.js");
+            engine = await createMsxAudioEngine({
+              ayModuleFactory: moduleFactory, ayClock: vgm.header.ay8910Clock & 0x3fffffff,
+              ayType: vgm.header.ay8910Type, ayFlags: vgm.header.ay8910Flags,
+              ym2413ModuleFactory, ym2413Clock: vgm.header.ym2413Clock & 0x3fffffff,
+            });
+          } else {
+            engine = await createAy8910AudioEngine({ moduleFactory,
+              clock: vgm.header.ay8910Clock & 0x3fffffff,
+              type: vgm.header.ay8910Type, flags: vgm.header.ay8910Flags });
+          }
+        } else if (vgm.header.ym2413Clock) {
+          if ((vgm.header.ym2413Clock & 0xc0000000) ||
+              ["ym2612Clock", "ym2203Clock", "ym2608Clock", "ym2610Clock", "rf5c164Clock", "pwmClock"].some(key => vgm.header[key]))
+            throw new Error("This OPLL chip combination is not supported yet.");
+          const { default: ym2413ModuleFactory } = await import("../generated/ym2413_wasm.js");
+          engine = await createYm2413AudioEngine({ ym2413ModuleFactory,
+            ym2413Clock: vgm.header.ym2413Clock & 0x3fffffff,
+            segaPsgModuleFactory, psgClock: vgm.header.psgClock & 0x3fffffff });
+        } else if (vgm.header.ym2608Clock) {
+          const { default: ym2608ModuleFactory } = await import("../generated/ym2608_wasm.js");
+          engine = await createYm2608AudioEngine({ ym2608ModuleFactory, ym2608Clock: vgm.header.ym2608Clock });
+        } else if (vgm.header.ym2203Clock) {
+          const { default: ym2203ModuleFactory } = await import("../generated/ym2203_wasm.js");
+          engine = await createYm2203AudioEngine({ ym2203ModuleFactory, ym2203Clock: vgm.header.ym2203Clock });
+        } else if (vgm.header.ym2610Clock) {
+          const { default: moduleFactory } = await import("../generated/ym2610b_wasm.js");
+          engine = await createYm2610BAudioEngine({ moduleFactory, clock: vgm.header.ym2610Clock & 0x3fffffff, variant: Boolean(vgm.header.ym2610Clock & 0x80000000) });
+        } else {
+          const unsupported = ["ym2151", "ym3812", "ymf262"].filter(chip => vgm.header[`${chip}Clock`]);
+          if (unsupported.length) throw new Error(`This example does not support playback of ${unsupported.join(", ")}. Please use VGM Analyzer.`);
+        engine = await createGenesisAudioEngine({
+          ym2612ModuleFactory,
+          segaPsgModuleFactory,
+          rf5c164ModuleFactory,
+          ym2612Clock: vgm.header.ym2612Clock || undefined,
+          psgClock: vgm.header.psgClock || undefined,
+          rf5c164Clock: vgm.header.rf5c164Clock || 0,
+        });
         }
-        if (!player) {
-          player = new VgmPlayer(engine);
-        }
+        player = new VgmPlayer(engine);
 
         const sampleRate = engine.sampleRate();
 
         if (!audioContext || audioContext.sampleRate !== sampleRate) {
           if (audioContext) {
             await audioContext.close();
+            workletModuleReady = false;
           }
           audioContext = new AudioContext({ sampleRate });
         }
@@ -367,11 +412,18 @@
           updatePlaybackButtons(player.stats());
           setStatus(`Streaming VGM at ${sampleRate} Hz...`);
         } catch (error) {
-          console.error(error);
-          setStatus(`Error: ${error.message}`);
+          handlePlaybackError(error);
         } finally {
           updatePlaybackButtons(player ? player.stats() : {});
         }
+      }
+
+      function handlePlaybackError(error) {
+        stopActiveStream();
+        player?.stop();
+        updatePlaybackButtons();
+        console.error(error);
+        setStatus(`Playback failed: ${error.message}`);
       }
 
       function updateStreamingStatus(extra = "") {
@@ -403,7 +455,12 @@
           const frames = activeStream.chunkFrames;
           const left = new Float32Array(frames);
           const right = new Float32Array(frames);
-          player.process(left, right, frames);
+          try {
+            player.process(left, right, frames);
+          } catch (error) {
+            handlePlaybackError(error);
+            return;
+          }
           activeStream.workletQueuedFrames += frames;
           activeStream.node.port.postMessage(
             { type: "enqueue", left: left.buffer, right: right.buffer },
@@ -442,6 +499,7 @@
           endSent: false,
         };
         node.port.onmessage = (event) => {
+          if (!activeStream || activeStream.node !== node) return;
           const data = event.data || {};
           if (typeof data.queuedFrames === "number") {
             activeStream.workletQueuedFrames = data.queuedFrames;
@@ -456,6 +514,7 @@
         };
         node.connect(audioContext.destination);
         pumpWorkletChunks(chunkFrames * 2);
+        if (!activeStream) throw new Error("Audio stream stopped during initialization");
         return true;
       }
 
@@ -466,7 +525,14 @@
         node.onaudioprocess = (event) => {
           const left = event.outputBuffer.getChannelData(0);
           const right = event.outputBuffer.getChannelData(1);
-          player.process(left, right, bufferSize);
+          try {
+            player.process(left, right, bufferSize);
+          } catch (error) {
+            left.fill(0);
+            right.fill(0);
+            handlePlaybackError(error);
+            return;
+          }
           const stats = player.stats();
           requestPlaybackUiRender("(ScriptProcessor)");
 
@@ -482,27 +548,19 @@
 
       async function handleFile(file) {
         setStatus(`Loading ${file.name}...`);
-        const buffer = await file.arrayBuffer();
+        stopActiveStream();
+        player?.stop();
         currentBuffer = null;
-        playButton.disabled = true;
-
-        if (looksLikeGzip(buffer)) {
-          headerOutput.textContent = "Compressed VGZ is not supported yet in this demo.";
-          commandsOutput.textContent = "Please use a plain .vgm file for now.";
-          pauseButton.disabled = true;
-          resumeButton.disabled = true;
-          replayButton.disabled = true;
-          stopButton.disabled = true;
-          setStatus("VGZ is not supported yet.");
-          return;
-        }
-
+        updatePlaybackButtons();
+        let buffer;
         let vgm;
         try {
+          buffer = await maybeDecodeVgmFile(await file.arrayBuffer());
+          if (looksLikeS98(buffer)) buffer = convertS98ToVgm(buffer).buffer;
           vgm = new Ym2612VGM(buffer);
         } catch (error) {
           console.error(error);
-          headerOutput.textContent = "Failed to parse VGM header.";
+          headerOutput.textContent = "Failed to read VGM / VGZ / S98 file.";
           commandsOutput.textContent = error.message;
           pauseButton.disabled = true;
           resumeButton.disabled = true;
