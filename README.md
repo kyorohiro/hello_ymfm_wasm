@@ -176,3 +176,12 @@ and the local [sample notes](docs/playground/samples/sonic-pi/README.md).
   - https://vgmrips.net/wiki/VGM_Specification
 - SMS Power:
   - https://www.smspower.org/
+
+### AY-3-8910 / YM2149 VGM playback
+
+The VGM Analyzer supports AY-3-8910 and YM2149 playback, standalone or with
+YM2413, using a pinned MAME adaptation. Operator Info shows AY register settings
+and tone pitch, with channel and source mute controls. Instrument editing and
+MIDI/MML export for these chips are not yet available. See the
+[AY implementation notes](third_party/mame-ay8910/README.md) for supported flags
+and limitations. Build with `sh scripts/build_ay8910_wasm.sh`.

@@ -17,6 +17,7 @@ ANALYZER_FILES="
 index.html
 analyzer_theme.css
 tfi_info.js
+ay8910_monitor.js
 tfi_info.css
 vgm_analyzer.js
 sample_explorer.js
@@ -52,6 +53,9 @@ vgm_file.js
 s98_file.js
 vgm-output-worklet.js
 vgmplayer.js
+ay8910.js
+ay8910audioengine.js
+msxaudioengine.js
 ym2413.js
 ym2413audioengine.js
 ym2203.js
@@ -75,6 +79,8 @@ ym2612synth.js
 GENERATED_FILES="
 ym2610b_wasm.js
 ym2610b_wasm.wasm
+ay8910_wasm.js
+ay8910_wasm.wasm
 ym2413_wasm.js
 ym2413_wasm.wasm
 ym2203_wasm.js
@@ -177,6 +183,9 @@ for file in ${GENERATED_FILES}; do
   cp "${src}" "${dst}"
 done
 
+mkdir -p "${STAGE_DIR}/licenses/mame-ay8910"
+cp "${ROOT_DIR}/third_party/mame-ay8910/LICENSE" "${ROOT_DIR}/third_party/mame-ay8910/README.md" "${STAGE_DIR}/licenses/mame-ay8910/"
+
 cp "${LICENSE_FILE}" "${STAGE_DIR}/LICENSE"
 mkdir -p "${STAGE_DIR}/licenses/mame-rf5c164"
 cp "${ROOT_DIR}/third_party/mame-rf5c164/LICENSE" "${ROOT_DIR}/third_party/mame-rf5c164/README.md" "${STAGE_DIR}/licenses/mame-rf5c164/"
@@ -194,6 +203,8 @@ for file in ${NUKED_LICENSE_FILES}; do
 done
 
 cat > "${STAGE_DIR}/THIRD_PARTY_LICENSES.txt" <<EOF
+AY-3-8910 / YM2149: MAME adaptation, BSD-3-Clause. See licenses/mame-ay8910/.
+
 RF5C164: MAME adaptation, BSD-3-Clause. See licenses/mame-rf5c164/LICENSE and README.md.
 
 This package includes two YM2612 engine options:

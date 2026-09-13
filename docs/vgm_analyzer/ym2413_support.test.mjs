@@ -12,7 +12,7 @@ const tabNames=['operatorInfoTab','noteishTab','tfiInfoTab','sampleTab'];
 const buttonNames=['exportMidiButton','exportMmlButton','exportSnapshotTfiButton','exportSnapshotVgiButton','exportSnapshotButton','exportAllTfiButton','exportAllVgiButton'];
 test('playback-only mode disables analysis, redirects stale tabs, and restores tabs for OPN',()=>{
   const notice={hidden:true};
-  const context={currentChipKind:'ym2413',document:{getElementById:()=>notice},selected:null,
+  const context={opnMonitorRoot:{},ayMonitorRoot:{},currentChipKind:'ym2413',document:{getElementById:()=>notice},selected:null,
     setOutputTab(name){context.selected=name;}};
   for(const name of [...tabNames,...buttonNames])context[name]={disabled:false,title:''};
   vm.createContext(context);vm.runInContext(fn('updateChipSupport'),context);
