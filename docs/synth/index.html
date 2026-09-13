@@ -3,25 +3,25 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>YM2612 Synth Keyboard Demo</title>
+    <title>Tetorica FM2612 — Sound Laboratory</title>
     <link rel="manifest" href="../synth.webmanifest">
     <link rel="icon" href="../favicon.ico" sizes="any">
     <script src="../sw-register.js"></script>
     <style>
       :root {
-        color-scheme: light;
-        --bg: #f4efe4;
-        --panel: #fffaf0;
-        --ink: #1f1b16;
-        --accent: #b4572f;
-        --accent-dark: #7e381c;
-        --line: #d7c8ac;
-        --code: #2b241d;
+        color-scheme: dark;
+        --bg: #101415;
+        --panel: #1c2223;
+        --ink: #f1e9d6;
+        --accent: #69cec0;
+        --accent-dark: #358f86;
+        --line: #3b4848;
+        --code: #10191a;
         --code-ink: #f6ead7;
-        --pill-bg: #343a4a;
-        --pill-border: #6e7a92;
-        --pill-ink: #f7f3ea;
-        --pill-muted: #bfc9db;
+        --pill-bg: #242d2e;
+        --pill-border: #566967;
+        --pill-ink: #f1e9d6;
+        --pill-muted: #b8cac6;
       }
 
       * {
@@ -41,9 +41,8 @@
         font-family: "Avenir Next", "Helvetica Neue", Helvetica, Arial, sans-serif;
         color: var(--ink);
         background:
-          radial-gradient(circle at top left, #fff8df 0, transparent 28%),
-          radial-gradient(circle at bottom right, #f0d8ba 0, transparent 24%),
-          linear-gradient(160deg, var(--bg), #eadfc9 60%, #e0cfb5);
+          radial-gradient(ellipse at top, #263b3a 0, transparent 65%),
+          var(--bg);
       }
 
       main {
@@ -53,11 +52,11 @@
       }
 
       .panel {
-        background: color-mix(in srgb, var(--panel) 90%, white 10%);
+        background: linear-gradient(145deg, #282d2e, var(--panel) 35%, #151a1b);
         border: 1px solid var(--line);
         border-radius: 24px;
         padding: 22px;
-        box-shadow: 0 18px 40px rgba(90, 62, 30, 0.12);
+        box-shadow: inset 0 1px 0 #64706c, inset 0 0 0 5px #191e1f, 0 18px 40px #0008;
       }
 
       h1,
@@ -121,7 +120,7 @@
         padding: 4px 7px;
         border-radius: 14px;
         border: 1px solid rgba(110, 122, 146, 0.22);
-        background: rgba(255, 255, 255, 0.24);
+        background: #171f20;
       }
 
       .looper-state {
@@ -131,9 +130,9 @@
         padding: 1px 8px;
         border-radius: 999px;
         border: 1px solid var(--pill-border);
-        background: rgba(255, 255, 255, 0.45);
+        background: #242d2e;
         font-size: 0.68rem;
-        color: rgba(31, 27, 22, 0.82);
+        color: #d5dfd5;
       }
 
       .event-record-row {
@@ -145,7 +144,7 @@
         padding: 4px 7px;
         border-radius: 14px;
         border: 1px solid rgba(110, 122, 146, 0.18);
-        background: rgba(255, 255, 255, 0.18);
+        background: #171f20;
       }
 
       .toolbar-check {
@@ -156,10 +155,10 @@
         padding: 2px 8px;
         border-radius: 999px;
         border: 1px solid rgba(110, 122, 146, 0.36);
-        background: rgba(255, 255, 255, 0.45);
+        background: #242d2e;
         font-size: 0.68rem;
         line-height: 1.2;
-        color: rgba(31, 27, 22, 0.82);
+        color: #d5dfd5;
       }
 
       .toolbar-check input {
@@ -182,10 +181,10 @@
         padding: 2px 8px;
         border-radius: 999px;
         border: 1px solid rgba(110, 122, 146, 0.36);
-        background: rgba(255, 255, 255, 0.45);
+        background: #242d2e;
         font-size: 0.68rem;
         line-height: 1.2;
-        color: rgba(31, 27, 22, 0.82);
+        color: #d5dfd5;
       }
 
       .volume-control input[type="range"] {
@@ -215,7 +214,7 @@
         padding: 11px;
         border-radius: 16px;
         border: 1px solid var(--line);
-        background: rgba(255, 255, 255, 0.36);
+        background: #1b2324;
       }
 
       .fretboard-toolbar {
@@ -242,7 +241,7 @@
         font-weight: 800;
         letter-spacing: 0.04em;
         text-transform: uppercase;
-        color: rgba(31, 27, 22, 0.66);
+        color: #b8cac6;
       }
 
       .toolbar-group {
@@ -253,7 +252,7 @@
       }
 
       .toolbar-divider {
-        color: rgba(31, 27, 22, 0.38);
+        color: #718480;
         font-size: 0.78rem;
         font-weight: 700;
         padding: 0 2px;
@@ -277,9 +276,9 @@
       }
 
       .toolbar-button.is-selected {
-        background: linear-gradient(180deg, #4b556d, #2c3445);
-        border-color: #f0cf8e;
-        box-shadow: inset 0 0 0 1px rgba(240, 207, 142, 0.26);
+        background: linear-gradient(180deg, #284e4a, #1d3836);
+        border-color: #69cec0;
+        box-shadow: inset 0 0 0 1px rgba(105, 206, 192, 0.26);
       }
 
       .fret-display {
@@ -312,7 +311,7 @@
         padding: 4px 10px;
         border-radius: 999px;
         border: 1px solid var(--line);
-        background: rgba(255, 255, 255, 0.9);
+        background: #242d2e;
         color: var(--ink);
         font: inherit;
         font-size: 0.78rem;
@@ -330,7 +329,7 @@
         padding: 4px 10px;
         border: 1px solid var(--line);
         border-radius: 999px;
-        background: rgba(255, 255, 255, 0.9);
+        background: #242d2e;
         color: var(--ink);
         font: inherit;
         font-size: 0.72rem;
@@ -346,9 +345,9 @@
         padding: 1px 7px;
         border-radius: 999px;
         border: 1px solid rgba(110, 122, 146, 0.36);
-        background: rgba(255, 255, 255, 0.5);
+        background: #344342;
         font-size: 0.64rem;
-        color: rgba(31, 27, 22, 0.76);
+        color: #c5d2cb;
       }
 
       .operator-stack {
@@ -363,7 +362,7 @@
         padding: 8px;
         border-radius: 14px;
         border: 1px solid rgba(110, 122, 146, 0.28);
-        background: rgba(255, 255, 255, 0.38);
+        background: #151d1e;
       }
 
       .special-monitor-head {
@@ -378,7 +377,7 @@
         font-weight: 800;
         letter-spacing: 0.05em;
         text-transform: uppercase;
-        color: rgba(31, 27, 22, 0.72);
+        color: #b8cac6;
       }
 
       #channel3SpecialModePill {
@@ -431,7 +430,7 @@
         font-size: 0.48rem;
         font-weight: 800;
         letter-spacing: 0.06em;
-        color: rgba(31, 27, 22, 0.64);
+        color: #b8cac6;
         text-transform: uppercase;
         overflow: hidden;
       }
@@ -446,48 +445,33 @@
       }
 
       .param-control.param-category-pitch {
-        border-color: rgba(132, 169, 228, 0.72);
-        background:
-          linear-gradient(180deg, rgba(235, 244, 255, 0.92), rgba(214, 229, 255, 0.92) 100%);
-        box-shadow:
-          inset 0 1px 0 rgba(255, 255, 255, 0.5),
-          0 1px 5px rgba(30, 24, 18, 0.14);
+        border-color: #6481a0;
+        background: linear-gradient(180deg, #293746, #202b37);
+        box-shadow: inset 0 1px 0 #ffffff0a;
       }
 
       .param-control.param-category-level {
-        border-color: rgba(196, 173, 118, 0.76);
-        background:
-          linear-gradient(180deg, rgba(255, 247, 225, 0.94), rgba(242, 227, 179, 0.94) 100%);
-        box-shadow:
-          inset 0 1px 0 rgba(255, 255, 255, 0.5),
-          0 1px 5px rgba(30, 24, 18, 0.14);
+        border-color: #978453;
+        background: linear-gradient(180deg, #403a2b, #302d23);
+        box-shadow: inset 0 1px 0 #ffffff0a;
       }
 
       .param-control.param-category-envelope {
-        border-color: rgba(225, 158, 124, 0.78);
-        background:
-          linear-gradient(180deg, rgba(255, 240, 232, 0.94), rgba(248, 210, 191, 0.94) 100%);
-        box-shadow:
-          inset 0 1px 0 rgba(255, 255, 255, 0.5),
-          0 1px 5px rgba(30, 24, 18, 0.14);
+        border-color: #a77d62;
+        background: linear-gradient(180deg, #423027, #302620);
+        box-shadow: inset 0 1px 0 #ffffff0a;
       }
 
       .param-control.param-category-modulation {
-        border-color: rgba(124, 190, 141, 0.76);
-        background:
-          linear-gradient(180deg, rgba(235, 251, 239, 0.94), rgba(201, 235, 210, 0.94) 100%);
-        box-shadow:
-          inset 0 1px 0 rgba(255, 255, 255, 0.5),
-          0 1px 5px rgba(30, 24, 18, 0.14);
+        border-color: #618c77;
+        background: linear-gradient(180deg, #263e35, #202e29);
+        box-shadow: inset 0 1px 0 #ffffff0a;
       }
 
       .param-control.param-category-routing {
-        border-color: rgba(177, 166, 148, 0.7);
-        background:
-          linear-gradient(180deg, rgba(246, 244, 239, 0.94), rgba(225, 220, 210, 0.94) 100%);
-        box-shadow:
-          inset 0 1px 0 rgba(255, 255, 255, 0.5),
-          0 1px 5px rgba(30, 24, 18, 0.14);
+        border-color: #778782;
+        background: linear-gradient(180deg, #343b3a, #282e2d);
+        box-shadow: inset 0 1px 0 #ffffff0a;
       }
 
       .param-control.param-category-pitch .param-button,
@@ -500,7 +484,7 @@
       .param-control.param-category-modulation .param-value,
       .param-control.param-category-routing .param-button,
       .param-control.param-category-routing .param-value {
-        color: #2a2433;
+        color: var(--ink);
       }
 
       .param-label-category-pitch {
@@ -542,7 +526,7 @@
         font-weight: 800;
         letter-spacing: 0.06em;
         text-transform: uppercase;
-        color: rgba(31, 27, 22, 0.64);
+        color: #b8cac6;
         text-align: center;
         line-height: 1;
       }
@@ -561,7 +545,7 @@
         font-size: 0.48rem;
         font-weight: 800;
         letter-spacing: 0.06em;
-        color: rgba(31, 27, 22, 0.64);
+        color: #b8cac6;
         text-transform: uppercase;
         overflow: hidden;
       }
@@ -596,7 +580,7 @@
       .operator-name.op-color-2,
       .operator-name.op-color-3,
       .operator-name.op-color-4 {
-        text-shadow: 0 1px 0 rgba(255, 255, 255, 0.18);
+        text-shadow: 0 1px 0 #171f20;
       }
 
       .param-strip {
@@ -676,7 +660,7 @@
       }
 
       .param-helpable:hover {
-        color: rgba(31, 27, 22, 0.9);
+        color: #8be9db;
       }
 
       .param-helpable:focus-visible {
@@ -690,7 +674,7 @@
         padding: 8px 10px;
         border-radius: 12px;
         border: 1px solid rgba(110, 122, 146, 0.26);
-        background: rgba(255, 255, 255, 0.4);
+        background: #151d1e;
         display: flex;
         align-items: center;
         gap: 8px;
@@ -714,7 +698,7 @@
         flex: 1 1 auto;
         font-size: 0.72rem;
         line-height: 1.35;
-        color: rgba(31, 27, 22, 0.8);
+        color: #c5d2cb;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
@@ -795,7 +779,7 @@
         justify-content: center;
         padding: 16px;
         border-radius: 16px;
-        background: rgba(244, 239, 228, 0.82);
+        background: rgba(16, 20, 21, 0.85);
         backdrop-filter: blur(4px);
         opacity: 0;
         pointer-events: none;
@@ -812,7 +796,7 @@
         padding: 14px 18px;
         border-radius: 18px;
         border: 1px solid rgba(180, 87, 47, 0.24);
-        background: rgba(255, 250, 240, 0.96);
+        background: #202c2d;
         box-shadow: 0 18px 40px rgba(90, 62, 30, 0.16);
         text-align: center;
       }
@@ -828,7 +812,7 @@
         margin-top: 6px;
         font-size: 0.82rem;
         line-height: 1.4;
-        color: rgba(31, 27, 22, 0.76);
+        color: #c5d2cb;
       }
 
       .visual-card {
@@ -867,7 +851,7 @@
         width: 100%;
         height: 132px;
         border-radius: 14px;
-        background: #241d16;
+        background: #10191a;
         border: 1px solid rgba(255, 255, 255, 0.08);
       }
 
@@ -900,19 +884,21 @@
         border-radius: clamp(8px, 1.6vw, 14px);
         padding: clamp(5px, 1.2vw, 10px) clamp(4px, 1vw, 8px);
         text-align: left;
-        background: rgba(255, 255, 255, 0.52);
+        background: linear-gradient(180deg, #eee8d9, #c7c5b7);
         color: var(--ink);
         cursor: pointer;
         min-width: 0;
       }
+
+      .key { color: #202928; }
 
       .key:hover {
         border-color: var(--accent);
       }
 
       .key.is-active {
-        background: linear-gradient(135deg, #f0c58a, #df8e4f);
-        border-color: #b4572f;
+        background: linear-gradient(135deg, #9be4d5, #57b6a9);
+        border-color: #69cec0;
         color: #2b241d;
       }
 
@@ -1063,12 +1049,58 @@
           margin-left: 18px;
         }
       }
+      /* The enclosure and lettering follow the Synth application icon. */
+      #pageTitle {
+        align-items: center;
+        margin-bottom: 14px;
+        padding: 0 0 14px;
+        border-bottom: 3px solid transparent;
+        border-image: linear-gradient(90deg, #69cec0 0 68%, #ed975b 68% 85%, #3b4848 85%) 1;
+      }
+
+      .synth-brand { display: flex; align-items: baseline; gap: 14px; }
+      .synth-brand-name { font-size: 1.15rem; font-weight: 750; letter-spacing: -0.04em; }
+      .synth-brand h1 { margin: 0; font-size: clamp(1.8rem, 4vw, 2.5rem); font-weight: 900; }
+      .synth-brand h1 span { color: #ed975b; }
+      .synth-brand-caption { margin: 0; color: #84dace; font-size: 0.7rem; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; }
+      .synth-brand-caption span { display: block; margin-top: 4px; color: #b8cac6; font-size: 0.6rem; letter-spacing: 0.12em; }
+      .visual-card { background: #10191a; border-color: #41615b; box-shadow: inset 0 1px 8px #0006; }
+      canvas { border-color: #284642; }
+      .toolbar-button:not(:disabled):hover { border-color: var(--accent); background: #2b4541; }
+      button:focus-visible, select:focus-visible, input:focus-visible {
+        outline: 2px solid #8be9db;
+        outline-offset: 3px;
+      }
+      input { accent-color: #69cec0; }
+      button:disabled { opacity: 0.45; cursor: default; }
+      .param-control.is-boolean .param-value.is-on { background: #41736a; color: #fff8e7; }
+      .param-control .param-value.is-dragging { color: #ffc58c; }
+      .param-control .param-button:hover { color: #99f0e0; }
+      .param-label-category-pitch { color: #a0c0ed; }
+      .param-label-category-level { color: #e2ca8d; }
+      .param-label-category-envelope { color: #efb491; }
+      .param-label-category-modulation { color: #a0d5b7; }
+      .param-label-category-routing { color: #c5d2cb; }
+      .key { box-shadow: inset 0 1px 0 #fff7, 0 3px 0 #080c0d; }
+      .key.is-active { box-shadow: inset 0 2px 5px #123c3855; }
+      @media (max-width: 600px) {
+        main { padding: 12px 8px 24px; }
+        .panel { padding: 14px 10px; border-radius: 16px; }
+        #pageTitle { gap: 8px; }
+        .synth-brand { gap: 10px; }
+        .synth-brand-caption { font-size: 0.6rem; }
+      }
     </style>
   </head>
   <body>
     <main>
       <section class="panel">
         <div class="topline" id="pageTitle">
+          <div class="synth-brand">
+            <span class="synth-brand-name">Tetorica</span>
+            <h1><span>FM</span>2612</h1>
+          </div>
+          <p class="synth-brand-caption">Mega Drive Sound <span>Sound laboratory</span></p>
         </div>
         <div class="layout">
           <section class="controls-stack">

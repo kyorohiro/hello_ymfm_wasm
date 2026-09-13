@@ -2,7 +2,7 @@ function clearCanvas(
   context,
   canvas
 ) {
-  context.fillStyle = "#241d16";
+  context.fillStyle = "#10191a";
   context.fillRect(
     0,
     0,
@@ -323,7 +323,7 @@ export function drawEnvelopeGuide({
   );
 
   context.fillStyle =
-    "#d6b184";
+    "#b8cac6";
   context.fillText(
     "Cyan: main envelope. Orange/Pink/Green/Blue: OP1-OP4 guides.",
     18,
