@@ -7,7 +7,7 @@ export function tfiToEditorPreset(bytes) {
   return { ...preset, operators: [1, 2, 3, 4].map(op => preset.operators[op]) };
 }
 
-export function createTfiFileEditor({ root, operatorRoot, keyboardRoot, title, createAudio, onSave, onStatus }) {
+export function createTfiFileEditor({ root, operatorRoot, keyboardRoot, title, createAudio, onSave, onStatus, savedLabel }) {
   const presets = {};
   let path = null;
   let loading = false;
@@ -21,7 +21,7 @@ export function createTfiFileEditor({ root, operatorRoot, keyboardRoot, title, c
     onEdit() {
       if (loading || !path) return;
       onSave(path, createTfiFromPreset(operator.getChannelPreset(0)));
-      title.textContent = `${path} · Saved`;
+      title.textContent = savedLabel?.(path) ?? `${path} · Saved`;
     },
   });
   const keyboard = createPlaygroundOperatorKeyboard({

@@ -16,6 +16,8 @@ LICENSE_FILE="${ROOT_DIR}/LICENSE"
 ANALYZER_FILES="
 index.html
 analyzer_theme.css
+tfi_info.js
+tfi_info.css
 vgm_analyzer.js
 sample_explorer.js
 rf5c164_samples.js
@@ -56,6 +58,16 @@ ym2608.js
 ym2608audioengine.js
 ym2612.js
 ym2612vgm.js
+looper.js
+megadrive-fm-presets.js
+megasynth.js
+megasynth_fx.js
+megasynth_recording.js
+pitch.js
+segapsg_api.js
+tetorica_audio_runtime.js
+ym2612-worklet.js
+ym2612synth.js
 "
 
 GENERATED_FILES="
@@ -135,6 +147,15 @@ for file in ${JS_FILES}; do
 
   cp "${src}" "${dst}"
 done
+
+mkdir -p "${STAGE_DIR}/playground" "${STAGE_DIR}/synth"
+for file in playground_tfi_editor.js playground_operator_tab.js playground_operator_keyboard.js playground_vgm_presets.js; do
+  cp "${ROOT_DIR}/docs/playground/${file}" "${STAGE_DIR}/playground/${file}"
+done
+for file in synth_controls.js synth_keyboard.js; do
+  cp "${ROOT_DIR}/docs/synth/${file}" "${STAGE_DIR}/synth/${file}"
+done
+perl -0pi -e 's#../playground/#./playground/#g; s#../js/#./js/#g; s#../generated/#./generated/#g' "${STAGE_DIR}/tfi_info.js"
 
 # vgi.js is shared with the web runtime; docs/js/vgi.js is a source-tree
 # re-export, while the standalone analyzer package needs the implementation.

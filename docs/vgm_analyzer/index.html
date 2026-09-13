@@ -4,9 +4,14 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=1200">
     <title>Tetorica FM2612 VGM Analyzer</title>
+    <meta name="description" content="Play and inspect VGM music in your browser. Explore sound-chip activity, study FM instruments, and extract patches for further sound design.">
+    <meta property="og:title" content="Tetorica FM2612 VGM Analyzer">
+    <meta property="og:description" content="Play and inspect VGM music in your browser. Explore sound-chip activity, study FM instruments, and extract patches for further sound design.">
+    <meta property="og:type" content="website">
     <link rel="manifest" href="../vgm_analyzer.webmanifest">
     <link rel="icon" href="../analyzer-favicon.ico" sizes="any">
     <script src="../sw-register.js"></script>
+    <link rel="stylesheet" href="./tfi_info.css">
     <style>
       :root {
         color-scheme: light;
@@ -676,9 +681,11 @@
           >
             Note-ish
           </button>
+          <button id="tfiInfoTab" class="tab-button" type="button" role="tab" aria-selected="false" tabindex="-1" aria-controls="tfiInfoPanel">Tfi info</button>
           <button id="sampleExplorerTab" class="tab-button" type="button" role="tab" aria-selected="false" tabindex="-1" aria-controls="sampleExplorerPanel">Sample Explorer</button>
         </div>
 
+        <section id="tfiInfoPanel" class="tab-panel" role="tabpanel" aria-labelledby="tfiInfoTab" hidden></section>
         <section id="sampleExplorerPanel" class="tab-panel" role="tabpanel" aria-labelledby="sampleExplorerTab" hidden></section>
         <section id="operatorInfoPanel" class="tab-panel" role="tabpanel" aria-labelledby="operatorInfoTab">
           <h2>FM Channel Monitor</h2>

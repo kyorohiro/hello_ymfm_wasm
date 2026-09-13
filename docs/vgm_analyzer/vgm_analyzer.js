@@ -1,3 +1,4 @@
+import { mountTfiInfo } from "./tfi_info.js";
 import { mountSampleExplorer } from './sample_explorer.js?v=pwm-capture-1';
 import { renderAllFretboard } from './fretboard_all.js';
 import { createNoteTimeline } from './note_timeline_view.js?v=noteish-tabs-1';
@@ -2866,6 +2867,7 @@ async function handleFile(file) {
     lastParseInfo.commandFormat = "VGM (normalized from S98)";
   }
   extractedTfiPatches = extractTfiPatchesFromVgm(buffer);
+  tfiInfo.loadVgm(buffer, file.name);
   exportAllTfiButton.disabled = extractedTfiPatches.length === 0;
   exportAllVgiButton.disabled = extractedTfiPatches.length === 0;
   updatePlaybackButtons({});
@@ -3149,7 +3151,18 @@ exportSnapshotButton.addEventListener("click", () => {
   downloadSnapshot("manual");
 });
 
+const tfiInfoTab = document.getElementById('tfiInfoTab');
+const tfiInfo = mountTfiInfo({ root: document.getElementById('tfiInfoPanel'), onStatus: setStatus,
+  onAudition: () => { if (player?.isPlaying()) pauseButton.click(); },
+});
+tfiInfoTab.addEventListener('click', () => setOutputTab('tfi-info'));
+window.addEventListener('pagehide', event => { if (!event.persisted) void tfiInfo.dispose(); });
+
 function setOutputTab(tabName) {
+  if (tabName === "tfi-info" && player?.isPlaying()) pauseButton.click();
+  tfiInfo.setVisible(tabName === "tfi-info");
+  tfiInfoTab.setAttribute("aria-selected", String(tabName === "tfi-info"));
+  tfiInfoTab.tabIndex = tabName === "tfi-info" ? 0 : -1;
   samplePanel.hidden = tabName !== 'samples';
   sampleTab.setAttribute('aria-selected', String(tabName === 'samples'));
   sampleTab.tabIndex = tabName === 'samples' ? 0 : -1;

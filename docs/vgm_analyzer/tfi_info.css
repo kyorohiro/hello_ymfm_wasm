@@ -1,0 +1,437 @@
+/* Operator editor styling, scoped to Tfi info. */
+.tfi-info-editor .operator-tab-toolbar {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex-wrap: wrap;
+        margin-bottom: 10px;
+      }
+.tfi-info-editor .playground-keyboard-toolbar {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-bottom: 10px;
+      }
+.tfi-info-editor .playground-keyboard-toolbar > div {
+        display: flex;
+        gap: 5px;
+      }
+.tfi-info-editor .playground-keyboard-tools {
+        margin-bottom: 10px;
+      }
+.tfi-info-editor .playground-keyboard {
+        display: grid;
+        gap: 5px;
+        max-width: 960px;
+      }
+.tfi-info-editor .playground-keyboard .key-row {
+        display: grid;
+        grid-template-columns: repeat(10, minmax(42px, 1fr));
+        gap: 4px;
+      }
+.tfi-info-editor .playground-keyboard .key {
+        min-height: 54px;
+        padding: 5px;
+        border: 1px solid rgba(70, 83, 106, 0.38);
+        border-radius: 7px;
+        background: rgba(255, 255, 255, 0.72);
+        color: var(--ink);
+        cursor: pointer;
+      }
+.tfi-info-editor .playground-keyboard .key strong,
+.tfi-info-editor .playground-keyboard .key span,
+.tfi-info-editor .playground-keyboard .key small {
+        display: block;
+      }
+.tfi-info-editor .playground-keyboard .key small {
+        font-size: 9px;
+        opacity: 0.68;
+      }
+.tfi-info-editor .playground-keyboard .key.is-active {
+        background: #f2c94c;
+        border-color: #8a6813;
+      }
+.tfi-info-editor .operator-stack {
+        display: grid;
+        gap: 7px;
+      }
+.tfi-info-editor .special-monitor {
+        display: grid;
+        gap: 6px;
+        margin-top: 8px;
+        padding: 8px;
+        border-radius: 14px;
+        border: 1px solid rgba(110, 122, 146, 0.28);
+        background: rgba(255, 255, 255, 0.38);
+      }
+.tfi-info-editor .special-monitor-head {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: nowrap;
+      }
+.tfi-info-editor .special-monitor-title {
+        font-size: 0.72rem;
+        font-weight: 800;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        color: rgba(31, 27, 22, 0.72);
+      }
+.tfi-info-editor .special-control-strip {
+        display: grid;
+        grid-template-columns: repeat(9, minmax(0, 1fr));
+        gap: 4px;
+      }
+.tfi-info-editor [id$="operatorTabSpecialControls"] .param-control {
+        min-width: 0;
+        width: 100%;
+        padding: 2px 4px;
+      }
+.tfi-info-editor .special-control-strip {
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+.tfi-info-editor .operator-header-row {
+        display: grid;
+        grid-template-columns: 32px minmax(0, 1fr);
+        gap: 6px;
+        align-items: end;
+      }
+.tfi-info-editor .operator-header-spacer {
+        min-width: 0;
+      }
+.tfi-info-editor .operator-corner-label {
+        display: flex;
+        align-items: end;
+        justify-content: center;
+        font-size: 0.48rem;
+        font-weight: 800;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: rgba(31, 27, 22, 0.64);
+        text-align: center;
+        line-height: 1;
+      }
+.tfi-info-editor .operator-header-strip {
+        display: grid;
+        gap: 4px;
+      }
+.tfi-info-editor .operator-header-cell {
+        min-width: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        font-size: 0.48rem;
+        font-weight: 800;
+        letter-spacing: 0.06em;
+        color: rgba(31, 27, 22, 0.64);
+        text-transform: uppercase;
+        overflow: hidden;
+      }
+.tfi-info-editor .operator-header-cell span {
+        display: block;
+        min-width: 0;
+        width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+.tfi-info-editor .preset-row {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex-wrap: wrap;
+        margin-bottom: 4px;
+      }
+.tfi-info-editor .preset-row label {
+        font-size: 0.68rem;
+        font-weight: 800;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+.tfi-info-editor .preset-row select {
+        min-width: 140px;
+        max-width: 220px;
+        padding: 4px 10px;
+        border-radius: 999px;
+        border: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.9);
+        color: var(--ink);
+        font: inherit;
+        font-size: 0.78rem;
+        line-height: 1.2;
+      }
+.tfi-info-editor .operator-row {
+        display: grid;
+        grid-template-columns: 32px minmax(0, 1fr);
+        gap: 6px;
+        align-items: center;
+      }
+.tfi-info-editor .operator-name {
+        line-height: 0.95;
+        font-size: 0.72rem;
+        font-weight: 800;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        min-width: 0;
+        text-align: center;
+      }
+.tfi-info-editor .op-color-1 {
+        color: #f2c078;
+        font-weight: 800;
+      }
+.tfi-info-editor .op-color-2 {
+        color: #ff93bc;
+        font-weight: 800;
+      }
+.tfi-info-editor .op-color-3 {
+        color: #9dff9b;
+        font-weight: 800;
+      }
+.tfi-info-editor .op-color-4 {
+        color: #89b7ff;
+        font-weight: 800;
+      }
+.tfi-info-editor .operator-name.op-color-1,
+.tfi-info-editor .operator-name.op-color-2,
+.tfi-info-editor .operator-name.op-color-3,
+.tfi-info-editor .operator-name.op-color-4 {
+        text-shadow: 0 1px 0 rgba(255, 255, 255, 0.18);
+      }
+.tfi-info-editor .param-strip {
+        display: flex;
+        gap: 6px;
+        overflow-x: auto;
+        flex-wrap: nowrap;
+        padding-bottom: 2px;
+      }
+.tfi-info-editor [id$="operatorTabOperatorControls"] .param-strip {
+        display: grid;
+        gap: 4px;
+        overflow: visible;
+      }
+.tfi-info-editor .common-control-cell {
+        display: grid;
+        gap: 3px;
+        align-items: start;
+      }
+.tfi-info-editor [id$="operatorTabCommonControls"] .param-control {
+        min-width: 0;
+        width: 100%;
+        padding: 2px 4px;
+      }
+.tfi-info-editor [id$="operatorTabCommonControls"] .param-control.no-label {
+        grid-template-columns: 12px minmax(0, 1fr) 12px;
+        justify-items: center;
+        gap: 2px;
+        padding: 2px 4px;
+      }
+.tfi-info-editor [id$="operatorTabCommonControls"] .param-control.is-boolean.no-label {
+        grid-template-columns: minmax(0, 1fr);
+        padding: 2px 3px;
+      }
+.tfi-info-editor .common-control-label {
+        min-width: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        font-size: 0.48rem;
+        font-weight: 800;
+        letter-spacing: 0.06em;
+        color: rgba(31, 27, 22, 0.64);
+        text-transform: uppercase;
+        overflow: hidden;
+      }
+.tfi-info-editor .common-control-label span {
+        display: block;
+        min-width: 0;
+        width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+.tfi-info-editor .param-control {
+        display: grid;
+        grid-template-columns: auto auto auto auto;
+        align-items: center;
+        gap: 4px;
+        flex: 0 0 auto;
+        min-width: 82px;
+        padding: 2px 5px 2px 7px;
+        border-radius: 999px;
+        border: 1.5px solid var(--pill-border);
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0) 45%),
+          var(--pill-bg);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.08),
+          0 1px 5px rgba(30, 24, 18, 0.14);
+      }
+.tfi-info-editor .param-control.no-label {
+        grid-template-columns: 16px minmax(0, 1fr) 16px;
+        justify-items: center;
+        gap: 4px;
+        padding: 2px 6px;
+        min-height: 32px;
+      }
+.tfi-info-editor .param-control.is-boolean.no-label {
+        grid-template-columns: minmax(0, 1fr);
+        justify-items: stretch;
+        padding: 2px 4px;
+      }
+.tfi-info-editor [id$="operatorTabOperatorControls"] .param-control {
+        min-width: 0;
+        width: 100%;
+      }
+.tfi-info-editor [id$="operatorTabOperatorControls"] .param-control.no-label {
+        grid-template-columns: 12px minmax(0, 1fr) 12px;
+        justify-items: center;
+        gap: 2px;
+        padding: 2px 4px;
+        min-height: 28px;
+      }
+.tfi-info-editor [id$="operatorTabOperatorControls"] .param-control.is-boolean.no-label {
+        grid-template-columns: minmax(0, 1fr);
+        padding: 2px 3px;
+      }
+.tfi-info-editor .param-control.param-category-pitch {
+        border-color: rgba(132, 169, 228, 0.72);
+        background:
+          linear-gradient(180deg, rgba(235, 244, 255, 0.92), rgba(214, 229, 255, 0.92) 100%);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.5),
+          0 1px 5px rgba(30, 24, 18, 0.14);
+      }
+.tfi-info-editor .param-control.param-category-level {
+        border-color: rgba(196, 173, 118, 0.76);
+        background:
+          linear-gradient(180deg, rgba(255, 247, 225, 0.94), rgba(242, 227, 179, 0.94) 100%);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.5),
+          0 1px 5px rgba(30, 24, 18, 0.14);
+      }
+.tfi-info-editor .param-control.param-category-envelope {
+        border-color: rgba(225, 158, 124, 0.78);
+        background:
+          linear-gradient(180deg, rgba(255, 240, 232, 0.94), rgba(248, 210, 191, 0.94) 100%);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.5),
+          0 1px 5px rgba(30, 24, 18, 0.14);
+      }
+.tfi-info-editor .param-control.param-category-modulation {
+        border-color: rgba(124, 190, 141, 0.76);
+        background:
+          linear-gradient(180deg, rgba(235, 251, 239, 0.94), rgba(201, 235, 210, 0.94) 100%);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.5),
+          0 1px 5px rgba(30, 24, 18, 0.14);
+      }
+.tfi-info-editor .param-control.param-category-routing {
+        border-color: rgba(177, 166, 148, 0.7);
+        background:
+          linear-gradient(180deg, rgba(246, 244, 239, 0.94), rgba(225, 220, 210, 0.94) 100%);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.5),
+          0 1px 5px rgba(30, 24, 18, 0.14);
+      }
+.tfi-info-editor .param-control.param-category-pitch .param-button,
+.tfi-info-editor .param-control.param-category-pitch .param-value,
+.tfi-info-editor .param-control.param-category-level .param-button,
+.tfi-info-editor .param-control.param-category-level .param-value,
+.tfi-info-editor .param-control.param-category-envelope .param-button,
+.tfi-info-editor .param-control.param-category-envelope .param-value,
+.tfi-info-editor .param-control.param-category-modulation .param-button,
+.tfi-info-editor .param-control.param-category-modulation .param-value,
+.tfi-info-editor .param-control.param-category-routing .param-button,
+.tfi-info-editor .param-control.param-category-routing .param-value {
+        color: #2a2433;
+      }
+.tfi-info-editor .param-label-category-pitch {
+        color: #6d8fcb;
+      }
+.tfi-info-editor .param-label-category-level {
+        color: #9a8250;
+      }
+.tfi-info-editor .param-label-category-envelope {
+        color: #b76e4e;
+      }
+.tfi-info-editor .param-label-category-modulation {
+        color: #5f9771;
+      }
+.tfi-info-editor .param-label-category-routing {
+        color: #7a6e5c;
+      }
+.tfi-info-editor .param-label {
+        min-width: 14px;
+        font-size: 0.48rem;
+        font-weight: 800;
+        letter-spacing: 0.06em;
+        text-align: left;
+        color: var(--pill-muted);
+      }
+.tfi-info-editor .param-button,
+.tfi-info-editor .param-value {
+        font: inherit;
+      }
+.tfi-info-editor .param-button {
+        width: 16px;
+        height: 16px;
+        padding: 0;
+        border: 0;
+        border-radius: 999px;
+        background: transparent;
+        color: var(--pill-ink);
+        cursor: pointer;
+        font-size: 0.92rem;
+        line-height: 1;
+      }
+.tfi-info-editor .param-button:hover {
+        color: white;
+      }
+.tfi-info-editor .param-value {
+        min-width: 20px;
+        padding: 0;
+        border: 0;
+        background: transparent;
+        text-align: center;
+        color: var(--pill-ink);
+        font-size: 0.6rem;
+        font-weight: 800;
+        letter-spacing: 0.02em;
+        user-select: none;
+        cursor: ew-resize;
+      }
+.tfi-info-editor .param-control.is-boolean .param-value {
+        min-width: 0;
+        padding: 1px 0;
+        border-radius: 999px;
+        cursor: pointer;
+      }
+.tfi-info-editor .param-control.is-boolean .param-value.is-on {
+        background: rgba(255, 255, 255, 0.32);
+      }
+.tfi-info-editor .param-value.is-dragging {
+        color: #ffe3b6;
+      }
+.tfi-info-editor .algo-inline {
+        font-family: "SFMono-Regular", Menlo, Consolas, monospace;
+        margin: 0 0 4px;
+        font-size: 0.68rem;
+        line-height: 1.22;
+      }
+#tfiInfoPanel { padding-bottom: 190px; }
+.tfi-info-toolbar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.tfi-info-toolbar select { max-width: 100%; }
+.tfi-info-editor[hidden], .tfi-info-keyboard[hidden] { display: none; }
+.tfi-info-editor .preset-row { display: none; }
+.tfi-info-keyboard { position: fixed; right: 16px; bottom: 16px; z-index: 25;
+ padding: 16px; border: 2px solid var(--accent); border-radius: 16px;
+ background: var(--panel); box-shadow: 0 8px 30px #6d352040; }
+.tfi-info-keyboard > :not(.playground-keyboard-tools),
+.tfi-info-keyboard [id$="playgroundKeyboardStrings"] { display: none; }
+.tfi-info-keyboard .playground-keyboard-tools { display: flex; flex-direction: column; gap: 10px; }
+.tfi-info-keyboard .playground-keyboard-tools > div { display: flex; gap: 5px; }
+.tfi-info-keyboard .is-selected { border-color: var(--accent); background: #f4d7b8; }
+body:has(#tfiInfoTab[aria-selected="true"]) .playback-dock { display: none; }
