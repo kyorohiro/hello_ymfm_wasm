@@ -1,3 +1,7 @@
+Tetorica FM2612 is a browser toolkit for JavaScript music coding, VGM analysis,
+and YM2612 FM sound design. Open a VGM, explore its instruments, and edit and
+audition extracted TFI files in a folder-based workspace.
+
 FM synthesis can be difficult at first.
 It asks you to learn both parameter design and performance technique.
 
@@ -67,6 +71,20 @@ This is the easiest way to test YM2612 control, sound design, and Genesis-orient
   [https://kyorohiro.github.io/hello_ymfm_wasm/synth/index.html](https://kyorohiro.github.io/hello_ymfm_wasm/synth/index.html)
 - VGM Analyzer:
   [https://kyorohiro.github.io/hello_ymfm_wasm/vgm_analyzer/index.html](https://kyorohiro.github.io/hello_ymfm_wasm/vgm_analyzer/index.html)
+
+## First session: explore a VGM instrument
+
+1. Open [Playground](https://kyorohiro.github.io/hello_ymfm_wasm/playground/index.html) and import a supported VGM/VGZ file.
+2. Expand `presets/<filename>/` in the file explorer and open a `.tfi` file.
+3. Edit its FM parameters and use the number and letter keys to audition it. Text and number fields keep normal typing behavior; leave the field before playing.
+4. Use **Export Cassette** to download your project, including its virtual files, before leaving the page. TFI editor changes update the virtual file; they do not write back to your original disk file.
+
+## Help and bug reports
+
+Start with the [interactive introductions](https://kyorohiro.github.io/hello_ymfm_wasm/introductions/index.html).
+For a reproducible problem, [open a bug report](https://github.com/kyorohiro/hello_ymfm_wasm/issues/new?template=bug_report.md).
+Include the page URL, browser/OS, steps, and expected versus actual behavior.
+A small exported Cassette or a minimal code example helps us reproduce the issue.
 
 ## Try it on itch.io
 

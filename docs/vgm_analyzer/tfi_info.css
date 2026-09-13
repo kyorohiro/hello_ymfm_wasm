@@ -421,17 +421,25 @@
         font-size: 0.68rem;
         line-height: 1.22;
       }
-#tfiInfoPanel { padding-bottom: 190px; }
+#tfiInfoPanel { padding-bottom: 16px; }
 .tfi-info-toolbar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 .tfi-info-toolbar select { max-width: 100%; }
 .tfi-info-editor[hidden], .tfi-info-keyboard[hidden] { display: none; }
 .tfi-info-editor .preset-row { display: none; }
-.tfi-info-keyboard { position: fixed; right: 16px; bottom: 16px; z-index: 25;
- padding: 16px; border: 2px solid var(--accent); border-radius: 16px;
- background: var(--panel); box-shadow: 0 8px 30px #6d352040; }
-.tfi-info-keyboard > :not(.playground-keyboard-tools),
-.tfi-info-keyboard [id$="playgroundKeyboardStrings"] { display: none; }
-.tfi-info-keyboard .playground-keyboard-tools { display: flex; flex-direction: column; gap: 10px; }
+.tfi-info-keyboard {
+  padding: 16px;
+  border: 2px solid var(--accent);
+  border-radius: 16px;
+  background: var(--panel);
+  overflow-x: auto;
+}
+.tfi-info-keyboard .playground-keyboard-channel-tools { display: none; }
+.tfi-info-keyboard .playground-keyboard-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
 .tfi-info-keyboard .playground-keyboard-tools > div { display: flex; gap: 5px; }
 .tfi-info-keyboard .is-selected { border-color: var(--accent); background: #f4d7b8; }
 body:has(#tfiInfoTab[aria-selected="true"]) .playback-dock { display: none; }

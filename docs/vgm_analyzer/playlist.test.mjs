@@ -36,15 +36,15 @@ function setup(load = async () => true) {
   };
 }
 
-test('music imports sort by name, load only the first track, and merge without interrupting', async () => {
+test('music selections replace the playlist and load their first track', async () => {
   const p = setup();
   await p.add(['first.vgm', 'second.VGZ', 'third.s98']);
   assert.deepEqual(p.calls, [['load', 'first.vgm']]);
   assert.deepEqual(p.list.children.map(row => row.children[0].textContent), ['first.vgm', 'second.VGZ', 'third.s98']);
   await p.add(['fourth.vgm']);
-  assert.equal(p.list.children.length, 4);
-  assert.deepEqual(p.list.children.map(row => row.children[0].textContent), ['first.vgm', 'fourth.vgm', 'second.VGZ', 'third.s98']);
-  assert.deepEqual(p.calls, [['load', 'first.vgm']]);
+  assert.equal(p.list.children.length, 1);
+  assert.deepEqual(p.list.children.map(row => row.children[0].textContent), ['fourth.vgm']);
+  assert.deepEqual(p.calls, [['load', 'first.vgm'], ['load', 'fourth.vgm']]);
 });
 
 test('BIN is loaded as ROM, not listed; unsupported ROM extension is rejected', async () => {
@@ -137,23 +137,23 @@ test('numeric filename segments ignore zero padding and sort before larger numbe
   assert.deepEqual(p.calls, [['load', '001.vgm']]);
 });
 
-test('sorting additional imports preserves the playing track and advances in sorted order', async () => {
+test('replacement starts with the new first track and advances within the new selection', async () => {
   const p = setup();
   await p.add(['02.vgm', '10.vgm']);
   await p.add(['1.vgm', '03.vgm']);
-  assert.equal(p.list.children[1].children[0].attributes['aria-current'], 'true');
-  assert.deepEqual(p.calls, [['load', '02.vgm']]);
+  assert.equal(p.list.children[0].children[0].attributes['aria-current'], 'true');
+  assert.deepEqual(p.calls, [['load', '02.vgm'], ['load', '1.vgm']]);
   await p.context.advancePlaylist();
-  assert.deepEqual(p.calls.slice(1), [['load', '03.vgm'], ['play', '03.vgm']]);
+  assert.deepEqual(p.calls.slice(2), [['load', '03.vgm'], ['play', '03.vgm']]);
 });
 
-test('a queued track selection retains its file when imports reorder the list', async () => {
+test('replacement cancels a queued selection from the previous playlist', async () => {
   const p = setup();
   await p.add(['02.vgm', '10.vgm']);
-  const importing = p.add(['1.vgm']);
   const selecting = p.context.selectPlaylistTrack(1, true);
+  const importing = p.add(['1.vgm']);
   await Promise.all([importing, selecting]);
-  assert.deepEqual(p.calls, [['load', '02.vgm'], ['load', '10.vgm'], ['play', '10.vgm']]);
+  assert.deepEqual(p.calls, [['load', '02.vgm'], ['load', '1.vgm']]);
 });
 
 test('playlist loop is initially off and shown only with multiple music tracks', async () => {
@@ -162,7 +162,7 @@ test('playlist loop is initially off and shown only with multiple music tracks',
   assert.equal(p.context.playlistLoopControl.hidden, true);
   await p.add(['first.vgm', 'ym2608_adpcm_rom.bin']);
   assert.equal(p.context.playlistLoopControl.hidden, true);
-  await p.add(['second.vgm']);
+  await p.add(['second.vgm', 'third.vgm']);
   assert.equal(p.context.playlistLoopControl.hidden, false);
   const html = readFileSync(new URL('./index.html', import.meta.url), 'utf8');
   assert.doesNotMatch(html.match(/<input id="playlistLoopCheckbox"[^>]*>/)[0], /\bchecked\b/);
@@ -180,4 +180,14 @@ test('playlist loop returns to the first track and switching it off restores fin
   const callCount = p.calls.length;
   await p.context.advancePlaylist();
   assert.equal(p.calls.length, callCount);
+});
+
+
+test('ROM-only import and cancelled file picker preserve the music playlist', async () => {
+  const p = setup();
+  await p.add(['song.vgm']);
+  await p.add(['rhythm.bin']);
+  await p.add([]);
+  assert.deepEqual(p.list.children.map(row => row.children[0].textContent), ['song.vgm']);
+  assert.deepEqual(p.calls, [['load', 'song.vgm'], ['rom', 'rhythm.bin']]);
 });

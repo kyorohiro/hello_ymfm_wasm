@@ -12,8 +12,12 @@ export function mountTfiInfo({ root, onStatus, onAudition }) {
       <label>Audition volume <input class="tfi-volume" type="range" min="0" max="380" value="100" step="1"><output>100%</output></label>
     </div>
     <p>Choose an extracted instrument or open a TFI file. Edits stay in this tab until you download them.</p>
-    <section class="tfi-info-editor" hidden><p class="tfi-title"></p><div class="tfi-operators"></div></section>
-    <div class="tfi-info-keyboard" hidden></div>`;
+    <section class="tfi-info-editor" hidden>
+      <p class="tfi-title"></p>
+      <div class="tfi-operators"></div>
+      <h3>Keyboard</h3>
+      <div class="tfi-info-keyboard" aria-label="Audition keyboard" hidden></div>
+    </section>`;
   const select = root.querySelector('select');
   const input = root.querySelector('input[type="file"]');
   const download = root.querySelector('button');

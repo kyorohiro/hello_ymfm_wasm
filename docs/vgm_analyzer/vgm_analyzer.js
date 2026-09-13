@@ -2931,6 +2931,7 @@ async function loadPlaylistTrack(index, autoplay, revision) {
 
 function selectPlaylistTrack(index, autoplay) {
   const file = playlistFiles[index];
+  if (!file) return;
   const revision = ++playlistRevision;
   stopActiveStream();
   player?.pause();
@@ -2948,25 +2949,28 @@ function advancePlaylist() {
 }
 
 function importPlaylistFiles(files) {
+  const tracks = Array.from(files).filter(file => /\.(vgm|vgz|s98)$/i.test(file.name));
+  const revision = tracks.length ? ++playlistRevision : playlistRevision;
+  if (tracks.length) {
+    stopActiveStream();
+    player?.pause();
+    timelineSeekController?.abort();
+    // A selection is a new playlist. Stable sorting preserves equal-name order.
+    tracks.sort((a, b) => playlistNameOrder.compare(a.name, b.name));
+    playlistFiles.splice(0, playlistFiles.length, ...tracks);
+    playlistIndex = -1;
+    renderPlaylist();
+  }
   return queuePlaylistTask(async () => {
-    const selectedFile = playlistFiles[playlistIndex];
     const rejected = [];
     for (const file of files) {
       if (/\.bin$/i.test(file.name)) {
         await handleYm2608RomFile(file);
-      } else if (/\.(vgm|vgz|s98)$/i.test(file.name)) {
-        playlistFiles.push(file);
-      } else {
+      } else if (!/\.(vgm|vgz|s98)$/i.test(file.name)) {
         rejected.push(file.name);
       }
     }
-    // Stable sorting keeps equivalent numeric names (001 / 1) in import order.
-    playlistFiles.sort((a, b) => playlistNameOrder.compare(a.name, b.name));
-    playlistIndex = selectedFile ? playlistFiles.indexOf(selectedFile) : -1;
-    renderPlaylist();
-    if (playlistIndex < 0 && playlistFiles.length) {
-      await loadPlaylistTrack(0, false, playlistRevision);
-    }
+    if (tracks.length) await loadPlaylistTrack(0, false, revision);
     if (rejected.length) setStatus(`Unsupported files: ${rejected.join(", ")}. Import VGM, VGZ, S98 or a YM2608 ROM .bin file.`);
   });
 }
