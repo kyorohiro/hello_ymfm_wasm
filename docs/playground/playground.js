@@ -52,6 +52,7 @@ import { exportYm2610BVgmToPlaygroundJavaScript } from "../js/ym2610bvgm.js";
 import {
   createPlaygroundRuntime,
 } from "../js/playground_runtime.js";
+import { createVgmPresetFiles } from "./playground_vgm_presets.js";
 import { createPlaygroundUi } from "./playground_ui.js";
 import {
   handleMegaSynthEvent,
@@ -901,7 +902,12 @@ async function importVgmFile(file, options) {
     }
   );
 
+  const presetFiles = createVgmPresetFiles(buffer, file.name, virtualFiles.list().map(entry => entry.path));
   for (const { path, bytes } of dacFiles) virtualFiles.writeBinary(path, bytes);
+  for (const { path, data } of presetFiles) {
+    virtualFiles.writeBinary(path, data);
+    registerVirtualTfiPreset(path);
+  }
   saveActiveVirtualFile();
   virtualFiles.writeText(targetPath, strategy.source);
   currentCassetteMetadata = { version: 1, workType: "TRANSCRIPTION", license: "NONE" };
@@ -912,7 +918,7 @@ async function importVgmFile(file, options) {
   renderRunFileOptions();
   setBottomTab("code");
   setStatus(
-    `Imported ${file.name} into ${targetPath} ${strategy.statusMessage}.`
+    `Imported ${file.name} into ${targetPath} ${strategy.statusMessage}. Added ${presetFiles.length} TFI preset(s).`
   );
 }
 

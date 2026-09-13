@@ -15,6 +15,12 @@ If that sounds interesting, let&apos;s keep going.
 
 [Tetorica FM2612 Playground](https://kyorohiro.github.io/hello_ymfm_wasm/playground/index.html)
 
+Playground VGM import also saves OPN FM key-on timbres as virtual files such as
+`/presets/song/ym2612_ch1_001.tfi` and adds them to the Operator Preset list.
+Repeated timbres within each channel are deduplicated; importing the same filename
+again uses a new folder (`song-2`, etc.). TFI stores static FM parameters, not
+pan, LFO, or pitch/volume automation.
+
 # Tetorica FM2612 (hello_ymfm_wasm)
 
 This repository has four goals:
