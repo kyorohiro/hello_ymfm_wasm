@@ -1,3 +1,4 @@
+import { createYm2413AudioEngine } from '../js/ym2413audioengine.js';
 import { mountTfiInfo } from "./tfi_info.js";
 import { mountSampleExplorer } from './sample_explorer.js?v=pwm-capture-1';
 import { renderAllFretboard } from './fretboard_all.js';
@@ -15,7 +16,7 @@ import { createPsgMonitor, describePsgMonitor, observePsgEngine } from "./psg_mo
 import { exportMucomMml, exportOpnavoidMml } from "./vgm_mml.js?v=mml-formats-1";
 import {
   Ym2612VGM,
-} from "../js/ym2612vgm.js?v=pwm-2";
+} from "../js/ym2612vgm.js?v=ym2413-2";
 import { createTfiFromPreset } from "../js/tfi.js";
 import { createVgiFromPreset } from "../js/vgi.js";
 import ym2612ModuleFactory from "../generated/ym2612_wasm.js";
@@ -24,7 +25,7 @@ import segaPsgModuleFactory from "../generated/segapsg_wasm.js";
 import { createGenesisAudioEngine } from "../js/genesisaudioengine.js?v=pwm-2";
 import { createYm2203AudioEngine } from "../js/ym2203audioengine.js";
 import { createYm2608AudioEngine } from "../js/ym2608audioengine.js";
-import { VgmPlayer } from "../js/vgmplayer.js?v=pwm-queue-1";
+import { VgmPlayer } from "../js/vgmplayer.js?v=ym2413-2";
 import { looksLikeS98, convertS98ToVgm } from "../js/s98_file.js";
 import { maybeDecodeVgmFile, parseVgmMetadata, VGM_METADATA_FIELDS } from "../js/vgm_file.js";
 
@@ -382,6 +383,7 @@ function ensureMonitorToggleHandler() {
 }
 
 function createChannelMonitorState() {
+  if (currentChipKind === "ym2413") return [];
   const channelCount = currentChipKind === "ym2203" ? 3 : 6;
   return Array.from({ length: channelCount }, (_, index) => ({
     channel: index,
@@ -603,6 +605,7 @@ function noteishChannels() {
 }
 
 function updateToneMonitor() {
+  if (currentChipKind === "ym2413") { toneChannels = []; return; }
   const clock = (psgMonitor.kind === 'ssg' ? noteishHeader[`${currentChipKind}Clock`] : noteishHeader.psgClock) & 0x3fffffff;
   if (!clock) { toneChannels = []; return; }
   if (!toneChannels.length) toneChannels = createChannelMonitorState().slice(0,3).map(ch=>({...ch, tone:true, toneMidi:null}));
@@ -1329,6 +1332,7 @@ function renderHeader(header) {
     `pwmClock: ${header.pwmClock} (approximate PWM playback)`,
     `ym2612Clock: ${header.ym2612Clock}`,
     `ym2203Clock: ${header.ym2203Clock}`,
+    `ym2413Clock: ${header.ym2413Clock}`,
     `ym2608Clock: ${header.ym2608Clock}`,
     `ym2610Clock: ${header.ym2610Clock}`,
     `totalSamples: ${header.totalSamples}`,
@@ -1339,6 +1343,7 @@ function renderHeader(header) {
 }
 
 function detectPlaybackChipKind(header) {
+  if (header.ym2413Clock & 0x3fffffff) return "ym2413";
   if ((header.ym2610Clock & 0x3fffffff) && !header.ym2612Clock && !header.ym2203Clock && !header.ym2608Clock) return "ym2610";
   if (header.rf5c164Clock > 0) return "ym2612";
   if (header.ym2203Clock > 0 && header.ym2612Clock === 0) {
@@ -1519,6 +1524,7 @@ function renderEvent(event, index) {
   if (event.type === "ym2612-write") {
     return `${String(index).padStart(3, " ")}: write port=${event.port} register=${formatHex(event.register)} value=${formatHex(event.value)}`;
   }
+  if (event.type === "ym2413-write") return `${index}: ym2413 write register=${formatHex(event.register)} value=${formatHex(event.value)}`;
   if (event.type === "ym2203-write") {
     return `${String(index).padStart(3, " ")}: ym2203 write register=${formatHex(event.register)} value=${formatHex(event.value)}`;
   }
@@ -2244,7 +2250,7 @@ function downloadSnapshotVgiZip() {
 async function ensurePlaybackReady(vgm) {
   const nextChipKind = detectPlaybackChipKind(vgm.header);
   const nextClockKey = JSON.stringify([nextChipKind, vgm.header.ym2612Clock, vgm.header.psgClock,
-    vgm.header.rf5c164Clock, vgm.header.ym2203Clock, vgm.header.ym2608Clock, vgm.header.ym2610Clock]);
+    vgm.header.ym2413Clock, vgm.header.rf5c164Clock, vgm.header.ym2203Clock, vgm.header.ym2608Clock, vgm.header.ym2610Clock]);
 
   if (engine && (currentChipKind !== nextChipKind || engineClockKey !== nextClockKey)) {
     stopActiveStream();
@@ -2266,7 +2272,16 @@ async function ensurePlaybackReady(vgm) {
   currentPcmClock = vgm.header.rf5c164Clock & 0x3fffffff;
 
   if (!engine) {
-    if (currentChipKind === "ym2610") {
+    if (currentChipKind === "ym2413") {
+      if ((vgm.header.ym2413Clock & 0xc0000000) || vgm.header.ym2612Clock || vgm.header.ym2203Clock || vgm.header.ym2608Clock || vgm.header.ym2610Clock || vgm.header.rf5c164Clock || vgm.header.pwmClock)
+        throw new Error('This chip combination is not supported yet. Support coming soon.');
+      engine = await createYm2413AudioEngine({
+        ym2413ModuleFactory: (await import('../generated/ym2413_wasm.js')).default,
+        ym2413Clock: vgm.header.ym2413Clock & 0x3fffffff,
+        segaPsgModuleFactory, psgClock: vgm.header.psgClock & 0x3fffffff, masterVolume,
+      });
+      observePsgPlaybackEngine();
+    } else if (currentChipKind === "ym2610") {
       engine = await createYm2610BAudioEngine({
         moduleFactory: (await import('../generated/ym2610b_wasm.js?v=ym2610-vgm-2')).default,
         clock: vgm.header.ym2610Clock & 0x3fffffff,
@@ -2399,6 +2414,24 @@ function updatePlaybackButtons(state = {}) {
   exportSnapshotTfiButton.disabled = !hasBuffer;
   exportSnapshotVgiButton.disabled = !hasBuffer;
   exportSnapshotButton.disabled = !hasBuffer;
+  updateChipSupport();
+}
+
+// Keep the first playback-only chip boundary local until more features are implemented.
+function updateChipSupport() {
+  const playbackOnly = currentChipKind === 'ym2413';
+  for (const tab of [operatorInfoTab, noteishTab, tfiInfoTab, sampleTab]) {
+    tab.disabled = playbackOnly;
+    tab.title = playbackOnly ? 'Support coming soon.' : '';
+  }
+  for (const button of [exportMidiButton, exportMmlButton, exportSnapshotTfiButton,
+    exportSnapshotVgiButton, exportSnapshotButton, exportAllTfiButton, exportAllVgiButton]) {
+    if (playbackOnly) button.disabled = true;
+    button.title = playbackOnly ? 'Support coming soon.' : '';
+  }
+  const notice = document.getElementById('chipSupportNotice');
+  notice.hidden = !playbackOnly;
+  if (playbackOnly) setOutputTab('parsed-output');
 }
 
 function buildParseInfo(buffer, fileName, vgm) {
@@ -2857,7 +2890,7 @@ async function handleFile(file) {
 
   commandsOutput.textContent = events.join("\n");
   currentBuffer = buffer;
-  songTimeline.load(buffer);
+  if (currentChipKind !== "ym2413") songTimeline.load(buffer);
   playbackSeek.max = String(Math.max(0, vgm.header.totalSamples));
   renderSeekPosition(0);
   midiExportAvailable = Boolean(midiChipKind(vgm.header));
@@ -2866,7 +2899,7 @@ async function handleFile(file) {
     lastParseInfo.sourceHeader = sourceHeader;
     lastParseInfo.commandFormat = "VGM (normalized from S98)";
   }
-  extractedTfiPatches = extractTfiPatchesFromVgm(buffer);
+  extractedTfiPatches = currentChipKind === "ym2413" ? [] : extractTfiPatchesFromVgm(buffer);
   tfiInfo.loadVgm(buffer, file.name);
   exportAllTfiButton.disabled = extractedTfiPatches.length === 0;
   exportAllVgiButton.disabled = extractedTfiPatches.length === 0;
@@ -3163,6 +3196,10 @@ tfiInfoTab.addEventListener('click', () => setOutputTab('tfi-info'));
 window.addEventListener('pagehide', event => { if (!event.persisted) void tfiInfo.dispose(); });
 
 function setOutputTab(tabName) {
+  if (currentChipKind === "ym2413" && tabName !== "parsed-output") {
+    setStatus('YM2413 analysis and instrument editing: Support coming soon.');
+    tabName = "parsed-output";
+  }
   if (tabName === "tfi-info" && player?.isPlaying()) pauseButton.click();
   tfiInfo.setVisible(tabName === "tfi-info");
   tfiInfoTab.setAttribute("aria-selected", String(tabName === "tfi-info"));

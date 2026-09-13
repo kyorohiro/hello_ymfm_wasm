@@ -52,6 +52,8 @@ vgm_file.js
 s98_file.js
 vgm-output-worklet.js
 vgmplayer.js
+ym2413.js
+ym2413audioengine.js
 ym2203.js
 ym2203audioengine.js
 ym2608.js
@@ -73,6 +75,8 @@ ym2612synth.js
 GENERATED_FILES="
 ym2610b_wasm.js
 ym2610b_wasm.wasm
+ym2413_wasm.js
+ym2413_wasm.wasm
 ym2203_wasm.js
 ym2203_wasm.wasm
 ym2608_wasm.js

@@ -44,6 +44,8 @@ s98_file.js
 vgm-output-worklet.js
 vgmplayer.js
 vgm_runtime.js
+ym2413.js
+ym2413audioengine.js
 ym2203.js
 ym2203audioengine.js
 ym2203synth.js
