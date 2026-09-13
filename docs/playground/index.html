@@ -698,6 +698,16 @@
         padding: 0 5px;
       }
 
+      .file-tree { list-style: none; margin: 0; padding: 0; }
+      .file-tree .file-tree { padding-left: 12px; }
+      .file-tree summary {
+        cursor: pointer;
+        padding: 5px 0;
+        font: 0.78rem/1.35 "SFMono-Regular", Menlo, Consolas, monospace;
+        overflow-wrap: anywhere;
+      }
+      .file-tree summary:hover { background: rgba(87, 188, 198, 0.24); }
+
       .file-entry {
         display: block;
         width: 100%;
@@ -707,6 +717,7 @@
         color: inherit;
         background: transparent;
         text-align: left;
+        overflow-wrap: anywhere;
         font: 0.78rem/1.35 "SFMono-Regular", Menlo, Consolas, monospace;
       }
 

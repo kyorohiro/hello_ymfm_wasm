@@ -53,6 +53,7 @@ import {
   createPlaygroundRuntime,
 } from "../js/playground_runtime.js";
 import { createVgmPresetFiles } from "./playground_vgm_presets.js";
+import { renderFileTree } from "./playground_file_tree.js";
 import { createPlaygroundUi } from "./playground_ui.js";
 import {
   handleMegaSynthEvent,
@@ -1058,26 +1059,17 @@ function renderRunFileOptions() {
   runFileSelect.value = runVirtualPath;
 }
 
-function renderVirtualFileExplorer() {
-  fileExplorerList.replaceChildren();
-  const files = virtualFiles.list()
-    .filter((file) => !isSystemVirtualPath(file.path))
-    .sort(projectFileOrder);
+const expandedFileFolders = new Map();
 
-  for (const file of files) {
-    const button = document.createElement("button");
-    button.type = "button";
-    button.className = "file-entry";
-    button.textContent = file.path.slice(1);
-    button.setAttribute(
-      "aria-current",
-      file.path === activeVirtualPath ? "true" : "false"
-    );
-    button.addEventListener("click", () => {
-      openVirtualFile(file.path);
+function renderVirtualFileExplorer() {
+  const selectedPath = activeVirtualPath;
+  renderFileTree(fileExplorerList,
+    virtualFiles.list().filter(file => !isSystemVirtualPath(file.path)), {
+      selectedPath,
+      expanded: expandedFileFolders,
+      onOpen: openVirtualFile,
     });
-    fileExplorerList.appendChild(button);
-  }
+
 }
 
 function openVirtualFile(path) {
@@ -1297,6 +1289,7 @@ const ui =
     keyboardPanel,
     onBottomTabChange(tabName) {
       operatorKeyboard.setView(tabName);
+
     },
   });
 const {
