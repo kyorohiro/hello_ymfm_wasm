@@ -53,6 +53,7 @@ import {
   createPlaygroundRuntime,
 } from "../js/playground_runtime.js";
 import { createVgmPresetFiles } from "./playground_vgm_presets.js";
+import { createTfiFileEditor, tfiToEditorPreset } from "./playground_tfi_editor.js";
 import { renderFileTree } from "./playground_file_tree.js";
 import { createPlaygroundUi } from "./playground_ui.js";
 import {
@@ -218,28 +219,28 @@ const selectedWorkletChip =
     ? "ym2610b"
     : selectedChip;
 
-const megaDrive =
-  createTetoricaSynth({
-    chip: selectedChip,
-    workletUrl: useNukedEngine
-      ? "../js/ym2612-worklet-nuked.js"
-      : `../js/${selectedWorkletChip}-worklet.js`,
-    ym2612WasmUrl: useNukedEngine
-      ? "../generated/nuked_opn2_wasm.wasm"
-      : "../generated/ym2612_wasm.wasm",
-    wasmUrl:
-      selectedChip === "ym2203"
-        ? "../generated/ym2203_wasm.wasm"
-        : selectedChip === "ym2608"
-          ? "../generated/ym2608_wasm.wasm"
-          : selectedChip === "ym2610"
-            ? "../generated/ym2610b_wasm.wasm"
-          : undefined,
-    segaPsgWasmUrl:
-      selectedChip === "ym2612"
-        ? "../generated/segapsg_wasm.wasm"
-        : null,
-  });
+const synthOptions = {
+  chip: selectedChip,
+  workletUrl: useNukedEngine
+    ? "../js/ym2612-worklet-nuked.js"
+    : `../js/${selectedWorkletChip}-worklet.js`,
+  ym2612WasmUrl: useNukedEngine
+    ? "../generated/nuked_opn2_wasm.wasm"
+    : "../generated/ym2612_wasm.wasm",
+  wasmUrl:
+    selectedChip === "ym2203"
+      ? "../generated/ym2203_wasm.wasm"
+      : selectedChip === "ym2608"
+        ? "../generated/ym2608_wasm.wasm"
+        : selectedChip === "ym2610"
+          ? "../generated/ym2610b_wasm.wasm"
+        : undefined,
+  segaPsgWasmUrl:
+    selectedChip === "ym2612"
+      ? "../generated/segapsg_wasm.wasm"
+      : null,
+};
+const megaDrive = createTetoricaSynth(synthOptions);
 
 if (useNukedEngine) {
   const pageTitle =
@@ -429,6 +430,23 @@ const operatorKeyboard = createPlaygroundOperatorKeyboard({
 });
 
 operatorTabRoot.addEventListener("change", () => operatorKeyboard.syncChannel());
+
+let activeTfiFilePath = null;
+const tfiFileEditor = createTfiFileEditor({
+  root: document.getElementById("tfiFileEditor"),
+  operatorRoot: document.getElementById("tfiFileOperator"),
+  keyboardRoot: document.getElementById("tfiFileKeyboard"),
+  title: document.getElementById("tfiFileTitle"),
+  createAudio: () => createTetoricaSynth(synthOptions),
+  onSave(path, bytes) {
+    virtualFiles.writeBinary(path, bytes);
+    registerVirtualTfiPreset(path);
+  },
+  onStatus: message => setStatus(message),
+});
+window.addEventListener("pagehide", event => {
+  if (!event.persisted) void tfiFileEditor.dispose();
+});
 
 function updateMasterVolumeUi() {
   const masterVolume =
@@ -999,6 +1017,9 @@ function saveActiveVirtualFile() {
 }
 
 function showVirtualFile(file) {
+  activeTfiFilePath = null;
+  tfiFileEditor.setVisible(false);
+  codePanel.dataset.fileKind = "text";
   editorAdapter.openVirtualFile?.(
     file.path,
     file.data
@@ -1062,19 +1083,32 @@ function renderRunFileOptions() {
 const expandedFileFolders = new Map();
 
 function renderVirtualFileExplorer() {
-  const selectedPath = activeVirtualPath;
+  const selectedPath = activeTfiFilePath ?? activeVirtualPath;
   renderFileTree(fileExplorerList,
     virtualFiles.list().filter(file => !isSystemVirtualPath(file.path)), {
       selectedPath,
       expanded: expandedFileFolders,
       onOpen: openVirtualFile,
     });
+  renameFileButton.disabled = Boolean(activeTfiFilePath);
+  deleteFileButton.disabled = Boolean(activeTfiFilePath);
 
 }
 
 function openVirtualFile(path) {
   const file = virtualFiles.get(path);
   if (!file) {
+    return;
+  }
+  if (file.type === "binary" && /\.tfi$/i.test(path)) {
+    try {
+      saveActiveVirtualFile();
+      tfiFileEditor.open(path, file.data);
+      activeTfiFilePath = path;
+      codePanel.dataset.fileKind = "tfi";
+      setBottomTab("code");
+      renderVirtualFileExplorer();
+    } catch (error) { setStatus(`Could not open ${path}: ${error.message}`); }
     return;
   }
   if (file.type !== "text") {
@@ -1191,7 +1225,7 @@ function registerVirtualTfiPreset(path) {
   }
 
   const presetId = `vfs:${path}`;
-  const preset = parseTfi(virtualFile.data);
+  const preset = tfiToEditorPreset(virtualFile.data);
   virtualPresetIds.set(path, presetId);
   playgroundPresets[presetId] = preset;
   runtime.presets[presetId] = preset;
@@ -1289,7 +1323,7 @@ const ui =
     keyboardPanel,
     onBottomTabChange(tabName) {
       operatorKeyboard.setView(tabName);
-
+      tfiFileEditor.setVisible(tabName === "code" && Boolean(activeTfiFilePath));
     },
   });
 const {
@@ -1353,6 +1387,7 @@ masterVolumeRange?.addEventListener(
       Number(masterVolumeRange.value) /
         100
     );
+    tfiFileEditor.setMasterVolume(runtime.getMasterVolume());
     updateMasterVolumeUi();
   }
 );

@@ -418,6 +418,7 @@ export function createPlaygroundOperatorTab(
   }
 
   function markDirty() {
+    options.onEdit?.();
     dirtyChannels.add(
       selectedChannel
     );
@@ -916,6 +917,11 @@ export function createPlaygroundOperatorTab(
 
   channelSelect.value = "0";
   updateControlsUi();
+
+  if (options.idPrefix) {
+    for (const element of root.querySelectorAll("[id]")) element.id = options.idPrefix + element.id;
+    for (const label of root.querySelectorAll("[for]")) label.htmlFor = options.idPrefix + label.htmlFor;
+  }
 
   return {
     registerPresetOption,

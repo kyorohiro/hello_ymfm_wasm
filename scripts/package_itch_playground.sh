@@ -29,6 +29,8 @@ playground_query.js
 playground_sync.js
 playground_ui.js
 playground_virtual_files.js
+playground_file_tree.js
+playground_tfi_editor.js
 playground_vgm_presets.js
 tetorica-playground-globals.d.ts
 tetorica-playground-ym2203.d.ts
@@ -245,6 +247,7 @@ perl -0pi -e 's#"\./playground\.js"#"./playground.js"#g; s#\.\./js/#./js/#g; s#\
   "${STAGE_DIR}/playground_sync.js" \
   "${STAGE_DIR}/playground_operator_tab.js" \
   "${STAGE_DIR}/playground_operator_keyboard.js" \
+  "${STAGE_DIR}/playground_tfi_editor.js" \
   "${STAGE_DIR}/playground_vgm_presets.js" \
   "${STAGE_DIR}/playground_query.js" \
   "${STAGE_DIR}/playground_examples.js" \

@@ -25,6 +25,7 @@ export function createPlaygroundOperatorKeyboard({
   onPresetChange,
   ensureAudioReady,
   onStatus,
+  idPrefix = "",
 }) {
   const state = createFretboardState();
   let synth = null;
@@ -224,6 +225,9 @@ export function createPlaygroundOperatorKeyboard({
   window.addEventListener("blur", releaseAll);
 
   rebuild();
+  if (idPrefix) {
+    for (const element of root.querySelectorAll("[id]")) element.id = idPrefix + element.id;
+  }
   return {
     setView(tabName) {
       releaseAll();

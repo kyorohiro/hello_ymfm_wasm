@@ -708,6 +708,22 @@
       }
       .file-tree summary:hover { background: rgba(87, 188, 198, 0.24); }
 
+      .tfi-file-editor { flex: 1; min-width: 0; overflow: auto; padding: 12px 12px 220px; }
+      .tfi-file-editor[hidden], .tfi-file-keyboard[hidden],
+      #codePanel[data-file-kind="tfi"] #editorHost,
+      #codePanel[data-file-kind="tfi"] #editor { display: none; }
+      .tfi-file-editor .preset-row { display: none; }
+      .tfi-file-keyboard {
+        position: fixed; right: max(16px, env(safe-area-inset-right));
+        bottom: max(64px, env(safe-area-inset-bottom)); z-index: 20;
+        max-width: calc(100vw - 32px); max-height: calc(100dvh - 96px); overflow: auto;
+        padding: 16px; border: 2px solid var(--accent); border-radius: 16px;
+        background: var(--panel); box-shadow: 0 8px 30px #12363b40;
+      }
+      .tfi-file-keyboard > :not(.playground-keyboard-tools),
+      .tfi-file-keyboard [id$="playgroundKeyboardStrings"] { display: none; }
+      .tfi-file-keyboard .playground-keyboard-tools { flex-direction: column; align-items: flex-start; margin: 0; }
+
       .file-entry {
         display: block;
         width: 100%;
@@ -970,7 +986,7 @@
         gap: 4px;
       }
 
-      #operatorTabSpecialControls .param-control {
+      [id$="operatorTabSpecialControls"] .param-control {
         min-width: 0;
         width: 100%;
         padding: 2px 4px;
@@ -1114,7 +1130,7 @@
         padding-bottom: 2px;
       }
 
-      #operatorTabOperatorControls .param-strip {
+      [id$="operatorTabOperatorControls"] .param-strip {
         display: grid;
         gap: 4px;
         overflow: visible;
@@ -1126,20 +1142,20 @@
         align-items: start;
       }
 
-      #operatorTabCommonControls .param-control {
+      [id$="operatorTabCommonControls"] .param-control {
         min-width: 0;
         width: 100%;
         padding: 2px 4px;
       }
 
-      #operatorTabCommonControls .param-control.no-label {
+      [id$="operatorTabCommonControls"] .param-control.no-label {
         grid-template-columns: 12px minmax(0, 1fr) 12px;
         justify-items: center;
         gap: 2px;
         padding: 2px 4px;
       }
 
-      #operatorTabCommonControls .param-control.is-boolean.no-label {
+      [id$="operatorTabCommonControls"] .param-control.is-boolean.no-label {
         grid-template-columns: minmax(0, 1fr);
         padding: 2px 3px;
       }
@@ -1199,12 +1215,12 @@
         padding: 2px 4px;
       }
 
-      #operatorTabOperatorControls .param-control {
+      [id$="operatorTabOperatorControls"] .param-control {
         min-width: 0;
         width: 100%;
       }
 
-      #operatorTabOperatorControls .param-control.no-label {
+      [id$="operatorTabOperatorControls"] .param-control.no-label {
         grid-template-columns: 12px minmax(0, 1fr) 12px;
         justify-items: center;
         gap: 2px;
@@ -1212,7 +1228,7 @@
         min-height: 28px;
       }
 
-      #operatorTabOperatorControls .param-control.is-boolean.no-label {
+      [id$="operatorTabOperatorControls"] .param-control.is-boolean.no-label {
         grid-template-columns: minmax(0, 1fr);
         padding: 2px 3px;
       }
@@ -1603,6 +1619,11 @@
                 </div>
                 <div id="fileExplorerList"></div>
               </aside>
+              <section id="tfiFileEditor" class="tfi-file-editor" aria-label="TFI editor" hidden>
+                <p id="tfiFileTitle" class="subtext"></p>
+                <div id="tfiFileOperator"></div>
+                <p class="subtext">Changes are saved to this virtual TFI file automatically. Pan, LFO, AMS/PMS, AM and CH3 settings are for audition only; TFI does not store them.</p>
+              </section>
               <div id="editorHost" class="editor-host" data-ready="false"></div>
               <textarea id="editor" spellcheck="false"></textarea>
             </div>
@@ -1743,6 +1764,8 @@
         </section>
       </section>
     </main>
+
+    <section id="tfiFileKeyboard" class="tfi-file-keyboard" aria-label="TFI audition controls" hidden></section>
 
     <footer class="status-bar">
       <span id="runtimeState" class="pill">Audio idle</span>
