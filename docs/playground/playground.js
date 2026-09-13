@@ -1276,6 +1276,8 @@ function renameActiveVirtualFile() {
     if (runVirtualPath === previousPath) {
       runVirtualPath = normalizedPath;
     }
+    showVirtualFile(virtualFiles.get(normalizedPath));
+    editorAdapter.syncVirtualFiles?.(virtualFiles.list());
     renderVirtualFileExplorer();
     renderRunFileOptions();
   } catch (error) {

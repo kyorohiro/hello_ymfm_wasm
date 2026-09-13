@@ -617,6 +617,7 @@ export async function initializePlaygroundMonaco(
     }
 
     function syncVirtualFiles(files) {
+      const paths = new Set();
       for (const file of files) {
         if (
           file.type === "text" &&
@@ -625,11 +626,21 @@ export async function initializePlaygroundMonaco(
             file.path.endsWith(".json")
           )
         ) {
-          getModelForVirtualPath(
+          paths.add(file.path);
+          const model = getModelForVirtualPath(
             file.path,
             file.data
           );
+          if (model !== currentModel && model.getValue() !== file.data) {
+            model.setValue(file.data);
+          }
         }
+      }
+      // Keep the attached model alive until openVirtualFile switches the editor.
+      for (const model of monaco.editor.getModels()) {
+        if (model === currentModel || model.uri.scheme !== "file" ||
+            !model.uri.path.startsWith("/project/")) continue;
+        if (!paths.has(model.uri.path.slice("/project".length))) model.dispose();
       }
     }
 
@@ -700,6 +711,7 @@ export async function initializePlaygroundMonaco(
       openVirtualFile(path, source) {
         currentModel = getModelForVirtualPath(path, source);
         monacoEditor.setModel(currentModel);
+        syncVirtualFiles(options.listVirtualFiles?.() ?? []);
       },
       setReadOnly(readOnly) {
         monacoEditor.updateOptions({ readOnly });
