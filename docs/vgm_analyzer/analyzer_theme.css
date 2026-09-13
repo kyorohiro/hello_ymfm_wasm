@@ -73,11 +73,11 @@ h1 { margin: 0; letter-spacing: -0.045em; }
 }
 .brand-caption { margin: 12px 0 0; color: var(--accent-dark); font-size: 0.85rem; font-weight: 700; letter-spacing: 0.17em; text-align: center; text-transform: uppercase; }
 .instrument-specs { border: 1px solid var(--accent); border-radius: 12px; overflow: hidden; box-shadow: inset 0 1px white; }
-.instrument-specs > div { display: flex; flex-direction: column; gap: 7px; padding: 15px 18px; color: var(--accent-dark); }
+.instrument-specs > div { display: flex; flex-direction: column; gap: 5px; padding: 10px 16px; color: var(--accent-dark); }
 .instrument-specs > div + div { border-top: 1px solid var(--line); }
 .instrument-specs > div:last-child { background: var(--red-enamel); color: #fff8ee; }
 .spec-label { font-size: 0.7rem; letter-spacing: 0.09em; text-transform: uppercase; font-weight: 700; }
-.instrument-specs strong { font-size: clamp(0.9rem, 1.4vw, 1.2rem); }
+.instrument-specs strong { font-size: clamp(0.85rem, 1.2vw, 1.05rem); line-height: 1.4; }
 .actions, .sub-actions { align-items: center; gap: 10px; padding: 16px; border: 1px solid var(--line); border-radius: 12px; box-shadow: inset 0 0 0 2px #fffaf3; background: #fffaf340; }
 .actions { margin-top: 22px; }
 .playback-dock {
