@@ -118,3 +118,24 @@ YM2151のMML・音色エクスポートは引き続き未対応。
 ノイズ/CSMの除外、併用PSG、UIのMIDI有効化とMML無効化を確認。
 関連43テスト成功。dev配布とZIP再生成済み（139ローカル参照の検査成功）。
 ブラウザー実操作・外部DAWへの読み込みは未確認。
+
+## YM2151 OPM音色保存
+
+Operator Info の各CHに Export OPM ボタンを追加。クリック時点のモニター状態を、
+1音色（番号0）のVOPMテキストバンクとして `<曲名>_CH<n>.opm` に保存する。
+4Operator、ALG/FB、PAN、AMS/PMS、LFO、CH8のノイズ設定を出力。
+SLOTは現在のキービットを使用し、キーオフ時は試奏用に全4Operator（120）とする。
+再生中の変更履歴・音程・エンベロープ位相・UIミュート状態は音色として保存しない。
+モニターが音声queueより先行する制約は保存にも適用される。
+
+実装: `docs/vgm_analyzer/opm_export.js`。関連13テスト成功、配布版再生成済み。
+ブラウザーのダウンロード操作、VOPM/Furnaceへの実読み込み・聴感は未確認。
+FurnaceのインポーターはLFO/PAN/SLOT/NEを読み捨てるため、保存した設定すべての再現は保証しない。
+参照: [Furnace loadOPM](https://github.com/tildearrow/furnace/blob/master/src/engine/fileOpsIns.cpp)。
+
+### OPM Export の配置変更
+
+OPM保存は既存の Export グループへ移動。YM2151 のときだけ CH1～8 選択と Export OPM を表示する。
+Operator Info内の個別保存ボタンは削除。曲の読み込み時はCH1へ戻す。
+対象チップ・ファイル有無による有効化と、選択CHのクリック時点の保存を含め関連12テスト成功。
+今後Exportが増えた場合は、チップごとの提供アクションを定義し、共通欄で表示・有効化する構成を検討する。

@@ -6,7 +6,7 @@ const source=readFileSync(new URL('./vgm_analyzer.js',import.meta.url),'utf8');
 function setup(chip) {
  const node=()=>({attrs:{},setAttribute(k,v){this.attrs[k]=v;},getAttribute(k){return this.attrs[k];}});
  const ctx={currentBuffer:new Uint8Array(1),midiExportAvailable:true,currentChipKind:chip,noteishViewMode:'live',document:{getElementById:()=>node()},tfiInfo:{setVisible(){}},sampleExplorer:{stop(){}},songTimeline:{active(){}},setStatus(){},requestNoteishRender(){},renderNoteishGrid(){}};
- for(const name of ['operatorInfoTab','noteishTab','tfiInfoTab','sampleTab','parsedOutputTab','exportMidiButton','exportMmlButton','exportSnapshotTfiButton','exportSnapshotVgiButton','exportSnapshotButton','exportAllTfiButton','exportAllVgiButton','opnMonitorRoot','opmMonitorRoot','ayMonitorRoot','samplePanel','operatorInfoPanel','parsedOutputPanel','noteishPanel'])ctx[name]=node();
+ for(const name of ['exportOpmRow','exportOpmChannel','exportOpmButton','operatorInfoTab','noteishTab','tfiInfoTab','sampleTab','parsedOutputTab','exportMidiButton','exportMmlButton','exportSnapshotTfiButton','exportSnapshotVgiButton','exportSnapshotButton','exportAllTfiButton','exportAllVgiButton','opnMonitorRoot','opmMonitorRoot','ayMonitorRoot','samplePanel','operatorInfoPanel','parsedOutputPanel','noteishPanel'])ctx[name]=node();
  vm.createContext(ctx);
  vm.runInContext(source.slice(source.indexOf('function updateChipSupport()'),source.indexOf('function buildParseInfo(')),ctx);
  vm.runInContext(source.slice(source.indexOf('function setOutputTab('),source.indexOf('operatorInfoTab.addEventListener("click"')),ctx);
@@ -27,3 +27,5 @@ test('unsupported chip still rejects Operator Info; switching from unsupported t
 });
 
 test('YM2151 Note-ish remains selected; MIDI is enabled and MML stays disabled',()=>{const c=setup('ym2151');c.updateChipSupport();assert.equal(c.noteishTab.disabled,false);c.setOutputTab('noteish');for(let i=0;i<5;i++)c.updateChipSupport();assert.equal(c.noteishPanel.hidden,false);assert.equal(c.exportMidiButton.disabled,false);assert.equal(c.exportMmlButton.disabled,true);c.midiExportAvailable=false;c.updateChipSupport();assert.equal(c.exportMidiButton.disabled,true);});
+
+test('OPM controls only enable for loaded YM2151 files',()=>{const c=setup('ym2151');c.updateChipSupport();assert.equal(c.exportOpmRow.hidden,false);assert.equal(c.exportOpmButton.disabled,false);c.currentBuffer=null;c.updateChipSupport();assert.equal(c.exportOpmChannel.disabled,true);c.currentChipKind='ym2612';c.updateChipSupport();assert.equal(c.exportOpmRow.hidden,true);assert.equal(c.exportOpmButton.disabled,true);});

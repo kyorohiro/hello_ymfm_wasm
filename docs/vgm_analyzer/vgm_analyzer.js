@@ -1,5 +1,6 @@
+import {exportOpm} from './opm_export.js';
 import {createOpmNoteTracker} from './opm_notes.js';
-import {mountOpmMonitor, observeOpmEngine} from './opm_monitor.js?v=changes-1';
+import {mountOpmMonitor, observeOpmEngine} from './opm_monitor.js?v=export-2';
 import { msxMuteControls, applyMsxMute } from './msx_mutes.js';
 import {createYm3526AudioEngine} from '../js/ym3526audioengine.js';
 import {createY8950AudioEngine} from '../js/y8950audioengine.js?v=mutes-1';
@@ -134,6 +135,9 @@ const masterVolumeValue = document.getElementById("masterVolumeValue");
 const exportAllTfiButton = document.getElementById("exportAllTfiButton");
 const exportAllVgiButton = document.getElementById("exportAllVgiButton");
 let midiExportAvailable = false;
+const exportOpmRow = document.getElementById('exportOpmRow');
+const exportOpmChannel = document.getElementById('exportOpmChannel');
+const exportOpmButton = document.getElementById('exportOpmButton');
 const exportMidiButton = document.getElementById("exportMidiButton");
 const exportMmlButton = document.getElementById("exportMmlButton");
 const mmlBpmInput = document.getElementById("mmlBpmInput");
@@ -2683,6 +2687,8 @@ function updatePlaybackButtons(state = {}) {
 
 // Keep the first playback-only chip boundary local until more features are implemented.
 function updateChipSupport() {
+  exportOpmRow.hidden = currentChipKind !== 'ym2151';
+  exportOpmButton.disabled = exportOpmChannel.disabled = currentChipKind !== 'ym2151' || !currentBuffer;
   const ay = currentChipKind === 'ay8910';
   const playbackOnly = ['msx', 'y8950', 'ymf278b', 'ym3526', 'ym3812', 'ymf262', 'ym2151', 'ym2413'].includes(currentChipKind) || ay;
   for (const tab of [operatorInfoTab, noteishTab, tfiInfoTab, sampleTab]) {
@@ -2701,7 +2707,7 @@ function updateChipSupport() {
   }
   const notice = document.getElementById('chipSupportNotice');
   notice.hidden = !playbackOnly;
-  notice.textContent = currentChipKind === 'ym2151' ? 'YM2151 register monitor available. Base-pitch Note-ish available; noise/partial keys/CSM are omitted. MIDI base-pitch export available. Instrument editing and MML export: Support coming soon.' : ay ? 'AY / YM2149 instrument editing and export: Support coming soon.' : `${currentChipKind.toUpperCase()} analysis and instrument editing: Support coming soon.`;
+  notice.textContent = currentChipKind === 'ym2151' ? 'YM2151 register monitor available. Base-pitch Note-ish available; noise/partial keys/CSM are omitted. MIDI base-pitch export available. OPM snapshots are available in the Export group. Instrument editing and MML export: Support coming soon.' : ay ? 'AY / YM2149 instrument editing and export: Support coming soon.' : `${currentChipKind.toUpperCase()} analysis and instrument editing: Support coming soon.`;
   opnMonitorRoot.hidden = ay || currentChipKind === 'ym2151';
   opmMonitorRoot.hidden = currentChipKind !== 'ym2151';
   ayMonitorRoot.hidden = !ay;
@@ -3045,6 +3051,8 @@ function startScriptProcessorStream() {
 
 async function handleFile(file) {
   msxMutes.clear();
+  exportOpmChannel.value = "0";
+  exportOpmButton.disabled = exportOpmChannel.disabled = true;
   opmMonitor.reset();
   opmMonitor.render();
   setPlaybackError();
@@ -3488,6 +3496,18 @@ const opmMonitorRoot = document.createElement('section');
 operatorInfoPanel.prepend(opmMonitorRoot);
 opmMonitorRoot.hidden = true;
 const opmMonitor = mountOpmMonitor(opmMonitorRoot);
+exportOpmButton.addEventListener('click', () => {
+  if (currentChipKind !== 'ym2151' || !currentBuffer) return;
+  const channel = Number(exportOpmChannel.value);
+  if (!Number.isInteger(channel) || channel < 0 || channel > 7) return;
+  const snapshot = opmMonitor.snapshot();
+  const stem = (lastLoadedFileName || 'YM2151').replace(/\.[^.]+$/, '').replace(/[\/\\:*?"<>|\x00-\x1f]/g, '_');
+  const text = exportOpm(snapshot, channel, `${stem} CH${channel+1}`);
+  const url = URL.createObjectURL(new Blob([text], {type:'text/plain;charset=utf-8'}));
+  const anchor = document.createElement('a');anchor.href = url;anchor.download = `${stem}_CH${channel+1}.opm`;
+  document.body.append(anchor);anchor.click();anchor.remove();setTimeout(() => URL.revokeObjectURL(url), 1000);
+  setStatus(`Exported YM2151 CH${channel+1} OPM snapshot. Current register settings only; importer support for LFO/noise varies.`);
+});
 const ayMonitorRoot = document.createElement('section');
 operatorInfoPanel.prepend(ayMonitorRoot);
 ayMonitorRoot.hidden = true;
