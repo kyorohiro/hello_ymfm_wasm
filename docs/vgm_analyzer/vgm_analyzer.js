@@ -1,3 +1,4 @@
+import {mountOpmMonitor, observeOpmEngine} from './opm_monitor.js?v=changes-1';
 import { msxMuteControls, applyMsxMute } from './msx_mutes.js';
 import {createYm3526AudioEngine} from '../js/ym3526audioengine.js';
 import {createY8950AudioEngine} from '../js/y8950audioengine.js?v=mutes-1';
@@ -631,7 +632,7 @@ function ensureChannelMonitorRenderTimer() {
     return;
   }
   channelMonitorRenderTimer = window.setInterval(() => {
-    const psgRecent = psgMonitor.changedAt.some((time) => changeAgeOpacity(time) > 0) ||
+    const psgRecent = (currentChipKind === 'ym2151' && opmMonitor.hasRecentChanges()) || psgMonitor.changedAt.some((time) => changeAgeOpacity(time) > 0) ||
       changeAgeOpacity(pcmMonitor.changedAt) > 0 || pcmMonitor.channels.some((channel) => changeAgeOpacity(channel.changedAt) > 0);
     if (!channelMonitorDirty && !hasRecentChannelChanges() && !psgRecent && !psgHighlightActive) {
       return;
@@ -766,6 +767,7 @@ function observePsgPlaybackEngine() {
 }
 
 function renderChannelMonitor() {
+  if (currentChipKind === "ym2151") opmMonitor.render();
   if (currentChipKind === "ay8910") { renderMonitorToggles(); ayMonitor.render(); return; }
   renderPsgMonitor();
   renderPcmMonitor();
@@ -2482,6 +2484,7 @@ async function ensurePlaybackReady(vgm) {
         ym2151Clock: vgm.header.ym2151Clock & 0x3fffffff,
         segaPsgModuleFactory, psgClock: vgm.header.psgClock & 0x3fffffff, masterVolume,
       });
+      observeOpmEngine(engine, opmMonitor, requestChannelMonitorRender);
       observePsgPlaybackEngine();
     } else if (currentChipKind === "ay8910") {
       validateAyPlaybackHeader(vgm.header);
@@ -2662,7 +2665,7 @@ function updateChipSupport() {
   const ay = currentChipKind === 'ay8910';
   const playbackOnly = ['msx', 'y8950', 'ymf278b', 'ym3526', 'ym3812', 'ymf262', 'ym2151', 'ym2413'].includes(currentChipKind) || ay;
   for (const tab of [operatorInfoTab, noteishTab, tfiInfoTab, sampleTab]) {
-    tab.disabled = playbackOnly && !(ay && tab === operatorInfoTab);
+    tab.disabled = playbackOnly && !((ay || currentChipKind === 'ym2151') && tab === operatorInfoTab);
     tab.title = tab.disabled ? 'Support coming soon.' : '';
   }
   for (const button of [exportMidiButton, exportMmlButton, exportSnapshotTfiButton,
@@ -2672,11 +2675,12 @@ function updateChipSupport() {
   }
   const notice = document.getElementById('chipSupportNotice');
   notice.hidden = !playbackOnly;
-  notice.textContent = ay ? 'AY / YM2149 instrument editing and export: Support coming soon.' : `${currentChipKind.toUpperCase()} analysis and instrument editing: Support coming soon.`;
-  opnMonitorRoot.hidden = ay;
+  notice.textContent = currentChipKind === 'ym2151' ? 'YM2151 register monitor available. Noteish and instrument editing/export: Support coming soon.' : ay ? 'AY / YM2149 instrument editing and export: Support coming soon.' : `${currentChipKind.toUpperCase()} analysis and instrument editing: Support coming soon.`;
+  opnMonitorRoot.hidden = ay || currentChipKind === 'ym2151';
+  opmMonitorRoot.hidden = currentChipKind !== 'ym2151';
   ayMonitorRoot.hidden = !ay;
-  if (['msx', 'y8950', 'ymf278b', 'ym3526', 'ym3812', 'ymf262', 'ym2151', 'ym2413'].includes(currentChipKind)) setOutputTab('parsed-output');
-  else if (ay && operatorInfoTab.getAttribute('aria-selected') !== 'true' && parsedOutputTab.getAttribute('aria-selected') !== 'true') setOutputTab('operator-info');
+  if (['msx', 'y8950', 'ymf278b', 'ym3526', 'ym3812', 'ymf262', 'ym2413'].includes(currentChipKind)) setOutputTab('parsed-output');
+  else if ((ay || currentChipKind === 'ym2151') && operatorInfoTab.getAttribute('aria-selected') !== 'true' && parsedOutputTab.getAttribute('aria-selected') !== 'true') setOutputTab('operator-info');
 }
 
 function buildParseInfo(buffer, fileName, vgm) {
@@ -3015,6 +3019,8 @@ function startScriptProcessorStream() {
 
 async function handleFile(file) {
   msxMutes.clear();
+  opmMonitor.reset();
+  opmMonitor.render();
   setPlaybackError();
   clearPlaybackWarnings();
   currentBuffer = null;
@@ -3451,6 +3457,10 @@ exportSnapshotButton.addEventListener("click", () => {
 const opnMonitorRoot = document.createElement('div');
 while (operatorInfoPanel.firstChild) opnMonitorRoot.append(operatorInfoPanel.firstChild);
 operatorInfoPanel.append(opnMonitorRoot);
+const opmMonitorRoot = document.createElement('section');
+operatorInfoPanel.prepend(opmMonitorRoot);
+opmMonitorRoot.hidden = true;
+const opmMonitor = mountOpmMonitor(opmMonitorRoot);
 const ayMonitorRoot = document.createElement('section');
 operatorInfoPanel.prepend(ayMonitorRoot);
 ayMonitorRoot.hidden = true;
@@ -3469,7 +3479,7 @@ tfiInfoTab.addEventListener('click', () => setOutputTab('tfi-info'));
 window.addEventListener('pagehide', event => { if (!event.persisted) void tfiInfo.dispose(); });
 
 function setOutputTab(tabName) {
-  if ((["msx", "y8950", "ymf278b", "ym3526", "ym3812", "ymf262", "ym2151", "ym2413"].includes(currentChipKind) && tabName !== "parsed-output") || (currentChipKind === "ay8910" && !["operator-info", "parsed-output"].includes(tabName))) {
+  if ((["msx", "y8950", "ymf278b", "ym3526", "ym3812", "ymf262", "ym2413"].includes(currentChipKind) && tabName !== "parsed-output") || (["ay8910", "ym2151"].includes(currentChipKind) && !["operator-info", "parsed-output"].includes(tabName))) {
     setStatus('Analysis and instrument editing: Support coming soon.');
     tabName = "parsed-output";
   }
