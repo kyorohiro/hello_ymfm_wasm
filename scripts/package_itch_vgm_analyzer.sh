@@ -27,6 +27,7 @@ pwm_samples.js
 psg_monitor.js
 rf5c164_monitor.js
 source_mutes.js
+msx_mutes.js
 vgm_mml.js
 vgm_notes.js
 tone_notes.js
@@ -258,6 +259,8 @@ perl -0pi -e "s#(['\"])\\.\\./js/#\$1./js/#g; s#(['\"])\\.\\./generated/#\$1./ge
   "${STAGE_DIR}/note_timeline_worker.js" "${STAGE_DIR}/sample_explorer.js" "${STAGE_DIR}/pwm_samples.js"
 perl -0pi -e 's#\.\./js/vgm-output-worklet\.js#./js/vgm-output-worklet.js#g' \
   "${STAGE_DIR}/index.html"
+
+node "${ROOT_DIR}/scripts/check_analyzer_package.mjs" "${STAGE_DIR}"
 
 (
   cd "${STAGE_DIR}"
