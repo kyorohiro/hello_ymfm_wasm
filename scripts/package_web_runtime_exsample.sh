@@ -30,6 +30,9 @@ ym2612synth_audioworklet.html
 
 JS_FILES="
 msxaudioengine.js
+multichipaudioengine.js
+y8950audioengine.js
+y8950.js
 ay8910audioengine.js
 ay8910.js
 ym2413audioengine.js
@@ -91,6 +94,8 @@ ym2608vgm.js
 "
 
 GENERATED_FILES="
+y8950_wasm.js
+y8950_wasm.wasm
 ay8910_wasm.js
 ay8910_wasm.wasm
 ym2413_wasm.js
@@ -354,6 +359,9 @@ cat > "${STAGE_DIR}/index.html" <<'EOF'
   </body>
 </html>
 EOF
+
+# Validate local imports and page references before publishing the archive.
+node "${ROOT_DIR}/scripts/check_analyzer_package.mjs" "${STAGE_DIR}"
 
 (
   cd "${STAGE_DIR}"
