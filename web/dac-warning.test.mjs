@@ -10,7 +10,7 @@ function file(commands) {
 const bank=[0x67,0x66,0,2,0,0,0,17,34];
 const start=[0x91,0,0,1,0,0x92,0,0x44,0xac,0,0,0x93,0,0,0,0,0,1,2,0,0,0];
 for(const Parser of [Ym2612VGM,DocsVGM])test(`unsupported streams warn, cannot restart or corrupt ordinary writes (${Parser===DocsVGM?'docs':'web'})`,()=>{
-  for(const type of [0,1,3,6,9,10,11,12,13,16,18,0x82,0x91,0x7f]){
+  for(const type of [0x80,1,3,6,9,10,11,12,13,16,18,0x82,0x91,0x7f]){
     const warnings=[],writes=[];
     const parser=new Parser(file([...bank,0x90,0,type,0,0x2a,...start,0x61,10,0,0x95,0,0,0,1,0x61,10,0,0x52,0x22,8,0x66]),{logger:{warn:m=>warnings.push(m)}});
     const targets={ym2612:{writeRegister:(...args)=>writes.push(args)}};

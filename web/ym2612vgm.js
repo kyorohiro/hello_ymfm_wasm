@@ -1071,7 +1071,7 @@ export class Ym2612VGM {
   #streamState(streamId) {
     if (!this.streams.has(streamId)) {
       this.streams.set(streamId, {
-        chipType: 0,
+        chipType: -1,
         port: 0,
         register: 0x2a,
         dataBankId: 0,
@@ -1107,10 +1107,10 @@ export class Ym2612VGM {
       const stream = this.#streamState(this.bytes[this.position + 1]);
       stream.chipType = this.bytes[this.position + 2];
       // Only these first-instance destinations have a stream writer.
-      stream.disabled = ![0x02, 0x11].includes(stream.chipType);
+      stream.disabled = ![0x00, 0x02, 0x11].includes(stream.chipType);
       stream.active = false;
       if (stream.disabled) {
-        const names = {0x01:'YM2413',0x02:'YM2612',0x03:'YM2151',0x09:'YM3812',0x0a:'YM3526',0x0b:'Y8950',0x0c:'YMF262',0x0d:'YMF278B',0x10:'RF5C164',0x11:'PWM',0x12:'AY'};
+        const names = {0x00:'PSG',0x01:'YM2413',0x02:'YM2612',0x03:'YM2151',0x09:'YM3812',0x0a:'YM3526',0x0b:'Y8950',0x0c:'YMF262',0x0d:'YMF278B',0x10:'RF5C164',0x11:'PWM',0x12:'AY'};
         const type = stream.chipType & 0x7f;
         this.#warn(`Unsupported DAC stream skipped: ${names[type] ?? 'chip'} (${formatHexNumber(type)}), instance=${stream.chipType >>> 7}, stream=${this.bytes[this.position + 1]}. Playback continues without this stream.`);
       }
@@ -1167,7 +1167,7 @@ export class Ym2612VGM {
       const block = blocks[blockId];
       const bank = this.dataBanks.get(stream.dataBankId) || null;
       const offset = blocks.slice(0, blockId).reduce((sum, data) => sum + data.length, 0);
-      const width = stream.chipType === 0x11 ? 2 : 1;
+      const width = stream.chipType === 0x11 || (stream.chipType === 0 && !(stream.register & 0x10)) ? 2 : 1;
       const count = block ? Math.max(0, Math.floor((block.length - stream.stepBase * width - width) / (stream.stepSize * width)) + 1) : 0;
       this.#startStream(stream, bank, offset, 1 | ((flags & 1) << 7) | (flags & 0x10), count);
       this.position += 5;
@@ -1199,7 +1199,7 @@ export class Ym2612VGM {
    * @returns {void}
    */
   #startStream(stream, data, start, mode, length) {
-    if (stream.disabled || ![0x02, 0x11].includes(stream.chipType)) { stream.active = false; return; }
+    if (stream.disabled || ![0x00, 0x02, 0x11].includes(stream.chipType)) { stream.active = false; return; }
     if ((stream.chipType & 0x7f) === 0x11) {
       if (start === 0xffffffff) start = stream.pwmStart || 0;
       stream.pwmStart = start;
@@ -1226,8 +1226,10 @@ export class Ym2612VGM {
       return;
     }
     // Length counts commands, while the start offset is measured in bytes.
-    const offset = start === 0xffffffff ? (stream.dataOffset || 0) : start + stream.stepBase;
-    const available = data ? Math.max(0, Math.floor((data.length - offset - 1) / stream.stepSize) + 1) : 0;
+    const width = stream.chipType === 0 && !(stream.register & 0x10) ? 2 : 1;
+    const stride = stream.stepSize * width;
+    const offset = start === 0xffffffff ? (stream.dataOffset || 0) : start + stream.stepBase * width;
+    const available = data ? Math.max(0, Math.floor((data.length - offset - width) / stride) + 1) : 0;
     const kind = mode & 15;
     let count;
     if (kind === 0) count = stream.commandCount || 0;
@@ -1356,13 +1358,25 @@ export class Ym2612VGM {
       }
     }
     const index = stream.reverse ? stream.dataLength - 1 - stream.cursor : stream.cursor;
-    const dataIndex = stream.dataOffset + index * stream.stepSize;
+    const width = stream.chipType === 0 && !(stream.register & 0x10) ? 2 : 1;
+    const dataIndex = stream.dataOffset + index * stream.stepSize * width;
     const value = stream.data[dataIndex];
-    // An unsupported RF5 stream must never write into the YM2612.
-    if (stream.chipType !== 0x02) { stream.active = false; return; }
-    const ym2612 = targets.ym2612 || targets;
-    if (ym2612 && typeof ym2612.writeRegister === "function") {
-      ym2612.writeRegister(stream.register, value, stream.port);
+    if (stream.chipType === 0) {
+      if (typeof targets.psg?.write !== 'function') {
+        stream.active = false;
+        this.#warn('PSG stream requires a PSG playback target');
+        return;
+      }
+      const command = stream.register & 0xf0;
+      targets.psg.write(command | (value & 0x0f));
+      if (width === 2) targets.psg.write(((stream.data[dataIndex + 1] & 3) << 4) | (value >> 4));
+    } else {
+      // Never route another chip's stream through YM2612.
+      if (stream.chipType !== 0x02) { stream.active = false; return; }
+      const ym2612 = targets.ym2612 || targets;
+      if (ym2612 && typeof ym2612.writeRegister === 'function') {
+        ym2612.writeRegister(stream.register, value, stream.port);
+      }
     }
     stream.cursor++;
     if (stream.cursor >= stream.dataLength && !stream.loop) {

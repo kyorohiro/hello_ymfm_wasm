@@ -149,7 +149,7 @@ UI 通知は実 Player と画面の警告関数を VM で接続した確認で�
 - [x] PWM の左右インターリーブ、逆再生・ループ・停止と分割再生。
 - [ ] 圧縮を使う混合構成のシーク、48 kHz 出力と実音源の回帰確認。
 
-PSG 宛ての DAC ストリーム配送は別の未対応項目として維持する。
+PSG 宛てストリームは下記の範囲で追加対応した。第2インスタンスは未対応。
 32X の実機互換性・実曲の再現性は、命令配送の合成テストと区別する。
 
 
@@ -167,3 +167,18 @@ PSG 宛ての DAC ストリーム配送は別の未対応項目として維持�
 - 圧縮した混合3音源構成でのシークと、実音源による回帰は残る（上の最後の項目）。
 
 形式の根拠: [VGM 1.71 — compressed data blocks / decompression table](https://github.com/vgmrips/vgmplay-legacy/blob/master/VGMPlay/vgmspec171.txt)。
+
+
+### PSG ストリームの対応
+
+[psg-stream.test.mjs](../../web/psg-stream.test.mjs) を追加し、修正前に10テストの失敗を確認した。
+音量データは下位4ビットを PSG コマンドへ、周波数データは little-endian の10ビット値を
+ラッチと上位6ビットの連続書き込みへ変換する。
+
+- 通常の PSG 命令と、値・順序・時刻が一致することを Parser / Player 両経路で検証。
+- 1／2バイトのデータ幅、ステップ開始位置、命令数、逆再生・ループ・停止、リセットを検証。
+- 不完全な2バイト値を読まず、未設定ストリームや未登録の第2インスタンスを配送しない。
+- 既存 queue と音声生成経路を使用。新しい音源コアや queue は追加していない。
+
+参照: [libvgm の PSG ストリーム変換](https://github.com/ValleyBell/libvgm/blob/master/emu/dac_control.c)。
+`sh scripts/test_vgm_mock.sh` で173テスト成功。実曲・実音源による確認は別途必要。
