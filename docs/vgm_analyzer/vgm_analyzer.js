@@ -1,4 +1,4 @@
-import {exportOpm} from './opm_export.js';
+import {exportOpm, extractOpmPatches} from './opm_export.js?v=all-1';
 import {createOpmNoteTracker} from './opm_notes.js';
 import {mountOpmMonitor, observeOpmEngine} from './opm_monitor.js?v=export-2';
 import { msxMuteControls, applyMsxMute } from './msx_mutes.js';
@@ -135,8 +135,7 @@ const masterVolumeValue = document.getElementById("masterVolumeValue");
 const exportAllTfiButton = document.getElementById("exportAllTfiButton");
 const exportAllVgiButton = document.getElementById("exportAllVgiButton");
 let midiExportAvailable = false;
-const exportOpmRow = document.getElementById('exportOpmRow');
-const exportOpmChannel = document.getElementById('exportOpmChannel');
+const exportAllOpmButton = document.getElementById('exportAllOpmButton');
 const exportOpmButton = document.getElementById('exportOpmButton');
 const exportMidiButton = document.getElementById("exportMidiButton");
 const exportMmlButton = document.getElementById("exportMmlButton");
@@ -2687,8 +2686,8 @@ function updatePlaybackButtons(state = {}) {
 
 // Keep the first playback-only chip boundary local until more features are implemented.
 function updateChipSupport() {
-  exportOpmRow.hidden = currentChipKind !== 'ym2151';
-  exportOpmButton.disabled = exportOpmChannel.disabled = currentChipKind !== 'ym2151' || !currentBuffer;
+  exportAllOpmButton.hidden = exportOpmButton.hidden = currentChipKind !== 'ym2151';
+  exportAllOpmButton.disabled = exportOpmButton.disabled = currentChipKind !== 'ym2151' || !currentBuffer;
   const ay = currentChipKind === 'ay8910';
   const playbackOnly = ['msx', 'y8950', 'ymf278b', 'ym3526', 'ym3812', 'ymf262', 'ym2151', 'ym2413'].includes(currentChipKind) || ay;
   for (const tab of [operatorInfoTab, noteishTab, tfiInfoTab, sampleTab]) {
@@ -3051,8 +3050,7 @@ function startScriptProcessorStream() {
 
 async function handleFile(file) {
   msxMutes.clear();
-  exportOpmChannel.value = "0";
-  exportOpmButton.disabled = exportOpmChannel.disabled = true;
+  exportAllOpmButton.disabled = exportOpmButton.disabled = true;
   opmMonitor.reset();
   opmMonitor.render();
   setPlaybackError();
@@ -3496,17 +3494,30 @@ const opmMonitorRoot = document.createElement('section');
 operatorInfoPanel.prepend(opmMonitorRoot);
 opmMonitorRoot.hidden = true;
 const opmMonitor = mountOpmMonitor(opmMonitorRoot);
+exportAllOpmButton.addEventListener('click', () => {
+  if (currentChipKind !== 'ym2151' || !currentBuffer) return;
+  try {
+    const patches = extractOpmPatches(currentBuffer);
+    if (!patches.length) { setStatus('No keyed YM2151 tones found to export.'); return; }
+    const files = patches.map(p => ({name:p.name, data:new TextEncoder().encode(p.text)}));
+    const url = URL.createObjectURL(createStoredZip(files));
+    const anchor = document.createElement('a');anchor.href = url;anchor.download = 'all_opm_patches.zip';
+    document.body.append(anchor);anchor.click();anchor.remove();setTimeout(() => URL.revokeObjectURL(url), 1000);
+    setStatus(`Exported All OPM ZIP: ${patches.length} distinct tones across the track, including changes while keys are on.`);
+  } catch (error) { setStatus(`OPM export failed: ${error.message}`); }
+});
 exportOpmButton.addEventListener('click', () => {
   if (currentChipKind !== 'ym2151' || !currentBuffer) return;
-  const channel = Number(exportOpmChannel.value);
-  if (!Number.isInteger(channel) || channel < 0 || channel > 7) return;
   const snapshot = opmMonitor.snapshot();
   const stem = (lastLoadedFileName || 'YM2151').replace(/\.[^.]+$/, '').replace(/[\/\\:*?"<>|\x00-\x1f]/g, '_');
-  const text = exportOpm(snapshot, channel, `${stem} CH${channel+1}`);
-  const url = URL.createObjectURL(new Blob([text], {type:'text/plain;charset=utf-8'}));
-  const anchor = document.createElement('a');anchor.href = url;anchor.download = `${stem}_CH${channel+1}.opm`;
+  const files = Array.from({length:8}, (_, channel) => ({
+    name: `CH${channel+1}.opm`,
+    data: new TextEncoder().encode(exportOpm(snapshot, channel, `${stem} CH${channel+1}`)),
+  }));
+  const url = URL.createObjectURL(createStoredZip(files));
+  const anchor = document.createElement('a');anchor.href = url;anchor.download = `${stem}_snapshot_opm.zip`;
   document.body.append(anchor);anchor.click();anchor.remove();setTimeout(() => URL.revokeObjectURL(url), 1000);
-  setStatus(`Exported YM2151 CH${channel+1} OPM snapshot. Current register settings only; importer support for LFO/noise varies.`);
+  setStatus('Exported Snapshot OPM: current tones from all 8 channels. Importer support for LFO/noise varies.');
 });
 const ayMonitorRoot = document.createElement('section');
 operatorInfoPanel.prepend(ayMonitorRoot);

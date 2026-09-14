@@ -637,18 +637,10 @@
           <div class="export-row">
             <button id="exportAllTfiButton" type="button" disabled>All TFI ZIP</button>
             <button id="exportAllVgiButton" type="button" disabled>All VGI ZIP</button>
+            <button id="exportAllOpmButton" type="button" disabled hidden title="Collect distinct tones across the whole track">All OPM ZIP</button>
             <button id="exportSnapshotTfiButton" type="button" disabled>Snapshot TFI</button>
             <button id="exportSnapshotVgiButton" type="button" disabled>Snapshot VGI</button>
-          </div>
-          <div id="exportOpmRow" class="export-row" hidden>
-            <label for="exportOpmChannel">OPM channel</label>
-            <select id="exportOpmChannel" disabled aria-label="OPM export channel">
-              <option value="0">CH1</option><option value="1">CH2</option>
-              <option value="2">CH3</option><option value="3">CH4</option>
-              <option value="4">CH5</option><option value="5">CH6</option>
-              <option value="6">CH7</option><option value="7">CH8</option>
-            </select>
-            <button id="exportOpmButton" type="button" disabled>OPM</button>
+            <button id="exportOpmButton" type="button" disabled hidden title="Save current tones from all 8 channels">Snapshot OPM</button>
           </div>
           <div class="export-row">
             <button id="exportMidiButton" type="button" disabled title="FM + SSG / PSG tone notes; original timing, no grid quantization">MIDI</button>
@@ -839,6 +831,6 @@
       <div id="monitorToggles" class="monitor-toggles" role="group" aria-label="Playback channel and sound source toggles"></div>
     </section>
 
-    <script type="module" src="./vgm_analyzer.js?v=opm-export-2"></script>
+    <script type="module" src="./vgm_analyzer.js?v=opm-export-4"></script>
   </body>
 </html>
