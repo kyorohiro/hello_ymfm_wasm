@@ -1,4 +1,4 @@
-import {mountOpmInfo} from './opm_info.js';
+import {mountOpmInfo} from './opm_info.js?v=keyboard-layout-2';
 import {exportMxdrvMml} from './opm_mml.js';
 import {exportOpm, extractOpmPatches} from './opm_export.js?v=all-1';
 import {createOpmNoteTracker} from './opm_notes.js';

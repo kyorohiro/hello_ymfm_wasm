@@ -196,7 +196,7 @@ done
 for file in synth_controls.js synth_keyboard.js; do
   cp "${ROOT_DIR}/docs/synth/${file}" "${STAGE_DIR}/synth/${file}"
 done
-perl -0pi -e 's#../playground/#./playground/#g; s#../js/#./js/#g; s#../generated/#./generated/#g' "${STAGE_DIR}/tfi_info.js"
+perl -0pi -e 's#../playground/#./playground/#g; s#../js/#./js/#g; s#../generated/#./generated/#g' "${STAGE_DIR}/tfi_info.js" "${STAGE_DIR}/opm_info.js"
 
 # vgi.js is shared with the web runtime; docs/js/vgi.js is a source-tree
 # re-export, while the standalone analyzer package needs the implementation.

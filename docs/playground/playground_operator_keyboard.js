@@ -185,7 +185,8 @@ export function createPlaygroundOperatorKeyboard({
       }
     }
     note.channel = channel;
-    synth.noteOn(channel, entry.pitch.block, entry.pitch.fnum);
+    if (synth.noteOnMidi) synth.noteOnMidi(channel, entry.midi);
+    else synth.noteOn(channel, entry.pitch.block, entry.pitch.fnum);
     button?.classList.add("is-active");
     onStatus?.(`Playing ${entry.noteName} on channel ${channel + 1}.`);
   }
