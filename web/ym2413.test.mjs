@@ -96,3 +96,23 @@ for (const Parser of [Ym2612VGM, DocsVGM]) {
     assert.deepEqual(parser.step(), {type:'ym2413-write',register:0x30,value:0x10});
   });
 }
+
+test('OPLL nine channels and rhythm groups mute without losing internal phase',async()=>{
+ const options={ym2413ModuleFactory:factory,ym2413ModuleOptions:{wasmBinary:readFileSync(new URL('../docs/generated/ym2413_wasm.wasm',import.meta.url))}};
+ const a=await Ym2413AudioEngine.create(options),b=await Ym2413AudioEngine.create(options);
+ try{
+  for(const rhythm of [false,true])for(let ch=rhythm?6:0;ch<9;ch++){
+   for(const e of [a,b]){
+    e.ym2413.setMuteMask(0);e.reset();
+    e.writeYm2413(0x30+ch,0x40);e.writeYm2413(0x10+ch,0x80);e.writeYm2413(0x20+ch,0x17);
+    if(rhythm){e.writeYm2413(0x30+ch,0);e.writeYm2413(0x0e,0x20|[0x10,9,6][ch-6]);}
+   }
+   a.processFrames(1000);b.processFrames(1000);b.setChannelMuted(ch,true);
+   const normal=a.processFrames(200),muted=b.processFrames(200);
+   assert(normal.left.some(v=>v!==0),`channel ${ch} rhythm ${rhythm}`);assert(muted.left.every(v=>v===0));
+   b.setChannelMuted(ch,false);assert.deepEqual(b.processFrames(300),a.processFrames(300));
+  }
+  b.setChannelMuted(8,true);b.reset();assert.equal(b.ym2413.muteMask,256);
+  assert.throws(()=>b.setChannelMuted(9,true),RangeError);
+ }finally{a.dispose();b.dispose();}
+});

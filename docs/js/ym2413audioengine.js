@@ -32,6 +32,12 @@ export class Ym2413AudioEngine {
   }
   getMasterVolume() { return this.volume; }
   setPsgMuted(value) { this.psgMuted = Boolean(value); }
+  setChannelMuted(channel, muted) {
+    if (!Number.isInteger(channel) || channel < 0 || channel >= 9) throw new RangeError('Invalid YM2413 channel');
+    const bit = 1 << channel;
+    this.ym2413.setMuteMask(muted ? this.ym2413.muteMask | bit : this.ym2413.muteMask & ~bit);
+    this.lastSample = 0;
+  }
   writePsg(value) { this.psg?.write(value); }
   writeYm2413(register, value) { this.ym2413.write(0, register); this.ym2413.write(1, value); }
   reset() {

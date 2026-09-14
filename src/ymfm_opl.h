@@ -835,11 +835,14 @@ public:
 	void write_data(uint8_t data);
 	void write(uint32_t offset, uint8_t data);
 
+	void set_mute_mask(uint32_t mask) { m_mute_mask = mask & 0x1ff; }
+
 	// generate samples of sound
 	void generate(output_data *output, uint32_t numsamples = 1);
 
 protected:
 	// internal state
+	uint32_t m_mute_mask = 0;
 	uint8_t m_address;               // address register
 	fm_engine m_fm;                  // core FM engine
 };

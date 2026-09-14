@@ -2056,7 +2056,13 @@ void opll_base::generate(output_data *output, uint32_t numsamples)
 		m_fm.clock(fm_engine::ALL_CHANNELS);
 
 		// update the FM content; OPLL has a built-in 9-bit DAC
-		m_fm.output(output->clear(), 5, 256, fm_engine::ALL_CHANNELS);
+		m_fm.output(output->clear(), 5, 256, fm_engine::ALL_CHANNELS & ~m_mute_mask);
+		// Keep operator feedback evolving while its output is muted.
+		if (m_mute_mask)
+		{
+			output_data discarded;
+			m_fm.output(discarded.clear(), 5, 256, m_mute_mask);
+		}
 
 		// final output is multiplexed; we don't simulate that here except
 		// to average over everything
