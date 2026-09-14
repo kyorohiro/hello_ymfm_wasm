@@ -1,3 +1,4 @@
+import { extractOpmNotes } from './opm_notes.js';
 import { extractToneNotes } from './tone_notes.js?v=ym2610-vgm-2';
 import { Ym2612VGM } from '../js/ym2612vgm.js?v=ym2610-vgm-2';
 import { extractOpnNotes, midiChipKind } from './vgm_notes.js?v=midi-onset-1';
@@ -38,18 +39,19 @@ export function exportAnalysisMidi(source, { bpm = 120, fileName = 'VGM' } = {})
     throw new RangeError('BPM must fit the MIDI tempo range (approximately 3.58–60000000)');
   }
   const parserHeader = new Ym2612VGM(source).header;
-  const chipKind = midiChipKind(parserHeader);
-  if (!chipKind) throw new Error('MIDI requires YM2612 / YM2203 / YM2608 or PSG');
-  const fm = chipKind === 'psg' ? {channels:[],warnings:new Map()} : extractOpnNotes(source);
+  const chipKind = parserHeader.ym2151Clock & 0x3fffffff ? 'ym2151' : midiChipKind(parserHeader);
+  if (!chipKind) throw new Error('MIDI requires YM2151 / YM2612 / YM2203 / YM2608 / YM2610 or PSG');
+  const fm = chipKind === 'ym2151' ? extractOpmNotes(source) : chipKind === 'psg' ? {channels:[],warnings:new Map()} : extractOpnNotes(source);
   const tones = extractToneNotes(source, chipKind);
   const channels = [...fm.channels, ...tones.channels];
   const time = tones.time;
   const chipName = chipKind === 'ym2610' && (parserHeader.ym2610Clock & 0x80000000) ? 'YM2610B' : chipKind.toUpperCase();
-  const extractionWarnings = new Map([...fm.warnings, ...tones.warnings]);
+  const extractionWarnings = new Map([...(fm.warnings ?? []), ...tones.warnings]);
   if (['ym2203','ym2608','ym2610'].includes(chipKind)) extractionWarnings.delete('SSG writes omitted');
   if (parserHeader.psgClock & 0x3fffffff) extractionWarnings.delete('PSG writes omitted');
   const warnings = ['FM and SSG/PSG tone notes; PCM, noise and original timbres are not reproduced.',
     'Pitch changes become Pitch Bend. Chip LFO and SSG envelope phase are not synthesized. Velocity is fixed at 100.'];
+  if (chipKind === 'ym2151') warnings.push('YM2151 base KC/KF pitch only: DT/MUL and audible release are not reproduced; CH8 noise, partial key masks and CSM intervals are omitted.');
   for (const [message, entry] of extractionWarnings) warnings.push(`${message} (${entry.count})`);
   if (parserHeader.loopOffset) warnings.push('VGM loop is not expanded; one pass is exported.');
   const tick = sample => Math.round(sample * 1000000 * PPQN / (44100 * tempo));

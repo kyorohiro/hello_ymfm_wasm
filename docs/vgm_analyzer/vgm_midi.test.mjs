@@ -243,3 +243,24 @@ test('MIDI preserves a short pitch change after a held-key retrigger',()=>{
   assert.equal(ons.length,2);
   assert.equal(ons[0].data[0],ons[1].data[0]);
 });
+
+function opmVgm(commands,psg=false){const b=vgm(commands,0),v=new DataView(b.buffer);v.setUint32(0x30,3579545,true);if(psg)v.setUint32(0x0c,3579545,true);return b;}
+test('YM2151 KC/KF exports eight tracks with a continuous note and fractional bend',()=>{
+ const b=opmVgm([0x54,0x28,0x4a,0x54,8,0x78,...wait(22050),0x54,0x30,128,...wait(22050),0x54,8,0,...wait(22050),0x66]);
+ const r=exportAnalysisMidi(b),d=decode(r.bytes);assert.equal(r.chipKind,'ym2151');assert.equal(d.tracks.length,9);assert.equal(r.noteCount,1);
+ assert.deepEqual(notes(d.tracks[1]).map(e=>[e.tick,e.status,...e.data]),[[0,0x90,69,100],[1920,0x80,69,0]]);
+ assert(d.tracks[1].some(e=>e.status===0xe0&&e.tick===960&&e.data[0]===0&&e.data[1]===80));
+ assert.equal(d.tracks[1].at(-1).tick,2880);assert(r.warnings.some(w=>w.includes('partial key masks')));
+});
+test('YM2151 re-key, all channels, exclusions and PSG MIDI channel allocation',()=>{
+ const cmds=[];for(let ch=0;ch<8;ch++)cmds.push(0x54,0x28+ch,0x4a,0x54,8,0x78|ch);
+ cmds.push(0x50,0x80,0x50,0x10,0x50,0x90,...wait(22050),0x54,8,0,0x54,8,0x78,...wait(22050),0x54,15,128,...wait(22050),0x54,0x14,128,...wait(22050),0x66);
+ const r=exportAnalysisMidi(opmVgm(cmds,true)),d=decode(r.bytes);
+ assert.equal(d.tracks.length,12);
+ assert.deepEqual(notes(d.tracks[1]).map(e=>e.tick),[0,960,960,2880]);
+ assert.deepEqual(notes(d.tracks[8]).map(e=>e.tick),[0,1920]);
+ for(const t of d.tracks)for(const e of notes(t))assert.notEqual(e.status&15,9);
+ assert(d.tracks[9].some(e=>e.status===0x98));
+ assert.throws(()=>exportAnalysisMidi(opmVgm([0x54,0x28,0x4a,0x54,8,8,...wait(22050),0x66])),/No convertible/);
+ const dual=opmVgm([0x66]);new DataView(dual.buffer).setUint32(0x30,3579545|0x40000000,true);assert.throws(()=>exportAnalysisMidi(dual),/Dual/);
+});

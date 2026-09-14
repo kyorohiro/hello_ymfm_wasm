@@ -103,3 +103,18 @@ YM2151 の FM 8CH を Note-ish のライブ表示・曲全体タイムライン�
 - 実装: `docs/vgm_analyzer/opm_notes.js`
 - テスト: `docs/vgm_analyzer/opm_notes.test.mjs`
 - dev配布フォルダーとZIPも再生成し、138ローカル参照の依存ファイル検査を通過。
+
+## YM2151 MIDI 出力
+
+Note-ish の `extractOpmNotes()` を MIDI エクスポーターへ接続済み。
+FM 8CH の基準音程・キー区間をSMF形式1へ出力し、KC/KFの音程変化はPitch BendとRPNの感度設定で表現する。
+併用PSGのトーンも出力し、MIDIの打楽器チャンネルを避けて割り当てる。
+
+音色・LFO・DT/MUL・可聴の余韻は再現しない。CH8ノイズ・部分キー指定・CSM区間は除外し、
+その制限をMIDI内のテキストイベントにも記録する。ループは1周、テンポは手動指定。
+YM2151のMML・音色エクスポートは引き続き未対応。
+
+検証：SMFを独立に読み直し、8CH、ノート開始/終了、半音未満のベンド、再キーオン、
+ノイズ/CSMの除外、併用PSG、UIのMIDI有効化とMML無効化を確認。
+関連43テスト成功。dev配布とZIP再生成済み（139ローカル参照の検査成功）。
+ブラウザー実操作・外部DAWへの読み込みは未確認。

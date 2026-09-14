@@ -5,7 +5,7 @@ import {readFileSync} from 'node:fs';
 const source=readFileSync(new URL('./vgm_analyzer.js',import.meta.url),'utf8');
 function setup(chip) {
  const node=()=>({attrs:{},setAttribute(k,v){this.attrs[k]=v;},getAttribute(k){return this.attrs[k];}});
- const ctx={currentChipKind:chip,noteishViewMode:'live',document:{getElementById:()=>node()},tfiInfo:{setVisible(){}},sampleExplorer:{stop(){}},songTimeline:{active(){}},setStatus(){},requestNoteishRender(){},renderNoteishGrid(){}};
+ const ctx={currentBuffer:new Uint8Array(1),midiExportAvailable:true,currentChipKind:chip,noteishViewMode:'live',document:{getElementById:()=>node()},tfiInfo:{setVisible(){}},sampleExplorer:{stop(){}},songTimeline:{active(){}},setStatus(){},requestNoteishRender(){},renderNoteishGrid(){}};
  for(const name of ['operatorInfoTab','noteishTab','tfiInfoTab','sampleTab','parsedOutputTab','exportMidiButton','exportMmlButton','exportSnapshotTfiButton','exportSnapshotVgiButton','exportSnapshotButton','exportAllTfiButton','exportAllVgiButton','opnMonitorRoot','opmMonitorRoot','ayMonitorRoot','samplePanel','operatorInfoPanel','parsedOutputPanel','noteishPanel'])ctx[name]=node();
  vm.createContext(ctx);
  vm.runInContext(source.slice(source.indexOf('function updateChipSupport()'),source.indexOf('function buildParseInfo(')),ctx);
@@ -26,4 +26,4 @@ test('unsupported chip still rejects Operator Info; switching from unsupported t
  c.currentChipKind='ym2612';c.setOutputTab('noteish');c.currentChipKind='ym2151';c.updateChipSupport();assert.equal(c.operatorInfoPanel.hidden,true);assert.equal(c.noteishPanel.hidden,false);
 });
 
-test('YM2151 Note-ish remains selected during playback updates; exports remain disabled',()=>{const c=setup('ym2151');c.updateChipSupport();assert.equal(c.noteishTab.disabled,false);c.setOutputTab('noteish');for(let i=0;i<5;i++)c.updateChipSupport();assert.equal(c.noteishPanel.hidden,false);assert.equal(c.exportMidiButton.disabled,true);assert.equal(c.exportMmlButton.disabled,true);});
+test('YM2151 Note-ish remains selected; MIDI is enabled and MML stays disabled',()=>{const c=setup('ym2151');c.updateChipSupport();assert.equal(c.noteishTab.disabled,false);c.setOutputTab('noteish');for(let i=0;i<5;i++)c.updateChipSupport();assert.equal(c.noteishPanel.hidden,false);assert.equal(c.exportMidiButton.disabled,false);assert.equal(c.exportMmlButton.disabled,true);c.midiExportAvailable=false;c.updateChipSupport();assert.equal(c.exportMidiButton.disabled,true);});
