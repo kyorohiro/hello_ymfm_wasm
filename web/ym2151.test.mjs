@@ -73,3 +73,26 @@ test('YM2151 channel mute silences only selected output and preserves feedback/p
   assert.throws(()=>b.setChannelMuted(8,true),RangeError);
  }finally{a.dispose();b.dispose();}
 });
+
+test('Analyzer accepts OPM + Sega PCM and real playback matches OPM-only audio',async()=>{
+ const vm=await import('node:vm');
+ const {vgmBytes}=await import('./test-support/vgm-mock.js');
+ const source=readFileSync(new URL('../docs/vgm_analyzer/vgm_analyzer.js',import.meta.url),'utf8');
+ const panel={},context=vm.createContext({document:{getElementById:()=>panel},status:{},console});
+ vm.runInContext(source.slice(source.indexOf('const playbackWarnings ='),source.indexOf('function currentStatusSuffix')),context);
+ vm.runInContext(source.slice(source.indexOf('function validateOpmPlayback('),source.indexOf('async function ensurePlaybackReady(')),context);
+ const e=await Ym2151AudioEngine.create(options);
+ try{
+  const p=new VgmPlayer(e),base=vgm(),mixed=vgmBytes([
+   0x67,0x66,0x80,10,0,0,0,16,0,0,0,4,0,0,0,18,52,
+   0xc0,2,0,99,...base.slice(0x40)]);
+  const header=new DataView(mixed.buffer);header.setUint32(0x30,3579545,true);header.setUint32(0x38,4000000,true);
+  context.validateOpmPlayback(new Ym2612VGM(mixed).header);
+  const render=bytes=>{p.load(bytes,{logger:{warn:context.reportPlaybackWarning}});p.reset();p.play();
+   const left=new Float32Array(4410),right=new Float32Array(4410);p.process(left,right,4410);return {left,right};};
+  const expected=render(base),actual=render(mixed);
+  assert(expected.left.some(v=>v!==0));assert.deepEqual(actual,expected);
+  assert.equal(panel.hidden,false);assert.match(panel.textContent,/Sega PCM.*skipped.*supported chips/);
+  assert.equal(panel.textContent.split('\n').length,1);
+ }finally{e.dispose();}
+});

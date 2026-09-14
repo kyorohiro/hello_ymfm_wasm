@@ -47,3 +47,25 @@ test('ROM preparation failure is visible next to both playback controls until re
  const html=readFileSync(new URL('./index.html',import.meta.url),'utf8');
  for(const id of Object.keys(panels))assert.match(html,new RegExp(`id="${id}" role="alert"`));
 });
+
+test('unsupported sample blocks display once per type in both playback views',()=>{
+ const source=readFileSync(new URL('./vgm_analyzer.js',import.meta.url),'utf8');
+ const panels={playbackWarnings:{},inlinePlaybackWarnings:{}},logs=[];
+ const context=vm.createContext({document:{getElementById:id=>panels[id]},status:{},console:{warn:m=>logs.push(m)}});
+ vm.runInContext(source.slice(source.indexOf('const playbackWarnings ='),source.indexOf('function currentStatusSuffix')),context);
+ for(const size of [2936,3333,1373,2936])context.reportPlaybackWarning(`Skipping unsupported VGM data block 0x80 (size=${size})`);
+ for(const panel of Object.values(panels)){
+  assert.equal(panel.hidden,false);assert.match(panel.textContent,/Sega PCM.*0x80/);assert.equal(panel.textContent.split('\n').length,1);
+ }
+ assert.deepEqual(logs,[]);context.setStatus('Parsed track');assert.equal(panels.inlinePlaybackWarnings.hidden,false);
+ context.clearPlaybackWarnings();for(const panel of Object.values(panels)){assert.equal(panel.hidden,true);assert.equal(panel.textContent,'');}
+});
+
+test('YM2151 with Sega PCM is allowed with a visible partial-playback warning',()=>{
+ const source=readFileSync(new URL('./vgm_analyzer.js',import.meta.url),'utf8');
+ const warnings=[],context=vm.createContext({reportPlaybackWarning:m=>warnings.push(m)});
+ vm.runInContext(source.slice(source.indexOf('function validateOpmPlayback('),source.indexOf('async function ensurePlaybackReady(')),context);
+ assert.doesNotThrow(()=>context.validateOpmPlayback({ym2151Clock:3579545,segaPcmClock:4000000}));
+ assert.equal(warnings.length,1);
+ assert.throws(()=>context.validateOpmPlayback({ym2151Clock:3579545,ym2612Clock:7670454}),/combination/);
+});

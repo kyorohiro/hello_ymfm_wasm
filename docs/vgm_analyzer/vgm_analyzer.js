@@ -296,19 +296,30 @@ function reportPlaybackError(error) {
   setStatus(`Error: ${message}`);
 }
 
+function renderPlaybackWarnings() {
+  for (const id of ['playbackWarnings', 'inlinePlaybackWarnings']) {
+    const panel = document.getElementById(id);
+    if (!panel) continue;
+    panel.textContent = [...playbackWarnings].join('\n');
+    panel.hidden = playbackWarnings.size === 0;
+  }
+}
 function reportPlaybackWarning(message) {
-  if (!message.startsWith('Unsupported DAC stream skipped:')) { console.warn(message); return; }
+  const block = /^Skipping unsupported VGM data block (0x[0-9a-f]+) \(size=\d+\)$/i.exec(message);
+  if (message === 'Sega PCM playback is unsupported' ||
+      message === 'Skipping known unsupported VGM command 0xc0 (4 bytes)' ||
+      block?.[1].toLowerCase() === '0x80') {
+    message = 'Sega PCM is not supported. Its sample data (block 0x80) and writes (0xC0) are skipped; playback continues with the supported chips only.';
+  } else if (block) {
+    message = `Unsupported VGM data block ${block[1].toLowerCase()} was skipped. Playback may be incomplete.`;
+  } else if (!message.startsWith('Unsupported DAC stream skipped:')) { console.warn(message); return; }
   if (playbackWarnings.has(message) || playbackWarnings.size >= 100) return;
   playbackWarnings.add(message);
-  const panel = document.getElementById('playbackWarnings');
-  panel.textContent = [...playbackWarnings].join('\n');
-  panel.hidden = false;
+  renderPlaybackWarnings();
 }
 function clearPlaybackWarnings() {
   playbackWarnings.clear();
-  const panel = document.getElementById('playbackWarnings');
-  panel.textContent = '';
-  panel.hidden = true;
+  renderPlaybackWarnings();
 }
 
 function setStatus(message) {
@@ -2338,6 +2349,12 @@ function downloadSnapshotVgiZip() {
   setStatus("Exported snapshot VGI ZIP.");
 }
 
+function validateOpmPlayback(header) {
+  if ((header.ym2151Clock & 0xc0000000) || ['ym2612Clock','ym2413Clock','ay8910Clock','ym2203Clock','ym2608Clock','ym2610Clock','rf5c164Clock','pwmClock','y8950Clock','k051649Clock'].some(key => header[key]))
+    throw new Error('This YM2151 variant or chip combination: Support coming soon.');
+  if (header.segaPcmClock) reportPlaybackWarning('Sega PCM playback is unsupported');
+}
+
 async function ensurePlaybackReady(vgm) {
   if (currentChipKind === 'ymf278b' && ymf278bNeedsWaveRom && !ymf278bWaveRomBytes)
     throw new Error('This YMF278B track needs yrw801.rom (2 MiB). Import it using the file selector or drag and drop, then press Play.');
@@ -2408,8 +2425,7 @@ async function ensurePlaybackReady(vgm) {
       });
       observePsgPlaybackEngine();
     } else if (currentChipKind === "ym2151") {
-      if ((vgm.header.ym2151Clock & 0xc0000000) || ['segaPcmClock','ym2612Clock','ym2413Clock','ay8910Clock','ym2203Clock','ym2608Clock','ym2610Clock','rf5c164Clock','pwmClock','y8950Clock','k051649Clock'].some(key => vgm.header[key]))
-        throw new Error('This YM2151 variant or chip combination: Support coming soon.');
+      validateOpmPlayback(vgm.header);
       engine = await createYm2151AudioEngine({
         ym2151ModuleFactory: (await import('../generated/ym2151_wasm.js')).default,
         ym2151Clock: vgm.header.ym2151Clock & 0x3fffffff,
