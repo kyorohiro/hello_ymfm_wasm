@@ -14,3 +14,19 @@ test('stream warnings remain visible across status changes, deduplicate and clea
  context.clearPlaybackWarnings();assert.equal(panel.hidden,true);assert.equal(panel.textContent,'');
  context.reportPlaybackWarning(warning);assert.equal(panel.hidden,false);
 });
+
+test('actual Player DAC warning reaches the persistent warning panel',async()=>{
+ const {VgmPlayer}=await import('../../web/vgmplayer.js');
+ const {vgmBytes}=await import('../../web/test-support/vgm-mock.js');
+ const {MockSoundEngine,drainPlayer}=await import('../../web/test-support/vgm-engine-mock.js');
+ const source=readFileSync(new URL('./vgm_analyzer.js',import.meta.url),'utf8');
+ const panel={hidden:true,textContent:''},status={};
+ const context=vm.createContext({document:{getElementById:()=>panel},status,console});
+ vm.runInContext(source.slice(source.indexOf('const playbackWarnings ='),source.indexOf('function currentStatusSuffix')),context);
+ const player=new VgmPlayer(new MockSoundEngine());
+ player.load(vgmBytes([0x90,0,0x12,0,0x2a,0x70,0x66]),{logger:{warn:context.reportPlaybackWarning}});
+ player.play();drainPlayer(player);context.setStatus('Playback finished');
+ assert.match(panel.textContent,/AY.*instance=0, stream=0/);assert.equal(panel.hidden,false);
+ context.clearPlaybackWarnings();player.load(vgmBytes([0x66]));player.play();drainPlayer(player);
+ assert.equal(panel.hidden,true);
+});

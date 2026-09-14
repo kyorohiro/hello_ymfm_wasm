@@ -8,7 +8,8 @@ VGM の命令解釈、時刻、チップへの配送を自動テストで検証�
 
 Parser → Mock Chip に加え、VGM Player に Mock SoundEngine を渡すテストを追加した。
 通常命令と wait 中のストリームには同じ targets を渡し、本番の配送処理を通して検証する。
-YM2612 DAC の仕様修正、シークのテスト接続、CI 設定は未完了。
+YM2612 DAC の主要仕様を修正し、シークのテストと CI 設定も追加した。
+詳細な完了範囲と残作業は [追加テスト一覧](vgm_autotest_02.md) を参照する。
 
 ## テストする構成
 
@@ -158,5 +159,5 @@ node --test web/vgm-player-mock.test.mjs web/vgm-parser-mock.test.mjs web/dac-wa
 ```
 
 上記の関連テストは80件成功。これは合成入力による確認であり、実曲の確認結果ではない。
-Player 自体にはシーク API がないため、Analyzer 側のシーク経路を確認してテストを接続する必要がある。
+Analyzer の `seekPlayback` を使う DAC シークテストを追加した。複合メモリ状態での検証は残る。
 生成関数の共通化は行わず、既存の `new VgmPlayer(engine)` に Mock を渡している。

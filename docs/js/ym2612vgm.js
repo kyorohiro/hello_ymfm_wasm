@@ -192,6 +192,8 @@ export class Ym2612VGM {
     this.logger = options.logger === undefined ? console : options.logger;
     /** @type {Map<number, Uint8Array>} */
     this.dataBanks = new Map();
+    this.bankBlocks = new Map();
+    this.bankBlocksSeen = new Set();
     this.rf5c164BlocksSeen = new Set();
     this.pwmBlocks = [];
     this.pwmBlocksSeen = new Set();
@@ -293,22 +295,17 @@ export class Ym2612VGM {
   reset() {
     this.position = this.header.dataOffset;
     this.ended = false;
-    this.dataBanks.delete(2);
-    this.dataBanks.delete(3);
+    this.dataBanks.clear();
+    this.bankBlocks.clear();
+    this.bankBlocksSeen.clear();
+    this.dataBlocks = [];
+    this.dataBlockInfo = [];
     this.pwmBlocks = [];
     this.pwmBlocksSeen.clear();
     this.rf5c164BlocksSeen.clear();
     this.dataBankCursor = 0;
     this.pendingYm2612DataBankWrite = null;
-    for (const stream of this.streams.values()) {
-      stream.active = false;
-      stream.loop = false;
-      stream.data = null;
-      stream.dataOffset = 0;
-      stream.dataLength = 0;
-      stream.cursor = 0;
-      stream.sampleRemainder = 0;
-    }
+    this.streams.clear();
   }
 
   /**
@@ -1096,6 +1093,13 @@ export class Ym2612VGM {
    * @returns {void}
    */
   #handleDacStreamCommand(command) {
+    const commandLength = {0x90:5,0x91:5,0x92:6,0x93:11,0x94:2,0x95:5}[command];
+    this.#ensureAvailable(commandLength);
+    // 0xff is reserved; only 0x94 uses it (stop all).
+    if (this.bytes[this.position + 1] === 0xff && command !== 0x94) {
+      this.position += commandLength;
+      return;
+    }
     if (command === 0x90) {
       this.#ensureAvailable(5);
       const stream = this.#streamState(this.bytes[this.position + 1]);
@@ -1157,14 +1161,13 @@ export class Ym2612VGM {
       const stream = this.#streamState(this.bytes[this.position + 1]);
       const blockId = readUint16LE(this.view, this.position + 2);
       const flags = this.bytes[this.position + 4];
-      if ((stream.chipType & 0x7f) === 0x11) {
-        const block = this.pwmBlocks[blockId] || null;
-        this.#startStream(stream, block, 0, 3 | ((flags & 1) << 7) | (flags & 0x10), 0);
-        this.position += 5;
-        return;
-      }
-      const block = this.dataBlocks[blockId] || null;
-      this.#startStream(stream, block, 0, flags, block ? block.length : 0);
+      const blocks = this.bankBlocks.get(stream.dataBankId) || [];
+      const block = blocks[blockId];
+      const bank = this.dataBanks.get(stream.dataBankId) || null;
+      const offset = blocks.slice(0, blockId).reduce((sum, data) => sum + data.length, 0);
+      const width = stream.chipType === 0x11 ? 2 : 1;
+      const count = block ? Math.max(0, Math.floor((block.length - stream.stepBase * width - width) / (stream.stepSize * width)) + 1) : 0;
+      this.#startStream(stream, bank, offset, 1 | ((flags & 1) << 7) | (flags & 0x10), count);
       this.position += 5;
       return;
     }
@@ -1220,23 +1223,28 @@ export class Ym2612VGM {
       if (stream.chipType !== 0x11) this.#warn("Second PWM chip is unsupported");
       return;
     }
-    if (!data || start >= data.length) {
-      stream.active = false;
-      this.#warn("Skipping DAC stream start because no matching data block was loaded");
-      return;
-    }
-    const requestedLength = length === 0 ? data.length - start : length;
-    const availableLength = Math.max(0, Math.min(requestedLength, data.length - start));
+    // Length counts commands, while the start offset is measured in bytes.
+    const offset = start === 0xffffffff ? (stream.dataOffset || 0) : start + stream.stepBase;
+    const available = data ? Math.max(0, Math.floor((data.length - offset - 1) / stream.stepSize) + 1) : 0;
+    const kind = mode & 15;
+    let count;
+    if (kind === 0) count = stream.commandCount || 0;
+    else if (kind === 1) count = length;
+    else if (kind === 2) count = Math.floor(length * stream.frequency / 1000);
+    else if (kind === 3) count = available;
+    else { this.#warn('Unsupported DAC stream length mode'); count = 0; }
+    stream.commandCount = count;
     stream.data = data;
-    stream.dataOffset = start;
-    stream.dataLength = availableLength;
+    stream.dataOffset = offset;
+    // Stop at the available data rather than reading outside the bank.
+    stream.dataLength = Math.min(count, available);
     stream.cursor = 0;
-    stream.sampleRemainder = 0;
-    stream.loop = (mode & 0x80) !== 0;
-    stream.active = availableLength > 0 && stream.frequency > 0;
-    if (stream.frequency <= 0) {
-      this.#warn("Skipping DAC stream start because frequency was not configured");
-    }
+    stream.sampleRemainder = 44100;
+    stream.reverse = Boolean(mode & 0x10);
+    stream.loop = Boolean(mode & 0x80);
+    stream.active = stream.dataLength > 0 && stream.frequency > 0;
+    if (!available) this.#warn('Skipping DAC stream start because no matching data block was loaded');
+    if (stream.frequency <= 0) this.#warn('Skipping DAC stream start because frequency was not configured');
   }
 
   /**
@@ -1345,7 +1353,8 @@ export class Ym2612VGM {
         return;
       }
     }
-    const dataIndex = stream.dataOffset + stream.cursor;
+    const index = stream.reverse ? stream.dataLength - 1 - stream.cursor : stream.cursor;
+    const dataIndex = stream.dataOffset + index * stream.stepSize;
     const value = stream.data[dataIndex];
     // An unsupported RF5 stream must never write into the YM2612.
     if (stream.chipType !== 0x02) { stream.active = false; return; }
@@ -1353,7 +1362,7 @@ export class Ym2612VGM {
     if (ym2612 && typeof ym2612.writeRegister === "function") {
       ym2612.writeRegister(stream.register, value, stream.port);
     }
-    stream.cursor += stream.stepSize;
+    stream.cursor++;
     if (stream.cursor >= stream.dataLength && !stream.loop) {
       stream.active = false;
     }
@@ -1405,37 +1414,26 @@ export class Ym2612VGM {
    */
   #storeDataBlock(dataType, dataOffset, size) {
     let data = this.bytes.slice(dataOffset, dataOffset + size);
-    if (dataType === 3 || dataType === 0x43) {
-      if (this.pwmBlocksSeen.has(dataOffset)) return;
+    if (dataType <= 0x3f || dataType === 0x43) {
+      if (this.bankBlocksSeen.has(dataOffset)) return;
       if (dataType === 0x43) data = decodePwmBlock(data);
-      this.pwmBlocksSeen.add(dataOffset);
-      this.pwmBlocks.push(data);
-      const old = this.dataBanks.get(3) || new Uint8Array();
+      const bankId = dataType & 0x3f;
+      this.bankBlocksSeen.add(dataOffset);
+      const blocks = this.bankBlocks.get(bankId) || [];
+      blocks.push(data);
+      this.bankBlocks.set(bankId, blocks);
+      const old = this.dataBanks.get(bankId) || new Uint8Array();
       const joined = new Uint8Array(old.length + data.length);
       joined.set(old); joined.set(data, old.length);
-      this.dataBanks.set(3, joined);
-      return;
-    }
-    if (dataType === 2) {
-      // Recorded banks are appended once per file position, including on loops.
-      if (this.rf5c164BlocksSeen.has(dataOffset)) return;
-      this.rf5c164BlocksSeen.add(dataOffset);
-      const old = this.dataBanks.get(2) || new Uint8Array();
-      const joined = new Uint8Array(old.length + data.length);
-      joined.set(old); joined.set(data, old.length);
-      this.dataBanks.set(2, joined);
-      return;
-    }
-    if (dataType <= 0x3f) {
-      this.dataBanks.set(dataType, data);
+      this.dataBanks.set(bankId, joined);
+      // Streams retain their current bank when later blocks extend it.
+      for (const stream of this.streams.values()) {
+        if (stream.data === old) stream.data = joined;
+      }
+      if (bankId === 3) this.pwmBlocks = blocks;
       this.dataBlocks.push(data);
-      this.dataBlockInfo.push({
-        type: dataType,
-        size,
-        preview: Array.from(data.subarray(0, Math.min(8, data.length)))
-          .map((value) => value.toString(16).padStart(2, "0"))
-          .join(" "),
-      });
+      this.dataBlockInfo.push({type: dataType, size,
+        preview: Array.from(data.subarray(0, 8)).map(value => value.toString(16).padStart(2, '0')).join(' ')});
       return;
     }
     this.#warn(
