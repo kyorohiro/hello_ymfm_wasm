@@ -16,18 +16,19 @@ export function mountAy8910Monitor(root,onMute) {
   let header={};
   const title=document.createElement('h3');root.append(title);
   const summary=document.createElement('p');root.append(summary);
+  let ayMuted=false,opllMuted=false;
   const rows=muted.map((_,ch)=>{
-    const row=document.createElement('p'),label=document.createElement('label'),check=document.createElement('input'),text=document.createElement('span');
-    check.type='checkbox';check.addEventListener('change',()=>{muted[ch]=check.checked;onMute(ch,check.checked);check.blur();});
-    label.append(check,` Mute ${'ABC'[ch]} `);row.append(label,text);root.append(row);
-    return {check,text};
+    const row=document.createElement('p'),text=document.createElement('span');
+    row.append(`${'ABC'[ch]} · `,text);root.append(row);
+    return {text};
   });
-  const ayMute=document.createElement('input');ayMute.type='checkbox';
-  const ayLabel=document.createElement('label');ayLabel.append(ayMute,' Mute AY / YM2149 ');root.append(ayLabel);
-  ayMute.addEventListener('change',()=>{onMute('ay',ayMute.checked);ayMute.blur();});
-  const opllMute=document.createElement('input');opllMute.type='checkbox';
-  const opllLabel=document.createElement('label');opllLabel.append(opllMute,' Mute YM2413');root.append(opllLabel);
-  opllMute.addEventListener('change',()=>{onMute('opll',opllMute.checked);opllMute.blur();});
+  function controls(){
+    return [
+      {key:'ay',label:'AY / YM2149',muted:ayMuted},
+      ...muted.map((value,ch)=>({key:String(ch),label:`CH ${'ABC'[ch]}`,muted:value})),
+      ...(header.ym2413Clock?[{key:'opll',label:'YM2413',muted:opllMuted}]:[]),
+    ];
+  }
   function render(){
     title.textContent=header.ay8910Type===0x10?'YM2149':'AY-3-8910';
     const clock=header.ay8910Clock&0x3fffffff;
@@ -38,10 +39,16 @@ export function mountAy8910Monitor(root,onMute) {
     });
   }
   return {
-    render,
-    load(next){header=next;regs.fill(0);muted.fill(false);for(const row of rows)row.check.checked=false;ayMute.checked=opllMute.checked=false;opllLabel.hidden=!header.ym2413Clock;render();},
+    render, controls,
+    toggle(key){
+      if(!controls().some(control=>control.key===key))return;
+      if(key==='ay'){ayMuted=!ayMuted;onMute(key,ayMuted);}
+      else if(key==='opll'){opllMuted=!opllMuted;onMute(key,opllMuted);}
+      else {const ch=Number(key);muted[ch]=!muted[ch];onMute(ch,muted[ch]);}
+    },
+    load(next){header=next;regs.fill(0);muted.fill(false);ayMuted=opllMuted=false;render();},
     reset(){regs.fill(0);render();},
     write(r,v){regs[r&15]=v;},
-    applyMutes(engine){muted.forEach((v,ch)=>engine.setAyChannelMuted(ch,v));engine.setAyMuted(ayMute.checked);engine.setOpllMuted?.(opllMute.checked);},
+    applyMutes(engine){muted.forEach((v,ch)=>engine.setAyChannelMuted(ch,v));engine.setAyMuted(ayMuted);engine.setOpllMuted?.(opllMuted);},
   };
 }

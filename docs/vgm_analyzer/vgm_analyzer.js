@@ -6,7 +6,7 @@ import {createYmf262AudioEngine} from '../js/ymf262audioengine.js';
 import {createYm2151AudioEngine} from '../js/ym2151audioengine.js';
 import {createAy8910AudioEngine, validateAyPlaybackHeader} from '../js/ay8910audioengine.js';
 import {createMsxAudioEngine, validateMsxPlaybackHeader} from '../js/msxaudioengine.js?v=msx-mix-1';
-import {mountAy8910Monitor} from './ay8910_monitor.js';
+import {mountAy8910Monitor} from './ay8910_monitor.js?v=common-mutes-1';
 import { createYm2413AudioEngine } from '../js/ym2413audioengine.js';
 import { mountTfiInfo } from "./tfi_info.js?v=concurrent-audition-1";
 import { mountSampleExplorer } from './sample_explorer.js?v=pwm-capture-1';
@@ -389,6 +389,20 @@ function renderMonitorToggles() {
   ensureMonitorToggleHandler();
   monitorToggles.innerHTML = "";
 
+  if (currentChipKind === 'ay8910') {
+    for (const control of ayMonitor.controls()) {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = `channel-toggle${control.muted ? ' is-muted' : ''}`;
+      button.textContent = `${control.label} ${control.muted ? 'Off' : 'On'}`;
+      button.setAttribute('aria-pressed', String(!control.muted));
+      button.setAttribute('data-monitor-toggle-kind', 'ay-control');
+      button.setAttribute('data-ay-control', control.key);
+      monitorToggles.append(button);
+    }
+    inlineMonitorToggles.replaceChildren(...Array.from(monitorToggles.children, button => button.cloneNode(true)));
+    return;
+  }
   for (const source of sourcesForChip(sourceChipKind())) {
     const button = document.createElement("button");
     const muted = sourceMutes[source.key];
@@ -443,6 +457,10 @@ function ensureMonitorToggleHandler() {
     }
     event.preventDefault();
     const kind = target.getAttribute("data-monitor-toggle-kind");
+    if (kind === 'ay-control' && currentChipKind === 'ay8910') {
+      ayMonitor.toggle(target.getAttribute('data-ay-control'));
+      return;
+    }
     if (sourcesForChip(sourceChipKind()).some((source) => source.key === kind)) {
       toggleSourceMute(kind);
       return;
@@ -720,7 +738,7 @@ function observePsgPlaybackEngine() {
 }
 
 function renderChannelMonitor() {
-  if (currentChipKind === "ay8910") { monitorToggles.replaceChildren(); inlineMonitorToggles.replaceChildren(); ayMonitor.render(); return; }
+  if (currentChipKind === "ay8910") { renderMonitorToggles(); ayMonitor.render(); return; }
   renderPsgMonitor();
   renderPcmMonitor();
   channelGrid.innerHTML = "";
@@ -3409,6 +3427,8 @@ const ayMonitor = mountAy8910Monitor(ayMonitorRoot, (channel, muted) => {
   if (channel === 'ay') engine?.setAyMuted(muted);
   else if (channel === 'opll') engine?.setOpllMuted?.(muted);
   else engine?.setAyChannelMuted(channel, muted);
+  renderMonitorToggles();
+  flushPendingAudio();
 });
 const tfiInfoTab = document.getElementById('tfiInfoTab');
 const tfiInfo = mountTfiInfo({ root: document.getElementById('tfiInfoPanel'), onStatus: setStatus,

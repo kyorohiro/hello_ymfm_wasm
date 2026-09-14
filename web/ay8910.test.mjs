@@ -132,3 +132,33 @@ test('MSX Y8950 + AY + OPLL mixes independent audio including ADPCM, resets and 
   p.load(vgm([0x66],{opll:3579545}));assert.equal(mix.entries.get('y8950:0').engine.y8950.sampleMemory.length,0);
  }finally{mix.dispose();a.dispose();b.dispose();c.dispose();}
 });
+
+test('AY/YM2149 channel mute keeps tone, noise and envelope state while writes continue',async()=>{
+ for(const type of [0,16])for(const mode of ['tone','noise','envelope'])for(let ch=0;ch<3;ch++) {
+  const a=await Ay8910AudioEngine.create({...options,type}),b=await Ay8910AudioEngine.create({...options,type});
+  try{
+   for(const e of [a,b]){
+    // Zero volume has a DC offset in the core's normalized output table.
+    // Isolate this channel explicitly instead of assuming the others output zero.
+    for(let other=0;other<3;other++)e.setAyChannelMuted(other,other!==ch);
+    e.writeAy8910(ch*2,64);e.writeAy8910(6,7);
+    e.writeAy8910(7,mode==='noise'?0x3f & ~(8<<ch):0x3f & ~(1<<ch));
+    e.writeAy8910(8+ch,mode==='envelope'?16:15);
+    if(mode==='envelope'){e.writeAy8910(11,8);e.writeAy8910(12,0);e.writeAy8910(13,10);}
+   }
+   assert.deepEqual(a.processFrames(128),b.processFrames(128));
+   b.setAyChannelMuted(ch,true);
+   const reference=a.processFrames(1024),muted=b.processFrames(1024);
+   assert(reference.left.some(v=>v!==0),`${type}/${mode}/${ch} must sound`);assert(muted.left.every(v=>v===0));
+   for(const e of [a,b]){e.writeAy8910(ch*2,81);e.writeAy8910(6,11);e.processFrames(333);}
+   b.setAyChannelMuted(ch,false);assert.deepEqual(b.processFrames(1024),a.processFrames(1024));
+   // Full mute temporarily overrides the channel mask; clearing it restores it.
+   for(let other=0;other<3;other++)b.setAyChannelMuted(other,false);
+   b.setAyChannelMuted(ch,true);b.setAyMuted(true);b.setAyChannelMuted((ch+1)%3,true);b.setAyMuted(false);
+   assert.equal(b.channelMask,(1<<ch)|(1<<((ch+1)%3)));
+   b.setAyChannelMuted((ch+2)%3,true);
+   b.reset();b.writeAy8910(7,0x3f & ~(1<<ch));b.writeAy8910(ch*2,64);b.writeAy8910(8+ch,15);
+   assert(b.processFrames(256).left.every(v=>v===0));
+  }finally{a.dispose();b.dispose();}
+ }
+});
