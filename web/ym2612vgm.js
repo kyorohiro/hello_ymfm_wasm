@@ -193,6 +193,7 @@ export class Ym2612VGM {
     /** @type {Map<number, Uint8Array>} */
     this.dataBanks = new Map();
     this.bankBlocks = new Map();
+    this.decompressionTables = new Map();
     this.bankBlocksSeen = new Set();
     this.rf5c164BlocksSeen = new Set();
     this.pwmBlocks = [];
@@ -297,6 +298,7 @@ export class Ym2612VGM {
     this.ended = false;
     this.dataBanks.clear();
     this.bankBlocks.clear();
+    this.decompressionTables.clear();
     this.bankBlocksSeen.clear();
     this.dataBlocks = [];
     this.dataBlockInfo = [];
@@ -1414,9 +1416,19 @@ export class Ym2612VGM {
    */
   #storeDataBlock(dataType, dataOffset, size) {
     let data = this.bytes.slice(dataOffset, dataOffset + size);
-    if (dataType <= 0x3f || dataType === 0x43) {
+    if (dataType === 0x7f) {
+      if (data.length < 6) throw new Error('Truncated decompression table');
+      const [type, subtype, bits, packed] = data;
+      const count = data[4] | (data[5] << 8), width = Math.ceil(bits / 8);
+      if (type > 1 || (type === 0 ? subtype > 2 : subtype !== 0) || bits < 1 || bits > 16 || packed < 1 || packed > bits || data.length !== 6 + count * width)
+        throw new Error('Invalid decompression table');
+      const values = Array.from({length:count}, (_,i) => data[6+i*width] | (width === 2 ? data[7+i*width] << 8 : 0));
+      this.decompressionTables.set(`${type}:${subtype}`, {bits,packed,values});
+      return;
+    }
+    if (dataType <= 0x7e) {
       if (this.bankBlocksSeen.has(dataOffset)) return;
-      if (dataType === 0x43) data = decodePwmBlock(data);
+      if (dataType >= 0x40) data = decodePwmBlock(data, this.decompressionTables);
       const bankId = dataType & 0x3f;
       this.bankBlocksSeen.add(dataOffset);
       const blocks = this.bankBlocks.get(bankId) || [];
@@ -1443,22 +1455,31 @@ export class Ym2612VGM {
 }
 
 // Original decoder based on the VGM format specification, not emulator code.
-// Initial scope: n-bit copy/shift compression. Table/DPCM formats fail clearly.
-export function decodePwmBlock(data) {
+// Shared recorded-bank decoder; export name retained for existing callers.
+export function decodePwmBlock(data, tables = new Map()) {
   if (data.length < 10) throw new Error("Truncated compressed PWM header");
   const view = new DataView(data.buffer, data.byteOffset, data.byteLength);
   const size = view.getUint32(1, true), bits = data[5], packed = data[6], subtype = data[7];
-  if (data[0] !== 0 || subtype > 1) throw new Error("Unsupported PWM compression: table/DPCM is not implemented");
+  const type = data[0];
+  if (type > 1 || (type === 0 ? subtype > 2 : subtype !== 0)) throw new Error('Unsupported compressed data format');
+  const table = type === 1 || subtype === 2 ? tables.get(`${type}:${subtype}`) : null;
+  if ((type === 1 || subtype === 2) && (!table || table.bits !== bits || table.packed !== packed))
+    throw new Error('Missing or mismatched decompression table');
   if (bits < 1 || bits > 16 || packed < 1 || packed > bits) throw new Error("Invalid PWM compression bit width");
   const width = Math.ceil(bits / 8), count = size / width;
   if (size > 64 * 1024 * 1024 || !Number.isInteger(count) || count * packed > (data.length - 10) * 8)
     throw new Error("Invalid or oversized compressed PWM data");
   const output = new Uint8Array(size), add = view.getUint16(8, true);
-  let bit = 80;
+  let bit = 80, state = add;
   for (let i = 0; i < count; i++) {
     let value = 0;
     for (let j = 0; j < packed; j++, bit++) value = (value << 1) | ((data[bit >> 3] >> (7 - (bit & 7))) & 1);
-    value = ((subtype === 1 ? value << (bits - packed) : value) + add) & ((1 << bits) - 1);
+    if (table) {
+      if (value >= table.values.length) throw new Error('Decompression table index out of range');
+      value = table.values[value];
+      if (type === 1) { state = (state + value) & ((1 << bits) - 1); value = state; }
+    } else value = (subtype === 1 ? value << (bits - packed) : value) + add;
+    value &= (1 << bits) - 1;
     output[i * width] = value & 255;
     if (width === 2) output[i * width + 1] = value >> 8;
   }

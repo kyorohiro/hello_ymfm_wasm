@@ -157,3 +157,12 @@ YM2612 DAC は失敗する仕様ベースのテストを先に追加し、実装
 - [MSX / AY テスト](../../web/ay8910.test.mjs)
 - ブラウザー配信用の `docs/js/` も変更時に同期する。
 - [VGM Specification — DAC Stream Control Write](https://vgmrips.net/wiki/VGM_Specification#DAC_Stream_Control_Write)
+
+
+## 圧縮録音バンクの対応
+
+録音バンク `0x40`～`0x7E` の copy・shift・テーブル・DPCM 展開と、
+`0x7F` の展開テーブルを追加した。YM2612 の `0x40` と32X PWM の `0x43` を
+[圧縮テスト](../../web/vgm-compression.test.mjs) で検証する。
+テーブル欠落・不一致・範囲外、切断データ、過大な展開サイズはエラーにする。
+これはデータ展開の対応であり、他チップへのストリーム配送が追加されたわけではない。
