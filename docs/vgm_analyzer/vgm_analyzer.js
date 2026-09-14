@@ -281,6 +281,20 @@ const CRC32_TABLE = (() => {
 })();
 
 const playbackWarnings = new Set();
+function setPlaybackError(message = '') {
+  for (const id of ['playbackError', 'inlinePlaybackError']) {
+    const panel = document.getElementById(id);
+    if (!panel) continue;
+    panel.textContent = message;
+    panel.hidden = !message;
+  }
+}
+function reportPlaybackError(error) {
+  const message = error?.message || String(error);
+  setPlaybackError(`Playback could not start: ${message}`);
+  setStatus(`Error: ${message}`);
+}
+
 function reportPlaybackWarning(message) {
   if (!message.startsWith('Unsupported DAC stream skipped:')) { console.warn(message); return; }
   if (playbackWarnings.has(message) || playbackWarnings.size >= 100) return;
@@ -2497,11 +2511,11 @@ function beginPreparePlayback(vgm) {
   playbackPreparePromise =
     ensurePlaybackReady(vgm)
       .then(() => {
+        setPlaybackError();
         setStatus(`Audio ready.${currentStatusSuffix()}`);
       })
       .catch((error) => {
-        console.error(error);
-        setStatus(`Error: ${error.message}`);
+        reportPlaybackError(error);
       })
       .finally(() => {
         playbackPreparePromise = null;
@@ -2656,6 +2670,7 @@ async function playCurrentVgm(startSample = 0) {
     stopActiveStream();
 
     const { sampleRate } = await ensurePlaybackReady(parser);
+    setPlaybackError();
     if (revision !== playlistRevision) return;
     channelMonitor = createChannelMonitorState();
     monitorFrequencyHigh = [0, 0];
@@ -2749,7 +2764,7 @@ async function playCurrentVgm(startSample = 0) {
     player?.stop();
     timelineSelectionPending = true;
     if (error.name === 'AbortError') setStatus('Seek cancelled. Cursor retained.');
-    else { console.error(error); setStatus(`Error: ${error.message}`); }
+    else { reportPlaybackError(error); }
   } finally {
     updatePlaybackButtons(player ? player.stats() : {});
   }
@@ -2906,6 +2921,7 @@ function startScriptProcessorStream() {
 }
 
 async function handleFile(file) {
+  setPlaybackError();
   clearPlaybackWarnings();
   currentBuffer = null;
   playButton.disabled = true;
@@ -3049,6 +3065,7 @@ async function handleYmf278bRomFile(file) {
   ymf278bWaveRomBytes = data;
   ymf278bWaveRomName = file.name;
   if (currentChipKind === 'ymf278b' && engine) engine.loadWaveRom(data);
+  setPlaybackError();
   romFileStatus.textContent = `YMF278B wave ROM: ${file.name} (2 MiB)`;
   updatePlaybackButtons({});
   setStatus(`Loaded YMF278B wave ROM: ${file.name}. Press Play to start from the beginning.`);

@@ -603,6 +603,7 @@
             <input id="inlinePlaybackSeek" type="range" min="0" max="0" step="4410" value="0" disabled>
             <output id="inlinePlaybackSeekTime" for="inlinePlaybackSeek">0:00 / 0:00</output>
           </div>
+          <div class="status" id="inlinePlaybackError" role="alert" style="flex-basis: 100%; white-space: pre-line" hidden></div>
           <button id="inlinePlayButton" type="button" disabled>Play</button>
           <button id="inlinePauseButton" type="button" disabled>Pause</button>
           <button id="inlineStopButton" type="button" disabled>Stop</button>
@@ -647,6 +648,7 @@
             <button id="exportSnapshotButton" type="button" disabled>Current Tone JSON</button>
           </div>
         </div>
+        <div class="status" id="playbackError" role="alert" style="white-space: pre-line" hidden></div>
         <div class="status" id="status" hidden></div>
         <div class="status" id="playbackWarnings" role="status" style="white-space: pre-line" hidden></div>
 
@@ -826,6 +828,6 @@
       <div id="monitorToggles" class="monitor-toggles" role="group" aria-label="Playback channel and sound source toggles"></div>
     </section>
 
-    <script type="module" src="./vgm_analyzer.js?v=dac-warning-1"></script>
+    <script type="module" src="./vgm_analyzer.js?v=playback-error-1"></script>
   </body>
 </html>

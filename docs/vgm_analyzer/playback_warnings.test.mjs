@@ -30,3 +30,20 @@ test('actual Player DAC warning reaches the persistent warning panel',async()=>{
  context.clearPlaybackWarnings();player.load(vgmBytes([0x66]));player.play();drainPlayer(player);
  assert.equal(panel.hidden,true);
 });
+
+test('ROM preparation failure is visible next to both playback controls until resolved',async()=>{
+ const source=readFileSync(new URL('./vgm_analyzer.js',import.meta.url),'utf8');
+ const panels={playbackError:{},inlinePlaybackError:{}};
+ const context=vm.createContext({document:{getElementById:id=>panels[id]},status:{},console,
+   playbackPreparePromise:null,isPlaybackReady:()=>false,currentStatusSuffix:()=>'',
+   ensurePlaybackReady:async()=>{throw new Error('This YMF278B track needs yrw801.rom (2 MiB). Import it using the file selector or drag and drop, then press Play.');}});
+ vm.runInContext(source.slice(source.indexOf('const playbackWarnings ='),source.indexOf('function currentStatusSuffix')),context);
+ vm.runInContext(source.slice(source.indexOf('function beginPreparePlayback('),source.indexOf('function stopActiveStream(')),context);
+ await context.beginPreparePlayback({});
+ for(const panel of Object.values(panels)){assert.equal(panel.hidden,false);assert.match(panel.textContent,/yrw801.rom.*2 MiB.*file selector/);}
+ context.setStatus('Ready');assert.equal(panels.inlinePlaybackError.hidden,false);
+ context.ensurePlaybackReady=async()=>({});await context.beginPreparePlayback({});
+ for(const panel of Object.values(panels)){assert.equal(panel.hidden,true);assert.equal(panel.textContent,'');}
+ const html=readFileSync(new URL('./index.html',import.meta.url),'utf8');
+ for(const id of Object.keys(panels))assert.match(html,new RegExp(`id="${id}" role="alert"`));
+});
