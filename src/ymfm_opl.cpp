@@ -1089,11 +1089,14 @@ void y8950::generate(output_data *output, uint32_t numsamples)
 		m_adpcm_b.clock();
 
 		// update the FM content; clipping need verification
-		m_fm.output(output->clear(), 1, 32767, fm_engine::ALL_CHANNELS);
+		m_fm.output(output->clear(), 1, 32767, fm_engine::ALL_CHANNELS & ~m_mute_mask);
+		// Evaluate muted channels too, preserving operator feedback.
+		fm_engine::output_data discarded;
+		m_fm.output(discarded.clear(), 1, 32767, fm_engine::ALL_CHANNELS & m_mute_mask);
 
 		// mix in the ADPCM; ADPCM-B is stereo, but only one channel
 		// not sure how it's wired up internally
-		m_adpcm_b.output(*output, 3);
+		if (!(m_mute_mask & 0x200)) m_adpcm_b.output(*output, 3);
 
 		// Y8950 uses an external DAC (YM3014) with mantissa/exponent format
 		// convert to 10.3 floating point value and back to simulate truncation

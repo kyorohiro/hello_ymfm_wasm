@@ -97,6 +97,8 @@ int y8950_load_memory(void *ptr, const uint8_t *data, uint32_t size, uint32_t of
 }
 void y8950_clear_memory(void *ptr) { cast_handle(ptr)->intf.memory.clear(); }
 
+void y8950_set_mute_mask(void *ptr, uint32_t mask) { cast_handle(ptr)->chip.set_mute_mask(mask); }
+
 void y8950_generate(void *ptr, float *left, float *right, uint32_t frames)
 {
     auto *handle = cast_handle(ptr);

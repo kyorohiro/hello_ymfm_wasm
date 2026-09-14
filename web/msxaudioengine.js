@@ -1,6 +1,6 @@
 import {Ay8910AudioEngine} from './ay8910audioengine.js';
 import {Ym2413AudioEngine} from './ym2413audioengine.js';
-import {Y8950AudioEngine} from './y8950audioengine.js';
+import {Y8950AudioEngine} from './y8950audioengine.js?v=mutes-1';
 import {MultiChipAudioEngine} from './multichipaudioengine.js';
 
 export class MsxAudioEngine extends MultiChipAudioEngine {

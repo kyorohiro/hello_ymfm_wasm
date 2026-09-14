@@ -1,11 +1,12 @@
+import { msxMuteControls, applyMsxMute } from './msx_mutes.js';
 import {createYm3526AudioEngine} from '../js/ym3526audioengine.js';
-import {createY8950AudioEngine} from '../js/y8950audioengine.js';
+import {createY8950AudioEngine} from '../js/y8950audioengine.js?v=mutes-1';
 import {createYmf278bAudioEngine} from '../js/ymf278baudioengine.js?v=opl4-rom-1';
 import {createYm3812AudioEngine} from '../js/ym3812audioengine.js';
 import {createYmf262AudioEngine} from '../js/ymf262audioengine.js';
 import {createYm2151AudioEngine} from '../js/ym2151audioengine.js';
 import {createAy8910AudioEngine, validateAyPlaybackHeader} from '../js/ay8910audioengine.js';
-import {createMsxAudioEngine, validateMsxPlaybackHeader} from '../js/msxaudioengine.js?v=msx-mix-1';
+import {createMsxAudioEngine, validateMsxPlaybackHeader} from '../js/msxaudioengine.js?v=mutes-1';
 import {mountAy8910Monitor} from './ay8910_monitor.js?v=common-mutes-1';
 import { createYm2413AudioEngine } from '../js/ym2413audioengine.js';
 import { mountTfiInfo } from "./tfi_info.js?v=concurrent-audition-1";
@@ -218,6 +219,7 @@ let channelMonitorDirty = false;
 let noteishDirty = false;
 let lastNoteishSignature = "";
 let lastLoadedFileName = "snapshot";
+const msxMutes = new Map();
 const opllChannelMutes = Array(9).fill(false);
 const opl3ChannelMutes = Array(18).fill(false);
 const opmChannelMutes = Array(8).fill(false);
@@ -389,6 +391,22 @@ function renderMonitorToggles() {
   ensureMonitorToggleHandler();
   monitorToggles.innerHTML = "";
 
+  if (['msx', 'y8950'].includes(currentChipKind)) {
+    for (const control of msxMuteControls(currentChipKind, noteishHeader)) {
+      const muted = msxMutes.get(control.key) ?? false;
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = `channel-toggle${muted ? ' is-muted' : ''}`;
+      button.textContent = `${control.label} ${muted ? 'Off' : 'On'}`;
+      if (control.chip !== 'ay8910' && control.channel >= 6) button.title = 'Rhythm: CH7 bass drum, CH8 hi-hat/snare, CH9 tom/cymbal.';
+      button.setAttribute('aria-pressed', String(!muted));
+      button.setAttribute('data-monitor-toggle-kind', 'msx-control');
+      button.setAttribute('data-msx-control', control.key);
+      monitorToggles.append(button);
+    }
+    inlineMonitorToggles.replaceChildren(...Array.from(monitorToggles.children, button => button.cloneNode(true)));
+    return;
+  }
   if (currentChipKind === 'ay8910') {
     for (const control of ayMonitor.controls()) {
       const button = document.createElement('button');
@@ -457,6 +475,16 @@ function ensureMonitorToggleHandler() {
     }
     event.preventDefault();
     const kind = target.getAttribute("data-monitor-toggle-kind");
+    if (kind === 'msx-control' && ['msx', 'y8950'].includes(currentChipKind)) {
+      const control = msxMuteControls(currentChipKind, noteishHeader).find(c => c.key === target.getAttribute('data-msx-control'));
+      if (!control) return;
+      const muted = !(msxMutes.get(control.key) ?? false);
+      applyMsxMute(engine, currentChipKind, control, muted);
+      msxMutes.set(control.key, muted);
+      renderMonitorToggles();
+      flushPendingAudio();
+      return;
+    }
     if (kind === 'ay-control' && currentChipKind === 'ay8910') {
       ayMonitor.toggle(target.getAttribute('data-ay-control'));
       return;
@@ -2413,7 +2441,7 @@ async function ensurePlaybackReady(vgm) {
         ayClock: vgm.header.ay8910Clock & 0x3fffffff, ayType:vgm.header.ay8910Type, ayFlags:vgm.header.ay8910Flags,
         ym2413ModuleFactory: vgm.header.ym2413Clock ? (await import('../generated/ym2413_wasm.js')).default : undefined,
         ym2413Clock:vgm.header.ym2413Clock & 0x3fffffff,
-        y8950ModuleFactory:(await import('../generated/y8950_wasm.js')).default,
+        y8950ModuleFactory:(await import('../generated/y8950_wasm.js?v=mutes-1')).default,
         y8950Clock:vgm.header.y8950Clock & 0x3fffffff, masterVolume,
       });
     } else if (["y8950", "ymf278b", "ym3526", "ym3812", "ymf262"].includes(currentChipKind)) {
@@ -2422,7 +2450,7 @@ async function ensurePlaybackReady(vgm) {
       if ((vgm.header[`${chip}Clock`] & 0xc0000000) || otherClocks.some(key => key !== `${chip}Clock` && vgm.header[key]))
         throw new Error('This OPL variant or chip combination: Support coming soon.');
       if (chip === 'y8950') engine = await createY8950AudioEngine({
-        y8950ModuleFactory: (await import('../generated/y8950_wasm.js')).default,
+        y8950ModuleFactory: (await import('../generated/y8950_wasm.js?v=mutes-1')).default,
         y8950Clock: vgm.header.y8950Clock & 0x3fffffff,
         segaPsgModuleFactory, psgClock: vgm.header.psgClock & 0x3fffffff, masterVolume,
       });
@@ -2532,6 +2560,9 @@ async function ensurePlaybackReady(vgm) {
   if (currentChipKind === 'ymf262') opl3ChannelMutes.forEach((muted, index) => engine.setChannelMuted(index, muted));
   if (currentChipKind === 'ym2151') opmChannelMutes.forEach((muted, index) => engine.setChannelMuted(index, muted));
   if (currentChipKind === "ay8910") ayMonitor.applyMutes(engine);
+  else if (['msx', 'y8950'].includes(currentChipKind)) {
+    for (const control of msxMuteControls(currentChipKind, noteishHeader)) applyMsxMute(engine, currentChipKind, control, msxMutes.get(control.key) ?? false);
+  }
   else applySourceMutes(engine, sourceChipKind(), sourceMutes);
   if (!player) {
     player = new VgmPlayer(engine);
@@ -2983,6 +3014,7 @@ function startScriptProcessorStream() {
 }
 
 async function handleFile(file) {
+  msxMutes.clear();
   setPlaybackError();
   clearPlaybackWarnings();
   currentBuffer = null;

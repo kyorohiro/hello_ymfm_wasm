@@ -1,4 +1,4 @@
-import { Y8950, Y8950_CLOCK } from './y8950.js';
+import { Y8950, Y8950_CLOCK } from './y8950.js?v=mutes-1';
 import { SegaPSG } from './segapsg.js';
 
 // Y8950 and optional Sega PSG share the output clock, but keep independent state.
@@ -22,6 +22,7 @@ export class Y8950AudioEngine {
     this.outputRate = outputRate;
     this.setMasterVolume(volume);
     this.psgMuted = false;
+    this.channelMask = 0; this.adpcmMuted = false; this.muted = false;
     this.remainder = 0;
     this.lastLeft = 0; this.lastRight = 0;
   }
@@ -31,6 +32,17 @@ export class Y8950AudioEngine {
     return this.volume = Math.max(0, Math.min(3.8, Number(value)));
   }
   getMasterVolume() { return this.volume; }
+  setChannelMuted(channel, value) {
+    if (!Number.isInteger(channel) || channel < 0 || channel >= 9) throw new RangeError('Invalid Y8950 channel');
+    this.channelMask = value ? this.channelMask | (1 << channel) : this.channelMask & ~(1 << channel);
+    this.applyMute();
+  }
+  setAdpcmMuted(value) { this.adpcmMuted = Boolean(value); this.applyMute(); }
+  setY8950Muted(value) { this.muted = Boolean(value); this.applyMute(); }
+  applyMute() {
+    this.y8950.setMuteMask(this.muted ? 0x3ff : this.channelMask | (this.adpcmMuted ? 0x200 : 0));
+    this.lastLeft = this.lastRight = 0;
+  }
   setPsgMuted(value) { this.psgMuted = Boolean(value); }
   writePsg(value) { this.psg?.write(value); }
   writeY8950(register, value) { this.y8950.write(0, register); this.y8950.write(1, value); }

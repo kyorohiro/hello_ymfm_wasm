@@ -15,6 +15,7 @@ export class Y8950 {
     this.rightPtr = 0;
     this.bufferFrames = 0;
     this.sampleMemory = new Uint8Array(0);
+    this.muteMask = 0;
   }
 
   static async create(options = {}) {
@@ -27,6 +28,7 @@ export class Y8950 {
     const api = {
       loadMemory: module.cwrap("y8950_load_memory", "number", ["number", "number", "number", "number", "number"]),
       clearMemory: module.cwrap("y8950_clear_memory", null, ["number"]),
+      setMuteMask: module.cwrap("y8950_set_mute_mask", null, ["number", "number"]),
       create: module.cwrap("y8950_create", "number", []),
       destroy: module.cwrap("y8950_destroy", null, ["number"]),
       reset: module.cwrap("y8950_reset", null, ["number"]),
@@ -73,11 +75,14 @@ export class Y8950 {
   }
   clearSampleMemory() { this.api.clearMemory(this.handle); this.sampleMemory = new Uint8Array(0); }
 
+  setMuteMask(mask) { this.muteMask = mask & 0x3ff; this.api.setMuteMask(this.handle, this.muteMask); }
+
   reset() {
     // A chip reset leaves free-running envelope/LFO counters intact.
     // Start VGM replay/seek from the same power-on state each time.
     this.api.destroy(this.handle);
     this.handle = this.api.create();
+    this.setMuteMask(this.muteMask);
     this.loadSampleMemory(this.sampleMemory, 0, this.sampleMemory.length);
     this.#syncIrq();
   }
