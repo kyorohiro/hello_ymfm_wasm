@@ -30,6 +30,7 @@ source_mutes.js
 msx_mutes.js
 opm_monitor.js
 opm_export.js
+opm_mml.js
 opm_notes.js
 vgm_mml.js
 vgm_notes.js

@@ -159,3 +159,31 @@ CH選択を廃止し、ExportグループのAll TFI ZIP / All VGI ZIPと同じ�
 Allはライブ音源・再生位置に依存しない。ループを展開せず、第1 YM2151のみ対象。
 既存TFIはキーオン時収集であり、OPMはキーオン中の変化も追加で扱う。
 関連8テスト成功。dev配布版・ZIP再生成と142ローカル依存参照の検査も完了。
+
+## YM2151 MML 出力（更新）
+
+Export の MML から **MXDRV (MDX)** を選び、FM 8CH（A～H）の音符と音色定義を
+`.mml` に保存できるようにした。上記の「MML未対応」はこの更新で解消。
+[mml2mdr](https://mml2mdr.navy-ceder.workers.dev/) に渡して MDX へ変換する構成。
+MDR拡張ではなく、通常のMXDRV向けMMLを出力する。
+
+- Note-ishと同じ音程・キー区間の抽出を使い、手動BPM、16分音符単位、半音単位で出力する。
+- 音符・音程変化の境界で音色を取得し、重複を除いて最大256音色の定義と切り替えを出力する。
+- 4OperatorのパラメーターとALG/FBを保存。同じキー・音色の連続した音程変化はレガートで接続する。
+- PCM/PSG、CH8ノイズ、部分キー指定、CSMは対象外。ループは1周のみ。
+- 保持音の途中の音色書き込み、PAN、LFO、可聴の余韻は再現しない。
+  元クロックから基準音程を換算するが、4MHz向けMDXとのエンベロープ・DT等の差は残る。
+- テンポはMXDRVのタイマー値に丸め、実際の換算BPMと上記制限をMML内のコメントに残す。
+
+実装: `docs/vgm_analyzer/opm_mml.js`。
+テスト: `docs/vgm_analyzer/opm_mml.test.mjs`。
+8CH、音色切り替え、レガート、除外区間、チップによるMML選択肢の切り替えを検証。
+関連49テスト成功。指定サイトのWASMコンパイラーでも合成入力をMDXへ変換し、
+生成バイナリーの音符・長さ・音色・Operator順序を検証した。
+コンパイラー統合テストは `MML2MDR_DIR` に `mml2mdr.js` と `mml2mdr.wasm` がある場合に実行し、
+未指定時はスキップする。外部コンパイラーはリポジトリーへ同梱しない。
+dev配布版・ZIPを再生成し、146ローカル依存参照の検査成功。
+ブラウザーでの実操作・実曲の変換と聴感は未確認。
+
+参照: [mml2mdrヘルプ](https://mml2mdr.navy-ceder.workers.dev/help)、
+[MXDRV MMLコマンド資料](https://github.com/vampirefrog/mdxtools/blob/master/docs/MML.md)。

@@ -1,3 +1,4 @@
+import {createOpmState} from './opm_monitor.js';
 import {Ym2612VGM} from '../js/ym2612vgm.js';
 // Nominal equal-tempered base pitch, not the modulated operator output.
 // KC gaps follow src/ymfm_fm.ipp opm_key_code_to_phase_step (code - code/4).
@@ -30,20 +31,32 @@ export function createOpmNoteTracker(clock, changed = () => {}) {
     },
   };
 }
-export function extractOpmNotes(source) {
+export function extractOpmNotes(source, {includeVoices = false} = {}) {
   const parser = new Ym2612VGM(source);
   const clock = parser.header.ym2151Clock & 0x3fffffff;
   if (!clock) throw new Error('YM2151 clock required');
   if (parser.header.ym2151Clock & 0xc0000000) throw new Error('Dual/variant YM2151 Note-ish is not supported');
   let time=0;
+  const voiceState = includeVoices ? createOpmState(() => 0) : null;
+  const voices = [], voiceIds = new Map();
   const channels=Array.from({length:8},()=>({notes:[],active:null}));
   const finish=(ch,end,reason)=>{if(ch.active){ch.notes.push({...ch.active,end,endReason:reason});ch.active=null;}};
   const tracker=createOpmNoteTracker(clock,(index,state,sample)=>{
     const ch=channels[index];finish(ch,sample,'pitch');
-    if(state.midi !== null)ch.active={start:sample,midi:state.midi,key:state.key};
+    if(state.midi !== null) {
+      let preset;
+      if (voiceState) {
+        const voice = voiceState.snapshot().channels[index];
+        const patch = {algorithm:voice.algorithm,feedback:voice.feedback,operators:voice.operators.map(({key,slot,...op})=>op)};
+        const signature = JSON.stringify(patch);
+        if (!voiceIds.has(signature)) {voiceIds.set(signature, voices.length);voices.push(patch);}
+        preset = voiceIds.get(signature);
+      }
+      ch.active={start:sample,midi:state.midi,key:state.key,...(includeVoices ? {preset} : {})};
+    }
   });
-  const targets={ym2151:{writeRegister:(r,v)=>tracker.write(r,v,time)}};
+  const targets={ym2151:{writeRegister:(r,v)=>{voiceState?.write(r,v);tracker.write(r,v,time);}}};
   while(true){const event=parser.playStep(targets);if(event.type==='wait')parser.consumeWait(targets,event.samples,n=>{time+=n;});else if(event.type==='end')break;}
   for(const ch of channels)finish(ch,time,'vgmEnd');
-  return {channels,time};
+  return {channels,time,...(includeVoices ? {voices} : {})};
 }
