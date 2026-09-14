@@ -1,4 +1,4 @@
-import { Ym2612VGM } from "./ym2612vgm.js?v=ym3526-1";
+import { Ym2612VGM } from "./ym2612vgm.js?v=msx-mix-1";
 
 /**
  * One rendered stereo chunk waiting to be copied into the audio callback
@@ -389,6 +389,7 @@ export class VgmPlayer {
         loadBankedMemory: (data, offset) => this.engine.loadRf5c164Memory(data, offset),
       } : undefined;
       const event = this.parser.playStep({
+        resolveChip: this.engine.getVgmTarget?.bind(this.engine),
         pwm: { writeRegister: (register, value) => this.engine.writePwm?.(register, value) },
         rf5c164: rf5c164Target,
         ym2612: ym2612Target,

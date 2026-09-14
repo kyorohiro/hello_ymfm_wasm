@@ -55,6 +55,7 @@ vgm-output-worklet.js
 vgmplayer.js
 ay8910.js
 ay8910audioengine.js
+multichipaudioengine.js
 msxaudioengine.js
 y8950.js
 y8950audioengine.js

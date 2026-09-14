@@ -209,7 +209,7 @@ VGM (blocks 0x88 for Y8950, 0x84/0x87 for YMF278B). For Moonsound logs such as
 Sonyc that omit the built-in samples, import your `yrw801.rom` (2 MiB) through
 the file selector or drag and drop, then press Play. The ROM remains loaded
 for track changes and seeking in the current page session; no wave ROM is bundled. Each supports optional Sega PSG; second chips, DAC streams and other
-chip combinations are not supported. Build with `sh scripts/build_y8950_wasm.sh`
+chip combinations other than the MSX configuration below are not supported. Build with `sh scripts/build_y8950_wasm.sh`
 and `sh scripts/build_ymf278b_wasm.sh`.
 
 YM3526 (OPL) VGM/VGZ playback is supported, including melodic and rhythm modes,
@@ -231,3 +231,27 @@ To inspect and reconstruct this playback path:
   `sh scripts/sync_web_js_to_docs.sh`.
 - Run `node --test web/opl.test.mjs` to verify register delivery, audible output,
   rhythm mode, timers, waveform behavior and reproducible resets/seeks.
+
+### MSX multi-chip playback
+
+The Analyzer now plays Y8950 + AY-3-8910/YM2149 + YM2413 together, including
+Y8950 ADPCM data embedded in VGM blocks. Y8950 plus either AY or YM2413 is also
+accepted. This path uses the existing chip cores; no additional MAME core is
+introduced. The combined mode currently offers playback and parsed events,
+not instrument analysis or editing.
+
+`web/multichipaudioengine.js` registers engines by chip type and instance index.
+Each owns its register state, sample memory and resampling state. Parser targets
+route writes and sample blocks to that instance; the mixer advances every engine
+by the same duration, sums outputs and applies master volume once. Muted engines
+continue advancing. `web/msxaudioengine.js` constructs the MSX chip adapters.
+
+The programmatic `chips` option accepts descriptors `{type, index, options}`,
+so the registry can represent repeated types without sharing chip state.
+Dual-chip playback is **not verified** and is still rejected in the Analyzer UI.
+Other combinations need adapters and validation before being offered there.
+AY, YM2413 and Y8950 DAC streams remain unsupported and produce explicit errors.
+
+Run `node --test web/ay8910.test.mjs` for three-chip mixing against independent
+renders, embedded ADPCM, reset/seek repeatability and sample clearing between
+songs. These fixtures are synthetic; real-game playback remains to be checked.

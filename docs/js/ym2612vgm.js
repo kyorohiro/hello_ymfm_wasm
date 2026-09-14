@@ -509,12 +509,13 @@ export class Ym2612VGM {
         this.position += 3;
         return { type: "ym2151-write", register, value };
       }
+      case 0xa1:
       case 0x51: {
         this.#ensureAvailable(3);
         const register = this.bytes[this.position + 1];
         const value = this.bytes[this.position + 2];
         this.position += 3;
-        return { type: "ym2413-write", register, value };
+        return { type: "ym2413-write", register, value, ...(command === 0xa1 ? {chipIndex:1} : {}) };
       }
       case 0x52: {
         this.#ensureAvailable(3);
@@ -715,6 +716,7 @@ export class Ym2612VGM {
 
   /**
    * @param {{
+   *   resolveChip?: (type: string, index: number) => { writeRegister(register: number, value: number, port?: number): void, loadSampleMemory?(data: Uint8Array, offset: number, memorySize: number): void },
    *   ym2612?: { writeRegister(register: number, value: number, port?: number): void },
    *   ay8910?: { writeRegister(register: number, value: number): void },
  *   y8950?: { writeRegister(register: number, value: number): void, loadSampleMemory?(data: Uint8Array, offset: number, memorySize: number): void },
@@ -733,6 +735,16 @@ export class Ym2612VGM {
    */
   playStep(targets) {
     const event = this.step();
+    if (typeof targets.resolveChip === 'function') {
+      const chip = event.type === 'opl-sample-data' ? event.chip :
+        ({'ay8910-write':'ay8910', 'ym2413-write':'ym2413', 'y8950-write':'y8950'})[event.type];
+      if (chip) {
+        const target = targets.resolveChip(chip, event.chipIndex ?? 0);
+        if (event.type === 'opl-sample-data') target.loadSampleMemory(event.data, event.offset, event.memorySize);
+        else target.writeRegister(event.register, event.value, event.port ?? 0);
+        return event;
+      }
+    }
     if (event.type === "pwm-write") {
       if (targets.pwm) targets.pwm.writeRegister(event.register, event.value);
       else this.#warn("PWM write requires a PWM playback target");
@@ -806,6 +818,7 @@ export class Ym2612VGM {
       return event;
     }
     if (event.type === "ym2413-write") {
+      if (event.chipIndex) throw new Error("Second YM2413 chip: Support coming soon.");
       targets.ym2413?.writeRegister(event.register, event.value);
       return event;
     }
@@ -843,6 +856,7 @@ export class Ym2612VGM {
 
   /**
    * @param {{
+   *   resolveChip?: (type: string, index: number) => { writeRegister(register: number, value: number, port?: number): void, loadSampleMemory?(data: Uint8Array, offset: number, memorySize: number): void },
    *   ym2612?: { writeRegister(register: number, value: number, port?: number): void },
    *   psg?: { write(data: number): void },
    *   writeRegister?: (register: number, value: number, port?: number) => void
@@ -1086,7 +1100,7 @@ export class Ym2612VGM {
       this.#ensureAvailable(5);
       const stream = this.#streamState(this.bytes[this.position + 1]);
       stream.chipType = this.bytes[this.position + 2];
-      if ([0x09, 0x0a, 0x0c].includes(stream.chipType & 0x7f)) throw new Error("OPL DAC streams: Support coming soon.");
+      if ([0x01, 0x09, 0x0a, 0x0b, 0x0c].includes(stream.chipType & 0x7f)) throw new Error("OPL DAC streams: Support coming soon.");
       if ((stream.chipType & 0x7f) === 0x03) throw new Error('YM2151 DAC streams: Support coming soon.');
       if ((stream.chipType & 0x7f) === 0x12) throw new Error('AY DAC streams: Support coming soon.');
       if ((stream.chipType & 0x7f) === 0x10) this.#warn("RF5C164 DAC stream playback is not supported yet");
@@ -1253,6 +1267,7 @@ export class Ym2612VGM {
 
   /**
    * @param {{
+   *   resolveChip?: (type: string, index: number) => { writeRegister(register: number, value: number, port?: number): void, loadSampleMemory?(data: Uint8Array, offset: number, memorySize: number): void },
    *   ym2612?: { writeRegister(register: number, value: number, port?: number): void },
    *   psg?: { write(data: number): void },
    *   writeRegister?: (register: number, value: number, port?: number) => void
@@ -1293,6 +1308,7 @@ export class Ym2612VGM {
    *   sampleRemainder: number
    * }} stream
    * @param {{
+   *   resolveChip?: (type: string, index: number) => { writeRegister(register: number, value: number, port?: number): void, loadSampleMemory?(data: Uint8Array, offset: number, memorySize: number): void },
    *   ym2612?: { writeRegister(register: number, value: number, port?: number): void },
    *   psg?: { write(data: number): void },
    *   writeRegister?: (register: number, value: number, port?: number) => void
@@ -2340,7 +2356,7 @@ function rawCommandLength(bytes, view, position) {
   if (command === 0x50) {
     return 2;
   }
-  if (command === 0x5b || command === 0xab || command === 0x5c || command === 0xac || command === 0xa0 || command === 0x5a || command === 0x5e || command === 0x5f || command === 0x54 || command === 0x51 || command === 0x52 || command === 0x53) {
+  if (command === 0xa1 || command === 0x5b || command === 0xab || command === 0x5c || command === 0xac || command === 0xa0 || command === 0x5a || command === 0x5e || command === 0x5f || command === 0x54 || command === 0x51 || command === 0x52 || command === 0x53) {
     return 3;
   }
   if (command === 0x55) {

@@ -7,6 +7,7 @@ const SOURCES = {
   adpcmB: { key: "adpcmB", label: "ADPCM-B", method: "setAdpcmBMuted" },
 };
 export function sourcesForChip(chip) {
+  if (chip === 'msx') return [];
   if (chip === '32x') return [SOURCES.psg, SOURCES.pwm];
   if (chip === 'ym2610') return [SOURCES.ssg, {...SOURCES.rhythm, label:'ADPCM-A'}, SOURCES.adpcmB];
   return (chip === "megacd" ? ["psg", "pcm"] : chip === "ym2608" ? ["ssg", "rhythm", "adpcmB"] : chip === "ym2203" ? ["ssg"] : ["psg"])

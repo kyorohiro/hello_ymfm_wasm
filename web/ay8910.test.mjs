@@ -104,3 +104,31 @@ test('YM2149 pin26 divider equals halving the input clock',async()=>{
   try{program(a);program(b);assert.deepEqual(a.generateStereo(4096).left,b.generateStereo(4096).left);}
   finally{a.dispose();b.dispose();}
 });
+
+test('MSX Y8950 + AY + OPLL mixes independent audio including ADPCM, resets and seeks',async()=>{
+ const {Y8950AudioEngine}=await import('./y8950audioengine.js');
+ const {default:yFactory}=await import('../docs/generated/y8950_wasm.js');
+ const yOptions={y8950ModuleFactory:yFactory,y8950ModuleOptions:{wasmBinary:readFileSync(new URL('../docs/generated/y8950_wasm.wasm',import.meta.url))},y8950Clock:3579545};
+ const mix=await MsxAudioEngine.create({ayModuleFactory:factory,ayModuleOptions:options.moduleOptions,ayClock:1789773,...opllOptions,...yOptions});
+ const a=await Ay8910AudioEngine.create({...options,clock:1789773}),b=await Ym2413AudioEngine.create(opllOptions),c=await Y8950AudioEngine.create(yOptions);
+ try{
+  const memory=new Uint8Array(256).fill(0x17);
+  const ay=[[0,64],[7,62],[8,15]],opll=[[0x30,0x10],[0x10,0x80],[0x20,0x17]];
+  const y=[[8,1],[9,0],[10,0],[11,7],[12,0],[16,255],[17,255],[18,255],[7,0xb0]];
+  for(const [r,v] of ay)a.writeAy8910(r,v);
+  for(const [r,v] of opll)b.writeYm2413(r,v);
+  c.loadSampleMemory(memory,0,256);for(const [r,v] of y)c.writeY8950(r,v);
+  const block=new Uint8Array(15+memory.length),dv=new DataView(block.buffer);
+  block.set([0x67,0x66,0x88]);dv.setUint32(3,264,true);dv.setUint32(7,256,true);block.set(memory,15);
+  const song=vgm([...block,...ay.flatMap(([r,v])=>[0xa0,r,v]),...opll.flatMap(([r,v])=>[0x51,r,v]),...y.flatMap(([r,v])=>[0x5c,r,v]),0x61,0x3a,0x11,0x66],{opll:3579545});
+  new DataView(song.buffer).setUint32(0x58,3579545,true);
+  const p=new VgmPlayer(mix);p.load(song);p.play();const full=new Float32Array(4410);p.process(full,new Float32Array(4410),4410);
+  const x=a.processFrames(4410),z=b.processFrames(4410),w=c.processFrames(4410);
+  for(const pcm of [x,z,w])assert(pcm.left.some(v=>Math.abs(v)>.001));
+  assert.deepEqual(full,Float32Array.from(x.left,(v,i)=>v+z.left[i]+w.left[i]));
+  p.reset();p.play();const repeat=new Float32Array(4410);p.process(repeat,new Float32Array(4410),4410);assert.deepEqual(repeat,full);
+  await seekPlayback(p,1000);p.resume();const part=new Float32Array(500);p.process(part,new Float32Array(500),500);assert.deepEqual(part,full.slice(1000,1500));
+  p.reset();mix.setChipMuted('y8950',0,true);p.play();const muted=new Float32Array(4410);p.process(muted,new Float32Array(4410),4410);assert.deepEqual(muted,Float32Array.from(x.left,(v,i)=>v+z.left[i]));
+  p.load(vgm([0x66],{opll:3579545}));assert.equal(mix.entries.get('y8950:0').engine.y8950.sampleMemory.length,0);
+ }finally{mix.dispose();a.dispose();b.dispose();c.dispose();}
+});

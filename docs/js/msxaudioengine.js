@@ -1,37 +1,47 @@
 import {Ay8910AudioEngine} from './ay8910audioengine.js';
 import {Ym2413AudioEngine} from './ym2413audioengine.js';
-// AY and OPLL remain separate chips; VgmPlayer advances both by the same duration.
-export class MsxAudioEngine {
-  static async create({ayModuleFactory,ayModuleOptions,ayClock,ayType=0,ayFlags=1,
-    ym2413ModuleFactory,ym2413ModuleOptions,ym2413Clock,outputSampleRate=44100,masterVolume=1}={}) {
-    const ay=await Ay8910AudioEngine.create({moduleFactory:ayModuleFactory,moduleOptions:ayModuleOptions,clock:ayClock,type:ayType,flags:ayFlags,outputSampleRate});
-    let opll;
-    try{
-      opll=await Ym2413AudioEngine.create({ym2413ModuleFactory,ym2413ModuleOptions,ym2413Clock,outputSampleRate});
-      return new MsxAudioEngine(ay,opll,masterVolume);
-    }catch(error){ay.dispose();opll?.dispose();throw error;}
+import {Y8950AudioEngine} from './y8950audioengine.js';
+import {MultiChipAudioEngine} from './multichipaudioengine.js';
+
+export class MsxAudioEngine extends MultiChipAudioEngine {
+  static async create(options = {}) {
+    const {outputSampleRate = 44100, masterVolume = 1} = options;
+    // Explicit descriptors allow repeated types with independent clocks/options.
+    const chips = options.chips ?? [
+      ...(options.ayClock ? [{type:'ay8910', options:{moduleFactory:options.ayModuleFactory, moduleOptions:options.ayModuleOptions, clock:options.ayClock, type:options.ayType ?? 0, flags:options.ayFlags ?? 1}}] : []),
+      ...(options.ym2413ModuleFactory ? [{type:'ym2413', options}] : []),
+      ...(options.y8950ModuleFactory ? [{type:'y8950', options}] : []),
+    ];
+    const entries = [];
+    const factories = {ay8910:Ay8910AudioEngine, ym2413:Ym2413AudioEngine, y8950:Y8950AudioEngine};
+    const methods = {ay8910:'writeAy8910', ym2413:'writeYm2413', y8950:'writeY8950'};
+    try {
+      for (const {type, index = 0, options: chipOptions} of chips) {
+        if (!factories[type]) throw new Error(`Unsupported MSX chip: ${type}`);
+        const engine = await factories[type].create({...chipOptions, outputSampleRate, masterVolume:1, psgClock:0});
+        entries.push({type, index, engine, target:{
+          writeRegister:(register, value) => engine[methods[type]](register, value),
+          ...(type === 'y8950' ? {loadSampleMemory:(...args) => engine.loadSampleMemory(...args)} : {}),
+        }});
+      }
+      return new MsxAudioEngine(entries, outputSampleRate, masterVolume);
+    } catch (error) { for (const {engine} of entries) engine.dispose(); throw error; }
   }
-  constructor(ay,opll,volume){this.ay=ay;this.opll=opll;this.opllMuted=false;this.setMasterVolume(volume);}
-  sampleRate(){return this.ay.sampleRate();}
-  reset(){this.ay.reset();this.opll.reset();}
-  dispose(){this.ay.dispose();this.opll.dispose();}
-  writeAy8910(register,value){this.ay.writeAy8910(register,value);}
-  writeYm2413(register,value){this.opll.writeYm2413(register,value);}
-  setAyMuted(value){this.ay.setAyMuted(value);}
-  setAyChannelMuted(channel,value){this.ay.setAyChannelMuted(channel,value);}
-  setOpllMuted(value){this.opllMuted=Boolean(value);}
-  setMasterVolume(value){if(!Number.isFinite(Number(value)))throw new RangeError('Invalid volume');return this.volume=Math.max(0,Math.min(3.8,Number(value)));}
-  getMasterVolume(){return this.volume;}
-  processFrames(frames){
-    const a=this.ay.processFrames(frames),b=this.opll.processFrames(frames);
-    for(let i=0;i<frames;i++){
-      a.left[i]=(a.left[i]+(this.opllMuted?0:b.left[i]))*this.volume;
-      a.right[i]=(a.right[i]+(this.opllMuted?0:b.right[i]))*this.volume;
-    }return a;
+  writeAy8910(register, value, index = 0) { this.getVgmTarget('ay8910', index).writeRegister(register, value); }
+  writeYm2413(register, value, index = 0) { this.getVgmTarget('ym2413', index).writeRegister(register, value); }
+  writeY8950(register, value, index = 0) { this.getVgmTarget('y8950', index).writeRegister(register, value); }
+  setAyMuted(value) { this.entries.get('ay8910:0')?.engine.setAyMuted(value); }
+  setAyChannelMuted(channel, value) { this.entries.get('ay8910:0')?.engine.setAyChannelMuted(channel, value); }
+  setOpllMuted(value) { this.setChipMuted('ym2413', 0, value); }
+  setY8950Muted(value) { this.setChipMuted('y8950', 0, value); }
+}
+export const createMsxAudioEngine = options => MsxAudioEngine.create(options);
+
+export function validateMsxPlaybackHeader(header) {
+  for (const type of ['ay8910','ym2413','y8950']) {
+    if (header[`${type}Clock`] & 0xc0000000) throw new Error(`${type} variants and dual-chip playback are not validated yet.`);
   }
-  process(left,right,frames){
-    if(!(left instanceof Float32Array)||!(right instanceof Float32Array)||left.length<frames||right.length<frames)throw new RangeError('Invalid buffers');
-    const pcm=this.processFrames(frames);left.set(pcm.left);right.set(pcm.right);
+  for (const type of ['ym2612','ym2203','ym2608','ym2610','rf5c164','pwm','psg','k051649','ym2151','ym3526','ym3812','ymf262','ymf278b','segaPcm']) {
+    if (header[`${type}Clock`]) throw new Error(`MSX with ${type}: Support coming soon.`);
   }
 }
-export const createMsxAudioEngine=options=>MsxAudioEngine.create(options);
