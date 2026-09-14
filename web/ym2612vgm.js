@@ -1100,10 +1100,14 @@ export class Ym2612VGM {
       this.#ensureAvailable(5);
       const stream = this.#streamState(this.bytes[this.position + 1]);
       stream.chipType = this.bytes[this.position + 2];
-      if ([0x01, 0x09, 0x0a, 0x0b, 0x0c].includes(stream.chipType & 0x7f)) throw new Error("OPL DAC streams: Support coming soon.");
-      if ((stream.chipType & 0x7f) === 0x03) throw new Error('YM2151 DAC streams: Support coming soon.');
-      if ((stream.chipType & 0x7f) === 0x12) throw new Error('AY DAC streams: Support coming soon.');
-      if ((stream.chipType & 0x7f) === 0x10) this.#warn("RF5C164 DAC stream playback is not supported yet");
+      // Only these first-instance destinations have a stream writer.
+      stream.disabled = ![0x02, 0x11].includes(stream.chipType);
+      stream.active = false;
+      if (stream.disabled) {
+        const names = {0x01:'YM2413',0x02:'YM2612',0x03:'YM2151',0x09:'YM3812',0x0a:'YM3526',0x0b:'Y8950',0x0c:'YMF262',0x0d:'YMF278B',0x10:'RF5C164',0x11:'PWM',0x12:'AY'};
+        const type = stream.chipType & 0x7f;
+        this.#warn(`Unsupported DAC stream skipped: ${names[type] ?? 'chip'} (${formatHexNumber(type)}), instance=${stream.chipType >>> 7}, stream=${this.bytes[this.position + 1]}. Playback continues without this stream.`);
+      }
       stream.port = this.bytes[this.position + 3];
       stream.register = this.bytes[this.position + 4];
       this.position += 5;
@@ -1190,6 +1194,7 @@ export class Ym2612VGM {
    * @returns {void}
    */
   #startStream(stream, data, start, mode, length) {
+    if (stream.disabled || ![0x02, 0x11].includes(stream.chipType)) { stream.active = false; return; }
     if ((stream.chipType & 0x7f) === 0x11) {
       if (start === 0xffffffff) start = stream.pwmStart || 0;
       stream.pwmStart = start;
@@ -1316,7 +1321,7 @@ export class Ym2612VGM {
    * @returns {void}
    */
   #performStreamWrite(stream, targets) {
-    if (!stream.data || !stream.active) {
+    if (!stream.data || !stream.active || stream.disabled) {
       return;
     }
     if ((stream.chipType & 0x7f) === 0x11) {
@@ -1343,7 +1348,7 @@ export class Ym2612VGM {
     const dataIndex = stream.dataOffset + stream.cursor;
     const value = stream.data[dataIndex];
     // An unsupported RF5 stream must never write into the YM2612.
-    if ((stream.chipType & 0x7f) === 0x10) { stream.active = false; return; }
+    if (stream.chipType !== 0x02) { stream.active = false; return; }
     const ym2612 = targets.ym2612 || targets;
     if (ym2612 && typeof ym2612.writeRegister === "function") {
       ym2612.writeRegister(stream.register, value, stream.port);

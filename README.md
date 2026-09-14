@@ -250,7 +250,7 @@ The programmatic `chips` option accepts descriptors `{type, index, options}`,
 so the registry can represent repeated types without sharing chip state.
 Dual-chip playback is **not verified** and is still rejected in the Analyzer UI.
 Other combinations need adapters and validation before being offered there.
-AY, YM2413 and Y8950 DAC streams remain unsupported and produce explicit errors.
+AY, YM2413 and Y8950 DAC streams remain unsupported; they are skipped with a visible warning while other playback continues.
 
 Run `node --test web/ay8910.test.mjs` for three-chip mixing against independent
 renders, embedded ADPCM, reset/seek repeatability and sample clearing between

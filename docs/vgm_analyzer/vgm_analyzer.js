@@ -25,7 +25,7 @@ import { createPsgMonitor, describePsgMonitor, observePsgEngine } from "./psg_mo
 import { exportMucomMml, exportOpnavoidMml } from "./vgm_mml.js?v=mml-formats-1";
 import {
   Ym2612VGM,
-} from "../js/ym2612vgm.js?v=msx-mix-1";
+} from "../js/ym2612vgm.js?v=dac-warning-1";
 import { createTfiFromPreset } from "../js/tfi.js";
 import { createVgiFromPreset } from "../js/vgi.js";
 import ym2612ModuleFactory from "../generated/ym2612_wasm.js";
@@ -34,7 +34,7 @@ import segaPsgModuleFactory from "../generated/segapsg_wasm.js";
 import { createGenesisAudioEngine } from "../js/genesisaudioengine.js?v=pwm-2";
 import { createYm2203AudioEngine } from "../js/ym2203audioengine.js";
 import { createYm2608AudioEngine } from "../js/ym2608audioengine.js";
-import { VgmPlayer } from "../js/vgmplayer.js?v=msx-mix-1";
+import { VgmPlayer } from "../js/vgmplayer.js?v=dac-warning-1";
 import { looksLikeS98, convertS98ToVgm } from "../js/s98_file.js";
 import { maybeDecodeVgmFile, parseVgmMetadata, VGM_METADATA_FIELDS } from "../js/vgm_file.js";
 
@@ -279,6 +279,22 @@ const CRC32_TABLE = (() => {
   }
   return table;
 })();
+
+const playbackWarnings = new Set();
+function reportPlaybackWarning(message) {
+  if (!message.startsWith('Unsupported DAC stream skipped:')) { console.warn(message); return; }
+  if (playbackWarnings.has(message) || playbackWarnings.size >= 100) return;
+  playbackWarnings.add(message);
+  const panel = document.getElementById('playbackWarnings');
+  panel.textContent = [...playbackWarnings].join('\n');
+  panel.hidden = false;
+}
+function clearPlaybackWarnings() {
+  playbackWarnings.clear();
+  const panel = document.getElementById('playbackWarnings');
+  panel.textContent = '';
+  panel.hidden = true;
+}
 
 function setStatus(message) {
   status.textContent = message;
@@ -2456,7 +2472,7 @@ async function ensurePlaybackReady(vgm) {
 
   player.setLoopEnabled(loopCheckbox.checked);
   if (currentChipKind === 'ymf278b' && ymf278bWaveRomBytes) engine.loadWaveRom(ymf278bWaveRomBytes);
-  player.load(currentBuffer);
+  player.load(currentBuffer, {logger:{warn:reportPlaybackWarning}});
   return { sampleRate };
 }
 
@@ -2890,6 +2906,7 @@ function startScriptProcessorStream() {
 }
 
 async function handleFile(file) {
+  clearPlaybackWarnings();
   currentBuffer = null;
   playButton.disabled = true;
   seekSelection = null;
@@ -2941,7 +2958,7 @@ async function handleFile(file) {
 
   let vgm;
   try {
-    vgm = new Ym2612VGM(buffer);
+    vgm = new Ym2612VGM(buffer, {logger:{warn:reportPlaybackWarning}});
   } catch (error) {
     console.error(error);
     headerOutput.textContent = "Failed to parse VGM header.";

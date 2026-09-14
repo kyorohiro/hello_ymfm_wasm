@@ -75,9 +75,9 @@ test('YM3526 keeps its sine waveform when OPL2 waveform registers are written', 
   for(const wave of [1,2,3])assert.deepEqual(render(wave),sine);
  }finally{e.dispose();}
 });
-for(const Parser of [Ym2612VGM,DocsVGM])test(`YM3526 rejects second-chip playback and DAC streams (${Parser===DocsVGM?'docs':'web'})`,()=>{
+for(const Parser of [Ym2612VGM,DocsVGM])test(`YM3526 rejects second-chip playback and warns for DAC streams (${Parser===DocsVGM?'docs':'web'})`,()=>{
  const second=data(configs[0]);second[0x100]=0xab;
  const p=new Parser(second);assert.equal(p.step().chipIndex,1);p.reset();assert.throws(()=>p.playStep({}),/Second YM3526/);
- const stream=data(configs[0]);stream.set([0x90,0,0x0a,0,0],0x100);assert.throws(()=>new Parser(stream).step(),/OPL DAC streams/);
+ const stream=data(configs[0]);stream.set([0x90,0,0x0a,0,0,0x66],0x100);const warnings=[];assert.doesNotThrow(()=>new Parser(stream,{logger:{warn:m=>warnings.push(m)}}).step());assert.match(warnings[0],/YM3526.*Playback continues/);
  const older=data(configs[0]);new DataView(older.buffer).setUint32(8,0x150,true);assert.equal(new Parser(older).header.ym3526Clock,0);
 });

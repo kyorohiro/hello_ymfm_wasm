@@ -36,7 +36,7 @@ for(const Parser of [Ym2612VGM,DocsVGM])test(`AY import and playback parser (${P
   assert.throws(()=>new Parser(vgm([0xa0,0])).step());
   const short=vgm([0x66]);new DataView(short.buffer).setUint32(0x34,0x0c,true);short[0x40]=0x66;
   assert.equal(new Parser(short).header.ay8910Clock,0);assert.equal(new Parser(short).header.ay8910Type,0);
-  assert.throws(()=>new Parser(vgm([0x90,0,0x12,0,8,0x66])).step(),/AY DAC streams/);
+  const warnings=[]; assert.doesNotThrow(()=>new Parser(vgm([0x90,0,0x12,0,8,0x66]),{logger:{warn:m=>warnings.push(m)}}).step()); assert.match(warnings[0],/AY.*Playback continues/);
 });
 for(const type of [0,16])test(`AY type ${type}: PCM, partitioning, IO and mute phase`,async()=>{
   const a=await Ay8910.create({...options,type}),b=await Ay8910.create({...options,type});

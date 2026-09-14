@@ -1,4 +1,4 @@
-import { Ym2612VGM } from "./ym2612vgm.js?v=msx-mix-1";
+import { Ym2612VGM } from "./ym2612vgm.js?v=dac-warning-1";
 
 /**
  * One rendered stereo chunk waiting to be copied into the audio callback
