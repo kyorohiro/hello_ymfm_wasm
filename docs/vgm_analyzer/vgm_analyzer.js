@@ -1366,8 +1366,8 @@ function toggleChannelMute(channelIndex) {
     ) {
       baseEngineWriteYm2612(0, 0x2a, 0x80);
     }
-  } else if (currentChipKind === "ym2203" && baseEngineWriteYm2203 && channel.muted) {
-    baseEngineWriteYm2203(0x28, channelIndex & 0x07);
+  } else if (currentChipKind === "ym2203") {
+    engine.setChannelMuted(channelIndex, channel.muted);
   }
 
   flushPendingAudio();
@@ -2509,6 +2509,7 @@ async function ensurePlaybackReady(vgm) {
     }
   }
   engineClockKey = nextClockKey;
+  if (currentChipKind === "ym2203") channelMonitor.forEach((channel, index) => engine.setChannelMuted(index, channel.muted));
   if (currentChipKind === 'ym2413') opllChannelMutes.forEach((muted, index) => engine.setChannelMuted(index, muted));
   if (currentChipKind === 'ymf262') opl3ChannelMutes.forEach((muted, index) => engine.setChannelMuted(index, muted));
   if (currentChipKind === 'ym2151') opmChannelMutes.forEach((muted, index) => engine.setChannelMuted(index, muted));
@@ -2768,13 +2769,6 @@ async function playCurrentVgm(startSample = 0) {
     } else if (currentChipKind === "ym2203" && baseEngineWriteYm2203) {
       engine.writeYm2203 = (register, value) => {
         applyYm2203WriteToMonitor(register, value);
-        if (register === 0x28) {
-          const channelIndex = value & 0x03;
-          if (channelIndex <= 2 && channelMonitor[channelIndex]?.muted) {
-            baseEngineWriteYm2203(register, channelIndex);
-            return;
-          }
-        }
         baseEngineWriteYm2203(register, value);
       };
     }

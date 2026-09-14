@@ -22,7 +22,7 @@ export class Ym2203 {
       throw new Error("moduleFactory is required");
     }
 
-    const module = await moduleFactory(moduleOptions || {});
+    const module = await moduleFactory({ ...moduleOptions });
     const api = {
       create: module.cwrap("ym2203_create", "number", []),
       destroy: module.cwrap("ym2203_destroy", null, ["number"]),
@@ -33,6 +33,7 @@ export class Ym2203 {
       getIrq: optionalCwrap(module, "ym2203_get_irq", "number", ["number"]),
       sampleRate: module.cwrap("ym2203_sample_rate", "number", ["number", "number"]),
       setSourceMuteMask: optionalCwrap(module, "ym2203_set_source_mute_mask", null, ["number", "number"]),
+      setMuteMask: module.cwrap("ym2203_set_mute_mask", null, ["number", "number"]),
       generate: module.cwrap("ym2203_generate", null, ["number", "number", "number", "number"]),
     };
 
@@ -112,6 +113,8 @@ export class Ym2203 {
   sampleRate(clock = YM2203_CLOCK) {
     return this.api.sampleRate(this.handle, clock);
   }
+
+  setMuteMask(mask) { this.api.setMuteMask(this.handle, mask & 7); }
 
   setSourceMuteMask(mask) {
     if (!this.api.setSourceMuteMask) throw new Error("Reload the generated YM2203 WASM runtime to use source mute controls.");

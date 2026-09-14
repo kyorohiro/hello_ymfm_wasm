@@ -450,6 +450,7 @@ public:
 		}
 	}
 	uint32_t ssg_effective_clock(uint32_t input_clock) const { uint32_t scale = m_fm.clock_prescale() * 2 / 3; return input_clock * 2 / scale; }
+	void set_mute_mask(uint32_t mask) { m_mute_mask = mask & 7; }
 	void invalidate_caches() { m_fm.invalidate_caches(); }
 
 	// read access
@@ -475,6 +476,7 @@ protected:
 	uint8_t m_address;                  // address register
 	uint8_t m_fm_samples_per_output;    // how many samples to repeat
 	fm_engine::output_data m_last_fm;   // last FM output
+	uint32_t m_mute_mask = 0;
 	fm_engine m_fm;                     // core FM engine
 	ssg_engine m_ssg;                   // SSG engine
 	ssg_resampler<output_data, 1, false> m_ssg_resampler; // SSG resampler helper

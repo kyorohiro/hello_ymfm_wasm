@@ -7,8 +7,9 @@ test("source buttons and all-muted detection include every chip's audible source
   const muted = {psg:true,ssg:true,rhythm:true,adpcmB:true};
   assert.deepEqual(sourcesForChip("ym2203").map(s=>s.label),["SSG"]);
   assert.deepEqual(sourcesForChip("ym2608").map(s=>s.label),["SSG","Rhythm","ADPCM-B"]);
+  assert.deepEqual(sourcesForChip("ym2610").map(s=>s.label),["SSG","ADPCM-A","ADPCM-B"]);
   assert.deepEqual(sourcesForChip("ym2612").map(s=>s.label),["PSG"]);
-  for(const chip of ["ym2203","ym2608","ym2612"]) {
+  for(const chip of ["ym2203","ym2608","ym2612","ym2610"]) {
     assert.equal(allSourcesMuted(chip,[{muted:true}],muted),true);
     assert.equal(allSourcesMuted(chip,[{muted:false}],muted),false);
     for(const source of sourcesForChip(chip)) assert.equal(allSourcesMuted(chip,[{muted:true}],{...muted,[source.key]:false}),false);

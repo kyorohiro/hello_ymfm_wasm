@@ -115,3 +115,51 @@ test('Analyzer file-open scans YM2610 writes and ROM blocks without treating ope
     assert.match(context,/ym2610 port=0/);
   }
 });
+
+test('YM2610/B source mute preserves SSG and ADPCM phase through live writes',async()=>{
+ for(const variant of [false,true])for(const kind of ['ssg','a','b']) {
+  const a=await createChip(variant),b=await createChip(variant),mask={ssg:1,a:2,b:4}[kind];
+  try{
+   for(const c of [a,b]) {
+    if(kind==='ssg'){write(c,0,0,100);write(c,0,7,0x3e);write(c,0,8,15);}
+    else {
+     const type=kind==='a'?0:1;
+     c.loadAdpcmRom(type,new Uint8Array(512).fill(0x17));
+     for(const [r,v] of type===0?aRegs:bRegs)write(c,type===0?1:0,r,v);
+    }
+   }
+   assert.deepEqual(b.generateStereo(128),a.generateStereo(128));
+   b.setSourceMuteMask(mask);
+   a.generateStereo(128);b.generateStereo(128); // held resampler output
+   const reference=a.generateStereo(256),muted=b.generateStereo(256);
+   assert(peak(reference.left)>0,`${kind} reference must sound`);assert.equal(peak(muted.left),0);
+   // Both chips receive identical writes while one output is muted.
+   for(const c of [a,b]) {
+    if(kind==='ssg')write(c,0,0,80);
+    else if(kind==='a')write(c,1,8,0x98);
+    else write(c,0,0x1b,200);
+   }
+   a.generateStereo(128);b.generateStereo(128);b.setSourceMuteMask(0);
+   a.generateStereo(128);b.generateStereo(128);
+   assert.deepEqual(b.generateStereo(256),a.generateStereo(256),`${variant}/${kind}: restored phase`);
+  }finally{a.dispose();b.dispose();}
+ }
+});
+
+test('YM2610/B FM pan mute preserves each available channel phase',async()=>{
+ for(const variant of [false,true])for(const channel of variant?[0,1,2,3,4,5]:[1,2,4,5]) {
+  const a=await createChip(variant),b=await createChip(variant),port=channel<3?0:1,ch=channel%3;
+  try{
+   for(const c of [a,b]){
+    for(const slot of [0,4,8,12])for(const [base,val] of [[0x30,1],[0x40,0],[0x50,31],[0x60,0],[0x70,0],[0x80,15]])write(c,port,base+slot+ch,val);
+    write(c,port,0xb0+ch,0x38);write(c,port,0xb4+ch,0xc0);
+    write(c,port,0xa4+ch,0x22);write(c,port,0xa0+ch,0x69);write(c,0,0x28,0xf0+ch+(port?4:0));
+   }
+   a.generateStereo(256);b.generateStereo(256);write(b,port,0xb4+ch,0);
+   a.generateStereo(128);b.generateStereo(128);
+   assert(peak(a.generateStereo(512).left)>0);assert.equal(peak(b.generateStereo(512).left),0);
+   write(b,port,0xb4+ch,0xc0);a.generateStereo(128);b.generateStereo(128);
+   assert.deepEqual(b.generateStereo(512),a.generateStereo(512));
+  }finally{a.dispose();b.dispose();}
+ }
+});

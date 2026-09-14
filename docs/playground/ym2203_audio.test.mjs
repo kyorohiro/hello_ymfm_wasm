@@ -111,3 +111,25 @@ test("YM2203 SSG mute preserves tone registers, later writes and reset preferenc
     assert.equal(peak(engine.processFrames(256).left), 0);
   } finally { engine.dispose(); }
 });
+
+test('YM2203 FM mute preserves phase, feedback and key-on writes on all three channels',async()=>{
+ const options={ym2203ModuleFactory:moduleFactory,ym2203ModuleOptions:{wasmBinary}};
+ const a=await Ym2203AudioEngine.create(options),b=await Ym2203AudioEngine.create(options);
+ try{for(let ch=0;ch<3;ch++){
+  for(const e of [a,b]){
+   for(let c=0;c<3;c++)e.setChannelMuted(c,false);
+   e.reset();
+   for(const slot of [0,4,8,12])for(const [r,v] of [[0x30,1],[0x40,0],[0x50,31],[0x60,0],[0x70,0],[0x80,15]])e.writeYm2203(r+slot+ch,v);
+   e.writeYm2203(0xb0+ch,0x38);e.writeYm2203(0xa4+ch,0x22);e.writeYm2203(0xa0+ch,0x69);e.writeYm2203(0x28,0xf0|ch);
+  }
+  a.processFrames(256);b.processFrames(256);b.setChannelMuted(ch,true);
+  a.processFrames(128);b.processFrames(128);
+  assert(peak(a.processFrames(512).left)>0);assert.equal(peak(b.processFrames(512).left),0);
+  for(const e of [a,b]){e.writeYm2203(0x28,ch);e.processFrames(100);e.writeYm2203(0x28,0xf0|ch);e.processFrames(100);}
+  b.setChannelMuted(ch,false);a.processFrames(128);b.processFrames(128);
+  assert.deepEqual(b.processFrames(512),a.processFrames(512));
+ }
+ b.setChannelMuted(2,true);b.reset();assert.equal(b.channelMuteMask,4);
+ assert.throws(()=>b.setChannelMuted(3,true),RangeError);
+ }finally{a.dispose();b.dispose();}
+});

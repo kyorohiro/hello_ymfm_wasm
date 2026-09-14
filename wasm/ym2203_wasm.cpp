@@ -83,6 +83,11 @@ void ym2203_set_source_mute_mask(void *ptr, uint32_t mask)
     handle->source_mute_mask = mask;
 }
 
+void ym2203_set_mute_mask(void *ptr, uint32_t mask)
+{
+    cast_handle(ptr)->chip.set_mute_mask(mask);
+}
+
 void ym2203_generate(void *ptr, float *left, float *right, uint32_t frames)
 {
     auto *handle = cast_handle(ptr);

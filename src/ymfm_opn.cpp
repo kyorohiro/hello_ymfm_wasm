@@ -954,7 +954,12 @@ void ym2203::clock_fm()
 	m_fm.clock(fm_engine::ALL_CHANNELS);
 
 	// update the FM content; OPN is full 14-bit with no intermediate clipping
-	m_fm.output(m_last_fm.clear(), 0, 32767, fm_engine::ALL_CHANNELS);
+	m_fm.output(m_last_fm.clear(), 0, 32767, fm_engine::ALL_CHANNELS & ~m_mute_mask);
+	if (m_mute_mask)
+	{
+		fm_engine::output_data discarded;
+		m_fm.output(discarded.clear(), 0, 32767, m_mute_mask);
+	}
 
 	// convert to 10.3 floating point value for the DAC and back
 	m_last_fm.roundtrip_fp();

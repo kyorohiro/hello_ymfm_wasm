@@ -14,6 +14,7 @@ export class Ym2203AudioEngine {
     this._sampleRate = outputSampleRate;
     this._masterVolume = clampMasterVolume(masterVolume);
     this._sourceMuteMask = 0;
+    this.channelMuteMask = 0;
     this._resampleRemainder = 0;
   }
 
@@ -50,6 +51,7 @@ export class Ym2203AudioEngine {
 
   reset() {
     this.ym2203.reset();
+    this.ym2203.setMuteMask(this.channelMuteMask);
     this._resampleRemainder = 0;
   }
 
@@ -71,6 +73,12 @@ export class Ym2203AudioEngine {
     this.ym2203.write(1, value);
   }
 
+  setChannelMuted(channel, muted) {
+    if (!Number.isInteger(channel) || channel < 0 || channel >= 3) throw new RangeError('Invalid YM2203 channel');
+    const bit = 1 << channel;
+    this.channelMuteMask = muted ? this.channelMuteMask | bit : this.channelMuteMask & ~bit;
+    this.ym2203.setMuteMask(this.channelMuteMask);
+  }
   setSsgMuted(muted) { this.setSourceMuted(1, muted); }
 
   setSourceMuted(bit, muted) {
