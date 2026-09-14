@@ -32,6 +32,12 @@ export class Ymf262AudioEngine {
   }
   getMasterVolume() { return this.volume; }
   setPsgMuted(value) { this.psgMuted = Boolean(value); }
+  setChannelMuted(channel, muted) {
+    if (!Number.isInteger(channel) || channel < 0 || channel >= 18) throw new RangeError('Invalid YMF262 channel');
+    const bit = 1 << channel;
+    this.ymf262.setMuteMask(muted ? this.ymf262.muteMask | bit : this.ymf262.muteMask & ~bit);
+    this.lastLeft = 0; this.lastRight = 0;
+  }
   writePsg(value) { this.psg?.write(value); }
   writeYmf262(port, register, value) { this.ymf262.write(port * 2, register); this.ymf262.write(port * 2 + 1, value); }
   reset() {

@@ -76,6 +76,11 @@ uint32_t ymf262_sample_rate(void *ptr, uint32_t clock)
     return cast_handle(ptr)->chip.sample_rate(clock);
 }
 
+void ymf262_set_mute_mask(void *ptr, uint32_t mask)
+{
+    cast_handle(ptr)->chip.set_mute_mask(mask);
+}
+
 void ymf262_generate(void *ptr, float *left, float *right, uint32_t frames)
 {
     auto *handle = cast_handle(ptr);

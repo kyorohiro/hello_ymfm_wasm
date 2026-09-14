@@ -1407,7 +1407,21 @@ void ymf262::generate(output_data *output, uint32_t numsamples)
 		m_fm.clock(fm_engine::ALL_CHANNELS);
 
 		// update the FM content; mixing details for YMF262 need verification
-		m_fm.output(output->clear(), 0, 32767, fm_engine::ALL_CHANNELS);
+		uint32_t muted = m_mute_mask;
+		// A connected 4-op voice is one sound: either member mutes the pair.
+		for (uint32_t pair = 0; pair < 6; pair++)
+		{
+			uint32_t first = (pair / 3) * 9 + pair % 3;
+			uint32_t pairmask = (1U << first) | (1U << (first + 3));
+			if (bitfield(m_fm.regs().fourop_enable(), pair) && (muted & pairmask)) muted |= pairmask;
+		}
+		m_fm.output(output->clear(), 0, 32767, fm_engine::ALL_CHANNELS & ~muted);
+		// Preserve feedback updates as well as clocks for inaudible channels.
+		if (muted)
+		{
+			output_data discarded;
+			m_fm.output(discarded.clear(), 0, 32767, muted);
+		}
 
 		// YMF262 output is 16-bit offset serial via YAC512 DAC
 		output->clamp16();

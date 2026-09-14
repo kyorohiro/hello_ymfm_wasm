@@ -81,3 +81,37 @@ for(const Parser of [Ym2612VGM,DocsVGM])test(`YM3526 rejects second-chip playbac
  const stream=data(configs[0]);stream.set([0x90,0,0x0a,0,0,0x66],0x100);const warnings=[];assert.doesNotThrow(()=>new Parser(stream,{logger:{warn:m=>warnings.push(m)}}).step());assert.match(warnings[0],/YM3526.*Playback continues/);
  const older=data(configs[0]);new DataView(older.buffer).setUint32(8,0x150,true);assert.equal(new Parser(older).header.ym3526Clock,0);
 });
+
+test('OPL3 mute covers 18 channels, rhythm groups and 4-op pairs without losing phase',async()=>{
+ const a=await Ymf262AudioEngine.create(options('ymf262',opl3Factory)),b=await Ymf262AudioEngine.create(options('ymf262',opl3Factory));
+ try{
+  for(const mode of ['2op','4op','rhythm'])for(let ch=0;ch<(mode==='2op'?18:mode==='4op'?6:3);ch++){
+   for(const e of [a,b]){e.ymf262.setMuteMask(0);e.reset();e.writeYmf262(1,5,1);}
+   const first=mode==='4op'?Math.floor(ch/3)*9+ch%3:mode==='rhythm'?ch+6:ch;
+   const port=Math.floor(first/9),channel=first%9;
+   for(const e of [a,b]){
+    if(mode==='4op'){e.writeYmf262(1,4,1<<ch);write(e,'ymf262',voice(port,channel+3,0x10));}
+    write(e,'ymf262',voice(port,channel,0x10));
+    for (const c of [channel,...(mode==='4op'?[channel+3]:[])]) {
+      const base=[0,1,2,8,9,10,16,17,18][c];
+      for(const slot of [base,base+3]) e.writeYmf262(port,0x20+slot,0x21);
+    }
+    e.writeYmf262(port,0xc0+channel,0x1e); // feedback enabled
+    if(mode==='rhythm')e.writeYmf262(0,0xbd,0x20|[0x10,0x09,0x06][ch]);
+    const other=first===17?16:17;
+    write(e,'ymf262',voice(1,other-9,0x20));
+    const base=[0,1,2,8,9,10,16,17,18][other-9];
+    for(const slot of [base,base+3])e.writeYmf262(1,0x20+slot,0x21);
+   }
+   a.processFrames(700);b.processFrames(700);
+   b.setChannelMuted(mode==='4op'?first+3:first,true);
+   const normal=a.processFrames(600),muted=b.processFrames(600);
+   assert(normal.left.some(v=>v!==0),`${mode} ${ch} must sound`);assert(muted.left.every(v=>v===0),`${mode} ${ch} must mute`);
+   assert(normal.right.some(v=>v!==0));assert.deepEqual(muted.right,normal.right,'other channel unchanged');
+   b.setChannelMuted(mode==='4op'?first+3:first,false);
+   assert.deepEqual(b.processFrames(400),a.processFrames(400),`${mode} ${ch} resume phase`);
+  }
+  b.setChannelMuted(17,true);b.reset();assert.equal(b.ymf262.muteMask,1<<17);
+  assert.throws(()=>b.setChannelMuted(18,true),RangeError);
+ }finally{a.dispose();b.dispose();}
+});

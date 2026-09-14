@@ -14,6 +14,7 @@ export class Ymf262 {
     this.leftPtr = 0;
     this.rightPtr = 0;
     this.bufferFrames = 0;
+    this.muteMask = 0;
   }
 
   static async create(options = {}) {
@@ -32,6 +33,7 @@ export class Ymf262 {
       readStatus: optionalCwrap(module, "ymf262_read_status", "number", ["number"]),
       getIrq: optionalCwrap(module, "ymf262_get_irq", "number", ["number"]),
       sampleRate: module.cwrap("ymf262_sample_rate", "number", ["number", "number"]),
+      setMuteMask: module.cwrap("ymf262_set_mute_mask", null, ["number", "number"]),
       generate: module.cwrap("ymf262_generate", null, ["number", "number", "number", "number"]),
     };
 
@@ -59,7 +61,13 @@ export class Ymf262 {
     // Start VGM replay/seek from the same power-on state each time.
     this.api.destroy(this.handle);
     this.handle = this.api.create();
+    this.api.setMuteMask(this.handle, this.muteMask);
     this.#syncIrq();
+  }
+
+  setMuteMask(mask) {
+    this.muteMask = mask & 0x3ffff;
+    this.api.setMuteMask(this.handle, this.muteMask);
   }
 
   write(offset, data) {
