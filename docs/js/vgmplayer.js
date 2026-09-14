@@ -1,4 +1,4 @@
-import { Ym2612VGM } from "./ym2612vgm.js?v=opl-1";
+import { Ym2612VGM } from "./ym2612vgm.js?v=opl-2";
 
 /**
  * One rendered stereo chunk waiting to be copied into the audio callback
@@ -22,6 +22,10 @@ import { Ym2612VGM } from "./ym2612vgm.js?v=opl-1";
  *   loadAdpcmBMemory?(data: Uint8Array, offset: number, memorySize: number): void,
  *   clearAdpcmBMemory?(): void,
  *   writeAy8910?(register: number, value: number): void,
+ *   writeY8950?(register: number, value: number): void,
+ *   writeYmf278b?(port: number, register: number, value: number): void,
+ *   loadSampleMemory?(data: Uint8Array, offset: number, memorySize: number): void,
+ *   clearSampleMemory?(): void,
  *   writeYm3812?(register: number, value: number): void,
  *   writeYmf262?(port: number, register: number, value: number): void,
  *   writeYm2151?(register: number, value: number): void,
@@ -80,6 +84,7 @@ export class VgmPlayer {
    */
   load(buffer, options = {}) {
     this.parser = new Ym2612VGM(buffer, options);
+    this.engine.clearSampleMemory?.();
     this.engine.clearAdpcmBMemory?.();
     this.engine.clearAdpcmRoms?.();
     this.engine.clearRf5c164Memory?.();
@@ -342,6 +347,14 @@ export class VgmPlayer {
       const ay8910Target = typeof this.engine.writeAy8910 === "function"
         ? { writeRegister: (register, value) => this.engine.writeAy8910(register, value) }
         : undefined;
+      const y8950Target = typeof this.engine.writeY8950 === 'function' ? {
+        writeRegister: (register, value) => this.engine.writeY8950(register, value),
+        loadSampleMemory: (...args) => this.engine.loadSampleMemory(...args),
+      } : undefined;
+      const ymf278bTarget = typeof this.engine.writeYmf278b === 'function' ? {
+        writeRegister: (register, value, port) => this.engine.writeYmf278b(port, register, value),
+        loadSampleMemory: (...args) => this.engine.loadSampleMemory(...args),
+      } : undefined;
       const ym3812Target = typeof this.engine.writeYm3812 === "function"
         ? { writeRegister: (register, value) => this.engine.writeYm3812(register, value) } : undefined;
       const ymf262Target = typeof this.engine.writeYmf262 === "function"
@@ -380,6 +393,7 @@ export class VgmPlayer {
         ym2413: ym2413Target,
         ym2151: ym2151Target,
         ym3812: ym3812Target, ymf262: ymf262Target,
+        y8950: y8950Target, ymf278b: ymf278bTarget,
         ay8910: ay8910Target,
         ym2608: ym2608Target,
         ym2610: ym2610Target,
@@ -396,6 +410,7 @@ export class VgmPlayer {
         ym2413: ym2413Target,
         ym2151: ym2151Target,
         ym3812: ym3812Target, ymf262: ymf262Target,
+        y8950: y8950Target, ymf278b: ymf278bTarget,
         ay8910: ay8910Target,
             ym2608: ym2608Target,
         ym2610: ym2610Target,

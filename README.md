@@ -202,3 +202,12 @@ stereo (A+C left, B+D right). Analysis and instrument editing remain unavailable
 Second chips, OPL DAC streams and other chip combinations are not supported.
 This does not emulate Sound Blaster PCM/DMA hardware. Build with
 `sh scripts/build_ym3812_wasm.sh` and `sh scripts/build_ymf262_wasm.sh`.
+
+Y8950 (MSX-Audio, FM + ADPCM) and YMF278B (OPL4/Moonsound, FM + PCM)
+are also supported for VGM/VGZ playback. Sample data can be embedded in the
+VGM (blocks 0x88 for Y8950, 0x84/0x87 for YMF278B). For Moonsound logs such as
+Sonyc that omit the built-in samples, import your `yrw801.rom` (2 MiB) through
+the file selector or drag and drop, then press Play. The ROM remains loaded
+for track changes and seeking in the current page session; no wave ROM is bundled. Each supports optional Sega PSG; second chips, DAC streams and other
+chip combinations are not supported. Build with `sh scripts/build_y8950_wasm.sh`
+and `sh scripts/build_ymf278b_wasm.sh`.

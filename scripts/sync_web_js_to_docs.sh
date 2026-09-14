@@ -47,6 +47,10 @@ vgm_runtime.js
 ay8910.js
 ay8910audioengine.js
 msxaudioengine.js
+y8950.js
+y8950audioengine.js
+ymf278b.js
+ymf278baudioengine.js
 ym3812.js
 ym3812audioengine.js
 ymf262.js

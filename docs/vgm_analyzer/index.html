@@ -582,16 +582,16 @@
             <div><span class="spec-label">Register log formats</span><strong>VGM / VGZ / S98</strong></div>
             <div><span class="spec-label">Sound chip analysis</span><strong>YM2612 / YM2203 / YM2608 / YM2610(B)</strong></div>
             <div><span class="spec-label">Mega-CD / 32X playback</span><strong>YM2612 + PSG + RF5C164 PCM + PWM</strong></div>
-            <div><span class="spec-label">Play Only · VGM / VGZ</span><strong>YM2413 / YM2151 / YM3812 / YMF262 / AY-3-8910 / YM2149</strong></div>
+            <div><span class="spec-label">Play Only · VGM / VGZ</span><strong>YM2413 / YM2151 / YM3812 / Y8950 / YMF262 / YMF278B / AY-3-8910 / YM2149</strong></div>
             <div><span class="spec-label">Tetorica sound laboratory</span><span>Explore the music. Read the machine.</span></div>
           </div>
         </header>
         <div class="actions">
           <label class="file-input-group">
             <span class="file-input-label">VGM / VGZ / S98 File</span>
-            <input id="fileInput" type="file" multiple accept=".vgm,.vgz,.s98,.bin,application/octet-stream">
+            <input id="fileInput" type="file" multiple accept=".vgm,.vgz,.s98,.bin,.rom,application/octet-stream">
             <small class="file-drop-hint">Choose or drop music files to replace the playlist. Select multiple files together to create a playlist, sorted by filename with numeric ordering. Play starts sequential playback; Loop repeats the current track.</small>
-            <small id="romFileStatus" class="file-drop-hint">Optional: import ym2608_adpcm_rom.bin here (YM2610 ADPCM support is experimental).</small>
+            <small id="romFileStatus" class="file-drop-hint">ROM files: import yrw801.rom (2 MiB) for Moonsound tracks without embedded samples, or ym2608_adpcm_rom.bin.</small>
           </label>
           <section class="playlist" aria-label="Playlist">
             <p id="playlistSummary" aria-live="polite">Playlist — no tracks imported</p>
@@ -825,6 +825,6 @@
       <div id="monitorToggles" class="monitor-toggles" role="group" aria-label="Playback channel and sound source toggles"></div>
     </section>
 
-    <script type="module" src="./vgm_analyzer.js?v=opl-1"></script>
+    <script type="module" src="./vgm_analyzer.js?v=opl4-rom-1"></script>
   </body>
 </html>

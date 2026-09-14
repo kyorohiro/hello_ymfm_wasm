@@ -21,6 +21,7 @@ function setup(load = async () => true) {
     document: { createElement: element }, currentBuffer: null,
     player: { pause() {} }, timelineSeekController: null,
     stopActiveStream() {}, setStatus: text => calls.push(['status', text]),
+    handleYmf278bRomFile: async file => calls.push(['wave-rom', file.name]),
     handleYm2608RomFile: async file => calls.push(['rom', file.name]),
     handleFile: async file => {
       calls.push(['load', file.name]);
@@ -191,3 +192,12 @@ test('ROM-only import and cancelled file picker preserve the music playlist', as
   assert.deepEqual(p.list.children.map(row => row.children[0].textContent), ['song.vgm']);
   assert.deepEqual(p.calls, [['load', 'song.vgm'], ['rom', 'rhythm.bin']]);
 });
+
+ test('YRW801 imports before tracks and ROM-only imports preserve the playlist', async () => {
+  const p = setup();
+  await p.add(['first.vgm', 'YRW801.ROM']);
+  assert.deepEqual(p.calls, [['wave-rom', 'YRW801.ROM'], ['load', 'first.vgm']]);
+  await p.add(['yrw801.bin']);
+  assert.deepEqual(p.calls.at(-1), ['wave-rom', 'yrw801.bin']);
+  assert.equal(p.list.children.length, 1);
+ });

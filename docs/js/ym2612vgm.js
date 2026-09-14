@@ -14,6 +14,8 @@ import {
  * @property {number} ay8910Type
  * @property {number} ay8910Flags
  * @property {number} ym3812Clock
+ * @property {number} y8950Clock
+ * @property {number} ymf278bClock
  * @property {number} ymf262Clock
  * @property {number} ym2151Clock
  * @property {number} ym2413Clock
@@ -252,6 +254,7 @@ export class Ym2612VGM {
     const rf5c164Clock = version >= 0x151 ? extendedClock(0x6c) : 0;
     const pwmClock = version >= 0x151 ? extendedClock(0x70) : 0;
     const ym3812Clock = version >= 0x151 ? extendedClock(0x50) : 0;
+    const ymf278bClock = version >= 0x151 ? extendedClock(0x60) : 0;
     const ymf262Clock = version >= 0x151 ? extendedClock(0x5c) : 0;
     const segaPcmClock = version >= 0x151 ? extendedClock(0x38) : 0;
     const ay8910Clock = version >= 0x151 ? extendedClock(0x74) : 0;
@@ -267,7 +270,7 @@ export class Ym2612VGM {
       ident,
       version,
       ym2612Clock,
-      ym2413Clock, ym2151Clock, ym3812Clock, ymf262Clock, segaPcmClock,
+      ym2413Clock, ym2151Clock, ym3812Clock, ymf262Clock, ymf278bClock, segaPcmClock,
       ay8910Clock, ay8910Type, ay8910Flags, y8950Clock, k051649Clock,
       ym2203Clock,
       ym2608Clock,
@@ -462,6 +465,21 @@ export class Ym2612VGM {
         this.position += 3;
         return { type: "ay8910-write", register: address & 0x7f, value, chipIndex: address >>> 7 };
       }
+      case 0x5c:
+      case 0xac: {
+        this.#ensureAvailable(3);
+        const register = this.bytes[this.position + 1], value = this.bytes[this.position + 2];
+        this.position += 3;
+        return { type: 'y8950-write', register, value, chipIndex: command === 0xac ? 1 : 0 };
+      }
+      case 0xd0: {
+        this.#ensureAvailable(4);
+        const port = this.bytes[this.position + 1];
+        if ((port & 0x7f) > 2) throw new RangeError('Invalid YMF278B port');
+        const register = this.bytes[this.position + 2], value = this.bytes[this.position + 3];
+        this.position += 4;
+        return { type: 'ymf278b-write', port: port & 0x7f, register, value, chipIndex: port >>> 7 };
+      }
       case 0x5a: {
         this.#ensureAvailable(3);
         const register = this.bytes[this.position + 1], value = this.bytes[this.position + 2];
@@ -575,6 +593,17 @@ export class Ym2612VGM {
           this.position += 7 + size;
           return this.step();
         }
+        if ([0x84, 0x87, 0x88].includes(dataType)) {
+          if (size < 8) throw new Error('Invalid OPL sample block header');
+          const memorySize = readUint32LE(this.view, this.position + 7);
+          const offset = readUint32LE(this.view, this.position + 11);
+          const chip = dataType === 0x88 ? 'y8950' : 'ymf278b';
+          if (memorySize > (chip === 'y8950' ? 0x200000 : 0x400000) || offset > memorySize || size - 8 > memorySize - offset)
+            throw new RangeError('Invalid OPL sample memory range');
+          const data = this.bytes.slice(this.position + 15, this.position + 7 + size);
+          this.position += 7 + size;
+          return { type: 'opl-sample-data', chip, data, offset, memorySize, chipIndex: rawSize >>> 31 };
+        }
         if (dataType === 0x82 || dataType === 0x83) {
           if (size < 8) throw new Error('Invalid YM2610 ROM block header');
           const memorySize = readUint32LE(this.view, this.position + 7);
@@ -678,6 +707,8 @@ export class Ym2612VGM {
    * @param {{
    *   ym2612?: { writeRegister(register: number, value: number, port?: number): void },
    *   ay8910?: { writeRegister(register: number, value: number): void },
+ *   y8950?: { writeRegister(register: number, value: number): void, loadSampleMemory?(data: Uint8Array, offset: number, memorySize: number): void },
+ *   ymf278b?: { writeRegister(register: number, value: number, port: number): void, loadSampleMemory?(data: Uint8Array, offset: number, memorySize: number): void },
  *   ym3812?: { writeRegister(register: number, value: number): void },
  *   ymf262?: { writeRegister(register: number, value: number, port: number): void },
  *   ym2151?: { writeRegister(register: number, value: number): void },
@@ -734,6 +765,16 @@ export class Ym2612VGM {
     if (event.type === "ay8910-write") {
       if (event.chipIndex) throw new Error('Second AY chip: Support coming soon.');
       targets.ay8910?.writeRegister(event.register, event.value);
+      return event;
+    }
+    if (event.type === 'opl-sample-data') {
+      if (event.chipIndex) throw new Error('Second OPL chip: Support coming soon.');
+      targets[event.chip]?.loadSampleMemory?.(event.data, event.offset, event.memorySize);
+      return event;
+    }
+    if (event.type === 'y8950-write' || event.type === 'ymf278b-write') {
+      if (event.chipIndex) throw new Error('Second OPL chip: Support coming soon.');
+      targets[event.type === 'y8950-write' ? 'y8950' : 'ymf278b']?.writeRegister(event.register, event.value, event.port ?? 0);
       return event;
     }
     if (event.type === "ym3812-write") {
@@ -876,6 +917,22 @@ export class Ym2612VGM {
     return `${prefix} stream=${formatHexNumber(this.bytes[position + 1])} blockId=${formatHexNumber(blockId, 4)} flags=${formatHexNumber(flags)}`;
   }
 
+  // Detect PCM-only logs that omit all sample data (e.g. Moonsound's built-in ROM).
+  // Embedded sample blocks may still require additional ROM; this is a conservative check.
+  requiresYmf278bWaveRom() {
+    if (!(this.header.ymf278bClock & 0x3fffffff)) return false;
+    const scan = new Ym2612VGM(this.bytes);
+    let pcmKeyOn = false;
+    while (!scan.ended) {
+      const event = scan.step();
+      if (event.type === 'opl-sample-data' && event.chip === 'ymf278b' && !event.chipIndex && event.data.length)
+        return false;
+      if (event.type === 'ymf278b-write' && !event.chipIndex && event.port === 2 &&
+          event.register >= 0x68 && event.register <= 0x7f && (event.value & 0x80)) pcmKeyOn = true;
+    }
+    return pcmKeyOn;
+  }
+
   /**
    * @param {number} command
    * @param {number} position
@@ -893,6 +950,12 @@ export class Ym2612VGM {
     }
     if (command === 0x5a || command === 0x5e || command === 0x5f) {
       return `cmd=${formatHexNumber(command)} ${command === 0x5a ? 'ym3812' : 'ymf262 port=' + (command - 0x5e)} register=${formatHexNumber(this.bytes[position + 1])} value=${formatHexNumber(this.bytes[position + 2])}`;
+    }
+    if (command === 0x5c || command === 0xac) {
+      return `cmd=${formatHexNumber(command)} y8950 register=${formatHexNumber(this.bytes[position + 1])} value=${formatHexNumber(this.bytes[position + 2])}`;
+    }
+    if (command === 0xd0) {
+      return `cmd=0xd0 ymf278b port=${this.bytes[position + 1]} register=${formatHexNumber(this.bytes[position + 2])} value=${formatHexNumber(this.bytes[position + 3])}`;
     }
     if (command === 0x54) {
       return `cmd=0x54 ym2151 register=${formatHexNumber(this.bytes[position + 1])} value=${formatHexNumber(this.bytes[position + 2])}`;
@@ -2258,7 +2321,7 @@ function rawCommandLength(bytes, view, position) {
   if (command === 0x50) {
     return 2;
   }
-  if (command === 0xa0 || command === 0x5a || command === 0x5e || command === 0x5f || command === 0x54 || command === 0x51 || command === 0x52 || command === 0x53) {
+  if (command === 0x5c || command === 0xac || command === 0xa0 || command === 0x5a || command === 0x5e || command === 0x5f || command === 0x54 || command === 0x51 || command === 0x52 || command === 0x53) {
     return 3;
   }
   if (command === 0x55) {
