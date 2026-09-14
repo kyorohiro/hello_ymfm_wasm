@@ -6,9 +6,9 @@ VGM の命令解釈、時刻、チップへの配送を自動テストで検証�
 音源技術を読み、調べ、学び、再構築できるようにするため、最小の VGM 入力と期待する命令列を
 実行可能な資料として残す。
 
-現在は Parser → Mock Chip のテストを追加済み。次に、VGM Player に渡す SoundEngine を
-Mock に差し替え、Player の再生処理も含めて検証する。この文書の設計案は未実装であり、
-YM2612 DAC ストリームの残課題が解消したことを意味しない。
+Parser → Mock Chip に加え、VGM Player に Mock SoundEngine を渡すテストを追加した。
+通常命令と wait 中のストリームには同じ targets を渡し、本番の配送処理を通して検証する。
+YM2612 DAC の仕様修正、シークのテスト接続、CI 設定は未完了。
 
 ## テストする構成
 
@@ -28,7 +28,7 @@ VGM Analyzer
 | 層 | 検証する内容 |
 | --- | --- |
 | Parser → Mock Chip（追加済み） | 命令の解釈、配送先、値、順序、VGM 時刻 |
-| Player → Parser → Mock SoundEngine（追加予定） | 本番の配送経路、wait、出力バッファの分割、リセット、シーク |
+| Player → Parser → Mock SoundEngine（追加済み） | 本番の配送経路、wait、出力バッファの分割、リセット、pause/resume |
 | 実 SoundEngine のテスト | 音声生成、PCM/ADPCM メモリ、ミキサーなど |
 | UI・実曲確認 | 警告の表示、操作、実曲の再現性と聴感 |
 
@@ -59,7 +59,7 @@ DAC ストリームのインスタンス配送は、通常書き込みとは別�
 
 ## Mock が記録するもの
 
-既存の共通ログ形式を使い、全チップの呼び出しを一つの配列に記録する。
+Parser の Mock は次の共通ログ形式を使い、全チップの呼び出しを一つの配列に記録する。
 
 ```js
 {
@@ -80,6 +80,11 @@ Mock SoundEngine は Player が必要とする生成・リセットなどの操�
 出力サンプル数と VGM 時刻は区別し、最初は出力 44,100 Hz で期待時刻を確認する。
 その後、48,000 Hz などでも端数の繰り越しやバッファ分割で命令時刻がずれないことを検証する。
 実際の音源呼び出し位置で記録し、Parser のイベント列を配送結果の代わりに使わない。
+
+追加した Mock SoundEngine では `sample` の代わりに `frame` を記録する。これはエンジンが
+生成済みの出力フレーム数であり、48 kHz では VGM 時刻と異なる。期待値はテスト側で明示する。
+現在の Mock は YM2612・AY・YM2413・Y8950・PWM・PSG の書き込みを受け付ける。
+全チップやメモリロードの Player 経由テストは今後拡充する。
 
 ## DAC ストリームの残課題をテストから実装する
 
@@ -137,3 +142,21 @@ node --test web/vgm-parser-mock.test.mjs web/dac-warning.test.mjs
 - [複数チップミキサー](../../web/multichipaudioengine.js)
 - [PWM テスト](../../web/pwm.test.mjs)
 - [DAC 対応状況と残課題](dac_01.md)
+
+## 今回追加した Player テスト
+
+- [Player → Mock SoundEngine テスト](../../web/vgm-player-mock.test.mjs)
+- [Mock SoundEngine](../../web/test-support/vgm-engine-mock.js)
+- 通常書き込みのポート・値・順序、MSX の交互書き込み、各 wait と終端。
+- 出力バッファの分割サイズを変えた再生、リセット後の再実行、pause/resume。
+- PWM の直接書き込みとストリーム命令を、それぞれ明示した同じ期待ログと比較。
+- 48 kHz 出力での端数の繰り越しと、未対応 DAC の警告・演奏継続・誤配送防止。
+- `web/` と `docs/js/` の Player に同じケースを適用。
+
+```sh
+node --test web/vgm-player-mock.test.mjs web/vgm-parser-mock.test.mjs web/dac-warning.test.mjs web/vgmplayer.test.mjs web/pwm.test.mjs
+```
+
+上記の関連テストは80件成功。これは合成入力による確認であり、実曲の確認結果ではない。
+Player 自体にはシーク API がないため、Analyzer 側のシーク経路を確認してテストを接続する必要がある。
+生成関数の共通化は行わず、既存の `new VgmPlayer(engine)` に Mock を渡している。

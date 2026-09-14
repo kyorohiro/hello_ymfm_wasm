@@ -388,7 +388,7 @@ export class VgmPlayer {
         writeMemory: (offset, value) => this.engine.writeRf5c164Memory(offset, value),
         loadBankedMemory: (data, offset) => this.engine.loadRf5c164Memory(data, offset),
       } : undefined;
-      const event = this.parser.playStep({
+      const targets = {
         resolveChip: this.engine.getVgmTarget?.bind(this.engine),
         pwm: { writeRegister: (register, value) => this.engine.writePwm?.(register, value) },
         rf5c164: rf5c164Target,
@@ -402,24 +402,13 @@ export class VgmPlayer {
         ym2608: ym2608Target,
         ym2610: ym2610Target,
         psg: { write: (value) => this.engine.writePsg?.(value) },
-      });
+      };
+      const event = this.parser.playStep(targets);
       this.processedEvents += 1;
 
       if (event.type === "wait") {
         this.parser.consumeWait(
-          {
-            pwm: { writeRegister: (register, value) => this.engine.writePwm?.(register, value) },
-            ym2612: ym2612Target,
-            ym2203: ym2203Target,
-        ym2413: ym2413Target,
-        ym2151: ym2151Target,
-        ym3526: ym3526Target, ym3812: ym3812Target, ymf262: ymf262Target,
-        y8950: y8950Target, ymf278b: ymf278bTarget,
-        ay8910: ay8910Target,
-            ym2608: ym2608Target,
-        ym2610: ym2610Target,
-            psg: { write: (value) => this.engine.writePsg?.(value) },
-          },
+          targets,
           event.samples,
           (vgmSamples) => this.#renderWaitSegment(vgmSamples),
         );
