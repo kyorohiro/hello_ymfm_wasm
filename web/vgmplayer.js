@@ -1,4 +1,4 @@
-import { Ym2612VGM } from "./ym2612vgm.js?v=opl-2";
+import { Ym2612VGM } from "./ym2612vgm.js?v=ym3526-1";
 
 /**
  * One rendered stereo chunk waiting to be copied into the audio callback
@@ -26,6 +26,7 @@ import { Ym2612VGM } from "./ym2612vgm.js?v=opl-2";
  *   writeYmf278b?(port: number, register: number, value: number): void,
  *   loadSampleMemory?(data: Uint8Array, offset: number, memorySize: number): void,
  *   clearSampleMemory?(): void,
+ *   writeYm3526?(register: number, value: number): void,
  *   writeYm3812?(register: number, value: number): void,
  *   writeYmf262?(port: number, register: number, value: number): void,
  *   writeYm2151?(register: number, value: number): void,
@@ -355,6 +356,8 @@ export class VgmPlayer {
         writeRegister: (register, value, port) => this.engine.writeYmf278b(port, register, value),
         loadSampleMemory: (...args) => this.engine.loadSampleMemory(...args),
       } : undefined;
+      const ym3526Target = typeof this.engine.writeYm3526 === "function"
+        ? { writeRegister: (register, value) => this.engine.writeYm3526(register, value) } : undefined;
       const ym3812Target = typeof this.engine.writeYm3812 === "function"
         ? { writeRegister: (register, value) => this.engine.writeYm3812(register, value) } : undefined;
       const ymf262Target = typeof this.engine.writeYmf262 === "function"
@@ -392,7 +395,7 @@ export class VgmPlayer {
         ym2203: ym2203Target,
         ym2413: ym2413Target,
         ym2151: ym2151Target,
-        ym3812: ym3812Target, ymf262: ymf262Target,
+        ym3526: ym3526Target, ym3812: ym3812Target, ymf262: ymf262Target,
         y8950: y8950Target, ymf278b: ymf278bTarget,
         ay8910: ay8910Target,
         ym2608: ym2608Target,
@@ -409,7 +412,7 @@ export class VgmPlayer {
             ym2203: ym2203Target,
         ym2413: ym2413Target,
         ym2151: ym2151Target,
-        ym3812: ym3812Target, ymf262: ymf262Target,
+        ym3526: ym3526Target, ym3812: ym3812Target, ymf262: ymf262Target,
         y8950: y8950Target, ymf278b: ymf278bTarget,
         ay8910: ay8910Target,
             ym2608: ym2608Target,

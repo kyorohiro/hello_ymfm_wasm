@@ -13,6 +13,7 @@ import {
  * @property {number} ay8910Clock
  * @property {number} ay8910Type
  * @property {number} ay8910Flags
+ * @property {number} ym3526Clock
  * @property {number} ym3812Clock
  * @property {number} y8950Clock
  * @property {number} ymf278bClock
@@ -80,7 +81,7 @@ import {
  */
 
 /**
- * @typedef {{type:"ay8910-write",register:number,value:number,chipIndex:number} | {type:"ym3812-write",register:number,value:number} | {type:"ymf262-write",register:number,value:number,port:number} | Ym2151WriteEvent | Ym2413WriteEvent | Rf5c164Event | Ym2612WriteEvent | Ym2203WriteEvent | Ym2608WriteEvent | Ym2608AdpcmBDataEvent | Ym2610WriteEvent | SegaPsgWriteEvent | Ym2612WaitEvent | Ym2612EndEvent} Ym2612VgmEvent
+ * @typedef {{type:"ay8910-write",register:number,value:number,chipIndex:number} | {type:"ym3526-write",register:number,value:number,chipIndex:number} | {type:"ym3812-write",register:number,value:number} | {type:"ymf262-write",register:number,value:number,port:number} | Ym2151WriteEvent | Ym2413WriteEvent | Rf5c164Event | Ym2612WriteEvent | Ym2203WriteEvent | Ym2608WriteEvent | Ym2608AdpcmBDataEvent | Ym2610WriteEvent | SegaPsgWriteEvent | Ym2612WaitEvent | Ym2612EndEvent} Ym2612VgmEvent
  */
 
 /**
@@ -253,6 +254,7 @@ export class Ym2612VGM {
     const ym2610Clock = extendedClock(0x4c);
     const rf5c164Clock = version >= 0x151 ? extendedClock(0x6c) : 0;
     const pwmClock = version >= 0x151 ? extendedClock(0x70) : 0;
+    const ym3526Clock = version >= 0x151 ? extendedClock(0x54) : 0;
     const ym3812Clock = version >= 0x151 ? extendedClock(0x50) : 0;
     const ymf278bClock = version >= 0x151 ? extendedClock(0x60) : 0;
     const ymf262Clock = version >= 0x151 ? extendedClock(0x5c) : 0;
@@ -270,7 +272,7 @@ export class Ym2612VGM {
       ident,
       version,
       ym2612Clock,
-      ym2413Clock, ym2151Clock, ym3812Clock, ymf262Clock, ymf278bClock, segaPcmClock,
+      ym2413Clock, ym2151Clock, ym3526Clock, ym3812Clock, ymf262Clock, ymf278bClock, segaPcmClock,
       ay8910Clock, ay8910Type, ay8910Flags, y8950Clock, k051649Clock,
       ym2203Clock,
       ym2608Clock,
@@ -479,6 +481,14 @@ export class Ym2612VGM {
         const register = this.bytes[this.position + 2], value = this.bytes[this.position + 3];
         this.position += 4;
         return { type: 'ymf278b-write', port: port & 0x7f, register, value, chipIndex: port >>> 7 };
+      }
+      case 0x5b:
+      case 0xab: {
+        this.#ensureAvailable(3);
+        const register = this.bytes[this.position + 1];
+        const value = this.bytes[this.position + 2];
+        this.position += 3;
+        return { type: "ym3526-write", register, value, chipIndex: command === 0xab ? 1 : 0 };
       }
       case 0x5a: {
         this.#ensureAvailable(3);
@@ -709,6 +719,7 @@ export class Ym2612VGM {
    *   ay8910?: { writeRegister(register: number, value: number): void },
  *   y8950?: { writeRegister(register: number, value: number): void, loadSampleMemory?(data: Uint8Array, offset: number, memorySize: number): void },
  *   ymf278b?: { writeRegister(register: number, value: number, port: number): void, loadSampleMemory?(data: Uint8Array, offset: number, memorySize: number): void },
+ *   ym3526?: { writeRegister(register: number, value: number): void },
  *   ym3812?: { writeRegister(register: number, value: number): void },
  *   ymf262?: { writeRegister(register: number, value: number, port: number): void },
  *   ym2151?: { writeRegister(register: number, value: number): void },
@@ -775,6 +786,11 @@ export class Ym2612VGM {
     if (event.type === 'y8950-write' || event.type === 'ymf278b-write') {
       if (event.chipIndex) throw new Error('Second OPL chip: Support coming soon.');
       targets[event.type === 'y8950-write' ? 'y8950' : 'ymf278b']?.writeRegister(event.register, event.value, event.port ?? 0);
+      return event;
+    }
+    if (event.type === "ym3526-write") {
+      if (event.chipIndex) throw new Error('Second YM3526 chip: Support coming soon.');
+      targets.ym3526?.writeRegister(event.register, event.value);
       return event;
     }
     if (event.type === "ym3812-write") {
@@ -948,6 +964,9 @@ export class Ym2612VGM {
     if (command === 0xa0) {
       return `cmd=0xa0 ay8910 register=${formatHexNumber(this.bytes[position + 1])} value=${formatHexNumber(this.bytes[position + 2])}`;
     }
+    if (command === 0x5b || command === 0xab) {
+      return `cmd=${formatHexNumber(command)} ym3526 chip=${command === 0xab ? 1 : 0} register=${formatHexNumber(this.bytes[position + 1])} value=${formatHexNumber(this.bytes[position + 2])}`;
+    }
     if (command === 0x5a || command === 0x5e || command === 0x5f) {
       return `cmd=${formatHexNumber(command)} ${command === 0x5a ? 'ym3812' : 'ymf262 port=' + (command - 0x5e)} register=${formatHexNumber(this.bytes[position + 1])} value=${formatHexNumber(this.bytes[position + 2])}`;
     }
@@ -1067,7 +1086,7 @@ export class Ym2612VGM {
       this.#ensureAvailable(5);
       const stream = this.#streamState(this.bytes[this.position + 1]);
       stream.chipType = this.bytes[this.position + 2];
-      if ([0x09, 0x0c].includes(stream.chipType & 0x7f)) throw new Error("OPL DAC streams: Support coming soon.");
+      if ([0x09, 0x0a, 0x0c].includes(stream.chipType & 0x7f)) throw new Error("OPL DAC streams: Support coming soon.");
       if ((stream.chipType & 0x7f) === 0x03) throw new Error('YM2151 DAC streams: Support coming soon.');
       if ((stream.chipType & 0x7f) === 0x12) throw new Error('AY DAC streams: Support coming soon.');
       if ((stream.chipType & 0x7f) === 0x10) this.#warn("RF5C164 DAC stream playback is not supported yet");
@@ -2321,7 +2340,7 @@ function rawCommandLength(bytes, view, position) {
   if (command === 0x50) {
     return 2;
   }
-  if (command === 0x5c || command === 0xac || command === 0xa0 || command === 0x5a || command === 0x5e || command === 0x5f || command === 0x54 || command === 0x51 || command === 0x52 || command === 0x53) {
+  if (command === 0x5b || command === 0xab || command === 0x5c || command === 0xac || command === 0xa0 || command === 0x5a || command === 0x5e || command === 0x5f || command === 0x54 || command === 0x51 || command === 0x52 || command === 0x53) {
     return 3;
   }
   if (command === 0x55) {

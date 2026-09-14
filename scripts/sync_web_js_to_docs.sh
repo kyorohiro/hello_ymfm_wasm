@@ -51,6 +51,8 @@ y8950.js
 y8950audioengine.js
 ymf278b.js
 ymf278baudioengine.js
+ym3526.js
+ym3526audioengine.js
 ym3812.js
 ym3812audioengine.js
 ymf262.js

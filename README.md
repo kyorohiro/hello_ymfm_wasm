@@ -211,3 +211,23 @@ the file selector or drag and drop, then press Play. The ROM remains loaded
 for track changes and seeking in the current page session; no wave ROM is bundled. Each supports optional Sega PSG; second chips, DAC streams and other
 chip combinations are not supported. Build with `sh scripts/build_y8950_wasm.sh`
 and `sh scripts/build_ymf278b_wasm.sh`.
+
+YM3526 (OPL) VGM/VGZ playback is supported, including melodic and rhythm modes,
+with optional Sega PSG. No sample ROM is required. This uses `ymfm::ym3526`,
+including its fixed sine waveform, rather than substituting the OPL2 core.
+Second YM3526 chips, DAC streams and other chip combinations remain unsupported;
+instrument editing and note extraction are not yet available.
+
+To inspect and reconstruct this playback path:
+
+- `web/ym2612vgm.js` reads the VGM 1.51+ clock at `0x54` and decodes `0x5B rr vv`
+  into a YM3526 register-write event. `0xAB` identifies the unsupported second chip.
+- `web/vgmplayer.js` sends writes to `web/ym3526audioengine.js`, which advances
+  the chip during VGM waits and resamples its mono output to stereo buffers.
+- `web/ym3526.js` exposes register writes, reads, IRQ hooks and sample generation
+  through `wasm/ym3526_wasm.cpp`; the chip implementation is in `src/ymfm_opl.*`.
+- Rebuild with `sh scripts/build_ym3526_wasm.sh` (Emscripten required). Generated
+  browser assets go to `docs/generated/`; sync JavaScript with
+  `sh scripts/sync_web_js_to_docs.sh`.
+- Run `node --test web/opl.test.mjs` to verify register delivery, audible output,
+  rhythm mode, timers, waveform behavior and reproducible resets/seeks.

@@ -1,6 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
+import {Ym3526AudioEngine} from './ym3526audioengine.js';
+import oplFactory from '../docs/generated/ym3526_wasm.js';
 import {Ym3812AudioEngine} from './ym3812audioengine.js';
 import {Ymf262AudioEngine} from './ymf262audioengine.js';
 import {Ym2612VGM} from './ym2612vgm.js';
@@ -9,7 +11,7 @@ import {VgmPlayer} from './vgmplayer.js';
 import {seekPlayback} from '../docs/vgm_analyzer/seek_playback.js';
 import opl2Factory from '../docs/generated/ym3812_wasm.js';
 import opl3Factory from '../docs/generated/ymf262_wasm.js';
-const configs=[['ym3812',Ym3812AudioEngine,opl2Factory,3579545,0x50,0x5a],['ymf262',Ymf262AudioEngine,opl3Factory,14318180,0x5c,0x5e]];
+const configs=[['ym3526',Ym3526AudioEngine,oplFactory,3579545,0x54,0x5b],['ym3812',Ym3812AudioEngine,opl2Factory,3579545,0x50,0x5a],['ymf262',Ymf262AudioEngine,opl3Factory,14318180,0x5c,0x5e]];
 function options(chip,factory){return {[`${chip}ModuleFactory`]:factory,[`${chip}ModuleOptions`]:{wasmBinary:readFileSync(new URL(`../docs/generated/${chip}_wasm.wasm`,import.meta.url))}};}
 function voice(port=0,channel=0,pan=0x30){
  const base=[0,1,2,8,9,10,16,17,18][channel];const regs=[];
@@ -22,7 +24,7 @@ function data(config,registers){const [chip,,,clock,offset,command]=config;
  const bytes=new Uint8Array(0x100+cmds.length),view=new DataView(bytes.buffer);
  bytes.set([86,103,109,32]);view.setUint32(4,bytes.length-4,true);view.setUint32(8,0x151,true);view.setUint32(0x34,0xcc,true);view.setUint32(offset,clock,true);view.setUint32(0x18,4410,true);bytes.set(cmds,0x100);return bytes;
 }
-function write(engine,chip,regs){for(const [p,r,v] of regs)chip==='ymf262'?engine.writeYmf262(p,r,v):engine.writeYm3812(r,v);}
+function write(engine,chip,regs){for(const [p,r,v] of regs)chip==='ymf262'?engine.writeYmf262(p,r,v):chip==='ym3526'?engine.writeYm3526(r,v):engine.writeYm3812(r,v);}
 for(const config of configs){const [chip,Engine,factory]=config;
  for(const Parser of [Ym2612VGM,DocsVGM])test(`${chip} import scans and port delivery (${Parser===DocsVGM?'docs':'web'})`,()=>{
   const regs=chip==='ymf262'?[[1,5,1],...voice(0),...voice(1)]:voice();
@@ -63,4 +65,19 @@ test('OPL3 four-operator mode generates output',async()=>{
   e.writeYmf262(1,5,1);e.writeYmf262(1,4,1);write(e,'ymf262',[...voice(0,3),...voice(0,0)]);
   const a=e.processFrames(2048);assert(a.left.some(x=>Math.abs(x)>.001));assert(a.left.every(Number.isFinite));
  }finally{e.dispose();}
+});
+
+test('YM3526 keeps its sine waveform when OPL2 waveform registers are written', async()=>{
+ const e=await Ym3526AudioEngine.create(options('ym3526',oplFactory));
+ try {
+  const render=wave=>{e.reset();write(e,'ym3526',[[0,1,0x20],...voice(),[0,0xe0,wave],[0,0xe3,wave]]);return e.processFrames(2048).left;};
+  const sine=render(0);assert(sine.some(x=>Math.abs(x)>.001));
+  for(const wave of [1,2,3])assert.deepEqual(render(wave),sine);
+ }finally{e.dispose();}
+});
+for(const Parser of [Ym2612VGM,DocsVGM])test(`YM3526 rejects second-chip playback and DAC streams (${Parser===DocsVGM?'docs':'web'})`,()=>{
+ const second=data(configs[0]);second[0x100]=0xab;
+ const p=new Parser(second);assert.equal(p.step().chipIndex,1);p.reset();assert.throws(()=>p.playStep({}),/Second YM3526/);
+ const stream=data(configs[0]);stream.set([0x90,0,0x0a,0,0],0x100);assert.throws(()=>new Parser(stream).step(),/OPL DAC streams/);
+ const older=data(configs[0]);new DataView(older.buffer).setUint32(8,0x150,true);assert.equal(new Parser(older).header.ym3526Clock,0);
 });
