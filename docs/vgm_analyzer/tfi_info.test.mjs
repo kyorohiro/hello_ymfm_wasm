@@ -56,3 +56,39 @@ test('TFI selection, edit download, independent audition volume, and tab visibil
   info.loadVgm(null, 'next.vgm');
   assert.equal(root.querySelector('button').disabled, true);
 });
+
+test('TFI tab switching and first audition leave VGM playback running', () => {
+  const source = readFileSync(new URL('./vgm_analyzer.js', import.meta.url), 'utf8');
+  const nodes = new Map();
+  const element = () => ({
+    setAttribute() {}, addEventListener() {},
+    querySelector(selector) { if (!nodes.has(selector)) nodes.set(selector, element()); return nodes.get(selector); },
+  });
+  const panelSource = readFileSync(new URL('./tfi_info.js', import.meta.url), 'utf8')
+    .replace(/^import .*;\n/gm, '').replace('export function', 'function');
+  let editorOptions;
+  const synths = [];
+  let stopped = 0;
+  const context = vm.createContext({
+    document: { getElementById: element }, window: { addEventListener() {} },
+    createTfiFileEditor(options) { editorOptions = options; return { setVisible() {}, dispose() {} }; },
+    MegaSynth: class { constructor(options) { this.options = options; synths.push(this); } },
+    setStatus() {}, currentChipKind: 'ym2612',
+    player: { isPlaying: () => true, pause: () => stopped++, stop: () => stopped++ },
+    pauseButton: { click: () => stopped++ },
+    samplePanel: element(), sampleTab: element(), sampleExplorer: { stop() {} },
+    operatorInfoTab: element(), parsedOutputTab: element(), noteishTab: element(),
+    operatorInfoPanel: element(), parsedOutputPanel: element(), noteishPanel: element(),
+    songTimeline: { active() {} }, noteishViewMode: 'song',
+  });
+  vm.runInContext(panelSource, context);
+  vm.runInContext(source.slice(source.indexOf('const tfiInfoTab ='), source.indexOf('\noperatorInfoTab.addEventListener', source.indexOf('const tfiInfoTab ='))), context);
+  context.setOutputTab('tfi-info');
+  const audition = editorOptions.createAudio();
+  assert.equal(synths.length, 1);
+  assert.notEqual(audition, context.player);
+  assert.equal(audition.options.audioContext, undefined); // Own context, not the VGM context.
+  context.setOutputTab('operator-info');
+  context.setOutputTab('tfi-info');
+  assert.equal(stopped, 0);
+});

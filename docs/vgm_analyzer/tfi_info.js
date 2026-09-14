@@ -3,7 +3,7 @@ import { createVgmPresetFiles } from '../playground/playground_vgm_presets.js';
 import { parseTfi } from '../js/tfi.js';
 import { MegaSynth } from '../js/megasynth.js';
 
-export function mountTfiInfo({ root, onStatus, onAudition }) {
+export function mountTfiInfo({ root, onStatus }) {
   root.innerHTML = `
     <div class="tfi-info-toolbar">
       <label>TFI file <input type="file" accept=".tfi" multiple></label>
@@ -11,7 +11,7 @@ export function mountTfiInfo({ root, onStatus, onAudition }) {
       <button type="button" disabled>Download TFI</button>
       <label>Audition volume <input class="tfi-volume" type="range" min="0" max="380" value="100" step="1"><output>100%</output></label>
     </div>
-    <p>Choose an extracted instrument or open a TFI file. Edits stay in this tab until you download them.</p>
+    <p>Choose an extracted instrument or open a TFI file. VGM playback continues while you audition. Use Audition volume to balance the preview. Edits stay in this tab until you download them.</p>
     <section class="tfi-info-editor" hidden>
       <p class="tfi-title"></p>
       <div class="tfi-operators"></div>
@@ -31,7 +31,7 @@ export function mountTfiInfo({ root, onStatus, onAudition }) {
     keyboardRoot: root.querySelector('.tfi-info-keyboard'),
     title: root.querySelector('.tfi-title'), onStatus,
     createAudio() {
-      onAudition?.();
+      // Audition owns its synth and audio context; VGM playback continues independently.
       return new MegaSynth({
         workletUrl: '../js/ym2612-worklet.js',
         ym2612WasmUrl: '../generated/ym2612_wasm.wasm', segaPsgWasmUrl: null,

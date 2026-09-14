@@ -8,7 +8,7 @@ import {createAy8910AudioEngine, validateAyPlaybackHeader} from '../js/ay8910aud
 import {createMsxAudioEngine} from '../js/msxaudioengine.js';
 import {mountAy8910Monitor} from './ay8910_monitor.js';
 import { createYm2413AudioEngine } from '../js/ym2413audioengine.js';
-import { mountTfiInfo } from "./tfi_info.js";
+import { mountTfiInfo } from "./tfi_info.js?v=concurrent-audition-1";
 import { mountSampleExplorer } from './sample_explorer.js?v=pwm-capture-1';
 import { renderAllFretboard } from './fretboard_all.js';
 import { createNoteTimeline } from './note_timeline_view.js?v=noteish-tabs-1';
@@ -3316,7 +3316,6 @@ const ayMonitor = mountAy8910Monitor(ayMonitorRoot, (channel, muted) => {
 });
 const tfiInfoTab = document.getElementById('tfiInfoTab');
 const tfiInfo = mountTfiInfo({ root: document.getElementById('tfiInfoPanel'), onStatus: setStatus,
-  onAudition: () => { if (player?.isPlaying()) pauseButton.click(); },
 });
 tfiInfoTab.addEventListener('click', () => setOutputTab('tfi-info'));
 window.addEventListener('pagehide', event => { if (!event.persisted) void tfiInfo.dispose(); });
@@ -3326,7 +3325,6 @@ function setOutputTab(tabName) {
     setStatus('Analysis and instrument editing: Support coming soon.');
     tabName = "parsed-output";
   }
-  if (tabName === "tfi-info" && player?.isPlaying()) pauseButton.click();
   tfiInfo.setVisible(tabName === "tfi-info");
   tfiInfoTab.setAttribute("aria-selected", String(tabName === "tfi-info"));
   tfiInfoTab.tabIndex = tabName === "tfi-info" ? 0 : -1;
