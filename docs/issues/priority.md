@@ -187,3 +187,23 @@ dev配布版・ZIPを再生成し、146ローカル依存参照の検査成功�
 
 参照: [mml2mdrヘルプ](https://mml2mdr.navy-ceder.workers.dev/help)、
 [MXDRV MMLコマンド資料](https://github.com/vampirefrog/mdxtools/blob/master/docs/MML.md)。
+
+## YM2151 OPM Info
+
+YM2151選択時は既存のTfi infoタブを **OPM Info** に切り替える。
+All OPM ZIPと共通の抽出処理で曲全体を1回走査し、CHごとに重複排除した音色を一覧表示。
+選択音色のCH・初出時刻・Operatorと共通パラメーターをOPM形式で表示し、個別保存できる。
+抽出は初めてタブを開くときに行い、曲を替えると一覧を消去する。
+保持音の途中の書き込みも収集するため、中間状態の音色が多数並ぶ場合がある。
+
+試奏はVGM再生と独立したYM2151とAudioContextを使用。A3/A4/A5を選び、1秒キーオン＋1秒リリースを再生する。
+音量調整・試奏停止あり。タブ・音色・曲の切り替え時に停止し、初期化中の古い試奏要求もキャンセルする。
+元クロック、キーのOperator指定、PAN、LFO、CH8ノイズを保持するが、元の演奏・エンベロープ位相は再現しない。
+PANが両方OFFの音色は試奏も無音になる。音色編集・外部OPMファイルの読み込みは今回の対象外。
+
+実装: `docs/vgm_analyzer/opm_info.js`。
+自動テスト: `docs/vgm_analyzer/opm_info.test.mjs` と既存Operator/TFI/OPM回帰テスト。
+関連23件成功、外部MMLコンパイラーの任意テスト1件は未指定のためスキップ。
+抽出値の保持、試奏レジスタ配送、初期化中のキャンセル、曲切り替え、タブ選択維持、
+実YM2151 WASMによる有限・非ゼロ音声を確認。dev配布版とZIPも再生成。
+ブラウザーでの実操作・実曲の聴感確認は未実施。

@@ -73,6 +73,7 @@ test('TFI tab switching and first audition leave VGM playback running', () => {
     document: { getElementById: element }, window: { addEventListener() {} },
     createTfiFileEditor(options) { editorOptions = options; return { setVisible() {}, dispose() {} }; },
     MegaSynth: class { constructor(options) { this.options = options; synths.push(this); } },
+    mountOpmInfo() { return {setVisible() {},dispose() {}}; },
     setStatus() {}, currentChipKind: 'ym2612',
     player: { isPlaying: () => true, pause: () => stopped++, stop: () => stopped++ },
     pauseButton: { click: () => stopped++ },

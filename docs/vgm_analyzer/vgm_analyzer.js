@@ -1,3 +1,4 @@
+import {mountOpmInfo} from './opm_info.js';
 import {exportMxdrvMml} from './opm_mml.js';
 import {exportOpm, extractOpmPatches} from './opm_export.js?v=all-1';
 import {createOpmNoteTracker} from './opm_notes.js';
@@ -2689,10 +2690,11 @@ function updatePlaybackButtons(state = {}) {
 function updateChipSupport() {
   exportAllOpmButton.hidden = exportOpmButton.hidden = currentChipKind !== 'ym2151';
   exportAllOpmButton.disabled = exportOpmButton.disabled = currentChipKind !== 'ym2151' || !currentBuffer;
+  tfiInfoTab.textContent = currentChipKind === 'ym2151' ? 'OPM Info' : 'Tfi info';
   const ay = currentChipKind === 'ay8910';
   const playbackOnly = ['msx', 'y8950', 'ymf278b', 'ym3526', 'ym3812', 'ymf262', 'ym2151', 'ym2413'].includes(currentChipKind) || ay;
   for (const tab of [operatorInfoTab, noteishTab, tfiInfoTab, sampleTab]) {
-    tab.disabled = playbackOnly && !((ay || currentChipKind === 'ym2151') && tab === operatorInfoTab) && !(currentChipKind === 'ym2151' && tab === noteishTab);
+    tab.disabled = playbackOnly && !((ay || currentChipKind === 'ym2151') && tab === operatorInfoTab) && !(currentChipKind === 'ym2151' && (tab === noteishTab || tab === tfiInfoTab));
     tab.title = tab.disabled ? 'Support coming soon.' : '';
   }
   for (const button of [exportMidiButton, exportMmlButton, exportSnapshotTfiButton,
@@ -2712,7 +2714,7 @@ function updateChipSupport() {
   opmMonitorRoot.hidden = currentChipKind !== 'ym2151';
   ayMonitorRoot.hidden = !ay;
   if (['msx', 'y8950', 'ymf278b', 'ym3526', 'ym3812', 'ymf262', 'ym2413'].includes(currentChipKind)) setOutputTab('parsed-output');
-  else if ((ay || (currentChipKind === 'ym2151' && noteishTab.getAttribute('aria-selected') !== 'true')) && operatorInfoTab.getAttribute('aria-selected') !== 'true' && parsedOutputTab.getAttribute('aria-selected') !== 'true') setOutputTab('operator-info');
+  else if ((ay || (currentChipKind === 'ym2151' && noteishTab.getAttribute('aria-selected') !== 'true' && tfiInfoTab.getAttribute('aria-selected') !== 'true')) && operatorInfoTab.getAttribute('aria-selected') !== 'true' && parsedOutputTab.getAttribute('aria-selected') !== 'true') setOutputTab('operator-info');
 }
 
 function buildParseInfo(buffer, fileName, vgm) {
@@ -3185,6 +3187,8 @@ async function handleFile(file) {
   }
   extractedTfiPatches = ["msx", "y8950", "ymf278b", "ym3526", "ym3812", "ymf262", "ym2151", "ym2413", "ay8910"].includes(currentChipKind) ? [] : extractTfiPatchesFromVgm(buffer);
   tfiInfo.loadVgm(buffer, file.name);
+  opmInfo.loadVgm(currentChipKind === 'ym2151' ? buffer : null);
+  if (tfiInfoTab.getAttribute('aria-selected') === 'true') setOutputTab('tfi-info');
   exportAllTfiButton.disabled = extractedTfiPatches.length === 0;
   exportAllVgiButton.disabled = extractedTfiPatches.length === 0;
   updatePlaybackButtons({});
@@ -3532,17 +3536,20 @@ const ayMonitor = mountAy8910Monitor(ayMonitorRoot, (channel, muted) => {
   flushPendingAudio();
 });
 const tfiInfoTab = document.getElementById('tfiInfoTab');
+const opmInfo = mountOpmInfo({root:document.getElementById('opmInfoPanel'),onStatus:setStatus});
 const tfiInfo = mountTfiInfo({ root: document.getElementById('tfiInfoPanel'), onStatus: setStatus,
 });
 tfiInfoTab.addEventListener('click', () => setOutputTab('tfi-info'));
-window.addEventListener('pagehide', event => { if (!event.persisted) void tfiInfo.dispose(); });
+window.addEventListener('pagehide', event => { if (!event.persisted) { void tfiInfo.dispose(); void opmInfo.dispose(); } });
 
 function setOutputTab(tabName) {
-  if ((["msx", "y8950", "ymf278b", "ym3526", "ym3812", "ymf262", "ym2413"].includes(currentChipKind) && tabName !== "parsed-output") || (currentChipKind === "ay8910" && !["operator-info", "parsed-output"].includes(tabName)) || (currentChipKind === "ym2151" && !["operator-info", "parsed-output", "noteish"].includes(tabName))) {
+  if ((["msx", "y8950", "ymf278b", "ym3526", "ym3812", "ymf262", "ym2413"].includes(currentChipKind) && tabName !== "parsed-output") || (currentChipKind === "ay8910" && !["operator-info", "parsed-output"].includes(tabName)) || (currentChipKind === "ym2151" && !["operator-info", "parsed-output", "noteish", "tfi-info"].includes(tabName))) {
     setStatus('Analysis and instrument editing: Support coming soon.');
     tabName = "parsed-output";
   }
-  tfiInfo.setVisible(tabName === "tfi-info");
+  tfiInfo.setVisible(tabName === "tfi-info" && currentChipKind !== "ym2151");
+  opmInfo.setVisible(tabName === "tfi-info" && currentChipKind === "ym2151");
+  tfiInfoTab.setAttribute("aria-controls", currentChipKind === "ym2151" ? "opmInfoPanel" : "tfiInfoPanel");
   tfiInfoTab.setAttribute("aria-selected", String(tabName === "tfi-info"));
   tfiInfoTab.tabIndex = tabName === "tfi-info" ? 0 : -1;
   samplePanel.hidden = tabName !== 'samples';

@@ -27,7 +27,7 @@ export function exportOpm(snapshot, channel, name = 'YM2151') {
 
 // One pass, independent of the live engine. Deduplicate each channel by the
 // exported voice data (KC/KF and timestamps are deliberately not part of it).
-export function extractOpmPatches(buffer) {
+export function extractOpmPatches(buffer, {includeSnapshots = false} = {}) {
   const parser = new Ym2612VGM(buffer, {logger:null});
   if (!(parser.header.ym2151Clock & 0x3fffffff) || (parser.header.ym2151Clock & 0xc0000000)) throw new Error('OPM extraction requires a single YM2151');
   const state = createOpmState(() => 0), keys = new Uint8Array(8);
@@ -39,7 +39,7 @@ export function extractOpmPatches(buffer) {
     if (seen[channel].has(signature)) return;
     seen[channel].add(signature);
     const id = `CH${channel+1}_${String(seen[channel].size).padStart(3,'0')}`;
-    patches.push({name:`${id}.opm`, text:`// First observed at VGM sample ${sample} (44100 Hz)\r\n` + exportOpm(snapshot,channel,id),channel,sample});
+    patches.push({name:`${id}.opm`, text:`// First observed at VGM sample ${sample} (44100 Hz)\r\n` + exportOpm(snapshot,channel,id),channel,sample,...(includeSnapshots ? {snapshot,clock:parser.header.ym2151Clock & 0x3fffffff} : {})});
   }
   while (true) {
     const event = parser.step();

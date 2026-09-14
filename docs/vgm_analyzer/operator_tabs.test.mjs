@@ -5,7 +5,7 @@ import {readFileSync} from 'node:fs';
 const source=readFileSync(new URL('./vgm_analyzer.js',import.meta.url),'utf8');
 function setup(chip) {
  const node=()=>({attrs:{},setAttribute(k,v){this.attrs[k]=v;},getAttribute(k){return this.attrs[k];}});
- const ctx={currentBuffer:new Uint8Array(1),midiExportAvailable:true,currentChipKind:chip,noteishViewMode:'live',document:{getElementById:()=>node()},tfiInfo:{setVisible(){}},sampleExplorer:{stop(){}},songTimeline:{active(){}},setStatus(){},requestNoteishRender(){},renderNoteishGrid(){}};
+ const ctx={currentBuffer:new Uint8Array(1),midiExportAvailable:true,currentChipKind:chip,noteishViewMode:'live',document:{getElementById:()=>node()},tfiInfo:{setVisible(){}},opmInfo:{setVisible(){}},sampleExplorer:{stop(){}},songTimeline:{active(){}},setStatus(){},requestNoteishRender(){},renderNoteishGrid(){}};
  for(const name of ['exportAllOpmButton','exportOpmButton','operatorInfoTab','noteishTab','tfiInfoTab','sampleTab','parsedOutputTab','exportMidiButton','exportMmlButton','exportSnapshotTfiButton','exportSnapshotVgiButton','exportSnapshotButton','exportAllTfiButton','exportAllVgiButton','opnMonitorRoot','opmMonitorRoot','ayMonitorRoot','samplePanel','operatorInfoPanel','parsedOutputPanel','noteishPanel'])ctx[name]=node();
  vm.createContext(ctx);
  vm.runInContext(source.slice(source.indexOf('function updateChipSupport()'),source.indexOf('function buildParseInfo(')),ctx);
@@ -19,7 +19,7 @@ for(const chip of ['ym2151','ay8910'])test(`${chip} Operator Info survives repea
  assert.equal(c.operatorInfoTab.getAttribute('aria-selected'),'true');assert.equal(c.operatorInfoPanel.hidden,false);
  assert.equal(chip==='ym2151'?c.opmMonitorRoot.hidden:c.ayMonitorRoot.hidden,false);
  c.setOutputTab('parsed-output');c.updateChipSupport();assert.equal(c.parsedOutputPanel.hidden,false);
- c.setOutputTab('tfi-info');assert.equal(c.parsedOutputPanel.hidden,false);
+ c.setOutputTab('tfi-info');c.updateChipSupport();assert.equal(c.parsedOutputPanel.hidden,chip==='ym2151');if(chip==='ym2151'){assert.equal(c.tfiInfoTab.disabled,false);assert.equal(c.tfiInfoTab.getAttribute('aria-selected'),'true');}
 });
 test('unsupported chip still rejects Operator Info; switching from unsupported tab selects a supported tab',()=>{
  const c=setup('y8950');c.updateChipSupport();c.setOutputTab('operator-info');assert.equal(c.operatorInfoTab.disabled,true);assert.equal(c.operatorInfoPanel.hidden,true);
