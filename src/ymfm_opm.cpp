@@ -528,7 +528,13 @@ void ym2151::generate(output_data *output, uint32_t numsamples)
 		m_fm.clock(fm_engine::ALL_CHANNELS);
 
 		// update the FM content; OPM is full 14-bit with no intermediate clipping
-		m_fm.output(output->clear(), 0, 32767, fm_engine::ALL_CHANNELS);
+		m_fm.output(output->clear(), 0, 32767, fm_engine::ALL_CHANNELS & ~m_mute_mask);
+		// output() also updates operator feedback. Muted channels must run once.
+		if (m_mute_mask)
+		{
+			output_data discarded;
+			m_fm.output(discarded.clear(), 0, 32767, m_mute_mask);
+		}
 
 		// YM2151 uses an external DAC (YM3012) with mantissa/exponent format
 		// convert to 10.3 floating point value and back to simulate truncation

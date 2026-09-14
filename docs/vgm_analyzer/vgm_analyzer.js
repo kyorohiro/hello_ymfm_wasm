@@ -218,6 +218,7 @@ let channelMonitorDirty = false;
 let noteishDirty = false;
 let lastNoteishSignature = "";
 let lastLoadedFileName = "snapshot";
+const opmChannelMutes = Array(8).fill(false);
 const sourceMutes = { psg: false, ssg: false, rhythm: false, adpcmB: false, pcm: false, pwm: false };
 let lastYm2612DacEnable = 0x00;
 let monitorToggleHandlerBound = false;
@@ -386,6 +387,18 @@ function renderMonitorToggles() {
     monitorToggles.append(button);
   }
 
+  if (currentChipKind === 'ym2151') {
+    opmChannelMutes.forEach((muted, index) => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = `channel-toggle${muted ? ' is-muted' : ''}`;
+      button.textContent = `CH${index + 1} ${muted ? 'Muted' : 'On'}`;
+      button.setAttribute('aria-pressed', String(!muted));
+      button.setAttribute('data-monitor-toggle-kind', 'opm-channel');
+      button.setAttribute('data-channel-index', String(index));
+      monitorToggles.append(button);
+    });
+  }
   channelMonitor.forEach((channel) => {
     if (channel.unavailable) return;
     const button = document.createElement("button");
@@ -417,6 +430,10 @@ function ensureMonitorToggleHandler() {
     const kind = target.getAttribute("data-monitor-toggle-kind");
     if (sourcesForChip(sourceChipKind()).some((source) => source.key === kind)) {
       toggleSourceMute(kind);
+      return;
+    }
+    if (kind === 'opm-channel' && currentChipKind === 'ym2151') {
+      toggleOpmChannelMute(Number(target.getAttribute('data-channel-index')));
       return;
     }
     if (kind === "channel") {
@@ -1289,6 +1306,15 @@ function renderChannelChip(label, value, changedAt, hue) {
 
 function effectivePanValue(channel) {
   return channel.muted ? (channel.b4Value & 0x3f) : channel.b4Value;
+}
+
+function toggleOpmChannelMute(index) {
+  if (!Number.isInteger(index) || index < 0 || index >= 8) return;
+  const muted = !opmChannelMutes[index];
+  engine?.setChannelMuted(index, muted);
+  opmChannelMutes[index] = muted;
+  renderMonitorToggles();
+  flushPendingAudio();
 }
 
 function toggleChannelMute(channelIndex) {
@@ -2462,6 +2488,7 @@ async function ensurePlaybackReady(vgm) {
     }
   }
   engineClockKey = nextClockKey;
+  if (currentChipKind === 'ym2151') opmChannelMutes.forEach((muted, index) => engine.setChannelMuted(index, muted));
   if (currentChipKind === "ay8910") ayMonitor.applyMutes(engine);
   else applySourceMutes(engine, sourceChipKind(), sourceMutes);
   if (!player) {

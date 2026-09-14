@@ -278,6 +278,9 @@ public:
 	void write_data(uint8_t data);
 	void write(uint32_t offset, uint8_t data);
 
+	// Presentation-only mute; never suppress clocks or register writes.
+	void set_mute_mask(uint32_t mask) { m_mute_mask = mask & 0xff; }
+
 	// generate one sample of sound
 	void generate(output_data *output, uint32_t numsamples = 1);
 
@@ -293,6 +296,7 @@ protected:
 	ym2151(ymfm_interface &intf, opm_variant variant);
 
 	// internal state
+	uint32_t m_mute_mask = 0;
 	opm_variant m_variant;           // chip variant
 	uint8_t m_address;               // address register
 	fm_engine m_fm;                  // core FM engine

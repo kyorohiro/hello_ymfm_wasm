@@ -48,3 +48,28 @@ test('YM2151 timers advance and reset clears IRQ state',async()=>{
  assert(e.ym2151.readStatus()&1);assert.equal(e.ym2151.getIrq(),true);e.reset();assert.equal(e.ym2151.getIrq(),false);
  }finally{e.dispose();}
 });
+
+test('YM2151 channel mute silences only selected output and preserves feedback/phase',async()=>{
+ const a=await Ym2151AudioEngine.create(options),b=await Ym2151AudioEngine.create(options);
+ try{
+  for(let ch=0;ch<8;ch++){
+   a.ym2151.setMuteMask(0);b.ym2151.setMuteMask(0);a.reset();b.reset();
+   for(const e of [a,b]){
+    for(const [r,v] of writes(ch,0x40))e.writeYm2151(r,v);
+    e.writeYm2151(0x20+ch,0x40|0x38); // algorithm 0, strong feedback
+    for(const [r,v] of writes((ch+1)%8,0x80))e.writeYm2151(r,v);
+   }
+   assert.deepEqual(a.processFrames(500),b.processFrames(500));
+   b.setChannelMuted(ch,true);
+   const normal=a.processFrames(1000),muted=b.processFrames(1000);
+   assert(normal.left.some(x=>x!==0));assert(muted.left.every(x=>x===0));
+   assert.deepEqual(muted.right,normal.right);
+   // Writes during mute still affect the channel's next audible output.
+   for(const e of [a,b])e.writeYm2151(0x28+ch,0x4c);
+   a.processFrames(700);b.processFrames(700);
+   b.setChannelMuted(ch,false);assert.deepEqual(b.processFrames(500),a.processFrames(500));
+  }
+  b.setChannelMuted(3,true);b.reset();assert.equal(b.ym2151.muteMask,8);
+  assert.throws(()=>b.setChannelMuted(8,true),RangeError);
+ }finally{a.dispose();b.dispose();}
+});

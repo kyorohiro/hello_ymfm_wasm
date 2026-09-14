@@ -32,6 +32,12 @@ export class Ym2151AudioEngine {
   }
   getMasterVolume() { return this.volume; }
   setPsgMuted(value) { this.psgMuted = Boolean(value); }
+  setChannelMuted(channel, muted) {
+    if (!Number.isInteger(channel) || channel < 0 || channel >= 8) throw new RangeError('Invalid YM2151 channel');
+    const bit = 1 << channel;
+    this.ym2151.setMuteMask(muted ? this.ym2151.muteMask | bit : this.ym2151.muteMask & ~bit);
+    this.lastLeft = 0; this.lastRight = 0;
+  }
   writePsg(value) { this.psg?.write(value); }
   writeYm2151(register, value) { this.ym2151.write(0, register); this.ym2151.write(1, value); }
   reset() {
