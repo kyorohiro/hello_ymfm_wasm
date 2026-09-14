@@ -23,5 +23,7 @@ for(const chip of ['ym2151','ay8910'])test(`${chip} Operator Info survives repea
 });
 test('unsupported chip still rejects Operator Info; switching from unsupported tab selects a supported tab',()=>{
  const c=setup('y8950');c.updateChipSupport();c.setOutputTab('operator-info');assert.equal(c.operatorInfoTab.disabled,true);assert.equal(c.operatorInfoPanel.hidden,true);
- c.currentChipKind='ym2612';c.setOutputTab('noteish');c.currentChipKind='ym2151';c.updateChipSupport();assert.equal(c.operatorInfoPanel.hidden,false);assert.equal(c.noteishPanel.hidden,true);
+ c.currentChipKind='ym2612';c.setOutputTab('noteish');c.currentChipKind='ym2151';c.updateChipSupport();assert.equal(c.operatorInfoPanel.hidden,true);assert.equal(c.noteishPanel.hidden,false);
 });
+
+test('YM2151 Note-ish remains selected during playback updates; exports remain disabled',()=>{const c=setup('ym2151');c.updateChipSupport();assert.equal(c.noteishTab.disabled,false);c.setOutputTab('noteish');for(let i=0;i<5;i++)c.updateChipSupport();assert.equal(c.noteishPanel.hidden,false);assert.equal(c.exportMidiButton.disabled,true);assert.equal(c.exportMmlButton.disabled,true);});

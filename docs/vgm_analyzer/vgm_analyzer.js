@@ -1,3 +1,4 @@
+import {createOpmNoteTracker} from './opm_notes.js';
 import {mountOpmMonitor, observeOpmEngine} from './opm_monitor.js?v=changes-1';
 import { msxMuteControls, applyMsxMute } from './msx_mutes.js';
 import {createYm3526AudioEngine} from '../js/ym3526audioengine.js';
@@ -13,7 +14,7 @@ import { createYm2413AudioEngine } from '../js/ym2413audioengine.js';
 import { mountTfiInfo } from "./tfi_info.js?v=concurrent-audition-1";
 import { mountSampleExplorer } from './sample_explorer.js?v=pwm-capture-1';
 import { renderAllFretboard } from './fretboard_all.js';
-import { createNoteTimeline } from './note_timeline_view.js?v=noteish-tabs-1';
+import { createNoteTimeline } from './note_timeline_view.js?v=opm-notes-1';
 import { seekPlayback } from './seek_playback.js';
 import { timelinePlaybackPosition } from './note_timeline.js';
 import { createYm2610BAudioEngine } from '../js/ym2610baudioengine.js';
@@ -223,6 +224,8 @@ let lastLoadedFileName = "snapshot";
 const msxMutes = new Map();
 const opllChannelMutes = Array(9).fill(false);
 const opl3ChannelMutes = Array(18).fill(false);
+let opmNoteTracker;
+let opmNoteChannels = [];
 const opmChannelMutes = Array(8).fill(false);
 const sourceMutes = { psg: false, ssg: false, rhythm: false, adpcmB: false, pcm: false, pwm: false };
 let lastYm2612DacEnable = 0x00;
@@ -724,7 +727,20 @@ function renderPcmMonitor() {
     }).join("");
 }
 
+function resetOpmNotes(clock) {
+  opmNoteChannels = Array.from({length:8},(_,channel)=>({opm:true,channel,label:`YM2151 CH${channel+1}`,keyOn:false,noteMidi:null,noteHistory:[],noteMinMidi:null,noteMaxMidi:null,reason:null,kc:0,kf:0}));
+  opmNoteTracker = createOpmNoteTracker(clock,(index,state,sample)=>{
+    const ch=opmNoteChannels[index],now=performance.now();
+    Object.assign(ch,{keyOn:state.keyOn,noteMidi:state.midi,reason:state.reason,kc:state.kc,kf:state.kf});
+    ch.noteHistory.push({time:now,sample,midiFloat:state.midi});
+    if(state.midi!==null){ch.noteMinMidi=ch.noteMinMidi===null?state.midi:Math.min(ch.noteMinMidi,state.midi);ch.noteMaxMidi=ch.noteMaxMidi===null?state.midi:Math.max(ch.noteMaxMidi,state.midi);}
+    pruneChannelNoteHistory(ch,now);requestNoteishRender();
+  });
+  requestNoteishRender();
+}
+
 function noteishChannels() {
+  if (currentChipKind === "ym2151") return opmNoteChannels;
   const fm = noteishHeader.psgClock && !noteishHeader[`${currentChipKind}Clock`] ? [] : channelMonitor;
   return [...fm.filter(ch=>!ch.unavailable), ...toneChannels];
 }
@@ -847,6 +863,7 @@ function midiToNoteName(midi) {
 }
 
 function estimateChannelNoteish(channel) {
+  if (channel.opm) { const midi = channel.noteMidi;return {midiFloat:midi,note:midi===null ? (channel.reason || "No pitch") : `~${midiToNoteName(Math.round(midi))}`,cents:midi===null ? null : Math.round((midi-Math.round(midi))*100)}; }
   if (channel.tone) {
     const midi = channel.toneMidi;
     return { midiFloat:midi, note:midi === null ? 'No pitch' : `~${midiToNoteName(Math.round(midi))}`,
@@ -1302,11 +1319,11 @@ function renderNoteishGrid() {
       </div>
       <div class="noteish-meta">
         RANGE ${rangeText}<br>
-        ${channel.tone ? `PERIOD ${channel.period}<br>Envelope ${channel.envelope ? "on (estimated)" : "off"} / Noise ${channel.noise ? "mixed" : "off"}` : `BLOCK ${channel.block}<br>
+        ${channel.opm ? `KC ${channel.kc} / KF ${channel.kf}<br>Base pitch; LFO/DT/MUL and audible release are not reconstructed.` : channel.tone ? `PERIOD ${channel.period}<br>Envelope ${channel.envelope ? "on (estimated)" : "off"} / Noise ${channel.noise ? "mixed" : "off"}` : `BLOCK ${channel.block}<br>
         FNUM ${channel.fnum}<br>
         ALG ${channel.algorithm} / FB ${channel.feedback}`}
       </div>
-      <div class="noteish-actions" ${channel.tone ? "hidden" : ""}>
+      <div class="noteish-actions" ${channel.tone || channel.opm ? "hidden" : ""}>
         <button class="noteish-button" type="button" data-show-notes="${channel.channel}">
           Show Notes
         </button>
@@ -2432,6 +2449,7 @@ async function ensurePlaybackReady(vgm) {
 
   currentChipKind = nextChipKind;
   noteishHeader = vgm.header;
+
   currentHasPcm = Boolean(vgm.header.rf5c164Clock);
   currentPcmClock = vgm.header.rf5c164Clock & 0x3fffffff;
 
@@ -2485,6 +2503,9 @@ async function ensurePlaybackReady(vgm) {
         segaPsgModuleFactory, psgClock: vgm.header.psgClock & 0x3fffffff, masterVolume,
       });
       observeOpmEngine(engine, opmMonitor, requestChannelMonitorRender);
+      const opmWrite = engine.writeYm2151.bind(engine), opmReset = engine.reset.bind(engine);
+      engine.writeYm2151 = (r,v) => {opmWrite(r,v);opmNoteTracker?.write(r,v,player?.processedWaitSamples ?? 0);};
+      engine.reset = () => {opmReset();resetOpmNotes(vgm.header.ym2151Clock & 0x3fffffff);};
       observePsgPlaybackEngine();
     } else if (currentChipKind === "ay8910") {
       validateAyPlaybackHeader(vgm.header);
@@ -2665,7 +2686,7 @@ function updateChipSupport() {
   const ay = currentChipKind === 'ay8910';
   const playbackOnly = ['msx', 'y8950', 'ymf278b', 'ym3526', 'ym3812', 'ymf262', 'ym2151', 'ym2413'].includes(currentChipKind) || ay;
   for (const tab of [operatorInfoTab, noteishTab, tfiInfoTab, sampleTab]) {
-    tab.disabled = playbackOnly && !((ay || currentChipKind === 'ym2151') && tab === operatorInfoTab);
+    tab.disabled = playbackOnly && !((ay || currentChipKind === 'ym2151') && tab === operatorInfoTab) && !(currentChipKind === 'ym2151' && tab === noteishTab);
     tab.title = tab.disabled ? 'Support coming soon.' : '';
   }
   for (const button of [exportMidiButton, exportMmlButton, exportSnapshotTfiButton,
@@ -2675,12 +2696,12 @@ function updateChipSupport() {
   }
   const notice = document.getElementById('chipSupportNotice');
   notice.hidden = !playbackOnly;
-  notice.textContent = currentChipKind === 'ym2151' ? 'YM2151 register monitor available. Noteish and instrument editing/export: Support coming soon.' : ay ? 'AY / YM2149 instrument editing and export: Support coming soon.' : `${currentChipKind.toUpperCase()} analysis and instrument editing: Support coming soon.`;
+  notice.textContent = currentChipKind === 'ym2151' ? 'YM2151 register monitor available. Base-pitch Note-ish available; noise/partial keys/CSM are omitted. Instrument editing/export: Support coming soon.' : ay ? 'AY / YM2149 instrument editing and export: Support coming soon.' : `${currentChipKind.toUpperCase()} analysis and instrument editing: Support coming soon.`;
   opnMonitorRoot.hidden = ay || currentChipKind === 'ym2151';
   opmMonitorRoot.hidden = currentChipKind !== 'ym2151';
   ayMonitorRoot.hidden = !ay;
   if (['msx', 'y8950', 'ymf278b', 'ym3526', 'ym3812', 'ymf262', 'ym2413'].includes(currentChipKind)) setOutputTab('parsed-output');
-  else if ((ay || currentChipKind === 'ym2151') && operatorInfoTab.getAttribute('aria-selected') !== 'true' && parsedOutputTab.getAttribute('aria-selected') !== 'true') setOutputTab('operator-info');
+  else if ((ay || (currentChipKind === 'ym2151' && noteishTab.getAttribute('aria-selected') !== 'true')) && operatorInfoTab.getAttribute('aria-selected') !== 'true' && parsedOutputTab.getAttribute('aria-selected') !== 'true') setOutputTab('operator-info');
 }
 
 function buildParseInfo(buffer, fileName, vgm) {
@@ -3103,6 +3124,7 @@ async function handleFile(file) {
   }
   currentChipKind = nextChipKind;
   noteishHeader = vgm.header;
+  if (currentChipKind === "ym2151") resetOpmNotes(vgm.header.ym2151Clock & 0x3fffffff);
   if (currentChipKind === "ay8910") ayMonitor.load(vgm.header);
   currentHasPcm = Boolean(vgm.header.rf5c164Clock);
   currentPcmClock = vgm.header.rf5c164Clock & 0x3fffffff;
@@ -3140,7 +3162,7 @@ async function handleFile(file) {
   commandsOutput.textContent = events.join("\n");
   ymf278bNeedsWaveRom = vgm.requiresYmf278bWaveRom();
   currentBuffer = buffer;
-  if (!["msx", "y8950", "ymf278b", "ym3526", "ym3812", "ymf262", "ym2151", "ym2413", "ay8910"].includes(currentChipKind)) songTimeline.load(buffer);
+  if (!["msx", "y8950", "ymf278b", "ym3526", "ym3812", "ymf262", "ym2413", "ay8910"].includes(currentChipKind)) songTimeline.load(buffer);
   playbackSeek.max = String(Math.max(0, vgm.header.totalSamples));
   renderSeekPosition(0);
   midiExportAvailable = Boolean(midiChipKind(vgm.header));
@@ -3479,7 +3501,7 @@ tfiInfoTab.addEventListener('click', () => setOutputTab('tfi-info'));
 window.addEventListener('pagehide', event => { if (!event.persisted) void tfiInfo.dispose(); });
 
 function setOutputTab(tabName) {
-  if ((["msx", "y8950", "ymf278b", "ym3526", "ym3812", "ymf262", "ym2413"].includes(currentChipKind) && tabName !== "parsed-output") || (["ay8910", "ym2151"].includes(currentChipKind) && !["operator-info", "parsed-output"].includes(tabName))) {
+  if ((["msx", "y8950", "ymf278b", "ym3526", "ym3812", "ymf262", "ym2413"].includes(currentChipKind) && tabName !== "parsed-output") || (currentChipKind === "ay8910" && !["operator-info", "parsed-output"].includes(tabName)) || (currentChipKind === "ym2151" && !["operator-info", "parsed-output", "noteish"].includes(tabName))) {
     setStatus('Analysis and instrument editing: Support coming soon.');
     tabName = "parsed-output";
   }

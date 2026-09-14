@@ -1,3 +1,4 @@
+import {extractOpmNotes} from './opm_notes.js';
 import {extractOpnNotes,midiChipKind} from './vgm_notes.js?v=midi-onset-1';
 import {extractToneNotes} from './tone_notes.js?v=ym2610-vgm-2';
 import {Ym2612VGM} from '../js/ym2612vgm.js';
@@ -7,8 +8,8 @@ self.onmessage=({data})=>{
   try{
     if(data.type==='load'){
       const header=new Ym2612VGM(data.buffer).header;
-      const kind=midiChipKind(header);
-      const fm=kind && kind!=='psg'?extractOpnNotes(data.buffer):{channels:[],time:0};
+      const kind=header.ym2151Clock ? 'ym2151' : midiChipKind(header);
+      const fm=kind==='ym2151'?extractOpmNotes(data.buffer):kind && kind!=='psg'?extractOpnNotes(data.buffer):{channels:[],time:0};
       const tones=extractToneNotes(data.buffer,kind);
       channels=[...fm.channels.map((ch,i)=>({name:`CH${i+1}`,notes:ch.notes})),...tones.channels]
         .map(ch=>({name:ch.name,data:packTimeline(ch.notes)})).filter(ch=>ch.data.length);
