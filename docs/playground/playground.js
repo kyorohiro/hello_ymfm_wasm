@@ -316,6 +316,82 @@ const systemExampleFiles = Object.entries(EXAMPLES).map(
 const virtualFiles = createVirtualFileSystem([
   // A new project starts with the previous Live Loop example as its entry point.
   { path: "/index.js", data: EXAMPLES["live-loop"] },
+  { path: "/presets/README.md", data: [
+    "# Presets",
+    "",
+    "Store your YM2612 TFI instruments in this folder.",
+    "",
+    "1. Use FILES > Import and choose a .tfi file. The suggested path is /presets/<filename>.tfi.",
+    "2. Open the TFI in FILES to edit its Operator parameters and audition it with the keyboard.",
+    "3. Download the edited TFI, or use Export Cassette to save the project and its files.",
+    "",
+    "VGM imports also place extracted TFI instruments under /presets/<track>/.",
+    "If you drop a file or ZIP into FILES, its paths are preserved; move TFI files into /presets/ to add them to the preset list.",
+    "",
+    "TFI contains instrument parameters, not the source chip clock. Keep any source OPM and conversion.json alongside converted instruments for reference.",
+    "",
+    "This README is a starter file. You can edit or delete it.",
+    "",
+  ].join("\n") },
+  { path: "/lib/README.md", data: [
+    "# Libraries",
+    "",
+    "Store reusable JavaScript modules here. The folder name lib is a convention, not a requirement.",
+    "Export values from a module and load them with await import(...). There is no await export syntax.",
+    "",
+    "Create /lib/notes.js:",
+    "```js",
+    "export const notes = ['C4', 'E4', 'G4'];",
+    "```",
+    "",
+    "Then use it in /index.js:",
+    "```js",
+    "const { notes } = await import('./lib/notes.js');",
+    "for (const note of notes) {",
+    "  await play(note, { channel: CH1, duration: 0.2 });",
+    "  await sleep(0.25);",
+    "}",
+    "```",
+    "",
+    "Relative import paths are resolved from the importing file. From /examples/demo.js, use ../lib/notes.js.",
+    "This README is a starter file. You can edit or delete it.",
+    "",
+  ].join("\n") },
+  { path: "/samples/README.md", data: [
+    "# Samples",
+    "",
+    "Store audio files here, such as /samples/kick.wav. Import or drop your own files into FILES.",
+    "",
+    "Load and play a file from your project:",
+    "```js",
+    "await sample.load('kick', '/samples/kick.wav');",
+    "await sample.play('kick', { gain: 0.8 });",
+    "```",
+    "",
+    "The file must exist before running this example. Use an absolute project path when loading audio.",
+    "Cassette imports classify audio files directly inside samples/ as samples; sample.load can also load other project paths.",
+    "Use Export Cassette to save the project together with its audio files.",
+    "This README is a starter file. You can edit or delete it.",
+    "",
+  ].join("\n") },
+  { path: "/examples/README.md", data: [
+    "# Examples",
+    "",
+    "Store your runnable JavaScript examples here, such as /examples/demo.js.",
+    "Select the JavaScript file in the Run file selector, then press Run.",
+    "The default entry point is /index.js. Merely adding a file does not run it.",
+    "",
+    "Built-in examples are available under /sys/examples/. Copy one into this folder to customize it.",
+    "For shared code, create a module in /lib/ and load it from your example:",
+    "```js",
+    "const { notes } = await import('../lib/notes.js');",
+    "```",
+    "See /lib/README.md for the matching module example.",
+    "",
+    "Cassette imports classify JavaScript files directly inside examples/ as examples.",
+    "This README is a starter file. You can edit or delete it.",
+    "",
+  ].join("\n") },
   ...systemExampleFiles,
 ]);
 let activeVirtualPath = "/index.js";
@@ -1154,7 +1230,7 @@ function promptVirtualFileImport() {
 async function importVirtualFile(file) {
   const path = window.prompt(
     "Import file path",
-    `/${file.name}`
+    /\.tfi$/i.test(file.name) ? `/presets/${file.name}` : `/${file.name}`
   );
   if (!path) {
     return;
@@ -1218,7 +1294,7 @@ function installFileExplorerDropTarget() {
 }
 
 function registerVirtualTfiPreset(path) {
-  if (!path.startsWith("/presets/") || !path.endsWith(".tfi")) {
+  if (!path.startsWith("/presets/") || !/\.tfi$/i.test(path)) {
     return;
   }
   const virtualFile = virtualFiles.get(path);

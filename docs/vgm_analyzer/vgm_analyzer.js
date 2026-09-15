@@ -1,7 +1,8 @@
+import {createOpmTfiFiles,OPM_TFI_NOTICE} from './opm_tfi.js';
 import {Oki6258AudioEngine,attachOki6258,validateOki6258Header} from '../js/okim6258audioengine.js';
 import {mountOpmInfo} from './opm_info.js?v=keyboard-layout-2';
 import {exportMxdrvMml} from './opm_mml.js';
-import {exportOpm, extractOpmPatches} from './opm_export.js?v=all-1';
+import {exportOpm, extractOpmPatches} from './opm_export.js?v=clock-1';
 import {createOpmNoteTracker} from './opm_notes.js';
 import {mountOpmMonitor, observeOpmEngine} from './opm_monitor.js?v=export-2';
 import { msxMuteControls, applyMsxMute } from './msx_mutes.js';
@@ -2245,7 +2246,25 @@ function createStoredZip(files) {
   });
 }
 
+function downloadOpmTfiZip(snapshot) {
+  if (!currentBuffer) return;
+  try {
+    const result = createOpmTfiFiles({buffer:currentBuffer,
+      snapshot:snapshot ? opmMonitor.snapshot() : undefined,
+      clock:noteishHeader.ym2151Clock & 0x3fffffff,fileName:lastLoadedFileName,
+      sample:player?.processedWaitSamples ?? null});
+    if (!result.count) {setStatus('No keyed YM2151 tones found to export.');return;}
+    const url=URL.createObjectURL(createStoredZip(result.files));
+    const anchor=document.createElement('a');anchor.href=url;
+    const stem=(lastLoadedFileName || 'YM2151').replace(/\.[^.]+$/, '').replace(/[\/\\:*?"<>|\x00-\x1f]/g,'_');
+    anchor.download=snapshot ? `${stem}_snapshot_tfi.zip` : 'all_tfi_patches.zip';
+    anchor.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+    setStatus(`Exported ${result.count} converted YM2151 tones. ${OPM_TFI_NOTICE}`);
+  } catch(error) {setStatus(`YM2151 TFI export failed: ${error.message}`);}
+}
+
 function downloadAllTfiZip() {
+  if (currentChipKind === "ym2151") { downloadOpmTfiZip(false); return; }
   if (extractedTfiPatches.length === 0) {
     return;
   }
@@ -2392,6 +2411,7 @@ function createTfiPresetFromChannelSnapshot(channel) {
 }
 
 function downloadSnapshotTfiZip() {
+  if (currentChipKind === "ym2151") { downloadOpmTfiZip(true); return; }
   if (!currentBuffer) {
     return;
   }
@@ -2713,6 +2733,11 @@ function updateChipSupport() {
   }
   for (const button of [exportMidiButton, exportMmlButton, exportSnapshotTfiButton,
     exportSnapshotVgiButton, exportSnapshotButton, exportAllTfiButton, exportAllVgiButton]) {
+    if (currentChipKind === 'ym2151' && (button === exportAllTfiButton || button === exportSnapshotTfiButton)) {
+      button.disabled = !currentBuffer;
+      button.title = OPM_TFI_NOTICE;
+      continue;
+    }
     if (currentChipKind === 'ym2151' && (button === exportMidiButton || button === exportMmlButton)) {
       button.disabled = !currentBuffer || (button === exportMidiButton && !midiExportAvailable);
       button.title = button === exportMidiButton ? 'Export base-pitch notes; original YM2151 timbres are not reproduced.' : 'MXDRV MML: FM 8CH and sampled voices on a sixteenth-note grid.';
@@ -3531,7 +3556,7 @@ exportOpmButton.addEventListener('click', () => {
   const stem = (lastLoadedFileName || 'YM2151').replace(/\.[^.]+$/, '').replace(/[\/\\:*?"<>|\x00-\x1f]/g, '_');
   const files = Array.from({length:8}, (_, channel) => ({
     name: `CH${channel+1}.opm`,
-    data: new TextEncoder().encode(exportOpm(snapshot, channel, `${stem} CH${channel+1}`)),
+    data: new TextEncoder().encode(exportOpm(snapshot, channel, `${stem} CH${channel+1}`, {clock:noteishHeader.ym2151Clock & 0x3fffffff})),
   }));
   const url = URL.createObjectURL(createStoredZip(files));
   const anchor = document.createElement('a');anchor.href = url;anchor.download = `${stem}_snapshot_opm.zip`;

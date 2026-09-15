@@ -5,7 +5,7 @@ import {readFileSync} from 'node:fs';
 const source=readFileSync(new URL('./vgm_analyzer.js',import.meta.url),'utf8');
 function setup(chip) {
  const node=()=>({attrs:{},setAttribute(k,v){this.attrs[k]=v;},getAttribute(k){return this.attrs[k];}});
- const ctx={currentBuffer:new Uint8Array(1),midiExportAvailable:true,currentChipKind:chip,noteishViewMode:'live',document:{getElementById:()=>node()},tfiInfo:{setVisible(){}},opmInfo:{setVisible(){}},sampleExplorer:{stop(){}},songTimeline:{active(){}},setStatus(){},requestNoteishRender(){},renderNoteishGrid(){}};
+ const ctx={OPM_TFI_NOTICE:'Approximate conversion',currentBuffer:new Uint8Array(1),midiExportAvailable:true,currentChipKind:chip,noteishViewMode:'live',document:{getElementById:()=>node()},tfiInfo:{setVisible(){}},opmInfo:{setVisible(){}},sampleExplorer:{stop(){}},songTimeline:{active(){}},setStatus(){},requestNoteishRender(){},renderNoteishGrid(){}};
  for(const name of ['exportAllOpmButton','exportOpmButton','operatorInfoTab','noteishTab','tfiInfoTab','sampleTab','parsedOutputTab','exportMidiButton','exportMmlButton','exportSnapshotTfiButton','exportSnapshotVgiButton','exportSnapshotButton','exportAllTfiButton','exportAllVgiButton','opnMonitorRoot','opmMonitorRoot','ayMonitorRoot','samplePanel','operatorInfoPanel','parsedOutputPanel','noteishPanel'])ctx[name]=node();
  vm.createContext(ctx);
  vm.runInContext(source.slice(source.indexOf('function updateChipSupport()'),source.indexOf('function buildParseInfo(')),ctx);
@@ -29,3 +29,8 @@ test('unsupported chip still rejects Operator Info; switching from unsupported t
 test('YM2151 Note-ish remains selected; MIDI and MML are enabled',()=>{const c=setup('ym2151');c.updateChipSupport();assert.equal(c.noteishTab.disabled,false);c.setOutputTab('noteish');for(let i=0;i<5;i++)c.updateChipSupport();assert.equal(c.noteishPanel.hidden,false);assert.equal(c.exportMidiButton.disabled,false);assert.equal(c.exportMmlButton.disabled,false);c.midiExportAvailable=false;c.updateChipSupport();assert.equal(c.exportMidiButton.disabled,true);});
 
 test('OPM controls only enable for loaded YM2151 files',()=>{const c=setup('ym2151');c.updateChipSupport();assert.equal(c.exportOpmButton.hidden,false);assert.equal(c.exportOpmButton.disabled,false);c.currentBuffer=null;c.updateChipSupport();assert.equal(c.exportOpmButton.disabled,true);c.currentChipKind='ym2612';c.updateChipSupport();assert.equal(c.exportOpmButton.hidden,true);assert.equal(c.exportOpmButton.disabled,true);});
+
+test('YM2151 TFI exports enable with a file, without enabling VGI',()=>{
+ const c=setup('ym2151');c.updateChipSupport();assert.equal(c.exportAllTfiButton.disabled,false);assert.equal(c.exportSnapshotTfiButton.disabled,false);assert.equal(c.exportAllVgiButton.disabled,true);assert.equal(c.exportSnapshotVgiButton.disabled,true);
+ c.currentBuffer=null;c.updateChipSupport();assert.equal(c.exportAllTfiButton.disabled,true);assert.equal(c.exportSnapshotTfiButton.disabled,true);
+});

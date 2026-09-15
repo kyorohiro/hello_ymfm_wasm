@@ -1,5 +1,5 @@
 import {createPlaygroundOperatorKeyboard} from '../playground/playground_operator_keyboard.js?v=midi-1';
-import {extractOpmPatches} from './opm_export.js?v=info-1';
+import {extractOpmPatches} from './opm_export.js?v=clock-1';
 import {Ym2151} from '../js/ym2151.js';
 
 // Preview the captured voice on CH8 so the optional noise generator also works.

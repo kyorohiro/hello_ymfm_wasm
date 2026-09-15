@@ -2,7 +2,7 @@ import {Ym2612VGM} from '../js/ym2612vgm.js';
 import {createOpmState} from './opm_monitor.js';
 // VOPM text bank. Fields checked against Furnace DivEngine::loadOPM:
 // https://github.com/tildearrow/furnace/blob/master/src/engine/fileOpsIns.cpp
-export function exportOpm(snapshot, channel, name = 'YM2151') {
+export function exportOpm(snapshot, channel, name = 'YM2151', {clock} = {}) {
   if (!Number.isInteger(channel) || channel < 0 || channel >= 8) throw new RangeError('Invalid YM2151 channel');
   const ch = snapshot.channels[channel];
   const title = String(name).replace(/[\r\n\x00-\x1f\x7f]/g, ' ').trim().slice(0, 120) || 'YM2151';
@@ -10,6 +10,7 @@ export function exportOpm(snapshot, channel, name = 'YM2151') {
   const {lfo, noise} = snapshot;
   const lines = [
     '// YM2151 voice snapshot exported by VGM Analyzer',
+    ...(Number.isInteger(clock) && clock > 0 && clock <= 0x3fffffff ? ['// Tetorica-Metadata-Version: 1','// Tetorica-Source-Chip: YM2151',`// Tetorica-Source-Clock-Hz: ${clock}`] : []),
     '// Static settings only; performance, pitch and envelope phase are not saved.',
     '// SLOT uses active key bits, or all four operators when keys are off.',
     '// LFO is chip-global. Importers may ignore LFO, PAN, SLOT or noise settings.',
@@ -39,7 +40,7 @@ export function extractOpmPatches(buffer, {includeSnapshots = false} = {}) {
     if (seen[channel].has(signature)) return;
     seen[channel].add(signature);
     const id = `CH${channel+1}_${String(seen[channel].size).padStart(3,'0')}`;
-    patches.push({name:`${id}.opm`, text:`// First observed at VGM sample ${sample} (44100 Hz)\r\n` + exportOpm(snapshot,channel,id),channel,sample,...(includeSnapshots ? {snapshot,clock:parser.header.ym2151Clock & 0x3fffffff} : {})});
+    patches.push({name:`${id}.opm`, text:`// First observed at VGM sample ${sample} (44100 Hz)\r\n` + exportOpm(snapshot,channel,id,{clock:parser.header.ym2151Clock & 0x3fffffff}),channel,sample,...(includeSnapshots ? {snapshot,clock:parser.header.ym2151Clock & 0x3fffffff} : {})});
   }
   while (true) {
     const event = parser.step();

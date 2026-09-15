@@ -250,3 +250,14 @@ MAMEデコーダーの期待出力、左右出力、出力精度、クロック�
 テスト: `node --test web/okim6258.test.mjs`。
 `docs/js/`を同期し、Analyzerとruntime exampleのdev配布・ZIPを再生成。
 配布物にもMAMEライセンスとlibymfm.wasmを含む参照元の記録を同梱。
+
+## YM2151 → TFI Export
+
+ExportグループでYM2151のAll TFI ZIP / Snapshot TFIを有効化。
+基本パラメーターをYM2612向けに近似変換し、既存PlaygroundのTFI編集・試奏で利用できる。
+ZIPには元OPM（元クロックコメント付き）とconversion.jsonも同梱する。
+DT2・変調・ノイズ等は省略し、クロック差によるエンベロープ／DT補正は未実施。
+PlaygroundへのOPMインポートは今回追加しない。
+詳細は [playground_opm_01.md](playground_opm_01.md)。
+関連26テスト成功、外部MMLコンパイラーの任意テスト1件スキップ。
+Analyzerのdev配布・ZIP再生成、157ローカル参照の検査成功。実曲の聴感は未確認。
