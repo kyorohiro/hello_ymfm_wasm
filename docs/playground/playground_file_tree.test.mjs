@@ -62,9 +62,11 @@ test('folder and project root drops route move and modifier-copy operations', ()
   try {
     const root = new Element();
     const transfers = [];
+    const imports = [];
     renderFileTree(root, [{ path: '/lib/x.js' }], {
       selectedPath: '/lib/x.js', expanded: new Map(), onOpen() {},
       onTransfer: (...args) => transfers.push(args),
+      onImport: (...args) => imports.push(args),
     });
     const label = root.children[1].children[0].children[0].children[0];
     const data = new Map();
@@ -78,5 +80,19 @@ test('folder and project root drops route move and modifier-copy operations', ()
     data.set('application/x-tetorica-path', '/lib/x.js');
     root.children[0].ondrop({ ...event, altKey: true });
     assert.deepEqual(transfers, [['/x.js', '/lib/x.js', false], ['/lib/x.js', '/x.js', true]]);
+    data.clear();
+    const incoming = [{ name: 'one.js' }, { name: 'two.js' }];
+    let stopped = 0;
+    const external = { ...event, stopPropagation() { stopped++; }, dataTransfer: {
+      types: ['Files'], files: incoming, getData: () => '',
+    } };
+    label.ondragover(external);
+    assert.equal(external.dataTransfer.dropEffect, 'copy');
+    label.ondrop(external);
+    root.children[0].ondrop(external);
+    root.ondrop(external);
+    assert.deepEqual(imports, [[incoming, '/lib'], [incoming, ''], [incoming, '']]);
+    assert.equal(stopped, 4);
+    assert.equal(transfers.length, 2);
   } finally { globalThis.document = previous; }
 });

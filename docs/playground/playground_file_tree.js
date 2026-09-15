@@ -21,7 +21,7 @@ export function buildFileTree(files) {
   return sorted(root);
 }
 
-export function renderFileTree(root, files, { selectedPath, expanded, onOpen, onTransfer }) {
+export function renderFileTree(root, files, { selectedPath, expanded, onOpen, onTransfer, onImport }) {
   const dragType = 'application/x-tetorica-path';
   function draggable(element, path) {
     if (!onTransfer) return;
@@ -33,22 +33,26 @@ export function renderFileTree(root, files, { selectedPath, expanded, onOpen, on
     });
   }
   function dropTarget(element, directory) {
-    if (!onTransfer) return;
+    if (!onTransfer && !onImport) return;
     element.ondragover = event => {
-      if (!Array.from(event.dataTransfer?.types || []).includes(dragType)) return;
+      const types = Array.from(event.dataTransfer?.types || []);
+      const external = onImport && types.includes('Files');
+      if (!external && !(onTransfer && types.includes(dragType))) return;
       event.preventDefault();
       event.stopPropagation();
-      event.dataTransfer.dropEffect = event.ctrlKey || event.altKey ? 'copy' : 'move';
+      event.dataTransfer.dropEffect = external || event.ctrlKey || event.altKey ? 'copy' : 'move';
       element.classList.add('file-drop-target');
     };
     element.ondragleave = () => element.classList.remove('file-drop-target');
     element.ondrop = event => {
       element.classList.remove('file-drop-target');
+      const incoming = Array.from(event.dataTransfer?.files || []);
       const source = event.dataTransfer?.getData(dragType);
-      if (!source) return;
+      if (!(onImport && incoming.length) && !(onTransfer && source)) return;
       event.preventDefault();
       event.stopPropagation();
-      onTransfer(source, `${directory}/${source.split('/').pop()}`, Boolean(event.ctrlKey || event.altKey));
+      if (onImport && incoming.length) onImport(incoming, directory);
+      else onTransfer(source, `${directory}/${source.split('/').pop()}`, Boolean(event.ctrlKey || event.altKey));
     };
   }
   dropTarget(root, '');
@@ -85,11 +89,11 @@ export function renderFileTree(root, files, { selectedPath, expanded, onOpen, on
     return list;
   }
   const tree = render(buildFileTree(files));
-  if (onTransfer) {
+  if (onTransfer || onImport) {
     const project = document.createElement('div');
     project.className = 'file-tree-root';
     project.textContent = 'Project /';
-    project.title = 'Drop here to move to the project root. Hold Ctrl or Option to copy.';
+    project.title = 'Drop files here to import or move to the project root. Hold Ctrl or Option to copy project files.';
     dropTarget(project, '');
     root.replaceChildren(project, tree);
   } else root.replaceChildren(tree);

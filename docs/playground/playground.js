@@ -326,7 +326,7 @@ const virtualFiles = createVirtualFileSystem([
     "3. Download the edited TFI, or use Export Cassette to save the project and its files.",
     "",
     "VGM imports also place extracted TFI instruments under /presets/<track>/.",
-    "If you drop a file or ZIP into FILES, its paths are preserved; move TFI files into /presets/ to add them to the preset list.",
+    "Drop TFI files onto the presets folder to add them to the preset list. ZIP contents keep their internal paths beneath the drop folder.",
     "",
     "TFI contains instrument parameters, not the source chip clock. Keep any source OPM and conversion.json alongside converted instruments for reference.",
     "",
@@ -1167,6 +1167,9 @@ function renderVirtualFileExplorer() {
       expanded: expandedFileFolders,
       onOpen: openVirtualFile,
       onTransfer: transferExplorerFiles,
+      onImport: (files, directory) => {
+        void importDroppedFiles(files, directory).catch((error) => setStatus(`Failed to import dropped files: ${error.message}`));
+      },
     });
   renameFileButton.disabled = Boolean(activeTfiFilePath);
   deleteFileButton.disabled = Boolean(activeTfiFilePath);
@@ -1257,24 +1260,40 @@ async function importVirtualFile(file) {
   setStatus(`Imported binary file: ${normalizedPath}`);
 }
 
-async function importDroppedFiles(file) {
-  const isZip = file.name.toLowerCase().endsWith(".zip");
-  const entries = isZip
-    ? unzipSync(new Uint8Array(await file.arrayBuffer()))
-    : { [file.name]: new Uint8Array(await file.arrayBuffer()) };
-  let imported = 0;
-  for (const [name, bytes] of Object.entries(entries)) {
-    if (!name || name.endsWith("/") || name === "metadata.json" || name === "cassette.metadata.js") continue;
-    const normalizedPath = normalizeVirtualPath(`/${name}`);
-    if (isSystemVirtualPath(normalizedPath)) continue;
-    virtualFiles.writeBinary(normalizedPath, bytes);
-    registerVirtualTfiPreset(normalizedPath);
-    imported += 1;
+async function importDroppedFiles(files, directory = "") {
+  const destination = directory && directory !== "/" ? normalizeVirtualPath(directory) : "";
+  const pending = new Map();
+  for (const file of files) {
+    const isZip = file.name.toLowerCase().endsWith(".zip");
+    const entries = isZip
+      ? unzipSync(new Uint8Array(await file.arrayBuffer()))
+      : { [file.name]: new Uint8Array(await file.arrayBuffer()) };
+    for (const [name, bytes] of Object.entries(entries)) {
+      if (!name || name.endsWith("/") || name === "metadata.json" || name === "cassette.metadata.js") continue;
+      if (name.startsWith("/") || name.split("/").includes("..")) throw new Error(`Invalid import path: ${name}`);
+      const path = normalizeVirtualPath(`${destination}/${name}`);
+      if (path === "/sys" || isSystemVirtualPath(path)) throw new Error("/sys is reserved for built-in files.");
+      if (pending.has(path)) throw new Error(`Duplicate import path: ${path}`);
+      pending.set(path, bytes);
+    }
   }
-  if (imported === 0) throw new Error("The dropped file contains no importable files.");
+  if (!pending.size) throw new Error("The dropped files contain no importable files.");
+  const paths = new Set([...virtualFiles.list().map(file => file.path), ...pending.keys()]);
+  for (const path of pending.keys()) {
+    if ([...paths].some(other => other !== path && (other.startsWith(`${path}/`) || path.startsWith(`${other}/`)))) {
+      throw new Error(`Import path conflicts with a file or folder: ${path}`);
+    }
+  }
+  const replacements = [...pending.keys()].filter(path => virtualFiles.has(path));
+  if (replacements.length && !window.confirm(`Replace ${replacements.length} existing file(s)?\n${replacements.join("\n")}`)) return;
+  for (const [path, bytes] of pending) {
+    virtualFiles.writeBinary(path, bytes);
+    registerVirtualTfiPreset(path);
+  }
+  if (destination) expandedFileFolders.set(destination, true);
   renderVirtualFileExplorer();
   renderRunFileOptions();
-  setStatus(`Imported ${imported} file${imported === 1 ? "" : "s"} into FILES.`);
+  setStatus(`Imported ${pending.size} file${pending.size === 1 ? "" : "s"} into ${destination || "/"}.`);
 }
 
 function installFileExplorerDropTarget() {
@@ -1286,10 +1305,11 @@ function installFileExplorerDropTarget() {
     }
   });
   fileExplorer.addEventListener("drop", (event) => {
-    const file = event.dataTransfer?.files?.[0];
-    if (!file) return;
+    if (event.defaultPrevented) return;
+    const files = Array.from(event.dataTransfer?.files ?? []);
+    if (!files.length) return;
     event.preventDefault();
-    void importDroppedFiles(file).catch((error) => setStatus(`Failed to import dropped file: ${error.message}`));
+    void importDroppedFiles(files).catch((error) => setStatus(`Failed to import dropped files: ${error.message}`));
   });
 }
 
