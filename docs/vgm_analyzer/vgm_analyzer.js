@@ -3731,3 +3731,8 @@ midiExportDialog.querySelector("form").addEventListener("submit", (event) => {
     setStatus(`Exported MIDI: ${result.noteCount} notes, ${result.bendCount} pitch bends, ${result.skippedNotes} omitted intervals. ${result.chipName} FM + SSG/PSG tones; no grid quantization. Noise, PCM and original timbres are omitted. Details are in MIDI text events.`);
   } catch (error) { setStatus(`MIDI export failed: ${error.message}`); }
 });
+
+// A native dialog keeps keyboard focus inside the support table and supports Escape.
+document.getElementById('chipSupportButton').addEventListener('click', () => {
+  document.getElementById('chipSupportDialog').showModal();
+});

@@ -73,9 +73,9 @@ h1 { margin: 0; letter-spacing: -0.045em; }
 }
 .brand-caption { margin: 12px 0 0; color: var(--accent-dark); font-size: 0.85rem; font-weight: 700; letter-spacing: 0.17em; text-align: center; text-transform: uppercase; }
 .instrument-specs { border: 1px solid var(--accent); border-radius: 12px; overflow: hidden; box-shadow: inset 0 1px white; }
-.instrument-specs > div { display: flex; flex-direction: column; gap: 5px; padding: 10px 16px; color: var(--accent-dark); }
-.instrument-specs > div + div { border-top: 1px solid var(--line); }
-.instrument-specs > div:last-child { background: var(--red-enamel); color: #fff8ee; }
+.instrument-specs > .spec-row { display: flex; flex-direction: column; gap: 5px; padding: 10px 16px; color: var(--accent-dark); }
+.instrument-specs > .spec-row + .spec-row { border-top: 1px solid var(--line); }
+.instrument-specs > .spec-row:last-child { background: var(--red-enamel); color: #fff8ee; }
 .spec-label { font-size: 0.7rem; letter-spacing: 0.09em; text-transform: uppercase; font-weight: 700; }
 .instrument-specs strong { font-size: clamp(0.85rem, 1.2vw, 1.05rem); line-height: 1.4; }
 .actions, .sub-actions { align-items: center; gap: 10px; padding: 16px; border: 1px solid var(--line); border-radius: 12px; box-shadow: inset 0 0 0 2px #fffaf3; background: #fffaf340; }
@@ -185,7 +185,7 @@ pre { border: 1px solid var(--line); border-radius: 7px; background: #fffaf1; co
   .brand-model { font-size: clamp(3.5rem, 15vw, 6rem); }
   .brand-name { font-size: 2rem; }
   .brand-caption { font-size: 0.65rem; }
-  .instrument-specs > div { padding: 10px 14px; }
+  .instrument-specs > .spec-row { padding: 10px 14px; }
   .actions, .sub-actions { padding: 12px; }
   .tab-button { flex: 1; min-width: 0; padding: 9px 6px; font-size: 0.72rem; }
   .tab-panel { padding: 16px 10px; }
@@ -204,3 +204,14 @@ pre { border: 1px solid var(--line); border-radius: 7px; background: #fffaf1; co
 .fretboard-caption { font-size: 0.8rem; color: #5b4a33; margin-top: 6px; }
 
 .noteish-actions[hidden] { display: none; }
+
+button.instrument-specs { padding: 0; font: inherit; text-align: left; background: transparent; cursor: pointer; width: 100%; }
+button.instrument-specs:hover { box-shadow: 0 0 0 2px var(--accent); }
+button.instrument-specs:focus-visible { outline: 3px solid var(--accent); outline-offset: 4px; }
+.chip-support-dialog { width: min(1100px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); overflow: auto; }
+.chip-support-scroll { overflow-x: auto; }
+.chip-support-table { width: 100%; min-width: 780px; border-collapse: collapse; font-size: 0.85rem; }
+.chip-support-table caption { text-align: left; font-weight: bold; padding: 8px 0; }
+.chip-support-table th, .chip-support-table td { padding: 10px; border: 1px solid var(--line); text-align: left; vertical-align: top; }
+.chip-support-table thead { background: var(--accent-dark); color: white; }
+.chip-support-dialog li { margin: 10px 0; }
