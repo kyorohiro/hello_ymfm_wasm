@@ -27,7 +27,7 @@ node --test docs/vgm_analyzer/vgm_lilypond.test.mjs docs/vgm_analyzer/operator_t
 
 音名、オクターブ、休符、タイ、小節長、再キー、丸め、BPM、文字列処理、
 実パーサーからの YM2612/YM2151/PSG 出力、ダウンロード操作を自動テストする。
-同梱の LilyPond WASM で SVG 組版を実行確認済み。PDF 出力は未対応。
+旧プレビューの LilyPond WASM で SVG 組版を実行確認済み（現在は別リポジトリへ保存）。
 保存したファイルは LilyPond 環境で `lilypond music.ly` として組版できる形式を目指す。
 実曲での可読性と組版結果は今後の確認対象。
 
@@ -48,7 +48,15 @@ node --test docs/vgm_analyzer/vgm_lilypond.test.mjs docs/vgm_analyzer/operator_t
 推定は選択前の全対象CHから行い、CH選択でBPMを勝手に変更しない。
 テストは合成キーオン列の候補、推定不能時の120、CH選択、手動変更保持と曲切替を含む。
 
-## ブラウザー内 Preview
+## 旧ブラウザー内 Preview の記録
+
+2026-09-16: Analyzer の楽譜表示を MusicXML に切り替え、LilyPond WASM、
+旧プレビュー、専用生成・検証スクリプトを Analyzer リポジトリから削除した。
+`.ly` エクスポートは継続する。
+修正記録、生成手順、最小デモは別リポジトリの
+[wasm/README.md](https://github.com/kyorohiro/lilypond-wasm/tree/master/wasm) に保存した
+（ローカル保存先: `w/lilypond-wasm/wasm/`）。
+以下は削除前の実装・検証履歴であり、パスやコマンドも当時のもの。
 
 Export → LilyPond で BPM と対象 CH を選び、Preview を押すと SVG の楽譜を表示する。
 Export .ly は従来どおり編集用ソースを保存する。Preview の各ページは SVG として保存できる。
@@ -59,7 +67,7 @@ Export .ly は従来どおり編集用ソースを保存する。Preview の各�
 0.1.0-alpha.1（LilyPond 2.27.2 / Guile 3.0.11）を使用する。
 WASM とランタイムは初回 Preview 時に読み込む。約72 MiB（HTTP 圧縮前）。
 楽譜データは外部へ送信しない。配布 ZIP にも依存ファイルとライセンスを含める。
-取得元、固定バージョン、変更内容、ソース情報は [vendor README](../vgm_analyzer/vendor/lilypond/README.md) に記録する。
+取得元、固定バージョン、変更内容、ソース情報は 別リポジトリの `wasm/README.md` に記録する。
 
 ```sh
 node --test docs/vgm_analyzer/lilypond_preview.test.mjs docs/vgm_analyzer/vgm_lilypond.test.mjs docs/vgm_analyzer/operator_tabs.test.mjs

@@ -684,6 +684,7 @@
           <div class="export-row">
             <button id="exportMidiButton" type="button" disabled title="FM + SSG / PSG tone notes; original timing, no grid quantization">MIDI</button>
             <button id="exportLilyPondButton" type="button" disabled title="Export editable sheet music: FM + SSG / PSG tones, 1/16 grid">LilyPond</button>
+            <button id="exportMusicSheetButton" type="button" disabled title="Preview sheet music or export MusicXML">Export Music Sheet</button>
             <button id="exportMmlButton" type="button" disabled title="Export FM MML for OPNAvoid or MUCOM88; minimum 1/16">MML</button>
           </div>
           <div class="export-row">
@@ -836,12 +837,35 @@
               <label for="mmlBpmInput">BPM</label>
               <input id="mmlBpmInput" type="number" min="34" max="999" step="any" value="120" required style="width: 5em" aria-describedby="mmlBpmHelp">
             </p>
-            <p id="mmlBpmHelp">Manual tempo (34–999 BPM), not automatically detected. Used for sixteenth-note quantization.</p>
+            <p id="mmlBpmHelp">Suggested tempo with manual adjustment (34–999 BPM). Used for sixteenth-note quantization.</p>
             <button value="mucom88">MUCOM88</button>
             <button value="opnavoid">OPNAVOID</button>
             <button value="mxdrv" hidden disabled>MXDRV (MDX)</button>
             <button value="cancel" formnovalidate>Cancel</button>
           </form>
+        </dialog>
+        <dialog id="musicSheetExportDialog" aria-labelledby="musicSheetExportTitle">
+          <form method="dialog">
+            <h3 id="musicSheetExportTitle">Export Music Sheet</h3>
+            <p>One staff per FM / SSG / PSG tone channel. Preview the score or download an editable MusicXML file.</p>
+            <p><label for="musicSheetBpmInput">BPM</label>
+              <input id="musicSheetBpmInput" type="number" min="4" max="999" step="1" value="120" required></p>
+            <p id="musicSheetTempoHelp">Default: 120 BPM. You can change this value.</p>
+            <fieldset><legend>Include channels</legend><div id="musicSheetChannels" style="max-height: 14em; overflow: auto"></div></fieldset>
+            <p>Assumed 4/4 and a 1/16 grid. Key, meter and triplets are not detected.
+              PCM, noise, timbres and modulation are omitted. Short notes may disappear; unknown pitches become rests.</p>
+            <button value="preview">Preview</button>
+            <button value="export">Export MusicXML</button>
+            <button value="cancel" formnovalidate>Cancel</button>
+          </form>
+        </dialog>
+        <dialog id="musicSheetPreviewDialog" aria-labelledby="musicSheetPreviewTitle" style="width: min(95vw, 1100px); max-height: 90vh; overflow: auto">
+          <h3 id="musicSheetPreviewTitle">Music Sheet preview</h3>
+          <p data-status role="status"></p>
+          <form method="dialog"><button>Close</button></form>
+          <div data-pages style="background: white; color: black; overflow: auto"></div>
+          <details><summary>Transcription notes</summary><pre data-notices style="white-space: pre-wrap"></pre></details>
+          <p><a href="./vendor/osmd/README.md" target="_blank" rel="noopener">OpenSheetMusicDisplay · Credits and licenses</a></p>
         </dialog>
         <dialog id="lilyPondExportDialog" aria-labelledby="lilyPondExportTitle">
           <form method="dialog">
@@ -853,19 +877,9 @@
             <fieldset><legend>Include channels</legend><div id="lilyPondChannels" style="max-height: 14em; overflow: auto"></div></fieldset>
             <p>Assumed 4/4 and a 1/16 grid. Key, meter and triplets are not detected.
               PCM, noise, timbres and modulation are omitted. Short notes may disappear; unknown pitches become rests.</p>
-            <button value="preview">Preview</button>
             <button value="export">Export .ly</button>
             <button value="cancel" formnovalidate>Cancel</button>
           </form>
-        </dialog>
-        <dialog id="lilyPondPreviewDialog" aria-labelledby="lilyPondPreviewTitle" style="width: min(95vw, 1100px); max-height: 90vh; overflow: auto">
-          <h3 id="lilyPondPreviewTitle">LilyPond preview</h3>
-          <p data-status role="status"></p>
-          <button type="button" data-cancel>Cancel rendering</button>
-          <form method="dialog" style="display:inline"><button>Close</button></form>
-          <p><a href="./vendor/lilypond/README.md" target="_blank" rel="noopener">LilyPond WASM · Hlöðver Sigurðsson · Credits and source</a></p>
-          <div data-pages></div>
-          <details><summary>Diagnostics</summary><pre data-logs style="white-space:pre-wrap"></pre></details>
         </dialog>
         <dialog id="midiExportDialog" aria-labelledby="midiExportTitle">
           <form method="dialog">
@@ -875,7 +889,7 @@
               <label for="midiBpmInput">BPM</label>
               <input id="midiBpmInput" type="number" min="4" max="999" step="any" value="120" required style="width: 5em" aria-describedby="midiBpmHelp">
             </p>
-            <p id="midiBpmHelp">Manual tempo, not automatically detected. Original note timing is preserved; BPM sets the beat grid.</p>
+            <p id="midiBpmHelp">Suggested tempo with manual adjustment. Original note timing is preserved; BPM sets the beat grid.</p>
             <button value="export">Export</button>
             <button value="cancel" formnovalidate>Cancel</button>
           </form>
@@ -897,6 +911,6 @@
       <div id="monitorToggles" class="monitor-toggles" role="group" aria-label="Playback channel and sound source toggles"></div>
     </section>
 
-    <script type="module" src="./vgm_analyzer.js?v=lilypond-preview-7"></script>
+    <script type="module" src="./vgm_analyzer.js?v=music-sheet-10"></script>
   </body>
 </html>

@@ -102,20 +102,31 @@ The following files and directories in this repository are ymfm-originated works
 - `examples/`
 - [GeneralInfo.md](https://github.com/aaronsgiles/ymfm/blob/main/GeneralInfo.md)
 
-### LilyPond score preview (VGM Analyzer)
+### LilyPond export
 
-The VGM Analyzer includes [lilypond-wasm](https://github.com/hlolli/lilypond-wasm)
-for score engraving. LilyPond and this port include **GPL-3.0-or-later** work;
-the bundled engine, worker, and modifications to GPL-covered code are not
-relicensed under the root BSD license. Dependencies retain their own licenses.
+The VGM Analyzer exports `.ly` files. Score preview uses MusicXML;
+the LilyPond WASM engine and preview sources have been removed from the Analyzer.
+The Analyzer, web runtime, and web runtime example packages do not include them.
 
-See the [LilyPond README](docs/vgm_analyzer/vendor/lilypond/README.md),
-[license](docs/vgm_analyzer/vendor/lilypond/LICENSE),
-[GPL text](docs/vgm_analyzer/vendor/lilypond/COPYING),
-[third-party notices](docs/vgm_analyzer/vendor/lilypond/THIRD_PARTY_NOTICES.md),
-and [corresponding source and local build modifications](docs/vgm_analyzer/vendor/lilypond/SOURCE.md).
-LilyPond is included in the Analyzer distribution; the web runtime and
-web runtime example packages do not include it.
+The preserved LilyPond WASM experiment, Safari fixes, build instructions, and demo
+are maintained separately in [kyorohiro/lilypond-wasm](https://github.com/kyorohiro/lilypond-wasm/tree/master/wasm).
+LilyPond and its WASM port include **GPL-3.0-or-later** work;
+the separate project retains the applicable licenses and third-party notices.
+
+### MusicXML preview trial
+
+The independent [MusicXML trial page](docs/vgm_analyzer/osmd.html) uses
+OpenSheetMusicDisplay 2.1.2 (BSD-3-Clause) and its bundled dependencies.
+See [credits and licenses](docs/vgm_analyzer/vendor/osmd/README.md).
+LilyPond `.ly` export remains available. Score preview uses MusicXML.
+To try locally, run `python3 -m http.server 38088 --directory docs` from the
+repository root and open `http://localhost:38088/vgm_analyzer/osmd.html`.
+Choose a VGM/VGZ file, select channels and BPM, then press Preview. Sample notes
+and MusicXML download are also available. The Analyzer includes an **Export Music Sheet** button with BPM/channel selection,
+score preview and MusicXML download, using the same dialog layout as LilyPond.
+The independent trial page is also packaged.
+MIDI and MML dialogs use the same suggested BPM as LilyPond; manual adjustments
+are preserved while reopening a dialog for the same track.
 
 ### Prior work and implementation references: libymfm.wasm
 

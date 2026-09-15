@@ -65,14 +65,13 @@ test('selected channels retain their original names and full score timing',()=>{
 test('dialog recommends BPM, excludes silent channels, retains edits and exports selection',async()=>{
  const {readFileSync}=await import('node:fs');const vm=await import('node:vm');
  const source=readFileSync(new URL('./vgm_analyzer.js',import.meta.url),'utf8');
- let open,submit,opts,clicked=0,scans=0,preview=null;
+ let open,submit,opts,clicked=0,scans=0;
  const inputs=[];
  const list={replaceChildren(){inputs.length=0;},append(label){inputs.push(label.input);},querySelectorAll(){return inputs.filter(i=>i.checked);}};
  const bpm={value:'120',reportValidity:()=>true};const help={};const anchor={click(){clicked++;}};
  const context=vm.createContext({
   currentBuffer:new Uint8Array(1),midiExportAvailable:true,lastLoadedFileName:'music.vgz',
   exportLilyPondButton:{addEventListener(_t,fn){open=fn;}},
-  lilyPondPreview:{show(text){preview=text;}},
   lilyPondExportDialog:{close(){},showModal(){},querySelector(){return {addEventListener(_t,fn){submit=fn;}};}},
   lilyPondBpmInput:bpm,
   analyzeLilyPondSource(){scans++;return {tempo:{bpm:137,estimated:true,candidates:[137]},channels:[{name:'CH1',notes:[note(0,4,60)]},{name:'CH2',notes:[]}]};},
@@ -85,8 +84,7 @@ test('dialog recommends BPM, excludes silent channels, retains edits and exports
  bpm.value='90';open();assert.equal(bpm.value,'90');assert.equal(scans,1);
  submit({submitter:{value:'cancel'}});assert.equal(clicked,0);
  submit({submitter:{value:'export'}});assert.equal(opts.bpm,90);assert.deepEqual(Array.from(opts.channelIndices),[0]);assert.equal(anchor.download,'music.ly');
- let previewPrevented=false;submit({submitter:{value:'preview'},preventDefault(){previewPrevented=true;}});
- assert.equal(preview,'score');assert.equal(previewPrevented,true);assert.equal(clicked,1);
+ submit({submitter:{value:'preview'}});assert.equal(clicked,1); // Preview is no longer an action.
  inputs[0].checked=false;let prevented=false;submit({submitter:{value:'export'},preventDefault(){prevented=true;}});assert.equal(prevented,true);assert.equal(clicked,1);
  context.currentBuffer=new Uint8Array(2);open();assert.equal(scans,2);assert.equal(bpm.value,137);
 });

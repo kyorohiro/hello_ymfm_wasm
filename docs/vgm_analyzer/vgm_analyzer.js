@@ -1,5 +1,6 @@
-import { createLilyPondPreview } from "./lilypond_preview.js?v=locals-7";
-import { analyzeLilyPondSource, exportLilyPondAnalysis } from "./vgm_lilypond.js";
+import { mountMusicSheet } from "./music_sheet.js";
+import { createExportTempoSettings } from "./export_tempo.js";
+import { analyzeLilyPondSource as analyzeScoreSource, exportLilyPondAnalysis } from "./vgm_lilypond.js";
 import {createOpmTfiFiles,OPM_TFI_NOTICE} from './opm_tfi.js';
 import {Oki6258AudioEngine,attachOki6258,validateOki6258Header} from '../js/okim6258audioengine.js';
 import {mountOpmInfo} from './opm_info.js?v=keyboard-layout-2';
@@ -2727,6 +2728,7 @@ function updatePlaybackButtons(state = {}) {
 
 // Keep the first playback-only chip boundary local until more features are implemented.
 function updateChipSupport() {
+  document.getElementById("exportMusicSheetButton").disabled = !currentBuffer || !midiExportAvailable;
   exportLilyPondButton.disabled = !currentBuffer || !midiExportAvailable;
   exportAllOpmButton.hidden = exportOpmButton.hidden = currentChipKind !== 'ym2151';
   exportAllOpmButton.disabled = exportOpmButton.disabled = currentChipKind !== 'ym2151' || !currentBuffer;
@@ -3123,6 +3125,7 @@ async function handleFile(file) {
   currentBuffer = null;
   exportMmlButton.disabled = true;
   exportMidiButton.disabled = true;
+  document.getElementById("exportMusicSheetButton").disabled = true;
   exportLilyPondButton.disabled = true;
   midiExportAvailable = false;
   lastParseInfo = null;
@@ -3714,6 +3717,10 @@ ensureNoteishRenderTimer();
 renderChannelMonitor();
 renderNoteishGrid();
 
+const exportTempo = createExportTempoSettings(analyzeScoreSource);
+const analyzeLilyPondSource = buffer => exportTempo.getAnalysis(buffer);
+mountMusicSheet({getTrack: () => ({buffer:currentBuffer, available:midiExportAvailable, fileName:lastLoadedFileName}), tempoSettings:exportTempo, setStatus});
+
 function downloadMml(format) {
   if (!currentBuffer || !mmlBpmInput.reportValidity()) return;
   if (currentChipKind === 'ym2151' ? format !== 'mxdrv' : !['mucom88','opnavoid'].includes(format)) return;
@@ -3738,7 +3745,10 @@ exportMmlButton.addEventListener("click", () => {
     if (button.value === 'cancel') continue;
     button.hidden = button.disabled = currentChipKind === 'ym2151' ? button.value !== 'mxdrv' : button.value === 'mxdrv';
   }
-  mmlFormatDialog.showModal();
+  try {
+    exportTempo.prepare(currentBuffer, mmlBpmInput, document.getElementById('mmlBpmHelp'), '34–999 BPM; used for sixteenth-note quantization.');
+    mmlFormatDialog.showModal();
+  } catch (error) { setStatus(`Tempo analysis failed: ${error.message}`); }
 });
 mmlFormatDialog.querySelector("form").addEventListener("submit", (event) => {
   const format = event.submitter?.value;
@@ -3747,7 +3757,10 @@ mmlFormatDialog.querySelector("form").addEventListener("submit", (event) => {
 
 exportMidiButton.addEventListener("click", () => {
   if (!currentBuffer) return;
-  midiExportDialog.showModal();
+  try {
+    exportTempo.prepare(currentBuffer, midiBpmInput, document.getElementById('midiBpmHelp'), 'Original note timing is preserved; BPM sets the beat grid.');
+    midiExportDialog.showModal();
+  } catch (error) { setStatus(`Tempo analysis failed: ${error.message}`); }
 });
 
 midiExportDialog.querySelector("form").addEventListener("submit", (event) => {
@@ -3769,7 +3782,6 @@ document.getElementById('chipSupportButton').addEventListener('click', () => {
   document.getElementById('chipSupportDialog').showModal();
 });
 
-const lilyPondPreview = createLilyPondPreview(document.getElementById("lilyPondPreviewDialog"));
 let lilyPondPrepared = null;
 let lilyPondSource = null;
 exportLilyPondButton.addEventListener("click", () => {
@@ -3799,18 +3811,12 @@ exportLilyPondButton.addEventListener("click", () => {
   } catch (error) { lilyPondSource = null; setStatus(`LilyPond analysis failed: ${error.message}`); }
 });
 lilyPondExportDialog.querySelector("form").addEventListener("submit", event => {
-  if (!["export", "preview"].includes(event.submitter?.value) || !currentBuffer || !lilyPondBpmInput.reportValidity()) return;
+  if (event.submitter?.value !== "export" || !currentBuffer || !lilyPondBpmInput.reportValidity()) return;
   try {
     if (lilyPondSource !== currentBuffer || !lilyPondPrepared) throw new Error('Reopen LilyPond export for the current track');
     const channelIndices = Array.from(document.getElementById('lilyPondChannels').querySelectorAll('input:checked'), input => Number(input.value));
     if (!channelIndices.length) { event.preventDefault(); setStatus('Select at least one channel for LilyPond export.'); return; }
     const result = exportLilyPondAnalysis(lilyPondPrepared, { bpm: Number(lilyPondBpmInput.value), fileName: lastLoadedFileName, channelIndices });
-    if (event.submitter?.value === "preview") {
-      event.preventDefault();
-      lilyPondExportDialog.close();
-      void lilyPondPreview.show(result.text);
-      return;
-    }
     const url = URL.createObjectURL(new Blob([result.text], { type: "text/plain;charset=utf-8" }));
     const anchor = document.createElement("a");
     anchor.href = url;
