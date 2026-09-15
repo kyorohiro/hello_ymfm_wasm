@@ -1,0 +1,19 @@
+lilypond-wasm
+Copyright (C) 2026 Hlöðver Sigurðsson
+
+Unless a file says otherwise, the original work in this repository is
+licensed under the GNU General Public License as published by the Free
+Software Foundation, either version 3 of the License, or (at your option)
+any later version.
+
+SPDX-License-Identifier: GPL-3.0-or-later
+
+This work is distributed in the hope that it will be useful, but WITHOUT
+ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+FITNESS FOR A PARTICULAR PURPOSE.
+
+The full GNU General Public License version 3 text is in COPYING.
+
+This repository builds, patches, or packages work owned by other authors.
+Those parts keep their own copyright and license terms. See
+THIRD_PARTY_NOTICES.md and third-party/licenses/ for details.

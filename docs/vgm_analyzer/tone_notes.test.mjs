@@ -32,3 +32,17 @@ test('SSG envelope shape retriggers, prescaler changes bend, end closes held not
   assert.equal(n[2].end,300);assert.ok(Math.abs(n[2].midi-n[1].midi-12)<1e-8);
   assert.ok([...r.warnings.keys()].some(x=>x.includes('envelope phase')));
 });
+
+test('PCM warnings are counted in extraction output without flooding the console',()=>{
+  const commands=[0xb1,0,1,0xb1,0,2,0x66];
+  const b=new Uint8Array(256+commands.length),v=new DataView(b.buffer);
+  b.set([86,103,109,32]);v.setUint32(8,0x171,true);v.setUint32(0x34,0xcc,true);
+  v.setUint32(0x0c,3579545,true);b.set(commands,256);
+  const original=console.warn, calls=[];
+  try {
+    console.warn=(...args)=>calls.push(args);
+    const result=extractToneNotes(b,'psg');
+    assert.equal(result.warnings.get('RF5C164 event requires a PCM playback target').count,2);
+    assert.equal(calls.length,0);
+  } finally { console.warn=original; }
+});

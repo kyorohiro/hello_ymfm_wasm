@@ -1,0 +1,28 @@
+{
+  "lilypondVersion": "2.27.2",
+  "guileVersion": "3.0.11",
+  "wasi": "preview1",
+  "wasm": "dist/lilypond.wasm",
+  "metadataSection": "lilypond-wasm.metadata",
+  "wasmExceptions": true,
+  "argv0": "/lilypond",
+  "writableDirectory": "/work",
+  "mounts": {
+    "/lilypond": "runtime/lilypond/2.27.2",
+    "/guile-ccache": "runtime/guile-ccache"
+  },
+  "environment": {
+    "FONTCONFIG_FILE": "/lilypond/fonts/fonts.conf",
+    "FONTCONFIG_PATH": "/lilypond/fonts",
+    "GUILE_AUTO_COMPILE": "0",
+    "GUILE_LOAD_PATH": "/guile",
+    "GUILE_LOAD_COMPILED_PATH": "/guile-ccache",
+    "GUILE_SYSTEM_PATH": "/guile",
+    "GUILE_SYSTEM_COMPILED_PATH": "/guile-ccache",
+    "HOME": "/work/home",
+    "LILYPOND_DATADIR": "/lilypond",
+    "LILYPOND_LIBDIR": "/work/lily-lib",
+    "TMPDIR": "/work/tmp",
+    "XDG_CACHE_HOME": "/work/cache"
+  }
+}

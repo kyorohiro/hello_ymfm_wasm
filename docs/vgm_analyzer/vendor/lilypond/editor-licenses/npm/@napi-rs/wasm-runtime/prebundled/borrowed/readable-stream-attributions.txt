@@ -1,0 +1,15 @@
+The readable-stream end-of-stream implementation says:
+
+  This module is a simplified port from the eos module written by
+  Mathias Buus for Node.js.
+
+The readable-stream pipeline implementation says:
+
+  Ported from https://github.com/mafintosh/pump with permission from the
+  author, Mathias Buus (@mafintosh).
+
+The fs-node-builtins internal errors implementation says that it was adapted
+from Node's internal/errors implementation.
+
+The get-intrinsic implementation says that part of its logic was adapted from
+lodash 4.17.15.

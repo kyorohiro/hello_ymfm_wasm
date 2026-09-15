@@ -17,10 +17,10 @@ export function describeToneNotes(state, clock) {
 }
 
 export function extractToneNotes(source, chipKind) {
-  const parser = new Ym2612VGM(source);
   let time = 0;
   const warnings = new Map();
-  const warn = text => warnings.set(text, {count:1});
+  const warn = text => warnings.set(text, {count:(warnings.get(text)?.count ?? 0) + 1});
+  const parser = new Ym2612VGM(source, { logger: { warn } });
   const groups = [];
   if (['ym2203','ym2608','ym2610'].includes(chipKind)) groups.push({kind:chipKind,state:createPsgMonitor(chipKind),clock:parser.header[`${chipKind}Clock`] & 0x3fffffff});
   if (parser.header.psgClock & 0x3fffffff) groups.push({kind:'psg',state:createPsgMonitor('ym2612'),clock:parser.header.psgClock & 0x3fffffff});

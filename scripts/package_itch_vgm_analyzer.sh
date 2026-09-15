@@ -41,6 +41,7 @@ fretboard.js
 fretboard_all.js
 vgm_midi.js
 vgm_lilypond.js
+lilypond_preview.js
 vgm_mml_music.js
 note_timeline.js
 note_timeline_view.js
@@ -265,6 +266,9 @@ This package includes two YM2612 engine options:
 
 Use ?engine=nuked only if you want the optional Nuked-OPN2 backend.
 EOF
+
+mkdir -p "${STAGE_DIR}/vendor/lilypond"
+cp -R "${ROOT_DIR}/docs/vgm_analyzer/vendor/lilypond/." "${STAGE_DIR}/vendor/lilypond/"
 
 # Make the analyzer runnable from itch.io as a standalone app.
 perl -0pi -e 's#<a class="link-button" href="\.\./index\.html">Back</a>##g' "${STAGE_DIR}/index.html"

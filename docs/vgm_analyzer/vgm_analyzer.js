@@ -1,3 +1,4 @@
+import { createLilyPondPreview } from "./lilypond_preview.js?v=cancel-5";
 import { analyzeLilyPondSource, exportLilyPondAnalysis } from "./vgm_lilypond.js";
 import {createOpmTfiFiles,OPM_TFI_NOTICE} from './opm_tfi.js';
 import {Oki6258AudioEngine,attachOki6258,validateOki6258Header} from '../js/okim6258audioengine.js';
@@ -3768,6 +3769,7 @@ document.getElementById('chipSupportButton').addEventListener('click', () => {
   document.getElementById('chipSupportDialog').showModal();
 });
 
+const lilyPondPreview = createLilyPondPreview(document.getElementById("lilyPondPreviewDialog"));
 let lilyPondPrepared = null;
 let lilyPondSource = null;
 exportLilyPondButton.addEventListener("click", () => {
@@ -3797,12 +3799,18 @@ exportLilyPondButton.addEventListener("click", () => {
   } catch (error) { lilyPondSource = null; setStatus(`LilyPond analysis failed: ${error.message}`); }
 });
 lilyPondExportDialog.querySelector("form").addEventListener("submit", event => {
-  if (event.submitter?.value !== "export" || !currentBuffer || !lilyPondBpmInput.reportValidity()) return;
+  if (!["export", "preview"].includes(event.submitter?.value) || !currentBuffer || !lilyPondBpmInput.reportValidity()) return;
   try {
     if (lilyPondSource !== currentBuffer || !lilyPondPrepared) throw new Error('Reopen LilyPond export for the current track');
     const channelIndices = Array.from(document.getElementById('lilyPondChannels').querySelectorAll('input:checked'), input => Number(input.value));
     if (!channelIndices.length) { event.preventDefault(); setStatus('Select at least one channel for LilyPond export.'); return; }
     const result = exportLilyPondAnalysis(lilyPondPrepared, { bpm: Number(lilyPondBpmInput.value), fileName: lastLoadedFileName, channelIndices });
+    if (event.submitter?.value === "preview") {
+      event.preventDefault();
+      lilyPondExportDialog.close();
+      void lilyPondPreview.show(result.text);
+      return;
+    }
     const url = URL.createObjectURL(new Blob([result.text], { type: "text/plain;charset=utf-8" }));
     const anchor = document.createElement("a");
     anchor.href = url;

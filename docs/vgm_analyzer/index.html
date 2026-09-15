@@ -853,9 +853,19 @@
             <fieldset><legend>Include channels</legend><div id="lilyPondChannels" style="max-height: 14em; overflow: auto"></div></fieldset>
             <p>Assumed 4/4 and a 1/16 grid. Key, meter and triplets are not detected.
               PCM, noise, timbres and modulation are omitted. Short notes may disappear; unknown pitches become rests.</p>
-            <button value="export">Export</button>
+            <button value="preview">Preview</button>
+            <button value="export">Export .ly</button>
             <button value="cancel" formnovalidate>Cancel</button>
           </form>
+        </dialog>
+        <dialog id="lilyPondPreviewDialog" aria-labelledby="lilyPondPreviewTitle" style="width: min(95vw, 1100px); max-height: 90vh; overflow: auto">
+          <h3 id="lilyPondPreviewTitle">LilyPond preview</h3>
+          <p data-status role="status"></p>
+          <button type="button" data-cancel>Cancel rendering</button>
+          <form method="dialog" style="display:inline"><button>Close</button></form>
+          <p><a href="./vendor/lilypond/README.md" target="_blank" rel="noopener">LilyPond WASM · Hlöðver Sigurðsson · Credits and source</a></p>
+          <div data-pages></div>
+          <details><summary>Diagnostics</summary><pre data-logs style="white-space:pre-wrap"></pre></details>
         </dialog>
         <dialog id="midiExportDialog" aria-labelledby="midiExportTitle">
           <form method="dialog">
@@ -887,6 +897,6 @@
       <div id="monitorToggles" class="monitor-toggles" role="group" aria-label="Playback channel and sound source toggles"></div>
     </section>
 
-    <script type="module" src="./vgm_analyzer.js?v=lilypond-2"></script>
+    <script type="module" src="./vgm_analyzer.js?v=lilypond-preview-5"></script>
   </body>
 </html>
