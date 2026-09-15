@@ -6,7 +6,7 @@ const source=readFileSync(new URL('./vgm_analyzer.js',import.meta.url),'utf8');
 function setup(chip) {
  const node=()=>({attrs:{},setAttribute(k,v){this.attrs[k]=v;},getAttribute(k){return this.attrs[k];}});
  const ctx={OPM_TFI_NOTICE:'Approximate conversion',currentBuffer:new Uint8Array(1),midiExportAvailable:true,currentChipKind:chip,noteishViewMode:'live',document:{getElementById:()=>node()},tfiInfo:{setVisible(){}},opmInfo:{setVisible(){}},sampleExplorer:{stop(){}},songTimeline:{active(){}},setStatus(){},requestNoteishRender(){},renderNoteishGrid(){}};
- for(const name of ['exportAllOpmButton','exportOpmButton','operatorInfoTab','noteishTab','tfiInfoTab','sampleTab','parsedOutputTab','exportMidiButton','exportMmlButton','exportSnapshotTfiButton','exportSnapshotVgiButton','exportSnapshotButton','exportAllTfiButton','exportAllVgiButton','opnMonitorRoot','opmMonitorRoot','ayMonitorRoot','samplePanel','operatorInfoPanel','parsedOutputPanel','noteishPanel'])ctx[name]=node();
+ for(const name of ['exportAllOpmButton','exportOpmButton','operatorInfoTab','noteishTab','tfiInfoTab','sampleTab','parsedOutputTab','exportMidiButton','exportLilyPondButton','exportMmlButton','exportSnapshotTfiButton','exportSnapshotVgiButton','exportSnapshotButton','exportAllTfiButton','exportAllVgiButton','opnMonitorRoot','opmMonitorRoot','ayMonitorRoot','samplePanel','operatorInfoPanel','parsedOutputPanel','noteishPanel'])ctx[name]=node();
  vm.createContext(ctx);
  vm.runInContext(source.slice(source.indexOf('function updateChipSupport()'),source.indexOf('function buildParseInfo(')),ctx);
  vm.runInContext(source.slice(source.indexOf('function setOutputTab('),source.indexOf('operatorInfoTab.addEventListener("click"')),ctx);
@@ -33,4 +33,12 @@ test('OPM controls only enable for loaded YM2151 files',()=>{const c=setup('ym21
 test('YM2151 TFI exports enable with a file, without enabling VGI',()=>{
  const c=setup('ym2151');c.updateChipSupport();assert.equal(c.exportAllTfiButton.disabled,false);assert.equal(c.exportSnapshotTfiButton.disabled,false);assert.equal(c.exportAllVgiButton.disabled,true);assert.equal(c.exportSnapshotVgiButton.disabled,true);
  c.currentBuffer=null;c.updateChipSupport();assert.equal(c.exportAllTfiButton.disabled,true);assert.equal(c.exportSnapshotTfiButton.disabled,true);
+});
+
+test('LilyPond enables for extracted notes and disables after clearing the source',()=>{
+ for (const chip of ['ym2151','ym2612']) {
+  const c=setup(chip);c.updateChipSupport();assert.equal(c.exportLilyPondButton.disabled,false);
+  c.currentBuffer=null;c.updateChipSupport();assert.equal(c.exportLilyPondButton.disabled,true);
+  c.currentBuffer=new Uint8Array(1);c.midiExportAvailable=false;c.updateChipSupport();assert.equal(c.exportLilyPondButton.disabled,true);
+ }
 });

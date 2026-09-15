@@ -1,3 +1,4 @@
+import { analyzeLilyPondSource, exportLilyPondAnalysis } from "./vgm_lilypond.js";
 import {createOpmTfiFiles,OPM_TFI_NOTICE} from './opm_tfi.js';
 import {Oki6258AudioEngine,attachOki6258,validateOki6258Header} from '../js/okim6258audioengine.js';
 import {mountOpmInfo} from './opm_info.js?v=keyboard-layout-2';
@@ -141,6 +142,9 @@ const exportAllVgiButton = document.getElementById("exportAllVgiButton");
 let midiExportAvailable = false;
 const exportAllOpmButton = document.getElementById('exportAllOpmButton');
 const exportOpmButton = document.getElementById('exportOpmButton');
+const exportLilyPondButton = document.getElementById("exportLilyPondButton");
+const lilyPondExportDialog = document.getElementById("lilyPondExportDialog");
+const lilyPondBpmInput = document.getElementById("lilyPondBpmInput");
 const exportMidiButton = document.getElementById("exportMidiButton");
 const exportMmlButton = document.getElementById("exportMmlButton");
 const mmlBpmInput = document.getElementById("mmlBpmInput");
@@ -2722,6 +2726,7 @@ function updatePlaybackButtons(state = {}) {
 
 // Keep the first playback-only chip boundary local until more features are implemented.
 function updateChipSupport() {
+  exportLilyPondButton.disabled = !currentBuffer || !midiExportAvailable;
   exportAllOpmButton.hidden = exportOpmButton.hidden = currentChipKind !== 'ym2151';
   exportAllOpmButton.disabled = exportOpmButton.disabled = currentChipKind !== 'ym2151' || !currentBuffer;
   tfiInfoTab.textContent = currentChipKind === 'ym2151' ? 'OPM Info' : 'Tfi info';
@@ -3117,6 +3122,7 @@ async function handleFile(file) {
   currentBuffer = null;
   exportMmlButton.disabled = true;
   exportMidiButton.disabled = true;
+  exportLilyPondButton.disabled = true;
   midiExportAvailable = false;
   lastParseInfo = null;
   playButton.disabled = true;
@@ -3760,4 +3766,49 @@ midiExportDialog.querySelector("form").addEventListener("submit", (event) => {
 // A native dialog keeps keyboard focus inside the support table and supports Escape.
 document.getElementById('chipSupportButton').addEventListener('click', () => {
   document.getElementById('chipSupportDialog').showModal();
+});
+
+let lilyPondPrepared = null;
+let lilyPondSource = null;
+exportLilyPondButton.addEventListener("click", () => {
+  if (!currentBuffer || !midiExportAvailable) return;
+  try {
+    if (lilyPondSource !== currentBuffer) {
+      lilyPondPrepared = analyzeLilyPondSource(currentBuffer);
+      lilyPondSource = currentBuffer;
+      lilyPondBpmInput.value = lilyPondPrepared.tempo.bpm;
+      const help = document.getElementById('lilyPondTempoHelp');
+      help.textContent = lilyPondPrepared.tempo.estimated
+        ? `Suggested: ${lilyPondPrepared.tempo.bpm} BPM. Candidates: ${lilyPondPrepared.tempo.candidates.join(', ')}. Estimated from key-on intervals; half/double tempo may also fit. You can change this value.`
+        : 'No reliable tempo estimate. Default: 120 BPM. You can change this value.';
+      const list = document.getElementById('lilyPondChannels');
+      list.replaceChildren();
+      lilyPondPrepared.channels.forEach((channel, index) => {
+        const count = channel.notes.filter(n => n.midi !== null && Number.isFinite(n.midi) && n.end > n.start).length;
+        const label = document.createElement('label');
+        label.style.display = 'block';
+        const input = document.createElement('input');
+        input.type = 'checkbox'; input.value = String(index); input.checked = count > 0;
+        label.append(input, document.createTextNode(` ${channel.name} (${count} pitch intervals)`));
+        list.append(label);
+      });
+    }
+    lilyPondExportDialog.showModal();
+  } catch (error) { lilyPondSource = null; setStatus(`LilyPond analysis failed: ${error.message}`); }
+});
+lilyPondExportDialog.querySelector("form").addEventListener("submit", event => {
+  if (event.submitter?.value !== "export" || !currentBuffer || !lilyPondBpmInput.reportValidity()) return;
+  try {
+    if (lilyPondSource !== currentBuffer || !lilyPondPrepared) throw new Error('Reopen LilyPond export for the current track');
+    const channelIndices = Array.from(document.getElementById('lilyPondChannels').querySelectorAll('input:checked'), input => Number(input.value));
+    if (!channelIndices.length) { event.preventDefault(); setStatus('Select at least one channel for LilyPond export.'); return; }
+    const result = exportLilyPondAnalysis(lilyPondPrepared, { bpm: Number(lilyPondBpmInput.value), fileName: lastLoadedFileName, channelIndices });
+    const url = URL.createObjectURL(new Blob([result.text], { type: "text/plain;charset=utf-8" }));
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `${lastLoadedFileName.replace(/\.[^.]+$/, "") || "analysis"}.ly`;
+    anchor.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    setStatus(`Exported LilyPond: ${result.noteCount} notes, ${result.skippedNotes} omitted intervals. 1/16 grid, assumed 4/4. PCM/noise/modulation omitted; see comments in the .ly file.`);
+  } catch (error) { setStatus(`LilyPond export failed: ${error.message}`); }
 });
