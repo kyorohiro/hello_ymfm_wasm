@@ -18,10 +18,12 @@ export function mountMusicSheet({getTrack, tempoSettings, setStatus}) {
   const $ = id => document.getElementById(id);
   const settings = $('musicSheetExportDialog'), preview = $('musicSheetPreviewDialog');
   const bpm = $('musicSheetBpmInput'), list = $('musicSheetChannels');
-  const status = preview.querySelector('[data-status]'), pages = preview.querySelector('[data-pages]');
-  let source, analysis, fileName, renderer, generation = 0;
-  preview.addEventListener('close', () => { generation++; });
-  $('exportMusicSheetButton').addEventListener('click', () => {
+  const panel = $('sheetMusicPanel');
+  let target = preview, panelSource;
+  const renderers = new Map();
+  let source, analysis, fileName, generation = 0;
+  preview.addEventListener('close', () => { if (target === preview) generation++; });
+  function openSettings(destination) {
     const track = getTrack(); if (!track.buffer || !track.available) return;
     try {
       if (source !== track.buffer) {
@@ -36,9 +38,11 @@ export function mountMusicSheet({getTrack, tempoSettings, setStatus}) {
           label.append(input, document.createTextNode(` ${ch.name} (${count} pitch intervals)`)); list.append(label);
         });
       }
-      settings.showModal();
+      target = destination; settings.showModal();
     } catch(e) { setStatus(`Music sheet analysis failed: ${e.message}`); }
-  });
+  }
+  $('exportMusicSheetButton').addEventListener('click', () => openSettings(preview));
+  $('showSheetMusicButton').addEventListener('click', () => openSettings(panel));
   settings.querySelector('form').addEventListener('submit', async event => {
     const action = event.submitter?.value;
     if (!['preview','export'].includes(action)) return;
@@ -56,15 +60,37 @@ export function mountMusicSheet({getTrack, tempoSettings, setStatus}) {
         setStatus(`Exported MusicXML: ${result.noteCount} notes, ${result.skippedNotes} omitted intervals.`); return;
       }
       settings.close(); const job = ++generation;
-      renderer?.clear(); pages.replaceChildren(); renderer = null;
-      status.textContent = 'Loading music sheet…'; preview.showModal();
-      preview.querySelector('[data-notices]').textContent = result.warnings.join('\n');
+      const container = target, trackSource = source;
+      const status = container.querySelector('[data-status]'), pages = container.querySelector('[data-pages]');
+      renderers.get(container)?.clear(); renderers.delete(container); pages.replaceChildren();
+      if (container === panel) panelSource = source;
+      const active = () => job === generation && trackSource === getTrack().buffer && (container !== preview || preview.open);
+      status.textContent = 'Loading music sheet…'; if (container === preview) preview.showModal();
+      container.querySelector('[data-notices]').textContent = result.warnings.join('\n');
       try {
-        const library = await loadRenderer(); if (job !== generation || !preview.open) return;
-        renderer = new library.OpenSheetMusicDisplay(pages, {autoResize:false, backend:'svg', autoBeam:true, autoBeamOptions:{groups:[[1,4]]}});
-        await renderer.load(result.text); if (job !== generation || !preview.open) return;
-        renderer.render(); status.textContent = `${result.noteCount} notes · ${result.skippedNotes} omitted intervals`;
-      } catch(e) { if (job === generation && preview.open) status.textContent = `Preview failed: ${e.message}. MusicXML export is still available.`; }
+        const library = await loadRenderer(); if (!active()) return;
+        const renderer = new library.OpenSheetMusicDisplay(pages, {autoResize:false, backend:'svg', autoBeam:true, autoBeamOptions:{groups:[[1,4]]}});
+        await renderer.load(result.text); if (!active()) return;
+        renderers.set(container, renderer);
+        if (container !== panel || !panel.hidden) renderer.render(); status.textContent = `${result.noteCount} notes · ${result.skippedNotes} omitted intervals`;
+      } catch(e) { if (active()) status.textContent = `Preview failed: ${e.message}. MusicXML export is still available.`; }
     } catch(e) { setStatus(`Music sheet export failed: ${e.message}`); }
   });
+  return {setVisible(visible) {
+    if (visible) renderers.get(panel)?.render();
+  }, updateTrack() {
+    if (source && source !== getTrack().buffer) {
+      generation++;
+      if (preview.open) preview.close();
+      if (settings.open) settings.close();
+      source = undefined;
+    }
+    if (panelSource && panelSource !== getTrack().buffer) {
+      renderers.get(panel)?.clear(); renderers.delete(panel);
+      panel.querySelector('[data-pages]').replaceChildren();
+      panel.querySelector('[data-notices]').textContent = '';
+      panel.querySelector('[data-status]').textContent = 'Press Show Sheet Music to generate the current track.';
+      panelSource = undefined;
+    }
+  }};
 }

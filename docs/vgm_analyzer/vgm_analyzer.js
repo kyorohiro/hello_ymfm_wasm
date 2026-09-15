@@ -1,4 +1,4 @@
-import { mountMusicSheet } from "./music_sheet.js";
+import { mountMusicSheet } from "./music_sheet.js?v=tab-1";
 import { createExportTempoSettings } from "./export_tempo.js";
 import { analyzeLilyPondSource as analyzeScoreSource, exportLilyPondAnalysis } from "./vgm_lilypond.js";
 import {createOpmTfiFiles,OPM_TFI_NOTICE} from './opm_tfi.js';
@@ -187,6 +187,9 @@ const parsedOutputTab = document.getElementById("parsedOutputTab");
 const noteishTab = document.getElementById("noteishTab");
 const operatorInfoPanel = document.getElementById("operatorInfoPanel");
 const parsedOutputPanel = document.getElementById("parsedOutputPanel");
+let musicSheet;
+const sheetMusicTab = document.getElementById("sheetMusicTab");
+const sheetMusicPanel = document.getElementById("sheetMusicPanel");
 const noteishPanel = document.getElementById("noteishPanel");
 const noteishOverview = document.getElementById("noteishOverview");
 const noteishGrid = document.getElementById("noteishGrid");
@@ -2731,6 +2734,9 @@ function updatePlaybackButtons(state = {}) {
 
 // Keep the first playback-only chip boundary local until more features are implemented.
 function updateChipSupport() {
+  sheetMusicTab.disabled = !currentBuffer || !midiExportAvailable;
+  document.getElementById('showSheetMusicButton').disabled = sheetMusicTab.disabled;
+  musicSheet?.updateTrack();
   document.getElementById("exportMusicSheetButton").disabled = !currentBuffer || !midiExportAvailable;
   exportLilyPondButton.disabled = !currentBuffer || !midiExportAvailable;
   exportAllOpmButton.hidden = exportOpmButton.hidden = currentChipKind !== 'ym2151';
@@ -2763,6 +2769,7 @@ function updateChipSupport() {
   opnMonitorRoot.hidden = ay || currentChipKind === 'ym2151';
   opmMonitorRoot.hidden = currentChipKind !== 'ym2151';
   ayMonitorRoot.hidden = !ay;
+  if (sheetMusicTab.getAttribute('aria-selected') === 'true' && !sheetMusicTab.disabled) return;
   if (['okim6258', 'msx', 'y8950', 'ymf278b', 'ym3526', 'ym3812', 'ymf262', 'ym2413'].includes(currentChipKind)) setOutputTab('parsed-output');
   else if ((ay || (currentChipKind === 'ym2151' && noteishTab.getAttribute('aria-selected') !== 'true' && tfiInfoTab.getAttribute('aria-selected') !== 'true')) && operatorInfoTab.getAttribute('aria-selected') !== 'true' && parsedOutputTab.getAttribute('aria-selected') !== 'true') setOutputTab('operator-info');
 }
@@ -3595,10 +3602,14 @@ tfiInfoTab.addEventListener('click', () => setOutputTab('tfi-info'));
 window.addEventListener('pagehide', event => { if (!event.persisted) { void tfiInfo.dispose(); void opmInfo.dispose(); } });
 
 function setOutputTab(tabName) {
-  if ((["okim6258", "msx", "y8950", "ymf278b", "ym3526", "ym3812", "ymf262", "ym2413"].includes(currentChipKind) && tabName !== "parsed-output") || (currentChipKind === "ay8910" && !["operator-info", "parsed-output"].includes(tabName)) || (currentChipKind === "ym2151" && !["operator-info", "parsed-output", "noteish", "tfi-info"].includes(tabName))) {
+  if (!(tabName === "sheet-music" && currentBuffer && midiExportAvailable) && ((["okim6258", "msx", "y8950", "ymf278b", "ym3526", "ym3812", "ymf262", "ym2413"].includes(currentChipKind) && tabName !== "parsed-output") || (currentChipKind === "ay8910" && !["operator-info", "parsed-output"].includes(tabName)) || (currentChipKind === "ym2151" && !["operator-info", "parsed-output", "noteish", "tfi-info"].includes(tabName)))) {
     setStatus('Analysis and instrument editing: Support coming soon.');
     tabName = "parsed-output";
   }
+  sheetMusicPanel.hidden = tabName !== 'sheet-music';
+  musicSheet?.setVisible(tabName === 'sheet-music');
+  sheetMusicTab.setAttribute('aria-selected', String(tabName === 'sheet-music'));
+  sheetMusicTab.tabIndex = tabName === 'sheet-music' ? 0 : -1;
   tfiInfo.setVisible(tabName === "tfi-info" && currentChipKind !== "ym2151");
   opmInfo.setVisible(tabName === "tfi-info" && currentChipKind === "ym2151");
   tfiInfoTab.setAttribute("aria-controls", currentChipKind === "ym2151" ? "opmInfoPanel" : "tfiInfoPanel");
@@ -3634,6 +3645,8 @@ function setOutputTab(tabName) {
     renderNoteishGrid();
   }
 }
+
+sheetMusicTab.addEventListener('click', () => setOutputTab('sheet-music'));
 
 operatorInfoTab.addEventListener("click", () => {
   setOutputTab("operator-info");
@@ -3722,7 +3735,7 @@ renderNoteishGrid();
 
 const exportTempo = createExportTempoSettings(analyzeScoreSource);
 const analyzeLilyPondSource = buffer => exportTempo.getAnalysis(buffer);
-mountMusicSheet({getTrack: () => ({buffer:currentBuffer, available:midiExportAvailable, fileName:lastLoadedFileName}), tempoSettings:exportTempo, setStatus});
+musicSheet = mountMusicSheet({getTrack: () => ({buffer:currentBuffer, available:midiExportAvailable, fileName:lastLoadedFileName}), tempoSettings:exportTempo, setStatus});
 
 function downloadMml(format) {
   if (!currentBuffer || !mmlBpmInput.reportValidity()) return;

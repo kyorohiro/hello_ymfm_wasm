@@ -5,11 +5,11 @@ import {readFileSync} from 'node:fs';
 const source=readFileSync(new URL('./vgm_analyzer.js',import.meta.url),'utf8');
 function setup(chip) {
  const node=()=>({attrs:{},setAttribute(k,v){this.attrs[k]=v;},getAttribute(k){return this.attrs[k];}});
- const ctx={OPM_TFI_NOTICE:'Approximate conversion',currentBuffer:new Uint8Array(1),midiExportAvailable:true,currentChipKind:chip,noteishViewMode:'live',document:{getElementById:()=>node()},tfiInfo:{setVisible(){}},opmInfo:{setVisible(){}},sampleExplorer:{stop(){}},songTimeline:{active(){}},setStatus(){},requestNoteishRender(){},renderNoteishGrid(){}};
- for(const name of ['exportAllOpmButton','exportOpmButton','operatorInfoTab','noteishTab','tfiInfoTab','sampleTab','parsedOutputTab','exportMidiButton','exportLilyPondButton','exportMmlButton','exportSnapshotTfiButton','exportSnapshotVgiButton','exportSnapshotButton','exportAllTfiButton','exportAllVgiButton','opnMonitorRoot','opmMonitorRoot','ayMonitorRoot','samplePanel','operatorInfoPanel','parsedOutputPanel','noteishPanel'])ctx[name]=node();
+ const ctx={musicSheet:undefined,OPM_TFI_NOTICE:'Approximate conversion',currentBuffer:new Uint8Array(1),midiExportAvailable:true,currentChipKind:chip,noteishViewMode:'live',document:{getElementById:()=>node()},tfiInfo:{setVisible(){}},opmInfo:{setVisible(){}},sampleExplorer:{stop(){}},songTimeline:{active(){}},setStatus(){},requestNoteishRender(){},renderNoteishGrid(){}};
+ for(const name of ['sheetMusicTab','sheetMusicPanel','exportAllOpmButton','exportOpmButton','operatorInfoTab','noteishTab','tfiInfoTab','sampleTab','parsedOutputTab','exportMidiButton','exportLilyPondButton','exportMmlButton','exportSnapshotTfiButton','exportSnapshotVgiButton','exportSnapshotButton','exportAllTfiButton','exportAllVgiButton','opnMonitorRoot','opmMonitorRoot','ayMonitorRoot','samplePanel','operatorInfoPanel','parsedOutputPanel','noteishPanel'])ctx[name]=node();
  vm.createContext(ctx);
  vm.runInContext(source.slice(source.indexOf('function updateChipSupport()'),source.indexOf('function buildParseInfo(')),ctx);
- vm.runInContext(source.slice(source.indexOf('function setOutputTab('),source.indexOf('operatorInfoTab.addEventListener("click"')),ctx);
+ vm.runInContext(source.slice(source.indexOf('function setOutputTab('),source.indexOf("sheetMusicTab.addEventListener('click'")),ctx);
  return ctx;
 }
 for(const chip of ['ym2151','ay8910'])test(`${chip} Operator Info survives repeated playback UI updates`,()=>{
@@ -40,5 +40,17 @@ test('LilyPond enables for extracted notes and disables after clearing the sourc
   const c=setup(chip);c.updateChipSupport();assert.equal(c.exportLilyPondButton.disabled,false);
   c.currentBuffer=null;c.updateChipSupport();assert.equal(c.exportLilyPondButton.disabled,true);
   c.currentBuffer=new Uint8Array(1);c.midiExportAvailable=false;c.updateChipSupport();assert.equal(c.exportLilyPondButton.disabled,true);
+ }
+});
+
+test('Sheet Music stays selected for OPN and OPM during playback updates', () => {
+ for (const chip of ['ym2610', 'ym2151']) {
+  const c = setup(chip); c.updateChipSupport(); c.setOutputTab('sheet-music');
+  for (let i=0;i<5;i++) c.updateChipSupport();
+  assert.equal(c.sheetMusicTab.getAttribute('aria-selected'), 'true');
+  assert.equal(c.sheetMusicPanel.hidden, false);
+  assert.equal(c.noteishPanel.hidden, true);
+  c.setOutputTab('operator-info'); assert.equal(c.sheetMusicPanel.hidden, true);
+  c.currentBuffer=null;c.updateChipSupport();assert.equal(c.sheetMusicTab.disabled,true);
  }
 });

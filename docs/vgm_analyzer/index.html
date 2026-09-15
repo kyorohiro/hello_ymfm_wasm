@@ -730,6 +730,7 @@
           >
             Note-ish
           </button>
+          <button id="sheetMusicTab" class="tab-button" type="button" role="tab" aria-selected="false" tabindex="-1" aria-controls="sheetMusicPanel" disabled>Sheet Music</button>
           <button id="tfiInfoTab" class="tab-button" type="button" role="tab" aria-selected="false" tabindex="-1" aria-controls="tfiInfoPanel">Tfi info</button>
           <button id="sampleExplorerTab" class="tab-button" type="button" role="tab" aria-selected="false" tabindex="-1" aria-controls="sampleExplorerPanel">Sample Explorer</button>
         </div>
@@ -748,6 +749,16 @@
           <p id="pcmMonitorStatus" class="noteish-help">No file loaded.</p>
           <p id="pcmMonitorHelp" class="noteish-help" hidden>Register settings at the generated audio position, not live audio levels. Channel ON is the enable setting; output also depends on Chip ON, volume, pan, sample data and PCM mute.</p>
           <div id="pcmMonitorGrid" class="channel-grid" hidden></div>
+        </section>
+
+        <section id="sheetMusicPanel" class="tab-panel" role="tabpanel" aria-labelledby="sheetMusicTab" hidden>
+          <h2>Sheet Music</h2>
+          <button id="showSheetMusicButton" type="button" disabled>Show Sheet Music</button>
+          <p>Choose BPM and channels to generate the score. The renderer loads only when you press Preview.</p>
+          <p data-status role="status">Load a supported VGM, then press Show Sheet Music.</p>
+          <div data-pages style="background: white; overflow: auto"></div>
+          <details><summary>Transcription notes</summary><pre data-notices style="white-space: pre-wrap"></pre></details>
+          <p>Rendered with OpenSheetMusicDisplay. <a href="./vendor/osmd/README.md">Credits and licenses</a></p>
         </section>
 
         <section id="noteishPanel" class="tab-panel" role="tabpanel" aria-labelledby="noteishTab" hidden>
@@ -911,6 +922,6 @@
       <div id="monitorToggles" class="monitor-toggles" role="group" aria-label="Playback channel and sound source toggles"></div>
     </section>
 
-    <script type="module" src="./vgm_analyzer.js?v=opn-patch-zip-12"></script>
+    <script type="module" src="./vgm_analyzer.js?v=sheet-music-tab-13"></script>
   </body>
 </html>
