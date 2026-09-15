@@ -38,3 +38,5 @@ The adapter returns the same code directly for these descriptors, preserving the
 These three probes also occur in successful engravings and are not evidence that engraving failed.
 
 The worker error message also includes `Error.stack` so browser-only failures can be diagnosed in the preview.
+
+Local runtime pack patch: `runtime_pack.js` accepts gzip bytes or already decoded bytes (observed on itch.io), validates the unpacked length, and is used by the worker.

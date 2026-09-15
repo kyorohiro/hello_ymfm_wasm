@@ -1,6 +1,6 @@
 // Run each engraving in its own worker so closing/cancelling releases WASM memory.
 export function renderLilyPond(source, { onProgress = () => {}, onDiagnostic = () => {}, signal,
-  workerFactory = () => new Worker(new URL('./vendor/lilypond/lilypond.worker.js?v=stack-2', import.meta.url), { type: 'module' }),
+  workerFactory = () => new Worker(new URL('./vendor/lilypond/lilypond.worker.js?v=pack-3', import.meta.url), { type: 'module' }),
   timeoutMs = 180000 } = {}) {
   return new Promise((resolve, reject) => {
     if (signal?.aborted) { reject(new Error('Rendering cancelled')); return; }

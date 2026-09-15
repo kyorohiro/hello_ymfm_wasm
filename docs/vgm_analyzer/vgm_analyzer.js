@@ -1,4 +1,4 @@
-import { createLilyPondPreview } from "./lilypond_preview.js?v=cancel-5";
+import { createLilyPondPreview } from "./lilypond_preview.js?v=pack-6";
 import { analyzeLilyPondSource, exportLilyPondAnalysis } from "./vgm_lilypond.js";
 import {createOpmTfiFiles,OPM_TFI_NOTICE} from './opm_tfi.js';
 import {Oki6258AudioEngine,attachOki6258,validateOki6258Header} from '../js/okim6258audioengine.js';
