@@ -18,7 +18,13 @@ To reproduce these local adaptations, extract the pinned npm archive and run fro
 
 ```sh
 python3 scripts/pack_lilypond_runtime.py /path/to/extracted/package docs/vgm_analyzer/vendor/lilypond
+python3 scripts/optimize_lilypond_wasm.py /path/to/extracted/package/dist/lilypond.wasm docs/vgm_analyzer/vendor/lilypond/dist/lilypond.wasm --wasm-opt /path/to/binaryen-version_132/bin/wasm-opt
 ```
+
+The distributed engine is post-processed with Binaryen 132's coalesce-locals
+and vacuum passes. The formerly failing function 6130 uses 21 local slots
+instead of 420. The input's WebAssembly feature set is preserved; the
+linear-memory stack remains 8 MiB. See SOURCE.md for input/output hashes.
 
 The application starts a fresh worker for each preview, sends the generated `.ly` source, and displays the resulting SVG pages as images.
 No score is uploaded. Runtime assets are served from the same application. The initial assets total approximately 72 MiB before HTTP compression; browser caching depends on hosting settings.

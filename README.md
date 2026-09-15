@@ -92,7 +92,7 @@ A small exported Cassette or a minimal code example helps us reproduce the issue
 
 ## License and Attribution
 
-This repository uses the BSD 3-Clause License for both the upstream ymfm-derived parts and the original files added in this project.
+Unless otherwise noted, this repository uses the BSD 3-Clause License for both the upstream ymfm-derived parts and the original files added in this project. Vendored components and modifications to them retain their applicable licenses.
 It uses [ymfm](https://github.com/aaronsgiles/ymfm) by Aaron Giles, and this repository also includes original work by kyorohiro under the same BSD 3-Clause License.
 This repository includes the license text in `LICENSE`, and the packaged release files also include `LICENSE`.
 
@@ -101,6 +101,21 @@ The following files and directories in this repository are ymfm-originated works
 - `src/` except `src/segapsg.h` and `src/segapsg.cpp`
 - `examples/`
 - [GeneralInfo.md](https://github.com/aaronsgiles/ymfm/blob/main/GeneralInfo.md)
+
+### LilyPond score preview (VGM Analyzer)
+
+The VGM Analyzer includes [lilypond-wasm](https://github.com/hlolli/lilypond-wasm)
+for score engraving. LilyPond and this port include **GPL-3.0-or-later** work;
+the bundled engine, worker, and modifications to GPL-covered code are not
+relicensed under the root BSD license. Dependencies retain their own licenses.
+
+See the [LilyPond README](docs/vgm_analyzer/vendor/lilypond/README.md),
+[license](docs/vgm_analyzer/vendor/lilypond/LICENSE),
+[GPL text](docs/vgm_analyzer/vendor/lilypond/COPYING),
+[third-party notices](docs/vgm_analyzer/vendor/lilypond/THIRD_PARTY_NOTICES.md),
+and [corresponding source and local build modifications](docs/vgm_analyzer/vendor/lilypond/SOURCE.md).
+LilyPond is included in the Analyzer distribution; the web runtime and
+web runtime example packages do not include it.
 
 ### Prior work and implementation references: libymfm.wasm
 

@@ -93,3 +93,18 @@ Worker の Error.stack を Diagnostics に残す。WASM 本体の再帰処理の
 
 ユーザー確認: 開発者ツールを閉じて再試行した後、Preview 表示成功の報告あり。
 生成終了後に Cancel rendering が残っていた UI を修正し、生成中だけ表示する。
+
+### Safari 向けスタック消費の低減 (2026-09-15)
+
+元の WASM の function 6130 はローカル変数を420個持つ。
+Binaryen 132 の `--coalesce-locals --vacuum` で21個に削減した。
+`--all-features` は新しい出力形式まで有効にするため使わず、入力の機能を維持する。
+8 MiB の線形メモリ内スタックのサイズ変更はしていない。
+
+修正版で Node `--liftoff-only` の最小4音が1ページ、Jungle 全9段が8ページの
+SVG生成に成功。変更前はどちらもスタック上限で失敗していた。
+通常 Node の最小4音も成功。これは Safari 自体での成功確認とは区別する。
+Safari の画面操作はユーザー操作と競合したため、実画面確認は保留。
+
+再生成手順は `scripts/optimize_lilypond_wasm.py` と vendor の SOURCE.md に記録。
+WASM URL と JS のバージョンを更新し、以前のバイナリのキャッシュと区別する。

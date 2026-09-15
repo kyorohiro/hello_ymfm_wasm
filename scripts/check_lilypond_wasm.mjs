@@ -20,7 +20,7 @@ globalThis.self = {
   },
 };
 globalThis.fetch = async input => new Response(await readFile(new URL(input)), {
-  headers: { 'Content-Type': String(input).endsWith('.wasm') ? 'application/wasm' : 'application/octet-stream' },
+  headers: { 'Content-Type': new URL(input).pathname.endsWith('.wasm') ? 'application/wasm' : 'application/octet-stream' },
 });
 await import(url.href);
 await handler({ data: { type: 'render', requestId: 1,
