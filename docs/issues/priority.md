@@ -221,3 +221,32 @@ TFIの既存block/fnum経路は維持。
 元曲の再生とは独立。関連20テスト成功（共有鍵盤の操作・初期化中の解放・音の置き換え、
 OPM配送・クロック換算・連続音声の停止、TFIとタブ選択の回帰、実WASM発音）。
 配布版とZIPを再生成。ブラウザーでの操作・聴感と負荷時の連続再生は未確認。
+
+## OKIM6258 Play 対応
+
+MAME `70743c6fb2602a5c2666c679b618706eabfca2ad` のBarry Rodewald氏による
+OKIM6258デコーダーをC++/WASMへ適合し、AnalyzerのPlayに追加。
+先行するlibymfm.wasm（Hiromasa Tanaka氏）のRust移植を参考資料として確認し、
+READMEのLicense and Attributionおよび取り込み元の記録に明記した。
+デコーダーコード自体はMAMEから取得。原本とBSD-3-Clause表記を保存。
+
+- ヘッダーのクロック・フラグ（0x90/0x94）、直接書き込み0xB7に対応。
+- データバンク0x04とDACストリーム宛先0x17を、既存ストリーム処理へ接続。
+- 4-bit ADPCM、10/12-bit出力、左右出力、VGM拡張のクロック・分周変更に対応。
+- 単独再生と既存エンジンへの混合に対応。YM2151併用は実コア＋合成VGMで検証。
+- ROMの持ち込みは不要。サンプルデータはVGMの書き込み・ストリームから供給。
+- 3-bit/複数インスタンスのヘッダー設定は画面に再生エラー。
+  第2チップ宛て命令・ストリームは警告して省略。録音は未対応。
+- 音色分析・Note-ish・MIDI/MMLへのADPCM取り込みは対象外。
+
+追加テスト9件成功。直接書き込み／ストリームの配送先・値・時刻、誤配送防止、
+MAMEデコーダーの期待出力、左右出力、出力精度、クロック・分周変更、
+リセット・分割レンダリング、YM2151との実コア混合を確認。
+既存VGM回帰178件＋関連UI7件も成功。
+実曲とブラウザーでの操作・聴感は未確認。
+
+実装: `web/okim6258audioengine.js`、`third_party/mame-okim6258/`。
+ビルド: `sh scripts/build_okim6258_wasm.sh`。
+テスト: `node --test web/okim6258.test.mjs`。
+`docs/js/`を同期し、Analyzerとruntime exampleのdev配布・ZIPを再生成。
+配布物にもMAMEライセンスとlibymfm.wasmを含む参照元の記録を同梱。

@@ -102,6 +102,43 @@ The following files and directories in this repository are ymfm-originated works
 - `examples/`
 - [GeneralInfo.md](https://github.com/aaronsgiles/ymfm/blob/main/GeneralInfo.md)
 
+### Prior work and implementation references: libymfm.wasm
+
+We acknowledge [libymfm.wasm](https://github.com/h1romas4/libymfm.wasm)
+by Hiromasa Tanaka (h1romas4) as a preceding project bringing ymfm and other
+sound-chip emulation to WebAssembly. Its work overlaps with this project's
+browser sound-chip playback and provides a useful implementation reference.
+
+For OKIM6258 support, we reviewed
+[`chip_okim6258.rs` at `bb006894793c573b33a79a211e2769d021556aec`](https://github.com/h1romas4/libymfm.wasm/blob/bb006894793c573b33a79a211e2769d021556aec/src/rust/sound/chip_okim6258.rs).
+That file identifies itself as Hiromasa Tanaka's Rust port of Barry Rodewald's
+MAME implementation, based on MAME revision
+`70743c6fb2602a5c2666c679b618706eabfca2ad`, under BSD-3-Clause.
+See the [libymfm.wasm license at the reviewed revision](https://github.com/h1romas4/libymfm.wasm/blob/bb006894793c573b33a79a211e2769d021556aec/LICENSE).
+
+The C++ OKIM6258 decoder here is adapted directly from the pinned MAME source;
+libymfm.wasm's Rust port was reviewed as prior work and is not copied here.
+
+### MAME OKIM6258 (`third_party/mame-okim6258/`)
+
+Analyzer playback includes OKIM6258 4-bit ADPCM, alone or mixed with the primary
+engine (including YM2151). VGM direct writes and DAC streams supply sample data;
+no external sample ROM is required. The decoder is adapted from Barry Rodewald's
+MAME implementation under BSD-3-Clause. See the
+[license](third_party/mame-okim6258/LICENSE) and
+[pinned source and adaptation notes](third_party/mame-okim6258/README.md).
+Analyzer and runtime example packages include these notices in
+`licenses/mame-okim6258/`.
+
+3-bit ADPCM, recording, and a second OKIM6258 instance are not implemented.
+Unsupported header configurations report a playback error; second-instance
+writes/streams are warned about and skipped. This adds playback, not OKI
+instrument analysis or sample export. Verification uses synthetic VGM and
+real WASM cores; real-track listening remains to be checked.
+
+Build: `sh scripts/build_okim6258_wasm.sh`.
+Test: `node --test web/okim6258.test.mjs`.
+
 ### MAME RF5C164 (`third_party/mame-rf5c164/`)
 
 The RF5C164 PCM engine used for Mega-CD / Sega CD VGM playback is adapted from

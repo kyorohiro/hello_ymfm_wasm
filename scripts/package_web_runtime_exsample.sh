@@ -29,6 +29,7 @@ ym2612synth_audioworklet.html
 "
 
 JS_FILES="
+okim6258audioengine.js
 msxaudioengine.js
 multichipaudioengine.js
 y8950audioengine.js
@@ -94,6 +95,8 @@ ym2608vgm.js
 "
 
 GENERATED_FILES="
+okim6258_wasm.js
+okim6258_wasm.wasm
 y8950_wasm.js
 y8950_wasm.wasm
 ay8910_wasm.js
@@ -205,6 +208,9 @@ for chip in ym2203 ym2608 ym2610b rf5c164; do
   fi
 done
 
+mkdir -p "${STAGE_DIR}/licenses/mame-okim6258"
+cp "${ROOT_DIR}/third_party/mame-okim6258/LICENSE" "${ROOT_DIR}/third_party/mame-okim6258/README.md" "${STAGE_DIR}/licenses/mame-okim6258/"
+
 mkdir -p "${STAGE_DIR}/licenses/mame-ay8910"
 cp "${ROOT_DIR}/third_party/mame-ay8910/LICENSE" "${ROOT_DIR}/third_party/mame-ay8910/README.md" "${STAGE_DIR}/licenses/mame-ay8910/"
 
@@ -219,6 +225,8 @@ done
 
 cat > "${STAGE_DIR}/THIRD_PARTY_LICENSES.txt" <<EOF
 AY-3-8910 / YM2149: MAME adaptation, BSD-3-Clause. See licenses/mame-ay8910/.
+
+OKIM6258: MAME adaptation by Barry Rodewald, BSD-3-Clause. See licenses/mame-okim6258/.
 
 RF5C164: MAME adaptation, BSD-3-Clause. See licenses/mame-rf5c164/LICENSE and README.md.
 
