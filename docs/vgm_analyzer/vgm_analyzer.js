@@ -2069,12 +2069,15 @@ function extractTfiPatchesFromVgm(buffer) {
     }
     if (
       event.type !== "ym2612-write" &&
-      event.type !== "ym2608-write"
+      event.type !== "ym2608-write" &&
+      event.type !== "ym2610-write" &&
+      event.type !== "ym2203-write"
     ) {
       continue;
     }
 
-    const channelBase = event.port === 0 ? 0 : 3;
+    const port = event.port ?? 0; // YM2203 has a single register port.
+    const channelBase = port === 0 ? 0 : 3;
 
     if (event.register >= 0xb0 && event.register <= 0xb2) {
       const channel = channelBase + (event.register - 0xb0);
@@ -2089,7 +2092,7 @@ function extractTfiPatchesFromVgm(buffer) {
       continue;
     }
 
-    if (event.port === 0 && event.register === 0x28) {
+    if (port === 0 && event.register === 0x28) {
       const operatorMask = (event.value >> 4) & 0x0f;
       const channel = decodeKeyOnChannel(event.value);
       if (operatorMask !== 0 && channel !== null) {
