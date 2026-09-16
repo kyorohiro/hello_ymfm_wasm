@@ -1,4 +1,5 @@
 import { mountMusicSheet } from "./music_sheet.js?v=tab-1";
+import { renderVgmToWav } from "./vgm_wav.js";
 import { createExportTempoSettings } from "./export_tempo.js";
 import { analyzeLilyPondSource as analyzeScoreSource, exportLilyPondAnalysis } from "./vgm_lilypond.js";
 import {createOpmTfiFiles,OPM_TFI_NOTICE} from './opm_tfi.js';
@@ -153,6 +154,10 @@ const mmlBpmInput = document.getElementById("mmlBpmInput");
 const mmlFormatDialog = document.getElementById("mmlFormatDialog");
 const midiBpmInput = document.getElementById("midiBpmInput");
 const midiExportDialog = document.getElementById("midiExportDialog");
+const exportWavButton = document.getElementById("exportWavButton");
+const wavExportDialog = document.getElementById("wavExportDialog");
+const wavMaxSecondsInput = document.getElementById("wavMaxSecondsInput");
+const wavExportStatus = document.getElementById("wavExportStatus");
 const exportParseInfoButton = document.getElementById("exportParseInfoButton");
 const exportSnapshotTfiButton = document.getElementById("exportSnapshotTfiButton");
 const exportSnapshotVgiButton = document.getElementById("exportSnapshotVgiButton");
@@ -213,6 +218,7 @@ let engine = null;
 let player = null;
 let activeStream = null;
 let workletModuleReady = false;
+let wavExportBusy = false;
 let extractedTfiPatches = [];
 let channelMuteStates = [false, false, false, false, false, false];
 let currentChipKind = "ym2612";
@@ -2720,11 +2726,12 @@ function updatePlaybackButtons(state = {}) {
   exportMidiButton.disabled = !hasBuffer || !midiExportAvailable;
   const playing = Boolean(state.playing);
   const paused = Boolean(state.paused);
-  playButton.disabled = !hasBuffer || playing;
+  playButton.disabled = !hasBuffer || playing || wavExportBusy;
   playButton.textContent = paused ? "Resume" : "Play";
-  replayButton.disabled = !hasBuffer;
-  pauseButton.disabled = !playing;
-  stopButton.disabled = !hasBuffer || (!playing && !paused);
+  replayButton.disabled = !hasBuffer || wavExportBusy;
+  pauseButton.disabled = !playing || wavExportBusy;
+  stopButton.disabled = !hasBuffer || (!playing && !paused) || wavExportBusy;
+  exportWavButton.disabled = !hasBuffer || wavExportBusy;
   exportParseInfoButton.disabled = !hasBuffer || !lastParseInfo;
   exportSnapshotTfiButton.disabled = !hasBuffer;
   exportSnapshotVgiButton.disabled = !hasBuffer;
@@ -2851,17 +2858,20 @@ async function playCurrentVgm(startSample = 0) {
   }
 
   const parser = new Ym2612VGM(currentBuffer);
-
-  if (!isPlaybackReady()) {
-    await beginPreparePlayback(parser);
-    if (revision !== playlistRevision) return;
-    if (!isPlaybackReady()) {
-      return;
-    }
-  }
-
+  const wasReady = isPlaybackReady();
+  // Give instant feedback before the (possibly slow, first-time WASM) prep
+  // await below, so the button doesn't look frozen while nothing is playing yet.
   playButton.disabled = true;
+  if (!wasReady) playButton.textContent = "Preparing...";
   try {
+    if (!wasReady) {
+      await beginPreparePlayback(parser);
+      if (revision !== playlistRevision) return;
+      if (!isPlaybackReady()) {
+        return;
+      }
+    }
+
     stopActiveStream();
 
     const { sampleRate } = await ensurePlaybackReady(parser);
@@ -3791,6 +3801,81 @@ midiExportDialog.querySelector("form").addEventListener("submit", (event) => {
     setTimeout(() => URL.revokeObjectURL(url), 1000);
     setStatus(`Exported MIDI: ${result.noteCount} notes, ${result.bendCount} pitch bends, ${result.skippedNotes} omitted intervals. ${result.chipName} FM + SSG/PSG tones; no grid quantization. Noise, PCM and original timbres are omitted. Details are in MIDI text events.`);
   } catch (error) { setStatus(`MIDI export failed: ${error.message}`); }
+});
+
+exportWavButton.addEventListener("click", () => {
+  if (!currentBuffer) return;
+  wavExportStatus.textContent = "";
+  try {
+    const totalSamples = new Ym2612VGM(currentBuffer).header.totalSamples;
+    if (totalSamples > 0) {
+      // VGM sample counts are always in 44100Hz-reference units regardless of
+      // the engine's actual output rate. Add slack for release tails / a
+      // margin beyond one loop pass rather than guessing a fixed number.
+      const seconds = Math.ceil(totalSamples / 44100) + 30;
+      wavMaxSecondsInput.max = String(Math.max(600, seconds));
+      wavMaxSecondsInput.value = String(seconds);
+    }
+  } catch { /* keep the field's previous value */ }
+  wavExportDialog.showModal();
+});
+
+wavExportDialog.querySelector("form").addEventListener("submit", async (event) => {
+  if (event.submitter?.value !== "export") return;
+  event.preventDefault();
+  if (wavExportBusy || !currentBuffer || !wavMaxSecondsInput.reportValidity()) return;
+  const maxSeconds = Number(wavMaxSecondsInput.value);
+  wavExportBusy = true;
+  const dialogButtons = wavExportDialog.querySelectorAll("button");
+  dialogButtons.forEach(b => b.disabled = true);
+  wavMaxSecondsInput.disabled = true;
+  wavExportStatus.textContent = "Preparing...";
+  playlistRevision += 1;
+  timelineSeekController?.abort();
+  resetTimelineToStart();
+  stopActiveStream();
+  updatePlaybackButtons(player ? player.stats() : {});
+  try {
+    if (!isPlaybackReady()) {
+      await beginPreparePlayback(new Ym2612VGM(currentBuffer));
+      if (!isPlaybackReady()) {
+        wavExportStatus.textContent = "Playback could not be prepared for this track.";
+        return; // ensurePlaybackReady already reported the reason elsewhere too.
+      }
+    }
+    player.stop();
+    player.setLoopEnabled(loopCheckbox.checked);
+    player.play();
+    let lastReported = -1;
+    const result = await renderVgmToWav(player, {
+      maxSeconds,
+      onProgress: (fraction) => {
+        const percent = Math.round(fraction * 100);
+        if (percent !== lastReported) { lastReported = percent; wavExportStatus.textContent = `Rendering... ${percent}%`; }
+      },
+    });
+    player.stop();
+    if (result.seconds <= 0) throw new Error("Nothing to render for this track.");
+    const summary = `Exported ${result.seconds.toFixed(1)}s at ${player.sampleRate()} Hz.${result.truncated ? ` Stopped at the ${maxSeconds}s limit; raise Max length to capture more.` : ""}`;
+    wavExportStatus.textContent = summary;
+    const url = URL.createObjectURL(new Blob([result.bytes], { type: "audio/wav" }));
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `${lastLoadedFileName.replace(/\.[^.]+$/, "") || "analysis"}.wav`;
+    anchor.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    setStatus(`Exported WAV: ${summary}`);
+    wavExportDialog.close();
+  } catch (error) {
+    player?.stop();
+    wavExportStatus.textContent = `WAV export failed: ${error.message}`;
+    setStatus(`WAV export failed: ${error.message}`);
+  } finally {
+    wavExportBusy = false;
+    dialogButtons.forEach(b => b.disabled = false);
+    wavMaxSecondsInput.disabled = false;
+    updatePlaybackButtons(player ? player.stats() : {});
+  }
 });
 
 // A native dialog keeps keyboard focus inside the support table and supports Escape.

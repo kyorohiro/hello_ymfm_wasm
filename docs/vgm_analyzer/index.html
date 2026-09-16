@@ -690,6 +690,7 @@
           <div class="export-row">
             <button id="exportParseInfoButton" type="button" disabled>VGM Info JSON</button>
             <button id="exportSnapshotButton" type="button" disabled>Current Tone JSON</button>
+            <button id="exportWavButton" type="button" disabled title="Render full playback audio to a 16-bit stereo WAV file">WAV</button>
           </div>
         </div>
         <div class="status" id="playbackError" role="alert" style="white-space: pre-line" hidden></div>
@@ -902,6 +903,20 @@
             </p>
             <p id="midiBpmHelp">Suggested tempo with manual adjustment. Original note timing is preserved; BPM sets the beat grid.</p>
             <button value="export">Export</button>
+            <button value="cancel" formnovalidate>Cancel</button>
+          </form>
+        </dialog>
+        <dialog id="wavExportDialog" aria-labelledby="wavExportTitle">
+          <form method="dialog">
+            <h3 id="wavExportTitle">Export WAV</h3>
+            <p>Render the actual playback audio (all chips and channels together) to a 16-bit stereo WAV file at the playback sample rate.</p>
+            <p>
+              <label for="wavMaxSecondsInput">Max length (seconds)</label>
+              <input id="wavMaxSecondsInput" type="number" min="1" max="600" step="1" value="120" required style="width: 5em" aria-describedby="wavMaxSecondsHelp">
+            </p>
+            <p id="wavMaxSecondsHelp">Defaults to this track's own length from the VGM header. Rendering stops early once the track ends (when Loop is off). With Loop on, rendering stops at this limit — raise it to capture extra loop passes.</p>
+            <p id="wavExportStatus" role="status"></p>
+            <button value="export">Export WAV</button>
             <button value="cancel" formnovalidate>Cancel</button>
           </form>
         </dialog>
