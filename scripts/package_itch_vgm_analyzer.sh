@@ -40,6 +40,7 @@ tone_notes.js
 fretboard.js
 fretboard_all.js
 vgm_midi.js
+vgm_wav.js
 vgm_lilypond.js
 export_tempo.js
 music_sheet.js
@@ -278,7 +279,7 @@ cp -R "${ROOT_DIR}/docs/vgm_analyzer/vendor/osmd/." "${STAGE_DIR}/vendor/osmd/"
 perl -0pi -e 's#<a class="link-button" href="\.\./index\.html">Back</a>##g' "${STAGE_DIR}/index.html"
 perl -0pi -e "s#(['\"])\\.\\./js/#\$1./js/#g; s#(['\"])\\.\\./generated/#\$1./generated/#g" \
   "${STAGE_DIR}/index.html" "${STAGE_DIR}/vgm_analyzer.js" "${STAGE_DIR}/vgm_mml.js" \
-  "${STAGE_DIR}/opm_tfi.js" "${STAGE_DIR}/opm_info.js" "${STAGE_DIR}/opm_export.js" "${STAGE_DIR}/opm_notes.js" "${STAGE_DIR}/vgm_notes.js" "${STAGE_DIR}/tone_notes.js" "${STAGE_DIR}/vgm_midi.js" "${STAGE_DIR}/vgm_lilypond.js" \
+  "${STAGE_DIR}/opm_tfi.js" "${STAGE_DIR}/opm_info.js" "${STAGE_DIR}/opm_export.js" "${STAGE_DIR}/opm_notes.js" "${STAGE_DIR}/vgm_notes.js" "${STAGE_DIR}/tone_notes.js" "${STAGE_DIR}/vgm_midi.js" "${STAGE_DIR}/vgm_wav.js" "${STAGE_DIR}/vgm_lilypond.js" \
   "${STAGE_DIR}/osmd_trial.js" "${STAGE_DIR}/note_timeline_worker.js" "${STAGE_DIR}/sample_explorer.js" "${STAGE_DIR}/pwm_samples.js"
 perl -0pi -e 's#\.\./js/vgm-output-worklet\.js#./js/vgm-output-worklet.js#g' \
   "${STAGE_DIR}/index.html"
