@@ -793,6 +793,12 @@ public:
 	void write_data_pcm(uint8_t data);
 	void write(uint32_t offset, uint8_t data);
 
+	// Presentation-only mute; never suppress clocks or register writes. FM and
+	// PCM are independent sound-generation subsystems mixed together at the
+	// output stage, so each gets its own mask.
+	void set_fm_mute_mask(uint32_t mask) { m_fm_mute_mask = mask & fm_engine::ALL_CHANNELS; }
+	void set_pcm_mute_mask(uint32_t mask) { m_pcm_mute_mask = mask & pcm_engine::ALL_CHANNELS; }
+
 	// generate samples of sound
 	void generate(output_data *output, uint32_t numsamples = 1);
 
@@ -802,6 +808,8 @@ protected:
 	uint32_t m_fm_pos;               // FM resampling position
 	uint32_t m_load_remaining;       // how many more samples until LD flag clears
 	bool m_next_status_id;           // flag to track which status ID to return
+	uint32_t m_fm_mute_mask = 0;
+	uint32_t m_pcm_mute_mask = 0;
 	fm_engine m_fm;                  // core FM engine
 	pcm_engine m_pcm;                // core PCM engine
 };

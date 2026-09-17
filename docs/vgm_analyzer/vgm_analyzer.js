@@ -252,6 +252,8 @@ let opmNoteChannels = [];
 const opmChannelMutes = Array(8).fill(false);
 const ym3526ChannelMutes = Array(9).fill(false);
 const ym3812ChannelMutes = Array(9).fill(false);
+const ymf278bFmChannelMutes = Array(18).fill(false);
+const ymf278bPcmChannelMutes = Array(24).fill(false);
 const sourceMutes = { psg: false, ssg: false, rhythm: false, adpcmB: false, pcm: false, pwm: false, oki: false };
 const CHANNEL_MUTE_CHIPS = ['ym2151', 'ymf262', 'ym2413', 'ym3526', 'ym3812'];
 function channelMutesForChip(chipKind) {
@@ -278,6 +280,7 @@ let activeYm2608ModuleFactoryPromise = null;
 let ymf278bWaveRomBytes = null;
 let ymf278bWaveRomName = "";
 let ymf278bNeedsWaveRom = false;
+const YMF278B_ROM_WARNING = 'This YMF278B track needs yrw801.rom (2 MiB). Import it using the file selector or drag and drop, then press Play.';
 let ym2608AdpcmARomBytes = null;
 let ym2608AdpcmARomName = "";
 
@@ -484,6 +487,21 @@ function renderMonitorToggles() {
       monitorToggles.append(button);
     });
   }
+  if (currentChipKind === 'ymf278b') {
+    const groups = [['FM', ymf278bFmChannelMutes, 'ymf278b-fm-channel'], ['PCM', ymf278bPcmChannelMutes, 'ymf278b-pcm-channel']];
+    for (const [label, mutes, kind] of groups) {
+      mutes.forEach((muted, index) => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = `channel-toggle${muted ? ' is-muted' : ''}`;
+        button.textContent = `${label} CH${index + 1} ${muted ? 'Muted' : 'On'}`;
+        button.setAttribute('aria-pressed', String(!muted));
+        button.setAttribute('data-monitor-toggle-kind', kind);
+        button.setAttribute('data-channel-index', String(index));
+        monitorToggles.append(button);
+      });
+    }
+  }
   channelMonitor.forEach((channel) => {
     if (channel.unavailable) return;
     const button = document.createElement("button");
@@ -533,6 +551,10 @@ function ensureMonitorToggleHandler() {
     }
     if (kind === 'opm-channel' && CHANNEL_MUTE_CHIPS.includes(currentChipKind)) {
       toggleOpmChannelMute(Number(target.getAttribute('data-channel-index')));
+      return;
+    }
+    if ((kind === 'ymf278b-fm-channel' || kind === 'ymf278b-pcm-channel') && currentChipKind === 'ymf278b') {
+      toggleYmf278bChannelMute(kind === 'ymf278b-pcm-channel', Number(target.getAttribute('data-channel-index')));
       return;
     }
     if (kind === "channel") {
@@ -1432,6 +1454,17 @@ function toggleOpmChannelMute(index) {
   flushPendingAudio();
 }
 
+function toggleYmf278bChannelMute(isPcm, index) {
+  const states = isPcm ? ymf278bPcmChannelMutes : ymf278bFmChannelMutes;
+  if (!Number.isInteger(index) || index < 0 || index >= states.length) return;
+  const muted = !states[index];
+  if (isPcm) engine?.setPcmChannelMuted(index, muted);
+  else engine?.setChannelMuted(index, muted);
+  states[index] = muted;
+  renderMonitorToggles();
+  flushPendingAudio();
+}
+
 function toggleChannelMute(channelIndex) {
   const channel = channelMonitor[channelIndex];
   if (!channel) {
@@ -1499,8 +1532,12 @@ function toggleSourceMute(kind) {
 function allAudibleSourcesMuted() {
   // ym2151/ym2413/ymf262/ym3526/ym3812 track channel mutes in their own arrays,
   // not channelMonitor (which is empty for these chip kinds); okim6258 standalone
-  // has no channels at all.
+  // has no channels at all; ymf278b has two independent arrays (FM + PCM).
   if (currentChipKind === 'okim6258') return sourcesForChip('okim6258', hasOkiSource()).every((source) => sourceMutes[source.key]);
+  if (currentChipKind === 'ymf278b') {
+    return ymf278bFmChannelMutes.every(Boolean) && ymf278bPcmChannelMutes.every(Boolean) &&
+      sourcesForChip(sourceChipKind(), hasOkiSource()).every((source) => sourceMutes[source.key]);
+  }
   const perChannelMutes = channelMutesForChip(currentChipKind);
   const channels = perChannelMutes === null ? channelMonitor : perChannelMutes.map((muted) => ({ muted }));
   return allSourcesMuted(sourceChipKind(), channels, sourceMutes, hasOkiSource());
@@ -2493,7 +2530,7 @@ function validateOpmPlayback(header) {
 async function ensurePlaybackReady(vgm) {
   if (vgm.header.okim6258Clock) validateOki6258Header(vgm.header);
   if (currentChipKind === 'ymf278b' && ymf278bNeedsWaveRom && !ymf278bWaveRomBytes)
-    throw new Error('This YMF278B track needs yrw801.rom (2 MiB). Import it using the file selector or drag and drop, then press Play.');
+    throw new Error('Import yrw801.rom before playing this track.');
 
   const nextChipKind = detectPlaybackChipKind(vgm.header);
   const nextClockKey = JSON.stringify([nextChipKind, vgm.header.okim6258Clock, vgm.header.okim6258Flags, vgm.header.ym2612Clock, vgm.header.psgClock,
@@ -2656,6 +2693,10 @@ async function ensurePlaybackReady(vgm) {
   engineClockKey = nextClockKey;
   if (currentChipKind === "ym2203") channelMonitor.forEach((channel, index) => engine.setChannelMuted(index, channel.muted));
   if (CHANNEL_MUTE_CHIPS.includes(currentChipKind)) channelMutesForChip(currentChipKind).forEach((muted, index) => engine.setChannelMuted(index, muted));
+  if (currentChipKind === 'ymf278b') {
+    ymf278bFmChannelMutes.forEach((muted, index) => engine.setChannelMuted(index, muted));
+    ymf278bPcmChannelMutes.forEach((muted, index) => engine.setPcmChannelMuted(index, muted));
+  }
   if (currentChipKind === "ay8910") ayMonitor.applyMutes(engine);
   else if (['msx', 'y8950'].includes(currentChipKind)) {
     for (const control of msxMuteControls(currentChipKind, noteishHeader)) applyMsxMute(engine, currentChipKind, control, msxMutes.get(control.key) ?? false);
@@ -3260,6 +3301,10 @@ async function handleFile(file) {
 
   commandsOutput.textContent = events.join("\n");
   ymf278bNeedsWaveRom = vgm.requiresYmf278bWaveRom();
+  if (ymf278bNeedsWaveRom && !ymf278bWaveRomBytes) {
+    playbackWarnings.add(YMF278B_ROM_WARNING);
+    renderPlaybackWarnings();
+  }
   currentBuffer = buffer;
   if (!["okim6258", "msx", "y8950", "ymf278b", "ym3526", "ym3812", "ymf262", "ym2413", "ay8910"].includes(currentChipKind)) songTimeline.load(buffer);
   playbackSeek.max = String(Math.max(0, vgm.header.totalSamples));
@@ -3288,6 +3333,8 @@ async function handleYmf278bRomFile(file) {
   ymf278bWaveRomBytes = data;
   ymf278bWaveRomName = file.name;
   if (currentChipKind === 'ymf278b' && engine) engine.loadWaveRom(data);
+  playbackWarnings.delete(YMF278B_ROM_WARNING);
+  renderPlaybackWarnings();
   setPlaybackError();
   romFileStatus.textContent = `YMF278B wave ROM: ${file.name} (2 MiB)`;
   updatePlaybackButtons({});

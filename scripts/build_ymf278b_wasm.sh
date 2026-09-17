@@ -19,6 +19,6 @@ em++ -std=c++14 -O2 \
   -sENVIRONMENT=web,worker,node,shell \
   -sALLOW_MEMORY_GROWTH=1 \
   -sEXPORT_ALL=1 \
-  -sEXPORTED_FUNCTIONS='["_ymf278b_create","_ymf278b_destroy","_ymf278b_reset","_ymf278b_write","_ymf278b_read","_ymf278b_read_status","_ymf278b_get_irq","_ymf278b_sample_rate","_ymf278b_generate","_ymf278b_load_memory","_ymf278b_clear_memory","_malloc","_free"]' \
+  -sEXPORTED_FUNCTIONS='["_ymf278b_create","_ymf278b_destroy","_ymf278b_reset","_ymf278b_write","_ymf278b_read","_ymf278b_read_status","_ymf278b_get_irq","_ymf278b_sample_rate","_ymf278b_set_fm_mute_mask","_ymf278b_set_pcm_mute_mask","_ymf278b_generate","_ymf278b_load_memory","_ymf278b_clear_memory","_malloc","_free"]' \
   -sEXPORTED_RUNTIME_METHODS='["cwrap","HEAPF32","HEAPU8"]' \
   -o "$OUT_DIR/ymf278b_wasm.js"

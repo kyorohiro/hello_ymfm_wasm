@@ -15,6 +15,8 @@ export class Ymf278b {
     this.rightPtr = 0;
     this.bufferFrames = 0;
     this.sampleMemory = new Uint8Array(0);
+    this.fmMuteMask = 0;
+    this.pcmMuteMask = 0;
   }
 
   static async create(options = {}) {
@@ -35,6 +37,8 @@ export class Ymf278b {
       readStatus: optionalCwrap(module, "ymf278b_read_status", "number", ["number"]),
       getIrq: optionalCwrap(module, "ymf278b_get_irq", "number", ["number"]),
       sampleRate: module.cwrap("ymf278b_sample_rate", "number", ["number", "number"]),
+      setFmMuteMask: module.cwrap("ymf278b_set_fm_mute_mask", null, ["number", "number"]),
+      setPcmMuteMask: module.cwrap("ymf278b_set_pcm_mute_mask", null, ["number", "number"]),
       generate: module.cwrap("ymf278b_generate", null, ["number", "number", "number", "number"]),
     };
 
@@ -73,11 +77,16 @@ export class Ymf278b {
   }
   clearSampleMemory() { this.api.clearMemory(this.handle); this.sampleMemory = new Uint8Array(0); }
 
+  setFmMuteMask(mask) { this.fmMuteMask = mask & 0x3ffff; this.api.setFmMuteMask(this.handle, this.fmMuteMask); }
+  setPcmMuteMask(mask) { this.pcmMuteMask = mask & 0xffffff; this.api.setPcmMuteMask(this.handle, this.pcmMuteMask); }
+
   reset() {
     // A chip reset leaves free-running envelope/LFO counters intact.
     // Start VGM replay/seek from the same power-on state each time.
     this.api.destroy(this.handle);
     this.handle = this.api.create();
+    this.setFmMuteMask(this.fmMuteMask);
+    this.setPcmMuteMask(this.pcmMuteMask);
     this.loadSampleMemory(this.sampleMemory, 0, this.sampleMemory.length);
     this.#syncIrq();
   }

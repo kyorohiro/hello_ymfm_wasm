@@ -33,6 +33,16 @@ export class Ymf278bAudioEngine {
   }
   getMasterVolume() { return this.volume; }
   setPsgMuted(value) { this.psgMuted = Boolean(value); }
+  setChannelMuted(channel, muted) {
+    if (!Number.isInteger(channel) || channel < 0 || channel >= 18) throw new RangeError('Invalid YMF278B FM channel');
+    const bit = 1 << channel;
+    this.ymf278b.setFmMuteMask(muted ? this.ymf278b.fmMuteMask | bit : this.ymf278b.fmMuteMask & ~bit);
+  }
+  setPcmChannelMuted(channel, muted) {
+    if (!Number.isInteger(channel) || channel < 0 || channel >= 24) throw new RangeError('Invalid YMF278B PCM channel');
+    const bit = 1 << channel;
+    this.ymf278b.setPcmMuteMask(muted ? this.ymf278b.pcmMuteMask | bit : this.ymf278b.pcmMuteMask & ~bit);
+  }
   writePsg(value) { this.psg?.write(value); }
   writeYmf278b(port, register, value) { this.ymf278b.write(port * 2, register); this.ymf278b.write(port * 2 + 1, value); }
   loadSampleMemory(data, offset, memorySize) { this.ymf278b.loadSampleMemory(data, offset, memorySize); }

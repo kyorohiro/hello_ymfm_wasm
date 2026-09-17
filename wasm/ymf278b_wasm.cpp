@@ -87,6 +87,16 @@ uint32_t ymf278b_sample_rate(void *ptr, uint32_t clock)
     return cast_handle(ptr)->chip.sample_rate(clock);
 }
 
+void ymf278b_set_fm_mute_mask(void *ptr, uint32_t mask)
+{
+    cast_handle(ptr)->chip.set_fm_mute_mask(mask);
+}
+
+void ymf278b_set_pcm_mute_mask(void *ptr, uint32_t mask)
+{
+    cast_handle(ptr)->chip.set_pcm_mute_mask(mask);
+}
+
 int ymf278b_load_memory(void *ptr, const uint8_t *data, uint32_t size, uint32_t offset, uint32_t memory_size)
 {
     if (memory_size > 4194304 || offset > memory_size || size > memory_size - offset) return 0;

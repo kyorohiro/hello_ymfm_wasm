@@ -36,11 +36,11 @@ test('ROM preparation failure is visible next to both playback controls until re
  const panels={playbackError:{},inlinePlaybackError:{}};
  const context=vm.createContext({document:{getElementById:id=>panels[id]},status:{},console,
    playbackPreparePromise:null,isPlaybackReady:()=>false,currentStatusSuffix:()=>'',
-   ensurePlaybackReady:async()=>{throw new Error('This YMF278B track needs yrw801.rom (2 MiB). Import it using the file selector or drag and drop, then press Play.');}});
+   ensurePlaybackReady:async()=>{throw new Error('Import yrw801.rom before playing this track.');}});
  vm.runInContext(source.slice(source.indexOf('const playbackWarnings ='),source.indexOf('function currentStatusSuffix')),context);
  vm.runInContext(source.slice(source.indexOf('function beginPreparePlayback('),source.indexOf('function stopActiveStream(')),context);
  await context.beginPreparePlayback({});
- for(const panel of Object.values(panels)){assert.equal(panel.hidden,false);assert.match(panel.textContent,/yrw801.rom.*2 MiB.*file selector/);}
+ for(const panel of Object.values(panels)){assert.equal(panel.hidden,false);assert.match(panel.textContent,/yrw801\.rom/);}
  context.setStatus('Ready');assert.equal(panels.inlinePlaybackError.hidden,false);
  context.ensurePlaybackReady=async()=>({});await context.beginPreparePlayback({});
  for(const panel of Object.values(panels)){assert.equal(panel.hidden,true);assert.equal(panel.textContent,'');}

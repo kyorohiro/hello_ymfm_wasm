@@ -91,6 +91,62 @@ for (const config of configs) {
  });
 }
 
+// YMF278B mixes two independent engines (FM, PCM) at the output stage, each with
+// its own mute mask. Isolation is checked by comparing a muted two-channel mix
+// against a solo render of the untouched channel, same technique as OPL2's mono test.
+function pcmVoice(channel){
+ const r=(base)=>base+channel;
+ return [[2,r(8),0],[2,r(0x20),0],[2,r(0x38),0],[2,r(0x50),1],[2,r(0x68),0x80]];
+}
+function pcmWaveMemory(){
+ const memory=new Uint8Array(512);
+ memory.set([0,1,0,0,0,255,0,0,0xf0,0,0x0f,0]);
+ for(let i=256;i<512;i++)memory[i]=Math.round(Math.sin(i*Math.PI/16)*100)&255;
+ return memory;
+}
+test('YMF278B FM mute silences the target channel without disturbing others',async()=>{
+ const [chip,Engine,factory]=configs[1];
+ const solo=await Engine.create(options(chip,factory)),mix=await Engine.create(options(chip,factory)),never=await Engine.create(options(chip,factory));
+ try{
+  for(const ch of [0,8,17]){
+   const other=ch===17?16:17;
+   for(const e of [solo,mix,never]){e[chip].setFmMuteMask(0);e.reset();e.writeYmf278b(1,5,1);}
+   write(solo,chip,voice(Math.floor(other/9),other%9));solo.processFrames(700);const soloOut=solo.processFrames(600).left;
+
+   write(never,chip,voice(Math.floor(ch/9),ch%9));write(never,chip,voice(Math.floor(other/9),other%9));
+   never.processFrames(1300);const neverResumed=never.processFrames(400).left;
+
+   write(mix,chip,voice(Math.floor(ch/9),ch%9));write(mix,chip,voice(Math.floor(other/9),other%9));
+   mix.processFrames(700);mix.setChannelMuted(ch,true);
+   const muted=mix.processFrames(600).left;
+   assert.deepEqual(muted,soloOut,`FM ch${ch} muted mix should match the other channel alone`);
+   mix.setChannelMuted(ch,false);
+   const resumed=mix.processFrames(400).left;
+   assert.deepEqual(resumed,neverResumed,`FM ch${ch} mute must not disturb phase while silenced`);
+  }
+  assert.throws(()=>mix.setChannelMuted(18,true),RangeError);
+ }finally{solo.dispose();mix.dispose();never.dispose();}
+});
+test('YMF278B PCM mute silences the target channel without disturbing others',async()=>{
+ const [chip,Engine,factory]=configs[1];
+ const solo=await Engine.create(options(chip,factory)),mix=await Engine.create(options(chip,factory));
+ const memory=pcmWaveMemory();
+ solo.loadSampleMemory(memory,0,memory.length);mix.loadSampleMemory(memory,0,memory.length);
+ try{
+  for(const ch of [0,12,23]){
+   const other=ch===23?22:23;
+   for(const e of [solo,mix]){e[chip].setPcmMuteMask(0);e.reset();}
+   write(solo,chip,pcmVoice(other));const soloOut=solo.processFrames(600).left;
+
+   write(mix,chip,pcmVoice(ch));write(mix,chip,pcmVoice(other));
+   mix.setPcmChannelMuted(ch,true);
+   const muted=mix.processFrames(600).left;
+   assert.deepEqual(muted,soloOut,`PCM ch${ch} muted mix should match the other channel alone`);
+  }
+  assert.throws(()=>mix.setPcmChannelMuted(24,true),RangeError);
+ }finally{solo.dispose();mix.dispose();}
+});
+
 test('external Moonsound ROM survives file loads, reset and seeking',async()=>{
  const config=configs[1], [chip,Engine,factory]=config;
  // Original synthetic wave ROM, independent of the proprietary YRW801 data.
