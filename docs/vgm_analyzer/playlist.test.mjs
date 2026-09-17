@@ -113,7 +113,7 @@ for (const mode of ['worklet', 'script']) {
       AudioWorkletNode: function () { return node; }, workletModuleReady: true,
       activeStream: null, resetTimelineToStart() {}, requestPlaybackUiRender() {},
       currentStatusSuffix: () => '', scheduleWorkletPump() {}, pumpWorkletChunks() {},
-      applyAnalyzerMuteToBuffer() {},
+      applyAnalyzerMuteToBuffer() {}, rewireAudioGraph() {},
       player: { pause() {}, isPaused: () => false, process() {}, stats: () => ({ playing: false, paused: false, queuedFrames: 0 }) },
     });
     const start = source.indexOf('async function startWorkletStream(');

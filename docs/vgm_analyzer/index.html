@@ -924,17 +924,35 @@
       </section>
     </main>
     <section class="playback-dock" aria-label="Playback controls">
-      <div class="playback-seek">
-        <label for="playbackSeek">Position</label>
-        <input id="playbackSeek" type="range" min="0" max="0" step="4410" value="0" disabled>
-        <output id="playbackSeekTime" for="playbackSeek">0:00 / 0:00</output>
+      <div class="playback-dock-tools">
+        <button id="dockPlayTab" class="link-button" type="button" aria-controls="dockPlayPane" aria-pressed="true">Play/Ch</button>
+        <button id="dockEffectTab" class="link-button" type="button" aria-controls="dockEffectPane" aria-pressed="false">Effect</button>
       </div>
-      <div class="playback-dock-buttons">
-        <button id="playButton" type="button" disabled>Play</button>
-        <button id="pauseButton" type="button" disabled>Pause</button>
-        <button id="stopButton" type="button" disabled>Stop</button>
+      <div class="playback-dock-scroll">
+        <div id="dockPlayPane">
+          <div class="playback-seek">
+            <label for="playbackSeek">Position</label>
+            <input id="playbackSeek" type="range" min="0" max="0" step="4410" value="0" disabled>
+            <output id="playbackSeekTime" for="playbackSeek">0:00 / 0:00</output>
+          </div>
+          <div class="playback-dock-buttons">
+            <button id="playButton" type="button" disabled>Play</button>
+            <button id="pauseButton" type="button" disabled>Pause</button>
+            <button id="stopButton" type="button" disabled>Stop</button>
+          </div>
+          <div id="monitorToggles" class="monitor-toggles" role="group" aria-label="Playback channel and sound source toggles"></div>
+        </div>
+        <div id="dockEffectPane" hidden>
+          <button id="effectEnabled" type="button" class="channel-toggle is-muted" aria-pressed="false">Effect Off</button>
+          <div id="effectControls" class="effect-controls">
+            <label>Gain<input id="effectGain" type="range" min="0" max="200" value="100" disabled><output id="effectGainValue" for="effectGain">100%</output></label>
+            <label>Bass<input id="effectBass" type="range" min="-12" max="12" value="0" disabled><output id="effectBassValue" for="effectBass">0 dB</output></label>
+            <label>Middle<input id="effectMiddle" type="range" min="-12" max="12" value="0" disabled><output id="effectMiddleValue" for="effectMiddle">0 dB</output></label>
+            <label>Treble<input id="effectTreble" type="range" min="-12" max="12" value="0" disabled><output id="effectTrebleValue" for="effectTreble">0 dB</output></label>
+            <label>Reverb<input id="effectReverb" type="range" min="0" max="100" value="0" disabled><output id="effectReverbValue" for="effectReverb">0%</output></label>
+          </div>
+        </div>
       </div>
-      <div id="monitorToggles" class="monitor-toggles" role="group" aria-label="Playback channel and sound source toggles"></div>
     </section>
 
     <script type="module" src="./vgm_analyzer.js?v=sheet-music-tab-13"></script>

@@ -114,6 +114,17 @@ const playlistLoopCheckbox = document.getElementById("playlistLoopCheckbox");
 const playlistLoopControl = document.getElementById("playlistLoopControl");
 const monitorToggles = document.getElementById("monitorToggles");
 const inlineMonitorToggles = document.getElementById("inlineMonitorToggles");
+const dockPlayTab = document.getElementById("dockPlayTab");
+const dockEffectTab = document.getElementById("dockEffectTab");
+const dockPlayPane = document.getElementById("dockPlayPane");
+const dockEffectPane = document.getElementById("dockEffectPane");
+const effectEnabled = document.getElementById("effectEnabled");
+const effectControls = document.getElementById("effectControls");
+const effectGain = document.getElementById("effectGain");
+const effectBass = document.getElementById("effectBass");
+const effectMiddle = document.getElementById("effectMiddle");
+const effectTreble = document.getElementById("effectTreble");
+const effectReverb = document.getElementById("effectReverb");
 
 // Mirror controls share the existing playback handlers, including their error paths.
 for (const [primary, mirror] of [
@@ -217,6 +228,128 @@ let audioContext = null;
 let engine = null;
 let player = null;
 let activeStream = null;
+const effectSettings = { enabled: false, gain: 100, bass: 0, middle: 0, treble: 0, reverb: 0 };
+let effectsChain = null;
+
+// A short burst of white noise with an exponential decay makes a plausible
+// synthetic room impulse response, so ConvolverNode-based reverb needs no
+// external audio asset.
+function createReverbImpulse(context, duration = 2, decay = 3) {
+  const length = Math.max(1, Math.round(context.sampleRate * duration));
+  const impulse = context.createBuffer(2, length, context.sampleRate);
+  for (let channel = 0; channel < impulse.numberOfChannels; channel++) {
+    const data = impulse.getChannelData(channel);
+    for (let i = 0; i < length; i++) {
+      data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / length, decay);
+    }
+  }
+  return impulse;
+}
+
+function setDockView(mode) {
+  if (!['play', 'effect'].includes(mode)) return;
+  dockPlayPane.hidden = mode !== 'play';
+  dockEffectPane.hidden = mode !== 'effect';
+  dockPlayTab.setAttribute('aria-pressed', String(mode === 'play'));
+  dockEffectTab.setAttribute('aria-pressed', String(mode === 'effect'));
+}
+dockPlayTab.addEventListener('click', () => setDockView('play'));
+dockEffectTab.addEventListener('click', () => setDockView('effect'));
+
+function ensureEffectsChain(context) {
+  if (effectsChain && effectsChain.context === context) return effectsChain;
+  const gainNode = context.createGain();
+  const bassNode = context.createBiquadFilter();
+  bassNode.type = 'lowshelf';
+  bassNode.frequency.value = 200;
+  const middleNode = context.createBiquadFilter();
+  middleNode.type = 'peaking';
+  middleNode.frequency.value = 1000;
+  middleNode.Q.value = 0.7;
+  const trebleNode = context.createBiquadFilter();
+  trebleNode.type = 'highshelf';
+  trebleNode.frequency.value = 3000;
+  const dryGain = context.createGain();
+  const wetGain = context.createGain();
+  const convolver = context.createConvolver();
+  convolver.normalize = true;
+  convolver.buffer = createReverbImpulse(context);
+  const output = context.createGain();
+
+  gainNode.connect(bassNode);
+  bassNode.connect(middleNode);
+  middleNode.connect(trebleNode);
+  trebleNode.connect(dryGain);
+  trebleNode.connect(convolver);
+  convolver.connect(wetGain);
+  dryGain.connect(output);
+  wetGain.connect(output);
+
+  effectsChain = { context, input: gainNode, output, gainNode, bassNode, middleNode, trebleNode, dryGain, wetGain };
+  applyEffectSettings();
+  return effectsChain;
+}
+
+function applyEffectSettings() {
+  if (!effectsChain) return;
+  effectsChain.gainNode.gain.value = effectSettings.gain / 100;
+  effectsChain.bassNode.gain.value = effectSettings.bass;
+  effectsChain.middleNode.gain.value = effectSettings.middle;
+  effectsChain.trebleNode.gain.value = effectSettings.treble;
+  const reverb = effectSettings.reverb / 100;
+  effectsChain.dryGain.gain.value = 1 - reverb * 0.3;
+  effectsChain.wetGain.gain.value = reverb * 2.0;
+}
+
+// Rewires the currently active stream node between the effects chain and the
+// destination. Effect stays off the graph entirely when disabled, so it never
+// costs CPU or colors the signal for analysis-focused listening.
+function rewireAudioGraph() {
+  if (!activeStream || !audioContext) return;
+  const node = activeStream.node;
+  node.disconnect();
+  if (effectSettings.enabled) {
+    const chain = ensureEffectsChain(audioContext);
+    chain.output.disconnect();
+    node.connect(chain.input);
+    chain.output.connect(audioContext.destination);
+  } else {
+    node.connect(audioContext.destination);
+  }
+}
+
+function updateEffectValueOutputs() {
+  document.getElementById('effectGainValue').textContent = `${effectSettings.gain}%`;
+  document.getElementById('effectBassValue').textContent = `${effectSettings.bass} dB`;
+  document.getElementById('effectMiddleValue').textContent = `${effectSettings.middle} dB`;
+  document.getElementById('effectTrebleValue').textContent = `${effectSettings.treble} dB`;
+  document.getElementById('effectReverbValue').textContent = `${effectSettings.reverb}%`;
+}
+
+function updateEffectEnabledUi() {
+  effectEnabled.textContent = effectSettings.enabled ? 'Effect On' : 'Effect Off';
+  effectEnabled.classList.toggle('is-muted', !effectSettings.enabled);
+  effectEnabled.setAttribute('aria-pressed', String(effectSettings.enabled));
+  // Keep the sliders visible (not hidden) but disabled while off, so the
+  // saved settings stay legible without looking like they're being applied.
+  for (const input of effectControls.querySelectorAll('input[type="range"]')) {
+    input.disabled = !effectSettings.enabled;
+  }
+}
+effectEnabled.addEventListener('click', () => {
+  effectSettings.enabled = !effectSettings.enabled;
+  updateEffectEnabledUi();
+  rewireAudioGraph();
+});
+for (const [input, key] of [[effectGain, 'gain'], [effectBass, 'bass'], [effectMiddle, 'middle'], [effectTreble, 'treble'], [effectReverb, 'reverb']]) {
+  input.addEventListener('input', () => {
+    effectSettings[key] = Number(input.value);
+    updateEffectValueOutputs();
+    applyEffectSettings();
+  });
+}
+updateEffectValueOutputs();
+updateEffectEnabledUi();
 let workletModuleReady = false;
 let wavExportBusy = false;
 let extractedTfiPatches = [];
@@ -3160,7 +3293,7 @@ async function startWorkletStream(sampleRate) {
     }
     scheduleWorkletPump();
   };
-  node.connect(audioContext.destination);
+  rewireAudioGraph();
   pumpWorkletChunks();
   return true;
 }
@@ -3186,7 +3319,7 @@ function startScriptProcessorStream() {
       advancePlaylist();
     }
   };
-  node.connect(audioContext.destination);
+  rewireAudioGraph();
   return true;
 }
 

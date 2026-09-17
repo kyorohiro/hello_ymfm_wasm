@@ -86,19 +86,35 @@ h1 { margin: 0; letter-spacing: -0.045em; }
   bottom: max(16px, env(safe-area-inset-bottom));
   z-index: 20;
   width: min(560px, calc(100% - 32px));
+  border: 2px solid var(--accent);
+  border-radius: 16px;
+  background: var(--panel);
+  box-shadow: 0 8px 30px #6d352040;
+}
+.playback-dock-scroll {
   max-height: calc(100dvh - 32px);
   overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: 12px;
   padding: 16px;
-  border: 2px solid var(--accent);
-  border-radius: 16px;
-  background: var(--panel);
-  box-shadow: 0 8px 30px #6d352040;
 }
+.playback-dock-scroll > div:not([hidden]) { display: flex; flex-direction: column; gap: 12px; }
 .playback-dock-buttons { display: flex; gap: 8px; }
 .playback-dock .monitor-toggles { margin: 0; }
+.playback-dock-tools {
+  position: absolute;
+  top: -28px;
+  right: 16px;
+  z-index: 1;
+  display: flex;
+  gap: 8px;
+}
+.playback-dock-tools .link-button[aria-pressed="true"] { background: var(--red-enamel); color: #fffaf3; border-color: var(--accent-dark); }
+.effect-controls { display: flex; flex-direction: column; gap: 10px; margin-top: 12px; }
+.effect-controls label { display: flex; align-items: center; gap: 10px; font-size: 0.85rem; }
+.effect-controls input[type="range"] { flex: 1; min-width: 0; }
+.effect-controls output { min-width: 4.5em; text-align: right; font-variant-numeric: tabular-nums; }
 .actions .monitor-toggles { flex-basis: 100%; margin: 0; }
 body { padding-bottom: calc(260px + env(safe-area-inset-bottom)); }
 .playback-seek { display: flex; align-items: center; gap: 10px; flex-basis: 100%; min-width: 0; font-size: 0.8rem; }
