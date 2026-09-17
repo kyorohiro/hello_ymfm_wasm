@@ -1113,6 +1113,18 @@ function pruneChannelNoteHistory(channel, now = performance.now()) {
   if (dropCount > 0) history.splice(0, dropCount);
 }
 
+// The fretboard tracker's update() does several full passes over whatever
+// history it's given, and only ever renders points within FRET_TRAIL_MS
+// anyway. Passing the full 8s noteHistory window made it redo that work
+// for entries it would discard, so windowing here keeps dense pitch
+// modulation (e.g. vibrato) from making the fretboard view slow.
+function recentNoteHistory(history, windowMs, now) {
+  const cutoff = now - windowMs;
+  let start = history.length;
+  while (start > 0 && history[start - 1].time >= cutoff) start--;
+  return start === 0 ? history : history.slice(start);
+}
+
 // Display-only onset cleanup: at most 8 VGM samples (~0.18 ms), and
 // only the first low write after a fresh full KEY ON. Audio/MIDI stay exact.
 function beginNoteishOnset(channel, wasKeyOn, mask) {
@@ -1250,8 +1262,9 @@ function renderNoteishGraph(channel, estimated) {
       entry = { strings, tracker: createFretboardTracker(strings) };
       fretboardTrackers.set(channel, entry);
     }
+    const now = performance.now();
     return renderFretboard([estimated.midiFloat], entry.tracker.update(
-      channel.noteHistory, estimated.midiFloat, channel.keyOn, performance.now()
+      recentNoteHistory(channel.noteHistory, FRET_TRAIL_MS + 200, now), estimated.midiFloat, channel.keyOn, now
     ));
   }
   if (noteishMode.value === "detail") return renderNoteishKeyboard(channel, estimated);
@@ -1471,7 +1484,7 @@ function renderAllChannelFretboard() {
       entry = { strings, tracker: createFretboardTracker(strings) };
       fretboardTrackers.set(channel, entry);
     }
-    return { ...entry.tracker.update(channel.noteHistory, note, channel.keyOn, now),
+    return { ...entry.tracker.update(recentNoteHistory(channel.noteHistory, FRET_TRAIL_MS + 200, now), note, channel.keyOn, now),
       note, label: channel.label ?? `CH${channel.channel + 1}` };
   });
   document.getElementById('allFretboardGraph').innerHTML = renderAllFretboard(layers, strings);
