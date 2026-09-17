@@ -250,7 +250,18 @@ const opl3ChannelMutes = Array(18).fill(false);
 let opmNoteTracker;
 let opmNoteChannels = [];
 const opmChannelMutes = Array(8).fill(false);
+const ym3526ChannelMutes = Array(9).fill(false);
+const ym3812ChannelMutes = Array(9).fill(false);
 const sourceMutes = { psg: false, ssg: false, rhythm: false, adpcmB: false, pcm: false, pwm: false, oki: false };
+const CHANNEL_MUTE_CHIPS = ['ym2151', 'ymf262', 'ym2413', 'ym3526', 'ym3812'];
+function channelMutesForChip(chipKind) {
+  return chipKind === 'ym2413' ? opllChannelMutes
+    : chipKind === 'ymf262' ? opl3ChannelMutes
+    : chipKind === 'ym3526' ? ym3526ChannelMutes
+    : chipKind === 'ym3812' ? ym3812ChannelMutes
+    : chipKind === 'ym2151' ? opmChannelMutes
+    : null;
+}
 let lastYm2612DacEnable = 0x00;
 let monitorToggleHandlerBound = false;
 let workletQueueMultiplier = 2;
@@ -459,8 +470,8 @@ function renderMonitorToggles() {
     monitorToggles.append(button);
   }
 
-  if (['ym2151','ymf262','ym2413'].includes(currentChipKind)) {
-    (currentChipKind === 'ym2413' ? opllChannelMutes : currentChipKind === 'ymf262' ? opl3ChannelMutes : opmChannelMutes).forEach((muted, index) => {
+  if (CHANNEL_MUTE_CHIPS.includes(currentChipKind)) {
+    channelMutesForChip(currentChipKind).forEach((muted, index) => {
       const button = document.createElement('button');
       button.type = 'button';
       button.className = `channel-toggle${muted ? ' is-muted' : ''}`;
@@ -520,7 +531,7 @@ function ensureMonitorToggleHandler() {
       toggleSourceMute(kind);
       return;
     }
-    if (kind === 'opm-channel' && ['ym2151','ymf262','ym2413'].includes(currentChipKind)) {
+    if (kind === 'opm-channel' && CHANNEL_MUTE_CHIPS.includes(currentChipKind)) {
       toggleOpmChannelMute(Number(target.getAttribute('data-channel-index')));
       return;
     }
@@ -1412,7 +1423,7 @@ function effectivePanValue(channel) {
 }
 
 function toggleOpmChannelMute(index) {
-  const states = currentChipKind === 'ym2413' ? opllChannelMutes : currentChipKind === 'ymf262' ? opl3ChannelMutes : opmChannelMutes;
+  const states = channelMutesForChip(currentChipKind);
   if (!Number.isInteger(index) || index < 0 || index >= states.length) return;
   const muted = !states[index];
   engine?.setChannelMuted(index, muted);
@@ -1486,13 +1497,11 @@ function toggleSourceMute(kind) {
 }
 
 function allAudibleSourcesMuted() {
-  // ym2151/ym2413/ymf262 track channel mutes in their own arrays, not channelMonitor
-  // (which is empty for these chip kinds); okim6258 standalone has no channels at all.
+  // ym2151/ym2413/ymf262/ym3526/ym3812 track channel mutes in their own arrays,
+  // not channelMonitor (which is empty for these chip kinds); okim6258 standalone
+  // has no channels at all.
   if (currentChipKind === 'okim6258') return sourcesForChip('okim6258', hasOkiSource()).every((source) => sourceMutes[source.key]);
-  const perChannelMutes = currentChipKind === 'ym2151' ? opmChannelMutes
-    : currentChipKind === 'ym2413' ? opllChannelMutes
-    : currentChipKind === 'ymf262' ? opl3ChannelMutes
-    : null;
+  const perChannelMutes = channelMutesForChip(currentChipKind);
   const channels = perChannelMutes === null ? channelMonitor : perChannelMutes.map((muted) => ({ muted }));
   return allSourcesMuted(sourceChipKind(), channels, sourceMutes, hasOkiSource());
 }
@@ -2646,9 +2655,7 @@ async function ensurePlaybackReady(vgm) {
   }
   engineClockKey = nextClockKey;
   if (currentChipKind === "ym2203") channelMonitor.forEach((channel, index) => engine.setChannelMuted(index, channel.muted));
-  if (currentChipKind === 'ym2413') opllChannelMutes.forEach((muted, index) => engine.setChannelMuted(index, muted));
-  if (currentChipKind === 'ymf262') opl3ChannelMutes.forEach((muted, index) => engine.setChannelMuted(index, muted));
-  if (currentChipKind === 'ym2151') opmChannelMutes.forEach((muted, index) => engine.setChannelMuted(index, muted));
+  if (CHANNEL_MUTE_CHIPS.includes(currentChipKind)) channelMutesForChip(currentChipKind).forEach((muted, index) => engine.setChannelMuted(index, muted));
   if (currentChipKind === "ay8910") ayMonitor.applyMutes(engine);
   else if (['msx', 'y8950'].includes(currentChipKind)) {
     for (const control of msxMuteControls(currentChipKind, noteishHeader)) applyMsxMute(engine, currentChipKind, control, msxMutes.get(control.key) ?? false);

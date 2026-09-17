@@ -32,6 +32,12 @@ export class Ym3812AudioEngine {
   }
   getMasterVolume() { return this.volume; }
   setPsgMuted(value) { this.psgMuted = Boolean(value); }
+  setChannelMuted(channel, muted) {
+    if (!Number.isInteger(channel) || channel < 0 || channel >= 9) throw new RangeError('Invalid YM3812 channel');
+    const bit = 1 << channel;
+    this.ym3812.setMuteMask(muted ? this.ym3812.muteMask | bit : this.ym3812.muteMask & ~bit);
+    this.lastLeft = 0; this.lastRight = 0;
+  }
   writePsg(value) { this.psg?.write(value); }
   writeYm3812(register, value) { this.ym3812.write(0, register); this.ym3812.write(1, value); }
   reset() {

@@ -14,6 +14,7 @@ export class Ym3812 {
     this.leftPtr = 0;
     this.rightPtr = 0;
     this.bufferFrames = 0;
+    this.muteMask = 0;
   }
 
   static async create(options = {}) {
@@ -32,6 +33,7 @@ export class Ym3812 {
       readStatus: optionalCwrap(module, "ym3812_read_status", "number", ["number"]),
       getIrq: optionalCwrap(module, "ym3812_get_irq", "number", ["number"]),
       sampleRate: module.cwrap("ym3812_sample_rate", "number", ["number", "number"]),
+      setMuteMask: module.cwrap("ym3812_set_mute_mask", null, ["number", "number"]),
       generate: module.cwrap("ym3812_generate", null, ["number", "number", "number", "number"]),
     };
 
@@ -54,11 +56,14 @@ export class Ym3812 {
     }
   }
 
+  setMuteMask(mask) { this.muteMask = mask & 0x1ff; this.api.setMuteMask(this.handle, this.muteMask); }
+
   reset() {
     // A chip reset leaves free-running envelope/LFO counters intact.
     // Start VGM replay/seek from the same power-on state each time.
     this.api.destroy(this.handle);
     this.handle = this.api.create();
+    this.setMuteMask(this.muteMask);
     this.#syncIrq();
   }
 

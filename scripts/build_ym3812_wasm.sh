@@ -19,6 +19,6 @@ em++ -std=c++14 -O2 \
   -sENVIRONMENT=web,worker,node,shell \
   -sALLOW_MEMORY_GROWTH=1 \
   -sEXPORT_ALL=1 \
-  -sEXPORTED_FUNCTIONS='["_ym3812_create","_ym3812_destroy","_ym3812_reset","_ym3812_write","_ym3812_read","_ym3812_read_status","_ym3812_get_irq","_ym3812_sample_rate","_ym3812_generate","_malloc","_free"]' \
+  -sEXPORTED_FUNCTIONS='["_ym3812_create","_ym3812_destroy","_ym3812_reset","_ym3812_write","_ym3812_read","_ym3812_read_status","_ym3812_get_irq","_ym3812_sample_rate","_ym3812_set_mute_mask","_ym3812_generate","_malloc","_free"]' \
   -sEXPORTED_RUNTIME_METHODS='["cwrap","HEAPF32"]' \
   -o "$OUT_DIR/ym3812_wasm.js"

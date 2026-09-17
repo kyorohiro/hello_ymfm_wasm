@@ -19,6 +19,6 @@ em++ -std=c++14 -O2 \
   -sENVIRONMENT=web,worker,node,shell \
   -sALLOW_MEMORY_GROWTH=1 \
   -sEXPORT_ALL=1 \
-  -sEXPORTED_FUNCTIONS='["_ym3526_create","_ym3526_destroy","_ym3526_reset","_ym3526_write","_ym3526_read","_ym3526_read_status","_ym3526_get_irq","_ym3526_sample_rate","_ym3526_generate","_malloc","_free"]' \
+  -sEXPORTED_FUNCTIONS='["_ym3526_create","_ym3526_destroy","_ym3526_reset","_ym3526_write","_ym3526_read","_ym3526_read_status","_ym3526_get_irq","_ym3526_sample_rate","_ym3526_set_mute_mask","_ym3526_generate","_malloc","_free"]' \
   -sEXPORTED_RUNTIME_METHODS='["cwrap","HEAPF32"]' \
   -o "$OUT_DIR/ym3526_wasm.js"

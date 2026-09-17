@@ -115,3 +115,33 @@ test('OPL3 mute covers 18 channels, rhythm groups and 4-op pairs without losing 
   assert.throws(()=>b.setChannelMuted(18,true),RangeError);
  }finally{a.dispose();b.dispose();}
 });
+// YM3526/YM3812 are mono (no per-channel pan register), so isolation is checked
+// by comparing the muted mix against a solo render of the untouched channel.
+for(const [chip,Engine,factory] of [configs[0],configs[1]]){
+ test(`${chip} mute silences the target channel, leaves others playing and untouched`,async()=>{
+  const solo=await Engine.create(options(chip,factory)),mix=await Engine.create(options(chip,factory)),never=await Engine.create(options(chip,factory));
+  try{
+   for(let ch=0;ch<9;ch++){
+    const other=ch===8?7:8;
+    solo[chip].setMuteMask(0);solo.reset();write(solo,chip,voice(0,other));
+    solo.processFrames(700);const soloOut=solo.processFrames(600).left;
+
+    // Presentation-only mute must not stop clocking: the muted channel's
+    // envelope/phase should keep advancing exactly as if never muted.
+    never[chip].setMuteMask(0);never.reset();write(never,chip,voice(0,ch));write(never,chip,voice(0,other));
+    never.processFrames(700+600);const neverResumed=never.processFrames(400).left;
+
+    mix[chip].setMuteMask(0);mix.reset();write(mix,chip,voice(0,ch));write(mix,chip,voice(0,other));
+    mix.processFrames(700);mix.setChannelMuted(ch,true);
+    const muted=mix.processFrames(600).left;
+    assert.deepEqual(muted,soloOut,`${chip} ch${ch} muted mix should match the other channel alone`);
+
+    mix.setChannelMuted(ch,false);
+    const resumed=mix.processFrames(400).left;
+    assert.deepEqual(resumed,neverResumed,`${chip} ch${ch} mute must not disturb phase/envelope while silenced`);
+   }
+   mix.setChannelMuted(8,true);mix.reset();assert.equal(mix[chip].muteMask,1<<8);
+   assert.throws(()=>mix.setChannelMuted(9,true),RangeError);
+  }finally{solo.dispose();mix.dispose();never.dispose();}
+ });
+}

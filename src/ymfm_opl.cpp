@@ -854,7 +854,13 @@ void ym3526::generate(output_data *output, uint32_t numsamples)
 		m_fm.clock(fm_engine::ALL_CHANNELS);
 
 		// update the FM content; mixing details for YM3526 need verification
-		m_fm.output(output->clear(), 1, 32767, fm_engine::ALL_CHANNELS);
+		m_fm.output(output->clear(), 1, 32767, fm_engine::ALL_CHANNELS & ~m_mute_mask);
+		// output() also updates operator feedback. Muted channels must run once.
+		if (m_mute_mask)
+		{
+			output_data discarded;
+			m_fm.output(discarded.clear(), 1, 32767, fm_engine::ALL_CHANNELS & m_mute_mask);
+		}
 
 		// YM3526 uses an external DAC (YM3014) with mantissa/exponent format
 		// convert to 10.3 floating point value and back to simulate truncation
@@ -1237,7 +1243,13 @@ void ym3812::generate(output_data *output, uint32_t numsamples)
 		m_fm.clock(fm_engine::ALL_CHANNELS);
 
 		// update the FM content; mixing details for YM3812 need verification
-		m_fm.output(output->clear(), 1, 32767, fm_engine::ALL_CHANNELS);
+		m_fm.output(output->clear(), 1, 32767, fm_engine::ALL_CHANNELS & ~m_mute_mask);
+		// output() also updates operator feedback. Muted channels must run once.
+		if (m_mute_mask)
+		{
+			output_data discarded;
+			m_fm.output(discarded.clear(), 1, 32767, fm_engine::ALL_CHANNELS & m_mute_mask);
+		}
 
 		// YM3812 uses an external DAC (YM3014) with mantissa/exponent format
 		// convert to 10.3 floating point value and back to simulate truncation

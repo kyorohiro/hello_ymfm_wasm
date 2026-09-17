@@ -32,6 +32,12 @@ export class Ym3526AudioEngine {
   }
   getMasterVolume() { return this.volume; }
   setPsgMuted(value) { this.psgMuted = Boolean(value); }
+  setChannelMuted(channel, muted) {
+    if (!Number.isInteger(channel) || channel < 0 || channel >= 9) throw new RangeError('Invalid YM3526 channel');
+    const bit = 1 << channel;
+    this.ym3526.setMuteMask(muted ? this.ym3526.muteMask | bit : this.ym3526.muteMask & ~bit);
+    this.lastLeft = 0; this.lastRight = 0;
+  }
   writePsg(value) { this.psg?.write(value); }
   writeYm3526(register, value) { this.ym3526.write(0, register); this.ym3526.write(1, value); }
   reset() {
