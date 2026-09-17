@@ -24,7 +24,10 @@ for(const [name,Parser,Player] of [['web',Ym2612VGM,VgmPlayer],['docs',DocsParse
 }
 test('MAME decoder gives explicit low/high nibble vector, stop, pan and deterministic reset',async()=>{
  const e=await Oki6258AudioEngine.create({moduleFactory:factory,clock:8192000,flags:12,outputSampleRate:8000});
- try{for(let run=0;run<2;run++){e.reset();e.writeOki6258(0,2);e.writeOki6258(1,0x10);const pcm=e.processFrames(4);assert.deepEqual([...pcm.left],[0,6/2048,8/2048,14/2048]);assert.deepEqual(pcm.left,pcm.right);}
+ // A single written byte holds two nibbles; once both are clocked out the
+ // decoder holds its last output (underrun) rather than re-decoding stale
+ // data, so frames 3-4 repeat frame 2's value instead of drifting further.
+ try{for(let run=0;run<2;run++){e.reset();e.writeOki6258(0,2);e.writeOki6258(1,0x10);const pcm=e.processFrames(4);assert.deepEqual([...pcm.left],[0,6/2048,6/2048,6/2048]);assert.deepEqual(pcm.left,pcm.right);}
  e.writeOki6258(2,1);assert.ok(e.processFrames(1).right.every(v=>v===0));e.writeOki6258(2,2);assert.ok(e.processFrames(1).left.every(v=>v===0));e.writeOki6258(0,1);assert.ok(e.processFrames(4).left.every(v=>v===0));
  }finally{e.dispose();}
 });
@@ -35,6 +38,27 @@ test('partitioning and clock/divider updates keep decoder time consistent',async
  }finally{e.dispose();}
  assert.throws(()=>validateOki6258Header({okim6258Clock:4000000,okim6258Flags:0}),/3-bit/);
  assert.throws(()=>validateOki6258Header({okim6258Clock:0x40000001,okim6258Flags:4}),/Dual/);
+});
+test('setOkiMuted gates chip output to silence without resetting decoder state',async()=>{
+ const e=await Oki6258AudioEngine.create({moduleFactory:factory,clock:8192000,flags:12,outputSampleRate:8000});
+ try{
+  e.writeOki6258(0,2);e.writeOki6258(1,0x77);
+  assert.ok(e.processFrames(4).left.some(v=>v!==0));
+  e.setOkiMuted(true);
+  assert.ok(e.processFrames(4).left.every(v=>v===0));
+  assert.ok(e.processFrames(4).right.every(v=>v===0));
+  e.setOkiMuted(false);
+  assert.ok(e.processFrames(4).left.some(v=>v!==0));
+ }finally{e.dispose();}
+});
+test('attachOki6258 exposes setOkiMuted on the base engine to mute the mixed-in chip',()=>{
+ const base={sampleRate:()=>44100,getMasterVolume:()=>1,processFrames:n=>({left:new Float32Array(n),right:new Float32Array(n)}),reset(){},dispose(){}};
+ let muted=false;
+ const oki={muted:false,processFrames(n){return {left:new Float32Array(n).fill(muted?0:0.5),right:new Float32Array(n).fill(muted?0:0.5)};},setOkiMuted(v){muted=Boolean(v);},writeOki6258(){},reset(){},dispose(){}};
+ attachOki6258(base,oki);
+ assert.ok(base.processFrames(2).left.every(v=>v===0.5));
+ base.setOkiMuted(true);
+ assert.ok(base.processFrames(2).left.every(v=>v===0));
 });
 test('mixing preserves primary engine, volume, writes, reset and disposal',()=>{
  let reset=0,disposed=0;const writes=[];
@@ -48,8 +72,12 @@ test('divider, clock and output precision affect generated PCM',async()=>{
  try{
   a.writeOki6258(0,2);a.writeOki6258(1,0x10);a.writeOki6258(12,2);assert.equal(a.processFrames(1).left[0],6/2048);
   a.reset();a.writeOki6258(0,2);a.writeOki6258(1,0x10);u32(16384000).forEach((v,i)=>a.writeOki6258(8+i,v));assert.equal(a.processFrames(1).left[0],6/2048);
-  for(const e of [a,b]){e.reset();e.writeOki6258(0,2);e.writeOki6258(1,0x77);}
-  assert.equal(a.processFrames(100).left.at(-1),2047/2048);assert.equal(b.processFrames(100).left.at(-1),511/2048);
+  // Feed a fresh 0x77 byte every 2 ticks (its two nibbles) so the step size
+  // keeps climbing toward the clamp, matching how a real byte stream behaves
+  // instead of relying on stale-data replay during underrun.
+  let aLast,bLast;
+  for(const [e,setLast] of [[a,v=>aLast=v],[b,v=>bLast=v]]){e.reset();e.writeOki6258(0,2);for(let i=0;i<60;i++){e.writeOki6258(1,0x77);setLast(e.processFrames(2).left.at(-1));}}
+  assert.equal(aLast,2047/2048);assert.equal(bLast,511/2048);
  }finally{a.dispose();b.dispose();}
 });
 test('real YM2151 plus OKIM6258 Player output repeats after reset and buffer splitting',async()=>{

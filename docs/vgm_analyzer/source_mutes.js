@@ -5,18 +5,21 @@ const SOURCES = {
   ssg: { key: "ssg", label: "SSG", method: "setSsgMuted" },
   rhythm: { key: "rhythm", label: "Rhythm", method: "setRhythmMuted" },
   adpcmB: { key: "adpcmB", label: "ADPCM-B", method: "setAdpcmBMuted" },
+  oki: { key: "oki", label: "OKI", method: "setOkiMuted" },
 };
-export function sourcesForChip(chip) {
-  if (chip === 'msx' || chip === 'okim6258') return [];
-  if (chip === '32x') return [SOURCES.psg, SOURCES.pwm];
-  if (chip === 'ym2610') return [SOURCES.ssg, {...SOURCES.rhythm, label:'ADPCM-A'}, SOURCES.adpcmB];
+export function sourcesForChip(chip, hasOki = false) {
+  if (chip === 'msx') return [];
+  if (chip === 'okim6258') return [SOURCES.oki];
+  const extra = hasOki ? [SOURCES.oki] : [];
+  if (chip === '32x') return [SOURCES.psg, SOURCES.pwm, ...extra];
+  if (chip === 'ym2610') return [SOURCES.ssg, {...SOURCES.rhythm, label:'ADPCM-A'}, SOURCES.adpcmB, ...extra];
   return (chip === "megacd" ? ["psg", "pcm"] : chip === "ym2608" ? ["ssg", "rhythm", "adpcmB"] : chip === "ym2203" ? ["ssg"] : ["psg"])
-    .map((key) => SOURCES[key]);
+    .map((key) => SOURCES[key]).concat(extra);
 }
-export function applySourceMutes(engine, chip, muted) {
-  for (const source of sourcesForChip(chip)) engine[source.method](muted[source.key]);
+export function applySourceMutes(engine, chip, muted, hasOki = false) {
+  for (const source of sourcesForChip(chip, hasOki)) engine[source.method](muted[source.key]);
 }
-export function allSourcesMuted(chip, channels, muted) {
+export function allSourcesMuted(chip, channels, muted, hasOki = false) {
   return channels.length > 0 && channels.every((channel) => channel.muted) &&
-    sourcesForChip(chip).every((source) => muted[source.key]);
+    sourcesForChip(chip, hasOki).every((source) => muted[source.key]);
 }

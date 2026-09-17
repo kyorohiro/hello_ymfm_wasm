@@ -227,6 +227,7 @@ let currentPcmClock = 0;
 let pcmMonitor = createRf5c164Monitor();
 let engineClockKey = null;
 const sourceChipKind = () => noteishHeader?.pwmClock && currentChipKind === "ym2612" ? "32x" : currentHasPcm && currentChipKind === "ym2612" ? "megacd" : currentChipKind;
+const hasOkiSource = () => Boolean(noteishHeader?.okim6258Clock);
 let channelMonitor = createChannelMonitorState();
 let monitorFrequencyHigh = [0, 0];
 let psgMonitor = createPsgMonitor(currentChipKind);
@@ -249,7 +250,7 @@ const opl3ChannelMutes = Array(18).fill(false);
 let opmNoteTracker;
 let opmNoteChannels = [];
 const opmChannelMutes = Array(8).fill(false);
-const sourceMutes = { psg: false, ssg: false, rhythm: false, adpcmB: false, pcm: false, pwm: false };
+const sourceMutes = { psg: false, ssg: false, rhythm: false, adpcmB: false, pcm: false, pwm: false, oki: false };
 let lastYm2612DacEnable = 0x00;
 let monitorToggleHandlerBound = false;
 let workletQueueMultiplier = 2;
@@ -447,7 +448,7 @@ function renderMonitorToggles() {
     inlineMonitorToggles.replaceChildren(...Array.from(monitorToggles.children, button => button.cloneNode(true)));
     return;
   }
-  for (const source of sourcesForChip(sourceChipKind())) {
+  for (const source of sourcesForChip(sourceChipKind(), hasOkiSource())) {
     const button = document.createElement("button");
     const muted = sourceMutes[source.key];
     button.type = "button";
@@ -515,7 +516,7 @@ function ensureMonitorToggleHandler() {
       ayMonitor.toggle(target.getAttribute('data-ay-control'));
       return;
     }
-    if (sourcesForChip(sourceChipKind()).some((source) => source.key === kind)) {
+    if (sourcesForChip(sourceChipKind(), hasOkiSource()).some((source) => source.key === kind)) {
       toggleSourceMute(kind);
       return;
     }
@@ -1474,7 +1475,7 @@ function flushPendingAudio() {
 function toggleSourceMute(kind) {
   sourceMutes[kind] = !sourceMutes[kind];
   try {
-    if (engine) applySourceMutes(engine, sourceChipKind(), sourceMutes);
+    if (engine) applySourceMutes(engine, sourceChipKind(), sourceMutes, hasOkiSource());
   } catch (error) {
     sourceMutes[kind] = !sourceMutes[kind];
     setStatus(`Error: ${error.message}`);
@@ -1485,7 +1486,15 @@ function toggleSourceMute(kind) {
 }
 
 function allAudibleSourcesMuted() {
-  return allSourcesMuted(sourceChipKind(), channelMonitor, sourceMutes);
+  // ym2151/ym2413/ymf262 track channel mutes in their own arrays, not channelMonitor
+  // (which is empty for these chip kinds); okim6258 standalone has no channels at all.
+  if (currentChipKind === 'okim6258') return sourcesForChip('okim6258', hasOkiSource()).every((source) => sourceMutes[source.key]);
+  const perChannelMutes = currentChipKind === 'ym2151' ? opmChannelMutes
+    : currentChipKind === 'ym2413' ? opllChannelMutes
+    : currentChipKind === 'ymf262' ? opl3ChannelMutes
+    : null;
+  const channels = perChannelMutes === null ? channelMonitor : perChannelMutes.map((muted) => ({ muted }));
+  return allSourcesMuted(sourceChipKind(), channels, sourceMutes, hasOkiSource());
 }
 
 function applyAnalyzerMuteToBuffer(left, right, frames) {
@@ -2644,7 +2653,7 @@ async function ensurePlaybackReady(vgm) {
   else if (['msx', 'y8950'].includes(currentChipKind)) {
     for (const control of msxMuteControls(currentChipKind, noteishHeader)) applyMsxMute(engine, currentChipKind, control, msxMutes.get(control.key) ?? false);
   }
-  else applySourceMutes(engine, sourceChipKind(), sourceMutes);
+  else applySourceMutes(engine, sourceChipKind(), sourceMutes, hasOkiSource());
   if (!player) {
     player = new VgmPlayer(engine);
   }

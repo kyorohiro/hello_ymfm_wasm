@@ -20,6 +20,23 @@ test("source buttons and all-muted detection include every chip's audible source
   }
 });
 
+test("OKIM6258 exposes a single chip-level toggle, standalone and mixed", () => {
+  assert.deepEqual(sourcesForChip("okim6258").map(s=>s.label),["OKI"]);
+  assert.deepEqual(sourcesForChip("okim6258", true).map(s=>s.label),["OKI"]);
+  assert.deepEqual(sourcesForChip("msx", true).map(s=>s.label),[]);
+  assert.deepEqual(sourcesForChip("ym2612").map(s=>s.label),["PSG"]);
+  assert.deepEqual(sourcesForChip("ym2612", true).map(s=>s.label),["PSG","OKI"]);
+  assert.deepEqual(sourcesForChip("ym2151", true).map(s=>s.label),["PSG","OKI"]);
+
+  const calls=[];
+  const engine={setPsgMuted:(v)=>calls.push(["psg",v]),setOkiMuted:(v)=>calls.push(["oki",v])};
+  applySourceMutes(engine, "ym2612", {psg:true,oki:true}, true);
+  assert.deepEqual(calls,[["psg",true],["oki",true]]);
+
+  assert.equal(allSourcesMuted("ym2612",[{muted:true}],{psg:true,oki:false},true),false);
+  assert.equal(allSourcesMuted("ym2612",[{muted:true}],{psg:true,oki:true},true),true);
+});
+
 test("Genesis PSG mute removes PSG mix, keeps FM and continues PSG clock/writes", () => {
   let ticks=0, writes=0;
   const samples=(n,v)=>({left:new Float32Array(n).fill(v),right:new Float32Array(n).fill(v)});

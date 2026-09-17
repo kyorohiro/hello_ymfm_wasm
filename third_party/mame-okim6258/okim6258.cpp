@@ -80,13 +80,18 @@ Oki6258::Oki6258(uint32_t clock, uint8_t flags, uint32_t rate):initial_clock(clo
 void Oki6258::reset() {
  clock=clock_buffer=initial_clock;divider=dividers[initial_flags&3];m_output_bits=(initial_flags&8)?12:10;
  m_signal=-2;m_step=0;data=shift=pan=0;playing=false;phase=0;last=0;
+ fifoHead=fifoTail=fifoCount=0;nibblesLeft=0;
 }
 void Oki6258::write(uint8_t reg,uint8_t value) {
  if(reg==0) {
   if(value&1){playing=false;last=0;return;}
-  if(value&2){if(!playing){m_signal=-2;m_step=0;shift=0;}playing=true;}
+  if(value&2){if(!playing){m_signal=-2;m_step=0;shift=0;fifoHead=fifoTail=fifoCount=0;nibblesLeft=0;}playing=true;}
   else {playing=false;last=0;}
- } else if(reg==1){data=value;shift=0;}
+ } else if(reg==1){
+  // Queue the byte; generate() advances to it only once the previous byte's
+  // two nibbles are both clocked out (see kFifoSize comment in the header).
+  if(fifoCount<kFifoSize){fifo[fifoTail]=value;fifoTail=(fifoTail+1)%kFifoSize;fifoCount++;}
+ }
  else if(reg==2)pan=value&3;
  else if(reg>=8 && reg<=11){unsigned n=(reg-8)*8;clock_buffer=(clock_buffer&~(uint32_t(255)<<n))|(uint32_t(value)<<n);if(reg==11)clock=clock_buffer&0x3fffffff;}
  else if(reg==12)divider=dividers[value&3];
@@ -95,7 +100,13 @@ void Oki6258::generate(float *left,float *right,uint32_t frames) {
  for(uint32_t i=0;i<frames;i++) {
   // Fractional VCLK phase survives buffer boundaries and clock/divider changes.
   phase+=double(clock)/divider/rate;
-  while(phase>=1){phase-=1;if(playing){last=clock_adpcm((data>>shift)&15)/32768.0f;shift^=4;}else last=0;}
+  while(phase>=1){
+   phase-=1;
+   if(playing){
+    if(nibblesLeft==0 && fifoCount>0){data=fifo[fifoHead];fifoHead=(fifoHead+1)%kFifoSize;fifoCount--;shift=0;nibblesLeft=2;}
+    if(nibblesLeft>0){last=clock_adpcm((data>>shift)&15)/32768.0f;shift^=4;nibblesLeft--;}
+   } else last=0;
+  }
   left[i]=(pan&2)?0:last;right[i]=(pan&1)?0:last;
  }
 }

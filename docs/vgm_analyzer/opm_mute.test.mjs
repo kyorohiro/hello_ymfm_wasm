@@ -7,7 +7,7 @@ for (const [chip,count] of [['ym2151',8],['ymf262',18],['ym2413',9]]) test(`${ch
  const root={children:[],innerHTML:'',append(b){this.children.push(b);}},inline={replaceChildren(...children){this.children=children;}};
  const calls=[];
  const context=vm.createContext({currentChipKind:chip,opmChannelMutes:Array(8).fill(false),opl3ChannelMutes:Array(18).fill(false),opllChannelMutes:Array(9).fill(false),channelMonitor:[],
-   ensureMonitorToggleHandler(){},sourcesForChip:()=>[],sourceChipKind:()=> 'ym2151',
+   ensureMonitorToggleHandler(){},sourcesForChip:()=>[],sourceChipKind:()=> 'ym2151',hasOkiSource:()=>false,
    monitorToggles:root,inlineMonitorToggles:inline,
    document:{createElement(){return {attrs:{},setAttribute(k,v){this.attrs[k]=v;},cloneNode(){return this;}};}},
    engine:{setChannelMuted:(...args)=>calls.push(args)},flushPendingAudio:()=>calls.push('flush')});
