@@ -18,7 +18,7 @@ for (const [chip,count] of [['ym2151',8],['ymf262',18],['ym2413',9],['ym3526',9]
  vm.runInContext(source.slice(source.indexOf('function toggleOpmChannelMute('),source.indexOf('function toggleChannelMute(')),context);
  context.renderMonitorToggles();assert.equal(root.children.length,count);assert.equal(inline.children.length,count);
  assert.equal(root.children[7].textContent,'CH8 On');
- root.children=[];context.toggleOpmChannelMute(7);assert.equal(root.children[7].textContent,'CH8 Muted');
+ root.children=[];context.toggleOpmChannelMute(7);assert.equal(root.children[7].textContent,'CH8 Off');
  assert.deepEqual(calls,[[7,true],'flush']);
  context.toggleOpmChannelMute(count);assert.equal(calls.length,2);
 });

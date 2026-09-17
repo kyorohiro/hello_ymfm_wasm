@@ -478,7 +478,7 @@ function renderMonitorToggles() {
       const button = document.createElement('button');
       button.type = 'button';
       button.className = `channel-toggle${muted ? ' is-muted' : ''}`;
-      button.textContent = `CH${index + 1} ${muted ? 'Muted' : 'On'}`;
+      button.textContent = `CH${index + 1} ${muted ? 'Off' : 'On'}`;
       button.setAttribute('aria-pressed', String(!muted));
       button.setAttribute('data-monitor-toggle-kind', 'opm-channel');
       if (currentChipKind === 'ym2413') button.title = 'Rhythm: CH7 bass drum, CH8 hi-hat/snare, CH9 tom/cymbal.';
@@ -494,7 +494,7 @@ function renderMonitorToggles() {
         const button = document.createElement('button');
         button.type = 'button';
         button.className = `channel-toggle${muted ? ' is-muted' : ''}`;
-        button.textContent = `${label} CH${index + 1} ${muted ? 'Muted' : 'On'}`;
+        button.textContent = `${label} CH${index + 1} ${muted ? 'Off' : 'On'}`;
         button.setAttribute('aria-pressed', String(!muted));
         button.setAttribute('data-monitor-toggle-kind', kind);
         button.setAttribute('data-channel-index', String(index));
@@ -508,7 +508,7 @@ function renderMonitorToggles() {
     button.type = "button";
     button.className = `channel-toggle${channel.muted ? " is-muted" : ""}`;
     button.textContent = channel.muted
-      ? `CH${channel.channel + 1} Muted`
+      ? `CH${channel.channel + 1} Off`
       : `CH${channel.channel + 1} On`;
     button.setAttribute("data-monitor-toggle-kind", "channel");
     button.setAttribute("data-channel-index", String(channel.channel));
@@ -971,9 +971,13 @@ function updateChannelObservedRange(channelIndex) {
 
 function pruneChannelNoteHistory(channel, now = performance.now()) {
   const cutoff = now - NOTEISH_HISTORY_WINDOW_MS;
-  while (channel.noteHistory.length > 0 && channel.noteHistory[0].time < cutoff) {
-    channel.noteHistory.shift();
-  }
+  const history = channel.noteHistory;
+  // A single splice instead of repeated shift() calls: shifting one at a time
+  // is O(n) per call, so dropping k stale entries from a dense history was
+  // O(n*k) here specifically (pruning runs on every note/pitch push).
+  let dropCount = 0;
+  while (dropCount < history.length && history[dropCount].time < cutoff) dropCount++;
+  if (dropCount > 0) history.splice(0, dropCount);
 }
 
 // Display-only onset cleanup: at most 8 VGM samples (~0.18 ms), and
@@ -1154,13 +1158,24 @@ function renderNoteishGraph(channel, estimated) {
   let historySvg = "";
   let historyDotsSvg = "";
   let lastPoint = null;
-  for (const point of channel.noteHistory) {
+  let lastRenderedColumn = null;
+  const historyLength = channel.noteHistory.length;
+  for (let index = 0; index < historyLength; index++) {
+    const point = channel.noteHistory[index];
     if (point.midiFloat === null) {
       lastPoint = null;
+      lastRenderedColumn = null;
       continue;
     }
     const age = now - point.time;
     const x = 16 + (188 * (1 - clamp(age / NOTEISH_HISTORY_WINDOW_MS, 0, 1)));
+    // The graph is 188px wide, so points landing on the same half-pixel column
+    // are visually identical; a dense pitch-modulation history can otherwise
+    // reach thousands of points, and building an SVG element per point every
+    // render tick becomes the actual bottleneck. Always keep the newest point.
+    const column = Math.round(x * 2);
+    if (lastRenderedColumn === column && index !== historyLength - 1) continue;
+    lastRenderedColumn = column;
     const y =
       36 - (
         ((clamp(point.midiFloat, NOTEISH_GRAPH_MIN_MIDI, NOTEISH_GRAPH_MAX_MIDI) - NOTEISH_GRAPH_MIN_MIDI) /
