@@ -1,17 +1,25 @@
-import {renderFretboard,FRET_TRAIL_MS} from './fretboard.js';
+import {renderFretboard,boardLayout,FRET_TRAIL_MS} from './fretboard.js';
 const colors=['#c54f3a','#ad6d08','#348847','#356bba','#8b4cc2','#007c91','#be4879','#666329','#53646e'];
 const escape=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const noteName=n=>['C','C♯','D','D♯','E','F','F♯','G','G♯','A','A♯','B'][((n%12)+12)%12]+(Math.floor(n/12)-1);
 const positionKey=p=>`${p.stringIndex}:${p.fret}`;
+const tierOf=(strings,i)=>i<0?-i:i>=strings?i-strings+1:0;
 
 // Each source keeps its own position tracker. Shared locations are drawn as
 // colored sectors, so unison channels do not hide one another.
 export function renderAllFretboard(layers,strings=8){
  const active=new Map(),ghosts=[],outside=[];
- const x=p=>60+p.fret*29,y=p=>43+(strings-1-p.stringIndex)*27;
+ // Any layer landing on a fallback row must force the shared base board
+ // (drawn via renderFretboard below) to grow the same way, or the marks this
+ // function draws with its own y() (shared with boardLayout) would sit off it.
+ let lowTiers=0,highTiers=0;
  layers.forEach((layer,i)=>{
+   lowTiers=Math.max(lowTiers,layer.extraRows?.lowTiers??0);
+   highTiers=Math.max(highTiers,layer.extraRows?.highTiers??0);
    const color=colors[i%colors.length];
    for(const [note,position] of layer.activePositions){
+     const tier=tierOf(strings,position.stringIndex);
+     if(position.stringIndex<0)lowTiers=Math.max(lowTiers,tier); else if(position.stringIndex>=strings)highTiers=Math.max(highTiers,tier);
      const key=positionKey(position);
      if(!active.has(key))active.set(key,[]);
      active.get(key).push({note,position,color,label:layer.label});
@@ -21,11 +29,15 @@ export function renderAllFretboard(layers,strings=8){
    const recent=new Map();
    for(const h of layer.history){
      if(!h.position||!Number.isFinite(h.note)||!Number.isFinite(h.ageMs)||h.ageMs<0||h.ageMs>=FRET_TRAIL_MS)continue;
+     const tier=tierOf(strings,h.position.stringIndex);
+     if(h.position.stringIndex<0)lowTiers=Math.max(lowTiers,tier); else if(h.position.stringIndex>=strings)highTiers=Math.max(highTiers,tier);
      const key=positionKey(h.position);
      if(!recent.has(key)||h.ageMs<recent.get(key).ageMs)recent.set(key,h);
    }
    for(const h of recent.values())ghosts.push({...h,color,label:layer.label});
  });
+ const layout=boardLayout(strings,{lowTiers,highTiers});
+ const x=p=>60+p.fret*29,y=p=>layout.y(p.stringIndex);
  let marks='';
  for(const h of ghosts){
    if(active.has(positionKey(h.position)))continue;
@@ -41,7 +53,7 @@ export function renderAllFretboard(layers,strings=8){
    });
    marks+=`<text x="${cx}" y="${cy+4}" text-anchor="middle" font-size="9" fill="white">${noteName(note)}</text></g>`;
  }
- const board=renderFretboard([],{strings,keyOn:false}).replace('</svg>',marks+'</svg>');
+ const board=renderFretboard([],{strings,keyOn:false,extraRows:{lowTiers,highTiers}}).replace('</svg>',marks+'</svg>');
  const legend=layers.map((l,i)=>`<span style="color:${colors[i%colors.length]};opacity:${l.keyOn?1:0.55}">${escape(l.label)}: ${l.keyOn&&Number.isFinite(l.note)?noteName(Math.round(l.note)):'—'}</span>`).join(' · ');
  return board+`<div class="fretboard-caption">${legend}</div>`+(outside.length?`<div class="fretboard-caption">Outside range: ${escape(outside.join(', '))}</div>`:'');
 }

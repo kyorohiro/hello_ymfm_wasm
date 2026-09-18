@@ -16,6 +16,18 @@ test('live SSG clock, mixer, fixed volume and prescalers match note extraction m
     applySsgWrite(s,0,7,0x3f,4);assert.equal(describeToneNotes(s,clock)[0].keyOn,false);
   }
 });
+test('standalone AY-3-8910 has no OPN/OPNA prescaler stage: clock/(16*period) directly',()=>{
+  // Regression: this used to reuse the OPNA prescale divisor (a default /4),
+  // making every standalone AY pitch two octaves flat.
+  const s=createPsgMonitor('ay8910');
+  for(const [r,v] of [[0,60],[1,11],[7,0x3e],[8,15]]) applySsgWrite(s,0,r,v,0);
+  const clock=1789773, period=2876;
+  const expected=69+12*Math.log2((clock/16/period)/440);
+  const a=describeToneNotes(s,clock)[0];
+  assert.ok(a.keyOn);
+  assert.ok(Math.abs(a.midi-expected)<1e-8);
+  assert.ok(Math.abs(a.midi-27.00165017939311)<1e-8);
+});
 test('live PSG period zero is Sega 1024 and attenuation 15 is off',()=>{
   const s=createPsgMonitor('ym2612');
   applyPsgWrite(s,0x90,0);

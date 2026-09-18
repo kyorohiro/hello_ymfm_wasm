@@ -28,3 +28,12 @@ test('all-board distinguishes the same pitch at different positions and escapes 
  assert.equal((svg.match(/data-all-note=/g)||[]).length,2);
  assert.match(svg,/&lt;CH2&gt;/);assert.doesNotMatch(svg,/<CH2>/);
 });
+test('a layer on the "9" fallback string grows the shared board so its mark lands on a real row',()=>{
+ const fallback={...layer('Bass',27),activePositions:new Map([[27,{stringIndex:-1,fret:2}]])};
+ const svg=renderAllFretboard([fallback,layer('Lead')],8);
+ assert.match(svg,/9 C#1\*/);
+ const rowY=svg.match(/9 C#1\*<\/text>\s*<line[^>]*y1="(\d+)"/)?.[1];
+ const noteMatch=svg.match(/data-all-note="27">[\s\S]*?cy="(\d+)"/);
+ assert.ok(rowY && noteMatch, 'expected both the "9" row and the note mark to be present');
+ assert.equal(noteMatch[1], rowY, 'the note must sit exactly on the "9" row, not off-board');
+});

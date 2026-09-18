@@ -2,13 +2,16 @@ import { Ym2612VGM } from '../js/ym2612vgm.js?v=ym2610-vgm-2';
 import { createPsgMonitor, applySsgWrite, applyPsgWrite, describePsgMonitor } from './psg_monitor.js?v=ym2610-vgm-2';
 
 // YMFM ssg_effective_clock(): OPN /2, OPNA /4 at the default prescaler.
+// Standalone AY-3-8910/YM2149 has no such prescaler stage at all: its tone
+// generator runs straight off the input clock (clock/(16*period)).
 export function describeToneNotes(state, clock) {
   const desc = describePsgMonitor(state);
   const scale = Math.floor((state.prescale ?? 6) * 2 / 3);
   return desc.channels.map((ch, index) => {
     const ssg = state.kind === 'ssg';
-    const hz = ssg ? clock * (state.chip === 'ym2203' ? 2 : 1) / scale / 16 / Math.max(1, ch.period)
-      : clock / 32 / (ch.period || 1024);
+    const hz = !ssg ? clock / 32 / (ch.period || 1024)
+      : state.chip === 'ay8910' ? clock / 16 / Math.max(1, ch.period)
+      : clock * (state.chip === 'ym2203' ? 2 : 1) / scale / 16 / Math.max(1, ch.period);
     const enabled = ssg ? ch.toneEnabled && (ch.envelope || ch.volume > 0) : ch.attenuation < 15;
     const midi = clock > 0 && hz > 0 ? 69 + 12 * Math.log2(hz / 440) : null;
     return { name: `${ssg ? 'SSG' : 'PSG'} ${index+1}`, midi, keyOn: enabled && midi !== null,
