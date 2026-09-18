@@ -125,6 +125,8 @@ const effectBass = document.getElementById("effectBass");
 const effectMiddle = document.getElementById("effectMiddle");
 const effectTreble = document.getElementById("effectTreble");
 const effectReverb = document.getElementById("effectReverb");
+const effectCompressor = document.getElementById("effectCompressor");
+const effectNoiseGate = document.getElementById("effectNoiseGate");
 
 // Mirror controls share the existing playback handlers, including their error paths.
 for (const [primary, mirror] of [
@@ -228,7 +230,7 @@ let audioContext = null;
 let engine = null;
 let player = null;
 let activeStream = null;
-const effectSettings = { enabled: false, gain: 100, bass: 0, middle: 0, treble: 0, reverb: 0 };
+const effectSettings = { enabled: false, gain: 100, bass: 0, middle: 0, treble: 0, reverb: 0, compressor: 0, noiseGate: 0 };
 let effectsChain = null;
 
 // A short burst of white noise with an exponential decay makes a plausible
@@ -274,7 +276,7 @@ function ensureEffectsChain(context) {
   const convolver = context.createConvolver();
   convolver.normalize = true;
   convolver.buffer = createReverbImpulse(context);
-  const output = context.createGain();
+  const reverbOutput = context.createGain();
 
   gainNode.connect(bassNode);
   bassNode.connect(middleNode);
@@ -282,10 +284,42 @@ function ensureEffectsChain(context) {
   trebleNode.connect(dryGain);
   trebleNode.connect(convolver);
   convolver.connect(wetGain);
-  dryGain.connect(output);
-  wetGain.connect(output);
+  dryGain.connect(reverbOutput);
+  wetGain.connect(reverbOutput);
 
-  effectsChain = { context, input: gainNode, output, gainNode, bassNode, middleNode, trebleNode, dryGain, wetGain };
+  const compressorNode = context.createDynamicsCompressor();
+  reverbOutput.connect(compressorNode);
+
+  // A simple envelope-follower gate: quiet passages below the threshold get
+  // faded toward silence. ScriptProcessorNode is deprecated but keeps this
+  // self-contained (no extra worklet module to load), matching the app's
+  // existing ScriptProcessor fallback path for VGM output itself.
+  const gateNode = context.createScriptProcessor(1024, 2, 2);
+  const gateState = { envelope: 0, threshold: 0 };
+  gateNode.onaudioprocess = (event) => {
+    const inL = event.inputBuffer.getChannelData(0);
+    const inR = event.inputBuffer.getChannelData(1);
+    const outL = event.outputBuffer.getChannelData(0);
+    const outR = event.outputBuffer.getChannelData(1);
+    const attack = 0.3, release = 0.02;
+    for (let i = 0; i < inL.length; i++) {
+      const level = Math.max(Math.abs(inL[i]), Math.abs(inR[i]));
+      gateState.envelope += (level - gateState.envelope) * (level > gateState.envelope ? attack : release);
+      const gain = gateState.threshold <= 0 || gateState.envelope >= gateState.threshold
+        ? 1 : gateState.envelope / gateState.threshold;
+      outL[i] = inL[i] * gain;
+      outR[i] = inR[i] * gain;
+    }
+  };
+  compressorNode.connect(gateNode);
+
+  const output = context.createGain();
+  gateNode.connect(output);
+
+  effectsChain = {
+    context, input: gainNode, output, gainNode, bassNode, middleNode, trebleNode,
+    dryGain, wetGain, compressorNode, gateState,
+  };
   applyEffectSettings();
   return effectsChain;
 }
@@ -299,6 +333,15 @@ function applyEffectSettings() {
   const reverb = effectSettings.reverb / 100;
   effectsChain.dryGain.gain.value = 1 - reverb * 0.3;
   effectsChain.wetGain.gain.value = reverb * 2.0;
+
+  const compressorAmount = effectSettings.compressor / 100;
+  effectsChain.compressorNode.threshold.value = -compressorAmount * 40;
+  effectsChain.compressorNode.ratio.value = 1 + compressorAmount * 11;
+  effectsChain.compressorNode.knee.value = 30;
+  effectsChain.compressorNode.attack.value = 0.003;
+  effectsChain.compressorNode.release.value = 0.25;
+
+  effectsChain.gateState.threshold = (effectSettings.noiseGate / 100) * 0.1;
 }
 
 // Rewires the currently active stream node between the effects chain and the
@@ -324,6 +367,8 @@ function updateEffectValueOutputs() {
   document.getElementById('effectMiddleValue').textContent = `${effectSettings.middle} dB`;
   document.getElementById('effectTrebleValue').textContent = `${effectSettings.treble} dB`;
   document.getElementById('effectReverbValue').textContent = `${effectSettings.reverb}%`;
+  document.getElementById('effectCompressorValue').textContent = `${effectSettings.compressor}%`;
+  document.getElementById('effectNoiseGateValue').textContent = `${effectSettings.noiseGate}%`;
 }
 
 function updateEffectEnabledUi() {
@@ -341,7 +386,7 @@ effectEnabled.addEventListener('click', () => {
   updateEffectEnabledUi();
   rewireAudioGraph();
 });
-for (const [input, key] of [[effectGain, 'gain'], [effectBass, 'bass'], [effectMiddle, 'middle'], [effectTreble, 'treble'], [effectReverb, 'reverb']]) {
+for (const [input, key] of [[effectGain, 'gain'], [effectBass, 'bass'], [effectMiddle, 'middle'], [effectTreble, 'treble'], [effectReverb, 'reverb'], [effectCompressor, 'compressor'], [effectNoiseGate, 'noiseGate']]) {
   input.addEventListener('input', () => {
     effectSettings[key] = Number(input.value);
     updateEffectValueOutputs();
