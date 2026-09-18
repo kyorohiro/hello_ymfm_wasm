@@ -40,8 +40,8 @@ export function exportAnalysisMidi(source, { bpm = 120, fileName = 'VGM' } = {})
   }
   const parserHeader = new Ym2612VGM(source).header;
   const chipKind = parserHeader.ym2151Clock & 0x3fffffff ? 'ym2151' : midiChipKind(parserHeader);
-  if (!chipKind) throw new Error('MIDI requires YM2151 / YM2612 / YM2203 / YM2608 / YM2610 or PSG');
-  const fm = chipKind === 'ym2151' ? extractOpmNotes(source) : chipKind === 'psg' ? {channels:[],warnings:new Map()} : extractOpnNotes(source);
+  if (!chipKind) throw new Error('MIDI requires YM2151 / YM2612 / YM2203 / YM2608 / YM2610 / AY-3-8910 or PSG');
+  const fm = chipKind === 'ym2151' ? extractOpmNotes(source) : chipKind === 'psg' || chipKind === 'ay8910' ? {channels:[],warnings:new Map()} : extractOpnNotes(source);
   const tones = extractToneNotes(source, chipKind);
   const channels = [...fm.channels, ...tones.channels];
   const time = tones.time;

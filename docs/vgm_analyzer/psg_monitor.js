@@ -1,7 +1,8 @@
 // Register state only: envelope phase, LFSR state and PCM levels are not inferred.
 export function createPsgMonitor(chip) {
-  return { chip, kind: ['ym2203','ym2608','ym2610'].includes(chip) ? 'ssg' : 'psg',
-    registers: ['ym2203','ym2608','ym2610'].includes(chip) ? Array(14).fill(0) : [0, 15, 0, 15, 0, 15, 0, 15],
+  const isSsg = ['ym2203','ym2608','ym2610','ay8910'].includes(chip);
+  return { chip, kind: isSsg ? 'ssg' : 'psg',
+    registers: isSsg ? Array(14).fill(0) : [0, 15, 0, 15, 0, 15, 0, 15],
     changedAt: Array(14).fill(0), latchedRegister: 0 };
 }
 

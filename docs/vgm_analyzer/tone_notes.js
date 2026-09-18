@@ -23,6 +23,7 @@ export function extractToneNotes(source, chipKind) {
   const parser = new Ym2612VGM(source, { logger: { warn } });
   const groups = [];
   if (['ym2203','ym2608','ym2610'].includes(chipKind)) groups.push({kind:chipKind,state:createPsgMonitor(chipKind),clock:parser.header[`${chipKind}Clock`] & 0x3fffffff});
+  if (chipKind === 'ay8910') groups.push({kind:'ay8910',state:createPsgMonitor('ay8910'),clock:parser.header.ay8910Clock & 0x3fffffff});
   if (parser.header.psgClock & 0x3fffffff) groups.push({kind:'psg',state:createPsgMonitor('ym2612'),clock:parser.header.psgClock & 0x3fffffff});
   for (const g of groups) {
     g.channels = [0,1,2].map(i=>({name:`${g.kind === 'psg' ? 'PSG' : `${g.kind.toUpperCase()} SSG`} ${i+1}`, notes:[],active:null,serial:0}));
