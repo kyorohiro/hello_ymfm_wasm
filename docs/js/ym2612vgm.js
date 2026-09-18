@@ -979,6 +979,20 @@ export class Ym2612VGM {
     return pcmKeyOn;
   }
 
+  // Rhythm key-on (register 0x10, bit7 clear) plays the chip's built-in
+  // drum samples; without the ADPCM-A ROM loaded, the decoder still runs on
+  // an all-zero sample stream, which is audible noise rather than silence.
+  requiresYm2608RhythmRom() {
+    if (!(this.header.ym2608Clock & 0x3fffffff)) return false;
+    const scan = new Ym2612VGM(this.bytes);
+    while (!scan.ended) {
+      const event = scan.step();
+      if (event.type === 'ym2608-write' && event.port === 0 &&
+          event.register === 0x10 && !(event.value & 0x80) && (event.value & 0x3f) !== 0) return true;
+    }
+    return false;
+  }
+
   /**
    * @param {number} command
    * @param {number} position

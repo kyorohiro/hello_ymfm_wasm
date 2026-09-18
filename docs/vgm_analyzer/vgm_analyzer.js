@@ -388,6 +388,17 @@ const ym3812ChannelMutes = Array(9).fill(false);
 const ymf278bFmChannelMutes = Array(18).fill(false);
 const ymf278bPcmChannelMutes = Array(24).fill(false);
 const sourceMutes = { psg: false, ssg: false, rhythm: false, adpcmB: false, pcm: false, pwm: false, oki: false };
+// Without the rhythm ROM, decoding its all-zero sample stream is audible
+// noise, not silence (see YM2608_RHYTHM_ROM_WARNING) - force the source
+// mute so the chip stays quiet there regardless of the user's toggle,
+// without touching sourceMutes.rhythm itself (the toggle still reflects
+// what the user actually chose, for when the ROM does get imported).
+function effectiveSourceMutes() {
+  if (currentChipKind === 'ym2608' && ym2608NeedsRhythmRom && !ym2608AdpcmARomBytes) {
+    return { ...sourceMutes, rhythm: true };
+  }
+  return sourceMutes;
+}
 const CHANNEL_MUTE_CHIPS = ['ym2151', 'ymf262', 'ym2413', 'ym3526', 'ym3812'];
 function channelMutesForChip(chipKind) {
   return chipKind === 'ym2413' ? opllChannelMutes
@@ -416,6 +427,8 @@ let ymf278bNeedsWaveRom = false;
 const YMF278B_ROM_WARNING = 'This YMF278B track needs yrw801.rom (2 MiB). Import it using the file selector or drag and drop, then press Play.';
 let ym2608AdpcmARomBytes = null;
 let ym2608AdpcmARomName = "";
+let ym2608NeedsRhythmRom = false;
+const YM2608_RHYTHM_ROM_WARNING = 'This YM2608 track uses rhythm samples. Without ym2608_adpcm_rom.bin the rhythm channel decodes silence as noise. Import it using the file selector or drag and drop.';
 
 const NOTE_NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
 const NOTEISH_REFERENCE_MIDI = 62;
@@ -1680,7 +1693,7 @@ function flushPendingAudio() {
 function toggleSourceMute(kind) {
   sourceMutes[kind] = !sourceMutes[kind];
   try {
-    if (engine) applySourceMutes(engine, sourceChipKind(), sourceMutes, hasOkiSource());
+    if (engine) applySourceMutes(engine, sourceChipKind(), effectiveSourceMutes(), hasOkiSource());
   } catch (error) {
     sourceMutes[kind] = !sourceMutes[kind];
     setStatus(`Error: ${error.message}`);
@@ -1701,7 +1714,7 @@ function allAudibleSourcesMuted() {
   }
   const perChannelMutes = channelMutesForChip(currentChipKind);
   const channels = perChannelMutes === null ? channelMonitor : perChannelMutes.map((muted) => ({ muted }));
-  return allSourcesMuted(sourceChipKind(), channels, sourceMutes, hasOkiSource());
+  return allSourcesMuted(sourceChipKind(), channels, effectiveSourceMutes(), hasOkiSource());
 }
 
 function applyAnalyzerMuteToBuffer(left, right, frames) {
@@ -2862,7 +2875,7 @@ async function ensurePlaybackReady(vgm) {
   else if (['msx', 'y8950'].includes(currentChipKind)) {
     for (const control of msxMuteControls(currentChipKind, noteishHeader)) applyMsxMute(engine, currentChipKind, control, msxMutes.get(control.key) ?? false);
   }
-  else applySourceMutes(engine, sourceChipKind(), sourceMutes, hasOkiSource());
+  else applySourceMutes(engine, sourceChipKind(), effectiveSourceMutes(), hasOkiSource());
   if (!player) {
     player = new VgmPlayer(engine);
   }
@@ -3462,6 +3475,11 @@ async function handleFile(file) {
 
   commandsOutput.textContent = events.join("\n");
   ymf278bNeedsWaveRom = vgm.requiresYmf278bWaveRom();
+  ym2608NeedsRhythmRom = vgm.requiresYm2608RhythmRom();
+  if (ym2608NeedsRhythmRom && !ym2608AdpcmARomBytes) {
+    playbackWarnings.add(YM2608_RHYTHM_ROM_WARNING);
+    renderPlaybackWarnings();
+  }
   if (ymf278bNeedsWaveRom && !ymf278bWaveRomBytes) {
     playbackWarnings.add(YMF278B_ROM_WARNING);
     renderPlaybackWarnings();
@@ -3510,7 +3528,12 @@ async function handleYm2608RomFile(file) {
 
   if (currentChipKind === "ym2608" && engine && typeof engine.loadAdpcmARom === "function") {
     engine.loadAdpcmARom(ym2608AdpcmARomBytes);
+    // The rhythm source was force-muted while the ROM was missing; now that
+    // it's loaded, reapply mutes so rhythm follows the user's actual toggle.
+    applySourceMutes(engine, sourceChipKind(), effectiveSourceMutes(), hasOkiSource());
   }
+  playbackWarnings.delete(YM2608_RHYTHM_ROM_WARNING);
+  renderPlaybackWarnings();
 
   romFileStatus.textContent = `YM2608 ADPCM-A ROM: ${file.name} (${ym2608AdpcmARomBytes.length} bytes)`;
   setStatus(`Loaded YM2608 ADPCM-A ROM: ${file.name} (${ym2608AdpcmARomBytes.length} bytes).`);
