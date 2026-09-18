@@ -258,9 +258,13 @@ function setDockView(mode) {
 dockPlayTab.addEventListener('click', () => setDockView('play'));
 dockEffectTab.addEventListener('click', () => setDockView('effect'));
 
+// Textbook chain order: EQ -> Noise Gate -> Compressor -> time-based effects
+// (Reverb) -> final output Gain. Gate ahead of Compressor keeps the noise
+// floor from being lifted before it's gated; Reverb stays after the dynamics
+// stage so the compressor reacts to the dry signal, not the reverb tail;
+// Gain sits last as an overall output-level trim rather than an input drive.
 function ensureEffectsChain(context) {
   if (effectsChain && effectsChain.context === context) return effectsChain;
-  const gainNode = context.createGain();
   const bassNode = context.createBiquadFilter();
   bassNode.type = 'lowshelf';
   bassNode.frequency.value = 200;
@@ -271,29 +275,7 @@ function ensureEffectsChain(context) {
   const trebleNode = context.createBiquadFilter();
   trebleNode.type = 'highshelf';
   trebleNode.frequency.value = 3000;
-  const dryGain = context.createGain();
-  const wetGain = context.createGain();
-  const convolver = context.createConvolver();
-  convolver.normalize = true;
-  convolver.buffer = createReverbImpulse(context);
-  const reverbOutput = context.createGain();
 
-  gainNode.connect(bassNode);
-  bassNode.connect(middleNode);
-  middleNode.connect(trebleNode);
-  trebleNode.connect(dryGain);
-  trebleNode.connect(convolver);
-  convolver.connect(wetGain);
-  dryGain.connect(reverbOutput);
-  wetGain.connect(reverbOutput);
-
-  const compressorNode = context.createDynamicsCompressor();
-  reverbOutput.connect(compressorNode);
-
-  // A simple envelope-follower gate: quiet passages below the threshold get
-  // faded toward silence. ScriptProcessorNode is deprecated but keeps this
-  // self-contained (no extra worklet module to load), matching the app's
-  // existing ScriptProcessor fallback path for VGM output itself.
   const gateNode = context.createScriptProcessor(1024, 2, 2);
   const gateState = { envelope: 0, threshold: 0 };
   gateNode.onaudioprocess = (event) => {
@@ -311,13 +293,33 @@ function ensureEffectsChain(context) {
       outR[i] = inR[i] * gain;
     }
   };
-  compressorNode.connect(gateNode);
 
+  const compressorNode = context.createDynamicsCompressor();
+
+  const dryGain = context.createGain();
+  const wetGain = context.createGain();
+  const convolver = context.createConvolver();
+  convolver.normalize = true;
+  convolver.buffer = createReverbImpulse(context);
+  const reverbOutput = context.createGain();
+
+  const gainNode = context.createGain();
   const output = context.createGain();
-  gateNode.connect(output);
+
+  bassNode.connect(middleNode);
+  middleNode.connect(trebleNode);
+  trebleNode.connect(gateNode);
+  gateNode.connect(compressorNode);
+  compressorNode.connect(dryGain);
+  compressorNode.connect(convolver);
+  convolver.connect(wetGain);
+  dryGain.connect(reverbOutput);
+  wetGain.connect(reverbOutput);
+  reverbOutput.connect(gainNode);
+  gainNode.connect(output);
 
   effectsChain = {
-    context, input: gainNode, output, gainNode, bassNode, middleNode, trebleNode,
+    context, input: bassNode, output, gainNode, bassNode, middleNode, trebleNode,
     dryGain, wetGain, compressorNode, gateState,
   };
   applyEffectSettings();
