@@ -68,7 +68,7 @@ test('overview labels retain hardware channels after unavailable channels are re
     const channels=indices.map(channel=>({channel,noteHistory:[{time:0,midiFloat:60+channel}]}));
     channels.push({channel:0,label:'YM2610 SSG 1',noteHistory:[]});
     const context=vm.createContext({
-      noteishMode:{value:'compact'}, performance:{now:()=>0},
+      noteishMode:{value:'compact'}, performance:{now:()=>0}, songTimeMs:()=>0,
       noteishChannels:()=>channels,pruneChannelNoteHistory(){},
       noteishOverviewY:n=>n,clamp:(n,min,max)=>Math.max(min,Math.min(max,n)),
       NOTEISH_HISTORY_WINDOW_MS:8000,noteishOverview:{innerHTML:''},
@@ -87,6 +87,7 @@ function onsetMonitor() {
   const m=monitor('ym2610');
   const c=m.context;
   c.player={processedWaitSamples:0};
+  c.songTimeMs=()=>0;
   c.NOTEISH_HISTORY_WINDOW_MS=8000;
   c.midiToNoteName=n=>String(n);
   for(const ch of c.channelMonitor) Object.assign(ch,{
@@ -139,6 +140,7 @@ test('onset cleanup stays dense when old history expires during KEY ON or before
     const m=onsetMonitor(),c=m.context,ch=c.channelMonitor[1];
     let now=scenario==='at-key-on'?10000:7000;
     c.performance.now=()=>now;
+    c.songTimeMs=()=>now;
     ch.noteHistory=[{time:0,midiFloat:600},{time:1000,midiFloat:null},{time:6500,midiFloat:700}];
     m.write(0xa5,0x2b);m.write(0xa1,0x9e);m.write(0x28,0xf1);
     if(scenario!=='at-key-on') {

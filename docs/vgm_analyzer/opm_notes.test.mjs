@@ -48,7 +48,7 @@ test('Note-ish worker uses YM2151 extraction and emits timeline intervals',async
 test('Analyzer live bridge uses the same pitch and clears histories on reset',async()=>{
  const {readFileSync}=await import('node:fs');const vm=await import('node:vm');
  const source=readFileSync(new URL('./vgm_analyzer.js',import.meta.url),'utf8');
- const ctx=vm.createContext({createOpmNoteTracker,opmNoteChannels:[],opmNoteTracker:null,currentChipKind:'ym2151',performance:{now:()=>100},pruneChannelNoteHistory(){},requestNoteishRender(){}});
+ const ctx=vm.createContext({createOpmNoteTracker,opmNoteChannels:[],opmNoteTracker:null,currentChipKind:'ym2151',performance:{now:()=>100},songTimeMs:()=>100,pruneChannelNoteHistory(){},requestNoteishRender(){}});
  vm.runInContext(source.slice(source.indexOf('function resetOpmNotes('),source.indexOf('function updateToneMonitor(')),ctx);
  ctx.resetOpmNotes(clock);ctx.opmNoteTracker.write(0x28,0x4a,0);ctx.opmNoteTracker.write(8,0x78,4);ctx.opmNoteTracker.write(0x30,128,100);
  const ch=ctx.noteishChannels()[0];assert.equal(ch.noteMidi,69.5);assert.equal(ch.noteMinMidi,69);assert.equal(ch.noteMaxMidi,69.5);assert.equal(ch.noteHistory[1].sample,100);

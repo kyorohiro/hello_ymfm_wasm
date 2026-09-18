@@ -902,10 +902,17 @@ function ensureChannelMonitorRenderTimer() {
   }, 120);
 }
 
+// Note-ish/fretboard history timestamps use song time (the VGM's own sample
+// position), not wall-clock time: it freezes while paused and jumps correctly
+// on seek, so the ghost trail does not keep aging/fading while nothing plays.
+function songTimeMs() {
+  return (player?.processedWaitSamples ?? 0) / 44.1;
+}
+
 function hasRecentFretboardHistory() {
   return noteishInstrument.value === "fretboard" && noteishChannels().some(channel => {
     const last = channel.noteHistory.at(-1);
-    return last && performance.now() - last.time <= FRET_TRAIL_MS + 200;
+    return last && songTimeMs() - last.time <= FRET_TRAIL_MS + 200;
   });
 }
 
@@ -986,7 +993,7 @@ function renderPcmMonitor() {
 function resetOpmNotes(clock) {
   opmNoteChannels = Array.from({length:8},(_,channel)=>({opm:true,channel,label:`YM2151 CH${channel+1}`,keyOn:false,noteMidi:null,noteHistory:[],noteMinMidi:null,noteMaxMidi:null,reason:null,kc:0,kf:0}));
   opmNoteTracker = createOpmNoteTracker(clock,(index,state,sample)=>{
-    const ch=opmNoteChannels[index],now=performance.now();
+    const ch=opmNoteChannels[index],now=songTimeMs();
     Object.assign(ch,{keyOn:state.keyOn,noteMidi:state.midi,reason:state.reason,kc:state.kc,kf:state.kf});
     ch.noteHistory.push({time:now,sample,midiFloat:state.midi});
     if(state.midi!==null){ch.noteMinMidi=ch.noteMinMidi===null?state.midi:Math.min(ch.noteMinMidi,state.midi);ch.noteMaxMidi=ch.noteMaxMidi===null?state.midi:Math.max(ch.noteMaxMidi,state.midi);}
@@ -1008,7 +1015,7 @@ function updateToneMonitor() {
   const clock = (psgMonitor.kind === 'ssg' ? noteishHeader[`${currentChipKind}Clock`] : noteishHeader.psgClock) & 0x3fffffff;
   if (!clock) { toneChannels = []; return; }
   if (!toneChannels.length) toneChannels = Array.from({length:3}, (_,index)=>({...buildMonitorChannel(index), tone:true, toneMidi:null}));
-  const now = performance.now();
+  const now = songTimeMs();
   describeToneNotes(psgMonitor, clock).forEach((note,i)=>{
     const ch = toneChannels[i];
     ch.unavailable = false;
@@ -1029,7 +1036,7 @@ function updateToneMonitor() {
 
 function updateYm2413ToneMonitor() {
   if (!ym2413NoteChannels.length) ym2413NoteChannels = Array.from({length:9}, (_,index)=>({...buildMonitorChannel(index), opll:true, toneMidi:null, label:`OPLL CH${index+1}`}));
-  const now = performance.now();
+  const now = songTimeMs();
   ym2413Monitor.describe().channels.forEach((state,i)=>{
     const ch = ym2413NoteChannels[i];
     ch.unavailable = false;
@@ -1204,7 +1211,7 @@ function updateChannelObservedRange(channelIndex) {
   }
 }
 
-function pruneChannelNoteHistory(channel, now = performance.now()) {
+function pruneChannelNoteHistory(channel, now = songTimeMs()) {
   const cutoff = now - NOTEISH_HISTORY_WINDOW_MS;
   const history = channel.noteHistory;
   // A single splice instead of repeated shift() calls: shifting one at a time
@@ -1252,7 +1259,7 @@ function settleNoteishOnset(channel) {
   const elapsed = player.processedWaitSamples - onset.sample;
   if (elapsed < 0 || elapsed > 8) return;
   // Remove only the provisional KEY ON point; keep every later pitch commit.
-  const cutoff = performance.now() - NOTEISH_HISTORY_WINDOW_MS;
+  const cutoff = songTimeMs() - NOTEISH_HISTORY_WINDOW_MS;
   channel.noteHistory = onset.history.filter(point => point.time >= cutoff);
   channel.noteSequence.length = onset.sequenceLength;
   channel.lastSequenceNote = onset.lastSequenceNote;
@@ -1266,7 +1273,7 @@ function recordChannelNoteHistory(channelIndex, midiFloat) {
   if (!channel) {
     return;
   }
-  const now = performance.now();
+  const now = songTimeMs();
   const lastPoint = channel.noteHistory[channel.noteHistory.length - 1] ?? null;
   if (
     lastPoint &&
@@ -1364,7 +1371,7 @@ function renderNoteishGraph(channel, estimated) {
       entry = { strings, tracker: createFretboardTracker(strings) };
       fretboardTrackers.set(channel, entry);
     }
-    const now = performance.now();
+    const now = songTimeMs();
     return renderFretboard([estimated.midiFloat], entry.tracker.update(
       recentNoteHistory(channel.noteHistory, FRET_TRAIL_MS + 200, now), estimated.midiFloat, channel.keyOn, now
     ));
@@ -1373,7 +1380,7 @@ function renderNoteishGraph(channel, estimated) {
   const axisY = 26;
   const ticks = [24, 36, 48, 60, 72, 84, 96];
   const tickLabels = ["C1", "C2", "C3", "C4", "C5", "C6", "C7"];
-  const now = performance.now();
+  const now = songTimeMs();
   pruneChannelNoteHistory(channel, now);
   const tickSvg = ticks.map((tick, index) => {
     const x = noteishGraphX(tick);
@@ -1494,7 +1501,7 @@ function renderNoteishOverviewGraph() {
   const detailed = noteishMode.value === "detail";
   const bottom = detailed ? 1776 : 176;
   const height = detailed ? 1810 : 210;
-  const now = performance.now();
+  const now = songTimeMs();
   const ticks = [24, 36, 48, 60, 72, 84, 96];
   const tickLabels = ["C1", "C2", "C3", "C4", "C5", "C6", "C7"];
   const channelColors = [
@@ -1577,7 +1584,7 @@ function renderNoteishOverviewGraph() {
 }
 
 function renderAllChannelFretboard() {
-  const strings = Number(fretboardStrings.value), now = performance.now();
+  const strings = Number(fretboardStrings.value), now = songTimeMs();
   const layers = noteishChannels().map(channel => {
     pruneChannelNoteHistory(channel, now);
     const note = estimateChannelNoteish(channel).midiFloat;
