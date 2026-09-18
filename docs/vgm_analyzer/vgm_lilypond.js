@@ -2,6 +2,7 @@ import { Ym2612VGM } from '../js/ym2612vgm.js?v=ym2610-vgm-2';
 import { extractOpnNotes, midiChipKind } from './vgm_notes.js?v=midi-onset-1';
 import { extractOpmNotes } from './opm_notes.js';
 import { extractToneNotes } from './tone_notes.js?v=ym2610-vgm-2';
+import { extractOpllNotes } from './ym2413_notes.js';
 
 // Syntax: https://lilypond.org/doc/v2.24/Documentation/notation/writing-pitches
 //         https://lilypond.org/doc/v2.24/Documentation/notation/writing-rhythms
@@ -74,16 +75,17 @@ export function createLilyPondScore(channels, totalSamples, { bpm = 120, fileNam
 export function analyzeLilyPondSource(source) {
   const header = new Ym2612VGM(source).header;
   const kind = header.ym2151Clock & 0x3fffffff ? 'ym2151' : midiChipKind(header);
-  if (!kind) throw new Error('LilyPond requires OPN / YM2151 / AY-3-8910 / PSG notes');
-  const fm = kind === 'ym2151' ? extractOpmNotes(source) : kind === 'psg' || kind === 'ay8910' ? { channels: [], warnings: new Map() } : extractOpnNotes(source);
+  if (!kind) throw new Error('LilyPond requires OPN / YM2151 / AY-3-8910 / YM2413 / PSG notes');
+  const fm = kind === 'ym2151' ? extractOpmNotes(source) : kind === 'psg' || kind === 'ay8910' || kind === 'ym2413' ? { channels: [], warnings: new Map() } : extractOpnNotes(source);
   const tones = extractToneNotes(source, kind);
-  const warnings = new Map([...(fm.warnings ?? []), ...tones.warnings]);
+  const opll = (header.ym2413Clock & 0x3fffffff) ? extractOpllNotes(source) : { channels: [], warnings: new Map(), time: 0 };
+  const warnings = new Map([...(fm.warnings ?? []), ...tones.warnings, ...opll.warnings]);
   if (['ym2203','ym2608','ym2610'].includes(kind)) warnings.delete('SSG writes omitted');
   if (header.psgClock & 0x3fffffff) warnings.delete('PSG writes omitted');
   const channels = [
-    ...fm.channels.map((ch, i) => ({ ...ch, name: `${kind.toUpperCase()} CH${i + 1}` })), ...tones.channels,
+    ...fm.channels.map((ch, i) => ({ ...ch, name: `${kind.toUpperCase()} CH${i + 1}` })), ...tones.channels, ...opll.channels,
   ];
-  return { channels, time: tones.time, warnings: [...warnings].map(([s, info]) => `${s} (${info.count})`), tempo: suggestLilyPondTempo(channels) };
+  return { channels, time: Math.max(tones.time, opll.time), warnings: [...warnings].map(([s, info]) => `${s} (${info.count})`), tempo: suggestLilyPondTempo(channels) };
 }
 
 // Rank integer BPMs by how closely distinct key-on intervals fit a sixteenth grid.

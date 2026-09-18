@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createLilyPondScore, exportAnalysisLilyPond, lilyPitch, suggestLilyPondTempo, exportLilyPondAnalysis } from './vgm_lilypond.js';
+import { createLilyPondScore, exportAnalysisLilyPond, lilyPitch, suggestLilyPondTempo, exportLilyPondAnalysis, analyzeLilyPondSource } from './vgm_lilypond.js';
 const sample = tick => tick * 5512.5; // 120 BPM: 1/16 = 5512.5 VGM samples.
 const note = (start, end, midi, key = 1) => ({start: sample(start), end: sample(end), midi, key});
 const score = notes => createLilyPondScore([{name:'CH1', notes}], sample(32));
@@ -43,7 +43,16 @@ test('real YM2612 and YM2151 extractors feed LilyPond',()=>{
 test('PSG tone-only input exports and unsupported chip rejects',()=>{
   const psg=vgm([0x50,0x80,0x50,0x10,0x50,0x90,0x61,0x22,0x56,0x50,0x9f,0x66],0x0c,3579545);
   assert.equal(exportAnalysisLilyPond(psg).noteCount,1);
-  assert.throws(()=>exportAnalysisLilyPond(vgm([0x66],0x10,3579545)),/requires/);
+  assert.throws(()=>exportAnalysisLilyPond(vgm([0x66],0x58,3579545)),/requires/);
+});
+test('YM2413 base pitch feeds LilyPond; rhythm mode omits non-BD voices',()=>{
+  const opll=vgm([0x51,0x30,0x10,0x51,0x10,0x80,0x51,0x20,0x17,0x61,0x22,0x56,0x51,0x20,7,0x66],0x10,3579545);
+  const result=exportAnalysisLilyPond(opll);
+  assert.equal(result.noteCount,1);
+  assert.equal((result.text.match(/\\new Staff \\with/g)||[]).length,9);
+  const rhythm=vgm([0x51,0x0e,0x30,0x61,0x22,0x56,0x66],0x10,3579545);
+  const analysis=analyzeLilyPondSource(rhythm);
+  assert.match([...analysis.warnings].join(' '),/Snare\/Hi-hat\/Tom\/Top Cymbal are omitted/);
 });
 
 
