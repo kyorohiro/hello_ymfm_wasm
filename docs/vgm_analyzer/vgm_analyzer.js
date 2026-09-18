@@ -36,6 +36,7 @@ import { createRf5c164Monitor, describeRf5c164Monitor, observeRf5c164Engine } fr
 import { sourcesForChip, applySourceMutes, allSourcesMuted } from "./source_mutes.js?v=msx-mix-1";
 import { createPsgMonitor, describePsgMonitor, observePsgEngine, applySsgWrite } from "./psg_monitor.js?v=ym2610-vgm-2";
 import { exportMucomMml, exportOpnavoidMml } from "./vgm_mml.js?v=mml-formats-1";
+import { exportMgsdrvMml } from "./mgsdrv_mml.js";
 import {
   Ym2612VGM,
 } from "../js/ym2612vgm.js?v=dac-warning-1";
@@ -3063,7 +3064,7 @@ function updatePlaybackButtons(state = {}) {
   const hasBuffer = Boolean(currentBuffer);
   playbackSeek.disabled = !hasBuffer || Number(playbackSeek.max) <= 0 || Boolean(timelineSeekController);
   updateSeekPosition();
-  exportMmlButton.disabled = !hasBuffer || !(currentChipKind === "ym2151" || ["ym2612", "ym2203", "ym2608", "ym2610"].includes(midiChipKind(noteishHeader)));
+  exportMmlButton.disabled = !hasBuffer || !(currentChipKind === "ym2151" || currentChipKind === "ay8910" || currentChipKind === "ym2413" || ["ym2612", "ym2203", "ym2608", "ym2610"].includes(midiChipKind(noteishHeader)));
   exportMidiButton.disabled = !hasBuffer || !midiExportAvailable;
   const playing = Boolean(state.playing);
   const paused = Boolean(state.paused);
@@ -3110,14 +3111,14 @@ function updateChipSupport() {
       button.title = button === exportMidiButton ? 'Export base-pitch notes; original YM2151 timbres are not reproduced.' : 'MXDRV MML: FM 8CH and sampled voices on a sixteenth-note grid.';
       continue;
     }
-    if (ay && button === exportMidiButton) {
-      button.disabled = !currentBuffer || !midiExportAvailable;
-      button.title = 'Export base-pitch tone notes; SSG envelope/noise are not reproduced.';
+    if (ay && (button === exportMidiButton || button === exportMmlButton)) {
+      button.disabled = !currentBuffer || (button === exportMidiButton && !midiExportAvailable);
+      button.title = button === exportMidiButton ? 'Export base-pitch tone notes; SSG envelope/noise are not reproduced.' : 'MGSDRV MML: PSG tone on a sixteenth-note grid.';
       continue;
     }
-    if (opll && button === exportMidiButton) {
-      button.disabled = !currentBuffer || !midiExportAvailable;
-      button.title = 'Export base-pitch FM notes; rhythm channels other than Bass Drum are omitted.';
+    if (opll && (button === exportMidiButton || button === exportMmlButton)) {
+      button.disabled = !currentBuffer || (button === exportMidiButton && !midiExportAvailable);
+      button.title = button === exportMidiButton ? 'Export base-pitch FM notes; rhythm channels other than Bass Drum are omitted.' : 'MGSDRV MML: FM base pitch on a sixteenth-note grid; rhythm channels other than Bass Drum are omitted.';
       continue;
     }
     if (playbackOnly) button.disabled = true;
@@ -4124,17 +4125,18 @@ musicSheet = mountMusicSheet({getTrack: () => ({buffer:currentBuffer, available:
 
 function downloadMml(format) {
   if (!currentBuffer || !mmlBpmInput.reportValidity()) return;
-  if (currentChipKind === 'ym2151' ? format !== 'mxdrv' : !['mucom88','opnavoid'].includes(format)) return;
+  const mgsdrv = currentChipKind === 'ay8910' || currentChipKind === 'ym2413';
+  if (mgsdrv ? format !== 'mgsdrv' : currentChipKind === 'ym2151' ? format !== 'mxdrv' : !['mucom88','opnavoid'].includes(format)) return;
   try {
     const options = { bpm: Number(mmlBpmInput.value), fileName: lastLoadedFileName };
-    const text = format === "mxdrv" ? exportMxdrvMml(currentBuffer, options) : format === "mucom88" ? exportMucomMml(currentBuffer, options) : exportOpnavoidMml(currentBuffer, options);
+    const text = format === "mxdrv" ? exportMxdrvMml(currentBuffer, options) : format === "mucom88" ? exportMucomMml(currentBuffer, options) : format === "mgsdrv" ? exportMgsdrvMml(currentBuffer, options) : exportOpnavoidMml(currentBuffer, options);
     const url = URL.createObjectURL(new Blob([text], { type: "text/plain;charset=utf-8" }));
     const anchor = document.createElement("a");
     anchor.href = url;
     anchor.download = `${lastLoadedFileName.replace(/\.[^.]+$/, "") || "analysis"}.mml`;
     anchor.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
-    setStatus(`Exported ${format === "mxdrv" ? "MXDRV (MDX)" : format === "mucom88" ? "MUCOM88" : "OPNAVOID"} FM MML on a sixteenth-note grid.`);
+    setStatus(`Exported ${format === "mxdrv" ? "MXDRV (MDX)" : format === "mucom88" ? "MUCOM88" : format === "mgsdrv" ? "MGSDRV" : "OPNAVOID"} FM MML on a sixteenth-note grid.`);
   } catch (error) {
     setStatus(`MML export failed: ${error.message}`);
   }
@@ -4142,9 +4144,11 @@ function downloadMml(format) {
 
 exportMmlButton.addEventListener("click", () => {
   if (!currentBuffer) return;
+  const mgsdrv = currentChipKind === 'ay8910' || currentChipKind === 'ym2413';
   for (const button of mmlFormatDialog.querySelectorAll('button[value]')) {
     if (button.value === 'cancel') continue;
-    button.hidden = button.disabled = currentChipKind === 'ym2151' ? button.value !== 'mxdrv' : button.value === 'mxdrv';
+    button.hidden = button.disabled = mgsdrv ? button.value !== 'mgsdrv'
+      : currentChipKind === 'ym2151' ? button.value !== 'mxdrv' : button.value === 'mxdrv' || button.value === 'mgsdrv';
   }
   try {
     exportTempo.prepare(currentBuffer, mmlBpmInput, document.getElementById('mmlBpmHelp'), '34–999 BPM; used for sixteenth-note quantization.');
@@ -4153,7 +4157,7 @@ exportMmlButton.addEventListener("click", () => {
 });
 mmlFormatDialog.querySelector("form").addEventListener("submit", (event) => {
   const format = event.submitter?.value;
-  if (["mucom88", "opnavoid", "mxdrv"].includes(format)) downloadMml(format);
+  if (["mucom88", "opnavoid", "mxdrv", "mgsdrv"].includes(format)) downloadMml(format);
 });
 
 exportMidiButton.addEventListener("click", () => {
