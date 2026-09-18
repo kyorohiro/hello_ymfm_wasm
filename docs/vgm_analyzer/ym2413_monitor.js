@@ -59,6 +59,7 @@ export function mountYm2413Monitor(root) {
   }
   return {
     render,
+    describe() { return describeYm2413(regs, header.ym2413Clock & 0x3fffffff); },
     load(next) { header = next; regs.fill(0); render(); },
     reset() { regs.fill(0); render(); },
     write(r, v) { if (r < regs.length) regs[r] = v; },
