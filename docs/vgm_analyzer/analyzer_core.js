@@ -1,5 +1,5 @@
 import {exportOpmZip} from './opm_export.js';
-import {exportTfiZip,exportVgiZip} from './tfi_archive.js';
+import {exportVoiceSnapshot,exportTfiZip,exportVgiZip} from './tfi_archive.js';
 // Environment-neutral API shared by the browser, Node adapter and future MCP server.
 import { looksLikeS98, convertS98ToVgm } from '../js/s98_file.js';
 import { Ym2612VGM } from '../js/ym2612vgm.js';
@@ -14,7 +14,7 @@ export { analyzeLilyPondSource, exportLilyPondAnalysis } from './vgm_lilypond.js
 export { exportAnalysisMidi } from './vgm_midi.js';
 export { createMusicXmlScore } from './vgm_musicxml.js';
 export { renderVgmToWav } from './vgm_wav.js';
-export const exportFormats = Object.freeze(['tfi-zip', 'vgi-zip', 'opm-zip', 'midi', 'musicxml', 'lilypond', 'mucom', 'opnavoid', 'mxdrv', 'mgsdrv']);
+export const exportFormats = Object.freeze(['tfi', 'vgi', 'opm', 'tfi-zip', 'vgi-zip', 'opm-zip', 'midi', 'musicxml', 'lilypond', 'mucom', 'opnavoid', 'mxdrv', 'mgsdrv']);
 
 /** Decode and normalize input, preserving original S98 information explicitly. */
 export async function decodeSourceDocument(input) {
@@ -48,10 +48,12 @@ export function analyzeSource(source) {
 }
 
 /** Export using exactly the browser's existing algorithms and chip restrictions. */
-export function exportSource(source, { format, bpm, fileName = 'VGM' } = {}) {
+export function exportSource(source, { format, bpm, fileName = 'VGM', atSeconds, channel } = {}) {
   source = sourceBytes(source);
   if (!exportFormats.includes(format)) throw new Error(`Unsupported format: ${format}`);
   if (bpm !== undefined && (!Number.isInteger(bpm) || bpm < 4 || bpm > 999)) throw new RangeError('BPM must be an integer from 4 to 999');
+  if (['tfi','vgi','opm'].includes(format)) return exportVoiceSnapshot(source,{format,atSeconds,channel});
+  if (atSeconds !== undefined || channel !== undefined) throw new Error('Time/channel options require tfi, vgi or opm snapshot format');
   if (format === 'opm-zip') return exportOpmZip(source);
   if (format === 'vgi-zip') return exportVgiZip(source,{fileName});
   if (format === 'tfi-zip') return exportTfiZip(source,{fileName});

@@ -158,8 +158,8 @@ Browser側ですでに共有化した音源は、CLIへ同じ処理を再実装�
 - [x] 08a: TFI ZIP。対応するOPN / OPM音源と近似変換の注意を明示する。
 - [x] 08b: VGI ZIP。TFIと共通の抽出を再利用して検証する。
 - [x] 08c: OPM ZIP。音色変化と重複除去をBrowserと照合する。
-- [ ] 08d: 時刻・チャンネルを指定した音色スナップショット。
-- [ ] 出力名の衝突、空の抽出結果、既存ファイルの保護を検証する。
+- [x] 08d: 時刻・チャンネルを指定した音色スナップショット。
+- [x] 出力名の衝突、空の抽出結果、既存ファイルの保護を検証する。
 
 完了: 同じ入力・条件からBrowserと同等の音色データを取得できる。
 
@@ -389,3 +389,18 @@ documentからbytesだけを取り出すと元情報は失われるので、必�
 - itch cli08c-checkのパッケージ生成・依存検査成功。実ブラウザUIとNode 22は未確認。
 
 次は08d（時刻・チャンネル指定の音色スナップショット）。
+
+
+### 08d 実装記録: 時刻・チャンネル指定の音色スナップショット
+
+- `export --format tfi|vgi|opm --at SECONDS --channel N --output FILE` に対応。Core APIは `exportSource(source,{format,atSeconds,channel})`。チャンネルは両方とも1始まり。
+- OPN/OPMの既存抽出ループを状態scanとして共用し、指定時刻ではZIP用captureを省略。レジスターdecode・encoderをCLIへ複製していない。
+- 秒を44100 Hz sampleへ切り下げ、同時刻の全writeを反映。wait途中は直前状態、曲末ちょうどは許可、曲末超過はエラー。loop展開なし。
+- OPNはTFI/VGI、YM2151はOPM。YM2203は1〜3、YM2610は2/3/5/6、YM2610B・YM2608・YM2612は1〜6、YM2151は1〜8。
+- dual/非対応variant/混在FMを拒否。YM2151→TFI snapshotの近似変換は今回含めず、OPM保存を案内する。
+- key-on不要。未write部分は共有extractorの初期値。Browserの全monitor情報や発音位相を保存するものではなく、静的音色出力として仕様を明記。
+- 時刻境界・曲末・範囲外・key-onなし・全OPN系・OPM Browser encoderとの一致を追加検証。CLIのforce/既存出力保護と実tarballのCLI/Node API出力も確認。
+- `npm test`: 43成功・0失敗。`npm run test:analyzer`: 583成功・0失敗・1任意skip。
+- itch cli08d-checkの生成・依存検査成功。実ブラウザUIとNode 22は未確認。
+
+次は09（PCMサンプル抽出）。まず既存Sample Explorerの形式と抽出条件を整理する。

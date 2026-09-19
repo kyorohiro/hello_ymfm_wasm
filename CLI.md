@@ -37,7 +37,7 @@ tetorica-vgm render song.vgz --output song.wav --max-seconds 120
 - `analyze`: header-declared chips/clocks, GD3 metadata, declared duration,
   command counts, data-block and PCM-RAM summaries, special-command details.
   JSON has `schemaVersion: 1`; declared chips are not a playback compatibility claim.
-- `export`: `tfi-zip`, `vgi-zip`, `opm-zip`, `midi`, `musicxml`, `lilypond`, `mucom`, `opnavoid`, `mxdrv`, `mgsdrv`.
+- `export`: `tfi`, `vgi`, `opm` (snapshots), `tfi-zip`, `vgi-zip`, `opm-zip`, `midi`, `musicxml`, `lilypond`, `mucom`, `opnavoid`, `mxdrv`, `mgsdrv`.
   Supported chips and approximation limits are those of the browser exporters.
   MUCOM/OPN-Avoid target OPN, MXDRV targets YM2151, MGSDRV targets AY/OPLL.
   BPM is an integer 4–999. Without `--bpm`, use the browser score suggestion,
@@ -58,7 +58,7 @@ tetorica-vgm render song.vgz --output song.wav --max-seconds 120
   errors, export notices and render warnings go to stderr.
 
 The CLI accepts VGM/VGZ/S98, not directories, ZIPs or stdin in this version.
-TFI/VGI/OPM ZIP export is supported; time/channel snapshots, sample extraction and interactive audition/editing remain browser features.
+TFI/VGI/OPM ZIP and time/channel voice snapshots are supported; sample extraction and interactive audition/editing remain browser features.
 
 ## Node API
 
@@ -287,7 +287,7 @@ and `conversion.json` explain omitted DT2, modulation, noise and key masks.
 
 No keyed tones is an error and creates no ZIP. Existing output is protected
 unless `--force` is supplied. ZIP timestamps are fixed for reproducible CLI
-output; Browser downloads retain their current timestamps. Time/channel snapshots are a separate follow-up task.
+output; Browser downloads retain their current timestamps. See below for time/channel snapshots.
 
 
 VGI uses the same OPN extraction and is available as
@@ -317,3 +317,31 @@ etc., with first-observed VGM sample and source clock metadata.
 OPM stores static settings, not performance or envelope phase. Importers may
 ignore LFO, PAN, SLOT or noise. Empty extraction is an error. ZIP timestamps
 are deterministic, and existing files require `--force` to overwrite.
+
+
+## Voice snapshot at a specified time
+
+```sh
+tetorica-vgm export song.vgz --format vgi --at 1.5 --channel 2 --output voice.vgi
+tetorica-vgm export song.vgz --format tfi --at 1.5 --channel 2 --output voice.tfi
+tetorica-vgm export song.vgz --format opm --at 1.5 --channel 1 --output voice.opm
+```
+
+Node API: `exportSource(source, {format:'vgi', atSeconds:1.5, channel:2})`.
+Returns `{bytes, sample, channel, warnings}` (OPM returns `text` instead of
+`bytes`). Both time and channel are required; these options are rejected for
+other export formats. Channels are **1-based** in both CLI and API.
+
+Time is floored to a 44100 Hz VGM sample. All writes at that sample are
+included. A time inside a wait uses the preceding register state; exact
+track end is allowed, beyond the actual command-stream end is rejected.
+Loops are not expanded. Key-on is not required, so held-key and key-off
+register changes are reflected. Unwritten registers use shared extractor
+defaults; this is a static voice export, not a saved emulation state.
+
+TFI/VGI support one OPN family: YM2203 channels 1–3, YM2608/YM2612/YM2610B
+channels 1–6, YM2610 channels 2,3,5,6. OPM supports YM2151 channels 1–8.
+Dual/variant flags other than YM2610B and mixed FM families are rejected.
+YM2151-to-TFI snapshot conversion is not included; use OPM for this step.
+The same format limitations described above apply. Existing files are
+protected unless `--force` is passed; invalid requests do not overwrite them.

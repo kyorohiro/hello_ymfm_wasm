@@ -43,6 +43,18 @@ test('every advertised export executes through CLI and score output equals brows
       assert.equal(cli('export',fixture('ym2203-ssg.vgz'),'--format',format,'--output',zipPath,'--force').status,1);
       assert.deepEqual(readFileSync(zipPath),before);
     }
+    for(const format of ['tfi','vgi','opm']){
+      const input=fixture((format==='opm'?'opm-audible':'opn-tone')+'.vgz'),output=join(dir,'snapshot.'+format);
+      const args=['export',input,'--format',format,'--at','0','--channel','1','--output',output];
+      assert.equal(cli(...args).status,0);
+      const expected=exportSource(await readSource(input),{format,atSeconds:0,channel:1});
+      const before=readFileSync(output);assert.deepEqual(before,Buffer.from(expected.bytes??expected.text));
+      assert.equal(cli(...args).status,1);
+      assert.equal(cli(...args,'--force').status,0);
+      assert.equal(cli('export',input,'--format',format,'--at','999999','--channel','1','--output',output,'--force').status,1);
+      assert.deepEqual(readFileSync(output),before);
+      assert.equal(cli('export',input,'--format',format,'--output',output,'--force').status,1);
+    }
     const source=await readSource(fixture('psg-tone.vgm'));
     assert.deepEqual(exportSource(source,{format:'midi',bpm:120}).bytes,exportAnalysisMidi(source,{bpm:120}).bytes);
     const score=analyzeLilyPondSource(source);
@@ -180,6 +192,12 @@ test('npm tarball installs offline, runs via npx, and exports the library',async
     assert.deepEqual(readFileSync(opmOut),Buffer.from(opmExpected));
     const opmApi=execFileSync(process.execPath,['--input-type=module','-e',"import {readSource,exportSource} from 'tetorica-vgm'; process.stdout.write(exportSource(await readSource(process.argv[1]),{format:'opm-zip'}).bytes)",opmInput],{cwd:dir});
     assert.deepEqual(opmApi,Buffer.from(opmExpected));
+    const snapshotOut=join(dir,'snapshot.opm');
+    execFileSync('npm',[...args,'export',opmInput,'--format','opm','--at','0','--channel','1','--output',snapshotOut],{cwd:dir});
+    const snapshotExpected=exportSource(await readSource(opmInput),{format:'opm',atSeconds:0,channel:1}).text;
+    assert.equal(readFileSync(snapshotOut,'utf8'),snapshotExpected);
+    const snapshotApi=execFileSync(process.execPath,['--input-type=module','-e',"import {readSource,exportSource} from 'tetorica-vgm'; process.stdout.write(exportSource(await readSource(process.argv[1]),{format:'opm',atSeconds:0,channel:1}).text)",opmInput],{cwd:dir,encoding:'utf8'});
+    assert.equal(snapshotApi,snapshotExpected);
     const s98Input=fixture('s98-ym2203.s98');
     const s98Summary=JSON.parse(execFileSync('npm',[...args,'analyze',s98Input,'--json'],{cwd:dir,encoding:'utf8'}));
     assert.equal(s98Summary.sourceHeader.format,'S983');

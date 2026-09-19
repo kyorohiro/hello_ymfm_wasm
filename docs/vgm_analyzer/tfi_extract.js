@@ -128,6 +128,15 @@ export function decodeKeyOnChannel(value) {
 }
 
 export function extractTfiPatchesFromVgm(buffer) {
+  return scanTfiState(buffer).patches;
+}
+
+export function snapshotTfiPresets(buffer, atSample) {
+  return scanTfiState(buffer, atSample).presets;
+}
+
+function scanTfiState(buffer, atSample) {
+  let sample = 0;
   const parser = new Ym2612VGM(buffer, { logger: null });
   const presets = Array.from({ length: 6 }, () => createDefaultTfiPreset());
   const patchCounts = Array(6).fill(0);
@@ -138,6 +147,11 @@ export function extractTfiPatchesFromVgm(buffer) {
     const event = parser.step();
     if (event.type === "end") {
       break;
+    }
+    if (event.type === 'wait') {
+      sample += event.samples;
+      if (atSample !== undefined && sample > atSample) break;
+      continue;
     }
     if (
       event.type !== "ym2612-write" &&
@@ -167,7 +181,7 @@ export function extractTfiPatchesFromVgm(buffer) {
     if (port === 0 && event.register === 0x28) {
       const operatorMask = (event.value >> 4) & 0x0f;
       const channel = decodeKeyOnChannel(event.value);
-      if (operatorMask !== 0 && channel !== null) {
+      if (atSample === undefined && operatorMask !== 0 && channel !== null) {
         const snapshot = cloneTfiPreset(presets[channel]);
         const signature = presetSignature(snapshot);
         if (!seenSignatures[channel].has(signature)) {
@@ -221,6 +235,7 @@ export function extractTfiPatchesFromVgm(buffer) {
     }
   }
 
-  return patches;
+  if (atSample !== undefined && sample < atSample) throw new RangeError('Snapshot time exceeds track end');
+  return {patches, presets};
 }
 

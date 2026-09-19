@@ -29,7 +29,13 @@ export function exportOpm(snapshot, channel, name = 'YM2151', {clock} = {}) {
 
 // One pass, independent of the live engine. Deduplicate each channel by the
 // exported voice data (KC/KF and timestamps are deliberately not part of it).
-export function extractOpmPatches(buffer, {includeSnapshots = false} = {}) {
+export function extractOpmPatches(buffer, options = {}) {
+  return scanOpmState(buffer, options).patches;
+}
+export function snapshotOpmState(buffer, atSample) {
+  return scanOpmState(buffer, {atSample}).snapshot;
+}
+function scanOpmState(buffer, {includeSnapshots = false, atSample} = {}) {
   const parser = new Ym2612VGM(buffer, {logger:null});
   if (!(parser.header.ym2151Clock & 0x3fffffff) || (parser.header.ym2151Clock & 0xc0000000)) throw new Error('OPM extraction requires a single YM2151');
   const state = createOpmState(() => 0), keys = new Uint8Array(8);
@@ -46,15 +52,17 @@ export function extractOpmPatches(buffer, {includeSnapshots = false} = {}) {
   while (true) {
     const event = parser.step();
     if (event.type === 'end') break;
-    if (event.type === 'wait') { sample += event.samples; continue; }
+    if (event.type === 'wait') { sample += event.samples; if (atSample !== undefined && sample > atSample) break; continue; }
     if (event.type !== 'ym2151-write') continue;
     const {register:r,value:v} = event;
     state.write(r,v);
+    if (atSample !== undefined) continue;
     if (r === 8) { keys[v&7] = (v>>3)&15; if (keys[v&7]) capture(v&7); }
     else if (r >= 0x40 || (r >= 0x20 && r <= 0x27) || (r >= 0x38 && r <= 0x3f)) { if (keys[r&7]) capture(r&7); }
     else if ([15,0x18,0x19,0x1b].includes(r)) { for(let ch=0;ch<8;ch++)if(keys[ch])capture(ch); }
   }
-  return patches;
+  if (atSample !== undefined && sample < atSample) throw new RangeError('Snapshot time exceeds track end');
+  return {patches, snapshot: atSample === undefined ? undefined : state.snapshot()};
 }
 
 

@@ -11,6 +11,7 @@ const help = `tetorica-vgm — VGM/VGZ/S98 analysis without a browser
   tetorica-vgm render FILE --output FILE.wav [--max-seconds 120] [--force]
 
 Formats: ${exportFormats.join(', ')}
+Snapshot formats tfi/vgi/opm require --at SECONDS --channel N (1-based).
 BPM defaults to the browser score tempo suggestion (fallback: 120).
 Output files are never overwritten unless --force is supplied.
 Render: standalone YM2612/YM2151/YM2413/YM3526/YM3812/YMF262 (optional Sega PSG),
@@ -28,7 +29,7 @@ Sega PCM with embedded samples, alone or with YM2151, optionally with Sega PSG, 
 try {
   const { values, positionals } = parseArgs({ allowPositionals: true, options: {
     help: {type:'boolean',short:'h'}, version:{type:'boolean',short:'v'}, json:{type:'boolean'},
-    format:{type:'string'}, output:{type:'string',short:'o'}, bpm:{type:'string'},
+    at:{type:'string'}, channel:{type:'string'}, format:{type:'string'}, output:{type:'string',short:'o'}, bpm:{type:'string'},
     'ymf278b-rom':{type:'string'}, 'ym2608-rom':{type:'string'}, 'max-seconds':{type:'string'}, force:{type:'boolean'},
   } });
   if (values.help) { console.log(help); }
@@ -38,7 +39,7 @@ try {
   } else {
     const [command, input] = positionals;
     if (!['analyze','export','render'].includes(command) || !input || positionals.length !== 2) throw new Error(help);
-    const allowed = { analyze:['json'], export:['format','output','bpm','force'], render:['output','max-seconds','force','ym2608-rom','ymf278b-rom'] }[command];
+    const allowed = { analyze:['json'], export:['format','output','bpm','force','at','channel'], render:['output','max-seconds','force','ym2608-rom','ymf278b-rom'] }[command];
     for (const key of Object.keys(values)) if (!allowed.includes(key)) throw new Error(`--${key} is not valid for ${command}`);
     if (command !== 'analyze' && !values.output) throw new Error('--output is required');
     if (command === 'export' && !exportFormats.includes(values.format)) throw new Error(`--format must be one of: ${exportFormats.join(', ')}`);
@@ -53,7 +54,7 @@ try {
       ].join('\n'));
     } else {
       const result = command === 'export'
-        ? exportSource(source, { format: values.format, bpm: values.bpm === undefined ? undefined : Number(values.bpm), fileName: basename(input) })
+        ? exportSource(source, { format: values.format, atSeconds: values.at === undefined ? undefined : Number(values.at), channel: values.channel === undefined ? undefined : Number(values.channel), bpm: values.bpm === undefined ? undefined : Number(values.bpm), fileName: basename(input) })
         : await renderSource(source, { maxSeconds: values['max-seconds'] === undefined ? 120 : Number(values['max-seconds']), roms: { ...(values['ym2608-rom'] === undefined ? {} : {ym2608AdpcmA:await readFile(values['ym2608-rom'])}), ...(values['ymf278b-rom'] === undefined ? {} : {ymf278bWave:await readFile(values['ymf278b-rom'])}) } });
       await writeFile(values.output, result.bytes ?? result.text, { flag: values.force ? 'w' : 'wx' });
       console.error(`Wrote ${values.output}`);
