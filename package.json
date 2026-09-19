@@ -1,0 +1,34 @@
+{
+  "name": "tetorica-vgm",
+  "version": "0.1.0",
+  "description": "Tetorica VGM Analyzer CLI and shared analysis core",
+  "type": "module",
+  "license": "BSD-3-Clause",
+  "engines": {
+    "node": ">=22"
+  },
+  "bin": {
+    "tetorica-vgm": "dist/cli/main.js"
+  },
+  "exports": {
+    ".": "./dist/cli/index.js",
+    "./core": "./dist/docs/vgm_analyzer/analyzer_core.js"
+  },
+  "files": [
+    "dist/",
+    "README.md",
+    "CLI.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "node scripts/build_cli.mjs",
+    "test": "node --test test/*.test.mjs",
+    "test:analyzer": "node --test web/*.test.mjs docs/vgm_analyzer/*.test.mjs",
+    "prepack": "npm run build",
+    "pack:check": "npm pack --dry-run"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kyorohiro/hello_ymfm_wasm.git"
+  }
+}

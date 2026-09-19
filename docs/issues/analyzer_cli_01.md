@@ -62,3 +62,15 @@ Test
 * Browser版とCLI版でCoreの解析結果が乖離しない
 
 まず既存repositoryを調査し、現在のAnalyzer architectureと依存関係を把握してから実装してください。
+## 実装メモ
+
+- 共通API: `docs/vgm_analyzer/analyzer_core.js`。Browserのscore/MIDI入口とNodeから既存解析モジュールを共有。
+- NodeアダプタとCLI: `cli/`。`analyze --json`、7形式の`export`、既存WASMによる`render`。
+- npm: `tetorica-vgm@0.1.0`、Node 22+、`bin` / `exports` / `files`設定済み。
+  `npm run build`で依存関係のみを`dist/`へ配置し、`npm pack`で配布物を生成。
+- 初期のrender対応範囲はCLI.mdに明記。外部ROMを要する音源や未接続の複合音源はエラーにする。
+  パッチZIP・サンプル抽出・S98は今回のCLIコマンド対象外。
+- `npm test`: 自作VGM/VGZ fixture、JSON/Browser一致、全export形式、WAV、エラー、
+  npm tarballの別ディレクトリへのオフラインインストールとCLI/Node APIを検証。
+- 利用方法・調査した構造・配布範囲: ルートの `CLI.md`。
+- npm publishは未実行。公開前にtarballとテスト結果を確認する。

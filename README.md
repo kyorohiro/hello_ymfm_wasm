@@ -1,3 +1,18 @@
+## CLI / Node.js
+
+The VGM Analyzer is also available as the `tetorica-vgm` CLI and shared Core.
+From this checkout (Node.js 22+):
+
+```sh
+npm run build
+node dist/cli/main.js analyze song.vgz --json
+node dist/cli/main.js export song.vgz --format musicxml --output song.musicxml
+node dist/cli/main.js render song.vgz --output song.wav
+```
+
+See [CLI usage, supported formats, Node API and npm packaging](CLI.md).
+The npm package is prepared for publication; this change does not publish it.
+
 Tetorica FM2612 is a browser toolkit for JavaScript music coding, VGM analysis,
 and YM2612 FM sound design. Open a VGM, explore its instruments, and edit and
 audition extracted TFI files in a folder-based workspace.
