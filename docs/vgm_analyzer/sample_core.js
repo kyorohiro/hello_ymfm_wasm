@@ -1,3 +1,4 @@
+import {samplePreviewWav} from './sample_render.js';
 import {createStoredZipBytes} from './stored_zip.js';
 import {createDacSamples} from './dac_samples.js';
 import {pwmCaptureJson,createPwmSamples} from './pwm_samples.js';
@@ -203,12 +204,22 @@ export function sampleFile(sample, events) {
     bytes:text===null?sample.data.slice():new TextEncoder().encode(text)};
 }
 
-export async function exportSamples(bytes,{id,all=false,signal}={}) {
+export async function exportSamples(bytes,{id,all=false,signal,format='native',occurrence=1,getFactory}={}) {
   if(typeof all!=='boolean' || (all ? id!==undefined : !Number.isSafeInteger(id)||id<1)) throw new Error('Specify a positive sample id or all:true, exclusively');
+  if(!['native','wav'].includes(format))throw new Error('Sample format must be native or wav');
+  if(!Number.isSafeInteger(occurrence)||occurrence<1)throw new Error('Occurrence must be a positive integer');
+  if(format==='wav' && all)throw new Error('WAV export requires one sample ID');
+  if(format==='native' && occurrence!==1)throw new Error('Occurrence applies only to WAV');
   const result=await extractSamples(bytes,{signal});
   const selected=all?result.samples:result.samples.filter(s=>s.id===id);
   if(!selected.length) throw new Error(all?'No supported samples found':'Unknown sample id: '+id);
   // Fail the entire request before writing any output if one definition is unavailable.
+  if(format==='wav'){
+    const uses=result.events.filter(e=>e.sampleId===id),event=uses[occurrence-1];
+    if(!event)throw new Error('Unknown sample occurrence');
+    const wav=await samplePreviewWav(selected[0],event,{getFactory});
+    return {...wav,warnings:[...result.warnings,'WAV follows Browser preview: centered ADPCM/PCM, stereo PWM, at most 10 seconds; duration is a preview estimate, not detected sample end. RF5C164 loop markers may repeat within this window.']};
+  }
   const files=selected.map(s=>sampleFile(s,result.events));
   const manifest=sampleInventory(result);
   if(!all)return {...files[0],warnings:result.warnings};

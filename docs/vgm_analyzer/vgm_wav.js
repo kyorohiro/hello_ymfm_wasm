@@ -65,3 +65,9 @@ export async function renderVgmToWav(player, { maxSeconds = 120, blockFrames = 8
   for (const part of parts) { bytes.set(part, offset); offset += part.length; }
   return { bytes, seconds: framesRendered / sampleRate, truncated };
 }
+
+
+export function encodeStereoWav(left,right,sampleRate) {
+  const data=encodePcm16(left,right,left.length),bytes=new Uint8Array(44+data.length);
+  bytes.set(wavHeader(left.length,sampleRate));bytes.set(data,44);return bytes;
+}

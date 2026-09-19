@@ -2,7 +2,7 @@
 import { parseArgs } from 'node:util';
 import { writeFile, readFile } from 'node:fs/promises';
 import { basename } from 'node:path';
-import { readSourceDocument, exportSourceSamples, listSourceSamples, analyzeSource, exportSource, exportFormats, renderSource } from './index.js';
+import { readSourceDocument, exportNodeSamples, listSourceSamples, analyzeSource, exportSource, exportFormats, renderSource } from './index.js';
 
 const help = `tetorica-vgm — VGM/VGZ/S98 analysis without a browser
 
@@ -31,7 +31,7 @@ Sega PCM with embedded samples, alone or with YM2151, optionally with Sega PSG, 
 try {
   const { values, positionals } = parseArgs({ allowPositionals: true, options: {
     help: {type:'boolean',short:'h'}, version:{type:'boolean',short:'v'}, json:{type:'boolean'},
-    id:{type:'string'}, all:{type:'boolean'}, at:{type:'string'}, channel:{type:'string'}, format:{type:'string'}, output:{type:'string',short:'o'}, bpm:{type:'string'},
+    occurrence:{type:'string'}, id:{type:'string'}, all:{type:'boolean'}, at:{type:'string'}, channel:{type:'string'}, format:{type:'string'}, output:{type:'string',short:'o'}, bpm:{type:'string'},
     'ymf278b-rom':{type:'string'}, 'ym2608-rom':{type:'string'}, 'max-seconds':{type:'string'}, force:{type:'boolean'},
   } });
   if (values.help) { console.log(help); }
@@ -41,7 +41,7 @@ try {
   } else {
     const [command, input] = positionals;
     if (!['samples','analyze','export','render'].includes(command) || !input || positionals.length !== 2) throw new Error(help);
-    const allowed = { samples:['json','id','all','output','force'], analyze:['json'], export:['format','output','bpm','force','at','channel'], render:['output','max-seconds','force','ym2608-rom','ymf278b-rom'] }[command];
+    const allowed = { samples:['json','id','all','output','force','format','occurrence'], analyze:['json'], export:['format','output','bpm','force','at','channel'], render:['output','max-seconds','force','ym2608-rom','ymf278b-rom'] }[command];
     for (const key of Object.keys(values)) if (!allowed.includes(key)) throw new Error(`--${key} is not valid for ${command}`);
     if (!['analyze','samples'].includes(command) && !values.output) throw new Error('--output is required');
     if (command === 'export' && !exportFormats.includes(values.format)) throw new Error(`--format must be one of: ${exportFormats.join(', ')}`);
@@ -49,12 +49,12 @@ try {
     if (command === 'samples' && (values.id!==undefined || values.all!==undefined)) {
       if(values.json)throw new Error('--json is for sample listing only');
       if(!values.output)throw new Error('--output is required');
-      const result=await exportSourceSamples(source,{id:values.id===undefined?undefined:Number(values.id),all:values.all??false});
+      const result=await exportNodeSamples(source,{format:values.format??'native',occurrence:values.occurrence===undefined?1:Number(values.occurrence),id:values.id===undefined?undefined:Number(values.id),all:values.all??false});
       await writeFile(values.output,result.bytes,{flag:values.force?'w':'wx'});
       console.error('Wrote '+values.output);
       for(const warning of result.warnings)console.error('Warning: '+warning);
     } else if (command === 'samples') {
-      if(values.output!==undefined || values.force!==undefined)throw new Error('--output/--force are not valid for sample listing');
+      if(values.output!==undefined || values.force!==undefined || values.format!==undefined || values.occurrence!==undefined)throw new Error('--output/--force are not valid for sample listing');
       const result=await listSourceSamples(source);
       console.log(values.json ? JSON.stringify(result,null,2) :
         result.samples.map(s=>[s.id,s.chip,s.kind,s.representation,s.size+' bytes',s.exportable?'available':'missing/partial'].join(' · ')).join('\n') || 'No supported samples found.');

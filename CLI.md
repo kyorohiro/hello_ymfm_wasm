@@ -378,8 +378,7 @@ Warnings describe limitations; an empty list does not prove no PCM exists.
 Existing Browser memory/event limits apply. Aborting rejects with AbortError.
 CLI JSON goes to stdout; warnings also go to stderr.
 
-ID/batch native extraction is available below. Sample WAV conversion remains
-subsequent work; Browser save/preview remains available.
+ID/batch native extraction is available below. Sample WAV conversion is available below; Browser save/preview remains available.
 
 
 ## Native sample extraction
@@ -409,3 +408,33 @@ individually. Empty batches and unknown IDs are errors.
 Existing output requires `--force`; selection/data errors occur before
 writing. Batch filenames include chip/kind/ID and ZIP timestamps are fixed.
 `--json` is for listing only and cannot be combined with extraction.
+
+
+## Sample preview WAV
+
+```sh
+tetorica-vgm samples song.vgz --id 1 --format wav --occurrence 1 --output sample.wav
+```
+
+Node: `await exportNodeSamples(source,{id:1,format:'wav',occurrence:1})`
+automatically supplies the existing Node WASM factory provider.
+Environment-neutral Core:
+`await exportSourceSamples(source,{id:1,format:'wav',occurrence:1,getFactory})`.
+The provider receives `rf5c164`, `ym2608` or `ym2610b`; DAC/PWM need no
+factory. Returns `{bytes,sampleRate,seconds,warnings}`.
+
+Occurrence is 1-based within that sample's inventory events (default 1).
+It selects rate/level/loop-related register settings. WAV requires a single
+ID; batch WAV is rejected. Missing data, unknown occurrence and zero ADPCM
+rate are errors. Native export remains the default.
+
+The Browser and CLI share configuration, chip creation and PCM generation.
+Output is stereo PCM16; DAC is duplicated mono, PWM retains stereo, and
+ADPCM/RF5C164 use the Browser centered preview. The chip output rate is
+rounded to an integer for the WAV header, without resampling.
+
+This is a preview of at most 10 seconds, with the Browser's size/rate
+duration estimate and padding. It is not an exact recovered instrument
+boundary. RF5C164 loop markers may repeat within the window; VGM loops
+are never expanded. No external ROM lookup, live parameter automation,
+envelope-phase reconstruction or analog filtering is added.

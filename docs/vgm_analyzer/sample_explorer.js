@@ -1,5 +1,6 @@
-import { renderDacPreview } from './dac_samples.js';
-import { renderPwmPreview, pwmCaptureWav } from './pwm_samples.js';
+import {renderSamplePreview} from './sample_render.js';
+export {configureSamplePreview} from './sample_render.js';
+import { pwmCaptureWav } from './pwm_samples.js';
 import {sampleFile,extractSamples} from './sample_core.js';
 export {extractSamples} from './sample_core.js';
 
@@ -48,37 +49,19 @@ export function mountSampleExplorer(panel, getSource) {
           if(s.kind==='pwm')listen.textContent='Preview stereo (up to 10 s)';
           listen.onclick = async () => {
             stop(); const serial = previewSerial; listen.disabled = true;
-            let chip;
             try {
               audio ??= new AudioContext(); await audio.resume();
-              if(s.kind==='pwm') {
-                if(own.signal.aborted || serial!==previewSerial)return;
-                const pcm=renderPwmPreview(s),buffer=audio.createBuffer(2,pcm.left.length,44100);
-                buffer.copyToChannel(pcm.left,0);buffer.copyToChannel(pcm.right,1);
-                playing=audio.createBufferSource();playing.buffer=buffer;playing.connect(audio.destination);playing.start();return;
-              }
-              if(s.kind==='dac') {
-                if(own.signal.aborted || serial!==previewSerial)return;
-                const pcm=renderDacPreview(s),buffer=audio.createBuffer(1,pcm.length,44100);
-                buffer.copyToChannel(pcm,0);playing=audio.createBufferSource();playing.buffer=buffer;
-                playing.connect(audio.destination);playing.start();return;
-              }
-              const [{ [s.chip === 'rf5c164' ? 'Rf5c164' : s.chip === 'ym2608' ? 'Ym2608' : 'Ym2610B']: Chip }, { default: factory }] = await Promise.all([
-                import(s.chip === 'rf5c164' ? '../js/rf5c164.js' : s.chip === 'ym2608' ? '../js/ym2608.js' : '../js/ym2610b.js'),
-                import(s.chip === 'rf5c164' ? '../generated/rf5c164_wasm.js' : s.chip === 'ym2608' ? '../generated/ym2608_wasm.js' : '../generated/ym2610b_wasm.js')]);
-              if (own.signal.aborted || serial !== previewSerial) return;
-              chip = await Chip.create({ moduleFactory: factory, clock: uses[Number(selection.value)].clock });
-              const e = uses[Number(selection.value)];
-              configureSamplePreview(chip, s, e);
-              const rate = chip.sampleRate(e.clock);
-              if (!(e.rate > 0)) throw new Error('Sample rate is zero.');
-              const frames = Math.min(Math.ceil(rate * 10), Math.ceil(s.size * 2 / e.rate * rate) + 1024);
-              const pcm = chip.generateStereo(frames), buffer = audio.createBuffer(2, frames, rate);
-              buffer.copyToChannel(pcm.left, 0); buffer.copyToChannel(pcm.right, 1);
+              const pcm=await renderSamplePreview(s,uses[Number(selection.value)],{getFactory:async name=>{
+                const module=await (name==='rf5c164'?import('../generated/rf5c164_wasm.js'):
+                  name==='ym2608'?import('../generated/ym2608_wasm.js'):import('../generated/ym2610b_wasm.js'));
+                return module.default;
+              }});
+              const buffer=audio.createBuffer(2,pcm.left.length,pcm.sampleRate);
+              buffer.copyToChannel(pcm.left,0);buffer.copyToChannel(pcm.right,1);
               if (own.signal.aborted || serial !== previewSerial) return;
               playing = audio.createBufferSource(); playing.buffer = buffer; playing.connect(audio.destination); playing.start();
             } catch (error) { note.textContent = `Preview failed: ${error.message}`; }
-            finally { chip?.dispose(); listen.disabled = false; }
+            finally { listen.disabled = false; }
           };
           row.append(save, selection, listen);
           if(s.kind==='pwm') {
@@ -97,41 +80,4 @@ export function mountSampleExplorer(panel, getSource) {
     finally { if (!own.signal.aborted) button.disabled = false; }
   };
   return { reset, stop };
-}
-
-// Preview one pass of the selected occurrence, centered; repeat is not expanded.
-export function configureSamplePreview(chip, sample, event) {
-  if(sample.chip==='rf5c164') {
-    chip.loadMemory(sample.data);
-    chip.writeRegister(7,0xc0);
-    event.settings.forEach((v,r)=>chip.writeRegister(r,r===1?0xff:v));
-    chip.writeRegister(8,0xfe);
-    return;
-  }
-  if (sample.chip === 'ym2608') {
-    chip.loadAdpcmBMemory(sample.data, sample.byteStart, sample.byteEndExclusive);
-    // Restore the observed prescaler through address writes.
-    chip.write(0, 0x2d);
-    if (event.prescale !== 6) chip.write(0, event.prescale === 3 ? 0x2e : 0x2f);
-    const write = (r, v) => { chip.write(2, r); chip.write(3, v); };
-    write(1, 0xc0 | event.memoryMode);
-    write(2, event.rawStart & 255); write(3, event.rawStart >> 8);
-    write(4, event.rawEnd & 255); write(5, event.rawEnd >> 8);
-    write(12, event.limit & 255); write(13, event.limit >> 8);
-    write(9, event.deltaN & 255); write(10, event.deltaN >> 8); write(11, event.level);
-    write(0, 0xa0 | (event.speakerOff ? 8 : 0));
-    return;
-  }
-  chip.loadAdpcmRom(sample.romType, sample.data, sample.byteStart, sample.byteEndExclusive);
-  const write = (r, v) => { const port = sample.romType === 0 ? 2 : 0; chip.write(port, r); chip.write(port + 1, v); };
-  if (sample.romType === 0) {
-    write(1, event.totalLevel); write(8, 0xc0 | event.level);
-    write(0x10, event.rawStart & 255); write(0x18, event.rawStart >> 8);
-    write(0x20, event.rawEnd & 255); write(0x28, event.rawEnd >> 8); write(0, 1);
-  } else {
-    write(0x11, 0xc0); write(0x12, event.rawStart & 255); write(0x13, event.rawStart >> 8);
-    write(0x14, event.rawEnd & 255); write(0x15, event.rawEnd >> 8);
-    write(0x19, event.deltaN & 255); write(0x1a, event.deltaN >> 8); write(0x1b, event.level);
-    write(0x10, 0x80 | (event.speakerOff ? 8 : 0));
-  }
 }

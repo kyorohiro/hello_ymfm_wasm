@@ -168,8 +168,8 @@ Browser側ですでに共有化した音源は、CLIへ同じ処理を再実装�
 - [x] BrowserのSample Explorerが扱う音源・形式・抽出条件を整理する。
 - [x] サンプル一覧をJSONで取得するAPI / コマンドを追加する。
 - [x] ID指定または一括でサンプルを書き出せるようにする。
-- [ ] 元データとWAV変換の区別、サンプルレート・ループ等のメタデータを明示する。
-- [ ] 不正な範囲・重複名・データ未収録時を検証する。
+- [x] 元データとWAV変換の区別、サンプルレート・ループ等のメタデータを明示する。
+- [x] 不正な範囲・重複名・データ未収録時を検証する。
 
 完了: 対応音源ごとにBrowserの抽出結果との一致を確認する。
 
@@ -429,3 +429,15 @@ documentからbytesだけを取り出すと元情報は失われるので、必�
 - 次は09c: WAV変換の共有interfaceと対応範囲を整理・実装し、09の残る検証項目を完了する。
 
 検証: npm test 49成功・0失敗（CLI option回帰を修正後に全件再実行）。Analyzer 583成功・0失敗・1任意skip。実tarball CLI/Node API ZIP一致、itch cli09b-final-check生成・依存検査成功。実ブラウザUIとNode 22は未確認。
+
+
+### 09c 実装記録: Sample preview WAV
+
+- `samples FILE --id N --format wav --occurrence N --output FILE` を追加。occurrenceはIDごとの使用イベント内で1始まり。
+- `sample_render.js` にBrowserのconfigure・音源生成・PCM生成を移し、Browserも呼び出す。Nodeは既存getNodePlaybackFactoryを注入するだけでchip固有renderingを持たない。
+- Node便利API `exportNodeSamples` と、factory注入可能なCore `exportSourceSamples`。DAC/PWMは既存JS preview、ADPCM/RF5C164は既存WASM。
+- stereo PCM16。DACはmono複製、PWMはstereo、ADPCM/RF5C164はBrowserと同じcentered設定。WASM PCMはdispose前にcopy。
+- 最大10秒、Browserのsize/rate見積りとpaddingを維持。厳密な自然終端ではなくpreview。RF5C164 loop markerは窓内で反復しうる。sampleRateはWAVヘッダー用に整数丸め、resampleなし。
+- WAVは単一IDのみ。欠損・無効occurrence・ゼロrate・factory不足を拒否。native一括ZIPは09bのまま。
+
+検証: npm test 52成功・0失敗、Analyzer 583成功・0失敗・1任意skip。ADPCM旧Browser手順/PWM保存WAVとの一致、異常時dispose、実tarball CLI/Node API WAV一致を確認。itch cli09c-check生成・依存検査成功。実ブラウザUIとNode 22は未確認。次は10（renderオプション）。
