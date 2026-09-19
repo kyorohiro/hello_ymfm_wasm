@@ -1,3 +1,4 @@
+import {createStoredZipBytes} from './stored_zip.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createOpmState,mountOpmMonitor} from './opm_monitor.js';
@@ -25,11 +26,11 @@ test('Monitor is read-only; Export group downloads all CH snapshots at click tim
  try{mountOpmMonitor({append(){}},()=>0);assert.equal(buttons.length,0);}finally{globalThis.document=old;}
  const state=createOpmState();state.write(0x67,77);
  let handler,blob;const downloads=[];
- const ctx=vm.createContext({noteishHeader:{ym2151Clock:4000000},currentChipKind:'ym2151',currentBuffer:new Uint8Array(1),exportOpmButton:{addEventListener:(_,fn)=>handler=fn},opmMonitor:state,exportOpm,lastLoadedFileName:'song.vgm',Blob,TextEncoder,CRC32_TABLE:Uint32Array.from({length:256},(_,n)=>{for(let i=0;i<8;i++)n=n&1?0xedb88320^(n>>>1):n>>>1;return n>>>0;}),
+ const ctx=vm.createContext({createStoredZipBytes,noteishHeader:{ym2151Clock:4000000},currentChipKind:'ym2151',currentBuffer:new Uint8Array(1),exportOpmButton:{addEventListener:(_,fn)=>handler=fn},opmMonitor:state,exportOpm,lastLoadedFileName:'song.vgm',Blob,TextEncoder,CRC32_TABLE:Uint32Array.from({length:256},(_,n)=>{for(let i=0;i<8;i++)n=n&1?0xedb88320^(n>>>1):n>>>1;return n>>>0;}),
  URL:{createObjectURL:b=>{blob=b;return 'blob:test';},revokeObjectURL(){}},setTimeout:fn=>fn(),setStatus(){},
  document:{body:{append(){}},createElement(){return {click(){downloads.push(this.download);},remove(){}};}}});
  const source=readFileSync(new URL('./vgm_analyzer.js',import.meta.url),'utf8');
- vm.runInContext(source.slice(source.indexOf("function crc32("),source.indexOf("function downloadAllTfiZip(")),ctx);
+ vm.runInContext(source.slice(source.indexOf("function createStoredZip("),source.indexOf("function downloadAllTfiZip(")),ctx);
  vm.runInContext(source.slice(source.indexOf("exportOpmButton.addEventListener('click'"),source.indexOf('const ayMonitorRoot =')),ctx);
  handler();assert.deepEqual(downloads,['song_snapshot_opm.zip']);assert.equal(blob.type,'application/zip');
  const bytes=new Uint8Array(await blob.arrayBuffer()),view=new DataView(bytes.buffer);let offset=0;const entries=[];

@@ -155,7 +155,7 @@ Browser側ですでに共有化した音源は、CLIへ同じ処理を再実装�
 
 以下は形式ごとに処理し、Browserの抽出・変換処理をCore経由で共有する。
 
-- [ ] 08a: TFI ZIP。対応するOPN / OPM音源と近似変換の注意を明示する。
+- [x] 08a: TFI ZIP。対応するOPN / OPM音源と近似変換の注意を明示する。
 - [ ] 08b: VGI ZIP。TFIと共通の抽出を再利用して検証する。
 - [ ] 08c: OPM ZIP。音色変化と重複除去をBrowserと照合する。
 - [ ] 08d: 時刻・チャンネルを指定した音色スナップショット。
@@ -350,3 +350,15 @@ PWM単体でも既存Genesis engineがYM2612 / PSGを初期化するため、YM2
 
 documentからbytesだけを取り出すと元情報は失われるので、必要な呼び出し元はdocumentを保持する。
 実ブラウザUIとNode 22は未確認。次は08a（TFI ZIP）。
+
+
+### 08a 実装記録: All TFI ZIP
+
+- `export --format tfi-zip` とNode exportSourceに対応。OPN抽出とZIP writerを環境非依存モジュールへ移し、Browserからも同じ処理を利用。
+- YM2203 / YM2608 / YM2610(B) / YM2612のkey-on音色をチャンネルごとに重複除去。OPMは既存の近似変換・source OPM・conversion.jsonをそのまま利用する。
+- 複数FM系列・dual / 未対応variantを拒否し、空の結果はエラー。OPNのheld-key変化のみは抽出対象外。TFIのpan/modulation・clock補正の制約をCLI.mdへ記載。
+- 出力はbytes/count/warnings。CLI ZIPは固定日時で再現可能、Browserは従来通り現在日時。重複entry名を拒否する。上書きには--forceが必要で、空結果でも既存ファイルを破壊しない。
+- 各音源のTFI bytesとBrowser抽出結果を比較。既存Browser ZIP/monitorテストを共有module importへ更新。実tarballでOPM変換ZIPも確認。
+- `npm test`: 36成功。Analyzer: 583成功・0失敗・1任意skip。itch用同梱ファイルとimport書き換えも更新し、cli08a-checkパッケージ生成・依存検査成功。
+
+実ブラウザUIとNode 22の確認は残る。次は08b（VGI ZIP）。

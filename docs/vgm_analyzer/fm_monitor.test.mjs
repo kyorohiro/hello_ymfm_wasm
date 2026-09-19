@@ -1,3 +1,4 @@
+import {decodeKeyOnChannel} from './tfi_extract.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
@@ -8,7 +9,7 @@ function monitor(kind, clock = 0x80000000) {
   const history = [], sequence = [];
   const state = () => ({fnum:0, block:0, keyOn:true, changedAt:{},
     specialFrequencies:{1:{changedAt:{}},2:{changedAt:{}},3:{changedAt:{}}}});
-  const context = vm.createContext({
+  const context = vm.createContext({decodeKeyOnChannel,
     settleNoteishOnset(){}, beginNoteishOnset(){},
     currentChipKind:kind, noteishHeader:{ym2610Clock:clock},
     channelMonitor:Array.from({length:6}, state), monitorFrequencyHigh:[0,0],
@@ -18,7 +19,7 @@ function monitor(kind, clock = 0x80000000) {
     recordChannelNoteHistory:(ch,pitch)=>history.push([ch,...pitch]),
     appendChannelNoteSequence:(ch,pitch)=>sequence.push([ch,...pitch]),
   });
-  for (const name of ['applyYm2203WriteToMonitor','applyYm2612WriteToMonitor','decodeKeyOnChannel']) {
+  for (const name of ['applyYm2203WriteToMonitor','applyYm2612WriteToMonitor']) {
     const start = source.indexOf('function '+name+'(');
     const end = source.indexOf('\n}',start)+2;
     vm.runInContext(source.slice(start,end),context);
@@ -67,7 +68,7 @@ test('overview labels retain hardware channels after unavailable channels are re
   for (const indices of [[1,2,4,5],[0,1,2,3,4,5]]) {
     const channels=indices.map(channel=>({channel,noteHistory:[{time:0,midiFloat:60+channel}]}));
     channels.push({channel:0,label:'YM2610 SSG 1',noteHistory:[]});
-    const context=vm.createContext({
+    const context=vm.createContext({decodeKeyOnChannel,
       noteishMode:{value:'compact'}, performance:{now:()=>0}, songTimeMs:()=>0,
       noteishChannels:()=>channels,pruneChannelNoteHistory(){},
       noteishOverviewY:n=>n,clamp:(n,min,max)=>Math.max(min,Math.min(max,n)),
@@ -168,7 +169,7 @@ test('keyboard updates keep the scrolling element attached without forcing its p
   const card={isConnected:true,querySelector:s=>s==='.noteish-graph'?viewport:nodes[s]};
   Object.defineProperty(card,'innerHTML',{set(){assert.fail('render detached the scroll viewport');}});
   const contentNodes=Object.fromEntries([...selectors,'.noteish-graph'].map(s=>[s,{innerHTML:'updated',hidden:false}]));
-  const context=vm.createContext({
+  const context=vm.createContext({decodeKeyOnChannel,
     buildNoteishSignature:()=>Math.random(),lastNoteishSignature:null,noteishDirty:true,
     renderNoteishOverviewGraph(){},noteishGrid:{children:[card]},
     noteishChannels:()=>[{channel:1,keyOn:true,noteMinMidi:null,noteMaxMidi:null}],
@@ -189,7 +190,7 @@ test('song mode and hidden Note-ish panel skip channel-card calculations',()=>{
   for(const mode of ['live','song','fretboard','fretboard-all','keyboard']) for(const hidden of [false,true]){
     if(!hidden && mode!=='song')continue;
     let overview=0;
-    const c=vm.createContext({
+    const c=vm.createContext({decodeKeyOnChannel,
       noteishViewMode:mode,noteishPanel:{hidden},
       renderNoteishOverviewGraph(){overview++;},
       buildNoteishSignature(){assert.fail('unused channel cards were calculated');},
@@ -203,7 +204,7 @@ test('song mode and hidden Note-ish panel skip channel-card calculations',()=>{
 
 test('Live History renders the overview and the compact channel cards',()=>{
   let overview=0,cardCalculation=0;
-  const c=vm.createContext({
+  const c=vm.createContext({decodeKeyOnChannel,
     noteishViewMode:'live',noteishPanel:{hidden:false},
     renderNoteishOverviewGraph(){overview++;},
     buildNoteishSignature(){cardCalculation++;return 'live';},
@@ -218,7 +219,7 @@ test('Live History renders the overview and the compact channel cards',()=>{
 
 test('Fretboard All renders only the combined board',()=>{
  let draws=0;
- const c=vm.createContext({
+ const c=vm.createContext({decodeKeyOnChannel,
   noteishViewMode:'fretboard-all',noteishPanel:{hidden:false},
   renderAllChannelFretboard(){draws++;},
   renderNoteishOverviewGraph(){assert.fail('unselected overview rendered');},

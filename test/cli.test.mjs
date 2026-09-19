@@ -29,11 +29,17 @@ test('VGM/VGZ decode identically; CLI JSON matches browser parser',async()=>{
 test('every advertised export executes through CLI and score output equals browser',async()=>{
   const dir=mkdtempSync(join(tmpdir(),'tetorica-export-'));
   try {
-    for(const [format,name] of [['midi','psg-tone'],['musicxml','psg-tone'],['lilypond','psg-tone'],['mgsdrv','ay-tone'],['mxdrv','opm-tone'],['mucom','opn-tone'],['opnavoid','opn-tone']]) {
+    for(const [format,name] of [['tfi-zip','ym2203-fm'],['midi','psg-tone'],['musicxml','psg-tone'],['lilypond','psg-tone'],['mgsdrv','ay-tone'],['mxdrv','opm-tone'],['mucom','opn-tone'],['opnavoid','opn-tone']]) {
       const input=fixture(name+'.vgz'),output=join(dir,format);
       const result=cli('export',input,'--format',format,'--output',output,'--bpm','120');
       assert.equal(result.status,0,result.stderr);assert(readFileSync(output).length>0);
     }
+    const zipPath=join(dir,'tfi-zip'),before=readFileSync(zipPath);
+    assert.equal(cli('export',fixture('ym2203-fm.vgz'),'--format','tfi-zip','--output',zipPath).status,1);
+    assert.deepEqual(readFileSync(zipPath),before);
+    assert.equal(cli('export',fixture('ym2203-fm.vgz'),'--format','tfi-zip','--output',zipPath,'--force').status,0);
+    assert.equal(cli('export',fixture('ym2203-ssg.vgz'),'--format','tfi-zip','--output',zipPath,'--force').status,1);
+    assert.deepEqual(readFileSync(zipPath),before);
     const source=await readSource(fixture('psg-tone.vgm'));
     assert.deepEqual(exportSource(source,{format:'midi',bpm:120}).bytes,exportAnalysisMidi(source,{bpm:120}).bytes);
     const score=analyzeLilyPondSource(source);
@@ -156,6 +162,9 @@ test('npm tarball installs offline, runs via npx, and exports the library',async
       assert.equal(failure.status,1);assert.equal(failure.stdout,'');assert.match(failure.stderr,/Missing ROM|ENOENT|2097152/);
     }
     assert.equal(cli('analyze',waveInput,'--ymf278b-rom',wavePath).status,1);
+    const tfiInput=fixture('opm-audible.vgz'),tfiOut=join(dir,'tones.zip');
+    execFileSync('npm',[...args,'export',tfiInput,'--format','tfi-zip','--output',tfiOut],{cwd:dir});
+    assert.deepEqual(readFileSync(tfiOut),Buffer.from(exportSource(await readSource(tfiInput),{format:'tfi-zip',fileName:'opm-audible.vgz'}).bytes));
     const s98Input=fixture('s98-ym2203.s98');
     const s98Summary=JSON.parse(execFileSync('npm',[...args,'analyze',s98Input,'--json'],{cwd:dir,encoding:'utf8'}));
     assert.equal(s98Summary.sourceHeader.format,'S983');

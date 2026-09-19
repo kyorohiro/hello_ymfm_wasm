@@ -58,7 +58,7 @@ tetorica-vgm render song.vgz --output song.wav --max-seconds 120
   errors, export notices and render warnings go to stderr.
 
 The CLI accepts VGM/VGZ/S98, not directories, ZIPs or stdin in this version.
-Patch ZIPs, sample extraction and interactive audition/editing remain browser features.
+TFI ZIP export is supported; other patch ZIP formats, sample extraction and interactive audition/editing remain browser features.
 
 ## Node API
 
@@ -265,3 +265,26 @@ effective timer ratio, device table, source offsets and decoded tag text. `heade
 `metadata`, command counts and durations continue to describe normalized VGM.
 S98 tags are not converted into GD3. Passing only `.bytes` discards source metadata;
 keep the document when it matters. VGM/VGZ JSON remains unchanged (schemaVersion 1).
+
+## All TFI ZIP
+
+```sh
+tetorica-vgm export song.vgz --format tfi-zip --output tones.zip
+```
+
+The same format is available via `exportSource(source, {format:'tfi-zip'})`,
+returning `{bytes, count, warnings}`. Supports YM2203, YM2608, YM2610/B,
+YM2612, or YM2151, one FM family at a time; dual/unsupported variant flags
+and mixed FM families are rejected. S98 documents work after normalization.
+
+OPN extraction is shared with the Browser: captures at key-on, deduplicates
+per channel, names entries `channelN-M.tfi`. Held-key edits without a new
+key-on are not separate OPN patches. TFI does not preserve pan/modulation
+or compensate envelope timing for source clocks. YM2151 uses the existing
+approximate conversion, including held-key changes; original `source/*.opm`
+and `conversion.json` explain omitted DT2, modulation, noise and key masks.
+
+No keyed tones is an error and creates no ZIP. Existing output is protected
+unless `--force` is supplied. ZIP timestamps are fixed for reproducible CLI
+output; Browser downloads retain their current timestamps. VGI/OPM ZIP and
+time/channel snapshots are separate follow-up tasks.

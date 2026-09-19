@@ -1,3 +1,4 @@
+import * as tfiExtract from './tfi_extract.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
@@ -7,11 +8,8 @@ import { createTfiFromPreset, parseTfi } from '../js/tfi.js';
 import { createVgiFromPreset, parseVgi } from '../js/vgi.js';
 const source = readFileSync(new URL('./vgm_analyzer.js', import.meta.url), 'utf8');
 function setup() {
-  const context = vm.createContext({ Ym2612VGM, createTfiFromPreset, createVgiFromPreset });
+  const context = vm.createContext({ ...tfiExtract, Ym2612VGM, createTfiFromPreset, createVgiFromPreset });
   for (const [start, end] of [
-    ['const DEFAULT_OPERATOR_PRESET', 'const CRC32_TABLE'],
-    ['function createDefaultTfiPreset()', 'function applyYm2612WriteToMonitor('],
-    ['function extractTfiPatchesFromVgm(', 'function crc32('],
     ['function downloadAllTfiZip()', 'function buildSnapshotData('],
   ]) vm.runInContext(source.slice(source.indexOf(start), source.indexOf(end)), context);
   return context;
