@@ -211,6 +211,17 @@ test('npm tarball installs offline, runs via npx, and exports the library',async
     execFileSync('npm',[...args,'samples',samplesInput,'--id','1','--format','wav','--occurrence','1','--output',sampleWavOut],{cwd:dir});
     const sampleWavApi=execFileSync(process.execPath,['--input-type=module','-e',"import {readSource,exportNodeSamples} from 'tetorica-vgm'; process.stdout.write((await exportNodeSamples(await readSource(process.argv[1]),{id:1,format:'wav'})).bytes)",samplesInput],{cwd:dir});
     assert.deepEqual(readFileSync(sampleWavOut),sampleWavApi);
+    const scoreInput=fixture('opn-tone.vgz');
+    const scoreList=JSON.parse(execFileSync('npm',[...args,'score-channels',scoreInput,'--json'],{cwd:dir,encoding:'utf8'}));
+    assert.equal(scoreList.channels[0].id,'ym2612-ch1');
+    for(const format of ['musicxml','lilypond']){
+      const scoreOut=join(dir,'selected.'+format);
+      execFileSync('npm',[...args,'export',scoreInput,'--format',format,'--channels','ym2612-ch1','--output',scoreOut],{cwd:dir});
+      const scoreApi=execFileSync(process.execPath,['--input-type=module','-e',"import {readSource,exportSource} from 'tetorica-vgm'; process.stdout.write(exportSource(await readSource(process.argv[1]),{format:process.argv[2],channels:['ym2612-ch1'],fileName:'opn-tone.vgz'}).text)",scoreInput,format],{cwd:dir,encoding:'utf8'});
+      assert.equal(readFileSync(scoreOut,'utf8'),scoreApi);
+      const failed=cli('export',scoreInput,'--format',format,'--channels','bad','--output',scoreOut,'--force');
+      assert.equal(failed.status,1);assert.equal(readFileSync(scoreOut,'utf8'),scoreApi);
+    }
     const s98Input=fixture('s98-ym2203.s98');
     const s98Summary=JSON.parse(execFileSync('npm',[...args,'analyze',s98Input,'--json'],{cwd:dir,encoding:'utf8'}));
     assert.equal(s98Summary.sourceHeader.format,'S983');

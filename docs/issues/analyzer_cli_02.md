@@ -175,7 +175,7 @@ Browser側ですでに共有化した音源は、CLIへ同じ処理を再実装�
 
 ### 10. 変換オプションの拡充
 
-- [ ] 10a: 楽譜のチャンネル一覧・選択。安定した指定方法を用意しMusicXML / LilyPondで検証する。
+- [x] 10a: 楽譜のチャンネル一覧・選択。安定した指定方法を用意しMusicXML / LilyPondで検証する。
 - [ ] 10b: WAVのチャンネル / 音源ミュート。エンジンごとの対応範囲を明示する。
 - [ ] 10c: WAVの開始時刻・区間指定。開始位置までのレジスタ・PCM状態を正しく再現する。
 - [ ] 10d: WAVのループ指定。時間上限を必須の安全弁として保ち、無限生成を防ぐ。
@@ -441,3 +441,15 @@ documentからbytesだけを取り出すと元情報は失われるので、必�
 - WAVは単一IDのみ。欠損・無効occurrence・ゼロrate・factory不足を拒否。native一括ZIPは09bのまま。
 
 検証: npm test 52成功・0失敗、Analyzer 583成功・0失敗・1任意skip。ADPCM旧Browser手順/PWM保存WAVとの一致、異常時dispose、実tarball CLI/Node API WAV一致を確認。itch cli09c-check生成・依存検査成功。実ブラウザUIとNode 22は未確認。次は10（renderオプション）。
+
+
+### 10a 実装記録: 楽譜チャンネル一覧・選択
+
+- `score-channels FILE --json` とCore `listSourceScoreChannels` を追加。既存scoreのlabelからIDを作り、name/noteCountを返す。
+- MusicXML/LilyPondの `--channels ID,ID` / API `channels:[...]` に対応。既存Browser exporterへ選択した譜表を渡すだけで、譜面生成処理を複製しない。
+- 元の譜表順・曲全体のtime・tempo suggestionを維持。未指定は従来どおり全譜表。無音譜表も選択可能。
+- 空・重複・未知IDと他formatへの指定は拒否。snapshotの単数channelとは独立。
+- 一覧は既存score抽出範囲であり、全hardware channelの対応表ではない。
+- 次は10b（WAVミュート）。11のバッチ処理は10の後に進める。
+
+検証: npm test 54成功・0失敗。Analyzer 583成功・0失敗・1任意skip。全譜表の従来出力維持・選択後のBrowser exporter一致、実tarball CLI/Node APIの両形式一致と不正指定時の出力保護を確認。itch cli10a-check生成・依存検査成功。実ブラウザUIとNode 22は未確認。

@@ -438,3 +438,25 @@ duration estimate and padding. It is not an exact recovered instrument
 boundary. RF5C164 loop markers may repeat within the window; VGM loops
 are never expanded. No external ROM lookup, live parameter automation,
 envelope-phase reconstruction or analog filtering is added.
+
+
+## Score channel selection
+
+```sh
+tetorica-vgm score-channels song.vgz --json
+tetorica-vgm export song.vgz --format musicxml --channels ym2612-ch1,ym2612-ch2 --output selected.musicxml
+```
+
+Node API: `listSourceScoreChannels(source)` returns
+`{schemaVersion:1,channels:[{id,name,noteCount}],warnings}`.
+Use `exportSource(source,{format:'lilypond',channels:['ym2612-ch1']})`
+or MusicXML. IDs derive from existing chip/channel labels, not positions
+in the combined score; use the inventory for supported labels.
+
+Selection preserves source staff order, full-track timing and the original
+tempo suggestion. It includes silent staves if explicitly selected. Omitting
+channels keeps the previous all-staff output. Unknown, empty and duplicate
+IDs are rejected. Selection applies only to MusicXML/LilyPond, not MIDI,
+MML, WAV or voice snapshots. The snapshot `--channel` option is separate.
+This inventory describes the existing score extractor's supported channels,
+not every hardware channel declared in the input.

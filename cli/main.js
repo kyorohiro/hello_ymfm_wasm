@@ -2,18 +2,20 @@
 import { parseArgs } from 'node:util';
 import { writeFile, readFile } from 'node:fs/promises';
 import { basename } from 'node:path';
-import { readSourceDocument, exportNodeSamples, listSourceSamples, analyzeSource, exportSource, exportFormats, renderSource } from './index.js';
+import { readSourceDocument, listSourceScoreChannels, exportNodeSamples, listSourceSamples, analyzeSource, exportSource, exportFormats, renderSource } from './index.js';
 
 const help = `tetorica-vgm — VGM/VGZ/S98 analysis without a browser
 
   tetorica-vgm samples FILE [--json]
   tetorica-vgm samples FILE (--id N | --all) --output FILE [--force]
+  tetorica-vgm score-channels FILE [--json]
   tetorica-vgm analyze FILE [--json]
   tetorica-vgm export FILE --format FORMAT --output FILE [--bpm 120] [--force]
   tetorica-vgm render FILE --output FILE.wav [--max-seconds 120] [--force]
 
 Formats: ${exportFormats.join(', ')}
 Snapshot formats tfi/vgi/opm require --at SECONDS --channel N (1-based).
+--channels ID,ID: select MusicXML/LilyPond staves; list IDs with score-channels.
 BPM defaults to the browser score tempo suggestion (fallback: 120).
 Output files are never overwritten unless --force is supplied.
 Render: standalone YM2612/YM2151/YM2413/YM3526/YM3812/YMF262 (optional Sega PSG),
@@ -31,7 +33,7 @@ Sega PCM with embedded samples, alone or with YM2151, optionally with Sega PSG, 
 try {
   const { values, positionals } = parseArgs({ allowPositionals: true, options: {
     help: {type:'boolean',short:'h'}, version:{type:'boolean',short:'v'}, json:{type:'boolean'},
-    occurrence:{type:'string'}, id:{type:'string'}, all:{type:'boolean'}, at:{type:'string'}, channel:{type:'string'}, format:{type:'string'}, output:{type:'string',short:'o'}, bpm:{type:'string'},
+    channels:{type:'string'}, occurrence:{type:'string'}, id:{type:'string'}, all:{type:'boolean'}, at:{type:'string'}, channel:{type:'string'}, format:{type:'string'}, output:{type:'string',short:'o'}, bpm:{type:'string'},
     'ymf278b-rom':{type:'string'}, 'ym2608-rom':{type:'string'}, 'max-seconds':{type:'string'}, force:{type:'boolean'},
   } });
   if (values.help) { console.log(help); }
@@ -40,13 +42,17 @@ try {
     console.log(pkg.version);
   } else {
     const [command, input] = positionals;
-    if (!['samples','analyze','export','render'].includes(command) || !input || positionals.length !== 2) throw new Error(help);
-    const allowed = { samples:['json','id','all','output','force','format','occurrence'], analyze:['json'], export:['format','output','bpm','force','at','channel'], render:['output','max-seconds','force','ym2608-rom','ymf278b-rom'] }[command];
+    if (!['score-channels','samples','analyze','export','render'].includes(command) || !input || positionals.length !== 2) throw new Error(help);
+    const allowed = { 'score-channels':['json'], samples:['json','id','all','output','force','format','occurrence'], analyze:['json'], export:['format','output','bpm','force','at','channel','channels'], render:['output','max-seconds','force','ym2608-rom','ymf278b-rom'] }[command];
     for (const key of Object.keys(values)) if (!allowed.includes(key)) throw new Error(`--${key} is not valid for ${command}`);
-    if (!['analyze','samples'].includes(command) && !values.output) throw new Error('--output is required');
+    if (!['score-channels','analyze','samples'].includes(command) && !values.output) throw new Error('--output is required');
     if (command === 'export' && !exportFormats.includes(values.format)) throw new Error(`--format must be one of: ${exportFormats.join(', ')}`);
     const source = await readSourceDocument(input);
-    if (command === 'samples' && (values.id!==undefined || values.all!==undefined)) {
+    if(command==='score-channels'){
+      const result=listSourceScoreChannels(source);
+      console.log(values.json?JSON.stringify(result,null,2):result.channels.map(ch=>ch.id+' · '+ch.name+' · '+ch.noteCount+' notes').join('\n'));
+      for(const warning of result.warnings)console.error('Warning: '+warning);
+    } else if (command === 'samples' && (values.id!==undefined || values.all!==undefined)) {
       if(values.json)throw new Error('--json is for sample listing only');
       if(!values.output)throw new Error('--output is required');
       const result=await exportNodeSamples(source,{format:values.format??'native',occurrence:values.occurrence===undefined?1:Number(values.occurrence),id:values.id===undefined?undefined:Number(values.id),all:values.all??false});
@@ -69,7 +75,7 @@ try {
       ].join('\n'));
     } else {
       const result = command === 'export'
-        ? exportSource(source, { format: values.format, atSeconds: values.at === undefined ? undefined : Number(values.at), channel: values.channel === undefined ? undefined : Number(values.channel), bpm: values.bpm === undefined ? undefined : Number(values.bpm), fileName: basename(input) })
+        ? exportSource(source, { format: values.format, channels:values.channels===undefined?undefined:values.channels.split(','), atSeconds: values.at === undefined ? undefined : Number(values.at), channel: values.channel === undefined ? undefined : Number(values.channel), bpm: values.bpm === undefined ? undefined : Number(values.bpm), fileName: basename(input) })
         : await renderSource(source, { maxSeconds: values['max-seconds'] === undefined ? 120 : Number(values['max-seconds']), roms: { ...(values['ym2608-rom'] === undefined ? {} : {ym2608AdpcmA:await readFile(values['ym2608-rom'])}), ...(values['ymf278b-rom'] === undefined ? {} : {ymf278bWave:await readFile(values['ymf278b-rom'])}) } });
       await writeFile(values.output, result.bytes ?? result.text, { flag: values.force ? 'w' : 'wx' });
       console.error(`Wrote ${values.output}`);

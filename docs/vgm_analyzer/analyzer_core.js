@@ -49,10 +49,11 @@ export function analyzeSource(source) {
 }
 
 /** Export using exactly the browser's existing algorithms and chip restrictions. */
-export function exportSource(source, { format, bpm, fileName = 'VGM', atSeconds, channel } = {}) {
+export function exportSource(source, { format, bpm, fileName = 'VGM', atSeconds, channel, channels } = {}) {
   source = sourceBytes(source);
   if (!exportFormats.includes(format)) throw new Error(`Unsupported format: ${format}`);
   if (bpm !== undefined && (!Number.isInteger(bpm) || bpm < 4 || bpm > 999)) throw new RangeError('BPM must be an integer from 4 to 999');
+  if(channels!==undefined && !['musicxml','lilypond'].includes(format)) throw new Error('Channel selection requires musicxml or lilypond');
   if (['tfi','vgi','opm'].includes(format)) return exportVoiceSnapshot(source,{format,atSeconds,channel});
   if (atSeconds !== undefined || channel !== undefined) throw new Error('Time/channel options require tfi, vgi or opm snapshot format');
   if (format === 'opm-zip') return exportOpmZip(source);
@@ -63,7 +64,7 @@ export function exportSource(source, { format, bpm, fileName = 'VGM', atSeconds,
   if (format === 'midi') return exportAnalysisMidi(source, options);
   if (format === 'musicxml' || format === 'lilypond') {
     const create = format === 'musicxml' ? createMusicXmlScore : createLilyPondScore;
-    return create(score.channels, score.time, { ...options, warnings: score.warnings });
+    return create(selectScoreChannels(score.channels,channels), score.time, { ...options, warnings: score.warnings });
   }
   const exporters = { mucom: exportMucomMml, opnavoid: exportOpnavoidMml, mxdrv: exportMxdrvMml, mgsdrv: exportMgsdrvMml };
   return { text: exporters[format](source, options) };
@@ -79,4 +80,23 @@ export function listSourceSamples(source, options = {}) {
 
 export function exportSourceSamples(source, options = {}) {
   return exportSamples(sourceBytes(source), options);
+}
+
+
+// IDs derive from existing chip/channel labels, not from score position.
+function scoreChannelId(channel) {
+  return channel.name.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
+}
+function selectScoreChannels(available,ids) {
+  if(ids===undefined)return available;
+  if(!Array.isArray(ids)||!ids.length||ids.some(id=>typeof id!=='string')||new Set(ids).size!==ids.length)throw new Error('channels must be a nonempty array of unique channel IDs');
+  const known=new Set(available.map(scoreChannelId));
+  for(const id of ids)if(!known.has(id))throw new Error('Unknown score channel: '+id);
+  return available.filter(ch=>ids.includes(scoreChannelId(ch)));
+}
+export function listSourceScoreChannels(source) {
+  const score=analyzeLilyPondSource(sourceBytes(source));
+  const channels=score.channels.map(ch=>({id:scoreChannelId(ch),name:ch.name,noteCount:ch.notes.length}));
+  if(new Set(channels.map(ch=>ch.id)).size!==channels.length)throw new Error('Ambiguous score channel IDs');
+  return {schemaVersion:1,channels,warnings:score.warnings};
 }
