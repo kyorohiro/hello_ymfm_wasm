@@ -1,72 +1,182 @@
-#!/usr/bin/env node
-import { parseArgs } from 'node:util';
-import { writeFile, readFile } from 'node:fs/promises';
-import { basename } from 'node:path';
-import { readSource, analyzeSource, exportSource, exportFormats, renderSource } from './index.js';
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { execFileSync, spawnSync } from 'node:child_process';
+import { mkdtempSync, readFileSync, writeFileSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { readSource, analyzeSource, exportSource, renderSource } from '../cli/index.js';
+import { Ym2612VGM } from '../docs/js/ym2612vgm.js';
+import { exportAnalysisMidi } from '../docs/vgm_analyzer/vgm_midi.js';
+import { analyzeLilyPondSource } from '../docs/vgm_analyzer/vgm_lilypond.js';
+import { createMusicXmlScore } from '../docs/vgm_analyzer/vgm_musicxml.js';
+const root=fileURLToPath(new URL('../',import.meta.url));
+const fixture=name=>join(root,'test/fixtures',name);
+const cli=(...args)=>spawnSync(process.execPath,[join(root,'cli/main.js'),...args],{encoding:'utf8'});
 
-const help = `tetorica-vgm — VGM/VGZ analysis without a browser
-
-  tetorica-vgm analyze FILE [--json]
-  tetorica-vgm export FILE --format FORMAT --output FILE [--bpm 120] [--force]
-  tetorica-vgm render FILE --output FILE.wav [--max-seconds 120] [--force]
-
-Formats: ${exportFormats.join(', ')}
-BPM defaults to the browser score tempo suggestion (fallback: 120).
-Output files are never overwritten unless --force is supplied.
-Render: standalone YM2612/YM2151/YM2413/YM3526/YM3812/YMF262 (optional Sega PSG),
-YM2612 + RF5C164 (optional Sega PSG), standalone YM2203 (FM + internal SSG), YM2608 and YM2610/B (FM / SSG / ADPCM), Sega PSG alone, AY-3-8910, or Game Boy DMG. Other configurations may require additional WASM factories or ROMs; see CLI.md.
-Y8950 (FM / embedded ADPCM, optional Sega PSG) is supported.
-OKIM6258 alone or with YM2151 is supported (4-bit ADPCM only).
---ym2608-rom FILE: 8192-byte rhythm ROM for YM2608; required only for rhythm key-on.
---max-seconds: >0 to 600; loops are not expanded. See CLI.md for limitations.
-`;
-try {
-  const { values, positionals } = parseArgs({ allowPositionals: true, options: {
-    help: {type:'boolean',short:'h'}, version:{type:'boolean',short:'v'}, json:{type:'boolean'},
-    format:{type:'string'}, output:{type:'string',short:'o'}, bpm:{type:'string'},
-    'ym2608-rom':{type:'string'}, 'max-seconds':{type:'string'}, force:{type:'boolean'},
-  } });
-  if (values.help) { console.log(help); }
-  else if (values.version) {
-    const pkg = JSON.parse(await readFile(new URL('../package.json', import.meta.url)));
-    console.log(pkg.version);
-  } else {
-    const [command, input] = positionals;
-    if (!['analyze','export','render'].includes(command) || !input || positionals.length !== 2) throw new Error(help);
-    const allowed = { analyze:['json'], export:['format','output','bpm','force'], render:['output','max-seconds','force','ym2608-rom'] }[command];
-    for (const key of Object.keys(values)) if (!allowed.includes(key)) throw new Error(`--${key} is not valid for ${command}`);
-    if (command !== 'analyze' && !values.output) throw new Error('--output is required');
-    if (command === 'export' && !exportFormats.includes(values.format)) throw new Error(`--format must be one of: ${exportFormats.join(', ')}`);
-    const source = await readSource(input);
-    if (command === 'analyze') {
-      const result = analyzeSource(source);
-      console.log(values.json ? JSON.stringify(result, null, 2) : [
-        `File: ${input}`, `Chips: ${result.chips.map(c => `${c.id} (${c.clockHz} Hz)`).join(', ') || 'none declared'}`,
-        `Declared duration: ${result.declaredDurationSeconds.toFixed(3)} s`,
-        `Commands: ${Object.values(result.commandUsage).reduce((a,b)=>a+b,0)}`,
-        `Data blocks: ${result.dataBlocks.length}`,
-      ].join('\n'));
-    } else {
-      const result = command === 'export'
-        ? exportSource(source, { format: values.format, bpm: values.bpm === undefined ? undefined : Number(values.bpm), fileName: basename(input) })
-        : await renderSource(source, { maxSeconds: values['max-seconds'] === undefined ? 120 : Number(values['max-seconds']), roms: values['ym2608-rom'] === undefined ? {} : {ym2608AdpcmA:await readFile(values['ym2608-rom'])} });
-      await writeFile(values.output, result.bytes ?? result.text, { flag: values.force ? 'w' : 'wx' });
-      console.error(`Wrote ${values.output}`);
-      if (result.truncated) console.error('Warning: rendering stopped at --max-seconds.');
-      for (const warning of result.warnings ?? []) console.error(`Warning: ${warning}`);
-    }
+test('VGM/VGZ decode identically; CLI JSON matches browser parser',async()=>{
+  for(const name of ['psg-tone','ay-tone','opn-tone','opm-tone']) {
+    const raw=await readSource(fixture(name+'.vgm')),gzip=await readSource(fixture(name+'.vgz'));
+    assert.deepEqual(raw,gzip);
+    const browser=new Ym2612VGM(raw),core=analyzeSource(raw);
+    assert.deepEqual(core.header,browser.header);
+    assert.deepEqual(core.commandUsage,Object.fromEntries(browser.analyzeCommandUsage()));
+    const result=cli('analyze',fixture(name+'.vgz'),'--json');
+    assert.equal(result.status,0,result.stderr);assert.deepEqual(JSON.parse(result.stdout),core);
+    assert.equal(core.chips.length,1);assert.equal(core.declaredDurationSeconds,.5);
   }
-} catch (error) {
-  console.error(`tetorica-vgm: ${error.message}`);
-  process.exitCode = 1;
-}
+});
+test('every advertised export executes through CLI and score output equals browser',async()=>{
+  const dir=mkdtempSync(join(tmpdir(),'tetorica-export-'));
+  try {
+    for(const [format,name] of [['midi','psg-tone'],['musicxml','psg-tone'],['lilypond','psg-tone'],['mgsdrv','ay-tone'],['mxdrv','opm-tone'],['mucom','opn-tone'],['opnavoid','opn-tone']]) {
+      const input=fixture(name+'.vgz'),output=join(dir,format);
+      const result=cli('export',input,'--format',format,'--output',output,'--bpm','120');
+      assert.equal(result.status,0,result.stderr);assert(readFileSync(output).length>0);
+    }
+    const source=await readSource(fixture('psg-tone.vgm'));
+    assert.deepEqual(exportSource(source,{format:'midi',bpm:120}).bytes,exportAnalysisMidi(source,{bpm:120}).bytes);
+    const score=analyzeLilyPondSource(source);
+    assert.equal(exportSource(source,{format:'musicxml',bpm:120}).text,createMusicXmlScore(score.channels,score.time,{bpm:120,warnings:score.warnings}).text);
+    assert(exportSource(source,{format:'midi'}).bytes.length>0);
+    assert.notEqual(cli('export',fixture('psg-tone.vgm'),'--format','midi','--output',join(dir,'midi')).status,0);
+    assert.equal(cli('export',fixture('psg-tone.vgm'),'--format','midi','--output',join(dir,'midi'),'--force').status,0);
+  } finally {rmSync(dir,{recursive:true,force:true});}
+});
+test('offline render produces audible WAV and obeys duration cap',async()=>{
+  const source=await readSource(fixture('psg-tone.vgz'));
+  const result=await renderSource(source,{maxSeconds:.1});
+  assert.equal(Buffer.from(result.bytes.slice(0,4)).toString(),'RIFF');
+  assert(result.bytes.slice(44).some(x=>x!==0));assert.equal(result.truncated,true);
+  assert(Math.abs(result.seconds-.1)<.001);
+  await assert.rejects(renderSource(source,{maxSeconds:Infinity}),/maxSeconds/);
+  const unsupported=source.slice();new DataView(unsupported.buffer).setUint32(0x48,8000000,true);
+  await assert.rejects(renderSource(unsupported),/not supported/);
+});
+test('Genesis combination renders embedded RF5C164 PCM without dropping it',async()=>{
+  const source=await readSource(fixture('genesis-pcm.vgz'));
+  for (const psgClock of [3579545,0]) {
+    const input=source.slice();new DataView(input.buffer).setUint32(0x0c,psgClock,true);
+    const result=await renderSource(input,{maxSeconds:.1});
+    assert.deepEqual(result.warnings,[]);
+    assert(result.bytes.subarray(44).some(x=>x!==0),'PCM must be audible with silent FM/PSG');
+    assert.equal(result.truncated,true);
+  }
+  const unsupported=source.slice(),view=new DataView(unsupported.buffer);
+  view.setUint32(0x2c,0,true);view.setUint32(0x30,3579545,true);
+  await assert.rejects(renderSource(unsupported),/not supported/);
+});
+test('all advertised standalone render adapters initialize their packaged WASM',async()=>{
+  const template=await readSource(fixture('psg-tone.vgm'));
+  for(const [offset,clock] of [[0x2c,7670454],[0x30,3579545],[0x10,3579545],[0x54,3579545],[0x50,3579545],[0x5c,14318180],[0x74,1789773],[0x80,4194304]]) {
+    const source=template.slice(0,263),view=new DataView(source.buffer);
+    view.setUint32(4,source.length-4,true);view.setUint32(0x0c,0,true);view.setUint32(offset,clock,true);
+    source.set(offset === 0x80 ? [0xb3,0x16,0x80,0x61,10,0,0x66] : [0x61,10,0,0x66],256);
+    const wav=await renderSource(source,{maxSeconds:.01});
+    assert.equal(Buffer.from(wav.bytes.subarray(0,4)).toString(),'RIFF');
+  }
+});
+test('CLI rejects malformed input, unknown options, unsupported formats and bad BPM',()=>{
+  for(const args of [[],['analyze',fixture('psg-tone.vgm'),'--bogus'],['export',fixture('psg-tone.vgm'),'--format','bad','--output','unused'],['export',fixture('psg-tone.vgm'),'--format','midi','--bpm','NaN','--output','unused'],['analyze',fixture('README.md'),'--json']]) {
+    const result=cli(...args);assert.notEqual(result.status,0);assert.equal(result.stdout,'');
+  }
+});
+test('npm tarball installs offline, runs via npx, and exports the library',async()=>{
+  execFileSync(process.execPath,['scripts/build_cli.mjs'],{cwd:root});
+  const dir=mkdtempSync(join(tmpdir(),'tetorica-package-'));
+  const cache=join(dir,'cache');
+  try {
+    const packed=JSON.parse(execFileSync('npm',['pack','--ignore-scripts','--json','--pack-destination',dir,'--cache',cache],{cwd:root,encoding:'utf8'}))[0];
+    const paths=packed.files.map(f=>f.path);
+    assert(paths.includes('dist/cli/main.js'));
+    assert(paths.includes('dist/docs/generated/ym2612_wasm.wasm'));
+    assert(paths.includes('dist/docs/generated/rf5c164_wasm.wasm'));
+    assert(paths.includes('dist/docs/generated/ym2203_wasm.wasm'));
+    assert(paths.includes('dist/docs/generated/ym2608_wasm.wasm'));
+    assert(paths.includes('dist/docs/generated/ym2610b_wasm.wasm'));
+    assert(paths.includes('dist/docs/generated/okim6258_wasm.wasm'));
+    assert(paths.includes('dist/docs/generated/y8950_wasm.wasm'));
+    assert(paths.includes('dist/docs/generated/ymf278b_wasm.wasm'));
+    assert(paths.includes('dist/licenses/mame-okim6258.txt'));
+    assert(paths.includes('LICENSE'));
+    assert(!paths.some(p=>/\.rom$|\.bin$/.test(p)));
+    assert(!paths.some(p=>/\.(?:html|css|png|vgz|vgm)$/.test(p)||p.includes('/vendor/')||p.startsWith('w/')));
+    execFileSync('npm',['install','--offline','--ignore-scripts','--no-audit','--no-fund','--prefix',dir,'--cache',cache,join(dir,packed.filename)],{encoding:'utf8'});
+    const args=['exec','--offline','--prefix',dir,'--cache',cache,'--','tetorica-vgm'];
+    const result=JSON.parse(execFileSync('npm',[...args,'analyze',fixture('ay-tone.vgz'),'--json'],{cwd:dir,encoding:'utf8'}));
+    assert.equal(result.chips[0].id,'ay8910');
+    const wav=join(dir,'tone.wav');
+    execFileSync('npm',[...args,'render',fixture('genesis-pcm.vgz'),'--output',wav,'--max-seconds','0.1'],{cwd:dir});
+    assert.equal(readFileSync(wav).subarray(0,4).toString(),'RIFF');
+    assert(readFileSync(wav).subarray(44).some(x=>x!==0));
+    const opnWav=join(dir,'ym2203.wav');
+    execFileSync('npm',[...args,'render',fixture('ym2203-mix.vgz'),'--output',opnWav,'--max-seconds','0.1'],{cwd:dir});
+    const expected=await renderSource(await readSource(fixture('ym2203-mix.vgz')),{maxSeconds:.1});
+    assert.deepEqual(readFileSync(opnWav),Buffer.from(expected.bytes));
+    const apiWav=execFileSync(process.execPath,['--input-type=module','-e',"import {readSource,renderSource} from 'tetorica-vgm'; process.stdout.write((await renderSource(await readSource(process.argv[1]),{maxSeconds:.1})).bytes)",fixture('ym2203-mix.vgz')],{cwd:dir});
+    assert.deepEqual(apiWav,Buffer.from(expected.bytes));
+    const romPath=join(dir,'rhythm.bin'),rhythmWav=join(dir,'rhythm.wav');
+    const rom=Uint8Array.from({length:8192},(_,i)=>i%2?0x99:0x11);
+    writeFileSync(romPath,rom);
+    execFileSync('npm',[...args,'render',fixture('ym2608-rhythm.vgz'),'--ym2608-rom',romPath,'--output',rhythmWav,'--max-seconds','0.1'],{cwd:dir});
+    const rhythm=await renderSource(await readSource(fixture('ym2608-rhythm.vgz')),{maxSeconds:.1,roms:{ym2608AdpcmA:rom}});
+    assert.deepEqual(readFileSync(rhythmWav),Buffer.from(rhythm.bytes));
+    const rhythmApi=execFileSync(process.execPath,['--input-type=module','-e',"import {readSource,renderSource} from 'tetorica-vgm'; import {readFile} from 'node:fs/promises'; process.stdout.write((await renderSource(await readSource(process.argv[1]),{maxSeconds:.1,roms:{ym2608AdpcmA:await readFile(process.argv[2])}})).bytes)",fixture('ym2608-rhythm.vgz'),romPath],{cwd:dir});
+    assert.deepEqual(rhythmApi,Buffer.from(rhythm.bytes));
+    for(const extra of [[],['--ym2608-rom',join(dir,'missing.bin')],['--ym2608-rom',fixture('README.md')]]) {
+      const failure=cli('render',fixture('ym2608-rhythm.vgz'),'--output',join(dir,'failed.wav'),...extra);
+      assert.equal(failure.status,1);assert.equal(failure.stdout,'');
+      assert.match(failure.stderr,/Missing ROM|ENOENT|8192 bytes/);
+    }
+    assert.equal(cli('analyze',fixture('ym2608-rhythm.vgz'),'--ym2608-rom',romPath).status,1);
+    for(const name of ['ym2610-mix','ym2610b-mix','okim6258-tone','opm-oki-mix','y8950-psg','ymf278b-psg']) {
+      const out=join(dir,name+'.wav'),input=fixture(name+'.vgz');
+      execFileSync('npm',[...args,'render',input,'--output',out,'--max-seconds','0.05'],{cwd:dir});
+      const expected=await renderSource(await readSource(input),{maxSeconds:.05});
+      assert.deepEqual(readFileSync(out),Buffer.from(expected.bytes));
+      const api=execFileSync(process.execPath,['--input-type=module','-e',"import {readSource,renderSource} from 'tetorica-vgm'; process.stdout.write((await renderSource(await readSource(process.argv[1]),{maxSeconds:.05})).bytes)",input],{cwd:dir});
+      assert.deepEqual(api,Buffer.from(expected.bytes));
+    }
+    const wavePath=join(dir,'synthetic-wave.bin'),waveOut=join(dir,'opl4.wav');
+    const wave=new Uint8Array(2097152);wave.set([0,1,0,0,0,255,0,0,0xf0,0,0x0f,0]);
+    for(let i=256;i<512;i++)wave[i]=Math.round(Math.sin(i*Math.PI/16)*100)&255;
+    writeFileSync(wavePath,wave);
+    const waveInput=fixture('ymf278b-external.vgz');
+    execFileSync('npm',[...args,'render',waveInput,'--ymf278b-rom',wavePath,'--output',waveOut,'--max-seconds','0.05'],{cwd:dir});
+    const waveResult=await renderSource(await readSource(waveInput),{maxSeconds:.05,roms:{ymf278bWave:wave}});
+    assert.deepEqual(readFileSync(waveOut),Buffer.from(waveResult.bytes));
+    const waveApi=execFileSync(process.execPath,['--input-type=module','-e',"import {readSource,renderSource} from 'tetorica-vgm'; import {readFile} from 'node:fs/promises'; process.stdout.write((await renderSource(await readSource(process.argv[1]),{maxSeconds:.05,roms:{ymf278bWave:await readFile(process.argv[2])}})).bytes)",waveInput,wavePath],{cwd:dir});
+    assert.deepEqual(waveApi,Buffer.from(waveResult.bytes));
+    for(const extra of [[],['--ymf278b-rom',join(dir,'missing-wave.bin')],['--ymf278b-rom',fixture('README.md')]]) {
+      const failure=cli('render',waveInput,'--output',join(dir,'failed-wave.wav'),...extra);
+      assert.equal(failure.status,1);assert.equal(failure.stdout,'');assert.match(failure.stderr,/Missing ROM|ENOENT|2097152/);
+    }
+    assert.equal(cli('analyze',waveInput,'--ymf278b-rom',wavePath).status,1);
+    // Machine-readable probe output must remain identical with terminal colors enabled.
+    for (const forceColor of ['0','1']) {
+      const env={...process.env,FORCE_COLOR:forceColor};
+      delete env.NO_COLOR;
+      const api=execFileSync(process.execPath,['--input-type=module','-e',"import {readSource,analyzeSource} from 'tetorica-vgm'; process.stdout.write(String(analyzeSource(await readSource(process.argv[1])).schemaVersion))",fixture('ay-tone.vgz')],{cwd:dir,encoding:'utf8',env});
+      assert.equal(api,'1');
+    }
+  } finally {rmSync(dir,{recursive:true,force:true});}
+});
 
-## Y8950 rendering
+## YMF278B (OPL4) and wave ROM
 
-Standalone Y8950 (FM and ADPCM) and Y8950 + Sega PSG use the same `render`
-command and `renderSource` API. ADPCM sample memory is loaded from VGM block
-0x88; no external ROM option is needed or supplied. Dual/variant flags and
-unsupported chip combinations are rejected. Rebuild with
-`scripts/build_y8950_wasm.sh` (ymfm, BSD-3-Clause).
-Providing this factory also enables existing shared MSX recipes; their dedicated
-CLI combination validation remains task 06d, not part of this standalone step.
+```sh
+tetorica-vgm render song.vgz --output song.wav --ymf278b-rom /path/to/yrw801.rom
+```
+
+FM, PCM and optional Sega PSG use the shared Browser engine. FM-only tracks and
+tracks with embedded sample data do not require the external ROM option.
+Following the Browser parser, PCM key-on without a nonempty first-chip sample
+block requires a wave ROM. This checks presence, not completeness: partial
+embedded sample data may still leave some instruments unavailable.
+
+`--ymf278b-rom` is render-only and requires exactly 2097152 bytes (2 MiB).
+The Node API accepts `renderSource(source, {roms:{ymf278bWave:bytes}})`, where
+`bytes` is a Uint8Array or Buffer. File read errors, missing required ROMs and
+invalid type/size fail before output is written. ROM data is not bundled or
+fetched automatically. Rebuild the WASM with `scripts/build_ymf278b_wasm.sh`.
+Dual/variant flags and unsupported chip combinations remain rejected.

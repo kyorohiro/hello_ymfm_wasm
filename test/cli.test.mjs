@@ -96,6 +96,7 @@ test('npm tarball installs offline, runs via npx, and exports the library',async
     assert(paths.includes('dist/docs/generated/ym2610b_wasm.wasm'));
     assert(paths.includes('dist/docs/generated/okim6258_wasm.wasm'));
     assert(paths.includes('dist/docs/generated/y8950_wasm.wasm'));
+    assert(paths.includes('dist/docs/generated/ymf278b_wasm.wasm'));
     assert(paths.includes('dist/licenses/mame-okim6258.txt'));
     assert(paths.includes('LICENSE'));
     assert(!paths.some(p=>/\.rom$|\.bin$/.test(p)));
@@ -128,7 +129,7 @@ test('npm tarball installs offline, runs via npx, and exports the library',async
       assert.match(failure.stderr,/Missing ROM|ENOENT|8192 bytes/);
     }
     assert.equal(cli('analyze',fixture('ym2608-rhythm.vgz'),'--ym2608-rom',romPath).status,1);
-    for(const name of ['ym2610-mix','ym2610b-mix','okim6258-tone','opm-oki-mix','y8950-psg']) {
+    for(const name of ['ym2610-mix','ym2610b-mix','okim6258-tone','opm-oki-mix','y8950-psg','ymf278b-psg']) {
       const out=join(dir,name+'.wav'),input=fixture(name+'.vgz');
       execFileSync('npm',[...args,'render',input,'--output',out,'--max-seconds','0.05'],{cwd:dir});
       const expected=await renderSource(await readSource(input),{maxSeconds:.05});
@@ -136,6 +137,21 @@ test('npm tarball installs offline, runs via npx, and exports the library',async
       const api=execFileSync(process.execPath,['--input-type=module','-e',"import {readSource,renderSource} from 'tetorica-vgm'; process.stdout.write((await renderSource(await readSource(process.argv[1]),{maxSeconds:.05})).bytes)",input],{cwd:dir});
       assert.deepEqual(api,Buffer.from(expected.bytes));
     }
+    const wavePath=join(dir,'synthetic-wave.bin'),waveOut=join(dir,'opl4.wav');
+    const wave=new Uint8Array(2097152);wave.set([0,1,0,0,0,255,0,0,0xf0,0,0x0f,0]);
+    for(let i=256;i<512;i++)wave[i]=Math.round(Math.sin(i*Math.PI/16)*100)&255;
+    writeFileSync(wavePath,wave);
+    const waveInput=fixture('ymf278b-external.vgz');
+    execFileSync('npm',[...args,'render',waveInput,'--ymf278b-rom',wavePath,'--output',waveOut,'--max-seconds','0.05'],{cwd:dir});
+    const waveResult=await renderSource(await readSource(waveInput),{maxSeconds:.05,roms:{ymf278bWave:wave}});
+    assert.deepEqual(readFileSync(waveOut),Buffer.from(waveResult.bytes));
+    const waveApi=execFileSync(process.execPath,['--input-type=module','-e',"import {readSource,renderSource} from 'tetorica-vgm'; import {readFile} from 'node:fs/promises'; process.stdout.write((await renderSource(await readSource(process.argv[1]),{maxSeconds:.05,roms:{ymf278bWave:await readFile(process.argv[2])}})).bytes)",waveInput,wavePath],{cwd:dir});
+    assert.deepEqual(waveApi,Buffer.from(waveResult.bytes));
+    for(const extra of [[],['--ymf278b-rom',join(dir,'missing-wave.bin')],['--ymf278b-rom',fixture('README.md')]]) {
+      const failure=cli('render',waveInput,'--output',join(dir,'failed-wave.wav'),...extra);
+      assert.equal(failure.status,1);assert.equal(failure.stdout,'');assert.match(failure.stderr,/Missing ROM|ENOENT|2097152/);
+    }
+    assert.equal(cli('analyze',waveInput,'--ymf278b-rom',wavePath).status,1);
     // Machine-readable probe output must remain identical with terminal colors enabled.
     for (const forceColor of ['0','1']) {
       const env={...process.env,FORCE_COLOR:forceColor};

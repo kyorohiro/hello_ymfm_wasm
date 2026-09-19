@@ -79,3 +79,12 @@ for(const [r,v] of [[8,1],[9,0],[10,0],[11,7],[12,0],[16,255],[17,255],[18,255],
 const yPsg=[0x50,0x80,0x50,0x10,0x50,0x90];
 for(const [name,commands,clocks] of [['fm',yFm,[]],['adpcm',yAdpcm,[]],['mix',[...yFm,...yAdpcm],[]],['psg',[...yFm,...yAdpcm,...yPsg],[[0x0c,3579545]]]])
   file('y8950-'+name,0x58,3579545,[...commands,...wait,0x66],clocks);
+
+const wave=new Uint8Array(512);wave.set([0,1,0,0,0,255,0,0,0xf0,0,0x0f,0]);
+for(let i=256;i<512;i++)wave[i]=Math.round(Math.sin(i*Math.PI/16)*100)&255;
+const opl4Pcm=[[1,5,3],[2,8,0],[2,0x20,0],[2,0x38,0],[2,0x50,1],[2,0x68,0x80]].flatMap(r=>[0xd0,...r]);
+const opl4Fm=[0xd0,1,5,3];
+for(let i=0;i<yFm.length;i+=3)opl4Fm.push(0xd0,0,yFm[i+1],yFm[i+1]===0xc0?0x31:yFm[i+2]);
+const waveBlock=[0x67,0x66,0x84,8,2,0,0,0,2,0,0,0,0,0,0,...wave];
+for(const [name,cmds] of [['fm',opl4Fm],['external',opl4Pcm],['embedded',[...waveBlock,...opl4Pcm]],['mix',[...waveBlock,...opl4Fm,...opl4Pcm]],['psg',[...waveBlock,...opl4Fm,...opl4Pcm,...yPsg]]])
+  file('ymf278b-'+name,0x60,33868800,[...cmds,...wait,0x66],name==='psg'?[[0x0c,3579545]]:[]);

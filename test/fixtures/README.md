@@ -20,3 +20,7 @@ a synthesized OPM voice. opm-audible is the independent FM reference.
 
 Y8950 fixtures exercise FM, an authored repeating ADPCM memory pattern (block
 0x88), their mix and optional Sega PSG. No game samples are used.
+
+YMF278B fixtures use an authored sine wave and header for embedded PCM and
+external-ROM playback, plus FM and PSG. External 2 MiB ROMs are synthesized
+only in tests; proprietary wave ROMs are not included.

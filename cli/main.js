@@ -17,6 +17,8 @@ Render: standalone YM2612/YM2151/YM2413/YM3526/YM3812/YMF262 (optional Sega PSG)
 YM2612 + RF5C164 (optional Sega PSG), standalone YM2203 (FM + internal SSG), YM2608 and YM2610/B (FM / SSG / ADPCM), Sega PSG alone, AY-3-8910, or Game Boy DMG. Other configurations may require additional WASM factories or ROMs; see CLI.md.
 Y8950 (FM / embedded ADPCM, optional Sega PSG) is supported.
 OKIM6258 alone or with YM2151 is supported (4-bit ADPCM only).
+YMF278B (FM / PCM, optional Sega PSG) is supported.
+--ymf278b-rom FILE: 2097152-byte wave ROM; needed for PCM key-on without embedded sample blocks.
 --ym2608-rom FILE: 8192-byte rhythm ROM for YM2608; required only for rhythm key-on.
 --max-seconds: >0 to 600; loops are not expanded. See CLI.md for limitations.
 `;
@@ -24,7 +26,7 @@ try {
   const { values, positionals } = parseArgs({ allowPositionals: true, options: {
     help: {type:'boolean',short:'h'}, version:{type:'boolean',short:'v'}, json:{type:'boolean'},
     format:{type:'string'}, output:{type:'string',short:'o'}, bpm:{type:'string'},
-    'ym2608-rom':{type:'string'}, 'max-seconds':{type:'string'}, force:{type:'boolean'},
+    'ymf278b-rom':{type:'string'}, 'ym2608-rom':{type:'string'}, 'max-seconds':{type:'string'}, force:{type:'boolean'},
   } });
   if (values.help) { console.log(help); }
   else if (values.version) {
@@ -33,7 +35,7 @@ try {
   } else {
     const [command, input] = positionals;
     if (!['analyze','export','render'].includes(command) || !input || positionals.length !== 2) throw new Error(help);
-    const allowed = { analyze:['json'], export:['format','output','bpm','force'], render:['output','max-seconds','force','ym2608-rom'] }[command];
+    const allowed = { analyze:['json'], export:['format','output','bpm','force'], render:['output','max-seconds','force','ym2608-rom','ymf278b-rom'] }[command];
     for (const key of Object.keys(values)) if (!allowed.includes(key)) throw new Error(`--${key} is not valid for ${command}`);
     if (command !== 'analyze' && !values.output) throw new Error('--output is required');
     if (command === 'export' && !exportFormats.includes(values.format)) throw new Error(`--format must be one of: ${exportFormats.join(', ')}`);
@@ -49,7 +51,7 @@ try {
     } else {
       const result = command === 'export'
         ? exportSource(source, { format: values.format, bpm: values.bpm === undefined ? undefined : Number(values.bpm), fileName: basename(input) })
-        : await renderSource(source, { maxSeconds: values['max-seconds'] === undefined ? 120 : Number(values['max-seconds']), roms: values['ym2608-rom'] === undefined ? {} : {ym2608AdpcmA:await readFile(values['ym2608-rom'])} });
+        : await renderSource(source, { maxSeconds: values['max-seconds'] === undefined ? 120 : Number(values['max-seconds']), roms: { ...(values['ym2608-rom'] === undefined ? {} : {ym2608AdpcmA:await readFile(values['ym2608-rom'])}), ...(values['ymf278b-rom'] === undefined ? {} : {ymf278bWave:await readFile(values['ymf278b-rom'])}) } });
       await writeFile(values.output, result.bytes ?? result.text, { flag: values.force ? 'w' : 'wx' });
       console.error(`Wrote ${values.output}`);
       if (result.truncated) console.error('Warning: rendering stopped at --max-seconds.');
