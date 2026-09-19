@@ -53,6 +53,19 @@ test('offline render produces audible WAV and obeys duration cap',async()=>{
   const unsupported=source.slice();new DataView(unsupported.buffer).setUint32(0x48,8000000,true);
   await assert.rejects(renderSource(unsupported),/not supported/);
 });
+test('Genesis combination renders embedded RF5C164 PCM without dropping it',async()=>{
+  const source=await readSource(fixture('genesis-pcm.vgz'));
+  for (const psgClock of [3579545,0]) {
+    const input=source.slice();new DataView(input.buffer).setUint32(0x0c,psgClock,true);
+    const result=await renderSource(input,{maxSeconds:.1});
+    assert.deepEqual(result.warnings,[]);
+    assert(result.bytes.subarray(44).some(x=>x!==0),'PCM must be audible with silent FM/PSG');
+    assert.equal(result.truncated,true);
+  }
+  const unsupported=source.slice(),view=new DataView(unsupported.buffer);
+  view.setUint32(0x2c,0,true);view.setUint32(0x30,3579545,true);
+  await assert.rejects(renderSource(unsupported),/not supported/);
+});
 test('all advertised standalone render adapters initialize their packaged WASM',async()=>{
   const template=await readSource(fixture('psg-tone.vgm'));
   for(const [offset,clock] of [[0x2c,7670454],[0x30,3579545],[0x10,3579545],[0x54,3579545],[0x50,3579545],[0x5c,14318180],[0x74,1789773],[0x80,4194304]]) {
@@ -77,14 +90,16 @@ test('npm tarball installs offline, runs via npx, and exports the library',async
     const paths=packed.files.map(f=>f.path);
     assert(paths.includes('dist/cli/main.js'));
     assert(paths.includes('dist/docs/generated/ym2612_wasm.wasm'));
+    assert(paths.includes('dist/docs/generated/rf5c164_wasm.wasm'));
     assert(!paths.some(p=>/\.(?:html|css|png|vgz|vgm)$/.test(p)||p.includes('/vendor/')||p.startsWith('w/')));
     execFileSync('npm',['install','--offline','--ignore-scripts','--no-audit','--no-fund','--prefix',dir,'--cache',cache,join(dir,packed.filename)],{encoding:'utf8'});
     const args=['exec','--offline','--prefix',dir,'--cache',cache,'--','tetorica-vgm'];
     const result=JSON.parse(execFileSync('npm',[...args,'analyze',fixture('ay-tone.vgz'),'--json'],{cwd:dir,encoding:'utf8'}));
     assert.equal(result.chips[0].id,'ay8910');
     const wav=join(dir,'tone.wav');
-    execFileSync('npm',[...args,'render',fixture('psg-tone.vgz'),'--output',wav,'--max-seconds','0.1'],{cwd:dir});
+    execFileSync('npm',[...args,'render',fixture('genesis-pcm.vgz'),'--output',wav,'--max-seconds','0.1'],{cwd:dir});
     assert.equal(readFileSync(wav).subarray(0,4).toString(),'RIFF');
+    assert(readFileSync(wav).subarray(44).some(x=>x!==0));
     const api=execFileSync(process.execPath,['--input-type=module','-e',"import {readSource,analyzeSource} from 'tetorica-vgm'; console.log(analyzeSource(await readSource(process.argv[1])).schemaVersion)",fixture('ay-tone.vgz')],{cwd:dir,encoding:'utf8'});
     assert.equal(api.trim(),'1');
   } finally {rmSync(dir,{recursive:true,force:true});}

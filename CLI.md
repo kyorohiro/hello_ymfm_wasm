@@ -19,8 +19,9 @@ npm exec --offline --package ./tetorica-vgm-0.1.0.tgz -- tetorica-vgm --help
 
 After publication, the same commands work as `npx tetorica-vgm ...`.
 There are no npm runtime dependencies. Committed WASM artifacts are included;
-consumers do not need Emscripten. To rebuild YM2612/Sega PSG from source, run
-`scripts/build_ym2612_wasm.sh` and `scripts/build_segapsg_wasm.sh` with Emscripten installed.
+consumers do not need Emscripten. To rebuild YM2612/Sega PSG/RF5C164 from source, run
+`scripts/build_ym2612_wasm.sh`, `scripts/build_segapsg_wasm.sh`, and
+`scripts/build_rf5c164_wasm.sh` with Emscripten installed.
 
 ## Commands
 
@@ -45,7 +46,8 @@ tetorica-vgm render song.vgz --output song.wav --max-seconds 120
   `--max-seconds` accepts >0 through 600; truncation is reported on stderr.
   Initial CLI adapters support standalone YM2612, YM2151, YM2413, YM3526,
   YM3812, YMF262 (each optionally with Sega PSG), standalone Sega PSG,
-  AY-3-8910, and Game Boy DMG. Dual/variant chip flags and other combinations
+  AY-3-8910, and Game Boy DMG. YM2612 + RF5C164 (Mega CD), with optional Sega PSG,
+  is also supported, including embedded PCM RAM data. Dual/variant chip flags and other combinations
   are rejected. Browser playback additionally supports chips/combinations
   that are not yet wired into this CLI. No external ROMs or browser effects
   are included. Natural track endings can include one final partial block of silence.

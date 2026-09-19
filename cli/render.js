@@ -9,6 +9,7 @@ import { Ym3526AudioEngine } from '../docs/js/ym3526audioengine.js';
 import { Ym3812AudioEngine } from '../docs/js/ym3812audioengine.js';
 import { Ay8910AudioEngine } from '../docs/js/ay8910audioengine.js';
 import { GameboyApuAudioEngine } from '../docs/js/gameboyapuaudioengine.js';
+import rf5c164 from '../docs/generated/rf5c164_wasm.js';
 import ym2612 from '../docs/generated/ym2612_wasm.js';
 import segapsg from '../docs/generated/segapsg_wasm.js';
 import ym2413 from '../docs/generated/ym2413_wasm.js';
@@ -24,7 +25,7 @@ const engines = {
   ymf262: Ymf262AudioEngine, ym3526: Ym3526AudioEngine, ym3812: Ym3812AudioEngine,
   ay8910: Ay8910AudioEngine, gameBoyDmg: GameboyApuAudioEngine,
 };
-const factories = { ym2612, segapsg, ym2413, ym2151, ymf262, ym3526, ym3812, ay8910, gameboy_apu: gameboy };
+const factories = { rf5c164, ym2612, segapsg, ym2413, ym2151, ymf262, ym3526, ym3812, ay8910, gameboy_apu: gameboy };
 async function factory(name) {
   const wasmBinary = await readFile(new URL(`../docs/generated/${name}_wasm.wasm`, import.meta.url));
   return options => factories[name]({ ...options, wasmBinary });
@@ -34,7 +35,8 @@ async function factory(name) {
 export async function renderSource(source, { maxSeconds = 120 } = {}) {
   if (!Number.isFinite(maxSeconds) || maxSeconds <= 0 || maxSeconds > 600) throw new RangeError('maxSeconds must be > 0 and <= 600');
   const { chips, header } = analyzeSource(source);
-  const primary = chips.filter(c => c.id !== 'psg');
+  const genesisPcm = chips.some(c => c.id === 'ym2612') && chips.some(c => c.id === 'rf5c164');
+  const primary = chips.filter(c => c.id !== 'psg' && !(genesisPcm && c.id === 'rf5c164'));
   const kind = primary[0]?.id ?? (chips.length ? 'ym2612' : null);
   if (primary.length > 1 || !engines[kind] || chips.some(c => c.rawClock & 0xc0000000) ||
       (['ay8910','gameBoyDmg'].includes(kind) && chips.length !== 1))
@@ -48,6 +50,10 @@ export async function renderSource(source, { maxSeconds = 120 } = {}) {
     options[`${kind}ModuleFactory`] = await factory(kind);
     if (primary.length) options[`${kind}Clock`] = primary[0].clockHz;
     if (options.psgClock || kind === 'ym2612') options.segaPsgModuleFactory = await factory('segapsg');
+    if (genesisPcm) {
+      options.rf5c164ModuleFactory = await factory('rf5c164');
+      options.rf5c164Clock = header.rf5c164Clock & 0x3fffffff;
+    }
   }
   const engine = await engines[kind].create(options);
   try {
