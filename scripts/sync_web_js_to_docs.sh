@@ -47,6 +47,8 @@ vgmplayer.js
 vgm_runtime.js
 ay8910.js
 ay8910audioengine.js
+k051649.js
+k051649audioengine.js
 multichipaudioengine.js
 msxaudioengine.js
 y8950.js

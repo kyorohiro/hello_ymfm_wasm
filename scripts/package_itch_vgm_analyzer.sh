@@ -73,6 +73,8 @@ vgm-output-worklet.js
 vgmplayer.js
 ay8910.js
 ay8910audioengine.js
+k051649.js
+k051649audioengine.js
 multichipaudioengine.js
 msxaudioengine.js
 y8950.js
@@ -114,6 +116,8 @@ ym2610b_wasm.js
 ym2610b_wasm.wasm
 ay8910_wasm.js
 ay8910_wasm.wasm
+k051649_wasm.js
+k051649_wasm.wasm
 y8950_wasm.js
 y8950_wasm.wasm
 ymf278b_wasm.js

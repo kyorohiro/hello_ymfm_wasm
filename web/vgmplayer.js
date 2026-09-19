@@ -22,6 +22,7 @@ import { Ym2612VGM } from "./ym2612vgm.js?v=dac-warning-1";
  *   loadAdpcmBMemory?(data: Uint8Array, offset: number, memorySize: number): void,
  *   clearAdpcmBMemory?(): void,
  *   writeAy8910?(register: number, value: number): void,
+ *   writeK051649?(port: number, register: number, value: number): void,
  *   writeY8950?(register: number, value: number): void,
  *   writeYmf278b?(port: number, register: number, value: number): void,
  *   loadSampleMemory?(data: Uint8Array, offset: number, memorySize: number): void,
@@ -348,6 +349,9 @@ export class VgmPlayer {
       const ay8910Target = typeof this.engine.writeAy8910 === "function"
         ? { writeRegister: (register, value) => this.engine.writeAy8910(register, value) }
         : undefined;
+      const k051649Target = typeof this.engine.writeK051649 === "function"
+        ? { writeRegister: (port, register, value) => this.engine.writeK051649(port, register, value) }
+        : undefined;
       const y8950Target = typeof this.engine.writeY8950 === 'function' ? {
         writeRegister: (register, value) => this.engine.writeY8950(register, value),
         loadSampleMemory: (...args) => this.engine.loadSampleMemory(...args),
@@ -400,6 +404,7 @@ export class VgmPlayer {
         ym3526: ym3526Target, ym3812: ym3812Target, ymf262: ymf262Target,
         y8950: y8950Target, ymf278b: ymf278bTarget,
         ay8910: ay8910Target,
+        k051649: k051649Target,
         ym2608: ym2608Target,
         ym2610: ym2610Target,
         psg: { write: (value) => this.engine.writePsg?.(value) },

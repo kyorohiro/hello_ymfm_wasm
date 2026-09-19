@@ -1843,6 +1843,7 @@ function renderHeader(header) {
     `okim6258Flags: ${header.okim6258Flags}`,
     `ym2413Clock: ${header.ym2413Clock}`,
     `ay8910Clock: ${header.ay8910Clock}, type: ${header.ay8910Type}, flags: ${header.ay8910Flags}`,
+    `k051649Clock: ${header.k051649Clock}`,
     `ym2608Clock: ${header.ym2608Clock}`,
     `ym2610Clock: ${header.ym2610Clock}`,
     `totalSamples: ${header.totalSamples}`,
@@ -1853,6 +1854,7 @@ function renderHeader(header) {
 }
 
 function detectPlaybackChipKind(header) {
+  if (header.k051649Clock & 0x3fffffff) return "msx";
   if ((header.y8950Clock & 0x3fffffff) && (header.ay8910Clock || header.ym2413Clock)) return "msx";
   if (header.ymf278bClock & 0x3fffffff) return "ymf278b";
   if (header.y8950Clock & 0x3fffffff) return "y8950";
@@ -2044,6 +2046,7 @@ function renderEvent(event, index) {
     return `${String(index).padStart(3, " ")}: write port=${event.port} register=${formatHex(event.register)} value=${formatHex(event.value)}`;
   }
   if (event.type === "ay8910-write") return `${index}: ay8910 chip=${event.chipIndex} register=${formatHex(event.register)} value=${formatHex(event.value)}`;
+  if (event.type === "k051649-write") return `${index}: k051649 port=${event.port} register=${formatHex(event.register)} value=${formatHex(event.value)}`;
   if (["y8950-write", "ymf278b-write", "ym3526-write", "ym3812-write", "ymf262-write"].includes(event.type)) return `${index}: ${event.type} port=${event.port ?? 0} register=${formatHex(event.register)} value=${formatHex(event.value)}`;
   if (event.type === "ym2151-write") return `${index}: ym2151 register=${formatHex(event.register)} value=${formatHex(event.value)}`;
   if (event.type === "ym2413-write") return `${index}: ym2413 write register=${formatHex(event.register)} value=${formatHex(event.value)}`;
@@ -2836,8 +2839,10 @@ async function ensurePlaybackReady(vgm) {
         ayClock: vgm.header.ay8910Clock & 0x3fffffff, ayType:vgm.header.ay8910Type, ayFlags:vgm.header.ay8910Flags,
         ym2413ModuleFactory: vgm.header.ym2413Clock ? (await import('../generated/ym2413_wasm.js')).default : undefined,
         ym2413Clock:vgm.header.ym2413Clock & 0x3fffffff,
-        y8950ModuleFactory:(await import('../generated/y8950_wasm.js?v=mutes-1')).default,
-        y8950Clock:vgm.header.y8950Clock & 0x3fffffff, masterVolume,
+        y8950ModuleFactory: vgm.header.y8950Clock ? (await import('../generated/y8950_wasm.js?v=mutes-1')).default : undefined,
+        y8950Clock:vgm.header.y8950Clock & 0x3fffffff,
+        k051649ModuleFactory: vgm.header.k051649Clock ? (await import('../generated/k051649_wasm.js')).default : undefined,
+        k051649Clock: vgm.header.k051649Clock & 0x3fffffff, masterVolume,
       });
     } else if (["y8950", "ymf278b", "ym3526", "ym3812", "ymf262"].includes(currentChipKind)) {
       const chip = currentChipKind;

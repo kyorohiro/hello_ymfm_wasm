@@ -491,6 +491,16 @@ export class Ym2612VGM {
         this.position += 3;
         return { type: "ym3526-write", register, value, chipIndex: command === 0xab ? 1 : 0 };
       }
+      case 0xd2: {
+        // 0xD2 pp aa dd: SCC1 port pp, write value dd to register aa (VGM spec).
+        // `port` selects the write group (waveform/frequency/volume/keyon/
+        // SCC+ waveform/test); see third_party/mame-k051649/README.md.
+        this.#ensureAvailable(4);
+        const port = this.bytes[this.position + 1];
+        const register = this.bytes[this.position + 2], value = this.bytes[this.position + 3];
+        this.position += 4;
+        return { type: "k051649-write", port: port & 0x7f, register, value, chipIndex: port >>> 7 };
+      }
       case 0x5a: {
         this.#ensureAvailable(3);
         const register = this.bytes[this.position + 1], value = this.bytes[this.position + 2];
@@ -797,6 +807,11 @@ export class Ym2612VGM {
       targets.ay8910?.writeRegister(event.register, event.value);
       return event;
     }
+    if (event.type === "k051649-write") {
+      if (event.chipIndex) throw new Error('Second K051649 chip: Support coming soon.');
+      targets.k051649?.writeRegister(event.port, event.register, event.value);
+      return event;
+    }
     if (event.type === 'opl-sample-data') {
       if (event.chipIndex) throw new Error('Second OPL chip: Support coming soon.');
       targets[event.chip]?.loadSampleMemory?.(event.data, event.offset, event.memorySize);
@@ -1019,6 +1034,9 @@ export class Ym2612VGM {
     }
     if (command === 0xd0) {
       return `cmd=0xd0 ymf278b port=${this.bytes[position + 1]} register=${formatHexNumber(this.bytes[position + 2])} value=${formatHexNumber(this.bytes[position + 3])}`;
+    }
+    if (command === 0xd2) {
+      return `cmd=0xd2 k051649 port=${this.bytes[position + 1]} register=${formatHexNumber(this.bytes[position + 2])} value=${formatHexNumber(this.bytes[position + 3])}`;
     }
     if (command === 0x54) {
       return `cmd=0x54 ym2151 register=${formatHexNumber(this.bytes[position + 1])} value=${formatHexNumber(this.bytes[position + 2])}`;

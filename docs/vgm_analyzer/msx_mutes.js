@@ -18,6 +18,10 @@ export function msxMuteControls(kind, header = {}) {
     for (let ch = 0; ch < 9; ch++) add('y8950', `Y8950 CH${ch + 1}`, 'setChannelMuted', ch);
   }
   if (kind === 'y8950' && header.psgClock) add('psg', 'PSG', 'setPsgMuted');
+  if (kind === 'msx' && header.k051649Clock) {
+    add('k051649', 'SCC', 'setSccMuted');
+    for (let ch = 0; ch < 5; ch++) add('k051649', `SCC ${ch + 1}`, 'setSccChannelMuted', ch);
+  }
   return controls;
 }
 export function applyMsxMute(engine, kind, control, muted) {
