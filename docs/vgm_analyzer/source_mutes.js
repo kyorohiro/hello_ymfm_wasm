@@ -9,7 +9,7 @@ const SOURCES = {
   segapcm: { key: "segapcm", label: "Sega PCM", method: "setSegaPcmMuted" },
 };
 export function sourcesForChip(chip, hasOki = false) {
-  if (chip === 'msx') return [];
+  if (chip === 'msx' || chip === 'gameboy') return [];
   if (chip === 'okim6258') return [SOURCES.oki];
   const extra = hasOki ? [SOURCES.oki] : [];
   if (chip === '32x') return [SOURCES.psg, SOURCES.pwm, ...extra];

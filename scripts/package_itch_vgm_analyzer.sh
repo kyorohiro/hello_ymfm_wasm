@@ -77,6 +77,8 @@ k051649.js
 k051649audioengine.js
 segapcm.js
 segapcmaudioengine.js
+gameboyapu.js
+gameboyapuaudioengine.js
 multichipaudioengine.js
 msxaudioengine.js
 y8950.js
@@ -122,6 +124,8 @@ k051649_wasm.js
 k051649_wasm.wasm
 segapcm_wasm.js
 segapcm_wasm.wasm
+gameboy_apu_wasm.js
+gameboy_apu_wasm.wasm
 y8950_wasm.js
 y8950_wasm.wasm
 ymf278b_wasm.js
@@ -252,6 +256,9 @@ cp "${ROOT_DIR}/third_party/mame-k051649/LICENSE" "${ROOT_DIR}/third_party/mame-
 mkdir -p "${STAGE_DIR}/licenses/mame-segapcm"
 cp "${ROOT_DIR}/third_party/mame-segapcm/LICENSE" "${ROOT_DIR}/third_party/mame-segapcm/README.md" "${STAGE_DIR}/licenses/mame-segapcm/"
 
+mkdir -p "${STAGE_DIR}/licenses/mame-gameboy"
+cp "${ROOT_DIR}/third_party/mame-gameboy/LICENSE" "${ROOT_DIR}/third_party/mame-gameboy/README.md" "${STAGE_DIR}/licenses/mame-gameboy/"
+
 for file in ${NUKED_LICENSE_FILES}; do
   src="${NUKED_LICENSE_DIR}/${file}"
   dst="${STAGE_DIR}/licenses/nuked-opn2/${file}"
@@ -274,6 +281,8 @@ RF5C164: MAME adaptation, BSD-3-Clause. See licenses/mame-rf5c164/LICENSE and RE
 K051649 (Konami SCC): MAME adaptation by Bryan McPhail, BSD-3-Clause. See licenses/mame-k051649/LICENSE and README.md.
 
 Sega PCM (315-5218): MAME adaptation by Hiromitsu Shioya, Olivier Galibert, BSD-3-Clause. See licenses/mame-segapcm/LICENSE and README.md.
+
+Game Boy APU (LR35902 DMG): MAME adaptation by Wilbert Pol, Anthony Kruize, BSD-3-Clause. See licenses/mame-gameboy/LICENSE and README.md.
 
 This package includes two YM2612 engine options:
 

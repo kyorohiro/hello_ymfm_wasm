@@ -45,4 +45,12 @@ test('chip selection recognizes YM2413 and preserves OPN selection',()=>{
   // 'ym2151' path, not the OPL family's single-chip 'segapcm' path, which
   // would reject the combination as unsupported.
   assert.equal(context.detectPlaybackChipKind({ym2151Clock:3579545,segaPcmClock:4000000}),'ym2151');
+  assert.equal(context.detectPlaybackChipKind({gameBoyDmgClock:4194304}),'gameboy');
+  // Real-world bug: an MSX PSG/OPLL track whose header reserves space up to
+  // a 1.61-era offset can have stray non-zero bytes at 0x80 (Game Boy DMG
+  // clock) or 0x38 (Sega PCM clock) even though it isn't that chip at all.
+  // A long-established chip field actually being set must win.
+  assert.equal(context.detectPlaybackChipKind({ay8910Clock:1789773,gameBoyDmgClock:4194304}),'ay8910');
+  assert.equal(context.detectPlaybackChipKind({y8950Clock:3579545,ay8910Clock:1789773,gameBoyDmgClock:4194304}),'msx');
+  assert.equal(context.detectPlaybackChipKind({ym2612Clock:7670454,segaPcmClock:4000000}),'ym2612');
 });

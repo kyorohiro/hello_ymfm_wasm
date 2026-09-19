@@ -24,6 +24,7 @@ import { Ym2612VGM } from "./ym2612vgm.js?v=dac-warning-1";
  *   writeAy8910?(register: number, value: number): void,
  *   writeK051649?(port: number, register: number, value: number): void,
  *   writeSegaPcm?(offset: number, value: number): void,
+ *   writeGameboyApu?(register: number, value: number): void,
  *   writeY8950?(register: number, value: number): void,
  *   writeYmf278b?(port: number, register: number, value: number): void,
  *   loadSampleMemory?(data: Uint8Array, offset: number, memorySize: number): void,
@@ -357,6 +358,9 @@ export class VgmPlayer {
         writeRegister: (offset, value) => this.engine.writeSegaPcm(offset, value),
         loadSampleMemory: (...args) => this.engine.loadSampleMemory(...args),
       } : undefined;
+      const gameboyDmgTarget = typeof this.engine.writeGameboyApu === "function"
+        ? { writeRegister: (register, value) => this.engine.writeGameboyApu(register, value) }
+        : undefined;
       const y8950Target = typeof this.engine.writeY8950 === 'function' ? {
         writeRegister: (register, value) => this.engine.writeY8950(register, value),
         loadSampleMemory: (...args) => this.engine.loadSampleMemory(...args),
@@ -411,6 +415,7 @@ export class VgmPlayer {
         ay8910: ay8910Target,
         k051649: k051649Target,
         segapcm: segapcmTarget,
+        gameboyDmg: gameboyDmgTarget,
         ym2608: ym2608Target,
         ym2610: ym2610Target,
         psg: { write: (value) => this.engine.writePsg?.(value) },

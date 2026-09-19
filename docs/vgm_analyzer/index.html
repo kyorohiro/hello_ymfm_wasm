@@ -582,7 +582,7 @@
             <span class="spec-row"><span class="spec-label">Register log formats</span><strong>VGM / VGZ / S98</strong></span>
             <span class="spec-row"><span class="spec-label">Sound chip analysis</span><strong>YM2612 / YM2203 / YM2608 / YM2610(B) / YM2151</strong></span>
             <span class="spec-row"><span class="spec-label">Mega-CD / 32X playback</span><strong>YM2612 + PSG + RF5C164 PCM + PWM</strong></span>
-            <span class="spec-row"><span class="spec-label">Additional playback · MSX Y8950 + AY + YM2413 + SCC mix</span><strong>YM2413 / YM3526 / YM3812 / Y8950 / YMF262 / YMF278B / AY-3-8910 / YM2149 / K051649 (SCC) / OKIM6258 / Sega PCM</strong></span>
+            <span class="spec-row"><span class="spec-label">Additional playback · MSX Y8950 + AY + YM2413 + SCC mix</span><strong>YM2413 / YM3526 / YM3812 / Y8950 / YMF262 / YMF278B / AY-3-8910 / YM2149 / K051649 (SCC) / OKIM6258 / Sega PCM / Game Boy DMG</strong></span>
             <span class="spec-row"><span class="spec-label">Tetorica sound laboratory · View support by chip ↗</span><span>Explore the music. Read the machine.</span></span>
           </button>
         </header>
@@ -611,7 +611,8 @@
                   <tr><th scope="row">AY-3-8910 / YM2149</th><td>Tone + noise + envelope</td><td>3 CH, chip</td><td>AY Operator Info</td><td>Tone</td><td>Tone MIDI / LilyPond, MGSDRV MML (PSG tracks; adds YM2413 FM tracks when mixed)</td></tr>
                   <tr><th scope="row">K051649 (SCC)</th><td>5-channel wavetable; mixed with MSX AY/YM2413/Y8950</td><td>5 CH, chip</td><td>—</td><td>—</td><td>—</td></tr>
                   <tr><th scope="row">OKIM6258</th><td>4-bit ADPCM; standalone or mixed</td><td>Chip (single toggle)</td><td>—</td><td>—</td><td>—</td></tr>
-                  <tr><th scope="row">Sega PCM (315-5218)</th><td>16-voice 8-bit PCM; standalone or mixed with Sega PSG</td><td>16 CH, chip</td><td>—</td><td>—</td><td>—</td></tr>
+                  <tr><th scope="row">Sega PCM (315-5218)</th><td>16-voice 8-bit PCM; standalone, mixed with Sega PSG, or mixed with YM2151</td><td>16 CH, chip</td><td>—</td><td>—</td><td>—</td></tr>
+                  <tr><th scope="row">Game Boy DMG (LR35902)</th><td>2 square + wave + noise</td><td>4 CH, chip</td><td>—</td><td>—</td><td>—</td></tr>
                 </tbody>
               </table>
             </div>
@@ -620,7 +621,8 @@
               <li><strong>MSX mix:</strong> Y8950 + AY + YM2413 + K051649 (SCC) playback and per-chip/channel controls. Analysis of the mixed configuration is not yet available. A second K051649 instance is not supported.</li>
               <li><strong>Sample memory:</strong> some YMF278B tracks need an imported yrw801.rom (2 MiB). YM2608 rhythm playback uses the ADPCM-A ROM. YM2610 ADPCM uses the VGM's embedded ROM data. OKIM6258 needs no external sample ROM.</li>
               <li><strong>OKIM6258:</strong> 3-bit ADPCM, recording and a second instance are not supported. YM2151 mixing is covered by synthetic tests with real cores.</li>
-              <li><strong>Sega PCM:</strong> an arcade chip (OutRun, Space Harrier, System 16/18/24, ...), not a stock Genesis/Mega Drive cartridge chip. ROM bank shift/mask come from the VGM header's interface register. Sega PSG mixing is supported; YM2151 mixing is not (Sega PCM is skipped with a warning on YM2151 tracks). A second instance is not supported.</li>
+              <li><strong>Sega PCM:</strong> an arcade chip (OutRun, Space Harrier, System 16/18/24, ...), not a stock Genesis/Mega Drive cartridge chip. ROM bank shift/mask come from the VGM header's interface register. Mixes with Sega PSG and/or YM2151 (e.g. OutRun). A second instance is not supported.</li>
+              <li><strong>Game Boy DMG:</strong> not mixed with any other chip yet. The DMG wave-RAM corruption glitch (retriggering channel 3 at an exact bad moment) is not reproduced.</li>
               <li><strong>Note-ish / MIDI / MML:</strong> estimated base pitches and key intervals; PCM/drums and all modulation are not transcribed. MML uses a sixteenth-note grid. OPN exports target MUCOM88 / OPNAvoid; YM2151 targets MXDRV (MDX).</li>
               <li><strong>DAC streams:</strong> first-instance YM2612, Sega PSG, PWM and OKIM6258 destinations are supported. Other destinations are warned about and omitted.</li>
               <li><strong>All / Snapshot:</strong> All collects voices across the track; Snapshot captures the current channel states. Unsupported chips and features can leave parts of a track silent; check the playback warning area.</li>

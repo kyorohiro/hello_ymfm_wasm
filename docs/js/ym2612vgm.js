@@ -274,6 +274,7 @@ export class Ym2612VGM {
     const okim6258Clock = version >= 0x161 ? extendedClock(0x90) : 0;
     const okim6258Flags = version >= 0x161 ? headerByte(0x94) : 0;
     const k051649Clock = version >= 0x161 ? extendedClock(0x9c) : 0;
+    const gameBoyDmgClock = version >= 0x161 ? extendedClock(0x80) : 0;
     const psgClock = readUint32LE(this.view, 0x0c);
     const loopOffset = loopOffsetRaw === 0 ? 0 : 0x1c + loopOffsetRaw;
 
@@ -283,7 +284,7 @@ export class Ym2612VGM {
       ym2612Clock,
       ym2413Clock, ym2151Clock, ym3526Clock, ym3812Clock, ymf262Clock, ymf278bClock, segaPcmClock,
       segaPcmBankShift, segaPcmBankMask,
-      ay8910Clock, ay8910Type, ay8910Flags, y8950Clock, k051649Clock, okim6258Clock, okim6258Flags,
+      ay8910Clock, ay8910Type, ay8910Flags, y8950Clock, k051649Clock, gameBoyDmgClock, okim6258Clock, okim6258Flags,
       ym2203Clock,
       ym2608Clock,
       ym2610Clock,
@@ -514,6 +515,15 @@ export class Ym2612VGM {
         const value = this.bytes[this.position + 3];
         this.position += 4;
         return { type: "segapcm-write", offset, value };
+      }
+      case 0xb3: {
+        // 0xB3 aa dd: GameBoy DMG, write value dd to register aa (VGM spec).
+        // `aa` is relative to GB I/O 0xFF10; see third_party/mame-gameboy/README.md.
+        this.#ensureAvailable(3);
+        const register = this.bytes[this.position + 1];
+        const value = this.bytes[this.position + 2];
+        this.position += 3;
+        return { type: "gameboy-dmg-write", register: register & 0x7f, value, chipIndex: register >>> 7 };
       }
       case 0x5a: {
         this.#ensureAvailable(3);
@@ -839,6 +849,11 @@ export class Ym2612VGM {
       targets.segapcm?.writeRegister(event.offset, event.value);
       return event;
     }
+    if (event.type === "gameboy-dmg-write") {
+      if (event.chipIndex) throw new Error('Second Game Boy APU chip: Support coming soon.');
+      targets.gameboyDmg?.writeRegister(event.register, event.value);
+      return event;
+    }
     if (event.type === "segapcm-rom-data") {
       if (event.chipIndex) {
         this.#warn("Skipping ROM data for the unsupported second Sega PCM chip");
@@ -1077,6 +1092,9 @@ export class Ym2612VGM {
     }
     if (command === 0xc0) {
       return `cmd=0xc0 segapcm offset=${formatHexNumber(readUint16LE(this.view, position + 1), 4)} value=${formatHexNumber(this.bytes[position + 3])}`;
+    }
+    if (command === 0xb3) {
+      return `cmd=0xb3 gameboy-dmg register=${formatHexNumber(this.bytes[position + 1])} value=${formatHexNumber(this.bytes[position + 2])}`;
     }
     if (command === 0x54) {
       return `cmd=0x54 ym2151 register=${formatHexNumber(this.bytes[position + 1])} value=${formatHexNumber(this.bytes[position + 2])}`;

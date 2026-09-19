@@ -33,6 +33,43 @@ test('detectHeaderChips lists every chip clock the header declares, regardless o
   assert.deepEqual([...detectHeaderChips({ ay8910Clock: 0x40000000 | 1789773 })], ['AY-3-8910 / YM2149 (1.79 MHz)']);
 });
 
+function loadChipKindDetection() {
+  const context = vm.createContext({});
+  vm.runInContext(source.slice(source.indexOf('function detectPlaybackChipKind('), source.indexOf('function applyYm2203WriteToMonitor(')), context);
+  return context;
+}
+function fakeVgm(header, commands) {
+  return { header, analyzeCommandUsage: () => new Map(commands.map((cmd) => [cmd, 1])) };
+}
+
+test('detectPlaybackChipKindFromVgm requires the chip\'s own command to actually appear in the stream', () => {
+  const { detectPlaybackChipKindFromVgm } = loadChipKindDetection();
+  // A real Game Boy / Sega PCM track: the header clock is backed by at
+  // least one matching write command in the data.
+  assert.equal(detectPlaybackChipKindFromVgm(fakeVgm({ gameBoyDmgClock: 4194304 }, ['0xb3', '0x66'])), 'gameboy');
+  assert.equal(detectPlaybackChipKindFromVgm(fakeVgm({ segaPcmClock: 4000000 }, ['0xc0', '0x66'])), 'segapcm');
+  // Real-world bug: an MSX/other track's header claims a version new enough
+  // to carry these v1.51/v1.61 fields but never actually zeroed the
+  // reserved bytes there (including the top "variant" bits) - and the
+  // command stream never writes 0xB3/0xC0 at all. Must not be played as a
+  // phantom Game Boy/Sega PCM track.
+  assert.equal(detectPlaybackChipKindFromVgm(fakeVgm({ gameBoyDmgClock: 0xc0000000 | 4194304 }, ['0x61', '0x66'])), 'ym2612');
+  assert.equal(detectPlaybackChipKindFromVgm(fakeVgm({ ay8910Clock: 1789773, gameBoyDmgClock: 4194304 }, ['0xa0', '0x66'])), 'ay8910');
+  assert.equal(detectPlaybackChipKindFromVgm(fakeVgm({ ym2612Clock: 7670454, segaPcmClock: 4000000 }, ['0x52', '0x66'])), 'ym2612');
+});
+
+test('isUnsupportedOplFamilyCombination rejects real conflicts but not stray Sega PCM/Game Boy noise', () => {
+  const { isUnsupportedOplFamilyCombination } = loadChipKindDetection();
+  assert.equal(isUnsupportedOplFamilyCombination('y8950', { y8950Clock: 3579545 }), false);
+  assert.equal(isUnsupportedOplFamilyCombination('y8950', { y8950Clock: 3579545, ym2413Clock: 3579545 }), true);
+  assert.equal(isUnsupportedOplFamilyCombination('y8950', { y8950Clock: 0xc0000000 | 3579545 }), true);
+  // Sega PCM / Game Boy DMG noise must not veto an established chip, nor
+  // veto each other when one of them is the (already command-verified) chip.
+  assert.equal(isUnsupportedOplFamilyCombination('y8950', { y8950Clock: 3579545, gameBoyDmgClock: 0xc0000000 | 4194304 }), false);
+  assert.equal(isUnsupportedOplFamilyCombination('gameboy', { gameBoyDmgClock: 0xc0000000 | 4194304 }), false);
+  assert.equal(isUnsupportedOplFamilyCombination('gameboy', { gameBoyDmgClock: 4194304, y8950Clock: 3579545 }), true);
+});
+
 test('renderDetectedChips shows a joined summary and hides the element when nothing is declared', () => {
   const context = vm.createContext({ detectedChipsOutput: { textContent: '', hidden: false } });
   vm.runInContext(source.slice(source.indexOf('function formatClockHz('), source.indexOf('function detectPlaybackChipKind(')), context);

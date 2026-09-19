@@ -24,6 +24,15 @@ test("OKIM6258 exposes a single chip-level toggle, standalone and mixed", () => 
   assert.deepEqual(sourcesForChip("okim6258").map(s=>s.label),["OKI"]);
   assert.deepEqual(sourcesForChip("okim6258", true).map(s=>s.label),["OKI"]);
   assert.deepEqual(sourcesForChip("msx", true).map(s=>s.label),[]);
+  // Regression: Game Boy DMG has no PSG to mix and no other exposed source;
+  // it must not fall through to the generic ["psg"] default (that engine
+  // has no setPsgMuted, so applySourceMutes would throw).
+  assert.deepEqual(sourcesForChip("gameboy").map(s=>s.label),[]);
+  assert.deepEqual(sourcesForChip("gameboy", true).map(s=>s.label),[]);
+  assert.doesNotThrow(()=>applySourceMutes({},"gameboy",{},true));
+  // Sega PCM's optional built-in Sega PSG mix legitimately reuses the
+  // generic ["psg"] default; SegaPcmAudioEngine exposes setPsgMuted for it.
+  assert.deepEqual(sourcesForChip("segapcm").map(s=>s.label),["PSG"]);
   assert.deepEqual(sourcesForChip("ym2612").map(s=>s.label),["PSG"]);
   assert.deepEqual(sourcesForChip("ym2612", true).map(s=>s.label),["PSG","OKI"]);
   assert.deepEqual(sourcesForChip("ym2151", true).map(s=>s.label),["PSG","Sega PCM","OKI"]);
