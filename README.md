@@ -1,18 +1,4 @@
-## CLI / Node.js
-
-The VGM Analyzer is also available as the `tetorica-vgm` CLI and shared Core.
-From this checkout (Node.js 22+):
-
-```sh
-npm run build
-node dist/cli/main.js analyze song.vgz --json
-node dist/cli/main.js export song.vgz --format musicxml --output song.musicxml
-node dist/cli/main.js render song.vgz --output song.wav
-```
-
-See [CLI usage, supported formats, Node API and npm packaging](CLI.md).
-The npm package is prepared for publication; this change does not publish it.
-Its dedicated [npm README](cli/README.md) is packaged by `npm run pack`; this repository README remains separate.
+# Tetorica FM2612 (hello_ymfm_wasm)
 
 Tetorica FM2612 is a browser toolkit for JavaScript music coding, VGM analysis,
 and YM2612 FM sound design. Open a VGM, explore its instruments, and edit and
@@ -41,7 +27,7 @@ Repeated timbres within each channel are deduplicated; importing the same filena
 again uses a new folder (`song-2`, etc.). TFI stores static FM parameters, not
 pan, LFO, or pitch/volume automation.
 
-# Tetorica FM2612 (hello_ymfm_wasm)
+## Project goals
 
 This repository has four goals:
 
@@ -94,6 +80,20 @@ This is the easiest way to test YM2612 control, sound design, and Genesis-orient
 2. Expand `presets/<filename>/` in the file explorer and open a `.tfi` file.
 3. Edit its FM parameters and use the number and letter keys to audition it. Text and number fields keep normal typing behavior; leave the field before playing.
 4. Use **Export Cassette** to download your project, including its virtual files, before leaving the page. TFI editor changes update the virtual file; they do not write back to your original disk file.
+
+## CLI / Node.js
+
+The VGM Analyzer is also available as the [`tetorica-vgm` npm package](https://www.npmjs.com/package/tetorica-vgm)
+for command-line analysis, export and WAV rendering (Node.js 22+).
+
+```sh
+npx tetorica-vgm analyze song.vgz --json
+npx tetorica-vgm export song.vgz --format musicxml --output song.musicxml
+npx tetorica-vgm render song.vgz --output song.wav
+```
+
+See the [CLI quick start](cli/README.md) and [full CLI / Node API reference](CLI.md).
+For maintainers, see the [npm release procedure](READMD_RELEASE.md).
 
 ## Help and bug reports
 
