@@ -47,8 +47,9 @@ tetorica-vgm render song.vgz --output song.wav --max-seconds 120
   Initial CLI adapters support standalone YM2612, YM2151, YM2413, YM3526,
   YM3812, YMF262 (each optionally with Sega PSG), standalone Sega PSG,
   AY-3-8910, and Game Boy DMG. YM2612 + RF5C164 (Mega CD), with optional Sega PSG,
-  is also supported, including embedded PCM RAM data. Dual/variant chip flags and other combinations
-  are rejected. Browser playback additionally supports chips/combinations
+  is also supported, including embedded PCM RAM data. Unsupported dual/variant chip flags are rejected.
+  Missing WASM factories/ROMs are reported separately from unsupported configurations.
+  Browser playback additionally supports chips/combinations
   that are not yet wired into this CLI. No external ROMs or browser effects
   are included. Natural track endings can include one final partial block of silence.
 - `--output` is required for export/render. Existing files are preserved unless
@@ -106,3 +107,22 @@ is BSD-3-Clause; third-party notices are shipped under `dist/licenses/`.
 Before publication run `npm test`, `npm run test:analyzer`, `npm pack --dry-run`,
 and install/test the tarball in a clean directory. The existing analyzer suite
 has 11 known baseline failures; do not mistake those for a fully green suite.
+
+## Shared playback interface
+
+Browser and CLI now use `selectPlaybackConfiguration` / `createPlaybackEngine`
+from the shared Core. Platform adapters supply `getFactory(name)` and ROM bytes;
+Core owns chip configuration, engine creation and PCM composition. Existing
+`VgmPlayer.process(left, right, frames)` is the shared PCM interface; WebAudio and
+WAV/file delivery stay outside engine creation.
+
+These functions, `createPlaybackPlayer`, and `PlaybackError` are exposed through
+`tetorica-vgm/core` and the Node API. Errors distinguish `UNSUPPORTED_CONFIGURATION`
+from `MISSING_RESOURCE` and contain structured `details`. Factory I/O failures
+retain their original error. Node currently supplies only the previously packaged
+WASM factories. Shared recipes for other Browser engines do not imply that their
+Node rendering has been validated. AY + YM2413 and Genesis PWM use already available
+resources, but dedicated CLI combination testing remains follow-up work.
+
+The repository document `docs/issues/analyzer_cli_02_architecture.md` records
+ownership, ROM keys, the configuration table, validation and remaining limitations.

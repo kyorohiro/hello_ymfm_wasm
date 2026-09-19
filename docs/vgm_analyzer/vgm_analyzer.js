@@ -1,35 +1,23 @@
+import { createPlaybackEngine, selectPlaybackConfiguration, detectPlaybackChipKindFromVgm, detectPlaybackChipKind } from './playback_core.js';
 import { mountMusicSheet } from "./music_sheet.js?v=tab-1";
 import { renderVgmToWav } from "./vgm_wav.js";
 import { createExportTempoSettings } from "./export_tempo.js";
 import { analyzeLilyPondSource as analyzeScoreSource, exportLilyPondAnalysis } from "./analyzer_core.js";
 import {createOpmTfiFiles,OPM_TFI_NOTICE} from './opm_tfi.js';
-import {Oki6258AudioEngine,attachOki6258,validateOki6258Header} from '../js/okim6258audioengine.js';
 import {mountOpmInfo} from './opm_info.js?v=keyboard-layout-2';
 import {exportMxdrvMml} from './opm_mml.js';
 import {exportOpm, extractOpmPatches} from './opm_export.js?v=clock-1';
 import {createOpmNoteTracker} from './opm_notes.js';
 import {mountOpmMonitor, observeOpmEngine} from './opm_monitor.js?v=export-2';
 import { msxMuteControls, applyMsxMute } from './msx_mutes.js';
-import {createYm3526AudioEngine} from '../js/ym3526audioengine.js';
-import {createSegaPcmAudioEngine} from '../js/segapcmaudioengine.js';
-import {createGameboyApuAudioEngine} from '../js/gameboyapuaudioengine.js';
-import {createY8950AudioEngine} from '../js/y8950audioengine.js?v=mutes-1';
-import {createYmf278bAudioEngine} from '../js/ymf278baudioengine.js?v=opl4-rom-1';
-import {createYm3812AudioEngine} from '../js/ym3812audioengine.js';
-import {createYmf262AudioEngine} from '../js/ymf262audioengine.js';
-import {createYm2151AudioEngine} from '../js/ym2151audioengine.js';
-import {createAy8910AudioEngine, validateAyPlaybackHeader} from '../js/ay8910audioengine.js';
-import {createMsxAudioEngine, validateMsxPlaybackHeader} from '../js/msxaudioengine.js?v=mutes-1';
 import {mountAy8910Monitor} from './ay8910_monitor.js?v=common-mutes-1';
 import {mountYm2413Monitor} from './ym2413_monitor.js';
-import { createYm2413AudioEngine } from '../js/ym2413audioengine.js';
 import { mountTfiInfo } from "./tfi_info.js?v=concurrent-audition-1";
 import { mountSampleExplorer } from './sample_explorer.js?v=pwm-capture-1';
 import { renderAllFretboard } from './fretboard_all.js';
 import { createNoteTimeline } from './note_timeline_view.js?v=opm-notes-1';
 import { seekPlayback } from './seek_playback.js';
 import { timelinePlaybackPosition } from './note_timeline.js';
-import { createYm2610BAudioEngine } from '../js/ym2610baudioengine.js';
 import { describeToneNotes } from './tone_notes.js?v=ym2610-vgm-2';
 import { createGameboyMonitor, applyGameboyWrite, describeGameboyNotes } from './gameboy_notes.js';
 import { midiChipKind } from "./vgm_notes.js?v=ym2610-vgm-2";
@@ -48,9 +36,6 @@ import { createVgiFromPreset } from "../js/vgi.js";
 import ym2612ModuleFactory from "../generated/ym2612_wasm.js";
 import nukedOpn2ModuleFactory from "../generated/nuked_opn2_wasm.js";
 import segaPsgModuleFactory from "../generated/segapsg_wasm.js";
-import { createGenesisAudioEngine } from "../js/genesisaudioengine.js?v=pwm-2";
-import { createYm2203AudioEngine } from "../js/ym2203audioengine.js";
-import { createYm2608AudioEngine } from "../js/ym2608audioengine.js";
 import { VgmPlayer } from "../js/vgmplayer.js?v=dac-warning-1";
 import { looksLikeS98, convertS98ToVgm } from "../js/s98_file.js";
 import { maybeDecodeVgmFile, parseVgmMetadata, VGM_METADATA_FIELDS } from "../js/vgm_file.js";
@@ -1932,75 +1917,6 @@ function renderDetectedChips(header) {
   detectedChipsOutput.hidden = chips.length === 0;
 }
 
-function detectPlaybackChipKind(header) {
-  if (header.k051649Clock & 0x3fffffff) return "msx";
-  if ((header.y8950Clock & 0x3fffffff) && (header.ay8910Clock || header.ym2413Clock)) return "msx";
-  if (header.ymf278bClock & 0x3fffffff) return "ymf278b";
-  if (header.y8950Clock & 0x3fffffff) return "y8950";
-  if (header.ymf262Clock & 0x3fffffff) return "ymf262";
-  if (header.ym3526Clock & 0x3fffffff) return "ym3526";
-  if (header.ym3812Clock & 0x3fffffff) return "ym3812";
-  if (header.ym2151Clock & 0x3fffffff) return "ym2151";
-  if (header.ay8910Clock & 0x3fffffff) return "ay8910";
-  if (header.ym2413Clock & 0x3fffffff) return "ym2413";
-  if ((header.ym2610Clock & 0x3fffffff) && !header.ym2612Clock && !header.ym2203Clock && !header.ym2608Clock) return "ym2610";
-  if (header.rf5c164Clock > 0) return "ym2612";
-  if (header.ym2203Clock > 0 && header.ym2612Clock === 0) {
-    return "ym2203";
-  }
-  if (
-    header.ym2608Clock > 0 &&
-    header.ym2612Clock === 0 &&
-    header.ym2203Clock === 0
-  ) {
-    return "ym2608";
-  }
-  if (header.okim6258Clock && !header.ym2612Clock && !header.psgClock && !header.pwmClock) return "okim6258";
-  if (header.ym2612Clock & 0x3fffffff) return "ym2612";
-  // Sega PCM and Game Boy DMG clocks were only added to the VGM header in
-  // v1.51/v1.61; many real-world files claim that version without actually
-  // zeroing these reserved-until-then bytes, so a nonzero value here is
-  // less trustworthy than any of the long-established chip fields checked
-  // above. Only trust them once nothing more established has already
-  // matched, so stray header noise cannot hijack an otherwise-normal file
-  // (e.g. an MSX PSG/OPLL track misdetected as "gameboy").
-  if (header.segaPcmClock & 0x3fffffff) return "segapcm";
-  if (header.gameBoyDmgClock & 0x3fffffff) return "gameboy";
-  return "ym2612";
-}
-
-// Sega PCM and Game Boy DMG are only ever selected by detectPlaybackChipKind
-// when no long-established chip field is present (see above), but a stray
-// non-zero reserved byte can still exist alone. A real track for either chip
-// always contains its own write command (0xC0 / 0xB3) somewhere in the data;
-// reserved-byte noise never does. Re-detect with the field cleared if that
-// command never actually appears, so noise falls through to a real chip (or
-// the silent default) instead of being played as a phantom chip.
-function detectPlaybackChipKindFromVgm(vgm) {
-  const chipKind = detectPlaybackChipKind(vgm.header);
-  const requiredCommand = chipKind === "gameboy" ? "0xb3" : chipKind === "segapcm" ? "0xc0" : null;
-  if (requiredCommand && !vgm.analyzeCommandUsage().has(requiredCommand)) {
-    const header = { ...vgm.header, gameBoyDmgClock: 0, segaPcmClock: 0 };
-    return detectPlaybackChipKind(header);
-  }
-  return chipKind;
-}
-
-// Used by the OPL-family playback branch (y8950/ymf278b/ym3526/ym3812/
-// ymf262/segapcm/gameboy), which supports exactly one chip at a time. Sega
-// PCM / Game Boy DMG clock fields are excluded from both checks below: they
-// are new enough (v1.51/v1.61) that real-world files claiming that version
-// without populating them can leave non-zero reserved bytes there,
-// including the top "variant/dual-chip" bits, and detectPlaybackChipKindFromVgm
-// already cross-checks their presence against the command stream before
-// `chip` can even be "segapcm"/"gameboy" here.
-function isUnsupportedOplFamilyCombination(chip, header) {
-  const unreliableClockKeys = ["segaPcmClock", "gameBoyDmgClock"];
-  const otherClocks = ["ymf278bClock", "ym3526Clock", "ym3812Clock", "ymf262Clock", "ym2151Clock", "ym2612Clock", "ym2413Clock", "ay8910Clock", "ym2203Clock", "ym2608Clock", "ym2610Clock", "rf5c164Clock", "pwmClock", "y8950Clock", "k051649Clock"];
-  const hasUnreliableVariantBits = !unreliableClockKeys.includes(`${chip}Clock`) && (header[`${chip}Clock`] & 0xc0000000);
-  return Boolean(hasUnreliableVariantBits) || otherClocks.some((key) => key !== `${chip}Clock` && header[key]);
-}
-
 function applyYm2203WriteToMonitor(register, value) {
   // OPN high writes only latch; low writes commit the pitch. Both ports
   // share the normal latch, with a separate latch for CH3 special mode.
@@ -2918,18 +2834,8 @@ function downloadSnapshotVgiZip() {
   setStatus("Exported snapshot VGI ZIP.");
 }
 
-function validateOpmPlayback(header) {
-  if ((header.ym2151Clock & 0xc0000000) || (header.segaPcmClock & 0xc0000000) ||
-      ['ym2612Clock','ym2413Clock','ay8910Clock','ym2203Clock','ym2608Clock','ym2610Clock','rf5c164Clock','pwmClock','y8950Clock','k051649Clock'].some(key => header[key]))
-    throw new Error('This YM2151 variant or chip combination: Support coming soon.');
-}
-
 async function ensurePlaybackReady(vgm) {
-  if (vgm.header.okim6258Clock) validateOki6258Header(vgm.header);
-  if (currentChipKind === 'ymf278b' && ymf278bNeedsWaveRom && !ymf278bWaveRomBytes)
-    throw new Error('Import yrw801.rom before playing this track.');
-
-  const nextChipKind = detectPlaybackChipKindFromVgm(vgm);
+  const nextChipKind = selectPlaybackConfiguration(vgm).kind;
   const nextClockKey = JSON.stringify([nextChipKind, vgm.header.okim6258Clock, vgm.header.okim6258Flags, vgm.header.ym2612Clock, vgm.header.psgClock,
     vgm.header.ymf278bClock, vgm.header.ym3526Clock, vgm.header.ym3812Clock, vgm.header.ymf262Clock, vgm.header.segaPcmClock, vgm.header.segaPcmBankShift, vgm.header.segaPcmBankMask, vgm.header.gameBoyDmgClock, vgm.header.ym2151Clock, vgm.header.ay8910Clock, vgm.header.ay8910Type, vgm.header.ay8910Flags, vgm.header.y8950Clock, vgm.header.k051649Clock, vgm.header.ym2413Clock, vgm.header.rf5c164Clock, vgm.header.ym2203Clock, vgm.header.ym2608Clock, vgm.header.ym2610Clock]);
 
@@ -2954,90 +2860,24 @@ async function ensurePlaybackReady(vgm) {
   currentPcmClock = vgm.header.rf5c164Clock & 0x3fffffff;
 
   if (!engine) {
-    if (currentChipKind === 'okim6258') {
-      engine = await Oki6258AudioEngine.create({moduleFactory:(await import('../generated/okim6258_wasm.js')).default,clock:vgm.header.okim6258Clock,flags:vgm.header.okim6258Flags,masterVolume});
-    } else if (currentChipKind === 'msx') {
-      validateMsxPlaybackHeader(vgm.header);
-      engine = await createMsxAudioEngine({
-        ayModuleFactory: vgm.header.ay8910Clock ? (await import('../generated/ay8910_wasm.js')).default : undefined,
-        ayClock: vgm.header.ay8910Clock & 0x3fffffff, ayType:vgm.header.ay8910Type, ayFlags:vgm.header.ay8910Flags,
-        ym2413ModuleFactory: vgm.header.ym2413Clock ? (await import('../generated/ym2413_wasm.js')).default : undefined,
-        ym2413Clock:vgm.header.ym2413Clock & 0x3fffffff,
-        y8950ModuleFactory: vgm.header.y8950Clock ? (await import('../generated/y8950_wasm.js?v=mutes-1')).default : undefined,
-        y8950Clock:vgm.header.y8950Clock & 0x3fffffff,
-        k051649ModuleFactory: vgm.header.k051649Clock ? (await import('../generated/k051649_wasm.js')).default : undefined,
-        k051649Clock: vgm.header.k051649Clock & 0x3fffffff, masterVolume,
-      });
-    } else if (["y8950", "ymf278b", "ym3526", "ym3812", "ymf262", "segapcm", "gameboy"].includes(currentChipKind)) {
+    engine = await createPlaybackEngine(vgm, {getFactory: getBrowserPlaybackFactory, masterVolume,
+      roms: {ym2608AdpcmA:ym2608AdpcmARomBytes, ymf278bWave:ymf278bWaveRomBytes}});
+    if (["y8950", "ymf278b", "ym3526", "ym3812", "ymf262", "segapcm", "gameboy"].includes(currentChipKind)) {
       const chip = currentChipKind;
-      if (isUnsupportedOplFamilyCombination(chip, vgm.header))
-        throw new Error('This OPL variant or chip combination: Support coming soon.');
-      if (chip === 'y8950') engine = await createY8950AudioEngine({
-        y8950ModuleFactory: (await import('../generated/y8950_wasm.js?v=mutes-1')).default,
-        y8950Clock: vgm.header.y8950Clock & 0x3fffffff,
-        segaPsgModuleFactory, psgClock: vgm.header.psgClock & 0x3fffffff, masterVolume,
-      });
-      else if (chip === 'ymf278b') engine = await createYmf278bAudioEngine({
-        ymf278bModuleFactory: (await import('../generated/ymf278b_wasm.js')).default,
-        ymf278bClock: vgm.header.ymf278bClock & 0x3fffffff,
-        segaPsgModuleFactory, psgClock: vgm.header.psgClock & 0x3fffffff, masterVolume,
-      });
-      else if (chip === 'ym3526') engine = await createYm3526AudioEngine({
-        ym3526ModuleFactory: (await import('../generated/ym3526_wasm.js')).default,
-        ym3526Clock: vgm.header.ym3526Clock & 0x3fffffff,
-        segaPsgModuleFactory, psgClock: vgm.header.psgClock & 0x3fffffff, masterVolume,
-      });
-      else if (chip === 'ym3812') engine = await createYm3812AudioEngine({
-        ym3812ModuleFactory: (await import('../generated/ym3812_wasm.js')).default,
-        ym3812Clock: vgm.header.ym3812Clock & 0x3fffffff,
-        segaPsgModuleFactory, psgClock: vgm.header.psgClock & 0x3fffffff, masterVolume,
-      });
-      else if (chip === 'ymf262') engine = await createYmf262AudioEngine({
-        ymf262ModuleFactory: (await import('../generated/ymf262_wasm.js')).default,
-        ymf262Clock: vgm.header.ymf262Clock & 0x3fffffff,
-        segaPsgModuleFactory, psgClock: vgm.header.psgClock & 0x3fffffff, masterVolume,
-      });
-      else if (chip === 'segapcm') engine = await createSegaPcmAudioEngine({
-        moduleFactory: (await import('../generated/segapcm_wasm.js')).default,
-        clock: vgm.header.segaPcmClock & 0x3fffffff,
-        bankShift: vgm.header.segaPcmBankShift, bankMask: vgm.header.segaPcmBankMask,
-        segaPsgModuleFactory, psgClock: vgm.header.psgClock & 0x3fffffff, masterVolume,
-      });
-      else {
-        engine = await createGameboyApuAudioEngine({
-          moduleFactory: (await import('../generated/gameboy_apu_wasm.js')).default,
-          clock: vgm.header.gameBoyDmgClock & 0x3fffffff, masterVolume,
-        });
+
+      if (chip === 'gameboy') {
         const gbWrite = engine.writeGameboyApu.bind(engine), gbReset = engine.reset.bind(engine);
         engine.writeGameboyApu = (r, v) => { gbWrite(r, v); if (applyGameboyWrite(gameboyMonitor, r, v)) updateGameboyNoteMonitor(); };
         engine.reset = () => { gbReset(); resetGameboyNoteChannels(); };
       }
       observePsgPlaybackEngine();
     } else if (currentChipKind === "ym2151") {
-      validateOpmPlayback(vgm.header);
-      engine = await createYm2151AudioEngine({
-        ym2151ModuleFactory: (await import('../generated/ym2151_wasm.js')).default,
-        ym2151Clock: vgm.header.ym2151Clock & 0x3fffffff,
-        segaPsgModuleFactory, psgClock: vgm.header.psgClock & 0x3fffffff,
-        segaPcmModuleFactory: vgm.header.segaPcmClock ? (await import('../generated/segapcm_wasm.js')).default : undefined,
-        segaPcmClock: vgm.header.segaPcmClock & 0x3fffffff,
-        segaPcmBankShift: vgm.header.segaPcmBankShift, segaPcmBankMask: vgm.header.segaPcmBankMask, masterVolume,
-      });
       observeOpmEngine(engine, opmMonitor, requestChannelMonitorRender);
       const opmWrite = engine.writeYm2151.bind(engine), opmReset = engine.reset.bind(engine);
       engine.writeYm2151 = (r,v) => {opmWrite(r,v);opmNoteTracker?.write(r,v,player?.processedWaitSamples ?? 0);};
       engine.reset = () => {opmReset();resetOpmNotes(vgm.header.ym2151Clock & 0x3fffffff);};
       observePsgPlaybackEngine();
     } else if (currentChipKind === "ay8910") {
-      validateAyPlaybackHeader(vgm.header);
-      const moduleFactory = (await import('../generated/ay8910_wasm.js')).default;
-      engine = vgm.header.ym2413Clock ? await createMsxAudioEngine({
-        ayModuleFactory: moduleFactory, ayClock: vgm.header.ay8910Clock & 0x3fffffff,
-        ayType: vgm.header.ay8910Type, ayFlags: vgm.header.ay8910Flags,
-        ym2413ModuleFactory: (await import('../generated/ym2413_wasm.js')).default,
-        ym2413Clock: vgm.header.ym2413Clock & 0x3fffffff, masterVolume,
-      }) : await createAy8910AudioEngine({moduleFactory, clock: vgm.header.ay8910Clock & 0x3fffffff,
-        type: vgm.header.ay8910Type, flags: vgm.header.ay8910Flags, masterVolume});
       const reset = engine.reset.bind(engine);
       const ayTarget = engine.getVgmTarget?.('ay8910', 0);
       const onAyWrite = (r,v) => {
@@ -3067,66 +2907,24 @@ async function ensurePlaybackReady(vgm) {
       }
       engine.reset = () => {reset();ayMonitor.reset();if (vgm.header.ym2413Clock & 0x3fffffff) {ym2413Monitor.reset();resetYm2413NoteChannels();}resetPsgMonitor();};
     } else if (currentChipKind === "ym2413") {
-      if ((vgm.header.ym2413Clock & 0xc0000000) || vgm.header.ym2612Clock || vgm.header.ym2203Clock || vgm.header.ym2608Clock || vgm.header.ym2610Clock || vgm.header.rf5c164Clock || vgm.header.pwmClock)
-        throw new Error('This chip combination is not supported yet. Support coming soon.');
-      engine = await createYm2413AudioEngine({
-        ym2413ModuleFactory: (await import('../generated/ym2413_wasm.js')).default,
-        ym2413Clock: vgm.header.ym2413Clock & 0x3fffffff,
-        segaPsgModuleFactory, psgClock: vgm.header.psgClock & 0x3fffffff, masterVolume,
-      });
       const opllReset = engine.reset.bind(engine);
       const opllWrite = engine.writeYm2413.bind(engine);
       engine.writeYm2413 = (r,v) => {opllWrite(r,v);ym2413Monitor.write(r,v);updateYm2413ToneMonitor();requestChannelMonitorRender();};
       engine.reset = () => {opllReset();ym2413Monitor.reset();resetYm2413NoteChannels();};
       observePsgPlaybackEngine();
     } else if (currentChipKind === "ym2610") {
-      engine = await createYm2610BAudioEngine({
-        moduleFactory: (await import('../generated/ym2610b_wasm.js?v=ym2610-vgm-2')).default,
-        clock: vgm.header.ym2610Clock & 0x3fffffff,
-        variant: Boolean(vgm.header.ym2610Clock & 0x80000000), masterVolume,
-      });
       observePsgPlaybackEngine();
       baseEngineWriteYm2610 = engine.writeYm2610B.bind(engine);
     } else if (currentChipKind === "ym2203") {
-      engine = await createYm2203AudioEngine({
-        ym2203ModuleFactory: await loadYm2203ModuleFactory(),
-        ym2203Clock: vgm.header.ym2203Clock,
-        masterVolume,
-      });
       observePsgPlaybackEngine();
       baseEngineWriteYm2203 = engine.writeYm2203.bind(engine);
     } else if (currentChipKind === "ym2608") {
-      engine = await createYm2608AudioEngine({
-        ym2608ModuleFactory: await loadYm2608ModuleFactory(),
-        ym2608Clock: vgm.header.ym2608Clock,
-        masterVolume,
-      });
-      if (ym2608AdpcmARomBytes) {
-        engine.loadAdpcmARom(ym2608AdpcmARomBytes);
-      }
       observePsgPlaybackEngine();
       baseEngineWriteYm2608 = engine.writeYm2608.bind(engine);
-    } else {
-      engine = await createGenesisAudioEngine({
-        ym2612ModuleFactory: activeYm2612ModuleFactory,
-        segaPsgModuleFactory,
-        ym2612Clock: (vgm.header.ym2612Clock & 0x3fffffff) || undefined,
-        psgClock: (vgm.header.psgClock & 0x3fffffff) || undefined,
-        rf5c164Clock: vgm.header.rf5c164Clock & 0x3fffffff,
-        rf5c164ModuleFactory: currentHasPcm
-          ? (await import("../generated/rf5c164_wasm.js")).default : undefined,
-        masterVolume,
-      });
+    } else if (currentChipKind === "ym2612") {
       observePsgPlaybackEngine();
       baseEngineWriteYm2612 = engine.writeYm2612.bind(engine);
     }
-  }
-  if (vgm.header.okim6258Clock && typeof engine.writeOki6258 !== 'function') {
-    try {
-      const oki = await Oki6258AudioEngine.create({moduleFactory:(await import('../generated/okim6258_wasm.js')).default,
-        clock:vgm.header.okim6258Clock,flags:vgm.header.okim6258Flags,outputSampleRate:engine.sampleRate()});
-      attachOki6258(engine,oki);
-    } catch(error) {engine.dispose();engine=null;throw error;}
   }
   engineClockKey = nextClockKey;
   if (currentChipKind === "ym2203") channelMonitor.forEach((channel, index) => engine.setChannelMuted(index, channel.muted));
@@ -4469,3 +4267,27 @@ lilyPondExportDialog.querySelector("form").addEventListener("submit", event => {
     setStatus(`Exported LilyPond: ${result.noteCount} notes, ${result.skippedNotes} omitted intervals. 1/16 grid, assumed 4/4. PCM/noise/modulation omitted; see comments in the .ly file.`);
   } catch (error) { setStatus(`LilyPond export failed: ${error.message}`); }
 });
+
+async function getBrowserPlaybackFactory(name) {
+  const loaders = {
+    okim6258: async () => (await import('../generated/okim6258_wasm.js')).default,
+    ay8910: async () => (await import('../generated/ay8910_wasm.js')).default,
+    ym2413: async () => (await import('../generated/ym2413_wasm.js')).default,
+    y8950: async () => (await import('../generated/y8950_wasm.js')).default,
+    k051649: async () => (await import('../generated/k051649_wasm.js')).default,
+    ymf278b: async () => (await import('../generated/ymf278b_wasm.js')).default,
+    ym3526: async () => (await import('../generated/ym3526_wasm.js')).default,
+    ym3812: async () => (await import('../generated/ym3812_wasm.js')).default,
+    ymf262: async () => (await import('../generated/ymf262_wasm.js')).default,
+    segapcm: async () => (await import('../generated/segapcm_wasm.js')).default,
+    gameboy_apu: async () => (await import('../generated/gameboy_apu_wasm.js')).default,
+    ym2151: async () => (await import('../generated/ym2151_wasm.js')).default,
+    ym2610b: async () => (await import('../generated/ym2610b_wasm.js')).default,
+    rf5c164: async () => (await import('../generated/rf5c164_wasm.js')).default,
+    ym2612: async () => activeYm2612ModuleFactory,
+    segapsg: async () => segaPsgModuleFactory,
+    ym2203: loadYm2203ModuleFactory,
+    ym2608: loadYm2608ModuleFactory,
+  };
+  return loaders[name]?.();
+}

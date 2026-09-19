@@ -14,7 +14,7 @@ Formats: ${exportFormats.join(', ')}
 BPM defaults to the browser score tempo suggestion (fallback: 120).
 Output files are never overwritten unless --force is supplied.
 Render: standalone YM2612/YM2151/YM2413/YM3526/YM3812/YMF262 (optional Sega PSG),
-YM2612 + RF5C164 (optional Sega PSG), Sega PSG alone, AY-3-8910, or Game Boy DMG. Other combinations fail explicitly.
+YM2612 + RF5C164 (optional Sega PSG), Sega PSG alone, AY-3-8910, or Game Boy DMG. Other configurations may require additional WASM factories or ROMs; see CLI.md.
 --max-seconds: >0 to 600; loops are not expanded. See CLI.md for limitations.
 `;
 try {

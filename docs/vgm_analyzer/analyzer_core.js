@@ -49,3 +49,5 @@ export function exportSource(source, { format, bpm, fileName = 'VGM' } = {}) {
   const exporters = { mucom: exportMucomMml, opnavoid: exportOpnavoidMml, mxdrv: exportMxdrvMml, mgsdrv: exportMgsdrvMml };
   return { text: exporters[format](source, options) };
 }
+
+export { selectPlaybackConfiguration, createPlaybackEngine, createPlaybackPlayer, PlaybackError } from './playback_core.js';

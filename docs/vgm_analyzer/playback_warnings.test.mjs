@@ -1,3 +1,4 @@
+import {validateOpmPlayback} from './playback_core.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
@@ -64,7 +65,7 @@ test('unsupported sample blocks display once per type in both playback views',()
 test('YM2151 with Sega PCM is allowed and mixed, without a partial-playback warning',()=>{
  const source=readFileSync(new URL('./vgm_analyzer.js',import.meta.url),'utf8');
  const warnings=[],context=vm.createContext({reportPlaybackWarning:m=>warnings.push(m)});
- vm.runInContext(source.slice(source.indexOf('function validateOpmPlayback('),source.indexOf('async function ensurePlaybackReady(')),context);
+ context.validateOpmPlayback=validateOpmPlayback;
  assert.doesNotThrow(()=>context.validateOpmPlayback({ym2151Clock:3579545,segaPcmClock:4000000}));
  assert.equal(warnings.length,0);
  assert.throws(()=>context.validateOpmPlayback({ym2151Clock:3579545,ym2612Clock:7670454}),/combination/);

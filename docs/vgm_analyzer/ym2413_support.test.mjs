@@ -1,3 +1,4 @@
+import {detectPlaybackChipKind} from './playback_core.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
@@ -105,7 +106,7 @@ test('YM2413 + PSG does not enter the OPN tone monitor',()=>{
   context.updateToneMonitor();assert.equal(context.toneChannels.length,0);
 });
 test('chip selection recognizes YM2413 and preserves OPN selection',()=>{
-  const context=vm.createContext({});vm.runInContext(fn('detectPlaybackChipKind'),context);
+  const context={detectPlaybackChipKind};
   assert.equal(context.detectPlaybackChipKind({y8950Clock:3579545,ay8910Clock:1789773,ym2413Clock:3579545}),'msx');
   assert.equal(context.detectPlaybackChipKind({ym2413Clock:3579545,psgClock:3579545}),'ym2413');
   assert.equal(context.detectPlaybackChipKind({ym2612Clock:7670454}),'ym2612');

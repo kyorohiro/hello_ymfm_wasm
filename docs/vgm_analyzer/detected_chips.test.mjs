@@ -1,3 +1,4 @@
+import * as playback from './playback_core.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
@@ -6,7 +7,7 @@ const source = readFileSync(new URL('./vgm_analyzer.js', import.meta.url), 'utf8
 
 function loadDetectedChips() {
   const context = vm.createContext({});
-  vm.runInContext(source.slice(source.indexOf('function formatClockHz('), source.indexOf('function detectPlaybackChipKind(')), context);
+  vm.runInContext(source.slice(source.indexOf('function formatClockHz('), source.indexOf('function applyYm2203WriteToMonitor(')), context);
   return context;
 }
 
@@ -33,11 +34,7 @@ test('detectHeaderChips lists every chip clock the header declares, regardless o
   assert.deepEqual([...detectHeaderChips({ ay8910Clock: 0x40000000 | 1789773 })], ['AY-3-8910 / YM2149 (1.79 MHz)']);
 });
 
-function loadChipKindDetection() {
-  const context = vm.createContext({});
-  vm.runInContext(source.slice(source.indexOf('function detectPlaybackChipKind('), source.indexOf('function applyYm2203WriteToMonitor(')), context);
-  return context;
-}
+function loadChipKindDetection() { return playback; }
 function fakeVgm(header, commands) {
   return { header, analyzeCommandUsage: () => new Map(commands.map((cmd) => [cmd, 1])) };
 }
@@ -72,7 +69,7 @@ test('isUnsupportedOplFamilyCombination rejects real conflicts but not stray Seg
 
 test('renderDetectedChips shows a joined summary and hides the element when nothing is declared', () => {
   const context = vm.createContext({ detectedChipsOutput: { textContent: '', hidden: false } });
-  vm.runInContext(source.slice(source.indexOf('function formatClockHz('), source.indexOf('function detectPlaybackChipKind(')), context);
+  vm.runInContext(source.slice(source.indexOf('function formatClockHz('), source.indexOf('function applyYm2203WriteToMonitor(')), context);
   context.renderDetectedChips({ ym2151Clock: 3579545, segaPcmClock: 4000000 });
   assert.equal(context.detectedChipsOutput.hidden, false);
   assert.equal(context.detectedChipsOutput.textContent, 'Uses: YM2151 (3.58 MHz), Sega PCM (4 MHz)');

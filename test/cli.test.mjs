@@ -69,9 +69,9 @@ test('Genesis combination renders embedded RF5C164 PCM without dropping it',asyn
 test('all advertised standalone render adapters initialize their packaged WASM',async()=>{
   const template=await readSource(fixture('psg-tone.vgm'));
   for(const [offset,clock] of [[0x2c,7670454],[0x30,3579545],[0x10,3579545],[0x54,3579545],[0x50,3579545],[0x5c,14318180],[0x74,1789773],[0x80,4194304]]) {
-    const source=template.slice(0,260),view=new DataView(source.buffer);
-    view.setUint32(4,256,true);view.setUint32(0x0c,0,true);view.setUint32(offset,clock,true);
-    source.set([0x61,10,0,0x66],256);
+    const source=template.slice(0,263),view=new DataView(source.buffer);
+    view.setUint32(4,source.length-4,true);view.setUint32(0x0c,0,true);view.setUint32(offset,clock,true);
+    source.set(offset === 0x80 ? [0xb3,0x16,0x80,0x61,10,0,0x66] : [0x61,10,0,0x66],256);
     const wav=await renderSource(source,{maxSeconds:.01});
     assert.equal(Buffer.from(wav.bytes.subarray(0,4)).toString(),'RIFF');
   }

@@ -1,3 +1,4 @@
+import {validateOpmPlayback} from '../docs/vgm_analyzer/playback_core.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
@@ -106,7 +107,7 @@ test('YM2151 + Sega PCM VGM dispatches command 0xC0/ROM data through the player 
  const source=readFileSync(new URL('../docs/vgm_analyzer/vgm_analyzer.js',import.meta.url),'utf8');
  const panel={hidden:true,textContent:''},context=vm.createContext({document:{getElementById:()=>panel},status:{},console});
  vm.runInContext(source.slice(source.indexOf('const playbackWarnings ='),source.indexOf('function currentStatusSuffix')),context);
- vm.runInContext(source.slice(source.indexOf('function validateOpmPlayback('),source.indexOf('async function ensurePlaybackReady(')),context);
+ context.validateOpmPlayback=validateOpmPlayback;
  const e=await Ym2151AudioEngine.create({...options,segaPcmModuleFactory:segapcmFactory,
   segaPcmModuleOptions:{wasmBinary:readFileSync(new URL('../docs/generated/segapcm_wasm.wasm',import.meta.url))},segaPcmClock:4000000});
  try{

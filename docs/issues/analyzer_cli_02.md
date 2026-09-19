@@ -57,34 +57,34 @@ PCM
 
 #### 01a. 現状調査と対応表
 
-- [ ] BrowserとCLIで、構成判定・engine選択・engine生成・PCM renderingがどこで分岐・重複しているか記録する。
-- [ ] Browserが実際に対応する音源・複合構成・必要ROM・variant / dualフラグを調べ、CLIとの差を対応表にする。
-- [ ] 環境非依存の処理と、UI・WebAudio・ファイル取得等のadapter処理を区別し、移動先と依存方向を記録する。
+- [x] BrowserとCLIで、構成判定・engine選択・engine生成・PCM renderingがどこで分岐・重複しているか記録する。
+- [x] Browserが実際に対応する音源・複合構成・必要ROM・variant / dualフラグを調べ、CLIとの差を対応表にする。
+- [x] 環境非依存の処理と、UI・WebAudio・ファイル取得等のadapter処理を区別し、移動先と依存方向を記録する。
 
 #### 01b. 共通interfaceの設計と実装
 
-- [ ] 構成判定、engine選択・生成、PCM renderingのうち環境非依存の部分をCoreへ寄せる。
-- [ ] WASM factory・ROM bytes等の資源をadapterから渡すinterfaceを定義する。
-- [ ] 共通の構成判定・選択・生成経路をBrowserとCLI / Node APIが実際に利用する。interfaceだけ追加し、Browserの重複分岐をそのまま残して完了にしない。
-- [ ] variant、dual chip、複合音源、外部ROMの条件を一箇所で扱えるようにし、環境ごとの例外的なif / switchを増やさない。
-- [ ] 現在Browserが扱う構成を基準にし、不要な汎用plugin機構等の過度な抽象化を避ける。
-- [ ] 「音源構成が未対応」と「対応する構成だがfactory / ROM等が不足」を区別する。検出構成・不足資源を機械的に扱える診断として返し、表示やstderr出力はadapterが行う。
-- [ ] PCMのサンプルレート・チャンネル・ブロックの扱い、終了・reset・dispose、初期化失敗時の解放を既存engineに沿って明確にする。
+- [x] 構成判定、engine選択・生成、PCM renderingのうち環境非依存の部分をCoreへ寄せる。
+- [x] WASM factory・ROM bytes等の資源をadapterから渡すinterfaceを定義する。
+- [x] 共通の構成判定・選択・生成経路をBrowserとCLI / Node APIが実際に利用する。interfaceだけ追加し、Browserの重複分岐をそのまま残して完了にしない。
+- [x] variant、dual chip、複合音源、外部ROMの条件を一箇所で扱えるようにし、環境ごとの例外的なif / switchを増やさない。
+- [x] 現在Browserが扱う構成を基準にし、不要な汎用plugin機構等の過度な抽象化を避ける。
+- [x] 「音源構成が未対応」と「対応する構成だがfactory / ROM等が不足」を区別する。検出構成・不足資源を機械的に扱える診断として返し、表示やstderr出力はadapterが行う。
+- [x] PCMのサンプルレート・チャンネル・ブロックの扱い、終了・reset・dispose、初期化失敗時の解放を既存engineに沿って明確にする。
 
 #### 01c. 検証
 
-- [ ] Coreのimportと利用にDOM / WebAudio / Node filesystem等の環境依存が不要であることを確認する。
-- [ ] 同じ入力・設定・音源実装を使い、Browser経路とCLI経路のWebAudio接続前 / WAV符号化前のPCMが一致することを自作fixtureで検証する。初期化成功だけで完了にしない。
-- [ ] 比較条件（クロック、ROM、ミュート、音量、ループ、サンプルレート等）を揃え、一致基準を記録する。
-- [ ] FM / PSG / PCMを含む既存対応構成、未対応構成、資源不足の診断を検証する。未対応音源を黙って除外しない。
-- [ ] Browserの既存再生・WAV出力とCLI / Node APIの動作を確認し、関連する回帰テストの結果と未検証部分を記録する。
-- [ ] distを更新し、配布物からのCLI / Node API実行と依存・ライセンスの境界を確認する。
+- [x] Coreのimportと利用にDOM / WebAudio / Node filesystem等の環境依存が不要であることを確認する。
+- [x] 同じ入力・設定・音源実装を使い、Browser経路とCLI経路のWebAudio接続前 / WAV符号化前のPCMが一致することを自作fixtureで検証する。初期化成功だけで完了にしない。
+- [x] 比較条件（クロック、ROM、ミュート、音量、ループ、サンプルレート等）を揃え、一致基準を記録する。
+- [x] FM / PSG / PCMを含む既存対応構成、未対応構成、資源不足の診断を検証する。未対応音源を黙って除外しない。
+- [ ] 実ブラウザの画面で再生・WAV出力・モニターを確認する。接続可能なブラウザがなく未確認。Browser初期化関数のVM検証とCLI / Node API・関連回帰テストは実施済み。
+- [x] distを更新し、配布物からのCLI / Node API実行と依存・ライセンスの境界を確認する。
 
 #### 01d. 後続工程へ進む条件
 
-- [ ] YM2203 / YM2608 / YM2610(B)を例に、共通interface上で追加する箇所と必要資源を説明できる。
-- [ ] Browserに新しいchipを追加した際、CLI側では資源提供・配布設定等を追加すればよく、chip固有の生成・renderingを再実装しなくて済むことを確認する。
-- [ ] 判明したarchitecture・制約に合わせて、このTODOとCLI.mdの対応表を更新する。
+- [x] YM2203 / YM2608 / YM2610(B)を例に、共通interface上で追加する箇所と必要資源を説明できる。
+- [x] Browserに新しいchipを追加した際、CLI側では資源提供・配布設定等を追加すればよく、chip固有の生成・renderingを再実装しなくて済むことを確認する。
+- [x] 判明したarchitecture・制約に合わせて、このTODOとCLI.mdの対応表を更新する。
 
 完了: 共通経路をBrowser / CLIの両方が利用し、PCM一致と既存動作を確認した上で、変更内容・architecture・テスト結果・残る制約を報告する。
 01が安定する前に02以降を個別adapterの追加だけで大量実装しない。01が完了し、後続作業を安全に進められる状態で一度報告して止める。
@@ -210,3 +210,9 @@ Browser側ですでに共有化した音源は、CLIへ同じ処理を再実装�
 ## 作業記録
 
 各作業の完了時に、変更内容・実行したテスト・残る制限をここへ追記する。
+
+### 01 実装記録
+
+共有生成経路・自動検証を実装。[architecture・対応表・検証条件](analyzer_cli_02_architecture.md)を参照。
+Browser / CLIのchip別生成処理をplayback_coreへ集約。PCMは既存VgmPlayerを共有する。
+02以降のWASM追加は実施していない。実ブラウザのUI確認は未完了のため、01の最終確認として残す。
