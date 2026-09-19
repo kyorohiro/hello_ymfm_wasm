@@ -45,6 +45,15 @@ test('PSG tone-only input exports and unsupported chip rejects',()=>{
   assert.equal(exportAnalysisLilyPond(psg).noteCount,1);
   assert.throws(()=>exportAnalysisLilyPond(vgm([0x66],0x58,3579545)),/requires/);
 });
+test('Game Boy DMG square-channel note feeds LilyPond',()=>{
+  const gbw=(register,value)=>[0xb3,register,value];
+  const gb=vgm([...gbw(0x02,15<<4),...gbw(0x03,1750&0xff),...gbw(0x04,0x80|((1750>>8)&7)),
+    0x61,0x22,0x56,...gbw(0x02,0),0x61,0x22,0x56,0x66],0x80,4194304);
+  const result=exportAnalysisLilyPond(gb);
+  assert.equal(result.noteCount,1);
+  assert.match(result.text,/a'4/);
+  assert.equal((result.text.match(/\\new Staff \\with/g)||[]).length,3);
+});
 test('YM2413 base pitch feeds LilyPond; rhythm mode omits non-BD voices',()=>{
   const opll=vgm([0x51,0x30,0x10,0x51,0x10,0x80,0x51,0x20,0x17,0x61,0x22,0x56,0x51,0x20,7,0x66],0x10,3579545);
   const result=exportAnalysisLilyPond(opll);

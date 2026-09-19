@@ -36,20 +36,55 @@ test('gameboy playback-only mode leaves only Note-ish enabled',()=>{
   const stub=()=>({disabled:false,hidden:true,title:'',getAttribute(){return 'false';},setAttribute(){}});
   const context={opnMonitorRoot:{},opmMonitorRoot:{},ayMonitorRoot:{},ym2413MonitorRoot:{},noteishHeader:{},
     currentChipKind:'gameboy',currentBuffer:null,midiExportAvailable:false,musicSheet:null,
-    exportLilyPondButton:stub(),exportAllOpmButton:stub(),exportOpmButton:stub(),sheetMusicTab:stub(),
+    exportLilyPondButton:stub(),exportAllOpmButton:stub(),exportOpmButton:stub(),sheetMusicTab:stub(),parsedOutputTab:stub(),
     document:{getElementById:()=>notice},selected:null,
     setOutputTab(name){context.selected=name;}};
-  for(const name of [...tabNames,...buttonNames])context[name]={disabled:false,title:''};
+  for(const name of [...tabNames,...buttonNames])context[name]={disabled:false,title:'',getAttribute(){return 'false';}};
+  context.parsedOutputTab.getAttribute=()=>'true'; // already on the one tab gameboy is allowed to stay on
   vm.createContext(context);vm.runInContext(fn('updateChipSupport'),context);
   context.updateChipSupport();
   assert.equal(context.noteishTab.disabled,false,'noteishTab');
   assert.equal(context.noteishTab.title,'');
-  for(const name of ['operatorInfoTab','tfiInfoTab','sampleTab',...buttonNames]) {
+  for(const name of ['operatorInfoTab','tfiInfoTab','sampleTab',...buttonNames.filter(n=>n!=='exportMidiButton')]) {
     assert.equal(context[name].disabled,true,name);
     assert.equal(context[name].title,'Support coming soon.');
   }
+  // Regression: Game Boy MIDI export was added after this test was written;
+  // it must not fall into the blanket playback-only "coming soon" disable.
+  assert.equal(context.exportMidiButton.disabled,true,'no buffer loaded yet');
+  assert.notEqual(context.exportMidiButton.title,'Support coming soon.');
+  context.currentBuffer={};context.midiExportAvailable=true;context.updateChipSupport();
+  assert.equal(context.exportMidiButton.disabled,false,'buffer + midiExportAvailable enables Game Boy MIDI export');
+  context.currentBuffer=null;context.midiExportAvailable=false;context.updateChipSupport();
   assert.equal(notice.hidden,false);
   assert.match(notice.textContent,/Note-ish available/);
+  assert.equal(context.selected,null,'already on parsed-output: no forced switch needed');
+  // Regression: loading a Game Boy file while a stale "operator-info" tab
+  // (left over from a previous, unrelated file) is still selected must not
+  // leave that tab showing irrelevant Sega PSG/channel-grid content; it must
+  // be switched to the one tab Game Boy actually supports.
+  context.operatorInfoTab.getAttribute=()=>'true';
+  context.parsedOutputTab.getAttribute=()=>'false';
+  context.updateChipSupport();
+  assert.equal(context.selected,'noteish');
+});
+test('segapcm also switches away from a stale operator-info tab to parsed-output',()=>{
+  // Same class of bug as Game Boy above, for a chip with no Note-ish at
+  // all: Sega PCM must not leave a leftover operator-info tab showing
+  // irrelevant content either.
+  const notice={hidden:true};
+  const stub=()=>({disabled:false,hidden:true,title:'',getAttribute(){return 'false';},setAttribute(){}});
+  const context={opnMonitorRoot:{},opmMonitorRoot:{},ayMonitorRoot:{},ym2413MonitorRoot:{},noteishHeader:{},
+    currentChipKind:'segapcm',currentBuffer:null,midiExportAvailable:false,musicSheet:null,
+    exportLilyPondButton:stub(),exportAllOpmButton:stub(),exportOpmButton:stub(),sheetMusicTab:stub(),parsedOutputTab:stub(),
+    document:{getElementById:()=>notice},selected:null,
+    setOutputTab(name){context.selected=name;}};
+  for(const name of [...tabNames,...buttonNames])context[name]={disabled:false,title:'',getAttribute(){return 'false';}};
+  context.operatorInfoTab.getAttribute=()=>'true';
+  vm.createContext(context);vm.runInContext(fn('updateChipSupport'),context);
+  context.updateChipSupport();
+  assert.equal(context.selected,'parsed-output');
+  for(const name of tabNames) assert.equal(context[name].disabled,true,name);
 });
 test('setOutputTab allows noteish and parsed-output for gameboy but forces parsed-output for anything else',()=>{
   const stub=()=>({setAttribute(){},hidden:false,tabIndex:0});

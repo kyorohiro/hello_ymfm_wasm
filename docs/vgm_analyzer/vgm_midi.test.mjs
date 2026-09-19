@@ -245,6 +245,18 @@ test('MIDI preserves a short pitch change after a held-key retrigger',()=>{
 });
 
 function opmVgm(commands,psg=false){const b=vgm(commands,0),v=new DataView(b.buffer);v.setUint32(0x30,3579545,true);if(psg)v.setUint32(0x0c,3579545,true);return b;}
+function gbVgm(commands){const b=vgm(commands,0),v=new DataView(b.buffer);v.setUint32(0x80,4194304,true);return b;}
+const gbw=(register,value)=>[0xb3,register,value];
+test('Game Boy DMG square-channel note exports MIDI',()=>{
+  const src=gbVgm([...gbw(0x02,15<<4),...gbw(0x03,1750&0xff),...gbw(0x04,0x80|((1750>>8)&7)),
+    ...wait(22050),...gbw(0x02,0),...wait(22050),0x66]);
+  const r=exportAnalysisMidi(src);
+  assert.equal(r.chipKind,'gameboy');
+  assert.equal(r.noteCount,1);
+  const d=decode(r.bytes);
+  assert.equal(d.tracks.length,4);
+  assert.deepEqual(notes(d.tracks[1]).map(e=>[e.tick,e.status,...e.data]),[[0,0x90,69,100],[960,0x80,69,0]]);
+});
 test('YM2151 KC/KF exports eight tracks with a continuous note and fractional bend',()=>{
  const b=opmVgm([0x54,0x28,0x4a,0x54,8,0x78,...wait(22050),0x54,0x30,128,...wait(22050),0x54,8,0,...wait(22050),0x66]);
  const r=exportAnalysisMidi(b),d=decode(r.bytes);assert.equal(r.chipKind,'ym2151');assert.equal(d.tracks.length,9);assert.equal(r.noteCount,1);

@@ -3,6 +3,7 @@ import { extractOpnNotes, midiChipKind } from './vgm_notes.js?v=midi-onset-1';
 import { extractOpmNotes } from './opm_notes.js';
 import { extractToneNotes } from './tone_notes.js?v=ym2610-vgm-2';
 import { extractOpllNotes } from './ym2413_notes.js';
+import { extractGameboyNotes } from './gameboy_notes.js';
 
 // Syntax: https://lilypond.org/doc/v2.24/Documentation/notation/writing-pitches
 //         https://lilypond.org/doc/v2.24/Documentation/notation/writing-rhythms
@@ -75,9 +76,9 @@ export function createLilyPondScore(channels, totalSamples, { bpm = 120, fileNam
 export function analyzeLilyPondSource(source) {
   const header = new Ym2612VGM(source).header;
   const kind = header.ym2151Clock & 0x3fffffff ? 'ym2151' : midiChipKind(header);
-  if (!kind) throw new Error('LilyPond requires OPN / YM2151 / AY-3-8910 / YM2413 / PSG notes');
-  const fm = kind === 'ym2151' ? extractOpmNotes(source) : kind === 'psg' || kind === 'ay8910' || kind === 'ym2413' ? { channels: [], warnings: new Map() } : extractOpnNotes(source);
-  const tones = extractToneNotes(source, kind);
+  if (!kind) throw new Error('LilyPond requires OPN / YM2151 / AY-3-8910 / YM2413 / PSG / Game Boy DMG notes');
+  const fm = kind === 'ym2151' ? extractOpmNotes(source) : kind === 'psg' || kind === 'ay8910' || kind === 'ym2413' || kind === 'gameboy' ? { channels: [], warnings: new Map() } : extractOpnNotes(source);
+  const tones = kind === 'gameboy' ? extractGameboyNotes(source) : extractToneNotes(source, kind);
   const opll = (header.ym2413Clock & 0x3fffffff) ? extractOpllNotes(source) : { channels: [], warnings: new Map(), time: 0 };
   const warnings = new Map([...(fm.warnings ?? []), ...tones.warnings, ...opll.warnings]);
   if (['ym2203','ym2608','ym2610'].includes(kind)) warnings.delete('SSG writes omitted');

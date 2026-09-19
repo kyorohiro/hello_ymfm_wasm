@@ -612,7 +612,7 @@
                   <tr><th scope="row">K051649 (SCC)</th><td>5-channel wavetable; mixed with MSX AY/YM2413/Y8950</td><td>5 CH, chip</td><td>—</td><td>—</td><td>—</td></tr>
                   <tr><th scope="row">OKIM6258</th><td>4-bit ADPCM; standalone or mixed</td><td>Chip (single toggle)</td><td>—</td><td>—</td><td>—</td></tr>
                   <tr><th scope="row">Sega PCM (315-5218)</th><td>16-voice 8-bit PCM; standalone, mixed with Sega PSG, or mixed with YM2151</td><td>16 CH, chip</td><td>—</td><td>—</td><td>—</td></tr>
-                  <tr><th scope="row">Game Boy DMG (LR35902)</th><td>2 square + wave + noise</td><td>4 CH, chip</td><td>—</td><td>—</td><td>—</td></tr>
+                  <tr><th scope="row">Game Boy DMG (LR35902)</th><td>2 square + wave + noise</td><td>4 CH, chip</td><td>—</td><td>CH1/CH2 square + CH3 wave (base pitch); CH4 noise has no pitch</td><td>Base-pitch MIDI / LilyPond; no MML or FM/PCM voice export</td></tr>
                 </tbody>
               </table>
             </div>
@@ -622,7 +622,7 @@
               <li><strong>Sample memory:</strong> some YMF278B tracks need an imported yrw801.rom (2 MiB). YM2608 rhythm playback uses the ADPCM-A ROM. YM2610 ADPCM uses the VGM's embedded ROM data. OKIM6258 needs no external sample ROM.</li>
               <li><strong>OKIM6258:</strong> 3-bit ADPCM, recording and a second instance are not supported. YM2151 mixing is covered by synthetic tests with real cores.</li>
               <li><strong>Sega PCM:</strong> an arcade chip (OutRun, Space Harrier, System 16/18/24, ...), not a stock Genesis/Mega Drive cartridge chip. ROM bank shift/mask come from the VGM header's interface register. Mixes with Sega PSG and/or YM2151 (e.g. OutRun). A second instance is not supported.</li>
-              <li><strong>Game Boy DMG:</strong> not mixed with any other chip yet. The DMG wave-RAM corruption glitch (retriggering channel 3 at an exact bad moment) is not reproduced.</li>
+              <li><strong>Game Boy DMG:</strong> not mixed with any other chip yet. The DMG wave-RAM corruption glitch (retriggering channel 3 at an exact bad moment) is not reproduced. Note-ish/MIDI/LilyPond are write-driven approximations: length-counter timeout and channel 1 frequency sweep are time-based and not reconstructed from register writes.</li>
               <li><strong>Note-ish / MIDI / MML:</strong> estimated base pitches and key intervals; PCM/drums and all modulation are not transcribed. MML uses a sixteenth-note grid. OPN exports target MUCOM88 / OPNAvoid; YM2151 targets MXDRV (MDX).</li>
               <li><strong>DAC streams:</strong> first-instance YM2612, Sega PSG, PWM and OKIM6258 destinations are supported. Other destinations are warned about and omitted.</li>
               <li><strong>All / Snapshot:</strong> All collects voices across the track; Snapshot captures the current channel states. Unsupported chips and features can leave parts of a track silent; check the playback warning area.</li>

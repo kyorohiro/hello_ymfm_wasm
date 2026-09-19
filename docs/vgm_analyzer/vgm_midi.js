@@ -1,6 +1,7 @@
 import { extractOpmNotes } from './opm_notes.js';
 import { extractToneNotes } from './tone_notes.js?v=ym2610-vgm-2';
 import { extractOpllNotes } from './ym2413_notes.js';
+import { extractGameboyNotes } from './gameboy_notes.js';
 import { Ym2612VGM } from '../js/ym2612vgm.js?v=ym2610-vgm-2';
 import { extractOpnNotes, midiChipKind } from './vgm_notes.js?v=midi-onset-1';
 
@@ -41,13 +42,13 @@ export function exportAnalysisMidi(source, { bpm = 120, fileName = 'VGM' } = {})
   }
   const parserHeader = new Ym2612VGM(source).header;
   const chipKind = parserHeader.ym2151Clock & 0x3fffffff ? 'ym2151' : midiChipKind(parserHeader);
-  if (!chipKind) throw new Error('MIDI requires YM2151 / YM2612 / YM2203 / YM2608 / YM2610 / AY-3-8910 / YM2413 or PSG');
-  const fm = chipKind === 'ym2151' ? extractOpmNotes(source) : chipKind === 'psg' || chipKind === 'ay8910' || chipKind === 'ym2413' ? {channels:[],warnings:new Map()} : extractOpnNotes(source);
-  const tones = extractToneNotes(source, chipKind);
+  if (!chipKind) throw new Error('MIDI requires YM2151 / YM2612 / YM2203 / YM2608 / YM2610 / AY-3-8910 / YM2413 / PSG or Game Boy DMG');
+  const fm = chipKind === 'ym2151' ? extractOpmNotes(source) : chipKind === 'psg' || chipKind === 'ay8910' || chipKind === 'ym2413' || chipKind === 'gameboy' ? {channels:[],warnings:new Map()} : extractOpnNotes(source);
+  const tones = chipKind === 'gameboy' ? extractGameboyNotes(source) : extractToneNotes(source, chipKind);
   const opll = (parserHeader.ym2413Clock & 0x3fffffff) ? extractOpllNotes(source) : {channels:[],warnings:new Map(),time:0};
   const channels = [...fm.channels, ...tones.channels, ...opll.channels];
   const time = Math.max(tones.time, opll.time);
-  const chipName = chipKind === 'ym2610' && (parserHeader.ym2610Clock & 0x80000000) ? 'YM2610B' : chipKind.toUpperCase();
+  const chipName = chipKind === 'ym2610' && (parserHeader.ym2610Clock & 0x80000000) ? 'YM2610B' : chipKind === 'gameboy' ? 'Game Boy DMG' : chipKind.toUpperCase();
   const extractionWarnings = new Map([...(fm.warnings ?? []), ...tones.warnings, ...opll.warnings]);
   if (['ym2203','ym2608','ym2610'].includes(chipKind)) extractionWarnings.delete('SSG writes omitted');
   if (parserHeader.psgClock & 0x3fffffff) extractionWarnings.delete('PSG writes omitted');

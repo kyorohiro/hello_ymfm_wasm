@@ -1,3 +1,5 @@
+import { Ym2612VGM } from '../js/ym2612vgm.js?v=ym2610-vgm-2';
+
 // Live note-ish tracking for Game Boy DMG channels 1-3 (square, square, wave).
 // Channel 4 (noise) has no pitch and is intentionally not tracked here,
 // matching how other chips' noise sources are excluded from note-ish.
@@ -55,4 +57,39 @@ export function describeGameboyNotes(state) {
     const midi = channel.keyOn ? 69 + 12 * Math.log2(hz / 440) : null;
     return { name: LABELS[index], type: TYPES[index], midi, keyOn: channel.keyOn, freq: channel.freq };
   });
+}
+
+// Batch extraction for MIDI/LilyPond export, mirroring tone_notes.js's
+// extractToneNotes() shape: {channels, warnings, time, parserHeader}, each
+// channel {name, notes:[{start,end,midi,key}], active, serial}.
+export function extractGameboyNotes(source) {
+  let time = 0;
+  const warnings = new Map();
+  const warn = text => warnings.set(text, { count: (warnings.get(text)?.count ?? 0) + 1 });
+  const parser = new Ym2612VGM(source, { logger: { warn } });
+  const state = createGameboyMonitor();
+  const channels = [0, 1, 2].map(i => ({ name: LABELS[i], notes: [], active: null, serial: 0 }));
+  function close(ch) { if (ch.active) ch.notes.push({ ...ch.active, end: time }); ch.active = null; }
+  function update() {
+    describeGameboyNotes(state).forEach((n, i) => {
+      const ch = channels[i];
+      if (ch.active && n.keyOn && ch.active.midi === n.midi) return;
+      const wasOn = !!ch.active;
+      close(ch);
+      if (n.keyOn) {
+        if (!wasOn) ch.serial++;
+        ch.active = { start: time, midi: n.midi, key: ch.serial };
+      }
+    });
+  }
+  warn('Channel 4 (noise) has no pitch and is omitted; length-counter timeout and channel 1 sweep are time-based and not reconstructed from register writes.');
+  const target = { writeRegister: (register, value) => { if (applyGameboyWrite(state, register, value)) update(); } };
+  const targets = { gameboyDmg: target };
+  while (true) {
+    const event = parser.playStep(targets);
+    if (event.type === 'wait') parser.consumeWait(targets, event.samples, n => { time += n; });
+    else if (event.type === 'end') break;
+  }
+  channels.forEach(close);
+  return { channels, warnings, time, parserHeader: parser.header };
 }

@@ -5,7 +5,8 @@ export function midiChipKind(header) {
   return ['ym2612', 'ym2608', 'ym2203', 'ym2610'].find(kind => (header[`${kind}Clock`] & 0x3fffffff) > 0)
     ?? ((header.ay8910Clock & 0x3fffffff) ? 'ay8910' : null)
     ?? ((header.ym2413Clock & 0x3fffffff) ? 'ym2413' : null)
-    ?? ((header.psgClock & 0x3fffffff) ? 'psg' : null);
+    ?? ((header.psgClock & 0x3fffffff) ? 'psg' : null)
+    ?? ((header.gameBoyDmgClock & 0x3fffffff) ? 'gameboy' : null);
 }
 
 export function extractYm2612Notes(source) {
