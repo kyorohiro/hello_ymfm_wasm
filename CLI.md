@@ -498,3 +498,28 @@ the existing Browser engine. YM2612/YM2608/YM2610 FM per-channel muting,
 PSG per-channel muting and per-channel OPLL/Y8950 inside the composite MSX
 engine are not exposed by this interface yet. Unsupported controls fail
 rather than silently changing nothing.
+
+
+## WAV start and duration
+
+```sh
+tetorica-vgm render song.vgz --start 10 --max-seconds 5 --output interval.wav
+```
+
+Node: `renderSource(source,{startSeconds:10,maxSeconds:5})`.
+Shared Core WAV rendering accepts the same options. Start defaults to zero;
+maxSeconds is the requested output duration (default 120). Both must be
+finite, start nonnegative and duration positive; their sum must be <=600.
+
+The renderer runs the existing player from the beginning, discards the
+preceding PCM, and copies the selected frames. It preserves register,
+envelope, sample-memory and resampler state; this is not a register-only
+seek. Start and duration are rounded to the nearest output frame.
+Processing uses the same blocks as full rendering, including when the
+start falls inside a block. Later starts therefore still require processing
+the earlier music. Muting remains active for the entire rendering.
+
+The existing final partial block can contain silence. A start beyond the
+rendered end is rejected, but the final padded block remains selectable.
+A track ending during the requested interval produces a shorter output.
+No VGM loop expansion. Invalid requests leave existing output untouched.

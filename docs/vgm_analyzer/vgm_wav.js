@@ -35,27 +35,33 @@ function encodePcm16(left, right, frames) {
  * `blockFrames - 1` trailing silent samples (negligible at the default size).
  *
  * @param {import('../js/vgmplayer.js').VgmPlayer} player
- * @param {{maxSeconds?: number, blockFrames?: number, onProgress?: (fraction: number) => void}} [options]
+ * @param {{maxSeconds?: number, startSeconds?: number, blockFrames?: number, onProgress?: (fraction: number) => void}} [options]
  * @returns {Promise<{bytes: Uint8Array, seconds: number, truncated: boolean}>}
  */
-export async function renderVgmToWav(player, { maxSeconds = 120, blockFrames = 8192, onProgress } = {}) {
-  if (!(maxSeconds > 0)) throw new RangeError('maxSeconds must be positive');
+export async function renderVgmToWav(player, { maxSeconds = 120, blockFrames = 8192, onProgress, startSeconds = 0 } = {}) {
+  if (!Number.isFinite(maxSeconds) || !(maxSeconds > 0)) throw new RangeError('maxSeconds must be finite and positive');
+  if (!Number.isFinite(startSeconds) || startSeconds < 0 || startSeconds + maxSeconds > 600) throw new RangeError('startSeconds must be nonnegative; startSeconds + maxSeconds must be <= 600');
+  if (!Number.isSafeInteger(blockFrames) || blockFrames < 1 || blockFrames > 1048576) throw new RangeError('Invalid blockFrames');
   const sampleRate = player.sampleRate();
   const maxFrames = Math.max(1, Math.round(maxSeconds * sampleRate));
+  const startFrame = Math.round(startSeconds * sampleRate);
   const parts = [];
   const left = new Float32Array(blockFrames), right = new Float32Array(blockFrames);
-  let framesRendered = 0, blocksSinceYield = 0;
+  let framesRendered = 0, framesProcessed = 0, blocksSinceYield = 0;
   while (framesRendered < maxFrames && (player.isPlaying() || player.queuedFrames > 0)) {
     player.process(left, right, blockFrames);
-    const frames = Math.min(blockFrames, maxFrames - framesRendered);
-    parts.push(encodePcm16(left, right, frames));
+    const from = Math.min(blockFrames, Math.max(0, startFrame - framesProcessed));
+    const frames = Math.min(blockFrames - from, maxFrames - framesRendered);
+    if(frames) parts.push(encodePcm16(left.subarray(from), right.subarray(from), frames));
     framesRendered += frames;
+    framesProcessed += blockFrames;
     onProgress?.(Math.min(1, framesRendered / maxFrames));
     if (++blocksSinceYield >= 16) {
       blocksSinceYield = 0;
       await new Promise(resolve => setTimeout(resolve, 0));
     }
   }
+  if(startFrame > 0 && framesRendered === 0) throw new RangeError('Start time exceeds rendered track end');
   const truncated = player.isPlaying() || player.queuedFrames > 0;
   onProgress?.(1);
   const header = wavHeader(framesRendered, sampleRate);

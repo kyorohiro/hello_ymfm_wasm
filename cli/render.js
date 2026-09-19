@@ -29,9 +29,10 @@ export async function getNodePlaybackFactory(name) {
 }
 
 /** Node adapter: explicit engines only; never silently omit an unhandled chip. */
-export async function renderSource(source, { maxSeconds = 120, roms = {}, mute = [] } = {}) {
+export async function renderSource(source, { maxSeconds = 120, roms = {}, mute = [], startSeconds = 0 } = {}) {
   source = sourceBytes(source);
   if (!Number.isFinite(maxSeconds) || maxSeconds <= 0 || maxSeconds > 600) throw new RangeError('maxSeconds must be > 0 and <= 600');
+  if(!Number.isFinite(startSeconds)||startSeconds<0||startSeconds+maxSeconds>600)throw new RangeError('startSeconds must be nonnegative; startSeconds + maxSeconds must be <= 600');
   if (roms.ym2608AdpcmA !== undefined && (!(roms.ym2608AdpcmA instanceof Uint8Array) || roms.ym2608AdpcmA.length !== 8192)) throw new RangeError('ym2608AdpcmA must be a Uint8Array of exactly 8192 bytes');
   if (roms.ymf278bWave !== undefined && (!(roms.ymf278bWave instanceof Uint8Array) || roms.ymf278bWave.length !== 2097152)) throw new RangeError('ymf278bWave must be a Uint8Array of exactly 2097152 bytes');
   const engine = await createPlaybackEngine(new Ym2612VGM(source), {getFactory:getNodePlaybackFactory,roms});
@@ -40,7 +41,7 @@ export async function renderSource(source, { maxSeconds = 120, roms = {}, mute =
     const player = createPlaybackPlayer(engine, source, {onWarning:message=>warnings.push(String(message))});
     player.play();
     applyPlaybackMutes(engine,selectPlaybackConfiguration(new Ym2612VGM(source)),mute);
-    const result = await renderVgmToWav(player, { maxSeconds });
+    const result = await renderVgmToWav(player, { maxSeconds, startSeconds });
     return { ...result, warnings };
   } finally { engine.dispose(); }
 }

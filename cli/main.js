@@ -29,12 +29,13 @@ MSX: any subset of AY-3-8910 / YM2413 / Y8950 / K051649 (one of each) is support
 Sega PCM with embedded samples, alone or with YM2151, optionally with Sega PSG, is supported.
 --ymf278b-rom FILE: 2097152-byte wave ROM; needed for PCM key-on without embedded sample blocks.
 --ym2608-rom FILE: 8192-byte rhythm ROM for YM2608; required only for rhythm key-on.
---max-seconds: >0 to 600; loops are not expanded. See CLI.md for limitations.
+--start SECONDS: render and discard preceding PCM; start + max-seconds <= 600.
+--max-seconds: output duration >0 to 600; loops are not expanded. See CLI.md for limitations.
 `;
 try {
   const { values, positionals } = parseArgs({ allowPositionals: true, options: {
     help: {type:'boolean',short:'h'}, version:{type:'boolean',short:'v'}, json:{type:'boolean'},
-    mute:{type:'string'}, channels:{type:'string'}, occurrence:{type:'string'}, id:{type:'string'}, all:{type:'boolean'}, at:{type:'string'}, channel:{type:'string'}, format:{type:'string'}, output:{type:'string',short:'o'}, bpm:{type:'string'},
+    start:{type:'string'}, mute:{type:'string'}, channels:{type:'string'}, occurrence:{type:'string'}, id:{type:'string'}, all:{type:'boolean'}, at:{type:'string'}, channel:{type:'string'}, format:{type:'string'}, output:{type:'string',short:'o'}, bpm:{type:'string'},
     'ymf278b-rom':{type:'string'}, 'ym2608-rom':{type:'string'}, 'max-seconds':{type:'string'}, force:{type:'boolean'},
   } });
   if (values.help) { console.log(help); }
@@ -44,7 +45,7 @@ try {
   } else {
     const [command, input] = positionals;
     if (!['score-channels','samples','analyze','export','render'].includes(command) || !input || positionals.length !== 2) throw new Error(help);
-    const allowed = { 'score-channels':['json'], samples:['json','id','all','output','force','format','occurrence'], analyze:['json'], export:['format','output','bpm','force','at','channel','channels'], render:['mute','output','max-seconds','force','ym2608-rom','ymf278b-rom'] }[command];
+    const allowed = { 'score-channels':['json'], samples:['json','id','all','output','force','format','occurrence'], analyze:['json'], export:['format','output','bpm','force','at','channel','channels'], render:['start','mute','output','max-seconds','force','ym2608-rom','ymf278b-rom'] }[command];
     for (const key of Object.keys(values)) if (!allowed.includes(key)) throw new Error(`--${key} is not valid for ${command}`);
     if (!['score-channels','analyze','samples'].includes(command) && !values.output) throw new Error('--output is required');
     if (command === 'export' && !exportFormats.includes(values.format)) throw new Error(`--format must be one of: ${exportFormats.join(', ')}`);
@@ -77,7 +78,7 @@ try {
     } else {
       const result = command === 'export'
         ? exportSource(source, { format: values.format, channels:values.channels===undefined?undefined:values.channels.split(','), atSeconds: values.at === undefined ? undefined : Number(values.at), channel: values.channel === undefined ? undefined : Number(values.channel), bpm: values.bpm === undefined ? undefined : Number(values.bpm), fileName: basename(input) })
-        : await renderSource(source, { mute:values.mute===undefined?[]:values.mute.split(','), maxSeconds: values['max-seconds'] === undefined ? 120 : Number(values['max-seconds']), roms: { ...(values['ym2608-rom'] === undefined ? {} : {ym2608AdpcmA:await readFile(values['ym2608-rom'])}), ...(values['ymf278b-rom'] === undefined ? {} : {ymf278bWave:await readFile(values['ymf278b-rom'])}) } });
+        : await renderSource(source, { startSeconds:values.start===undefined?0:Number(values.start), mute:values.mute===undefined?[]:values.mute.split(','), maxSeconds: values['max-seconds'] === undefined ? 120 : Number(values['max-seconds']), roms: { ...(values['ym2608-rom'] === undefined ? {} : {ym2608AdpcmA:await readFile(values['ym2608-rom'])}), ...(values['ymf278b-rom'] === undefined ? {} : {ymf278bWave:await readFile(values['ymf278b-rom'])}) } });
       await writeFile(values.output, result.bytes ?? result.text, { flag: values.force ? 'w' : 'wx' });
       console.error(`Wrote ${values.output}`);
       if (result.truncated) console.error('Warning: rendering stopped at --max-seconds.');

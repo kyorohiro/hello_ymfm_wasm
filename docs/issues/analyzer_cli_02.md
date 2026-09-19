@@ -177,7 +177,7 @@ Browser側ですでに共有化した音源は、CLIへ同じ処理を再実装�
 
 - [x] 10a: 楽譜のチャンネル一覧・選択。安定した指定方法を用意しMusicXML / LilyPondで検証する。
 - [x] 10b: WAVのチャンネル / 音源ミュート。エンジンごとの対応範囲を明示する。
-- [ ] 10c: WAVの開始時刻・区間指定。開始位置までのレジスタ・PCM状態を正しく再現する。
+- [x] 10c: WAVの開始時刻・区間指定。開始位置までのレジスタ・PCM状態を正しく再現する。
 - [ ] 10d: WAVのループ指定。時間上限を必須の安全弁として保ち、無限生成を防ぐ。
 
 完了: 各指定が出力へ反映され、不正指定を明確なエラーにする。
@@ -464,3 +464,15 @@ documentからbytesだけを取り出すと元情報は失われるので、必�
 - ミュートでも音源構成/ROM要件は変えない。指定なしは従来PCMを維持。次は10c（開始時刻・区間指定）。
 
 検証: npm test 56成功・0失敗、Analyzer 583成功・0失敗・1任意skip。代表source/channelのPCM変化・全ID検証後の適用・不正指定時の既存出力保護・実tarballのWAV一致を確認。itch cli10b-check生成・依存検査成功。実ブラウザUIとNode 22は未確認。
+
+
+### 10c 実装記録: WAV開始・区間
+
+- `render --start SECONDS --max-seconds DURATION` / Node・共通WAV coreの `startSeconds` を追加。
+- 先頭から同じblockサイズでplayer.processし、開始前PCMを破棄。途中blockから切り出し、FM位相・RAM・resampler状態を維持。別seek engineなし。
+- 開始/長さは出力frameへ四捨五入。start>=0、duration>0、有限、合計<=600秒。start省略時は従来出力。
+- 既存の最終block silenceを維持。rendered end超過はエラー、最終padding内は選択可能。曲末で区間は短くなる。
+- FM/ADPCM/PWMで全体WAVのsliceと一致、block境界を跨ぐ開始、不正範囲と既存出力保護を検証。
+- 次は10d（WAVループ指定）。
+
+検証: npm test 58成功・0失敗、Analyzer 583成功・0失敗・1任意skip。実tarballの区間WAVとNode出力一致、itch cli10c-check生成・依存検査成功。実ブラウザUIとNode 22は未確認。
