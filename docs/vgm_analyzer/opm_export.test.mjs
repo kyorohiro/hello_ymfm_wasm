@@ -1,3 +1,4 @@
+import {exportSource} from './analyzer_core.js';
 import {createStoredZipBytes} from './stored_zip.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -53,5 +54,9 @@ test('All OPM scans the full track, deduplicates per CH and retains held-key cha
  assert.match(patches[0].text,/M1: 0 0 0 0 0 10 /);assert.match(patches[1].text,/M1: 0 0 0 0 0 20 /);assert.match(patches[2].text,/M1: 0 0 0 0 0 30 /);
  assert.match(patches[4].text,/LFO: 0 7 0 0 0/);
  assert.deepEqual(extractOpmPatches(b),patches);
+ const zip=exportSource(b,{format:'opm-zip'});
+ assert.equal(zip.count,6);
+ assert.deepEqual(zip.bytes,createStoredZipBytes(patches.map(p=>({name:p.name,data:new TextEncoder().encode(p.text)}))));
+
  v.setUint32(0x30,3579545|0x40000000,true);assert.throws(()=>extractOpmPatches(b),/single YM2151/);
 });

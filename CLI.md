@@ -37,7 +37,7 @@ tetorica-vgm render song.vgz --output song.wav --max-seconds 120
 - `analyze`: header-declared chips/clocks, GD3 metadata, declared duration,
   command counts, data-block and PCM-RAM summaries, special-command details.
   JSON has `schemaVersion: 1`; declared chips are not a playback compatibility claim.
-- `export`: `tfi-zip`, `vgi-zip`, `midi`, `musicxml`, `lilypond`, `mucom`, `opnavoid`, `mxdrv`, `mgsdrv`.
+- `export`: `tfi-zip`, `vgi-zip`, `opm-zip`, `midi`, `musicxml`, `lilypond`, `mucom`, `opnavoid`, `mxdrv`, `mgsdrv`.
   Supported chips and approximation limits are those of the browser exporters.
   MUCOM/OPN-Avoid target OPN, MXDRV targets YM2151, MGSDRV targets AY/OPLL.
   BPM is an integer 4–999. Without `--bpm`, use the browser score suggestion,
@@ -58,7 +58,7 @@ tetorica-vgm render song.vgz --output song.wav --max-seconds 120
   errors, export notices and render warnings go to stderr.
 
 The CLI accepts VGM/VGZ/S98, not directories, ZIPs or stdin in this version.
-TFI/VGI ZIP export is supported; other patch ZIP formats, sample extraction and interactive audition/editing remain browser features.
+TFI/VGI/OPM ZIP export is supported; time/channel snapshots, sample extraction and interactive audition/editing remain browser features.
 
 ## Node API
 
@@ -287,8 +287,7 @@ and `conversion.json` explain omitted DT2, modulation, noise and key masks.
 
 No keyed tones is an error and creates no ZIP. Existing output is protected
 unless `--force` is supplied. ZIP timestamps are fixed for reproducible CLI
-output; Browser downloads retain their current timestamps. OPM ZIP and
-time/channel snapshots are separate follow-up tasks.
+output; Browser downloads retain their current timestamps. Time/channel snapshots are a separate follow-up task.
 
 
 VGI uses the same OPN extraction and is available as
@@ -298,3 +297,23 @@ global LFO settings, operator AM enable or source clock timing. YM2203 has
 no B4 register. YM2151 VGI conversion is not supported; use TFI ZIP or the
 Browser OPM export. Empty results, dual/variant flags and mixed FM families
 have the same restrictions as TFI ZIP.
+
+
+## All OPM ZIP
+
+```sh
+tetorica-vgm export song.vgz --format opm-zip --output opm.zip
+```
+
+Node API: `exportSource(source, {format:'opm-zip'})` returns
+`{bytes, count, warnings}`. Requires one non-variant YM2151; dual/variant
+YM2151 is rejected. Other chips in the track are not exported.
+
+Uses the Browser All OPM scan: captures key-on and voice changes while keys
+are held, including global LFO/noise changes, and deduplicates per channel.
+Pitch-only changes do not create new patches. Entries are `CH1_001.opm`,
+etc., with first-observed VGM sample and source clock metadata.
+
+OPM stores static settings, not performance or envelope phase. Importers may
+ignore LFO, PAN, SLOT or noise. Empty extraction is an error. ZIP timestamps
+are deterministic, and existing files require `--force` to overwrite.

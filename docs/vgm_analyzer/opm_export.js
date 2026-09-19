@@ -1,3 +1,4 @@
+import {createStoredZipBytes} from './stored_zip.js';
 import {Ym2612VGM} from '../js/ym2612vgm.js';
 import {createOpmState} from './opm_monitor.js';
 // VOPM text bank. Fields checked against Furnace DivEngine::loadOPM:
@@ -54,4 +55,16 @@ export function extractOpmPatches(buffer, {includeSnapshots = false} = {}) {
     else if ([15,0x18,0x19,0x1b].includes(r)) { for(let ch=0;ch<8;ch++)if(keys[ch])capture(ch); }
   }
   return patches;
+}
+
+
+// Shares the Browser's full-track scan and text encoder; no live engine needed.
+export function exportOpmZip(buffer) {
+  const patches = extractOpmPatches(buffer);
+  if (!patches.length) throw new Error('No keyed tones found for OPM ZIP');
+  return {
+    bytes: createStoredZipBytes(patches.map(p => ({name:p.name,data:new TextEncoder().encode(p.text)}))),
+    count: patches.length,
+    warnings: ['OPM stores static voice settings only; performance, pitch and envelope phase are not saved. Importers may ignore LFO, PAN, SLOT or noise settings.'],
+  };
 }

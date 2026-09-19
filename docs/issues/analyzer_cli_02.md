@@ -157,7 +157,7 @@ Browser側ですでに共有化した音源は、CLIへ同じ処理を再実装�
 
 - [x] 08a: TFI ZIP。対応するOPN / OPM音源と近似変換の注意を明示する。
 - [x] 08b: VGI ZIP。TFIと共通の抽出を再利用して検証する。
-- [ ] 08c: OPM ZIP。音色変化と重複除去をBrowserと照合する。
+- [x] 08c: OPM ZIP。音色変化と重複除去をBrowserと照合する。
 - [ ] 08d: 時刻・チャンネルを指定した音色スナップショット。
 - [ ] 出力名の衝突、空の抽出結果、既存ファイルの保護を検証する。
 
@@ -375,3 +375,17 @@ documentからbytesだけを取り出すと元情報は失われるので、必�
 - `npm run test:analyzer`: 583成功・0失敗・1任意skip。itchのcli08b-checkパッケージ生成・依存検査成功。
 
 実ブラウザUIとNode 22の確認は残る。次は08c（OPM ZIP）。
+
+
+### 08c 実装記録: All OPM ZIP
+
+- CLI `export --format opm-zip --output opm.zip` とNode API `exportSource(source,{format:'opm-zip'})` に対応。
+- Browserの `extractOpmPatches` とOPM text encoderをそのまま共有し、Coreで既存ZIP writerへ渡す。DOM・音源初期化・filesystemへの依存追加なし。
+- 単一・非variantのYM2151を対象とし、dual/variantは拒否。他音源の併存時も抽出対象はYM2151のみ。
+- key-on / held-key音色変更 / global LFO・noise変更を抽出。チャンネル別の重複除去を維持し、pitch-only変更では増やさない。
+- Browserと同じファイル名・OPM本文・first-observed sample・source clockを保持。空結果はエラー、既存出力はforceなしで保護。
+- `npm test`: 40成功・0失敗。実tarballのoffline install後、CLI／Node APIからのOPM ZIPを照合。
+- `npm run test:analyzer`: 583成功・0失敗・1任意skip。held-key変更と重複除去の既存テストにCore ZIP比較を追加。
+- itch cli08c-checkのパッケージ生成・依存検査成功。実ブラウザUIとNode 22は未確認。
+
+次は08d（時刻・チャンネル指定の音色スナップショット）。

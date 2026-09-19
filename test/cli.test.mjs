@@ -29,14 +29,14 @@ test('VGM/VGZ decode identically; CLI JSON matches browser parser',async()=>{
 test('every advertised export executes through CLI and score output equals browser',async()=>{
   const dir=mkdtempSync(join(tmpdir(),'tetorica-export-'));
   try {
-    for(const [format,name] of [['vgi-zip','ym2610b-fm'],['tfi-zip','ym2203-fm'],['midi','psg-tone'],['musicxml','psg-tone'],['lilypond','psg-tone'],['mgsdrv','ay-tone'],['mxdrv','opm-tone'],['mucom','opn-tone'],['opnavoid','opn-tone']]) {
+    for(const [format,name] of [['opm-zip','opm-audible'],['vgi-zip','ym2610b-fm'],['tfi-zip','ym2203-fm'],['midi','psg-tone'],['musicxml','psg-tone'],['lilypond','psg-tone'],['mgsdrv','ay-tone'],['mxdrv','opm-tone'],['mucom','opn-tone'],['opnavoid','opn-tone']]) {
       const input=fixture(name+'.vgz'),output=join(dir,format);
       const result=cli('export',input,'--format',format,'--output',output,'--bpm','120');
       assert.equal(result.status,0,result.stderr);assert(readFileSync(output).length>0);
     }
-    for(const format of ['tfi-zip','vgi-zip']){
+    for(const format of ['tfi-zip','vgi-zip','opm-zip']){
       const zipPath=join(dir,format),before=readFileSync(zipPath);
-      const input=fixture((format==='tfi-zip'?'ym2203-fm':'ym2610b-fm')+'.vgz');
+      const input=fixture((format==='opm-zip'?'opm-audible':format==='tfi-zip'?'ym2203-fm':'ym2610b-fm')+'.vgz');
       assert.equal(cli('export',input,'--format',format,'--output',zipPath).status,1);
       assert.deepEqual(readFileSync(zipPath),before);
       assert.equal(cli('export',input,'--format',format,'--output',zipPath,'--force').status,0);
@@ -174,6 +174,12 @@ test('npm tarball installs offline, runs via npx, and exports the library',async
     assert.deepEqual(readFileSync(vgiOut),Buffer.from(vgiExpected));
     const vgiApi=execFileSync(process.execPath,['--input-type=module','-e',"import {readSource,exportSource} from 'tetorica-vgm'; process.stdout.write(exportSource(await readSource(process.argv[1]),{format:'vgi-zip'}).bytes)",vgiInput],{cwd:dir});
     assert.deepEqual(vgiApi,Buffer.from(vgiExpected));
+    const opmInput=fixture('opm-audible.vgz'),opmOut=join(dir,'opm.zip');
+    execFileSync('npm',[...args,'export',opmInput,'--format','opm-zip','--output',opmOut],{cwd:dir});
+    const opmExpected=exportSource(await readSource(opmInput),{format:'opm-zip'}).bytes;
+    assert.deepEqual(readFileSync(opmOut),Buffer.from(opmExpected));
+    const opmApi=execFileSync(process.execPath,['--input-type=module','-e',"import {readSource,exportSource} from 'tetorica-vgm'; process.stdout.write(exportSource(await readSource(process.argv[1]),{format:'opm-zip'}).bytes)",opmInput],{cwd:dir});
+    assert.deepEqual(opmApi,Buffer.from(opmExpected));
     const s98Input=fixture('s98-ym2203.s98');
     const s98Summary=JSON.parse(execFileSync('npm',[...args,'analyze',s98Input,'--json'],{cwd:dir,encoding:'utf8'}));
     assert.equal(s98Summary.sourceHeader.format,'S983');
