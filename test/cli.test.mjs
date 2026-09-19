@@ -133,7 +133,7 @@ test('npm tarball installs offline, runs via npx, and exports the library',async
       assert.match(failure.stderr,/Missing ROM|ENOENT|8192 bytes/);
     }
     assert.equal(cli('analyze',fixture('ym2608-rhythm.vgz'),'--ym2608-rom',romPath).status,1);
-    for(const name of ['ym2610-mix','ym2610b-mix','okim6258-tone','opm-oki-mix','y8950-psg','ymf278b-psg','segapcm-bank1','segapcm-opm-psg','msx-scc','msx-ay-opll','msx-ay-opll-audio-scc']) {
+    for(const name of ['ym2610-mix','ym2610b-mix','okim6258-tone','opm-oki-mix','y8950-psg','ymf278b-psg','segapcm-bank1','segapcm-opm-psg','msx-scc','msx-ay-opll','msx-ay-opll-audio-scc','pwm-stream','pwm-all']) {
       const out=join(dir,name+'.wav'),input=fixture(name+'.vgz');
       execFileSync('npm',[...args,'render',input,'--output',out,'--max-seconds','0.05'],{cwd:dir});
       const expected=await renderSource(await readSource(input),{maxSeconds:.05});

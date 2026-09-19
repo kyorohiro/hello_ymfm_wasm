@@ -208,3 +208,16 @@ FM families remain unsupported. This does not enable every MSX hardware
 variant. Offline package tests cover SCC alone, AY + OPLL and the four-chip
 mix; source tests cover all 15 subsets and compare their PCM to the sum of
 the individual chips as well as WAV output from the Browser engines.
+
+## 32X PWM
+
+`render` supports PWM alone or with YM2612 / Sega PSG / RF5C164 using the
+existing shared Genesis engine. Direct PWM writes and embedded 16-bit PWM
+streams use the same parser scheduling as the browser. No new WASM is needed.
+This is a sample-and-hold approximation, without hardware FIFO/timer emulation;
+it is not a cycle-accurate 32X emulator. The Genesis engine initializes YM2612
+and PSG even for PWM-only input, preserving the Browser's small idle YM2612
+DC contribution. Dual/variant flags and unrelated chip families are rejected.
+
+Tests cover direct/stream equivalence, stereo routing, reset, individual
+FM/PSG/RF5C164 combinations and their full mix, plus installed CLI/Node output.

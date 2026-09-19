@@ -138,7 +138,7 @@ Browser側ですでに共有化した音源は、CLIへ同じ処理を再実装�
 - [x] 06b: YMF278B。外部wave ROM指定、FMとPCM、ROM不足時の動作を検証する。
 - [x] 06c: Sega PCM。埋め込みサンプルとバンク設定を検証する。
 - [x] 06d: MSX系の複合音源。01で確定したBrowser対応構成を一つずつ接続・検証する。
-- [ ] 06e: 32X PWMなど残る構成を対応表と照合し、Browserで動く範囲を接続・検証する。
+- [x] 06e: 32X PWMなど残る構成を対応表と照合し、Browserで動く範囲を接続・検証する。
 
 完了: 対応表の各構成について対応済みか、残る具体的な制約が記載されている。
 
@@ -323,3 +323,17 @@ tarballの別ディレクトリoffline installから外部ROM付きCLI / Node AP
 
 すべてのMSX実機variantへの対応を意味するものではない。現行Browser/Coreが受け付ける各音源1台の構成を対象とする。
 実ブラウザUIとNode 22での検証は未実施。次は06e（32X PWMなど残る構成）。
+
+
+### 06e 実装記録: 32X PWMと残る構成の照合
+
+- 共有recipeが要求する18種類のWASM factoryはすべてNode providerに存在することを照合。PWMは既存Genesis engine内のJS処理なので追加WASM・CLI専用engineは不要。
+- 自作fixtureでPWM単体（直接書き込み / 16-bit stream / stereo）、FM・PSG・RF5C164との各併用、4音源混合を確認。
+- 直接書き込みと同時刻のstream出力がWAVで一致。Browser用engineの直接生成とCLIのWAV、reset後の出力も一致。混合時のPWM / PSG / PCMのミュートで各音源の寄与を検証。
+- dual / variantと非対応系列との混在を拒否するテストを追加。offline installしたtarballからPWM streamと4音源混合をCLI / Node APIで実行。
+- `npm test`: 32件成功。`npm run test:analyzer`: 584件中583成功・0失敗・1skip（任意の外部mml2mdrテスト）。
+
+制約: PWMは値を次のwriteまで保持する近似であり、FIFO / hardware timerは再現しない。
+PWM単体でも既存Genesis engineがYM2612 / PSGを初期化するため、YM2612の無発音時DC成分が加わる。Browser互換の既存動作として維持。
+全factory提供は任意のchip混在の保証ではない。OKIM6258の追加は単体 / YM2151併用を実発音検証済みで、他engineとの全組み合わせは未検証。
+実ブラウザUI・Node 22・実曲網羅テストは残る。次は07（S98入力）。

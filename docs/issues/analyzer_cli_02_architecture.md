@@ -58,7 +58,7 @@ CLI列は現時点のfactory提供範囲であり、02以降の発音検証・�
 | 構成 / engine kind | Browser生成経路 | Node factoryの状態 / 後続作業 |
 | --- | --- | --- |
 | YM2612、Sega PSG単体、YM2612 + PSG | Genesis | 提供済み |
-| Genesis + RF5C164 / PWM | Genesis内PCM / PWM | RF5C164提供済み。PWMは内蔵処理だが06eで専用検証 |
+| Genesis + RF5C164 / PWM | Genesis内PCM / PWM | 提供済み。PWM直接 / stream・FM / PSG / RF5C164混合・tarball検証済み |
 | YM2151 + 任意のPSG / Sega PCM | YM2151 | 提供済み。Sega PCM / PSG併用も実PCM・tarball検証済み |
 | YM2413 / YM3526 / YM3812 / YMF262 + 任意のPSG | 各既存engine | 提供済み |
 | AY単体、AY + YM2413 | AY / MSX | 提供済み。AY + OPLLの実PCM・tarball検証済み |
@@ -99,7 +99,7 @@ YM2203 / YM2608 / YM2610Bのクロック・variant・ROM投入は共有recipeが
   VM検証はWebAudioデバイスやAudioWorkletを検証するものではない。
 - 最低対応Node 22での確認は12に残す。今回の実行環境はNode 25。
 
-検証結果: `npm test` 30件成功。`npm run test:analyzer` は584件中583成功・0失敗・1skip（外部 mml2mdr が必要な任意テスト）。
+検証結果: `npm test` 32件成功。`npm run test:analyzer` は584件中583成功・0失敗・1skip（外部 mml2mdr が必要な任意テスト）。
 旧UIモック・音源対応の期待値・DAC開始時刻の期待値を現行仕様へ更新し、以前の11失敗を解消。
 新規の回帰失敗なし。npm tarballの別ディレクトリへのインストールと実行をテスト内で確認。
 itchパッケージ生成・生成物のCore importも成功。更新distでJungle (Battle)の先頭1秒をWAV変換した。
@@ -107,3 +107,10 @@ itchパッケージ生成・生成物のCore importも成功。更新distでJung
 02: YM2203はNodeのfactory一覧とWASMローダーの対象環境のみ追加。共有recipe・PCM処理の変更は不要だった。
 
 03: YM2608も既存recipeを利用。CLIのROMパスをNode adapterで読み、roms.ym2608AdpcmAとして渡す。Nodeでは完全な8192-byte ROMを検証し、Browserの低レベル部分ロード仕様は維持する。
+
+
+06e時点で共有recipeが要求する18 factoryはNodeにすべて提供済み。
+PWMは内蔵JSの近似処理を共有し、単体・Genesis混合を検証した。
+FIFO / timer未再現、PWM単体でもYM2612のidle DCが加算される点を維持する。
+factory提供済みと任意の複合構成の実発音検証済みは別であり、特にOKIM6258の
+全engineへの追加組み合わせは未検証（単体 / YM2151併用は検証済み）。

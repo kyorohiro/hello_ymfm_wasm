@@ -33,3 +33,7 @@ No game ROM data is used.
 `msx-*` covers all 15 nonempty subsets of AY, OPLL, Y8950 and SCC.
 It uses authored register sequences, an authored SCC ramp and the synthetic
 Y8950 ADPCM pattern above. No game music or external ROM is included.
+
+`pwm-*` uses authored 12-bit pulse values, equivalent timed direct writes and
+16-bit stream data, stereo routing, and the authored Genesis voices above.
+It contains no game music. PWM is the existing Browser sample-and-hold model.

@@ -1,5 +1,5 @@
 // Original register sequences, not game music. Regenerate binary fixtures deterministically.
-import { writeFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
 import { gzipSync } from 'node:zlib';
 function file(name,clockOffset,clock,commands,extraClocks=[],okiFlags=0) {
   const bytes=new Uint8Array(256+commands.length),v=new DataView(bytes.buffer);
@@ -112,3 +112,22 @@ for(let mask=1;mask<16;mask++){
   file('msx-'+selected.map(v=>v[0]).join('-'),selected[0][1],selected[0][2],
     [...selected.flatMap(v=>v[3]),...wait,0x66],selected.slice(1).map(v=>[v[1],v[2]]));
 }
+
+// 32X PWM: authored pulses, equivalent direct writes and 16-bit stream units.
+const pwmWrite=(r,v)=>[0xb2,(r<<4)|(v>>8),v&255];
+const pwmSetup=[...pwmWrite(0,5),...pwmWrite(1,100)];
+const pulses=Array.from({length:220},(_,i)=>i%2?40:60);
+const pwmDirect=[...pwmSetup,...pulses.flatMap(v=>[...pwmWrite(4,v),0x61,100,0]),0x61,50,0,0x66];
+const pwmStream=[...pwmSetup,0x67,0x66,3,0xb8,1,0,0,...pulses.flatMap(v=>[v,0]),
+  0x90,0,0x11,0,4,0x91,0,3,1,0,0x92,0,0xb9,1,0,0,
+  0x93,0,0,0,0,0,1,220,0,0,0,...wait,0x66];
+file('pwm-direct',0x70,23011361,pwmDirect);
+file('pwm-stream',0x70,23011361,pwmStream);
+file('pwm-stereo',0x70,23011361,[...pwmSetup,...pwmWrite(2,75),...pwmWrite(3,25),...wait,0x66]);
+const genesisFm=[...fm.map((v,i)=>i%3===0?0x52:v),0x52,0xb4,0xc0];
+const rfVoice=[...readFileSync(new URL('genesis-pcm.vgm',import.meta.url)).subarray(256,-7)];
+for(const [name,commands,clocks] of [
+  ['fm',genesisFm,[[0x2c,7670454]]],['psg',yPsg,[[0x0c,3579545]]],
+  ['pcm',rfVoice,[[0x6c,12500000]]],
+  ['all',[...genesisFm,...yPsg,...rfVoice],[[0x2c,7670454],[0x0c,3579545],[0x6c,12500000]]],
+])file('pwm-'+name,0x70,23011361,[...commands,...pwmDirect],clocks);
