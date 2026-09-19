@@ -47,7 +47,7 @@ test('mml2mdr compiles generated MML to verified MDX notes and voice bytes',{ski
 test('MML dialog offers MXDRV only for YM2151 and keeps OPN choices',async()=>{
  const vm=await import('node:vm');const script=readFileSync(new URL('./vgm_analyzer.js',import.meta.url),'utf8');
  let click,submit;const buttons=['mucom88','opnavoid','mxdrv','cancel'].map(value=>({value}));const downloads=[];
- const ctx=vm.createContext({currentChipKind:'ym2151',currentBuffer:source,exportMmlButton:{addEventListener:(_,fn)=>click=fn},mmlFormatDialog:{querySelectorAll:()=>buttons,querySelector:()=>({addEventListener:(_,fn)=>submit=fn}),showModal(){}},downloadMml:f=>downloads.push(f)});
+ const ctx=vm.createContext({exportTempo:{prepare(){}},mmlBpmInput:{},document:{getElementById:()=>({})},setStatus(message){assert.fail(message);},currentChipKind:'ym2151',currentBuffer:source,exportMmlButton:{addEventListener:(_,fn)=>click=fn},mmlFormatDialog:{querySelectorAll:()=>buttons,querySelector:()=>({addEventListener:(_,fn)=>submit=fn}),showModal(){}},downloadMml:f=>downloads.push(f)});
  vm.runInContext(script.slice(script.indexOf('exportMmlButton.addEventListener("click"'),script.indexOf('exportMidiButton.addEventListener("click"')),ctx);
  click();assert.equal(buttons[0].disabled,true);assert.equal(buttons[2].disabled,false);submit({submitter:{value:'mxdrv'}});assert.deepEqual(downloads,['mxdrv']);
  ctx.currentChipKind='ym2612';click();assert.equal(buttons[0].disabled,false);assert.equal(buttons[1].hidden,false);assert.equal(buttons[2].disabled,true);

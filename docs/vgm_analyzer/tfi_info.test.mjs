@@ -61,7 +61,7 @@ test('TFI tab switching and first audition leave VGM playback running', () => {
   const source = readFileSync(new URL('./vgm_analyzer.js', import.meta.url), 'utf8');
   const nodes = new Map();
   const element = () => ({
-    setAttribute() {}, addEventListener() {},
+    setAttribute() {}, addEventListener() {}, prepend() {},
     querySelector(selector) { if (!nodes.has(selector)) nodes.set(selector, element()); return nodes.get(selector); },
   });
   const panelSource = readFileSync(new URL('./tfi_info.js', import.meta.url), 'utf8')
@@ -70,10 +70,12 @@ test('TFI tab switching and first audition leave VGM playback running', () => {
   const synths = [];
   let stopped = 0;
   const context = vm.createContext({
-    document: { getElementById: element }, window: { addEventListener() {} },
+    document: { getElementById: element, createElement: element }, window: { addEventListener() {} },
     createTfiFileEditor(options) { editorOptions = options; return { setVisible() {}, dispose() {} }; },
     MegaSynth: class { constructor(options) { this.options = options; synths.push(this); } },
     mountOpmInfo() { return {setVisible() {},dispose() {}}; },
+    mountYm2413Monitor() { return {}; },
+    sheetMusicPanel:element(),sheetMusicTab:element(),musicSheet:null,currentBuffer:null,midiExportAvailable:false,
     setStatus() {}, currentChipKind: 'ym2612',
     player: { isPlaying: () => true, pause: () => stopped++, stop: () => stopped++ },
     pauseButton: { click: () => stopped++ },

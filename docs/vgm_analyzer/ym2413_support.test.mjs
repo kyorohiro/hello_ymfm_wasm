@@ -1,3 +1,4 @@
+import {chipSupportContext} from './test_helpers/chip_support_context.mjs';
 import {detectPlaybackChipKind} from './playback_core.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -11,18 +12,22 @@ function fn(name) {
 }
 const tabNames=['operatorInfoTab','noteishTab','tfiInfoTab','sampleTab'];
 const buttonNames=['exportMidiButton','exportMmlButton','exportSnapshotTfiButton','exportSnapshotVgiButton','exportSnapshotButton','exportAllTfiButton','exportAllVgiButton'];
-for (const chip of ['msx','ym3526','ym2413','ym2151','ym3812','ymf262']) test(`${chip} playback-only mode disables analysis and restores OPN tabs`,()=>{
+for (const chip of ['msx','ym3526','ym2413','ym2151','ym3812','ymf262']) test(`${chip} exposes supported analysis and exports and restores OPN tabs`,()=>{
   const notice={hidden:true};
-  const context={opnMonitorRoot:{},ayMonitorRoot:{},currentChipKind:chip,document:{getElementById:()=>notice},selected:null,
+  const context={...chipSupportContext(),opnMonitorRoot:{},ayMonitorRoot:{},currentChipKind:chip,document:{getElementById:()=>notice},selected:null,
     setOutputTab(name){context.selected=name;}};
-  for(const name of [...tabNames,...buttonNames])context[name]={disabled:false,title:''};
+  for(const name of [...tabNames,...buttonNames])context[name]={disabled:false,title:'',getAttribute:()=> 'false'};
   vm.createContext(context);vm.runInContext(fn('updateChipSupport'),context);
   context.updateChipSupport();
-  for(const name of [...tabNames,...buttonNames]) {
-    assert.equal(context[name].disabled,true,name);
-    assert.equal(context[name].title,'Support coming soon.');
-  }
-  assert.equal(context.selected,'parsed-output');assert.equal(notice.hidden,false);
+  const enabledTabs=chip==='ym2151'?['operatorInfoTab','noteishTab','tfiInfoTab']:chip==='ym2413'?['operatorInfoTab','noteishTab']:[];
+  const supportedExports=['ym2151','ym2413'].includes(chip)?['exportMidiButton','exportMmlButton']:[];
+  if(chip==='ym2151')supportedExports.push('exportAllTfiButton','exportSnapshotTfiButton');
+  for(const name of tabNames)assert.equal(context[name].disabled,!enabledTabs.includes(name),name);
+  for(const name of buttonNames)assert.equal(context[name].disabled,true,`${name}: no file loaded`);
+  context.currentBuffer={};context.midiExportAvailable=true;context.updateChipSupport();
+  for(const name of buttonNames)assert.equal(context[name].disabled,!supportedExports.includes(name),name);
+  assert.equal(context.sheetMusicTab.disabled,false);
+  assert.equal(context.selected,enabledTabs.length?'operator-info':'parsed-output');assert.equal(notice.hidden,false);
   context.currentChipKind='ym2612';context.updateChipSupport();
   for(const name of tabNames)assert.equal(context[name].disabled,false);
   assert.equal(notice.hidden,true);

@@ -16,9 +16,9 @@ test('VGM PCM bank DAC commands produce timestamped captured output',async()=>{
  const r=await extractSamples(file([0x67,0x66,0,2,0,0,0,192,64,0x52,0x2b,128,0xe0,0,0,0,0,0x82,0x83,0x52,0x2b,0,0x66]));
  const s=r.samples[0];assert.equal(s.kind,'dac');assert.equal(s.duration,5);assert.deepEqual([...renderDacPreview(s)],[0.5,0.5,-0.5,-0.5,-0.5]);
 });
-test('VGM stream frequency controls DAC write times',async()=>{
+test('VGM stream writes immediately, advances at its frequency and holds the final value',async()=>{
  const r=await extractSamples(file([0x67,0x66,0,2,0,0,0,192,64,0x52,0x2b,128,
   0x90,0,2,0,0x2a,0x91,0,0,1,0,0x92,0,0x22,0x56,0,0,
   0x93,0,0,0,0,0,1,2,0,0,0,0x61,6,0,0x52,0x2b,0,0x66]));
- assert.deepEqual([...renderDacPreview(r.samples[0])],[0,0,0.5,0.5,-0.5,-0.5]);
+ assert.deepEqual([...renderDacPreview(r.samples[0])],[0.5,0.5,-0.5,-0.5,-0.5,-0.5]);
 });

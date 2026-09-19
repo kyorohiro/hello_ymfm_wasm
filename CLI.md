@@ -105,8 +105,8 @@ and licenses. It excludes game files, fixtures, ROMs, HTML/CSS/images, OSMD,
 LilyPond runtime, Nuked-OPN2, `w/`, caches and browser bundles. Included chip code
 is BSD-3-Clause; third-party notices are shipped under `dist/licenses/`.
 Before publication run `npm test`, `npm run test:analyzer`, `npm pack --dry-run`,
-and install/test the tarball in a clean directory. The existing analyzer suite
-has 11 known baseline failures; do not mistake those for a fully green suite.
+and install/test the tarball in a clean directory. The analyzer suite has one optional compiler integration test that requires
+`MML2MDR_DIR`; without that external compiler it is skipped.
 
 ## Shared playback interface
 

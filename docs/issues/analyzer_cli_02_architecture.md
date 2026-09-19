@@ -99,6 +99,7 @@ YM2203 / YM2608 / YM2610Bのクロック・variant・ROM投入は共有recipeが
   VM検証はWebAudioデバイスやAudioWorkletを検証するものではない。
 - 最低対応Node 22での確認は12に残す。今回の実行環境はNode 25。
 
-検証結果: `npm test` 13件成功。`npm run test:analyzer` は584件中572成功・既知の11失敗・1skip。
+検証結果: `npm test` 13件成功。`npm run test:analyzer` は584件中583成功・0失敗・1skip（外部 mml2mdr が必要な任意テスト）。
+旧UIモック・音源対応の期待値・DAC開始時刻の期待値を現行仕様へ更新し、以前の11失敗を解消。
 新規の回帰失敗なし。npm tarballの別ディレクトリへのインストールと実行をテスト内で確認。
 itchパッケージ生成・生成物のCore importも成功。更新distでJungle (Battle)の先頭1秒をWAV変換した。
