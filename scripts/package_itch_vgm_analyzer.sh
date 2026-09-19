@@ -40,6 +40,7 @@ opm_notes.js
 vgm_mml.js
 vgm_notes.js
 tone_notes.js
+gameboy_notes.js
 fretboard.js
 fretboard_all.js
 vgm_midi.js

@@ -26,6 +26,44 @@ for (const chip of ['msx','ym3526','ym2413','ym2151','ym3812','ymf262']) test(`$
   for(const name of tabNames)assert.equal(context[name].disabled,false);
   assert.equal(notice.hidden,true);
 });
+test('gameboy playback-only mode leaves only Note-ish enabled',()=>{
+  // Regression: Game Boy DMG note-ish (CH1/2 square, CH3 wave) was added
+  // after 'gameboy' had already been placed in the blanket "force
+  // parsed-output, disable every analysis tab" lists shared with
+  // segapcm/y8950/etc. This locks in that only the Note-ish tab (and
+  // setOutputTab allowing 'noteish') stay reachable for Game Boy.
+  const notice={hidden:true};
+  const stub=()=>({disabled:false,hidden:true,title:'',getAttribute(){return 'false';},setAttribute(){}});
+  const context={opnMonitorRoot:{},opmMonitorRoot:{},ayMonitorRoot:{},ym2413MonitorRoot:{},noteishHeader:{},
+    currentChipKind:'gameboy',currentBuffer:null,midiExportAvailable:false,musicSheet:null,
+    exportLilyPondButton:stub(),exportAllOpmButton:stub(),exportOpmButton:stub(),sheetMusicTab:stub(),
+    document:{getElementById:()=>notice},selected:null,
+    setOutputTab(name){context.selected=name;}};
+  for(const name of [...tabNames,...buttonNames])context[name]={disabled:false,title:''};
+  vm.createContext(context);vm.runInContext(fn('updateChipSupport'),context);
+  context.updateChipSupport();
+  assert.equal(context.noteishTab.disabled,false,'noteishTab');
+  assert.equal(context.noteishTab.title,'');
+  for(const name of ['operatorInfoTab','tfiInfoTab','sampleTab',...buttonNames]) {
+    assert.equal(context[name].disabled,true,name);
+    assert.equal(context[name].title,'Support coming soon.');
+  }
+  assert.equal(notice.hidden,false);
+  assert.match(notice.textContent,/Note-ish available/);
+});
+test('setOutputTab allows noteish and parsed-output for gameboy but forces parsed-output for anything else',()=>{
+  const stub=()=>({setAttribute(){},hidden:false,tabIndex:0});
+  const context=vm.createContext({currentChipKind:'gameboy',currentBuffer:null,midiExportAvailable:false,status:{textContent:'',hidden:true},
+    noteishViewMode:'live',sampleExplorer:{stop(){}},songTimeline:{active(){}},requestNoteishRender(){},renderNoteishGrid(){},
+    sheetMusicPanel:stub(),sheetMusicTab:stub(),musicSheet:null,tfiInfo:{setVisible(){}},opmInfo:{setVisible(){}},
+    tfiInfoTab:stub(),samplePanel:stub(),sampleTab:stub(),operatorInfoPanel:stub(),operatorInfoTab:stub(),
+    parsedOutputPanel:stub(),parsedOutputTab:stub(),noteishPanel:stub(),noteishTab:stub(),
+    setStatus(message){context.status.textContent=message;}});
+  vm.runInContext(fn('setOutputTab'),context);
+  context.setOutputTab('noteish');assert.equal(context.noteishPanel.hidden,false,'noteish stays reachable');
+  context.setOutputTab('operator-info');assert.equal(context.parsedOutputPanel.hidden,false,'unsupported tab falls back to parsed-output');
+  assert.equal(context.operatorInfoPanel.hidden,true);
+});
 test('YM2413 + PSG does not enter the OPN tone monitor',()=>{
   const context=vm.createContext({currentChipKind:'ym2413',toneChannels:[{old:true}]});
   vm.runInContext(fn('updateToneMonitor'),context);

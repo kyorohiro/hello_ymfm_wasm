@@ -31,6 +31,7 @@ import { seekPlayback } from './seek_playback.js';
 import { timelinePlaybackPosition } from './note_timeline.js';
 import { createYm2610BAudioEngine } from '../js/ym2610baudioengine.js';
 import { describeToneNotes } from './tone_notes.js?v=ym2610-vgm-2';
+import { createGameboyMonitor, applyGameboyWrite, describeGameboyNotes } from './gameboy_notes.js';
 import { midiChipKind } from "./vgm_notes.js?v=ym2610-vgm-2";
 import { renderFretboard, FRET_TRAIL_MS, createFretboardTracker } from "./fretboard.js?v=hand-position-2";
 import { exportAnalysisMidi } from "./vgm_midi.js?v=opm-midi-1";
@@ -418,6 +419,8 @@ let monitorFrequencyHigh = [0, 0];
 let psgMonitor = createPsgMonitor(currentChipKind);
 let noteishHeader = {};
 let toneChannels = [];
+let gameboyMonitor = createGameboyMonitor();
+let gameboyNoteChannels = [];
 let ym2413NoteChannels = [];
 let psgHighlightActive = false;
 let baseEngineWriteYm2612 = null;
@@ -1008,6 +1011,7 @@ function resetOpmNotes(clock) {
 function noteishChannels() {
   if (currentChipKind === "ym2151") return opmNoteChannels;
   if (currentChipKind === "ym2413") return ym2413NoteChannels;
+  if (currentChipKind === "gameboy") return gameboyNoteChannels;
   const fm = noteishHeader.psgClock && !noteishHeader[`${currentChipKind}Clock`] ? [] : channelMonitor;
   const opllExtra = currentChipKind === "ay8910" && (noteishHeader.ym2413Clock & 0x3fffffff) ? ym2413NoteChannels : [];
   return [...fm.filter(ch=>!ch.unavailable), ...toneChannels, ...opllExtra];
@@ -1062,6 +1066,33 @@ function resetYm2413NoteChannels() {
   ym2413NoteChannels = [];
   updateYm2413ToneMonitor();
   requestChannelMonitorRender();
+}
+
+function updateGameboyNoteMonitor() {
+  if (!gameboyNoteChannels.length) gameboyNoteChannels = Array.from({length:3}, (_,index)=>({...buildMonitorChannel(index), gameboy:true, toneMidi:null, label:`GB CH${index+1}`, gameboyType: index===2?'Wave':'Square'}));
+  const now = songTimeMs();
+  describeGameboyNotes(gameboyMonitor).forEach((note,i)=>{
+    const ch = gameboyNoteChannels[i];
+    ch.unavailable = false;
+    const midi = note.midi;
+    if (ch.keyOn !== note.keyOn || ch.toneMidi !== midi) {
+      ch.noteHistory.push({time:now,midiFloat:midi});
+      if (note.keyOn) {
+        ch.noteMinMidi = ch.noteMinMidi === null ? midi : Math.min(ch.noteMinMidi,midi);
+        ch.noteMaxMidi = ch.noteMaxMidi === null ? midi : Math.max(ch.noteMaxMidi,midi);
+      }
+    }
+    ch.keyOn=note.keyOn; ch.toneMidi=midi; ch.freq=note.freq;
+    pruneChannelNoteHistory(ch,now);
+  });
+  requestNoteishRender();
+}
+
+function resetGameboyNoteChannels() {
+  gameboyMonitor = createGameboyMonitor();
+  gameboyNoteChannels = [];
+  updateGameboyNoteMonitor();
+  requestNoteishRender();
 }
 
 function resetPsgMonitor() {
@@ -1165,7 +1196,7 @@ function estimateChannelNoteish(channel) {
     return { midiFloat:midi, note:midi === null ? (channel.isRhythmChannel ? 'Rhythm' : 'No pitch') : `~${midiToNoteName(Math.round(midi))}`,
       cents:midi === null ? null : Math.round((midi-Math.round(midi))*100) };
   }
-  if (channel.tone) {
+  if (channel.tone || channel.gameboy) {
     const midi = channel.toneMidi;
     return { midiFloat:midi, note:midi === null ? 'No pitch' : `~${midiToNoteName(Math.round(midi))}`,
       cents:midi === null ? null : Math.round((midi-Math.round(midi))*100) };
@@ -1648,11 +1679,11 @@ function renderNoteishGrid() {
       </div>
       <div class="noteish-meta">
         RANGE ${rangeText}<br>
-        ${channel.opm ? `KC ${channel.kc} / KF ${channel.kf}<br>Base pitch; LFO/DT/MUL and audible release are not reconstructed.` : channel.opll ? `FNUM ${channel.fnum} / BLOCK ${channel.block}<br>Instrument ${channel.instrument === 0 ? "Custom" : channel.instrument} / Volume ${channel.volume}${channel.isRhythmChannel ? "<br>Repurposed for rhythm; base pitch not shown." : ""}` : channel.tone ? `PERIOD ${channel.period}<br>Envelope ${channel.envelope ? "on (estimated)" : "off"} / Noise ${channel.noise ? "mixed" : "off"}` : `BLOCK ${channel.block}<br>
+        ${channel.opm ? `KC ${channel.kc} / KF ${channel.kf}<br>Base pitch; LFO/DT/MUL and audible release are not reconstructed.` : channel.opll ? `FNUM ${channel.fnum} / BLOCK ${channel.block}<br>Instrument ${channel.instrument === 0 ? "Custom" : channel.instrument} / Volume ${channel.volume}${channel.isRhythmChannel ? "<br>Repurposed for rhythm; base pitch not shown." : ""}` : channel.tone ? `PERIOD ${channel.period}<br>Envelope ${channel.envelope ? "on (estimated)" : "off"} / Noise ${channel.noise ? "mixed" : "off"}` : channel.gameboy ? `${channel.gameboyType} · FREQ ${channel.freq}<br>Length counter and channel 1 sweep are time-based and not reconstructed.` : `BLOCK ${channel.block}<br>
         FNUM ${channel.fnum}<br>
         ALG ${channel.algorithm} / FB ${channel.feedback}`}
       </div>
-      <div class="noteish-actions" ${channel.tone || channel.opm || channel.opll ? "hidden" : ""}>
+      <div class="noteish-actions" ${channel.tone || channel.opm || channel.opll || channel.gameboy ? "hidden" : ""}>
         <button class="noteish-button" type="button" data-show-notes="${channel.channel}">
           Show Notes
         </button>
@@ -2971,10 +3002,15 @@ async function ensurePlaybackReady(vgm) {
         bankShift: vgm.header.segaPcmBankShift, bankMask: vgm.header.segaPcmBankMask,
         segaPsgModuleFactory, psgClock: vgm.header.psgClock & 0x3fffffff, masterVolume,
       });
-      else engine = await createGameboyApuAudioEngine({
-        moduleFactory: (await import('../generated/gameboy_apu_wasm.js')).default,
-        clock: vgm.header.gameBoyDmgClock & 0x3fffffff, masterVolume,
-      });
+      else {
+        engine = await createGameboyApuAudioEngine({
+          moduleFactory: (await import('../generated/gameboy_apu_wasm.js')).default,
+          clock: vgm.header.gameBoyDmgClock & 0x3fffffff, masterVolume,
+        });
+        const gbWrite = engine.writeGameboyApu.bind(engine), gbReset = engine.reset.bind(engine);
+        engine.writeGameboyApu = (r, v) => { gbWrite(r, v); if (applyGameboyWrite(gameboyMonitor, r, v)) updateGameboyNoteMonitor(); };
+        engine.reset = () => { gbReset(); resetGameboyNoteChannels(); };
+      }
       observePsgPlaybackEngine();
     } else if (currentChipKind === "ym2151") {
       validateOpmPlayback(vgm.header);
@@ -3210,9 +3246,9 @@ function updateChipSupport() {
   const ay = currentChipKind === 'ay8910';
   const opll = currentChipKind === 'ym2413';
   const ayWithOpll = ay && Boolean(noteishHeader.ym2413Clock & 0x3fffffff);
-  const playbackOnly = ['okim6258', 'msx', 'y8950', 'ymf278b', 'ym3526', 'ym3812', 'ymf262', 'ym2151', 'ym2413'].includes(currentChipKind) || ay;
+  const playbackOnly = ['okim6258', 'msx', 'y8950', 'ymf278b', 'ym3526', 'ym3812', 'ymf262', 'ym2151', 'ym2413', 'gameboy'].includes(currentChipKind) || ay;
   for (const tab of [operatorInfoTab, noteishTab, tfiInfoTab, sampleTab]) {
-    tab.disabled = playbackOnly && !((ay || opll || currentChipKind === 'ym2151') && tab === operatorInfoTab) && !((currentChipKind === 'ym2151' && (tab === noteishTab || tab === tfiInfoTab)) || ((ay || opll) && tab === noteishTab));
+    tab.disabled = playbackOnly && !((ay || opll || currentChipKind === 'ym2151') && tab === operatorInfoTab) && !((currentChipKind === 'ym2151' && (tab === noteishTab || tab === tfiInfoTab)) || ((ay || opll || currentChipKind === 'gameboy') && tab === noteishTab));
     tab.title = tab.disabled ? 'Support coming soon.' : '';
   }
   for (const button of [exportMidiButton, exportMmlButton, exportSnapshotTfiButton,
@@ -3242,7 +3278,7 @@ function updateChipSupport() {
   }
   const notice = document.getElementById('chipSupportNotice');
   notice.hidden = !playbackOnly;
-  notice.textContent = currentChipKind === 'ym2151' ? 'YM2151 register monitor available. Base-pitch Note-ish available; noise/partial keys/CSM are omitted. MIDI base-pitch export available. OPM snapshots are available in the Export group. MXDRV MML export available. Instrument editing: Support coming soon.' : ay ? 'AY / YM2149 register monitor and base-pitch Note-ish available; noise/envelope shape are omitted. MIDI and LilyPond/Music Sheet base-pitch export available. Instrument editing and MML export: Support coming soon.' : opll ? 'YM2413 register monitor and base-pitch Note-ish available: FNUM/BLOCK base pitch, instrument number, volume and rhythm mode state; rhythm channels other than Bass Drum have no single pitch. MIDI and LilyPond/Music Sheet base-pitch export available. Instrument editing and MML export: Support coming soon.' : `${currentChipKind.toUpperCase()} analysis and instrument editing: Support coming soon.`;
+  notice.textContent = currentChipKind === 'ym2151' ? 'YM2151 register monitor available. Base-pitch Note-ish available; noise/partial keys/CSM are omitted. MIDI base-pitch export available. OPM snapshots are available in the Export group. MXDRV MML export available. Instrument editing: Support coming soon.' : ay ? 'AY / YM2149 register monitor and base-pitch Note-ish available; noise/envelope shape are omitted. MIDI and LilyPond/Music Sheet base-pitch export available. Instrument editing and MML export: Support coming soon.' : opll ? 'YM2413 register monitor and base-pitch Note-ish available: FNUM/BLOCK base pitch, instrument number, volume and rhythm mode state; rhythm channels other than Bass Drum have no single pitch. MIDI and LilyPond/Music Sheet base-pitch export available. Instrument editing and MML export: Support coming soon.' : currentChipKind === 'gameboy' ? 'Game Boy DMG base-pitch Note-ish available for CH1/CH2 (square) and CH3 (wave); CH4 (noise) has no pitch, and length counter/CH1 sweep are not reconstructed. Register monitor, MIDI/MML export and instrument editing: Support coming soon.' : `${currentChipKind.toUpperCase()} analysis and instrument editing: Support coming soon.`;
   opnMonitorRoot.hidden = ay || opll || currentChipKind === 'ym2151';
   opmMonitorRoot.hidden = currentChipKind !== 'ym2151';
   ayMonitorRoot.hidden = !ay;
@@ -3684,6 +3720,7 @@ async function handleFile(file) {
   if (currentChipKind === "ym2151") resetOpmNotes(vgm.header.ym2151Clock & 0x3fffffff);
   if (currentChipKind === "ay8910") ayMonitor.load(vgm.header);
   if (currentChipKind === "ym2413") { ym2413Monitor.load(vgm.header); resetYm2413NoteChannels(); }
+  if (currentChipKind === "gameboy") resetGameboyNoteChannels();
   currentHasPcm = Boolean(vgm.header.rf5c164Clock);
   currentPcmClock = vgm.header.rf5c164Clock & 0x3fffffff;
   channelMonitor = createChannelMonitorState();
@@ -4107,7 +4144,7 @@ tfiInfoTab.addEventListener('click', () => setOutputTab('tfi-info'));
 window.addEventListener('pagehide', event => { if (!event.persisted) { void tfiInfo.dispose(); void opmInfo.dispose(); } });
 
 function setOutputTab(tabName) {
-  if (!(tabName === "sheet-music" && currentBuffer && midiExportAvailable) && ((["okim6258", "msx", "y8950", "ymf278b", "ym3526", "ym3812", "ymf262", "segapcm", "gameboy"].includes(currentChipKind) && tabName !== "parsed-output") || (currentChipKind === "ay8910" && !["operator-info", "parsed-output", "noteish"].includes(tabName)) || (currentChipKind === "ym2413" && !["operator-info", "parsed-output", "noteish"].includes(tabName)) || (currentChipKind === "ym2151" && !["operator-info", "parsed-output", "noteish", "tfi-info"].includes(tabName)))) {
+  if (!(tabName === "sheet-music" && currentBuffer && midiExportAvailable) && ((["okim6258", "msx", "y8950", "ymf278b", "ym3526", "ym3812", "ymf262", "segapcm"].includes(currentChipKind) && tabName !== "parsed-output") || (currentChipKind === "gameboy" && !["parsed-output", "noteish"].includes(tabName)) || (currentChipKind === "ay8910" && !["operator-info", "parsed-output", "noteish"].includes(tabName)) || (currentChipKind === "ym2413" && !["operator-info", "parsed-output", "noteish"].includes(tabName)) || (currentChipKind === "ym2151" && !["operator-info", "parsed-output", "noteish", "tfi-info"].includes(tabName)))) {
     setStatus('Analysis and instrument editing: Support coming soon.');
     tabName = "parsed-output";
   }
