@@ -3,6 +3,7 @@ import { renderVgmToWav } from '../docs/vgm_analyzer/analyzer_core.js';
 import { Ym2612VGM } from '../docs/js/ym2612vgm.js';
 import { createPlaybackEngine, createPlaybackPlayer } from '../docs/vgm_analyzer/playback_core.js';
 import rf5c164 from '../docs/generated/rf5c164_wasm.js';
+import ym2203 from '../docs/generated/ym2203_wasm.js';
 import ym2612 from '../docs/generated/ym2612_wasm.js';
 import segapsg from '../docs/generated/segapsg_wasm.js';
 import ym2413 from '../docs/generated/ym2413_wasm.js';
@@ -13,7 +14,7 @@ import ym3812 from '../docs/generated/ym3812_wasm.js';
 import ay8910 from '../docs/generated/ay8910_wasm.js';
 import gameboy from '../docs/generated/gameboy_apu_wasm.js';
 
-const factories = { rf5c164, ym2612, segapsg, ym2413, ym2151, ymf262, ym3526, ym3812, ay8910, gameboy_apu: gameboy };
+const factories = { ym2203, rf5c164, ym2612, segapsg, ym2413, ym2151, ymf262, ym3526, ym3812, ay8910, gameboy_apu: gameboy };
 export async function getNodePlaybackFactory(name) {
   if (!factories[name]) return undefined;
   const wasmBinary = await readFile(new URL(`../docs/generated/${name}_wasm.wasm`, import.meta.url));

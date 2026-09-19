@@ -128,3 +128,30 @@ test('OPN recipes use the same injected factory and ROM contract without a CLI e
     } finally {Engine.create=original;}
   }
 });
+
+test('YM2203 renders FM and SSG independently and matches the shared Browser engine',async()=>{
+  const {Ym2203AudioEngine}=await import('../docs/js/ym2203audioengine.js');
+  const rendered=[];
+  for(const name of ['fm','ssg','mix']) {
+    const source=await readSource(fixture('ym2203-'+name));
+    const result=await renderSource(source,{maxSeconds:.1});
+    assert.deepEqual(result.warnings,[]);
+    assert(result.bytes.subarray(44).some(x=>x!==0),`${name} must sound`);
+    rendered.push(result.bytes);
+    const engine=await Ym2203AudioEngine.create({ym2203ModuleFactory:await getNodePlaybackFactory('ym2203'),ym2203Clock:4000000});
+    try {
+      const player=createPlaybackPlayer(engine,source);player.play();
+      const browser=await renderVgmToWav(player,{maxSeconds:.1});
+      assert.deepEqual(result.bytes,browser.bytes);
+    } finally {engine.dispose();}
+  }
+  assert.notDeepEqual(rendered[2],rendered[0],'mix includes SSG');
+  assert.notDeepEqual(rendered[2],rendered[1],'mix includes FM');
+  const original=await readSource(fixture('ym2203-mix'));
+  for(const [offset,value] of [[0x44,0x40000000+4000000],[0x44,0x80000000+4000000],[0x0c,3579545],[0x48,8000000],[0x6c,12500000]]) {
+    const source=original.slice();new DataView(source.buffer).setUint32(offset,value,true);
+    await assert.rejects(renderSource(source),error=>error.code==='UNSUPPORTED_CONFIGURATION');
+  }
+  const missing=original.slice();new DataView(missing.buffer).setUint32(0x90,4000000,true);missing[0x94]=4;
+  await assert.rejects(renderSource(missing),error=>error.code==='MISSING_RESOURCE'&&error.details.resource==='okim6258');
+});

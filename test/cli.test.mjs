@@ -91,6 +91,9 @@ test('npm tarball installs offline, runs via npx, and exports the library',async
     assert(paths.includes('dist/cli/main.js'));
     assert(paths.includes('dist/docs/generated/ym2612_wasm.wasm'));
     assert(paths.includes('dist/docs/generated/rf5c164_wasm.wasm'));
+    assert(paths.includes('dist/docs/generated/ym2203_wasm.wasm'));
+    assert(paths.includes('LICENSE'));
+    assert(!paths.some(p=>/\.rom$|\.bin$/.test(p)));
     assert(!paths.some(p=>/\.(?:html|css|png|vgz|vgm)$/.test(p)||p.includes('/vendor/')||p.startsWith('w/')));
     execFileSync('npm',['install','--offline','--ignore-scripts','--no-audit','--no-fund','--prefix',dir,'--cache',cache,join(dir,packed.filename)],{encoding:'utf8'});
     const args=['exec','--offline','--prefix',dir,'--cache',cache,'--','tetorica-vgm'];
@@ -100,6 +103,12 @@ test('npm tarball installs offline, runs via npx, and exports the library',async
     execFileSync('npm',[...args,'render',fixture('genesis-pcm.vgz'),'--output',wav,'--max-seconds','0.1'],{cwd:dir});
     assert.equal(readFileSync(wav).subarray(0,4).toString(),'RIFF');
     assert(readFileSync(wav).subarray(44).some(x=>x!==0));
+    const opnWav=join(dir,'ym2203.wav');
+    execFileSync('npm',[...args,'render',fixture('ym2203-mix.vgz'),'--output',opnWav,'--max-seconds','0.1'],{cwd:dir});
+    const expected=await renderSource(await readSource(fixture('ym2203-mix.vgz')),{maxSeconds:.1});
+    assert.deepEqual(readFileSync(opnWav),Buffer.from(expected.bytes));
+    const apiWav=execFileSync(process.execPath,['--input-type=module','-e',"import {readSource,renderSource} from 'tetorica-vgm'; process.stdout.write((await renderSource(await readSource(process.argv[1]),{maxSeconds:.1})).bytes)",fixture('ym2203-mix.vgz')],{cwd:dir});
+    assert.deepEqual(apiWav,Buffer.from(expected.bytes));
     // Machine-readable probe output must remain identical with terminal colors enabled.
     for (const forceColor of ['0','1']) {
       const env={...process.env,FORCE_COLOR:forceColor};

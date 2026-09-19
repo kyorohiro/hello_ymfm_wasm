@@ -19,8 +19,8 @@ npm exec --offline --package ./tetorica-vgm-0.1.0.tgz -- tetorica-vgm --help
 
 After publication, the same commands work as `npx tetorica-vgm ...`.
 There are no npm runtime dependencies. Committed WASM artifacts are included;
-consumers do not need Emscripten. To rebuild YM2612/Sega PSG/RF5C164 from source, run
-`scripts/build_ym2612_wasm.sh`, `scripts/build_segapsg_wasm.sh`, and
+consumers do not need Emscripten. To rebuild YM2203/YM2612/Sega PSG/RF5C164 from source, run
+`scripts/build_ym2203_wasm.sh`, `scripts/build_ym2612_wasm.sh`, `scripts/build_segapsg_wasm.sh`, and
 `scripts/build_rf5c164_wasm.sh` with Emscripten installed.
 
 ## Commands
@@ -47,7 +47,9 @@ tetorica-vgm render song.vgz --output song.wav --max-seconds 120
   Initial CLI adapters support standalone YM2612, YM2151, YM2413, YM3526,
   YM3812, YMF262 (each optionally with Sega PSG), standalone Sega PSG,
   AY-3-8910, and Game Boy DMG. YM2612 + RF5C164 (Mega CD), with optional Sega PSG,
-  is also supported, including embedded PCM RAM data. Unsupported dual/variant chip flags are rejected.
+  is also supported, including embedded PCM RAM data. Standalone YM2203 supports
+  FM and internal SSG without external ROMs. YM2203 + Sega PSG / RF5C164 / other
+  OPN chips are rejected; YM2203 + OKIM6258 requires a factory not yet supplied by Node. Unsupported dual/variant chip flags are rejected.
   Missing WASM factories/ROMs are reported separately from unsupported configurations.
   Browser playback additionally supports chips/combinations
   that are not yet wired into this CLI. No external ROMs or browser effects

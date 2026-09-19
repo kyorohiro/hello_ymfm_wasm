@@ -97,9 +97,9 @@ Browser側ですでに共有化した音源は、CLIへ同じ処理を再実装�
 
 ### 02. YM2203のWAV変換
 
-- [ ] 共通interface経由でYM2203をCLIから利用可能にし、Node側のfactory提供・配布設定を整える。
-- [ ] FMと内蔵SSGを含むfixtureでWAVを検証する。
-- [ ] Browserが扱う併用音源の範囲を確認し、対応・拒否を明記する。
+- [x] 共通interface経由でYM2203をCLIから利用可能にし、Node側のfactory提供・配布設定を整える。
+- [x] FMと内蔵SSGを含むfixtureでWAVを検証する。
+- [x] Browserが扱う併用音源の範囲を確認し、対応・拒否を明記する。
 
 完了: YM2203のFM / SSGが欠落せず、配布したCLIでも変換できる。
 
@@ -216,3 +216,15 @@ Browser側ですでに共有化した音源は、CLIへ同じ処理を再実装�
 共有生成経路・自動検証を実装。[architecture・対応表・検証条件](analyzer_cli_02_architecture.md)を参照。
 Browser / CLIのchip別生成処理をplayback_coreへ集約。PCMは既存VgmPlayerを共有する。
 02以降のWASM追加は実施していない。実ブラウザのUI確認は未完了のため、01の最終確認として残す。
+
+### 02 実装記録
+
+YM2203のNode factoryを追加。既存のplayback_core / Ym2203AudioEngineをそのまま利用し、
+CLI専用の音源処理は追加していない。WASMローダーをweb / worker / node / shell用に再ビルドした。
+FM単独・SSG単独・両方の自作fixtureで発音とミックスを検証し、既存Browserエンジン経路とWAVが一致。
+別ディレクトリへtarballをoffline installし、CLI / Node APIの出力一致とWASM・LICENSE同梱を確認。
+
+対応は単体YM2203（FM + 内蔵SSG）。Sega PSG / RF5C164 / 他OPN併用およびdual / variantは明示拒否。
+共有Coreで扱うOKIM6258併用はNode factory未提供のためMISSING_RESOURCE（05で対応予定）。外部ROM不要。
+`npm test`: 14成功。`npm run test:analyzer`: 583成功、0失敗、外部コンパイラ検証1skip。
+実ブラウザUI操作とNode 22での検証は引き続き未実施。次工程は03（YM2608・外部ROM入力）。
