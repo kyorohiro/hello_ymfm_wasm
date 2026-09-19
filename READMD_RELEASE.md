@@ -120,8 +120,21 @@ npm publish ./tetorica-vgm-0.1.1.tgz --access public --registry https://registry
 ```sh
 npm view tetorica-vgm name version maintainers --registry https://registry.npmjs.org/
 npm view tetorica-vgm@0.1.1 dist.integrity --registry https://registry.npmjs.org/
-npx --yes --package=tetorica-vgm@0.1.1 tetorica-vgm --help
+
+# リポジトリrootで入力の絶対パスを保存し、公開版の実行は別ディレクトリで行う。
+release_nes_input="$PWD/test/fixtures/nes-tone.vgz"
+release_verify_dir="$(mktemp -d)"
+(
+  cd "$release_verify_dir" || exit 1
+  npx --yes tetorica-vgm@0.1.1 --help
+  npx --yes tetorica-vgm@0.1.1 render "$release_nes_input" --output nes.wav
+)
 ```
+
+同名・同バージョンのpackageがあるリポジトリ内では、npxがローカルpackageを
+選び、`sh: tetorica-vgm: command not found` になる場合がある。
+公開版の確認は上記のように別ディレクトリで行う。
+ローカルのビルドを確認する場合は `node dist/cli/main.js ...` を使う。
 
 npmページで専用READMEも確認する。
 
