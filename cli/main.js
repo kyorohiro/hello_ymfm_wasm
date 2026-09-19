@@ -2,9 +2,9 @@
 import { parseArgs } from 'node:util';
 import { writeFile, readFile } from 'node:fs/promises';
 import { basename } from 'node:path';
-import { readSource, analyzeSource, exportSource, exportFormats, renderSource } from './index.js';
+import { readSourceDocument, analyzeSource, exportSource, exportFormats, renderSource } from './index.js';
 
-const help = `tetorica-vgm — VGM/VGZ analysis without a browser
+const help = `tetorica-vgm — VGM/VGZ/S98 analysis without a browser
 
   tetorica-vgm analyze FILE [--json]
   tetorica-vgm export FILE --format FORMAT --output FILE [--bpm 120] [--force]
@@ -42,11 +42,11 @@ try {
     for (const key of Object.keys(values)) if (!allowed.includes(key)) throw new Error(`--${key} is not valid for ${command}`);
     if (command !== 'analyze' && !values.output) throw new Error('--output is required');
     if (command === 'export' && !exportFormats.includes(values.format)) throw new Error(`--format must be one of: ${exportFormats.join(', ')}`);
-    const source = await readSource(input);
+    const source = await readSourceDocument(input);
     if (command === 'analyze') {
       const result = analyzeSource(source);
       console.log(values.json ? JSON.stringify(result, null, 2) : [
-        `File: ${input}`, `Chips: ${result.chips.map(c => `${c.id} (${c.clockHz} Hz)`).join(', ') || 'none declared'}`,
+        `File: ${input}`, ...(result.sourceHeader ? [`Source: ${result.sourceHeader.format}`, `Source tag: ${result.sourceHeader.tag}`] : []), `Chips: ${result.chips.map(c => `${c.id} (${c.clockHz} Hz)`).join(', ') || 'none declared'}`,
         `Declared duration: ${result.declaredDurationSeconds.toFixed(3)} s`,
         `Commands: ${Object.values(result.commandUsage).reduce((a,b)=>a+b,0)}`,
         `Data blocks: ${result.dataBlocks.length}`,

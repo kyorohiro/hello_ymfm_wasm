@@ -37,3 +37,5 @@ Y8950 ADPCM pattern above. No game music or external ROM is included.
 `pwm-*` uses authored 12-bit pulse values, equivalent timed direct writes and
 16-bit stream data, stereo routing, and the authored Genesis voices above.
 It contains no game music. PWM is the existing Browser sample-and-hold model.
+
+`s98-*.s98` contains authored FM writes for the three supported devices, a fractional timer, loop boundary and UTF-8 tag. No game data.

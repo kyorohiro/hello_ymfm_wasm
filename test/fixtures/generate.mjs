@@ -131,3 +131,16 @@ for(const [name,commands,clocks] of [
   ['pcm',rfVoice,[[0x6c,12500000]]],
   ['all',[...genesisFm,...yPsg,...rfVoice],[[0x2c,7670454],[0x0c,3579545],[0x6c,12500000]]],
 ])file('pwm-'+name,0x70,23011361,[...commands,...pwmDirect],clocks);
+
+// S98 v3, authored FM voice, fractional timer, loop boundary and UTF-8 tag.
+for(const [name,type,clock,voice] of [['ym2203',2,4000000,fm],['ym2608',4,8000000,opnaFm],['ym2612',3,7670454,genesisFm]]){
+  const writes=voice.map((v,i)=>i%3===0?0:v);
+  const commands=[...writes,0xff,0xfe,48,0xfd];
+  const tag=new TextEncoder().encode('[S98]\ntitle=自作 tone\nartist=Tetorica\n\0');
+  const bytes=new Uint8Array(48+commands.length+tag.length),v=new DataView(bytes.buffer);
+  bytes.set([83,57,56,51]);v.setUint32(4,1,true);v.setUint32(8,1000,true);
+  v.setUint32(0x10,48+commands.length,true);v.setUint32(0x14,48,true);v.setUint32(0x18,48+writes.length,true);
+  v.setUint32(0x1c,1,true);v.setUint32(0x20,type,true);v.setUint32(0x24,clock,true);
+  bytes.set(commands,48);bytes.set(tag,48+commands.length);
+  writeFileSync(new URL('s98-'+name+'.s98',import.meta.url),bytes);
+}

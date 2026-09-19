@@ -1,4 +1,5 @@
 // Environment-neutral API shared by the browser, Node adapter and future MCP server.
+import { looksLikeS98, convertS98ToVgm } from '../js/s98_file.js';
 import { Ym2612VGM } from '../js/ym2612vgm.js';
 import { maybeDecodeVgmFile, parseVgmMetadata } from '../js/vgm_file.js';
 import { analyzeLilyPondSource, createLilyPondScore } from './vgm_lilypond.js';
@@ -13,21 +14,30 @@ export { createMusicXmlScore } from './vgm_musicxml.js';
 export { renderVgmToWav } from './vgm_wav.js';
 export const exportFormats = Object.freeze(['midi', 'musicxml', 'lilypond', 'mucom', 'opnavoid', 'mxdrv', 'mgsdrv']);
 
-/** Decode VGM/VGZ bytes; filesystem access belongs to the caller. */
-export async function decodeSource(input) {
-  const source = new Uint8Array(await maybeDecodeVgmFile(input));
-  new Ym2612VGM(source); // Validate the header before exposing a decoded source.
-  return source;
+/** Decode and normalize input, preserving original S98 information explicitly. */
+export async function decodeSourceDocument(input) {
+  const decoded = await maybeDecodeVgmFile(input);
+  const normalized = looksLikeS98(decoded) ? convertS98ToVgm(decoded) : {buffer:decoded};
+  const bytes = new Uint8Array(normalized.buffer);
+  new Ym2612VGM(bytes);
+  return {bytes, ...(normalized.sourceHeader ? {sourceHeader:normalized.sourceHeader} : {})};
+}
+/** Backward-compatible byte API; use decodeSourceDocument to retain S98 metadata. */
+export async function decodeSource(input) { return (await decodeSourceDocument(input)).bytes; }
+export function sourceBytes(source) {
+  return source instanceof Uint8Array || source instanceof ArrayBuffer ? source : source.bytes;
 }
 
 /** JSON-compatible register-stream summary (no rendering or note extraction required). */
 export function analyzeSource(source) {
-  const parser = new Ym2612VGM(source);
+  const bytes = sourceBytes(source);
+  const parser = new Ym2612VGM(bytes);
   const { header } = parser;
   const chips = Object.entries(header).filter(([key, value]) => key.endsWith('Clock') && (value & 0x3fffffff))
     .map(([key, value]) => ({ id: key.slice(0, -5), clockHz: value & 0x3fffffff, rawClock: value >>> 0 }));
   return {
-    schemaVersion: 1, header, chips, metadata: parseVgmMetadata(source),
+    schemaVersion: 1, header, chips, metadata: parseVgmMetadata(bytes),
+    ...(source.sourceHeader ? {sourceHeader:source.sourceHeader} : {}),
     declaredDurationSeconds: header.totalSamples / 44100,
     commandUsage: Object.fromEntries(parser.analyzeCommandUsage()),
     dataBlocks: parser.dataBlockSummary(), pcmRamWrites: parser.pcmRamWriteSummary(),
@@ -37,6 +47,7 @@ export function analyzeSource(source) {
 
 /** Export using exactly the browser's existing algorithms and chip restrictions. */
 export function exportSource(source, { format, bpm, fileName = 'VGM' } = {}) {
+  source = sourceBytes(source);
   if (!exportFormats.includes(format)) throw new Error(`Unsupported format: ${format}`);
   if (bpm !== undefined && (!Number.isInteger(bpm) || bpm < 4 || bpm > 999)) throw new RangeError('BPM must be an integer from 4 to 999');
   const score = bpm === undefined || ['musicxml','lilypond'].includes(format) ? analyzeLilyPondSource(source) : null;

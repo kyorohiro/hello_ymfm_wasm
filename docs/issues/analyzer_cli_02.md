@@ -144,10 +144,10 @@ Browser側ですでに共有化した音源は、CLIへ同じ処理を再実装�
 
 ### 07. S98入力
 
-- [ ] Browserの既存S98 → VGM正規化を入力処理から再利用する。
-- [ ] CLI / Node APIで入力形式と正規化後の情報をどう返すか決める。
-- [ ] analyze / export / renderで使えることと、不正入力の拒否を検証する。
-- [ ] 元のS98ヘッダー情報を失わない形で解析結果を扱う。
+- [x] Browserの既存S98 → VGM正規化を入力処理から再利用する。
+- [x] CLI / Node APIで入力形式と正規化後の情報をどう返すか決める。
+- [x] analyze / export / renderで使えることと、不正入力の拒否を検証する。
+- [x] 元のS98ヘッダー情報を失わない形で解析結果を扱う。
 
 完了: 自作S98 fixtureでBrowserとCLIの正規化・解析結果が一致する。
 
@@ -337,3 +337,16 @@ tarballの別ディレクトリoffline installから外部ROM付きCLI / Node AP
 PWM単体でも既存Genesis engineがYM2612 / PSGを初期化するため、YM2612の無発音時DC成分が加わる。Browser互換の既存動作として維持。
 全factory提供は任意のchip混在の保証ではない。OKIM6258の追加は単体 / YM2151併用を実発音検証済みで、他engineとの全組み合わせは未検証。
 実ブラウザUI・Node 22・実曲網羅テストは残る。次は07（S98入力）。
+
+
+### 07 実装記録: S98入力
+
+- Browserと同じ `s98_file.js` の変換をCoreのdecodeで再利用。S98 v0〜3、単一YM2203 / YM2608 / YM2612という既存制約を維持する。
+- bytesを返すreadSource / decodeSourceは互換維持。元情報を保持するreadSourceDocument / decodeSourceDocumentを追加し、`{bytes, sourceHeader?}` をanalyze / export / renderで受け付ける。
+- CLIはdocumentを使い、JSONのsourceHeaderへ元format・実効timer比・source offsets・devices・tagを保持。通常のheader / metadataは正規化VGMを記述し、S98タグをGD3と偽らない。VGM/VGZのJSONは変更なし。
+- 3音源の自作fixtureでBrowserとのbytes / metadata一致、fractional timerとloop、各対応export・WAV、CLIを検証。不正header・port・圧縮指定・複数device・未対応device・end不足を拒否。
+- offline tarballでS98 JSON / document API / WAVを検証。`npm test` 34成功、Analyzer 583成功・0失敗・1任意skip。
+- 既存CLI.md冒頭へのテストコード混入を履歴から修復し、後続音源説明を保持。
+
+documentからbytesだけを取り出すと元情報は失われるので、必要な呼び出し元はdocumentを保持する。
+実ブラウザUIとNode 22は未確認。次は08a（TFI ZIP）。

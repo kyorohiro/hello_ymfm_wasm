@@ -104,7 +104,7 @@ test('npm tarball installs offline, runs via npx, and exports the library',async
     assert(paths.includes('dist/licenses/mame-okim6258.txt'));
     assert(paths.includes('LICENSE'));
     assert(!paths.some(p=>/\.rom$|\.bin$/.test(p)));
-    assert(!paths.some(p=>/\.(?:html|css|png|vgz|vgm)$/.test(p)||p.includes('/vendor/')||p.startsWith('w/')));
+    assert(!paths.some(p=>/\.(?:html|css|png|vgz|vgm)$/.test(p)||p.includes('/vendor/')||p.endsWith('.s98')||p.startsWith('w/')));
     execFileSync('npm',['install','--offline','--ignore-scripts','--no-audit','--no-fund','--prefix',dir,'--cache',cache,join(dir,packed.filename)],{encoding:'utf8'});
     const args=['exec','--offline','--prefix',dir,'--cache',cache,'--','tetorica-vgm'];
     const result=JSON.parse(execFileSync('npm',[...args,'analyze',fixture('ay-tone.vgz'),'--json'],{cwd:dir,encoding:'utf8'}));
@@ -156,6 +156,14 @@ test('npm tarball installs offline, runs via npx, and exports the library',async
       assert.equal(failure.status,1);assert.equal(failure.stdout,'');assert.match(failure.stderr,/Missing ROM|ENOENT|2097152/);
     }
     assert.equal(cli('analyze',waveInput,'--ymf278b-rom',wavePath).status,1);
+    const s98Input=fixture('s98-ym2203.s98');
+    const s98Summary=JSON.parse(execFileSync('npm',[...args,'analyze',s98Input,'--json'],{cwd:dir,encoding:'utf8'}));
+    assert.equal(s98Summary.sourceHeader.format,'S983');
+    const documentApi=JSON.parse(execFileSync(process.execPath,['--input-type=module','-e',"import {readSourceDocument,analyzeSource} from 'tetorica-vgm'; process.stdout.write(JSON.stringify(analyzeSource(await readSourceDocument(process.argv[1]))))",s98Input],{cwd:dir,encoding:'utf8'}));
+    assert.deepEqual(documentApi,s98Summary);
+    const s98Out=join(dir,'s98.wav');
+    execFileSync('npm',[...args,'render',s98Input,'--output',s98Out,'--max-seconds','0.03'],{cwd:dir});
+    assert.deepEqual(readFileSync(s98Out),Buffer.from((await renderSource(await readSource(s98Input),{maxSeconds:.03})).bytes));
     // Machine-readable probe output must remain identical with terminal colors enabled.
     for (const forceColor of ['0','1']) {
       const env={...process.env,FORCE_COLOR:forceColor};

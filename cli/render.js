@@ -1,5 +1,5 @@
 import { readFile } from 'node:fs/promises';
-import { renderVgmToWav } from '../docs/vgm_analyzer/analyzer_core.js';
+import { renderVgmToWav, sourceBytes } from '../docs/vgm_analyzer/analyzer_core.js';
 import { Ym2612VGM } from '../docs/js/ym2612vgm.js';
 import { createPlaybackEngine, createPlaybackPlayer } from '../docs/vgm_analyzer/playback_core.js';
 import k051649 from '../docs/generated/k051649_wasm.js';
@@ -30,6 +30,7 @@ export async function getNodePlaybackFactory(name) {
 
 /** Node adapter: explicit engines only; never silently omit an unhandled chip. */
 export async function renderSource(source, { maxSeconds = 120, roms = {} } = {}) {
+  source = sourceBytes(source);
   if (!Number.isFinite(maxSeconds) || maxSeconds <= 0 || maxSeconds > 600) throw new RangeError('maxSeconds must be > 0 and <= 600');
   if (roms.ym2608AdpcmA !== undefined && (!(roms.ym2608AdpcmA instanceof Uint8Array) || roms.ym2608AdpcmA.length !== 8192)) throw new RangeError('ym2608AdpcmA must be a Uint8Array of exactly 8192 bytes');
   if (roms.ymf278bWave !== undefined && (!(roms.ymf278bWave instanceof Uint8Array) || roms.ymf278bWave.length !== 2097152)) throw new RangeError('ymf278bWave must be a Uint8Array of exactly 2097152 bytes');
