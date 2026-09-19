@@ -49,7 +49,7 @@ tetorica-vgm render song.vgz --output song.wav --max-seconds 120
   AY-3-8910, and Game Boy DMG. YM2612 + RF5C164 (Mega CD), with optional Sega PSG,
   is also supported, including embedded PCM RAM data. Standalone YM2203 supports
   FM and internal SSG without external ROMs. YM2203 + Sega PSG / RF5C164 / other
-  OPN chips are rejected; YM2203 + OKIM6258 requires a factory not yet supplied by Node. Unsupported dual/variant chip flags are rejected.
+  OPN chips are rejected; OKIM6258 attachment uses the shared Core (see below). Unsupported dual/variant chip flags are rejected.
   Missing WASM factories/ROMs are reported separately from unsupported configurations.
   Browser playback additionally supports chips/combinations
   that are not yet wired into this CLI. External ROMs and browser effects are not bundled. Natural track endings can include one final partial block of silence.
@@ -140,7 +140,7 @@ key-on; FM/SSG/ADPCM-B-only tracks do not need it. No ROM is downloaded or bundl
 `--ym2608-rom` is render-only and accepts a full 8192-byte ROM. Unreadable files,
 wrong sizes and missing required ROMs fail before output is written. Partial ROM
 loading is not exposed by this Node API. Dual/variant and other OPN/Sega PSG
-combinations remain rejected; OKIM6258 still needs an unprovided Node factory.
+combinations remain rejected; OKIM6258 attachment is available through the shared Core; this pairing has no dedicated CLI mix test yet.
 
 ```js
 const wav = await renderSource(source, {
@@ -163,4 +163,18 @@ The VGM clock's variant bit selects YM2610 (4 FM channels) or YM2610B
 be embedded in the VGM (blocks 0x82/0x83). No external ROM option is required
 for these fixtures, and none is provided for this chip. Missing sample data
 cannot be reconstructed. Dual chips and combinations with Sega PSG or other
-OPN chips are rejected; OKIM6258 still requires an unprovided Node factory.
+OPN chips are rejected; OKIM6258 attachment is available through the shared Core; this pairing has no dedicated CLI mix test yet.
+
+## OKIM6258 and YM2151 + OKIM6258
+
+Standalone OKIM6258 and YM2151 + OKIM6258 use the same `render` command and
+Node `renderSource` API, without external ROM options. VGM register/stream writes
+supply ADPCM bytes. Header clocks, divider and 10/12-bit output precision are
+honored; only 4-bit ADPCM is supported. 3-bit ADPCM and dual/variant chip flags
+are rejected. Dynamic clock/divider writes and pan use the existing shared engine.
+The Node package includes the MAME-derived decoder's BSD-3-Clause notice.
+Rebuild it with `scripts/build_okim6258_wasm.sh`.
+
+The shared factory also enables OKIM6258 attachment to other supported engines;
+this step specifically verifies standalone and YM2151 mixing. Other pairings
+retain the common configuration checks and are not newly advertised as tested.

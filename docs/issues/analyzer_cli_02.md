@@ -124,9 +124,9 @@ Browser側ですでに共有化した音源は、CLIへ同じ処理を再実装�
 
 ### 05. OKIM6258とYM2151との組み合わせ
 
-- [ ] OKIM6258単体を接続する。
-- [ ] Browserと同じ方法でYM2151 + OKIM6258を接続する。
-- [ ] クロック・フラグ・PCM書き込み・ミックスを検証する。
+- [x] OKIM6258単体を接続する。
+- [x] Browserと同じ方法でYM2151 + OKIM6258を接続する。
+- [x] クロック・フラグ・PCM書き込み・ミックスを検証する。
 
 完了: 単体・複合の両方でPCMを含むWAVが生成できる。
 
@@ -257,3 +257,16 @@ Browserで使う既存エンジンの生成経路とのWAV一致、埋め込みR
 
 `npm test`: 20成功。`npm run test:analyzer`: 583成功・0失敗・外部コンパイラ検証1skip。
 実ブラウザUIとNode 22の実機検証は未実施。次は05（OKIM6258・YM2151併用）。
+
+### 05 実装記録
+
+既存Node対応OKIM6258 factoryを提供し、BSD-3-Clauseライセンスをtarballへ追加。
+単体・YM2151併用とも共有Coreを利用し、chip固有のCLI処理は追加していない。
+自作PCM / FM fixtureで両方の発音を確認し、ミックスの各サンプルが単体出力の和と一致。
+クロック・分周・10/12-bit精度・pan、および3-bit / dual / variant拒否を検証。
+配布tarballを別ディレクトリへoffline installし、単体・併用のCLI / Node API出力一致を検証。
+既存のparser・stream・reset・dispose検証はAnalyzer回帰テストで実施。
+
+`npm test`: 22成功。`npm run test:analyzer`: 583成功・0失敗・外部コンパイラ検証1skip。
+他engineへのOKIM6258付加も共有factoryで可能になるが、この工程の専用mixテストはYM2151のみ。
+実ブラウザUIとNode 22の実機検証は未実施。次は06a（Y8950）。

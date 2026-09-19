@@ -1,11 +1,12 @@
 // Original register sequences, not game music. Regenerate binary fixtures deterministically.
 import { writeFileSync } from 'node:fs';
 import { gzipSync } from 'node:zlib';
-function file(name,clockOffset,clock,commands,extraClocks=[]) {
+function file(name,clockOffset,clock,commands,extraClocks=[],okiFlags=0) {
   const bytes=new Uint8Array(256+commands.length),v=new DataView(bytes.buffer);
   bytes.set([86,103,109,32]);v.setUint32(4,bytes.length-4,true);v.setUint32(8,0x171,true);
   v.setUint32(0x34,0xcc,true);v.setUint32(clockOffset,clock,true);v.setUint32(0x18,22050,true);
   for (const [offset,hz] of extraClocks) v.setUint32(offset,hz,true);
+  bytes[0x94]=okiFlags;
   bytes.set(commands,256);writeFileSync(new URL(name+'.vgm',import.meta.url),bytes);
   writeFileSync(new URL(name+'.vgz',import.meta.url),gzipSync(bytes));
 }
@@ -58,3 +59,14 @@ const fmExtra=[...fm.map((v,i)=>i%3===0?0x58:v),0x58,0xb4,0xc0];
 for(const [chip,clock] of [['ym2610',8000000],['ym2610b',0x80000000+8000000]])
   for(const [name,commands] of [['fm',fm2610],['extra-fm',fmExtra],['extra-fm4',fmExtra4],['ssg',ssg2610],['adpcm-a',a],['adpcm-b',b],['mix',[...fm2610,...ssg2610,...a,...b]]])
     file(chip+'-'+name,0x4c,clock,[...commands,...wait,0x66]);
+
+// Authored OPM voice plus scheduled 4-bit OKI bytes, no external samples.
+const opmVoice=[0x54,0x20,0xc7,0x54,0x28,0x4a];
+for(let i=0;i<4;i++)opmVoice.push(0x54,0x40+8*i,1,0x54,0x60+8*i,32,0x54,0x80+8*i,31);
+opmVoice.push(0x54,8,0x78);
+const okiCommands=[0xb7,0,2];
+for(let i=0;i<100;i++)okiCommands.push(0xb7,1,i%2?0x99:0x11,0x61,12,0);
+okiCommands.push(0xb7,0,1,0x61,0x72,0x51,0x66); // total 22050 samples
+file('okim6258-tone',0x90,8192000,okiCommands,[],12);
+file('opm-oki-mix',0x30,3579545,[...opmVoice,...okiCommands],[[0x90,8192000]],12);
+file('opm-audible',0x30,3579545,[...opmVoice,...wait,0x66]);

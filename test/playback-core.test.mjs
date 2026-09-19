@@ -153,5 +153,5 @@ test('YM2203 renders FM and SSG independently and matches the shared Browser eng
     await assert.rejects(renderSource(source),error=>error.code==='UNSUPPORTED_CONFIGURATION');
   }
   const missing=original.slice();new DataView(missing.buffer).setUint32(0x90,4000000,true);missing[0x94]=4;
-  await assert.rejects(renderSource(missing),error=>error.code==='MISSING_RESOURCE'&&error.details.resource==='okim6258');
+  await assert.rejects(createPlaybackEngine(new Ym2612VGM(missing),{getFactory:name=>name==='okim6258'?undefined:getNodePlaybackFactory(name)}),error=>error.code==='MISSING_RESOURCE'&&error.details.resource==='okim6258');
 });

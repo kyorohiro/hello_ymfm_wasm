@@ -70,7 +70,7 @@ CLI列は現時点のfactory提供範囲であり、02以降の発音検証・�
 | YM2203 | YM2203（FM / SSG） | 提供済み。単体のFM / SSG・tarball検証済み |
 | YM2608 | YM2608 | 提供済み。リズムkey-on時は外部8192-byte ROM指定 |
 | YM2610 / YM2610B | YM2610B engineのvariant指定 | 提供済み。両variantのFM / SSG / ADPCMとtarball検証済み |
-| OKIM6258単体 / 他engineへの追加 | OKIM6258 / attach | 未提供。4-bit ADPCMのみ。05 |
+| OKIM6258単体 / 他engineへの追加 | OKIM6258 / attach | 提供済み。4-bit ADPCMのみ。単体 / YM2151 mixを検証済み |
 
 dualは拒否。variantは現在YM2610のbit31のみ受け付け、他は拒否する。
 Browserの以前の分岐に検査漏れがあった構成も、黙って一部だけ鳴らさず拒否する。
@@ -99,7 +99,7 @@ YM2203 / YM2608 / YM2610Bのクロック・variant・ROM投入は共有recipeが
   VM検証はWebAudioデバイスやAudioWorkletを検証するものではない。
 - 最低対応Node 22での確認は12に残す。今回の実行環境はNode 25。
 
-検証結果: `npm test` 20件成功。`npm run test:analyzer` は584件中583成功・0失敗・1skip（外部 mml2mdr が必要な任意テスト）。
+検証結果: `npm test` 22件成功。`npm run test:analyzer` は584件中583成功・0失敗・1skip（外部 mml2mdr が必要な任意テスト）。
 旧UIモック・音源対応の期待値・DAC開始時刻の期待値を現行仕様へ更新し、以前の11失敗を解消。
 新規の回帰失敗なし。npm tarballの別ディレクトリへのインストールと実行をテスト内で確認。
 itchパッケージ生成・生成物のCore importも成功。更新distでJungle (Battle)の先頭1秒をWAV変換した。
