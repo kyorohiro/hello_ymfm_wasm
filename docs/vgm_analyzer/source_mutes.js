@@ -6,6 +6,7 @@ const SOURCES = {
   rhythm: { key: "rhythm", label: "Rhythm", method: "setRhythmMuted" },
   adpcmB: { key: "adpcmB", label: "ADPCM-B", method: "setAdpcmBMuted" },
   oki: { key: "oki", label: "OKI", method: "setOkiMuted" },
+  segapcm: { key: "segapcm", label: "Sega PCM", method: "setSegaPcmMuted" },
 };
 export function sourcesForChip(chip, hasOki = false) {
   if (chip === 'msx') return [];
@@ -13,7 +14,7 @@ export function sourcesForChip(chip, hasOki = false) {
   const extra = hasOki ? [SOURCES.oki] : [];
   if (chip === '32x') return [SOURCES.psg, SOURCES.pwm, ...extra];
   if (chip === 'ym2610') return [SOURCES.ssg, {...SOURCES.rhythm, label:'ADPCM-A'}, SOURCES.adpcmB, ...extra];
-  return (chip === "megacd" ? ["psg", "pcm"] : chip === "ym2608" ? ["ssg", "rhythm", "adpcmB"] : chip === "ym2203" ? ["ssg"] : ["psg"])
+  return (chip === "megacd" ? ["psg", "pcm"] : chip === "ym2608" ? ["ssg", "rhythm", "adpcmB"] : chip === "ym2203" ? ["ssg"] : chip === "ym2151" ? ["psg", "segapcm"] : ["psg"])
     .map((key) => SOURCES[key]).concat(extra);
 }
 export function applySourceMutes(engine, chip, muted, hasOki = false) {

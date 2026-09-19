@@ -74,25 +74,51 @@ test('YM2151 channel mute silences only selected output and preserves feedback/p
  }finally{a.dispose();b.dispose();}
 });
 
-test('Analyzer accepts OPM + Sega PCM and real playback matches OPM-only audio',async()=>{
+test('YM2151 + Sega PCM mix matches independent chips and mutes/resets/seeks correctly',async()=>{
+ const {default:segapcmFactory}=await import('../docs/generated/segapcm_wasm.js');
+ const {SegaPcmAudioEngine}=await import('./segapcmaudioengine.js');
+ const segaPcmModuleOptions={wasmBinary:readFileSync(new URL('../docs/generated/segapcm_wasm.wasm',import.meta.url))};
+ const rom=new Uint8Array(256);for(let i=0;i<256;i++)rom[i]=i;
+ const programPcm=e=>{
+  e.loadSampleMemory(rom,0,rom.length);
+  for(const [o,v] of [[0x02,0x7f],[0x03,0x7f],[0x04,0],[0x05,0],[0x06,0],[0x07,8],[0x84,0],[0x85,0],[0x86,0]])e.writeSegaPcm(o,v);
+ };
+ const opmOnly=await Ym2151AudioEngine.create(options);
+ const mix=await Ym2151AudioEngine.create({...options,segaPcmModuleFactory:segapcmFactory,segaPcmModuleOptions,segaPcmClock:4000000});
+ const pcmOnly=await SegaPcmAudioEngine.create({moduleFactory:segapcmFactory,moduleOptions:segaPcmModuleOptions,clock:4000000});
+ try{
+  for(const e of [opmOnly,mix])for(const [r,v] of writes(0))e.writeYm2151(r,v);
+  for(const e of [pcmOnly,mix])programPcm(e);
+  const x=opmOnly.processFrames(2000),y=pcmOnly.processFrames(2000),z=mix.processFrames(2000);
+  assert(x.left.some(v=>v!==0),'OPM must sound');assert(y.left.some(v=>v!==0),'Sega PCM must sound');
+  assert.deepEqual(z.left,Float32Array.from(x.left,(v,i)=>v+y.left[i]));
+  mix.setSegaPcmMuted(true);assert.deepEqual(mix.processFrames(500).left,opmOnly.processFrames(500).left);
+  mix.setSegaPcmMuted(false);
+  mix.reset();for(const [r,v] of writes(0))mix.writeYm2151(r,v);programPcm(mix);
+  assert.deepEqual(mix.processFrames(2000).left,z.left);
+ }finally{opmOnly.dispose();mix.dispose();pcmOnly.dispose();}
+});
+
+test('YM2151 + Sega PCM VGM dispatches command 0xC0/ROM data through the player and is allowed without warning',async()=>{
  const vm=await import('node:vm');
  const {vgmBytes}=await import('./test-support/vgm-mock.js');
+ const {default:segapcmFactory}=await import('../docs/generated/segapcm_wasm.js');
  const source=readFileSync(new URL('../docs/vgm_analyzer/vgm_analyzer.js',import.meta.url),'utf8');
- const panel={},context=vm.createContext({document:{getElementById:()=>panel},status:{},console});
+ const panel={hidden:true,textContent:''},context=vm.createContext({document:{getElementById:()=>panel},status:{},console});
  vm.runInContext(source.slice(source.indexOf('const playbackWarnings ='),source.indexOf('function currentStatusSuffix')),context);
  vm.runInContext(source.slice(source.indexOf('function validateOpmPlayback('),source.indexOf('async function ensurePlaybackReady(')),context);
- const e=await Ym2151AudioEngine.create(options);
+ const e=await Ym2151AudioEngine.create({...options,segaPcmModuleFactory:segapcmFactory,
+  segaPcmModuleOptions:{wasmBinary:readFileSync(new URL('../docs/generated/segapcm_wasm.wasm',import.meta.url))},segaPcmClock:4000000});
  try{
-  const p=new VgmPlayer(e),base=vgm(),mixed=vgmBytes([
+  const base=vgm(),mixed=vgmBytes([
    0x67,0x66,0x80,10,0,0,0,16,0,0,0,4,0,0,0,18,52,
-   0xc0,2,0,99,...base.slice(0x40)]);
+   0xc0,2,0,0x7f,0xc0,3,0,0x7f,0xc0,6,0,0,0xc0,7,0,8,0xc0,0x86,0,0,
+   ...base.slice(0x40)]);
   const header=new DataView(mixed.buffer);header.setUint32(0x30,3579545,true);header.setUint32(0x38,4000000,true);
   context.validateOpmPlayback(new Ym2612VGM(mixed).header);
-  const render=bytes=>{p.load(bytes,{logger:{warn:context.reportPlaybackWarning}});p.reset();p.play();
-   const left=new Float32Array(4410),right=new Float32Array(4410);p.process(left,right,4410);return {left,right};};
-  const expected=render(base),actual=render(mixed);
-  assert(expected.left.some(v=>v!==0));assert.deepEqual(actual,expected);
-  assert.equal(panel.hidden,false);assert.match(panel.textContent,/Sega PCM.*skipped.*supported chips/);
-  assert.equal(panel.textContent.split('\n').length,1);
+  assert.equal(panel.hidden,true,'no warning for a now-supported combination');
+  const p=new VgmPlayer(e);p.load(mixed,{logger:{warn:context.reportPlaybackWarning}});p.reset();p.play();
+  const left=new Float32Array(4410),right=new Float32Array(4410);p.process(left,right,4410);
+  assert(left.some(v=>v!==0));
  }finally{e.dispose();}
 });

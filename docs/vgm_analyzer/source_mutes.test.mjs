@@ -26,7 +26,7 @@ test("OKIM6258 exposes a single chip-level toggle, standalone and mixed", () => 
   assert.deepEqual(sourcesForChip("msx", true).map(s=>s.label),[]);
   assert.deepEqual(sourcesForChip("ym2612").map(s=>s.label),["PSG"]);
   assert.deepEqual(sourcesForChip("ym2612", true).map(s=>s.label),["PSG","OKI"]);
-  assert.deepEqual(sourcesForChip("ym2151", true).map(s=>s.label),["PSG","OKI"]);
+  assert.deepEqual(sourcesForChip("ym2151", true).map(s=>s.label),["PSG","Sega PCM","OKI"]);
 
   const calls=[];
   const engine={setPsgMuted:(v)=>calls.push(["psg",v]),setOkiMuted:(v)=>calls.push(["oki",v])};

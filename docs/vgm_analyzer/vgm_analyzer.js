@@ -11,6 +11,7 @@ import {createOpmNoteTracker} from './opm_notes.js';
 import {mountOpmMonitor, observeOpmEngine} from './opm_monitor.js?v=export-2';
 import { msxMuteControls, applyMsxMute } from './msx_mutes.js';
 import {createYm3526AudioEngine} from '../js/ym3526audioengine.js';
+import {createSegaPcmAudioEngine} from '../js/segapcmaudioengine.js';
 import {createY8950AudioEngine} from '../js/y8950audioengine.js?v=mutes-1';
 import {createYmf278bAudioEngine} from '../js/ymf278baudioengine.js?v=opl4-rom-1';
 import {createYm3812AudioEngine} from '../js/ym3812audioengine.js';
@@ -73,6 +74,7 @@ if (useNukedEngine) {
 const fileInput = document.getElementById("fileInput");
 const playlistList = document.getElementById("playlistList");
 const playlistSummary = document.getElementById("playlistSummary");
+const detectedChipsOutput = document.getElementById("detectedChips");
 const romFileStatus = document.getElementById("romFileStatus");
 const playButton = document.getElementById("playButton");
 const playbackSeek = document.getElementById("playbackSeek");
@@ -437,7 +439,7 @@ const ym3526ChannelMutes = Array(9).fill(false);
 const ym3812ChannelMutes = Array(9).fill(false);
 const ymf278bFmChannelMutes = Array(18).fill(false);
 const ymf278bPcmChannelMutes = Array(24).fill(false);
-const sourceMutes = { psg: false, ssg: false, rhythm: false, adpcmB: false, pcm: false, pwm: false, oki: false };
+const sourceMutes = { psg: false, ssg: false, rhythm: false, adpcmB: false, pcm: false, pwm: false, oki: false, segapcm: false };
 // Without the rhythm ROM, decoding its all-zero sample stream is audible
 // noise, not silence (see YM2608_RHYTHM_ROM_WARNING) - force the source
 // mute so the chip stays quiet there regardless of the user's toggle,
@@ -547,13 +549,10 @@ function renderPlaybackWarnings() {
 }
 function reportPlaybackWarning(message) {
   const block = /^Skipping unsupported VGM data block (0x[0-9a-f]+) \(size=\d+\)$/i.exec(message);
-  if (message === 'Sega PCM playback is unsupported' ||
-      message === 'Skipping known unsupported VGM command 0xc0 (4 bytes)' ||
-      block?.[1].toLowerCase() === '0x80') {
-    message = 'Sega PCM is not supported. Its sample data (block 0x80) and writes (0xC0) are skipped; playback continues with the supported chips only.';
-  } else if (block) {
+  if (block) {
     message = `Unsupported VGM data block ${block[1].toLowerCase()} was skipped. Playback may be incomplete.`;
-  } else if (!message.startsWith('Unsupported DAC stream skipped:') && !message.includes('OKIM6258')) { console.warn(message); return; }
+  } else if (!message.startsWith('Unsupported DAC stream skipped:') && !message.includes('OKIM6258') &&
+      !message.startsWith('Sega PCM mixed with YM2151')) { console.warn(message); return; }
   if (playbackWarnings.has(message) || playbackWarnings.size >= 100) return;
   playbackWarnings.add(message);
   renderPlaybackWarnings();
@@ -763,7 +762,7 @@ function ensureMonitorToggleHandler() {
 }
 
 function createChannelMonitorState() {
-  if (["okim6258", "msx", "y8950", "ymf278b", "ym3526", "ym3812", "ymf262", "ym2151", "ym2413", "ay8910"].includes(currentChipKind)) return [];
+  if (["okim6258", "msx", "y8950", "ymf278b", "ym3526", "ym3812", "ymf262", "segapcm", "ym2151", "ym2413", "ay8910"].includes(currentChipKind)) return [];
   const channelCount = currentChipKind === "ym2203" ? 3 : 6;
   return Array.from({ length: channelCount }, (_, index) => buildMonitorChannel(index));
 }
@@ -1011,7 +1010,7 @@ function noteishChannels() {
 }
 
 function updateToneMonitor() {
-  if (["okim6258", "msx", "y8950", "ymf278b", "ym3526", "ym3812", "ymf262", "ym2151", "ym2413"].includes(currentChipKind)) { toneChannels = []; return; }
+  if (["okim6258", "msx", "y8950", "ymf278b", "ym3526", "ym3812", "ymf262", "segapcm", "ym2151", "ym2413"].includes(currentChipKind)) { toneChannels = []; return; }
   const clock = (psgMonitor.kind === 'ssg' ? noteishHeader[`${currentChipKind}Clock`] : noteishHeader.psgClock) & 0x3fffffff;
   if (!clock) { toneChannels = []; return; }
   if (!toneChannels.length) toneChannels = Array.from({length:3}, (_,index)=>({...buildMonitorChannel(index), tone:true, toneMidi:null}));
@@ -1839,6 +1838,7 @@ function renderHeader(header) {
     `ym3812Clock: ${header.ym3812Clock}`,
     `ymf262Clock: ${header.ymf262Clock}`,
     `ym2151Clock: ${header.ym2151Clock}`,
+    `segaPcmClock: ${header.segaPcmClock}, bankShift: ${header.segaPcmBankShift}, bankMask: ${formatHex(header.segaPcmBankMask)}`,
     `okim6258Clock: ${header.okim6258Clock}`,
     `okim6258Flags: ${header.okim6258Flags}`,
     `ym2413Clock: ${header.ym2413Clock}`,
@@ -1853,6 +1853,47 @@ function renderHeader(header) {
   ].join("\n");
 }
 
+function formatClockHz(hz) {
+  if (hz >= 1000000) return `${(Math.round(hz / 10000) / 100).toString()} MHz`;
+  return `${Math.round(hz / 1000)} kHz`;
+}
+
+// Lists every chip the VGM header declares a clock for, independent of
+// whether this analyzer can currently play or mix that combination — this
+// is what a track *asks for*, not a guarantee of support (see the "Sound
+// chip support" dialog for that).
+const HEADER_CHIP_FIELDS = [
+  ['ym2612Clock', 'YM2612'],
+  ['ym2203Clock', 'YM2203'],
+  ['ym2608Clock', 'YM2608'],
+  ['ym2610Clock', 'YM2610 / YM2610B'],
+  ['ym2151Clock', 'YM2151'],
+  ['psgClock', 'Sega PSG'],
+  ['rf5c164Clock', 'RF5C164'],
+  ['pwmClock', '32X PWM'],
+  ['ym2413Clock', 'YM2413'],
+  ['ay8910Clock', 'AY-3-8910 / YM2149'],
+  ['y8950Clock', 'Y8950'],
+  ['ymf278bClock', 'YMF278B'],
+  ['ym3526Clock', 'YM3526'],
+  ['ym3812Clock', 'YM3812'],
+  ['ymf262Clock', 'YMF262'],
+  ['okim6258Clock', 'OKIM6258'],
+  ['k051649Clock', 'K051649 (SCC)'],
+  ['segaPcmClock', 'Sega PCM'],
+];
+function detectHeaderChips(header) {
+  return HEADER_CHIP_FIELDS
+    .map(([key, label]) => [label, header[key] & 0x3fffffff])
+    .filter(([, hz]) => hz > 0)
+    .map(([label, hz]) => `${label} (${formatClockHz(hz)})`);
+}
+function renderDetectedChips(header) {
+  const chips = detectHeaderChips(header);
+  detectedChipsOutput.textContent = chips.length ? `Uses: ${chips.join(", ")}` : "";
+  detectedChipsOutput.hidden = chips.length === 0;
+}
+
 function detectPlaybackChipKind(header) {
   if (header.k051649Clock & 0x3fffffff) return "msx";
   if ((header.y8950Clock & 0x3fffffff) && (header.ay8910Clock || header.ym2413Clock)) return "msx";
@@ -1862,6 +1903,7 @@ function detectPlaybackChipKind(header) {
   if (header.ym3526Clock & 0x3fffffff) return "ym3526";
   if (header.ym3812Clock & 0x3fffffff) return "ym3812";
   if (header.ym2151Clock & 0x3fffffff) return "ym2151";
+  if (header.segaPcmClock & 0x3fffffff) return "segapcm";
   if (header.ay8910Clock & 0x3fffffff) return "ay8910";
   if (header.ym2413Clock & 0x3fffffff) return "ym2413";
   if ((header.ym2610Clock & 0x3fffffff) && !header.ym2612Clock && !header.ym2203Clock && !header.ym2608Clock) return "ym2610";
@@ -2047,6 +2089,8 @@ function renderEvent(event, index) {
   }
   if (event.type === "ay8910-write") return `${index}: ay8910 chip=${event.chipIndex} register=${formatHex(event.register)} value=${formatHex(event.value)}`;
   if (event.type === "k051649-write") return `${index}: k051649 port=${event.port} register=${formatHex(event.register)} value=${formatHex(event.value)}`;
+  if (event.type === "segapcm-write") return `${index}: segapcm offset=${formatHex(event.offset, 4)} value=${formatHex(event.value)}`;
+  if (event.type === "segapcm-rom-data") return `${index}: segapcm ROM chip=${event.chipIndex} offset=${formatHex(event.offset)} size=${event.data.length}`;
   if (["y8950-write", "ymf278b-write", "ym3526-write", "ym3812-write", "ymf262-write"].includes(event.type)) return `${index}: ${event.type} port=${event.port ?? 0} register=${formatHex(event.register)} value=${formatHex(event.value)}`;
   if (event.type === "ym2151-write") return `${index}: ym2151 register=${formatHex(event.register)} value=${formatHex(event.value)}`;
   if (event.type === "ym2413-write") return `${index}: ym2413 write register=${formatHex(event.register)} value=${formatHex(event.value)}`;
@@ -2795,9 +2839,9 @@ function downloadSnapshotVgiZip() {
 }
 
 function validateOpmPlayback(header) {
-  if ((header.ym2151Clock & 0xc0000000) || ['ym2612Clock','ym2413Clock','ay8910Clock','ym2203Clock','ym2608Clock','ym2610Clock','rf5c164Clock','pwmClock','y8950Clock','k051649Clock'].some(key => header[key]))
+  if ((header.ym2151Clock & 0xc0000000) || (header.segaPcmClock & 0xc0000000) ||
+      ['ym2612Clock','ym2413Clock','ay8910Clock','ym2203Clock','ym2608Clock','ym2610Clock','rf5c164Clock','pwmClock','y8950Clock','k051649Clock'].some(key => header[key]))
     throw new Error('This YM2151 variant or chip combination: Support coming soon.');
-  if (header.segaPcmClock) reportPlaybackWarning('Sega PCM playback is unsupported');
 }
 
 async function ensurePlaybackReady(vgm) {
@@ -2807,7 +2851,7 @@ async function ensurePlaybackReady(vgm) {
 
   const nextChipKind = detectPlaybackChipKind(vgm.header);
   const nextClockKey = JSON.stringify([nextChipKind, vgm.header.okim6258Clock, vgm.header.okim6258Flags, vgm.header.ym2612Clock, vgm.header.psgClock,
-    vgm.header.ymf278bClock, vgm.header.ym3526Clock, vgm.header.ym3812Clock, vgm.header.ymf262Clock, vgm.header.segaPcmClock, vgm.header.ym2151Clock, vgm.header.ay8910Clock, vgm.header.ay8910Type, vgm.header.ay8910Flags, vgm.header.y8950Clock, vgm.header.k051649Clock, vgm.header.ym2413Clock, vgm.header.rf5c164Clock, vgm.header.ym2203Clock, vgm.header.ym2608Clock, vgm.header.ym2610Clock]);
+    vgm.header.ymf278bClock, vgm.header.ym3526Clock, vgm.header.ym3812Clock, vgm.header.ymf262Clock, vgm.header.segaPcmClock, vgm.header.segaPcmBankShift, vgm.header.segaPcmBankMask, vgm.header.ym2151Clock, vgm.header.ay8910Clock, vgm.header.ay8910Type, vgm.header.ay8910Flags, vgm.header.y8950Clock, vgm.header.k051649Clock, vgm.header.ym2413Clock, vgm.header.rf5c164Clock, vgm.header.ym2203Clock, vgm.header.ym2608Clock, vgm.header.ym2610Clock]);
 
   if (engine && (currentChipKind !== nextChipKind || engineClockKey !== nextClockKey)) {
     stopActiveStream();
@@ -2844,7 +2888,7 @@ async function ensurePlaybackReady(vgm) {
         k051649ModuleFactory: vgm.header.k051649Clock ? (await import('../generated/k051649_wasm.js')).default : undefined,
         k051649Clock: vgm.header.k051649Clock & 0x3fffffff, masterVolume,
       });
-    } else if (["y8950", "ymf278b", "ym3526", "ym3812", "ymf262"].includes(currentChipKind)) {
+    } else if (["y8950", "ymf278b", "ym3526", "ym3812", "ymf262", "segapcm"].includes(currentChipKind)) {
       const chip = currentChipKind;
       const otherClocks = ['ymf278bClock','ym3526Clock','ym3812Clock','ymf262Clock','ym2151Clock','segaPcmClock','ym2612Clock','ym2413Clock','ay8910Clock','ym2203Clock','ym2608Clock','ym2610Clock','rf5c164Clock','pwmClock','y8950Clock','k051649Clock'];
       if ((vgm.header[`${chip}Clock`] & 0xc0000000) || otherClocks.some(key => key !== `${chip}Clock` && vgm.header[key]))
@@ -2869,9 +2913,15 @@ async function ensurePlaybackReady(vgm) {
         ym3812Clock: vgm.header.ym3812Clock & 0x3fffffff,
         segaPsgModuleFactory, psgClock: vgm.header.psgClock & 0x3fffffff, masterVolume,
       });
-      else engine = await createYmf262AudioEngine({
+      else if (chip === 'ymf262') engine = await createYmf262AudioEngine({
         ymf262ModuleFactory: (await import('../generated/ymf262_wasm.js')).default,
         ymf262Clock: vgm.header.ymf262Clock & 0x3fffffff,
+        segaPsgModuleFactory, psgClock: vgm.header.psgClock & 0x3fffffff, masterVolume,
+      });
+      else engine = await createSegaPcmAudioEngine({
+        moduleFactory: (await import('../generated/segapcm_wasm.js')).default,
+        clock: vgm.header.segaPcmClock & 0x3fffffff,
+        bankShift: vgm.header.segaPcmBankShift, bankMask: vgm.header.segaPcmBankMask,
         segaPsgModuleFactory, psgClock: vgm.header.psgClock & 0x3fffffff, masterVolume,
       });
       observePsgPlaybackEngine();
@@ -2880,7 +2930,10 @@ async function ensurePlaybackReady(vgm) {
       engine = await createYm2151AudioEngine({
         ym2151ModuleFactory: (await import('../generated/ym2151_wasm.js')).default,
         ym2151Clock: vgm.header.ym2151Clock & 0x3fffffff,
-        segaPsgModuleFactory, psgClock: vgm.header.psgClock & 0x3fffffff, masterVolume,
+        segaPsgModuleFactory, psgClock: vgm.header.psgClock & 0x3fffffff,
+        segaPcmModuleFactory: vgm.header.segaPcmClock ? (await import('../generated/segapcm_wasm.js')).default : undefined,
+        segaPcmClock: vgm.header.segaPcmClock & 0x3fffffff,
+        segaPcmBankShift: vgm.header.segaPcmBankShift, segaPcmBankMask: vgm.header.segaPcmBankMask, masterVolume,
       });
       observeOpmEngine(engine, opmMonitor, requestChannelMonitorRender);
       const opmWrite = engine.writeYm2151.bind(engine), opmReset = engine.reset.bind(engine);
@@ -3540,6 +3593,7 @@ async function handleFile(file) {
     replayButton.disabled = true;
     stopButton.disabled = true;
     setStatus(`Error: ${error.message}`);
+    detectedChipsOutput.hidden = true;
     return;
   }
 
@@ -3555,8 +3609,10 @@ async function handleFile(file) {
     replayButton.disabled = true;
     stopButton.disabled = true;
     setStatus(`Error: ${error.message}`);
+    detectedChipsOutput.hidden = true;
     return;
   }
+  renderDetectedChips(vgm.header);
 
   const nextChipKind = detectPlaybackChipKind(vgm.header);
   if (engine && currentChipKind !== nextChipKind) {
@@ -3622,7 +3678,7 @@ async function handleFile(file) {
     renderPlaybackWarnings();
   }
   currentBuffer = buffer;
-  if (!["okim6258", "msx", "y8950", "ymf278b", "ym3526", "ym3812", "ymf262"].includes(currentChipKind)) songTimeline.load(buffer);
+  if (!["okim6258", "msx", "y8950", "ymf278b", "ym3526", "ym3812", "ymf262", "segapcm"].includes(currentChipKind)) songTimeline.load(buffer);
   playbackSeek.max = String(Math.max(0, vgm.header.totalSamples));
   renderSeekPosition(0);
   midiExportAvailable = Boolean(midiChipKind(vgm.header) || ((vgm.header.ym2151Clock & 0x3fffffff) && !(vgm.header.ym2151Clock & 0xc0000000)));
@@ -3631,7 +3687,7 @@ async function handleFile(file) {
     lastParseInfo.sourceHeader = sourceHeader;
     lastParseInfo.commandFormat = "VGM (normalized from S98)";
   }
-  extractedTfiPatches = ["okim6258", "msx", "y8950", "ymf278b", "ym3526", "ym3812", "ymf262", "ym2151", "ym2413", "ay8910"].includes(currentChipKind) ? [] : extractTfiPatchesFromVgm(buffer);
+  extractedTfiPatches = ["okim6258", "msx", "y8950", "ymf278b", "ym3526", "ym3812", "ymf262", "segapcm", "ym2151", "ym2413", "ay8910"].includes(currentChipKind) ? [] : extractTfiPatchesFromVgm(buffer);
   tfiInfo.loadVgm(buffer, file.name);
   opmInfo.loadVgm(currentChipKind === 'ym2151' ? buffer : null);
   if (tfiInfoTab.getAttribute('aria-selected') === 'true') setOutputTab('tfi-info');
@@ -4000,7 +4056,7 @@ tfiInfoTab.addEventListener('click', () => setOutputTab('tfi-info'));
 window.addEventListener('pagehide', event => { if (!event.persisted) { void tfiInfo.dispose(); void opmInfo.dispose(); } });
 
 function setOutputTab(tabName) {
-  if (!(tabName === "sheet-music" && currentBuffer && midiExportAvailable) && ((["okim6258", "msx", "y8950", "ymf278b", "ym3526", "ym3812", "ymf262"].includes(currentChipKind) && tabName !== "parsed-output") || (currentChipKind === "ay8910" && !["operator-info", "parsed-output", "noteish"].includes(tabName)) || (currentChipKind === "ym2413" && !["operator-info", "parsed-output", "noteish"].includes(tabName)) || (currentChipKind === "ym2151" && !["operator-info", "parsed-output", "noteish", "tfi-info"].includes(tabName)))) {
+  if (!(tabName === "sheet-music" && currentBuffer && midiExportAvailable) && ((["okim6258", "msx", "y8950", "ymf278b", "ym3526", "ym3812", "ymf262", "segapcm"].includes(currentChipKind) && tabName !== "parsed-output") || (currentChipKind === "ay8910" && !["operator-info", "parsed-output", "noteish"].includes(tabName)) || (currentChipKind === "ym2413" && !["operator-info", "parsed-output", "noteish"].includes(tabName)) || (currentChipKind === "ym2151" && !["operator-info", "parsed-output", "noteish", "tfi-info"].includes(tabName)))) {
     setStatus('Analysis and instrument editing: Support coming soon.');
     tabName = "parsed-output";
   }

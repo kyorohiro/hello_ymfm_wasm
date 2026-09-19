@@ -40,4 +40,9 @@ test('chip selection recognizes YM2413 and preserves OPN selection',()=>{
   assert.equal(context.detectPlaybackChipKind({ym3526Clock:3579545}),'ym3526');
   assert.equal(context.detectPlaybackChipKind({ym3812Clock:3579545}),'ym3812');
   assert.equal(context.detectPlaybackChipKind({ymf262Clock:14318180}),'ymf262');
+  assert.equal(context.detectPlaybackChipKind({segaPcmClock:4000000}),'segapcm');
+  // YM2151 + Sega PCM (e.g. OutRun) must resolve to the mixing-capable
+  // 'ym2151' path, not the OPL family's single-chip 'segapcm' path, which
+  // would reject the combination as unsupported.
+  assert.equal(context.detectPlaybackChipKind({ym2151Clock:3579545,segaPcmClock:4000000}),'ym2151');
 });

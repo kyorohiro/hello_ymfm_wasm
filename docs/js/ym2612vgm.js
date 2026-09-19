@@ -264,6 +264,10 @@ export class Ym2612VGM {
     const segaPcmClock = version >= 0x151 ? extendedClock(0x38) : 0;
     const ay8910Clock = version >= 0x151 ? extendedClock(0x74) : 0;
     const headerByte = offset => offset < dataOffset && offset < this.bytes.length ? this.bytes[offset] : 0;
+    // "Sega PCM interface register" (32 bits at 0x3C): only the low byte
+    // (bank shift) and the third byte (bank mask) are used by real drivers.
+    const segaPcmBankShift = version >= 0x151 ? headerByte(0x3c) : 0;
+    const segaPcmBankMask = version >= 0x151 ? headerByte(0x3e) : 0;
     const ay8910Type = version >= 0x151 ? headerByte(0x78) : 0;
     const ay8910Flags = version >= 0x151 ? headerByte(0x79) : 0;
     const y8950Clock = version >= 0x151 ? extendedClock(0x58) : 0;
@@ -278,6 +282,7 @@ export class Ym2612VGM {
       version,
       ym2612Clock,
       ym2413Clock, ym2151Clock, ym3526Clock, ym3812Clock, ymf262Clock, ymf278bClock, segaPcmClock,
+      segaPcmBankShift, segaPcmBankMask,
       ay8910Clock, ay8910Type, ay8910Flags, y8950Clock, k051649Clock, okim6258Clock, okim6258Flags,
       ym2203Clock,
       ym2608Clock,
@@ -501,6 +506,15 @@ export class Ym2612VGM {
         this.position += 4;
         return { type: "k051649-write", port: port & 0x7f, register, value, chipIndex: port >>> 7 };
       }
+      case 0xc0: {
+        // 0xC0 aaaa dd: Sega PCM, write value dd to memory offset aaaa (VGM spec).
+        // See third_party/mame-segapcm/README.md for the register layout.
+        this.#ensureAvailable(4);
+        const offset = readUint16LE(this.view, this.position + 1);
+        const value = this.bytes[this.position + 3];
+        this.position += 4;
+        return { type: "segapcm-write", offset, value };
+      }
       case 0x5a: {
         this.#ensureAvailable(3);
         const register = this.bytes[this.position + 1], value = this.bytes[this.position + 2];
@@ -640,6 +654,15 @@ export class Ym2612VGM {
           const data = this.bytes.slice(this.position+15,this.position+7+size);
           this.position += 7+size;
           return { type:'ym2610-rom-data', romType:dataType-0x82, data, offset, memorySize, chipIndex:rawSize >>> 31 };
+        }
+        if (dataType === 0x80) {
+          if (size < 8) throw new Error('Invalid Sega PCM ROM block header');
+          const memorySize = readUint32LE(this.view, this.position + 7);
+          const offset = readUint32LE(this.view, this.position + 11);
+          if (memorySize > 0x200000 || offset > memorySize || size - 8 > memorySize - offset) throw new RangeError('Invalid Sega PCM ROM range');
+          const data = this.bytes.slice(this.position + 15, this.position + 7 + size);
+          this.position += 7 + size;
+          return { type: 'segapcm-rom-data', data, offset, memorySize, chipIndex: rawSize >>> 31 };
         }
         if (dataType === 0x81) {
           if (size < 8) throw new Error("Invalid YM2608 ADPCM-B data block: missing memory header");
@@ -810,6 +833,20 @@ export class Ym2612VGM {
     if (event.type === "k051649-write") {
       if (event.chipIndex) throw new Error('Second K051649 chip: Support coming soon.');
       targets.k051649?.writeRegister(event.port, event.register, event.value);
+      return event;
+    }
+    if (event.type === "segapcm-write") {
+      targets.segapcm?.writeRegister(event.offset, event.value);
+      return event;
+    }
+    if (event.type === "segapcm-rom-data") {
+      if (event.chipIndex) {
+        this.#warn("Skipping ROM data for the unsupported second Sega PCM chip");
+      } else if (typeof targets.segapcm?.loadSampleMemory === "function") {
+        targets.segapcm.loadSampleMemory(event.data, event.offset, event.memorySize);
+      } else {
+        this.#warn("Sega PCM ROM data requires a playback target with sample memory support");
+      }
       return event;
     }
     if (event.type === 'opl-sample-data') {
@@ -1037,6 +1074,9 @@ export class Ym2612VGM {
     }
     if (command === 0xd2) {
       return `cmd=0xd2 k051649 port=${this.bytes[position + 1]} register=${formatHexNumber(this.bytes[position + 2])} value=${formatHexNumber(this.bytes[position + 3])}`;
+    }
+    if (command === 0xc0) {
+      return `cmd=0xc0 segapcm offset=${formatHexNumber(readUint16LE(this.view, position + 1), 4)} value=${formatHexNumber(this.bytes[position + 3])}`;
     }
     if (command === 0x54) {
       return `cmd=0x54 ym2151 register=${formatHexNumber(this.bytes[position + 1])} value=${formatHexNumber(this.bytes[position + 2])}`;

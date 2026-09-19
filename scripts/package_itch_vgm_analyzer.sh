@@ -75,6 +75,8 @@ ay8910.js
 ay8910audioengine.js
 k051649.js
 k051649audioengine.js
+segapcm.js
+segapcmaudioengine.js
 multichipaudioengine.js
 msxaudioengine.js
 y8950.js
@@ -118,6 +120,8 @@ ay8910_wasm.js
 ay8910_wasm.wasm
 k051649_wasm.js
 k051649_wasm.wasm
+segapcm_wasm.js
+segapcm_wasm.wasm
 y8950_wasm.js
 y8950_wasm.wasm
 ymf278b_wasm.js
@@ -242,6 +246,12 @@ cp "${LICENSE_FILE}" "${STAGE_DIR}/LICENSE"
 mkdir -p "${STAGE_DIR}/licenses/mame-rf5c164"
 cp "${ROOT_DIR}/third_party/mame-rf5c164/LICENSE" "${ROOT_DIR}/third_party/mame-rf5c164/README.md" "${STAGE_DIR}/licenses/mame-rf5c164/"
 
+mkdir -p "${STAGE_DIR}/licenses/mame-k051649"
+cp "${ROOT_DIR}/third_party/mame-k051649/LICENSE" "${ROOT_DIR}/third_party/mame-k051649/README.md" "${STAGE_DIR}/licenses/mame-k051649/"
+
+mkdir -p "${STAGE_DIR}/licenses/mame-segapcm"
+cp "${ROOT_DIR}/third_party/mame-segapcm/LICENSE" "${ROOT_DIR}/third_party/mame-segapcm/README.md" "${STAGE_DIR}/licenses/mame-segapcm/"
+
 for file in ${NUKED_LICENSE_FILES}; do
   src="${NUKED_LICENSE_DIR}/${file}"
   dst="${STAGE_DIR}/licenses/nuked-opn2/${file}"
@@ -260,6 +270,10 @@ AY-3-8910 / YM2149: MAME adaptation, BSD-3-Clause. See licenses/mame-ay8910/.
 OKIM6258: MAME adaptation by Barry Rodewald, BSD-3-Clause. See licenses/mame-okim6258/.
 
 RF5C164: MAME adaptation, BSD-3-Clause. See licenses/mame-rf5c164/LICENSE and README.md.
+
+K051649 (Konami SCC): MAME adaptation by Bryan McPhail, BSD-3-Clause. See licenses/mame-k051649/LICENSE and README.md.
+
+Sega PCM (315-5218): MAME adaptation by Hiromitsu Shioya, Olivier Galibert, BSD-3-Clause. See licenses/mame-segapcm/LICENSE and README.md.
 
 This package includes two YM2612 engine options:
 
