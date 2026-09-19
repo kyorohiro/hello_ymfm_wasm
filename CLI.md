@@ -1,180 +1,72 @@
-# tetorica-vgm
+#!/usr/bin/env node
+import { parseArgs } from 'node:util';
+import { writeFile, readFile } from 'node:fs/promises';
+import { basename } from 'node:path';
+import { readSource, analyzeSource, exportSource, exportFormats, renderSource } from './index.js';
 
-Node.js 22+ CLI and library for the existing Tetorica VGM Analyzer.
-This package is prepared for npm publication; it has not been published by this change.
+const help = `tetorica-vgm — VGM/VGZ analysis without a browser
 
-## From this repository
+  tetorica-vgm analyze FILE [--json]
+  tetorica-vgm export FILE --format FORMAT --output FILE [--bpm 120] [--force]
+  tetorica-vgm render FILE --output FILE.wav [--max-seconds 120] [--force]
 
-```sh
-npm test
-npm run build
-node dist/cli/main.js analyze test/fixtures/psg-tone.vgz --json
-node dist/cli/main.js export test/fixtures/psg-tone.vgz --format musicxml --output /tmp/tone.musicxml
-node dist/cli/main.js render test/fixtures/psg-tone.vgz --output /tmp/tone.wav
-npm pack --dry-run
-npm pack
-# Test the actual tarball without publishing:
-npm exec --offline --package ./tetorica-vgm-0.1.0.tgz -- tetorica-vgm --help
-```
+Formats: ${exportFormats.join(', ')}
+BPM defaults to the browser score tempo suggestion (fallback: 120).
+Output files are never overwritten unless --force is supplied.
+Render: standalone YM2612/YM2151/YM2413/YM3526/YM3812/YMF262 (optional Sega PSG),
+YM2612 + RF5C164 (optional Sega PSG), standalone YM2203 (FM + internal SSG), YM2608 and YM2610/B (FM / SSG / ADPCM), Sega PSG alone, AY-3-8910, or Game Boy DMG. Other configurations may require additional WASM factories or ROMs; see CLI.md.
+Y8950 (FM / embedded ADPCM, optional Sega PSG) is supported.
+OKIM6258 alone or with YM2151 is supported (4-bit ADPCM only).
+--ym2608-rom FILE: 8192-byte rhythm ROM for YM2608; required only for rhythm key-on.
+--max-seconds: >0 to 600; loops are not expanded. See CLI.md for limitations.
+`;
+try {
+  const { values, positionals } = parseArgs({ allowPositionals: true, options: {
+    help: {type:'boolean',short:'h'}, version:{type:'boolean',short:'v'}, json:{type:'boolean'},
+    format:{type:'string'}, output:{type:'string',short:'o'}, bpm:{type:'string'},
+    'ym2608-rom':{type:'string'}, 'max-seconds':{type:'string'}, force:{type:'boolean'},
+  } });
+  if (values.help) { console.log(help); }
+  else if (values.version) {
+    const pkg = JSON.parse(await readFile(new URL('../package.json', import.meta.url)));
+    console.log(pkg.version);
+  } else {
+    const [command, input] = positionals;
+    if (!['analyze','export','render'].includes(command) || !input || positionals.length !== 2) throw new Error(help);
+    const allowed = { analyze:['json'], export:['format','output','bpm','force'], render:['output','max-seconds','force','ym2608-rom'] }[command];
+    for (const key of Object.keys(values)) if (!allowed.includes(key)) throw new Error(`--${key} is not valid for ${command}`);
+    if (command !== 'analyze' && !values.output) throw new Error('--output is required');
+    if (command === 'export' && !exportFormats.includes(values.format)) throw new Error(`--format must be one of: ${exportFormats.join(', ')}`);
+    const source = await readSource(input);
+    if (command === 'analyze') {
+      const result = analyzeSource(source);
+      console.log(values.json ? JSON.stringify(result, null, 2) : [
+        `File: ${input}`, `Chips: ${result.chips.map(c => `${c.id} (${c.clockHz} Hz)`).join(', ') || 'none declared'}`,
+        `Declared duration: ${result.declaredDurationSeconds.toFixed(3)} s`,
+        `Commands: ${Object.values(result.commandUsage).reduce((a,b)=>a+b,0)}`,
+        `Data blocks: ${result.dataBlocks.length}`,
+      ].join('\n'));
+    } else {
+      const result = command === 'export'
+        ? exportSource(source, { format: values.format, bpm: values.bpm === undefined ? undefined : Number(values.bpm), fileName: basename(input) })
+        : await renderSource(source, { maxSeconds: values['max-seconds'] === undefined ? 120 : Number(values['max-seconds']), roms: values['ym2608-rom'] === undefined ? {} : {ym2608AdpcmA:await readFile(values['ym2608-rom'])} });
+      await writeFile(values.output, result.bytes ?? result.text, { flag: values.force ? 'w' : 'wx' });
+      console.error(`Wrote ${values.output}`);
+      if (result.truncated) console.error('Warning: rendering stopped at --max-seconds.');
+      for (const warning of result.warnings ?? []) console.error(`Warning: ${warning}`);
+    }
+  }
+} catch (error) {
+  console.error(`tetorica-vgm: ${error.message}`);
+  process.exitCode = 1;
+}
 
-After publication, the same commands work as `npx tetorica-vgm ...`.
-There are no npm runtime dependencies. Committed WASM artifacts are included;
-consumers do not need Emscripten. To rebuild YM2203/YM2608/YM2610(B)/YM2612/Sega PSG/RF5C164 from source, run
-`scripts/build_ym2203_wasm.sh`, `scripts/build_ym2608_wasm.sh`, `scripts/build_ym2610b_wasm.sh`, `scripts/build_ym2612_wasm.sh`, `scripts/build_segapsg_wasm.sh`, and
-`scripts/build_rf5c164_wasm.sh` with Emscripten installed.
+## Y8950 rendering
 
-## Commands
-
-```sh
-tetorica-vgm analyze song.vgz --json
-tetorica-vgm export song.vgz --format midi --output song.mid --bpm 136
-tetorica-vgm export song.vgz --format musicxml --output song.musicxml
-tetorica-vgm export song.vgz --format lilypond --output song.ly
-tetorica-vgm export song.vgz --format mgsdrv --output song.mml
-tetorica-vgm render song.vgz --output song.wav --max-seconds 120
-```
-
-- `analyze`: header-declared chips/clocks, GD3 metadata, declared duration,
-  command counts, data-block and PCM-RAM summaries, special-command details.
-  JSON has `schemaVersion: 1`; declared chips are not a playback compatibility claim.
-- `export`: `midi`, `musicxml`, `lilypond`, `mucom`, `opnavoid`, `mxdrv`, `mgsdrv`.
-  Supported chips and approximation limits are those of the browser exporters.
-  MUCOM/OPN-Avoid target OPN, MXDRV targets YM2151, MGSDRV targets AY/OPLL.
-  BPM is an integer 4–999. Without `--bpm`, use the browser score suggestion,
-  falling back to 120. This is not guaranteed musical beat detection.
-- `render`: 16-bit stereo WAV, no loop expansion, up to 120 seconds by default.
-  `--max-seconds` accepts >0 through 600; truncation is reported on stderr.
-  Initial CLI adapters support standalone YM2612, YM2151, YM2413, YM3526,
-  YM3812, YMF262 (each optionally with Sega PSG), standalone Sega PSG,
-  AY-3-8910, and Game Boy DMG. YM2612 + RF5C164 (Mega CD), with optional Sega PSG,
-  is also supported, including embedded PCM RAM data. Standalone YM2203 supports
-  FM and internal SSG without external ROMs. YM2203 + Sega PSG / RF5C164 / other
-  OPN chips are rejected; OKIM6258 attachment uses the shared Core (see below). Unsupported dual/variant chip flags are rejected.
-  Missing WASM factories/ROMs are reported separately from unsupported configurations.
-  Browser playback additionally supports chips/combinations
-  that are not yet wired into this CLI. External ROMs and browser effects are not bundled. Natural track endings can include one final partial block of silence.
-- `--output` is required for export/render. Existing files are preserved unless
-  `--force` is passed. Usage/input/output failures exit 1. JSON goes to stdout;
-  errors, export notices and render warnings go to stderr.
-
-The CLI accepts VGM/VGZ, not S98, directories, ZIPs or stdin in this initial version.
-Patch ZIPs, sample extraction and interactive audition/editing remain browser features.
-
-## Node API
-
-```js
-import { readSource, analyzeSource, exportSource, renderSource } from 'tetorica-vgm';
-import { writeFile } from 'node:fs/promises';
-const source = await readSource('song.vgz');
-console.log(analyzeSource(source));
-const midi = exportSource(source, { format: 'midi', bpm: 120 });
-await writeFile('song.mid', midi.bytes);
-const xml = exportSource(source, { format: 'musicxml', fileName: 'song' });
-await writeFile('song.musicxml', xml.text);
-```
-
-`decodeSource(Uint8Array | ArrayBuffer)` asynchronously decodes VGM/VGZ without
-filesystem access. `analyzeSource` and `exportSource` accept decoded bytes and
-are synchronous. `renderSource` returns a Promise of `{bytes, seconds, truncated,
-warnings}`. Export results contain either `bytes` or `text`, plus the underlying
-exporter's diagnostics where available. Errors throw; there is no process exit in
-these library functions.
-
-`tetorica-vgm/core` exposes the environment-neutral API without Node filesystem
-or engine initialization. A future MCP adapter can call this API, validate its own
-inputs, and impose its own execution/resource policy.
-
-## Architecture and package boundary
-
-- `docs/js/ym2612vgm.js`: parser, chip registers, command scanning.
-- `docs/js/vgm_file.js`: VGM/VGZ decoding and GD3 metadata.
-- `docs/vgm_analyzer/*notes.js`, `vgm_midi.js`, `vgm_lilypond.js`,
-  `vgm_musicxml.js`, `*mml.js`: existing reusable analysis/export algorithms.
-- `docs/vgm_analyzer/analyzer_core.js`: public facade and JSON summary. Browser
-  score/MIDI imports and the Node adapter share these very same modules.
-- `cli/`: Node filesystem/WASM adapter and argument/output handling.
-- `scripts/build_cli.mjs`: follows relative imports to stage a distribution under
-  `dist/`. Staging copies files mechanically; there is no forked algorithm.
-
-A few existing monitor modules contain both pure register decoding and inert DOM
-mount functions. Their decoders are reused; no DOM globals are required when
-importing or using Core. Moving the mount functions is a future cleanup, not a
-second implementation for Node.
-
-The npm allowlist includes only staged dependencies, README/CLI documentation
-and licenses. It excludes game files, fixtures, ROMs, HTML/CSS/images, OSMD,
-LilyPond runtime, Nuked-OPN2, `w/`, caches and browser bundles. Included chip code
-is BSD-3-Clause; third-party notices are shipped under `dist/licenses/`.
-Before publication run `npm test`, `npm run test:analyzer`, `npm pack --dry-run`,
-and install/test the tarball in a clean directory. The analyzer suite has one optional compiler integration test that requires
-`MML2MDR_DIR`; without that external compiler it is skipped.
-
-## Shared playback interface
-
-Browser and CLI now use `selectPlaybackConfiguration` / `createPlaybackEngine`
-from the shared Core. Platform adapters supply `getFactory(name)` and ROM bytes;
-Core owns chip configuration, engine creation and PCM composition. Existing
-`VgmPlayer.process(left, right, frames)` is the shared PCM interface; WebAudio and
-WAV/file delivery stay outside engine creation.
-
-These functions, `createPlaybackPlayer`, and `PlaybackError` are exposed through
-`tetorica-vgm/core` and the Node API. Errors distinguish `UNSUPPORTED_CONFIGURATION`
-from `MISSING_RESOURCE` and contain structured `details`. Factory I/O failures
-retain their original error. Node supplies the WASM factories for the supported
-render configurations listed above. Shared recipes for other Browser engines do not imply that their
-Node rendering has been validated. AY + YM2413 and Genesis PWM use already available
-resources, but dedicated CLI combination testing remains follow-up work.
-
-The repository document `docs/issues/analyzer_cli_02_architecture.md` records
-ownership, ROM keys, the configuration table, validation and remaining limitations.
-
-## YM2608 rendering and rhythm ROM
-
-```sh
-tetorica-vgm render song.vgz --output song.wav --ym2608-rom /path/to/ym2608_adpcm_rom.bin
-```
-
-Standalone YM2608 supports FM, internal SSG, embedded ADPCM-B RAM data and
-ADPCM-A rhythm. The rhythm ROM is required only when the VGM issues a rhythm
-key-on; FM/SSG/ADPCM-B-only tracks do not need it. No ROM is downloaded or bundled.
-`--ym2608-rom` is render-only and accepts a full 8192-byte ROM. Unreadable files,
-wrong sizes and missing required ROMs fail before output is written. Partial ROM
-loading is not exposed by this Node API. Dual/variant and other OPN/Sega PSG
-combinations remain rejected; OKIM6258 attachment is available through the shared Core; this pairing has no dedicated CLI mix test yet.
-
-```js
-const wav = await renderSource(source, {
-  maxSeconds: 120,
-  roms: { ym2608AdpcmA: await readFile('/path/to/ym2608_adpcm_rom.bin') },
-});
-```
-
-Import `readFile` from `node:fs/promises`. The API accepts `Uint8Array` (including
-Node `Buffer`); paths are handled only by the CLI, never by the shared Core.
-
-## YM2610 / YM2610B rendering
-
-```sh
-tetorica-vgm render song.vgz --output song.wav
-```
-
-The VGM clock's variant bit selects YM2610 (4 FM channels) or YM2610B
-(6 FM channels). Both include internal SSG and ADPCM-A/B; sample ROM data must
-be embedded in the VGM (blocks 0x82/0x83). No external ROM option is required
-for these fixtures, and none is provided for this chip. Missing sample data
-cannot be reconstructed. Dual chips and combinations with Sega PSG or other
-OPN chips are rejected; OKIM6258 attachment is available through the shared Core; this pairing has no dedicated CLI mix test yet.
-
-## OKIM6258 and YM2151 + OKIM6258
-
-Standalone OKIM6258 and YM2151 + OKIM6258 use the same `render` command and
-Node `renderSource` API, without external ROM options. VGM register/stream writes
-supply ADPCM bytes. Header clocks, divider and 10/12-bit output precision are
-honored; only 4-bit ADPCM is supported. 3-bit ADPCM and dual/variant chip flags
-are rejected. Dynamic clock/divider writes and pan use the existing shared engine.
-The Node package includes the MAME-derived decoder's BSD-3-Clause notice.
-Rebuild it with `scripts/build_okim6258_wasm.sh`.
-
-The shared factory also enables OKIM6258 attachment to other supported engines;
-this step specifically verifies standalone and YM2151 mixing. Other pairings
-retain the common configuration checks and are not newly advertised as tested.
+Standalone Y8950 (FM and ADPCM) and Y8950 + Sega PSG use the same `render`
+command and `renderSource` API. ADPCM sample memory is loaded from VGM block
+0x88; no external ROM option is needed or supplied. Dual/variant flags and
+unsupported chip combinations are rejected. Rebuild with
+`scripts/build_y8950_wasm.sh` (ymfm, BSD-3-Clause).
+Providing this factory also enables existing shared MSX recipes; their dedicated
+CLI combination validation remains task 06d, not part of this standalone step.

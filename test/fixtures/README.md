@@ -17,3 +17,6 @@ authored repeating patterns, not game ROM data.
 
 OKIM6258 fixtures contain authored timed ADPCM byte writes; opm-oki-mix adds
 a synthesized OPM voice. opm-audible is the independent FM reference.
+
+Y8950 fixtures exercise FM, an authored repeating ADPCM memory pattern (block
+0x88), their mix and optional Sega PSG. No game samples are used.

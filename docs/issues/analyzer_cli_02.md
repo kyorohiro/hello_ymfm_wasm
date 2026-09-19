@@ -134,7 +134,7 @@ Browser側ですでに共有化した音源は、CLIへ同じ処理を再実装�
 
 以下はそれぞれ独立した作業単位として処理する。
 
-- [ ] 06a: Y8950。FMとADPCMを検証する。
+- [x] 06a: Y8950。FMとADPCMを検証する。
 - [ ] 06b: YMF278B。外部wave ROM指定、FMとPCM、ROM不足時の動作を検証する。
 - [ ] 06c: Sega PCM。埋め込みサンプルとバンク設定を検証する。
 - [ ] 06d: MSX系の複合音源。01で確定したBrowser対応構成を一つずつ接続・検証する。
@@ -270,3 +270,15 @@ Browserで使う既存エンジンの生成経路とのWAV一致、埋め込みR
 `npm test`: 22成功。`npm run test:analyzer`: 583成功・0失敗・外部コンパイラ検証1skip。
 他engineへのOKIM6258付加も共有factoryで可能になるが、この工程の専用mixテストはYM2151のみ。
 実ブラウザUIとNode 22の実機検証は未実施。次は06a（Y8950）。
+
+### 06a 実装記録
+
+Y8950の既存Node対応factoryを提供。共有recipe・エンジンは変更せず、FM / ADPCMをCLIで利用可能にした。
+自作fixtureでFM単独・ADPCM単独・mix・Sega PSG併用を発音検証。
+Browserエンジン経路とのWAV一致、reset後のサンプル再ロード、dual / variant / 他音源混在拒否、
+不正sample block範囲の拒否を確認。tarballからCLI / Node APIの出力一致も検証。
+MSX複合recipeもfactoryを利用できるが、専用検証は06dで実施する。
+外部ROM・ゲームデータは追加していない。ymfmは既存BSD-3-Clauseライセンスの範囲。
+
+`npm test`: 24成功。`npm run test:analyzer`: 583成功・0失敗・外部コンパイラ検証1skip。
+実ブラウザUIとNode 22での検証は引き続き未実施。次は06b（YMF278B・wave ROM入力）。

@@ -95,6 +95,7 @@ test('npm tarball installs offline, runs via npx, and exports the library',async
     assert(paths.includes('dist/docs/generated/ym2608_wasm.wasm'));
     assert(paths.includes('dist/docs/generated/ym2610b_wasm.wasm'));
     assert(paths.includes('dist/docs/generated/okim6258_wasm.wasm'));
+    assert(paths.includes('dist/docs/generated/y8950_wasm.wasm'));
     assert(paths.includes('dist/licenses/mame-okim6258.txt'));
     assert(paths.includes('LICENSE'));
     assert(!paths.some(p=>/\.rom$|\.bin$/.test(p)));
@@ -127,7 +128,7 @@ test('npm tarball installs offline, runs via npx, and exports the library',async
       assert.match(failure.stderr,/Missing ROM|ENOENT|8192 bytes/);
     }
     assert.equal(cli('analyze',fixture('ym2608-rhythm.vgz'),'--ym2608-rom',romPath).status,1);
-    for(const name of ['ym2610-mix','ym2610b-mix','okim6258-tone','opm-oki-mix']) {
+    for(const name of ['ym2610-mix','ym2610b-mix','okim6258-tone','opm-oki-mix','y8950-psg']) {
       const out=join(dir,name+'.wav'),input=fixture(name+'.vgz');
       execFileSync('npm',[...args,'render',input,'--output',out,'--max-seconds','0.05'],{cwd:dir});
       const expected=await renderSource(await readSource(input),{maxSeconds:.05});

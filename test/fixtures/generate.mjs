@@ -70,3 +70,12 @@ okiCommands.push(0xb7,0,1,0x61,0x72,0x51,0x66); // total 22050 samples
 file('okim6258-tone',0x90,8192000,okiCommands,[],12);
 file('opm-oki-mix',0x30,3579545,[...opmVoice,...okiCommands],[[0x90,8192000]],12);
 file('opm-audible',0x30,3579545,[...opmVoice,...wait,0x66]);
+
+const yFm=[];
+for(const slot of [0,3])for(const [r,v] of [[0x20,0x21],[0x40,16],[0x60,0xf0],[0x80,0x0f]])yFm.push(0x5c,r+slot,v);
+yFm.push(0x5c,0xc0,0x0e,0x5c,0xa0,0x98,0x5c,0xb0,0x31);
+const yAdpcm=[0x67,0x66,0x88,8,1,0,0,0,1,0,0,0,0,0,0,...new Array(256).fill(0x17)];
+for(const [r,v] of [[8,1],[9,0],[10,0],[11,7],[12,0],[16,255],[17,255],[18,255],[7,0xb0]])yAdpcm.push(0x5c,r,v);
+const yPsg=[0x50,0x80,0x50,0x10,0x50,0x90];
+for(const [name,commands,clocks] of [['fm',yFm,[]],['adpcm',yAdpcm,[]],['mix',[...yFm,...yAdpcm],[]],['psg',[...yFm,...yAdpcm,...yPsg],[[0x0c,3579545]]]])
+  file('y8950-'+name,0x58,3579545,[...commands,...wait,0x66],clocks);
