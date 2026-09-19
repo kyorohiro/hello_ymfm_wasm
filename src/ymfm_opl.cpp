@@ -1940,12 +1940,20 @@ void ymf278b::generate(output_data *output, uint32_t numsamples)
 
 		// update the FM content; mixing details for YMF278B need verification
 		fm_engine::output_data fmout;
-		m_fm.output(fmout.clear(), 0, 32767, fm_engine::ALL_CHANNELS & ~m_fm_mute_mask);
-		// output() also updates operator feedback. Muted channels must run once.
-		if (m_fm_mute_mask)
+		uint32_t muted = m_fm_mute_mask;
+		// Either member of a connected 4-op voice mutes the complete pair.
+		for (uint32_t pair = 0; pair < 6; pair++)
+		{
+			uint32_t first = (pair / 3) * 9 + pair % 3;
+			uint32_t pairmask = (1U << first) | (1U << (first + 3));
+			if (bitfield(m_fm.regs().fourop_enable(), pair) && (muted & pairmask)) muted |= pairmask;
+		}
+		m_fm.output(fmout.clear(), 0, 32767, fm_engine::ALL_CHANNELS & ~muted);
+		// Preserve feedback updates for muted operators as well.
+		if (muted)
 		{
 			fm_engine::output_data discarded;
-			m_fm.output(discarded.clear(), 0, 32767, fm_engine::ALL_CHANNELS & m_fm_mute_mask);
+			m_fm.output(discarded.clear(), 0, 32767, fm_engine::ALL_CHANNELS & muted);
 		}
 
 		// update the PCM content; pcm_channel::output() is a pure readout with

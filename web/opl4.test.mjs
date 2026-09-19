@@ -177,3 +177,27 @@ for(const Parser of [Ym2612VGM,DocsVGM]) test(`missing wave ROM detection (${Par
  assert.equal(new Parser(withBlock(config,0x84,new Uint8Array(512),[[2,0x68,0x80]])).requiresYmf278bWaveRom(),false);
  assert.equal(new Parser(data(configs[0])).requiresYmf278bWaveRom(),false);
 });
+
+test('OPL4 FM four-operator pairs mute from either member and preserve feedback', async () => {
+  const a=await Ymf278bAudioEngine.create(options('ymf278b',opl3Factory));
+  const b=await Ymf278bAudioEngine.create(options('ymf278b',opl3Factory));
+  try {
+    for(let pair=0;pair<6;pair++) for(const member of [0,3]) {
+      const port=Math.floor(pair/3),ch=pair%3,first=port*9+ch;
+      for(const e of [a,b]) {
+        e.setChannelMuted(first+member,false);e.reset();
+        e.writeYmf278b(1,5,1);e.writeYmf278b(1,4,1<<pair);
+        write(e,'ymf278b',[...voice(port,ch+3),...voice(port,ch)]);
+        for(const c of [ch,ch+3]) for(const slot of [[0,1,2,8,9,10,16,17,18][c],[0,1,2,8,9,10,16,17,18][c]+3]) e.writeYmf278b(port,0x20+slot,0x21);
+        e.writeYmf278b(port,0xc0+ch,0x3e);
+        e.processFrames(700);
+      }
+      b.setChannelMuted(first+member,true);
+      assert(a.processFrames(600).left.some(x=>x!==0));
+      const muted=b.processFrames(600);
+      assert(muted.left.every(x=>x===0));assert(muted.right.every(x=>x===0));
+      b.setChannelMuted(first+member,false);
+      assert.deepEqual(b.processFrames(400),a.processFrames(400));
+    }
+  } finally {a.dispose();b.dispose();}
+});

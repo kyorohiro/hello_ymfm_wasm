@@ -23,8 +23,11 @@ export function extractOpllNotes(source) {
       rhythmWarned = true;
     }
     state.channels.forEach((ch, i) => {
-      if (ch.isRhythmChannel && ch.channel !== 6) return;
       const c = channels[i];
+      if (ch.isRhythmChannel && ch.channel !== 6) {
+        if (c.active) { c.notes.push({ ...c.active, end: time }); c.active = null; }
+        return;
+      }
       const midi = ch.midi;
       if (c.active && ch.keyOn && c.active.midi === midi) return;
       const wasOn = Boolean(c.active);

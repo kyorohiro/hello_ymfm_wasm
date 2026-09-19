@@ -66,9 +66,9 @@ function opllOperatorFields(base) {
 // has no per-operator detune; DT is always 0 to match the documented @v example.
 function readCustomVoice(regs) {
   const mod = { ...opllOperatorFields(regs[0]), ar: (regs[4] >> 4) & 15, dr: regs[4] & 15,
-    sl: (regs[6] >> 4) & 15, rr: regs[6] & 15, kl: (regs[3] >> 6) & 3, dt: 0 };
+    sl: (regs[6] >> 4) & 15, rr: regs[6] & 15, kl: (regs[2] >> 6) & 3, dt: 0 };
   const car = { ...opllOperatorFields(regs[1]), ar: (regs[5] >> 4) & 15, dr: regs[5] & 15,
-    sl: (regs[7] >> 4) & 15, rr: regs[7] & 15, kl: (regs[2] >> 6) & 3, dt: 0 };
+    sl: (regs[7] >> 4) & 15, rr: regs[7] & 15, kl: (regs[3] >> 6) & 3, dt: 0 };
   return { tl: regs[2] & 0x3f, fb: regs[3] & 7, mod, car };
 }
 
@@ -87,8 +87,11 @@ function extractOpllVoiceNotes(source, clock) {
     const state = describeYm2413(regs, clock);
     if (state.rhythmEnabled) rhythmActive = true;
     state.channels.forEach((ch, i) => {
-      if (ch.isRhythmChannel && ch.channel !== 6) return;
       const c = channels[i];
+      if (ch.isRhythmChannel && ch.channel !== 6) {
+        if (c.active) { c.notes.push({ ...c.active, end: time }); c.active = null; }
+        return;
+      }
       const voiceKey = ch.instrument === 0 ? `custom:${regs.slice(0, 8).join(',')}` : `rom:${ch.instrument}`;
       if (c.active && ch.keyOn && c.active.midi === ch.midi && c.active.voiceKey === voiceKey) return;
       const wasOn = Boolean(c.active);

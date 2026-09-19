@@ -1075,14 +1075,14 @@ function updateGameboyNoteMonitor() {
     const ch = gameboyNoteChannels[i];
     ch.unavailable = false;
     const midi = note.midi;
-    if (ch.keyOn !== note.keyOn || ch.toneMidi !== midi) {
+    if (ch.keyOn !== note.keyOn || ch.toneMidi !== midi || ch.trigger !== note.trigger) {
       ch.noteHistory.push({time:now,midiFloat:midi});
       if (note.keyOn) {
         ch.noteMinMidi = ch.noteMinMidi === null ? midi : Math.min(ch.noteMinMidi,midi);
         ch.noteMaxMidi = ch.noteMaxMidi === null ? midi : Math.max(ch.noteMaxMidi,midi);
       }
     }
-    ch.keyOn=note.keyOn; ch.toneMidi=midi; ch.freq=note.freq;
+    ch.keyOn=note.keyOn; ch.toneMidi=midi; ch.freq=note.freq; ch.trigger=note.trigger;
     pruneChannelNoteHistory(ch,now);
   });
   requestNoteishRender();

@@ -116,3 +116,13 @@ test('extractGameboyNotes closes all active notes on NR52 power-off', () => {
   assert.equal(result.channels[1].notes.length, 1);
   assert.equal(result.channels[1].notes[0].end, 2000);
 });
+
+for (const [channel, dac, lo, hi, enable] of [[0,2,3,4,0xf0],[1,7,8,9,0xf0],[2,10,13,14,0x80]]) {
+  test(`GB channel ${channel + 1} preserves retriggers but not ordinary frequency writes`, () => {
+    const result = extractGameboyNotes(vgm([
+      ...w(dac,enable), ...w(lo,0), ...w(hi,0x86), ...wait(1000),
+      ...w(hi,6), ...wait(1000), ...w(hi,0x86), ...wait(1000), 0x66,
+    ]));
+    assert.deepEqual(result.channels[channel].notes.map(n => [n.start,n.end,n.key]), [[0,2000,1],[2000,3000,2]]);
+  });
+}

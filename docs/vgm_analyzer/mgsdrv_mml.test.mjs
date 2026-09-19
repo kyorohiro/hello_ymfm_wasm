@@ -107,3 +107,25 @@ test('invalid BPM is rejected', () => {
   assert.throws(() => exportMgsdrvMml(source, { bpm: 0 }), /BPM/);
   assert.throws(() => exportMgsdrvMml(source, { bpm: NaN }), /BPM/);
 });
+
+test('custom OPLL voice preserves separate modulator and carrier key scaling', () => {
+  const text = exportMgsdrvMml(vgm([
+    0x51,2,0x40,0x51,3,0x80,0x51,0x10,200,0x51,0x20,0x18,0x61,0x3a,0x11,0x66,
+  ], {opll:3579545}));
+  assert.match(text, /0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0,\n\s*0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0/);
+});
+
+test('rhythm entry ends melodic CH8/9 notes in both extraction and MML', async () => {
+  const {extractOpllNotes} = await import('./ym2413_notes.js');
+  const source = vgm([
+    0x51,0x37,0x10,0x51,0x38,0x10,
+    0x51,0x17,200,0x51,0x27,0x18,0x51,0x18,200,0x51,0x28,0x18,
+    0x61,0x89,0x15,0x51,0x0e,0x20,0x61,0x89,0x15,0x66,
+  ], {opll:3579545});
+  for (const ch of extractOpllNotes(source).channels.slice(7)) {
+    assert.equal(ch.notes.length,1);
+    assert.equal(ch.notes[0].end,5513);
+  }
+  const text=exportMgsdrvMml(source);
+  for (const track of ['g','h']) assert.match(text,new RegExp(`^${track} v5 @0 .*16 r16$`,'m'));
+});

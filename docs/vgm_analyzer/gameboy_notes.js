@@ -17,7 +17,7 @@ const NR30 = 0x0a;
 const NR52 = 0x16;
 
 export function createGameboyMonitor() {
-  return { channels: [0, 1, 2].map(() => ({ freq: 0, keyOn: false, dacEnabled: false })) };
+  return { channels: [0, 1, 2].map(() => ({ freq: 0, keyOn: false, dacEnabled: false, trigger: 0 })) };
 }
 
 export function applyGameboyWrite(state, register, value) {
@@ -28,7 +28,10 @@ export function applyGameboyWrite(state, register, value) {
       changed = true;
     } else if (register === FREQ_HI[ch]) {
       state.channels[ch].freq = (state.channels[ch].freq & 0xff) | ((value & 7) << 8);
-      if (value & 0x80) state.channels[ch].keyOn = state.channels[ch].dacEnabled;
+      if (value & 0x80) {
+        state.channels[ch].keyOn = state.channels[ch].dacEnabled;
+        if (state.channels[ch].keyOn) state.channels[ch].trigger++;
+      }
       changed = true;
     } else if (ch < 2 && register === ENVELOPE_REG[ch]) {
       state.channels[ch].dacEnabled = (value & 0xf8) !== 0;
@@ -55,30 +58,28 @@ export function describeGameboyNotes(state) {
   return state.channels.map((channel, index) => {
     const hz = index === 2 ? 65536 / Math.max(1, 2048 - channel.freq) : 131072 / Math.max(1, 2048 - channel.freq);
     const midi = channel.keyOn ? 69 + 12 * Math.log2(hz / 440) : null;
-    return { name: LABELS[index], type: TYPES[index], midi, keyOn: channel.keyOn, freq: channel.freq };
+    return { name: LABELS[index], type: TYPES[index], midi, keyOn: channel.keyOn, freq: channel.freq, trigger: channel.trigger };
   });
 }
 
 // Batch extraction for MIDI/LilyPond export, mirroring tone_notes.js's
 // extractToneNotes() shape: {channels, warnings, time, parserHeader}, each
-// channel {name, notes:[{start,end,midi,key}], active, serial}.
+// channel {name, notes:[{start,end,midi,key}], active}.
 export function extractGameboyNotes(source) {
   let time = 0;
   const warnings = new Map();
   const warn = text => warnings.set(text, { count: (warnings.get(text)?.count ?? 0) + 1 });
   const parser = new Ym2612VGM(source, { logger: { warn } });
   const state = createGameboyMonitor();
-  const channels = [0, 1, 2].map(i => ({ name: LABELS[i], notes: [], active: null, serial: 0 }));
+  const channels = [0, 1, 2].map(i => ({ name: LABELS[i], notes: [], active: null }));
   function close(ch) { if (ch.active) ch.notes.push({ ...ch.active, end: time }); ch.active = null; }
   function update() {
     describeGameboyNotes(state).forEach((n, i) => {
       const ch = channels[i];
-      if (ch.active && n.keyOn && ch.active.midi === n.midi) return;
-      const wasOn = !!ch.active;
+      if (ch.active && n.keyOn && ch.active.midi === n.midi && ch.active.key === n.trigger) return;
       close(ch);
       if (n.keyOn) {
-        if (!wasOn) ch.serial++;
-        ch.active = { start: time, midi: n.midi, key: ch.serial };
+        ch.active = { start: time, midi: n.midi, key: n.trigger };
       }
     });
   }
