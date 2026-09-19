@@ -378,5 +378,34 @@ Warnings describe limitations; an empty list does not prove no PCM exists.
 Existing Browser memory/event limits apply. Aborting rejects with AbortError.
 CLI JSON goes to stdout; warnings also go to stderr.
 
-This step adds listing only. ID/batch extraction and raw/timed/WAV output
-are subsequent work; Browser save/preview remains available.
+ID/batch native extraction is available below. Sample WAV conversion remains
+subsequent work; Browser save/preview remains available.
+
+
+## Native sample extraction
+
+```sh
+tetorica-vgm samples song.vgz --id 1 --output sample.bin
+tetorica-vgm samples song.vgz --all --output samples.zip
+```
+
+Node API: `await exportSourceSamples(source, {id:1})` returns
+`{name,bytes,warnings}`; `{all:true}` returns `{bytes,count,warnings}`.
+An optional AbortSignal is accepted as `signal`. Specify exactly one of
+a positive integer ID or all. Use the inventory IDs for this same input.
+
+Single extraction uses the Browser native save format: ADPCM bytes or a
+64 KiB RF5C164 RAM snapshot as `.bin`, DAC/PWM timed captures as `.json`.
+The API's suggested name indicates the extension; the CLI uses the exact
+output path supplied. This command does not decode ADPCM or produce WAV.
+
+Batch ZIP contains native files and `manifest.json` with inventory,
+per-occurrence rates/loops and warnings. RAM snapshots may contain zero
+values in unobserved RAM outside the known playback path, just as Browser
+exports do. Missing/partial samples without exportable data fail the entire
+request; they are not silently skipped. Select an available ID to export
+individually. Empty batches and unknown IDs are errors.
+
+Existing output requires `--force`; selection/data errors occur before
+writing. Batch filenames include chip/kind/ID and ZIP timestamps are fixed.
+`--json` is for listing only and cannot be combined with extraction.

@@ -1,4 +1,4 @@
-import {listSamples} from './sample_core.js';
+import {exportSamples,listSamples} from './sample_core.js';
 import {exportOpmZip} from './opm_export.js';
 import {exportVoiceSnapshot,exportTfiZip,exportVgiZip} from './tfi_archive.js';
 // Environment-neutral API shared by the browser, Node adapter and future MCP server.
@@ -74,4 +74,9 @@ export { selectPlaybackConfiguration, createPlaybackEngine, createPlaybackPlayer
 
 export function listSourceSamples(source, options = {}) {
   return listSamples(sourceBytes(source), options);
+}
+
+
+export function exportSourceSamples(source, options = {}) {
+  return exportSamples(sourceBytes(source), options);
 }

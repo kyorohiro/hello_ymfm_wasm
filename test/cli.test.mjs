@@ -203,6 +203,10 @@ test('npm tarball installs offline, runs via npx, and exports the library',async
     assert.equal(samplesJson.samples[0].representation,'raw-adpcm');
     const samplesApi=JSON.parse(execFileSync(process.execPath,['--input-type=module','-e',"import {readSource,listSourceSamples} from 'tetorica-vgm'; process.stdout.write(JSON.stringify(await listSourceSamples(await readSource(process.argv[1]))))",samplesInput],{cwd:dir,encoding:'utf8'}));
     assert.deepEqual(samplesJson,samplesApi);
+    const sampleOut=join(dir,'samples.zip');
+    execFileSync('npm',[...args,'samples',samplesInput,'--all','--output',sampleOut],{cwd:dir});
+    const sampleApi=execFileSync(process.execPath,['--input-type=module','-e',"import {readSource,exportSourceSamples} from 'tetorica-vgm'; process.stdout.write((await exportSourceSamples(await readSource(process.argv[1]),{all:true})).bytes)",samplesInput],{cwd:dir});
+    assert.deepEqual(readFileSync(sampleOut),sampleApi);
     const s98Input=fixture('s98-ym2203.s98');
     const s98Summary=JSON.parse(execFileSync('npm',[...args,'analyze',s98Input,'--json'],{cwd:dir,encoding:'utf8'}));
     assert.equal(s98Summary.sourceHeader.format,'S983');

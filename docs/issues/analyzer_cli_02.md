@@ -167,7 +167,7 @@ Browser側ですでに共有化した音源は、CLIへ同じ処理を再実装�
 
 - [x] BrowserのSample Explorerが扱う音源・形式・抽出条件を整理する。
 - [x] サンプル一覧をJSONで取得するAPI / コマンドを追加する。
-- [ ] ID指定または一括でサンプルを書き出せるようにする。
+- [x] ID指定または一括でサンプルを書き出せるようにする。
 - [ ] 元データとWAV変換の区別、サンプルレート・ループ等のメタデータを明示する。
 - [ ] 不正な範囲・重複名・データ未収録時を検証する。
 
@@ -417,3 +417,15 @@ documentからbytesだけを取り出すと元情報は失われるので、必�
 - 次は09b: ID指定・一括書き出し。raw/timed JSON/WAVを分け、欠損・衝突・出力保護を検証する。
 
 検証: npm test 45成功・0失敗、Analyzer 583成功・0失敗・1任意skip。実tarballのCLI/Node API一覧照合とitch cli09a-checkの生成・依存検査成功。実ブラウザUIとNode 22は未確認。
+
+
+### 09b 実装記録: native sample extraction
+
+- `samples FILE --id N --output FILE` / `--all --output ZIP` と `exportSourceSamples(source,{id|all,signal})` を追加。
+- Browserのnative saveを `sampleFile` として共有。ADPCM/RF5C164 RAMはbin、DAC/PWMはtimed JSON。WAVへの変換は行わない。
+- 一括ZIPはchip-kind-ID名とmanifest.jsonを格納。manifestは一覧・rate/loop等の使用イベント・警告を保持する。
+- 空結果・無効ID・競合指定・欠損データはwrite前に拒否。全件指定は欠損を黙ってskipせずエラー。既存出力はforceなしで保護。
+- RAMの未観測領域はBrowserと同じ扱い（既知の再生経路外にゼロを含みうる）。rawデータから音色境界を推測しない。
+- 次は09c: WAV変換の共有interfaceと対応範囲を整理・実装し、09の残る検証項目を完了する。
+
+検証: npm test 49成功・0失敗（CLI option回帰を修正後に全件再実行）。Analyzer 583成功・0失敗・1任意skip。実tarball CLI/Node API ZIP一致、itch cli09b-final-check生成・依存検査成功。実ブラウザUIとNode 22は未確認。

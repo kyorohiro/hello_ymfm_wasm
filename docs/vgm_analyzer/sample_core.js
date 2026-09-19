@@ -1,5 +1,6 @@
+import {createStoredZipBytes} from './stored_zip.js';
 import {createDacSamples} from './dac_samples.js';
-import {createPwmSamples} from './pwm_samples.js';
+import {pwmCaptureJson,createPwmSamples} from './pwm_samples.js';
 import {createRf5c164Samples} from './rf5c164_samples.js';
 import {Ym2612VGM} from '../js/ym2612vgm.js?v=pwm-2';
 
@@ -179,9 +180,40 @@ export async function extractSamples(source, { signal } = {}) {
 
 export async function listSamples(bytes, options) {
   const result=await extractSamples(bytes,options);
+  return sampleInventory(result);
+}
+
+function sampleInventory(result) {
   return {schemaVersion:1,timebase:44100,time:result.time,warnings:result.warnings,
     samples:result.samples.map(({data,times,registers,...metadata})=>({
       ...metadata,exportable:data!==null && data!==undefined,
       representation:metadata.kind==='dac'||metadata.kind==='pwm'?'timed-output':metadata.chip==='rf5c164'?'ram-snapshot':'raw-adpcm',
     })),events:result.events};
+}
+
+
+// Native Browser save format: raw ADPCM/RAM bytes or timed output JSON.
+export function sampleFile(sample, events) {
+  if (!sample.data) throw new Error('Sample '+sample.id+' has missing/partial data');
+  const first=events.find(e=>e.sampleId===sample.id);
+  const captured=sample.kind==='dac'||sample.kind==='pwm';
+  const text=sample.kind==='pwm'?pwmCaptureJson(sample,first.startTime):
+    sample.kind==='dac'?JSON.stringify({timebase:44100,startTime:first.startTime,duration:sample.duration,boundary:sample.boundary,times:[...sample.times],values:[...sample.data]}):null;
+  return {name:sample.chip+'-'+sample.kind+'-'+sample.id+(captured?'.json':'.bin'),
+    bytes:text===null?sample.data.slice():new TextEncoder().encode(text)};
+}
+
+export async function exportSamples(bytes,{id,all=false,signal}={}) {
+  if(typeof all!=='boolean' || (all ? id!==undefined : !Number.isSafeInteger(id)||id<1)) throw new Error('Specify a positive sample id or all:true, exclusively');
+  const result=await extractSamples(bytes,{signal});
+  const selected=all?result.samples:result.samples.filter(s=>s.id===id);
+  if(!selected.length) throw new Error(all?'No supported samples found':'Unknown sample id: '+id);
+  // Fail the entire request before writing any output if one definition is unavailable.
+  const files=selected.map(s=>sampleFile(s,result.events));
+  const manifest=sampleInventory(result);
+  if(!all)return {...files[0],warnings:result.warnings};
+  return {bytes:createStoredZipBytes([
+    ...files.map(f=>({name:f.name,data:f.bytes})),
+    {name:'manifest.json',data:new TextEncoder().encode(JSON.stringify(manifest,null,2))},
+  ]),count:files.length,warnings:result.warnings};
 }

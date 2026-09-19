@@ -1,6 +1,6 @@
 import { renderDacPreview } from './dac_samples.js';
-import { renderPwmPreview, pwmCaptureJson, pwmCaptureWav } from './pwm_samples.js';
-import {extractSamples} from './sample_core.js';
+import { renderPwmPreview, pwmCaptureWav } from './pwm_samples.js';
+import {sampleFile,extractSamples} from './sample_core.js';
 export {extractSamples} from './sample_core.js';
 
 export function mountSampleExplorer(panel, getSource) {
@@ -34,7 +34,7 @@ export function mountSampleExplorer(panel, getSource) {
         if (s.data) {
           const save = document.createElement('button'); save.textContent = captured ? `Save timed ${s.kind.toUpperCase()} JSON` : s.chip === 'rf5c164' ? 'Save 64 KiB RAM snapshot' : 'Save raw ADPCM';
           save.onclick = () => {
-            const url = URL.createObjectURL(new Blob([s.kind === 'pwm' ? pwmCaptureJson(s,uses[0].startTime) : s.kind === 'dac' ? JSON.stringify({timebase:44100,startTime:uses[0].startTime,duration:s.duration,boundary:s.boundary,times:[...s.times],values:[...s.data]}) : s.data])); const a = document.createElement('a');
+            const url = URL.createObjectURL(new Blob([sampleFile(s,result.events).bytes])); const a = document.createElement('a');
             a.href = url; a.download = `${s.chip}-${s.kind}-${s.id}.${captured ? 'json' : 'bin'}`; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
           };
           const selection = document.createElement('select');
