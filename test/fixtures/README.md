@@ -24,3 +24,8 @@ Y8950 fixtures exercise FM, an authored repeating ADPCM memory pattern (block
 YMF278B fixtures use an authored sine wave and header for embedded PCM and
 external-ROM playback, plus FM and PSG. External 2 MiB ROMs are synthesized
 only in tests; proprietary wave ROMs are not included.
+
+`segapcm-*` contains authored unsigned PCM ramps in two banks, asymmetric
+stereo volumes and optional authored YM2151/Sega PSG voices. Tests check bank
+selection, embedded sample bounds, reset and packaged CLI/Node rendering.
+No game ROM data is used.

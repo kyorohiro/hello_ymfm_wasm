@@ -180,3 +180,17 @@ The Node API accepts `renderSource(source, {roms:{ymf278bWave:bytes}})`, where
 invalid type/size fail before output is written. ROM data is not bundled or
 fetched automatically. Rebuild the WASM with `scripts/build_ymf278b_wasm.sh`.
 Dual/variant flags and unsupported chip combinations remain rejected.
+
+## Sega PCM
+
+`render` supports Sega PCM alone, Sega PCM + Sega PSG, YM2151 + Sega PCM,
+and YM2151 + Sega PCM + Sega PSG through the same engines used by the browser.
+Sample data comes from embedded VGM ROM blocks (type `0x80`); no external
+Sega PCM ROM option or automatic download is provided. Header bank shift/mask
+and register writes (`0xC0`) are handled by the shared player and engine.
+Dual/variant flags and combinations outside the shared configuration table
+are rejected. Missing sample data is not recovered from external game ROMs.
+
+```sh
+tetorica-vgm render song.vgz --output song.wav
+```

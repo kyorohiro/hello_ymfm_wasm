@@ -135,8 +135,8 @@ Browser側ですでに共有化した音源は、CLIへ同じ処理を再実装�
 以下はそれぞれ独立した作業単位として処理する。
 
 - [x] 06a: Y8950。FMとADPCMを検証する。
-- [ ] 06b: YMF278B。外部wave ROM指定、FMとPCM、ROM不足時の動作を検証する。
-- [ ] 06c: Sega PCM。埋め込みサンプルとバンク設定を検証する。
+- [x] 06b: YMF278B。外部wave ROM指定、FMとPCM、ROM不足時の動作を検証する。
+- [x] 06c: Sega PCM。埋め込みサンプルとバンク設定を検証する。
 - [ ] 06d: MSX系の複合音源。01で確定したBrowser対応構成を一つずつ接続・検証する。
 - [ ] 06e: 32X PWMなど残る構成を対応表と照合し、Browserで動く範囲を接続・検証する。
 
@@ -282,3 +282,31 @@ MSX複合recipeもfactoryを利用できるが、専用検証は06dで実施す�
 
 `npm test`: 24成功。`npm run test:analyzer`: 583成功・0失敗・外部コンパイラ検証1skip。
 実ブラウザUIとNode 22での検証は引き続き未実施。次は06b（YMF278B・wave ROM入力）。
+
+### 06b 実装記録
+
+YMF278Bの既存Node対応factoryを提供。CLI `--ymf278b-rom FILE` と
+Node API `roms.ymf278bWave`（2097152-byte Uint8Array / Buffer）を追加。
+ROM取得はadapterのみ、必要性判定・投入・PCM生成はBrowserと同じCoreを利用。
+自作波形でFM / PCM単独・mix・PSG併用を発音検証し、Browserエンジン経路とのWAV一致とresetを確認。
+同じ波形の埋め込み／外部ROMの出力一致、ROM不足・不正型/サイズ・読込失敗、dual / variant / 混在拒否も確認。
+tarballの別ディレクトリoffline installから外部ROM付きCLI / Node API実行を検証。
+実ROMを使用・同梱せず、テスト時に2 MiBの自作wave ROMを生成する。
+
+必要性判定は既存Browserと同じくPCM key-onと非空sample blockの有無による。
+埋め込みデータの完全性は判定しないため、部分的なデータでは不足する音色がありうる。
+`npm test`: 26成功。`npm run test:analyzer`: 583成功・0失敗・外部コンパイラ検証1skip。
+実ブラウザUIとNode 22での検証は未実施。次は06c（Sega PCM）。
+
+
+### 06c 実装記録: Sega PCM
+
+- Node factory一覧に既存Sega PCM WASMを追加。共有recipe・engine・PCM処理の変更やCLI専用engineの追加は不要。
+- Sega PCM単体、PSG併用、YM2151併用、YM2151 + PSG併用を検証。
+- 自作の埋め込みROM（0x80）と0xC0書き込みで発音を確認。headerのbank shift/maskによる2バンクの選択、左右音量、reset後の再現をテスト。
+- Browser用の既存engineを直接生成したWAVとNode出力がバイト一致。dual/variant・非対応構成・ROM範囲超過は拒否。
+- tarball内のWASM・ライセンスを確認。別ディレクトリへoffline installし、CLIとNode APIで単体・複合のWAVを検証。
+- `npm test`: 28件成功。`npm run test:analyzer`: 584件中583成功・0失敗・1skip（任意の外部mml2mdrテスト）。
+
+外部Sega PCM ROM指定は追加していない。VGMの埋め込みサンプルを使用する。
+実ブラウザUIとNode 22での検証は未実施。次は06d（MSX系の複合音源）。

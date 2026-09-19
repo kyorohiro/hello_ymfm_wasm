@@ -88,3 +88,12 @@ for(let i=0;i<yFm.length;i+=3)opl4Fm.push(0xd0,0,yFm[i+1],yFm[i+1]===0xc0?0x31:y
 const waveBlock=[0x67,0x66,0x84,8,2,0,0,0,2,0,0,0,0,0,0,...wave];
 for(const [name,cmds] of [['fm',opl4Fm],['external',opl4Pcm],['embedded',[...waveBlock,...opl4Pcm]],['mix',[...waveBlock,...opl4Fm,...opl4Pcm]],['psg',[...waveBlock,...opl4Fm,...opl4Pcm,...yPsg]]])
   file('ymf278b-'+name,0x60,33868800,[...cmds,...wait,0x66],name==='psg'?[[0x0c,3579545]]:[]);
+
+// Authored unsigned PCM banks: distinct negative/positive ramps, no game ROM.
+const segaWave=Uint8Array.from({length:2048},(_,i)=>i<1024?32+(i%64):160+(i%64));
+const segaBlock=[0x67,0x66,0x80,8,8,0,0,0,8,0,0,0,0,0,0,...segaWave];
+const segaVoice=bank=>[[2,64],[3,32],[4,0],[5,0],[6,0],[7,8],[0x84,0],[0x85,0],[0x86,bank]].flatMap(([r,v])=>[0xc0,r,0,v]);
+for(const [name,bank,extra,clocks] of [
+  ['bank0',0,[],[]],['bank1',4,[],[]],['psg',4,yPsg,[[0x0c,3579545]]],
+  ['opm',4,opmVoice,[[0x30,3579545]]],['opm-psg',4,[...opmVoice,...yPsg],[[0x30,3579545],[0x0c,3579545]]],
+])file('segapcm-'+name,0x38,4000000,[...segaBlock,...segaVoice(bank),...extra,...wait,0x66],[[0x3c,0x00040008],...clocks]);
