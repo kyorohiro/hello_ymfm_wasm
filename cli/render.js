@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import { renderVgmToWav, sourceBytes } from '../docs/vgm_analyzer/analyzer_core.js';
 import { Ym2612VGM } from '../docs/js/ym2612vgm.js';
-import { createPlaybackEngine, createPlaybackPlayer } from '../docs/vgm_analyzer/playback_core.js';
+import { selectPlaybackConfiguration, applyPlaybackMutes, createPlaybackEngine, createPlaybackPlayer } from '../docs/vgm_analyzer/playback_core.js';
 import k051649 from '../docs/generated/k051649_wasm.js';
 import segapcm from '../docs/generated/segapcm_wasm.js';
 import ymf278b from '../docs/generated/ymf278b_wasm.js';
@@ -29,7 +29,7 @@ export async function getNodePlaybackFactory(name) {
 }
 
 /** Node adapter: explicit engines only; never silently omit an unhandled chip. */
-export async function renderSource(source, { maxSeconds = 120, roms = {} } = {}) {
+export async function renderSource(source, { maxSeconds = 120, roms = {}, mute = [] } = {}) {
   source = sourceBytes(source);
   if (!Number.isFinite(maxSeconds) || maxSeconds <= 0 || maxSeconds > 600) throw new RangeError('maxSeconds must be > 0 and <= 600');
   if (roms.ym2608AdpcmA !== undefined && (!(roms.ym2608AdpcmA instanceof Uint8Array) || roms.ym2608AdpcmA.length !== 8192)) throw new RangeError('ym2608AdpcmA must be a Uint8Array of exactly 8192 bytes');
@@ -39,6 +39,7 @@ export async function renderSource(source, { maxSeconds = 120, roms = {} } = {})
     const warnings = [];
     const player = createPlaybackPlayer(engine, source, {onWarning:message=>warnings.push(String(message))});
     player.play();
+    applyPlaybackMutes(engine,selectPlaybackConfiguration(new Ym2612VGM(source)),mute);
     const result = await renderVgmToWav(player, { maxSeconds });
     return { ...result, warnings };
   } finally { engine.dispose(); }

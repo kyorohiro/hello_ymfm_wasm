@@ -250,3 +250,41 @@ export function createPlaybackPlayer(engine, source, {onWarning=()=>{}, loop=fal
   player.load(source,{logger:{warn:onWarning}});
   return player;
 }
+
+// Existing Browser mute controls, described once for headless callers.
+export function playbackMuteControls(configuration) {
+  const {kind,header:h}=configuration, controls=[];
+  const add=(id,method,...args)=>controls.push({id,method,args});
+  const channels=(prefix,count,method)=>{for(let i=0;i<count;i++)add(prefix+'-'+(i+1),method,i);};
+  const counts={ym2203:3,ym2151:8,ym2413:9,ym3526:9,ym3812:9,ymf262:18,ymf278b:18,y8950:9,gameboy:4};
+  if(counts[kind])channels(kind+'-ch',counts[kind],'setChannelMuted');
+  if(kind==='ymf278b')channels('ymf278b-pcm',24,'setPcmChannelMuted');
+  if(h.psgClock)add('psg','setPsgMuted');
+  if(kind==='ym2612'){
+    if(h.rf5c164Clock)add('rf5c164','setPcmMuted');
+    if(h.pwmClock)add('pwm','setPwmMuted');
+  }
+  if(['ym2203','ym2608','ym2610'].includes(kind))add('ssg','setSsgMuted');
+  if(['ym2608','ym2610'].includes(kind)){add(kind==='ym2608'?'rhythm':'adpcm-a','setRhythmMuted');add('adpcm-b','setAdpcmBMuted');}
+  if(kind==='y8950')add('y8950-adpcm','setAdpcmMuted');
+  if(h.okim6258Clock)add('okim6258','setOkiMuted');
+  if(h.segaPcmClock && ['segapcm','ym2151'].includes(kind)){add('segapcm','setSegaPcmMuted');channels('segapcm-ch',16,'setSegaPcmChannelMuted');}
+  if(['ay8910','msx'].includes(kind)&&h.ay8910Clock){add('ay8910','setAyMuted');channels('ay8910-ch',3,'setAyChannelMuted');}
+  if(kind==='msx'){
+    if(h.ym2413Clock)add('ym2413','setOpllMuted');
+    if(h.y8950Clock)add('y8950','setY8950Muted');
+    if(h.k051649Clock){add('k051649','setSccMuted');channels('k051649-ch',5,'setSccChannelMuted');}
+  }
+  return controls;
+}
+export function applyPlaybackMutes(engine,configuration,ids=[]) {
+  if(!Array.isArray(ids)||ids.some(id=>typeof id!=='string')||new Set(ids).size!==ids.length)throw new Error('mute must be an array of unique IDs');
+  const controls=playbackMuteControls(configuration);
+  const selected=ids.map(id=>{
+    const c=controls.find(c=>c.id===id);
+    if(!c)throw new Error('Unsupported mute ID: '+id+'; available: '+controls.map(c=>c.id).join(', '));
+    if(typeof engine[c.method]!=='function')throw new Error('Engine does not implement mute: '+id);
+    return c;
+  });
+  for(const c of selected)engine[c.method](...c.args,true);
+}

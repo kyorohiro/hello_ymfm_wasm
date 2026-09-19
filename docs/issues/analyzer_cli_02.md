@@ -176,7 +176,7 @@ Browser側ですでに共有化した音源は、CLIへ同じ処理を再実装�
 ### 10. 変換オプションの拡充
 
 - [x] 10a: 楽譜のチャンネル一覧・選択。安定した指定方法を用意しMusicXML / LilyPondで検証する。
-- [ ] 10b: WAVのチャンネル / 音源ミュート。エンジンごとの対応範囲を明示する。
+- [x] 10b: WAVのチャンネル / 音源ミュート。エンジンごとの対応範囲を明示する。
 - [ ] 10c: WAVの開始時刻・区間指定。開始位置までのレジスタ・PCM状態を正しく再現する。
 - [ ] 10d: WAVのループ指定。時間上限を必須の安全弁として保ち、無限生成を防ぐ。
 
@@ -453,3 +453,14 @@ documentからbytesだけを取り出すと元情報は失われるので、必�
 - 次は10b（WAVミュート）。11のバッチ処理は10の後に進める。
 
 検証: npm test 54成功・0失敗。Analyzer 583成功・0失敗・1任意skip。全譜表の従来出力維持・選択後のBrowser exporter一致、実tarball CLI/Node APIの両形式一致と不正指定時の出力保護を確認。itch cli10a-check生成・依存検査成功。実ブラウザUIとNode 22は未確認。
+
+
+### 10b 実装記録: WAVミュート
+
+- `render --mute ID,ID` / Node `renderSource(source,{mute:[...]})` に対応。
+- CoreのplaybackMuteControls/applyPlaybackMutesで既存Browser engine methodsを一元管理。環境依存処理や別PCM engineは追加しない。
+- 構成に存在するsourceと既存公開channel controlsだけを許可。全IDを検証してから適用し、未知/重複IDはwrite前にエラー。
+- 対応表はCLI.mdに記載。YM2612/2608/2610 FM個別、PSG個別、複合MSXのOPLL/Y8950個別は既存interfaceにないため未対応を明記。
+- ミュートでも音源構成/ROM要件は変えない。指定なしは従来PCMを維持。次は10c（開始時刻・区間指定）。
+
+検証: npm test 56成功・0失敗、Analyzer 583成功・0失敗・1任意skip。代表source/channelのPCM変化・全ID検証後の適用・不正指定時の既存出力保護・実tarballのWAV一致を確認。itch cli10b-check生成・依存検査成功。実ブラウザUIとNode 22は未確認。

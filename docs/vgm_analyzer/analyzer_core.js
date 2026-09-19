@@ -70,7 +70,7 @@ export function exportSource(source, { format, bpm, fileName = 'VGM', atSeconds,
   return { text: exporters[format](source, options) };
 }
 
-export { selectPlaybackConfiguration, createPlaybackEngine, createPlaybackPlayer, PlaybackError } from './playback_core.js';
+export { playbackMuteControls, applyPlaybackMutes, selectPlaybackConfiguration, createPlaybackEngine, createPlaybackPlayer, PlaybackError } from './playback_core.js';
 
 
 export function listSourceSamples(source, options = {}) {

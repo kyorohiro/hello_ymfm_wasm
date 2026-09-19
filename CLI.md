@@ -460,3 +460,41 @@ IDs are rejected. Selection applies only to MusicXML/LilyPond, not MIDI,
 MML, WAV or voice snapshots. The snapshot `--channel` option is separate.
 This inventory describes the existing score extractor's supported channels,
 not every hardware channel declared in the input.
+
+
+## WAV mute controls
+
+```sh
+tetorica-vgm render song.vgz --mute ym2151-ch-1,psg --output muted.wav
+```
+
+Node API: `renderSource(source,{mute:['ym2151-ch-1','psg']})`.
+IDs are case-sensitive and channel numbers are 1-based. Duplicate or
+unsupported IDs are errors before output writing. No option preserves
+the previous output. Muting does not remove chips from playback or bypass
+required ROM/configuration checks.
+
+Core exposes `playbackMuteControls(configuration)` and
+`applyPlaybackMutes(engine,configuration,ids)`, using the same engine
+methods as Browser controls. Availability depends on the selected recipe
+and present chips. Unsupported-ID errors include the available IDs.
+
+| Control IDs | Existing supported controls |
+|---|---|
+| `ym2203-ch-1..3`, `ym2151-ch-1..8` | FM channels |
+| `ym2413-ch-1..9`, `ym3526-ch-1..9`, `ym3812-ch-1..9`, `y8950-ch-1..9` | Primary engine FM channels |
+| `ymf262-ch-1..18`, `ymf278b-ch-1..18`, `ymf278b-pcm-1..24` | OPL3 FM / OPL4 PCM channels |
+| `gameboy-ch-1..4` | DMG channels |
+| `psg`, `rf5c164`, `pwm`, `okim6258` | Present companion/standalone source |
+| `ssg`, `rhythm`, `adpcm-a`, `adpcm-b` | OPN internal sources as applicable (rhythm: YM2608; ADPCM-A: YM2610/B) |
+| `y8950-adpcm` | Standalone Y8950 ADPCM |
+| `segapcm`, `segapcm-ch-1..16` | Sega PCM alone or with YM2151 |
+| `ay8910`, `ay8910-ch-1..3` | AY standalone / MSX |
+| `ym2413`, `y8950`, `k051649`, `k051649-ch-1..5` | Present MSX components |
+
+Ranges above describe individual IDs, not range syntax. Multiple IDs use
+commas. FM channel numbering and rhythm/paired-operator interactions follow
+the existing Browser engine. YM2612/YM2608/YM2610 FM per-channel muting,
+PSG per-channel muting and per-channel OPLL/Y8950 inside the composite MSX
+engine are not exposed by this interface yet. Unsupported controls fail
+rather than silently changing nothing.

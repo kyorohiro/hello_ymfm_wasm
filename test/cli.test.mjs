@@ -222,6 +222,12 @@ test('npm tarball installs offline, runs via npx, and exports the library',async
       const failed=cli('export',scoreInput,'--format',format,'--channels','bad','--output',scoreOut,'--force');
       assert.equal(failed.status,1);assert.equal(readFileSync(scoreOut,'utf8'),scoreApi);
     }
+    const muteInput=fixture('opm-audible.vgz'),muteOut=join(dir,'muted.wav');
+    execFileSync('npm',[...args,'render',muteInput,'--mute','ym2151-ch-1','--max-seconds','0.03','--output',muteOut],{cwd:dir});
+    assert.deepEqual(readFileSync(muteOut),Buffer.from((await renderSource(await readSource(muteInput),{mute:['ym2151-ch-1'],maxSeconds:.03})).bytes));
+    const mutedBefore=readFileSync(muteOut);
+    assert.equal(cli('render',muteInput,'--mute','bad','--output',muteOut,'--force').status,1);
+    assert.deepEqual(readFileSync(muteOut),mutedBefore);
     const s98Input=fixture('s98-ym2203.s98');
     const s98Summary=JSON.parse(execFileSync('npm',[...args,'analyze',s98Input,'--json'],{cwd:dir,encoding:'utf8'}));
     assert.equal(s98Summary.sourceHeader.format,'S983');
