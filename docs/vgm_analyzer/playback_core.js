@@ -1,3 +1,4 @@
+import {createNesApuAudioEngine} from '../js/nesapuaudioengine.js';
 import {Oki6258AudioEngine,attachOki6258,validateOki6258Header} from '../js/okim6258audioengine.js';
 import {createYm3526AudioEngine} from '../js/ym3526audioengine.js';
 import {createSegaPcmAudioEngine} from '../js/segapcmaudioengine.js';
@@ -48,6 +49,7 @@ export function detectPlaybackChipKind(header) {
   // matched, so stray header noise cannot hijack an otherwise-normal file
   // (e.g. an MSX PSG/OPLL track misdetected as "gameboy").
   if (header.segaPcmClock & 0x3fffffff) return "segapcm";
+  if (header.nesApuClock & 0x3fffffff) return "nes";
   if (header.gameBoyDmgClock & 0x3fffffff) return "gameboy";
   return "ym2612";
 }
@@ -102,7 +104,7 @@ const composition = {
   ym2413: ['ym2413','psg'], y8950: ['y8950','psg'],
   ymf278b: ['ymf278b','psg'], ym3526: ['ym3526','psg'],
   ym3812: ['ym3812','psg'], ymf262: ['ymf262','psg'],
-  segapcm: ['segaPcm','psg'], gameboy: ['gameBoyDmg'], okim6258: ['okim6258'],
+  segapcm: ['segaPcm','psg'], nes: ['nesApu'], gameboy: ['gameBoyDmg'], okim6258: ['okim6258'],
 };
 export function selectPlaybackConfiguration(vgm) {
   const header = {...vgm.header};
@@ -131,6 +133,7 @@ export function selectPlaybackConfiguration(vgm) {
   ]};
 }
 const recipes = {
+  nes: async (vgm, resource, masterVolume) => createNesApuAudioEngine({clock:vgm.header.nesApuClock & 0x3fffffff,masterVolume}),
   okim6258: async (vgm, resource, masterVolume) => Oki6258AudioEngine.create({moduleFactory:await resource('okim6258'),clock:vgm.header.okim6258Clock,flags:vgm.header.okim6258Flags,masterVolume}),
   msx: async (vgm, resource, masterVolume) => createMsxAudioEngine({
         ayModuleFactory: vgm.header.ay8910Clock ? await resource('ay8910') : undefined,
@@ -256,7 +259,7 @@ export function playbackMuteControls(configuration) {
   const {kind,header:h}=configuration, controls=[];
   const add=(id,method,...args)=>controls.push({id,method,args});
   const channels=(prefix,count,method)=>{for(let i=0;i<count;i++)add(prefix+'-'+(i+1),method,i);};
-  const counts={ym2203:3,ym2151:8,ym2413:9,ym3526:9,ym3812:9,ymf262:18,ymf278b:18,y8950:9,gameboy:4};
+  const counts={ym2203:3,ym2151:8,ym2413:9,ym3526:9,ym3812:9,ymf262:18,ymf278b:18,y8950:9,gameboy:4,nes:5};
   if(counts[kind])channels(kind+'-ch',counts[kind],'setChannelMuted');
   if(kind==='ymf278b')channels('ymf278b-pcm',24,'setPcmChannelMuted');
   if(h.psgClock)add('psg','setPsgMuted');

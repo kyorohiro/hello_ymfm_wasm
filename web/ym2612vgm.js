@@ -274,6 +274,7 @@ export class Ym2612VGM {
     const okim6258Clock = version >= 0x161 ? extendedClock(0x90) : 0;
     const okim6258Flags = version >= 0x161 ? headerByte(0x94) : 0;
     const k051649Clock = version >= 0x161 ? extendedClock(0x9c) : 0;
+    const nesApuClock = version >= 0x161 ? extendedClock(0x84) : 0;
     const gameBoyDmgClock = version >= 0x161 ? extendedClock(0x80) : 0;
     const psgClock = readUint32LE(this.view, 0x0c);
     const loopOffset = loopOffsetRaw === 0 ? 0 : 0x1c + loopOffsetRaw;
@@ -284,7 +285,7 @@ export class Ym2612VGM {
       ym2612Clock,
       ym2413Clock, ym2151Clock, ym3526Clock, ym3812Clock, ymf262Clock, ymf278bClock, segaPcmClock,
       segaPcmBankShift, segaPcmBankMask,
-      ay8910Clock, ay8910Type, ay8910Flags, y8950Clock, k051649Clock, gameBoyDmgClock, okim6258Clock, okim6258Flags,
+      ay8910Clock, ay8910Type, ay8910Flags, y8950Clock, k051649Clock, nesApuClock, gameBoyDmgClock, okim6258Clock, okim6258Flags,
       ym2203Clock,
       ym2608Clock,
       ym2610Clock,
@@ -623,6 +624,12 @@ export class Ym2612VGM {
         this.position += 4;
         return { type: "rf5c164-memory-write", offset, value, chipIndex: 0 };
       }
+      case 0xb4: {
+        this.#ensureAvailable(3);
+        const register=this.bytes[this.position+1], value=this.bytes[this.position+2];
+        this.position+=3;
+        return {type:'nes-apu-write',register:register & 0x7f,value,chipIndex:register >>> 7};
+      }
       case 0x67: {
         this.#ensureAvailable(7);
         if (this.bytes[this.position + 1] !== 0x66) {
@@ -632,6 +639,14 @@ export class Ym2612VGM {
         const rawSize = readUint32LE(this.view, this.position + 3);
         const size = rawSize & 0x7fffffff;
         this.#ensureAvailable(7 + size);
+        if (dataType === 0xc2) {
+          if (size < 2) throw new Error('Invalid NES RAM block header');
+          const offset=readUint16LE(this.view,this.position+7);
+          const data=this.bytes.slice(this.position+9,this.position+7+size);
+          if (data.length>65536-offset) throw new RangeError('NES RAM block range');
+          this.position+=7+size;
+          return {type:'nes-apu-data',offset,data,chipIndex:rawSize >>> 31};
+        }
         if (dataType === 0xc1) {
           if (size < 2) throw new Error("Invalid RF5C164 RAM block header");
           const offset = readUint16LE(this.view, this.position + 7);
@@ -847,6 +862,12 @@ export class Ym2612VGM {
     }
     if (event.type === "segapcm-write") {
       targets.segapcm?.writeRegister(event.offset, event.value);
+      return event;
+    }
+    if (event.type === 'nes-apu-write' || event.type === 'nes-apu-data') {
+      if (event.chipIndex) throw new Error('Second NES APU is not supported');
+      if (event.type === 'nes-apu-write') targets.nesApu?.writeRegister(event.register,event.value);
+      else targets.nesApu?.loadSampleMemory?.(event.data,event.offset);
       return event;
     }
     if (event.type === "gameboy-dmg-write") {

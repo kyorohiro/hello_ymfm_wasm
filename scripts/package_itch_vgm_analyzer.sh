@@ -48,6 +48,7 @@ vgm_mml.js
 vgm_notes.js
 tone_notes.js
 gameboy_notes.js
+nes_notes.js
 fretboard.js
 fretboard_all.js
 vgm_midi.js
@@ -87,6 +88,7 @@ segapcm.js
 segapcmaudioengine.js
 gameboyapu.js
 gameboyapuaudioengine.js
+nesapuaudioengine.js
 multichipaudioengine.js
 msxaudioengine.js
 y8950.js
@@ -211,6 +213,11 @@ for file in ${ANALYZER_FILES}; do
 done
 perl -0pi -e 's#\s*<link rel="manifest" href="\.\./[^\"]+\.webmanifest">##g; s#\s*<link rel="icon" href="\.\./[^\"]+\.ico" sizes="any">##g; s#\s*<script src="\.\./sw-register\.js"></script>##g' "${STAGE_DIR}/index.html"
 
+mkdir -p "${STAGE_DIR}/js/nes_apu_vendor"
+cp "${DOCS_JS_DIR}/nes_apu_vendor/"*.js "${STAGE_DIR}/js/nes_apu_vendor/"
+mkdir -p "${STAGE_DIR}/licenses/jsnes"
+cp "${ROOT_DIR}/third_party/jsnes/"* "${STAGE_DIR}/licenses/jsnes/"
+
 for file in ${JS_FILES}; do
   src="${DOCS_JS_DIR}/${file}"
   dst="${STAGE_DIR}/js/${file}"
@@ -317,7 +324,7 @@ cp -R "${ROOT_DIR}/docs/vgm_analyzer/vendor/osmd/." "${STAGE_DIR}/vendor/osmd/"
 perl -0pi -e 's#<a class="link-button" href="\.\./index\.html">Back</a>##g' "${STAGE_DIR}/index.html"
 perl -0pi -e "s#(['\"])\\.\\./js/#\$1./js/#g; s#(['\"])\\.\\./generated/#\$1./generated/#g" \
   "${STAGE_DIR}/tfi_extract.js" "${STAGE_DIR}/tfi_archive.js" "${STAGE_DIR}/index.html" "${STAGE_DIR}/analyzer_core.js" "${STAGE_DIR}/playback_core.js" "${STAGE_DIR}/vgm_analyzer.js" "${STAGE_DIR}/vgm_mml.js" \
-  "${STAGE_DIR}/opm_tfi.js" "${STAGE_DIR}/opm_info.js" "${STAGE_DIR}/opm_export.js" "${STAGE_DIR}/opm_notes.js" "${STAGE_DIR}/vgm_notes.js" "${STAGE_DIR}/tone_notes.js" "${STAGE_DIR}/gameboy_notes.js" "${STAGE_DIR}/vgm_midi.js" "${STAGE_DIR}/vgm_wav.js" "${STAGE_DIR}/vgm_lilypond.js" \
+  "${STAGE_DIR}/opm_tfi.js" "${STAGE_DIR}/opm_info.js" "${STAGE_DIR}/opm_export.js" "${STAGE_DIR}/opm_notes.js" "${STAGE_DIR}/vgm_notes.js" "${STAGE_DIR}/tone_notes.js" "${STAGE_DIR}/gameboy_notes.js" "${STAGE_DIR}/nes_notes.js" "${STAGE_DIR}/vgm_midi.js" "${STAGE_DIR}/vgm_wav.js" "${STAGE_DIR}/vgm_lilypond.js" \
   "${STAGE_DIR}/osmd_trial.js" "${STAGE_DIR}/note_timeline_worker.js" "${STAGE_DIR}/sample_render.js" "${STAGE_DIR}/sample_core.js" "${STAGE_DIR}/sample_explorer.js" "${STAGE_DIR}/pwm_samples.js" "${STAGE_DIR}/ym2413_monitor.js" "${STAGE_DIR}/ym2413_notes.js" "${STAGE_DIR}/mgsdrv_mml.js"
 perl -0pi -e 's#\.\./js/vgm-output-worklet\.js#./js/vgm-output-worklet.js#g' \
   "${STAGE_DIR}/index.html"

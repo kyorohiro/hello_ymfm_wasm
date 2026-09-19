@@ -70,3 +70,14 @@ BSD-3-Clause. See [LICENSE](LICENSE) and the included `dist/licenses/` notices.
 The package excludes the browser score display libraries, LilyPond runtime and ROMs.
 
 Source and browser project: [hello_ymfm_wasm](https://github.com/kyorohiro/hello_ymfm_wasm).
+
+## NES APU
+
+Standalone NTSC NES APU supports pulse 1/2, triangle, noise and DMC playback,
+including embedded VGM C2 RAM blocks. Browser and Node use the same JavaScript
+APU engine (JSNES, Apache-2.0; see `dist/licenses/jsnes/`). No extra WASM is needed.
+`render --mute nes-ch-1` through `nes-ch-5` control these five channels.
+MIDI, MusicXML and LilyPond export pulse/triangle base pitches; score IDs are
+`nes-ch1`, `nes-ch2`, `nes-ch3`. Noise/DMC have no score pitch. Length, envelope,
+sweep and linear-counter timing are not reconstructed in note extraction.
+PAL, FDS, dual chips and expansion-chip combinations are not supported.

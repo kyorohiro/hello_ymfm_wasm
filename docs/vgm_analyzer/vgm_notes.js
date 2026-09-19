@@ -6,6 +6,7 @@ export function midiChipKind(header) {
     ?? ((header.ay8910Clock & 0x3fffffff) ? 'ay8910' : null)
     ?? ((header.ym2413Clock & 0x3fffffff) ? 'ym2413' : null)
     ?? ((header.psgClock & 0x3fffffff) ? 'psg' : null)
+    ?? ((header.nesApuClock & 0x3fffffff) ? 'nes' : null)
     ?? ((header.gameBoyDmgClock & 0x3fffffff) ? 'gameboy' : null);
 }
 

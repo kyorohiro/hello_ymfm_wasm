@@ -415,6 +415,10 @@ export class VgmPlayer {
         ay8910: ay8910Target,
         k051649: k051649Target,
         segapcm: segapcmTarget,
+        nesApu: typeof this.engine.writeNesApu === 'function' ? {
+          writeRegister:(r,v)=>this.engine.writeNesApu(r,v),
+          loadSampleMemory:(data,offset)=>this.engine.loadNesMemory(data,offset),
+        } : undefined,
         gameboyDmg: gameboyDmgTarget,
         ym2608: ym2608Target,
         ym2610: ym2610Target,

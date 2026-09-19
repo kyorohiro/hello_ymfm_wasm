@@ -32,5 +32,6 @@ await mkdir(resolve(out,'licenses'),{recursive:true});
 for (const name of ['mame-okim6258','mame-gameboy','mame-ay8910','mame-rf5c164','mame-segapcm','mame-k051649']) {
   await cp(resolve(root,`third_party/${name}/LICENSE`),resolve(out,`licenses/${name}.txt`));
 }
+await cp(resolve(root,'third_party/jsnes'),resolve(out,'licenses/jsnes'),{recursive:true});
 await chmod(resolve(out,'cli/main.js'),0o755);
 console.error(`Staged ${seen.size} dependency files in dist/`);

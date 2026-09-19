@@ -1,3 +1,4 @@
+import {extractNesNotes} from './nes_notes.js';
 import { Ym2612VGM } from '../js/ym2612vgm.js?v=ym2610-vgm-2';
 import { extractOpnNotes, midiChipKind } from './vgm_notes.js?v=midi-onset-1';
 import { extractOpmNotes } from './opm_notes.js';
@@ -77,8 +78,8 @@ export function analyzeLilyPondSource(source) {
   const header = new Ym2612VGM(source).header;
   const kind = header.ym2151Clock & 0x3fffffff ? 'ym2151' : midiChipKind(header);
   if (!kind) throw new Error('LilyPond requires OPN / YM2151 / AY-3-8910 / YM2413 / PSG / Game Boy DMG notes');
-  const fm = kind === 'ym2151' ? extractOpmNotes(source) : kind === 'psg' || kind === 'ay8910' || kind === 'ym2413' || kind === 'gameboy' ? { channels: [], warnings: new Map() } : extractOpnNotes(source);
-  const tones = kind === 'gameboy' ? extractGameboyNotes(source) : extractToneNotes(source, kind);
+  const fm = kind === 'ym2151' ? extractOpmNotes(source) : kind === 'psg' || kind === 'ay8910' || kind === 'ym2413' || kind === 'nes' || kind === 'gameboy' ? { channels: [], warnings: new Map() } : extractOpnNotes(source);
+  const tones = kind === 'nes' ? extractNesNotes(source) : kind === 'gameboy' ? extractGameboyNotes(source) : extractToneNotes(source, kind);
   const opll = (header.ym2413Clock & 0x3fffffff) ? extractOpllNotes(source) : { channels: [], warnings: new Map(), time: 0 };
   const warnings = new Map([...(fm.warnings ?? []), ...tones.warnings, ...opll.warnings]);
   if (['ym2203','ym2608','ym2610'].includes(kind)) warnings.delete('SSG writes omitted');

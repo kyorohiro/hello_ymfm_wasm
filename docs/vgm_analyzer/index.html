@@ -582,7 +582,7 @@
             <span class="spec-row"><span class="spec-label">Register log formats</span><strong>VGM / VGZ / S98</strong></span>
             <span class="spec-row"><span class="spec-label">Sound chip analysis</span><strong>YM2612 / YM2203 / YM2608 / YM2610(B) / YM2151</strong></span>
             <span class="spec-row"><span class="spec-label">Mega-CD / 32X playback</span><strong>YM2612 + PSG + RF5C164 PCM + PWM</strong></span>
-            <span class="spec-row"><span class="spec-label">Additional playback · MSX Y8950 + AY + YM2413 + SCC mix</span><strong>YM2413 / YM3526 / YM3812 / Y8950 / YMF262 / YMF278B / AY-3-8910 / YM2149 / K051649 (SCC) / OKIM6258 / Sega PCM / Game Boy DMG</strong></span>
+            <span class="spec-row"><span class="spec-label">Additional playback · MSX Y8950 + AY + YM2413 + SCC mix</span><strong>YM2413 / YM3526 / YM3812 / Y8950 / YMF262 / YMF278B / AY-3-8910 / YM2149 / K051649 (SCC) / OKIM6258 / Sega PCM / Game Boy DMG / NES APU (NTSC)</strong></span>
             <span class="spec-row"><span class="spec-label">Tetorica sound laboratory · View support by chip ↗</span><span>Explore the music. Read the machine.</span></span>
           </button>
         </header>
@@ -612,6 +612,7 @@
                   <tr><th scope="row">K051649 (SCC)</th><td>5-channel wavetable; mixed with MSX AY/YM2413/Y8950</td><td>5 CH, chip</td><td>—</td><td>—</td><td>—</td></tr>
                   <tr><th scope="row">OKIM6258</th><td>4-bit ADPCM; standalone or mixed</td><td>Chip (single toggle)</td><td>—</td><td>—</td><td>—</td></tr>
                   <tr><th scope="row">Sega PCM (315-5218)</th><td>16-voice 8-bit PCM; standalone, mixed with Sega PSG, or mixed with YM2151</td><td>16 CH, chip</td><td>—</td><td>—</td><td>—</td></tr>
+                  <tr><th scope="row">NES APU (NTSC)</th><td>2 pulse + triangle + noise + DMC; embedded RAM</td><td>5 CH, chip</td><td>—</td><td>CH1/CH2 pulse + CH3 triangle (base pitch)</td><td>MIDI / MusicXML / LilyPond; no MML or voice export. PAL/FDS/dual unsupported.</td></tr>
                   <tr><th scope="row">Game Boy DMG (LR35902)</th><td>2 square + wave + noise</td><td>4 CH, chip</td><td>—</td><td>CH1/CH2 square + CH3 wave (base pitch); CH4 noise has no pitch</td><td>Base-pitch MIDI / LilyPond; no MML or FM/PCM voice export</td></tr>
                 </tbody>
               </table>

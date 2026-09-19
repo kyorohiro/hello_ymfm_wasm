@@ -334,3 +334,11 @@ AY, YM2413 and Y8950 DAC streams remain unsupported; they are skipped with a vis
 Run `node --test web/ay8910.test.mjs` for three-chip mixing against independent
 renders, embedded ADPCM, reset/seek repeatability and sample clearing between
 songs. These fixtures are synthetic; real-game playback remains to be checked.
+
+### NES APU
+
+Analyzer and CLI support standalone NTSC NES APU playback (pulse, triangle,
+noise and embedded DMC samples), five channel mutes, and pulse/triangle
+Note-ish, MIDI and Music Sheet export. PAL/FDS/dual are not supported.
+The shared JavaScript APU uses [JSNES](third_party/jsnes/README.md), licensed
+under Apache-2.0; it is included in npm and Browser distributions.

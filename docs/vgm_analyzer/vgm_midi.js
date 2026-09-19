@@ -1,3 +1,4 @@
+import {extractNesNotes} from './nes_notes.js';
 import { extractOpmNotes } from './opm_notes.js';
 import { extractToneNotes } from './tone_notes.js?v=ym2610-vgm-2';
 import { extractOpllNotes } from './ym2413_notes.js';
@@ -43,8 +44,8 @@ export function exportAnalysisMidi(source, { bpm = 120, fileName = 'VGM' } = {})
   const parserHeader = new Ym2612VGM(source).header;
   const chipKind = parserHeader.ym2151Clock & 0x3fffffff ? 'ym2151' : midiChipKind(parserHeader);
   if (!chipKind) throw new Error('MIDI requires YM2151 / YM2612 / YM2203 / YM2608 / YM2610 / AY-3-8910 / YM2413 / PSG or Game Boy DMG');
-  const fm = chipKind === 'ym2151' ? extractOpmNotes(source) : chipKind === 'psg' || chipKind === 'ay8910' || chipKind === 'ym2413' || chipKind === 'gameboy' ? {channels:[],warnings:new Map()} : extractOpnNotes(source);
-  const tones = chipKind === 'gameboy' ? extractGameboyNotes(source) : extractToneNotes(source, chipKind);
+  const fm = chipKind === 'ym2151' ? extractOpmNotes(source) : chipKind === 'psg' || chipKind === 'ay8910' || chipKind === 'ym2413' || chipKind === 'nes' || chipKind === 'gameboy' ? {channels:[],warnings:new Map()} : extractOpnNotes(source);
+  const tones = chipKind === 'nes' ? extractNesNotes(source) : chipKind === 'gameboy' ? extractGameboyNotes(source) : extractToneNotes(source, chipKind);
   const opll = (parserHeader.ym2413Clock & 0x3fffffff) ? extractOpllNotes(source) : {channels:[],warnings:new Map(),time:0};
   const channels = [...fm.channels, ...tones.channels, ...opll.channels];
   const time = Math.max(tones.time, opll.time);

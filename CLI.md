@@ -109,7 +109,7 @@ second implementation for Node.
 The npm allowlist includes only staged dependencies, README/CLI documentation
 and licenses. It excludes game files, fixtures, ROMs, HTML/CSS/images, OSMD,
 LilyPond runtime, Nuked-OPN2, `w/`, caches and browser bundles. Included chip code
-is BSD-3-Clause; third-party notices are shipped under `dist/licenses/`.
+is BSD-3-Clause except the Apache-2.0 JSNES APU; third-party notices are shipped under `dist/licenses/`.
 Before publication run `npm test`, `npm run test:analyzer`, `npm run pack:check`,
 and install/test the tarball in a clean directory. The analyzer suite has one optional compiler integration test that requires
 `MML2MDR_DIR`; without that external compiler it is skipped.
@@ -528,3 +528,14 @@ The existing final partial block can contain silence. A start beyond the
 rendered end is rejected, but the final padded block remains selectable.
 A track ending during the requested interval produces a shorter output.
 No VGM loop expansion. Invalid requests leave existing output untouched.
+
+## NES APU
+
+Standalone NTSC NES APU supports pulse 1/2, triangle, noise and DMC playback,
+including embedded VGM C2 RAM blocks. Browser and Node use the same JavaScript
+APU engine (JSNES, Apache-2.0; see `dist/licenses/jsnes/`). No extra WASM is needed.
+`render --mute nes-ch-1` through `nes-ch-5` control these five channels.
+MIDI, MusicXML and LilyPond export pulse/triangle base pitches; score IDs are
+`nes-ch1`, `nes-ch2`, `nes-ch3`. Noise/DMC have no score pitch. Length, envelope,
+sweep and linear-counter timing are not reconstructed in note extraction.
+PAL, FDS, dual chips and expansion-chip combinations are not supported.
