@@ -10,3 +10,7 @@ independently and together, for render and mix coverage. No external ROM is used
 YM2608 fixtures cover FM, SSG, rhythm key-on and an authored embedded ADPCM-B
 pattern. Tests generate synthetic 8192-byte rhythm data in temporary memory/files.
 No hardware rhythm ROM is included.
+
+YM2610 and YM2610B fixtures exercise FM, SSG, embedded ADPCM-A/B and their mix.
+Extra-FM fixtures use CH1 and CH4, which sound only on YM2610B. Sample bytes are
+authored repeating patterns, not game ROM data.

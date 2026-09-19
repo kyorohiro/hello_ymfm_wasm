@@ -19,8 +19,8 @@ npm exec --offline --package ./tetorica-vgm-0.1.0.tgz -- tetorica-vgm --help
 
 After publication, the same commands work as `npx tetorica-vgm ...`.
 There are no npm runtime dependencies. Committed WASM artifacts are included;
-consumers do not need Emscripten. To rebuild YM2203/YM2608/YM2612/Sega PSG/RF5C164 from source, run
-`scripts/build_ym2203_wasm.sh`, `scripts/build_ym2608_wasm.sh`, `scripts/build_ym2612_wasm.sh`, `scripts/build_segapsg_wasm.sh`, and
+consumers do not need Emscripten. To rebuild YM2203/YM2608/YM2610(B)/YM2612/Sega PSG/RF5C164 from source, run
+`scripts/build_ym2203_wasm.sh`, `scripts/build_ym2608_wasm.sh`, `scripts/build_ym2610b_wasm.sh`, `scripts/build_ym2612_wasm.sh`, `scripts/build_segapsg_wasm.sh`, and
 `scripts/build_rf5c164_wasm.sh` with Emscripten installed.
 
 ## Commands
@@ -151,3 +151,16 @@ const wav = await renderSource(source, {
 
 Import `readFile` from `node:fs/promises`. The API accepts `Uint8Array` (including
 Node `Buffer`); paths are handled only by the CLI, never by the shared Core.
+
+## YM2610 / YM2610B rendering
+
+```sh
+tetorica-vgm render song.vgz --output song.wav
+```
+
+The VGM clock's variant bit selects YM2610 (4 FM channels) or YM2610B
+(6 FM channels). Both include internal SSG and ADPCM-A/B; sample ROM data must
+be embedded in the VGM (blocks 0x82/0x83). No external ROM option is required
+for these fixtures, and none is provided for this chip. Missing sample data
+cannot be reconstructed. Dual chips and combinations with Sega PSG or other
+OPN chips are rejected; OKIM6258 still requires an unprovided Node factory.

@@ -115,10 +115,10 @@ Browser側ですでに共有化した音源は、CLIへ同じ処理を再実装�
 
 ### 04. YM2610 / YM2610BのWAV変換
 
-- [ ] Browserの既存エンジンを接続する。
-- [ ] YM2610とYM2610Bのvariantフラグ・FMチャンネル差を正しく扱う。
-- [ ] FM / SSG / ADPCM-A / ADPCM-Bと埋め込みデータの転送を検証する。
-- [ ] dualフラグ等、引き続き未対応の条件を明示して拒否する。
+- [x] Browserの既存エンジンを接続する。
+- [x] YM2610とYM2610Bのvariantフラグ・FMチャンネル差を正しく扱う。
+- [x] FM / SSG / ADPCM-A / ADPCM-Bと埋め込みデータの転送を検証する。
+- [x] dualフラグ等、引き続き未対応の条件を明示して拒否する。
 
 完了: 両variantで対応する発音とデータ転送を確認し、tarballでも動作する。
 
@@ -245,3 +245,15 @@ ROM必要性はBrowserと同じparserのリズムkey-on検出を利用。FM / SS
 
 `npm test`: 16成功。`npm run test:analyzer`: 583成功・0失敗・外部コンパイラ検証1skip。
 実ブラウザUIとNode 22の実機検証は未実施。04（YM2610/B）は次工程。
+
+### 04 実装記録
+
+YM2610/Bの既存Node対応factoryをCLIへ提供。共有recipeのvariant bit判定・生成・PCM処理は変更不要。
+自作fixtureで両variantのFM / SSG / ADPCM-A / ADPCM-Bとmixを個別確認。
+CH1・CH4がYM2610では無音、YM2610Bでは発音することを確認。
+Browserで使う既存エンジンの生成経路とのWAV一致、埋め込みROMの範囲不正、dual・併用拒否を検証。
+別ディレクトリのoffline tarball installで両variantのCLI / Node APIの出力一致を検証。
+外部ROM入力は対象外。VGMに埋め込まれた0x82/0x83データを使用し、ゲームデータは配布しない。
+
+`npm test`: 20成功。`npm run test:analyzer`: 583成功・0失敗・外部コンパイラ検証1skip。
+実ブラウザUIとNode 22の実機検証は未実施。次は05（OKIM6258・YM2151併用）。
