@@ -156,7 +156,7 @@ Browser側ですでに共有化した音源は、CLIへ同じ処理を再実装�
 以下は形式ごとに処理し、Browserの抽出・変換処理をCore経由で共有する。
 
 - [x] 08a: TFI ZIP。対応するOPN / OPM音源と近似変換の注意を明示する。
-- [ ] 08b: VGI ZIP。TFIと共通の抽出を再利用して検証する。
+- [x] 08b: VGI ZIP。TFIと共通の抽出を再利用して検証する。
 - [ ] 08c: OPM ZIP。音色変化と重複除去をBrowserと照合する。
 - [ ] 08d: 時刻・チャンネルを指定した音色スナップショット。
 - [ ] 出力名の衝突、空の抽出結果、既存ファイルの保護を検証する。
@@ -362,3 +362,16 @@ documentからbytesだけを取り出すと元情報は失われるので、必�
 - `npm test`: 36成功。Analyzer: 583成功・0失敗・1任意skip。itch用同梱ファイルとimport書き換えも更新し、cli08a-checkパッケージ生成・依存検査成功。
 
 実ブラウザUIとNode 22の確認は残る。次は08b（VGI ZIP）。
+
+
+### 08b 実装記録: All VGI ZIP
+
+- `export --format vgi-zip --output voices.zip` とNode APIの `exportSource(source,{format:'vgi-zip'})` に対応。
+- TFIと同じ音源構成検証・OPN抽出・ZIP生成を共有。Browserと同じVGIエンコーダーを使用し、音源固有処理をCLIに追加していない。
+- YM2203 / YM2608 / YM2610(B) / YM2612に対応。YM2151のVGI変換は未対応として明示的に拒否する。
+- B4（pan/AMS/FMS）を保持。global LFO・operator AM enable・クロック由来の時間差は保存しない。key-on抽出・チャンネルごとの重複除去・dual/混在制約はTFIと共通。
+- Browser ZIPの全OPN構成でバイト一致、両port・非既定B4・重複key-onを検証。空結果・既存ファイル保護・force・未対応構成も検証。
+- `npm test`: 38成功・0失敗。実tarballのoffline install後、CLIとNode APIからVGI ZIPを出力して照合。
+- `npm run test:analyzer`: 583成功・0失敗・1任意skip。itchのcli08b-checkパッケージ生成・依存検査成功。
+
+実ブラウザUIとNode 22の確認は残る。次は08c（OPM ZIP）。

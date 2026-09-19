@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readSource,exportSource} from '../cli/index.js';
 import {extractTfiPatchesFromVgm} from '../docs/vgm_analyzer/tfi_extract.js';
+import {createVgiFromPreset} from '../docs/js/vgi.js';
 import {createTfiFromPreset} from '../docs/js/tfi.js';
 import {createOpmTfiFiles} from '../docs/vgm_analyzer/opm_tfi.js';
 import {createStoredZipBytes} from '../docs/vgm_analyzer/stored_zip.js';
@@ -35,4 +36,24 @@ test('TFI ZIP rejects empty/unsupported inputs, dual and mixed FM; ZIP rejects d
   const bad=source.slice();new DataView(bad.buffer).setUint32(offset,value,true);assert.throws(()=>exportSource(bad,{format:'tfi-zip'}),/dual|exactly/);
  }
  assert.throws(()=>createStoredZipBytes([{name:'a',data:new Uint8Array()},{name:'a',data:new Uint8Array()}]),/duplicate/);
+});
+
+test('VGI ZIP matches Browser bytes for all OPN families and is deterministic',async()=>{
+ for(const name of ['ym2203-fm','ym2608-fm','ym2610-fm','ym2610b-fm','opn-tone']){
+  const source=await readSource(fixture(name)),result=exportSource(source,{format:'vgi-zip'});
+  const expected=extractTfiPatchesFromVgm(source).map(p=>({name:p.label+'.vgi',data:createVgiFromPreset(p.preset)}));
+  assert.deepEqual(entries(result.bytes),expected);assert.equal(result.count,expected.length);assert(result.count>0);
+  assert.deepEqual(result.bytes,exportSource(source,{format:'vgi-zip'}).bytes);
+  assert.match(result.warnings.join(' '),/LFO/);
+ }
+});
+test('VGI ZIP rejects OPM, empty tones, dual and mixed FM configurations',async()=>{
+ for(const name of ['opm-audible','psg-tone','ym2203-ssg']){
+  const source=await readSource(fixture(name));assert.throws(()=>exportSource(source,{format:'vgi-zip'}),/not supported|requires|No keyed/);
+ }
+ const source=await readSource(fixture('ym2203-fm'));
+ for(const [offset,value] of [[0x44,0x40000000+4000000],[0x30,3579545]]){
+  const bad=source.slice();new DataView(bad.buffer).setUint32(offset,value,true);
+  assert.throws(()=>exportSource(bad,{format:'vgi-zip'}),/dual|exactly/);
+ }
 });

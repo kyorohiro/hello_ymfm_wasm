@@ -37,7 +37,7 @@ tetorica-vgm render song.vgz --output song.wav --max-seconds 120
 - `analyze`: header-declared chips/clocks, GD3 metadata, declared duration,
   command counts, data-block and PCM-RAM summaries, special-command details.
   JSON has `schemaVersion: 1`; declared chips are not a playback compatibility claim.
-- `export`: `midi`, `musicxml`, `lilypond`, `mucom`, `opnavoid`, `mxdrv`, `mgsdrv`.
+- `export`: `tfi-zip`, `vgi-zip`, `midi`, `musicxml`, `lilypond`, `mucom`, `opnavoid`, `mxdrv`, `mgsdrv`.
   Supported chips and approximation limits are those of the browser exporters.
   MUCOM/OPN-Avoid target OPN, MXDRV targets YM2151, MGSDRV targets AY/OPLL.
   BPM is an integer 4–999. Without `--bpm`, use the browser score suggestion,
@@ -58,7 +58,7 @@ tetorica-vgm render song.vgz --output song.wav --max-seconds 120
   errors, export notices and render warnings go to stderr.
 
 The CLI accepts VGM/VGZ/S98, not directories, ZIPs or stdin in this version.
-TFI ZIP export is supported; other patch ZIP formats, sample extraction and interactive audition/editing remain browser features.
+TFI/VGI ZIP export is supported; other patch ZIP formats, sample extraction and interactive audition/editing remain browser features.
 
 ## Node API
 
@@ -266,10 +266,11 @@ effective timer ratio, device table, source offsets and decoded tag text. `heade
 S98 tags are not converted into GD3. Passing only `.bytes` discards source metadata;
 keep the document when it matters. VGM/VGZ JSON remains unchanged (schemaVersion 1).
 
-## All TFI ZIP
+## All TFI / VGI ZIP
 
 ```sh
 tetorica-vgm export song.vgz --format tfi-zip --output tones.zip
+tetorica-vgm export song.vgz --format vgi-zip --output voices.zip
 ```
 
 The same format is available via `exportSource(source, {format:'tfi-zip'})`,
@@ -286,5 +287,14 @@ and `conversion.json` explain omitted DT2, modulation, noise and key masks.
 
 No keyed tones is an error and creates no ZIP. Existing output is protected
 unless `--force` is supplied. ZIP timestamps are fixed for reproducible CLI
-output; Browser downloads retain their current timestamps. VGI/OPM ZIP and
+output; Browser downloads retain their current timestamps. OPM ZIP and
 time/channel snapshots are separate follow-up tasks.
+
+
+VGI uses the same OPN extraction and is available as
+`exportSource(source, {format:'vgi-zip'})`, returning `{bytes, count, warnings}`.
+Entries are named `channelN-M.vgi`. It preserves B4 (pan/AMS/FMS), but not
+global LFO settings, operator AM enable or source clock timing. YM2203 has
+no B4 register. YM2151 VGI conversion is not supported; use TFI ZIP or the
+Browser OPM export. Empty results, dual/variant flags and mixed FM families
+have the same restrictions as TFI ZIP.

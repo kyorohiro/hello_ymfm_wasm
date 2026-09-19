@@ -1,3 +1,5 @@
+import {exportSource} from './analyzer_core.js';
+import {createStoredZipBytes} from './stored_zip.js';
 import * as tfiExtract from './tfi_extract.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -53,6 +55,9 @@ for (const [chip, command, clockOffset, clock, ports] of [
   });
   c.downloadAllTfiZip(); c.downloadAllVgiZip();
   assert.deepEqual(downloads, ['all_tfi_patches.zip', 'all_vgi_patches.zip']);
+  // Compare the actual Browser download entries with the public Core archive,
+  // including repeated key-ons, both ports and non-default pan/modulation.
+  assert.deepEqual(exportSource(bytes,{format:'vgi-zip'}).bytes,createStoredZipBytes(archives[1]));
   for (const [i, parse] of [parseTfi, parseVgi].entries()) {
     assert.equal(archives[i].length, ports);
     for (const [port, file] of archives[i].entries()) {
