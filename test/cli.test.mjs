@@ -103,11 +103,11 @@ test('CLI rejects malformed input, unknown options, unsupported formats and bad 
   }
 });
 test('npm tarball installs offline, runs via npx, and exports the library',async()=>{
-  execFileSync(process.execPath,['scripts/build_cli.mjs'],{cwd:root});
+  const repositoryReadme=readFileSync(join(root,'README.md'),'utf8');
   const dir=mkdtempSync(join(tmpdir(),'tetorica-package-'));
   const cache=join(dir,'cache');
   try {
-    const packed=JSON.parse(execFileSync('npm',['pack','--ignore-scripts','--json','--pack-destination',dir,'--cache',cache],{cwd:root,encoding:'utf8'}))[0];
+    const packed=JSON.parse(execFileSync(process.execPath,['scripts/pack_cli.mjs','--json','--pack-destination',dir,'--cache',cache],{cwd:root,encoding:'utf8'}))[0];
     const paths=packed.files.map(f=>f.path);
     assert(paths.includes('dist/cli/main.js'));
     assert(paths.includes('dist/docs/generated/ym2612_wasm.wasm'));
@@ -127,6 +127,9 @@ test('npm tarball installs offline, runs via npx, and exports the library',async
     assert(!paths.some(p=>/\.rom$|\.bin$/.test(p)));
     assert(!paths.some(p=>/\.(?:html|css|png|vgz|vgm)$/.test(p)||p.includes('/vendor/')||p.endsWith('.s98')||p.startsWith('w/')));
     execFileSync('npm',['install','--offline','--ignore-scripts','--no-audit','--no-fund','--prefix',dir,'--cache',cache,join(dir,packed.filename)],{encoding:'utf8'});
+    assert.equal(readFileSync(join(root,'README.md'),'utf8'),repositoryReadme);
+    assert.equal(readFileSync(join(dir,'node_modules/tetorica-vgm/README.md'),'utf8'),readFileSync(join(root,'cli/README.md'),'utf8'));
+    assert.notEqual(readFileSync(join(dir,'node_modules/tetorica-vgm/README.md'),'utf8'),repositoryReadme);
     const args=['exec','--offline','--prefix',dir,'--cache',cache,'--','tetorica-vgm'];
     const result=JSON.parse(execFileSync('npm',[...args,'analyze',fixture('ay-tone.vgz'),'--json'],{cwd:dir,encoding:'utf8'}));
     assert.equal(result.chips[0].id,'ay8910');

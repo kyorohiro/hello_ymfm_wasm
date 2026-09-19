@@ -25,7 +25,8 @@
     "test": "node --test test/*.test.mjs",
     "test:analyzer": "node --test web/*.test.mjs docs/vgm_analyzer/*.test.mjs",
     "prepack": "npm run build",
-    "pack:check": "npm pack --dry-run"
+    "pack:check": "npm run pack -- --dry-run",
+    "pack": "node scripts/pack_cli.mjs"
   },
   "repository": {
     "type": "git",

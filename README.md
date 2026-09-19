@@ -12,6 +12,7 @@ node dist/cli/main.js render song.vgz --output song.wav
 
 See [CLI usage, supported formats, Node API and npm packaging](CLI.md).
 The npm package is prepared for publication; this change does not publish it.
+Its dedicated [npm README](cli/README.md) is packaged by `npm run pack`; this repository README remains separate.
 
 Tetorica FM2612 is a browser toolkit for JavaScript music coding, VGM analysis,
 and YM2612 FM sound design. Open a VGM, explore its instruments, and edit and

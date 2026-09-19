@@ -11,8 +11,8 @@ npm run build
 node dist/cli/main.js analyze test/fixtures/psg-tone.vgz --json
 node dist/cli/main.js export test/fixtures/psg-tone.vgz --format musicxml --output /tmp/tone.musicxml
 node dist/cli/main.js render test/fixtures/psg-tone.vgz --output /tmp/tone.wav
-npm pack --dry-run
-npm pack
+npm run pack:check
+npm run pack
 # Test the actual tarball without publishing:
 npm exec --offline --package ./tetorica-vgm-0.1.0.tgz -- tetorica-vgm --help
 ```
@@ -22,6 +22,11 @@ There are no npm runtime dependencies. Committed WASM artifacts are included;
 consumers do not need Emscripten. To rebuild YM2203/YM2608/YM2610(B)/YM2612/Sega PSG/RF5C164 from source, run
 `scripts/build_ym2203_wasm.sh`, `scripts/build_ym2608_wasm.sh`, `scripts/build_ym2610b_wasm.sh`, `scripts/build_ym2612_wasm.sh`, `scripts/build_segapsg_wasm.sh`, and
 `scripts/build_rf5c164_wasm.sh` with Emscripten installed.
+
+The distribution README comes from `cli/README.md`; the repository README stays unchanged.
+Use `npm run pack` for distribution, not bare `npm pack` at the repository root
+(which includes the repository README). Publish the resulting tarball when ready.
+The pack script stages files in a temporary directory and removes it afterward.
 
 ## Commands
 
@@ -105,7 +110,7 @@ The npm allowlist includes only staged dependencies, README/CLI documentation
 and licenses. It excludes game files, fixtures, ROMs, HTML/CSS/images, OSMD,
 LilyPond runtime, Nuked-OPN2, `w/`, caches and browser bundles. Included chip code
 is BSD-3-Clause; third-party notices are shipped under `dist/licenses/`.
-Before publication run `npm test`, `npm run test:analyzer`, `npm pack --dry-run`,
+Before publication run `npm test`, `npm run test:analyzer`, `npm run pack:check`,
 and install/test the tarball in a clean directory. The analyzer suite has one optional compiler integration test that requires
 `MML2MDR_DIR`; without that external compiler it is skipped.
 

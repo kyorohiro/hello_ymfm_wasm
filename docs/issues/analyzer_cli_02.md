@@ -195,7 +195,7 @@ Browser側ですでに共有化した音源は、CLIへ同じ処理を再実装�
 
 - [ ] CLI.md / README / help / 対応表を実装と一致させる。
 - [ ] CLIテストとAnalyzer回帰テストを実行し、既知の失敗と新規失敗を区別して記録する。
-- [ ] `npm pack --dry-run`と実際のtarballで配布内容・サイズ・ライセンスを確認する。
+- [ ] `npm run pack:check`と実際のtarballで配布内容・サイズ・ライセンスを確認する。
 - [ ] 別ディレクトリでtarballをインストールし、追加した代表音源・export・Node APIを検証する。
 - [ ] Node.js 22以上という公開条件に合わせ、最低対応バージョンでも動作を確認する。
 
@@ -476,3 +476,11 @@ documentからbytesだけを取り出すと元情報は失われるので、必�
 - 次は10d（WAVループ指定）。
 
 検証: npm test 58成功・0失敗、Analyzer 583成功・0失敗・1任意skip。実tarballの区間WAVとNode出力一致、itch cli10c-check生成・依存検査成功。実ブラウザUIとNode 22は未確認。
+
+### npm配布READMEの分離
+
+- ルートREADMEはリポジトリ用、`cli/README.md`はnpm利用者用に分離。
+- `npm run pack`は一時ディレクトリにdist・ライセンス・CLI.mdと専用READMEを配置してtarballを作成する。ルートREADMEは変更しない。
+- `npm run pack:check`で配布内容を確認する。ルートで直接`npm pack`するとリポジトリREADMEが入るため、配布には専用コマンドを使う。
+- tarballを別ディレクトリへインストールし、README一致・ルートREADME保持と既存CLI/APIを回帰テストする。公開は行わない。
+- 検証: `npm test` 58件成功。`npm run pack:check`成功（120ファイル、圧縮493.5 kB）。実tarballのオフラインインストール後に専用READMEとCLI/API動作を確認。Node.js 22での確認は未実施。
