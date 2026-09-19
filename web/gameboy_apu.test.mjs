@@ -221,11 +221,12 @@ test('GameboyApuAudioEngine per-channel mute isolates one channel from the rest'
       engine.gameboy.writeRegister(0x08,900&0xff);engine.gameboy.writeRegister(0x09,0x80|((900>>8)&7));
     }
     assert.deepEqual(a.processFrames(128),b.processFrames(128));
-    b.setGameboyApuChannelMuted(1,true);
+    b.setChannelMuted(1,true);
     const reference=a.processFrames(1024),muted=b.processFrames(1024);
     assert(reference.left.some(v=>v!==0));
-    b.setGameboyApuMuted(true);assert(b.processFrames(256).left.every(v=>v===0));
-    b.setGameboyApuMuted(false);
+    for(let ch=0;ch<4;ch++)b.setChannelMuted(ch,true);
+    assert(b.processFrames(256).left.every(v=>v===0));
+    for(let ch=0;ch<4;ch++)b.setChannelMuted(ch,false);
     assert.notDeepEqual(reference.left,muted.left);
   }finally{a.dispose();b.dispose();}
 });
@@ -241,7 +242,7 @@ test('Game Boy DMG VGM dispatches command 0xB3 through the player, mutes and see
     const part=new Float32Array(400);p.process(part,new Float32Array(400),400);assert.deepEqual(part,full.slice(1000,1400));
     p.pause();const silent=new Float32Array(100);p.process(silent,silent,100);assert(silent.every(x=>x===0));
     p.reset();p.play();
-    engine.setGameboyApuChannelMuted(0,true);
+    engine.setChannelMuted(0,true);
     const muted=new Float32Array(4410);p.process(muted,new Float32Array(4410),4410);
     assert(muted.every(v=>v===0));
   }finally{engine.dispose();}

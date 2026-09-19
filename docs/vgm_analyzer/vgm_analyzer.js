@@ -440,6 +440,7 @@ const ym3526ChannelMutes = Array(9).fill(false);
 const ym3812ChannelMutes = Array(9).fill(false);
 const ymf278bFmChannelMutes = Array(18).fill(false);
 const ymf278bPcmChannelMutes = Array(24).fill(false);
+const gameboyChannelMutes = Array(4).fill(false);
 const sourceMutes = { psg: false, ssg: false, rhythm: false, adpcmB: false, pcm: false, pwm: false, oki: false, segapcm: false };
 // Without the rhythm ROM, decoding its all-zero sample stream is audible
 // noise, not silence (see YM2608_RHYTHM_ROM_WARNING) - force the source
@@ -452,12 +453,13 @@ function effectiveSourceMutes() {
   }
   return sourceMutes;
 }
-const CHANNEL_MUTE_CHIPS = ['ym2151', 'ymf262', 'ym2413', 'ym3526', 'ym3812'];
+const CHANNEL_MUTE_CHIPS = ['ym2151', 'ymf262', 'ym2413', 'ym3526', 'ym3812', 'gameboy'];
 function channelMutesForChip(chipKind) {
   return chipKind === 'ym2413' ? opllChannelMutes
     : chipKind === 'ymf262' ? opl3ChannelMutes
     : chipKind === 'ym3526' ? ym3526ChannelMutes
     : chipKind === 'ym3812' ? ym3812ChannelMutes
+    : chipKind === 'gameboy' ? gameboyChannelMutes
     : chipKind === 'ym2151' ? opmChannelMutes
     : null;
 }
@@ -679,6 +681,7 @@ function renderMonitorToggles() {
       button.setAttribute('data-monitor-toggle-kind', 'opm-channel');
       if (currentChipKind === 'ym2413') button.title = 'Rhythm: CH7 bass drum, CH8 hi-hat/snare, CH9 tom/cymbal.';
       if (currentChipKind === 'ymf262') button.title = '4-op: either channel mutes the pair. Rhythm: CH7 bass drum, CH8 hi-hat/snare, CH9 tom/cymbal.';
+      if (currentChipKind === 'gameboy') button.title = 'CH1/CH2 square, CH3 wave, CH4 noise.';
       button.setAttribute('data-channel-index', String(index));
       monitorToggles.append(button);
     });
