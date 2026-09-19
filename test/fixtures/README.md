@@ -6,3 +6,7 @@ The OPN/OPM fixtures test note extraction; they do not program an audible FM pat
 
 The ym2203-fm, ym2203-ssg and ym2203-mix fixtures program audible voices
 independently and together, for render and mix coverage. No external ROM is used.
+
+YM2608 fixtures cover FM, SSG, rhythm key-on and an authored embedded ADPCM-B
+pattern. Tests generate synthetic 8192-byte rhythm data in temporary memory/files.
+No hardware rhythm ROM is included.

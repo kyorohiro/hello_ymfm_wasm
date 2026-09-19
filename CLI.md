@@ -19,8 +19,8 @@ npm exec --offline --package ./tetorica-vgm-0.1.0.tgz -- tetorica-vgm --help
 
 After publication, the same commands work as `npx tetorica-vgm ...`.
 There are no npm runtime dependencies. Committed WASM artifacts are included;
-consumers do not need Emscripten. To rebuild YM2203/YM2612/Sega PSG/RF5C164 from source, run
-`scripts/build_ym2203_wasm.sh`, `scripts/build_ym2612_wasm.sh`, `scripts/build_segapsg_wasm.sh`, and
+consumers do not need Emscripten. To rebuild YM2203/YM2608/YM2612/Sega PSG/RF5C164 from source, run
+`scripts/build_ym2203_wasm.sh`, `scripts/build_ym2608_wasm.sh`, `scripts/build_ym2612_wasm.sh`, `scripts/build_segapsg_wasm.sh`, and
 `scripts/build_rf5c164_wasm.sh` with Emscripten installed.
 
 ## Commands
@@ -52,8 +52,7 @@ tetorica-vgm render song.vgz --output song.wav --max-seconds 120
   OPN chips are rejected; YM2203 + OKIM6258 requires a factory not yet supplied by Node. Unsupported dual/variant chip flags are rejected.
   Missing WASM factories/ROMs are reported separately from unsupported configurations.
   Browser playback additionally supports chips/combinations
-  that are not yet wired into this CLI. No external ROMs or browser effects
-  are included. Natural track endings can include one final partial block of silence.
+  that are not yet wired into this CLI. External ROMs and browser effects are not bundled. Natural track endings can include one final partial block of silence.
 - `--output` is required for export/render. Existing files are preserved unless
   `--force` is passed. Usage/input/output failures exit 1. JSON goes to stdout;
   errors, export notices and render warnings go to stderr.
@@ -121,10 +120,34 @@ WAV/file delivery stay outside engine creation.
 These functions, `createPlaybackPlayer`, and `PlaybackError` are exposed through
 `tetorica-vgm/core` and the Node API. Errors distinguish `UNSUPPORTED_CONFIGURATION`
 from `MISSING_RESOURCE` and contain structured `details`. Factory I/O failures
-retain their original error. Node currently supplies only the previously packaged
-WASM factories. Shared recipes for other Browser engines do not imply that their
+retain their original error. Node supplies the WASM factories for the supported
+render configurations listed above. Shared recipes for other Browser engines do not imply that their
 Node rendering has been validated. AY + YM2413 and Genesis PWM use already available
 resources, but dedicated CLI combination testing remains follow-up work.
 
 The repository document `docs/issues/analyzer_cli_02_architecture.md` records
 ownership, ROM keys, the configuration table, validation and remaining limitations.
+
+## YM2608 rendering and rhythm ROM
+
+```sh
+tetorica-vgm render song.vgz --output song.wav --ym2608-rom /path/to/ym2608_adpcm_rom.bin
+```
+
+Standalone YM2608 supports FM, internal SSG, embedded ADPCM-B RAM data and
+ADPCM-A rhythm. The rhythm ROM is required only when the VGM issues a rhythm
+key-on; FM/SSG/ADPCM-B-only tracks do not need it. No ROM is downloaded or bundled.
+`--ym2608-rom` is render-only and accepts a full 8192-byte ROM. Unreadable files,
+wrong sizes and missing required ROMs fail before output is written. Partial ROM
+loading is not exposed by this Node API. Dual/variant and other OPN/Sega PSG
+combinations remain rejected; OKIM6258 still needs an unprovided Node factory.
+
+```js
+const wav = await renderSource(source, {
+  maxSeconds: 120,
+  roms: { ym2608AdpcmA: await readFile('/path/to/ym2608_adpcm_rom.bin') },
+});
+```
+
+Import `readFile` from `node:fs/promises`. The API accepts `Uint8Array` (including
+Node `Buffer`); paths are handled only by the CLI, never by the shared Core.

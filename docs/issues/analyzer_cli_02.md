@@ -105,11 +105,11 @@ Browser側ですでに共有化した音源は、CLIへ同じ処理を再実装�
 
 ### 03. YM2608のWAV変換と外部ROM入力
 
-- [ ] 外部ROMの明示指定方法をCLIオプションとNode APIに設計・追加する。
-- [ ] BrowserのYM2608エンジンを接続し、FM / SSG / ADPCMを扱う。
-- [ ] リズムROMが必要な条件と不要な条件をBrowser実装に合わせる。
-- [ ] ROM未指定・読み込み失敗・不正サイズを検証し、必要なROMの欠落を通知する。
-- [ ] ROMそのものを同梱せず、適切な自作データで自動テストする。
+- [x] 外部ROMの明示指定方法をCLIオプションとNode APIに設計・追加する。
+- [x] BrowserのYM2608エンジンを接続し、FM / SSG / ADPCMを扱う。
+- [x] リズムROMが必要な条件と不要な条件をBrowser実装に合わせる。
+- [x] ROM未指定・読み込み失敗・不正サイズを検証し、必要なROMの欠落を通知する。
+- [x] ROMそのものを同梱せず、適切な自作データで自動テストする。
 
 完了: ROM指定を含めて再現可能なコマンドがあり、必要な音源が欠落しない。
 
@@ -228,3 +228,20 @@ FM単独・SSG単独・両方の自作fixtureで発音とミックスを検証�
 共有Coreで扱うOKIM6258併用はNode factory未提供のためMISSING_RESOURCE（05で対応予定）。外部ROM不要。
 `npm test`: 14成功。`npm run test:analyzer`: 583成功、0失敗、外部コンパイラ検証1skip。
 実ブラウザUI操作とNode 22での検証は引き続き未実施。次工程は03（YM2608・外部ROM入力）。
+
+### 03 実装記録
+
+YM2608のNode factoryとNode対応WASMローダーを追加。生成・PCM処理は既存共有recipeを利用。
+CLI: `render song.vgz --output song.wav --ym2608-rom /path/to/ym2608_adpcm_rom.bin`。
+Node API: `renderSource(source, {roms:{ym2608AdpcmA:bytes}})`。
+Node入力は完全な8192-byte Uint8Array / Bufferとし、部分ROM入力は公開しない。
+Browserの低レベル部分ロードAPIは変更していない。
+
+ROM必要性はBrowserと同じparserのリズムkey-on検出を利用。FM / SSG / 埋め込みADPCM-Bのみなら不要。
+各音源を単独で発音させ、既存Browserエンジン経路とのWAV一致を検証。
+自作リズムデータのみ使用し、ROM未指定・不正型/サイズ・読込失敗・dual / 併用拒否を検証。
+別ディレクトリのoffline tarball installからCLI / Node APIでROM指定して出力一致を確認。
+配布物にWASM・ライセンスを含み、ROM・fixtureを含まないことも検証。
+
+`npm test`: 16成功。`npm run test:analyzer`: 583成功・0失敗・外部コンパイラ検証1skip。
+実ブラウザUIとNode 22の実機検証は未実施。04（YM2610/B）は次工程。

@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync, spawnSync } from 'node:child_process';
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, readFileSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -92,6 +92,7 @@ test('npm tarball installs offline, runs via npx, and exports the library',async
     assert(paths.includes('dist/docs/generated/ym2612_wasm.wasm'));
     assert(paths.includes('dist/docs/generated/rf5c164_wasm.wasm'));
     assert(paths.includes('dist/docs/generated/ym2203_wasm.wasm'));
+    assert(paths.includes('dist/docs/generated/ym2608_wasm.wasm'));
     assert(paths.includes('LICENSE'));
     assert(!paths.some(p=>/\.rom$|\.bin$/.test(p)));
     assert(!paths.some(p=>/\.(?:html|css|png|vgz|vgm)$/.test(p)||p.includes('/vendor/')||p.startsWith('w/')));
@@ -109,6 +110,20 @@ test('npm tarball installs offline, runs via npx, and exports the library',async
     assert.deepEqual(readFileSync(opnWav),Buffer.from(expected.bytes));
     const apiWav=execFileSync(process.execPath,['--input-type=module','-e',"import {readSource,renderSource} from 'tetorica-vgm'; process.stdout.write((await renderSource(await readSource(process.argv[1]),{maxSeconds:.1})).bytes)",fixture('ym2203-mix.vgz')],{cwd:dir});
     assert.deepEqual(apiWav,Buffer.from(expected.bytes));
+    const romPath=join(dir,'rhythm.bin'),rhythmWav=join(dir,'rhythm.wav');
+    const rom=Uint8Array.from({length:8192},(_,i)=>i%2?0x99:0x11);
+    writeFileSync(romPath,rom);
+    execFileSync('npm',[...args,'render',fixture('ym2608-rhythm.vgz'),'--ym2608-rom',romPath,'--output',rhythmWav,'--max-seconds','0.1'],{cwd:dir});
+    const rhythm=await renderSource(await readSource(fixture('ym2608-rhythm.vgz')),{maxSeconds:.1,roms:{ym2608AdpcmA:rom}});
+    assert.deepEqual(readFileSync(rhythmWav),Buffer.from(rhythm.bytes));
+    const rhythmApi=execFileSync(process.execPath,['--input-type=module','-e',"import {readSource,renderSource} from 'tetorica-vgm'; import {readFile} from 'node:fs/promises'; process.stdout.write((await renderSource(await readSource(process.argv[1]),{maxSeconds:.1,roms:{ym2608AdpcmA:await readFile(process.argv[2])}})).bytes)",fixture('ym2608-rhythm.vgz'),romPath],{cwd:dir});
+    assert.deepEqual(rhythmApi,Buffer.from(rhythm.bytes));
+    for(const extra of [[],['--ym2608-rom',join(dir,'missing.bin')],['--ym2608-rom',fixture('README.md')]]) {
+      const failure=cli('render',fixture('ym2608-rhythm.vgz'),'--output',join(dir,'failed.wav'),...extra);
+      assert.equal(failure.status,1);assert.equal(failure.stdout,'');
+      assert.match(failure.stderr,/Missing ROM|ENOENT|8192 bytes/);
+    }
+    assert.equal(cli('analyze',fixture('ym2608-rhythm.vgz'),'--ym2608-rom',romPath).status,1);
     // Machine-readable probe output must remain identical with terminal colors enabled.
     for (const forceColor of ['0','1']) {
       const env={...process.env,FORCE_COLOR:forceColor};
