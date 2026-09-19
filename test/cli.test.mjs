@@ -100,7 +100,12 @@ test('npm tarball installs offline, runs via npx, and exports the library',async
     execFileSync('npm',[...args,'render',fixture('genesis-pcm.vgz'),'--output',wav,'--max-seconds','0.1'],{cwd:dir});
     assert.equal(readFileSync(wav).subarray(0,4).toString(),'RIFF');
     assert(readFileSync(wav).subarray(44).some(x=>x!==0));
-    const api=execFileSync(process.execPath,['--input-type=module','-e',"import {readSource,analyzeSource} from 'tetorica-vgm'; console.log(analyzeSource(await readSource(process.argv[1])).schemaVersion)",fixture('ay-tone.vgz')],{cwd:dir,encoding:'utf8'});
-    assert.equal(api.trim(),'1');
+    // Machine-readable probe output must remain identical with terminal colors enabled.
+    for (const forceColor of ['0','1']) {
+      const env={...process.env,FORCE_COLOR:forceColor};
+      delete env.NO_COLOR;
+      const api=execFileSync(process.execPath,['--input-type=module','-e',"import {readSource,analyzeSource} from 'tetorica-vgm'; process.stdout.write(String(analyzeSource(await readSource(process.argv[1])).schemaVersion))",fixture('ay-tone.vgz')],{cwd:dir,encoding:'utf8',env});
+      assert.equal(api,'1');
+    }
   } finally {rmSync(dir,{recursive:true,force:true});}
 });
