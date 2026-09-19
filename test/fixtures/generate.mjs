@@ -97,3 +97,18 @@ for(const [name,bank,extra,clocks] of [
   ['bank0',0,[],[]],['bank1',4,[],[]],['psg',4,yPsg,[[0x0c,3579545]]],
   ['opm',4,opmVoice,[[0x30,3579545]]],['opm-psg',4,[...opmVoice,...yPsg],[[0x30,3579545],[0x0c,3579545]]],
 ])file('segapcm-'+name,0x38,4000000,[...segaBlock,...segaVoice(bank),...extra,...wait,0x66],[[0x3c,0x00040008],...clocks]);
+
+// All nonempty subsets of the four Browser MSX chip types (single instances).
+const sccVoice=Array.from({length:32},(_,i)=>[0xd2,0,i,((i-16)*4)&255]).flat();
+sccVoice.push(0xd2,1,0,0x50,0xd2,1,1,0,0xd2,2,0,8,0xd2,3,0,1);
+const msxVoices=[
+  ['ay',0x74,1789773,[0xa0,0,100,0xa0,1,0,0xa0,7,0x3e,0xa0,8,10]],
+  ['opll',0x10,3579545,[0x51,0x30,0x13,0x51,0x10,0x98,0x51,0x20,0x15]],
+  ['audio',0x58,3579545,[...yFm,...yAdpcm]],
+  ['scc',0x9c,1789773,sccVoice],
+];
+for(let mask=1;mask<16;mask++){
+  const selected=msxVoices.filter((_,i)=>mask&(1<<i));
+  file('msx-'+selected.map(v=>v[0]).join('-'),selected[0][1],selected[0][2],
+    [...selected.flatMap(v=>v[3]),...wait,0x66],selected.slice(1).map(v=>[v[1],v[2]]));
+}

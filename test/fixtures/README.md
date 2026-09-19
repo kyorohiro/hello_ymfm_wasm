@@ -29,3 +29,7 @@ only in tests; proprietary wave ROMs are not included.
 stereo volumes and optional authored YM2151/Sega PSG voices. Tests check bank
 selection, embedded sample bounds, reset and packaged CLI/Node rendering.
 No game ROM data is used.
+
+`msx-*` covers all 15 nonempty subsets of AY, OPLL, Y8950 and SCC.
+It uses authored register sequences, an authored SCC ramp and the synthetic
+Y8950 ADPCM pattern above. No game music or external ROM is included.

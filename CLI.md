@@ -194,3 +194,17 @@ are rejected. Missing sample data is not recovered from external game ROMs.
 ```sh
 tetorica-vgm render song.vgz --output song.wav
 ```
+
+## MSX combinations
+
+`render` supports all nonempty subsets of AY-3-8910, YM2413 (OPLL),
+Y8950 (MSX-AUDIO) and K051649 (SCC), one instance of each. The shared
+Browser MSX engine routes writes and mixes PCM; the CLI adds only the
+WASM factory provider. Y8950 ADPCM uses embedded sample data; SCC waveforms
+come from VGM register writes. No external ROM is needed for these fixtures.
+
+Dual chips, header variant flags and combinations with Sega PSG or other
+FM families remain unsupported. This does not enable every MSX hardware
+variant. Offline package tests cover SCC alone, AY + OPLL and the four-chip
+mix; source tests cover all 15 subsets and compare their PCM to the sum of
+the individual chips as well as WAV output from the Browser engines.

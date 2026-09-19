@@ -137,7 +137,7 @@ Browser側ですでに共有化した音源は、CLIへ同じ処理を再実装�
 - [x] 06a: Y8950。FMとADPCMを検証する。
 - [x] 06b: YMF278B。外部wave ROM指定、FMとPCM、ROM不足時の動作を検証する。
 - [x] 06c: Sega PCM。埋め込みサンプルとバンク設定を検証する。
-- [ ] 06d: MSX系の複合音源。01で確定したBrowser対応構成を一つずつ接続・検証する。
+- [x] 06d: MSX系の複合音源。01で確定したBrowser対応構成を一つずつ接続・検証する。
 - [ ] 06e: 32X PWMなど残る構成を対応表と照合し、Browserで動く範囲を接続・検証する。
 
 完了: 対応表の各構成について対応済みか、残る具体的な制約が記載されている。
@@ -310,3 +310,16 @@ tarballの別ディレクトリoffline installから外部ROM付きCLI / Node AP
 
 外部Sega PCM ROM指定は追加していない。VGMの埋め込みサンプルを使用する。
 実ブラウザUIとNode 22での検証は未実施。次は06d（MSX系の複合音源）。
+
+
+### 06d 実装記録: MSX系の複合音源
+
+- Node providerにK051649 WASMを追加し、npm配布へBSD-3-Clauseのライセンスを同梱。既存のMSX共通recipe / engine / PCM処理は変更不要。
+- AY / YM2413 / Y8950 / K051649の各1台からなる全15構成を自作fixtureで検証。Y8950はFMと埋め込みADPCM、SCCはレジスターから書いた波形で発音する。
+- 各構成のWAVはBrowser用engineの直接生成と一致し、reset後も一致。左右のFloat32 PCMが各単体のPCM合計と一致することを検証し、複合時の音源欠落を検出する。
+- 4音源それぞれのdual / variantフラグ、非対応の他系列との混在、second SCC書き込みを拒否するテストを追加。
+- offline installしたtarballでSCC単体、AY + OPLL、4音源混合をCLI / Node APIの両方から実行し、WAV一致・WASMとライセンスの同梱を確認。
+- `npm test`: 30件成功。`npm run test:analyzer`: 584件中583成功・0失敗・1skip（任意の外部mml2mdrテスト）。
+
+すべてのMSX実機variantへの対応を意味するものではない。現行Browser/Coreが受け付ける各音源1台の構成を対象とする。
+実ブラウザUIとNode 22での検証は未実施。次は06e（32X PWMなど残る構成）。

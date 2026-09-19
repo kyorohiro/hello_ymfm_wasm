@@ -29,7 +29,7 @@ await copy(resolve(root,'cli/main.js'));
 const pkg = JSON.parse(await readFile(resolve(root,'package.json'),'utf8'));
 await writeFile(resolve(out,'package.json'), JSON.stringify({type:'module',version:pkg.version})+'\n');
 await mkdir(resolve(out,'licenses'),{recursive:true});
-for (const name of ['mame-okim6258','mame-gameboy','mame-ay8910','mame-rf5c164','mame-segapcm']) {
+for (const name of ['mame-okim6258','mame-gameboy','mame-ay8910','mame-rf5c164','mame-segapcm','mame-k051649']) {
   await cp(resolve(root,`third_party/${name}/LICENSE`),resolve(out,`licenses/${name}.txt`));
 }
 await chmod(resolve(out,'cli/main.js'),0o755);
