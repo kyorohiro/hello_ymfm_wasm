@@ -345,3 +345,38 @@ Dual/variant flags other than YM2610B and mixed FM families are rejected.
 YM2151-to-TFI snapshot conversion is not included; use OPM for this step.
 The same format limitations described above apply. Existing files are
 protected unless `--force` is passed; invalid requests do not overwrite them.
+
+
+## Sample inventory
+
+```sh
+tetorica-vgm samples song.vgz --json
+```
+
+Node API: `await listSourceSamples(source, {signal})`. Accepts decoded bytes
+or a source document. JSON contains `schemaVersion:1`, `timebase:44100`,
+`time`, `samples`, `events` and `warnings`. Time fields are VGM samples.
+No binary data or per-write capture arrays are included in this inventory.
+IDs are deterministic for the same input and extractor, not global identifiers.
+
+This uses the Browser Sample Explorer scan:
+- YM2610/B ADPCM-A/B and YM2608 external-memory ADPCM-B: raw ADPCM ranges.
+- RF5C164: 64 KiB RAM snapshots, with start/loop addresses.
+- YM2612 DAC and 32X PWM: timed output captures, not recovered instruments.
+
+Each definition includes `representation` and `exportable`. RF5C164 can
+be exportable with only part of RAM present if its traversed playback/loop
+path is complete; do not infer exportability from byte coverage alone.
+Events preserve per-occurrence rate, level, pan and loop settings. Unknown
+end times remain null. IDs refer to definitions shared by repeated uses.
+Memory changes create new definitions; later uploads do not fill earlier
+missing data.
+
+No loop expansion or external ROM lookup. YM2608 rhythm, CPU-driven playback,
+wrapped ADPCM-B ranges and other chips are not comprehensively extracted.
+Warnings describe limitations; an empty list does not prove no PCM exists.
+Existing Browser memory/event limits apply. Aborting rejects with AbortError.
+CLI JSON goes to stdout; warnings also go to stderr.
+
+This step adds listing only. ID/batch extraction and raw/timed/WAV output
+are subsequent work; Browser save/preview remains available.

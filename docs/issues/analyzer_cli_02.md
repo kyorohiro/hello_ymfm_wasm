@@ -165,8 +165,8 @@ Browser側ですでに共有化した音源は、CLIへ同じ処理を再実装�
 
 ### 09. PCMサンプル抽出
 
-- [ ] BrowserのSample Explorerが扱う音源・形式・抽出条件を整理する。
-- [ ] サンプル一覧をJSONで取得するAPI / コマンドを追加する。
+- [x] BrowserのSample Explorerが扱う音源・形式・抽出条件を整理する。
+- [x] サンプル一覧をJSONで取得するAPI / コマンドを追加する。
 - [ ] ID指定または一括でサンプルを書き出せるようにする。
 - [ ] 元データとWAV変換の区別、サンプルレート・ループ等のメタデータを明示する。
 - [ ] 不正な範囲・重複名・データ未収録時を検証する。
@@ -404,3 +404,16 @@ documentからbytesだけを取り出すと元情報は失われるので、必�
 - itch cli08d-checkの生成・依存検査成功。実ブラウザUIとNode 22は未確認。
 
 次は09（PCMサンプル抽出）。まず既存Sample Explorerの形式と抽出条件を整理する。
+
+
+### 09a 実装記録: Sample inventory
+
+- Browserの抽出を `sample_core.js` に分離。UIは同じ関数をimport/re-exportし、既存呼び出しを維持。CoreからUI・WebAudio・動的WASM loaderへの依存を避ける。
+- `samples FILE --json` と `listSourceSamples(source,{signal})` を追加。schemaVersion 1、timebase 44100。binary/capture配列を除いた定義・使用イベント・警告を返す。
+- 対象: YM2610/B ADPCM-A/B、YM2608 external-memory ADPCM-B、RF5C164 RAM、YM2612 DAC、32X PWM。
+- raw-adpcm / ram-snapshot / timed-outputを明示。DAC/PWMは原音色境界でなく最大10秒窓。RF5C164は再生経路が揃えばRAM全体未収録でもexportableとなる。
+- 世代別メモリー、使用ごとのrate/loop、null終了時刻を維持。後からのuploadで過去の欠損を補完しない。
+- rhythm、CPU playback、一部wrapped range、他chipの抽出は対象外。空一覧はPCM不存在の証明ではない。
+- 次は09b: ID指定・一括書き出し。raw/timed JSON/WAVを分け、欠損・衝突・出力保護を検証する。
+
+検証: npm test 45成功・0失敗、Analyzer 583成功・0失敗・1任意skip。実tarballのCLI/Node API一覧照合とitch cli09a-checkの生成・依存検査成功。実ブラウザUIとNode 22は未確認。

@@ -198,6 +198,11 @@ test('npm tarball installs offline, runs via npx, and exports the library',async
     assert.equal(readFileSync(snapshotOut,'utf8'),snapshotExpected);
     const snapshotApi=execFileSync(process.execPath,['--input-type=module','-e',"import {readSource,exportSource} from 'tetorica-vgm'; process.stdout.write(exportSource(await readSource(process.argv[1]),{format:'opm',atSeconds:0,channel:1}).text)",opmInput],{cwd:dir,encoding:'utf8'});
     assert.equal(snapshotApi,snapshotExpected);
+    const samplesInput=fixture('ym2610-adpcm-a.vgz');
+    const samplesJson=JSON.parse(execFileSync('npm',[...args,'samples',samplesInput,'--json'],{cwd:dir,encoding:'utf8'}));
+    assert.equal(samplesJson.samples[0].representation,'raw-adpcm');
+    const samplesApi=JSON.parse(execFileSync(process.execPath,['--input-type=module','-e',"import {readSource,listSourceSamples} from 'tetorica-vgm'; process.stdout.write(JSON.stringify(await listSourceSamples(await readSource(process.argv[1]))))",samplesInput],{cwd:dir,encoding:'utf8'}));
+    assert.deepEqual(samplesJson,samplesApi);
     const s98Input=fixture('s98-ym2203.s98');
     const s98Summary=JSON.parse(execFileSync('npm',[...args,'analyze',s98Input,'--json'],{cwd:dir,encoding:'utf8'}));
     assert.equal(s98Summary.sourceHeader.format,'S983');

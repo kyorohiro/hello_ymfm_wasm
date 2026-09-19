@@ -1,3 +1,4 @@
+import {listSamples} from './sample_core.js';
 import {exportOpmZip} from './opm_export.js';
 import {exportVoiceSnapshot,exportTfiZip,exportVgiZip} from './tfi_archive.js';
 // Environment-neutral API shared by the browser, Node adapter and future MCP server.
@@ -69,3 +70,8 @@ export function exportSource(source, { format, bpm, fileName = 'VGM', atSeconds,
 }
 
 export { selectPlaybackConfiguration, createPlaybackEngine, createPlaybackPlayer, PlaybackError } from './playback_core.js';
+
+
+export function listSourceSamples(source, options = {}) {
+  return listSamples(sourceBytes(source), options);
+}

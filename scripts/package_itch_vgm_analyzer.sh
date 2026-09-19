@@ -29,6 +29,7 @@ mgsdrv_mml.js
 tfi_info.css
 vgm_analyzer.js
 sample_explorer.js
+sample_core.js
 rf5c164_samples.js
 dac_samples.js
 pwm_samples.js
@@ -316,7 +317,7 @@ perl -0pi -e 's#<a class="link-button" href="\.\./index\.html">Back</a>##g' "${S
 perl -0pi -e "s#(['\"])\\.\\./js/#\$1./js/#g; s#(['\"])\\.\\./generated/#\$1./generated/#g" \
   "${STAGE_DIR}/tfi_extract.js" "${STAGE_DIR}/tfi_archive.js" "${STAGE_DIR}/index.html" "${STAGE_DIR}/analyzer_core.js" "${STAGE_DIR}/playback_core.js" "${STAGE_DIR}/vgm_analyzer.js" "${STAGE_DIR}/vgm_mml.js" \
   "${STAGE_DIR}/opm_tfi.js" "${STAGE_DIR}/opm_info.js" "${STAGE_DIR}/opm_export.js" "${STAGE_DIR}/opm_notes.js" "${STAGE_DIR}/vgm_notes.js" "${STAGE_DIR}/tone_notes.js" "${STAGE_DIR}/gameboy_notes.js" "${STAGE_DIR}/vgm_midi.js" "${STAGE_DIR}/vgm_wav.js" "${STAGE_DIR}/vgm_lilypond.js" \
-  "${STAGE_DIR}/osmd_trial.js" "${STAGE_DIR}/note_timeline_worker.js" "${STAGE_DIR}/sample_explorer.js" "${STAGE_DIR}/pwm_samples.js" "${STAGE_DIR}/ym2413_monitor.js" "${STAGE_DIR}/ym2413_notes.js" "${STAGE_DIR}/mgsdrv_mml.js"
+  "${STAGE_DIR}/osmd_trial.js" "${STAGE_DIR}/note_timeline_worker.js" "${STAGE_DIR}/sample_core.js" "${STAGE_DIR}/sample_explorer.js" "${STAGE_DIR}/pwm_samples.js" "${STAGE_DIR}/ym2413_monitor.js" "${STAGE_DIR}/ym2413_notes.js" "${STAGE_DIR}/mgsdrv_mml.js"
 perl -0pi -e 's#\.\./js/vgm-output-worklet\.js#./js/vgm-output-worklet.js#g' \
   "${STAGE_DIR}/index.html"
 

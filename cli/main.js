@@ -2,10 +2,11 @@
 import { parseArgs } from 'node:util';
 import { writeFile, readFile } from 'node:fs/promises';
 import { basename } from 'node:path';
-import { readSourceDocument, analyzeSource, exportSource, exportFormats, renderSource } from './index.js';
+import { readSourceDocument, listSourceSamples, analyzeSource, exportSource, exportFormats, renderSource } from './index.js';
 
 const help = `tetorica-vgm — VGM/VGZ/S98 analysis without a browser
 
+  tetorica-vgm samples FILE [--json]
   tetorica-vgm analyze FILE [--json]
   tetorica-vgm export FILE --format FORMAT --output FILE [--bpm 120] [--force]
   tetorica-vgm render FILE --output FILE.wav [--max-seconds 120] [--force]
@@ -38,13 +39,18 @@ try {
     console.log(pkg.version);
   } else {
     const [command, input] = positionals;
-    if (!['analyze','export','render'].includes(command) || !input || positionals.length !== 2) throw new Error(help);
-    const allowed = { analyze:['json'], export:['format','output','bpm','force','at','channel'], render:['output','max-seconds','force','ym2608-rom','ymf278b-rom'] }[command];
+    if (!['samples','analyze','export','render'].includes(command) || !input || positionals.length !== 2) throw new Error(help);
+    const allowed = { samples:['json'], analyze:['json'], export:['format','output','bpm','force','at','channel'], render:['output','max-seconds','force','ym2608-rom','ymf278b-rom'] }[command];
     for (const key of Object.keys(values)) if (!allowed.includes(key)) throw new Error(`--${key} is not valid for ${command}`);
-    if (command !== 'analyze' && !values.output) throw new Error('--output is required');
+    if (!['analyze','samples'].includes(command) && !values.output) throw new Error('--output is required');
     if (command === 'export' && !exportFormats.includes(values.format)) throw new Error(`--format must be one of: ${exportFormats.join(', ')}`);
     const source = await readSourceDocument(input);
-    if (command === 'analyze') {
+    if (command === 'samples') {
+      const result=await listSourceSamples(source);
+      console.log(values.json ? JSON.stringify(result,null,2) :
+        result.samples.map(s=>[s.id,s.chip,s.kind,s.representation,s.size+' bytes',s.exportable?'available':'missing/partial'].join(' · ')).join('\n') || 'No supported samples found.');
+      for(const warning of result.warnings) console.error('Warning: '+warning);
+    } else if (command === 'analyze') {
       const result = analyzeSource(source);
       console.log(values.json ? JSON.stringify(result, null, 2) : [
         `File: ${input}`, ...(result.sourceHeader ? [`Source: ${result.sourceHeader.format}`, `Source tag: ${result.sourceHeader.tag}`] : []), `Chips: ${result.chips.map(c => `${c.id} (${c.clockHz} Hz)`).join(', ') || 'none declared'}`,
