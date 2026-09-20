@@ -1,4 +1,4 @@
-import {createNesApuAudioEngine} from '../js/nesapuaudioengine.js';
+import {createNesApuAudioEngine,validateNesApuClock} from '../js/nesapuaudioengine.js';
 import {Oki6258AudioEngine,attachOki6258,validateOki6258Header} from '../js/okim6258audioengine.js';
 import {createYm3526AudioEngine} from '../js/ym3526audioengine.js';
 import {createSegaPcmAudioEngine} from '../js/segapcmaudioengine.js';
@@ -120,6 +120,7 @@ export function selectPlaybackConfiguration(vgm) {
     const unsupported=chips.filter(c=>!composition[kind].includes(c.id) && c.id !== 'okim6258');
     if (unsupported.length) throw new Error(`This chip combination is not supported: ${chips.map(c=>c.id).join(' + ')}`);
     if (chips.some(c=>(c.rawClock & (c.id === 'ym2610' ? 0x40000000 : 0xc0000000)))) throw new Error('Dual/variant configuration is not supported');
+    if (kind === 'nes') validateNesApuClock(header.nesApuClock & 0x3fffffff);
     if (header.okim6258Clock) validateOki6258Header(header);
     if (kind === 'msx') validateMsxPlaybackHeader(header);
     if (kind === 'ay8910') validateAyPlaybackHeader(header);

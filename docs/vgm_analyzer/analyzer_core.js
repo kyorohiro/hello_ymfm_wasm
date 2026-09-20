@@ -1,4 +1,5 @@
 import {exportSamples,listSamples} from './sample_core.js';
+import {selectPlaybackConfiguration, playbackMuteControls} from './playback_core.js';
 import {exportOpmZip} from './opm_export.js';
 import {exportVoiceSnapshot,exportTfiZip,exportVgiZip} from './tfi_archive.js';
 // Environment-neutral API shared by the browser, Node adapter and future MCP server.
@@ -99,4 +100,44 @@ export function listSourceScoreChannels(source) {
   const channels=score.channels.map(ch=>({id:scoreChannelId(ch),name:ch.name,noteCount:ch.notes.length}));
   if(new Set(channels.map(ch=>ch.id)).size!==channels.length)throw new Error('Ambiguous score channel IDs');
   return {schemaVersion:1,channels,warnings:score.warnings};
+}
+
+/** File-specific preflight. No engine, filesystem or audio device is initialized.
+ * Export probes use the real exporters; unavailable can mean no usable data,
+ * not necessarily an unsupported chip. Outputs are discarded.
+ */
+export async function inspectSourceSupport(source) {
+  const summary = analyzeSource(source);
+  const bytes = sourceBytes(source);
+  const probe = async fn => {
+    try { return {status:'available', result:await fn()}; }
+    catch (error) { return {status:'unavailable', reason:error.message}; }
+  };
+  let render;
+  try {
+    const configuration = selectPlaybackConfiguration(new Ym2612VGM(bytes));
+    render = {status:configuration.requiredRoms.length ? 'requires-resources' : 'configuration-supported',
+      engine:configuration.kind, chips:configuration.chips, ignoredClocks:configuration.ignoredClocks,
+      requiredRoms:configuration.requiredRoms, muteIds:playbackMuteControls(configuration).map(c=>c.id)};
+  } catch (error) {
+    render = {status:'unsupported', code:error.code ?? 'UNSUPPORTED_CONFIGURATION', reason:error.message};
+  }
+  const exports = {};
+  for (const format of exportFormats) {
+    const checked = await probe(()=>exportSource(source,{format,bpm:120,atSeconds:['tfi','vgi','opm'].includes(format)?0:undefined,
+      channel:['tfi','vgi','opm'].includes(format)?1:undefined}));
+    exports[format] = {status:checked.status, ...(checked.reason ? {reason:checked.reason} : {}),
+      ...(checked.result?.warnings ? {warnings:checked.result.warnings} : {})};
+  }
+  const samples = await probe(()=>listSourceSamples(source));
+  if (samples.result && !samples.result.samples.length) samples.status = 'no-data';
+  return {schemaVersion:1, declaredChips:summary.chips, ...(summary.sourceHeader?{sourceHeader:summary.sourceHeader}:{}),
+    exportProbeOptions:{bpm:120,snapshot:{atSeconds:0,channel:1}},
+    analysis:{status:'available'}, render, exports,
+    scoreChannels:await probe(()=>listSourceScoreChannels(source)), samples,
+    limitations:[
+      'Render checks configuration and ROM requirements only; engine initialization and full command playback are not tested.',
+      'Export probes use BPM 120; snapshots use time 0 and channel 1. Available outputs may be empty or approximate and may cover only part of a composite source.',
+      'Unavailable exports may indicate missing convertible notes or patches; see reason. No files are written.',
+    ]};
 }

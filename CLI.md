@@ -539,3 +539,27 @@ MIDI, MusicXML and LilyPond export pulse/triangle base pitches; score IDs are
 `nes-ch1`, `nes-ch2`, `nes-ch3`. Noise/DMC have no score pitch. Length, envelope,
 sweep and linear-counter timing are not reconstructed in note extraction.
 PAL, FDS, dual chips and expansion-chip combinations are not supported.
+
+## File support report
+
+```sh
+npx tetorica-vgm support song.vgz --json
+```
+
+`support FILE` reports declared chip clocks separately from the shared render
+engine selection, ignored header clocks, required ROMs and mute IDs. It also
+probes all export formats through the actual exporters, and lists score channels
+and sample metadata. The Node/Core API is `await inspectSourceSupport(source)`.
+JSON uses `schemaVersion: 1`; unavailable features include a `reason`.
+Sample listing reports `no-data` when no recognized samples are found.
+
+Render status is `configuration-supported`, `requires-resources`, or `unsupported`.
+This preflight does not initialize WASM or render the entire track, so it cannot
+guarantee successful playback of every command. Export status `available` means
+the exporter completed with BPM 120 (snapshots: time 0, channel 1), not full-fidelity
+conversion of every chip. Outputs can be empty; inspect warnings and note/sample
+counts. `unavailable` can also mean no convertible data. Probes discard generated
+outputs and never write files, but may take time on large tracks.
+
+This command is added after 0.1.1. Before the next publication, use
+`npm run build` then `node dist/cli/main.js support song.vgz --json`.

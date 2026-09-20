@@ -2,9 +2,13 @@ import PAPU from './nes_apu_vendor/index.js';
 
 // VGM provides the CPU's recorded writes and DMC memory. CPU IRQs and DMA
 // stalls must not delay this already-recorded timeline.
+export function validateNesApuClock(clock) {
+  if (!Number.isFinite(clock) || clock < 1780000 || clock > 1800000) throw new RangeError('NES APU currently supports NTSC clocks only');
+}
+
 export class NesApuAudioEngine {
   constructor({clock=1789773, outputSampleRate=44100, masterVolume=1}={}) {
-    if (!Number.isFinite(clock) || clock < 1780000 || clock > 1800000) throw new RangeError('NES APU currently supports NTSC clocks only');
+    validateNesApuClock(clock);
     if (!Number.isInteger(outputSampleRate) || outputSampleRate < 8000 || outputSampleRate > 192000) throw new RangeError('Invalid NES sample rate');
     this.clock=clock; this.rate=outputSampleRate; this.mask=0;
     this.setMasterVolume(masterVolume); this.reset();

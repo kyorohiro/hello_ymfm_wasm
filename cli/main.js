@@ -2,10 +2,11 @@
 import { parseArgs } from 'node:util';
 import { writeFile, readFile } from 'node:fs/promises';
 import { basename } from 'node:path';
-import { readSourceDocument, listSourceScoreChannels, exportNodeSamples, listSourceSamples, analyzeSource, exportSource, exportFormats, renderSource } from './index.js';
+import { readSourceDocument, inspectSourceSupport, listSourceScoreChannels, exportNodeSamples, listSourceSamples, analyzeSource, exportSource, exportFormats, renderSource } from './index.js';
 
 const help = `tetorica-vgm — VGM/VGZ/S98 analysis without a browser
 
+  tetorica-vgm support FILE [--json]
   tetorica-vgm samples FILE [--json]
   tetorica-vgm samples FILE (--id N | --all) --output FILE [--force]
   tetorica-vgm score-channels FILE [--json]
@@ -44,13 +45,22 @@ try {
     console.log(pkg.version);
   } else {
     const [command, input] = positionals;
-    if (!['score-channels','samples','analyze','export','render'].includes(command) || !input || positionals.length !== 2) throw new Error(help);
-    const allowed = { 'score-channels':['json'], samples:['json','id','all','output','force','format','occurrence'], analyze:['json'], export:['format','output','bpm','force','at','channel','channels'], render:['start','mute','output','max-seconds','force','ym2608-rom','ymf278b-rom'] }[command];
+    if (!['support','score-channels','samples','analyze','export','render'].includes(command) || !input || positionals.length !== 2) throw new Error(help);
+    const allowed = { support:['json'], 'score-channels':['json'], samples:['json','id','all','output','force','format','occurrence'], analyze:['json'], export:['format','output','bpm','force','at','channel','channels'], render:['start','mute','output','max-seconds','force','ym2608-rom','ymf278b-rom'] }[command];
     for (const key of Object.keys(values)) if (!allowed.includes(key)) throw new Error(`--${key} is not valid for ${command}`);
-    if (!['score-channels','analyze','samples'].includes(command) && !values.output) throw new Error('--output is required');
+    if (!['support','score-channels','analyze','samples'].includes(command) && !values.output) throw new Error('--output is required');
     if (command === 'export' && !exportFormats.includes(values.format)) throw new Error(`--format must be one of: ${exportFormats.join(', ')}`);
     const source = await readSourceDocument(input);
-    if(command==='score-channels'){
+    if(command==='support'){
+      const result=await inspectSourceSupport(source);
+      console.log(values.json ? JSON.stringify(result,null,2) : [
+        'Declared chips: '+result.declaredChips.map(c=>c.id).join(', '),
+        'Render: '+result.render.status+(result.render.reason?' — '+result.render.reason:''),
+        'Required ROMs: '+(result.render.requiredRoms??[]).join(', '),
+        ...Object.entries(result.exports).map(([format,entry])=>format+': '+entry.status+(entry.reason?' — '+entry.reason:'')),
+        ...result.limitations,
+      ].join('\n'));
+    } else if(command==='score-channels'){
       const result=listSourceScoreChannels(source);
       console.log(values.json?JSON.stringify(result,null,2):result.channels.map(ch=>ch.id+' · '+ch.name+' · '+ch.noteCount+' notes').join('\n'));
       for(const warning of result.warnings)console.error('Warning: '+warning);

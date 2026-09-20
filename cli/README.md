@@ -22,14 +22,23 @@ Before publication, install the distribution tarball with
 ## Commands
 
 - `analyze`: chip configuration, metadata and command summaries; `--json` for structured output.
+- `support`: check a file's render configuration and export availability; `--json` includes reasons and warnings.
 - `export`: MIDI, MusicXML, LilyPond, MML formats, TFI/VGI/OPM voice snapshots and voice ZIPs.
 - `score-channels`: list stable channel IDs for MusicXML/LilyPond `--channels` selection.
 - `samples`: list embedded samples, export native data or render a selected sample to WAV.
 - `render`: stereo PCM16 WAV, optional start time, duration limit and supported channel/chip mutes.
 
+Start with `support` to inspect the recognized chips and available operations,
+then choose a supported conversion. See [File support report](#file-support-report)
+for version availability and interpretation of the results.
+
 ```sh
-npx tetorica-vgm score-channels song.vgz --json
-npx tetorica-vgm samples song.vgz --json
+# Readable summary, or detailed JSON
+npx tetorica-vgm support song.vgz
+npx tetorica-vgm support song.vgz --json
+
+# Run a conversion supported by the file
+npx tetorica-vgm export song.vgz --format musicxml --output song.musicxml
 npx tetorica-vgm render song.vgz --start 10 --max-seconds 20 --output excerpt.wav
 npx tetorica-vgm export song.vgz --format tfi-zip --output voices.zip
 ```
@@ -81,3 +90,74 @@ MIDI, MusicXML and LilyPond export pulse/triangle base pitches; score IDs are
 `nes-ch1`, `nes-ch2`, `nes-ch3`. Noise/DMC have no score pitch. Length, envelope,
 sweep and linear-counter timing are not reconstructed in note extraction.
 PAL, FDS, dual chips and expansion-chip combinations are not supported.
+
+## File support report
+
+```sh
+npx tetorica-vgm support song.vgz --json
+```
+
+`support FILE` reports declared chip clocks separately from the shared render
+engine selection, ignored header clocks, required ROMs and mute IDs. It also
+probes all export formats through the actual exporters, and lists score channels
+and sample metadata. The Node/Core API is `await inspectSourceSupport(source)`.
+JSON uses `schemaVersion: 1`; unavailable features include a `reason`.
+Sample listing reports `no-data` when no recognized samples are found.
+
+Render status is `configuration-supported`, `requires-resources`, or `unsupported`.
+This preflight does not initialize WASM or render the entire track, so it cannot
+guarantee successful playback of every command. Export status `available` means
+the exporter completed with BPM 120 (snapshots: time 0, channel 1), not full-fidelity
+conversion of every chip. Outputs can be empty; inspect warnings and note/sample
+counts. `unavailable` can also mean no convertible data. Probes discard generated
+outputs and never write files, but may take time on large tracks.
+
+This command is added after 0.1.1. Before the next publication, use
+`npm run build` then `node dist/cli/main.js support song.vgz --json`.
+
+### Example: check MusicXML availability, then convert
+
+Suppose you have `song.vgz` and want a score for a notation editor.
+The following commands assume a published version that includes `support`.
+For the current repository build, replace `npx tetorica-vgm` with
+`node dist/cli/main.js` after running `npm run build`.
+
+1. Inspect the file before converting:
+
+   ```sh
+   npx tetorica-vgm support song.vgz --json
+   ```
+
+2. Check `exports.musicxml.status`. For example, an NTSC NES track might
+   return this **illustrative excerpt** (other fields omitted):
+
+   ```json
+   {
+     "declaredChips": [{ "id": "nesApu", "clockHz": 1789773, "rawClock": 1789773 }],
+     "exports": {
+       "musicxml": {
+         "status": "available",
+         "warnings": ["Quantized transcription; manual BPM, assumed 4/4, 1/16 grid. Not an original score."]
+       }
+     }
+   }
+   ```
+
+   `available` means the MusicXML exporter completed its probe. Read the
+   warnings and `scoreChannels.result.channels` note counts as well: NES
+   pulse/triangle notes can be exported, but noise and DMC are omitted.
+   An empty score can still be `available`. If the status is `unavailable`,
+   read `exports.musicxml.reason` before proceeding.
+   Use the MusicXML status for this decision, independently of `render.status`.
+
+3. If MusicXML is available, export it:
+
+   ```sh
+   npx tetorica-vgm export song.vgz --format musicxml --bpm 120 --output song.musicxml
+   ```
+
+   This uses the same BPM as the support probe. Set `--bpm` to the track's
+   intended tempo if known, or omit it to use the automatic suggestion.
+   Open `song.musicxml` in a notation editor that supports MusicXML and check
+   the notes and rhythm against the original. Existing output files are
+   preserved; choose a new filename or explicitly pass `--force` to replace one.

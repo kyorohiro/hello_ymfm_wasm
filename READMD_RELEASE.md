@@ -1,14 +1,14 @@
 # tetorica-vgm の npm リリース手順
 
-リポジトリのルートで実行する。`0.1.0` は公開済み。
-以下は次のバージョン `0.1.1` を公開する例。
+リポジトリのルートで実行する。`0.1.1` は公開済み。
+以下は次のバージョン `0.1.2` を公開する例。
 
 ## 1. バージョンとドキュメントを更新する
 
 ```sh
 git status --short
 npm view tetorica-vgm name version maintainers
-npm version 0.1.1 --no-git-tag-version
+npm version 0.1.2 --no-git-tag-version
 ```
 
 `--no-git-tag-version` は自動commit・tag作成を行わず、バージョンを更新する。
@@ -44,7 +44,7 @@ npm run pack:check
 npm run pack
 ```
 
-`tetorica-vgm-0.1.1.tgz` がリポジトリのルートに生成される。
+`tetorica-vgm-0.1.2.tgz` がリポジトリのルートに生成される。
 ファイル名のバージョンは `package.json` に従う。
 
 専用packスクリプトはビルド後、一時ディレクトリへ配布ファイルを集め、
@@ -55,9 +55,9 @@ GitHub用READMEは書き換えない。
 `npm publish` を使うと、GitHub用READMEが入る。**
 
 ```sh
-tar -tzf tetorica-vgm-0.1.1.tgz
-tar -xOf tetorica-vgm-0.1.1.tgz package/README.md
-tar -xOf tetorica-vgm-0.1.1.tgz package/package.json
+tar -tzf tetorica-vgm-0.1.2.tgz
+tar -xOf tetorica-vgm-0.1.2.tgz package/README.md
+tar -xOf tetorica-vgm-0.1.2.tgz package/package.json
 ```
 
 README・バージョン・WASM・LICENSE・`dist/licenses/` を確認する。
@@ -71,7 +71,7 @@ README・バージョン・WASM・LICENSE・`dist/licenses/` を確認する。
 以下の変数は、リポジトリのルートで設定する。
 
 ```sh
-release_tarball="$PWD/tetorica-vgm-0.1.1.tgz"
+release_tarball="$PWD/tetorica-vgm-0.1.2.tgz"
 release_fixture="$PWD/test/fixtures/psg-tone.vgz"
 release_test_dir="$(mktemp -d)"
 (
@@ -105,29 +105,29 @@ npm whoami --registry https://registry.npmjs.org/
 まず公開なしの確認を行う。dry-runは公開権限や名前の利用可否を保証するものではない。
 
 ```sh
-npm publish ./tetorica-vgm-0.1.1.tgz --access public --registry https://registry.npmjs.org/ --dry-run
+npm publish ./tetorica-vgm-0.1.2.tgz --access public --registry https://registry.npmjs.org/ --dry-run
 ```
 
 問題なければ、同じtarballを指定して実際に公開する。
 ブラウザ認証・2FAの案内が表示されたら従う。
 
 ```sh
-npm publish ./tetorica-vgm-0.1.1.tgz --access public --registry https://registry.npmjs.org/
+npm publish ./tetorica-vgm-0.1.2.tgz --access public --registry https://registry.npmjs.org/
 ```
 
 ## 7. 公開版を確認する
 
 ```sh
 npm view tetorica-vgm name version maintainers --registry https://registry.npmjs.org/
-npm view tetorica-vgm@0.1.1 dist.integrity --registry https://registry.npmjs.org/
+npm view tetorica-vgm@0.1.2 dist.integrity --registry https://registry.npmjs.org/
 
 # リポジトリrootで入力の絶対パスを保存し、公開版の実行は別ディレクトリで行う。
 release_nes_input="$PWD/test/fixtures/nes-tone.vgz"
 release_verify_dir="$(mktemp -d)"
 (
   cd "$release_verify_dir" || exit 1
-  npx --yes tetorica-vgm@0.1.1 --help
-  npx --yes tetorica-vgm@0.1.1 render "$release_nes_input" --output nes.wav
+  npx --yes tetorica-vgm@0.1.2 --help
+  npx --yes tetorica-vgm@0.1.2 render "$release_nes_input" --output nes.wav
 )
 ```
 
