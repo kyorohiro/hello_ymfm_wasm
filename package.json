@@ -1,6 +1,6 @@
 {
   "name": "tetorica-vgm",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Tetorica VGM Analyzer CLI and shared analysis core",
   "type": "module",
   "license": "BSD-3-Clause",
