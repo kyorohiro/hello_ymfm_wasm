@@ -21,6 +21,7 @@ Before publication, install the distribution tarball with
 
 ## Commands
 
+- `to-json` / `from-json`: lossless, fixed-layout VGM/JSON conversion.
 - `analyze`: chip configuration, metadata and command summaries; `--json` for structured output.
 - `support`: check a file's render configuration and export availability; `--json` includes reasons and warnings.
 - `export`: MIDI, MusicXML, LilyPond, MML formats, TFI/VGI/OPM voice snapshots and voice ZIPs.
@@ -161,3 +162,82 @@ For the current repository build, replace `npx tetorica-vgm` with
    Open `song.musicxml` in a notation editor that supports MusicXML and check
    the notes and rhythm against the original. Existing output files are
    preserved; choose a new filename or explicitly pass `--force` to replace one.
+
+## Lossless VGM / JSON round trip
+
+These commands are new after 0.1.2. From the repository, run `npm run build`
+and use `node dist/cli/main.js` in place of `npx tetorica-vgm` until published.
+
+```sh
+npx tetorica-vgm to-json song.vgz --output song.vgm.json
+npx tetorica-vgm from-json song.vgm.json --output restored.vgm
+```
+
+This is different from `analyze --json`, which produces a summary. `to-json`
+accepts VGM/VGZ and preserves the decompressed VGM byte-for-byte, including
+header fields, PCM blocks, loop pointers, metadata and trailing bytes. `from-json`
+produces uncompressed VGM, not VGZ. S98 is not accepted for this round trip.
+Existing files are protected unless `--force` is supplied.
+
+The versioned `tetorica-vgm-lossless` document contains:
+
+- `headerHex`: original header bytes, including any extended header.
+- `commands`: ordered `{ "offset": 256, "hex": "522a80" }` entries. This example
+  writes YM2612 port 0 register `0x2a` with value `0x80`; the hex bytes are authoritative.
+- `tail`: bytes after the end command, or from the first command whose length
+  cannot be determined. Unknown/truncated command tails are retained with a warning.
+- `byteLength`: decompressed file size; `schemaVersion`: JSON schema version.
+
+Initial editing support is **fixed-layout**: change register values or PCM bytes
+without changing entry lengths or offsets. Do not insert/delete commands or change
+block sizes. Command boundaries and payload sizes are validated on import.
+This is a byte-preserving tool, not a semantic VGM validator: header lengths,
+loop/GD3 pointers and total/loop sample counts are preserved, not recalculated.
+If you edit wait values, you must also update the corresponding header sample
+counts yourself. Prefer register-value edits for the initial workflow.
+Unknown tail bytes are opaque and are not interpreted as editable events.
+
+Hex payloads use two characters per byte, plus JSON overhead; many tiny writes
+can make the JSON substantially larger. PCM stays in a single hex string rather
+than one JSON object per sample. The commands currently process the entire file
+in memory. Unedited JSON round trips reproduce the decompressed VGM exactly;
+the original gzip container is not preserved.
+
+Node and environment-neutral Core exports:
+
+```js
+import { readSource, vgmToJson, jsonToVgm } from 'tetorica-vgm';
+import { writeFile } from 'node:fs/promises';
+
+const document = vgmToJson(await readSource('song.vgz'));
+// Edit a known register value in document.commands here, keeping its byte length.
+await writeFile('restored.vgm', jsonToVgm(document), { flag: 'wx' });
+```
+
+The Core functions consume/produce decoded bytes and plain objects. They do not
+read files, compress data, initialize WASM or use audio devices.
+
+### Annotated JSON
+
+Add `--comments` to include a generated description on each recognized command:
+
+```sh
+npx tetorica-vgm to-json song.vgz --comments --output song.vgm.json
+```
+
+For example:
+
+```json
+{ "offset": 256, "hex": "522a80", "comment": "cmd=0x52 ym2612 port=0 register=0x2a value=0x80" }
+```
+
+Comments reuse the parser's command descriptions: chip/register/value where
+recognized, waits, data-block details and end markers. They do not infer musical
+intent or fully explain every register. Unknown commands may have only an opcode
+description; opaque tails remain covered by `warnings`. Wait descriptions for
+`0x62`/`0x63` show defaults, not stateful wait overrides.
+
+`hex` remains authoritative. You can edit `comment` freely; `from-json` ignores
+it. Comments are not stored in VGM, and do not update automatically after hex
+edits. Keep the JSON to retain your notes. Omit `--comments` for smaller output.
+The Node/Core equivalent is `vgmToJson(bytes, { comments: true })`.

@@ -1086,6 +1086,14 @@ export class Ym2612VGM {
    * @param {number} position
    * @returns {string}
    */
+  describeCommandAt(position) {
+    if (!Number.isInteger(position) || position < this.header.dataOffset || position >= this.bytes.length)
+      throw new RangeError('Invalid command position');
+    const length = rawCommandLength(this.bytes, this.view, position);
+    if (position + length > this.bytes.length) throw new RangeError('Truncated command');
+    return this.#describeRawCommand(this.bytes[position], position);
+  }
+
   #describeRawCommand(command, position) {
     if (command === 0x50) {
       return `cmd=0x50 psg value=${formatHexNumber(this.bytes[position + 1])}`;
@@ -1114,6 +1122,9 @@ export class Ym2612VGM {
     if (command === 0xc0) {
       return `cmd=0xc0 segapcm offset=${formatHexNumber(readUint16LE(this.view, position + 1), 4)} value=${formatHexNumber(this.bytes[position + 3])}`;
     }
+    if (command === 0xb4) {
+      return `cmd=0xb4 nes-apu chip=${this.bytes[position + 1] >>> 7} register=${formatHexNumber(this.bytes[position + 1] & 0x7f)} value=${formatHexNumber(this.bytes[position + 2])}`;
+    }
     if (command === 0xb3) {
       return `cmd=0xb3 gameboy-dmg register=${formatHexNumber(this.bytes[position + 1])} value=${formatHexNumber(this.bytes[position + 2])}`;
     }
@@ -1136,7 +1147,7 @@ export class Ym2612VGM {
       return `cmd=0x61 wait=${readUint16LE(this.view, position + 1)}`;
     }
     if (command === 0x62 || command === 0x63 || command === 0x66) {
-      return `cmd=0x${command.toString(16)}`;
+      return `cmd=0x${command.toString(16)} ${command === 0x66 ? 'end' : command === 0x62 ? 'wait=735 (default)' : 'wait=882 (default)'}`;
     }
     if (command === 0x67) {
       return `cmd=0x67 type=${formatHexNumber(this.bytes[position + 2])} size=${readUint32LE(this.view, position + 3)}`;
@@ -2520,7 +2531,7 @@ function bitLabel(value) {
  * @param {number} position
  * @returns {number}
  */
-function rawCommandLength(bytes, view, position) {
+export function rawCommandLength(bytes, view, position) {
   const command = bytes[position];
   if (command === 0x50) {
     return 2;

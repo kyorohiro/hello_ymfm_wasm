@@ -1,4 +1,5 @@
 import {exportSamples,listSamples} from './sample_core.js';
+export {vgmToJson, jsonToVgm} from './vgm_json.js';
 import {selectPlaybackConfiguration, playbackMuteControls} from './playback_core.js';
 import {exportOpmZip} from './opm_export.js';
 import {exportVoiceSnapshot,exportTfiZip,exportVgiZip} from './tfi_archive.js';

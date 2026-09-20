@@ -2,10 +2,12 @@
 import { parseArgs } from 'node:util';
 import { writeFile, readFile } from 'node:fs/promises';
 import { basename } from 'node:path';
-import { readSourceDocument, inspectSourceSupport, listSourceScoreChannels, exportNodeSamples, listSourceSamples, analyzeSource, exportSource, exportFormats, renderSource } from './index.js';
+import { vgmToJson, jsonToVgm, readSourceDocument, inspectSourceSupport, listSourceScoreChannels, exportNodeSamples, listSourceSamples, analyzeSource, exportSource, exportFormats, renderSource } from './index.js';
 
 const help = `tetorica-vgm — VGM/VGZ/S98 analysis without a browser
 
+  tetorica-vgm to-json FILE --output FILE.json [--comments] [--force]
+  tetorica-vgm from-json FILE.json --output FILE.vgm [--force]
   tetorica-vgm support FILE [--json]
   tetorica-vgm samples FILE [--json]
   tetorica-vgm samples FILE (--id N | --all) --output FILE [--force]
@@ -35,7 +37,7 @@ Sega PCM with embedded samples, alone or with YM2151, optionally with Sega PSG, 
 `;
 try {
   const { values, positionals } = parseArgs({ allowPositionals: true, options: {
-    help: {type:'boolean',short:'h'}, version:{type:'boolean',short:'v'}, json:{type:'boolean'},
+    comments:{type:'boolean'}, help: {type:'boolean',short:'h'}, version:{type:'boolean',short:'v'}, json:{type:'boolean'},
     start:{type:'string'}, mute:{type:'string'}, channels:{type:'string'}, occurrence:{type:'string'}, id:{type:'string'}, all:{type:'boolean'}, at:{type:'string'}, channel:{type:'string'}, format:{type:'string'}, output:{type:'string',short:'o'}, bpm:{type:'string'},
     'ymf278b-rom':{type:'string'}, 'ym2608-rom':{type:'string'}, 'max-seconds':{type:'string'}, force:{type:'boolean'},
   } });
@@ -45,54 +47,66 @@ try {
     console.log(pkg.version);
   } else {
     const [command, input] = positionals;
-    if (!['support','score-channels','samples','analyze','export','render'].includes(command) || !input || positionals.length !== 2) throw new Error(help);
-    const allowed = { support:['json'], 'score-channels':['json'], samples:['json','id','all','output','force','format','occurrence'], analyze:['json'], export:['format','output','bpm','force','at','channel','channels'], render:['start','mute','output','max-seconds','force','ym2608-rom','ymf278b-rom'] }[command];
+    if (!['to-json','from-json','support','score-channels','samples','analyze','export','render'].includes(command) || !input || positionals.length !== 2) throw new Error(help);
+    const allowed = { 'to-json':['output','force','comments'], 'from-json':['output','force'], support:['json'], 'score-channels':['json'], samples:['json','id','all','output','force','format','occurrence'], analyze:['json'], export:['format','output','bpm','force','at','channel','channels'], render:['start','mute','output','max-seconds','force','ym2608-rom','ymf278b-rom'] }[command];
     for (const key of Object.keys(values)) if (!allowed.includes(key)) throw new Error(`--${key} is not valid for ${command}`);
     if (!['support','score-channels','analyze','samples'].includes(command) && !values.output) throw new Error('--output is required');
     if (command === 'export' && !exportFormats.includes(values.format)) throw new Error(`--format must be one of: ${exportFormats.join(', ')}`);
-    const source = await readSourceDocument(input);
-    if(command==='support'){
-      const result=await inspectSourceSupport(source);
-      console.log(values.json ? JSON.stringify(result,null,2) : [
-        'Declared chips: '+result.declaredChips.map(c=>c.id).join(', '),
-        'Render: '+result.render.status+(result.render.reason?' — '+result.render.reason:''),
-        'Required ROMs: '+(result.render.requiredRoms??[]).join(', '),
-        ...Object.entries(result.exports).map(([format,entry])=>format+': '+entry.status+(entry.reason?' — '+entry.reason:'')),
-        ...result.limitations,
-      ].join('\n'));
-    } else if(command==='score-channels'){
-      const result=listSourceScoreChannels(source);
-      console.log(values.json?JSON.stringify(result,null,2):result.channels.map(ch=>ch.id+' · '+ch.name+' · '+ch.noteCount+' notes').join('\n'));
-      for(const warning of result.warnings)console.error('Warning: '+warning);
-    } else if (command === 'samples' && (values.id!==undefined || values.all!==undefined)) {
-      if(values.json)throw new Error('--json is for sample listing only');
-      if(!values.output)throw new Error('--output is required');
-      const result=await exportNodeSamples(source,{format:values.format??'native',occurrence:values.occurrence===undefined?1:Number(values.occurrence),id:values.id===undefined?undefined:Number(values.id),all:values.all??false});
-      await writeFile(values.output,result.bytes,{flag:values.force?'w':'wx'});
+    if(command==='to-json' || command==='from-json'){
+      let output;
+      if(command==='from-json') output=jsonToVgm(JSON.parse(await readFile(input,'utf8')));
+      else {
+        const document=await readSourceDocument(input);
+        if(document.sourceHeader)throw new Error('Lossless JSON accepts VGM/VGZ only, not S98');
+        output=JSON.stringify(vgmToJson(document.bytes,{comments:values.comments??false}),null,2)+'\n';
+      }
+      await writeFile(values.output,output,{flag:values.force?'w':'wx'});
       console.error('Wrote '+values.output);
-      for(const warning of result.warnings)console.error('Warning: '+warning);
-    } else if (command === 'samples') {
-      if(values.output!==undefined || values.force!==undefined || values.format!==undefined || values.occurrence!==undefined)throw new Error('--output/--force are not valid for sample listing');
-      const result=await listSourceSamples(source);
-      console.log(values.json ? JSON.stringify(result,null,2) :
-        result.samples.map(s=>[s.id,s.chip,s.kind,s.representation,s.size+' bytes',s.exportable?'available':'missing/partial'].join(' · ')).join('\n') || 'No supported samples found.');
-      for(const warning of result.warnings) console.error('Warning: '+warning);
-    } else if (command === 'analyze') {
-      const result = analyzeSource(source);
-      console.log(values.json ? JSON.stringify(result, null, 2) : [
-        `File: ${input}`, ...(result.sourceHeader ? [`Source: ${result.sourceHeader.format}`, `Source tag: ${result.sourceHeader.tag}`] : []), `Chips: ${result.chips.map(c => `${c.id} (${c.clockHz} Hz)`).join(', ') || 'none declared'}`,
-        `Declared duration: ${result.declaredDurationSeconds.toFixed(3)} s`,
-        `Commands: ${Object.values(result.commandUsage).reduce((a,b)=>a+b,0)}`,
-        `Data blocks: ${result.dataBlocks.length}`,
-      ].join('\n'));
     } else {
-      const result = command === 'export'
-        ? exportSource(source, { format: values.format, channels:values.channels===undefined?undefined:values.channels.split(','), atSeconds: values.at === undefined ? undefined : Number(values.at), channel: values.channel === undefined ? undefined : Number(values.channel), bpm: values.bpm === undefined ? undefined : Number(values.bpm), fileName: basename(input) })
-        : await renderSource(source, { startSeconds:values.start===undefined?0:Number(values.start), mute:values.mute===undefined?[]:values.mute.split(','), maxSeconds: values['max-seconds'] === undefined ? 120 : Number(values['max-seconds']), roms: { ...(values['ym2608-rom'] === undefined ? {} : {ym2608AdpcmA:await readFile(values['ym2608-rom'])}), ...(values['ymf278b-rom'] === undefined ? {} : {ymf278bWave:await readFile(values['ymf278b-rom'])}) } });
-      await writeFile(values.output, result.bytes ?? result.text, { flag: values.force ? 'w' : 'wx' });
-      console.error(`Wrote ${values.output}`);
-      if (result.truncated) console.error('Warning: rendering stopped at --max-seconds.');
-      for (const warning of result.warnings ?? []) console.error(`Warning: ${warning}`);
+      const source = await readSourceDocument(input);
+      if(command==='support'){
+        const result=await inspectSourceSupport(source);
+        console.log(values.json ? JSON.stringify(result,null,2) : [
+          'Declared chips: '+result.declaredChips.map(c=>c.id).join(', '),
+          'Render: '+result.render.status+(result.render.reason?' — '+result.render.reason:''),
+          'Required ROMs: '+(result.render.requiredRoms??[]).join(', '),
+          ...Object.entries(result.exports).map(([format,entry])=>format+': '+entry.status+(entry.reason?' — '+entry.reason:'')),
+          ...result.limitations,
+        ].join('\n'));
+      } else if(command==='score-channels'){
+        const result=listSourceScoreChannels(source);
+        console.log(values.json?JSON.stringify(result,null,2):result.channels.map(ch=>ch.id+' · '+ch.name+' · '+ch.noteCount+' notes').join('\n'));
+        for(const warning of result.warnings)console.error('Warning: '+warning);
+      } else if (command === 'samples' && (values.id!==undefined || values.all!==undefined)) {
+        if(values.json)throw new Error('--json is for sample listing only');
+        if(!values.output)throw new Error('--output is required');
+        const result=await exportNodeSamples(source,{format:values.format??'native',occurrence:values.occurrence===undefined?1:Number(values.occurrence),id:values.id===undefined?undefined:Number(values.id),all:values.all??false});
+        await writeFile(values.output,result.bytes,{flag:values.force?'w':'wx'});
+        console.error('Wrote '+values.output);
+        for(const warning of result.warnings)console.error('Warning: '+warning);
+      } else if (command === 'samples') {
+        if(values.output!==undefined || values.force!==undefined || values.format!==undefined || values.occurrence!==undefined)throw new Error('--output/--force are not valid for sample listing');
+        const result=await listSourceSamples(source);
+        console.log(values.json ? JSON.stringify(result,null,2) :
+          result.samples.map(s=>[s.id,s.chip,s.kind,s.representation,s.size+' bytes',s.exportable?'available':'missing/partial'].join(' · ')).join('\n') || 'No supported samples found.');
+        for(const warning of result.warnings) console.error('Warning: '+warning);
+      } else if (command === 'analyze') {
+        const result = analyzeSource(source);
+        console.log(values.json ? JSON.stringify(result, null, 2) : [
+          `File: ${input}`, ...(result.sourceHeader ? [`Source: ${result.sourceHeader.format}`, `Source tag: ${result.sourceHeader.tag}`] : []), `Chips: ${result.chips.map(c => `${c.id} (${c.clockHz} Hz)`).join(', ') || 'none declared'}`,
+          `Declared duration: ${result.declaredDurationSeconds.toFixed(3)} s`,
+          `Commands: ${Object.values(result.commandUsage).reduce((a,b)=>a+b,0)}`,
+          `Data blocks: ${result.dataBlocks.length}`,
+        ].join('\n'));
+      } else {
+        const result = command === 'export'
+          ? exportSource(source, { format: values.format, channels:values.channels===undefined?undefined:values.channels.split(','), atSeconds: values.at === undefined ? undefined : Number(values.at), channel: values.channel === undefined ? undefined : Number(values.channel), bpm: values.bpm === undefined ? undefined : Number(values.bpm), fileName: basename(input) })
+          : await renderSource(source, { startSeconds:values.start===undefined?0:Number(values.start), mute:values.mute===undefined?[]:values.mute.split(','), maxSeconds: values['max-seconds'] === undefined ? 120 : Number(values['max-seconds']), roms: { ...(values['ym2608-rom'] === undefined ? {} : {ym2608AdpcmA:await readFile(values['ym2608-rom'])}), ...(values['ymf278b-rom'] === undefined ? {} : {ymf278bWave:await readFile(values['ymf278b-rom'])}) } });
+        await writeFile(values.output, result.bytes ?? result.text, { flag: values.force ? 'w' : 'wx' });
+        console.error(`Wrote ${values.output}`);
+        if (result.truncated) console.error('Warning: rendering stopped at --max-seconds.');
+        for (const warning of result.warnings ?? []) console.error(`Warning: ${warning}`);
+      }
     }
   }
 } catch (error) {
