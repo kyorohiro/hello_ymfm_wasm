@@ -10,6 +10,8 @@ export class Ym2610BAudioEngine {
     this.outputSampleRate = outputSampleRate;
     this.masterVolume = clampVolume(masterVolume);
     this.remainder = 0;
+    this.lastLeft = 0;
+    this.lastRight = 0;
     this.sourceMuteMask = 0;
   }
 
@@ -28,7 +30,7 @@ export class Ym2610BAudioEngine {
   }
 
   dispose() { this.chip.dispose(); }
-  reset() { this.chip.reset(); this.clearAdpcmRoms(); this.remainder = 0; }
+  reset() { this.chip.reset(); this.clearAdpcmRoms(); this.remainder = 0; this.lastLeft = 0; this.lastRight = 0; }
   sampleRate() { return this.outputSampleRate; }
   setMasterVolume(value) { this.masterVolume = clampVolume(value); return this.masterVolume; }
   getMasterVolume() { return this.masterVolume; }
@@ -55,17 +57,22 @@ export class Ym2610BAudioEngine {
     }
     for (let index = 0; index < frames; index += 1) {
       this.remainder += this.chipSampleRate;
-      const count = Math.max(1, Math.floor(this.remainder / this.outputSampleRate));
+      const count = Math.floor(this.remainder / this.outputSampleRate);
       this.remainder -= count * this.outputSampleRate;
-      const pcm = this.chip.generateStereo(count);
-      let mixedLeft = 0;
-      let mixedRight = 0;
-      for (let sample = 0; sample < count; sample += 1) {
-        mixedLeft += pcm.left[sample];
-        mixedRight += pcm.right[sample];
+      // During upsampling, hold the previous sample without advancing the chip.
+      if (count > 0) {
+        const pcm = this.chip.generateStereo(count);
+        let mixedLeft = 0;
+        let mixedRight = 0;
+        for (let sample = 0; sample < count; sample += 1) {
+          mixedLeft += pcm.left[sample];
+          mixedRight += pcm.right[sample];
+        }
+        this.lastLeft = mixedLeft / count;
+        this.lastRight = mixedRight / count;
       }
-      left[index] = mixedLeft / count * this.masterVolume;
-      right[index] = mixedRight / count * this.masterVolume;
+      left[index] = this.lastLeft * this.masterVolume;
+      right[index] = this.lastRight * this.masterVolume;
     }
   }
 

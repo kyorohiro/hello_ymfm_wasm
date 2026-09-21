@@ -3,6 +3,7 @@ class VgmOutputProcessor extends AudioWorkletProcessor {
     super();
     this.queue = [];
     this.queuedFrames = 0;
+    this.consumedFrames = 0;
     this.endRequested = false;
     this.paused = false;
     this.currentChunk = null;
@@ -32,6 +33,7 @@ class VgmOutputProcessor extends AudioWorkletProcessor {
         this.paused = false;
         this.queue = [];
         this.queuedFrames = 0;
+        this.consumedFrames = 0;
         this.currentChunk = null;
         this.currentOffset = 0;
         this.endRequested = false;
@@ -85,6 +87,7 @@ class VgmOutputProcessor extends AudioWorkletProcessor {
       this.currentOffset += frames;
       writeOffset += frames;
       this.queuedFrames -= frames;
+      this.consumedFrames += frames;
 
       if (
         this.currentOffset >=
@@ -103,6 +106,7 @@ class VgmOutputProcessor extends AudioWorkletProcessor {
       this.port.postMessage({
         type: "state",
         queuedFrames: this.queuedFrames,
+        consumedFrames: this.consumedFrames,
         ended:
           this.endRequested &&
           this.queuedFrames === 0,

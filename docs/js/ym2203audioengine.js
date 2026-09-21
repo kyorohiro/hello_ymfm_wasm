@@ -16,6 +16,8 @@ export class Ym2203AudioEngine {
     this._sourceMuteMask = 0;
     this.channelMuteMask = 0;
     this._resampleRemainder = 0;
+    this._lastLeft = 0;
+    this._lastRight = 0;
   }
 
   static async create(options = {}) {
@@ -53,6 +55,8 @@ export class Ym2203AudioEngine {
     this.ym2203.reset();
     this.ym2203.setMuteMask(this.channelMuteMask);
     this._resampleRemainder = 0;
+    this._lastLeft = 0;
+    this._lastRight = 0;
   }
 
   sampleRate() {
@@ -101,41 +105,23 @@ export class Ym2203AudioEngine {
       this._resampleRemainder +=
         this._chipSampleRate;
 
-      let samplesToMix = Math.floor(
-        this._resampleRemainder /
-          this._sampleRate
-      );
+      const samplesToMix = Math.floor(this._resampleRemainder / this._sampleRate);
+      this._resampleRemainder -= samplesToMix * this._sampleRate;
 
-      if (samplesToMix < 1) {
-        samplesToMix = 1;
+      // During upsampling, hold the previous sample without advancing the chip.
+      if (samplesToMix > 0) {
+        const ym = this.ym2203.generateStereo(samplesToMix);
+        let mixedLeft = 0;
+        let mixedRight = 0;
+        for (let sampleIndex = 0; sampleIndex < samplesToMix; sampleIndex += 1) {
+          mixedLeft += ym.left[sampleIndex];
+          mixedRight += ym.right[sampleIndex];
+        }
+        this._lastLeft = mixedLeft / samplesToMix;
+        this._lastRight = mixedRight / samplesToMix;
       }
-
-      this._resampleRemainder -=
-        samplesToMix *
-        this._sampleRate;
-
-      const ym =
-        this.ym2203.generateStereo(
-          samplesToMix
-        );
-      let mixedLeft = 0;
-      let mixedRight = 0;
-
-      for (
-        let sampleIndex = 0;
-        sampleIndex < samplesToMix;
-        sampleIndex += 1
-      ) {
-        mixedLeft += ym.left[sampleIndex];
-        mixedRight += ym.right[sampleIndex];
-      }
-
-      left[index] =
-        (mixedLeft / samplesToMix) *
-        this._masterVolume;
-      right[index] =
-        (mixedRight / samplesToMix) *
-        this._masterVolume;
+      left[index] = this._lastLeft * this._masterVolume;
+      right[index] = this._lastRight * this._masterVolume;
     }
   }
 

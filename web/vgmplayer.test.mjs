@@ -158,7 +158,7 @@ test('runtime pauses and resumes already transferred Worklet audio', async () =>
   const queued = runtime.player.queuedFrames;
   assert.deepEqual(output(node.processor, 2), [0,0]);
   // A status report already in transit must not pump audio while paused.
-  node.port.onmessage({ data: { queuedFrames: 4094 } });
+  node.port.onmessage({ data: { queuedFrames: 4094, consumedFrames: 2 } });
   assert.equal(runtime.player.queuedFrames, queued);
   runtime.resume();
   assert.deepEqual(output(node.processor, 2), [3,4]);
@@ -235,5 +235,60 @@ test('reinitialize waits for context close and concurrent finalize calls share c
   await closing; await restarting;
   assert.equal(contexts.length, 2);
   assert.equal(runtime.getState().audio, 'ready');
+  await runtime.finalize();
+});
+
+test('delayed worklet reports account for audio sent since each report', async () => {
+  const { runtime, nodes } = runtimeHarness();
+  await runtime.load(vgm(65535)); await runtime.play();
+  const node = nodes[0], reports = [];
+  node.processor.port.postMessage = data => reports.push(data);
+  for (let i = 0; i < 16; i++) output(node.processor, 128);
+  assert.equal(node.processor.queuedFrames, 2048);
+  for (const data of reports) node.port.onmessage({ data });
+  // Chunks can overshoot the target by less than one 2048-frame chunk.
+  assert.ok(node.processor.queuedFrames >= 4096);
+  assert.ok(node.processor.queuedFrames < 6144);
+  assert.deepEqual(output(node.processor, 4), [2049,2050,2051,2052]);
+  await runtime.finalize();
+});
+
+test('loading a new song disconnects and flushes the old worklet', async () => {
+  const { runtime, nodes } = runtimeHarness();
+  await runtime.load(vgm(20000)); await runtime.play();
+  const old = nodes[0], lateMessage = old.port.onmessage;
+  await runtime.load(vgm(100));
+  assert.equal(old.connected, false);
+  assert.equal(old.processor.queuedFrames, 0);
+  assert.deepEqual(output(old.processor, 4), [0,0,0,0]);
+  assert.equal(runtime.getState().playback, 'stopped');
+  assert.equal(runtime.getState().outputMode, 'none');
+  await runtime.play();
+  lateMessage({ data: { consumedFrames: 4096, ended: true } });
+  assert.equal(nodes[1].connected, true);
+  assert.deepEqual(output(nodes[1].processor, 4), [1,2,3,4]);
+  await runtime.finalize();
+});
+
+test('loading a new song cancels pending worklet startup', async () => {
+  const moduleGate = deferred();
+  const { runtime, nodes } = runtimeHarness({ moduleGate });
+  await runtime.load(vgm(20000));
+  const cancelled = assert.rejects(runtime.play(), { name: 'AbortError' });
+  await until(() => runtime.player.isPlaying());
+  await runtime.load(vgm(100));
+  moduleGate.resolve(); await cancelled;
+  assert.equal(nodes.length, 0);
+  await runtime.play();
+  assert.deepEqual(output(nodes[0].processor, 4), [1,2,3,4]);
+  await runtime.finalize();
+});
+
+test('loading a new song removes the script output callback', async () => {
+  const { runtime, nodes } = runtimeHarness({ script: true });
+  await runtime.load(vgm(20000)); await runtime.play();
+  await runtime.load(vgm(100));
+  assert.equal(nodes[0].onaudioprocess, null);
+  assert.equal(runtime.getState().outputMode, 'none');
   await runtime.finalize();
 });

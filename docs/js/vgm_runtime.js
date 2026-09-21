@@ -293,11 +293,12 @@ export function createVgmRuntime(options = {}) {
     await initialize();
     assertGeneration(generation);
     clearError();
-    runtime.currentBuffer = buffer;
+    stopActiveStream();
     runtime.player.load(
       buffer,
       parserOptions
     );
+    runtime.currentBuffer = buffer;
     emitStatus("VGM loaded.");
     emitState();
   }
@@ -372,6 +373,7 @@ export function createVgmRuntime(options = {}) {
       );
       runtime.activeStream.workletQueuedFrames +=
         frames;
+      runtime.activeStream.sentFrames += frames;
       runtime.activeStream.node.port.postMessage(
         {
           type: "enqueue",
@@ -435,6 +437,7 @@ export function createVgmRuntime(options = {}) {
       node,
       chunkFrames,
       workletQueuedFrames: 0,
+      sentFrames: 0,
       endSent: false,
     };
     runtime.outputMode = "worklet";
@@ -445,11 +448,13 @@ export function createVgmRuntime(options = {}) {
       if (runtime.activeStream?.node !== node) return;
       const data = event.data || {};
       if (
-        typeof data.queuedFrames ===
+        typeof data.consumedFrames ===
         "number"
       ) {
+        // Reports can arrive after more chunks were sent. Include those chunks
+        // by subtracting cumulative consumption from our cumulative sends.
         runtime.activeStream.workletQueuedFrames =
-          data.queuedFrames;
+          runtime.activeStream.sentFrames - data.consumedFrames;
       }
       if (data.ended) {
         stopActiveStream();
