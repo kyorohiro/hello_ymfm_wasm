@@ -15,9 +15,18 @@ class YM2610BProcessor extends AudioWorkletProcessor {
   }
 
   async initialize(wasmBinary) {
-    this.chip = await Ym2610B.create({ moduleFactory: ym2610bModuleFactory, moduleOptions: { wasmBinary: new Uint8Array(wasmBinary) } });
-    this.chipRate = this.chip.sampleRate(YM2610B_CLOCK);
-    this.port.postMessage({ type: "ready" });
+    try {
+      this.chip = await Ym2610B.create({ moduleFactory: ym2610bModuleFactory, moduleOptions: { wasmBinary: new Uint8Array(wasmBinary) } });
+      this.chipRate = this.chip.sampleRate(YM2610B_CLOCK);
+      this.port.postMessage({ type: "ready" });
+    } catch (error) {
+      this.chip?.dispose();
+      this.chip = null;
+      this.port.postMessage({
+        type: "error",
+        message: error instanceof Error ? error.message : String(error),
+      });
+    }
   }
 
   process(_inputs, outputs) {

@@ -26,6 +26,9 @@ class YM2612Processor extends AudioWorkletProcessor {
 
     this.ym2612 = null;
     this.psg = null;
+    this.resampleRemainder = 0;
+    this.lastLeft = 0;
+    this.lastRight = 0;
     this.pendingCommands = [];
     this.envelopeRmsBuckets = [];
     this.envelopeBucketSize = 512;
@@ -133,6 +136,9 @@ class YM2612Processor extends AudioWorkletProcessor {
     }
 
     if (command.type === "reset") {
+      this.resampleRemainder = 0;
+      this.lastLeft = 0;
+      this.lastRight = 0;
       this.ym2612.reset();
       this.psg?.reset();
       return;
@@ -178,40 +184,38 @@ class YM2612Processor extends AudioWorkletProcessor {
       return true;
     }
 
-    const { left, right } =
-      this.ym2612.generateStereo(leftOut.length);
-
-    if (this.psg) {
-      const psg =
-        this.psg.generateStereo(
-          leftOut.length
-        );
-
-      for (
-        let index = 0;
-        index < leftOut.length;
-        index += 1
-      ) {
-        left[index] = clampSample(
-          left[index] * YM_GAIN +
-            psg.left[index] * PSG_GAIN
-        );
-        right[index] = clampSample(
-          right[index] * YM_GAIN +
-            psg.right[index] * PSG_GAIN
-        );
-      }
-    }
-
-    leftOut.set(left);
-    rightOut.set(right);
-    this.capturePcm(left, right);
-    this.captureOutputEnvelope(
-      left,
-      right
-    );
+    this.renderFrames(leftOut, rightOut, 0, leftOut.length);
+    this.capturePcm(leftOut, rightOut);
+    this.captureOutputEnvelope(leftOut, rightOut);
 
     return true;
+  }
+
+  renderFrames(leftOut, rightOut, offset, frames) {
+    if (frames <= 0) return;
+    const chipRate = this.ym2612.sampleRate();
+    const sourceFrames = Math.floor((this.resampleRemainder + frames * chipRate) / sampleRate);
+    const pcm = sourceFrames > 0 ? this.ym2612.generateStereo(sourceFrames) : null;
+    const psg = sourceFrames > 0 ? this.psg?.generateStereo(sourceFrames) : null;
+    let sourceOffset = 0;
+    for (let i = 0; i < frames; i++) {
+      this.resampleRemainder += chipRate;
+      const count = Math.floor(this.resampleRemainder / sampleRate);
+      this.resampleRemainder -= count * sampleRate;
+      if (count > 0) {
+        let left = 0, right = 0;
+        for (let j = 0; j < count; j++, sourceOffset++) {
+          left += psg ? clampSample(pcm.left[sourceOffset] * YM_GAIN + psg.left[sourceOffset] * PSG_GAIN) : pcm.left[sourceOffset];
+          right += psg ? clampSample(pcm.right[sourceOffset] * YM_GAIN + psg.right[sourceOffset] * PSG_GAIN) : pcm.right[sourceOffset];
+        }
+        this.lastLeft = left / count;
+        this.lastRight = right / count;
+      }
+      // Hold the previous sample during upsampling. Preserve phase across
+      // render segments so scheduled writes stay on the output timeline.
+      leftOut[offset + i] = this.lastLeft;
+      rightOut[offset + i] = this.lastRight;
+    }
   }
 
   captureOutputEnvelope(left, right) {

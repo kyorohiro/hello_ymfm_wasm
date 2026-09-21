@@ -34,6 +34,8 @@ export class OPNRuntimeSynth {
     this.psg = null;
     this.listeners = new Set();
     this.readyPromise = null;
+    this.closePromise = null;
+    this.initializationController = null;
     this.state = "idle";
 
     this.audio.setMediaApis(
@@ -55,22 +57,34 @@ export class OPNRuntimeSynth {
   get stream() { return this.audio.stream; }
 
   async start() {
-    if (this.readyPromise) {
-      await this.readyPromise;
-      await this.resume();
-      return this;
+    if (this.closePromise) await this.closePromise;
+    if (!this.readyPromise) {
+      const controller = new AbortController();
+      this.initializationController = controller;
+      this.state = "starting";
+      this.readyPromise = (async () => {
+        try {
+          await this.#initialize(controller.signal);
+          controller.signal.throwIfAborted();
+          this.state = "ready";
+        } catch (error) {
+          if (this.initializationController === controller) {
+            controller.abort();
+            this.node?.disconnect();
+            this.node?.port.close();
+            this.node = null;
+            this.fm = null;
+            this.readyPromise = null;
+            this.state = "error";
+          }
+          throw error;
+        }
+      })();
     }
-    this.state = "starting";
-    this.readyPromise = this.#initialize();
-    try {
-      await this.readyPromise;
-    } catch (error) {
-      this.readyPromise = null;
-      this.state = "error";
-      throw error;
-    }
-    await this.resume();
-    this.state = "ready";
+    const signal = this.initializationController.signal;
+    await this.readyPromise;
+    signal.throwIfAborted();
+    await waitForInitialization(this.resume(), signal);
     return this;
   }
 
@@ -99,10 +113,24 @@ export class OPNRuntimeSynth {
   connect(effect) { this.audio.connect(effect); return this; }
   connectOutput(node = null) { this.audio.connectOutput(node); return this; }
 
-  async close() {
+  close() {
+    if (this.closePromise) return this.closePromise;
+    this.initializationController?.abort();
+    this.initializationController = null;
+    this.readyPromise = null;
+    const closing = this.#close();
+    this.closePromise = closing;
+    closing.finally(() => {
+      if (this.closePromise === closing) this.closePromise = null;
+    }).catch(() => {});
+    return closing;
+  }
+
+  async #close() {
     this.audio.closeMedia();
     this.audio.disposeFXChain();
     this.node?.disconnect();
+    this.node?.port.close();
     this.node = null;
     this.audio.disconnectRouting();
     this.fm = null;
@@ -116,13 +144,13 @@ export class OPNRuntimeSynth {
 
   #createAudioContext() { return new AudioContext(); }
 
-  async #initialize() {
+  async #initialize(signal) {
     if (!this.audioContext) this.audioContext = this.#createAudioContext();
-    if (this.audioContext.state !== "running") await this.audioContext.resume();
-    await this.audioContext.audioWorklet.addModule(this.workletUrl);
-    const response = await fetch(this.wasmUrl);
+    if (this.audioContext.state !== "running") await waitForInitialization(this.audioContext.resume(), signal);
+    await waitForInitialization(this.audioContext.audioWorklet.addModule(this.workletUrl), signal);
+    const response = await waitForInitialization(fetch(this.wasmUrl, { signal }), signal);
     if (!response.ok) throw new Error(`Failed to load ${this.chipName} WASM: ${response.status} ${response.statusText}`);
-    const wasmBinary = await response.arrayBuffer();
+    const wasmBinary = await waitForInitialization(response.arrayBuffer(), signal);
     this.node = new AudioWorkletNode(this.audioContext, this.processorName, {
       numberOfInputs: 0,
       numberOfOutputs: 1,
@@ -130,9 +158,11 @@ export class OPNRuntimeSynth {
     });
     this.audio.ensureRouting(this.audioContext);
     this.audio.connectChipOutput(this.node);
-    const ready = this.#waitForWorkletReady();
+    const ready = this.#waitForWorkletReady(this.node, signal);
+    ready.catch(() => {});
     this.node.port.postMessage({ type: "initialize", wasmBinary }, [wasmBinary]);
     await ready;
+    signal.throwIfAborted();
     this.fm = new this.FMSynth({
       transport: new OPNWorkletTransport(this.node, {
         portCount: this.portCount,
@@ -141,17 +171,24 @@ export class OPNRuntimeSynth {
     });
   }
 
-  #waitForWorkletReady() {
+  #waitForWorkletReady(node, signal) {
     return new Promise((resolve, reject) => {
+      const cleanup = () => {
+        node.port.removeEventListener("message", handleMessage);
+        signal.removeEventListener("abort", onAbort);
+      };
+      const onAbort = () => { cleanup(); reject(signal.reason); };
       const handleMessage = (event) => {
         const message = event.data;
         if (message?.type !== "ready" && message?.type !== "error") return;
-        this.node.port.removeEventListener?.("message", handleMessage);
+        cleanup();
         if (message.type === "ready") resolve(message);
         else reject(new Error(message.message || `${this.chipName} AudioWorklet initialization failed`));
       };
-      this.node.port.addEventListener?.("message", handleMessage);
-      this.node.port.start?.();
+      node.port.addEventListener("message", handleMessage);
+      signal.addEventListener("abort", onAbort, { once: true });
+      node.port.start();
+      if (signal.aborted) onAbort();
     });
   }
 }
@@ -160,4 +197,23 @@ function clampMasterVolume(value) {
   const numeric = Number(value);
   if (!Number.isFinite(numeric)) throw new Error(`master volume must be a finite number, got ${value}`);
   return Math.min(MAX_MASTER_VOLUME, Math.max(0, numeric));
+}
+
+// addModule() and arrayBuffer() do not accept AbortSignal themselves.
+async function waitForInitialization(promise, signal) {
+  let onAbort;
+  try {
+    const result = await Promise.race([
+      promise,
+      new Promise((_, reject) => {
+        onAbort = () => reject(signal.reason);
+        signal.addEventListener("abort", onAbort, { once: true });
+        if (signal.aborted) onAbort();
+      }),
+    ]);
+    signal.throwIfAborted();
+    return result;
+  } finally {
+    signal.removeEventListener("abort", onAbort);
+  }
 }

@@ -15,12 +15,21 @@ class YM2203Processor extends AudioWorkletProcessor {
   }
 
   async initialize(wasmBinary) {
-    this.chip = await Ym2203.create({
-      moduleFactory: ym2203ModuleFactory,
-      moduleOptions: { wasmBinary: new Uint8Array(wasmBinary) },
-    });
-    this.chipRate = this.chip.sampleRate(YM2203_CLOCK);
-    this.port.postMessage({ type: "ready" });
+    try {
+      this.chip = await Ym2203.create({
+        moduleFactory: ym2203ModuleFactory,
+        moduleOptions: { wasmBinary: new Uint8Array(wasmBinary) },
+      });
+      this.chipRate = this.chip.sampleRate(YM2203_CLOCK);
+      this.port.postMessage({ type: "ready" });
+    } catch (error) {
+      this.chip?.dispose();
+      this.chip = null;
+      this.port.postMessage({
+        type: "error",
+        message: error instanceof Error ? error.message : String(error),
+      });
+    }
   }
 
   write(register, value) {
