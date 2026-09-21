@@ -658,3 +658,18 @@ YMF262 is rejected. YMF262 MIDI export is not included in this change.
 node dist/cli/main.js score-channels song.vgz --json
 node dist/cli/main.js export song.vgz --format musicxml --output song.musicxml
 ```
+
+## Manual score groups
+
+Use `score-channels song.vgz --json` to find stable physical channel IDs.
+For MusicXML / LilyPond, `--merge-all` combines the selected channels into one
+part; repeated `--group 'Piano=ymf262-ch1,ymf262-ch5'` creates named groups.
+Ungrouped channels stay separate. Each CH can belong to only one group.
+`--group` and `--merge-all` are mutually exclusive. When using `--channels`,
+include every member of each group: CLI selection happens before grouping.
+Overlapping notes use separate voices; this is not automatic musical analysis.
+
+Node callers can use `exportSource(source, {format: 'musicxml', groups:
+[{id: 'piano', name: 'Piano', channels: ['ymf262-ch1', 'ymf262-ch5']}]})`.
+Group metadata preserves the original CH on notes; output files retain it in
+hidden MusicXML notations or LilyPond comments. Existing quantization limits apply.

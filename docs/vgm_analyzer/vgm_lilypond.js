@@ -1,3 +1,4 @@
+import {scoreVoices,groupSelectedScoreChannels} from './score_groups.js';
 import {extractOpl3Notes} from './ymf262_notes.js';
 import {extractNesNotes} from './nes_notes.js';
 import { Ym2612VGM } from '../js/ym2612vgm.js?v=ym2610-vgm-2';
@@ -24,8 +25,10 @@ export function createLilyPondScore(channels, totalSamples, { bpm = 120, fileNam
   if (!Number.isSafeInteger(end) || end > 1000000) throw new RangeError('Score is too long');
   let noteCount = 0, skippedNotes = 0;
   const staves = channels.map((channel, index) => {
+    const pitches = [], bodies=[];
+    for (const voiceNotes of scoreVoices(channel,bpm)) {
     const merged = [];
-    for (const n of channel.notes) {
+    for (const n of voiceNotes) {
       if (n.end <= n.start) continue;
       const pitch = n.midi === null || !Number.isFinite(n.midi) ? null : Math.round(n.midi);
       const previous = merged.at(-1);
@@ -33,7 +36,7 @@ export function createLilyPondScore(channels, totalSamples, { bpm = 120, fileNam
       else merged.push({ ...n, pitch });
     }
     let cursor = 0;
-    const tokens = [], pitches = [];
+    const tokens = [];
     function append(pitch, until) {
       while (cursor < until) {
         // Split at beat-aligned power-of-two boundaries, including bar lines.
@@ -47,16 +50,19 @@ export function createLilyPondScore(channels, totalSamples, { bpm = 120, fileNam
       const start = Math.min(end, Math.max(cursor, tick(n.start)));
       const finish = Math.min(end, tick(n.end));
       if (finish <= start) { skippedNotes++; continue; }
+      if(n.sourceChannel)tokens.push('% source-channel: '+String(n.sourceChannel).replace(/[\r\n]/g,' ')+'\n');
       append(null, start);
       if (n.pitch === null || n.pitch < 0 || n.pitch > 127) { skippedNotes++; append(null, finish); }
       else { noteCount++; pitches.push(n.pitch); append(n.pitch, finish); }
     }
     append(null, end);
+    bodies.push(tokens.join(' '));
+    }
     pitches.sort((a,b) => a-b);
     const clef = pitches.length && pitches[Math.floor(pitches.length / 2)] < 60 ? 'bass' : 'treble';
     return `  \\new Staff \\with { instrumentName = ${quoted(channel.name ?? `CH${index + 1}`)} } {
     \\clef ${clef} \\time 4/4 \\tempo 4 = ${bpm}
-    ${tokens.join(' ')} \\bar "|."
+    ${bodies.length===1?bodies[0]:'<< '+bodies.map(body=>'\\new Voice { '+body+' }').join(' ')+' >>'} \\bar "|."
   }`;
   });
   if (!staves.length) throw new Error('No supported channels for LilyPond export');
@@ -143,5 +149,5 @@ export function exportLilyPondAnalysis(analysis, options = {}) {
   }
   const channels = analysis.channels.filter((_ch, i) => selected === undefined || selected.includes(i));
   if (!channels.length) throw new Error('Select at least one channel');
-  return createLilyPondScore(channels, analysis.time, { ...options, warnings: analysis.warnings });
+  return createLilyPondScore(groupSelectedScoreChannels(analysis.channels,channels,options.groups), analysis.time, { ...options, warnings: analysis.warnings });
 }

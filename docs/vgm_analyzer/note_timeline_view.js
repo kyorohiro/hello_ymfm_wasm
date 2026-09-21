@@ -1,3 +1,4 @@
+import {getScoreGroups} from './score_group_ui.js';
 import {timelineScrollWidth,timelinePlaybackPosition} from './note_timeline.js';
 const rate=44100, colors=['#e77f67','#f2b15c','#7fdc86','#72a8ff','#bd86ff','#62d7dd','#25794b','#a85520','#506fbd'];
 const name=n=>['C','C♯','D','D♯','E','F','F♯','G','G♯','A','A♯','B'][((n%12)+12)%12]+(Math.floor(n/12)-1);
@@ -131,7 +132,7 @@ export function createNoteTimeline(root,{onSelect, onPlay,onPause,onCancel}) {
         }
       };
       const copy=buffer instanceof ArrayBuffer?buffer.slice(0):buffer.slice().buffer;
-      worker.postMessage({type:'load',buffer:copy},[copy]);
+      worker.postMessage({type:'load',buffer:copy,groups:getScoreGroups(buffer)},[copy]);
     },
     mode(value){if(detailed!==(value==='detail')){detailed=value==='detail';resize();}},
     cursor(sample,playing,looping=false){

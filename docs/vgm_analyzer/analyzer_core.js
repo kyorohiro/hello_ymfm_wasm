@@ -1,3 +1,4 @@
+import {groupScoreChannels,parseScoreGroups} from './score_groups.js';
 import {exportSamples,listSamples} from './sample_core.js';
 export {vgmToJson, jsonToVgm} from './vgm_json.js';
 import {selectPlaybackConfiguration, playbackMuteControls} from './playback_core.js';
@@ -51,10 +52,12 @@ export function analyzeSource(source) {
 }
 
 /** Export using exactly the browser's existing algorithms and chip restrictions. */
-export function exportSource(source, { format, bpm, fileName = 'VGM', atSeconds, channel, channels } = {}) {
+export function exportSource(source, { format, bpm, fileName = 'VGM', atSeconds, channel, channels, groups, group, mergeAll } = {}) {
   source = sourceBytes(source);
   if (!exportFormats.includes(format)) throw new Error(`Unsupported format: ${format}`);
   if (bpm !== undefined && (!Number.isInteger(bpm) || bpm < 4 || bpm > 999)) throw new RangeError('BPM must be an integer from 4 to 999');
+  if((groups!==undefined||group!==undefined||mergeAll)&&!['musicxml','lilypond'].includes(format))throw new Error('Grouping requires musicxml or lilypond');
+  if(groups!==undefined&&(group!==undefined||mergeAll))throw new Error('Use groups or CLI group options');
   if(channels!==undefined && !['musicxml','lilypond'].includes(format)) throw new Error('Channel selection requires musicxml or lilypond');
   if (['tfi','vgi','opm'].includes(format)) return exportVoiceSnapshot(source,{format,atSeconds,channel});
   if (atSeconds !== undefined || channel !== undefined) throw new Error('Time/channel options require tfi, vgi or opm snapshot format');
@@ -66,7 +69,8 @@ export function exportSource(source, { format, bpm, fileName = 'VGM', atSeconds,
   if (format === 'midi') return exportAnalysisMidi(source, options);
   if (format === 'musicxml' || format === 'lilypond') {
     const create = format === 'musicxml' ? createMusicXmlScore : createLilyPondScore;
-    return create(selectScoreChannels(score.channels,channels), score.time, { ...options, warnings: score.warnings });
+    const selected=selectScoreChannels(score.channels,channels);
+    return create(groupScoreChannels(selected,groups??parseScoreGroups(group,mergeAll,selected)), score.time, { ...options, warnings: score.warnings });
   }
   const exporters = { mucom: exportMucomMml, opnavoid: exportOpnavoidMml, mxdrv: exportMxdrvMml, mgsdrv: exportMgsdrvMml };
   return { text: exporters[format](source, options) };

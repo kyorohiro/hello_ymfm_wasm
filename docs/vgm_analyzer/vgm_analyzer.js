@@ -1,3 +1,4 @@
+import {mountScoreGroups,getScoreGroups} from './score_group_ui.js';
 import {createOpl3Monitor,applyOpl3Write,describeOpl3Notes} from './ymf262_notes.js';
 import {createNesMonitor,applyNesWrite,describeNesNotes} from './nes_notes.js';
 import {createDefaultTfiPreset, findOperatorFromSlotOffset, cloneTfiPreset, presetSignature, decodeKeyOnChannel, extractTfiPatchesFromVgm} from './tfi_extract.js';
@@ -3763,6 +3764,8 @@ renderNoteishGrid();
 
 const exportTempo = createExportTempoSettings(analyzeScoreSource);
 const analyzeLilyPondSource = buffer => exportTempo.getAnalysis(buffer);
+mountScoreGroups({getTrack:()=>({buffer:currentBuffer}), getAnalysis:buffer=>exportTempo.getAnalysis(buffer),
+  onChange:()=>{if(currentBuffer)songTimeline.load(currentBuffer);setStatus('Groups updated. Regenerate the sheet to apply changes.');},setStatus});
 musicSheet = mountMusicSheet({getTrack: () => ({buffer:currentBuffer, available:(midiExportAvailable || (currentChipKind === 'ymf262' && !(noteishHeader.ymf262Clock & 0xc0000000))), fileName:lastLoadedFileName}), tempoSettings:exportTempo, setStatus});
 
 function downloadMml(format) {
@@ -3938,7 +3941,7 @@ lilyPondExportDialog.querySelector("form").addEventListener("submit", event => {
     if (lilyPondSource !== currentBuffer || !lilyPondPrepared) throw new Error('Reopen LilyPond export for the current track');
     const channelIndices = Array.from(document.getElementById('lilyPondChannels').querySelectorAll('input:checked'), input => Number(input.value));
     if (!channelIndices.length) { event.preventDefault(); setStatus('Select at least one channel for LilyPond export.'); return; }
-    const result = exportLilyPondAnalysis(lilyPondPrepared, { bpm: Number(lilyPondBpmInput.value), fileName: lastLoadedFileName, channelIndices });
+    const result = exportLilyPondAnalysis(lilyPondPrepared, { bpm: Number(lilyPondBpmInput.value), fileName: lastLoadedFileName, channelIndices, groups:getScoreGroups(currentBuffer) });
     const url = URL.createObjectURL(new Blob([result.text], { type: "text/plain;charset=utf-8" }));
     const anchor = document.createElement("a");
     anchor.href = url;

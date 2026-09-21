@@ -88,7 +88,7 @@ test('dialog recommends BPM, excludes silent channels, retains edits and exports
  const list={replaceChildren(){inputs.length=0;},append(label){inputs.push(label.input);},querySelectorAll(){return inputs.filter(i=>i.checked);}};
  const bpm={value:'120',reportValidity:()=>true};const help={};const anchor={click(){clicked++;}};
  const context=vm.createContext({
-  currentBuffer:new Uint8Array(1),midiExportAvailable:true,lastLoadedFileName:'music.vgz',
+  getScoreGroups:()=>[],currentBuffer:new Uint8Array(1),midiExportAvailable:true,lastLoadedFileName:'music.vgz',
   exportLilyPondButton:{addEventListener(_t,fn){open=fn;}},
   lilyPondExportDialog:{close(){},showModal(){},querySelector(){return {addEventListener(_t,fn){submit=fn;}};}},
   lilyPondBpmInput:bpm,

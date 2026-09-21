@@ -1,8 +1,5 @@
-import {extractOpl3Notes} from './ymf262_notes.js';
-import {extractOpmNotes} from './opm_notes.js';
-import {extractOpnNotes,midiChipKind} from './vgm_notes.js?v=midi-onset-1';
-import {extractToneNotes} from './tone_notes.js?v=ym2610-vgm-2';
-import {extractOpllNotes} from './ym2413_notes.js';
+import {analyzeLilyPondSource} from './vgm_lilypond.js';
+import {groupScoreChannels} from './score_groups.js';
 import {Ym2612VGM} from '../js/ym2612vgm.js';
 import {packTimeline,timelineWindow} from './note_timeline.js';
 let channels=[];
@@ -10,15 +7,20 @@ self.onmessage=({data})=>{
   try{
     if(data.type==='load'){
       const header=new Ym2612VGM(data.buffer).header;
-      const kind=header.ymf262Clock ? 'ymf262' : header.ym2151Clock ? 'ym2151' : midiChipKind(header);
-      const fm=kind==='ymf262'?extractOpl3Notes(data.buffer):kind==='ym2151'?extractOpmNotes(data.buffer):kind && kind!=='psg' && kind!=='ay8910' && kind!=='ym2413'?extractOpnNotes(data.buffer):{channels:[],time:0};
-      const tones=extractToneNotes(data.buffer,kind);
-      const opll=(header.ym2413Clock & 0x3fffffff)?extractOpllNotes(data.buffer):{channels:[],time:0};
-      channels=[...fm.channels.map((ch,i)=>({name:`CH${i+1}`,notes:ch.notes})),...tones.channels,...opll.channels]
-        .map(ch=>({name:ch.name,data:packTimeline(ch.notes)})).filter(ch=>ch.data.length);
-      self.postMessage({type:'ready',duration:Math.max(fm.time,tones.time,opll.time),loopSamples:header.loopSamples,names:channels.map(ch=>ch.name)});
+      const score=analyzeLilyPondSource(data.buffer);
+      const raw=groupScoreChannels(score.channels,data.groups);
+      channels=raw.map(ch=>{
+        const keys=new Map(),sources={};
+        const notes=ch.sourceChannels?ch.notes.map(n=>{
+          if(!keys.has(n.key))keys.set(n.key,keys.size+1);
+          const key=keys.get(n.key);sources[key]={channel:n.sourceChannel,key:n.sourceKey};return {...n,key};
+        }):ch.notes;
+        const name=data.groups?.length?ch.name:ch.name.replace(/^(YMF262|YM2612|YM2151|YM2203|YM2608|YM2610) CH/,'CH');
+        return {name,data:packTimeline(notes),sources};
+      }).filter(ch=>ch.data.length);
+      self.postMessage({type:'ready',duration:score.time,loopSamples:header.loopSamples,names:channels.map(ch=>ch.name)});
     }else if(data.type==='view'){
-      self.postMessage({type:'view',id:data.id,channels:channels.map(ch=>({name:ch.name,...timelineWindow(ch.data,data.start,data.end,data.limit)}))});
+      self.postMessage({type:'view',id:data.id,channels:channels.map(ch=>({name:ch.name,sources:ch.sources,...timelineWindow(ch.data,data.start,data.end,data.limit)}))});
     }
   }catch(error){self.postMessage({type:'error',message:error.message});}
 };

@@ -1,3 +1,4 @@
+import {scoreVoices} from './score_groups.js';
 // MusicXML 4.0 partwise. The independent trial uses the same 1/16 grid as .ly export.
 const xml = value => String(value).replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/g, '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'}[c]));
 export function createMusicXmlScore(channels, totalSamples, {bpm = 120, fileName = 'VGM', warnings = []} = {}) {
@@ -8,8 +9,12 @@ export function createMusicXmlScore(channels, totalSamples, {bpm = 120, fileName
   if (!channels.length) throw new Error('Select at least one channel');
   let noteCount = 0, skippedNotes = 0;
   const parts = channels.map((ch, index) => {
-    const merged = [], pitches = [], measures = Array.from({length: end / 16}, () => []);
-    for (const n of ch.notes) {
+    const pitches = [], measures = Array.from({length: end / 16}, () => []);
+    for (const [voiceIndex, voiceNotes] of scoreVoices(ch,bpm).entries()) {
+    if(voiceIndex)for(const m of measures)m.push('<backup><duration>16</duration></backup>');
+    const merged=[];
+    let physical=null;
+    for (const n of voiceNotes) {
       if (!Number.isFinite(n.start) || !Number.isFinite(n.end)) throw new Error('Invalid note time');
       if (n.end <= n.start) continue;
       const pitch = n.midi === null || !Number.isFinite(n.midi) ? null : Math.round(n.midi);
@@ -26,18 +31,19 @@ export function createMusicXmlScore(channels, totalSamples, {bpm = 120, fileName
         const pc = pitch === null ? 0 : pitch % 12;
         const step = ['C','C','D','D','E','F','F','G','G','A','A','B'][pc];
         const alter = [1,3,6,8,10].includes(pc) ? '<alter>1</alter>' : '';
-        measures[Math.floor(cursor / 16)].push(`<note>${pitch === null ? '<rest/>' : `<pitch><step>${step}</step>${alter}<octave>${Math.floor(pitch / 12) - 1}</octave></pitch>`}<duration>${length}</duration>${ties.map(t => `<tie type="${t}"/>`).join('')}<type>${{16:'whole',8:'half',4:'quarter',2:'eighth',1:'16th'}[length]}</type>${ties.length ? `<notations>${ties.map(t => `<tied type="${t}"/>`).join('')}</notations>` : ''}</note>`);
+        measures[Math.floor(cursor / 16)].push(`<note>${pitch === null ? '<rest/>' : `<pitch><step>${step}</step>${alter}<octave>${Math.floor(pitch / 12) - 1}</octave></pitch>`}<duration>${length}</duration>${ties.map(t => `<tie type="${t}"/>`).join('')}<voice>${voiceIndex+1}</voice><type>${{16:'whole',8:'half',4:'quarter',2:'eighth',1:'16th'}[length]}</type>${ties.length || physical ? `<notations>${physical ? `<other-notation type="single" print-object="no">${xml(physical)}</other-notation>` : ''}${ties.map(t => `<tied type="${t}"/>`).join('')}</notations>` : ''}</note>`);
         cursor += length; continuation = true;
       }
     }
     for (const n of merged) {
       const start = Math.min(end, Math.max(cursor, tick(n.start))), finish = Math.min(end, tick(n.end));
       if (finish <= start) { skippedNotes++; continue; }
-      append(null, start);
+      physical=null; append(null, start); physical=n.sourceChannel??null;
       if (n.pitch === null || n.pitch < 0 || n.pitch > 127) { skippedNotes++; append(null, finish); }
       else { noteCount++; pitches.push(n.pitch); append(n.pitch, finish); }
     }
-    append(null, end);
+    physical=null; append(null, end);
+    }
     pitches.sort((a,b) => a-b);
     const bass = pitches.length && pitches[Math.floor(pitches.length / 2)] < 60;
     return `<part id="P${index+1}">${measures.map((notes, i) => `<measure number="${i+1}">${i === 0 ? `<attributes><divisions>4</divisions><time><beats>4</beats><beat-type>4</beat-type></time><clef><sign>${bass ? 'F' : 'G'}</sign><line>${bass ? 4 : 2}</line></clef></attributes>${index === 0 ? `<direction placement="above"><direction-type><metronome><beat-unit>quarter</beat-unit><per-minute>${bpm}</per-minute></metronome></direction-type><sound tempo="${bpm}"/></direction>` : ''}` : ''}${notes.join('')}${i === measures.length - 1 ? '<barline location="right"><bar-style>light-heavy</bar-style></barline>' : ''}</measure>`).join('\n')}</part>`;

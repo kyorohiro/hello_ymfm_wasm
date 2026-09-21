@@ -13,11 +13,15 @@ export function packTimeline(notes) {
   return Float64Array.from(rows);
 }
 // Return only the visible intervals. A density budget bounds drawing work.
+const endIndexes=new WeakMap();
 export function timelineWindow(data,start,end,limit=16000) {
-  let lo=0,hi=data.length/4;
-  while(lo<hi){const mid=Math.floor((lo+hi)/2);if(data[mid*4+1]<start)lo=mid+1;else hi=mid;}
+  let ends=endIndexes.get(data);
+  if(!ends){ends=new Float64Array(data.length/4);for(let i=0;i<ends.length;i++)ends[i]=Math.max(i?ends[i-1]:0,data[i*4+1]);endIndexes.set(data,ends);}
+  let lo=0,hi=ends.length;
+  while(lo<hi){const mid=Math.floor((lo+hi)/2);if(ends[mid]<start)lo=mid+1;else hi=mid;}
   const rows=[];
   for(let i=lo;i<data.length/4 && data[i*4]<=end;i++){
+    if(data[i*4+1]<start)continue;
     if(rows.length>=limit)return {rows,dense:true};
     rows.push([data[i*4],data[i*4+1],data[i*4+2],data[i*4+3]]);
   }

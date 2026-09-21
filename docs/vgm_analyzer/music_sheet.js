@@ -1,3 +1,5 @@
+import {groupSelectedScoreChannels} from './score_groups.js';
+import {getScoreGroups} from './score_group_ui.js';
 import {createMusicXmlScore} from './vgm_musicxml.js';
 let rendererLoading;
 function loadRenderer() {
@@ -51,7 +53,7 @@ export function mountMusicSheet({getTrack, tempoSettings, setStatus}) {
     try {
       if (!analysis || source !== getTrack().buffer) throw new Error('Reopen Export Music Sheet for the current track');
       const selected = new Set([...list.querySelectorAll('input:checked')].map(i => Number(i.value)));
-      const result = createMusicXmlScore(analysis.channels.filter((_,i) => selected.has(i)), analysis.time,
+      const result = createMusicXmlScore(groupSelectedScoreChannels(analysis.channels, analysis.channels.filter((_,i) => selected.has(i)), getScoreGroups(source)), analysis.time,
         {bpm:Number(bpm.value), fileName, warnings:analysis.warnings});
       if (action === 'export') {
         const url = URL.createObjectURL(new Blob([result.text], {type:'application/vnd.recordare.musicxml+xml'}));

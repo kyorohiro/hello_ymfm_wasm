@@ -250,3 +250,21 @@ pairs use the leading channel, so paired notes are not duplicated. Rhythm
 CH7–9 are omitted in rhythm mode; operator multipliers, routing/levels,
 modulation and release are not represented. Dual/variant YMF262 and YMF262
 MIDI export are not supported. Browser Sheet Music uses the same extraction.
+
+### Combine physical channels into score groups
+
+For music that spreads notes across channels, combine them manually:
+
+```sh
+npx tetorica-vgm score-channels song.vgz --json
+npx tetorica-vgm export song.vgz --format musicxml --merge-all --output combined.musicxml
+npx tetorica-vgm export song.vgz --format musicxml --group 'Piano=ymf262-ch1,ymf262-ch5' --group 'Bass=ymf262-ch2,ymf262-ch8' --output grouped.musicxml
+```
+
+Use IDs from `score-channels`. Each group becomes one score part; overlapping
+notes remain in separate voices. Ungrouped channels remain separate. This does
+not infer instruments or melodies. Grouping also works with `--format lilypond`.
+Repeat `--group` as needed; it cannot be combined with `--merge-all`. A channel
+can belong to only one group. With `--channels`, selection happens first, so
+include every member of each group; `--merge-all` combines the selected channels.
+These options do not change playback or MIDI exports.

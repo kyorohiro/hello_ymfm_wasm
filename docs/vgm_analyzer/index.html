@@ -770,6 +770,7 @@
 
         <section id="noteishPanel" class="tab-panel" role="tabpanel" aria-labelledby="noteishTab" hidden>
           <h2>Channel Note-ish View</h2>
+          <button type="button" data-score-groups>Channel Groups…</button>
           <div id="noteishViewTabs" class="tabbar" role="tablist" aria-label="Note-ish views">
             <button id="noteLiveTab" class="tab-button" type="button" role="tab" data-noteish-view="live" aria-controls="noteLivePane" aria-selected="true">Live History</button>
             <button id="noteSongTab" class="tab-button" type="button" role="tab" data-noteish-view="song" aria-controls="noteSongPane" aria-selected="false" tabindex="-1">Song Timeline</button>
@@ -870,7 +871,7 @@
             <p><label for="musicSheetBpmInput">BPM</label>
               <input id="musicSheetBpmInput" type="number" min="4" max="999" step="1" value="120" required></p>
             <p id="musicSheetTempoHelp">Default: 120 BPM. You can change this value.</p>
-            <fieldset><legend>Include channels</legend><div id="musicSheetChannels" style="max-height: 14em; overflow: auto"></div></fieldset>
+            <button type="button" data-score-groups>Channel Groups…</button><p>Selecting any group member includes the complete group. Regenerate after changes.</p><fieldset><legend>Include channels</legend><div id="musicSheetChannels" style="max-height: 14em; overflow: auto"></div></fieldset>
             <p>Assumed 4/4 and a 1/16 grid. Key, meter and triplets are not detected.
               PCM, noise, timbres and modulation are omitted. Short notes may disappear; unknown pitches become rests.</p>
             <button value="preview">Preview</button>
@@ -893,7 +894,7 @@
             <p><label for="lilyPondBpmInput">BPM</label>
               <input id="lilyPondBpmInput" type="number" min="4" max="999" step="1" value="120" required></p>
             <p id="lilyPondTempoHelp">Default: 120 BPM. You can change this value.</p>
-            <fieldset><legend>Include channels</legend><div id="lilyPondChannels" style="max-height: 14em; overflow: auto"></div></fieldset>
+            <button type="button" data-score-groups>Channel Groups…</button><p>Selecting any group member includes the complete group. Regenerate after changes.</p><fieldset><legend>Include channels</legend><div id="lilyPondChannels" style="max-height: 14em; overflow: auto"></div></fieldset>
             <p>Assumed 4/4 and a 1/16 grid. Key, meter and triplets are not detected.
               PCM, noise, timbres and modulation are omitted. Short notes may disappear; unknown pitches become rests.</p>
             <button value="export">Export .ly</button>
@@ -965,5 +966,12 @@
     </section>
 
     <script type="module" src="./vgm_analyzer.js?v=shared-playback-1"></script>
-  </body>
+  <dialog id="scoreGroupDialog"><form method="dialog">
+<h2>Channel Groups</h2><p>Combine notes for scores and the Song timeline. Playback and live physical CH monitors are unchanged. Settings last for this loaded track only.</p>
+<button type="button" data-all>Merge all channels</button> <button type="button" data-clear>Clear groups</button>
+<div data-groups></div><hr><label>Name <input data-name maxlength="80"></label>
+<div data-channels style="max-height:16em;overflow:auto"></div>
+<button type="button" data-save>Save selected group</button><p data-error role="status"></p><button value="close">Close</button>
+</form></dialog>
+</body>
 </html>

@@ -256,3 +256,25 @@ test('npm tarball installs offline, runs via npx, and exports the library',async
     }
   } finally {rmSync(dir,{recursive:true,force:true});}
 });
+
+test('CLI manual score groups and merge-all share browser output and reject bad assignments',async()=>{
+ const dir=mkdtempSync(join(tmpdir(),'tetorica-groups-'));
+ try {
+  const input=fixture('psg-tone.vgz'),source=await readSource(input);
+  for(const format of ['musicxml','lilypond']){
+   const output=join(dir,format);
+   const result=cli('export',input,'--format',format,'--group','Tones=psg-1,psg-2','--output',output,'--bpm','120');
+   assert.equal(result.status,0,result.stderr);
+   const expected=exportSource(source,{format,bpm:120,fileName:'psg-tone.vgz',groups:[{id:'tones',name:'Tones',channels:['psg-1','psg-2']}]});
+   assert.equal(readFileSync(output,'utf8'),expected.text);
+   const all=cli('export',input,'--format',format,'--merge-all','--output',output,'--force');
+   assert.equal(all.status,0,all.stderr);
+   assert.match(readFileSync(output,'utf8'),/All channels/);
+  }
+  for(const args of [['--group','Bad=absent'],['--group','A=psg-1','--group','B=psg-1'],['--merge-all','--group','A=psg-1']]){
+   const result=cli('export',input,'--format','musicxml','--output',join(dir,'invalid'),...args);
+   assert.equal(result.status,1,result.stderr);
+  }
+  assert.equal(cli('export',input,'--format','midi','--merge-all','--output',join(dir,'invalid.mid')).status,1);
+ }finally{rmSync(dir,{recursive:true,force:true});}
+});

@@ -37,13 +37,20 @@ test('Note-ish worker uses YM2151 extraction and emits timeline intervals',async
  const {readFileSync}=await import('node:fs');const vm=await import('node:vm');
  const {packTimeline,timelineWindow}=await import('./note_timeline.js');
  const {extractToneNotes}=await import('./tone_notes.js');
+ const {analyzeLilyPondSource}=await import('./vgm_lilypond.js');
+ const {groupScoreChannels}=await import('./score_groups.js');
  const messages=[];
  const source=readFileSync(new URL('./note_timeline_worker.js',import.meta.url),'utf8').replace(/^import .*;\n/gm,'');
- const ctx=vm.createContext({extractOpmNotes,extractToneNotes,Ym2612VGM,packTimeline,timelineWindow,midiChipKind:()=>{throw Error('OPM must not use OPN selector');},self:{postMessage:m=>messages.push(m)}});
+ const ctx=vm.createContext({analyzeLilyPondSource,groupScoreChannels,extractOpmNotes,extractToneNotes,Ym2612VGM,packTimeline,timelineWindow,midiChipKind:()=>{throw Error('OPM must not use OPN selector');},self:{postMessage:m=>messages.push(m)}});
  vm.runInContext(source,ctx);ctx.self.onmessage({data:{type:'load',buffer:song}});
  assert.equal(messages[0].type,'ready');assert.equal(messages[0].duration,150);assert.deepEqual(Array.from(messages[0].names),['CH1']);
  ctx.self.onmessage({data:{type:'view',id:1,start:0,end:150,limit:100}});
  assert.deepEqual(JSON.parse(JSON.stringify(messages[1].channels[0].rows)),[[0,100,69,1],[100,150,69.5,1]]);
+ ctx.self.onmessage({data:{type:'load',buffer:song,groups:[{id:'lead',name:'Lead',channels:['ym2151-ch1','ym2151-ch5']}]}});
+ assert.equal(messages[2].type,'ready');assert.deepEqual(Array.from(messages[2].names),['Lead']);
+ ctx.self.onmessage({data:{type:'view',id:2,start:0,end:150,limit:100}});
+ assert.equal(messages[3].channels[0].sources[1].channel,'ym2151-ch1');
+ assert.equal(messages[3].channels[0].rows.length,2);
 });
 test('Analyzer live bridge uses the same pitch and clears histories on reset',async()=>{
  const {readFileSync}=await import('node:fs');const vm=await import('node:vm');
