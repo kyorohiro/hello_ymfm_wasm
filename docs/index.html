@@ -89,6 +89,24 @@
       transition: transform 140ms ease, box-shadow 140ms ease, border-color 140ms ease;
     }
 
+    .card-with-icon {
+      display: flex;
+      align-items: flex-start;
+      gap: 18px;
+    }
+
+    .card-icon {
+      width: clamp(64px, 12vw, 96px);
+      height: auto;
+      flex-shrink: 0;
+      border-radius: 18px;
+    }
+
+    .card-content {
+      min-width: 0;
+      flex: 1;
+    }
+
     .card-primary-link {
       position: absolute;
       inset: 0;
@@ -239,31 +257,40 @@
       <h2>Tetorica Tools (Genesis / Mega Drive)</h2>
 
       <div class="grid">
-        <div class="card card-playground">
+        <div class="card card-playground card-with-icon">
           <a class="card-primary-link" href="./playground/index.html" aria-label="YM2612 Playground"></a>
-          <strong>YM2612 Playground</strong>
-          Try a small JavaScript playground with <code>play()</code>, <code>beat()</code>, <code>liveLoop()</code>, and
-          raw <code>fm</code> access.
-          <a class="card-engine-link" href="./playground/index.html?engine=nuked">Try with Nuked-OPN2 &rarr;</a>
+          <img class="card-icon" src="./icons/playground-192.png" width="192" height="192" alt="" decoding="async">
+          <div class="card-content">
+            <strong>YM2612 Playground</strong>
+            Try a small JavaScript playground with <code>play()</code>, <code>beat()</code>, <code>liveLoop()</code>, and
+            raw <code>fm</code> access.
+            <a class="card-engine-link" href="./playground/index.html?engine=nuked">Try with Nuked-OPN2 &rarr;</a>
+          </div>
         </div>
       </div>
 
       <div class="grid">
-        <div class="card card-synth">
+        <div class="card card-synth card-with-icon">
           <a class="card-primary-link" href="./synth/index.html" aria-label="YM2612 Synth Demo"></a>
-          <strong>YM2612 Synth Demo</strong>
-          Try a small YM2612Synth keyboard with a guitar-like PC key layout and preset switching.
-          <a class="card-engine-link" href="./synth/index.html?engine=nuked">Try with Nuked-OPN2 &rarr;</a>
+          <img class="card-icon" src="./icons/icon-192.png" width="192" height="192" alt="" decoding="async">
+          <div class="card-content">
+            <strong>YM2612 Synth Demo</strong>
+            Try a small YM2612Synth keyboard with a guitar-like PC key layout and preset switching.
+            <a class="card-engine-link" href="./synth/index.html?engine=nuked">Try with Nuked-OPN2 &rarr;</a>
+          </div>
         </div>
       </div>
 
       <div class="grid">
-        <div class="card card-analyzer">
+        <div class="card card-analyzer card-with-icon">
           <a class="card-primary-link" href="./vgm_analyzer/index.html" aria-label="FM2612 VGM Analyzer"></a>
-          <strong>FM2612 VGM Analyzer</strong>
-          Inspect parsed commands, watch 6 YM2612 channels, and export snapshot data or TFI patches.
-          <a class="card-engine-link" href="./vgm_analyzer/support.html">Sound chip support &rarr;</a>
-          <a class="card-engine-link" href="./vgm_analyzer/index.html?engine=nuked">Try with Nuked-OPN2 &rarr;</a>
+          <img class="card-icon" src="./icons/analyzer-192.png" width="192" height="192" alt="" decoding="async">
+          <div class="card-content">
+            <strong>FM2612 VGM Analyzer</strong>
+            Inspect parsed commands, watch 6 YM2612 channels, and export snapshot data or TFI patches.
+            <a class="card-engine-link" href="./vgm_analyzer/support.html">Sound chip support &rarr;</a>
+            <a class="card-engine-link" href="./vgm_analyzer/index.html?engine=nuked">Try with Nuked-OPN2 &rarr;</a>
+          </div>
         </div>
       </div>
 
@@ -305,12 +332,15 @@
       </div>
 
       <div class="grid">
-        <div class="card card-playground">
+        <div class="card card-playground card-with-icon">
           <a class="card-primary-link" href="https://kyorohiro.github.io/tetorica-midi-playground/index.html" aria-label="Tetorica MIDI Playground — macOS app"></a>
-          <strong>Tetorica MIDI Playground</strong>
-          Live-code MIDI melodies and loops in JavaScript. Connect this macOS app to GarageBand, a DAW, or a MIDI instrument.
-          <a class="card-engine-link" href="https://github.com/kyorohiro/tetorica-midi-playground/releases">Download for macOS &rarr;</a>
-          <a class="card-engine-link" href="https://kyorohiro.itch.io/tetorica-midi-playground">View on itch.io &rarr;</a>
+          <img class="card-icon" src="./icons/midi-playground.png" width="1254" height="1254" alt="" decoding="async" loading="lazy">
+          <div class="card-content">
+            <strong>Tetorica MIDI Playground</strong>
+            Live-code MIDI melodies and loops in JavaScript. Connect this macOS app to GarageBand, a DAW, or a MIDI instrument.
+            <a class="card-engine-link" href="https://github.com/kyorohiro/tetorica-midi-playground/releases">Download for macOS &rarr;</a>
+            <a class="card-engine-link" href="https://kyorohiro.itch.io/tetorica-midi-playground">View on itch.io &rarr;</a>
+          </div>
         </div>
       </div>
 
