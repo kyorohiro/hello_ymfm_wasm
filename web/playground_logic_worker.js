@@ -371,7 +371,9 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
 
   const livePrepare = async (name, fn) => {
     if (run.prepared.has(name)) return run.prepared.get(name);
+    const generation = run.generation;
     const value = await fn({ fm, fx, psg, sample, stream, dac, noise, control: (voice, options) => postCommand("noise.control", [handleId(voice), options]), context: run.context, log: (...args) => postCommand("log", args) });
+    if (run.stopped || generation !== run.generation) throw new Error("Run stopped");
     run.prepared.set(name, value);
     return value;
   };
@@ -550,6 +552,7 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
     });
   };
   run.execute = async (nextSourceCode = sourceCode) => {
+    const generation = run.generation;
     run.collectingLoops = new Map();
     run.collectingCleanups = [];
     const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
@@ -557,6 +560,7 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
     await executeWithWorkerGuards(
       () => userFunction(...Object.values(globals))
     );
+    if (run.stopped || generation !== run.generation) throw new Error("Run stopped");
     const definitions = run.collectingLoops;
     const cleanupDefinitions = run.collectingCleanups;
     run.collectingLoops = null;
@@ -601,9 +605,11 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
 }
 
 let lifecycleQueue = Promise.resolve();
+let stopping = Promise.resolve();
 
 async function handleLifecycleMessage(message) {
   if (message.type === "run") {
+    await stopping;
     const previousRun = currentRun;
     currentRun = previousRun ?? createRun(message.sourceCode, message.presets ?? {}, message.scaleIntervals ?? {}, message.capabilities ?? {}, message.timing ?? {});
     if (currentRun.stopped) {
@@ -628,6 +634,13 @@ async function handleLifecycleMessage(message) {
 
 self.onmessage = (event) => {
   const message = event.data;
+  if (message.type === "stop") {
+    // Interrupt waits now: queuing stop behind run.execute would wait for the
+    // very evaluation we need to cancel.
+    stopping = stopping.then(() => handleLifecycleMessage(message))
+      .catch(error => postMessage({ type: "log", level: "error", message: String(error) }));
+    return;
+  }
   if (message.type === "response") {
     const pending = pendingRequests.get(message.id);
     if (!pending) return;

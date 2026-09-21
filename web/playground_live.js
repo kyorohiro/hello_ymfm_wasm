@@ -15,6 +15,8 @@ export function createPlaygroundLive(
       callback(),
   } = options;
 
+  let preparedGeneration = 0;
+
   function markPreparedFxUnits(value) {
     if (!value) {
       return;
@@ -147,6 +149,7 @@ export function createPlaygroundLive(
   }
 
   function clearPrepared() {
+    preparedGeneration += 1;
     const preparedUnits =
       new Set();
 
@@ -192,7 +195,9 @@ export function createPlaygroundLive(
       );
     }
 
+    const generation = preparedGeneration;
     const result = await fn(api);
+    if (generation !== preparedGeneration) throw new Error("Run stopped");
     runtime.livePrepared.set(
       name,
       result

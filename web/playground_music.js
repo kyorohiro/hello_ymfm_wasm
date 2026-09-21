@@ -1,5 +1,8 @@
 import { hzToBlockFnum } from "./pitch.js";
 
+// Shared across evaluations using the same active-note set.
+const noteOwners = new WeakMap();
+
 const CHORD_INTERVALS = {
   major: [0, 4, 7],
   minor: [0, 3, 7],
@@ -130,12 +133,21 @@ export function createPlaygroundMusic(
       pitch.block,
       pitch.fnum
     );
+    const voice = {};
+    let owners = noteOwners.get(activeNotes);
+    if (!owners) noteOwners.set(activeNotes, owners = new Map());
+    owners.set(channel, voice);
     activeNotes.add(channel);
-
-    await sleep(duration);
-
-    currentSynth.noteOff(channel);
-    activeNotes.delete(channel);
+    try {
+      await sleep(duration);
+    } finally {
+      // A cancelled/older note must not release a newer note on this channel.
+      if (activeNotes.has(channel) && owners.get(channel) === voice) {
+        currentSynth.noteOff(channel);
+        activeNotes.delete(channel);
+        owners.delete(channel);
+      }
+    }
   }
 
   function midiToNoteName(midi) {

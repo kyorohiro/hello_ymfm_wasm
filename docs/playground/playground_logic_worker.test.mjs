@@ -277,3 +277,33 @@ test("Worker serializes an immediate Stop then Run", async () => {
   assert.ok(stoppedIndex < secondCompleteIndex);
   await worker.send({ type: "stop" });
 });
+
+test('stop interrupts a top-level sleep and prevents late loop registration', async () => {
+  const worker = createWorkerHarness();
+  await worker.send({ type: 'run', sourceCode: 'fm.noteOn(0,4,500); await sleep(60); liveLoop("late", async () => { await sleep(60); });' });
+  await waitFor(() => worker.messages.some(m => m.command === 'fm.noteOn'), 1000);
+  await worker.send({ type: 'stop' });
+  await waitFor(() => worker.messages.some(m => m.type === 'stopped'), 1000);
+  assert.ok(worker.messages.some(m => m.command === 'audio.stopAll'));
+  await waitFor(() => worker.messages.some(m => m.type === 'execution-error'), 1000);
+  assert.ok(!worker.messages.some(m => m.type === 'complete'));
+  await worker.send({ type: 'run', sourceCode: 'log("restarted");' });
+  await waitFor(() => worker.messages.some(m => m.type === 'complete'), 1000);
+  assert.equal(worker.messages.find(m => m.type === 'complete').loopCount, 0);
+  await worker.send({ type: 'stop' });
+});
+
+test('stop during worker preparation does not cache the late result', async () => {
+  const worker = createWorkerHarness();
+  await worker.send({ type: 'run', sourceCode: 'await livePrepare("asset", async () => { await sample.load("asset", "x"); return "old"; });' });
+  await waitFor(() => worker.messages.some(m => m.command === 'sample.load'), 1000);
+  const request = worker.messages.find(m => m.command === 'sample.load');
+  await worker.send({ type: 'stop' });
+  await waitFor(() => worker.messages.some(m => m.type === 'stopped'), 1000);
+  await worker.send({ type: 'response', id: request.id });
+  await waitFor(() => worker.messages.some(m => m.type === 'execution-error'), 1000);
+  await worker.send({ type: 'run', sourceCode: 'log(await livePrepare("asset", () => "new"));' });
+  await waitFor(() => worker.messages.some(m => m.command === 'log'), 1000);
+  assert.equal(worker.messages.find(m => m.command === 'log').args[0], 'new');
+  await worker.send({ type: 'stop' });
+});

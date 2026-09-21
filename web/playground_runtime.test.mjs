@@ -115,3 +115,37 @@ test('finalize settles pending Worker runs and main-mode stop waits; late Worker
   assert.equal(listeners.size, 0);
   assert.equal(runtime.getState().playback, 'stopped');
 });
+
+test('removing a sounding loop releases its note', async t => {
+  const { runtime, megaDrive } = setup(t);
+  const notes = [];
+  megaDrive.fm.noteOn = c => notes.push(['on', c]);
+  megaDrive.fm.noteOff = c => notes.push(['off', c]);
+  await runtime.playSource('liveLoop("lead", async () => { await play("C4", { duration: 60 }); });');
+  await runtime.playSource('');
+  await new Promise(resolve => setTimeout(resolve, 20));
+  assert.deepEqual(notes, [['on', 0], ['off', 0]]);
+});
+
+test('cancelled loop does not release the replacement note on the same channel', async t => {
+  const { runtime, megaDrive } = setup(t);
+  const notes = [];
+  megaDrive.fm.noteOn = c => notes.push(['on', c]);
+  megaDrive.fm.noteOff = c => notes.push(['off', c]);
+  await runtime.playSource('liveLoop("old", async () => { await play("C4", { duration: 60 }); });');
+  await runtime.playSource('liveLoop("new", async () => { await play("D4", { duration: 60 }); });');
+  await new Promise(resolve => setTimeout(resolve, 20));
+  assert.deepEqual(notes, [['on', 0], ['on', 0]]);
+});
+
+test('late prepare completion cannot repopulate the cache after stop', async t => {
+  const { runtime } = setup(t);
+  const gate = deferred();
+  globalThis.playgroundReview = { gate: gate.promise, entered: false, value: null };
+  const pending = runtime.playSource('await livePrepare("asset", async () => { globalThis.playgroundReview.entered = true; await globalThis.playgroundReview.gate; return "old"; });');
+  await until(() => globalThis.playgroundReview.entered);
+  runtime.stop();
+  gate.resolve(); await pending;
+  await runtime.playSource('globalThis.playgroundReview.value = await livePrepare("asset", () => "new");');
+  assert.equal(globalThis.playgroundReview.value, 'new');
+});
