@@ -150,3 +150,17 @@ https://www.npmjs.com/package/tetorica-vgm
 - 初回公開前の `npm view` の404は、パッケージがまだ見つからないことを示す。
 - 手動公開の認証条件: https://docs.npmjs.com/requiring-2fa-for-package-publishing-and-settings-modification/
 - publish仕様: https://docs.npmjs.com/cli/commands/npm-publish/
+
+## Browserの音源対応表を更新した場合
+
+編集元は `docs/vgm_analyzer/index.html` の `chipSupportDialog` のみ。
+共有用の `docs/vgm_analyzer/support.html` は生成物なので直接編集しない。
+
+```sh
+node scripts/build_analyzer_support.mjs
+node scripts/build_analyzer_support.mjs --check
+```
+
+生成したHTMLもcommitし、GitHub Pagesへ反映する。JavaScriptやダイアログ操作なしで読める。
+itch.ioの梱包でも同期チェックを行い、このページを同梱する。
+公開後の案内URL: https://kyorohiro.github.io/hello_ymfm_wasm/vgm_analyzer/support.html

@@ -23,6 +23,7 @@ score_groups.js
 score_group_ui.js
 playback_core.js
 index.html
+support.html
 analyzer_theme.css
 tfi_info.js
 ay8910_monitor.js
@@ -198,6 +199,8 @@ if [ ! -d "${NUKED_LICENSE_DIR}" ]; then
   echo "error: missing directory: ${NUKED_LICENSE_DIR}" >&2
   exit 1
 fi
+
+node "${ROOT_DIR}/scripts/build_analyzer_support.mjs" --check
 
 mkdir -p "${RELEASE_DIR}"
 rm -rf "${STAGE_DIR}"

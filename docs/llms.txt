@@ -6,6 +6,8 @@ Use the common Playground type definitions together with the type definition for
 
 ## Documentation
 
+- [VGM Analyzer sound chip support](./vgm_analyzer/support.html): Browser playback, analysis, export coverage and limitations by chip
+
 - [For AI](./for-ai.html): AI-oriented entry point, execution contract, type definitions, and representative examples
 - [Documentation](./index.html): Human-oriented project documentation and demos
 - [Playground](./playground/): Interactive JavaScript Playground

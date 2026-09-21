@@ -74,6 +74,8 @@ This is the easiest way to test YM2612 control, sound design, and Genesis-orient
 - VGM Analyzer:
   [https://kyorohiro.github.io/hello_ymfm_wasm/vgm_analyzer/index.html](https://kyorohiro.github.io/hello_ymfm_wasm/vgm_analyzer/index.html)
 
+[VGM Analyzer sound chip support and limitations](https://kyorohiro.github.io/hello_ymfm_wasm/vgm_analyzer/support.html)
+
 ## First session: explore a VGM instrument
 
 1. Open [Playground](https://kyorohiro.github.io/hello_ymfm_wasm/playground/index.html) and import a supported VGM/VGZ file.
