@@ -145,3 +145,53 @@ for(const [chip,Engine,factory] of [configs[0],configs[1]]){
   }finally{solo.dispose();mix.dispose();never.dispose();}
  });
 }
+
+// Reference resampler before reusable output buffers.
+const allocatingOpl3Reference = {
+  process(left, right, frames) {
+    if (!Number.isInteger(frames) || frames < 0 || frames > 0x1000000) throw new RangeError('Invalid frame count');
+    if (!(left instanceof Float32Array) || !(right instanceof Float32Array) || left.length < frames || right.length < frames)
+      throw new RangeError('Invalid output buffers');
+    const psg = this.psg?.generateStereo(frames);
+    for (let i = 0; i < frames; i++) {
+      this.remainder += this.chipRate;
+      const count = Math.floor(this.remainder / this.outputRate);
+      this.remainder -= count * this.outputRate;
+      if (count) {
+        const pcm = this.ymf262.generateStereo(count);
+        let sumLeft = 0, sumRight = 0;
+        for (let sample = 0; sample < count; sample++) { sumLeft += pcm.left[sample]; sumRight += pcm.right[sample]; }
+        this.lastLeft = sumLeft / count;
+        this.lastRight = sumRight / count;
+      }
+      left[i] = (this.lastLeft + (psg && !this.psgMuted ? psg.left[i] : 0)) * this.volume;
+      right[i] = (this.lastRight + (psg && !this.psgMuted ? psg.right[i] : 0)) * this.volume;
+    }
+  }
+};
+
+test('YMF262 reusable buffers match the previous resampler across rates, writes and reset',async()=>{
+ for(const outputSampleRate of [22050,44100,48000,96000]){
+  const opts={...options('ymf262',opl3Factory),outputSampleRate};
+  const actual=await Ymf262AudioEngine.create(opts),reference=await Ymf262AudioEngine.create(opts);
+  reference.process=allocatingOpl3Reference.process;
+  try {
+   const scratch=actual.scratchLeft;
+   actual.ymf262.generateStereo=()=>{throw Error('Allocating API used in realtime rendering');};
+   for(const mode of ['2op','4op','rhythm']){
+    for(const e of [actual,reference]){
+     e.reset();e.writeYmf262(1,5,1);
+     if(mode==='4op')e.writeYmf262(1,4,1);
+     write(e,'ymf262',[...voice(),...voice(0,3),...voice(1)]);
+     if(mode==='rhythm')write(e,'ymf262',[...voice(0,6),...voice(0,7),...voice(0,8),[0,0xbd,0x3f]]);
+    }
+    for(const frames of [1,127,2048,3,4096]){
+     for(const e of [actual,reference])e.writeYmf262(0,0xa0,frames&255);
+     const a=actual.processFrames(frames),b=reference.processFrames(frames);
+     assert.deepEqual(a,b);assert.equal(actual.scratchLeft,scratch);
+    }
+   }
+   assert.throws(()=>actual.ymf262.generateStereoInto(new Float32Array(1),new Float32Array(1),2),/Invalid/);
+  }finally{actual.dispose();reference.dispose();}
+ }
+});

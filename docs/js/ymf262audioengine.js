@@ -20,6 +20,9 @@ export class Ymf262AudioEngine {
     this.psg = psg;
     this.chipRate = chipRate;
     this.outputRate = outputRate;
+    const capacity = Math.max(1, Math.ceil(chipRate / outputRate));
+    this.scratchLeft = new Float32Array(capacity);
+    this.scratchRight = new Float32Array(capacity);
     this.setMasterVolume(volume);
     this.psgMuted = false;
     this.remainder = 0;
@@ -54,9 +57,9 @@ export class Ymf262AudioEngine {
       const count = Math.floor(this.remainder / this.outputRate);
       this.remainder -= count * this.outputRate;
       if (count) {
-        const pcm = this.ymf262.generateStereo(count);
+        this.ymf262.generateStereoInto(this.scratchLeft, this.scratchRight, count);
         let sumLeft = 0, sumRight = 0;
-        for (let sample = 0; sample < count; sample++) { sumLeft += pcm.left[sample]; sumRight += pcm.right[sample]; }
+        for (let sample = 0; sample < count; sample++) { sumLeft += this.scratchLeft[sample]; sumRight += this.scratchRight[sample]; }
         this.lastLeft = sumLeft / count;
         this.lastRight = sumRight / count;
       }

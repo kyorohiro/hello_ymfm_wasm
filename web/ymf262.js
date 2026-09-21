@@ -125,16 +125,28 @@ export class Ymf262 {
 
   generateStereo(frames) {
     this.#ensureBuffers(frames);
-    this.api.generate(this.handle, this.leftPtr, this.rightPtr, frames);
-
-    const leftStart = this.leftPtr >> 2;
-    const rightStart = this.rightPtr >> 2;
     const left = new Float32Array(frames);
     const right = new Float32Array(frames);
-    left.set(this.module.HEAPF32.subarray(leftStart, leftStart + frames));
-    right.set(this.module.HEAPF32.subarray(rightStart, rightStart + frames));
-    this.#syncIrq();
+    this.generateStereoInto(left, right, frames);
     return { left, right };
+  }
+
+  // Caller-owned output buffers; no per-call arrays or result objects.
+  generateStereoInto(left, right, frames = left.length) {
+    if (!(left instanceof Float32Array) || !(right instanceof Float32Array) ||
+        left.length < frames || right.length < frames) {
+      throw new RangeError("Invalid output buffers");
+    }
+    this.#ensureBuffers(frames);
+    this.api.generate(this.handle, this.leftPtr, this.rightPtr, frames);
+    // Read the current heap after generation: WASM memory may have grown.
+    const heap = this.module.HEAPF32;
+    const leftStart = this.leftPtr >> 2, rightStart = this.rightPtr >> 2;
+    for (let i = 0; i < frames; i++) {
+      left[i] = heap[leftStart + i];
+      right[i] = heap[rightStart + i];
+    }
+    this.#syncIrq();
   }
 
   #ensureBuffers(frames) {
