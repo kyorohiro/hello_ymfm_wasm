@@ -40,3 +40,25 @@ test('shared score pipeline exports MusicXML/LilyPond and stable CLI channel sel
  assert.match(exportSource(b,{format:'lilypond',bpm:120}).text,/YMF262 CH1/);
  const support=await inspectSourceSupport(b);assert.equal(support.exports.musicxml.status,'available');assert.equal(support.exports.lilypond.status,'available');
 });
+test('live OPL3 monitor follows pair/rhythm changes and reset',async()=>{
+ const {createOpl3Monitor,applyOpl3Write,describeOpl3Notes}=await import('./ymf262_notes.js');
+ const regs=createOpl3Monitor();const put=(r,v,p=0)=>applyOpl3Write(regs,r,v,p);
+ put(5,1,1);put(0xa0,68);put(0xb0,50);put(0xa3,68);put(0xb3,50);
+ let notes=describeOpl3Notes(regs,14318180);assert.equal(notes[3].keyOn,true);
+ put(4,1,1);notes=describeOpl3Notes(regs,14318180);
+ assert.equal(notes[0].keyOn,true);assert.equal(notes[0].paired,true);assert.equal(notes[3].keyOn,false);assert.equal(notes[3].slave,true);
+ put(0xbd,32);assert.equal(describeOpl3Notes(regs,14318180)[6].percussion,true);
+ assert.ok(describeOpl3Notes(createOpl3Monitor(),14318180).every(n=>!n.keyOn));
+});
+test('Song timeline worker loads OPL3 pairs without duplicate notes',async()=>{
+ const previous=globalThis.self, messages=[];
+ globalThis.self={postMessage:m=>messages.push(m)};
+ try {
+  await import('./note_timeline_worker.js');
+  self.onmessage({data:{type:'load',buffer:vgm([...w(5,1,1),...w(4,1,1),...on(0),...on(3),...wait])}});
+  assert.equal(messages[0].type,'ready');assert.equal(messages[0].duration,22050);
+  assert.deepEqual(messages[0].names,['CH1']);
+  self.onmessage({data:{type:'view',id:1,start:0,end:22050,limit:100}});
+  assert.equal(messages[1].type,'view');assert.equal(messages[1].channels.length,1);
+ }finally{globalThis.self=previous;}
+});

@@ -1,3 +1,4 @@
+import {extractOpl3Notes} from './ymf262_notes.js';
 import {extractOpmNotes} from './opm_notes.js';
 import {extractOpnNotes,midiChipKind} from './vgm_notes.js?v=midi-onset-1';
 import {extractToneNotes} from './tone_notes.js?v=ym2610-vgm-2';
@@ -9,8 +10,8 @@ self.onmessage=({data})=>{
   try{
     if(data.type==='load'){
       const header=new Ym2612VGM(data.buffer).header;
-      const kind=header.ym2151Clock ? 'ym2151' : midiChipKind(header);
-      const fm=kind==='ym2151'?extractOpmNotes(data.buffer):kind && kind!=='psg' && kind!=='ay8910' && kind!=='ym2413'?extractOpnNotes(data.buffer):{channels:[],time:0};
+      const kind=header.ymf262Clock ? 'ymf262' : header.ym2151Clock ? 'ym2151' : midiChipKind(header);
+      const fm=kind==='ymf262'?extractOpl3Notes(data.buffer):kind==='ym2151'?extractOpmNotes(data.buffer):kind && kind!=='psg' && kind!=='ay8910' && kind!=='ym2413'?extractOpnNotes(data.buffer):{channels:[],time:0};
       const tones=extractToneNotes(data.buffer,kind);
       const opll=(header.ym2413Clock & 0x3fffffff)?extractOpllNotes(data.buffer):{channels:[],time:0};
       channels=[...fm.channels.map((ch,i)=>({name:`CH${i+1}`,notes:ch.notes})),...tones.channels,...opll.channels]

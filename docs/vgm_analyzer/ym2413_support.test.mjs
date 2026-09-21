@@ -19,7 +19,7 @@ for (const chip of ['msx','ym3526','ym2413','ym2151','ym3812','ymf262']) test(`$
   for(const name of [...tabNames,...buttonNames])context[name]={disabled:false,title:'',getAttribute:()=> 'false'};
   vm.createContext(context);vm.runInContext(fn('updateChipSupport'),context);
   context.updateChipSupport();
-  const enabledTabs=chip==='ym2151'?['operatorInfoTab','noteishTab','tfiInfoTab']:chip==='ym2413'?['operatorInfoTab','noteishTab']:[];
+  const enabledTabs=chip==='ym2151'?['operatorInfoTab','noteishTab','tfiInfoTab']:chip==='ym2413'?['operatorInfoTab','noteishTab']:chip==='ymf262'?['noteishTab']:[];
   const supportedExports=['ym2151','ym2413'].includes(chip)?['exportMidiButton','exportMmlButton']:[];
   if(chip==='ym2151')supportedExports.push('exportAllTfiButton','exportSnapshotTfiButton');
   for(const name of tabNames)assert.equal(context[name].disabled,!enabledTabs.includes(name),name);
@@ -27,7 +27,7 @@ for (const chip of ['msx','ym3526','ym2413','ym2151','ym3812','ymf262']) test(`$
   context.currentBuffer={};context.midiExportAvailable=true;context.updateChipSupport();
   for(const name of buttonNames)assert.equal(context[name].disabled,!supportedExports.includes(name),name);
   assert.equal(context.sheetMusicTab.disabled,false);
-  assert.equal(context.selected,enabledTabs.length?'operator-info':'parsed-output');assert.equal(notice.hidden,false);
+  assert.equal(context.selected,chip==='ymf262'?'noteish':enabledTabs.length?'operator-info':'parsed-output');assert.equal(notice.hidden,false);
   context.currentChipKind='ym2612';context.updateChipSupport();
   for(const name of tabNames)assert.equal(context[name].disabled,false);
   assert.equal(notice.hidden,true);
@@ -142,4 +142,16 @@ test('YMF262 enables Sheet Music and LilyPond independently of MIDI',()=>{
  assert.equal(context.exportMidiButton.disabled,true);
  context.noteishHeader.ymf262Clock=14318180|0x40000000;context.updateChipSupport();
  assert.equal(context.sheetMusicTab.disabled,true);
+});
+test('OPL3 Note-ish live channels follow shared state and reset',async()=>{
+ const {createOpl3Monitor,applyOpl3Write,describeOpl3Notes}=await import('./ymf262_notes.js');
+ const context={currentChipKind:'ymf262',noteishHeader:{ymf262Clock:14318180},apuNoteChannels:[],apuNoteMonitor:createOpl3Monitor(),createOpl3Monitor,describeOpl3Notes,
+  buildMonitorChannel:i=>({channel:i,noteHistory:[],noteMinMidi:null,noteMaxMidi:null}),songTimeMs:()=>0,pruneChannelNoteHistory(){},requestNoteishRender(){}};
+ vm.createContext(context);vm.runInContext(fn('updateApuNoteMonitor')+'\n'+fn('resetApuNoteChannels'),context);
+ for(const [r,v,p] of [[5,1,1],[0xa0,68,0],[0xb0,50,0],[0xa3,68,0],[0xb3,50,0],[4,1,1]])applyOpl3Write(context.apuNoteMonitor,r,v,p);
+ context.updateApuNoteMonitor();
+ assert.equal(context.apuNoteChannels.length,18);assert.equal(context.apuNoteChannels[0].keyOn,true);
+ assert.equal(context.apuNoteChannels[0].apuType,'4op');assert.equal(context.apuNoteChannels[3].unavailable,true);
+ assert.equal(context.apuNoteChannels[3].toneMidi,null);
+ context.resetApuNoteChannels();assert.ok(context.apuNoteChannels.every(ch=>!ch.keyOn));
 });
