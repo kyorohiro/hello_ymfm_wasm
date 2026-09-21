@@ -133,3 +133,13 @@ test('chip selection recognizes YM2413 and preserves OPN selection',()=>{
   assert.equal(context.detectPlaybackChipKind({y8950Clock:3579545,ay8910Clock:1789773,gameBoyDmgClock:4194304}),'msx');
   assert.equal(context.detectPlaybackChipKind({ym2612Clock:7670454,segaPcmClock:4000000}),'ym2612');
 });
+test('YMF262 enables Sheet Music and LilyPond independently of MIDI',()=>{
+ const context={...chipSupportContext(),currentChipKind:'ymf262',currentBuffer:{},noteishHeader:{ymf262Clock:14318180},setOutputTab(){}};
+ vm.createContext(context);vm.runInContext(fn('updateChipSupport'),context);context.updateChipSupport();
+ assert.equal(context.sheetMusicTab.disabled,false);
+ assert.equal(context.exportLilyPondButton.disabled,false);
+ assert.equal(context.document.getElementById('exportMusicSheetButton').disabled,false);
+ assert.equal(context.exportMidiButton.disabled,true);
+ context.noteishHeader.ymf262Clock=14318180|0x40000000;context.updateChipSupport();
+ assert.equal(context.sheetMusicTab.disabled,true);
+});

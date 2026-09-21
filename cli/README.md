@@ -241,3 +241,12 @@ description; opaque tails remain covered by `warnings`. Wait descriptions for
 it. Comments are not stored in VGM, and do not update automatically after hex
 edits. Keep the JSON to retain your notes. Omit `--comments` for smaller output.
 The Node/Core equivalent is `vgmToJson(bytes, { comments: true })`.
+
+### YMF262 Sheet Music
+
+YMF262 (OPL3) supports MusicXML / LilyPond base-pitch scores for 2op and 4op.
+Use `score-channels` to select IDs `ymf262-ch1`–`ymf262-ch18`. Four-operator
+pairs use the leading channel, so paired notes are not duplicated. Rhythm
+CH7–9 are omitted in rhythm mode; operator multipliers, routing/levels,
+modulation and release are not represented. Dual/variant YMF262 and YMF262
+MIDI export are not supported. Browser Sheet Music uses the same extraction.

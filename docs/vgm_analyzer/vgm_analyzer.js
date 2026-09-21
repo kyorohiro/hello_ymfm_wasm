@@ -2708,11 +2708,11 @@ function updatePlaybackButtons(state = {}) {
 
 // Keep the first playback-only chip boundary local until more features are implemented.
 function updateChipSupport() {
-  sheetMusicTab.disabled = !currentBuffer || !midiExportAvailable;
+  sheetMusicTab.disabled = !currentBuffer || !(midiExportAvailable || (currentChipKind === 'ymf262' && !(noteishHeader.ymf262Clock & 0xc0000000)));
   document.getElementById('showSheetMusicButton').disabled = sheetMusicTab.disabled;
   musicSheet?.updateTrack();
-  document.getElementById("exportMusicSheetButton").disabled = !currentBuffer || !midiExportAvailable;
-  exportLilyPondButton.disabled = !currentBuffer || !midiExportAvailable;
+  document.getElementById("exportMusicSheetButton").disabled = !currentBuffer || !(midiExportAvailable || (currentChipKind === 'ymf262' && !(noteishHeader.ymf262Clock & 0xc0000000)));
+  exportLilyPondButton.disabled = !currentBuffer || !(midiExportAvailable || (currentChipKind === 'ymf262' && !(noteishHeader.ymf262Clock & 0xc0000000)));
   exportAllOpmButton.hidden = exportOpmButton.hidden = currentChipKind !== 'ym2151';
   exportAllOpmButton.disabled = exportOpmButton.disabled = currentChipKind !== 'ym2151' || !currentBuffer;
   tfiInfoTab.textContent = currentChipKind === 'ym2151' ? 'OPM Info' : 'Tfi info';
@@ -2756,7 +2756,7 @@ function updateChipSupport() {
   }
   const notice = document.getElementById('chipSupportNotice');
   notice.hidden = !playbackOnly;
-  notice.textContent = currentChipKind === 'ym2151' ? 'YM2151 register monitor available. Base-pitch Note-ish available; noise/partial keys/CSM are omitted. MIDI base-pitch export available. OPM snapshots are available in the Export group. MXDRV MML export available. Instrument editing: Support coming soon.' : ay ? 'AY / YM2149 register monitor and base-pitch Note-ish available; noise/envelope shape are omitted. MIDI and LilyPond/Music Sheet base-pitch export available. Instrument editing and MML export: Support coming soon.' : opll ? 'YM2413 register monitor and base-pitch Note-ish available: FNUM/BLOCK base pitch, instrument number, volume and rhythm mode state; rhythm channels other than Bass Drum have no single pitch. MIDI and LilyPond/Music Sheet base-pitch export available. Instrument editing and MML export: Support coming soon.' : ['gameboy','nes'].includes(currentChipKind) ? (currentChipKind==='nes'?'NES APU: pulse/triangle base-pitch notes, MIDI and Music Sheet. Noise/DMC are omitted from scores; time-based modulation is approximate.': 'Game Boy DMG base-pitch Note-ish available for CH1/CH2 (square) and CH3 (wave); CH4 (noise) has no pitch, and length counter/CH1 sweep are not reconstructed. MIDI and LilyPond/Music Sheet base-pitch export available. Register monitor, instrument editing and MML export: Support coming soon.') : `${currentChipKind.toUpperCase()} analysis and instrument editing: Support coming soon.`;
+  notice.textContent = currentChipKind === 'ymf262' ? 'YMF262 Sheet Music / MusicXML / LilyPond: 2op and 4op base pitches; pairs use the leading CH. Rhythm, timbre, modulation and release are omitted. MIDI export is not supported.' : currentChipKind === 'ym2151' ? 'YM2151 register monitor available. Base-pitch Note-ish available; noise/partial keys/CSM are omitted. MIDI base-pitch export available. OPM snapshots are available in the Export group. MXDRV MML export available. Instrument editing: Support coming soon.' : ay ? 'AY / YM2149 register monitor and base-pitch Note-ish available; noise/envelope shape are omitted. MIDI and LilyPond/Music Sheet base-pitch export available. Instrument editing and MML export: Support coming soon.' : opll ? 'YM2413 register monitor and base-pitch Note-ish available: FNUM/BLOCK base pitch, instrument number, volume and rhythm mode state; rhythm channels other than Bass Drum have no single pitch. MIDI and LilyPond/Music Sheet base-pitch export available. Instrument editing and MML export: Support coming soon.' : ['gameboy','nes'].includes(currentChipKind) ? (currentChipKind==='nes'?'NES APU: pulse/triangle base-pitch notes, MIDI and Music Sheet. Noise/DMC are omitted from scores; time-based modulation is approximate.': 'Game Boy DMG base-pitch Note-ish available for CH1/CH2 (square) and CH3 (wave); CH4 (noise) has no pitch, and length counter/CH1 sweep are not reconstructed. MIDI and LilyPond/Music Sheet base-pitch export available. Register monitor, instrument editing and MML export: Support coming soon.') : `${currentChipKind.toUpperCase()} analysis and instrument editing: Support coming soon.`;
   opnMonitorRoot.hidden = ay || opll || currentChipKind === 'ym2151';
   opmMonitorRoot.hidden = currentChipKind !== 'ym2151';
   ayMonitorRoot.hidden = !ay;
@@ -3623,7 +3623,7 @@ tfiInfoTab.addEventListener('click', () => setOutputTab('tfi-info'));
 window.addEventListener('pagehide', event => { if (!event.persisted) { void tfiInfo.dispose(); void opmInfo.dispose(); } });
 
 function setOutputTab(tabName) {
-  if (!(tabName === "sheet-music" && currentBuffer && midiExportAvailable) && ((["okim6258", "msx", "y8950", "ymf278b", "ym3526", "ym3812", "ymf262", "segapcm"].includes(currentChipKind) && tabName !== "parsed-output") || (["gameboy","nes"].includes(currentChipKind) && !["parsed-output", "noteish"].includes(tabName)) || (currentChipKind === "ay8910" && !["operator-info", "parsed-output", "noteish"].includes(tabName)) || (currentChipKind === "ym2413" && !["operator-info", "parsed-output", "noteish"].includes(tabName)) || (currentChipKind === "ym2151" && !["operator-info", "parsed-output", "noteish", "tfi-info"].includes(tabName)))) {
+  if (!(tabName === "sheet-music" && currentBuffer && (midiExportAvailable || (currentChipKind === 'ymf262' && !(noteishHeader.ymf262Clock & 0xc0000000)))) && ((["okim6258", "msx", "y8950", "ymf278b", "ym3526", "ym3812", "ymf262", "segapcm"].includes(currentChipKind) && tabName !== "parsed-output") || (["gameboy","nes"].includes(currentChipKind) && !["parsed-output", "noteish"].includes(tabName)) || (currentChipKind === "ay8910" && !["operator-info", "parsed-output", "noteish"].includes(tabName)) || (currentChipKind === "ym2413" && !["operator-info", "parsed-output", "noteish"].includes(tabName)) || (currentChipKind === "ym2151" && !["operator-info", "parsed-output", "noteish", "tfi-info"].includes(tabName)))) {
     setStatus('Analysis and instrument editing: Support coming soon.');
     tabName = "parsed-output";
   }
@@ -3756,7 +3756,7 @@ renderNoteishGrid();
 
 const exportTempo = createExportTempoSettings(analyzeScoreSource);
 const analyzeLilyPondSource = buffer => exportTempo.getAnalysis(buffer);
-musicSheet = mountMusicSheet({getTrack: () => ({buffer:currentBuffer, available:midiExportAvailable, fileName:lastLoadedFileName}), tempoSettings:exportTempo, setStatus});
+musicSheet = mountMusicSheet({getTrack: () => ({buffer:currentBuffer, available:(midiExportAvailable || (currentChipKind === 'ymf262' && !(noteishHeader.ymf262Clock & 0xc0000000))), fileName:lastLoadedFileName}), tempoSettings:exportTempo, setStatus});
 
 function downloadMml(format) {
   if (!currentBuffer || !mmlBpmInput.reportValidity()) return;
@@ -3900,7 +3900,7 @@ document.getElementById('chipSupportButton').addEventListener('click', () => {
 let lilyPondPrepared = null;
 let lilyPondSource = null;
 exportLilyPondButton.addEventListener("click", () => {
-  if (!currentBuffer || !midiExportAvailable) return;
+  if (!currentBuffer || !(midiExportAvailable || (currentChipKind === 'ymf262' && !(noteishHeader.ymf262Clock & 0xc0000000)))) return;
   try {
     if (lilyPondSource !== currentBuffer) {
       lilyPondPrepared = analyzeLilyPondSource(currentBuffer);
