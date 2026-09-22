@@ -3269,7 +3269,7 @@ async function handleFile(file) {
     renderPlaybackWarnings();
   }
   currentBuffer = buffer;
-  if (!["okim6258", "msx", "y8950", "ymf278b", "segapcm", "nes", "gameboy"].includes(currentChipKind)) songTimeline.load(buffer);
+  if (!["okim6258", "msx", "y8950", "ymf278b", "segapcm"].includes(currentChipKind)) songTimeline.load(buffer);
   playbackSeek.max = String(Math.max(0, vgm.header.totalSamples));
   renderSeekPosition(0);
   midiExportAvailable = Boolean(midiChipKind(vgm.header) || ((vgm.header.ym2151Clock & 0x3fffffff) && !(vgm.header.ym2151Clock & 0xc0000000)));
