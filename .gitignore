@@ -43,3 +43,5 @@ reference/
 # Generated npm CLI distribution
 /dist/
 /tetorica-vgm-*.tgz
+
+/.emcache/
