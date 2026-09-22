@@ -1,0 +1,15 @@
+name: VGM parser and player tests
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  vgm-mock:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: sh scripts/test_vgm_mock.sh

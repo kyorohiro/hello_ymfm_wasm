@@ -1,0 +1,1 @@
+Emscripten（C/C++ → WebAssembly）のビルド用キャッシュ
