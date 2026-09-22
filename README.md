@@ -359,8 +359,9 @@ under Apache-2.0; it is included in npm and Browser distributions.
 Analyzer and CLI playback support a single HuC6280 (PC Engine / TurboGrafx-16):
 six wavetable channels, DDA, noise, LFO, stereo balance, per-channel mute, and
 WAV export. VGM 0xB9 writes and HuC6280 PCM streams are supported without an
-external ROM. Note analysis, instrument editing and dual-chip playback are not
-implemented. Noise/LFO accuracy retains MAME's known limitations.
+external ROM. Note-ish Live and Song views show six-channel wavetable base
+pitches, closing notes during PCM/DDA, noise and LFO CH1/CH2 intervals.
+Score export, instrument editing and dual-chip playback are not implemented. Noise/LFO accuracy retains MAME's known limitations.
 
 The core is adapted from Charles MacDonald's BSD-3-Clause MAME implementation.
 Pinned originals, license and adaptation notes are in `third_party/mame-huc6280/`.
