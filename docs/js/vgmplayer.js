@@ -409,6 +409,10 @@ export class VgmPlayer {
         ym2203: ym2203Target,
         ym2413: ym2413Target,
         ym2151: ym2151Target,
+        huc6280: typeof this.engine.writeHuc6280 === "function" ? {
+          writeRegister:(r,v)=>this.engine.writeHuc6280(r,v),
+          writeStream:(p,r,v)=>this.engine.writeHuc6280Stream(p,r,v),
+        } : undefined,
         okim6258: typeof this.engine.writeOki6258 === "function" ? {writeRegister:(r,v)=>this.engine.writeOki6258(r,v)} : undefined,
         ym3526: ym3526Target, ym3812: ym3812Target, ymf262: ymf262Target,
         y8950: y8950Target, ymf278b: ymf278bTarget,

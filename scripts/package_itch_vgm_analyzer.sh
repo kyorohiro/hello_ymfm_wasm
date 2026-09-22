@@ -74,6 +74,7 @@ seek_playback.js
 "
 
 JS_FILES="
+huc6280audioengine.js
 okim6258audioengine.js
 ym2610b.js
 ym2610baudioengine.js
@@ -131,6 +132,8 @@ ym2612synth.js
 "
 
 GENERATED_FILES="
+huc6280_wasm.js
+huc6280_wasm.wasm
 okim6258_wasm.js
 okim6258_wasm.wasm
 ym2610b_wasm.js
@@ -264,6 +267,8 @@ for file in ${GENERATED_FILES}; do
   cp "${src}" "${dst}"
 done
 
+mkdir -p "${STAGE_DIR}/licenses/mame-huc6280"
+cp "${ROOT_DIR}/third_party/mame-huc6280/LICENSE" "${ROOT_DIR}/third_party/mame-huc6280/README.md" "${STAGE_DIR}/licenses/mame-huc6280/"
 mkdir -p "${STAGE_DIR}/licenses/mame-okim6258"
 cp "${ROOT_DIR}/third_party/mame-okim6258/LICENSE" "${ROOT_DIR}/third_party/mame-okim6258/README.md" "${STAGE_DIR}/licenses/mame-okim6258/"
 
@@ -298,6 +303,7 @@ done
 cat > "${STAGE_DIR}/THIRD_PARTY_LICENSES.txt" <<EOF
 AY-3-8910 / YM2149: MAME adaptation, BSD-3-Clause. See licenses/mame-ay8910/.
 
+HuC6280: MAME adaptation by Charles MacDonald, BSD-3-Clause. See licenses/mame-huc6280/.
 OKIM6258: MAME adaptation by Barry Rodewald, BSD-3-Clause. See licenses/mame-okim6258/.
 
 RF5C164: MAME adaptation, BSD-3-Clause. See licenses/mame-rf5c164/LICENSE and README.md.

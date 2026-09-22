@@ -1,3 +1,4 @@
+import {Huc6280AudioEngine} from '../js/huc6280audioengine.js';
 import {createNesApuAudioEngine,validateNesApuClock} from '../js/nesapuaudioengine.js';
 import {Oki6258AudioEngine,attachOki6258,validateOki6258Header} from '../js/okim6258audioengine.js';
 import {createYm3526AudioEngine} from '../js/ym3526audioengine.js';
@@ -39,6 +40,7 @@ export function detectPlaybackChipKind(header) {
   ) {
     return "ym2608";
   }
+  if (header.huc6280Clock & 0x3fffffff) return "huc6280";
   if (header.okim6258Clock && !header.ym2612Clock && !header.psgClock && !header.pwmClock) return "okim6258";
   if (header.ym2612Clock & 0x3fffffff) return "ym2612";
   // Sega PCM and Game Boy DMG clocks were only added to the VGM header in
@@ -104,7 +106,7 @@ const composition = {
   ym2413: ['ym2413','psg'], y8950: ['y8950','psg'],
   ymf278b: ['ymf278b','psg'], ym3526: ['ym3526','psg'],
   ym3812: ['ym3812','psg'], ymf262: ['ymf262','psg'],
-  segapcm: ['segaPcm','psg'], nes: ['nesApu'], gameboy: ['gameBoyDmg'], okim6258: ['okim6258'],
+  huc6280: ['huc6280'], segapcm: ['segaPcm','psg'], nes: ['nesApu'], gameboy: ['gameBoyDmg'], okim6258: ['okim6258'],
 };
 export function selectPlaybackConfiguration(vgm) {
   const header = {...vgm.header};
@@ -134,6 +136,7 @@ export function selectPlaybackConfiguration(vgm) {
   ]};
 }
 const recipes = {
+  huc6280: async (vgm, resource, masterVolume) => Huc6280AudioEngine.create({moduleFactory:await resource("huc6280"),clock:vgm.header.huc6280Clock,masterVolume}),
   nes: async (vgm, resource, masterVolume) => createNesApuAudioEngine({clock:vgm.header.nesApuClock & 0x3fffffff,masterVolume}),
   okim6258: async (vgm, resource, masterVolume) => Oki6258AudioEngine.create({moduleFactory:await resource('okim6258'),clock:vgm.header.okim6258Clock,flags:vgm.header.okim6258Flags,masterVolume}),
   msx: async (vgm, resource, masterVolume) => createMsxAudioEngine({
@@ -260,7 +263,7 @@ export function playbackMuteControls(configuration) {
   const {kind,header:h}=configuration, controls=[];
   const add=(id,method,...args)=>controls.push({id,method,args});
   const channels=(prefix,count,method)=>{for(let i=0;i<count;i++)add(prefix+'-'+(i+1),method,i);};
-  const counts={ym2203:3,ym2151:8,ym2413:9,ym3526:9,ym3812:9,ymf262:18,ymf278b:18,y8950:9,gameboy:4,nes:5};
+  const counts={huc6280:6,ym2203:3,ym2151:8,ym2413:9,ym3526:9,ym3812:9,ymf262:18,ymf278b:18,y8950:9,gameboy:4,nes:5};
   if(counts[kind])channels(kind+'-ch',counts[kind],'setChannelMuted');
   if(kind==='ymf278b')channels('ymf278b-pcm',24,'setPcmChannelMuted');
   if(h.psgClock)add('psg','setPsgMuted');

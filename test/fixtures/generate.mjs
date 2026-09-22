@@ -144,3 +144,5 @@ for(const [name,type,clock,voice] of [['ym2203',2,4000000,fm],['ym2608',4,800000
   bytes.set(commands,48);bytes.set(tag,48+commands.length);
   writeFileSync(new URL('s98-'+name+'.s98',import.meta.url),bytes);
 }
+
+import './generate_huc6280.mjs';

@@ -353,3 +353,15 @@ noise and embedded DMC samples), five channel mutes, and pulse/triangle
 Note-ish, MIDI and Music Sheet export. PAL/FDS/dual are not supported.
 The shared JavaScript APU uses [JSNES](third_party/jsnes/README.md), licensed
 under Apache-2.0; it is included in npm and Browser distributions.
+
+### MAME HuC6280 (`third_party/mame-huc6280/`)
+
+Analyzer and CLI playback support a single HuC6280 (PC Engine / TurboGrafx-16):
+six wavetable channels, DDA, noise, LFO, stereo balance, per-channel mute, and
+WAV export. VGM 0xB9 writes and HuC6280 PCM streams are supported without an
+external ROM. Note analysis, instrument editing and dual-chip playback are not
+implemented. Noise/LFO accuracy retains MAME's known limitations.
+
+The core is adapted from Charles MacDonald's BSD-3-Clause MAME implementation.
+Pinned originals, license and adaptation notes are in `third_party/mame-huc6280/`.
+Rebuild with `sh scripts/build_huc6280_wasm.sh` (Emscripten required).

@@ -10,6 +10,7 @@ const SOURCES = {
 };
 export function sourcesForChip(chip, hasOki = false) {
   if (chip === 'msx' || chip === 'gameboy' || chip === 'nes') return [];
+  if (chip === 'huc6280') return hasOki ? [SOURCES.oki] : [];
   if (chip === 'okim6258') return [SOURCES.oki];
   const extra = hasOki ? [SOURCES.oki] : [];
   if (chip === '32x') return [SOURCES.psg, SOURCES.pwm, ...extra];

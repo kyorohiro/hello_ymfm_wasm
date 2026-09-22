@@ -683,3 +683,17 @@ rhythm-mode CH7–9 and CSM intervals are omitted. Original timbres, modulation
 and envelope release are not reconstructed. Dual/variant chips and mixed
 YM3526 + YM3812 note extraction are rejected. The browser Operator Info panel
 also exports register-state JSON voice snapshots.
+
+## HuC6280 playback
+
+Single HuC6280 playback uses the MAME-derived WASM core: six wavetable channels,
+DDA (direct writes and PCM streams), noise, LFO and stereo balance. No ROM is
+needed. Channel mute IDs are `huc6280-ch-1` through `huc6280-ch-6`.
+Dual-chip configurations and note/instrument exports are not supported.
+
+```sh
+node cli/main.js render test/fixtures/huc6280-tone.vgz --output huc6280.wav
+```
+
+This is available in the working tree; the published `tetorica-vgm@0.1.5` package
+predates HuC6280 support.

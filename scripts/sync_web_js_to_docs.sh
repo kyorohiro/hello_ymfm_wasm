@@ -10,6 +10,7 @@ DOCS_JS_DIR="${ROOT_DIR}/docs/js"
 # between `web/` and `docs/js/`.
 #
 SYNC_FILES="
+huc6280audioengine.js
 okim6258audioengine.js
 bitcrusher-worklet.js
 genesisaudioengine.js

@@ -436,6 +436,7 @@ const ym3812ChannelMutes = Array(9).fill(false);
 const ymf278bFmChannelMutes = Array(18).fill(false);
 const ymf278bPcmChannelMutes = Array(24).fill(false);
 const gameboyChannelMutes = Array(4).fill(false);
+const huc6280ChannelMutes = Array(6).fill(false);
 const nesChannelMutes = Array(5).fill(false);
 const sourceMutes = { psg: false, ssg: false, rhythm: false, adpcmB: false, pcm: false, pwm: false, oki: false, segapcm: false };
 // Without the rhythm ROM, decoding its all-zero sample stream is audible
@@ -449,12 +450,13 @@ function effectiveSourceMutes() {
   }
   return sourceMutes;
 }
-const CHANNEL_MUTE_CHIPS = ['ym2151', 'ymf262', 'ym2413', 'ym3526', 'ym3812', 'gameboy', 'nes'];
+const CHANNEL_MUTE_CHIPS = ['huc6280', 'ym2151', 'ymf262', 'ym2413', 'ym3526', 'ym3812', 'gameboy', 'nes'];
 function channelMutesForChip(chipKind) {
   return chipKind === 'ym2413' ? opllChannelMutes
     : chipKind === 'ymf262' ? opl3ChannelMutes
     : chipKind === 'ym3526' ? ym3526ChannelMutes
     : chipKind === 'ym3812' ? ym3812ChannelMutes
+    : chipKind === 'huc6280' ? huc6280ChannelMutes
     : chipKind === 'nes' ? nesChannelMutes
     : chipKind === 'gameboy' ? gameboyChannelMutes
     : chipKind === 'ym2151' ? opmChannelMutes
@@ -729,7 +731,7 @@ function ensureMonitorToggleHandler() {
 }
 
 function createChannelMonitorState() {
-  if (["okim6258", "msx", "y8950", "ymf278b", "ym3526", "ym3812", "ymf262", "segapcm", "nes", "gameboy", "ym2151", "ym2413", "ay8910"].includes(currentChipKind)) return [];
+  if (["huc6280", "okim6258", "msx", "y8950", "ymf278b", "ym3526", "ym3812", "ymf262", "segapcm", "nes", "gameboy", "ym2151", "ym2413", "ay8910"].includes(currentChipKind)) return [];
   const channelCount = currentChipKind === "ym2203" ? 3 : 6;
   return Array.from({ length: channelCount }, (_, index) => buildMonitorChannel(index));
 }
@@ -978,7 +980,7 @@ function noteishChannels() {
 }
 
 function updateToneMonitor() {
-  if (["okim6258", "msx", "y8950", "ymf278b", "ym3526", "ym3812", "ymf262", "segapcm", "nes", "gameboy", "ym2151", "ym2413"].includes(currentChipKind)) { toneChannels = []; return; }
+  if (["huc6280", "okim6258", "msx", "y8950", "ymf278b", "ym3526", "ym3812", "ymf262", "segapcm", "nes", "gameboy", "ym2151", "ym2413"].includes(currentChipKind)) { toneChannels = []; return; }
   const clock = (psgMonitor.kind === 'ssg' ? noteishHeader[`${currentChipKind}Clock`] : noteishHeader.psgClock) & 0x3fffffff;
   if (!clock) { toneChannels = []; return; }
   if (!toneChannels.length) toneChannels = Array.from({length:3}, (_,index)=>({...buildMonitorChannel(index), tone:true, toneMidi:null}));
@@ -1838,6 +1840,7 @@ function renderHeader(header) {
     `ym2151Clock: ${header.ym2151Clock}`,
     `segaPcmClock: ${header.segaPcmClock}, bankShift: ${header.segaPcmBankShift}, bankMask: ${formatHex(header.segaPcmBankMask)}`,
     `gameBoyDmgClock: ${header.gameBoyDmgClock}`,
+    `huc6280Clock: ${header.huc6280Clock}`,
     `nesApuClock: ${header.nesApuClock}`,
     `okim6258Clock: ${header.okim6258Clock}`,
     `okim6258Flags: ${header.okim6258Flags}`,
@@ -1882,6 +1885,7 @@ const HEADER_CHIP_FIELDS = [
   ['k051649Clock', 'K051649 (SCC)'],
   ['segaPcmClock', 'Sega PCM'],
   ['gameBoyDmgClock', 'Game Boy DMG'],
+  ['huc6280Clock', 'HuC6280'],
   ['nesApuClock', 'NES APU'],
 ];
 function detectHeaderChips(header) {
@@ -2065,6 +2069,7 @@ function renderEvent(event, index) {
   if (event.type === "k051649-write") return `${index}: k051649 port=${event.port} register=${formatHex(event.register)} value=${formatHex(event.value)}`;
   if (event.type === "segapcm-write") return `${index}: segapcm offset=${formatHex(event.offset, 4)} value=${formatHex(event.value)}`;
   if (event.type === "segapcm-rom-data") return `${index}: segapcm ROM chip=${event.chipIndex} offset=${formatHex(event.offset)} size=${event.data.length}`;
+  if (event.type === 'huc6280-write') return `${index}: huc6280 register=${formatHex(event.register)} value=${formatHex(event.value)}`;
   if (event.type === 'nes-apu-write') return `${index}: nes-apu register=${formatHex(event.register)} value=${formatHex(event.value)}`;
   if (event.type === 'nes-apu-data') return `${index}: nes-apu RAM offset=${formatHex(event.offset)} size=${event.data.length}`;
   if (event.type === "gameboy-dmg-write") return `${index}: gameboy-dmg register=${formatHex(event.register)} value=${formatHex(event.value)}`;
@@ -2511,7 +2516,7 @@ function downloadSnapshotVgiZip() {
 
 async function ensurePlaybackReady(vgm) {
   const nextChipKind = selectPlaybackConfiguration(vgm).kind;
-  const nextClockKey = JSON.stringify([nextChipKind, vgm.header.okim6258Clock, vgm.header.okim6258Flags, vgm.header.ym2612Clock, vgm.header.psgClock,
+  const nextClockKey = JSON.stringify([nextChipKind, vgm.header.huc6280Clock, vgm.header.okim6258Clock, vgm.header.okim6258Flags, vgm.header.ym2612Clock, vgm.header.psgClock,
     vgm.header.ymf278bClock, vgm.header.ym3526Clock, vgm.header.ym3812Clock, vgm.header.ymf262Clock, vgm.header.segaPcmClock, vgm.header.segaPcmBankShift, vgm.header.segaPcmBankMask, vgm.header.nesApuClock, vgm.header.gameBoyDmgClock, vgm.header.ym2151Clock, vgm.header.ay8910Clock, vgm.header.ay8910Type, vgm.header.ay8910Flags, vgm.header.y8950Clock, vgm.header.k051649Clock, vgm.header.ym2413Clock, vgm.header.rf5c164Clock, vgm.header.ym2203Clock, vgm.header.ym2608Clock, vgm.header.ym2610Clock]);
 
   if (engine && (currentChipKind !== nextChipKind || engineClockKey !== nextClockKey)) {
@@ -2737,7 +2742,7 @@ function updateChipSupport() {
   const opll = currentChipKind === 'ym2413';
   const opl = isOpl(currentChipKind);
   const ayWithOpll = ay && Boolean(noteishHeader.ym2413Clock & 0x3fffffff);
-  const playbackOnly = ['okim6258', 'msx', 'y8950', 'ymf278b', 'ym3526', 'ym3812', 'ymf262', 'segapcm', 'ym2151', 'ym2413', 'nes', 'gameboy'].includes(currentChipKind) || ay;
+  const playbackOnly = ['huc6280', 'okim6258', 'msx', 'y8950', 'ymf278b', 'ym3526', 'ym3812', 'ymf262', 'segapcm', 'ym2151', 'ym2413', 'nes', 'gameboy'].includes(currentChipKind) || ay;
   for (const tab of [operatorInfoTab, noteishTab, tfiInfoTab, sampleTab]) {
     tab.disabled = playbackOnly && !((ay || opll || opl || currentChipKind === 'ym2151') && tab === operatorInfoTab) && !((currentChipKind === 'ym2151' && (tab === noteishTab || tab === tfiInfoTab)) || ((ay || opll || opl || ['gameboy','nes','ymf262'].includes(currentChipKind)) && tab === noteishTab));
     tab.title = tab.disabled ? 'Support coming soon.' : '';
@@ -2779,14 +2784,14 @@ function updateChipSupport() {
   }
   const notice = document.getElementById('chipSupportNotice');
   notice.hidden = !playbackOnly;
-  notice.textContent = opl ? 'OPL / OPL2: 9-channel base-pitch Note-ish, MIDI, MusicXML and LilyPond. Rhythm CH7–9 and CSM are omitted. Voice / Operator Info includes a register-state JSON snapshot export; no TFI/VGI conversion or instrument editing.' : currentChipKind === 'ymf262' ? 'YMF262 Note-ish / Sheet Music / MusicXML / LilyPond: 2op and 4op base pitches; pairs use the leading CH. Rhythm, timbre, modulation and release are omitted. MIDI export is not supported.' : currentChipKind === 'ym2151' ? 'YM2151 register monitor available. Base-pitch Note-ish available; noise/partial keys/CSM are omitted. MIDI base-pitch export available. OPM snapshots are available in the Export group. MXDRV MML export available. Instrument editing: Support coming soon.' : ay ? 'AY / YM2149 register monitor and base-pitch Note-ish available; noise/envelope shape are omitted. MIDI and LilyPond/Music Sheet base-pitch export available. Instrument editing and MML export: Support coming soon.' : opll ? 'YM2413 register monitor and base-pitch Note-ish available: FNUM/BLOCK base pitch, instrument number, volume and rhythm mode state; rhythm channels other than Bass Drum have no single pitch. MIDI and LilyPond/Music Sheet base-pitch export available. Instrument editing and MML export: Support coming soon.' : ['gameboy','nes','ymf262'].includes(currentChipKind) ? (currentChipKind==='nes'?'NES APU: pulse/triangle base-pitch notes, MIDI and Music Sheet. Noise/DMC are omitted from scores; time-based modulation is approximate.': 'Game Boy DMG base-pitch Note-ish available for CH1/CH2 (square) and CH3 (wave); CH4 (noise) has no pitch, and length counter/CH1 sweep are not reconstructed. MIDI and LilyPond/Music Sheet base-pitch export available. Register monitor, instrument editing and MML export: Support coming soon.') : `${currentChipKind.toUpperCase()} analysis and instrument editing: Support coming soon.`;
+  notice.textContent = currentChipKind === 'huc6280' ? 'HuC6280: 6-channel wavetable, DDA, noise and LFO playback; WAV export. Note analysis and instrument editing: Support coming soon.' : opl ? 'OPL / OPL2: 9-channel base-pitch Note-ish, MIDI, MusicXML and LilyPond. Rhythm CH7–9 and CSM are omitted. Voice / Operator Info includes a register-state JSON snapshot export; no TFI/VGI conversion or instrument editing.' : currentChipKind === 'ymf262' ? 'YMF262 Note-ish / Sheet Music / MusicXML / LilyPond: 2op and 4op base pitches; pairs use the leading CH. Rhythm, timbre, modulation and release are omitted. MIDI export is not supported.' : currentChipKind === 'ym2151' ? 'YM2151 register monitor available. Base-pitch Note-ish available; noise/partial keys/CSM are omitted. MIDI base-pitch export available. OPM snapshots are available in the Export group. MXDRV MML export available. Instrument editing: Support coming soon.' : ay ? 'AY / YM2149 register monitor and base-pitch Note-ish available; noise/envelope shape are omitted. MIDI and LilyPond/Music Sheet base-pitch export available. Instrument editing and MML export: Support coming soon.' : opll ? 'YM2413 register monitor and base-pitch Note-ish available: FNUM/BLOCK base pitch, instrument number, volume and rhythm mode state; rhythm channels other than Bass Drum have no single pitch. MIDI and LilyPond/Music Sheet base-pitch export available. Instrument editing and MML export: Support coming soon.' : ['gameboy','nes','ymf262'].includes(currentChipKind) ? (currentChipKind==='nes'?'NES APU: pulse/triangle base-pitch notes, MIDI and Music Sheet. Noise/DMC are omitted from scores; time-based modulation is approximate.': 'Game Boy DMG base-pitch Note-ish available for CH1/CH2 (square) and CH3 (wave); CH4 (noise) has no pitch, and length counter/CH1 sweep are not reconstructed. MIDI and LilyPond/Music Sheet base-pitch export available. Register monitor, instrument editing and MML export: Support coming soon.') : `${currentChipKind.toUpperCase()} analysis and instrument editing: Support coming soon.`;
   oplMonitorRoot.hidden = !opl;
   opnMonitorRoot.hidden = opl || ay || opll || currentChipKind === 'ym2151';
   opmMonitorRoot.hidden = currentChipKind !== 'ym2151';
   ayMonitorRoot.hidden = !ay;
   ym2413MonitorRoot.hidden = !(opll || ayWithOpll);
   if (sheetMusicTab.getAttribute('aria-selected') === 'true' && !sheetMusicTab.disabled) return;
-  if (['okim6258', 'msx', 'y8950', 'ymf278b', 'segapcm'].includes(currentChipKind)) setOutputTab('parsed-output');
+  if (['huc6280', 'okim6258', 'msx', 'y8950', 'ymf278b', 'segapcm'].includes(currentChipKind)) setOutputTab('parsed-output');
   else if (['gameboy','nes','ymf262'].includes(currentChipKind) && noteishTab.getAttribute('aria-selected') !== 'true' && parsedOutputTab.getAttribute('aria-selected') !== 'true') setOutputTab('noteish');
   else if (((ay || opll || opl || currentChipKind === 'ym2151') && noteishTab.getAttribute('aria-selected') !== 'true' && (tfiInfoTab.disabled || tfiInfoTab.getAttribute('aria-selected') !== 'true')) && operatorInfoTab.getAttribute('aria-selected') !== 'true' && parsedOutputTab.getAttribute('aria-selected') !== 'true') setOutputTab('operator-info');
 }
@@ -3269,7 +3274,7 @@ async function handleFile(file) {
     renderPlaybackWarnings();
   }
   currentBuffer = buffer;
-  if (!["okim6258", "msx", "y8950", "ymf278b", "segapcm"].includes(currentChipKind)) songTimeline.load(buffer);
+  if (!["huc6280", "okim6258", "msx", "y8950", "ymf278b", "segapcm"].includes(currentChipKind)) songTimeline.load(buffer);
   playbackSeek.max = String(Math.max(0, vgm.header.totalSamples));
   renderSeekPosition(0);
   midiExportAvailable = Boolean(midiChipKind(vgm.header) || ((vgm.header.ym2151Clock & 0x3fffffff) && !(vgm.header.ym2151Clock & 0xc0000000)));
@@ -3279,7 +3284,7 @@ async function handleFile(file) {
     lastParseInfo.sourceHeader = sourceHeader;
     lastParseInfo.commandFormat = "VGM (normalized from S98)";
   }
-  extractedTfiPatches = ["okim6258", "msx", "y8950", "ymf278b", "ym3526", "ym3812", "ymf262", "segapcm", "nes", "gameboy", "ym2151", "ym2413", "ay8910"].includes(currentChipKind) ? [] : extractTfiPatchesFromVgm(buffer);
+  extractedTfiPatches = ["huc6280", "okim6258", "msx", "y8950", "ymf278b", "ym3526", "ym3812", "ymf262", "segapcm", "nes", "gameboy", "ym2151", "ym2413", "ay8910"].includes(currentChipKind) ? [] : extractTfiPatchesFromVgm(buffer);
   tfiInfo.loadVgm(buffer, file.name);
   opmInfo.loadVgm(currentChipKind === 'ym2151' ? buffer : null);
   if (tfiInfoTab.getAttribute('aria-selected') === 'true') setOutputTab('tfi-info');
@@ -3653,7 +3658,7 @@ tfiInfoTab.addEventListener('click', () => setOutputTab('tfi-info'));
 window.addEventListener('pagehide', event => { if (!event.persisted) { void tfiInfo.dispose(); void opmInfo.dispose(); } });
 
 function setOutputTab(tabName) {
-  if (!(tabName === "sheet-music" && currentBuffer && (midiExportAvailable || (currentChipKind === 'ymf262' && !(noteishHeader.ymf262Clock & 0xc0000000)))) && ((["okim6258", "msx", "y8950", "ymf278b", "segapcm"].includes(currentChipKind) && tabName !== "parsed-output") || (["gameboy","nes","ymf262"].includes(currentChipKind) && !["parsed-output", "noteish"].includes(tabName)) || (currentChipKind === "ay8910" && !["operator-info", "parsed-output", "noteish"].includes(tabName)) || ((currentChipKind === "ym2413" || isOpl(currentChipKind)) && !["operator-info", "parsed-output", "noteish"].includes(tabName)) || (currentChipKind === "ym2151" && !["operator-info", "parsed-output", "noteish", "tfi-info"].includes(tabName)))) {
+  if (!(tabName === "sheet-music" && currentBuffer && (midiExportAvailable || (currentChipKind === 'ymf262' && !(noteishHeader.ymf262Clock & 0xc0000000)))) && ((["huc6280", "okim6258", "msx", "y8950", "ymf278b", "segapcm"].includes(currentChipKind) && tabName !== "parsed-output") || (["gameboy","nes","ymf262"].includes(currentChipKind) && !["parsed-output", "noteish"].includes(tabName)) || (currentChipKind === "ay8910" && !["operator-info", "parsed-output", "noteish"].includes(tabName)) || ((currentChipKind === "ym2413" || isOpl(currentChipKind)) && !["operator-info", "parsed-output", "noteish"].includes(tabName)) || (currentChipKind === "ym2151" && !["operator-info", "parsed-output", "noteish", "tfi-info"].includes(tabName)))) {
     setStatus('Analysis and instrument editing: Support coming soon.');
     tabName = "parsed-output";
   }
@@ -3976,6 +3981,7 @@ lilyPondExportDialog.querySelector("form").addEventListener("submit", event => {
 
 async function getBrowserPlaybackFactory(name) {
   const loaders = {
+    huc6280: async () => (await import('../generated/huc6280_wasm.js')).default,
     okim6258: async () => (await import('../generated/okim6258_wasm.js')).default,
     ay8910: async () => (await import('../generated/ay8910_wasm.js')).default,
     ym2413: async () => (await import('../generated/ym2413_wasm.js')).default,

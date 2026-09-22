@@ -271,6 +271,7 @@ export class Ym2612VGM {
     const ay8910Type = version >= 0x151 ? headerByte(0x78) : 0;
     const ay8910Flags = version >= 0x151 ? headerByte(0x79) : 0;
     const y8950Clock = version >= 0x151 ? extendedClock(0x58) : 0;
+    const huc6280Clock = version >= 0x161 ? extendedClock(0xa4) : 0;
     const okim6258Clock = version >= 0x161 ? extendedClock(0x90) : 0;
     const okim6258Flags = version >= 0x161 ? headerByte(0x94) : 0;
     const k051649Clock = version >= 0x161 ? extendedClock(0x9c) : 0;
@@ -285,7 +286,7 @@ export class Ym2612VGM {
       ym2612Clock,
       ym2413Clock, ym2151Clock, ym3526Clock, ym3812Clock, ymf262Clock, ymf278bClock, segaPcmClock,
       segaPcmBankShift, segaPcmBankMask,
-      ay8910Clock, ay8910Type, ay8910Flags, y8950Clock, k051649Clock, nesApuClock, gameBoyDmgClock, okim6258Clock, okim6258Flags,
+      ay8910Clock, ay8910Type, ay8910Flags, y8950Clock, k051649Clock, huc6280Clock, nesApuClock, gameBoyDmgClock, okim6258Clock, okim6258Flags,
       ym2203Clock,
       ym2608Clock,
       ym2610Clock,
@@ -610,6 +611,12 @@ export class Ym2612VGM {
         this.position += 3;
         return { type: "rf5c164-write", register: register & 0x7f, value, chipIndex: register >>> 7 };
       }
+      case 0xb9: {
+        this.#ensureAvailable(3);
+        const r=this.bytes[this.position+1], value=this.bytes[this.position+2];
+        this.position+=3;
+        return {type:"huc6280-write",register:r&0x7f,value,chipIndex:r>>>7};
+      }
       case 0xb7: {
         this.#ensureAvailable(3);
         const r=this.bytes[this.position+1],value=this.bytes[this.position+2];
@@ -908,6 +915,12 @@ export class Ym2612VGM {
       targets.ymf262?.writeRegister(event.register, event.value, event.port);
       return event;
     }
+    if (event.type === "huc6280-write") {
+      if (event.chipIndex) this.#warn("Skipping unsupported second HuC6280 chip");
+      else if (!targets.huc6280) this.#warn("HuC6280 playback target unavailable; audio omitted");
+      else targets.huc6280.writeRegister(event.register,event.value);
+      return event;
+    }
     if (event.type === "okim6258-write") {
       if (event.chipIndex) this.#warn("Skipping unsupported second OKIM6258 chip");
       else if (!targets.okim6258) this.#warn("OKIM6258 playback target unavailable; ADPCM audio omitted");
@@ -1122,6 +1135,9 @@ export class Ym2612VGM {
     if (command === 0xc0) {
       return `cmd=0xc0 segapcm offset=${formatHexNumber(readUint16LE(this.view, position + 1), 4)} value=${formatHexNumber(this.bytes[position + 3])}`;
     }
+    if (command === 0xb9) {
+      return `cmd=0xb9 huc6280 chip=${this.bytes[position+1]>>>7} register=${formatHexNumber(this.bytes[position+1]&0x7f)} value=${formatHexNumber(this.bytes[position+2])}`;
+    }
     if (command === 0xb4) {
       return `cmd=0xb4 nes-apu chip=${this.bytes[position + 1] >>> 7} register=${formatHexNumber(this.bytes[position + 1] & 0x7f)} value=${formatHexNumber(this.bytes[position + 2])}`;
     }
@@ -1246,10 +1262,10 @@ export class Ym2612VGM {
       const stream = this.#streamState(this.bytes[this.position + 1]);
       stream.chipType = this.bytes[this.position + 2];
       // Only these first-instance destinations have a stream writer.
-      stream.disabled = ![0x00, 0x02, 0x11, 0x17].includes(stream.chipType);
+      stream.disabled = ![0x00, 0x02, 0x11, 0x17, 0x1b].includes(stream.chipType);
       stream.active = false;
       if (stream.disabled) {
-        const names = {0x00:'PSG',0x01:'YM2413',0x02:'YM2612',0x03:'YM2151',0x09:'YM3812',0x0a:'YM3526',0x0b:'Y8950',0x0c:'YMF262',0x0d:'YMF278B',0x10:'RF5C164',0x11:'PWM',0x12:'AY',0x17:'OKIM6258'};
+        const names = {0x00:'PSG',0x01:'YM2413',0x02:'YM2612',0x03:'YM2151',0x09:'YM3812',0x0a:'YM3526',0x0b:'Y8950',0x0c:'YMF262',0x0d:'YMF278B',0x10:'RF5C164',0x11:'PWM',0x12:'AY',0x17:'OKIM6258',0x1b:'HuC6280'};
         const type = stream.chipType & 0x7f;
         this.#warn(`Unsupported DAC stream skipped: ${names[type] ?? 'chip'} (${formatHexNumber(type)}), instance=${stream.chipType >>> 7}, stream=${this.bytes[this.position + 1]}. Playback continues without this stream.`);
       }
@@ -1338,7 +1354,7 @@ export class Ym2612VGM {
    * @returns {void}
    */
   #startStream(stream, data, start, mode, length) {
-    if (stream.disabled || ![0x00, 0x02, 0x11, 0x17].includes(stream.chipType)) { stream.active = false; return; }
+    if (stream.disabled || ![0x00, 0x02, 0x11, 0x17, 0x1b].includes(stream.chipType)) { stream.active = false; return; }
     if ((stream.chipType & 0x7f) === 0x11) {
       if (start === 0xffffffff) start = stream.pwmStart || 0;
       stream.pwmStart = start;
@@ -1500,7 +1516,10 @@ export class Ym2612VGM {
     const width = stream.chipType === 0 && !(stream.register & 0x10) ? 2 : 1;
     const dataIndex = stream.dataOffset + index * stream.stepSize * width;
     const value = stream.data[dataIndex];
-    if (stream.chipType === 0x17) {
+    if (stream.chipType === 0x1b) {
+      if (!targets.huc6280?.writeStream) {stream.active=false;this.#warn("HuC6280 stream requires a playback target");return;}
+      targets.huc6280.writeStream(stream.port,stream.register,value);
+    } else if (stream.chipType === 0x17) {
       if (!targets.okim6258) {stream.active=false;this.#warn("OKIM6258 stream requires a playback target");return;}
       targets.okim6258.writeRegister(stream.register,value);
     } else if (stream.chipType === 0) {

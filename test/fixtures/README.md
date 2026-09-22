@@ -41,3 +41,6 @@ It contains no game music. PWM is the existing Browser sample-and-hold model.
 `s98-*.s98` contains authored FM writes for the three supported devices, a fractional timer, loop boundary and UTF-8 tag. No game data.
 
 `nes-tone` is an authored NTSC NES pulse A4 (timer 253), with no game data.
+
+`huc6280-tone` is an authored one-second 32-step square wave on CH1, period 254,
+clock 3579545 Hz. No game data; `generate_huc6280.mjs` regenerates it separately.
