@@ -7,6 +7,7 @@ export function midiChipKind(header) {
     ?? ((header.ym2413Clock & 0x3fffffff) ? 'ym2413' : null)
     ?? (['ym3526','ym3812'].find(kind => header[`${kind}Clock`] & 0x3fffffff) ?? null)
     ?? ((header.psgClock & 0x3fffffff) ? 'psg' : null)
+    ?? ((header.huc6280Clock & 0x3fffffff) ? 'huc6280' : null)
     ?? ((header.nesApuClock & 0x3fffffff) ? 'nes' : null)
     ?? ((header.gameBoyDmgClock & 0x3fffffff) ? 'gameboy' : null);
 }

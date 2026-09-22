@@ -689,10 +689,17 @@ also exports register-state JSON voice snapshots.
 Single HuC6280 playback uses the MAME-derived WASM core: six wavetable channels,
 DDA (direct writes and PCM streams), noise, LFO and stereo balance. No ROM is
 needed. Channel mute IDs are `huc6280-ch-1` through `huc6280-ch-6`.
-Dual-chip configurations and note/instrument exports are not supported.
+MIDI, MusicXML and LilyPond export six-channel wavetable base pitches. DDA,
+noise and LFO CH1/CH2 intervals are omitted. MIDI preserves timing with pitch
+bends; MusicXML/LilyPond use a sixteenth-note grid and rounded pitches. Original
+timbres are not reconstructed. Dual-chip configurations and instrument exports
+are not supported. Score channel IDs are `huc6280-ch1` through `huc6280-ch6`.
 
 ```sh
 node cli/main.js render test/fixtures/huc6280-tone.vgz --output huc6280.wav
+node cli/main.js export test/fixtures/huc6280-tone.vgz --format midi --output huc6280.mid
+node cli/main.js export test/fixtures/huc6280-tone.vgz --format musicxml --bpm 120 --output huc6280.musicxml
+node cli/main.js export test/fixtures/huc6280-tone.vgz --format lilypond --bpm 120 --output huc6280.ly
 ```
 
 This is available in the working tree; the published `tetorica-vgm@0.1.5` package

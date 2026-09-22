@@ -361,7 +361,9 @@ six wavetable channels, DDA, noise, LFO, stereo balance, per-channel mute, and
 WAV export. VGM 0xB9 writes and HuC6280 PCM streams are supported without an
 external ROM. Note-ish Live and Song views show six-channel wavetable base
 pitches, closing notes during PCM/DDA, noise and LFO CH1/CH2 intervals.
-Score export, instrument editing and dual-chip playback are not implemented. Noise/LFO accuracy retains MAME's known limitations.
+MIDI, MusicXML and LilyPond export reuse those base-pitch intervals. MIDI keeps
+pitch changes as bends; MusicXML/LilyPond use the existing sixteenth-note grid.
+Instrument editing and dual-chip playback are not implemented. Noise/LFO accuracy retains MAME's known limitations.
 
 The core is adapted from Charles MacDonald's BSD-3-Clause MAME implementation.
 Pinned originals, license and adaptation notes are in `third_party/mame-huc6280/`.

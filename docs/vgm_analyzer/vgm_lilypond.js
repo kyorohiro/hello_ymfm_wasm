@@ -1,3 +1,4 @@
+import {extractHuc6280Notes} from './huc6280_notes.js';
 import {isOpl, extractOplNotes} from './opl_notes.js';
 import {scoreVoices,groupSelectedScoreChannels} from './score_groups.js';
 import {extractOpl3Notes} from './ymf262_notes.js';
@@ -85,9 +86,9 @@ export function createLilyPondScore(channels, totalSamples, { bpm = 120, fileNam
 export function analyzeLilyPondSource(source) {
   const header = new Ym2612VGM(source).header;
   const kind = header.ymf262Clock & 0x3fffffff ? 'ymf262' : header.ym2151Clock & 0x3fffffff ? 'ym2151' : midiChipKind(header);
-  if (!kind) throw new Error('LilyPond requires YMF262 / YM3526 / YM3812 / OPN / YM2151 / AY-3-8910 / YM2413 / PSG / Game Boy DMG notes');
-  const fm = isOpl(kind) ? extractOplNotes(source) : kind === 'ymf262' ? extractOpl3Notes(source) : kind === 'ym2151' ? extractOpmNotes(source) : kind === 'psg' || kind === 'ay8910' || kind === 'ym2413' || kind === 'nes' || kind === 'gameboy' ? { channels: [], warnings: new Map() } : extractOpnNotes(source);
-  const tones = kind === 'nes' ? extractNesNotes(source) : kind === 'gameboy' ? extractGameboyNotes(source) : extractToneNotes(source, kind);
+  if (!kind) throw new Error('LilyPond requires YMF262 / YM3526 / YM3812 / OPN / YM2151 / AY-3-8910 / YM2413 / PSG / NES APU / HuC6280 / Game Boy DMG notes');
+  const fm = isOpl(kind) ? extractOplNotes(source) : kind === 'ymf262' ? extractOpl3Notes(source) : kind === 'ym2151' ? extractOpmNotes(source) : kind === 'psg' || kind === 'ay8910' || kind === 'ym2413' || kind === 'huc6280' || kind === 'nes' || kind === 'gameboy' ? { channels: [], warnings: new Map() } : extractOpnNotes(source);
+  const tones = kind === 'huc6280' ? extractHuc6280Notes(source) : kind === 'nes' ? extractNesNotes(source) : kind === 'gameboy' ? extractGameboyNotes(source) : extractToneNotes(source, kind);
   const opll = (header.ym2413Clock & 0x3fffffff) ? extractOpllNotes(source) : { channels: [], warnings: new Map(), time: 0 };
   const warnings = new Map([...(fm.warnings ?? []), ...tones.warnings, ...opll.warnings]);
   if (['ym2203','ym2608','ym2610'].includes(kind)) warnings.delete('SSG writes omitted');

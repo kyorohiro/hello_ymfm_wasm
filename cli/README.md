@@ -268,3 +268,11 @@ Repeat `--group` as needed; it cannot be combined with `--merge-all`. A channel
 can belong to only one group. With `--channels`, selection happens first, so
 include every member of each group; `--merge-all` combines the selected channels.
 These options do not change playback or MIDI exports.
+
+## HuC6280
+
+Single HuC6280 supports playback and six-channel wavetable base-pitch export to
+MIDI, MusicXML and LilyPond. PCM/DDA, noise and LFO CH1/CH2 intervals are omitted
+from notes; original timbres are not reproduced. MIDI uses pitch bends;
+MusicXML/LilyPond use the existing sixteenth-note grid. Score channel IDs are
+`huc6280-ch1` through `huc6280-ch6`. Dual-chip and instrument exports are unsupported.

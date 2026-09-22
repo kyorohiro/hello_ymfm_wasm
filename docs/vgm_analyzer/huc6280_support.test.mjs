@@ -6,13 +6,16 @@ import {chipSupportContext} from './test_helpers/chip_support_context.mjs';
 import {applySourceMutes} from './source_mutes.js';
 const source=readFileSync(new URL('./vgm_analyzer.js',import.meta.url),'utf8');
 test('HuC6280 opens Note-ish and disables unavailable analysis while switching back restores tabs',()=>{
-  const context={...chipSupportContext(),currentChipKind:'huc6280',currentBuffer:{},
+  const context={...chipSupportContext(),currentChipKind:'huc6280',currentBuffer:{},midiExportAvailable:true,
     setOutputTab(name){context.selected=name;}};
   const start=source.indexOf('function updateChipSupport(');
   vm.createContext(context);vm.runInContext(source.slice(start,source.indexOf('\n}',start)+2),context);
   context.updateChipSupport();assert.equal(context.selected,'noteish');
-  for(const key of ['operatorInfoTab','tfiInfoTab','sampleTab','sheetMusicTab','exportMidiButton','exportMmlButton'])assert.equal(context[key].disabled,true,key);
+  for(const key of ['operatorInfoTab','tfiInfoTab','sampleTab','exportMmlButton'])assert.equal(context[key].disabled,true,key);
   assert.equal(context.noteishTab.disabled,false);
+  for(const key of ['sheetMusicTab','exportMidiButton','exportLilyPondButton'])assert.equal(context[key].disabled,false,key);
+  context.currentBuffer=null;context.updateChipSupport();
+  for(const key of ['sheetMusicTab','exportMidiButton','exportLilyPondButton'])assert.equal(context[key].disabled,true,key);
   assert.match(context.document.getElementById('chipSupportNotice').textContent,/HuC6280/);
   // No synthetic PSG control may be applied to this engine.
   applySourceMutes({},'huc6280',{});

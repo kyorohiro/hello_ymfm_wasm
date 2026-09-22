@@ -1,3 +1,4 @@
+import {extractHuc6280Notes} from './huc6280_notes.js';
 import {isOpl, extractOplNotes} from './opl_notes.js';
 import {extractNesNotes} from './nes_notes.js';
 import { extractOpmNotes } from './opm_notes.js';
@@ -44,17 +45,20 @@ export function exportAnalysisMidi(source, { bpm = 120, fileName = 'VGM' } = {})
   }
   const parserHeader = new Ym2612VGM(source).header;
   const chipKind = parserHeader.ym2151Clock & 0x3fffffff ? 'ym2151' : midiChipKind(parserHeader);
-  if (!chipKind) throw new Error('MIDI requires YM2151 / YM2612 / YM2203 / YM2608 / YM2610 / AY-3-8910 / YM2413 / YM3526 / YM3812 / PSG or Game Boy DMG');
-  const fm = isOpl(chipKind) ? extractOplNotes(source) : chipKind === 'ym2151' ? extractOpmNotes(source) : chipKind === 'psg' || chipKind === 'ay8910' || chipKind === 'ym2413' || chipKind === 'nes' || chipKind === 'gameboy' ? {channels:[],warnings:new Map()} : extractOpnNotes(source);
-  const tones = chipKind === 'nes' ? extractNesNotes(source) : chipKind === 'gameboy' ? extractGameboyNotes(source) : extractToneNotes(source, chipKind);
+  if (!chipKind) throw new Error('MIDI requires YM2151 / YM2612 / YM2203 / YM2608 / YM2610 / AY-3-8910 / YM2413 / YM3526 / YM3812 / PSG or NES APU / HuC6280 / Game Boy DMG');
+  const fm = isOpl(chipKind) ? extractOplNotes(source) : chipKind === 'ym2151' ? extractOpmNotes(source) : chipKind === 'psg' || chipKind === 'ay8910' || chipKind === 'ym2413' || chipKind === 'huc6280' || chipKind === 'nes' || chipKind === 'gameboy' ? {channels:[],warnings:new Map()} : extractOpnNotes(source);
+  const tones = chipKind === 'huc6280' ? extractHuc6280Notes(source) : chipKind === 'nes' ? extractNesNotes(source) : chipKind === 'gameboy' ? extractGameboyNotes(source) : extractToneNotes(source, chipKind);
   const opll = (parserHeader.ym2413Clock & 0x3fffffff) ? extractOpllNotes(source) : {channels:[],warnings:new Map(),time:0};
   const channels = [...fm.channels, ...tones.channels, ...opll.channels];
   const time = Math.max(tones.time, opll.time);
-  const chipName = chipKind === 'ym2610' && (parserHeader.ym2610Clock & 0x80000000) ? 'YM2610B' : chipKind === 'gameboy' ? 'Game Boy DMG' : chipKind.toUpperCase();
+  const chipName = chipKind === 'ym2610' && (parserHeader.ym2610Clock & 0x80000000) ? 'YM2610B' : chipKind === 'huc6280' ? 'HuC6280' : chipKind === 'gameboy' ? 'Game Boy DMG' : chipKind.toUpperCase();
   const extractionWarnings = new Map([...(fm.warnings ?? []), ...tones.warnings, ...opll.warnings]);
   if (['ym2203','ym2608','ym2610'].includes(chipKind)) extractionWarnings.delete('SSG writes omitted');
   if (parserHeader.psgClock & 0x3fffffff) extractionWarnings.delete('PSG writes omitted');
-  const warnings = ['FM and SSG/PSG tone notes; PCM, noise and original timbres are not reproduced.',
+  const warnings = chipKind === 'huc6280' ? [
+    'HuC6280 wavetable base pitches; PCM/DDA, noise, LFO CH1/CH2 intervals and original timbres are not reproduced.',
+    'Pitch changes become Pitch Bend. Velocity is fixed at 100.',
+  ] : ['FM and SSG/PSG tone notes; PCM, noise and original timbres are not reproduced.',
     'Pitch changes become Pitch Bend. Chip LFO and SSG envelope phase are not synthesized. Velocity is fixed at 100.'];
   if (chipKind === 'ym2151') warnings.push('YM2151 base KC/KF pitch only: DT/MUL and audible release are not reproduced; CH8 noise, partial key masks and CSM intervals are omitted.');
   for (const [message, entry] of extractionWarnings) warnings.push(`${message} (${entry.count})`);

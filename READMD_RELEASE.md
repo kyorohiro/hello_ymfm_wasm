@@ -174,5 +174,8 @@ Verify the local build before publishing the next version:
 sh scripts/build_huc6280_wasm.sh
 npm run build
 node dist/cli/main.js render test/fixtures/huc6280-tone.vgz --output /tmp/huc6280.wav
-node --test web/huc6280.test.mjs test/huc6280-render.test.mjs
+node dist/cli/main.js export test/fixtures/huc6280-tone.vgz --format midi --output /tmp/huc6280.mid
+node dist/cli/main.js export test/fixtures/huc6280-tone.vgz --format musicxml --bpm 120 --output /tmp/huc6280.musicxml
+node dist/cli/main.js export test/fixtures/huc6280-tone.vgz --format lilypond --bpm 120 --output /tmp/huc6280.ly
+node --test web/huc6280.test.mjs test/huc6280-render.test.mjs test/huc6280-export.test.mjs
 ```

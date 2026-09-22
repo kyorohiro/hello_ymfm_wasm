@@ -167,6 +167,12 @@ test('npm tarball installs offline, runs via npx, and exports the library',async
       const api=execFileSync(process.execPath,['--input-type=module','-e',"import {readSource,renderSource} from 'tetorica-vgm'; process.stdout.write((await renderSource(await readSource(process.argv[1]),{maxSeconds:.05})).bytes)",input],{cwd:dir});
       assert.deepEqual(api,Buffer.from(expected.bytes));
     }
+    for(const format of ['midi','musicxml','lilypond']) {
+      const input=fixture('huc6280-tone.vgz'),out=join(dir,'huc6280.'+format);
+      execFileSync('npm',[...args,'export',input,'--format',format,'--bpm','120','--output',out],{cwd:dir});
+      const result=exportSource(await readSource(input),{format,bpm:120,fileName:'huc6280-tone.vgz'});
+      assert.deepEqual(readFileSync(out),Buffer.from(result.bytes??result.text));
+    }
     const wavePath=join(dir,'synthetic-wave.bin'),waveOut=join(dir,'opl4.wav');
     const wave=new Uint8Array(2097152);wave.set([0,1,0,0,0,255,0,0,0xf0,0,0x0f,0]);
     for(let i=256;i<512;i++)wave[i]=Math.round(Math.sin(i*Math.PI/16)*100)&255;
