@@ -1,3 +1,4 @@
+import {isOpl} from './opl_notes.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
@@ -17,7 +18,7 @@ test('Browser APU Note-ish reset and update support both NES and GB labels',()=>
  const end=source.indexOf('\n}',source.indexOf('function resetApuNoteChannels()'))+2;
  assert(start>0&&end>start);
  for(const chip of ['nes','gameboy']){
-  const c=vm.createContext({currentChipKind:chip,apuNoteChannels:[],apuNoteMonitor:null,
+  const c=vm.createContext({isOpl,currentChipKind:chip,apuNoteChannels:[],apuNoteMonitor:null,
    createNesMonitor,describeNesNotes,createGameboyMonitor,describeGameboyNotes,
    noteishHeader:{nesApuClock:1790000},songTimeMs:()=>0,pruneChannelNoteHistory(){},requestNoteishRender(){},
    buildMonitorChannel:()=>({noteHistory:[],noteMinMidi:null,noteMaxMidi:null})});

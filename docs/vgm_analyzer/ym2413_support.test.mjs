@@ -1,3 +1,4 @@
+import {isOpl} from './opl_notes.js';
 import {chipSupportContext} from './test_helpers/chip_support_context.mjs';
 import {detectPlaybackChipKind} from './playback_core.js';
 import test from 'node:test';
@@ -14,13 +15,13 @@ const tabNames=['operatorInfoTab','noteishTab','tfiInfoTab','sampleTab'];
 const buttonNames=['exportMidiButton','exportMmlButton','exportSnapshotTfiButton','exportSnapshotVgiButton','exportSnapshotButton','exportAllTfiButton','exportAllVgiButton'];
 for (const chip of ['msx','ym3526','ym2413','ym2151','ym3812','ymf262']) test(`${chip} exposes supported analysis and exports and restores OPN tabs`,()=>{
   const notice={hidden:true};
-  const context={...chipSupportContext(),opnMonitorRoot:{},ayMonitorRoot:{},currentChipKind:chip,document:{getElementById:()=>notice},selected:null,
+  const context={isOpl,...chipSupportContext(),opnMonitorRoot:{},ayMonitorRoot:{},currentChipKind:chip,document:{getElementById:()=>notice},selected:null,
     setOutputTab(name){context.selected=name;}};
   for(const name of [...tabNames,...buttonNames])context[name]={disabled:false,title:'',getAttribute:()=> 'false'};
   vm.createContext(context);vm.runInContext(fn('updateChipSupport'),context);
   context.updateChipSupport();
-  const enabledTabs=chip==='ym2151'?['operatorInfoTab','noteishTab','tfiInfoTab']:chip==='ym2413'?['operatorInfoTab','noteishTab']:chip==='ymf262'?['noteishTab']:[];
-  const supportedExports=['ym2151','ym2413'].includes(chip)?['exportMidiButton','exportMmlButton']:[];
+  const enabledTabs=chip==='ym2151'?['operatorInfoTab','noteishTab','tfiInfoTab']:(chip==='ym2413'||isOpl(chip))?['operatorInfoTab','noteishTab']:chip==='ymf262'?['noteishTab']:[];
+  const supportedExports=['ym2151','ym2413'].includes(chip)?['exportMidiButton','exportMmlButton']:isOpl(chip)?['exportMidiButton']:[];
   if(chip==='ym2151')supportedExports.push('exportAllTfiButton','exportSnapshotTfiButton');
   for(const name of tabNames)assert.equal(context[name].disabled,!enabledTabs.includes(name),name);
   for(const name of buttonNames)assert.equal(context[name].disabled,true,`${name}: no file loaded`);
@@ -40,7 +41,7 @@ test('gameboy playback-only mode leaves only Note-ish enabled',()=>{
   // setOutputTab allowing 'noteish') stay reachable for Game Boy.
   const notice={hidden:true};
   const stub=()=>({disabled:false,hidden:true,title:'',getAttribute(){return 'false';},setAttribute(){}});
-  const context={opnMonitorRoot:{},opmMonitorRoot:{},ayMonitorRoot:{},ym2413MonitorRoot:{},noteishHeader:{},
+  const context={isOpl,opnMonitorRoot:{},opmMonitorRoot:{},ayMonitorRoot:{},ym2413MonitorRoot:{},oplMonitorRoot:{},noteishHeader:{},
     currentChipKind:'gameboy',currentBuffer:null,midiExportAvailable:false,musicSheet:null,
     exportLilyPondButton:stub(),exportAllOpmButton:stub(),exportOpmButton:stub(),sheetMusicTab:stub(),parsedOutputTab:stub(),
     document:{getElementById:()=>notice},selected:null,
@@ -80,7 +81,7 @@ test('segapcm also switches away from a stale operator-info tab to parsed-output
   // irrelevant content either.
   const notice={hidden:true};
   const stub=()=>({disabled:false,hidden:true,title:'',getAttribute(){return 'false';},setAttribute(){}});
-  const context={opnMonitorRoot:{},opmMonitorRoot:{},ayMonitorRoot:{},ym2413MonitorRoot:{},noteishHeader:{},
+  const context={isOpl,opnMonitorRoot:{},opmMonitorRoot:{},ayMonitorRoot:{},ym2413MonitorRoot:{},oplMonitorRoot:{},noteishHeader:{},
     currentChipKind:'segapcm',currentBuffer:null,midiExportAvailable:false,musicSheet:null,
     exportLilyPondButton:stub(),exportAllOpmButton:stub(),exportOpmButton:stub(),sheetMusicTab:stub(),parsedOutputTab:stub(),
     document:{getElementById:()=>notice},selected:null,
@@ -94,7 +95,7 @@ test('segapcm also switches away from a stale operator-info tab to parsed-output
 });
 test('setOutputTab allows noteish and parsed-output for gameboy but forces parsed-output for anything else',()=>{
   const stub=()=>({setAttribute(){},hidden:false,tabIndex:0});
-  const context=vm.createContext({currentChipKind:'gameboy',currentBuffer:null,midiExportAvailable:false,status:{textContent:'',hidden:true},
+  const context=vm.createContext({isOpl,currentChipKind:'gameboy',currentBuffer:null,midiExportAvailable:false,status:{textContent:'',hidden:true},
     noteishViewMode:'live',sampleExplorer:{stop(){}},songTimeline:{active(){}},requestNoteishRender(){},renderNoteishGrid(){},
     sheetMusicPanel:stub(),sheetMusicTab:stub(),musicSheet:null,tfiInfo:{setVisible(){}},opmInfo:{setVisible(){}},
     tfiInfoTab:stub(),samplePanel:stub(),sampleTab:stub(),operatorInfoPanel:stub(),operatorInfoTab:stub(),
@@ -106,12 +107,12 @@ test('setOutputTab allows noteish and parsed-output for gameboy but forces parse
   assert.equal(context.operatorInfoPanel.hidden,true);
 });
 test('YM2413 + PSG does not enter the OPN tone monitor',()=>{
-  const context=vm.createContext({currentChipKind:'ym2413',toneChannels:[{old:true}]});
+  const context=vm.createContext({isOpl,currentChipKind:'ym2413',toneChannels:[{old:true}]});
   vm.runInContext(fn('updateToneMonitor'),context);
   context.updateToneMonitor();assert.equal(context.toneChannels.length,0);
 });
 test('chip selection recognizes YM2413 and preserves OPN selection',()=>{
-  const context={detectPlaybackChipKind};
+  const context={isOpl,detectPlaybackChipKind};
   assert.equal(context.detectPlaybackChipKind({y8950Clock:3579545,ay8910Clock:1789773,ym2413Clock:3579545}),'msx');
   assert.equal(context.detectPlaybackChipKind({ym2413Clock:3579545,psgClock:3579545}),'ym2413');
   assert.equal(context.detectPlaybackChipKind({ym2612Clock:7670454}),'ym2612');
@@ -134,7 +135,7 @@ test('chip selection recognizes YM2413 and preserves OPN selection',()=>{
   assert.equal(context.detectPlaybackChipKind({ym2612Clock:7670454,segaPcmClock:4000000}),'ym2612');
 });
 test('YMF262 enables Sheet Music and LilyPond independently of MIDI',()=>{
- const context={...chipSupportContext(),currentChipKind:'ymf262',currentBuffer:{},noteishHeader:{ymf262Clock:14318180},setOutputTab(){}};
+ const context={isOpl,...chipSupportContext(),currentChipKind:'ymf262',currentBuffer:{},noteishHeader:{ymf262Clock:14318180},setOutputTab(){}};
  vm.createContext(context);vm.runInContext(fn('updateChipSupport'),context);context.updateChipSupport();
  assert.equal(context.sheetMusicTab.disabled,false);
  assert.equal(context.exportLilyPondButton.disabled,false);
@@ -145,7 +146,7 @@ test('YMF262 enables Sheet Music and LilyPond independently of MIDI',()=>{
 });
 test('OPL3 Note-ish live channels follow shared state and reset',async()=>{
  const {createOpl3Monitor,applyOpl3Write,describeOpl3Notes}=await import('./ymf262_notes.js');
- const context={currentChipKind:'ymf262',noteishHeader:{ymf262Clock:14318180},apuNoteChannels:[],apuNoteMonitor:createOpl3Monitor(),createOpl3Monitor,describeOpl3Notes,
+ const context={isOpl,currentChipKind:'ymf262',noteishHeader:{ymf262Clock:14318180},apuNoteChannels:[],apuNoteMonitor:createOpl3Monitor(),createOpl3Monitor,describeOpl3Notes,
   buildMonitorChannel:i=>({channel:i,noteHistory:[],noteMinMidi:null,noteMaxMidi:null}),songTimeMs:()=>0,pruneChannelNoteHistory(){},requestNoteishRender(){}};
  vm.createContext(context);vm.runInContext(fn('updateApuNoteMonitor')+'\n'+fn('resetApuNoteChannels'),context);
  for(const [r,v,p] of [[5,1,1],[0xa0,68,0],[0xb0,50,0],[0xa3,68,0],[0xb3,50,0],[4,1,1]])applyOpl3Write(context.apuNoteMonitor,r,v,p);

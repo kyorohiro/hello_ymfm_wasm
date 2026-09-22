@@ -279,7 +279,8 @@ Build with `sh scripts/build_ym2151_wasm.sh`.
 
 YM3812 and YMF262 VGM/VGZ files can be played in the Analyzer, with optional Sega
 PSG. OPL3 supports both register ports; its four output buses are folded into
-stereo (A+C left, B+D right). Analysis and instrument editing remain unavailable.
+stereo (A+C left, B+D right). YMF262 supports base-pitch Note-ish and
+MusicXML / LilyPond scores; instrument editing remains unavailable.
 Second chips, OPL DAC streams and other chip combinations are not supported.
 This does not emulate Sound Blaster PCM/DMA hardware. Build with
 `sh scripts/build_ym3812_wasm.sh` and `sh scripts/build_ymf262_wasm.sh`.
@@ -297,7 +298,15 @@ YM3526 (OPL) VGM/VGZ playback is supported, including melodic and rhythm modes,
 with optional Sega PSG. No sample ROM is required. This uses `ymfm::ym3526`,
 including its fixed sine waveform, rather than substituting the OPL2 core.
 Second YM3526 chips, DAC streams and other chip combinations remain unsupported;
-instrument editing and note extraction are not yet available.
+instrument editing is not yet available.
+
+YM3526 and YM3812 support nine-channel base-pitch Note-ish, MIDI, MusicXML
+and LilyPond export. Rhythm-mode CH7–9 and CSM intervals are omitted from
+transcription; timbre, modulation and envelope release are not reconstructed.
+Operator Info displays both operators, feedback/connection and waveform state,
+and exports the current register state as a JSON voice snapshot. YM3526 uses
+a fixed sine waveform; YM3812 respects the waveform-selection enable bit.
+The JSON snapshot is not a TFI/VGI instrument or an audio-state save.
 
 To inspect and reconstruct this playback path:
 

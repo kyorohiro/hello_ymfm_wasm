@@ -1,3 +1,4 @@
+import {isOpl} from './opl_notes.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
@@ -21,7 +22,7 @@ test('TFI selection, edit download, independent audition volume, and tab visibil
   let blob;
   const source = readFileSync(new URL('./tfi_info.js', import.meta.url), 'utf8')
     .replace(/^import .*;\n/gm, '').replace('export function', 'function');
-  const context = vm.createContext({
+  const context = vm.createContext({isOpl,
     document: { createElement: element },
     Blob: class { constructor(parts) { blob = parts[0]; } },
     URL: { createObjectURL: () => 'blob:test', revokeObjectURL() {} }, setTimeout() {},
@@ -69,12 +70,13 @@ test('TFI tab switching and first audition leave VGM playback running', () => {
   let editorOptions;
   const synths = [];
   let stopped = 0;
-  const context = vm.createContext({
+  const context = vm.createContext({isOpl,
     document: { getElementById: element, createElement: element }, window: { addEventListener() {} },
     createTfiFileEditor(options) { editorOptions = options; return { setVisible() {}, dispose() {} }; },
     MegaSynth: class { constructor(options) { this.options = options; synths.push(this); } },
     mountOpmInfo() { return {setVisible() {},dispose() {}}; },
     mountYm2413Monitor() { return {}; },
+    mountOplMonitor() { return {}; },
     sheetMusicPanel:element(),sheetMusicTab:element(),musicSheet:null,currentBuffer:null,midiExportAvailable:false,
     setStatus() {}, currentChipKind: 'ym2612',
     player: { isPlaying: () => true, pause: () => stopped++, stop: () => stopped++ },

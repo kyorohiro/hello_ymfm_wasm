@@ -673,3 +673,13 @@ Node callers can use `exportSource(source, {format: 'musicxml', groups:
 [{id: 'piano', name: 'Piano', channels: ['ymf262-ch1', 'ymf262-ch5']}]})`.
 Group metadata preserves the original CH on notes; output files retain it in
 hidden MusicXML notations or LilyPond comments. Existing quantization limits apply.
+
+### YM3526 / YM3812 notes and scores
+
+Single-chip OPL / OPL2 supports MIDI, MusicXML, LilyPond and `score-channels`.
+Score channel IDs are `ym3526-ch1` through `ym3526-ch9` or `ym3812-ch1`
+through `ym3812-ch9`. Export uses FNUM/BLOCK base pitches and key-on intervals;
+rhythm-mode CH7–9 and CSM intervals are omitted. Original timbres, modulation
+and envelope release are not reconstructed. Dual/variant chips and mixed
+YM3526 + YM3812 note extraction are rejected. The browser Operator Info panel
+also exports register-state JSON voice snapshots.
