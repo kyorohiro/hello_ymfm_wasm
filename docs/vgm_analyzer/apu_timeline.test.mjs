@@ -45,3 +45,25 @@ for(const kind of ['gameboy','nes'])test(`${kind} file load feeds Song timeline 
   assert.ok(Math.abs(channel.rows[0][2]-69)<0.1);
  }
 });
+
+test('all Note-ish chip modes pass loaded files to Song timeline',async()=>{
+ const {chipSupportContext}=await import('./test_helpers/chip_support_context.mjs');
+ const supportStart=analyzer.indexOf('function updateChipSupport()');
+ const supportEnd=analyzer.indexOf('\nfunction buildParseInfo',supportStart);
+ const loadStart=analyzer.indexOf('  currentBuffer = buffer;');
+ const loadEnd=analyzer.indexOf('  playbackSeek.max',loadStart);
+ assert.ok(supportStart>=0&&supportEnd>supportStart&&loadStart>=0&&loadEnd>loadStart);
+ // PSG-only playback also uses the ym2612 UI mode; YM2610B uses ym2610.
+ const supported=['ym2612','ym2203','ym2608','ym2610','ym2151','ym2413','ay8910','ym3526','ym3812','ymf262','nes','gameboy'];
+ const unsupported=['okim6258','msx','y8950','ymf278b','segapcm'];
+ for(const kind of [...supported,...unsupported]){
+  const buffer=new Uint8Array(1),loads=[];
+  const context={...chipSupportContext(),currentChipKind:kind,buffer,setOutputTab(){},songTimeline:{load:value=>loads.push(value)}};
+  vm.createContext(context);
+  vm.runInContext(analyzer.slice(supportStart,supportEnd)+'\nupdateChipSupport();',context);
+  assert.equal(context.noteishTab.disabled,!supported.includes(kind),kind);
+  vm.runInContext(analyzer.slice(loadStart,loadEnd),context);
+  assert.equal(loads.length,supported.includes(kind)?1:0,`${kind}: timeline loading must match Note-ish support`);
+  if(loads.length)assert.equal(loads[0],buffer);
+ }
+});
