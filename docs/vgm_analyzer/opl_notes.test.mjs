@@ -81,3 +81,25 @@ test('OPL operator display downloads the current JSON state',()=>{
  applyOplWrite(registers,0x20,0x72);root.children[2].click();
  assert.equal(clicked,true);assert.equal(downloaded.channels[0].operators[0].multiplier,2);assert.equal(downloaded.format,'tetorica-opl-snapshot');
 });
+
+for(const kind of ['ym3526','ym3812']) test(`${kind}: waveform enable toggles interpretation without losing raw register data`,()=>{
+ const regs=createOplMonitor();applyOplWrite(regs,0xe0,0xff);
+ assert.equal(snapshotOpl(regs,kind,3579545).channels[0].operators[0].waveform,0);
+ applyOplWrite(regs,1,32);
+ const enabled=snapshotOpl(regs,kind,3579545);
+ assert.equal(enabled.channels[0].operators[0].waveform,kind==='ym3812'?3:0);
+ applyOplWrite(regs,1,0);
+ const disabled=snapshotOpl(regs,kind,3579545);
+ assert.equal(disabled.channels[0].operators[0].waveform,0);
+ assert.equal(disabled.channels[0].operators[0].waveformRegister,255);
+ assert.equal(enabled.registers[1],32,'snapshots must not change with subsequent writes');
+});
+
+for(const kind of ['ym3526','ym3812']) test(`${kind}: rhythm affects only CH7–9 and register changes while off do not create notes`,()=>{
+ const entries=Array.from({length:9},(_,i)=>[[0xa0+i,68],[0xb0+i,50]]).flat();
+ const score=extractOplNotes(vgm(kind,[...entries,'wait',[0xbd,63],'wait',[0xbd,0],'wait',
+  ...Array.from({length:9},(_,i)=>[0xb0+i,18]),[0xa0,100],'wait']));
+ for(const ch of score.channels.slice(0,6))assert.deepEqual(ch.notes.map(n=>[n.start,n.end]),[[0,66150]]);
+ for(const ch of score.channels.slice(6))assert.deepEqual(ch.notes.map(n=>[n.start,n.end]),[[0,22050],[44100,66150]]);
+ assert.equal(score.time,88200);
+});

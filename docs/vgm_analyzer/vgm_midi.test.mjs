@@ -276,3 +276,25 @@ test('YM2151 re-key, all channels, exclusions and PSG MIDI channel allocation',(
  assert.throws(()=>exportAnalysisMidi(opmVgm([0x54,0x28,0x4a,0x54,8,8,...wait(22050),0x66])),/No convertible/);
  const dual=opmVgm([0x66]);new DataView(dual.buffer).setUint32(0x30,3579545|0x40000000,true);assert.throws(()=>exportAnalysisMidi(dual),/Dual/);
 });
+
+for(const [kind,opcode,clockOffset] of [['ym3526',0x5b,0x54],['ym3812',0x5a,0x50]]) {
+ test(`${kind} + PSG: MIDI preserves bends, retriggers, CH9 and trailing silence`,()=>{
+  const write=(r,v)=>[opcode,r,v];
+  const source=vgm([
+   ...write(0xa0,68),...write(0xb0,50),...write(0xa8,68),...write(0xb8,50),
+   0x50,0x80,0x50,0x10,0x50,0x90,...wait(22050),
+   ...write(0xa0,80),...wait(22050),
+   ...write(0xb0,18),...write(0xb0,50),...wait(22050),
+   ...write(0xb0,18),...write(0xb8,18),0x50,0x9f,...wait(22050),0x66,
+  ],0);
+  const header=new DataView(source.buffer);header.setUint32(clockOffset,3579545,true);header.setUint32(0x0c,3579545,true);
+  const result=exportAnalysisMidi(source,{bpm:120}),midi=decode(result.bytes);
+  assert.equal(midi.tracks.length,13);assert.equal(result.noteCount,4);
+  assert.deepEqual(notes(midi.tracks[1]).map(e=>[e.tick,e.status&0xf0]),[[0,0x90],[1920,0x80],[1920,0x90],[2880,0x80]]);
+  assert.equal(notes(midi.tracks[1])[0].data[0],69);
+  assert.ok(midi.tracks[1].some(e=>e.status===0xe0&&e.tick===960),'held pitch becomes a bend');
+  assert.deepEqual(notes(midi.tracks[9]).map(e=>[e.tick,e.status]),[[0,0x98],[2880,0x88]]);
+  assert.deepEqual(notes(midi.tracks[10]).map(e=>[e.tick,e.status]),[[0,0x9a],[2880,0x8a]]);
+  for(const track of midi.tracks)assert.equal(track.at(-1).tick,3840);
+ });
+}
