@@ -44,7 +44,39 @@ MIDI ファイル
 
 ファイル解析と、MIDI イベントを YM2612 へ反映する処理を分ける。
 既存の物理 CH 操作に MIDI CH の意味を混ぜず、MIDI 用の操作層を追加する。
-公開 API の名前・名前空間は実装前に決める。
+送り先ハンドルと音色指定は MIDI Playground の API に揃える方針とする。
+初期の送り先は `tetorica-ym2612` と `tetorica-sega-psg`。
+DAC / PWM のサンプル割り当ては後続の検討項目とする。
+
+### 送り先・音色指定の採用方針（未実装）
+
+```js
+const lead = midi.output("tetorica-ym2612", { channel: 1 });
+const bass = midi.output("tetorica-sega-psg", { channel: 2 });
+
+await lead.setVoice(preset); // 既存の YM2612 Preset Object
+// または FILES 内の音色ファイルを使用する
+await lead.loadVoice("./lead.tfi");
+await lead.play("C4", { velocity: 100, duration: 1 });
+```
+
+- [ ] `midi.output(destination, { channel })` を導入する。channel は MIDI CH 1–16 であり、物理 CH の予約ではない。
+- [ ] YM2612 ハンドルの `setVoice(preset)`、`setVoice(bytes, { format: 'tfi' | 'vgi' })`、`loadVoice(path)` を移植する。
+- [ ] 音色は次の Note On から適用し、発音中の音にはその音が開始した時点の音色を保持する。
+- [ ] channel 省略時は既存仕様に揃え、YM2612 の音色設定は全16 MIDI CH、発音は MIDI CH1 とする。
+- [ ] 音色設定と後続の Note On の処理順序を Worker 経由でも保証する。
+- [ ] `loadVoice()` の相対パスは Run ファイル基準とし、TFI / VGI のバイナリアセット保存・カセット往復を確認する。
+- [ ] ハンドルの `play()` の duration は MIDI Playground と同じ拍単位にする。既存の FM `play()` の秒単位とは区別する。
+
+`setVoice` / `loadVoice` は YM2612 用。PSG に FM 音色設定を適用しない。
+既存 Preset Object と TFI / VGI の変換処理を活かし、新しい音色形式は増やさない。
+ブラウザー側の実装は既存 FM / PSG API へ接続する。
+Native の Tauri 接続や SysEx 転送の仕組みをそのまま移植することは前提にしない。
+
+参照：`w/tetorica-midi-playground/ui/playground-api.d.ts`、
+`w/tetorica-midi-playground/docs/issues/midi_sysex_01.md`。
+MIDI Playground の低レベル MIDI API は現状グローバル側にあり、ハンドルには
+`play` / `setVoice` / `loadVoice` がある。ハンドルへの Note On / Off・CC 等の追加は別途設計する。
 
 ## 必要な改善
 
@@ -100,12 +132,13 @@ Program Change の番号だけでは FM 音色は決まらない。
 
 ## 推奨する実装順序
 
-1. パート選択＋手動音色指定＋Note On / Off・Velocity・テンポ変更。
-2. 発音数超過・同音連打・Stop／再実行を含む再生の安定化。
-3. Sustain・Pitch Bend・Volume／Expression／Pan。
-4. Program Change の音色対応表、ドラム、その他の CC・Pressure。
+1. `midi.output()` と既存互換の音色指定、Note On / Off・Velocity・基本の発音割り当てを追加し、手書きコードで確認する。
+2. MIDI import を接続し、パート選択・音色指定・テンポ変更に対応する。
+3. 発音数超過・同音連打・Stop／再実行を含む再生の安定化。
+4. Sustain・Pitch Bend・Volume／Expression／Pan。
+5. Program Change の音色対応表、ドラム、その他の CC・Pressure。
 
-基本の発音割り当てと停止処理は第１段階から必要。第２段階で複雑なケースを拡充する。
+基本の発音割り当てと停止処理は第１段階から必要。後続段階で複雑なケースを拡充する。
 まず単旋律と簡単な和音で検証し、その後にテンポ変更・密な曲・実際の MIDI ファイルへ広げる。
 
 ## 検証項目
