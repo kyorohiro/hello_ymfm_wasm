@@ -286,7 +286,10 @@ This does not emulate Sound Blaster PCM/DMA hardware. Build with
 `sh scripts/build_ym3812_wasm.sh` and `sh scripts/build_ymf262_wasm.sh`.
 
 Y8950 (MSX-Audio, FM + ADPCM) and YMF278B (OPL4/Moonsound, FM + PCM)
-are also supported for VGM/VGZ playback. Sample data can be embedded in the
+are also supported for VGM/VGZ playback. YMF278B supports FM base-pitch
+Note-ish (Live / Song) for 18 channels, including 4OP pairs using the leading
+channel. PCM voices, rhythm, timbre, modulation and release are omitted;
+YMF278B sheet-music export is not yet supported. Sample data can be embedded in the
 VGM (blocks 0x88 for Y8950, 0x84/0x87 for YMF278B). For Moonsound logs such as
 Sonyc that omit the built-in samples, import your `yrw801.rom` (2 MiB) through
 the file selector or drag and drop, then press Play. The ROM remains loaded

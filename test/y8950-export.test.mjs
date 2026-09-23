@@ -59,7 +59,7 @@ test('Analyzer hooks the real Y8950 writer; reset, ADPCM and mute controls remai
     buildMonitorChannel:i=>({channel:i,noteHistory:[],noteMinMidi:null,noteMaxMidi:null}),songTimeMs:()=>0,
     pruneChannelNoteHistory(){},requestNoteishRender(){},requestChannelMonitorRender(){}});
   vm.runInContext(fn('updateApuNoteMonitor')+'\n'+fn('resetApuNoteChannels')+'\nresetApuNoteChannels();',c);
-  const start=source.indexOf('      if (isOpl(chip)) {'),end=source.indexOf("      if (chip === 'ymf262')",start);
+  const start=source.indexOf('      if (isOpl(chip)) {'),end=source.indexOf("      if (chip === 'ymf262' || chip === 'ymf278b')",start);
   vm.runInContext(source.slice(start,end),c);
   try{
     const player=createPlaybackPlayer(engine,b);player.setPrefetchFactor(1);player.play();

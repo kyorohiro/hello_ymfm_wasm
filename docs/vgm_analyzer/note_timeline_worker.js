@@ -1,3 +1,4 @@
+import {extractYmf278bFmNotes} from './ymf262_notes.js';
 import {extractHuc6280Notes} from './huc6280_notes.js';
 import {analyzeLilyPondSource} from './vgm_lilypond.js';
 import {groupScoreChannels} from './score_groups.js';
@@ -8,7 +9,7 @@ self.onmessage=({data})=>{
   try{
     if(data.type==='load'){
       const header=new Ym2612VGM(data.buffer).header;
-      const score=header.huc6280Clock ? extractHuc6280Notes(data.buffer) : analyzeLilyPondSource(data.buffer);
+      const score=header.ymf278bClock ? extractYmf278bFmNotes(data.buffer) : header.huc6280Clock ? extractHuc6280Notes(data.buffer) : analyzeLilyPondSource(data.buffer);
       const raw=groupScoreChannels(score.channels,data.groups);
       channels=raw.map(ch=>{
         const keys=new Map(),sources={};
