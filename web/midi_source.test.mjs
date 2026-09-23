@@ -59,7 +59,7 @@ test('generated module imports silently, exports selected channels and merges th
  const routes=[{part:'[0,0,"",1]',destination:'tetorica-sega-psg',channel:0},{part:'[0,0,"",2]',destination:'tetorica-sega-psg',channel:1}];
  const source=midiToSource(data,routes,{module:true});
  const song=await import(`data:text/javascript;base64,${Buffer.from(source).toString('base64')}`);
- assert.deepEqual(Object.keys(song).sort(),['initCh','runAllCh','runCh1','runCh2','runChannels']);
+ assert.deepEqual(Object.keys(song).sort(),['ch1Events','ch2Events','initCh','runAllCh','runCh1','runCh2','runChannels']);
  await assert.rejects(song.runAllCh(),/initCh/);
  const events=[],times=[];let clocks=0;
  const api={CH1:0,CH2:1,midi:{createTimeline:()=>{clocks++;return {waitUntil:async t=>times.push(t)};},output:(dest,{channel})=>Object.fromEntries(['setPitchBendRange','noteOn','noteOff','cc'].map(method=>[method,async(...args)=>events.push([channel,method,...args])]))}};
@@ -76,7 +76,7 @@ test('same target CH on FM and PSG has one export and module can be initialized 
  const data=smf([0,0x90,60,100,96,0x80,60,0,0,255,47,0],[0,0x91,64,90,96,0x81,64,0,0,255,47,0]);
  const source=midiToSource(data,[{part:'[0,0,"",1]',destination:'tetorica-ym2612',channel:7,preset:'sine'},{part:'[1,0,"",2]',destination:'tetorica-sega-psg',channel:7}],{module:true,presets:FM_PRESETS});
  const song=await import(`data:text/javascript;base64,${Buffer.from(source).toString('base64')}`);
- assert.deepEqual(Object.keys(song).sort(),['initCh','runAllCh','runCh8','runChannels']);
+ assert.deepEqual(Object.keys(song).sort(),['ch8Events','initCh','runAllCh','runCh8','runChannels']);
  let notes=0;
  const api={CH8:7,FM_PRESETS,midi:{createTimeline:()=>({waitUntil:async()=>{}}),output:()=>({setVoice:async()=>{},setPitchBendRange:async()=>{},noteOn:async()=>notes++,noteOff:async()=>{},cc:async()=>{}})}};
  await song.initCh(api);await song.runCh8();assert.equal(notes,2);
@@ -100,7 +100,7 @@ test('channel generators merge simultaneous events in source order, independent 
  const data=smf([0,0x91,64,100,0,0x90,60,90,48,0x81,64,0,0,0x91,67,80,48,0x80,60,0,0,0x81,67,0,0,255,47,0]);
  const routes=[0,1].map(ch=>({part:`[0,0,"",${ch+1}]`,destination:'tetorica-sega-psg',channel:ch}));
  const source=midiToSource(data,routes,{module:true});
- assert.match(source,/function\* ch1Events\(\)/);assert.match(source,/function\* ch2Events\(\)/);
+ assert.match(source,/function\* ch1Events\(output\)/);assert.match(source,/function\* ch2Events\(output\)/);
  assert(!source.includes('selected.has('));
  const song=await import(`data:text/javascript;base64,${Buffer.from(source).toString('base64')}`);
  const events=[],times=[];
@@ -159,7 +159,7 @@ test('six parts assigned to CH1 compile into one handle and one chronological ge
   handles++;return Object.fromEntries(['setVoice','setPitchBendRange','noteOn','noteOff','cc'].map(m=>[m,async(...args)=>events.push([m,...args])]));
  }}});
  assert.equal(handles,1);assert.deepEqual(events,[['setVoice',FM_PRESETS.sine],['setPitchBendRange',2]]);
- assert.deepEqual(Object.keys(song).sort(),['initCh','runAllCh','runCh1','runChannels']);
+ assert.deepEqual(Object.keys(song).sort(),['ch1Events','initCh','runAllCh','runCh1','runChannels']);
  await song.runAllCh();assert.deepEqual(times,[0,.5]);
  assert.deepEqual(events.filter(e=>e[0]==='noteOn').map(e=>e[1]),[60,61,62,63,64,65]);
  assert.equal(events.filter(e=>e[0]==='noteOff').length,6);
@@ -171,4 +171,36 @@ test('shared target receives a source-channel CC once even when multiple tracks 
  const routes=[0,1].map(track=>({part:`[${track},0,"",1]`,destination:'tetorica-sega-psg',channel:0}));
  const source=midiToSource(data,routes,{module:true});
  assert.equal((source.match(/\.cc\(7, 100\)/g)||[]).length,1);
+});
+
+test('exported events accept independent outputs without initialization, including bend and CC',async()=>{
+ const data=smf([0,0x90,60,100,0,0xe0,0,96,0,0xb0,7,90,96,0x80,60,0,0,255,47,0]);
+ const source=midiToSource(data,[{part:'[0,0,"",1]',destination:'tetorica-sega-psg',channel:0}],{module:true});
+ const song=await import(`data:text/javascript;base64,${Buffer.from(source).toString('base64')}`);
+ const events=[];
+ const output=Object.fromEntries(['noteOn','noteOff','pitchBend','cc'].map(method=>[method,async(...args)=>events.push([method,...args])]));
+ const entries=[...song.ch1Events(output)];
+ assert.equal(events.length,0);
+ for(const [,command] of entries)await command();
+ assert.deepEqual(events,[['noteOn',60,{velocity:100}],['pitchBend',4096/8191],['cc',7,90],['noteOff',60]]);
+ events.length=0;
+ const original=[];
+ await song.initCh({CH1:0,midi:{output:()=>({...output,setPitchBendRange:async()=>{},cc:async(...args)=>original.push(args)}),createTimeline:()=>({waitUntil:async()=>{throw Error('cancelled');}})}});
+ await assert.rejects(song.runCh1(output),/cancelled/);
+ assert.deepEqual(events,[['cc',120,0]]);assert.deepEqual(original,[]);
+});
+
+test('FM and PSG with the same MIDI channel accept separate replacement outputs',async()=>{
+ const data=smf([0,0x90,60,100,96,0x80,60,0,0,255,47,0],[0,0x91,64,90,96,0x81,64,0,0,255,47,0]);
+ const source=midiToSource(data,[{part:'[0,0,"",1]',destination:'tetorica-ym2612',channel:0,preset:'sine'},{part:'[1,0,"",2]',destination:'tetorica-sega-psg',channel:0}],{module:true,presets:FM_PRESETS});
+ const song=await import(`data:text/javascript;base64,${Buffer.from(source).toString('base64')}`);
+ const events=[];
+ const output=id=>Object.fromEntries(['noteOn','noteOff','cc','setVoice','setPitchBendRange'].map(method=>[method,async(...args)=>events.push([id,method,...args])]));
+ await song.initCh({CH1:0,FM_PRESETS,midi:{output:()=>output('default'),createTimeline:()=>({waitUntil:async()=>{}})}});
+ events.length=0;
+ await assert.rejects(song.runCh1(output('fm')),/one output/);
+ await song.runCh1(output('fm'),output('psg'));
+ assert.deepEqual(events.filter(e=>e[1]==='noteOn'),[['fm','noteOn',60,{velocity:100}],['psg','noteOn',64,{velocity:90}]]);
+ assert.deepEqual(events.filter(e=>e[1]==='cc'),[['fm','cc',120,0],['psg','cc',120,0]]);
+ assert(!events.some(e=>e[0]==='default'));
 });

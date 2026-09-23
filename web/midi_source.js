@@ -88,7 +88,7 @@ export function midiToSource(bytes, routes, {name='MIDI', presets={}, module=fal
     if(event.type==='meta'&&event.tempo){add(`// Tempo: ${60000000/event.tempo} BPM at ${event.seconds} seconds (included in event times).`);continue;}
     if(event.type!=='channel')continue;
     const variable=mapping.get(event.part),statements=[];
-    const emit=(v,line)=>statements.push({channel:channels.get(v),line});
+    const emit=(v,line)=>statements.push({channel:channels.get(v),variable:v,line});
     if(variable&&event.kind===9&&event.b>0)emit(variable,`await ${variable}.noteOn(${event.a}, {velocity: ${event.b}});`);
     else if(variable&&(event.kind===8||event.kind===9))emit(variable,`await ${variable}.noteOff(${event.a});`);
     else if(event.kind===14||event.kind===11&&MIDI_SUPPORTED_CC.includes(event.a)) {
@@ -100,8 +100,11 @@ export function midiToSource(bytes, routes, {name='MIDI', presets={}, module=fal
     } else if(variable) add(`// Not applied at ${event.seconds}s: MIDI status ${event.kind}, data ${event.a}${event.b===undefined?'':`, ${event.b}`}.`);
     if(statements.length){
       if(module) {
-        for(const {channel,line} of statements) {
-          const entry=`  yield [${event.seconds}, () => ${line.slice(6,-1)}, ${eventOrder++}];`;
+        for(const {channel,variable,line} of statements) {
+          const variables=[...channels].filter(([,ch])=>ch===channel).map(([v])=>v);
+          const index=variables.indexOf(variable);
+          const argument=index===0?"output":`output${index+1}`;
+          const entry=`  yield [${event.seconds}, () => ${argument}${line.slice(6+variable.length,-1)}, ${eventOrder++}];`;
           bufferedLength+=entry.length+1;
           if(length+bufferedLength>16*1024*1024)throw new Error('Generated MIDI code exceeds 16 Mi characters; select fewer parts');
           const entries=channelEvents.get(channel)??[];entries.push(entry);channelEvents.set(channel,entries);
@@ -113,31 +116,41 @@ export function midiToSource(bytes, routes, {name='MIDI', presets={}, module=fal
     const numbers=[...new Set(channels.values())].sort((a,b)=>a-b);
     add('\n// Event tuple: [seconds, command, original order for simultaneous events].');
     for(const ch of numbers) {
-      add(`function* ch${ch}Events() {`);
+      const variables=[...channels].filter(([,channel])=>channel===ch).map(([v])=>v);
+      add(`// Outputs in order: ${variables.join(", ")}. No initialization is needed when outputs are supplied directly.`);
+      add(`export function* ch${ch}Events(${variables.map((_,i)=>i===0?"output":`output${i+1}`).join(", ")}) {`);
       for(const entry of channelEvents.get(ch)??[])add(entry);
       add('}');
     }
     add(`\nconst channelEvents = {${numbers.map(ch=>`${ch}: ch${ch}Events`).join(', ')}};`);
-    add('const silenceChannel = {');
+    add('const defaultOutputs = {');
     for(const ch of numbers) {
-      add(`  ${ch}: async () => {`);
-      for(const [variable,channel] of channels)if(channel===ch)add(`    await ${variable}.cc(120, 0);`);
-      add('  },');
+      const variables=[...channels].filter(([,channel])=>channel===ch).map(([v])=>v);
+      add(`  ${ch}: () => [${variables.join(', ')}],`);
     }
     add('};');
     add(`
-export async function runChannels(channelNumbers) {
-  if (!Array.isArray(channelNumbers) || channelNumbers.some(ch => !Number.isInteger(ch) || !Object.hasOwn(channelEvents, ch))) throw new Error("Unknown channel selection");
+export async function runChannels(channelNumbers, outputs = {}) {
+  if (!Array.isArray(channelNumbers) || channelNumbers.some(ch => !Number.isInteger(ch) || !Object.prototype.hasOwnProperty.call(channelEvents, ch))) throw new Error("Unknown channel selection");
   if (!api) throw new Error("Call initCh(pg) first");
   if (running) throw new Error("This song is already playing");
   const selected = [...new Set(channelNumbers)];
   if (!selected.length) return;
+  const resolved = new Map(selected.map(ch => {
+    const defaults = defaultOutputs[ch]();
+    const supplied = outputs[ch];
+    const values = supplied === undefined ? defaults : Array.isArray(supplied) ? supplied : [supplied];
+    if (values.length !== defaults.length || values.some(output => !output ||
+        ["noteOn", "noteOff", "cc"].some(method => typeof output[method] !== "function")))
+      throw new Error("Supply one output per generated channel destination");
+    return [ch, values];
+  }));
   running = true;
   try {
     const timeline = api.midi.createTimeline();
     // Keep just one pending event per channel, rather than expanding every event.
     const streams = selected.map(ch => {
-      const iterator = channelEvents[ch]();
+      const iterator = channelEvents[ch](...resolved.get(ch));
       return {iterator, next: iterator.next()};
     });
     let previous = -1;
@@ -161,14 +174,14 @@ export async function runChannels(channelNumbers) {
     if (previous !== ${song.seconds}) await timeline.waitUntil(${song.seconds});
   } finally {
     try {
-      const results = await Promise.allSettled(selected.map(ch => silenceChannel[ch]()));
+      const results = await Promise.allSettled([...new Set([...resolved.values()].flat())].map(output => Promise.resolve().then(() => output.cc(120, 0))));
       const failure = results.find(result => result.status === "rejected");
       if (failure) throw failure.reason;
     } finally { running = false; }
   }
 }`);
-    for(const ch of numbers)add(`export async function runCh${ch}() { return runChannels([${ch}]); }`);
-    add(`export async function runAllCh() { return runChannels([${numbers.join(', ')}]); }`);
+    for(const ch of numbers)add(`export async function runCh${ch}(...outputs) { return runChannels([${ch}], outputs.length ? {${ch}: outputs} : {}); }`);
+    add(`export async function runAllCh(outputs = {}) { return runChannels([${numbers.join(', ')}], outputs); }`);
   } else {
     wait(song.seconds);
     add('// End of file: silence any held or sustained notes.');

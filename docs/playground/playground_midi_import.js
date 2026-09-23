@@ -1,5 +1,5 @@
-import {midiToSource, assignMidiRoutes} from '../js/midi_source.js?v=midi-shared-1';
-import {parseMidiFile} from '../js/midi_file.js?v=midi-shared-1';
+import {midiToSource, assignMidiRoutes} from '../js/midi_source.js?v=midi-events-output-2';
+import {parseMidiFile} from '../js/midi_file.js?v=midi-events-output-2';
 
 /** Import UI compiles selected parts into editable performance code. */
 export function installMidiImport({button, presets, importFiles, onError, enabled}) {
