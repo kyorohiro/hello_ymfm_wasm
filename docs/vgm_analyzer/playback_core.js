@@ -121,7 +121,7 @@ export function selectPlaybackConfiguration(vgm) {
   try {
     const unsupported=chips.filter(c=>!composition[kind].includes(c.id) && c.id !== 'okim6258');
     if (unsupported.length) throw new Error(`This chip combination is not supported: ${chips.map(c=>c.id).join(' + ')}`);
-    if (chips.some(c=>(c.rawClock & (['ym2610','k051649'].includes(c.id) ? 0x40000000 : 0xc0000000)))) throw new Error('Dual/variant configuration is not supported');
+    if (chips.some(c=>(c.rawClock & (['ym2610','k051649','nesApu'].includes(c.id) ? 0x40000000 : 0xc0000000)))) throw new Error('Dual/variant configuration is not supported');
     if (kind === 'nes') validateNesApuClock(header.nesApuClock & 0x3fffffff);
     if (header.okim6258Clock) validateOki6258Header(header);
     if (kind === 'msx') validateMsxPlaybackHeader(header);
@@ -137,7 +137,7 @@ export function selectPlaybackConfiguration(vgm) {
 }
 const recipes = {
   huc6280: async (vgm, resource, masterVolume) => Huc6280AudioEngine.create({moduleFactory:await resource("huc6280"),clock:vgm.header.huc6280Clock,masterVolume}),
-  nes: async (vgm, resource, masterVolume) => createNesApuAudioEngine({clock:vgm.header.nesApuClock & 0x3fffffff,masterVolume}),
+  nes: async (vgm, resource, masterVolume) => createNesApuAudioEngine({clock:vgm.header.nesApuClock & 0x3fffffff,fds:!!(vgm.header.nesApuClock & 0x80000000),masterVolume}),
   okim6258: async (vgm, resource, masterVolume) => Oki6258AudioEngine.create({moduleFactory:await resource('okim6258'),clock:vgm.header.okim6258Clock,flags:vgm.header.okim6258Flags,masterVolume}),
   msx: async (vgm, resource, masterVolume) => createMsxAudioEngine({
         ayModuleFactory: vgm.header.ay8910Clock ? await resource('ay8910') : undefined,
@@ -263,7 +263,7 @@ export function playbackMuteControls(configuration) {
   const {kind,header:h}=configuration, controls=[];
   const add=(id,method,...args)=>controls.push({id,method,args});
   const channels=(prefix,count,method)=>{for(let i=0;i<count;i++)add(prefix+'-'+(i+1),method,i);};
-  const counts={huc6280:6,ym2203:3,ym2151:8,ym2413:9,ym3526:9,ym3812:9,ymf262:18,ymf278b:18,y8950:9,gameboy:4,nes:5};
+  const counts={huc6280:6,ym2203:3,ym2151:8,ym2413:9,ym3526:9,ym3812:9,ymf262:18,ymf278b:18,y8950:9,gameboy:4,nes:(h.nesApuClock & 0x80000000)?6:5};
   if(counts[kind])channels(kind+'-ch',counts[kind],'setChannelMuted');
   if(kind==='ymf278b')channels('ymf278b-pcm',24,'setPcmChannelMuted');
   if(h.psgClock)add('psg','setPsgMuted');

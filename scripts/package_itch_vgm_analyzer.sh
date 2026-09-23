@@ -98,6 +98,7 @@ segapcmaudioengine.js
 gameboyapu.js
 gameboyapuaudioengine.js
 nesapuaudioengine.js
+fds_audio.js
 multichipaudioengine.js
 msxaudioengine.js
 y8950.js
@@ -228,6 +229,8 @@ perl -0pi -e 's#\s*<link rel="manifest" href="\.\./[^\"]+\.webmanifest">##g; s#\
 
 mkdir -p "${STAGE_DIR}/js/nes_apu_vendor"
 cp "${DOCS_JS_DIR}/nes_apu_vendor/"*.js "${STAGE_DIR}/js/nes_apu_vendor/"
+mkdir -p "${STAGE_DIR}/licenses/fixnes-fds"
+cp "${ROOT_DIR}/third_party/fixnes-fds/"*.md "${ROOT_DIR}/third_party/fixnes-fds/LICENSE" "${STAGE_DIR}/licenses/fixnes-fds/"
 mkdir -p "${STAGE_DIR}/licenses/jsnes"
 cp "${ROOT_DIR}/third_party/jsnes/"* "${STAGE_DIR}/licenses/jsnes/"
 

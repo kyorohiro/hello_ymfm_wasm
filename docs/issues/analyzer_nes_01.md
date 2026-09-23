@@ -55,3 +55,10 @@ node dist/cli/main.js export test/fixtures/nes-tone.vgz --format musicxml --outp
 - Browser UI関数の5ch muteとGB/NES Note-ish reset・ラベルをテスト。
 - buildは118依存ファイルをstage。itch用nes-check ZIP生成成功。
 - 実ブラウザの接続が利用できなかったため、実画面の操作・音の聴取は未実施。Node.js 22での確認も未実施。
+
+## FDS 追加
+
+FDS フラグ、再生・CH6 ミュート・基音 Note-ish / export を追加。
+fixNES の派生実装と許諾文は `third_party/fixnes-fds` に保存。
+`test/fixtures/fds-tone.vgz` で試せる。上記の初回制約の FDS 除外は解除。
+変調・時間経過によるエンベロープは楽譜に転記しない。実曲の試聴は未確認。

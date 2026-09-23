@@ -109,7 +109,8 @@ second implementation for Node.
 The npm allowlist includes only staged dependencies, README/CLI documentation
 and licenses. It excludes game files, fixtures, ROMs, HTML/CSS/images, OSMD,
 LilyPond runtime, Nuked-OPN2, `w/`, caches and browser bundles. Included chip code
-is BSD-3-Clause except the Apache-2.0 JSNES APU; third-party notices are shipped under `dist/licenses/`.
+is BSD-3-Clause except the Apache-2.0 JSNES APU and the fixNES FDS adaptation
+under the MIT license; third-party notices are shipped under `dist/licenses/`.
 Before publication run `npm test`, `npm run test:analyzer`, `npm run pack:check`,
 and install/test the tarball in a clean directory. The analyzer suite has one optional compiler integration test that requires
 `MML2MDR_DIR`; without that external compiler it is skipped.
@@ -545,7 +546,12 @@ APU engine (JSNES, Apache-2.0; see `dist/licenses/jsnes/`). No extra WASM is nee
 MIDI, MusicXML and LilyPond export pulse/triangle base pitches; score IDs are
 `nes-ch1`, `nes-ch2`, `nes-ch3`. Noise/DMC have no score pitch. Length, envelope,
 sweep and linear-counter timing are not reconstructed in note extraction.
-PAL, FDS, dual chips and expansion-chip combinations are not supported.
+FDS is enabled by bit 31 of the NES clock. Its 64-step wavetable, modulation and
+envelopes are played by a shared fixNES-derived JavaScript core. Use
+`render --mute nes-ch-6` to mute FDS; score channel ID `fds` selects its base-pitch
+notes. FDS modulation and timed envelopes are not transcribed; gates controlled
+by envelopes are approximate. Analog APU/FDS balance is not hardware-calibrated.
+PAL, dual chips and other expansion-chip combinations are not supported.
 
 ## File support report
 

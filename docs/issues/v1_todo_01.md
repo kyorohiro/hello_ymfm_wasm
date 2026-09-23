@@ -87,11 +87,14 @@ PCM の Sheet Music 対応は TODO。今回はサンプルの観察・取り出�
 64 サンプル・6 bit の波形 RAM と変調・エンベロープを扱う。
 VGM の音源再生が対象で、ディスクドライブや BIOS のエミュレーションは対象外。
 
-- [ ] FDS 対応コアを選定し、VGM の FDS 識別・レジスタ書き込みを接続する。
-- [ ] APU + FDS の混合再生、FDS ミュート、リセット・シークを確認する。
-- [ ] 基音中心の Note-ish と MIDI / MusicXML / LilyPond に対応する。
-- [ ] 変調が強い区間での音程表示・export の限界を整理する。
+- [x] FDS 対応コアを選定し、VGM の FDS 識別・レジスタ書き込みを接続する。
+- [x] APU + FDS の混合再生、FDS ミュート、リセット・シークを確認する。
+- [x] 基音中心の Note-ish と MIDI / MusicXML / LilyPond に対応する。
+- [x] 変調が強い区間での音程表示・export の限界を整理する。
 - [ ] 実曲で再生と解析を検証する。
+
+実装: fixNES（MIT）派生の JS コア。NSFPlay 版は元コードの許諾が明確でないため撤回。基音のみを転記し、変調と時間経過による
+エンベロープは楽譜へ再現しない。合成 fixture で検証済み、実曲の試聴は未確認。
 
 参考: [NESdev FDS audio](https://www.nesdev.org/wiki/FDS_audio)
 

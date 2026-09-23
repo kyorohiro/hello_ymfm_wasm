@@ -35,3 +35,5 @@ for (const name of ['mame-huc6280','mame-okim6258','mame-gameboy','mame-ay8910',
 await cp(resolve(root,'third_party/jsnes'),resolve(out,'licenses/jsnes'),{recursive:true});
 await chmod(resolve(out,'cli/main.js'),0o755);
 console.error(`Staged ${seen.size} dependency files in dist/`);
+
+await cp(resolve(root,'third_party/fixnes-fds'),resolve(out,'licenses/fixnes-fds'),{recursive:true});

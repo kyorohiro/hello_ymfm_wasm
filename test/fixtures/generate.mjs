@@ -146,3 +146,12 @@ for(const [name,type,clock,voice] of [['ym2203',2,4000000,fm],['ym2608',4,800000
 }
 
 import './generate_huc6280.mjs';
+
+// FDS standalone sine A4: VGM's 20-2A controls map to CPU 4080-408A.
+const fdsWrite=(r,v)=>[0xb4,r,v];
+file('fds-tone',0x84,(1789773|0x80000000)>>>0,[
+ ...fdsWrite(0x3f,2),...fdsWrite(0x23,0x80),...fdsWrite(0x29,0x80),
+ ...Array.from({length:64},(_,i)=>fdsWrite(0x40+i,Math.round(31.5+31.5*Math.sin(i*Math.PI/32)))).flat(),
+ ...fdsWrite(0x29,0),...fdsWrite(0x24,0x80),...fdsWrite(0x20,0xa0),
+ ...fdsWrite(0x22,0x07),...fdsWrite(0x23,0x04),...wait,...fdsWrite(0x20,0x80),0x66,
+]);

@@ -357,7 +357,9 @@ songs. These fixtures are synthetic; real-game playback remains to be checked.
 
 Analyzer and CLI support standalone NTSC NES APU playback (pulse, triangle,
 noise and embedded DMC samples), five channel mutes, and pulse/triangle
-Note-ish, MIDI and Music Sheet export. PAL/FDS/dual are not supported.
+Note-ish, MIDI and Music Sheet export. FDS adds one wavetable channel with modulation/envelope playback and base-pitch
+Note-ish / MIDI / MusicXML / LilyPond. FDS modulation and envelope timing are
+not transcribed; analog mix balance is approximate. PAL/dual remain unsupported.
 The shared JavaScript APU uses [JSNES](third_party/jsnes/README.md), licensed
 under Apache-2.0; it is included in npm and Browser distributions.
 
