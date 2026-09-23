@@ -1,3 +1,4 @@
+import {extractYmf278bFmNotes} from './ymf262_notes.js';
 import {extractHuc6280Notes} from './huc6280_notes.js';
 import {isOpl, extractOplNotes} from './opl_notes.js';
 import {extractNesNotes} from './nes_notes.js';
@@ -46,11 +47,11 @@ export function exportAnalysisMidi(source, { bpm = 120, fileName = 'VGM' } = {})
   const parserHeader = new Ym2612VGM(source).header;
   const chipKind = parserHeader.ym2151Clock & 0x3fffffff ? 'ym2151' : midiChipKind(parserHeader);
   if (!chipKind) throw new Error('MIDI requires YM2151 / YM2612 / YM2203 / YM2608 / YM2610 / AY-3-8910 / YM2413 / YM3526 / YM3812 / Y8950 / PSG or NES APU / HuC6280 / Game Boy DMG');
-  const fm = isOpl(chipKind) ? extractOplNotes(source) : chipKind === 'ym2151' ? extractOpmNotes(source) : chipKind === 'psg' || chipKind === 'ay8910' || chipKind === 'ym2413' || chipKind === 'huc6280' || chipKind === 'nes' || chipKind === 'gameboy' ? {channels:[],warnings:new Map()} : extractOpnNotes(source);
+  const fm = chipKind === 'ymf278b' ? extractYmf278bFmNotes(source) : isOpl(chipKind) ? extractOplNotes(source) : chipKind === 'ym2151' ? extractOpmNotes(source) : chipKind === 'psg' || chipKind === 'ay8910' || chipKind === 'ym2413' || chipKind === 'huc6280' || chipKind === 'nes' || chipKind === 'gameboy' ? {channels:[],warnings:new Map()} : extractOpnNotes(source);
   const tones = chipKind === 'huc6280' ? extractHuc6280Notes(source) : chipKind === 'nes' ? extractNesNotes(source) : chipKind === 'gameboy' ? extractGameboyNotes(source) : extractToneNotes(source, chipKind);
   const opll = (parserHeader.ym2413Clock & 0x3fffffff) ? extractOpllNotes(source) : {channels:[],warnings:new Map(),time:0};
   const channels = [...fm.channels, ...tones.channels, ...opll.channels];
-  const time = Math.max(tones.time, opll.time);
+  const time = Math.max(fm.time ?? 0, tones.time, opll.time);
   const chipName = chipKind === 'ym2610' && (parserHeader.ym2610Clock & 0x80000000) ? 'YM2610B' : chipKind === 'huc6280' ? 'HuC6280' : chipKind === 'gameboy' ? 'Game Boy DMG' : chipKind.toUpperCase();
   const extractionWarnings = new Map([...(fm.warnings ?? []), ...tones.warnings, ...opll.warnings]);
   if (['ym2203','ym2608','ym2610'].includes(chipKind)) extractionWarnings.delete('SSG writes omitted');
@@ -63,11 +64,13 @@ export function exportAnalysisMidi(source, { bpm = 120, fileName = 'VGM' } = {})
   if (chipKind === 'ym2151') warnings.push('YM2151 base KC/KF pitch only: DT/MUL and audible release are not reproduced; CH8 noise, partial key masks and CSM intervals are omitted.');
   for (const [message, entry] of extractionWarnings) warnings.push(`${message} (${entry.count})`);
   if (parserHeader.loopOffset) warnings.push('VGM loop is not expanded; one pass is exported.');
+  if (channels.length > 15) warnings.push('Uses MIDI Port meta events to keep independent pitches on more than 15 melodic channels; playback requires multi-port MIDI support.');
   const tick = sample => Math.round(sample * 1000000 * PPQN / (44100 * tempo));
   let noteCount = 0, skippedNotes = 0, bendCount = 0;
   const bendRanges = [];
   const tracks = channels.map((channel, index) => {
-    const midiChannel = index >= 9 ? index + 1 : index;
+    // Each port has 15 melodic channels; reserve channel 10 for percussion.
+    const slot = index % 15, midiChannel = slot >= 9 ? slot + 1 : slot;
     const notes = [];
     for (let i = 0; i < channel.notes.length; i++) {
       let n = channel.notes[i];
@@ -104,6 +107,7 @@ export function exportAnalysisMidi(source, { bpm = 120, fileName = 'VGM' } = {})
       { tick: 0, order: -2, bytes: textMeta(3, channel.name ?? `${chipName} CH${index+1}`) },
       { tick: 0, order: -1, bytes: [0xc0 | midiChannel, 0] },
     ];
+    if (channels.length > 15) events.push({tick:0,order:-3,bytes:meta(0x21,[Math.floor(index/15)])});
     // RPN 0: Pitch Bend Sensitivity, followed by RPN null to finish data entry.
     for (const [controller, value] of [[101,0],[100,0],[6,range],[38,0],[101,127],[100,127]]) {
       events.push({ tick: 0, order: -1, bytes: [0xb0 | midiChannel, controller, value] });

@@ -188,6 +188,13 @@ Y8950 supports FM and embedded ADPCM, optionally with Sega PSG.
 
 ## YMF278B (OPL4) and wave ROM
 
+FM base-pitch export supports `midi`, `musicxml` and `lilypond`, without a wave ROM.
+PCM and rhythm are omitted; 4OP pairs use the leading channel. Score channel IDs
+are `ymf278b-ch1` through `ymf278b-ch18` (plus PSG when present). MIDI uses Port
+meta events for more than 15 melodic channels; use a multi-port MIDI player.
+PCM Sample Explorer support is planned.
+
+
 ```sh
 tetorica-vgm render song.vgz --output song.wav --ymf278b-rom /path/to/yrw801.rom
 ```

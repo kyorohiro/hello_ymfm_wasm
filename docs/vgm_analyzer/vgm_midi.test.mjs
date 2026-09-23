@@ -298,3 +298,20 @@ for(const [kind,opcode,clockOffset] of [['ym3526',0x5b,0x54],['ym3812',0x5a,0x50
   for(const track of midi.tracks)assert.equal(track.at(-1).tick,3840);
  });
 }
+
+test('YMF278B MIDI assigns 18 simultaneous voices to distinct port/channel pairs',()=>{
+ const commands=[0xd0,1,5,3];
+ for(let i=0;i<18;i++)commands.push(0xd0,Math.floor(i/9),0xa0+i%9,68,0xd0,Math.floor(i/9),0xb0+i%9,50);
+ commands.push(...wait(22050),0x66);
+ const b=vgm(commands,0);new DataView(b.buffer).setUint32(0x60,33868800,true);
+ const result=exportAnalysisMidi(b),d=decode(result.bytes),destinations=[];
+ assert.equal(result.noteCount,18);assert.equal(d.tracks.length,19);
+ for(const t of d.tracks.slice(1)){
+  const port=t.find(e=>e.type===0x21);assert(port);assert.equal(t[0],port);
+  const n=notes(t);assert.equal(n.length,2);assert.notEqual(n[0].status&15,9);
+  destinations.push(`${port.data[0]}:${n[0].status&15}`);
+  assert.equal(n[1].tick,960);assert.equal(t.at(-1).tick,960);
+ }
+ assert.equal(new Set(destinations).size,18);
+ assert(result.warnings.some(w=>/multi-port/.test(w)));
+});

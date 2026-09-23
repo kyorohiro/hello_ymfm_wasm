@@ -87,7 +87,7 @@ export function analyzeLilyPondSource(source) {
   const header = new Ym2612VGM(source).header;
   const kind = header.ymf262Clock & 0x3fffffff ? 'ymf262' : header.ym2151Clock & 0x3fffffff ? 'ym2151' : midiChipKind(header);
   if (!kind) throw new Error('LilyPond requires YMF262 / YM3526 / YM3812 / Y8950 / OPN / YM2151 / AY-3-8910 / YM2413 / PSG / NES APU / HuC6280 / Game Boy DMG notes');
-  const fm = isOpl(kind) ? extractOplNotes(source) : kind === 'ymf262' ? extractOpl3Notes(source) : kind === 'ym2151' ? extractOpmNotes(source) : kind === 'psg' || kind === 'ay8910' || kind === 'ym2413' || kind === 'huc6280' || kind === 'nes' || kind === 'gameboy' ? { channels: [], warnings: new Map() } : extractOpnNotes(source);
+  const fm = kind === 'ymf278b' ? extractOpl3Notes(source, kind) : isOpl(kind) ? extractOplNotes(source) : kind === 'ymf262' ? extractOpl3Notes(source) : kind === 'ym2151' ? extractOpmNotes(source) : kind === 'psg' || kind === 'ay8910' || kind === 'ym2413' || kind === 'huc6280' || kind === 'nes' || kind === 'gameboy' ? { channels: [], warnings: new Map() } : extractOpnNotes(source);
   const tones = kind === 'huc6280' ? extractHuc6280Notes(source) : kind === 'nes' ? extractNesNotes(source) : kind === 'gameboy' ? extractGameboyNotes(source) : extractToneNotes(source, kind);
   const opll = (header.ym2413Clock & 0x3fffffff) ? extractOpllNotes(source) : { channels: [], warnings: new Map(), time: 0 };
   const warnings = new Map([...(fm.warnings ?? []), ...tones.warnings, ...opll.warnings]);
@@ -96,7 +96,7 @@ export function analyzeLilyPondSource(source) {
   const channels = [
     ...fm.channels.map((ch, i) => ({ ...ch, name: `${kind.toUpperCase()} CH${i + 1}` })), ...tones.channels, ...opll.channels,
   ];
-  return { channels, time: Math.max(tones.time, opll.time), warnings: [...warnings].map(([s, info]) => `${s} (${info.count})`), tempo: suggestLilyPondTempo(channels) };
+  return { channels, time: Math.max(fm.time ?? 0, tones.time, opll.time), warnings: [...warnings].map(([s, info]) => `${s} (${info.count})`), tempo: suggestLilyPondTempo(channels) };
 }
 
 // Rank integer BPMs by how closely distinct key-on intervals fit a sixteenth grid.

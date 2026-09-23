@@ -2,7 +2,7 @@ import {createHuc6280Monitor,applyHuc6280Write,describeHuc6280Notes,extractHuc62
 import {isOpl,createOplMonitor,applyOplWrite,describeOplNotes} from './opl_notes.js';
 import {mountOplMonitor} from './opl_monitor.js';
 import {mountScoreGroups,getScoreGroups} from './score_group_ui.js';
-import {createOpl3Monitor,applyOpl3Write,describeOpl3Notes,extractYmf278bFmNotes} from './ymf262_notes.js';
+import {createOpl3Monitor,applyOpl3Write,describeOpl3Notes} from './ymf262_notes.js';
 import {createNesMonitor,applyNesWrite,describeNesNotes} from './nes_notes.js';
 import {createDefaultTfiPreset, findOperatorFromSlotOffset, cloneTfiPreset, presetSignature, decodeKeyOnChannel, extractTfiPatchesFromVgm} from './tfi_extract.js';
 import {createStoredZipBytes} from './stored_zip.js';
@@ -2783,9 +2783,9 @@ function updateChipSupport() {
       button.title = button === exportMidiButton ? 'Export base-pitch FM notes; rhythm channels other than Bass Drum are omitted.' : 'MGSDRV MML: FM base pitch on a sixteenth-note grid; rhythm channels other than Bass Drum are omitted.';
       continue;
     }
-    if (opl && button === exportMidiButton) {
+    if ((opl || currentChipKind === 'ymf278b') && button === exportMidiButton) {
       button.disabled = !currentBuffer || !midiExportAvailable;
-      button.title = 'OPL base pitches; rhythm, CSM and original timbres are omitted.';
+      button.title = currentChipKind === 'ymf278b' ? 'FM base pitches; PCM and rhythm omitted. MIDI playback requires multi-port support.' : 'OPL base pitches; rhythm, CSM and original timbres are omitted.';
       continue;
     }
     if (['huc6280','gameboy','nes'].includes(currentChipKind) && button === exportMidiButton) {
@@ -2798,7 +2798,7 @@ function updateChipSupport() {
   }
   const notice = document.getElementById('chipSupportNotice');
   notice.hidden = !playbackOnly;
-  notice.textContent = currentChipKind === 'msx' ? 'MSX mixed-chip playback and channel muting are available. Note-ish, Sheet Music and MIDI / MusicXML / LilyPond export for the mixed track are not yet supported; SCC / SCC+ notes are not analyzed.' : currentChipKind === 'ymf278b' ? 'YMF278B FM Note-ish: 18-channel 2op/4op base pitches; pairs use the leading CH. PCM voices, rhythm, timbre, modulation and release are omitted. Sheet Music export is not yet supported.' : currentChipKind === 'huc6280' ? 'HuC6280 Note-ish: 6-channel wavetable base pitches. PCM/DDA, noise and LFO CH1/CH2 intervals are omitted from notes. MIDI / MusicXML / LilyPond and WAV export available. Original timbres and PCM pitch are not reconstructed; instrument editing: Support coming soon.' : opl ? 'OPL / OPL2 / Y8950: 9-channel base-pitch Note-ish, MIDI, MusicXML and LilyPond. Rhythm CH7–9, CSM and Y8950 ADPCM are omitted. Voice / Operator Info includes a register-state JSON snapshot export; no TFI/VGI conversion or instrument editing.' : currentChipKind === 'ymf262' ? 'YMF262 Note-ish / Sheet Music / MusicXML / LilyPond: 2op and 4op base pitches; pairs use the leading CH. Rhythm, timbre, modulation and release are omitted. MIDI export is not supported.' : currentChipKind === 'ym2151' ? 'YM2151 register monitor available. Base-pitch Note-ish available; noise/partial keys/CSM are omitted. MIDI base-pitch export available. OPM snapshots are available in the Export group. MXDRV MML export available. Instrument editing: Support coming soon.' : ay ? 'AY / YM2149 register monitor and base-pitch Note-ish available; noise/envelope shape are omitted. MIDI and LilyPond/Music Sheet base-pitch export available. Instrument editing and MML export: Support coming soon.' : opll ? 'YM2413 register monitor and base-pitch Note-ish available: FNUM/BLOCK base pitch, instrument number, volume and rhythm mode state; rhythm channels other than Bass Drum have no single pitch. MIDI and LilyPond/Music Sheet base-pitch export available. Instrument editing and MML export: Support coming soon.' : ['gameboy','nes','ymf278b','ymf262'].includes(currentChipKind) ? (currentChipKind==='nes'?'NES APU: pulse/triangle base-pitch notes, MIDI and Music Sheet. Noise/DMC are omitted from scores; time-based modulation is approximate.': 'Game Boy DMG base-pitch Note-ish available for CH1/CH2 (square) and CH3 (wave); CH4 (noise) has no pitch, and length counter/CH1 sweep are not reconstructed. MIDI and LilyPond/Music Sheet base-pitch export available. Register monitor, instrument editing and MML export: Support coming soon.') : `${currentChipKind.toUpperCase()} analysis and instrument editing: Support coming soon.`;
+  notice.textContent = currentChipKind === 'msx' ? 'MSX mixed-chip playback and channel muting are available. Note-ish, Sheet Music and MIDI / MusicXML / LilyPond export for the mixed track are not yet supported; SCC / SCC+ notes are not analyzed.' : currentChipKind === 'ymf278b' ? 'YMF278B FM Note-ish: 18-channel 2op/4op base pitches; pairs use the leading CH. PCM voices, rhythm, timbre, modulation and release are omitted. FM Sheet Music / MIDI / MusicXML / LilyPond export available. PCM Sample Explorer support is planned.' : currentChipKind === 'huc6280' ? 'HuC6280 Note-ish: 6-channel wavetable base pitches. PCM/DDA, noise and LFO CH1/CH2 intervals are omitted from notes. MIDI / MusicXML / LilyPond and WAV export available. Original timbres and PCM pitch are not reconstructed; instrument editing: Support coming soon.' : opl ? 'OPL / OPL2 / Y8950: 9-channel base-pitch Note-ish, MIDI, MusicXML and LilyPond. Rhythm CH7–9, CSM and Y8950 ADPCM are omitted. Voice / Operator Info includes a register-state JSON snapshot export; no TFI/VGI conversion or instrument editing.' : currentChipKind === 'ymf262' ? 'YMF262 Note-ish / Sheet Music / MusicXML / LilyPond: 2op and 4op base pitches; pairs use the leading CH. Rhythm, timbre, modulation and release are omitted. MIDI export is not supported.' : currentChipKind === 'ym2151' ? 'YM2151 register monitor available. Base-pitch Note-ish available; noise/partial keys/CSM are omitted. MIDI base-pitch export available. OPM snapshots are available in the Export group. MXDRV MML export available. Instrument editing: Support coming soon.' : ay ? 'AY / YM2149 register monitor and base-pitch Note-ish available; noise/envelope shape are omitted. MIDI and LilyPond/Music Sheet base-pitch export available. Instrument editing and MML export: Support coming soon.' : opll ? 'YM2413 register monitor and base-pitch Note-ish available: FNUM/BLOCK base pitch, instrument number, volume and rhythm mode state; rhythm channels other than Bass Drum have no single pitch. MIDI and LilyPond/Music Sheet base-pitch export available. Instrument editing and MML export: Support coming soon.' : ['gameboy','nes','ymf278b','ymf262'].includes(currentChipKind) ? (currentChipKind==='nes'?'NES APU: pulse/triangle base-pitch notes, MIDI and Music Sheet. Noise/DMC are omitted from scores; time-based modulation is approximate.': 'Game Boy DMG base-pitch Note-ish available for CH1/CH2 (square) and CH3 (wave); CH4 (noise) has no pitch, and length counter/CH1 sweep are not reconstructed. MIDI and LilyPond/Music Sheet base-pitch export available. Register monitor, instrument editing and MML export: Support coming soon.') : `${currentChipKind.toUpperCase()} analysis and instrument editing: Support coming soon.`;
   oplMonitorRoot.hidden = !opl;
   opnMonitorRoot.hidden = opl || ay || opll || currentChipKind === 'ym2151';
   opmMonitorRoot.hidden = currentChipKind !== 'ym2151';
@@ -3292,7 +3292,7 @@ async function handleFile(file) {
   playbackSeek.max = String(Math.max(0, vgm.header.totalSamples));
   renderSeekPosition(0);
   midiExportAvailable = currentChipKind !== 'msx' && Boolean(midiChipKind(vgm.header) || ((vgm.header.ym2151Clock & 0x3fffffff) && !(vgm.header.ym2151Clock & 0xc0000000)));
-  if (isOpl(currentChipKind) && (vgm.header[`${currentChipKind}Clock`]&0xc0000000)) midiExportAvailable = false;
+  if ((isOpl(currentChipKind) || currentChipKind === 'ymf278b') && (vgm.header[`${currentChipKind}Clock`]&0xc0000000)) midiExportAvailable = false;
   lastParseInfo = buildParseInfo(buffer, file.name, vgm);
   if (sourceHeader) {
     lastParseInfo.sourceHeader = sourceHeader;
@@ -3805,7 +3805,7 @@ renderNoteishGrid();
 
 const exportTempo = createExportTempoSettings(analyzeScoreSource);
 const analyzeLilyPondSource = buffer => exportTempo.getAnalysis(buffer);
-mountScoreGroups({getTrack:()=>({buffer:currentBuffer}), getAnalysis:buffer=>currentChipKind === 'ymf278b' ? extractYmf278bFmNotes(buffer) : currentChipKind === 'huc6280' ? extractHuc6280Notes(buffer) : exportTempo.getAnalysis(buffer),
+mountScoreGroups({getTrack:()=>({buffer:currentBuffer}), getAnalysis:buffer=>currentChipKind === 'huc6280' ? extractHuc6280Notes(buffer) : exportTempo.getAnalysis(buffer),
   onChange:()=>{if(currentBuffer)songTimeline.load(currentBuffer);setStatus('Groups updated. Regenerate the sheet to apply changes.');},setStatus});
 musicSheet = mountMusicSheet({getTrack: () => ({buffer:currentBuffer, available:(midiExportAvailable || (currentChipKind === 'ymf262' && !(noteishHeader.ymf262Clock & 0xc0000000))), fileName:lastLoadedFileName}), tempoSettings:exportTempo, setStatus});
 
