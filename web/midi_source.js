@@ -1,11 +1,12 @@
-import {parseMidiFile} from './midi_file.js?v=midi-module-1';
-import {MIDI_SUPPORTED_CC, validateBendRange} from './playground_midi.js?v=midi-module-1';
+import {parseMidiFile} from './midi_file.js?v=midi-generators-1';
+import {MIDI_SUPPORTED_CC, validateBendRange} from './playground_midi.js?v=midi-generators-1';
 
 /** Compile selected SMF parts into editable, standalone Playground JavaScript. */
 export function midiToSource(bytes, routes, {name='MIDI', presets={}, module=false}={}) {
   const song=parseMidiFile(bytes), parts=new Map(song.parts.map(p=>[p.key,p]));
   const targets=new Set(), mapping=new Map(), controls=new Map();
-  const channels=new Map(),initializers=[];
+  const channels=new Map(),initializers=[],channelEvents=new Map();
+  let eventOrder=0,bufferedLength=0;
   const lines=[];let length=0;
   const add=line=>{length+=line.length+1;if(length>16*1024*1024)throw new Error('Generated MIDI code exceeds 16 Mi characters; select fewer parts');lines.push(line);};
   const quote=value=>JSON.stringify(String(value)).replace(/[\u2028\u2029]/g,c=>`\\u${c.charCodeAt(0).toString(16)}`);
@@ -43,15 +44,6 @@ export function midiToSource(bytes, routes, {name='MIDI', presets={}, module=fal
     for(const line of initializers)add(`    ${line}`);
     add('  } catch (error) { api = undefined; throw error; } finally { running = false; }');
     add('}');
-    add('\nexport async function runChannels(channelNumbers) {');
-    add(`  if (!Array.isArray(channelNumbers) || channelNumbers.some(ch => !${JSON.stringify([...new Set(channels.values())])}.includes(ch))) throw new Error("Unknown channel selection");`);
-    add('  if (!api) throw new Error("Call initCh(pg) first");');
-    add('  if (running) throw new Error("This song is already playing");');
-    add('  running = true;');
-    add('  const selected = new Set(channelNumbers);');
-    add('  try {');
-    add('  const timeline = api.midi.createTimeline();');
-    add('  let previous = -1;\n  async function at(seconds) {\n    if (seconds !== previous) { previous = seconds; await timeline.waitUntil(seconds); }\n  }');
   } else add('\nconst timeline = midi.createTimeline();');
   let lastTime=-1;
   const wait=seconds=>{if(seconds!==lastTime){add(`await timeline.waitUntil(${seconds});`);lastTime=seconds;}};
@@ -71,22 +63,79 @@ export function midiToSource(bytes, routes, {name='MIDI', presets={}, module=fal
     } else if(variable) add(`// Not applied at ${event.seconds}s: MIDI status ${event.kind}, data ${event.a}${event.b===undefined?'':`, ${event.b}`}.`);
     if(statements.length){
       if(module) {
-        add(`  if (${[...new Set(statements.map(s=>s.channel))].map(ch=>`selected.has(${ch})`).join(' || ')}) {`);
-        add(`    await at(${event.seconds});`);
-        for(const {channel,line} of statements)add(`    if (selected.has(${channel})) ${line}`);
-        add('  }');
+        for(const {channel,line} of statements) {
+          const entry=`  yield [${event.seconds}, () => ${line.slice(6,-1)}, ${eventOrder++}];`;
+          bufferedLength+=entry.length+1;
+          if(length+bufferedLength>16*1024*1024)throw new Error('Generated MIDI code exceeds 16 Mi characters; select fewer parts');
+          const entries=channelEvents.get(channel)??[];entries.push(entry);channelEvents.set(channel,entries);
+        }
       } else {wait(event.seconds);statements.forEach(s=>add(s.line));}
     }
   }
-  if(module)add(`  await at(${song.seconds});`);else wait(song.seconds);
-  add('// End of file: silence any held or sustained notes.');
-  if(module)add('  } finally {\n    try {');
-  for(const variable of mapping.values())add(`${module?`if (selected.has(${channels.get(variable)})) `:''}await ${variable}.cc(120, 0);`);
   if(module) {
-    add('    } finally { running = false; }\n  }\n}');
     const numbers=[...new Set(channels.values())].sort((a,b)=>a-b);
+    add('\n// Event tuple: [seconds, command, original order for simultaneous events].');
+    for(const ch of numbers) {
+      add(`function* ch${ch}Events() {`);
+      for(const entry of channelEvents.get(ch)??[])add(entry);
+      add('}');
+    }
+    add(`\nconst channelEvents = {${numbers.map(ch=>`${ch}: ch${ch}Events`).join(', ')}};`);
+    add('const silenceChannel = {');
+    for(const ch of numbers) {
+      add(`  ${ch}: async () => {`);
+      for(const [variable,channel] of channels)if(channel===ch)add(`    await ${variable}.cc(120, 0);`);
+      add('  },');
+    }
+    add('};');
+    add(`
+export async function runChannels(channelNumbers) {
+  if (!Array.isArray(channelNumbers) || channelNumbers.some(ch => !Number.isInteger(ch) || !Object.hasOwn(channelEvents, ch))) throw new Error("Unknown channel selection");
+  if (!api) throw new Error("Call initCh(pg) first");
+  if (running) throw new Error("This song is already playing");
+  const selected = [...new Set(channelNumbers)];
+  if (!selected.length) return;
+  running = true;
+  try {
+    const timeline = api.midi.createTimeline();
+    // Keep just one pending event per channel, rather than expanding every event.
+    const streams = selected.map(ch => {
+      const iterator = channelEvents[ch]();
+      return {iterator, next: iterator.next()};
+    });
+    let previous = -1;
+    while (true) {
+      let first;
+      for (const stream of streams) {
+        if (stream.next.done) continue;
+        const event = stream.next.value;
+        if (!first || event[0] < first.next.value[0] ||
+            (event[0] === first.next.value[0] && event[2] < first.next.value[2])) first = stream;
+      }
+      if (!first) break;
+      const [seconds, command] = first.next.value;
+      if (seconds !== previous) {
+        await timeline.waitUntil(seconds);
+        previous = seconds;
+      }
+      await command();
+      first.next = first.iterator.next();
+    }
+    if (previous !== ${song.seconds}) await timeline.waitUntil(${song.seconds});
+  } finally {
+    try {
+      const results = await Promise.allSettled(selected.map(ch => silenceChannel[ch]()));
+      const failure = results.find(result => result.status === "rejected");
+      if (failure) throw failure.reason;
+    } finally { running = false; }
+  }
+}`);
     for(const ch of numbers)add(`export async function runCh${ch}() { return runChannels([${ch}]); }`);
     add(`export async function runAllCh() { return runChannels([${numbers.join(', ')}]); }`);
+  } else {
+    wait(song.seconds);
+    add('// End of file: silence any held or sustained notes.');
+    for(const variable of mapping.values())add(`await ${variable}.cc(120, 0);`);
   }
   return lines.join('\n')+'\n';
 }

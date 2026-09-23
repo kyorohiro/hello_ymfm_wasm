@@ -95,3 +95,26 @@ test('module rejects overlapping playback and unlocks after a failed wait',async
  reject(new Error('Run stopped'));await assert.rejects(running,/Run stopped/);assert.equal(cleaned,1);
  await song.initCh(api);
 });
+
+test('channel generators merge simultaneous events in source order, independent of selection order',async()=>{
+ const data=smf([0,0x91,64,100,0,0x90,60,90,48,0x81,64,0,0,0x91,67,80,48,0x80,60,0,0,0x81,67,0,0,255,47,0]);
+ const routes=[0,1].map(ch=>({part:`[0,0,"",${ch+1}]`,destination:'tetorica-sega-psg',channel:ch}));
+ const source=midiToSource(data,routes,{module:true});
+ assert.match(source,/function\* ch1Events\(\)/);assert.match(source,/function\* ch2Events\(\)/);
+ assert(!source.includes('selected.has('));
+ const song=await import(`data:text/javascript;base64,${Buffer.from(source).toString('base64')}`);
+ const events=[],times=[];
+ const api={CH1:0,CH2:1,midi:{createTimeline:()=>({waitUntil:async seconds=>times.push(seconds)}),output:(destination,{channel})=>({
+  setPitchBendRange:async()=>{},cc:async()=>{},
+  noteOn:async note=>events.push([channel,'on',note]),noteOff:async note=>events.push([channel,'off',note]),
+ })}};
+ await song.initCh(api);
+ for(const selected of [[0,1],[1,0]]) {
+  events.length=0;times.length=0;
+  await song.runChannels(selected.map(ch=>ch+1));
+  assert.deepEqual(events,[[1,'on',64],[0,'on',60],[1,'off',64],[1,'on',67],[0,'off',60],[1,'off',67]]);
+  assert.deepEqual(times,[0,.25,.5]);
+ }
+ events.length=0;await song.runChannels([2,2]);assert.equal(events.length,4);
+ events.length=0;times.length=0;await song.runChannels([]);assert.deepEqual(times,[]);assert.deepEqual(events,[]);
+});

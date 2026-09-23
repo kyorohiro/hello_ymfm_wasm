@@ -1,5 +1,5 @@
-import {midiToSource} from '../js/midi_source.js?v=midi-module-1';
-import {parseMidiFile} from '../js/midi_file.js?v=midi-module-1';
+import {midiToSource} from '../js/midi_source.js?v=midi-generators-1';
+import {parseMidiFile} from '../js/midi_file.js?v=midi-generators-1';
 
 /** Import UI compiles selected parts into editable performance code. */
 export function installMidiImport({button, presets, importFiles, onError, enabled}) {
