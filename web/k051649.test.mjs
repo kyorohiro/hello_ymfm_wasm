@@ -4,6 +4,7 @@ import {readFileSync} from 'node:fs';
 import {K051649, validateK051649} from './k051649.js';
 import {K051649AudioEngine} from './k051649audioengine.js';
 import {MsxAudioEngine, validateMsxPlaybackHeader} from './msxaudioengine.js';
+import {validateMsxPlaybackHeader as validateDocsMsxHeader} from '../docs/js/msxaudioengine.js';
 import {Ym2612VGM} from './ym2612vgm.js';
 import {Ym2612VGM as DocsVGM} from '../docs/js/ym2612vgm.js';
 import {VgmPlayer} from './vgmplayer.js';
@@ -159,10 +160,15 @@ test('K051649AudioEngine per-channel mute isolates one channel from the rest',as
   }finally{a.dispose();b.dispose();}
 });
 
-test('MSX header validation accepts K051649 and rejects the dual-chip variant',()=>{
-  assert.doesNotThrow(()=>validateMsxPlaybackHeader({ay8910Clock:1789773,k051649Clock:1789773}));
-  assert.throws(()=>validateMsxPlaybackHeader({k051649Clock:0x40000001}),/dual-chip/);
-  assert.throws(()=>validateMsxPlaybackHeader({k051649Clock:1789773,ym2612Clock:1}),/Support coming soon/);
+test('web and browser headers accept AY + SCC/SCC+ and reject dual chips',()=>{
+  for(const validate of [validateMsxPlaybackHeader,validateDocsMsxHeader]){
+    for(const flag of [0,0x80000000]){
+      const raw=(1789773|flag)>>>0;
+      assert.doesNotThrow(()=>validate({ay8910Clock:1789773,k051649Clock:raw}));
+      assert.throws(()=>validate({ay8910Clock:1789773,k051649Clock:(raw|0x40000000)>>>0}),/dual-chip/);
+    }
+    assert.throws(()=>validate({k051649Clock:1789773,ym2612Clock:1}),/Support coming soon/);
+  }
 });
 
 test('AY + SCC VGM dispatches command 0xD2 through MsxAudioEngine, mutes and seeks',async()=>{

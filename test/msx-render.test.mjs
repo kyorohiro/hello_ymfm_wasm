@@ -51,7 +51,7 @@ test('MSX rejects dual/variant flags, foreign chips and second SCC writes',async
 });
 
 test('K052539 type flag supports solo and mixed rendering, channel mutes and dual rejection',async()=>{
-  for(const parts of [['scc'],names]){
+  for(const parts of [['scc'],['ay','scc'],names]){
     const source=await readSource(fixture(parts)), plus=source.slice();
     // Fixture SCC writes only CH1; using SCC+ port 4 must preserve its waveform.
     for(let i=256;i<plus.length-3;i++)if(plus[i]===0xd2 && plus[i+1]===0){plus[i+1]=4;i+=3;}

@@ -1,7 +1,7 @@
 import {groupScoreChannels,parseScoreGroups} from './score_groups.js';
 import {exportSamples,listSamples} from './sample_core.js';
 export {vgmToJson, jsonToVgm} from './vgm_json.js';
-import {selectPlaybackConfiguration, playbackMuteControls} from './playback_core.js';
+import {selectPlaybackConfiguration, playbackMuteControls} from './playback_core.js?v=scc-plus-1';
 import {exportOpmZip} from './opm_export.js';
 import {exportVoiceSnapshot,exportTfiZip,exportVgiZip} from './tfi_archive.js';
 // Environment-neutral API shared by the browser, Node adapter and future MCP server.
@@ -76,7 +76,7 @@ export function exportSource(source, { format, bpm, fileName = 'VGM', atSeconds,
   return { text: exporters[format](source, options) };
 }
 
-export { playbackMuteControls, applyPlaybackMutes, selectPlaybackConfiguration, createPlaybackEngine, createPlaybackPlayer, PlaybackError } from './playback_core.js';
+export { playbackMuteControls, applyPlaybackMutes, selectPlaybackConfiguration, createPlaybackEngine, createPlaybackPlayer, PlaybackError } from './playback_core.js?v=scc-plus-1';
 
 
 export function listSourceSamples(source, options = {}) {

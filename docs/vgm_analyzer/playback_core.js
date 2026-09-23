@@ -10,7 +10,7 @@ import {createYm3812AudioEngine} from '../js/ym3812audioengine.js';
 import {createYmf262AudioEngine} from '../js/ymf262audioengine.js';
 import {createYm2151AudioEngine} from '../js/ym2151audioengine.js';
 import {createAy8910AudioEngine, validateAyPlaybackHeader} from '../js/ay8910audioengine.js';
-import {createMsxAudioEngine, validateMsxPlaybackHeader} from '../js/msxaudioengine.js';
+import {createMsxAudioEngine, validateMsxPlaybackHeader} from '../js/msxaudioengine.js?v=scc-plus-1';
 import { createYm2413AudioEngine } from '../js/ym2413audioengine.js';
 import { createYm2610BAudioEngine } from '../js/ym2610baudioengine.js';
 import { createGenesisAudioEngine } from "../js/genesisaudioengine.js";
