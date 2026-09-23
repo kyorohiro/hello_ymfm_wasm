@@ -47,6 +47,7 @@ body{font:16px/1.6 system-ui,sans-serif;margin:0;background:#faf8f3;color:#24242
             <ul>
               <li><strong>S98:</strong> one YM2203, YM2608 or YM2612 device. Compressed S98 and multiple devices are not supported.</li>
               <li><strong>MSX mix:</strong> Y8950 + AY + YM2413 + K051649 (SCC) playback and per-chip/channel controls. Analysis of the mixed configuration is not yet available. A second K051649 instance is not supported.</li>
+              <li><strong>PCM / ADPCM sheet music: TODO.</strong> Sample-based parts are not yet transcribed to Sheet Music / MusicXML / LilyPond or MIDI. Playback pitch alone does not determine the note name: the original sample's reference pitch must also be known or estimated. Drums and sound effects may have no definite pitch.</li>
               <li><strong>Sample memory:</strong> some YMF278B tracks need an imported yrw801.rom (2 MiB). YM2608 rhythm playback uses the ADPCM-A ROM. YM2610 ADPCM uses the VGM's embedded ROM data. OKIM6258 needs no external sample ROM.</li>
               <li><strong>OKIM6258:</strong> 3-bit ADPCM, recording and a second instance are not supported. YM2151 mixing is covered by synthetic tests with real cores.</li>
               <li><strong>Sega PCM:</strong> an arcade chip (OutRun, Space Harrier, System 16/18/24, ...), not a stock Genesis/Mega Drive cartridge chip. ROM bank shift/mask come from the VGM header's interface register. Mixes with Sega PSG and/or YM2151 (e.g. OutRun). A second instance is not supported.</li>
