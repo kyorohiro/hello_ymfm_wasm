@@ -1,5 +1,5 @@
-import {createMidiRack, createMidiApi, validateBendRange, MIDI_SUPPORTED_CC} from './playground_midi.js?v=midi-cc-1';
-import {parseMidiFile} from './midi_file.js?v=midi-cc-1';
+import {createMidiRack, createMidiApi, validateBendRange, MIDI_SUPPORTED_CC} from './playground_midi.js?v=midi-source-1';
+import {parseMidiFile} from './midi_file.js?v=midi-source-1';
 import { createAudioScheduler } from "./playground_audio_scheduler.js";
 import {
   FM_PRESETS,
@@ -154,7 +154,7 @@ export function createPlaygroundRuntime(
     );
   defaultLogicWorkerUrl.searchParams.set(
     "v",
-    "midi-cc-1"
+    "midi-source-1"
   );
   const logicWorkerUrl =
     options.logicWorkerUrl ??
@@ -1243,7 +1243,7 @@ export function createPlaygroundRuntime(
       const rack=getMidiRack();
       if(method==='release')return rack.noteOff(args[0],args[1],args[2],undefined,args[3],args[4]);
       return rack[method](...args);
-    }, {sleep:seconds=>clockApi.sleep(seconds,runToken),bpm:()=>runtime.bpm,owner:()=>currentLoopContext?.name??null,
+    }, {now:clockApi.nowSeconds,sleep:seconds=>clockApi.sleep(seconds,runToken),bpm:()=>runtime.bpm,owner:()=>currentLoopContext?.name??null,
       check:()=>{if(runToken!==currentRunToken)throw new DOMException('Run stopped','AbortError');}});
     midiApis.add(midi);
     const pg = {

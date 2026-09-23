@@ -977,6 +977,10 @@ interface PlaygroundMidiRoute {
   preset?: string;
 }
 interface PlaygroundMidi {
+  /** Fix an origin now; waits use seconds from that origin, absorbing previous delays.
+   * Times must be finite, nonnegative and nondecreasing. Late waits yield then catch up.
+   * JavaScript dispatch may still be late; this is not sample-accurate audio scheduling. */
+  createTimeline(): {waitUntil(seconds: number): Promise<void>};
   output(destination: "tetorica-ym2612" | "tetorica-sega-psg", options?: {channel?: PlaygroundMidiChannel}): PlaygroundMidiOutput;
   /** SMF 0/1, PPQN timing. Manual voices; supported CC applied. Other CC/program changes retained but not applied. */
   playFile(data: ArrayBuffer | Uint8Array, routes: PlaygroundMidiRoute[]): Promise<void>;

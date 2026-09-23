@@ -11,12 +11,12 @@ MIDI ファイルを読み込み、パートと音色を選んで YM2612 Playgro
 ## 初期実装（2026-09-24）
 
 - `Import MIDI` から SMF format 0 / 1・PPQN のファイルを読み込み、パートごとに Skip / YM2612 / PSG、再生先 MIDI CH、FM プリセットを選択できる。
-- 元の `.mid` を FILES に保持し、`midi.playFile()` を呼ぶ短いエントリー JS を生成する。音符列を編集用 JavaScript に展開する機能ではない。
+- Import は `midi.output()` と Note On / Off・CC・Pitch Bend を並べた編集用 JavaScript を生成する。元の `.mid` は保存せず、変換後の実行にも不要。
 - `midi.output()`、`play()`、`noteOn()`、`noteOff()`、YM2612 の `setVoice()` / `loadVoice()` を追加。FM６声・PSGトーン３声を共有し、満杯の場合は最も古い発音を置き換える。
-- ハンドルの `play()` は拍単位。既存の `setBpm()` を使用する。ファイル再生はファイル自身のテンポマップを使用する。
+- ハンドルの `play()` は拍単位。既存の `setBpm()` を使用する。Import はファイルのテンポマップをイベント秒数へ変換する。
 - 音色は Preset / TFI / VGI に対応し、次の発音から適用する。`loadVoice()` は Run ファイル基準。
-- Main / Worker の両経路に接続。FM と PSG の書き込みを同じ音声時刻予約に送る。イベントからレジスタへの展開は先読み範囲内で行う。
-- ファイルは32 MiB・50万イベントまで。トラック・ポート・デバイス名・元tick・順序と Bank / Program / CC 等を解析結果に保持する。未対応イベントは適用せず通知する。
+- Main / Worker の両経路に接続。FM と PSG の書き込みを同じ音声時刻予約に送る。既存 `midi.playFile()` は先読み予約、現在の Import 生成コードは基準時刻からの待機後に命令を発行する。
+- 入力ファイルは32 MiB・50万イベントまで。解析時はトラック・ポート・デバイス名・元tick・順序と Bank / Program / CC 等を保持する。生成コードには対応する演奏命令を展開し、未対応イベントはコメントで通知する。
 
 初期版の制限：
 
@@ -194,8 +194,12 @@ VGM の演奏命令から音符を抽出する処理と、MIDI の tick・テン
 音符だけのデータへ変換して、CC や曲途中の音色変更情報を捨てない。
 
 - [ ] Sheet Music のデータ構造・表示部品の再利用可否を確認する。
-- [ ] 既存の `setBpm()` / `beat()` は維持する。MIDI ファイルのテンポマップと手書きコードの BPM の関係を定義する。
-  import 再生はイベントごとの `setBpm()` と逐次 `await beat()` だけに依存せず、時刻予約へ接続する。
+- [x] 既存の `setBpm()` / `beat()` は維持する。手書きコードは設定 BPM、MIDI Import はファイルのテンポマップをイベント秒数へ変換する。
+  生成コードは `midi.createTimeline()` と `timeline.waitUntil(seconds)` を使用する。毎回 `開始基準時刻 + イベント秒数` を待ち、前回の処理遅れを待ち時間から差し引く。
+  既存の `midi.playFile()` は音声時刻予約を使用するが、Import の生成先ではなく互換 API として残す。
+  既存の時計処理にも基準時刻からの待機計算がある。`nextBeat()` は次の拍境界、ループ内の `sleepSamples()` は累積サンプル位置を基準とする。
+  ただし `beat()` はループ内でも予定拍と現在拍の遅い方から次の待機先を決めるため、遅れを常に元の拍位置へ戻す方式ではない。
+  JavaScript の待機終了時刻と、音声側に予約する発音時刻は区別する。
 
 ### 5. 再生・停止・Worker 統合
 
@@ -216,8 +220,7 @@ VGM の演奏命令から音符を抽出する処理と、MIDI の tick・テン
 
 基本の発音割り当てと停止処理は第１段階から必要。後続段階で複雑なケースを拡充する。
 まず単旋律と簡単な和音で検証し、その後にテンポ変更・密な曲・実際の MIDI ファイルへ広げる。
-初期の import は「取り込み → パート選択 → 音色指定 → 再生」を目標にする。
-編集可能な JavaScript への変換・出力は、その後の別項目として検討する。
+Import は「取り込み → パート・音色選択 → 編集用 JavaScript 生成 → 編集・再生」とする。
 
 ## 検証項目
 
@@ -256,3 +259,28 @@ VGM の演奏命令から音符を抽出する処理と、MIDI の tick・テン
   ブラウザーでの試聴は未確認。
 
 参考: [MIDI Association の CC 一覧](https://midi.org/midi-1-0-control-change-messages)。
+
+## Import の生成コード方式（2026-09-24、意図の再確認）
+
+Import VGM と同様に、ファイル再生 API の呼び出しではなく、演奏命令へ展開する。
+既存 `midi.playFile()` は保存済みコード用に残し、Import では使用しない。
+
+```js
+const ym2612_1 = midi.output("tetorica-ym2612", {channel: CH8});
+await ym2612_1.setVoice(FM_PRESETS.sine);
+const timeline = midi.createTimeline();
+await timeline.waitUntil(0);
+await ym2612_1.noteOn(60, {velocity: 100});
+await timeline.waitUntil(0.5);
+await ym2612_1.noteOff(60);
+```
+
+- テンポ変更は絶対秒数へ変換し、テンポ情報はコメントにも残す。同時刻のイベント順序を維持する。
+- 別トラックの CC / Pitch Bend も元ポート・デバイス・MIDI CH の組に従って展開する。
+- 未対応イベントは未適用のコメントを残す。元のバイナリを完全保存する形式ではない。
+- 生成コードは16 Mi文字以内。超えた場合は保存前にエラーにし、選択パートを減らすよう案内する。
+- `createTimeline()` は Main では AudioContext の時刻、Worker では単調時計を基準にする。
+  遅れは次の待機で吸収し、既に過ぎた予定時刻は Stop を処理できるよう一度実行権を返して追いつく。
+  大幅な遅れでイベントを省略はしないため、復帰直後にイベントが集中する場合がある。
+- この待機は累積ドリフトを防ぐもので、JS / Worker 通信による個々の発音遅延をなくすものではない。
+  `beat()` 自体の既存の意味は今回変更しない。

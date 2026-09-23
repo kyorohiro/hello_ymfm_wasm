@@ -1,0 +1,55 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {midiToSource} from './midi_source.js';
+import {createMidiApi} from './playground_midi.js';
+import {FM_PRESETS} from './megadrive-fm-presets.js';
+const AsyncFunction=Object.getPrototypeOf(async function(){}).constructor;
+function smf(...tracks){const out=[77,84,104,100,0,0,0,6,0,tracks.length>1?1:0,0,tracks.length,0,96];for(const t of tracks)out.push(77,84,114,107,0,0,t.length>>8,t.length&255,...t);return Uint8Array.from(out);}
+const route={part:'[1,0,"",1]',destination:'tetorica-ym2612',channel:15,preset:'sine'};
+
+test('generated JS runs without MIDI data, preserves tempo changes, simultaneous notes and cross-track controls',async()=>{
+ const data=smf(
+  [0,255,81,3,7,161,32,0,0xb0,64,127,96,255,81,3,15,66,64,0,0xe0,127,127,96,0xb0,64,0,0,255,47,0],
+  [0,0x90,60,100,0,0x90,64,80,96,0x80,60,0,96,0x90,64,0,0,255,47,0]
+ );
+ const source=midiToSource(data,[route],{presets:FM_PRESETS,name:'test\n.mid'});
+ assert(!source.includes('playFile'));assert(!source.includes('arrayBuffer'));assert(source.includes('channel: CH16'));
+ const events=[],times=[];
+ const midi={createTimeline:()=>({waitUntil:async seconds=>times.push(seconds)}),output:(destination,options)=>{
+  assert.equal(destination,route.destination);assert.equal(options.channel,15);
+  return Object.fromEntries(['setVoice','setPitchBendRange','noteOn','noteOff','cc','pitchBend'].map(method=>[method,async(...args)=>events.push([method,...args])]));
+ }};
+ await new AsyncFunction('midi','FM_PRESETS','CH16',source)(midi,FM_PRESETS,15);
+ assert.deepEqual(times,[0,.5,1.5]);
+ assert.deepEqual(events.filter(e=>e[0]==='noteOn'),[['noteOn',60,{velocity:100}],['noteOn',64,{velocity:80}]]);
+ assert.deepEqual(events.filter(e=>e[0]==='noteOff'),[['noteOff',60],['noteOff',64]]);
+ assert.deepEqual(events.filter(e=>e[0]==='cc'),[['cc',64,127],['cc',64,0],['cc',120,0]]);
+ assert.deepEqual(events.find(e=>e[0]==='pitchBend'),['pitchBend',1]);
+});
+
+test('compiler keeps source ports distinct and validates selected parts/voices',()=>{
+ const data=smf([0,0xb0,7,90,0,255,47,0],[0,255,33,1,2,0,0x90,60,100,96,0x80,60,0,0,255,47,0]);
+ const r={part:'[1,2,"",1]',destination:'tetorica-sega-psg',channel:0};
+ const source=midiToSource(data,[r]);assert(!source.includes('.cc(7, 90)'));assert(source.includes('segapsg_1.noteOn'));
+ assert.throws(()=>midiToSource(data,[r,r]),/separate/);
+ assert.throws(()=>midiToSource(data,[{...r,channel:16}]),/Invalid/);
+ assert.throws(()=>midiToSource(data,[{...r,destination:'tetorica-ym2612',preset:'missing'}]),/Unknown preset/);
+ assert.throws(()=>midiToSource(data,[]),/Select/);
+});
+
+test('timeline absorbs execution/timer delays and catches up without shifting the origin',async()=>{
+ let time=10;const waits=[];
+ const api=createMidiApi(()=>{}, {bpm:()=>120,now:()=>time,sleep:async seconds=>{waits.push(seconds);time+=seconds+.02;}});
+ const timeline=api.createTimeline();
+ await timeline.waitUntil(1);time+=.03;
+ await timeline.waitUntil(2);assert(Math.abs(waits[1]-.95)<1e-9);
+ time=15;await timeline.waitUntil(3);assert.equal(waits[2],0);
+ await timeline.waitUntil(6);assert(Math.abs(waits[3]-.98)<1e-9);
+ for(const value of [-1,NaN,Infinity,5])await assert.rejects(timeline.waitUntil(value));
+});
+
+test('timeline checks cancellation after waking',async()=>{
+ let stopped=false;
+ const api=createMidiApi(()=>{}, {bpm:()=>120,now:()=>0,check:()=>{if(stopped)throw new Error('Run stopped');},sleep:async()=>{stopped=true;}});
+ await assert.rejects(api.createTimeline().waitUntil(1),/Run stopped/);
+});

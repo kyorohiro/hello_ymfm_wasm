@@ -1,4 +1,4 @@
-import {installMidiImport} from './playground_midi_import.js?v=midi-cc-1';
+import {installMidiImport} from './playground_midi_import.js?v=midi-source-1';
 import {
   FM_PRESET_ORDER,
   FM_PRESETS,
@@ -18,7 +18,7 @@ import {
   createPlaygroundOperatorTab,
 } from "./playground_operator_tab.js";
 import { createPlaygroundOperatorKeyboard } from "./playground_operator_keyboard.js";
-import { EXAMPLES } from "./playground_examples.js?v=midi-cc-1";
+import { EXAMPLES } from "./playground_examples.js?v=midi-source-1";
 import { initializePlaygroundMonaco } from "./playground_monaco.js";
 import {
   decodeBase64Bytes,
@@ -53,7 +53,7 @@ import { exportYm2608VgmToPlaygroundJavaScript } from "../js/ym2608vgm.js";
 import { exportYm2610BVgmToPlaygroundJavaScript } from "../js/ym2610bvgm.js";
 import {
   createPlaygroundRuntime,
-} from "../js/playground_runtime.js?v=midi-cc-1";
+} from "../js/playground_runtime.js?v=midi-source-1";
 import { createVgmPresetFiles } from "./playground_vgm_presets.js";
 import { createTfiFileEditor, tfiToEditorPreset } from "./playground_tfi_editor.js";
 import { renderFileTree } from "./playground_file_tree.js";
@@ -2175,11 +2175,10 @@ bootPlayground();
 installMidiImport({button:document.getElementById('importMidiButton'), presets:playgroundPresets,
   enabled:selectedChip==='ym2612'&&!useNukedEngine,
   onError:error=>setStatus(`MIDI import failed: ${error.message}`),
-  importFiles(name,bytes,routes) {
+  importFiles(name,source) {
     saveActiveVirtualFile();
-    const id=crypto.randomUUID(),asset=`/midi/${id}.mid`,entry=`/midi/${id}.js`;
-    virtualFiles.writeBinary(asset,bytes);
-    virtualFiles.writeText(entry,`// Imported MIDI: ${JSON.stringify(name)}\n// Manual voices; original Bank / Program / CC events remain in the MIDI file.\nconst routes = ${JSON.stringify(routes,null,2)};\nawait midi.playFile(await file(${JSON.stringify(asset)}, {type: 'arrayBuffer'}), routes);\n`);
+    const entry=`/midi/${crypto.randomUUID()}.js`;
+    virtualFiles.writeText(entry,source);
     activeVirtualPath=entry;runVirtualPath=entry;
     showVirtualFile(virtualFiles.get(entry));renderVirtualFileExplorer();renderRunFileOptions();setBottomTab('code');
     setStatus(`Imported ${name}. Choose Run to play the selected MIDI parts.`);

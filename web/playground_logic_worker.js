@@ -1,4 +1,4 @@
-import {createMidiApi} from './playground_midi.js?v=midi-cc-1';
+import {createMidiApi} from './playground_midi.js?v=midi-source-1';
 import { hzToBlockFnum } from "./pitch.js";
 import { createDeadlineScheduler } from "./playground_clock.js";
 

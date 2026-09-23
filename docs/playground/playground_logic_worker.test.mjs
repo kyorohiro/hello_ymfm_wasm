@@ -345,3 +345,14 @@ test('Worker forwards CC controller/value and sustain note-off identity',async()
  await worker.send({type:'stop'});
  assert.deepEqual(JSON.parse(JSON.stringify(off.args)),['tetorica-ym2612',15,60,42]);
 });
+
+test('Worker timeline is available to generated code and preserves event order',async()=>{
+ const worker=createWorkerHarness();
+ worker.post({type:'run',presets:{},scaleIntervals:{},sourceCode:`const o=midi.output('tetorica-sega-psg');const t=midi.createTimeline();await t.waitUntil(0);await o.noteOn(60);await t.waitUntil(.001);await o.noteOff(60);`});
+ await waitFor(()=>worker.messages.some(m=>m.command==='midi.handle'));
+ const on=worker.messages.find(m=>m.command==='midi.handle');assert.equal(on.args[2],'noteOn');
+ worker.post({type:'response',id:on.id,value:99});
+ await waitFor(()=>worker.messages.some(m=>m.command==='midi.release'));
+ const off=worker.messages.find(m=>m.command==='midi.release');assert.equal(off.args[3],99);
+ worker.post({type:'response',id:off.id});await worker.send({type:'stop'});
+});

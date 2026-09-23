@@ -252,3 +252,14 @@ test('main CC API reaches the rack and Stop silences a sustained FM voice',async
  assert.equal(writes.at(-1)[2]&192,128);
  runtime.stop();assert(writes.some(([p,r,v])=>r===0x28&&v===0));
 });
+
+test('compiled standalone MIDI code plays through the main runtime without reading a MIDI asset',async t=>{
+ const {midiToSource}=await import('./midi_source.js');
+ const {runtime,megaDrive}=setup(t),writes=[];const start=performance.now();
+ Object.defineProperty(megaDrive.audioContext,'currentTime',{get:()=>(performance.now()-start)/1000});
+ megaDrive.fm.write=()=>{};megaDrive.psg.write=v=>writes.push(v);
+ const bytes=Uint8Array.from([77,84,104,100,0,0,0,6,0,0,0,1,0,96,77,84,114,107,0,0,0,12,0,0x90,60,127,4,0x80,60,0,0,255,47,0]);
+ const source=midiToSource(bytes,[{part:'[0,0,"",1]',destination:'tetorica-sega-psg',channel:0}]);
+ await runtime.playSource(source);
+ assert(writes.includes(0x90));assert.equal(writes.at(-1),0x9f);
+});

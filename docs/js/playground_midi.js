@@ -180,7 +180,7 @@ export function createMidiRack({write, writePsg, preset, fmChannels = 6}) {
 }
 
 /** Shared API surface for main-thread and Worker execution. */
-export function createMidiApi(invoke, {sleep, bpm, check = ()=>{}, owner = ()=>null}) {
+export function createMidiApi(invoke, {sleep, bpm, check = ()=>{}, owner = ()=>null, now = ()=>performance.now()/1000}) {
   let readFile;
   const held=new Map(),pedals=new Map();
   const channelKey=(destination,channel)=>JSON.stringify([destination,channel]);
@@ -193,6 +193,16 @@ export function createMidiApi(invoke, {sleep, bpm, check = ()=>{}, owner = ()=>n
   return {
     cancelOwner(target) {
       for(const [id,entry] of held)if(target===undefined || entry.owner===target){held.delete(id);Promise.resolve(invoke('release',[...entry.args,true])).catch(()=>{});}
+    },
+    createTimeline() {
+      check();const origin=now();let previous=0;
+      return {async waitUntil(seconds) {
+        check();
+        if(!Number.isFinite(seconds)||seconds<previous)throw new Error('Timeline time must be finite, nonnegative and nondecreasing');
+        previous=seconds;
+        // Yield even when late so Stop can be processed; retain the original deadline.
+        await sleep(Math.max(0,origin+seconds-now()));check();
+      }};
     },
     setFileReader(reader){readFile=reader;},
     async playFile(data,routes){if(owner()!==null)throw new Error('Call midi.playFile at the top level, outside liveLoop');return call('playFile',[data,routes]);},
