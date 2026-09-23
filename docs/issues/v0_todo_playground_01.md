@@ -284,3 +284,26 @@ await ym2612_1.noteOff(60);
   大幅な遅れでイベントを省略はしないため、復帰直後にイベントが集中する場合がある。
 - この待機は累積ドリフトを防ぐもので、JS / Worker 通信による個々の発音遅延をなくすものではない。
   `beat()` 自体の既存の意味は今回変更しない。
+
+## Import モジュールの再利用
+
+Import は同じディレクトリに `song.js`（演奏モジュール）と `main.js`（Run 用エントリー）を生成する。
+モジュールを import しただけでは初期化・発音しない。
+
+```js
+const marioWorld01 = await import("./song.js");
+await marioWorld01.initCh(pg);
+await marioWorld01.runAllCh();
+// 単独: await marioWorld01.runCh1();
+// 任意の組み合わせ: await marioWorld01.runChannels([1, 3]);
+```
+
+- `initCh(pg)` で実行中の Playground API を渡し、送り先と音色・ベンド幅を設定する。
+- 選択した再生先 MIDI CH に応じて `runCh1()`〜`runCh16()` を export する。存在する CH のみ生成。
+  FM と PSG が同じ番号を使用する場合は、その番号の関数で両方を再生する。
+- `runAllCh()` / `runChannels([1, 3])` は共通の開始時刻・元のイベント順序で再生する。
+  番号は関数名と同じ 1〜16（MIDI API の数値指定 0〜15 とは区別）。
+- 同じモジュールの複数の run 関数を同時に呼ぶことは拒否する。任意の CH の合成には `runChannels()` を使用する。
+- 個別再生でも元の曲中位置・冒頭の無音を保ち、選んでいない CH に命令を送らない。
+- 別の曲モジュール同士の同期・音源割り当て競合・開始オフセットは後続の設計項目。
+  今回は単一曲内の CH 選択と同期まで。

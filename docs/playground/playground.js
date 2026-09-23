@@ -1,4 +1,4 @@
-import {installMidiImport} from './playground_midi_import.js?v=midi-source-1';
+import {installMidiImport} from './playground_midi_import.js?v=midi-module-1';
 import {
   FM_PRESET_ORDER,
   FM_PRESETS,
@@ -18,7 +18,7 @@ import {
   createPlaygroundOperatorTab,
 } from "./playground_operator_tab.js";
 import { createPlaygroundOperatorKeyboard } from "./playground_operator_keyboard.js";
-import { EXAMPLES } from "./playground_examples.js?v=midi-source-1";
+import { EXAMPLES } from "./playground_examples.js?v=midi-module-1";
 import { initializePlaygroundMonaco } from "./playground_monaco.js";
 import {
   decodeBase64Bytes,
@@ -53,7 +53,7 @@ import { exportYm2608VgmToPlaygroundJavaScript } from "../js/ym2608vgm.js";
 import { exportYm2610BVgmToPlaygroundJavaScript } from "../js/ym2610bvgm.js";
 import {
   createPlaygroundRuntime,
-} from "../js/playground_runtime.js?v=midi-source-1";
+} from "../js/playground_runtime.js?v=midi-module-1";
 import { createVgmPresetFiles } from "./playground_vgm_presets.js";
 import { createTfiFileEditor, tfiToEditorPreset } from "./playground_tfi_editor.js";
 import { renderFileTree } from "./playground_file_tree.js";
@@ -2177,8 +2177,10 @@ installMidiImport({button:document.getElementById('importMidiButton'), presets:p
   onError:error=>setStatus(`MIDI import failed: ${error.message}`),
   importFiles(name,source) {
     saveActiveVirtualFile();
-    const entry=`/midi/${crypto.randomUUID()}.js`;
-    virtualFiles.writeText(entry,source);
+    const directory=`/midi/${crypto.randomUUID()}`;
+    const modulePath=`${directory}/song.js`,entry=`${directory}/main.js`;
+    virtualFiles.writeText(modulePath,source);
+    virtualFiles.writeText(entry,`const song = await import("./song.js");\nawait song.initCh(pg);\nawait song.runAllCh();\n// See song.js for runChN() exports. Combine selected channels with runChannels([1, 3]).\n`);
     activeVirtualPath=entry;runVirtualPath=entry;
     showVirtualFile(virtualFiles.get(entry));renderVirtualFileExplorer();renderRunFileOptions();setBottomTab('code');
     setStatus(`Imported ${name}. Choose Run to play the selected MIDI parts.`);

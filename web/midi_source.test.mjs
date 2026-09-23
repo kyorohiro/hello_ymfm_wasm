@@ -53,3 +53,45 @@ test('timeline checks cancellation after waking',async()=>{
  const api=createMidiApi(()=>{}, {bpm:()=>120,now:()=>0,check:()=>{if(stopped)throw new Error('Run stopped');},sleep:async()=>{stopped=true;}});
  await assert.rejects(api.createTimeline().waitUntil(1),/Run stopped/);
 });
+
+test('generated module imports silently, exports selected channels and merges them in source order',async()=>{
+ const data=smf([0,0x90,60,100,0,0x91,64,90,96,0x80,60,0,0,0x81,64,0,0,255,47,0]);
+ const routes=[{part:'[0,0,"",1]',destination:'tetorica-sega-psg',channel:0},{part:'[0,0,"",2]',destination:'tetorica-sega-psg',channel:1}];
+ const source=midiToSource(data,routes,{module:true});
+ const song=await import(`data:text/javascript;base64,${Buffer.from(source).toString('base64')}`);
+ assert.deepEqual(Object.keys(song).sort(),['initCh','runAllCh','runCh1','runCh2','runChannels']);
+ await assert.rejects(song.runAllCh(),/initCh/);
+ const events=[],times=[];let clocks=0;
+ const api={CH1:0,CH2:1,midi:{createTimeline:()=>{clocks++;return {waitUntil:async t=>times.push(t)};},output:(dest,{channel})=>Object.fromEntries(['setPitchBendRange','noteOn','noteOff','cc'].map(method=>[method,async(...args)=>events.push([channel,method,...args])]))}};
+ await song.initCh(api);events.length=0;
+ await song.runAllCh();
+ assert.equal(clocks,1);assert.deepEqual(times,[0,.5]);
+ assert.deepEqual(events.filter(e=>e[1]==='noteOn').map(e=>e[0]),[0,1]);
+ events.length=0;times.length=0;
+ await assert.rejects(song.runChannels([99]),/Unknown/);
+ await song.runChannels([2]);assert(events.every(e=>e[0]===1));assert.deepEqual(times,[0,.5]);
+});
+
+test('same target CH on FM and PSG has one export and module can be initialized with a fresh runtime',async()=>{
+ const data=smf([0,0x90,60,100,96,0x80,60,0,0,255,47,0],[0,0x91,64,90,96,0x81,64,0,0,255,47,0]);
+ const source=midiToSource(data,[{part:'[0,0,"",1]',destination:'tetorica-ym2612',channel:7,preset:'sine'},{part:'[1,0,"",2]',destination:'tetorica-sega-psg',channel:7}],{module:true,presets:FM_PRESETS});
+ const song=await import(`data:text/javascript;base64,${Buffer.from(source).toString('base64')}`);
+ assert.deepEqual(Object.keys(song).sort(),['initCh','runAllCh','runCh8','runChannels']);
+ let notes=0;
+ const api={CH8:7,FM_PRESETS,midi:{createTimeline:()=>({waitUntil:async()=>{}}),output:()=>({setVoice:async()=>{},setPitchBendRange:async()=>{},noteOn:async()=>notes++,noteOff:async()=>{},cc:async()=>{}})}};
+ await song.initCh(api);await song.runCh8();assert.equal(notes,2);
+ await song.initCh(api);await song.runAllCh();assert.equal(notes,4);
+});
+
+test('module rejects overlapping playback and unlocks after a failed wait',async()=>{
+ const data=smf([0,0x90,60,100,96,0x80,60,0,0,255,47,0]);
+ const source=midiToSource(data,[{part:'[0,0,"",1]',destination:'tetorica-sega-psg',channel:3}],{module:true});
+ const song=await import(`data:text/javascript;base64,${Buffer.from(source).toString('base64')}`);
+ let reject,cleaned=0;
+ const gate=new Promise((_,r)=>reject=r);
+ const api={CH4:3,midi:{createTimeline:()=>({waitUntil:()=>gate}),output:()=>({setPitchBendRange:async()=>{},noteOn:async()=>{},noteOff:async()=>{},cc:async()=>cleaned++})}};
+ await song.initCh(api);const running=song.runCh4();
+ await assert.rejects(song.runAllCh(),/already playing/);await assert.rejects(song.initCh(api),/while playing/);
+ reject(new Error('Run stopped'));await assert.rejects(running,/Run stopped/);assert.equal(cleaned,1);
+ await song.initCh(api);
+});

@@ -1,5 +1,5 @@
-import {midiToSource} from '../js/midi_source.js?v=midi-source-1';
-import {parseMidiFile} from '../js/midi_file.js?v=midi-source-1';
+import {midiToSource} from '../js/midi_source.js?v=midi-module-1';
+import {parseMidiFile} from '../js/midi_file.js?v=midi-module-1';
 
 /** Import UI compiles selected parts into editable performance code. */
 export function installMidiImport({button, presets, importFiles, onError, enabled}) {
@@ -48,7 +48,7 @@ export function installMidiImport({button, presets, importFiles, onError, enable
           if(!routes.length)throw new Error('Select at least one part');
           const keys=routes.map(r=>JSON.stringify([r.destination,r.channel]));
           if(new Set(keys).size!==keys.length)throw new Error('Assign separate MIDI channels to parts sharing an output');
-          const source=midiToSource(bytes,routes,{name:file.name,presets});
+          const source=midiToSource(bytes,routes,{name:file.name,presets,module:true});
           importFiles(file.name,source);dialog.close();
         }catch(e){error.textContent=e.message;}
       };
