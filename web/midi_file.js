@@ -1,3 +1,5 @@
+import {MIDI_SUPPORTED_CC} from './playground_midi.js?v=midi-cc-1';
+
 /** Bounded SMF format 0/1 reader. Original channel/meta events remain available. */
 export function parseMidiFile(input) {
   const bytes=input instanceof Uint8Array?input:new Uint8Array(input);
@@ -42,7 +44,9 @@ export function parseMidiFile(input) {
         const part=parts.get(key)??{key,track,port,device,channel,name,notes:0};
         if(kind===9&&b>0)part.notes++;parts.set(key,part);
         events.push({...event,type:'channel',kind,channel,a,b,part:key});
-        if(![8,9,12,14].includes(kind))warnings.add('CC and pressure retained but not applied in this initial importer');
+        if(kind===10||kind===13)warnings.add('Pressure retained but not applied');
+        if(kind===11&&!MIDI_SUPPORTED_CC.includes(a))warnings.add(`CC ${a} retained but not applied`);
+        if(kind===11&&a===10)warnings.add('Pan uses left/center/right on FM; PSG pan is not applied');
         if(kind===11&&[100,101,6,38].includes(a))warnings.add('RPN bend range is not applied; set the bend range manually');
         if(kind===12||kind===11&&(a===0||a===32))warnings.add('Bank / Program retained; playback uses manually selected voices');
       }

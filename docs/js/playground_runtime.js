@@ -1,5 +1,5 @@
-import {createMidiRack, createMidiApi, validateBendRange} from './playground_midi.js?v=midi-channels-0';
-import {parseMidiFile} from './midi_file.js?v=midi-channels-0';
+import {createMidiRack, createMidiApi, validateBendRange, MIDI_SUPPORTED_CC} from './playground_midi.js?v=midi-cc-1';
+import {parseMidiFile} from './midi_file.js?v=midi-cc-1';
 import { createAudioScheduler } from "./playground_audio_scheduler.js";
 import {
   FM_PRESETS,
@@ -154,7 +154,7 @@ export function createPlaygroundRuntime(
     );
   defaultLogicWorkerUrl.searchParams.set(
     "v",
-    "midi-channels-0"
+    "midi-cc-1"
   );
   const logicWorkerUrl =
     options.logicWorkerUrl ??
@@ -791,10 +791,10 @@ export function createPlaygroundRuntime(
     if (command === "midi.file") return globals.midi.playFile(...args);
     if (command === "midi.handle") {
       const [destination, options, method, values] = args;
-      if (!["setVoice","noteOn","noteOff","pitchBend","setPitchBendRange"].includes(method)) throw new Error("Unsupported MIDI method");
+      if (!["setVoice","noteOn","noteOff","pitchBend","setPitchBendRange","cc"].includes(method)) throw new Error("Unsupported MIDI method");
       return globals.midi.output(destination,options)[method](...values);
     }
-    if (command === "midi.release") return getMidiRack().noteOff(args[0],args[1],args[2],undefined,args[3]);
+    if (command === "midi.release") return getMidiRack().noteOff(args[0],args[1],args[2],undefined,args[3],args[4]);
     if (command === "fx.create") {
       const [id, method, options] = args;
       const factory = globals.fx[method];
@@ -1058,6 +1058,7 @@ export function createPlaygroundRuntime(
         rack.setVoice(route.channel,patch);
       }
     }
+    rack.stop(); // Begin each file with clean pedal/controller state.
     for(const route of routes) {
       rack.pitchBend(route.destination,route.channel,0);
       rack.setPitchBendRange(route.destination,route.channel,route.bendRange ?? 2);
@@ -1076,12 +1077,15 @@ export function createPlaygroundRuntime(
           const event=song.events[cursor++],route=mapping.get(event.part);
           if(event.type!=='channel')continue;
           const time=origin+event.seconds;
-          if(event.kind===14) {
+          if(event.kind===14 || event.kind===11&&MIDI_SUPPORTED_CC.includes(event.a)) {
             const raw=event.a+(event.b<<7),value=(raw-8192)/(raw<8192?8192:8191);
             // Channel controls can be in a different SMF track from the notes.
             for(const part of song.parts)if(part.port===event.port&&part.device===event.device&&part.channel===event.channel) {
               const target=mapping.get(part.key);
-              if(target)rack.pitchBend(target.destination,target.channel,value,time);
+              if(target) {
+                if(event.kind===14)rack.pitchBend(target.destination,target.channel,value,time);
+                else rack.cc(target.destination,target.channel,event.a,event.b,time);
+              }
             }
             continue;
           }
@@ -1237,7 +1241,7 @@ export function createPlaygroundRuntime(
       if (method === 'playFile') return playMidiFile(...args,runToken);
       if (midiFilePlaying) throw new Error('Manual MIDI operations are unavailable during MIDI file playback');
       const rack=getMidiRack();
-      if(method==='release')return rack.noteOff(args[0],args[1],args[2],undefined,args[3]);
+      if(method==='release')return rack.noteOff(args[0],args[1],args[2],undefined,args[3],args[4]);
       return rack[method](...args);
     }, {sleep:seconds=>clockApi.sleep(seconds,runToken),bpm:()=>runtime.bpm,owner:()=>currentLoopContext?.name??null,
       check:()=>{if(runToken!==currentRunToken)throw new DOMException('Run stopped','AbortError');}});

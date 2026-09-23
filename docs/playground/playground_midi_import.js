@@ -1,4 +1,4 @@
-import {parseMidiFile} from '../js/midi_file.js?v=midi-channels-0';
+import {parseMidiFile} from '../js/midi_file.js?v=midi-cc-1';
 
 /** Import UI retains the source MIDI and creates a small, editable playback entry. */
 export function installMidiImport({button, presets, importFiles, onError, enabled}) {
@@ -13,7 +13,7 @@ export function installMidiImport({button, presets, importFiles, onError, enable
       const bytes=new Uint8Array(await file.arrayBuffer()),song=parseMidiFile(bytes);
       dialog=document.createElement('dialog');dialog.style.maxWidth='90vw';dialog.style.maxHeight='85vh';dialog.style.overflow='auto';
       const title=document.createElement('h2');title.textContent=`Import MIDI: ${file.name}`;
-      const help=document.createElement('p');help.textContent='FM: 6 voices shared across MIDI channels. PSG: 3 tone voices. Oldest notes are replaced when full. Use MIDI alone while playing; drums, CC and automatic program changes are not supported yet.';
+      const help=document.createElement('p');help.textContent='FM: 6 voices shared across MIDI channels. PSG: 3 tone voices. Oldest notes are replaced when full. Use MIDI alone while playing; Volume, Expression and Sustain are supported. FM Pan uses left/center/right; PSG Pan, drums and automatic program changes are not supported yet.';
       dialog.append(title,help);
       for(const warning of song.warnings){const p=document.createElement('p');p.textContent=warning;dialog.append(p);}
       const table=document.createElement('table'),header=document.createElement('tr');

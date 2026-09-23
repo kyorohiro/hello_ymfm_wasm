@@ -330,3 +330,18 @@ test('Worker forwards pitch bend and range with destination and channel intact',
  const second=worker.messages.filter(m=>m.command==='midi.handle')[1];assert.deepEqual(JSON.parse(JSON.stringify(second.args)),['tetorica-sega-psg',{channel:15},'pitchBend',[-1]]);
  worker.post({type:'response',id:second.id});await worker.send({type:'stop'});
 });
+
+test('Worker forwards CC controller/value and sustain note-off identity',async()=>{
+ const worker=createWorkerHarness();
+ worker.post({type:'run',presets:{},scaleIntervals:{},sourceCode:`const o=midi.output('tetorica-ym2612',{channel:CH16});await o.cc(64,127);await o.noteOn('C4');await o.noteOff('C4');`});
+ await waitFor(()=>worker.messages.some(m=>m.command==='midi.handle'));
+ const cc=worker.messages.find(m=>m.command==='midi.handle');
+ assert.deepEqual(JSON.parse(JSON.stringify(cc.args)),['tetorica-ym2612',{channel:15},'cc',[64,127]]);
+ worker.post({type:'response',id:cc.id,value:true});
+ await waitFor(()=>worker.messages.filter(m=>m.command==='midi.handle').length===2);
+ const note=worker.messages.filter(m=>m.command==='midi.handle')[1];worker.post({type:'response',id:note.id,value:42});
+ await waitFor(()=>worker.messages.some(m=>m.command==='midi.release'));
+ const off=worker.messages.find(m=>m.command==='midi.release');worker.post({type:'response',id:off.id});
+ await worker.send({type:'stop'});
+ assert.deepEqual(JSON.parse(JSON.stringify(off.args)),['tetorica-ym2612',15,60,42]);
+});

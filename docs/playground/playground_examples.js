@@ -1,9 +1,12 @@
 export const EXAMPLES = {
-  "midi-fm-psg": `// YM2612 mode. MIDI CH numbers are 1..16, not physical FM slots.
+  "midi-fm-psg": `// YM2612 mode. MIDI CH numbers are 0..15 (CH1..CH16), not physical FM slots.
 setBpm(120);
 const lead = midi.output("tetorica-ym2612", {channel: CH8});
 const bass = midi.output("tetorica-sega-psg", {channel: CH2});
 await lead.setVoice(FM_PRESETS["two-op-bell"]);
+await lead.cc(7, 100);  // Volume
+await lead.cc(10, 64);  // Center (FM: left/center/right)
+await lead.cc(64, 127); // Sustain pedal down
 // FILES alternative: await lead.loadVoice("./lead.tfi");
 await Promise.all([
   lead.play("C4", {velocity: 100, duration: 1}),
@@ -11,6 +14,9 @@ await Promise.all([
   lead.play("G4", {velocity: 90, duration: 1}),
   bass.play("C3", {velocity: 80, duration: 1}),
 ]);
+await lead.cc(11, 80); // Expression while the chord is sustained
+await beat(1);
+await lead.cc(64, 0);  // Release the sustained notes
 `,
   single: `fm.setPreset(CH1, FM_PRESETS["one-op-basic"]);
 await play("C4", { channel: CH1, duration: 0.35 });

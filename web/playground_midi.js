@@ -6,6 +6,8 @@ import {parseVgi} from './vgi.js';
 
 const destinations = ['tetorica-ym2612', 'tetorica-sega-psg'];
 let nextVoiceId = 0; // Never reuse IDs across Stop / Run rack replacement.
+export const MIDI_SUPPORTED_CC = Object.freeze([7,10,11,64,120,121,123]);
+const defaultControls = () => ({bend:0,range:2,volume:127,expression:127,pan:64,sustain:false});
 const carriers = [8,8,8,8,10,14,14,15];
 function integer(value, min, max, name) {
   if (!Number.isInteger(value) || value < min || value > max) throw new Error(`${name} must be ${min}..${max}`);
@@ -32,7 +34,7 @@ export function midiNote(note) {
 export function createMidiRack({write, writePsg, preset, fmChannels = 6}) {
   let at;
   const pending = new Map();
-  const controls = Object.fromEntries(destinations.map(d=>[d,Array.from({length:16},()=>({bend:0,range:2}))]));
+  const controls = Object.fromEntries(destinations.map(d=>[d,Array.from({length:16},defaultControls)]));
   function normalize(data) {
     const validator=new YM2612Synth({transport:{write(){}}});validator.setPreset(0,data);
     const state=validator.channels[0];
@@ -41,6 +43,7 @@ export function createMidiRack({write, writePsg, preset, fmChannels = 6}) {
   }
   const patches = Array.from({length:16},()=>normalize(preset));
   const voices = { 'tetorica-ym2612': Array(fmChannels).fill(null), 'tetorica-sega-psg': Array(3).fill(null) };
+  const tails = Array(fmChannels).fill(null); // Released FM envelopes can still be audible.
   // A register encoder, not another emulated chip. Never reset the real transport.
   const fm = new YM2612Synth({transport:{write:(port,register,value)=>write({port,register,value,time:at})}});
   const psg = createSegaPsgApi({write:value=>writePsg({value,time:at})});
@@ -63,11 +66,63 @@ export function createMidiRack({write, writePsg, preset, fmChannels = 6}) {
   function retune(destination,channel) {
     voices[destination].forEach((voice,slot)=>{if(voice?.channel===channel)tune(destination,slot,voice);});
   }
-  function release(destination, slot) {
-    if (destination === destinations[0]) fm.noteOff(slot); else psg.off(slot);
+  function level(destination,slot,voice) {
+    const c=controls[destination][voice.channel];
+    const gain=voice.velocity/127*c.volume/127*c.expression/127;
+    if(destination===destinations[0]) {
+      const attenuation=gain>0?Math.round(-20*Math.log10(gain)/.75):127;
+      const patch=voice.patch,mask=carriers[patch.algorithm];
+      for(let op=0;op<4;op++)if(mask&(1<<op)) {
+        fm.setOperator(slot,op,{tl:Math.min(127,patch.operators[op].tl+attenuation)});
+      }
+    } else psg.write(0x90|(slot<<5)|(15-Math.round(gain*15)));
+  }
+  function pan(destination,slot,voice) {
+    if(destination!==destinations[0])return; // Mega Drive PSG has no per-voice pan register.
+    const value=controls[destination][voice.channel].pan;
+    fm.setPan(slot,voice.patch.pan.left&&value<=84,voice.patch.pan.right&&value>=43);
+  }
+  function release(destination, slot, hard=false) {
+    const voice=voices[destination][slot];
+    if (destination === destinations[0]) {
+      if(hard)for(let op=0;op<4;op++)fm.setOperator(slot,op,{tl:127});
+      fm.noteOff(slot);tails[slot]=hard?null:voice;
+    } else psg.off(slot);
     voices[destination][slot] = null;
   }
+  function updateChannel(destination,channel,update) {
+    voices[destination].forEach((v,i)=>{if(v?.channel===channel)update(destination,i,v);});
+    if(destination===destinations[0])tails.forEach((v,i)=>{if(v?.channel===channel)update(destination,i,v);});
+  }
+  function releaseSustained(destination,channel) {
+    voices[destination].forEach((v,i)=>{if(v?.channel===channel&&!v.keyDown)release(destination,i);});
+  }
   return {
+    cc(destination,channel,controller,value,time) {
+      target(destination,channel);integer(controller,0,127,'controller');integer(value,0,127,'CC value');
+      if(!MIDI_SUPPORTED_CC.includes(controller))return false;
+      at=time;const c=controls[destination][channel];
+      if(controller===7||controller===11) {
+        c[controller===7?'volume':'expression']=value;updateChannel(destination,channel,level);
+      } else if(controller===10) {
+        c.pan=value;updateChannel(destination,channel,pan);
+      } else if(controller===64) {
+        c.sustain=value>=64;if(!c.sustain)releaseSustained(destination,channel);
+      } else if(controller===121) {
+        // Retain channel volume, pan and configured bend range.
+        c.expression=127;c.bend=0;c.sustain=false;releaseSustained(destination,channel);
+        retune(destination,channel);updateChannel(destination,channel,level);
+      } else if(controller===123) {
+        voices[destination].forEach(v=>{if(v?.channel===channel)v.keyDown=false;});
+        if(!c.sustain)releaseSustained(destination,channel);
+      } else if(controller===120) {
+        voices[destination].forEach((v,i)=>{if(v?.channel===channel)release(destination,i,true);});
+        if(destination===destinations[0])tails.forEach((v,i)=>{
+          if(v?.channel===channel){for(let op=0;op<4;op++)fm.setOperator(i,op,{tl:127});tails[i]=null;}
+        });
+      }
+      return true;
+    },
     pitchBend(destination,channel,value,time) {
       target(destination,channel);validateBend(value);at=time;
       controls[destination][channel].bend=value;retune(destination,channel);
@@ -90,40 +145,35 @@ export function createMidiRack({write, writePsg, preset, fmChannels = 6}) {
       if(slot<0)slot=pool.reduce((old,v,i)=>v.id<pool[old].id?i:old,0);
       if(pool[slot])release(destination,slot);
       const id=++nextVoiceId;
+      const voice={channel,note,id,velocity,keyDown:true};
       if(destination===destinations[0]) {
-        const patch=structuredClone(patches[channel]);
-        const mask=carriers[patch.algorithm ?? 0];
-        const attenuation=Math.round(-20*Math.log10(velocity/127)/.75);
-        // YM2612 presets accept either logical OP arrays or one-based maps.
-        for(let op=0;op<4;op++)if(mask & (1<<op)) {
-          const key=Array.isArray(patch.operators)?op:op+1;
-          patch.operators ??= {};
-          patch.operators[key]={...patch.operators[key],tl:Math.min(127,(patch.operators[key]?.tl??127)+attenuation)};
-        }
-        fm.setPreset(slot,patch);
-        tune(destination,slot,{channel,note});fm.keyOn(slot);
-      } else {
-        tune(destination,slot,{channel,note});
-        psg.write(0x90|(slot<<5)|(15-Math.round(velocity/127*15)));
+        voice.patch=structuredClone(patches[channel]);tails[slot]=null;
+        fm.setPreset(slot,voice.patch);
       }
-      pool[slot]={channel,note,id};
+      level(destination,slot,voice);pan(destination,slot,voice);tune(destination,slot,voice);
+      if(destination===destinations[0])fm.keyOn(slot);
+      pool[slot]=voice;
       const key=JSON.stringify([destination,channel,note]);const queue=pending.get(key)??[];queue.push(id);pending.set(key,queue);
       return id;
     },
-    noteOff(destination,channel,note,time,id) {
+    noteOff(destination,channel,note,time,id,force=false) {
       const pool=target(destination,channel);note=midiNote(note);at=time;
       // A duration-bound play releases only its own voice after stealing/retrigger.
       const key=JSON.stringify([destination,channel,note]),queue=pending.get(key)??[];
       if(id===undefined)id=queue.shift();else {const index=queue.indexOf(id);if(index>=0)queue.splice(index,1);}
       if(!queue.length)pending.delete(key);
       const slot=pool.findIndex(v=>v && v.channel===channel && v.note===note && v.id===id);
-      if(slot>=0)release(destination,slot);
+      if(slot>=0) {
+        pool[slot].keyDown=false;
+        if(force||!controls[destination][channel].sustain)release(destination,slot,force);
+      }
     },
     stop(time) {
       pending.clear();at=time;
+      tails.forEach((v,i)=>{if(v){for(let op=0;op<4;op++)fm.setOperator(i,op,{tl:127});tails[i]=null;}});
       for(const destination of destinations) {
-        voices[destination].forEach((v,i)=>{if(v)release(destination,i);});
-        controls[destination].forEach(c=>{c.bend=0;c.range=2;});
+        voices[destination].forEach((v,i)=>{if(v)release(destination,i,true);});
+        controls[destination].forEach(c=>Object.assign(c,defaultControls()));
       }
     },
   };
@@ -132,11 +182,17 @@ export function createMidiRack({write, writePsg, preset, fmChannels = 6}) {
 /** Shared API surface for main-thread and Worker execution. */
 export function createMidiApi(invoke, {sleep, bpm, check = ()=>{}, owner = ()=>null}) {
   let readFile;
-  const held=new Map();
+  const held=new Map(),pedals=new Map();
+  const channelKey=(destination,channel)=>JSON.stringify([destination,channel]);
+  const releaseHeld=(id)=>{
+    const entry=held.get(id);if(!entry)return;
+    if(pedals.get(channelKey(entry.args[0],entry.args[1])))entry.released=true;
+    else held.delete(id);
+  };
   const call=(method,args)=>{check();return invoke(method,args);};
   return {
     cancelOwner(target) {
-      for(const [id,entry] of held)if(target===undefined || entry.owner===target){held.delete(id);Promise.resolve(invoke('release',entry.args)).catch(()=>{});}
+      for(const [id,entry] of held)if(target===undefined || entry.owner===target){held.delete(id);Promise.resolve(invoke('release',[...entry.args,true])).catch(()=>{});}
     },
     setFileReader(reader){readFile=reader;},
     async playFile(data,routes){if(owner()!==null)throw new Error('Call midi.playFile at the top level, outside liveLoop');return call('playFile',[data,routes]);},
@@ -145,6 +201,17 @@ export function createMidiApi(invoke, {sleep, bpm, check = ()=>{}, owner = ()=>n
       if(channel!==undefined)integer(channel,0,15,'channel');
       const ch=channel??0;
       return {
+        async cc(controller,value) {
+          const result=await call('cc',[destination,ch,integer(controller,0,127,'controller'),integer(value,0,127,'CC value')]);
+          const key=channelKey(destination,ch);
+          if(controller===64)pedals.set(key,value>=64);
+          if(controller===121)pedals.set(key,false);
+          for(const [id,e] of held)if(e.args[0]===destination&&e.args[1]===ch) {
+            if(controller===123)releaseHeld(id);
+            if(controller===120||e.released&&!pedals.get(key))held.delete(id);
+          }
+          return result;
+        },
         async pitchBend(value) {return call('pitchBend',[destination,ch,validateBend(value)]);},
         async setPitchBendRange(semitones) {return call('setPitchBendRange',[destination,ch,validateBendRange(semitones)]);},
         async setVoice(data,options) {
@@ -165,13 +232,13 @@ export function createMidiApi(invoke, {sleep, bpm, check = ()=>{}, owner = ()=>n
         },
         noteOff(note) {
           const n=midiNote(note);
-          for(const [id,e] of held)if(e.args[0]===destination&&e.args[1]===ch&&e.args[2]===n){held.delete(id);return call('release',e.args);}
+          for(const [id,e] of held)if(!e.released&&e.args[0]===destination&&e.args[1]===ch&&e.args[2]===n){releaseHeld(id);return call('release',e.args);}
           return call('noteOff',[destination,ch,n]);
         },
         async play(note,{velocity=100,duration=1}={}) {
           if(!Number.isFinite(duration)||duration<0)throw new Error('duration must be nonnegative beats');
           const n=midiNote(note),id=await this.noteOn(n,{velocity});
-          try {await sleep(duration*60/bpm());} finally {held.delete(id);try{await invoke('release',[destination,ch,n,id]);}catch(error){if(error.name!=='AbortError')throw error;}}
+          try {await sleep(duration*60/bpm());} finally {releaseHeld(id);try{await invoke('release',[destination,ch,n,id]);}catch(error){if(error.name!=='AbortError')throw error;}}
         },
       };
     },

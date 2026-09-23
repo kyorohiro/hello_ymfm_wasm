@@ -103,3 +103,82 @@ test('all sixteen zero-based API channels preserve voice and bend routing', asyn
  for(const channel of [-1,16,1.5,NaN])assert.throws(()=>api.output('tetorica-ym2612',{channel}));
  assert.equal(writes.length,count);
 });
+
+test('CC volume/expression restore original carrier levels and do not retrigger or replace a held patch',()=>{
+ const {r,writes}=rack();r.noteOn('tetorica-ym2612',0,60,100);
+ const base=writes.filter(e=>e.register===0x4c).at(-1).value;
+ r.setVoice(0,FM_PRESETS['two-op-bell']);writes.length=0;
+ r.cc('tetorica-ym2612',0,11,0,.5);
+ assert.deepEqual(writes.map(e=>[e.register,e.value,e.time]),[0x40,0x48,0x44,0x4c].map(reg=>[reg,127,.5]));
+ r.cc('tetorica-ym2612',0,11,127);assert.equal(writes.at(-1).value,base);
+ r.cc('tetorica-ym2612',1,7,0);assert.equal(writes.at(-1).value,base);
+ r.cc('tetorica-ym2612',0,7,64);assert(writes.at(-1).value>base);
+ r.cc('tetorica-ym2612',0,7,127);assert.equal(writes.at(-1).value,base);
+ assert(writes.every(e=>e.register!==0x28));
+});
+
+test('FM pan is quantized and intersects preset routing; PSG gain changes without retuning',()=>{
+ const {r,writes,psg}=rack();r.noteOn('tetorica-ym2612',0,60);
+ for(const [value,bits] of [[0,128],[42,128],[43,192],[84,192],[85,64],[127,64]]) {
+  writes.length=0;r.cc('tetorica-ym2612',0,10,value);
+  assert.equal(writes.length,1);assert.equal(writes[0].register,0xb4);assert.equal(writes[0].value&192,bits);
+ }
+ r.stop();r.setVoice(0,{...FM_PRESETS.sine,pan:{left:true,right:false}});
+ r.cc('tetorica-ym2612',0,10,127);r.noteOn('tetorica-ym2612',0,60);
+ assert.equal(writes.filter(e=>e.register===0xb4).at(-1).value&192,0);
+ r.noteOn('tetorica-sega-psg',0,60,127);psg.length=0;
+ r.cc('tetorica-sega-psg',0,7,0);assert.deepEqual(psg.map(e=>e.value),[0x9f]);
+ r.cc('tetorica-sega-psg',0,7,127);assert.equal(psg.at(-1).value,0x90);
+ r.cc('tetorica-sega-psg',0,10,0);assert.equal(psg.length,2);
+});
+
+test('sustain holds duplicate notes until pedal-up and stale note-offs cannot release stolen voices',()=>{
+ const {r,writes}=rack(1);r.cc('tetorica-ym2612',0,64,64);
+ r.noteOn('tetorica-ym2612',0,60);const n=writes.length;
+ r.noteOff('tetorica-ym2612',0,60);assert.equal(writes.length,n);
+ r.noteOn('tetorica-ym2612',0,60);const m=writes.length;
+ r.cc('tetorica-ym2612',0,64,63);assert.equal(writes.length,m,'new held key must survive pedal up');
+ r.noteOff('tetorica-ym2612',0,60);assert.equal(writes.at(-1).value,0);
+});
+
+test('all notes off respects sustain; reset releases pedal, restores expression/bend, retains volume/pan/range',()=>{
+ const {r,writes}=rack();
+ r.cc('tetorica-ym2612',0,7,64);r.cc('tetorica-ym2612',0,10,0);
+ r.cc('tetorica-ym2612',0,64,127);r.noteOn('tetorica-ym2612',0,60);
+ r.cc('tetorica-ym2612',0,123,0);assert.notEqual(writes.at(-1).value,0);
+ writes.length=0;r.cc('tetorica-ym2612',0,121,0);assert(writes.some(e=>e.register===0x28&&e.value===0));
+ r.noteOn('tetorica-ym2612',0,67);r.setPitchBendRange('tetorica-ym2612',0,12);r.pitchBend('tetorica-ym2612',0,1);
+ r.cc('tetorica-ym2612',0,11,0);r.cc('tetorica-ym2612',0,121,0);
+ const a=writes.filter(e=>e.register===0xa4).at(-1).value;
+ r.pitchBend('tetorica-ym2612',0,1);assert.equal(writes.filter(e=>e.register===0xa4).at(-1).value,a+8);
+ assert.equal(writes.filter(e=>e.register===0xb4).at(-1).value&192,128);
+ assert(writes.filter(e=>e.register===0x4c).at(-1).value<127);
+});
+
+test('all sound off mutes released FM tails and Stop clears PSG sustain/controller state',()=>{
+ const {r,writes,psg}=rack();r.noteOn('tetorica-ym2612',0,60);r.noteOff('tetorica-ym2612',0,60);writes.length=0;
+ r.cc('tetorica-ym2612',1,120,0);assert.equal(writes.length,0);
+ r.cc('tetorica-ym2612',0,120,0);assert.equal(writes.length,4);assert(writes.every(e=>e.value===127));
+ r.cc('tetorica-sega-psg',0,64,127);r.noteOn('tetorica-sega-psg',0,60,127);r.noteOff('tetorica-sega-psg',0,60);
+ assert.notEqual(psg.at(-1).value,0x9f);r.stop();assert.equal(psg.at(-1).value,0x9f);
+ r.noteOn('tetorica-sega-psg',0,60,127);r.noteOff('tetorica-sega-psg',0,60);assert.equal(psg.at(-1).value,0x9f);
+});
+
+test('API forwards CC, rejects invalid data, and owner cleanup forcibly releases sustained notes',async()=>{
+ const {r,writes}=rack();let owner='loop';
+ const api=createMidiApi((m,a)=>m==='release'?r.noteOff(a[0],a[1],a[2],undefined,a[3],a[4]):r[m](...a),{sleep:async()=>{},bpm:()=>120,owner:()=>owner});
+ const out=api.output('tetorica-ym2612',{channel:0});
+ for(const pair of [[-1,0],[7,128],[1.5,0],[7,NaN]])await assert.rejects(out.cc(...pair));
+ assert.equal(writes.length,0);assert.equal(await out.cc(1,0),false);
+ await out.cc(64,127);await out.play('C4');const n=writes.length;
+ owner='other';await api.output('tetorica-ym2612',{channel:1}).noteOn('E4');
+ api.cancelOwner('loop');assert(writes.length>n);assert.equal(writes.at(-1).value,0);
+});
+
+test('SMF warnings distinguish supported CC, unsupported controllers and PSG pan limitation',()=>{
+ const supported=parseMidiFile(smf([0,0xb0,7,100,0,0xb0,64,127,0,0xb0,123,0,0,255,47,0]));
+ assert.deepEqual(supported.warnings,[]);
+ const unsupported=parseMidiFile(smf([0,0xb0,1,100,0,0xb0,10,64,0,255,47,0]));
+ assert(unsupported.warnings.some(w=>w.includes('CC 1 retained')));
+ assert(unsupported.warnings.some(w=>w.includes('PSG pan')));
+});

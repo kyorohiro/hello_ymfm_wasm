@@ -950,6 +950,9 @@ declare function getTiming(): PlaygroundTiming | Promise<PlaygroundTiming>;
 
 /** MIDI channel 0..15 (CH1..CH16), independent of physical FM/PSG channels. YM2612 mode only. */
 interface PlaygroundMidiOutput {
+  /** 0..127 data. Supports 7/10/11/64/120/121/123; returns false for other controllers.
+   * FM pan is left/center/right; PSG pan has no audible effect. */
+  cc(controller: number, value: number): Promise<boolean>;
   /** -1..1, center 0. Affects held and subsequent notes on this output / MIDI CH. */
   pitchBend(value: number): Promise<void>;
   /** Symmetric range in semitones, 0..96; default 2. Retunes held notes. */
@@ -975,7 +978,7 @@ interface PlaygroundMidiRoute {
 }
 interface PlaygroundMidi {
   output(destination: "tetorica-ym2612" | "tetorica-sega-psg", options?: {channel?: PlaygroundMidiChannel}): PlaygroundMidiOutput;
-  /** SMF 0/1, PPQN timing. Manual voices; CC/program changes retained but not applied. */
+  /** SMF 0/1, PPQN timing. Manual voices; supported CC applied. Other CC/program changes retained but not applied. */
   playFile(data: ArrayBuffer | Uint8Array, routes: PlaygroundMidiRoute[]): Promise<void>;
 }
 declare const midi: PlaygroundMidi;

@@ -21,7 +21,7 @@ MIDI ファイルを読み込み、パートと音色を選んで YM2612 Playgro
 初期版の制限：
 
 - MIDI import / ファイル再生は **YM2612 の ymfm モード**が対象。Nuked モードにはまだ接続していない。
-- 音色は手動指定。Program / Bank の自動適用、Sustain・CC・Pressure、PSGノイズ、ドラム割り当て、DAC / PWM は未対応。
+- 音色は手動指定。Program / Bank の自動適用、未対応 CC・Pressure、PSGノイズ、ドラム割り当て、DAC / PWM は未対応。
 - SMPTE 時間単位と SMF format 2 は未対応としてエラーにする。
 - パートは初期状態で Skip。必要なパートを選ぶ。同一再生先・MIDI CH への複数パートの割り当ては初期 UI / API で拒否し、暗黙の状態共有を防ぐ。
 - `midi.playFile()` はトップレベルから呼ぶ。liveLoop 内の呼び出しは初期版では拒否する。
@@ -135,7 +135,7 @@ Native の Tauri 接続や SysEx 転送の仕組みをそのまま移植する�
 参照：`w/tetorica-midi-playground/ui/playground-api.d.ts`、
 `w/tetorica-midi-playground/docs/issues/midi_sysex_01.md`。
 MIDI Playground の低レベル MIDI API は現状グローバル側にあり、ハンドルには
-`play` / `setVoice` / `loadVoice` がある。今回の Playground 側にはハンドルの Note On / Off を追加した。CC 等は後続対応とする。
+`play` / `setVoice` / `loadVoice` がある。今回の Playground 側にはハンドルの Note On / Off を追加した。CC7 / 10 / 11 / 64 / 120 / 121 / 123 にも対応。その他は後続対応とする。
 
 ## 必要な改善
 
@@ -166,9 +166,9 @@ MIDI の１ CH にも和音が入るため、MIDI CH を物理 FM CH へ単純�
 - [x] Velocity を音色のキャリア構成に応じた音量へ反映する。
 - [x] Pitch Bend を発音中の音へ適用する。
 - [x] ベンド幅は既定 ±2半音。API と Import UI で手動指定できる。RPN 対応は後続 TODO。
-- [ ] CC7 Volume / CC11 Expression / CC10 Pan を反映する。
-- [ ] CC64 Sustain と Note Off の保留・解除を実装する。
-- [ ] All Sound Off / All Notes Off / コントローラーリセットを扱う。
+- [x] CC7 Volume / CC11 Expression / CC10 Pan を反映する（Pan は FM のみ）。
+- [x] CC64 Sustain と Note Off の保留・解除を実装する。
+- [x] All Sound Off / All Notes Off / コントローラーリセットを扱う。
 - [ ] Modulation、Sostenuto、Channel / Poly Pressure は後続段階で検討する。
 
 YM2612 のパンなど、音源の制約で MIDI の値をそのまま再現できない項目は近似方法を明示する。
@@ -237,3 +237,22 @@ VGM の演奏命令から音符を抽出する処理と、MIDI の tick・テン
 - Import UI は CH1〜CH16 を表示し、生成コードには 0〜15 を保存する。元ファイルの解析結果・part キーは既存形式を維持する。
 - 保存済みコードの旧 `channel: 1` は `channel: CH1` または `channel: 0` に修正が必要。以前 Import したエントリーも再取り込み、または再生先 channel を修正する。自作コードは自動変換しない。
 - MIDI CH は物理 FM CH の固定指定ではない。既存の発音割り当て・直接操作 API の意味は維持する。
+
+## CC 対応（2026-09-24）
+
+- ハンドルに `await lead.cc(controller, value)` を追加。値は整数 0〜127。
+  CC7 Volume、CC10 Pan、CC11 Expression、CC64 Sustain、CC120 All Sound Off、
+  CC121 Reset All Controllers、CC123 All Notes Off に対応。未対応 CC は false を返して適用しない。
+- Volume / Expression は Velocity と合成し、発音時の音色を基準に FM キャリア TL / PSG 音量へ反映。
+  発音中の変更でキーオンし直さず、音色の再指定も次の発音まで反映しない。
+- FM Pan は 0〜42 が左、43〜84 が中央、85〜127 が右。プリセットの左右出力設定と組み合わせる。
+  PSG はチャンネル別 Pan を未対応とし、Import で制限を表示する。
+- Sustain は 64 以上でオン。CC123 は Sustain を尊重する。CC120 は保留音と FM のリリース中の音も消音する。
+- CC121 は Expression、Sustain、Pitch Bend を初期化。Volume、Pan、手動設定した Bend Range、音色は維持する。
+  Stop とファイル再生開始では全コントローラー状態を初期化する。
+- MIDI ファイルの CC は、別トラックにある場合も同じ元ポート・デバイス・MIDI CH の割り当て先へ予約時刻で反映。
+  未対応 CC / Pressure / Bank / Program は保持し、未適用であることを通知する。
+- Main / Worker、ペダル解除、音量復元、発音所有者のキャンセル、Stop、別トラックの時刻予約を自動テストで確認。
+  ブラウザーでの試聴は未確認。
+
+参考: [MIDI Association の CC 一覧](https://midi.org/midi-1-0-control-change-messages)。

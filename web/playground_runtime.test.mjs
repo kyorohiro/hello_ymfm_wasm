@@ -226,3 +226,29 @@ test('MIDI import applies full-scale bend from another track to the routed sourc
  assert(Math.abs(highs[1].time-highs[0].time-2*.5/96)<1e-9);
  assert.equal(scheduled.filter(e=>e.register===0x28&&e.value===240).length,1);
 });
+
+test('MIDI import applies cross-track CC at event time and releases sustain on pedal-up',async t=>{
+ const {runtime,megaDrive}=setup(t),scheduled=[];const started=performance.now();
+ Object.defineProperty(megaDrive.audioContext,'currentTime',{get:()=> (performance.now()-started)/1000});
+ megaDrive.fm.write=()=>{};megaDrive.fm.scheduleWrites=entries=>scheduled.push(...entries);megaDrive.psg.write=()=>{};
+ const tracks=[
+  [0,0xb0,64,127,2,0xb0,11,0,2,0xb0,11,127,2,0xb0,64,0,2,255,47,0],
+  [0,0x90,60,127,3,0x80,60,0,5,255,47,0],
+ ];
+ const bytes=[77,84,104,100,0,0,0,6,0,1,0,2,0,96];
+ for(const tr of tracks)bytes.push(77,84,114,107,0,0,0,tr.length,...tr);
+ await runtime.playSource(`setTiming({lookaheadSeconds:.02,schedulerIntervalMs:5}); await midi.playFile(new Uint8Array(${JSON.stringify(bytes)}),[{part:'[1,0,"",1]',destination:'tetorica-sega-psg',channel:CH16}]);`);
+ const writes=scheduled.filter(e=>e.type==='psg-write');
+ const origin=writes[0].time;
+ const volumes=writes.filter(e=>(e.value&0xf0)===0x90);
+ assert.deepEqual(volumes.map(e=>[Math.round((e.time-origin)*192),e.value]),[[0,0x90],[2,0x9f],[4,0x90],[6,0x9f]]);
+});
+
+test('main CC API reaches the rack and Stop silences a sustained FM voice',async t=>{
+ const {runtime,megaDrive}=setup(t),writes=[];
+ megaDrive.fm.write=(...args)=>writes.push(args);megaDrive.psg.write=()=>{};
+ await runtime.playSource(`const o=midi.output('tetorica-ym2612'); await o.cc(64,127);await o.noteOn('C4');await o.noteOff('C4');await o.cc(10,0);`);
+ assert.equal(writes.filter(([p,r,v])=>r===0x28&&v===0).length,0);
+ assert.equal(writes.at(-1)[2]&192,128);
+ runtime.stop();assert(writes.some(([p,r,v])=>r===0x28&&v===0));
+});
