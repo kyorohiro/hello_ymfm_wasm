@@ -32,6 +32,7 @@ playground_execution.js
 playground_live.js
 playground_logic_worker.js
 playground_midi.js
+midi_song.js
 midi_file.js
 playground_music.js
 playground_noise.js

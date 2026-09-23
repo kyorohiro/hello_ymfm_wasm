@@ -41,7 +41,7 @@ MIDI ファイルを読み込み、パートと音色を選んで YM2612 Playgro
 - MIDI import / ファイル再生は **YM2612 の ymfm モード**が対象。Nuked モードにはまだ接続していない。
 - 音色は手動指定。Program / Bank の自動適用、未対応 CC・Pressure、PSGノイズ、ドラム割り当て、DAC / PWM は未対応。
 - SMPTE 時間単位と SMF format 2 は未対応としてエラーにする。
-- パートは初期状態で Skip。必要なパートを選ぶ。同一再生先・MIDI CH への複数パートの割り当ては初期 UI / API で拒否し、暗黙の状態共有を防ぐ。
+- パートは初期状態で Skip。必要なパートを選ぶ。Import では同一再生先・MIDI CH への複数パートを統合できる。音色・ベンド幅は最初に選択したパートの設定を使い、CC 等は共有する。互換 API `midi.playFile()` は重複した割り当てを拒否する。
 - `midi.playFile()` はトップレベルから呼ぶ。liveLoop 内の呼び出しは初期版では拒否する。
 - MIDI ファイル再生中の手動 MIDI 操作は拒否する。既存の FM / PSG 直接操作や DAC と併用せず、MIDI 専用の演奏コードとして使用する。
 - ブラウザー上の実操作・試聴は未確認。以下のチェックは実装と自動テストの範囲を示す。
@@ -326,23 +326,38 @@ await marioWorld01.runAllCh();
 - 別の曲モジュール同士の同期・音源割り当て競合・開始オフセットは後続の設計項目。
   今回は単一曲内の CH 選択と同期まで。
 
-### CH ごとの演奏命令と共通再生処理
+### 拍・音名・音の長さで編集する生成コード
 
-- `song.js` の演奏部分は `export function* ch1Events(output)` など、CH ごとのジェネレーターに分割する。
-  各行は `yield [秒数, () => 音源.noteOn(...), 元の順序]` の形。演奏命令ごとの CH 選別用 `if` は生成しない。
-- `runChannels()` は選択 CH の次の1イベントずつを保持し、時刻順に取り出す。
-  同時刻では第3要素の元イベント順を使うため、CH 選択の配列順に発音順序が左右されない。
-- 第1要素は曲開始からの秒数。各 CH 内では時刻順を維持する。第3要素は同時刻の順序を編集したい場合に変更する。
-- 個別再生・選択再生・全体再生は同じ再生処理を使う。従来の引数なし呼び出しも維持する。
-- generator は渡された output だけを使用し、単独利用には `initCh()` 不要。時刻待ち・終了時の消音は呼び出し側が担当する。
-- `await runCh1(lead)`、`await runChannels([1, 3], {1: lead, 3: bass})`、
-  `await runAllCh({1: lead})` で再生先を差し替えられる。run 系は事前に `initCh(pg)` が必要。
-  差し替え先の音色・ベンド幅は呼び出し側で設定し、終了・中断時の CC120 は差し替え先に送る。
-- 同じ MIDI CH 番号に FM と PSG がある場合は `ch1Events(output, output2)` とし、
-  生成コメントの順に渡す。個別再生は `runCh1(fm, psg)`、選択再生は `{1: [fm, psg]}`。
-- 複数パートに同じ output を渡すと音色・Pitch Bend・CC と消音対象も共有される。
-  独立したビブラートが必要なら別 MIDI CH の output を渡す。
-- 再生時に全イベント配列を作らず、最大16 CH 分の次のイベントだけを保持する。
+`ch1Events(output)` は次のような楽譜データを返す。`at` と `duration` は四分音符を1とする拍数。
+出力先・音色は演奏データから分離し、`runCh1(lead)` などで差し替えられる。
+
+```js
+export function* ch1Events(output) {
+  yield {at: 0, output, play: "C4", duration: 1, velocity: 100};
+  yield {at: 0, output, play: "E4", duration: 2, velocity: 90};
+  yield {at: 0.5, output, pitchBend: 0.1};
+  yield {at: 1, output, cc: [11, 80]};
+}
+```
+
+- Note On / Off を対応付け、音名・長さを1行へまとめる。対応する片側がない場合は
+  `noteOn` / `noteOff` として残し、欠けた演奏命令を勝手に補わない。同音の対応は送り先・MIDI CH ごとの FIFO。
+- Import では `order` / `offOrder` も付け、同時刻の元イベント順序を維持する。
+  手書きで追加するイベントは省略可能。同じ時刻・順序なら Note Off を先に処理する。
+- `midi.createSongPlayer({channels, tempos, endBeat})` が共通時計・テンポマップ・
+  Note Off の予約・選択再生・停止時の消音を担当する。生成コードにスケジューラー本体を展開しない。
+- 音の途中の CC / Pitch Bend、テンポ変更、重なった音を維持する。
+  `play` は通常の `output.play()` の直接呼び出しではなく、共通プレイヤーが解釈する楽譜の項目。
+- generator 単独利用には `initCh()` 不要。`midi.createSongPlayer` の `channels` に
+  `{events: ch1Events, outputs: [lead]}` を渡して再利用できる。
+- `runCh1(lead)`、`runChannels([1, 3], {1: lead, 3: bass})`、`runAllCh({1: lead})` を維持する。
+  生成された run 系は事前に `initCh(pg)` が必要。差し替え先の音色・ベンド幅は呼び出し側で設定する。
+- 同じ MIDI CH 番号に FM と PSG がある場合は `ch1Events(output, output2)`。
+  コメントの順に `runCh1(fm, psg)`、選択再生は `{1: [fm, psg]}` で渡す。
+- 同じ output を複数パートで使うと音色・CC・Pitch Bend・消音対象も共有する。
+- 次のイベントと未処理の Note Off のみ保持する。全レジスタ書き込みを事前展開しない。
+- 既存の秒数・コールバック形式の保存済みコードはそのまま動く。新しい形式への更新は再 Import。
+- Main / Worker 共通 API。実ブラウザーでの新形式の操作・試聴は未確認。
 
 ## Import の自動発音割り当て
 
@@ -363,3 +378,19 @@ await marioWorld01.runAllCh();
 - MIDI CH は FM / PSG とも16 CHから選択可能。CH番号は物理音源の声数に制限されない。
 - Auto でも生成コードに割り当て済み MIDI CH を明記し、パート別の音色・CC・ベンドを保持する。
 - 個別ジェネレーターと共通時計による再生は維持する。出力コードの分割・結合は発音割り当てとは別事項。
+
+### 演奏部分だけを別の出力先で使う例
+
+```js
+const song = await import("./song.js");
+const lead = midi.output("tetorica-ym2612", {channel: CH1});
+await lead.setVoice(FM_PRESETS["two-op-bell"]);
+const player = midi.createSongPlayer({
+  tempos: [{beat: 0, bpm: 120}],
+  channels: {1: {events: song.ch1Events, outputs: [lead]}},
+});
+await player.runChannels([1]);
+```
+
+この使い方では元の `initCh()`、音色、テンポ設定に依存しない。
+複数の演奏 generator を `channels` に登録すれば共通時計で再生できる。

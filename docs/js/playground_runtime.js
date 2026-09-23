@@ -1,5 +1,5 @@
-import {createMidiRack, createMidiApi, validateBendRange, MIDI_SUPPORTED_CC} from './playground_midi.js?v=midi-channels-2';
-import {parseMidiFile} from './midi_file.js?v=midi-channels-2';
+import {createMidiRack, createMidiApi, validateBendRange, MIDI_SUPPORTED_CC} from './playground_midi.js?v=readable-midi-1';
+import {parseMidiFile} from './midi_file.js?v=readable-midi-1';
 import { createAudioScheduler } from "./playground_audio_scheduler.js";
 import {
   FM_PRESETS,
@@ -154,7 +154,7 @@ export function createPlaygroundRuntime(
     );
   defaultLogicWorkerUrl.searchParams.set(
     "v",
-    "midi-channels-2"
+    "readable-midi-1"
   );
   const logicWorkerUrl =
     options.logicWorkerUrl ??

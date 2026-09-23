@@ -976,7 +976,36 @@ interface PlaygroundMidiRoute {
   channel: PlaygroundMidiChannel;
   preset?: string;
 }
+/** Editable score event. at/duration are quarter-note beats; play schedules both note edges. */
+interface PlaygroundMidiScoreEvent {
+  at: number;
+  output: PlaygroundMidiOutput;
+  play?: string | number;
+  duration?: number;
+  velocity?: number;
+  noteOn?: string | number;
+  noteOff?: string | number;
+  cc?: [number, number];
+  pitchBend?: number;
+  /** Optional tie-breaking order retained from imported MIDI. */
+  order?: number;
+  offOrder?: number;
+}
+interface PlaygroundMidiSongConfig {
+  channels: Record<number, {
+    events: (...outputs: PlaygroundMidiOutput[]) => Iterator<PlaygroundMidiScoreEvent>;
+    outputs: PlaygroundMidiOutput[];
+  }>;
+  tempos?: {beat: number; bpm: number}[];
+  endBeat?: number;
+}
+interface PlaygroundMidiSongPlayer {
+  readonly running: boolean;
+  runChannels(channels: number[], outputs?: Record<number, PlaygroundMidiOutput | PlaygroundMidiOutput[]>): Promise<void>;
+}
 interface PlaygroundMidi {
+  /** Replay beat-based generators together; tempo changes, note-offs and cleanup are shared. */
+  createSongPlayer(config: PlaygroundMidiSongConfig): PlaygroundMidiSongPlayer;
   /** Fix an origin now; waits use seconds from that origin, absorbing previous delays.
    * Times must be finite, nonnegative and nondecreasing. Late waits yield then catch up.
    * JavaScript dispatch may still be late; this is not sample-accurate audio scheduling. */

@@ -1,3 +1,4 @@
+import {createMidiSongPlayer} from './midi_song.js?v=readable-midi-1';
 import {YM2612Synth} from './ym2612synth.js';
 import {createSegaPsgApi, psgPeriodFromFrequency} from './segapsg_api.js';
 import {createPitchFromMidi} from './pitch.js';
@@ -194,6 +195,7 @@ export function createMidiApi(invoke, {sleep, bpm, check = ()=>{}, owner = ()=>n
     cancelOwner(target) {
       for(const [id,entry] of held)if(target===undefined || entry.owner===target){held.delete(id);Promise.resolve(invoke('release',[...entry.args,true])).catch(()=>{});}
     },
+    createSongPlayer(config) { return createMidiSongPlayer(this, config); },
     createTimeline() {
       check();const origin=now();let previous=0;
       return {async waitUntil(seconds) {

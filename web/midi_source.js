@@ -30,15 +30,15 @@ export function midiToSource(bytes, routes, {name='MIDI', presets={}, module=fal
   const song=parseMidiFile(bytes), parts=new Map(song.parts.map(p=>[p.key,p]));
   const targets=new Map(), mapping=new Map(), controls=new Map();
   const channels=new Map(),initializers=[],channelEvents=new Map();
-  let eventOrder=0,bufferedLength=0;
+  let bufferedLength=0;
   const lines=[];let length=0;
   const add=line=>{length+=line.length+1;if(length>16*1024*1024)throw new Error('Generated MIDI code exceeds 16 Mi characters; select fewer parts');lines.push(line);};
   const quote=value=>JSON.stringify(String(value)).replace(/[\u2028\u2029]/g,c=>`\\u${c.charCodeAt(0).toString(16)}`);
   add(`// Imported MIDI: ${quote(name)}`);
-  add('// Editable performance. No source MIDI file is needed. Times are seconds from the timeline origin.');
+  add(module?'// Editable score. at and duration are quarter-note beats; C4 is MIDI note 60.':'// Editable performance. No source MIDI file is needed. Times are seconds from the timeline origin.');
   for(const warning of song.warnings)add(`// ${warning}`);
   if(!routes.length)throw new Error('Select at least one MIDI part');
-  if(module)add('let api;\nlet running = false;');
+  if(module)add('let api;\nlet running = false;\nlet player;');
   routes.forEach((route,i)=>{
     const part=parts.get(route.part),key=JSON.stringify([route.destination,route.channel]);
     if(!part||!['tetorica-ym2612','tetorica-sega-psg'].includes(route.destination)||!Number.isInteger(route.channel)||route.channel<0||route.channel>15)throw new Error('Invalid MIDI route');
@@ -73,18 +73,45 @@ export function midiToSource(bytes, routes, {name='MIDI', presets={}, module=fal
   });
   if(module) {
     add('\nexport async function initCh(playground) {');
-    add('  if (running) throw new Error("Cannot initialize while playing");');
-    add('  api = undefined;');
+    add('  if (running || player?.running) throw new Error("Cannot initialize while playing");');
+    add('  api = undefined; player = undefined;');
     add('  if (!playground?.midi) throw new Error("Call initCh(pg) first");');
     add('  api = playground; running = true;');
     add('  try {');
     for(const line of initializers)add(`    ${line}`);
+    add('    player = api.midi.createSongPlayer({');
+    add(`      endBeat: ${(song.events.at(-1)?.tick??0)/song.division},`);
+    add('      tempos: [');
+    add('        {beat: 0, bpm: 120},');
+    for(const e of song.events)if(e.tempo)add(`        {beat: ${e.tick/song.division}, bpm: ${60000000/e.tempo}},`);
+    add('      ],');
+    add('      channels: {');
+    for(const ch of [...new Set(channels.values())].sort((a,b)=>a-b)) {
+      const variables=[...channels].filter(([,channel])=>channel===ch).map(([v])=>v);
+      add(`        ${ch}: {events: ch${ch}Events, outputs: [${variables.join(', ')}]},`);
+    }
+    add('      },');
+    add('    });');
     add('  } catch (error) { api = undefined; throw error; } finally { running = false; }');
     add('}');
   } else add('\nconst timeline = midi.createTimeline();');
   let lastTime=-1;
   const wait=seconds=>{if(seconds!==lastTime){add(`await timeline.waitUntil(${seconds});`);lastTime=seconds;}};
-  for(const event of song.events) {
+  // Pair note edges in the same order the target MIDI channel receives them.
+  const endings=new Map(),pairedOffs=new Set(),pending=new Map();
+  if(module)for(const [index,event] of song.events.entries()) {
+    const variable=mapping.get(event.part);
+    if(event.type!=='channel'||!variable)continue;
+    const key=JSON.stringify([variable,event.a]);
+    if(event.kind===9&&event.b>0) {
+      const queue=pending.get(key)??{items:[],head:0};queue.items.push(event);pending.set(key,queue);
+    } else if(event.kind===8||event.kind===9) {
+      const queue=pending.get(key),on=queue?.items[queue.head];
+      if(on) {queue.head++;endings.set(on,{event,index});pairedOffs.add(event);if(queue.head===queue.items.length)pending.delete(key);}
+    }
+  }
+  const noteName=n=>`${['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'][n%12]}${Math.floor(n/12)-1}`;
+  for(const [eventIndex,event] of song.events.entries()) {
     if(event.type==='meta'&&event.tempo){add(`// Tempo: ${60000000/event.tempo} BPM at ${event.seconds} seconds (included in event times).`);continue;}
     if(event.type!=='channel')continue;
     const variable=mapping.get(event.part),statements=[];
@@ -100,11 +127,20 @@ export function midiToSource(bytes, routes, {name='MIDI', presets={}, module=fal
     } else if(variable) add(`// Not applied at ${event.seconds}s: MIDI status ${event.kind}, data ${event.a}${event.b===undefined?'':`, ${event.b}`}.`);
     if(statements.length){
       if(module) {
-        for(const {channel,variable,line} of statements) {
+        for(const [statementIndex,{channel,variable}] of statements.entries()) {
           const variables=[...channels].filter(([,ch])=>ch===channel).map(([v])=>v);
           const index=variables.indexOf(variable);
           const argument=index===0?"output":`output${index+1}`;
-          const entry=`  yield [${event.seconds}, () => ${argument}${line.slice(6+variable.length,-1)}, ${eventOrder++}];`;
+          if(pairedOffs.has(event))continue;
+          let command;
+          const end=endings.get(event);
+          if(event.kind===9&&event.b>0)command=end
+            ?`play: ${quote(noteName(event.a))}, duration: ${(end.event.tick-event.tick)/song.division}, velocity: ${event.b}, offOrder: ${end.index*32}`
+            :`noteOn: ${quote(noteName(event.a))}, velocity: ${event.b}`;
+          else if(event.kind===8||event.kind===9)command=`noteOff: ${quote(noteName(event.a))}`;
+          else if(event.kind===11)command=`cc: [${event.a}, ${event.b}]`;
+          else {const raw=event.a+(event.b<<7);command=`pitchBend: ${(raw-8192)/(raw<8192?8192:8191)}`;}
+          const entry=`  yield {at: ${event.tick/song.division}, output: ${argument}, ${command}, order: ${eventIndex*32+statementIndex}};`;
           bufferedLength+=entry.length+1;
           if(length+bufferedLength>16*1024*1024)throw new Error('Generated MIDI code exceeds 16 Mi characters; select fewer parts');
           const entries=channelEvents.get(channel)??[];entries.push(entry);channelEvents.set(channel,entries);
@@ -114,71 +150,20 @@ export function midiToSource(bytes, routes, {name='MIDI', presets={}, module=fal
   }
   if(module) {
     const numbers=[...new Set(channels.values())].sort((a,b)=>a-b);
-    add('\n// Event tuple: [seconds, command, original order for simultaneous events].');
+    add('\n// play combines Note On/Off. CC and pitchBend may occur during a note.');
+    add('// order/offOrder preserve simultaneous MIDI ordering; omit them for newly written notes.');
     for(const ch of numbers) {
       const variables=[...channels].filter(([,channel])=>channel===ch).map(([v])=>v);
       add(`// Outputs in order: ${variables.join(", ")}. No initialization is needed when outputs are supplied directly.`);
+      add('/** @returns {Generator<PlaygroundMidiScoreEvent>} */');
       add(`export function* ch${ch}Events(${variables.map((_,i)=>i===0?"output":`output${i+1}`).join(", ")}) {`);
       for(const entry of channelEvents.get(ch)??[])add(entry);
       add('}');
     }
-    add(`\nconst channelEvents = {${numbers.map(ch=>`${ch}: ch${ch}Events`).join(', ')}};`);
-    add('const defaultOutputs = {');
-    for(const ch of numbers) {
-      const variables=[...channels].filter(([,channel])=>channel===ch).map(([v])=>v);
-      add(`  ${ch}: () => [${variables.join(', ')}],`);
-    }
-    add('};');
     add(`
 export async function runChannels(channelNumbers, outputs = {}) {
-  if (!Array.isArray(channelNumbers) || channelNumbers.some(ch => !Number.isInteger(ch) || !Object.prototype.hasOwnProperty.call(channelEvents, ch))) throw new Error("Unknown channel selection");
-  if (!api) throw new Error("Call initCh(pg) first");
-  if (running) throw new Error("This song is already playing");
-  const selected = [...new Set(channelNumbers)];
-  if (!selected.length) return;
-  const resolved = new Map(selected.map(ch => {
-    const defaults = defaultOutputs[ch]();
-    const supplied = outputs[ch];
-    const values = supplied === undefined ? defaults : Array.isArray(supplied) ? supplied : [supplied];
-    if (values.length !== defaults.length || values.some(output => !output ||
-        ["noteOn", "noteOff", "cc"].some(method => typeof output[method] !== "function")))
-      throw new Error("Supply one output per generated channel destination");
-    return [ch, values];
-  }));
-  running = true;
-  try {
-    const timeline = api.midi.createTimeline();
-    // Keep just one pending event per channel, rather than expanding every event.
-    const streams = selected.map(ch => {
-      const iterator = channelEvents[ch](...resolved.get(ch));
-      return {iterator, next: iterator.next()};
-    });
-    let previous = -1;
-    while (true) {
-      let first;
-      for (const stream of streams) {
-        if (stream.next.done) continue;
-        const event = stream.next.value;
-        if (!first || event[0] < first.next.value[0] ||
-            (event[0] === first.next.value[0] && event[2] < first.next.value[2])) first = stream;
-      }
-      if (!first) break;
-      const [seconds, command] = first.next.value;
-      if (seconds !== previous) {
-        await timeline.waitUntil(seconds);
-        previous = seconds;
-      }
-      await command();
-      first.next = first.iterator.next();
-    }
-    if (previous !== ${song.seconds}) await timeline.waitUntil(${song.seconds});
-  } finally {
-    try {
-      const results = await Promise.allSettled([...new Set([...resolved.values()].flat())].map(output => Promise.resolve().then(() => output.cc(120, 0))));
-      const failure = results.find(result => result.status === "rejected");
-      if (failure) throw failure.reason;
-    } finally { running = false; }
-  }
+  if (!player) throw new Error("Call initCh(pg) first");
+  return player.runChannels(channelNumbers, outputs);
 }`);
     for(const ch of numbers)add(`export async function runCh${ch}(...outputs) { return runChannels([${ch}], outputs.length ? {${ch}: outputs} : {}); }`);
     add(`export async function runAllCh(outputs = {}) { return runChannels([${numbers.join(', ')}], outputs); }`);
