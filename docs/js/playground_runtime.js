@@ -1,5 +1,5 @@
-import {createMidiRack, createMidiApi, validateBendRange} from './playground_midi.js?v=midi-bend-1';
-import {parseMidiFile} from './midi_file.js?v=midi-bend-1';
+import {createMidiRack, createMidiApi, validateBendRange} from './playground_midi.js?v=midi-channels-0';
+import {parseMidiFile} from './midi_file.js?v=midi-channels-0';
 import { createAudioScheduler } from "./playground_audio_scheduler.js";
 import {
   FM_PRESETS,
@@ -154,7 +154,7 @@ export function createPlaygroundRuntime(
     );
   defaultLogicWorkerUrl.searchParams.set(
     "v",
-    "midi-bend-1"
+    "midi-channels-0"
   );
   const logicWorkerUrl =
     options.logicWorkerUrl ??
@@ -1048,7 +1048,7 @@ export function createPlaygroundRuntime(
     const targets = new Set();
     for (const route of routes) {
       if (!song.parts.some(p=>p.key===route.part)) throw new Error("Unknown MIDI part");
-      if (!["tetorica-ym2612","tetorica-sega-psg"].includes(route.destination) || !Number.isInteger(route.channel) || route.channel<1 || route.channel>16) throw new Error("Invalid MIDI route");
+      if (!["tetorica-ym2612","tetorica-sega-psg"].includes(route.destination) || !Number.isInteger(route.channel) || route.channel<0 || route.channel>15) throw new Error("Invalid MIDI route");
       validateBendRange(route.bendRange ?? 2);
       const key=JSON.stringify([route.destination,route.channel]);
       if (targets.has(key) || mapping.has(route.part)) throw new Error("Assign each imported part to a separate output / MIDI channel");
@@ -1267,6 +1267,7 @@ export function createPlaygroundRuntime(
       ...(capabilities.fmChannels >= 4 ? { CH4: 3 } : {}),
       ...(capabilities.fmChannels >= 5 ? { CH5: 4 } : {}),
       ...(capabilities.fmChannels >= 6 ? { CH6: 5 } : {}),
+      ...(capabilities.chip === "ym2612" ? { CH7: 6, CH8: 7, CH9: 8, CH10: 9, CH11: 10, CH12: 11, CH13: 12, CH14: 13, CH15: 14, CH16: 15 } : {}),
       PSG1: 0,
       PSG2: 1,
       PSG3: 2,
@@ -1474,6 +1475,7 @@ export function createPlaygroundRuntime(
         ...(capabilities.fmChannels >= 4 ? { CH4: pg.CH4 } : {}),
         ...(capabilities.fmChannels >= 5 ? { CH5: pg.CH5 } : {}),
         ...(capabilities.fmChannels >= 6 ? { CH6: pg.CH6 } : {}),
+        ...(capabilities.chip === "ym2612" ? { CH7: 6, CH8: 7, CH9: 8, CH10: 9, CH11: 10, CH12: 11, CH13: 12, CH14: 13, CH15: 14, CH16: 15 } : {}),
         PSG1: pg.PSG1,
         PSG2: pg.PSG2,
         PSG3: pg.PSG3,

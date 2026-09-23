@@ -41,7 +41,7 @@ Playground 全体では、今回未変更の `vgm_export.test.mjs` の DAC strea
 - RPN による幅変更はまだ適用しない。該当コントローラーを含むファイルには、手動指定が必要な旨を表示する。
 
 ```js
-const lead = midi.output("tetorica-ym2612", {channel: 1});
+const lead = midi.output("tetorica-ym2612", {channel: CH1});
 await lead.setVoice(FM_PRESETS.sine);
 await lead.setPitchBendRange(12);
 await lead.noteOn("C4");
@@ -110,8 +110,8 @@ PSG の発音枠・ノイズの扱いは FM と分けて管理する。
 ### 送り先・音色指定の採用方針
 
 ```js
-const lead = midi.output("tetorica-ym2612", { channel: 1 });
-const bass = midi.output("tetorica-sega-psg", { channel: 2 });
+const lead = midi.output("tetorica-ym2612", { channel: CH1 });
+const bass = midi.output("tetorica-sega-psg", { channel: CH2 });
 
 await lead.setVoice(preset); // 既存の YM2612 Preset Object
 // または FILES 内の音色ファイルを使用する
@@ -119,7 +119,7 @@ await lead.loadVoice("./lead.tfi");
 await lead.play("C4", { velocity: 100, duration: 1 });
 ```
 
-- [x] `midi.output(destination, { channel })` を導入する。channel は MIDI CH 1–16 であり、物理 CH の予約ではない。
+- [x] `midi.output(destination, { channel })` を導入する。channel は MIDI CH の数値 0–15（CH1–CH16） であり、物理 CH の予約ではない。
 - [x] YM2612 ハンドルの `setVoice(preset)`、`setVoice(bytes, { format: 'tfi' | 'vgi' })`、`loadVoice(path)` を移植する。
 - [x] 音色は次の Note On から適用し、発音中の音にはその音が開始した時点の音色を保持する。
 - [x] channel 省略時は既存仕様に揃え、YM2612 の音色設定は全16 MIDI CH、発音は MIDI CH1 とする。
@@ -229,3 +229,11 @@ VGM の演奏命令から音符を抽出する処理と、MIDI の tick・テン
 - [ ] Sustain 中の Note Off と Stop、ベンド中の新規発音と音の打ち切り。
 - [ ] Worker 切り替え、再実行、曲終了後に音や予約が残らないこと。
 - [ ] 既存の Playground サンプルと `play()` の挙動が変わらないこと。
+
+## MIDI チャンネル番号の統一（2026-09-24）
+
+- 公開 MIDI API と `midi.playFile()` の再生先 `channel` は 0〜15。省略時は 0（CH1）。
+- `CH1 = 0`〜`CH16 = 15` を Main / Worker のグローバル・pg で使用できる。
+- Import UI は CH1〜CH16 を表示し、生成コードには 0〜15 を保存する。元ファイルの解析結果・part キーは既存形式を維持する。
+- 保存済みコードの旧 `channel: 1` は `channel: CH1` または `channel: 0` に修正が必要。以前 Import したエントリーも再取り込み、または再生先 channel を修正する。自作コードは自動変換しない。
+- MIDI CH は物理 FM CH の固定指定ではない。既存の発音割り当て・直接操作 API の意味は維持する。

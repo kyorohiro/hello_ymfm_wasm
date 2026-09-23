@@ -1,4 +1,4 @@
-import {createMidiApi} from './playground_midi.js?v=midi-bend-1';
+import {createMidiApi} from './playground_midi.js?v=midi-channels-0';
 import { hzToBlockFnum } from "./pitch.js";
 import { createDeadlineScheduler } from "./playground_clock.js";
 
@@ -498,6 +498,7 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
     FM_PRESETS: presets,
     tfiToPreset,
     CH1: 0, CH2: 1, CH3: 2, CH4: 3, CH5: 4, CH6: 5,
+    CH7: 6, CH8: 7, CH9: 8, CH10: 9, CH11: 10, CH12: 11, CH13: 12, CH14: 13, CH15: 14, CH16: 15,
     PSG1: 0, PSG2: 1, PSG3: 2,
     OP1: 0, OP2: 1, OP3: 2, OP4: 3,
     write: (...args) => postCommand("write", args),

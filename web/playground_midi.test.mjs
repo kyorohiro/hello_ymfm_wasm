@@ -6,10 +6,10 @@ import {parseMidiFile} from './midi_file.js';
 function rack(n=6){const writes=[],psg=[];return {writes,psg,r:createMidiRack({write:e=>writes.push(e),writePsg:e=>psg.push(e),preset:FM_PRESETS.sine,fmChannels:n})};}
 function smf(...tracks){const out=[77,84,104,100,0,0,0,6,0,tracks.length>1?1:0,0,tracks.length,0,96];for(const t of tracks){out.push(77,84,114,107,0,0,t.length>>8,t.length&255,...t);}return Uint8Array.from(out);}
 test('MIDI CH16 uses FM voice zero with pan and velocity; held voice survives patch change',()=>{
- const {r,writes}=rack();r.noteOn('tetorica-ym2612',16,60,127);assert(writes.some(e=>e.register===0xb4&&e.value===192));
+ const {r,writes}=rack();r.noteOn('tetorica-ym2612',15,60,127);assert(writes.some(e=>e.register===0xb4&&e.value===192));
  assert(writes.some(e=>e.register===0x28&&e.value===240));const n=writes.length;
- r.setVoice(16,FM_PRESETS['two-op-bell']);assert.equal(writes.length,n);
- r.noteOff('tetorica-ym2612',16,60);assert.equal(writes.at(-1).value,0);
+ r.setVoice(15,FM_PRESETS['two-op-bell']);assert.equal(writes.length,n);
+ r.noteOff('tetorica-ym2612',15,60);assert.equal(writes.at(-1).value,0);
 });
 test('stolen and duplicate notes cannot be released by an older note-off',()=>{
  const {r,writes}=rack(1);r.noteOn('tetorica-ym2612',1,60);r.noteOn('tetorica-ym2612',1,60);
@@ -24,7 +24,7 @@ test('PSG has three shared voices and timed writes; stop clears both sources',()
 test('output API validates channels, shares rack and cleans only owner voices',async()=>{
  const {r,writes}=rack();let owner='a';
  const api=createMidiApi((m,a)=>m==='release'?r.noteOff(a[0],a[1],a[2],undefined,a[3]):r[m](...a),{sleep:async()=>{},bpm:()=>120,owner:()=>owner});
- assert.throws(()=>api.output('tetorica-ym2612',{channel:0}));
+ assert.throws(()=>api.output('tetorica-ym2612',{channel:16}));
  const a=api.output('tetorica-ym2612',{channel:8});await a.noteOn('C4');owner='b';await a.noteOn('E4');api.cancelOwner('a');assert.equal(writes.at(-1).value,0);
  await a.noteOff('E4');assert.equal(writes.at(-1).value,1);
  await assert.rejects(api.output('tetorica-sega-psg').setVoice(FM_PRESETS.sine));
@@ -83,4 +83,23 @@ test('Stop resets bend/range and invalid values do not mutate audio',async()=>{
  const n=writes.length;for(const v of [NaN,Infinity,-2,2])await assert.rejects(out.pitchBend(v));
  for(const v of [NaN,Infinity,-1,97])await assert.rejects(out.setPitchBendRange(v));assert.equal(writes.length,n);
  await out.setPitchBendRange(2.5);await out.pitchBend(.5);
+});
+
+
+test('all sixteen zero-based API channels preserve voice and bend routing', async()=>{
+ const {r,writes}=rack();
+ const calls=[];
+ const api=createMidiApi((method,args)=>{calls.push([method,args]);return method==='release'?r.noteOff(args[0],args[1],args[2],undefined,args[3]):r[method](...args);},{sleep:async()=>{},bpm:()=>120});
+ for(let channel=0;channel<16;channel++) {
+  const out=api.output('tetorica-ym2612',{channel});
+  await out.setVoice(FM_PRESETS.sine);
+  await out.setPitchBendRange(12);await out.pitchBend(.5);await out.noteOn('C4');
+  assert.equal(calls.at(-1)[1][1],channel);
+  await out.noteOff('C4');r.stop();
+ }
+ await api.output('tetorica-ym2612').pitchBend(0);
+ assert.equal(calls.at(-1)[1][1],0);
+ const count=writes.length;
+ for(const channel of [-1,16,1.5,NaN])assert.throws(()=>api.output('tetorica-ym2612',{channel}));
+ assert.equal(writes.length,count);
 });

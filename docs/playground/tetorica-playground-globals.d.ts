@@ -121,6 +121,17 @@ declare const CH3: 2;
 declare const CH4: 3;
 declare const CH5: 4;
 declare const CH6: 5;
+/** MIDI channels; these do not extend the physical FM channel count. */
+declare const CH7: 6;
+declare const CH8: 7;
+declare const CH9: 8;
+declare const CH10: 9;
+declare const CH11: 10;
+declare const CH12: 11;
+declare const CH13: 12;
+declare const CH14: 13;
+declare const CH15: 14;
+declare const CH16: 15;
 
 /** Friendly logical operator constants for readable examples. */
 declare const OP1: 0;
@@ -839,6 +850,23 @@ declare function setInterval(handler: () => void, timeout?: number): number;
 declare function clearInterval(id: number): void;
 
 type PlaygroundAPI = {
+  CH1: 0;
+  CH2: 1;
+  CH3: 2;
+  CH4: 3;
+  CH5: 4;
+  CH6: 5;
+  CH7: 6;
+  CH8: 7;
+  CH9: 8;
+  CH10: 9;
+  CH11: 10;
+  CH12: 11;
+  CH13: 12;
+  CH14: 13;
+  CH15: 14;
+  CH16: 15;
+
   midi: PlaygroundMidi;
   /** Low-level YM2612 synth API. */
   fm: FMApi;
@@ -920,7 +948,7 @@ declare function setTiming(options: Partial<PlaygroundTiming>): PlaygroundTiming
 declare function getTiming(): PlaygroundTiming | Promise<PlaygroundTiming>;
 
 
-/** MIDI channel 1..16, independent of physical FM/PSG channels. YM2612 mode only. */
+/** MIDI channel 0..15 (CH1..CH16), independent of physical FM/PSG channels. YM2612 mode only. */
 interface PlaygroundMidiOutput {
   /** -1..1, center 0. Affects held and subsequent notes on this output / MIDI CH. */
   pitchBend(value: number): Promise<void>;
@@ -936,16 +964,17 @@ interface PlaygroundMidiOutput {
   /** FILES path relative to the Run file. */
   loadVoice(path: string): Promise<void>;
 }
+type PlaygroundMidiChannel = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15;
 interface PlaygroundMidiRoute {
   part: string;
   /** Pitch bend range in semitones; default 2. RPN is not yet applied. */
   bendRange?: number;
   destination: "tetorica-ym2612" | "tetorica-sega-psg";
-  channel: number;
+  channel: PlaygroundMidiChannel;
   preset?: string;
 }
 interface PlaygroundMidi {
-  output(destination: "tetorica-ym2612" | "tetorica-sega-psg", options?: {channel?: number}): PlaygroundMidiOutput;
+  output(destination: "tetorica-ym2612" | "tetorica-sega-psg", options?: {channel?: PlaygroundMidiChannel}): PlaygroundMidiOutput;
   /** SMF 0/1, PPQN timing. Manual voices; CC/program changes retained but not applied. */
   playFile(data: ArrayBuffer | Uint8Array, routes: PlaygroundMidiRoute[]): Promise<void>;
 }

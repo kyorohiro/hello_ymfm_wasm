@@ -1,4 +1,4 @@
-import {parseMidiFile} from '../js/midi_file.js?v=midi-bend-1';
+import {parseMidiFile} from '../js/midi_file.js?v=midi-channels-0';
 
 /** Import UI retains the source MIDI and creates a small, editable playback entry. */
 export function installMidiImport({button, presets, importFiles, onError, enabled}) {
@@ -25,7 +25,7 @@ export function installMidiImport({button, presets, importFiles, onError, enable
         const output=select([['','Skip'],['tetorica-ym2612','YM2612'],['tetorica-sega-psg','PSG']]);
         // Start with explicit opt-in; no silent merging or drum assignment.
         output.setAttribute('aria-label', `Output for track ${part.track+1} CH${part.channel}`);
-        const channel=select(Array.from({length:16},(_,i)=>[String(i+1),String(i+1)]));channel.value=String(part.channel);
+        const channel=select(Array.from({length:16},(_,i)=>[String(i),`CH${i+1}`]));channel.value=String(part.channel-1);
         const voice=select(Object.keys(presets).map(k=>[k,k]));
         output.addEventListener('change',()=>{voice.disabled=output.value!=='tetorica-ym2612';});voice.disabled=true;
         channel.setAttribute("aria-label", `Target MIDI channel for track ${part.track+1}`);

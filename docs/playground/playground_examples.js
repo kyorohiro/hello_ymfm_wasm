@@ -1,8 +1,8 @@
 export const EXAMPLES = {
   "midi-fm-psg": `// YM2612 mode. MIDI CH numbers are 1..16, not physical FM slots.
 setBpm(120);
-const lead = midi.output("tetorica-ym2612", {channel: 8});
-const bass = midi.output("tetorica-sega-psg", {channel: 2});
+const lead = midi.output("tetorica-ym2612", {channel: CH8});
+const bass = midi.output("tetorica-sega-psg", {channel: CH2});
 await lead.setVoice(FM_PRESETS["two-op-bell"]);
 // FILES alternative: await lead.loadVoice("./lead.tfi");
 await Promise.all([

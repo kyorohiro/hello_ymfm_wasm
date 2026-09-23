@@ -46,11 +46,11 @@ export function createMidiRack({write, writePsg, preset, fmChannels = 6}) {
   const psg = createSegaPsgApi({write:value=>writePsg({value,time:at})});
   function target(destination, channel) {
     if (!destinations.includes(destination)) throw new Error(`Unsupported MIDI output: ${destination}`);
-    integer(channel,1,16,'channel');
+    integer(channel,0,15,'channel');
     return voices[destination];
   }
   function tune(destination, slot, voice) {
-    const control=controls[destination][voice.channel-1];
+    const control=controls[destination][voice.channel];
     const note=voice.note+control.bend*control.range;
     if(destination===destinations[0]) {
       const pitch=createPitchFromMidi(note,{referenceMidi:62,referenceBlock:4,referenceFnum:553});
@@ -70,11 +70,11 @@ export function createMidiRack({write, writePsg, preset, fmChannels = 6}) {
   return {
     pitchBend(destination,channel,value,time) {
       target(destination,channel);validateBend(value);at=time;
-      controls[destination][channel-1].bend=value;retune(destination,channel);
+      controls[destination][channel].bend=value;retune(destination,channel);
     },
     setPitchBendRange(destination,channel,semitones,time) {
       target(destination,channel);validateBendRange(semitones);at=time;
-      controls[destination][channel-1].range=semitones;retune(destination,channel);
+      controls[destination][channel].range=semitones;retune(destination,channel);
     },
     setVoice(channel, data, options = {}) {
       let patch = data instanceof Uint8Array || data instanceof ArrayBuffer
@@ -82,7 +82,7 @@ export function createMidiRack({write, writePsg, preset, fmChannels = 6}) {
         : structuredClone(data);
       // Validate with the existing encoder without writing to the audio device.
       patch=normalize(patch);
-      if (channel === undefined) patches.fill(patch); else patches[integer(channel,1,16,'channel')-1]=patch;
+      if (channel === undefined) patches.fill(patch); else patches[integer(channel,0,15,'channel')]=patch;
     },
     noteOn(destination, channel, note, velocity = 100, time) {
       const pool = target(destination,channel); note=midiNote(note);integer(velocity,1,127,'velocity');at=time;
@@ -91,7 +91,7 @@ export function createMidiRack({write, writePsg, preset, fmChannels = 6}) {
       if(pool[slot])release(destination,slot);
       const id=++nextVoiceId;
       if(destination===destinations[0]) {
-        const patch=structuredClone(patches[channel-1]);
+        const patch=structuredClone(patches[channel]);
         const mask=carriers[patch.algorithm ?? 0];
         const attenuation=Math.round(-20*Math.log10(velocity/127)/.75);
         // YM2612 presets accept either logical OP arrays or one-based maps.
@@ -142,8 +142,8 @@ export function createMidiApi(invoke, {sleep, bpm, check = ()=>{}, owner = ()=>n
     async playFile(data,routes){if(owner()!==null)throw new Error('Call midi.playFile at the top level, outside liveLoop');return call('playFile',[data,routes]);},
     output(destination,{channel}={}) {
       if(!destinations.includes(destination))throw new Error(`Unsupported MIDI output: ${destination}`);
-      if(channel!==undefined)integer(channel,1,16,'channel');
-      const ch=channel??1;
+      if(channel!==undefined)integer(channel,0,15,'channel');
+      const ch=channel??0;
       return {
         async pitchBend(value) {return call('pitchBend',[destination,ch,validateBend(value)]);},
         async setPitchBendRange(semitones) {return call('setPitchBendRange',[destination,ch,validateBendRange(semitones)]);},
