@@ -198,3 +198,12 @@ stop/switch clicks are separate follow-up work; ScriptProcessor fallback is unch
 - Automated tests cover routing and 10,000-point history DOM size. Older Windows listening/performance
   comparison remains pending. Nonzero Gate still uses ScriptProcessor; per-channel card rebuilding,
   convolution/dynamics overhead and Fretboard rendering remain optimization candidates.
+
+### Retained Pitch / Semantic Keyboard rendering
+
+- Channel-card frames and scroll viewports stay mounted; text and metadata update only when changed.
+- Semantic Keyboard creates its 73 keys/labels once per view-mode change. Updates touch only range/current-note layers.
+- Pitch retains its scale and SVG history path; history updates replace the path data, not hundreds of SVG elements.
+- Pitch history uses a continuous uniform-opacity trace instead of individually fading dots; key-off breaks remain.
+- Tests cover retained nodes, unchanged-content skips, view switches, key-off, pitch bounds and keyboard generation counts.
+- Comparison on the reported older Windows PC remains pending.

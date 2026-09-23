@@ -165,8 +165,8 @@ test('keyboard updates keep the scrolling element attached without forcing its p
     get:()=>240,
     set(){assert.fail('render must not override an active scroll');},
   });
-  const selectors=['.noteish-head','.noteish-row','.noteish-meta','.noteish-actions'];
-  const nodes=Object.fromEntries(selectors.map(s=>[s,{innerHTML:'old',hidden:false}]));
+  const selectors=['.noteish-title','.noteish-state','.noteish-note','.noteish-cents','.noteish-meta','.noteish-actions','.noteish-button'];
+  const nodes=Object.fromEntries(selectors.map(s=>[s,{innerHTML:'old',hidden:false,getAttribute(){return '1';},setAttribute(){}}]));
   const card={isConnected:true,querySelector:s=>s==='.noteish-graph'?viewport:nodes[s]};
   Object.defineProperty(card,'innerHTML',{set(){assert.fail('render detached the scroll viewport');}});
   const contentNodes=Object.fromEntries([...selectors,'.noteish-graph'].map(s=>[s,{innerHTML:'updated',hidden:false}]));
@@ -176,6 +176,8 @@ test('keyboard updates keep the scrolling element attached without forcing its p
     noteishChannels:()=>[{channel:1,keyOn:true,noteMinMidi:null,noteMaxMidi:null}],
     estimateChannelNoteish:()=>({note:'E5',cents:0}),
     renderNoteishGraph:()=>'<svg></svg>',
+    updateNoteishHtml(node,value){node.innerHTML=value;},
+    updateNoteishGraph(node){assert.equal(node,viewport);node.innerHTML='updated';},
     document:{createElement:()=>({innerHTML:'',querySelector:s=>contentNodes[s]})},
     noteishMode:{value:'detail'},noteishInstrument:{value:'keyboard'},
   });

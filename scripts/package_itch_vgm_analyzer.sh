@@ -37,6 +37,7 @@ opl_monitor.js
 mgsdrv_mml.js
 tfi_info.css
 vgm_analyzer.js
+noteish_dom.js
 command_editor.js
 sample_explorer.js
 sample_core.js

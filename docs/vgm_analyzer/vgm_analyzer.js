@@ -1,3 +1,4 @@
+import {updateNoteishHtml, updateNoteishGraph} from './noteish_dom.js';
 import {mountCommandEditor} from './command_editor.js';
 import {createMsxNoteMonitor, describeMsxNotes, observeMsxNotes} from './msx_notes.js';
 import {createHuc6280Monitor,applyHuc6280Write,describeHuc6280Notes,extractHuc6280Notes} from './huc6280_notes.js';
@@ -1387,7 +1388,7 @@ function noteishGraphX(midiFloat) {
 
 const fretboardTrackers = new WeakMap();
 
-function renderNoteishGraph(channel, estimated) {
+function renderNoteishGraph(channel, estimated, dynamicOnly = false) {
   if (noteishInstrument.value === "fretboard") {
     const strings = Number(fretboardStrings.value);
     let entry = fretboardTrackers.get(channel);
@@ -1400,13 +1401,13 @@ function renderNoteishGraph(channel, estimated) {
       recentNoteHistory(channel.noteHistory, FRET_TRAIL_MS + 200, now), estimated.midiFloat, channel.keyOn, now
     ));
   }
-  if (noteishMode.value === "detail") return renderNoteishKeyboard(channel, estimated);
+  if (noteishMode.value === "detail") return renderNoteishKeyboard(channel, estimated, dynamicOnly);
   const axisY = 26;
   const ticks = [24, 36, 48, 60, 72, 84, 96];
   const tickLabels = ["C1", "C2", "C3", "C4", "C5", "C6", "C7"];
   const now = songTimeMs();
   pruneChannelNoteHistory(channel, now);
-  const tickSvg = ticks.map((tick, index) => {
+  const tickSvg = dynamicOnly ? "" : ticks.map((tick, index) => {
     const x = noteishGraphX(tick);
     return `
       <line x1="${x}" y1="16" x2="${x}" y2="32" stroke="rgba(91,74,51,0.22)" stroke-width="1" />
@@ -1435,7 +1436,6 @@ function renderNoteishGraph(channel, estimated) {
   }
 
   let historySvg = "";
-  let historyDotsSvg = "";
   let lastPoint = null;
   let lastRenderedColumn = null;
   const historyLength = channel.noteHistory.length;
@@ -1460,29 +1460,26 @@ function renderNoteishGraph(channel, estimated) {
         ((clamp(point.midiFloat, NOTEISH_GRAPH_MIN_MIDI, NOTEISH_GRAPH_MAX_MIDI) - NOTEISH_GRAPH_MIN_MIDI) /
           (NOTEISH_GRAPH_MAX_MIDI - NOTEISH_GRAPH_MIN_MIDI)) * 20
       );
-    const opacity = Math.max(0.18, 1 - (age / NOTEISH_HISTORY_WINDOW_MS));
-    historyDotsSvg += `<circle cx="${x}" cy="${y}" r="1.9" fill="rgba(98,215,221,${opacity.toFixed(3)})" />`;
-    if (lastPoint) {
-      historySvg += `<line x1="${lastPoint.x}" y1="${lastPoint.y}" x2="${x}" y2="${y}" stroke="#62d7dd" stroke-width="2" stroke-linecap="round" />`;
-    }
+    historySvg += `${lastPoint ? 'L' : 'M'}${x.toFixed(2)},${y.toFixed(2)}`;
+    if (!lastPoint) historySvg += 'l0,0';
     lastPoint = { x, y };
   }
 
+  if (dynamicOnly) return {range:rangeSvg, current:currentSvg, history:historySvg};
   return `
     <svg viewBox="0 0 220 54" aria-hidden="true">
       <line x1="16" y1="${axisY}" x2="204" y2="${axisY}" stroke="rgba(91,74,51,0.24)" stroke-width="2" />
       ${tickSvg}
-      ${rangeSvg}
-      ${historySvg}
-      ${historyDotsSvg}
-      ${currentSvg}
+      <g data-noteish-range>${rangeSvg}</g>
+      <path data-noteish-history d="${historySvg}" fill="none" stroke="#62d7dd" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+      <g data-noteish-current>${currentSvg}</g>
     </svg>
   `;
 }
 
-function renderNoteishKeyboard(channel, estimated) {
+function renderNoteishKeyboard(channel, estimated, dynamicOnly = false) {
   const x = midi => 34 + (midi - NOTEISH_GRAPH_MIN_MIDI) * 36;
-  const keys = Array.from({ length: 73 }, (_, index) => {
+  const keys = dynamicOnly ? "" : Array.from({ length: 73 }, (_, index) => {
     const midi = NOTEISH_GRAPH_MIN_MIDI + index;
     const black = [1, 3, 6, 8, 10].includes(midi % 12);
     return `<rect x="${x(midi) - 18}" y="34" width="36" height="64" fill="${black ? '#383838' : '#fffdf7'}" stroke="#b9a38e" />
@@ -1501,7 +1498,8 @@ function renderNoteishKeyboard(channel, estimated) {
       <circle cx="${x(midi)}" cy="56" r="6" fill="${color}" />
       <text x="${x(midi)}" y="21" text-anchor="middle" font-size="14" font-weight="bold" fill="${color}">${estimated.note}</text>`;
   }
-  return `<svg viewBox="0 0 2660 112" aria-hidden="true">${keys}${range}${marker}</svg>`;
+  if (dynamicOnly) return {range, current:marker};
+  return `<svg viewBox="0 0 2660 112" aria-hidden="true">${keys}<g data-noteish-range>${range}</g><g data-noteish-current>${marker}</g></svg>`;
 }
 
 function noteishOverviewY(midiFloat) {
@@ -1650,47 +1648,34 @@ function renderNoteishGrid() {
         ? "no base note"
         : `${estimated.cents >= 0 ? "+" : ""}${estimated.cents} cents`;
     const card = existingCards[cardIndex] ?? document.createElement("section");
-    const previousGraph = card.querySelector(".noteish-graph");
-    const content = document.createElement("section");
-    card.className = `noteish-card${channel.keyOn ? " is-key-on" : ""}`;
-    content.innerHTML = `
-      <div class="noteish-head">
-        <span class="noteish-title">${channel.label ?? `CH${channel.channel + 1}`}</span>
-        <span class="noteish-state">${channel.huc6280 ? (channel.audible ? channel.apuType : channel.reason) : channel.keyOn ? "key on" : "key off"}</span>
-      </div>
-      <div class="noteish-row">
-        <span class="noteish-note">${estimated.note}</span>
-        <span class="noteish-cents">${centsText}</span>
-      </div>
-      <div class="noteish-graph">
-        ${renderNoteishGraph(channel, estimated)}
-      </div>
-      <div class="noteish-meta">
+    if (!card.querySelector('.noteish-graph')) {
+      card.innerHTML = `<div class="noteish-head"><span class="noteish-title"></span><span class="noteish-state"></span></div>
+        <div class="noteish-row"><span class="noteish-note"></span><span class="noteish-cents"></span></div>
+        <div class="noteish-graph"></div><div class="noteish-meta"></div>
+        <div class="noteish-actions"><button class="noteish-button" type="button">Show Notes</button></div>`;
+    }
+    const className = `noteish-card${channel.keyOn ? " is-key-on" : ""}`;
+    if (card.className !== className) card.className = className;
+    const text = (selector, value) => {
+      const node = card.querySelector(selector);
+      if (node.textContent !== value) node.textContent = value;
+    };
+    text('.noteish-title', channel.label ?? `CH${channel.channel + 1}`);
+    text('.noteish-state', channel.huc6280 ? (channel.audible ? channel.apuType : channel.reason) : channel.keyOn ? 'key on' : 'key off');
+    text('.noteish-note', estimated.note);
+    text('.noteish-cents', centsText);
+    updateNoteishHtml(card.querySelector('.noteish-meta'), `
         RANGE ${rangeText}<br>
         ${channel.opm ? `KC ${channel.kc} / KF ${channel.kf}<br>Base pitch; LFO/DT/MUL and audible release are not reconstructed.` : channel.opll ? `FNUM ${channel.fnum} / BLOCK ${channel.block}<br>Instrument ${channel.instrument === 0 ? "Custom" : channel.instrument} / Volume ${channel.volume}${channel.isRhythmChannel ? "<br>Repurposed for rhythm; base pitch not shown." : ""}` : channel.tone ? `PERIOD ${channel.period}<br>Envelope ${channel.envelope ? "on (estimated)" : "off"} / Noise ${channel.noise ? "mixed" : "off"}` : channel.apu ? `${channel.apuType} · FREQ ${channel.freq}<br>${channel.huc6280 ? "Base pitch only; PCM/DDA, noise and LFO intervals have no note." : (currentChipKind === "msx" || isOpl(currentChipKind) || ["ymf262","ymf278b"].includes(currentChipKind)) ? "Base pitch only; rhythm, timbre, modulation and release omitted." : "Length counter and channel 1 sweep are time-based and not reconstructed."}` : `BLOCK ${channel.block}<br>
         FNUM ${channel.fnum}<br>
         ALG ${channel.algorithm} / FB ${channel.feedback}`}
-      </div>
-      <div class="noteish-actions" ${channel.tone || channel.opm || channel.opll || channel.apu ? "hidden" : ""}>
-        <button class="noteish-button" type="button" data-show-notes="${channel.channel}">
-          Show Notes
-        </button>
-      </div>
-    `;
-    if (previousGraph) {
-      // Never detach the scrolling element or assign scrollLeft during playback:
-      // either interrupts scrollbar dragging and trackpad momentum.
-      for (const selector of [".noteish-head", ".noteish-row", ".noteish-meta", ".noteish-actions"]) {
-        const current = card.querySelector(selector);
-        const next = content.querySelector(selector);
-        current.innerHTML = next.innerHTML;
-        current.hidden = next.hidden;
-      }
-      previousGraph.innerHTML = content.querySelector(".noteish-graph").innerHTML;
-    } else {
-      card.innerHTML = content.innerHTML;
-    }
-    const viewport = previousGraph ?? card.querySelector(".noteish-graph");
+    `);
+    card.querySelector('.noteish-actions').hidden = !!(channel.tone || channel.opm || channel.opll || channel.apu);
+    const button = card.querySelector('.noteish-button');
+    if (button.getAttribute('data-show-notes') !== String(channel.channel)) button.setAttribute('data-show-notes', String(channel.channel));
+    const viewport = card.querySelector('.noteish-graph');
+    const mode = noteishInstrument.value === 'fretboard' ? 'fretboard' : noteishMode.value === 'detail' ? 'keyboard' : 'pitch';
+    updateNoteishGraph(viewport, mode, dynamicOnly => renderNoteishGraph(channel, estimated, dynamicOnly));
     viewport.tabIndex = noteishMode.value === "detail" && noteishInstrument.value !== "fretboard" ? 0 : -1;
     viewport.setAttribute("role", "region");
     viewport.setAttribute("aria-label", `CH${channel.channel + 1} pitch display: ${channel.keyOn ? estimated.note : 'key off'}`);
