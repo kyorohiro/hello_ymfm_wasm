@@ -727,3 +727,11 @@ node cli/main.js export test/fixtures/y8950-mix.vgz --format midi --output /tmp/
 node cli/main.js export test/fixtures/y8950-mix.vgz --format musicxml --bpm 120 --output /tmp/y8950.musicxml
 node cli/main.js export test/fixtures/y8950-mix.vgz --format lilypond --bpm 120 --output /tmp/y8950.ly
 ```
+
+MSX AY / OPLL / Y8950 / SCC / SCC+ combinations also support `channels` and
+MIDI / MusicXML / LilyPond export. SCC pitches describe the waveform repeat
+period; harmonics and waveform rewriting are not reconstructed. AY noise,
+Y8950 ADPCM/rhythm/CSM and OPLL rhythm other than Bass Drum are omitted.
+SCC+ uses the `scc-ch1` … `scc-ch5` channel IDs (the display names include `SCC+`).
+More than 15 melodic tracks use MIDI Port meta events and require a compatible
+player. MusicXML/LilyPond can select or group channels with the existing options.

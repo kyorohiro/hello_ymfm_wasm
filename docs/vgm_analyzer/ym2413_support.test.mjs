@@ -20,15 +20,15 @@ for (const chip of ['msx','ym3526','ym2413','ym2151','ym3812','ymf262']) test(`$
   for(const name of [...tabNames,...buttonNames])context[name]={disabled:false,title:'',getAttribute:()=> 'false'};
   vm.createContext(context);vm.runInContext(fn('updateChipSupport'),context);
   context.updateChipSupport();
-  const enabledTabs=chip==='ym2151'?['operatorInfoTab','noteishTab','tfiInfoTab']:(chip==='ym2413'||isOpl(chip))?['operatorInfoTab','noteishTab']:chip==='ymf262'?['noteishTab']:[];
-  const supportedExports=['ym2151','ym2413'].includes(chip)?['exportMidiButton','exportMmlButton']:isOpl(chip)?['exportMidiButton']:[];
+  const enabledTabs=chip==='ym2151'?['operatorInfoTab','noteishTab','tfiInfoTab']:(chip==='ym2413'||isOpl(chip))?['operatorInfoTab','noteishTab']:['msx','ymf262'].includes(chip)?['noteishTab']:[];
+  const supportedExports=['ym2151','ym2413'].includes(chip)?['exportMidiButton','exportMmlButton']:(isOpl(chip)||chip==='msx')?['exportMidiButton']:[];
   if(chip==='ym2151')supportedExports.push('exportAllTfiButton','exportSnapshotTfiButton');
   for(const name of tabNames)assert.equal(context[name].disabled,!enabledTabs.includes(name),name);
   for(const name of buttonNames)assert.equal(context[name].disabled,true,`${name}: no file loaded`);
   context.currentBuffer={};context.midiExportAvailable=true;context.updateChipSupport();
   for(const name of buttonNames)assert.equal(context[name].disabled,!supportedExports.includes(name),name);
   assert.equal(context.sheetMusicTab.disabled,false);
-  assert.equal(context.selected,chip==='ymf262'?'noteish':enabledTabs.length?'operator-info':'parsed-output');assert.equal(notice.hidden,false);
+  assert.equal(context.selected,['msx','ymf262'].includes(chip)?'noteish':enabledTabs.length?'operator-info':'parsed-output');assert.equal(notice.hidden,false);
   context.currentChipKind='ym2612';context.updateChipSupport();
   for(const name of tabNames)assert.equal(context[name].disabled,false);
   assert.equal(notice.hidden,true);

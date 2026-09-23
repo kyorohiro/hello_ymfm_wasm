@@ -29,7 +29,8 @@
 - OPL3（YMF262）は Note-ish / Sheet Music / MusicXML / LilyPond に対応。MIDI は未対応。
 - OPL4（YMF278B）は FM の Note-ish / Sheet Music / MIDI / MusicXML / LilyPond に対応。
   MIDI は複数ポート方式で、対応プレイヤーが必要。PCM とリズムは音符出力から除外。
-- SCC / SCC+（K051649 / K052539）は再生・チャンネルミュートまで対応。
+- SCC / SCC+（K051649 / K052539）は再生・チャンネルミュート、Live / Song Note-ish、
+  MIDI / MusicXML / LilyPond と Sheet Music に対応。AY / OPLL / Y8950 との混在解析にも対応。
 - Sample Explorer は既存の DAC、RF5C164、PWM、一部 ADPCM などの取り出し機能がある。
 
 楽譜出力は演奏命令に基づく基音・発音区間の近似。元の音色、PCM、ノイズ、
@@ -39,20 +40,31 @@
 
 ### 1. SCC / SCC+ の音符解析・export
 
-- [ ] 周期レジスタと発音状態から基音・発音区間を抽出する。
-- [ ] Note-ish の Live / Song 表示に対応する。
-- [ ] MIDI / MusicXML / LilyPond と Sheet Music に対応する。
-- [ ] SCC の CH4・CH5 波形共有と、SCC+ の全5 CH独立波形を区別して扱う。
-- [ ] 波形の書き換えや特殊な使い方による解析の限界を整理し、実曲で検証する。
+- [x] 周期レジスタと発音状態から基音・発音区間を抽出する。
+- [x] Note-ish の Live / Song 表示に対応する。
+- [x] MIDI / MusicXML / LilyPond と Sheet Music に対応する。
+- [x] SCC の CH4・CH5 波形共有と、SCC+ の全5 CH独立波形を区別して扱う。
+- [x] 波形の書き換えや特殊な使い方による解析の限界を整理する。
+- [ ] SCC / SCC+ の実曲で表示・出力音程を聴き比べる。
 
 ### 2. MSX 混在曲の解析
 
-- [ ] AY + SCC / SCC+、AY + Y8950 などの解析結果をまとめる。
-- [ ] 対応チャンネルを Note-ish と楽譜出力に反映する。
-- [ ] タブ・export の可否と、実際の解析対象を一致させる。
-- [ ] 複数音源の実曲で、チャンネル名・タイミング・ミュートとの整合性を確認する。
+- [x] AY + SCC / SCC+、AY + Y8950 などの解析結果をまとめる。
+- [x] 対応チャンネルを Note-ish と楽譜出力に反映する。
+- [x] タブ・export の可否と、実際の解析対象を一致させる。
+- [ ] 複数音源の実曲で、チャンネル名・タイミング・ミュートとの整合性を試聴確認する。
 
-AY + YM2413 の既存解析は維持する。MSX 再生全体に解析が対応済みという意味ではない。
+検証: 合成 fixture の全15構成で単独音源と混在時の音符・時刻を比較。
+実プレイヤー経由の Live 更新、ミュート、リセット・シーク、Song worker、各 export を検証。
+手元の Salamander (MSX)「Operation Seedleek」90秒（AY + SCC）で解析と3形式出力を確認。
+SCC+ は合成 fixture で確認済み。実曲の目視・試聴確認は残件。
+
+SCC は `clock / (32 × (period + 1))` の基音のみ。波形の倍音、波形書き換え、
+位相リセットは再現しない。定数波形、周期8以下、test周波数モードは音符から除外。
+15 melodic CH を超える MIDI は複数ポート対応プレイヤーが必要。
+
+AY + YM2413 の既存解析は維持する。対象は AY / OPLL / Y8950 / SCC の各1基の構成。
+dual chip や、上記以外の音源との混在は対象外。
 Y8950 の ADPCM は FM の楽譜解析に混ぜず、サンプルとして扱う。
 
 ### 3. OPL3 の MIDI
@@ -129,8 +141,8 @@ VGM の音源再生が対象で、ディスクドライブや BIOS のエミュ�
 
 ## 推奨する順序（案）
 
-1. SCC / SCC+ の Note-ish・export
-2. MSX 混在曲の解析
+1. SCC / SCC+ の Note-ish・export（実装済み、実曲試聴を継続）
+2. MSX 混在曲の解析（実装済み、実曲試聴を継続）
 3. OPL3 MIDI
 4. Sample Explorer の強化（まず OPL4 PCM）
 5. FDS の再生・基音解析・export

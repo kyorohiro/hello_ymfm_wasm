@@ -380,5 +380,11 @@ Rebuild with `sh scripts/build_huc6280_wasm.sh` (Emscripten required).
 
 K052539 (SCC+) VGM/VGZ playback uses the shared K051649 core, with five
 independent waveform channels. Standalone and MSX AY/YM2413/Y8950 mixtures,
-per-channel muting and CLI WAV rendering are supported. Note-ish and
-sheet-music export for SCC/SCC+ remain unsupported; dual chips are unsupported.
+per-channel muting and CLI WAV rendering are supported. SCC/SCC+ and MSX
+AY/OPLL/Y8950 mixtures support Live / Song Note-ish, Sheet Music and MIDI /
+MusicXML / LilyPond export. SCC notes use clock / (32 × (period + 1)); waveform
+harmonics and waveform rewriting are not transcribed. Constant waves, halted
+periods and unsupported test frequency modes are omitted. SCC CH4/5 share
+waveforms; SCC+ port 4 keeps all five independent. ADPCM/noise are excluded
+from pitched notes. MIDI with more than 15 melodic tracks uses multiple ports;
+a compatible player is required. Dual chips remain unsupported.
