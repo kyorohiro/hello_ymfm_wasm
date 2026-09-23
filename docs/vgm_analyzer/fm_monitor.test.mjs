@@ -80,7 +80,8 @@ test('overview labels retain hardware channels after unavailable channels are re
     const html=context.noteishOverview.innerHTML;
     assert.deepEqual([...html.matchAll(/>CH(\d)<\/text>/g)].map(m=>Number(m[1])),indices.map(i=>i+1));
     assert.match(html,/>YM2610 SSG 1<\/text>/);
-    assert.equal((html.match(/<circle /g)??[]).length,indices.length*2);
+    assert.equal((html.match(/<circle /g)??[]).length,indices.length);
+    assert.equal((html.match(/<path /g)??[]).length,channels.length);
   }
 });
 

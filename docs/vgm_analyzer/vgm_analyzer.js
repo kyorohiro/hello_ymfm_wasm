@@ -320,7 +320,7 @@ function ensureEffectsChain(context) {
 
   effectsChain = {
     context, input: bassNode, output, gainNode, bassNode, middleNode, trebleNode,
-    dryGain, wetGain, compressorNode, gateState,
+    dryGain, wetGain, compressorNode, gateState, gateNode, gateConnected: true,
   };
   applyEffectSettings();
   return effectsChain;
@@ -344,6 +344,20 @@ function applyEffectSettings() {
   effectsChain.compressorNode.release.value = 0.25;
 
   effectsChain.gateState.threshold = (effectSettings.noiseGate / 100) * 0.1;
+  const gateNeeded = effectSettings.noiseGate > 0;
+  if (effectsChain.gateConnected !== gateNeeded) {
+    effectsChain.trebleNode.disconnect();
+    effectsChain.gateNode.disconnect();
+    if (gateNeeded) {
+      effectsChain.gateState.envelope = 0;
+      effectsChain.trebleNode.connect(effectsChain.gateNode);
+      effectsChain.gateNode.connect(effectsChain.compressorNode);
+    } else {
+      // A zero-strength gate must not route audio through the main thread.
+      effectsChain.trebleNode.connect(effectsChain.compressorNode);
+    }
+    effectsChain.gateConnected = gateNeeded;
+  }
 }
 
 // Rewires the currently active stream node between the effects chain and the
@@ -1548,7 +1562,7 @@ function renderNoteishOverviewGraph() {
     pruneChannelNoteHistory(channel, now);
     let lastPoint = null;
     let path = "";
-    let dots = "";
+
     for (const point of channel.noteHistory) {
       if (point.midiFloat === null) {
         lastPoint = null;
@@ -1557,11 +1571,10 @@ function renderNoteishOverviewGraph() {
       const age = now - point.time;
       const x = 42 + (694 * (1 - clamp(age / NOTEISH_HISTORY_WINDOW_MS, 0, 1)));
       const y = noteishOverviewY(point.midiFloat);
-      const opacity = detailed ? 1 : Math.max(0.14, 1 - (age / NOTEISH_HISTORY_WINDOW_MS));
-      dots += `<circle cx="${x}" cy="${y}" r="${detailed ? 4.5 : 1.8}" fill="${channelColors[index]}" fill-opacity="${opacity.toFixed(3)}" />`;
-      if (lastPoint) {
-        path += `<line x1="${lastPoint.x}" y1="${lastPoint.y}" x2="${x}" y2="${y}" stroke="${channelColors[index]}" stroke-width="2.5" stroke-opacity="0.25" stroke-linecap="round" />`;
-      }
+      // One SVG path per channel, rather than two DOM nodes per history point.
+      // Keep every pitch and key-off break; only the drawing representation changes.
+      path += `${lastPoint ? 'L' : 'M'}${x.toFixed(2)},${y.toFixed(2)}`;
+      if (!lastPoint) path += 'l0,0';
       lastPoint = { x, y };
     }
 
@@ -1571,14 +1584,13 @@ function renderNoteishOverviewGraph() {
       const age = now - latest.time;
       const x = 42 + (694 * (1 - clamp(age / NOTEISH_HISTORY_WINDOW_MS, 0, 1)));
       const y = noteishOverviewY(latest.midiFloat);
-      marker = `<circle cx="${x}" cy="${y}" r="4.5" fill="${channelColors[index]}" />`;
+      marker = `<circle cx="${x}" cy="${y}" r="4.5" fill="${channelColors[index % channelColors.length]}" />`;
     }
 
     channelSvg += `
-      ${path}
-      ${dots}
+      <path d="${path}" fill="none" stroke="${channelColors[index % channelColors.length]}" stroke-width="${detailed ? 4 : 2.5}" stroke-opacity="0.65" stroke-linecap="round" stroke-linejoin="round" />
       ${marker}
-      <text x="${675 + (index % 2) * 45}" y="${34 + Math.floor(index / 2) * 18}" font-size="11" fill="${channelColors[index]}">${channel.label ?? `CH${channel.channel + 1}`}</text>
+      <text x="${675 + (index % 2) * 45}" y="${34 + Math.floor(index / 2) * 18}" font-size="11" fill="${channelColors[index % channelColors.length]}">${channel.label ?? `CH${channel.channel + 1}`}</text>
     `;
   });
 
@@ -1790,7 +1802,8 @@ function flushPendingAudio() {
   }
   if (activeStream && activeStream.mode === "worklet") {
     activeStream.workletQueuedFrames = 0;
-    activeStream.node.port.postMessage({ type: "flush" });
+    activeStream.endSent = false;
+    activeStream.node.port.postMessage({ type: "flush", startupFrames: currentWorkletTargetFrames() });
     scheduleWorkletPump();
   }
 }
@@ -3021,6 +3034,13 @@ function pumpWorkletChunks(targetFrames = currentWorkletTargetFrames()) {
     chunksQueued += 1;
   }
 
+  // Send the end marker immediately: the startup buffer of a short track
+  // may never reach the target, so waiting for consumption would deadlock.
+  const completed = player.stats();
+  if (!completed.playing && !completed.paused && completed.queuedFrames === 0 && !activeStream.endSent) {
+    activeStream.node.port.postMessage({ type: "end" });
+    activeStream.endSent = true;
+  }
   requestPlaybackUiRender("(AudioWorklet)");
 
   if (activeStream.workletQueuedFrames < targetFrames) {
@@ -3037,7 +3057,7 @@ async function startWorkletStream(sampleRate) {
   }
   if (!workletModuleReady) {
     try {
-      await audioContext.audioWorklet.addModule("../js/vgm-output-worklet.js");
+      await audioContext.audioWorklet.addModule("../js/vgm-output-worklet.js?v=buffered-start-1");
       workletModuleReady = true;
     } catch (error) {
       console.warn("AudioWorklet module load failed; falling back to ScriptProcessorNode.", error);
@@ -3050,6 +3070,7 @@ async function startWorkletStream(sampleRate) {
     numberOfInputs: 0,
     numberOfOutputs: 1,
     outputChannelCount: [2],
+    processorOptions: {startupFrames: Math.max(chunkFrames, Math.floor(chunkFrames * workletQueueMultiplier))},
   });
   const stream = {
     mode: "worklet",

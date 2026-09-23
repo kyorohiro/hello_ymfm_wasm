@@ -1,6 +1,10 @@
 class VgmOutputProcessor extends AudioWorkletProcessor {
-  constructor() {
+  constructor(options = {}) {
     super();
+    // Hold queued samples intact until the configured output buffer is ready.
+    const requested = options.processorOptions?.startupFrames ?? 0;
+    this.startupFrames = Number.isSafeInteger(requested) && requested > 0 ? requested : 0;
+    this.buffering = this.startupFrames > 0;
     this.queue = [];
     this.queuedFrames = 0;
     this.consumedFrames = 0;
@@ -30,6 +34,9 @@ class VgmOutputProcessor extends AudioWorkletProcessor {
         return;
       }
       if (data.type === "flush") {
+        if (Number.isSafeInteger(data.startupFrames) && data.startupFrames > 0) {
+          this.startupFrames = data.startupFrames;
+        }
         this.paused = false;
         this.queue = [];
         this.queuedFrames = 0;
@@ -37,6 +44,7 @@ class VgmOutputProcessor extends AudioWorkletProcessor {
         this.currentChunk = null;
         this.currentOffset = 0;
         this.endRequested = false;
+        this.buffering = this.startupFrames > 0;
       }
     };
   }
@@ -49,6 +57,15 @@ class VgmOutputProcessor extends AudioWorkletProcessor {
       left.fill(0);
       right.fill(0);
       return true;
+    }
+    if (this.buffering) {
+      // A short/empty track must drain even when it cannot fill the buffer.
+      if (this.queuedFrames < this.startupFrames && !this.endRequested) {
+        left.fill(0);
+        right.fill(0);
+        return true;
+      }
+      this.buffering = false;
     }
     let writeOffset = 0;
 

@@ -111,7 +111,7 @@ for (const mode of ['worklet', 'script']) {
     Object.assign(p.context, {
       audioContext: { audioWorklet: {}, destination: {}, createScriptProcessor: () => node },
       AudioWorkletNode: function () { return node; }, workletModuleReady: true,
-      activeStream: null, resetTimelineToStart() {}, requestPlaybackUiRender() {},
+      activeStream: null, workletQueueMultiplier: 2, resetTimelineToStart() {}, requestPlaybackUiRender() {},
       currentStatusSuffix: () => '', scheduleWorkletPump() {}, pumpWorkletChunks() {},
       applyAnalyzerMuteToBuffer() {}, rewireAudioGraph() {},
       player: { pause() {}, isPaused: () => false, process() {}, stats: () => ({ playing: false, paused: false, queuedFrames: 0 }) },

@@ -179,3 +179,22 @@ Some current notes also overlap and may be merge candidates later.
 - Other wait encodings, command insertion/deletion, address editing and sample editing are not implemented.
 - Automated coverage includes paging, large blocks, byte preservation, undo, timing and invalid commands.
 - Browser visual/manual playback verification remains pending.
+
+## Playback startup buffering
+
+AudioWorklet output now waits for the existing Worklet queue target before consuming
+samples. Short tracks start when the producer sends its end marker and drain fully.
+No fade, volume change or leading sample removal is applied. Flushes rebuffer using
+the current queue setting. Pause/resume retains the queued position.
+Synthetic tests cover startup, short/empty tracks, final samples and queue changes.
+Browser listening checks remain pending. Background starvation and abrupt manual
+stop/switch clicks are separate follow-up work; ScriptProcessor fallback is unchanged.
+
+### Older-PC playback load
+
+- Effect with Noise Gate at 0 now bypasses the ScriptProcessor gate entirely.
+- Live History overview uses one SVG path per channel, preserving pitch history and key-off gaps;
+  the trace uses uniform opacity instead of individual fading dots.
+- Automated tests cover routing and 10,000-point history DOM size. Older Windows listening/performance
+  comparison remains pending. Nonzero Gate still uses ScriptProcessor; per-channel card rebuilding,
+  convolution/dynamics overhead and Fretboard rendering remain optimization candidates.
