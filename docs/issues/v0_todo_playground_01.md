@@ -19,7 +19,7 @@ const automatic = midi.output("tetorica-ym2612"); // 全6声が対象
 - 音色・CC・Pitch Bend・Sustain はハンドルごとに独立。音色の省略時全 MIDI CH への一括設定は廃止。
 - 数値0〜15は入力可能だが、その音源に存在しない物理 CH は発音しない。配列からは除外する。空配列も無音。
 - Worker は生成したハンドルIDと対象範囲を Main に登録し、全操作で同じIDを使う。
-- Import の Physical CH 欄は空欄 / Auto、CH4、CH1,CH2,CH3 の形式。生成コードへ省略・数値・配列として反映する。
+- Import は Round robin / CH selection の2モード。Round robin は Skip / Select、CH selection は Skip / 固定CHを選択する。配列の指定は生成後のコードで行う。
   別途割り当てる論理番号は `runChN()` のパート選択名に使用し、物理 CH の指定とは分ける。
 - 旧生成コードの `channel: CH8` などは新仕様では FM の範囲外で無音となる。再 Import、または channel を省略・使用可能な範囲へ変更する。
 - 既存 `midi.playFile()` の route.channel は互換性のため従来の論理 MIDI CH を維持する。
@@ -354,3 +354,13 @@ await marioWorld01.runAllCh();
   channel 指定を省略して全パートを CH1 の設定に統合することはしない。
 - 同じ音源につき最大16パート。超過時は状態を混ぜず、Skip または別音源への変更を案内する。
 - `runChN()` の N は自動割り当て後の論理 MIDI CH。物理 FM の発音枠の番号ではない。
+
+## Import UI の2モード
+
+- ダイアログ上部で Round robin / CH selection を選ぶ。既定は Round robin。
+- 各パートの Output は FM / PSG。初期の Assignment はすべて Skip。
+- Round robin：Assignment は Skip / Select。生成する `midi.output()` は channel を省略する。
+- CH selection：Assignment は Skip / CH1〜CH6（FM）、Skip / CH1〜CH3（PSG）。生成コードには固定 channel を明記する。
+- モードまたは送り先を切り替えた際は、該当の Assignment を Skip に戻す。
+- 自動割り当てと固定指定を組み合わせたい場合は、必要に応じて2回に分けて生成する。
+  配列による範囲制限は引き続き手書き API で利用可能。
