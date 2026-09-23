@@ -29,16 +29,16 @@ export function assignMidiRoutes(selections) {
 export function midiToSource(bytes, routes, {name='MIDI', presets={}, module=false}={}) {
   const song=parseMidiFile(bytes), parts=new Map(song.parts.map(p=>[p.key,p]));
   const targets=new Map(), mapping=new Map(), controls=new Map();
-  const channels=new Map(),initializers=[],channelEvents=new Map();
-  let bufferedLength=0;
+  const channels=new Map(),initializers=[];
   const lines=[];let length=0;
   const add=line=>{length+=line.length+1;if(length>16*1024*1024)throw new Error('Generated MIDI code exceeds 16 Mi characters; select fewer parts');lines.push(line);};
   const quote=value=>JSON.stringify(String(value)).replace(/[\u2028\u2029]/g,c=>`\\u${c.charCodeAt(0).toString(16)}`);
   add(`// Imported MIDI: ${quote(name)}`);
-  add(module?'// Editable score. at and duration are quarter-note beats; C4 is MIDI note 60.':'// Editable performance. No source MIDI file is needed. Times are seconds from the timeline origin.');
+  add('// Editable standard MIDI API calls. sleepSamples uses 44100 samples/second, independent of device rate.');
+  add('// MIDI tempo changes are included in wait lengths. C4 is MIDI note 60.');
   for(const warning of song.warnings)add(`// ${warning}`);
   if(!routes.length)throw new Error('Select at least one MIDI part');
-  if(module)add('let api;\nlet running = false;\nlet player;');
+  if(module)add('let api;\nlet running = false;');
   routes.forEach((route,i)=>{
     const part=parts.get(route.part),key=JSON.stringify([route.destination,route.channel]);
     if(!part||!['tetorica-ym2612','tetorica-sega-psg'].includes(route.destination)||!Number.isInteger(route.channel)||route.channel<0||route.channel>15)throw new Error('Invalid MIDI route');
@@ -73,104 +73,100 @@ export function midiToSource(bytes, routes, {name='MIDI', presets={}, module=fal
   });
   if(module) {
     add('\nexport async function initCh(playground) {');
-    add('  if (running || player?.running) throw new Error("Cannot initialize while playing");');
-    add('  api = undefined; player = undefined;');
-    add('  if (!playground?.midi) throw new Error("Call initCh(pg) first");');
-    add('  api = playground; running = true;');
+    add('  if (running) throw new Error("Cannot initialize while playing");');
+    add('  api = undefined;');
+    add('  if (!playground?.midi || typeof playground.sleepSamples !== "function") throw new Error("Call initCh(pg) with MIDI and sleepSamples support");');
+    add('  running = true;');
     add('  try {');
+    add('    api = playground;');
     for(const line of initializers)add(`    ${line}`);
-    add('    player = api.midi.createSongPlayer({');
-    add(`      endBeat: ${(song.events.at(-1)?.tick??0)/song.division},`);
-    add('      tempos: [');
-    add('        {beat: 0, bpm: 120},');
-    for(const e of song.events)if(e.tempo)add(`        {beat: ${e.tick/song.division}, bpm: ${60000000/e.tempo}},`);
-    add('      ],');
-    add('      channels: {');
-    for(const ch of [...new Set(channels.values())].sort((a,b)=>a-b)) {
-      const variables=[...channels].filter(([,channel])=>channel===ch).map(([v])=>v);
-      add(`        ${ch}: {events: ch${ch}Events, outputs: [${variables.join(', ')}]},`);
-    }
-    add('      },');
-    add('    });');
     add('  } catch (error) { api = undefined; throw error; } finally { running = false; }');
     add('}');
-  } else add('\nconst timeline = midi.createTimeline();');
-  let lastTime=-1;
-  const wait=seconds=>{if(seconds!==lastTime){add(`await timeline.waitUntil(${seconds});`);lastTime=seconds;}};
-  // Pair note edges in the same order the target MIDI channel receives them.
-  const endings=new Map(),pairedOffs=new Set(),pending=new Map();
-  if(module)for(const [index,event] of song.events.entries()) {
-    const variable=mapping.get(event.part);
-    if(event.type!=='channel'||!variable)continue;
-    const key=JSON.stringify([variable,event.a]);
-    if(event.kind===9&&event.b>0) {
-      const queue=pending.get(key)??{items:[],head:0};queue.items.push(event);pending.set(key,queue);
-    } else if(event.kind===8||event.kind===9) {
-      const queue=pending.get(key),on=queue?.items[queue.head];
-      if(on) {queue.head++;endings.set(on,{event,index});pairedOffs.add(event);if(queue.head===queue.items.length)pending.delete(key);}
+    add('\n// Edit the performance here. All channels share this one sequence of waits.');
+    add('// Omitted outputs are skipped; their timing is retained.');
+    add('export async function performance(outputs, sleepSamples) {');
+    for(const [variable,ch] of channels) {
+      const index=[...channels].filter(([,number])=>number===ch).findIndex(([v])=>v===variable);
+      add(`  const ${variable} = outputs[${ch}]?.[${index}];`);
     }
+    add('  const active = [...new Set(Object.values(outputs).flat())];');
+    add('  try {');
+  } else {
+    add('\ntry {');
   }
+  let lastSample=0;
+  const wait=seconds=>{
+    const sample=Math.round(seconds*44100);
+    if(sample>lastSample)add(`${module?'    ':'  '}await sleepSamples(${sample-lastSample});`);
+    lastSample=sample;
+  };
   const noteName=n=>`${['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'][n%12]}${Math.floor(n/12)-1}`;
-  for(const [eventIndex,event] of song.events.entries()) {
-    if(event.type==='meta'&&event.tempo){add(`// Tempo: ${60000000/event.tempo} BPM at ${event.seconds} seconds (included in event times).`);continue;}
+  for(const event of song.events) {
+    if(event.type==='meta'&&event.tempo){add(`  // Tempo: ${60000000/event.tempo} BPM at ${event.seconds}s; included in sample waits.`);continue;}
     if(event.type!=='channel')continue;
     const variable=mapping.get(event.part),statements=[];
-    const emit=(v,line)=>statements.push({channel:channels.get(v),variable:v,line});
-    if(variable&&event.kind===9&&event.b>0)emit(variable,`await ${variable}.noteOn(${event.a}, {velocity: ${event.b}});`);
-    else if(variable&&(event.kind===8||event.kind===9))emit(variable,`await ${variable}.noteOff(${event.a});`);
+    const emit=(v,line)=>statements.push({variable:v,line});
+    if(variable&&event.kind===9&&event.b>0)emit(variable,`${variable}.noteOn(${quote(noteName(event.a))}, {velocity: ${event.b}})`);
+    else if(variable&&(event.kind===8||event.kind===9))emit(variable,`${variable}.noteOff(${quote(noteName(event.a))})`);
     else if(event.kind===14||event.kind===11&&MIDI_SUPPORTED_CC.includes(event.a)) {
       const group=controls.get(JSON.stringify([event.port,event.device,event.channel]))??[];
       for(const v of group) {
-        if(event.kind===11)emit(v,`await ${v}.cc(${event.a}, ${event.b});`);
-        else {const raw=event.a+(event.b<<7);emit(v,`await ${v}.pitchBend(${(raw-8192)/(raw<8192?8192:8191)});`);}
+        if(event.kind===11)emit(v,`${v}.cc(${event.a}, ${event.b})`);
+        else {const raw=event.a+(event.b<<7);emit(v,`${v}.pitchBend(${(raw-8192)/(raw<8192?8192:8191)})`);}
       }
-    } else if(variable) add(`// Not applied at ${event.seconds}s: MIDI status ${event.kind}, data ${event.a}${event.b===undefined?'':`, ${event.b}`}.`);
-    if(statements.length){
-      if(module) {
-        for(const [statementIndex,{channel,variable}] of statements.entries()) {
-          const variables=[...channels].filter(([,ch])=>ch===channel).map(([v])=>v);
-          const index=variables.indexOf(variable);
-          const argument=index===0?"output":`output${index+1}`;
-          if(pairedOffs.has(event))continue;
-          let command;
-          const end=endings.get(event);
-          if(event.kind===9&&event.b>0)command=end
-            ?`play: ${quote(noteName(event.a))}, duration: ${(end.event.tick-event.tick)/song.division}, velocity: ${event.b}, offOrder: ${end.index*32}`
-            :`noteOn: ${quote(noteName(event.a))}, velocity: ${event.b}`;
-          else if(event.kind===8||event.kind===9)command=`noteOff: ${quote(noteName(event.a))}`;
-          else if(event.kind===11)command=`cc: [${event.a}, ${event.b}]`;
-          else {const raw=event.a+(event.b<<7);command=`pitchBend: ${(raw-8192)/(raw<8192?8192:8191)}`;}
-          const entry=`  yield {at: ${event.tick/song.division}, output: ${argument}, ${command}, order: ${eventIndex*32+statementIndex}};`;
-          bufferedLength+=entry.length+1;
-          if(length+bufferedLength>16*1024*1024)throw new Error('Generated MIDI code exceeds 16 Mi characters; select fewer parts');
-          const entries=channelEvents.get(channel)??[];entries.push(entry);channelEvents.set(channel,entries);
-        }
-      } else {wait(event.seconds);statements.forEach(s=>add(s.line));}
+    } else if(variable)add(`  // Not applied at ${event.seconds}s: MIDI status ${event.kind}, data ${event.a}${event.b===undefined?'':`, ${event.b}`}.`);
+    if(statements.length) {
+      wait(event.seconds);
+      for(const {variable,line} of statements)add(module?`    if (${variable}) await ${line};`:`  await ${line};`);
     }
   }
+  wait(song.seconds);
   if(module) {
+    add('  } finally {');
+    add('    await Promise.allSettled(active.map(output => Promise.resolve().then(() => output.cc(120, 0))));');
+    add('  }');
+    add('}');
     const numbers=[...new Set(channels.values())].sort((a,b)=>a-b);
-    add('\n// play combines Note On/Off. CC and pitchBend may occur during a note.');
-    add('// order/offOrder preserve simultaneous MIDI ordering; omit them for newly written notes.');
+    add('\nconst defaultOutputs = {');
     for(const ch of numbers) {
       const variables=[...channels].filter(([,channel])=>channel===ch).map(([v])=>v);
-      add(`// Outputs in order: ${variables.join(", ")}. No initialization is needed when outputs are supplied directly.`);
-      add('/** @returns {Generator<PlaygroundMidiScoreEvent>} */');
-      add(`export function* ch${ch}Events(${variables.map((_,i)=>i===0?"output":`output${i+1}`).join(", ")}) {`);
-      for(const entry of channelEvents.get(ch)??[])add(entry);
-      add('}');
+      add(`  ${ch}: () => [${variables.join(', ')}],`);
     }
+    add('};');
     add(`
 export async function runChannels(channelNumbers, outputs = {}) {
-  if (!player) throw new Error("Call initCh(pg) first");
-  return player.runChannels(channelNumbers, outputs);
+  if (!Array.isArray(channelNumbers) || channelNumbers.some(ch => !Number.isInteger(ch) || !Object.prototype.hasOwnProperty.call(defaultOutputs, ch))) throw new Error("Unknown channel selection");
+  if (!api) throw new Error("Call initCh(pg) first");
+  if (running) throw new Error("This song is already playing");
+  const selected = [...new Set(channelNumbers)];
+  if (!selected.length) return;
+  const resolved = {};
+  for (const ch of selected) {
+    const defaults = defaultOutputs[ch]();
+    const supplied = outputs[ch];
+    const values = supplied === undefined ? defaults : Array.isArray(supplied) ? supplied : [supplied];
+    if (values.length !== defaults.length || values.some(output => !output ||
+        ["noteOn", "noteOff", "cc"].some(method => typeof output[method] !== "function")))
+      throw new Error("Supply one output per generated channel destination");
+    resolved[ch] = values;
+  }
+  running = true;
+  try { await performance(resolved, api.sleepSamples); }
+  finally { running = false; }
 }`);
-    for(const ch of numbers)add(`export async function runCh${ch}(...outputs) { return runChannels([${ch}], outputs.length ? {${ch}: outputs} : {}); }`);
+    for(const ch of numbers) {
+      const variables=[...channels].filter(([,channel])=>channel===ch).map(([v])=>v);
+      const arguments_=variables.map((_,i)=>i===0?'output':`output${i+1}`);
+      add(`export async function ch${ch}Events(${arguments_.join(', ')}, sleepSamples) {`);
+      add(`  return performance({${ch}: [${arguments_.join(', ')}]}, sleepSamples);`);
+      add('}');
+      add(`export async function runCh${ch}(...outputs) { return runChannels([${ch}], outputs.length ? {${ch}: outputs} : {}); }`);
+    }
     add(`export async function runAllCh(outputs = {}) { return runChannels([${numbers.join(', ')}], outputs); }`);
   } else {
-    wait(song.seconds);
-    add('// End of file: silence any held or sustained notes.');
-    for(const variable of new Set(mapping.values()))add(`await ${variable}.cc(120, 0);`);
+    add('} finally {');
+    add(`  await Promise.allSettled([${[...new Set(mapping.values())].join(', ')}].map(output => Promise.resolve().then(() => output.cc(120, 0))));`);
+    add('}');
   }
   return lines.join('\n')+'\n';
 }

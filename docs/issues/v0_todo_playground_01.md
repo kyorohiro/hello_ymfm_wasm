@@ -213,7 +213,7 @@ VGM の演奏命令から音符を抽出する処理と、MIDI の tick・テン
 
 - [ ] Sheet Music のデータ構造・表示部品の再利用可否を確認する。
 - [x] 既存の `setBpm()` / `beat()` は維持する。手書きコードは設定 BPM、MIDI Import はファイルのテンポマップをイベント秒数へ変換する。
-  生成コードは `midi.createTimeline()` と `timeline.waitUntil(seconds)` を使用する。毎回 `開始基準時刻 + イベント秒数` を待ち、前回の処理遅れを待ち時間から差し引く。
+  現在の生成コードは標準 `sleepSamples()` の差分待機を使用する。旧生成コードの `midi.createTimeline()` は基準時刻からの絶対待機として残す。
   既存の `midi.playFile()` は音声時刻予約を使用するが、Import の生成先ではなく互換 API として残す。
   既存の時計処理にも基準時刻からの待機計算がある。`nextBeat()` は次の拍境界、ループ内の `sleepSamples()` は累積サンプル位置を基準とする。
   ただし `beat()` はループ内でも予定拍と現在拍の遅い方から次の待機先を決めるため、遅れを常に元の拍位置へ戻す方式ではない。
@@ -326,38 +326,37 @@ await marioWorld01.runAllCh();
 - 別の曲モジュール同士の同期・音源割り当て競合・開始オフセットは後続の設計項目。
   今回は単一曲内の CH 選択と同期まで。
 
-### 拍・音名・音の長さで編集する生成コード
+### 標準 API の演奏コードを生成する
 
-`ch1Events(output)` は次のような楽譜データを返す。`at` と `duration` は四分音符を1とする拍数。
-出力先・音色は演奏データから分離し、`runCh1(lead)` などで差し替えられる。
+Import VGM と同じく、通常の MIDI API と `await sleepSamples()` へ展開する。
+`createSongPlayer`、`yield {at, ...}`、`order` / `offOrder` には依存しない。
 
 ```js
-export function* ch1Events(output) {
-  yield {at: 0, output, play: "C4", duration: 1, velocity: 100};
-  yield {at: 0, output, play: "E4", duration: 2, velocity: 90};
-  yield {at: 0.5, output, pitchBend: 0.1};
-  yield {at: 1, output, cc: [11, 80]};
-}
+await output.pitchBend(0.1);
+await output.noteOn("C4", {velocity: 100});
+await sleepSamples(4410);
+await output.noteOff("C4");
 ```
 
-- Note On / Off を対応付け、音名・長さを1行へまとめる。対応する片側がない場合は
-  `noteOn` / `noteOff` として残し、欠けた演奏命令を勝手に補わない。同音の対応は送り先・MIDI CH ごとの FIFO。
-- Import では `order` / `offOrder` も付け、同時刻の元イベント順序を維持する。
-  手書きで追加するイベントは省略可能。同じ時刻・順序なら Note Off を先に処理する。
-- `midi.createSongPlayer({channels, tempos, endBeat})` が共通時計・テンポマップ・
-  Note Off の予約・選択再生・停止時の消音を担当する。生成コードにスケジューラー本体を展開しない。
-- 音の途中の CC / Pitch Bend、テンポ変更、重なった音を維持する。
-  `play` は通常の `output.play()` の直接呼び出しではなく、共通プレイヤーが解釈する楽譜の項目。
-- generator 単独利用には `initCh()` 不要。`midi.createSongPlayer` の `channels` に
-  `{events: ch1Events, outputs: [lead]}` を渡して再利用できる。
+- 待機の基準は44,100 samples/秒。実際の AudioContext の出力レートには依存しない。
+- MIDI のテンポ変更を絶対秒数へ変換し、絶対位置をサンプルに丸めてから差分を求める。
+  各区間を独立に丸めることによる誤差の累積を避ける。`setBpm()` によって待機時間は変化しない。
+- 重なる音、同音の連打、途中の CC / Pitch Bend、対応する片側がないノートも元のイベント順で記述する。
+  単純な音符を `play()` へまとめる改善は後続。現在は明示した Note On / Off を使う。
+- 生成した `performance(outputs, sleepSamples)` に演奏コードを1本だけ置く。
+  CH 選択時は `if (出力先)` で命令を選び、待機は共通。同時刻の順序は CH 選択の配列順に依存しない。
+  全体再生・個別再生で別の演奏コードを複製しないので、編集内容がどちらにも反映される。
 - `runCh1(lead)`、`runChannels([1, 3], {1: lead, 3: bass})`、`runAllCh({1: lead})` を維持する。
-  生成された run 系は事前に `initCh(pg)` が必要。差し替え先の音色・ベンド幅は呼び出し側で設定する。
-- 同じ MIDI CH 番号に FM と PSG がある場合は `ch1Events(output, output2)`。
-  コメントの順に `runCh1(fm, psg)`、選択再生は `{1: [fm, psg]}` で渡す。
+  run 系は事前に `initCh(pg)` が必要。音色・ベンド幅は差し替え先で設定する。
+- `ch1Events(output, sleepSamples)` は **async 関数**。generator ではない。
+  初期化せず `await song.ch1Events(lead, pg.sleepSamples)` として呼び出せる。
+  同じ番号に FM / PSG がある場合は `ch1Events(fm, psg, pg.sleepSamples)`。
+- 終了・中断時は選んだ出力先へ CC120 を送り、発音を止める。
 - 同じ output を複数パートで使うと音色・CC・Pitch Bend・消音対象も共有する。
-- 次のイベントと未処理の Note Off のみ保持する。全レジスタ書き込みを事前展開しない。
-- 既存の秒数・コールバック形式の保存済みコードはそのまま動く。新しい形式への更新は再 Import。
-- Main / Worker 共通 API。実ブラウザーでの新形式の操作・試聴は未確認。
+- トップレベルの `sleepSamples()` は相対待機であり、命令処理やタイマーの遅延は累積し得る。
+  liveLoop 内の累積サンプル時計とは区別する。今回は標準 API の時計仕様を変更しない。
+- 旧 `createSongPlayer` API は保存済みコード用に残すが、新規 Import は使用しない。
+  新しい生成方式を使う場合は再 Import。実ブラウザーでの新形式の操作・試聴は未確認。
 
 ## Import の自動発音割り当て
 
@@ -377,7 +376,7 @@ export function* ch1Events(output) {
 - 各パートで Skip / Select、Output（FM / PSG）、MIDI CH（Auto / CH1〜CH16）、FM音色、Bend幅を選ぶ。
 - MIDI CH は FM / PSG とも16 CHから選択可能。CH番号は物理音源の声数に制限されない。
 - Auto でも生成コードに割り当て済み MIDI CH を明記し、パート別の音色・CC・ベンドを保持する。
-- 個別ジェネレーターと共通時計による再生は維持する。出力コードの分割・結合は発音割り当てとは別事項。
+- 共通の演奏関数に標準 API 呼び出しを並べる。出力コードの分割・結合は発音割り当てとは別事項。
 
 ### 演奏部分だけを別の出力先で使う例
 
@@ -385,12 +384,9 @@ export function* ch1Events(output) {
 const song = await import("./song.js");
 const lead = midi.output("tetorica-ym2612", {channel: CH1});
 await lead.setVoice(FM_PRESETS["two-op-bell"]);
-const player = midi.createSongPlayer({
-  tempos: [{beat: 0, bpm: 120}],
-  channels: {1: {events: song.ch1Events, outputs: [lead]}},
-});
-await player.runChannels([1]);
+await song.ch1Events(lead, pg.sleepSamples);
 ```
 
-この使い方では元の `initCh()`、音色、テンポ設定に依存しない。
-複数の演奏 generator を `channels` に登録すれば共通時計で再生できる。
+この使い方では元の `initCh()` や音色設定に依存しない。
+複数 CH を同じ時計で再生する場合は、`initCh(pg)` の後に
+`runChannels([1, 2], {1: lead, 2: bass})` を使う。

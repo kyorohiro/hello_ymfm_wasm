@@ -2,7 +2,6 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {midiToSource, assignMidiRoutes} from './midi_source.js';
 import {createMidiApi, midiNote} from './playground_midi.js';
-import {createMidiSongPlayer} from './midi_song.js';
 import {FM_PRESETS} from './megadrive-fm-presets.js';
 const AsyncFunction=Object.getPrototypeOf(async function(){}).constructor;
 function smf(...tracks){const out=[77,84,104,100,0,0,0,6,0,tracks.length>1?1:0,0,tracks.length,0,96];for(const t of tracks)out.push(77,84,114,107,0,0,t.length>>8,t.length&255,...t);return Uint8Array.from(out);}
@@ -15,15 +14,16 @@ test('generated JS runs without MIDI data, preserves tempo changes, simultaneous
  );
  const source=midiToSource(data,[route],{presets:FM_PRESETS,name:'test\n.mid'});
  assert(!source.includes('playFile'));assert(!source.includes('arrayBuffer'));assert(source.includes('channel: CH16'));
- const events=[],times=[];
+ const events=[],times=[];let elapsed=0;
+ const sleepSamples=async samples=>{elapsed+=samples/44100;times.push(elapsed);};
  const midi={createTimeline:()=>({waitUntil:async seconds=>times.push(seconds)}),output:(destination,options)=>{
   assert.equal(destination,route.destination);assert.equal(options.channel,15);
   return Object.fromEntries(['setVoice','setPitchBendRange','noteOn','noteOff','cc','pitchBend'].map(method=>[method,async(...args)=>events.push([method,...args])]));
  }};
- await new AsyncFunction('midi','FM_PRESETS','CH16',source)(midi,FM_PRESETS,15);
- assert.deepEqual(times,[0,.5,1.5]);
- assert.deepEqual(events.filter(e=>e[0]==='noteOn'),[['noteOn',60,{velocity:100}],['noteOn',64,{velocity:80}]]);
- assert.deepEqual(events.filter(e=>e[0]==='noteOff'),[['noteOff',60],['noteOff',64]]);
+ await new AsyncFunction('midi','FM_PRESETS','CH16','sleepSamples',source)(midi,FM_PRESETS,15,sleepSamples);
+ assert.deepEqual(times,[.5,1.5]);
+ assert.deepEqual(events.filter(e=>e[0]==='noteOn'),[['noteOn','C4',{velocity:100}],['noteOn','E4',{velocity:80}]]);
+ assert.deepEqual(events.filter(e=>e[0]==='noteOff'),[['noteOff','C4'],['noteOff','E4']]);
  assert.deepEqual(events.filter(e=>e[0]==='cc'),[['cc',64,127],['cc',64,0],['cc',120,0]]);
  assert.deepEqual(events.find(e=>e[0]==='pitchBend'),['pitchBend',1]);
 });
@@ -55,72 +55,6 @@ test('timeline checks cancellation after waking',async()=>{
  await assert.rejects(api.createTimeline().waitUntil(1),/Run stopped/);
 });
 
-test('generated module imports silently, exports selected channels and merges them in source order',async()=>{
- const data=smf([0,0x90,60,100,0,0x91,64,90,96,0x80,60,0,0,0x81,64,0,0,255,47,0]);
- const routes=[{part:'[0,0,"",1]',destination:'tetorica-sega-psg',channel:0},{part:'[0,0,"",2]',destination:'tetorica-sega-psg',channel:1}];
- const source=midiToSource(data,routes,{module:true});
- const song=await import(`data:text/javascript;base64,${Buffer.from(source).toString('base64')}`);
- assert.deepEqual(Object.keys(song).sort(),['ch1Events','ch2Events','initCh','runAllCh','runCh1','runCh2','runChannels']);
- await assert.rejects(song.runAllCh(),/initCh/);
- const events=[],times=[];let clocks=0;
- const api={CH1:0,CH2:1,midi:{createSongPlayer(config){return createMidiSongPlayer(this,config);},createTimeline:()=>{clocks++;return {waitUntil:async t=>times.push(t)};},output:(dest,{channel})=>Object.fromEntries(['setPitchBendRange','noteOn','noteOff','cc'].map(method=>[method,async(...args)=>events.push([channel,method,...args])]))}};
- await song.initCh(api);events.length=0;
- await song.runAllCh();
- assert.equal(clocks,1);assert.deepEqual(times,[0,.5]);
- assert.deepEqual(events.filter(e=>e[1]==='noteOn').map(e=>e[0]),[0,1]);
- events.length=0;times.length=0;
- await assert.rejects(song.runChannels([99]),/Unknown/);
- await song.runChannels([2]);assert(events.every(e=>e[0]===1));assert.deepEqual(times,[0,.5]);
-});
-
-test('same target CH on FM and PSG has one export and module can be initialized with a fresh runtime',async()=>{
- const data=smf([0,0x90,60,100,96,0x80,60,0,0,255,47,0],[0,0x91,64,90,96,0x81,64,0,0,255,47,0]);
- const source=midiToSource(data,[{part:'[0,0,"",1]',destination:'tetorica-ym2612',channel:7,preset:'sine'},{part:'[1,0,"",2]',destination:'tetorica-sega-psg',channel:7}],{module:true,presets:FM_PRESETS});
- const song=await import(`data:text/javascript;base64,${Buffer.from(source).toString('base64')}`);
- assert.deepEqual(Object.keys(song).sort(),['ch8Events','initCh','runAllCh','runCh8','runChannels']);
- let notes=0;
- const api={CH8:7,FM_PRESETS,midi:{createSongPlayer(config){return createMidiSongPlayer(this,config);},createTimeline:()=>({waitUntil:async()=>{}}),output:()=>({setVoice:async()=>{},setPitchBendRange:async()=>{},noteOn:async()=>notes++,noteOff:async()=>{},cc:async()=>{}})}};
- await song.initCh(api);await song.runCh8();assert.equal(notes,2);
- await song.initCh(api);await song.runAllCh();assert.equal(notes,4);
-});
-
-test('module rejects overlapping playback and unlocks after a failed wait',async()=>{
- const data=smf([0,0x90,60,100,96,0x80,60,0,0,255,47,0]);
- const source=midiToSource(data,[{part:'[0,0,"",1]',destination:'tetorica-sega-psg',channel:3}],{module:true});
- const song=await import(`data:text/javascript;base64,${Buffer.from(source).toString('base64')}`);
- let reject,cleaned=0;
- const gate=new Promise((_,r)=>reject=r);
- const api={CH4:3,midi:{createSongPlayer(config){return createMidiSongPlayer(this,config);},createTimeline:()=>({waitUntil:()=>gate}),output:()=>({setPitchBendRange:async()=>{},noteOn:async()=>{},noteOff:async()=>{},cc:async()=>cleaned++})}};
- await song.initCh(api);const running=song.runCh4();
- await assert.rejects(song.runAllCh(),/already playing/);await assert.rejects(song.initCh(api),/while playing/);
- reject(new Error('Run stopped'));await assert.rejects(running,/Run stopped/);assert.equal(cleaned,1);
- await song.initCh(api);
-});
-
-test('channel generators merge simultaneous events in source order, independent of selection order',async()=>{
- const data=smf([0,0x91,64,100,0,0x90,60,90,48,0x81,64,0,0,0x91,67,80,48,0x80,60,0,0,0x81,67,0,0,255,47,0]);
- const routes=[0,1].map(ch=>({part:`[0,0,"",${ch+1}]`,destination:'tetorica-sega-psg',channel:ch}));
- const source=midiToSource(data,routes,{module:true});
- assert.match(source,/function\* ch1Events\(output\)/);assert.match(source,/function\* ch2Events\(output\)/);
- assert(!source.includes('selected.has('));
- const song=await import(`data:text/javascript;base64,${Buffer.from(source).toString('base64')}`);
- const events=[],times=[];
- const api={CH1:0,CH2:1,midi:{createSongPlayer(config){return createMidiSongPlayer(this,config);},createTimeline:()=>({waitUntil:async seconds=>times.push(seconds)}),output:(destination,{channel})=>({
-  setPitchBendRange:async()=>{},cc:async()=>{},
-  noteOn:async note=>events.push([channel,'on',midiNote(note)]),noteOff:async note=>events.push([channel,'off',midiNote(note)]),
- })}};
- await song.initCh(api);
- for(const selected of [[0,1],[1,0]]) {
-  events.length=0;times.length=0;
-  await song.runChannels(selected.map(ch=>ch+1));
-  assert.deepEqual(events,[[1,'on',64],[0,'on',60],[1,'off',64],[1,'on',67],[0,'off',60],[1,'off',67]]);
-  assert.deepEqual(times,[0,.25,.5]);
- }
- events.length=0;await song.runChannels([2,2]);assert.equal(events.length,4);
- events.length=0;times.length=0;await song.runChannels([]);assert.deepEqual(times,[]);assert.deepEqual(events,[]);
-});
-
-
 test('auto routes skip excluded parts, keep part state separate and reserve manual channels first',()=>{
  const fm='tetorica-ym2612',psg='tetorica-sega-psg';
  const selections=[
@@ -150,84 +84,120 @@ test('Import always emits separate MIDI channels rather than physical pools',()=
  assert(source.includes('midi.output("tetorica-ym2612", {channel: api.CH16})'));
 });
 
-test('six parts assigned to CH1 compile into one handle and one chronological generator',async()=>{
+
+function mockApi() {
+ const events=[],waits=[];let samples=0;
+ const api={FM_PRESETS,sleepSamples:async n=>{waits.push(n);samples+=n;},midi:{output:(destination,{channel})=>makeOutput(`${destination}/${channel}`)}};
+ for(let i=0;i<16;i++)api[`CH${i+1}`]=i;
+ function makeOutput(id) {
+  return Object.fromEntries(['setVoice','setPitchBendRange','noteOn','noteOff','cc','pitchBend'].map(method=>[method,async(...args)=>{
+   if(method==='noteOn'||method==='noteOff')args[0]=midiNote(args[0]);
+   events.push([samples,id,method,...args]);
+  }]));
+ }
+ return {api,events,waits,makeOutput};
+}
+async function compile(data,routes) {
+ const source=midiToSource(data,routes,{module:true,presets:FM_PRESETS});
+ assert(!/createSongPlayer|createTimeline|yield |offOrder/.test(source));
+ return {source,song:await import(`data:text/javascript;base64,${Buffer.from(source).toString('base64')}`)};
+}
+const twoTracks=()=>smf([0,0x90,60,100,96,0x80,60,0,0,255,47,0],[0,0x91,64,90,96,0x81,64,0,0,255,47,0]);
+const psgRoutes=[0,1].map(i=>({part:`[${i},0,"",${i+1}]`,destination:'tetorica-sega-psg',channel:i}));
+
+test('generated module only needs standard output methods and sleepSamples',async()=>{
+ const {song,source}=await compile(twoTracks(),psgRoutes);
+ assert.match(source,/await sleepSamples\(22050\)/);
+ assert.match(source,/await segapsg_1.noteOn\("C4"/);
+ assert.deepEqual(Object.keys(song).sort(),['ch1Events','ch2Events','initCh','performance','runAllCh','runCh1','runCh2','runChannels']);
+ await assert.rejects(song.runAllCh(),/initCh/);
+ const {api,events,waits}=mockApi();await song.initCh(api);events.length=0;
+ await song.runAllCh();assert.deepEqual(waits,[22050]);
+ assert.deepEqual(events.filter(e=>e[2]==='noteOn').map(e=>[e[0],e[3]]),[[0,60],[0,64]]);
+ assert.deepEqual(events.filter(e=>e[2]==='noteOff').map(e=>[e[0],e[3]]),[[22050,60],[22050,64]]);
+});
+
+test('selection order does not reorder simultaneous notes; duplicates and empty selections are handled',async()=>{
+ const {song}=await compile(twoTracks(),psgRoutes);
+ const state=mockApi();await song.initCh(state.api);state.events.length=0;
+ await song.runChannels([2,1]);
+ assert.deepEqual(state.events.filter(e=>e[2]==='noteOn').map(e=>e[3]),[60,64]);
+ state.events.length=0;await song.runChannels([2,2]);
+ assert.deepEqual(state.events.filter(e=>e[2]==='noteOn').map(e=>e[3]),[64]);
+ assert(state.events.every(e=>e[1].endsWith('/1')));
+ state.events.length=0;state.waits.length=0;await song.runChannels([]);
+ assert.deepEqual(state.events,[]);assert.deepEqual(state.waits,[]);
+ await assert.rejects(song.runChannels([99]),/Unknown/);
+});
+
+test('output replacement and standalone channel function use no initialized player',async()=>{
+ const {song}=await compile(twoTracks(),psgRoutes);
+ const state=mockApi();const output=state.makeOutput('replacement');
+ await song.ch1Events(output,state.api.sleepSamples);
+ assert.deepEqual(state.events.filter(e=>e[2]==='noteOn').map(e=>e[3]),[60]);
+ assert(state.events.every(e=>e[1]==='replacement'));
+ assert.deepEqual(state.waits,[22050]);
+ await song.initCh(state.api);state.events.length=0;
+ await song.runCh1(output);assert(state.events.every(e=>e[1]==='replacement'));
+});
+
+test('same channel on FM and PSG takes two outputs and reinitializes safely',async()=>{
+ const routes=[{...psgRoutes[0],destination:'tetorica-ym2612',channel:7,preset:'sine'},{...psgRoutes[1],channel:7}];
+ const {song}=await compile(twoTracks(),routes);
+ const state=mockApi();await song.initCh(state.api);state.events.length=0;
+ await assert.rejects(song.runCh8(state.makeOutput('fm')),/one output/);
+ await song.runCh8(state.makeOutput('fm'),state.makeOutput('psg'));
+ assert.deepEqual(state.events.filter(e=>e[2]==='noteOn').map(e=>[e[1],e[3]]),[['fm',60],['psg',64]]);
+ await song.initCh(state.api);state.events.length=0;await song.runAllCh();
+ assert.equal(state.events.filter(e=>e[2]==='noteOn').length,2);
+});
+
+test('six source parts sharing CH1 have one handle, one time sequence and first voice settings',async()=>{
  const tracks=Array.from({length:6},(_,i)=>[0,0x90+i,60+i,100,96,0x80+i,60+i,0,0,255,47,0]);
- const routes=Array.from({length:6},(_,i)=>({part:`[${i},0,"",${i+1}]`,destination:'tetorica-ym2612',channel:0,preset:i?'two-op-bell':'sine',bendRange:i?12:2}));
- const source=midiToSource(smf(...tracks),assignMidiRoutes(routes),{module:true,presets:FM_PRESETS});
- const song=await import(`data:text/javascript;base64,${Buffer.from(source).toString('base64')}`);
- const events=[],times=[];let handles=0;
- await song.initCh({CH1:0,FM_PRESETS,midi:{createSongPlayer(config){return createMidiSongPlayer(this,config);},createTimeline:()=>({waitUntil:async t=>times.push(t)}),output:()=>{
-  handles++;return Object.fromEntries(['setVoice','setPitchBendRange','noteOn','noteOff','cc'].map(m=>[m,async(...args)=>events.push([m,...args])]));
- }}});
- assert.equal(handles,1);assert.deepEqual(events,[['setVoice',FM_PRESETS.sine],['setPitchBendRange',2]]);
- assert.deepEqual(Object.keys(song).sort(),['ch1Events','initCh','runAllCh','runCh1','runChannels']);
- await song.runAllCh();assert.deepEqual(times,[0,.5]);
- assert.deepEqual(events.filter(e=>e[0]==='noteOn').map(e=>midiNote(e[1])),[60,61,62,63,64,65]);
- assert.equal(events.filter(e=>e[0]==='noteOff').length,6);
- assert.deepEqual(events.filter(e=>e[0]==='cc'),[['cc',120,0]]);
+ const routes=tracks.map((_,i)=>({part:`[${i},0,"",${i+1}]`,destination:'tetorica-ym2612',channel:0,preset:i?'two-op-bell':'sine',bendRange:i?12:2}));
+ const {song}=await compile(smf(...tracks),routes);const state=mockApi();await song.initCh(state.api);
+ assert.deepEqual(state.events.map(e=>e.slice(2)),[['setVoice',FM_PRESETS.sine],['setPitchBendRange',2]]);
+ state.events.length=0;await song.runAllCh();
+ assert.deepEqual(state.events.filter(e=>e[2]==='noteOn').map(e=>e[3]),[60,61,62,63,64,65]);
+ assert.equal(state.events.filter(e=>e[2]==='cc').length,1);assert.deepEqual(state.waits,[22050]);
 });
 
-test('shared target receives a source-channel CC once even when multiple tracks use that source',async()=>{
- const data=smf([0,0xb0,7,100,0,0x90,60,90,96,0x80,60,0,0,255,47,0],[0,0x90,64,90,96,0x80,64,0,0,255,47,0]);
- const routes=[0,1].map(track=>({part:`[${track},0,"",1]`,destination:'tetorica-sega-psg',channel:0}));
- const source=midiToSource(data,routes,{module:true});
- assert.equal((source.match(/cc: \[7, 100\]/g)||[]).length,1);
-});
-
-test('exported events accept independent outputs without initialization, including bend and CC',async()=>{
- const data=smf([0,0x90,60,100,0,0xe0,0,96,0,0xb0,7,90,96,0x80,60,0,0,255,47,0]);
- const source=midiToSource(data,[{part:'[0,0,"",1]',destination:'tetorica-sega-psg',channel:0}],{module:true});
- const song=await import(`data:text/javascript;base64,${Buffer.from(source).toString('base64')}`);
- const events=[];
- const output=Object.fromEntries(['noteOn','noteOff','pitchBend','cc'].map(method=>[method,async(...args)=>events.push([method,...args])]));
- const entries=[...song.ch1Events(output)];
- assert.equal(events.length,0);
- assert.equal(entries[0].play,'C4');assert.equal(entries[0].duration,1);
- const player=createMidiSongPlayer({createTimeline:()=>({waitUntil:async()=>{}})},{channels:{1:{events:song.ch1Events,outputs:[output]}},endBeat:1});
- await player.runChannels([1]);
- assert.deepEqual(events,[['noteOn','C4',{velocity:100}],['pitchBend',4096/8191],['cc',7,90],['noteOff','C4'],['cc',120,0]]);
- events.length=0;
- const original=[];
- await song.initCh({CH1:0,midi:{createSongPlayer(config){return createMidiSongPlayer(this,config);},output:()=>({...output,setPitchBendRange:async()=>{},cc:async(...args)=>original.push(args)}),createTimeline:()=>({waitUntil:async()=>{throw Error('cancelled');}})}});
- await assert.rejects(song.runCh1(output),/cancelled/);
- assert.deepEqual(events,[['cc',120,0]]);assert.deepEqual(original,[]);
-});
-
-test('FM and PSG with the same MIDI channel accept separate replacement outputs',async()=>{
- const data=smf([0,0x90,60,100,96,0x80,60,0,0,255,47,0],[0,0x91,64,90,96,0x81,64,0,0,255,47,0]);
- const source=midiToSource(data,[{part:'[0,0,"",1]',destination:'tetorica-ym2612',channel:0,preset:'sine'},{part:'[1,0,"",2]',destination:'tetorica-sega-psg',channel:0}],{module:true,presets:FM_PRESETS});
- const song=await import(`data:text/javascript;base64,${Buffer.from(source).toString('base64')}`);
- const events=[];
- const output=id=>Object.fromEntries(['noteOn','noteOff','cc','setVoice','setPitchBendRange'].map(method=>[method,async(...args)=>events.push([id,method,...args])]));
- await song.initCh({CH1:0,FM_PRESETS,midi:{createSongPlayer(config){return createMidiSongPlayer(this,config);},output:()=>output('default'),createTimeline:()=>({waitUntil:async()=>{}})}});
- events.length=0;
- await assert.rejects(song.runCh1(output('fm')),/one output/);
- await song.runCh1(output('fm'),output('psg'));
- assert.deepEqual(events.filter(e=>e[1]==='noteOn'),[['fm','noteOn','C4',{velocity:100}],['psg','noteOn','E4',{velocity:90}]]);
- assert.deepEqual(events.filter(e=>e[1]==='cc'),[['fm','cc',120,0],['psg','cc',120,0]]);
- assert(!events.some(e=>e[0]==='default'));
-});
-
-test('readable score matches raw MIDI dispatch through tempo changes, repeated notes and controls',async()=>{
+test('cross-track controllers, tempo changes, overlapping and unmatched notes match raw standard calls',async()=>{
  const data=smf(
   [0,255,81,3,7,161,32,48,0xb0,64,127,48,255,81,3,15,66,64,0,0xe0,127,127,96,0xb0,64,0,0,255,47,0],
-  [0,0x90,60,100,0,0x90,64,80,48,0x90,60,70,48,0x80,60,0,0,0x90,67,60,0,0x80,67,0,48,0x80,60,0,48,0x90,64,0,0,255,47,0]
+  [0,0x80,50,0,0,0x90,60,100,0,0x90,64,80,48,0x90,60,70,48,0x80,60,0,0,0x90,67,60,0,0x80,67,0,48,0x80,60,0,48,0x90,64,0,0,0x90,70,100,0,255,47,0]
  );
- function capture() {
-  let time=0;const events=[];
-  const output=Object.fromEntries(['setVoice','setPitchBendRange','noteOn','noteOff','cc','pitchBend'].map(method=>[method,async(...args)=>{
-   if(method==='noteOn'||method==='noteOff')args[0]=midiNote(args[0]);
-   events.push([time,method,...args]);
-  }]));
-  const midi={createSongPlayer(config){return createMidiSongPlayer(this,config);},createTimeline:()=>({waitUntil:async seconds=>{assert(seconds>=time);time=seconds;}}),output:()=>output};
-  return {midi,events};
- }
- const raw=capture(),readable=capture();
- await new AsyncFunction('midi','FM_PRESETS','CH16',midiToSource(data,[route],{presets:FM_PRESETS}))(raw.midi,FM_PRESETS,15);
- const source=midiToSource(data,[route],{presets:FM_PRESETS,module:true});
- assert(source.includes('play: "C4", duration: 1'));
- assert(!source.includes('while (true)'));
- const song=await import(`data:text/javascript;base64,${Buffer.from(source).toString('base64')}`);
- await song.initCh({midi:readable.midi,FM_PRESETS,CH16:15});await song.runAllCh();
- assert.deepEqual(readable.events,raw.events);
+ const raw=mockApi(),module=mockApi();
+ await new AsyncFunction('midi','FM_PRESETS','CH16','sleepSamples',midiToSource(data,[route],{presets:FM_PRESETS}))(raw.api.midi,FM_PRESETS,15,raw.api.sleepSamples);
+ const {song}=await compile(data,[route]);await song.initCh(module.api);await song.runAllCh();
+ assert.deepEqual(module.events,raw.events);assert.deepEqual(module.waits,[11025,11025,22050,22050]);
+ assert.deepEqual(module.events.filter(e=>e[2]==='pitchBend').map(e=>[e[0],e[3]]),[[22050,1]]);
+});
+
+test('cancellation cleans replacement outputs, rejects overlapping runs and releases the guard',async()=>{
+ const {song}=await compile(twoTracks(),psgRoutes);const state=mockApi();let reject;
+ const gate=new Promise((_,r)=>{reject=r;});state.api.sleepSamples=()=>gate;
+ await song.initCh(state.api);state.events.length=0;
+ const output=state.makeOutput('replacement');const playing=song.runCh1(output);
+ await assert.rejects(song.runAllCh(),/already playing/);
+ await assert.rejects(song.initCh(state.api),/while playing/);
+ reject(Error('Run stopped'));await assert.rejects(playing,/Run stopped/);
+ assert.deepEqual(state.events.filter(e=>e[2]==='cc').map(e=>e.slice(1)),[['replacement','cc',120,0]]);
+ state.api.sleepSamples=async()=>{};await song.initCh(state.api);await song.runAllCh();
+});
+
+test('absolute sample rounding avoids accumulating rounding error across short waits',async()=>{
+ const track=[];for(let i=0;i<96;i++)track.push(1,0xb0,7,100);
+ track.push(0,0x90,60,100,0,0x80,60,0,0,255,47,0);
+ const {song}=await compile(smf(track),[{part:'[0,0,"",1]',destination:'tetorica-sega-psg',channel:0}]);
+ const state=mockApi();await song.initCh(state.api);await song.runAllCh();
+ assert.equal(state.waits.reduce((a,b)=>a+b,0),22050);
+ assert.deepEqual([...new Set(state.waits)].sort(),[229,230]);
+});
+
+test('controller shared by source tracks is only applied once per target',async()=>{
+ const data=smf([0,0xb0,7,100,0,0x90,60,90,96,0x80,60,0,0,255,47,0],[0,0x90,64,90,96,0x80,64,0,0,255,47,0]);
+ const routes=[0,1].map(track=>({part:`[${track},0,"",1]`,destination:'tetorica-sega-psg',channel:0}));
+ const {song}=await compile(data,routes);const state=mockApi();await song.initCh(state.api);state.events.length=0;
+ await song.runAllCh();assert.equal(state.events.filter(e=>e[2]==='cc'&&e[3]===7).length,1);
 });
