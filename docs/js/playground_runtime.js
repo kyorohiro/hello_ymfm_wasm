@@ -906,23 +906,28 @@ export function createPlaygroundRuntime(
         emitLog(`${prefix}${formatLogArgs(message.args)}`);
         return;
       }
+      const worker = logicWorker;
+      const respond = (value, error) => {
+        if (logicWorker !== worker) return;
+        if (message.type === "request") {
+          worker.postMessage(error
+            ? { type: "response", id: message.id, error: error?.message ?? String(error) }
+            : { type: "response", id: message.id, value });
+        } else if (error) emitLog(error?.stack ?? String(error));
+      };
       workerCommandQueue = workerCommandQueue
         .catch(() => undefined)
-        .then(() => invokeWorkerCommand(message.command, message.args ?? []))
-        .then(
-          (value) => {
-            if (message.type === "request") {
-              logicWorker?.postMessage({ type: "response", id: message.id, value });
-            }
-          },
-          (error) => {
-            if (message.type === "request") {
-              logicWorker?.postMessage({ type: "response", id: message.id, error: error?.message ?? String(error) });
-            } else {
-              emitLog(error?.stack ?? String(error));
-            }
+        .then(() => {
+          if (logicWorker !== worker) return;
+          const result = invokeWorkerCommand(message.command, message.args ?? []);
+          if (message.command === "play") {
+            // Start notes in FIFO order, but their durations must not block other
+            // loops, register writes or Stop. Reply only when this note completes.
+            void result.then(value => respond(value), error => respond(undefined, error));
+            return;
           }
-        );
+          return result.then(value => respond(value), error => respond(undefined, error));
+        });
     }
   }
 
@@ -1497,6 +1502,8 @@ export function createPlaygroundRuntime(
 
     currentRunToken += 1;
     const runToken = currentRunToken;
+    if (logicWorkerStopPromise) await logicWorkerStopPromise;
+    if (runToken !== currentRunToken) return;
     await ensureReady();
     if (runToken !== currentRunToken) return;
     clearKeyboardHandlers();
@@ -1561,6 +1568,10 @@ export function createPlaygroundRuntime(
     const runToken = currentRunToken;
     await stopLogicWorker();
     if (runToken !== currentRunToken) return;
+    if (logicWorker) {
+      clockApi.cancelWaits();
+      terminateLogicWorker();
+    }
 
     await ensureReady();
     if (runToken !== currentRunToken) return;

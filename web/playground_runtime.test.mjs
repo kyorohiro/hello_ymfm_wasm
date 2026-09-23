@@ -149,3 +149,47 @@ test('late prepare completion cannot repopulate the cache after stop', async t =
   await runtime.playSource('globalThis.playgroundReview.value = await livePrepare("asset", () => "new");');
   assert.equal(globalThis.playgroundReview.value, 'new');
 });
+
+function workerBridge(t) {
+  const workers=[],previous=globalThis.Worker;
+  globalThis.Worker=class {
+    constructor(){this.responses=[];workers.push(this);}
+    postMessage(message){
+      if(message.type==='run')queueMicrotask(()=>this.onmessage?.({data:{type:'complete',loopCount:2}}));
+      if(message.type==='stop')queueMicrotask(()=>{
+        this.onmessage?.({data:{type:'command',command:'audio.stopAll',args:[]}});
+        this.onmessage?.({data:{type:'stopped'}});
+      });
+      if(message.type==='response')this.responses.push(message);
+    }
+    terminate(){this.terminated=true;}
+    send(data){this.onmessage({data});}
+  };
+  t.after(()=>{globalThis.Worker=previous;});return workers;
+}
+test('Worker play durations do not serialize independent live-loop notes or Stop',async t=>{
+ const {runtime,megaDrive}=setup(t),workers=workerBridge(t),notes=[],offs=[];
+ megaDrive.fm.noteOn=ch=>notes.push(ch);megaDrive.fm.noteOff=ch=>offs.push(ch);
+ await runtime.playSource('',{execution:'worker'});const w=workers[0];
+ w.send({type:'request',id:1,command:'play',args:['E2',{channel:0,duration:60}]});
+ w.send({type:'request',id:2,command:'play',args:['E4',{channel:1,duration:60}]});
+ try{
+  await until(()=>notes.length===2);
+  assert.deepEqual(notes,[0,1]);assert.equal(w.responses.length,0,'each caller still waits for its own note');
+  w.send({type:'command',command:'audio.stopAll',args:[]});
+  await until(()=>offs.length>=6);
+ }finally{await runtime.finalize();}
+});
+test('Worker -> Stop -> main live loop -> Stop cancels the main loop and releases notes',async t=>{
+ const {runtime,megaDrive}=setup(t),workers=workerBridge(t);let offs=0;
+ megaDrive.fm.noteOff=()=>offs++;
+ await runtime.playSource('',{execution:'worker'});runtime.stop();
+ globalThis.playgroundReview={finished:false};
+ await runtime.playSource(`liveLoop('main',async()=>{await sleep(60);globalThis.playgroundReview.finished=true;});`);
+ assert.equal(workers[0].terminated,true);
+ const before=offs;runtime.stop();assert(offs>before,'Stop must release main-mode voices');
+ await new Promise(resolve=>setTimeout(resolve,0));
+ assert.equal(globalThis.playgroundReview.finished,false);
+ assert.equal(runtime.getState().playback,'stopped');
+ await runtime.finalize();
+});
