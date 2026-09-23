@@ -121,7 +121,7 @@ export function selectPlaybackConfiguration(vgm) {
   try {
     const unsupported=chips.filter(c=>!composition[kind].includes(c.id) && c.id !== 'okim6258');
     if (unsupported.length) throw new Error(`This chip combination is not supported: ${chips.map(c=>c.id).join(' + ')}`);
-    if (chips.some(c=>(c.rawClock & (c.id === 'ym2610' ? 0x40000000 : 0xc0000000)))) throw new Error('Dual/variant configuration is not supported');
+    if (chips.some(c=>(c.rawClock & (['ym2610','k051649'].includes(c.id) ? 0x40000000 : 0xc0000000)))) throw new Error('Dual/variant configuration is not supported');
     if (kind === 'nes') validateNesApuClock(header.nesApuClock & 0x3fffffff);
     if (header.okim6258Clock) validateOki6258Header(header);
     if (kind === 'msx') validateMsxPlaybackHeader(header);

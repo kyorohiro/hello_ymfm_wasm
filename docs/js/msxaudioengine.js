@@ -44,7 +44,9 @@ export const createMsxAudioEngine = options => MsxAudioEngine.create(options);
 
 export function validateMsxPlaybackHeader(header) {
   for (const type of ['ay8910','ym2413','y8950','k051649']) {
-    if (header[`${type}Clock`] & 0xc0000000) throw new Error(`${type} variants and dual-chip playback are not validated yet.`);
+    // K051649 bit 31 selects K052539 (SCC+); port 4 already writes independent waveforms.
+    const unsupportedFlags = type === 'k051649' ? 0x40000000 : 0xc0000000;
+    if (header[`${type}Clock`] & unsupportedFlags) throw new Error(`${type} variants and dual-chip playback are not validated yet.`);
   }
   for (const type of ['ym2612','ym2203','ym2608','ym2610','rf5c164','pwm','psg','ym2151','ym3526','ym3812','ymf262','ymf278b','segaPcm']) {
     if (header[`${type}Clock`]) throw new Error(`MSX with ${type}: Support coming soon.`);

@@ -30,6 +30,7 @@ test('detectHeaderChips lists every chip clock the header declares, regardless o
   assert.deepEqual([...detectHeaderChips({ ym2151Clock: 3579545, segaPcmClock: 4000000 })],
     ['YM2151 (3.58 MHz)', 'Sega PCM (4 MHz)']);
   assert.deepEqual([...detectHeaderChips({})], []);
+  assert.deepEqual([...detectHeaderChips({k051649Clock: (1789773 | 0x80000000) >>> 0})], ['K052539 (SCC+) (1.79 MHz)']);
   // The high "second chip"/variant bits are not part of the Hz value.
   assert.deepEqual([...detectHeaderChips({ ay8910Clock: 0x40000000 | 1789773 })], ['AY-3-8910 / YM2149 (1.79 MHz)']);
 });

@@ -29,7 +29,7 @@ Y8950 (FM / embedded ADPCM, optional Sega PSG) is supported.
 OKIM6258 alone or with YM2151 is supported (4-bit ADPCM only).
 YMF278B (FM / PCM, optional Sega PSG) is supported.
 32X PWM alone or with Genesis FM / PSG / RF5C164 uses the Browser PWM approximation.
-MSX: any subset of AY-3-8910 / YM2413 / Y8950 / K051649 (one of each) is supported.
+MSX: any subset of AY-3-8910 / YM2413 / Y8950 / K051649 or K052539 (one of each) is supported.
 Sega PCM with embedded samples, alone or with YM2151, optionally with Sega PSG, is supported.
 --ymf278b-rom FILE: 2097152-byte wave ROM; needed for PCM key-on without embedded sample blocks.
 --ym2608-rom FILE: 8192-byte rhythm ROM for YM2608; required only for rhythm key-on.

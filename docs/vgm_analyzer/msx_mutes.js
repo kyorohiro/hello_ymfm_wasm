@@ -19,8 +19,9 @@ export function msxMuteControls(kind, header = {}) {
   }
   if (kind === 'y8950' && header.psgClock) add('psg', 'PSG', 'setPsgMuted');
   if (kind === 'msx' && header.k051649Clock) {
-    add('k051649', 'SCC', 'setSccMuted');
-    for (let ch = 0; ch < 5; ch++) add('k051649', `SCC ${ch + 1}`, 'setSccChannelMuted', ch);
+    const label = header.k051649Clock & 0x80000000 ? 'SCC+' : 'SCC';
+    add('k051649', label, 'setSccMuted');
+    for (let ch = 0; ch < 5; ch++) add('k051649', `${label} ${ch + 1}`, 'setSccChannelMuted', ch);
   }
   return controls;
 }

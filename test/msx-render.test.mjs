@@ -38,6 +38,7 @@ test('All 15 MSX chip subsets render, match Browser engines and preserve every c
 test('MSX rejects dual/variant flags, foreign chips and second SCC writes',async()=>{
   const source=await readSource(fixture(names));
   for(const offset of [0x74,0x10,0x58,0x9c])for(const flag of [0x40000000,0x80000000]){
+    if(offset===0x9c && flag===0x80000000)continue; // SCC+ type flag is supported.
     const bad=source.slice(),v=new DataView(bad.buffer);v.setUint32(offset,v.getUint32(offset,true)+flag,true);
     await assert.rejects(renderSource(bad),e=>e.code==='UNSUPPORTED_CONFIGURATION');
   }
@@ -47,4 +48,22 @@ test('MSX rejects dual/variant flags, foreign chips and second SCC writes',async
   }
   const bad=await readSource(fixture(['scc']));bad[257]|=0x80;
   await assert.rejects(renderSource(bad),/Second K051649/);
+});
+
+test('K052539 type flag supports solo and mixed rendering, channel mutes and dual rejection',async()=>{
+  for(const parts of [['scc'],names]){
+    const source=await readSource(fixture(parts)), plus=source.slice();
+    // Fixture SCC writes only CH1; using SCC+ port 4 must preserve its waveform.
+    for(let i=256;i<plus.length-3;i++)if(plus[i]===0xd2 && plus[i+1]===0){plus[i+1]=4;i+=3;}
+    const h=new DataView(plus.buffer);h.setUint32(0x9c,(h.getUint32(0x9c,true)|0x80000000)>>>0,true);
+    const expected=await renderSource(source,{maxSeconds:.03}),actual=await renderSource(plus,{maxSeconds:.03});
+    assert.deepEqual(actual.bytes,expected.bytes);assert.deepEqual(actual.warnings,[]);
+    assert(actual.bytes.subarray(44).some(v=>v!==0));
+    const engine=await createPlaybackEngine(new Ym2612VGM(plus),{getFactory:getNodePlaybackFactory});
+    try{const player=createPlaybackPlayer(engine,plus);player.play();
+      engine.setSccMuted(true);engine.setSccChannelMuted(4,true);player.reset();
+    }finally{engine.dispose();}
+    h.setUint32(0x9c,(h.getUint32(0x9c,true)|0x40000000)>>>0,true);
+    await assert.rejects(renderSource(plus),e=>e.code==='UNSUPPORTED_CONFIGURATION');
+  }
 });

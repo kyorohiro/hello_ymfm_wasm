@@ -373,3 +373,8 @@ Instrument editing and dual-chip playback are not implemented. Noise/LFO accurac
 The core is adapted from Charles MacDonald's BSD-3-Clause MAME implementation.
 Pinned originals, license and adaptation notes are in `third_party/mame-huc6280/`.
 Rebuild with `sh scripts/build_huc6280_wasm.sh` (Emscripten required).
+
+K052539 (SCC+) VGM/VGZ playback uses the shared K051649 core, with five
+independent waveform channels. Standalone and MSX AY/YM2413/Y8950 mixtures,
+per-channel muting and CLI WAV rendering are supported. Note-ish and
+sheet-music export for SCC/SCC+ remain unsupported; dual chips are unsupported.

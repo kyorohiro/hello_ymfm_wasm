@@ -222,7 +222,7 @@ tetorica-vgm render song.vgz --output song.wav
 ## MSX combinations
 
 `render` supports all nonempty subsets of AY-3-8910, YM2413 (OPLL),
-Y8950 (MSX-AUDIO) and K051649 (SCC), one instance of each. The shared
+Y8950 (MSX-AUDIO) and K051649 / K052539 (SCC / SCC+), one instance of each. The shared
 Browser MSX engine routes writes and mixes PCM; the CLI adds only the
 WASM factory provider. Y8950 ADPCM uses embedded sample data; SCC waveforms
 come from VGM register writes. No external ROM is needed for these fixtures.
