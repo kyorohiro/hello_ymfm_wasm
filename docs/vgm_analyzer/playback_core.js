@@ -231,9 +231,13 @@ const recipes = {
       }),
 };
 /** Factories are supplied by the host. No URL, filesystem or output device here. */
-export async function createPlaybackEngine(vgm, {getFactory, masterVolume=1, roms={}} = {}) {
+export async function createPlaybackEngine(vgm, {getFactory, masterVolume=1, roms={}, allowMissingYm2608RhythmRom=false} = {}) {
   const configuration = selectPlaybackConfiguration(vgm);
-  for (const name of configuration.requiredRoms) if (!roms[name]) throw new PlaybackError('MISSING_RESOURCE', `Missing ROM: ${name}`, {resource:name,kind:configuration.kind});
+  // Browser audition can omit the rhythm source; full CLI rendering stays strict.
+  for (const name of configuration.requiredRoms) {
+    if (name === 'ym2608AdpcmA' && allowMissingYm2608RhythmRom) continue;
+    if (!roms[name]) throw new PlaybackError('MISSING_RESOURCE', `Missing ROM: ${name}`, {resource:name,kind:configuration.kind});
+  }
   const resource = async name => {
     const factory = await getFactory?.(name);
     if (!factory) throw new PlaybackError('MISSING_RESOURCE', `Missing WASM factory: ${name}`, {resource:name,kind:configuration.kind});
@@ -246,6 +250,7 @@ export async function createPlaybackEngine(vgm, {getFactory, masterVolume=1, rom
       const oki = await Oki6258AudioEngine.create({moduleFactory:await resource('okim6258'),clock:vgm.header.okim6258Clock,flags:vgm.header.okim6258Flags,outputSampleRate:engine.sampleRate()});
       attachOki6258(engine,oki);
     }
+    if (configuration.kind === 'ym2608' && allowMissingYm2608RhythmRom && !roms.ym2608AdpcmA) engine.setRhythmMuted(true);
     if (roms.ym2608AdpcmA && engine.loadAdpcmARom) engine.loadAdpcmARom(roms.ym2608AdpcmA);
     if (roms.ymf278bWave && engine.loadWaveRom) engine.loadWaveRom(roms.ymf278bWave);
     return engine;

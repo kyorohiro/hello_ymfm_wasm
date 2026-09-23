@@ -9,7 +9,7 @@ import {createOpl3Monitor,applyOpl3Write,describeOpl3Notes} from './ymf262_notes
 import {createNesMonitor,applyNesWrite,describeNesNotes} from './nes_notes.js';
 import {createDefaultTfiPreset, findOperatorFromSlotOffset, cloneTfiPreset, presetSignature, decodeKeyOnChannel, extractTfiPatchesFromVgm} from './tfi_extract.js';
 import {createStoredZipBytes} from './stored_zip.js';
-import { createPlaybackEngine, selectPlaybackConfiguration, detectPlaybackChipKindFromVgm, detectPlaybackChipKind } from './playback_core.js?v=scc-plus-1';
+import { createPlaybackEngine, selectPlaybackConfiguration, detectPlaybackChipKindFromVgm, detectPlaybackChipKind } from './playback_core.js?v=optional-opna-rom-1';
 import { mountMusicSheet } from "./music_sheet.js?v=tab-1";
 import { renderVgmToWav } from "./vgm_wav.js";
 import { createExportTempoSettings } from "./export_tempo.js";
@@ -47,7 +47,7 @@ import { createVgiFromPreset } from "../js/vgi.js";
 import ym2612ModuleFactory from "../generated/ym2612_wasm.js";
 import nukedOpn2ModuleFactory from "../generated/nuked_opn2_wasm.js";
 import segaPsgModuleFactory from "../generated/segapsg_wasm.js";
-import { VgmPlayer } from "../js/vgmplayer.js?v=dac-warning-1";
+import { VgmPlayer } from "../js/vgmplayer.js?v=frame-count-1";
 import { looksLikeS98, convertS98ToVgm } from "../js/s98_file.js";
 import { maybeDecodeVgmFile, parseVgmMetadata, VGM_METADATA_FIELDS } from "../js/vgm_file.js";
 
@@ -111,6 +111,10 @@ function updateSeekPosition() {
 const pauseButton = document.getElementById("pauseButton");
 const replayButton = document.getElementById("replayButton");
 const stopButton = document.getElementById("stopButton");
+const playbackFade = document.getElementById("playbackFade");
+playbackFade.addEventListener("change", () => {
+  if (activeStream?.mode === "worklet") activeStream.node.port.postMessage({type: "fade", frames: playbackFade.checked ? Math.round(audioContext.sampleRate * 0.01) : 0});
+});
 const loopCheckbox = document.getElementById("loopCheckbox");
 const playlistLoopCheckbox = document.getElementById("playlistLoopCheckbox");
 const playlistLoopControl = document.getElementById("playlistLoopControl");
@@ -2508,7 +2512,7 @@ async function ensurePlaybackReady(vgm) {
   currentPcmClock = vgm.header.rf5c164Clock & 0x3fffffff;
 
   if (!engine) {
-    engine = await createPlaybackEngine(vgm, {getFactory: getBrowserPlaybackFactory, masterVolume,
+    engine = await createPlaybackEngine(vgm, {getFactory: getBrowserPlaybackFactory, masterVolume, allowMissingYm2608RhythmRom: true,
       roms: {ym2608AdpcmA:ym2608AdpcmARomBytes, ymf278bWave:ymf278bWaveRomBytes}});
     if (["msx", "huc6280", "y8950", "ymf278b", "ym3526", "ym3812", "ymf262", "segapcm", "nes", "gameboy"].includes(currentChipKind)) {
       const chip = currentChipKind;
@@ -2671,16 +2675,33 @@ function beginPreparePlayback(vgm) {
 }
 
 function stopActiveStream() {
-  if (!activeStream) {
+  if (!activeStream) return;
+  const stream = activeStream;
+  activeStream = null;
+  if (stream.mode === "worklet" && playbackFade.checked && audioContext?.state === "running") {
+    // Let this node finish independently; it must not advance a new playlist.
+    const cleanup = () => {stream.node.port.onmessage = null; stream.node.disconnect();};
+    stream.node.port.onmessage = event => {if (event.data?.ended) {clearTimeout(timer); cleanup();}};
+    const timer = setTimeout(cleanup, 100);
+    stream.node.port.postMessage({type: "stop"});
     return;
   }
-  if (activeStream.mode === "script") {
-    activeStream.node.onaudioprocess = null;
-  } else if (activeStream.mode === "worklet") {
-    activeStream.node.port.onmessage = null;
+  if (stream.mode === "script" && playbackFade.checked && audioContext?.state === "running") {
+    let remaining = Math.round(audioContext.sampleRate * 0.01);
+    const total = remaining;
+    stream.node.onaudioprocess = event => {
+      const left = event.outputBuffer.getChannelData(0), right = event.outputBuffer.getChannelData(1);
+      for (let i = 0; i < left.length; i++) {
+        const gain = Math.max(0, --remaining) / total;
+        left[i] = (stream.lastLeft || 0) * gain; right[i] = (stream.lastRight || 0) * gain;
+      }
+    };
+    setTimeout(() => {stream.node.onaudioprocess = null; stream.node.disconnect();}, 100);
+    return;
   }
-  activeStream.node.disconnect();
-  activeStream = null;
+  if (stream.mode === "script") stream.node.onaudioprocess = null;
+  else stream.node.port.onmessage = null;
+  stream.node.disconnect();
 }
 
 function updatePlaybackButtons(state = {}) {
@@ -3011,12 +3032,14 @@ function pumpWorkletChunks(targetFrames = currentWorkletTargetFrames()) {
     const frames = activeStream.chunkFrames;
     const left = new Float32Array(frames);
     const right = new Float32Array(frames);
-    player.process(left, right, frames);
+    const copied = player.process(left, right, frames) ?? frames;
     applyAnalyzerMuteToBuffer(left, right, frames);
-    activeStream.workletQueuedFrames += frames;
+    const outputLeft = copied === frames ? left : left.slice(0, copied);
+    const outputRight = copied === frames ? right : right.slice(0, copied);
+    activeStream.workletQueuedFrames += copied;
     activeStream.node.port.postMessage(
-      { type: "enqueue", left: left.buffer, right: right.buffer },
-      [left.buffer, right.buffer],
+      { type: "enqueue", left: outputLeft.buffer, right: outputRight.buffer },
+      [outputLeft.buffer, outputRight.buffer],
     );
     chunksQueued += 1;
   }
@@ -3044,7 +3067,7 @@ async function startWorkletStream(sampleRate) {
   }
   if (!workletModuleReady) {
     try {
-      await audioContext.audioWorklet.addModule("../js/vgm-output-worklet.js?v=buffered-start-1");
+      await audioContext.audioWorklet.addModule("../js/vgm-output-worklet.js?v=playback-fade-1");
       workletModuleReady = true;
     } catch (error) {
       console.warn("AudioWorklet module load failed; falling back to ScriptProcessorNode.", error);
@@ -3057,7 +3080,7 @@ async function startWorkletStream(sampleRate) {
     numberOfInputs: 0,
     numberOfOutputs: 1,
     outputChannelCount: [2],
-    processorOptions: {startupFrames: Math.max(chunkFrames, Math.floor(chunkFrames * workletQueueMultiplier))},
+    processorOptions: {fadeFrames: playbackFade.checked ? Math.round(sampleRate * 0.01) : 0, startupFrames: Math.max(chunkFrames, Math.floor(chunkFrames * workletQueueMultiplier))},
   });
   const stream = {
     mode: "worklet",
@@ -3095,22 +3118,41 @@ async function startWorkletStream(sampleRate) {
 function startScriptProcessorStream() {
   const bufferSize = 2048;
   const node = audioContext.createScriptProcessor(bufferSize, 0, 2);
-  activeStream = { mode: "script", node };
+  const stream = { mode: "script", node, fadePosition: 0 };
+  activeStream = stream;
   node.onaudioprocess = (event) => {
     const left = event.outputBuffer.getChannelData(0);
     const right = event.outputBuffer.getChannelData(1);
     if (player.isPaused()) { left.fill(0); right.fill(0); return; }
-    player.process(left, right, bufferSize);
+    const copied = player.process(left, right, bufferSize) ?? bufferSize;
     applyAnalyzerMuteToBuffer(left, right, bufferSize);
     const stats = player.stats();
+    const ended = !stats.playing && !stats.paused && stats.queuedFrames === 0;
+    const fadeFrames = playbackFade.checked ? Math.round(audioContext.sampleRate * 0.01) : 0;
+    for (let i = 0; i < copied; i++) {
+      if (fadeFrames > 0) {
+        const gain = Math.min(1, stream.fadePosition / fadeFrames, ended ? (copied - i - 1) / Math.min(copied, fadeFrames) : 1);
+        left[i] *= gain; right[i] *= gain;
+      }
+      stream.fadePosition++;
+    }
+    stream.lastLeft = left[left.length - 1]; stream.lastRight = right[right.length - 1];
     requestPlaybackUiRender("(ScriptProcessor)");
 
-    if (!stats.playing && !stats.paused && stats.queuedFrames === 0) {
-      stopActiveStream();
-      resetTimelineToStart();
-      requestPlaybackUiRender("");
-      setStatus(`Ready.${currentStatusSuffix()}`);
-      advancePlaylist();
+    if (ended) {
+      // The callback's final buffer still needs to reach the output device.
+      node.onaudioprocess = event => {
+        event.outputBuffer.getChannelData(0).fill(0); event.outputBuffer.getChannelData(1).fill(0);
+      };
+      setTimeout(() => {
+        node.disconnect(); node.onaudioprocess = null;
+        if (activeStream !== stream) return;
+        activeStream = null;
+        resetTimelineToStart();
+        requestPlaybackUiRender("");
+        setStatus(`Ready.${currentStatusSuffix()}`);
+        advancePlaylist();
+      }, 1000 * bufferSize / audioContext.sampleRate + 20);
     }
   };
   rewireAudioGraph();

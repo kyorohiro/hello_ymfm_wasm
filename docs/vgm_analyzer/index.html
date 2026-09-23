@@ -658,6 +658,7 @@
           <button id="inlinePauseButton" type="button" disabled>Pause</button>
           <button id="inlineStopButton" type="button" disabled>Stop</button>
           <button id="replayButton" type="button" disabled>Replay</button>
+          <label title="10 ms fades for browser playback; WAV export is unchanged"><input id="playbackFade" type="checkbox" checked> Fade in / out</label>
           <label><input id="loopCheckbox" type="checkbox"> Loop</label>
           <label id="playlistLoopControl" class="playlist-loop-control" hidden title="Return to the first track after the last track finishes"><input id="playlistLoopCheckbox" type="checkbox"> Playlist loop</label>
           <label class="volume-control" for="masterVolumeRange">
@@ -972,7 +973,7 @@
       </div>
     </section>
 
-    <script type="module" src="./vgm_analyzer.js?v=status-1hz-1"></script>
+    <script type="module" src="./vgm_analyzer.js?v=optional-opna-rom-1"></script>
   <dialog id="scoreGroupDialog"><form method="dialog">
 <h2>Channel Groups</h2><p>Combine notes for scores and the Song timeline. Playback and live physical CH monitors are unchanged. Settings last for this loaded track only.</p>
 <button type="button" data-all>Merge all channels</button> <button type="button" data-clear>Clear groups</button>

@@ -304,13 +304,13 @@ export class VgmPlayer {
    * @param {Float32Array} left
    * @param {Float32Array} right
    * @param {number} frames
-   * @returns {void}
+   * @returns {number} Audio frames copied, excluding end-of-track zero padding.
    */
   process(left, right, frames) {
     if (!this.parser || this.paused) {
       left.fill(0, 0, frames);
       right.fill(0, 0, frames);
-      return;
+      return 0;
     }
 
     if (this.playing) {
@@ -320,10 +320,10 @@ export class VgmPlayer {
     if (!this.playing && !this.paused && this.queuedFrames === 0) {
       left.fill(0, 0, frames);
       right.fill(0, 0, frames);
-      return;
+      return 0;
     }
 
-    this.#copyQueuedFrames(left, right, frames);
+    return this.#copyQueuedFrames(left, right, frames);
   }
 
   /**
@@ -500,7 +500,7 @@ export class VgmPlayer {
       if (this.chunkQueue.length === 0) {
         left.fill(0, writeOffset, frames);
         right.fill(0, writeOffset, frames);
-        return;
+        return writeOffset;
       }
 
       const chunk = this.chunkQueue[0];
@@ -516,5 +516,6 @@ export class VgmPlayer {
         this.chunkQueue.shift();
       }
     }
+    return writeOffset;
   }
 }

@@ -292,3 +292,13 @@ test('loading a new song removes the script output callback', async () => {
   assert.equal(runtime.getState().outputMode, 'none');
   await runtime.finalize();
 });
+
+ test('process returns real audio frame count without counting terminal padding', () => {
+  const p = new VgmPlayer(engine());
+  p.load(vgm(5)); p.play();
+  const left = new Float32Array(4), right = new Float32Array(4);
+  assert.equal(p.process(left, right, 4), 4);
+  assert.equal(p.process(left, right, 4), 1);
+  assert.deepEqual([...left], [5,0,0,0]);
+  assert.equal(p.process(left, right, 4), 0);
+ });

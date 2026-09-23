@@ -107,9 +107,10 @@ for (const mode of ['worklet', 'script']) {
   test(`${mode} stream completion plays the next playlist track`, async () => {
     const p = setup();
     await p.add(['first.vgm', 'second.vgm']);
-    const node = { port: {}, connect() {} };
+    const node = { port: {}, connect() {}, disconnect() {} };
     Object.assign(p.context, {
-      audioContext: { audioWorklet: {}, destination: {}, createScriptProcessor: () => node },
+      playbackFade: {checked: true}, setTimeout: fn => fn(),
+      audioContext: { sampleRate: 44100, audioWorklet: {}, destination: {}, createScriptProcessor: () => node },
       AudioWorkletNode: function () { return node; }, workletModuleReady: true,
       activeStream: null, workletQueueMultiplier: 2, resetTimelineToStart() {}, requestPlaybackUiRender() {},
       currentStatusSuffix: () => '', scheduleWorkletPump() {}, pumpWorkletChunks() {},

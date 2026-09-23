@@ -5,6 +5,9 @@ class VgmOutputProcessor extends AudioWorkletProcessor {
     const requested = options.processorOptions?.startupFrames ?? 0;
     this.startupFrames = Number.isSafeInteger(requested) && requested > 0 ? requested : 0;
     this.buffering = this.startupFrames > 0;
+    this.fadeFrames = Math.max(0, Math.floor(options.processorOptions?.fadeFrames || 0));
+    this.fadePosition = 0;
+    this.stopRemaining = null;
     this.queue = [];
     this.queuedFrames = 0;
     this.consumedFrames = 0;
@@ -16,6 +19,17 @@ class VgmOutputProcessor extends AudioWorkletProcessor {
     this.port.onmessage = (event) => {
       const data = event.data;
       if (!data || typeof data !== "object") {
+        return;
+      }
+      if (data.type === "fade") {
+        this.fadeFrames = Math.max(0, Math.floor(data.frames || 0));
+        return;
+      }
+      if (data.type === "stop") {
+        this.paused = false;
+        this.buffering = false;
+        this.endRequested = true;
+        this.stopRemaining = this.fadeFrames;
         return;
       }
       if (data.type === "pause" || data.type === "resume") {
@@ -41,6 +55,8 @@ class VgmOutputProcessor extends AudioWorkletProcessor {
         this.queue = [];
         this.queuedFrames = 0;
         this.consumedFrames = 0;
+        this.fadePosition = 0;
+        this.stopRemaining = null;
         this.currentChunk = null;
         this.currentOffset = 0;
         this.endRequested = false;
@@ -70,6 +86,11 @@ class VgmOutputProcessor extends AudioWorkletProcessor {
     let writeOffset = 0;
 
     while (writeOffset < left.length) {
+      // Retain a short tail until the end marker arrives, even across chunks.
+      if (this.stopRemaining === 0 || (!this.endRequested && this.queuedFrames <= this.fadeFrames)) {
+        left.fill(0, writeOffset); right.fill(0, writeOffset);
+        break;
+      }
       if (!this.currentChunk) {
         if (this.queue.length === 0) {
           left.fill(0, writeOffset);
@@ -85,7 +106,9 @@ class VgmOutputProcessor extends AudioWorkletProcessor {
         this.currentOffset;
       const frames = Math.min(
         left.length - writeOffset,
-        available
+        available,
+        this.endRequested ? this.queuedFrames : this.queuedFrames - this.fadeFrames,
+        this.stopRemaining ?? Infinity
       );
       left.set(
         this.currentChunk.left.subarray(
@@ -101,6 +124,17 @@ class VgmOutputProcessor extends AudioWorkletProcessor {
         ),
         writeOffset
       );
+      for (let i = 0; i < frames; i++) {
+        let gain = 1;
+        if (this.fadeFrames > 0) {
+          gain = Math.min(1, this.fadePosition / this.fadeFrames);
+          if (this.endRequested) gain = Math.min(gain, Math.max(0, (Math.min(this.stopRemaining ?? Infinity, this.queuedFrames) - i - 1) / this.fadeFrames));
+        }
+        left[writeOffset + i] *= gain;
+        right[writeOffset + i] *= gain;
+        this.fadePosition++;
+      }
+      if (this.stopRemaining !== null) this.stopRemaining -= frames;
       this.currentOffset += frames;
       writeOffset += frames;
       this.queuedFrames -= frames;
@@ -116,6 +150,7 @@ class VgmOutputProcessor extends AudioWorkletProcessor {
     }
 
     if (
+      this.stopRemaining === 0 ||
       this.queuedFrames <= 4096 ||
       (this.endRequested &&
         this.queuedFrames === 0)
@@ -126,7 +161,7 @@ class VgmOutputProcessor extends AudioWorkletProcessor {
         consumedFrames: this.consumedFrames,
         ended:
           this.endRequested &&
-          this.queuedFrames === 0,
+          (this.queuedFrames === 0 || this.stopRemaining === 0),
       });
     }
 

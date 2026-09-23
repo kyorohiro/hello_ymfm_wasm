@@ -155,3 +155,18 @@ test('YM2203 renders FM and SSG independently and matches the shared Browser eng
   const missing=original.slice();new DataView(missing.buffer).setUint32(0x90,4000000,true);missing[0x94]=4;
   await assert.rejects(createPlaybackEngine(new Ym2612VGM(missing),{getFactory:name=>name==='okim6258'?undefined:getNodePlaybackFactory(name)}),error=>error.code==='MISSING_RESOURCE'&&error.details.resource==='okim6258');
 });
+
+test('Analyzer plays OPNA without ROM with rhythm forced off; other sources remain audible', async () => {
+  for (const name of ['fm', 'ssg', 'adpcm', 'rhythm']) {
+    const source = await readSource(fixture(`ym2608-${name}`));
+    const context = await browserPlayer(source);
+    try {
+      assert.equal(context.engine._sourceMuteMask & 2, 2);
+      context.player.play();
+      const result = await renderVgmToWav(context.player, {maxSeconds: .1});
+      assert.equal(result.bytes.subarray(44).some(v => v !== 0), name !== 'rhythm', name);
+      context.engine.reset();
+      assert.equal(context.engine._sourceMuteMask & 2, 2);
+    } finally { context.engine.dispose(); }
+  }
+});
