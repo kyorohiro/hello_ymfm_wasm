@@ -6,7 +6,7 @@ import {readFileSync} from 'node:fs';
 const source=readFileSync(new URL('./vgm_analyzer.js',import.meta.url),'utf8');
 function setup(chip) {
  const node=()=>({attrs:{},setAttribute(k,v){this.attrs[k]=v;},getAttribute(k){return this.attrs[k];}});
- const ctx={isOpl,musicSheet:undefined,OPM_TFI_NOTICE:'Approximate conversion',currentBuffer:new Uint8Array(1),midiExportAvailable:true,currentChipKind:chip,noteishViewMode:'live',noteishHeader:{},document:{getElementById:()=>node()},tfiInfo:{setVisible(){}},opmInfo:{setVisible(){}},sampleExplorer:{stop(){}},songTimeline:{active(){}},setStatus(){},requestNoteishRender(){},renderNoteishGrid(){}};
+ const ctx={isOpl,musicSheet:undefined,OPM_TFI_NOTICE:'Approximate conversion',currentBuffer:new Uint8Array(1),midiExportAvailable:true,currentChipKind:chip,noteishViewMode:'live',noteishHeader:{},document:{getElementById:()=>node()},tfiInfo:{setVisible(){}},opmInfo:{setVisible(){}},sampleExplorer:{stop(){}},songTimeline:{active(){}},requestChannelMonitorRender(){},setStatus(){},requestNoteishRender(){},renderNoteishGrid(){}};
  for(const name of ['sheetMusicTab','sheetMusicPanel','exportAllOpmButton','exportOpmButton','operatorInfoTab','noteishTab','tfiInfoTab','sampleTab','parsedOutputTab','exportMidiButton','exportLilyPondButton','exportMmlButton','exportSnapshotTfiButton','exportSnapshotVgiButton','exportSnapshotButton','exportAllTfiButton','exportAllVgiButton','opnMonitorRoot','opmMonitorRoot','ayMonitorRoot','ym2413MonitorRoot','oplMonitorRoot','samplePanel','operatorInfoPanel','parsedOutputPanel','noteishPanel'])ctx[name]=node();
  vm.createContext(ctx);
  vm.runInContext(source.slice(source.indexOf('function updateChipSupport()'),source.indexOf('function buildParseInfo(')),ctx);

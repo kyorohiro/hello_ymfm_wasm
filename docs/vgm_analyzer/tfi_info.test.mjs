@@ -78,7 +78,7 @@ test('TFI tab switching and first audition leave VGM playback running', () => {
     mountYm2413Monitor() { return {}; },
     mountOplMonitor() { return {}; },
     sheetMusicPanel:element(),sheetMusicTab:element(),musicSheet:null,currentBuffer:null,midiExportAvailable:false,
-    setStatus() {}, currentChipKind: 'ym2612',
+    requestChannelMonitorRender() {}, setStatus() {}, currentChipKind: 'ym2612',
     player: { isPlaying: () => true, pause: () => stopped++, stop: () => stopped++ },
     pauseButton: { click: () => stopped++ },
     samplePanel: element(), sampleTab: element(), sampleExplorer: { stop() {} },

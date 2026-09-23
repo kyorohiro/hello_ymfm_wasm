@@ -713,8 +713,8 @@
             class="tab-button"
             type="button"
             role="tab"
-            aria-selected="true"
-            tabindex="0"
+            aria-selected="false"
+            tabindex="-1"
             aria-controls="operatorInfoPanel"
           >
             Operator Info
@@ -724,8 +724,8 @@
             class="tab-button"
             type="button"
             role="tab"
-            aria-selected="false"
-            tabindex="-1"
+            aria-selected="true"
+            tabindex="0"
             aria-controls="parsedOutputPanel"
           >
             Parsed Output
@@ -749,7 +749,7 @@
         <section id="opmInfoPanel" class="tab-panel" role="tabpanel" aria-labelledby="tfiInfoTab" hidden></section>
         <section id="tfiInfoPanel" class="tab-panel" role="tabpanel" aria-labelledby="tfiInfoTab" hidden></section>
         <section id="sampleExplorerPanel" class="tab-panel" role="tabpanel" aria-labelledby="sampleExplorerTab" hidden></section>
-        <section id="operatorInfoPanel" class="tab-panel" role="tabpanel" aria-labelledby="operatorInfoTab">
+        <section id="operatorInfoPanel" class="tab-panel" role="tabpanel" aria-labelledby="operatorInfoTab" hidden>
           <h2>FM Channel Monitor</h2>
           <div id="channelGrid" class="channel-grid"></div>
           <h2 id="psgMonitorTitle">Sega PSG</h2>
@@ -777,6 +777,7 @@
           <button type="button" data-score-groups>Channel Groups…</button>
           <div id="noteishViewTabs" class="tabbar" role="tablist" aria-label="Note-ish views">
             <button id="noteLiveTab" class="tab-button" type="button" role="tab" data-noteish-view="live" aria-controls="noteLivePane" aria-selected="true">Live History</button>
+            <button id="notePitchTab" class="tab-button" type="button" role="tab" data-noteish-view="pitch" aria-controls="notePitchPane" aria-selected="false" tabindex="-1">Pitch</button>
             <button id="noteSongTab" class="tab-button" type="button" role="tab" data-noteish-view="song" aria-controls="noteSongPane" aria-selected="false" tabindex="-1">Song Timeline</button>
             <button id="noteFretTab" class="tab-button" type="button" role="tab" data-noteish-view="fretboard" aria-controls="noteFretPane" aria-selected="false" tabindex="-1">Fretboard</button>
             <button id="noteAllFretTab" class="tab-button" type="button" role="tab" data-noteish-view="fretboard-all" aria-controls="noteAllFretPane" aria-selected="false" tabindex="-1">Fretboard (All)</button>
@@ -809,7 +810,10 @@
           <section id="noteLivePane" role="tabpanel" aria-labelledby="noteLiveTab">
             <p class="noteish-help">Recent pitch history across all channels. Time flows from right to left.</p>
             <div class="noteish-overview"><div id="noteishOverview" role="region" aria-label="Recent channel pitch history"></div></div>
-            <div id="noteishGrid" class="noteish-grid"></div>
+          </section>
+          <section id="notePitchPane" role="tabpanel" aria-labelledby="notePitchTab" hidden>
+            <p class="noteish-help">Current pitch, observed range and recent history for each channel.</p>
+            <div id="noteishGrid" class="noteish-grid" hidden></div>
           </section>
           <section id="noteSongPane" role="tabpanel" aria-labelledby="noteSongTab" hidden>
             <p class="noteish-help">Follow the melody from left to right in semitone rows. Scroll or zoom, click to choose a playback position, then Play.</p>
@@ -817,7 +821,7 @@
           </section>
         </section>
 
-        <section id="parsedOutputPanel" class="tab-panel" role="tabpanel" aria-labelledby="parsedOutputTab" hidden>
+        <section id="parsedOutputPanel" class="tab-panel" role="tabpanel" aria-labelledby="parsedOutputTab">
           <h2 id="metadataHeading">Track metadata (GD3)</h2>
           <dl id="metadataOutput" class="track-metadata">No file loaded.</dl>
 
@@ -968,7 +972,7 @@
       </div>
     </section>
 
-    <script type="module" src="./vgm_analyzer.js?v=live-load-1"></script>
+    <script type="module" src="./vgm_analyzer.js?v=split-pitch-1"></script>
   <dialog id="scoreGroupDialog"><form method="dialog">
 <h2>Channel Groups</h2><p>Combine notes for scores and the Song timeline. Playback and live physical CH monitors are unchanged. Settings last for this loaded track only.</p>
 <button type="button" data-all>Merge all channels</button> <button type="button" data-clear>Clear groups</button>

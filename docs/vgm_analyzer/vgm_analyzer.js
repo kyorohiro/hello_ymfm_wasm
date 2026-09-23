@@ -875,6 +875,7 @@ function ensureChannelMonitorRenderTimer() {
     return;
   }
   channelMonitorRenderTimer = window.setInterval(() => {
+    if (operatorInfoPanel.hidden) return;
     const psgRecent = (currentChipKind === 'ym2151' && opmMonitor.hasRecentChanges()) || psgMonitor.changedAt.some((time) => changeAgeOpacity(time) > 0) ||
       changeAgeOpacity(pcmMonitor.changedAt) > 0 || pcmMonitor.channels.some((channel) => changeAgeOpacity(channel.changedAt) > 0);
     if (!channelMonitorDirty && !hasRecentChannelChanges() && !psgRecent && !psgHighlightActive) {
@@ -1626,7 +1627,7 @@ function renderNoteishGrid() {
     if (noteishViewMode === 'fretboard-all') { renderAllChannelFretboard(); return; }
     if (noteishViewMode === 'live' || noteishViewMode === 'song') {
       renderNoteishOverviewGraph();
-      if (noteishViewMode === 'song') return;
+      return;
     }
   }
   const signature = buildNoteishSignature();
@@ -3273,6 +3274,7 @@ async function handleFile(file, preserveEditor = false) {
   exportAllVgiButton.disabled = extractedTfiPatches.length === 0;
   updatePlaybackButtons({});
   if (!preserveEditor) commandEditor.load(buffer, file.name);
+  setOutputTab("parsed-output");
   setStatus(`Parsed ${file.name} (${currentHasPcm ? "MEGA-CD" : (currentChipKind === "ym2610" && (noteishHeader.ym2610Clock & 0x80000000) ? "YM2610B" : currentChipKind.toUpperCase())}).${currentStatusSuffix()}`);
 }
 
@@ -3675,6 +3677,7 @@ function setOutputTab(tabName) {
   );
   noteishTab.tabIndex = tabName === "noteish" ? 0 : -1;
   operatorInfoPanel.hidden = !isOperatorInfo;
+  if (isOperatorInfo) requestChannelMonitorRender();
   parsedOutputPanel.hidden = tabName !== "parsed-output";
   noteishPanel.hidden = tabName !== "noteish";
   songTimeline.active(tabName === "noteish" && noteishViewMode === "song");
@@ -3699,9 +3702,9 @@ noteishTab.addEventListener("click", () => {
 });
 
 function setNoteishView(mode) {
-  if (!['live', 'song', 'fretboard', 'fretboard-all', 'keyboard'].includes(mode)) return;
+  if (!['live', 'pitch', 'song', 'fretboard', 'fretboard-all', 'keyboard'].includes(mode)) return;
   noteishViewMode = mode;
-  const paneIds = { live: 'noteLivePane', song: 'noteSongPane', fretboard: 'noteFretPane', 'fretboard-all': 'noteAllFretPane', keyboard: 'noteKeyboardPane' };
+  const paneIds = { live: 'noteLivePane', pitch: 'notePitchPane', song: 'noteSongPane', fretboard: 'noteFretPane', 'fretboard-all': 'noteAllFretPane', keyboard: 'noteKeyboardPane' };
   for (const button of document.querySelectorAll('[data-noteish-view]')) {
     const selected = button.dataset.noteishView === mode;
     button.setAttribute('aria-selected', String(selected));
@@ -3709,7 +3712,7 @@ function setNoteishView(mode) {
   }
   for (const [key,id] of Object.entries(paneIds)) document.getElementById(id).hidden = key !== mode;
   const fretboard = mode === 'fretboard' || mode === 'fretboard-all';
-  noteishMode.value = mode === 'live' || fretboard ? 'normal' : 'detail';
+  noteishMode.value = mode === 'live' || mode === 'pitch' || fretboard ? 'normal' : 'detail';
   noteishInstrument.value = fretboard ? 'fretboard' : 'keyboard';
   document.getElementById('noteTimelineMode').value = mode === 'song' ? 'score' : 'live';
   noteishPanel.classList.toggle('is-detailed', mode === 'song' || mode === 'keyboard');
@@ -3717,7 +3720,7 @@ function setNoteishView(mode) {
   const fretOptions = document.getElementById('fretboardOptions');
   fretOptions.hidden = !fretboard;
   if (fretboard) document.getElementById(paneIds[mode]).prepend(fretOptions);
-  noteishGrid.hidden = mode === 'song' || mode === 'fretboard-all';
+  noteishGrid.hidden = mode === 'live' || mode === 'song' || mode === 'fretboard-all';
   if (!noteishGrid.hidden) document.getElementById(paneIds[mode]).append(noteishGrid);
   songTimeline.mode('detail');
   songTimeline.active(!noteishPanel.hidden && mode === 'song');
