@@ -300,12 +300,14 @@ including its fixed sine waveform, rather than substituting the OPL2 core.
 Second YM3526 chips, DAC streams and other chip combinations remain unsupported;
 instrument editing is not yet available.
 
-YM3526 and YM3812 support nine-channel base-pitch Note-ish, MIDI, MusicXML
+YM3526, YM3812 and standalone Y8950 support nine-channel base-pitch Note-ish, MIDI, MusicXML
 and LilyPond export. Rhythm-mode CH7–9 and CSM intervals are omitted from
-transcription; timbre, modulation and envelope release are not reconstructed.
+transcription; Y8950 ADPCM is also omitted. Timbre, modulation and envelope
+release are not reconstructed. Optional Sega PSG tones are included in exports.
+The combined MSX configuration remains playback-only in the Analyzer.
 Operator Info displays both operators, feedback/connection and waveform state,
 and exports the current register state as a JSON voice snapshot. YM3526 uses
-a fixed sine waveform; YM3812 respects the waveform-selection enable bit.
+a fixed sine waveform, as does Y8950; YM3812 respects the waveform-selection enable bit.
 The JSON snapshot is not a TFI/VGI instrument or an audio-state save.
 
 To inspect and reconstruct this playback path:

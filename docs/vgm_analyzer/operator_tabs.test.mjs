@@ -23,7 +23,7 @@ for(const chip of ['ym2151','ay8910'])test(`${chip} Operator Info survives repea
  c.setOutputTab('tfi-info');c.updateChipSupport();assert.equal(c.parsedOutputPanel.hidden,chip==='ym2151');if(chip==='ym2151'){assert.equal(c.tfiInfoTab.disabled,false);assert.equal(c.tfiInfoTab.getAttribute('aria-selected'),'true');}
 });
 test('unsupported chip still rejects Operator Info; switching from unsupported tab selects a supported tab',()=>{
- const c=setup('y8950');c.updateChipSupport();c.setOutputTab('operator-info');assert.equal(c.operatorInfoTab.disabled,true);assert.equal(c.operatorInfoPanel.hidden,true);
+ const c=setup('segapcm');c.updateChipSupport();c.setOutputTab('operator-info');assert.equal(c.operatorInfoTab.disabled,true);assert.equal(c.operatorInfoPanel.hidden,true);
  c.currentChipKind='ym2612';c.setOutputTab('noteish');c.currentChipKind='ym2151';c.updateChipSupport();assert.equal(c.operatorInfoPanel.hidden,true);assert.equal(c.noteishPanel.hidden,false);
 });
 
@@ -56,7 +56,7 @@ test('Sheet Music stays selected for OPN and OPM during playback updates', () =>
  }
 });
 
-for (const chip of ['ym3526','ym3812']) test(`${chip} keeps operator info, notes and scores reachable`,()=>{
+for (const chip of ['ym3526','ym3812','y8950']) test(`${chip} keeps operator info, notes and scores reachable`,()=>{
  const c=setup(chip);c.updateChipSupport();
  for(const [tab,panel] of [['operator-info','operatorInfoPanel'],['noteish','noteishPanel'],['sheet-music','sheetMusicPanel']]) {
   c.setOutputTab(tab);for(let i=0;i<3;i++)c.updateChipSupport();

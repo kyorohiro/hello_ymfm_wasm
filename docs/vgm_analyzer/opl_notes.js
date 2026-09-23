@@ -1,7 +1,7 @@
 import {Ym2612VGM} from '../js/ym2612vgm.js';
 
-export const isOpl = kind => kind === 'ym3526' || kind === 'ym3812';
-export const oplChipKind = header => ['ym3526','ym3812'].find(k => header[`${k}Clock`] & 0x3fffffff) ?? null;
+export const isOpl = kind => kind === 'ym3526' || kind === 'ym3812' || kind === 'y8950';
+export const oplChipKind = header => ['ym3526','ym3812','y8950'].find(k => header[`${k}Clock`] & 0x3fffffff) ?? null;
 export const createOplMonitor = () => new Uint8Array(256);
 export function applyOplWrite(regs, register, value) { if (register >= 0 && register < 256) regs[register] = value; }
 // Register layout and operator mapping: src/ymfm_opl.h and src/ymfm_opl.cpp.
@@ -16,7 +16,7 @@ export function describeOplNotes(regs, clock) {
   });
 }
 export function snapshotOpl(regs, kind, clock) {
-  if (!isOpl(kind)) throw new Error('OPL snapshot requires YM3526 or YM3812');
+  if (!isOpl(kind)) throw new Error('OPL snapshot requires YM3526, YM3812 or Y8950');
   const waveEnabled = kind === 'ym3812' && !!(regs[1]&32);
   return {format:'tetorica-opl-snapshot', version:1, chip:kind, clock,
     description:'Register-state snapshot, not an envelope or audio snapshot. Rhythm shares CH7–9 operators.',
@@ -33,12 +33,13 @@ export function snapshotOpl(regs, kind, clock) {
 export function extractOplNotes(source) {
   const warnings=new Map(), warn=message=>warnings.set(message,{count:(warnings.get(message)?.count??0)+1});
   const parser=new Ym2612VGM(source,{logger:{warn}}), kind=oplChipKind(parser.header);
-  if (!kind) throw new Error('YM3526 or YM3812 clock is required');
-  if (['ym3526','ym3812'].filter(k=>parser.header[`${k}Clock`]&0x3fffffff).length!==1 || parser.header[`${kind}Clock`]&0xc0000000)
+  if (!kind) throw new Error('YM3526, YM3812 or Y8950 clock is required');
+  if (['ym3526','ym3812','y8950'].filter(k=>parser.header[`${k}Clock`]&0x3fffffff).length!==1 || parser.header[`${kind}Clock`]&0xc0000000)
     throw new Error('Dual/variant or mixed OPL/OPL2 note extraction is not supported');
   const clock=parser.header[`${kind}Clock`]&0x3fffffff, regs=createOplMonitor();
   let time=0;
   warn(`${kind.toUpperCase()}: FNUM/BLOCK base pitch only; timbre, multipliers, vibrato, envelopes and audible release are not reproduced.`);
+  if(kind==='y8950')warn('Y8950 ADPCM is omitted from pitched notes; only FM base pitches are extracted.');
   const channels=Array.from({length:9},(_,i)=>({name:`${kind.toUpperCase()} CH${i+1}`,notes:[],active:null,serial:0,gate:false}));
   const close=ch=>{if(ch.active && time>ch.active.start) ch.notes.push({...ch.active,end:time});ch.active=null;};
   const targets = {[kind]:{writeRegister(r,v){

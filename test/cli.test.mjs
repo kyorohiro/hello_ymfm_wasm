@@ -167,10 +167,10 @@ test('npm tarball installs offline, runs via npx, and exports the library',async
       const api=execFileSync(process.execPath,['--input-type=module','-e',"import {readSource,renderSource} from 'tetorica-vgm'; process.stdout.write((await renderSource(await readSource(process.argv[1]),{maxSeconds:.05})).bytes)",input],{cwd:dir});
       assert.deepEqual(api,Buffer.from(expected.bytes));
     }
-    for(const format of ['midi','musicxml','lilypond']) {
-      const input=fixture('huc6280-tone.vgz'),out=join(dir,'huc6280.'+format);
+    for(const chip of ['huc6280','y8950']) for(const format of ['midi','musicxml','lilypond']) {
+      const input=fixture(chip==='y8950'?'y8950-mix.vgz':'huc6280-tone.vgz'),out=join(dir,chip+'.'+format);
       execFileSync('npm',[...args,'export',input,'--format',format,'--bpm','120','--output',out],{cwd:dir});
-      const result=exportSource(await readSource(input),{format,bpm:120,fileName:'huc6280-tone.vgz'});
+      const result=exportSource(await readSource(input),{format,bpm:120,fileName:chip==='y8950'?'y8950-mix.vgz':'huc6280-tone.vgz'});
       assert.deepEqual(readFileSync(out),Buffer.from(result.bytes??result.text));
     }
     const wavePath=join(dir,'synthetic-wave.bin'),waveOut=join(dir,'opl4.wav');

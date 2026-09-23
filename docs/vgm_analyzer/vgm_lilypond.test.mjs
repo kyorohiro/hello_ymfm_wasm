@@ -43,7 +43,8 @@ test('real YM2612 and YM2151 extractors feed LilyPond',()=>{
 test('PSG tone-only input exports and unsupported chip rejects',()=>{
   const psg=vgm([0x50,0x80,0x50,0x10,0x50,0x90,0x61,0x22,0x56,0x50,0x9f,0x66],0x0c,3579545);
   assert.equal(exportAnalysisLilyPond(psg).noteCount,1);
-  assert.throws(()=>exportAnalysisLilyPond(vgm([0x66],0x58,3579545)),/requires/);
+  assert.equal(exportAnalysisLilyPond(vgm([0x66],0x58,3579545)).noteCount,0,'silent Y8950 now supports score export');
+  assert.throws(()=>exportAnalysisLilyPond(vgm([0x66],0x38,4000000)),/requires/);
 });
 test('Game Boy DMG square-channel note feeds LilyPond',()=>{
   const gbw=(register,value)=>[0xb3,register,value];

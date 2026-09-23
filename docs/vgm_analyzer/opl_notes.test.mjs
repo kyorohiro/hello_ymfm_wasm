@@ -7,13 +7,13 @@ import {exportSource,listSourceScoreChannels,inspectSourceSupport} from './analy
 import {chipSupportContext} from './test_helpers/chip_support_context.mjs';
 const wait=[0x61,0x22,0x56];
 function vgm(kind,entries,clock=3579545) {
- const code=kind==='ym3526'?0x5b:0x5a;
+ const code=kind==='y8950'?0x5c:kind==='ym3526'?0x5b:0x5a;
  const commands=entries.flatMap(e=>e==='wait'?wait:[code,...e]);
  const bytes=new Uint8Array(257+commands.length),view=new DataView(bytes.buffer);
  bytes.set([86,103,109,32]);view.setUint32(8,0x171,true);view.setUint32(0x34,0xcc,true);
- view.setUint32(kind==='ym3526'?0x54:0x50,clock,true);bytes.set([...commands,0x66],256);return bytes;
+ view.setUint32(kind==='y8950'?0x58:kind==='ym3526'?0x54:0x50,clock,true);bytes.set([...commands,0x66],256);return bytes;
 }
-for(const kind of ['ym3526','ym3812']) {
+for(const kind of ['ym3526','ym3812','y8950']) {
  test(`${kind}: pitch changes, retriggers, all nine channels and final note closure`,()=>{
   const entries=Array.from({length:9},(_,ch)=>[[0xa0+ch,68],[0xb0+ch,0x32]]).flat();
   const a=extractOplNotes(vgm(kind,[...entries,'wait',[0xa0,69],'wait',[0xb0,0x12],[0xb0,0x32],'wait']));
@@ -56,7 +56,7 @@ for(const kind of ['ym3526','ym3812']) {
  });
 }
 
-for(const kind of ['ym3526','ym3812']) test(`${kind}: live Note-ish updates, CSM omission and reset`,async()=>{
+for(const kind of ['ym3526','ym3812','y8950']) test(`${kind}: live Note-ish updates, CSM omission and reset`,async()=>{
  const {isOpl}=await import('./opl_notes.js');
  const source=fs.readFileSync(new URL('./vgm_analyzer.js',import.meta.url),'utf8');
  const fn=name=>{const start=source.indexOf(`function ${name}(`);return source.slice(start,source.indexOf('\n}',start)+2);};
@@ -66,6 +66,7 @@ for(const kind of ['ym3526','ym3812']) test(`${kind}: live Note-ish updates, CSM
  for(const [r,v] of [[0xa0,68],[0xb0,50]])applyOplWrite(c.apuNoteMonitor,r,v);
  c.updateApuNoteMonitor();assert.equal(c.apuNoteChannels.length,9);assert.equal(c.apuNoteChannels[0].keyOn,true);assert.equal(c.apuNoteChannels[0].label,`${kind.toUpperCase()} CH1`);
  applyOplWrite(c.apuNoteMonitor,8,128);c.updateApuNoteMonitor();assert.equal(c.apuNoteChannels[0].toneMidi,null);assert.equal(c.apuNoteChannels[0].unavailable,true);
+ applyOplWrite(c.apuNoteMonitor,8,0);applyOplWrite(c.apuNoteMonitor,0xb0,18);c.updateApuNoteMonitor();assert.equal(c.apuNoteChannels[0].toneMidi,null,'key off closes live note');
  c.resetApuNoteChannels();assert.ok(c.apuNoteChannels.every(ch=>!ch.keyOn));
 });
 
@@ -82,7 +83,7 @@ test('OPL operator display downloads the current JSON state',()=>{
  assert.equal(clicked,true);assert.equal(downloaded.channels[0].operators[0].multiplier,2);assert.equal(downloaded.format,'tetorica-opl-snapshot');
 });
 
-for(const kind of ['ym3526','ym3812']) test(`${kind}: waveform enable toggles interpretation without losing raw register data`,()=>{
+for(const kind of ['ym3526','ym3812','y8950']) test(`${kind}: waveform enable toggles interpretation without losing raw register data`,()=>{
  const regs=createOplMonitor();applyOplWrite(regs,0xe0,0xff);
  assert.equal(snapshotOpl(regs,kind,3579545).channels[0].operators[0].waveform,0);
  applyOplWrite(regs,1,32);
@@ -95,7 +96,7 @@ for(const kind of ['ym3526','ym3812']) test(`${kind}: waveform enable toggles in
  assert.equal(enabled.registers[1],32,'snapshots must not change with subsequent writes');
 });
 
-for(const kind of ['ym3526','ym3812']) test(`${kind}: rhythm affects only CH7–9 and register changes while off do not create notes`,()=>{
+for(const kind of ['ym3526','ym3812','y8950']) test(`${kind}: rhythm affects only CH7–9 and register changes while off do not create notes`,()=>{
  const entries=Array.from({length:9},(_,i)=>[[0xa0+i,68],[0xb0+i,50]]).flat();
  const score=extractOplNotes(vgm(kind,[...entries,'wait',[0xbd,63],'wait',[0xbd,0],'wait',
   ...Array.from({length:9},(_,i)=>[0xb0+i,18]),[0xa0,100],'wait']));

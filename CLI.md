@@ -674,14 +674,14 @@ Node callers can use `exportSource(source, {format: 'musicxml', groups:
 Group metadata preserves the original CH on notes; output files retain it in
 hidden MusicXML notations or LilyPond comments. Existing quantization limits apply.
 
-### YM3526 / YM3812 notes and scores
+### YM3526 / YM3812 / Y8950 notes and scores
 
-Single-chip OPL / OPL2 supports MIDI, MusicXML, LilyPond and `score-channels`.
+Single-chip OPL / OPL2 / Y8950 supports MIDI, MusicXML, LilyPond and `score-channels`.
 Score channel IDs are `ym3526-ch1` through `ym3526-ch9` or `ym3812-ch1`
-through `ym3812-ch9`. Export uses FNUM/BLOCK base pitches and key-on intervals;
-rhythm-mode CH7–9 and CSM intervals are omitted. Original timbres, modulation
+through `ym3812-ch9`, or `y8950-ch1` through `y8950-ch9`. Export uses FNUM/BLOCK base pitches and key-on intervals;
+rhythm-mode CH7–9, CSM intervals and Y8950 ADPCM are omitted. Original timbres, modulation
 and envelope release are not reconstructed. Dual/variant chips and mixed
-YM3526 + YM3812 note extraction are rejected. The browser Operator Info panel
+OPL-family note extraction are rejected. Optional Sega PSG tones are included. The browser Operator Info panel
 also exports register-state JSON voice snapshots.
 
 ## HuC6280 playback
@@ -704,3 +704,13 @@ node cli/main.js export test/fixtures/huc6280-tone.vgz --format lilypond --bpm 1
 
 This is available in the working tree; the published `tetorica-vgm@0.1.5` package
 predates HuC6280 support.
+
+## Y8950 score export examples
+
+FM only; ADPCM is omitted:
+
+```sh
+node cli/main.js export test/fixtures/y8950-mix.vgz --format midi --output /tmp/y8950.mid
+node cli/main.js export test/fixtures/y8950-mix.vgz --format musicxml --bpm 120 --output /tmp/y8950.musicxml
+node cli/main.js export test/fixtures/y8950-mix.vgz --format lilypond --bpm 120 --output /tmp/y8950.ly
+```

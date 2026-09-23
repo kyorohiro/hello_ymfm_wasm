@@ -18,8 +18,8 @@ function gameboyVgm() {
 }
 const analyzer=readFileSync(new URL('./vgm_analyzer.js',import.meta.url),'utf8');
 const worker=readFileSync(new URL('./note_timeline_worker.js',import.meta.url),'utf8').replace(/^import .*;\n/gm,'');
-for(const kind of ['gameboy','nes'])test(`${kind} file load feeds Song timeline and worker returns visible notes`,()=>{
- const bytes=kind==='gameboy'?gameboyVgm():readFileSync(new URL('../../test/fixtures/nes-tone.vgm',import.meta.url));
+for(const kind of ['gameboy','nes','y8950'])test(`${kind} file load feeds Song timeline and worker returns visible notes`,()=>{
+ const bytes=kind==='gameboy'?gameboyVgm():readFileSync(new URL(`../../test/fixtures/${kind==='y8950'?'y8950-fm':'nes-tone'}.vgm`,import.meta.url));
  const messages=[];
  const context=vm.createContext({analyzeLilyPondSource,groupScoreChannels,Ym2612VGM,packTimeline,timelineWindow,
   self:{postMessage:message=>messages.push(message)}});
@@ -54,8 +54,8 @@ test('all Note-ish chip modes pass loaded files to Song timeline',async()=>{
  const loadEnd=analyzer.indexOf('  playbackSeek.max',loadStart);
  assert.ok(supportStart>=0&&supportEnd>supportStart&&loadStart>=0&&loadEnd>loadStart);
  // PSG-only playback also uses the ym2612 UI mode; YM2610B uses ym2610.
- const supported=['huc6280','ym2612','ym2203','ym2608','ym2610','ym2151','ym2413','ay8910','ym3526','ym3812','ymf262','nes','gameboy'];
- const unsupported=['okim6258','msx','y8950','ymf278b','segapcm'];
+ const supported=['y8950','huc6280','ym2612','ym2203','ym2608','ym2610','ym2151','ym2413','ay8910','ym3526','ym3812','ymf262','nes','gameboy'];
+ const unsupported=['okim6258','msx','ymf278b','segapcm'];
  for(const kind of [...supported,...unsupported]){
   const buffer=new Uint8Array(1),loads=[];
   const context={...chipSupportContext(),currentChipKind:kind,buffer,setOutputTab(){},songTimeline:{load:value=>loads.push(value)}};
