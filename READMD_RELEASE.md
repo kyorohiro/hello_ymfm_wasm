@@ -164,18 +164,3 @@ node scripts/build_analyzer_support.mjs --check
 生成したHTMLもcommitし、GitHub Pagesへ反映する。JavaScriptやダイアログ操作なしで読める。
 itch.ioの梱包でも同期チェックを行い、このページを同梱する。
 公開後の案内URL: https://kyorohiro.github.io/hello_ymfm_wasm/vgm_analyzer/support.html
-
-## HuC6280 playback verification (next release)
-
-MAME HuC6280 support is not included in the already-published `0.1.8` package.
-Verify the local build before publishing the next version:
-
-```sh
-sh scripts/build_huc6280_wasm.sh
-npm run build
-node dist/cli/main.js render test/fixtures/huc6280-tone.vgz --output /tmp/huc6280.wav
-node dist/cli/main.js export test/fixtures/huc6280-tone.vgz --format midi --output /tmp/huc6280.mid
-node dist/cli/main.js export test/fixtures/huc6280-tone.vgz --format musicxml --bpm 120 --output /tmp/huc6280.musicxml
-node dist/cli/main.js export test/fixtures/huc6280-tone.vgz --format lilypond --bpm 120 --output /tmp/huc6280.ly
-node --test web/huc6280.test.mjs test/huc6280-render.test.mjs test/huc6280-export.test.mjs
-```
