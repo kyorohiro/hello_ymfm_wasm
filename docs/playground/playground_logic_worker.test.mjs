@@ -320,3 +320,13 @@ test('Worker MIDI output forwards voice then note, and loop cleanup releases own
  const note=worker.messages.filter(m=>m.command==='midi.handle')[1];assert.equal(note.args[1].channel,8);assert.equal(note.args[3][0],60);
  worker.post({type:'response',id:note.id,value:1});await worker.send({type:'stop'});
 });
+
+test('Worker forwards pitch bend and range with destination and channel intact',async()=>{
+ const worker=createWorkerHarness();
+ worker.post({type:'run',presets:{},scaleIntervals:{},sourceCode:`const o=midi.output('tetorica-sega-psg',{channel:16});await o.setPitchBendRange(12);await o.pitchBend(-1);`});
+ await waitFor(()=>worker.messages.some(m=>m.command==='midi.handle'));
+ const first=worker.messages.find(m=>m.command==='midi.handle');assert.deepEqual(JSON.parse(JSON.stringify(first.args)),['tetorica-sega-psg',{channel:16},'setPitchBendRange',[12]]);
+ worker.post({type:'response',id:first.id});await waitFor(()=>worker.messages.filter(m=>m.command==='midi.handle').length===2);
+ const second=worker.messages.filter(m=>m.command==='midi.handle')[1];assert.deepEqual(JSON.parse(JSON.stringify(second.args)),['tetorica-sega-psg',{channel:16},'pitchBend',[-1]]);
+ worker.post({type:'response',id:second.id});await worker.send({type:'stop'});
+});

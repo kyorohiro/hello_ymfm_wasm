@@ -1,5 +1,5 @@
-import {createMidiRack, createMidiApi} from './playground_midi.js';
-import {parseMidiFile} from './midi_file.js';
+import {createMidiRack, createMidiApi, validateBendRange} from './playground_midi.js?v=midi-bend-1';
+import {parseMidiFile} from './midi_file.js?v=midi-bend-1';
 import { createAudioScheduler } from "./playground_audio_scheduler.js";
 import {
   FM_PRESETS,
@@ -154,7 +154,7 @@ export function createPlaygroundRuntime(
     );
   defaultLogicWorkerUrl.searchParams.set(
     "v",
-    "midi-import-1"
+    "midi-bend-1"
   );
   const logicWorkerUrl =
     options.logicWorkerUrl ??
@@ -791,7 +791,7 @@ export function createPlaygroundRuntime(
     if (command === "midi.file") return globals.midi.playFile(...args);
     if (command === "midi.handle") {
       const [destination, options, method, values] = args;
-      if (!["setVoice","noteOn","noteOff"].includes(method)) throw new Error("Unsupported MIDI method");
+      if (!["setVoice","noteOn","noteOff","pitchBend","setPitchBendRange"].includes(method)) throw new Error("Unsupported MIDI method");
       return globals.midi.output(destination,options)[method](...values);
     }
     if (command === "midi.release") return getMidiRack().noteOff(args[0],args[1],args[2],undefined,args[3]);
@@ -1049,6 +1049,7 @@ export function createPlaygroundRuntime(
     for (const route of routes) {
       if (!song.parts.some(p=>p.key===route.part)) throw new Error("Unknown MIDI part");
       if (!["tetorica-ym2612","tetorica-sega-psg"].includes(route.destination) || !Number.isInteger(route.channel) || route.channel<1 || route.channel>16) throw new Error("Invalid MIDI route");
+      validateBendRange(route.bendRange ?? 2);
       const key=JSON.stringify([route.destination,route.channel]);
       if (targets.has(key) || mapping.has(route.part)) throw new Error("Assign each imported part to a separate output / MIDI channel");
       targets.add(key);mapping.set(route.part,route);
@@ -1056,6 +1057,10 @@ export function createPlaygroundRuntime(
         const patch=presets[route.preset];if(!patch)throw new Error(`Unknown preset: ${route.preset}`);
         rack.setVoice(route.channel,patch);
       }
+    }
+    for(const route of routes) {
+      rack.pitchBend(route.destination,route.channel,0);
+      rack.setPitchBendRange(route.destination,route.channel,route.bendRange ?? 2);
     }
     midiFilePlaying = true;
     for (const warning of song.warnings) emitLog(warning);
@@ -1069,8 +1074,18 @@ export function createPlaygroundRuntime(
         midiWriteBatch=[];
         while(cursor<song.events.length && origin+song.events[cursor].seconds<=horizon && count++<4096) {
           const event=song.events[cursor++],route=mapping.get(event.part);
-          if(!route || event.type!=='channel')continue;
+          if(event.type!=='channel')continue;
           const time=origin+event.seconds;
+          if(event.kind===14) {
+            const raw=event.a+(event.b<<7),value=(raw-8192)/(raw<8192?8192:8191);
+            // Channel controls can be in a different SMF track from the notes.
+            for(const part of song.parts)if(part.port===event.port&&part.device===event.device&&part.channel===event.channel) {
+              const target=mapping.get(part.key);
+              if(target)rack.pitchBend(target.destination,target.channel,value,time);
+            }
+            continue;
+          }
+          if(!route)continue;
           if(event.kind===9&&event.b>0)rack.noteOn(route.destination,route.channel,event.a,event.b,time);
           else if(event.kind===8||event.kind===9)rack.noteOff(route.destination,route.channel,event.a,time);
         }

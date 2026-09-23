@@ -60,3 +60,27 @@ test('late duration cleanup cannot release a voice from a newer Run',()=>{
  next.r.noteOff('tetorica-ym2612',1,60,undefined,oldId);assert.equal(next.writes.length,n);
  next.r.noteOff('tetorica-ym2612',1,60);assert.equal(next.writes.at(-1).value,0);
 });
+
+test('FM bend retunes only the addressed MIDI channel, without key or voice writes',()=>{
+ const {r,writes}=rack();r.noteOn('tetorica-ym2612',8,60);r.noteOn('tetorica-ym2612',8,64);r.noteOn('tetorica-ym2612',9,67);
+ const original=writes.filter(e=>e.register===0xa0).at(-1).value;writes.length=0;
+ r.pitchBend('tetorica-ym2612',8,1,.5);
+ assert.deepEqual(writes.map(e=>e.register),[0xa4,0xa0,0xa5,0xa1]);assert(writes.every(e=>e.time===.5));assert.notEqual(writes[1].value,original);
+ writes.length=0;r.pitchBend('tetorica-ym2612',8,0);assert.equal(writes[1].value,original);
+});
+test('bend applies to future notes and range changes; PSG bend preserves volume',()=>{
+ const bent=rack(),reference=rack();bent.r.setPitchBendRange('tetorica-ym2612',1,12);bent.r.pitchBend('tetorica-ym2612',1,-1);
+ bent.r.noteOn('tetorica-ym2612',1,72);reference.r.noteOn('tetorica-ym2612',1,60);
+ assert.deepEqual(bent.writes,reference.writes);
+ bent.r.noteOn('tetorica-sega-psg',1,60,80);bent.psg.length=0;
+ bent.r.pitchBend('tetorica-sega-psg',1,1,1);assert.equal(bent.psg.length,2);assert.equal(bent.psg[0].value&0xf0,0x80);assert.equal(bent.psg[0].time,1);
+ const period=bent.psg[0].value;bent.psg.length=0;bent.r.setPitchBendRange('tetorica-sega-psg',1,12);assert.notEqual(bent.psg[0].value,period);
+});
+test('Stop resets bend/range and invalid values do not mutate audio',async()=>{
+ const {r,writes}=rack(),ref=rack();r.pitchBend('tetorica-ym2612',1,1);r.setPitchBendRange('tetorica-ym2612',1,12);r.stop();writes.length=0;
+ r.noteOn('tetorica-ym2612',1,60);ref.r.noteOn('tetorica-ym2612',1,60);assert.deepEqual(writes,ref.writes);
+ const api=createMidiApi((m,a)=>r[m](...a),{sleep:async()=>{},bpm:()=>120});const out=api.output('tetorica-ym2612');
+ const n=writes.length;for(const v of [NaN,Infinity,-2,2])await assert.rejects(out.pitchBend(v));
+ for(const v of [NaN,Infinity,-1,97])await assert.rejects(out.setPitchBendRange(v));assert.equal(writes.length,n);
+ await out.setPitchBendRange(2.5);await out.pitchBend(.5);
+});

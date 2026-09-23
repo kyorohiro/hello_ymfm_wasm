@@ -42,7 +42,8 @@ export function parseMidiFile(input) {
         const part=parts.get(key)??{key,track,port,device,channel,name,notes:0};
         if(kind===9&&b>0)part.notes++;parts.set(key,part);
         events.push({...event,type:'channel',kind,channel,a,b,part:key});
-        if(![8,9,12].includes(kind))warnings.add('CC, bend and pressure retained but not applied in this initial importer');
+        if(![8,9,12,14].includes(kind))warnings.add('CC and pressure retained but not applied in this initial importer');
+        if(kind===11&&[100,101,6,38].includes(a))warnings.add('RPN bend range is not applied; set the bend range manually');
         if(kind===12||kind===11&&(a===0||a===32))warnings.add('Bank / Program retained; playback uses manually selected voices');
       }
     }

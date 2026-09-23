@@ -1,4 +1,4 @@
-import {parseMidiFile} from '../js/midi_file.js';
+import {parseMidiFile} from '../js/midi_file.js?v=midi-bend-1';
 
 /** Import UI retains the source MIDI and creates a small, editable playback entry. */
 export function installMidiImport({button, presets, importFiles, onError, enabled}) {
@@ -13,11 +13,11 @@ export function installMidiImport({button, presets, importFiles, onError, enable
       const bytes=new Uint8Array(await file.arrayBuffer()),song=parseMidiFile(bytes);
       dialog=document.createElement('dialog');dialog.style.maxWidth='90vw';dialog.style.maxHeight='85vh';dialog.style.overflow='auto';
       const title=document.createElement('h2');title.textContent=`Import MIDI: ${file.name}`;
-      const help=document.createElement('p');help.textContent='FM: 6 voices shared across MIDI channels. PSG: 3 tone voices. Oldest notes are replaced when full. Use MIDI alone while playing; drums, CC, bend and automatic program changes are not supported yet.';
+      const help=document.createElement('p');help.textContent='FM: 6 voices shared across MIDI channels. PSG: 3 tone voices. Oldest notes are replaced when full. Use MIDI alone while playing; drums, CC and automatic program changes are not supported yet.';
       dialog.append(title,help);
       for(const warning of song.warnings){const p=document.createElement('p');p.textContent=warning;dialog.append(p);}
       const table=document.createElement('table'),header=document.createElement('tr');
-      for(const name of ['Part / source','Output','MIDI CH','FM voice']){const th=document.createElement('th');th.textContent=name;header.append(th);}table.append(header);
+      for(const name of ['Part / source','Output','MIDI CH','FM voice','Bend ± semitones']){const th=document.createElement('th');th.textContent=name;header.append(th);}table.append(header);
       const rows=[];
       for(const part of song.parts.filter(p=>p.notes>0)) {
         const tr=document.createElement('tr'),label=document.createElement('td');label.textContent=`Track ${part.track+1} ${part.name} / ${part.device||`port ${part.port}`} / CH${part.channel} (${part.notes} notes)`;tr.append(label);
@@ -30,7 +30,11 @@ export function installMidiImport({button, presets, importFiles, onError, enable
         output.addEventListener('change',()=>{voice.disabled=output.value!=='tetorica-ym2612';});voice.disabled=true;
         channel.setAttribute("aria-label", `Target MIDI channel for track ${part.track+1}`);
         voice.setAttribute("aria-label", `FM voice for track ${part.track+1}`);
-        rows.push({part,output,channel,voice});table.append(tr);
+        const cell=document.createElement('td'),bendRange=document.createElement('input');
+        bendRange.type='number';bendRange.min='0';bendRange.max='96';bendRange.step='0.01';bendRange.value='2';bendRange.style.width='5em';
+        bendRange.setAttribute('aria-label',`Pitch bend range for track ${part.track+1}`);
+        cell.append(bendRange);tr.append(cell);
+        rows.push({part,output,channel,voice,bendRange});table.append(tr);
       }
       dialog.append(table);
       const error=document.createElement('p');error.setAttribute('role','alert');dialog.append(error);
@@ -38,7 +42,8 @@ export function installMidiImport({button, presets, importFiles, onError, enable
       const confirm=document.createElement('button');confirm.textContent='Import';confirm.type='button';
       confirm.onclick=()=>{
         try {
-          const routes=rows.filter(r=>r.output.value).map(r=>({part:r.part.key,destination:r.output.value,channel:Number(r.channel.value),preset:r.voice.value}));
+          const routes=rows.filter(r=>r.output.value).map(r=>({part:r.part.key,destination:r.output.value,channel:Number(r.channel.value),preset:r.voice.value,bendRange:Number(r.bendRange.value)}));
+          if(routes.some(r=>!Number.isFinite(r.bendRange)||r.bendRange<0||r.bendRange>96))throw new Error('Bend range must be 0..96 semitones');
           if(!routes.length)throw new Error('Select at least one part');
           const keys=routes.map(r=>JSON.stringify([r.destination,r.channel]));
           if(new Set(keys).size!==keys.length)throw new Error('Assign separate MIDI channels to parts sharing an output');

@@ -212,3 +212,17 @@ test('MIDI file playback schedules FM/PSG at tempo-derived times and completes',
  const on=writes[0].time,off=writes.find(e=>e.value===0x9f).time;
  assert(Math.abs(off-on-4*.5/96)<1e-9);
 });
+
+test('MIDI import applies full-scale bend from another track to the routed source channel',async t=>{
+ const {runtime,megaDrive}=setup(t),scheduled=[];const started=performance.now();
+ Object.defineProperty(megaDrive.audioContext,'currentTime',{get:()=> (performance.now()-started)/1000});
+ megaDrive.fm.write=()=>{};megaDrive.fm.scheduleWrites=entries=>scheduled.push(...entries);megaDrive.psg.write=()=>{};
+ const tracks=[ [2,0xe0,127,127,2,0xe0,0,64,0,255,47,0], [0,0x90,60,100,6,0x80,60,0,0,255,47,0] ];
+ const bytes=[77,84,104,100,0,0,0,6,0,1,0,2,0,96];
+ for(const tr of tracks)bytes.push(77,84,114,107,0,0,0,tr.length,...tr);
+ await runtime.playSource(`setTiming({lookaheadSeconds:.02,schedulerIntervalMs:5}); await midi.playFile(new Uint8Array(${JSON.stringify(bytes)}),[{part:'[1,0,"",1]',destination:'tetorica-ym2612',channel:8,preset:'sine',bendRange:12}]);`);
+ const highs=scheduled.filter(e=>e.register===0xa4);
+ assert.equal(highs.length,3);assert.equal(highs[1].value,highs[0].value+8);assert.equal(highs[2].value,highs[0].value);
+ assert(Math.abs(highs[1].time-highs[0].time-2*.5/96)<1e-9);
+ assert.equal(scheduled.filter(e=>e.register===0x28&&e.value===240).length,1);
+});

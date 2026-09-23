@@ -21,7 +21,7 @@ MIDI ファイルを読み込み、パートと音色を選んで YM2612 Playgro
 初期版の制限：
 
 - MIDI import / ファイル再生は **YM2612 の ymfm モード**が対象。Nuked モードにはまだ接続していない。
-- 音色は手動指定。Program / Bank の自動適用、Sustain・CC・ベンド・Pressure、PSGノイズ、ドラム割り当て、DAC / PWM は未対応。
+- 音色は手動指定。Program / Bank の自動適用、Sustain・CC・Pressure、PSGノイズ、ドラム割り当て、DAC / PWM は未対応。
 - SMPTE 時間単位と SMF format 2 は未対応としてエラーにする。
 - パートは初期状態で Skip。必要なパートを選ぶ。同一再生先・MIDI CH への複数パートの割り当ては初期 UI / API で拒否し、暗黙の状態共有を防ぐ。
 - `midi.playFile()` はトップレベルから呼ぶ。liveLoop 内の呼び出しは初期版では拒否する。
@@ -30,6 +30,26 @@ MIDI ファイルを読み込み、パートと音色を選んで YM2612 Playgro
 
 検証：MIDI API・パーサー・Main / Worker 接続の自動テスト、実 YM2612 WASM での発音、PSG の予約時刻を確認済み。
 Playground 全体では、今回未変更の `vgm_export.test.mjs` の DAC stream export テストに１件失敗が残る。
+
+## Pitch Bend 追加（2026-09-24）
+
+- FM / PSG ハンドルに `pitchBend(value)`（−1〜1、中央0）と `setPitchBendRange(semitones)`（0〜96半音、既定2）を追加。
+- 同じ送り先・MIDI CH の発音中の音と、次の発音へ反映する。発音中は周波数だけを書き換え、キーオンや音量の再設定はしない。
+- ファイルの14-bit Pitch Bend は最小0→−1、中央8192→0、最大16383→1として扱う。別トラックでも同じ元ポート・デバイス名・MIDI CH のベンドを反映する。
+- Import の各パートに `Bend ± semitones` 欄を追加。`midi.playFile()` のルートでは `bendRange` で指定でき、省略時は2。手書き API の設定とは分けてファイル開始時に初期化する。
+- Stop でベンドを中央、幅を既定値へ戻す。FM / PSG の周波数レジスタで表現できない範囲は既存変換処理の上限・下限に制限される。
+- RPN による幅変更はまだ適用しない。該当コントローラーを含むファイルには、手動指定が必要な旨を表示する。
+
+```js
+const lead = midi.output("tetorica-ym2612", {channel: 1});
+await lead.setVoice(FM_PRESETS.sine);
+await lead.setPitchBendRange(12);
+await lead.noteOn("C4");
+await lead.pitchBend(0.5); // +6半音。キーオンし直さない
+await beat(1);
+await lead.pitchBend(0);
+await lead.noteOff("C4");
+```
 
 ## 設計開始時の API と実装の差
 
@@ -144,8 +164,8 @@ MIDI の１ CH にも和音が入るため、MIDI CH を物理 FM CH へ単純�
 ### 3. MIDI の演奏状態
 
 - [x] Velocity を音色のキャリア構成に応じた音量へ反映する。
-- [ ] Pitch Bend を発音中の音へ適用する。
-- [ ] ベンド幅の扱いを定義する。固定幅で始める場合は制約を表示し、RPN 対応を別途検討する。
+- [x] Pitch Bend を発音中の音へ適用する。
+- [x] ベンド幅は既定 ±2半音。API と Import UI で手動指定できる。RPN 対応は後続 TODO。
 - [ ] CC7 Volume / CC11 Expression / CC10 Pan を反映する。
 - [ ] CC64 Sustain と Note Off の保留・解除を実装する。
 - [ ] All Sound Off / All Notes Off / コントローラーリセットを扱う。

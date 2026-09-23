@@ -1,5 +1,5 @@
 import {YM2612Synth} from './ym2612synth.js';
-import {createSegaPsgApi} from './segapsg_api.js';
+import {createSegaPsgApi, psgPeriodFromFrequency} from './segapsg_api.js';
 import {createPitchFromMidi} from './pitch.js';
 import {parseTfi} from './tfi.js';
 import {parseVgi} from './vgi.js';
@@ -9,6 +9,14 @@ let nextVoiceId = 0; // Never reuse IDs across Stop / Run rack replacement.
 const carriers = [8,8,8,8,10,14,14,15];
 function integer(value, min, max, name) {
   if (!Number.isInteger(value) || value < min || value > max) throw new Error(`${name} must be ${min}..${max}`);
+  return value;
+}
+export function validateBendRange(value) {
+  if (!Number.isFinite(value) || value < 0 || value > 96) throw new Error('Pitch bend range must be 0..96 semitones');
+  return value;
+}
+function validateBend(value) {
+  if (!Number.isFinite(value) || value < -1 || value > 1) throw new Error('Pitch bend must be -1..1');
   return value;
 }
 export function midiNote(note) {
@@ -24,6 +32,7 @@ export function midiNote(note) {
 export function createMidiRack({write, writePsg, preset, fmChannels = 6}) {
   let at;
   const pending = new Map();
+  const controls = Object.fromEntries(destinations.map(d=>[d,Array.from({length:16},()=>({bend:0,range:2}))]));
   function normalize(data) {
     const validator=new YM2612Synth({transport:{write(){}}});validator.setPreset(0,data);
     const state=validator.channels[0];
@@ -40,11 +49,33 @@ export function createMidiRack({write, writePsg, preset, fmChannels = 6}) {
     integer(channel,1,16,'channel');
     return voices[destination];
   }
+  function tune(destination, slot, voice) {
+    const control=controls[destination][voice.channel-1];
+    const note=voice.note+control.bend*control.range;
+    if(destination===destinations[0]) {
+      const pitch=createPitchFromMidi(note,{referenceMidi:62,referenceBlock:4,referenceFnum:553});
+      fm.setFrequency(slot,pitch.block,pitch.fnum);
+    } else {
+      const period=psgPeriodFromFrequency(440*2**((note-69)/12));
+      psg.write(0x80|(slot<<5)|(period&15));psg.write(period>>4);
+    }
+  }
+  function retune(destination,channel) {
+    voices[destination].forEach((voice,slot)=>{if(voice?.channel===channel)tune(destination,slot,voice);});
+  }
   function release(destination, slot) {
     if (destination === destinations[0]) fm.noteOff(slot); else psg.off(slot);
     voices[destination][slot] = null;
   }
   return {
+    pitchBend(destination,channel,value,time) {
+      target(destination,channel);validateBend(value);at=time;
+      controls[destination][channel-1].bend=value;retune(destination,channel);
+    },
+    setPitchBendRange(destination,channel,semitones,time) {
+      target(destination,channel);validateBendRange(semitones);at=time;
+      controls[destination][channel-1].range=semitones;retune(destination,channel);
+    },
     setVoice(channel, data, options = {}) {
       let patch = data instanceof Uint8Array || data instanceof ArrayBuffer
         ? options.format === 'tfi' ? parseTfi(data) : options.format === 'vgi' ? parseVgi(data) : (()=>{throw new Error('Voice format must be tfi or vgi');})()
@@ -70,8 +101,11 @@ export function createMidiRack({write, writePsg, preset, fmChannels = 6}) {
           patch.operators[key]={...patch.operators[key],tl:Math.min(127,(patch.operators[key]?.tl??127)+attenuation)};
         }
         fm.setPreset(slot,patch);
-        const pitch=createPitchFromMidi(note,{referenceMidi:62,referenceBlock:4,referenceFnum:553});fm.noteOn(slot,pitch.block,pitch.fnum);
-      } else psg.tone(slot,{frequency:440*2**((note-69)/12),volume:velocity/127});
+        tune(destination,slot,{channel,note});fm.keyOn(slot);
+      } else {
+        tune(destination,slot,{channel,note});
+        psg.write(0x90|(slot<<5)|(15-Math.round(velocity/127*15)));
+      }
       pool[slot]={channel,note,id};
       const key=JSON.stringify([destination,channel,note]);const queue=pending.get(key)??[];queue.push(id);pending.set(key,queue);
       return id;
@@ -85,7 +119,13 @@ export function createMidiRack({write, writePsg, preset, fmChannels = 6}) {
       const slot=pool.findIndex(v=>v && v.channel===channel && v.note===note && v.id===id);
       if(slot>=0)release(destination,slot);
     },
-    stop(time) {pending.clear();at=time;for(const destination of destinations)voices[destination].forEach((v,i)=>{if(v)release(destination,i);});},
+    stop(time) {
+      pending.clear();at=time;
+      for(const destination of destinations) {
+        voices[destination].forEach((v,i)=>{if(v)release(destination,i);});
+        controls[destination].forEach(c=>{c.bend=0;c.range=2;});
+      }
+    },
   };
 }
 
@@ -105,6 +145,8 @@ export function createMidiApi(invoke, {sleep, bpm, check = ()=>{}, owner = ()=>n
       if(channel!==undefined)integer(channel,1,16,'channel');
       const ch=channel??1;
       return {
+        async pitchBend(value) {return call('pitchBend',[destination,ch,validateBend(value)]);},
+        async setPitchBendRange(semitones) {return call('setPitchBendRange',[destination,ch,validateBendRange(semitones)]);},
         async setVoice(data,options) {
           if(destination!==destinations[0])throw new Error('setVoice is only available for YM2612');
           return call('setVoice',[channel,data,options]);
