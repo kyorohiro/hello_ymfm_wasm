@@ -1,3 +1,4 @@
+import {createMidiApi} from "../js/playground_midi.js";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
@@ -13,6 +14,7 @@ const workerSource = readFileSync(
 function createWorkerHarness() {
   const messages = [];
   const context = {
+    createMidiApi, DOMException,
     createDeadlineScheduler,
     hzToBlockFnum,
     Error,
@@ -31,7 +33,7 @@ function createWorkerHarness() {
     setTimeout,
   };
   context.self = context;
-  vm.runInNewContext(workerSource.replace(/^import .* from "\.\/(?:playground_clock|pitch)\.js";\n/gm, ""), context, {
+  vm.runInNewContext(workerSource.replace(/^import \{createMidiApi\}.*;\n/m, "").replace(/^import .* from "\.\/(?:playground_clock|pitch)\.js";\n/gm, ""), context, {
     filename: "playground_logic_worker.js",
   });
   return {
@@ -306,4 +308,15 @@ test('stop during worker preparation does not cache the late result', async () =
   await waitFor(() => worker.messages.some(m => m.command === 'log'), 1000);
   assert.equal(worker.messages.find(m => m.command === 'log').args[0], 'new');
   await worker.send({ type: 'stop' });
+});
+
+test('Worker MIDI output forwards voice then note, and loop cleanup releases owned voice', async () => {
+ const worker=createWorkerHarness();
+ worker.post({type:'run',presets:{},scaleIntervals:{},sourceCode:`const output=midi.output('tetorica-ym2612',{channel:8}); await output.setVoice({algorithm:7}); await output.noteOn('C4');`});
+ await waitFor(()=>worker.messages.some(m=>m.command==='midi.handle'));
+ const voice=worker.messages.find(m=>m.command==='midi.handle');assert.equal(voice.args[2],'setVoice');
+ worker.post({type:'response',id:voice.id,value:undefined});
+ await waitFor(()=>worker.messages.filter(m=>m.command==='midi.handle').length===2);
+ const note=worker.messages.filter(m=>m.command==='midi.handle')[1];assert.equal(note.args[1].channel,8);assert.equal(note.args[3][0],60);
+ worker.post({type:'response',id:note.id,value:1});await worker.send({type:'stop'});
 });

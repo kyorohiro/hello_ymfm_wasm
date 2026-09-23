@@ -193,3 +193,22 @@ test('Worker -> Stop -> main live loop -> Stop cancels the main loop and release
  assert.equal(runtime.getState().playback,'stopped');
  await runtime.finalize();
 });
+
+test('main MIDI output emits FM notes, uses CH16 and Stop cancels held voices', async t => {
+ const {runtime,megaDrive}=setup(t);const writes=[];
+ megaDrive.fm.write=(...args)=>writes.push(args);megaDrive.psg.write=()=>{};
+ await runtime.playSource(`const out=midi.output('tetorica-ym2612',{channel:16}); await out.setVoice(FM_PRESETS.sine); await out.noteOn('C4');`);
+ assert(writes.some(([p,r,v])=>r===0x28&&v===240));
+ runtime.stop();assert(writes.some(([p,r,v])=>r===0x28&&v===0));
+});
+
+test('MIDI file playback schedules FM/PSG at tempo-derived times and completes',async t=>{
+ const {runtime,megaDrive}=setup(t);const scheduled=[];const started=performance.now();
+ Object.defineProperty(megaDrive.audioContext,'currentTime',{get:()=> (performance.now()-started)/1000});
+ megaDrive.fm.write=()=>{};megaDrive.fm.scheduleWrites=entries=>scheduled.push(...entries);megaDrive.psg.write=()=>{};
+ const bytes=[77,84,104,100,0,0,0,6,0,0,0,1,0,96,77,84,114,107,0,0,0,12,0,0x90,60,100,4,0x80,60,0,0,255,47,0];
+ await runtime.playSource(`setTiming({lookaheadSeconds:.02,schedulerIntervalMs:5}); await midi.playFile(new Uint8Array(${JSON.stringify(bytes)}),[{part:'[0,0,"",1]',destination:'tetorica-sega-psg',channel:16}]);`);
+ const writes=scheduled.filter(e=>e.type==='psg-write');assert(writes.length>=4);
+ const on=writes[0].time,off=writes.find(e=>e.value===0x9f).time;
+ assert(Math.abs(off-on-4*.5/96)<1e-9);
+});

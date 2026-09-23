@@ -1407,6 +1407,7 @@
         <details class="toolbar-menu" id="mainMenu">
           <summary aria-label="Playground menu">Menu</summary>
           <div class="toolbar-menu-panel">
+            <button id="importMidiButton" type="button">Import MIDI</button>
             <button id="importVgmButton" type="button">Import VGM / S98</button>
             <dialog id="vgmImportDialog" aria-labelledby="vgmImportTitle" aria-describedby="vgmImportFilename">
                 <h2 id="vgmImportTitle">Import VGM / S98</h2>
@@ -1521,6 +1522,7 @@
           <label class="run-file-label" for="runFileSelect">Run file</label>
           <select id="runFileSelect" aria-label="Run file">
             <option value="single">Single Note</option>
+            <option value="midi-fm-psg">MIDI FM + PSG (YM2612)</option>
             <option value="8-bit-arcade-sweep">8-bit Arcade Sweep</option>
             <option value="live-loop" selected>Live Loop</option>
             <option value="fx-loop-minor">FX Loop Minor</option>
@@ -1787,6 +1789,6 @@
       </label>
     </footer>
 
-    <script type="module" src="./playground.js?v=worker-loop-stop-1"></script>
+    <script type="module" src="./playground.js?v=midi-import-1"></script>
   </body>
 </html>

@@ -1,4 +1,17 @@
 export const EXAMPLES = {
+  "midi-fm-psg": `// YM2612 mode. MIDI CH numbers are 1..16, not physical FM slots.
+setBpm(120);
+const lead = midi.output("tetorica-ym2612", {channel: 8});
+const bass = midi.output("tetorica-sega-psg", {channel: 2});
+await lead.setVoice(FM_PRESETS["two-op-bell"]);
+// FILES alternative: await lead.loadVoice("./lead.tfi");
+await Promise.all([
+  lead.play("C4", {velocity: 100, duration: 1}),
+  lead.play("E4", {velocity: 90, duration: 1}),
+  lead.play("G4", {velocity: 90, duration: 1}),
+  bass.play("C3", {velocity: 80, duration: 1}),
+]);
+`,
   single: `fm.setPreset(CH1, FM_PRESETS["one-op-basic"]);
 await play("C4", { channel: CH1, duration: 0.35 });
 await sleep(0.12);

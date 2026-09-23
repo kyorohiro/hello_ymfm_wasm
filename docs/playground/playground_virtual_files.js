@@ -245,6 +245,7 @@ const file = async (path, options = {}) => {
   if (type === "json") return JSON.parse(entry.type === "text" ? entry.data : new TextDecoder().decode(bytes));
   throw new Error("Unsupported virtual file type: " + type);
 };
+${options.install ? 'if (typeof midi !== "undefined") midi.setFileReader(file);' : ''}
 ${sampleFileSource}`;
 }
 

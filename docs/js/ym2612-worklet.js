@@ -238,7 +238,8 @@ class YM2612Processor extends AudioWorkletProcessor {
       offset = eventOffset;
       if (scheduledFrame === frame) {
         this.scheduledCommands.shift();
-        this.ym2612.writeRegister(
+        if (scheduled.type === "psg-write") this.psg?.write(scheduled.value);
+        else this.ym2612.writeRegister(
           scheduled.register,
           scheduled.value,
           scheduled.port

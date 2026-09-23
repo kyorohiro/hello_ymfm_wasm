@@ -1,3 +1,5 @@
+import {createMidiRack, createMidiApi} from './playground_midi.js';
+import {parseMidiFile} from './midi_file.js';
 import { createAudioScheduler } from "./playground_audio_scheduler.js";
 import {
   FM_PRESETS,
@@ -152,12 +154,16 @@ export function createPlaygroundRuntime(
     );
   defaultLogicWorkerUrl.searchParams.set(
     "v",
-    "20260903-16"
+    "midi-import-1"
   );
   const logicWorkerUrl =
     options.logicWorkerUrl ??
     defaultLogicWorkerUrl.href;
 
+  const midiApis = new Set();
+  let midiRack = null;
+  let midiFilePlaying = false;
+  let midiWriteBatch = null;
   let synth = null;
   let prepareAudioPromise = null;
   let currentRunToken = 0;
@@ -405,6 +411,10 @@ export function createPlaygroundRuntime(
   }
 
   function stopAllAudio() {
+    midiApis.clear();
+    midiRack?.stop();
+    midiRack = null;
+    midiFilePlaying = false;
     audioScheduler.clear();
     if (capabilities.dac) {
       synth?.clearScheduledWrites?.();
@@ -461,7 +471,7 @@ export function createPlaygroundRuntime(
       logLine: emitLog,
       setStatus: emitStatus,
       executeCallback: executeUserCallback,
-      cancelWaits: clockApi.cancelWaits,
+      cancelWaits: state => {for (const api of midiApis) api.cancelOwner(state.name);clockApi.cancelWaits(state);},
     });
 
   function psgTone(
@@ -778,6 +788,13 @@ export function createPlaygroundRuntime(
       throw new Error("Playground Worker is not running");
     }
 
+    if (command === "midi.file") return globals.midi.playFile(...args);
+    if (command === "midi.handle") {
+      const [destination, options, method, values] = args;
+      if (!["setVoice","noteOn","noteOff"].includes(method)) throw new Error("Unsupported MIDI method");
+      return globals.midi.output(destination,options)[method](...values);
+    }
+    if (command === "midi.release") return getMidiRack().noteOff(args[0],args[1],args[2],undefined,args[3]);
     if (command === "fx.create") {
       const [id, method, options] = args;
       const factory = globals.fx[method];
@@ -920,7 +937,7 @@ export function createPlaygroundRuntime(
         .then(() => {
           if (logicWorker !== worker) return;
           const result = invokeWorkerCommand(message.command, message.args ?? []);
-          if (message.command === "play") {
+          if (message.command === "play" || message.command === "midi.file") {
             // Start notes in FIFO order, but their durations must not block other
             // loops, register writes or Stop. Reply only when this note completes.
             void result.then(value => respond(value), error => respond(undefined, error));
@@ -1012,6 +1029,57 @@ export function createPlaygroundRuntime(
         listener
       );
     }
+  }
+
+  function getMidiRack() {
+    if (synth?.dac?.enabled) throw new Error('Disable DAC before using MIDI FM playback');
+    if (capabilities.chip !== "ym2612") throw new Error("MIDI outputs currently require YM2612 mode");
+    return midiRack ??= createMidiRack({preset: Object.values(presets)[0],
+      write: entry => entry.time === undefined ? synth.write(entry.port,entry.register,entry.value) : midiWriteBatch ? midiWriteBatch.push(entry) : audioScheduler.enqueue([entry]),
+      writePsg: entry => entry.time === undefined ? megaDrive.psg.write(entry.value) : (midiWriteBatch ? midiWriteBatch.push({...entry,type:"psg-write"}) : audioScheduler.enqueue([{...entry,type:"psg-write"}])),
+    });
+  }
+
+  async function playMidiFile(data, routes, runToken) {
+    if (options.midiFileSupported === false) throw new Error("MIDI file playback requires the ymfm engine");
+    if (midiFilePlaying) throw new Error("A MIDI file is already playing");
+    const song = parseMidiFile(data), rack = getMidiRack();
+    const mapping = new Map();
+    const targets = new Set();
+    for (const route of routes) {
+      if (!song.parts.some(p=>p.key===route.part)) throw new Error("Unknown MIDI part");
+      if (!["tetorica-ym2612","tetorica-sega-psg"].includes(route.destination) || !Number.isInteger(route.channel) || route.channel<1 || route.channel>16) throw new Error("Invalid MIDI route");
+      const key=JSON.stringify([route.destination,route.channel]);
+      if (targets.has(key) || mapping.has(route.part)) throw new Error("Assign each imported part to a separate output / MIDI channel");
+      targets.add(key);mapping.set(route.part,route);
+      if (route.destination === 'tetorica-ym2612') {
+        const patch=presets[route.preset];if(!patch)throw new Error(`Unknown preset: ${route.preset}`);
+        rack.setVoice(route.channel,patch);
+      }
+    }
+    midiFilePlaying = true;
+    for (const warning of song.warnings) emitLog(warning);
+    const origin=megaDrive.audioContext.currentTime+runtime.dacLookaheadSeconds;
+    let cursor=0;
+    try {
+      while(cursor<song.events.length) {
+        if(runToken!==currentRunToken)throw new DOMException('Run stopped','AbortError');
+        const horizon=megaDrive.audioContext.currentTime+runtime.dacLookaheadSeconds;
+        let count=0;
+        midiWriteBatch=[];
+        while(cursor<song.events.length && origin+song.events[cursor].seconds<=horizon && count++<4096) {
+          const event=song.events[cursor++],route=mapping.get(event.part);
+          if(!route || event.type!=='channel')continue;
+          const time=origin+event.seconds;
+          if(event.kind===9&&event.b>0)rack.noteOn(route.destination,route.channel,event.a,event.b,time);
+          else if(event.kind===8||event.kind===9)rack.noteOff(route.destination,route.channel,event.a,time);
+        }
+        audioScheduler.enqueue(midiWriteBatch);midiWriteBatch=null;
+        await clockApi.sleep(.01,runToken);
+      }
+      rack.stop(origin+song.seconds);
+      await clockApi.sleep(Math.max(0,origin+song.seconds-megaDrive.audioContext.currentTime),runToken);
+    } finally {midiWriteBatch=null;if(runToken===currentRunToken)midiFilePlaying=false;}
   }
 
   function createExecutionGlobals(
@@ -1149,7 +1217,18 @@ export function createPlaygroundRuntime(
         );
       },
     };
+    const midi = createMidiApi((method,args) => {
+      if(runToken!==currentRunToken)throw new DOMException("Run stopped","AbortError");
+      if (method === 'playFile') return playMidiFile(...args,runToken);
+      if (midiFilePlaying) throw new Error('Manual MIDI operations are unavailable during MIDI file playback');
+      const rack=getMidiRack();
+      if(method==='release')return rack.noteOff(args[0],args[1],args[2],undefined,args[3]);
+      return rack[method](...args);
+    }, {sleep:seconds=>clockApi.sleep(seconds,runToken),bpm:()=>runtime.bpm,owner:()=>currentLoopContext?.name??null,
+      check:()=>{if(runToken!==currentRunToken)throw new DOMException('Run stopped','AbortError');}});
+    midiApis.add(midi);
     const pg = {
+      midi,
       fm,
       dac: dacApi,
       fx,
@@ -1291,6 +1370,7 @@ export function createPlaygroundRuntime(
         console:
           playgroundConsole,
         pg,
+        midi,
         fm,
         dac: pg.dac,
         fx,

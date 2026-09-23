@@ -101,3 +101,11 @@ test('real YM2612 WASM advances one chip second for one second of 48 kHz output'
     assert.equal(generated, ym.sampleRate());
   } finally { ym.dispose(); }
 });
+
+test('MIDI PSG writes share the sample-accurate FM scheduling queue', () => {
+ const {p,context}=processor('web','ym2612-worklet.js',48000);
+ p.ym2612=chip(48000);p.psg=chip(48000);
+ const writes=[];p.psg.write=value=>{writes.push({value,frames:p.psg.frames});};
+ p.applyCommand({type:'schedule-writes',entries:[{time:64/48000,type:'psg-write',value:0x9f}]});
+ render(p,128);assert.deepEqual(writes,[{value:0x9f,frames:64}]);
+});

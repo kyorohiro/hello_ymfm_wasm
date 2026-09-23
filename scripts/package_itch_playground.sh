@@ -31,6 +31,7 @@ playground_ui.js
 playground_virtual_files.js
 playground_file_tree.js
 playground_tfi_editor.js
+playground_midi_import.js
 playground_vgm_presets.js
 tetorica-playground-globals.d.ts
 tetorica-playground-ym2203.d.ts
@@ -56,6 +57,8 @@ playground_clock.js
 playground_execution.js
 playground_live.js
 playground_logic_worker.js
+playground_midi.js
+midi_file.js
 playground_music.js
 playground_noise.js
 playground_runtime.js
@@ -248,6 +251,7 @@ perl -0pi -e 's#"\./playground\.js"#"./playground.js"#g; s#\.\./js/#./js/#g; s#\
   "${STAGE_DIR}/playground_operator_tab.js" \
   "${STAGE_DIR}/playground_operator_keyboard.js" \
   "${STAGE_DIR}/playground_tfi_editor.js" \
+  "${STAGE_DIR}/playground_midi_import.js" \
   "${STAGE_DIR}/playground_vgm_presets.js" \
   "${STAGE_DIR}/playground_query.js" \
   "${STAGE_DIR}/playground_examples.js" \

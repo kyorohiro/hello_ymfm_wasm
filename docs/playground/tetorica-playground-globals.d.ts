@@ -839,6 +839,7 @@ declare function setInterval(handler: () => void, timeout?: number): number;
 declare function clearInterval(id: number): void;
 
 type PlaygroundAPI = {
+  midi: PlaygroundMidi;
   /** Low-level YM2612 synth API. */
   fm: FMApi;
   /** Master FX helper API. */
@@ -917,3 +918,29 @@ interface PlaygroundTiming { lookaheadSeconds: number; schedulerIntervalMs: numb
 /** Configure Schedule lookahead and refill interval before starting loops. Await in Worker mode. */
 declare function setTiming(options: Partial<PlaygroundTiming>): PlaygroundTiming | Promise<PlaygroundTiming>;
 declare function getTiming(): PlaygroundTiming | Promise<PlaygroundTiming>;
+
+
+/** MIDI channel 1..16, independent of physical FM/PSG channels. YM2612 mode only. */
+interface PlaygroundMidiOutput {
+  /** Duration is in beats at setBpm(), unlike the existing global FM play(). */
+  play(note: string | number, options?: {velocity?: number; duration?: number}): Promise<void>;
+  noteOn(note: string | number, options?: {velocity?: number}): Promise<number>;
+  noteOff(note: string | number): Promise<void> | void;
+  /** YM2612 only; affects subsequent notes, not held voices. */
+  setVoice(preset: YM2612Preset): Promise<void>;
+  setVoice(bytes: Uint8Array | ArrayBuffer, options: {format: "tfi" | "vgi"}): Promise<void>;
+  /** FILES path relative to the Run file. */
+  loadVoice(path: string): Promise<void>;
+}
+interface PlaygroundMidiRoute {
+  part: string;
+  destination: "tetorica-ym2612" | "tetorica-sega-psg";
+  channel: number;
+  preset?: string;
+}
+interface PlaygroundMidi {
+  output(destination: "tetorica-ym2612" | "tetorica-sega-psg", options?: {channel?: number}): PlaygroundMidiOutput;
+  /** SMF 0/1, PPQN timing. Manual voices; CC/bend/program changes retained but not applied. */
+  playFile(data: ArrayBuffer | Uint8Array, routes: PlaygroundMidiRoute[]): Promise<void>;
+}
+declare const midi: PlaygroundMidi;

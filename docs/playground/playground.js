@@ -1,3 +1,4 @@
+import {installMidiImport} from './playground_midi_import.js';
 import {
   FM_PRESET_ORDER,
   FM_PRESETS,
@@ -17,7 +18,7 @@ import {
   createPlaygroundOperatorTab,
 } from "./playground_operator_tab.js";
 import { createPlaygroundOperatorKeyboard } from "./playground_operator_keyboard.js";
-import { EXAMPLES } from "./playground_examples.js";
+import { EXAMPLES } from "./playground_examples.js?v=midi-import-1";
 import { initializePlaygroundMonaco } from "./playground_monaco.js";
 import {
   decodeBase64Bytes,
@@ -35,7 +36,7 @@ import {
   normalizeVirtualPath,
   transferVirtualFiles,
   resolveVirtualDynamicImports,
-} from "./playground_virtual_files.js";
+} from "./playground_virtual_files.js?v=midi-import-1";
 import { looksLikeS98, convertS98ToVgm } from "../js/s98_file.js";
 import { unzipSync, zipSync } from "./vendor/fflate.js";
 import {
@@ -52,7 +53,7 @@ import { exportYm2608VgmToPlaygroundJavaScript } from "../js/ym2608vgm.js";
 import { exportYm2610BVgmToPlaygroundJavaScript } from "../js/ym2610bvgm.js";
 import {
   createPlaygroundRuntime,
-} from "../js/playground_runtime.js?v=worker-loop-stop-1";
+} from "../js/playground_runtime.js?v=midi-import-1";
 import { createVgmPresetFiles } from "./playground_vgm_presets.js";
 import { createTfiFileEditor, tfiToEditorPreset } from "./playground_tfi_editor.js";
 import { renderFileTree } from "./playground_file_tree.js";
@@ -224,7 +225,7 @@ const synthOptions = {
   chip: selectedChip,
   workletUrl: useNukedEngine
     ? "../js/ym2612-worklet-nuked.js"
-    : `../js/${selectedWorkletChip}-worklet.js`,
+    : `../js/${selectedWorkletChip}-worklet.js?v=midi-import-1`,
   ym2612WasmUrl: useNukedEngine
     ? "../generated/nuked_opn2_wasm.wasm"
     : "../generated/ym2612_wasm.wasm",
@@ -1471,6 +1472,7 @@ const {
 } = ui;
 function createRuntime() {
   return createPlaygroundRuntime({
+    midiFileSupported: !useNukedEngine,
     megaDrive,
     presets:
       playgroundPresets,
@@ -2169,3 +2171,17 @@ installFileExplorerDropTarget();
 }
 
 bootPlayground();
+
+installMidiImport({button:document.getElementById('importMidiButton'), presets:playgroundPresets,
+  enabled:selectedChip==='ym2612'&&!useNukedEngine,
+  onError:error=>setStatus(`MIDI import failed: ${error.message}`),
+  importFiles(name,bytes,routes) {
+    saveActiveVirtualFile();
+    const id=crypto.randomUUID(),asset=`/midi/${id}.mid`,entry=`/midi/${id}.js`;
+    virtualFiles.writeBinary(asset,bytes);
+    virtualFiles.writeText(entry,`// Imported MIDI: ${JSON.stringify(name)}\n// Manual voices; original Bank / Program / CC events remain in the MIDI file.\nconst routes = ${JSON.stringify(routes,null,2)};\nawait midi.playFile(await file(${JSON.stringify(asset)}, {type: 'arrayBuffer'}), routes);\n`);
+    activeVirtualPath=entry;runVirtualPath=entry;
+    showVirtualFile(virtualFiles.get(entry));renderVirtualFileExplorer();renderRunFileOptions();setBottomTab('code');
+    setStatus(`Imported ${name}. Choose Run to play the selected MIDI parts.`);
+  },
+});

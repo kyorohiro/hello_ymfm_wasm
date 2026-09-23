@@ -1,3 +1,4 @@
+import {createMidiApi} from './playground_midi.js';
 import { hzToBlockFnum } from "./pitch.js";
 import { createDeadlineScheduler } from "./playground_clock.js";
 
@@ -201,6 +202,7 @@ function createClock(run) {
   return {
     cancelWaits: scheduler.cancel,
     cancelLoop(name) {
+      run.midi?.cancelOwner(name);
       scheduler.cancel((owner) => {
         if (!owner || (name !== undefined && owner.name !== name)) return false;
         owner.stopped = true;
@@ -208,6 +210,7 @@ function createClock(run) {
       });
     },
     currentBeat,
+    getBpm: () => bpm,
     sleep,
     async sleepSamples(samples, sampleRate = 44100) {
       const duration = Math.max(0, Number(samples) || 0) / Math.max(1, Number(sampleRate) || 44100);
@@ -474,7 +477,16 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
     }
     await fn(1);
   };
+  const midi=createMidiApi((method,args)=> {
+    if(method==='playFile')return request('midi.file',args,run.currentLoop);
+    if(method==='release')return request('midi.release',args,run.currentLoop);
+    if(method==='setVoice')return request('midi.handle',['tetorica-ym2612',{channel:args[0]},method,args.slice(1)],run.currentLoop);
+    const [destination,channel,note,velocity]=args;
+    return request('midi.handle',[destination,{channel},method,method==='noteOn'?[note,{velocity}]:[note]],run.currentLoop);
+  },{sleep:clock.sleep,bpm:clock.getBpm,owner:()=>run.currentLoop?.name??null,check:()=>{if(run.stopped || run.currentLoop?.stopped)throw new DOMException('Run stopped','AbortError');}});
+  run.midi=midi;
   const globals = {
+    midi,
     console: {
       log: (...args) => postCommand("log", args),
       warn: (...args) => postCommand("warn", args),
