@@ -1,4 +1,4 @@
-import {createMidiApi} from './playground_midi.js?v=midi-source-1';
+import {createMidiApi} from './playground_midi.js?v=midi-physical-1';
 import { hzToBlockFnum } from "./pitch.js";
 import { createDeadlineScheduler } from "./playground_clock.js";
 
@@ -479,10 +479,7 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
   };
   const midi=createMidiApi((method,args)=> {
     if(method==='playFile')return request('midi.file',args,run.currentLoop);
-    if(method==='release')return request('midi.release',args,run.currentLoop);
-    if(method==='setVoice')return request('midi.handle',['tetorica-ym2612',{channel:args[0]},method,args.slice(1)],run.currentLoop);
-    const [destination,channel,note,velocity]=args;
-    return request('midi.handle',[destination,{channel},method,method==='noteOn'?[note,{velocity}]:method==='cc'?[note,velocity]:[note]],run.currentLoop);
+    return request('midi.invoke',[method,args],run.currentLoop);
   },{sleep:clock.sleep,bpm:clock.getBpm,owner:()=>run.currentLoop?.name??null,check:()=>{if(run.stopped || run.currentLoop?.stopped)throw new DOMException('Run stopped','AbortError');}});
   run.midi=midi;
   const globals = {

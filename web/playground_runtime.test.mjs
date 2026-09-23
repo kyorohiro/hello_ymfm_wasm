@@ -194,10 +194,10 @@ test('Worker -> Stop -> main live loop -> Stop cancels the main loop and release
  await runtime.finalize();
 });
 
-test('main MIDI output emits FM notes, uses CH16 and Stop cancels held voices', async t => {
+test('main MIDI output emits FM notes, uses fixed CH1 and Stop cancels held voices', async t => {
  const {runtime,megaDrive}=setup(t);const writes=[];
  megaDrive.fm.write=(...args)=>writes.push(args);megaDrive.psg.write=()=>{};
- await runtime.playSource(`if(CH1!==0||CH16!==15||pg.CH16!==CH16)throw new Error('Channel constants'); const out=midi.output('tetorica-ym2612',{channel:CH16}); await out.setVoice(FM_PRESETS.sine); await out.noteOn('C4');`);
+ await runtime.playSource(`if(CH1!==0||CH16!==15||pg.CH16!==CH16)throw new Error('Channel constants'); const out=midi.output('tetorica-ym2612',{channel:CH1}); await out.setVoice(FM_PRESETS.sine); await out.noteOn('C4');`);
  assert(writes.some(([p,r,v])=>r===0x28&&v===240));
  runtime.stop();assert(writes.some(([p,r,v])=>r===0x28&&v===0));
 });
@@ -262,4 +262,22 @@ test('compiled standalone MIDI code plays through the main runtime without readi
  const source=midiToSource(bytes,[{part:'[0,0,"",1]',destination:'tetorica-sega-psg',channel:0}]);
  await runtime.playSource(source);
  assert(writes.includes(0x90));assert.equal(writes.at(-1),0x9f);
+});
+
+test('main Worker bridge keeps a fixed physical handle across requests',async t=>{
+ const {runtime,megaDrive}=setup(t),workers=workerBridge(t),writes=[];
+ megaDrive.fm.write=(...args)=>writes.push(args);megaDrive.psg.write=()=>{};
+ await runtime.playSource('',{execution:'worker'});const w=workers[0];let requestId=0;
+ const request=async(method,args)=>{
+  const id=++requestId;w.send({type:'request',id,command:'midi.invoke',args:[method,args]});
+  await until(()=>w.responses.some(r=>r.id===id));const result=w.responses.find(r=>r.id===id);
+  assert(!result.error);return result.value;
+ };
+ await request('configure',['tetorica-ym2612','output:bridge',[4]]);
+ const note=await request('noteOn',['tetorica-ym2612','output:bridge',60,100]);
+ assert(writes.some(([p,r,v])=>r===0x28&&v===245));writes.length=0;
+ await request('pitchBend',['tetorica-ym2612','output:bridge',1]);
+ assert.deepEqual(writes.map(([p,r])=>[p,r]),[[1,0xa5],[1,0xa1]]);
+ await request('release',['tetorica-ym2612','output:bridge',60,note]);
+ assert.equal(writes.at(-1)[2],5);await runtime.finalize();
 });

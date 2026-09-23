@@ -1,5 +1,41 @@
-import {parseMidiFile} from './midi_file.js?v=midi-generators-1';
-import {MIDI_SUPPORTED_CC, validateBendRange} from './playground_midi.js?v=midi-generators-1';
+import {parseMidiFile} from './midi_file.js?v=midi-physical-1';
+import {MIDI_SUPPORTED_CC, validateBendRange, physicalChannels} from './playground_midi.js?v=midi-physical-1';
+
+/** UI uses human-facing physical CH numbers, separated by commas for a pool. */
+export function parsePhysicalSelection(text,destination) {
+  const value=String(text).trim();
+  if(!value||/^auto$/i.test(value))return undefined;
+  const tokens=value.split(',').map(s=>s.trim().replace(/^CH/i,''));
+  const count=destination==='tetorica-ym2612'?6:3;
+  if(tokens.some(t=>!/^\d+$/.test(t)||Number(t)<1||Number(t)>count))throw new Error(`Physical channels must be CH1..CH${count}, separated by commas`);
+  const slots=[...new Set(tokens.map(t=>Number(t)-1))];
+  return slots.length===1?slots[0]:slots;
+}
+
+/** Give included parts separate logical channels; physical voices remain shared. */
+export function assignMidiRoutes(selections) {
+  const routes=selections.filter(route=>route.destination).map(route=>({...route}));
+  const used=new Map([['tetorica-ym2612',new Set()],['tetorica-sega-psg',new Set()]]);
+  const parts=new Set();
+  for(const route of routes) {
+    const channels=used.get(route.destination);
+    if(!channels)throw new Error('Unsupported MIDI output');
+    if(parts.has(route.part))throw new Error('A MIDI part can only be included once');
+    parts.add(route.part);
+    if(route.channel===undefined)continue;
+    if(!Number.isInteger(route.channel)||route.channel<0||route.channel>15)throw new Error('MIDI channel must be 0..15');
+    if(channels.has(route.channel))throw new Error('Assign separate MIDI channels to parts sharing an output');
+    channels.add(route.channel);
+  }
+  for(const route of routes)if(route.channel===undefined) {
+    const channels=used.get(route.destination),preferred=route.sourceChannel;
+    const available=Number.isInteger(preferred)&&preferred>=0&&preferred<16&&!channels.has(preferred)
+      ?preferred:Array.from({length:16},(_,i)=>i).find(ch=>!channels.has(ch));
+    if(available===undefined)throw new Error('At most 16 included parts per output; skip a part or use the other output');
+    route.channel=available;channels.add(available);
+  }
+  return routes;
+}
 
 /** Compile selected SMF parts into editable, standalone Playground JavaScript. */
 export function midiToSource(bytes, routes, {name='MIDI', presets={}, module=false}={}) {
@@ -19,7 +55,7 @@ export function midiToSource(bytes, routes, {name='MIDI', presets={}, module=fal
     const part=parts.get(route.part),key=JSON.stringify([route.destination,route.channel]);
     if(!part||!['tetorica-ym2612','tetorica-sega-psg'].includes(route.destination)||!Number.isInteger(route.channel)||route.channel<0||route.channel>15)throw new Error('Invalid MIDI route');
     if(mapping.has(route.part)||targets.has(key))throw new Error('Assign each part to a separate output / MIDI channel');
-    validateBendRange(route.bendRange??2);targets.add(key);
+    validateBendRange(route.bendRange??2);physicalChannels(route.destination,route.physicalChannel);targets.add(key);
     const variable=`${route.destination==='tetorica-ym2612'?'ym2612':'segapsg'}_${i+1}`;
     mapping.set(route.part,variable);channels.set(variable,route.channel+1);
     const sourceKey=JSON.stringify([part.port,part.device,part.channel]);
@@ -27,7 +63,9 @@ export function midiToSource(bytes, routes, {name='MIDI', presets={}, module=fal
     add(`\n// Track ${part.track+1}, source CH${part.channel}: ${quote(part.name)}`);
     const setup=line=>module?initializers.push(line):add(line);
     if(module)add(`let ${variable};`);
-    setup(`${module?'':'const '}${variable} = ${module?'api.':''}midi.output(${quote(route.destination)}, {channel: ${module?'api.':''}CH${route.channel+1}});`);
+    const channelName=value=>`${module?'api.':''}CH${value+1}`;
+    const selection=route.physicalChannel===undefined?'':`, {channel: ${Array.isArray(route.physicalChannel)?`[${route.physicalChannel.map(channelName).join(', ')}]`:channelName(route.physicalChannel)}}`;
+    setup(`${module?'':'const '}${variable} = ${module?'api.':''}midi.output(${quote(route.destination)}${selection});`);
     if(route.destination==='tetorica-ym2612') {
       if(!Object.hasOwn(presets,route.preset))throw new Error(`Unknown preset: ${route.preset}`);
       setup(`await ${variable}.setVoice(${module?'api.':''}FM_PRESETS[${quote(route.preset)}]);`);

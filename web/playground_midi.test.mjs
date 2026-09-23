@@ -25,7 +25,7 @@ test('output API validates channels, shares rack and cleans only owner voices',a
  const {r,writes}=rack();let owner='a';
  const api=createMidiApi((m,a)=>m==='release'?r.noteOff(a[0],a[1],a[2],undefined,a[3]):r[m](...a),{sleep:async()=>{},bpm:()=>120,owner:()=>owner});
  assert.throws(()=>api.output('tetorica-ym2612',{channel:16}));
- const a=api.output('tetorica-ym2612',{channel:8});await a.noteOn('C4');owner='b';await a.noteOn('E4');api.cancelOwner('a');assert.equal(writes.at(-1).value,0);
+ const a=api.output('tetorica-ym2612');await a.noteOn('C4');owner='b';await a.noteOn('E4');api.cancelOwner('a');assert.equal(writes.at(-1).value,0);
  await a.noteOff('E4');assert.equal(writes.at(-1).value,1);
  await assert.rejects(api.output('tetorica-sega-psg').setVoice(FM_PRESETS.sine));
 });
@@ -86,22 +86,16 @@ test('Stop resets bend/range and invalid values do not mutate audio',async()=>{
 });
 
 
-test('all sixteen zero-based API channels preserve voice and bend routing', async()=>{
+test('physical scalar pins a voice and unavailable channels are silent',async()=>{
  const {r,writes}=rack();
- const calls=[];
- const api=createMidiApi((method,args)=>{calls.push([method,args]);return method==='release'?r.noteOff(args[0],args[1],args[2],undefined,args[3]):r[method](...args);},{sleep:async()=>{},bpm:()=>120});
+ const api=createMidiApi((m,a)=>m==='release'?r.noteOff(a[0],a[1],a[2],undefined,a[3],a[4]):r[m](...a),{sleep:async()=>{},bpm:()=>120});
  for(let channel=0;channel<16;channel++) {
-  const out=api.output('tetorica-ym2612',{channel});
-  await out.setVoice(FM_PRESETS.sine);
-  await out.setPitchBendRange(12);await out.pitchBend(.5);await out.noteOn('C4');
-  assert.equal(calls.at(-1)[1][1],channel);
-  await out.noteOff('C4');r.stop();
+  const out=api.output('tetorica-ym2612',{channel});writes.length=0;
+  await out.noteOn(60);
+  assert.deepEqual(writes.filter(e=>e.register===0x28).map(e=>e.value),channel<6?[240+(channel<3?channel:channel+1)]:[]);
+  await out.noteOff(60);
  }
- await api.output('tetorica-ym2612').pitchBend(0);
- assert.equal(calls.at(-1)[1][1],0);
- const count=writes.length;
- for(const channel of [-1,16,1.5,NaN])assert.throws(()=>api.output('tetorica-ym2612',{channel}));
- assert.equal(writes.length,count);
+ for(const channel of [-1,16,1.5,NaN,[0,-1]])assert.throws(()=>api.output('tetorica-ym2612',{channel}));
 });
 
 test('CC volume/expression restore original carrier levels and do not retrigger or replace a held patch',()=>{
@@ -181,4 +175,60 @@ test('SMF warnings distinguish supported CC, unsupported controllers and PSG pan
  const unsupported=parseMidiFile(smf([0,0xb0,1,100,0,0xb0,10,64,0,255,47,0]));
  assert(unsupported.warnings.some(w=>w.includes('CC 1 retained')));
  assert(unsupported.warnings.some(w=>w.includes('PSG pan')));
+});
+
+
+test('logical MIDI parts share all six physical FM voices, then steal the oldest',()=>{
+ const {r,writes}=rack();
+ for(let channel=0;channel<6;channel++)r.noteOn('tetorica-ym2612',channel,60+channel,100);
+ assert.deepEqual(writes.filter(e=>e.register===0x28).map(e=>e.value),[240,241,242,244,245,246]);
+ writes.length=0;r.noteOn('tetorica-ym2612',6,72,100);
+ assert.deepEqual(writes.filter(e=>e.register===0x28).map(e=>e.value),[0,240]);
+ const count=writes.length;r.noteOff('tetorica-ym2612',0,60);assert.equal(writes.length,count);
+ r.noteOff('tetorica-ym2612',6,72);assert.equal(writes.at(-1).value,0);
+});
+
+function apiRack() {
+ const state=rack();
+ state.api=createMidiApi((m,a)=>m==='release'?state.r.noteOff(a[0],a[1],a[2],undefined,a[3],a[4]):state.r[m](...a),{sleep:async()=>{},bpm:()=>120});
+ return state;
+}
+test('three-voice pool and fixed CH4/5/6 coexist without stealing outside the pool',async()=>{
+ const {api,writes}=apiRack();
+ const chord=api.output('tetorica-ym2612',{channel:[0,1,2]});
+ for(const ch of [3,4,5])await api.output('tetorica-ym2612',{channel:ch}).noteOn(60+ch);
+ writes.length=0;
+ for(const note of [60,64,67,72])await chord.noteOn(note);
+ assert.deepEqual(writes.filter(e=>e.register===0x28).map(e=>e.value),[240,241,242,0,240]);
+ writes.length=0;await chord.noteOff(60);assert.equal(writes.length,0);
+ await chord.noteOff(72);assert.equal(writes.at(-1).value,0);
+});
+
+test('overlapping handles steal safely and CC/voice/sustain remain handle-local',async()=>{
+ const {api,writes}=apiRack();
+ const a=api.output('tetorica-ym2612',{channel:3}),b=api.output('tetorica-ym2612',{channel:3});
+ await a.setVoice(FM_PRESETS.sine);await a.cc(7,0);await a.cc(64,127);await a.noteOn(60);
+ await b.setVoice(FM_PRESETS['two-op-bell']);writes.length=0;await b.noteOn(64);
+ assert.deepEqual(writes.filter(e=>e.register===0x28).map(e=>e.value),[4,244]);
+ assert(writes.some(e=>e.port===1&&e.register>=0x40&&e.register<=0x4c&&e.value<127));
+ writes.length=0;await a.noteOff(60);await a.cc(120,0);await a.pitchBend(1);assert.equal(writes.length,0);
+ await b.noteOff(64);assert.equal(writes.at(-1).value,4,'sustain on a must not hold b');
+});
+
+test('omitted channel uses all voices while separate automatic handles keep their own controls',async()=>{
+ const {api,writes}=apiRack();const a=api.output('tetorica-ym2612'),b=api.output('tetorica-ym2612',{channel:undefined});
+ await a.cc(10,0);await a.noteOn(60);await b.noteOn(64);
+ assert.equal(writes.filter(e=>e.register===0xb4).at(-1).value&192,128);
+ assert.equal(writes.filter(e=>e.register===0xb5).at(-1).value&192,192);
+ for(const n of [65,67,69,71])await b.noteOn(n);
+ assert.deepEqual(writes.filter(e=>e.register===0x28).map(e=>e.value),[240,241,242,244,245,246]);
+});
+
+test('PSG pools are copied, deduplicated and bounded to physical tone voices',async()=>{
+ const {api,psg}=apiRack();const slots=[2,0,2,15];
+ const out=api.output('tetorica-sega-psg',{channel:slots});slots.splice(0,slots.length,1);
+ await out.noteOn(60);await out.noteOn(64);await out.noteOn(67);
+ assert(!psg.some(e=>(e.value&0xf0)===0xb0));
+ assert(psg.some(e=>e.value===0xdf));
+ const n=psg.length;await api.output('tetorica-sega-psg',{channel:[]}).noteOn(60);assert.equal(psg.length,n);
 });

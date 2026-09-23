@@ -310,49 +310,32 @@ test('stop during worker preparation does not cache the late result', async () =
   await worker.send({ type: 'stop' });
 });
 
-test('Worker MIDI output forwards voice then note, and loop cleanup releases owned voice', async () => {
- const worker=createWorkerHarness();
- worker.post({type:'run',presets:{},scaleIntervals:{},sourceCode:`const output=midi.output('tetorica-ym2612',{channel:8}); await output.setVoice({algorithm:7}); await output.noteOn('C4');`});
- await waitFor(()=>worker.messages.some(m=>m.command==='midi.handle'));
- const voice=worker.messages.find(m=>m.command==='midi.handle');assert.equal(voice.args[2],'setVoice');
- worker.post({type:'response',id:voice.id,value:undefined});
- await waitFor(()=>worker.messages.filter(m=>m.command==='midi.handle').length===2);
- const note=worker.messages.filter(m=>m.command==='midi.handle')[1];assert.equal(note.args[1].channel,8);assert.equal(note.args[3][0],60);
- worker.post({type:'response',id:note.id,value:1});await worker.send({type:'stop'});
-});
 
-test('Worker forwards pitch bend and range with destination and channel intact',async()=>{
- const worker=createWorkerHarness();
- worker.post({type:'run',presets:{},scaleIntervals:{},sourceCode:`if(CH1!==0||CH16!==15||pg.CH16!==CH16)throw new Error('Channel constants');const o=midi.output('tetorica-sega-psg',{channel:CH16});await o.setPitchBendRange(12);await o.pitchBend(-1);`});
- await waitFor(()=>worker.messages.some(m=>m.command==='midi.handle'));
- const first=worker.messages.find(m=>m.command==='midi.handle');assert.deepEqual(JSON.parse(JSON.stringify(first.args)),['tetorica-sega-psg',{channel:15},'setPitchBendRange',[12]]);
- worker.post({type:'response',id:first.id});await waitFor(()=>worker.messages.filter(m=>m.command==='midi.handle').length===2);
- const second=worker.messages.filter(m=>m.command==='midi.handle')[1];assert.deepEqual(JSON.parse(JSON.stringify(second.args)),['tetorica-sega-psg',{channel:15},'pitchBend',[-1]]);
- worker.post({type:'response',id:second.id});await worker.send({type:'stop'});
-});
+async function nextMidiRequest(worker,index) {
+ await waitFor(()=>worker.messages.filter(m=>m.command==='midi.invoke').length>index);
+ return worker.messages.filter(m=>m.command==='midi.invoke')[index];
+}
 
-test('Worker forwards CC controller/value and sustain note-off identity',async()=>{
+test('Worker preserves one configured handle through voice, bend, sustain and note release',async()=>{
  const worker=createWorkerHarness();
- worker.post({type:'run',presets:{},scaleIntervals:{},sourceCode:`const o=midi.output('tetorica-ym2612',{channel:CH16});await o.cc(64,127);await o.noteOn('C4');await o.noteOff('C4');`});
- await waitFor(()=>worker.messages.some(m=>m.command==='midi.handle'));
- const cc=worker.messages.find(m=>m.command==='midi.handle');
- assert.deepEqual(JSON.parse(JSON.stringify(cc.args)),['tetorica-ym2612',{channel:15},'cc',[64,127]]);
- worker.post({type:'response',id:cc.id,value:true});
- await waitFor(()=>worker.messages.filter(m=>m.command==='midi.handle').length===2);
- const note=worker.messages.filter(m=>m.command==='midi.handle')[1];worker.post({type:'response',id:note.id,value:42});
- await waitFor(()=>worker.messages.some(m=>m.command==='midi.release'));
- const off=worker.messages.find(m=>m.command==='midi.release');worker.post({type:'response',id:off.id});
+ worker.post({type:'run',presets:{},scaleIntervals:{},sourceCode:`const o=midi.output('tetorica-ym2612',{channel:[CH1,CH2,CH3]});await o.setVoice({algorithm:7});await o.setPitchBendRange(12);await o.pitchBend(-1);await o.cc(64,127);await o.noteOn('C4');await o.noteOff('C4');`});
+ const config=await nextMidiRequest(worker,0),handle=config.args[1][1];
+ assert.equal(config.args[0],'configure');assert.deepEqual(Array.from(config.args[1][2]),[0,1,2]);
+ worker.post({type:'response',id:config.id});
+ const expected=[['setVoice',[handle,{algorithm:7},null]],['setPitchBendRange',['tetorica-ym2612',handle,12]],['pitchBend',['tetorica-ym2612',handle,-1]],['cc',['tetorica-ym2612',handle,64,127]],['noteOn',['tetorica-ym2612',handle,60,100]],['release',['tetorica-ym2612',handle,60,42]]];
+ for(let i=0;i<expected.length;i++) {
+  const message=await nextMidiRequest(worker,i+1);assert.deepEqual(JSON.parse(JSON.stringify(message.args)),expected[i]);
+  worker.post({type:'response',id:message.id,value:expected[i][0]==='noteOn'?42:undefined});
+ }
  await worker.send({type:'stop'});
- assert.deepEqual(JSON.parse(JSON.stringify(off.args)),['tetorica-ym2612',15,60,42]);
 });
 
-test('Worker timeline is available to generated code and preserves event order',async()=>{
+test('Worker timeline and fixed PSG channel use the same handle for note-off',async()=>{
  const worker=createWorkerHarness();
- worker.post({type:'run',presets:{},scaleIntervals:{},sourceCode:`const o=midi.output('tetorica-sega-psg');const t=midi.createTimeline();await t.waitUntil(0);await o.noteOn(60);await t.waitUntil(.001);await o.noteOff(60);`});
- await waitFor(()=>worker.messages.some(m=>m.command==='midi.handle'));
- const on=worker.messages.find(m=>m.command==='midi.handle');assert.equal(on.args[2],'noteOn');
- worker.post({type:'response',id:on.id,value:99});
- await waitFor(()=>worker.messages.some(m=>m.command==='midi.release'));
- const off=worker.messages.find(m=>m.command==='midi.release');assert.equal(off.args[3],99);
+ worker.post({type:'run',presets:{},scaleIntervals:{},sourceCode:`const o=midi.output('tetorica-sega-psg',{channel:CH2});const t=midi.createTimeline();await t.waitUntil(0);await o.noteOn(60);await t.waitUntil(.001);await o.noteOff(60);`});
+ const config=await nextMidiRequest(worker,0);assert.deepEqual(Array.from(config.args[1][2]),[1]);
+ worker.post({type:'response',id:config.id});
+ const on=await nextMidiRequest(worker,1);assert.equal(on.args[0],'noteOn');worker.post({type:'response',id:on.id,value:99});
+ const off=await nextMidiRequest(worker,2);assert.equal(off.args[0],'release');assert.equal(off.args[1][1],config.args[1][1]);assert.equal(off.args[1][3],99);
  worker.post({type:'response',id:off.id});await worker.send({type:'stop'});
 });

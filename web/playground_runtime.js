@@ -1,5 +1,5 @@
-import {createMidiRack, createMidiApi, validateBendRange, MIDI_SUPPORTED_CC} from './playground_midi.js?v=midi-source-1';
-import {parseMidiFile} from './midi_file.js?v=midi-source-1';
+import {createMidiRack, createMidiApi, validateBendRange, MIDI_SUPPORTED_CC} from './playground_midi.js?v=midi-physical-1';
+import {parseMidiFile} from './midi_file.js?v=midi-physical-1';
 import { createAudioScheduler } from "./playground_audio_scheduler.js";
 import {
   FM_PRESETS,
@@ -154,7 +154,7 @@ export function createPlaygroundRuntime(
     );
   defaultLogicWorkerUrl.searchParams.set(
     "v",
-    "midi-source-1"
+    "midi-physical-1"
   );
   const logicWorkerUrl =
     options.logicWorkerUrl ??
@@ -789,12 +789,14 @@ export function createPlaygroundRuntime(
     }
 
     if (command === "midi.file") return globals.midi.playFile(...args);
-    if (command === "midi.handle") {
-      const [destination, options, method, values] = args;
-      if (!["setVoice","noteOn","noteOff","pitchBend","setPitchBendRange","cc"].includes(method)) throw new Error("Unsupported MIDI method");
-      return globals.midi.output(destination,options)[method](...values);
+    if (command === "midi.invoke") {
+      const [method,values]=args;
+      if (!["configure","setVoice","noteOn","noteOff","pitchBend","setPitchBendRange","cc","release"].includes(method)) throw new Error("Unsupported MIDI method");
+      if(midiFilePlaying)throw new Error('Manual MIDI operations are unavailable during MIDI file playback');
+      const rack=getMidiRack();
+      if(method==='release')return rack.noteOff(values[0],values[1],values[2],undefined,values[3],values[4]);
+      return rack[method](...values);
     }
-    if (command === "midi.release") return getMidiRack().noteOff(args[0],args[1],args[2],undefined,args[3],args[4]);
     if (command === "fx.create") {
       const [id, method, options] = args;
       const factory = globals.fx[method];
@@ -1856,6 +1858,8 @@ export function createPlaygroundRuntime(
   async function finalize() {
     stop();
     terminateLogicWorker();
+    // Termination can discard the Worker stop command; release MIDI tails before closing the synth.
+    stopAllAudio();
     sourceMap.clear();
     currentSourceName = null;
     synth = null;

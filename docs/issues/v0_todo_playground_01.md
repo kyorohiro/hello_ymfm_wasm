@@ -1,5 +1,30 @@
 # YM2612 Playground：MIDI import の対応案
 
+## 現行の channel 指定（物理 CH 選択）
+
+`midi.output()` の `channel` は物理的な発音先を選ぶ。以下の過去の MIDI CH 指定の記述は初期実装の経緯であり、現行 API はこの節を優先する。
+
+```js
+const chords = midi.output("tetorica-ym2612", {channel: [CH1, CH2, CH3]});
+const lead = midi.output("tetorica-ym2612", {channel: CH4});
+const bass = midi.output("tetorica-ym2612", {channel: CH5});
+const extra = midi.output("tetorica-ym2612", {channel: CH6});
+const automatic = midi.output("tetorica-ym2612"); // 全6声が対象
+```
+
+- 省略 / undefined：FM 全6声、PSG トーン全3声。
+- 数値：指定した物理 CH に固定。数値は0始まり、定数 CH1=0。
+- 配列：指定した物理 CH だけを使用。順に空き声を探し、満杯なら範囲内の最も古い声を置き換える。
+- 指定が重なるハンドルは同じ物理声を取り合う。undefined は固定 CH を自動で除外しない。
+- 音色・CC・Pitch Bend・Sustain はハンドルごとに独立。音色の省略時全 MIDI CH への一括設定は廃止。
+- 数値0〜15は入力可能だが、その音源に存在しない物理 CH は発音しない。配列からは除外する。空配列も無音。
+- Worker は生成したハンドルIDと対象範囲を Main に登録し、全操作で同じIDを使う。
+- Import の Physical CH 欄は空欄 / Auto、CH4、CH1,CH2,CH3 の形式。生成コードへ省略・数値・配列として反映する。
+  別途割り当てる論理番号は `runChN()` のパート選択名に使用し、物理 CH の指定とは分ける。
+- 旧生成コードの `channel: CH8` などは新仕様では FM の範囲外で無音となる。再 Import、または channel を省略・使用可能な範囲へ変更する。
+- 既存 `midi.playFile()` の route.channel は互換性のため従来の論理 MIDI CH を維持する。
+- Tetorica MIDI Playground（別アプリ）の API は今回変更していない。
+
 ## 目的
 
 MIDI ファイルを読み込み、パートと音色を選んで YM2612 Playground で再生できるようにする。
@@ -317,3 +342,15 @@ await marioWorld01.runAllCh();
 - 第1要素は曲開始からの秒数。各 CH 内では時刻順を維持する。第3要素は同時刻の順序を編集したい場合に変更する。
 - 個別再生・選択再生・全体再生は同じ再生処理を使う。呼び出し側の API は変更しない。
 - 再生時に全イベント配列を作らず、最大16 CH 分の次のイベントだけを保持する。
+
+## Import の自動発音割り当て
+
+- 各パートを Skip / Include: FM auto voices / Include: PSG auto voices で選択する。
+- MIDI CH は Auto が既定。元の MIDI CH が空いていれば使用し、衝突時は別の空き番号を割り当てる。
+  明示した MIDI CH は先に予約する。Skip のパートには割り当てない。
+- FM は物理6声、PSG はトーン3声を共有する。空き声優先、満杯時は最も古い発音を置き換える。
+  順番固定のラウンドロビンではない。物理 CH を固定指定・制限する機能は今回追加しない。
+- 音色・CC・Bend の分離のため、生成コードには割り当て済みの論理 MIDI CH を明記する。
+  channel 指定を省略して全パートを CH1 の設定に統合することはしない。
+- 同じ音源につき最大16パート。超過時は状態を混ぜず、Skip または別音源への変更を案内する。
+- `runChN()` の N は自動割り当て後の論理 MIDI CH。物理 FM の発音枠の番号ではない。

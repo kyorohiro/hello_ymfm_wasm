@@ -5,6 +5,8 @@ import {parseTfi} from './tfi.js';
 import {parseVgi} from './vgi.js';
 
 const destinations = ['tetorica-ym2612', 'tetorica-sega-psg'];
+let nextOutputId = 0;
+const outputNamespace = Math.random().toString(36).slice(2);
 let nextVoiceId = 0; // Never reuse IDs across Stop / Run rack replacement.
 export const MIDI_SUPPORTED_CC = Object.freeze([7,10,11,64,120,121,123]);
 const defaultControls = () => ({bend:0,range:2,volume:127,expression:127,pan:64,sustain:false});
@@ -12,6 +14,14 @@ const carriers = [8,8,8,8,10,14,14,15];
 function integer(value, min, max, name) {
   if (!Number.isInteger(value) || value < min || value > max) throw new Error(`${name} must be ${min}..${max}`);
   return value;
+}
+export function physicalChannels(destination, channel) {
+  if (!destinations.includes(destination)) throw new Error(`Unsupported MIDI output: ${destination}`);
+  const count=destination===destinations[0]?6:3;
+  if(channel===undefined)return Array.from({length:count},(_,i)=>i);
+  const requested=Array.isArray(channel)?channel:[channel];
+  for(const value of requested)integer(value,0,15,'channel');
+  return [...new Set(requested)].filter(value=>value<count);
 }
 export function validateBendRange(value) {
   if (!Number.isFinite(value) || value < 0 || value > 96) throw new Error('Pitch bend range must be 0..96 semitones');
@@ -30,10 +40,10 @@ export function midiNote(note) {
   return integer(note,0,127,'note');
 }
 
-/** One shared chip rack. Handles describe MIDI channels, not physical voices. */
+/** Shared physical voices. Legacy numeric state keys coexist with independent output handles. */
 export function createMidiRack({write, writePsg, preset, fmChannels = 6}) {
   let at;
-  const pending = new Map();
+  const pending = new Map(),outputs = new Map();
   const controls = Object.fromEntries(destinations.map(d=>[d,Array.from({length:16},defaultControls)]));
   function normalize(data) {
     const validator=new YM2612Synth({transport:{write(){}}});validator.setPreset(0,data);
@@ -49,7 +59,9 @@ export function createMidiRack({write, writePsg, preset, fmChannels = 6}) {
   const psg = createSegaPsgApi({write:value=>writePsg({value,time:at})});
   function target(destination, channel) {
     if (!destinations.includes(destination)) throw new Error(`Unsupported MIDI output: ${destination}`);
-    integer(channel,0,15,'channel');
+    if(typeof channel==='string') {
+      if(outputs.get(channel)?.destination!==destination)throw new Error('Unknown MIDI output handle');
+    } else integer(channel,0,15,'channel');
     return voices[destination];
   }
   function tune(destination, slot, voice) {
@@ -98,6 +110,17 @@ export function createMidiRack({write, writePsg, preset, fmChannels = 6}) {
     voices[destination].forEach((v,i)=>{if(v?.channel===channel&&!v.keyDown)release(destination,i);});
   }
   return {
+    configure(destination,channel,slots) {
+      if(!destinations.includes(destination)||typeof channel!=='string'||!channel.startsWith('output:'))throw new Error('Invalid MIDI output handle');
+      const allowed=physicalChannels(destination,slots);
+      const existing=outputs.get(channel);
+      if(existing) {
+        if(existing.destination!==destination||JSON.stringify(existing.slots)!==JSON.stringify(allowed))throw new Error('MIDI output handle configuration changed');
+        return;
+      }
+      outputs.set(channel,{destination,slots:allowed});
+      controls[destination][channel]=defaultControls();patches[channel]=normalize(preset);
+    },
     cc(destination,channel,controller,value,time) {
       target(destination,channel);integer(controller,0,127,'controller');integer(value,0,127,'CC value');
       if(!MIDI_SUPPORTED_CC.includes(controller))return false;
@@ -137,12 +160,14 @@ export function createMidiRack({write, writePsg, preset, fmChannels = 6}) {
         : structuredClone(data);
       // Validate with the existing encoder without writing to the audio device.
       patch=normalize(patch);
-      if (channel === undefined) patches.fill(patch); else patches[integer(channel,0,15,'channel')]=patch;
+      if (channel === undefined) patches.fill(patch); else { target(destinations[0],channel);patches[channel]=patch; }
     },
     noteOn(destination, channel, note, velocity = 100, time) {
       const pool = target(destination,channel); note=midiNote(note);integer(velocity,1,127,'velocity');at=time;
-      let slot=pool.findIndex(v=>!v);
-      if(slot<0)slot=pool.reduce((old,v,i)=>v.id<pool[old].id?i:old,0);
+      const slots=typeof channel==='string'?outputs.get(channel).slots.filter(i=>i<pool.length):pool.map((_,i)=>i);
+      if(!slots.length)return ++nextVoiceId;
+      let slot=slots.find(i=>!pool[i]);
+      if(slot===undefined)slot=slots.reduce((old,i)=>pool[i].id<pool[old].id?i:old,slots[0]);
       if(pool[slot])release(destination,slot);
       const id=++nextVoiceId;
       const voice={channel,note,id,velocity,keyDown:true};
@@ -173,7 +198,7 @@ export function createMidiRack({write, writePsg, preset, fmChannels = 6}) {
       tails.forEach((v,i)=>{if(v){for(let op=0;op<4;op++)fm.setOperator(i,op,{tl:127});tails[i]=null;}});
       for(const destination of destinations) {
         voices[destination].forEach((v,i)=>{if(v)release(destination,i,true);});
-        controls[destination].forEach(c=>Object.assign(c,defaultControls()));
+        Object.values(controls[destination]).forEach(c=>Object.assign(c,defaultControls()));
       }
     },
   };
@@ -208,11 +233,16 @@ export function createMidiApi(invoke, {sleep, bpm, check = ()=>{}, owner = ()=>n
     async playFile(data,routes){if(owner()!==null)throw new Error('Call midi.playFile at the top level, outside liveLoop');return call('playFile',[data,routes]);},
     output(destination,{channel}={}) {
       if(!destinations.includes(destination))throw new Error(`Unsupported MIDI output: ${destination}`);
-      if(channel!==undefined)integer(channel,0,15,'channel');
-      const ch=channel??0;
+      const slots=physicalChannels(destination,channel);
+      const ch=`output:${outputNamespace}:${++nextOutputId}`;
+      let configured;
+      const handleCall=async(method,args)=>{
+        check();configured??=Promise.resolve(call('configure',[destination,ch,slots]));
+        await configured;check();return call(method,args);
+      };
       return {
         async cc(controller,value) {
-          const result=await call('cc',[destination,ch,integer(controller,0,127,'controller'),integer(value,0,127,'CC value')]);
+          const result=await handleCall('cc',[destination,ch,integer(controller,0,127,'controller'),integer(value,0,127,'CC value')]);
           const key=channelKey(destination,ch);
           if(controller===64)pedals.set(key,value>=64);
           if(controller===121)pedals.set(key,false);
@@ -222,11 +252,11 @@ export function createMidiApi(invoke, {sleep, bpm, check = ()=>{}, owner = ()=>n
           }
           return result;
         },
-        async pitchBend(value) {return call('pitchBend',[destination,ch,validateBend(value)]);},
-        async setPitchBendRange(semitones) {return call('setPitchBendRange',[destination,ch,validateBendRange(semitones)]);},
+        async pitchBend(value) {return handleCall('pitchBend',[destination,ch,validateBend(value)]);},
+        async setPitchBendRange(semitones) {return handleCall('setPitchBendRange',[destination,ch,validateBendRange(semitones)]);},
         async setVoice(data,options) {
           if(destination!==destinations[0])throw new Error('setVoice is only available for YM2612');
-          return call('setVoice',[channel,data,options]);
+          return handleCall('setVoice',[ch,data,options]);
         },
         async loadVoice(path) {
           if(!readFile)throw new Error('loadVoice requires a project FILES reader');
@@ -236,14 +266,14 @@ export function createMidiApi(invoke, {sleep, bpm, check = ()=>{}, owner = ()=>n
         },
         async noteOn(note,{velocity=100}={}) {
           const n=midiNote(note),origin=owner();
-          const id=await call('noteOn',[destination,ch,n,integer(velocity,1,127,'velocity')]);
+          const id=await handleCall('noteOn',[destination,ch,n,integer(velocity,1,127,'velocity')]);
           try {check();} catch(error) {await invoke('release',[destination,ch,n,id]);throw error;}
           held.set(id,{owner:origin,args:[destination,ch,n,id]});return id;
         },
         noteOff(note) {
           const n=midiNote(note);
-          for(const [id,e] of held)if(!e.released&&e.args[0]===destination&&e.args[1]===ch&&e.args[2]===n){releaseHeld(id);return call('release',e.args);}
-          return call('noteOff',[destination,ch,n]);
+          for(const [id,e] of held)if(!e.released&&e.args[0]===destination&&e.args[1]===ch&&e.args[2]===n){releaseHeld(id);return handleCall('release',e.args);}
+          return handleCall('noteOff',[destination,ch,n]);
         },
         async play(note,{velocity=100,duration=1}={}) {
           if(!Number.isFinite(duration)||duration<0)throw new Error('duration must be nonnegative beats');
