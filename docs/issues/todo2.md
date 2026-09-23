@@ -167,3 +167,15 @@ It may soon help to classify issue notes into groups such as:
 - `done`
 
 Some current notes also overlap and may be merge candidates later.
+
+## Command Editor prototype (Analyzer / Parsed Output)
+
+- Implemented: 100-command paging, register data-byte edits and 0x61 wait edits.
+- Original buffer is shared; sparse edits and page offsets are retained, with up to 1,000 undo steps.
+- Data blocks have bounded previews and are read only. No full JSON expansion.
+- Apply to player reloads the edited VGM for playback/analysis; Save edited VGM downloads it.
+- Restore original clears edits; Apply is required to restore the player too.
+- Wait edits recalculate total/loop sample counts; fixed byte lengths preserve all offsets and metadata.
+- Other wait encodings, command insertion/deletion, address editing and sample editing are not implemented.
+- Automated coverage includes paging, large blocks, byte preservation, undo, timing and invalid commands.
+- Browser visual/manual playback verification remains pending.

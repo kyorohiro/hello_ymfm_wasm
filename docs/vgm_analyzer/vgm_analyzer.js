@@ -1,3 +1,4 @@
+import {mountCommandEditor} from './command_editor.js';
 import {createMsxNoteMonitor, describeMsxNotes, observeMsxNotes} from './msx_notes.js';
 import {createHuc6280Monitor,applyHuc6280Write,describeHuc6280Notes,extractHuc6280Notes} from './huc6280_notes.js';
 import {isOpl,createOplMonitor,applyOplWrite,describeOplNotes} from './opl_notes.js';
@@ -194,7 +195,6 @@ function renderMetadata(metadata) {
     metadataOutput.textContent = "No GD3 metadata available.";
   }
 }
-const commandsOutput = document.getElementById("commandsOutput");
 const commandUsageOutput = document.getElementById("commandUsageOutput");
 const dataBlocksOutput = document.getElementById("dataBlocksOutput");
 const specialCommandsOutput = document.getElementById("specialCommandsOutput");
@@ -2062,48 +2062,6 @@ async function loadYm2608ModuleFactory() {
   return await activeYm2608ModuleFactoryPromise;
 }
 
-function renderEvent(event, index) {
-  if (event.type.startsWith("rf5c164-")) {
-    const detail = event.type === "rf5c164-data"
-      ? `${event.data.length} bytes @${formatHex(event.offset, 4)}`
-      : JSON.stringify(event);
-    return `${String(index).padStart(3, " ")}: ${event.type} ${detail}`;
-  }
-  if (event.type === "ym2608-adpcm-b-data") {
-    return `${String(index).padStart(3, " ")}: ym2608 ADPCM-B chip=${event.chipIndex} offset=${formatHex(event.offset)} size=${event.data.length}`;
-  }
-  if (event.type === "ym2612-write") {
-    return `${String(index).padStart(3, " ")}: write port=${event.port} register=${formatHex(event.register)} value=${formatHex(event.value)}`;
-  }
-  if (event.type === "ay8910-write") return `${index}: ay8910 chip=${event.chipIndex} register=${formatHex(event.register)} value=${formatHex(event.value)}`;
-  if (event.type === "k051649-write") return `${index}: k051649 port=${event.port} register=${formatHex(event.register)} value=${formatHex(event.value)}`;
-  if (event.type === "segapcm-write") return `${index}: segapcm offset=${formatHex(event.offset, 4)} value=${formatHex(event.value)}`;
-  if (event.type === "segapcm-rom-data") return `${index}: segapcm ROM chip=${event.chipIndex} offset=${formatHex(event.offset)} size=${event.data.length}`;
-  if (event.type === 'huc6280-write') return `${index}: huc6280 register=${formatHex(event.register)} value=${formatHex(event.value)}`;
-  if (event.type === 'nes-apu-write') return `${index}: nes-apu register=${formatHex(event.register)} value=${formatHex(event.value)}`;
-  if (event.type === 'nes-apu-data') return `${index}: nes-apu RAM offset=${formatHex(event.offset)} size=${event.data.length}`;
-  if (event.type === "gameboy-dmg-write") return `${index}: gameboy-dmg register=${formatHex(event.register)} value=${formatHex(event.value)}`;
-  if (["y8950-write", "ymf278b-write", "ym3526-write", "ym3812-write", "ymf262-write"].includes(event.type)) return `${index}: ${event.type} port=${event.port ?? 0} register=${formatHex(event.register)} value=${formatHex(event.value)}`;
-  if (event.type === "ym2151-write") return `${index}: ym2151 register=${formatHex(event.register)} value=${formatHex(event.value)}`;
-  if (event.type === "ym2413-write") return `${index}: ym2413 write register=${formatHex(event.register)} value=${formatHex(event.value)}`;
-  if (event.type === "ym2203-write") {
-    return `${String(index).padStart(3, " ")}: ym2203 write register=${formatHex(event.register)} value=${formatHex(event.value)}`;
-  }
-  if (event.type === "ym2608-write") {
-    return `${String(index).padStart(3, " ")}: ym2608 port=${event.port} register=${formatHex(event.register)} value=${formatHex(event.value)}`;
-  }
-  if (event.type === "ym2610-write") {
-    return `${String(index).padStart(3, " ")}: ym2610 port=${event.port} register=${formatHex(event.register)} value=${formatHex(event.value)}`;
-  }
-  if (event.type === "psg-write") {
-    return `${String(index).padStart(3, " ")}: psg write value=${formatHex(event.value)}`;
-  }
-  if (event.type === "wait") {
-    return `${String(index).padStart(3, " ")}: wait ${event.samples} samples`;
-  }
-  return `${String(index).padStart(3, " ")}: end`;
-}
-
 function renderCommandUsage(counts) {
   return Array.from(counts.entries())
     .sort((left, right) => left[0].localeCompare(right[0]))
@@ -3151,7 +3109,8 @@ function startScriptProcessorStream() {
   return true;
 }
 
-async function handleFile(file) {
+async function handleFile(file, preserveEditor = false) {
+  if (!preserveEditor) commandEditor.load(null);
   msxMutes.clear();
   exportAllOpmButton.disabled = exportOpmButton.disabled = true;
   opmMonitor.reset();
@@ -3201,7 +3160,6 @@ async function handleFile(file) {
     console.error(error);
     headerOutput.textContent = "Failed to decode VGM/VGZ/S98 file.";
     metadataOutput.textContent = "Metadata unavailable: file could not be decoded.";
-    commandsOutput.textContent = error.message;
     pauseButton.disabled = true;
     replayButton.disabled = true;
     stopButton.disabled = true;
@@ -3217,7 +3175,6 @@ async function handleFile(file) {
     console.error(error);
     headerOutput.textContent = "Failed to parse VGM header.";
     metadataOutput.textContent = "Metadata unavailable: file could not be parsed.";
-    commandsOutput.textContent = error.message;
     pauseButton.disabled = true;
     replayButton.disabled = true;
     stopButton.disabled = true;
@@ -3266,21 +3223,6 @@ async function handleFile(file) {
   pcmRamWriteOutput.textContent = renderPcmRamWrites(vgm.pcmRamWriteSummary());
   command92ContextOutput.textContent = vgm.analyzeCommandContext(0x92).join("\n");
 
-  const events = [];
-  try {
-    for (let index = 0; index < 64; index += 1) {
-      const event = vgm.step();
-      events.push(renderEvent(event, index));
-      if (event.type === "end") {
-        break;
-      }
-    }
-  } catch (error) {
-    console.error(error);
-    events.push(`Parser stopped with error: ${error.message}`);
-  }
-
-  commandsOutput.textContent = events.join("\n");
   ymf278bNeedsWaveRom = vgm.requiresYmf278bWaveRom();
   ym2608NeedsRhythmRom = vgm.requiresYm2608RhythmRom();
   if (ym2608NeedsRhythmRom && !ym2608AdpcmARomBytes) {
@@ -3309,6 +3251,7 @@ async function handleFile(file) {
   exportAllTfiButton.disabled = extractedTfiPatches.length === 0;
   exportAllVgiButton.disabled = extractedTfiPatches.length === 0;
   updatePlaybackButtons({});
+  if (!preserveEditor) commandEditor.load(buffer, file.name);
   setStatus(`Parsed ${file.name} (${currentHasPcm ? "MEGA-CD" : (currentChipKind === "ym2610" && (noteishHeader.ym2610Clock & 0x80000000) ? "YM2610B" : currentChipKind.toUpperCase())}).${currentStatusSuffix()}`);
 }
 
@@ -3809,6 +3752,15 @@ renderNoteishGrid();
 
 const exportTempo = createExportTempoSettings(analyzeScoreSource);
 const analyzeLilyPondSource = buffer => exportTempo.getAnalysis(buffer);
+const commandEditor = mountCommandEditor(document.getElementById('commandEditor'), {
+  setStatus,
+  async onApply(bytes, name) {
+    await handleFile({name, arrayBuffer:async()=>bytes.buffer}, true);
+    if (!currentBuffer) throw new Error('Edited VGM could not be loaded');
+    setOutputTab('parsed-output');
+  },
+});
+
 mountScoreGroups({getTrack:()=>({buffer:currentBuffer}), getAnalysis:buffer=>currentChipKind === 'huc6280' ? extractHuc6280Notes(buffer) : exportTempo.getAnalysis(buffer),
   onChange:()=>{if(currentBuffer)songTimeline.load(currentBuffer);setStatus('Groups updated. Regenerate the sheet to apply changes.');},setStatus});
 musicSheet = mountMusicSheet({getTrack: () => ({buffer:currentBuffer, available:(midiExportAvailable || (currentChipKind === 'ymf262' && !(noteishHeader.ymf262Clock & 0xc0000000))), fileName:lastLoadedFileName}), tempoSettings:exportTempo, setStatus});
