@@ -1,4 +1,4 @@
-import {MIDI_SUPPORTED_CC} from './playground_midi.js?v=midi-physical-1';
+import {MIDI_SUPPORTED_CC} from './playground_midi.js?v=midi-channels-2';
 
 /** Bounded SMF format 0/1 reader. Original channel/meta events remain available. */
 export function parseMidiFile(input) {

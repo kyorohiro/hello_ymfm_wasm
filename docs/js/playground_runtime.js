@@ -1,5 +1,5 @@
-import {createMidiRack, createMidiApi, validateBendRange, MIDI_SUPPORTED_CC} from './playground_midi.js?v=midi-physical-1';
-import {parseMidiFile} from './midi_file.js?v=midi-physical-1';
+import {createMidiRack, createMidiApi, validateBendRange, MIDI_SUPPORTED_CC} from './playground_midi.js?v=midi-channels-2';
+import {parseMidiFile} from './midi_file.js?v=midi-channels-2';
 import { createAudioScheduler } from "./playground_audio_scheduler.js";
 import {
   FM_PRESETS,
@@ -154,7 +154,7 @@ export function createPlaygroundRuntime(
     );
   defaultLogicWorkerUrl.searchParams.set(
     "v",
-    "midi-physical-1"
+    "midi-channels-2"
   );
   const logicWorkerUrl =
     options.logicWorkerUrl ??
@@ -791,7 +791,7 @@ export function createPlaygroundRuntime(
     if (command === "midi.file") return globals.midi.playFile(...args);
     if (command === "midi.invoke") {
       const [method,values]=args;
-      if (!["configure","setVoice","noteOn","noteOff","pitchBend","setPitchBendRange","cc","release"].includes(method)) throw new Error("Unsupported MIDI method");
+      if (!["setVoice","noteOn","noteOff","pitchBend","setPitchBendRange","cc","release"].includes(method)) throw new Error("Unsupported MIDI method");
       if(midiFilePlaying)throw new Error('Manual MIDI operations are unavailable during MIDI file playback');
       const rack=getMidiRack();
       if(method==='release')return rack.noteOff(values[0],values[1],values[2],undefined,values[3],values[4]);

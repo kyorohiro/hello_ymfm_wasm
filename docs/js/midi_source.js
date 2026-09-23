@@ -1,18 +1,7 @@
-import {parseMidiFile} from './midi_file.js?v=midi-physical-1';
-import {MIDI_SUPPORTED_CC, validateBendRange, physicalChannels} from './playground_midi.js?v=midi-physical-1';
+import {parseMidiFile} from './midi_file.js?v=midi-shared-1';
+import {MIDI_SUPPORTED_CC, validateBendRange} from './playground_midi.js?v=midi-shared-1';
 
-/** UI uses human-facing physical CH numbers, separated by commas for a pool. */
-export function parsePhysicalSelection(text,destination) {
-  const value=String(text).trim();
-  if(!value||/^auto$/i.test(value))return undefined;
-  const tokens=value.split(',').map(s=>s.trim().replace(/^CH/i,''));
-  const count=destination==='tetorica-ym2612'?6:3;
-  if(tokens.some(t=>!/^\d+$/.test(t)||Number(t)<1||Number(t)>count))throw new Error(`Physical channels must be CH1..CH${count}, separated by commas`);
-  const slots=[...new Set(tokens.map(t=>Number(t)-1))];
-  return slots.length===1?slots[0]:slots;
-}
-
-/** Give included parts separate logical channels; physical voices remain shared. */
+/** Auto selects unused MIDI channels; explicitly selected channels may be shared. */
 export function assignMidiRoutes(selections) {
   const routes=selections.filter(route=>route.destination).map(route=>({...route}));
   const used=new Map([['tetorica-ym2612',new Set()],['tetorica-sega-psg',new Set()]]);
@@ -24,7 +13,6 @@ export function assignMidiRoutes(selections) {
     parts.add(route.part);
     if(route.channel===undefined)continue;
     if(!Number.isInteger(route.channel)||route.channel<0||route.channel>15)throw new Error('MIDI channel must be 0..15');
-    if(channels.has(route.channel))throw new Error('Assign separate MIDI channels to parts sharing an output');
     channels.add(route.channel);
   }
   for(const route of routes)if(route.channel===undefined) {
@@ -40,7 +28,7 @@ export function assignMidiRoutes(selections) {
 /** Compile selected SMF parts into editable, standalone Playground JavaScript. */
 export function midiToSource(bytes, routes, {name='MIDI', presets={}, module=false}={}) {
   const song=parseMidiFile(bytes), parts=new Map(song.parts.map(p=>[p.key,p]));
-  const targets=new Set(), mapping=new Map(), controls=new Map();
+  const targets=new Map(), mapping=new Map(), controls=new Map();
   const channels=new Map(),initializers=[],channelEvents=new Map();
   let eventOrder=0,bufferedLength=0;
   const lines=[];let length=0;
@@ -54,18 +42,29 @@ export function midiToSource(bytes, routes, {name='MIDI', presets={}, module=fal
   routes.forEach((route,i)=>{
     const part=parts.get(route.part),key=JSON.stringify([route.destination,route.channel]);
     if(!part||!['tetorica-ym2612','tetorica-sega-psg'].includes(route.destination)||!Number.isInteger(route.channel)||route.channel<0||route.channel>15)throw new Error('Invalid MIDI route');
-    if(mapping.has(route.part)||targets.has(key))throw new Error('Assign each part to a separate output / MIDI channel');
-    validateBendRange(route.bendRange??2);physicalChannels(route.destination,route.physicalChannel);targets.add(key);
+    if(mapping.has(route.part))throw new Error('A MIDI part can only be included once');
+    validateBendRange(route.bendRange??2);
+    if(route.destination==='tetorica-ym2612'&&!Object.hasOwn(presets,route.preset))throw new Error(`Unknown preset: ${route.preset}`);
+    const existing=targets.get(key);
+    if(existing) {
+      mapping.set(route.part,existing.variable);
+      const sourceKey=JSON.stringify([part.port,part.device,part.channel]);
+      const group=controls.get(sourceKey)??[];
+      if(!group.includes(existing.variable))group.push(existing.variable);
+      controls.set(sourceKey,group);
+      add(`// Track ${part.track+1}, source CH${part.channel} shares ${existing.variable}: ${quote(part.name)}`);
+      if(existing.preset!==route.preset||existing.bendRange!==(route.bendRange??2))add('// Shared channel: voice and bend range use the first selected part settings.');
+      return;
+    }
     const variable=`${route.destination==='tetorica-ym2612'?'ym2612':'segapsg'}_${i+1}`;
+    targets.set(key,{variable,preset:route.preset,bendRange:route.bendRange??2});
     mapping.set(route.part,variable);channels.set(variable,route.channel+1);
     const sourceKey=JSON.stringify([part.port,part.device,part.channel]);
     const group=controls.get(sourceKey)??[];group.push(variable);controls.set(sourceKey,group);
     add(`\n// Track ${part.track+1}, source CH${part.channel}: ${quote(part.name)}`);
     const setup=line=>module?initializers.push(line):add(line);
     if(module)add(`let ${variable};`);
-    const channelName=value=>`${module?'api.':''}CH${value+1}`;
-    const selection=route.physicalChannel===undefined?'':`, {channel: ${Array.isArray(route.physicalChannel)?`[${route.physicalChannel.map(channelName).join(', ')}]`:channelName(route.physicalChannel)}}`;
-    setup(`${module?'':'const '}${variable} = ${module?'api.':''}midi.output(${quote(route.destination)}${selection});`);
+    setup(`${module?'':'const '}${variable} = ${module?'api.':''}midi.output(${quote(route.destination)}, {channel: ${module?'api.':''}CH${route.channel+1}});`);
     if(route.destination==='tetorica-ym2612') {
       if(!Object.hasOwn(presets,route.preset))throw new Error(`Unknown preset: ${route.preset}`);
       setup(`await ${variable}.setVoice(${module?'api.':''}FM_PRESETS[${quote(route.preset)}]);`);
@@ -173,7 +172,7 @@ export async function runChannels(channelNumbers) {
   } else {
     wait(song.seconds);
     add('// End of file: silence any held or sustained notes.');
-    for(const variable of mapping.values())add(`await ${variable}.cc(120, 0);`);
+    for(const variable of new Set(mapping.values()))add(`await ${variable}.cc(120, 0);`);
   }
   return lines.join('\n')+'\n';
 }

@@ -1,7 +1,7 @@
 export const EXAMPLES = {
-  "midi-fm-psg": `// YM2612 mode. channel selects physical voices: omit for all, use an array for a pool, or a number to pin.
+  "midi-fm-psg": `// YM2612 mode. channel selects a MIDI part (CH1..CH16); the sound engine allocates physical voices automatically.
 setBpm(120);
-const lead = midi.output("tetorica-ym2612", {channel: [CH1, CH2, CH3]});
+const lead = midi.output("tetorica-ym2612", {channel: CH1});
 const bass = midi.output("tetorica-sega-psg", {channel: CH2});
 await lead.setVoice(FM_PRESETS["two-op-bell"]);
 await lead.cc(7, 100);  // Volume

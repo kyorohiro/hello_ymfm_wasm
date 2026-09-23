@@ -316,26 +316,22 @@ async function nextMidiRequest(worker,index) {
  return worker.messages.filter(m=>m.command==='midi.invoke')[index];
 }
 
-test('Worker preserves one configured handle through voice, bend, sustain and note release',async()=>{
+test('Worker preserves the MIDI channel through voice, bend, sustain and note release',async()=>{
  const worker=createWorkerHarness();
- worker.post({type:'run',presets:{},scaleIntervals:{},sourceCode:`const o=midi.output('tetorica-ym2612',{channel:[CH1,CH2,CH3]});await o.setVoice({algorithm:7});await o.setPitchBendRange(12);await o.pitchBend(-1);await o.cc(64,127);await o.noteOn('C4');await o.noteOff('C4');`});
- const config=await nextMidiRequest(worker,0),handle=config.args[1][1];
- assert.equal(config.args[0],'configure');assert.deepEqual(Array.from(config.args[1][2]),[0,1,2]);
- worker.post({type:'response',id:config.id});
+ worker.post({type:'run',presets:{},scaleIntervals:{},sourceCode:`const o=midi.output('tetorica-ym2612',{channel:CH16});await o.setVoice({algorithm:7});await o.setPitchBendRange(12);await o.pitchBend(-1);await o.cc(64,127);await o.noteOn('C4');await o.noteOff('C4');`});
+ const handle=15;
  const expected=[['setVoice',[handle,{algorithm:7},null]],['setPitchBendRange',['tetorica-ym2612',handle,12]],['pitchBend',['tetorica-ym2612',handle,-1]],['cc',['tetorica-ym2612',handle,64,127]],['noteOn',['tetorica-ym2612',handle,60,100]],['release',['tetorica-ym2612',handle,60,42]]];
  for(let i=0;i<expected.length;i++) {
-  const message=await nextMidiRequest(worker,i+1);assert.deepEqual(JSON.parse(JSON.stringify(message.args)),expected[i]);
+  const message=await nextMidiRequest(worker,i);assert.deepEqual(JSON.parse(JSON.stringify(message.args)),expected[i]);
   worker.post({type:'response',id:message.id,value:expected[i][0]==='noteOn'?42:undefined});
  }
  await worker.send({type:'stop'});
 });
 
-test('Worker timeline and fixed PSG channel use the same handle for note-off',async()=>{
+test('Worker timeline preserves the MIDI channel for note-off',async()=>{
  const worker=createWorkerHarness();
  worker.post({type:'run',presets:{},scaleIntervals:{},sourceCode:`const o=midi.output('tetorica-sega-psg',{channel:CH2});const t=midi.createTimeline();await t.waitUntil(0);await o.noteOn(60);await t.waitUntil(.001);await o.noteOff(60);`});
- const config=await nextMidiRequest(worker,0);assert.deepEqual(Array.from(config.args[1][2]),[1]);
- worker.post({type:'response',id:config.id});
- const on=await nextMidiRequest(worker,1);assert.equal(on.args[0],'noteOn');worker.post({type:'response',id:on.id,value:99});
- const off=await nextMidiRequest(worker,2);assert.equal(off.args[0],'release');assert.equal(off.args[1][1],config.args[1][1]);assert.equal(off.args[1][3],99);
+ const on=await nextMidiRequest(worker,0);assert.equal(on.args[0],'noteOn');worker.post({type:'response',id:on.id,value:99});
+ const off=await nextMidiRequest(worker,1);assert.equal(off.args[0],'release');assert.equal(off.args[1][1],1);assert.equal(off.args[1][3],99);
  worker.post({type:'response',id:off.id});await worker.send({type:'stop'});
 });

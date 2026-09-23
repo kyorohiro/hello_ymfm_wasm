@@ -948,7 +948,7 @@ declare function setTiming(options: Partial<PlaygroundTiming>): PlaygroundTiming
 declare function getTiming(): PlaygroundTiming | Promise<PlaygroundTiming>;
 
 
-/** Output handle with independent voice/controllers and a physical voice pool. YM2612 mode only. */
+/** MIDI output/channel handle. All physical voices are allocated by the sound engine. */
 interface PlaygroundMidiOutput {
   /** 0..127 data. Supports 7/10/11/64/120/121/123; returns false for other controllers.
    * FM pan is left/center/right; PSG pan has no audible effect. */
@@ -981,10 +981,9 @@ interface PlaygroundMidi {
    * Times must be finite, nonnegative and nondecreasing. Late waits yield then catch up.
    * JavaScript dispatch may still be late; this is not sample-accurate audio scheduling. */
   createTimeline(): {waitUntil(seconds: number): Promise<void>};
-  /** Omitted: all physical voices. Scalar: fixed voice. Array: restricted pool.
-   * FM CH1..CH6, PSG CH1..CH3. Unavailable channels are ignored; an empty pool is silent.
-   * Overlapping pools share/steal voices. Controller and patch state belong to this handle. */
-  output(destination: "tetorica-ym2612" | "tetorica-sega-psg", options?: {channel?: PlaygroundMidiChannel | PlaygroundMidiChannel[]}): PlaygroundMidiOutput;
+  /** MIDI channel 0..15 (CH1..CH16), default 0. Same destination/channel shares controllers.
+   * Physical voices are automatically allocated regardless of channel selection. */
+  output(destination: "tetorica-ym2612" | "tetorica-sega-psg", options?: {channel?: PlaygroundMidiChannel}): PlaygroundMidiOutput;
   /** SMF 0/1, PPQN timing. Manual voices; supported CC applied. Other CC/program changes retained but not applied. */
   playFile(data: ArrayBuffer | Uint8Array, routes: PlaygroundMidiRoute[]): Promise<void>;
 }

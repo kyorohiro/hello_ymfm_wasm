@@ -264,7 +264,7 @@ test('compiled standalone MIDI code plays through the main runtime without readi
  assert(writes.includes(0x90));assert.equal(writes.at(-1),0x9f);
 });
 
-test('main Worker bridge keeps a fixed physical handle across requests',async t=>{
+test('main Worker bridge uses MIDI channel state with automatic voice allocation',async t=>{
  const {runtime,megaDrive}=setup(t),workers=workerBridge(t),writes=[];
  megaDrive.fm.write=(...args)=>writes.push(args);megaDrive.psg.write=()=>{};
  await runtime.playSource('',{execution:'worker'});const w=workers[0];let requestId=0;
@@ -273,11 +273,10 @@ test('main Worker bridge keeps a fixed physical handle across requests',async t=
   await until(()=>w.responses.some(r=>r.id===id));const result=w.responses.find(r=>r.id===id);
   assert(!result.error);return result.value;
  };
- await request('configure',['tetorica-ym2612','output:bridge',[4]]);
- const note=await request('noteOn',['tetorica-ym2612','output:bridge',60,100]);
- assert(writes.some(([p,r,v])=>r===0x28&&v===245));writes.length=0;
- await request('pitchBend',['tetorica-ym2612','output:bridge',1]);
- assert.deepEqual(writes.map(([p,r])=>[p,r]),[[1,0xa5],[1,0xa1]]);
- await request('release',['tetorica-ym2612','output:bridge',60,note]);
- assert.equal(writes.at(-1)[2],5);await runtime.finalize();
+ const note=await request('noteOn',['tetorica-ym2612',4,60,100]);
+ assert(writes.some(([p,r,v])=>r===0x28&&v===240));writes.length=0;
+ await request('pitchBend',['tetorica-ym2612',4,1]);
+ assert.deepEqual(writes.map(([p,r])=>[p,r]),[[0,0xa4],[0,0xa0]]);
+ await request('release',['tetorica-ym2612',4,60,note]);
+ assert.equal(writes.at(-1)[2],0);await runtime.finalize();
 });
