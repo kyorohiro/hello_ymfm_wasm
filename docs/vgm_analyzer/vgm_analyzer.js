@@ -595,12 +595,13 @@ function requestPlaybackUiRender(extra = "") {
     const stats = player ? player.stats() : {};
     updatePlaybackButtons(stats);
 
-    // Avoid rebuilding the long status string for every audio chunk.
+    // Refresh streaming counters at most once per second; transport controls
+    // and seek-position updates retain their existing cadence.
     const now = performance.now();
     const activePlayback = Boolean(stats.playing || stats.paused || stats.queuedFrames > 0);
     if (
       !activePlayback ||
-      (now - lastStreamingStatusAt) >= 120
+      (now - lastStreamingStatusAt) >= 1000
     ) {
       updateStreamingStatus(lastStreamingStatusSuffix);
       lastStreamingStatusAt = now;
