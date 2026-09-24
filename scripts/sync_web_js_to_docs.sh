@@ -22,6 +22,10 @@ megasynth_looper.js
 megasynth_recording.js
 megadrive-fm-presets.js
 opn_fm_synth.js
+opn_variant.js
+opn_variant_synth.js
+ym3438.js
+ymf276.js
 opn_fm_vgm.js
 opn_runtime_synth.js
 pitch.js

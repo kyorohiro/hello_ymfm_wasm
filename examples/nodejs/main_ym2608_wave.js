@@ -1,32 +1,38 @@
-/** Node.js で YM2612 の単音を生成し、16 bit ステレオ WAV に保存する。 */
+/** Node.js で YM2608 の単音を生成し、16 bit ステレオ WAV に保存する。 */
 import { readFile, writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { downsamplePreview } from "./preview_pcm.js";
-import { createYm2612, YM2612_CLOCK } from "../../web/ym2612.js";
-import { YM2612Synth, YM2612DirectTransport } from "../../web/ym2612synth.js";
+import { Ym2608, YM2608_CLOCK } from "../../web/ym2608.js";
+import { YM2608Synth, YM2608DirectTransport } from "../../web/ym2608synth.js";
 import { FM_PRESETS } from "../../web/megadrive-fm-presets.js";
 import { hzToBlockFnum } from "../../web/pitch.js";
 import { encodeStereoWav } from "../../docs/vgm_analyzer/vgm_wav.js";
-import moduleFactory from "../../docs/generated/ym2612_wasm.js";
+import moduleFactory from "../../docs/generated/ym2608_wasm.js";
 
 async function main() {
-  const chip = await createYm2612(moduleFactory, {
-    wasmBinary: await readFile(
-      new URL("../../docs/generated/ym2612_wasm.wasm", import.meta.url),
-    ),
+  const chip = await Ym2608.create({
+    moduleFactory,
+    moduleOptions: {
+      wasmBinary: await readFile(
+        new URL("../../docs/generated/ym2608_wasm.wasm", import.meta.url),
+      ),
+    },
   });
 
   try {
-    const synth = new YM2612Synth({
-      transport: new YM2612DirectTransport(chip),
+    const synth = new YM2608Synth({
+      transport: new YM2608DirectTransport(chip),
     });
-    const sampleRate = chip.sampleRate(YM2612_CLOCK);
+    // ROMなしのFMサンプル。SSG・ADPCMをミュートし、FM 6 CHを有効にする。
+    chip.setSourceMuteMask(7);
+    synth.write(0, 0x29, 0x83);
+    const sampleRate = chip.sampleRate(YM2608_CLOCK);
     const channel = 0; // 物理 CH1。MIDI チャンネルではない。
 
     synth.setPreset(channel, FM_PRESETS["sine"]);
     // sine の発音 Operator の減衰を0にし、試聴しやすい音量にする。
     synth.setOperator(channel, 3, { tl: 0 });
-    const { block, fnum } = hzToBlockFnum(440, YM2612_CLOCK);
+    const { block, fnum } = hzToBlockFnum(440, YM2608_CLOCK);
     synth.noteOn(channel, block, fnum);
 
     // 実時間で待たず、Key On の状態で3秒分の PCM を計算する。
@@ -44,7 +50,7 @@ async function main() {
     right.set(tail.right, tone.right.length);
 
     // 引数で保存先を指定できる。省略時はこのスクリプトの隣に保存する。
-    const output = process.argv[2] ?? new URL("./ym2612.wav", import.meta.url);
+    const output = process.argv[2] ?? new URL("./ym2608.wav", import.meta.url);
     // ネイティブPCMを実際に変換する。ヘッダーのレートだけ変えてはいけない。
     const outputRate = 48000;
     const previewLeft = downsamplePreview(left, sampleRate, outputRate);
