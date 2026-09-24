@@ -280,3 +280,21 @@ test('main Worker bridge uses MIDI channel state with automatic voice allocation
  await request('release',['tetorica-ym2612',4,60,note]);
  assert.equal(writes.at(-1)[2],0);await runtime.finalize();
 });
+
+test('generated MIDI module stops during sample wait and runs again on main',async t=>{
+ const {midiToSource}=await import('./midi_source.js');
+ const {runtime,megaDrive}=setup(t),writes=[];const start=performance.now();
+ Object.defineProperty(megaDrive.audioContext,'currentTime',{get:()=>(performance.now()-start)/1000});
+ megaDrive.fm.write=()=>{};megaDrive.psg.write=v=>writes.push(v);
+ function entry(ticks) {
+  const track=[0,0x90,60,127,ticks,0x80,60,0,0,255,47,0];
+  const bytes=Uint8Array.from([77,84,104,100,0,0,0,6,0,0,0,1,0,96,77,84,114,107,0,0,0,track.length,...track]);
+  const module=midiToSource(bytes,[{part:'[0,0,"",1]',destination:'tetorica-sega-psg',channel:0}],{module:true});
+  return `const song=await(async()=>{${module.replace(/^export /gm,'')} return {initCh,runAllCh};})();await song.initCh(pg);await song.runAllCh();`;
+ }
+ const pending=runtime.playSource(entry(96));
+ await until(()=>writes.includes(0x90));runtime.stop();await pending;
+ assert.equal(runtime.getState().playback,'stopped');assert(writes.includes(0x9f));
+ writes.length=0;await runtime.playSource(entry(1));
+ assert(writes.includes(0x90));assert.equal(writes.at(-1),0x9f);
+});

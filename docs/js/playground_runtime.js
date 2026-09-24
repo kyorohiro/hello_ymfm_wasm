@@ -154,7 +154,7 @@ export function createPlaygroundRuntime(
     );
   defaultLogicWorkerUrl.searchParams.set(
     "v",
-    "readable-midi-1"
+    "midi-stop-1"
   );
   const logicWorkerUrl =
     options.logicWorkerUrl ??

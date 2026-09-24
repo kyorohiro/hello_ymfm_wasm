@@ -335,3 +335,33 @@ test('Worker timeline preserves the MIDI channel for note-off',async()=>{
  const off=await nextMidiRequest(worker,1);assert.equal(off.args[0],'release');assert.equal(off.args[1][1],1);assert.equal(off.args[1][3],99);
  worker.post({type:'response',id:off.id});await worker.send({type:'stop'});
 });
+
+test('generated MIDI module completes, stops in sleepSamples, and restarts on Worker',async()=>{
+ const {midiToSource}=await import('../../web/midi_source.js');
+ const worker=createWorkerHarness();let cursor=0,voice=0;
+ function entry(ticks) {
+  const track=[0,0x90,60,100,ticks,0x80,60,0,0,255,47,0];
+  const bytes=Uint8Array.from([77,84,104,100,0,0,0,6,0,0,0,1,0,96,77,84,114,107,0,0,0,track.length,...track]);
+  const module=midiToSource(bytes,[{part:'[0,0,"",1]',destination:'tetorica-sega-psg',channel:0}],{module:true});
+  return `const song=await(async()=>{${module.replace(/^export /gm,'')} return {initCh,runAllCh};})();await song.initCh(pg);await song.runAllCh();`;
+ }
+ async function respond(method) {
+  const request=await nextMidiRequest(worker,cursor++);assert.equal(request.args[0],method);
+  worker.post({type:'response',id:request.id,value:method==='noteOn'?++voice:undefined});
+ }
+ try {
+  worker.post({type:'run',presets:{},scaleIntervals:{},sourceCode:entry(1)});
+  for(const method of ['setPitchBendRange','noteOn','release','cc'])await respond(method);
+  await waitFor(()=>worker.messages.some(m=>m.type==='complete'),1000);
+  worker.post({type:'run',presets:{},scaleIntervals:{},sourceCode:entry(96)});
+  await respond('setPitchBendRange');await respond('noteOn');
+  await worker.send({type:'stop'});
+  await waitFor(()=>worker.messages.some(m=>m.type==='stopped'),1000);
+  assert(worker.messages.some(m=>m.command==='audio.stopAll'));
+  // Stop may issue additional cleanup requests. They must not affect the next run.
+  cursor=worker.messages.filter(m=>m.command==='midi.invoke').length;
+  worker.post({type:'run',presets:{},scaleIntervals:{},sourceCode:entry(1)});
+  for(const method of ['setPitchBendRange','noteOn','release','cc'])await respond(method);
+  await waitFor(()=>worker.messages.filter(m=>m.type==='complete').length===2,1000);
+ } finally {await worker.send({type:'stop'});}
+});

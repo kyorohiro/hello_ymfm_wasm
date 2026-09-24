@@ -179,6 +179,7 @@ function createClock(run) {
   async function sleep(seconds) {
     const token = run.token;
     const loopContext = run.currentLoop;
+    if (run.stopped || loopContext?.stopped) throw new Error("Run stopped");
     await new Promise((resolve) => scheduler.wait(performance.now() / 1000 + Math.max(0, Number(seconds) || 0), () => {
       run.currentLoop = loopContext;
       resolve();
@@ -190,6 +191,7 @@ function createClock(run) {
 
   async function sleepUntil(targetSeconds, loopContext) {
     const token = run.token;
+    if (run.stopped || loopContext?.stopped) throw new Error("Run stopped");
     await new Promise((resolve) => scheduler.wait(targetSeconds, () => {
       run.currentLoop = loopContext;
       resolve();
