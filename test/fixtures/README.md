@@ -44,3 +44,10 @@ It contains no game music. PWM is the existing Browser sample-and-hold model.
 
 `huc6280-tone` is an authored one-second 32-step square wave on CH1, period 254,
 clock 3579545 Hz. No game data; `generate_huc6280.mjs` regenerates it separately.
+
+`ym3526-tone`, `ym3812-tone`, `ymf262-tone`, `ym2413-tone` and
+`gameboy-tone` are standalone audible half-second voices. OPL3 uses bank 1
+(CH10) to exercise second-bank dispatch. The other fixtures use CH1.
+`test/standalone-chip-fixtures.test.mjs` checks VGM/VGZ equivalence,
+deterministic audible rendering, channel mute, score channel counts and
+MIDI / MusicXML / LilyPond export via the shared CLI/Analyzer entry points.
