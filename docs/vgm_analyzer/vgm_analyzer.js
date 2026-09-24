@@ -1,3 +1,4 @@
+import {exportFmRegisterSnapshot} from './fm_snapshot.js';
 import {updateNoteishHtml, updateNoteishGraph} from './noteish_dom.js';
 import {mountCommandEditor} from './command_editor.js';
 import {createMsxNoteMonitor, describeMsxNotes, observeMsxNotes} from './msx_notes.js';
@@ -2339,6 +2340,10 @@ function downloadAllVgiZip() {
 
 function buildSnapshotData(reason = "manual") {
   const stats = player ? player.stats() : null;
+  if (['ym2151','ymf262','ymf278b'].includes(currentChipKind)) {
+    return {...exportFmRegisterSnapshot(currentBuffer,{chip:currentChipKind,atSample:stats?.processedWaitSamples ?? 0}),
+      reason,sourceFile:lastLoadedFileName,createdAt:new Date().toISOString()};
+  }
   return {
     type: "ym2612-vgm-snapshot",
     reason,
@@ -2746,6 +2751,11 @@ function updateChipSupport() {
   }
   for (const button of [exportMidiButton, exportMmlButton, exportSnapshotTfiButton,
     exportSnapshotVgiButton, exportSnapshotButton, exportAllTfiButton, exportAllVgiButton]) {
+    if (['ym2151','ymf262','ymf278b'].includes(currentChipKind) && button === exportSnapshotButton) {
+      button.disabled = !currentBuffer || !!(noteishHeader[`${currentChipKind}Clock`]&0xc0000000);
+      button.title = 'Export programmed register state at the current processed VGM time (JSON).';
+      continue;
+    }
     if (currentChipKind === 'ym2151' && (button === exportAllTfiButton || button === exportSnapshotTfiButton)) {
       button.disabled = !currentBuffer;
       button.title = OPM_TFI_NOTICE;
@@ -3608,7 +3618,7 @@ exportSnapshotVgiButton.addEventListener("click", () => {
 });
 
 exportSnapshotButton.addEventListener("click", () => {
-  downloadSnapshot("manual");
+  try { downloadSnapshot("manual"); } catch (error) { setStatus(`Snapshot export failed: ${error.message}`); }
 });
 
 const opnMonitorRoot = document.createElement('div');

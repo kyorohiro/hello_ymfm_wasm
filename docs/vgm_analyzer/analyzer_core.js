@@ -1,3 +1,4 @@
+export {exportFmRegisterSnapshot} from './fm_snapshot.js';
 import {groupScoreChannels,parseScoreGroups} from './score_groups.js';
 import {exportSamples,listSamples} from './sample_core.js';
 export {vgmToJson, jsonToVgm} from './vgm_json.js';

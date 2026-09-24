@@ -22,6 +22,7 @@ for (const chip of ['msx','ym3526','ym2413','ym2151','ym3812','ymf262']) test(`$
   context.updateChipSupport();
   const enabledTabs=chip==='ym2151'?['operatorInfoTab','noteishTab','tfiInfoTab']:(chip==='ym2413'||isOpl(chip))?['operatorInfoTab','noteishTab']:['msx','ymf262'].includes(chip)?['noteishTab']:[];
   const supportedExports=['ym2151','ym2413'].includes(chip)?['exportMidiButton','exportMmlButton']:(isOpl(chip)||['msx','ymf262'].includes(chip))?['exportMidiButton']:[];
+  if(['ym2151','ymf262'].includes(chip))supportedExports.push('exportSnapshotButton');
   if(chip==='ym2151')supportedExports.push('exportAllTfiButton','exportSnapshotTfiButton');
   for(const name of tabNames)assert.equal(context[name].disabled,!enabledTabs.includes(name),name);
   for(const name of buttonNames)assert.equal(context[name].disabled,true,`${name}: no file loaded`);
