@@ -1681,22 +1681,7 @@
               <li><code>await lead.cc(number, value)</code> sends a MIDI controller, values <code>0..127</code>: <code>7</code> volume, <code>10</code> pan (FM left/center/right; PSG ignores pan), <code>11</code> expression, <code>64</code> sustain (64 or higher = down), <code>120</code> all sound off, <code>121</code> reset controllers, <code>123</code> all notes off.</li>
               <li>Import MIDI generates editable JavaScript using these APIs. The example list includes <strong>MIDI fixed CH liveLoop + CC / Bend</strong> and <strong>MIDI auto chord liveLoop + CC / Bend</strong>.</li>
             </ul>
-            <pre><code>setBpm(120);
-await midi.enableSoundChip("tetorica-ym2612", { roundRobin: true });
-const lead = midi.output("tetorica-ym2612", { channel: CH1 });
-await lead.setVoice(FM_PRESETS["two-op-bell"]);
-await lead.cc(7, 100);
-await lead.setPitchBendRange(2);
-await lead.noteOn("C4", { velocity: 100 });
-await lead.pitchBend(0.25);
-await beat(1);
-await lead.noteOff("C4");
-await lead.pitchBend(0);
-await Promise.all([
-  lead.play("C4", { duration: 1 }),
-  lead.play("E4", { duration: 1 }),
-  lead.play("G4", { duration: 1 }),
-]);</code></pre>
+
 
             <h2 style="margin-top: 14px;">Live coding</h2>
             <ul class="helper-list">
