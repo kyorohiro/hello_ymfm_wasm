@@ -1,3 +1,8 @@
+/**
+ * @file vgm-mock.js
+ * 実行環境: Node.js のテスト用（ヘルパー自体は Browser でも使用可能）
+ * 依存: JavaScript のデータ処理。DOM・Web Audio への依存なし。
+ */
 // Test-only VGM envelope: commands and expected traces stay explicit in tests.
 export function vgmBytes(commands) {
   const bytes = new Uint8Array(0x100 + commands.length);

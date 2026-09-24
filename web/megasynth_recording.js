@@ -1,3 +1,9 @@
+/**
+ * @file megasynth_recording.js
+ * 実行環境: Browser / Node.js（タイマー注入時）
+ * 依存: 注入された Synth、performance。既定タイマーは window.setTimeout / clearTimeout。
+ * Node.js ではタイマーを注入する。録音対象のイベント取得は接続先 Synth に依存する。
+ */
 const RECORDING_FORMAT =
   "megasynth-recording-v1";
 const FM_CHANNELS = [0, 1, 2, 3, 4, 5];

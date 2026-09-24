@@ -1,3 +1,9 @@
+/**
+ * @file k051649.js
+ * 実行環境: Browser / Node.js
+ * 依存: WASM（moduleFactory と moduleOptions で読み込み方法を注入）。
+ * チップ操作・PCM 生成に DOM・AudioContext は不要。ローダーは実行環境に合わせて渡す。
+ */
 export function validateK051649({clock, sampleRate=44100}={}) {
   if(!Number.isInteger(clock)||clock<=0||clock>0x3fffffff||!Number.isInteger(sampleRate)||sampleRate<=0||sampleRate>384000)
     throw new RangeError('Invalid K051649 clock or sample rate');

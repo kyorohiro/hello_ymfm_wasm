@@ -1,3 +1,8 @@
+/**
+ * @file vgi.js
+ * 実行環境: Browser / Node.js
+ * 依存: JavaScript のデータ処理。DOM・Web Audio への依存なし。
+ */
 import {
   TFI_OPERATOR_FILE_ORDER,
   tfiDetuneToYm2612Detune,

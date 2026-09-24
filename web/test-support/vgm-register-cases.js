@@ -1,3 +1,8 @@
+/**
+ * @file vgm-register-cases.js
+ * 実行環境: Node.js のテスト用（ヘルパー自体は Browser でも使用可能）
+ * 依存: JavaScript のデータ処理。DOM・Web Audio への依存なし。
+ */
 // Literal command examples; independent of parser constants and adapters.
 export const registerCases = [
   ['ym2413', [0x51,0x20,0x17], 0,0x20,0x17],

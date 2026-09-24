@@ -1,3 +1,8 @@
+/**
+ * @file playground_sync.js
+ * 実行環境: Browser / Node.js
+ * 依存: 注入された状態・UI コールバック。実際の UI 更新環境はコールバックに依存する。
+ */
 export function findPresetNameByReference(
   presets,
   presetOrder,

@@ -1,4 +1,10 @@
 /**
+ * @file looper.js
+ * 実行環境: Browser / Node.js（タイマー注入時）
+ * 依存: 注入された Synth、performance。既定タイマーは window.setTimeout / clearTimeout。
+ * Node.js ではタイマーを注入する。再生には接続先 Synth の実行環境が必要。
+ */
+/**
  * Lightweight musical-event looper for MegaSynth / YM2612 browser usage.
  *
  * This first version intentionally records performance-level note events:

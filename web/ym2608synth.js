@@ -1,3 +1,9 @@
+/**
+ * @file ym2608synth.js
+ * 実行環境: Browser / Node.js（クラスにより異なる）
+ * 依存: 低レベル Synth / DirectTransport は注入したチップで動作し、Node.js でも使用可能。
+ * RuntimeSynth 系の実再生は OPNRuntimeSynth 経由で AudioContext / AudioWorkletNode / fetch を使う。
+ */
 import { OPNDirectTransport, OPNFMSynth } from "./opn_fm_synth.js";
 import { OPNRuntimeSynth } from "./opn_runtime_synth.js";
 

@@ -1,3 +1,9 @@
+/**
+ * @file playground_runtime.js
+ * 実行環境: Browser（メインスレッド）
+ * 依存: window のイベント処理、Web Audio 対応 Synth、Worker（Worker モード時）。
+ * import とブラウザー上の実行・音声初期化は別。Node.js での実再生用ではない。
+ */
 import {createMidiRack, createMidiApi, validateBendRange, MIDI_SUPPORTED_CC} from './playground_midi.js?v=midi-held-stop-1';
 import {parseMidiFile} from './midi_file.js?v=readable-midi-1';
 import { createAudioScheduler } from "./playground_audio_scheduler.js";

@@ -1,3 +1,8 @@
+/**
+ * @file segapsg_api.js
+ * 実行環境: Browser / Node.js
+ * 依存: 注入されたレジスタ書き込み関数。DOM・Web Audio は不要。
+ */
 import { SEGAPSG_CLOCK } from "./segapsg.js";
 
 const NOTE_TO_SEMITONE = {

@@ -1,3 +1,9 @@
+/**
+ * @file multichipaudioengine.js
+ * 実行環境: Browser / Node.js
+ * 依存: 音源チップ／WASM バックエンド（ファクトリーまたはエンジンを注入）。
+ * 同期 PCM 生成・ミックス用。DOM・AudioContext・スピーカー出力は不要。
+ */
 // Each entry owns an engine and a parser-facing target. Routing never aliases
 // instances of the same chip; rendering advances all engines by the same time.
 /**

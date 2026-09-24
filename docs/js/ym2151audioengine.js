@@ -1,3 +1,9 @@
+/**
+ * @file ym2151audioengine.js
+ * 実行環境: Browser / Node.js
+ * 依存: 音源チップ／WASM バックエンド（ファクトリーまたはエンジンを注入）。
+ * 同期 PCM 生成・ミックス用。DOM・AudioContext・スピーカー出力は不要。
+ */
 import { Ym2151, YM2151_CLOCK } from './ym2151.js';
 import { SegaPSG } from './segapsg.js';
 import { SegaPcm } from './segapcm.js';

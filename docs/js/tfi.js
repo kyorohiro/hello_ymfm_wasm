@@ -1,4 +1,9 @@
 /**
+ * @file tfi.js
+ * 実行環境: Browser / Node.js
+ * 依存: JavaScript のデータ処理。DOM・Web Audio への依存なし。
+ */
+/**
  * One logical YM2612 operator as used by `YM2612Synth`.
  *
  * `sr` is accepted as an alias when exporting because TFI usually calls

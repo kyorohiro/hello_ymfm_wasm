@@ -1,3 +1,9 @@
+/**
+ * @file rf5c164.js
+ * 実行環境: Browser / Node.js
+ * 依存: WASM（moduleFactory と moduleOptions で読み込み方法を注入）。
+ * チップ操作・PCM 生成に DOM・AudioContext は不要。ローダーは実行環境に合わせて渡す。
+ */
 export const RF5C164_CLOCK = 12500000;
 export const RF5C164_SAMPLE_RATE = 44100;
 

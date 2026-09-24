@@ -1,4 +1,10 @@
 /**
+ * @file ym2612.js
+ * 実行環境: Browser / Node.js
+ * 依存: WASM（moduleFactory と moduleOptions で読み込み方法を注入）。
+ * チップ操作・PCM 生成に DOM・AudioContext は不要。ローダーは実行環境に合わせて渡す。
+ */
+/**
  * Low-level YM2612 WASM wrapper shared by browser and Node callers.
  * It performs synchronous register I/O and offline PCM generation, without
  * scheduling playback or creating an audio device. For note/preset helpers,

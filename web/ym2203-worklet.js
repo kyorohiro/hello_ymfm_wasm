@@ -1,3 +1,9 @@
+/**
+ * @file ym2203-worklet.js
+ * 実行環境: Browser（AudioWorkletGlobalScope）
+ * 依存: AudioWorkletProcessor / registerProcessor と MessagePort。
+ * AudioContext.audioWorklet.addModule() で読み込む専用エントリーポイント。音源コアの WASM も必要。
+ */
 import ym2203ModuleFactory from "./generated/ym2203_wasm.js";
 import { Ym2203, YM2203_CLOCK } from "./ym2203.js";
 

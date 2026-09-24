@@ -1,4 +1,9 @@
 /**
+ * @file vgm_file.js
+ * 実行環境: Browser / Node.js
+ * 依存: TextDecoder。VGZ 展開時は DecompressionStream / Blob / Response が必要。DOM・Web Audio は不要。
+ */
+/**
  * @param {ArrayBuffer | Uint8Array} source
  * @returns {Uint8Array}
  */

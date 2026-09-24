@@ -1,3 +1,9 @@
+/**
+ * @file ym2610baudioengine.js
+ * 実行環境: Browser / Node.js
+ * 依存: 音源チップ／WASM バックエンド（ファクトリーまたはエンジンを注入）。
+ * 同期 PCM 生成・ミックス用。DOM・AudioContext・スピーカー出力は不要。
+ */
 import { Ym2610B, YM2610B_CLOCK } from "./ym2610b.js?v=ym2610-vgm-1";
 
 const DEFAULT_OUTPUT_SAMPLE_RATE = 44100;

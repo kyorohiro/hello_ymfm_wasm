@@ -1,3 +1,9 @@
+/**
+ * @file y8950audioengine.js
+ * 実行環境: Browser / Node.js
+ * 依存: 音源チップ／WASM バックエンド（ファクトリーまたはエンジンを注入）。
+ * 同期 PCM 生成・ミックス用。DOM・AudioContext・スピーカー出力は不要。
+ */
 import { Y8950, Y8950_CLOCK } from './y8950.js?v=mutes-1';
 import { SegaPSG } from './segapsg.js';
 

@@ -1,3 +1,9 @@
+/**
+ * @file ay8910.js
+ * 実行環境: Browser / Node.js
+ * 依存: WASM（moduleFactory と moduleOptions で読み込み方法を注入）。
+ * チップ操作・PCM 生成に DOM・AudioContext は不要。ローダーは実行環境に合わせて渡す。
+ */
 export const AY8910_CLOCK = 1789773;
 export function validateAy8910({clock=AY8910_CLOCK,sampleRate=44100,type=0,flags=1}={}) {
   if(!Number.isInteger(clock)||clock<=0||clock>0x3fffffff||!Number.isInteger(sampleRate)||sampleRate<=0||sampleRate>384000)

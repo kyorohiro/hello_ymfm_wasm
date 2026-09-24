@@ -1,3 +1,9 @@
+/**
+ * @file ym2610b-worklet.js
+ * 実行環境: Browser（AudioWorkletGlobalScope）
+ * 依存: AudioWorkletProcessor / registerProcessor と MessagePort。
+ * AudioContext.audioWorklet.addModule() で読み込む専用エントリーポイント。音源コアの WASM も必要。
+ */
 import ym2610bModuleFactory from "./generated/ym2610b_wasm.js";
 import { Ym2610B, YM2610B_CLOCK } from "./ym2610b.js";
 

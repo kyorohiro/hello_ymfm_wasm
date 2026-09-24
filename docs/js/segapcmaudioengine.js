@@ -1,3 +1,9 @@
+/**
+ * @file segapcmaudioengine.js
+ * 実行環境: Browser / Node.js
+ * 依存: 音源チップ／WASM バックエンド（ファクトリーまたはエンジンを注入）。
+ * 同期 PCM 生成・ミックス用。DOM・AudioContext・スピーカー出力は不要。
+ */
 import {SegaPcm} from './segapcm.js';
 import {SegaPSG} from './segapsg.js';
 // Sega PCM and optional Sega PSG (SN76489) share the output clock, but keep independent state.

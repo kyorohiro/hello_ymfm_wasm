@@ -1,3 +1,9 @@
+/**
+ * @file playground_logic_worker.js
+ * 実行環境: Browser（Web Worker）
+ * 依存: self.onmessage / postMessage、performance、タイマーとメインスレッドへのメッセージ通信。
+ * Worker エントリーポイント。通常の Node.js モジュールとしては実行しない。
+ */
 import {createMidiApi} from './playground_midi.js?v=midi-held-stop-1';
 import { hzToBlockFnum } from "./pitch.js";
 import { createDeadlineScheduler } from "./playground_clock.js";

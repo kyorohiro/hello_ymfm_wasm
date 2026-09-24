@@ -1,3 +1,9 @@
+/**
+ * @file okim6258audioengine.js
+ * 実行環境: Browser / Node.js
+ * 依存: 音源チップ／WASM バックエンド（ファクトリーまたはエンジンを注入）。
+ * 同期 PCM 生成・ミックス用。DOM・AudioContext・スピーカー出力は不要。
+ */
 // MAME-derived OKIM6258 decoder. Source and license: third_party/mame-okim6258/.
 export function validateOki6258Header(header) {
   if (header.okim6258Clock & 0xc0000000) throw new Error('Dual/variant OKIM6258 playback is not supported');

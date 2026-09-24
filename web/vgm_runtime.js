@@ -1,3 +1,9 @@
+/**
+ * @file vgm_runtime.js
+ * 実行環境: Browser（メインスレッド）
+ * 依存: 音声初期化・再生時に AudioContext / AudioWorkletNode と WASM アセットが必要。
+ * import だけでは音声デバイスを開かない。アセット読み込みには fetch を使用する。
+ */
 import ym2612ModuleFactory from "./generated/ym2612_wasm.js";
 import segaPsgModuleFactory from "./generated/segapsg_wasm.js";
 import { createGenesisAudioEngine } from "./genesisaudioengine.js";

@@ -1,3 +1,9 @@
+/**
+ * @file opn_runtime_synth.js
+ * 実行環境: Browser（メインスレッド）
+ * 依存: 音声初期化・再生時に AudioContext / AudioWorkletNode と WASM アセットが必要。
+ * import だけでは音声デバイスを開かない。アセット読み込みには fetch を使用する。
+ */
 import { TetoricaAudioRuntime } from "./tetorica_audio_runtime.js";
 import { OPNWorkletTransport } from "./opn_fm_synth.js";
 

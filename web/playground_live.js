@@ -1,3 +1,8 @@
+/**
+ * @file playground_live.js
+ * 実行環境: Browser / Node.js
+ * 依存: 注入された runtime・音声操作・時計・UI コールバック。ブラウザー API を直接生成しない。
+ */
 export function createPlaygroundLive(
   options
 ) {

@@ -1,3 +1,8 @@
+/**
+ * @file playground_music.js
+ * 実行環境: Browser / Node.js
+ * 依存: 注入された runtime・音源操作・待機関数。実際の再生環境は渡すオブジェクトに依存する。
+ */
 import { hzToBlockFnum } from "./pitch.js";
 
 // Shared across evaluations using the same active-note set.

@@ -1,3 +1,8 @@
+/**
+ * @file vgm-engine-mock.js
+ * 実行環境: Node.js のテスト用（ヘルパー自体は Browser でも使用可能）
+ * 依存: JavaScript のデータ処理。DOM・Web Audio への依存なし。
+ */
 // Records engine calls, after VgmPlayer's real target adapters have run.
 // Time is measured in rendered output frames; at 44100 Hz it is also VGM time.
 export class MockSoundEngine {

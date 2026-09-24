@@ -1,3 +1,8 @@
+/**
+ * @file vgmplayer.js
+ * 実行環境: Browser / Node.js
+ * 依存: VGM パーサーと注入された音声エンジン。PCM 生成にはエンジンが必要。AudioContext は不要。
+ */
 import { Ym2612VGM } from "./ym2612vgm.js?v=dac-warning-1";
 
 /**

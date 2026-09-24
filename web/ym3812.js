@@ -1,3 +1,9 @@
+/**
+ * @file ym3812.js
+ * 実行環境: Browser / Node.js
+ * 依存: WASM（moduleFactory と moduleOptions で読み込み方法を注入）。
+ * チップ操作・PCM 生成に DOM・AudioContext は不要。ローダーは実行環境に合わせて渡す。
+ */
 export const YM3812_CLOCK = 3579545;
 
 /**

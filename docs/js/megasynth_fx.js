@@ -1,4 +1,10 @@
 /**
+ * @file megasynth_fx.js
+ * 実行環境: Browser（音声処理時）
+ * 依存: Web Audio の AudioContext / AudioNode、エフェクトにより AudioWorkletNode と window のタイマー。
+ * import だけでは音声デバイスを開かない。
+ */
+/**
  * @typedef {{
  *   get(): number,
  *   set(value: number): number,

@@ -1,3 +1,8 @@
+/**
+ * @file opn_fm_vgm.js
+ * 実行環境: Browser / Node.js
+ * 依存: JavaScript のデータ処理。DOM・Web Audio への依存なし。
+ */
 const YM2612_VGM_CLOCK = 7670454;
 
 export function isYm2608FmRegister(port, register) {

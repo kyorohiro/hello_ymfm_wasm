@@ -1,3 +1,9 @@
+/**
+ * @file playground_execution.js
+ * 実行環境: Browser / Web Worker / Node.js（対象 realm に依存）
+ * 依存: 注入された realm（既定は globalThis）の実行制限。存在するネットワーク・画面遷移 API を扱う。
+ * DOM を必須としないが、インストール時に対象 realm の API を変更する。
+ */
 const NETWORK_DISABLED_MESSAGE =
   "Network access is disabled in Tetorica FM2612 Playground.";
 

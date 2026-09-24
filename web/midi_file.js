@@ -1,3 +1,8 @@
+/**
+ * @file midi_file.js
+ * 実行環境: Browser / Node.js
+ * 依存: TextDecoder とバイナリー配列。MIDI データ解析のみで、Web MIDI・音声デバイスは不要。
+ */
 import {MIDI_SUPPORTED_CC} from './playground_midi.js?v=midi-channels-2';
 
 /**

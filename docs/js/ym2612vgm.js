@@ -1,3 +1,8 @@
+/**
+ * @file ym2612vgm.js
+ * 実行環境: Browser / Node.js
+ * 依存: JavaScript のデータ処理。DOM・Web Audio への依存なし。
+ */
 import {
   createOpnFmWriteTranslator,
   isYm2203FmRegister,

@@ -1,3 +1,9 @@
+/**
+ * @file ym2612-worklet-nuked.js
+ * 実行環境: Browser（AudioWorkletGlobalScope）
+ * 依存: AudioWorkletProcessor / registerProcessor と MessagePort。
+ * AudioContext.audioWorklet.addModule() で読み込む専用エントリーポイント。音源コアの WASM も必要。
+ */
 // Same as ym2612-worklet.js, backed by the Nuked-OPN2 WASM build instead of
 // ymfm. Keep this file's only difference from ym2612-worklet.js the import
 // below, so fixes to the processor logic are easy to port between the two.

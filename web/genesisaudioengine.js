@@ -1,3 +1,9 @@
+/**
+ * @file genesisaudioengine.js
+ * 実行環境: Browser / Node.js
+ * 依存: 音源チップ／WASM バックエンド（ファクトリーまたはエンジンを注入）。
+ * 同期 PCM 生成・ミックス用。DOM・AudioContext・スピーカー出力は不要。
+ */
 import { Ym2612, YM2612_CLOCK } from "./ym2612.js";
 import { SegaPSG, SEGAPSG_CLOCK } from "./segapsg.js";
 

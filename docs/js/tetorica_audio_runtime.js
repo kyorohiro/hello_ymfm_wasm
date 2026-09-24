@@ -1,3 +1,9 @@
+/**
+ * @file tetorica_audio_runtime.js
+ * 実行環境: Browser（音声処理時）
+ * 依存: AudioContext / AudioNode を使う音声ルーティング・エフェクト。
+ * サンプルの URL 読み込みには fetch、デコードには AudioContext が必要。依存は一部注入可能。
+ */
 import * as fx from "./megasynth_fx.js";
 
 /**

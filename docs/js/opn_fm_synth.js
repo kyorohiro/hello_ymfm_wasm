@@ -1,4 +1,10 @@
 /**
+ * @file opn_fm_synth.js
+ * 実行環境: Browser / Node.js
+ * 依存: 注入されたレジスタ transport。DirectTransport は Node.js でも使用可能。
+ * WorkletTransport はブラウザーの AudioWorkletNode（port）を受け取る。
+ */
+/**
  * Shared high-level FM register helpers for Yamaha OPN-family chips.
  *
  * The chip-specific modules configure channel/port counts and expose a

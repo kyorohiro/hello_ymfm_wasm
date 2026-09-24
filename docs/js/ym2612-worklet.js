@@ -1,3 +1,9 @@
+/**
+ * @file ym2612-worklet.js
+ * 実行環境: Browser（AudioWorkletGlobalScope）
+ * 依存: AudioWorkletProcessor / registerProcessor と MessagePort。
+ * AudioContext.audioWorklet.addModule() で読み込む専用エントリーポイント。音源コアの WASM も必要。
+ */
 import ym2612ModuleFactory from "../generated/ym2612_wasm.js";
 import { createYm2612 } from "./ym2612.js";
 import segaPsgModuleFactory from "../generated/segapsg_wasm.js";

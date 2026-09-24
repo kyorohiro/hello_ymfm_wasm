@@ -1,3 +1,8 @@
+/**
+ * @file midi_song.js
+ * 実行環境: Browser / Node.js
+ * 依存: 注入された MIDI API とタイミング処理。実際の再生環境は MIDI API に依存する。
+ */
 /** Replay editable beat-based event generators on one absolute timeline. */
 export function createMidiSongPlayer(midi, {channels, tempos = [{beat:0, bpm:120}], endBeat = 0}) {
   let running = false;

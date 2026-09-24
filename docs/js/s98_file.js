@@ -1,3 +1,8 @@
+/**
+ * @file s98_file.js
+ * 実行環境: Browser / Node.js
+ * 依存: TextDecoder / TextEncoder とバイナリー配列。DOM・Web Audio は不要。
+ */
 // S98 register logs are normalized to VGM for the analyzer's existing pipeline.
 // Format reference: https://github.com/ValleyBell/libvgm/blob/master/player/s98player.cpp
 export function looksLikeS98(source) {

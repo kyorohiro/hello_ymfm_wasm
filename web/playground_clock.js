@@ -1,3 +1,10 @@
+/**
+ * @file playground_clock.js
+ * 実行環境: Browser / Web Worker / Node.js（使用 API に条件あり）
+ * 依存: performance、タイマー、利用可能なら MessageChannel。
+ * createDeadlineScheduler は共用。createPlaygroundClock の既定タイマーは window を使うため、
+ * Worker / Node.js では setTimer を注入する。音声時計と実行コンテキストも呼び出し側から渡す。
+ */
 /** One deadline timer, with a separate task per continuation so microtasks drain
  * before another loop's context is restored. No per-loop deadline timers. */
 export function createDeadlineScheduler({

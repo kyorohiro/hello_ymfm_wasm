@@ -1,3 +1,9 @@
+/**
+ * @file bitcrusher-worklet.js
+ * 実行環境: Browser（AudioWorkletGlobalScope）
+ * 依存: AudioWorkletProcessor / registerProcessor と MessagePort。
+ * AudioContext.audioWorklet.addModule() で読み込む専用エントリーポイント。
+ */
 class TetoricaBitcrusherProcessor extends AudioWorkletProcessor {
   static get parameterDescriptors() {
     return [

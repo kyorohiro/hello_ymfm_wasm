@@ -1,4 +1,10 @@
 /**
+ * @file ym2612synth.js
+ * 実行環境: Browser / Node.js
+ * 依存: 注入されたレジスタ transport。DirectTransport は Node.js でも使用可能。
+ * WorkletTransport はブラウザーの AudioWorkletNode（port）を受け取る。
+ */
+/**
  * Thin YM2612 synth layer for browser/game usage.
  *
  * The goal of this file is not to hide the YM2612 too much.

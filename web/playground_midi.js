@@ -1,3 +1,9 @@
+/**
+ * @file playground_midi.js
+ * 実行環境: Browser / Node.js
+ * 依存: 注入されたレジスタ書き込み・待機・コマンド送信関数、structuredClone / performance。
+ * 音声デバイスや Web MIDI を直接開かない。実際の発音は接続先に依存する。
+ */
 import {createMidiSongPlayer} from './midi_song.js?v=readable-midi-1';
 import {YM2612Synth} from './ym2612synth.js';
 import {createSegaPsgApi, psgPeriodFromFrequency} from './segapsg_api.js';
