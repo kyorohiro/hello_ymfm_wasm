@@ -1,5 +1,5 @@
 /**
- * @file Shared low-level binding for YM3438 / YMF276.
+ * @file Shared low-level binding for YM3438 / YMF276 / YMF288.
  * 実行環境: Browser / Node.js。依存: 注入された WASM moduleFactory。
  * DOM・Web Audio は不要。
  */

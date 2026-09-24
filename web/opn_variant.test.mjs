@@ -3,12 +3,13 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { Ym3438 } from './ym3438.js';
 import { Ymf276 } from './ymf276.js';
-import { YM3438Synth, YMF276Synth } from './opn_variant_synth.js';
+import { Ymf288 } from './ymf288.js';
+import { YM3438Synth, YMF276Synth, YMF288Synth } from './opn_variant_synth.js';
 import { OPNDirectTransport } from './opn_fm_synth.js';
 import { FM_PRESETS } from './megadrive-fm-presets.js';
 import { hzToBlockFnum } from './pitch.js';
 
-const cases = [['ym3438', Ym3438, YM3438Synth], ['ymf276', Ymf276, YMF276Synth]];
+const cases = [['ym3438', Ym3438, YM3438Synth], ['ymf276', Ymf276, YMF276Synth], ['ymf288', Ymf288, YMF288Synth]];
 const peak = array => array.reduce((p, x) => Math.max(p, Math.abs(x)), 0);
 for (const [name, Chip, Synth] of cases) {
   test(`${name}: native FM on all channels, pitch, pan, release and reset`, async () => {
@@ -55,7 +56,7 @@ for (const [name, Chip, Synth] of cases) {
 
 test('YM3438 and YMF276 use distinct native DAC/output paths', async () => {
   const outputs = [];
-  for (const [name, Chip] of cases) {
+  for (const [name, Chip] of cases.filter(([name]) => name !== 'ymf288')) {
     const {default: moduleFactory} = await import(`../docs/generated/${name}_wasm.js`);
     const chip = await Chip.create({moduleFactory, moduleOptions:{wasmBinary:await readFile(new URL(`../docs/generated/${name}_wasm.wasm`, import.meta.url))}});
     try {
@@ -70,4 +71,20 @@ test('YM3438 and YMF276 use distinct native DAC/output paths', async () => {
     } finally {chip.dispose();}
   }
   assert.notDeepEqual(outputs[0], outputs[1], 'must not alias both variants to one core');
+});
+
+test('YMF288 mixes its mono SSG output into both stereo channels', async () => {
+  const {default: moduleFactory} = await import('../docs/generated/ymf288_wasm.js');
+  const chip = await Ymf288.create({moduleFactory, moduleOptions:{wasmBinary:await readFile(new URL('../docs/generated/ymf288_wasm.wasm', import.meta.url))}});
+  try {
+    const write = (reg, data) => {chip.write(0, reg); chip.write(1, data);};
+    write(0, 0x80); write(1, 0x01); // SSG A period
+    write(7, 0x3e); // tone A only; noise disabled
+    write(8, 15);
+    const pcm = chip.generateStereo(10000);
+    assert.ok(peak(pcm.left) > 0.01);
+    assert.deepEqual(pcm.left, pcm.right);
+    chip.reset();
+    assert.equal(peak(chip.generateStereo(10000).left), 0);
+  } finally { chip.dispose(); }
 });

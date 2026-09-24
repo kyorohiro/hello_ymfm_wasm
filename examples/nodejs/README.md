@@ -14,6 +14,7 @@
 | YM2612 | [main_ym2612_wave.js](main_ym2612_wave.js) | OPN2 |
 | YM3438 | [main_ym3438_wave.js](main_ym3438_wave.js) | チップ固有の出力処理を使用 |
 | YMF276 | [main_ymf276_wave.js](main_ymf276_wave.js) | チップ固有の出力処理を使用 |
+| YMF288 | [main_ymf288_wave.js](main_ymf288_wave.js) | FM 6 CHを有効化。リズムROM読み込みは未対応 |
 
 ```sh
 node examples/nodejs/main_ym2203_wave.js
@@ -25,7 +26,12 @@ node examples/nodejs/main_ym2610b_wave.js
 出力は各スクリプトの隣の `{chip名}.wav`。引数で保存先を指定できる。
 必要な WASM は `scripts/build_{chip名}_wasm.sh` で生成する。
 YM2610 と YM2610B は `build_ym2610b_wasm.sh` の生成物を共有する。
-YMF288 は保留中のため、まだサンプルに含めていない。
+YMF288 も `node examples/nodejs/main_ymf288_wave.js` で生成できる。
+ビルドは `sh scripts/build_ymf288_wasm.sh`。既定クロックは比較用の8 MHz、
+ネイティブ生成レートは500 kHzで、他のサンプルと同様48 kHzへ変換して保存する。
+`YMF288Synth.reset()` はレジスタ0x29のbit 7を設定して全6 FM CHを有効にする。
+SSGは低レベルレジスタ操作から利用できるが、今回のサンプルと音色APIはFMのみ。
+リズムROMの読み込み・実曲再生・Analyzerへの接続は今回の範囲に含めない。
 
 試聴用 WAV は 48,000 Hz に変換して保存する。チップの生成自体はネイティブレート
 （YM2203 / YM2608 は現在 1,000,000 Hz、YM2610 / YM2610B は 500,000 Hz）で行う。
@@ -79,7 +85,7 @@ DAC・出力の処理が違うため、YM2612 の別名として扱ってはい�
 
 今回の範囲は低レベルチップ API・FM Synth・Node.js WAV 生成。
 Analyzer の機種判定や Playground の選択肢には追加していない。
-YMF288 は別途対応とする。
+YMF288 も低レベルチップ API・FM Synth・Node.js サンプルまで対応。
 
 `node --test web/opn_variant.test.mjs` で、新規コアの全6 CH、音程、パン、
 Key Off、リセット再現性、DAC 出力差を検証する。実機との音質一致や試聴は別途確認が必要。

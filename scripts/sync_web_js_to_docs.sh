@@ -26,6 +26,7 @@ opn_variant.js
 opn_variant_synth.js
 ym3438.js
 ymf276.js
+ymf288.js
 opn_fm_vgm.js
 opn_runtime_synth.js
 pitch.js

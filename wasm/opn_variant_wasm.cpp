@@ -1,6 +1,7 @@
 // Shared binding for the OPN variants selected by each build script.
 #include <algorithm>
 #include <cstdint>
+#include <new>
 #include "ymfm_wasm_interface.h"
 #include "ymfm_opn.h"
 
@@ -23,9 +24,16 @@ void *opn_create() { return new Handle(); }
 void opn_destroy(void *ptr) { delete get(ptr); }
 void opn_reset(void *ptr) {
     auto *h = get(ptr);
+#ifdef OPN_HAS_SSG
+    // YMF288::reset does not reset the SSG resampler's phase/held FM sample.
+    // Reconstruct in place for reproducible offline renders, keeping the JS handle stable.
+    h->~Handle();
+    new (h) Handle();
+#else
     h->intf.timer_remaining[0] = h->intf.timer_remaining[1] = -1;
     h->intf.irq_asserted = false;
     h->chip.reset();
+#endif
 }
 void opn_write(void *ptr, uint32_t offset, uint8_t value) { get(ptr)->chip.write(offset, value); }
 uint8_t opn_read(void *ptr, uint32_t offset) { return get(ptr)->chip.read(offset); }
@@ -38,8 +46,14 @@ void opn_generate(void *ptr, float *left, float *right, uint32_t frames) {
         Chip::output_data output;
         h->chip.generate(&output);
         h->intf.advance_sample(h->chip);
+#ifdef OPN_HAS_SSG
+        // YMF288 exposes the mono SSG as a third output, as on the other OPN cores.
+        left[i] = pcm(output.data[0] + output.data[2]);
+        right[i] = pcm(output.data[1] + output.data[2]);
+#else
         left[i] = pcm(output.data[0]);
         right[i] = pcm(output.data[1]);
+#endif
     }
 }
 }
