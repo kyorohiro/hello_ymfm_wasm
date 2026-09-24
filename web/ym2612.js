@@ -42,6 +42,24 @@
  * Called with the current IRQ state when installed, then when a checked state changes.
  */
 
+/**
+ * Bound native exports. Handles and pointers are numeric WASM addresses, not JS arrays.
+ * Optional read/IRQ exports may be absent in older builds.
+ * @typedef {Object} Ym2612NativeApi
+ * @property {() => number} create Allocate a native chip and return its handle.
+ * @property {(handle: number) => void} destroy Release the native chip.
+ * @property {(handle: number) => void} reset Reset chip state.
+ * @property {(handle: number, offset: number, data: number) => void} write Write a bus byte.
+ * @property {(handle: number, offset: number) => number} [read] Read a bus byte.
+ * @property {(handle: number) => number} [readStatus] Read native status flags.
+ * @property {(handle: number) => number} [getIrq] Read IRQ state (zero or nonzero).
+ * @property {(handle: number, clock: number) => number} sampleRate Convert input clock Hz to PCM frames/second.
+ * @property {(handle: number, leftPtr: number, rightPtr: number, frames: number) => void} generate
+ * Write stereo PCM into caller-allocated WASM buffers.
+ * @property {(handle: number, leftPtr: number, rightPtr: number, env0Ptr: number, env1Ptr: number, env2Ptr: number, env3Ptr: number, frames: number, channel: number) => void} generateWithInternalEnvelope
+ * Write PCM and four envelope buffers for a zero-based physical channel.
+ */
+
 /** Default YM2612 input clock in Hz; this is not the PCM sample rate. @type {number} */
 export const YM2612_CLOCK = 7670454;
 
@@ -55,7 +73,7 @@ export class Ym2612 {
    * Wrap an already allocated native chip. Prefer create() for normal use.
    * @param {Object} module Initialized Emscripten module.
    * @param {number} handle Native chip pointer owned by this instance.
-   * @param {Object<string, Function>} api Bound native exports from create().
+   * @param {Ym2612NativeApi} api Bound native exports from create().
    */
   constructor(module, handle, api) {
     this.module = module;
@@ -107,6 +125,7 @@ export class Ym2612 {
     }
 
     const module = await moduleFactory(moduleOptions || {});
+    /** @type {Ym2612NativeApi} */
     const api = {
       create: module.cwrap("ym2612_create", "number", []),
       destroy: module.cwrap("ym2612_destroy", null, ["number"]),
@@ -433,7 +452,7 @@ function assertHook(name, value) {
  * @param {string} name Native function name without the export underscore.
  * @param {string|null} returnType Emscripten return type; null for void.
  * @param {string[]} argTypes Emscripten argument types.
- * @returns {Function|undefined} Bound callable, or undefined for an older runtime.
+ * @returns {((...args: number[]) => number)|undefined} Numeric read/IRQ callable, or undefined for an older runtime.
  */
 function optionalCwrap(module, name, returnType, argTypes) {
   const exportName = `_${name}`;
