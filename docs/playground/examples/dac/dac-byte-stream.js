@@ -1,31 +1,30 @@
 fm.reset();
 
-// YM2612 DAC lives on channel 6.
-// This is not FM synthesis.
-// We feed one 8-bit value at a time into register 0x2A.
-fm.setDacEnabled(true);
+// YM2612 DAC replaces FM channel 6 with unsigned 8-bit PCM.
+// Generate a 440 Hz sine at 11,025 samples/second for two seconds.
+// Schedule on the audio clock: setInterval is too imprecise for PCM.
+const pcmRate = 11025;
+const frequency = 440;
+const seconds = 2;
+const count = pcmRate * seconds;
+/** @type {Array<[number, number]>} */
+const entries = [];
+for (let i = 0; i < count; i += 1) {
+  // Short fades keep the beginning and end from clicking.
+  const fade = Math.min(1, i / (pcmRate * 0.01), (count - 1 - i) / (pcmRate * 0.01));
+  const value = Math.round(128 + 80 * fade * Math.sin(2 * Math.PI * frequency * i / pcmRate));
+  entries.push([i * 4, value]); // Scheduling offsets use 44,100 Hz units.
+}
+entries.push([count * 4, 128]);
 
-const waveform = [
-  0x80, 0xa0, 0xc0, 0xe0,
-  0xff, 0xe0, 0xc0, 0xa0,
-  0x80, 0x60, 0x40, 0x20,
-  0x00, 0x20, 0x40, 0x60,
-];
-
-await new Promise((resolve) => {
-  let index = 0;
-  let written = 0;
-  const timer = setInterval(() => {
-    fm.writeDac(waveform[index]);
-    index = (index + 1) % waveform.length;
-    written += 1;
-
-    if (written >= 320) {
-      clearInterval(timer);
-      resolve();
-    }
-  }, 1);
-});
-
-fm.writeDac(0x80);
-fm.setDacEnabled(false);
+const start = beginSampleSchedule();
+scheduleWritesSamples(start, [
+  [0, 1, 0xb6, 0xc0], // CH6: left + right.
+  [0, 0, 0x2a, 128],  // Neutral DAC level.
+  [0, 0, 0x2b, 0x80], // Enable DAC.
+]);
+dac.schedule(start, entries);
+scheduleWritesSamples(start, [
+  [count * 4 + 1, 0, 0x2b, 0], // Disable after the last PCM sample.
+]);
+await sleepSamples(count * 4 + 1);
