@@ -19,7 +19,7 @@ import {
 } from "./playground_operator_tab.js";
 import { createPlaygroundOperatorKeyboard } from "./playground_operator_keyboard.js";
 import { EXAMPLES } from "./playground_examples.js?v=midi-motion-demo-1";
-import { initializePlaygroundMonaco } from "./playground_monaco.js?v=fixed-midi-1";
+import { initializePlaygroundMonaco } from "./playground_monaco.js?v=hover-overflow-2";
 import {
   decodeBase64Bytes,
   loadTfiPresetsFromQuery,

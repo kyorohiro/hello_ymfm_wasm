@@ -531,6 +531,12 @@ export async function initializePlaygroundMonaco(
       );
     }
 
+    // Monaco's widget colors are scoped to .monaco-editor and the theme class.
+    // Preserve that scope when rendering widgets outside the editor pane.
+    const overflowHost = document.createElement("div");
+    overflowHost.className = "monaco-editor vs-dark playground-monaco-overflow";
+    document.body.append(overflowHost);
+
     const monacoEditor =
       monaco.editor.create(
         editorHost,
@@ -538,6 +544,9 @@ export async function initializePlaygroundMonaco(
           model: monacoModel,
           theme: "vs-dark",
           automaticLayout: true,
+          // Keep hover and completion widgets outside the clipped editor pane.
+          fixedOverflowWidgets: true,
+          overflowWidgetsDomNode: overflowHost,
           minimap: {
             enabled: false,
           },
@@ -588,6 +597,7 @@ export async function initializePlaygroundMonaco(
           },
         }
       );
+    monacoEditor.onDidDispose(() => overflowHost.remove());
     let currentModel = monacoModel;
 
     function getModelForVirtualPath(path, source) {

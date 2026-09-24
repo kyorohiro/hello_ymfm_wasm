@@ -572,6 +572,23 @@
         overflow: visible;
       }
 
+      .playground-monaco-overflow {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 0;
+        height: 0;
+        overflow: visible;
+        z-index: 10000;
+      }
+
+      .playground-monaco-overflow .monaco-hover,
+      .playground-monaco-overflow .suggest-widget {
+        background-color: #252526;
+        color: #cccccc;
+        border: 1px solid #454545;
+      }
+
       .editor-host[data-ready="false"] {
         display: none;
       }
