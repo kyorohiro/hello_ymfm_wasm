@@ -1720,6 +1720,19 @@
               <li><code>vgiToPreset(await file("./bass.vgi", { type: "arrayBuffer" }))</code> converts a 43-byte VGI file for <code>fm.setPreset()</code> (binary files require <code>type: "arrayBuffer"</code>)</li>
             </ul>
 
+            <h2 style="margin-top: 14px;">dac (YM2612 mode)</h2>
+            <ul class="helper-list">
+              <li>DAC plays unsigned 8-bit PCM through physical CH6, replacing its FM output while enabled. Values are <code>0..255</code>; <code>128</code> is the neutral level.</li>
+              <li><code>fm.setPan(CH6, true, true)</code> routes CH6 to both speakers. <code>fm.setDacEnabled(true)</code> enables DAC; <code>fm.writeDac(128)</code> writes one value; <code>fm.setDacEnabled(false)</code> restores FM output.</li>
+              <li><code>const start = beginSampleSchedule()</code> gets the current loop cycle start in 44,100 Hz sample units. <code>dac.schedule(start, entries)</code> queues <code>[offsetSamples, value]</code> pairs relative to that start. Use <code>/** @type {Array&lt;[number, number]&gt;} */</code> for an initially empty entries array.</li>
+              <li>Offsets use <code>44,100 units = 1 second</code>, regardless of the audio device sample rate. One DAC value every 4 units gives an 11,025 Hz PCM stream. Use audio-clock scheduling rather than <code>setInterval()</code> for steady playback.</li>
+              <li><code>scheduleWritesSamples(start, entries)</code> queues <code>[offsetSamples, port, register, value]</code> writes. Use it to time DAC enable/disable along with PCM. <code>await sleepSamples(length)</code> waits in the same 44,100 Hz units.</li>
+              <li><code>await dac.load(name, data)</code> loads packed records from a <code>Uint8Array</code> or <code>ArrayBuffer</code>: each 5-byte record contains a little-endian uint32 sample offset followed by one uint8 DAC value. This is not a WAV file or a raw PCM byte array.</li>
+              <li><code>dac.playStream(name, { atSamples: start })</code> schedules a loaded bank relative to the run's sample-clock origin; it does not wait for playback to finish. Enable DAC and set CH6 pan separately.</li>
+              <li><code>await dac.loadBase64(name, encoded)</code> loads the same packed format from Base64; <code>dac.scheduleBase64(start, encoded)</code> schedules packed records directly.</li>
+              <li>Open <code>examples/dac/dac-byte-stream.js</code> in FILES for the 440 Hz sine-wave example. For ordinary WAV playback through Web Audio, use <code>sample</code> below.</li>
+            </ul>
+
             <h2 style="margin-top: 14px;">sample and noise</h2>
             <ul class="helper-list">
               <li><code>await sample.load("sonic-pi/ambi-choir")</code> loads a built-in sample</li>
