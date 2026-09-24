@@ -3,6 +3,11 @@ import { SegaPSG, SEGAPSG_CLOCK } from "./segapsg.js";
 
 import { Rf5c164 } from "./rf5c164.js";
 
+/**
+ * GenesisAudioEngine adapter for synchronous stereo rendering and VGM register dispatch.
+ * Output timing uses sampleRate() frames per second. No browser audio device is opened.
+ * Dispose the engine when done to release its underlying chips.
+ */
 export class GenesisAudioEngine {
   constructor(ym2612, psg, sampleRate, masterVolume = 1, pcm = null) {
     this.ym2612 = ym2612;
@@ -15,6 +20,14 @@ export class GenesisAudioEngine {
     this._masterVolume = clampMasterVolume(masterVolume);
   }
 
+  /**
+   * Create the chip instances required by this engine.
+   * @param {Object} [options={}] Chip factories, clocks in Hz and loader settings.
+   * Output rate is derived from the YM2612 clock; sampleRate() reports the actual rate.
+   * @param {number} [options.ym2612Clock=YM2612_CLOCK] YM2612 input clock in Hz.
+   * @param {number} [options.masterVolume=1] Linear output gain, not dB.
+   * @returns {Promise<GenesisAudioEngine>} Initialized engine owned by the caller.
+   */
   static async create(options = {}) {
     const {
       ym2612ModuleFactory,
@@ -64,12 +77,20 @@ export class GenesisAudioEngine {
     );
   }
 
+  /**
+   * Release the underlying chips and their resources. Do not render after disposal.
+   * @returns {void}
+   */
   dispose() {
     this.ym2612.dispose();
     this.psg.dispose();
     this.pcm?.dispose();
   }
 
+  /**
+   * Reset chip/playback state for a new pass. This is not pause/resume; replay setup writes afterward.
+   * @returns {void}
+   */
   reset() {
     this.pwm.reset();
     this.ym2612.reset();
@@ -78,20 +99,38 @@ export class GenesisAudioEngine {
     this.clearRf5c164Memory();
   }
 
+  /**
+   * Return the rate used by process() and processFrames().
+   * @returns {number} Output stereo frames per second (Hz).
+   */
   sampleRate() {
     return this._sampleRate;
   }
 
+  /**
+   * Set the linear master gain; validation/clamping follows this engine.
+   * @param {number} volume Gain multiplier, not dB.
+   */
   setMasterVolume(volume) {
     this._masterVolume =
       clampMasterVolume(volume);
     return this._masterVolume;
   }
 
+  /**
+   * Read the current linear master gain.
+   * @returns {number} Gain multiplier, not a dB value.
+   */
   getMasterVolume() {
     return this._masterVolume;
   }
 
+  /**
+   * Dispatch a VGM register/command write to the corresponding sound chip.
+   * @param {number} port Chip register bank/port (not a MIDI channel).
+   * @param {number} register Register address within the selected chip bank.
+   * @param {number} value Register/command data value.
+   */
   writeYm2612(port, register, value) {
     this.ym2612.writeRegister(register, value, port);
   }
@@ -100,7 +139,17 @@ export class GenesisAudioEngine {
 
   setPcmMuted(muted) { this._pcmMuted = Boolean(muted); }
   clearRf5c164Memory() { this.pcm?.clearMemory(); }
+  /**
+   * Dispatch a VGM register/command write to the corresponding sound chip.
+   * @param {number} register Register address within the selected chip bank.
+   * @param {number} value Register/command data value.
+   */
   writeRf5c164(register, value) { this.#requirePcm().writeRegister(register, value); }
+  /**
+   * Dispatch a VGM register/command write to the corresponding sound chip.
+   * @param {number} offset Chip address offset.
+   * @param {number} value Register/command data value.
+   */
   writeRf5c164Memory(offset, value) { this.#requirePcm().writeMemory(offset, value); }
   loadRf5c164Memory(data, offset) { this.#requirePcm().loadBankedMemory(data, offset); }
   #requirePcm() {
@@ -108,13 +157,28 @@ export class GenesisAudioEngine {
     return this.pcm;
   }
 
+  /**
+   * Dispatch a VGM register/command write to the corresponding sound chip.
+   * @param {number} value Register/command data value.
+   */
   writePsg(value) {
     this.psg.write(value);
   }
 
+  /**
+   * Dispatch a VGM register/command write to the corresponding sound chip.
+   * @param {number} register Register address within the selected chip bank.
+   * @param {number} value Register/command data value.
+   */
   writePwm(register, value) { this.pwm.writeRegister(register, value); }
   setPwmMuted(muted) { this.pwm.muted = Boolean(muted); }
 
+  /**
+   * Advance synthesis and fill caller-owned stereo buffers.
+   * @param {Float32Array} left Left output buffer with capacity for frames samples.
+   * @param {Float32Array} right Right output buffer with capacity for frames samples.
+   * @param {number} frames Nonnegative integer output frame count; not VGM wait samples.
+   */
   process(left, right, frames) {
     if (!(left instanceof Float32Array) || !(right instanceof Float32Array)) {
       throw new Error("process expects Float32Array buffers");
@@ -140,6 +204,11 @@ export class GenesisAudioEngine {
     }
   }
 
+  /**
+   * Allocate stereo output and advance synthesis.
+   * @param {number} frames Nonnegative integer frame count at sampleRate().
+   * @returns {{left:Float32Array,right:Float32Array}} Rendered stereo output.
+   */
   processFrames(frames) {
     const left = new Float32Array(frames);
     const right = new Float32Array(frames);
@@ -154,6 +223,11 @@ export class GenesisAudioEngine {
 export class SimplePwm {
   constructor() { this.muted = false; this.reset(); }
   reset() { this.cycle = 0; this.control = 0; this.left = null; this.right = null; }
+  /**
+   * Dispatch a VGM register/command write to the corresponding sound chip.
+   * @param {number} register Register address within the selected chip bank.
+   * @param {number} value Register/command data value.
+   */
   writeRegister(register, value) {
     value &= 0xfff;
     switch (register) {

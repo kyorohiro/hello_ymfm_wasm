@@ -1,6 +1,17 @@
 export const YM2203_CLOCK = 4000000;
 
+/**
+ * Ym2203 chip instance backed by WASM. No AudioContext or playback device is created.
+ * Use create() to initialize and dispose() to release native resources.
+ * Register writes program the chip; generateStereo() advances it to produce PCM.
+ */
 export class Ym2203 {
+  /**
+   * Wrap native resources allocated by create(); prefer the asynchronous factory.
+   * @param {Object} module Initialized Emscripten module.
+   * @param {number} handle Native chip handle owned by this instance.
+   * @param {Object} api Bound native entry points.
+   */
   constructor(module, handle, api) {
     this.module = module;
     this.handle = handle;
@@ -16,6 +27,14 @@ export class Ym2203 {
     this.bufferFrames = 0;
   }
 
+  /**
+   * Initialize Ym2203 and its native WASM module.
+   * The generated module factory is injected so browser and Node callers can choose asset loading.
+   * @param {Object} [options={}] Chip and Emscripten initialization settings.
+   * @param {function(Object): (Object|Promise<Object>)} options.moduleFactory Generated WASM module factory.
+   * @param {Object} [options.moduleOptions] Forwarded loader options, e.g. wasmBinary or locateFile.
+   * @returns {Promise<Ym2203>} Ready-to-use chip; the caller must dispose it.
+   */
   static async create(options = {}) {
     const { moduleFactory, moduleOptions } = options;
     if (!moduleFactory) {
@@ -41,6 +60,10 @@ export class Ym2203 {
     return new Ym2203(module, handle, api);
   }
 
+  /**
+   * Release native chip state and allocated WASM buffers. Do not use the chip afterward.
+   * @returns {void}
+   */
   dispose() {
     if (this.leftPtr) {
       this.module._free(this.leftPtr);
@@ -56,11 +79,21 @@ export class Ym2203 {
     }
   }
 
+  /**
+   * Reset synthesis state for a new playback pass. Reapply voice and key registers afterward.
+   * @returns {void}
+   */
   reset() {
     this.api.reset(this.handle);
     this.#syncIrq();
   }
 
+  /**
+   * Write one bus byte. Use the chip register protocol rather than a MIDI channel number.
+   * @param {number} offset Native bus address/data port offset.
+   * @param {number} data Byte value, 0..255.
+   * @returns {void}
+   */
   write(offset, data) {
     this.api.write(this.handle, offset, data);
     if (typeof this.hooks.onWrite === "function") {
@@ -69,6 +102,11 @@ export class Ym2203 {
     this.#syncIrq();
   }
 
+  /**
+   * Read a chip bus/status value; not a saved copy of all written voice registers.
+   * @param {number} offset Native bus offset.
+   * @returns {number} Native read result.
+   */
   read(offset) {
     if (typeof this.api.read !== "function") {
       throw new Error("This YM2203 runtime does not support read(offset). Rebuild or reload the generated wasm runtime.");
@@ -81,6 +119,10 @@ export class Ym2203 {
     return value;
   }
 
+  /**
+   * Read the primary status byte.
+   * @returns {number} Status flags from the native core.
+   */
   readStatus() {
     if (typeof this.api.readStatus !== "function") {
       return this.read(0);
@@ -93,6 +135,10 @@ export class Ym2203 {
     return value;
   }
 
+  /**
+   * Read the current native interrupt line state.
+   * @returns {boolean} True when IRQ is asserted. Requires a runtime with IRQ support.
+   */
   getIrq() {
     if (typeof this.api.getIrq !== "function") {
       return false;
@@ -100,6 +146,15 @@ export class Ym2203 {
     return this.api.getIrq(this.handle) !== 0;
   }
 
+  /**
+   * Replace register/IRQ observers; omitted callbacks are removed.
+   * Callbacks execute synchronously. IRQ notifications are checked at API boundaries.
+   * @param {Object} [hooks={}] Optional callback functions.
+   * @param {function({offset:number,data:number}):void} [hooks.onWrite] Called after a bus write.
+   * @param {function({offset:number,value:number}):void} [hooks.onRead] Called after a read.
+   * @param {function(boolean):void} [hooks.onIrq] Called with current/changed IRQ state.
+   * @returns {void}
+   */
   setHooks(hooks = {}) {
     const { onWrite, onRead, onIrq } = hooks;
     assertHook("onWrite", onWrite);
@@ -110,10 +165,20 @@ export class Ym2203 {
     this.#syncIrq();
   }
 
+  /**
+   * Return the native PCM rate for the requested clock; this does not resample audio.
+   * @param {number} [clock] Chip input frequency in Hz.
+   * @returns {number} Stereo frames per second.
+   */
   sampleRate(clock = YM2203_CLOCK) {
     return this.api.sampleRate(this.handle, clock);
   }
 
+  /**
+   * Set native channel mute bits; a set bit suppresses that channel.
+   * @param {number} mask Integer bit mask in the native chip channel layout.
+   * @returns {void}
+   */
   setMuteMask(mask) { this.api.setMuteMask(this.handle, mask & 7); }
 
   setSourceMuteMask(mask) {
@@ -121,6 +186,12 @@ export class Ym2203 {
     this.api.setSourceMuteMask(this.handle, mask);
   }
 
+  /**
+   * Generate PCM synchronously, advancing the chip by the requested number of frames.
+   * Returned arrays are copied from WASM memory and survive later generation/disposal.
+   * @param {number} frames Nonnegative integer stereo frame count.
+   * @returns {{left: Float32Array, right: Float32Array}} Owned PCM arrays at sampleRate().
+   */
   generateStereo(frames) {
     this.#ensureBuffers(frames);
     this.api.generate(this.handle, this.leftPtr, this.rightPtr, frames);
@@ -171,6 +242,12 @@ export class Ym2203 {
   }
 }
 
+/**
+ * Convenience factory for Ym2203. Does not create an audio device.
+ * @param {function(Object): (Object|Promise<Object>)} moduleFactory Generated module factory.
+ * @param {Object} [moduleOptions] Emscripten loader settings.
+ * @returns {Promise<Ym2203>} Chip instance owned by the caller.
+ */
 export async function createYm2203(moduleFactory, moduleOptions) {
   return Ym2203.create({ moduleFactory, moduleOptions });
 }

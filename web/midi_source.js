@@ -1,7 +1,15 @@
 import {parseMidiFile} from './midi_file.js?v=midi-shared-1';
 import {MIDI_SUPPORTED_CC, validateBendRange} from './playground_midi.js?v=midi-shared-1';
 
-/** Auto selects unused MIDI channels; explicitly selected channels may be shared. */
+/**
+ * Resolve import selections into concrete MIDI routes without mutating the selections.
+ * A missing destination skips a part. A missing channel chooses an unused channel at
+ * import time, preferring sourceChannel; this does not select a physical chip voice.
+ * Explicitly shared channels also share voice/controller state during playback.
+ * @param {Object[]} selections Part routes with part, destination and optional channel/sourceChannel (0..15).
+ * @returns {Object[]} Included route copies with a concrete channel (0..15).
+ * @throws {Error} For duplicate parts, invalid destinations/channels or exhausted auto channels.
+ */
 export function assignMidiRoutes(selections) {
   const routes=selections.filter(route=>route.destination).map(route=>({...route}));
   const used=new Map([['tetorica-ym2612',new Set()],['tetorica-sega-psg',new Set()]]);
@@ -25,7 +33,18 @@ export function assignMidiRoutes(selections) {
   return routes;
 }
 
-/** Compile selected SMF parts into editable, standalone Playground JavaScript. */
+/**
+ * Compile SMF parts to editable noteOn/noteOff/controller calls and sleepSamples waits.
+ * Waits include MIDI tempo changes and use the 44100 Hz VGM timeline, not device frames.
+ * @param {ArrayBuffer|Uint8Array} bytes Complete Standard MIDI File.
+ * @param {Object[]} routes Resolved routes from assignMidiRoutes(), including preset and bendRange.
+ * @param {Object} [options={}] Source-generation settings.
+ * @param {string} [options.name="MIDI"] Display name included in a generated comment.
+ * @param {Object} [options.presets={}] Available FM presets indexed by name.
+ * @param {boolean} [options.module=false] Export initCh/runCh/runAllCh helpers instead of top-level playback.
+ * @returns {string} JavaScript source, ending in a newline; no audio is rendered here.
+ * @throws {Error} For invalid MIDI/routes/presets or source exceeding the size limit.
+ */
 export function midiToSource(bytes, routes, {name='MIDI', presets={}, module=false}={}) {
   const song=parseMidiFile(bytes), parts=new Map(song.parts.map(p=>[p.key,p]));
   const targets=new Map(), mapping=new Map(), controls=new Map();

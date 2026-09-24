@@ -1,5 +1,10 @@
 // Each entry owns an engine and a parser-facing target. Routing never aliases
 // instances of the same chip; rendering advances all engines by the same time.
+/**
+ * MultiChipAudioEngine adapter for synchronous stereo rendering and VGM register dispatch.
+ * Output timing uses sampleRate() frames per second. No browser audio device is opened.
+ * Dispose the engine when done to release its underlying chips.
+ */
 export class MultiChipAudioEngine {
   constructor(entries, outputSampleRate = 44100, masterVolume = 1) {
     if (!Number.isFinite(outputSampleRate) || outputSampleRate <= 0) throw new RangeError('Invalid output sample rate');
@@ -23,15 +28,40 @@ export class MultiChipAudioEngine {
     if (!entry) throw new Error(`No playback instance for ${type}:${index}`);
     entry.muted = Boolean(muted);
   }
+  /**
+   * Return the rate used by process() and processFrames().
+   * @returns {number} Output stereo frames per second (Hz).
+   */
   sampleRate() { return this.outputSampleRate; }
+  /**
+   * Set the linear master gain; validation/clamping follows this engine.
+   * @param {number} value Gain multiplier, not dB.
+   */
   setMasterVolume(value) {
     if (!Number.isFinite(Number(value))) throw new RangeError('Invalid volume');
     return this.volume = Math.max(0, Math.min(3.8, Number(value)));
   }
+  /**
+   * Read the current linear master gain.
+   * @returns {number} Gain multiplier, not a dB value.
+   */
   getMasterVolume() { return this.volume; }
+  /**
+   * Reset chip/playback state for a new pass. This is not pause/resume; replay setup writes afterward.
+   * @returns {void}
+   */
   reset() { for (const {engine} of this.entries.values()) engine.reset(); }
   clearSampleMemory() { for (const {engine} of this.entries.values()) engine.clearSampleMemory?.(); }
+  /**
+   * Release the underlying chips and their resources. Do not render after disposal.
+   * @returns {void}
+   */
   dispose() { for (const {engine} of this.entries.values()) engine.dispose(); this.entries.clear(); }
+  /**
+   * Allocate stereo output and advance synthesis.
+   * @param {number} frames Nonnegative integer frame count at sampleRate().
+   * @returns {{left:Float32Array,right:Float32Array}} Rendered stereo output.
+   */
   processFrames(frames) {
     if (!Number.isInteger(frames) || frames < 0 || frames > 0x1000000) throw new RangeError('Invalid frame count');
     // Sum in double precision, rounding only the final mixed output.
@@ -43,6 +73,12 @@ export class MultiChipAudioEngine {
     }
     return {left: Float32Array.from(left, x => x * this.volume), right: Float32Array.from(right, x => x * this.volume)};
   }
+  /**
+   * Advance synthesis and fill caller-owned stereo buffers.
+   * @param {Float32Array} left Left output buffer with capacity for frames samples.
+   * @param {Float32Array} right Right output buffer with capacity for frames samples.
+   * @param {number} frames Nonnegative integer output frame count; not VGM wait samples.
+   */
   process(left, right, frames) {
     if (!(left instanceof Float32Array) || !(right instanceof Float32Array) || left.length < frames || right.length < frames) throw new RangeError('Invalid buffers');
     const pcm = this.processFrames(frames); left.set(pcm.left); right.set(pcm.right);

@@ -1,6 +1,17 @@
 export const YM2610B_CLOCK = 8000000;
 
+/**
+ * Ym2610B chip instance backed by WASM. No AudioContext or playback device is created.
+ * Use create() to initialize and dispose() to release native resources.
+ * Register writes program the chip; generateStereo() advances it to produce PCM.
+ */
 export class Ym2610B {
+  /**
+   * Wrap native resources allocated by create(); prefer the asynchronous factory.
+   * @param {Object} module Initialized Emscripten module.
+   * @param {number} handle Native chip handle owned by this instance.
+   * @param {Object} api Bound native entry points.
+   */
   constructor(module, handle, api) {
     this.module = module;
     this.handle = handle;
@@ -10,6 +21,15 @@ export class Ym2610B {
     this.bufferFrames = 0;
   }
 
+  /**
+   * Initialize Ym2610B and its native WASM module.
+   * The generated module factory is injected so browser and Node callers can choose asset loading.
+   * @param {Object} [options={}] Chip and Emscripten initialization settings.
+   * @param {function(Object): (Object|Promise<Object>)} options.moduleFactory Generated WASM module factory.
+   * @param {Object} [options.moduleOptions] Forwarded loader options, e.g. wasmBinary or locateFile.
+   * @param {boolean} [options.variant=true] True for YM2610B; false for YM2610.
+   * @returns {Promise<Ym2610B>} Ready-to-use chip; the caller must dispose it.
+   */
   static async create({ moduleFactory, moduleOptions, variant = true } = {}) {
     if (!moduleFactory) throw new Error("moduleFactory is required");
     const module = await moduleFactory(moduleOptions ?? {});
@@ -32,6 +52,10 @@ export class Ym2610B {
     return new Ym2610B(module, variant ? api.create() : api.createVariant(0), api);
   }
 
+  /**
+   * Release native chip state and allocated WASM buffers. Do not use the chip afterward.
+   * @returns {void}
+   */
   dispose() {
     if (this.leftPtr) this.module._free(this.leftPtr);
     if (this.rightPtr) this.module._free(this.rightPtr);
@@ -41,6 +65,10 @@ export class Ym2610B {
     this.handle = 0;
   }
 
+  /**
+   * Clear loaded ADPCM ROM regions.
+   * @returns {void}
+   */
   clearAdpcmRoms() { this.api.clearRoms(this.handle); }
   setSourceMuteMask(mask) { this.api.mute(this.handle, mask); }
   loadAdpcmRom(type, bytes, offset = 0, size = offset + bytes.length) {
@@ -55,14 +83,52 @@ export class Ym2610B {
       if (!this.api.loadRom(this.handle,type,size,offset,ptr,bytes.length)) throw new Error('ADPCM ROM load failed');
     } finally { this.module._free(ptr); }
   }
+  /**
+   * Reset synthesis state for a new playback pass. Reapply voice and key registers afterward.
+   * @returns {void}
+   */
   reset() { this.api.reset(this.handle); }
+  /**
+   * Write one bus byte. Use the chip register protocol rather than a MIDI channel number.
+   * @param {number} offset Native bus address/data port offset.
+   * @param {number} data Byte value, 0..255.
+   * @returns {void}
+   */
   write(offset, data) { this.api.write(this.handle, offset, data); }
+  /**
+   * Read a chip bus/status value; not a saved copy of all written voice registers.
+   * @param {number} offset Native bus offset.
+   * @returns {number} Native read result.
+   */
   read(offset) { return this.api.read(this.handle, offset); }
+  /**
+   * Read the primary status byte.
+   * @returns {number} Status flags from the native core.
+   */
   readStatus() { return this.api.readStatus(this.handle); }
+  /**
+   * Read the secondary status byte.
+   * @returns {number} Secondary status flags from the native core.
+   */
   readStatusHi() { return this.api.readStatusHi(this.handle); }
+  /**
+   * Read the current native interrupt line state.
+   * @returns {boolean} True when IRQ is asserted. Requires a runtime with IRQ support.
+   */
   getIrq() { return this.api.getIrq(this.handle) !== 0; }
+  /**
+   * Return the native PCM rate for the requested clock; this does not resample audio.
+   * @param {number} [clock] Chip input frequency in Hz.
+   * @returns {number} Stereo frames per second.
+   */
   sampleRate(clock = YM2610B_CLOCK) { return this.api.sampleRate(this.handle, clock); }
 
+  /**
+   * Generate PCM synchronously, advancing the chip by the requested number of frames.
+   * Returned arrays are copied from WASM memory and survive later generation/disposal.
+   * @param {number} frames Nonnegative integer stereo frame count.
+   * @returns {{left: Float32Array, right: Float32Array}} Owned PCM arrays at sampleRate().
+   */
   generateStereo(frames) {
     this.#ensureBuffers(frames);
     this.api.generate(this.handle, this.leftPtr, this.rightPtr, frames);
@@ -88,6 +154,12 @@ export class Ym2610B {
   }
 }
 
+/**
+ * Convenience factory for Ym2610B. Does not create an audio device.
+ * @param {function(Object): (Object|Promise<Object>)} moduleFactory Generated module factory.
+ * @param {Object} [moduleOptions] Emscripten loader settings.
+ * @returns {Promise<Ym2610B>} Chip instance owned by the caller.
+ */
 export async function createYm2610B(moduleFactory, moduleOptions) {
   return Ym2610B.create({ moduleFactory, moduleOptions });
 }

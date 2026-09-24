@@ -14,6 +14,12 @@ function integer(value, min, max, name) {
   if (!Number.isInteger(value) || value < min || value > max) throw new Error(`${name} must be ${min}..${max}`);
   return value;
 }
+/**
+ * Validate the full-scale pitch bend distance.
+ * @param {number} value Semitones on either side of the unbent note (0..96).
+ * @returns {number} The validated value.
+ * @throws {Error} For nonfinite or out-of-range values.
+ */
 export function validateBendRange(value) {
   if (!Number.isFinite(value) || value < 0 || value > 96) throw new Error('Pitch bend range must be 0..96 semitones');
   return value;
@@ -22,6 +28,12 @@ function validateBend(value) {
   if (!Number.isFinite(value) || value < -1 || value > 1) throw new Error('Pitch bend must be -1..1');
   return value;
 }
+/**
+ * Resolve a note name or MIDI key number; C4 is 60 and A4 is 69.
+ * @param {string|number} note Uppercase note name (e.g. C#4, Bb3) or integer 0..127.
+ * @returns {number} MIDI key number, independent of the output channel.
+ * @throws {Error} For invalid names or notes outside 0..127.
+ */
 export function midiNote(note) {
   if (typeof note === 'string') {
     const m = /^([A-G])([#b]?)(-?\d+)$/.exec(note);
@@ -31,7 +43,16 @@ export function midiNote(note) {
   return integer(note,0,127,'note');
 }
 
-/** MIDI channel state shared by all handles on the same destination/channel. */
+/**
+ * Create the register-side MIDI adapter; handles on the same destination/channel share state.
+ * Automatic voice allocation and fixed physical-channel mode are implemented here.
+ * @param {Object} options Register transports and initial voice.
+ * @param {Function} options.write Receives FM writes with port, register, value and optional time in seconds.
+ * @param {Function} options.writePsg Receives PSG writes.
+ * @param {Object} options.preset Initial FM voice, validated by YM2612Synth.
+ * @param {number} [options.fmChannels=6] Number of available physical FM voices.
+ * @returns {Object} Rack command handlers and voice lifecycle operations.
+ */
 export function createMidiRack({write, writePsg, preset, fmChannels = 6}) {
   let at;
   const pending = new Map();
@@ -191,7 +212,18 @@ export function createMidiRack({write, writePsg, preset, fmChannels = 6}) {
   };
 }
 
-/** Shared API surface for main-thread and Worker execution. */
+/**
+ * Build the user-facing MIDI API shared by main-thread and Worker execution.
+ * Output channels use 0..15 (CH1..CH16); the rack controls physical voice allocation.
+ * @param {Function} invoke Dispatch a rack method and its argument array.
+ * @param {Object} options Timing and execution context callbacks.
+ * @param {Function} options.sleep Await a duration in seconds.
+ * @param {Function} options.bpm Read the current beats-per-minute value.
+ * @param {Function} [options.check] Throw when the current run is cancelled.
+ * @param {Function} [options.owner] Return the current live-loop ownership token.
+ * @param {Function} [options.now] Read the scheduling clock in seconds.
+ * @returns {Object} MIDI API with output handles, sound-chip mode selection and cleanup helpers.
+ */
 export function createMidiApi(invoke, {sleep, bpm, check = ()=>{}, owner = ()=>null, now = ()=>performance.now()/1000}) {
   let readFile;
   const held=new Map(),pedals=new Map();

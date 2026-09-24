@@ -21,7 +21,11 @@ export const VGM_METADATA_FIELDS = [
   ["releaseDate", "Release date"], ["creator", "VGM creator"], ["notes", "Notes"],
 ];
 
-/** Read optional GD3 metadata from decompressed VGM bytes. Invalid tags return null. */
+/**
+ * Read optional GD3 v1.00 metadata from decompressed VGM bytes.
+ * @param {ArrayBuffer|Uint8Array} source Uncompressed VGM file.
+ * @returns {Object<string, string>|null} Named metadata fields, or null for absent/invalid tags.
+ */
 export function parseVgmMetadata(source) {
   const bytes = toBytes(source);
   if (bytes.length < 0x40) return null;
@@ -60,7 +64,10 @@ export function looksLikeGzip(source) {
 
 /**
  * @param {ArrayBuffer | Uint8Array} source
- * @returns {Promise<ArrayBuffer>}
+ * Detect gzip by its header and decompress VGZ using DecompressionStream.
+ * Uncompressed input is copied; this does not validate the VGM command stream.
+ * @throws {Error} If gzip decoding is unavailable or fails.
+ * @returns {Promise<ArrayBuffer>} Uncompressed bytes owned by the caller.
  */
 export async function maybeDecodeVgmFile(source) {
   const bytes = toBytes(source);

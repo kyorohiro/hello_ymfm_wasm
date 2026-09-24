@@ -4,7 +4,19 @@ import {Y8950AudioEngine} from './y8950audioengine.js?v=mutes-1';
 import {K051649AudioEngine} from './k051649audioengine.js';
 import {MultiChipAudioEngine} from './multichipaudioengine.js';
 
+/**
+ * MsxAudioEngine adapter for synchronous stereo rendering and VGM register dispatch.
+ * Output timing uses sampleRate() frames per second. No browser audio device is opened.
+ * Dispose the engine when done to release its underlying chips.
+ */
 export class MsxAudioEngine extends MultiChipAudioEngine {
+  /**
+   * Create the chip instances required by this engine.
+   * @param {Object} [options={}] Chip factories, clocks in Hz and loader settings.
+   * @param {number} [options.outputSampleRate=44100] Output stereo frames per second.
+   * @param {number} [options.masterVolume=1] Linear output gain, not dB.
+   * @returns {Promise<MsxAudioEngine>} Initialized engine owned by the caller.
+   */
   static async create(options = {}) {
     const {outputSampleRate = 44100, masterVolume = 1} = options;
     // Explicit descriptors allow repeated types with independent clocks/options.

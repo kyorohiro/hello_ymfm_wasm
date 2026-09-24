@@ -1,6 +1,17 @@
 export const YMF278B_CLOCK = 33868800;
 
+/**
+ * Ymf278b chip instance backed by WASM. No AudioContext or playback device is created.
+ * Use create() to initialize and dispose() to release native resources.
+ * Register writes program the chip; generateStereo() advances it to produce PCM.
+ */
 export class Ymf278b {
+  /**
+   * Wrap native resources allocated by create(); prefer the asynchronous factory.
+   * @param {Object} module Initialized Emscripten module.
+   * @param {number} handle Native chip handle owned by this instance.
+   * @param {Object} api Bound native entry points.
+   */
   constructor(module, handle, api) {
     this.module = module;
     this.handle = handle;
@@ -19,6 +30,14 @@ export class Ymf278b {
     this.pcmMuteMask = 0;
   }
 
+  /**
+   * Initialize Ymf278b and its native WASM module.
+   * The generated module factory is injected so browser and Node callers can choose asset loading.
+   * @param {Object} [options={}] Chip and Emscripten initialization settings.
+   * @param {function(Object): (Object|Promise<Object>)} options.moduleFactory Generated WASM module factory.
+   * @param {Object} [options.moduleOptions] Forwarded loader options, e.g. wasmBinary or locateFile.
+   * @returns {Promise<Ymf278b>} Ready-to-use chip; the caller must dispose it.
+   */
   static async create(options = {}) {
     const { moduleFactory, moduleOptions } = options;
     if (!moduleFactory) {
@@ -46,6 +65,10 @@ export class Ymf278b {
     return new Ymf278b(module, handle, api);
   }
 
+  /**
+   * Release native chip state and allocated WASM buffers. Do not use the chip afterward.
+   * @returns {void}
+   */
   dispose() {
     if (this.leftPtr) {
       this.module._free(this.leftPtr);
@@ -61,6 +84,13 @@ export class Ymf278b {
     }
   }
 
+  /**
+   * Copy a sample-memory region into the native chip.
+   * @param {Uint8Array} data Bytes to load, not decoded audio samples.
+   * @param {number} [offset=0] Destination byte offset.
+   * @param {number} [memorySize=offset+data.length] Total addressable memory size in bytes.
+   * @returns {void}
+   */
   loadSampleMemory(data, offset = 0, memorySize = offset + data.length) {
     if (!(data instanceof Uint8Array) || !Number.isInteger(offset) || !Number.isInteger(memorySize) ||
         offset < 0 || memorySize < offset || memorySize > 4194304 || data.length > memorySize - offset)
@@ -75,11 +105,29 @@ export class Ymf278b {
       this.sampleMemory = memory;
     } finally { this.module._free(ptr); }
   }
+  /**
+   * Clear loaded sample memory. Load the required data again before PCM/ADPCM playback.
+   * @returns {void}
+   */
   clearSampleMemory() { this.api.clearMemory(this.handle); this.sampleMemory = new Uint8Array(0); }
 
+  /**
+   * Mute any of the 18 FM channels.
+   * @param {number} mask Bits 0..17 correspond to physical FM CH1..CH18; 1 means muted.
+   * @returns {void}
+   */
   setFmMuteMask(mask) { this.fmMuteMask = mask & 0x3ffff; this.api.setFmMuteMask(this.handle, this.fmMuteMask); }
+  /**
+   * Mute any of the 24 PCM voices.
+   * @param {number} mask Bits 0..23 correspond to PCM CH1..CH24; 1 means muted.
+   * @returns {void}
+   */
   setPcmMuteMask(mask) { this.pcmMuteMask = mask & 0xffffff; this.api.setPcmMuteMask(this.handle, this.pcmMuteMask); }
 
+  /**
+   * Reset synthesis state for a new playback pass. Reapply voice and key registers afterward.
+   * @returns {void}
+   */
   reset() {
     // A chip reset leaves free-running envelope/LFO counters intact.
     // Start VGM replay/seek from the same power-on state each time.
@@ -91,6 +139,12 @@ export class Ymf278b {
     this.#syncIrq();
   }
 
+  /**
+   * Write one bus byte. Use the chip register protocol rather than a MIDI channel number.
+   * @param {number} offset Native bus address/data port offset.
+   * @param {number} data Byte value, 0..255.
+   * @returns {void}
+   */
   write(offset, data) {
     this.api.write(this.handle, offset, data);
     if (typeof this.hooks.onWrite === "function") {
@@ -99,6 +153,11 @@ export class Ymf278b {
     this.#syncIrq();
   }
 
+  /**
+   * Read a chip bus/status value; not a saved copy of all written voice registers.
+   * @param {number} offset Native bus offset.
+   * @returns {number} Native read result.
+   */
   read(offset) {
     if (typeof this.api.read !== "function") {
       throw new Error("This YMF278B runtime does not support read(offset). Rebuild or reload the generated wasm runtime.");
@@ -111,6 +170,10 @@ export class Ymf278b {
     return value;
   }
 
+  /**
+   * Read the primary status byte.
+   * @returns {number} Status flags from the native core.
+   */
   readStatus() {
     if (typeof this.api.readStatus !== "function") {
       return this.read(0);
@@ -123,6 +186,10 @@ export class Ymf278b {
     return value;
   }
 
+  /**
+   * Read the current native interrupt line state.
+   * @returns {boolean} True when IRQ is asserted. Requires a runtime with IRQ support.
+   */
   getIrq() {
     if (typeof this.api.getIrq !== "function") {
       return false;
@@ -130,6 +197,15 @@ export class Ymf278b {
     return this.api.getIrq(this.handle) !== 0;
   }
 
+  /**
+   * Replace register/IRQ observers; omitted callbacks are removed.
+   * Callbacks execute synchronously. IRQ notifications are checked at API boundaries.
+   * @param {Object} [hooks={}] Optional callback functions.
+   * @param {function({offset:number,data:number}):void} [hooks.onWrite] Called after a bus write.
+   * @param {function({offset:number,value:number}):void} [hooks.onRead] Called after a read.
+   * @param {function(boolean):void} [hooks.onIrq] Called with current/changed IRQ state.
+   * @returns {void}
+   */
   setHooks(hooks = {}) {
     const { onWrite, onRead, onIrq } = hooks;
     assertHook("onWrite", onWrite);
@@ -140,10 +216,21 @@ export class Ymf278b {
     this.#syncIrq();
   }
 
+  /**
+   * Return the native PCM rate for the requested clock; this does not resample audio.
+   * @param {number} [clock] Chip input frequency in Hz.
+   * @returns {number} Stereo frames per second.
+   */
   sampleRate(clock = YMF278B_CLOCK) {
     return this.api.sampleRate(this.handle, clock);
   }
 
+  /**
+   * Generate PCM synchronously, advancing the chip by the requested number of frames.
+   * Returned arrays are copied from WASM memory and survive later generation/disposal.
+   * @param {number} frames Nonnegative integer stereo frame count.
+   * @returns {{left: Float32Array, right: Float32Array}} Owned PCM arrays at sampleRate().
+   */
   generateStereo(frames) {
     this.#ensureBuffers(frames);
     this.api.generate(this.handle, this.leftPtr, this.rightPtr, frames);
@@ -194,6 +281,12 @@ export class Ymf278b {
   }
 }
 
+/**
+ * Convenience factory for Ymf278b. Does not create an audio device.
+ * @param {function(Object): (Object|Promise<Object>)} moduleFactory Generated module factory.
+ * @param {Object} [moduleOptions] Emscripten loader settings.
+ * @returns {Promise<Ymf278b>} Chip instance owned by the caller.
+ */
 export async function createYmf278b(moduleFactory, moduleOptions) {
   return Ymf278b.create({ moduleFactory, moduleOptions });
 }

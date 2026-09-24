@@ -181,7 +181,8 @@ export class VgmPlayer {
   }
 
   /**
-   * @param {number} factor
+   * Adjust the render-ahead queue target relative to the render chunk size.
+   * @param {number} factor Clamped to 1..8; nonfinite values are ignored.
    * @returns {void}
    */
   setPrefetchFactor(factor) {
@@ -202,7 +203,8 @@ export class VgmPlayer {
   }
 
   /**
-   * @param {number} steps
+   * Limit parser/render work per process call to bound synchronous work.
+   * @param {number} steps Floored to an integer, minimum 32; nonfinite values are ignored.
    * @returns {void}
    */
   setMaxFillStepsPerProcess(steps) {
@@ -269,6 +271,9 @@ export class VgmPlayer {
 
   /**
    * Return a small playback status snapshot for UI/debug use.
+   * queuedFrames uses the engine output rate. processedWaitSamples and totalSamples
+   * use the 44100 Hz VGM timeline. audioProgress is a percentage of parsed waits,
+   * which may run ahead of audible playback because of prefetched audio.
    *
    * @returns {{
    *   playing: boolean,

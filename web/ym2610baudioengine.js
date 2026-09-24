@@ -15,6 +15,13 @@ export class Ym2610BAudioEngine {
     this.sourceMuteMask = 0;
   }
 
+  /**
+   * Create the chip instances required by this engine.
+   * @param {Object} [options={}] Chip factories, clocks in Hz and loader settings.
+   * @param {number} [options.outputSampleRate=44100] Output stereo frames per second.
+   * @param {number} [options.masterVolume=1] Linear output gain, not dB.
+   * @returns {Promise<Ym2610BAudioEngine>} Initialized engine owned by the caller.
+   */
   static async create(options = {}) {
     const chip = await Ym2610B.create({
       moduleFactory: options.moduleFactory,
@@ -29,11 +36,37 @@ export class Ym2610BAudioEngine {
     );
   }
 
+  /**
+   * Release the underlying chips and their resources. Do not render after disposal.
+   * @returns {void}
+   */
   dispose() { this.chip.dispose(); }
+  /**
+   * Reset chip/playback state for a new pass. This is not pause/resume; replay setup writes afterward.
+   * @returns {void}
+   */
   reset() { this.chip.reset(); this.clearAdpcmRoms(); this.remainder = 0; this.lastLeft = 0; this.lastRight = 0; }
+  /**
+   * Return the rate used by process() and processFrames().
+   * @returns {number} Output stereo frames per second (Hz).
+   */
   sampleRate() { return this.outputSampleRate; }
+  /**
+   * Set the linear master gain; validation/clamping follows this engine.
+   * @param {number} value Gain multiplier, not dB.
+   */
   setMasterVolume(value) { this.masterVolume = clampVolume(value); return this.masterVolume; }
+  /**
+   * Read the current linear master gain.
+   * @returns {number} Gain multiplier, not a dB value.
+   */
   getMasterVolume() { return this.masterVolume; }
+  /**
+   * Dispatch a VGM register/command write to the corresponding sound chip.
+   * @param {number} port Chip register bank/port (not a MIDI channel).
+   * @param {number} register Register address within the selected chip bank.
+   * @param {number} value Register/command data value.
+   */
   writeYm2610B(port, register, value) {
     this.chip.write(port * 2, register);
     this.chip.write((port * 2) + 1, value);
@@ -48,6 +81,12 @@ export class Ym2610BAudioEngine {
     this.sourceMuteMask = muted ? this.sourceMuteMask | bit : this.sourceMuteMask & ~bit;
     this.chip.setSourceMuteMask(this.sourceMuteMask);
   }
+  /**
+   * Advance synthesis and fill caller-owned stereo buffers.
+   * @param {Float32Array} left Left output buffer with capacity for frames samples.
+   * @param {Float32Array} right Right output buffer with capacity for frames samples.
+   * @param {number} frames Nonnegative integer output frame count; not VGM wait samples.
+   */
   process(left, right, frames) {
     if (!(left instanceof Float32Array) || !(right instanceof Float32Array)) {
       throw new Error("process expects Float32Array buffers");
@@ -76,6 +115,11 @@ export class Ym2610BAudioEngine {
     }
   }
 
+  /**
+   * Allocate stereo output and advance synthesis.
+   * @param {number} frames Nonnegative integer frame count at sampleRate().
+   * @returns {{left:Float32Array,right:Float32Array}} Rendered stereo output.
+   */
   processFrames(frames) {
     const left = new Float32Array(frames);
     const right = new Float32Array(frames);

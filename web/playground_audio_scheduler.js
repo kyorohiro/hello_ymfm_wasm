@@ -1,4 +1,13 @@
-/** Shared, bounded lookahead queue for absolute AudioContext timestamps. */
+/**
+ * Queue events by absolute audio-clock time and send batches within a lookahead window.
+ * The recipient must still schedule each event at its time; send() runs ahead of playback.
+ * @param {Object} options Clock, destination and optional timer hooks.
+ * @param {function(): number} options.now Current audio-clock time in seconds.
+ * @param {Function} options.send Receives a time-sorted array of due entries.
+ * @param {Function} [options.setTimer=setTimeout] Schedule a callback after a delay in milliseconds.
+ * @param {Function} [options.clearTimer=clearTimeout] Cancel the returned timer handle.
+ * @returns {Object} getTiming/setTiming, enqueue and clear operations.
+ */
 export function createAudioScheduler({ now, send, setTimer = setTimeout, clearTimer = clearTimeout }) {
   let timing = { lookaheadSeconds: 0.25, schedulerIntervalMs: 10 };
   let pending = [];
@@ -25,11 +34,20 @@ export function createAudioScheduler({ now, send, setTimer = setTimeout, clearTi
       flush();
       return { ...timing };
     },
+    /**
+     * Merge entries and immediately dispatch those within the lookahead horizon.
+     * @param {Object[]} entries Each entry has an absolute time in seconds; other fields pass through.
+     * @returns {void}
+     */
     enqueue(entries) {
       pending = pending.concat(entries);
       pending.sort((a, b) => a.time - b.time);
       flush();
     },
+    /**
+     * Cancel pending queue entries and the timer. Already sent events are unaffected.
+     * @returns {void}
+     */
     clear() {
       pending = [];
       if (timer !== null) clearTimer(timer);

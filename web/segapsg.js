@@ -1,7 +1,18 @@
 export const SEGAPSG_CLOCK = 3579545;
 export const SEGAPSG_SAMPLE_RATE = 44100;
 
+/**
+ * SegaPSG chip instance backed by WASM. No AudioContext or playback device is created.
+ * Use create() to initialize and dispose() to release native resources.
+ * Register writes program the chip; generateStereo() advances it to produce PCM.
+ */
 export class SegaPSG {
+  /**
+   * Wrap native resources allocated by create(); prefer the asynchronous factory.
+   * @param {Object} module Initialized Emscripten module.
+   * @param {number} handle Native chip handle owned by this instance.
+   * @param {Object} api Bound native entry points.
+   */
   constructor(module, handle, api) {
     this.module = module;
     this.handle = handle;
@@ -11,6 +22,16 @@ export class SegaPSG {
     this.bufferFrames = 0;
   }
 
+  /**
+   * Initialize SegaPSG and its native WASM module.
+   * The generated module factory is injected so browser and Node callers can choose asset loading.
+   * @param {Object} [options={}] Chip and Emscripten initialization settings.
+   * @param {function(Object): (Object|Promise<Object>)} options.moduleFactory Generated WASM module factory.
+   * @param {Object} [options.moduleOptions] Forwarded loader options, e.g. wasmBinary or locateFile.
+   * @param {number} [options.clock] Input chip clock in Hz.
+   * @param {number} [options.sampleRate=44100] Generated PCM frames per second.
+   * @returns {Promise<SegaPSG>} Ready-to-use chip; the caller must dispose it.
+   */
   static async create(options = {}) {
     const {
       moduleFactory,
@@ -37,6 +58,10 @@ export class SegaPSG {
     return new SegaPSG(module, handle, api);
   }
 
+  /**
+   * Release native chip state and allocated WASM buffers. Do not use the chip afterward.
+   * @returns {void}
+   */
   dispose() {
     if (this.leftPtr) {
       this.module._free(this.leftPtr);
@@ -52,18 +77,37 @@ export class SegaPSG {
     }
   }
 
+  /**
+   * Reset synthesis state for a new playback pass. Reapply voice and key registers afterward.
+   * @returns {void}
+   */
   reset() {
     this.api.reset(this.handle);
   }
 
+  /**
+   * Send a latched tone/noise/attenuation byte to the Sega PSG.
+   * @param {number} data PSG command byte, 0..255.
+   * @returns {void}
+   */
   write(data) {
     this.api.write(this.handle, data);
   }
 
+  /**
+   * Return the configured PCM output rate.
+   * @returns {number} Stereo frames per second.
+   */
   sampleRate() {
     return this.api.sampleRate(this.handle);
   }
 
+  /**
+   * Generate PCM synchronously, advancing the chip by the requested number of frames.
+   * Returned arrays are copied from WASM memory and survive later generation/disposal.
+   * @param {number} frames Nonnegative integer stereo frame count.
+   * @returns {{left: Float32Array, right: Float32Array}} Owned PCM arrays at sampleRate().
+   */
   generateStereo(frames) {
     this.#ensureBuffers(frames);
     this.api.generate(this.handle, this.leftPtr, this.rightPtr, frames);
@@ -99,6 +143,12 @@ export class SegaPSG {
   }
 }
 
+/**
+ * Convenience factory for SegaPSG. Does not create an audio device.
+ * @param {function(Object): (Object|Promise<Object>)} moduleFactory Generated module factory.
+ * @param {Object} [moduleOptions] Emscripten loader settings.
+ * @returns {Promise<SegaPSG>} Chip instance owned by the caller.
+ */
 export async function createSegaPSG(moduleFactory, moduleOptions) {
   return SegaPSG.create({ moduleFactory, moduleOptions });
 }
