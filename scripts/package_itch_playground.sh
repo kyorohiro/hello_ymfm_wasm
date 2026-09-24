@@ -155,6 +155,8 @@ if [ ! -d "${NUKED_LICENSE_DIR}" ]; then
   exit 1
 fi
 
+node "${ROOT_DIR}/scripts/build_playground_examples.mjs"
+
 mkdir -p "${RELEASE_DIR}"
 rm -rf "${STAGE_DIR}"
 rm -f "${ZIP_PATH}"
@@ -215,6 +217,7 @@ for chip in ym2203 ym2608 ym2610b; do
   fi
 done
 
+cp -R "${PLAYGROUND_DIR}/examples" "${STAGE_DIR}/examples"
 cp -R "${PLAYGROUND_SAMPLES_DIR}/." "${STAGE_DIR}/samples/"
 cp -R "${PLAYGROUND_VENDOR_DIR}/." "${STAGE_DIR}/vendor/"
 

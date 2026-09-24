@@ -27,7 +27,7 @@ Existing URL parameters
 
 The Playground already supports URL parameters such as:
 
-?src=<base64>&ex=<name>
+?src=<base64>
 
 Keep the existing behavior.
 

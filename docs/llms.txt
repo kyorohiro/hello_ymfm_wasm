@@ -23,11 +23,13 @@ Use the common Playground type definitions together with the type definition for
 ## Examples
 
 - [Canonical example source](./playground/playground_examples.js): Built-in examples used by the Playground
-- [Live Loop](./playground/?ex=live-loop): Tempo, notes, and named loops
-- [Ambient Choir Sample](./playground/?ex=ambient-choir-sample): Sample loading, effects, and live state
-- [FM API Beep](./playground/?ex=fm-api-beep): Direct YM2612 setup
-- [PSG Scale](./playground/?ex=psg-scale): SN76489-compatible tone API
-- [Parallel FX](./playground/?ex=parallel-fx): Branched effect routing
+Open these source files from Playground FILES → examples to run them.
+
+- [Live Loop](./playground/examples/basic/live-loop.js): Tempo, notes, and named loops
+- [Ambient Choir Sample](./playground/examples/basic/ambient-choir-sample.js): Sample loading, effects, and live state
+- [FM API Beep](./playground/examples/fm/fm-api-beep.js): Direct YM2612 setup
+- [PSG Scale](./playground/examples/psg/psg-scale.js): SN76489-compatible tone API
+- [Parallel FX](./playground/examples/fx/parallel-fx.js): Branched effect routing
 
 ## Source
 

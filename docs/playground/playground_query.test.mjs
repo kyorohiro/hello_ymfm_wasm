@@ -264,7 +264,7 @@ test(
 );
 
 test(
-  "src query still wins over ex",
+  "src query loads shared code even when obsolete ex is present",
   () => {
     const examples = {
       single: "example-single",
@@ -329,7 +329,7 @@ test(
 );
 
 test(
-  "ex query still loads existing examples",
+  "obsolete ex query is ignored; examples are selected as files",
   () => {
     const examples = {
       single: "example-single",
@@ -344,11 +344,11 @@ test(
 
     assert.equal(
       result.source,
-      "example-single"
+      "example-live-loop"
     );
     assert.equal(
       result.exampleName,
-      "single"
+      "live-loop"
     );
   }
 );

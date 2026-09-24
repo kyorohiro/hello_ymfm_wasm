@@ -18,7 +18,7 @@ import {
   createPlaygroundOperatorTab,
 } from "./playground_operator_tab.js";
 import { createPlaygroundOperatorKeyboard } from "./playground_operator_keyboard.js";
-import { EXAMPLES } from "./playground_examples.js?v=midi-motion-demo-1";
+import { EXAMPLES, EXAMPLE_FILES } from "./playground_examples.js?v=folders-1";
 import { initializePlaygroundMonaco } from "./playground_monaco.js?v=hover-overflow-2";
 import {
   decodeBase64Bytes,
@@ -281,42 +281,7 @@ let editorAdapter =
   createTextareaEditorAdapter(
     editor
   );
-const SYSTEM_EXAMPLE_PREFIX = "/sys/examples/";
-const SYSTEM_EXAMPLE_ORDER = [
-  "single",
-  "8-bit-arcade-sweep",
-  "live-loop",
-  "fx-loop-minor",
-  "fx-loop-major",
-  "guitar-fx-chain",
-  "ambient-choir-sample",
-  "noise-ocean",
-  "wind-noise",
-  "just-intonation-chorus",
-  "slicer-sweep",
-  "fx-motion",
-  "parallel-fx",
-  "sonic-pi-sample-choir",
-  "fm-direct",
-  "fm-api-beep",
-  "pg-context-init",
-  "fm-low-level-note",
-  "raw-write-beep",
-  "channel3-special-mode",
-  "dac-byte-stream",
-  "psg-scale",
-  "psg-noise",
-  "psg-ocean",
-  "midi-fm-psg",
-  "midi-fixed-channels",
-  "midi-auto-chord",
-];
-const systemExampleFiles = Object.entries(EXAMPLES).map(
-  ([name, source]) => ({
-    path: `${SYSTEM_EXAMPLE_PREFIX}${name}.js`,
-    data: source,
-  })
-);
+const bundledExampleFiles = EXAMPLE_FILES;
 const virtualFiles = createVirtualFileSystem([
   // A new project starts with the previous Live Loop example as its entry point.
   { path: "/index.js", data: EXAMPLES["live-loop"] },
@@ -385,7 +350,8 @@ const virtualFiles = createVirtualFileSystem([
     "Select the JavaScript file in the Run file selector, then press Run.",
     "The default entry point is /index.js. Merely adding a file does not run it.",
     "",
-    "Built-in examples are available under /sys/examples/. Copy one into this folder to customize it.",
+    "Bundled examples are grouped into basic, fm, midi, psg, dac, noise, samples and fx folders.",
+    "Open a .js file in FILES to edit it and select it as the Run file.",
     "For shared code, create a module in /lib/ and load it from your example:",
     "```js",
     "const { notes } = await import('../lib/notes.js');",
@@ -396,7 +362,7 @@ const virtualFiles = createVirtualFileSystem([
     "This README is a starter file. You can edit or delete it.",
     "",
   ].join("\n") },
-  ...systemExampleFiles,
+  ...bundledExampleFiles,
 ]);
 let activeVirtualPath = "/index.js";
 let runVirtualPath = "/index.js";
@@ -404,21 +370,6 @@ const virtualPresetIds = new Map();
 
 function isSystemVirtualPath(path) {
   return path.startsWith("/sys/");
-}
-
-function formatSystemExampleLabel(path) {
-  const midiLabels = {
-    "midi-fixed-channels": "MIDI fixed CH liveLoop + CC / Bend",
-    "midi-auto-chord": "MIDI auto chord liveLoop + CC / Bend",
-    "midi-fm-psg": "MIDI FM + PSG (YM2612)",
-  };
-  const name = path.slice(SYSTEM_EXAMPLE_PREFIX.length, -3);
-  if (Object.prototype.hasOwnProperty.call(midiLabels, name)) return midiLabels[name];
-  return path
-    .slice(SYSTEM_EXAMPLE_PREFIX.length, -3)
-    .split("-")
-    .map((word) => word ? `${word[0].toUpperCase()}${word.slice(1)}` : word)
-    .join(" ");
 }
 
 function projectFileOrder(left, right) {
@@ -431,8 +382,8 @@ function projectFileOrder(left, right) {
     left.path.localeCompare(right.path);
 }
 
-function restoreSystemExampleFiles() {
-  for (const file of systemExampleFiles) {
+function restoreBundledExampleFiles() {
+  for (const file of bundledExampleFiles) {
     if (!virtualFiles.has(file.path)) {
       virtualFiles.writeText(file.path, file.data);
     }
@@ -829,12 +780,7 @@ function exportCassette() {
     const selectedLicense = updateLicense ? cassetteLicenseSelect?.value ?? "NONE" : existingLicense;
     const selectedWorkType = updateLicense ? cassetteWorkTypeSelect?.value ?? "NONE" : existingWorkType;
     const zip = createPlaygroundCassetteZip(
-      virtualFiles.list().filter(
-        (file) => !isSystemVirtualPath(file.path) ||
-          file.data !== systemExampleFiles.find(
-            (example) => example.path === file.path
-          )?.data
-      ).filter((file) =>
+      virtualFiles.list().filter((file) =>
         file.path !== "/metadata.json" &&
         file.path !== "/cassette.metadata.js"
       ),
@@ -1127,40 +1073,20 @@ function renderRunFileOptions() {
         !isSystemVirtualPath(file.path)
     )
     .sort(projectFileOrder);
-  const projectGroup = document.createElement("optgroup");
-  projectGroup.label = "Project files";
-
+  const groups = new Map();
   for (const file of projectFiles) {
+    const folder = file.path.slice(0, file.path.lastIndexOf("/")) || "/";
+    if (!groups.has(folder)) {
+      const group = document.createElement("optgroup");
+      group.label = folder;
+      groups.set(folder, group);
+      runFileSelect.appendChild(group);
+    }
     const option = document.createElement("option");
     option.value = file.path;
-    option.textContent = file.path;
-    projectGroup.appendChild(option);
+    option.textContent = file.path.slice(file.path.lastIndexOf("/") + 1);
+    groups.get(folder).appendChild(option);
   }
-  runFileSelect.appendChild(projectGroup);
-
-  const exampleGroup = document.createElement("optgroup");
-  exampleGroup.label = "Built-in examples";
-  const systemFilesByName = new Map(
-    systemExampleFiles.map((file) => [
-      file.path.slice(SYSTEM_EXAMPLE_PREFIX.length, -3),
-      file,
-    ])
-  );
-  const orderedSystemFiles = [
-    ...SYSTEM_EXAMPLE_ORDER.map((name) => systemFilesByName.get(name)),
-    ...systemExampleFiles.filter(
-      (file) => !SYSTEM_EXAMPLE_ORDER.includes(
-        file.path.slice(SYSTEM_EXAMPLE_PREFIX.length, -3)
-      )
-    ),
-  ].filter(Boolean);
-  for (const file of orderedSystemFiles) {
-    const option = document.createElement("option");
-    option.value = file.path;
-    option.textContent = formatSystemExampleLabel(file.path);
-    exampleGroup.appendChild(option);
-  }
-  runFileSelect.appendChild(exampleGroup);
 
   runVirtualPath = virtualFiles.has(previousPath)
     ? previousPath
@@ -1210,6 +1136,10 @@ function openVirtualFile(path) {
 
   saveActiveVirtualFile();
   activeVirtualPath = file.path;
+  if (file.path.endsWith(".js")) {
+    runVirtualPath = file.path;
+    renderRunFileOptions();
+  }
   showVirtualFile(file);
   editorAdapter.focus();
   renderVirtualFileExplorer();
@@ -1694,7 +1624,7 @@ function restoreVirtualFilesFromCassette(cassette) {
   if (!virtualFiles.has("/index.js")) {
     virtualFiles.writeText("/index.js", previousSource);
   }
-  restoreSystemExampleFiles();
+  restoreBundledExampleFiles();
   editorAdapter.syncVirtualFiles?.(virtualFiles.list());
   registerVirtualTfiPresets();
   activeVirtualPath = "/index.js";

@@ -117,20 +117,6 @@ export function resolveInitialSourceFromQuery(
     };
   }
 
-  const exampleName =
-    params.get("ex");
-
-  if (
-    exampleName &&
-    examples[exampleName]
-  ) {
-    return {
-      source: examples[exampleName],
-      exampleName,
-      status: `Loaded example from ?ex=${exampleName}`,
-    };
-  }
-
   return {
     source:
       examples[
