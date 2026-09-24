@@ -365,3 +365,16 @@ test('generated MIDI module completes, stops in sleepSamples, and restarts on Wo
   await waitFor(()=>worker.messages.filter(m=>m.type==='complete').length===2,1000);
  } finally {await worker.send({type:'stop'});}
 });
+
+test('Worker forwards fixed-channel configuration before notes',async()=>{
+ const worker=createWorkerHarness();
+ try {
+  worker.post({type:'run',presets:{},scaleIntervals:{},sourceCode:`await midi.enableSoundChip('tetorica-ym2612',{roundRobin:false});await midi.output('tetorica-ym2612',{channel:CH4}).noteOn('C4');`});
+  const configure=await nextMidiRequest(worker,0);
+  assert.equal(configure.args[0],'enableSoundChip');assert.equal(configure.args[1][1].roundRobin,false);
+  worker.post({type:'response',id:configure.id});
+  const note=await nextMidiRequest(worker,1);assert.equal(note.args[0],'noteOn');assert.equal(note.args[1][1],3);
+  worker.post({type:'response',id:note.id,value:123});
+  await waitFor(()=>worker.messages.some(m=>m.type==='complete'),1000);
+ } finally {await worker.send({type:'stop'});}
+});

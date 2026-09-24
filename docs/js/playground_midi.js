@@ -44,6 +44,7 @@ export function createMidiRack({write, writePsg, preset, fmChannels = 6}) {
   }
   const patches = Array.from({length:16},()=>normalize(preset));
   const voices = { 'tetorica-ym2612': Array(fmChannels).fill(null), 'tetorica-sega-psg': Array(3).fill(null) };
+  let roundRobin = true;
   const tails = Array(fmChannels).fill(null); // Released FM envelopes can still be audible.
   // A register encoder, not another emulated chip. Never reset the real transport.
   const fm = new YM2612Synth({transport:{write:(port,register,value)=>write({port,register,value,time:at})}});
@@ -99,6 +100,14 @@ export function createMidiRack({write, writePsg, preset, fmChannels = 6}) {
     voices[destination].forEach((v,i)=>{if(v?.channel===channel&&!v.keyDown)release(destination,i);});
   }
   return {
+    enableSoundChip(chip, options = {}) {
+      if (!['ym2612','tetorica-ym2612'].includes(chip)) throw new Error('Allocation mode is only supported for YM2612');
+      const enabled=options.roundRobin===undefined?true:options.roundRobin;
+      if(typeof enabled!=='boolean')throw new Error('roundRobin must be boolean');
+      if(enabled===roundRobin)return;
+      for(let ch=0;ch<16;ch++)this.cc(destinations[0],ch,120,0);
+      roundRobin=enabled;
+    },
     cc(destination,channel,controller,value,time) {
       target(destination,channel);integer(controller,0,127,'controller');integer(value,0,127,'CC value');
       if(!MIDI_SUPPORTED_CC.includes(controller))return false;
@@ -142,7 +151,9 @@ export function createMidiRack({write, writePsg, preset, fmChannels = 6}) {
     },
     noteOn(destination, channel, note, velocity = 100, time) {
       const pool = target(destination,channel); note=midiNote(note);integer(velocity,1,127,'velocity');at=time;
-      let slot=pool.findIndex(v=>!v);
+      const fixed=destination===destinations[0]&&!roundRobin;
+      if(fixed&&channel>=pool.length)return ++nextVoiceId;
+      let slot=fixed?channel:pool.findIndex(v=>!v);
       if(slot<0)slot=pool.reduce((old,v,i)=>v.id<pool[old].id?i:old,0);
       if(pool[slot])release(destination,slot);
       const id=++nextVoiceId;
@@ -193,8 +204,15 @@ export function createMidiApi(invoke, {sleep, bpm, check = ()=>{}, owner = ()=>n
   const call=(method,args)=>{check();return invoke(method,args);};
   return {
     cancelOwner(target) {
-      for(const [id,entry] of held)if(target===undefined || entry.owner===target){held.delete(id);Promise.resolve(invoke('release',[...entry.args,true])).catch(()=>{});}
+      for(const [id,entry] of held)if(target===undefined || entry.owner===target) {
+        held.delete(id);
+        // Stop invalidates the run before cancelling loops. A synchronous
+        // cancellation must not prevent the rack's following hard mute.
+        try { Promise.resolve(invoke('release',[...entry.args,true])).catch(()=>{}); }
+        catch (_) { /* The stopped run is released by rack.stop(). */ }
+      }
     },
+    async enableSoundChip(chip, options = {}) { return call('enableSoundChip',[chip,options]); },
     createSongPlayer(config) { return createMidiSongPlayer(this, config); },
     createTimeline() {
       check();const origin=now();let previous=0;

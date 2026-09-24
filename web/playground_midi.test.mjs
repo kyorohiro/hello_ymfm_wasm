@@ -204,3 +204,24 @@ test('handles on the same MIDI channel share bend and volume, other channels sta
  writes.length=0;await api.output('tetorica-ym2612',{channel:0}).pitchBend(1);assert.equal(writes.length,2);
  await api.output('tetorica-sega-psg',{channel:15}).noteOn(60);assert(psg.length>0);
 });
+
+test('fixed YM2612 mode pins channels, ignores higher channels and restores automatic allocation',()=>{
+ const {r,writes}=rack();const chip='tetorica-ym2612';
+ r.enableSoundChip(chip,{roundRobin:false});writes.length=0;
+ r.noteOn(chip,3,60);assert.equal(writes.at(-1).value,0xf4);
+ r.noteOn(chip,3,64);assert.equal(writes.at(-1).value,0xf4);
+ const count=writes.length;r.noteOff(chip,3,60);assert.equal(writes.length,count);
+ r.noteOn(chip,15,60);assert.equal(writes.length,count);
+ r.enableSoundChip(chip,{roundRobin:false});assert.equal(writes.length,count);
+ r.stop();writes.length=0;r.noteOn(chip,5,60);assert.equal(writes.at(-1).value,0xf6);
+ r.enableSoundChip(chip,{roundRobin:true});writes.length=0;
+ r.noteOn(chip,15,60);assert.equal(writes.at(-1).value,0xf0);
+ for(const value of [null,0,'false'])assert.throws(()=>r.enableSoundChip(chip,{roundRobin:value}),/boolean/);
+});
+
+test('public enableSoundChip uses the same rack routing as MIDI commands',async()=>{
+ const {r,writes}=rack();
+ const midi=createMidiApi((method,args)=>r[method](...args),{sleep:async()=>{},bpm:()=>120});
+ await midi.enableSoundChip('tetorica-ym2612',{roundRobin:false});
+ await midi.output('tetorica-ym2612',{channel:2}).noteOn('C4');assert.equal(writes.at(-1).value,0xf2);
+});

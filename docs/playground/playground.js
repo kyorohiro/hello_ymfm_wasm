@@ -18,8 +18,8 @@ import {
   createPlaygroundOperatorTab,
 } from "./playground_operator_tab.js";
 import { createPlaygroundOperatorKeyboard } from "./playground_operator_keyboard.js";
-import { EXAMPLES } from "./playground_examples.js?v=standard-midi-1";
-import { initializePlaygroundMonaco } from "./playground_monaco.js?v=standard-midi-1";
+import { EXAMPLES } from "./playground_examples.js?v=midi-motion-demo-1";
+import { initializePlaygroundMonaco } from "./playground_monaco.js?v=fixed-midi-1";
 import {
   decodeBase64Bytes,
   loadTfiPresetsFromQuery,
@@ -53,7 +53,7 @@ import { exportYm2608VgmToPlaygroundJavaScript } from "../js/ym2608vgm.js";
 import { exportYm2610BVgmToPlaygroundJavaScript } from "../js/ym2610bvgm.js";
 import {
   createPlaygroundRuntime,
-} from "../js/playground_runtime.js?v=midi-stop-1";
+} from "../js/playground_runtime.js?v=midi-held-stop-1";
 import { createVgmPresetFiles } from "./playground_vgm_presets.js";
 import { createTfiFileEditor, tfiToEditorPreset } from "./playground_tfi_editor.js";
 import { renderFileTree } from "./playground_file_tree.js";
@@ -307,6 +307,9 @@ const SYSTEM_EXAMPLE_ORDER = [
   "psg-scale",
   "psg-noise",
   "psg-ocean",
+  "midi-fm-psg",
+  "midi-fixed-channels",
+  "midi-auto-chord",
 ];
 const systemExampleFiles = Object.entries(EXAMPLES).map(
   ([name, source]) => ({
@@ -404,6 +407,13 @@ function isSystemVirtualPath(path) {
 }
 
 function formatSystemExampleLabel(path) {
+  const midiLabels = {
+    "midi-fixed-channels": "MIDI fixed CH liveLoop + CC / Bend",
+    "midi-auto-chord": "MIDI auto chord liveLoop + CC / Bend",
+    "midi-fm-psg": "MIDI FM + PSG (YM2612)",
+  };
+  const name = path.slice(SYSTEM_EXAMPLE_PREFIX.length, -3);
+  if (Object.prototype.hasOwnProperty.call(midiLabels, name)) return midiLabels[name];
   return path
     .slice(SYSTEM_EXAMPLE_PREFIX.length, -3)
     .split("-")

@@ -2,7 +2,8 @@
 
 ## 現行の channel 指定（MIDI CH）
 
-`midi.output()` の `channel` は MIDI の演奏パート。物理 FM CH の固定や範囲指定ではない。
+`midi.output()` の `channel` は MIDI の演奏パート。既定は自動割り当て。
+YM2612 は `midi.enableSoundChip(..., {roundRobin: false})` による物理 CH 固定も選べる（末尾参照）。
 
 ```js
 const lead = midi.output("tetorica-ym2612", {channel: CH4});
@@ -409,3 +410,41 @@ await song.ch1Events(lead, pg.sleepSamples);
 1つの関数に大量の条件分岐を並べることによる Monaco／TypeScript の型解析負荷を抑える。
 3,000音の自動テストで分割後の順序と待機量を確認。報告されたブラウザー上の
 スタックオーバーフローが解消するかは実機で再確認が必要。既存ファイルは再 Import で更新する。
+
+## YM2612 の物理 CH 固定モード
+
+```js
+await midi.enableSoundChip("tetorica-ym2612", {roundRobin: false});
+const lead = midi.output("tetorica-ym2612", {channel: CH4});
+await lead.setVoice(FM_PRESETS["two-op-bell"]);
+await lead.play("C4", {duration: 1, velocity: 100});
+```
+
+- `roundRobin: true`（オプション省略時も true）は従来の自動発音割り当て。
+- `false` は MIDI CH1〜CH6（数値0〜5）を物理 CH1〜CH6に固定する。
+  各 CH は単音で、次の Note On が前の発音を置き換える。CH7〜CH16 は発音しない。
+- 省略した output channel は CH1。複数ハンドルでも同じ物理 CH を共有する。
+- モード変更時は YM2612 の発音・余韻を止める。同じモードの再指定では消音しない。
+  音色・コントローラー設定は保持する。再現性のため Run の冒頭でモードを明示する。
+- PSG、外部 MIDI 出力にはこの設定を適用しない。CH3 special や DAC は追加対応ではない。
+- 通常の `noteOn` / `noteOff` / CC / Pitch Bend / `setVoice` をそのまま使う。
+  チップへ直接レジスタを書き込む API との併用を安全にする予約機能ではない。
+
+固定モードのサンプル：YM2612 Playground の `MIDI fixed physical CH (YM2612)`、
+MIDI Playground の `/examples/14_ym2612_fixed_channels.js`。
+2 CH の同時発音、同一物理 CH の音の置き換え、CH7 が無音になることを試せる。
+
+### 固定／自動割り当ての liveLoop デモ
+
+- YM2612 Playground：`MIDI fixed CH liveLoop + CC / Bend` と `MIDI auto chord liveLoop + CC / Bend`。
+- MIDI Playground：`/examples/14_ym2612_fixed_channels.js` と `/examples/15_ym2612_auto_chord.js`。
+- 固定版は単音、自動版は同じ進行の3和音。CH1 のベースと一緒に繰り返す。
+  CH4 の Pitch Bend でビブラート、CC11 で音量、CC10 で左右を動かす。Stop で終了。
+  CC11／CC10 は音程変更ではなく、音程は Pitch Bend が担当する。
+
+### MIDI liveLoop の Stop 後に発音が残る問題
+
+MIDI の保持音がある状態で Stop すると、Run の無効化後の `cancelOwner()` が
+同期的な `AbortError` を投げ、後続の音源消音処理を中断していた。
+終了時のキャンセルを処理して、ラックの強制消音まで必ず進むよう修正。
+停止時のキーオフ・TL による消音・再実行を自動テストで確認した。

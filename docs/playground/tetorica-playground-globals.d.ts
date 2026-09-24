@@ -1004,6 +1004,9 @@ interface PlaygroundMidiSongPlayer {
   runChannels(channels: number[], outputs?: Record<number, PlaygroundMidiOutput | PlaygroundMidiOutput[]>): Promise<void>;
 }
 interface PlaygroundMidi {
+  /** YM2612: true (default) shares six voices; false pins CH1..CH6 and silences CH7..CH16.
+   * Changing mode silences existing YM2612 notes. CH3 special mode is separate. */
+  enableSoundChip(chip: "ym2612" | "tetorica-ym2612", options?: {roundRobin?: boolean}): Promise<void>;
   /** Replay beat-based generators together; tempo changes, note-offs and cleanup are shared. */
   createSongPlayer(config: PlaygroundMidiSongConfig): PlaygroundMidiSongPlayer;
   /** Fix an origin now; waits use seconds from that origin, absorbing previous delays.

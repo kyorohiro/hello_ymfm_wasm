@@ -298,3 +298,38 @@ test('generated MIDI module stops during sample wait and runs again on main',asy
  writes.length=0;await runtime.playSource(entry(1));
  assert(writes.includes(0x90));assert.equal(writes.at(-1),0x9f);
 });
+
+test('fixed channel configuration reaches the main and Worker rack',async t=>{
+ const {runtime,megaDrive}=setup(t),writes=[],workers=workerBridge(t);
+ megaDrive.fm.write=(...args)=>writes.push(args);megaDrive.psg.write=()=>{};
+ await runtime.playSource(`await midi.enableSoundChip('tetorica-ym2612',{roundRobin:false});await midi.output('tetorica-ym2612',{channel:CH4}).noteOn('C4');`);
+ assert(writes.some(([p,r,v])=>r===0x28&&v===0xf4));runtime.stop();writes.length=0;
+ await runtime.playSource('',{execution:'worker'});const worker=workers[0];
+ worker.send({type:'request',id:101,command:'midi.invoke',args:['enableSoundChip',['tetorica-ym2612',{roundRobin:false}]]});
+ await until(()=>worker.responses.some(r=>r.id===101));assert(!worker.responses.find(r=>r.id===101).error);
+ worker.send({type:'request',id:102,command:'midi.invoke',args:['noteOn',['tetorica-ym2612',5,60,100]]});
+ await until(()=>worker.responses.some(r=>r.id===102));assert(writes.some(([p,r,v])=>r===0x28&&v===0xf6));
+});
+
+test('Stop during a held MIDI liveLoop note completes hard mute and allows restart',async t=>{
+ const {runtime,megaDrive}=setup(t),writes=[];
+ megaDrive.fm.write=(...args)=>writes.push(args);megaDrive.psg.write=()=>{};
+ globalThis.playgroundReview={held:false};
+ await runtime.playSource(`
+  const lead=midi.output('tetorica-ym2612',{channel:CH4});
+  liveLoop('held-midi',async()=>{
+   await lead.noteOn('C4');
+   globalThis.playgroundReview.held=true;
+   await beat(100);
+   await lead.noteOff('C4');
+  });
+ `);
+ await until(()=>globalThis.playgroundReview.held);
+ writes.length=0;
+ assert.doesNotThrow(()=>runtime.stop());
+ assert.equal(runtime.getState().playback,'stopped');
+ assert(writes.some(([p,r,v])=>r===0x28&&v===0));
+ assert(writes.some(([p,r,v])=>r===0x40&&v===127));
+ await runtime.playSource(`const lead=midi.output('tetorica-ym2612');await lead.noteOn('E4');`);
+ assert(writes.some(([p,r,v])=>r===0x28&&v===0xf0));
+});
