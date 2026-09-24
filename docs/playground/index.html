@@ -1669,6 +1669,35 @@
               <li><code>pg.stopLoop(name)</code>, <code>pg.stopAllLoops()</code>, <code>pg.stopAll()</code></li>
             </ul>
 
+            <h2 style="margin-top: 14px;">midi (YM2612 mode)</h2>
+            <ul class="helper-list">
+              <li><code>midi.output("tetorica-ym2612", { channel: CH1 })</code> creates an FM part; <code>"tetorica-sega-psg"</code> uses the three PSG tone voices (not noise). These are internal outputs, not external Web MIDI ports.</li>
+              <li><code>channel</code> is a MIDI part: numeric <code>0..15</code> or <code>CH1..CH16</code>. Omitted channel defaults to CH1. By default the engine shares six FM voices or three PSG tone voices automatically; a MIDI channel does not pin a physical voice.</li>
+              <li><code>await midi.enableSoundChip("tetorica-ym2612", { roundRobin: false })</code> selects fixed FM voices: CH1..CH6 map to physical CH1..CH6, one note each; CH7..CH16 do not sound. <code>roundRobin: true</code> restores automatic allocation. Changing mode stops FM notes. Specify the mode at the start of your script; this option is YM2612-only.</li>
+              <li><code>await lead.setVoice(FM_PRESETS["two-op-bell"])</code> selects an FM voice; <code>await lead.loadVoice("./lead.tfi")</code> loads TFI or VGI from FILES. With channel omitted, <code>setVoice()</code> applies to all MIDI channels.</li>
+              <li><code>await lead.noteOn("C4", { velocity: 100 })</code> and <code>await lead.noteOff("C4")</code> start and release a note. Notes also accept MIDI numbers <code>0..127</code>.</li>
+              <li><code>await lead.play("C4", { velocity: 100, duration: 1 })</code> plays for one beat at the current BPM. Use <code>Promise.all([...])</code> for chords.</li>
+              <li><code>await lead.pitchBend(0.25)</code> bends the part (<code>-1..1</code>, center <code>0</code>); <code>await lead.setPitchBendRange(2)</code> sets the range in semitones (default ±2). Bend affects notes belonging to that MIDI part.</li>
+              <li><code>await lead.cc(number, value)</code> sends a MIDI controller, values <code>0..127</code>: <code>7</code> volume, <code>10</code> pan (FM left/center/right; PSG ignores pan), <code>11</code> expression, <code>64</code> sustain (64 or higher = down), <code>120</code> all sound off, <code>121</code> reset controllers, <code>123</code> all notes off.</li>
+              <li>Import MIDI generates editable JavaScript using these APIs. The example list includes <strong>MIDI fixed CH liveLoop + CC / Bend</strong> and <strong>MIDI auto chord liveLoop + CC / Bend</strong>.</li>
+            </ul>
+            <pre><code>setBpm(120);
+await midi.enableSoundChip("tetorica-ym2612", { roundRobin: true });
+const lead = midi.output("tetorica-ym2612", { channel: CH1 });
+await lead.setVoice(FM_PRESETS["two-op-bell"]);
+await lead.cc(7, 100);
+await lead.setPitchBendRange(2);
+await lead.noteOn("C4", { velocity: 100 });
+await lead.pitchBend(0.25);
+await beat(1);
+await lead.noteOff("C4");
+await lead.pitchBend(0);
+await Promise.all([
+  lead.play("C4", { duration: 1 }),
+  lead.play("E4", { duration: 1 }),
+  lead.play("G4", { duration: 1 }),
+]);</code></pre>
+
             <h2 style="margin-top: 14px;">Live coding</h2>
             <ul class="helper-list">
               <li>Top-level <code>await</code> is available; press <code>Run</code> again to replace named loops</li>
