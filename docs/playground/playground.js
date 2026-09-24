@@ -1,4 +1,4 @@
-import {installMidiImport} from './playground_midi_import.js?v=standard-midi-1';
+import {installMidiImport} from './playground_midi_import.js?v=midi-sections-1';
 import {
   FM_PRESET_ORDER,
   FM_PRESETS,

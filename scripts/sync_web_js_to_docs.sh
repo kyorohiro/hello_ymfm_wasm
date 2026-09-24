@@ -34,6 +34,7 @@ playground_logic_worker.js
 playground_midi.js
 midi_song.js
 midi_file.js
+midi_source.js
 playground_music.js
 playground_noise.js
 playground_sync.js

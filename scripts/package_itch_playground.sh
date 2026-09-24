@@ -60,6 +60,7 @@ playground_logic_worker.js
 playground_midi.js
 midi_song.js
 midi_file.js
+midi_source.js
 playground_music.js
 playground_noise.js
 playground_runtime.js
@@ -218,6 +219,7 @@ cp -R "${PLAYGROUND_SAMPLES_DIR}/." "${STAGE_DIR}/samples/"
 cp -R "${PLAYGROUND_VENDOR_DIR}/." "${STAGE_DIR}/vendor/"
 
 cp "${LICENSE_FILE}" "${STAGE_DIR}/LICENSE"
+cp "${ROOT_DIR}/docs/playground-favicon.ico" "${STAGE_DIR}/favicon.ico"
 
 for file in ${NUKED_LICENSE_FILES}; do
   cp "${NUKED_LICENSE_DIR}/${file}" "${STAGE_DIR}/licenses/nuked-opn2/${file}"
@@ -240,7 +242,7 @@ This package includes two YM2612 engine options:
 EOF
 
 # Make the playground runnable from itch.io as a standalone app.
-perl -0pi -e 's#\s*<link rel="manifest" href="\.\./[^\"]+\.webmanifest">##g; s#\s*<link rel="icon" href="\.\./[^\"]+\.ico" sizes="any">##g; s#\s*<script src="\.\./sw-register\.js"></script>##g' "${STAGE_DIR}/index.html"
+perl -0pi -e 's#\s*<link rel="manifest" href="\.\./[^\"]+\.webmanifest">##g; s#href="\.\./playground-favicon\.ico"#href="./favicon.ico"#g; s#\s*<script src="\.\./sw-register\.js"></script>##g' "${STAGE_DIR}/index.html"
 perl -0pi -e 's#<a class="link-button" href="\.\./index\.html">Back</a>##g' \
   "${STAGE_DIR}/index.html"
 perl -0pi -e 's#"\./playground\.js"#"./playground.js"#g; s#\.\./js/#./js/#g; s#\.\./synth/#./synth/#g; s#\.\./generated/#./generated/#g' \

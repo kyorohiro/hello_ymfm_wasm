@@ -94,15 +94,28 @@ export function midiToSource(bytes, routes, {name='MIDI', presets={}, module=fal
   } else {
     add('\ntry {');
   }
+  // Bound each function's control-flow graph for Monaco/TypeScript analysis.
+  let section=0,sectionLines=0;
+  const closeSection=()=>{
+    if(!sectionLines)return;
+    add('    }');
+    add(`    await section${section}();`);
+    sectionLines=0;
+  };
+  const music=line=>{
+    if(sectionLines===128)closeSection();
+    if(!sectionLines)add(`    async function section${++section}() {`);
+    add(`  ${line}`);sectionLines++;
+  };
   let lastSample=0;
   const wait=seconds=>{
     const sample=Math.round(seconds*44100);
-    if(sample>lastSample)add(`${module?'    ':'  '}await sleepSamples(${sample-lastSample});`);
+    if(sample>lastSample)music(`${module?'    ':'  '}await sleepSamples(${sample-lastSample});`);
     lastSample=sample;
   };
   const noteName=n=>`${['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'][n%12]}${Math.floor(n/12)-1}`;
   for(const event of song.events) {
-    if(event.type==='meta'&&event.tempo){add(`  // Tempo: ${60000000/event.tempo} BPM at ${event.seconds}s; included in sample waits.`);continue;}
+    if(event.type==='meta'&&event.tempo){music(`  // Tempo: ${60000000/event.tempo} BPM at ${event.seconds}s; included in sample waits.`);continue;}
     if(event.type!=='channel')continue;
     const variable=mapping.get(event.part),statements=[];
     const emit=(v,line)=>statements.push({variable:v,line});
@@ -114,13 +127,14 @@ export function midiToSource(bytes, routes, {name='MIDI', presets={}, module=fal
         if(event.kind===11)emit(v,`${v}.cc(${event.a}, ${event.b})`);
         else {const raw=event.a+(event.b<<7);emit(v,`${v}.pitchBend(${(raw-8192)/(raw<8192?8192:8191)})`);}
       }
-    } else if(variable)add(`  // Not applied at ${event.seconds}s: MIDI status ${event.kind}, data ${event.a}${event.b===undefined?'':`, ${event.b}`}.`);
+    } else if(variable)music(`  // Not applied at ${event.seconds}s: MIDI status ${event.kind}, data ${event.a}${event.b===undefined?'':`, ${event.b}`}.`);
     if(statements.length) {
       wait(event.seconds);
-      for(const {variable,line} of statements)add(module?`    if (${variable}) await ${line};`:`  await ${line};`);
+      for(const {variable,line} of statements)music(module?`    if (${variable}) await ${line};`:`  await ${line};`);
     }
   }
   wait(song.seconds);
+  closeSection();
   if(module) {
     add('  } finally {');
     add('    await Promise.allSettled(active.map(output => Promise.resolve().then(() => output.cc(120, 0))));');

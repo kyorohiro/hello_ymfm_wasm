@@ -201,3 +201,25 @@ test('controller shared by source tracks is only applied once per target',async(
  const {song}=await compile(data,routes);const state=mockApi();await song.initCh(state.api);state.events.length=0;
  await song.runAllCh();assert.equal(state.events.filter(e=>e[2]==='cc'&&e[3]===7).length,1);
 });
+
+test('long MIDI performance has bounded function bodies and preserves waits and commands across sections',async()=>{
+ const track=[];
+ for(let i=0;i<3000;i++)track.push(0,0x90,60,100,1,0x80,60,0);
+ track.push(0,255,47,0);
+ const data=smf(track),routes=[{part:'[0,0,"",1]',destination:'tetorica-sega-psg',channel:0}];
+ for(const module of [false,true]) {
+  const source=midiToSource(data,routes,{module});
+  const sections=[...source.matchAll(/async function section\d+\(\) \{\n([\s\S]*?)\n    \}/g)];
+  assert(sections.length>50);
+  assert(sections.every(match=>match[1].split('\n').length<=128));
+  const state=mockApi();
+  if(module) {
+   const song=await import(`data:text/javascript;base64,${Buffer.from(source).toString('base64')}`);
+   await song.initCh(state.api);state.events.length=0;await song.runAllCh();
+  } else await new AsyncFunction('midi','CH1','sleepSamples',source)(state.api.midi,0,state.api.sleepSamples);
+  const notes=state.events.filter(e=>e[2]==='noteOn'||e[2]==='noteOff');
+  assert.equal(notes.length,6000);
+  for(let i=0;i<notes.length;i++)assert.equal(notes[i][2],i%2?'noteOff':'noteOn');
+  assert.equal(state.waits.reduce((a,b)=>a+b,0),Math.round(3000/96*.5*44100));
+ }
+});
