@@ -1,3 +1,4 @@
+import {decodeYmf278bSample} from './ymf278b_samples.js';
 import {Rf5c164} from '../js/rf5c164.js';
 import {Ym2608} from '../js/ym2608.js';
 import {Ym2610B} from '../js/ym2610b.js';
@@ -7,6 +8,13 @@ import {encodeStereoWav} from './vgm_wav.js';
 
 export async function renderSamplePreview(sample,event,{getFactory}={}) {
   if(!sample.data)throw new Error('Sample has missing/partial data');
+  if(sample.chip==='ymf278b'){
+    const data=decodeYmf278bSample(sample),rate=event.rate;
+    if(!(rate>0))throw new Error('Sample rate is zero');
+    const mono=new Float32Array(Math.min(441000,Math.ceil(data.length/rate*44100)));
+    for(let i=0;i<mono.length;i++)mono[i]=data[Math.min(data.length-1,Math.floor(i*rate/44100))];
+    return {left:mono,right:mono,sampleRate:44100};
+  }
   if(sample.kind==='pwm')return {...renderPwmPreview(sample),sampleRate:44100};
   if(sample.kind==='dac'){const mono=renderDacPreview(sample);return {left:mono,right:mono,sampleRate:44100};}
   if(!(event.rate>0))throw new Error('Sample rate is zero');

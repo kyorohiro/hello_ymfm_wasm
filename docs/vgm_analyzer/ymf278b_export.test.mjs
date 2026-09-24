@@ -24,7 +24,7 @@ test('YMF278B PCM-only has no notes, PSG is retained, and dual is rejected',()=>
  const b=fixture('fm');new DataView(b.buffer,b.byteOffset,b.byteLength).setUint32(0x60,0x40000000|33868800,true);
  for(const format of ['midi','musicxml','lilypond'])assert.throws(()=>exportSource(b,{format,bpm:120}),/Dual/);
 });
-test('YMF278B UI enables FM score and MIDI export, keeping PCM Explorer marked unavailable',async()=>{
+test('YMF278B UI enables FM score and MIDI export, enabling PCM Explorer',async()=>{
  const {default:vm}=await import('node:vm');
  const {chipSupportContext}=await import('./test_helpers/chip_support_context.mjs');
  const s=readFileSync(new URL('./vgm_analyzer.js',import.meta.url),'utf8');
@@ -32,5 +32,5 @@ test('YMF278B UI enables FM score and MIDI export, keeping PCM Explorer marked u
  const c=vm.createContext({...chipSupportContext(),currentChipKind:'ymf278b',currentBuffer:fixture('fm'),midiExportAvailable:true,noteishHeader:{ymf278bClock:33868800},setOutputTab(){}});
  vm.runInContext(s.slice(start,end)+'\nupdateChipSupport();',c);
  for(const key of ['sheetMusicTab','noteishTab','exportMidiButton','exportLilyPondButton'])assert.equal(c[key].disabled,false,key);
- assert.equal(c.sampleTab.disabled,true);assert.equal(c.exportMmlButton.disabled,true);
+ assert.equal(c.sampleTab.disabled,false);assert.equal(c.exportMmlButton.disabled,true);
 });

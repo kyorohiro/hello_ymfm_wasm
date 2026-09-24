@@ -1,10 +1,12 @@
+import {decodeYmf278bSample} from './ymf278b_samples.js';
+import {samplePreviewWav} from './sample_render.js';
 import {renderSamplePreview} from './sample_render.js';
 export {configureSamplePreview} from './sample_render.js';
 import { pwmCaptureWav } from './pwm_samples.js';
 import {sampleFile,extractSamples} from './sample_core.js';
 export {extractSamples} from './sample_core.js';
 
-export function mountSampleExplorer(panel, getSource) {
+export function mountSampleExplorer(panel, getSource, getOptions = () => ({})) {
   let controller, audio, playing, previewSerial = 0;
   const button = document.createElement('button'); button.textContent = 'Analyze samples';
   const output = document.createElement('div');
@@ -17,7 +19,7 @@ export function mountSampleExplorer(panel, getSource) {
     controller = new AbortController(); const own = controller;
     button.disabled = true; output.textContent = 'Analyzing…';
     try {
-      const result = await extractSamples(source, { signal: own.signal });
+      const result = await extractSamples(source, { ...getOptions(), signal: own.signal });
       if (own.signal.aborted) return;
       output.replaceChildren();
       const note = document.createElement('p'); note.textContent = result.warnings.join(' '); output.append(note);
@@ -32,8 +34,15 @@ export function mountSampleExplorer(panel, getSource) {
         history.textContent = uses.slice(0, 500).map(e => `${(e.startTime / 44100).toFixed(3)} s · ${e.kind.toUpperCase()} channel ${e.channel} · end ${e.endTime == null ? 'unknown' : (e.endTime / 44100).toFixed(3) + ' s'} · level ${e.level}${e.totalLevel == null ? "" : `, total ${e.totalLevel}`}, pan ${e.pan} · ${e.rate.toFixed(2)} Hz${e.deltaN == null ? "" : ` · Delta-N ${e.deltaN} · repeat ${e.loop} · speaker off ${e.speakerOff}`}${e.nextControl ? ` · next ${e.nextControl} ${(e.nextControlTime / 44100).toFixed(3)} s` : ''}`).join('\n');
         if (uses.length > 500) history.textContent += '\nShowing first 500 uses.';
         row.append(history);
+        if(s.chip==='ymf278b') {
+          const info=document.createElement('p');info.textContent=`Wave ${s.waveNumber} · signed ${s.format}-bit PCM · ${s.frameCount} frames · loop ${s.loopStart}–${s.frameCount} (end exclusive). Raw one-pass preview; no envelope or pitch modulation.`;row.append(info);
+          if(s.data){
+            const canvas=document.createElement('canvas');canvas.width=512;canvas.height=96;canvas.style.maxWidth='100%';canvas.setAttribute('aria-label','PCM waveform');row.append(canvas);
+            let drawn=false;row.addEventListener('toggle',()=>{if(!row.open||drawn)return;drawn=true;const pcm=decodeYmf278bSample(s),ctx=canvas.getContext('2d');ctx.strokeStyle='#44aacc';ctx.beginPath();for(let x=0;x<512;x++){const start=Math.floor(x*pcm.length/512),end=Math.max(start+1,Math.floor((x+1)*pcm.length/512));let lo=1,hi=-1;for(let i=start;i<end;i++){lo=Math.min(lo,pcm[i]);hi=Math.max(hi,pcm[i]);}ctx.moveTo(x,48-hi*46);ctx.lineTo(x,48-lo*46);}ctx.stroke();});
+          }
+        }
         if (s.data) {
-          const save = document.createElement('button'); save.textContent = captured ? `Save timed ${s.kind.toUpperCase()} JSON` : s.chip === 'rf5c164' ? 'Save 64 KiB RAM snapshot' : 'Save raw ADPCM';
+          const save = document.createElement('button'); save.textContent = captured ? `Save timed ${s.kind.toUpperCase()} JSON` : s.chip === 'rf5c164' ? 'Save 64 KiB RAM snapshot' : s.chip==='ymf278b' ? 'Save raw PCM' : 'Save raw ADPCM';
           save.onclick = () => {
             const url = URL.createObjectURL(new Blob([sampleFile(s,result.events).bytes])); const a = document.createElement('a');
             a.href = url; a.download = `${s.chip}-${s.kind}-${s.id}.${captured ? 'json' : 'bin'}`; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
@@ -64,6 +73,11 @@ export function mountSampleExplorer(panel, getSource) {
             finally { listen.disabled = false; }
           };
           row.append(save, selection, listen);
+          if(s.chip==='ymf278b') {
+            const wav=document.createElement('button');wav.textContent='Save one-pass WAV';
+            wav.onclick=async()=>{try{const result=await samplePreviewWav(s,uses[Number(selection.value)]);const url=URL.createObjectURL(new Blob([result.bytes],{type:'audio/wav'})),a=document.createElement('a');a.href=url;a.download=`ymf278b-pcm-${s.id}.wav`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}catch(error){note.textContent=error.message;}};
+            row.append(wav);
+          }
           if(s.kind==='pwm') {
             const wav=document.createElement('button');wav.textContent='Save stereo WAV';
             wav.onclick=()=>{

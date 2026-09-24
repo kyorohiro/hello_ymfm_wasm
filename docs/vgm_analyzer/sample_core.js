@@ -1,3 +1,4 @@
+import {createYmf278bSamples} from './ymf278b_samples.js';
 import {samplePreviewWav} from './sample_render.js';
 import {createStoredZipBytes} from './stored_zip.js';
 import {createDacSamples} from './dac_samples.js';
@@ -6,9 +7,10 @@ import {createRf5c164Samples} from './rf5c164_samples.js';
 import {Ym2612VGM} from '../js/ym2612vgm.js?v=pwm-2';
 
 // One pass; never expands the VGM loop. Memory is resolved at each key-on.
-export async function extractSamples(source, { signal } = {}) {
+export async function extractSamples(source, { signal, roms = {} } = {}) {
   const warnings = new Set();
   const parser = new Ym2612VGM(source, { logger: { warn: m => warnings.add(m) } });
+  const opl4 = createYmf278bSamples(parser.header.ymf278bClock & 0x3fffffff, roms.ymf278bWave);
   const dac = createDacSamples();
   const pwm = createPwmSamples();
   const rf = createRf5c164Samples(parser.header.rf5c164Clock & 0x3fffffff);
@@ -56,6 +58,7 @@ export async function extractSamples(source, { signal } = {}) {
       endTime: null, endReason: 'unknown', rawStart, rawEnd, clock, ...settings });
   }
   function apply(e) {
+    opl4.apply(e, time);
     rf.apply(e, time);
     if (e.type === 'ym2610-rom-data' || e.type === 'ym2608-adpcm-b-data') {
       if (e.chipIndex) { warnings.add('Second chip sample memory is not analyzed.'); return; }
@@ -160,6 +163,11 @@ export async function extractSamples(source, { signal } = {}) {
     if (count % 4096 === 4095) await new Promise(resolve => setTimeout(resolve, 0));
   }
   if (parser.header.ym2608Clock & 0x40000000) warnings.add('Second YM2608 chip is not analyzed.');
+  opl4.finish(time);
+  const opl4Base=samples.length;
+  for(const sample of opl4.samples)samples.push({...sample,id:sample.id+opl4Base});
+  for(const event of opl4.events)events.push({...event,sampleId:event.sampleId+opl4Base});
+  for(const warning of opl4.warnings)warnings.add(warning);
   dac.finish(time,'VGM end');
   pwm.finish(time,'VGM end');
   const pwmBase=samples.length;
@@ -188,7 +196,7 @@ function sampleInventory(result) {
   return {schemaVersion:1,timebase:44100,time:result.time,warnings:result.warnings,
     samples:result.samples.map(({data,times,registers,...metadata})=>({
       ...metadata,exportable:data!==null && data!==undefined,
-      representation:metadata.kind==='dac'||metadata.kind==='pwm'?'timed-output':metadata.chip==='rf5c164'?'ram-snapshot':'raw-adpcm',
+      representation:metadata.kind==='dac'||metadata.kind==='pwm'?'timed-output':metadata.chip==='rf5c164'?'ram-snapshot':metadata.chip==='ymf278b'?'raw-pcm':'raw-adpcm',
     })),events:result.events};
 }
 
@@ -204,13 +212,13 @@ export function sampleFile(sample, events) {
     bytes:text===null?sample.data.slice():new TextEncoder().encode(text)};
 }
 
-export async function exportSamples(bytes,{id,all=false,signal,format='native',occurrence=1,getFactory}={}) {
+export async function exportSamples(bytes,{id,all=false,signal,format='native',occurrence=1,getFactory,roms}={}) {
   if(typeof all!=='boolean' || (all ? id!==undefined : !Number.isSafeInteger(id)||id<1)) throw new Error('Specify a positive sample id or all:true, exclusively');
   if(!['native','wav'].includes(format))throw new Error('Sample format must be native or wav');
   if(!Number.isSafeInteger(occurrence)||occurrence<1)throw new Error('Occurrence must be a positive integer');
   if(format==='wav' && all)throw new Error('WAV export requires one sample ID');
   if(format==='native' && occurrence!==1)throw new Error('Occurrence applies only to WAV');
-  const result=await extractSamples(bytes,{signal});
+  const result=await extractSamples(bytes,{signal,roms});
   const selected=all?result.samples:result.samples.filter(s=>s.id===id);
   if(!selected.length) throw new Error(all?'No supported samples found':'Unknown sample id: '+id);
   // Fail the entire request before writing any output if one definition is unavailable.
