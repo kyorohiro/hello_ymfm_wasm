@@ -1,5 +1,5 @@
 import {extractMsxNotes} from './msx_notes.js';
-import {extractYmf278bFmNotes} from './ymf262_notes.js';
+import {extractYmf278bFmNotes, extractOpl3Notes} from './ymf262_notes.js';
 import {extractHuc6280Notes} from './huc6280_notes.js';
 import {isOpl, extractOplNotes} from './opl_notes.js';
 import {extractNesNotes} from './nes_notes.js';
@@ -47,8 +47,8 @@ export function exportAnalysisMidi(source, { bpm = 120, fileName = 'VGM' } = {})
   }
   const parserHeader = new Ym2612VGM(source).header;
   const chipKind = parserHeader.ym2151Clock & 0x3fffffff ? 'ym2151' : midiChipKind(parserHeader);
-  if (!chipKind) throw new Error('MIDI requires YM2151 / YM2612 / YM2203 / YM2608 / YM2610 / AY-3-8910 / YM2413 / YM3526 / YM3812 / Y8950 / PSG or NES APU / HuC6280 / Game Boy DMG');
-  const fm = chipKind === 'msx' ? extractMsxNotes(source) : chipKind === 'ymf278b' ? extractYmf278bFmNotes(source) : isOpl(chipKind) ? extractOplNotes(source) : chipKind === 'ym2151' ? extractOpmNotes(source) : chipKind === 'psg' || chipKind === 'ay8910' || chipKind === 'ym2413' || chipKind === 'huc6280' || chipKind === 'nes' || chipKind === 'gameboy' ? {channels:[],warnings:new Map()} : extractOpnNotes(source);
+  if (!chipKind) throw new Error('MIDI requires YM2151 / YM2612 / YM2203 / YM2608 / YM2610 / AY-3-8910 / YM2413 / YM3526 / YM3812 / Y8950 / YMF262 / YMF278B / PSG or NES APU / HuC6280 / Game Boy DMG');
+  const fm = chipKind === 'msx' ? extractMsxNotes(source) : chipKind === 'ymf262' ? extractOpl3Notes(source) : chipKind === 'ymf278b' ? extractYmf278bFmNotes(source) : isOpl(chipKind) ? extractOplNotes(source) : chipKind === 'ym2151' ? extractOpmNotes(source) : chipKind === 'psg' || chipKind === 'ay8910' || chipKind === 'ym2413' || chipKind === 'huc6280' || chipKind === 'nes' || chipKind === 'gameboy' ? {channels:[],warnings:new Map()} : extractOpnNotes(source);
   const tones = chipKind === 'msx' ? {channels:[],warnings:new Map(),time:0} : chipKind === 'huc6280' ? extractHuc6280Notes(source) : chipKind === 'nes' ? extractNesNotes(source) : chipKind === 'gameboy' ? extractGameboyNotes(source) : extractToneNotes(source, chipKind);
   const opll = chipKind !== 'msx' && (parserHeader.ym2413Clock & 0x3fffffff) ? extractOpllNotes(source) : {channels:[],warnings:new Map(),time:0};
   const channels = [...fm.channels, ...tones.channels, ...opll.channels];

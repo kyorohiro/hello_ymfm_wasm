@@ -26,7 +26,8 @@
 - OPN / OPM は再生、基音中心の Note-ish、楽譜出力、音色情報の確認が揃ってきている。
 - HuC6280、DMG、NES APU も、音程を扱えるチャンネルの Note-ish と楽譜出力に対応。
 - OPL / OPL2 / Y8950 は FM の Note-ish、MIDI / MusicXML / LilyPond、レジスタ状態の確認に対応。
-- OPL3（YMF262）は Note-ish / Sheet Music / MusicXML / LilyPond に対応。MIDI は未対応。
+- OPL3（YMF262）は Note-ish / Sheet Music / MIDI / MusicXML / LilyPond に対応。
+  MIDI は複数ポート対応プレイヤーが必要。リズムは除外、4op は先頭 CH のみ。
 - OPL4（YMF278B）は FM の Note-ish / Sheet Music / MIDI / MusicXML / LilyPond に対応。
   MIDI は複数ポート方式で、対応プレイヤーが必要。PCM とリズムは音符出力から除外。
 - SCC / SCC+（K051649 / K052539）は再生・チャンネルミュート、Live / Song Note-ish、
@@ -69,9 +70,13 @@ Y8950 の ADPCM は FM の楽譜解析に混ぜず、サンプルとして扱う
 
 ### 3. OPL3 の MIDI
 
-- [ ] YMF278B に追加した複数 MIDI ポート方式を YMF262 に展開する。
-- [ ] 18 CH のピッチベンドが干渉しないこと、4op ペアを二重出力しないことを確認する。
-- [ ] 複数ポートに対応するプレイヤーでの再生確認と利用上の説明を追加する。
+- [x] YMF278B に追加した複数 MIDI ポート方式を YMF262 に展開する。
+- [x] 18 CH のピッチベンドが干渉しないこと、4op ペアを二重出力しないことを確認する。
+- [x] CLI と Sound chip support に複数ポート利用上の説明を追加する。
+- [ ] 複数ポートに対応するプレイヤーで実曲の再生を確認する。
+
+合成 VGM から出力した MIDI を再解析し、18 CH のポート・CH の一意性、
+別ポートの同番号 CH の独立した bend、4op・リズム除外、dual 拒否を検証。
 
 ### 4. OPL3 / OPL4 の音色情報
 

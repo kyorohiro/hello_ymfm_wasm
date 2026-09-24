@@ -658,14 +658,15 @@ The Node/Core equivalent is `vgmToJson(bytes, { comments: true })`.
 
 ### YMF262 scores
 
-MusicXML / LilyPond and `score-channels` support single-chip YMF262 (OPL3)
+MIDI / MusicXML / LilyPond and `score-channels` support single-chip YMF262 (OPL3)
 2op / 4op base pitches. IDs are `ymf262-ch1` through `ymf262-ch18`.
 Each 4op pair is represented by its leading channel (1–3 and 10–12);
 the paired channel contributes no duplicate note while paired. Rhythm CH7–9
 are omitted in rhythm mode. Operator multipliers, output routing/level,
 vibrato, envelopes and audible release are not reconstructed; this is a
 register-based note transcription, not audible pitch detection. Dual/variant
-YMF262 is rejected. YMF262 MIDI export is not included in this change.
+YMF262 is rejected. MIDI uses two MIDI ports for independent pitch bends across
+18 melodic channels; a multi-port MIDI player is required. Rhythm is omitted.
 
 ```sh
 node dist/cli/main.js score-channels song.vgz --json

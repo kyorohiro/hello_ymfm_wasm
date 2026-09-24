@@ -21,7 +21,7 @@ for (const chip of ['msx','ym3526','ym2413','ym2151','ym3812','ymf262']) test(`$
   vm.createContext(context);vm.runInContext(fn('updateChipSupport'),context);
   context.updateChipSupport();
   const enabledTabs=chip==='ym2151'?['operatorInfoTab','noteishTab','tfiInfoTab']:(chip==='ym2413'||isOpl(chip))?['operatorInfoTab','noteishTab']:['msx','ymf262'].includes(chip)?['noteishTab']:[];
-  const supportedExports=['ym2151','ym2413'].includes(chip)?['exportMidiButton','exportMmlButton']:(isOpl(chip)||chip==='msx')?['exportMidiButton']:[];
+  const supportedExports=['ym2151','ym2413'].includes(chip)?['exportMidiButton','exportMmlButton']:(isOpl(chip)||['msx','ymf262'].includes(chip))?['exportMidiButton']:[];
   if(chip==='ym2151')supportedExports.push('exportAllTfiButton','exportSnapshotTfiButton');
   for(const name of tabNames)assert.equal(context[name].disabled,!enabledTabs.includes(name),name);
   for(const name of buttonNames)assert.equal(context[name].disabled,true,`${name}: no file loaded`);
@@ -134,13 +134,14 @@ test('chip selection recognizes YM2413 and preserves OPN selection',()=>{
   assert.equal(context.detectPlaybackChipKind({y8950Clock:3579545,ay8910Clock:1789773,gameBoyDmgClock:4194304}),'msx');
   assert.equal(context.detectPlaybackChipKind({ym2612Clock:7670454,segaPcmClock:4000000}),'ym2612');
 });
-test('YMF262 enables Sheet Music and LilyPond independently of MIDI',()=>{
- const context={isOpl,...chipSupportContext(),currentChipKind:'ymf262',currentBuffer:{},noteishHeader:{ymf262Clock:14318180},setOutputTab(){}};
+test('YMF262 enables Sheet Music, LilyPond and multi-port MIDI',()=>{
+ const context={isOpl,...chipSupportContext(),currentChipKind:'ymf262',midiExportAvailable:true,currentBuffer:{},noteishHeader:{ymf262Clock:14318180},setOutputTab(){}};
  vm.createContext(context);vm.runInContext(fn('updateChipSupport'),context);context.updateChipSupport();
  assert.equal(context.sheetMusicTab.disabled,false);
  assert.equal(context.exportLilyPondButton.disabled,false);
  assert.equal(context.document.getElementById('exportMusicSheetButton').disabled,false);
- assert.equal(context.exportMidiButton.disabled,true);
+ assert.equal(context.exportMidiButton.disabled,false);
+ context.midiExportAvailable=false;
  context.noteishHeader.ymf262Clock=14318180|0x40000000;context.updateChipSupport();
  assert.equal(context.sheetMusicTab.disabled,true);
 });

@@ -62,3 +62,25 @@ test('Song timeline worker loads OPL3 pairs without duplicate notes',async()=>{
   assert.equal(messages[1].type,'view');assert.equal(messages[1].channels.length,1);
  }finally{globalThis.self=previous;}
 });
+
+test('OPL3 MIDI gives all 18 voices independent port/channel and bend events',async()=>{
+ const {parseMidiFile}=await import('../../web/midi_file.js');
+ const commands=[...w(5,1,1)];
+ for(let i=0;i<18;i++)commands.push(...on(i%9,580,Math.floor(i/9)));
+ commands.push(...wait,...w(0xa0,600&255),...w(0xa6,620&255,1),...wait);
+ const source=vgm(commands), result=exportSource(source,{format:'midi',bpm:120});
+ const song=parseMidiFile(result.bytes),notes=song.events.filter(e=>e.kind===9&&e.b>0);
+ assert.equal(notes.length,18);
+ assert.equal(new Set(notes.map(e=>`${e.port}:${e.channel}`)).size,18);
+ assert.deepEqual([...new Set(notes.map(e=>e.port))],[0,1]);
+ assert(notes.every(e=>e.channel!==10));
+ const bends=song.events.filter(e=>e.kind===14&&e.tick>0);
+ assert.deepEqual(bends.filter(e=>e.a+128*e.b!==8192).map(e=>[e.port,e.channel]),[[0,1],[1,1]]);
+ assert(result.warnings.some(w=>/multi-port/.test(w)));
+ assert.equal((await inspectSourceSupport(source)).exports.midi.status,'available');
+});
+test('OPL3 MIDI omits 4op partners and rhythm and rejects dual chips',()=>{
+ const source=vgm([...w(5,1,1),...w(4,1,1),...w(0xbd,0x20),...on(0),...on(3),...on(6),...wait]);
+ assert.equal(exportSource(source,{format:'midi',bpm:120}).noteCount,1);
+ assert.throws(()=>exportSource(vgm([...on(0),...wait],14318180|0x40000000),{format:'midi',bpm:120}),/Dual/);
+});
