@@ -698,6 +698,7 @@ function renderMonitorToggles() {
       ? `CH${channel.channel + 1} Off`
       : `CH${channel.channel + 1} On`;
     button.setAttribute("data-monitor-toggle-kind", "channel");
+    button.setAttribute("aria-pressed", String(!channel.muted));
     button.setAttribute("data-channel-index", String(channel.channel));
     monitorToggles.append(button);
   });
@@ -1758,6 +1759,8 @@ function toggleChannelMute(channelIndex) {
   channelMuteStates[channelIndex] = channel.muted;
   channel.changedAt.pan = performance.now();
   requestChannelMonitorRender();
+  // Playback buttons remain visible when the Operator Info render timer is paused.
+  renderMonitorToggles();
 
   if (!engine) {
     return;
