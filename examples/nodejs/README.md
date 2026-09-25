@@ -9,7 +9,7 @@ RF5C164のPCM形式変換は `web/rf5c164_pcm.js`、通信は `web/playground_rf
 ## OPN 系の独立サンプル
 
 各ファイルに初期化・音色設定・発音・PCM 生成・WAV 保存・解放までを記載している。
-以下の表は通常 FM の例。YM2203 / YM2608 の SSG / CH3 special は後述する。ADPCM の演奏例はまだ含まない。
+以下の表は通常 FM の例。YM2203 / YM2608 の SSG / CH3 special は後述する。YM2608のADPCM-B例も後述する。
 
 | チップ | 実行ファイル | 補足 |
 | --- | --- | --- |
@@ -111,7 +111,7 @@ YM2203の1/2とは異なる。別クロックはSynthの `clock` にも指定し
 
 `node --test web/ym2608synth.test.mjs` で全6 CHの音程・パン・停止、CH3 special、
 SSGの音程・状態追跡・FMとの混合を実WASMで検証する。
-ADPCM-Bの高レベルAPIとPlaygroundの操作UIは今後の対象。
+Playgroundの操作UIは今後の対象。
 
 ### YM2608 内蔵リズム → WAV
 
@@ -146,6 +146,52 @@ rhythm.keyOff("snare");
 サンプルは6音を順に各0.75秒＋無音0.25秒、その後2秒の短いパターン、最後に0.5秒の無音（計8.5秒）。
 スネアを左、ハイハットを右に振り分ける例も含む。保存先の同名ファイルは上書きする。
 自動テストは独自の合成ADPCM-Aデータを使い、実ROMの音色そのものの正しさは試聴で確認する。
+
+### YM2608 ADPCM-B → WAV
+
+```sh
+node examples/nodejs/main_ym2608_adpcm_wave.js
+node examples/nodejs/main_ym2608_adpcm_wave.js /tmp/ym2608_adpcm.wav
+```
+
+外部ROMは不要。デモ内の簡単なエンコーダーで440 Hzのサイン波をADPCM-Bへ変換し、
+チップの外部サンプルメモリー経由で再生する。WAVは計3.75秒、48 kHz・16 bitステレオ。
+ワンショット → 左でリピート → 右で2倍速（880 Hz）→ 停止、の順。
+省略時はスクリプトの隣の `ym2608_adpcm.wav` に保存。同名ファイルは上書きする。
+
+```javascript
+const adpcm = synth.adpcm;
+adpcm.loadMemory(adpcmBytes, 0); // Uint8Array / ArrayBuffer。変換済みADPCM-B。
+adpcm.reset(); // サンプルメモリーは保持
+adpcm.setSample({start: 0, end: adpcmBytes.length});
+adpcm.setPlaybackRate(16000); // 復号PCMのsamples/second。バイト/秒ではない。
+adpcm.setVolume(200); // 0..255、0は無音
+adpcm.setPan(true, true);
+adpcm.keyOn({repeat: true});
+// chip.generateStereo(...) で時間を進める
+adpcm.keyOff();
+```
+
+- メモリー容量は2 MiB。転送アドレスはバイト単位。転送だけでは発音しない。
+- `setSample` の範囲は `[start, end)`（endは排他的）。両端32 byte境界で、空範囲・範囲外はエラー。
+  高レベルAPIは8-bit DRAMモードと全メモリーのlimitを設定する。再生範囲は停止中に変更する。
+- サンプルのパディングは呼び出し側で行う。32 byteに切り上げた分も音声として復号されるので、
+  WAVのヘッダーや適当なゼロ列をそのまま足す前提にはしない。
+- `setPlaybackRate` は標準分周を前提にDelta-Nへ変換し、量子化後の実レートを返す。
+  既定8 MHzでは最大約55.55 ksample/s。表現できないレートはエラー。
+  生の `setDeltaN(1..65535)` も使える。分周変更時は生の値を使うか換算条件を合わせる。
+- 再生速度・音量・左右出力は再生中に変更可能。速度変更で音程と長さも変わる。
+- `keyOn()` は選択範囲の先頭から再トリガー。省略時はワンショットで終端停止。
+  `repeat: true` は範囲全体を繰り返す。別のループ開始位置は持たない。
+- `keyOff()` はデコーダーを停止・初期化。`adpcm.reset()` はADPCM-Bの制御を初期化するが、
+  メモリーとFM・SSG・リズムには触れない。再生の再開には速度・音量・パン・範囲を設定する。
+- 生レジスタ操作は `synth.write(1, register, value)` を使う。メモリーモードやlimitを直接変更すると
+  高レベルAPIの32 byte単位の前提と異なるため、再度 `setSample` で設定を揃える。
+- `YM2608DirectTransport.loadAdpcmMemory` が転送を担当する。独自Transportでも同名メソッドが必要。
+  RuntimeSynth / Workerへのメモリー転送、WAV/FLAC読み込み、汎用エンコーダー、録音・直接DACは今回の対象外。
+
+サンプルのエンコーダーはymfmのADPCM-B復号式に合わせた誤差最小のニブル選択で、
+上位ニブルから格納する。内蔵リズム用ADPCM-Aとは互換ではない。
 
 ## YM2612 → WAV
 
