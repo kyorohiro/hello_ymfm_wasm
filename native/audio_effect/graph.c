@@ -1,6 +1,7 @@
 /* Bounded tree graph. Draft construction is atomic: invalid commits leave active
  * routing intact. Each stateful instance may occur once. No audio-thread allocation. */
 #include <string.h>
+#include "extra_fx.h"
 #define N 32
 #define S 8
 /* 0 chain/branch, 1 parallel sum, 2 gain, 3 EQ, 4 gate, 5 compressor, 6 reverb */
@@ -17,14 +18,15 @@ void reverb_reset(double); void reverb_clear(void);
 float *gain_input(void); float *gain_output(void); int gain_capacity(void);
 void graph_begin(void) { count=0; }
 int graph_add(int type,int slot) {
-    if(count>=N || type<0 || type>6 || slot<0 || slot>=S) return -1;
+    if(count>=N || type<0 || type>14 || slot<0 || slot>=S) return -1;
+    if(type>=7 && !extra_prepare(type,slot)) return -1;
     draft[count]=(Node){.type=type,.slot=slot}; return count++;
 }
 int graph_append(int parent,int child) {
     if(parent<0 || parent>=count || child<0 || child>=parent || draft[parent].type>1 || draft[parent].count>=N) return 0;
     draft[parent].children[draft[parent].count++]=child; return 1;
 }
-static int visit(int id,int *seen,int used[7][S]) {
+static int visit(int id,int *seen,int used[15][S]) {
     if(seen[id]++) return 0;
     Node *n=&draft[id];
     if(n->type>1 && used[n->type][n->slot]++) return 0;
@@ -33,12 +35,13 @@ static int visit(int id,int *seen,int used[7][S]) {
     return 1;
 }
 int graph_commit(int id) {
-    int seen[N]={0},used[7][S]={{0}};
+    int seen[N]={0},used[15][S]={{0}};
     if(id<0 || id>=count || !visit(id,seen,used)) return 0;
     for(int i=0;i<count;i++) if(!seen[i]) return 0;
     memcpy(active,draft,sizeof draft); active_count=count; root=id; return 1;
 }
 void graph_clear(void) {
+    extra_clear();
     for(int i=0;i<S;i++) {
         eq_select(i); eq_clear(); gate_select(i); gate_clear();
         compressor_select(i); compressor_clear(); reverb_select(i); reverb_clear();
@@ -47,6 +50,7 @@ void graph_clear(void) {
 }
 void graph_reset(double rate) {
     root=-1; active_count=0; count=0;
+    extra_reset(rate);
     for(int i=0;i<S;i++) {
         gain_select(i); gain_only_reset(); eq_select(i); eq_reset(rate);
         gate_select(i); gate_reset(rate); compressor_select(i); compressor_reset(rate);
@@ -68,6 +72,7 @@ static void tick(int id,float *l,float *r) {
     case 4: gate_select(n->slot); gate_tick(l,r); break;
     case 5: compressor_select(n->slot); compressor_tick(l,r); break;
     case 6: reverb_select(n->slot); reverb_tick(l,r); break;
+    default: extra_tick(n->type,n->slot,l,r); break;
     }
 }
 void graph_process(int frames) {

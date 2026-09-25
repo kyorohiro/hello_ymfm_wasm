@@ -125,3 +125,39 @@ slotはWASMインスタンスが所有し、graph_resetで設定も初期化、g
 Workletのメッセージ処理とPCM処理は直列に実行される。
 無停止のクリックレス接続切り替えは未対応。ページは切り替え前に音源を停止する。
 EQは `eq.c`、グラフは `graph.c` に分離。既存gain_processは互換検証用の固定直列入口。
+
+## 追加8 FX
+
+Routingの「追加8 FX（直列）」を選択して再生する。
+ページ下部にfilter / delay / distortion / bitcrusher / wobble / flanger / slicer / chorus
+のパネルが出る。各FXは初期Bypassなので、試すものだけチェックを外す。
+直列順はGain → EQ → Gate → Compressor → Filter → Distortion → Bitcrusher → Wobble →
+Slicer → Flanger → Chorus → Delay → Reverb。既存の直列/並列プリセットも維持する。
+
+実装は `native/audio_effect/extra_fx.c`、パラメーター表は `fx_controls.js`。
+`extra_set(type, slot, parameter, value)` で指定する。typeはgraph.jsの7〜14、slotは0〜7。
+parameter 0以降の順番は各パネルのコントロール順。6=Mix、7=Bypass（1=無効）。
+不正値は0を返し、設定を変更しない。効果ごとの範囲はC側でも検証する。
+
+LFOはC側で更新、速度はHz。beat/BPM同期はPlayground統合時の対応範囲。
+Mixと連続パラメーターは10ms時定数で平滑化。Slicerのゲイン開閉は2ms。
+FilterはLP/HP/BP、係数は16サンプルごとに更新。Delayは最大2秒で、時間を変更すると
+ピッチが変化する。Chorusは左右の位相差で広げる。Bitcrusherは意図的に量子化・
+折り返し成分を生成する。Distortionはtanh＋4サブステップ補間と2段ローパスを使う
+簡易方式で、既存AudioNodeの実装と完全には一致しない。
+
+遅延バッファは使用するslotのみ準備時に確保する。WASMメモリーが増えた場合は
+WorkletのPCMビューを更新。PCM処理中はメモリー確保を行わない。
+Bypassは内部状態を継続して更新するため、CPU負荷をなくす設定ではない。
+
+```sh
+node --test test/native_audio_effect*.test.mjs
+node scripts/benchmark_native_audio_effect.mjs
+```
+
+DSP・Worklet・模擬UIで33テスト成功。実ブラウザー試聴は別途必要。
+Nodeベンチマークは48kHz・128framesのDSP時間だけを測定し、ブラウザーの
+音切れや古いPCの性能を保証しない。
+
+`radioTone` / `lofi` / `stereoWidth` / `tapeSaturation` は低優先度で今回の対象外。
+Playgroundへの接続はまだ行っていない。

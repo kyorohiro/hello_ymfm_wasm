@@ -5,7 +5,7 @@ import { readFile } from 'node:fs/promises';
 import vm from 'node:vm';
 const module = await WebAssembly.compile(await readFile(new URL('../docs/native_audio_effect/gain.wasm', import.meta.url)));
 test('C gain scales stereo PCM, ramps and rejects invalid values', () => {
-  const a = new WebAssembly.Instance(module).exports;
+  const a = new WebAssembly.Instance(module, {env:{emscripten_notify_memory_growth(){}}}).exports;
   a._initialize(); a.gain_reset();
   const n = a.gain_capacity();
   const input = new Float32Array(a.memory.buffer,a.gain_input(),n*2);
@@ -36,7 +36,7 @@ test('Worklet passes stereo through real WASM and supports gain / bypass / disco
 });
 
 function measure(band, db, hz, rate) {
-  const a = new WebAssembly.Instance(module).exports;
+  const a = new WebAssembly.Instance(module, {env:{emscripten_notify_memory_growth(){}}}).exports;
   a._initialize(); a.gain_reset(); a.eq_reset(rate);
   if (band !== null) a.eq_set(band, db);
   const size=a.gain_capacity();
@@ -66,7 +66,7 @@ for(const rate of [44100,48000,96000]) {
   });
 }
 test('EQ repeated extreme changes remain finite and return to unity',()=>{
-  const a=new WebAssembly.Instance(module).exports;
+  const a=new WebAssembly.Instance(module, {env:{emscripten_notify_memory_growth(){}}}).exports;
   a._initialize();a.gain_reset();a.eq_reset(48000);
   const size=a.gain_capacity();
   const input=new Float32Array(a.memory.buffer,a.gain_input(),size*2);
@@ -84,7 +84,7 @@ test('EQ repeated extreme changes remain finite and return to unity',()=>{
 
 for (const rate of [44100, 48000, 96000]) {
   test(`algorithmic reverb tail, decay and clear at ${rate} Hz`, () => {
-    const a = new WebAssembly.Instance(module).exports;
+    const a = new WebAssembly.Instance(module, {env:{emscripten_notify_memory_growth(){}}}).exports;
     a._initialize(); a.gain_reset(); a.eq_reset(rate); a.reverb_reset(rate);
     const n = a.gain_capacity();
     const input = new Float32Array(a.memory.buffer,a.gain_input(),n*2);
@@ -114,7 +114,7 @@ for (const rate of [44100, 48000, 96000]) {
 
 for(const rate of [44100,48000,96000]) {
   test(`compressor ratio, stereo link, attack/release and bypass at ${rate} Hz`,()=>{
-    const a=new WebAssembly.Instance(module).exports;
+    const a=new WebAssembly.Instance(module, {env:{emscripten_notify_memory_growth(){}}}).exports;
     a._initialize(); a.gain_reset(); a.eq_reset(rate); a.reverb_reset(rate); a.compressor_reset(rate);
     const n=a.gain_capacity();
     const input=new Float32Array(a.memory.buffer,a.gain_input(),n*2);
@@ -146,7 +146,7 @@ for(const rate of [44100,48000,96000]) {
 
 for(const rate of [44100,48000,96000]) {
   test(`noise gate thresholds, hold, stereo link, release and bypass at ${rate} Hz`,()=>{
-    const a=new WebAssembly.Instance(module).exports;
+    const a=new WebAssembly.Instance(module, {env:{emscripten_notify_memory_growth(){}}}).exports;
     a._initialize(); a.gain_reset(); a.eq_reset(rate); a.reverb_reset(rate); a.compressor_reset(rate); a.gate_reset(rate);
     const n=a.gain_capacity();
     const input=new Float32Array(a.memory.buffer,a.gain_input(),n*2);
@@ -179,7 +179,7 @@ for(const rate of [44100,48000,96000]) {
 }
 
 function graphHarness() {
-  const a=new WebAssembly.Instance(module).exports;
+  const a=new WebAssembly.Instance(module, {env:{emscripten_notify_memory_growth(){}}}).exports;
   a._initialize(); a.graph_reset(48000);
   const n=a.gain_capacity();
   const input=new Float32Array(a.memory.buffer,a.gain_input(),n*2);

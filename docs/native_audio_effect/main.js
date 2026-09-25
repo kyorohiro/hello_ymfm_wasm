@@ -1,5 +1,7 @@
+import { mountExtraControls } from './fx_controls.js?v=extra-1';
 const $ = id => document.getElementById(id);
 let context, effect, buffer, source, setup, loadId = 0;
+const extraUI = mountExtraControls($('extraControls'), message => effect?.port.postMessage(message));
 function status(text) { $('status').textContent = text; }
 function updateGain() {
   const value = Number($('gain').value);
@@ -46,12 +48,14 @@ function updateRouting() {
   stop();
   const mode = $('routing').value;
   const labels = {
+    extended: 'Gain → EQ → Gate → Compressor → Filter → Distortion → Bitcrusher → Wobble → Slicer → Flanger → Chorus → Delay → Reverb',
     serial: 'Gain → EQ → Gate → Compressor → Reverb',
     parallel: 'Gain → EQ → Gate → Compressor → [Dry × A + Reverb(Wet) × B]',
     dual: 'Gain → EQ → Gate → [Compressor × A + 強圧縮 × B] → Reverb',
   };
   $('routeInfo').textContent = labels[mode];
-  $('branches').hidden = mode === 'serial';
+  $('branches').hidden = mode === 'serial' || mode === 'extended';
+  $('extraControls').hidden = mode !== 'extended';
   $('mix').disabled = mode === 'parallel';
   effect?.port.postMessage({ type: 'routing', mode });
   updateBranches();
@@ -60,10 +64,10 @@ function updateRouting() {
 async function ready() {
   if (!context) context = new AudioContext();
   if (!setup) setup = (async () => {
-    const response = await fetch(new URL('./gain.wasm?v=graph-1', import.meta.url));
+    const response = await fetch(new URL('./gain.wasm?v=extra-1', import.meta.url));
     if (!response.ok) throw new Error(`WASM: HTTP ${response.status}`);
     const module = await WebAssembly.compile(await response.arrayBuffer());
-    await context.audioWorklet.addModule(new URL('./effect-worklet.js?v=graph-1', import.meta.url));
+    await context.audioWorklet.addModule(new URL('./effect-worklet.js?v=extra-1', import.meta.url));
     effect = new AudioWorkletNode(context, 'native-gain', {
       numberOfInputs: 1, numberOfOutputs: 1, outputChannelCount: [2],
       channelCount: 2, channelCountMode: 'explicit', processorOptions: { module },
@@ -77,6 +81,7 @@ async function ready() {
     updateCompressor();
     updateGate();
     updateRouting();
+    extraUI.sync(context.sampleRate);
   })().catch(error => { setup = null; throw error; });
   return setup;
 }

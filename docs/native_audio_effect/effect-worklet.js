@@ -2,7 +2,7 @@ import { setChain, preset } from './graph.js';
 class NativeGain extends AudioWorkletProcessor {
   constructor(options) {
     super();
-    this.api = new WebAssembly.Instance(options.processorOptions.module).exports;
+    this.api = new WebAssembly.Instance(options.processorOptions.module, {env:{emscripten_notify_memory_growth(){}}}).exports;
     this.api._initialize?.();
     this.api.gain_reset();
     this.api.eq_reset(sampleRate);
@@ -18,6 +18,11 @@ class NativeGain extends AudioWorkletProcessor {
     this.gain = 1;
     this.bypass = false;
     this.port.onmessage = ({ data }) => {
+      if (data.type === 'extra') {
+        const ok=this.api.extra_set(data.kind, data.slot ?? 0, data.parameter, data.value);
+        if (!ok) this.port.postMessage({ type: 'error', message: 'Invalid FX parameter or allocation failed' });
+        return;
+      }
       if (data.type === 'clear') { this.api.graph_clear(); return; }
       if (data.type === 'routing') {
         try {
@@ -64,6 +69,10 @@ class NativeGain extends AudioWorkletProcessor {
     };
   }
   process(inputs, outputs) {
+    if (this.input.buffer !== this.api.memory.buffer) {
+      this.input = new Float32Array(this.api.memory.buffer, this.api.gain_input(), this.capacity * 2);
+      this.output = new Float32Array(this.api.memory.buffer, this.api.gain_output(), this.capacity * 2);
+    }
     const target = outputs[0];
     const source = inputs[0];
     const n = target[0].length;

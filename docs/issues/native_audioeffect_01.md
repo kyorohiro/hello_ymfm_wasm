@@ -1,5 +1,24 @@
 # C/C++・WASM Audio Effect の実用性検証
 
+## 最新の対応状況
+
+独立した `docs/native_audio_effect/` で、C/WASMの以下を実装済み。
+Playgroundへの反映は、実機での試聴と負荷確認の後に行う。
+
+| 対象 | 状態 |
+| --- | --- |
+| gain / eq / gate / compressor / reverb | 実装・自動検証済み |
+| branch / parallel / setChain | 上限付き木構造で実装・自動検証済み |
+| filter / delay / distortion / bitcrusher | 追加実装・自動検証済み |
+| wobble / flanger / slicer / chorus | 追加実装・自動検証済み |
+| radioTone / lofi / stereoWidth / tapeSaturation | **低優先度。今回実装しない** |
+| 既存Playgroundへの接続・API互換 | 未実施。次段階 |
+
+現行ページのRoutingで「追加8 FX（直列）」を選択すると追加パネルを表示する。
+追加FXは初期Bypass。各パネルでチェックを外して1つずつ試聴できる。
+設定変更・Bypassは再生中に操作可能。Routing変更は停止を伴う。
+
+
 ## 目的
 
 音声ファイルをWebページで再生し、C/C++で実装したFXをWASM経由でかける。
@@ -207,3 +226,60 @@ Roomはフィードバック量による残響調整で、RT60秒数指定では
 初期上限32ノード・各種類8slotの木構造。状態はWASMが事前確保して所有する。
 接続変更は再生停止・残響消去を伴う。無停止のクリックレス切り替え、
 動的な個別生成・解放、任意DAG、Playground統合は今後の課題。
+
+## 追加FXの実装方針
+
+ユーザー指定により `radioTone` / `lofi` / `stereoWidth` / `tapeSaturation` は低優先度とする。
+それ以外の未対応FXを独立した検証ページで実装・検証してから、Playgroundに反映する。
+`chorus` も今回の対象に含める（Sonic Pi標準FXとの対応有無とは別の判断）。
+
+対象：filter / delay / distortion / bitcrusher / wobble / flanger / slicer / chorus。
+既存PlaygroundやSonic Piとの音・オプション完全互換ではなく、自作C実装の実用性を評価する。
+
+Playground統合時は、現在の「ロジックWorker → main thread → AudioNode操作」を見直す。
+DSP・LFO・パラメーター補間はAudioWorklet内のWASMで実行する。
+ロジックWorkerからAudioWorkletへMessagePort等で直接命令を渡す構成を検討し、
+main threadでのFX操作中継をなくす。ただし異なる実行スレッド間の通信自体は残り、
+AudioContext/AudioWorkletNodeの生成と初期接続は引き続きmain threadが担当する。
+
+### 追加8 FXの実装結果
+
+- [x] filter：LP/HP/BPのbiquad、Cutoff・Q・Mix。
+- [x] delay：最大2秒のステレオ遅延、Feedback・Mix。
+- [x] distortion：tanhソフトクリップ、Drive・Mix、4サブステップの簡易アンチエイリアス。
+- [x] bitcrusher：ビット量子化とサンプル保持、Bits・保持レート・Mix。
+- [x] wobble：サインLFOによるLPFカットオフ変調、Depthは±octave。
+- [x] flanger：短い可変遅延とフィードバック、Base・Depth・Rate・Mix。
+- [x] slicer：周期的な音量ゲート、Rate・Duty・Minimum Gain・Mix。
+- [x] chorus：左右のLFO位相をずらす可変遅延、Base・Depth・Rate・Mix。
+- [x] Cグラフへ接続し、各種類8slot・独立状態・個別Bypassに対応。
+- [x] 検証ページに8パネルを追加し、WorkletからCの設定APIを呼び出す。
+- [x] 44.1/48/96 kHzで効果・Bypass・状態クリアを検証。
+- [x] フィルター応答、遅延・反復減衰、歪み倍音、量子化・保持、周期変調を検証。
+- [x] 全FX直列の有限値・ブロック分割一致と、WASMメモリー拡張後のWorklet出力を検証。
+- [x] DOM/Web Audioを模擬したページの読み込み・構成変更・制御命令を検証。
+- [ ] 実ブラウザーで各FXの試聴、表示、入力ファイル形式を確認する。
+- [ ] 古いWindowsを含めた実機で、全FXの同時使用・操作時の負荷を測る。
+
+C実装は `native/audio_effect/extra_fx.c`。LFO・補間・サンプル保持・遅延処理は全てC側。
+現在のLFO速度はHz指定。PlaygroundのBPM同期・beat指定や既存FXオプションとの変換は
+統合時に扱う。フィルター種別変更やディレイ時間変更での音の変化も試聴対象にする。
+Distortionの簡易アンチエイリアスはWeb Audioの4倍oversampleと同等品質を保証しない。
+
+遅延バッファは初期化・設定・グラフ準備時に必要なslotだけ確保し、PCM処理中は確保しない。
+WASMの初期32MiBは必要に応じて拡張する。Workletは拡張後にPCMビューを更新する。
+Bypassでも内部状態を進めるので、無効化したFXの計算量がゼロになるわけではない。
+負荷を減らす場合はグラフから外す。
+
+検証コマンド：
+
+```sh
+sh scripts/build_native_audio_effect.sh
+node --test test/native_audio_effect*.test.mjs
+node scripts/benchmark_native_audio_effect.mjs
+```
+
+自動テスト33件が成功。ベンチマークはNodeのDSP処理時間（平均・p99・最大）と
+WASMメモリーを出力する。ブラウザーのスケジューリング・PCMコピー・UI負荷を含まず、
+古いPCでの実用性を保証する値ではない。実ブラウザーへの接続が利用できないため、
+今回のブラウザー試聴・実機性能確認は未実施。
