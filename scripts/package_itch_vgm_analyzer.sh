@@ -88,6 +88,7 @@ ym2610baudioengine.js
 genesisaudioengine.js
 rf5c164.js
 opn_fm_vgm.js
+opn_fm_synth.js
 segapsg.js
 tfi.js
 vgi.js
