@@ -1730,7 +1730,7 @@
               <li><code>await dac.load(name, data)</code> loads packed records from a <code>Uint8Array</code> or <code>ArrayBuffer</code>: each 5-byte record contains a little-endian uint32 sample offset followed by one uint8 DAC value. This is not a WAV file or a raw PCM byte array.</li>
               <li><code>dac.playStream(name, { atSamples: start })</code> schedules a loaded bank relative to the run's sample-clock origin; it does not wait for playback to finish. Enable DAC and set CH6 pan separately.</li>
               <li><code>await dac.loadBase64(name, encoded)</code> loads the same packed format from Base64; <code>dac.scheduleBase64(start, encoded)</code> schedules packed records directly.</li>
-              <li>Open <code>examples/dac/dac-byte-stream.js</code> in FILES for the 440 Hz sine-wave example. For ordinary WAV playback through Web Audio, use <code>sample</code> below.</li>
+              <li>Open <code>examples/dac/dac-byte-stream.js</code> in FILES for the 440 Hz sine-wave example. For ordinary decoded audio playback, use <code>sample</code> below.</li>
             </ul>
 
             <h2 style="margin-top: 14px;">sample and noise</h2>
@@ -1742,6 +1742,16 @@
               <li><code>noise.create({ type: "pink", gain: 0.1, pan: 0 })</code> creates a controllable noise voice; types are <code>white</code>, <code>pink</code>, <code>brown</code>, <code>gray</code>, and <code>clip</code></li>
               <li><code>control(voice, { gain: 0.2, cutoff: 1800, q: 0.8, slide: 1 })</code> changes a noise voice smoothly</li>
               <li><code>voice.stop()</code> stops one voice; <code>noise.stopAll()</code> stops every noise voice</li>
+            </ul>
+
+            <h2 style="margin-top: 14px;">stream</h2>
+            <ul class="helper-list">
+              <li><code>await stream.load("bgm", "./bgm.mp3")</code> prepares a browser media stream from a same-origin URL; suitable for long audio such as background music. Use an actual served URL, not a FILES virtual path.</li>
+              <li><code>await stream.play("bgm", { gain: 0.5, loop: true })</code> waits for playback to start, not for the track to finish.</li>
+              <li>Playback options include <code>playbackRate</code>, <code>offset</code> (seconds), <code>pan</code>, and <code>fadeIn</code> (seconds).</li>
+              <li><code>stream.pause("bgm")</code> pauses; <code>stream.play("bgm")</code> resumes without an explicit offset. <code>stream.stop("bgm")</code> stops and rewinds.</li>
+              <li><code>stream.unload("bgm")</code> releases the entry; <code>stream.list()</code> and <code>stream.isLoaded("bgm")</code> inspect loaded entries.</li>
+              <li>Output passes through the master FX by default. Playback controls remain on the main thread, including in Worker mode. This API is separate from <code>dac.playStream()</code>.</li>
             </ul>
 
             <h2 style="margin-top: 14px;">fm</h2>
