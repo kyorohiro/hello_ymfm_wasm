@@ -7,7 +7,7 @@ import {createChipPortReceiver} from './playground_chip_port.js';
 function processor(tree, file, rate, imports = {}) {
   let Type;
   const messages = [];
-  const context = { createChipPortReceiver, ...imports, sampleRate: rate, currentFrame: 0, Float32Array, Uint8Array, Error,
+  const context = { createChipPortReceiver: apply => createChipPortReceiver(apply, () => context.currentFrame / rate), ...imports, sampleRate: rate, currentFrame: 0, Float32Array, Uint8Array, Error,
     AudioWorkletProcessor: class { constructor() { this.port = { postMessage: x => messages.push(x) }; } },
     registerProcessor: (_, value) => { Type = value; },
   };
@@ -110,3 +110,51 @@ test('MIDI PSG writes share the sample-accurate FM scheduling queue', () => {
  p.applyCommand({type:'schedule-writes',entries:[{time:64/48000,type:'psg-write',value:0x9f}]});
  render(p,128);assert.deepEqual(writes,[{value:0x9f,frames:64}]);
 });
+
+for(const tree of ['web','docs/js']) for(const file of ['ym2612-worklet.js','ym2612-worklet-nuked.js']) test(`${tree} ${file}: direct DAC bank and writes use the output clock at 48 kHz`,()=>{
+ const {p}=processor(tree,file,48000);
+ p.ym2612=chip(48000);
+ const writes=[];
+ p.ym2612.writeRegister=(r,v)=>writes.push({r,v,frame:p.ym2612.frames});
+ const port={start(){},close(){}};
+ p.port.onmessage({data:{type:'attach-chip-port',port}});
+ const data=new Uint8Array(10),view=new DataView(data.buffer);
+ data[4]=128;view.setUint32(5,441,true);data[9]=200;
+ port.onmessage({data:[
+  {type:'load-dac-bank',name:'tone',data:data.buffer},
+  {type:'begin-sample-schedule',lookaheadSeconds:0},
+  {type:'sample-dac-bank',name:'tone',sample:0},
+  {type:'sample-writes',entries:[{sample:882,port:0,register:0x2b,value:0}]},
+ ]});
+ render(p,1024);
+ assert.deepEqual(writes,[{r:42,v:128,frame:0},{r:42,v:200,frame:480},{r:43,v:0,frame:960}]);
+ port.onmessage({data:[{type:'sample-dac-bank',name:'tone',sample:44100},{type:'clear-dac-playback'}]});
+ assert.equal(p.dacStreams.length,0);
+});
+
+for (const [file, wasm] of [['ym2612-worklet.js','ym2612_wasm.js'],['ym2612-worklet-nuked.js','nuked_opn2_wasm.js']]) {
+ test(`${file}: direct DAC sine bank produces non-silent PCM with real WASM`,async()=>{
+  const {default:factory}=await import(`../docs/generated/${wasm}`);
+  const {Ym2612}=await import('./ym2612.js');
+  const ym=await Ym2612.create({moduleFactory:factory});
+  try {
+   const {p}=processor('web',file,48000);p.ym2612=ym;
+   const port={start(){},close(){}};
+   p.port.onmessage({data:{type:'attach-chip-port',port}});
+   const data=new Uint8Array(2205*5),view=new DataView(data.buffer);
+   for(let i=0;i<2205;i++){view.setUint32(i*5,i,true);data[i*5+4]=Math.round(128+60*Math.sin(2*Math.PI*440*i/44100));}
+   port.onmessage({data:[
+    {type:'write',port:1,register:0xb6,value:0xc0},
+    {type:'write',port:0,register:0x2b,value:0x80},
+    {type:'load-dac-bank',name:'sine',data:data.buffer},
+    {type:'begin-sample-schedule',lookaheadSeconds:0},
+    {type:'sample-dac-bank',name:'sine',sample:0},
+   ]});
+   const {left}=render(p,2400);
+   assert.ok(left.every(Number.isFinite));
+   const mean=left.reduce((a,b)=>a+b,0)/left.length;
+   const rms=Math.sqrt(left.reduce((a,b)=>a+(b-mean)**2,0)/left.length);
+   assert.ok(rms>0.001,`DAC sine must have audible AC energy (RMS ${rms})`);
+  } finally {ym.dispose();}
+ });
+}

@@ -4,6 +4,7 @@
  * 依存: self.onmessage / postMessage、performance、タイマーとメインスレッドへのメッセージ通信。
  * Worker エントリーポイント。通常の Node.js モジュールとしては実行しない。
  */
+import {createWorkerDac} from './playground_worker_dac.js';
 import {createWorkerChip} from './playground_worker_chip.js';
 import {createMidiApi, createMidiRack} from './playground_midi.js?v=midi-held-stop-1';
 import { hzToBlockFnum } from "./pitch.js";
@@ -297,12 +298,23 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
   const commandProxy = (command) => (...args) => postCommand(command, args);
   const requestProxy = (command) => (...args) => request(command, args, run.currentLoop);
   const chip = chipConnection ? createWorkerChip({...chipConnection,capabilities,observe:event=>postMessage({type:"chip-observer",event})}) : null;
+  const workerDac = chip && capabilities.dac ? createWorkerDac(chip.send, timing) : null;
+  run.resetSampleClock = () => { clock.resetSampleClock(); workerDac?.reset(); };
   const fm = new Proxy({}, {
     get(_target, property) {
       if (property === "read" || property === "readStatus" || property === "getIrq") {
         return requestProxy(`fm.${String(property)}`);
       }
       const mainMethods = ["scheduleWrites", "clearScheduledWrites", "loadDacBank", "playDacBank", "clearDacPlayback"];
+      if(workerDac && mainMethods.includes(property)) {
+        return ({
+          scheduleWrites: entries => chip.send({type:'schedule-writes',entries}),
+          clearScheduledWrites: () => chip.send({type:'clear-scheduled-writes'}),
+          loadDacBank: workerDac.api.load,
+          playDacBank: (name,time) => chip.send({type:'play-dac-bank',name,time}),
+          clearDacPlayback: () => chip.send({type:'clear-dac-playback'}),
+        })[property];
+      }
       return chip && !mainMethods.includes(property) ? chip.fm[property] : commandProxy(`fm.${String(property)}`);
     },
   });
@@ -319,13 +331,13 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
       return commandProxy(`psg.${String(property)}`);
     },
   }) : new Proxy({}, { get: () => unavailable("Mega Drive PSG") }));
-  const dac = capabilities.dac ? {
+  const dac = workerDac?.api ?? (capabilities.dac ? {
     load: (...args) => request("dac.load", args, run.currentLoop),
     loadBase64: (...args) => request("dac.loadBase64", args, run.currentLoop),
     playStream: (...args) => postCommand("dac.playStream", args),
     schedule: (...args) => postCommand("dac.schedule", args),
     scheduleBase64: (...args) => postCommand("dac.scheduleBase64", args),
-  } : new Proxy({}, { get: () => unavailable("YM2612 DAC") });
+  } : new Proxy({}, { get: () => unavailable("YM2612 DAC") }));
   let nextAudioHandle = 1;
   const createHandle = (kind) => {
     const id = `${kind}-${nextAudioHandle++}`;
@@ -543,17 +555,19 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
     setTiming: async (options) => {
       const timing = await request("setTiming", [options], run.currentLoop);
       clock.setDacLookahead(timing.lookaheadSeconds);
+      workerDac?.setLookahead(timing.lookaheadSeconds);
       return timing;
     },
     getTiming: () => request("getTiming"),
     setDacLookahead: async (...args) => {
       const value = await request("setDacLookahead", args, run.currentLoop);
       clock.setDacLookahead(value);
+      workerDac?.setLookahead(value);
       return value;
     },
     getDacLookahead: () => request("getDacLookahead"),
-    beginSampleSchedule: () => clock.beginSampleSchedule(),
-    scheduleWritesSamples: (start, entries) => postCommand("scheduleWritesSamples", [start, entries]),
+    beginSampleSchedule: () => { workerDac?.begin(); return clock.beginSampleSchedule(); },
+    scheduleWritesSamples: (start, entries) => workerDac ? workerDac.schedule(start, entries) : postCommand("scheduleWritesSamples", [start, entries]),
     control: (voice, options) => postCommand("noise.control", [handleId(voice), options]),
     sleep: clock.sleep,
     sleepSamples: clock.sleepSamples,

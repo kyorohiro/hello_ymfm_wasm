@@ -133,6 +133,7 @@ megasynth.js
 megasynth_fx.js
 playground_chip_port.js
 playground_worker_chip.js
+playground_worker_dac.js
 native_fx.js
 native_fx_rack.js
 native_fx_graph.js

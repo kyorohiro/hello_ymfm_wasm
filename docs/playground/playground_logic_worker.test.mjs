@@ -1,4 +1,5 @@
 import {createNativeFXController} from "../../web/native_fx.js";
+import {createWorkerDac} from "../../web/playground_worker_dac.js";
 import {createWorkerChip} from "../../web/playground_worker_chip.js";
 import {createMidiApi, createMidiRack} from "../js/playground_midi.js";
 import assert from "node:assert/strict";
@@ -16,7 +17,7 @@ const workerSource = readFileSync(
 function createWorkerHarness() {
   const messages = [];
   const context = {
-    createMidiApi, createMidiRack, createWorkerChip, createNativeFXController, DOMException, structuredClone,
+    createWorkerDac, atob, createMidiApi, createMidiRack, createWorkerChip, createNativeFXController, DOMException, structuredClone,
     createDeadlineScheduler,
     hzToBlockFnum,
     Error,
@@ -439,4 +440,26 @@ test("Direct chip Stop releases a long note and permits another Run", async () =
   await worker.send({...run, sourceCode: `await play('D4', {duration: 0.001});`});
   await waitFor(() => commands.some(c => c.register === 0x28 && c.value === 0xf0));
   await worker.send({type: 'stop'});
+});
+
+test('DAC loading and scheduling reach the direct port without main replies', async () => {
+  const worker = createWorkerHarness(), commands = [];
+  await worker.send({type:'chip-port',port:{postMessage: batch=>commands.push(...batch),close(){}}});
+  await worker.send({type:'run',presets:{},scaleIntervals:{},capabilities:{chip:'ym2612',fmChannels:6,psg:true,dac:true},sourceCode:`
+    await dac.loadBase64('tone', 'AAAAAIA=');
+    const start = beginSampleSchedule();
+    dac.playStream('tone', {atSamples:start});
+    dac.schedule(start, [[44,128]]);
+    dac.scheduleBase64(start, 'AAAAAIA=');
+    scheduleWritesSamples(start, [[88,0,0x2b,0]]);
+    fm.scheduleWrites([{time:1,port:0,register:0x2a,value:128}]);
+  `});
+  await waitFor(()=>worker.messages.some(m=>m.type==='complete'),1000);
+  assert.ok(commands.some(c=>c.type==='load-dac-bank'));
+  assert.ok(commands.some(c=>c.type==='sample-dac-bank'));
+  assert.equal(commands.filter(c=>c.type==='sample-writes').length,3);
+  assert.ok(!worker.messages.some(m=>m.command?.startsWith('dac.') || m.command==='scheduleWritesSamples' || m.command?.startsWith('fm.')));
+  await worker.send({type:'stop'});
+  assert.ok(commands.some(c=>c.type==='clear-dac-playback'));
+  assert.ok(commands.some(c=>c.type==='reset-sample-schedule'));
 });

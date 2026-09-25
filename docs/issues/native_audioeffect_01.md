@@ -356,11 +356,35 @@ WorkerテストでFX命令がmain threadへ送られないことを確認する�
 YM2612 の PSG と MIDI API も直結する。Stop は直接キーオフと TL ミュートを送り、
 次の発音時に音色の TL を戻す。古いポートの遅延メッセージは切断後に無視する。
 
-まだ main thread を通るもの: sample / stream / noise、DAC バンク操作、
-予約書き込み、`midi.playFile()`、ファイル読み込み、master volume 等。
+まだ main thread を通るもの: sample / stream / noise、`midi.playFile()`、
+ファイル読み込み、master volume 等。DAC と YM2612 の予約書き込みは下記の直結経路へ移行。
 PSG のノイズレジスタ操作は直結対象だが、`noise.create()` の音声生成は別経路。
 全APIの移行完了を意味しない。FX と音源のサンプル単位の同期も別途検討する。
 
 検証は main thread から発音要求に返答しない Worker テスト、Stop / Run、
 通常の synth とレジスタ列の一致、observer の二重発音防止、古いポートの無効化、
 既存 Worklet / native FX のテストで行う。実ブラウザーでの試聴は未確認。
+
+
+### DAC・予約書き込みの直結
+
+- [x] `dac.load` / `loadBase64` のデータ準備を Worker で実行。
+- [x] `dac.playStream` / `schedule` / `scheduleBase64` と
+  `scheduleWritesSamples` を専用 MessagePort へ送る。
+- [x] `fm.loadDacBank` / `playDacBank` / `scheduleWrites` とクリア操作も直結。
+- [x] AudioWorklet が最初の予約指示を受けた音声時刻 + lookahead を基準にする。
+  バンクとレジスタ予約は同じ基準を共有し、44.1 kHz のオフセットを出力レートへ変換。
+  `fm.scheduleWrites` / `playDacBank` の低レベルAPIは従来どおり音声時刻（秒）。
+- [x] Stop で再生中のバンク・予約をクリア。再実行時は時刻基準を作り直す。
+  ロード済みバンクは再利用できる。
+- [x] Nuked の Worklet にも ymfm と同じ DAC バンク・予約書き込み処理を追加。
+
+1バイトごとに Worker タイマーを動かさず、AudioWorklet が PCM 生成の途中で
+必要な位置まで進めて DAC レジスタを書き込む。発音のための main thread 往復は不要。
+`setTiming` / `setDacLookahead` など設定の管理は引き続き main thread と共有する。
+OPN の DAC 非対応モードの予約APIは今回の対象外。
+
+検証: 関連85テスト成功。main の応答なしでの DAC API 完走、48 kHz 出力での
+書き込み位置、Stop、時刻基準のリセット、Uint8Array の部分ビューを確認。
+ymfm / Nuked の実 WASM で DAC サイン波から有限・非無音の PCM が生成されることも確認。
+実ブラウザーでの聴感・負荷確認は未実施。
