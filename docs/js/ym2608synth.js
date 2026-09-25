@@ -6,16 +6,22 @@
  */
 import { OPNDirectTransport, OPNFMSynth } from "./opn_fm_synth.js";
 import { OPNRuntimeSynth } from "./opn_runtime_synth.js";
+import { SSGSynth } from "./ssgsynth.js";
+import { YM2608_CLOCK } from "./ym2608.js";
 
-/** High-level FM-only API for the 6-channel YM2608. */
+/** Direct transport for YM2608 register operations. */
 export class YM2608DirectTransport extends OPNDirectTransport {
   constructor(chip) {
     super(chip, { chipName: "YM2608", portCount: 2 });
   }
 }
 
+/** Six-channel FM (including CH3 special) and the three-channel SSG. */
 export class YM2608Synth extends OPNFMSynth {
-  constructor({ transport } = {}) {
+  /** @param {{transport: OPNDirectTransport, clock?: number}} options
+   * clock is the master clock in Hz. SSG frequency helpers assume standard prescaling.
+   */
+  constructor({ transport, clock = YM2608_CLOCK } = {}) {
     super({
       transport,
       chipName: "YM2608",
@@ -24,6 +30,24 @@ export class YM2608Synth extends OPNFMSynth {
       supportsPan: true,
       supportsLfo: true,
     });
+    // YM2608's effective SSG clock is master / 4 at the standard prescaler.
+    // After raw prescaler changes, update ssg.clock or use explicit periods.
+    this.ssg = new SSGSynth({
+      transport: { write: (register, value) => this.write(0, register, value) },
+      clock: clock / 4,
+    });
+  }
+
+  /** Reset the chip and enable all six FM channels, preserving default IRQ enables. */
+  reset() {
+    super.reset();
+    this.ssg?.resetState();
+    this.write(0, 0x29, 0x9f);
+  }
+
+  _write(port, register, value) {
+    super._write(port, register, value);
+    if (port === 0) this.ssg?.observeWrite(register, value);
   }
 }
 

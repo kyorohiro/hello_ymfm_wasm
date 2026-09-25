@@ -9,12 +9,12 @@ RF5C164のPCM形式変換は `web/rf5c164_pcm.js`、通信は `web/playground_rf
 ## OPN 系の独立サンプル
 
 各ファイルに初期化・音色設定・発音・PCM 生成・WAV 保存・解放までを記載している。
-以下の表は通常 FM の A4（約440 Hz）の例。YM2203 の SSG / CH3 special は後述する。ADPCM の演奏例はまだ含まない。
+以下の表は通常 FM の例。YM2203 / YM2608 の SSG / CH3 special は後述する。ADPCM の演奏例はまだ含まない。
 
 | チップ | 実行ファイル | 補足 |
 | --- | --- | --- |
 | YM2203 | [main_ym2203_wave.js](main_ym2203_wave.js) | FM 3 CH。標準分周72に合わせて音程を計算 |
-| YM2608 | [main_ym2608_wave.js](main_ym2608_wave.js) | FM 6 CHを有効化。SSG・ADPCMをミュートし、ROM不要 |
+| YM2608 | [main_ym2608_wave.js](main_ym2608_wave.js) | FM 6 CHを順番・同時に発音。ROM不要 |
 | YM2610 | [main_ym2610_wave.js](main_ym2610_wave.js) | YM2610Bラッパーを `variant: false` で使用。物理 CH2で発音 |
 | YM2610B | [main_ym2610b_wave.js](main_ym2610b_wave.js) | FM 6 CH版 |
 | YM2612 | [main_ym2612_wave.js](main_ym2612_wave.js) | OPN2 |
@@ -83,6 +83,35 @@ synth.ssg.off(0);
   YM2203のFM分周72に合わせ、`hzToBlockFnum` にはマスタークロックの2倍を渡す。
 
 ここではNode.jsのSynthとWAV生成を対象とする。PlaygroundのSSG操作UI追加は含まない。
+
+## YM2608 → WAV（FM 6 CH / SSG / CH3 special）
+
+```sh
+node examples/nodejs/main_ym2608_wave.js
+node examples/nodejs/main_ym2608_ssg_wave.js
+node examples/nodejs/main_ym2608_3chsp_wave.js
+```
+
+出力は `ym2608.wav` / `ym2608_ssg.wav` / `ym2608_3chsp.wav`。
+各スクリプトの第1引数で保存先を指定でき、同名ファイルは上書きする。
+3例とも48 kHz・16 bitステレオ。既存の `ym2608_wasm` を使い、リズムROMは不要。
+
+- 通常FM：CH1..6を順に各0.5秒＋余韻0.25秒、その後6 CHを同時に2秒＋余韻0.5秒（計7秒）。
+  CH1..3は左、CH4..6は右へ出力する。
+- SSG：440 Hzのトーン・ノイズ・660 Hzのエンベロープ付きトーン（計6.5秒）。
+- CH3 special：Algorithm 7で4 Operatorを A3 / C#4 / E4 / A4 に設定（計3.5秒）。
+
+`YM2608Synth({transport: new YM2608DirectTransport(chip)})` で接続する。
+初期化と `reset()` でFM 6 CHを有効化する。SSGはYM2203と同じ `synth.ssg` APIを使い、
+SSGだけの `reset()` はFMを停止しない。生レジスタ操作はSynthを経由して状態追跡を維持する。
+
+標準分周では実効SSGクロックはマスターの1/4（既定8 MHz → 2 MHz）。
+YM2203の1/2とは異なる。別クロックはSynthの `clock` にも指定し、分周変更時は
+`ssg.clock` を合わせるか生の `period` を使う。FMの `hzToBlockFnum` にはマスタークロックをそのまま渡す。
+
+`node --test web/ym2608synth.test.mjs` で全6 CHの音程・パン・停止、CH3 special、
+SSGの音程・状態追跡・FMとの混合を実WASMで検証する。
+リズム・ADPCMの高レベルAPIとPlaygroundの操作UIは今後の対象。
 
 ## YM2612 → WAV
 
