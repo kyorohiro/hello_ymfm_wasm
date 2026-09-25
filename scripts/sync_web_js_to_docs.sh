@@ -26,6 +26,9 @@ playground_worker_dac.js
 native_fx.js
 native_noise.js
 native_sample.js
+playground_rf5c164.js
+playground_rf5c164_audio.js
+rf5c164-worklet.js
 native_sample_processor.js
 native_fx_rack.js
 native_fx_graph.js

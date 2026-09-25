@@ -41,6 +41,7 @@ tetorica-playground-ym2612.d.ts
 "
 
 RUNTIME_FILES="
+rf5c164.js
 bitcrusher-worklet.js
 looper.js
 megasynth.js
@@ -51,6 +52,9 @@ playground_worker_dac.js
 native_fx.js
 native_noise.js
 native_sample.js
+playground_rf5c164.js
+playground_rf5c164_audio.js
+rf5c164-worklet.js
 native_sample_processor.js
 native_fx_rack.js
 native_fx_graph.js
@@ -221,12 +225,15 @@ for file in ${GENERATED_FILES}; do
   cp "${src}" "${dst}"
 done
 
-for chip in ym2203 ym2608 ym2610b; do
+for chip in ym2203 ym2608 ym2610b rf5c164; do
   if [ -f "${DOCS_GENERATED_DIR}/${chip}_wasm.js" ] && [ -f "${DOCS_GENERATED_DIR}/${chip}_wasm.wasm" ]; then
     cp "${DOCS_GENERATED_DIR}/${chip}_wasm.js" "${STAGE_DIR}/generated/${chip}_wasm.js"
     cp "${DOCS_GENERATED_DIR}/${chip}_wasm.wasm" "${STAGE_DIR}/generated/${chip}_wasm.wasm"
   fi
 done
+
+mkdir -p "${STAGE_DIR}/licenses/mame-rf5c164"
+cp "${ROOT_DIR}/third_party/mame-rf5c164/LICENSE" "${ROOT_DIR}/third_party/mame-rf5c164/README.md" "${STAGE_DIR}/licenses/mame-rf5c164/"
 
 cp -R "${PLAYGROUND_DIR}/examples" "${STAGE_DIR}/examples"
 cp -R "${PLAYGROUND_SAMPLES_DIR}/." "${STAGE_DIR}/samples/"

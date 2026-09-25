@@ -831,6 +831,7 @@ declare function setInterval(handler: () => void, timeout?: number): number;
 declare function clearInterval(id: number): void;
 
 type PlaygroundAPI = {
+  createSoundChip: typeof createSoundChip;
   CH1: 0;
   CH2: 1;
   CH3: 2;
@@ -1001,3 +1002,19 @@ interface PlaygroundMidi {
   playFile(data: ArrayBuffer | Uint8Array, routes: PlaygroundMidiRoute[]): Promise<void>;
 }
 declare const midi: PlaygroundMidi;
+
+/** RF5C164 physical channels: CH1..CH8 (0..7), no automatic allocation. */
+interface PlaygroundRf5c164 {
+  loadMemory(bytes: Uint8Array | ArrayBuffer, address?: number): Promise<void>;
+  /** WAV/FLAC URL or encoded file bytes. loopStart is a sample offset; omitted means silence after end. */
+  loadSample(source: string | Uint8Array | ArrayBuffer | Blob, options?: {address?: number; loopStart?: number}): Promise<{start: number; loopStart: number; step: number}>;
+  setChannel(ch: number, options: {start?: number; loopStart?: number; step?: number; volume?: number; pan?: {left: number; right: number}}): Promise<void>;
+  setPitch(ch: number, step: number): Promise<void>;
+  keyOn(ch: number): Promise<void>;
+  keyOff(ch: number): Promise<void>;
+  writeRegister(register: number, value: number): Promise<void>;
+  /** Reset registers, retain RAM. */
+  reset(): Promise<void>;
+  dispose(): void;
+}
+declare function createSoundChip(name: 'rf5c164'): Promise<PlaygroundRf5c164>;

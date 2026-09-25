@@ -1,3 +1,5 @@
+import {createRf5c164Client} from './playground_rf5c164.js';
+import {createRf5c164Audio} from './playground_rf5c164_audio.js';
 import {samplePCM} from './native_sample.js';
 /**
  * @file playground_runtime.js
@@ -182,6 +184,23 @@ export function createPlaygroundRuntime(
   let playbackState = "stopped";
   let logicWorker = null;
   let workerGlobals = null;
+  const pcmDevices = new Set();
+  async function openPcm(name, token = currentRunToken) {
+    if(name !== 'rf5c164') throw new Error('Playground createSoundChip currently supports rf5c164');
+    const device = await createRf5c164Audio(megaDrive.audioContext, megaDrive.audio.masterInputNode);
+    if(token !== currentRunToken){device.dispose();throw new Error('Run stopped');}
+    pcmDevices.add(device);return device;
+  }
+  async function decodePcm(source){
+    if(source instanceof Uint8Array)source=source.buffer.slice(source.byteOffset,source.byteOffset+source.byteLength);
+    if(typeof Blob !== 'undefined' && source instanceof Blob)source=await source.arrayBuffer();
+    // Reuse the existing local-file URL policy and browser decoder, then release the cache.
+    const name='__rf5c164_decode_'+(++pcmDecodeId);
+    try{return samplePCM(await megaDrive.sample.load(name,source));}
+    finally{megaDrive.sample.unload(name);}
+  }
+  let pcmDecodeId=0;
+
   let workerCommandQueue = Promise.resolve();
   let resolveLogicWorkerStop = null;
   let logicWorkerStopPromise = null;
@@ -421,6 +440,8 @@ export function createPlaygroundRuntime(
   }
 
   function stopAllAudio() {
+    for(const device of pcmDevices)device.dispose();
+    pcmDevices.clear();
     midiApis.clear();
     midiRack?.stop();
     midiRack = null;
@@ -802,6 +823,8 @@ export function createPlaygroundRuntime(
       throw new Error("Playground Worker is not running");
     }
 
+    if(command==='pcm.create')return (await openPcm(args[0])).port;
+    if(command==='pcm.decode')return decodePcm(args[0]);
     if (command === "midi.file") return globals.midi.playFile(...args);
     if (command === "midi.invoke") {
       const [method,values]=args;
@@ -954,7 +977,7 @@ export function createPlaygroundRuntime(
         if (message.type === "request") {
           worker.postMessage(error
             ? { type: "response", id: message.id, error: error?.message ?? String(error) }
-            : { type: "response", id: message.id, value });
+            : { type: "response", id: message.id, value }, !error && message.command === "pcm.create" ? [value] : []);
         } else if (error) emitLog(error?.stack ?? String(error));
       };
       workerCommandQueue = workerCommandQueue
@@ -1286,6 +1309,13 @@ export function createPlaygroundRuntime(
       check:()=>{if(runToken!==currentRunToken)throw new DOMException('Run stopped','AbortError');}});
     midiApis.add(midi);
     const pg = {
+      createSoundChip: async name => {
+        const device=await openPcm(name,runToken);
+        const client=createRf5c164Client(device.port,decodePcm);
+        const dispose=device.dispose;
+        device.dispose=()=>{client.dispose();dispose();};
+        return client;
+      },
       midi,
       fm,
       dac: dacApi,
@@ -1428,6 +1458,7 @@ export function createPlaygroundRuntime(
         console:
           playgroundConsole,
         pg,
+        createSoundChip: pg.createSoundChip,
         midi,
         fm,
         dac: pg.dac,

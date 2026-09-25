@@ -1720,7 +1720,11 @@
               <li><code>vgiToPreset(await file("./bass.vgi", { type: "arrayBuffer" }))</code> converts a 43-byte VGI file for <code>fm.setPreset()</code> (binary files require <code>type: "arrayBuffer"</code>)</li>
             </ul>
 
-            <h2 style="margin-top: 14px;">dac (YM2612 mode)</h2>
+            <h3>RF5C164 PCM</h3>
+<p><code>await createSoundChip("rf5c164")</code> creates an additional PCM chip routed through master FX. Physical channels are CH1..CH8. See examples/pcm/rf5c164-sine.js.</p>
+<p><code>await pcm.loadMemory(bytes, address)</code> accepts raw RF5C164 BIN bytes (Uint8Array or ArrayBuffer). <code>await pcm.loadSample(source, {address, loopStart})</code> decodes WAV/FLAC and returns start, loopStart and step for setChannel. Decoder format support depends on the browser. Files must fit 64 KiB after conversion; no automatic resampling. Source may be a local URL, Blob or encoded file bytes. FILES data must first be read into bytes.</p>
+<p><code>setChannel(ch, {start, loopStart, step, volume, pan: {left, right}})</code>, <code>setPitch(ch, step)</code>, <code>keyOn(ch)</code> and <code>keyOff(ch)</code> return promises. Start is 256-byte aligned; volume is 0..255 and pan values 0..15. keyOn retriggers. reset retains RAM; dispose releases the chip. Stop releases all added chips.</p>
+<h2 style="margin-top: 14px;">dac (YM2612 mode)</h2>
             <ul class="helper-list">
               <li>DAC plays unsigned 8-bit PCM through physical CH6, replacing its FM output while enabled. Values are <code>0..255</code>; <code>128</code> is the neutral level.</li>
               <li><code>fm.setPan(CH6, true, true)</code> routes CH6 to both speakers. <code>fm.setDacEnabled(true)</code> enables DAC; <code>fm.writeDac(128)</code> writes one value; <code>fm.setDacEnabled(false)</code> restores FM output.</li>

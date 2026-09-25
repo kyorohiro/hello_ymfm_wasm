@@ -1,3 +1,4 @@
+import {createRf5c164Client} from './playground_rf5c164.js';
 import {createNativeSampleController} from './native_sample.js';
 /**
  * @file playground_logic_worker.js
@@ -430,6 +431,7 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
     }
     (run.collectingCleanups ?? run.cleanups).push({ names, fn });
   };
+  const pcmClients = new Set();
   run.stop = async () => {
     if (run.stopped) return;
     run.stopped = true;
@@ -441,6 +443,8 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
     }
     run.resetSampleClock();
     // In Worker mode this is the sole source of audio-control commands.
+    for(const pcm of pcmClients)pcm.dispose();
+    pcmClients.clear();
     nativeSample?.stopAll();
     nativeNoise?.disposeAll();
     chip?.stop();
@@ -539,6 +543,13 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
   run.adoptChipState=state=>chip?.adoptState(state);
   const localNoteOwners=new Map();
   const globals = {
+    async createSoundChip(name){
+      if(run.stopped)throw new Error('Run stopped');
+      const port=await request('pcm.create',[name]);
+      const pcm=createRf5c164Client(port,source=>request('pcm.decode',[source]));
+      if(run.stopped){pcm.dispose();throw new Error('Run stopped');}
+      pcmClients.add(pcm);return pcm;
+    },
     midi,
     console: {
       log: (...args) => postCommand("log", args),
