@@ -333,3 +333,19 @@ test('Stop during a held MIDI liveLoop note completes hard mute and allows resta
  await runtime.playSource(`const lead=midi.output('tetorica-ym2612');await lead.noteOn('E4');`);
  assert(writes.some(([p,r,v])=>r===0x28&&v===0xf0));
 });
+
+test('Worker observer updates synth state without sending audio or waiting for a reply', async t => {
+ const {runtime,megaDrive}=setup(t),workers=workerBridge(t);
+ const writes=[];
+ const {YM2612Synth}=await import('./ym2612synth.js');
+ megaDrive.fm=new YM2612Synth({transport:{write(port,register,value){writes.push([port,register,value]);},clearDacPlayback(){}}});
+ await runtime.playSource('',{execution:'worker'});
+ writes.length=0;
+ workers[0].send({type:'chip-observer',event:{method:'setAlgo',args:[0,5,3]}});
+ assert.equal(megaDrive.fm.channels[0].algorithm,5);
+ assert.equal(writes.length,0);
+ assert.equal(workers[0].responses.length,0);
+ megaDrive.fm.setAlgo(0,4,2);
+ assert.ok(writes.length>0,'normal UI transport is restored after observation');
+ await runtime.finalize();
+});

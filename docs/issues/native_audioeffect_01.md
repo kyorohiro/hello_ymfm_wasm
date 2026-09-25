@@ -341,3 +341,26 @@ WorkerテストでFX命令がmain threadへ送られないことを確認する�
 広めに実行したPlaygroundテストではVGM DAC書き出しの既存テスト1件が失敗し、
 変更前のHEADを別ディレクトリーに展開しても同じ失敗を確認した。今回のFX変更の対象外。
 ブラウザー接続が利用できなかったため、移行後の実ブラウザー試聴は未確認。
+
+## 発音命令の Worker 直結
+
+音作りを main thread に依頼して返答を待つ経路を減らす。
+表示・記録の observer 通知は維持する。
+
+- Worker: FM/PSG のレジスタ生成、通常の `play()`、MIDI の声割り当てと制御。
+- AudioWorklet: 専用 MessagePort から命令を受け、音源 WASM で PCM を生成。
+- main thread: 接続の初期化、UI、記録。Worker の observer 通知では
+  transport を止めて状態を反映し、同じ音を二重に発音しない。
+
+対象は Playground の YM2612（ymfm / Nuked）と既存 OPN モードの FM。
+YM2612 の PSG と MIDI API も直結する。Stop は直接キーオフと TL ミュートを送り、
+次の発音時に音色の TL を戻す。古いポートの遅延メッセージは切断後に無視する。
+
+まだ main thread を通るもの: sample / stream / noise、DAC バンク操作、
+予約書き込み、`midi.playFile()`、ファイル読み込み、master volume 等。
+PSG のノイズレジスタ操作は直結対象だが、`noise.create()` の音声生成は別経路。
+全APIの移行完了を意味しない。FX と音源のサンプル単位の同期も別途検討する。
+
+検証は main thread から発音要求に返答しない Worker テスト、Stop / Run、
+通常の synth とレジスタ列の一致、observer の二重発音防止、古いポートの無効化、
+既存 Worklet / native FX のテストで行う。実ブラウザーでの試聴は未確認。

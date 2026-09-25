@@ -45,6 +45,8 @@ bitcrusher-worklet.js
 looper.js
 megasynth.js
 megasynth_fx.js
+playground_chip_port.js
+playground_worker_chip.js
 native_fx.js
 native_fx_rack.js
 native_fx_graph.js

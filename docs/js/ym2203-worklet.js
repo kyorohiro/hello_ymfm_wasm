@@ -1,3 +1,4 @@
+import {createChipPortReceiver} from "./playground_chip_port.js";
 /**
  * @file ym2203-worklet.js
  * 実行環境: Browser（AudioWorkletGlobalScope）
@@ -13,11 +14,13 @@ class YM2203Processor extends AudioWorkletProcessor {
     this.chip = null;
     this.chipRate = sampleRate;
     this.remainder = 0;
-    this.port.onmessage = ({ data }) => {
+    const receiveChipPort = createChipPortReceiver(data => handle(data));
+    const handle = data => {
       if (data.type === "initialize") void this.initialize(data.wasmBinary);
       if (data.type === "write" && this.chip) this.write(data.register, data.value);
       if (data.type === "reset") this.chip?.reset();
     };
+    this.port.onmessage = ({data}) => { if (!receiveChipPort(data)) handle(data); };
   }
 
   async initialize(wasmBinary) {

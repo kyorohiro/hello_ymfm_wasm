@@ -1,5 +1,6 @@
 import {createNativeFXController} from "../../web/native_fx.js";
-import {createMidiApi} from "../js/playground_midi.js";
+import {createWorkerChip} from "../../web/playground_worker_chip.js";
+import {createMidiApi, createMidiRack} from "../js/playground_midi.js";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
@@ -15,7 +16,7 @@ const workerSource = readFileSync(
 function createWorkerHarness() {
   const messages = [];
   const context = {
-    createMidiApi, createNativeFXController, DOMException,
+    createMidiApi, createMidiRack, createWorkerChip, createNativeFXController, DOMException, structuredClone,
     createDeadlineScheduler,
     hzToBlockFnum,
     Error,
@@ -34,7 +35,7 @@ function createWorkerHarness() {
     setTimeout,
   };
   context.self = context;
-  vm.runInNewContext(workerSource.replace(/^import \{createMidiApi\}.*;\n/m, "").replace(/^import .* from "\.\/(?:playground_clock|pitch|native_fx)\.js";\n/gm, ""), context, {
+  vm.runInNewContext(workerSource.replace(/^import .*;\n/gm, "").replace(/^import .* from "\.\/(?:playground_clock|pitch|native_fx)\.js";\n/gm, ""), context, {
     filename: "playground_logic_worker.js",
   });
   return {
@@ -394,4 +395,48 @@ test('native FX commands go directly to Worklet port, never the main audio bridg
  assert.ok(fxMessages.some(m=>m.op==='parameter'&&m.value===2000));
  assert.ok(!worker.messages.some(m=>m.command?.startsWith('fx.')||m.command==='audio.call'));
  await worker.send({type:'stop'});assert.equal(fxMessages.at(-1).op,'reset');
+});
+
+test("Direct chip port plays FM, PSG and MIDI without main-thread audio replies", async () => {
+  const worker = createWorkerHarness();
+  const commands = [];
+  await worker.send({type: 'chip-port', port: {postMessage: batch => commands.push(...batch), close() {}}});
+  await worker.send({
+    type: 'run', presets: {}, scaleIntervals: {},
+    capabilities: {chip: 'ym2612', fmChannels: 6, psg: true, dac: true},
+    sourceCode: `
+      fm.setAlgo(CH1, 7, 0);
+      await play('C4', {duration: 0.001});
+      psgTone(PSG1, 400, 4);
+      const lead = midi.output('tetorica-ym2612', {channel: CH1});
+      await lead.noteOn('E4');
+      await lead.pitchBend(0.2);
+      await lead.noteOff('E4');
+    `,
+  });
+  await waitFor(() => worker.messages.some(m => m.type === 'complete'), 1000);
+  assert.ok(!worker.messages.some(m => m.type === 'error'), JSON.stringify(worker.messages));
+  assert.ok(commands.some(c => c.type === 'write' && c.register === 0x28 && c.value >= 0xf0));
+  assert.ok(commands.some(c => c.type === 'psg-write'));
+  assert.ok(worker.messages.some(m => m.type === 'chip-observer'));
+  assert.ok(!worker.messages.some(m => m.command === 'play' || m.command === 'midi.invoke' || m.command?.startsWith('fm.') || m.command === 'psgTone'));
+  await worker.send({type: 'stop'});
+  assert.ok(commands.some(c => c.type === 'clear-scheduled-writes'));
+  assert.ok(worker.messages.some(m => m.type === 'stopped'));
+});
+
+test("Direct chip Stop releases a long note and permits another Run", async () => {
+  const worker = createWorkerHarness();
+  const commands = [];
+  await worker.send({type: 'chip-port', port: {postMessage: batch => commands.push(...batch), close() {}}});
+  const run = {type: 'run', presets: {}, scaleIntervals: {}, capabilities: {chip: 'ym2612', fmChannels: 6, psg: true, dac: true}};
+  worker.post({...run, sourceCode: `await play('C4', {duration: 60});`});
+  await waitFor(() => commands.some(c => c.register === 0x28 && c.value === 0xf0));
+  await worker.send({type: 'stop'});
+  await waitFor(() => worker.messages.some(m => m.type === 'stopped'));
+  assert.ok(commands.some(c => c.register === 0x28 && c.value === 0));
+  commands.length = 0;
+  await worker.send({...run, sourceCode: `await play('D4', {duration: 0.001});`});
+  await waitFor(() => commands.some(c => c.register === 0x28 && c.value === 0xf0));
+  await worker.send({type: 'stop'});
 });

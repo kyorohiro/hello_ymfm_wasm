@@ -231,6 +231,7 @@ export function createPlaygroundRuntime(
     playbackState = state;
   }
 
+  let applyingChipObserver=false;
   function installMegaDriveListener() {
     if (
       removeMegaDriveListener ||
@@ -243,9 +244,11 @@ export function createPlaygroundRuntime(
     removeMegaDriveListener =
       megaDrive.addListener(
         (event) => {
-          options.onMegaDriveEvent?.(
-            event
-          );
+          options.onMegaDriveEvent?.(event);
+          if(logicWorker && !applyingChipObserver) {
+            const core=synth?.fm??synth;
+            logicWorker.postMessage({type:"chip-state",state:core?.getState?.()});
+          }
         }
       );
   }
@@ -748,6 +751,7 @@ export function createPlaygroundRuntime(
     while (workerRunRequests.length > 0) workerRunRequests.shift().reject(error);
     resolveLogicWorkerStop?.();
     megaDrive.audio?.nativeFX?.stop();
+    megaDrive.node?.port.postMessage({type:"detach-chip-port"});
     logicWorker?.terminate();
     logicWorker = null;
     megaDrive.audio?.nativeFX?.useMain();
@@ -963,6 +967,20 @@ export function createPlaygroundRuntime(
     worker.onmessage = (event) => {
       if (logicWorker !== worker) return;
       const message = event.data ?? {};
+      if (message.type === "chip-observer") {
+        // Notification only: sound has already gone Worker -> AudioWorklet.
+        // Keep UI/recording state, but never send a second copy to the chip.
+        const core=synth?.fm??synth;
+        const transport=core?.transport;
+        try {
+          applyingChipObserver=true;
+          if(core) core.transport={write(port,register,value){},reset(){}};
+          const {method,args}=message.event;
+          if(typeof synth?.[method]==="function" && !method.startsWith("_")) synth[method](...args);
+        } catch(error){emitLog(`Observer: ${error.message}`);}
+        finally {if(core)core.transport=transport;applyingChipObserver=false;}
+        return;
+      }
       if (message.type === "complete") {
         const request = workerRunRequests.shift();
         request?.resolve();
@@ -1637,6 +1655,12 @@ export function createPlaygroundRuntime(
     logicWorker = worker;
     if (isNewWorker) {
       installLogicWorkerHandlers(worker);
+      if(megaDrive.node?.port && typeof MessageChannel==="function") {
+        const channel=new MessageChannel();
+        megaDrive.node.port.postMessage({type:"attach-chip-port",port:channel.port1},[channel.port1]);
+        const core=synth?.fm??synth;
+        worker.postMessage({type:"chip-port",port:channel.port2,state:core?.getState?.()},[channel.port2]);
+      }
       const port = megaDrive.audio?.nativeFX?.workerPort();
       if (port) worker.postMessage({type: "native-fx", port}, [port]);
     }

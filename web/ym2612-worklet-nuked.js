@@ -1,3 +1,4 @@
+import {createChipPortReceiver} from "./playground_chip_port.js";
 /**
  * @file ym2612-worklet-nuked.js
  * 実行環境: Browser（AudioWorkletGlobalScope）
@@ -45,8 +46,10 @@ class YM2612Processor extends AudioWorkletProcessor {
     this.captureRightChunks = [];
     this.captureFrameCount = 0;
 
+    const receiveChipPort = createChipPortReceiver(command => this.applyCommand(command));
     this.port.onmessage = (event) => {
       const command = event.data;
+      if (receiveChipPort(command)) return;
 
       if (command.type === "initialize") {
         void this.init(

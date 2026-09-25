@@ -48,6 +48,8 @@ rf5c164.js
 looper.js
 megadrive-fm-presets.js
 megasynth_fx.js
+playground_chip_port.js
+playground_worker_chip.js
 native_fx.js
 native_fx_rack.js
 native_fx_graph.js

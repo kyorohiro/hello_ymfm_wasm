@@ -4,12 +4,14 @@
  * 依存: self.onmessage / postMessage、performance、タイマーとメインスレッドへのメッセージ通信。
  * Worker エントリーポイント。通常の Node.js モジュールとしては実行しない。
  */
-import {createMidiApi} from './playground_midi.js?v=midi-held-stop-1';
+import {createWorkerChip} from './playground_worker_chip.js';
+import {createMidiApi, createMidiRack} from './playground_midi.js?v=midi-held-stop-1';
 import { hzToBlockFnum } from "./pitch.js";
 import { createDeadlineScheduler } from "./playground_clock.js";
 
 import {createNativeFXController} from "./native_fx.js";
 let nativeFXPort = null;
+let chipConnection = null;
 let currentRun = null;
 let nextRequestId = 1;
 const pendingRequests = new Map();
@@ -294,12 +296,14 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
   run.resetSampleClock = () => clock.resetSampleClock();
   const commandProxy = (command) => (...args) => postCommand(command, args);
   const requestProxy = (command) => (...args) => request(command, args, run.currentLoop);
+  const chip = chipConnection ? createWorkerChip({...chipConnection,capabilities,observe:event=>postMessage({type:"chip-observer",event})}) : null;
   const fm = new Proxy({}, {
     get(_target, property) {
       if (property === "read" || property === "readStatus" || property === "getIrq") {
         return requestProxy(`fm.${String(property)}`);
       }
-      return commandProxy(`fm.${String(property)}`);
+      const mainMethods = ["scheduleWrites", "clearScheduledWrites", "loadDacBank", "playDacBank", "clearDacPlayback"];
+      return chip && !mainMethods.includes(property) ? chip.fm[property] : commandProxy(`fm.${String(property)}`);
     },
   });
   const sample = new Proxy({}, {
@@ -310,11 +314,11 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
   });
   const stream = new Proxy({}, { get: (_target, property) => requestProxy(`stream.${String(property)}`) });
   const unavailable = (name) => () => { throw new Error(`${name} is not available for ${capabilities.chip ?? "this chip"}`); };
-  const psg = capabilities.psg ? new Proxy({}, {
+  const psg = chip?.psg ?? (capabilities.psg ? new Proxy({}, {
     get(_target, property) {
       return commandProxy(`psg.${String(property)}`);
     },
-  }) : new Proxy({}, { get: () => unavailable("Mega Drive PSG") });
+  }) : new Proxy({}, { get: () => unavailable("Mega Drive PSG") }));
   const dac = capabilities.dac ? {
     load: (...args) => request("dac.load", args, run.currentLoop),
     loadBase64: (...args) => request("dac.loadBase64", args, run.currentLoop),
@@ -414,6 +418,8 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
     }
     run.resetSampleClock();
     // In Worker mode this is the sole source of audio-control commands.
+    chip?.stop();
+    localMidiRack?.stop();
     postCommand("audio.stopAll");
     if (nativeFXPort) fx.dispose(); else postCommand("fx.detach");
     postCommand("audio.disposeHandles", [[...run.audioHandles]]);
@@ -489,11 +495,24 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
     }
     await fn(1);
   };
+  let localMidiRack=null;
   const midi=createMidiApi((method,args)=> {
     if(method==='playFile')return request('midi.file',args,run.currentLoop);
+    if(chip && capabilities.chip==='ym2612'){
+      if(chip.raw.dac?.enabled)throw new Error('Disable DAC before using MIDI FM playback');
+      localMidiRack ??= createMidiRack({
+        preset:Object.values(presets)[0] ?? {},
+        write:entry=>chip.write(entry.port,entry.register,entry.value),
+        writePsg:entry=>chip.psg.write(entry.value),
+      });
+      if(method==='release')return localMidiRack.noteOff(args[0],args[1],args[2],undefined,args[3],args[4]);
+      return localMidiRack[method](...args);
+    }
     return request('midi.invoke',[method,args],run.currentLoop);
   },{sleep:clock.sleep,bpm:clock.getBpm,owner:()=>run.currentLoop?.name??null,check:()=>{if(run.stopped || run.currentLoop?.stopped)throw new DOMException('Run stopped','AbortError');}});
   run.midi=midi;
+  run.adoptChipState=state=>chip?.adoptState(state);
+  const localNoteOwners=new Map();
   const globals = {
     midi,
     console: {
@@ -510,10 +529,15 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
     CH7: 6, CH8: 7, CH9: 8, CH10: 9, CH11: 10, CH12: 11, CH13: 12, CH14: 13, CH15: 14, CH16: 15,
     PSG1: 0, PSG2: 1, PSG3: 2,
     OP1: 0, OP2: 1, OP3: 2, OP4: 3,
-    write: (...args) => postCommand("write", args),
-    play: (...args) => request("play", args, run.currentLoop),
-    psgTone: capabilities.psg ? (...args) => postCommand("psgTone", args) : unavailable("Mega Drive PSG"),
-    psgNoise: capabilities.psg ? (...args) => postCommand("psgNoise", args) : unavailable("Mega Drive PSG"),
+    write: (...args) => chip ? chip.write(...args) : postCommand("write", args),
+    play: chip ? async (note,options={})=>{
+      const channel=options.channel??0, owner={};
+      if(options.preset){const preset=presets[options.preset];if(!preset)throw new Error('Unknown preset');fm.setPreset(channel,preset);}
+      const pitch=noteToBlockFnum(note);fm.noteOn(channel,pitch.block,pitch.fnum);localNoteOwners.set(channel,owner);
+      try{await clock.sleep(options.duration??.2);}finally{if(localNoteOwners.get(channel)===owner){fm.noteOff(channel);localNoteOwners.delete(channel);}}
+    } : (...args) => request("play", args, run.currentLoop),
+    psgTone: chip?.psg ? (channel,period,attenuation=0)=>psg.tone(channel,{period,attenuation}) : capabilities.psg ? (...args)=>postCommand("psgTone",args) : unavailable("Mega Drive PSG"),
+    psgNoise: chip?.psg ? (mode,attenuation=0)=>{if(!Number.isInteger(mode)||mode<0||mode>7||!Number.isInteger(attenuation)||attenuation<0||attenuation>15)throw new Error("Invalid PSG noise values");psg.write(0xe0|mode);psg.write(0xf0|attenuation);} : capabilities.psg ? (...args)=>postCommand("psgNoise",args) : unavailable("Mega Drive PSG"),
     setMasterVolume: (...args) => request("setMasterVolume", args, run.currentLoop),
     getMasterVolume: () => request("getMasterVolume", [], run.currentLoop),
     setTiming: async (options) => {
@@ -656,6 +680,8 @@ async function handleLifecycleMessage(message) {
 
 self.onmessage = (event) => {
   const message = event.data;
+  if (message.type === "chip-state") { currentRun?.adoptChipState(message.state); return; }
+  if (message.type === "chip-port") { chipConnection?.port.close(); chipConnection={port:message.port,state:message.state}; return; }
   if (message.type === "native-fx") { nativeFXPort?.close(); nativeFXPort = message.port; return; }
   if (message.type === "stop") {
     // Interrupt waits now: queuing stop behind run.execute would wait for the
