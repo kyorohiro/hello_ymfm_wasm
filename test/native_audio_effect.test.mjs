@@ -1,3 +1,4 @@
+import { setChain, preset, branch, parallel, effect } from '../docs/native_audio_effect/graph.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
@@ -18,11 +19,11 @@ test('C gain scales stereo PCM, ramps and rejects invalid values', () => {
 });
 test('Worklet passes stereo through real WASM and supports gain / bypass / disconnected input', async () => {
   let Processor;
-  const scope = vm.createContext({WebAssembly,Float32Array,sampleRate:48000,
+  const scope = vm.createContext({WebAssembly,Float32Array,setChain,preset,sampleRate:48000,
     AudioWorkletProcessor:class {constructor(){this.port={};}},
     registerProcessor(_name,type){Processor=type;},
   });
-  vm.runInContext(await readFile(new URL('../docs/native_audio_effect/effect-worklet.js',import.meta.url),'utf8'),scope);
+  vm.runInContext(await readFile(new URL('../docs/native_audio_effect/effect-worklet.js',import.meta.url),'utf8').then(s=>s.replace(/^import .*\n/,'')),scope);
   const p=new Processor({processorOptions:{module}});
   const input=[new Float32Array(128).fill(0.5),new Float32Array(128).fill(-0.25)];
   const output=[new Float32Array(128),new Float32Array(128)];
@@ -176,3 +177,63 @@ for(const rate of [44100,48000,96000]) {
     assert.ok(Math.abs(run(0.001,0.002,0.1)-0.001)<1e-7,'invalid update ignored');
   });
 }
+
+function graphHarness() {
+  const a=new WebAssembly.Instance(module).exports;
+  a._initialize(); a.graph_reset(48000);
+  const n=a.gain_capacity();
+  const input=new Float32Array(a.memory.buffer,a.gain_input(),n*2);
+  const output=new Float32Array(a.memory.buffer,a.gain_output(),n*2);
+  const run=(left=0.4,right=-0.2,frames=128)=>{
+    input.fill(left,0,n);input.fill(right,n);a.graph_process(frames);
+    return [output[frames-1],output[n+frames-1]];
+  };
+  return {a,n,input,output,run};
+}
+test('C graph runs nested serial and parallel branches with independent gains',()=>{
+  const {a,run}=graphHarness();
+  for(const [slot,value] of [[0,0.5],[1,0.25],[2,0.5]]) {a.gain_select(slot);a.gain_set(value,0);}
+  setChain(a,[effect('gain'),parallel(branch(effect('gain',1)),branch(effect('gain',2)))]);
+  const [l,r]=run();
+  assert.ok(Math.abs(l-0.15)<1e-6);assert.ok(Math.abs(r+0.075)<1e-6);
+  setChain(a,[]);assert.ok(Math.abs(run()[0]-0.4)<1e-6);
+});
+test('invalid graph transactions preserve active routing and reject aliasing, cycles and overflow',()=>{
+  const {a,run}=graphHarness();
+  a.gain_set(0.5,0);setChain(a,[effect('gain')]);
+  assert.throws(()=>setChain(a,[parallel(effect('gain'),effect('gain'))]),/repeated/);
+  assert.ok(Math.abs(run()[0]-0.2)<1e-6);
+  assert.throws(()=>setChain(a,[parallel()]),/empty/);
+  assert.throws(()=>setChain(a,[effect('gain',8)]),/slot/);
+  assert.throws(()=>setChain(a,Array.from({length:33},()=>branch())),/32/);
+  a.graph_begin();const id=a.graph_add(0,0);assert.equal(a.graph_append(id,id),0);
+  assert.equal(a.graph_commit(-1),0);
+  assert.ok(Math.abs(run()[0]-0.2)<1e-6);
+});
+test('two compressor instances keep independent settings and envelope state',()=>{
+  const {a,run}=graphHarness();
+  a.compressor_select(0);a.compressor_set(-20,4,1,50,0,0);
+  a.compressor_select(1);a.compressor_set(-20,1,1,50,0,0);
+  setChain(a,[parallel(effect('compressor',0),effect('compressor',1))]);
+  let sample;
+  for(let i=0;i<500;i++) sample=run(1,0.25);
+  assert.ok(Math.abs(sample[0]-(1+10**(-15/20)))<1e-5);
+  assert.ok(Math.abs(sample[1]/sample[0]-0.25)<1e-6);
+});
+test('serial graph matches legacy DSP and is invariant to block partition',()=>{
+  const h=graphHarness(),g=graphHarness();
+  for(const {a} of [h,g]) {
+    a.gain_set(0.7,240);a.eq_set(0,6);a.eq_set(1,-4);
+    a.gate_set(-40,6,5,50,100,0);a.compressor_set(-18,4,10,150,0,0);
+    a.reverb_set(0.25,0.6,0.4);
+    setChain(a,preset('serial'));
+  }
+  for(let block=0;block<100;block++) {
+    h.input.fill(0.3);g.input.fill(0.3);
+    h.a.gain_process(128);
+    const result=[];
+    for(let i=0;i<4;i++) {g.a.graph_process(32);result.push(...g.output.slice(0,32));}
+    for(let i=0;i<128;i++) assert.ok(Math.abs(h.output[i]-result[i])<1e-6);
+  }
+  g.a.graph_clear();setChain(g.a,[]);assert.ok(Math.abs(g.run()[0]-0.4)<1e-6);
+});

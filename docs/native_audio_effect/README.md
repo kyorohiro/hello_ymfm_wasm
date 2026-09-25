@@ -85,3 +85,43 @@ Reverbの前にあるので生成済みの残響をゲートで切らない。
 
 44.1/48/96 kHzで小信号抑制・ヒステリシス・Hold・Attack/Release・左右連動・
 Bypass・不正値拒否を検証済み。実ブラウザーでの試聴・負荷評価は別途必要。
+
+## C側の接続グラフ
+
+現在のページは `native/audio_effect/graph.c` の処理経路を使用する。
+上部のRoutingで次の構成を選択できる（切り替え時は停止、再生ボタンで先頭から再開）。
+
+- 直列：Gain → EQ → Gate → Compressor → Reverb
+- Dry/Wet並列：前段Gain/EQ/Gate/Compressor → [Dry × A + Reverb(100% Wet) × B]
+- 2台のCompressor：前段Gain/EQ/Gate → [Compressor × A + 独立した強圧縮 × B] → Reverb
+
+枝A/BのGainは独立したインスタンス。並列は単純加算で自動正規化しない。
+Dry/Wet構成のReverb Bypassは枝Bの消音、2台構成のCompressor操作は枝Aに適用する。
+枝BのCompressorは−30 dB、10:1、Attack 5ms、Release 250ms、Makeup 0dB。
+
+`graph.js` は構成を記述してCへ渡すだけで、分岐・直列処理・加算はC側で実行する。
+
+```javascript
+setChain(api, [
+  effect('gain', 0),
+  parallel(
+    branch(effect('gain', 1)),
+    branch(effect('reverb', 0), effect('gain', 2)),
+  ),
+]);
+```
+
+このAPIは検証ページ内部用で、Playgroundへはまだ公開していない。
+`branch` は直列コンテナー、`parallel` は同じ入力を各枝へ渡す加算コンテナー。
+空のbranchは素通し、空のparallelはエラー。
+
+試作の上限は32ノード・各FX種8インスタンス。全状態をWASM内で事前確保する
+（WASM初期メモリー32MiB、遅延バッファも事前確保）。同じ種類とslotのFXを
+複数箇所へ置くこと、循環、共有ノードは拒否する。任意DAGではなく木構造。
+slotはWASMインスタンスが所有し、graph_resetで設定も初期化、graph_clearで
+履歴のみ消去する。動的な個別生成・解放や無制限な拡張は未対応。
+
+構成はdraftとして検証後に一括commitし、不正なら既存構成を維持する。
+Workletのメッセージ処理とPCM処理は直列に実行される。
+無停止のクリックレス接続切り替えは未対応。ページは切り替え前に音源を停止する。
+EQは `eq.c`、グラフは `graph.c` に分離。既存gain_processは互換検証用の固定直列入口。

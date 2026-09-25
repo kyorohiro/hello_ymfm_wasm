@@ -1,3 +1,4 @@
+import { setChain, preset } from './graph.js';
 class NativeGain extends AudioWorkletProcessor {
   constructor(options) {
     super();
@@ -8,13 +9,35 @@ class NativeGain extends AudioWorkletProcessor {
     this.api.reverb_reset(sampleRate);
     this.api.compressor_reset(sampleRate);
     this.api.gate_reset(sampleRate);
+    this.api.graph_reset(sampleRate);
+    this.mode = 'serial';
+    setChain(this.api, preset(this.mode));
     this.capacity = this.api.gain_capacity();
     this.input = new Float32Array(this.api.memory.buffer, this.api.gain_input(), this.capacity * 2);
     this.output = new Float32Array(this.api.memory.buffer, this.api.gain_output(), this.capacity * 2);
     this.gain = 1;
     this.bypass = false;
     this.port.onmessage = ({ data }) => {
-      if (data.type === 'clear') { this.api.reverb_clear(); this.api.compressor_clear(); this.api.gate_clear(); return; }
+      if (data.type === 'clear') { this.api.graph_clear(); return; }
+      if (data.type === 'routing') {
+        try {
+          setChain(this.api, preset(data.mode));
+          this.mode = data.mode;
+          this.api.graph_clear();
+          this.port.postMessage({ type: 'routing', mode: this.mode });
+        } catch (error) { this.port.postMessage({ type: 'error', message: error.message }); }
+        return;
+      }
+      if (data.type === 'branches') {
+        for (const [slot, value] of [[1, data.a], [2, data.b]]) {
+          this.api.gain_select(slot); this.api.gain_set(value, Math.round(sampleRate * 0.01));
+        }
+        this.api.gain_select(0);
+        this.api.compressor_select(1);
+        this.api.compressor_set(-30, 10, 5, 250, 0, 0);
+        this.api.compressor_select(0);
+        return;
+      }
       if (data.type === 'gate') {
         this.api.gate_set(data.gateThreshold, data.gateHysteresis, data.gateAttack, data.gateHold, data.gateRelease, data.bypass ? 1 : 0);
         return;
@@ -50,7 +73,7 @@ class NativeGain extends AudioWorkletProcessor {
       const offset = c * this.capacity;
       for (let i = 0; i < n; i++) this.input[offset+i] = channel ? channel[i] : 0;
     }
-    this.api.gain_process(n);
+    this.api.graph_process(n);
     for (let c = 0; c < target.length; c++) {
       for (let i = 0; i < n; i++) target[c][i] = this.output[c*this.capacity+i];
     }
