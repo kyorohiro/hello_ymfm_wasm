@@ -9,7 +9,7 @@ RF5C164のPCM形式変換は `web/rf5c164_pcm.js`、通信は `web/playground_rf
 ## OPN 系の独立サンプル
 
 各ファイルに初期化・音色設定・発音・PCM 生成・WAV 保存・解放までを記載している。
-サンプルは FM の A4（約440 Hz）を対象とし、SSG・ADPCM の演奏例ではない。
+以下の表は通常 FM の A4（約440 Hz）の例。YM2203 の SSG / CH3 special は後述する。ADPCM の演奏例はまだ含まない。
 
 | チップ | 実行ファイル | 補足 |
 | --- | --- | --- |
@@ -47,6 +47,42 @@ WAV ヘッダーのレートだけを書き換えると音程・速度が変わ�
 
 試聴しやすいよう、`sine` の発音 Operator（添字3）の TL を32から0に変更している。
 元のプリセットオブジェクトは変更しない。発音3秒＋Key Off後0.5秒の計3.5秒。
+
+## YM2203 → WAV（FM / SSG / CH3 special）
+
+```sh
+node examples/nodejs/main_ym2203_wave.js
+node examples/nodejs/main_ym2203_ssg_wave.js
+node examples/nodejs/main_ym2203_3chsp_wave.js
+```
+
+出力はそれぞれ `ym2203.wav` / `ym2203_ssg.wav` / `ym2203_3chsp.wav`。
+第1引数で保存先を指定できる。同名ファイルは上書きする。
+既存の `ym2203_wasm` で動作し、追加ビルドは不要。
+
+同じ `YM2203Synth({transport: new YM2203DirectTransport(chip)})` から、
+FM は既存メソッド、SSG は `synth.ssg` で操作する。
+
+```javascript
+synth.ssg.reset(); // SSGのみ。FMの状態は維持
+synth.ssg.tone(0, {frequency: 440, volume: 12});
+// chip.generateStereo(...) で時間を進める
+synth.ssg.off(0);
+```
+
+- SSG例はトーン3秒・ノイズ1秒・ハードウェアエンベロープ1秒。各区間後に0.5秒の無音。
+- SSGのCHは0..2、音量は0..15（0が無音）。FMのSSG-EGとは別機能。
+- `noise(ch, options)`、`setMixer(ch, {tone, noise})`、`setVolume(ch, volume, envelope)`、
+  `setEnvelope({period, shape})` も使える。ノイズ周期とエンベロープは3 CHで共有する。
+- Hz指定は標準分周・既定4 MHz前提。別クロックはSynthの `clock` にも指定する。
+  分周レジスタを直接変える場合は `synth.ssg.clock`（実効SSGクロック）も合わせるか、生の `period` を指定する。
+- 生レジスタ操作は `synth.write(0, register, value)` または `synth.ssg.write(register, value)` を使う。
+  `chip.write()` で直接変更するとSynthのミキサー状態追跡を迂回する。
+- CH3 special例は既存の `setChannel3SpecialMode` / `setChannel3SpecialFrequency` を利用。
+  Algorithm 7の4 Operatorを独立した音程で鳴らし、発音3秒＋余韻0.5秒を保存する。
+  YM2203のFM分周72に合わせ、`hzToBlockFnum` にはマスタークロックの2倍を渡す。
+
+ここではNode.jsのSynthとWAV生成を対象とする。PlaygroundのSSG操作UI追加は含まない。
 
 ## YM2612 → WAV
 

@@ -66,6 +66,7 @@ tetorica_synth.js
 ym2203.js
 ym2203audioengine.js
 ym2203synth.js
+ssgsynth.js
 ym2203-worklet.js
 ym2608.js
 ym2608audioengine.js
