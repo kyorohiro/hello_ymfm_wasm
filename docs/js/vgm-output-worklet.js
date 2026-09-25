@@ -13,6 +13,10 @@ class VgmOutputProcessor extends AudioWorkletProcessor {
     this.buffering = this.startupFrames > 0;
     this.fadeFrames = Math.max(0, Math.floor(options.processorOptions?.fadeFrames || 0));
     this.fadePosition = 0;
+    this.lastOutput = [0, 0];
+    this.transitionFrames = 0;
+    this.transitionRemaining = 0;
+    this.transitionFrom = [0, 0];
     this.stopRemaining = null;
     this.queue = [];
     this.queuedFrames = 0;
@@ -54,6 +58,9 @@ class VgmOutputProcessor extends AudioWorkletProcessor {
         return;
       }
       if (data.type === "flush") {
+        this.transitionFrames = Number.isSafeInteger(data.smoothFrames) ? Math.max(0, Math.min(4096, data.smoothFrames)) : 0;
+        this.transitionRemaining = this.transitionFrames;
+        this.transitionFrom = this.lastOutput.slice();
         if (Number.isSafeInteger(data.startupFrames) && data.startupFrames > 0) {
           this.startupFrames = data.startupFrames;
         }
@@ -72,6 +79,22 @@ class VgmOutputProcessor extends AudioWorkletProcessor {
   }
 
   process(inputs, outputs) {
+    this.render(inputs, outputs);
+    const [left, right] = outputs[0];
+    for (let i = 0; i < left.length; i++) {
+      if (this.transitionRemaining > 0) {
+        const mix = 1 - this.transitionRemaining / this.transitionFrames;
+        left[i] = this.transitionFrom[0] * (1 - mix) + left[i] * mix;
+        right[i] = this.transitionFrom[1] * (1 - mix) + right[i] * mix;
+        this.transitionRemaining--;
+      }
+    }
+    this.lastOutput[0] = left[left.length - 1] ?? 0;
+    this.lastOutput[1] = right[right.length - 1] ?? 0;
+    return true;
+  }
+
+  render(inputs, outputs) {
     const output = outputs[0];
     const left = output[0];
     const right = output[1];
@@ -88,6 +111,11 @@ class VgmOutputProcessor extends AudioWorkletProcessor {
         return true;
       }
       this.buffering = false;
+      // Also bridge the return from the refill silence to the new mixed audio.
+      if (this.transitionFrames > 0) {
+        this.transitionRemaining = this.transitionFrames;
+        this.transitionFrom = this.lastOutput.slice();
+      }
     }
     let writeOffset = 0;
 

@@ -29,3 +29,13 @@ test('dense Live History uses one path per channel and preserves key-off gaps',(
  assert.equal((path.match(/L/g)||[]).length,9997);
  assert.deepEqual(history,original);
 });
+test('retiring effects silences on the audio clock and cleans only the old graph',()=>{
+ const nodes=Array.from({length:12},()=>({disconnects:0,disconnect(){this.disconnects++;}}));
+ const automation=[];nodes[1].gain={value:1,cancelScheduledValues:t=>automation.push(['cancel',t]),setValueAtTime:(v,t)=>automation.push(['set',v,t]),linearRampToValueAtTime:(v,t)=>automation.push(['ramp',v,t])};
+ const chain={context:{currentTime:2},...Object.fromEntries(['input','output','gainNode','bassNode','middleNode','trebleNode','gateNode','compressorNode','dryGain','wetGain','convolver','reverbOutput'].map((k,i)=>[k,nodes[i]]))};
+ chain.gateNode.onaudioprocess=()=>{};const timers=[];
+ const c=vm.createContext({effectsChain:chain,setTimeout:f=>timers.push(f)});vm.runInContext(fn('releaseEffectsChain'),c);
+ c.releaseEffectsChain();assert.equal(c.effectsChain,null);assert.deepEqual(automation.at(-1),['ramp',0,2.005]);
+ c.releaseEffectsChain();assert.equal(timers.length,1);
+ const next={};c.effectsChain=next;timers[0]();assert.equal(c.effectsChain,next);assert.equal(chain.gateNode.onaudioprocess,null);assert(nodes.every(n=>n.disconnects===1));
+});

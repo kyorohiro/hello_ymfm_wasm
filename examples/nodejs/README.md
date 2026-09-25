@@ -44,6 +44,14 @@ WAV ヘッダーのレートだけを書き換えると音程・速度が変わ�
 
 ## YM2612 → WAV
 
+YM2612 の通常FM・DAC・CH3 special を、独立したスクリプトで試せる。
+
+| 機能 | サンプル | 生成する音 |
+| --- | --- | --- |
+| 通常 FM | [main_ym2612_wave.js](main_ym2612_wave.js) | CH1 の A4 |
+| DAC | [main_ym2612_dac_wave.js](main_ym2612_dac_wave.js) | CH6 に8 bit PCMのサイン波を供給 |
+| CH3 special | [main_ym2612_3chsp_wave.js](main_ym2612_3chsp_wave.js) | CH3 の4 Operatorで A3 / C#4 / E4 / A4 |
+
 リポジトリーのルートで実行する。
 
 ```sh
@@ -57,6 +65,31 @@ Key Off 後の余韻を0.5秒生成する。出力は16 bitステレオ WAV。
 ```sh
 node examples/nodejs/main_ym2612_wave.js /tmp/ym2612.wav
 ```
+
+### DAC / CH3 special
+
+```sh
+node examples/nodejs/main_ym2612_dac_wave.js
+node examples/nodejs/main_ym2612_3chsp_wave.js
+```
+
+出力はそれぞれ `ym2612_dac.wav` / `ym2612_3chsp.wav`。
+他の例と同じく第1引数で保存先を指定でき、既存ファイルは上書きする。
+どちらも発音3秒＋終了後0.5秒、48 kHz・16 bitステレオで保存する。
+同じ `ym2612_wasm` を使うので、追加のWASMビルドは不要。
+
+DAC版は `setDacEnabled(true)` と `writeDac(value)` を使う。
+物理CH6のFM出力をDACに切り替え、中心値128のunsigned 8 bit PCMを
+22,050 Hzで書き込む。各書き込み後に次のサンプル時刻まで `generateStereo()`
+でチップを進める。PCMをWAVに直接保存する例ではなく、実際にチップのDAC経路を通す。
+DACの供給レート・チップの生成レート・保存するWAVのレートは別々に扱う。
+
+CH3 special版は `setChannel3SpecialMode(true)` と
+`setChannel3SpecialFrequency(operator, block, fnum)` を使う。
+Algorithm 7で全Operatorをキャリアにし、個別の音程が分かりやすい和音にする。
+CH3だけの特殊機能で、通常FMのCHが4つ増えるわけではない。
+`noteOn()` はOP4の周波数も書き換えるため、この例では設定後に `keyOn(2)` を使う。
+Key Off後の余韻を生成してからspecialモードを解除する。
 
 ### YM3438 / YMF276 との比較
 

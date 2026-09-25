@@ -91,7 +91,7 @@ for (const path of ['../../web/vgm-output-worklet.js','../js/vgm-output-worklet.
 test('stopping fades the old worklet without disconnecting the replacement', () => {
  const pending=[], sent=[];let disconnected=0;
  const old={mode:'worklet',node:{port:{postMessage:m=>sent.push(m)},disconnect(){disconnected++;}}};
- const context=vm.createContext({activeStream:old,playbackFade:{checked:true},audioContext:{state:'running'},
+ const context=vm.createContext({releaseEffectsChain(){},activeStream:old,playbackFade:{checked:true},audioContext:{state:'running'},
   setTimeout:fn=>{pending.push(fn);return 1;},clearTimeout(){pending.length=0;}});
  const start=source.indexOf('function stopActiveStream('),end=source.indexOf('\nfunction updatePlaybackButtons',start);
  vm.runInContext(source.slice(start,end),context);context.stopActiveStream();
@@ -99,4 +99,16 @@ test('stopping fades the old worklet without disconnecting the replacement', () 
  const replacement={mode:'worklet'};context.activeStream=replacement;
  old.node.port.onmessage({data:{ended:true}});
  assert.equal(disconnected,1);assert.equal(context.activeStream,replacement);assert.equal(pending.length,0);
+});
+
+for(const path of ['../../web/vgm-output-worklet.js','../js/vgm-output-worklet.js'])test(`${path}: mute flush bridges held PWM level to silence and refilled output`,()=>{
+ const w=processor(path,4);w.enqueue(Array(8).fill(.8));w.output(4);
+ w.send({type:'flush',startupFrames:4,smoothFrames:4});
+ const tail=w.output(5)[0];assert(Math.abs(tail[0]-.8)<1e-6);assert.equal(tail[4],0);
+ for(let i=1;i<tail.length;i++)assert(Math.abs(tail[i]-tail[i-1])<.201);
+ w.enqueue(Array(8).fill(-.8));const resumed=w.output(5)[0];assert.equal(resumed[0],0);assert(Math.abs(resumed[4]+.8)<1e-6);
+ for(let i=1;i<resumed.length;i++)assert(Math.abs(resumed[i]-resumed[i-1])<.201);
+ assert.equal(w.p.consumedFrames,5);
+ // A second immediate toggle starts from the last audible value, not from zero.
+ w.send({type:'flush',startupFrames:4,smoothFrames:4});w.enqueue(Array(8).fill(.8));assert(Math.abs(w.output(1)[0][0]+.8)<1e-6);
 });

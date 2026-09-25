@@ -326,7 +326,7 @@ function ensureEffectsChain(context) {
 
   effectsChain = {
     context, input: bassNode, output, gainNode, bassNode, middleNode, trebleNode,
-    dryGain, wetGain, compressorNode, gateState, gateNode, gateConnected: true,
+    dryGain, wetGain, compressorNode, convolver, reverbOutput, gateState, gateNode, gateConnected: true,
   };
   applyEffectSettings();
   return effectsChain;
@@ -369,6 +369,25 @@ function applyEffectSettings() {
 // Rewires the currently active stream node between the effects chain and the
 // destination. Effect stays off the graph entirely when disabled, so it never
 // costs CPU or colors the signal for analysis-focused listening.
+function releaseEffectsChain() {
+  const chain = effectsChain;
+  if (!chain) return;
+  effectsChain = null;
+  // Fade on the audio clock even if file parsing blocks the main thread.
+  const now = chain.context.currentTime;
+  chain.output.gain.cancelScheduledValues(now);
+  chain.output.gain.setValueAtTime(chain.output.gain.value, now);
+  chain.output.gain.linearRampToValueAtTime(0, now + 0.005);
+  setTimeout(() => {
+    chain.gateNode.onaudioprocess = null;
+    for (const node of new Set([chain.input, chain.output, chain.gainNode,
+      chain.bassNode, chain.middleNode, chain.trebleNode, chain.gateNode,
+      chain.compressorNode, chain.dryGain, chain.wetGain, chain.convolver, chain.reverbOutput])) {
+      node.disconnect();
+    }
+  }, 20);
+}
+
 function rewireAudioGraph() {
   if (!activeStream || !audioContext) return;
   const node = activeStream.node;
@@ -379,6 +398,7 @@ function rewireAudioGraph() {
     node.connect(chain.input);
     chain.output.connect(audioContext.destination);
   } else {
+    releaseEffectsChain();
     node.connect(audioContext.destination);
   }
 }
@@ -1798,7 +1818,7 @@ function flushPendingAudio() {
   if (activeStream && activeStream.mode === "worklet") {
     activeStream.workletQueuedFrames = 0;
     activeStream.endSent = false;
-    activeStream.node.port.postMessage({ type: "flush", startupFrames: currentWorkletTargetFrames() });
+    activeStream.node.port.postMessage({ type: "flush", startupFrames: currentWorkletTargetFrames(), smoothFrames: Math.round(activeStream.node.context.sampleRate * 0.005) });
     scheduleWorkletPump();
   }
 }
@@ -2683,6 +2703,7 @@ function beginPreparePlayback(vgm) {
 }
 
 function stopActiveStream() {
+  releaseEffectsChain();
   if (!activeStream) return;
   const stream = activeStream;
   activeStream = null;
