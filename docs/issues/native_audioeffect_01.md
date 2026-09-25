@@ -172,3 +172,14 @@ AudioBufferSourceNode → AudioWorklet → WASM → 出力の経路を使う。
 Roomはフィードバック量による残響調整で、RT60秒数指定ではない。
 これは既存ConvolverNodeの音の再現ではなく、独自アルゴリズム型の候補。
 汎用グラフAPI・compressor・noise gateは引き続き残件。
+
+### Compressor追加
+
+- [x] `native/audio_effect/compressor.c` に左右連動・先読みなし・ハードニーの圧縮を追加。
+- [x] Threshold / Ratio / Attack / Release / Makeupと個別Bypassを追加。
+- [x] Gain → EQ → Compressor → Reverbの固定直列へ接続。
+- [x] 44.1/48/96 kHzで圧縮比・左右連動・時間応答・Makeup・Bypassを自動検証。
+- [ ] 実音で低音の歪み・ポンピング・操作時の音・負荷を確認する。
+
+瞬時ピークから目標圧縮量を計算し、dBの圧縮量を平滑化する方式。
+汎用グラフAPIとnoise gateは引き続き残件。

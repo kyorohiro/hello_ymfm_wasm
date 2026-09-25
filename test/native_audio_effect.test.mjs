@@ -110,3 +110,35 @@ for (const rate of [44100, 48000, 96000]) {
     assert.ok(out.slice(n,n+128).every(v=>v===0));
   });
 }
+
+for(const rate of [44100,48000,96000]) {
+  test(`compressor ratio, stereo link, attack/release and bypass at ${rate} Hz`,()=>{
+    const a=new WebAssembly.Instance(module).exports;
+    a._initialize(); a.gain_reset(); a.eq_reset(rate); a.reverb_reset(rate); a.compressor_reset(rate);
+    const n=a.gain_capacity();
+    const input=new Float32Array(a.memory.buffer,a.gain_input(),n*2);
+    const out=new Float32Array(a.memory.buffer,a.gain_output(),n*2);
+    function run(l,r,seconds) {
+      input.fill(l,0,n); input.fill(r,n);
+      for(let i=0;i<Math.ceil(rate*seconds/128);i++) a.gain_process(128);
+      assert.ok(Number.isFinite(out[127]));
+      return out[127];
+    }
+    a.compressor_set(-20,4,10,150,0,0);
+    run(0,0,0.5);
+    const attackStart=run(1,0.25,128/rate);
+    const settled=run(1,0.25,0.5);
+    assert.ok(attackStart>settled);
+    assert.ok(Math.abs(20*Math.log10(settled)+15)<0.05); // 20 dB over threshold -> 15 dB reduction.
+    assert.ok(Math.abs(out[n+127]/settled-0.25)<1e-6);
+    const releaseStart=run(0.01,0.005,128/rate);
+    const released=run(0.01,0.005,2);
+    assert.ok(releaseStart<released);
+    assert.ok(Math.abs(released-0.01)<1e-6);
+    a.compressor_set(-20,1,10,150,6,0);
+    assert.ok(Math.abs(run(0.1,0.05,2)-0.1*10**(6/20))<1e-5);
+    a.compressor_set(-20,4,10,150,12,1);
+    assert.ok(Math.abs(run(0.7,0.2,1)-0.7)<1e-6);
+    assert.ok(Math.abs(out[n+127]-0.2)<1e-6);
+  });
+}

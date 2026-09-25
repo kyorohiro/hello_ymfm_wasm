@@ -51,3 +51,20 @@ Roomは秒数ではない。リバーブ内部の並列処理は汎用branch/par
 Reverb BypassはMixを0へ戻すが内部状態の更新は継続する。
 44.1/48/96 kHzでインパルスの残響・減衰・ステレオ差・クリアを自動検証済み。
 ブラウザー実機での響きと負荷の検証は別途必要。
+
+## Compressor
+
+`native/audio_effect/compressor.c`。Gain → EQ → Compressor → Reverbの順。
+左右の瞬時ピークの最大値で目標圧縮量を計算し、dB単位のゲインリダクションを
+Attack/Releaseで平滑化する。左右に同じゲインを適用する。
+ハードニー・先読みなし。ピークを完全に抑えるリミッターではない。
+
+Threshold（-60〜0 dBFS）、Ratio（1〜20）、Attack（0.1〜200 ms）、
+Release（10〜2000 ms）、Makeup（-12〜24 dB）。時間は一次平滑化の時定数。
+Threshold/Ratio/MakeupとBypassは10ms時定数で補間する。
+Compressor BypassではMakeupも無効。内部の検出・圧縮状態は更新し続ける。
+停止・再生開始では圧縮状態をクリアするが、設定は維持する。
+
+44.1/48/96 kHzで静的圧縮比、左右連動、Attack/Release、Makeup、Bypassを
+実WASMで検証済み。瞬時ピーク方式の低音への影響やポンピング、実ブラウザーの
+処理負荷は試聴・実機で評価する。既存DynamicsCompressorNodeの完全再現ではない。
