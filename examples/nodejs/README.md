@@ -110,3 +110,13 @@ Key Off、リセット再現性、DAC 出力差を検証する。実機との音
 余韻の長さは音色に合わせて調整する。
 WAV 変換には現在の共通利用可能な関数として Analyzer の
 `docs/vgm_analyzer/vgm_wav.js` を使用している。
+
+## 名前からチップを生成する
+
+```sh
+node examples/nodejs/main_soundchip.js
+```
+
+YM2151 / YMF262 の初期化とPCM生成を確認する最小例です（リセット直後なので無音）。
+`createSoundChip` と必要なチップだけ登録するFactoryの使い方は
+[Sound chip factories](../../web/soundchip.md) を参照してください。

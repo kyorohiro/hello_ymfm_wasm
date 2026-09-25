@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="ja">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Native Audio Effect — Gain + EQ + Reverb</title>
+<style>
+body{font:16px system-ui;background:#141b26;color:#edf2fa;max-width:760px;margin:40px auto;padding:0 24px}h1{font-size:28px}p{line-height:1.7;color:#bdcbe0}#drop{border:2px dashed #809bbb;border-radius:12px;padding:36px 20px;text-align:center;margin:24px 0}#drop.over{background:#283c55}button{padding:10px 22px;margin:8px 8px 8px 0;border-radius:6px;border:0}input[type=range]{width:65%;vertical-align:middle}section{background:#202c3c;padding:20px;border-radius:12px;margin:20px 0}label{display:inline-block;margin:10px 12px 10px 0}#status{white-space:pre-wrap}small{color:#bdcbe0}
+</style>
+<h1>Native Audio Effect / Gain + EQ + Reverb</h1>
+<p>音声ファイル → AudioWorklet → C / WASM gain → EQ → Reverb → スピーカー<br>音声はブラウザー内で処理します。サーバーへ送信しません。</p>
+<div id="drop">音声ファイルをドラッグ＆ドロップ<br><br><label>ファイルを選択 <input id="file" type="file" accept="audio/*"></label></div>
+<div id="info">ファイル未選択</div>
+<button id="play" disabled>再生</button><button id="stop" disabled>停止</button>
+<label><input id="loop" type="checkbox" checked>ループ</label>
+<section>
+<label for="gain">WASM Gain</label><output id="value">1.00 ×</output><br>
+<input id="gain" type="range" min="0" max="2" step="0.01" value="1">
+<label><input id="bypass" type="checkbox">Gain Bypass（1倍）</label><br>
+<small>0＝無音、1＝原音の音量、2＝2倍。大きな入力ではクリッピングする場合があります。変更はC側で5 msかけて補間します。</small>
+</section>
+<section>
+<h2>WASM 3-band EQ</h2>
+<label for="bass">Bass · 200 Hz shelf</label><output id="bassValue">0.0 dB</output><br>
+<input id="bass" type="range" min="-12" max="12" step="0.5" value="0"><br>
+<label for="middle">Middle · 1 kHz / Q 0.707</label><output id="middleValue">0.0 dB</output><br>
+<input id="middle" type="range" min="-12" max="12" step="0.5" value="0"><br>
+<label for="treble">Treble · 4 kHz shelf</label><output id="trebleValue">0.0 dB</output><br>
+<input id="treble" type="range" min="-12" max="12" step="0.5" value="0"><br>
+<label><input id="eqBypass" type="checkbox">EQ Bypass（全バンド0 dB）</label>
+<button id="eqReset">EQをリセット</button><br>
+<small>3つのフィルターをC側で直列処理。係数は10 msで補間します。ブースト時に音が割れる場合はGainを下げてください。</small>
+</section>
+<section><h2>WASM Reverb</h2>
+<p>複数の遅延とフィードバックによるステレオ残響。Roomは残響の長さの調整で、秒数ではありません。</p>
+<label for="mix">Mix（0: Dry / 1: Wet）</label><output id="mixValue">0.25</output><br><input id="mix" type="range" min="0" max="1" step="0.01" value="0.25"><br>
+<label for="room">Room / 残響の長さ</label><output id="roomValue">0.6</output><br><input id="room" type="range" min="0" max="1" step="0.01" value="0.6"><br>
+<label for="damping">Damping / 高域の減衰</label><output id="dampingValue">0.4</output><br><input id="damping" type="range" min="0" max="1" step="0.01" value="0.4"><br>
+<label><input id="reverbBypass" type="checkbox">Reverb Bypass（Dry）</label>
+<p>Bypass中も内部の残響は更新します。停止ボタンで残響を消去します。</p></section>
+<p id="status" role="status">音声ファイルを読み込んで、再生を押してください。</p>
+<script type="module" src="./main.js?v=reverb-1"></script>
+</html>
