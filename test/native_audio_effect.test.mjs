@@ -142,3 +142,37 @@ for(const rate of [44100,48000,96000]) {
     assert.ok(Math.abs(out[n+127]-0.2)<1e-6);
   });
 }
+
+for(const rate of [44100,48000,96000]) {
+  test(`noise gate thresholds, hold, stereo link, release and bypass at ${rate} Hz`,()=>{
+    const a=new WebAssembly.Instance(module).exports;
+    a._initialize(); a.gain_reset(); a.eq_reset(rate); a.reverb_reset(rate); a.compressor_reset(rate); a.gate_reset(rate);
+    const n=a.gain_capacity();
+    const input=new Float32Array(a.memory.buffer,a.gain_input(),n*2);
+    const out=new Float32Array(a.memory.buffer,a.gain_output(),n*2);
+    function run(l,r,seconds) {
+      input.fill(l,0,n); input.fill(r,n);
+      for(let i=0;i<Math.ceil(rate*seconds/128);i++) a.gain_process(128);
+      assert.ok(Number.isFinite(out[127])); return out[127];
+    }
+    a.gate_set(-20,6,5,100,50,0);
+    assert.ok(Math.abs(run(0.01,0.005,0.5))<1e-7,'low signal suppressed');
+    const opening=run(0.2,0.05,128/rate);
+    const opened=run(0.2,0.05,0.2);
+    assert.ok(opening<opened); assert.ok(Math.abs(opened-0.2)<1e-6);
+    assert.ok(Math.abs(out[n+127]/opened-0.25)<1e-6);
+    assert.ok(Math.abs(run(0.07,0.01,0.4)-0.07)<1e-6,'hysteresis keeps open');
+    assert.ok(Math.abs(run(0.01,0,0.05)-0.01)<1e-6,'hold keeps open');
+    const closing=run(0.01,0,0.1);
+    assert.ok(closing>0 && closing<0.01);
+    assert.ok(run(0.01,0,1)<1e-7);
+    a.gate_clear();
+    assert.ok(run(0.07,0,0.3)<1e-7,'same hysteresis band cannot open closed gate');
+    run(0.01,0.2,0.3);
+    assert.ok(Math.abs(out[127]-0.01)<1e-6,'right signal opens both channels');
+    a.gate_set(-20,6,5,100,50,1);
+    assert.ok(Math.abs(run(0.001,0.002,0.5)-0.001)<1e-7);
+    a.gate_set(NaN,6,5,100,50,0);
+    assert.ok(Math.abs(run(0.001,0.002,0.1)-0.001)<1e-7,'invalid update ignored');
+  });
+}

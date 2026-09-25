@@ -2,6 +2,7 @@
 #include <math.h>
 #include "reverb.h"
 #include "compressor.h"
+#include "noise_gate.h"
 #define CAPACITY 2048
 static float input[CAPACITY * 2];
 static float output[CAPACITY * 2];
@@ -11,7 +12,7 @@ float *gain_input(void) { return input; }
 float *gain_output(void) { return output; }
 int gain_capacity(void) { return CAPACITY; }
 void eq_reset(double sample_rate);
-void gain_reset(void) { eq_reset(48000); reverb_reset(48000); compressor_reset(48000); current = target = 1.0f; step = 0; remaining = 0; }
+void gain_reset(void) { eq_reset(48000); reverb_reset(48000); compressor_reset(48000); gate_reset(48000); current = target = 1.0f; step = 0; remaining = 0; }
 void gain_set(float value, int ramp_frames) {
     if (!(value >= 0.0f && value <= 2.0f)) return;
     target = value;
@@ -80,6 +81,7 @@ void gain_process(int frames) {
         }
         output[i] = (float)eq_tick(0, input[i] * current);
         output[CAPACITY+i] = (float)eq_tick(1, input[CAPACITY+i] * current);
+        gate_tick(&output[i], &output[CAPACITY+i]);
         compressor_tick(&output[i], &output[CAPACITY+i]);
         reverb_tick(&output[i], &output[CAPACITY+i]);
     }

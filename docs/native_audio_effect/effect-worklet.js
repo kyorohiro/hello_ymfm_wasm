@@ -7,13 +7,18 @@ class NativeGain extends AudioWorkletProcessor {
     this.api.eq_reset(sampleRate);
     this.api.reverb_reset(sampleRate);
     this.api.compressor_reset(sampleRate);
+    this.api.gate_reset(sampleRate);
     this.capacity = this.api.gain_capacity();
     this.input = new Float32Array(this.api.memory.buffer, this.api.gain_input(), this.capacity * 2);
     this.output = new Float32Array(this.api.memory.buffer, this.api.gain_output(), this.capacity * 2);
     this.gain = 1;
     this.bypass = false;
     this.port.onmessage = ({ data }) => {
-      if (data.type === 'clear') { this.api.reverb_clear(); this.api.compressor_clear(); return; }
+      if (data.type === 'clear') { this.api.reverb_clear(); this.api.compressor_clear(); this.api.gate_clear(); return; }
+      if (data.type === 'gate') {
+        this.api.gate_set(data.gateThreshold, data.gateHysteresis, data.gateAttack, data.gateHold, data.gateRelease, data.bypass ? 1 : 0);
+        return;
+      }
       if (data.type === 'compressor') {
         this.api.compressor_set(data.threshold, data.ratio, data.attack, data.release, data.makeup, data.bypass ? 1 : 0);
         return;

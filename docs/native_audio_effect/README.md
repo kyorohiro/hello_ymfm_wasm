@@ -68,3 +68,20 @@ Compressor BypassではMakeupも無効。内部の検出・圧縮状態は更新
 44.1/48/96 kHzで静的圧縮比、左右連動、Attack/Release、Makeup、Bypassを
 実WASMで検証済み。瞬時ピーク方式の低音への影響やポンピング、実ブラウザーの
 処理負荷は試聴・実機で評価する。既存DynamicsCompressorNodeの完全再現ではない。
+
+## Noise Gate
+
+`native/audio_effect/noise_gate.c`。Gain → EQ → Gate → Compressor → Reverbの固定直列。
+左右の絶対値の最大を使うピークフォロワー（立ち上がり即時・減衰10ms）で判定する。
+Threshold以上で開き、Threshold − Hysteresis未満がHold時間続くと閉じる。
+音声ゲインはAttack/Releaseの一次平滑化で変更し、左右に同じ値を適用する。
+
+Threshold -80〜0 dBFS、Hysteresis 0〜24 dB、Attack 0.1〜200 ms、
+Hold 0〜1000 ms、Release 10〜2000 ms。初期値は-40 dBFS / 6 dB / 5 / 50 / 100 ms。
+Threshold・Hysteresis・Bypassは10ms時定数で補間。Bypass中も検出は継続する。
+停止・再生開始で検出レベル・開閉状態をクリアし、設定は維持する。
+Reverbの前にあるので生成済みの残響をゲートで切らない。
+先読みはなく、短い音や小さい減衰の欠落は設定と試聴で確認する。
+
+44.1/48/96 kHzで小信号抑制・ヒステリシス・Hold・Attack/Release・左右連動・
+Bypass・不正値拒否を検証済み。実ブラウザーでの試聴・負荷評価は別途必要。

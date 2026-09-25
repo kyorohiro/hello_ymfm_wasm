@@ -30,13 +30,21 @@ function updateCompressor() {
   }
   effect?.port.postMessage({ type: 'compressor', ...values, bypass: $('compressorBypass').checked });
 }
+function updateGate() {
+  const values = {};
+  for (const id of ['gateThreshold', 'gateHysteresis', 'gateAttack', 'gateHold', 'gateRelease']) {
+    values[id] = Number($(id).value);
+    $(id + 'Value').textContent = String(values[id]);
+  }
+  effect?.port.postMessage({ type: 'gate', ...values, bypass: $('gateBypass').checked });
+}
 async function ready() {
   if (!context) context = new AudioContext();
   if (!setup) setup = (async () => {
-    const response = await fetch(new URL('./gain.wasm?v=compressor-1', import.meta.url));
+    const response = await fetch(new URL('./gain.wasm?v=gate-1', import.meta.url));
     if (!response.ok) throw new Error(`WASM: HTTP ${response.status}`);
     const module = await WebAssembly.compile(await response.arrayBuffer());
-    await context.audioWorklet.addModule(new URL('./effect-worklet.js?v=compressor-1', import.meta.url));
+    await context.audioWorklet.addModule(new URL('./effect-worklet.js?v=gate-1', import.meta.url));
     effect = new AudioWorkletNode(context, 'native-gain', {
       numberOfInputs: 1, numberOfOutputs: 1, outputChannelCount: [2],
       channelCount: 2, channelCountMode: 'explicit', processorOptions: { module },
@@ -47,6 +55,7 @@ async function ready() {
     updateEq();
     updateReverb();
     updateCompressor();
+    updateGate();
   })().catch(error => { setup = null; throw error; });
   return setup;
 }
@@ -87,7 +96,7 @@ $('play').onclick = async () => {
     source.onended = () => { source?.disconnect(); source = null; $('stop').disabled = false; status('再生終了 — リバーブの余韻は継続します。停止で消去。'); };
     source.start();
     $('stop').disabled = false;
-    status(`再生中 — C/WASM gain → EQ → Compressor → Reverb・出力 ${context.sampleRate} Hz`);
+    status(`再生中 — C/WASM gain → EQ → Gate → Compressor → Reverb・出力 ${context.sampleRate} Hz`);
   } catch (error) { status(`再生失敗: ${error.message}`); }
   finally { $('play').disabled = !buffer; }
 };
@@ -117,3 +126,6 @@ $('reverbBypass').onchange = updateReverb;
 
 for (const id of ['threshold', 'ratio', 'attack', 'release', 'makeup']) $(id).oninput = updateCompressor;
 $('compressorBypass').onchange = updateCompressor;
+
+for (const id of ['gateThreshold', 'gateHysteresis', 'gateAttack', 'gateHold', 'gateRelease']) $(id).oninput = updateGate;
+$('gateBypass').onchange = updateGate;

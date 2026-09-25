@@ -2,12 +2,12 @@
 <html lang="ja">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Native Audio Effect — Gain + EQ + Compressor + Reverb</title>
+<title>Native Audio Effect — Gain + EQ + Gate + Compressor + Reverb</title>
 <style>
 body{font:16px system-ui;background:#141b26;color:#edf2fa;max-width:760px;margin:40px auto;padding:0 24px}h1{font-size:28px}p{line-height:1.7;color:#bdcbe0}#drop{border:2px dashed #809bbb;border-radius:12px;padding:36px 20px;text-align:center;margin:24px 0}#drop.over{background:#283c55}button{padding:10px 22px;margin:8px 8px 8px 0;border-radius:6px;border:0}input[type=range]{width:65%;vertical-align:middle}section{background:#202c3c;padding:20px;border-radius:12px;margin:20px 0}label{display:inline-block;margin:10px 12px 10px 0}#status{white-space:pre-wrap}small{color:#bdcbe0}
 </style>
-<h1>Native Audio Effect / Gain + EQ + Compressor + Reverb</h1>
-<p>音声ファイル → AudioWorklet → C / WASM gain → EQ → Compressor → Reverb → スピーカー<br>音声はブラウザー内で処理します。サーバーへ送信しません。</p>
+<h1>Native Audio Effect / Gain + EQ + Gate + Compressor + Reverb</h1>
+<p>音声ファイル → AudioWorklet → C / WASM gain → EQ → Gate → Compressor → Reverb → スピーカー<br>音声はブラウザー内で処理します。サーバーへ送信しません。</p>
 <div id="drop">音声ファイルをドラッグ＆ドロップ<br><br><label>ファイルを選択 <input id="file" type="file" accept="audio/*"></label></div>
 <div id="info">ファイル未選択</div>
 <button id="play" disabled>再生</button><button id="stop" disabled>停止</button>
@@ -30,6 +30,15 @@ body{font:16px system-ui;background:#141b26;color:#edf2fa;max-width:760px;margin
 <button id="eqReset">EQをリセット</button><br>
 <small>3つのフィルターをC側で直列処理。係数は10 msで補間します。ブースト時に音が割れる場合はGainを下げてください。</small>
 </section>
+<section><h2>WASM Noise Gate</h2>
+<p>左右連動。Threshold以上で開き、Threshold − Hysteresis未満がHold時間続くと閉じます。小さい音の内部ノイズを取り除く処理ではなく、小音量区間を抑える効果です。</p>
+<label for="gateThreshold">Threshold / dBFS</label><output id="gateThresholdValue">-40</output><br><input id="gateThreshold" type="range" min="-80" max="0" step="1" value="-40"><br>
+<label for="gateHysteresis">Hysteresis / dB</label><output id="gateHysteresisValue">6</output><br><input id="gateHysteresis" type="range" min="0" max="24" step="1" value="6"><br>
+<label for="gateAttack">Attack / ms</label><output id="gateAttackValue">5</output><br><input id="gateAttack" type="range" min="0.1" max="200" step="0.1" value="5"><br>
+<label for="gateHold">Hold / ms</label><output id="gateHoldValue">50</output><br><input id="gateHold" type="range" min="0" max="1000" step="5" value="50"><br>
+<label for="gateRelease">Release / ms</label><output id="gateReleaseValue">100</output><br><input id="gateRelease" type="range" min="10" max="2000" step="10" value="100"><br>
+<label><input id="gateBypass" type="checkbox">Noise Gate Bypass</label>
+<p>検出レベルは10 msで減衰。Attack/Releaseはゲイン変化の時定数です。残響を切らないようReverbの前に配置しています。</p></section>
 <section><h2>WASM Compressor</h2>
 <p>左右連動のピーク検出・ハードニー・先読みなし。Attack中のピークは通るため、リミッターではありません。</p>
 <label for="threshold">Threshold / dBFS</label><output id="thresholdValue">-18</output><br><input id="threshold" type="range" min="-60" max="0" step="1" value="-18"><br>
@@ -47,5 +56,5 @@ body{font:16px system-ui;background:#141b26;color:#edf2fa;max-width:760px;margin
 <label><input id="reverbBypass" type="checkbox">Reverb Bypass（Dry）</label>
 <p>Bypass中も内部の残響は更新します。停止ボタンで残響を消去します。</p></section>
 <p id="status" role="status">音声ファイルを読み込んで、再生を押してください。</p>
-<script type="module" src="./main.js?v=compressor-1"></script>
+<script type="module" src="./main.js?v=gate-1"></script>
 </html>

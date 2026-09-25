@@ -183,3 +183,14 @@ Roomはフィードバック量による残響調整で、RT60秒数指定では
 
 瞬時ピークから目標圧縮量を計算し、dBの圧縮量を平滑化する方式。
 汎用グラフAPIとnoise gateは引き続き残件。
+
+### Noise Gate追加
+
+- [x] `native/audio_effect/noise_gate.c` に左右連動ピークフォロワーと開閉処理を追加。
+- [x] Threshold / Hysteresis / Attack / Hold / Releaseと専用Bypassを追加。
+- [x] Gain → EQ → Gate → Compressor → Reverbの固定直列へ接続。
+- [x] 44.1/48/96 kHzで抑制・時間応答・ヒステリシス・左右連動・Bypassを検証。
+- [ ] 実音で短い音・減衰の途切れ、再生中の操作と古いPCの負荷を確認する。
+
+必要な個別FXの試作が揃った段階。汎用branch / parallel / setChain、
+複数FXインスタンスの所有権・接続切り替えはまだ実装していない。
