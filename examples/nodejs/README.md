@@ -167,6 +167,30 @@ node examples/nodejs/main_segapsg_wave.js /tmp/segapsg.wav
 - 音名・Hzからの周期変換は `SEGAPSG_CLOCK` 前提。サンプルも同じクロックを使う。
 - PSGは矩形波なので、YM2612のサイン波とは異なる音になる。
 
+## RF5C164 → WAV
+
+```sh
+node examples/nodejs/main_rf5c164_wave.js
+node examples/nodejs/main_rf5c164_wave.js /tmp/rf5c164.wav
+```
+
+[main_rf5c164_wave.js](main_rf5c164_wave.js) は、波形RAMに1周期のサイン波を書き込み、
+約440 Hz → 約660 Hz → 左約440 Hz・右約660 Hzを各1秒、その後0.5秒の無音を生成する。
+出力はスクリプトの隣の `rf5c164.wav`（48 kHz・16 bitステレオ）。同名ファイルは上書きする。
+WASMがない場合は `sh scripts/build_rf5c164_wasm.sh` でビルドする。
+
+`Rf5c164` がチップ本体、`createRf5c164Control(chip)` が操作ヘルパー。
+ヘルパーは現在 `web/playground_rf5c164.js` にあり、PlaygroundのWorkletと共通で使う。
+Node.jsでは直接接続するので、`loadMemory` / `setChannel` / `keyOn` / `keyOff` は同期操作。
+Playgroundの通信クライアントが返すPromiseとは異なる。
+
+例ではファイルのデコードを使わず、RF5C164固有の符号・振幅表現で波形を作る。
+末尾の `0xff` は `loopStart` へ戻るマーカー。stepによる飛び越しを避けるため、
+この例では8 byte連続配置する。2つの物理CHから同じ波形RAMを読める。
+ループ周期は内部更新単位で丸められるため、音程は指定Hzに対する近似になる。
+`step` を変えると再生速度と音程が変わる。例のHz換算式は1周期の波形用で、
+任意の録音サンプルを音名へ変換する式ではない。
+
 ## 名前からチップを生成する
 
 ```sh
