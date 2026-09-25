@@ -2,7 +2,7 @@
 import { readFile, writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { Rf5c164, RF5C164_CLOCK } from "../../web/rf5c164.js";
-import { createRf5c164Control } from "../../web/playground_rf5c164.js";
+import { RF5C164Synth, RF5C164DirectTransport } from "../../web/rf5c164synth.js";
 import { encodeStereoWav } from "../../docs/vgm_analyzer/vgm_wav.js";
 import moduleFactory from "../../docs/generated/rf5c164_wasm.js";
 
@@ -16,9 +16,11 @@ async function main() {
     sampleRate: 48000,
   });
   try {
-    // PlaygroundのWorkletでも使う操作ヘルパー。ここでは直接チップを渡す。
+    // PlaygroundのWorkletと共通のSynth。DirectTransportでチップへ直接接続する。
     // Node.jsでは同期実行なので、各CH操作にawaitは不要。
-    const pcm = createRf5c164Control(chip);
+    const pcm = new RF5C164Synth({
+      transport: new RF5C164DirectTransport(chip),
+    });
     pcm.reset();
     chip.clearMemory();
     const sampleRate = chip.sampleRate();

@@ -49,6 +49,7 @@ opn_runtime_synth.js
 pitch.js
 segapsg.js
 segapsg_api.js
+segapsgsynth.js
 stereo-width-worklet.js
 tfi.js
 vgi.js

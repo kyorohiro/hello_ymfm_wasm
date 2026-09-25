@@ -2,7 +2,7 @@
 import { readFile, writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { SegaPSG, SEGAPSG_CLOCK } from "../../web/segapsg.js";
-import { createSegaPsgApi } from "../../web/segapsg_api.js";
+import { SegaPSGSynth, SegaPSGDirectTransport } from "../../web/segapsgsynth.js";
 import { encodeStereoWav } from "../../docs/vgm_analyzer/vgm_wav.js";
 import moduleFactory from "../../docs/generated/segapsg_wasm.js";
 
@@ -16,10 +16,9 @@ async function main() {
     sampleRate: 48000,   // PSGコアは指定した出力レートでPCMを生成できる。
   });
   try {
-    // Playground と同じ高級API。Node.jsではレジスタ書き込みをチップへ直接つなぐ。
-    const psg = createSegaPsgApi({
-      write: value => chip.write(value),
-      reset: () => chip.reset(),
+    // YM2612と同じSynth + DirectTransport。チップ本体がPCMを生成する。
+    const psg = new SegaPSGSynth({
+      transport: new SegaPSGDirectTransport(chip),
     });
     psg.reset();
     const sampleRate = chip.sampleRate();

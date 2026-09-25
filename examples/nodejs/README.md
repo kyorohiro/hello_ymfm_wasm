@@ -1,5 +1,11 @@
 # Node.js の利用例
 
+FM / PSG / PCM は、チップを生成 → `new XxxSynth({transport: new XxxDirectTransport(chip)})`
+で接続 → 操作 → `chip.generateStereo()` → WAV保存、という共通の流れにする。
+チップの解放は呼び出し側の `finally` で `chip.dispose()` を行う。
+既存の `createSegaPsgApi` / `createRf5c164Control` は互換窓口として同じSynthを利用する。
+RF5C164のPCM形式変換は `web/rf5c164_pcm.js`、通信は `web/playground_rf5c164.js` に分離している。
+
 ## OPN 系の独立サンプル
 
 各ファイルに初期化・音色設定・発音・PCM 生成・WAV 保存・解放までを記載している。
@@ -157,8 +163,8 @@ node examples/nodejs/main_segapsg_wave.js /tmp/segapsg.wav
 同名ファイルは上書きする。生成物がない場合は `sh scripts/build_segapsg_wasm.sh` でビルドする。
 
 `SegaPSG` は低レベルのチップ操作・PCM生成を担当し、
-`createSegaPsgApi({write, reset})` が Playground と共通の高級関数を提供する。
-`YM2612Synth` のようなクラス名ではないが、`tone()` / `off()` /
+`SegaPSGSynth({transport: new SegaPSGDirectTransport(chip)})` が高級関数を提供する。
+YM2612と同じSynth＋DirectTransportの形で、`tone()` / `off()` /
 `noise()` / `noiseOff()` をNode.jsでもそのまま使える。
 
 - トーンCHは0..2。`tone(ch, {note: "A4"})`、`frequency`、`period`で音程を指定する。
@@ -179,8 +185,8 @@ node examples/nodejs/main_rf5c164_wave.js /tmp/rf5c164.wav
 出力はスクリプトの隣の `rf5c164.wav`（48 kHz・16 bitステレオ）。同名ファイルは上書きする。
 WASMがない場合は `sh scripts/build_rf5c164_wasm.sh` でビルドする。
 
-`Rf5c164` がチップ本体、`createRf5c164Control(chip)` が操作ヘルパー。
-ヘルパーは現在 `web/playground_rf5c164.js` にあり、PlaygroundのWorkletと共通で使う。
+`Rf5c164` がチップ本体、`RF5C164Synth` が操作・レジスタ生成を担当する。
+`web/rf5c164synth.js` の `RF5C164DirectTransport(chip)` で接続し、Playgroundと処理を共有する。
 Node.jsでは直接接続するので、`loadMemory` / `setChannel` / `keyOn` / `keyOff` は同期操作。
 Playgroundの通信クライアントが返すPromiseとは異なる。
 

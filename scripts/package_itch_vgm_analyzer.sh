@@ -146,6 +146,7 @@ native_audio_effect.wasm
 megasynth_recording.js
 pitch.js
 segapsg_api.js
+segapsgsynth.js
 tetorica_audio_runtime.js
 ym2612-worklet.js
 ym2612synth.js

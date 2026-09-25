@@ -55,6 +55,8 @@ native_fx.js
 native_noise.js
 native_sample.js
 playground_rf5c164.js
+rf5c164synth.js
+rf5c164_pcm.js
 playground_rf5c164_audio.js
 rf5c164-worklet.js
 native_sample_processor.js
@@ -80,6 +82,7 @@ playground_runtime.js
 playground_sync.js
 segapsg.js
 segapsg_api.js
+segapsgsynth.js
 opn_fm_synth.js
 opn_runtime_synth.js
 opn_fm_vgm.js
