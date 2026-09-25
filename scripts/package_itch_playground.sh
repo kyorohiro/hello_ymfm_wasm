@@ -116,6 +116,8 @@ synth_keyboard.js
 "
 
 GENERATED_FILES="
+rf5c164_wasm.js
+rf5c164_wasm.wasm
 ym2612_wasm.js
 ym2612_wasm.wasm
 nuked_opn2_wasm.js
@@ -225,7 +227,7 @@ for file in ${GENERATED_FILES}; do
   cp "${src}" "${dst}"
 done
 
-for chip in ym2203 ym2608 ym2610b rf5c164; do
+for chip in ym2203 ym2608 ym2610b; do
   if [ -f "${DOCS_GENERATED_DIR}/${chip}_wasm.js" ] && [ -f "${DOCS_GENERATED_DIR}/${chip}_wasm.wasm" ]; then
     cp "${DOCS_GENERATED_DIR}/${chip}_wasm.js" "${STAGE_DIR}/generated/${chip}_wasm.js"
     cp "${DOCS_GENERATED_DIR}/${chip}_wasm.wasm" "${STAGE_DIR}/generated/${chip}_wasm.wasm"
@@ -240,6 +242,7 @@ cp -R "${PLAYGROUND_SAMPLES_DIR}/." "${STAGE_DIR}/samples/"
 cp -R "${PLAYGROUND_VENDOR_DIR}/." "${STAGE_DIR}/vendor/"
 
 cp "${LICENSE_FILE}" "${STAGE_DIR}/LICENSE"
+cp "${ROOT_DIR}/docs/llms.txt" "${STAGE_DIR}/llms.txt"
 cp "${ROOT_DIR}/docs/playground-favicon.ico" "${STAGE_DIR}/favicon.ico"
 
 for file in ${NUKED_LICENSE_FILES}; do
@@ -247,6 +250,9 @@ for file in ${NUKED_LICENSE_FILES}; do
 done
 
 cat > "${STAGE_DIR}/THIRD_PARTY_LICENSES.txt" <<EOF
+RF5C164: MAME adaptation, BSD-3-Clause.
+See ./licenses/mame-rf5c164/LICENSE and README.md.
+
 This package includes two YM2612 engine options:
 
 - Default engine: ymfm
@@ -263,7 +269,7 @@ This package includes two YM2612 engine options:
 EOF
 
 # Make the playground runnable from itch.io as a standalone app.
-perl -0pi -e 's#\s*<link rel="manifest" href="\.\./[^\"]+\.webmanifest">##g; s#href="\.\./playground-favicon\.ico"#href="./favicon.ico"#g; s#\s*<script src="\.\./sw-register\.js"></script>##g' "${STAGE_DIR}/index.html"
+perl -0pi -e 's#\s*<link rel="manifest" href="\.\./[^\"]+\.webmanifest">##g; s#href="../llms.txt"#href="./llms.txt"#g; s#href="\.\./playground-favicon\.ico"#href="./favicon.ico"#g; s#\s*<script src="\.\./sw-register\.js"></script>##g' "${STAGE_DIR}/index.html"
 perl -0pi -e 's#<a class="link-button" href="\.\./index\.html">Back</a>##g' \
   "${STAGE_DIR}/index.html"
 perl -0pi -e 's#"\./playground\.js"#"./playground.js"#g; s#\.\./js/#./js/#g; s#\.\./synth/#./synth/#g; s#\.\./generated/#./generated/#g' \
@@ -280,6 +286,8 @@ perl -0pi -e 's#"\./playground\.js"#"./playground.js"#g; s#\.\./js/#./js/#g; s#\
   "${STAGE_DIR}/playground_query.js" \
   "${STAGE_DIR}/playground_examples.js" \
   "${STAGE_DIR}/playground_ui.js"
+
+node --experimental-vm-modules "${ROOT_DIR}/scripts/check_playground_package.mjs" "${STAGE_DIR}"
 
 (
   cd "${STAGE_DIR}"

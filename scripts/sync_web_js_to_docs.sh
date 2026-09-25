@@ -162,3 +162,6 @@ echo "done: synced shared web runtime files into docs/js"
 
 mkdir -p "${ROOT_DIR}/docs/licenses/mame-rf5c164"
 cp "${ROOT_DIR}/third_party/mame-rf5c164/LICENSE" "${ROOT_DIR}/third_party/mame-rf5c164/README.md" "${ROOT_DIR}/docs/licenses/mame-rf5c164/"
+
+perl -0pi -e 's#\./generated/rf5c164#../generated/rf5c164#g' \
+  "${DOCS_JS_DIR}/rf5c164-worklet.js" "${DOCS_JS_DIR}/playground_rf5c164_audio.js"

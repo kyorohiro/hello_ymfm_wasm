@@ -1,6 +1,6 @@
 /** Browser AudioWorklet: RF5C164 PCM generation and direct control port. */
 import {Rf5c164} from './rf5c164.js';
-import factory from '../generated/rf5c164_wasm.js';
+import factory from './generated/rf5c164_wasm.js';
 import {createRf5c164Control} from './playground_rf5c164.js';
 class Processor extends AudioWorkletProcessor {
  constructor(options){super();this.control=null;this.chip=null;this.dead=false;this.port.onmessage=({data})=>{
