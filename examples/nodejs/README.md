@@ -144,6 +144,29 @@ Key Off、リセット再現性、DAC 出力差を検証する。実機との音
 WAV 変換には現在の共通利用可能な関数として Analyzer の
 `docs/vgm_analyzer/vgm_wav.js` を使用している。
 
+## Sega PSG → WAV
+
+```sh
+node examples/nodejs/main_segapsg_wave.js
+node examples/nodejs/main_segapsg_wave.js /tmp/segapsg.wav
+```
+
+[main_segapsg_wave.js](main_segapsg_wave.js) は、A4の単音3秒、3 CHの和音1秒、
+ホワイトノイズ1秒を、それぞれの後に0.5秒の無音を入れて生成する。
+既定の出力はスクリプトの隣の `segapsg.wav`。48 kHz・16 bitステレオ、計6.5秒。
+同名ファイルは上書きする。生成物がない場合は `sh scripts/build_segapsg_wasm.sh` でビルドする。
+
+`SegaPSG` は低レベルのチップ操作・PCM生成を担当し、
+`createSegaPsgApi({write, reset})` が Playground と共通の高級関数を提供する。
+`YM2612Synth` のようなクラス名ではないが、`tone()` / `off()` /
+`noise()` / `noiseOff()` をNode.jsでもそのまま使える。
+
+- トーンCHは0..2。`tone(ch, {note: "A4"})`、`frequency`、`period`で音程を指定する。
+- `attenuation` は0が最大音量、15が消音。`volume` は0..1で指定できる。
+- ノイズは独立したCHで、`noise({type: "white", rate: "medium"})` のように操作する。
+- 音名・Hzからの周期変換は `SEGAPSG_CLOCK` 前提。サンプルも同じクロックを使う。
+- PSGは矩形波なので、YM2612のサイン波とは異なる音になる。
+
 ## 名前からチップを生成する
 
 ```sh
