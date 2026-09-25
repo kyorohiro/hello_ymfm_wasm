@@ -16,7 +16,7 @@ RF5C164のPCM形式変換は `web/rf5c164_pcm.js`、通信は `web/playground_rf
 | YM2203 | [main_ym2203_wave.js](main_ym2203_wave.js) | FM 3 CH。標準分周72に合わせて音程を計算 |
 | YM2608 | [main_ym2608_wave.js](main_ym2608_wave.js) | FM 6 CHを順番・同時に発音。ROM不要 |
 | YM2610 | [main_ym2610_wave.js](main_ym2610_wave.js) | YM2610Bラッパーを `variant: false` で使用。物理 CH2で発音 |
-| YM2610B | [main_ym2610b_wave.js](main_ym2610b_wave.js) | FM 6 CH版 |
+| YM2610B | [main_ym2610b_wave.js](main_ym2610b_wave.js) | FM 6 CHを順番・同時に発音 |
 | YM2612 | [main_ym2612_wave.js](main_ym2612_wave.js) | OPN2 |
 | YM3438 | [main_ym3438_wave.js](main_ym3438_wave.js) | チップ固有の出力処理を使用 |
 | YMF276 | [main_ymf276_wave.js](main_ymf276_wave.js) | チップ固有の出力処理を使用 |
@@ -192,6 +192,63 @@ adpcm.keyOff();
 
 サンプルのエンコーダーはymfmのADPCM-B復号式に合わせた誤差最小のニブル選択で、
 上位ニブルから格納する。内蔵リズム用ADPCM-Aとは互換ではない。
+
+## YM2610B → WAV（FM / CH3 special / SSG / ADPCM-A・B）
+
+```sh
+node examples/nodejs/main_ym2610b_wave.js
+node examples/nodejs/main_ym2610b_3chsp_wave.js
+node examples/nodejs/main_ym2610b_ssg_wave.js
+node examples/nodejs/main_ym2610b_adpcma_wave.js
+node examples/nodejs/main_ym2610b_adpcm_wave.js
+```
+
+各スクリプトの隣に `ym2610b.wav` / `ym2610b_3chsp.wav` / `ym2610b_ssg.wav` /
+`ym2610b_adpcma.wav` / `ym2610b_adpcm.wav` を保存する。第1引数で保存先を指定できる。
+既存ファイルは上書きする。全例48 kHz・16 bitステレオ。ADPCMデータはデモ内で生成し、外部ROMは不要。
+
+`YM2610BSynth({transport: new YM2610BDirectTransport(chip)})` から操作する。
+
+| 機能 | API | サンプルの内容 |
+| --- | --- | --- |
+| FM 6 CH | 既存FMメソッド | 各CHの順次発音＋6 CH同時発音、計7秒 |
+| CH3 special | `setChannel3SpecialMode` / `setChannel3SpecialFrequency` | 4 Operatorの独立音程、計3.5秒 |
+| SSG | `synth.ssg` | トーン・ノイズ・エンベロープ、計6.5秒 |
+| ADPCM-A | `synth.adpcmA` | 6種類の減衰サイン波を別アドレスへ配置し、順次・同時発音、計4.7秒 |
+| ADPCM-B | `synth.adpcmB`（`synth.adpcm`も同じオブジェクト） | ワンショット・リピート・2倍速・左右切替、計3.75秒 |
+
+SSGの実効クロックは既定マスター8 MHzの1/4。FMの周波数変換にはマスタークロックを渡す。
+SSGのI/Oポートはこのチップでは非対応。通常のトーン・ノイズ・エンベロープを使用する。
+
+ADPCM-AはYM2608の固定リズムとは異なり、任意のADPCM-Aサンプルを6 CHに割り当てられる。
+
+```javascript
+const a = synth.adpcmA;
+a.loadMemory(adpcmABytes, 0);
+a.setSample(0, {start: 0, end: adpcmABytes.length});
+a.setVolume(48); // 全体0..63
+a.setVoice(0, {volume: 24, left: true, right: true}); // 個別0..31
+a.keyOn(0); // 配列でも同時発音できる
+// chip.generateStereo(...) で時間を進める
+a.keyOff(0);
+```
+
+- A/BのROM領域は独立し、それぞれ最大16 MiB。`loadMemory` は変換済みの `Uint8Array` / `ArrayBuffer` を受け取る。
+  DirectTransportは全アドレス空間を確保し、追加転送で既存サンプルを切り詰めない（最大合計32 MiB）。
+- 再生範囲はバイト単位の `[start, end)`、両端256 byte境界。YM2608のADPCM-Bの32 byte境界とは異なる。
+  空範囲・非整列・範囲外をエラーにする。パディングも復号されるので、データ生成時に長さを合わせる。
+- Aは `setSample(ch, range)`、Bは `setSample(range)`。Aの各範囲は1 MiB未満に制限する。
+  コアのADPCM-A終端比較がアドレス下位20 bitのみを使うため。
+- Aは固定復号レート `clock / 432`（8 MHzで約18.52 ksample/s）。ピッチ変更・ハードウェアリピートはない。
+  BはYM2608と同じ `setPlaybackRate` / `setDeltaN` / `setVolume` / `setPan` / `keyOn({repeat})` / `keyOff`。
+- A/Bは異なる圧縮形式。片方用のデータをもう片方に渡さない。Aの音量0は消音の保証ではなく、停止には `keyOff`。
+- A/Bの `reset()` はその音源の設定を初期化し、ROMと他の音源を保持する。チップ全体のresetでもROMは保持する。
+- 生レジスタ操作はSynth経由で行う。Bはport 0の0x10..0x1b、Aはport 1の0x00..0x2dを使う。
+- 今回はNode.jsのDirectTransportで確認。独自Transportには `loadAdpcmMemory(type, bytes, address)` が必要。
+  typeはA=0、B=1。RuntimeSynth / WorkerのROM転送・Playground UI・WAV/FLAC変換は今回の対象外。
+
+`node --test web/ym2610bsynth.test.mjs` で、FM 6 CH・CH3 special・SSG・A/Bの再生と状態分離を確認する。
+サンプル内のエンコーダーは試聴データ生成用。汎用の音声ファイル変換APIではない。
 
 ## YM2612 → WAV
 

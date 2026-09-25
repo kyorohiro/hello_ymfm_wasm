@@ -16,6 +16,8 @@ export class YM2608DirectTransport extends OPNDirectTransport {
   }
   /** Transfer caller-provided rhythm ROM to the core. */
   loadRhythmRom(bytes) { return this.chip.loadAdpcmARom(bytes); }
+  /** Transfer already encoded ADPCM-B bytes to external sample memory. */
+  loadAdpcmMemory(bytes, offset) { return this.chip.loadAdpcmBMemory(bytes, offset); }
 }
 
 /** YM2608's six fixed rhythm voices. Names follow the ROM's hardware order. */
@@ -89,7 +91,102 @@ export class YM2608RhythmSynth {
   }
 }
 
-/** Six-channel FM (including CH3 special), three-channel SSG and fixed-ROM rhythm control. */
+const adpcmInteger = (name, value, max) => {
+  if (!Number.isInteger(value) || value < 0 || value > max) throw new RangeError(`Invalid ADPCM-B ${name}`);
+  return value;
+};
+
+/** YM2608 ADPCM-B external-memory playback, using 8-bit DRAM addressing (32-byte units).
+ * Browser / Worker / Node.js: no file decoding, audio output or memory ownership here.
+ */
+export class YM2608AdpcmSynth {
+  /** @param {{write: function(number, number): void, loadMemory: function(Uint8Array, number): void}} transport
+   * @param {number} clock Master clock in Hz; rate conversion assumes standard FM prescaling.
+   */
+  constructor(transport, clock = YM2608_CLOCK) {
+    if (!Number.isFinite(clock) || clock <= 0) throw new RangeError("Invalid ADPCM-B clock");
+    this.transport = transport;
+    this.clock = clock;
+    this.resetState();
+  }
+  /** Clear the register shadow after the parent chip resets. Memory is preserved. */
+  resetState() {
+    this.registers = new Uint8Array(16);
+    this.registers[12] = this.registers[13] = 255;
+  }
+  /** Track raw port-1 writes through the parent Synth. */
+  observeWrite(register, value) {
+    if (register >= 0 && register < 16) this.registers[register] = value;
+  }
+  _write(register, value) {
+    this.transport.write(register, value);
+    this.observeWrite(register, value);
+  }
+  /** Transfer encoded ADPCM-B, not WAV, PCM or rhythm ADPCM-A.
+   * @param {Uint8Array|ArrayBuffer} bytes
+   * @param {number} [address=0] Byte offset in the 2 MiB memory.
+   */
+  loadMemory(bytes, address = 0) {
+    if (bytes instanceof ArrayBuffer) bytes = new Uint8Array(bytes);
+    if (!(bytes instanceof Uint8Array)) throw new TypeError("ADPCM-B memory requires Uint8Array or ArrayBuffer");
+    adpcmInteger("address", address, 0x200000);
+    if (bytes.length > 0x200000 - address) throw new RangeError("ADPCM-B memory exceeds 2 MiB");
+    return this.transport.loadMemory(bytes, address);
+  }
+  /** Configure a byte range [start, end). Both boundaries must be 32-byte aligned.
+   * Selects 8-bit DRAM mode and the full 2 MiB address limit; call while stopped.
+   * @param {{start: number, end: number}} range End is exclusive, unlike the hardware register.
+   */
+  setSample({start, end}) {
+    adpcmInteger("start", start, 0x1fffff);
+    adpcmInteger("end", end, 0x200000);
+    if (end <= start || start % 32 || end % 32) throw new RangeError("ADPCM-B range must be nonempty and 32-byte aligned");
+    this._write(1, (this.registers[1] & 0xc0) | 2);
+    const first = start / 32, last = end / 32 - 1;
+    this._write(2, first & 255); this._write(3, first >> 8);
+    this._write(4, last & 255); this._write(5, last >> 8);
+    this._write(12, 255); this._write(13, 255);
+  }
+  /** Set raw Delta-N 1..65535. Can change while playing. */
+  setDeltaN(value) {
+    adpcmInteger("Delta-N", value, 65535);
+    if (!value) throw new RangeError("ADPCM-B Delta-N must be positive");
+    this._write(9, value & 255); this._write(10, value >> 8);
+  }
+  /** Set decoded PCM samples/second, not byte rate. Returns the quantized actual rate.
+   * A byte contains two samples; changing this rate changes both speed and pitch.
+   */
+  setPlaybackRate(rate) {
+    if (!Number.isFinite(rate) || rate <= 0) throw new RangeError("Invalid ADPCM-B playback rate");
+    const delta = Math.round(rate * 144 * 65536 / this.clock);
+    this.setDeltaN(delta);
+    return delta * this.clock / (144 * 65536);
+  }
+  /** Linear level 0..255 (0=silence). */
+  setVolume(volume) { this._write(11, adpcmInteger("volume", volume, 255)); }
+  /** Stereo gates; preserves memory-mode bits from raw register writes. */
+  setPan(left, right) {
+    if (typeof left !== "boolean" || typeof right !== "boolean") throw new TypeError("ADPCM-B pan expects booleans");
+    this._write(1, (this.registers[1] & 0x3f) | (left ? 128 : 0) | (right ? 64 : 0));
+  }
+  /** Start/retrigger the selected range. Repeat loops the entire range, not a separate loop point. */
+  keyOn({repeat = false} = {}) {
+    if (typeof repeat !== "boolean") throw new TypeError("ADPCM-B repeat must be boolean");
+    this._write(0, repeat ? 0xb0 : 0xa0);
+  }
+  /** Stop and clear decoder history on the next synthesis update. */
+  keyOff() { this._write(0, 1); }
+  /** Reset ADPCM-B controls only, retaining sample memory and all other sound sources. */
+  reset() {
+    this.keyOff();
+    for (let r = 1; r < 16; r++) {
+      if (r === 8) continue; // CPU data register has memory-transfer side effects.
+      this._write(r, r === 12 || r === 13 ? 255 : 0);
+    }
+  }
+}
+
+/** Six-channel FM (including CH3 special), three-channel SSG, fixed-ROM rhythm and ADPCM-B playback. */
 export class YM2608Synth extends OPNFMSynth {
   /** @param {{transport: OPNDirectTransport, clock?: number}} options
    * clock is the master clock in Hz. SSG frequency helpers assume standard prescaling.
@@ -103,6 +200,13 @@ export class YM2608Synth extends OPNFMSynth {
       supportsPan: true,
       supportsLfo: true,
     });
+    this.adpcm = new YM2608AdpcmSynth({
+      write: (register, value) => this.write(1, register, value),
+      loadMemory: (bytes, address) => {
+        if (typeof this.transport.loadAdpcmMemory !== "function") throw new Error("Transport does not support ADPCM-B memory loading");
+        return this.transport.loadAdpcmMemory(bytes, address);
+      },
+    }, clock);
     this.rhythm = new YM2608RhythmSynth({
       write: (register, value) => this.write(0, register, value),
       loadRom: bytes => {
@@ -123,6 +227,7 @@ export class YM2608Synth extends OPNFMSynth {
     super.reset();
     this.ssg?.resetState();
     this.rhythm?.resetState();
+    this.adpcm?.resetState();
     this.write(0, 0x29, 0x9f);
   }
 
@@ -131,7 +236,7 @@ export class YM2608Synth extends OPNFMSynth {
     if (port === 0) {
       this.ssg?.observeWrite(register, value);
       this.rhythm?.observeWrite(register, value);
-    }
+    } else if (port === 1) this.adpcm?.observeWrite(register, value);
   }
 }
 

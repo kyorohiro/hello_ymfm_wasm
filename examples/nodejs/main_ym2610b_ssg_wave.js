@@ -1,11 +1,9 @@
-/** Node.js で YM2610B のFM 6 CHを順番・同時に発音し、16 bit ステレオ WAV に保存する。 */
+/** Node.js で YM2610B のSSGのトーン・ノイズ・エンベロープを生成し、16 bit ステレオ WAV に保存する。 */
 import { readFile, writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { downsamplePreview } from "./preview_pcm.js";
 import { Ym2610B, YM2610B_CLOCK } from "../../web/ym2610b.js";
 import { YM2610BSynth, YM2610BDirectTransport } from "../../web/ym2610bsynth.js";
-import { FM_PRESETS } from "../../web/megadrive-fm-presets.js";
-import { hzToBlockFnum } from "../../web/pitch.js";
 import { encodeStereoWav } from "../../docs/vgm_analyzer/vgm_wav.js";
 import moduleFactory from "../../docs/generated/ym2610b_wasm.js";
 
@@ -23,28 +21,34 @@ async function main() {
     const synth = new YM2610BSynth({
       transport: new YM2610BDirectTransport(chip),
     });
-    // YM2610BではFM 6 CHが使える。リズムROMは不要。
     const sampleRate = chip.sampleRate(YM2610B_CLOCK);
-    const frequencies = [220, 277.182631, 329.627557, 440, 554.365262, 659.255114];
+    // FMと同じSynthを作り、SSGは synth.ssg から操作する。
+    // FM OperatorのSSG-EGパラメーターとは別の、内蔵3 CH矩形波音源。
+    const ssg = synth.ssg;
+    ssg.reset(); // SSGだけ初期化。FMはリセットしない。
     const chunks = [];
     const render = seconds => chunks.push(chip.generateStereo(Math.round(sampleRate * seconds)));
-    const pitches = frequencies.map(hz => hzToBlockFnum(hz, YM2610B_CLOCK));
-    for (let channel = 0; channel < 6; channel++) {
-      synth.setPreset(channel, FM_PRESETS["sine"]);
-      // 同時発音で加算されるのでTL=20。CH1..3は左、CH4..6は右。
-      synth.setOperator(channel, 3, { tl: 20 });
-      synth.setPan(channel, channel < 3, channel >= 3);
-      const {block, fnum} = pitches[channel];
-      synth.noteOn(channel, block, fnum);
-      render(0.5);
-      synth.noteOff(channel);
-      render(0.25);
-    }
-    // 6 CHを同時に発音する。
-    pitches.forEach(({block, fnum}, channel) => synth.noteOn(channel, block, fnum));
-    render(2);
-    for (let channel = 0; channel < 6; channel++) synth.noteOff(channel);
+
+    // 0..3秒：SSG CH1でA4。volumeは0が無音、15が最大（PSGのattenuationとは逆）。
+    ssg.tone(0, { frequency: 440, volume: 12 });
+    render(3);
+    ssg.off(0);
     render(0.5);
+
+    // 3.5..4.5秒：SSG CH2でノイズ。ノイズ周期は3 CHで共有する。
+    ssg.noise(1, { period: 16, volume: 10 });
+    render(1);
+    ssg.off(1);
+    render(0.5);
+
+    // 5..6秒：SSG CH3の矩形波を共有エンベロープで減衰させる。
+    // shape=9は減衰して0を保持。shapeの再書き込みで再トリガーできる。
+    ssg.setEnvelope({ period: 4000, shape: 9 });
+    ssg.tone(2, { frequency: 660, envelope: true });
+    render(1);
+    ssg.off(2);
+    render(0.5);
+
     const frames = chunks.reduce((sum, chunk) => sum + chunk.left.length, 0);
     const left = new Float32Array(frames), right = new Float32Array(frames);
     let offset = 0;
@@ -55,7 +59,7 @@ async function main() {
     }
 
     // 引数で保存先を指定できる。省略時はこのスクリプトの隣に保存する。
-    const output = process.argv[2] ?? new URL("./ym2610b.wav", import.meta.url);
+    const output = process.argv[2] ?? new URL("./ym2610b_ssg.wav", import.meta.url);
     // ネイティブPCMを実際に変換する。ヘッダーのレートだけ変えてはいけない。
     const outputRate = 48000;
     const previewLeft = downsamplePreview(left, sampleRate, outputRate);

@@ -188,3 +188,91 @@ test('real YM2608 rhythm: six ROM regions, pan, levels, simultaneous keys, retri
     assert.equal(peak(audio.left) + peak(audio.right), 0);
   } finally { chip.dispose(); }
 });
+
+test('ADPCM-B validates memory/ranges/rates before writing; raw writes preserve pan mode', () => {
+  const writes = [];
+  let transfer;
+  const synth = new YM2608Synth({transport: {
+    write(port, reg, value) { writes.push([port, reg, value]); },
+    loadAdpcmMemory(bytes, address) { transfer = {bytes, address}; },
+  }});
+  const a = synth.adpcm;
+  a.loadMemory(new ArrayBuffer(32), 0x1fffe0);
+  assert.equal(transfer.bytes.length, 32);
+  assert.equal(transfer.address, 0x1fffe0);
+  a.setSample({start: 0x1fffe0, end: 0x200000});
+  assert.deepEqual([...a.registers.slice(2, 6)], [255, 255, 255, 255]);
+  synth.write(1, 1, 2);
+  a.setPan(true, false);
+  assert.deepEqual(writes.at(-1), [1, 1, 0x82]);
+  synth.write(0, 1, 0);
+  a.setPan(true, true);
+  assert.deepEqual(writes.at(-1), [1, 1, 0xc2]);
+  assert.ok(Math.abs(a.setPlaybackRate(16000) - 16000) < 1);
+  a.keyOn({repeat: true});
+  assert.deepEqual(writes.at(-1), [1, 0, 0xb0]);
+  const count = writes.length;
+  assert.throws(() => a.loadMemory(new Uint8Array(33), 0x1fffe0), RangeError);
+  assert.throws(() => a.setSample({start: 1, end: 32}), RangeError);
+  assert.throws(() => a.setSample({start: 32, end: 32}), RangeError);
+  assert.throws(() => a.setPlaybackRate(100000), RangeError);
+  assert.throws(() => a.setPlaybackRate(NaN), RangeError);
+  assert.throws(() => a.keyOn({repeat: 1}), TypeError);
+  assert.equal(writes.length, count);
+  a.reset();
+  assert.ok(writes.slice(count).every(([p,r]) => p === 1 && r < 16 && r !== 8));
+  synth.reset();
+  assert.equal(a.registers[1], 0);
+});
+
+test('real ADPCM-B: offset memory, one-shot end, repeat, pan, volume, stop and memory retention', async () => {
+  const {default: moduleFactory} = await import('../docs/generated/ym2608_wasm.js');
+  const chip = await Ym2608.create({moduleFactory, moduleOptions: {
+    wasmBinary: await readFile(new URL('../docs/generated/ym2608_wasm.wasm', import.meta.url)),
+  }});
+  const peak = a => a.reduce((p,x) => Math.max(p, Math.abs(x)), 0);
+  try {
+    const synth = new YM2608Synth({transport: new YM2608DirectTransport(chip)});
+    const a = synth.adpcm, rate = chip.sampleRate();
+    // Synthetic ADPCM-B test data, not an instrument ROM.
+    a.loadMemory(new Uint8Array(320).fill(0x17), 32);
+    const configure = () => {
+      a.setSample({start: 32, end: 352}); // 640 decoded samples, 0.08 seconds at 8 kHz.
+      a.setPlaybackRate(8000);
+      a.setPan(true, false);
+      a.setVolume(180);
+    };
+    configure();
+    a.keyOn();
+    assert.ok(peak(chip.generateStereo(rate * 0.04).left) > 0.01);
+    chip.generateStereo(rate * 0.06);
+    assert.equal(peak(chip.generateStereo(1000).left), 0, 'one-shot must stop at end');
+    a.keyOn({repeat: true});
+    chip.generateStereo(rate * 0.2);
+    let pcm = chip.generateStereo(10000);
+    assert.ok(peak(pcm.left) > 0.01);
+    assert.equal(peak(pcm.right), 0);
+    a.setPan(false, true);
+    a.setPlaybackRate(16000);
+    chip.generateStereo(1000);
+    pcm = chip.generateStereo(10000);
+    assert.equal(peak(pcm.left), 0);
+    assert.ok(peak(pcm.right) > 0.01);
+    a.setVolume(0);
+    chip.generateStereo(1000);
+    assert.equal(peak(chip.generateStereo(1000).right), 0);
+    a.setVolume(180);
+    a.keyOff();
+    chip.generateStereo(1000);
+    assert.equal(peak(chip.generateStereo(1000).right), 0);
+    synth.reset();
+    configure();
+    a.keyOn();
+    assert.ok(peak(chip.generateStereo(10000).left) > 0.01, 'sample memory survives reset');
+    // Resetting ADPCM-B must leave a running SSG tone intact.
+    synth.ssg.reset();
+    synth.ssg.tone(0, {frequency: 440});
+    a.reset();
+    assert.ok(peak(chip.generateStereo(10000).left) > 0.01);
+  } finally { chip.dispose(); }
+});
