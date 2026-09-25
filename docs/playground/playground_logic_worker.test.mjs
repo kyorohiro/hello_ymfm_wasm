@@ -1,3 +1,4 @@
+import {createNativeNoiseController, controlNativeNoise} from "../../web/native_noise.js";
 import {createNativeFXController} from "../../web/native_fx.js";
 import {createWorkerDac} from "../../web/playground_worker_dac.js";
 import {createWorkerChip} from "../../web/playground_worker_chip.js";
@@ -17,7 +18,7 @@ const workerSource = readFileSync(
 function createWorkerHarness() {
   const messages = [];
   const context = {
-    createWorkerDac, atob, createMidiApi, createMidiRack, createWorkerChip, createNativeFXController, DOMException, structuredClone,
+    createNativeNoiseController, controlNativeNoise, createWorkerDac, atob, createMidiApi, createMidiRack, createWorkerChip, createNativeFXController, DOMException, structuredClone,
     createDeadlineScheduler,
     hzToBlockFnum,
     Error,
@@ -462,4 +463,22 @@ test('DAC loading and scheduling reach the direct port without main replies', as
   await worker.send({type:'stop'});
   assert.ok(commands.some(c=>c.type==='clear-dac-playback'));
   assert.ok(commands.some(c=>c.type==='reset-sample-schedule'));
+});
+
+test('native noise is controlled without any main-thread audio request',async()=>{
+ const worker=createWorkerHarness(),commands=[];
+ await worker.send({type:'native-fx',port:{postMessage:d=>commands.push(d),close(){}}});
+ await worker.send({type:'run',presets:{},scaleIntervals:{},sourceCode:`
+  const voice=noise.create({type:'pink',attack:0.1});
+  voice.filter.set('bandpass',1200,.5);
+  control(voice,{gain:.2,pan:-.3,cutoff:800,slide:.1});
+  if(voice.gain.get()!==.2)throw new Error('wrong target');
+  voice.stop();voice.start();
+ `});
+ await waitFor(()=>worker.messages.some(m=>m.type==='complete'),1000);
+ assert.ok(commands.some(c=>c.op==='noise'&&c.action==='create'));
+ assert.ok(commands.some(c=>c.op==='noise'&&c.action==='parameter'&&c.seconds===.1));
+ assert.ok(!worker.messages.some(m=>m.command?.startsWith('noise.')||m.command?.startsWith('audio.')));
+ await worker.send({type:'stop'});
+ assert.ok(commands.some(c=>c.op==='noise'&&c.action==='dispose'));
 });

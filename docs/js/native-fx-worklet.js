@@ -4,20 +4,30 @@ import {FX_TYPES} from './native_fx.js';
 export class NativeFXProcessor extends AudioWorkletProcessor {
  constructor(options){
   super();this.api=new WebAssembly.Instance(options.processorOptions.module,{env:{emscripten_notify_memory_growth(){}}}).exports;
-  this.api._initialize?.();this.api.graph_reset(sampleRate);setChain(this.api,[]);
+  this.api._initialize?.();this.api.graph_reset(sampleRate);this.api.noise_reset(sampleRate);this.noiseTokens=new Map();setChain(this.api,[]);
   this.units=new Map();this.ramps=new Map();this.beatSeconds=.5;this.active=true;
   this.port.onmessage=({data})=>{
    if(data.op==='attach'){
     this.controlPort?.close();this.controlPort=data.port;this.active=false;
-    this.reset();const port=this.controlPort;port.onmessage=({data})=>{if(this.controlPort===port)this.receive(data);};port.start();
-   }else if(data.op==='main'){this.controlPort?.close();this.controlPort=null;this.active=true;this.reset();}
-   else if(data.op==='emergency'){setChain(this.api,[]);this.api.graph_clear();this.ramps.clear();}
+    this.resetNoise();this.reset();const port=this.controlPort;port.onmessage=({data})=>{if(this.controlPort===port)this.receive(data);};port.start();
+   }else if(data.op==='main'){this.controlPort?.close();this.controlPort=null;this.active=true;this.resetNoise();this.reset();}
+   else if(data.op==='emergency'){this.resetNoise();setChain(this.api,[]);this.api.graph_clear();this.ramps.clear();}
    else if(this.active)this.receive(data);
   };
  }
+ resetNoise(){this.api.noise_reset(sampleRate);this.noiseTokens.clear();}
  reset(){this.ramps.clear();this.units.clear();this.api.graph_reset(sampleRate);setChain(this.api,[]);}
  receive(data){try{this.command(data);}catch(e){this.port.postMessage({error:e.message});}}
  command(d){
+  if(d.op==='noise'){
+   const a=this.api,s=d.slot;
+   if(d.action==='create'){if(!a.noise_create(s,d.type,d.seed))throw new Error('Invalid noise voice');this.noiseTokens.set(s,d.token);return;}
+   if(this.noiseTokens.get(s)!==d.token)return;
+   if(d.action==='parameter'){if(!a.noise_set(s,d.param,d.value,Math.round(d.seconds*sampleRate)))throw new Error('Invalid noise parameter');}
+   else if(d.action==='filter')a.noise_filter(s,d.mode);
+   else {const action={start:0,stop:1,dispose:2}[d.action];if(action!==undefined)a.noise_action(s,action);if(d.action==='dispose')this.noiseTokens.delete(s);}
+   return;
+  }
   if(d.beatSeconds>0)this.beatSeconds=d.beatSeconds;
   if(d.op==='reset'){this.reset();return;}
   if(d.op==='clear'){this.api.graph_clear();return;}
@@ -60,7 +70,7 @@ export class NativeFXProcessor extends AudioWorkletProcessor {
   const cap=a.gain_capacity();if(!this.input||this.input.buffer!==a.memory.buffer){this.input=new Float32Array(a.memory.buffer,a.gain_input(),cap*2);this.output=new Float32Array(a.memory.buffer,a.gain_output(),cap*2);}
   const source=inputs[0]??[];
   for(let c=0;c<2;c++){const ch=source[c]??source[0];if(ch)this.input.set(ch,c*cap);else this.input.fill(0,c*cap,c*cap+n);}
-  a.graph_process(n);for(let c=0;c<target.length;c++)target[c].set(this.output.subarray(c*cap,c*cap+n));return true;
+  a.noise_mix(n);a.graph_process(n);for(let c=0;c<target.length;c++)target[c].set(this.output.subarray(c*cap,c*cap+n));return true;
  }
 }
 registerProcessor('tetorica-native-fx',NativeFXProcessor);

@@ -4,6 +4,7 @@
  * 依存: self.onmessage / postMessage、performance、タイマーとメインスレッドへのメッセージ通信。
  * Worker エントリーポイント。通常の Node.js モジュールとしては実行しない。
  */
+import {createNativeNoiseController, controlNativeNoise} from './native_noise.js';
 import {createWorkerDac} from './playground_worker_dac.js';
 import {createWorkerChip} from './playground_worker_chip.js';
 import {createMidiApi, createMidiRack} from './playground_midi.js?v=midi-held-stop-1';
@@ -391,7 +392,8 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
     },
   });
   run.syncFXTempo = () => { if (nativeFXPort) fx.syncTempo(); };
-  const noise = {
+  const nativeNoise = nativeFXPort ? createNativeNoiseController(data=>nativeFXPort.postMessage(data)) : null;
+  const noise = nativeNoise ?? {
     create(options = {}) {
       const id = createHandle("noise");
       postCommand("noise.create", [id, options]);
@@ -403,7 +405,7 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
   const livePrepare = async (name, fn) => {
     if (run.prepared.has(name)) return run.prepared.get(name);
     const generation = run.generation;
-    const value = await fn({ fm, fx, psg, sample, stream, dac, noise, control: (voice, options) => postCommand("noise.control", [handleId(voice), options]), context: run.context, log: (...args) => postCommand("log", args) });
+    const value = await fn({ fm, fx, psg, sample, stream, dac, noise, control: (voice, options) => nativeNoise ? controlNativeNoise(voice,options) : postCommand("noise.control", [handleId(voice), options]), context: run.context, log: (...args) => postCommand("log", args) });
     if (run.stopped || generation !== run.generation) throw new Error("Run stopped");
     run.prepared.set(name, value);
     return value;
@@ -430,6 +432,7 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
     }
     run.resetSampleClock();
     // In Worker mode this is the sole source of audio-control commands.
+    nativeNoise?.disposeAll();
     chip?.stop();
     localMidiRack?.stop();
     postCommand("audio.stopAll");
@@ -568,7 +571,7 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
     getDacLookahead: () => request("getDacLookahead"),
     beginSampleSchedule: () => { workerDac?.begin(); return clock.beginSampleSchedule(); },
     scheduleWritesSamples: (start, entries) => workerDac ? workerDac.schedule(start, entries) : postCommand("scheduleWritesSamples", [start, entries]),
-    control: (voice, options) => postCommand("noise.control", [handleId(voice), options]),
+    control: (voice, options) => nativeNoise ? controlNativeNoise(voice,options) : postCommand("noise.control", [handleId(voice), options]),
     sleep: clock.sleep,
     sleepSamples: clock.sleepSamples,
     beat: clock.beat,

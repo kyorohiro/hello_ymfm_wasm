@@ -72,6 +72,50 @@ test('browser rack loads local WASM, routes all sources through one Worklet and 
  assert.deepEqual(audio.masterInputNode.connections,[rack.node]);assert.deepEqual(rack.node.connections,[audio.masterOutputNode]);
  assert.match(loads[0],/native_audio_effect.wasm$/);assert.match(modules[0],/native-fx-worklet.js$/);
  const fx=audio.createFXApi();const gain=fx.gain({gain:.5});fx.setChain([gain]);assert.deepEqual(audio.getFXChain(),[gain]);
+ const voice=audio.createNoiseVoice({type:'brown'});voice.gain.set(.2);
+ assert.ok(sent.some(({d})=>d.op==='noise'&&d.action==='create'));
  const port=rack.workerPort();const attach=sent.at(-1);assert.equal(attach.d.op,'attach');assert.deepEqual(attach.transfer,[attach.d.port]);port.close();attach.d.port.close();
  rack.useMain();assert.ok(sent.some(({d})=>d.op==='main'));audio.disposeFXChain();assert.equal(audio.nativeFX,null);
+});
+
+test('native noise colors are deterministic, finite and distinct; gain, envelopes and FX work',async()=>{
+ const {createNativeNoiseController}=await import('../web/native_noise.js');
+ const colors=[];
+ for(const type of ['white','pink','brown','gray','clip']){
+  const h=harness(),noise=createNativeNoiseController(d=>h.p.command(d));
+  const voice=noise.create({type,seed:123,autoStart:false,attack:.01,release:.01});
+  assert.ok(h.render(1,0).every(x=>x===0));
+  voice.start();const data=h.render(10,0);assert.ok(data.every(Number.isFinite));assert.ok(data.some(x=>Math.abs(x)>.001));colors.push([...data]);
+  voice.stop();assert.ok(h.render(10,0).every(x=>x===0));
+  voice.start();const gain=h.fx.gain({gain:0});h.fx.setChain([gain]);assert.ok(h.render(10,0).every(x=>x===0));
+  h.fx.clear();voice.gain.rampTo(0,.01);assert.ok(h.render(10,0).every(x=>x===0));voice.dispose();
+ }
+ for(let i=1;i<colors.length;i++)assert.notDeepEqual(colors[0],colors[i]);
+ const renderSeed=()=>{const h=harness();createNativeNoiseController(d=>h.p.command(d)).create({seed:42});return [...h.render(2,0)];};
+ assert.deepEqual(renderSeed(),renderSeed());
+});
+
+test('noise filters, pan, voice reuse and port ownership remain independent',async()=>{
+ const {createNativeNoiseController}=await import('../web/native_noise.js');
+ const h=harness(),port={start(){},close(){}};
+ h.p.port.onmessage({data:{op:'attach',port}});
+ const messages=[],noise=createNativeNoiseController(d=>{messages.push(d);port.onmessage({data:d});});
+ const voice=noise.create({pan:1});assert.ok(h.render(2,0).every(x=>Math.abs(x)<1e-12));
+ voice.pan.set(-1);
+ for(const mode of ['lowpass','highpass','bandpass','notch','allpass','peaking','lowshelf','highshelf']){voice.filter.set(mode,1000,.7);assert.ok(h.render(10,0).every(Number.isFinite));}
+ const old=messages.at(-1);voice.dispose();const next=noise.create();
+ port.onmessage({data:{...old,action:'dispose'}});assert.ok(h.render(2,0).some(x=>x!==0));
+ h.p.port.onmessage({data:{op:'main'}});assert.ok(h.render(2,0).every(x=>x===0));next.start();assert.ok(h.render(2,0).every(x=>x===0));
+});
+
+test('native noise allocation is bounded and disposed slots can be reused',async()=>{
+ const {createNativeNoiseController}=await import('../web/native_noise.js');
+ const h=harness(),noise=createNativeNoiseController(d=>h.p.command(d));
+ const voices=Array.from({length:32},()=>noise.create({autoStart:false}));
+ assert.throws(()=>noise.create(),/32 voices/);
+ voices[0].dispose();const replacement=noise.create({seed:10});
+ assert.throws(()=>voices[0].start(),/disposed/);
+ assert.ok(h.render(2,0).some(x=>x!==0));
+ noise.disposeAll();assert.ok(h.render(2,0).every(x=>x===0));
+ assert.throws(()=>replacement.start(),/disposed/);
 });

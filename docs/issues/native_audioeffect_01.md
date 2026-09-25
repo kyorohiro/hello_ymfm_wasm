@@ -356,9 +356,9 @@ WorkerテストでFX命令がmain threadへ送られないことを確認する�
 YM2612 の PSG と MIDI API も直結する。Stop は直接キーオフと TL ミュートを送り、
 次の発音時に音色の TL を戻す。古いポートの遅延メッセージは切断後に無視する。
 
-まだ main thread を通るもの: sample / stream / noise、`midi.playFile()`、
+まだ main thread を通るもの: sample / stream、`midi.playFile()`、
 ファイル読み込み、master volume 等。DAC と YM2612 の予約書き込みは下記の直結経路へ移行。
-PSG のノイズレジスタ操作は直結対象だが、`noise.create()` の音声生成は別経路。
+PSG のノイズレジスタ操作は音源Worklet、`noise.create()` は下記のnative FX Workletで生成する。
 全APIの移行完了を意味しない。FX と音源のサンプル単位の同期も別途検討する。
 
 検証は main thread から発音要求に返答しない Worker テスト、Stop / Run、
@@ -388,3 +388,28 @@ OPN の DAC 非対応モードの予約APIは今回の対象外。
 書き込み位置、Stop、時刻基準のリセット、Uint8Array の部分ビューを確認。
 ymfm / Nuked の実 WASM で DAC サイン波から有限・非無音の PCM が生成されることも確認。
 実ブラウザーでの聴感・負荷確認は未実施。
+
+### noise の native 化
+
+- [x] white / pink / brown / gray / clip を `native/audio_effect/noise.c` で連続生成。
+- [x] gain / pan / filter / attack / release とパラメーターランプも C で処理。
+- [x] `noise.create`、voice の start / stop / dispose、`control(voice, ...)` を
+  Worker から FX Worklet の専用ポートへ直結。main thread の発音処理・返答を待たない。
+- [x] メイン実行も native FX ラック初期化後は同じ noise バックエンドを使う。
+- [x] PCM を native FX グラフの入力へ混合し、既存の FX チェーンを通す。
+- [x] Stop・Worker/main 切り替えで音と生成状態をクリア。旧ポート・破棄済みvoiceを無効化。
+
+最大32 voice。使い終わったvoiceは `dispose()` で枠を解放する。
+voice.stop / noise.stopAll は release を適用し、Playground の Stop は即時破棄する。
+`get()` は指定した目標値を返す。`seed` を指定すると同じ条件で再現できる。
+既存の数秒のループバッファとは異なり、native版は連続した乱数列を生成する。
+音響的な完全一致は保証しない。gray は従来同様、差分による近似。
+フィルターの peaking / lowshelf / highshelf はゲイン指定のない従来APIに合わせ0 dB。
+
+初期化済み native FX ラックのない単独利用では、従来 Web Audio の noise を維持する。
+Playground の sample / stream はまだ main thread 経由。sampleOutputNode を指定した
+単独利用でも native noise は FX Worklet 内部の入力へ混合される。
+
+検証: 実WASMで全5種の有限・非無音出力、seed再現性、gain・pan・filter・envelope、
+FX通過、Stop、voice再利用、旧ポート遮断を確認。Workerからmainへの音声要求が
+発生しないテストを追加。ブラウザーでの試聴・Windows負荷測定は未確認。

@@ -219,7 +219,10 @@ type PlaygroundNoiseType =
   | "gray"
   | "clip";
 
+/** Native WASM noise; up to 32 voices. Dispose unused voices to free slots. */
 type PlaygroundNoiseOptions = {
+  /** Optional unsigned seed for repeatable noise generation. */
+  seed?: number;
   type?: PlaygroundNoiseType;
   gain?: number;
   pan?: number;

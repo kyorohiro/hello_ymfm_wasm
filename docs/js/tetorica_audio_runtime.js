@@ -189,6 +189,7 @@ export class TetoricaAudioRuntime {
   }
 
   createNoiseVoice(options = {}) {
+    if(this.nativeFX) return this.nativeFX.noise.create(options);
     const audioContext = this.audioContext;
     if (!audioContext) {
       throw new Error("noise.create() requires MegaSynth to be initialized first");
@@ -294,10 +295,12 @@ export class TetoricaAudioRuntime {
   }
 
   stopNoise() {
+    this.nativeFX?.noise.stopAll();
     for (const voice of this.noiseVoices) voice.stop();
   }
 
   disposeNoise() {
+    this.nativeFX?.noise.disposeAll();
     for (const voice of [...this.noiseVoices]) voice.dispose();
   }
 
