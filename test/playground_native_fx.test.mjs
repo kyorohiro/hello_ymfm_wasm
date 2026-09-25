@@ -3,11 +3,12 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import vm from 'node:vm';
 import {createNativeFXController,FX_TYPES,FX_PARAMS} from '../web/native_fx.js';
+import {createSampleProcessor} from "../web/native_sample_processor.js";
 import {setChain} from '../web/native_fx_graph.js';
 const module=await WebAssembly.compile(readFileSync(new URL('../web/native_audio_effect.wasm',import.meta.url)));
 function harness(){
  let Processor;const errors=[];
- const scope={WebAssembly,Float32Array,Map,Math,Number,Error,sampleRate:48000,setChain,FX_TYPES,
+ const scope={createSampleProcessor,WebAssembly,Float32Array,Map,Math,Number,Error,sampleRate:48000,setChain,FX_TYPES,
   AudioWorkletProcessor:class{constructor(){this.port={postMessage:d=>errors.push(d)};}},registerProcessor:(name,p)=>Processor=p};
  vm.runInNewContext(readFileSync(new URL('../web/native-fx-worklet.js',import.meta.url),'utf8').replace(/^import .*\n/gm,'').replace('export class','class'),scope);
  const p=new Processor({processorOptions:{module}});
@@ -118,4 +119,55 @@ test('native noise allocation is bounded and disposed slots can be reused',async
  assert.ok(h.render(2,0).some(x=>x!==0));
  noise.disposeAll();assert.ok(h.render(2,0).every(x=>x===0));
  assert.throws(()=>replacement.start(),/disposed/);
+});
+
+async function sampleHarness(){
+ const h=harness();const {createNativeSampleController}=await import('../web/native_sample.js');
+ const player=createNativeSampleController(d=>h.p.receive(d));
+ h.p.port.postMessage=d=>player.accept(d);
+ return {...h,player};
+}
+test('native PCM mixer preserves stereo, rate/offset/duration and loops',async()=>{
+ const h=await sampleHarness();
+ await h.player.load('stereo',{sampleRate:48000,channels:[Float32Array.from([.1,.2,.3,.4]),Float32Array.from([.5,.6,.7,.8])]});
+ await h.player.play('stereo',{offset:1/48000,playbackRate:.5,duration:1/48000});
+ let out=h.render(1,0);assert.ok(Math.abs(out[0]-.2)<1e-6);assert.ok(Math.abs(out[1]-.25)<1e-6);assert.equal(out[2],0);
+ await h.player.play('stereo',{loop:true,loopStart:1/48000,loopEnd:3/48000});
+ out=h.render(1,0);assert.ok(Math.abs(out[0]-.1)<1e-6);assert.ok(Math.abs(out[3]-.2)<1e-6);
+ h.player.stopAll();assert.ok(h.render(1,0).every(x=>x===0));
+ await h.player.play('stereo',{pan:1});out=h.render(1,0);assert.ok(out.every(x=>Math.abs(x)<1e-10));
+});
+test('native PCM fades, FX, stale handles and bank unloading',async()=>{
+ const h=await sampleHarness();await h.player.load('tone',{sampleRate:24000,channels:[new Float32Array(100).fill(.5)]});
+ const old=await h.player.play('tone',{pan:-1,fadeIn:4/48000});
+ let out=h.render(1,0);assert.equal(out[0],0);assert.ok(Math.abs(out[4]-.5)<1e-6);
+ h.render(1,0);const next=await h.player.play('tone',{pan:-1,loop:true,fadeOut:4/48000});old.stop();
+ assert.ok(h.render(1,0).some(x=>x===.5));next.stop();out=h.render(1,0);assert.ok(out[0]===.5&&out[4]===0);
+ await h.player.play('tone',{loop:true});const mute=h.fx.gain({gain:0});h.fx.setChain([mute]);assert.ok(h.render(10,0).every(x=>x===0));
+ h.player.unload('tone');assert.equal(h.player.isLoaded('tone'),false);await assert.rejects(h.player.play('tone'),/Unknown/);
+});
+test('native PCM allocation errors and Stop during preparation reject directly',async()=>{
+ const h=await sampleHarness();await assert.rejects(h.player.load('bad',{sampleRate:48000,channels:[Float32Array.of(NaN)]}),/Invalid/);
+ const {createNativeSampleController}=await import('../web/native_sample.js');const messages=[];
+ const player=createNativeSampleController(d=>messages.push(d));const loading=player.load('late',{sampleRate:48000,channels:[Float32Array.of(1)]});
+ player.stopAll();await assert.rejects(loading,/stopped/);player.accept({op:'sample-response',id:messages[0].id});assert.equal(player.isLoaded('late'),false);
+});
+
+test('main runtime uses native PCM without allocating BufferSource nodes',async()=>{
+ const h=await sampleHarness();const {TetoricaAudioRuntime}=await import('../web/tetorica_audio_runtime.js');
+ const audio=new TetoricaAudioRuntime({audioContext:{createBufferSource(){throw new Error('legacy source used');}}});
+ audio.nativeFX={sample:h.player,mainActive:true};
+ audio.storeSample('hit',{sampleRate:48000,numberOfChannels:1,getChannelData:()=>new Float32Array(16).fill(.4)});
+ await audio.playSample('hit',{loop:true,pan:-1});assert.ok(h.render(1,0).some(x=>x>.3));
+ audio.stopSample();assert.ok(h.render(1,0).every(x=>x===0));
+ audio.unloadSample('hit');assert.equal(audio.hasSample('hit'),false);
+});
+test('PCM bank/voice capacity errors arrive through direct acknowledgements',async()=>{
+ const h=await sampleHarness(),pcm={sampleRate:48000,channels:[Float32Array.of(.2)]};
+ for(let i=0;i<64;i++)await h.player.load(String(i),pcm);
+ await assert.rejects(h.player.load('overflow',pcm),/bank limit/);
+ for(let i=0;i<64;i++)await h.player.play('0',{loop:true});
+ await assert.rejects(h.player.play('0'),/voice limit/);
+ h.player.stopAll();await h.player.play('0');
+ h.player.unload('1');await h.player.load('overflow',pcm);
 });

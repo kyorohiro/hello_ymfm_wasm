@@ -1,3 +1,4 @@
+import {createNativeSampleController} from './native_sample.js';
 /**
  * @file playground_logic_worker.js
  * 実行環境: Browser（Web Worker）
@@ -319,7 +320,15 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
       return chip && !mainMethods.includes(property) ? chip.fm[property] : commandProxy(`fm.${String(property)}`);
     },
   });
-  const sample = new Proxy({}, {
+  const nativeSample=nativeFXPort?createNativeSampleController(data=>nativeFXPort.postMessage(data)):null;
+  if(nativeSample){nativeFXPort.onmessage=({data})=>nativeSample.accept(data);nativeFXPort.start?.();}
+  const unloadedSamples=new Set();
+  const sample = nativeSample ? {
+    async load(name,source){const pcm=await request('sample.decode',[name,source],run.currentLoop);if(run.stopped)throw new Error('Run stopped');unloadedSamples.delete(name);return nativeSample.load(name,pcm);},
+    async play(name,options){if(unloadedSamples.has(name))throw new Error(`Unknown sample: ${name}`);if(!nativeSample.isLoaded(name)){const pcm=await request('sample.pcm',[name],run.currentLoop);if(run.stopped)throw new Error('Run stopped');await nativeSample.load(name,pcm);}if(run.stopped)throw new Error('Run stopped');return nativeSample.play(name,options);},
+    stop:name=>nativeSample.stop(name),stopAll:()=>nativeSample.stopAll(),
+    unload:name=>{unloadedSamples.add(name);const result=nativeSample.unload(name);request('sample.unload',[name],run.currentLoop).catch(error=>postCommand('warn',[error.message]));return result;},isLoaded:name=>nativeSample.isLoaded(name),get:name=>nativeSample.get(name),list:()=>nativeSample.list(),
+  } : new Proxy({}, {
     get(target, property) {
       if (property in target) return target[property];
       return requestProxy(`sample.${String(property)}`);
@@ -432,6 +441,7 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
     }
     run.resetSampleClock();
     // In Worker mode this is the sole source of audio-control commands.
+    nativeSample?.stopAll();
     nativeNoise?.disposeAll();
     chip?.stop();
     localMidiRack?.stop();

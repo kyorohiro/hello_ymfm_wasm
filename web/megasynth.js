@@ -75,7 +75,7 @@ const YM2612_NATIVE_SAMPLE_RATE =
 /**
  * @typedef {{
  *   load(name: string, source: string | ArrayBuffer | AudioBuffer): Promise<AudioBuffer>,
- *   play(name: string, options?: MegaSynthSamplePlayOptions): MegaSynthSampleVoice,
+ *   play(name: string, options?: MegaSynthSamplePlayOptions): MegaSynthSampleVoice | Promise<MegaSynthSampleVoice>,
  *   stop(name?: string): void,
  *   stopAll(): void,
  *   unload(name: string): boolean,

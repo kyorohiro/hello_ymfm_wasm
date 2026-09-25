@@ -153,6 +153,7 @@ type PlaygroundPlayOptions = {
 
 type PlaygroundSamplePlayOptions = {
   gain?: number;
+  /** Native PCM playback requires a positive rate; linear interpolation. */
   playbackRate?: number;
   offset?: number;
   duration?: number;
@@ -169,17 +170,19 @@ type PlaygroundSampleVoice = {
   stop(): void;
 };
 
+/** Worker returns PCM metadata; main execution retains decoded AudioBuffer access. */
+type PlaygroundSampleInfo = { name: string; length: number; sampleRate: number; numberOfChannels: number; duration: number };
 type PlaygroundSampleAPI = {
-  load(source: string): Promise<AudioBuffer>;
-  load(name: string, source: string | ArrayBuffer | AudioBuffer): Promise<AudioBuffer>;
+  load(source: string): Promise<AudioBuffer | PlaygroundSampleInfo>;
+  load(name: string, source: string | ArrayBuffer | AudioBuffer): Promise<AudioBuffer | PlaygroundSampleInfo>;
   /** Load a Virtual FS audio file using its path as the sample name. */
-  loadFile(path: string): Promise<AudioBuffer>;
+  loadFile(path: string): Promise<AudioBuffer | PlaygroundSampleInfo>;
   play(name: string, options?: PlaygroundSamplePlayOptions): Promise<PlaygroundSampleVoice>;
   stop(name?: string): void;
   stopAll(): void;
   unload(name: string): boolean;
   isLoaded(name: string): boolean;
-  get(name: string): AudioBuffer | null;
+  get(name: string): AudioBuffer | PlaygroundSampleInfo | null;
   list(): string[];
 };
 

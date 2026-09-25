@@ -4,6 +4,7 @@
  * 依存: AudioContext / AudioNode を使う音声ルーティング・エフェクト。
  * サンプルの URL 読み込みには fetch、デコードには AudioContext が必要。依存は一部注入可能。
  */
+import {samplePCM} from "./native_sample.js";
 import * as fx from "./megasynth_fx.js";
 import {createNativeFXRack} from "./native_fx_rack.js";
 
@@ -39,6 +40,7 @@ export class TetoricaAudioRuntime {
   }
 
   stopSample(name) {
+    if(name==null)this.nativeFX?.sample.stopAll();else this.nativeFX?.sample.stop(name);
     for (const voice of this.sampleVoices) {
       if (name == null || voice.name === String(name)) voice.stop();
     }
@@ -47,10 +49,12 @@ export class TetoricaAudioRuntime {
   unloadSample(name) {
     const normalizedName = String(name);
     this.stopSample(normalizedName);
+    this.nativeFX?.sample.unload(normalizedName);
     return this.sampleBuffers.delete(normalizedName);
   }
 
   storeSample(name, buffer) {
+    this.nativeFX?.sample.unload(name);
     this.sampleBuffers.set(name, buffer);
     return buffer;
   }
@@ -398,10 +402,17 @@ export class TetoricaAudioRuntime {
       );
     }
 
-    return this.storeSample(name, audioBuffer);
+    this.storeSample(name, audioBuffer);
+    if(this.nativeFX?.mainActive)await this.nativeFX.sample.load(name,samplePCM(audioBuffer));
+    return audioBuffer;
   }
 
   playSample(name, options = {}) {
+    if(this.nativeFX){
+      const player=this.nativeFX.sample,buffer=this.getSample(name);
+      if(!buffer)throw new Error(`Unknown sample: ${name}`);
+      return (async()=>{if(!player.isLoaded(name))await player.load(name,samplePCM(buffer));return player.play(name,options);})();
+    }
     if (!this.audioContext) {
       throw new Error(
         "sample.play() requires MegaSynth to be initialized first"

@@ -1,3 +1,4 @@
+import {createNativeSampleController} from "../../web/native_sample.js";
 import {createNativeNoiseController, controlNativeNoise} from "../../web/native_noise.js";
 import {createNativeFXController} from "../../web/native_fx.js";
 import {createWorkerDac} from "../../web/playground_worker_dac.js";
@@ -18,7 +19,7 @@ const workerSource = readFileSync(
 function createWorkerHarness() {
   const messages = [];
   const context = {
-    createNativeNoiseController, controlNativeNoise, createWorkerDac, atob, createMidiApi, createMidiRack, createWorkerChip, createNativeFXController, DOMException, structuredClone,
+    createNativeSampleController, createNativeNoiseController, controlNativeNoise, createWorkerDac, atob, createMidiApi, createMidiRack, createWorkerChip, createNativeFXController, DOMException, structuredClone,
     createDeadlineScheduler,
     hzToBlockFnum,
     Error,
@@ -481,4 +482,23 @@ test('native noise is controlled without any main-thread audio request',async()=
  assert.ok(!worker.messages.some(m=>m.command?.startsWith('noise.')||m.command?.startsWith('audio.')));
  await worker.send({type:'stop'});
  assert.ok(commands.some(c=>c.op==='noise'&&c.action==='dispose'));
+});
+
+test('prepared sample playback and voice stop use the direct Worklet port',async()=>{
+ const worker=createWorkerHarness(),commands=[];
+ const port={start(){},close(){},postMessage(d){commands.push(d);if(d.op==='sample'&&d.id)queueMicrotask(()=>port.onmessage({data:{op:'sample-response',id:d.id,value:d.action==='play'?7:undefined}}));}};
+ await worker.send({type:'native-fx',port});
+ worker.post({type:'run',presets:{},scaleIntervals:{},sourceCode:`
+   await sample.load('hit','hit.wav');
+   const voice=await sample.play('hit',{loop:true});voice.stop();
+   await sample.play('hit');sample.stop('hit');
+ `});
+ await waitFor(()=>worker.messages.some(m=>m.command==='sample.decode'));
+ const load=worker.messages.find(m=>m.command==='sample.decode');
+ await worker.send({type:'response',id:load.id,value:{sampleRate:48000,channels:[Float32Array.of(.5,0)]}});
+ await waitFor(()=>worker.messages.some(m=>m.type==='complete'),1000);
+ assert.equal(commands.filter(d=>d.op==='sample'&&d.action==='play').length,2);
+ assert.ok(commands.some(d=>d.action==='stopVoice'));
+ assert.ok(!worker.messages.some(m=>['sample.play','sample.stop','sample.pcm'].includes(m.command)));
+ await worker.send({type:'stop'});assert.ok(commands.some(d=>d.op==='sample'&&d.action==='clear'));
 });

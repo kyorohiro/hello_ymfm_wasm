@@ -1,3 +1,4 @@
+import {samplePCM} from './native_sample.js';
 /**
  * @file playground_runtime.js
  * 実行環境: Browser（メインスレッド）
@@ -866,6 +867,15 @@ export function createPlaygroundRuntime(
         throw new Error(`Unsupported psg method: ${method}`);
       }
       return globals.psg[method](...args);
+    }
+    if(command==='sample.decode'){
+      const buffer=await globals.sample.load(...args);
+      return samplePCM(buffer);
+    }
+    if(command==='sample.pcm'){
+      const buffer=megaDrive.sample.get(args[0]);
+      if(!buffer)throw new Error(`Unknown sample: ${args[0]}`);
+      return samplePCM(buffer);
     }
     if (command.startsWith("sample.")) {
       const method = command.slice(7);

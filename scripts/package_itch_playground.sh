@@ -50,6 +50,8 @@ playground_worker_chip.js
 playground_worker_dac.js
 native_fx.js
 native_noise.js
+native_sample.js
+native_sample_processor.js
 native_fx_rack.js
 native_fx_graph.js
 native-fx-worklet.js

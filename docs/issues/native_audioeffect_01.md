@@ -356,7 +356,7 @@ WorkerテストでFX命令がmain threadへ送られないことを確認する�
 YM2612 の PSG と MIDI API も直結する。Stop は直接キーオフと TL ミュートを送り、
 次の発音時に音色の TL を戻す。古いポートの遅延メッセージは切断後に無視する。
 
-まだ main thread を通るもの: sample / stream、`midi.playFile()`、
+まだ main thread を通るもの: stream、`midi.playFile()`、
 ファイル読み込み、master volume 等。DAC と YM2612 の予約書き込みは下記の直結経路へ移行。
 PSG のノイズレジスタ操作は音源Worklet、`noise.create()` は下記のnative FX Workletで生成する。
 全APIの移行完了を意味しない。FX と音源のサンプル単位の同期も別途検討する。
@@ -407,9 +407,42 @@ voice.stop / noise.stopAll は release を適用し、Playground の Stop は即
 フィルターの peaking / lowshelf / highshelf はゲイン指定のない従来APIに合わせ0 dB。
 
 初期化済み native FX ラックのない単独利用では、従来 Web Audio の noise を維持する。
-Playground の sample / stream はまだ main thread 経由。sampleOutputNode を指定した
+sample の直結は次節を参照。stream は main thread 経由を維持する。sampleOutputNode を指定した
 単独利用でも native noise は FX Worklet 内部の入力へ混合される。
 
 検証: 実WASMで全5種の有限・非無音出力、seed再現性、gain・pan・filter・envelope、
 FX通過、Stop、voice再利用、旧ポート遮断を確認。Workerからmainへの音声要求が
 発生しないテストを追加。ブラウザーでの試聴・Windows負荷測定は未確認。
+
+
+### sample の native 化（今回の移行範囲の最後）
+
+- [x] `native/audio_effect/sample.c` にPCMバンクと再生voiceを追加。
+- [x] Workerからサンプルの再生・停止をFX Workletへ直接送る。
+  準備完了・再生受付の応答も専用ポートで返し、main threadを往復しない。
+- [x] PCMの生成・混合はC/WASMで実行し、noise同様にFXの手前へ入れる。
+- [x] mono/stereo、gain/pan、正のplaybackRate、offset、duration、loop範囲、
+  fadeIn、voice.stop時のfadeOutに対応。
+- [x] Stopで再生中voiceと準備待ちを中止。読み込み済みバンクは再利用できる。
+  Worker/main切り替え時はバンクを解放し、必要に応じ再転送する。
+
+URL/ファイルの読み込みとAudioContext.decodeAudioDataは準備処理としてmainに残す。
+Workerの `sample.load` がデコード済みPCMを受け取り、Workletへ登録する。
+main側で事前ロードしたバッファも、Workerの初回play時に取得・転送できる。
+転送を発音時に行いたくない場合は `await sample.load(...)` で先に準備する。
+Workerのload/getはAudioBufferではなく長さ・レート等のメタデータを返す。
+Workerのlist/isLoadedは、そのWorkerが準備したバンクを対象とする。
+
+最大64バンク・同時64voice。1バンク最大10,000,000フレーム、mono/stereoのみ。
+低レベル再生の補間は線形補間で、ブラウザーのリサンプラーとの音響的一致は保証しない。
+バンク確保・PCMコピーはロード時に行い、PCM処理ループではmallocしない。
+大きなファイルを演奏中にロードした際の途切れや実機負荷は別途試聴確認が必要。
+`duration` は元サンプル上の秒数（再生速度で実時間が変わる）。自動終了時には
+fadeOutを追加せず、従来同様voice.stop時に適用する。Playground Stopは即時消音。
+
+native FX未初期化の単独利用は従来BufferSourceを維持する。native利用時の
+低レベルsample.playはPromiseを返すため、voiceを操作する場合はawaitする。
+streamの方式は変更しない。これで今回予定した音作りのWorker直結移行を一区切りとする。
+
+検証: 実WASMでPCM値・レート変換・ループ・フェード・FX通過・Stop・voice再利用、
+容量エラーと準備中止、Worker直結をテスト。実ブラウザーでの試聴は未確認。
