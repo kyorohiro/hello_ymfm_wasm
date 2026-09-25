@@ -155,3 +155,10 @@ void extra_tick(int type,int slot,float *left,float *right) {
     *left=(float)(x[0]+mix*(y[0]-x[0]));
     *right=(float)(x[1]+mix*(y[1]-x[1]));
 }
+
+/* Reuse a released controller slot without leaking a previous effect's tail. */
+void extra_reset_slot(int type,int slot) {
+    int t=index_of(type); if(t<0||t>=TYPES||slot<0||slot>=SLOTS)return;
+    FX *f=&states[t][slot]; clear_one(f);
+    memcpy(f->p,defaults[t],sizeof f->p); memcpy(f->target,defaults[t],sizeof f->target);
+}

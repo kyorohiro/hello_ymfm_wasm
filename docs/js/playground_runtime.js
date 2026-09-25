@@ -16,7 +16,7 @@ import {
 } from "./pitch.js";
 import { createPlaygroundClock } from "./playground_clock.js";
 import { executeWithPlaygroundGuards } from "./playground_execution.js";
-import { createPlaygroundLive } from "./playground_live.js";
+import { createPlaygroundLive } from "./playground_live.js?v=native-fx-1";
 import { createPlaygroundMusic } from "./playground_music.js";
 import { createPlaygroundNoiseApi } from "./playground_noise.js";
 import { createFmProxy } from "./playground_sync.js";
@@ -155,7 +155,7 @@ export function createPlaygroundRuntime(
     options.execution ?? "main";
   const defaultLogicWorkerUrl =
     new URL(
-      "./playground_logic_worker.js",
+      "./playground_logic_worker.js?v=native-fx-1",
       import.meta.url
     );
   defaultLogicWorkerUrl.searchParams.set(
@@ -644,6 +644,7 @@ export function createPlaygroundRuntime(
     prepareAudioPromise =
       (async () => {
         await megaDrive.start();
+        await megaDrive.audio?.prepareNativeFX?.();
         synth = megaDrive.fm;
         installMegaDriveListener();
         synth.setPreset(
@@ -746,8 +747,10 @@ export function createPlaygroundRuntime(
     const error = new DOMException("Playground Worker was terminated", "AbortError");
     while (workerRunRequests.length > 0) workerRunRequests.shift().reject(error);
     resolveLogicWorkerStop?.();
+    megaDrive.audio?.nativeFX?.stop();
     logicWorker?.terminate();
     logicWorker = null;
+    megaDrive.audio?.nativeFX?.useMain();
     workerGlobals = null;
     workerCommandQueue = Promise.resolve();
     resolveLogicWorkerStop = null;
@@ -1328,8 +1331,7 @@ export function createPlaygroundRuntime(
       beat: clockApi.beat,
       nextBeat:
         clockApi.nextBeat,
-      setBpm:
-        clockApi.setBpm,
+      setBpm: (value) => { const result = clockApi.setBpm(value); megaDrive.audio?.nativeFX?.controller.syncTempo(); return result; },
       tween:
         clockApi.tween,
       liveLoop: (name, fn) =>
@@ -1619,6 +1621,7 @@ export function createPlaygroundRuntime(
     liveApi.stopAllLoops();
     if (!logicWorker) {
       liveApi.clearRunFxChain();
+      liveApi.clearPrepared();
     }
     setPlaybackState("running");
     emitStatus("Starting Playground Worker...");
@@ -1632,7 +1635,11 @@ export function createPlaygroundRuntime(
       type: "module",
     });
     logicWorker = worker;
-    if (isNewWorker) installLogicWorkerHandlers(worker);
+    if (isNewWorker) {
+      installLogicWorkerHandlers(worker);
+      const port = megaDrive.audio?.nativeFX?.workerPort();
+      if (port) worker.postMessage({type: "native-fx", port}, [port]);
+    }
 
     await new Promise((resolve, reject) => {
       workerRunRequests.push({ resolve, reject, runToken });
@@ -1845,6 +1852,7 @@ export function createPlaygroundRuntime(
       );
       liveApi.clearRunFxChain();
       liveApi.clearPrepared();
+      megaDrive.audio?.nativeFX?.controller.dispose();
       runtime.context = {};
       megaDrive.stopRecordingPlayback?.();
     }

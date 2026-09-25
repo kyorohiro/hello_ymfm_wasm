@@ -38,6 +38,8 @@ export function createPlaygroundLive(
       return;
     }
 
+    if (value.owner && value.params) { preparedFxUnits.add(value); return; }
+
     if (value.input && value.output) {
       preparedFxUnits.add(value);
     }
@@ -126,6 +128,8 @@ export function createPlaygroundLive(
       return;
     }
     visited.add(value);
+
+    if (value.owner && value.params) { collected.add(value); return; }
 
     if (value.input && value.output) {
       collected.add(value);

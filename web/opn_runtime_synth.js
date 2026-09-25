@@ -4,7 +4,7 @@
  * 依存: 音声初期化・再生時に AudioContext / AudioWorkletNode と WASM アセットが必要。
  * import だけでは音声デバイスを開かない。アセット読み込みには fetch を使用する。
  */
-import { TetoricaAudioRuntime } from "./tetorica_audio_runtime.js";
+import { TetoricaAudioRuntime } from "./tetorica_audio_runtime.js?v=native-fx-1";
 import { OPNWorkletTransport } from "./opn_fm_synth.js";
 
 const MAX_MASTER_VOLUME = 3.8;

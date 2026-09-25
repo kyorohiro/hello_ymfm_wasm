@@ -426,9 +426,6 @@ function createKnownObjectSuggestions(
         [
           "gain",
           "eq",
-          "radioTone",
-          "lofi",
-          "stereoWidth",
           "bitcrusher",
           "filter",
           "delay",
@@ -438,7 +435,6 @@ function createKnownObjectSuggestions(
           "wobble",
           "flanger",
           "chorus",
-          "tapeSaturation",
           "reverb",
           "branch",
           "parallel",
@@ -698,22 +694,6 @@ function createFxUnitSuggestions(
 ) {
   const suggestions = [
     {
-      label: "input",
-      kind: kind.Property,
-      insertText: "input",
-      documentation:
-        "AudioNode input of this effect unit.",
-      range,
-    },
-    {
-      label: "output",
-      kind: kind.Property,
-      insertText: "output",
-      documentation:
-        "AudioNode output of this effect unit.",
-      range,
-    },
-    {
       label: "dispose",
       kind: kind.Method,
       insertText: "dispose()",
@@ -725,35 +705,18 @@ function createFxUnitSuggestions(
 
   const parameterNames = {
     gain: ["gain"],
-    eq: ["bass", "mid", "treble"],
-    filter: ["cutoff", "q"],
-    delay: ["time", "feedback", "mix"],
-    distortion: ["drive", "mix", "outputGain"],
-    compressor: [
-      "threshold",
-      "knee",
-      "ratio",
-      "attack",
-      "release",
-      "outputGain",
-    ],
-    gate: ["threshold", "floor", "mix"],
-    wobble: [
-      "cutoff",
-      "depth",
-      "rate",
-      "resonance",
-      "mix",
-    ],
-    flanger: [
-      "time",
-      "depth",
-      "rate",
-      "feedback",
-      "mix",
-    ],
-    reverb: ["mix", "tone"],
-    slicer: ["phase", "mix"],
+    eq: ["bass","mid","treble"],
+    gate: ["threshold","hysteresis","attack","hold","release"],
+    compressor: ["threshold","ratio","attack","release","makeup"],
+    reverb: ["mix","room","damping","tone"],
+    filter: ["cutoff","q"],
+    delay: ["time","feedback","mix"],
+    distortion: ["drive","mix"],
+    bitcrusher: ["bitDepth","holdFrames","mix"],
+    wobble: ["cutoff","depth","rate","resonance","mix"],
+    flanger: ["time","depth","rate","feedback","mix"],
+    slicer: ["phase","duty","floor","mix"],
+    chorus: ["time","depth","rate","mix"],
   }[effectType] ?? [];
 
   for (const name of parameterNames) {
@@ -870,74 +833,18 @@ function createFxConfigSuggestions(
 ) {
   const definitions = {
     gain: ["gain"],
-    eq: ["bass", "mid", "treble"],
-    radioTone: [
-      "highpass",
-      "lowpass",
-      "presence",
-      "mix",
-      "output",
-    ],
-    lofi: [
-      "cutoff",
-      "highshelf",
-      "drive",
-      "mix",
-      "output",
-    ],
-    stereoWidth: [
-      "width",
-      "mix",
-      "output",
-    ],
-    bitcrusher: [
-      "bitDepth",
-      "holdFrames",
-      "mix",
-      "output",
-    ],
-    filter: ["type", "cutoff", "q"],
-    delay: ["time", "feedback", "mix"],
-    distortion: ["drive", "mix", "output"],
-    compressor: [
-      "threshold",
-      "knee",
-      "ratio",
-      "attack",
-      "release",
-      "output",
-    ],
-    gate: ["threshold", "floor", "mix"],
-    wobble: [
-      "cutoff",
-      "depth",
-      "rate",
-      "resonance",
-      "mix",
-    ],
-    flanger: [
-      "time",
-      "depth",
-      "rate",
-      "feedback",
-      "mix",
-    ],
-    chorus: [
-      "delay1",
-      "delay2",
-      "depth",
-      "rate",
-      "spread",
-      "mix",
-      "output",
-    ],
-    tapeSaturation: [
-      "drive",
-      "output",
-      "mix",
-    ],
-    reverb: ["mix", "tone"],
-    slicer: ["phase", "mix"],
+    eq: ["bass","mid","treble"],
+    gate: ["threshold","hysteresis","attack","hold","release"],
+    compressor: ["threshold","ratio","attack","release","makeup"],
+    reverb: ["mix","room","damping","tone"],
+    filter: ["type","cutoff","q"],
+    delay: ["time","feedback","mix"],
+    distortion: ["drive","mix"],
+    bitcrusher: ["bitDepth","holdFrames","mix"],
+    wobble: ["cutoff","depth","rate","resonance","mix"],
+    flanger: ["time","depth","rate","feedback","mix"],
+    slicer: ["phase","duty","floor","mix"],
+    chorus: ["time","depth","rate","mix"],
   };
 
   return (definitions[effectType] ?? []).map(
@@ -960,9 +867,6 @@ function detectFxConfigContext(
   const candidates = [
     { prefix: "fx.gain(", effectType: "gain" },
     { prefix: "fx.eq(", effectType: "eq" },
-    { prefix: "fx.radioTone(", effectType: "radioTone" },
-    { prefix: "fx.lofi(", effectType: "lofi" },
-    { prefix: "fx.stereoWidth(", effectType: "stereoWidth" },
     { prefix: "fx.bitcrusher(", effectType: "bitcrusher" },
     { prefix: "fx.filter(", effectType: "filter" },
     { prefix: "fx.delay(", effectType: "delay" },
@@ -972,7 +876,6 @@ function detectFxConfigContext(
     { prefix: "fx.wobble(", effectType: "wobble" },
     { prefix: "fx.flanger(", effectType: "flanger" },
     { prefix: "fx.chorus(", effectType: "chorus" },
-    { prefix: "fx.tapeSaturation(", effectType: "tapeSaturation" },
     { prefix: "fx.reverb(", effectType: "reverb" },
   ];
 

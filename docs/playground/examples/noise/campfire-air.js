@@ -26,10 +26,9 @@ const fireFx = await livePrepare("campfire-air-fx", async ({ fx }) => {
       mix: 0.10,
       tone: 4200,
     }),
-    tape: fx.tapeSaturation({
+    tape: fx.distortion({
       drive: 1.08,
       mix: 0.22,
-      output: 1.0,
     }),
   };
 });

@@ -12,7 +12,6 @@ const layeredFx = await livePrepare("parallel-fx-chain", async ({ fx }) => {
   const distorted = fx.distortion({
     drive: 2.4,
     mix: 0.9,
-    output: 0.75,
   });
   const flanger = fx.flanger({
     time: 0.005,

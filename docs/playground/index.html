@@ -1783,10 +1783,11 @@
               <li><code>fx</code> is the master FX helper layer</li>
               <li><code>pg.fx</code> points to the same FX helper layer</li>
               <li><code>fx.gain(...)</code>, <code>fx.eq(...)</code>, <code>fx.filter(...)</code>, <code>fx.delay(...)</code>, <code>fx.distortion(...)</code>, <code>fx.compressor(...)</code>, <code>fx.gate(...)</code></li>
-              <li><code>fx.radioTone(...)</code>, <code>fx.lofi(...)</code>, <code>fx.stereoWidth(...)</code>, <code>fx.bitcrusher(...)</code>, <code>fx.wobble(...)</code>, <code>fx.flanger(...)</code>, <code>fx.chorus(...)</code>, <code>fx.tapeSaturation(...)</code>, <code>fx.reverb(...)</code>, <code>fx.slicer(...)</code></li>
+              <li><code>fx.bitcrusher(...)</code>, <code>fx.wobble(...)</code>, <code>fx.flanger(...)</code>, <code>fx.chorus(...)</code>, <code>fx.reverb(...)</code>, <code>fx.slicer(...)</code></li>
+              <li>FX run in native C/WASM. Each type supports up to 8 instances; the routing graph supports up to 32 nodes. Modulation rate / phase is in beats. EQ uses fixed 200 Hz / 1 kHz / 4 kHz bands.</li>
               <li><code>fx.setChain([filter, delay])</code> replaces the master FX chain</li>
               <li><code>fx.setChain([fx.parallel(fx.branch(filter), fx.branch(delay, reverb))])</code> creates parallel branches</li>
-              <li><code>fx.clear()</code> removes and disposes the current master FX chain</li>
+              <li><code>fx.clear()</code> detaches the current master FX chain and clears its audio history</li>
               <li><code>eq.bass.set(...)</code>, <code>eq.mid.rampTo(...)</code>, <code>eq.treble.set(...)</code></li>
               <li><code>filter.cutoff.set(...)</code>, <code>filter.cutoff.rampTo(...)</code></li>
             </ul>
@@ -1835,6 +1836,6 @@
       </label>
     </footer>
 
-    <script type="module" src="./playground.js?v=example-folders-1"></script>
+    <script type="module" src="./playground.js?v=native-fx-1"></script>
   </body>
 </html>

@@ -8,6 +8,8 @@ import {createMidiApi} from './playground_midi.js?v=midi-held-stop-1';
 import { hzToBlockFnum } from "./pitch.js";
 import { createDeadlineScheduler } from "./playground_clock.js";
 
+import {createNativeFXController} from "./native_fx.js";
+let nativeFXPort = null;
 let currentRun = null;
 let nextRequestId = 1;
 const pendingRequests = new Map();
@@ -253,6 +255,7 @@ function createClock(run) {
       if (!Number.isFinite(next) || next <= 0) throw new Error(`Invalid BPM: ${value}`);
       const position = currentBeat();
       bpm = next;
+      run.syncFXTempo?.();
       clockStart = performance.now() / 1000 - position * secondsPerBeat();
     },
     beginSampleSchedule() {
@@ -355,7 +358,7 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
       },
     }
   );
-  const fx = new Proxy({}, {
+  const fx = nativeFXPort ? createNativeFXController(data => nativeFXPort.postMessage(data), {getBeatSeconds: () => 60 / clock.getBpm()}) : new Proxy({}, {
     get(_target, method) {
       if (method === "setChain") return (effects) => postCommand("fx.setChain", [effects.map(handleId)]);
       if (method === "clear") return () => postCommand("fx.clear");
@@ -371,6 +374,7 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
       };
     },
   });
+  run.syncFXTempo = () => { if (nativeFXPort) fx.syncTempo(); };
   const noise = {
     create(options = {}) {
       const id = createHandle("noise");
@@ -411,7 +415,7 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
     run.resetSampleClock();
     // In Worker mode this is the sole source of audio-control commands.
     postCommand("audio.stopAll");
-    postCommand("fx.detach");
+    if (nativeFXPort) fx.dispose(); else postCommand("fx.detach");
     postCommand("audio.disposeHandles", [[...run.audioHandles]]);
     run.audioHandles.clear();
     run.prepared.clear();
@@ -652,6 +656,7 @@ async function handleLifecycleMessage(message) {
 
 self.onmessage = (event) => {
   const message = event.data;
+  if (message.type === "native-fx") { nativeFXPort?.close(); nativeFXPort = message.port; return; }
   if (message.type === "stop") {
     // Interrupt waits now: queuing stop behind run.execute would wait for the
     // very evaluation we need to cancel.

@@ -8,12 +8,10 @@ const crushFx = await livePrepare("crush-tape-chain", async ({ fx }) => {
     bitDepth: 9,
     holdFrames: 3,
     mix: 0.7,
-    output: 1,
   });
-  const tape = fx.tapeSaturation({
+  const tape = fx.distortion({
     drive: 0.9,
     mix: 0.65,
-    output: 1,
   });
   const reverb = fx.reverb({
     mix: 0.08,

@@ -32,8 +32,8 @@ test('wobble sample loop plays only samples loaded during preparation', async ()
   assert.deepEqual(played, ['sonic-pi/drum-heavy-kick', 'sonic-pi/bass-hit-c']);
 });
 
-test('all 39 bundled examples match editable categorized source files', async () => {
-  assert.equal(EXAMPLE_FILES.length,39);
+test('all 37 bundled examples match editable categorized source files', async () => {
+  assert.equal(EXAMPLE_FILES.length,37);
   assert.equal(await buildExampleBundle(), await readFile(new URL('./playground_examples.js',import.meta.url),'utf8'));
   for(const file of EXAMPLE_FILES){
     assert.match(file.path,/^\/examples\/(basic|fm|midi|psg|dac|noise|samples|fx)\/[\w-]+\.js$/);

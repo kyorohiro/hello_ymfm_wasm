@@ -17,7 +17,6 @@ const fxRack = await livePrepare("wobble-filter-bass-fx", async ({ fx }) => {
     ratio: 7,
     attack: 0.005,
     release: 0.18,
-    output: 1.05,
   });
 
   return {

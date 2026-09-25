@@ -5,6 +5,7 @@
  * サンプルの URL 読み込みには fetch、デコードには AudioContext が必要。依存は一部注入可能。
  */
 import * as fx from "./megasynth_fx.js";
+import {createNativeFXRack} from "./native_fx_rack.js";
 
 /**
  * Chip-independent browser audio state shared by Tetorica synths.
@@ -118,7 +119,19 @@ export class TetoricaAudioRuntime {
     return this.noise;
   }
 
+  async prepareNativeFX() {
+    if (!this.nativeFX) {
+      this.nativeFX = await createNativeFXRack(this.audioContext);
+      this.rebuildFXChain();
+    }
+    return this.nativeFX;
+  }
+
   createFXApi(options = {}) {
+    if (this.nativeFX) {
+      this.nativeFX.getBeatSeconds = options.getBeatSeconds ?? (() => .5);
+      return this.nativeFX.controller;
+    }
     if (!this.audioContext) throw new Error("Audio is not ready yet");
 
     const withBeatSeconds = (fxOptions = {}) => ({
@@ -890,6 +903,7 @@ export class TetoricaAudioRuntime {
   }
 
   setFXChain(effects = [], options = {}) {
+    if (this.nativeFX) return this.nativeFX.controller.setChain(effects);
     if (!Array.isArray(effects)) throw new Error("FX chain must be an array");
     const previous = this.fxChain.slice();
     this.fxChain = effects.slice();
@@ -897,7 +911,7 @@ export class TetoricaAudioRuntime {
     if (options.dispose) previous.forEach((effect) => effect?.dispose?.());
   }
 
-  getFXChain() { return this.fxChain.slice(); }
+  getFXChain() { return this.nativeFX ? this.nativeFX.controller.getChain() : this.fxChain.slice(); }
 
   connect(effect) {
     this.fxChain.push(effect);
@@ -905,6 +919,7 @@ export class TetoricaAudioRuntime {
   }
 
   clearFXChain(options = {}) {
+    if (this.nativeFX) { this.nativeFX.stop(); return this.nativeFX.controller.clear(options); }
     const previous = this.fxChain.slice();
     this.fxChain = [];
     this.rebuildFXChain();
@@ -913,6 +928,7 @@ export class TetoricaAudioRuntime {
   }
 
   disposeFXChain() {
+    if (this.nativeFX) { this.nativeFX.dispose(); this.nativeFX = null; }
     const previous = this.fxChain;
     this.fxChain = [];
     for (const effect of previous) effect?.dispose?.();
@@ -932,6 +948,7 @@ export class TetoricaAudioRuntime {
   disconnectRouting() {
     this.masterInputNode?.disconnect();
     this.masterOutputNode?.disconnect();
+    this.nativeFX?.node.disconnect();
     this.fxChain.forEach((effect) => effect?.disconnect?.());
   }
 
@@ -950,6 +967,7 @@ export class TetoricaAudioRuntime {
     if (!this.masterInputNode || !this.masterOutputNode) return;
     this.disconnectRouting();
     let current = this.masterInputNode;
+    if (this.nativeFX) { current.connect(this.nativeFX.node); current = this.nativeFX.node; }
     for (const effect of this.fxChain) {
       if (!effect?.input || !effect?.output) throw new Error("Each FX unit must expose input and output nodes");
       current.connect(effect.input);

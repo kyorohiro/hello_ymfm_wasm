@@ -1,3 +1,4 @@
+import {createNativeFXController} from "../../web/native_fx.js";
 import {createMidiApi} from "../js/playground_midi.js";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -14,7 +15,7 @@ const workerSource = readFileSync(
 function createWorkerHarness() {
   const messages = [];
   const context = {
-    createMidiApi, DOMException,
+    createMidiApi, createNativeFXController, DOMException,
     createDeadlineScheduler,
     hzToBlockFnum,
     Error,
@@ -33,7 +34,7 @@ function createWorkerHarness() {
     setTimeout,
   };
   context.self = context;
-  vm.runInNewContext(workerSource.replace(/^import \{createMidiApi\}.*;\n/m, "").replace(/^import .* from "\.\/(?:playground_clock|pitch)\.js";\n/gm, ""), context, {
+  vm.runInNewContext(workerSource.replace(/^import \{createMidiApi\}.*;\n/m, "").replace(/^import .* from "\.\/(?:playground_clock|pitch|native_fx)\.js";\n/gm, ""), context, {
     filename: "playground_logic_worker.js",
   });
   return {
@@ -377,4 +378,20 @@ test('Worker forwards fixed-channel configuration before notes',async()=>{
   worker.post({type:'response',id:note.id,value:123});
   await waitFor(()=>worker.messages.some(m=>m.type==='complete'),1000);
  } finally {await worker.send({type:'stop'});}
+});
+
+test('native FX commands go directly to Worklet port, never the main audio bridge', async()=>{
+ const worker=createWorkerHarness();const fxMessages=[];
+ await worker.send({type:'native-fx',port:{postMessage:d=>fxMessages.push(d),close(){}}});
+ await worker.send({type:'run',sourceCode:`
+  setBpm(100);
+  const f=fx.filter({cutoff:1000});
+  fx.setChain([fx.parallel(fx.branch(f))]);
+  f.cutoff.rampTo(2000,.1);
+ `});
+ assert.ok(worker.messages.some(m=>m.type==='complete'));
+ assert.ok(fxMessages.some(m=>m.op==='chain'));
+ assert.ok(fxMessages.some(m=>m.op==='parameter'&&m.value===2000));
+ assert.ok(!worker.messages.some(m=>m.command?.startsWith('fx.')||m.command==='audio.call'));
+ await worker.send({type:'stop'});assert.equal(fxMessages.at(-1).op,'reset');
 });

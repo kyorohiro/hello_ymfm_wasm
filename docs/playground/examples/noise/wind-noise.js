@@ -20,12 +20,10 @@ const airFx = await livePrepare("wind-noise-fx", async ({ fx }) => {
       tone: 4800,
     }),
     chorus: fx.chorus({
-      delay1: 0.018,
-      delay2: 0.028,
+      time: 0.018,
       depth: 0.25,
       rate: 0.08,
       mix: 0.16,
-      output: 1.0,
     }),
   };
 });

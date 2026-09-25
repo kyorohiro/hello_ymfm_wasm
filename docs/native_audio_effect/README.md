@@ -160,4 +160,4 @@ Nodeベンチマークは48kHz・128framesのDSP時間だけを測定し、ブ�
 音切れや古いPCの性能を保証しない。
 
 `radioTone` / `lofi` / `stereoWidth` / `tapeSaturation` は低優先度で今回の対象外。
-Playgroundへの接続はまだ行っていない。
+Playgroundも同じDSPを使用する。接続・通信・パラメーター差分は `../issues/native_audioeffect_01.md` のPlayground統合節を参照。

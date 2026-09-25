@@ -31,6 +31,11 @@ bitcrusher-worklet.js
 looper.js
 megasynth.js
 megasynth_fx.js
+native_fx.js
+native_fx_rack.js
+native_fx_graph.js
+native-fx-worklet.js
+native_audio_effect.wasm
 megasynth_recording.js
 megadrive-fm-presets.js
 opn_fm_synth.js

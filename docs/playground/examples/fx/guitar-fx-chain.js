@@ -15,21 +15,18 @@ fm.setOperator(CH1, OP4, {
 const guitarFx = await livePrepare("guitar-fx", async ({ fx }) => {
   const gate = fx.gate({
     threshold: 0.06,
-    floor: 0.02,
-    mix: 1,
+    hold: 0.05,
+    release: 0.1,
   });
   const compressor = fx.compressor({
     threshold: -26,
-    knee: 16,
     ratio: 10,
     attack: 0.004,
     release: 0.2,
-    output: 1.1,
   });
   const distortion = fx.distortion({
     drive: 2.6,
     mix: 0.9,
-    output: 0.9,
   });
   const reverb = fx.reverb({
     mix: 0.14,

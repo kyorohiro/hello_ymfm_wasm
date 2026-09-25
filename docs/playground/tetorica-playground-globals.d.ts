@@ -267,133 +267,150 @@ type PlaygroundContext = Record<string, unknown>;
 
 /** Options for `fx.gain()`. */
 type GainFXOptions = {
-  /** Linear gain amount. Default is 1. */
+  /** Default 1; range 0..2. */
   gain?: number;
 };
 
 /** Options for `fx.eq()`. */
 type EqFXOptions = {
+  /** Default 0; range -12..12. */
   bass?: number;
+  /** Default 0; range -12..12. */
   mid?: number;
+  /** Default 0; range -12..12. */
   treble?: number;
 };
 
-/** Options for `fx.radioTone()`. */
-type RadioToneFXOptions = {
-  highpass?: number;
-  lowpass?: number;
-  presence?: number;
-  mix?: number;
-  output?: number;
-};
 
-/** Options for `fx.lofi()`. */
-type LofiFXOptions = {
-  cutoff?: number;
-  highshelf?: number;
-  drive?: number;
-  mix?: number;
-  output?: number;
-};
 
-/** Options for `fx.stereoWidth()`. */
-type StereoWidthFXOptions = {
-  width?: number;
-  mix?: number;
-  output?: number;
-};
 
 /** Options for `fx.bitcrusher()`. */
 type BitcrusherFXOptions = {
+  /** Default 8; range 2..16. */
   bitDepth?: number;
+  /** Default 6; range 1..480. */
   holdFrames?: number;
+  /** Default 0.5; range 0..1. */
   mix?: number;
-  output?: number;
 };
 
 /** Options for `fx.filter()`. */
 type FilterFXOptions = {
-  type?: string;
+  /** Default 1200; range 20..20000. */
   cutoff?: number;
+  /** Default 0.707; range 0.2..12. */
   q?: number;
+  type?: "lowpass" | "highpass" | "bandpass";
 };
 
 /** Options for `fx.delay()`. */
 type DelayFXOptions = {
+  /** Default 0.25; range 0.001..2. */
   time?: number;
+  /** Default 0.35; range 0..0.9. */
   feedback?: number;
+  /** Default 0.3; range 0..1. */
   mix?: number;
 };
 
 /** Options for `fx.distortion()`. */
 type DistortionFXOptions = {
+  /** Default 4; range 1..20. */
   drive?: number;
+  /** Default 0.5; range 0..1. */
   mix?: number;
-  output?: number;
 };
 
 /** Options for `fx.compressor()`. */
 type CompressorFXOptions = {
+  /** Default -24; range -60..0. */
   threshold?: number;
-  knee?: number;
+  /** Default 4; range 1..20. */
   ratio?: number;
+  /** Default 0.01; range 0.0001..0.2. */
   attack?: number;
+  /** Default 0.25; range 0.01..2. */
   release?: number;
-  output?: number;
+  /** Default 0; range -12..24. */
+  makeup?: number;
 };
 
 /** Options for `fx.gate()`. */
 type GateFXOptions = {
+  /** Default 0.04; range 0.0001..1. */
   threshold?: number;
-  floor?: number;
-  mix?: number;
+  /** Default 6; range 0..24. */
+  hysteresis?: number;
+  /** Default 0.005; range 0.0001..0.2. */
+  attack?: number;
+  /** Default 0.05; range 0..1. */
+  hold?: number;
+  /** Default 0.1; range 0.01..2. */
+  release?: number;
 };
 
 /** Options for `fx.wobble()`. */
 type WobbleFXOptions = {
+  /** Default 800; range 20..10000. */
   cutoff?: number;
+  /** Default 1100; range 0..12000. */
   depth?: number;
+  /** Default 0.5; range 0.03125..16. */
   rate?: number;
+  /** Default 0.707; range 0.2..8. */
   resonance?: number;
+  /** Default 1; range 0..1. */
   mix?: number;
 };
 
 /** Options for `fx.flanger()`. */
 type FlangerFXOptions = {
+  /** Default 0.003; range 0.001..0.015. */
   time?: number;
+  /** Default 0.002; range 0..0.01. */
   depth?: number;
+  /** Default 1; range 0.03125..16. */
   rate?: number;
+  /** Default 0.3; range 0..0.9. */
   feedback?: number;
+  /** Default 0.5; range 0..1. */
   mix?: number;
 };
 
 /** Options for `fx.chorus()`. */
 type ChorusFXOptions = {
-  delay1?: number;
-  delay2?: number;
+  /** Default 0.02; range 0.01..0.04. */
+  time?: number;
+  /** Default 0.005; range 0..0.01. */
   depth?: number;
+  /** Default 1; range 0.03125..16. */
   rate?: number;
-  spread?: number;
+  /** Default 0.5; range 0..1. */
   mix?: number;
-  output?: number;
 };
 
-/** Options for `fx.tapeSaturation()`. */
-type TapeSaturationFXOptions = {
-  drive?: number;
-  output?: number;
-  mix?: number;
-};
 
 /** Options for `fx.reverb()`. */
 type ReverbFXOptions = {
+  /** Default 0.2; range 0..1. */
   mix?: number;
+  /** Default 0.7; range 0..0.98. */
+  room?: number;
+  /** Default 0.4; range 0..1. */
+  damping?: number;
+  /** Default 7200; range 200..20000. */
   tone?: number;
 };
 
 /** Options for `fx.slicer()`. */
 type SlicerFXOptions = {
+  /** Default 0.25; range 0.03125..16. */
   phase?: number;
+  /** Default 0.5; range 0.05..0.95. */
+  duty?: number;
+  /** Default 0; range 0..1. */
+  floor?: number;
+  /** Default 1; range 0..1. */
   mix?: number;
 };
 
@@ -412,19 +429,17 @@ type SimpleParamControl = {
 
 type FXConnectTarget = AudioNode | { input: AudioNode };
 
+/** Native C/WASM effect descriptor (not an AudioNode). Use fx.setChain to route. */
+/** Native C/WASM effect descriptor (not an AudioNode). Use fx.setChain to route. */
 type BaseFXUnit = {
   type: string;
-  input: AudioNode;
-  output: AudioNode;
   params: Record<string, unknown>;
-  connect(target: FXConnectTarget): FXConnectTarget;
-  disconnect(): void;
   dispose(): void;
 };
 
 type FXBranch = {
-  type: "branch";
-  effects: AnyFXUnit[];
+  type: "chain";
+  children: AnyFXUnit[];
 };
 
 type GainFXUnit = BaseFXUnit & {
@@ -439,37 +454,14 @@ type EqFXUnit = BaseFXUnit & {
   treble: AudioParamControl;
 };
 
-type RadioToneFXUnit = BaseFXUnit & {
-  type: "radioTone";
-  highpass: AudioParamControl;
-  lowpass: AudioParamControl;
-  presence: AudioParamControl;
-  mix: AudioParamControl;
-  outputGain: AudioParamControl;
-};
 
-type LofiFXUnit = BaseFXUnit & {
-  type: "lofi";
-  cutoff: AudioParamControl;
-  highshelf: AudioParamControl;
-  drive: AudioParamControl;
-  mix: AudioParamControl;
-  outputGain: AudioParamControl;
-};
 
-type StereoWidthFXUnit = BaseFXUnit & {
-  type: "stereoWidth";
-  width: AudioParamControl;
-  mix: AudioParamControl;
-  outputGain: AudioParamControl;
-};
 
 type BitcrusherFXUnit = BaseFXUnit & {
   type: "bitcrusher";
   bitDepth: AudioParamControl;
   holdFrames: AudioParamControl;
   mix: AudioParamControl;
-  outputGain: AudioParamControl;
 };
 
 type FilterFXUnit = BaseFXUnit & {
@@ -482,92 +474,84 @@ type DelayFXUnit = BaseFXUnit & {
   type: "delay";
   time: AudioParamControl;
   feedback: AudioParamControl;
-  mix: SimpleParamControl;
+  mix: AudioParamControl;
 };
 
 type DistortionFXUnit = BaseFXUnit & {
   type: "distortion";
   drive: AudioParamControl;
-  mix: SimpleParamControl;
-  outputGain: AudioParamControl;
+  mix: AudioParamControl;
 };
 
 type CompressorFXUnit = BaseFXUnit & {
   type: "compressor";
   threshold: AudioParamControl;
-  knee: AudioParamControl;
   ratio: AudioParamControl;
   attack: AudioParamControl;
   release: AudioParamControl;
-  outputGain: AudioParamControl;
+  makeup: AudioParamControl;
 };
 
 type GateFXUnit = BaseFXUnit & {
   type: "gate";
-  threshold: SimpleParamControl;
-  floor: AudioParamControl;
-  mix: SimpleParamControl;
+  threshold: AudioParamControl;
+  hysteresis: AudioParamControl;
+  attack: AudioParamControl;
+  hold: AudioParamControl;
+  release: AudioParamControl;
 };
 
 type WobbleFXUnit = BaseFXUnit & {
   type: "wobble";
   cutoff: AudioParamControl;
   depth: AudioParamControl;
-  rate: SimpleParamControl;
+  rate: AudioParamControl;
   resonance: AudioParamControl;
-  mix: SimpleParamControl;
+  mix: AudioParamControl;
 };
 
 type FlangerFXUnit = BaseFXUnit & {
   type: "flanger";
   time: AudioParamControl;
   depth: AudioParamControl;
-  rate: SimpleParamControl;
+  rate: AudioParamControl;
   feedback: AudioParamControl;
-  mix: SimpleParamControl;
+  mix: AudioParamControl;
 };
 
 type ChorusFXUnit = BaseFXUnit & {
   type: "chorus";
-  delay1: AudioParamControl;
-  delay2: AudioParamControl;
+  time: AudioParamControl;
   depth: AudioParamControl;
-  rate: SimpleParamControl;
-  spread: SimpleParamControl;
+  rate: AudioParamControl;
   mix: AudioParamControl;
-  outputGain: AudioParamControl;
 };
 
-type TapeSaturationFXUnit = BaseFXUnit & {
-  type: "tapeSaturation";
-  drive: AudioParamControl;
-  mix: AudioParamControl;
-  outputGain: AudioParamControl;
-};
 
 type ReverbFXUnit = BaseFXUnit & {
   type: "reverb";
-  mix: SimpleParamControl;
+  mix: AudioParamControl;
+  room: AudioParamControl;
+  damping: AudioParamControl;
   tone: AudioParamControl;
 };
 
 type SlicerFXUnit = BaseFXUnit & {
   type: "slicer";
-  phase: SimpleParamControl;
+  phase: AudioParamControl;
+  duty: AudioParamControl;
+  floor: AudioParamControl;
   mix: AudioParamControl;
 };
 
 type ParallelFXUnit = BaseFXUnit & {
   type: "parallel";
-  branches: FXBranch[];
+  children: Array<FXBranch | AnyFXUnit>;
 };
 
 type AnyFXUnit =
   | GainFXUnit
   | EqFXUnit
-  | RadioToneFXUnit
-  | LofiFXUnit
-  | StereoWidthFXUnit
   | BitcrusherFXUnit
   | FilterFXUnit
   | DelayFXUnit
@@ -577,7 +561,6 @@ type AnyFXUnit =
   | WobbleFXUnit
   | FlangerFXUnit
   | ChorusFXUnit
-  | TapeSaturationFXUnit
   | ReverbFXUnit
   | SlicerFXUnit
   | ParallelFXUnit;
@@ -688,12 +671,6 @@ type FXApi = {
   gain(options?: GainFXOptions): GainFXUnit;
   /** Create a simple 3-band EQ effect unit. */
   eq(options?: EqFXOptions): EqFXUnit;
-  /** Create a narrow-band radio / speaker tone effect unit. */
-  radioTone(options?: RadioToneFXOptions): RadioToneFXUnit;
-  /** Create a lightweight lo-fi tone shaping effect unit. */
-  lofi(options?: LofiFXOptions): LofiFXUnit;
-  /** Create a stereo-width effect unit. */
-  stereoWidth(options?: StereoWidthFXOptions): StereoWidthFXUnit;
   /** Create a bitcrusher / sample-hold effect unit. */
   bitcrusher(options?: BitcrusherFXOptions): BitcrusherFXUnit;
   /** Create a filter effect unit. */
@@ -702,7 +679,7 @@ type FXApi = {
   delay(options?: DelayFXOptions): DelayFXUnit;
   /** Create a simple wave-shaper distortion effect unit. */
   distortion(options?: DistortionFXOptions): DistortionFXUnit;
-  /** Create a DynamicsCompressor-based effect unit. */
+  /** Create a native envelope compressor effect unit. */
   compressor(options?: CompressorFXOptions): CompressorFXUnit;
   /** Create a simple noise-gate style effect unit. */
   gate(options?: GateFXOptions): GateFXUnit;
@@ -710,10 +687,8 @@ type FXApi = {
   wobble(options?: WobbleFXOptions): WobbleFXUnit;
   /** Create a short-delay modulation flanger effect unit. */
   flanger(options?: FlangerFXOptions): FlangerFXUnit;
-  /** Create a wider dual-delay chorus effect unit. */
+  /** Create a stereo modulated-delay chorus effect unit. */
   chorus(options?: ChorusFXOptions): ChorusFXUnit;
-  /** Create a tape-like soft saturation effect unit. */
-  tapeSaturation(options?: TapeSaturationFXOptions): TapeSaturationFXUnit;
   /** Create a reverb effect unit. */
   reverb(options?: ReverbFXOptions): ReverbFXUnit;
   /** Describe one serial branch to be used inside fx.parallel(...). */

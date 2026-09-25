@@ -20,6 +20,11 @@ rf5c164.js
 looper.js
 megadrive-fm-presets.js
 megasynth_fx.js
+native_fx.js
+native_fx_rack.js
+native_fx_graph.js
+native-fx-worklet.js
+native_audio_effect.wasm
 megasynth.js
 megasynth_looper.js
 megasynth_recording.js

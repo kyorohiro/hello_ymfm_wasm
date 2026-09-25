@@ -8,10 +8,14 @@ emcc "$ROOT_DIR/native/audio_effect/gain.c" "$ROOT_DIR/native/audio_effect/rever
   -Wl,--export=compressor_reset -Wl,--export=compressor_set -Wl,--export=compressor_clear \
   -Wl,--export=gate_reset -Wl,--export=gate_set -Wl,--export=gate_clear \
   -Wl,--export=graph_begin -Wl,--export=graph_add -Wl,--export=graph_append -Wl,--export=graph_commit -Wl,--export=graph_reset -Wl,--export=graph_clear -Wl,--export=graph_process -Wl,--export=gain_select -Wl,--export=eq_select -Wl,--export=gate_select -Wl,--export=compressor_select -Wl,--export=reverb_select \
-  -Wl,--export=extra_set -Wl,--export=extra_prepare \
+  -Wl,--export=extra_reset_slot -Wl,--export=extra_set -Wl,--export=extra_prepare \
   --no-entry -Wl,--export-memory \
   -Wl,--export=gain_input -Wl,--export=gain_output \
   -Wl,--export=gain_capacity -Wl,--export=gain_reset \
   -Wl,--export=eq_reset -Wl,--export=eq_set \
   -Wl,--export=gain_set -Wl,--export=gain_process \
   -o "$OUT_DIR/gain.wasm"
+
+# Shared Playground artifact; keep the lab and shipped runtime on the same DSP.
+cp "$OUT_DIR/gain.wasm" "$ROOT_DIR/web/native_audio_effect.wasm"
+cp "$OUT_DIR/gain.wasm" "$ROOT_DIR/docs/js/native_audio_effect.wasm"

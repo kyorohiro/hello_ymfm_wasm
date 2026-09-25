@@ -13,7 +13,7 @@ import {
 } from "./ym2612synth.js";
 import { YM2612_CLOCK } from "./ym2612.js";
 import { createSegaPsgApi } from "./segapsg_api.js";
-import { TetoricaAudioRuntime } from "./tetorica_audio_runtime.js";
+import { TetoricaAudioRuntime } from "./tetorica_audio_runtime.js?v=native-fx-1";
 export {
   createFXBranch,
   createBitcrusherFX,

@@ -16,7 +16,6 @@ const fxRack = await livePrepare("flanger-guitar-fx", async ({ fx }) => {
   const distortion = fx.distortion({
     drive: 2.1,
     mix: 0.75,
-    output: 0.92,
   });
   const flanger = fx.flanger({
     time: 0.0035,

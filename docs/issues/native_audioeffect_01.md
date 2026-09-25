@@ -3,7 +3,7 @@
 ## 最新の対応状況
 
 独立した `docs/native_audio_effect/` で、C/WASMの以下を実装済み。
-Playgroundへの反映は、実機での試聴と負荷確認の後に行う。
+Windowsで独立ページを確認済み。Playgroundへの接続も実装し、移行後の試聴を行う段階。
 
 | 対象 | 状態 |
 | --- | --- |
@@ -12,7 +12,7 @@ Playgroundへの反映は、実機での試聴と負荷確認の後に行う。
 | filter / delay / distortion / bitcrusher | 追加実装・自動検証済み |
 | wobble / flanger / slicer / chorus | 追加実装・自動検証済み |
 | radioTone / lofi / stereoWidth / tapeSaturation | **低優先度。今回実装しない** |
-| 既存Playgroundへの接続・API互換 | 未実施。次段階 |
+| Playgroundへの接続・Worker直接制御 | 実装済み。非対応FXは削除、音響差分は末尾参照 |
 
 現行ページのRoutingで「追加8 FX（直列）」を選択すると追加パネルを表示する。
 追加FXは初期Bypass。各パネルでチェックを外して1つずつ試聴できる。
@@ -283,3 +283,61 @@ node scripts/benchmark_native_audio_effect.mjs
 WASMメモリーを出力する。ブラウザーのスケジューリング・PCMコピー・UI負荷を含まず、
 古いPCでの実用性を保証する値ではない。実ブラウザーへの接続が利用できないため、
 今回のブラウザー試聴・実機性能確認は未実施。
+
+## Playground 統合（native FX へ移行）
+
+Windowsで独立ページの動作を確認後、YM2612 / OPN PlaygroundのマスターFXを
+native C/WASMへ切り替えた。他のアプリの従来のWeb Audio FXは変更していない。
+
+- [x] FM / PSG / サンプル / ストリーム / ノイズの合流後に、native FX Workletを1つ接続。
+- [x] `fx.branch` / `fx.parallel` / `fx.setChain` の分岐・合流をC側で処理。
+- [x] メイン実行: JS controller → AudioWorklet。Worker実行: 専用MessagePortで
+  Logic Worker → AudioWorklet。FX作成・変更・tempo・Stopをmain threadで中継しない。
+  AudioContext生成・AudioNodeの配線・MessagePortの受け渡しはmain threadで行う。
+- [x] `set()` / `get()` / `rampTo(value, seconds)` を共有APIで提供。
+  ランプはWorklet内で音声ブロックごとに進め、C側の平滑化も適用する。
+  `get()` はJS側で指定した目標値を返す。
+- [x] BPM変更時にwobble / flanger / chorusのrate、slicerのphaseを拍→Hzへ変換。
+- [x] Stopでチェーンを外して残響とランプをクリア。Worker/メイン切り替え時に
+  古い制御ポートを閉じる。slot再利用時に旧FXの内部履歴をリセット。
+- [x] Helper・型・補完・サンプル・itch配布の依存ファイルを更新。
+
+### 対応と変更点
+
+対応: gain / eq / gate / compressor / reverb / filter / delay / distortion /
+bitcrusher / wobble / flanger / slicer / chorus。
+`radioTone` / `lofi` / `stereoWidth` / `tapeSaturation` はPlayground APIから除外。
+専用サンプルは削除、残すサンプルのtape部分はdistortionへ置換した。
+古いカセットでこれらを呼ぶ場合は修正が必要。
+
+音響的に旧Web Audio版と同一ではない。特にreverbは畳み込みからアルゴリズム型へ変更。
+EQは固定周波数の3バンド、filterはlowpass/highpass/bandpassに限定。
+ゲートはthreshold（線形振幅）/ hysteresis（dB）/ attack・hold・release（秒）。
+compressorはkneeを持たずmakeup（dB）で補正。
+chorusはtime / depth（秒）とrate（拍）/ mix。旧delay1・delay2・spreadは除外。
+独立output gainは `fx.gain()` を後段に置く。
+reverbはmix / room / dampingに加え、既存サンプル用のtoneをdampingへ近似変換する。
+wobbleのdepth（Hz）は中心周波数からオクターブ幅へ変換するため旧版とは揺れ方が異なる。
+各制御値はnative側の範囲へ制限する。数値範囲は `web/native_fx.js` とHelper型定義を参照。
+
+1ラックあたり同種8インスタンス、チェーン/分岐ノードを含め最大32ノード。
+同一FXインスタンスをグラフの複数箇所に置くことはできない。
+グラフ変更や新規遅延バッファ確保は設定時に行う。PCM処理中のmallocは行わないが、
+再生中の大きな構成変更が音切れしないことまでは保証しない。
+音声再生とFX操作は別ポートのため、音源命令とのサンプル単位の同期は今回の対象外。
+
+### ビルド・検証
+
+`sh scripts/build_native_audio_effect.sh` は検証ページのWASMと
+`web/native_audio_effect.wasm` / `docs/js/native_audio_effect.wasm` を更新する。
+JSは `sh scripts/sync_web_js_to_docs.sh` で同期する。
+
+追加テスト `test/playground_native_fx.test.mjs` は実WASMで全FX、分岐合流、
+ランプ、Stop後の残響、ポート切り替え、配布バイナリー一致を検証する。
+WorkerテストでFX命令がmain threadへ送られないことを確認する。
+ブラウザーでのPlayground試聴、Windowsでの負荷・操作確認は移行後に行う。
+
+移行時の検証結果: 対象84テスト成功、itch用ZIP生成成功。
+広めに実行したPlaygroundテストではVGM DAC書き出しの既存テスト1件が失敗し、
+変更前のHEADを別ディレクトリーに展開しても同じ失敗を確認した。今回のFX変更の対象外。
+ブラウザー接続が利用できなかったため、移行後の実ブラウザー試聴は未確認。
