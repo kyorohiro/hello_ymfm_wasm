@@ -111,7 +111,41 @@ YM2203の1/2とは異なる。別クロックはSynthの `clock` にも指定し
 
 `node --test web/ym2608synth.test.mjs` で全6 CHの音程・パン・停止、CH3 special、
 SSGの音程・状態追跡・FMとの混合を実WASMで検証する。
-リズム・ADPCMの高レベルAPIとPlaygroundの操作UIは今後の対象。
+ADPCM-Bの高レベルAPIとPlaygroundの操作UIは今後の対象。
+
+### YM2608 内蔵リズム → WAV
+
+```sh
+node examples/nodejs/main_ym2608_rhythm_wave.js /tmp/ym2608_rhythm.wav /path/to/ym2608_adpcm_rom.bin
+```
+
+第1引数は出力先（省略時はスクリプトの隣の `ym2608_rhythm.wav`）、
+第2引数は8 KiBのリズムROM（省略時はリポジトリー直下の `ym2608_adpcm_rom.bin`）。
+実機の内蔵ROMに相当するデータを呼び出し側で用意する。このサンプルにはROMを同梱しない。
+WAVやADPCM-Bのデータはここへ渡さない。
+
+```javascript
+const rhythm = synth.rhythm;
+rhythm.loadRom(romBytes); // Uint8Array / Node.js Buffer、8192 byte
+rhythm.setVolume(48); // 全体のレベル 0..63
+rhythm.setVoice("snare", {volume: 24, left: true, right: true});
+rhythm.keyOn("snare");
+// chip.generateStereo(...) でチップを進める
+rhythm.keyOff("snare");
+```
+
+- 音名は `bassDrum` / `snare` / `cymbal` / `hiHat` / `tom` / `rimShot`。順に数値0..5でも指定可能。
+- 個別レベルは0..31、全体レベルは0..63。大きいほど大音量。確実な停止には `keyOff` を使う。
+- `setVoice` の省略項目は維持する。初期状態では左右出力が無効なので、パンも指定する。
+- `keyOn(["bassDrum", "hiHat"])` で同時発音。再呼び出しはROMの固定開始位置から再トリガー。
+  `keyOff` も配列に対応する。停止はFMのリリースと異なり、次の生成更新で止まる。
+- `rhythm.reset()` はリズムだけを停止・初期化する。ROMやFM・SSG・ADPCM-Bは維持する。
+- ROM転送は `YM2608DirectTransport` が担当する。独自Transportは `loadRhythmRom(bytes)` の実装が必要。
+  RuntimeSynth / WorkerのROM転送API追加は今回の範囲外。
+
+サンプルは6音を順に各0.75秒＋無音0.25秒、その後2秒の短いパターン、最後に0.5秒の無音（計8.5秒）。
+スネアを左、ハイハットを右に振り分ける例も含む。保存先の同名ファイルは上書きする。
+自動テストは独自の合成ADPCM-Aデータを使い、実ROMの音色そのものの正しさは試聴で確認する。
 
 ## YM2612 → WAV
 

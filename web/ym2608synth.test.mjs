@@ -110,3 +110,81 @@ test('real YM2608: six FM channels, CH3 special, SSG pitch and mixed output', as
     assert.ok(strength(mixed.left, 220) > 0.005);
   } finally { chip.dispose(); }
 });
+
+test('rhythm validates before writes and preserves pan/level across raw Synth writes', () => {
+  const writes = [];
+  let rom;
+  const synth = new YM2608Synth({transport: {
+    write(port, register, value) { writes.push([port, register, value]); },
+    loadRhythmRom(bytes) { rom = bytes; },
+  }});
+  const rhythm = synth.rhythm;
+  const bytes = new Uint8Array(8192);
+  rhythm.loadRom(bytes);
+  assert.equal(rom, bytes);
+  assert.throws(() => rhythm.loadRom(new Uint8Array(8191)), RangeError);
+  synth.write(0, 0x19, 0x85);
+  rhythm.setVoice('snare', {volume: 20});
+  assert.deepEqual(writes.at(-1), [0, 0x19, 0x94]);
+  synth.write(1, 0x19, 0);
+  rhythm.setVoice('snare', {right: true});
+  assert.deepEqual(writes.at(-1), [0, 0x19, 0xd4]);
+  rhythm.keyOn(['bassDrum', 'hiHat']);
+  assert.deepEqual(writes.at(-1), [0, 0x10, 9]);
+  rhythm.keyOff([0, 3]);
+  assert.deepEqual(writes.at(-1), [0, 0x10, 0x89]);
+  const count = writes.length;
+  assert.throws(() => rhythm.keyOn([0, 6]), RangeError);
+  assert.throws(() => rhythm.setVoice('snare', {volume: 4, left: 1}), TypeError);
+  assert.throws(() => rhythm.setVolume(64), RangeError);
+  assert.equal(writes.length, count);
+  rhythm.reset();
+  assert.ok(writes.slice(count).every(([port, reg]) => port === 0 && reg >= 0x10 && reg <= 0x1d));
+  synth.reset();
+  assert.ok(rhythm.levels.every(x => x === 0));
+});
+
+test('real YM2608 rhythm: six ROM regions, pan, levels, simultaneous keys, retrigger and stop', async () => {
+  const {default: moduleFactory} = await import('../docs/generated/ym2608_wasm.js');
+  const chip = await Ym2608.create({moduleFactory, moduleOptions: {
+    wasmBinary: await readFile(new URL('../docs/generated/ym2608_wasm.wasm', import.meta.url)),
+  }});
+  const peak = a => a.reduce((p,x) => Math.max(p, Math.abs(x)), 0);
+  try {
+    const synth = new YM2608Synth({transport: new YM2608DirectTransport(chip)});
+    // Original synthetic ADPCM-A bytes for routing tests; no proprietary ROM fixture.
+    synth.rhythm.loadRom(new Uint8Array(8192).fill(0x12));
+    const r = synth.rhythm;
+    for (let ch=0; ch<6; ch++) {
+      synth.reset(); // The loaded ROM must survive chip reset.
+      chip.generateStereo(1000); // Drain the core's held output from the previous FM tick.
+      r.setVolume(48);
+      r.setVoice(ch, {volume: 24, left: true, right: false});
+      r.keyOn(ch);
+      const leftOnly = chip.generateStereo(12000);
+      assert.ok(peak(leftOnly.left) > 0.001, `rhythm ${ch} must play`);
+      assert.equal(peak(leftOnly.right), 0);
+      r.keyOff(ch);
+      chip.generateStereo(1000);
+      assert.equal(peak(chip.generateStereo(1000).left), 0);
+      r.setVoice(ch, {left: false, right: true, volume: 10});
+      r.keyOn(ch);
+      const quiet = chip.generateStereo(12000);
+      assert.equal(peak(quiet.left), 0);
+      assert.ok(peak(quiet.right) < peak(leftOnly.left));
+      assert.ok(peak(quiet.right) > 0);
+      r.keyOff(ch);
+    }
+    synth.reset();
+    r.setVolume(48);
+    r.setVoice(0, {volume: 24, left: true, right: false});
+    r.setVoice(1, {volume: 24, left: false, right: true});
+    r.keyOn([0, 1]);
+    let audio = chip.generateStereo(12000);
+    assert.ok(peak(audio.left) > 0 && peak(audio.right) > 0);
+    r.reset();
+    chip.generateStereo(1000);
+    audio = chip.generateStereo(1000);
+    assert.equal(peak(audio.left) + peak(audio.right), 0);
+  } finally { chip.dispose(); }
+});
