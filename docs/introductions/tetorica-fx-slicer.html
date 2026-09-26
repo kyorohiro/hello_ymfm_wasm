@@ -7,6 +7,7 @@
 <p>音源はGainの章と同じ長いサイン波です。音符を細かく鳴らし直す代わりに、鳴っている音をFXで開閉します。</p>
 <table><thead><tr><th>設定</th><th>意味</th></tr></thead><tbody><tr><td>phase</td><td>1周期の長さ（拍）。初期位相の指定ではありません。</td></tr><tr><td>duty</td><td>周期のうち開く割合。0.5なら半分。</td></tr><tr><td>floor</td><td>閉じている間のGain。0なら無音。</td></tr><tr><td>mix</td><td>加工音を混ぜる割合。1で加工音のみ。</td></tr></tbody></table>
 <p>BPM 120では1拍が0.5秒。phase 0.5なら1周期0.25秒、1秒に4回の開閉になります。</p><p class="hint">iframe内の<strong>Run</strong>で再生し、<strong>Stop</strong>で停止します。再生中に値を編集したら<strong>Apply</strong>で反映してください。比較する前に、もう一方のPlaygroundをStopしてください。それぞれ独立した音声環境です。</p>
+<p>Runしたら<strong>FX Monitor</strong>で<code>none</code>を選ぶと、組み込みFXを通った後の波形が見られます。<code>liveFx("none", …)</code>は観測用の素通し処理です。青とオレンジは同じ波形で重なり、組み込みFXの加工前後の比較ではありません。設定を変更してApplyし、波形の変化を見てください。</p>
 <script type="text/plain" id="slicer-native">
 setBpm(120);
 const gate = await livePrepare("slicer-demo", async ({ fx }) =>
@@ -16,6 +17,15 @@ gate.phase.set(0.5); // One cycle in beats. Try 0.25, 0.5, 1.
 gate.duty.set(0.5);  // Open fraction. Try 0.2, 0.5, 0.8.
 gate.floor.set(0);   // Closed gain. Try 0 or 0.2.
 fx.setChain([gate]);
+
+// Observe the native FX output without changing it.
+liveFx("none", {
+  process(input, output, state, context) {
+    for (let ch = 0; ch < input.length; ch++) {
+      output[ch].set(input[ch]);
+    }
+  },
+});
 fm.setPreset(CH1, FM_PRESETS["sine"]);
 const pitch = hzToBlockFnum(220);
 fm.setFrequency(CH1, pitch.block, pitch.fnum);

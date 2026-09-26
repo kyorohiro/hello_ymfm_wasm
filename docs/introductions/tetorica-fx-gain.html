@@ -7,6 +7,7 @@
 <p>この章では、Gainの倍率、波形との関係、そして自分で書く<code>liveFx</code>の基本を扱います。</p></header>
 <section class="panel"><h2>1. まず聴いてみる</h2><p>220 Hzを狙ったYM2612のサイン波を、4拍鳴らして1拍休みます。チップの周波数設定には量子化があるので、厳密な220 Hzとは限りません。</p>
 <p><code>volume.gain.set(0.5)</code>の値を変えて比較します。0は無音、1はこのFXでは振幅を変えない設定です。</p><p class="hint">iframe内の<strong>Run</strong>で再生し、<strong>Stop</strong>で停止します。再生中に値を編集したら<strong>Apply</strong>で反映してください。比較する前に、もう一方のPlaygroundをStopしてください。それぞれ独立した音声環境です。</p>
+<p>Runしたら<strong>FX Monitor</strong>で<code>none</code>を選ぶと、組み込みFXを通った後の波形が見られます。<code>liveFx("none", …)</code>は観測用の素通し処理です。青とオレンジは同じ波形で重なり、組み込みFXの加工前後の比較ではありません。設定を変更してApplyし、波形の変化を見てください。</p>
 <script type="text/plain" id="gain-native">
 setBpm(120);
 const volume = await livePrepare("gain-demo", async ({ fx }) =>
@@ -14,6 +15,15 @@ const volume = await livePrepare("gain-demo", async ({ fx }) =>
 );
 volume.gain.set(0.5); // Try 0, 0.25, 0.5, 1.
 fx.setChain([volume]);
+
+// Observe the native FX output without changing it.
+liveFx("none", {
+  process(input, output, state, context) {
+    for (let ch = 0; ch < input.length; ch++) {
+      output[ch].set(input[ch]);
+    }
+  },
+});
 fm.setPreset(CH1, FM_PRESETS["sine"]);
 const pitch = hzToBlockFnum(220);
 fm.setFrequency(CH1, pitch.block, pitch.fnum);

@@ -27,6 +27,11 @@ test('all embedded FX lessons register valid APIs and complete their reference l
    if(id.endsWith('native')){
     assert.ok(messages.some(m=>m.op==='chain'));
     assert.ok(messages.some(m=>m.op==='create'&&m.unit.type===name));
+    assert.ok(processor.effects.has('none'));
+    const audio=[Float32Array.of(.2,-.3,0),Float32Array.of(-.1,.4,0)];
+    const original=audio.map(ch=>ch.slice());
+    processor.process(audio,assert.fail);
+    assert.deepEqual(audio,original,'observer preserves both channels');
    }else{
     const output=[];
     for(let block=0;block<100;block++){
