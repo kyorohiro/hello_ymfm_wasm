@@ -1,3 +1,4 @@
+import {installPlaygroundPageLifecycle} from "./playground_page_lifecycle.js";
 import {createFXMonitor} from './playground_fx_monitor.js?v=stable-select-1';
 import {installMidiImport} from './playground_midi_import.js?v=midi-sections-1';
 import {
@@ -1454,6 +1455,19 @@ function createRuntime() {
 }
 
 const runtime = createRuntime();
+const pageLifecycle = installPlaygroundPageLifecycle({
+  target: window,
+  getRuntime: () => runtime,
+  onRestored() {
+    synth = null;
+    operatorKeyboard.attachSynth(null);
+    runButton.disabled = false;
+    syncWorkerExecutionLock();
+    setStatus("Playback stopped after navigation. Press Run to start again.");
+    setRuntimeState("Audio idle");
+  },
+  onError(error) { console.error(error); setStatus("Audio cleanup failed: " + error.message); },
+});
 
 function syncWorkerExecutionLock() {
   if (workerExecution) {
@@ -1481,6 +1495,7 @@ async function runCode() {
   clearConsole();
 
   try {
+    await pageLifecycle.beforeRun();
     saveActiveVirtualFile();
     const entryFile = virtualFiles.get(runVirtualPath);
     if (!entryFile || entryFile.type !== "text") {

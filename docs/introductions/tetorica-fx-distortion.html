@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Distortion：波形の山を丸める — Tetorica FX入門</title><link rel="stylesheet" href="./fx-introduction.css"></head>
+<body><main><nav aria-label="記事ナビゲーション"><a href="./tetorica-fx.html">FX入門一覧（作成中）</a><a href="./tetorica-fx-slicer.html">← 前の章</a><a href="./tetorica-fx-bitcrusher.html">次の章 →</a></nav>
+<header class="panel"><p class="kicker">FX INTRODUCTION / 03 / 下書き</p><h1>Distortion：波形の山を丸める</h1><p>Gainを上げるだけでは波形の形は変わりません。今回は大きい値ほど伸びにくくなる関数を使い、音色を変えます。</p>
+<p class="hint">作成中の記事です。サンプルは試聴しながら調整していきます。Runで再生、Stopで停止。値を編集したらApplyします。別のiframeを試す前に、再生中のものをStopしてください。</p></header>
+<section class="panel"><h2>組み込みFXで聴く</h2><table><thead><tr><th>設定</th><th>意味</th></tr></thead><tbody><tr><td>drive</td><td>入力を押し込む倍率</td></tr><tr><td>mix</td><td>原音と加工音の混合率</td></tr></tbody></table><p>FX Monitorでnoneを選ぶと、組み込みFXを通った後の波形が見えます。noneは素通しなので、入力と出力は重なります。組み込みFXの加工前後を示すものではありません。</p><script type="text/plain" id="distortion-native">
+setBpm(120);
+const settings = { drive: 10, mix: 1 };
+const effect = await livePrepare("distortion-native", async ({ fx }) => fx.distortion(settings));
+// Update the existing effect on Apply.
+effect.drive.set(settings.drive);
+effect.mix.set(settings.mix);
+fx.setChain([effect]);
+// Observe the output of the native chain.
+liveFx("none", {
+  process(input, output, state, context) {
+    for (let ch = 0; ch < input.length; ch++) output[ch].set(input[ch]);
+  },
+});
+fm.setPreset(CH1, FM_PRESETS["sine"]);
+const pitch = hzToBlockFnum(220);
+fm.setFrequency(CH1, pitch.block, pitch.fnum);
+liveLoop("reference", async () => {
+  fm.keyOn(CH1);
+  await beat(4);
+  fm.keyOff(CH1);
+  await beat(1);
+});
+</script>
+<iframe data-playground-src="distortion-native" data-playground-mode="full" title="Distortion：波形の山を丸める：組み込みFX" loading="lazy" allow="autoplay"></iframe>
+<p><a data-playground-src="distortion-native" target="_blank" rel="noopener noreferrer">別タブのPlaygroundで開く ↗</a></p></section><section class="panel"><h2>PCMをどう加工するか</h2><p>今回の関数はtanhです。0付近ではほぼ直線ですが、大きな正負の入力では±1へ近づきます。サイン波の山が丸まり、新しい倍音が生まれます。入力に掛けるdriveは歪み量、最後に掛けるgainは出力音量です。音量が大きくなっただけの印象と、音色の変化を分けて聴きましょう。</p><p>input[ch][i]は入力の1サンプルです。chは左右の音声チャンネルで、FMの物理CHではありません。前のブロックから持ち越す値はstateに保存します。processから外側の変数は参照できないため、設定値はcontextへ入れます。</p></section><section class="panel"><h2>liveFxで試す</h2><script type="text/plain" id="distortion-live">
+setBpm(120);
+liveFx("distortion-lab", {
+  context: { drive: 20, gain: 0.15 },
+  process(input, output, state, context) {
+for (let ch = 0; ch < input.length; ch++) {
+      for (let i = 0; i < input[ch].length; i++) {
+        output[ch][i] = Math.tanh(input[ch][i] * context.drive) * context.gain;
+      }
+    }
+  },
+});
+fm.setPreset(CH1, FM_PRESETS["sine"]);
+const pitch = hzToBlockFnum(220);
+fm.setFrequency(CH1, pitch.block, pitch.fnum);
+liveLoop("reference", async () => {
+  fm.keyOn(CH1);
+  await beat(4);
+  fm.keyOff(CH1);
+  await beat(1);
+});
+</script>
+<iframe data-playground-src="distortion-live" data-playground-mode="full" title="Distortion：波形の山を丸める：liveFx" loading="lazy" allow="autoplay"></iframe>
+<p><a data-playground-src="distortion-live" target="_blank" rel="noopener noreferrer">別タブのPlaygroundで開く ↗</a></p><p>FX Monitorでdistortion-labを選ぶと、この処理の入力・出力を比較できます。</p><ol class="steps"><li>driveを1、10、40と変え、gainも調整して音量を近づけて比較します。</li><li>FX Monitorで波形の山と、Spectrumに増える倍音を見ます。</li><li>gainだけを変えると、波形の形より高さが変わることを確かめます。</li></ol></section><section class="panel"><h2>この例の範囲</h2><p>学習用は単純なtanhです。組み込み版のdrive上限は20でmixも持ちます。強い非線形加工では折り返し雑音も生じ得ます。この例はオーバーサンプリングをしません。</p><p>波形は時間方向の変化、Spectrumは周波数成分の強さを見る道具です。短い表示窓や表示の平滑化で見えにくい変化もあります。音を聞きながら、設定を1項目ずつ変えてください。</p></section>
+<nav aria-label="記事ナビゲーション"><a href="./tetorica-fx.html">FX入門一覧（作成中）</a><a href="./tetorica-fx-slicer.html">← 前の章</a><a href="./tetorica-fx-bitcrusher.html">次の章 →</a></nav></main><script src="./playground-embed.js"></script></body></html>

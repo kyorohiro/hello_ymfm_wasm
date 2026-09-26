@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reverb：遅延を重ねて残響を作る — Tetorica FX入門</title><link rel="stylesheet" href="./fx-introduction.css"></head>
+<body><main><nav aria-label="記事ナビゲーション"><a href="./tetorica-fx.html">FX入門一覧（作成中）</a><a href="./tetorica-fx-chorus.html">← 前の章</a><a href="./tetorica-fx-chains.html">次の章 →</a></nav>
+<header class="panel"><p class="kicker">FX INTRODUCTION / 14 / 下書き</p><h1>Reverb：遅延を重ねて残響を作る</h1><p>Delayの繰り返しを複数重ねて、音が空間に残るような響きを作ります。</p>
+<p class="hint">作成中の記事です。サンプルは試聴しながら調整していきます。Runで再生、Stopで停止。値を編集したらApplyします。別のiframeを試す前に、再生中のものをStopしてください。</p></header>
+<section class="panel"><h2>組み込みFXで聴く</h2><table><thead><tr><th>設定</th><th>意味</th></tr></thead><tbody><tr><td>mix</td><td>残響音の割合</td></tr><tr><td>room</td><td>残響の伸びに関わる相対値。秒や部屋の寸法ではありません</td></tr><tr><td>damping</td><td>残響の高域を減衰させる程度</td></tr><tr><td>tone</td><td>dampingの別指定（Hz表記）。独立したEQではなく、この例では使いません</td></tr></tbody></table><p>FX Monitorでnoneを選ぶと、組み込みFXを通った後の波形が見えます。noneは素通しなので、入力と出力は重なります。組み込みFXの加工前後を示すものではありません。</p><script type="text/plain" id="reverb-native">
+setBpm(120);
+const settings = { mix: 0.3, room: 0.7, damping: 0.4 };
+const effect = await livePrepare("reverb-native", async ({ fx }) => fx.reverb(settings));
+// Update the existing effect on Apply.
+effect.mix.set(settings.mix);
+effect.room.set(settings.room);
+effect.damping.set(settings.damping);
+fx.setChain([effect]);
+// Observe the output of the native chain.
+liveFx("none", {
+  process(input, output, state, context) {
+    for (let ch = 0; ch < input.length; ch++) output[ch].set(input[ch]);
+  },
+});
+fm.setPreset(CH1, FM_PRESETS["two-op-bell"]);
+const pitch = hzToBlockFnum(220);
+fm.setFrequency(CH1, pitch.block, pitch.fnum);
+liveLoop("reference", async () => {
+  fm.keyOn(CH1);
+  await beat(1);
+  fm.keyOff(CH1);
+  await beat(3);
+});
+</script>
+<iframe data-playground-src="reverb-native" data-playground-mode="full" title="Reverb：遅延を重ねて残響を作る：組み込みFX" loading="lazy" allow="autoplay"></iframe>
+<p><a data-playground-src="reverb-native" target="_blank" rel="noopener noreferrer">別タブのPlaygroundで開く ↗</a></p></section><section class="panel"><h2>PCMをどう加工するか</h2><p>異なる長さの4本の遅延に音を送り、それぞれにフィードバックを掛けます。戻す音の高域を少し落とすと、反射のたびに暗くなる残響を作れます。</p><p>input[ch][i]は入力の1サンプルです。chは左右の音声チャンネルで、FMの物理CHではありません。前のブロックから持ち越す値はstateに保存します。processから外側の変数は参照できないため、設定値はcontextへ入れます。</p></section><section class="panel"><h2>liveFxで試す</h2><p class="hint">context.sampleRateの48000は仮の値です。FX Monitorに表示される実際の出力レートに合わせてください。時間や周波数の計算に使い、ブラウザーの出力レート自体を変更する設定ではありません。</p><p>この例はresetState: trueなのでApplyすると保存した音を消してバッファを作り直します。余韻は途切れます。通常の同名liveFxはstateを維持します。</p><script type="text/plain" id="reverb-live">
+setBpm(120);
+liveFx("reverb-lab", {
+  resetState: true, // Rebuild delay buffers on Apply.
+  context: { sampleRate: 48000, feedback: 0.75, damping: 0.4, mix: 0.3 },
+  process(input, output, state, context) {
+    state.banks ??= input.map((_, ch) =>
+      [1499, 1601, 1867, 1999].map(n => ({
+        buffer: new Float32Array(Math.max(1, Math.round((n + ch * 23) * context.sampleRate / 48000))),
+        position: 0, low: 0,
+      }))
+    );
+    const feedback = Math.max(0, Math.min(0.85, context.feedback));
+    const damping = Math.max(0, Math.min(0.95, context.damping));
+    const mix = Math.max(0, Math.min(1, context.mix));
+    for (let ch = 0; ch < input.length; ch++) {
+      for (let i = 0; i < input[ch].length; i++) {
+        let wet = 0;
+        for (const comb of state.banks[ch]) {
+          const delayed = comb.buffer[comb.position];
+          comb.low += (delayed - comb.low) * (1 - damping);
+          comb.buffer[comb.position] = input[ch][i] + comb.low * feedback;
+          comb.position = (comb.position + 1) % comb.buffer.length;
+          wet += delayed * 0.25;
+        }
+        output[ch][i] = input[ch][i] * (1 - mix) + wet * mix;
+      }
+    }
+  },
+});
+fm.setPreset(CH1, FM_PRESETS["two-op-bell"]);
+const pitch = hzToBlockFnum(220);
+fm.setFrequency(CH1, pitch.block, pitch.fnum);
+liveLoop("reference", async () => {
+  fm.keyOn(CH1);
+  await beat(1);
+  fm.keyOff(CH1);
+  await beat(3);
+});
+</script>
+<iframe data-playground-src="reverb-live" data-playground-mode="full" title="Reverb：遅延を重ねて残響を作る：liveFx" loading="lazy" allow="autoplay"></iframe>
+<p><a data-playground-src="reverb-live" target="_blank" rel="noopener noreferrer">別タブのPlaygroundで開く ↗</a></p><p>FX Monitorでreverb-labを選ぶと、この処理の入力・出力を比較できます。</p><ol class="steps"><li>mixを1にして残響だけを聞き、その後0.3へ戻します。</li><li>feedbackを0.4と0.8で比較します。</li><li>dampingを0と0.8で比較し、余韻の明るさを聞きます。</li></ol></section><section class="panel"><h2>この例の範囲</h2><p>この4本だけの構造は金属的な響きが残りやすい簡易版です。組み込み版はさらにall-passによる拡散を行います。自然な部屋や畳み込みリバーブを再現する例ではありません。短いMonitor窓だけでは残響全体を捉えにくいため、音源が止まった後も耳で確かめてください。</p><p>波形は時間方向の変化、Spectrumは周波数成分の強さを見る道具です。短い表示窓や表示の平滑化で見えにくい変化もあります。音を聞きながら、設定を1項目ずつ変えてください。</p></section>
+<nav aria-label="記事ナビゲーション"><a href="./tetorica-fx.html">FX入門一覧（作成中）</a><a href="./tetorica-fx-chorus.html">← 前の章</a><a href="./tetorica-fx-chains.html">次の章 →</a></nav></main><script src="./playground-embed.js"></script></body></html>

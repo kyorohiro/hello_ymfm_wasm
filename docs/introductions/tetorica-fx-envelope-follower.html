@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Envelope Follower：音の強さを追う — Tetorica FX入門</title><link rel="stylesheet" href="./fx-introduction.css"></head>
+<body><main><nav aria-label="記事ナビゲーション"><a href="./tetorica-fx.html">FX入門一覧（作成中）</a><a href="./tetorica-fx-wobble.html">← 前の章</a><a href="./tetorica-fx-noise-gate.html">次の章 →</a></nav>
+<header class="panel"><p class="kicker">FX INTRODUCTION / 08 / 下書き</p><h1>Envelope Follower：音の強さを追う</h1><p>GateとCompressorへ進む前に、入力の振幅を滑らかな制御値へ変換します。</p>
+<p class="hint">作成中の記事です。サンプルは試聴しながら調整していきます。Runで再生、Stopで停止。値を編集したらApplyします。別のiframeを試す前に、再生中のものをStopしてください。</p></header>
+<section class="panel"><p>Envelope Follower単独の組み込みFXはありません。ここでは次のGate・Compressorを理解するため、liveFxで音量を追い、その値で音量を変える実験をします。</p></section><section class="panel"><h2>PCMをどう加工するか</h2><p>波形の正負を絶対値で折り返し、平滑化します。大きくなるときはAttack、小さくなるときはReleaseの時定数を使います。これは短時間RMSとは違う検出方法です。左右の最大値を使うと、左右で別々のゲインになって定位が揺れることを避けられます。</p><p>input[ch][i]は入力の1サンプルです。chは左右の音声チャンネルで、FMの物理CHではありません。前のブロックから持ち越す値はstateに保存します。processから外側の変数は参照できないため、設定値はcontextへ入れます。</p></section><section class="panel"><h2>liveFxで試す</h2><p class="hint">context.sampleRateの48000は仮の値です。FX Monitorに表示される実際の出力レートに合わせてください。時間や周波数の計算に使い、ブラウザーの出力レート自体を変更する設定ではありません。</p><script type="text/plain" id="envelope-follower-live">
+setBpm(120);
+liveFx("envelope-follower-lab", {
+  context: { sampleRate: 48000, attackMs: 10, releaseMs: 180, sensitivity: 10, mix: 1 },
+  process(input, output, state, context) {
+state.envelope ??= 0;
+    const rate = Math.max(8000, context.sampleRate);
+    const attack = 1 - Math.exp(-1 / (Math.max(0.1, context.attackMs) * 0.001 * rate));
+    const release = 1 - Math.exp(-1 / (Math.max(0.1, context.releaseMs) * 0.001 * rate));
+    for (let i = 0; i < input[0].length; i++) {
+      let level = 0;
+      for (let ch = 0; ch < input.length; ch++) level = Math.max(level, Math.abs(input[ch][i]));
+      const coefficient = level > state.envelope ? attack : release;
+      state.envelope += coefficient * (level - state.envelope);
+      const gain = Math.min(1, state.envelope * context.sensitivity);
+      for (let ch = 0; ch < input.length; ch++) {
+        output[ch][i] = input[ch][i] * (1 - context.mix + context.mix * gain);
+      }
+    }
+  },
+});
+fm.setPreset(CH1, FM_PRESETS["two-op-bell"]);
+const pitch = hzToBlockFnum(220);
+fm.setFrequency(CH1, pitch.block, pitch.fnum);
+liveLoop("reference", async () => {
+  fm.keyOn(CH1);
+  await beat(1);
+  fm.keyOff(CH1);
+  await beat(3);
+});
+</script>
+<iframe data-playground-src="envelope-follower-live" data-playground-mode="full" title="Envelope Follower：音の強さを追う：liveFx" loading="lazy" allow="autoplay"></iframe>
+<p><a data-playground-src="envelope-follower-live" target="_blank" rel="noopener noreferrer">別タブのPlaygroundで開く ↗</a></p><p>FX Monitorでenvelope-follower-labを選ぶと、この処理の入力・出力を比較できます。</p><ol class="steps"><li>mixを0にして原音を聴き、1にすると減衰の小さい部分がさらに小さくなるか確認します。</li><li>attackMsを100にして、立ち上がりへの追従を遅くします。</li><li>releaseMsを30と500で比較し、音が減衰する途中の変化を聴きます。</li></ol></section><section class="panel"><h2>この例の範囲</h2><p>組み込みの独立したEnvelope Follower APIはありません。ここでは検出値をゲインとして使うデモです。FX Monitorはstate.envelope自体を表示せず、加工された音声を表示します。制御値をそのまま音声出力へ書く例ではありません。</p><p>波形は時間方向の変化、Spectrumは周波数成分の強さを見る道具です。短い表示窓や表示の平滑化で見えにくい変化もあります。音を聞きながら、設定を1項目ずつ変えてください。</p></section>
+<nav aria-label="記事ナビゲーション"><a href="./tetorica-fx.html">FX入門一覧（作成中）</a><a href="./tetorica-fx-wobble.html">← 前の章</a><a href="./tetorica-fx-noise-gate.html">次の章 →</a></nav></main><script src="./playground-embed.js"></script></body></html>

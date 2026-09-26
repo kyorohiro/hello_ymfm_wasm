@@ -19,6 +19,7 @@ LICENSE_FILE="${ROOT_DIR}/LICENSE"
 PLAYGROUND_FILES="
 index.html
 playground.js
+playground_page_lifecycle.js
 playground_fx_monitor.js
 playground_cassette.js
 playground_examples.js

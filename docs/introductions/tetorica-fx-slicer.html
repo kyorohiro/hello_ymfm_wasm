@@ -85,5 +85,5 @@ state.position = (state.position + 1) % period;</code></pre>
 <p>processは何度も呼ばれ、毎回iは0へ戻ります。iだけで周期を計算すると、音声ブロックごとに周期も再始動してしまいます。state.positionなら次のブロックへ位置を引き継げます。</p>
 <p>左右を処理した後に1回だけ位置を進めるので、左右は同じタイミングで開閉します。同じ名前でApplyするとstateは維持され、Stopで破棄されます。</p>
 <p>これは仕組みを学ぶための矩形ゲートです。組み込み版の全動作の再現ではありません。次の実験として、境界のGainを少しずつ変えればクリック音を和らげられます。</p>
-<p><a href="./tetorica-fx-gain.html">← Gainへ戻る</a> · 次のテーマ：Distortionで波形の形を変える（未公開）</p></section>
+<p><a href="./tetorica-fx-gain.html">← Gainへ戻る</a> · <a href="./tetorica-fx-distortion.html">次の章：Distortionで波形の形を変える →</a></p></section>
 </main><script src="./playground-embed.js"></script></body></html>

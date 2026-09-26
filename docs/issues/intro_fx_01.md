@@ -100,7 +100,7 @@ Distortionの導入では、倍音が増える様子を確認しやすいサイ�
 ## 執筆・確認タスク
 
 - [x] Gainの記事を作り、シリーズ共通の構成を決める（試作）。
-- [ ] 上記の順序で各章を追加する。
+- [x] 上記の順序で各章の下書きを追加する（全15章）。
 - [ ] 各コードを現在のAPI・型定義・パラメーター範囲と照合する。
 - [ ] PlaygroundのWorker on/off、Run / Apply / Stopで確認する。
 - [ ] 長時間再生とブロック境界で状態が途切れないか確認する。
@@ -131,3 +131,25 @@ Distortionの導入では、倍音が増える様子を確認しやすいサイ�
 自動確認：`node --test docs/introductions/fx-introduction.test.mjs`。
 4本の埋め込みコードのAPI・演奏ループ、Gainの倍率、Slicerの周期・左右同期を確認。
 ブラウザー表示・試聴、Worker on/off・Apply操作の確認は残る。
+
+
+## 残りの章の下書き
+
+Distortion / Bitcrusher / Filter / EQ / Wobble / Envelope Follower / Noise Gate /
+Compressor / Delay / Flanger / Chorus / Reverb / 組み合わせの13記事を追加した。
+目次は `docs/introductions/tetorica-fx.html`。各記事から前後の章へ移動できる。
+
+組み込みFXと学習用liveFxを分け、簡易実装の限界を明記した。
+Envelope FollowerはliveFxのみ、組み合わせは直列・並列の2例。
+組み込みFXの後は素通しのliveFx("none")で観測するため、Monitorは
+組み込みFXの前後比較ではない。遅延バッファを使う例はApply時にstateを再初期化する。
+時間・周波数を扱う自作例は、context.sampleRateをMonitorの実レートに合わせる。
+
+自動確認：
+`node --test docs/introductions/fx-introduction.test.mjs docs/introductions/fx-remaining-lessons.test.mjs`
+
+追加25本の埋め込みコードについて、API呼び出し、プリセット、演奏ループ、
+Apply時のノード再利用、記事間リンクを確認。liveFxを実行して有限・非無音出力、
+128/256サンプルのブロック分割での結果一致、Delayのインパルス応答を確認する。
+組み込みDSPの音質、ブラウザー表示・試聴、Worker on/off・実際のApply操作は未確認。
+記事の説明・初期パラメーターは手動確認しながら調整する。
