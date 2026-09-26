@@ -6,6 +6,8 @@ export function createPlaygroundUi(
     runtimeState,
     consoleOutput,
     codeTab,
+    fxMonitorTab,
+    fxMonitorPanel,
     consoleTab,
     helpersTab,
     operatorTabButton,
@@ -78,6 +80,11 @@ export function createPlaygroundUi(
       name: "code",
       button: codeTab,
       panel: codePanel,
+    },
+    {
+      name: "fxMonitor",
+      button: fxMonitorTab,
+      panel: fxMonitorPanel,
     },
     {
       name: "console",

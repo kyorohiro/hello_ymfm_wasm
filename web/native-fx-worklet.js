@@ -9,19 +9,43 @@ export class NativeFXProcessor extends AudioWorkletProcessor {
   this.api._initialize?.();this.api.graph_reset(sampleRate);this.api.noise_reset(sampleRate);this.noiseTokens=new Map();this.samples=createSampleProcessor(this.api,sampleRate);setChain(this.api,[]);
   this.units=new Map();this.ramps=new Map();this.beatSeconds=.5;this.active=true;
   this.port.onmessage=({data})=>{
-   if(data.op==='attach'){
+   if(data.op==='fx-monitor'){
+    this.monitor=null;
+    if(data.enabled){
+     const names=[...this.liveFX.effects.keys()];
+     const name=names.includes(data.name)?data.name:names[0];
+     if(!name)this.port.postMessage({op:'fx-monitor',id:data.id,names});
+     else this.monitor={id:data.id,name,names,channel:data.channel===1?1:0,input:new Float32Array(2048),output:new Float32Array(2048),offset:0};
+    }
+   }else if(data.op==='attach'){
     this.controlPort?.close();this.controlPort=data.port;this.active=false;
     this.samples.reset();this.resetNoise();this.reset();const port=this.controlPort;port.onmessage=({data})=>{if(this.controlPort===port)this.receive(data);};port.start();
    }else if(data.op==='main'){this.controlPort?.close();this.controlPort=null;this.active=true;this.samples.reset();this.resetNoise();this.reset();}
-   else if(data.op==='emergency'){this.liveFX.clear();this.samples.clear();this.resetNoise();setChain(this.api,[]);this.api.graph_clear();this.ramps.clear();}
+   else if(data.op==='emergency'){this.liveFX.clear();this.cancelMonitor();this.samples.clear();this.resetNoise();setChain(this.api,[]);this.api.graph_clear();this.ramps.clear();}
    else if(this.active)this.receive(data);
   };
  }
+ // One requested window at a time: no unsolicited stream or unbounded queue.
+ observeFX=(name,input,output)=>{
+  const m=this.monitor;if(!m||m.name!==name)return;
+  const ch=Math.min(m.channel,input.length-1);
+  const count=Math.min(input[ch].length,m.input.length-m.offset);
+  m.input.set(input[ch].subarray(0,count),m.offset);
+  m.output.set(output[ch].subarray(0,count),m.offset);m.offset+=count;
+  if(m.offset===m.input.length){
+   this.monitor=null;
+   this.port.postMessage({op:'fx-monitor',id:m.id,name:m.name,names:m.names,rate:sampleRate,input:m.input,output:m.output},[m.input.buffer,m.output.buffer]);
+  }
+ };
+ cancelMonitor(){
+  if(this.monitor)this.port.postMessage({op:'fx-monitor',id:this.monitor.id,names:[...this.liveFX.effects.keys()]});
+  this.monitor=null;
+ }
  resetNoise(){this.api.noise_reset(sampleRate);this.noiseTokens.clear();}
- reset(){this.liveFX.clear();this.ramps.clear();this.units.clear();this.api.graph_reset(sampleRate);setChain(this.api,[]);}
+ reset(){this.liveFX.clear();this.cancelMonitor();this.ramps.clear();this.units.clear();this.api.graph_reset(sampleRate);setChain(this.api,[]);}
  receive(data){try{if(data.op==='sample'){const value=this.samples.command(data);if(data.id)(this.controlPort??this.port).postMessage({op:'sample-response',id:data.id,value});return;}this.command(data);}catch(e){if(data.op==='sample'&&data.id)(this.controlPort??this.port).postMessage({op:'sample-response',id:data.id,error:e.message});else this.port.postMessage({error:e.message});}}
  command(d){
-  if(d.op==='live-fx'){this.liveFX.command(d);return;}
+  if(d.op==='live-fx'){this.liveFX.command(d);if(this.monitor&&!this.liveFX.effects.has(this.monitor.name))this.cancelMonitor();return;}
   if(d.op==='noise'){
    const a=this.api,s=d.slot;
    if(d.action==='create'){if(!a.noise_create(s,d.type,d.seed))throw new Error('Invalid noise voice');this.noiseTokens.set(s,d.token);return;}
@@ -74,7 +98,7 @@ export class NativeFXProcessor extends AudioWorkletProcessor {
   const source=inputs[0]??[];
   for(let c=0;c<2;c++){const ch=source[c]??source[0];if(ch)this.input.set(ch,c*cap);else this.input.fill(0,c*cap,c*cap+n);}
   a.noise_mix(n);a.sample_mix(n);a.graph_process(n);for(let c=0;c<target.length;c++)target[c].set(this.output.subarray(c*cap,c*cap+n));
-  this.liveFX.process(target,error=>this.port.postMessage({error}));
+  this.liveFX.process(target,error=>this.port.postMessage({error}),this.monitor?this.observeFX:undefined);
   return true;
  }
 }

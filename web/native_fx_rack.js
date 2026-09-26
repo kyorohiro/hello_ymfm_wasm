@@ -9,6 +9,7 @@ export async function createNativeFXRack(context){
  ]);
  const node=new AudioWorkletNode(context,'tetorica-native-fx',{numberOfInputs:1,numberOfOutputs:1,outputChannelCount:[2],processorOptions:{module}});
  node.port.onmessage=({data})=>{
+  if(data.op==='fx-monitor'){rack.onMonitor?.(data);return;}
   rack.sample.accept(data);if(data.error)console.error('Native FX:',data.error);
  };
  const controller=createNativeFXController(data=>node.port.postMessage(data),{getBeatSeconds:()=>rack.getBeatSeconds()});

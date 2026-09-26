@@ -676,6 +676,8 @@
         min-height: 0;
       }
 
+      #fxMonitorPanel { overflow: auto; padding: 12px; }
+
       #codePanel:not([hidden]) {
         display: flex;
         flex-direction: column;
@@ -1595,6 +1597,7 @@
             >
               Code
             </button>
+            <button id="fxMonitorTab" class="tab-button" type="button" role="tab" aria-selected="false" aria-controls="fxMonitorPanel">FX Monitor</button>
             <button
               id="consoleTab"
               class="tab-button"
@@ -1660,6 +1663,17 @@
             </div>
           </section>
 
+          <section id="fxMonitorPanel" class="tab-panel" role="tabpanel" aria-labelledby="fxMonitorTab" hidden>
+            <h2>FX Monitor</h2>
+            <label>liveFx <select id="fxMonitorTarget" aria-label="Observed liveFx"></select></label>
+            <label>Channel <select id="fxMonitorChannel"><option value="0">Left</option><option value="1">Right</option></select></label>
+            <p id="fxMonitorStatus" role="status">Run code containing liveFx to begin.</p>
+            <p>Blue: input · Orange: output. Fixed scales; 2048-sample Hann FFT. Observation stops when this tab or page is hidden.</p>
+            <h3>Waveform</h3>
+            <canvas id="fxMonitorWave" width="900" height="220" style="width:100%;max-width:900px" aria-label="Input and output waveform"></canvas>
+            <h3>Spectrum</h3>
+            <canvas id="fxMonitorFFT" width="900" height="220" style="width:100%;max-width:900px" aria-label="Input and output frequency spectrum"></canvas>
+          </section>
           <section id="consolePanel" class="tab-panel" role="tabpanel" aria-labelledby="consoleTab" hidden>
             <pre id="consoleOutput"></pre>
           </section>
@@ -1852,6 +1866,6 @@
       </label>
     </footer>
 
-    <script type="module" src="./playground.js?v=live-fx-1"></script>
+    <script type="module" src="./playground.js?v=fx-monitor-select-2"></script>
   </body>
 </html>

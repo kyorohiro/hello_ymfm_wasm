@@ -22,14 +22,14 @@ export class LiveFX {
     this.effects.set(d.name,{fn,context:d.context,state:d.resetState?{}:(previous?.state??{}),bypass:false});
   }
   clear(){this.effects.clear();}
-  process(channels,report) {
+  process(channels,report,observe) {
     const n=channels[0].length;
     if(!this.input||this.input.length!==channels.length||this.input[0].length!==n){
       this.input=channels.map(()=>new Float32Array(n));
       this.output=channels.map(()=>new Float32Array(n));
     }
     for(const [name,e] of this.effects){
-      if(e.bypass)continue;
+      if(e.bypass){observe?.(name,channels,channels);continue;}
       for(let ch=0;ch<channels.length;ch++){this.input[ch].set(channels[ch]);this.output[ch].fill(0);}
       try {
         const result=e.fn(this.input,this.output,e.state,e.context);
@@ -37,6 +37,7 @@ export class LiveFX {
         for(const channel of this.output)for(const value of channel)if(!Number.isFinite(value))throw new Error('Non-finite output');
         for(let ch=0;ch<channels.length;ch++)for(let i=0;i<n;i++)channels[ch][i]=Math.max(-1,Math.min(1,this.output[ch][i]));
       }catch(error){e.bypass=true;report(name+': '+error.message);}
+      observe?.(name,this.input,channels);
     }
   }
 }

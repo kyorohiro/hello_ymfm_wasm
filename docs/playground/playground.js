@@ -1,3 +1,4 @@
+import {createFXMonitor} from './playground_fx_monitor.js?v=stable-select-1';
 import {installMidiImport} from './playground_midi_import.js?v=midi-sections-1';
 import {
   FM_PRESET_ORDER,
@@ -57,7 +58,7 @@ import {
 import { createVgmPresetFiles } from "./playground_vgm_presets.js";
 import { createTfiFileEditor, tfiToEditorPreset } from "./playground_tfi_editor.js";
 import { renderFileTree } from "./playground_file_tree.js";
-import { createPlaygroundUi } from "./playground_ui.js?v=live-fx-1";
+import { createPlaygroundUi } from "./playground_ui.js?v=fx-monitor-1";
 import {
   handleMegaSynthEvent,
 } from "./playground_sync.js";
@@ -1382,12 +1383,16 @@ function deleteActiveVirtualFile() {
   renderRunFileOptions();
 }
 
+const fxMonitor = createFXMonitor(() => runtime.megaDrive?.audio?.nativeFX);
+
 const ui =
   createPlaygroundUi({
     status,
     runtimeState,
     consoleOutput,
     codeTab,
+    fxMonitorTab: document.getElementById("fxMonitorTab"),
+    fxMonitorPanel: document.getElementById("fxMonitorPanel"),
     consoleTab,
     helpersTab,
     operatorTabButton,
@@ -1398,6 +1403,7 @@ const ui =
     operatorPanel,
     keyboardPanel,
     onBottomTabChange(tabName) {
+      fxMonitor.setVisible(tabName === "fxMonitor");
       operatorKeyboard.setView(tabName);
       tfiFileEditor.setVisible(tabName === "code" && Boolean(activeTfiFilePath));
     },
