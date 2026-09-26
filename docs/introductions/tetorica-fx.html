@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>FX入門 — 作成中 — Tetorica</title>
+  <link rel="stylesheet" href="./fx-introduction.css">
+</head>
+<body>
+<main>
+  <nav aria-label="記事ナビゲーション">
+    <a href="../index.html">Tetorica ホーム</a>
+    <a href="./index.html">YM2612 / FM入門</a>
+  </nav>
+  <header class="panel">
+    <p class="kicker">FX INTRODUCTION / 作成中</p>
+    <h1>音を聴いて、コードで学ぶFX</h1>
+    <p>音量を変える、音を刻む、波形を歪ませる。PCMの小さな加工から、
+      フィルターや残響まで、Playgroundで試しながら学ぶシリーズです。</p>
+    <p class="hint"><strong>このシリーズは作成中です。</strong>
+      現在はGainとSlicerの試作記事を読めます。内容・サンプルは今後調整します。</p>
+  </header>
+  <section class="panel">
+    <h2>まず試してみる</h2>
+    <ol class="steps">
+      <li><a href="./tetorica-fx-gain.html"><strong>Gain：音の波形に掛け算する</strong></a> — 試作<br>
+        振幅と音量の関係を、組み込みFXとliveFxの掛け算で確かめます。</li>
+      <li><a href="./tetorica-fx-slicer.html"><strong>Slicer：鳴り続ける音を刻む</strong></a> — 試作<br>
+        Gainを周期的に変え、stateで処理の位置を引き継ぎます。</li>
+    </ol>
+    <p>各記事のiframe内に編集可能なPlaygroundがあります。Runで再生、Stopで停止。
+      コードを変えてApplyし、liveFxの入力・出力をFX Monitorで比較できます。
+      比較するときは、先に再生したPlaygroundをStopしてください。</p>
+  </section>
+  <section class="panel">
+    <h2>この後のテーマ（準備中）</h2>
+    <p>現在のサンプルを加工するところから、履歴を使い、過去の音をためる処理へ進む予定です。
+      以下の記事はまだ公開していません。</p>
+    <ol start="3" class="steps">
+      <li><strong>Distortion</strong> — 波形を変形して倍音を作る</li>
+      <li><strong>Bitcrusher</strong> — 振幅の段階とサンプルの保持</li>
+      <li><strong>Filter</strong> — 前回の値を使って音を変える</li>
+      <li><strong>EQ</strong> — 周波数帯ごとの強さを調整する</li>
+      <li><strong>Wobble</strong> — フィルターを周期的に動かす</li>
+      <li><strong>Envelope Follower</strong> — 入力音量を追う基礎編</li>
+      <li><strong>Noise Gate</strong> — 小さな音を抑える</li>
+      <li><strong>Compressor</strong> — 大きな音を抑える</li>
+      <li><strong>Delay</strong> — 過去の音を読み出す</li>
+      <li><strong>Flanger</strong> — 短い遅延を動かして混ぜる</li>
+      <li><strong>Chorus</strong> — 音に揺れと厚みを作る</li>
+      <li><strong>Reverb</strong> — 遅延を組み合わせて残響を作る</li>
+      <li><strong>組み合わせ</strong> — 直列・並列と処理順の違い</li>
+    </ol>
+  </section>
+</main>
+</body>
+</html>

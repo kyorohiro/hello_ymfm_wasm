@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gain：音の波形に掛け算する — Tetorica FX入門</title><link rel="stylesheet" href="./fx-introduction.css"></head>
+<body><main><nav aria-label="記事ナビゲーション"><a href="./tetorica-fx.html">FX入門一覧（作成中）</a><a href="./tetorica-fx-gain.html">1. Gain</a><a href="./tetorica-fx-slicer.html">2. Slicer</a></nav>
+<header class="panel"><p class="kicker">FX INTRODUCTION / 01</p><h1>Gain：音の波形に掛け算する</h1>
+<p>音色を変える前に、音の大きさを変えてみましょう。最初のエフェクトは、PCMの数値に1つの値を掛けるだけです。</p>
+<p>この章では、Gainの倍率、波形との関係、そして自分で書く<code>liveFx</code>の基本を扱います。</p></header>
+<section class="panel"><h2>1. まず聴いてみる</h2><p>220 Hzを狙ったYM2612のサイン波を、4拍鳴らして1拍休みます。チップの周波数設定には量子化があるので、厳密な220 Hzとは限りません。</p>
+<p><code>volume.gain.set(0.5)</code>の値を変えて比較します。0は無音、1はこのFXでは振幅を変えない設定です。</p><p class="hint">iframe内の<strong>Run</strong>で再生し、<strong>Stop</strong>で停止します。再生中に値を編集したら<strong>Apply</strong>で反映してください。比較する前に、もう一方のPlaygroundをStopしてください。それぞれ独立した音声環境です。</p>
+<script type="text/plain" id="gain-native">
+setBpm(120);
+const volume = await livePrepare("gain-demo", async ({ fx }) =>
+  fx.gain({ gain: 0.5 })
+);
+volume.gain.set(0.5); // Try 0, 0.25, 0.5, 1.
+fx.setChain([volume]);
+fm.setPreset(CH1, FM_PRESETS["sine"]);
+const pitch = hzToBlockFnum(220);
+fm.setFrequency(CH1, pitch.block, pitch.fnum);
+liveLoop("reference", async () => {
+  fm.keyOn(CH1);
+  await beat(4);
+  fm.keyOff(CH1);
+  await beat(1);
+});
+</script>
+<iframe data-playground-src="gain-native" data-playground-mode="full" title="Gainを組み込みFXで試す" loading="lazy" allow="autoplay"></iframe>
+<p><a data-playground-src="gain-native" target="_blank" rel="noopener noreferrer">このコードを別タブのPlaygroundで開く ↗</a></p>
+</section>
+<section class="panel"><h2>2. 何を掛けているのか</h2>
+<p>PCMは、時間に沿って並んだ波形の値です。正負の値は波形の向きで、音の高さを直接表す値ではありません。Gainは各値を同じ倍率で伸縮します。</p>
+<p class="formula">output = input × gain</p>
+<table><thead><tr><th>入力</th><th>Gain</th><th>出力</th></tr></thead><tbody><tr><td>0.2</td><td>0.5</td><td>0.1</td></tr><tr><td>−0.2</td><td>0.5</td><td>−0.1</td></tr><tr><td>0.2</td><td>0</td><td>0</td></tr></tbody></table>
+<p>0.5倍にすると振幅は半分ですが、聴感上「半分の大きさ」とは限りません。振幅比をdBで書くと <code>20 × log10(gain)</code> なので、0.5倍は約−6.02 dBです。0倍は対数で表せる有限値を持ちません。</p>
+<p>波形を潰さず同じ倍率を掛けるだけなら、新しい倍音は作りません。過大な出力をクリップさせると、単純なGainとは違う加工になります。</p></section>
+<section class="panel"><h2>3. 同じ掛け算をliveFxで書く</h2>
+<p>入力と出力は左右のチャンネルごとの配列です。<code>ch</code>はYM2612の物理CHではありません。<code>i</code>は、今回届いた短い音声ブロック内の位置です。</p>
+<pre><code>output[ch][i] = input[ch][i] * context.gain;</code></pre>
+<p><code>context</code>は音声処理へ渡す設定、<code>state</code>は次回へ残す履歴です。Gainは過去の音を使わないため、stateは空のままで構いません。</p>
+<script type="text/plain" id="gain-live">
+setBpm(120);
+liveFx("gain-lab", {
+  context: { gain: 0.5 }, // Try 0, 0.25, 0.5, 1.
+  process(input, output, state, context) {
+    for (let ch = 0; ch < input.length; ch++) {
+      for (let i = 0; i < input[ch].length; i++) {
+        output[ch][i] = input[ch][i] * context.gain;
+      }
+    }
+  },
+});
+fm.setPreset(CH1, FM_PRESETS["sine"]);
+const pitch = hzToBlockFnum(220);
+fm.setFrequency(CH1, pitch.block, pitch.fnum);
+liveLoop("reference", async () => {
+  fm.keyOn(CH1);
+  await beat(4);
+  fm.keyOff(CH1);
+  await beat(1);
+});
+</script>
+<iframe data-playground-src="gain-live" data-playground-mode="full" title="GainをliveFxで書いて観測する" loading="lazy" allow="autoplay"></iframe>
+<p><a data-playground-src="gain-live" target="_blank" rel="noopener noreferrer">このコードを別タブのPlaygroundで開く ↗</a></p>
+<ol class="steps"><li>Runして、<strong>FX Monitor</strong>で<code>gain-lab</code>を選びます。</li><li>青が入力、オレンジが出力です。Gain 0.5では、出力の波形の高さが半分になります。</li><li>Codeへ戻り、contextのgainを1に変えてApply。Monitorでは波形が重なります。</li><li>0.25、0も試します。Spectrumのピークの位置は保たれ、強さが変わります。</li></ol>
+<p>表示は短い区間の切り出しなので、フレームごとに波形が横へ動く場合があります。入力と出力の同じ時刻を比較してください。</p>
+<p>組み込みGainはパラメーター変更を滑らかにする処理も持ちます。この最小例は値を即座に変えるので、変更時にクリック音が出る場合があります。liveFxの出力は現在−1〜1に制限されます。</p></section>
+<section class="panel"><h2>次は、Gainを時間で変える</h2><p>ずっと0.5倍にする代わりに、1倍と0倍を交互に選ぶと、音を刻めます。</p><a href="./tetorica-fx-slicer.html">2. Slicerへ →</a></section>
+</main><script src="./playground-embed.js"></script></body></html>

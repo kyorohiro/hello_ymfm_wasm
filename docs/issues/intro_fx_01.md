@@ -3,7 +3,7 @@
 ## 目的と掲載場所
 
 対応しているFXについて、音を聴き、波形を見て、コードを変更しながら学べる記事を
-`docs/introductions/` に追加する。この記事計画の段階ではHTML本文は未作成。
+`docs/introductions/` に追加する。Gain・Slicerの記事を試作済み。実ブラウザーでの表示・試聴確認は未実施。
 
 既存の以下のページを構成・見た目・Playgroundへの導線の参考にする。
 
@@ -99,7 +99,7 @@ Distortionの導入では、倍音が増える様子を確認しやすいサイ�
 
 ## 執筆・確認タスク
 
-- [ ] Gainの記事を作り、シリーズ共通の構成を決める。
+- [x] Gainの記事を作り、シリーズ共通の構成を決める（試作）。
 - [ ] 上記の順序で各章を追加する。
 - [ ] 各コードを現在のAPI・型定義・パラメーター範囲と照合する。
 - [ ] PlaygroundのWorker on/off、Run / Apply / Stopで確認する。
@@ -116,3 +116,18 @@ Distortionの導入では、倍音が増える様子を確認しやすいサイ�
 - `web/custom_fx.js`：liveFxの実行とstate/contextの管理。
 - `docs/playground/examples/livefx/live-fx-distortion.js`：現行の自作FXサンプル。
 - `docs/issues/custom_fx_01.md`：liveFxとFX Monitorの設計・制約。
+
+## 試作した記事
+
+[FX入門の目次](../introductions/tetorica-fx.html)を作成し、docs/index.htmlから「作成中」として案内する。
+
+- [Gain](../introductions/tetorica-fx-gain.html)
+- [Slicer](../introductions/tetorica-fx-slicer.html)
+
+各記事に組み込みFXとliveFxのPlayground iframeを配置。既存のplayground-embed.jsで
+読みやすいコードからURLを生成し、フル表示でCodeとFX Monitorを利用できるようにした。
+記事一覧からリンク済み。
+
+自動確認：`node --test docs/introductions/fx-introduction.test.mjs`。
+4本の埋め込みコードのAPI・演奏ループ、Gainの倍率、Slicerの周期・左右同期を確認。
+ブラウザー表示・試聴、Worker on/off・Apply操作の確認は残る。
