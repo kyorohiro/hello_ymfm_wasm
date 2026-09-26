@@ -9,8 +9,6 @@ STAGE_DIR="${RELEASE_DIR}/web_runtime_exsample_${VERSION}"
 ZIP_PATH="${RELEASE_DIR}/hello_ymfm_wasm_${VERSION}_web_runtime_exsample.zip"
 
 DOCS_DIR="${ROOT_DIR}/docs"
-DOCS_JS_DIR="${DOCS_DIR}/js"
-DOCS_GENERATED_DIR="${DOCS_DIR}/generated"
 DOCS_DEMOS_DIR="${DOCS_DIR}/demos"
 DOCS_INFO_DIR="${DOCS_DIR}/info"
 PLAYGROUND_SAMPLES_DIR="${DOCS_DIR}/playground/samples"
@@ -27,137 +25,6 @@ playground_runtime.html
 INFO_FILES="
 ym2612synth_audioworklet.html
 "
-
-JS_FILES="
-okim6258audioengine.js
-msxaudioengine.js
-multichipaudioengine.js
-y8950audioengine.js
-y8950.js
-ay8910audioengine.js
-ay8910.js
-k051649audioengine.js
-k051649.js
-ym2413audioengine.js
-ym2413.js
-vgm_file.js
-s98_file.js
-bitcrusher-worklet.js
-genesisaudioengine.js
-rf5c164.js
-looper.js
-megadrive-fm-presets.js
-megasynth_fx.js
-playground_chip_port.js
-playground_worker_chip.js
-playground_worker_dac.js
-native_fx.js
-native_noise.js
-native_sample.js
-playground_rf5c164.js
-rf5c164synth.js
-rf5c164_pcm.js
-playground_rf5c164_audio.js
-rf5c164-worklet.js
-native_sample_processor.js
-native_fx_rack.js
-native_fx_graph.js
-native-fx-worklet.js
-native_audio_effect.wasm
-megasynth.js
-megasynth_looper.js
-megasynth_recording.js
-pitch.js
-playground_audio_scheduler.js
-playground_clock.js
-playground_execution.js
-playground_live.js
-playground_logic_worker.js
-playground_midi.js
-midi_song.js
-midi_file.js
-playground_music.js
-playground_noise.js
-playground_runtime.js
-playground_sync.js
-segapsg.js
-segapsg_api.js
-segapsgsynth.js
-opn_fm_synth.js
-opn_runtime_synth.js
-opn_fm_vgm.js
-stereo-width-worklet.js
-tfi.js
-vgi.js
-tetorica_audio_runtime.js
-tetorica_synth.js
-ym2203.js
-ym2203audioengine.js
-ym2203synth.js
-ssgsynth.js
-ym2203-worklet.js
-ym2608.js
-ym2608audioengine.js
-ym2608synth.js
-ym2608-worklet.js
-ym2610b.js
-ym2610baudioengine.js
-ym2610bsynth.js
-ym2610bvgm.js
-ym2610b-worklet.js
-vgm-output-worklet.js
-vgmplayer.js
-vgm_runtime.js
-ym2612-worklet.js
-ym2612-worklet-nuked.js
-ym2612.js
-ym2612synth.js
-ym2612vgm.js
-ym2203vgm.js
-ym2608vgm.js
-"
-
-GENERATED_FILES="
-okim6258_wasm.js
-okim6258_wasm.wasm
-y8950_wasm.js
-y8950_wasm.wasm
-ay8910_wasm.js
-ay8910_wasm.wasm
-ym2413_wasm.js
-ym2413_wasm.wasm
-ym2612_wasm.js
-ym2612_wasm.wasm
-nuked_opn2_wasm.js
-nuked_opn2_wasm.wasm
-segapsg_wasm.js
-segapsg_wasm.wasm
-rf5c164_wasm.js
-rf5c164_wasm.wasm
-k051649_wasm.js
-k051649_wasm.wasm
-"
-
-NUKED_LICENSE_DIR="${ROOT_DIR}/third_party/nuked-opn2"
-NUKED_LICENSE_FILES="
-LICENSE
-README.md
-"
-
-if [ ! -d "${DOCS_JS_DIR}" ]; then
-  echo "error: missing directory: ${DOCS_JS_DIR}" >&2
-  exit 1
-fi
-
-if [ ! -d "${DOCS_GENERATED_DIR}" ]; then
-  echo "error: missing directory: ${DOCS_GENERATED_DIR}" >&2
-  exit 1
-fi
-
-if [ ! -d "${NUKED_LICENSE_DIR}" ]; then
-  echo "error: missing directory: ${NUKED_LICENSE_DIR}" >&2
-  exit 1
-fi
 
 if [ ! -d "${PLAYGROUND_SAMPLES_DIR}" ]; then
   echo "error: missing directory: ${PLAYGROUND_SAMPLES_DIR}" >&2
@@ -202,78 +69,8 @@ done
 perl -0pi -e 's#href="\./index\.html"#href="../index.html"#g' \
   "${STAGE_DIR}/info/ym2612synth_audioworklet.html"
 
-for file in ${JS_FILES}; do
-  src="${DOCS_JS_DIR}/${file}"
-  dst="${STAGE_DIR}/js/${file}"
-
-  if [ ! -f "${src}" ]; then
-    echo "error: missing js file: ${src}" >&2
-    exit 1
-  fi
-
-  cp "${src}" "${dst}"
-done
-
-for file in ${GENERATED_FILES}; do
-  src="${DOCS_GENERATED_DIR}/${file}"
-  dst="${STAGE_DIR}/generated/${file}"
-
-  if [ ! -f "${src}" ]; then
-    echo "error: missing generated file: ${src}" >&2
-    exit 1
-  fi
-
-  cp "${src}" "${dst}"
-done
-
-for chip in ym2203 ym2608 ym2610b rf5c164; do
-  if [ -f "${DOCS_GENERATED_DIR}/${chip}_wasm.js" ] && [ -f "${DOCS_GENERATED_DIR}/${chip}_wasm.wasm" ]; then
-    cp "${DOCS_GENERATED_DIR}/${chip}_wasm.js" "${STAGE_DIR}/generated/${chip}_wasm.js"
-    cp "${DOCS_GENERATED_DIR}/${chip}_wasm.wasm" "${STAGE_DIR}/generated/${chip}_wasm.wasm"
-  fi
-done
-
-mkdir -p "${STAGE_DIR}/licenses/mame-okim6258"
-cp "${ROOT_DIR}/third_party/mame-okim6258/LICENSE" "${ROOT_DIR}/third_party/mame-okim6258/README.md" "${STAGE_DIR}/licenses/mame-okim6258/"
-
-mkdir -p "${STAGE_DIR}/licenses/mame-ay8910"
-cp "${ROOT_DIR}/third_party/mame-ay8910/LICENSE" "${ROOT_DIR}/third_party/mame-ay8910/README.md" "${STAGE_DIR}/licenses/mame-ay8910/"
-
 cp -R "${PLAYGROUND_SAMPLES_DIR}/." "${STAGE_DIR}/samples/"
 cp "${LICENSE_FILE}" "${STAGE_DIR}/LICENSE"
-mkdir -p "${STAGE_DIR}/licenses/mame-rf5c164"
-cp "${ROOT_DIR}/third_party/mame-rf5c164/LICENSE" "${ROOT_DIR}/third_party/mame-rf5c164/README.md" "${STAGE_DIR}/licenses/mame-rf5c164/"
-
-mkdir -p "${STAGE_DIR}/licenses/mame-k051649"
-cp "${ROOT_DIR}/third_party/mame-k051649/LICENSE" "${ROOT_DIR}/third_party/mame-k051649/README.md" "${STAGE_DIR}/licenses/mame-k051649/"
-
-for file in ${NUKED_LICENSE_FILES}; do
-  cp "${NUKED_LICENSE_DIR}/${file}" "${STAGE_DIR}/licenses/nuked-opn2/${file}"
-done
-
-cat > "${STAGE_DIR}/THIRD_PARTY_LICENSES.txt" <<EOF
-AY-3-8910 / YM2149: MAME adaptation, BSD-3-Clause. See licenses/mame-ay8910/.
-
-OKIM6258: MAME adaptation by Barry Rodewald, BSD-3-Clause. See licenses/mame-okim6258/.
-
-RF5C164: MAME adaptation, BSD-3-Clause. See licenses/mame-rf5c164/LICENSE and README.md.
-
-K051649 (Konami SCC): MAME adaptation by Bryan McPhail, BSD-3-Clause. See licenses/mame-k051649/LICENSE and README.md.
-
-This package includes two YM2612 engine options:
-
-- Default engine: ymfm
-  - Project: https://github.com/aaronsgiles/ymfm
-  - License: BSD 3-Clause
-  - Covered by: ./LICENSE
-
-- Optional engine: Nuked-OPN2
-  - Project: https://github.com/nukeykt/Nuked-OPN2
-  - License: GNU Lesser General Public License v2.1 or later (LGPL-2.1-or-later)
-  - Included license files:
-    - ./licenses/nuked-opn2/LICENSE
-    - ./licenses/nuked-opn2/README.md
-EOF
 
 cat > "${STAGE_DIR}/index.html" <<'EOF'
 <!doctype html>
@@ -398,8 +195,12 @@ cat > "${STAGE_DIR}/index.html" <<'EOF'
 </html>
 EOF
 
+# Same complete runtime payload as the standalone runtime ZIP.
+node "${ROOT_DIR}/scripts/copy_full_web_runtime.mjs" "${STAGE_DIR}" js
+
 # Validate local imports and page references before publishing the archive.
 node "${ROOT_DIR}/scripts/check_analyzer_package.mjs" "${STAGE_DIR}"
+node "${ROOT_DIR}/scripts/check_web_runtime.mjs" "${STAGE_DIR}"
 
 (
   cd "${STAGE_DIR}"

@@ -1,5 +1,11 @@
 # Node.js の利用例
 
+**`ym2608_adpcm_rom.bin` と `yrw801.rom` は、このリポジトリーおよび配布物に含まれていません。**
+必要なROMは利用者自身で用意してください。自動ダウンロードも行いません。
+YM2608のリズム例を実行する場合は、自分で用意した8 KiBの `ym2608_adpcm_rom.bin` の
+パスを第2引数に指定します。`yrw801.rom` はYMF278Bの外部音色ROMで、YM2608の例には使用しません。
+ADPCMのサイン波など、コード内で波形データを生成する例は外部ROM不要です。
+
 FM / PSG / PCM は、チップを生成 → `new XxxSynth({transport: new XxxDirectTransport(chip)})`
 で接続 → 操作 → `chip.generateStereo()` → WAV保存、という共通の流れにする。
 チップの解放は呼び出し側の `finally` で `chip.dispose()` を行う。
@@ -120,7 +126,7 @@ node examples/nodejs/main_ym2608_rhythm_wave.js /tmp/ym2608_rhythm.wav /path/to/
 ```
 
 第1引数は出力先（省略時はスクリプトの隣の `ym2608_rhythm.wav`）、
-第2引数は8 KiBのリズムROM（省略時はリポジトリー直下の `ym2608_adpcm_rom.bin`）。
+第2引数は、自分で用意した8 KiBのリズムROMのパス（必須）。
 実機の内蔵ROMに相当するデータを呼び出し側で用意する。このサンプルにはROMを同梱しない。
 WAVやADPCM-Bのデータはここへ渡さない。
 

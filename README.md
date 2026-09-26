@@ -56,6 +56,24 @@ Release files are available here:
 
 GitHub Releases is the primary download entry point for packaged wasm and browser-side runtime files.
 
+The `web_runtime` and `web_runtime_exsample` archives include the complete current
+`web/` runtime: OPN, OPM, OPL, PSG and PCM wrappers/audio engines, Synth helpers,
+and all 23 generated chip/engine JS + WASM pairs. The example archive additionally
+contains the existing browser demo pages. High-level Synth support varies by chip.
+Only imported/created engines are initialized; applications may ship a smaller
+subset with its dependencies and licenses. External instrument/sample ROMs are
+not included. Analyzer-only implementations outside `web/` are not added by this package.
+
+```sh
+sh scripts/package_web_runtime_release.sh dev
+sh scripts/package_web_runtime_exsample.sh dev
+```
+
+Both scripts fail if a required WASM pair is missing and validate staged imports,
+default chip-loader paths, and WASM loading before making the ZIP. Each archive
+includes `RUNTIME.md`, `runtime-manifest.json`, and third-party license notices.
+
+
 ## Try it in the browser
 
 You can try the WebAssembly build, the JavaScript wrapper, and the browser tools directly in the published pages.

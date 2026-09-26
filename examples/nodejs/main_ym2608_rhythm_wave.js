@@ -8,6 +8,9 @@ import { encodeStereoWav } from "../../docs/vgm_analyzer/vgm_wav.js";
 import moduleFactory from "../../docs/generated/ym2608_wasm.js";
 
 async function main() {
+  // このROMはリポジトリー・配布物に含まれていません。利用者が用意したパスを指定します。
+  const romPath = process.argv[3];
+  if (!romPath) throw new Error("ROM not included. Supply your own ROM: node main_ym2608_rhythm_wave.js output.wav /path/to/ym2608_adpcm_rom.bin");
   const chip = await Ym2608.create({
     moduleFactory,
     moduleOptions: {
@@ -22,12 +25,11 @@ async function main() {
       transport: new YM2608DirectTransport(chip),
     });
     const sampleRate = chip.sampleRate(YM2608_CLOCK);
+    // ROMは利用者自身で用意してください。同梱・自動ダウンロードはしません。
     // 実機の内蔵ROMに相当する8 KiBのデータを、エミュレーターへ渡す。
-    // 第2引数がROMパス。省略時はリポジトリー直下のファイルを使う。
-    const romPath = process.argv[3] ?? new URL("../../ym2608_adpcm_rom.bin", import.meta.url);
     let rom;
     try { rom = await readFile(romPath); }
-    catch (cause) { throw new Error("Rhythm ROM is required: pass an 8 KiB ym2608_adpcm_rom.bin as the second argument", {cause}); }
+    catch (cause) { throw new Error("Please provide your own 8 KiB ym2608_adpcm_rom.bin (not included). Pass its path as the second argument", {cause}); }
     const rhythm = synth.rhythm;
     rhythm.loadRom(rom);
     rhythm.reset();
