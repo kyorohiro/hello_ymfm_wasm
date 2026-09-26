@@ -4,7 +4,7 @@ fm.setPreset(CH1, FM_PRESETS["one-op-basic"]);
 fm.setPreset(CH2, FM_PRESETS["two-op-bell"]);
 
 liveFx("distortion", {
-  context: { gain: 80.0, drive: 0.06 },
+  context: { gain: 40.0, drive: 0.06 },
   process(input, output, state, context) {
     for (let ch = 0; ch < input.length; ch++) {
       for (let i = 0; i < input[ch].length; i++) {
