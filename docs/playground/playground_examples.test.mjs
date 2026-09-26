@@ -53,3 +53,18 @@ test('examples appear in the folder tree and edited source survives cassette exp
   const cassette=await loadPlaygroundCassette(zip);
   assert.equal(new TextDecoder().decode(cassette.files.get(path.slice(1))),fs.get(path).data);
 });
+
+test('initial editor source uses the independent index demo; URL source still takes priority', async () => {
+  const {DEFAULT_CODE}=await import('./playground_examples.js');
+  const {resolveInitialSourceFromQuery}=await import('./playground_query.js');
+  const defaults={'index.js':DEFAULT_CODE};
+  const initial=resolveInitialSourceFromQuery('',defaults,'index.js');
+  assert.equal(initial.source,DEFAULT_CODE);
+  assert.match(initial.source,/liveFx\("distortion"/);
+  assert.doesNotMatch(EXAMPLES['live-loop'],/liveFx\(/);
+  const source='// shared source';
+  const encoded=encodeURIComponent(Buffer.from(source).toString('base64'));
+  assert.equal(resolveInitialSourceFromQuery('?src='+encoded,defaults,'index.js').source,source);
+  const app=await readFile(new URL('./playground.js',import.meta.url),'utf8');
+  assert.match(app,/resolveInitialSourceFromQuery\(\s*window\.location\.search,\s*\{ "index.js": DEFAULT_CODE \},\s*"index.js"/);
+});

@@ -1707,7 +1707,8 @@ function applyInitialSourceFromQuery() {
   const result =
     resolveInitialSourceFromQuery(
       window.location.search,
-      EXAMPLES
+      { "index.js": DEFAULT_CODE },
+      "index.js"
     );
 
   setEditorValue(result.source);
