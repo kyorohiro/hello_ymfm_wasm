@@ -12,7 +12,7 @@ export const FM_PRESETS = {
       { dt: 0, multi: 1, tl: 127, ar: 31, d1r: 0, d2r: 0, sl: 0, rr: 15 },
       { dt: 0, multi: 1, tl: 127, ar: 31, d1r: 0, d2r: 0, sl: 0, rr: 15 },
       { dt: 0, multi: 1, tl: 127, ar: 31, d1r: 0, d2r: 0, sl: 0, rr: 15 },
-      { dt: 0, multi: 1, tl: 8, ar: 31, d1r: 0, d2r: 0, sl: 0, rr: 15 },
+      { dt: 0, multi: 1, tl: 2, ar: 31, d1r: 0, d2r: 0, sl: 0, rr: 15 },
     ],
   },
   "one-op-basic": {
@@ -23,18 +23,7 @@ export const FM_PRESETS = {
       { dt: 0, multi: 1, tl: 127, ar: 31, d1r: 0, d2r: 0, sl: 0, rr: 15 },
       { dt: 0, multi: 1, tl: 127, ar: 31, d1r: 0, d2r: 0, sl: 0, rr: 15 },
       { dt: 0, multi: 1, tl: 127, ar: 31, d1r: 0, d2r: 0, sl: 0, rr: 15 },
-      { dt: 0, multi: 1, tl: 8, ar: 22, d1r: 6, d2r: 3, sl: 3, rr: 8 },
-    ],
-  },
-  "one-op-flute": {
-    label: "1OP Flute-ish",
-    algorithm: 7,
-    feedback: 0,
-    operators: [
-      { dt: 0, multi: 1, tl: 127, ar: 31, d1r: 0, d2r: 0, sl: 0, rr: 15 },
-      { dt: 0, multi: 1, tl: 127, ar: 31, d1r: 0, d2r: 0, sl: 0, rr: 15 },
-      { dt: 0, multi: 1, tl: 127, ar: 31, d1r: 0, d2r: 0, sl: 0, rr: 15 },
-      { dt: 0, multi: 1, tl: 8, ar: 18, d1r: 5, d2r: 2, sl: 2, rr: 6 },
+      { dt: 0, multi: 1, tl: 2, ar: 22, d1r: 6, d2r: 3, sl: 3, rr: 13 },
     ],
   },
   "two-op-bell": {
@@ -125,196 +114,6 @@ export const FM_PRESETS = {
       { dt: 0, multi: 1, tl: 127, ar: 31, d1r: 0, d2r: 0, sl: 0, rr: 15 },
     ],
   },
-  burst: {
-    label: "SFX Rough Burst",
-    algorithm: 4,
-    feedback: 6,
-    operators: [
-      { dt: 2, multi: 1, tl: 2, ar: 31, d1r: 31, d2r: 24, sl: 13, rr: 10 },
-      { dt: 1, multi: 1, tl: 0, ar: 26, d1r: 24, d2r: 14, sl: 10, rr: 9 },
-      { dt: 0, multi: 1, tl: 127, ar: 31, d1r: 0, d2r: 0, sl: 0, rr: 15 },
-      { dt: 0, multi: 1, tl: 127, ar: 31, d1r: 0, d2r: 0, sl: 0, rr: 15 },
-    ],
-  },
-  "ui-confirm": {
-    label: "UI Confirm",
-    algorithm: 4,
-    feedback: 1,
-    operators: [
-      { dt: 0, multi: 3, tl: 20, ar: 31, d1r: 26, d2r: 18, sl: 10, rr: 10 },
-      { dt: 0, multi: 1, tl: 0, ar: 31, d1r: 24, d2r: 14, sl: 9, rr: 9 },
-      { dt: 0, multi: 1, tl: 127, ar: 31, d1r: 0, d2r: 0, sl: 0, rr: 15 },
-      { dt: 0, multi: 1, tl: 127, ar: 31, d1r: 0, d2r: 0, sl: 0, rr: 15 },
-    ],
-  },
-
-  "ui-select": {
-    label: "UI Select",
-    algorithm: 7,
-    feedback: 0,
-    operators: [
-      { dt: 0, multi: 1, tl: 127, ar: 31, d1r: 0, d2r: 0, sl: 0, rr: 15 },
-      { dt: 0, multi: 1, tl: 127, ar: 31, d1r: 0, d2r: 0, sl: 0, rr: 15 },
-      { dt: 0, multi: 1, tl: 127, ar: 31, d1r: 0, d2r: 0, sl: 0, rr: 15 },
-      { dt: 0, multi: 2, tl: 0, ar: 31, d1r: 28, d2r: 20, sl: 12, rr: 12 },
-    ],
-  },
-
-  "ui-cancel": {
-    label: "UI Cancel",
-    algorithm: 4,
-    feedback: 2,
-    operators: [
-      { dt: 1, multi: 2, tl: 18, ar: 31, d1r: 27, d2r: 18, sl: 11, rr: 10 },
-      { dt: 0, multi: 1, tl: 0, ar: 31, d1r: 25, d2r: 16, sl: 10, rr: 10 },
-      { dt: 0, multi: 1, tl: 127, ar: 31, d1r: 0, d2r: 0, sl: 0, rr: 15 },
-      { dt: 0, multi: 1, tl: 127, ar: 31, d1r: 0, d2r: 0, sl: 0, rr: 15 },
-    ],
-  },
-
-  "ui-error": {
-    label: "UI Error",
-    algorithm: 4,
-    feedback: 5,
-    operators: [
-      { dt: 2, multi: 5, tl: 6, ar: 31, d1r: 24, d2r: 15, sl: 9, rr: 10 },
-      { dt: 0, multi: 1, tl: 0, ar: 31, d1r: 22, d2r: 12, sl: 8, rr: 9 },
-      { dt: 0, multi: 1, tl: 127, ar: 31, d1r: 0, d2r: 0, sl: 0, rr: 15 },
-      { dt: 0, multi: 1, tl: 127, ar: 31, d1r: 0, d2r: 0, sl: 0, rr: 15 },
-    ],
-  },
-
-  "ui-cursor": {
-    label: "UI Cursor",
-    algorithm: 7,
-    feedback: 0,
-    operators: [
-      { dt: 0, multi: 1, tl: 127, ar: 31, d1r: 0, d2r: 0, sl: 0, rr: 15 },
-      { dt: 0, multi: 1, tl: 127, ar: 31, d1r: 0, d2r: 0, sl: 0, rr: 15 },
-      { dt: 0, multi: 1, tl: 127, ar: 31, d1r: 0, d2r: 0, sl: 0, rr: 15 },
-      { dt: 0, multi: 4, tl: 6, ar: 31, d1r: 31, d2r: 24, sl: 13, rr: 13 },
-    ],
-  },
-
-  "item-get": {
-    label: "SFX Item Get",
-    algorithm: 4,
-    feedback: 1,
-    operators: [
-      { dt: 0, multi: 5, tl: 14, ar: 31, d1r: 22, d2r: 10, sl: 7, rr: 7 },
-      { dt: 0, multi: 1, tl: 3, ar: 31, d1r: 18, d2r: 7, sl: 5, rr: 6 },
-      { dt: 0, multi: 1, tl: 127, ar: 31, d1r: 0, d2r: 0, sl: 0, rr: 15 },
-      { dt: 0, multi: 1, tl: 127, ar: 31, d1r: 0, d2r: 0, sl: 0, rr: 15 },
-    ],
-  },
-
-  "power-up": {
-    label: "SFX Power Up",
-    algorithm: 5,
-    feedback: 3,
-    operators: [
-      { dt: 1, multi: 2, tl: 15, ar: 31, d1r: 15, d2r: 5, sl: 5, rr: 6 },
-      { dt: 0, multi: 3, tl: 25, ar: 30, d1r: 14, d2r: 5, sl: 5, rr: 6 },
-      { dt: 1, multi: 5, tl: 29, ar: 28, d1r: 16, d2r: 6, sl: 6, rr: 7 },
-      { dt: 0, multi: 1, tl: 7, ar: 31, d1r: 12, d2r: 4, sl: 4, rr: 6 },
-    ],
-  },
-
-  "damage": {
-    label: "SFX Damage",
-    algorithm: 4,
-    feedback: 6,
-    operators: [
-      { dt: 2, multi: 7, tl: 3, ar: 31, d1r: 31, d2r: 25, sl: 13, rr: 11 },
-      { dt: 1, multi: 1, tl: 0, ar: 31, d1r: 27, d2r: 18, sl: 11, rr: 10 },
-      { dt: 0, multi: 1, tl: 127, ar: 31, d1r: 0, d2r: 0, sl: 0, rr: 15 },
-      { dt: 0, multi: 1, tl: 127, ar: 31, d1r: 0, d2r: 0, sl: 0, rr: 15 },
-    ],
-  },
-
-  "heavy-hit": {
-    label: "SFX Heavy Hit",
-    algorithm: 4,
-    feedback: 7,
-    operators: [
-      { dt: 3, multi: 2, tl: 0, ar: 31, d1r: 31, d2r: 28, sl: 14, rr: 12 },
-      { dt: 0, multi: 1, tl: 0, ar: 31, d1r: 28, d2r: 20, sl: 12, rr: 11 },
-      { dt: 0, multi: 1, tl: 127, ar: 31, d1r: 0, d2r: 0, sl: 0, rr: 15 },
-      { dt: 0, multi: 1, tl: 127, ar: 31, d1r: 0, d2r: 0, sl: 0, rr: 15 },
-    ],
-  },
-
-  "warning": {
-    label: "SFX Warning",
-    algorithm: 7,
-    feedback: 0,
-    operators: [
-      { dt: 0, multi: 1, tl: 127, ar: 31, d1r: 0, d2r: 0, sl: 0, rr: 15 },
-      { dt: 0, multi: 1, tl: 127, ar: 31, d1r: 0, d2r: 0, sl: 0, rr: 15 },
-      { dt: 0, multi: 1, tl: 127, ar: 31, d1r: 0, d2r: 0, sl: 0, rr: 15 },
-      { dt: 0, multi: 1, tl: 8, ar: 31, d1r: 2, d2r: 1, sl: 1, rr: 8 },
-    ],
-  },
-
-  "teleport": {
-    label: "SFX Teleport",
-    algorithm: 5,
-    feedback: 5,
-    operators: [
-      { dt: 3, multi: 7, tl: 12, ar: 31, d1r: 18, d2r: 10, sl: 8, rr: 8 },
-      { dt: 1, multi: 4, tl: 18, ar: 31, d1r: 16, d2r: 8, sl: 7, rr: 8 },
-      { dt: 2, multi: 9, tl: 22, ar: 31, d1r: 20, d2r: 11, sl: 9, rr: 9 },
-      { dt: 0, multi: 1, tl: 5, ar: 30, d1r: 14, d2r: 6, sl: 6, rr: 7 },
-    ],
-  },
-
-  "scanner": {
-    label: "SFX Scanner",
-    algorithm: 4,
-    feedback: 3,
-    operators: [
-      { dt: 1, multi: 8, tl: 24, ar: 31, d1r: 14, d2r: 5, sl: 5, rr: 7 },
-      { dt: 0, multi: 1, tl: 8, ar: 31, d1r: 10, d2r: 4, sl: 4, rr: 6 },
-      { dt: 0, multi: 1, tl: 127, ar: 31, d1r: 0, d2r: 0, sl: 0, rr: 15 },
-      { dt: 0, multi: 1, tl: 127, ar: 31, d1r: 0, d2r: 0, sl: 0, rr: 15 },
-    ],
-  },
-
-  "machine-hum": {
-    label: "SFX Machine Hum",
-    algorithm: 5,
-    feedback: 5,
-    operators: [
-      { dt: 1, multi: 1, tl: 20, ar: 20, d1r: 2, d2r: 1, sl: 2, rr: 5 },
-      { dt: 2, multi: 2, tl: 28, ar: 18, d1r: 3, d2r: 1, sl: 3, rr: 5 },
-      { dt: 1, multi: 3, tl: 34, ar: 18, d1r: 2, d2r: 1, sl: 3, rr: 5 },
-      { dt: 0, multi: 1, tl: 10, ar: 22, d1r: 2, d2r: 1, sl: 2, rr: 5 },
-    ],
-  },
-
-  "engine-low": {
-    label: "SFX Low Engine",
-    algorithm: 4,
-    feedback: 7,
-    operators: [
-      { dt: 2, multi: 1, tl: 5, ar: 24, d1r: 3, d2r: 1, sl: 2, rr: 6 },
-      { dt: 0, multi: 1, tl: 8, ar: 22, d1r: 3, d2r: 1, sl: 2, rr: 6 },
-      { dt: 0, multi: 1, tl: 127, ar: 31, d1r: 0, d2r: 0, sl: 0, rr: 15 },
-      { dt: 0, multi: 1, tl: 127, ar: 31, d1r: 0, d2r: 0, sl: 0, rr: 15 },
-    ],
-  },
-
-  "metallic-ping": {
-    label: "SFX Metallic Ping",
-    algorithm: 4,
-    feedback: 2,
-    operators: [
-      { dt: 1, multi: 11, tl: 8, ar: 31, d1r: 24, d2r: 14, sl: 10, rr: 9 },
-      { dt: 0, multi: 1, tl: 2, ar: 31, d1r: 18, d2r: 9, sl: 7, rr: 8 },
-      { dt: 0, multi: 1, tl: 127, ar: 31, d1r: 0, d2r: 0, sl: 0, rr: 15 },
-      { dt: 0, multi: 1, tl: 127, ar: 31, d1r: 0, d2r: 0, sl: 0, rr: 15 },
-    ],
-  },
 
   "ritual-bell": {
     label: "SFX Ritual Bell",
@@ -325,41 +124,6 @@ export const FM_PRESETS = {
       { dt: 1, multi: 11, tl: 32, ar: 31, d1r: 27, d2r: 16, sl: 10, rr: 9 },
       { dt: 2, multi: 3, tl: 38, ar: 31, d1r: 18, d2r: 9, sl: 8, rr: 8 },
       { dt: 0, multi: 1, tl: 8, ar: 31, d1r: 7, d2r: 2, sl: 4, rr: 6 },
-    ],
-  },
-  "ritual-chime": {
-    label: "SFX Ritual Chime",
-    algorithm: 3,
-    feedback: 2,
-    operators: [
-      { dt: 1, multi: 7, tl: 12, ar: 31, d1r: 15, d2r: 5, sl: 7, rr: 5 },
-      { dt: 0, multi: 2, tl: 18, ar: 31, d1r: 12, d2r: 4, sl: 6, rr: 5 },
-      { dt: 2, multi: 11, tl: 25, ar: 31, d1r: 18, d2r: 7, sl: 8, rr: 6 },
-      { dt: 0, multi: 1, tl: 7, ar: 31, d1r: 10, d2r: 3, sl: 5, rr: 5 },
-    ],
-  },
-
-  "horror-drone": {
-    label: "SFX Horror Drone",
-    algorithm: 5,
-    feedback: 6,
-    operators: [
-      { dt: 3, multi: 1, tl: 18, ar: 12, d1r: 2, d2r: 1, sl: 3, rr: 4 },
-      { dt: 2, multi: 2, tl: 25, ar: 10, d1r: 2, d2r: 1, sl: 4, rr: 4 },
-      { dt: 3, multi: 3, tl: 30, ar: 9, d1r: 3, d2r: 1, sl: 5, rr: 4 },
-      { dt: 0, multi: 1, tl: 8, ar: 14, d1r: 2, d2r: 1, sl: 3, rr: 4 },
-    ],
-  },
-
-  "dark-ambient": {
-    label: "SFX Dark Ambient",
-    algorithm: 6,
-    feedback: 5,
-    operators: [
-      { dt: 2, multi: 1, tl: 30, ar: 10, d1r: 3, d2r: 1, sl: 4, rr: 4 },
-      { dt: 3, multi: 2, tl: 31, ar: 8, d1r: 3, d2r: 1, sl: 5, rr: 4 },
-      { dt: 1, multi: 4, tl: 35, ar: 9, d1r: 4, d2r: 2, sl: 6, rr: 5 },
-      { dt: 0, multi: 1, tl: 9, ar: 12, d1r: 2, d2r: 1, sl: 4, rr: 4 },
     ],
   },
 
@@ -428,7 +192,6 @@ export const FM_PRESET_ORDER = [
   // Learning
   "sine",
   "one-op-basic",
-  "one-op-flute",
   "two-op-bell",
   "two-op-organ",
   "four-op-brass",
@@ -442,34 +205,11 @@ export const FM_PRESET_ORDER = [
   "fm-strings",
   "fm-bell",
 
-  // UI
-  "ui-cursor",
-  "ui-select",
-  "ui-confirm",
-  "ui-cancel",
-  "ui-error",
-
   // Game SFX
   "coin",
-  "item-get",
   "laser",
   "hit",
-  "heavy-hit",
-  "damage",
-  "burst",
-  "power-up",
-  "warning",
-  "teleport",
-
-  // Machine / Sci-Fi
-  "scanner",
-  "machine-hum",
-  "engine-low",
-  "metallic-ping",
 
   // Horror / Fantasy
   "ritual-bell",
-  "ritual-chime",
-  "horror-drone",
-  "dark-ambient",
 ];

@@ -1,7 +1,7 @@
 setBpm(112);
 
 fm.setPreset(CH1, FM_PRESETS["one-op-basic"]);
-fm.setPreset(CH2, FM_PRESETS["one-op-flute"]);
+fm.setPreset(CH2, FM_PRESETS["one-op-basic"]);
 
 const layeredFx = await livePrepare("parallel-fx-chain", async ({ fx }) => {
   const dryFilter = fx.filter({

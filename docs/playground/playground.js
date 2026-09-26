@@ -21,7 +21,7 @@ import {
 } from "./playground_operator_tab.js";
 import { createPlaygroundOperatorKeyboard } from "./playground_operator_keyboard.js";
 import { DEFAULT_CODE, EXAMPLES, EXAMPLE_FILES } from "./playground_examples.js?v=default-fx-2";
-import { initializePlaygroundMonaco } from "./playground_monaco.js?v=hover-overflow-2";
+import { initializePlaygroundMonaco } from "./playground_monaco.js?v=presets-16-1";
 import {
   decodeBase64Bytes,
   loadTfiPresetsFromQuery,
