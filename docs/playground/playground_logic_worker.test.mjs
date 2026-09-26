@@ -502,3 +502,19 @@ test('prepared sample playback and voice stop use the direct Worklet port',async
  assert.ok(!worker.messages.some(m=>['sample.play','sample.stop','sample.pcm'].includes(m.command)));
  await worker.send({type:'stop'});assert.ok(commands.some(d=>d.op==='sample'&&d.action==='clear'));
 });
+
+test('liveFx registration and context update use direct port from Code',async()=>{
+ const worker=createWorkerHarness(),commands=[];
+ await worker.send({type:'native-fx',port:{postMessage:d=>commands.push(d),close(){}}});
+ await worker.send({type:'run',sourceCode:`
+  liveFx("custom", {context:{gain:.5},process(input,output,state,context){
+   output[0].set(input[0]);
+  }});
+  fx.updateContext("custom",{gain:.25});
+ `});
+ assert.ok(worker.messages.some(m=>m.type==='complete'),JSON.stringify(worker.messages));
+ assert.equal(commands.find(m=>m.action==='register').name,'custom');
+ assert.equal(commands.find(m=>m.action==='context').context.gain,.25);
+ assert.ok(!worker.messages.some(m=>m.command?.startsWith('fx.')));
+ await worker.send({type:'stop'});
+});

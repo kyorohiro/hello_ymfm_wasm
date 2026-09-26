@@ -2,13 +2,14 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import vm from 'node:vm';
+import {LiveFX} from '../web/custom_fx.js';
 import {createNativeFXController,FX_TYPES,FX_PARAMS} from '../web/native_fx.js';
 import {createSampleProcessor} from "../web/native_sample_processor.js";
 import {setChain} from '../web/native_fx_graph.js';
 const module=await WebAssembly.compile(readFileSync(new URL('../web/native_audio_effect.wasm',import.meta.url)));
 function harness(){
  let Processor;const errors=[];
- const scope={createSampleProcessor,WebAssembly,Float32Array,Map,Math,Number,Error,sampleRate:48000,setChain,FX_TYPES,
+ const scope={LiveFX,createSampleProcessor,WebAssembly,Float32Array,Map,Math,Number,Error,sampleRate:48000,setChain,FX_TYPES,
   AudioWorkletProcessor:class{constructor(){this.port={postMessage:d=>errors.push(d)};}},registerProcessor:(name,p)=>Processor=p};
  vm.runInNewContext(readFileSync(new URL('../web/native-fx-worklet.js',import.meta.url),'utf8').replace(/^import .*\n/gm,'').replace('export class','class'),scope);
  const p=new Processor({processorOptions:{module}});

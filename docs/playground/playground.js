@@ -18,7 +18,7 @@ import {
   createPlaygroundOperatorTab,
 } from "./playground_operator_tab.js";
 import { createPlaygroundOperatorKeyboard } from "./playground_operator_keyboard.js";
-import { EXAMPLES, EXAMPLE_FILES } from "./playground_examples.js?v=native-fx-1";
+import { EXAMPLES, EXAMPLE_FILES } from "./playground_examples.js?v=live-fx-1";
 import { initializePlaygroundMonaco } from "./playground_monaco.js?v=hover-overflow-2";
 import {
   decodeBase64Bytes,
@@ -57,7 +57,7 @@ import {
 import { createVgmPresetFiles } from "./playground_vgm_presets.js";
 import { createTfiFileEditor, tfiToEditorPreset } from "./playground_tfi_editor.js";
 import { renderFileTree } from "./playground_file_tree.js";
-import { createPlaygroundUi } from "./playground_ui.js";
+import { createPlaygroundUi } from "./playground_ui.js?v=live-fx-1";
 import {
   handleMegaSynthEvent,
 } from "./playground_sync.js";

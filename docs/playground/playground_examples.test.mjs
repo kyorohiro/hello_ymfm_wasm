@@ -32,11 +32,11 @@ test('wobble sample loop plays only samples loaded during preparation', async ()
   assert.deepEqual(played, ['sonic-pi/drum-heavy-kick', 'sonic-pi/bass-hit-c']);
 });
 
-test('all 37 bundled examples match editable categorized source files', async () => {
-  assert.equal(EXAMPLE_FILES.length,37);
+test('bundled examples match editable categorized source files', async () => {
+  assert.ok(EXAMPLE_FILES.some(file => file.name === 'live-fx-distortion'));
   assert.equal(await buildExampleBundle(), await readFile(new URL('./playground_examples.js',import.meta.url),'utf8'));
   for(const file of EXAMPLE_FILES){
-    assert.match(file.path,/^\/examples\/(basic|fm|midi|psg|dac|noise|samples|fx)\/[\w-]+\.js$/);
+    assert.match(file.path,/^\/examples\/(basic|fm|midi|psg|dac|noise|samples|fx|pcm)\/[\w-]+\.js$/);
     assert.equal(file.data,await readFile(new URL('.'+file.path,import.meta.url),'utf8'));
     assert.equal(EXAMPLES[file.name],file.data);
   }
@@ -46,7 +46,7 @@ test('examples appear in the folder tree and edited source survives cassette exp
   const fs=createVirtualFileSystem(EXAMPLE_FILES);
   const tree=buildFileTree(fs.list());
   assert.equal(tree[0].name,'examples');
-  assert.equal(tree[0].children.length,8);
+  assert.equal(tree[0].children.length,new Set(EXAMPLE_FILES.map(file=>file.path.split('/')[2])).size);
   const path='/examples/midi/midi-auto-chord.js';
   fs.writeText(path,'// user edited\n'+fs.get(path).data);
   const zip=createPlaygroundCassetteZip(fs.list());

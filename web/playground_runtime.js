@@ -1392,6 +1392,7 @@ export function createPlaygroundRuntime(
       setBpm: (value) => { const result = clockApi.setBpm(value); megaDrive.audio?.nativeFX?.controller.syncTempo(); return result; },
       tween:
         clockApi.tween,
+      liveFx: (name, options) => fx.liveFx(name, options),
       liveLoop: (name, fn) =>
         liveApi.liveLoop(
           name,
@@ -1509,6 +1510,7 @@ export function createPlaygroundRuntime(
         tween: pg.tween,
         context:
           pg.context,
+        liveFx: pg.liveFx,
         liveLoop: (name, fn) =>
           pg.liveLoop(name, fn),
         liveCleanup: (

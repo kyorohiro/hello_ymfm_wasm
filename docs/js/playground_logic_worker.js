@@ -599,6 +599,7 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
     nextBeat: clock.nextBeat,
     setBpm: clock.setBpm,
     livePrepare,
+    liveFx: (name, options) => fx.liveFx(name, options),
     liveLoop,
     liveCleanup,
     stopLoop: (name) => { run.loops.delete(name); clock.cancelLoop(name); },

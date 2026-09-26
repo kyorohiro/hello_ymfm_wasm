@@ -672,7 +672,18 @@ declare function control(
   options: NoiseControlOptions
 ): void;
 
+/** process executes in AudioWorklet; captured outer variables are unavailable. */
+type LiveFXOptions<C extends object = Record<string, unknown>> = {
+  context?: C;
+  resetState?: boolean;
+  process(input: Float32Array[], output: Float32Array[], state: Record<string, any>, context: C): void;
+};
+declare function liveFx<C extends object>(name: string, options: LiveFXOptions<C>): void;
 type FXApi = {
+  liveFx: typeof liveFx;
+  /** Queues a partial context update without resetting DSP state. */
+  updateContext(name: string, patch: object): void;
+  removeLiveFx(name: string): void;
   /** Create a gain effect unit. */
   gain(options?: GainFXOptions): GainFXUnit;
   /** Create a simple 3-band EQ effect unit. */
@@ -892,6 +903,7 @@ type PlaygroundAPI = {
   nextBeat: () => Promise<void>;
   tween: (seconds: number, fn: (t: number) => void | Promise<void>) => Promise<void>;
   setBpm: (bpm: number) => void;
+  liveFx: typeof liveFx;
   liveLoop: (name: string, fn: () => Promise<void> | void) => void;
   onKeyboardPressKey: (name: string, fn: (event: KeyboardEvent) => void) => void;
   onKeyboardReleaseKey: (name: string, fn: (event: KeyboardEvent) => void) => void;

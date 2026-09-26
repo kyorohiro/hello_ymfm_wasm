@@ -38,7 +38,19 @@ export function createNativeFXController(send, {getBeatSeconds=()=>.5}={}) {
   if(!units.has(u)) throw new Error('FX has been disposed');
   return {type:u.type,slot:u.slot};
  }
+ const copyContext=value=>{
+  if(!value||typeof value!=='object'||Array.isArray(value))throw new Error('context must be an object');
+  return structuredClone(value);
+ };
  const api={
+  liveFx(name,{process,context={},resetState=false}={}){
+   if(typeof name!=='string'||!name)throw new Error('liveFx requires a name');
+   if(typeof process!=='function'||process.constructor.name!=='Function')throw new Error('process must be synchronous');
+   send({op:'live-fx',action:'register',name,source:Function.prototype.toString.call(process),context:copyContext(context),resetState});
+  },
+  updateContext(name,context){send({op:'live-fx',action:'context',name,context:copyContext(context)});},
+  removeLiveFx(name){send({op:'live-fx',action:'remove',name});},
+
   branch:(...children)=>({type:'chain',children,owner:api,dispose(){for(const u of children)u.dispose?.();}}),
   parallel:(...children)=>({type:'parallel',children,owner:api,dispose(){for(const u of children)u.dispose?.();}}),
   setChain(effects=[]){
