@@ -19,7 +19,7 @@ import {
   createPlaygroundOperatorTab,
 } from "./playground_operator_tab.js";
 import { createPlaygroundOperatorKeyboard } from "./playground_operator_keyboard.js";
-import { EXAMPLES, EXAMPLE_FILES } from "./playground_examples.js?v=live-fx-1";
+import { DEFAULT_CODE, EXAMPLES, EXAMPLE_FILES } from "./playground_examples.js?v=default-fx-2";
 import { initializePlaygroundMonaco } from "./playground_monaco.js?v=hover-overflow-2";
 import {
   decodeBase64Bytes,
@@ -285,7 +285,7 @@ let editorAdapter =
 const bundledExampleFiles = EXAMPLE_FILES;
 const virtualFiles = createVirtualFileSystem([
   // A new project starts with the previous Live Loop example as its entry point.
-  { path: "/index.js", data: EXAMPLES["live-loop"] },
+  { path: "/index.js", data: DEFAULT_CODE },
   { path: "/presets/README.md", data: [
     "# Presets",
     "",
