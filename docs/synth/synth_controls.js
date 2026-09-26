@@ -80,8 +80,12 @@ export function createParamControl(config) {
   plusButton.className = "param-button";
   plusButton.textContent = "+";
 
+  let currentValue = value;
+
   const updateVisual =
     (nextValue) => {
+      // Preset / channel / synth updates also change the basis for edits.
+      currentValue = nextValue;
       if (booleanMode) {
         valueElement.textContent =
           nextValue ? "ON" : "OFF";
@@ -95,7 +99,6 @@ export function createParamControl(config) {
         String(nextValue);
     };
 
-  let currentValue = value;
   let dragStartX = 0;
   let dragStartValue = value;
   const valueRange =
