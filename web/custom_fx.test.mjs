@@ -57,6 +57,8 @@ test('actual WASM worklet accepts liveFx on main and direct Worker port; Stop cl
   const worker=createNativeFXController(data=>port.onmessage({data}));
   worker.liveFx('gain',{process:gain,context:{gain:.5}});
   worker.updateContext('gain',{gain:.25});
+  assert.equal(run()[0][0],.5); // Starts dry when added to an already rendering rack.
+  run(); // Finish the 240-frame registration fade.
   assert.equal(run()[0][0],.125);
   processor.port.onmessage({data:{op:'emergency'}});
   assert.equal(run()[0][0],.5);
@@ -113,4 +115,25 @@ test('display FFT resolves a sine bin and preserves the gain difference',async()
  assert.ok(Math.abs(before[peak])<.02);
  assert.ok(Math.abs((after[peak]-before[peak])+6.0206)<.01);
  assert.ok(spectrum(new Float32Array(2048)).every(x=>x===-100));
+});
+
+test('adding gain to an already running rack fades dry to wet without a block boundary step',()=>{
+ for(const rate of [44100,48000]) {
+  const p=new LiveFX(rate);
+  p.process(block(),assert.fail); // The rack already carries audio (including possible DC).
+  const controller=createNativeFXController(d=>p.command(d));
+  controller.liveFx('gain',{process:gain,context:{gain:.5}});
+  const frames=Math.round(rate*.005),samples=[];
+  for(let b=0;b<4;b++) {
+   const out=block();p.process(out,assert.fail);
+   for(let i=0;i<out[0].length;i++)assert.equal(out[1][i],out[0][i]/2);
+   samples.push(...out[0]);
+  }
+  assert.equal(samples[0],.5,'starts at preceding dry value');
+  assert.equal(samples[frames],.25,'settles to requested gain in 5 ms');
+  for(let i=1;i<samples.length;i++)assert.ok(Math.abs(samples[i]-samples[i-1])<=.25/frames+1e-7);
+  p.clear();controller.liveFx('fresh',{process:gain,context:{gain:.5}});
+  const out=block();p.process(out,assert.fail);
+  assert.equal(out[0][0],.25,'registration before audio processing is immediate');
+ }
 });
