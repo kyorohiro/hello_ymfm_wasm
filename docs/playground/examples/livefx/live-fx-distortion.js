@@ -6,7 +6,7 @@ liveFx("distortion", {
   process(input, output, state, context) {
     for (let ch = 0; ch < input.length; ch++) {
       for (let i = 0; i < input[ch].length; i++) {
-        output[ch][i] = input[ch][i];
+        output[ch][i] = Math.tanh(input[ch][i] * context.drive) * context.gain;
       }
     }
   },

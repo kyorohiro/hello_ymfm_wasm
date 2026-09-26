@@ -44,7 +44,7 @@ fx.updateContext("distortion", { drive: 4 });
 
 ## サンプルと検証
 
-- examples/fx/live-fx-distortion.js：演奏とcontext更新を同じコードに記述。
+- examples/livefx/live-fx-distortion.js：演奏とcontext更新を同じコードに記述。
 - node --test web/custom_fx.test.mjs test/playground_native_fx.test.mjs docs/playground/playground_logic_worker.test.mjs
 - contextのコピー・部分更新、state保持と初期化、異常時Bypass、
   実WASMとWorker専用ポート、Stopと古いポート遮断を検証。

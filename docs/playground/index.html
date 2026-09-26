@@ -1730,7 +1730,7 @@
               <li><code>const { bass } = await import("./lib/bass.js")</code> dynamically imports a project JavaScript module</li>
               <li>Imported modules may use <code>export</code> and nested relative <code>import()</code>; use dynamic <code>import()</code> instead of a top-level static <code>import</code></li>
               <li><code>liveFx(name, {context, process(input, output, state, context), resetState?})</code> registers JavaScript FX after native FX. Same-name Apply preserves state; Stop removes it. Input/output are arrays of channel Float32Arrays. The synchronous process runs in AudioWorklet: use context instead of captured variables, and avoid unbounded loops. Exceptions/non-finite output bypass that effect.</li>
-              <li><code>fx.updateContext(name, patch)</code> sends a context update; <code>fx.removeLiveFx(name)</code> removes it. Commands are queued, not sample-timestamped. See <code>examples/fx/live-fx-distortion.js</code>.</li>
+              <li><code>fx.updateContext(name, patch)</code> sends a context update; <code>fx.removeLiveFx(name)</code> removes it. Commands are queued, not sample-timestamped. See <code>examples/livefx/live-fx-distortion.js</code>.</li>
               <li><code>log(value)</code>, <code>console.log(value)</code>, <code>console.warn(value)</code>, and <code>console.error(value)</code> write to the Console tab</li>
               <li><code>tfiToPreset(await file("./bass.tfi", { type: "arrayBuffer" }))</code> converts a 42-byte TFI file for <code>fm.setPreset()</code></li>
               <li><code>vgiToPreset(await file("./bass.vgi", { type: "arrayBuffer" }))</code> converts a 43-byte VGI file for <code>fm.setPreset()</code> (binary files require <code>type: "arrayBuffer"</code>)</li>
