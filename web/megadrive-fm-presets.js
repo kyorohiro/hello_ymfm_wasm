@@ -12,7 +12,7 @@ export const FM_PRESETS = {
       { dt: 0, multi: 1, tl: 127, ar: 31, d1r: 0, d2r: 0, sl: 0, rr: 15 },
       { dt: 0, multi: 1, tl: 127, ar: 31, d1r: 0, d2r: 0, sl: 0, rr: 15 },
       { dt: 0, multi: 1, tl: 127, ar: 31, d1r: 0, d2r: 0, sl: 0, rr: 15 },
-      { dt: 0, multi: 1, tl: 32, ar: 31, d1r: 0, d2r: 0, sl: 0, rr: 15 },
+      { dt: 0, multi: 1, tl: 8, ar: 31, d1r: 0, d2r: 0, sl: 0, rr: 15 },
     ],
   },
   "one-op-basic": {
