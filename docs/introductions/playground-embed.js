@@ -20,14 +20,16 @@
     return node ? node.textContent.trim() : "";
   }
 
-  function buildUrl(id, mode) {
+  function buildUrl(id, mode, expanded = false) {
     const encoded = encodeURIComponent(toBase64(sourceFor(id)));
     const modeParam = mode ? `mode=${mode}&` : "";
-    return `../playground/index.html?${modeParam}src=${encoded}`;
+    return `../playground/index.html?${modeParam}${expanded ? "expanded=1&" : ""}src=${encoded}`;
   }
 
   document.querySelectorAll("iframe[data-playground-src]").forEach((iframe) => {
-    iframe.src = buildUrl(iframe.dataset.playgroundSrc, iframe.dataset.playgroundMode || "simple");
+    const mode = iframe.dataset.playgroundMode || "simple";
+    // Keep all tabs available while using the iframe area for the editor.
+    iframe.src = buildUrl(iframe.dataset.playgroundSrc, mode, mode === "full");
   });
 
   document.querySelectorAll("a[data-playground-src]").forEach((link) => {

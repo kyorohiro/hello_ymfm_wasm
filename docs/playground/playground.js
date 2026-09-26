@@ -2093,6 +2093,9 @@ function bootPlayground() {
   applyInitialSourceFromQuery();
   void applyCassetteFromQuery();
   applySimpleModeFromQuery();
+  if (playgroundSearch.get("expanded") === "1" && playgroundSearch.get("mode") !== "simple") {
+    setExpandedMode(true);
+  }
   clearConsole();
   setBottomTab("code");
   setRuntimeState("Audio idle");
