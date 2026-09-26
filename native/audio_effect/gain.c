@@ -17,7 +17,7 @@ void eq_reset(double sample_rate);
 void eq_tick(float *,float *);
 void gain_reset(void) { eq_reset(48000); reverb_reset(48000); compressor_reset(48000); gate_reset(48000); state->current = state->target = 1.0f; state->step = 0; state->remaining = 0; }
 void gain_set(float value, int ramp_frames) {
-    if (!(value >= 0.0f && value <= 2.0f)) return;
+    if (!(value >= 0.0f && value <= 10.0f)) return;
     state->target = value;
     state->remaining = ramp_frames > 0 ? ramp_frames : 0;
     if (state->remaining) state->step = (state->target - state->current) / state->remaining;

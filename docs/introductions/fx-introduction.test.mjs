@@ -41,7 +41,10 @@ test('all embedded FX lessons register valid APIs and complete their reference l
    assert.ok(html.includes('data-playground-src="'+id+'"'));
    if(id==='slicer-opening'){
     const chain=messages.find(m=>m.op==='chain');
-    assert.deepEqual(chain.children.map(u=>u.type),['slicer','reverb']);
+    assert.deepEqual(chain.children.map(u=>u.type),['slicer','reverb','gain']);
+    assert.equal(chain.units.find(u=>u.type==='gain').values.gain,3);
+    const example=await readFile(new URL('../playground/examples/fx/slicer-sweep.js',import.meta.url),'utf8');
+    assert.equal(source.trim(),example.trim());
     assert.ok(messages.some(m=>m.op==='parameter'&&m.key==='phase'&&m.value===.25));
     continue;
    }

@@ -172,3 +172,12 @@ test('PCM bank/voice capacity errors arrive through direct acknowledgements',asy
  h.player.stopAll();await h.player.play('0');
  h.player.unload('1');await h.player.load('overflow',pcm);
 });
+
+test('gain supports 10x on the real WASM graph including set and rampTo',()=>{
+ const h=harness(),gain=h.fx.gain({gain:10});h.fx.setChain([gain]);
+ assert.ok(h.render(10,.02).every(x=>Math.abs(x-.2)<1e-5));
+ gain.gain.set(5);assert.ok(h.render(10,.02).every(x=>Math.abs(x-.1)<1e-5));
+ gain.gain.rampTo(10,.02);assert.ok(h.render(30,.02).every(x=>Math.abs(x-.2)<1e-5));
+ assert.equal(gain.gain.set(100),10);
+ gain.gain.set(0);assert.ok(h.render(10,.02).every(x=>x===0));
+});

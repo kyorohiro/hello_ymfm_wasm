@@ -12,15 +12,21 @@ const mainFx = await livePrepare("slicer-sweep-chain", async ({ fx }) => {
     tone: 5200,
   });
 
+  const volume = fx.gain({
+    gain: 3.0,
+  });
+
   return {
     slicer,
     reverb,
+    volume,
   };
 });
 
 fx.setChain([
   mainFx.slicer,
   mainFx.reverb,
+  mainFx.volume,
 ]);
 
 liveLoop("bikes", async () => {

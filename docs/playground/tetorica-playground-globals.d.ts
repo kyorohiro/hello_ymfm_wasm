@@ -430,6 +430,7 @@ type FXBranch = {
 
 type GainFXUnit = BaseFXUnit & {
   type: "gain";
+  /** Linear multiplier: 0..10; 1 is unchanged. */
   gain: AudioParamControl;
 };
 

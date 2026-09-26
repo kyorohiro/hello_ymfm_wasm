@@ -6,7 +6,7 @@
 export const FX_TYPES = {gain:2, eq:3, gate:4, compressor:5, reverb:6, filter:7, delay:8, distortion:9, bitcrusher:10, wobble:11, flanger:12, slicer:13, chorus:14};
 // [default, minimum, maximum]. Times use seconds; modulation periods use beats.
 export const FX_PARAMS = {
- gain:{gain:[1,0,2]}, eq:{bass:[0,-12,12],mid:[0,-12,12],treble:[0,-12,12]},
+ gain:{gain:[1,0,10]}, eq:{bass:[0,-12,12],mid:[0,-12,12],treble:[0,-12,12]},
  gate:{threshold:[0.04,0.0001,1],hysteresis:[6,0,24],attack:[.005,.0001,.2],hold:[.05,0,1],release:[.1,.01,2]},
  compressor:{threshold:[-24,-60,0],ratio:[4,1,20],attack:[.01,.0001,.2],release:[.25,.01,2],makeup:[0,-12,24]},
  reverb:{mix:[.2,0,1],room:[.7,0,.98],damping:[.4,0,1],tone:[7200,200,20000]},
