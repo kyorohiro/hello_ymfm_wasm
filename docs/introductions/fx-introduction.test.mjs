@@ -7,24 +7,29 @@ test('all embedded FX lessons register valid APIs and complete their reference l
  for(const name of ['gain','slicer']){
   const html=await readFile(new URL('./tetorica-fx-'+name+'.html',import.meta.url),'utf8');
   const scripts=[...html.matchAll(/<script type="text\/plain" id="([^"]+)">([\s\S]*?)<\/script>/g)];
-  assert.equal(scripts.length,2);
+  assert.equal(scripts.length,name==='slicer'?3:2);
   for(const [,id,source] of scripts){
    const messages=[],loops=[],keys=[],processor=new LiveFX(48000);
    const fx=createNativeFXController(d=>{messages.push(d);if(d.op==='live-fx')processor.command(d);});
    let cyclePosition=0;
    const api={
     setBpm(){},fx,
+    choose:values=>values[0],chord:root=>[root],
+    noteToBlockFnum:()=>({block:3,fnum:500}),
+    noteLerp:()=>({block:3,fnum:500}),lerp:(a,b,t)=>a+(b-a)*t,
+    async tween(duration,fn){assert.equal(duration,1.5);fn(0);fn(.5);fn(1);},
     cycle(values){return values[cyclePosition++ % values.length];},
     livePrepare:async(_name,fn)=>fn({fx}),
     liveFx(name,{process,context}){processor.command({action:'register',name,source:process.toString(),context});},
-    fm:{setPreset(){},setFrequency(){},keyOn(ch){keys.push(['on',ch]);},keyOff(ch){keys.push(['off',ch]);}},
-    CH1:0,FM_PRESETS:{sine:{}},hzToBlockFnum:()=>({block:3,fnum:500}),
+    fm:{setOperator(ch,op,{tl}){assert.equal(ch,1);assert.equal(op,3);assert.ok(tl>=12&&tl<=36);},setPreset(){},setFrequency(){},keyOn(ch){keys.push(['on',ch]);},keyOff(ch){keys.push(['off',ch]);}},
+    CH1:0,CH2:1,OP4:3,FM_PRESETS:{sine:{},"fm-strings":{}},hzToBlockFnum:()=>({block:3,fnum:500}),
     liveLoop(_name,fn){loops.push(fn);},async beat(){},
    };
    const AsyncFunction=Object.getPrototypeOf(async function(){}).constructor;
    await new AsyncFunction(...Object.keys(api),source)(...Object.values(api));
    assert.equal(loops.length,1,id);await loops[0]();
-   assert.deepEqual(keys,[['on',0],['off',0]]);
+   const channel=id==='slicer-opening'?1:0;
+   assert.deepEqual(keys,[['on',channel],['off',channel]]);
    if(id==='gain-native'){
     await loops[0]();await loops[0]();await loops[0]();
     assert.deepEqual(messages.filter(m=>m.op==='parameter'&&m.key==='gain').map(m=>m.value),[.25,.5,1,.25]);
@@ -34,6 +39,12 @@ test('all embedded FX lessons register valid APIs and complete their reference l
     assert.deepEqual(messages.filter(m=>m.action==='context').map(m=>m.context.gain),[.25,.5,1,.25]);
    }
    assert.ok(html.includes('data-playground-src="'+id+'"'));
+   if(id==='slicer-opening'){
+    const chain=messages.find(m=>m.op==='chain');
+    assert.deepEqual(chain.children.map(u=>u.type),['slicer','reverb']);
+    assert.ok(messages.some(m=>m.op==='parameter'&&m.key==='phase'&&m.value===.25));
+    continue;
+   }
    if(id.endsWith('native')){
     assert.ok(messages.some(m=>m.op==='chain'));
     assert.ok(messages.some(m=>m.op==='create'&&m.unit.type===name));
