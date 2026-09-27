@@ -14,7 +14,7 @@ export const EXAMPLE_FILES = [
   {
     "path": "/examples/basic/fx-loop-major.js",
     "name": "fx-loop-major",
-    "data": "fm.setPreset(CH2, FM_PRESETS[\"ritual-bell\"]);\n\nconst reverb = fx.reverb({\n  mix: 0.2,\n});\n\nfx.setChain([reverb]);\n\nliveLoop(\"bleeps\", async () => {\n  const notes = scale(\"Eb2\", \"majorPentatonic\", 3);\n  fm.setOperator(CH2, OP1, { tl: randInt(14, 40) });\n  fm.setOperator(CH2, OP2, { tl: randInt(22, 45) });\n  fm.setOperator(CH2, OP3, { tl: randInt(28, 50) });\n  fm.setOperator(CH2, OP4, { tl: randInt(8, 30) });\n\n  await play(choose(notes), {\n    channel: CH2,\n    duration: 0.1,\n  });\n\n  await sleep(0.001);\n});\n"
+    "data": "/**\n * Sonic Pi「Pentatonic Bleeps」を参考にしたYM2612向けのアレンジ。\n * 出典: https://sonic-pi.net/examples.html\n *\n * 元のサンプル（Ruby）より引用:\n * with_fx :reverb, mix: 0.2 do\n *   live_loop :bleeps do\n *     play scale(:Eb2, :major_pentatonic, num_octaves: 3).choose, release: 0.1, amp: rand\n *     sleep 0.1\n *   end\n * end\n *\n * この例ではFM音色とOperatorのTLを使い、発音時間・待ち時間も変更しています。\n */\nfm.setPreset(CH2, FM_PRESETS[\"ritual-bell\"]);\n\nconst reverb = fx.reverb({\n  mix: 0.2,\n});\n\nfx.setChain([reverb]);\n\nliveLoop(\"bleeps\", async () => {\n  const notes = scale(\"Eb2\", \"majorPentatonic\", 3);\n  fm.setOperator(CH2, OP1, { tl: randInt(14, 40) });\n  fm.setOperator(CH2, OP2, { tl: randInt(22, 45) });\n  fm.setOperator(CH2, OP3, { tl: randInt(28, 50) });\n  fm.setOperator(CH2, OP4, { tl: randInt(8, 30) });\n\n  await play(choose(notes), {\n    channel: CH2,\n    duration: 0.1,\n  });\n\n  await sleep(0.001);\n});\n"
   },
   {
     "path": "/examples/basic/fx-loop-minor.js",
