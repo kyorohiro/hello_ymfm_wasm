@@ -100,3 +100,44 @@ test('haunted bells loads its sample before alternating forward and reverse play
   assert.deepEqual(waits, [1.05, 1.05]);
   assert.ok((await readFile(new URL('./samples/sonic-pi/perc_bell.flac', import.meta.url))).length > 0);
 });
+
+test('slow hollow alternates independent channels at the original note intervals', async () => {
+  const loops = [], events = [];
+  let now = 0;
+  const fm = {
+    setPreset() {},
+    setOperator(ch, op, p) {
+      if (p.tl !== undefined) assert.ok(Number.isInteger(p.tl) && p.tl >= 0 && p.tl <= 127);
+    },
+    setFrequency() {},
+    keyOn(ch) { events.push({ch, time: now, on: true}); },
+    keyOff(ch) { events.push({ch, time: now, on: false}); },
+  };
+  const fx = { reverb: options => options, setChain() {} };
+  const api = {
+    fm, fx, FM_PRESETS: {'two-op-organ': {}},
+    CH1: 0, CH2: 1, CH3: 2, CH4: 3, CH5: 4, CH6: 5, OP1: 0, OP2: 1,
+    setBpm: bpm => assert.equal(bpm, 60),
+    livePrepare: async (_name, fn) => fn({fx}),
+    liveLoop: (name, fn) => loops.push({name, fn}),
+    noteToBlockFnum: note => {
+      assert.ok(['D4','E4','F#4','G4','A4','C#5'].includes(note));
+      return {block: 4, fnum: 400};
+    },
+    choose: values => values[0],
+    beat: async beats => { assert.ok(beats >= 0); now += beats; },
+  };
+  const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
+  await new AsyncFunction(...Object.keys(api), EXAMPLES['slow-hollow'])(...Object.values(api));
+  assert.equal(loops.length, 6);
+  for (let ch = 0; ch < 6; ch++) {
+    now = 0; events.length = 0;
+    await loops[ch].fn();
+    await loops[ch].fn();
+    const part = Math.floor(ch / 2), interval = [8,10,11][part];
+    const duration = [12,9,10][part], start = (ch % 2) * interval;
+    assert.deepEqual(events.map(e => [e.ch, e.on]), [[ch,true],[ch,false],[ch,true],[ch,false]]);
+    const expected = [start, start + duration, start + interval * 2, start + interval * 2 + duration];
+    events.forEach((event,i) => assert.ok(Math.abs(event.time - expected[i]) < 1e-8));
+  }
+});
