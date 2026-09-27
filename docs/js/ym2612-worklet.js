@@ -106,6 +106,12 @@ class YM2612Processor extends AudioWorkletProcessor {
         });
       }
 
+      // Reserve the usual 128-frame render quantum without advancing chip time.
+      // Larger quanta remain supported by the wrappers' capacity checks.
+      const capacity = Math.ceil(128 * this.ym2612.sampleRate() / sampleRate);
+      this.ym2612.reserveStereoFrames(capacity);
+      this.psg?.reserveStereoFrames(capacity);
+
       for (const command of this.pendingCommands) {
         this.applyCommand(command);
       }
@@ -324,8 +330,8 @@ class YM2612Processor extends AudioWorkletProcessor {
     if (frames <= 0) return;
     const chipRate = this.ym2612.sampleRate();
     const sourceFrames = Math.floor((this.resampleRemainder + frames * chipRate) / sampleRate);
-    const pcm = sourceFrames > 0 ? this.ym2612.generateStereo(sourceFrames) : null;
-    const psg = sourceFrames > 0 ? this.psg?.generateStereo(sourceFrames) : null;
+    const pcm = sourceFrames > 0 ? this.ym2612.generateStereoView(sourceFrames) : null;
+    const psg = sourceFrames > 0 ? this.psg?.generateStereoView(sourceFrames) : null;
     let sourceOffset = 0;
     for (let i = 0; i < frames; i++) {
       this.resampleRemainder += chipRate;

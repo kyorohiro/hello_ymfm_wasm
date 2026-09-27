@@ -19,6 +19,8 @@ function chip(rate) {
     sampleRate: () => rate,
     reset() { this.frames = 0; this.value = 0; },
     writeRegister(_register, value) { this.value = value; },
+    reserveStereoFrames() {},
+    generateStereoView(n) { return this.generateStereo(n); },
     generateStereo(n) {
       this.frames += n;
       return { left: new Float32Array(n).fill(this.value), right: new Float32Array(n).fill(-this.value) };
@@ -94,8 +96,8 @@ test('real YM2612 WASM advances one chip second for one second of 48 kHz output'
   const ym = await Ym2612.create({ moduleFactory: factory });
   try {
     let generated = 0;
-    const generate = ym.generateStereo.bind(ym);
-    ym.generateStereo = n => { generated += n; return generate(n); };
+    const generate = ym.generateStereoView.bind(ym);
+    ym.generateStereoView = n => { generated += n; return generate(n); };
     const { p } = processor('web', 'ym2612-worklet.js', 48000);
     p.ym2612 = ym;
     for (let i = 0; i < 375; i++) render(p, 128);
