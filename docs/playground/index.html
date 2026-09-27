@@ -1765,6 +1765,7 @@
             <ul class="helper-list">
               <li><code>await stream.load("bgm", "./bgm.mp3")</code> prepares a browser media stream from a same-origin URL; suitable for long audio such as background music. Use an actual served URL, not a FILES virtual path.</li>
               <li><code>await stream.play("bgm", { gain: 0.5, loop: true })</code> waits for playback to start, not for the track to finish.</li>
+              <li>Sample reverse playback: <code>await sample.play("name", { playbackRate: -1 })</code>. Use -0.5 for half-speed reverse; zero is invalid. For reverse playback, offset counts seconds from the end. Loop bounds remain relative to the original file start.</li>
               <li>Playback options include <code>playbackRate</code>, <code>offset</code> (seconds), <code>pan</code>, and <code>fadeIn</code> (seconds).</li>
               <li><code>stream.pause("bgm")</code> pauses; <code>stream.play("bgm")</code> resumes without an explicit offset. <code>stream.stop("bgm")</code> stops and rewinds.</li>
               <li><code>stream.unload("bgm")</code> releases the entry; <code>stream.list()</code> and <code>stream.isLoaded("bgm")</code> inspect loaded entries.</li>

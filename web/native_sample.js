@@ -15,11 +15,13 @@ export function createNativeSampleController(send){
    await request('load',{name,pcm});
    const info={name,length,sampleRate:pcm.sampleRate,numberOfChannels:pcm.channels.length,duration:length/pcm.sampleRate};banks.set(name,info);return info;
   },
+  /** Negative playbackRate reads backward. Offset counts from the playback start
+   * (the end for reverse); duration counts source seconds, loops use original-file bounds. */
   async play(name,options={}){
    if(!banks.has(name))throw new Error(`Unknown sample: ${name}`);
    const normalized={};
    for(const [key,value] of Object.entries({playbackRate:1,gain:1,pan:0,offset:0,duration:-1,loopStart:0,loopEnd:0,fadeIn:0,fadeOut:0}))normalized[key]=finite(options[key],value);
-   if(normalized.playbackRate<=0)throw new Error('Native sample playbackRate must be positive');
+   if(normalized.playbackRate===0)throw new Error('Native sample playbackRate must be nonzero');
    for(const key of ['offset','loopStart','loopEnd','fadeIn','fadeOut'])normalized[key]=Math.max(0,normalized[key]);
    normalized.duration=options.duration==null?-1:Math.max(0,normalized.duration);normalized.loop=options.loop===true;
    const voice=await request('play',{name,options:normalized});

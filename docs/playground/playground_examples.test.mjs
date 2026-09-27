@@ -61,10 +61,42 @@ test('initial editor source uses the independent index demo; URL source still ta
   const initial=resolveInitialSourceFromQuery('',defaults,'index.js');
   assert.equal(initial.source,DEFAULT_CODE);
   assert.match(initial.source,/liveFx\("distortion"/);
-  assert.doesNotMatch(EXAMPLES['live-loop'],/liveFx\(/);
+  assert.equal(EXAMPLES['live-loop'], undefined);
   const source='// shared source';
   const encoded=encodeURIComponent(Buffer.from(source).toString('base64'));
   assert.equal(resolveInitialSourceFromQuery('?src='+encoded,defaults,'index.js').source,source);
   const app=await readFile(new URL('./playground.js',import.meta.url),'utf8');
   assert.match(app,/resolveInitialSourceFromQuery\(\s*window\.location\.search,\s*\{ "index.js": DEFAULT_CODE \},\s*"index.js"/);
+});
+
+test('haunted bells loads its sample before alternating forward and reverse playback', async () => {
+  const loaded = new Set();
+  const rates = [];
+  const waits = [];
+  let loop;
+  let direction = 0;
+  const sample = {
+    async load(name) { loaded.add(name); },
+    async play(name, options) {
+      assert.ok(loaded.has(name));
+      rates.push(options.playbackRate);
+    },
+  };
+  const api = {
+    setBpm(bpm) { assert.equal(bpm, 60); },
+    livePrepare: async (_name, prepare) => prepare({ sample }),
+    liveLoop: (_name, callback) => { loop = callback; },
+    sample,
+    choose: values => values[direction++ % values.length],
+    rrange: (min, max) => (min + max) / 2,
+    beat: async value => { waits.push(value); },
+  };
+  const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
+  await new AsyncFunction(...Object.keys(api), EXAMPLES['haunted-bells'])(...Object.values(api));
+  await loop();
+  await loop();
+  assert.deepEqual([...loaded], ['sonic-pi/perc-bell']);
+  assert.deepEqual(rates, [-0.85, 0.85]);
+  assert.deepEqual(waits, [1.05, 1.05]);
+  assert.ok((await readFile(new URL('./samples/sonic-pi/perc_bell.flac', import.meta.url))).length > 0);
 });

@@ -133,11 +133,14 @@ type PlaygroundPlayOptions = {
 
 type PlaygroundSamplePlayOptions = {
   gain?: number;
-  /** Native PCM playback requires a positive rate; linear interpolation. */
+  /** Nonzero speed: negative reverses playback. Linear interpolation. */
   playbackRate?: number;
+  /** Source seconds skipped from the start; from the end for reverse playback. */
   offset?: number;
+  /** Source seconds to play. Wall time depends on absolute playbackRate. */
   duration?: number;
   loop?: boolean;
+  /** Loop bounds in source seconds from the original file start, even in reverse. */
   loopStart?: number;
   loopEnd?: number;
   fadeIn?: number;

@@ -181,3 +181,37 @@ test('gain supports 10x on the real WASM graph including set and rampTo',()=>{
  assert.equal(gain.gain.set(100),10);
  gain.gain.set(0);assert.ok(h.render(10,.02).every(x=>x===0));
 });
+
+test('reverse PCM interpolates, offsets from the end and ends after source duration',async()=>{
+ const h=await sampleHarness();
+ await h.player.load('reverse',{sampleRate:48000,channels:[Float32Array.of(.1,.2,.3,.4),Float32Array.of(.5,.6,.7,.8)]});
+ const near=(out,expected)=>expected.forEach((v,i)=>assert.ok(Math.abs(out[i]-v)<1e-6,`frame ${i}: ${out[i]} != ${v}`));
+ await h.player.play('reverse',{playbackRate:-1});near(h.render(1,0),[.4,.3,.2,.1,0]);
+ await h.player.play('reverse',{playbackRate:-.5,duration:2/48000});near(h.render(1,0),[.4,.35,.3,.25,0]);
+ await h.player.play('reverse',{playbackRate:-1,offset:1/48000});near(h.render(1,0),[.3,.2,.1,0]);
+ await h.player.play('reverse',{playbackRate:-2});near(h.render(1,0),[.4,.2,0]);
+ await h.player.play('reverse',{playbackRate:-1,offset:100});assert.ok(h.render(1,0).every(x=>x===0));
+ for(const playbackRate of [0,NaN,Infinity,-Infinity])await assert.rejects(h.player.play('reverse',{playbackRate}),/nonzero|Invalid/);
+});
+
+test('reverse PCM shares banks with forward voices, wraps source loop bounds and stops',async()=>{
+ const h=await sampleHarness();
+ await h.player.load('both',{sampleRate:48000,channels:[Float32Array.of(.1,.2,.3,.4),Float32Array.of(.4,.3,.2,.1)]});
+ await h.player.play('both',{playbackRate:1});await h.player.play('both',{playbackRate:-1});
+ const sum=h.render(1,0);for(let i=0;i<4;i++)assert.ok(Math.abs(sum[i]-.5)<1e-6);assert.equal(sum[4],0);
+ const voice=await h.player.play('both',{playbackRate:-1,loop:true,loopStart:1/48000,loopEnd:3/48000,fadeOut:4/48000});
+ const out=h.render(1,0);
+ [.4,.3,.2,.3,.2].forEach((v,i)=>assert.ok(Math.abs(out[i]-v)<1e-6));
+ voice.stop();assert.ok(h.render(1,0).slice(4).every(x=>x===0));
+ await h.player.play('both',{playbackRate:-100,loop:true});assert.ok(h.render(3,0).every(Number.isFinite));
+ h.player.unload('both');assert.ok(h.render(1,0).every(x=>x===0));
+});
+
+test('reverse mono at a different source rate preserves fade-in and routes through FX',async()=>{
+ const h=await sampleHarness();
+ await h.player.load('mono',{sampleRate:24000,channels:[Float32Array.of(.1,.2,.3,.4)]});
+ const gain=h.fx.gain({gain:.5});h.fx.setChain([gain]);h.render(10,0);
+ await h.player.play('mono',{playbackRate:-1,pan:-1,fadeIn:2/48000});
+ const out=h.render(1,0);
+ [0,.0875,.15,.125,.1,.075,.05,.05,0].forEach((v,i)=>assert.ok(Math.abs(out[i]-v)<1e-6));
+});

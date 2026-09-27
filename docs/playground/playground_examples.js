@@ -132,6 +132,11 @@ export const EXAMPLE_FILES = [
     "data": "// Sega PSG (SN76489-compatible) tone on channel 0, mixed into the same\n// output as fm. psg.write(...) remains available for raw register experiments.\npsg.reset();\n\nconst notes = [\"C4\", \"D4\", \"E4\", \"F4\", \"G4\", \"A4\", \"B4\", \"C5\"];\n\nfor (const note of notes) {\n  psg.tone(PSG1, { note, volume: 0.8 });\n  await sleep(0.15);\n}\n\npsg.off(PSG1);\n"
   },
   {
+    "path": "/examples/samples/haunted-bells.js",
+    "name": "haunted-bells",
+    "data": "/**\n * Sonic Pi「Haunted Bells」— Coded by Sam Aaron\n * 出典: https://sonic-pi.net/examples.html\n * 元のサンプル（Ruby）より引用:\n * live_loop :haunted do\n *   sample :perc_bell, rate: rrand(-1.5, 1.5)\n *   sleep rrand(0.1, 2)\n * end\n *\n * PlaygroundのPCMサンプル再生によるアレンジ（YM2612のFM合成ではありません）。\n * 極端に長い再生を避けるため、速度の絶対値は0.2以上にしています。\n */\nsetBpm(60);\n\nawait livePrepare(\"haunted-bells-sample\", async ({ sample }) => {\n  await sample.load(\"sonic-pi/perc-bell\");\n});\n\nliveLoop(\"haunted\", async () => {\n  const direction = choose([-1, 1]);\n  await sample.play(\"sonic-pi/perc-bell\", {\n    playbackRate: direction * rrange(0.2, 1.5),\n  });\n  await beat(rrange(0.1, 2));\n});\n"
+  },
+  {
     "path": "/examples/samples/sonic-pi-sample-choir.js",
     "name": "sonic-pi-sample-choir",
     "data": "setMasterVolume(1.0);\n\nawait sample.load(\n  \"sonic-pi/ambi-choir\"\n);\n\nawait sample.play(\"sonic-pi/ambi-choir\", {\n  gain: 0.9,\n  fadeIn: 0.02,\n  fadeOut: 0.2,\n});\n\nawait sleep(1.2);\n\nawait sample.play(\"sonic-pi/ambi-choir\", {\n  gain: 0.7,\n  playbackRate: 0.8,\n  offset: 0.1,\n  duration: 1.6,\n  fadeIn: 0.02,\n  fadeOut: 0.25,\n  pan: -0.2,\n});\n\nawait sleep(1.8);\n"
