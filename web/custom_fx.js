@@ -47,7 +47,7 @@ export class LiveFX {
           }
           if(e.fadeRemaining>0)e.fadeRemaining--;
         }
-      }catch(error){e.bypass=true;report(name+': '+error.message);}
+      }catch(error){e.bypass=true;report('[liveFx:'+name+'] '+(error?.stack??String(error))+'\nEffect bypassed. Fix the code and Apply to retry.');}
       observe?.(name,this.input,channels);
     }
   }

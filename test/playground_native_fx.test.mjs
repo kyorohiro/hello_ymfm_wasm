@@ -71,6 +71,14 @@ test('browser rack loads local WASM, routes all sources through one Worklet and 
  const context={destination:new Node(),createGain:()=>new Node(),audioWorklet:{addModule:async url=>modules.push(String(url))}};
  const audio=new TetoricaAudioRuntime({audioContext:context});audio.ensureRouting(context);
  await audio.prepareNativeFX();const rack=audio.nativeFX;
+ const reported=[],logged=[];const originalError=console.error;
+ try {
+  console.error=(...args)=>logged.push(args);
+  rack.onError=message=>reported.push(message);
+  rack.node.port.onmessage({data:{error:'[liveFx:broken] bad'}});
+  assert.deepEqual(reported,['[liveFx:broken] bad']);
+  assert.equal(logged.length,1);
+ } finally {console.error=originalError;}
  assert.deepEqual(audio.masterInputNode.connections,[rack.node]);assert.deepEqual(rack.node.connections,[audio.masterOutputNode]);
  assert.match(loads[0],/native_audio_effect.wasm$/);assert.match(modules[0],/native-fx-worklet.js$/);
  const fx=audio.createFXApi();const gain=fx.gain({gain:.5});fx.setChain([gain]);assert.deepEqual(audio.getFXChain(),[gain]);

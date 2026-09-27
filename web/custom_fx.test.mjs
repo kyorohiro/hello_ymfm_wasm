@@ -30,10 +30,12 @@ test('bad registration is atomic; runtime exception/nonfinite bypass preserves i
  controller.liveFx('gain',{process:gain,context:{gain:.5}});
  assert.throws(()=>processor.command({action:'register',name:'gain',source:'invalid {'}));
  let out=block();processor.process(out,assert.fail);assert.equal(out[0][0],.25);
- for(const process of [function(i,o){o[0][0]=NaN;},function(){throw new Error('bad')}]) {
+ for(const process of [function(i,o){o[0][0]=NaN;},function(){throw new Error('bad')},function(){throw null;}]) {
   controller.liveFx('gain',{process});
   const errors=[];out=block();processor.process(out,e=>errors.push(e));assert.equal(out[0][0],.5);assert.equal(errors.length,1);
   processor.process(out,e=>errors.push(e));assert.equal(errors.length,1);
+  assert.match(errors[0], /\[liveFx:gain\]/);
+  assert.match(errors[0], /Apply to retry/);
  }
  assert.throws(()=>controller.liveFx('x',{process:async()=>{}}));
  assert.throws(()=>controller.liveFx('x',{process:gain,context:{fn(){}}}));

@@ -670,6 +670,12 @@ export function createPlaygroundRuntime(
       (async () => {
         await megaDrive.start();
         await megaDrive.audio?.prepareNativeFX?.();
+        if (megaDrive.audio?.nativeFX) {
+          megaDrive.audio.nativeFX.onError = (message) => {
+            options.onLog?.(`[FX] ${message}`);
+            emitStatus(`FX error: ${message.split('\n')[0]} (see Console)`);
+          };
+        }
         synth = megaDrive.fm;
         installMegaDriveListener();
         synth.setPreset(
