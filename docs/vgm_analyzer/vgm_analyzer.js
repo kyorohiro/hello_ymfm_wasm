@@ -5,6 +5,7 @@ import {createMsxNoteMonitor, describeMsxNotes, observeMsxNotes} from './msx_not
 import {createHuc6280Monitor,applyHuc6280Write,describeHuc6280Notes,extractHuc6280Notes} from './huc6280_notes.js';
 import {isOpl,createOplMonitor,applyOplWrite,describeOplNotes} from './opl_notes.js';
 import {mountOplMonitor} from './opl_monitor.js';
+import {mountSbiExports} from './sbi_ui.js';
 import {mountScoreGroups,getScoreGroups} from './score_group_ui.js';
 import {createOpl3Monitor,applyOpl3Write,describeOpl3Notes} from './ymf262_notes.js';
 import {createNesMonitor,applyNesWrite,describeNesNotes} from './nes_notes.js';
@@ -2756,6 +2757,11 @@ function updatePlaybackButtons(state = {}) {
 
 // Keep the first playback-only chip boundary local until more features are implemented.
 function updateChipSupport() {
+  for (const id of ['exportAllSbiButton', 'exportSbiButton', 'exportSnapshotSbiButton']) {
+    const button = document.getElementById(id);
+    button.hidden = !['ym3526','ym3812','y8950','ymf262','ymf278b'].includes(currentChipKind);
+    button.disabled = button.hidden || !currentBuffer || !!(noteishHeader[currentChipKind+'Clock'] & 0xc0000000);
+  }
   sheetMusicTab.disabled = !currentBuffer || !(midiExportAvailable || (currentChipKind === 'ymf262' && !(noteishHeader.ymf262Clock & 0xc0000000)));
   document.getElementById('showSheetMusicButton').disabled = sheetMusicTab.disabled;
   musicSheet?.updateTrack();
@@ -3197,6 +3203,7 @@ async function handleFile(file, preserveEditor = false) {
   if (!preserveEditor) commandEditor.load(null);
   msxMutes.clear();
   exportAllOpmButton.disabled = exportOpmButton.disabled = true;
+  for (const id of ['exportAllSbiButton', 'exportSbiButton', 'exportSnapshotSbiButton']) document.getElementById(id).disabled = true;
   opmMonitor.reset();
   opmMonitor.render();
   setPlaybackError();
@@ -3644,6 +3651,8 @@ exportSnapshotVgiButton.addEventListener("click", () => {
 exportSnapshotButton.addEventListener("click", () => {
   try { downloadSnapshot("manual"); } catch (error) { setStatus(`Snapshot export failed: ${error.message}`); }
 });
+
+mountSbiExports({getTrack: () => ({buffer:currentBuffer, atSample:player?.stats()?.processedWaitSamples ?? 0}), setStatus});
 
 const opnMonitorRoot = document.createElement('div');
 while (operatorInfoPanel.firstChild) opnMonitorRoot.append(operatorInfoPanel.firstChild);

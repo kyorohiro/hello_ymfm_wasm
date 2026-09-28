@@ -17,7 +17,7 @@ const help = `tetorica-vgm — VGM/VGZ/S98 analysis without a browser
   tetorica-vgm render FILE --output FILE.wav [--max-seconds 120] [--force]
 
 Formats: ${exportFormats.join(', ')}
-Snapshot formats tfi/vgi/opm require --at SECONDS --channel N (1-based).
+Snapshot formats sbi/tfi/vgi/opm require --at SECONDS --channel N (1-based).
 --group Name=ID,ID (repeatable) or --merge-all: group score channels.
 --channels ID,ID: select MusicXML/LilyPond staves; list IDs with score-channels.
 BPM defaults to the browser score tempo suggestion (fallback: 120).

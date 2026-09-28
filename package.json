@@ -24,6 +24,7 @@
     "build": "node scripts/build_cli.mjs",
     "test": "node --test test/*.test.mjs",
     "test:analyzer": "node --test web/*.test.mjs docs/vgm_analyzer/*.test.mjs",
+    "test:sbi": "node --test docs/vgm_analyzer/sbi_export.test.mjs docs/vgm_analyzer/sbi_ui.test.mjs test/sbi.test.mjs",
     "prepack": "npm run build",
     "pack:check": "npm run pack -- --dry-run",
     "pack": "node scripts/pack_cli.mjs"

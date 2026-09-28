@@ -42,7 +42,7 @@ tetorica-vgm render song.vgz --output song.wav --max-seconds 120
 - `analyze`: header-declared chips/clocks, GD3 metadata, declared duration,
   command counts, data-block and PCM-RAM summaries, special-command details.
   JSON has `schemaVersion: 1`; declared chips are not a playback compatibility claim.
-- `export`: `tfi`, `vgi`, `opm` (snapshots), `tfi-zip`, `vgi-zip`, `opm-zip`, `midi`, `musicxml`, `lilypond`, `mucom`, `opnavoid`, `mxdrv`, `mgsdrv`.
+- `export`: `sbi`, `tfi`, `vgi`, `opm` (snapshots), `sbi-zip`, `tfi-zip`, `vgi-zip`, `opm-zip`, `midi`, `musicxml`, `lilypond`, `mucom`, `opnavoid`, `mxdrv`, `mgsdrv`.
   Supported chips and approximation limits are those of the browser exporters.
   MUCOM/OPN-Avoid target OPN, MXDRV targets YM2151, MGSDRV targets AY/OPLL.
   BPM is an integer 4–999. Without `--bpm`, use the browser score suggestion,
@@ -736,3 +736,33 @@ Y8950 ADPCM/rhythm/CSM and OPLL rhythm other than Bass Drum are omitted.
 SCC+ uses the `scc-ch1` … `scc-ch5` channel IDs (the display names include `SCC+`).
 More than 15 melodic tracks use MIDI Port meta events and require a compatible
 player. MusicXML/LilyPond can select or group channels with the existing options.
+
+
+## OPL SBI voices
+
+```sh
+tetorica-vgm export song.vgz --format sbi --at 1.5 --channel 1 --output voice.sbi
+tetorica-vgm export song.vgz --format sbi-zip --output voices.zip
+```
+
+Supports YM3526, YM3812, Y8950 FM, YMF262 and YMF278B FM. The browser and
+CLI share the same encoder and extraction logic. Two-operator voices use
+52-byte DOS SBI; four-operator voices use 60-byte UNIX 4OP SBI.
+
+`sbi` requires both `--at SECONDS` and `--channel N` (1-based). Choose the
+leading channel of a 4op pair; partner channels, rhythm channels, CSM and
+channels outside the source chip's range are rejected. Key-off melodic
+channels can be exported. Time is floored to a 44100 Hz sample; exact track
+end is allowed, later times are rejected.
+
+`sbi-zip` collects key-on voices and changes while keys are held, deduplicates
+per channel, and names entries `CH1_001.sbi`, etc. It rejects `--at` and
+`--channel`. No keyed melodic voices is an error. Both formats reject mixed
+FM families and dual/variant chips. PCM/ADPCM and rhythm voices are omitted.
+SBI preserves static operator parameters and TL, but not source clock,
+pitch, pan, global modulation depth, envelope phase or performance timing.
+
+Node API: `exportSource(source, {format:'sbi', atSeconds:1.5, channel:1})`
+returns `{bytes, sample, channel, warnings}`; `{format:'sbi-zip'}` returns
+`{bytes, count, warnings}`. `support FILE --json` reports both formats;
+snapshot support is probed at time 0, channel 1.

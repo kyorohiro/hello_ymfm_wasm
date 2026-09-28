@@ -3,6 +3,7 @@ import {groupScoreChannels,parseScoreGroups} from './score_groups.js';
 import {exportSamples,listSamples} from './sample_core.js';
 export {vgmToJson, jsonToVgm} from './vgm_json.js';
 import {selectPlaybackConfiguration, playbackMuteControls} from './playback_core.js?v=scc-plus-1';
+import {exportSbiSnapshot, exportSbiZip} from './sbi_export.js';
 import {exportOpmZip} from './opm_export.js';
 import {exportVoiceSnapshot,exportTfiZip,exportVgiZip} from './tfi_archive.js';
 // Environment-neutral API shared by the browser, Node adapter and future MCP server.
@@ -19,7 +20,7 @@ export { analyzeLilyPondSource, exportLilyPondAnalysis } from './vgm_lilypond.js
 export { exportAnalysisMidi } from './vgm_midi.js';
 export { createMusicXmlScore } from './vgm_musicxml.js';
 export { renderVgmToWav } from './vgm_wav.js';
-export const exportFormats = Object.freeze(['tfi', 'vgi', 'opm', 'tfi-zip', 'vgi-zip', 'opm-zip', 'midi', 'musicxml', 'lilypond', 'mucom', 'opnavoid', 'mxdrv', 'mgsdrv']);
+export const exportFormats = Object.freeze(['sbi', 'sbi-zip', 'tfi', 'vgi', 'opm', 'tfi-zip', 'vgi-zip', 'opm-zip', 'midi', 'musicxml', 'lilypond', 'mucom', 'opnavoid', 'mxdrv', 'mgsdrv']);
 
 /** Decode and normalize input, preserving original S98 information explicitly. */
 export async function decodeSourceDocument(input) {
@@ -60,8 +61,10 @@ export function exportSource(source, { format, bpm, fileName = 'VGM', atSeconds,
   if((groups!==undefined||group!==undefined||mergeAll)&&!['musicxml','lilypond'].includes(format))throw new Error('Grouping requires musicxml or lilypond');
   if(groups!==undefined&&(group!==undefined||mergeAll))throw new Error('Use groups or CLI group options');
   if(channels!==undefined && !['musicxml','lilypond'].includes(format)) throw new Error('Channel selection requires musicxml or lilypond');
+  if (format === 'sbi') return exportSbiSnapshot(source,{atSeconds,channel});
   if (['tfi','vgi','opm'].includes(format)) return exportVoiceSnapshot(source,{format,atSeconds,channel});
-  if (atSeconds !== undefined || channel !== undefined) throw new Error('Time/channel options require tfi, vgi or opm snapshot format');
+  if (atSeconds !== undefined || channel !== undefined) throw new Error('Time/channel options require sbi, tfi, vgi or opm snapshot format');
+  if (format === 'sbi-zip') return exportSbiZip(source);
   if (format === 'opm-zip') return exportOpmZip(source);
   if (format === 'vgi-zip') return exportVgiZip(source,{fileName});
   if (format === 'tfi-zip') return exportTfiZip(source,{fileName});
@@ -130,8 +133,8 @@ export async function inspectSourceSupport(source) {
   }
   const exports = {};
   for (const format of exportFormats) {
-    const checked = await probe(()=>exportSource(source,{format,bpm:120,atSeconds:['tfi','vgi','opm'].includes(format)?0:undefined,
-      channel:['tfi','vgi','opm'].includes(format)?1:undefined}));
+    const checked = await probe(()=>exportSource(source,{format,bpm:120,atSeconds:['sbi','tfi','vgi','opm'].includes(format)?0:undefined,
+      channel:['sbi','tfi','vgi','opm'].includes(format)?1:undefined}));
     exports[format] = {status:checked.status, ...(checked.reason ? {reason:checked.reason} : {}),
       ...(checked.result?.warnings ? {warnings:checked.result.warnings} : {})};
   }
