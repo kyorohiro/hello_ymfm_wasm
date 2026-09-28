@@ -56,6 +56,10 @@ native_noise.js
 native_sample.js
 playground_rf5c164.js
 playground_ym2608.js
+playground_gameboy.js
+gameboyapu.js
+playground_gameboy_audio.js
+playground_gameboy_worklet.js
 playground_ym2608_audio.js
 playground_ym2608_worklet.js
 rf5c164synth.js
@@ -126,6 +130,8 @@ synth_keyboard.js
 "
 
 GENERATED_FILES="
+gameboy_apu_wasm.js
+gameboy_apu_wasm.wasm
 rf5c164_wasm.js
 rf5c164_wasm.wasm
 ym2612_wasm.js
@@ -245,6 +251,8 @@ for chip in ym2203 ym2608 ym2610b; do
 done
 
 mkdir -p "${STAGE_DIR}/licenses/mame-rf5c164"
+mkdir -p "${STAGE_DIR}/licenses/mame-gameboy"
+cp "${ROOT_DIR}/third_party/mame-gameboy/LICENSE" "${ROOT_DIR}/third_party/mame-gameboy/README.md" "${STAGE_DIR}/licenses/mame-gameboy/"
 cp "${ROOT_DIR}/third_party/mame-rf5c164/LICENSE" "${ROOT_DIR}/third_party/mame-rf5c164/README.md" "${STAGE_DIR}/licenses/mame-rf5c164/"
 
 cp -R "${PLAYGROUND_DIR}/examples" "${STAGE_DIR}/examples"
@@ -260,6 +268,8 @@ for file in ${NUKED_LICENSE_FILES}; do
 done
 
 cat > "${STAGE_DIR}/THIRD_PARTY_LICENSES.txt" <<EOF
+Game Boy DMG APU: MAME adaptation, BSD-3-Clause. See licenses/mame-gameboy/.
+
 RF5C164: MAME adaptation, BSD-3-Clause.
 See ./licenses/mame-rf5c164/LICENSE and README.md.
 

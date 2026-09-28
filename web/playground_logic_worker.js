@@ -1,3 +1,4 @@
+import {createGameboyClient} from './playground_gameboy.js';
 import {createYm2608Client} from './playground_ym2608.js';
 import {createRf5c164Client} from './playground_rf5c164.js';
 import {createNativeSampleController} from './native_sample.js';
@@ -547,7 +548,7 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
     async createSoundChip(name){
       if(run.stopped)throw new Error('Run stopped');
       const port=await request('pcm.create',[name]);
-      const pcm=name === 'ym2608' ? createYm2608Client(port) : createRf5c164Client(port,source=>request('pcm.decode',[source]));
+      const pcm=name === 'gameboy' ? createGameboyClient(port) : name === 'ym2608' ? createYm2608Client(port) : createRf5c164Client(port,source=>request('pcm.decode',[source]));
       if(run.stopped){pcm.dispose();throw new Error('Run stopped');}
       pcmClients.add(pcm);return pcm;
     },

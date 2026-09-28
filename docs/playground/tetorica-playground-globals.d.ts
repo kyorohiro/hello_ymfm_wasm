@@ -1014,6 +1014,12 @@ interface PlaygroundRf5c164 {
   dispose(): void;
 }
 declare function createSoundChip(name: 'rf5c164'): Promise<PlaygroundRf5c164>;
+/** Raw DMG registers, relative to 0xFF10 (0x00..0x2F). */
+declare function createSoundChip(name: 'gameboy'): Promise<{
+  writeRegister(offset: number, value: number): void;
+  reset(): void;
+  dispose(): void;
+}>;
 /** Independent YM2608; memory uploads are asynchronous, register setters are ordered writes. */
 type PlaygroundYm2608 = Pick<FMApi, 'reset' | 'setPreset' | 'setOperator' | 'setAlgo' | 'setPan' | 'setLfo' | 'setChannel3SpecialMode' | 'setChannel3SpecialFrequency' | 'setFrequency' | 'keyOn' | 'keyOff' | 'noteOn' | 'noteOff' | 'writeAddress' | 'writeData'> & {
   write(port: number, register: number, value: number): void;

@@ -1,3 +1,5 @@
+import {createGameboyAudio} from './playground_gameboy_audio.js';
+import {createGameboyClient} from './playground_gameboy.js';
 import {createYm2608Audio} from './playground_ym2608_audio.js';
 import {createYm2608Client} from './playground_ym2608.js';
 import {createRf5c164Client} from './playground_rf5c164.js';
@@ -188,8 +190,8 @@ export function createPlaygroundRuntime(
   let workerGlobals = null;
   const pcmDevices = new Set();
   async function openPcm(name, token = currentRunToken) {
-    if(!['rf5c164', 'ym2608'].includes(name)) throw new Error('Playground createSoundChip supports rf5c164 and ym2608');
-    const createAudio = name === 'ym2608' ? createYm2608Audio : createRf5c164Audio;
+    if(!['rf5c164', 'ym2608', 'gameboy'].includes(name)) throw new Error('Playground createSoundChip supports rf5c164, ym2608 and gameboy');
+    const createAudio = name === 'gameboy' ? createGameboyAudio : name === 'ym2608' ? createYm2608Audio : createRf5c164Audio;
     const device = await createAudio(megaDrive.audioContext, megaDrive.audio.masterInputNode);
     if(token !== currentRunToken){device.dispose();throw new Error('Run stopped');}
     pcmDevices.add(device);return device;
@@ -1320,7 +1322,7 @@ export function createPlaygroundRuntime(
     const pg = {
       createSoundChip: async name => {
         const device=await openPcm(name,runToken);
-        const client=name === 'ym2608' ? createYm2608Client(device.port) : createRf5c164Client(device.port,decodePcm);
+        const client=name === 'gameboy' ? createGameboyClient(device.port) : name === 'ym2608' ? createYm2608Client(device.port) : createRf5c164Client(device.port,decodePcm);
         const dispose=device.dispose;
         device.dispose=()=>{client.dispose();dispose();};
         return client;

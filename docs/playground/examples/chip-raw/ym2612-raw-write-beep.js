@@ -1,3 +1,4 @@
+// Select YM2612 in the Playground chip selector.
 fm.reset();
 
 // Port 0, channel 1, operator 4 only

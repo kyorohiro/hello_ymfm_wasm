@@ -28,6 +28,9 @@ native_noise.js
 native_sample.js
 playground_rf5c164.js
 playground_ym2608.js
+playground_gameboy.js
+playground_gameboy_audio.js
+playground_gameboy_worklet.js
 playground_ym2608_audio.js
 playground_ym2608_worklet.js
 rf5c164synth.js
@@ -177,3 +180,6 @@ perl -0pi -e 's#\./generated/rf5c164#../generated/rf5c164#g' \
 
 perl -0pi -e 's#./generated/ym2608#../generated/ym2608#g' \
   "${DOCS_JS_DIR}/playground_ym2608_audio.js" "${DOCS_JS_DIR}/playground_ym2608_worklet.js"
+
+perl -0pi -e 's#./generated/gameboy_apu#../generated/gameboy_apu#g' \
+  "${DOCS_JS_DIR}/playground_gameboy_audio.js" "${DOCS_JS_DIR}/playground_gameboy_worklet.js"
