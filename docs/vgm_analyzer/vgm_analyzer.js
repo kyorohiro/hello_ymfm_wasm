@@ -18,6 +18,7 @@ import { createExportTempoSettings } from "./export_tempo.js";
 import { analyzeLilyPondSource as analyzeScoreSource, exportLilyPondAnalysis } from "./analyzer_core.js?v=scc-plus-1";
 import {createOpmTfiFiles,OPM_TFI_NOTICE} from './opm_tfi.js';
 import {mountOpmInfo} from './opm_info.js?v=keyboard-layout-2';
+import {mountSbiInfo} from './sbi_info.js';
 import {exportMxdrvMml} from './opm_mml.js';
 import {exportOpm, extractOpmPatches} from './opm_export.js?v=clock-1';
 import {createOpmNoteTracker} from './opm_notes.js';
@@ -2769,7 +2770,8 @@ function updateChipSupport() {
   exportLilyPondButton.disabled = !currentBuffer || !(midiExportAvailable || (currentChipKind === 'ymf262' && !(noteishHeader.ymf262Clock & 0xc0000000)));
   exportAllOpmButton.hidden = exportOpmButton.hidden = currentChipKind !== 'ym2151';
   exportAllOpmButton.disabled = exportOpmButton.disabled = currentChipKind !== 'ym2151' || !currentBuffer;
-  tfiInfoTab.textContent = currentChipKind === 'ym2151' ? 'OPM Info' : 'Tfi info';
+  const sbi = ['ym3526','ym3812','y8950','ymf262','ymf278b'].includes(currentChipKind);
+  tfiInfoTab.textContent = sbi ? 'SBI Info' : currentChipKind === 'ym2151' ? 'OPM Info' : 'Tfi info';
   const ay = currentChipKind === 'ay8910';
   const opll = currentChipKind === 'ym2413';
   const opl = isOpl(currentChipKind);
@@ -2777,6 +2779,7 @@ function updateChipSupport() {
   const playbackOnly = ['huc6280', 'okim6258', 'msx', 'y8950', 'ymf278b', 'ym3526', 'ym3812', 'ymf262', 'segapcm', 'ym2151', 'ym2413', 'nes', 'gameboy'].includes(currentChipKind) || ay;
   for (const tab of [operatorInfoTab, noteishTab, tfiInfoTab, sampleTab]) {
     tab.disabled = !(currentChipKind === 'ymf278b' && tab === sampleTab) && playbackOnly && !((ay || opll || opl || currentChipKind === 'ym2151') && tab === operatorInfoTab) && !((currentChipKind === 'ym2151' && (tab === noteishTab || tab === tfiInfoTab)) || ((ay || opll || opl || ['msx','huc6280','gameboy','nes','ymf278b','ymf262'].includes(currentChipKind)) && tab === noteishTab));
+    if (sbi && tab === tfiInfoTab) tab.disabled = !currentBuffer || !!(noteishHeader[currentChipKind+'Clock'] & 0xc0000000);
     tab.title = tab.disabled ? 'Support coming soon.' : '';
   }
   for (const button of [exportMidiButton, exportMmlButton, exportSnapshotTfiButton,
@@ -2828,6 +2831,7 @@ function updateChipSupport() {
   ayMonitorRoot.hidden = !ay;
   ym2413MonitorRoot.hidden = !(opll || ayWithOpll);
   if (sheetMusicTab.getAttribute('aria-selected') === 'true' && !sheetMusicTab.disabled) return;
+  if (sbi && !tfiInfoTab.disabled && tfiInfoTab.getAttribute('aria-selected') === 'true') return;
   if (['okim6258', 'segapcm'].includes(currentChipKind)) setOutputTab('parsed-output');
   else if (['msx','huc6280','gameboy','nes','ymf278b','ymf262'].includes(currentChipKind) && noteishTab.getAttribute('aria-selected') !== 'true' && parsedOutputTab.getAttribute('aria-selected') !== 'true' && !(currentChipKind === 'ymf278b' && sampleTab.getAttribute('aria-selected') === 'true')) setOutputTab('noteish');
   else if (((ay || opll || opl || currentChipKind === 'ym2151') && noteishTab.getAttribute('aria-selected') !== 'true' && (tfiInfoTab.disabled || tfiInfoTab.getAttribute('aria-selected') !== 'true')) && operatorInfoTab.getAttribute('aria-selected') !== 'true' && parsedOutputTab.getAttribute('aria-selected') !== 'true') setOutputTab('operator-info');
@@ -3200,6 +3204,7 @@ function startScriptProcessorStream() {
 }
 
 async function handleFile(file, preserveEditor = false) {
+  sbiInfo.loadVgm(null);
   if (!preserveEditor) commandEditor.load(null);
   msxMutes.clear();
   exportAllOpmButton.disabled = exportOpmButton.disabled = true;
@@ -3338,6 +3343,7 @@ async function handleFile(file, preserveEditor = false) {
   extractedTfiPatches = ["huc6280", "okim6258", "msx", "y8950", "ymf278b", "ym3526", "ym3812", "ymf262", "segapcm", "nes", "gameboy", "ym2151", "ym2413", "ay8910"].includes(currentChipKind) ? [] : extractTfiPatchesFromVgm(buffer);
   tfiInfo.loadVgm(buffer, file.name);
   opmInfo.loadVgm(currentChipKind === 'ym2151' ? buffer : null);
+  sbiInfo.loadVgm(['ym3526','ym3812','y8950','ymf262','ymf278b'].includes(currentChipKind) ? buffer : null);
   if (tfiInfoTab.getAttribute('aria-selected') === 'true') setOutputTab('tfi-info');
   exportAllTfiButton.disabled = extractedTfiPatches.length === 0;
   exportAllVgiButton.disabled = extractedTfiPatches.length === 0;
@@ -3708,13 +3714,15 @@ operatorInfoPanel.prepend(ym2413MonitorRoot);
 ym2413MonitorRoot.hidden = true;
 const ym2413Monitor = mountYm2413Monitor(ym2413MonitorRoot);
 const opmInfo = mountOpmInfo({root:document.getElementById('opmInfoPanel'),onStatus:setStatus});
+const sbiInfo = mountSbiInfo({root:document.getElementById('sbiInfoPanel'),onStatus:setStatus});
 const tfiInfo = mountTfiInfo({ root: document.getElementById('tfiInfoPanel'), onStatus: setStatus,
 });
 tfiInfoTab.addEventListener('click', () => setOutputTab('tfi-info'));
-window.addEventListener('pagehide', event => { if (!event.persisted) { void tfiInfo.dispose(); void opmInfo.dispose(); } });
+window.addEventListener('pagehide', event => { if (!event.persisted) { void tfiInfo.dispose(); void opmInfo.dispose(); void sbiInfo.dispose(); } });
 
 function setOutputTab(tabName) {
-  if (!(currentChipKind === "ymf278b" && tabName === "samples") && !(tabName === "sheet-music" && currentBuffer && (midiExportAvailable || (currentChipKind === 'ymf262' && !(noteishHeader.ymf262Clock & 0xc0000000)))) && ((["okim6258", "segapcm"].includes(currentChipKind) && tabName !== "parsed-output") || (["msx","huc6280","gameboy","nes","ymf278b","ymf262"].includes(currentChipKind) && !["parsed-output", "noteish"].includes(tabName)) || (currentChipKind === "ay8910" && !["operator-info", "parsed-output", "noteish"].includes(tabName)) || ((currentChipKind === "ym2413" || isOpl(currentChipKind)) && !["operator-info", "parsed-output", "noteish"].includes(tabName)) || (currentChipKind === "ym2151" && !["operator-info", "parsed-output", "noteish", "tfi-info"].includes(tabName)))) {
+  const sbi = ['ym3526','ym3812','y8950','ymf262','ymf278b'].includes(currentChipKind);
+  if (!(sbi && tabName === 'tfi-info' && currentBuffer && !(noteishHeader[currentChipKind+'Clock'] & 0xc0000000)) && !(currentChipKind === "ymf278b" && tabName === "samples") && !(tabName === "sheet-music" && currentBuffer && (midiExportAvailable || (currentChipKind === 'ymf262' && !(noteishHeader.ymf262Clock & 0xc0000000)))) && ((["okim6258", "segapcm"].includes(currentChipKind) && tabName !== "parsed-output") || (["msx","huc6280","gameboy","nes","ymf278b","ymf262"].includes(currentChipKind) && !["parsed-output", "noteish"].includes(tabName)) || (currentChipKind === "ay8910" && !["operator-info", "parsed-output", "noteish"].includes(tabName)) || ((currentChipKind === "ym2413" || isOpl(currentChipKind)) && !["operator-info", "parsed-output", "noteish"].includes(tabName)) || (currentChipKind === "ym2151" && !["operator-info", "parsed-output", "noteish", "tfi-info"].includes(tabName)))) {
     setStatus('Analysis and instrument editing: Support coming soon.');
     tabName = "parsed-output";
   }
@@ -3722,9 +3730,10 @@ function setOutputTab(tabName) {
   musicSheet?.setVisible(tabName === 'sheet-music');
   sheetMusicTab.setAttribute('aria-selected', String(tabName === 'sheet-music'));
   sheetMusicTab.tabIndex = tabName === 'sheet-music' ? 0 : -1;
-  tfiInfo.setVisible(tabName === "tfi-info" && currentChipKind !== "ym2151");
+  tfiInfo.setVisible(tabName === "tfi-info" && currentChipKind !== "ym2151" && !sbi);
   opmInfo.setVisible(tabName === "tfi-info" && currentChipKind === "ym2151");
-  tfiInfoTab.setAttribute("aria-controls", currentChipKind === "ym2151" ? "opmInfoPanel" : "tfiInfoPanel");
+  sbiInfo.setVisible(tabName === 'tfi-info' && sbi);
+  tfiInfoTab.setAttribute("aria-controls", sbi ? 'sbiInfoPanel' : currentChipKind === "ym2151" ? "opmInfoPanel" : "tfiInfoPanel");
   tfiInfoTab.setAttribute("aria-selected", String(tabName === "tfi-info"));
   tfiInfoTab.tabIndex = tabName === "tfi-info" ? 0 : -1;
   samplePanel.hidden = tabName !== 'samples';

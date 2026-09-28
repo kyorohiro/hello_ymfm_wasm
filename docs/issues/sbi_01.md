@@ -118,3 +118,69 @@ node cli/main.js support song.vgz --json
 - `npm run build`：成功。生成された `dist/cli/main.js` からYMF262のSBI／ZIPを書き出す確認も成功。
 - `npm test`：160件すべて成功（既存CLI・パッケージ検証を含む）。
 - `npm run test:analyzer`：896件中895件成功、失敗0件、既存1件スキップ。
+
+## SBI Info
+
+OPM Infoと同じ位置の音色タブを、YM3526 / YM3812 / Y8950 / YMF262 / YMF278Bでは **SBI Info** として表示する。
+
+- 初めてタブを開いたときに既存のSBI抽出処理で音色一覧を作成。名前・2op/4op・最初の観測時刻から選択する。
+- 音色のチャンネル・接続・フィードバックと、各オペレータのMUL/TL/AR/DR/SL/RR/KSL/KSR/AM/VIB/EG/WAVEを表示。
+- 選択音色の `Download SBI` と、共通の鍵盤UIによる単音試聴。試聴音量・停止ボタンを用意。
+- 試聴はExportするSBIのパラメータを独立したYMF262コアへ設定。標準14.31818 MHz、左右中央、全体変調深度は初期値を使用する。元VGMのクロック・パン・全体設定を再現するプレビューではない。
+- キーを離すとキーオフし、最大2秒のリリース。VGM本体の再生は継続する。
+- 音色・ファイル・タブの切り替えで試聴を停止。ファイル読み込み開始時に前曲の一覧も消去。
+- 再生中のUI更新でもSBI Infoを選択したまま保ち、dual/variantではタブを無効化する。
+
+実装は `sbi_info.js`。OPM Info・TFI Infoの音源別切り替えに追加した。
+`sbi_info.test.mjs` を `npm run test:sbi` と既存CIの対象へ追加。SBI Info試聴テストではリポジトリ同梱のYMF262 WASMを使用するため、WASMビルドや音声デバイスは不要。
+
+検証：MIDI音程の量子化誤差、4opのレジスタ設定、実YMF262による2op/4opの有限・非無音ステレオ出力、キーオフと停止、音色選択とダウンロード内容、抽出エラー、初期化中の破棄、全5音源のタブ維持を自動テストした。
+
+- `npm run test:analyzer`：908件中907件成功、失敗0件、既存1件スキップ。
+- `npm run test:sbi`：29件すべて成功（CLIと実YMF262試聴を含む）。
+- 実ブラウザー上の目視・鍵盤操作・聴感確認は未実施。
+
+## 0.1.9 リリース準備（2026-09-28）
+
+公開先：CLIはnpm、VGM AnalyzerはGitHub Pagesとitch.io。
+公開済みnpmの最新バージョン0.1.8を確認し、`package.json`を0.1.9へ更新した。
+
+公開前に発見・修正した点：
+
+- itch.io梱包リストに `sbi_export.js` / `sbi_ui.js` / `sbi_info.js` が不足していた。追加し、単独配置に合わせたimportパスの書き換えも追加。
+- npm配布用 `cli/README.md` にSBIの説明とコマンド例を追加。
+- GitHub用README、Analyzerの音源対応表を更新。`support.html`を生成し直した。
+
+検証結果：
+
+| 環境・対象 | 結果 |
+| --- | --- |
+| Node.js 25.2.1 / CLI | 160件成功 |
+| Node.js 25.2.1 / Analyzer | 907件成功、失敗0、既存1件スキップ |
+| Node.js 22.23.3 / CLI | 160件成功 |
+| Node.js 22.23.3 / Analyzer | 907件成功、失敗0、既存1件スキップ |
+| npm pack dry-run / pack / publish dry-run | 成功 |
+| itch.io依存検査 | 341件成功 |
+| itch.io ZIP展開整合性 | 成功 |
+| 配布tarballのCLI / API | 2op・4opのSBI／ZIPがAnalyzer版と一致 |
+| itch.io同梱コードの試聴 | 同梱YMF262 WASMで2op・4opの有限・非無音PCM出力を確認 |
+| 対応表同期 / git diffチェック | 成功 |
+
+スキップは外部 `mml2mdr` コンパイラ未配置による既存の任意検証。SBI関連テストにスキップはない。
+Node.js 22の初回CLI検証では、`npm exec --package=node@22`の環境設定が子プロセスのoffline npm実行へ引き継がれ1件失敗した。取得したNode.js 22実行ファイルを直接使って再検証し、160件すべて成功した。
+
+作成済み配布物：
+
+- `tetorica-vgm-0.1.9.tgz`（149ファイル、約608 kB）
+  - SHA-256: `2f1bfc746c7413c30850fabae998c242326e8c9357b9bd728587255c3f1881dc`
+- `release/hello_ymfm_wasm_0.1.9_itch_vgm_analyzer.zip`（約1.3 MB）
+  - SHA-256: `9f5da0b649f18587ca7a785f03f127bdefa1b8e3c17acd0c01d4c881ea715c56`
+
+公開状態：**未公開**。`npm publish --dry-run`は実際の公開ではない。
+
+- npm：`npm whoami`が401 Unauthorized。再ログインが必要。
+- GitHub：`gh`未ログイン。リリース変更のcommit/push、Pagesの反映確認は未実施。
+- itch.io：butler未導入、操作可能なブラウザー接続なし。アップロード未実施。
+- 実ブラウザーでの目視・鍵盤操作・聴感、およびFurnaceアプリへのインポートは未実施。
+
+認証・接続復旧後、検証済みtarballを指定してnpm公開し、GitHub Pagesへソースを反映、itch.ioへ上記ZIPをアップロードする。ROMや手元の楽曲ファイル、`w/`などは配布物に含めない。

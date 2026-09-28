@@ -1,6 +1,6 @@
 {
   "name": "tetorica-vgm",
-  "version": "0.1.8",
+  "version": "0.2.1",
   "description": "Tetorica VGM Analyzer CLI and shared analysis core",
   "type": "module",
   "license": "BSD-3-Clause",
@@ -24,7 +24,7 @@
     "build": "node scripts/build_cli.mjs",
     "test": "node --test test/*.test.mjs",
     "test:analyzer": "node --test web/*.test.mjs docs/vgm_analyzer/*.test.mjs",
-    "test:sbi": "node --test docs/vgm_analyzer/sbi_export.test.mjs docs/vgm_analyzer/sbi_ui.test.mjs test/sbi.test.mjs",
+    "test:sbi": "node --test docs/vgm_analyzer/sbi_export.test.mjs docs/vgm_analyzer/sbi_ui.test.mjs docs/vgm_analyzer/sbi_info.test.mjs test/sbi.test.mjs",
     "prepack": "npm run build",
     "pack:check": "npm run pack -- --dry-run",
     "pack": "node scripts/pack_cli.mjs"

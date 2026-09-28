@@ -24,7 +24,7 @@ Before publication, install the distribution tarball with
 - `to-json` / `from-json`: lossless, fixed-layout VGM/JSON conversion.
 - `analyze`: chip configuration, metadata and command summaries; `--json` for structured output.
 - `support`: check a file's render configuration and export availability; `--json` includes reasons and warnings.
-- `export`: MIDI, MusicXML, LilyPond, MML formats, TFI/VGI/OPM voice snapshots and voice ZIPs.
+- `export`: MIDI, MusicXML, LilyPond, MML formats, SBI/TFI/VGI/OPM voice snapshots and voice ZIPs.
 - `score-channels`: list stable channel IDs for MusicXML/LilyPond `--channels` selection.
 - `samples`: list embedded samples, export native data or render a selected sample to WAV.
 - `render`: stereo PCM16 WAV, optional start time, duration limit and supported channel/chip mutes.
@@ -56,6 +56,23 @@ specified with `--bpm`; the automatic suggestion is not guaranteed beat detectio
 
 See [CLI reference](CLI.md) for supported chips, format restrictions, ROM options,
 channel IDs, sample export details and API contracts.
+
+## OPL SBI voices
+
+```sh
+npx tetorica-vgm export song.vgz --format sbi --at 1.5 --channel 1 --output voice.sbi
+npx tetorica-vgm export song.vgz --format sbi-zip --output voices.zip
+```
+
+Supports YM3526, YM3812, Y8950 FM, YMF262 and YMF278B FM. Two-operator
+voices use DOS SBI; four-operator voices use UNIX 4OP SBI. A single voice
+requires a time in seconds and a 1-based channel; select the leading channel
+of a 4op pair. ZIP export collects distinct keyed voices per channel across
+the track, including changes while keys are held.
+
+Rhythm, CSM, PCM/ADPCM, dual/variant and mixed FM chips are excluded.
+Static operator parameters and TL are preserved; clock, pan, global modulation
+depth and performance are not. Available since 0.1.9.
 
 ## Node API
 

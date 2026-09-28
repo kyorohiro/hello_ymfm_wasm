@@ -8,6 +8,7 @@ function setup(chip) {
  const node=()=>({attrs:{},setAttribute(k,v){this.attrs[k]=v;},getAttribute(k){return this.attrs[k];}});
  const ctx={isOpl,musicSheet:undefined,OPM_TFI_NOTICE:'Approximate conversion',currentBuffer:new Uint8Array(1),midiExportAvailable:true,currentChipKind:chip,noteishViewMode:'live',noteishHeader:{},document:{getElementById:()=>node()},tfiInfo:{setVisible(){}},opmInfo:{setVisible(){}},sampleExplorer:{stop(){}},songTimeline:{active(){}},requestChannelMonitorRender(){},setStatus(){},requestNoteishRender(){},renderNoteishGrid(){}};
  for(const name of ['sheetMusicTab','sheetMusicPanel','exportAllOpmButton','exportOpmButton','operatorInfoTab','noteishTab','tfiInfoTab','sampleTab','parsedOutputTab','exportMidiButton','exportLilyPondButton','exportMmlButton','exportSnapshotTfiButton','exportSnapshotVgiButton','exportSnapshotButton','exportAllTfiButton','exportAllVgiButton','opnMonitorRoot','opmMonitorRoot','ayMonitorRoot','ym2413MonitorRoot','oplMonitorRoot','samplePanel','operatorInfoPanel','parsedOutputPanel','noteishPanel'])ctx[name]=node();
+ ctx.sbiInfo={setVisible(value){this.visible=value;}};
  vm.createContext(ctx);
  vm.runInContext(source.slice(source.indexOf('function updateChipSupport()'),source.indexOf('function buildParseInfo(')),ctx);
  vm.runInContext(source.slice(source.indexOf('function setOutputTab('),source.indexOf("sheetMusicTab.addEventListener('click'")),ctx);
@@ -63,11 +64,22 @@ for (const chip of ['ym3526','ym3812','y8950']) test(`${chip} keeps operator inf
   assert.equal(c[panel].hidden,false,tab);
  }
  assert.equal(c.oplMonitorRoot.hidden,false);assert.equal(c.opnMonitorRoot.hidden,true);
- c.setOutputTab('tfi-info');assert.equal(c.parsedOutputPanel.hidden,false);
+ c.setOutputTab('tfi-info');assert.equal(c.sbiInfo.visible,true);
 });
 
-test('loading OPL after an OPM instrument tab selects operator info',()=>{
+test('loading OPL after an OPM instrument tab selects SBI info',()=>{
  const c=setup('ym2151');c.updateChipSupport();c.setOutputTab('tfi-info');
  c.currentChipKind='ym3526';c.updateChipSupport();
- assert.equal(c.operatorInfoPanel.hidden,false);assert.equal(c.tfiInfoTab.getAttribute('aria-selected'),'false');
+ c.setOutputTab('tfi-info');
+ assert.equal(c.sbiInfo.visible,true);assert.equal(c.tfiInfoTab.getAttribute('aria-selected'),'true');
+});
+
+for(const chip of ['ym3526','ym3812','y8950','ymf262','ymf278b'])test(`${chip} SBI Info stays selected and rejects dual chips`,()=>{
+ const context=setup(chip);context.updateChipSupport();context.setOutputTab('tfi-info');
+ for(let repeat=0;repeat<3;repeat++)context.updateChipSupport();
+ assert.equal(context.tfiInfoTab.textContent,'SBI Info');
+ assert.equal(context.tfiInfoTab.getAttribute('aria-controls'),'sbiInfoPanel');
+ assert.equal(context.sbiInfo.visible,true);
+ context.noteishHeader[chip+'Clock']=0x40000000;context.updateChipSupport();context.setOutputTab('tfi-info');
+ assert.equal(context.tfiInfoTab.disabled,true);assert.equal(context.sbiInfo.visible,false);
 });
