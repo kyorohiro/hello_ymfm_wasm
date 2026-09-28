@@ -14,7 +14,7 @@ export async function copyOpnaRhythm(stage, runtimeDir = 'js') {
   await mkdir(target, {recursive: true});
   await mkdir(resolve(stage, runtimeDir), {recursive: true});
   await copyFile(rom, resolve(stage, runtimeDir, name));
-  for (const file of ['LICENSE', 'README.md', 'generate.mjs']) {
+  for (const file of ['LICENSE', 'README.md', 'generate.mjs', 'synthesis.mjs']) {
     await copyFile(join(source, file), join(target, file));
   }
 }

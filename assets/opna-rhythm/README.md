@@ -36,6 +36,14 @@ original ROM for B. Both slots accept replacement 8 KiB files. The page offers
 six individual voices, A/B sequential playback and waveforms at the same
 scale. Selected files stay in the browser and are not uploaded.
 
+The page also edits pitch, decay, noise, attack and peak level per voice.
+Generate to replace A with all six synthesized voices, audition the encoded
+ROM through YM2608, and download the 8 KiB binary. Settings can be saved and
+reloaded as JSON. Imported ROMs are comparison references; synthesis does not
+extract or modify their samples. Waveform zoom is shared by A/B and does not
+change playback gain. `synthesis.mjs` is the shared browser/Node generator;
+its default parameters reproduce the checked-in binary exactly.
+
 The rhythm example uses these sounds by default:
 
 ```sh

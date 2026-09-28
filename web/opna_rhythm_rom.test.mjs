@@ -14,7 +14,7 @@ test('release payload and Pages copy include identical licensed synthetic data',
   const stage = await mkdtemp(join(tmpdir(), 'opna-release-'));
   try {
     await copyOpnaRhythm(stage);
-    const files = ['LICENSE', 'README.md', 'generate.mjs'];
+    const files = ['LICENSE', 'README.md', 'generate.mjs', 'synthesis.mjs'];
     const rom = await readFile(romUrl);
     assert.deepEqual(await readFile(join(stage, 'js/tetorica_ym2608_adpcm_rom.bin')), rom);
     assert.deepEqual(await readFile(new URL('../docs/js/tetorica_ym2608_adpcm_rom.bin', import.meta.url)), rom);

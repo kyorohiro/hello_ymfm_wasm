@@ -4,7 +4,7 @@ Copyright (c) 2026, Tetorica contributors
 Copyright (c) 2021, Aaron Giles (ymfm ADPCM-A decoding parameters)
 All rights reserved.
 
-This license covers generate.mjs and the generated tetorica_ym2608_adpcm_rom.bin
+This license covers generate.mjs, synthesis.mjs and the generated tetorica_ym2608_adpcm_rom.bin
 sample data. No Yamaha ROM or third-party recorded sample is included.
 
 Redistribution and use in source and binary forms, with or without

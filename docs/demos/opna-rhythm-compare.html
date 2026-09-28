@@ -35,10 +35,15 @@
       <label>試聴音量 <input id="volume" type="range" min="0" max="1" step="0.01" value="0.7"></label>
     </div>
     <small>A → B は同じ音を順番に再生します。音量の自動補正なし。両方とも8 MHz / リズム音量48 / 各音24 / ステレオ / 出力48 kHz。</small>
+    <h2>選択した音の合成パラメーター</h2>
+    <div id="parameters" class="controls"></div>
+    <div class="controls"><button id="generate">6音のROMを生成してAに設定</button><button id="resetParams">この音の値を戻す</button><button id="downloadRom" disabled>生成ROMを保存</button><button id="saveParams">設定を保存（JSON）</button><label>設定を読み込む<input id="loadParams" type="file" accept=".json"></label></div>
+    <small id="generationStatus">各音の値を保持します。外部ROMの値を解析する機能ではありません。生成時は6音とも合成音色で置き換えます。</small>
     <p id="status" class="status" role="status" aria-live="polite">準備中…</p>
+    <div class="controls"><label>波形の縦倍率 <select id="waveGain"><option value="auto">A/B共通で自動拡大</option><option value="1">×1</option><option value="4">×4</option><option value="16">×16</option><option value="64">×64</option></select></label><label>表示時間 <select id="waveTime"><option value="auto">音の長さに合わせる</option><option value="0.02">20 ms</option><option value="0.1">100 ms</option><option value="1">1秒</option></select></label><small id="waveScale"></small></div>
     <h2>A · 波形</h2><canvas id="waveA" width="900" height="120" aria-label="Aの1秒間の波形"></canvas><small id="statsA">未再生</small>
     <h2>B · 波形</h2><canvas id="waveB" width="900" height="120" aria-label="Bの1秒間の波形"></canvas><small id="statsB">未再生</small>
-    <small>両波形は同じ時間軸（1秒）・振幅尺度（±1）で表示します。</small>
+    <small>A/B共通の時間軸・縦倍率です。表示の拡大は再生音量に影響しません。</small>
   </section>
 </main>
 <script type="module" src="./opna-rhythm-compare.js"></script>
