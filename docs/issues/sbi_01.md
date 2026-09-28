@@ -176,7 +176,7 @@ Node.js 22の初回CLI検証では、`npm exec --package=node@22`の環境設定
 - `release/hello_ymfm_wasm_0.1.9_itch_vgm_analyzer.zip`（約1.3 MB）
   - SHA-256: `9f5da0b649f18587ca7a785f03f127bdefa1b8e3c17acd0c01d4c881ea715c56`
 
-公開状態：**未公開**。`npm publish --dry-run`は実際の公開ではない。
+0.1.9準備時点の公開状態：未公開。以下は当時の記録であり、CLIの現在の状態は末尾のv0.2.1公開記録を参照。
 
 - npm：`npm whoami`が401 Unauthorized。再ログインが必要。
 - GitHub：`gh`未ログイン。リリース変更のcommit/push、Pagesの反映確認は未実施。
@@ -184,3 +184,12 @@ Node.js 22の初回CLI検証では、`npm exec --package=node@22`の環境設定
 - 実ブラウザーでの目視・鍵盤操作・聴感、およびFurnaceアプリへのインポートは未実施。
 
 認証・接続復旧後、検証済みtarballを指定してnpm公開し、GitHub Pagesへソースを反映、itch.ioへ上記ZIPをアップロードする。ROMや手元の楽曲ファイル、`w/`などは配布物に含めない。
+
+## CLI v0.2.1 公開済み
+
+ユーザーがCLI v0.2.1をnpmへ公開。`npm view tetorica-vgm@0.2.1 version dist.integrity`で公開を確認した。ローカルの`package.json`も0.2.1。
+
+- 公開パッケージ：`tetorica-vgm@0.2.1`
+- npm integrity：`sha512-5IsAFv9FUKGNKjIoxt4lYdQE1qEog6AoTX4SjeaqUyV9ZPnUp00FFbA2A5+VEZkI+jXEN71mL0WIHds4puCXjA==`
+- 先の0.1.9配布物・検証結果は準備時点の記録。今回の確認はnpm公開メタデータであり、公開版0.2.1の実行テストは再実施していない。
+- VGM AnalyzerのGitHub Pages／itch.io公開完了は未確認。
