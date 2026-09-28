@@ -3373,7 +3373,12 @@ async function handleYmf278bRomFile(file) {
 async function handleYm2608RomFile(file) {
   setStatus(`Loading ${file.name}...`);
   const buffer = await file.arrayBuffer();
-  ym2608AdpcmARomBytes = new Uint8Array(buffer);
+  const data = new Uint8Array(buffer);
+  if (data.length !== 8192) throw new Error('YM2608 rhythm ROM must be exactly 8192 bytes (8 KiB).');
+  stopActiveStream();
+  player?.stop();
+  sampleExplorer.reset();
+  ym2608AdpcmARomBytes = data;
   ym2608AdpcmARomName = file.name;
 
   if (currentChipKind === "ym2608" && engine && typeof engine.loadAdpcmARom === "function") {
@@ -3386,7 +3391,11 @@ async function handleYm2608RomFile(file) {
   renderPlaybackWarnings();
 
   romFileStatus.textContent = `YM2608 ADPCM-A ROM: ${file.name} (${ym2608AdpcmARomBytes.length} bytes)`;
-  setStatus(`Loaded YM2608 ADPCM-A ROM: ${file.name} (${ym2608AdpcmARomBytes.length} bytes).`);
+  setPlaybackError();
+  updatePlaybackButtons({});
+  setStatus(`Loaded YM2608 ADPCM-A ROM: ${file.name} (${ym2608AdpcmARomBytes.length} bytes). ${currentBuffer
+    ? 'Press Play to start the loaded track from the beginning.'
+    : 'Next, select a VGM / VGZ / S98 music file. A ROM contains instrument sounds, not a song.'}`);
 }
 
 // Playlist operations share a queue so imports and track changes finish in order.
