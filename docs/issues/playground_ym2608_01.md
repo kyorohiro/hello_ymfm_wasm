@@ -33,3 +33,12 @@ chip.dispose();
 検証結果：YM2608ポート／Worklet、Playground runtime、YM2608Synth、既存RF5C164の
 関連テストは成功。初期化途中のStopと未完了の転送の破棄もテスト済み。
 Playground ZIPとブラウザーexamples ZIPを生成し、依存ファイルの検証に成功した。
+
+## ym2608-rhythm例の修正
+
+従来の`pcm/ym2608-rhythm.js`は選択中の`fm`に書き込んでおり、
+YM2608以外の選択時はリズムが鳴らなかった。
+独立した`createSoundChip('ym2608')`とrhythm APIに移行し、finallyで解放する。
+例の実コードをポート・Worklet・WASMで実行し、6音＋8拍の全14回の発音を検証。
+関連9テスト成功。既に開いている仮想ファイルは古い内容の可能性があるため、
+ページ更新後にexamplesから新しい例を開き直す。

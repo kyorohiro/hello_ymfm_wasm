@@ -73,7 +73,17 @@ test('YM2608 port client and real worklet core: rhythm, SSG, ADPCM memory, reset
     synth.adpcm.setPan(true, true); synth.adpcm.setPlaybackRate(8000); synth.adpcm.keyOn();
     await barrier(); render();
     synth.adpcm.keyOn({repeat: true}); await barrier(); assert.ok(audible(render()[0]));
-    synth.dispose();
+    // Execute the actual example without a global fm; every scheduled hit must sound.
+    const example = await readFile(new URL('../docs/playground/examples/pcm/ym2608-rhythm.js', import.meta.url), 'utf8');
+    let hits = 0;
+    const run = new (Object.getPrototypeOf(async function() {}).constructor)('createSoundChip', 'sleep', example);
+    await run(async name => { assert.equal(name, 'ym2608'); return synth; }, async seconds => {
+      await barrier();
+      const output = [new Float32Array(Math.round(48000 * seconds)), new Float32Array(Math.round(48000 * seconds))];
+      processor.process([], [output]);
+      assert.ok(audible(output[0]) && audible(output[1]), `example hit ${++hits}`);
+    });
+    assert.equal(hits, 14);
     await new Promise(resolve => setTimeout(resolve, 10));
     assert.equal(processor.dead, true);
     assert.throws(() => synth.keyOn(0), /disposed/);

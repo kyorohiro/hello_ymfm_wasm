@@ -134,7 +134,7 @@ export const EXAMPLE_FILES = [
   {
     "path": "/examples/pcm/ym2608-rhythm.js",
     "name": "ym2608-rhythm",
-    "data": "// Select YM2608 in the Playground chip selector before running.\n// Uses the bundled BSD-3-Clause Tetorica synthetic rhythm sounds.\n// These sounds differ from Yamaha's original ROM.\nfm.reset();\nfunction rhythmWrite(register, value) {\n  fm.writeAddress(0, register);\n  fm.writeData(value);\n}\nrhythmWrite(0x11, 48); // Total rhythm level.\nfor (let voice = 0; voice < 6; voice++) {\n  rhythmWrite(0x18 + voice, 0xc0 | 24); // Both speakers, voice level.\n  rhythmWrite(0x10, 1 << voice);\n  await sleep(0.75);\n}\nfor (let step = 0; step < 8; step++) {\n  rhythmWrite(0x10, (step % 2 ? 2 : 1) | 8); // Kick/snare + hi-hat.\n  await sleep(0.25);\n}\nrhythmWrite(0x10, 0xbf); // Stop all rhythm voices.\n"
+    "data": "// Independent YM2608; no need to change the Playground chip selector.\n// Uses the bundled BSD-3-Clause Tetorica synthetic rhythm sounds.\n// These sounds differ from Yamaha's original ROM.\nconst ym2608 = await createSoundChip('ym2608');\ntry {\n  ym2608.reset();\n  const rhythm = ym2608.rhythm;\n  rhythm.setVolume(48);\n  for (let voice = 0; voice < 6; voice++) {\n    rhythm.setVoice(voice, {volume: 24, left: true, right: true});\n    rhythm.keyOn(voice);\n    await sleep(0.75);\n  }\n  for (let step = 0; step < 8; step++) {\n    rhythm.keyOn([step % 2 ? 'snare' : 'bassDrum', 'hiHat']);\n    await sleep(0.25);\n  }\n} finally {\n  ym2608.dispose();\n}\n"
   },
   {
     "path": "/examples/psg/psg-ocean.js",
