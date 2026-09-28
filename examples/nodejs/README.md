@@ -12,6 +12,23 @@ FM / PSG / PCM は、チップを生成 → `new XxxSynth({transport: new XxxDir
 既存の `createSegaPsgApi` / `createRf5c164Control` は互換窓口として同じSynthを利用する。
 RF5C164のPCM形式変換は `web/rf5c164_pcm.js`、通信は `web/playground_rf5c164.js` に分離している。
 
+## Game Boy DMG
+
+```sh
+node examples/nodejs/main_gameboy_wave.js
+node examples/nodejs/main_gameboy_wave.js /tmp/gameboy.wav
+```
+
+[main_gameboy_wave.js](main_gameboy_wave.js) は外部ROM不要。
+矩形波CH1（スイープ付き・左）、矩形波CH2（右）、自作の波形RAM CH3、
+ノイズCH4を順に鳴らし、最後に4CHを混ぜる。ノイズは15 bit / 7 bitを切り替える。
+48 kHz・16 bitステレオ、4.3秒のWAVを出力する。
+出力先省略時はスクリプトと同じ場所の `gameboy.wav`。同名ファイルは上書きする。
+
+既存の `GameboyApu.writeRegister()` を直接使う例で、レジスタ番号は
+`0xFF10` からの相対値。初期化・波形RAM転送・発音・WAV保存・解放を含む。
+Playgroundの `createSoundChip('gameboy')` 対応はこの変更には含まない。
+
 ## OPN 系の独立サンプル
 
 各ファイルに初期化・音色設定・発音・PCM 生成・WAV 保存・解放までを記載している。
