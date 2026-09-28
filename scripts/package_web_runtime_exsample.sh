@@ -16,6 +16,9 @@ LICENSE_FILE="${ROOT_DIR}/LICENSE"
 
 DEMO_FILES="
 beep.html
+opna-rhythm-compare.html
+opna-rhythm-compare.js
+opna-rhythm-render.js
 vgm.html
 vgm_runtime.html
 megasynth_embeded.html
@@ -168,6 +171,10 @@ cat > "${STAGE_DIR}/index.html" <<'EOF'
         </p>
 
         <div class="grid">
+          <a class="card" href="./demos/opna-rhythm-compare.html">
+            <h2>YM2608 Rhythm A/B</h2>
+            <p>Compare Tetorica and a local original rhythm ROM, voice by voice.</p>
+          </a>
           <a class="card" href="./demos/beep.html">
             <strong>YM2612 Beep Demo</strong>
             Minimal YM2612 browser playback check.

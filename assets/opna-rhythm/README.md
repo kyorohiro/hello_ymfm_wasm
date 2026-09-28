@@ -30,6 +30,12 @@ byte for byte with regenerated data.
 
 ## Use
 
+Open `docs/demos/opna-rhythm-compare.html` through your local HTTP server
+to compare two ROMs. A defaults to the bundled Tetorica ROM; select a local
+original ROM for B. Both slots accept replacement 8 KiB files. The page offers
+six individual voices, A/B sequential playback and waveforms at the same
+scale. Selected files stay in the browser and are not uploaded.
+
 The rhythm example uses these sounds by default:
 
 ```sh

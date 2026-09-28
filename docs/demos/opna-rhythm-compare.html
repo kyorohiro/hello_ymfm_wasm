@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="ja">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>YM2608 Rhythm — A/B比較</title>
+<style>
+  :root{color-scheme:light;font-family:system-ui,sans-serif;color:#252c35;background:#f2f4f7}
+  body{margin:0}main{max-width:1000px;margin:auto;padding:32px 20px}h1{font-size:1.8rem;margin-bottom:10px}
+  p{line-height:1.7}.roms{display:grid;grid-template-columns:1fr 1fr;gap:16px}.panel{background:white;border:1px solid #d8dfe8;border-radius:14px;padding:20px;margin:16px 0}
+  h2{font-size:1.15rem;margin-top:0}label{display:block;margin:12px 0}input[type=file]{max-width:100%}
+  button,select{font:inherit;padding:9px 13px;border:1px solid #b1bccb;border-radius:8px;background:white;cursor:pointer}button:hover:enabled{background:#e7eefb}button:disabled{opacity:.45;cursor:default}
+  button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid #3569c9;outline-offset:3px}.controls{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+  canvas{width:100%;height:120px;background:#f8fafc;border-radius:8px}small{display:block;line-height:1.6;color:#536072}.status{min-height:1.7em}#stop{color:#a12b32}
+  @media(max-width:640px){.roms{grid-template-columns:1fr}.panel{margin:6px 0}main{padding:20px 12px}}
+</style>
+<main>
+  <h1>YM2608 Rhythm — A/B比較</h1>
+  <p>同じ音・同じ音量設定で、Tetorica合成ROMとオリジナルROMを聴き比べます。<br>ROMファイルはブラウザー内で処理し、アップロードしません。</p>
+  <div class="roms">
+    <section class="panel"><h2>A · Tetorica</h2>
+      <label>比較するROM（8 KiB）<input id="fileA" type="file" accept=".bin"></label>
+      <button id="defaultRom">同梱版に戻す</button><p id="nameA">読み込み待ち</p>
+      <small>同梱の合成音色は <a href="../assets/opna-rhythm/LICENSE">BSD-3-Clause</a>。調整したROMも選択できます。</small>
+    </section>
+    <section class="panel"><h2>B · オリジナル</h2>
+      <label>比較するROM（8 KiB）<input id="fileB" type="file" accept=".bin"></label>
+      <p id="nameB">手元の ym2608_adpcm_rom.bin を選択してください。</p>
+      <small>オリジナルROMは同梱していません。B側にも任意の8 KiB ROMを指定できます。</small>
+    </section>
+  </div>
+  <section class="panel">
+    <div class="controls">
+      <label>音 <select id="voice"><option value="0">Bass drum</option><option value="1">Snare</option><option value="2">Cymbal</option><option value="3">Hi-hat</option><option value="4">Tom</option><option value="5">Rim shot</option></select></label>
+      <button id="playA" disabled>A を再生</button><button id="playB" disabled>B を再生</button><button id="playAB" disabled>A → B</button><button id="stop">停止</button>
+      <label>試聴音量 <input id="volume" type="range" min="0" max="1" step="0.01" value="0.7"></label>
+    </div>
+    <small>A → B は同じ音を順番に再生します。音量の自動補正なし。両方とも8 MHz / リズム音量48 / 各音24 / ステレオ / 出力48 kHz。</small>
+    <p id="status" class="status" role="status" aria-live="polite">準備中…</p>
+    <h2>A · 波形</h2><canvas id="waveA" width="900" height="120" aria-label="Aの1秒間の波形"></canvas><small id="statsA">未再生</small>
+    <h2>B · 波形</h2><canvas id="waveB" width="900" height="120" aria-label="Bの1秒間の波形"></canvas><small id="statsB">未再生</small>
+    <small>両波形は同じ時間軸（1秒）・振幅尺度（±1）で表示します。</small>
+  </section>
+</main>
+<script type="module" src="./opna-rhythm-compare.js"></script>
+</html>
