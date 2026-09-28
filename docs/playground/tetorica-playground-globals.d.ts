@@ -1014,3 +1014,36 @@ interface PlaygroundRf5c164 {
   dispose(): void;
 }
 declare function createSoundChip(name: 'rf5c164'): Promise<PlaygroundRf5c164>;
+/** Independent YM2608; memory uploads are asynchronous, register setters are ordered writes. */
+type PlaygroundYm2608 = Pick<FMApi, 'reset' | 'setPreset' | 'setOperator' | 'setAlgo' | 'setPan' | 'setLfo' | 'setChannel3SpecialMode' | 'setChannel3SpecialFrequency' | 'setFrequency' | 'keyOn' | 'keyOff' | 'noteOn' | 'noteOff' | 'writeAddress' | 'writeData'> & {
+  write(port: number, register: number, value: number): void;
+  dispose(): void;
+  ssg: {
+    tone(ch: number, options: {frequency: number; volume?: number}): number;
+    noise(ch: number, options: {period: number; volume?: number}): void;
+    off(ch: number): void;
+    setVolume(ch: number, volume: number, envelope?: boolean): void;
+    setEnvelope(options: {period: number; shape: number}): void;
+    reset(): void;
+  };
+  rhythm: {
+    loadRom(bytes: Uint8Array | ArrayBuffer): Promise<void>;
+    setVolume(volume: number): void;
+    setVoice(ch: number | string, options: {volume?: number; left?: boolean; right?: boolean}): void;
+    keyOn(ch: number | string | Array<number | string>): void;
+    keyOff(ch: number | string | Array<number | string>): void;
+    reset(): void;
+  };
+  adpcm: {
+    loadMemory(bytes: Uint8Array | ArrayBuffer, address?: number): Promise<void>;
+    setSample(range: {start: number; end: number}): void;
+    setVolume(volume: number): void;
+    setPan(left: boolean, right: boolean): void;
+    setPlaybackRate(rate: number): number;
+    setDeltaN(value: number): void;
+    keyOn(options?: {repeat?: boolean}): void;
+    keyOff(): void;
+    reset(): void;
+  };
+};
+declare function createSoundChip(name: 'ym2608'): Promise<PlaygroundYm2608>;

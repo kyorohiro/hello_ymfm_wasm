@@ -27,6 +27,9 @@ native_fx.js
 native_noise.js
 native_sample.js
 playground_rf5c164.js
+playground_ym2608.js
+playground_ym2608_audio.js
+playground_ym2608_worklet.js
 rf5c164synth.js
 rf5c164_pcm.js
 playground_rf5c164_audio.js
@@ -171,3 +174,6 @@ cp "${ROOT_DIR}/third_party/mame-rf5c164/LICENSE" "${ROOT_DIR}/third_party/mame-
 
 perl -0pi -e 's#\./generated/rf5c164#../generated/rf5c164#g' \
   "${DOCS_JS_DIR}/rf5c164-worklet.js" "${DOCS_JS_DIR}/playground_rf5c164_audio.js"
+
+perl -0pi -e 's#./generated/ym2608#../generated/ym2608#g' \
+  "${DOCS_JS_DIR}/playground_ym2608_audio.js" "${DOCS_JS_DIR}/playground_ym2608_worklet.js"

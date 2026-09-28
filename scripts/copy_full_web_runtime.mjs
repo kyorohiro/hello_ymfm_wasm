@@ -21,7 +21,7 @@ const modules = readdirSync(join(root,'web')).filter(n=>n.endsWith('.js') && !n.
 for (const name of modules) {
   let source=readFileSync(join(root,'web',name),'utf8');
   // Match the established docs/js layout for module-relative generated assets.
-  if (nested && (name.includes('worklet') || name === 'vgm_runtime.js' || name === 'playground_rf5c164_audio.js'))
+  if (nested && (name.includes('worklet') || name === 'vgm_runtime.js' || name === 'playground_rf5c164_audio.js' || name === 'playground_ym2608_audio.js'))
     source=source.replaceAll('./generated/', '../generated/');
   if (name === 'soundchip.js') {
     source=source.replace("(import.meta.url.includes('/web/') ? '../docs/generated/' : '../generated/')", JSON.stringify(nested ? '../generated/' : './generated/'));

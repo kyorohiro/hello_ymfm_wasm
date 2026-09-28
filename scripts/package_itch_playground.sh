@@ -55,6 +55,9 @@ native_fx.js
 native_noise.js
 native_sample.js
 playground_rf5c164.js
+playground_ym2608.js
+playground_ym2608_audio.js
+playground_ym2608_worklet.js
 rf5c164synth.js
 rf5c164_pcm.js
 playground_rf5c164_audio.js
