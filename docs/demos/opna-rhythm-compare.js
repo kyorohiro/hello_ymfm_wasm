@@ -136,9 +136,6 @@ function showParameters() {
     const label = document.createElement('label'); label.textContent = spec.label + ' ';
     const input = document.createElement('input'); input.type = 'number';
     input.min = spec.min; input.max = spec.max; input.step = spec.step; input.value = values[key];
-    if (key === 'noise' && ROM_VOICES[Number($('voice').value)].name === 'tom') {
-      input.disabled = true; label.append('（Tomは使用しません）');
-    }
     input.style.width = '6em';
     input.oninput = () => {
       input.setCustomValidity('');
