@@ -294,6 +294,7 @@ perl -0pi -e 's#"\./playground\.js"#"./playground.js"#g; s#\.\./js/#./js/#g; s#\
   "${STAGE_DIR}/playground_examples.js" \
   "${STAGE_DIR}/playground_ui.js"
 
+node "${ROOT_DIR}/scripts/copy_opna_rhythm.mjs" "${STAGE_DIR}"
 node --experimental-vm-modules "${ROOT_DIR}/scripts/check_playground_package.mjs" "${STAGE_DIR}"
 
 (

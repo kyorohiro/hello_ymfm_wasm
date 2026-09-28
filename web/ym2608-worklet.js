@@ -16,20 +16,22 @@ class YM2608Processor extends AudioWorkletProcessor {
     this.remainder = 0;
     const receiveChipPort = createChipPortReceiver(data => handle(data));
     const handle = data => {
-      if (data.type === "initialize") void this.initialize(data.wasmBinary);
+      if (data.type === "initialize") void this.initialize(data.wasmBinary, data.rhythmRom);
+      if (data.type === 'loadRhythmRom' && this.chip) this.chip.loadAdpcmARom(data.bytes);
       if (data.type === "write" && this.chip) this.write(data.port, data.register, data.value);
       if (data.type === "reset") this.chip?.reset();
     };
     this.port.onmessage = ({data}) => { if (!receiveChipPort(data)) handle(data); };
   }
 
-  async initialize(wasmBinary) {
+  async initialize(wasmBinary, rhythmRom) {
     try {
       this.chip = await Ym2608.create({
         moduleFactory: ym2608ModuleFactory,
         moduleOptions: { wasmBinary: new Uint8Array(wasmBinary) },
       });
       this.chipRate = this.chip.sampleRate(YM2608_CLOCK);
+      if (rhythmRom) this.chip.loadAdpcmARom(rhythmRom);
       this.port.postMessage({ type: "ready" });
     } catch (error) {
       this.chip?.dispose();

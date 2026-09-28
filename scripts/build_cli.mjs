@@ -2,6 +2,7 @@
 import { readFile, writeFile, mkdir, cp, rm, chmod, stat } from 'node:fs/promises';
 import { resolve, dirname, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { copyOpnaRhythm } from './copy_opna_rhythm.mjs';
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const out = resolve(root, 'dist');
 await rm(out, { recursive:true, force:true });
@@ -25,6 +26,7 @@ async function copy(file) {
   if (file.endsWith('_wasm.js')) await copy(file.replace(/\.js$/, '.wasm'));
 }
 await copy(resolve(root,'cli/main.js'));
+await copyOpnaRhythm(out, 'web');
 // CLI --version works identically in the source tree and staged package.
 const pkg = JSON.parse(await readFile(resolve(root,'package.json'),'utf8'));
 await writeFile(resolve(out,'package.json'), JSON.stringify({type:'module',version:pkg.version})+'\n');

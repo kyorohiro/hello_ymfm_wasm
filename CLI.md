@@ -5,6 +5,12 @@ This package is prepared for npm publication; it has not been published by this 
 
 ## From this repository
 
+The BSD-3-Clause synthetic YM2608 rhythm replacement is included at
+`web/tetorica_ym2608_adpcm_rom.bin` (under `dist/` in the npm
+package). Use `render music.vgm --ym2608-rom PATH --output music.wav` with
+that path to select it. Original Yamaha ROMs are not bundled; this replacement
+has different sounds. See `assets/opna-rhythm/LICENSE` (under `dist/` in npm).
+
 ```sh
 npm test
 npm run build

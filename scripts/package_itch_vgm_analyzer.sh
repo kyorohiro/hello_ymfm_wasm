@@ -372,6 +372,8 @@ perl -0pi -e "s#(['\"])\\.\\./js/#\$1./js/#g; s#(['\"])\\.\\./generated/#\$1./ge
 perl -0pi -e 's#\.\./js/vgm-output-worklet\.js#./js/vgm-output-worklet.js#g' \
   "${STAGE_DIR}/index.html"
 
+node "${ROOT_DIR}/scripts/copy_opna_rhythm.mjs" "${STAGE_DIR}"
+perl -0pi -e 's#../assets/opna-rhythm/#./assets/opna-rhythm/#g' "${STAGE_DIR}/index.html"
 node "${ROOT_DIR}/scripts/check_analyzer_package.mjs" "${STAGE_DIR}"
 
 (

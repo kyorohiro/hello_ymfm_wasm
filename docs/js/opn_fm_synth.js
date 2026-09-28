@@ -85,6 +85,11 @@ export class OPNDirectTransport {
  * uses the same port/register/value shape as the high-level FM API.
  */
 export class OPNWorkletTransport {
+  loadRhythmRom(bytes) {
+    if (this.chipName !== 'YM2608') throw new Error('Rhythm ROM loading requires YM2608');
+    if (!(bytes instanceof Uint8Array) || bytes.length !== 8192) throw new RangeError('Expected 8192-byte rhythm ROM');
+    this.node.port.postMessage({type: 'loadRhythmRom', bytes});
+  }
   constructor(node, { portCount, chipName }) {
     if (!node?.port?.postMessage) {
       throw new Error(`${chipName}WorkletTransport requires an AudioWorkletNode`);

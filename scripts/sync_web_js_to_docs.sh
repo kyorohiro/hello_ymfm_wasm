@@ -163,6 +163,7 @@ perl -0pi -e 's#"\./generated/segapsg_wasm\.js"#"../generated/segapsg_wasm.js"#g
 perl -0pi -e 's#"\./generated/ym2612_wasm\.js"#"../generated/ym2612_wasm.js"#g' \
   "${DOCS_JS_DIR}/bitcrusher-worklet.js"
 
+node "${ROOT_DIR}/scripts/copy_opna_rhythm.mjs" "${ROOT_DIR}/docs"
 echo "done: synced shared web runtime files into docs/js"
 
 mkdir -p "${ROOT_DIR}/docs/licenses/mame-rf5c164"

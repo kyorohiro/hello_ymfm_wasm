@@ -2,9 +2,11 @@
 import {readdirSync, readFileSync, writeFileSync, mkdirSync, copyFileSync, existsSync} from 'node:fs';
 import {resolve, join} from 'node:path';
 import {fileURLToPath} from 'node:url';
+import {copyOpnaRhythm} from './copy_opna_rhythm.mjs';
 const root = fileURLToPath(new URL('../', import.meta.url));
 const stage = resolve(process.argv[2]);
 const nested = process.argv[3] === 'js';
+await copyOpnaRhythm(stage, nested ? 'js' : '.');
 const jsDir = nested ? join(stage,'js') : stage;
 mkdirSync(jsDir,{recursive:true});
 mkdirSync(join(stage,'generated'),{recursive:true});

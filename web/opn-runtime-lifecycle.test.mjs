@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { YM2203RuntimeSynth as RuntimeSynth } from './ym2203synth.js';
+import { YM2608RuntimeSynth } from './ym2608synth.js';
 
 function deferred() {
   let resolve;
@@ -32,6 +33,7 @@ function harness(t, stage = '') {
       nodes.push(this);
       this.connected = false;
       this.handlers = new Set();
+      this.messages = [];
       this.port = {
         closed: false,
         close: () => { this.port.closed = true; },
@@ -39,6 +41,7 @@ function harness(t, stage = '') {
         removeEventListener: (_, fn) => this.handlers.delete(fn),
         start() {},
         postMessage: message => {
+          this.messages.push(message);
           if (message.type !== 'initialize') return;
           reached = true;
           if (stage !== 'ready') queueMicrotask(() => this.send('ready'));
@@ -57,6 +60,31 @@ function harness(t, stage = '') {
   const synth = new RuntimeSynth({ audioContext: context, stereoWidthWorkletUrl: '', bitcrusherWorkletUrl: '' });
   return { synth, context, nodes, gate, reached: () => reached };
 }
+test('YM2608 runtime loads bundled rhythm data and honors explicit overrides', async t => {
+  const h = harness(t);
+  const urls = [];
+  const bundled = new Uint8Array(8192).fill(0x12);
+  t.mock.method(globalThis, 'fetch', async url => {
+    urls.push(String(url));
+    return {ok: true, arrayBuffer: async () => String(url).endsWith('.bin') ? bundled.buffer : new ArrayBuffer(1)};
+  });
+  for (const options of [{}, {rhythmRom: new Uint8Array(8192).fill(0x34)}, {rhythmRomUrl: '/custom.bin'}]) {
+    urls.length = 0;
+    const synth = new YM2608RuntimeSynth({audioContext: h.context, ...options});
+    try {
+      await synth.start();
+      const node = h.nodes.at(-1);
+      assert.deepEqual(node.messages.find(m => m.type === 'initialize').rhythmRom, options.rhythmRom ?? bundled);
+      if (options.rhythmRom) assert.equal(urls.length, 1, 'explicit bytes avoid ROM fetch');
+      else assert.ok(urls.includes(options.rhythmRomUrl ?? new URL('./tetorica_ym2608_adpcm_rom.bin', import.meta.url).href));
+      synth.fm.rhythm.loadRom(bundled);
+      assert.deepEqual(node.messages.at(-1), {type: 'loadRhythmRom', bytes: bundled});
+    } finally { await synth.close(); }
+  }
+  const bad = new YM2608RuntimeSynth({audioContext: h.context, rhythmRom: new Uint8Array(1)});
+  await assert.rejects(bad.start(), /8192/);
+  await bad.close();
+});
 for (const stage of ['module', 'fetch', 'ready']) {
   test(`close cancels initialization during ${stage} and permits restart`, async t => {
     const h = harness(t, stage);

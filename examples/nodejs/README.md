@@ -2,8 +2,8 @@
 
 **`ym2608_adpcm_rom.bin` と `yrw801.rom` は、このリポジトリーおよび配布物に含まれていません。**
 必要なROMは利用者自身で用意してください。自動ダウンロードも行いません。
-YM2608のリズム例を実行する場合は、自分で用意した8 KiBの `ym2608_adpcm_rom.bin` の
-パスを第2引数に指定します。`yrw801.rom` はYMF278Bの外部音色ROMで、YM2608の例には使用しません。
+YM2608のリズム例は、同梱のBSD-3-Clause合成音色 `tetorica_ym2608_adpcm_rom.bin` を標準で使います。
+自分で用意した8 KiBのROMは第2引数で指定できます。`yrw801.rom` はYMF278Bの外部音色ROMで、YM2608の例には使用しません。
 ADPCMのサイン波など、コード内で波形データを生成する例は外部ROM不要です。
 
 FM / PSG / PCM は、チップを生成 → `new XxxSynth({transport: new XxxDirectTransport(chip)})`
@@ -123,11 +123,12 @@ Playgroundの操作UIは今後の対象。
 
 ```sh
 node examples/nodejs/main_ym2608_rhythm_wave.js /tmp/ym2608_rhythm.wav /path/to/ym2608_adpcm_rom.bin
+node examples/nodejs/main_ym2608_rhythm_wave.js /tmp/tetorica_rhythm.wav
 ```
 
 第1引数は出力先（省略時はスクリプトの隣の `ym2608_rhythm.wav`）、
-第2引数は、自分で用意した8 KiBのリズムROMのパス（必須）。
-実機の内蔵ROMに相当するデータを呼び出し側で用意する。このサンプルにはROMを同梱しない。
+第2引数は、自分で用意した8 KiBのリズムROMのパス（省略可）。
+省略時は `web/tetorica_ym2608_adpcm_rom.bin` を使う。元のYamaha ROMとは音色が異なる。
 WAVやADPCM-Bのデータはここへ渡さない。
 
 ```javascript

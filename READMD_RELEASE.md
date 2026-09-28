@@ -164,3 +164,28 @@ node scripts/build_analyzer_support.mjs --check
 生成したHTMLもcommitし、GitHub Pagesへ反映する。JavaScriptやダイアログ操作なしで読める。
 itch.ioの梱包でも同期チェックを行い、このページを同梱する。
 公開後の案内URL: https://kyorohiro.github.io/hello_ymfm_wasm/vgm_analyzer/support.html
+# Tetorica YM2608 rhythm replacement
+
+Release payloads now include `tetorica_ym2608_adpcm_rom.bin` (8 KiB), an
+original synthetic rhythm replacement under BSD-3-Clause. Its sound differs
+from the Yamaha ROM. The original `ym2608_adpcm_rom.bin` is still excluded.
+
+- Source: `web/tetorica_ym2608_adpcm_rom.bin`
+- npm: `dist/web/tetorica_ym2608_adpcm_rom.bin`
+- Analyzer / Synth / Playground / browser examples ZIPs: `js/tetorica_ym2608_adpcm_rom.bin`
+- Flat web runtime ZIP: `tetorica_ym2608_adpcm_rom.bin`
+- Pages: `docs/js/tetorica_ym2608_adpcm_rom.bin`
+
+The license, README and generator are in `assets/opna-rhythm/`
+(under `dist/` for npm or `docs/` for Pages).
+CLI and Analyzer ROM selection remains explicit. These changes apply to the
+next release; the already published CLI 0.2.1 and web 0.40.7 are unchanged.
+
+Before packaging:
+
+```sh
+node assets/opna-rhythm/generate.mjs --check
+node scripts/copy_opna_rhythm.mjs docs
+node --test web/opna_rhythm_rom.test.mjs
+npm run pack:check
+```

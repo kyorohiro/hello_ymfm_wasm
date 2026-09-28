@@ -35,6 +35,8 @@ export class OPNRuntimeSynth {
     this.chipName = config.chipName;
     this.portCount = config.portCount;
     this.FMSynth = config.FMSynth;
+    this.rhythmRom = options.rhythmRom;
+    this.rhythmRomUrl = options.rhythmRomUrl ?? config.rhythmRomUrl;
     this.node = null;
     this.fm = null;
     this.psg = null;
@@ -157,6 +159,15 @@ export class OPNRuntimeSynth {
     const response = await waitForInitialization(fetch(this.wasmUrl, { signal }), signal);
     if (!response.ok) throw new Error(`Failed to load ${this.chipName} WASM: ${response.status} ${response.statusText}`);
     const wasmBinary = await waitForInitialization(response.arrayBuffer(), signal);
+    let rhythmRom = this.rhythmRom;
+    if (this.chip === 'ym2608') {
+      if (rhythmRom === undefined) {
+        const romResponse = await waitForInitialization(fetch(this.rhythmRomUrl, {signal}), signal);
+        if (!romResponse.ok) throw new Error(`Failed to load YM2608 rhythm ROM: ${romResponse.status}`);
+        rhythmRom = new Uint8Array(await waitForInitialization(romResponse.arrayBuffer(), signal));
+      }
+      if (!(rhythmRom instanceof Uint8Array) || rhythmRom.length !== 8192) throw new RangeError('YM2608 rhythmRom must be 8192 bytes');
+    }
     this.node = new AudioWorkletNode(this.audioContext, this.processorName, {
       numberOfInputs: 0,
       numberOfOutputs: 1,
@@ -166,7 +177,7 @@ export class OPNRuntimeSynth {
     this.audio.connectChipOutput(this.node);
     const ready = this.#waitForWorkletReady(this.node, signal);
     ready.catch(() => {});
-    this.node.port.postMessage({ type: "initialize", wasmBinary }, [wasmBinary]);
+    this.node.port.postMessage({ type: "initialize", wasmBinary, rhythmRom }, [wasmBinary]);
     await ready;
     signal.throwIfAborted();
     this.fm = new this.FMSynth({

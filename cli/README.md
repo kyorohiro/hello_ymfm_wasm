@@ -49,7 +49,11 @@ accepts one input file. WAV rendering does not expand loops; the default output
 limit is 120 seconds, and start time plus duration must not exceed 600 seconds.
 S98 support is limited to the supported single-chip YM2203/YM2608/YM2612 configurations.
 Unsupported chip combinations and missing required ROMs produce errors.
-External ROMs and music files are not included.
+External ROMs and music files are not included. An original BSD-3-Clause
+synthetic YM2608 rhythm replacement is bundled at
+`dist/web/tetorica_ym2608_adpcm_rom.bin` inside the installed
+package. Pass its path to `--ym2608-rom` to use it; it sounds different from
+the original Yamaha ROM. `dist/assets/opna-rhythm/LICENSE` covers the data and generator.
 
 Score export is a quantized transcription, not an original score. BPM can be
 specified with `--bpm`; the automatic suggestion is not guaranteed beat detection.
@@ -94,7 +98,8 @@ The main entry point adds Node file access and WASM initialization for rendering
 ## License and source
 
 BSD-3-Clause. See [LICENSE](LICENSE) and the included `dist/licenses/` notices.
-The package excludes the browser score display libraries, LilyPond runtime and ROMs.
+The package excludes the browser score display libraries, LilyPond runtime and
+external ROMs; the Tetorica synthetic rhythm replacement is included.
 
 Source and browser project: [hello_ymfm_wasm](https://github.com/kyorohiro/hello_ymfm_wasm).
 

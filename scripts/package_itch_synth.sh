@@ -203,6 +203,7 @@ perl -0pi -e 's#import ym2612ModuleFactory from "\\.\\./generated/nuked_opn2_was
 
 (
   cd "${STAGE_DIR}"
+  node "${ROOT_DIR}/scripts/copy_opna_rhythm.mjs" "${STAGE_DIR}"
   zip -r "${ZIP_PATH}" .
 )
 

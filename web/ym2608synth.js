@@ -252,6 +252,7 @@ export class YM2608RuntimeSynth extends OPNRuntimeSynth {
       workletUrl: "./ym2608-worklet.js",
       wasmUrl: "./generated/ym2608_wasm.wasm",
       FMSynth: YM2608Synth,
+      rhythmRomUrl: new URL('./tetorica_ym2608_adpcm_rom.bin', import.meta.url),
     });
   }
 }
