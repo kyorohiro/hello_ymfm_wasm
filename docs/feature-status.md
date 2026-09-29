@@ -30,7 +30,7 @@ Playback欄の`Seek cache`表示で高速シークの対応構成を確認でき
 | Note-ish／楽譜表示・MIDI／MusicXML／LilyPond Export | 一部。対応音源の基音・キー区間を抽出 | 原譜の復元ではない。チップごとに除外区間あり | [対応表](vgm_analyzer/support.html)、[MusicXMLテスト](vgm_analyzer/vgm_musicxml.test.mjs)、[LilyPond作業記録](issues/lilypond_export_01.md) |
 | MML Export | 一部。OPN、OPM、MSX系の対象形式 | グリッド量子化・リズム等の除外あり | [OPNテスト](vgm_analyzer/vgm_mml.test.mjs)、[OPMテスト](vgm_analyzer/opm_mml.test.mjs)、[MGSDRVテスト](vgm_analyzer/mgsdrv_mml.test.mjs) |
 | 音色抽出・スナップショット・ZIP | 一部。TFI／VGI／OPM／SBI | 音色形式に入らない演奏変化・状態は保存しない | 下の音色表参照 |
-| Sample Explorer／データ抽出・試聴 | 一部。認識できるPCM／ADPCMデータ | サンプル形式・音源により表示／出力が異なる | [Explorerテスト](vgm_analyzer/sample_explorer.test.mjs)、[CLIサンプル仕様](../CLI.md#sample-inventory) |
+| Sample Explorer／データ抽出・試聴 | 一部。認識できるPCM／ADPCMデータ。Sega PCMのROM範囲・波形・raw／ZIP・ステレオ試聴／WAVを追加 | Sega PCMは発音時点の設定による1回再生。実ブラウザー試聴未確認・追加分未公開 | [未対応音源・優先順](issues/todo_vgm_01.md)、[Explorerテスト](vgm_analyzer/sample_explorer.test.mjs)、[CLIサンプル仕様](../CLI.md#sample-inventory) |
 | PCM／ADPCMの採譜 | 未対応 | 基準音高の推定、ドラム・効果音の扱いが必要 | [対応表のTODO](vgm_analyzer/support.html) |
 
 ### 高速シーク：再生対応とは別に管理

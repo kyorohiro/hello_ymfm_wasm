@@ -1,4 +1,5 @@
 import {decodeYmf278bSample} from './ymf278b_samples.js';
+import {SegaPcm} from '../js/segapcm.js';
 import {Rf5c164} from '../js/rf5c164.js';
 import {Ym2608} from '../js/ym2608.js';
 import {Ym2610B} from '../js/ym2610b.js';
@@ -18,6 +19,17 @@ export async function renderSamplePreview(sample,event,{getFactory}={}) {
   if(sample.kind==='pwm')return {...renderPwmPreview(sample),sampleRate:44100};
   if(sample.kind==='dac'){const mono=renderDacPreview(sample);return {left:mono,right:mono,sampleRate:44100};}
   if(!(event.rate>0))throw new Error('Sample rate is zero');
+  if(sample.chip==='segapcm'){
+    const factory=await getFactory?.('segapcm');
+    if(!factory)throw new Error('Missing sample factory: segapcm');
+    const chip=await SegaPcm.create({moduleFactory:factory,clock:event.clock});
+    try{
+      configureSamplePreview(chip,sample,event);
+      const sampleRate=chip.sampleRate();
+      const frames=Math.min(sampleRate*10,Math.ceil((event.endAddress-event.startAddress)/event.rate*sampleRate)+128);
+      return {...chip.generateStereo(frames),sampleRate};
+    }finally{chip.dispose();}
+  }
   const recipe={rf5c164:['rf5c164',Rf5c164],ym2608:['ym2608',Ym2608],ym2610:['ym2610b',Ym2610B]}[sample.chip];
   if(!recipe)throw new Error('Unsupported sample chip');
   const factory=await getFactory?.(recipe[0]);
@@ -40,6 +52,14 @@ export async function samplePreviewWav(sample,event,options){
 
 // Preview one pass of the selected occurrence, centered; repeat is not expanded.
 export function configureSamplePreview(chip, sample, event) {
+  if(sample.chip==='segapcm') {
+    // Relocate the selected bank to bank zero so one-shot control cannot change its bank bits.
+    chip.loadSampleMemory(sample.data,sample.rangeStart,sample.byteEndExclusive-sample.bank);
+    for(const [r,v] of [[2,event.leftLevel],[3,event.rightLevel],[4,event.loopAddress&255],[5,event.loopAddress>>8],
+      [6,(event.endAddress/256-1)&255],[7,event.step],[0x84,event.startAddress&255],[0x85,event.startAddress>>8],
+      [0x86,2]])chip.writeRegister(r,v);
+    return;
+  }
   if(sample.chip==='rf5c164') {
     chip.loadMemory(sample.data);
     chip.writeRegister(7,0xc0);

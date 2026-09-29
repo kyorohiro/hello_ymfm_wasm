@@ -45,6 +45,7 @@ sample_core.js
 sample_render.js
 ymf278b_samples.js
 rf5c164_samples.js
+segapcm_samples.js
 dac_samples.js
 pwm_samples.js
 psg_monitor.js

@@ -381,6 +381,8 @@ IDs are deterministic for the same input and extractor, not global identifiers.
 This uses the Browser Sample Explorer scan:
 - YM2610/B ADPCM-A/B and YM2608 external-memory ADPCM-B: raw ADPCM ranges.
 - RF5C164: 64 KiB RAM snapshots, with start/loop addresses.
+- Sega PCM: unsigned 8-bit ROM ranges at enable time, with bank/start/loop addresses, stereo levels and usage events. Standalone and YM2151/PSG combinations are supported.
+- YMF278B: key-on PCM snapshots; external ROM input availability depends on the caller.
 - YM2612 DAC and 32X PWM: timed output captures, not recovered instruments.
 
 Each definition includes `representation` and `exportable`. RF5C164 can
@@ -413,7 +415,11 @@ An optional AbortSignal is accepted as `signal`. Specify exactly one of
 a positive integer ID or all. Use the inventory IDs for this same input.
 
 Single extraction uses the Browser native save format: ADPCM bytes or a
-64 KiB RF5C164 RAM snapshot as `.bin`, DAC/PWM timed captures as `.json`.
+64 KiB RF5C164 RAM snapshot as `.bin`, DAC/PWM timed captures as `.json`. Sega PCM exports raw unsigned 8-bit PCM `.bin`;
+use the inventory/ZIP manifest for bank and loop metadata. Its preview/WAV plays
+one pass from the observed start address with the selected occurrence’s stereo
+levels and rate (up to 10 seconds). Live changes and loops are not replayed;
+wrapped/end-page ranges and incomplete ROM data cannot be exported.
 The API's suggested name indicates the extension; the CLI uses the exact
 output path supplied. This command does not decode ADPCM or produce WAV.
 
@@ -439,7 +445,7 @@ Node: `await exportNodeSamples(source,{id:1,format:'wav',occurrence:1})`
 automatically supplies the existing Node WASM factory provider.
 Environment-neutral Core:
 `await exportSourceSamples(source,{id:1,format:'wav',occurrence:1,getFactory})`.
-The provider receives `rf5c164`, `ym2608` or `ym2610b`; DAC/PWM need no
+The provider receives `rf5c164`, `ym2608`, `ym2610b` or `segapcm`; DAC/PWM need no
 factory. Returns `{bytes,sampleRate,seconds,warnings}`.
 
 Occurrence is 1-based within that sample's inventory events (default 1).
@@ -448,7 +454,7 @@ ID; batch WAV is rejected. Missing data, unknown occurrence and zero ADPCM
 rate are errors. Native export remains the default.
 
 The Browser and CLI share configuration, chip creation and PCM generation.
-Output is stereo PCM16; DAC is duplicated mono, PWM retains stereo, and
+Output is stereo PCM16; DAC is duplicated mono, PWM and Sega PCM retain stereo, and
 ADPCM/RF5C164 use the Browser centered preview. The chip output rate is
 rounded to an integer for the WAV header, without resampling.
 

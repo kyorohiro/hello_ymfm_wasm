@@ -3,6 +3,7 @@ import {samplePreviewWav} from './sample_render.js';
 import {createStoredZipBytes} from './stored_zip.js';
 import {createDacSamples} from './dac_samples.js';
 import {pwmCaptureJson,createPwmSamples} from './pwm_samples.js';
+import {createSegaPcmSamples} from './segapcm_samples.js';
 import {createRf5c164Samples} from './rf5c164_samples.js';
 import {Ym2612VGM} from '../js/ym2612vgm.js?v=pwm-2';
 
@@ -14,6 +15,7 @@ export async function extractSamples(source, { signal, roms = {} } = {}) {
   const dac = createDacSamples();
   const pwm = createPwmSamples();
   const rf = createRf5c164Samples(parser.header.rf5c164Clock & 0x3fffffff);
+  const sega = createSegaPcmSamples(parser.header.segaPcmClock & 0x3fffffff, parser.header.segaPcmBankShift, parser.header.segaPcmBankMask);
   const clock = parser.header.ym2610Clock & 0x3fffffff;
   const regs = new Uint8Array(256), samples = [], events = [], definitions = new Map();
   let retainedBytes = 0;
@@ -60,6 +62,7 @@ export async function extractSamples(source, { signal, roms = {} } = {}) {
   function apply(e) {
     opl4.apply(e, time);
     rf.apply(e, time);
+    sega.apply(e, time);
     if (e.type === 'ym2610-rom-data' || e.type === 'ym2608-adpcm-b-data') {
       if (e.chipIndex) { warnings.add('Second chip sample memory is not analyzed.'); return; }
       const memory = memories[e.type === 'ym2608-adpcm-b-data' ? 2 : e.romType];
@@ -144,6 +147,7 @@ export async function extractSamples(source, { signal, roms = {} } = {}) {
     }
   }
   const targets = {
+    segapcm: {writeRegister() {},loadSampleMemory() {}},
     pwm: { writeRegister: (r,v) => pwm.write(r,v,time) },
     ym2612: { writeRegister: (r,v,p=0) => dac.write(r,v,p,time) },
     ym2610: {writeRegister() {},loadAdpcmRom() {}},
@@ -157,12 +161,19 @@ export async function extractSamples(source, { signal, roms = {} } = {}) {
     if (signal?.aborted) throw new DOMException('Cancelled', 'AbortError');
     const e = parser.playStep(targets);
     if (e.type === 'end') break;
-    if (e.type === 'wait') parser.consumeWait(targets,e.samples,n=>{time+=n;dac.advance(time);pwm.advance(time);});
+    if (e.type === 'wait') parser.consumeWait(targets,e.samples,n=>{time+=n;dac.advance(time);pwm.advance(time);sega.advance(time);});
     else if (e.type === 'rf5c164-data') {} // applied through playback target
     else apply(e);
     if (count % 4096 === 4095) await new Promise(resolve => setTimeout(resolve, 0));
   }
   if (parser.header.ym2608Clock & 0x40000000) warnings.add('Second YM2608 chip is not analyzed.');
+  sega.finish(time);
+  const segaBase=samples.length;
+  for(const sample of sega.samples)samples.push({...sample,id:sample.id+segaBase});
+  for(const event of sega.events)events.push({...event,sampleId:event.sampleId+segaBase});
+  for(const warning of sega.warnings)warnings.add(warning);
+  if(parser.header.segaPcmClock & 0xc0000000)warnings.add('Dual/variant Sega PCM is not fully analyzed; only the first instance is extracted.');
+  if(sega.samples.length)warnings.add('Sega PCM uses enable-time unsigned 8-bit ROM snapshots. Preview is one pass with observed stereo levels, no loop expansion or live automation.');
   opl4.finish(time);
   const opl4Base=samples.length;
   for(const sample of opl4.samples)samples.push({...sample,id:sample.id+opl4Base});
@@ -196,7 +207,7 @@ function sampleInventory(result) {
   return {schemaVersion:1,timebase:44100,time:result.time,warnings:result.warnings,
     samples:result.samples.map(({data,times,registers,...metadata})=>({
       ...metadata,exportable:data!==null && data!==undefined,
-      representation:metadata.kind==='dac'||metadata.kind==='pwm'?'timed-output':metadata.chip==='rf5c164'?'ram-snapshot':metadata.chip==='ymf278b'?'raw-pcm':'raw-adpcm',
+      representation:metadata.kind==='dac'||metadata.kind==='pwm'?'timed-output':metadata.chip==='rf5c164'?'ram-snapshot':['ymf278b','segapcm'].includes(metadata.chip)?'raw-pcm':'raw-adpcm',
     })),events:result.events};
 }
 
@@ -226,7 +237,7 @@ export async function exportSamples(bytes,{id,all=false,signal,format='native',o
     const uses=result.events.filter(e=>e.sampleId===id),event=uses[occurrence-1];
     if(!event)throw new Error('Unknown sample occurrence');
     const wav=await samplePreviewWav(selected[0],event,{getFactory});
-    return {...wav,warnings:[...result.warnings,'WAV follows Browser preview: centered ADPCM/PCM, stereo PWM, at most 10 seconds; duration is a preview estimate, not detected sample end. RF5C164 loop markers may repeat within this window.']};
+    return {...wav,warnings:[...result.warnings,'WAV follows Browser preview: centered ADPCM/RF5C164, stereo Sega PCM/PWM, at most 10 seconds; duration is a preview estimate, not detected sample end. RF5C164 loop markers may repeat within this window.']};
   }
   const files=selected.map(s=>sampleFile(s,result.events));
   const manifest=sampleInventory(result);
