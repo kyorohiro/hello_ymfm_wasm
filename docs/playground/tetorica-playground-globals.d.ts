@@ -1019,6 +1019,8 @@ type GameboyNote = string | number;
 interface GameboyEnvelope { direction?: 'up' | 'down'; period?: number; }
 interface GameboyPulseVoice { duty?: 0.125 | 0.25 | 0.5 | 0.75; volume?: number; envelope?: GameboyEnvelope; }
 interface PlaygroundGameboy {
+  /** Enable high-level operations using tracked raw writes. Requires NR52 power ON; no reset or register writes. Not a core readback. */
+  adoptRegisterState(): void;
   /** Reset and prepare silent defaults. Required before high-level operations. */
   initialize(): void;
   pulse: {

@@ -1485,8 +1485,9 @@
                   <div class="vgm-import-mode">
                     <label><input type="radio" name="gameboyImportMode" value="raw" checked>Raw register writes</label>
                     <label><input type="radio" name="gameboyImportMode" value="readable">Registers with explanations</label>
+                    <label><input type="radio" name="gameboyImportMode" value="high">High-level API + raw fallback</label>
                   </div>
-                  <p class="subtext">Explanations show sample times, duty, envelope, sweep, written pitch, noise and wave RAM. No extra triggers or wave stops are inserted. Vibrato is not inferred.</p>
+                  <p class="subtext">Explanations show sample times, duty, envelope, sweep, written pitch, noise and wave RAM. High-level mode uses named APIs where register writes remain identical; other operations stay raw. No extra triggers or wave stops are inserted. Vibrato is not inferred.</p>
                 </fieldset>
                 <div class="vgm-import-actions">
                   <button id="cancelVgmImportButton" type="button">Cancel</button>

@@ -42,7 +42,7 @@ test('generated raw/readable code preserves all writes, timestamps, power change
     for(;;){const e=parser.step();if(e.type==='end')break;if(e.type==='wait')clock+=e.samples;else expected.push([clock,e.register,e.value]);}
     assert.deepEqual(writes,expected);assert.equal(time,clock);assert.equal(disposed,1);
     assert.doesNotMatch(code,/gb\.(initialize|wave\.stopAndSetWaveform|pulse\.keyOn)/);
-    if(mode==='readable'){assert.match(code,/initial volume 12, down, period 2/);assert.match(code,/duty 25%/);assert.match(code,/sample 1:.*wave RAM/);}
+    if(mode==='readable'){assert.match(code,/initial volume 12, down, period 2/);assert.match(code,/duty 25%/);assert.match(code,/sample 1\):.*wave RAM/);}
   }
 });
 test('generated conversion disposes on interrupted wait',async()=>{
@@ -58,7 +58,7 @@ test('generated Game Boy code produces identical core PCM to the original event 
   const actual=[],expected=[];const append=(to,out)=>{for(const x of out.left)to.push(x);for(const x of out.right)to.push(x);};
   try {
     const synth=new GameboySynth({transport:new GameboyDirectTransport(core)});
-    await new (Object.getPrototypeOf(async function(){}).constructor)('createSoundChip','sleepSamples',exportGameboyVgm(fixture,{mode:'readable'}))(async()=>synth,async n=>append(actual,core.generateStereo(n)));
+    await new (Object.getPrototypeOf(async function(){}).constructor)('createSoundChip','sleepSamples',exportGameboyVgm(fixture,{mode:'high'}))(async()=>synth,async n=>append(actual,core.generateStereo(n)));
     reference.reset();const parser=new Ym2612VGM(fixture,{logger:null});
     for(;;){const e=parser.step();if(e.type==='end')break;if(e.type==='wait')append(expected,reference.generateStereo(e.samples));else reference.writeRegister(e.register,e.value);}
     assert.deepEqual(actual,expected);assert.ok(actual.some(x=>Math.abs(x)>0.001));
@@ -97,4 +97,35 @@ test('YM2612 + RF5C164 + PSG imports the same FM code as the isolated YM2612 str
     const options={...mode,splitChannels:false,includeDac:false};
     assert.equal(prepared.vgm.exportPlaygroundJavaScript(options),reference.exportPlaygroundJavaScript(options));
   }
+});
+
+test('high-level conversion preserves exact timed writes with raw fallback across power cycles',async()=>{
+  const commands=[];
+  const write=(r,v)=>commands.push(0xb3,r,v);
+  write(2,0xf2); // Off-state write remains raw.
+  write(22,128);write(0,0x21);write(1,0x40);write(2,0xc2);
+  write(3,0xd8);write(4,6); // Adjacent frequency pair, no trigger.
+  write(4,0x86); // Preserve trigger as one raw write.
+  write(6,0x3f);write(6,0xbf); // Length change raw, then duty-only API.
+  write(7,0x91);write(18,0x3d);write(17,0xa3);write(12,0x40);
+  write(20,0x35);write(21,0x11);write(21,0xff); // One-channel vs multiple routes.
+  write(8,0x80);commands.push(0x70);write(9,6); // Separated frequency writes stay raw.
+  write(13,0x22);write(14,0x46); // Changes length enable: raw fallback.
+  write(13,0x33);write(14,0x47); // Same flags: API pair.
+  write(32,0xab);write(22,0);write(18,0x21);write(22,128);write(17,9);
+  commands.push(0x61,100,0,0x66);
+  const input=vgm(commands), traces=[];
+  for(const mode of ['raw','readable','high']) {
+    const code=exportGameboyVgm(input,{mode});let t=0;const trace=[];
+    const synth=new GameboySynth({transport:{reset(){trace.push(['reset',t]);},writeRegister(r,v){trace.push([t,r,v]);},dispose(){trace.push(['dispose',t]);}}});
+    await new (Object.getPrototypeOf(async function(){}).constructor)('createSoundChip','sleepSamples',code)(async()=>synth,async n=>{t+=n;});
+    traces.push(trace);
+    if(mode==='high') {
+      for(const name of ['adoptRegisterState','pulse.setDuty','pulse.setEnvelope','pulse.setSweep','pulse.setFrequency','wave.setFrequency','wave.setLevel','noise.setEnvelope','noise.setParameters','setPan','setMasterVolume']) assert.ok(code.includes(name),name);
+      assert.match(code,/gb.writeRegister\(0x04, 0x86\)/);
+      assert.match(code,/gb.writeRegister\(0x08, 0x80\)/);
+      assert.match(code,/gb.writeRegister\(0x20, 0xab\)/);
+    }
+  }
+  assert.deepEqual(traces[2],traces[0]);assert.deepEqual(traces[1],traces[0]);
 });

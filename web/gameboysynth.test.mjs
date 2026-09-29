@@ -184,3 +184,16 @@ test('real core: sustained live changes match raw writes without retriggering', 
     gb.noise.setEnvelope({volume:0,direction:'up',period:1});raw.writeRegister(17,0x09);compare();
   } finally {gb.dispose();reference.dispose();chip.dispose();raw.dispose();}
 });
+
+test('adopting raw state adds no writes, requires power, survives power cycles and rejects disposal', () => {
+  const {gb,writes,registers:r}=fixture();
+  assert.throws(()=>gb.adoptRegisterState(),/power/);
+  gb.writeRegister(22,128);gb.writeRegister(1,0x7f);gb.writeRegister(2,0xc2);
+  const before=writes.length;gb.adoptRegisterState();assert.equal(writes.length,before);
+  gb.pulse.setDuty(0,0.5);assert.equal(r[1],0xbf);assert.equal(r[2],0xc2);
+  gb.writeRegister(22,0);assert.throws(()=>gb.pulse.setDuty(0,0.25),/initialize/);
+  assert.throws(()=>gb.adoptRegisterState(),/power/);
+  gb.writeRegister(22,128);gb.adoptRegisterState();gb.pulse.setEnvelope(0,{volume:9});assert.equal(r[2],0x90);
+  gb.reset();assert.throws(()=>gb.adoptRegisterState(),/power/);
+  gb.dispose();assert.throws(()=>gb.adoptRegisterState(),/disposed/);
+});

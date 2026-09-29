@@ -93,6 +93,13 @@ export class GameboySynth {
     }
     this.#send(offset, value);
   }
+  /** Adopt writes made through this Synth without resetting or writing defaults. */
+  adoptRegisterState() {
+    this.#alive();
+    if (!(this.#shadow[22] & 0x80)) throw new Error('APU power must be ON before adopting register state');
+    this.#voice.set(this.#shadow);
+    this.#initialized = true;
+  }
   reset() {
     this.#alive(); this.#transport.reset(); this.#initialized = false;
     this.#shadow.fill(0); this.#voice.fill(0);

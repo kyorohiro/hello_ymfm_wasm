@@ -85,8 +85,35 @@ function describe(register, value, state) {
   return `register ${hex(0xff10 + register)}`;
 }
 
+// Only replace a write when the API emits exactly the same register bytes.
+// state mirrors Synth's sent-register shadow, including cleared trigger bits.
+function highOperation(event, next, state) {
+  const {register: r, value: v, time} = event;
+  if (!(state[22] & 128)) return null;
+  if ([2,7,17].includes(r)) {
+    const target = r === 17 ? 'noise' : 'pulse';
+    const ch = r === 17 ? '' : `${r === 2 ? 0 : 1}, `;
+    return {code: `gb.${target}.setEnvelope(${ch}{volume: ${v >> 4}, direction: '${v & 8 ? 'up' : 'down'}', period: ${v & 7}});`};
+  }
+  if ([1,6].includes(r) && (v & 63) === (state[r] & 63)) return {code: `gb.pulse.setDuty(${r === 1 ? 0 : 1}, ${[0.125,0.25,0.5,0.75][v >> 6]});`};
+  if (r === 0 && (v & 128) === (state[0] & 128)) return {code: `gb.pulse.setSweep({direction: '${v & 8 ? 'down' : 'up'}', period: ${(v >> 4) & 7}, shift: ${v & 7}});`};
+  if (r === 18) return {code: `gb.noise.setParameters({divisor: ${v & 7}, shift: ${v >> 4}, width: ${v & 8 ? 7 : 15}});`};
+  if (r === 12 && (v & ~0x60) === (state[r] & ~0x60)) return {code: `gb.wave.setLevel(${[0,1,0.5,0.25][(v >> 5) & 3]});`};
+  if (r === 20 && (v & 0x88) === (state[r] & 0x88)) return {code: `gb.setMasterVolume(${(v >> 4) & 7}, ${v & 7});`};
+  if (r === 21) {
+    for (let ch = 0; ch < 4; ch++) if (((v ^ state[r]) & ~(0x11 << ch)) === 0) return {code: `gb.setPan(${ch}, ${!!(v & (16 << ch))}, ${!!(v & (1 << ch))});`};
+  }
+  if ([3,8,13].includes(r) && next?.register === r + 1 && next.time === time &&
+      !(next.value & 128) && (next.value & 0x78) === (state[r + 1] & 0x78)) {
+    const n = v | ((next.value & 7) << 8);
+    const hz = 4194304 / ((r === 13 ? 64 : 32) * (2048 - n));
+    return {code: r === 13 ? `gb.wave.setFrequency(${hz});` : `gb.pulse.setFrequency(${r === 3 ? 0 : 1}, ${hz});`, paired: true};
+  }
+  return null;
+}
+
 export function exportGameboyVgm(buffer, {mode = 'raw'} = {}) {
-  if (!['raw', 'readable'].includes(mode)) throw new Error('Unknown Game Boy conversion mode.');
+  if (!['raw', 'readable', 'high'].includes(mode)) throw new Error('Unknown Game Boy conversion mode.');
   const detection = detectVgmImport(new Ym2612VGM(buffer, {logger: null}).header);
   if (!detection.supported || detection.family !== 'gameboy') throw new Error(detection.message || 'Expected Game Boy VGM.');
   const {events, time} = readGameboyEvents(buffer);
@@ -99,13 +126,23 @@ export function exportGameboyVgm(buffer, {mode = 'raw'} = {}) {
   ];
   const state = new Uint8Array(48);
   let previous = 0;
-  for (const event of events) {
+  const track = event => {
+    if (event.register === 22 && !(event.value & 128)) state.fill(0, 0, 23);
+    state[event.register] = [4,9,14,19].includes(event.register) ? event.value & 127 : event.value;
+  };
+  for (let i = 0; i < events.length; i++) {
+    const event = events[i];
     if (event.time > previous) lines.push(`  await sleepSamples(${event.time - previous}, 44100);`);
     previous = event.time;
-    if (event.register === 22 && !(event.value & 128)) state.fill(0, 0, 23);
-    state[event.register] = event.value;
-    const comment = mode === 'readable' ? ` // sample ${event.time}: ${describe(event.register, event.value, state)}` : '';
-    lines.push(`  gb.writeRegister(${hex(event.register)}, ${hex(event.value)});${comment}`);
+    const op = mode === 'high' ? highOperation(event, events[i + 1], state) : null;
+    track(event);
+    if (op?.paired) track(events[++i]);
+    const comment = mode === 'raw' ? '' : ` // t=${(event.time / 44100).toFixed(6)}s (sample ${event.time}): ${describe(event.register, event.value, state)}`;
+    const code = op?.code ?? `gb.writeRegister(${hex(event.register)}, ${hex(event.value)});`;
+    lines.push(`  ${code}${comment}`);
+    if (mode === 'high' && event.register === 22 && (event.value & 128)) {
+      lines.push('  gb.adoptRegisterState(); // Use original setup; no added writes or reset.');
+    }
   }
   if (time > previous) lines.push(`  await sleepSamples(${time - previous}, 44100);`);
   lines.push('} finally {', '  gb.dispose();', '}', '');
