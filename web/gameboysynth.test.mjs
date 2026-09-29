@@ -43,13 +43,14 @@ test('rounded frequency boundaries, notes and MIDI', () => {
   assert.ok(gb.pulse.setNote(1,127)>0);
   assert.throws(() => gb.pulse.keyOn(2),RangeError);
 });
-test('staged voice, deep partial envelope, sweep, raw preservation and DAC restoration', () => {
+test('immediate voice, deep partial envelope, sweep, raw preservation and DAC restoration', () => {
   const {gb, registers:r, writes} = fixture(); gb.initialize();
   gb.writeRegister(0,0x85); gb.writeRegister(1,0x3f); gb.writeRegister(2,0x9b);
   gb.writeRegister(4,0x78);
   let size = writes.length;
   gb.pulse.setVoice(0,{duty:0.25,envelope:{period:2}});
-  gb.pulse.setSweep({period:3}); assert.equal(writes.length,size);
+  gb.pulse.setSweep({period:3}); assert.equal(writes.length,size + 3);
+  assert.equal(r[0],0xb5); assert.equal(r[1],0x7f); assert.equal(r[2],0x9a);
   gb.pulse.setFrequency(0,440); assert.equal(r[4]&0xf8,0x78);
   gb.pulse.keyOn(0); assert.equal(r[0],0xb5); assert.equal(r[1],0x7f); assert.equal(r[2],0x9a); assert.equal(r[4]&0xc0,0x80);
   gb.pulse.keyOff(0); assert.equal(r[2],0); gb.pulse.keyOn(0); assert.equal(r[2],0x9a);
@@ -58,7 +59,7 @@ test('staged voice, deep partial envelope, sweep, raw preservation and DAC resto
   gb.pulse.setVoice(1,{duty:0.75}); gb.pulse.keyOn(1);
   assert.equal(r[6],0xfa); assert.equal(r[7],0xc5); assert.equal(r[8],0x12); assert.equal(r[9],0x82);
   assert.equal(r[0],0xb5); // CH2 did not write CH1 sweep.
-  gb.pulse.setVoice(1,{volume:0,envelope:{direction:'up'}}); gb.pulse.keyOn(1); assert.equal(r[7],0);
+  gb.pulse.setVoice(1,{volume:0,envelope:{direction:'up'}}); gb.pulse.keyOn(1); assert.equal(r[7],0x0d);
 });
 test('wave packing, copy, mute is not DAC off, raw wave and noise state', () => {
   const {gb, registers:r} = fixture(); gb.initialize();
@@ -84,13 +85,19 @@ test('pan/master immediate updates preserve unrelated routing and VIN', () => {
   gb.setPan(0,false,true); assert.equal(r[21],0xa5);
   gb.setPan(2,true,false); assert.equal(r[21],0xe1);
 });
-test('invalid inputs are atomic for sent and staged state', () => {
+test('invalid inputs are atomic for sent and configured state', () => {
   const a=fixture(), b=fixture(); a.gb.initialize(); b.gb.initialize();
   const operations = [
     g=>g.pulse.setVoice(0,{volume:4,envelope:{period:8}}),
     g=>g.pulse.setVoice(0,{volume:4,unknown:1}),
     g=>g.pulse.setSweep({period:2,shift:9}),
     g=>g.noise.setVoice({volume:4,width:8}),
+    g=>g.pulse.setDuty(2,0.5), g=>g.pulse.setDuty(0,0.3),
+    g=>g.pulse.setEnvelope(0,{volume:12,period:8}),
+    g=>g.noise.setEnvelope({volume:-1}),
+    g=>g.noise.setParameters({divisor:2,shift:16}),
+    g=>g.noise.setParameters({volume:12}),
+    g=>g.wave.stopAndSetWaveform([1]),
     g=>g.wave.setWaveform([...Array(31).fill(1),16]),
     g=>g.wave.setLevel(0.3), g=>g.setMasterVolume(3,8), g=>g.setPan(0,true,1),
     g=>g.writeRegister(48,3), g=>g.pulse.setVoice(1,{envelope:{unknown:2}}),
@@ -103,7 +110,7 @@ test('invalid inputs are atomic for sent and staged state', () => {
 test('direct and port use identical logic; disposal and new Run clients', () => {
   const f=fixture(); let closed=0; const sent=[];
   const gb=createGameboyClient({postMessage:m=>sent.push(m),close:()=>closed++});
-  const exercise=g=>{g.initialize();g.pulse.setNote(0,'C4');g.pulse.keyOn(0);g.pulse.keyOff(0);g.dispose();g.dispose();};
+  const exercise=g=>{g.initialize();g.pulse.setNote(0,'C4');g.pulse.keyOn(0);g.pulse.setDuty(0,0.25);g.pulse.setEnvelope(0,{period:2});g.noise.setParameters({width:7});g.pulse.keyOff(0);g.dispose();g.dispose();};
   exercise(f.gb);exercise(gb);
   assert.deepEqual(sent.filter(m=>m.method==='writeRegister').map(m=>m.args),f.writes);
   assert.equal(closed,1); assert.equal(sent.filter(m=>m.method==='dispose').length,1);
@@ -130,4 +137,50 @@ test('real core: silent initialize, raw-equivalent pulse, wave mute and borrowed
     assert.ok(audible.some(v=>v!==audible[0]));
     gb.dispose(); assert.doesNotThrow(()=>chip.generateStereo(1));
   } finally {gb.dispose();chip.dispose();raw.dispose();}
+});
+
+test('individual live setters preserve other bits, never trigger, and send one envelope write', () => {
+  const {gb, registers:r, writes} = fixture(); gb.initialize();
+  gb.pulse.keyOn(0); gb.noise.keyOn();
+  gb.writeRegister(1,0xbf); gb.writeRegister(18,0x53);
+  writes.length=0;
+  gb.pulse.setDuty(0,0.25);
+  gb.pulse.setEnvelope(0,{volume:12,direction:'down',period:2});
+  gb.pulse.setSweep({period:2,shift:1});
+  gb.noise.setParameters({width:7});
+  gb.noise.setEnvelope({volume:9,direction:'up',period:3});
+  assert.deepEqual(writes,[[1,0x7f],[2,0xc2],[0,0x21],[18,0x5b],[17,0x9b]]);
+  writes.length=0;
+  gb.pulse.setVoice(0,{});gb.pulse.setEnvelope(0,{});gb.pulse.setSweep({});gb.noise.setParameters({});
+  assert.deepEqual(writes,[]);
+  gb.pulse.keyOff(0);gb.pulse.setDuty(0,0.5);assert.equal(r[2],0);
+  gb.pulse.keyOn(0);assert.equal(r[2],0xc2);assert.equal(r[1],0xbf);
+  gb.wave.keyOn();gb.wave.stopAndSetWaveform(Array(32).fill(3));
+  assert.equal(r[10]&128,0);assert.equal(r[32],0x33);
+});
+test('new setters require initialization and reject disposed instances', () => {
+  const {gb}=fixture();
+  const calls=[()=>gb.pulse.setDuty(0,0.5),()=>gb.pulse.setEnvelope(1,{}),
+    ()=>gb.noise.setParameters({}),()=>gb.noise.setEnvelope({}),
+    ()=>gb.wave.stopAndSetWaveform(Array(32).fill(0))];
+  for (const call of calls) assert.throws(call,/initialize/);
+  gb.initialize();gb.dispose();
+  for (const call of calls) assert.throws(call,/disposed/);
+});
+test('real core: sustained live changes match raw writes without retriggering', async () => {
+  const wasmBinary=await readFile(new URL('./generated/gameboy_apu_wasm.wasm',import.meta.url));
+  const create=()=>GameboyApu.create({moduleFactory,sampleRate:48000,moduleOptions:{wasmBinary}});
+  const chip=await create(), raw=await create();
+  const gb=new GameboySynth({transport:new GameboyDirectTransport(chip)});
+  const reference=new GameboySynth({transport:new GameboyDirectTransport(raw)});
+  const compare=()=>assert.deepEqual(chip.generateStereo(2048),raw.generateStereo(2048));
+  try {
+    for (const g of [gb,reference]) {g.initialize();g.pulse.keyOn(0);g.noise.keyOn();}
+    compare();
+    gb.pulse.setDuty(0,0.25);raw.writeRegister(1,0x40);compare();
+    gb.noise.setParameters({divisor:5,shift:3,width:7});raw.writeRegister(18,0x3d);compare();
+    gb.pulse.setEnvelope(0,{volume:12,period:2});raw.writeRegister(2,0xc2);compare();
+    gb.pulse.setSweep({period:2,shift:1});raw.writeRegister(0,0x21);compare();
+    gb.noise.setEnvelope({volume:0,direction:'up',period:1});raw.writeRegister(17,0x09);compare();
+  } finally {gb.dispose();reference.dispose();chip.dispose();raw.dispose();}
 });

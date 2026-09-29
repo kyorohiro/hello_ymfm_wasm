@@ -1022,8 +1022,13 @@ interface PlaygroundGameboy {
   /** Reset and prepare silent defaults. Required before high-level operations. */
   initialize(): void;
   pulse: {
-    /** Staged until keyOn. Physical pulse channels 0 and 1. */
+    /** Writes settings immediately without triggering. Physical pulse channels 0 and 1. */
     setVoice(ch: 0 | 1, options: GameboyPulseVoice): void;
+    /** NR11/NR21 duty bits; immediate, no trigger. */
+    setDuty(ch: 0 | 1, duty: 0.125 | 0.25 | 0.5 | 0.75): void;
+    /** Writes NR12/NR22, not a live volume setter. Hardware side effects apply; keyOn restarts envelope. */
+    setEnvelope(ch: 0 | 1, options: GameboyEnvelope & {volume?: number}): void;
+    /** Writes NR10 immediately; hardware sweep state is not restarted. */
     setSweep(options: {direction?: 'up' | 'down'; period?: number; shift?: number}): void;
     setFrequency(ch: 0 | 1, hz: number): number;
     setNote(ch: 0 | 1, note: GameboyNote): number;
@@ -1032,6 +1037,8 @@ interface PlaygroundGameboy {
   };
   wave: {
     /** Stops DAC, copies 32 four-bit samples, does not restart. */
+    stopAndSetWaveform(samples: number[] | Uint8Array): void;
+    /** Alias of stopAndSetWaveform; also stops DAC and never restarts. */
     setWaveform(samples: number[] | Uint8Array): void;
     /** Zero mutes NR32; DAC remains enabled. */
     setLevel(level: 0 | 0.25 | 0.5 | 1): void;
@@ -1041,6 +1048,11 @@ interface PlaygroundGameboy {
     keyOff(): void;
   };
   noise: {
+    /** Immediate NR43 update, no trigger. divisor 0..7, shift 0..15. */
+    setParameters(options: {divisor?: number; shift?: number; width?: 7 | 15}): void;
+    /** Writes NR42; keyOn explicitly restarts the envelope. */
+    setEnvelope(options: GameboyEnvelope & {volume?: number}): void;
+    /** Immediate partial register settings, no trigger. */
     setVoice(options: {volume?: number; envelope?: GameboyEnvelope; divisor?: number; shift?: number; width?: 7 | 15}): void;
     keyOn(): void;
     keyOff(): void;

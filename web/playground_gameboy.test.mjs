@@ -32,7 +32,7 @@ for (const highLevel of [false, true]) test(`Game Boy ${highLevel ? 'Synth' : 'r
         assert.ok(output.every(a => a.every(x => Number.isFinite(x) && Math.abs(x) < 1)));
         played++;
       }, () => { throw new Error('Example must not call the global write API'); });
-    assert.equal(played, 5); assert.equal(processor.dead, true);
+    assert.equal(played, highLevel ? 7 : 5); assert.equal(processor.dead, true);
     assert.throws(() => client.reset(), /disposed/);
   } finally { client.dispose(); processor.dispose(); }
 });

@@ -1,5 +1,5 @@
 // Game Boyノイズ：15-bitと7-bitの違い、分周とシフトを試します。
-// noiseには音名指定がありません。設定は次のkeyOn()から反映されます。
+// noiseには音名指定がありません。設定は即時書き込み、keyOn()で発音・エンベロープを開始します。
 const gb = await createSoundChip('gameboy');
 try {
   gb.initialize();

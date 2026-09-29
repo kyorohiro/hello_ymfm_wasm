@@ -44,7 +44,7 @@ export const EXAMPLE_FILES = [
   {
     "path": "/examples/chip-saw/gameboy-saw-noise.js",
     "name": "gameboy-saw-noise",
-    "data": "// Game Boyノイズ：15-bitと7-bitの違い、分周とシフトを試します。\n// noiseには音名指定がありません。設定は次のkeyOn()から反映されます。\nconst gb = await createSoundChip('gameboy');\ntry {\n  gb.initialize();\n  for (const width of /** @type {const} */ ([15, 7])) {\n    for (const shift of [2, 3, 4, 5]) {\n      gb.noise.setVoice({\n        volume: 10,\n        envelope: {direction: 'down', period: 1},\n        divisor: 3, shift, width,\n      });\n      gb.noise.keyOn();\n      await sleep(0.2);\n      gb.noise.keyOff();\n      await sleep(0.1);\n    }\n  }\n} finally {\n  gb.dispose();\n}\n"
+    "data": "// Game Boyノイズ：15-bitと7-bitの違い、分周とシフトを試します。\n// noiseには音名指定がありません。設定は即時書き込み、keyOn()で発音・エンベロープを開始します。\nconst gb = await createSoundChip('gameboy');\ntry {\n  gb.initialize();\n  for (const width of /** @type {const} */ ([15, 7])) {\n    for (const shift of [2, 3, 4, 5]) {\n      gb.noise.setVoice({\n        volume: 10,\n        envelope: {direction: 'down', period: 1},\n        divisor: 3, shift, width,\n      });\n      gb.noise.keyOn();\n      await sleep(0.2);\n      gb.noise.keyOff();\n      await sleep(0.1);\n    }\n  }\n} finally {\n  gb.dispose();\n}\n"
   },
   {
     "path": "/examples/chip-saw/gameboy-saw-pulse.js",
@@ -114,7 +114,7 @@ export const EXAMPLE_FILES = [
   {
     "path": "/examples/gameboy/gameboy-synth.js",
     "name": "gameboy-synth",
-    "data": "// Independent Game Boy. Pulse channels are 0/1; wave and noise have one channel each.\nconst gb = await createSoundChip('gameboy');\ntry {\n  gb.initialize();\n  gb.pulse.setVoice(0, {duty: 0.5, volume: 10,\n    envelope: {direction: 'down', period: 2}});\n  for (const note of ['C4', 'E4', 'G4', 'C5']) {\n    gb.pulse.setNote(0, note);\n    gb.pulse.keyOn(0);\n    await sleep(0.25);\n    gb.pulse.keyOff(0);\n  }\n  gb.wave.setNote('C3'); // Default triangle, half level.\n  gb.wave.keyOn();\n  gb.noise.setVoice({envelope: {period: 2}, width: 15});\n  gb.noise.keyOn();\n  await sleep(0.5);\n  gb.wave.keyOff();\n  gb.noise.keyOff();\n} finally {\n  gb.dispose();\n}\n"
+    "data": "// Game Boy: change duty and noise while notes are held, without retriggering.\nconst gb = await createSoundChip('gameboy');\ntry {\n  gb.initialize();\n  gb.pulse.setDuty(0, 0.25);\n  // Initial volume and hardware envelope; keyOn explicitly starts the envelope.\n  gb.pulse.setEnvelope(0, {volume: 10, direction: 'down', period: 0});\n  gb.pulse.setNote(0, 'C4');\n  gb.pulse.keyOn(0);\n  for (const duty of /** @type {const} */ ([0.125, 0.25, 0.5, 0.75])) {\n    gb.pulse.setDuty(0, duty); // Live NR11 update, no keyOn.\n    await sleep(0.2);\n  }\n  gb.pulse.keyOff(0);\n  gb.wave.stopAndSetWaveform(Array.from({length: 32}, (_, i) => i < 16 ? i : 31 - i));\n  gb.wave.setNote('C3');\n  gb.wave.keyOn(); // Wave upload stopped the DAC; restart explicitly.\n  await sleep(0.25);\n  gb.wave.keyOff();\n  gb.noise.setEnvelope({volume: 8, direction: 'down', period: 0});\n  gb.noise.setParameters({divisor: 3, shift: 4, width: 15});\n  gb.noise.keyOn();\n  await sleep(0.2);\n  gb.noise.setParameters({width: 7, shift: 3}); // Live NR43 update.\n  await sleep(0.2);\n  gb.noise.keyOff();\n} finally {\n  gb.dispose();\n}\n"
   },
   {
     "path": "/examples/livefx/live-fx-distortion.js",

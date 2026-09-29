@@ -37,7 +37,7 @@ export class GameboyDirectTransport {
 }
 export class GameboySynth {
   #transport; #clock; #disposed = false; #initialized = false;
-  // Sent configuration and next-trigger configuration. Neither is a core status readback.
+  // Sent registers and configured values retained across keyOff. Neither is core status.
   #shadow = new Uint8Array(48); #voice = new Uint8Array(48);
   constructor({transport, clock = GAMEBOY_APU_CLOCK} = {}) {
     if (!transport || typeof transport.writeRegister !== 'function' || typeof transport.reset !== 'function') throw new TypeError('Expected transport');
@@ -45,6 +45,8 @@ export class GameboySynth {
     this.#transport = transport; this.#clock = clock;
     this.pulse = Object.freeze({
       setVoice: (ch, value) => this.#setVoice(this.#pulse(ch), value, false),
+      setDuty: (ch, duty) => this.#setVoice(this.#pulse(ch), {duty}, false),
+      setEnvelope: (ch, value) => this.#envelope(this.#pulse(ch), value),
       setSweep: value => this.#sweep(value),
       setFrequency: (ch, hz) => this.#frequency(this.#pulse(ch) + 3, hz, 32),
       setNote: (ch, note) => { this.#ready(); return this.#frequency(this.#pulse(ch) + 3, noteHz(note), 32); },
@@ -52,7 +54,8 @@ export class GameboySynth {
       keyOff: ch => { const base = this.#pulse(ch); this.#ready(); this.#send(base + 2, 0); },
     });
     this.wave = Object.freeze({
-      setWaveform: samples => this.#waveform(samples),
+      stopAndSetWaveform: samples => this.#waveform(samples),
+      setWaveform: samples => this.#waveform(samples), // Compatibility alias; also stops DAC.
       setLevel: level => { this.#ready(); const code = choice(level, LEVELS); this.#update(12, 0x60, code << 5, true); },
       setFrequency: hz => this.#frequency(13, hz, 64),
       setNote: note => { this.#ready(); return this.#frequency(13, noteHz(note), 64); },
@@ -61,6 +64,11 @@ export class GameboySynth {
     });
     this.noise = Object.freeze({
       setVoice: value => this.#setVoice(15, value, true),
+      setEnvelope: value => this.#envelope(15, value),
+      setParameters: value => {
+        this.#ready(); options(value, ['divisor', 'shift', 'width']);
+        this.#setVoice(15, value, true);
+      },
       keyOn: () => this.#keyOn(15),
       keyOff: () => { this.#ready(); this.#send(17, 0); },
     });
@@ -115,7 +123,24 @@ export class GameboySynth {
     if ('divisor' in value) changes.push([18, 7, integer(value.divisor, 0, 7)]);
     if ('shift' in value) changes.push([18, 0xf0, integer(value.shift, 0, 15) << 4]);
     if ('width' in value) changes.push([18, 8, choice(value.width, [15, 7]) << 3]);
-    for (const change of changes) this.#update(...change);
+    // Validate the entire call first, then write each affected register only once.
+    // In particular NR12/NR22/NR42 writes can have live hardware side effects.
+    const registers = new Map();
+    for (const [offset, mask, bits] of changes) {
+      registers.set(offset, ((registers.get(offset) ?? this.#voice[offset]) & ~mask) | bits);
+    }
+    for (const [offset, next] of registers) {
+      this.#voice[offset] = next;
+      this.#send(offset, next);
+    }
+  }
+  #envelope(base, value) {
+    this.#ready(); options(value, ['volume', 'direction', 'period']);
+    const voice = {envelope: {}};
+    if ('volume' in value) voice.volume = value.volume;
+    if ('direction' in value) voice.envelope.direction = value.direction;
+    if ('period' in value) voice.envelope.period = value.period;
+    this.#setVoice(base, voice, base === 15);
   }
   #sweep(value) {
     this.#ready(); options(value, ['direction', 'period', 'shift']);
@@ -123,7 +148,7 @@ export class GameboySynth {
     if ('direction' in value) next = (next & ~8) | (choice(value.direction, ['up', 'down']) << 3);
     if ('period' in value) next = (next & ~0x70) | (integer(value.period, 0, 7) << 4);
     if ('shift' in value) next = (next & ~7) | integer(value.shift, 0, 7);
-    this.#voice[0] = next;
+    if (Reflect.ownKeys(value).length) { this.#voice[0] = next; this.#send(0, next); }
   }
   #frequency(low, hz, divisor) {
     this.#ready();
@@ -144,7 +169,7 @@ export class GameboySynth {
     if (base === 0) this.#send(0, this.#voice[0]);
     this.#send(base + 1, this.#voice[base + 1]);
     const env = this.#voice[base + 2];
-    this.#send(base + 2, env >> 4 ? env : 0);
+    this.#send(base + 2, env);
     this.#trigger(base + 3);
   }
   #waveform(samples) {

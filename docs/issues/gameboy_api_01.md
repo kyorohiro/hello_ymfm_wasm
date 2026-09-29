@@ -12,6 +12,85 @@
 チップの機能に沿った名前で設定できるようにする。
 Node.jsとPlaygroundで同じ音源操作コードを使えることを目標にする。
 
+## 即時設定APIへの改訂（2026-09-30）
+
+音色解析で得た「発音時の設定＋発音後のレジスタ変更」をJavaScriptで表現できるよう、
+設定操作と発音トリガーを分離した。以下を現行契約とし、後段の初版設計・実装記録は履歴として扱う。
+
+### 現行APIとレジスタ対応
+
+| API | レジスタ | 反映・副作用 |
+|---|---|---|
+| `pulse.setDuty(ch, duty)` | NR11 / NR21 bit 7–6 | 即時。長さ設定を保持し、再トリガーしない |
+| `pulse.setEnvelope(ch, {volume, direction, period})` | NR12 / NR22 | 即時。初期音量・方向・周期をまとめて1回書く。再トリガーしない |
+| `pulse.setSweep({direction, period, shift})` | NR10 | 即時。内部スイープ状態の再初期化とは別 |
+| `pulse.setVoice(ch, options)` | NR11/12 または NR21/22 | 個別設定をまとめる便宜API。全引数検証後、対象レジスタへ各1回即時書き込み |
+| `noise.setEnvelope({volume, direction, period})` | NR42 | pulseと同じ契約 |
+| `noise.setParameters({divisor, shift, width})` | NR43 | 即時。分周・シフト・7/15bitを部分更新、再トリガーなし |
+| `noise.setVoice(options)` | NR42 / NR43 | 一括即時設定。自動トリガーなし |
+| `wave.stopAndSetWaveform(samples)` | NR30 / 波形RAM | 検証後DAC停止→転送。再発音は明示的なkeyOnが必要 |
+| `wave.setWaveform(samples)` | 同上 | 互換エイリアス。こちらも停止する |
+| `setFrequency` / `setNote` / `wave.setLevel` / pan / master | 従来どおり | 即時、再トリガーなし |
+| `keyOn` / `keyOff` | 従来どおり | 保存設定を適用してトリガー／DAC停止。keyOnは長さ制御を無効化 |
+
+`setEnvelope`のvolumeは整数0〜15、directionはup/down、periodは整数0〜7。
+省略値は設定値を保持する。空オブジェクトは何も書かない。不正な値は書き込み・設定変更前に拒否する。
+`setDuty`は0.125/0.25/0.5/0.75。noise各値の範囲も初版と同じ。
+
+### エンベロープ・スイープの意味
+
+- `setEnvelope`は現在音量を直接指定するAPIではない。発音中の書き込みは採用コアの
+  ハードウェア挙動に従い、内部音量の変化やDAC停止が起こり得る。初期音量から再開始するにはkeyOnを使う。
+- volume=0かつupもレジスタ値どおり送信する。初版の「volume=0なら強制消音」は撤廃。
+  確実な停止はkeyOffを使う。volume=0かつdownはDAC停止となる。
+- NR10への即時書き込みも内部スイープのタイマーや計算用状態をリセットしない。
+  方向変更でチャンネルが停止する等のハードウェア挙動を隠さない。
+- keyOff後も設定は保存する。setDutyやnoise.setParametersだけではDACを復帰しない。
+  setEnvelopeは保存した残りの項目と合成してレジスタ全体を書き、DACを有効にする場合もあるが、トリガーは送らない。
+- 設定状態は現在の内部音量・音程の読み出しではない。raw操作も同じSynth経由で行う。
+- 即時とはtransportへ同期送信すること。Worklet適用完了やサンプル単位の時刻精度は保証しない。
+
+### 発音中の変更例
+
+```js
+const gb = await createSoundChip('gameboy');
+try {
+  gb.initialize();
+  gb.pulse.setDuty(0, 0.25);
+  gb.pulse.setEnvelope(0, {volume: 12, direction: 'down', period: 0});
+  gb.pulse.setNote(0, 'C4');
+  gb.pulse.keyOn(0);
+  await sleep(0.1);
+  gb.pulse.setDuty(0, 0.5); // 発音を継続したままデューティ変更
+  await sleep(0.1);
+  gb.pulse.setEnvelope(0, {period: 2}); // レジスタ更新。自動で再トリガーしない
+  gb.pulse.keyOn(0); // この例では明示的に初期音量から減衰を開始
+  await sleep(0.4);
+  gb.pulse.keyOff(0);
+} finally {
+  gb.dispose();
+}
+```
+
+### 互換性と確認範囲
+
+メソッドの削除はないが、setVoice/setSweepは遅延から即時へ変わるため挙動変更となる。
+発音中に次回分を予約していたコードは、必要な時刻まで呼び出しを遅らせること。
+既存の「設定→keyOn」コードはそのまま使える。初期化は引き続き無音・未トリガー。
+
+実コアの持続音でraw書き込みとのPCM一致、トリガー非送信、無関係ビット保持、
+複数エンベロープ項目の1回書き込み、不正入力の原子性、ライフサイクルを確認。
+関連7テストファイルで62件成功・失敗0。Workletでの新サンプル再生とWorkerのRun/Stop/再Runも成功。
+ブラウザーでの聴感確認は未実施。
+音色解析画面・時間変化の抽出・FUI出力は今回の変更範囲に含めない。
+
+参考：[Pan Docs Audio Registers](https://gbdev.io/pandocs/Audio_Registers.html)、
+[Audio Details](https://gbdev.io/pandocs/Audio_details.html)。
+
+## 初版設計・実装の履歴
+
+以下は2026-09-29時点の記録。遅延設定・volume=0の扱いは上記の改訂で置き換えた。
+
 ## APIの層
 
 1. **raw API**：`writeRegister(offset, value)`。既存の低レベル例をそのまま使える。
