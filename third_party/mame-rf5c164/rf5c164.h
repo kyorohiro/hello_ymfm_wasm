@@ -1,3 +1,4 @@
+#include "chip_state.h"
 // license:BSD-3-Clause
 // copyright-holders:Olivier Galibert,Aaron Giles
 #pragma once
@@ -16,6 +17,13 @@ public:
     uint32_t bank() const { return wbank_; }
     uint32_t sample_rate() const { return rate_; }
     void generate(float *left, float *right, uint32_t frames);
+    void state(std::vector<uint8_t> &bytes, bool saving) {
+        ChipStateIO io{bytes, saving};
+        io.field(rate_); io.field(clock_); io.field(cbank_); io.field(enable_); io.field(wbank_);
+        io.field(phase_); io.field(left_); io.field(right_);
+        for (auto &ch : channels_) { io.field(ch.enable); io.field(ch.env); io.field(ch.pan); io.field(ch.start); io.field(ch.addr); io.field(ch.step); io.field(ch.loopst); }
+        for (auto &v : ram_) io.field(v);
+    }
 private:
     struct Channel { uint8_t enable=0, env=0, pan=0, start=0; uint32_t addr=0; uint16_t step=0, loopst=0; };
     std::array<Channel, 8> channels_{};

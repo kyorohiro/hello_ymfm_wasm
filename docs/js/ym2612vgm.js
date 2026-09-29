@@ -308,6 +308,15 @@ export class Ym2612VGM {
   /**
    * @returns {void}
    */
+  // Playback-only state; clone the whole graph at once to retain bank/stream aliases.
+  savePlaybackState() {
+    return structuredClone(Object.fromEntries(PARSER_STATE_KEYS.map(key => [key, this[key]])));
+  }
+  loadPlaybackState(state) {
+    const copy = structuredClone(state);
+    for (const key of PARSER_STATE_KEYS) this[key] = copy[key];
+  }
+
   reset() {
     this.position = this.header.dataOffset;
     this.ended = false;
@@ -2631,3 +2640,7 @@ function ignoredCommandLength(command) {
   }
   return null;
 }
+
+const PARSER_STATE_KEYS = ['position', 'ended', 'dataBanks', 'bankBlocks', 'decompressionTables',
+  'bankBlocksSeen', 'rf5c164BlocksSeen', 'pwmBlocks', 'pwmBlocksSeen', 'dataBlocks', 'dataBlockInfo',
+  'streams', 'dataBankCursor', 'pendingYm2612DataBankWrite', 'pcmRamWrites'];

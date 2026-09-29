@@ -54,6 +54,17 @@ import { Ym2612VGM } from "./ym2612vgm.js?v=dac-warning-1";
  * into queued stereo chunks.
  */
 export class VgmPlayer {
+  #states = new WeakMap();
+  #checkpoints = [];
+  #checkpointBytes = 0;
+  #checkpointKey = '';
+  #lastCheckpointAttemptFrame = -Infinity;
+  #hasLooped = false;
+  // Opt in for interactive playback; offline rendering should not retain checkpoints.
+  checkpointIntervalSeconds = 0;
+  checkpointMaxBytes = 32 * 1024 * 1024;
+  checkpointMaxCount = 120;
+
   /**
    * @param {VgmPlaybackEngine} engine
    */
@@ -92,6 +103,7 @@ export class VgmPlayer {
    * @returns {void}
    */
   load(buffer, options = {}) {
+    this.clearCheckpoints();
     this.parser = new Ym2612VGM(buffer, options);
     this.engine.clearSampleMemory?.();
     this.engine.clearAdpcmBMemory?.();
@@ -115,6 +127,7 @@ export class VgmPlayer {
     if (!this.parser) {
       return;
     }
+    this.#hasLooped = false;
     this.parser.reset();
     this.engine.reset();
     this.waitAccumulator = 0;
@@ -174,6 +187,7 @@ export class VgmPlayer {
     if (!this.parser) {
       return;
     }
+    this.#hasLooped = false;
     this.parser.reset();
     this.engine.reset();
     this.waitAccumulator = 0;
@@ -183,6 +197,64 @@ export class VgmPlayer {
     this.queuedFrames = 0;
     this.processedEvents = 0;
     this.processedWaitSamples = 0;
+  }
+
+  supportsState() { return Boolean(this.parser && this.engine.supportsState?.()); }
+  renderedPositionFrames() {
+    return Math.floor(this.processedWaitSamples * this.sampleRate() / 44100) - this.queuedFrames;
+  }
+  clearCheckpoints() { this.#checkpoints = []; this.#checkpointBytes = 0; this.#checkpointKey = ''; this.#lastCheckpointAttemptFrame = -Infinity; }
+  checkpointStats() { return {count: this.#checkpoints.length, bytes: this.#checkpointBytes}; }
+  saveState() {
+    if (!this.supportsState()) throw new Error('Playback state saving unavailable');
+    const data = {parser: this.parser.savePlaybackState(), engine: this.engine.saveState(),
+      queue: structuredClone(this.chunkQueue), queuedFrames: this.queuedFrames,
+      waitAccumulator: this.waitAccumulator, processedEvents: this.processedEvents,
+      processedWaitSamples: this.processedWaitSamples, hasLooped: this.#hasLooped,
+      playing: this.playing, paused: this.paused, ui: this.captureSeekState?.()};
+    const byteLength = stateByteLength(data.parser) + stateByteLength(data.queue) + stateByteLength(data.ui) + data.engine.byteLength + 256;
+    const state = Object.freeze({byteLength, frame: this.renderedPositionFrames()});
+    this.#states.set(state, {source: this.parser, data}); return state;
+  }
+  loadState(state) {
+    const saved = this.#states.get(state);
+    if (!this.supportsState() || !saved || saved.source !== this.parser) throw new Error('Invalid or foreign playback state');
+    const d = saved.data;
+    this.engine.validateState(d.engine);
+    // Allocate JS copies before modifying native chips.
+    const queue = structuredClone(d.queue), parser = structuredClone(d.parser);
+    this.engine.loadState(d.engine);
+    this.parser.loadPlaybackState(parser);
+    this.chunkQueue = queue;
+    for (const key of ['queuedFrames', 'waitAccumulator', 'processedEvents', 'processedWaitSamples', 'playing', 'paused']) this[key] = d[key];
+    this.#hasLooped = d.hasLooped;
+    if (d.ui !== undefined) this.restoreSeekState?.(structuredClone(d.ui));
+  }
+  #checkSettings() {
+    const key = this.engine.stateSettingsKey?.() + ':' + (this.seekSettingsKey?.() ?? '');
+    if (key !== this.#checkpointKey) { this.clearCheckpoints(); this.#checkpointKey = key; }
+  }
+  captureCheckpoint() {
+    if (!this.supportsState() || this.#hasLooped || !(this.checkpointIntervalSeconds > 0)) return;
+    this.#checkSettings();
+    const frame = this.renderedPositionFrames();
+    // Oversized states must not be cloned again on every audio callback.
+    if (!(this.checkpointMaxCount > 0) || !(this.checkpointMaxBytes > 0) || Math.abs(frame - this.#lastCheckpointAttemptFrame) < this.sampleRate() * this.checkpointIntervalSeconds) return;
+    if (frame < this.sampleRate() * this.checkpointIntervalSeconds || this.#checkpoints.some(s => Math.abs(s.frame - frame) < this.sampleRate() * this.checkpointIntervalSeconds)) return;
+    this.#lastCheckpointAttemptFrame = frame;
+    const state = this.saveState();
+    if (state.byteLength > this.checkpointMaxBytes) return;
+    this.#checkpoints.push(state); this.#checkpointBytes += state.byteLength;
+    while (this.#checkpointBytes > this.checkpointMaxBytes || this.#checkpoints.length > this.checkpointMaxCount) {
+      this.#checkpointBytes -= this.#checkpoints.shift().byteLength;
+    }
+  }
+  restoreCheckpoint(targetFrame) {
+    if (!this.supportsState()) return 0;
+    this.#checkSettings();
+    const state = this.#checkpoints.filter(s => s.frame <= targetFrame).sort((a,b) => b.frame - a.frame)[0];
+    if (!state) return 0;
+    this.loadState(state); return state.frame;
   }
 
   /**
@@ -203,6 +275,7 @@ export class VgmPlayer {
    * Keep the parser, chip state, fractional sample timing and play/pause state.
    */
   clearQueuedAudio() {
+    this.clearCheckpoints();
     this.chunkQueue = [];
     this.queuedFrames = 0;
   }
@@ -333,7 +406,9 @@ export class VgmPlayer {
       return 0;
     }
 
-    return this.#copyQueuedFrames(left, right, frames);
+    const copied = this.#copyQueuedFrames(left, right, frames);
+    this.captureCheckpoint();
+    return copied;
   }
 
   /**
@@ -452,6 +527,7 @@ export class VgmPlayer {
 
       if (event.type === "end") {
         if (this.loopEnabled) {
+          this.#hasLooped = true;
           if (this.parser.hasLoop()) {
             this.parser.position = this.parser.header.loopOffset;
             this.parser.ended = false;
@@ -528,4 +604,16 @@ export class VgmPlayer {
     }
     return writeOffset;
   }
+}
+
+// Conservative retained-memory estimate, counting shared buffers once per snapshot.
+function stateByteLength(value, seen = new Set()) {
+  if (value == null) return 0;
+  if (typeof value !== 'object') return typeof value === 'string' ? value.length * 2 : 8;
+  if (seen.has(value)) return 0;
+  seen.add(value);
+  if (ArrayBuffer.isView(value)) return stateByteLength(value.buffer, seen);
+  if (value instanceof ArrayBuffer) return value.byteLength;
+  const children = value instanceof Map ? [...value.entries()].flat() : value instanceof Set ? [...value] : Object.values(value);
+  return 64 + children.reduce((n,v) => n + stateByteLength(v, seen), 0);
 }

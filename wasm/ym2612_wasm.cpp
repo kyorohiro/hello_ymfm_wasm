@@ -1,3 +1,4 @@
+#include "chip_state.h"
 #include <cstdint>
 #include <memory>
 
@@ -18,6 +19,16 @@ struct ym2612_handle
     ymfm_wasm_interface intf;
     ym2612_debug_chip chip;
 
+    void state(std::vector<uint8_t> &bytes, bool saving) {
+        ymfm::ymfm_saved_state state(bytes, saving);
+        chip.save_restore(state);
+        if (saving) {
+            ChipStateIO io{bytes, true}; io.field(intf.irq_asserted); io.field(intf.timer_remaining);
+        } else {
+            ChipStateIO io{bytes, false}; io.offset = state.m_offset;
+            io.field(intf.irq_asserted); io.field(intf.timer_remaining);
+        }
+    }
     ym2612_handle() : intf(), chip(intf)
     {
         chip.reset();
@@ -159,4 +170,14 @@ void ym2612_generate_with_internal_envelope(
     }
 }
 
+
+uint32_t ym2612_save_state(void *ptr, uint8_t *out) {
+    std::vector<uint8_t> bytes; cast_handle(ptr)->state(bytes, true);
+    if (out) std::memcpy(out, bytes.data(), bytes.size());
+    return bytes.size();
+}
+int ym2612_load_state(void *ptr, const uint8_t *data, uint32_t size) {
+    if (!data || size != ym2612_save_state(ptr, nullptr)) return 0;
+    std::vector<uint8_t> bytes(data, data + size); cast_handle(ptr)->state(bytes, false); return 1;
+}
 }

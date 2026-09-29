@@ -2646,6 +2646,15 @@ async function ensurePlaybackReady(vgm) {
   else applySourceMutes(engine, sourceChipKind(), effectiveSourceMutes(), hasOkiSource());
   if (!player) {
     player = new VgmPlayer(engine);
+    if (currentChipKind === 'ym2612') {
+      player.checkpointIntervalSeconds = 5;
+      player.captureSeekState = () => structuredClone({channelMonitor, monitorFrequencyHigh, psgMonitor, pcmMonitor, lastYm2612DacEnable});
+      player.restoreSeekState = state => {
+        ({channelMonitor, monitorFrequencyHigh, psgMonitor, pcmMonitor, lastYm2612DacEnable} = state);
+        requestChannelMonitorRender();
+      };
+      player.seekSettingsKey = () => JSON.stringify(channelMonitor.map(ch => ch.muted));
+    }
   }
   applyMasterVolume();
   if (typeof player.setPrefetchFactor === "function") {
@@ -2666,7 +2675,11 @@ async function ensurePlaybackReady(vgm) {
 
   player.setLoopEnabled(loopCheckbox.checked);
   if (currentChipKind === 'ymf278b' && ymf278bWaveRomBytes) engine.loadWaveRom(ymf278bWaveRomBytes);
-  player.load(currentBuffer, {logger:{warn:reportPlaybackWarning}});
+  // Keep same-track checkpoints across Play/seek. A new player or buffer starts fresh.
+  if (currentChipKind !== 'ym2612' || player.loadedSource !== currentBuffer) {
+    player.load(currentBuffer, {logger:{warn:reportPlaybackWarning}});
+    player.loadedSource = currentBuffer;
+  }
   return { sampleRate };
 }
 

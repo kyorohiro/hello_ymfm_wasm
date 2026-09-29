@@ -13,6 +13,7 @@ export const RF5C164_SAMPLE_RATE = 44100;
  * Register writes program the chip; generateStereo() advances it to produce PCM.
  */
 export class Rf5c164 {
+  #states = new WeakMap();
   /**
    * Wrap native resources allocated by create(); prefer the asynchronous factory.
    * @param {Object} module Initialized Emscripten module.
@@ -72,6 +73,33 @@ export class Rf5c164 {
     const handle = api.create(sampleRate, clock);
     if (!handle) throw new Error("RF5C164 allocation failed");
     return new Rf5c164(module, handle, api);
+  }
+
+  supportsState() { return !!this.handle && typeof this.module._rf5c164_save_state === 'function' && typeof this.module._rf5c164_load_state === 'function'; }
+
+  // Opaque, same-instance, same-build state. Output buffers and hooks are not state.
+  saveState() {
+    if (!this.supportsState()) throw new Error('State saving unavailable');
+    const size = this.module._rf5c164_save_state(this.handle, 0);
+    const ptr = this.module._malloc(size);
+    if (!ptr) throw new Error('State allocation failed');
+    try {
+      this.module._rf5c164_save_state(this.handle, ptr);
+      const bytes = new Uint8Array(this.module.HEAPF32.buffer, ptr, size).slice();
+      const state = Object.freeze({byteLength: size}); this.#states.set(state, bytes); return state;
+    } finally { this.module._free(ptr); }
+  }
+  validateState(state) {
+    if (!this.supportsState() || !this.#states.has(state)) throw new Error('Invalid or foreign chip state');
+  }
+  loadState(state) {
+    this.validateState(state);
+    const bytes = this.#states.get(state), ptr = this.module._malloc(bytes.length);
+    if (!ptr) throw new Error('State allocation failed');
+    try {
+      new Uint8Array(this.module.HEAPF32.buffer, ptr, bytes.length).set(bytes);
+      if (!this.module._rf5c164_load_state(this.handle, ptr, bytes.length)) throw new Error('Invalid native state');
+    } finally { this.module._free(ptr); }
   }
 
   /**

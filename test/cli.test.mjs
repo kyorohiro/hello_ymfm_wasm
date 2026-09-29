@@ -126,7 +126,8 @@ test('npm tarball installs offline, runs via npx, and exports the library',async
     assert(paths.includes('LICENSE'));
     assert(paths.includes('dist/licenses/jsnes/LICENSE'));
     assert(paths.includes('dist/docs/js/nes_apu_vendor/index.js'));
-    assert(!paths.some(p=>/\.rom$|\.bin$/.test(p)));
+    assert.deepEqual(paths.filter(p=>/\.rom$|\.bin$/.test(p)), ['dist/web/tetorica_ym2608_adpcm_rom.bin']);
+    assert(paths.includes('dist/assets/opna-rhythm/LICENSE'));
     assert(!paths.some(p=>/\.(?:html|css|png|vgz|vgm)$/.test(p)||p.includes('/vendor/')||p.endsWith('.s98')||p.startsWith('w/')));
     execFileSync('npm',['install','--offline','--ignore-scripts','--no-audit','--no-fund','--prefix',dir,'--cache',cache,join(dir,packed.filename)],{encoding:'utf8'});
     assert.equal(readFileSync(join(root,'README.md'),'utf8'),repositoryReadme);

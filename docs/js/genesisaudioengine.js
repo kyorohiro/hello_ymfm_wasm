@@ -15,6 +15,8 @@ import { Rf5c164 } from "./rf5c164.js";
  * Dispose the engine when done to release its underlying chips.
  */
 export class GenesisAudioEngine {
+  #states = new WeakMap();
+
   constructor(ym2612, psg, sampleRate, masterVolume = 1, pcm = null) {
     this.ym2612 = ym2612;
     this.psg = psg;
@@ -91,6 +93,31 @@ export class GenesisAudioEngine {
     this.ym2612.dispose();
     this.psg.dispose();
     this.pcm?.dispose();
+  }
+
+  supportsState() {
+    // Attaching an extra renderer requires its own state support first.
+    return !this.writeOki6258 && this.ym2612.supportsState?.() && this.psg.supportsState?.() && (!this.pcm || this.pcm.supportsState?.());
+  }
+  stateSettingsKey() {
+    return JSON.stringify([this._sampleRate, this._masterVolume, this._psgMuted, this._pcmMuted, this.pwm.muted]);
+  }
+  saveState() {
+    if (!this.supportsState()) throw new Error('Genesis state saving unavailable');
+    const data = {ym: this.ym2612.saveState(), psg: this.psg.saveState(), pcm: this.pcm?.saveState(),
+      pwm: this.pwm.saveState(), key: this.stateSettingsKey()};
+    const state = Object.freeze({byteLength: data.ym.byteLength + data.psg.byteLength + (data.pcm?.byteLength || 0) + 64});
+    this.#states.set(state, data); return state;
+  }
+  validateState(state) {
+    const data = this.#states.get(state);
+    if (!this.supportsState() || !data || data.key !== this.stateSettingsKey()) throw new Error('Incompatible Genesis state');
+    this.ym2612.validateState(data.ym); this.psg.validateState(data.psg); this.pcm?.validateState(data.pcm);
+  }
+  loadState(state) {
+    this.validateState(state);
+    const data = this.#states.get(state);
+    this.ym2612.loadState(data.ym); this.psg.loadState(data.psg); this.pcm?.loadState(data.pcm); this.pwm.loadState(data.pwm);
   }
 
   /**
@@ -228,6 +255,12 @@ export class GenesisAudioEngine {
  */
 export class SimplePwm {
   constructor() { this.muted = false; this.reset(); }
+  saveState() { return Object.freeze({cycle: this.cycle, control: this.control, left: this.left, right: this.right}); }
+  loadState(state) {
+    if (!state || !['cycle', 'control'].every(k => Number.isInteger(state[k]) && state[k] >= 0 && state[k] <= 4095) ||
+        !['left', 'right'].every(k => state[k] === null || (Number.isInteger(state[k]) && state[k] >= 0 && state[k] <= 4095))) throw new Error('Invalid PWM state');
+    for (const k of ['cycle', 'control', 'left', 'right']) this[k] = state[k];
+  }
   reset() { this.cycle = 0; this.control = 0; this.left = null; this.right = null; }
   /**
    * Dispatch a VGM register/command write to the corresponding sound chip.

@@ -69,6 +69,7 @@ export const YM2612_CLOCK = 7670454;
  * Generation advances chip state; register writes alone do not render audio.
  */
 export class Ym2612 {
+  #states = new WeakMap();
   /**
    * Wrap an already allocated native chip. Prefer create() for normal use.
    * @param {Object} module Initialized Emscripten module.
@@ -145,6 +146,34 @@ export class Ym2612 {
 
     const handle = api.create();
     return new Ym2612(module, handle, api);
+  }
+
+  supportsState() { return !!this.handle && typeof this.module._ym2612_save_state === 'function' && typeof this.module._ym2612_load_state === 'function'; }
+
+  // Opaque, same-instance, same-build state. Output buffers and hooks are not state.
+  saveState() {
+    if (!this.supportsState()) throw new Error('State saving unavailable');
+    const size = this.module._ym2612_save_state(this.handle, 0);
+    const ptr = this.module._malloc(size);
+    if (!ptr) throw new Error('State allocation failed');
+    try {
+      this.module._ym2612_save_state(this.handle, ptr);
+      const bytes = new Uint8Array(this.module.HEAPF32.buffer, ptr, size).slice();
+      const state = Object.freeze({byteLength: size}); this.#states.set(state, bytes); return state;
+    } finally { this.module._free(ptr); }
+  }
+  validateState(state) {
+    if (!this.supportsState() || !this.#states.has(state)) throw new Error('Invalid or foreign chip state');
+  }
+  loadState(state) {
+    this.validateState(state);
+    const bytes = this.#states.get(state), ptr = this.module._malloc(bytes.length);
+    if (!ptr) throw new Error('State allocation failed');
+    try {
+      new Uint8Array(this.module.HEAPF32.buffer, ptr, bytes.length).set(bytes);
+      if (!this.module._ym2612_load_state(this.handle, ptr, bytes.length)) throw new Error('Invalid native state');
+      this.#syncIrq();
+    } finally { this.module._free(ptr); }
   }
 
   /**

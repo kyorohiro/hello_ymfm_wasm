@@ -768,13 +768,13 @@ async function createWasm() {
       }
     };
 
-  
-  
-  
-  
-  
-  
-  
+
+
+
+
+
+
+
     /**
    * @param {number} ptr
    * @param {string} type
@@ -801,13 +801,13 @@ async function createWasm() {
       return '0x' + ptr.toString(16).padStart(8, '0');
     }
 
-  
-  
-  
-  
-  
-  
-  
+
+
+
+
+
+
+
     /**
    * @param {number} ptr
    * @param {number} value
@@ -841,7 +841,74 @@ async function createWasm() {
       }
     };
 
-  
+
+
+
+  class ExceptionInfo {
+      // excPtr - Thrown object pointer to wrap. Metadata pointer is calculated from it.
+      constructor(excPtr) {
+        this.excPtr = excPtr;
+        this.ptr = excPtr - 24;
+      }
+
+      set_type(type) {
+        HEAPU32[(((this.ptr)+(4))>>2)] = type;
+      }
+
+      get_type() {
+        return HEAPU32[(((this.ptr)+(4))>>2)];
+      }
+
+      set_destructor(destructor) {
+        HEAPU32[(((this.ptr)+(8))>>2)] = destructor;
+      }
+
+      get_destructor() {
+        return HEAPU32[(((this.ptr)+(8))>>2)];
+      }
+
+      set_caught(caught) {
+        caught = caught ? 1 : 0;
+        HEAP8[(this.ptr)+(12)] = caught;
+      }
+
+      get_caught() {
+        return HEAP8[(this.ptr)+(12)] != 0;
+      }
+
+      set_rethrown(rethrown) {
+        rethrown = rethrown ? 1 : 0;
+        HEAP8[(this.ptr)+(13)] = rethrown;
+      }
+
+      get_rethrown() {
+        return HEAP8[(this.ptr)+(13)] != 0;
+      }
+
+      // Initialize native structure fields. Should be called once after allocated.
+      init(type, destructor) {
+        this.set_adjusted_ptr(0);
+        this.set_type(type);
+        this.set_destructor(destructor);
+      }
+
+      set_adjusted_ptr(adjustedPtr) {
+        HEAPU32[(((this.ptr)+(16))>>2)] = adjustedPtr;
+      }
+
+      get_adjusted_ptr() {
+        return HEAPU32[(((this.ptr)+(16))>>2)];
+      }
+    }
+
+  var uncaughtExceptionCount = 0;
+  var ___cxa_throw = (ptr, type, destructor) => {
+      var info = new ExceptionInfo(ptr);
+      // Initialize ExceptionInfo content after it was allocated in __cxa_allocate_exception.
+      info.init(type, destructor);
+      uncaughtExceptionCount++;
+      assert(false, 'Exception thrown, but exception catching is not enabled. Compile with -sNO_DISABLE_EXCEPTION_CATCHING or -sEXCEPTION_CATCHING_ALLOWED=[..] to catch.');
+    };
 
   var __abort_js = () =>
       abort('native code called abort()');
@@ -852,12 +919,12 @@ async function createWasm() {
       // for any code that deals with heap sizes, which would require special
       // casing all heap size related code to treat 0 specially.
       2147483648;
-  
+
   var alignMemory = (size, alignment) => {
       assert(alignment, 'alignment argument is required');
       return Math.ceil(size / alignment) * alignment;
     };
-  
+
   var growMemory = (size) => {
       var oldHeapSize = wasmMemory.buffer.byteLength;
       var pages = ((size - oldHeapSize + 65535) / 65536) | 0;
@@ -872,7 +939,7 @@ async function createWasm() {
       // implicit 0 return to save code size (caller will cast 'undefined' into 0
       // anyhow)
     };
-  
+
   var _emscripten_resize_heap = (requestedSize) => {
       var oldSize = HEAPU8.length;
       // With CAN_ADDRESS_2GB or MEMORY64, pointers are already unsigned.
@@ -880,7 +947,7 @@ async function createWasm() {
       // With multithreaded builds, races can happen (another thread might increase the size
       // in between), so return a failure, and let the caller retry.
       assert(requestedSize > oldSize);
-  
+
       // Memory resize rules:
       // 1.  Always increase heap size to at least the requested size, rounded up
       //     to next page multiple.
@@ -897,7 +964,7 @@ async function createWasm() {
       //     over-eager decision to excessively reserve due to (3) above.
       //     Hence if an allocation fails, cut down on the amount of excess
       //     growth, in an attempt to succeed to perform a smaller allocation.
-  
+
       // A limit is set for how much we can grow. We should not exceed that
       // (the wasm binary specifies it, so if we tried, we'd fail anyhow).
       var maxHeapSize = getHeapMax();
@@ -905,7 +972,7 @@ async function createWasm() {
         err(`Cannot enlarge memory, requested ${requestedSize} bytes, but the limit is ${maxHeapSize} bytes!`);
         return false;
       }
-  
+
       // Loop through potential heap size increases. If we attempt a too eager
       // reservation that fails, cut down on the attempted size and reserve a
       // smaller bump instead. (max 3 times, chosen somewhat arbitrarily)
@@ -913,12 +980,12 @@ async function createWasm() {
         var overGrownHeapSize = oldSize * (1 + 0.2 / cutDown); // ensure geometric growth
         // but limit overreserving (default to capping at +96MB overgrowth at most)
         overGrownHeapSize = Math.min(overGrownHeapSize, requestedSize + 100663296 );
-  
+
         var newSize = Math.min(maxHeapSize, alignMemory(Math.max(requestedSize, overGrownHeapSize), 65536));
-  
+
         var replacement = growMemory(newSize);
         if (replacement) {
-  
+
           return true;
         }
       }
@@ -927,8 +994,8 @@ async function createWasm() {
     };
 
   var UTF8Decoder = globalThis.TextDecoder && new TextDecoder();
-  
-  
+
+
     /**
    * heapOrArray is either a regular array, or a JavaScript typed array view.
    * @param {number} idx
@@ -946,8 +1013,8 @@ async function createWasm() {
       while (heapOrArray[idx] && !(idx >= maxIdx)) ++idx;
       return idx;
     };
-  
-  
+
+
     /**
    * Given a pointer 'idx' to a null-terminated UTF8-encoded string in the given
    * array that contains uint8 values, returns a copy of that string as a
@@ -959,9 +1026,9 @@ async function createWasm() {
    * @return {string}
    */
   var UTF8ArrayToString = (heapOrArray, idx = 0, maxBytesToRead, ignoreNul) => {
-  
+
       var endPtr = findStringEnd(heapOrArray, idx, maxBytesToRead, ignoreNul);
-  
+
       // When using conditional TextDecoder, skip it for short strings as the overhead of the native call is not worth it.
       if (endPtr - idx > 16 && heapOrArray.buffer && UTF8Decoder) {
         return UTF8Decoder.decode(heapOrArray.subarray(idx, endPtr));
@@ -983,7 +1050,7 @@ async function createWasm() {
           if ((u0 & 0xF8) != 0xF0) warnOnce(`Invalid UTF-8 leading byte ${ptrToString(u0)} encountered when deserializing a UTF-8 string in wasm memory to a JS string!`);
           u0 = ((u0 & 7) << 18) | (u1 << 12) | (u2 << 6) | (heapOrArray[idx++] & 63);
         }
-  
+
         if (u0 < 0x10000) {
           str += String.fromCharCode(u0);
         } else {
@@ -993,8 +1060,8 @@ async function createWasm() {
       }
       return str;
     };
-  
-  
+
+
     /**
    * Given a pointer 'ptr' to a null-terminated UTF8-encoded string in the
    * emscripten HEAP, returns a copy of that string as a Javascript String object.
@@ -1024,19 +1091,19 @@ async function createWasm() {
     };
 
   var INT53_MAX = 9007199254740992;
-  
+
   var INT53_MIN = -9007199254740992;
   var bigintToI53Checked = (num) => (num < INT53_MIN || num > INT53_MAX) ? NaN : Number(num);
   function _fd_seek(fd, offset, whence, newOffset) {
     offset = bigintToI53Checked(offset);
-  
-  
+
+
       return 70;
     ;
   }
 
   var printCharBuffers = [null,[],[]];
-  
+
   var printChar = (stream, curr) => {
       var buffer = printCharBuffers[stream];
       assert(buffer);
@@ -1047,17 +1114,17 @@ async function createWasm() {
         buffer.push(curr);
       }
     };
-  
+
   var flush_NO_FILESYSTEM = () => {
       // flush anything remaining in the buffers during shutdown
       _fflush(0);
       if (printCharBuffers[1].length) printChar(1, 10);
       if (printCharBuffers[2].length) printChar(2, 10);
     };
-  
-  
-  
-  
+
+
+
+
   var _fd_write = (fd, iov, iovcnt, pnum) => {
       // hack to support printf in SYSCALLS_REQUIRE_FILESYSTEM=0
       var num = 0;
@@ -1079,12 +1146,12 @@ async function createWasm() {
       assert(func, `Cannot call unknown function ${ident}, make sure it is exported`);
       return func;
     };
-  
+
   var writeArrayToMemory = (array, buffer) => {
       assert(array.length >= 0, 'writeArrayToMemory array must have a length (should be an array or typed array)')
       HEAP8.set(array, buffer);
     };
-  
+
   var lengthBytesUTF8 = (str) => {
       var len = 0;
       for (var i = 0; i < str.length; ++i) {
@@ -1105,14 +1172,14 @@ async function createWasm() {
       }
       return len;
     };
-  
+
   var stringToUTF8Array = (str, heap, outIdx, maxBytesToWrite) => {
       assert(typeof str === 'string', `stringToUTF8Array expects a string (got ${typeof str})`);
       // Parameter maxBytesToWrite is not optional. Negative values, 0, null,
       // undefined and false each don't write out any bytes.
       if (!(maxBytesToWrite > 0))
         return 0;
-  
+
       var startIdx = outIdx;
       var endIdx = outIdx + maxBytesToWrite - 1; // -1 for string null terminator.
       for (var i = 0; i < str.length; ++i) {
@@ -1148,12 +1215,12 @@ async function createWasm() {
       heap[outIdx] = 0;
       return outIdx - startIdx;
     };
-  
+
   var stringToUTF8 = (str, outPtr, maxBytesToWrite) => {
       assert(typeof maxBytesToWrite == 'number', 'stringToUTF8 requires a third parameter that specifies the length of the output buffer');
       return stringToUTF8Array(str, HEAPU8, outPtr, maxBytesToWrite);
     };
-  
+
   var stackAlloc = (sz) => __emscripten_stack_alloc(sz);
   var stringToUTF8OnStack = (str) => {
       var size = lengthBytesUTF8(str) + 1;
@@ -1161,11 +1228,11 @@ async function createWasm() {
       stringToUTF8(str, ret, size);
       return ret;
     };
-  
-  
-  
-  
-  
+
+
+
+
+
     /**
    * @param {string|null=} returnType
    * @param {Array=} argTypes
@@ -1188,7 +1255,7 @@ async function createWasm() {
           return ret;
         }
       };
-  
+
       function convertReturnValue(ret) {
         if (returnType === 'string') {
           return UTF8ToString(ret);
@@ -1196,7 +1263,7 @@ async function createWasm() {
         if (returnType === 'boolean') return Boolean(ret);
         return ret;
       }
-  
+
       var func = getCFunc(ident);
       var cArgs = [];
       var stack = 0;
@@ -1217,11 +1284,11 @@ async function createWasm() {
         if (stack) stackRestore(stack);
         return convertReturnValue(ret);
       }
-  
+
       ret = onDone(ret);
       return ret;
     };
-  
+
     /**
    * @param {string=} returnType
    * @param {Array=} argTypes
@@ -1249,8 +1316,8 @@ Module['FS_createPreloadedFile'] = FS.createPreloadedFile;
 
   checkIncomingModuleAPI();
 
-  
-  
+
+
 
   // Assertions on removed incoming Module JS APIs.
   assert(typeof Module['memoryInitializerPrefixURL'] == 'undefined', 'Module.memoryInitializerPrefixURL option was removed, use Module.locateFile instead');
@@ -1292,6 +1359,9 @@ Module['FS_createPreloadedFile'] = FS.createPreloadedFile;
   Module['stackRestore'] = stackRestore;
   Module['stackSave'] = stackSave;
   Module['warnOnce'] = warnOnce;
+  Module['___cxa_throw'] = ___cxa_throw;
+  Module['ExceptionInfo'] = ExceptionInfo;
+  Module['uncaughtExceptionCount'] = uncaughtExceptionCount;
   Module['__abort_js'] = __abort_js;
   Module['_emscripten_resize_heap'] = _emscripten_resize_heap;
   Module['getHeapMax'] = getHeapMax;
@@ -1386,6 +1456,8 @@ var _segapsg_reset = Module['_segapsg_reset'] = makeInvalidEarlyAccess('_segapsg
 var _segapsg_write = Module['_segapsg_write'] = makeInvalidEarlyAccess('_segapsg_write');
 var _segapsg_sample_rate = Module['_segapsg_sample_rate'] = makeInvalidEarlyAccess('_segapsg_sample_rate');
 var _segapsg_generate = Module['_segapsg_generate'] = makeInvalidEarlyAccess('_segapsg_generate');
+var _segapsg_save_state = Module['_segapsg_save_state'] = makeInvalidEarlyAccess('_segapsg_save_state');
+var _segapsg_load_state = Module['_segapsg_load_state'] = makeInvalidEarlyAccess('_segapsg_load_state');
 var _fflush = Module['_fflush'] = makeInvalidEarlyAccess('_fflush');
 var _strerror = Module['_strerror'] = makeInvalidEarlyAccess('_strerror');
 var _malloc = Module['_malloc'] = makeInvalidEarlyAccess('_malloc');
@@ -1408,6 +1480,8 @@ function assignWasmExports(wasmExports) {
   assert(typeof wasmExports['segapsg_write'] != 'undefined', 'missing Wasm export: segapsg_write');
   assert(typeof wasmExports['segapsg_sample_rate'] != 'undefined', 'missing Wasm export: segapsg_sample_rate');
   assert(typeof wasmExports['segapsg_generate'] != 'undefined', 'missing Wasm export: segapsg_generate');
+  assert(typeof wasmExports['segapsg_save_state'] != 'undefined', 'missing Wasm export: segapsg_save_state');
+  assert(typeof wasmExports['segapsg_load_state'] != 'undefined', 'missing Wasm export: segapsg_load_state');
   assert(typeof wasmExports['fflush'] != 'undefined', 'missing Wasm export: fflush');
   assert(typeof wasmExports['strerror'] != 'undefined', 'missing Wasm export: strerror');
   assert(typeof wasmExports['malloc'] != 'undefined', 'missing Wasm export: malloc');
@@ -1427,6 +1501,8 @@ function assignWasmExports(wasmExports) {
   _segapsg_write = Module['_segapsg_write'] = createExportWrapper('segapsg_write', wasmExports['segapsg_write'], 2);
   _segapsg_sample_rate = Module['_segapsg_sample_rate'] = createExportWrapper('segapsg_sample_rate', wasmExports['segapsg_sample_rate'], 1);
   _segapsg_generate = Module['_segapsg_generate'] = createExportWrapper('segapsg_generate', wasmExports['segapsg_generate'], 4);
+  _segapsg_save_state = Module['_segapsg_save_state'] = createExportWrapper('segapsg_save_state', wasmExports['segapsg_save_state'], 2);
+  _segapsg_load_state = Module['_segapsg_load_state'] = createExportWrapper('segapsg_load_state', wasmExports['segapsg_load_state'], 3);
   _fflush = Module['_fflush'] = createExportWrapper('fflush', wasmExports['fflush'], 1);
   _strerror = Module['_strerror'] = createExportWrapper('strerror', wasmExports['strerror'], 1);
   _malloc = Module['_malloc'] = createExportWrapper('malloc', wasmExports['malloc'], 1);
@@ -1443,6 +1519,8 @@ function assignWasmExports(wasmExports) {
 }
 
 var wasmImports = {
+  /** @export */
+  __cxa_throw: ___cxa_throw,
   /** @export */
   _abort_js: __abort_js,
   /** @export */

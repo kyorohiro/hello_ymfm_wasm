@@ -1,12 +1,14 @@
 // Replay silently to preserve envelopes, PCM memory and stream state.
-// Does not serialize undocumented chip internals; long seeks yield to the UI.
+// Restore a supported checkpoint, otherwise replay from zero. Long seeks yield to the UI.
 export async function seekPlayback(player, sample, {signal,onProgress=()=>{},yieldTask=()=>new Promise(r=>setTimeout(r,0))}={}) {
   if(!Number.isFinite(sample)||sample<0)throw new RangeError('Invalid seek position');
   const loop=player.loopEnabled, prefetch=player.prefetchFactor;
-  player.reset();player.setLoopEnabled(false);player.setPrefetchFactor(1);player.play();
+  if(signal?.aborted){player.pause();throw new DOMException('Seek cancelled','AbortError');}
+  player.reset();
   const target=Math.floor(sample*player.sampleRate()/44100);
   const left=new Float32Array(4096),right=new Float32Array(4096);
-  let consumed=0,lastYield=performance.now();
+  let consumed=player.restoreCheckpoint?.(target) ?? 0,lastYield=performance.now();
+  player.setLoopEnabled(false);player.setPrefetchFactor(1);player.play();
   try{
     while(consumed<target){
       if(signal?.aborted)throw new DOMException('Seek cancelled','AbortError');

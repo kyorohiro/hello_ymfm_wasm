@@ -1,3 +1,4 @@
+#include "chip_state.h"
 #ifndef SEGAPSG_H
 #define SEGAPSG_H
 
@@ -20,6 +21,13 @@ public:
     uint32_t sample_rate() const { return m_sample_rate; }
     uint32_t clock() const { return m_clock; }
 
+    void state(std::vector<uint8_t> &bytes, bool saving) {
+        ChipStateIO io{bytes, saving};
+        io.field(m_sample_rate); io.field(m_clock); io.field(m_clock_accumulator);
+        for (auto &ch : m_tone) { io.field(ch.period); io.field(ch.counter); io.field(ch.output_high); io.field(ch.volume); }
+        io.field(m_noise_lfsr); io.field(m_noise_control); io.field(m_noise_volume);
+        io.field(m_noise_counter); io.field(m_noise_output_high); io.field(m_latched_channel); io.field(m_latched_volume);
+    }
 private:
     struct ToneChannel
     {
