@@ -25,10 +25,10 @@ export function mountSampleExplorer(panel, getSource, getOptions = () => ({})) {
       const note = document.createElement('p'); note.textContent = result.warnings.join(' '); output.append(note);
       if (!result.samples.length) output.append('No supported samples found.');
       for (const s of result.samples) {
-        const captured = s.kind === 'dac' || s.kind === 'pwm';
+        const captured = s.kind === 'dac' || s.kind === 'pwm' || s.chip === 'okim6258';
         const row = document.createElement('details'), title = document.createElement('summary');
         const uses = result.events.filter(e => e.sampleId === s.id);
-        title.textContent = `Sample ${s.id} · ${s.chip.toUpperCase()} ${s.kind.toUpperCase()} · ${captured ? `captured output · ${s.boundary}` : `0x${s.byteStart.toString(16)}–0x${(s.byteEndExclusive - 1).toString(16)}`} · ${s.size} bytes · ${uses.length} uses · ${s.chip === 'rf5c164' ? `RAM snapshot · start 0x${s.startAddress.toString(16)} · loop 0x${s.loopAddress.toString(16)} · ` : ''}${s.data ? 'available' : s.available ? 'partial data' : 'missing data'}`;
+        title.textContent = `Sample ${s.id} · ${s.chip.toUpperCase()} ${s.kind.toUpperCase()} · ${captured ? `${s.chip==='okim6258'?'timed ADPCM register capture':'captured output'} · ${s.boundary}` : `0x${s.byteStart.toString(16)}–0x${(s.byteEndExclusive - 1).toString(16)}`} · ${s.size} bytes · ${uses.length} uses · ${s.chip === 'rf5c164' ? `RAM snapshot · start 0x${s.startAddress.toString(16)} · loop 0x${s.loopAddress.toString(16)} · ` : ''}${s.data ? 'available' : s.available ? 'partial data' : 'missing data'}`;
         row.append(title);
         const history = document.createElement('pre');
         history.textContent = uses.slice(0, 500).map(e => `${(e.startTime / 44100).toFixed(3)} s · ${e.kind.toUpperCase()} channel ${e.channel} · end ${e.endTime == null ? 'unknown' : (e.endTime / 44100).toFixed(3) + ' s'} · level ${e.level}${e.totalLevel == null ? "" : `, total ${e.totalLevel}`}, pan ${e.pan} · ${e.rate.toFixed(2)} Hz${e.deltaN == null ? "" : ` · Delta-N ${e.deltaN} · repeat ${e.loop} · speaker off ${e.speakerOff}`}${e.chip==='segapcm'?` · bank 0x${e.bank.toString(16)} · start 0x${e.startAddress.toString(16)} · loop ${e.loop?'0x'+e.loopAddress.toString(16):'off'} · ${e.changes?.length??0} live changes`:''}${e.nextControl ? ` · next ${e.nextControl} ${(e.nextControlTime / 44100).toFixed(3)} s` : ''}`).join('\n');
@@ -40,6 +40,20 @@ export function mountSampleExplorer(panel, getSource, getOptions = () => ({})) {
             const canvas=document.createElement('canvas');canvas.width=512;canvas.height=96;canvas.style.maxWidth='100%';canvas.setAttribute('aria-label','PCM waveform');row.append(canvas);
             let drawn=false;row.addEventListener('toggle',()=>{if(!row.open||drawn)return;drawn=true;const pcm=s.chip==='segapcm'?Float32Array.from(s.data,v=>(v-128)/128):decodeYmf278bSample(s),ctx=canvas.getContext('2d');ctx.strokeStyle='#44aacc';ctx.beginPath();for(let x=0;x<512;x++){const start=Math.floor(x*pcm.length/512),end=Math.max(start+1,Math.floor((x+1)*pcm.length/512));let lo=1,hi=-1;for(let i=start;i<end;i++){lo=Math.min(lo,pcm[i]);hi=Math.max(hi,pcm[i]);}ctx.moveTo(x,48-hi*46);ctx.lineTo(x,48-lo*46);}ctx.stroke();});
           }
+        }
+        if(s.chip==='okim6258' && s.data) {
+          const info=document.createElement('p');info.textContent='Timed ADPCM register capture. Preview includes live pan and clock/divider changes, up to 10 seconds; divider phase restarts at capture start.';row.append(info);
+          const canvas=document.createElement('canvas');canvas.width=512;canvas.height=96;canvas.style.maxWidth='100%';canvas.setAttribute('aria-label','Decoded ADPCM waveform');row.append(canvas);
+          const draw=document.createElement('button');draw.textContent='Show waveform (up to 10 s)';
+          draw.onclick=async()=>{draw.disabled=true;try{
+            const pcm=await renderSamplePreview(s,uses[0],{getFactory:async()=> (await import('../generated/okim6258_wasm.js')).default});
+            if(own.signal.aborted)return;
+            const ctx=canvas.getContext('2d');ctx.strokeStyle='#44aacc';ctx.beginPath();
+            for(let x=0;x<512;x++){const from=Math.floor(x*pcm.left.length/512),end=Math.max(from+1,Math.floor((x+1)*pcm.left.length/512));let lo=1,hi=-1;
+              for(let i=from;i<end;i++){lo=Math.min(lo,pcm.left[i],pcm.right[i]);hi=Math.max(hi,pcm.left[i],pcm.right[i]);}
+              ctx.moveTo(x,48-hi*46);ctx.lineTo(x,48-lo*46);}
+            ctx.stroke();
+          }catch(error){note.textContent=error.message;}finally{draw.disabled=false;}};row.append(draw);
         }
         if (s.data) {
           const save = document.createElement('button'); save.textContent = captured ? `Save timed ${s.kind.toUpperCase()} JSON` : s.chip === 'rf5c164' ? 'Save 64 KiB RAM snapshot' : ['ymf278b','segapcm'].includes(s.chip) ? 'Save raw PCM' : 'Save raw ADPCM';
@@ -55,14 +69,14 @@ export function mountSampleExplorer(panel, getSource, getOptions = () => ({})) {
             selection.append(option);
           });
           const listen = document.createElement('button'); listen.textContent = 'Preview centered (up to 10 s)';
-          if(s.kind==='pwm'||s.chip==='segapcm')listen.textContent='Preview stereo (up to 10 s)';
+          if(s.kind==='pwm'||['segapcm','okim6258'].includes(s.chip))listen.textContent='Preview stereo (up to 10 s)';
           listen.onclick = async () => {
             stop(); const serial = previewSerial; listen.disabled = true;
             try {
               audio ??= new AudioContext(); await audio.resume();
               const pcm=await renderSamplePreview(s,uses[Number(selection.value)],{getFactory:async name=>{
                 const module=await (name==='rf5c164'?import('../generated/rf5c164_wasm.js'):
-                  name==='segapcm'?import('../generated/segapcm_wasm.js'):name==='ym2608'?import('../generated/ym2608_wasm.js'):import('../generated/ym2610b_wasm.js'));
+                  name==='okim6258'?import('../generated/okim6258_wasm.js'):name==='segapcm'?import('../generated/segapcm_wasm.js'):name==='ym2608'?import('../generated/ym2608_wasm.js'):import('../generated/ym2610b_wasm.js'));
                 return module.default;
               }});
               const buffer=audio.createBuffer(2,pcm.left.length,pcm.sampleRate);
@@ -73,9 +87,9 @@ export function mountSampleExplorer(panel, getSource, getOptions = () => ({})) {
             finally { listen.disabled = false; }
           };
           row.append(save, selection, listen);
-          if(['ymf278b','segapcm'].includes(s.chip)) {
-            const wav=document.createElement('button');wav.textContent='Save one-pass WAV';
-            wav.onclick=async()=>{try{const result=await samplePreviewWav(s,uses[Number(selection.value)],{getFactory:async()=> (await import('../generated/segapcm_wasm.js')).default});const url=URL.createObjectURL(new Blob([result.bytes],{type:'audio/wav'})),a=document.createElement('a');a.href=url;a.download=`${s.chip}-pcm-${s.id}.wav`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}catch(error){note.textContent=error.message;}};
+          if(['ymf278b','segapcm','okim6258'].includes(s.chip)) {
+            const wav=document.createElement('button');wav.textContent=s.chip==='okim6258'?'Save capture WAV (up to 10 s)':'Save one-pass WAV';
+            wav.onclick=async()=>{try{const result=await samplePreviewWav(s,uses[Number(selection.value)],{getFactory:async name=> (await (name==='okim6258'?import('../generated/okim6258_wasm.js'):import('../generated/segapcm_wasm.js'))).default});const url=URL.createObjectURL(new Blob([result.bytes],{type:'audio/wav'})),a=document.createElement('a');a.href=url;a.download=`${s.chip}-${s.kind}-${s.id}.wav`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}catch(error){note.textContent=error.message;}};
             row.append(wav);
           }
           if(s.kind==='pwm') {

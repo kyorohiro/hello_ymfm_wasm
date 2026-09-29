@@ -1,3 +1,4 @@
+import {Oki6258AudioEngine} from '../js/okim6258audioengine.js';
 import {decodeYmf278bSample} from './ymf278b_samples.js';
 import {SegaPcm} from '../js/segapcm.js';
 import {Rf5c164} from '../js/rf5c164.js';
@@ -9,6 +10,7 @@ import {encodeStereoWav} from './vgm_wav.js';
 
 export async function renderSamplePreview(sample,event,{getFactory}={}) {
   if(!sample.data)throw new Error('Sample has missing/partial data');
+  if(sample.chip==='okim6258')return renderOki6258Preview(sample,{getFactory});
   if(sample.chip==='ymf278b'){
     const data=decodeYmf278bSample(sample),rate=event.rate;
     if(!(rate>0))throw new Error('Sample rate is zero');
@@ -93,4 +95,26 @@ export function configureSamplePreview(chip, sample, event) {
     write(0x19, event.deltaN & 255); write(0x1a, event.deltaN >> 8); write(0x1b, event.level);
     write(0x10, 0x80 | (event.speakerOff ? 8 : 0));
   }
+}
+
+// Replays data feeds and live pan/clock changes. Idle pre-roll phase is not retained.
+async function renderOki6258Preview(sample,{getFactory}) {
+  const factory=await getFactory?.('okim6258');
+  if(!factory)throw new Error('Missing sample factory: okim6258');
+  const chip=await Oki6258AudioEngine.create({moduleFactory:factory,clock:sample.clock,flags:sample.flags,outputSampleRate:44100});
+  try{
+    const write=(r,v)=>chip.writeOki6258(r,v),initial=sample.initial;
+    for(let i=0;i<4;i++)write(8+i,initial.clock>>>(8*i)&255);
+    for(let i=0;i<3;i++)write(8+i,initial.clockBuffer>>>(8*i)&255);
+    write(12,initial.divider);write(2,initial.pan);
+    const frames=Math.max(1,Math.min(441000,Math.floor(sample.duration)));
+    const left=new Float32Array(frames),right=new Float32Array(frames);let cursor=0;
+    function advance(end){if(end>cursor){const pcm=chip.processFrames(end-cursor);left.set(pcm.left,cursor);right.set(pcm.right,cursor);cursor=end;}}
+    for(let i=0;i<sample.values.length;i++){
+      if(sample.times[i]>frames)break;
+      advance(Math.min(frames,Math.floor(sample.times[i])));
+      write(sample.registers[i],sample.values[i]);
+    }
+    advance(frames);return {left,right,sampleRate:44100};
+  }finally{chip.dispose();}
 }

@@ -381,6 +381,7 @@ IDs are deterministic for the same input and extractor, not global identifiers.
 This uses the Browser Sample Explorer scan:
 - YM2610/B ADPCM-A/B and YM2608 external-memory ADPCM-B: raw ADPCM ranges.
 - RF5C164: 64 KiB RAM snapshots, with start/loop addresses.
+- OKIM6258: play/stop captures of timed ADPCM register writes, including direct and VGM stream feeds. Single-chip 4-bit playback only; standalone and YM2151 mixtures are covered.
 - Sega PCM: unsigned 8-bit ROM ranges at enable time, with bank/start/loop addresses, stereo levels and usage events. Standalone and YM2151/PSG combinations are supported.
 - YMF278B: key-on PCM snapshots; external ROM input availability depends on the caller.
 - YM2612 DAC and 32X PWM: timed output captures, not recovered instruments.
@@ -445,7 +446,7 @@ Node: `await exportNodeSamples(source,{id:1,format:'wav',occurrence:1})`
 automatically supplies the existing Node WASM factory provider.
 Environment-neutral Core:
 `await exportSourceSamples(source,{id:1,format:'wav',occurrence:1,getFactory})`.
-The provider receives `rf5c164`, `ym2608`, `ym2610b` or `segapcm`; DAC/PWM need no
+The provider receives `rf5c164`, `ym2608`, `ym2610b`, `segapcm` or `okim6258`; DAC/PWM need no
 factory. Returns `{bytes,sampleRate,seconds,warnings}`.
 
 Occurrence is 1-based within that sample's inventory events (default 1).
@@ -454,7 +455,7 @@ ID; batch WAV is rejected. Missing data, unknown occurrence and zero ADPCM
 rate are errors. Native export remains the default.
 
 The Browser and CLI share configuration, chip creation and PCM generation.
-Output is stereo PCM16; DAC is duplicated mono, PWM and Sega PCM retain stereo, and
+Output is stereo PCM16; DAC is duplicated mono, PWM, Sega PCM and OKIM6258 retain stereo, and
 ADPCM/RF5C164 use the Browser centered preview. The chip output rate is
 rounded to an integer for the WAV header, without resampling.
 
@@ -778,3 +779,21 @@ Node API: `exportSource(source, {format:'sbi', atSeconds:1.5, channel:1})`
 returns `{bytes, sample, channel, warnings}`; `{format:'sbi-zip'}` returns
 `{bytes, count, warnings}`. `support FILE --json` reports both formats;
 snapshot support is probed at time 0, channel 1.
+
+
+## OKIM6258 Sample Explorer captures
+
+`samples` operations also accept standalone OKIM6258 and YM2151 + OKIM6258.
+Native export is `.json` with `format: "tetorica-okim6258-capture"`, `schemaVersion: 1`,
+`timebase: 44100`, initial clock/divider/pan settings and ordered `times`, `registers`,
+`values` arrays. Times are relative to the interval's start; equal-time writes keep order.
+The inventory uses `representation: "timed-adpcm"`; its size counts ADPCM data bytes,
+while `writeCount` also includes control writes. Inventory omits the large write arrays.
+ZIP includes captures and the shared manifest. This format is an export, not a new import command.
+
+Capture intervals end on stop/recording/end-of-VGM, not inferred instrument boundaries.
+Native JSON preserves the complete interval (subject to the one-million-write capture limit).
+`--format wav` and Browser preview decode the first 10 seconds through the shared WASM core,
+including timed pan/clock/divider changes. Divider phase restarts at each capture start:
+pre-start idle phase is not reconstructed, so a nonzero start time need not match whole-track
+rendering sample-for-sample. FIFO underflow follows the existing core's held-output behavior. Recording, 3-bit mode and dual/variant configurations are excluded.
