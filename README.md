@@ -38,6 +38,8 @@ This repository has four goals:
 
 ## What this repository provides
 
+[機能対応状況 / Feature status](docs/feature-status.md): implementation coverage, verification records, limitations and release status across Analyzer, CLI and Playground.
+
 - YM2612 WebAssembly builds and JavaScript wrappers for browser-side use
 - a reusable `Playground(...)` runtime layer for browser games and app embedding
 - a browser playground for trying YM2612 control and live coding from JavaScript

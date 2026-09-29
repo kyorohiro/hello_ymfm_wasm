@@ -19,6 +19,7 @@ npm version 0.2.1 --no-git-tag-version
 - `cli/README.md`: npm配布用README。利用者向けの導入・コマンド・API。
 - `CLI.md`: 詳細な対応音源、オプション、制約、Node API。
 - `README.md`: GitHubリポジトリ全体の説明。
+- [docs/feature-status.md](docs/feature-status.md): 実装・検証状態を更新し、公開後に対象アプリ・版番号・commit・公開URL・含めた機能を記録する。
 - `cli/main.js` のhelpと、関連するissueの作業記録。
 
 ## 2. テストする
