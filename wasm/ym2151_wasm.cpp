@@ -1,3 +1,4 @@
+#include "opn_state.h"
 #include <cstdint>
 
 #include "ymfm_wasm_interface.h"
@@ -10,6 +11,7 @@ struct ym2151_handle
 {
     ymfm_wasm_interface intf;
     ymfm::ym2151 chip;
+    uint32_t mute_mask = 0;
 
     ym2151_handle() : intf(), chip(intf)
     {
@@ -78,6 +80,7 @@ uint32_t ym2151_sample_rate(void *ptr, uint32_t clock)
 
 void ym2151_set_mute_mask(void *ptr, uint32_t mask)
 {
+    cast_handle(ptr)->mute_mask = mask;
     cast_handle(ptr)->chip.set_mute_mask(mask);
 }
 
@@ -94,4 +97,14 @@ void ym2151_generate(void *ptr, float *left, float *right, uint32_t frames)
     }
 }
 
+
+uint32_t ym2151_save_state(void *ptr, uint8_t *out) {
+    auto *h = cast_handle(ptr);
+    return save_opn_state(h->chip, h->intf, {&h->mute_mask}, {}, out);
+}
+int ym2151_load_state(void *ptr, const uint8_t *data, uint32_t size) {
+    auto *h = cast_handle(ptr);
+    if (!load_opn_state(h->chip, h->intf, {&h->mute_mask}, {}, data, size)) return 0;
+    h->chip.set_mute_mask(h->mute_mask); return 1;
+}
 }

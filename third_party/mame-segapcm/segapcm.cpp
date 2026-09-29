@@ -112,3 +112,24 @@ void SegaPcm::generate(float *left, float *right, uint32_t frames) {
         right[i] = float(sumRight / (double(clock) * 32768.0));
     }
 }
+
+// Opaque same-instance snapshots; validate ROM length before modifying any field.
+uint32_t SegaPcm::save_state(uint8_t *out) {
+    std::vector<uint8_t> fields; state_fields(fields, true);
+    const uint32_t length = rom.size(), prefix = fields.size();
+    if (out) {
+        std::memcpy(out, fields.data(), prefix);
+        std::memcpy(out + prefix, &length, sizeof(length));
+        if (length) std::memcpy(out + prefix + sizeof(length), rom.data(), length);
+    }
+    return prefix + sizeof(length) + length;
+}
+bool SegaPcm::load_state(const uint8_t *data, uint32_t size) {
+    std::vector<uint8_t> fields; state_fields(fields, true);
+    const size_t prefix = fields.size();
+    if (!data || size < prefix + sizeof(uint32_t)) return false;
+    uint32_t length; std::memcpy(&length, data + prefix, sizeof(length));
+    if (length > 0x200000 || length != size - prefix - sizeof(length)) return false;
+    std::vector<uint8_t> memory(data + prefix + sizeof(length), data + size);
+    std::memcpy(fields.data(), data, prefix); state_fields(fields, false); rom.swap(memory); return true;
+}

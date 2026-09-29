@@ -15,6 +15,7 @@ export function validateOki6258Header(header) {
  * Dispose the engine when done to release its underlying chips.
  */
 export class Oki6258AudioEngine {
+  #states = new WeakMap();
   /**
    * Create the chip instances required by this engine.
    * @param {Object} options Chip factories, clocks in Hz and loader settings.
@@ -58,6 +59,34 @@ export class Oki6258AudioEngine {
    * @returns {void}
    */
   reset(){this.module._okim6258_reset(this.handle);}
+  stateSettingsKey() { return JSON.stringify([this.rate, this.volume, this.muted]); }
+  supportsState() { return !!this.handle && typeof this.module._okim6258_save_state === 'function' && typeof this.module._okim6258_load_state === 'function'; }
+
+  // Opaque, same-instance, same-build state. Output buffers and hooks are not state.
+  saveState() {
+    if (!this.supportsState()) throw new Error('State saving unavailable');
+    const size = this.module._okim6258_save_state(this.handle, 0);
+    const ptr = this.module._malloc(size);
+    if (!ptr) throw new Error('State allocation failed');
+    try {
+      this.module._okim6258_save_state(this.handle, ptr);
+      const bytes = new Uint8Array(this.module.HEAPF32.buffer, ptr, size).slice();
+      const state = Object.freeze({byteLength: size, key: this.stateSettingsKey()}); this.#states.set(state, bytes); return state;
+    } finally { this.module._free(ptr); }
+  }
+  validateState(state) {
+    if (!this.supportsState() || !this.#states.has(state) || state.key !== this.stateSettingsKey()) throw new Error('Invalid or foreign chip state');
+  }
+  loadState(state) {
+    this.validateState(state);
+    const bytes = this.#states.get(state), ptr = this.module._malloc(bytes.length);
+    if (!ptr) throw new Error('State allocation failed');
+    try {
+      new Uint8Array(this.module.HEAPF32.buffer, ptr, bytes.length).set(bytes);
+      if (!this.module._okim6258_load_state(this.handle, ptr, bytes.length)) throw new Error('Invalid native state');
+    } finally { this.module._free(ptr); }
+  }
+
   /**
    * Release the underlying chips and their resources. Do not render after disposal.
    * @returns {void}
@@ -81,6 +110,7 @@ export class Oki6258AudioEngine {
 // and channel controls; advance ADPCM over exactly the same output interval.
 export function attachOki6258(engine, oki) {
   const render=engine.processFrames.bind(engine),reset=engine.reset.bind(engine),dispose=engine.dispose.bind(engine);
+  engine.attachedOki6258=oki;
   engine.writeOki6258=(r,v)=>oki.writeOki6258(r,v);
   engine.setOkiMuted=(v)=>oki.setOkiMuted(v);
   engine.processFrames=frames=>{const pcm=render(frames),extra=oki.processFrames(frames),volume=engine.getMasterVolume();for(let i=0;i<frames;i++){pcm.left[i]+=extra.left[i]*volume;pcm.right[i]+=extra.right[i]*volume;}return pcm;};

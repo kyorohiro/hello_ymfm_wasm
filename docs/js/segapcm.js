@@ -15,6 +15,7 @@ export function validateSegaPcm({clock=SEGAPCM_CLOCK,sampleRate=44100}={}) {
  * Register writes program the chip; generateStereo() advances it to produce PCM.
  */
 export class SegaPcm {
+  #states = new WeakMap();
   /**
    * Initialize SegaPcm and its native WASM module.
    * The generated module factory is injected so browser and Node callers can choose asset loading.
@@ -125,6 +126,34 @@ export class SegaPcm {
     return {left:new Float32Array(this.module.HEAPF32.subarray(this.ptr/4,this.ptr/4+frames)),
       right:new Float32Array(this.module.HEAPF32.subarray(rightPtr/4,rightPtr/4+frames))};
   }
+  supportsState() { return !!this.handle && typeof this.module._segapcm_save_state === 'function' && typeof this.module._segapcm_load_state === 'function'; }
+
+  // Opaque, same-instance, same-build state. Output buffers and hooks are not state.
+  saveState() {
+    if (!this.supportsState()) throw new Error('State saving unavailable');
+    const size = this.module._segapcm_save_state(this.handle, 0);
+    const ptr = this.module._malloc(size);
+    if (!ptr) throw new Error('State allocation failed');
+    try {
+      this.module._segapcm_save_state(this.handle, ptr);
+      const bytes = new Uint8Array(this.module.HEAPF32.buffer, ptr, size).slice();
+      const state = Object.freeze({byteLength: size, sampleMemorySize: this.sampleMemorySize}); this.#states.set(state, bytes); return state;
+    } finally { this.module._free(ptr); }
+  }
+  validateState(state) {
+    if (!this.supportsState() || !this.#states.has(state)) throw new Error('Invalid or foreign chip state');
+  }
+  loadState(state) {
+    this.validateState(state);
+    const bytes = this.#states.get(state), ptr = this.module._malloc(bytes.length);
+    if (!ptr) throw new Error('State allocation failed');
+    try {
+      new Uint8Array(this.module.HEAPF32.buffer, ptr, bytes.length).set(bytes);
+      if (!this.module._segapcm_load_state(this.handle, ptr, bytes.length)) throw new Error('Invalid native state');
+      this.sampleMemorySize = state.sampleMemorySize;
+    } finally { this.module._free(ptr); }
+  }
+
   /**
    * Release native chip state and allocated WASM buffers. Do not use the chip afterward.
    * @returns {void}

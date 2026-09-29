@@ -6,7 +6,7 @@
 従来の `docs/vgm_analyzer/seek_playback.js` は `player.reset()` 後、目的位置まで無音で音声を生成していた。
 そのため、3分地点から2分55秒へ戻る場合も、先頭から2分55秒ぶんの演算が必要だった。
 
-この文書は設計・対応管理用。Genesis構成およびYM2203・YM2608・YM2610／YM2610Bのチェックポイントによる高速シークを実装済み。OPM（YM2151）は後続対応。
+この文書は設計・対応管理用。Genesis構成およびYM2203・YM2608・YM2610／YM2610Bのチェックポイントによる高速シークを実装済み。OPM（YM2151）とSega PSG・Sega PCM・OKIM6258の併用にも対応済み。
 
 ## 方針
 
@@ -62,7 +62,7 @@ Analyzerの対応音源は `docs/vgm_analyzer/support.html` を基準にする�
 | YM2608 | ymfm `save_restore` あり | ☑ | ☑ | ☑ | ☑ | Rhythm ROM、ADPCM-B RAM |
 | YM2610 | ymfm `save_restore` あり | ☑ | ☑ | ☑ | ☑ | ADPCM-A/B、SSG |
 | YM2610B | ymfmのYM2610から継承 | ☑ | ☑ | ☑ | ☑ | 6 FM CH、ADPCM-A/B |
-| YM2151 | ymfm `save_restore` あり | ☐ | ☐ | ☐ | ☐ | LFO、ノイズ、タイマー |
+| YM2151 | ymfm `save_restore`＋ランダムLFO保存補完 | ☑ | ☑ | ☑ | ☑ | LFO、ノイズ、タイマー、併用音源 |
 | YM2413 | ymfmのOPLL基底にあり | ☐ | ☐ | ☐ | ☐ | ユーザー音色、リズム |
 | YM3526 | ymfm `save_restore` あり | ☐ | ☐ | ☐ | ☐ | リズム、ノイズ |
 | YM3812 | ymfm `save_restore` あり | ☐ | ☐ | ☐ | ☐ | リズム、波形選択 |
@@ -75,8 +75,8 @@ Analyzerの対応音源は `docs/vgm_analyzer/support.html` を基準にする�
 | 32X PWM | JS Save / Load追加済み | ☑（JSのみ） | ☑ | ☑ | ☑ | 現実装は値保持型。FIFO・ハードウェアタイマーなし |
 | K051649 / K052539 | 要調査 | ☐ | ☐ | ☐ | ☐ | 波形RAM、SCC / SCC+モード |
 | HuC6280 | 要調査 | ☐ | ☐ | ☐ | ☐ | 波形RAM、DDA、ノイズ、LFO |
-| OKIM6258 | 要調査 | ☐ | ☐ | ☐ | ☐ | ADPCM途中状態、入力バッファ |
-| Sega PCM | 要調査 | ☐ | ☐ | ☐ | ☐ | ROM参照、バンク、チャンネル再生位置 |
+| OKIM6258 | 状態保存APIを追加済み | ☑ | ☑ | ☑ | ☑（YM2151併用） | ADPCM途中状態、FIFO、出力位相。単体Analyzer経路は未対応 |
+| Sega PCM | ROM込み状態保存APIを追加済み | ☑ | ☑ | ☑ | ☑（YM2151併用） | バンク、16CH再生位置、保持出力。単体エンジンは未対応 |
 | NES APU + FDS | 要調査（JS側を含む） | ☐ | ☐ | ☐ | ☐ | DMCメモリー、フレーム時刻、FDS波形・変調 |
 | Game Boy DMG | 要調査 | ☐ | ☐ | ☐ | ☐ | Wave RAM、フレームシーケンサー、ノイズ |
 
@@ -152,7 +152,7 @@ player.loadState(checkpoint);
 - [x] Analyzerのシーク・モニター・キャンセル処理へ接続する。
 - [x] Genesis構成でDACストリーム、PSGノイズ、PWM書き込み、RF5C164のRAM更新／ループ途中の復元を検証する。
 - [x] YM2203 / YM2608 / YM2610 / YM2610B（OPN系）へ拡張する。RAMやROMを伴う曲でも検証する。
-- [ ] YM2151（OPM）へ拡張する。
+- [x] YM2151（OPM）とSega PSG／Sega PCM／OKIM6258併用へ拡張する。
 - [ ] その他のymfm系・別コア音源は後続対応とする。未対応構成は既存方式を維持する。
 
 ## autotest・受け入れ条件
@@ -240,3 +240,43 @@ YM3438・YMF288は引き続きライブラリー側の拡張候補。YM2151はOP
 ブラウザーでの実操作・試聴と、大きな実曲ROMを使った長時間の性能測定は未実施。
 
 OPN追加後の回帰テスト：`node --test web/*.test.mjs docs/vgm_analyzer/*.test.mjs test/*.test.mjs` は1117件中1116成功・失敗0・既存skip 1。追加OPNテスト19件を含む。
+
+
+## OPM対応（2026-09-29）
+
+YM2151単体、およびSega PSG・Sega PCM・OKIM6258を併用するYM2151エンジンに
+チェックポイントによる高速シークを追加した。同じ曲のPlay／seekでキャッシュを保持する。
+5秒間隔・120個／32 MiBの既存上限を共通利用し、保存地点から目的位置までの差分だけ生成する。
+
+### 保存範囲
+
+- YM2151：ymfmコア、WASM側のタイマー残量・IRQ・ミュートマスク。
+  ランダムLFOの波形テーブルは実行中に書き換わるが、既存の`save_restore`では保存されていなかった。
+  復元音声一致テストで差を検出し、`src/ymfm_opm.cpp`でこのテーブルも保存するよう補完した。
+- Sega PCM：16音源の再生アドレス・小数部・ループ・バンク・音量・制御、
+  クロック端数、直前の左右出力、ミュート、ROM内容とサイズ。
+  ROMを含めてコピーするため、大きいROMでは容量上限により保存できる区間が短くなる。
+- OKIM6258：ADPCMデコーダー、FIFOと読み出し位置、半バイト途中の状態、
+  クロック／分周・パン・出力位相・直前サンプル。
+- YM2151エンジン：全併用チップとリサンプラー端数・保持サンプル。
+  ミュート・音量などが変わった場合は古いチェックポイントを利用しない。
+- Analyzer：OPMレジスタ・キー状態・AMD／PMD・変更表示、ノート履歴・ID、PSG／PCM表示。
+
+### 検証
+
+`web/opm_state.test.mjs`に実WASMを使う自動テストを追加。
+自作fixtureでYM2151単体、YM2151＋Sega PCM、YM2151＋Sega PCM＋PSG、
+YM2151＋OKIM6258を検証する。
+
+- リセット／ROM破棄後の復元音声が左右とも完全一致し、繰り返し復元できる。
+- チェックポイント経由の巻き戻しが先頭からの再生と完全一致し、再演算量が減る。
+- ランダムLFO・ノイズ・タイマー・書き込みアドレスラッチと、OKIM6258のFIFO途中を復元する。
+- 別インスタンス・設定変更・不正なROM長の状態を拒否する。
+- Analyzer接続で同一曲のキャッシュ保持、曲変更時の破棄、OPM表示復元を検証する。
+
+全体回帰：`node --test web/*.test.mjs docs/vgm_analyzer/*.test.mjs test/*.test.mjs`
+は1130件中1129件成功、既存skip 1件、失敗0件。追加したOPMテスト13件はすべて成功。
+
+ブラウザーでの実曲試聴・長時間再生の体感確認は未実施。
+OKIM6258単体／Sega PCM単体のAnalyzer高速シーク、Genesis・OPN＋OKIM6258、
+未対応チップとの併用・未対応Dual構成は今回の対象外。従来のシーク／対応可否判定を維持する。

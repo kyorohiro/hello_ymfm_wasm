@@ -21,6 +21,8 @@ export function createOpmNoteTracker(clock, changed = () => {}) {
   }
   return {
     channels,
+    saveState() { return {regs:regs.slice(),masks:masks.slice(),serial,channels:structuredClone(channels)}; },
+    loadState(s) { regs.set(s.regs);masks.set(s.masks);serial=s.serial;channels.splice(0,channels.length,...structuredClone(s.channels)); },
     reset() { regs.fill(0);masks.fill(0);serial=0;for(let i=0;i<8;i++)channels[i]={midi:null,keyOn:false,key:0,reason:null,kc:0,kf:0}; },
     write(r,v,sample) {
       regs[r & 255] = v & 255;

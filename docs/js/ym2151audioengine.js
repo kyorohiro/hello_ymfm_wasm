@@ -15,6 +15,7 @@ import { SegaPcm } from './segapcm.js';
  * Dispose the engine when done to release its underlying chips.
  */
 export class Ym2151AudioEngine {
+  #states = new WeakMap();
   /**
    * Create the chip instances required by this engine.
    * @param {Object} [options={}] Chip factories, clocks in Hz and loader settings.
@@ -116,6 +117,33 @@ export class Ym2151AudioEngine {
   reset() {
     this.ym2151.reset(); this.psg?.reset(); this.segapcm?.reset(); this.remainder = 0; this.lastLeft = 0; this.lastRight = 0;
   }
+  supportsState() {
+    return Boolean(this.ym2151.supportsState?.() && (!this.psg || this.psg.supportsState?.()) &&
+      (!this.segapcm || this.segapcm.supportsState?.()) && (!this.writeOki6258 || this.attachedOki6258?.supportsState?.()));
+  }
+  stateSettingsKey() {
+    return JSON.stringify([this.chipRate,this.outputRate,this.volume,this.ym2151.muteMask,this.psgMuted,
+      this.segapcmMuted,this.segapcmChannelMask,this.attachedOki6258?.stateSettingsKey()]);
+  }
+  saveState() {
+    if (!this.supportsState()) throw new Error('YM2151 state saving unavailable');
+    const chips=[this.ym2151,this.psg,this.segapcm,this.attachedOki6258];
+    const states=chips.map(c=>c?.saveState());
+    const state=Object.freeze({byteLength:64+states.reduce((n,s)=>n+(s?.byteLength??0),0)});
+    this.#states.set(state,{chips,states,key:this.stateSettingsKey(),timing:[this.remainder,this.lastLeft,this.lastRight]});
+    return state;
+  }
+  validateState(state) {
+    const saved=this.#states.get(state),chips=[this.ym2151,this.psg,this.segapcm,this.attachedOki6258];
+    if (!this.supportsState() || !saved || saved.key!==this.stateSettingsKey() || chips.some((c,i)=>c!==saved.chips[i])) throw new Error('Incompatible YM2151 state');
+    chips.forEach((c,i)=>c?.validateState(saved.states[i]));
+  }
+  loadState(state) {
+    this.validateState(state);const saved=this.#states.get(state);
+    saved.chips.forEach((c,i)=>c?.loadState(saved.states[i]));
+    [this.remainder,this.lastLeft,this.lastRight]=saved.timing;
+  }
+
   /**
    * Release the underlying chips and their resources. Do not render after disposal.
    * @returns {void}

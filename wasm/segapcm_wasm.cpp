@@ -14,4 +14,7 @@ void segapcm_clear_memory(void *p){static_cast<SegaPcm*>(p)->clearSampleMemory()
 uint32_t segapcm_sample_rate(void *p){return static_cast<SegaPcm*>(p)->sample_rate();}
 void segapcm_set_mute_mask(void *p,uint32_t mask){static_cast<SegaPcm*>(p)->set_mute_mask(mask);}
 void segapcm_generate(void *p,float *l,float *r,uint32_t n){static_cast<SegaPcm*>(p)->generate(l,r,n);}
+
+uint32_t segapcm_save_state(void *p, uint8_t *out){return static_cast<SegaPcm*>(p)->save_state(out);}
+int segapcm_load_state(void *p, const uint8_t *data, uint32_t size){return static_cast<SegaPcm*>(p)->load_state(data,size);}
 }

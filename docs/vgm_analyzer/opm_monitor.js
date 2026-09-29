@@ -8,6 +8,8 @@ export function createOpmState(now = () => performance.now()) {
     for (const [field, mask] of fields) if ((before & mask) !== (after & mask)) changes.set(`${prefix}.${field}`, now());
   }
   return {
+    saveState() { return {regs:regs.slice(),keys:keys.slice(),amd,pmd,changes:new Map(changes)}; },
+    loadState(s) { regs.set(s.regs);keys.set(s.keys);amd=s.amd;pmd=s.pmd;changes.clear();for(const [k,v] of s.changes)changes.set(k,v); },
     reset() { regs.fill(0); keys.fill(0); amd = pmd = 0; changes.clear(); },
     opacity(key) { const time = changes.get(key); return time === undefined ? 0 : Math.max(0, 1 - (now() - time) / 1800); },
     hasRecentChanges() { return [...changes.values()].some(time => now() - time < 1800); },

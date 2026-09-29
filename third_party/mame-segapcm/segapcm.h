@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <vector>
 #include <array>
+#include "chip_state.h"
 class SegaPcm {
 public:
     static constexpr int NUM_VOICES = 16;
@@ -20,7 +21,17 @@ public:
     void generate(float *left, float *right, uint32_t frames);
     uint32_t sample_rate() const { return rate; }
     void set_mute_mask(uint32_t mask) { mute_mask = mask & 0xffff; }
+    uint32_t save_state(uint8_t *out);
+    bool load_state(const uint8_t *data, uint32_t size);
 private:
+    void state_fields(std::vector<uint8_t> &bytes, bool saving) {
+        ChipStateIO io{bytes, saving};
+        io.field(bankShift); io.field(bankMask); io.field(rate); io.field(clock); io.field(mute_mask); io.field(tick_remaining);
+        for (auto &v : voices) { io.field(v.addr); io.field(v.loop); io.field(v.end); io.field(v.freq); io.field(v.lvol); io.field(v.rvol); io.field(v.ctrl); }
+        for (auto &v : lastLeft) io.field(v);
+        for (auto &v : lastRight) io.field(v);
+    }
+
     struct voice_t {
         uint32_t addr = 0xffff00; // 16.8 fixed point: bits8-23 byte address, bits0-7 fraction
         uint16_t loop = 0xffff;   // restart address, bits 8-23 of the byte address
