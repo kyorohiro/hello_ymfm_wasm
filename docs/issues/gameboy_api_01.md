@@ -4,9 +4,8 @@
 
 ## 状態と目的
 
-設計案。以下の高水準APIは未実装。
-現状は `createSoundChip('gameboy')` の `writeRegister()` / `reset()` / `dispose()`
-でPlaygroundからDMG音源を操作できる。
+初版実装済（2026-09-29）。自動テスト・WAV生成・Playground配布確認を実施。ブラウザーでの聴感確認は未実施。
+`createSoundChip('gameboy')` でpulse／wave／noiseと既存raw APIを利用できる。
 既存実装は [playground_gameboy_raw_01.md](playground_gameboy_raw_01.md) を参照。
 
 レジスタを直接操作する入口を維持しながら、音程・音量・波形などを
@@ -80,7 +79,7 @@ Node.jsではPlaygroundの `sleep()` の代わりに `chip.generateStereo()` で
 | `gb.writeRegister(offset, value)` | 0xFF10からの相対アドレスで直接書き込み |
 | `gb.reset()` / `dispose()` | 初期化と所有リソースの解放 |
 
-メソッド名・オプション構造は実装前に確定する。
+メソッド名・オプション構造は末尾の具体仕様に従う。
 連続的に指定できない値は任意の数値を受けず、対応値を型と検証で明示する。
 周波数の量子化・範囲外の扱い、エンベロープのperiod=0の意味も文書化する。
 
@@ -113,22 +112,22 @@ Synthが持つ設定値を、エンベロープやスイープの現在値とし
 
 ## 実装・検証手順
 
-- [ ] 名前・引数範囲・初期値・keyOffと再トリガーの仕様を確定する。
-- [ ] GameboySynthとDirectTransportを実装する。
-- [ ] Node.jsに高水準API版のWAV例を追加する。既存raw例は比較用に残す。
-- [ ] Playgroundの戻り値へ接続し、型定義・補完・配布設定を更新する。
-- [ ] 高水準API用の例を追加する。`examples/chip-raw/` はraw操作の例として維持する。
-- [ ] 周波数・左右出力・波形パッキング・ノイズモード・無効引数をテストする。
-- [ ] raw操作との混在、CH1専用スイープ、停止後の再トリガー、resetをテストする。
-- [ ] raw版と高水準版で同じ設定の実コア出力を比較する。
-- [ ] Worker / メイン双方の実行とRun・Stop・再Run・disposeを検証する。
+- [x] 名前・引数範囲・初期値・keyOffと再トリガーの仕様を確定する。
+- [x] GameboySynthとDirectTransportを実装する。
+- [x] Node.jsに高水準API版のWAV例を追加する。既存raw例は比較用に残す。
+- [x] Playgroundの戻り値へ接続し、型定義・補完・配布設定を更新する。
+- [x] 高水準API用の例を追加する。`examples/chip-raw/` はraw操作の例として維持する。
+- [x] 周波数・左右出力・波形パッキング・ノイズモード・無効引数をテストする。
+- [x] raw操作との混在、CH1専用スイープ、停止後の再トリガー、resetをテストする。
+- [x] raw版と高水準版で同じ設定の実コア出力を比較する。
+- [ ] ブラウザーのWorker / メイン双方でRun・Stop・再Run・disposeを試聴確認する（Workerライフサイクル・メイン構文・Worklet発音の自動テストは実施済）。
 - [ ] ブラウザーで試聴し、他の音源との併用を確認する。
 
 最初の到達点は「raw例と同じ演奏を、レジスタ番号を使わず短く書けること」。
 
 ## Playground向け初版の具体仕様（2026-09-29・実装前レビュー案）
 
-以下を初版の実装基準案とする。上記の未決定事項を具体化したもので、APIの実装はまだ行わない。
+以下を初版の実装契約とする。末尾の補足で量子化・mute・raw同期の修正を反映した。
 冒頭の使用例も、発音準備を`gb.initialize()`に更新した。
 音名指定の`setNote()`は初版に含める。拍・duration・自動チャンネル割り当ては後段とする。
 
@@ -214,7 +213,7 @@ period=0等の詳細なスイープ挙動は採用コアに従う。無効化の
 - MIDI→Hzは`440 * 2 ** ((midi - 69) / 12)`。noteの数値をHzとは解釈しない。
 - 周波数値Nは0〜2047。pulseは`round(2048 - clock / (32 * hz))`、waveは`round(2048 - clock / (64 * hz))`。
 - Playgroundの現行クロック4,194,304 Hzなら、pulseは64〜131,072 Hz、waveは32〜65,536 Hz。
-  指定Hzをこの範囲で検証してから量子化し、黙って端へ丸め込まない。MIDI番号が有効でも低すぎる音は例外。
+  これはレジスタで表現できるHzの範囲。入力は有限かつ正数かを先に検証し、round後のNが0〜2047かで判定する。範囲外はRangeError。返り値はNから逆算する。MIDI番号が有効でも表現できない低音は例外。
 - 返すHzは設定レジスタに対応する基音。スイープ後の現在音高を問い合わせるAPIではない。
 - Node.jsで別クロックを使う場合、Synthに同じクロックを明示して変換する。Playgroundのクロック変更APIは別作業。
 
@@ -223,7 +222,7 @@ period=0等の詳細なスイープ挙動は採用コアに従う。無効化の
 1. 高水準操作の前に`initialize()`を呼ぶ。未初期化時は高水準操作を例外とし、raw操作は従来どおり許可する。
 2. `initialize()`は無音状態で準備する。音が鳴るのは`keyOn()`から。呼び直すと全CHを停止して既定値へ戻る。
 3. pulse／noiseのkeyOffはDACを停止するが、次回用の音色設定は残す。keyOnは保存した音色を再適用してDACとトリガーを復元する。
-4. 音量0は高水準APIでは無音として扱う。keyOn時にDACを停止し、up envelopeによる0からの立ち上がりは初版では提供しない。必要ならraw操作を使う。
+4. pulse／noiseの音量0は高水準APIでは無音として扱う。keyOn時にDACを停止し、up envelopeによる0からの立ち上がりは初版では提供しない。必要ならraw操作を使う。
 5. waveのkeyOff／波形転送もDACを停止する。波形・level・周波数は次回のkeyOnに使う。
 6. 高水準keyOnは長さカウンターを無効にする。停止はkeyOffか既存sleep／beatで制御する。
    rawで設定した長さ制御を高水準keyOnが引き継ぐとは約束しない。
@@ -264,13 +263,40 @@ Game Boyのwaveは32点の繰り返し波形。長いWAVを渡す`loadSample()`�
 
 ### 実装時の確認項目（この仕様案の追加分）
 
-- [ ] initialize前／後、raw NR52 OFF、reset、disposeの遷移を検証する。
-- [ ] 音名・MIDI・Hzの境界と量子化後Hzを検証する。
-- [ ] setVoiceの遅延適用と、setFrequency／wave level／panの即時適用を区別する。
-- [ ] keyOff→keyOnの設定保持と、外部rawのDAC停止書き込みを区別する。
-- [ ] 長さカウンター無効化、wave更新時停止、音量0での無音を検証する。
-- [ ] 不正な引数で部分的に設定・レジスタを変更しないことを検証する。
-- [ ] 既存chip-raw例がinitializeなしでも従来どおり動くことを確認する。
+- [x] initialize前／後、raw NR52 OFF、reset、disposeの遷移を検証する。
+- [x] 音名・MIDI・Hzの境界と量子化後Hzを検証する。
+- [x] setVoiceの遅延適用と、setFrequency／wave level／panの即時適用を区別する。
+- [x] keyOff→keyOnの設定保持と、外部rawのDAC停止書き込みを区別する。
+- [x] 長さカウンター無効化、wave更新時停止、音量0での無音を検証する。
+- [x] 不正な引数で部分的に設定・レジスタを変更しないことを検証する。
+- [x] 既存chip-raw例がinitializeなしでも従来どおり動くことを確認する。
 
 DirectTransportはチップを借りるだけで解放しない。Playgroundでは既存クライアントが
 ポート／音源を所有し、`dispose()`とRun／Stop／再Run時の解放責務を維持する。
+
+## 実装契約の補足
+
+- wave.setLevel(0)はNR32によるmute。DACは停止しない。level=0でもkeyOnはDACを有効にしてtriggerする。keyOffと波形転送はDACを停止する。
+- 送信レジスタshadowと次回発音用設定を区別する。raw書き込みは両方の該当レジスタを更新し、内部keyOffは保存済みvoiceを消さない。setVoice/setSweepは次回設定のみ更新する。
+- 部分更新は対象ビットのみ変更する。周波数更新はtriggerを再送せずlength enableを保持し、keyOnだけはlength enableを解除する。マスター音量更新はNR50のVINビットを保持する。
+- shadowは書き込み設定の記録であり、実コアの現在状態や読み出し値ではない。raw波形RAM書き込みの発音中の制約はコアに従う。
+
+## 実装記録（2026-09-29）
+
+- `web/gameboysynth.js` にDOM非依存のGameboySynthと借用型GameboyDirectTransportを追加。`docs/js/`へ同一モジュールを配置。
+- `playground_gameboy.js` は既存ポートへの同期write/reset/disposeをtransportとして渡す。Worklet本体とホストの所有権は変更なし。
+- `#shadow` は送信した設定、`#voice` は次回発音用設定。triggerは記憶値から除外する。外部rawは両方を更新し、内部DAC停止はshadowのみ更新する。
+- setVoice/setSweepは全項目の検証完了後にvoiceのみ変更。即時更新は対象ビットだけ変更し、rawのlength enableやVINを保持。keyOn時だけlength enableを解除する。
+- 周波数更新は停止中も送信するがtriggerしない。実コアの発音中フラグを推測する必要がなく、raw混在でも同じ動作になる。
+- wave level=0はNR32のみ変更する。採用コアではDAC出力は一定のDC値になるため、PCMの全ゼロではなく交流成分がないことをテストする。keyOffはDACを停止する。
+- Playground型定義による補完、新しい`gameboy/gameboy-synth.js`例、itch配布ファイル一覧、Node.jsの`main_gameboy_synth_wave.js`を追加。raw例は維持。
+- 自動テスト：状態遷移、丸め境界、音名、CH、波形packing、DAC/mute、部分更新、raw全レジスタ群、無効引数の原子性、借用所有権、rawとSynthのPCM一致、両例の実Worklet発音、Worker Run/Stop/再Runを確認。
+- Node例のWAV生成とitch.io用パッケージ作成を確認。ブラウザーでの実際の聴感確認と公開は未実施。
+
+### 検証結果
+
+- 関連6テストファイル：67件成功、失敗0（Synth、raw/高水準例のWorklet再生、runtime、Worker、examples、補完）。
+- 全体実行：1353件中1350成功、2失敗、1既存skip。うちexamplesの新フォルダー許可漏れは修正し、上記再テストで成功。
+- 残る失敗は未変更の `docs/playground/vgm_export.test.mjs` の「scheduled export expands YM2612 DAC stream data while readable export omits it」。単独実行でも失敗。今回のGame Boy APIとは別件として残す。
+- `node examples/nodejs/main_gameboy_synth_wave.js /tmp/gameboy-synth.wav`：48 kHzステレオ115200フレームのWAVを生成。
+- `sh scripts/package_itch_playground.sh gameboy-api-check`：依存ファイル検証を含め成功。公開は行っていない。

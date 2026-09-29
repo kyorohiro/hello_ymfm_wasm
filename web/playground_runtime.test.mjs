@@ -39,9 +39,9 @@ function setup(t) {
   return { runtime, megaDrive, listeners, statuses };
 }
 
-test('Game Boy raw example compiles with the full Playground global argument list', async t => {
+for (const example of ['chip-raw/gameboy-raw-write-sample', 'gameboy/gameboy-synth']) test(`Game Boy ${example} compiles with the full Playground global argument list`, async t => {
   const {runtime} = setup(t);
-  const source = await readFile(new URL('../docs/playground/examples/chip-raw/gameboy-raw-write-sample.js', import.meta.url), 'utf8');
+  const source = await readFile(new URL(`../docs/playground/examples/${example}.js`, import.meta.url), 'utf8');
   globalThis.playgroundReview = {compiled: false};
   // Compile the entire example in its real scope, without opening an audio device.
   await runtime.playSource('globalThis.playgroundReview.compiled = true; return;\n' + source);

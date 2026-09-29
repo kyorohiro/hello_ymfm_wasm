@@ -40,7 +40,7 @@ test('bundled examples match editable categorized source files', async () => {
   assert.deepEqual(EXAMPLE_FILES.filter(file => file.path.startsWith('/examples/livefx/')).map(file => file.name), ['live-fx-distortion']);
   assert.equal(await buildExampleBundle(), await readFile(new URL('./playground_examples.js',import.meta.url),'utf8'));
   for(const file of EXAMPLE_FILES){
-    assert.match(file.path,/^\/examples\/(basic|chip-raw|fm|midi|psg|dac|noise|samples|fx|pcm|livefx)\/[\w-]+\.js$/);
+    assert.match(file.path,/^\/examples\/(basic|chip-raw|fm|gameboy|midi|psg|dac|noise|samples|fx|pcm|livefx)\/[\w-]+\.js$/);
     assert.equal(file.data,await readFile(new URL('.'+file.path,import.meta.url),'utf8'));
     assert.equal(EXAMPLES[file.name],file.data);
   }

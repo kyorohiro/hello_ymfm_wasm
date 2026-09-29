@@ -1,3 +1,4 @@
+import {createGameboyClient} from '../../web/playground_gameboy.js';
 import {createNativeSampleController} from "../../web/native_sample.js";
 import {createNativeNoiseController, controlNativeNoise} from "../../web/native_noise.js";
 import {createNativeFXController} from "../../web/native_fx.js";
@@ -20,7 +21,7 @@ function createWorkerHarness() {
   const messages = [];
   const context = {
     createNativeSampleController, createNativeNoiseController, controlNativeNoise, createWorkerDac, atob, createMidiApi, createMidiRack, createWorkerChip, createNativeFXController, DOMException, structuredClone,
-    createDeadlineScheduler,
+    createDeadlineScheduler, createGameboyClient,
     hzToBlockFnum,
     Error,
     Map,
@@ -518,3 +519,23 @@ test('liveFx registration and context update use direct port from Code',async()=
  assert.ok(!worker.messages.some(m=>m.command?.startsWith('fx.')));
  await worker.send({type:'stop'});
 });
+
+ test('Game Boy high-level client survives Worker Run/Stop/re-Run and owns one port per run', async () => {
+  const worker = createWorkerHarness();
+  for (let run = 0; run < 2; run++) {
+    const messages = []; let closed = 0;
+    const from = worker.messages.length;
+    await worker.send({type:'run', presets:{}, scaleIntervals:{}, sourceCode: `
+      const gb = await createSoundChip('gameboy');
+      gb.initialize(); gb.pulse.setVoice(0, {volume: 9, envelope: {period: 2}});
+      gb.pulse.setNote(0, 'C4'); gb.pulse.keyOn(0);
+    `});
+    await waitFor(() => worker.messages.slice(from).some(m => m.command === 'pcm.create'));
+    const req = worker.messages.slice(from).find(m => m.command === 'pcm.create');
+    await worker.send({type:'response', id:req.id, value:{postMessage:m=>messages.push(m),close:()=>closed++}});
+    assert.ok(messages.some(m=>m.method==='writeRegister' && m.args[0]===4 && (m.args[1]&128)));
+    await worker.send({type:'stop'});
+    assert.equal(messages.filter(m=>m.method==='dispose').length,1);
+    assert.equal(closed,1);
+  }
+ });

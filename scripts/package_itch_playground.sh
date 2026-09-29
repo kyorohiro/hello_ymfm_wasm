@@ -57,6 +57,7 @@ native_sample.js
 playground_rf5c164.js
 playground_ym2608.js
 playground_gameboy.js
+gameboysynth.js
 gameboyapu.js
 playground_gameboy_audio.js
 playground_gameboy_worklet.js

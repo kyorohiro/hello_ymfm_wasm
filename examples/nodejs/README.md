@@ -27,7 +27,11 @@ node examples/nodejs/main_gameboy_wave.js /tmp/gameboy.wav
 
 既存の `GameboyApu.writeRegister()` を直接使う例で、レジスタ番号は
 `0xFF10` からの相対値。初期化・波形RAM転送・発音・WAV保存・解放を含む。
-Playgroundの `createSoundChip('gameboy')` 対応はこの変更には含まない。
+
+高水準API版は [main_gameboy_synth_wave.js](main_gameboy_synth_wave.js)。
+`node examples/nodejs/main_gameboy_synth_wave.js /tmp/gameboy-synth.wav` で生成する。
+Playgroundと同じGameboySynthで音名・pulse／wave／noiseを操作する。
+DirectTransportはchipを借りるだけなので、最後にSynthとchipをそれぞれdisposeする。
 
 ## OPN 系の独立サンプル
 

@@ -1014,12 +1014,46 @@ interface PlaygroundRf5c164 {
   dispose(): void;
 }
 declare function createSoundChip(name: 'rf5c164'): Promise<PlaygroundRf5c164>;
-/** Raw DMG registers, relative to 0xFF10 (0x00..0x2F). */
-declare function createSoundChip(name: 'gameboy'): Promise<{
+/** Game Boy note names (C4=MIDI 60) or integer MIDI 0..127. */
+type GameboyNote = string | number;
+interface GameboyEnvelope { direction?: 'up' | 'down'; period?: number; }
+interface GameboyPulseVoice { duty?: 0.125 | 0.25 | 0.5 | 0.75; volume?: number; envelope?: GameboyEnvelope; }
+interface PlaygroundGameboy {
+  /** Reset and prepare silent defaults. Required before high-level operations. */
+  initialize(): void;
+  pulse: {
+    /** Staged until keyOn. Physical pulse channels 0 and 1. */
+    setVoice(ch: 0 | 1, options: GameboyPulseVoice): void;
+    setSweep(options: {direction?: 'up' | 'down'; period?: number; shift?: number}): void;
+    setFrequency(ch: 0 | 1, hz: number): number;
+    setNote(ch: 0 | 1, note: GameboyNote): number;
+    keyOn(ch: 0 | 1): void;
+    keyOff(ch: 0 | 1): void;
+  };
+  wave: {
+    /** Stops DAC, copies 32 four-bit samples, does not restart. */
+    setWaveform(samples: number[] | Uint8Array): void;
+    /** Zero mutes NR32; DAC remains enabled. */
+    setLevel(level: 0 | 0.25 | 0.5 | 1): void;
+    setFrequency(hz: number): number;
+    setNote(note: GameboyNote): number;
+    keyOn(): void;
+    keyOff(): void;
+  };
+  noise: {
+    setVoice(options: {volume?: number; envelope?: GameboyEnvelope; divisor?: number; shift?: number; width?: 7 | 15}): void;
+    keyOn(): void;
+    keyOff(): void;
+  };
+  setPan(ch: 0 | 1 | 2 | 3, left: boolean, right: boolean): void;
+  /** Integers 0..7; zero is not mute. */
+  setMasterVolume(left: number, right: number): void;
+  /** Raw offsets relative to 0xFF10. Does not require initialize(). */
   writeRegister(offset: number, value: number): void;
   reset(): void;
   dispose(): void;
-}>;
+}
+declare function createSoundChip(name: 'gameboy'): Promise<PlaygroundGameboy>;
 /** Independent YM2608; memory uploads are asynchronous, register setters are ordered writes. */
 type PlaygroundYm2608 = Pick<FMApi, 'reset' | 'setPreset' | 'setOperator' | 'setAlgo' | 'setPan' | 'setLfo' | 'setChannel3SpecialMode' | 'setChannel3SpecialFrequency' | 'setFrequency' | 'keyOn' | 'keyOff' | 'noteOn' | 'noteOff' | 'writeAddress' | 'writeData'> & {
   write(port: number, register: number, value: number): void;
