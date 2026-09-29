@@ -2646,7 +2646,7 @@ async function ensurePlaybackReady(vgm) {
   else applySourceMutes(engine, sourceChipKind(), effectiveSourceMutes(), hasOkiSource());
   if (!player) {
     player = new VgmPlayer(engine);
-    if (currentChipKind === 'ym2612') {
+    if (['ym2612', 'ym2203', 'ym2608', 'ym2610'].includes(currentChipKind)) {
       player.checkpointIntervalSeconds = 5;
       player.captureSeekState = () => structuredClone({channelMonitor, monitorFrequencyHigh, psgMonitor, pcmMonitor, lastYm2612DacEnable});
       player.restoreSeekState = state => {
@@ -2676,7 +2676,7 @@ async function ensurePlaybackReady(vgm) {
   player.setLoopEnabled(loopCheckbox.checked);
   if (currentChipKind === 'ymf278b' && ymf278bWaveRomBytes) engine.loadWaveRom(ymf278bWaveRomBytes);
   // Keep same-track checkpoints across Play/seek. A new player or buffer starts fresh.
-  if (currentChipKind !== 'ym2612' || player.loadedSource !== currentBuffer) {
+  if (!['ym2612', 'ym2203', 'ym2608', 'ym2610'].includes(currentChipKind) || player.loadedSource !== currentBuffer) {
     player.load(currentBuffer, {logger:{warn:reportPlaybackWarning}});
     player.loadedSource = currentBuffer;
   }
@@ -3390,6 +3390,7 @@ async function handleYm2608RomFile(file) {
   if (data.length !== 8192) throw new Error('YM2608 rhythm ROM must be exactly 8192 bytes (8 KiB).');
   stopActiveStream();
   player?.stop();
+  player?.clearCheckpoints?.();
   sampleExplorer.reset();
   ym2608AdpcmARomBytes = data;
   ym2608AdpcmARomName = file.name;

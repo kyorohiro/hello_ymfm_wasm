@@ -14,6 +14,7 @@ const DEFAULT_OUTPUT_SAMPLE_RATE = 44100;
  * Dispose the engine when done to release its underlying chips.
  */
 export class Ym2203AudioEngine {
+  #states = new WeakMap();
   constructor(
     ym2203,
     chipSampleRate,
@@ -63,6 +64,27 @@ export class Ym2203AudioEngine {
       outputSampleRate,
       masterVolume
     );
+  }
+
+  supportsState() { return !this.writeOki6258 && Boolean(this.ym2203.supportsState?.()); }
+  stateSettingsKey() { return JSON.stringify([this._chipSampleRate, this._sampleRate, this._masterVolume, this._sourceMuteMask, this.channelMuteMask]); }
+  saveState() {
+    if (!this.supportsState()) throw new Error('OPN state saving unavailable');
+    const chip = this.ym2203.saveState();
+    const state = Object.freeze({byteLength: chip.byteLength + 64});
+    this.#states.set(state, {chip, key: this.stateSettingsKey(), timing: [this._resampleRemainder, this._lastLeft, this._lastRight]});
+    return state;
+  }
+  validateState(state) {
+    const saved = this.#states.get(state);
+    if (!this.supportsState() || !saved || saved.key !== this.stateSettingsKey()) throw new Error('Incompatible OPN state');
+    this.ym2203.validateState(saved.chip);
+  }
+  loadState(state) {
+    this.validateState(state);
+    const saved = this.#states.get(state);
+    this.ym2203.loadState(saved.chip);
+    [this._resampleRemainder, this._lastLeft, this._lastRight] = saved.timing;
   }
 
   /**

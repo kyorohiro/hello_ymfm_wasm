@@ -1,3 +1,4 @@
+#include "opn_state.h"
 #include <cstdint>
 #include <vector>
 
@@ -80,4 +81,15 @@ void ym2610b_generate(void *ptr, float *left, float *right, uint32_t frames)
     }
 }
 
+
+uint32_t ym2610b_save_state(void *ptr, uint8_t *out) {
+    auto *h = cast_handle(ptr);
+    return save_opn_state(h->chip, h->intf, {&h->mute_mask}, {&h->intf.rom[0], &h->intf.rom[1]}, out);
+}
+int ym2610b_load_state(void *ptr, const uint8_t *data, uint32_t size) {
+    auto *h = cast_handle(ptr);
+    if (!load_opn_state(h->chip, h->intf, {&h->mute_mask}, {&h->intf.rom[0], &h->intf.rom[1]}, data, size)) return 0;
+    h->chip.set_adpcm_mute((h->mute_mask & 2) != 0, (h->mute_mask & 4) != 0);
+    return 1;
+}
 }

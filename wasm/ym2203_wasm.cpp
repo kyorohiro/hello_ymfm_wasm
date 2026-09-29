@@ -1,3 +1,4 @@
+#include "opn_state.h"
 #include <cstdint>
 
 #include "ymfm_wasm_interface.h"
@@ -11,6 +12,7 @@ struct ym2203_handle
     ymfm_wasm_interface intf;
     ymfm::ym2203 chip;
     uint32_t source_mute_mask = 0;
+    uint32_t channel_mute_mask = 0;
 
     ym2203_handle() : intf(), chip(intf)
     {
@@ -85,6 +87,7 @@ void ym2203_set_source_mute_mask(void *ptr, uint32_t mask)
 
 void ym2203_set_mute_mask(void *ptr, uint32_t mask)
 {
+    cast_handle(ptr)->channel_mute_mask = mask;
     cast_handle(ptr)->chip.set_mute_mask(mask);
 }
 
@@ -105,4 +108,15 @@ void ym2203_generate(void *ptr, float *left, float *right, uint32_t frames)
     }
 }
 
+
+uint32_t ym2203_save_state(void *ptr, uint8_t *out) {
+    auto *h = cast_handle(ptr);
+    return save_opn_state(h->chip, h->intf, {&h->source_mute_mask, &h->channel_mute_mask}, {}, out);
+}
+int ym2203_load_state(void *ptr, const uint8_t *data, uint32_t size) {
+    auto *h = cast_handle(ptr);
+    if (!load_opn_state(h->chip, h->intf, {&h->source_mute_mask, &h->channel_mute_mask}, {}, data, size)) return 0;
+    h->chip.set_mute_mask(h->channel_mute_mask);
+    return 1;
+}
 }

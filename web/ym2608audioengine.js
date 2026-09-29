@@ -14,6 +14,7 @@ const DEFAULT_OUTPUT_SAMPLE_RATE = 44100;
  * Dispose the engine when done to release its underlying chips.
  */
 export class Ym2608AudioEngine {
+  #states = new WeakMap();
   constructor(
     ym2608,
     chipSampleRate,
@@ -25,6 +26,7 @@ export class Ym2608AudioEngine {
     this._sampleRate = outputSampleRate;
     this._masterVolume = clampMasterVolume(masterVolume);
     this._sourceMuteMask = 0;
+    this._rhythmRomRevision = 0;
     this._resampleRemainder = 0;
     this._lastLeft = 0;
     this._lastRight = 0;
@@ -62,6 +64,27 @@ export class Ym2608AudioEngine {
       outputSampleRate,
       masterVolume
     );
+  }
+
+  supportsState() { return !this.writeOki6258 && Boolean(this.ym2608.supportsState?.()); }
+  stateSettingsKey() { return JSON.stringify([this._chipSampleRate, this._sampleRate, this._masterVolume, this._sourceMuteMask, this._rhythmRomRevision]); }
+  saveState() {
+    if (!this.supportsState()) throw new Error('OPN state saving unavailable');
+    const chip = this.ym2608.saveState();
+    const state = Object.freeze({byteLength: chip.byteLength + 64});
+    this.#states.set(state, {chip, key: this.stateSettingsKey(), timing: [this._resampleRemainder, this._lastLeft, this._lastRight]});
+    return state;
+  }
+  validateState(state) {
+    const saved = this.#states.get(state);
+    if (!this.supportsState() || !saved || saved.key !== this.stateSettingsKey()) throw new Error('Incompatible OPN state');
+    this.ym2608.validateState(saved.chip);
+  }
+  loadState(state) {
+    this.validateState(state);
+    const saved = this.#states.get(state);
+    this.ym2608.loadState(saved.chip);
+    [this._resampleRemainder, this._lastLeft, this._lastRight] = saved.timing;
   }
 
   /**
@@ -122,6 +145,7 @@ export class Ym2608AudioEngine {
 
   loadAdpcmARom(bytes, offset = 0) {
     this.ym2608.loadAdpcmARom(bytes, offset);
+    this._rhythmRomRevision++;
   }
 
   loadAdpcmBMemory(bytes, offset = 0, memorySize) {

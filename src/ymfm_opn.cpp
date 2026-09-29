@@ -1035,6 +1035,8 @@ void ym2608::save_restore(ymfm_saved_state &state)
 	m_ssg_resampler.save_restore(state);
 	m_adpcm_a.save_restore(state);
 	m_adpcm_b.save_restore(state);
+	if (!state.saving())
+		update_prescale(m_fm.clock_prescale());
 }
 
 
@@ -1886,6 +1888,7 @@ void ym2610::save_restore(ymfm_saved_state &state)
 	state.save_restore(m_address);
 	state.save_restore(m_eos_status);
 	state.save_restore(m_flag_mask);
+	state.save_restore(m_last_fm.data);
 
 	m_fm.save_restore(state);
 	m_ssg.save_restore(state);

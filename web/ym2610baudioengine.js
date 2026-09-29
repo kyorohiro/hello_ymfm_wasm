@@ -10,6 +10,7 @@ const DEFAULT_OUTPUT_SAMPLE_RATE = 44100;
 
 /** YM2610 / YM2610B FM, SSG and ADPCM playback engine. */
 export class Ym2610BAudioEngine {
+  #states = new WeakMap();
   constructor(chip, chipSampleRate, outputSampleRate, masterVolume = 1) {
     this.chip = chip;
     this.chipSampleRate = chipSampleRate;
@@ -40,6 +41,27 @@ export class Ym2610BAudioEngine {
       options.outputSampleRate ?? DEFAULT_OUTPUT_SAMPLE_RATE,
       options.masterVolume ?? 1
     );
+  }
+
+  supportsState() { return !this.writeOki6258 && Boolean(this.chip.supportsState?.()); }
+  stateSettingsKey() { return JSON.stringify([this.chipSampleRate, this.outputSampleRate, this.masterVolume, this.sourceMuteMask]); }
+  saveState() {
+    if (!this.supportsState()) throw new Error('OPN state saving unavailable');
+    const chip = this.chip.saveState();
+    const state = Object.freeze({byteLength: chip.byteLength + 64});
+    this.#states.set(state, {chip, key: this.stateSettingsKey(), timing: [this.remainder, this.lastLeft, this.lastRight]});
+    return state;
+  }
+  validateState(state) {
+    const saved = this.#states.get(state);
+    if (!this.supportsState() || !saved || saved.key !== this.stateSettingsKey()) throw new Error('Incompatible OPN state');
+    this.chip.validateState(saved.chip);
+  }
+  loadState(state) {
+    this.validateState(state);
+    const saved = this.#states.get(state);
+    this.chip.loadState(saved.chip);
+    [this.remainder, this.lastLeft, this.lastRight] = saved.timing;
   }
 
   /**
