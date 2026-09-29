@@ -35,12 +35,13 @@ test('wobble sample loop plays only samples loaded during preparation', async ()
 test('bundled examples match editable categorized source files', async () => {
   const folders = [...new Set(EXAMPLE_FILES.map(file => file.path.split('/')[2]))];
   assert.equal(folders.indexOf('chip-raw'), folders.indexOf('basic') + 1);
+  assert.equal(folders.indexOf('chip-saw'), folders.indexOf('chip-raw') + 1);
   assert.ok(EXAMPLE_FILES.some(file => file.path === '/examples/chip-raw/ym2612-raw-write-beep.js'));
   assert.ok(EXAMPLE_FILES.some(file => file.path === '/examples/chip-raw/gameboy-raw-write-sample.js'));
   assert.deepEqual(EXAMPLE_FILES.filter(file => file.path.startsWith('/examples/livefx/')).map(file => file.name), ['live-fx-distortion']);
   assert.equal(await buildExampleBundle(), await readFile(new URL('./playground_examples.js',import.meta.url),'utf8'));
   for(const file of EXAMPLE_FILES){
-    assert.match(file.path,/^\/examples\/(basic|chip-raw|fm|gameboy|midi|psg|dac|noise|samples|fx|pcm|livefx)\/[\w-]+\.js$/);
+    assert.match(file.path,/^\/examples\/(basic|chip-raw|chip-saw|fm|gameboy|midi|psg|dac|noise|samples|fx|pcm|livefx)\/[\w-]+\.js$/);
     assert.equal(file.data,await readFile(new URL('.'+file.path,import.meta.url),'utf8'));
     assert.equal(EXAMPLES[file.name],file.data);
   }

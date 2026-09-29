@@ -7,6 +7,8 @@ FILES の `examples/` を開き、フォルダー内の `.js` を選択して Ru
 | Folder | 内容 |
 | --- | --- |
 | basic | 最初の発音、音階、liveLoop、context |
+| chip-raw | 音源レジスタを直接操作する例 |
+| chip-saw | Game Boy高水準API：pulse／wave／noise。chip-rawの次に表示 |
 | fm | FM API、レジスタ操作、CH3 special、音色 |
 | midi | MIDI FM/PSG、固定 CH、和音、CC・Pitch Bend |
 | psg | トーン・ノイズ |

@@ -300,3 +300,9 @@ DirectTransportはチップを借りるだけで解放しない。Playgroundで�
 - 残る失敗は未変更の `docs/playground/vgm_export.test.mjs` の「scheduled export expands YM2612 DAC stream data while readable export omits it」。単独実行でも失敗。今回のGame Boy APIとは別件として残す。
 - `node examples/nodejs/main_gameboy_synth_wave.js /tmp/gameboy-synth.wav`：48 kHzステレオ115200フレームのWAVを生成。
 - `sh scripts/package_itch_playground.sh gameboy-api-check`：依存ファイル検証を含め成功。公開は行っていない。
+
+### chip-saw examples
+
+Playgroundに `examples/chip-saw/gameboy-saw-pulse.js`、`gameboy-saw-wave.js`、
+`gameboy-saw-noise.js` を追加。矩形波のデューティと左右出力、32点の波形RAM、
+7/15-bitノイズを個別に試せる。chip-sawはchip-rawの次に並べるための名前。
