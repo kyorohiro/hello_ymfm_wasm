@@ -276,6 +276,7 @@
         box-shadow: none;
       }
 
+      .vgm-import-options[hidden] { display: none; }
       .vgm-import-options {
         display: grid;
         gap: 8px;
@@ -1430,14 +1431,15 @@
             <button id="importVgmButton" type="button">Import VGM / S98</button>
             <dialog id="vgmImportDialog" aria-labelledby="vgmImportTitle" aria-describedby="vgmImportFilename">
                 <h2 id="vgmImportTitle">Import VGM / S98</h2>
-                <p class="subtext">VGM, VGZ and S98 v0–v3. S98 supports a single YM2203, YM2608 or YM2612. YM2203 / YM2608 imports include FM only; SSG, rhythm and ADPCM are omitted. Select the matching Playground chip for native FM playback.</p>
+                <p id="vgmImportDetected"></p>
+                <p id="vgmImportNotice" class="subtext" role="status"></p>
                 <p id="vgmImportFilename"></p>
                 <label for="vgmImportTarget">Output file</label>
                 <input id="vgmImportTarget" type="text" value="/index.js" required
                   aria-describedby="vgmImportTargetHint"
                   style="width: 100%; margin: 6px 0; padding: 8px; font: inherit;">
                 <p id="vgmImportTargetHint" class="subtext">Project JavaScript path. Existing file contents will be replaced.</p>
-                <fieldset class="vgm-import-options">
+                <fieldset id="opnImportOptions" class="vgm-import-options">
                   <legend>Output timing</legend>
                   <div class="vgm-import-mode">
                     <label>
@@ -1477,11 +1479,19 @@
                     <input id="dacBase64Input" type="checkbox" checked>
                     DAC data file
                   </label>
-                  <div class="vgm-import-actions">
-                    <button id="cancelVgmImportButton" type="button">Cancel</button>
-                    <button id="convertVgmButton" type="button">Convert</button>
-                  </div>
                 </fieldset>
+                <fieldset id="gameboyImportOptions" class="vgm-import-options" hidden disabled>
+                  <legend>Game Boy conversion</legend>
+                  <div class="vgm-import-mode">
+                    <label><input type="radio" name="gameboyImportMode" value="raw" checked>Raw register writes</label>
+                    <label><input type="radio" name="gameboyImportMode" value="readable">Registers with explanations</label>
+                  </div>
+                  <p class="subtext">Explanations show sample times, duty, envelope, sweep, written pitch, noise and wave RAM. No extra triggers or wave stops are inserted. Vibrato is not inferred.</p>
+                </fieldset>
+                <div class="vgm-import-actions">
+                  <button id="cancelVgmImportButton" type="button">Cancel</button>
+                  <button id="convertVgmButton" type="button">Convert</button>
+                </div>
             </dialog>
             <button id="importCassetteButton" type="button">Import Cassette</button>
             <button id="exportCassetteButton" type="button">Export Cassette</button>

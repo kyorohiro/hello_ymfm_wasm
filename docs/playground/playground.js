@@ -1,3 +1,4 @@
+import {prepareVgmImport, exportGameboyVgm} from './playground_vgm_import.js';
 import {installPlaygroundPageLifecycle} from "./playground_page_lifecycle.js";
 import {createFXMonitor} from './playground_fx_monitor.js?v=stable-select-1';
 import {installMidiImport} from './playground_midi_import.js?v=midi-sections-1';
@@ -39,13 +40,8 @@ import {
   transferVirtualFiles,
   resolveVirtualDynamicImports,
 } from "./playground_virtual_files.js?v=midi-import-1";
-import { looksLikeS98, convertS98ToVgm } from "../js/s98_file.js";
 import { unzipSync, zipSync } from "./vendor/fflate.js";
 import {
-  maybeDecodeVgmFile,
-} from "../js/vgm_file.js";
-import {
-  Ym2612VGM,
   exportYm2203FmVgmToPlaygroundJavaScript,
   exportYm2608FmVgmToPlaygroundJavaScript,
   exportYm2610FmVgmToPlaygroundJavaScript,
@@ -426,6 +422,8 @@ const vgmImportInput = createImportInput(
 );
 const virtualFileImportInput = createImportInput("*");
 let pendingVgmImportFile = null;
+let pendingVgmImport = null;
+let vgmImportRequest = 0;
 const cassetteExamples = new Map();
 let currentCassetteMetadata = null;
 let currentCassetteHasMetadataFile = false;
@@ -838,6 +836,8 @@ function exportCassette() {
 }
 
 function promptVgmImport() {
+  vgmImportRequest++;
+  pendingVgmImport = null;
   pendingVgmImportFile = null;
   vgmImportInput.value = "";
   vgmImportInput.click();
@@ -933,15 +933,14 @@ function resolveVgmImportStrategy(
 
 async function importVgmFile(file, options) {
   const targetPath = normalizeVirtualPath(options.targetPath ?? "/index.js");
-  const decoded = await maybeDecodeVgmFile(
-    await file.arrayBuffer()
-  );
-  const buffer = looksLikeS98(decoded)
-    ? convertS98ToVgm(decoded).buffer
-    : decoded;
-  const vgm = new Ym2612VGM(buffer, { logger: null });
+  const prepared = options.prepared ?? await prepareVgmImport(file);
+  const {buffer, vgm, detection} = prepared;
+  if (!detection.supported) throw new Error(detection.message);
   const dacFiles = [];
-  const strategy = resolveVgmImportStrategy(
+  const strategy = detection.family === 'gameboy' ? {
+    source: exportGameboyVgm(buffer, {mode: options.gameboyMode}),
+    statusMessage: 'for Game Boy (all four channels; one pass)',
+  } : resolveVgmImportStrategy(
     vgm,
     selectedChip,
     {
@@ -957,7 +956,7 @@ async function importVgmFile(file, options) {
     }
   );
 
-  const presetFiles = createVgmPresetFiles(buffer, file.name, virtualFiles.list().map(entry => entry.path));
+  const presetFiles = detection.family === 'gameboy' ? [] : createVgmPresetFiles(buffer, file.name, virtualFiles.list().map(entry => entry.path));
   for (const { path, bytes } of dacFiles) virtualFiles.writeBinary(path, bytes);
   for (const { path, data } of presetFiles) {
     virtualFiles.writeBinary(path, data);
@@ -973,7 +972,8 @@ async function importVgmFile(file, options) {
   renderRunFileOptions();
   setBottomTab("code");
   setStatus(
-    `Imported ${file.name} into ${targetPath} ${strategy.statusMessage}. Added ${presetFiles.length} TFI preset(s).`
+    `Imported ${file.name} into ${targetPath} ${strategy.statusMessage}.` +
+    (detection.family === 'opn' ? ` Added ${presetFiles.length} TFI preset(s).` : '')
   );
 }
 
@@ -1842,6 +1842,7 @@ function installPlaygroundEventHandlers() {
   document.body.append(vgmImportDialog);
   importVgmButton.addEventListener("click", promptVgmImport);
   vgmImportDialog.addEventListener("close", () => {
+    pendingVgmImport = null;
     pendingVgmImportFile = null;
     runButton.focus();
   });
@@ -1950,7 +1951,7 @@ runButton.addEventListener(
         'input[name="vgmImportMode"]:checked'
       );
       const file = pendingVgmImportFile;
-      if (!file) return;
+      if (!file || !pendingVgmImport?.detection.supported) return;
       let targetPath;
       try {
         targetPath = normalizeVirtualPath(vgmImportTarget.value.trim());
@@ -1964,6 +1965,8 @@ runButton.addEventListener(
         return;
       }
       const options = {
+          prepared: pendingVgmImport,
+          gameboyMode: document.querySelector('input[name="gameboyImportMode"]:checked')?.value ?? 'raw',
           targetPath,
           cleanNoteOnset: selectedMode?.value === "compact" && document.getElementById("cleanNoteOnsetInput").checked,
           noteish: selectedMode?.value === "high" && document.getElementById("noteishVgmInput").checked,
@@ -2065,28 +2068,42 @@ runButton.addEventListener(
     }
   );
 
-  vgmImportInput.addEventListener(
-    "change",
-    () => {
-      const file = vgmImportInput.files?.[0];
-
-      if (!file) {
-        return;
-      }
-
+  vgmImportInput.addEventListener('change', async () => {
+    const file = vgmImportInput.files?.[0];
+    if (!file) return;
+    const request = ++vgmImportRequest;
+    pendingVgmImportFile = null;
+    pendingVgmImport = null;
+    setStatus(`Analyzing ${file.name}…`);
+    try {
+      const prepared = await prepareVgmImport(file);
+      if (request !== vgmImportRequest) return;
       pendingVgmImportFile = file;
+      pendingVgmImport = prepared;
+      const {detection} = prepared;
       vgmImportFilename.textContent = file.name;
-      const outputName = file.name
-        .replace(/\.(?:vgm|vgz|s98)$/i, "")
-        .replace(/[\\/]/g, "_") || "imported";
+      document.getElementById('vgmImportDetected').textContent = `Detected: ${detection.chips.map(chip => chip === 'gameBoyDmg' ? 'Game Boy DMG' : chip.toUpperCase()).join(' + ') || 'unknown'}`;
+      document.getElementById('vgmImportNotice').textContent = detection.message;
+      const opnOptions = document.getElementById('opnImportOptions');
+      const gbOptions = document.getElementById('gameboyImportOptions');
+      opnOptions.hidden = detection.family !== 'opn' || !detection.supported;
+      gbOptions.hidden = detection.family !== 'gameboy' || !detection.supported;
+      opnOptions.disabled = opnOptions.hidden;
+      gbOptions.disabled = gbOptions.hidden;
+      convertVgmButton.disabled = !detection.supported;
+      const outputName = file.name.replace(/\.(?:vgm|vgz|s98)$/i, '').replace(/[\\/]/g, '_') || 'imported';
       vgmImportTarget.value = `/${outputName}.js`;
-      vgmImportTarget.setCustomValidity("");
+      vgmImportTarget.setCustomValidity('');
       mainMenu.open = false;
-      document.getElementById("noteishVgmInput").checked = false;
-      document.getElementById("cleanNoteOnsetInput").checked = false;
+      document.getElementById('noteishVgmInput').checked = false;
+      document.getElementById('cleanNoteOnsetInput').checked = false;
+      syncDacBase64Option();
       vgmImportDialog.showModal();
+      setStatus(detection.supported ? 'Choose conversion options, then Convert.' : detection.message);
+    } catch (error) {
+      if (request === vgmImportRequest) setStatus(`Failed to analyze VGM/S98: ${error.message}`);
     }
-  );
+  });
 }
 
 function bootPlayground() {

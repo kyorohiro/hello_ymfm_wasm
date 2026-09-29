@@ -1,0 +1,113 @@
+import {Ym2612VGM} from '../js/ym2612vgm.js';
+import {maybeDecodeVgmFile} from '../js/vgm_file.js';
+import {looksLikeS98, convertS98ToVgm} from '../js/s98_file.js';
+
+const OPN = ['ym2203', 'ym2608', 'ym2610', 'ym2612'];
+export function detectVgmImport(header) {
+  const chips = Object.entries(header).filter(([key, value]) => key.endsWith('Clock') && (value & 0x3fffffff)).map(([key]) => key.slice(0, -5));
+  const opn = chips.filter(chip => OPN.includes(chip));
+  const base = {chips, family: null, supported: false, message: ''};
+  if (!chips.length) return {...base, message: 'No supported chip clock was found.'};
+  if (opn.length === 1) {
+    const chip = opn[0];
+    if (header[chip + 'Clock'] & 0x40000000) return {...base, message: 'Dual OPN-chip conversion is not supported.'};
+    const omittedChips = chips.filter(name => name !== chip);
+    const label = name => name === 'gameBoyDmg' ? 'Game Boy DMG' : name.toUpperCase();
+    const omitted = omittedChips.length ? ` ${omittedChips.map(label).join(' + ')} will be omitted.` : '';
+    const scope = chip === 'ym2612'
+      ? 'YM2612 FM will be imported; DAC follows the Include DAC option.'
+      : `${label(chip)} FM only; SSG, rhythm and ADPCM are omitted.`;
+    return {...base, family: 'opn', supported: true, chip, omittedChips,
+      message: `${scope}${omitted} Select the matching Playground chip for native FM playback, or YM2612 for FM translation.`};
+  }
+  if (chips.some(chip => header[chip + 'Clock'] & 0x40000000)) return {...base, message: 'Dual-chip conversion is not supported.'};
+  if (chips.length === 1 && chips[0] === 'gameBoyDmg') {
+    if ((header.gameBoyDmgClock & 0x3fffffff) !== 4194304) return {...base, message: 'Game Boy conversion requires the standard 4194304 Hz clock.'};
+    return {...base, family: 'gameboy', supported: true, message: 'All four channels. Register order and VGM sample waits are preserved for one pass; loops are not repeated. Playback uses asynchronous waits, not sample-accurate scheduling.'};
+  }
+
+  return {...base, message: chips.length > 1 ? 'This chip combination cannot be converted. No files will be changed.' : 'Conversion for this chip is not supported.'};
+}
+
+export async function prepareVgmImport(file) {
+  const decoded = await maybeDecodeVgmFile(await file.arrayBuffer());
+  const buffer = looksLikeS98(decoded) ? convertS98ToVgm(decoded).buffer : decoded;
+  const vgm = new Ym2612VGM(buffer, {logger: null});
+  let detection = detectVgmImport(vgm.header);
+  // Validate the complete Game Boy stream before presenting conversion as available.
+  if (detection.family === 'gameboy') {
+    try { readGameboyEvents(buffer); }
+    catch (error) { detection = {...detection, supported: false, message: error.message}; }
+  }
+  return {buffer, vgm, detection};
+}
+
+function readGameboyEvents(buffer) {
+  const warnings = [];
+  const parser = new Ym2612VGM(buffer, {logger: {warn: message => warnings.push(message)}});
+  const events = [];
+  let time = 0;
+  for (;;) {
+    const command = parser.bytes[parser.position];
+    if (![0xb3, 0x61, 0x62, 0x63, 0x66].includes(command) && !(command >= 0x70 && command <= 0x7f)) {
+      throw new Error('Game Boy conversion supports direct register writes and waits only; this stream contains other commands.');
+    }
+    const event = parser.step();
+    if (warnings.length) throw new Error(`Cannot preserve this Game Boy stream: ${warnings[0]}`);
+    if (event.type === 'end') break;
+    if (event.type === 'wait') { time += event.samples; continue; }
+    if (event.type !== 'gameboy-dmg-write' || event.chipIndex || event.register > 0x2f) throw new Error(`Unsupported event in Game Boy stream: ${event.type}.`);
+    events.push({...event, time});
+  }
+  if (!events.length) throw new Error('No Game Boy register writes were found.');
+  return {events, time};
+}
+
+const hex = n => '0x' + n.toString(16).padStart(2, '0');
+function describe(register, value, state) {
+  const base = register < 5 ? 0 : register < 10 ? 5 : register < 15 ? 10 : 15;
+  const channel = base / 5 + 1;
+  if ([2, 7, 17].includes(register)) return `CH${channel} envelope: initial volume ${value >> 4}, ${value & 8 ? 'up' : 'down'}, period ${value & 7} (${value & 7 ? (value & 7) * 1000 / 64 + ' ms/step' : 'automatic change disabled'}); no retrigger`;
+  if ([1, 6].includes(register)) return `CH${channel} duty ${[12.5,25,50,75][value >> 6]}%; length load ${value & 63}`;
+  if (register === 0) return `CH1 sweep: period ${(value >> 4) & 7}, ${value & 8 ? 'down' : 'up'}, shift ${value & 7}`;
+  if (register === 18) return `CH4 noise: divisor ${value & 7}, shift ${value >> 4}, width ${value & 8 ? 7 : 15}`;
+  if (register === 22) return `APU power ${value & 128 ? 'ON' : 'OFF'}`;
+  if (register === 10) return `CH3 DAC ${value & 128 ? 'ON' : 'OFF'}`;
+  if (register === 12) return `CH3 output level ${[0,100,50,25][(value >> 5) & 3]}%`;
+  if (register >= 32) return `wave RAM samples ${(register - 32) * 2}/${(register - 32) * 2 + 1}: ${value >> 4}, ${value & 15}; direct write (no added stop)`;
+  if ([3,4,8,9,13,14].includes(register)) {
+    const n = state[base + 3] | ((state[base + 4] & 7) << 8);
+    return `CH${channel} written pitch ${(4194304 / ((channel === 3 ? 64 : 32) * (2048 - n))).toFixed(3)} Hz` + ([4,9,14].includes(register) ? `; trigger ${!!(value & 128)}, length enabled ${!!(value & 64)}` : '; no retrigger');
+  }
+  if (register === 19) return `CH4 trigger ${!!(value & 128)}, length enabled ${!!(value & 64)}`;
+  if (register === 20) return `master volume L ${(value >> 4) & 7}, R ${value & 7}; VIN bits preserved`;
+  if (register === 21) return 'channel routing (low nibble right, high nibble left)';
+  return `register ${hex(0xff10 + register)}`;
+}
+
+export function exportGameboyVgm(buffer, {mode = 'raw'} = {}) {
+  if (!['raw', 'readable'].includes(mode)) throw new Error('Unknown Game Boy conversion mode.');
+  const detection = detectVgmImport(new Ym2612VGM(buffer, {logger: null}).header);
+  if (!detection.supported || detection.family !== 'gameboy') throw new Error(detection.message || 'Expected Game Boy VGM.');
+  const {events, time} = readGameboyEvents(buffer);
+  const lines = [
+    '// Game Boy VGM: one pass, original register order and 44100 Hz sample waits.',
+    '// Asynchronous waits are not sample-accurate audio scheduling.',
+    '// Envelope/sweep evolve in the chip. Comments describe writes, not internal live state.',
+    "const gb = await createSoundChip('gameboy');", 'try {',
+    '  gb.reset(); // Replay original power/setup writes without injecting initialize defaults.',
+  ];
+  const state = new Uint8Array(48);
+  let previous = 0;
+  for (const event of events) {
+    if (event.time > previous) lines.push(`  await sleepSamples(${event.time - previous}, 44100);`);
+    previous = event.time;
+    if (event.register === 22 && !(event.value & 128)) state.fill(0, 0, 23);
+    state[event.register] = event.value;
+    const comment = mode === 'readable' ? ` // sample ${event.time}: ${describe(event.register, event.value, state)}` : '';
+    lines.push(`  gb.writeRegister(${hex(event.register)}, ${hex(event.value)});${comment}`);
+  }
+  if (time > previous) lines.push(`  await sleepSamples(${time - previous}, 44100);`);
+  lines.push('} finally {', '  gb.dispose();', '}', '');
+  return lines.join('\n');
+}
