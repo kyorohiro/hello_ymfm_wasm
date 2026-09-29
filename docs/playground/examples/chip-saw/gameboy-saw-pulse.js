@@ -5,8 +5,8 @@ try {
   gb.initialize();
   gb.setPan(0, true, false);
   gb.setPan(1, false, true);
-  for (const duty of [0.125, 0.25, 0.5, 0.75]) {
-    for (const ch of [0, 1]) {
+  for (const duty of /** @type {const} */ ([0.125, 0.25, 0.5, 0.75])) {
+    for (const ch of /** @type {const} */ ([0, 1])) {
       gb.pulse.setVoice(ch, {
         duty, volume: 10, envelope: {direction: 'down', period: 2},
       });

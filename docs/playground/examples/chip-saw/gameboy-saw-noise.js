@@ -3,7 +3,7 @@
 const gb = await createSoundChip('gameboy');
 try {
   gb.initialize();
-  for (const width of [15, 7]) {
+  for (const width of /** @type {const} */ ([15, 7])) {
     for (const shift of [2, 3, 4, 5]) {
       gb.noise.setVoice({
         volume: 10,

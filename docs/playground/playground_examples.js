@@ -44,12 +44,12 @@ export const EXAMPLE_FILES = [
   {
     "path": "/examples/chip-saw/gameboy-saw-noise.js",
     "name": "gameboy-saw-noise",
-    "data": "// Game Boyノイズ：15-bitと7-bitの違い、分周とシフトを試します。\n// noiseには音名指定がありません。設定は次のkeyOn()から反映されます。\nconst gb = await createSoundChip('gameboy');\ntry {\n  gb.initialize();\n  for (const width of [15, 7]) {\n    for (const shift of [2, 3, 4, 5]) {\n      gb.noise.setVoice({\n        volume: 10,\n        envelope: {direction: 'down', period: 1},\n        divisor: 3, shift, width,\n      });\n      gb.noise.keyOn();\n      await sleep(0.2);\n      gb.noise.keyOff();\n      await sleep(0.1);\n    }\n  }\n} finally {\n  gb.dispose();\n}\n"
+    "data": "// Game Boyノイズ：15-bitと7-bitの違い、分周とシフトを試します。\n// noiseには音名指定がありません。設定は次のkeyOn()から反映されます。\nconst gb = await createSoundChip('gameboy');\ntry {\n  gb.initialize();\n  for (const width of /** @type {const} */ ([15, 7])) {\n    for (const shift of [2, 3, 4, 5]) {\n      gb.noise.setVoice({\n        volume: 10,\n        envelope: {direction: 'down', period: 1},\n        divisor: 3, shift, width,\n      });\n      gb.noise.keyOn();\n      await sleep(0.2);\n      gb.noise.keyOff();\n      await sleep(0.1);\n    }\n  }\n} finally {\n  gb.dispose();\n}\n"
   },
   {
     "path": "/examples/chip-saw/gameboy-saw-pulse.js",
     "name": "gameboy-saw-pulse",
-    "data": "// chip-saw: chip-rawの次に並ぶ高水準APIの例。sawは波形名ではありません。\n// 2つの矩形波CHを左右に振り分け、4種類のデューティ比を比較します。\nconst gb = await createSoundChip('gameboy');\ntry {\n  gb.initialize();\n  gb.setPan(0, true, false);\n  gb.setPan(1, false, true);\n  for (const duty of [0.125, 0.25, 0.5, 0.75]) {\n    for (const ch of [0, 1]) {\n      gb.pulse.setVoice(ch, {\n        duty, volume: 10, envelope: {direction: 'down', period: 2},\n      });\n    }\n    for (const note of ['C4', 'E4', 'G4', 'C5']) {\n      gb.pulse.setNote(0, note);\n      gb.pulse.setNote(1, 'C4');\n      gb.pulse.keyOn(0);\n      gb.pulse.keyOn(1);\n      await sleep(0.2);\n      gb.pulse.keyOff(0);\n      gb.pulse.keyOff(1);\n      await sleep(0.05);\n    }\n  }\n} finally {\n  gb.dispose();\n}\n"
+    "data": "// chip-saw: chip-rawの次に並ぶ高水準APIの例。sawは波形名ではありません。\n// 2つの矩形波CHを左右に振り分け、4種類のデューティ比を比較します。\nconst gb = await createSoundChip('gameboy');\ntry {\n  gb.initialize();\n  gb.setPan(0, true, false);\n  gb.setPan(1, false, true);\n  for (const duty of /** @type {const} */ ([0.125, 0.25, 0.5, 0.75])) {\n    for (const ch of /** @type {const} */ ([0, 1])) {\n      gb.pulse.setVoice(ch, {\n        duty, volume: 10, envelope: {direction: 'down', period: 2},\n      });\n    }\n    for (const note of ['C4', 'E4', 'G4', 'C5']) {\n      gb.pulse.setNote(0, note);\n      gb.pulse.setNote(1, 'C4');\n      gb.pulse.keyOn(0);\n      gb.pulse.keyOn(1);\n      await sleep(0.2);\n      gb.pulse.keyOff(0);\n      gb.pulse.keyOff(1);\n      await sleep(0.05);\n    }\n  }\n} finally {\n  gb.dispose();\n}\n"
   },
   {
     "path": "/examples/chip-saw/gameboy-saw-wave.js",
