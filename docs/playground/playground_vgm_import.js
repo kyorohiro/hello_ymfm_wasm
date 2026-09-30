@@ -1,3 +1,4 @@
+import {ym2203HighOperation} from './ym2203_high.js';
 import {exportRf5c164Vgm} from './rf5c164_vgm_export.js?v=megacd-loops-2';
 export {exportRf5c164Vgm} from './rf5c164_vgm_export.js?v=megacd-loops-2';
 import {Ym2612VGM} from '../js/ym2612vgm.js';
@@ -173,7 +174,7 @@ export function addVgmSoundChipSetup(source, detection, selectedChip) {
 
 /** Full single-chip YM2203 raw import, including SSG. Uses the additional-chip API. */
 export function exportYm2203FullVgm(buffer, {mode = 'write'} = {}) {
-  if (!['write', 'schedule'].includes(mode)) throw new Error('YM2203 supports Write and Schedule');
+  if (!['write', 'schedule', 'high'].includes(mode)) throw new Error('YM2203 supports Write, Schedule and High');
   const parser = new Ym2612VGM(buffer, {logger: null});
   const detection = detectVgmImport(parser.header);
   if (!detection.supported || detection.chip !== 'ym2203' || detection.chips.length !== 1) throw new Error('Expected single YM2203 VGM');
@@ -196,9 +197,17 @@ export function exportYm2203FullVgm(buffer, {mode = 'write'} = {}) {
   } else {
     lines.push('// Write uses Playground waits; Schedule executes writes on the audio thread.', 'liveLoop("ym2203", async () => {', '  opn.reset();');
     let previous = 0;
-    for (const [sample, register, value] of events) {
+    const registers = new Uint8Array(256);
+    for (let index = 0; index < events.length; index++) {
+      const [sample, register, value] = events[index];
       if (sample > previous) lines.push(`  await sleepSamples(${sample - previous}, 44100);`);
-      lines.push(`  opn.write(0, ${hex(register)}, ${hex(value)});`); previous = sample;
+      const operation = mode === 'high' ? ym2203HighOperation(events, index, registers) : null;
+      lines.push('  ' + (operation?.code ?? `opn.write(0, ${hex(register)}, ${hex(value)});`));
+      const count = operation?.count ?? 1;
+      for (let offset = 0; offset < count; offset++) {
+        const [, r, v] = events[index + offset]; registers[r] = v;
+      }
+      index += count - 1; previous = sample;
     }
     if (time > previous) lines.push(`  await sleepSamples(${time - previous}, 44100);`);
     lines.push('});');

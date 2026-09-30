@@ -181,6 +181,6 @@ test('YM2203 Write and Schedule preserve FM + SSG bytes, source clock and sample
   await new (Object.getPrototypeOf(async function(){}).constructor)('useSoundChip','liveLoop','sleepSamples',source)(async name=>{assert.equal(name,'ym2203');return opn;},(name,fn)=>{assert.equal(name,'ym2203');loop=fn;},async n=>{time+=n;});
   await loop();assert.equal(clock,4000000);assert.equal(time,883);assert.deepEqual(writes,expected);
  }
- assert.throws(()=>exportYm2203FullVgm(input,{mode:'high'}),/Write and Schedule/);
+ assert.throws(()=>exportYm2203FullVgm(input,{mode:'invalid'}),/Write, Schedule and High/);
  view.setUint32(0x44,0x40000000|4000000,true);assert.throws(()=>exportYm2203FullVgm(input),/single YM2203/);
 });

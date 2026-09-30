@@ -262,3 +262,16 @@ YM2203側はWriteとScheduleに対応。Writeは `opn.write()` と `sleepSamples
 FMとSSGの共有レジスター順を守るため1つのliveLoopとして出力する。全体を繰り返し、元VGMのループ地点やCH分割は今回扱わない。Scheduleの各パス内の時刻は音声側で管理するが、パス間はliveLoopの再呼び出しのため隙間なしの連続ループを保証しない。Highは未対応。対応入力は単一YM2203の直接レジスター書き込みとwait。その他のコマンドは黙って省略せず変換エラーにする。
 
 `setClock(clock)` と `scheduleRegisters()` は追加YM2203クライアントのAPI。既定YM2203のFM facadeには今回追加していないため、この変換先選択はYM2612モードで提示する。
+
+## YM2203 High変換
+
+YM2612モードから選ぶYM2203（FM＋SSG）変換にHighを追加した。Writeと同じ `sleepSamples()`／1つのliveLoopを使い、レジスター列を変えずに表せる部分を高レベルAPIへ置き換える。
+
+- FM：`setOperator`、`setAlgo`、`setFrequency`、`keyOn`、`keyOff`。
+- SSG：`tone`、`noise`、`setTonePeriod`、`setVolume`、`setMixer`、`setEnvelope`。
+- 複数書き込みを伴うAPIは、同一時刻の連続した書き込みが一致する場合だけ使用する。waitを跨いでまとめない。
+- 予約ビットや特殊操作など、同じ書き込みを再現できない部分は `opn.write()` を残す。
+
+`SSGSynth.setTonePeriod(channel, period)` は音程の低位→高位の2レジスターだけを書き、ミキサー・音量を維持する。音名への丸めや再発音の追加は行わない。
+
+Write／Highの2周分の書き込み列と時刻の一致、全レジスター・全バイト値に対する単一書き込み置換、waitを跨がないことをテストした。ブラウザーでの実音比較は未実施。

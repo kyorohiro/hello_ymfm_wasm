@@ -36,6 +36,7 @@ playground_tfi_editor.js
 playground_midi_import.js
 playground_vgm_presets.js
 playground_vgm_import.js
+ym2203_high.js
 rf5c164_vgm_export.js
 tetorica-playground-globals.d.ts
 tetorica-playground-ym2203.d.ts

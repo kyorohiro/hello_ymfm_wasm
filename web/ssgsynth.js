@@ -54,6 +54,12 @@ export class SSGSynth {
     this.setMixer(channel, {tone: false, noise: true});
     this.setVolume(channel, volume, envelope);
   }
+  /** Change only tone pitch, preserving mixer/volume. Raw 12-bit hardware period. */
+  setTonePeriod(channel, period) {
+    integer('channel', channel, 2); integer('period', period, 4095);
+    this.write(channel * 2, period & 255);
+    this.write(channel * 2 + 1, period >> 8);
+  }
   /** Mixer gates may combine tone and noise on the same channel. */
   setMixer(channel, {tone, noise}) {
     integer('channel', channel, 2);

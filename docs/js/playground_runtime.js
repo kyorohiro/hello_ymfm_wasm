@@ -170,7 +170,7 @@ export function createPlaygroundRuntime(
     );
   defaultLogicWorkerUrl.searchParams.set(
     "v",
-    "ym2203-full-import-1"
+    "ym2203-high-import-1"
   );
   const logicWorkerUrl =
     options.logicWorkerUrl ??

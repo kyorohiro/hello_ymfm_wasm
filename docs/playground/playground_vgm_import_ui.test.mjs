@@ -3,10 +3,10 @@ import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import {readFileSync} from 'node:fs';
 const source=readFileSync(new URL('./playground.js',import.meta.url),'utf8');
-function setup(prepare, gameboyMode = 'readable') {
+function setup(prepare, gameboyMode = 'readable', ym2203Mode = 'schedule') {
   const nodes=new Map(), imports=[],statuses=[];
   const node=id=>{if(!nodes.has(id))nodes.set(id,{value:'/test.js',checked:false,disabled:false,hidden:false,events:{},addEventListener(name,fn){this.events[name]=fn;},setCustomValidity(v){this.validity=v;},reportValidity(){},showModal(){this.open=true;},close(){this.open=false;this.events.close?.();}});return nodes.get(id);};
-  const c=vm.createContext({selectedChip:'ym2612',prepareVgmImport:prepare,document:{getElementById:node,querySelector:q=>q.includes('gameboy')?{value:gameboyMode}:q.includes('ym2203')?{value:'schedule'}:{value:'high'}},setStatus:s=>statuses.push(s),normalizeVirtualPath:p=>p,isSystemVirtualPath:p=>p.startsWith('/sys/'),virtualFiles:{get(){}},importVgmFile:async(f,o)=>imports.push({f,o}),mainMenu:{open:true},syncDacBase64Option(){},runButton:{focus(){}}});
+  const c=vm.createContext({selectedChip:'ym2612',prepareVgmImport:prepare,document:{getElementById:node,querySelector:q=>q.includes('gameboy')?{value:gameboyMode}:q.includes('ym2203')?{value:ym2203Mode}:{value:'high'}},setStatus:s=>statuses.push(s),normalizeVirtualPath:p=>p,isSystemVirtualPath:p=>p.startsWith('/sys/'),virtualFiles:{get(){}},importVgmFile:async(f,o)=>imports.push({f,o}),mainMenu:{open:true},syncDacBase64Option(){},runButton:{focus(){}}});
   for(const id of ['vgmImportInput','vgmImportDialog','vgmImportTarget','vgmImportFilename','convertVgmButton','cancelVgmImportButton','includeDacInput','dacBase64Input']) c[id]=node(id);
   vm.runInContext('let pendingVgmImportFile=null;let pendingVgmImport=null;let vgmImportRequest=0;',c);
   const change=source.slice(source.indexOf("  vgmImportInput.addEventListener('change'"),source.indexOf('\n}\n\nfunction bootPlayground'));
@@ -75,4 +75,12 @@ test('YM2203 target selects full FM/SSG Schedule or existing YM2612 options',asy
  await ui.choose('pc98.vgm');ui.node('ym2203TargetInput').value='ym2612';ui.node('ym2203TargetInput').events.change();
  assert.equal(ui.node('opnImportOptions').hidden,false);assert.equal(ui.node('ym2203TimingOptions').hidden,true);
  ui.node('convertVgmButton').events.click();assert.equal(ui.imports[1].o.ym2203Target,'ym2612');assert.equal(ui.imports[1].o.mode,'high');
+});
+
+
+test('YM2203 High selection is passed to the native conversion',async()=>{
+ const ui=setup(async()=>({detection:{family:'opn',chip:'ym2203',chips:['ym2203'],supported:true,message:''}}),'readable','high');
+ await ui.choose('pc98.vgm');ui.node('convertVgmButton').events.click();
+ assert.equal(ui.imports[0].o.ym2203Target,'ym2203');assert.equal(ui.imports[0].o.ym2203Mode,'high');
+ assert.ok(readFileSync(new URL('./index.html',import.meta.url),'utf8').includes('name="ym2203ImportMode" value="high"'));
 });

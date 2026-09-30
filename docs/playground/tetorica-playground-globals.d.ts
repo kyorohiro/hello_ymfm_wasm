@@ -1081,8 +1081,10 @@ type PlaygroundYm2608 = Pick<FMApi, 'reset' | 'setPreset' | 'setOperator' | 'set
   write(port: number, register: number, value: number): void;
   dispose(): void;
   ssg: {
-    tone(ch: number, options: {frequency: number; volume?: number}): number;
-    noise(ch: number, options: {period: number; volume?: number}): void;
+    tone(ch: number, options: {frequency?: number; period?: number; volume?: number; envelope?: boolean}): number;
+    noise(ch: number, options: {period: number; volume?: number; envelope?: boolean}): void;
+    setTonePeriod(ch: number, period: number): void;
+    setMixer(ch: number, options: {tone: boolean; noise: boolean}): void;
     off(ch: number): void;
     setVolume(ch: number, volume: number, envelope?: boolean): void;
     setEnvelope(options: {period: number; shape: number}): void;
