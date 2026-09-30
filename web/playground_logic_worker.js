@@ -1,7 +1,8 @@
+import {createLoopAsyncTasks} from './playground_async_tasks.js';
 import {createOpnClient} from './playground_opn.js';
 import {createSoundChipRegistry} from './playground_soundchips.js';
 import {createGameboyClient} from './playground_gameboy.js';
-import {createYm2608Client} from './playground_ym2608.js?v=ym2608-modes-1';
+import {createYm2608Client} from './playground_ym2608.js?v=loop-async-tasks-1';
 import {createRf5c164Client} from './playground_rf5c164.js';
 import {createNativeSampleController} from './native_sample.js';
 /**
@@ -15,7 +16,7 @@ import {createWorkerDac} from './playground_worker_dac.js';
 import {createWorkerChip} from './playground_worker_chip.js';
 import {createMidiApi, createMidiRack} from './playground_midi.js?v=midi-held-stop-1';
 import { hzToBlockFnum } from "./pitch.js";
-import { createDeadlineScheduler } from "./playground_clock.js?v=ym2608-modes-1";
+import { createDeadlineScheduler } from "./playground_clock.js?v=loop-async-tasks-1";
 
 import {createNativeFXController} from "./native_fx.js";
 let nativeFXPort = null;
@@ -197,11 +198,13 @@ function createClock(run) {
   async function sleep(seconds) {
     const token = run.token;
     const loopContext = run.currentLoop;
+    if (loopContext?.interruptError && !run.stopped && !loopContext.stopped) throw loopContext.interruptError;
     if (run.stopped || loopContext?.stopped) throw new Error("Run stopped");
     await new Promise((resolve) => scheduler.wait(performance.now() / 1000 + Math.max(0, Number(seconds) || 0), () => {
       run.currentLoop = loopContext;
       resolve();
     }, loopContext));
+    if (loopContext?.interruptError && !run.stopped && !loopContext.stopped) throw loopContext.interruptError;
     if (run.stopped || token !== run.token || loopContext?.stopped || (loopContext && !run.loops.has(loopContext.name))) {
       throw new Error("Run stopped");
     }
@@ -209,11 +212,13 @@ function createClock(run) {
 
   async function sleepUntil(targetSeconds, loopContext) {
     const token = run.token;
+    if (loopContext?.interruptError && !run.stopped && !loopContext.stopped) throw loopContext.interruptError;
     if (run.stopped || loopContext?.stopped) throw new Error("Run stopped");
     await new Promise((resolve) => scheduler.wait(targetSeconds, () => {
       run.currentLoop = loopContext;
       resolve();
     }, loopContext));
+    if (loopContext?.interruptError && !run.stopped && !loopContext.stopped) throw loopContext.interruptError;
     if (run.stopped || token !== run.token || loopContext?.stopped || (loopContext && !run.loops.has(loopContext.name))) {
       throw new Error("Run stopped");
     }
@@ -222,6 +227,7 @@ function createClock(run) {
   return {
     cancelWaits: scheduler.cancel,
     cancelLoop(name) {
+      run.loopTasks?.releaseName(name);
       run.midi?.cancelOwner(name);
       scheduler.cancel((owner) => {
         if (!owner || (name !== undefined && owner.name !== name)) return false;
@@ -438,11 +444,16 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
   };
   const pcmClients = new Set();
   const soundChips = createSoundChipRegistry();
+  const loopTasks = createLoopAsyncTasks({getLoop: () => run.currentLoop,
+    cancelWaits: loop => clock.cancelWaits(loop),
+    isActive: loop => !run.stopped && !loop.stopped && loop.generation === run.generation && run.loops.has(loop.name)});
+  run.loopTasks = loopTasks;
   run.stop = async () => {
     if (run.stopped) return;
     run.stopped = true;
     soundChips.clear();
     run.token += 1;
+    loopTasks.clear();
     clock.cancelWaits();
     run.generation += 1;
     for (const cleanup of run.cleanups) {
@@ -550,6 +561,7 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
   run.adoptChipState=state=>chip?.adoptState(state);
   const localNoteOwners=new Map();
   const globals = {
+    trackAsync: promise => loopTasks.track(promise),
     async useSoundChip(name, options) {
       const token = run.token;
       const check = () => { if (run.stopped || token !== run.token) throw new Error('Run stopped'); };
@@ -686,7 +698,7 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
       if (run.runningLoops.has(name)) continue;
       run.runningLoops.add(name);
       const generation = run.generation;
-      const loopContext = { name, cursorBeat: clock.currentBeat?.() ?? 0, sampleCursorSeconds: 0 };
+      const loopContext = { name, generation, cursorBeat: clock.currentBeat?.() ?? 0, sampleCursorSeconds: 0 };
       void (async () => {
         while (!run.stopped && generation === run.generation && run.loops.has(name)) {
           try {
@@ -694,14 +706,18 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
             await executeWithWorkerGuards(
               () => run.loops.get(name)()
             );
+            await loopTasks.finish(loopContext);
+            if (loopContext.interruptError) throw loopContext.interruptError;
           } catch (error) {
             if (error?.message === "Run stopped") break;
             if (!run.stopped) postMessage({ type: "log", level: "error", message: `[liveLoop:${name}] ${error?.stack ?? String(error)}` });
+            if (loopContext.interruptError) break;
             await new Promise((resolve) => setTimeout(resolve, 16));
           } finally {
             run.currentLoop = null;
           }
         }
+        loopTasks.release(loopContext);
         if (generation === run.generation) run.runningLoops.delete(name);
       })();
     }

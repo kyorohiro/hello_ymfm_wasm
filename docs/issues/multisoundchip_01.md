@@ -311,3 +311,20 @@ HighはYM2203のFM／SSG置換を流用し、FM上位3CH・リズム音量／パ
 各モードは1つのliveLoopで全体を繰り返す。元VGMのループ地点・CH分割は未対応。Scheduleのパス間はJSの再呼び出しが入るため、隙間なしの連続ループを保証しない。
 
 関連94テスト、型チェック、itch.ioパッケージ検証が通過。実WASMでScheduleの発音・完了・キャンセル、HighとWriteの2周分のイベント一致を検証した。ブラウザーで提供曲の試聴は未実施。利用時は再読み込み後に再Importする。
+
+## liveLoopの非同期タスクと待機中断
+
+`pg.trackAsync(promise)` を追加した。呼び出した時点のliveLoopにタスクを紐付け、処理を待たずに演奏を進める。タスクが失敗するとそのループへ元のエラーを記録し、sleep／sleepSamples／beat（MainではnextBeatも同じ待機経路）を解除して例外を返す。中断済みループの次の待機も即時失敗する。転送失敗したループは自動再試行せず終了し、元のエラーを表示する。他のループには影響させない。
+
+```js
+liveLoop("ym2608", async () => {
+  opna.resetRegisters();
+  pg.trackAsync(opna.adpcm.loadMemory(memory0, 0));
+  opna.write(1, 0x00, 0xa0);
+  await sleepSamples(4410, 44100);
+});
+```
+
+ループの1周が終わるとランタイムが登録タスクの完了を待つ。Stop・ループ削除でこの待機も解除し、終了後に届いた古い失敗は無視する。Stopは通常の停止として扱い、転送失敗と混同しない。専用の例外型で包む代わりにループの中断理由と元のErrorを保持する。任意のPromiseそのものや、すでに送信した音声コマンドを取り消す機能ではない。
+
+YM2608 Write／High生成コードのpendingMemory／memoryErrorと各行のチェックを削除した。Scheduleは完了Promiseを直接awaitする従来経路を維持。新しい生成形式を使うには再Importする。

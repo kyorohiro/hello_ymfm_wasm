@@ -1,3 +1,4 @@
+import {createLoopAsyncTasks} from '../../web/playground_async_tasks.js';
 import {createOpnClient} from '../../web/playground_opn.js';
 import {createRf5c164Client} from '../../web/playground_rf5c164.js';
 import {createYm2608Client} from '../../web/playground_ym2608.js';
@@ -25,7 +26,7 @@ function createWorkerHarness() {
   const messages = [];
   const context = {
     createNativeSampleController, createNativeNoiseController, controlNativeNoise, createWorkerDac, atob, createMidiApi, createMidiRack, createWorkerChip, createNativeFXController, DOMException, structuredClone,
-    createDeadlineScheduler, createOpnClient, createGameboyClient, createSoundChipRegistry, createRf5c164Client, createYm2608Client,
+    createLoopAsyncTasks, createDeadlineScheduler, createOpnClient, createGameboyClient, createSoundChipRegistry, createRf5c164Client, createYm2608Client,
     hzToBlockFnum,
     Error,
     Map,
@@ -623,4 +624,14 @@ for (const name of ['ym2612', 'ym2203', 'ym2610']) test(`Worker creates independ
   assert.ok(sent.every(messages=>messages.some(m=>m.method==='write')));
  } finally { await worker.send({type:'stop'}); }
  assert.ok(sent.every(messages=>messages.filter(m=>m.method==='dispose').length===1));
+});
+
+for(const method of ['sleep','sleepSamples','beat'])test(`Worker tracked error interrupts ${method} and does not retry`,async()=>{
+ const worker=createWorkerHarness();
+ await worker.send({type:'run',sourceCode:`liveLoop('upload',async()=>{console.log('entered');pg.trackAsync(new Promise((_,reject)=>setTimeout(()=>reject(new Error('memory failed')),10)));await ${method}(600000);console.log('after');});`});
+ await waitFor(()=>worker.messages.some(m=>m.type==='log'&&m.message.includes('memory failed')));
+ await new Promise(r=>setTimeout(r,25));
+ assert.equal(worker.messages.filter(m=>m.command==='log'&&m.args?.[0]==='entered').length,1);
+ assert.equal(worker.messages.filter(m=>m.command==='log'&&m.args?.[0]==='after').length,0);
+ await worker.send({type:'stop'});
 });

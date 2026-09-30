@@ -1,10 +1,11 @@
+import {createLoopAsyncTasks} from './playground_async_tasks.js';
 import {createOpnAudio} from './playground_opn_audio.js';
 import {createOpnClient} from './playground_opn.js';
 import {createSoundChipRegistry} from './playground_soundchips.js';
 import {createGameboyAudio} from './playground_gameboy_audio.js';
 import {createGameboyClient} from './playground_gameboy.js';
-import {createYm2608Audio} from './playground_ym2608_audio.js?v=ym2608-modes-1';
-import {createYm2608Client} from './playground_ym2608.js?v=ym2608-modes-1';
+import {createYm2608Audio} from './playground_ym2608_audio.js?v=loop-async-tasks-1';
+import {createYm2608Client} from './playground_ym2608.js?v=loop-async-tasks-1';
 import {createRf5c164Client} from './playground_rf5c164.js';
 import {createRf5c164Audio} from './playground_rf5c164_audio.js';
 import {samplePCM} from './native_sample.js';
@@ -24,9 +25,9 @@ import { createTetoricaSynth } from "./tetorica_synth.js";
 import {
   createPitchFromMidi,
 } from "./pitch.js";
-import { createPlaygroundClock } from "./playground_clock.js?v=ym2608-modes-1";
+import { createPlaygroundClock } from "./playground_clock.js?v=loop-async-tasks-1";
 import { executeWithPlaygroundGuards } from "./playground_execution.js";
-import { createPlaygroundLive } from "./playground_live.js?v=native-fx-1";
+import { createPlaygroundLive } from "./playground_live.js?v=loop-async-tasks-1";
 import { createPlaygroundMusic } from "./playground_music.js";
 import { createPlaygroundNoiseApi } from "./playground_noise.js";
 import { createFmProxy } from "./playground_sync.js";
@@ -170,7 +171,7 @@ export function createPlaygroundRuntime(
     );
   defaultLogicWorkerUrl.searchParams.set(
     "v",
-    "ym2608-modes-1"
+    "loop-async-tasks-1"
   );
   const logicWorkerUrl =
     options.logicWorkerUrl ??
@@ -497,6 +498,8 @@ export function createPlaygroundRuntime(
     );
   }
 
+  const loopTasks = createLoopAsyncTasks({getLoop: () => currentLoopContext,
+    cancelWaits: loop => clockApi.cancelWaits(loop)});
   const liveApi =
     createPlaygroundLive({
       runtime,
@@ -514,7 +517,9 @@ export function createPlaygroundRuntime(
       logLine: emitLog,
       setStatus: emitStatus,
       executeCallback: executeUserCallback,
-      cancelWaits: state => {for (const api of midiApis) api.cancelOwner(state.name);clockApi.cancelWaits(state);},
+      finishTasks: loop => loopTasks.finish(loop),
+      releaseTasks: loop => loopTasks.release(loop),
+      cancelWaits: state => {loopTasks.release(state);for (const api of midiApis) api.cancelOwner(state.name);clockApi.cancelWaits(state);},
     });
 
   function psgTone(
@@ -1328,6 +1333,7 @@ export function createPlaygroundRuntime(
       check:()=>{if(runToken!==currentRunToken)throw new DOMException('Run stopped','AbortError');}});
     midiApis.add(midi);
     const pg = {
+      trackAsync: promise => loopTasks.track(promise),
       useSoundChip: async (name, options) => {
         const check = () => { if (runToken !== currentRunToken) throw new DOMException('Run stopped', 'AbortError'); };
         check();
@@ -1785,6 +1791,7 @@ export function createPlaygroundRuntime(
     await stopLogicWorker();
     if (runToken !== currentRunToken) return;
     if (logicWorker) {
+      loopTasks.clear();
       clockApi.cancelWaits();
       terminateLogicWorker();
     }
@@ -1938,6 +1945,7 @@ export function createPlaygroundRuntime(
 
   function stop() {
     currentRunToken += 1;
+    loopTasks.clear();
     clockApi.cancelWaits();
     runtime.sampleClockStartTime = null;
     const workerMode = Boolean(logicWorker);

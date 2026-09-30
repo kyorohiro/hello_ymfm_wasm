@@ -99,6 +99,7 @@ playground_music.js
 playground_noise.js
 playground_runtime.js
 playground_soundchips.js
+playground_async_tasks.js
 playground_opn.js
 playground_opn_audio.js
 playground_opn_worklet.js

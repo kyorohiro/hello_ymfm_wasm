@@ -58,6 +58,7 @@ opn_runtime_synth.js
 pitch.js
 playground_runtime.js
 playground_soundchips.js
+playground_async_tasks.js
 playground_opn.js
 playground_opn_audio.js
 playground_opn_worklet.js

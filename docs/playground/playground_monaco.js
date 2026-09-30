@@ -359,7 +359,7 @@ async function registerMonacoPlaygroundGlobals(
   chip = "ym2612"
 ) {
   for (const name of ["tetorica-playground-globals", `tetorica-playground-${chip}`]) {
-    const response = await fetch(new URL(`./${name}.d.ts?v=ym2608-modes-1`, import.meta.url), { cache: "no-cache" });
+    const response = await fetch(new URL(`./${name}.d.ts?v=loop-async-tasks-1`, import.meta.url), { cache: "no-cache" });
     if (!response.ok) throw new Error(`Failed to load playground type declarations: ${response.status}`);
     let declarations = await response.text();
     if ((chip === "ym2203" || chip === "ym2610") && name === "tetorica-playground-globals") {

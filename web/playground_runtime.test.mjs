@@ -413,3 +413,12 @@ for(const [chip,channels] of [['ym2203',3],['ym2610',4]])test(`Main useSoundChip
  assert.equal(notes.length,1);
  runtime.stop();await runtime.playSource(`const fm=await useSoundChip('${chip}');if(fm!==pg.fm)throw Error('Restart');`);
 });
+
+for(const method of ['sleep','sleepSamples','beat'])test(`Main tracked failure ends its loop during ${method} without retrying`,async t=>{
+ const {runtime,statuses}=setup(t);let reject;
+ globalThis.playgroundReview={task:new Promise((_,r)=>{reject=r;}),runs:0,after:false};
+ await runtime.playSource(`liveLoop('upload',async()=>{globalThis.playgroundReview.runs++;pg.trackAsync(globalThis.playgroundReview.task);await ${method}(600000);globalThis.playgroundReview.after=true;});`);
+ reject(new Error('memory transfer failed'));
+ for(let i=0;i<100&&!statuses.includes('Loop error: upload');i++)await new Promise(r=>setTimeout(r,1));
+ assert.ok(statuses.includes('Loop error: upload'));assert.equal(globalThis.playgroundReview.runs,1);assert.equal(globalThis.playgroundReview.after,false);
+});

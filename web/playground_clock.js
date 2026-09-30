@@ -172,6 +172,7 @@ export function createPlaygroundClock(
       seconds * 1000
     );
 
+    if (loopState?.interruptError) throw loopState.interruptError;
     await new Promise((resolve) => {
       scheduler.wait(nowSeconds() + waitMs / 1000, () => {
         resolveWithLoopContext(
@@ -182,6 +183,7 @@ export function createPlaygroundClock(
       }, loopState);
     });
 
+    if (loopState?.interruptError && !loopState.stopped) throw loopState.interruptError;
     if (
       loopState?.stopped ||
       effectiveToken !==
@@ -227,6 +229,7 @@ export function createPlaygroundClock(
     loopState.sampleCursorSeconds =
       targetOffset;
 
+    if (loopState?.interruptError) throw loopState.interruptError;
     await new Promise((resolve) => {
       scheduler.wait(runtime.sampleClockStartTime + targetOffset, () => {
         resolveWithLoopContext(
@@ -237,6 +240,7 @@ export function createPlaygroundClock(
       }, loopState);
     });
 
+    if (loopState?.interruptError && !loopState.stopped) throw loopState.interruptError;
     if (
       loopState.stopped ||
       effectiveToken !== loopState.runToken
@@ -258,6 +262,7 @@ export function createPlaygroundClock(
       runtime.clockStartTime +
       beatsToSeconds(targetBeat);
 
+    if (loopState?.interruptError) throw loopState.interruptError;
     await new Promise((resolve) => {
       scheduler.wait(targetTime, () => {
         resolveWithLoopContext(
@@ -268,6 +273,7 @@ export function createPlaygroundClock(
       }, loopState);
     });
 
+    if (loopState?.interruptError && !loopState.stopped) throw loopState.interruptError;
     if (
       loopState?.stopped ||
       effectiveToken !==

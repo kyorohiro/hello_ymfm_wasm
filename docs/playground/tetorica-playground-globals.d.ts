@@ -833,6 +833,8 @@ declare function setInterval(handler: () => void, timeout?: number): number;
 declare function clearInterval(id: number): void;
 
 type PlaygroundAPI = {
+  /** Track a liveLoop task; rejection interrupts its waits and ends that loop. */
+  trackAsync(task: PromiseLike<unknown>): void;
   createSoundChip: typeof createSoundChip;
   useSoundChip: typeof useSoundChip;
   CH1: 0;

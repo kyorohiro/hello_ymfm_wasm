@@ -40,24 +40,15 @@ export function exportYm2608FullVgm(buffer, {mode = 'write', writeMemoryFile} = 
   }
   lines.push(
     'liveLoop("ym2608", async () => {',
-    '  const pendingMemory = new Set();',
-    '  let memoryError;',
-    '  function sendMemory(result) {',
-    '    const pending = Promise.resolve(result).then(',
-    '      () => { pendingMemory.delete(pending); },',
-    '      error => { pendingMemory.delete(pending); memoryError ??= error; }',
-    '    );',
-    '    pendingMemory.add(pending);',
-    '  }',
     '  opna.resetRegisters(); // Hardware reset without Synth setup writes.'
   );
   let previous = 0;
   const registers = [new Uint8Array(256), new Uint8Array(256)];
   for (let index = 0; index < events.length; index++) {
     const event = events[index];
-    if (event.time > previous) lines.push('  if (memoryError) throw memoryError;', `  await sleepSamples(${event.time - previous}, 44100);`, '  if (memoryError) throw memoryError;');
+    if (event.time > previous) lines.push(`  await sleepSamples(${event.time - previous}, 44100);`);
     previous = event.time;
-    if (event.type === 'ym2608-adpcm-b-data') lines.push(`  sendMemory(opna.adpcm.loadMemory(memory${event.block}, ${event.offset}));`);
+    if (event.type === 'ym2608-adpcm-b-data') lines.push(`  pg.trackAsync(opna.adpcm.loadMemory(memory${event.block}, ${event.offset}));`);
     else {
       const op = mode === 'high' ? ym2608HighOperation(events,index,registers) : null;
       lines.push('  ' + (op?.code ?? `opna.write(${event.port}, 0x${event.register.toString(16).padStart(2, '0')}, 0x${event.value.toString(16).padStart(2, '0')});`));
@@ -67,6 +58,6 @@ export function exportYm2608FullVgm(buffer, {mode = 'write', writeMemoryFile} = 
     }
   }
   if (time > previous) lines.push(`  await sleepSamples(${time - previous}, 44100);`);
-  lines.push('  await Promise.all(pendingMemory);', '  if (memoryError) throw memoryError;', '});', '');
+  lines.push('});', '');
   return lines.join('\n');
 }
