@@ -9,6 +9,7 @@ import {renderPwmPreview} from './pwm_samples.js';
 import {encodeStereoWav} from './vgm_wav.js';
 
 export async function renderSamplePreview(sample,event,{getFactory}={}) {
+  if(sample.chip==='gameboy')throw new Error('Game Boy wave RAM and voice settings export as JSON; full playback is not reconstructed');
   if(!sample.data)throw new Error('Sample has missing/partial data');
   if(sample.chip==='okim6258')return renderOki6258Preview(sample,{getFactory});
   if(sample.chip==='ymf278b'){

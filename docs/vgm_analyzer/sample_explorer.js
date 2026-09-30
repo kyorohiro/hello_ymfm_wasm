@@ -1,13 +1,15 @@
+import {appendGameboyVoice} from './gameboy_voice_view.js';
+import {appendGameboyWave} from './gameboy_wave_view.js';
 import {decodeYmf278bSample} from './ymf278b_samples.js';
 import {samplePreviewWav} from './sample_render.js';
 import {renderSamplePreview} from './sample_render.js';
 export {configureSamplePreview} from './sample_render.js';
 import { pwmCaptureWav } from './pwm_samples.js';
-import {sampleFile,extractSamples} from './sample_core.js';
-export {extractSamples} from './sample_core.js';
+import {sampleFile,extractSamples} from './sample_core.js?v=gb-voice-1';
+export {extractSamples} from './sample_core.js?v=gb-voice-1';
 
 export function mountSampleExplorer(panel, getSource, getOptions = () => ({})) {
-  let controller, audio, playing, previewSerial = 0;
+  let controller, audio, playing, previewSerial = 0, gameboyMode = false;
   const button = document.createElement('button'); button.textContent = 'Analyze samples';
   const output = document.createElement('div');
   panel.append(button, output);
@@ -23,8 +25,18 @@ export function mountSampleExplorer(panel, getSource, getOptions = () => ({})) {
       if (own.signal.aborted) return;
       output.replaceChildren();
       const note = document.createElement('p'); note.textContent = result.warnings.join(' '); output.append(note);
-      if (!result.samples.length) output.append('No supported samples found.');
-      for (const s of result.samples) {
+      const visible = gameboyMode ? result.samples.filter(s => s.chip === 'gameboy').sort((a,b)=>(a.channel ?? 3)-(b.channel ?? 3)) : result.samples;
+      if (!visible.length) output.append(gameboyMode ? 'No complete Game Boy voice or waveform settings found.' : 'No supported samples found.');
+      let group;
+      for (const s of visible) {
+        if (gameboyMode && group !== (s.channel ?? 3)) {
+          group = s.channel ?? 3;
+          const heading = document.createElement('h3');
+          heading.textContent = {1:'Pulse CH1',2:'Pulse CH2',3:'Wave CH3 — 32-point waveforms',4:'Noise CH4'}[group];
+          output.append(heading);
+        }
+        if (s.chip === 'gameboy' && s.kind !== 'wave') { appendGameboyVoice(output, s, result.events); continue; }
+        if (s.chip === 'gameboy') { appendGameboyWave(output, s, result.events); continue; }
         const captured = s.kind === 'dac' || s.kind === 'pwm' || s.chip === 'okim6258';
         const row = document.createElement('details'), title = document.createElement('summary');
         const uses = result.events.filter(e => e.sampleId === s.id);
@@ -107,5 +119,10 @@ export function mountSampleExplorer(panel, getSource, getOptions = () => ({})) {
     } catch (error) { if (!own.signal.aborted) output.textContent = `Analysis failed: ${error.message}`; }
     finally { if (!own.signal.aborted) button.disabled = false; }
   };
-  return { reset, stop };
+  return { reset, stop, setChip(chip) {
+    const next = chip === 'gameboy';
+    if (next !== gameboyMode) reset();
+    gameboyMode = next;
+    button.textContent = gameboyMode ? 'Analyze Game Boy voices' : 'Analyze samples';
+  } };
 }

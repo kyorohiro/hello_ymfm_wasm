@@ -42,6 +42,10 @@ noteish_dom.js
 command_editor.js
 sample_explorer.js
 sample_core.js
+gameboy_waves.js
+gameboy_voices.js
+gameboy_voice_view.js
+gameboy_wave_view.js
 sample_render.js
 ymf278b_samples.js
 rf5c164_samples.js
@@ -156,6 +160,7 @@ segapsgsynth.js
 tetorica_audio_runtime.js
 ym2612-worklet.js
 ym2612synth.js
+ym2612_dac.js
 "
 
 GENERATED_FILES="

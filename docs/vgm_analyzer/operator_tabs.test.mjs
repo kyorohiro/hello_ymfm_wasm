@@ -83,3 +83,11 @@ for(const chip of ['ym3526','ym3812','y8950','ymf262','ymf278b'])test(`${chip} S
  context.noteishHeader[chip+'Clock']=0x40000000;context.updateChipSupport();context.setOutputTab('tfi-info');
  assert.equal(context.tfiInfoTab.disabled,true);assert.equal(context.sbiInfo.visible,false);
 });
+
+test('Game Boy GB Info tab remains accessible through playback UI refresh',()=>{
+ const c=setup('gameboy');c.updateChipSupport();assert.equal(c.sampleTab.disabled,false);assert.equal(c.sampleTab.textContent,'GB Info');
+ c.setOutputTab('samples');
+ for(let i=0;i<3;i++)c.updateChipSupport();
+ assert.equal(c.sampleTab.getAttribute('aria-selected'),'true');
+ assert.equal(c.samplePanel.hidden,false);
+});

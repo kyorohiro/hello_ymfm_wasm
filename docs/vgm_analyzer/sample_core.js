@@ -1,3 +1,5 @@
+import {createGameboyVoices, gameboyVoiceJson} from './gameboy_voices.js';
+import {createGameboyWaves, gameboyWaveJson} from './gameboy_waves.js';
 import {createOki6258Samples,oki6258CaptureJson} from './oki6258_samples.js';
 import {createYmf278bSamples} from './ymf278b_samples.js';
 import {samplePreviewWav} from './sample_render.js';
@@ -15,6 +17,8 @@ export async function extractSamples(source, { signal, roms = {} } = {}) {
   const opl4 = createYmf278bSamples(parser.header.ymf278bClock & 0x3fffffff, roms.ymf278bWave);
   const oki = createOki6258Samples(parser.header.okim6258Clock, parser.header.okim6258Flags);
   const dac = createDacSamples();
+  const gb = createGameboyWaves();
+  const gbVoices = createGameboyVoices();
   const pwm = createPwmSamples();
   const rf = createRf5c164Samples(parser.header.rf5c164Clock & 0x3fffffff);
   const sega = createSegaPcmSamples(parser.header.segaPcmClock & 0x3fffffff, parser.header.segaPcmBankShift, parser.header.segaPcmBankMask);
@@ -62,6 +66,8 @@ export async function extractSamples(source, { signal, roms = {} } = {}) {
       endTime: null, endReason: 'unknown', rawStart, rawEnd, clock, ...settings });
   }
   function apply(e) {
+    gb.apply(e, time);
+    gbVoices.apply(e, time);
     opl4.apply(e, time);
     rf.apply(e, time);
     sega.apply(e, time);
@@ -163,6 +169,7 @@ export async function extractSamples(source, { signal, roms = {} } = {}) {
   for (let count = 0; ; count++) {
     if (signal?.aborted) throw new DOMException('Cancelled', 'AbortError');
     const e = parser.playStep(targets);
+    if (e.type === 'wait' || e.type === 'end') gb.flush(time);
     if (e.type === 'end') break;
     if (e.type === 'wait') parser.consumeWait(targets,e.samples,n=>{time+=n;dac.advance(time);pwm.advance(time);sega.advance(time);});
     else if (e.type === 'rf5c164-data') {} // applied through playback target
@@ -203,6 +210,17 @@ export async function extractSamples(source, { signal, roms = {} } = {}) {
   for(const event of rf.events) events.push({...event,sampleId:event.sampleId+baseId});
   for(const warning of rf.warnings)warnings.add(warning);
   warnings.add('YM2610 / YM2610B ADPCM-A/B, YM2608 ADPCM-B and RF5C164 previews use start-time settings. YM2608 rhythm and some end times are not reconstructed.');
+  const gbBase = samples.length;
+  for (const sample of gb.samples) samples.push({...sample, id: sample.id + gbBase});
+  for (const event of gb.events) events.push({...event, sampleId: event.sampleId + gbBase});
+  for (const warning of gb.warnings) warnings.add(warning);
+  if (gb.samples.length) warnings.add('Game Boy waveforms are written RAM snapshots (32 values, 0–15), grouped at waits and CH3 trigger writes. They do not reconstruct active-channel RAM access, trigger corruption, pitch, level or audible duration.');
+  gbVoices.finish(time);
+  const voiceBase = samples.length;
+  for (const s of gbVoices.samples) samples.push({...s, id:s.id+voiceBase});
+  for (const e of gbVoices.events) events.push({...e, sampleId:e.sampleId+voiceBase});
+  for (const w of gbVoices.warnings) warnings.add(w);
+  if (gbVoices.samples.length) warnings.add('Game Boy Pulse/Noise: trigger-time settings and subsequent writes only. Hardware envelope/sweep/length evolution and audible note ends are not simulated.');
   return { samples, events, clock, warnings: [...warnings], time };
 }
 
@@ -216,7 +234,7 @@ function sampleInventory(result) {
   return {schemaVersion:1,timebase:44100,time:result.time,warnings:result.warnings,
     samples:result.samples.map(({data,times,registers,values,...metadata})=>({
       ...metadata,exportable:data!==null && data!==undefined,
-      representation:metadata.chip==='okim6258'?'timed-adpcm':metadata.kind==='dac'||metadata.kind==='pwm'?'timed-output':metadata.chip==='rf5c164'?'ram-snapshot':['ymf278b','segapcm'].includes(metadata.chip)?'raw-pcm':'raw-adpcm',
+      representation:metadata.chip==='gameboy'?(metadata.kind==='wave'?'written-wave-ram':'trigger-register-settings'):metadata.chip==='okim6258'?'timed-adpcm':metadata.kind==='dac'||metadata.kind==='pwm'?'timed-output':metadata.chip==='rf5c164'?'ram-snapshot':['ymf278b','segapcm'].includes(metadata.chip)?'raw-pcm':'raw-adpcm',
     })),events:result.events};
 }
 
@@ -224,6 +242,8 @@ function sampleInventory(result) {
 // Native Browser save format: raw ADPCM/RAM bytes or timed output JSON.
 export function sampleFile(sample, events) {
   if (!sample.data) throw new Error('Sample '+sample.id+' has missing/partial data');
+  if (sample.chip === 'gameboy' && sample.kind !== 'wave') return {name: `gameboy-${sample.kind}-${sample.id}.json`, bytes: new TextEncoder().encode(gameboyVoiceJson(sample, events))};
+  if (sample.chip === 'gameboy') return {name: `gameboy-wave-${sample.id}.json`, bytes: new TextEncoder().encode(gameboyWaveJson(sample, events))};
   const first=events.find(e=>e.sampleId===sample.id);
   const captured=sample.kind==='dac'||sample.kind==='pwm'||sample.chip==='okim6258';
   const text=sample.chip==='okim6258'?oki6258CaptureJson(sample,first):sample.kind==='pwm'?pwmCaptureJson(sample,first.startTime):
