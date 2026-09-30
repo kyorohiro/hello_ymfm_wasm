@@ -17,7 +17,7 @@ function vgm(commands) {
 test('chip detection separates OPN, GB, unsupported and mixed/dual/custom clock inputs',()=>{
   for(const chip of ['ym2203','ym2608','ym2610','ym2612']) assert.equal(detectVgmImport({[chip+'Clock']:8000000}).family,'opn');
   assert.equal(detectVgmImport({gameBoyDmgClock:4194304}).family,'gameboy');
-  assert.match(detectVgmImport({ym2612Clock:7670454,psgClock:3579545}).message,/PSG will be omitted/);
+  assert.match(detectVgmImport({ym2612Clock:7670454,psgClock:3579545}).message,/DAC and PSG follow/);
   for(const h of [{},{ym2151Clock:4000000},{ym2203Clock:4000000,ym2612Clock:7670454},{gameBoyDmgClock:4194304|0x40000000},{gameBoyDmgClock:4000000}]) assert.equal(detectVgmImport(h).supported,false);
 });
 test('preflight supports VGM and VGZ; rejects malformed or unsupported Game Boy events before conversion',async()=>{
@@ -77,8 +77,8 @@ test('one OPN chip remains importable with other chips; omitted dual chips do no
   for (const chip of ['ym2203','ym2608','ym2610','ym2612']) {
     const d=detectVgmImport({[chip+'Clock']:8000000,rf5c164Clock:12500000,psgClock:3579545,gameBoyDmgClock:4194304|0x40000000});
     assert.equal(d.supported,true);assert.equal(d.family,'opn');assert.equal(d.chip,chip);
-    assert.deepEqual(d.omittedChips,['rf5c164','psg','gameBoyDmg']);
-    assert.match(d.message,/RF5C164 \+ PSG \+ Game Boy DMG will be omitted/);
+    assert.deepEqual(d.omittedChips,chip === 'ym2612' ? ['rf5c164','gameBoyDmg'] : ['rf5c164','psg','gameBoyDmg']);
+    assert.match(d.message,chip === 'ym2612' ? /RF5C164 \+ Game Boy DMG will be omitted/ : /RF5C164 \+ PSG \+ Game Boy DMG will be omitted/);
   }
   assert.equal(detectVgmImport({ym2612Clock:7670454|0x40000000,psgClock:3579545}).supported,false);
 });
@@ -94,7 +94,7 @@ test('YM2612 + RF5C164 + PSG imports the same FM code as the isolated YM2612 str
   assert.match(prepared.detection.message,/RF5C164/);assert.match(prepared.detection.message,/PSG/);
   const reference=new Ym2612VGM(clean,{logger:null});
   for (const mode of [{},{high:true},{compact:true},{scheduled:true}]) {
-    const options={...mode,splitChannels:false,includeDac:false};
+    const options={...mode,splitChannels:false,includeDac:false,includePsg:false};
     assert.equal(prepared.vgm.exportPlaygroundJavaScript(options),reference.exportPlaygroundJavaScript(options));
   }
 });

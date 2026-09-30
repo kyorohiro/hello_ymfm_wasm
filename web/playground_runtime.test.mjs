@@ -359,3 +359,12 @@ test('Worker observer updates synth state without sending audio or waiting for a
  assert.ok(writes.length>0,'normal UI transport is restored after observation');
  await runtime.finalize();
 });
+
+test('main scheduleWritesSamples routes mixed FM and PSG tuples on the shared sample clock',async t=>{
+ const {runtime,megaDrive}=setup(t),scheduled=[];
+ megaDrive.fm.scheduleWrites=entries=>scheduled.push(...entries);
+ await runtime.playSource(`const start=beginSampleSchedule(); scheduleWritesSamples(start, [[0,0,0x22,8],[0,'psg',0x85],[0,'psg',0x12]]);`);
+ assert.deepEqual(scheduled.map(e=>e.type??'fm'),['fm','psg-write','psg-write']);
+ assert.equal(new Set(scheduled.map(e=>e.time)).size,1);
+ assert.deepEqual(scheduled.map(e=>e.value),[8,0x85,0x12]);
+});

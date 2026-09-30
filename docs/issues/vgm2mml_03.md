@@ -1,3 +1,7 @@
+> 現在の状態：PlaygroundのImport画面からCompact Note-ishと専用の発音開始補正を撤去。
+> Schedule / Write / Highの3モードに整理。Highの任意のNote-ishは維持。
+> 以下は当初の設計・実装記録。共有エクスポーターのcompactオプションは互換性のため残している。
+
 VGM → JavaScript Export に、現在の Note-ish High とは別に「簡易版 / Compact Note-ish」出力モードを追加してください。
 
 目的は、MML化や音楽的な量子化ではありません。

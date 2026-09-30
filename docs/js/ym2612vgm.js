@@ -1706,6 +1706,7 @@ function formatOffset(value) {
  * @param {{
  *   includeHeaderComment?: boolean,
  *   includeDac?: boolean,
+ *   includePsg?: boolean,
  *   dacBase64?: boolean,
  *   scheduled?: boolean,
  *   high?: boolean,
@@ -1804,6 +1805,9 @@ function exportOpnFmVgmToPlaygroundJavaScript(source, options, chipKind, targetC
     { name: "ch5", events: [], currentTime: 0 },
     { name: "ch6", events: [], currentTime: 0 },
   ];
+  const includePsg = chipKind === 'ym2612' && options.includePsg !== false && (parser.header.psgClock & 0x3fffffff) !== 0;
+  if (includePsg && (parser.header.psgClock & 0x40000000)) throw new Error('Dual PSG conversion is not supported; disable Include PSG.');
+  const psgTrack = {name: 'psg', events: [], currentTime: 0};
   let timeSamples = 0;
   const orderedEvents = [];
   const includeDac =
@@ -1863,6 +1867,12 @@ function exportOpnFmVgmToPlaygroundJavaScript(source, options, chipKind, targetC
         ? { ym2610: { writeRegister } }
       : { writeRegister };
 
+  if (includePsg) targets.psg = {write(value) {
+    if (!psgTrack.events.length) tracks.push(psgTrack);
+    const event = {type: 'psg', sequence: orderedEvents.length, timeSamples, port: -1, register: -1, value, comment: 'PSG raw write (shared latch order preserved)'};
+    psgTrack.events.push(event); orderedEvents.push(event);
+  }};
+
   while (true) {
     const event = parser.playStep(targets);
     if (event.type === "wait") {
@@ -1890,6 +1900,9 @@ function exportOpnFmVgmToPlaygroundJavaScript(source, options, chipKind, targetC
     }
   }
 
+  if (includePsg && (parser.header.psgClock & 0x3fffffff) !== 3579545) {
+    options = {...options, psgWarning: `// PSG source clock ${parser.header.psgClock & 0x3fffffff} Hz; Playground uses 3579545 Hz. Pitch/noise rates may differ.`};
+  }
   const totalLoopSamples = options.totalLoopSamples == null
     ? timeSamples
     : Math.max(0, Math.floor(options.totalLoopSamples));
@@ -1967,6 +1980,7 @@ function exportOpnFmVgmToPlaygroundJavaScript(source, options, chipKind, targetC
     lines.push(options.scheduled ? "// Register writes are scheduled at VGM sample positions (44100 Hz)." : "// Timing uses VGM sample units at 44100 Hz via sleepSamples().");
     lines.push("");
   }
+  if (options.psgWarning) lines.push(options.psgWarning);
   const dacEvents = tracks[0].events.filter((event) => event.port === 0 && event.register === 0x2a);
   const useDacBase64 =
     chipKind === "ym2612" &&
@@ -2128,6 +2142,7 @@ function renderHighPlaygroundEvents(events, totalLoopSamples, options, loopName 
   const lines = [
     options.noteish ? "// Note-ish High: nearest semitone (A4=440 Hz); KEY, patch and timing preserved. CH3 special/DAC channels keep raw pitch." : "// High import: FM register values preserved; timing in 44100 Hz samples.",
   ];
+  if (options.psgWarning) lines.push(options.psgWarning);
   for (const setting of settings.values()) {
     if (setting.name && !options.nativeOpn) {
       lines.push("/** @type {Array<[YM2612Operator, YM2612OperatorParams]>} */");
@@ -2161,7 +2176,9 @@ function renderHighPlaygroundEvents(events, totalLoopSamples, options, loopName 
     const offset = register - 0xa4;
     const next = events[index + 1];
     const group = groups.get(index);
-    if (group) {
+    if (event.type === 'psg') {
+      lines.push(`  psg.write(${formatHexNumber(value)});`);
+    } else if (group) {
       const first = group.entries[0];
       if (options.nativeOpn) {
         for (const entry of group.entries) lines.push(`  fm.setOperator(CH${entry.channel}, OP${entry.operator}, ${entry.literal});`);
@@ -2282,11 +2299,13 @@ function renderPlaygroundTrack(track, totalLoopSamples, scheduled, useDacBase64)
     if (event.comment) {
       lines.push(`  ${scheduled ? "  " : ""}// ${event.comment}`);
     }
-    if (scheduled) lines.push(`    [${event.timeSamples}, ${event.port}, ${formatHexNumber(event.register)}, ${formatHexNumber(event.value)}],`);
+    if (scheduled) lines.push(event.type === 'psg'
+      ? `    [${event.timeSamples}, "psg", ${formatHexNumber(event.value)}],`
+      : `    [${event.timeSamples}, ${event.port}, ${formatHexNumber(event.register)}, ${formatHexNumber(event.value)}],`);
     else {
       const delta = event.timeSamples - cursor;
       if (delta > 0) lines.push(`  await sleepSamples(${delta});`);
-      lines.push(`  ${formatPlaygroundWrite(event.port, event.register, event.value)};`);
+      lines.push(event.type === 'psg' ? `  psg.write(${formatHexNumber(event.value)});` : `  ${formatPlaygroundWrite(event.port, event.register, event.value)};`);
       cursor = event.timeSamples;
     }
   }

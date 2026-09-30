@@ -1454,22 +1454,18 @@
                       <input type="radio" name="vgmImportMode" value="high">
                       High
                     </label>
-                    <label title="FM Note-ish with redundant state settings removed; sample timing preserved">
-                      <input type="radio" name="vgmImportMode" value="compact">
-                      Compact Note-ish
-                    </label>
                   </div>
                   <label class="vgm-import-toggle">
                     <input id="noteishVgmInput" type="checkbox" autocomplete="off" disabled>
                     Note-ish (High / FM): nearest note names for pitch comparison
                   </label>
-                  <label class="vgm-import-toggle">
-                    <input id="cleanNoteOnsetInput" type="checkbox" autocomplete="off" disabled>
-                    Compact Note-ish: merge pitch setup within 8 samples after KEY ON
-                  </label>
                   <label>
                     <input id="includeDacInput" type="checkbox" checked>
                     Include DAC
+                  </label>
+                  <label>
+                    <input id="includePsgInput" type="checkbox" checked>
+                    Include PSG (YM2612 / Genesis)
                   </label>
                   <label class="vgm-import-toggle">
                     <input id="splitVgmChannelsInput" type="checkbox" checked>

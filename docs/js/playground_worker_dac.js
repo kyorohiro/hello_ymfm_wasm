@@ -16,6 +16,10 @@ export function createWorkerDac(send, {lookaheadSeconds = 0.25} = {}) {
     const writes = entries.map(([offset, port, register, value]) => {
       const sample = base + Number(offset);
       if (!Number.isFinite(sample) || sample < 0) throw new Error('Invalid sample offset');
+      if (port === 'psg') {
+        if (!Number.isInteger(register) || register < 0 || register > 255) throw new Error('Invalid PSG byte');
+        return {sample, type: 'psg-write', value: register};
+      }
       return {sample, port: Number(port), register: Number(register), value: Number(value)};
     });
     begin();

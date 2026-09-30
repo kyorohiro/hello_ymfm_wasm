@@ -730,7 +730,8 @@ declare function sleepSamples(samples: number, sampleRate?: number): Promise<voi
 /** Return the current liveLoop cycle start in VGM sample units. */
 declare function beginSampleSchedule(): number;
 /** Queue [offsetSamples, port, register, value] writes for the current VGM cycle. */
-declare function scheduleWritesSamples(startSamples: number, entries: Array<[number, number, number, number]>): void;
+/** FM tuples: [offset, port, register, value]; PSG tuples: [offset, "psg", byte]. Offsets use 44100 Hz samples. */
+declare function scheduleWritesSamples(startSamples: number, entries: Array<[number, number, number, number] | [number, "psg", number]>): void;
 declare const dac: {
   /** Load packed DAC records: little-endian uint32 sample offset + uint8 value. */
   load(name: string, data: ArrayBuffer | Uint8Array): Promise<void>;
@@ -882,7 +883,7 @@ type PlaygroundAPI = {
   sleep: (seconds: number) => Promise<void>;
   sleepSamples: (samples: number, sampleRate?: number) => Promise<void>;
   beginSampleSchedule: () => number;
-  scheduleWritesSamples: (startSamples: number, entries: Array<[number, number, number, number]>) => void;
+  scheduleWritesSamples: (startSamples: number, entries: Array<[number, number, number, number] | [number, "psg", number]>) => void;
   beat: (beats?: number) => Promise<void>;
   nextBeat: () => Promise<void>;
   tween: (seconds: number, fn: (t: number) => void | Promise<void>) => Promise<void>;

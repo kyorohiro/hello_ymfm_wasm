@@ -1623,12 +1623,14 @@ export function createPlaygroundRuntime(
       (megaDrive.audioContext.currentTime +
         runtime.dacLookaheadSeconds);
     runtime.sampleClockStartTime = origin;
-    audioScheduler.enqueue(entries.map(([offset, port, register, value]) => ({
-      time: origin + (start + Number(offset)) / 44100,
-      port: Number(port),
-      register: Number(register),
-      value: Number(value),
-    })));
+    audioScheduler.enqueue(entries.map(([offset, port, register, value]) => {
+      const time = origin + (start + Number(offset)) / 44100;
+      if (port === 'psg') {
+        if (!Number.isInteger(register) || register < 0 || register > 255) throw new Error('Invalid PSG byte');
+        return {time, type: 'psg-write', value: register};
+      }
+      return {time, port: Number(port), register: Number(register), value: Number(value)};
+    }));
   }
 
   function scheduleDacBase64(fm, startSamples, encoded) {

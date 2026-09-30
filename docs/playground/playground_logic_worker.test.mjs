@@ -454,13 +454,14 @@ test('DAC loading and scheduling reach the direct port without main replies', as
     dac.playStream('tone', {atSamples:start});
     dac.schedule(start, [[44,128]]);
     dac.scheduleBase64(start, 'AAAAAIA=');
-    scheduleWritesSamples(start, [[88,0,0x2b,0]]);
+    scheduleWritesSamples(start, [[88,0,0x2b,0],[88,"psg",0x85],[88,"psg",0x12]]);
     fm.scheduleWrites([{time:1,port:0,register:0x2a,value:128}]);
   `});
   await waitFor(()=>worker.messages.some(m=>m.type==='complete'),1000);
   assert.ok(commands.some(c=>c.type==='load-dac-bank'));
   assert.ok(commands.some(c=>c.type==='sample-dac-bank'));
   assert.equal(commands.filter(c=>c.type==='sample-writes').length,3);
+  assert.deepEqual(JSON.parse(JSON.stringify(commands.filter(c=>c.type==='sample-writes').at(-1).entries.slice(1))), [{sample:88,type:'psg-write',value:0x85},{sample:88,type:'psg-write',value:0x12}]);
   assert.ok(!worker.messages.some(m=>m.command?.startsWith('dac.') || m.command==='scheduleWritesSamples' || m.command?.startsWith('fm.')));
   await worker.send({type:'stop'});
   assert.ok(commands.some(c=>c.type==='clear-dac-playback'));

@@ -29,3 +29,15 @@ test('Audio clock origin is shared, then reset for the next run', () => {
  dac.reset();dac.schedule(0,[[441,0,42,128]]);
  assert.equal(commands[1].entries[0].time,20.26);
 });
+
+test('mixed FM and PSG sample tuples reach the worklet with the same origin and order',()=>{
+ const received=[],receiver=createChipPortReceiver(c=>received.push(c),()=>10);
+ const port={start(){},close(){}};receiver({type:'attach-chip-port',port});
+ const d=createWorkerDac(c=>port.onmessage({data:[c]}),{lookaheadSeconds:.25});
+ d.schedule(441,[[0,0,0x22,8],[0,'psg',0x85],[0,'psg',0x12],[441,'psg',0x9f]]);
+ const e=received[0].entries;
+ assert.deepEqual(e.map(x=>x.type??'fm'),['fm','psg-write','psg-write','psg-write']);
+ assert.deepEqual(e.map(x=>x.time),[10.26,10.26,10.26,10.27]);
+ assert.deepEqual(e.slice(1).map(x=>x.value),[0x85,0x12,0x9f]);
+ const n=received.length;assert.throws(()=>d.schedule(0,[[0,'psg',256]]),/PSG/);assert.equal(received.length,n);
+});

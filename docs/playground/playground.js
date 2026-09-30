@@ -864,8 +864,8 @@ function resolveVgmImportStrategy(
   const useNativeYm2610 = isYm2610Only && selectedChip === "ym2610";
   const scheduled = options.mode === "schedule";
   const splitChannels = options.splitChannels;
-  const timing = options.mode === "compact" ? "Compact Note-ish" : options.mode === "high" ? "High" : scheduled ? "Schedule" : "Write";
-  const fmOptions = { ...options, scheduled, high: options.mode === "high", compact: options.mode === "compact", splitChannels };
+  const timing = options.mode === "high" ? "High" : scheduled ? "Schedule" : "Write";
+  const fmOptions = { ...options, scheduled, high: options.mode === "high", splitChannels };
 
   if (useNativeYm2610) {
     return {
@@ -913,17 +913,14 @@ function resolveVgmImportStrategy(
     source: vgm.exportPlaygroundJavaScript({
       scheduled: options.mode === "schedule",
       high: options.mode === "high",
-      compact: options.mode === "compact",
       noteish: options.noteish,
-      cleanNoteOnset: options.cleanNoteOnset,
       splitChannels,
       includeDac: options.includeDac,
+      includePsg: options.includePsg,
       dacBase64: options.dacBase64,
       writeDacFile: options.writeDacFile,
     }),
-    statusMessage: options.mode === "compact"
-      ? "as Compact Note-ish (YM2612; original sample timing)"
-      : options.mode === "high" && options.noteish
+    statusMessage: options.mode === "high" && options.noteish
       ? "as Note-ish High (named pitches; nearest semitone)"
       : options.mode === "high"
       ? "as High (YM2612 frequency/key operations)"
@@ -1968,11 +1965,11 @@ runButton.addEventListener(
           prepared: pendingVgmImport,
           gameboyMode: document.querySelector('input[name="gameboyImportMode"]:checked')?.value ?? 'raw',
           targetPath,
-          cleanNoteOnset: selectedMode?.value === "compact" && document.getElementById("cleanNoteOnsetInput").checked,
           noteish: selectedMode?.value === "high" && document.getElementById("noteishVgmInput").checked,
           splitChannels: document.getElementById("splitVgmChannelsInput").checked,
           mode: selectedMode?.value ?? "write",
           includeDac: includeDacInput?.checked ?? true,
+          includePsg: document.getElementById("includePsgInput").checked,
           dacBase64: dacBase64Input?.checked ?? true,
       };
       vgmImportDialog.close();
@@ -1988,7 +1985,6 @@ runButton.addEventListener(
       'input[name="vgmImportMode"]:checked'
     );
     const mode = selectedMode?.value ?? "write";
-    document.getElementById("cleanNoteOnsetInput").disabled = mode !== "compact";
     document.getElementById("noteishVgmInput").disabled = mode !== "high";
     if (dacBase64Input) {
       dacBase64Input.disabled = false;
@@ -2091,12 +2087,12 @@ runButton.addEventListener(
       opnOptions.disabled = opnOptions.hidden;
       gbOptions.disabled = gbOptions.hidden;
       convertVgmButton.disabled = !detection.supported;
+      document.getElementById('includePsgInput').disabled = detection.chip !== 'ym2612' || !detection.chips.includes('psg');
       const outputName = file.name.replace(/\.(?:vgm|vgz|s98)$/i, '').replace(/[\\/]/g, '_') || 'imported';
       vgmImportTarget.value = `/${outputName}.js`;
       vgmImportTarget.setCustomValidity('');
       mainMenu.open = false;
       document.getElementById('noteishVgmInput').checked = false;
-      document.getElementById('cleanNoteOnsetInput').checked = false;
       syncDacBase64Option();
       vgmImportDialog.showModal();
       setStatus(detection.supported ? 'Choose conversion options, then Convert.' : detection.message);

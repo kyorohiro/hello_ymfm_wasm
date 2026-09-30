@@ -160,3 +160,19 @@ for (const [file, wasm] of [['ym2612-worklet.js','ym2612_wasm.js'],['ym2612-work
   } finally {ym.dispose();}
  });
 }
+
+for(const tree of ['web','docs/js']) for(const file of ['ym2612-worklet.js','ym2612-worklet-nuked.js']) test(`${tree} ${file}: mixed PSG/FM sample writes keep order at output-frame boundaries`,()=>{
+ const {p}=processor(tree,file,48000),writes=[];
+ p.ym2612=chip(48000);p.psg=chip(48000);
+ p.ym2612.writeRegister=(r,v)=>writes.push(['fm',r,v,p.ym2612.frames]);
+ p.psg.write=v=>writes.push(['psg',v,p.ym2612.frames]);
+ const port={start(){},close(){}};p.port.onmessage({data:{type:'attach-chip-port',port}});
+ port.onmessage({data:[{type:'begin-sample-schedule',lookaheadSeconds:0},{type:'sample-writes',entries:[
+  {sample:441,port:0,register:0x22,value:8},
+  {sample:441,type:'psg-write',value:0x85},
+  {sample:441,type:'psg-write',value:0x12},
+  {sample:882,type:'psg-write',value:0x9f},
+ ]}]});
+ render(p,1024);
+ assert.deepEqual(writes,[['fm',0x22,8,480],['psg',0x85,480],['psg',0x12,480],['psg',0x9f,960]]);
+});

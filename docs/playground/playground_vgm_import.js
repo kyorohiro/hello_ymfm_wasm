@@ -11,14 +11,15 @@ export function detectVgmImport(header) {
   if (opn.length === 1) {
     const chip = opn[0];
     if (header[chip + 'Clock'] & 0x40000000) return {...base, message: 'Dual OPN-chip conversion is not supported.'};
-    const omittedChips = chips.filter(name => name !== chip);
+    const omittedChips = chips.filter(name => name !== chip && !(chip === 'ym2612' && name === 'psg'));
     const label = name => name === 'gameBoyDmg' ? 'Game Boy DMG' : name.toUpperCase();
+    const psgNotice = chip === 'ym2612' && (header.psgClock & 0x40000000) ? ' Dual PSG is unsupported; turn off Include PSG to import FM/DAC only.' : '';
     const omitted = omittedChips.length ? ` ${omittedChips.map(label).join(' + ')} will be omitted.` : '';
     const scope = chip === 'ym2612'
-      ? 'YM2612 FM will be imported; DAC follows the Include DAC option.'
+      ? 'YM2612 FM will be imported; DAC and PSG follow their Include options. PSG playback requires the YM2612 Playground chip (3579545 Hz PSG; other source clocks may change pitch/noise rates).'
       : `${label(chip)} FM only; SSG, rhythm and ADPCM are omitted.`;
     return {...base, family: 'opn', supported: true, chip, omittedChips,
-      message: `${scope}${omitted} Select the matching Playground chip for native FM playback, or YM2612 for FM translation.`};
+      message: `${scope}${omitted}${psgNotice} Select the matching Playground chip for native FM playback, or YM2612 for FM translation.`};
   }
   if (chips.some(chip => header[chip + 'Clock'] & 0x40000000)) return {...base, message: 'Dual-chip conversion is not supported.'};
   if (chips.length === 1 && chips[0] === 'gameBoyDmg') {

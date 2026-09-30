@@ -4,6 +4,10 @@
 
 ## 状態と目的
 
+itch.io向け **v0.40.11を公開済み**（ユーザー報告、2026-09-30）。
+Game Boy音源のVGM/VGZ→JavaScript変換（raw／解説付きraw／High-level API＋raw fallback）と、
+チップ判定後の変換オプション表示を含む。公開先の配布物照合・ブラウザー聴感確認は未実施。
+
 初版実装済（2026-09-29）。自動テスト・WAV生成・Playground配布確認を実施。ブラウザーでの聴感確認は未実施。
 `createSoundChip('gameboy')` でpulse／wave／noiseと既存raw APIを利用できる。
 既存実装は [playground_gameboy_raw_01.md](playground_gameboy_raw_01.md) を参照。
@@ -92,8 +96,10 @@ try {
 読み込み・VGZ展開／S98変換→チップ判定→対応するオプション画面→Convertで確定、の順に変更。
 解析中・キャンセル時はプロジェクトを書き換えない。解析済み入力を確定時にも使う。
 
-- OPN系：既存のSchedule / Write / High / Compact Note-ish、DAC、CH分割オプションを維持。
-  OPNが1種類ならRF5C164・PSG等との混在もFM部分を取り込める。省略する他チップを画面に列挙する。
+- OPN系：Schedule / Write / Highの3モードとDAC、CH分割オプションを提供。
+  Import画面からCompact Note-ishと専用の発音開始補正を撤去。Highの任意のNote-ishは維持。
+  OPNが1種類なら他チップとの混在もFM部分を取り込める。YM2612＋PSGはInclude PSGでPSGも変換し、
+  RF5C164等の省略する他チップを画面に列挙する。
   YM2612のDACは既存のInclude DACに従う。省略対象側のデュアルチップは取り込みを妨げない。
 - Game Boy：raw書き込み、時刻・レジスタ解説付き、High-level API＋raw fallbackの3方式。全4CH、1周分。
   44,100 Hzのサンプル単位で待ち時間を出力し、最後の待ち時間も残す。
