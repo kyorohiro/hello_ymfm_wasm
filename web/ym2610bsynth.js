@@ -225,6 +225,7 @@ export class NeoGeoFMSynth {
   setChannel3SpecialMode(...args) { return this.fm.setChannel3SpecialMode(...args); }
   setChannel3SpecialFrequency(...args) { return this.fm.setChannel3SpecialFrequency(...args); }
   setPreset(channel, ...args) { return this.fm.setPreset(this.#channel(channel), ...args); }
+  setOperators(channel, ...args) { return this.fm.setOperators(this.#channel(channel), ...args); }
   setOperator(channel, ...args) { return this.fm.setOperator(this.#channel(channel), ...args); }
   setAlgo(channel, ...args) { return this.fm.setAlgo(this.#channel(channel), ...args); }
   setPan(channel, ...args) { return this.fm.setPan(this.#channel(channel), ...args); }

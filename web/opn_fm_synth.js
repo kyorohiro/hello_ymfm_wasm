@@ -189,6 +189,24 @@ export class OPNFMSynth {
     }
   }
 
+  /**
+   * Apply partial operator settings in order, retaining repeated entries.
+   * Validate the entire batch before changing state or writing registers.
+   * @param {number} channel
+   * @param {Array<[number, import('./ym2612synth.js').YM2612OperatorParams]>} entries
+   */
+  setOperators(channel, entries) {
+    this._assertChannel(channel);
+    if (!Array.isArray(entries)) throw new Error("entries must be an array");
+    const validated = Array.from(entries, entry => {
+      if (!Array.isArray(entry) || entry.length !== 2) throw new Error("entry must be [operator, params]");
+      const [operator, params] = entry;
+      assertRange("operator", operator, 0, OPERATOR_COUNT - 1);
+      return [operator, validateOperatorParams(params)];
+    });
+    for (const [operator, params] of validated) this.setOperator(channel, operator, params);
+  }
+
   setOperator(channel, operator, params) {
     this._assertChannel(channel);
     assertRange("operator", operator, 0, OPERATOR_COUNT - 1);
@@ -472,4 +490,18 @@ function clone(value) {
   return typeof structuredClone === "function"
     ? structuredClone(value)
     : JSON.parse(JSON.stringify(value));
+}
+
+// Snapshot validated fields so later entries cannot cause partial batch writes.
+function validateOperatorParams(params) {
+  if (!params || typeof params !== "object" || Array.isArray(params)) throw new Error("params must be an object");
+  const result = {};
+  const ranges = {dt: 7, multi: 15, tl: 127, rs: 3, ar: 31, d1r: 31, sr: 31, d2r: 31, sl: 15, rr: 15, ssg: 15};
+  for (const [name, max] of Object.entries(ranges)) {
+    const value = params[name];
+    if (value !== undefined) result[name] = assertRange(name, value, 0, max);
+  }
+  const am = params.am;
+  if (am !== undefined) result.am = assertBoolean("am", am);
+  return result;
 }

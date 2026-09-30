@@ -14,6 +14,8 @@ export function createPlaygroundLive(
     getCurrentLoopContext,
     setCurrentLoopContext,
     cancelWaits = () => {},
+    finishTasks = async () => {},
+    releaseTasks = () => {},
     logLine,
     setStatus,
     executeCallback = (callback) =>
@@ -347,12 +349,14 @@ export function createPlaygroundLive(
           await executeCallback(
             () => state.currentFn()
           );
+          await finishTasks(state);
+          if (state.interruptError) throw state.interruptError;
           state.stableFn =
             state.currentFn;
           state.hasStableRun = true;
         } catch (error) {
           if (
-            isRunStoppedError(error)
+            state.interruptError || isRunStoppedError(error)
           ) {
             throw error;
           }
@@ -396,6 +400,7 @@ export function createPlaygroundLive(
         );
       }
     } finally {
+      releaseTasks(state);
       if (
         runtime.liveLoops.get(
           state.name

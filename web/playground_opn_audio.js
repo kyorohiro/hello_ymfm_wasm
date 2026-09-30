@@ -1,22 +1,24 @@
 /** Browser setup; commands subsequently travel directly from Worker to Worklet. */
 const nativeFetch = globalThis.fetch?.bind(globalThis);
-export async function createYm2608Audio(context, destination) {
+export async function createOpnAudio(context, destination, name) {
+  if (!['ym2612', 'ym2203', 'ym2610'].includes(name)) throw new Error(`Unsupported OPN chip: ${name}`);
+  const backend = name === 'ym2610' ? 'ym2610b' : name;
   const bytes = async path => {
     const response = await nativeFetch(new URL(path, import.meta.url));
-    if (!response.ok) throw new Error(`YM2608 HTTP ${response.status}: ${path}`);
+    if (!response.ok) throw new Error(`OPN HTTP ${response.status}: ${path}`);
     return response.arrayBuffer();
   };
-  const [wasmBinary, rom] = await Promise.all([
-    bytes('./generated/ym2608_wasm.wasm'), bytes('./tetorica_ym2608_adpcm_rom.bin'),
-    context.audioWorklet.addModule(new URL('./playground_ym2608_worklet.js?v=ym2608-modes-1', import.meta.url)),
+  const [wasmBinary] = await Promise.all([
+    bytes(`./generated/${backend}_wasm.wasm`),
+    context.audioWorklet.addModule(new URL('./playground_opn_worklet.js', import.meta.url)),
   ]);
-  const node = new AudioWorkletNode(context, 'tetorica-ym2608', {
-    numberOfInputs: 0, numberOfOutputs: 1, outputChannelCount: [2], processorOptions: {wasmBinary, rom},
+  const node = new AudioWorkletNode(context, 'tetorica-opn', {
+    numberOfInputs: 0, numberOfOutputs: 1, outputChannelCount: [2], processorOptions: {wasmBinary, name},
   });
   try {
     await new Promise((resolve, reject) => {
       node.port.onmessage = ({data}) => { if (data.ready) resolve(); else if (data.error) reject(new Error(data.error)); };
-      node.onprocessorerror = () => reject(new Error('YM2608 Worklet failed'));
+      node.onprocessorerror = () => reject(new Error('OPN Worklet failed'));
     });
   } catch (error) { node.port.postMessage({method: 'dispose'}); node.disconnect(); node.port.close(); throw error; }
   node.connect(destination);

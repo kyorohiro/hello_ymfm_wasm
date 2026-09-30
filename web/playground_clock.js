@@ -36,6 +36,19 @@ export function createDeadlineScheduler({
     timer = null;
     deadline = next;
     if (next === Infinity) { closeChannel(); return; }
+    // A late continuation must not pay the browser's nested-timer minimum
+    // again. VGM often has tens of thousands of 1–2 sample waits.
+    // Keep a separate task (not a microtask) so loop contexts cannot overlap.
+    if (next <= now()) {
+      channel ??= createTaskChannel();
+      if (channel) {
+        deadline = Infinity;
+        taskQueued = true;
+        channel.port1.onmessage = dispatch;
+        channel.port2.postMessage(null);
+        return;
+      }
+    }
     timer = setTimer(() => {
       timer = null;
       deadline = Infinity;
@@ -159,6 +172,7 @@ export function createPlaygroundClock(
       seconds * 1000
     );
 
+    if (loopState?.interruptError) throw loopState.interruptError;
     await new Promise((resolve) => {
       scheduler.wait(nowSeconds() + waitMs / 1000, () => {
         resolveWithLoopContext(
@@ -169,6 +183,7 @@ export function createPlaygroundClock(
       }, loopState);
     });
 
+    if (loopState?.interruptError && !loopState.stopped) throw loopState.interruptError;
     if (
       loopState?.stopped ||
       effectiveToken !==
@@ -214,6 +229,7 @@ export function createPlaygroundClock(
     loopState.sampleCursorSeconds =
       targetOffset;
 
+    if (loopState?.interruptError) throw loopState.interruptError;
     await new Promise((resolve) => {
       scheduler.wait(runtime.sampleClockStartTime + targetOffset, () => {
         resolveWithLoopContext(
@@ -224,6 +240,7 @@ export function createPlaygroundClock(
       }, loopState);
     });
 
+    if (loopState?.interruptError && !loopState.stopped) throw loopState.interruptError;
     if (
       loopState.stopped ||
       effectiveToken !== loopState.runToken
@@ -245,6 +262,7 @@ export function createPlaygroundClock(
       runtime.clockStartTime +
       beatsToSeconds(targetBeat);
 
+    if (loopState?.interruptError) throw loopState.interruptError;
     await new Promise((resolve) => {
       scheduler.wait(targetTime, () => {
         resolveWithLoopContext(
@@ -255,6 +273,7 @@ export function createPlaygroundClock(
       }, loopState);
     });
 
+    if (loopState?.interruptError && !loopState.stopped) throw loopState.interruptError;
     if (
       loopState?.stopped ||
       effectiveToken !==

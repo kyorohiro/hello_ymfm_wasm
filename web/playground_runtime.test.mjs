@@ -15,7 +15,7 @@ async function until(predicate) {
   }
   assert.fail('Async boundary was not reached');
 }
-function setup(t) {
+function setup(t, capabilities) {
   const listeners = new Set(), statuses = [];
   const previous = globalThis.window;
   globalThis.window = {
@@ -24,7 +24,7 @@ function setup(t) {
   };
   const media = () => ({ stop() {}, stopAll() {}, pause() {}, list: () => [], unload() {} });
   const megaDrive = {
-    state: 'idle', audioContext: { currentTime: 0 },
+    capabilities, state: 'idle', audioContext: { currentTime: 0 },
     fm: { setPreset() {}, noteOff() {} }, psg: {},
     sample: media(), stream: media(),
     async start() { this.state = 'ready'; }, async resume() {}, async close() {},
@@ -367,4 +367,58 @@ test('main scheduleWritesSamples routes mixed FM and PSG tuples on the shared sa
  assert.deepEqual(scheduled.map(e=>e.type??'fm'),['fm','psg-write','psg-write']);
  assert.equal(new Set(scheduled.map(e=>e.time)).size,1);
  assert.deepEqual(scheduled.map(e=>e.value),[8,0x85,0x12]);
+});
+
+test('useSoundChip returns existing FM, supports const fm and preserves play and reevaluation',async t=>{
+ const {runtime,megaDrive}=setup(t);const notes=[];
+ Object.defineProperty(megaDrive.audioContext,'currentTime',{get:()=>performance.now()/1000});
+ megaDrive.fm.noteOn=(...args)=>notes.push(args);
+ globalThis.playgroundReview={};
+ await runtime.playSource(`
+  const fm = await useSoundChip('ym2612');
+  if (fm !== pg.fm || fm !== await pg.useSoundChip('ym2612')) throw Error('Different FM');
+  const pair = await Promise.all([useSoundChip('ym2612'),useSoundChip('ym2612')]);
+  if (pair[0] !== fm || pair[1] !== fm) throw Error('Concurrent identity');
+  globalThis.playgroundReview.fm=fm;
+  fm.setPreset(CH1, FM_PRESETS['one-op-basic']);
+  await play('C4', {channel:CH1,duration:0.001});
+ `);
+ await runtime.playSource(`
+  if (await useSoundChip('ym2612') !== globalThis.playgroundReview.fm) throw Error('Not reused');
+  fm.setPreset(CH1, FM_PRESETS['one-op-basic']);
+  await play('C4',{channel:CH1,duration:0.001});
+ `);
+ assert.equal(notes.length,2);assert.deepEqual(notes[0],notes[1]);
+ runtime.stop();await runtime.playSource(`const fm = await useSoundChip('ym2612'); if(fm!==pg.fm)throw Error('Restart identity');`);
+});
+test('useSoundChip rejects unsupported options on Main',async t=>{
+ const {runtime}=setup(t);
+ await assert.rejects(runtime.playSource(`await useSoundChip('ym2612',{id:'fm1'});`),/options/);
+});
+
+
+for(const [chip,channels] of [['ym2203',3],['ym2610',4]])test(`Main useSoundChip ${chip} aliases selected FM and preserves play`,async t=>{
+ const {runtime,megaDrive}=setup(t,{chip,fmChannels:channels,psg:false,dac:false});
+ const notes=[];megaDrive.fm.noteOn=(...args)=>notes.push(args);
+ Object.defineProperty(megaDrive.audioContext,'currentTime',{get:()=>performance.now()/1000});
+ await runtime.playSource(`
+  const fm = await useSoundChip('${chip}');
+  if(fm!==pg.fm)throw Error('Different FM');
+  const [a,b]=await Promise.all([useSoundChip('${chip}'),useSoundChip('${chip}')]);
+  if(a!==fm || b!==fm)throw Error('Different instances');
+  context.fm=fm;fm.setPreset(CH1,FM_PRESETS['one-op-basic']);
+  await play('C4',{channel:CH1,duration:0.001});
+ `);
+ await runtime.playSource(`if(await useSoundChip('${chip}')!==context.fm)throw Error('Not reused');`);
+ assert.equal(notes.length,1);
+ runtime.stop();await runtime.playSource(`const fm=await useSoundChip('${chip}');if(fm!==pg.fm)throw Error('Restart');`);
+});
+
+for(const method of ['sleep','sleepSamples','beat'])test(`Main tracked failure ends its loop during ${method} without retrying`,async t=>{
+ const {runtime,statuses}=setup(t);let reject;
+ globalThis.playgroundReview={task:new Promise((_,r)=>{reject=r;}),runs:0,after:false};
+ await runtime.playSource(`liveLoop('upload',async()=>{globalThis.playgroundReview.runs++;pg.trackAsync(globalThis.playgroundReview.task);await ${method}(600000);globalThis.playgroundReview.after=true;});`);
+ reject(new Error('memory transfer failed'));
+ for(let i=0;i<100&&!statuses.includes('Loop error: upload');i++)await new Promise(r=>setTimeout(r,1));
+ assert.ok(statuses.includes('Loop error: upload'));assert.equal(globalThis.playgroundReview.runs,1);assert.equal(globalThis.playgroundReview.after,false);
 });

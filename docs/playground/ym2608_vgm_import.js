@@ -1,0 +1,63 @@
+import {ym2608HighOperation} from './ym2608_high.js';
+import {Ym2612VGM} from '../js/ym2612vgm.js';
+import {detectVgmImport} from './playground_vgm_import.js';
+
+/** Full OPNA Write export. All register/data events keep their original order. */
+export function exportYm2608FullVgm(buffer, {mode = 'write', writeMemoryFile} = {}) {
+  if (!['write','schedule','high'].includes(mode)) throw new Error('Unknown YM2608 mode');
+  const parser = new Ym2612VGM(buffer, {logger: null});
+  const detection = detectVgmImport(parser.header);
+  if (!detection.supported || detection.chip !== 'ym2608' || detection.chips.length !== 1) throw new Error('Expected single YM2608 VGM');
+  const clock = parser.header.ym2608Clock & 0x3fffffff;
+  if (clock < 100000 || clock > 20000000) throw new Error('Unsupported YM2608 clock');
+  const events = [], blocks = []; let time = 0;
+  for (;;) {
+    const opcode = parser.bytes[parser.position];
+    if (![0x56, 0x57, 0x61, 0x62, 0x63, 0x66, 0x67].includes(opcode) && !(opcode >= 0x70 && opcode <= 0x7f)) throw new Error('YM2608 import supports direct writes, waits and ADPCM-B blocks only');
+    if (opcode === 0x67 && parser.bytes[parser.position + 2] !== 0x81) throw new Error('Unsupported YM2608 data block');
+    const event = parser.step();
+    if (event.type === 'end') break;
+    if (event.type === 'wait') { time += event.samples; continue; }
+    if (event.chipIndex) throw new Error('Dual YM2608 is unsupported');
+    if (event.type === 'ym2608-adpcm-b-data') {
+      event.block = blocks.length; blocks.push(event.data);
+    } else if (event.type !== 'ym2608-write') throw new Error(`Unsupported YM2608 event: ${event.type}`);
+    events.push({...event, time});
+  }
+  if (!events.length || !time) throw new Error('YM2608 stream must contain events and a positive duration');
+  const lines = [`// YM2608 FM + SSG + rhythm + ADPCM-B. ${mode}; entire stream repeats.`,
+    '// Rhythm uses the bundled ROM. Memory and register commands share one ordered port.',
+    'const opna = await useSoundChip("ym2608");', `await opna.setClock(${clock});`];
+  blocks.forEach((data, i) => {
+    const path = writeMemoryFile?.(data);
+    lines.push(path ? `const memory${i} = new Uint8Array(await file(${JSON.stringify(path)}, {type: "arrayBuffer"}));` : `const memory${i} = new Uint8Array([${data.join(',')}]);`);
+  });
+  if (mode === 'schedule') {
+    const timeline = events.map(e => e.type === 'ym2608-adpcm-b-data' ? [e.time,2,e.block,e.offset] : [e.time,e.port,e.register,e.value]);
+    lines.push(`await opna.prepareTimeline(${JSON.stringify(timeline)}, [${blocks.map((_,i)=>'memory'+i).join(',')}], ${time});`,
+      'liveLoop("ym2608", async () => {', '  await opna.playTimeline();', '});', '');
+    return lines.join('\n');
+  }
+  lines.push(
+    'liveLoop("ym2608", async () => {',
+    '  opna.resetRegisters(); // Hardware reset without Synth setup writes.'
+  );
+  let previous = 0;
+  const registers = [new Uint8Array(256), new Uint8Array(256)];
+  for (let index = 0; index < events.length; index++) {
+    const event = events[index];
+    if (event.time > previous) lines.push(`  await sleepSamples(${event.time - previous}, 44100);`);
+    previous = event.time;
+    if (event.type === 'ym2608-adpcm-b-data') lines.push(`  pg.trackAsync(opna.adpcm.loadMemory(memory${event.block}, ${event.offset}));`);
+    else {
+      const op = mode === 'high' ? ym2608HighOperation(events,index,registers) : null;
+      lines.push('  ' + (op?.code ?? `opna.write(${event.port}, 0x${event.register.toString(16).padStart(2, '0')}, 0x${event.value.toString(16).padStart(2, '0')});`));
+      const count=op?.count??1;
+      for(let n=0;n<count;n++){const e=events[index+n];registers[e.port][e.register]=e.value;}
+      index+=count-1;
+    }
+  }
+  if (time > previous) lines.push(`  await sleepSamples(${time - previous}, 44100);`);
+  lines.push('});', '');
+  return lines.join('\n');
+}

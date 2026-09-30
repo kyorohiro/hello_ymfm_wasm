@@ -562,7 +562,7 @@ type FMApi = {
   setPreset(channel: YM2612Channel, preset: YM2612Preset): void;
   /** Partially update one logical operator `0..3`. */
   setOperator(channel: YM2612Channel, operator: YM2612Operator, params: YM2612OperatorParams): void;
-  /** Apply entries in array order; fields within each entry use setOperator's order. YM2612 only. */
+  /** Apply entries in array order; fields within each entry use setOperator's order. All OPN FM chips. */
   setOperators(channel: YM2612Channel, entries: Array<[YM2612Operator, YM2612OperatorParams]>): void;
   /** Set channel algorithm and feedback. */
   setAlgo(channel: YM2612Channel, algorithm: YM2612Algorithm, feedback?: YM2612Feedback): void;
@@ -833,7 +833,10 @@ declare function setInterval(handler: () => void, timeout?: number): number;
 declare function clearInterval(id: number): void;
 
 type PlaygroundAPI = {
+  /** Track a liveLoop task; rejection interrupts its waits and ends that loop. */
+  trackAsync(task: PromiseLike<unknown>): void;
   createSoundChip: typeof createSoundChip;
+  useSoundChip: typeof useSoundChip;
   CH1: 0;
   CH2: 1;
   CH3: 2;
@@ -1076,12 +1079,14 @@ interface PlaygroundGameboy {
 }
 declare function createSoundChip(name: 'gameboy'): Promise<PlaygroundGameboy>;
 /** Independent YM2608; memory uploads are asynchronous, register setters are ordered writes. */
-type PlaygroundYm2608 = Pick<FMApi, 'reset' | 'setPreset' | 'setOperator' | 'setAlgo' | 'setPan' | 'setLfo' | 'setChannel3SpecialMode' | 'setChannel3SpecialFrequency' | 'setFrequency' | 'keyOn' | 'keyOff' | 'noteOn' | 'noteOff' | 'writeAddress' | 'writeData'> & {
+type PlaygroundYm2608 = {setClock(clock: number): Promise<void>; resetRegisters(): void; prepareTimeline(events: Array<[number, number, number, number]>, blocks: Uint8Array[], durationSamples: number): Promise<void>; playTimeline(): Promise<void>} & Pick<FMApi, 'reset' | 'setPreset' | 'setOperator' | 'setOperators' | 'setAlgo' | 'setPan' | 'setLfo' | 'setChannel3SpecialMode' | 'setChannel3SpecialFrequency' | 'setFrequency' | 'keyOn' | 'keyOff' | 'noteOn' | 'noteOff' | 'writeAddress' | 'writeData'> & {
   write(port: number, register: number, value: number): void;
   dispose(): void;
   ssg: {
-    tone(ch: number, options: {frequency: number; volume?: number}): number;
-    noise(ch: number, options: {period: number; volume?: number}): void;
+    tone(ch: number, options: {frequency?: number; period?: number; volume?: number; envelope?: boolean}): number;
+    noise(ch: number, options: {period: number; volume?: number; envelope?: boolean}): void;
+    setTonePeriod(ch: number, period: number): void;
+    setMixer(ch: number, options: {tone: boolean; noise: boolean}): void;
     off(ch: number): void;
     setVolume(ch: number, volume: number, envelope?: boolean): void;
     setEnvelope(options: {period: number; shape: number}): void;
@@ -1108,3 +1113,49 @@ type PlaygroundYm2608 = Pick<FMApi, 'reset' | 'setPreset' | 'setOperator' | 'set
   };
 };
 declare function createSoundChip(name: 'ym2608'): Promise<PlaygroundYm2608>;
+
+
+/** Runtime-managed chip lookup. Reuses pending/ready instances until Stop.
+ * YM2612/YM2203/YM2610 reuse global fm when selected, otherwise create an independent chip.
+ * Multiple instances via id are not supported. Existing createSoundChip creates fresh chips.
+ */
+/** Existing OPN FM facade, with logical channel bounds and no YM2612 DAC API. */
+type PlaygroundOPNFm<Channel extends YM2612Channel> = {
+  [K in Exclude<keyof FMApi, 'setDacEnabled' | 'writeDac'>]:
+    K extends 'setPreset' | 'setOperator' | 'setOperators' | 'setAlgo' | 'setPan' | 'setFrequency' | 'keyOn' | 'keyOff' | 'noteOn' | 'noteOff'
+      ? FMApi[K] extends (channel: YM2612Channel, ...args: infer Args) => infer Result
+        ? (channel: Channel, ...args: Args) => Result : never
+      : FMApi[K];
+};
+type PlaygroundSoundChipMap = {
+  ym2612: TetoricaSelectedChip extends 'ym2612' ? FMApi : PlaygroundCreatedFm;
+  ym2203: TetoricaSelectedChip extends 'ym2203' ? PlaygroundOPNFm<0 | 1 | 2> : PlaygroundCreatedYm2203;
+  ym2610: TetoricaSelectedChip extends 'ym2610' ? PlaygroundOPNFm<0 | 1 | 2 | 3> : PlaygroundCreatedYm2610;
+  rf5c164: PlaygroundRf5c164;
+  ym2608: PlaygroundYm2608;
+  gameboy: PlaygroundGameboy;
+};
+type PlaygroundUseSoundChipOptions = { [key: string]: never };
+declare function useSoundChip<Name extends keyof PlaygroundSoundChipMap>(name: Name, options?: PlaygroundUseSoundChipOptions): Promise<PlaygroundSoundChipMap[Name]>;
+
+/** Independent chips. Global play/write still target the default Playground chip. */
+type PlaygroundCreatedFm = Omit<FMApi, 'scheduleWrites' | 'read' | 'readStatus' | 'getIrq'> & {dispose(): void};
+type PlaygroundCreatedOPN<C extends YM2612Channel> = Omit<PlaygroundOPNFm<C>, 'scheduleWrites' | 'read' | 'readStatus' | 'getIrq' | 'rawWrite' | 'writeAddress' | 'writeData'> & {dispose(): void};
+declare function createSoundChip(name: 'ym2612'): Promise<PlaygroundCreatedFm>;
+type PlaygroundCreatedYm2203 = PlaygroundCreatedOPN<0 | 1 | 2> & {ssg: PlaygroundYm2608['ssg']; setClock(clock: number): Promise<void>; scheduleRegisters(entries: Array<[number, number, number]>, durationSamples: number): Promise<void>};
+declare function createSoundChip(name: 'ym2203'): Promise<PlaygroundCreatedYm2203>;
+type PlaygroundCreatedYm2610 = PlaygroundCreatedOPN<0 | 1 | 2 | 3> & {
+  ssg: PlaygroundYm2608['ssg'];
+  adpcm: PlaygroundYm2608['adpcm'];
+  adpcmB: PlaygroundYm2608['adpcm'];
+  adpcmA: {
+    loadMemory(bytes: Uint8Array | ArrayBuffer, address?: number): Promise<void>;
+    setSample(ch: number, range: {start: number; end: number}): void;
+    setVolume(volume: number): void;
+    setVoice(ch: number, options: {volume?: number; left?: boolean; right?: boolean}): void;
+    keyOn(ch: number | number[]): void;
+    keyOff(ch: number | number[]): void;
+    reset(): void;
+  };
+};
+declare function createSoundChip(name: 'ym2610'): Promise<PlaygroundCreatedYm2610>;

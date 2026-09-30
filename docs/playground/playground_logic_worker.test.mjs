@@ -1,3 +1,8 @@
+import {createLoopAsyncTasks} from '../../web/playground_async_tasks.js';
+import {createOpnClient} from '../../web/playground_opn.js';
+import {createRf5c164Client} from '../../web/playground_rf5c164.js';
+import {createYm2608Client} from '../../web/playground_ym2608.js';
+import {createSoundChipRegistry} from '../../web/playground_soundchips.js';
 import {createGameboyClient} from '../../web/playground_gameboy.js';
 import {createNativeSampleController} from "../../web/native_sample.js";
 import {createNativeNoiseController, controlNativeNoise} from "../../web/native_noise.js";
@@ -21,7 +26,7 @@ function createWorkerHarness() {
   const messages = [];
   const context = {
     createNativeSampleController, createNativeNoiseController, controlNativeNoise, createWorkerDac, atob, createMidiApi, createMidiRack, createWorkerChip, createNativeFXController, DOMException, structuredClone,
-    createDeadlineScheduler, createGameboyClient,
+    createLoopAsyncTasks, createDeadlineScheduler, createOpnClient, createGameboyClient, createSoundChipRegistry, createRf5c164Client, createYm2608Client,
     hzToBlockFnum,
     Error,
     Map,
@@ -540,3 +545,93 @@ test('liveFx registration and context update use direct port from Code',async()=
     assert.equal(closed,1);
   }
  });
+
+test('Worker useSoundChip aliases global FM, permits const fm, reuses on reevaluation and forwards play',async()=>{
+ const worker=createWorkerHarness();
+ const source=`const fm = await useSoundChip('ym2612');
+ const pair=await Promise.all([useSoundChip('ym2612'),useSoundChip('ym2612')]);
+ if(pair[0]!==fm || pair[1]!==fm || (context.fm && context.fm!==fm))throw Error('identity');
+ context.fm=fm;fm.setPreset(CH1,FM_PRESETS['one-op-basic']);await play('C4',{channel:CH1,duration:0.001});`;
+ try {
+  for(let i=0;i<2;i++) {
+   await worker.send({type:'run',sourceCode:source,presets:{'one-op-basic':{}},capabilities:{chip:'ym2612'}});
+   await waitFor(()=>worker.messages.filter(m=>m.command==='play').length===i+1);
+   await worker.send({type:'response',id:worker.messages.filter(m=>m.command==='play').at(-1).id});
+   await waitFor(()=>worker.messages.filter(m=>m.type==='complete').length===i+1);
+  }
+  assert.equal(worker.messages.filter(m=>m.command==='fm.setPreset').length,2);
+  assert.equal(worker.messages.filter(m=>m.command==='play').length,2);
+  assert.equal(worker.messages.filter(m=>m.command==='pcm.create' || m.command==='fm.then').length,0);
+ }finally{await worker.send({type:'stop'});}
+});
+for(const name of ['rf5c164','ym2608','gameboy','ym2203','ym2610','ym2612'])test(`Worker useSoundChip ${name} shares pending creation, reuses and disposes on Stop`,async()=>{
+ const worker=createWorkerHarness(),sent=[];let closed=0;
+ const port={start(){},postMessage:data=>sent.push(data),close(){closed++;}};
+ const source=`const [a,b]=await Promise.all([useSoundChip('${name}'),useSoundChip('${name}')]);
+ if(a!==b || (context.chip && context.chip!==a))throw Error('identity');context.chip=a;
+ if('${name}'==='ym2608' && (typeof a.setClock!=='function'||typeof a.resetRegisters!=='function'))throw Error('Missing YM2608 import API');`;
+ try {
+  await worker.send({type:'run',capabilities:{chip:name==='ym2612'?'ym2203':'ym2612'},sourceCode:source});
+  const requests=worker.messages.filter(m=>m.command==='pcm.create');assert.equal(requests.length,1);
+  await worker.send({type:'response',id:requests[0].id,value:port});
+  await waitFor(()=>worker.messages.some(m=>m.type==='complete'));
+  await worker.send({type:'run',sourceCode:source});
+  await waitFor(()=>worker.messages.filter(m=>m.type==='complete').length===2);
+  assert.equal(worker.messages.filter(m=>m.command==='pcm.create').length,1);
+ }finally{await worker.send({type:'stop'});}
+ assert.equal(sent.filter(m=>m.method==='dispose').length,1);assert.equal(closed,1);
+});
+test('Worker late chip initialization after Stop is disposed and next run retries',async()=>{
+ const worker=createWorkerHarness(),sent=[];let closed=0;
+ const source=`await useSoundChip('rf5c164');`;
+ await worker.send({type:'run',sourceCode:source});
+ const pending=worker.messages.find(m=>m.command==='pcm.create');
+ await worker.send({type:'stop'});
+ await worker.send({type:'response',id:pending.id,value:{start(){},postMessage:m=>sent.push(m),close(){closed++;}}});
+ await waitFor(()=>worker.messages.some(m=>m.type==='execution-error'));
+ assert.equal(closed,1);assert.equal(sent[0].method,'dispose');
+ await worker.send({type:'run',sourceCode:source});
+ assert.equal(worker.messages.filter(m=>m.command==='pcm.create').length,2);
+ const retry=worker.messages.filter(m=>m.command==='pcm.create').at(-1);
+ await worker.send({type:'response',id:retry.id,error:'test init failure'});
+ await worker.send({type:'stop'});
+});
+
+
+for(const name of ['ym2203','ym2610'])test(`Worker useSoundChip ${name} returns selected FM without creating an extra chip`,async()=>{
+ const worker=createWorkerHarness();
+ try {
+  await worker.send({type:'run',capabilities:{chip:name},sourceCode:`
+   const [a,b]=await Promise.all([useSoundChip('${name}'),useSoundChip('${name}')]);
+   if(a!==fm || b!==fm)throw Error('identity');context.fm=a;a.keyOff(CH1);
+  `});
+  await waitFor(()=>worker.messages.some(m=>m.type==='complete'));
+  await worker.send({type:'run',sourceCode:`const fm=await useSoundChip('${name}');if(fm!==context.fm)throw Error('reuse');fm.keyOff(CH1);`});
+  await waitFor(()=>worker.messages.filter(m=>m.type==='complete').length===2);
+  assert.equal(worker.messages.filter(m=>m.command==='fm.keyOff').length,2);
+  assert.equal(worker.messages.filter(m=>m.command==='pcm.create'||m.command==='fm.then').length,0);
+ }finally{await worker.send({type:'stop'});}
+});
+
+for (const name of ['ym2612', 'ym2203', 'ym2610']) test(`Worker creates independent ${name} clients and disposes both`, async () => {
+ const worker = createWorkerHarness(), sent = [[], []];
+ try {
+  await worker.send({type: 'run', sourceCode: `const [a,b]=await Promise.all([createSoundChip('${name}'),createSoundChip('${name}')]);if(a===b||a===fm)throw Error('identity');a.noteOn(0,4,600);b.noteOff(0);`});
+  const requests = worker.messages.filter(m=>m.command==='pcm.create');
+  assert.equal(requests.length, 2);
+  for (let i=0;i<2;i++) await worker.send({type:'response', id:requests[i].id, value:{start(){}, close(){}, postMessage:d=>sent[i].push(d)}});
+  await waitFor(()=>worker.messages.some(m=>m.type==='complete'));
+  assert.ok(sent.every(messages=>messages.some(m=>m.method==='write')));
+ } finally { await worker.send({type:'stop'}); }
+ assert.ok(sent.every(messages=>messages.filter(m=>m.method==='dispose').length===1));
+});
+
+for(const method of ['sleep','sleepSamples','beat'])test(`Worker tracked error interrupts ${method} and does not retry`,async()=>{
+ const worker=createWorkerHarness();
+ await worker.send({type:'run',sourceCode:`liveLoop('upload',async()=>{console.log('entered');pg.trackAsync(new Promise((_,reject)=>setTimeout(()=>reject(new Error('memory failed')),10)));await ${method}(600000);console.log('after');});`});
+ await waitFor(()=>worker.messages.some(m=>m.type==='log'&&m.message.includes('memory failed')));
+ await new Promise(r=>setTimeout(r,25));
+ assert.equal(worker.messages.filter(m=>m.command==='log'&&m.args?.[0]==='entered').length,1);
+ assert.equal(worker.messages.filter(m=>m.command==='log'&&m.args?.[0]==='after').length,0);
+ await worker.send({type:'stop'});
+});

@@ -78,7 +78,8 @@ test("an earlier deadline replaces the timer and cancellation wakes only its own
   assert.equal(done, true);
   slow.stopped = true; slow.runToken++;
   f.clock.cancelWaits(slow);
-  await f.fire();
+  assert.equal(f.timers.size, 0);
+  await f.dispatch();
   assert.equal(await a, "Run stopped");
   assert.equal(f.timers.size, 0);
 });

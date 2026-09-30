@@ -36,6 +36,9 @@ playground_tfi_editor.js
 playground_midi_import.js
 playground_vgm_presets.js
 playground_vgm_import.js
+ym2203_high.js
+ym2608_vgm_import.js
+ym2608_high.js
 rf5c164_vgm_export.js
 tetorica-playground-globals.d.ts
 tetorica-playground-ym2203.d.ts
@@ -65,6 +68,7 @@ playground_gameboy_audio.js
 playground_gameboy_worklet.js
 playground_ym2608_audio.js
 playground_ym2608_worklet.js
+playground_ym2608_timeline.js
 rf5c164synth.js
 rf5c164_pcm.js
 playground_rf5c164_audio.js
@@ -94,6 +98,11 @@ midi_source.js
 playground_music.js
 playground_noise.js
 playground_runtime.js
+playground_soundchips.js
+playground_async_tasks.js
+playground_opn.js
+playground_opn_audio.js
+playground_opn_worklet.js
 playground_sync.js
 segapsg.js
 segapsg_api.js
@@ -307,6 +316,7 @@ perl -0pi -e 's#"\./playground\.js"#"./playground.js"#g; s#\.\./js/#./js/#g; s#\
   "${STAGE_DIR}/playground_midi_import.js" \
   "${STAGE_DIR}/playground_vgm_presets.js" \
   "${STAGE_DIR}/playground_vgm_import.js" \
+  "${STAGE_DIR}/ym2608_vgm_import.js" \
   "${STAGE_DIR}/rf5c164_vgm_export.js" \
   "${STAGE_DIR}/playground_query.js" \
   "${STAGE_DIR}/playground_examples.js" \

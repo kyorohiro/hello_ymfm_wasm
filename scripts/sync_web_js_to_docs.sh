@@ -33,6 +33,7 @@ playground_gameboy_audio.js
 playground_gameboy_worklet.js
 playground_ym2608_audio.js
 playground_ym2608_worklet.js
+playground_ym2608_timeline.js
 rf5c164synth.js
 rf5c164_pcm.js
 playground_rf5c164_audio.js
@@ -56,6 +57,11 @@ opn_fm_vgm.js
 opn_runtime_synth.js
 pitch.js
 playground_runtime.js
+playground_soundchips.js
+playground_async_tasks.js
+playground_opn.js
+playground_opn_audio.js
+playground_opn_worklet.js
 playground_audio_scheduler.js
 playground_clock.js
 playground_execution.js
@@ -183,3 +189,7 @@ perl -0pi -e 's#./generated/ym2608#../generated/ym2608#g' \
 
 perl -0pi -e 's#./generated/gameboy_apu#../generated/gameboy_apu#g' \
   "${DOCS_JS_DIR}/playground_gameboy_audio.js" "${DOCS_JS_DIR}/playground_gameboy_worklet.js"
+
+# Independent OPN worklets and their dynamically selected WASM binaries.
+perl -0pi -e 's#\./generated/#../generated/#g' \
+  "${DOCS_JS_DIR}/playground_opn_audio.js" "${DOCS_JS_DIR}/playground_opn_worklet.js"
