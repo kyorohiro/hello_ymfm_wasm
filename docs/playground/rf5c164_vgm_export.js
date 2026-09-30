@@ -1,8 +1,8 @@
 import {Ym2612VGM} from '../js/ym2612vgm.js';
 
 /** Preserve RF5C bank semantics while recording a single RF/FM/PSG timeline. */
-export function exportRf5c164Vgm(buffer, {mode = 'write', includeDac = true, includePsg = true, writeMemoryFile} = {}) {
-  if (!['write', 'high'].includes(mode)) throw new Error('RF5C164 conversion supports Write or High only.');
+export function exportRf5c164Vgm(buffer, {mode = 'write', includeDac = true, includePsg = true, writeMemoryFile, loop = true, splitChannels = true, noteish = false, dacBase64 = true, writeDacFile} = {}) {
+  if (!['write', 'high', 'schedule'].includes(mode)) throw new Error('RF5C164 conversion supports Schedule, Write or High.');
   const warnings = [];
   const parser = new Ym2612VGM(buffer, {logger:{warn:m=>warnings.push(m)}});
   const clock = parser.header.rf5c164Clock;
@@ -31,9 +31,9 @@ export function exportRf5c164Vgm(buffer, {mode = 'write', includeDac = true, inc
       loadBankedMemory(data,offset) {count++;memory(data,offset);},
     },
     writeRegister(r,v,port=0) {
-      if (includeDac || port !== 0 || (r !== 0x2a && r !== 0x2b)) record(`write(${port}, ${r}, ${v});`);
+      if (!loop && (includeDac || port !== 0 || (r !== 0x2a && r !== 0x2b))) record(`write(${port}, ${r}, ${v});`);
     },
-    psg: {write(value) {if (includePsg) record(`psg.write(${value});`);}},
+    psg: {write(value) {if (!loop && includePsg) record(`psg.write(${value});`);}},
   };
   for (;;) {
     const event = parser.playStep(targets);
@@ -42,7 +42,7 @@ export function exportRf5c164Vgm(buffer, {mode = 'write', includeDac = true, inc
     if (event.type === 'end') break;
   }
   if (!count) throw new Error('No RF5C164 operations were found.');
-  const lines = [`// RF5C164 ${mode === 'high' ? 'High (exact-write API + raw fallback)' : 'Write'}: one pass. Original 44100 Hz wait units.`,
+  const lines = [`// RF5C164 ${mode === 'high' ? 'High (exact-write API + raw fallback)' : mode === 'schedule' ? 'Schedule (FM/DAC/PSG scheduled; RF uses Write)' : 'Write'}: ${loop ? 'liveLoop playback' : 'one pass'}. Original 44100 Hz wait units.`,
     '// Async RPC and waits are not sample-accurate scheduling. Use YM2612 Playground for mixed FM/PSG.',
     '// Files are read before playback; chip RAM transfers remain at their original positions.'];
   if (includePsg && parser.header.psgClock && (parser.header.psgClock & 0x3fffffff) !== 3579545) lines.push('// PSG playback uses 3579545 Hz; source clock differs.');
@@ -62,6 +62,19 @@ export function exportRf5c164Vgm(buffer, {mode = 'write', includeDac = true, inc
     '  );',
     '  pendingRf.add(pending);',
     '}',
+    ...(loop ? [
+      'let rfCursor = 0;',
+      'async function waitRfUntil(sample) {',
+      '  if (rfError) throw rfError;',
+      '  const delta = sample - rfCursor;',
+      '  rfCursor = sample;',
+      '  if (delta > 0) await sleepSamples(delta, 44100);',
+      '  if (rfError) throw rfError;',
+      '}',
+      'liveCleanup(["vgm-rf5c164"], () => rf.dispose());',
+      'liveLoop("vgm-rf5c164", async () => {',
+      '  rfCursor = 0;',
+    ] : [
     'const startedAt = performance.now();',
     'async function waitRfUntil(sample) {',
     '  if (rfError) throw rfError;',
@@ -69,15 +82,28 @@ export function exportRf5c164Vgm(buffer, {mode = 'write', includeDac = true, inc
     '  if (remaining > 0) await sleepSamples(remaining, 44100);',
     '  if (rfError) throw rfError;',
     '}',
+    ]),
     'try {');
+  if (loop) lines.push('  sendRf(rf.reset());');
   let previous = 0;
   for (const event of (mode === 'high' ? highRfEvents(events) : events)) {
     if (event.time > previous) lines.push(`  await waitRfUntil(${event.time});`);
     previous = event.time;
     lines.push(`  ${event.code} // t=${(event.time / 44100).toFixed(6)}s`);
   }
-  if (time > previous) lines.push(`  await waitRfUntil(${time});`);
-  lines.push('  await Promise.all(pendingRf);', '  if (rfError) throw rfError;', '} finally {', '  rf.dispose();', '}', '');
+  if (time > previous || (loop && time === 0)) lines.push(`  await waitRfUntil(${Math.max(loop ? 1 : 0, time)});`);
+  lines.push('  await Promise.all(pendingRf);', '  if (rfError) throw rfError;');
+  if (loop) {
+    lines.push('} catch (error) {', '  rf.dispose();', '  throw error;', '}', '});', '');
+    // Reuse the existing FM/DAC/PSG exporter, including channel loops and High APIs.
+    const fmParser = new Ym2612VGM(buffer, {logger:null});
+    if (fmParser.header.ym2612Clock || (includePsg && fmParser.header.psgClock)) {
+      lines.push(fmParser.exportPlaygroundJavaScript({
+        scheduled:mode === 'schedule', high:mode === 'high', splitChannels, noteish,
+        includeDac, includePsg, dacBase64, writeDacFile,
+      }));
+    }
+  } else lines.push('} finally {', '  rf.dispose();', '}', '');
   return lines.join('\n');
 }
 

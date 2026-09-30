@@ -1,4 +1,4 @@
-import {prepareVgmImport, exportGameboyVgm, exportRf5c164Vgm} from './playground_vgm_import.js';
+import {prepareVgmImport, exportGameboyVgm, exportRf5c164Vgm} from './playground_vgm_import.js?v=megacd-loops-2';
 import {installPlaygroundPageLifecycle} from "./playground_page_lifecycle.js";
 import {createFXMonitor} from './playground_fx_monitor.js?v=stable-select-1';
 import {installMidiImport} from './playground_midi_import.js?v=midi-sections-1';
@@ -942,12 +942,16 @@ async function importVgmFile(file, options) {
     source: exportGameboyVgm(buffer, {mode: options.gameboyMode}),
     statusMessage: 'for Game Boy (all four channels; one pass)',
   } : (detection.rf5c164 && options.includeRf5c164) || detection.family === 'rf5c164' ? {
-    source: exportRf5c164Vgm(buffer, {...options, writeMemoryFile(bytes) {
+    source: exportRf5c164Vgm(buffer, {...options, writeDacFile(bytes) {
+      let path;
+      do { path = `/vgmdat-${crypto.randomUUID()}.dat`; } while (virtualFiles.has(path));
+      dacFiles.push({path, bytes}); return path;
+    }, writeMemoryFile(bytes) {
       let path;
       do { path = `/rf5c164-${crypto.randomUUID()}.dat`; } while (virtualFiles.has(path));
       dacFiles.push({path, bytes}); return path;
     }}),
-    statusMessage: options.mode === 'high' ? 'with RF5C164 high-level API + raw fallback (one pass)' : 'with RF5C164 register/RAM writes (one pass)',
+    statusMessage: options.mode === 'schedule' ? 'with scheduled FM/DAC/PSG and RF5C164 Write liveLoop' : options.mode === 'high' ? 'with RF5C164 high-level API + raw fallback (liveLoop)' : 'with RF5C164 register/RAM writes (liveLoop)',
   } : resolveVgmImportStrategy(
     vgm,
     selectedChip,
@@ -1993,22 +1997,18 @@ runButton.addEventListener(
   );
 
   function syncDacBase64Option() {
-    const rf = pendingVgmImport?.detection.rf5c164 && document.getElementById('includeRf5c164Input').checked;
-    if (rf && document.querySelector('input[name="vgmImportMode"]:checked')?.value === 'schedule') {
-      document.querySelector('input[name="vgmImportMode"][value="write"]').checked = true;
-    }
     document.querySelectorAll('input[name="vgmImportMode"]').forEach(input => {
-      input.disabled = !!rf && input.value === 'schedule';
+      input.disabled = false;
     });
-    document.getElementById('splitVgmChannelsInput').disabled = !!rf;
+    document.getElementById('splitVgmChannelsInput').disabled = false;
 
     const selectedMode = document.querySelector(
       'input[name="vgmImportMode"]:checked'
     );
     const mode = selectedMode?.value ?? "write";
-    document.getElementById("noteishVgmInput").disabled = !!rf || mode !== "high";
+    document.getElementById("noteishVgmInput").disabled = mode !== "high";
     if (dacBase64Input) {
-      dacBase64Input.disabled = !!rf;
+      dacBase64Input.disabled = false;
     }
     if (dacBase64Label) {
       dacBase64Label.hidden = false;

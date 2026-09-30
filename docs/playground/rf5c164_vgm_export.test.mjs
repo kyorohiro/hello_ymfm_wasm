@@ -1,11 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-import {exportRf5c164Vgm, detectVgmImport, prepareVgmImport} from './playground_vgm_import.js';
+import {exportRf5c164Vgm as exportLiveRf5c164Vgm, detectVgmImport, prepareVgmImport} from './playground_vgm_import.js';
 import {Ym2612VGM} from '../js/ym2612vgm.js';
 import {Rf5c164} from '../../web/rf5c164.js';
 import factory from '../generated/rf5c164_wasm.js';
 import {RF5C164Synth} from '../../web/rf5c164synth.js';
+const exportRf5c164Vgm=(input,options={})=>exportLiveRf5c164Vgm(input,{loop:false,...options});
 const AsyncFunction=Object.getPrototypeOf(async function(){}).constructor;
 function vgm(commands) {
  const bytes=new Uint8Array(256+commands.length),v=new DataView(bytes.buffer);
@@ -46,7 +47,7 @@ test('generated RF code produces identical audible core PCM, including timed RAM
 });
 test('unsupported modes, clocks, dual chips and RAM overflow fail before creating assets',()=>{
  const input=vgm([0xb1,7,0x8f,...block(0xc1,[255,255,1,2]),0x66]);
- for(const mode of ['schedule','unknown'])assert.throws(()=>exportRf5c164Vgm(input,{mode}),/Write or High only/);
+ for(const mode of ['unknown'])assert.throws(()=>exportRf5c164Vgm(input,{mode}),/Schedule, Write or High/);
  assert.throws(()=>exportRf5c164Vgm(input),/range|64 KiB/i);
  const dual=vgm([0xb1,7,128,0x66]);new DataView(dual.buffer).setUint32(0x6c,12500000|0x40000000,true);assert.throws(()=>exportRf5c164Vgm(dual),/single/);
 });
@@ -121,4 +122,38 @@ test('High emits exact Synth register sequences and preserves unsafe writes as r
   }
  }
  assert.deepEqual(traces[1],traces[0]);
+});
+
+test('RF liveLoop restores existing FM channel split, High, PSG and DAC options',async()=>{
+ const input=vgm([0xb1,7,0xc0,0xb1,0,200,0x52,0x30,1,0x52,0x31,2,0x52,0x2a,128,0x50,0x90,0x61,100,0,0x66]);
+ const header=new DataView(input.buffer);header.setUint32(0x2c,7670454,true);header.setUint32(0x0c,3579545,true);
+ for(const mode of ['schedule','write','high'])for(const splitChannels of [false,true]) {
+  const paths=[];
+  const options={mode,splitChannels,includeDac:true,includePsg:true,dacBase64:true,writeDacFile:bytes=>{paths.push(bytes);return '/dac.dat';}};
+  const source=exportLiveRf5c164Vgm(input,options);
+  const expected=new Ym2612VGM(input,{logger:null}).exportPlaygroundJavaScript({...options,high:mode==='high',scheduled:mode==='schedule'});
+  assert.ok(source.endsWith(expected));assert.ok(paths.length>=1);
+  const loops=new Map(),cleanups=[];let elapsed=0,disposed=0,resets=0;
+  const trace=[];
+  const synth=new RF5C164Synth({transport:{write:(r,v)=>trace.push([r,v]),loadMemory(){},reset(){resets++;}}});
+  synth.dispose=()=>{disposed++;};
+  await new AsyncFunction('createSoundChip','sleepSamples','liveLoop','liveCleanup','livePrepare',source)(
+   async()=>synth,async n=>{elapsed+=n;},(name,fn)=>loops.set(name,fn),(names,fn)=>cleanups.push(fn),async()=>{});
+  assert.ok(loops.has('vgm-rf5c164'));
+  assert.ok(loops.has(splitChannels?'ch1':'vgm'));
+  if(splitChannels)assert.ok(loops.has('ch2'));
+  await loops.get('vgm-rf5c164')();const first=trace.slice();
+  await loops.get('vgm-rf5c164')();assert.deepEqual(trace.slice(first.length),first);
+  assert.equal(elapsed,200);assert.equal(resets,2);assert.equal(disposed,0);
+  await cleanups[0]();assert.equal(disposed,1);
+ }
+});
+
+test('zero-duration RF liveLoop yields and async failure disposes',async()=>{
+ let fn,disposed=0,waits=0;
+ const source=exportLiveRf5c164Vgm(vgm([0xb1,7,0x80,0x66]));
+ await new AsyncFunction('createSoundChip','sleepSamples','liveLoop','liveCleanup',source)(
+  async()=>({reset(){},writeRegister:()=>Promise.reject(Error('port failed')),dispose(){disposed++;}}),
+  async n=>{assert.equal(n,1);waits++;},(name,callback)=>{fn=callback;},()=>{});
+ await assert.rejects(fn(),/port failed/);assert.equal(waits,1);assert.equal(disposed,1);
 });

@@ -1,5 +1,5 @@
-import {exportRf5c164Vgm} from './rf5c164_vgm_export.js';
-export {exportRf5c164Vgm} from './rf5c164_vgm_export.js';
+import {exportRf5c164Vgm} from './rf5c164_vgm_export.js?v=megacd-loops-2';
+export {exportRf5c164Vgm} from './rf5c164_vgm_export.js?v=megacd-loops-2';
 import {Ym2612VGM} from '../js/ym2612vgm.js';
 import {maybeDecodeVgmFile} from '../js/vgm_file.js';
 import {looksLikeS98, convertS98ToVgm} from '../js/s98_file.js';
@@ -22,10 +22,10 @@ export function detectVgmImport(header) {
       ? 'YM2612 FM will be imported; DAC and PSG follow their Include options. PSG playback requires the YM2612 Playground chip (3579545 Hz PSG; other source clocks may change pitch/noise rates).'
       : `${label(chip)} FM only; SSG, rhythm and ADPCM are omitted.`;
     return {...base, family: 'opn', supported: true, chip, omittedChips,
-      message: `${scope}${omitted}${psgNotice}${rf5c164 ? ' Include RF5C164 enables Write / High PCM conversion (one pass; async timing). High converts RF5C164 controls; accompanying FM/PSG remain raw.' : ''} Select the matching Playground chip for native FM playback, or YM2612 for FM translation.`};
+      message: `${scope}${omitted}${psgNotice}${rf5c164 ? ' Include RF5C164 enables Schedule / Write / High with liveLoop (Schedule applies to FM/DAC/PSG; RF5C164 uses Write). FM channel splitting and DAC options remain available. RF5C164 uses one shared register/RAM loop.' : ''} Select the matching Playground chip for native FM playback, or YM2612 for FM translation.`};
   }
   if (rf5c164 && chips.every(chip => ['rf5c164','psg'].includes(chip))) {
-    return {...base, family:'rf5c164', supported:true, chip:'ym2612', message:'RF5C164 register and RAM conversion: Write / High, one pass, asynchronous timing. Optional PSG requires the YM2612 Playground chip.'};
+    return {...base, family:'rf5c164', supported:true, chip:'ym2612', message:'RF5C164 register and RAM conversion: Write / High, liveLoop, asynchronous timing. Schedule uses Write for RF5C164; accompanying FM/DAC/PSG are scheduled. Optional PSG requires the YM2612 Playground chip.'};
   }
   if (chips.some(chip => header[chip + 'Clock'] & 0x40000000)) return {...base, message: 'Dual-chip conversion is not supported.'};
   if (chips.length === 1 && chips[0] === 'gameBoyDmg') {
@@ -47,7 +47,7 @@ export async function prepareVgmImport(file) {
     catch (error) { detection = {...detection, supported: false, message: error.message}; }
   }
   if (detection.family === 'rf5c164') {
-    try { exportRf5c164Vgm(buffer); }
+    try { exportRf5c164Vgm(buffer, {loop:false}); }
     catch (error) { detection = {...detection, supported:false, message:error.message}; }
   }
   return {buffer, vgm, detection};
