@@ -20,7 +20,7 @@ chip.dispose();
 - Worker → Workletへ直接通信し、共有のmaster入力へミックスする。
 - Stop・再Run・破棄は既存のデバイス管理に統合。停止中に初期化が完了した音源も解放する。
 - resetはサンプルメモリーを保持する。
-- サンプル：`docs/playground/examples/pcm/ym2608-chip.js`。
+- サンプル：`docs/playground/examples/chip-saw/ym2608-chip.js`。
 - Node.js例のファイル入出力や`generateStereo()`は移植対象外。ブラウザーではWorkletが出力する。
 - 同期のステータス読み取り・IRQ取得はこのtransportでは未対応。
 - 即時書き込み方式であり、サンプル単位の時刻予約は未対応。
@@ -36,7 +36,7 @@ Playground ZIPとブラウザーexamples ZIPを生成し、依存ファイルの
 
 ## ym2608-rhythm例の修正
 
-従来の`pcm/ym2608-rhythm.js`は選択中の`fm`に書き込んでおり、
+従来の`chip-saw/ym2608-rhythm.js`は選択中の`fm`に書き込んでおり、
 YM2608以外の選択時はリズムが鳴らなかった。
 独立した`createSoundChip('ym2608')`とrhythm APIに移行し、finallyで解放する。
 例の実コードをポート・Worklet・WASMで実行し、6音＋8拍の全14回の発音を検証。

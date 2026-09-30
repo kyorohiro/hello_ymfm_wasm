@@ -609,6 +609,12 @@ type FMApi = {
 declare const fm: FMApi;
 
 type PSGApi = {
+  /** Exact 10-bit period (0..1023), without changing attenuation. Writes latch then data. */
+  setPeriod(channel: 0 | 1 | 2, period: number): number;
+  /** 0 = loudest, 15 = silent. Channel 3 is noise; no noise reset. */
+  setAttenuation(channel: 0 | 1 | 2 | 3, attenuation: number): void;
+  /** Noise control only; resets the noise shift register without changing attenuation. */
+  setNoise(options?: {type?: "white" | "periodic"; rate?: "low" | "medium" | "high" | "tone3"}): number;
   /** Send one raw Sega PSG (SN76489-compatible) register byte. */
   write(value: number): void;
   /** Reset only the Sega PSG state. */

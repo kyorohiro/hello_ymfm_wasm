@@ -39,7 +39,7 @@ function setup(t) {
   return { runtime, megaDrive, listeners, statuses };
 }
 
-for (const example of ['chip-raw/gameboy-raw-write-sample', 'gameboy/gameboy-synth']) test(`Game Boy ${example} compiles with the full Playground global argument list`, async t => {
+for (const example of ['chip-raw/gameboy-raw-write-sample', 'chip-saw/gameboy-synth']) test(`Game Boy ${example} compiles with the full Playground global argument list`, async t => {
   const {runtime} = setup(t);
   const source = await readFile(new URL(`../docs/playground/examples/${example}.js`, import.meta.url), 'utf8');
   globalThis.playgroundReview = {compiled: false};

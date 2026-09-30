@@ -2177,7 +2177,20 @@ function renderHighPlaygroundEvents(events, totalLoopSamples, options, loopName 
     const next = events[index + 1];
     const group = groups.get(index);
     if (event.type === 'psg') {
-      lines.push(`  psg.write(${formatHexNumber(value)});`);
+      // Canonical latch writes and adjacent latch/data pairs can be represented
+      // without adding writes, changing the shared latch, or resetting noise twice.
+      if ((value & 0x90) === 0x90) {
+        lines.push(`  psg.setAttenuation(${(value >> 5) & 3}, ${value & 15});`);
+      } else if ((value & 0xf8) === 0xe0) {
+        lines.push(`  psg.setNoise({type: "${value & 4 ? 'white' : 'periodic'}", rate: "${['low','medium','high','tone3'][value & 3]}"});`);
+      } else if ((value & 0x90) === 0x80 && ((value >> 5) & 3) < 3 &&
+          next?.type === 'psg' && next.value < 0x40 && next.timeSamples === event.timeSamples &&
+          next.sequence === event.sequence + 1) {
+        lines.push(`  psg.setPeriod(${(value >> 5) & 3}, ${(value & 15) | (next.value << 4)});`);
+        index++;
+      } else {
+        lines.push(`  psg.write(${formatHexNumber(value)}); // Partial/noncanonical write; preserve latch and timing.`);
+      }
     } else if (group) {
       const first = group.entries[0];
       if (options.nativeOpn) {

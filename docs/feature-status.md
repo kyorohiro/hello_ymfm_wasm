@@ -72,7 +72,7 @@ WASMが存在するだけでPlayground APIも利用可能とは判断しない�
 | `createSoundChip('ym2608')` | 実装済。FM／SSG／リズム／ADPCM-B | 同梱リズムROM・差し替え対応。同期読み取り／IRQ・サンプル単位予約は未対応。聴感未確認 | [成功記録・制限](issues/playground_ym2608_01.md)、[テスト](../web/playground_ym2608.test.mjs) |
 | `createSoundChip('gameboy')` raw API | 実装済。レジスタ操作・4CHの例 | 高水準APIは別。ブラウザー聴感確認記録なし | [成功記録](issues/playground_gameboy_raw_01.md)、[テスト](../web/playground_gameboy.test.mjs) |
 | Game Boy高水準API | 即時設定APIへ改訂・自動テスト済。v0.40.11公開報告あり | pulse／wave／noiseの個別即時設定、明示的トリガー、initialize、setNote、raw同期。ブラウザー聴感確認は未実施。duration／自動CH割当は後段 | [設計案](issues/gameboy_api_01.md) |
-| Genesis VGM→JavaScriptのPSG変換 | Schedule / Write / HighでFM・DACとPSGを出力。Include PSGで選択 | PSGはraw操作、固定クロック。PSG単独Import・デュアルPSGは未対応。未公開・ブラウザー試聴未実施 | [作業記録](issues/genesis_psg_vgm_javascript.md) |
+| Genesis VGM→JavaScriptのPSG変換 | Schedule / Write / HighでFM・DACとPSGを出力。Include PSGで選択 | HighはPSGの個別設定API＋raw fallback、固定クロック。PSG単独Import・デュアルPSGは未対応。未公開・ブラウザー試聴未実施 | [作業記録](issues/genesis_psg_vgm_javascript.md) |
 | 仮想ファイル・Cassette・音色編集 | 実装済。プロジェクト保存、VGMからのTFI取込等 | ファイル編集と元のディスクファイルへの保存は別。手動記録は未整理 | [Cassetteテスト](playground/playground_cassette.test.mjs)、[TFIテスト](playground/playground_tfi_editor.test.mjs)、[取込テスト](playground/playground_vgm_presets.test.mjs) |
 | Native Audio Effect | 実装済。WASM FX・ルーティング・Playground接続 | 独立ページはWindows確認記録あり。Playground移行後の試聴は残作業 | [FX一覧・成功記録](issues/native_audioeffect_01.md)、[テスト](../test/playground_native_fx.test.mjs) |
 | Tetorica製YM2608リズムROM | 実装済。同梱・差し替え、比較ページで調整／生成 | 元ROMの複製ではない。音色調整は継続 | [ROM説明](../assets/opna-rhythm/README.md)、[比較ページ](demos/opna-rhythm-compare.html)、[作業記録](issues/tetorica_ym2608_rom.md)、[テスト](../web/opna_rhythm_rom.test.mjs) |

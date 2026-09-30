@@ -51,6 +51,27 @@ export class SegaPSGSynth {
     writeTone(this.write.bind(this), normalizedChannel, period, attenuation);
     return period;
   }
+  /** Set the exact 10-bit tone period without changing attenuation. Zero retains chip-specific behavior. */
+  setPeriod(channel, period) {
+    const ch = normalizeToneChannel(channel);
+    if (!Number.isInteger(period) || period < 0 || period > 1023) throw new RangeError('PSG period must be 0..1023');
+    this.write(0x80 | (ch << 5) | (period & 15));
+    this.write(period >> 4);
+    return period;
+  }
+  /** Set attenuation only: 0 is loudest, 15 is silent; channel 3 is noise. */
+  setAttenuation(channel, attenuation) {
+    if (!Number.isInteger(channel) || channel < 0 || channel > 3) throw new RangeError('PSG channel must be 0..3');
+    writeAttenuation(this.write.bind(this), channel, normalizeAttenuation(attenuation));
+  }
+  /** Write noise control only. Resets the noise shift register, without changing attenuation. */
+  setNoise({type = 'white', rate = 'medium'} = {}) {
+    if (type !== 'white' && type !== 'periodic') throw new Error('Invalid PSG noise type');
+    if (!Object.hasOwn(NOISE_RATES, rate)) throw new Error('Invalid PSG noise rate');
+    const mode = (type === 'white' ? 4 : 0) | NOISE_RATES[rate];
+    this.write(0xe0 | mode);
+    return mode;
+  }
   off(channel) {
     writeAttenuation(this.write.bind(this), normalizeToneChannel(channel), 15);
   }

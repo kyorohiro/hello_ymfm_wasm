@@ -18,7 +18,7 @@ for (const highLevel of [false, true]) test(`Game Boy ${highLevel ? 'Synth' : 'r
   assert.equal((await ready).ready, true);
   const client = createGameboyClient({postMessage: data => processor.receive(data), close() {}});
   try {
-    const code = await readFile(new URL(highLevel ? '../docs/playground/examples/gameboy/gameboy-synth.js' : '../docs/playground/examples/chip-raw/gameboy-raw-write-sample.js', import.meta.url), 'utf8');
+    const code = await readFile(new URL(highLevel ? '../docs/playground/examples/chip-saw/gameboy-synth.js' : '../docs/playground/examples/chip-raw/gameboy-raw-write-sample.js', import.meta.url), 'utf8');
     let played = 0;
     await new (Object.getPrototypeOf(async function() {}).constructor)('createSoundChip', 'sleep', 'write', '"use strict";\n' + code)(
       async name => { assert.equal(name, 'gameboy'); return client; },

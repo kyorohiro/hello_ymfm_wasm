@@ -412,7 +412,7 @@ DirectTransportはチップを借りるだけで解放しない。Playgroundで�
 - setVoice/setSweepは全項目の検証完了後にvoiceのみ変更。即時更新は対象ビットだけ変更し、rawのlength enableやVINを保持。keyOn時だけlength enableを解除する。
 - 周波数更新は停止中も送信するがtriggerしない。実コアの発音中フラグを推測する必要がなく、raw混在でも同じ動作になる。
 - wave level=0はNR32のみ変更する。採用コアではDAC出力は一定のDC値になるため、PCMの全ゼロではなく交流成分がないことをテストする。keyOffはDACを停止する。
-- Playground型定義による補完、新しい`gameboy/gameboy-synth.js`例、itch配布ファイル一覧、Node.jsの`main_gameboy_synth_wave.js`を追加。raw例は維持。
+- Playground型定義による補完、新しい`chip-saw/gameboy-synth.js`例、itch配布ファイル一覧、Node.jsの`main_gameboy_synth_wave.js`を追加。raw例は維持。
 - 自動テスト：状態遷移、丸め境界、音名、CH、波形packing、DAC/mute、部分更新、raw全レジスタ群、無効引数の原子性、借用所有権、rawとSynthのPCM一致、両例の実Worklet発音、Worker Run/Stop/再Runを確認。
 - Node例のWAV生成とitch.io用パッケージ作成を確認。ブラウザーでの実際の聴感確認と公開は未実施。
 

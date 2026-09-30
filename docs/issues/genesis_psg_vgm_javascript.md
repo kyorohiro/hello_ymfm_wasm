@@ -4,7 +4,12 @@ PlaygroundのSchedule / Write / HighにYM2612＋PSGの変換を追加。
 Include PSGは既定ON。OFFでは従来のFM／DACのみの変換になる。
 YM2203／YM2608／YM2610のFM専用変換には適用しない。PSG単独ファイルのImportは今回の対象外。
 
-- Write / High：元のバイト列を `psg.write(value)` で出力。HighもPSGはraw。
+- Write：元のバイト列を `psg.write(value)` で出力。
+- High：音量を `setAttenuation(ch, 0..15)`、ノイズ制御を `setNoise({type, rate})`、
+  同時刻・隣接したtone latch/dataを `setPeriod(ch, 0..1023)` に変換する。
+  音量や余分なノイズ再開始を追加せず、書き込みバイト列を保持する。
+  分離した更新・他イベントを挟む更新・非標準の上位ビットはrawで残す。
+  periodは周波数の分周値。0はチップ固有の挙動を保持し、音名への丸めは行わない。
 - Schedule：既存 `scheduleWritesSamples` に `[offset, "psg", value]` を追加。
   FM/DACと同じ44,100 Hzのサンプル時刻・予約起点を使用する。
 - combined出力はFM／PSGの同時刻の並び順も保持。

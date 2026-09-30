@@ -4,6 +4,6 @@ export { psgPeriodFromFrequency, psgPeriodFromNote } from './segapsgsynth.js';
 /** Existing Playground callers keep bound methods and their injected transport. */
 export function createSegaPsgApi(transport) {
   const synth = new SegaPSGSynth({ transport });
-  return Object.fromEntries(['write', 'reset', 'resetAll', 'tone', 'off', 'noise', 'noiseVolume', 'noiseOff']
+  return Object.fromEntries(['setPeriod', 'setAttenuation', 'setNoise', 'write', 'reset', 'resetAll', 'tone', 'off', 'noise', 'noiseVolume', 'noiseOff']
     .map(name => [name, synth[name].bind(synth)]));
 }

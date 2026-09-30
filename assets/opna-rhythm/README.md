@@ -86,7 +86,7 @@ CLI, pass the installed `dist/web/tetorica_ym2608_adpcm_rom.bin`
 path to `--ym2608-rom`. Version 0.2.1 predates this bundled asset.
 
 The YM2608 browser RuntimeSynth (including Playground) loads this synthetic
-ROM by default at startup. Select YM2608 and run `pcm/ym2608-rhythm.js` in
+ROM by default at startup. Select YM2608 and run `chip-saw/ym2608-rhythm.js` in
 Playground to hear all six voices. Browser API callers can override the default
 using `new YM2608RuntimeSynth({rhythmRom: bytes})` or `{rhythmRomUrl: url}`;
 after startup, `synth.fm.rhythm.loadRom(bytes)` replaces the loaded data.
