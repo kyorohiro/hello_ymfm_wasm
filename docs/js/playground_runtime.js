@@ -3,8 +3,8 @@ import {createOpnClient} from './playground_opn.js';
 import {createSoundChipRegistry} from './playground_soundchips.js';
 import {createGameboyAudio} from './playground_gameboy_audio.js';
 import {createGameboyClient} from './playground_gameboy.js';
-import {createYm2608Audio} from './playground_ym2608_audio.js?v=vgm-clock-catchup-1';
-import {createYm2608Client} from './playground_ym2608.js?v=vgm-clock-catchup-1';
+import {createYm2608Audio} from './playground_ym2608_audio.js?v=ym2608-modes-1';
+import {createYm2608Client} from './playground_ym2608.js?v=ym2608-modes-1';
 import {createRf5c164Client} from './playground_rf5c164.js';
 import {createRf5c164Audio} from './playground_rf5c164_audio.js';
 import {samplePCM} from './native_sample.js';
@@ -24,7 +24,7 @@ import { createTetoricaSynth } from "./tetorica_synth.js";
 import {
   createPitchFromMidi,
 } from "./pitch.js";
-import { createPlaygroundClock } from "./playground_clock.js?v=vgm-clock-catchup-1";
+import { createPlaygroundClock } from "./playground_clock.js?v=ym2608-modes-1";
 import { executeWithPlaygroundGuards } from "./playground_execution.js";
 import { createPlaygroundLive } from "./playground_live.js?v=native-fx-1";
 import { createPlaygroundMusic } from "./playground_music.js";
@@ -170,7 +170,7 @@ export function createPlaygroundRuntime(
     );
   defaultLogicWorkerUrl.searchParams.set(
     "v",
-    "vgm-clock-catchup-1"
+    "ym2608-modes-1"
   );
   const logicWorkerUrl =
     options.logicWorkerUrl ??

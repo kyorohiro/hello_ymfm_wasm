@@ -1,5 +1,5 @@
-import {exportYm2608FullVgm} from './ym2608_vgm_import.js?v=vgm-clock-catchup-1';
-import {prepareVgmImport, exportGameboyVgm, exportRf5c164Vgm, addVgmSoundChipSetup, exportYm2203FullVgm} from './playground_vgm_import.js?v=vgm-clock-catchup-1';
+import {exportYm2608FullVgm} from './ym2608_vgm_import.js?v=ym2608-modes-1';
+import {prepareVgmImport, exportGameboyVgm, exportRf5c164Vgm, addVgmSoundChipSetup, exportYm2203FullVgm} from './playground_vgm_import.js?v=ym2608-modes-1';
 import {installPlaygroundPageLifecycle} from "./playground_page_lifecycle.js";
 import {createFXMonitor} from './playground_fx_monitor.js?v=stable-select-1';
 import {installMidiImport} from './playground_midi_import.js?v=midi-sections-1';
@@ -52,7 +52,7 @@ import { exportYm2608VgmToPlaygroundJavaScript } from "../js/ym2608vgm.js";
 import { exportYm2610BVgmToPlaygroundJavaScript } from "../js/ym2610bvgm.js";
 import {
   createPlaygroundRuntime,
-} from "../js/playground_runtime.js?v=vgm-clock-catchup-1";
+} from "../js/playground_runtime.js?v=ym2608-modes-1";
 import { createVgmPresetFiles } from "./playground_vgm_presets.js";
 import { createTfiFileEditor, tfiToEditorPreset } from "./playground_tfi_editor.js";
 import { renderFileTree } from "./playground_file_tree.js";
@@ -941,10 +941,10 @@ async function importVgmFile(file, options) {
   const fullYm2203 = options.ym2203Target === 'ym2203' && selectedChip === 'ym2612' && detection.chip === 'ym2203';
   const fullYm2608 = options.ym2608Target === 'ym2608' && selectedChip === 'ym2612' && detection.chip === 'ym2608';
   const dacFiles = [];
-  const strategy = fullYm2608 ? {source: exportYm2608FullVgm(buffer, {writeMemoryFile(bytes) {
+  const strategy = fullYm2608 ? {source: exportYm2608FullVgm(buffer, {mode: options.ym2608Mode, writeMemoryFile(bytes) {
     let path; do { path = `/ym2608-${crypto.randomUUID()}.dat`; } while (virtualFiles.has(path));
     dacFiles.push({path, bytes}); return path;
-  }}), statusMessage: 'for YM2608 FM + SSG + rhythm + ADPCM-B (Write)'} : fullYm2203 ? {source: exportYm2203FullVgm(buffer, {mode: options.ym2203Mode}), statusMessage: 'for YM2203 FM + SSG'} : detection.family === 'gameboy' ? {
+  }}), statusMessage: 'for YM2608 FM + SSG + rhythm + ADPCM-B'} : fullYm2203 ? {source: exportYm2203FullVgm(buffer, {mode: options.ym2203Mode}), statusMessage: 'for YM2203 FM + SSG'} : detection.family === 'gameboy' ? {
     source: exportGameboyVgm(buffer, {mode: options.gameboyMode}),
     statusMessage: 'for Game Boy (all four channels; one pass)',
   } : (detection.rf5c164 && options.includeRf5c164) || detection.family === 'rf5c164' ? {
@@ -1984,6 +1984,7 @@ runButton.addEventListener(
       }
       const options = {
           prepared: pendingVgmImport,
+          ym2608Mode: document.querySelector('input[name="ym2608ImportMode"]:checked')?.value ?? 'write',
           ym2608Target: document.getElementById('ym2608TargetOptions').hidden ? undefined : document.getElementById('ym2608TargetInput').value,
           ym2203Target: document.getElementById('ym2203TargetOptions').hidden ? undefined : document.getElementById('ym2203TargetInput').value,
           ym2203Mode: document.querySelector('input[name="ym2203ImportMode"]:checked')?.value ?? 'write',
@@ -2015,7 +2016,7 @@ runButton.addEventListener(
       document.getElementById(chip + 'TimingOptions').hidden = !selected;
       native ||= selected;
       if (available) document.getElementById('vgmImportNotice').textContent = selected
-        ? (chip === 'ym2608' ? 'YM2608 FM + SSG + rhythm + ADPCM-B. Write only; bundled rhythm ROM; one shared chip loop.' : 'YM2203 FM + SSG with the source clock. Write / Schedule / High; one shared chip loop.')
+        ? (chip === 'ym2608' ? 'YM2608 FM + SSG + rhythm + ADPCM-B. Write / Schedule / High; bundled rhythm ROM; one shared chip loop.' : 'YM2203 FM + SSG with the source clock. Write / Schedule / High; one shared chip loop.')
         : pendingVgmImport.detection.message;
     }
     const opn = document.getElementById('opnImportOptions');

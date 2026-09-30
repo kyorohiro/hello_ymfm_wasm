@@ -130,3 +130,5 @@ WASMが存在するだけでPlayground APIも利用可能とは判断しない�
 - YM2203 FM＋SSG ImportのHighに対応。Writeと同じレジスター順・待機時刻を維持できる操作をFM／SSG APIへ置換し、特殊操作はraw writeを保持。
 
 - YM2612 PlaygroundでYM2608 VGMの変換先を選択可能。YM2608全音源Write（FM／SSG／同梱ROMリズム／ADPCM-Bデータ転送）を追加。Schedule／Highは今後対応。元クロック・イベント順を保持し、ADPCMデータは.datに保存。
+
+- YM2608全音源VGM ImportにSchedule／Highを追加。ScheduleはADPCMデータを音声側へ事前転送し、元位置でメモリー転送・レジスター操作を実行。HighはWriteと同じ書き込みを再現できる操作のみ高レベル化。単一liveLoop・全体反復。

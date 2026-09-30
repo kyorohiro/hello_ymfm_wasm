@@ -299,3 +299,15 @@ ADPCM-Bブロックごとの `await loadMemory()` をやめ、同じMessagePort�
 共通deadline schedulerが期限超過したwaitにもsetTimeout(0)を使い、ブラウザーの最小タイマー間隔を繰り返し受ける経路を修正。期限超過時はMessageChannelの別タスクで続行する。未到来の時刻は従来のタイマーで待ち、ループ間の実行コンテキスト分離を維持する。MessageChannelがない環境はタイマーにフォールバックする。
 
 4msに制限した仮想タイマーで1サンプル待機1,000回が30ms以内で進むこと、複数ループ・キャンセル・Stopの回帰テストを確認。実ブラウザーで提供曲の試聴は未実施。ランタイム更新のため再Importは不要。
+
+## YM2608 Schedule／High
+
+YM2608全音源変換でWrite／Schedule／Highを選べるようにした。
+
+Scheduleは `prepareTimeline(events, blocks, durationSamples)` でレジスター列とADPCMブロックをAudioWorkletへ事前転送し、`playTimeline()` で再生する。イベントは `[sample, port, register, value]`、port=2は `[sample, 2, blockIndex, offset]` のメモリー転送。時刻は44100Hz基準で、出力フレームへ切り上げて適用する。同時刻の転送と書き込みの順序も保持。再生完了をPromiseで通知し、reset／dispose／Stopでキャンセルする。ブロックの実メモリーへのコピーは元のイベント位置で行うため、大量コピーの音声スレッド負荷がなくなるわけではない。
+
+HighはYM2203のFM／SSG置換を流用し、FM上位3CH・リズム音量／パン／キー操作・ADPCM-B音量／パン／Delta-N／キー操作を追加した。予約ビットや非対応の並びはraw writeを残す。waitやメモリー転送を跨いでまとめない。`resetRegisters()` はSSG／リズム／ADPCMの内部レジスター記録もクリアするが、Synth初期化用の追加書き込みは行わない。
+
+各モードは1つのliveLoopで全体を繰り返す。元VGMのループ地点・CH分割は未対応。Scheduleのパス間はJSの再呼び出しが入るため、隙間なしの連続ループを保証しない。
+
+関連94テスト、型チェック、itch.ioパッケージ検証が通過。実WASMでScheduleの発音・完了・キャンセル、HighとWriteの2周分のイベント一致を検証した。ブラウザーで提供曲の試聴は未実施。利用時は再読み込み後に再Importする。

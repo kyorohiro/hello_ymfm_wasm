@@ -33,6 +33,7 @@ playground_gameboy_audio.js
 playground_gameboy_worklet.js
 playground_ym2608_audio.js
 playground_ym2608_worklet.js
+playground_ym2608_timeline.js
 rf5c164synth.js
 rf5c164_pcm.js
 playground_rf5c164_audio.js

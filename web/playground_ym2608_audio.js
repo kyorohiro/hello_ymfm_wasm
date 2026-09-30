@@ -8,7 +8,7 @@ export async function createYm2608Audio(context, destination) {
   };
   const [wasmBinary, rom] = await Promise.all([
     bytes('./generated/ym2608_wasm.wasm'), bytes('./tetorica_ym2608_adpcm_rom.bin'),
-    context.audioWorklet.addModule(new URL('./playground_ym2608_worklet.js?v=ym2608-clock-2', import.meta.url)),
+    context.audioWorklet.addModule(new URL('./playground_ym2608_worklet.js?v=ym2608-modes-1', import.meta.url)),
   ]);
   const node = new AudioWorkletNode(context, 'tetorica-ym2608', {
     numberOfInputs: 0, numberOfOutputs: 1, outputChannelCount: [2], processorOptions: {wasmBinary, rom},

@@ -17,7 +17,7 @@ test('YM2608 Write preserves both register banks, memory upload order, offset an
  await loop();assert.equal(time,62);assert.equal(events.filter(e=>e[1]==='memory').length,4);
 });
 test('YM2608 rejects unsupported modes, streams and blocks rather than dropping data',()=>{
- assert.throws(()=>exportYm2608FullVgm(input([0x56,0,0,0x70,0x66]),{mode:'high'}),/Write only/);
+ assert.throws(()=>exportYm2608FullVgm(input([0x56,0,0,0x70,0x66]),{mode:'invalid'}),/Unknown YM2608 mode/);
  for(const commands of [[0x50,0,0x66],[0x67,0x66,0,0,0,0,0,0x66],[0x56,0]])assert.throws(()=>exportYm2608FullVgm(input(commands)));
  const bytes=input([0x56,0,0,0x70,0x66]);new DataView(bytes.buffer).setUint32(0x48,0x40000000|7987200,true);assert.throws(()=>exportYm2608FullVgm(bytes),/single YM2608/);
 });
@@ -38,4 +38,27 @@ test('ADPCM upload failure is handled and reported by the loop',async()=>{
  const opna={setClock:async()=>{},resetRegisters(){},adpcm:{loadMemory:()=>Promise.reject(new Error('upload failed'))}};
  await new (Object.getPrototypeOf(async function(){}).constructor)('useSoundChip','liveLoop','sleepSamples',code)(async()=>opna,(_,fn)=>{loop=fn;},async()=>{});
  await assert.rejects(loop(),/upload failed/);
+});
+
+test('Schedule prepares memory once and leaves all timed operations on the audio thread',async()=>{
+ const code=exportYm2608FullVgm(input([0x56,8,15,0x61,10,0,...block,0x57,0,0xa0,0x70,0x66]),{mode:'schedule'});
+ let loop,prepared,plays=0;
+ const opna={setClock:async()=>{},prepareTimeline:async(...args)=>{prepared=args;},playTimeline:async()=>{plays++;}};
+ await new (Object.getPrototypeOf(async function(){}).constructor)('useSoundChip','liveLoop',code)(async()=>opna,(_,fn)=>{loop=fn;});
+ assert.deepEqual(prepared[0],[[0,0,8,15],[10,2,0,8],[10,1,0,0xa0]]);assert.deepEqual([...prepared[1][0]],[0x12,0x34]);assert.equal(prepared[2],11);
+ await loop();await loop();assert.equal(plays,2);assert.ok(!code.includes('sleepSamples'));
+});
+
+import {createYm2608Client} from '../../web/playground_ym2608.js';
+test('generated High matches Write across resets, repeated loops and memory transfers',async()=>{
+ const bytes=input([...block,0x56,7,63,0x56,0,12,0x56,1,2,0x56,7,62,0x56,8,15,0x56,0x18,0xdf,0x56,0x11,40,0x56,0x10,1,0x57,9,10,0x57,10,2,0x57,11,200,0x57,0,0xa0,0x57,0xa4,34,0x57,0xa0,44,0x56,0x28,0xf4,0x61,100,0,0x66]);
+ async function trace(mode){
+  let time=0,loop;const commands=[];
+  const port={start(){},close(){},postMessage(m){commands.push([time,m.method,...m.args]);if(m.id)queueMicrotask(()=>port.onmessage({data:{id:m.id}}));}};
+  const opna=createYm2608Client(port);commands.length=0;
+  const code=exportYm2608FullVgm(bytes,{mode});
+  await new (Object.getPrototypeOf(async function(){}).constructor)('useSoundChip','liveLoop','sleepSamples',code)(async()=>opna,(_,fn)=>{loop=fn;},async n=>{time+=n;});
+  await loop();await loop();opna.dispose();return commands;
+ }
+ assert.deepEqual(await trace('high'),await trace('write'));
 });

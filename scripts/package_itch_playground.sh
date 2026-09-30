@@ -38,6 +38,7 @@ playground_vgm_presets.js
 playground_vgm_import.js
 ym2203_high.js
 ym2608_vgm_import.js
+ym2608_high.js
 rf5c164_vgm_export.js
 tetorica-playground-globals.d.ts
 tetorica-playground-ym2203.d.ts
@@ -67,6 +68,7 @@ playground_gameboy_audio.js
 playground_gameboy_worklet.js
 playground_ym2608_audio.js
 playground_ym2608_worklet.js
+playground_ym2608_timeline.js
 rf5c164synth.js
 rf5c164_pcm.js
 playground_rf5c164_audio.js

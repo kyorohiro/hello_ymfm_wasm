@@ -1,3 +1,4 @@
+import {Ym2608Timeline} from './playground_ym2608_timeline.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
@@ -22,7 +23,7 @@ test('Stop during worklet initialization disposes the late chip without announci
   let Processor, complete, disposed = false;
   const messages = [];
   const source = (await readFile(new URL('./playground_ym2608_worklet.js', import.meta.url), 'utf8')).replace(/^import .*;$/gm, '');
-  vm.runInNewContext(source, {
+  vm.runInNewContext(source, {Ym2608Timeline,
     Ym2608AudioEngine: {create: () => new Promise(resolve => { complete = resolve; })}, factory: {}, Uint8Array, sampleRate: 48000,
     AudioWorkletProcessor: class { constructor() { this.port = {postMessage: data => messages.push(data)}; } },
     registerProcessor: (_, cls) => { Processor = cls; },
@@ -40,7 +41,7 @@ test('YM2608 port client and real worklet core: rhythm, SSG, ADPCM memory, reset
   const ready = new Promise(resolve => { readyResolve = resolve; });
   const source = (await readFile(new URL('./playground_ym2608_worklet.js', import.meta.url), 'utf8'))
     .replace(/^import .*;$/gm, '');
-  vm.runInNewContext(source, {Ym2608AudioEngine, factory, Uint8Array, sampleRate: 48000,
+  vm.runInNewContext(source, {Ym2608Timeline,Ym2608AudioEngine, factory, Uint8Array, sampleRate: 48000,
     AudioWorkletProcessor: class { constructor() { this.port = {postMessage: data => readyResolve(data)}; } },
     registerProcessor: (_, cls) => { Processor = cls; },
   });
@@ -77,6 +78,14 @@ test('YM2608 port client and real worklet core: rhythm, SSG, ADPCM memory, reset
     synth.adpcm.setPan(true, true); synth.adpcm.setPlaybackRate(8000); synth.adpcm.keyOn();
     await barrier(); render();
     synth.adpcm.keyOn({repeat: true}); await barrier(); assert.ok(audible(render()[0]));
+    await synth.prepareTimeline([[0,2,0,0],[0,0,7,0x3e],[0,0,0,100],[0,0,1,0],[0,0,8,15],[441,0,8,0]], [new Uint8Array(256).fill(0x17)], 882);
+    const playing = synth.playTimeline();
+    await barrier();
+    assert.ok(audible(render()[0]));
+    await playing;
+    const cancelled = synth.playTimeline();
+    const rejection = assert.rejects(cancelled, /cancelled/);
+    synth.resetRegisters(); await rejection;
     // Execute the actual example without a global fm; every scheduled hit must sound.
     const example = await readFile(new URL('../docs/playground/examples/chip-saw/ym2608-rhythm.js', import.meta.url), 'utf8');
     let hits = 0;

@@ -6,7 +6,7 @@
  */
 import { OPNDirectTransport, OPNFMSynth } from "./opn_fm_synth.js";
 import { OPNRuntimeSynth } from "./opn_runtime_synth.js";
-import { SSGSynth } from "./ssgsynth.js";
+import { SSGSynth } from "./ssgsynth.js?v=ssg-period-1";
 import { YM2608_CLOCK } from "./ym2608.js";
 
 /** Direct transport for YM2608 register operations. */

@@ -93,3 +93,11 @@ test('YM2608 offers full Write or existing YM2612 FM translation',async()=>{
  await ui.choose('opna.vgm');ui.node('ym2608TargetInput').value='ym2612';ui.node('ym2608TargetInput').events.change();
  assert.equal(ui.node('opnImportOptions').hidden,false);ui.node('convertVgmButton').events.click();assert.equal(ui.imports[1].o.ym2608Target,'ym2612');
 });
+
+test('YM2608 exposes Schedule and High and forwards the selected mode',async()=>{
+ const ui=setup(async()=>({detection:{family:'opn',chip:'ym2608',chips:['ym2608'],supported:true,message:''}}));
+ await ui.choose('opna.vgm');ui.node('convertVgmButton').events.click();
+ assert.equal(ui.imports[0].o.ym2608Mode,'high');
+ const html=readFileSync(new URL('./index.html',import.meta.url),'utf8');
+ for(const mode of ['write','schedule','high'])assert.ok(html.includes(`name="ym2608ImportMode" value="${mode}"`));
+});

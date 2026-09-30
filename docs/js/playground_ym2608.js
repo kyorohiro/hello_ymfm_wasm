@@ -1,5 +1,5 @@
 /** Shared main-thread / Worker facade; register writes and memory transfers share one ordered port. */
-import {YM2608Synth} from './ym2608synth.js';
+import {YM2608Synth} from './ym2608synth.js?v=ym2608-modes-1';
 
 export function createYm2608Client(port) {
   let disposed = false, sequence = 0;
@@ -31,7 +31,11 @@ export function createYm2608Client(port) {
     loadAdpcmMemory: (bytes, offset) => transfer('memory', [bytes, offset]),
   }});
   // VGM supplies its own setup, including the extended-channel mode register.
-  synth.resetRegisters = () => send('reset');
+  synth.resetRegisters = () => {
+    send('reset'); synth.ssg.resetState(); synth.rhythm.resetState(); synth.adpcm.resetState();
+  };
+  synth.prepareTimeline = (events, blocks, durationSamples) => transfer('prepareTimeline', [events, blocks, durationSamples]);
+  synth.playTimeline = () => transfer('playTimeline', []);
   synth.setClock = async clock => {
     await transfer('clock', [clock]);
     synth.ssg.clock = clock / 4; synth.adpcm.clock = clock;
