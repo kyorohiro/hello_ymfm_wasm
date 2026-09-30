@@ -219,3 +219,33 @@ YM2612 は FM 6CH と DAC レジスター操作、YM2203 は FM 3CH と SSG、YM
 `useSoundChip()` の既定音源取得契約は変更しない。例えば YM2612 モードでも `createSoundChip("ym2610")` は生成できるが、`useSoundChip("ym2610")` は引き続き選択チップとの不一致をエラーにする。
 
 実 WASM の2台同時生成・FM発音・状態の独立性・SSG発音・YM2610メモリー転送、初期化中の破棄、Main／Worker の生成と Stop を自動テストで確認。ブラウザーでの実音試聴は未実施。
+
+## OPN共通の setOperators
+
+YM2203／YM2608／YM2610／YM2610B に `setOperators(channel, entries)` を追加した。YM2612 と同様、`entries` は `[operator, params]` の配列。全入力を検証してから指定順に `setOperator()` を適用し、同じオペレーターへの繰り返し指定も保持する。不正入力ではレジスター書き込み・音色状態の更新を行わない。
+
+```js
+fm.setOperators(CH1, [
+  [OP1, {tl: 20, ar: 31}],
+  [OP2, {tl: 40}],
+]);
+```
+
+これは時間管理を伴わない Synth API。PGAdapter は不要。既定FMと追加音源の両方で利用でき、YM2610 は論理4CHから物理CHへ変換する。Playground の型定義にも反映した。
+
+## useSoundChip の選択チップ不一致制限を解除
+
+上記の「要求名と選択中チップが異なる場合はエラー」という初期仕様を変更した。YM2612／YM2203／YM2610 は既定音源と一致すれば既存 `fm` を返し、不一致なら `createSoundChip()` で追加生成して再利用する。YM2608／RF5C164／Game Boy は従来どおり追加音源として再利用する。
+
+```js
+// YM2612 モードでも利用可能。
+const neo = await useSoundChip("ym2610");
+neo.setPreset(CH1, FM_PRESETS["one-op-basic"]);
+neo.noteOn(CH1, 4, 600);
+await sleep(0.3);
+neo.noteOff(CH1);
+```
+
+並行取得は初期化 Promise を共有する。ライブ再評価で再利用し、Stop で追加音源とキャッシュを破棄する。追加 OPN の手動 dispose 後も次回取得で再生成する。グローバル `play()`／`write()` の対象は変更しない。
+
+Monaco は選択中チップに応じて、既定FMと追加音源の戻り値型を区別する。例えば YM2612 モードで取得した YM2610 には SSG／ADPCM の補完も提供する。

@@ -391,13 +391,9 @@ test('useSoundChip returns existing FM, supports const fm and preserves play and
  assert.equal(notes.length,2);assert.deepEqual(notes[0],notes[1]);
  runtime.stop();await runtime.playSource(`const fm = await useSoundChip('ym2612'); if(fm!==pg.fm)throw Error('Restart identity');`);
 });
-test('useSoundChip rejects wrong selected chip and unsupported options on Main',async t=>{
- const {runtime,megaDrive}=setup(t);
+test('useSoundChip rejects unsupported options on Main',async t=>{
+ const {runtime}=setup(t);
  await assert.rejects(runtime.playSource(`await useSoundChip('ym2612',{id:'fm1'});`),/options/);
- // capabilities are captured from this object when constructing a runtime.
- runtime.stop();megaDrive.capabilities={chip:'ym2608',fmChannels:6,psg:false,dac:false};
- const other=createPlaygroundRuntime({megaDrive,guardExecution:false});t.after(()=>other.stop());
- await assert.rejects(other.playSource(`await useSoundChip('ym2612');`),/requires the YM2612/);
 });
 
 
@@ -415,7 +411,5 @@ for(const [chip,channels] of [['ym2203',3],['ym2610',4]])test(`Main useSoundChip
  `);
  await runtime.playSource(`if(await useSoundChip('${chip}')!==context.fm)throw Error('Not reused');`);
  assert.equal(notes.length,1);
- const wrong=chip==='ym2203'?'ym2610':'ym2203';
- await assert.rejects(runtime.playSource(`await useSoundChip('${wrong}');`),/requires the/);
  runtime.stop();await runtime.playSource(`const fm=await useSoundChip('${chip}');if(fm!==pg.fm)throw Error('Restart');`);
 });

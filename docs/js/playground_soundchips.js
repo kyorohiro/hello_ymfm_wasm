@@ -3,7 +3,7 @@ export function createSoundChipRegistry() {
   const entries = new Map();
   let generation = 0;
   return {
-    use(name, options, resolve) {
+    use(name, options, resolve, {evictOnDispose = !['ym2612', 'ym2203', 'ym2610'].includes(name)} = {}) {
       if (!['ym2612', 'ym2203', 'ym2610', 'rf5c164', 'ym2608', 'gameboy'].includes(name)) {
         return Promise.reject(new Error(`Unsupported useSoundChip name: ${String(name)}`));
       }
@@ -19,7 +19,7 @@ export function createSoundChipRegistry() {
         if (epoch !== generation) throw new Error('Run stopped');
         // Additional clients expose dispose. Evict a manually disposed instance;
         // the runtime retains responsibility for its audio device and Stop cleanup.
-        if (!['ym2612', 'ym2203', 'ym2610'].includes(name) && typeof chip.dispose === 'function') {
+        if (evictOnDispose && typeof chip.dispose === 'function') {
           const dispose = chip.dispose.bind(chip);
           chip.dispose = () => {
             if (entries.get(name) === pending) entries.delete(name);

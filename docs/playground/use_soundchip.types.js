@@ -38,7 +38,7 @@ const neo = await useSoundChip('ym2610');
 neo.setFrequency(3, 4, 1000);
 // @ts-expect-error Neo Geo has four logical FM channels.
 neo.keyOn(4);
-// @ts-expect-error Full SSG API is not exposed by the default FM facade.
+// In YM2612 mode, YM2610 is an additional full chip.
 neo.ssg.tone(0, {frequency:440});
 
 const extraFm = await createSoundChip('ym2612');
@@ -56,3 +56,13 @@ await extraNeo.adpcmA.loadMemory(new Uint8Array(256));
 extraNeo.noteOn(4, 4, 600);
 // @ts-expect-error no scheduler on additional clients
 extraFm.scheduleWrites([]);
+
+extraOpn.setOperators(2, [[OP1, {tl: 20}], [OP2, {ar: 31}]]);
+extraNeo.setOperators(3, [[OP1, {tl: 20}]]);
+(await useSoundChip('ym2203')).setOperators(2, [[OP1, {tl: 20}]]);
+(await useSoundChip('ym2610')).setOperators(3, [[OP1, {tl: 20}]]);
+(await createSoundChip('ym2608')).setOperators(5, [[OP1, {tl: 20}]]);
+// @ts-expect-error YM2203 has only three FM channels
+extraOpn.setOperators(3, [[OP1, {tl: 20}]]);
+// @ts-expect-error YM2610 has only four logical FM channels
+extraNeo.setOperators(4, [[OP1, {tl: 20}]]);

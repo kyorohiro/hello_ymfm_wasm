@@ -556,12 +556,9 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
       check();
       const chip = await soundChips.use(name, options, chipName => {
         check();
-        if (['ym2612', 'ym2203', 'ym2610'].includes(chipName)) {
-          if ((capabilities.chip ?? 'ym2612') !== chipName) throw new Error(`useSoundChip("${chipName}") requires the ${chipName.toUpperCase()} Playground chip.`);
-          return fm;
-        }
+        if (['ym2612', 'ym2203', 'ym2610'].includes(chipName) && (capabilities.chip ?? 'ym2612') === chipName) return fm;
         return globals.createSoundChip(chipName);
-      });
+      }, {evictOnDispose: !(['ym2612', 'ym2203', 'ym2610'].includes(name) && (capabilities.chip ?? 'ym2612') === name)});
       check();
       return chip;
     },

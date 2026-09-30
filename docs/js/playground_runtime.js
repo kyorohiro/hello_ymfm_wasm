@@ -170,7 +170,7 @@ export function createPlaygroundRuntime(
     );
   defaultLogicWorkerUrl.searchParams.set(
     "v",
-    "create-sound-chip-opn-1"
+    "use-cross-chip-1"
   );
   const logicWorkerUrl =
     options.logicWorkerUrl ??
@@ -1333,12 +1333,9 @@ export function createPlaygroundRuntime(
         check();
         const chip = await soundChips.use(name, options, chipName => {
           check();
-          if (['ym2612', 'ym2203', 'ym2610'].includes(chipName)) {
-            if (capabilities.chip !== chipName) throw new Error(`useSoundChip("${chipName}") requires the ${chipName.toUpperCase()} Playground chip.`);
-            return fm;
-          }
+          if (['ym2612', 'ym2203', 'ym2610'].includes(chipName) && capabilities.chip === chipName) return fm;
           return pg.createSoundChip(chipName);
-        });
+        }, {evictOnDispose: !(['ym2612', 'ym2203', 'ym2610'].includes(name) && capabilities.chip === name)});
         check();
         return chip;
       },

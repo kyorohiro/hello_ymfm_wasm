@@ -120,3 +120,7 @@ WASMが存在するだけでPlayground APIも利用可能とは判断しない�
 現行機能と公開版の照合。その他の提案・保留項目は[issue一覧](issues/)から辿る。
 
 - Playground `createSoundChip`: YM2612／YM2203／YM2610 の独立インスタンス生成を追加。既存の YM2608／RF5C164／Game Boy と合わせ6種類。Main／Worker・Stop・実WASM複数インスタンスを自動検証。追加音源は個別APIで操作し、グローバル `play()` の対象は既定音源のまま。実音試聴は未実施。
+
+- OPN FM `setOperators(channel, entries)`：YM2612 に加え YM2203／YM2608／YM2610／YM2610B に対応。全入力の事前検証と書き込み順を維持。既定・追加音源と Playground 補完に反映。
+
+- `useSoundChip()` は YM2612／YM2203／YM2610 が既定音源と異なる場合も追加生成・再利用可能。既定音源との一致時は既存FMを返す。並行取得・再評価・手動dispose後の再取得・Stopを自動検証。

@@ -7,7 +7,7 @@ const {createPlaygroundRuntime}=await import('./playground_runtime.js');
 globalThis.fetch=originalFetch;
 const tick=()=>new Promise(resolve=>setTimeout(resolve,0));
 
-function setup(t) {
+function setup(t, selectedChip='ym2612') {
  const saved={window:globalThis.window,AudioWorkletNode:globalThis.AudioWorkletNode};
  const nodes=[];let delay=false;
  globalThis.window={addEventListener(){},removeEventListener(){},setTimeout};
@@ -21,13 +21,13 @@ function setup(t) {
   connect(){} disconnect(){this.disconnects++;this.remote?.close();}
  };
  const media=()=>({stop(){},stopAll(){},pause(){},list:()=>[],unload(){}});
- const megaDrive={audioContext:{get currentTime(){return performance.now()/1000;},audioWorklet:{async addModule(){}}},audio:{masterInputNode:{}},fm:{setPreset(){},noteOff(){}},psg:{},sample:media(),stream:media(),async start(){},async resume(){},clearFXChain:()=>[]};
+ const megaDrive={capabilities:{chip:selectedChip,fmChannels:6},audioContext:{get currentTime(){return performance.now()/1000;},audioWorklet:{async addModule(){}}},audio:{masterInputNode:{}},fm:{setPreset(){},noteOff(){}},psg:{},sample:media(),stream:media(),async start(){},async resume(){},clearFXChain:()=>[]};
  const runtime=createPlaygroundRuntime({megaDrive,guardExecution:false});
  t.after(()=>{runtime.stop();Object.assign(globalThis,saved);});
  return {runtime,nodes,setDelay:value=>{delay=value;}};
 }
-for(const chip of ['rf5c164','ym2608','gameboy'])test(`Main managed ${chip} creates once, reuses on Run and recreates after Stop`,async t=>{
- const {runtime,nodes}=setup(t);
+for(const chip of ['rf5c164','ym2608','gameboy','ym2203','ym2610','ym2612'])test(`Main managed ${chip} creates once, reuses on Run and recreates after Stop`,async t=>{
+ const {runtime,nodes}=setup(t,chip==='ym2612'?'ym2203':'ym2612');
  const source=`const [a,b]=await Promise.all([useSoundChip('${chip}'),useSoundChip('${chip}')]);
  if(a!==b || (context.pcm && a!==context.pcm))throw Error('identity');context.pcm=a;`;
  await runtime.playSource(source);await runtime.playSource(source);assert.equal(nodes.length,1);

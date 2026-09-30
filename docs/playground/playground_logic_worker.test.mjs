@@ -563,13 +563,13 @@ test('Worker useSoundChip aliases global FM, permits const fm, reuses on reevalu
   assert.equal(worker.messages.filter(m=>m.command==='pcm.create' || m.command==='fm.then').length,0);
  }finally{await worker.send({type:'stop'});}
 });
-for(const name of ['rf5c164','ym2608','gameboy'])test(`Worker useSoundChip ${name} shares pending creation, reuses and disposes on Stop`,async()=>{
+for(const name of ['rf5c164','ym2608','gameboy','ym2203','ym2610','ym2612'])test(`Worker useSoundChip ${name} shares pending creation, reuses and disposes on Stop`,async()=>{
  const worker=createWorkerHarness(),sent=[];let closed=0;
  const port={start(){},postMessage:data=>sent.push(data),close(){closed++;}};
  const source=`const [a,b]=await Promise.all([useSoundChip('${name}'),useSoundChip('${name}')]);
  if(a!==b || (context.chip && context.chip!==a))throw Error('identity');context.chip=a;`;
  try {
-  await worker.send({type:'run',sourceCode:source});
+  await worker.send({type:'run',capabilities:{chip:name==='ym2612'?'ym2203':'ym2612'},sourceCode:source});
   const requests=worker.messages.filter(m=>m.command==='pcm.create');assert.equal(requests.length,1);
   await worker.send({type:'response',id:requests[0].id,value:port});
   await waitFor(()=>worker.messages.some(m=>m.type==='complete'));
@@ -608,8 +608,6 @@ for(const name of ['ym2203','ym2610'])test(`Worker useSoundChip ${name} returns 
   await waitFor(()=>worker.messages.filter(m=>m.type==='complete').length===2);
   assert.equal(worker.messages.filter(m=>m.command==='fm.keyOff').length,2);
   assert.equal(worker.messages.filter(m=>m.command==='pcm.create'||m.command==='fm.then').length,0);
-  await worker.send({type:'run',sourceCode:`await useSoundChip('ym2612');`});
-  assert.match(worker.messages.find(m=>m.type==='execution-error').message,/requires the YM2612/);
  }finally{await worker.send({type:'stop'});}
 });
 
