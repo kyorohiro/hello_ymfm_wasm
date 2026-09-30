@@ -630,6 +630,7 @@ export class MegaSynth {
     this.audio.closeMedia();
     this.audio.disposeFXChain();
 
+    this.fm?.transport?.dispose?.();
     if (this.node) {
       this.node.disconnect();
       this.node.port.close();

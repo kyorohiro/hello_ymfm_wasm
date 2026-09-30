@@ -1,4 +1,5 @@
-import {createChipPortReceiver} from "./playground_chip_port.js";
+import {YM2612DacPlayer, receiveDacCommand} from "./ym2612_dac.js";
+import {createChipPortReceiver} from "./playground_chip_port.js?v=dac-pcm-1";
 /**
  * @file ym2612-worklet.js
  * 実行環境: Browser（AudioWorkletGlobalScope）
@@ -38,6 +39,7 @@ class YM2612Processor extends AudioWorkletProcessor {
     this.scheduledCommands = [];
     this.dacBanks = new Map();
     this.dacStreams = [];
+    this.pcmDac = new YM2612DacPlayer(sampleRate, (p, r, v) => this.ym2612.writeRegister(r, v, p));
     this.envelopeRmsBuckets = [];
     this.envelopeBucketSize = 512;
     this.envelopeMessageSize = 16;
@@ -47,7 +49,7 @@ class YM2612Processor extends AudioWorkletProcessor {
     this.captureRightChunks = [];
     this.captureFrameCount = 0;
 
-    const receiveChipPort = createChipPortReceiver(command => this.applyCommand(command));
+    const receiveChipPort = createChipPortReceiver((command, reply) => this.applyCommand(command, reply));
     this.port.onmessage = (event) => {
       const command = event.data;
       if (receiveChipPort(command)) return;
@@ -131,7 +133,8 @@ class YM2612Processor extends AudioWorkletProcessor {
     }
   }
 
-  applyCommand(command) {
+  applyCommand(command, reply = message => this.port.postMessage(message)) {
+    if (receiveDacCommand(this.pcmDac, command, currentFrame, reply)) return;
     if (command.type === "schedule-writes") {
       for (const entry of command.entries ?? []) {
         this.scheduledCommands.push(entry);
@@ -168,9 +171,11 @@ class YM2612Processor extends AudioWorkletProcessor {
     }
     if (command.type === "clear-dac-playback") {
       this.dacStreams.length = 0;
+      this.pcmDac.stop();
       return;
     }
     if (command.type === "write") {
+      this.pcmDac.observeWrite(command.port, command.register, command.value);
       this.ym2612.writeRegister(
         command.register,
         command.value,
@@ -190,6 +195,7 @@ class YM2612Processor extends AudioWorkletProcessor {
     }
 
     if (command.type === "reset") {
+      this.pcmDac.reset();
       this.resampleRemainder = 0;
       this.lastLeft = 0;
       this.lastRight = 0;
@@ -246,13 +252,14 @@ class YM2612Processor extends AudioWorkletProcessor {
         ? Math.round(scheduled.time * sampleRate)
         : Infinity;
       const dacFrame = this.nextDacFrame();
-      const frame = Math.min(scheduledFrame, dacFrame);
+      const frame = Math.min(scheduledFrame, dacFrame, this.pcmDac.nextFrame());
       if (frame >= endFrame) break;
       const eventOffset = Math.max(offset, frame - currentFrame);
       this.renderFrames(leftOut, rightOut, offset, eventOffset - offset);
       offset = eventOffset;
       if (scheduledFrame === frame) {
         this.scheduledCommands.shift();
+        this.pcmDac.observeWrite(scheduled.port, scheduled.register, scheduled.value);
         if (scheduled.type === "psg-write") this.psg?.write(scheduled.value);
         else this.ym2612.writeRegister(
           scheduled.register,
@@ -261,6 +268,7 @@ class YM2612Processor extends AudioWorkletProcessor {
         );
       }
       this.writeDueDacFrames(frame);
+      this.pcmDac.advance(frame);
     }
     this.renderFrames(leftOut, rightOut, offset, leftOut.length - offset);
     this.capturePcm(leftOut, rightOut);

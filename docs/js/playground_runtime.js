@@ -30,7 +30,7 @@ import { executeWithPlaygroundGuards } from "./playground_execution.js";
 import { createPlaygroundLive } from "./playground_live.js?v=loop-async-tasks-1";
 import { createPlaygroundMusic } from "./playground_music.js";
 import { createPlaygroundNoiseApi } from "./playground_noise.js";
-import { createFmProxy } from "./playground_sync.js";
+import { createFmProxy } from "./playground_sync.js?v=dac-pcm-1";
 import { parseTfi } from "./tfi.js";
 import { parseVgi } from "./vgi.js";
 
@@ -171,7 +171,7 @@ export function createPlaygroundRuntime(
     );
   defaultLogicWorkerUrl.searchParams.set(
     "v",
-    "loop-async-tasks-1"
+    "dac-pcm-1"
   );
   const logicWorkerUrl =
     options.logicWorkerUrl ??
@@ -900,6 +900,13 @@ export function createPlaygroundRuntime(
       return target[method](...methodArgs);
     }
 
+    if (command.startsWith("fm.dac.")) {
+      const method = command.slice(7);
+      if (!['setSample', 'playFromSample', 'play', 'stop', 'removeSample'].includes(method) || !globals.fm.dac) {
+        throw new Error(`Unsupported DAC method: ${method}`);
+      }
+      return globals.fm.dac[method](...args);
+    }
     if (command.startsWith("fm.")) {
       const method = command.slice(3);
       if (typeof globals.fm[method] !== "function") {

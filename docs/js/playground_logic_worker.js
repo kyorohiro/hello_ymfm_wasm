@@ -13,7 +13,7 @@ import {createNativeSampleController} from './native_sample.js';
  */
 import {createNativeNoiseController, controlNativeNoise} from './native_noise.js';
 import {createWorkerDac} from './playground_worker_dac.js';
-import {createWorkerChip} from './playground_worker_chip.js';
+import {createWorkerChip} from './playground_worker_chip.js?v=dac-pcm-1';
 import {createMidiApi, createMidiRack} from './playground_midi.js?v=midi-held-stop-1';
 import { hzToBlockFnum } from "./pitch.js";
 import { createDeadlineScheduler } from "./playground_clock.js?v=loop-async-tasks-1";
@@ -311,11 +311,17 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
   const commandProxy = (command) => (...args) => postCommand(command, args);
   const requestProxy = (command) => (...args) => request(command, args, run.currentLoop);
   const chip = chipConnection ? createWorkerChip({...chipConnection,capabilities,observe:event=>postMessage({type:"chip-observer",event})}) : null;
+  run.resumeChip = () => chip?.resume();
   const workerDac = chip && capabilities.dac ? createWorkerDac(chip.send, timing) : null;
   run.resetSampleClock = () => { clock.resetSampleClock(); workerDac?.reset(); };
   const fm = new Proxy({}, {
     get(_target, property) {
       if (property === "then") return undefined;
+      if (property === "dac") {
+        if (!capabilities.dac) return undefined;
+        if (chip) return chip.fm.dac;
+        return Object.fromEntries(['setSample','playFromSample','play','stop','removeSample'].map(method => [method, requestProxy(`fm.dac.${method}`)]));
+      }
       if (property === "read" || property === "readStatus" || property === "getIrq") {
         return requestProxy(`fm.${String(property)}`);
       }
@@ -735,6 +741,7 @@ async function handleLifecycleMessage(message) {
     currentRun = previousRun ?? createRun(message.sourceCode, message.presets ?? {}, message.scaleIntervals ?? {}, message.capabilities ?? {}, message.timing ?? {});
     if (currentRun.stopped) {
       currentRun.stopped = false;
+      currentRun.resumeChip();
       currentRun.generation += 1;
       currentRun.runningLoops.clear();
       currentRun.resetSampleClock();

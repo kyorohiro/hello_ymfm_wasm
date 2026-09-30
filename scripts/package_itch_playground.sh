@@ -134,6 +134,7 @@ ym2612-worklet.js
 ym2612-worklet-nuked.js
 ym2612.js
 ym2612synth.js
+ym2612_dac.js
 "
 
 SYNTH_SUPPORT_FILES="

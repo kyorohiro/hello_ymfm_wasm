@@ -2,12 +2,13 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
+import {YM2612DacPlayer, receiveDacCommand} from './ym2612_dac.js';
 import {createChipPortReceiver} from './playground_chip_port.js';
 
 function processor(tree, file, rate, imports = {}) {
   let Type;
   const messages = [];
-  const context = { createChipPortReceiver: apply => createChipPortReceiver(apply, () => context.currentFrame / rate), ...imports, sampleRate: rate, currentFrame: 0, Float32Array, Uint8Array, Error,
+  const context = { YM2612DacPlayer, receiveDacCommand, createChipPortReceiver: apply => createChipPortReceiver(apply, () => context.currentFrame / rate), ...imports, sampleRate: rate, currentFrame: 0, Float32Array, Uint8Array, Error,
     AudioWorkletProcessor: class { constructor() { this.port = { postMessage: x => messages.push(x) }; } },
     registerProcessor: (_, value) => { Type = value; },
   };
@@ -175,4 +176,73 @@ for(const tree of ['web','docs/js']) for(const file of ['ym2612-worklet.js','ym2
  ]}]});
  render(p,1024);
  assert.deepEqual(writes,[['fm',0x22,8,480],['psg',0x85,480],['psg',0x12,480],['psg',0x9f,960]]);
+});
+
+for (const tree of ['web', 'docs/js']) for (const file of ['ym2612-worklet.js', 'ym2612-worklet-nuked.js']) {
+ test(`${tree} ${file}: PCM API agrees with Node rendering, including a reserved start and end`, async () => {
+  const {YM2612Synth, YM2612DirectTransport} = await import('./ym2612synth.js');
+  const rate = 48000, native = chip(rate), expected = [];
+  native.writeRegister = (r,v,p) => expected.push([native.frames,p,r,v]);
+  const transport = new YM2612DirectTransport(native), synth = new YM2612Synth({transport});
+  await synth.dac.setSample('voice', [100,180,140], {sampleRate:11025});
+  await synth.dac.playFromSample('voice', {when:64/rate});
+  transport.generateStereo(128);
+  const {p,messages} = processor(tree,file,rate), actual=[];
+  p.ym2612 = chip(rate);
+  p.ym2612.writeRegister = (r,v,port) => actual.push([p.ym2612.frames,port,r,v]);
+  p.applyCommand({type:'pcm-dac',id:1,command:{action:'load',name:'voice',data:Uint8Array.of(100,180,140),sampleRate:11025}});
+  assert.equal(messages.at(-1).id,1);
+  assert.equal(messages.at(-1).error,undefined);
+  p.applyCommand({type:'pcm-dac',id:2,command:{action:'play',name:'voice',when:64/rate}});
+  render(p,128);
+  assert.deepEqual(actual,expected);
+ });
+ test(`${tree} ${file}: stopping PCM clears future starts and registered PCM survives reset`, () => {
+  const {p,context,messages}=processor(tree,file,48000),writes=[];
+  p.ym2612=chip(48000);
+  p.ym2612.writeRegister=(r,v)=>writes.push([r,v]);
+  const command=c=>p.applyCommand({type:'pcm-dac',id:1,command:c});
+  command({action:'load',name:'x',data:Uint8Array.of(200),sampleRate:1});
+  command({action:'play',name:'x',when:1});
+  command({action:'stop'});
+  context.currentFrame=48000;
+  render(p,128);
+  assert.equal(writes.length,0);
+  p.applyCommand({type:'reset'});
+  command({action:'play',name:'x'});
+  render(p,128);
+  assert.ok(writes.some(([r,v])=>r===0x2a&&v===200));
+  command({action:'play',name:'missing'});
+  assert.match(messages.at(-1).error,/Unknown/);
+ });
+}
+
+for(const [file,wasm] of [['ym2612-worklet.js','ym2612_wasm.js'],['ym2612-worklet-nuked.js','nuked_opn2_wasm.js']]) {
+ test(`${file}: high-level PCM produces audio through real WASM`,async()=>{
+  const {default:factory}=await import(`../docs/generated/${wasm}`);
+  const {Ym2612}=await import('./ym2612.js');
+  const ym=await Ym2612.create({moduleFactory:factory});
+  try {
+   const {p}=processor('web',file,48000);p.ym2612=ym;
+   const data=Uint8Array.from({length:551},(_,i)=>Math.round(128+60*Math.sin(2*Math.PI*440*i/11025)));
+   p.applyCommand({type:'pcm-dac',id:1,command:{action:'load',name:'sine',data,sampleRate:11025}});
+   p.applyCommand({type:'pcm-dac',id:2,command:{action:'play',name:'sine'}});
+   const {left,right}=render(p,2400);
+   assert.ok(left.every(Number.isFinite));
+   const mean=left.reduce((a,b)=>a+b,0)/left.length;
+   const rms=Math.sqrt(left.reduce((a,b)=>a+(b-mean)**2,0)/left.length);
+   assert.ok(rms>0.001,`PCM must have audible AC energy (RMS ${rms})`);
+   assert.deepEqual(left,right);
+  }finally{ym.dispose();}
+ });
+}
+
+for(const file of ['ym2612-worklet.js','ym2612-worklet-nuked.js'])test(`${file}: PCM registration acknowledges on the requesting Worker port`,()=>{
+ const {p,messages}=processor('web',file,48000),replies=[];
+ p.ym2612=chip(48000);
+ const port={start(){},close(){},postMessage:reply=>replies.push(reply)};
+ p.port.onmessage({data:{type:'attach-chip-port',port}});
+ port.onmessage({data:[{type:'pcm-dac',id:23,command:{action:'load',name:'x',data:Uint8Array.of(128,200),sampleRate:11025}}]});
+ assert.equal(replies.length,1);assert.equal(replies[0].id,23);assert.equal(replies[0].error,undefined);
+ assert.equal(messages.length,0);
 });

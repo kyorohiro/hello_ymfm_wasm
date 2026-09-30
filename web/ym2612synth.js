@@ -1,3 +1,4 @@
+import {YM2612Dac, YM2612DacPlayer} from "./ym2612_dac.js";
 /**
  * @file ym2612synth.js
  * 実行環境: Browser / Node.js
@@ -25,6 +26,7 @@
  *   read?: (offset: number) => number,
  *   readStatus?: () => number,
  *   getIrq?: () => boolean,
+ *   dacCommand?: (command: object) => void | Promise<void>,
  * }} YM2612Transport
  */
 
@@ -185,6 +187,8 @@ export class YM2612DirectTransport {
   /**
    * @param {{
    *   writeRegister(register: number, value: number, port?: number): void,
+   *   sampleRate?: () => number,
+   *   generateStereo?: (frames: number) => {left: Float32Array, right: Float32Array},
    *   reset?: () => void,
    *   read?: (offset: number) => number,
    *   readStatus?: () => number,
@@ -196,16 +200,50 @@ export class YM2612DirectTransport {
       throw new Error("YM2612DirectTransport requires a chip with writeRegister(register, value, port)");
     }
     this.chip = chip;
+    this.frame = 0;
+    this.dacPlayer = null;
+    this.dacPanRegister = 0;
   }
 
   reset() {
+    this.dacPlayer?.reset();
+    this.frame = 0;
+    this.dacPanRegister = 0;
     if (typeof this.chip.reset === "function") {
       this.chip.reset();
     }
   }
 
   write(port, register, value) {
+    if (port === 1 && register === 0xb6) this.dacPanRegister = value;
+    this.dacPlayer?.observeWrite(port, register, value);
     this.chip.writeRegister(register, value, port);
+  }
+
+  dacCommand(command) {
+    if (!this.dacPlayer) {
+      if (typeof this.chip.sampleRate !== 'function' || typeof this.chip.generateStereo !== 'function') {
+        throw new Error('PCM DAC needs a chip with sampleRate() and generateStereo()');
+      }
+      this.dacPlayer = new YM2612DacPlayer(this.chip.sampleRate(), (p, r, v) => this.write(p, r, v));
+    }
+    this.dacPlayer.panRegister = this.dacPanRegister;
+    this.dacPlayer.command(command, this.frame);
+  }
+
+  /** Render through this transport to advance PCM playback and the Node timeline together. */
+  generateStereo(frames) {
+    if (!Number.isSafeInteger(frames) || frames < 0) throw new RangeError('frames must be a nonnegative integer');
+    const left = new Float32Array(frames), right = new Float32Array(frames);
+    let offset = 0;
+    while (offset < frames) {
+      this.dacPlayer?.advance(this.frame);
+      const count = Math.min(frames - offset, (this.dacPlayer?.nextFrame() ?? Infinity) - this.frame);
+      const pcm = this.chip.generateStereo(count);
+      left.set(pcm.left, offset); right.set(pcm.right, offset);
+      this.frame += count; offset += count;
+    }
+    return {left, right};
   }
 
   read(offset) {
@@ -237,12 +275,20 @@ export class YM2612WorkletTransport {
   constructor(node) {
     this.node = node;
     this.irqAsserted = false;
+    this.dacRequests = new Map();
+    this.dacRequestId = 0;
+    this.disposed = false;
 
     if (typeof this.node.port.addEventListener === "function") {
       this.node.port.addEventListener(
         "message",
         (event) => {
           const message = event.data;
+          if (message?.type === 'pcm-dac-result') {
+            const request = this.dacRequests.get(message.id);
+            this.dacRequests.delete(message.id);
+            if (request) message.error ? request.reject(new Error(message.error)) : request.resolve();
+          }
           if (message && message.type === "irq") {
             this.irqAsserted = Boolean(message.asserted);
           }
@@ -252,6 +298,26 @@ export class YM2612WorkletTransport {
         this.node.port.start();
       }
     }
+  }
+
+  dacCommand(command) {
+    if (this.disposed) return Promise.reject(new Error('DAC transport disposed'));
+    if (typeof this.node.port.addEventListener !== 'function') return Promise.reject(new Error('DAC transport requires MessagePort events'));
+    const id = ++this.dacRequestId;
+    return new Promise((resolve, reject) => {
+      this.dacRequests.set(id, {resolve, reject});
+      try {
+        this.node.port.postMessage({type: 'pcm-dac', id, command}, command.data ? [command.data.buffer] : []);
+      } catch (error) { this.dacRequests.delete(id); reject(error); }
+    });
+  }
+
+  /** Call before disconnecting/closing the node to reject unfinished registrations. */
+  dispose() {
+    this.node.port.postMessage({type: 'clear-dac-playback'});
+    this.disposed = true;
+    for (const request of this.dacRequests.values()) request.reject(new Error('DAC transport disposed'));
+    this.dacRequests.clear();
   }
 
   reset() {
@@ -329,10 +395,9 @@ export class YM2612Synth {
     this._pendingAddressPort = undefined;
     this._pendingAddressRegister = undefined;
     this._modeRegister = 0x00;
-    this.dac = {
-      enabled: DEFAULT_DAC_STATE.enabled,
-      value: DEFAULT_DAC_STATE.value,
-    };
+    this.dac ??= new YM2612Dac(this.transport);
+    this.dac.enabled = DEFAULT_DAC_STATE.enabled;
+    this.dac.value = DEFAULT_DAC_STATE.value;
     this.lfo = {
       enabled: DEFAULT_LFO_STATE.enabled,
       frequency: DEFAULT_LFO_STATE.frequency,
@@ -1045,7 +1110,7 @@ export class YM2612Synth {
   getState() {
     return structuredCloneCompat({
       modeRegister: this._modeRegister,
-      dac: this.dac,
+      dac: {enabled: this.dac.enabled, value: this.dac.value},
       lfo: this.lfo,
       channels: this.channels,
     });

@@ -285,7 +285,8 @@ YM2612 の通常FM・DAC・CH3 special を、独立したスクリプトで試�
 | 機能 | サンプル | 生成する音 |
 | --- | --- | --- |
 | 通常 FM | [main_ym2612_wave.js](main_ym2612_wave.js) | CH1 の A4 |
-| DAC | [main_ym2612_dac_wave.js](main_ym2612_dac_wave.js) | CH6 に8 bit PCMのサイン波を供給 |
+| DAC（PCM登録） | [main_ym2612_dac_sample_wave.js](main_ym2612_dac_sample_wave.js) | PCMを登録し、名前で繰り返し再生。通常はこちら |
+| DAC（レジスター操作） | [main_ym2612_dac_wave.js](main_ym2612_dac_wave.js) | CH6 に8 bit PCMのサイン波を供給 |
 | CH3 special | [main_ym2612_3chsp_wave.js](main_ym2612_3chsp_wave.js) | CH3 の4 Operatorで A3 / C#4 / E4 / A4 |
 
 リポジトリーのルートで実行する。

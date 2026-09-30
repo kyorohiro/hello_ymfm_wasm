@@ -555,7 +555,17 @@ type AnyFXUnit =
   | SlicerFXUnit
   | ParallelFXUnit;
 
+/** Unsigned 8-bit mono PCM; 128 is silence. Promises acknowledge commands, not playback completion. */
+type YM2612PcmDac = {
+  setSample(name: string, data: Uint8Array | ArrayBuffer | number[], options: {sampleRate: number}): Promise<void>;
+  playFromSample(name: string, options?: {offset?: number; size?: number; pan?: 'both' | 'left' | 'right'; when?: number}): Promise<void>;
+  play(data: Uint8Array | ArrayBuffer | number[], options: {sampleRate: number; offset?: number; size?: number; pan?: 'both' | 'left' | 'right'; when?: number}): Promise<void>;
+  stop(): Promise<void>;
+  removeSample(name: string): Promise<void>;
+};
 type FMApi = {
+  /** YM2612 mode: registered mono PCM playback through CH6. when is absolute audio-clock seconds; omit for immediate playback. */
+  readonly dac: YM2612PcmDac;
   /** Reset YM2612 state. */
   reset(): void;
   /** Apply one preset to one YM2612 channel. */
@@ -1121,7 +1131,7 @@ declare function createSoundChip(name: 'ym2608'): Promise<PlaygroundYm2608>;
  */
 /** Existing OPN FM facade, with logical channel bounds and no YM2612 DAC API. */
 type PlaygroundOPNFm<Channel extends YM2612Channel> = {
-  [K in Exclude<keyof FMApi, 'setDacEnabled' | 'writeDac'>]:
+  [K in Exclude<keyof FMApi, 'setDacEnabled' | 'writeDac' | 'dac'>]:
     K extends 'setPreset' | 'setOperator' | 'setOperators' | 'setAlgo' | 'setPan' | 'setFrequency' | 'keyOn' | 'keyOff' | 'noteOn' | 'noteOff'
       ? FMApi[K] extends (channel: YM2612Channel, ...args: infer Args) => infer Result
         ? (channel: Channel, ...args: Args) => Result : never
@@ -1139,7 +1149,7 @@ type PlaygroundUseSoundChipOptions = { [key: string]: never };
 declare function useSoundChip<Name extends keyof PlaygroundSoundChipMap>(name: Name, options?: PlaygroundUseSoundChipOptions): Promise<PlaygroundSoundChipMap[Name]>;
 
 /** Independent chips. Global play/write still target the default Playground chip. */
-type PlaygroundCreatedFm = Omit<FMApi, 'scheduleWrites' | 'read' | 'readStatus' | 'getIrq'> & {dispose(): void};
+type PlaygroundCreatedFm = Omit<FMApi, 'dac' | 'scheduleWrites' | 'read' | 'readStatus' | 'getIrq'> & {dispose(): void};
 type PlaygroundCreatedOPN<C extends YM2612Channel> = Omit<PlaygroundOPNFm<C>, 'scheduleWrites' | 'read' | 'readStatus' | 'getIrq' | 'rawWrite' | 'writeAddress' | 'writeData'> & {dispose(): void};
 declare function createSoundChip(name: 'ym2612'): Promise<PlaygroundCreatedFm>;
 type PlaygroundCreatedYm2203 = PlaygroundCreatedOPN<0 | 1 | 2> & {ssg: PlaygroundYm2608['ssg']; setClock(clock: number): Promise<void>; scheduleRegisters(entries: Array<[number, number, number]>, durationSamples: number): Promise<void>};

@@ -22,7 +22,7 @@ import {
   createPlaygroundOperatorTab,
 } from "./playground_operator_tab.js";
 import { createPlaygroundOperatorKeyboard } from "./playground_operator_keyboard.js";
-import { DEFAULT_CODE, EXAMPLES, EXAMPLE_FILES } from "./playground_examples.js?v=default-fx-2";
+import { DEFAULT_CODE, EXAMPLES, EXAMPLE_FILES } from "./playground_examples.js?v=dac-pcm-1";
 import { initializePlaygroundMonaco } from "./playground_monaco.js?v=presets-16-1";
 import {
   decodeBase64Bytes,
@@ -52,7 +52,7 @@ import { exportYm2608VgmToPlaygroundJavaScript } from "../js/ym2608vgm.js";
 import { exportYm2610BVgmToPlaygroundJavaScript } from "../js/ym2610bvgm.js";
 import {
   createPlaygroundRuntime,
-} from "../js/playground_runtime.js?v=loop-async-tasks-1";
+} from "../js/playground_runtime.js?v=dac-pcm-1";
 import { createVgmPresetFiles } from "./playground_vgm_presets.js";
 import { createTfiFileEditor, tfiToEditorPreset } from "./playground_tfi_editor.js";
 import { renderFileTree } from "./playground_file_tree.js";
@@ -223,8 +223,8 @@ const selectedWorkletChip =
 const synthOptions = {
   chip: selectedChip,
   workletUrl: useNukedEngine
-    ? "../js/ym2612-worklet-nuked.js"
-    : `../js/${selectedWorkletChip}-worklet.js?v=midi-import-1`,
+    ? "../js/ym2612-worklet-nuked.js?v=dac-pcm-1"
+    : `../js/${selectedWorkletChip}-worklet.js?v=dac-pcm-1`,
   ym2612WasmUrl: useNukedEngine
     ? "../generated/nuked_opn2_wasm.wasm"
     : "../generated/ym2612_wasm.wasm",

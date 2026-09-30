@@ -3,7 +3,7 @@
  */
 export function createChipPortReceiver(apply, now = () => currentFrame / sampleRate) {
  let port=null, origin=null;
- const dispatch=command=>{
+ const dispatch=(command, reply)=>{
   if(command.type==='reset-sample-schedule'){origin=null;return;}
   if(command.type==='begin-sample-schedule'){origin ??= now()+Math.max(0,Number(command.lookaheadSeconds)||0);return;}
   if(command.type==='sample-writes'){
@@ -13,7 +13,7 @@ export function createChipPortReceiver(apply, now = () => currentFrame / sampleR
   if(command.type==='sample-dac-bank'){
    origin ??= now();apply({type:'play-dac-bank',name:command.name,time:origin+command.sample/44100});return;
   }
-  apply(command);
+  apply(command, reply);
  };
  return data=>{
   if(data.type==='attach-chip-port'){
@@ -21,7 +21,7 @@ export function createChipPortReceiver(apply, now = () => currentFrame / sampleR
    next.onmessage=({data:commands})=>{
     if(port!==next)return;
     if(!Array.isArray(commands)||commands.length>4096)return;
-    for(const command of commands)dispatch(command);
+    for(const command of commands)dispatch(command, reply => next.postMessage(reply));
    };
    next.start();return true;
   }

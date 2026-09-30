@@ -6,12 +6,28 @@ import {OPNFMSynth} from './opn_fm_synth.js';
 import {createSegaPsgApi} from './segapsg_api.js';
 export function createWorkerChip({port,capabilities,state,observe=()=>{}}){
  let enabled=false,batch=null;
+ let requestId=0, stopped=false;
+ const requests=new Map();
+ port.onmessage=({data})=>{
+  if(data?.type!=='pcm-dac-result')return;
+  const pending=requests.get(data.id);requests.delete(data.id);
+  if(pending)data.error?pending.reject(new Error(data.error)):pending.resolve();
+ };
+ port.start?.();
  const mutedChannels=new Set();
  const send=command=>{if(enabled){if(batch)batch.push(command);else port.postMessage([command]);}};
- const transport={write(port,register,value){send({type:'write',port,register,value});},reset(){send({type:'reset'});}};
+ const transport={dacCommand(command){
+  if(stopped)return Promise.reject(new Error('Run stopped'));
+  const id=++requestId;
+  return new Promise((resolve,reject)=>{
+   requests.set(id,{resolve,reject});
+   try{send({type:'pcm-dac',id,command});}
+   catch(error){requests.delete(id);reject(error);}
+  });
+ },write(port,register,value){send({type:'write',port,register,value});},reset(){send({type:'reset'});}};
  const name=capabilities.chip??'ym2612';
  const raw=name==='ym2612'?new YM2612Synth({transport}):new OPNFMSynth({transport,chipName:name,channelCount:name==='ym2203'?3:6,portCount:name==='ym2203'?1:2,supportsPan:name!=='ym2203',supportsLfo:name!=='ym2203'});
- function adoptState(state){if(!state)return;raw.channels=structuredClone(state.channels);raw.lfo=structuredClone(state.lfo);raw._modeRegister=state.modeRegister??0;if(state.dac)raw.dac=structuredClone(state.dac);}
+ function adoptState(state){if(!state)return;raw.channels=structuredClone(state.channels);raw.lfo=structuredClone(state.lfo);raw._modeRegister=state.modeRegister??0;if(state.dac)Object.assign(raw.dac ??= {}, structuredClone(state.dac));}
  adoptState(state);
  enabled=true;
  const channelMethods=new Set(['setPreset','setOperator','setOperators','setAlgo','setPan','setModulation','setFrequency','keyOn','keyOff','noteOn','noteOff']);
@@ -31,11 +47,15 @@ export function createWorkerChip({port,capabilities,state,observe=()=>{}}){
   observe({method,args:structuredClone(args)});
   return result;
  }
- const fm=new Proxy({}, {get:(_t,method)=> (...args)=>invoke(String(method),args)});
+ const fm=new Proxy({}, {get:(_t,method)=> method==='dac'?raw.dac:(...args)=>invoke(String(method),args)});
  const psg=capabilities.psg?createSegaPsgApi({write:value=>send({type:'psg-write',value}),reset:()=>send({type:'psg-reset'}),resetAll:()=>fm.reset()}):null;
  return {fm,psg,raw,send,adoptState,
+  resume(){stopped=false;},
   write(...args){if(args.length===2)return fm.write(0,...args);if(args.length===3)return fm.write(...args);throw new Error('write expects register,value or port,register,value');},
   stop(){
+   stopped=true;
+   for(const pending of requests.values())pending.reject(new Error('Run stopped'));
+   requests.clear();
    send({type:'clear-scheduled-writes'});send({type:'clear-dac-playback'});
    for(let ch=0;ch<(capabilities.fmChannels??6);ch++){
     fm.noteOff(ch);

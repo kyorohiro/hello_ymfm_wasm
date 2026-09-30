@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="ja">
+<meta charset="utf-8">
+<title>YM2612 PCM sample</title>
+<style>body{font:16px system-ui;max-width:700px;margin:3rem auto;padding:0 1rem}button{font:inherit;padding:.6rem;margin:.3rem}pre{white-space:pre-wrap}</style>
+<h1>YM2612 DACでPCMを再生</h1>
+<p>短いモノラルPCMを一度登録し、同じ音を繰り返し再生します。左右から同じ音が出ます。</p>
+<button id="prepare">PCMを準備</button>
+<button id="play" disabled>再生</button>
+<button id="stop" disabled>停止</button>
+<pre id="status">「PCMを準備」を押してください。</pre>
+<script type="module">
+import {YM2612Synth, YM2612WorkletTransport} from '../../docs/js/ym2612synth.js';
+let context, node, transport, synth;
+const prepare = document.querySelector('#prepare');
+const play = document.querySelector('#play');
+const stop = document.querySelector('#stop');
+const status = document.querySelector('#status');
+prepare.onclick = async () => {
+  prepare.disabled = true;
+  try {
+    context = new AudioContext();
+    await context.resume();
+    await context.audioWorklet.addModule('../../docs/js/ym2612-worklet.js');
+    node = new AudioWorkletNode(context, 'ym2612-processor', {outputChannelCount:[2]});
+    node.connect(context.destination);
+    const wasmBinary = await (await fetch('../../docs/generated/ym2612_wasm.wasm')).arrayBuffer();
+    await new Promise((resolve, reject) => {
+      node.port.onmessage = ({data}) => {
+        if (data.type === 'ready') resolve();
+        if (data.type === 'error') reject(new Error(data.message));
+      };
+      node.port.postMessage({type:'initialize', wasmBinary}, [wasmBinary]);
+    });
+    transport = new YM2612WorkletTransport(node);
+    synth = new YM2612Synth({transport});
+    const sampleRate = 11025, count = 5512;
+    const pcmBytes = Uint8Array.from({length:count}, (_, i) => {
+      const fade = Math.min(1, i / 110, (count - 1 - i) / 110);
+      return Math.round(128 + 80 * fade * Math.sin(2 * Math.PI * 440 * i / sampleRate));
+    });
+    await synth.dac.setSample('voice', pcmBytes, {sampleRate});
+    status.textContent = '登録完了。名前を指定するだけで再生できます。';
+    play.disabled = stop.disabled = false;
+  } catch (error) {
+    status.textContent = String(error);
+    transport?.dispose();
+    node?.disconnect();
+    await context?.close();
+    prepare.disabled = false;
+  }
+};
+play.onclick = async () => {
+  try {
+    await context.resume();
+    await synth.dac.playFromSample('voice');
+    // 予約する場合は {when: context.currentTime + 0.1} のように秒を指定する。
+  } catch (error) { status.textContent = String(error); }
+};
+stop.onclick = async () => {
+  try { await synth.dac.stop(); } catch (error) { status.textContent = String(error); }
+};
+</script>
+</html>

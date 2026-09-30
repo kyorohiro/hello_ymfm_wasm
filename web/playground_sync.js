@@ -90,6 +90,7 @@ export function createFmProxy(
   targetSynth
 ) {
   return {
+    get dac() { return targetSynth.dac; },
     reset() {
       targetSynth.reset();
     },
