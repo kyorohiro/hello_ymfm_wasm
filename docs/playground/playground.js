@@ -1,4 +1,4 @@
-import {prepareVgmImport, exportGameboyVgm} from './playground_vgm_import.js';
+import {prepareVgmImport, exportGameboyVgm, exportRf5c164Vgm} from './playground_vgm_import.js';
 import {installPlaygroundPageLifecycle} from "./playground_page_lifecycle.js";
 import {createFXMonitor} from './playground_fx_monitor.js?v=stable-select-1';
 import {installMidiImport} from './playground_midi_import.js?v=midi-sections-1';
@@ -933,10 +933,21 @@ async function importVgmFile(file, options) {
   const prepared = options.prepared ?? await prepareVgmImport(file);
   const {buffer, vgm, detection} = prepared;
   if (!detection.supported) throw new Error(detection.message);
+  if (((detection.rf5c164 && options.includeRf5c164) || detection.family === 'rf5c164') &&
+      selectedChip !== 'ym2612' && (detection.family === 'opn' || (options.includePsg && detection.chips.includes('psg')))) {
+    throw new Error('Select the YM2612 Playground chip for mixed RF5C164 + FM/PSG conversion.');
+  }
   const dacFiles = [];
   const strategy = detection.family === 'gameboy' ? {
     source: exportGameboyVgm(buffer, {mode: options.gameboyMode}),
     statusMessage: 'for Game Boy (all four channels; one pass)',
+  } : (detection.rf5c164 && options.includeRf5c164) || detection.family === 'rf5c164' ? {
+    source: exportRf5c164Vgm(buffer, {...options, writeMemoryFile(bytes) {
+      let path;
+      do { path = `/rf5c164-${crypto.randomUUID()}.dat`; } while (virtualFiles.has(path));
+      dacFiles.push({path, bytes}); return path;
+    }}),
+    statusMessage: 'with RF5C164 register/RAM writes (one pass)',
   } : resolveVgmImportStrategy(
     vgm,
     selectedChip,
@@ -953,7 +964,7 @@ async function importVgmFile(file, options) {
     }
   );
 
-  const presetFiles = detection.family === 'gameboy' ? [] : createVgmPresetFiles(buffer, file.name, virtualFiles.list().map(entry => entry.path));
+  const presetFiles = detection.family !== 'opn' ? [] : createVgmPresetFiles(buffer, file.name, virtualFiles.list().map(entry => entry.path));
   for (const { path, bytes } of dacFiles) virtualFiles.writeBinary(path, bytes);
   for (const { path, data } of presetFiles) {
     virtualFiles.writeBinary(path, data);
@@ -1970,6 +1981,7 @@ runButton.addEventListener(
           mode: selectedMode?.value ?? "write",
           includeDac: includeDacInput?.checked ?? true,
           includePsg: document.getElementById("includePsgInput").checked,
+          includeRf5c164: !!pendingVgmImport.detection.rf5c164 && document.getElementById("includeRf5c164Input").checked,
           dacBase64: dacBase64Input?.checked ?? true,
       };
       vgmImportDialog.close();
@@ -1981,13 +1993,20 @@ runButton.addEventListener(
   );
 
   function syncDacBase64Option() {
+    const rf = pendingVgmImport?.detection.rf5c164 && document.getElementById('includeRf5c164Input').checked;
+    document.querySelectorAll('input[name="vgmImportMode"]').forEach(input => {
+      input.disabled = !!rf && input.value !== 'write';
+      if (rf) input.checked = input.value === 'write';
+    });
+    document.getElementById('splitVgmChannelsInput').disabled = !!rf;
+
     const selectedMode = document.querySelector(
       'input[name="vgmImportMode"]:checked'
     );
     const mode = selectedMode?.value ?? "write";
     document.getElementById("noteishVgmInput").disabled = mode !== "high";
     if (dacBase64Input) {
-      dacBase64Input.disabled = false;
+      dacBase64Input.disabled = !!rf;
     }
     if (dacBase64Label) {
       dacBase64Label.hidden = false;
@@ -2000,6 +2019,7 @@ runButton.addEventListener(
   document.querySelectorAll('input[name="vgmImportMode"]').forEach(
     (input) => input.addEventListener("change", syncDacBase64Option)
   );
+  document.getElementById('includeRf5c164Input').addEventListener('change', syncDacBase64Option);
   syncDacBase64Option();
 
   cancelVgmImportButton?.addEventListener(
@@ -2082,11 +2102,14 @@ runButton.addEventListener(
       document.getElementById('vgmImportNotice').textContent = detection.message;
       const opnOptions = document.getElementById('opnImportOptions');
       const gbOptions = document.getElementById('gameboyImportOptions');
-      opnOptions.hidden = detection.family !== 'opn' || !detection.supported;
+      opnOptions.hidden = !['opn','rf5c164'].includes(detection.family) || !detection.supported;
       gbOptions.hidden = detection.family !== 'gameboy' || !detection.supported;
       opnOptions.disabled = opnOptions.hidden;
       gbOptions.disabled = gbOptions.hidden;
       convertVgmButton.disabled = !detection.supported;
+      const rfInput = document.getElementById('includeRf5c164Input');
+      rfInput.checked = !!detection.rf5c164;
+      rfInput.disabled = !detection.rf5c164 || detection.family === 'rf5c164';
       document.getElementById('includePsgInput').disabled = detection.chip !== 'ym2612' || !detection.chips.includes('psg');
       const outputName = file.name.replace(/\.(?:vgm|vgz|s98)$/i, '').replace(/[\\/]/g, '_') || 'imported';
       vgmImportTarget.value = `/${outputName}.js`;

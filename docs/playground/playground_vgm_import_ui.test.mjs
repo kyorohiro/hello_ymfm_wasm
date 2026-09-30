@@ -49,3 +49,16 @@ test('High-level API selection is passed to conversion without replacing the raw
   const html=readFileSync(new URL('./index.html',import.meta.url),'utf8');
   for(const mode of ['raw','readable','high']) assert.ok(html.includes(`name="gameboyImportMode" value="${mode}"`));
 });
+
+test('RF5C164 selection forces Write and unchecking restores other modes',()=>{
+  const nodes=new Map(),node=id=>{if(!nodes.has(id))nodes.set(id,{});return nodes.get(id);};
+  const radios=['schedule','write','high'].map(value=>({value,checked:value==='high'}));
+  node('includeRf5c164Input').checked=true;
+  const context=vm.createContext({pendingVgmImport:{detection:{rf5c164:true}},document:{getElementById:node,querySelectorAll:()=>radios,querySelector:()=>radios.find(r=>r.checked)},dacBase64Input:{},dacBase64Label:{}});
+  const start=source.indexOf('  function syncDacBase64Option()');
+  vm.runInContext(source.slice(start,source.indexOf('\n  document.querySelectorAll',start))+'\nsyncDacBase64Option();',context);
+  assert.equal(radios.find(r=>r.checked).value,'write');assert.deepEqual(radios.map(r=>r.disabled),[true,false,true]);
+  assert.equal(node('splitVgmChannelsInput').disabled,true);
+  node('includeRf5c164Input').checked=false;vm.runInContext('syncDacBase64Option()',context);
+  assert.ok(radios.every(r=>!r.disabled));assert.equal(node('splitVgmChannelsInput').disabled,false);
+});

@@ -36,6 +36,7 @@ playground_tfi_editor.js
 playground_midi_import.js
 playground_vgm_presets.js
 playground_vgm_import.js
+rf5c164_vgm_export.js
 tetorica-playground-globals.d.ts
 tetorica-playground-ym2203.d.ts
 tetorica-playground-ym2608.d.ts
@@ -306,6 +307,7 @@ perl -0pi -e 's#"\./playground\.js"#"./playground.js"#g; s#\.\./js/#./js/#g; s#\
   "${STAGE_DIR}/playground_midi_import.js" \
   "${STAGE_DIR}/playground_vgm_presets.js" \
   "${STAGE_DIR}/playground_vgm_import.js" \
+  "${STAGE_DIR}/rf5c164_vgm_export.js" \
   "${STAGE_DIR}/playground_query.js" \
   "${STAGE_DIR}/playground_examples.js" \
   "${STAGE_DIR}/playground_ui.js"

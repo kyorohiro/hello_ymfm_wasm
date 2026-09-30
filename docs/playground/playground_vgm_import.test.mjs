@@ -77,8 +77,8 @@ test('one OPN chip remains importable with other chips; omitted dual chips do no
   for (const chip of ['ym2203','ym2608','ym2610','ym2612']) {
     const d=detectVgmImport({[chip+'Clock']:8000000,rf5c164Clock:12500000,psgClock:3579545,gameBoyDmgClock:4194304|0x40000000});
     assert.equal(d.supported,true);assert.equal(d.family,'opn');assert.equal(d.chip,chip);
-    assert.deepEqual(d.omittedChips,chip === 'ym2612' ? ['rf5c164','gameBoyDmg'] : ['rf5c164','psg','gameBoyDmg']);
-    assert.match(d.message,chip === 'ym2612' ? /RF5C164 \+ Game Boy DMG will be omitted/ : /RF5C164 \+ PSG \+ Game Boy DMG will be omitted/);
+    assert.deepEqual(d.omittedChips,chip === 'ym2612' ? ['gameBoyDmg'] : ['rf5c164','psg','gameBoyDmg']);
+    assert.match(d.message,chip === 'ym2612' ? /Game Boy DMG will be omitted/ : /RF5C164 \+ PSG \+ Game Boy DMG will be omitted/);
   }
   assert.equal(detectVgmImport({ym2612Clock:7670454|0x40000000,psgClock:3579545}).supported,false);
 });

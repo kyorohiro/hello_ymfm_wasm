@@ -1,3 +1,5 @@
+import {exportRf5c164Vgm} from './rf5c164_vgm_export.js';
+export {exportRf5c164Vgm} from './rf5c164_vgm_export.js';
 import {Ym2612VGM} from '../js/ym2612vgm.js';
 import {maybeDecodeVgmFile} from '../js/vgm_file.js';
 import {looksLikeS98, convertS98ToVgm} from '../js/s98_file.js';
@@ -6,12 +8,13 @@ const OPN = ['ym2203', 'ym2608', 'ym2610', 'ym2612'];
 export function detectVgmImport(header) {
   const chips = Object.entries(header).filter(([key, value]) => key.endsWith('Clock') && (value & 0x3fffffff)).map(([key]) => key.slice(0, -5));
   const opn = chips.filter(chip => OPN.includes(chip));
-  const base = {chips, family: null, supported: false, message: ''};
+  const rf5c164 = header.rf5c164Clock === 12500000 && (opn.length === 0 || (opn.length === 1 && opn[0] === 'ym2612'));
+  const base = {chips, rf5c164, family: null, supported: false, message: ''};
   if (!chips.length) return {...base, message: 'No supported chip clock was found.'};
   if (opn.length === 1) {
     const chip = opn[0];
     if (header[chip + 'Clock'] & 0x40000000) return {...base, message: 'Dual OPN-chip conversion is not supported.'};
-    const omittedChips = chips.filter(name => name !== chip && !(chip === 'ym2612' && name === 'psg'));
+    const omittedChips = chips.filter(name => name !== chip && !(chip === 'ym2612' && name === 'psg') && !(rf5c164 && name === 'rf5c164'));
     const label = name => name === 'gameBoyDmg' ? 'Game Boy DMG' : name.toUpperCase();
     const psgNotice = chip === 'ym2612' && (header.psgClock & 0x40000000) ? ' Dual PSG is unsupported; turn off Include PSG to import FM/DAC only.' : '';
     const omitted = omittedChips.length ? ` ${omittedChips.map(label).join(' + ')} will be omitted.` : '';
@@ -19,7 +22,10 @@ export function detectVgmImport(header) {
       ? 'YM2612 FM will be imported; DAC and PSG follow their Include options. PSG playback requires the YM2612 Playground chip (3579545 Hz PSG; other source clocks may change pitch/noise rates).'
       : `${label(chip)} FM only; SSG, rhythm and ADPCM are omitted.`;
     return {...base, family: 'opn', supported: true, chip, omittedChips,
-      message: `${scope}${omitted}${psgNotice} Select the matching Playground chip for native FM playback, or YM2612 for FM translation.`};
+      message: `${scope}${omitted}${psgNotice}${rf5c164 ? ' Include RF5C164 enables Write-only PCM conversion (one pass; async timing).' : ''} Select the matching Playground chip for native FM playback, or YM2612 for FM translation.`};
+  }
+  if (rf5c164 && chips.every(chip => ['rf5c164','psg'].includes(chip))) {
+    return {...base, family:'rf5c164', supported:true, chip:'ym2612', message:'RF5C164 register and RAM conversion: Write only, one pass, asynchronous timing. Optional PSG requires the YM2612 Playground chip.'};
   }
   if (chips.some(chip => header[chip + 'Clock'] & 0x40000000)) return {...base, message: 'Dual-chip conversion is not supported.'};
   if (chips.length === 1 && chips[0] === 'gameBoyDmg') {
@@ -39,6 +45,10 @@ export async function prepareVgmImport(file) {
   if (detection.family === 'gameboy') {
     try { readGameboyEvents(buffer); }
     catch (error) { detection = {...detection, supported: false, message: error.message}; }
+  }
+  if (detection.family === 'rf5c164') {
+    try { exportRf5c164Vgm(buffer); }
+    catch (error) { detection = {...detection, supported:false, message:error.message}; }
   }
   return {buffer, vgm, detection};
 }
