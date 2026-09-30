@@ -29,7 +29,8 @@ function setup(t, selectedChip='ym2612') {
 for(const chip of ['rf5c164','ym2608','gameboy','ym2203','ym2610','ym2612'])test(`Main managed ${chip} creates once, reuses on Run and recreates after Stop`,async t=>{
  const {runtime,nodes}=setup(t,chip==='ym2612'?'ym2203':'ym2612');
  const source=`const [a,b]=await Promise.all([useSoundChip('${chip}'),useSoundChip('${chip}')]);
- if(a!==b || (context.pcm && a!==context.pcm))throw Error('identity');context.pcm=a;`;
+ if(a!==b || (context.pcm && a!==context.pcm))throw Error('identity');context.pcm=a;
+ if('${chip}'==='ym2608' && (typeof a.setClock!=='function'||typeof a.resetRegisters!=='function'))throw Error('Missing YM2608 import API');`;
  await runtime.playSource(source);await runtime.playSource(source);assert.equal(nodes.length,1);
  runtime.stop();assert.equal(nodes[0].disconnects,1);assert.equal(Object.keys(runtime.context).length,0);
  await runtime.playSource(source);assert.equal(nodes.length,2);

@@ -128,3 +128,5 @@ WASMが存在するだけでPlayground APIも利用可能とは判断しない�
 - YM2612 Playgroundで単一YM2203 VGMをImport：YM2203（FM＋SSG）／YM2612（従来FM変換）を選択可能。YM2203はWrite／音声側Scheduleと1つのliveLoopに対応。元VGMループ地点・CH分割・Highは未対応。
 
 - YM2203 FM＋SSG ImportのHighに対応。Writeと同じレジスター順・待機時刻を維持できる操作をFM／SSG APIへ置換し、特殊操作はraw writeを保持。
+
+- YM2612 PlaygroundでYM2608 VGMの変換先を選択可能。YM2608全音源Write（FM／SSG／同梱ROMリズム／ADPCM-Bデータ転送）を追加。Schedule／Highは今後対応。元クロック・イベント順を保持し、ADPCMデータは.datに保存。

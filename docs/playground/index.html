@@ -1439,6 +1439,14 @@
                   aria-describedby="vgmImportTargetHint"
                   style="width: 100%; margin: 6px 0; padding: 8px; font: inherit;">
                 <p id="vgmImportTargetHint" class="subtext">Project JavaScript path. Existing file contents will be replaced.</p>
+                <fieldset id="ym2608TargetOptions" class="vgm-import-options" hidden disabled>
+                  <legend>YM2608 conversion target</legend>
+                  <select id="ym2608TargetInput">
+                    <option value="ym2608">YM2608 — FM + SSG + rhythm + ADPCM-B</option>
+                    <option value="ym2612">YM2612 — FM only (translate)</option>
+                  </select>
+                  <div id="ym2608TimingOptions"><p>Write</p><p class="subtext">One shared liveLoop repeats the entire stream. Uses the bundled rhythm ROM. Schedule / High are not yet available.</p></div>
+                </fieldset>
                 <fieldset id="ym2203TargetOptions" class="vgm-import-options" hidden disabled>
                   <legend>YM2203 conversion target</legend>
                   <select id="ym2203TargetInput">
@@ -1890,6 +1898,6 @@
       </label>
     </footer>
 
-    <script type="module" src="./playground.js?v=ym2203-high-import-1"></script>
+    <script type="module" src="./playground.js?v=vgm-clock-catchup-1"></script>
   </body>
 </html>

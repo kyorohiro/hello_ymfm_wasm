@@ -567,7 +567,8 @@ for(const name of ['rf5c164','ym2608','gameboy','ym2203','ym2610','ym2612'])test
  const worker=createWorkerHarness(),sent=[];let closed=0;
  const port={start(){},postMessage:data=>sent.push(data),close(){closed++;}};
  const source=`const [a,b]=await Promise.all([useSoundChip('${name}'),useSoundChip('${name}')]);
- if(a!==b || (context.chip && context.chip!==a))throw Error('identity');context.chip=a;`;
+ if(a!==b || (context.chip && context.chip!==a))throw Error('identity');context.chip=a;
+ if('${name}'==='ym2608' && (typeof a.setClock!=='function'||typeof a.resetRegisters!=='function'))throw Error('Missing YM2608 import API');`;
  try {
   await worker.send({type:'run',capabilities:{chip:name==='ym2612'?'ym2203':'ym2612'},sourceCode:source});
   const requests=worker.messages.filter(m=>m.command==='pcm.create');assert.equal(requests.length,1);

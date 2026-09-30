@@ -30,6 +30,12 @@ export function createYm2608Client(port) {
     loadRhythmRom: bytes => transfer('rom', [bytes]),
     loadAdpcmMemory: (bytes, offset) => transfer('memory', [bytes, offset]),
   }});
+  // VGM supplies its own setup, including the extended-channel mode register.
+  synth.resetRegisters = () => send('reset');
+  synth.setClock = async clock => {
+    await transfer('clock', [clock]);
+    synth.ssg.clock = clock / 4; synth.adpcm.clock = clock;
+  };
   synth.dispose = () => {
     if (disposed) return;
     send('dispose'); disposed = true;

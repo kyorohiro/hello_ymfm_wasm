@@ -84,3 +84,12 @@ test('YM2203 High selection is passed to the native conversion',async()=>{
  assert.equal(ui.imports[0].o.ym2203Target,'ym2203');assert.equal(ui.imports[0].o.ym2203Mode,'high');
  assert.ok(readFileSync(new URL('./index.html',import.meta.url),'utf8').includes('name="ym2203ImportMode" value="high"'));
 });
+
+test('YM2608 offers full Write or existing YM2612 FM translation',async()=>{
+ const ui=setup(async()=>({detection:{family:'opn',chip:'ym2608',chips:['ym2608'],supported:true,message:'FM only'}}));
+ await ui.choose('opna.vgm');
+ assert.equal(ui.node('ym2608TargetOptions').hidden,false);assert.equal(ui.node('ym2203TargetOptions').hidden,true);assert.equal(ui.node('opnImportOptions').hidden,true);
+ ui.node('convertVgmButton').events.click();assert.equal(ui.imports[0].o.ym2608Target,'ym2608');
+ await ui.choose('opna.vgm');ui.node('ym2608TargetInput').value='ym2612';ui.node('ym2608TargetInput').events.change();
+ assert.equal(ui.node('opnImportOptions').hidden,false);ui.node('convertVgmButton').events.click();assert.equal(ui.imports[1].o.ym2608Target,'ym2612');
+});

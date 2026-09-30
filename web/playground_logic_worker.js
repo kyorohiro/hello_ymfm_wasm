@@ -1,7 +1,7 @@
 import {createOpnClient} from './playground_opn.js';
 import {createSoundChipRegistry} from './playground_soundchips.js';
 import {createGameboyClient} from './playground_gameboy.js';
-import {createYm2608Client} from './playground_ym2608.js';
+import {createYm2608Client} from './playground_ym2608.js?v=ym2608-clock-2';
 import {createRf5c164Client} from './playground_rf5c164.js';
 import {createNativeSampleController} from './native_sample.js';
 /**
@@ -15,7 +15,7 @@ import {createWorkerDac} from './playground_worker_dac.js';
 import {createWorkerChip} from './playground_worker_chip.js';
 import {createMidiApi, createMidiRack} from './playground_midi.js?v=midi-held-stop-1';
 import { hzToBlockFnum } from "./pitch.js";
-import { createDeadlineScheduler } from "./playground_clock.js";
+import { createDeadlineScheduler } from "./playground_clock.js?v=vgm-clock-catchup-1";
 
 import {createNativeFXController} from "./native_fx.js";
 let nativeFXPort = null;

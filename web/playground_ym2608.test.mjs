@@ -53,6 +53,10 @@ test('YM2608 port client and real worklet core: rhythm, SSG, ADPCM memory, reset
   try {
     assert.equal((await ready).ready, true);
     processor.port.onmessage({data: {port: channel.port1}});
+    await synth.setClock(7987200);
+    assert.equal(processor.engine._chipSampleRate, processor.engine.ym2608.sampleRate(7987200));
+    assert.equal(synth.ssg.clock, 7987200/4);
+    await assert.rejects(synth.setClock(0), /Invalid YM2608 clock/);
     const barrier = () => synth.rhythm.loadRom(rom);
     const render = () => {
       const output = [new Float32Array(4096), new Float32Array(4096)];
@@ -88,4 +92,11 @@ test('YM2608 port client and real worklet core: rhythm, SSG, ADPCM memory, reset
     assert.equal(processor.dead, true);
     assert.throws(() => synth.keyOn(0), /disposed/);
   } finally { synth.dispose(); processor.dispose(); channel.port1.close(); channel.port2.close(); }
+});
+
+test('raw VGM reset does not inject Synth extended-channel setup',()=>{
+ const messages=[];
+ const synth=createYm2608Client({start(){},close(){},postMessage:m=>messages.push(m)});
+ messages.length=0;synth.resetRegisters();
+ assert.deepEqual(messages,[{method:'reset',args:[]}]);synth.dispose();
 });

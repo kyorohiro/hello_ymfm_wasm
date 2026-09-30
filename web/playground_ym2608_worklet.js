@@ -36,6 +36,9 @@ class Processor extends AudioWorkletProcessor {
         case 'rom':
           if (!(args[0] instanceof Uint8Array) || args[0].length !== 8192) throw new Error('Expected 8192-byte rhythm ROM');
           this.engine.loadAdpcmARom(...args); break;
+        case 'clock':
+          if (!Number.isInteger(args[0]) || args[0] < 100000 || args[0] > 20000000) throw new Error('Invalid YM2608 clock');
+          this.engine._chipSampleRate = this.engine.ym2608.sampleRate(args[0]); break;
         case 'memory': this.engine.loadAdpcmBMemory(...args); break;
         default: throw new Error('Unknown YM2608 method');
       }
