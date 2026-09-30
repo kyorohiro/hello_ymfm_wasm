@@ -22,10 +22,10 @@ export function detectVgmImport(header) {
       ? 'YM2612 FM will be imported; DAC and PSG follow their Include options. PSG playback requires the YM2612 Playground chip (3579545 Hz PSG; other source clocks may change pitch/noise rates).'
       : `${label(chip)} FM only; SSG, rhythm and ADPCM are omitted.`;
     return {...base, family: 'opn', supported: true, chip, omittedChips,
-      message: `${scope}${omitted}${psgNotice}${rf5c164 ? ' Include RF5C164 enables Write-only PCM conversion (one pass; async timing).' : ''} Select the matching Playground chip for native FM playback, or YM2612 for FM translation.`};
+      message: `${scope}${omitted}${psgNotice}${rf5c164 ? ' Include RF5C164 enables Write / High PCM conversion (one pass; async timing). High converts RF5C164 controls; accompanying FM/PSG remain raw.' : ''} Select the matching Playground chip for native FM playback, or YM2612 for FM translation.`};
   }
   if (rf5c164 && chips.every(chip => ['rf5c164','psg'].includes(chip))) {
-    return {...base, family:'rf5c164', supported:true, chip:'ym2612', message:'RF5C164 register and RAM conversion: Write only, one pass, asynchronous timing. Optional PSG requires the YM2612 Playground chip.'};
+    return {...base, family:'rf5c164', supported:true, chip:'ym2612', message:'RF5C164 register and RAM conversion: Write / High, one pass, asynchronous timing. Optional PSG requires the YM2612 Playground chip.'};
   }
   if (chips.some(chip => header[chip + 'Clock'] & 0x40000000)) return {...base, message: 'Dual-chip conversion is not supported.'};
   if (chips.length === 1 && chips[0] === 'gameBoyDmg') {

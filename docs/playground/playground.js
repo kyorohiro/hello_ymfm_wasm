@@ -947,7 +947,7 @@ async function importVgmFile(file, options) {
       do { path = `/rf5c164-${crypto.randomUUID()}.dat`; } while (virtualFiles.has(path));
       dacFiles.push({path, bytes}); return path;
     }}),
-    statusMessage: 'with RF5C164 register/RAM writes (one pass)',
+    statusMessage: options.mode === 'high' ? 'with RF5C164 high-level API + raw fallback (one pass)' : 'with RF5C164 register/RAM writes (one pass)',
   } : resolveVgmImportStrategy(
     vgm,
     selectedChip,
@@ -1994,9 +1994,11 @@ runButton.addEventListener(
 
   function syncDacBase64Option() {
     const rf = pendingVgmImport?.detection.rf5c164 && document.getElementById('includeRf5c164Input').checked;
+    if (rf && document.querySelector('input[name="vgmImportMode"]:checked')?.value === 'schedule') {
+      document.querySelector('input[name="vgmImportMode"][value="write"]').checked = true;
+    }
     document.querySelectorAll('input[name="vgmImportMode"]').forEach(input => {
-      input.disabled = !!rf && input.value !== 'write';
-      if (rf) input.checked = input.value === 'write';
+      input.disabled = !!rf && input.value === 'schedule';
     });
     document.getElementById('splitVgmChannelsInput').disabled = !!rf;
 
@@ -2004,7 +2006,7 @@ runButton.addEventListener(
       'input[name="vgmImportMode"]:checked'
     );
     const mode = selectedMode?.value ?? "write";
-    document.getElementById("noteishVgmInput").disabled = mode !== "high";
+    document.getElementById("noteishVgmInput").disabled = !!rf || mode !== "high";
     if (dacBase64Input) {
       dacBase64Input.disabled = !!rf;
     }
