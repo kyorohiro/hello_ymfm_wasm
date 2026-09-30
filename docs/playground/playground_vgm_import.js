@@ -159,3 +159,13 @@ export function exportGameboyVgm(buffer, {mode = 'raw'} = {}) {
   lines.push('} finally {', '  gb.dispose();', '}', '');
   return lines.join('\n');
 }
+
+
+/** Bind the imported FM code to the selected default FM without changing its timeline.
+ * Native YM2608 still uses its implicit default FM API: useSoundChip('ym2608')
+ * would create an additional chip and would not retarget write/play/DAC helpers.
+ */
+export function addVgmSoundChipSetup(source, detection, selectedChip) {
+  if (detection.family !== 'opn' || !['ym2612', 'ym2203', 'ym2610'].includes(selectedChip)) return source;
+  return `const fm = await useSoundChip(${JSON.stringify(selectedChip)});\n\n` + source;
+}

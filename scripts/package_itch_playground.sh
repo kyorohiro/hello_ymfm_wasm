@@ -94,6 +94,10 @@ midi_source.js
 playground_music.js
 playground_noise.js
 playground_runtime.js
+playground_soundchips.js
+playground_opn.js
+playground_opn_audio.js
+playground_opn_worklet.js
 playground_sync.js
 segapsg.js
 segapsg_api.js

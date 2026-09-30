@@ -834,6 +834,7 @@ declare function clearInterval(id: number): void;
 
 type PlaygroundAPI = {
   createSoundChip: typeof createSoundChip;
+  useSoundChip: typeof useSoundChip;
   CH1: 0;
   CH2: 1;
   CH3: 2;
@@ -1108,3 +1109,47 @@ type PlaygroundYm2608 = Pick<FMApi, 'reset' | 'setPreset' | 'setOperator' | 'set
   };
 };
 declare function createSoundChip(name: 'ym2608'): Promise<PlaygroundYm2608>;
+
+
+/** Runtime-managed chip lookup. Reuses pending/ready instances until Stop.
+ * YM2612/YM2203/YM2610 return the existing global fm; select the matching Playground chip.
+ * Multiple instances via id are not supported. Existing createSoundChip creates fresh chips.
+ */
+/** Existing OPN FM facade, with logical channel bounds and no YM2612 DAC API. */
+type PlaygroundOPNFm<Channel extends YM2612Channel> = {
+  [K in Exclude<keyof FMApi, 'setDacEnabled' | 'writeDac' | 'setOperators'>]:
+    K extends 'setPreset' | 'setOperator' | 'setAlgo' | 'setPan' | 'setFrequency' | 'keyOn' | 'keyOff' | 'noteOn' | 'noteOff'
+      ? FMApi[K] extends (channel: YM2612Channel, ...args: infer Args) => infer Result
+        ? (channel: Channel, ...args: Args) => Result : never
+      : FMApi[K];
+};
+type PlaygroundSoundChipMap = {
+  ym2612: FMApi;
+  ym2203: PlaygroundOPNFm<0 | 1 | 2>;
+  ym2610: PlaygroundOPNFm<0 | 1 | 2 | 3>;
+  rf5c164: PlaygroundRf5c164;
+  ym2608: PlaygroundYm2608;
+  gameboy: PlaygroundGameboy;
+};
+type PlaygroundUseSoundChipOptions = { [key: string]: never };
+declare function useSoundChip<Name extends keyof PlaygroundSoundChipMap>(name: Name, options?: PlaygroundUseSoundChipOptions): Promise<PlaygroundSoundChipMap[Name]>;
+
+/** Independent chips. Global play/write still target the default Playground chip. */
+type PlaygroundCreatedFm = Omit<FMApi, 'scheduleWrites' | 'read' | 'readStatus' | 'getIrq'> & {dispose(): void};
+type PlaygroundCreatedOPN<C extends YM2612Channel> = Omit<PlaygroundOPNFm<C>, 'scheduleWrites' | 'read' | 'readStatus' | 'getIrq' | 'rawWrite' | 'writeAddress' | 'writeData'> & {dispose(): void};
+declare function createSoundChip(name: 'ym2612'): Promise<PlaygroundCreatedFm>;
+declare function createSoundChip(name: 'ym2203'): Promise<PlaygroundCreatedOPN<0 | 1 | 2> & {ssg: PlaygroundYm2608['ssg']}>;
+declare function createSoundChip(name: 'ym2610'): Promise<PlaygroundCreatedOPN<0 | 1 | 2 | 3> & {
+  ssg: PlaygroundYm2608['ssg'];
+  adpcm: PlaygroundYm2608['adpcm'];
+  adpcmB: PlaygroundYm2608['adpcm'];
+  adpcmA: {
+    loadMemory(bytes: Uint8Array | ArrayBuffer, address?: number): Promise<void>;
+    setSample(ch: number, range: {start: number; end: number}): void;
+    setVolume(volume: number): void;
+    setVoice(ch: number, options: {volume?: number; left?: boolean; right?: boolean}): void;
+    keyOn(ch: number | number[]): void;
+    keyOff(ch: number | number[]): void;
+    reset(): void;
+  };
+}>;

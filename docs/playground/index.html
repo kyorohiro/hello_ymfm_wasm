@@ -1745,6 +1745,8 @@
             </ul>
 
             <h3>RF5C164 PCM</h3>
+<p><code>const fm = await useSoundChip("ym2612")</code> returns the existing FM API. <code>"ym2203"</code> and <code>"ym2610"</code> also return the existing FM API when the matching Playground chip is selected. <code>useSoundChip("rf5c164")</code> reuses an additional chip until Stop; <code>"ym2608"</code> and <code>"gameboy"</code> are also supported. Concurrent requests share initialization; options other than an empty object are not supported.</p>
+<p><code>createSoundChip(name)</code> creates a fresh independent chip: ym2612, ym2203, ym2610, ym2608, rf5c164 or gameboy. Control it through the returned object; global play() still plays the default chip. Stop disposes additional chips.</p>
 <p><code>await createSoundChip("rf5c164")</code> creates an additional PCM chip routed through master FX. Physical channels are CH1..CH8. See examples/chip-saw/rf5c164-sine.js.</p>
 <p><code>await pcm.loadMemory(bytes, address)</code> accepts raw RF5C164 BIN bytes (Uint8Array or ArrayBuffer). <code>await pcm.loadSample(source, {address, loopStart})</code> decodes WAV/FLAC and returns start, loopStart and step for setChannel. Decoder format support depends on the browser. Files must fit 64 KiB after conversion; no automatic resampling. Source may be a local URL, Blob or encoded file bytes. FILES data must first be read into bytes.</p>
 <p><code>setChannel(ch, {start, loopStart, step, volume, pan: {left, right}})</code>, <code>setPitch(ch, step)</code>, <code>keyOn(ch)</code> and <code>keyOff(ch)</code> return promises. Start is 256-byte aligned; volume is 0..255 and pan values 0..15. keyOn retriggers. reset retains RAM; dispose releases the chip. Stop releases all added chips.</p>
@@ -1875,6 +1877,6 @@
       </label>
     </footer>
 
-    <script type="module" src="./playground.js?v=megacd-loops-2"></script>
+    <script type="module" src="./playground.js?v=create-sound-chip-opn-1"></script>
   </body>
 </html>

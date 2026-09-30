@@ -1,3 +1,5 @@
+import {createOpnClient} from './playground_opn.js';
+import {createSoundChipRegistry} from './playground_soundchips.js';
 import {createGameboyClient} from './playground_gameboy.js';
 import {createYm2608Client} from './playground_ym2608.js';
 import {createRf5c164Client} from './playground_rf5c164.js';
@@ -307,6 +309,7 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
   run.resetSampleClock = () => { clock.resetSampleClock(); workerDac?.reset(); };
   const fm = new Proxy({}, {
     get(_target, property) {
+      if (property === "then") return undefined;
       if (property === "read" || property === "readStatus" || property === "getIrq") {
         return requestProxy(`fm.${String(property)}`);
       }
@@ -434,9 +437,11 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
     (run.collectingCleanups ?? run.cleanups).push({ names, fn });
   };
   const pcmClients = new Set();
+  const soundChips = createSoundChipRegistry();
   run.stop = async () => {
     if (run.stopped) return;
     run.stopped = true;
+    soundChips.clear();
     run.token += 1;
     clock.cancelWaits();
     run.generation += 1;
@@ -545,11 +550,27 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
   run.adoptChipState=state=>chip?.adoptState(state);
   const localNoteOwners=new Map();
   const globals = {
+    async useSoundChip(name, options) {
+      const token = run.token;
+      const check = () => { if (run.stopped || token !== run.token) throw new Error('Run stopped'); };
+      check();
+      const chip = await soundChips.use(name, options, chipName => {
+        check();
+        if (['ym2612', 'ym2203', 'ym2610'].includes(chipName)) {
+          if ((capabilities.chip ?? 'ym2612') !== chipName) throw new Error(`useSoundChip("${chipName}") requires the ${chipName.toUpperCase()} Playground chip.`);
+          return fm;
+        }
+        return globals.createSoundChip(chipName);
+      });
+      check();
+      return chip;
+    },
     async createSoundChip(name){
       if(run.stopped)throw new Error('Run stopped');
+      const token=run.token;
       const port=await request('pcm.create',[name]);
-      const pcm=name === 'gameboy' ? createGameboyClient(port) : name === 'ym2608' ? createYm2608Client(port) : createRf5c164Client(port,source=>request('pcm.decode',[source]));
-      if(run.stopped){pcm.dispose();throw new Error('Run stopped');}
+      const pcm=['ym2612', 'ym2203', 'ym2610'].includes(name) ? createOpnClient(name, port) : name === 'gameboy' ? createGameboyClient(port) : name === 'ym2608' ? createYm2608Client(port) : createRf5c164Client(port,source=>request('pcm.decode',[source]));
+      if(run.stopped || token!==run.token){pcm.dispose();throw new Error('Run stopped');}
       pcmClients.add(pcm);return pcm;
     },
     midi,
@@ -643,7 +664,7 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
     run.collectingLoops = new Map();
     run.collectingCleanups = [];
     const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
-    const userFunction = new AsyncFunction(...Object.keys(globals), `"use strict";\n${nextSourceCode}`);
+    const userFunction = new AsyncFunction(...Object.keys(globals), `"use strict";\n{\n${nextSourceCode}\n}`);
     await executeWithWorkerGuards(
       () => userFunction(...Object.values(globals))
     );

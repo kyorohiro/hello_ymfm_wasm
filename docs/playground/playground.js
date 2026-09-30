@@ -1,4 +1,4 @@
-import {prepareVgmImport, exportGameboyVgm, exportRf5c164Vgm} from './playground_vgm_import.js?v=megacd-loops-2';
+import {prepareVgmImport, exportGameboyVgm, exportRf5c164Vgm, addVgmSoundChipSetup} from './playground_vgm_import.js?v=create-sound-chip-opn-1';
 import {installPlaygroundPageLifecycle} from "./playground_page_lifecycle.js";
 import {createFXMonitor} from './playground_fx_monitor.js?v=stable-select-1';
 import {installMidiImport} from './playground_midi_import.js?v=midi-sections-1';
@@ -51,7 +51,7 @@ import { exportYm2608VgmToPlaygroundJavaScript } from "../js/ym2608vgm.js";
 import { exportYm2610BVgmToPlaygroundJavaScript } from "../js/ym2610bvgm.js";
 import {
   createPlaygroundRuntime,
-} from "../js/playground_runtime.js?v=native-fx-1";
+} from "../js/playground_runtime.js?v=create-sound-chip-opn-1";
 import { createVgmPresetFiles } from "./playground_vgm_presets.js";
 import { createTfiFileEditor, tfiToEditorPreset } from "./playground_tfi_editor.js";
 import { renderFileTree } from "./playground_file_tree.js";
@@ -975,7 +975,7 @@ async function importVgmFile(file, options) {
     registerVirtualTfiPreset(path);
   }
   saveActiveVirtualFile();
-  virtualFiles.writeText(targetPath, strategy.source);
+  virtualFiles.writeText(targetPath, addVgmSoundChipSetup(strategy.source, detection, selectedChip));
   currentCassetteMetadata = { version: 1, workType: "TRANSCRIPTION", license: "NONE" };
   activeVirtualPath = targetPath;
   runVirtualPath = targetPath;

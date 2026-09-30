@@ -1,7 +1,8 @@
+import {YM2612Synth} from '../../web/ym2612synth.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-import {detectVgmImport, prepareVgmImport, exportGameboyVgm} from './playground_vgm_import.js';
+import {detectVgmImport, prepareVgmImport, exportGameboyVgm, addVgmSoundChipSetup} from './playground_vgm_import.js';
 import {Ym2612VGM} from '../js/ym2612vgm.js';
 import {GameboyApu} from '../../web/gameboyapu.js';
 import {GameboySynth, GameboyDirectTransport} from '../../web/gameboysynth.js';
@@ -128,4 +129,41 @@ test('high-level conversion preserves exact timed writes with raw fallback acros
     }
   }
   assert.deepEqual(traces[2],traces[0]);assert.deepEqual(traces[1],traces[0]);
+});
+
+
+test('YM2612 import explicitly acquires FM once before registering unchanged channel loops',async()=>{
+ const input=vgm([0x52,0x30,1,0x70,0x52,0x28,0xf0,0x70,0x52,0x28,0,0x66]);
+ const view=new DataView(input.buffer);view.setUint32(0x80,0,true);view.setUint32(0x2c,7670454,true);
+ for(const mode of ['write','high','schedule'])for(const splitChannels of [false,true]) {
+  const original=new Ym2612VGM(input,{logger:null}).exportPlaygroundJavaScript({high:mode==='high',scheduled:mode==='schedule',splitChannels,includeDac:false,dacBase64:false});
+  const source=addVgmSoundChipSetup(original,{family:'opn'},'ym2612');
+  assert.equal(source,'const fm = await useSoundChip("ym2612");\n\n'+original);
+  const traces=[];
+  for(const code of [original,source]) {
+   let time=0,acquired=false,count=0;const trace=[],loops=[];
+   const synth=new YM2612Synth({transport:{write:(port,r,v)=>trace.push([time,port,r,v])}});trace.length=0;
+   const scope={fm:synth,useSoundChip:async name=>{assert.equal(name,'ym2612');acquired=true;count++;return synth;},
+    liveLoop:(name,fn)=>{if(code===source)assert.equal(acquired,true);loops.push({name,fn});},
+    sleepSamples:async n=>{time+=n;},write:(...a)=>{trace.push([time,...(a.length===2?[0,...a]:a)]);},
+    beginSampleSchedule:()=>0,scheduleWritesSamples:(start,entries)=>{trace.push(...entries);},
+    CH1:0,CH2:1,CH3:2,CH4:3,CH5:4,CH6:5,OP1:0,OP2:1,OP3:2,OP4:3};
+   const AsyncFunction=Object.getPrototypeOf(async function(){}).constructor;
+   await new AsyncFunction(...Object.keys(scope),`"use strict"; {\n${code}\n}`)(...Object.values(scope));
+   for(const loop of loops){time=0;await loop.fn();}
+   assert.equal(count,code===source?1:0);traces.push({trace,loops:loops.map(x=>x.name)});
+  }
+  assert.deepEqual(traces[1],traces[0]);
+ }
+});
+test('native OPN and independent chips retain their original ownership; translated FM uses YM2612',()=>{
+ const source='// generated';
+ for(const chip of ['ym2608'])assert.equal(addVgmSoundChipSetup(source,{family:'opn',chip},chip),source);
+ for(const family of ['gameboy','rf5c164'])assert.equal(addVgmSoundChipSetup(source,{family},'ym2612'),source);
+ for(const chip of ['ym2612','ym2203','ym2608','ym2610'])assert.match(addVgmSoundChipSetup(source,{family:'opn',chip,rf5c164:true},'ym2612'),/^const fm = await useSoundChip/);
+});
+
+
+test('native YM2203 and YM2610 imports explicitly acquire the selected default FM',()=>{
+ for(const chip of ['ym2203','ym2610'])assert.equal(addVgmSoundChipSetup('// body',{family:'opn',chip},chip),`const fm = await useSoundChip("${chip}");\n\n// body`);
 });

@@ -1,3 +1,6 @@
+import {createOpnAudio} from './playground_opn_audio.js';
+import {createOpnClient} from './playground_opn.js';
+import {createSoundChipRegistry} from './playground_soundchips.js';
 import {createGameboyAudio} from './playground_gameboy_audio.js';
 import {createGameboyClient} from './playground_gameboy.js';
 import {createYm2608Audio} from './playground_ym2608_audio.js';
@@ -167,7 +170,7 @@ export function createPlaygroundRuntime(
     );
   defaultLogicWorkerUrl.searchParams.set(
     "v",
-    "midi-held-stop-1"
+    "create-sound-chip-opn-1"
   );
   const logicWorkerUrl =
     options.logicWorkerUrl ??
@@ -189,9 +192,12 @@ export function createPlaygroundRuntime(
   let logicWorker = null;
   let workerGlobals = null;
   const pcmDevices = new Set();
+  const soundChips = createSoundChipRegistry();
+  let sharedFm;
+  let sharedFmSynth;
   async function openPcm(name, token = currentRunToken) {
-    if(!['rf5c164', 'ym2608', 'gameboy'].includes(name)) throw new Error('Playground createSoundChip supports rf5c164, ym2608 and gameboy');
-    const createAudio = name === 'gameboy' ? createGameboyAudio : name === 'ym2608' ? createYm2608Audio : createRf5c164Audio;
+    if(!['ym2612', 'ym2203', 'ym2610', 'rf5c164', 'ym2608', 'gameboy'].includes(name)) throw new Error('Unsupported Playground sound chip: ' + name);
+    const createAudio = ['ym2612', 'ym2203', 'ym2610'].includes(name) ? (context, destination) => createOpnAudio(context, destination, name) : name === 'gameboy' ? createGameboyAudio : name === 'ym2608' ? createYm2608Audio : createRf5c164Audio;
     const device = await createAudio(megaDrive.audioContext, megaDrive.audio.masterInputNode);
     if(token !== currentRunToken){device.dispose();throw new Error('Run stopped');}
     pcmDevices.add(device);return device;
@@ -445,6 +451,7 @@ export function createPlaygroundRuntime(
   }
 
   function stopAllAudio() {
+    soundChips.clear();
     for(const device of pcmDevices)device.dispose();
     pcmDevices.clear();
     midiApis.clear();
@@ -1187,7 +1194,8 @@ export function createPlaygroundRuntime(
         "__anonymous__",
     };
     const fx = createFxApi();
-    const fm = createFmProxy(synth);
+    if (sharedFmSynth !== synth) { sharedFm = createFmProxy(synth); sharedFmSynth = synth; }
+    const fm = sharedFm;
     const psg = megaDrive.psg;
     const musicApi =
       createPlaygroundMusic({
@@ -1320,9 +1328,23 @@ export function createPlaygroundRuntime(
       check:()=>{if(runToken!==currentRunToken)throw new DOMException('Run stopped','AbortError');}});
     midiApis.add(midi);
     const pg = {
+      useSoundChip: async (name, options) => {
+        const check = () => { if (runToken !== currentRunToken) throw new DOMException('Run stopped', 'AbortError'); };
+        check();
+        const chip = await soundChips.use(name, options, chipName => {
+          check();
+          if (['ym2612', 'ym2203', 'ym2610'].includes(chipName)) {
+            if (capabilities.chip !== chipName) throw new Error(`useSoundChip("${chipName}") requires the ${chipName.toUpperCase()} Playground chip.`);
+            return fm;
+          }
+          return pg.createSoundChip(chipName);
+        });
+        check();
+        return chip;
+      },
       createSoundChip: async name => {
         const device=await openPcm(name,runToken);
-        const client=name === 'gameboy' ? createGameboyClient(device.port) : name === 'ym2608' ? createYm2608Client(device.port) : createRf5c164Client(device.port,decodePcm);
+        const client=['ym2612', 'ym2203', 'ym2610'].includes(name) ? createOpnClient(name, device.port) : name === 'gameboy' ? createGameboyClient(device.port) : name === 'ym2608' ? createYm2608Client(device.port) : createRf5c164Client(device.port,decodePcm);
         const dispose=device.dispose;
         device.dispose=()=>{client.dispose();dispose();};
         return client;
@@ -1471,6 +1493,7 @@ export function createPlaygroundRuntime(
           playgroundConsole,
         pg,
         createSoundChip: pg.createSoundChip,
+        useSoundChip: pg.useSoundChip,
         midi,
         fm,
         dac: pg.dac,
@@ -1791,7 +1814,7 @@ export function createPlaygroundRuntime(
     try {
       const userFunction = new AsyncFunction(
         ...Object.keys(globals),
-        `"use strict";\n${sourceCode}`
+        `"use strict";\n{\n${sourceCode}\n}`
       );
       await executeWithPlaygroundGuards(
         () =>
