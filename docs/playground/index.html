@@ -1439,6 +1439,18 @@
                   aria-describedby="vgmImportTargetHint"
                   style="width: 100%; margin: 6px 0; padding: 8px; font: inherit;">
                 <p id="vgmImportTargetHint" class="subtext">Project JavaScript path. Existing file contents will be replaced.</p>
+                <fieldset id="ym2203TargetOptions" class="vgm-import-options" hidden disabled>
+                  <legend>YM2203 conversion target</legend>
+                  <select id="ym2203TargetInput">
+                    <option value="ym2203">YM2203 — FM + SSG</option>
+                    <option value="ym2612">YM2612 — FM only (translate)</option>
+                  </select>
+                  <div id="ym2203TimingOptions">
+                    <label><input type="radio" name="ym2203ImportMode" value="write" checked> Write</label>
+                    <label><input type="radio" name="ym2203ImportMode" value="schedule"> Schedule</label>
+                    <p class="subtext">FM + SSG share one liveLoop. The entire stream repeats; original VGM loop points are not used.</p>
+                  </div>
+                </fieldset>
                 <fieldset id="opnImportOptions" class="vgm-import-options">
                   <legend>Output timing</legend>
                   <div class="vgm-import-mode">
@@ -1877,6 +1889,6 @@
       </label>
     </footer>
 
-    <script type="module" src="./playground.js?v=use-cross-chip-1"></script>
+    <script type="module" src="./playground.js?v=ym2203-full-import-1"></script>
   </body>
 </html>

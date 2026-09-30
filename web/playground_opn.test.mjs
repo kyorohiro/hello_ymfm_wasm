@@ -44,3 +44,23 @@ test('late OPN initialization is disposed after Stop',async()=>{
  processor.dispose();complete({dispose(){disposed++;}});await Promise.resolve();
  assert.equal(disposed,1);assert.equal(processor.process([],[]),false);
 });
+
+test('YM2203 schedules ordered FM/SSG writes at output frames and cancels on reset', async()=>{
+ let frame=0;const writes=[],replies=[];
+ const fake={sampleRate:clock=>clock??48000,write:(address,value)=>writes.push([frame,address,value]),reset(){},dispose(){},generateStereo:n=>({left:new Float32Array(n),right:new Float32Array(n)})};
+ const {processor,promise}=await setup('ym2203',{Ym2203:{create:async()=>fake}});
+ await promise;
+ const port={postMessage:m=>replies.push(m)};
+ processor.receive({id:1,method:'clock',args:[4000000]},port);assert.equal(processor.rate,4000000);
+ processor.receive({id:2,method:'schedule',args:[[[0,0,12],[0,8,15],[441,0xa0,99],[882,8,0]],882]},port);
+ assert.equal(replies.length,1);
+ for(frame=0;frame<=960;frame++)processor.process([],[[new Float32Array(1),new Float32Array(1)]]);
+ assert.deepEqual(writes,[[0,0,0],[0,1,12],[0,0,8],[0,1,15],[480,0,0xa0],[480,1,99],[960,0,8],[960,1,0]]);
+ assert.equal(replies.at(-1).id,2);assert.equal(replies.at(-1).error,undefined);
+ processor.receive({id:3,method:'schedule',args:[[[20,0,12],[10,0,12]],30]},port);
+ assert.match(replies.at(-1).error,/Invalid/);assert.equal(processor.schedule,null);
+ processor.receive({id:4,method:'schedule',args:[[[0,8,0]],4410]},port);
+ processor.receive({method:'reset'},port);
+ assert.equal(replies.at(-1).id,4);assert.match(replies.at(-1).error,/cancelled/);assert.equal(processor.schedule,null);
+ processor.dispose();
+});

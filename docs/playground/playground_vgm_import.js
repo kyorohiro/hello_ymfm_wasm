@@ -169,3 +169,39 @@ export function addVgmSoundChipSetup(source, detection, selectedChip) {
   if (detection.family !== 'opn' || !['ym2612', 'ym2203', 'ym2610'].includes(selectedChip)) return source;
   return `const fm = await useSoundChip(${JSON.stringify(selectedChip)});\n\n` + source;
 }
+
+
+/** Full single-chip YM2203 raw import, including SSG. Uses the additional-chip API. */
+export function exportYm2203FullVgm(buffer, {mode = 'write'} = {}) {
+  if (!['write', 'schedule'].includes(mode)) throw new Error('YM2203 supports Write and Schedule');
+  const parser = new Ym2612VGM(buffer, {logger: null});
+  const detection = detectVgmImport(parser.header);
+  if (!detection.supported || detection.chip !== 'ym2203' || detection.chips.length !== 1) throw new Error('Expected single YM2203 VGM');
+  const clock = parser.header.ym2203Clock & 0x3fffffff;
+  if (clock < 100000 || clock > 20000000) throw new Error('Unsupported YM2203 clock');
+  const events = []; let time = 0;
+  for (;;) {
+    const opcode = parser.bytes[parser.position];
+    if (![0x55, 0x61, 0x62, 0x63, 0x66].includes(opcode) && !(opcode >= 0x70 && opcode <= 0x7f)) throw new Error('YM2203 import supports register writes and waits only');
+    const event = parser.step();
+    if (event.type === 'end') break;
+    if (event.type === 'wait') time += event.samples;
+    else if (event.type === 'ym2203-write') events.push([time, event.register, event.value]);
+  }
+  if (!events.length || !time) throw new Error('YM2203 stream must contain writes and a positive duration');
+  const lines = ['// YM2203 FM + SSG. Repeats the entire stream in one shared chip loop.',
+    'const opn = await useSoundChip("ym2203");', `await opn.setClock(${clock});`];
+  if (mode === 'schedule') {
+    lines.push(`const writes = ${JSON.stringify(events)};`, 'liveLoop("ym2203", async () => {', '  opn.reset();', `  await opn.scheduleRegisters(writes, ${time});`, '});');
+  } else {
+    lines.push('// Write uses Playground waits; Schedule executes writes on the audio thread.', 'liveLoop("ym2203", async () => {', '  opn.reset();');
+    let previous = 0;
+    for (const [sample, register, value] of events) {
+      if (sample > previous) lines.push(`  await sleepSamples(${sample - previous}, 44100);`);
+      lines.push(`  opn.write(0, ${hex(register)}, ${hex(value)});`); previous = sample;
+    }
+    if (time > previous) lines.push(`  await sleepSamples(${time - previous}, 44100);`);
+    lines.push('});');
+  }
+  return lines.join('\n') + '\n';
+}

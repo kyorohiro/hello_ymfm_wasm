@@ -66,3 +66,5 @@ extraNeo.setOperators(3, [[OP1, {tl: 20}]]);
 extraOpn.setOperators(3, [[OP1, {tl: 20}]]);
 // @ts-expect-error YM2610 has only four logical FM channels
 extraNeo.setOperators(4, [[OP1, {tl: 20}]]);
+await extraOpn.setClock(4000000);
+await extraOpn.scheduleRegisters([[0, 8, 15], [4410, 8, 0]], 4410);

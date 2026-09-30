@@ -249,3 +249,16 @@ neo.noteOff(CH1);
 並行取得は初期化 Promise を共有する。ライブ再評価で再利用し、Stop で追加音源とキャッシュを破棄する。追加 OPN の手動 dispose 後も次回取得で再生成する。グローバル `play()`／`write()` の対象は変更しない。
 
 Monaco は選択中チップに応じて、既定FMと追加音源の戻り値型を区別する。例えば YM2612 モードで取得した YM2610 には SSG／ADPCM の補完も提供する。
+
+## YM2612モードでのYM2203 VGM変換先選択
+
+単一YM2203のVGMを通常YM2612モードでImportすると、変換先を選べる。
+
+- YM2203：FM＋SSGを元のレジスター順・入力クロックで再生する。`const opn = await useSoundChip("ym2203")` を生成する。
+- YM2612：従来のFMのみの変換。従来のSchedule／Write／High、CH分割オプションを維持する。
+
+YM2203側はWriteとScheduleに対応。Writeは `opn.write()` と `sleepSamples()`、Scheduleは `opn.scheduleRegisters(entries, durationSamples)` を使う。entriesは `[VGMサンプル位置, register, value]` の配列で、44100Hz基準。追加音源のAudioWorkletが出力フレーム単位で適用し、終了時にPromiseを解決する。reset／dispose／Stopで予約をキャンセルする。
+
+FMとSSGの共有レジスター順を守るため1つのliveLoopとして出力する。全体を繰り返し、元VGMのループ地点やCH分割は今回扱わない。Scheduleの各パス内の時刻は音声側で管理するが、パス間はliveLoopの再呼び出しのため隙間なしの連続ループを保証しない。Highは未対応。対応入力は単一YM2203の直接レジスター書き込みとwait。その他のコマンドは黙って省略せず変換エラーにする。
+
+`setClock(clock)` と `scheduleRegisters()` は追加YM2203クライアントのAPI。既定YM2203のFM facadeには今回追加していないため、この変換先選択はYM2612モードで提示する。

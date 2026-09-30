@@ -1138,7 +1138,7 @@ declare function useSoundChip<Name extends keyof PlaygroundSoundChipMap>(name: N
 type PlaygroundCreatedFm = Omit<FMApi, 'scheduleWrites' | 'read' | 'readStatus' | 'getIrq'> & {dispose(): void};
 type PlaygroundCreatedOPN<C extends YM2612Channel> = Omit<PlaygroundOPNFm<C>, 'scheduleWrites' | 'read' | 'readStatus' | 'getIrq' | 'rawWrite' | 'writeAddress' | 'writeData'> & {dispose(): void};
 declare function createSoundChip(name: 'ym2612'): Promise<PlaygroundCreatedFm>;
-type PlaygroundCreatedYm2203 = PlaygroundCreatedOPN<0 | 1 | 2> & {ssg: PlaygroundYm2608['ssg']};
+type PlaygroundCreatedYm2203 = PlaygroundCreatedOPN<0 | 1 | 2> & {ssg: PlaygroundYm2608['ssg']; setClock(clock: number): Promise<void>; scheduleRegisters(entries: Array<[number, number, number]>, durationSamples: number): Promise<void>};
 declare function createSoundChip(name: 'ym2203'): Promise<PlaygroundCreatedYm2203>;
 type PlaygroundCreatedYm2610 = PlaygroundCreatedOPN<0 | 1 | 2 | 3> & {
   ssg: PlaygroundYm2608['ssg'];

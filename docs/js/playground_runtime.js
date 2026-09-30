@@ -170,7 +170,7 @@ export function createPlaygroundRuntime(
     );
   defaultLogicWorkerUrl.searchParams.set(
     "v",
-    "use-cross-chip-1"
+    "ym2203-full-import-1"
   );
   const logicWorkerUrl =
     options.logicWorkerUrl ??

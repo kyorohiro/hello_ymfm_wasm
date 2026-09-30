@@ -124,3 +124,5 @@ WASMが存在するだけでPlayground APIも利用可能とは判断しない�
 - OPN FM `setOperators(channel, entries)`：YM2612 に加え YM2203／YM2608／YM2610／YM2610B に対応。全入力の事前検証と書き込み順を維持。既定・追加音源と Playground 補完に反映。
 
 - `useSoundChip()` は YM2612／YM2203／YM2610 が既定音源と異なる場合も追加生成・再利用可能。既定音源との一致時は既存FMを返す。並行取得・再評価・手動dispose後の再取得・Stopを自動検証。
+
+- YM2612 Playgroundで単一YM2203 VGMをImport：YM2203（FM＋SSG）／YM2612（従来FM変換）を選択可能。YM2203はWrite／音声側Scheduleと1つのliveLoopに対応。元VGMループ地点・CH分割・Highは未対応。

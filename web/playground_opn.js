@@ -17,6 +17,13 @@ export function createOpnClient(name, port) {
     if (disposed) throw new Error(`${name} disposed`);
     port.postMessage({method, args});
   };
+  const request = (method, args) => new Promise((resolve, reject) => {
+    if (disposed) { reject(new Error(`${name} disposed`)); return; }
+    const id = ++sequence;
+    pending.set(id, {resolve, reject});
+    try { port.postMessage({id, method, args}); }
+    catch (error) { pending.delete(id); reject(error); }
+  });
   const transport = {
     write: (port, register, value) => send('write', [port, register, value]),
     reset: () => send('reset'),
@@ -36,6 +43,11 @@ export function createOpnClient(name, port) {
     synth = new NeoGeoFMSynth(full);
     Object.assign(synth, {ssg: full.ssg, adpcmA: full.adpcmA, adpcmB: full.adpcmB, adpcm: full.adpcm});
   } else throw new Error(`Unsupported OPN chip: ${name}`);
+  if (name === 'ym2203') {
+    synth.setClock = async clock => { await request('clock', [clock]); synth.ssg.clock = clock / 2; };
+    // Relative VGM sample positions, executed in the audio processor.
+    synth.scheduleRegisters = (entries, durationSamples) => request('schedule', [entries, durationSamples]);
+  }
   synth.dispose = () => {
     if (disposed) return;
     send('dispose'); disposed = true;

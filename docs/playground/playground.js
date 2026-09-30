@@ -1,4 +1,4 @@
-import {prepareVgmImport, exportGameboyVgm, exportRf5c164Vgm, addVgmSoundChipSetup} from './playground_vgm_import.js?v=use-cross-chip-1';
+import {prepareVgmImport, exportGameboyVgm, exportRf5c164Vgm, addVgmSoundChipSetup, exportYm2203FullVgm} from './playground_vgm_import.js?v=ym2203-full-import-1';
 import {installPlaygroundPageLifecycle} from "./playground_page_lifecycle.js";
 import {createFXMonitor} from './playground_fx_monitor.js?v=stable-select-1';
 import {installMidiImport} from './playground_midi_import.js?v=midi-sections-1';
@@ -51,7 +51,7 @@ import { exportYm2608VgmToPlaygroundJavaScript } from "../js/ym2608vgm.js";
 import { exportYm2610BVgmToPlaygroundJavaScript } from "../js/ym2610bvgm.js";
 import {
   createPlaygroundRuntime,
-} from "../js/playground_runtime.js?v=use-cross-chip-1";
+} from "../js/playground_runtime.js?v=ym2203-full-import-1";
 import { createVgmPresetFiles } from "./playground_vgm_presets.js";
 import { createTfiFileEditor, tfiToEditorPreset } from "./playground_tfi_editor.js";
 import { renderFileTree } from "./playground_file_tree.js";
@@ -937,8 +937,9 @@ async function importVgmFile(file, options) {
       selectedChip !== 'ym2612' && (detection.family === 'opn' || (options.includePsg && detection.chips.includes('psg')))) {
     throw new Error('Select the YM2612 Playground chip for mixed RF5C164 + FM/PSG conversion.');
   }
+  const fullYm2203 = options.ym2203Target === 'ym2203' && selectedChip === 'ym2612' && detection.chip === 'ym2203';
   const dacFiles = [];
-  const strategy = detection.family === 'gameboy' ? {
+  const strategy = fullYm2203 ? {source: exportYm2203FullVgm(buffer, {mode: options.ym2203Mode}), statusMessage: 'for YM2203 FM + SSG'} : detection.family === 'gameboy' ? {
     source: exportGameboyVgm(buffer, {mode: options.gameboyMode}),
     statusMessage: 'for Game Boy (all four channels; one pass)',
   } : (detection.rf5c164 && options.includeRf5c164) || detection.family === 'rf5c164' ? {
@@ -975,7 +976,7 @@ async function importVgmFile(file, options) {
     registerVirtualTfiPreset(path);
   }
   saveActiveVirtualFile();
-  virtualFiles.writeText(targetPath, addVgmSoundChipSetup(strategy.source, detection, selectedChip));
+  virtualFiles.writeText(targetPath, fullYm2203 ? strategy.source : addVgmSoundChipSetup(strategy.source, detection, selectedChip));
   currentCassetteMetadata = { version: 1, workType: "TRANSCRIPTION", license: "NONE" };
   activeVirtualPath = targetPath;
   runVirtualPath = targetPath;
@@ -1978,6 +1979,8 @@ runButton.addEventListener(
       }
       const options = {
           prepared: pendingVgmImport,
+          ym2203Target: document.getElementById('ym2203TargetOptions').hidden ? undefined : document.getElementById('ym2203TargetInput').value,
+          ym2203Mode: document.querySelector('input[name="ym2203ImportMode"]:checked')?.value ?? 'write',
           gameboyMode: document.querySelector('input[name="gameboyImportMode"]:checked')?.value ?? 'raw',
           targetPath,
           noteish: selectedMode?.value === "high" && document.getElementById("noteishVgmInput").checked,
@@ -1996,6 +1999,18 @@ runButton.addEventListener(
     }
   );
 
+  function syncYm2203Target() {
+    const available = selectedChip === 'ym2612' && pendingVgmImport?.detection.supported && pendingVgmImport.detection.chip === 'ym2203' && pendingVgmImport.detection.chips.length === 1;
+    const field = document.getElementById('ym2203TargetOptions');
+    field.hidden = !available; field.disabled = !available;
+    const native = available && document.getElementById('ym2203TargetInput').value === 'ym2203';
+    document.getElementById('ym2203TimingOptions').hidden = !native;
+    const opn = document.getElementById('opnImportOptions');
+    opn.hidden = native || !pendingVgmImport?.detection.supported || !['opn', 'rf5c164'].includes(pendingVgmImport?.detection.family);
+    opn.disabled = opn.hidden;
+    if (available) document.getElementById('vgmImportNotice').textContent = native ? 'YM2203 FM + SSG with the source clock. Write or audio-thread Schedule; one shared chip loop.' : pendingVgmImport.detection.message;
+  }
+  document.getElementById('ym2203TargetInput').addEventListener('change', syncYm2203Target);
   function syncDacBase64Option() {
     document.querySelectorAll('input[name="vgmImportMode"]').forEach(input => {
       input.disabled = false;
@@ -2118,7 +2133,9 @@ runButton.addEventListener(
       vgmImportTarget.setCustomValidity('');
       mainMenu.open = false;
       document.getElementById('noteishVgmInput').checked = false;
+      document.getElementById('ym2203TargetInput').value = 'ym2203';
       syncDacBase64Option();
+      syncYm2203Target();
       vgmImportDialog.showModal();
       setStatus(detection.supported ? 'Choose conversion options, then Convert.' : detection.message);
     } catch (error) {

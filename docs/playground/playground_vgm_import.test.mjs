@@ -167,3 +167,20 @@ test('native OPN and independent chips retain their original ownership; translat
 test('native YM2203 and YM2610 imports explicitly acquire the selected default FM',()=>{
  for(const chip of ['ym2203','ym2610'])assert.equal(addVgmSoundChipSetup('// body',{family:'opn',chip},chip),`const fm = await useSoundChip("${chip}");\n\n// body`);
 });
+
+import {exportYm2203FullVgm} from './playground_vgm_import.js';
+test('YM2203 Write and Schedule preserve FM + SSG bytes, source clock and sample times',async()=>{
+ const input=vgm([0x55,0,12,0x55,8,15,0x61,0xb9,1,0x55,0xa0,99,0x61,0xb9,1,0x55,8,0,0x70,0x66]);
+ const view=new DataView(input.buffer);view.setUint32(0x80,0,true);view.setUint32(0x44,4000000,true);
+ const expected=[[0,0,12],[0,8,15],[441,0xa0,99],[882,8,0]];
+ for(const mode of ['write','schedule']){
+  const source=exportYm2203FullVgm(input,{mode});
+  assert.match(source,/const opn = await useSoundChip\("ym2203"\)/);
+  let time=0,clock,loop;const writes=[];
+  const opn={setClock:async c=>{clock=c;},reset(){},write(p,r,v){assert.equal(p,0);writes.push([time,r,v]);},scheduleRegisters:async(events,duration)=>{writes.push(...events);time=duration;}};
+  await new (Object.getPrototypeOf(async function(){}).constructor)('useSoundChip','liveLoop','sleepSamples',source)(async name=>{assert.equal(name,'ym2203');return opn;},(name,fn)=>{assert.equal(name,'ym2203');loop=fn;},async n=>{time+=n;});
+  await loop();assert.equal(clock,4000000);assert.equal(time,883);assert.deepEqual(writes,expected);
+ }
+ assert.throws(()=>exportYm2203FullVgm(input,{mode:'high'}),/Write and Schedule/);
+ view.setUint32(0x44,0x40000000|4000000,true);assert.throws(()=>exportYm2203FullVgm(input),/single YM2203/);
+});

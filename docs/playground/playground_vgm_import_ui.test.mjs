@@ -6,7 +6,7 @@ const source=readFileSync(new URL('./playground.js',import.meta.url),'utf8');
 function setup(prepare, gameboyMode = 'readable') {
   const nodes=new Map(), imports=[],statuses=[];
   const node=id=>{if(!nodes.has(id))nodes.set(id,{value:'/test.js',checked:false,disabled:false,hidden:false,events:{},addEventListener(name,fn){this.events[name]=fn;},setCustomValidity(v){this.validity=v;},reportValidity(){},showModal(){this.open=true;},close(){this.open=false;this.events.close?.();}});return nodes.get(id);};
-  const c=vm.createContext({prepareVgmImport:prepare,document:{getElementById:node,querySelector:q=>q.includes('gameboy')?{value:gameboyMode}:{value:'high'}},setStatus:s=>statuses.push(s),normalizeVirtualPath:p=>p,isSystemVirtualPath:p=>p.startsWith('/sys/'),virtualFiles:{get(){}},importVgmFile:async(f,o)=>imports.push({f,o}),mainMenu:{open:true},syncDacBase64Option(){},runButton:{focus(){}}});
+  const c=vm.createContext({selectedChip:'ym2612',prepareVgmImport:prepare,document:{getElementById:node,querySelector:q=>q.includes('gameboy')?{value:gameboyMode}:q.includes('ym2203')?{value:'schedule'}:{value:'high'}},setStatus:s=>statuses.push(s),normalizeVirtualPath:p=>p,isSystemVirtualPath:p=>p.startsWith('/sys/'),virtualFiles:{get(){}},importVgmFile:async(f,o)=>imports.push({f,o}),mainMenu:{open:true},syncDacBase64Option(){},runButton:{focus(){}}});
   for(const id of ['vgmImportInput','vgmImportDialog','vgmImportTarget','vgmImportFilename','convertVgmButton','cancelVgmImportButton','includeDacInput','dacBase64Input']) c[id]=node(id);
   vm.runInContext('let pendingVgmImportFile=null;let pendingVgmImport=null;let vgmImportRequest=0;',c);
   const change=source.slice(source.indexOf("  vgmImportInput.addEventListener('change'"),source.indexOf('\n}\n\nfunction bootPlayground'));
@@ -62,4 +62,17 @@ test('RF5C164 selection keeps all modes, channel splitting and DAC options enabl
   assert.equal(context.dacBase64Input.disabled,false);
   node('includeRf5c164Input').checked=false;vm.runInContext('syncDacBase64Option()',context);
   assert.ok(radios.every(r=>!r.disabled));assert.equal(node('splitVgmChannelsInput').disabled,false);
+});
+
+
+test('YM2203 target selects full FM/SSG Schedule or existing YM2612 options',async()=>{
+ const ui=setup(async()=>({detection:{family:'opn',chip:'ym2203',chips:['ym2203'],supported:true,message:'FM translation'}}));
+ await ui.choose('pc98.vgm');
+ assert.equal(ui.node('ym2203TargetOptions').hidden,false);
+ assert.equal(ui.node('opnImportOptions').hidden,true);
+ ui.node('convertVgmButton').events.click();
+ assert.equal(ui.imports[0].o.ym2203Target,'ym2203');assert.equal(ui.imports[0].o.ym2203Mode,'schedule');
+ await ui.choose('pc98.vgm');ui.node('ym2203TargetInput').value='ym2612';ui.node('ym2203TargetInput').events.change();
+ assert.equal(ui.node('opnImportOptions').hidden,false);assert.equal(ui.node('ym2203TimingOptions').hidden,true);
+ ui.node('convertVgmButton').events.click();assert.equal(ui.imports[1].o.ym2203Target,'ym2612');assert.equal(ui.imports[1].o.mode,'high');
 });
