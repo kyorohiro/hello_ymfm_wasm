@@ -1,5 +1,5 @@
-import {appendGameboyVoice} from './gameboy_voice_view.js';
-import {appendGameboyWave} from './gameboy_wave_view.js';
+import {appendGameboyVoice} from './gameboy_voice_view.js?v=gb-info-perf-1';
+import {appendGameboyWave} from './gameboy_wave_view.js?v=gb-info-perf-1';
 import {decodeYmf278bSample} from './ymf278b_samples.js';
 import {samplePreviewWav} from './sample_render.js';
 import {renderSamplePreview} from './sample_render.js';
@@ -27,19 +27,25 @@ export function mountSampleExplorer(panel, getSource, getOptions = () => ({})) {
       const note = document.createElement('p'); note.textContent = result.warnings.join(' '); output.append(note);
       const visible = gameboyMode ? result.samples.filter(s => s.chip === 'gameboy').sort((a,b)=>(a.channel ?? 3)-(b.channel ?? 3)) : result.samples;
       if (!visible.length) output.append(gameboyMode ? 'No complete Game Boy voice or waveform settings found.' : 'No supported samples found.');
+      const eventsBySample = new Map();
+      for (const event of result.events) {
+        let uses = eventsBySample.get(event.sampleId);
+        if (!uses) eventsBySample.set(event.sampleId, uses = []);
+        uses.push(event);
+      }
       let group;
       for (const s of visible) {
+        const uses = eventsBySample.get(s.id) ?? [];
         if (gameboyMode && group !== (s.channel ?? 3)) {
           group = s.channel ?? 3;
           const heading = document.createElement('h3');
           heading.textContent = {1:'Pulse CH1',2:'Pulse CH2',3:'Wave CH3 — 32-point waveforms',4:'Noise CH4'}[group];
           output.append(heading);
         }
-        if (s.chip === 'gameboy' && s.kind !== 'wave') { appendGameboyVoice(output, s, result.events); continue; }
-        if (s.chip === 'gameboy') { appendGameboyWave(output, s, result.events); continue; }
+        if (s.chip === 'gameboy' && s.kind !== 'wave') { appendGameboyVoice(output, s, uses, uses); continue; }
+        if (s.chip === 'gameboy') { appendGameboyWave(output, s, uses, uses); continue; }
         const captured = s.kind === 'dac' || s.kind === 'pwm' || s.chip === 'okim6258';
         const row = document.createElement('details'), title = document.createElement('summary');
-        const uses = result.events.filter(e => e.sampleId === s.id);
         title.textContent = `Sample ${s.id} · ${s.chip.toUpperCase()} ${s.kind.toUpperCase()} · ${captured ? `${s.chip==='okim6258'?'timed ADPCM register capture':'captured output'} · ${s.boundary}` : `0x${s.byteStart.toString(16)}–0x${(s.byteEndExclusive - 1).toString(16)}`} · ${s.size} bytes · ${uses.length} uses · ${s.chip === 'rf5c164' ? `RAM snapshot · start 0x${s.startAddress.toString(16)} · loop 0x${s.loopAddress.toString(16)} · ` : ''}${s.data ? 'available' : s.available ? 'partial data' : 'missing data'}`;
         row.append(title);
         const history = document.createElement('pre');
@@ -70,7 +76,7 @@ export function mountSampleExplorer(panel, getSource, getOptions = () => ({})) {
         if (s.data) {
           const save = document.createElement('button'); save.textContent = captured ? `Save timed ${s.kind.toUpperCase()} JSON` : s.chip === 'rf5c164' ? 'Save 64 KiB RAM snapshot' : ['ymf278b','segapcm'].includes(s.chip) ? 'Save raw PCM' : 'Save raw ADPCM';
           save.onclick = () => {
-            const url = URL.createObjectURL(new Blob([sampleFile(s,result.events).bytes])); const a = document.createElement('a');
+            const url = URL.createObjectURL(new Blob([sampleFile(s,uses).bytes])); const a = document.createElement('a');
             a.href = url; a.download = `${s.chip}-${s.kind}-${s.id}.${captured ? 'json' : 'bin'}`; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
           };
           const selection = document.createElement('select');

@@ -188,6 +188,7 @@ export class YM2612DirectTransport {
    * @param {{
    *   writeRegister(register: number, value: number, port?: number): void,
    *   sampleRate?: () => number,
+   *   generateStereoView?: (frames: number) => {left: Float32Array, right: Float32Array},
    *   generateStereo?: (frames: number) => {left: Float32Array, right: Float32Array},
    *   reset?: () => void,
    *   read?: (offset: number) => number,
@@ -235,12 +236,17 @@ export class YM2612DirectTransport {
   generateStereo(frames) {
     if (!Number.isSafeInteger(frames) || frames < 0) throw new RangeError('frames must be a nonnegative integer');
     const left = new Float32Array(frames), right = new Float32Array(frames);
+    const generate = (this.chip.generateStereoView ?? this.chip.generateStereo).bind(this.chip);
     let offset = 0;
     while (offset < frames) {
       this.dacPlayer?.advance(this.frame);
       const count = Math.min(frames - offset, (this.dacPlayer?.nextFrame() ?? Infinity) - this.frame);
-      const pcm = this.chip.generateStereo(count);
-      left.set(pcm.left, offset); right.set(pcm.right, offset);
+      const pcm = generate(count);
+      // Borrowed views may cover reserved capacity, not just this segment.
+      for (let i = 0; i < count; i++) {
+        left[offset + i] = pcm.left[i];
+        right[offset + i] = pcm.right[i];
+      }
       this.frame += count; offset += count;
     }
     return {left, right};

@@ -27,7 +27,7 @@ import { msxMuteControls, applyMsxMute } from './msx_mutes.js';
 import {mountAy8910Monitor} from './ay8910_monitor.js?v=common-mutes-1';
 import {mountYm2413Monitor} from './ym2413_monitor.js';
 import { mountTfiInfo } from "./tfi_info.js?v=concurrent-audition-1";
-import { mountSampleExplorer } from './sample_explorer.js?v=gb-info-1';
+import { mountSampleExplorer } from './sample_explorer.js?v=gb-info-perf-1';
 import { renderAllFretboard } from './fretboard_all.js';
 import { createNoteTimeline } from './note_timeline_view.js?v=opm-notes-1';
 import { seekPlayback } from './seek_playback.js';

@@ -37,6 +37,7 @@ class YM2612Processor extends AudioWorkletProcessor {
     this.lastRight = 0;
     this.pendingCommands = [];
     this.scheduledCommands = [];
+    this.scheduledHead = 0;
     this.dacBanks = new Map();
     this.dacStreams = [];
     this.pcmDac = new YM2612DacPlayer(sampleRate, (p, r, v) => this.ym2612.writeRegister(r, v, p));
@@ -136,14 +137,25 @@ class YM2612Processor extends AudioWorkletProcessor {
   applyCommand(command, reply = message => this.port.postMessage(message)) {
     if (receiveDacCommand(this.pcmDac, command, currentFrame, reply)) return;
     if (command.type === "schedule-writes") {
+      // Compact only when new work arrives, not once per audio event.
+      if (this.scheduledHead) {
+        this.scheduledCommands = this.scheduledCommands.slice(this.scheduledHead);
+        this.scheduledHead = 0;
+      }
+      let lastTime = this.scheduledCommands.at(-1)?.time ?? -Infinity;
+      let ordered = true;
       for (const entry of command.entries ?? []) {
+        if (entry.time < lastTime) ordered = false;
+        lastTime = entry.time;
         this.scheduledCommands.push(entry);
       }
-      this.scheduledCommands.sort((a, b) => a.time - b.time);
+      // Stable sort retains submission order for writes at the same time.
+      if (!ordered) this.scheduledCommands.sort((a, b) => a.time - b.time);
       return;
     }
     if (command.type === "clear-scheduled-writes") {
       this.scheduledCommands.length = 0;
+      this.scheduledHead = 0;
       return;
     }
     if (command.type === "load-dac-bank") {
@@ -247,7 +259,7 @@ class YM2612Processor extends AudioWorkletProcessor {
     let offset = 0;
     const endFrame = currentFrame + leftOut.length;
     while (true) {
-      const scheduled = this.scheduledCommands[0];
+      const scheduled = this.scheduledCommands[this.scheduledHead];
       const scheduledFrame = scheduled
         ? Math.round(scheduled.time * sampleRate)
         : Infinity;
@@ -258,7 +270,11 @@ class YM2612Processor extends AudioWorkletProcessor {
       this.renderFrames(leftOut, rightOut, offset, eventOffset - offset);
       offset = eventOffset;
       if (scheduledFrame === frame) {
-        this.scheduledCommands.shift();
+        this.scheduledCommands[this.scheduledHead++] = null;
+        if (this.scheduledHead === this.scheduledCommands.length) {
+          this.scheduledCommands.length = 0;
+          this.scheduledHead = 0;
+        }
         this.pcmDac.observeWrite(scheduled.port, scheduled.register, scheduled.value);
         if (scheduled.type === "psg-write") this.psg?.write(scheduled.value);
         else this.ym2612.writeRegister(

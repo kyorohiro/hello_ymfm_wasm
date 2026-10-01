@@ -246,3 +246,15 @@ for(const file of ['ym2612-worklet.js','ym2612-worklet-nuked.js'])test(`${file}:
  assert.equal(replies.length,1);assert.equal(replies[0].id,23);assert.equal(replies[0].error,undefined);
  assert.equal(messages.length,0);
 });
+
+for(const tree of ['web','docs/js'])for(const file of ['ym2612-worklet.js','ym2612-worklet-nuked.js'])test(`${tree} ${file}: consumed reservations do not replay; interleaved batches preserve equal-time order and clear`,()=>{
+ const {p,context}=processor(tree,file,48000),writes=[];
+ p.ym2612=chip(48000);p.ym2612.writeRegister=(r,v)=>writes.push(v);
+ const send=entries=>p.applyCommand({type:'schedule-writes',entries:entries.map(([frame,value])=>({time:frame/48000,port:0,register:42,value}))});
+ send([[0,1],[64,4],[96,7]]);render(p,32);context.currentFrame=32;
+ send([[32,2],[64,5],[80,6],[32,3]]);render(p,96);context.currentFrame=128;
+ assert.deepEqual(writes,[1,2,3,4,5,6,7]);assert.equal(p.scheduledCommands.length,0);
+ send([[128,8],[256,9]]);render(p,32);context.currentFrame=160;
+ p.applyCommand({type:'clear-scheduled-writes'});send([[160,10]]);render(p,128);
+ assert.deepEqual(writes,[1,2,3,4,5,6,7,8,10]);assert.equal(p.scheduledCommands.length,0);
+});

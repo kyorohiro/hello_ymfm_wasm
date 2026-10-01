@@ -42,7 +42,7 @@ test('incomplete settings and power reset do not create invented voices; CH2 use
 });
 test('GB Info groups channels, separates initial settings from later writes, and resets cleanly',async()=>{
  const previous=globalThis.document;
- const node=tag=>({tag,children:[],style:{},value:'0',append(...v){this.children.push(...v);},replaceChildren(...v){this.children=v;},setAttribute(){},addEventListener(){},focus(){},select(){}});
+ const node=tag=>({tag,children:[],style:{},value:'0',append(...v){this.children.push(...v);},replaceChildren(...v){this.children=v;},setAttribute(){},addEventListener(t,fn){this[t]=fn;},focus(){},select(){}});
  globalThis.document={createElement:node};
  try{
   const panel=node('div'),ui=mountSampleExplorer(panel,()=>vgm([...pulse,...noise,...wait,...w(18,0x24),0x66]));
@@ -50,9 +50,31 @@ test('GB Info groups channels, separates initial settings from later writes, and
   const children=panel.children[1].children;
   assert.deepEqual(children.filter(x=>x.tag==='h3').map(x=>x.textContent),['Pulse CH1','Noise CH4']);
   const rows=children.filter(x=>x.tag==='details');assert.equal(rows.length,2);
+  assert.ok(rows.every(r=>r.children.length===1));
+  for(const row of rows){row.open=true;row.toggle();}
   assert.ok(rows[1].children.some(x=>x.textContent?.includes('gb.writeRegister(0x12, 0x24)')));
   assert.ok(rows[0].children.some(x=>x.textContent==='Copy initial voice JavaScript'));
   ui.reset();assert.equal(panel.children[1].children.length,0);
   ui.setChip('ym2612');assert.equal(panel.children[0].textContent,'Analyze samples');
+ }finally{globalThis.document=previous;}
+});
+
+test('voice details are built once and all occurrences remain reachable in bounded pages',async()=>{
+ const {appendGameboyVoice}=await import('./gameboy_voice_view.js');
+ const r=await extractSamples(vgm([...pulse,0x66]));
+ const events=Array.from({length:205},(_,i)=>({...r.events[0],startTime:i*44100,frequencyRegister:i}));
+ const previous=globalThis.document;
+ const node=tag=>({tag,children:[],style:{},value:'0',append(...v){this.children.push(...v);},replaceChildren(...v){this.children=v;},setAttribute(){},addEventListener(t,fn){this[t]=fn;}});
+ globalThis.document={createElement:node};
+ try{
+  const root=node('div');appendGameboyVoice(root,r.samples[0],events,events);const row=root.children[0];
+  assert.equal(row.children.length,1);row.open=true;row.toggle();
+  const count=row.children.length;row.open=false;row.toggle();row.open=true;row.toggle();assert.equal(row.children.length,count);
+  const select=row.children.find(x=>x.tag==='select'),next=row.children.find(x=>x.textContent==='Next occurrences'),back=row.children.find(x=>x.textContent==='Previous occurrences');
+  assert.equal(select.children.length,100);assert.equal(back.disabled,true);
+  next.onclick();assert.equal(select.value,'100');assert.equal(select.children.length,100);
+  next.onclick();assert.equal(select.value,'200');assert.equal(select.children.length,5);assert.equal(next.disabled,true);
+  select.value='204';select.onchange();assert.ok(row.children.some(x=>x.textContent?.includes('"frequencyRegister": 204')));
+  back.onclick();assert.equal(select.value,'100');assert.equal(next.disabled,false);
  }finally{globalThis.document=previous;}
 });

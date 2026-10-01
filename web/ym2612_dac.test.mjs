@@ -109,3 +109,32 @@ test('Node Buffer PCM owns its bytes and late requests start at the next render 
   assert.equal(transport.generateStereo(1).left[0],150);
   assert.ok(writes.some(w=>w[0]===10 && w[2]===0xb6 && w[3]===0x63));
 });
+
+test('Direct DAC rendering copies borrowed views before the next generate overwrites them',async()=>{
+ const scratch=new Float32Array(32);let value=128;
+ const chip={sampleRate:()=>100,reset(){},writeRegister(r,v){if(r===42)value=v;},
+  generateStereo(){throw new Error('owned intermediate PCM should not be needed');},
+  generateStereoView(n){scratch.fill(value);return {left:scratch,right:scratch};}};
+ const transport=new YM2612DirectTransport(chip),synth=new YM2612Synth({transport});
+ await synth.dac.play([140,180],{sampleRate:10});
+ const result=transport.generateStereo(21);scratch.fill(0);
+ assert.deepEqual([...result.left],[...Array(10).fill(140),...Array(10).fill(180),128]);
+ assert.deepEqual(result.left,result.right);
+});
+
+test('real WASM PCM is identical with owned arrays and borrowed capacity views',async()=>{
+ const {Ym2612}=await import('./ym2612.js');
+ const {default:factory}=await import('../docs/generated/ym2612_wasm.js');
+ const chip=await Ym2612.create({moduleFactory:factory});
+ try{
+  chip.reserveStereoFrames(512);
+  const view=chip.generateStereoView.bind(chip),results=[];
+  for(const useViews of [false,true]){
+   chip.generateStereoView=useViews?view:undefined;
+   const transport=new YM2612DirectTransport(chip),synth=new YM2612Synth({transport});
+   await synth.dac.play(Uint8Array.from({length:2205},(_,i)=>128+Math.round(60*Math.sin(i/4))),{sampleRate:11025});
+   results.push(transport.generateStereo(Math.ceil(chip.sampleRate()*.21)));
+  }
+  assert.deepEqual(results[0],results[1]);
+ }finally{chip.dispose();}
+});

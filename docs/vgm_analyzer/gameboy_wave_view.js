@@ -1,7 +1,6 @@
 import {gameboyWaveCode, gameboyWaveJson} from './gameboy_waves.js';
 
-export function appendGameboyWave(output, sample, events) {
-  const uses = events.filter(e => e.sampleId === sample.id);
+export function appendGameboyWave(output, sample, events, uses = events.filter(e => e.sampleId === sample.id)) {
   const row = document.createElement('details'), title = document.createElement('summary');
   title.textContent = `Wave ${sample.id} · Game Boy CH3 · 32 points (0–15) · ${uses.length} observations`;
   row.append(title);
