@@ -2,9 +2,10 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
+import {connectDesktop} from './desktop_interface.js';
 
 const source = readFileSync(new URL('./vgm_analyzer.js', import.meta.url), 'utf8');
-function setup(load = async () => true) {
+function setup(load = async () => true, desktopHost = {}) {
   const calls = [];
   const element = () => ({
     children: [], attributes: {}, listeners: {},
@@ -16,6 +17,7 @@ function setup(load = async () => true) {
   const list = element();
   const input = element();
   const context = vm.createContext({
+    connectDesktop: options => connectDesktop(options, desktopHost),
     console, playlistList: list, playlistSummary: element(), fileInput: input,
     playlistLoopCheckbox: { checked: false }, playlistLoopControl: element(),
     document: { createElement: element }, currentBuffer: null,
@@ -202,3 +204,21 @@ test('ROM-only import and cancelled file picker preserve the music playlist', as
   assert.deepEqual(p.calls.at(-1), ['wave-rom', 'yrw801.bin']);
   assert.equal(p.list.children.length, 1);
  });
+
+
+test('desktop collections use the existing playlist and read tracks on demand', async () => {
+  let receiver;
+  const reads = [];
+  const host = {__tetoricaDesktop: {version: 1, available: true, connect(handler) {
+    receiver = handler;
+    return () => {};
+  }}};
+  const s = setup(async file => { await file.arrayBuffer(); return true; }, host);
+  await receiver(['10.vgm', '02.vgm'].map(name => ({
+    name,
+    arrayBuffer: async () => { reads.push(name); return new ArrayBuffer(4); },
+  })));
+  assert.deepEqual(reads, ['02.vgm']);
+  await s.context.selectPlaylistTrack(1, false);
+  assert.deepEqual(reads, ['02.vgm', '10.vgm']);
+});

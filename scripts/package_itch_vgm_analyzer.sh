@@ -14,6 +14,7 @@ DOCS_GENERATED_DIR="${ROOT_DIR}/docs/generated"
 LICENSE_FILE="${ROOT_DIR}/LICENSE"
 
 ANALYZER_FILES="
+desktop_interface.js
 tfi_extract.js
 fm_snapshot.js
 tfi_archive.js

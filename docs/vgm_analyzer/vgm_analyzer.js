@@ -1,3 +1,4 @@
+import {connectDesktop} from './desktop_interface.js';
 import {exportFmRegisterSnapshot} from './fm_snapshot.js';
 import {updateNoteishHtml, updateNoteishGraph} from './noteish_dom.js';
 import {mountCommandEditor} from './command_editor.js';
@@ -3514,6 +3515,7 @@ fileInput.addEventListener("change", (event) => {
   void importPlaylistFiles(files);
 });
 renderPlaylist();
+connectDesktop({openFiles: importPlaylistFiles});
 
 let fileDragDepth = 0;
 const isFileDrag = (event) => Array.from(event.dataTransfer?.types || []).includes("Files");
