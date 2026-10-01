@@ -68,6 +68,7 @@ playground_execution.js
 playground_live.js
 playground_logic_worker.js
 playground_midi.js
+playground_duration.js
 midi_song.js
 midi_file.js
 midi_source.js

@@ -804,6 +804,22 @@ function createPlayOptionsSuggestions(
       range,
     },
     {
+      label: "beats",
+      kind: kind.Property,
+      insertText: "beats: ${1:1},",
+      insertTextRules: snippet,
+      documentation: "Note length in beats at current BPM. Do not combine with seconds or duration.",
+      range,
+    },
+    {
+      label: "seconds",
+      kind: kind.Property,
+      insertText: "seconds: ${1:0.3},",
+      insertTextRules: snippet,
+      documentation: "Fixed note length in seconds. Do not combine with beats or duration.",
+      range,
+    },
+    {
       label: "duration",
       kind: kind.Property,
       insertText: "duration: ${1:0.08},",
@@ -973,7 +989,7 @@ function createPlayCallSuggestions(
       label: '"C4", { ... }',
       kind: kind.Snippet,
       insertText:
-        '"${1:C4}", { channel: ${2:0}, duration: ${3:0.08} }',
+        '"${1:C4}", { channel: ${2:0}, seconds: ${3:0.08} }',
       insertTextRules: snippet,
       documentation:
         "Play note plus options object.",

@@ -1,3 +1,4 @@
+import {resolvePlaySeconds} from './playground_duration.js';
 /**
  * @file playground_music.js
  * 実行環境: Browser / Node.js
@@ -41,6 +42,7 @@ export function createPlaygroundMusic(
     activeNotes,
     sleep,
     getCurrentLoopContext,
+    getBpm = () => 120,
   } = options;
   const globalCycleState =
     new Map();
@@ -113,8 +115,7 @@ export function createPlaygroundMusic(
 
     const channel =
       options.channel ?? 0;
-    const duration =
-      options.duration ?? 0.2;
+    const duration = resolvePlaySeconds(options, getBpm());
     const presetName =
       options.preset ?? null;
 

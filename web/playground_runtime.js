@@ -15,7 +15,7 @@ import {samplePCM} from './native_sample.js';
  * 依存: window のイベント処理、Web Audio 対応 Synth、Worker（Worker モード時）。
  * import とブラウザー上の実行・音声初期化は別。Node.js での実再生用ではない。
  */
-import {createMidiRack, createMidiApi, validateBendRange, MIDI_SUPPORTED_CC} from './playground_midi.js?v=midi-held-stop-1';
+import {createMidiRack, createMidiApi, validateBendRange, MIDI_SUPPORTED_CC} from './playground_midi.js?v=play-units-1';
 import {parseMidiFile} from './midi_file.js?v=readable-midi-1';
 import { createAudioScheduler } from "./playground_audio_scheduler.js";
 import {
@@ -28,7 +28,7 @@ import {
 import { createPlaygroundClock } from "./playground_clock.js?v=loop-async-tasks-1";
 import { executeWithPlaygroundGuards } from "./playground_execution.js";
 import { createPlaygroundLive } from "./playground_live.js?v=loop-async-tasks-1";
-import { createPlaygroundMusic } from "./playground_music.js";
+import { createPlaygroundMusic } from "./playground_music.js?v=play-units-1";
 import { createPlaygroundNoiseApi } from "./playground_noise.js";
 import { createFmProxy } from "./playground_sync.js?v=dac-pcm-1";
 import { parseTfi } from "./tfi.js";
@@ -171,7 +171,7 @@ export function createPlaygroundRuntime(
     );
   defaultLogicWorkerUrl.searchParams.set(
     "v",
-    "dac-pcm-1"
+    "play-units-1"
   );
   const logicWorkerUrl =
     options.logicWorkerUrl ??
@@ -1227,6 +1227,7 @@ export function createPlaygroundRuntime(
         synth: () => synth,
         presets,
         activeNotes,
+        getBpm: () => runtime.bpm,
         sleep: (seconds) =>
           clockApi.sleep(
             seconds,

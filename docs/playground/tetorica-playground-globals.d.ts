@@ -125,7 +125,11 @@ declare const OP4: 3;
 type PlaygroundPlayOptions = {
   /** YM2612 channel 0..5. */
   channel?: YM2612Channel;
-  /** Note duration in seconds. */
+  /** Beats at BPM when play starts. Mutually exclusive with seconds/duration. */
+  beats?: number;
+  /** Fixed seconds. Mutually exclusive with beats/duration. */
+  seconds?: number;
+  /** Legacy duration in seconds (default 0.2). */
   duration?: number;
   /** Optional preset applied before playing the note. */
   preset?: YM2612Preset;
@@ -955,8 +959,8 @@ interface PlaygroundMidiOutput {
   pitchBend(value: number): Promise<void>;
   /** Symmetric range in semitones, 0..96; default 2. Retunes held notes. */
   setPitchBendRange(semitones: number): Promise<void>;
-  /** Duration is in beats at setBpm(), unlike the existing global FM play(). */
-  play(note: string | number, options?: {velocity?: number; duration?: number}): Promise<void>;
+  /** Choose beats or seconds. Legacy duration remains beats (default 1); do not combine length options. */
+  play(note: string | number, options?: {velocity?: number; duration?: number; beats?: number; seconds?: number}): Promise<void>;
   noteOn(note: string | number, options?: {velocity?: number}): Promise<number>;
   noteOff(note: string | number): Promise<void> | void;
   /** YM2612 only; affects subsequent notes, not held voices. */

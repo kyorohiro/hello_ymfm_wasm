@@ -1,3 +1,4 @@
+import {resolvePlaySeconds} from './playground_duration.js';
 /**
  * @file playground_midi.js
  * 実行環境: Browser / Node.js
@@ -304,10 +305,11 @@ export function createMidiApi(invoke, {sleep, bpm, check = ()=>{}, owner = ()=>n
           for(const [id,e] of held)if(!e.released&&e.args[0]===destination&&e.args[1]===ch&&e.args[2]===n){releaseHeld(id);return handleCall('release',e.args);}
           return handleCall('noteOff',[destination,ch,n]);
         },
-        async play(note,{velocity=100,duration=1}={}) {
-          if(!Number.isFinite(duration)||duration<0)throw new Error('duration must be nonnegative beats');
+        async play(note,options={}) {
+          const {velocity=100}=options;
+          const seconds=resolvePlaySeconds(options,bpm(),'beats',1);
           const n=midiNote(note),id=await this.noteOn(n,{velocity});
-          try {await sleep(duration*60/bpm());} finally {releaseHeld(id);try{await invoke('release',[destination,ch,n,id]);}catch(error){if(error.name!=='AbortError')throw error;}}
+          try {await sleep(seconds);} finally {releaseHeld(id);try{await invoke('release',[destination,ch,n,id]);}catch(error){if(error.name!=='AbortError')throw error;}}
         },
       };
     },

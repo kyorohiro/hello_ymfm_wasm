@@ -1,3 +1,4 @@
+import {resolvePlaySeconds} from '../../web/playground_duration.js';
 import {createLoopAsyncTasks} from '../../web/playground_async_tasks.js';
 import {createOpnClient} from '../../web/playground_opn.js';
 import {createRf5c164Client} from '../../web/playground_rf5c164.js';
@@ -25,7 +26,7 @@ const workerSource = readFileSync(
 function createWorkerHarness() {
   const messages = [];
   const context = {
-    createNativeSampleController, createNativeNoiseController, controlNativeNoise, createWorkerDac, atob, createMidiApi, createMidiRack, createWorkerChip, createNativeFXController, DOMException, structuredClone,
+    resolvePlaySeconds, createNativeSampleController, createNativeNoiseController, controlNativeNoise, createWorkerDac, atob, createMidiApi, createMidiRack, createWorkerChip, createNativeFXController, DOMException, structuredClone,
     createLoopAsyncTasks, createDeadlineScheduler, createOpnClient, createGameboyClient, createSoundChipRegistry, createRf5c164Client, createYm2608Client,
     hzToBlockFnum,
     Error,
@@ -634,4 +635,19 @@ for(const method of ['sleep','sleepSamples','beat'])test(`Worker tracked error i
  assert.equal(worker.messages.filter(m=>m.command==='log'&&m.args?.[0]==='entered').length,1);
  assert.equal(worker.messages.filter(m=>m.command==='log'&&m.args?.[0]==='after').length,0);
  await worker.send({type:'stop'});
+});
+
+test('Worker fallback converts beats using its own BPM before requesting Main playback',async()=>{
+ const worker=createWorkerHarness();
+ await worker.send({type:'run',presets:{},scaleIntervals:{},sourceCode:"setBpm(240); await play('C4', {beats: 2});"});
+ const request=worker.messages.find(m=>m.type==='request'&&m.command==='play');
+ assert.equal(request.args[1].seconds,.5);
+ await worker.send({type:'response',id:request.id,result:null});await worker.send({type:'stop'});
+});
+test('Worker direct play rejects conflicting units before register writes',async()=>{
+ const worker=createWorkerHarness(),commands=[];
+ await worker.send({type:'chip-port',port:{postMessage:batch=>commands.push(...batch),close(){}}});
+ await worker.send({type:'run',presets:{},scaleIntervals:{},capabilities:{chip:'ym2612',fmChannels:6,dac:true},sourceCode:"await play('C4', {beats:1, seconds:1});"});
+ assert.ok(worker.messages.some(m=>m.type==='execution-error'&&m.message.includes('only one')));
+ assert.equal(commands.length,0);await worker.send({type:'stop'});
 });
