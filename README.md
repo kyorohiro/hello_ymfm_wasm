@@ -300,8 +300,11 @@ the VGM YM2151 clock field and uses the bundled ymfm OPP variant, with a
 Timer B period twice that of YM2151. Note-ish, MIDI/MML and OPM voice
 extraction share the compatible register layout. Undocumented YM2164
 registers 0x00–0x07 are not emulated specially.
-A second OPM/OPP chip and MSX PSG / MSX-AUDIO mixed configurations remain
-unsupported by this Analyzer playback path.
+MSX mixtures with AY / YM2149, YM2413, Y8950 and SCC / SCC+ support
+playback, chip/channel mutes, Live / Song Note-ish and MIDI / MusicXML /
+LilyPond export. Mixed configurations use normal seeking and do not expose
+OPM voice exports or MML. A second chip instance and mixtures with OPL4
+remain unsupported.
 Build with `sh scripts/build_ym2151_wasm.sh`.
 The JavaScript engine accepts `ym2151Variant: 'ym2164'`; the chip wrapper
 accepts `variant: 'ym2164'`. Both default to YM2151.
@@ -340,7 +343,7 @@ YM3526, YM3812 and standalone Y8950 support nine-channel base-pitch Note-ish, MI
 and LilyPond export. Rhythm-mode CH7–9 and CSM intervals are omitted from
 transcription; Y8950 ADPCM is also omitted. Timbre, modulation and envelope
 release are not reconstructed. Optional Sega PSG tones are included in exports.
-The combined MSX configuration remains playback-only in the Analyzer.
+Combined MSX configurations also support base-pitch Note-ish and score exports.
 Operator Info displays both operators, feedback/connection and waveform state,
 and exports the current register state as a JSON voice snapshot. YM3526 uses
 a fixed sine waveform, as does Y8950; YM3812 respects the waveform-selection enable bit.
@@ -362,11 +365,13 @@ To inspect and reconstruct this playback path:
 
 ### MSX multi-chip playback
 
-The Analyzer now plays Y8950 + AY-3-8910/YM2149 + YM2413 together, including
-Y8950 ADPCM data embedded in VGM blocks. Y8950 plus either AY or YM2413 is also
-accepted. This path uses the existing chip cores; no additional MAME core is
-introduced. The combined mode currently offers playback and parsed events,
-not instrument analysis or editing.
+The Analyzer mixes any subset of AY-3-8910/YM2149, YM2413, Y8950,
+SCC/SCC+ and YM2151/YM2164 (one of each family), including embedded Y8950
+ADPCM. It provides chip/channel mutes, Live / Song Note-ish and base-pitch
+MIDI / MusicXML / LilyPond exports. Mixed mode does not provide instrument
+editing, voice export or MML. OPL4 mixtures and second instances remain
+unsupported. Synthetic tests cover OPM and OPP with all 15 subsets of the
+other four families, including replay, seek and mute routing.
 
 `web/multichipaudioengine.js` registers engines by chip type and instance index.
 Each owns its register state, sample memory and resampling state. Parser targets

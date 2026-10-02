@@ -18,6 +18,7 @@ import { createYm2203AudioEngine } from "../js/ym2203audioengine.js";
 import { createYm2608AudioEngine } from "../js/ym2608audioengine.js";
 import { VgmPlayer } from "../js/vgmplayer.js";
 export function detectPlaybackChipKind(header) {
+  if ((header.ym2151Clock & 0x3fffffff) && ['ay8910','ym2413','y8950','k051649'].some(kind => header[`${kind}Clock`] & 0x3fffffff)) return 'msx';
   if (header.k051649Clock & 0x3fffffff) return "msx";
   if ((header.y8950Clock & 0x3fffffff) && (header.ay8910Clock || header.ym2413Clock)) return "msx";
   if (header.ymf278bClock & 0x3fffffff) return "ymf278b";
@@ -102,7 +103,7 @@ const composition = {
   ym2612: ['ym2612','psg','rf5c164','pwm'],
   ym2203: ['ym2203'], ym2608: ['ym2608'], ym2610: ['ym2610'],
   ym2151: ['ym2151','psg','segaPcm'], ay8910: ['ay8910','ym2413'],
-  msx: ['ay8910','ym2413','y8950','k051649'],
+  msx: ['ay8910','ym2413','y8950','k051649','ym2151'],
   ym2413: ['ym2413','psg'], y8950: ['y8950','psg'],
   ymf278b: ['ymf278b','psg'], ym3526: ['ym3526','psg'],
   ym3812: ['ym3812','psg'], ymf262: ['ymf262','psg'],
@@ -140,6 +141,9 @@ const recipes = {
   nes: async (vgm, resource, masterVolume) => createNesApuAudioEngine({clock:vgm.header.nesApuClock & 0x3fffffff,fds:!!(vgm.header.nesApuClock & 0x80000000),masterVolume}),
   okim6258: async (vgm, resource, masterVolume) => Oki6258AudioEngine.create({moduleFactory:await resource('okim6258'),clock:vgm.header.okim6258Clock,flags:vgm.header.okim6258Flags,masterVolume}),
   msx: async (vgm, resource, masterVolume) => createMsxAudioEngine({
+        ym2151ModuleFactory: vgm.header.ym2151Clock ? await resource('ym2151') : undefined,
+        ym2151Clock: vgm.header.ym2151Clock & 0x3fffffff,
+        ym2151Variant: (vgm.header.ym2151Clock & 0x80000000) ? 'ym2164' : 'ym2151',
         ayModuleFactory: vgm.header.ay8910Clock ? await resource('ay8910') : undefined,
         ayClock: vgm.header.ay8910Clock & 0x3fffffff, ayType:vgm.header.ay8910Type, ayFlags:vgm.header.ay8910Flags,
         ym2413ModuleFactory: vgm.header.ym2413Clock ? await resource('ym2413') : undefined,
@@ -284,6 +288,7 @@ export function playbackMuteControls(configuration) {
   if(h.segaPcmClock && ['segapcm','ym2151'].includes(kind)){add('segapcm','setSegaPcmMuted');channels('segapcm-ch',16,'setSegaPcmChannelMuted');}
   if(['ay8910','msx'].includes(kind)&&h.ay8910Clock){add('ay8910','setAyMuted');channels('ay8910-ch',3,'setAyChannelMuted');}
   if(kind==='msx'){
+    if(h.ym2151Clock){add('ym2151','setOpmMuted');channels('ym2151-ch',8,'setOpmChannelMuted');}
     if(h.ym2413Clock)add('ym2413','setOpllMuted');
     if(h.y8950Clock)add('y8950','setY8950Muted');
     if(h.k051649Clock){add('k051649','setSccMuted');channels('k051649-ch',5,'setSccChannelMuted');}

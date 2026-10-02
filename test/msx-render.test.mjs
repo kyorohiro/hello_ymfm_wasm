@@ -42,7 +42,7 @@ test('MSX rejects dual/variant flags, foreign chips and second SCC writes',async
     const bad=source.slice(),v=new DataView(bad.buffer);v.setUint32(offset,v.getUint32(offset,true)+flag,true);
     await assert.rejects(renderSource(bad),e=>e.code==='UNSUPPORTED_CONFIGURATION');
   }
-  for(const offset of [0x0c,0x2c,0x30]){
+  for(const offset of [0x0c,0x2c]){
     const bad=source.slice();new DataView(bad.buffer).setUint32(offset,3579545,true);
     await assert.rejects(renderSource(bad),e=>e.code==='UNSUPPORTED_CONFIGURATION');
   }

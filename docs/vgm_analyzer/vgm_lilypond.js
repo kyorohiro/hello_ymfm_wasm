@@ -86,7 +86,7 @@ export function createLilyPondScore(channels, totalSamples, { bpm = 120, fileNam
 
 export function analyzeLilyPondSource(source) {
   const header = new Ym2612VGM(source).header;
-  const kind = header.ymf262Clock & 0x3fffffff ? 'ymf262' : header.ym2151Clock & 0x3fffffff ? 'ym2151' : midiChipKind(header);
+  const kind = midiChipKind(header) === 'msx' ? 'msx' : header.ymf262Clock & 0x3fffffff ? 'ymf262' : header.ym2151Clock & 0x3fffffff ? 'ym2151' : midiChipKind(header);
   if (!kind) throw new Error('LilyPond requires YMF262 / YM3526 / YM3812 / Y8950 / OPN / YM2151 / AY-3-8910 / YM2413 / PSG / NES APU / HuC6280 / Game Boy DMG notes');
   const fm = kind === 'msx' ? extractMsxNotes(source) : kind === 'ymf278b' ? extractOpl3Notes(source, kind) : isOpl(kind) ? extractOplNotes(source) : kind === 'ymf262' ? extractOpl3Notes(source) : kind === 'ym2151' ? extractOpmNotes(source) : kind === 'psg' || kind === 'ay8910' || kind === 'ym2413' || kind === 'huc6280' || kind === 'nes' || kind === 'gameboy' ? { channels: [], warnings: new Map() } : extractOpnNotes(source);
   const tones = kind === 'msx' ? {channels:[],warnings:new Map(),time:0} : kind === 'huc6280' ? extractHuc6280Notes(source) : kind === 'nes' ? extractNesNotes(source) : kind === 'gameboy' ? extractGameboyNotes(source) : extractToneNotes(source, kind);

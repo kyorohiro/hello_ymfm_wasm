@@ -1,3 +1,4 @@
+import {createOpmNoteTracker} from './opm_notes.js';
 import {Ym2612VGM} from '../js/ym2612vgm.js';
 import {createSccMonitor, applySccWrite, describeSccNotes} from './scc_notes.js';
 import {createPsgMonitor, applySsgWrite} from './psg_monitor.js';
@@ -5,11 +6,11 @@ import {describeToneNotes} from './tone_notes.js';
 import {createOplMonitor, applyOplWrite, describeOplNotes} from './opl_notes.js';
 import {describeYm2413} from './ym2413_monitor.js';
 
-export const msxNoteKinds = ['ay8910','ym2413','y8950','k051649'];
+export const msxNoteKinds = ['ay8910','ym2413','y8950','k051649','ym2151'];
 export function createMsxNoteMonitor(header) {
   return msxNoteKinds.filter(kind => header[`${kind}Clock`] & 0x3fffffff).map(kind => ({
-    kind, clock:header[`${kind}Clock`] & 0x3fffffff, triggers:[0,0,0],
-    state:kind === 'ay8910' ? createPsgMonitor(kind) : kind === 'ym2413' ? new Uint8Array(64)
+    kind, opp:!!(header.ym2151Clock & 0x80000000), clock:header[`${kind}Clock`] & 0x3fffffff, triggers:[0,0,0],
+    state:kind === 'ym2151' ? createOpmNoteTracker(header.ym2151Clock & 0x3fffffff) : kind === 'ay8910' ? createPsgMonitor(kind) : kind === 'ym2413' ? new Uint8Array(64)
       : kind === 'y8950' ? createOplMonitor() : createSccMonitor(!!(header.k051649Clock & 0x80000000)),
   }));
 }
@@ -17,7 +18,8 @@ export function applyMsxNoteWrite(groups, kind, ...args) {
   const group = groups.find(g => g.kind === kind);
   if (!group) return;
   const [r,v] = args;
-  if (kind === 'k051649') applySccWrite(group.state, ...args);
+  if (kind === 'ym2151') group.state.write(r,v,0);
+  else if (kind === 'k051649') applySccWrite(group.state, ...args);
   else if (kind === 'y8950') applyOplWrite(group.state,r,v);
   else if (kind === 'ym2413') { if (r >= 0 && r < 64) group.state[r] = v; }
   else {
@@ -27,6 +29,7 @@ export function applyMsxNoteWrite(groups, kind, ...args) {
 }
 export function describeMsxNotes(groups) {
   return groups.flatMap(g => {
+    if (g.kind === 'ym2151') return g.state.channels.map((n,i) => ({...n,name:`${g.opp?'YM2164':'YM2151'} CH${i+1}`,freq:n.midi === null ? 0 : 440 * 2**((n.midi-69)/12),trigger:n.key,type:g.opp?'OPP':'OPM'}));
     if (g.kind === 'k051649') return describeSccNotes(g.state,g.clock);
     if (g.kind === 'ay8910') return describeToneNotes(g.state,g.clock).map((n,i) => ({...n,
       name:`AY8910 ${n.name}`, freq:n.midi === null ? 0 : 440 * 2**((n.midi-69)/12), type:'SSG', trigger:g.triggers[i]}));
@@ -52,7 +55,7 @@ export function extractMsxNotes(source) {
   const warn = message => warnings.set(message,{count:(warnings.get(message)?.count ?? 0)+1});
   const parser = new Ym2612VGM(source,{logger:{warn}}), header = parser.header;
   for (const kind of msxNoteKinds) {
-    if (header[`${kind}Clock`] & (kind === 'k051649' ? 0x40000000 : 0xc0000000))
+    if (header[`${kind}Clock`] & (['k051649','ym2151'].includes(kind) ? 0x40000000 : 0xc0000000))
       throw new Error(`MSX ${kind}: dual/variant note extraction is not supported`);
   }
   for (const [key,value] of Object.entries(header)) {
@@ -62,6 +65,7 @@ export function extractMsxNotes(source) {
   const groups = createMsxNoteMonitor(header);
   if (!groups.length) throw new Error('MSX note extraction requires an AY, OPLL, Y8950 or SCC clock');
   for (const {kind} of groups) {
+    if (kind === 'ym2151') warn('OPM / OPP: base pitch only; noise, partial keys, CSM, timbre, modulation and release are omitted.');
     if (kind === 'k051649') warn('SCC / SCC+: 32-step waveform base period only; waveform harmonics, waveform rewriting and test-register phase resets are not transcribed. Constant waves, periods below 9 and test frequency modes are omitted.');
     if (kind === 'ay8910') warn('AY: tone pitch only; noise and envelope phase/volume are not synthesized. Shape writes retrigger envelope tones.');
     if (kind === 'ym2413') warn('OPLL: FNUM/BLOCK base pitch only; rhythm other than Bass Drum, timbre, modulation and release are omitted.');

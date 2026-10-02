@@ -4,6 +4,11 @@ export function msxMuteControls(kind, header = {}) {
   const add = (chip, label, method, channel) => controls.push({
     key: `${chip}:${method}:${channel ?? 'all'}`, chip, label, method, channel,
   });
+  if (kind === 'msx' && header.ym2151Clock) {
+    const label = header.ym2151Clock & 0x80000000 ? 'YM2164' : 'YM2151';
+    add('ym2151', label, 'setChipMuted');
+    for (let ch = 0; ch < 8; ch++) add('ym2151', `${label} CH${ch + 1}`, 'setChannelMuted', ch);
+  }
   if (kind === 'msx' && header.ay8910Clock) {
     add('ay8910', 'AY / YM2149', 'setAyMuted');
     for (let ch = 0; ch < 3; ch++) add('ay8910', `AY ${'ABC'[ch]}`, 'setAyChannelMuted', ch);

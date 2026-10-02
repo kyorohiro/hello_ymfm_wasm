@@ -236,16 +236,18 @@ tetorica-vgm render song.vgz --output song.wav
 ## MSX combinations
 
 `render` supports all nonempty subsets of AY-3-8910, YM2413 (OPLL),
-Y8950 (MSX-AUDIO) and K051649 / K052539 (SCC / SCC+), one instance of each. The shared
+Y8950 (MSX-AUDIO), K051649 / K052539 (SCC / SCC+) and YM2151 / YM2164 (OPM / OPP), one instance of each family. The shared
 Browser MSX engine routes writes and mixes PCM; the CLI adds only the
 WASM factory provider. Y8950 ADPCM uses embedded sample data; SCC waveforms
 come from VGM register writes. No external ROM is needed for these fixtures.
 
-Dual chips, header variant flags and combinations with Sega PSG or other
-FM families remain unsupported. This does not enable every MSX hardware
+Dual chips, variant flags other than SCC+ / OPP, and combinations with Sega PSG
+or other FM families (including OPL4) remain unsupported. This does not enable every MSX hardware
 variant. Offline package tests cover SCC alone, AY + OPLL and the four-chip
 mix; source tests cover all 15 subsets and compare their PCM to the sum of
-the individual chips as well as WAV output from the Browser engines.
+the individual chips as well as WAV output from the Browser engines. An additional
+30 synthetic combinations cover YM2151 and YM2164 mixed with each of those
+15 subsets, including mutes, seeking and score exports.
 
 ## 32X PWM
 
@@ -516,7 +518,7 @@ and present chips. Unsupported-ID errors include the available IDs.
 | `y8950-adpcm` | Standalone Y8950 ADPCM |
 | `segapcm`, `segapcm-ch-1..16` | Sega PCM alone or with YM2151 |
 | `ay8910`, `ay8910-ch-1..3` | AY standalone / MSX |
-| `ym2413`, `y8950`, `k051649`, `k051649-ch-1..5` | Present MSX components |
+| `ym2413`, `y8950`, `k051649`, `k051649-ch-1..5`, `ym2151`, `ym2151-ch-1..8` | Present MSX components; `ym2151` IDs also control YM2164 |
 
 Ranges above describe individual IDs, not range syntax. Multiple IDs use
 commas. FM channel numbering and rhythm/paired-operator interactions follow
@@ -742,7 +744,7 @@ node cli/main.js export test/fixtures/y8950-mix.vgz --format musicxml --bpm 120 
 node cli/main.js export test/fixtures/y8950-mix.vgz --format lilypond --bpm 120 --output /tmp/y8950.ly
 ```
 
-MSX AY / OPLL / Y8950 / SCC / SCC+ combinations also support `channels` and
+MSX AY / OPLL / Y8950 / SCC / SCC+ / OPM / OPP combinations also support `channels` and
 MIDI / MusicXML / LilyPond export. SCC pitches describe the waveform repeat
 period; harmonics and waveform rewriting are not reconstructed. AY noise,
 Y8950 ADPCM/rhythm/CSM and OPLL rhythm other than Bass Drum are omitted.
