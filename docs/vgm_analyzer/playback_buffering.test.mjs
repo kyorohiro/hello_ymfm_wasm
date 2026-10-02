@@ -38,14 +38,16 @@ for(const length of [0,13,4096,5000])test(`Analyzer pump completes ${length}-sam
  const w=processor('../js/vgm-output-worklet.js',4096);let cursor=0;
  const expected=Float32Array.from({length},(_,i)=>(i%100+1)/128);
  const pending=[];
- const context=vm.createContext({Float32Array,player:{isPaused:()=>false,
+ const context=vm.createContext({Float32Array,performance:{now:()=>cursor / 100},player:{isPaused:()=>false,
   stats:()=>({playing:cursor<length,paused:false,queuedFrames:0}),
   process(l,r,n){const count=Math.min(n,length-cursor);l.set(expected.subarray(cursor,cursor+count));r.set(expected.subarray(cursor,cursor+count));cursor+=count;}},
-  activeStream:{mode:'worklet',chunkFrames:2048,workletQueuedFrames:0,endSent:false,node:{port:{postMessage:data=>w.send(data)}}},
+  activeStream:{mode:'worklet',renderMs:0,maxRenderMs:0,chunkFrames:2048,workletQueuedFrames:0,endSent:false,node:{port:{postMessage:data=>w.send(data)}}},
   currentWorkletTargetFrames:()=>4096,applyAnalyzerMuteToBuffer(){},requestPlaybackUiRender(){},scheduleWorkletPump(){pending.push(true);},
  });
  vm.runInContext(source.slice(start,end),context);
  context.pumpWorkletChunks();
+ assert.equal(context.activeStream.renderMs,Math.min(length,2048)/100);
+ assert.equal(context.activeStream.maxRenderMs,context.activeStream.renderMs);
  if(length>2048){assert.deepEqual(w.output(128)[0],Array(128).fill(0));assert.equal(w.p.consumedFrames,0);}
  while(pending.pop())context.pumpWorkletChunks();
  const result=[];

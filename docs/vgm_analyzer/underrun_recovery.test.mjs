@@ -1,0 +1,38 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import vm from 'node:vm';
+import {readFileSync} from 'node:fs';
+for(const path of ['../../web/vgm-output-worklet.js','../js/vgm-output-worklet.js'])test(`${path}: starvation fades, waits for refill and preserves PCM position`,()=>{
+ let Processor;const messages=[];
+ vm.runInNewContext(readFileSync(new URL(path,import.meta.url),'utf8'),{AudioWorkletProcessor:class{constructor(){this.port={postMessage:m=>messages.push(m)}}},registerProcessor:(name,c)=>Processor=c});
+ const p=new Processor({processorOptions:{startupFrames:512,fadeFrames:128,recoveryFrames:256}});
+ const send=data=>p.port.onmessage({data});
+ const enqueue=n=>send({type:'enqueue',left:new Float32Array(n).fill(.5).buffer,right:new Float32Array(n).fill(.5).buffer});
+ const render=()=>{const l=new Float32Array(128),r=new Float32Array(128);p.process([],[[l,r]]);assert.deepEqual(l,r);return l};
+ enqueue(512);render();render();render();
+ assert.equal(p.consumedFrames,384);
+ const down=[...render(),...render(),...render()];
+ assert.equal(p.underruns,1);assert.equal(p.consumedFrames,384);
+ assert.equal(down[0],.5);assert.equal(down.at(-1),0);
+ for(let i=1;i<down.length;i++)assert(Math.abs(down[i]-down[i-1])<.003);
+ enqueue(128);assert(render().every(x=>x===0));assert.equal(p.underruns,1);
+ enqueue(256);const up=[...render(),...render()];assert.equal(up[0],0);assert(up.at(-1)>.49);
+ for(let i=1;i<up.length;i++)assert(Math.abs(up[i]-up[i-1])<.003);
+ send({type:'end'});for(let i=0;i<6;i++)render();
+ assert.equal(p.consumedFrames,896);assert.equal(p.underruns,1);assert(messages.some(m=>m.ended));
+});
+for(const length of [0,13,256])test(`recovery-enabled startup drains ${length} frames on end without false underruns`,()=>{
+ let Processor;const messages=[];
+ vm.runInNewContext(readFileSync(new URL('../js/vgm-output-worklet.js',import.meta.url),'utf8'),{AudioWorkletProcessor:class{constructor(){this.port={postMessage:m=>messages.push(m)}}},registerProcessor:(name,c)=>Processor=c});
+ const p=new Processor({processorOptions:{startupFrames:4096,fadeFrames:128,recoveryFrames:256}});
+ const send=data=>p.port.onmessage({data});
+ const render=()=>p.process([],[[new Float32Array(128),new Float32Array(128)]]);
+ send({type:'enqueue',left:new Float32Array(length).buffer,right:new Float32Array(length).buffer});
+ render();assert.equal(p.consumedFrames,0);assert.equal(p.underruns,0);
+ send({type:'pause'});send({type:'end'});render();assert.equal(p.consumedFrames,0);
+ send({type:'resume'});for(let i=0;i<4;i++)render();
+ assert.equal(p.consumedFrames,length);assert.equal(p.underruns,0);assert(messages.some(m=>m.ended));
+ send({type:'flush',startupFrames:256,smoothFrames:256});
+ send({type:'enqueue',left:new Float32Array(256).buffer,right:new Float32Array(256).buffer});render();
+ assert.equal(p.consumedFrames,128,'lowering the refill target must not deadlock');
+});

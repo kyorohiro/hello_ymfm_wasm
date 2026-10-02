@@ -3050,7 +3050,10 @@ function updateStreamingStatus(extra = "") {
     return;
   }
   const stats = player.stats();
-  const suffix = extra === "" ? "" : ` ${extra}`;
+  const stream = activeStream;
+  const diagnostics = stream?.mode === "worklet"
+    ? ` buffer=${Math.round(stream.workletQueuedFrames / audioContext.sampleRate * 1000)}ms underruns=${stream.underruns} render=${stream.renderMs.toFixed(1)}ms max=${stream.maxRenderMs.toFixed(1)}ms` : "";
+  const suffix = (extra === "" ? "" : ` ${extra}`) + diagnostics;
   setStatus(
     `Streaming VGM... commands=${stats.processedEvents} queued=${stats.queuedFrames} audio=${stats.audioProgress.toFixed(1)}% loop=${loopCheckbox.checked ? "on" : "off"}${suffix}`,
   );
@@ -3097,7 +3100,10 @@ function pumpWorkletChunks(targetFrames = currentWorkletTargetFrames()) {
     const frames = activeStream.chunkFrames;
     const left = new Float32Array(frames);
     const right = new Float32Array(frames);
+    const renderStarted = performance.now();
     const copied = player.process(left, right, frames) ?? frames;
+    activeStream.renderMs = performance.now() - renderStarted;
+    activeStream.maxRenderMs = Math.max(activeStream.maxRenderMs, activeStream.renderMs);
     applyAnalyzerMuteToBuffer(left, right, frames);
     const outputLeft = copied === frames ? left : left.slice(0, copied);
     const outputRight = copied === frames ? right : right.slice(0, copied);
@@ -3132,7 +3138,7 @@ async function startWorkletStream(sampleRate) {
   }
   if (!workletModuleReady) {
     try {
-      await audioContext.audioWorklet.addModule("../js/vgm-output-worklet.js?v=playback-fade-1");
+      await audioContext.audioWorklet.addModule("../js/vgm-output-worklet.js?v=underrun-recovery-1");
       workletModuleReady = true;
     } catch (error) {
       console.warn("AudioWorklet module load failed; falling back to ScriptProcessorNode.", error);
@@ -3145,13 +3151,14 @@ async function startWorkletStream(sampleRate) {
     numberOfInputs: 0,
     numberOfOutputs: 1,
     outputChannelCount: [2],
-    processorOptions: {fadeFrames: playbackFade.checked ? Math.round(sampleRate * 0.01) : 0, startupFrames: Math.max(chunkFrames, Math.floor(chunkFrames * workletQueueMultiplier))},
+    processorOptions: {recoveryFrames: Math.round(sampleRate * 0.005), fadeFrames: playbackFade.checked ? Math.round(sampleRate * 0.01) : 0, startupFrames: Math.max(chunkFrames, Math.floor(chunkFrames * workletQueueMultiplier))},
   });
   const stream = {
     mode: "worklet",
     node,
     chunkFrames,
     workletQueuedFrames: 0,
+    underruns: 0, renderMs: 0, maxRenderMs: 0,
     endSent: false,
   };
   activeStream = stream;
@@ -3163,6 +3170,7 @@ async function startWorkletStream(sampleRate) {
     if (typeof data.queuedFrames === "number") {
       stream.workletQueuedFrames = data.queuedFrames;
     }
+    if (Number.isFinite(data.underruns)) stream.underruns = data.underruns;
     if (data.ended) {
       if (activeStream === stream) {
         stopActiveStream();

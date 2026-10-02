@@ -12,6 +12,9 @@ class VgmOutputProcessor extends AudioWorkletProcessor {
     this.startupFrames = Number.isSafeInteger(requested) && requested > 0 ? requested : 0;
     this.buffering = this.startupFrames > 0;
     this.fadeFrames = Math.max(0, Math.floor(options.processorOptions?.fadeFrames || 0));
+    this.recoveryFrames = Math.max(0, Math.floor(options.processorOptions?.recoveryFrames || 0));
+    this.underruns = 0;
+    this.refillFrames = this.recoveryFrames > 0 ? Math.max(this.startupFrames, this.fadeFrames + 128) : this.startupFrames;
     this.fadePosition = 0;
     this.lastOutput = [0, 0];
     this.transitionFrames = 0;
@@ -63,6 +66,7 @@ class VgmOutputProcessor extends AudioWorkletProcessor {
         this.transitionFrom = this.lastOutput.slice();
         if (Number.isSafeInteger(data.startupFrames) && data.startupFrames > 0) {
           this.startupFrames = data.startupFrames;
+          this.refillFrames = this.recoveryFrames > 0 ? Math.max(this.startupFrames, this.fadeFrames + 128) : this.startupFrames;
         }
         this.paused = false;
         this.queue = [];
@@ -103,9 +107,21 @@ class VgmOutputProcessor extends AudioWorkletProcessor {
       right.fill(0);
       return true;
     }
+    // Keep the remaining PCM intact; bridge to silence before a render quantum
+    // would run dry, then wait for a useful refill instead of chattering.
+    if (this.recoveryFrames > 0 && !this.buffering && !this.endRequested &&
+        this.queuedFrames < left.length + this.fadeFrames) {
+      this.underruns++;
+      this.buffering = true;
+      this.transitionFrames = this.recoveryFrames;
+      this.transitionRemaining = this.recoveryFrames;
+      this.transitionFrom = this.lastOutput.slice();
+      this.port.postMessage({type: "state", queuedFrames: this.queuedFrames,
+        consumedFrames: this.consumedFrames, underruns: this.underruns});
+    }
     if (this.buffering) {
       // A short/empty track must drain even when it cannot fill the buffer.
-      if (this.queuedFrames < this.startupFrames && !this.endRequested) {
+      if (this.queuedFrames < Math.max(this.startupFrames, this.refillFrames) && !this.endRequested) {
         left.fill(0);
         right.fill(0);
         return true;
@@ -193,6 +209,7 @@ class VgmOutputProcessor extends AudioWorkletProcessor {
         type: "state",
         queuedFrames: this.queuedFrames,
         consumedFrames: this.consumedFrames,
+        underruns: this.underruns,
         ended:
           this.endRequested &&
           (this.queuedFrames === 0 || this.stopRemaining === 0),
