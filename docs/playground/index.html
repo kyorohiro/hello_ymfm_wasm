@@ -1769,9 +1769,18 @@
             <ul class="helper-list">
               <li><code>const chip = await useSoundChip(name)</code> reuses a chip until Stop. For YM2612, YM2203, and YM2610, it returns the default chip when selected; otherwise it creates an independent chip.</li>
               <li><code>const chip = await createSoundChip(name)</code> creates a fresh independent chip routed through master FX.</li>
-              <li>Supported names: <code>ym2612</code>, <code>ym2203</code>, <code>ym2610</code>, <code>ym2608</code>, <code>rf5c164</code>, and <code>gameboy</code>.</li>
+              <li>Supported names: <code>ym2612</code>, <code>ym2203</code>, <code>ym2610</code>, <code>ym2608</code>, <code>rf5c164</code>, <code>gameboy</code>, and <code>segapsg</code>.</li>
               <li>Control additional chips through the returned object. Global <code>play()</code> and <code>write()</code> target the default chip; Stop disposes additional chips.</li>
               <li>Concurrent <code>useSoundChip()</code> requests share initialization. Options other than an empty object are not supported.</li>
+            </ul>
+
+            <h2 style="margin-top: 14px;">Sega PSG (independent chip)</h2>
+            <ul class="helper-list">
+              <li><code>const chip = await useSoundChip("segapsg")</code> reuses an independent Sega PSG; <code>createSoundChip("segapsg")</code> creates a fresh instance.</li>
+              <li><code>chip.tone(0, { note: "C4", attenuation: 4 })</code> starts a tone on channel <code>0..2</code>; <code>chip.off(0)</code> silences it.</li>
+              <li><code>chip.noise({ type: "white", rate: "medium", attenuation: 8 })</code> starts noise; <code>chip.noiseOff()</code> silences it.</li>
+              <li>Uses the same API as <code>psg</code>. Both <code>reset()</code> and <code>resetAll()</code> reset only this instance. <code>dispose()</code> releases it; Stop releases all additional chips.</li>
+              <li>Open <code>examples/chip-saw/segapsg-tone-noise.js</code> in FILES for an example.</li>
             </ul>
 
             <h2 style="margin-top: 14px;">RF5C164 PCM</h2>

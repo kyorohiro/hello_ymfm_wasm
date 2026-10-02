@@ -68,3 +68,9 @@ extraOpn.setOperators(3, [[OP1, {tl: 20}]]);
 extraNeo.setOperators(4, [[OP1, {tl: 20}]]);
 await extraOpn.setClock(4000000);
 await extraOpn.scheduleRegisters([[0, 8, 15], [4410, 8, 0]], 4410);
+
+const sega = await useSoundChip('segapsg');
+sega.tone(0, {note: 'C4'});
+sega.noiseOff();
+sega.dispose();
+(await pg.createSoundChip('segapsg')).resetAll();

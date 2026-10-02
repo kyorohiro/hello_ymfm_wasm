@@ -1148,6 +1148,7 @@ type PlaygroundSoundChipMap = {
   rf5c164: PlaygroundRf5c164;
   ym2608: PlaygroundYm2608;
   gameboy: PlaygroundGameboy;
+  segapsg: PlaygroundSegaPsg;
 };
 type PlaygroundUseSoundChipOptions = { [key: string]: never };
 declare function useSoundChip<Name extends keyof PlaygroundSoundChipMap>(name: Name, options?: PlaygroundUseSoundChipOptions): Promise<PlaygroundSoundChipMap[Name]>;
@@ -1173,3 +1174,11 @@ type PlaygroundCreatedYm2610 = PlaygroundCreatedOPN<0 | 1 | 2 | 3> & {
   };
 };
 declare function createSoundChip(name: 'ym2610'): Promise<PlaygroundCreatedYm2610>;
+
+/** Independent Sega PSG; resetAll only resets this chip. */
+type PlaygroundSegaPsg = Omit<PSGApi, 'resetAll'> & {
+  /** Reset only this independent Sega PSG. */
+  resetAll(): void;
+  dispose(): void;
+};
+declare function createSoundChip(name: 'segapsg'): Promise<PlaygroundSegaPsg>;

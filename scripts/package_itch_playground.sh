@@ -61,6 +61,9 @@ native_noise.js
 native_sample.js
 playground_rf5c164.js
 playground_ym2608.js
+playground_segapsg.js
+playground_segapsg_audio.js
+playground_segapsg_worklet.js
 playground_gameboy.js
 gameboysynth.js
 gameboyapu.js

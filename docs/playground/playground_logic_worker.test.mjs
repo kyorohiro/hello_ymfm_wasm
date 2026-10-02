@@ -1,3 +1,4 @@
+import {createSegaPsgClient} from '../../web/playground_segapsg.js';
 import {resolvePlaySeconds} from '../../web/playground_duration.js';
 import {createLoopAsyncTasks} from '../../web/playground_async_tasks.js';
 import {createOpnClient} from '../../web/playground_opn.js';
@@ -27,7 +28,7 @@ function createWorkerHarness() {
   const messages = [];
   const context = {
     resolvePlaySeconds, createNativeSampleController, createNativeNoiseController, controlNativeNoise, createWorkerDac, atob, createMidiApi, createMidiRack, createWorkerChip, createNativeFXController, DOMException, structuredClone,
-    createLoopAsyncTasks, createDeadlineScheduler, createOpnClient, createGameboyClient, createSoundChipRegistry, createRf5c164Client, createYm2608Client,
+    createSegaPsgClient, createLoopAsyncTasks, createDeadlineScheduler, createOpnClient, createGameboyClient, createSoundChipRegistry, createRf5c164Client, createYm2608Client,
     hzToBlockFnum,
     Error,
     Map,
@@ -565,7 +566,7 @@ test('Worker useSoundChip aliases global FM, permits const fm, reuses on reevalu
   assert.equal(worker.messages.filter(m=>m.command==='pcm.create' || m.command==='fm.then').length,0);
  }finally{await worker.send({type:'stop'});}
 });
-for(const name of ['rf5c164','ym2608','gameboy','ym2203','ym2610','ym2612'])test(`Worker useSoundChip ${name} shares pending creation, reuses and disposes on Stop`,async()=>{
+for(const name of ['rf5c164','ym2608','gameboy','ym2203','ym2610','ym2612','segapsg'])test(`Worker useSoundChip ${name} shares pending creation, reuses and disposes on Stop`,async()=>{
  const worker=createWorkerHarness(),sent=[];let closed=0;
  const port={start(){},postMessage:data=>sent.push(data),close(){closed++;}};
  const source=`const [a,b]=await Promise.all([useSoundChip('${name}'),useSoundChip('${name}')]);

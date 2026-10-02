@@ -67,6 +67,11 @@ export const EXAMPLE_FILES = [
     "data": "// RF5C164 physical voices, direct Worker -> Worklet control.\nconst pcm = await createSoundChip('rf5c164');\nconst bytes = new Uint8Array(257);\nfor (let i = 0; i < 256; i++) {\n  const v = Math.sin(2 * Math.PI * i / 256);\n  bytes[i] = Math.round(Math.abs(v) * 100) | (v >= 0 ? 128 : 0);\n}\nbytes[256] = 255; // Return to loopStart.\nawait pcm.loadMemory(bytes);\nawait pcm.setChannel(CH1, { start: 0, loopStart: 0, step: 3543, volume: 160, pan: { left: 15, right: 15 } });\nsetBpm(120);\nliveLoop('pcm-sine', async () => {\n  await pcm.setPitch(CH1, 3543); // approximately A4, for this 256-byte waveform\n  await pcm.keyOn(CH1);\n  await beat(1);\n  await pcm.setPitch(CH1, 5315);\n  await beat(1);\n  await pcm.keyOff(CH1);\n  await beat(1);\n});\n// For WAV/FLAC bytes: const wave = await pcm.loadSample(bytes, {address: 0});\n// await pcm.setChannel(CH1, {...wave, volume: 160, pan: {left: 15, right: 15}});\n"
   },
   {
+    "path": "/examples/chip-saw/segapsg-tone-noise.js",
+    "name": "segapsg-tone-noise",
+    "data": "// Independent Sega PSG: works with any selected Playground chip.\nconst chip = await useSoundChip('segapsg');\ntry {\n  for (const note of ['C4', 'E4', 'G4', 'C5']) {\n    chip.tone(0, {note, attenuation: 4});\n    await sleep(0.2);\n  }\n  chip.off(0);\n  chip.noise({type: 'white', rate: 'medium', attenuation: 8});\n  await sleep(0.2);\n  chip.noiseOff();\n} finally { chip.dispose(); }\n"
+  },
+  {
     "path": "/examples/chip-saw/ym2608-chip.js",
     "name": "ym2608-chip",
     "data": "// Independent YM2608: works alongside the chip selected in the Playground UI.\nconst ym2608 = await createSoundChip('ym2608');\nym2608.reset();\nym2608.ssg.tone(0, {frequency: 440, volume: 10});\nawait sleep(0.4);\nym2608.ssg.off(0);\nym2608.rhythm.setVolume(48);\nfor (let voice = 0; voice < 6; voice++) {\n  ym2608.rhythm.setVoice(voice, {volume: 24, left: true, right: true});\n  ym2608.rhythm.keyOn(voice);\n  await sleep(0.75);\n}\n// ADPCM-B takes encoded bytes, not WAV. This synthetic fixture needs no ROM.\nawait ym2608.adpcm.loadMemory(new Uint8Array(256).fill(0x17));\nym2608.adpcm.setSample({start: 0, end: 256});\nym2608.adpcm.setVolume(160);\nym2608.adpcm.setPan(true, true);\nym2608.adpcm.setPlaybackRate(8000);\nym2608.adpcm.keyOn();\nawait sleep(0.3);\nym2608.dispose();\n"
