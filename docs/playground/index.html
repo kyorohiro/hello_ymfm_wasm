@@ -1769,9 +1769,20 @@
             <ul class="helper-list">
               <li><code>const chip = await useSoundChip(name)</code> reuses a chip until Stop. For YM2612, YM2203, and YM2610, it returns the default chip when selected; otherwise it creates an independent chip.</li>
               <li><code>const chip = await createSoundChip(name)</code> creates a fresh independent chip routed through master FX.</li>
-              <li>Supported names: <code>ym2612</code>, <code>ym2203</code>, <code>ym2610</code>, <code>ym2608</code>, <code>rf5c164</code>, <code>gameboy</code>, and <code>segapsg</code>.</li>
+              <li>Supported names: <code>ym2612</code>, <code>ym2203</code>, <code>ym2610</code>, <code>ym2608</code>, <code>rf5c164</code>, <code>gameboy</code>, <code>segapsg</code>, and <code>ym2151</code>.</li>
               <li>Control additional chips through the returned object. Global <code>play()</code> and <code>write()</code> target the default chip; Stop disposes additional chips.</li>
               <li>Concurrent <code>useSoundChip()</code> requests share initialization. Options other than an empty object are not supported.</li>
+            </ul>
+
+            <h2 style="margin-top: 14px;">YM2151 (OPM)</h2>
+            <ul class="helper-list">
+              <li><code>const opm = await useSoundChip("ym2151")</code> reuses an independent eight-channel FM chip; <code>createSoundChip("ym2151")</code> creates a fresh instance.</li>
+              <li><code>opm.setAlgo(0, 7)</code> selects an algorithm; <code>opm.setPan(0, true, true)</code> enables both outputs. Channels are numeric <code>0..7</code>.</li>
+              <li><code>opm.setOperator(0, 3, { mul: 1, tl: 32, ar: 31, rr: 15 })</code> edits an operator. Indices <code>0..3</code> follow register order <code>M1, C1, M2, C2</code>; these are OPM parameters, not YM2612 presets.</li>
+              <li><code>opm.setNote(0, "A4")</code> sets pitch; <code>opm.keyOn(0)</code> starts the envelope; <code>opm.keyOff(0)</code> releases it. Notes accept <code>C#0..C8</code> or MIDI integers <code>13..108</code>.</li>
+              <li><code>opm.setPitch(0, 0x4a, 0)</code> sets raw key code and key fraction (<code>0..63</code>). The clock is fixed at <code>3579545 Hz</code>.</li>
+              <li><code>opm.setNoise(true, 12)</code> replaces CH8's last operator with noise (rate <code>0..31</code>); <code>opm.writeRegister(register, value)</code> accesses all registers, including LFO.</li>
+              <li><code>opm.reset()</code> resets this chip; <code>opm.dispose()</code> releases it. Open <code>examples/chip-saw/ym2151-tone.js</code> for a complete voice setup.</li>
             </ul>
 
             <h2 style="margin-top: 14px;">Sega PSG (independent chip)</h2>

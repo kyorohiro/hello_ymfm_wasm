@@ -1149,6 +1149,7 @@ type PlaygroundSoundChipMap = {
   ym2608: PlaygroundYm2608;
   gameboy: PlaygroundGameboy;
   segapsg: PlaygroundSegaPsg;
+  ym2151: PlaygroundYm2151;
 };
 type PlaygroundUseSoundChipOptions = { [key: string]: never };
 declare function useSoundChip<Name extends keyof PlaygroundSoundChipMap>(name: Name, options?: PlaygroundUseSoundChipOptions): Promise<PlaygroundSoundChipMap[Name]>;
@@ -1182,3 +1183,21 @@ type PlaygroundSegaPsg = Omit<PSGApi, 'resetAll'> & {
   dispose(): void;
 };
 declare function createSoundChip(name: 'segapsg'): Promise<PlaygroundSegaPsg>;
+
+/** OPM channels 0..7; operators in register order M1, C1, M2, C2 (0..3). */
+interface PlaygroundYm2151 {
+  writeRegister(register: number, value: number): void;
+  reset(): void;
+  setOperator(ch: 0|1|2|3|4|5|6|7, operator: 0|1|2|3, options: {dt1?: number; mul?: number; tl?: number; ks?: number; ar?: number; am?: 0|1; d1r?: number; dt2?: number; d2r?: number; d1l?: number; rr?: number}): void;
+  setAlgo(ch: 0|1|2|3|4|5|6|7, algorithm: number, feedback?: number): void;
+  setPan(ch: 0|1|2|3|4|5|6|7, left: boolean, right: boolean): void;
+  /** C#0..C8 or MIDI integer 13..108, at the default clock. */
+  setNote(ch: 0|1|2|3|4|5|6|7, note: string|number): number;
+  setPitch(ch: 0|1|2|3|4|5|6|7, keyCode: number, keyFraction?: number): void;
+  keyOn(ch: 0|1|2|3|4|5|6|7, mask?: number): void;
+  keyOff(ch: 0|1|2|3|4|5|6|7): void;
+  /** Noise replaces CH8's last operator; frequency 0..31. */
+  setNoise(enabled: boolean, frequency?: number): void;
+  dispose(): void;
+}
+declare function createSoundChip(name: 'ym2151'): Promise<PlaygroundYm2151>;

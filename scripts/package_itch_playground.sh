@@ -61,6 +61,10 @@ native_noise.js
 native_sample.js
 playground_rf5c164.js
 playground_ym2608.js
+ym2151.js
+playground_ym2151.js
+playground_ym2151_audio.js
+playground_ym2151_worklet.js
 playground_segapsg.js
 playground_segapsg_audio.js
 playground_segapsg_worklet.js
@@ -147,6 +151,8 @@ synth_keyboard.js
 "
 
 GENERATED_FILES="
+ym2151_wasm.js
+ym2151_wasm.wasm
 gameboy_apu_wasm.js
 gameboy_apu_wasm.wasm
 rf5c164_wasm.js

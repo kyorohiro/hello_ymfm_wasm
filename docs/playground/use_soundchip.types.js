@@ -74,3 +74,11 @@ sega.tone(0, {note: 'C4'});
 sega.noiseOff();
 sega.dispose();
 (await pg.createSoundChip('segapsg')).resetAll();
+
+const opm = await useSoundChip('ym2151');
+opm.setNote(7, 'A4');
+opm.setOperator(7, 3, {ar: 31, tl: 32});
+opm.keyOn(7);
+(await pg.createSoundChip('ym2151')).setNoise(true, 12);
+// @ts-expect-error OPM only has eight channels
+opm.keyOn(8);

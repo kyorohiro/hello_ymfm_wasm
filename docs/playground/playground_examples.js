@@ -72,6 +72,11 @@ export const EXAMPLE_FILES = [
     "data": "// Independent Sega PSG: works with any selected Playground chip.\nconst chip = await useSoundChip('segapsg');\ntry {\n  for (const note of ['C4', 'E4', 'G4', 'C5']) {\n    chip.tone(0, {note, attenuation: 4});\n    await sleep(0.2);\n  }\n  chip.off(0);\n  chip.noise({type: 'white', rate: 'medium', attenuation: 8});\n  await sleep(0.2);\n  chip.noiseOff();\n} finally { chip.dispose(); }\n"
   },
   {
+    "path": "/examples/chip-saw/ym2151-tone.js",
+    "name": "ym2151-tone",
+    "data": "// Independent OPM; numeric channels 0..7. Operator order: M1, C1, M2, C2.\nconst opm = await useSoundChip('ym2151');\ntry {\n  opm.reset();\n  opm.setAlgo(0, 7); // Four parallel carriers; enable only C2 below.\n  opm.setPan(0, true, true);\n  opm.setOperator(0, 3, {mul: 1, tl: 32, ar: 31, d1r: 0, d2r: 0, d1l: 0, rr: 15});\n  for (const note of ['C4', 'E4', 'G4', 'A4']) {\n    opm.setNote(0, note);\n    opm.keyOn(0, 8); // Only C2.\n    await sleep(0.2);\n    opm.keyOff(0);\n    await sleep(0.05);\n  }\n} finally { opm.dispose(); }\n"
+  },
+  {
     "path": "/examples/chip-saw/ym2608-chip.js",
     "name": "ym2608-chip",
     "data": "// Independent YM2608: works alongside the chip selected in the Playground UI.\nconst ym2608 = await createSoundChip('ym2608');\nym2608.reset();\nym2608.ssg.tone(0, {frequency: 440, volume: 10});\nawait sleep(0.4);\nym2608.ssg.off(0);\nym2608.rhythm.setVolume(48);\nfor (let voice = 0; voice < 6; voice++) {\n  ym2608.rhythm.setVoice(voice, {volume: 24, left: true, right: true});\n  ym2608.rhythm.keyOn(voice);\n  await sleep(0.75);\n}\n// ADPCM-B takes encoded bytes, not WAV. This synthetic fixture needs no ROM.\nawait ym2608.adpcm.loadMemory(new Uint8Array(256).fill(0x17));\nym2608.adpcm.setSample({start: 0, end: 256});\nym2608.adpcm.setVolume(160);\nym2608.adpcm.setPan(true, true);\nym2608.adpcm.setPlaybackRate(8000);\nym2608.adpcm.keyOn();\nawait sleep(0.3);\nym2608.dispose();\n"

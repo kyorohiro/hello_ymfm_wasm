@@ -1,3 +1,4 @@
+import {createYm2151Client} from './playground_ym2151.js';
 import {createSegaPsgClient} from './playground_segapsg.js';
 import {resolvePlaySeconds} from './playground_duration.js';
 import {createLoopAsyncTasks} from './playground_async_tasks.js';
@@ -586,7 +587,7 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
       if(run.stopped)throw new Error('Run stopped');
       const token=run.token;
       const port=await request('pcm.create',[name]);
-      const pcm=['ym2612', 'ym2203', 'ym2610'].includes(name) ? createOpnClient(name, port) : name === 'segapsg' ? createSegaPsgClient(port) : name === 'gameboy' ? createGameboyClient(port) : name === 'ym2608' ? createYm2608Client(port) : createRf5c164Client(port,source=>request('pcm.decode',[source]));
+      const pcm=['ym2612', 'ym2203', 'ym2610'].includes(name) ? createOpnClient(name, port) : name === 'ym2151' ? createYm2151Client(port) : name === 'segapsg' ? createSegaPsgClient(port) : name === 'gameboy' ? createGameboyClient(port) : name === 'ym2608' ? createYm2608Client(port) : createRf5c164Client(port,source=>request('pcm.decode',[source]));
       if(run.stopped || token!==run.token){pcm.dispose();throw new Error('Run stopped');}
       pcmClients.add(pcm);return pcm;
     },

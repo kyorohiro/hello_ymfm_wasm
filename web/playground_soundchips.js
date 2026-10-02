@@ -4,7 +4,7 @@ export function createSoundChipRegistry() {
   let generation = 0;
   return {
     use(name, options, resolve, {evictOnDispose = !['ym2612', 'ym2203', 'ym2610'].includes(name)} = {}) {
-      if (!['ym2612', 'ym2203', 'ym2610', 'rf5c164', 'ym2608', 'gameboy', 'segapsg'].includes(name)) {
+      if (!['ym2612', 'ym2203', 'ym2610', 'rf5c164', 'ym2608', 'gameboy', 'segapsg', 'ym2151'].includes(name)) {
         return Promise.reject(new Error(`Unsupported useSoundChip name: ${String(name)}`));
       }
       if (options !== undefined && (!options || typeof options !== 'object' || Array.isArray(options) || Reflect.ownKeys(options).length)) {
