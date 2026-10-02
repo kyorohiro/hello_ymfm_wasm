@@ -1,5 +1,6 @@
 #include "opn_state.h"
 #include <cstdint>
+#include <memory>
 
 #include "ymfm_wasm_interface.h"
 #include "ymfm_opm.h"
@@ -7,14 +8,31 @@
 namespace
 {
 
+// The bundled ymfm OPP variant shares the FM core; apply its Timer B divider.
+struct opm_interface : ymfm_wasm_interface
+{
+    bool opp = false;
+    void ymfm_set_timer(uint32_t timer, int32_t clocks) override
+    {
+        ymfm_wasm_interface::ymfm_set_timer(timer,
+            opp && timer == 1 && clocks >= 0 ? clocks * 2 : clocks);
+    }
+};
+
 struct ym2151_handle
 {
-    ymfm_wasm_interface intf;
-    ymfm::ym2151 chip;
+    opm_interface intf;
+    std::unique_ptr<ymfm::ym2151> opm;
+    std::unique_ptr<ymfm::ym2164> opp;
+    ymfm::ym2151 &chip;
     uint32_t mute_mask = 0;
 
-    ym2151_handle() : intf(), chip(intf)
+    explicit ym2151_handle(bool is_ym2164 = false) : intf(),
+        opm(is_ym2164 ? nullptr : new ymfm::ym2151(intf)),
+        opp(is_ym2164 ? new ymfm::ym2164(intf) : nullptr),
+        chip(is_ym2164 ? *opp : *opm)
     {
+        intf.opp = is_ym2164;
         chip.reset();
     }
 };
@@ -41,6 +59,11 @@ extern "C"
 void *ym2151_create()
 {
     return new ym2151_handle();
+}
+
+void *ym2164_create()
+{
+    return new ym2151_handle(true);
 }
 
 void ym2151_destroy(void *ptr)

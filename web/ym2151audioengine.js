@@ -23,13 +23,13 @@ export class Ym2151AudioEngine {
    * @param {number} [options.masterVolume=1] Linear output gain, not dB.
    * @returns {Promise<Ym2151AudioEngine>} Initialized engine owned by the caller.
    */
-  static async create({ ym2151ModuleFactory, ym2151ModuleOptions, ym2151Clock = YM2151_CLOCK,
+  static async create({ ym2151ModuleFactory, ym2151ModuleOptions, ym2151Clock = YM2151_CLOCK, ym2151Variant = 'ym2151',
     segaPsgModuleFactory, psgClock = 0,
     segaPcmModuleFactory, segaPcmModuleOptions, segaPcmClock = 0, segaPcmBankShift = 0, segaPcmBankMask = 0,
     outputSampleRate = 44100, masterVolume = 1 } = {}) {
     if (!Number.isFinite(outputSampleRate) || outputSampleRate <= 0 ||
         !Number.isFinite(ym2151Clock) || ym2151Clock <= 0) throw new RangeError('Invalid sample rate or chip clock');
-    const chip = await Ym2151.create({ moduleFactory: ym2151ModuleFactory, moduleOptions: ym2151ModuleOptions });
+    const chip = await Ym2151.create({ moduleFactory: ym2151ModuleFactory, moduleOptions: ym2151ModuleOptions, variant: ym2151Variant });
     let psg, segapcm;
     try {
       if (psgClock) psg = await SegaPSG.create({ moduleFactory: segaPsgModuleFactory, clock: psgClock, sampleRate: outputSampleRate });

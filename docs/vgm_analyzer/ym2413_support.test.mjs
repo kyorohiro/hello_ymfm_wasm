@@ -34,15 +34,11 @@ for (const chip of ['msx','ym3526','ym2413','ym2151','ym3812','ymf262']) test(`$
   for(const name of tabNames)assert.equal(context[name].disabled,false);
   assert.equal(notice.hidden,true);
 });
-test('gameboy playback-only mode leaves only Note-ish enabled',()=>{
-  // Regression: Game Boy DMG note-ish (CH1/2 square, CH3 wave) was added
-  // after 'gameboy' had already been placed in the blanket "force
-  // parsed-output, disable every analysis tab" lists shared with
-  // segapcm/y8950/etc. This locks in that only the Note-ish tab (and
-  // setOutputTab allowing 'noteish') stay reachable for Game Boy.
+test('gameboy exposes Note-ish and GB Info while disabling FM voice exports',()=>{
+  // Game Boy keeps Note-ish and its dedicated GB Info panel available.
   const notice={hidden:true};
   const stub=()=>({disabled:false,hidden:true,title:'',getAttribute(){return 'false';},setAttribute(){}});
-  const context={isOpl,opnMonitorRoot:{},opmMonitorRoot:{},ayMonitorRoot:{},ym2413MonitorRoot:{},oplMonitorRoot:{},noteishHeader:{},
+  const context={isOpl,...chipSupportContext(),opnMonitorRoot:{},opmMonitorRoot:{},ayMonitorRoot:{},ym2413MonitorRoot:{},oplMonitorRoot:{},noteishHeader:{},
     currentChipKind:'gameboy',currentBuffer:null,midiExportAvailable:false,musicSheet:null,
     exportLilyPondButton:stub(),exportAllOpmButton:stub(),exportOpmButton:stub(),sheetMusicTab:stub(),parsedOutputTab:stub(),
     document:{getElementById:()=>notice},selected:null,
@@ -53,7 +49,9 @@ test('gameboy playback-only mode leaves only Note-ish enabled',()=>{
   context.updateChipSupport();
   assert.equal(context.noteishTab.disabled,false,'noteishTab');
   assert.equal(context.noteishTab.title,'');
-  for(const name of ['operatorInfoTab','tfiInfoTab','sampleTab',...buttonNames.filter(n=>n!=='exportMidiButton')]) {
+  assert.equal(context.sampleTab.disabled,false,'GB Info remains available');
+  assert.equal(context.sampleTab.textContent,'GB Info');
+  for(const name of ['operatorInfoTab','tfiInfoTab',...buttonNames.filter(n=>n!=='exportMidiButton')]) {
     assert.equal(context[name].disabled,true,name);
     assert.equal(context[name].title,'Support coming soon.');
   }
@@ -82,7 +80,7 @@ test('segapcm also switches away from a stale operator-info tab to parsed-output
   // irrelevant content either.
   const notice={hidden:true};
   const stub=()=>({disabled:false,hidden:true,title:'',getAttribute(){return 'false';},setAttribute(){}});
-  const context={isOpl,opnMonitorRoot:{},opmMonitorRoot:{},ayMonitorRoot:{},ym2413MonitorRoot:{},oplMonitorRoot:{},noteishHeader:{},
+  const context={isOpl,...chipSupportContext(),opnMonitorRoot:{},opmMonitorRoot:{},ayMonitorRoot:{},ym2413MonitorRoot:{},oplMonitorRoot:{},noteishHeader:{},
     currentChipKind:'segapcm',currentBuffer:null,midiExportAvailable:false,musicSheet:null,
     exportLilyPondButton:stub(),exportAllOpmButton:stub(),exportOpmButton:stub(),sheetMusicTab:stub(),parsedOutputTab:stub(),
     document:{getElementById:()=>notice},selected:null,

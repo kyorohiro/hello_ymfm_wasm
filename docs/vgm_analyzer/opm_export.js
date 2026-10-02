@@ -37,7 +37,7 @@ export function snapshotOpmState(buffer, atSample) {
 }
 function scanOpmState(buffer, {includeSnapshots = false, atSample} = {}) {
   const parser = new Ym2612VGM(buffer, {logger:null});
-  if (!(parser.header.ym2151Clock & 0x3fffffff) || (parser.header.ym2151Clock & 0xc0000000)) throw new Error('OPM extraction requires a single YM2151');
+  if (!(parser.header.ym2151Clock & 0x3fffffff) || (parser.header.ym2151Clock & 0x40000000)) throw new Error('OPM extraction requires a single YM2151');
   const state = createOpmState(() => 0), keys = new Uint8Array(8);
   const seen = Array.from({length:8}, () => new Set()), patches = [];
   let sample = 0;

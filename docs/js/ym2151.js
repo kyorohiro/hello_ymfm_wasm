@@ -41,17 +41,19 @@ export class Ym2151 {
    * @param {Object} [options={}] Chip and Emscripten initialization settings.
    * @param {function(Object): (Object|Promise<Object>)} options.moduleFactory Generated WASM module factory.
    * @param {Object} [options.moduleOptions] Forwarded loader options, e.g. wasmBinary or locateFile.
+   * @param {'ym2151'|'ym2164'} [options.variant='ym2151'] Native OPM/OPP variant.
    * @returns {Promise<Ym2151>} Ready-to-use chip; the caller must dispose it.
    */
   static async create(options = {}) {
-    const { moduleFactory, moduleOptions } = options;
+    const { moduleFactory, moduleOptions, variant = 'ym2151' } = options;
+    if (!['ym2151', 'ym2164'].includes(variant)) throw new RangeError('Invalid OPM/OPP variant');
     if (!moduleFactory) {
       throw new Error("moduleFactory is required");
     }
 
     const module = await moduleFactory({ ...moduleOptions });
     const api = {
-      create: module.cwrap("ym2151_create", "number", []),
+      create: module.cwrap(variant === "ym2164" ? "ym2164_create" : "ym2151_create", "number", []),
       destroy: module.cwrap("ym2151_destroy", null, ["number"]),
       reset: module.cwrap("ym2151_reset", null, ["number"]),
       write: module.cwrap("ym2151_write", null, ["number", "number", "number"]),

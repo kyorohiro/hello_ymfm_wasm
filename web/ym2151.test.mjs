@@ -123,3 +123,51 @@ test('YM2151 + Sega PCM VGM dispatches command 0xC0/ROM data through the player 
   assert(left.some(v=>v!==0));
  }finally{e.dispose();}
 });
+
+test('YM2164 native variant doubles Timer B and restores its running state', async () => {
+ const a=await Ym2151AudioEngine.create(options);
+ const b=await Ym2151AudioEngine.create({...options,ym2151Variant:'ym2164'});
+ try {
+  for(const e of [a,b]){e.writeYm2151(0x12,255);e.writeYm2151(0x14,10);e.ym2151.generateStereo(20);}
+  assert(a.ym2151.readStatus()&2);
+  assert.equal(b.ym2151.readStatus()&2,0);
+  const saved=b.ym2151.saveState();
+  b.ym2151.generateStereo(20);
+  assert(b.ym2151.readStatus()&2);
+  b.ym2151.loadState(saved);
+  assert.equal(b.ym2151.readStatus()&2,0);
+  b.ym2151.generateStereo(20);
+  assert(b.ym2151.readStatus()&2);
+  b.reset();assert.equal(b.ym2151.getIrq(),false);
+ } finally {a.dispose();b.dispose();}
+});
+
+test('YM2164 flagged VGM selects OPP, plays, seeks and supports note/voice extraction',async()=>{
+ const {createPlaybackEngine,selectPlaybackConfiguration}=await import('../docs/vgm_analyzer/playback_core.js');
+ const {extractOpmNotes}=await import('../docs/vgm_analyzer/opm_notes.js');
+ const {extractOpmPatches}=await import('../docs/vgm_analyzer/opm_export.js');
+ const song=vgm(),view=new DataView(song.buffer);
+ view.setUint32(8,0x151,true);view.setUint32(0x30,0x80000000+3579545,true);
+ const parser=new DocsVGM(song);
+ assert.equal(selectPlaybackConfiguration(parser).kind,'ym2151');
+ assert(extractOpmNotes(song).channels[0].notes.length>0);
+ assert(extractOpmPatches(song).length>0);
+ const e=await createPlaybackEngine(parser,{getFactory:async name=>{
+  if(name==='segapsg') return ()=>{throw Error('No PSG in this VGM')};
+  assert.equal(name,'ym2151');
+  return opts=>factory({...opts,...options.ym2151ModuleOptions});
+ }});
+ try {
+  e.writeYm2151(0x12,255);e.writeYm2151(0x14,10);e.ym2151.generateStereo(20);
+  assert.equal(e.ym2151.readStatus()&2,0); // Actual recipe must select OPP.
+  const p=new VgmPlayer(e);p.load(song);p.play();
+  const left=new Float32Array(2000);p.process(left,new Float32Array(2000),2000);
+  assert(left.some(x=>x!==0));
+  seekPlayback(p,1000);p.resume();
+  const part=new Float32Array(500);p.process(part,new Float32Array(500),500);
+  assert.deepEqual(part,left.slice(1000,1500));
+ }finally{e.dispose();}
+ view.setUint32(0x30,0xc0000000+3579545,true);
+ assert.throws(()=>selectPlaybackConfiguration(new DocsVGM(song)),/Dual/);
+ assert.throws(()=>extractOpmNotes(song),/Dual/);
+});

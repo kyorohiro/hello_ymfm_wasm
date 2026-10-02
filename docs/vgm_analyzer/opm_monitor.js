@@ -64,7 +64,7 @@ export function observeOpmEngine(engine, state, changed) {
 }
 export function mountOpmMonitor(root, now) {
   const state = createOpmState(now);
-  const title = document.createElement('h3'); title.textContent = 'YM2151 Operator Info'; root.append(title);
+  const title = document.createElement('h3'); title.textContent = 'YM2151 / YM2164 Operator Info'; root.append(title);
   const note = document.createElement('p');
   note.textContent = 'Playback register state (may lead audible output by the audio queue). Key shows the last key command, not envelope activity. Raw register values; TFI export is not applicable. Slots follow register offsets +00/+08/+10/+18; algorithm order is 1/3/2/4.';
   root.append(note);

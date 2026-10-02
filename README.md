@@ -292,13 +292,19 @@ MIDI/MML export for these chips are not yet available. See the
 [AY implementation notes](third_party/mame-ay8910/README.md) for supported flags
 and limitations. Build with `sh scripts/build_ay8910_wasm.sh`.
 
-### YM2151 VGM playback
+### YM2151 / YM2164 VGM playback
 
-The VGM Analyzer supports YM2151 playback, including stereo output and optional
-Sega PSG. Instrument analysis/editing and MIDI/MML export remain unavailable.
-YM2164, a second YM2151, DAC streams and combinations with other chips such as
-Sega PCM are not supported by this engine.
+The VGM Analyzer supports YM2151 (OPM) and YM2164 (OPP), including stereo
+output and optional Sega PSG / Sega PCM. YM2164 is selected by bit 31 of
+the VGM YM2151 clock field and uses the bundled ymfm OPP variant, with a
+Timer B period twice that of YM2151. Note-ish, MIDI/MML and OPM voice
+extraction share the compatible register layout. Undocumented YM2164
+registers 0x00–0x07 are not emulated specially.
+A second OPM/OPP chip and MSX PSG / MSX-AUDIO mixed configurations remain
+unsupported by this Analyzer playback path.
 Build with `sh scripts/build_ym2151_wasm.sh`.
+The JavaScript engine accepts `ym2151Variant: 'ym2164'`; the chip wrapper
+accepts `variant: 'ym2164'`. Both default to YM2151.
 
 ### OPL2 / OPL3 VGM playback
 

@@ -37,7 +37,7 @@ export function extractOpmNotes(source, {includeVoices = false} = {}) {
   const parser = new Ym2612VGM(source);
   const clock = parser.header.ym2151Clock & 0x3fffffff;
   if (!clock) throw new Error('YM2151 clock required');
-  if (parser.header.ym2151Clock & 0xc0000000) throw new Error('Dual/variant YM2151 Note-ish is not supported');
+  if (parser.header.ym2151Clock & 0x40000000) throw new Error('Dual/variant YM2151 Note-ish is not supported');
   let time=0;
   const voiceState = includeVoices ? createOpmState(() => 0) : null;
   const voices = [], voiceIds = new Map();

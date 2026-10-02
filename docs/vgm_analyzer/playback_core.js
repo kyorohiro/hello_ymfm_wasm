@@ -89,7 +89,7 @@ export function isUnsupportedOplFamilyCombination(chip, header) {
 }
 
 export function validateOpmPlayback(header) {
-  if ((header.ym2151Clock & 0xc0000000) || (header.segaPcmClock & 0xc0000000) ||
+  if ((header.ym2151Clock & 0x40000000) || (header.segaPcmClock & 0xc0000000) ||
       ['ym2612Clock','ym2413Clock','ay8910Clock','ym2203Clock','ym2608Clock','ym2610Clock','rf5c164Clock','pwmClock','y8950Clock','k051649Clock'].some(key => header[key]))
     throw new Error('This YM2151 variant or chip combination: Support coming soon.');
 }
@@ -121,7 +121,7 @@ export function selectPlaybackConfiguration(vgm) {
   try {
     const unsupported=chips.filter(c=>!composition[kind].includes(c.id) && c.id !== 'okim6258');
     if (unsupported.length) throw new Error(`This chip combination is not supported: ${chips.map(c=>c.id).join(' + ')}`);
-    if (chips.some(c=>(c.rawClock & (['ym2610','k051649','nesApu'].includes(c.id) ? 0x40000000 : 0xc0000000)))) throw new Error('Dual/variant configuration is not supported');
+    if (chips.some(c=>(c.rawClock & (['ym2610','ym2151','k051649','nesApu'].includes(c.id) ? 0x40000000 : 0xc0000000)))) throw new Error('Dual/variant configuration is not supported');
     if (kind === 'nes') validateNesApuClock(header.nesApuClock & 0x3fffffff);
     if (header.okim6258Clock) validateOki6258Header(header);
     if (kind === 'msx') validateMsxPlaybackHeader(header);
@@ -187,6 +187,7 @@ const recipes = {
   ym2151: async (vgm, resource, masterVolume) => createYm2151AudioEngine({
         ym2151ModuleFactory: await resource('ym2151'),
         ym2151Clock: vgm.header.ym2151Clock & 0x3fffffff,
+        ym2151Variant: (vgm.header.ym2151Clock & 0x80000000) ? 'ym2164' : 'ym2151',
         segaPsgModuleFactory: await resource('segapsg'), psgClock: vgm.header.psgClock & 0x3fffffff,
         segaPcmModuleFactory: vgm.header.segaPcmClock ? await resource('segapcm') : undefined,
         segaPcmClock: vgm.header.segaPcmClock & 0x3fffffff,

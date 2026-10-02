@@ -1931,7 +1931,7 @@ const HEADER_CHIP_FIELDS = [
 ];
 function detectHeaderChips(header) {
   return HEADER_CHIP_FIELDS
-    .map(([key, label]) => [key === 'nesApuClock' && (header[key] & 0x80000000) ? 'NES APU + FDS' : key === 'k051649Clock' && (header[key] & 0x80000000) ? 'K052539 (SCC+)' : label, header[key] & 0x3fffffff])
+    .map(([key, label]) => [key === 'ym2151Clock' && (header[key] & 0x80000000) ? 'YM2164 (OPP)' : key === 'nesApuClock' && (header[key] & 0x80000000) ? 'NES APU + FDS' : key === 'k051649Clock' && (header[key] & 0x80000000) ? 'K052539 (SCC+)' : label, header[key] & 0x3fffffff])
     .filter(([, hz]) => hz > 0)
     .map(([label, hz]) => `${label} (${formatClockHz(hz)})`);
 }
@@ -3354,7 +3354,7 @@ async function handleFile(file, preserveEditor = false) {
   if (!["okim6258", "segapcm"].includes(currentChipKind)) songTimeline.load(buffer);
   playbackSeek.max = String(Math.max(0, vgm.header.totalSamples));
   renderSeekPosition(0);
-  midiExportAvailable = Boolean(midiChipKind(vgm.header) || ((vgm.header.ym2151Clock & 0x3fffffff) && !(vgm.header.ym2151Clock & 0xc0000000)));
+  midiExportAvailable = Boolean(midiChipKind(vgm.header) || ((vgm.header.ym2151Clock & 0x3fffffff) && !(vgm.header.ym2151Clock & 0x40000000)));
   if ((isOpl(currentChipKind) || ['ymf262','ymf278b'].includes(currentChipKind)) && (vgm.header[`${currentChipKind}Clock`]&0xc0000000)) midiExportAvailable = false;
   lastParseInfo = buildParseInfo(buffer, file.name, vgm);
   if (sourceHeader) {
