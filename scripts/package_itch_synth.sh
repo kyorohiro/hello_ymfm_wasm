@@ -25,6 +25,7 @@ synth_preset_import.js
 "
 RUNTIME_FILES="
 vgm_file.js
+s98_file.js
 ym2612vgm.js
 opn_fm_vgm.js
 bitcrusher-worklet.js
@@ -65,6 +66,7 @@ ym2608audioengine.js
 ym2608synth.js
 ym2608-worklet.js
 ym2612.js
+ym2612_dac.js
 ym2612synth.js
 ym2612-worklet.js
 ym2612-worklet-nuked.js
@@ -133,6 +135,7 @@ cp "${SOURCE_HTML}" "${STAGE_DIR}/index.html"
 mkdir -p "${STAGE_DIR}/playground"
 cp "${ROOT_DIR}/docs/playground/playground_vgm_presets.js" "${STAGE_DIR}/playground/"
 cp "${ROOT_DIR}/docs/playground/playground_vgm_import.js" "${STAGE_DIR}/playground/"
+cp "${ROOT_DIR}/docs/playground/ym2203_high.js" "${STAGE_DIR}/playground/"
 cp "${ROOT_DIR}/docs/playground/rf5c164_vgm_export.js" "${STAGE_DIR}/playground/"
 perl -0pi -e 's#\s*<link rel="manifest" href="\.\./[^\"]+\.webmanifest">##g; s#\s*<link rel="icon" href="\.\./[^\"]+\.ico" sizes="any">##g; s#\s*<script src="\.\./sw-register\.js"></script>##g' "${STAGE_DIR}/index.html"
 
@@ -206,6 +209,7 @@ perl -0pi -e 's#import ym2612ModuleFactory from "\\.\\./generated/nuked_opn2_was
 (
   cd "${STAGE_DIR}"
   node "${ROOT_DIR}/scripts/copy_opna_rhythm.mjs" "${STAGE_DIR}"
+  node --experimental-vm-modules "${ROOT_DIR}/scripts/check_synth_package.mjs" "${STAGE_DIR}"
   zip -r "${ZIP_PATH}" .
 )
 
