@@ -1765,13 +1765,28 @@
               <li><code>vgiToPreset(await file("./bass.vgi", { type: "arrayBuffer" }))</code> converts a 43-byte VGI file for <code>fm.setPreset()</code> (binary files require <code>type: "arrayBuffer"</code>)</li>
             </ul>
 
-            <h3>RF5C164 PCM</h3>
-<p><code>const fm = await useSoundChip("ym2612")</code> returns the existing FM API. <code>"ym2203"</code> and <code>"ym2610"</code> return the existing FM API when selected, otherwise create and reuse an independent chip. YM2612 follows the same rule. Global play() and write() still target the default chip. <code>useSoundChip("rf5c164")</code> reuses an additional chip until Stop; <code>"ym2608"</code> and <code>"gameboy"</code> are also supported. Concurrent requests share initialization; options other than an empty object are not supported.</p>
-<p><code>createSoundChip(name)</code> creates a fresh independent chip: ym2612, ym2203, ym2610, ym2608, rf5c164 or gameboy. Control it through the returned object; global play() still plays the default chip. Stop disposes additional chips.</p>
-<p><code>await createSoundChip("rf5c164")</code> creates an additional PCM chip routed through master FX. Physical channels are CH1..CH8. See examples/chip-saw/rf5c164-sine.js.</p>
-<p><code>await pcm.loadMemory(bytes, address)</code> accepts raw RF5C164 BIN bytes (Uint8Array or ArrayBuffer). <code>await pcm.loadSample(source, {address, loopStart})</code> decodes WAV/FLAC and returns start, loopStart and step for setChannel. Decoder format support depends on the browser. Files must fit 64 KiB after conversion; no automatic resampling. Source may be a local URL, Blob or encoded file bytes. FILES data must first be read into bytes.</p>
-<p><code>setChannel(ch, {start, loopStart, step, volume, pan: {left, right}})</code>, <code>setPitch(ch, step)</code>, <code>keyOn(ch)</code> and <code>keyOff(ch)</code> return promises. Start is 256-byte aligned; volume is 0..255 and pan values 0..15. keyOn retriggers. reset retains RAM; dispose releases the chip. Stop releases all added chips.</p>
-<h2 style="margin-top: 14px;">dac (YM2612 mode)</h2>
+            <h2 style="margin-top: 14px;">Sound chips</h2>
+            <ul class="helper-list">
+              <li><code>const chip = await useSoundChip(name)</code> reuses a chip until Stop. For YM2612, YM2203, and YM2610, it returns the default chip when selected; otherwise it creates an independent chip.</li>
+              <li><code>const chip = await createSoundChip(name)</code> creates a fresh independent chip routed through master FX.</li>
+              <li>Supported names: <code>ym2612</code>, <code>ym2203</code>, <code>ym2610</code>, <code>ym2608</code>, <code>rf5c164</code>, and <code>gameboy</code>.</li>
+              <li>Control additional chips through the returned object. Global <code>play()</code> and <code>write()</code> target the default chip; Stop disposes additional chips.</li>
+              <li>Concurrent <code>useSoundChip()</code> requests share initialization. Options other than an empty object are not supported.</li>
+            </ul>
+
+            <h2 style="margin-top: 14px;">RF5C164 PCM</h2>
+            <ul class="helper-list">
+              <li><code>const pcm = await createSoundChip("rf5c164")</code> creates an eight-channel PCM chip. Physical channels are <code>CH1..CH8</code>.</li>
+              <li><code>await pcm.loadMemory(bytes, address)</code> loads raw RF5C164 BIN bytes from a <code>Uint8Array</code> or <code>ArrayBuffer</code>.</li>
+              <li><code>await pcm.loadSample(source, { address, loopStart })</code> decodes WAV/FLAC and returns <code>start</code>, <code>loopStart</code>, and <code>step</code> for <code>setChannel()</code>. Format support depends on the browser.</li>
+              <li>Sample sources may be a local URL, Blob, or encoded file bytes. Read FILES data with <code>await file("./sound.wav", { type: "arrayBuffer" })</code> first. Converted samples must fit 64 KiB; no automatic resampling.</li>
+              <li><code>await pcm.setChannel(ch, { start, loopStart, step, volume, pan: { left, right } })</code> configures a channel. Start is 256-byte aligned; volume is <code>0..255</code>, pan values <code>0..15</code>.</li>
+              <li><code>await pcm.setPitch(ch, step)</code> changes pitch; <code>await pcm.keyOn(ch)</code> starts or retriggers playback; <code>await pcm.keyOff(ch)</code> stops it.</li>
+              <li><code>pcm.reset()</code> retains sample RAM; <code>pcm.dispose()</code> releases the chip.</li>
+              <li>Open <code>examples/chip-saw/rf5c164-sine.js</code> in FILES for an example.</li>
+            </ul>
+
+            <h2 style="margin-top: 14px;">dac (YM2612 mode)</h2>
             <ul class="helper-list">
               <li>DAC plays unsigned 8-bit PCM through physical CH6, replacing its FM output while enabled. Values are <code>0..255</code>; <code>128</code> is the neutral level.</li>
               <li><code>fm.setPan(CH6, true, true)</code> routes CH6 to both speakers. <code>fm.setDacEnabled(true)</code> enables DAC; <code>fm.writeDac(128)</code> writes one value; <code>fm.setDacEnabled(false)</code> restores FM output.</li>
