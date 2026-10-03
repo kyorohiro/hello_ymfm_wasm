@@ -35,7 +35,7 @@ test('All 15 MSX chip subsets render, match Browser engines and preserve every c
     }finally{reference.dispose();engine.dispose();}
   }
 });
-test('MSX rejects dual/variant flags, foreign chips and second SCC writes',async()=>{
+test('MSX rejects dual/variant flags, mixes supported families and second SCC writes',async()=>{
   const source=await readSource(fixture(names));
   for(const offset of [0x74,0x10,0x58,0x9c])for(const flag of [0x40000000,0x80000000]){
     if(offset===0x9c && flag===0x80000000)continue; // SCC+ type flag is supported.
@@ -43,8 +43,8 @@ test('MSX rejects dual/variant flags, foreign chips and second SCC writes',async
     await assert.rejects(renderSource(bad),e=>e.code==='UNSUPPORTED_CONFIGURATION');
   }
   for(const offset of [0x0c,0x2c]){
-    const bad=source.slice();new DataView(bad.buffer).setUint32(offset,3579545,true);
-    await assert.rejects(renderSource(bad),e=>e.code==='UNSUPPORTED_CONFIGURATION');
+    const mixed=source.slice();new DataView(mixed.buffer).setUint32(offset,3579545,true);
+    assert((await renderSource(mixed,{maxSeconds:.01})).bytes.subarray(44).some(Boolean));
   }
   const bad=await readSource(fixture(['scc']));bad[257]|=0x80;
   await assert.rejects(renderSource(bad),/Second K051649/);

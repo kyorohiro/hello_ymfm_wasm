@@ -22,11 +22,12 @@ test('Y8950 FM, embedded ADPCM and optional PSG match the Browser engine',async(
   }
   assert.notDeepEqual(results[2],results[0]);assert.notDeepEqual(results[2],results[1]);assert.notDeepEqual(results[3],results[2]);
 });
-test('Y8950 rejects unsupported flags, chip mixtures and out-of-range sample blocks',async()=>{
+test('Y8950 rejects unsupported flags, out-of-range sample blocks',async()=>{
   const original=await readSource(fixture('adpcm'));
   for(const [offset,value] of [[0x58,0x40000000+3579545],[0x58,0x80000000+3579545],[0x2c,7670454]]) {
     const bad=original.slice();new DataView(bad.buffer).setUint32(offset,value,true);
-    await assert.rejects(renderSource(bad),e=>e.code==='UNSUPPORTED_CONFIGURATION');
+    if(offset===0x58) await assert.rejects(renderSource(bad),e=>e.code==='UNSUPPORTED_CONFIGURATION');
+    else assert((await renderSource(bad,{maxSeconds:.01})).bytes.subarray(44).some(Boolean));
   }
   const bad=original.slice();new DataView(bad.buffer).setUint32(267,256,true);
   await assert.rejects(renderSource(bad),/range/i);

@@ -32,6 +32,7 @@ test('YM2608 requires rhythm ROM only for key-on and rejects invalid ROM inputs'
   await renderSource(keyOff,{maxSeconds:.01});
   for(const [offset,value] of [[0x48,0x40000000+8000000],[0x0c,3579545],[0x44,4000000]]) {
     const bad=source.slice();new DataView(bad.buffer).setUint32(offset,value,true);
-    await assert.rejects(renderSource(bad,{roms:{ym2608AdpcmA:rom}}),e=>e.code==='UNSUPPORTED_CONFIGURATION');
+    if(offset===0x48) await assert.rejects(renderSource(bad,{roms:{ym2608AdpcmA:rom}}),e=>e.code==='UNSUPPORTED_CONFIGURATION');
+    else assert((await renderSource(bad,{maxSeconds:.01,roms:{ym2608AdpcmA:rom}})).bytes.subarray(44).some(Boolean));
   }
 });

@@ -71,8 +71,8 @@ test('offline render produces audible WAV and obeys duration cap',async()=>{
   assert(result.bytes.slice(44).some(x=>x!==0));assert.equal(result.truncated,true);
   assert(Math.abs(result.seconds-.1)<.001);
   await assert.rejects(renderSource(source,{maxSeconds:Infinity}),/maxSeconds/);
-  const unsupported=source.slice();new DataView(unsupported.buffer).setUint32(0x48,8000000,true);
-  await assert.rejects(renderSource(unsupported),/not supported/);
+  const mixed=source.slice();new DataView(mixed.buffer).setUint32(0x48,8000000,true);
+  assert((await renderSource(mixed,{maxSeconds:.01})).bytes.subarray(44).some(Boolean));
 });
 test('Genesis combination renders embedded RF5C164 PCM without dropping it',async()=>{
   const source=await readSource(fixture('genesis-pcm.vgz'));
@@ -83,9 +83,9 @@ test('Genesis combination renders embedded RF5C164 PCM without dropping it',asyn
     assert(result.bytes.subarray(44).some(x=>x!==0),'PCM must be audible with silent FM/PSG');
     assert.equal(result.truncated,true);
   }
-  const unsupported=source.slice(),view=new DataView(unsupported.buffer);
+  const mixed=source.slice(),view=new DataView(mixed.buffer);
   view.setUint32(0x2c,0,true);view.setUint32(0x30,3579545,true);
-  await assert.rejects(renderSource(unsupported),/not supported/);
+  assert((await renderSource(mixed,{maxSeconds:.01})).bytes.subarray(44).some(Boolean));
 });
 test('all advertised standalone render adapters initialize their packaged WASM',async()=>{
   const template=await readSource(fixture('psg-tone.vgm'));

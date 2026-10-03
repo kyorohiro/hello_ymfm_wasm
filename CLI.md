@@ -140,6 +140,21 @@ resources, but dedicated CLI combination testing remains follow-up work.
 The repository document `docs/issues/analyzer_cli_02_architecture.md` records
 ownership, ROM keys, the configuration table, validation and remaining limitations.
 
+## Generic chip combinations
+
+`render` and Browser playback automatically assemble other combinations of the
+supported chip families from the VGM header. Each chip keeps its own register
+and sample-memory target. The common mixer outputs 44100 Hz and applies master
+gain once. Existing configurations retain their original renderers and controls.
+
+Generic mixtures have chip-level mute IDs from `playbackMuteControls(configuration)`
+(e.g. `ym2151`, `ym3812`, `okim6295`). Genesis FM/PSG/RF5C164/PWM share the
+`genesis` ID. WAV export and normal seeking are available; state checkpoints and
+combined score/voice analysis are not. Required external ROMs are checked across
+all members. Dual chips, unsupported variants and unsupported stream destinations
+retain their existing restrictions. Test coverage includes synthetic mixtures,
+not an audit of every commercial track.
+
 ## YM2608 rendering and rhythm ROM
 
 ```sh
@@ -151,8 +166,7 @@ ADPCM-A rhythm. The rhythm ROM is required only when the VGM issues a rhythm
 key-on; FM/SSG/ADPCM-B-only tracks do not need it. No ROM is downloaded or bundled.
 `--ym2608-rom` is render-only and accepts a full 8192-byte ROM. Unreadable files,
 wrong sizes and missing required ROMs fail before output is written. Partial ROM
-loading is not exposed by this Node API. Dual/variant and other OPN/Sega PSG
-combinations remain rejected; OKIM6258 attachment is available through the shared Core; this pairing has no dedicated CLI mix test yet.
+loading is not exposed by this Node API. Unsupported dual/variant flags remain rejected; OKIM6258 attachment is available through the shared Core; this pairing has no dedicated CLI mix test yet.
 
 ```js
 const wav = await renderSource(source, {
@@ -174,8 +188,7 @@ The VGM clock's variant bit selects YM2610 (4 FM channels) or YM2610B
 (6 FM channels). Both include internal SSG and ADPCM-A/B; sample ROM data must
 be embedded in the VGM (blocks 0x82/0x83). No external ROM option is required
 for these fixtures, and none is provided for this chip. Missing sample data
-cannot be reconstructed. Dual chips and combinations with Sega PSG or other
-OPN chips are rejected; OKIM6258 attachment is available through the shared Core; this pairing has no dedicated CLI mix test yet.
+cannot be reconstructed. Dual chips are rejected; OKIM6258 attachment is available through the shared Core; this pairing has no dedicated CLI mix test yet.
 
 ## OKIM6295 with YM2151 / YM2164 / YM3812
 
@@ -229,7 +242,7 @@ The Node API accepts `renderSource(source, {roms:{ymf278bWave:bytes}})`, where
 `bytes` is a Uint8Array or Buffer. File read errors, missing required ROMs and
 invalid type/size fail before output is written. ROM data is not bundled or
 fetched automatically. Rebuild the WASM with `scripts/build_ymf278b_wasm.sh`.
-Dual/variant flags and unsupported chip combinations remain rejected.
+Unsupported dual/variant flags remain rejected. Other supported chips can be mixed through the generic playback path.
 
 ## Sega PCM
 
@@ -238,8 +251,8 @@ and YM2151 + Sega PCM + Sega PSG through the same engines used by the browser.
 Sample data comes from embedded VGM ROM blocks (type `0x80`); no external
 Sega PCM ROM option or automatic download is provided. Header bank shift/mask
 and register writes (`0xC0`) are handled by the shared player and engine.
-Dual/variant flags and combinations outside the shared configuration table
-are rejected. Missing sample data is not recovered from external game ROMs.
+Unsupported dual/variant flags are rejected. Other supported chip families use
+the generic playback mixer. Missing sample data is not recovered from external game ROMs.
 
 ```sh
 tetorica-vgm render song.vgz --output song.wav
@@ -253,9 +266,9 @@ Browser MSX engine routes writes and mixes PCM; the CLI adds only the
 WASM factory provider. Y8950 ADPCM uses embedded sample data; SCC waveforms
 come from VGM register writes. No external ROM is needed for these fixtures.
 
-Dual chips, variant flags other than SCC+ / OPP, and combinations with Sega PSG
-or other FM families (including OPL4) remain unsupported. This does not enable every MSX hardware
-variant. Offline package tests cover SCC alone, AY + OPLL and the four-chip
+Dual chips and unsupported variant flags remain rejected. Combinations with
+Sega PSG or other supported FM families (including OPL4) use generic playback,
+without combined score analysis. This does not enable every MSX hardware variant. Offline package tests cover SCC alone, AY + OPLL and the four-chip
 mix; source tests cover all 15 subsets and compare their PCM to the sum of
 the individual chips as well as WAV output from the Browser engines. An additional
 30 synthetic combinations cover YM2151 and YM2164 mixed with each of those

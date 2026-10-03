@@ -431,93 +431,7 @@ export class VgmPlayer {
       (steps < this.maxFillStepsPerProcess || this.queuedFrames < requiredFrames)
     ) {
       steps += 1;
-      const ym2612Target = typeof this.engine.writeYm2612 === "function"
-        ? { writeRegister: (register, value, port = 0) => this.engine.writeYm2612(port, register, value) }
-        : undefined;
-      const ay8910Target = typeof this.engine.writeAy8910 === "function"
-        ? { writeRegister: (register, value) => this.engine.writeAy8910(register, value) }
-        : undefined;
-      const k051649Target = typeof this.engine.writeK051649 === "function"
-        ? { writeRegister: (port, register, value) => this.engine.writeK051649(port, register, value) }
-        : undefined;
-      const segapcmTarget = typeof this.engine.writeSegaPcm === "function" ? {
-        writeRegister: (offset, value) => this.engine.writeSegaPcm(offset, value),
-        loadSampleMemory: (...args) => this.engine.loadSampleMemory(...args),
-      } : undefined;
-      const gameboyDmgTarget = typeof this.engine.writeGameboyApu === "function"
-        ? { writeRegister: (register, value) => this.engine.writeGameboyApu(register, value) }
-        : undefined;
-      const y8950Target = typeof this.engine.writeY8950 === 'function' ? {
-        writeRegister: (register, value) => this.engine.writeY8950(register, value),
-        loadSampleMemory: (...args) => this.engine.loadSampleMemory(...args),
-      } : undefined;
-      const ymf278bTarget = typeof this.engine.writeYmf278b === 'function' ? {
-        writeRegister: (register, value, port) => this.engine.writeYmf278b(port, register, value),
-        loadSampleMemory: (...args) => this.engine.loadSampleMemory(...args),
-      } : undefined;
-      const ym3526Target = typeof this.engine.writeYm3526 === "function"
-        ? { writeRegister: (register, value) => this.engine.writeYm3526(register, value) } : undefined;
-      const ym3812Target = typeof this.engine.writeYm3812 === "function"
-        ? { writeRegister: (register, value) => this.engine.writeYm3812(register, value) } : undefined;
-      const ymf262Target = typeof this.engine.writeYmf262 === "function"
-        ? { writeRegister: (register, value, port) => this.engine.writeYmf262(port, register, value) } : undefined;
-      const ym2151Target = typeof this.engine.writeYm2151 === "function"
-        ? { writeRegister: (register, value) => this.engine.writeYm2151(register, value) }
-        : undefined;
-      const ym2413Target = typeof this.engine.writeYm2413 === "function"
-        ? { writeRegister: (register, value) => this.engine.writeYm2413(register, value) }
-        : undefined;
-      const ym2203Target = typeof this.engine.writeYm2203 === "function"
-        ? { writeRegister: (register, value) => this.engine.writeYm2203(register, value) }
-        : undefined;
-      const ym2608Target = typeof this.engine.writeYm2608 === "function"
-        ? {
-          writeRegister: (register, value, port = 0) => this.engine.writeYm2608(port, register, value),
-          loadAdpcmBMemory: typeof this.engine.loadAdpcmBMemory === "function"
-            ? (data, offset, memorySize) => this.engine.loadAdpcmBMemory(data, offset, memorySize)
-            : undefined,
-        }
-        : undefined;
-      const ym2610Target = typeof this.engine.writeYm2610B === 'function' ? {
-        writeRegister:(register,value,port=0)=>this.engine.writeYm2610B(port,register,value),
-        loadAdpcmRom:(...args)=>this.engine.loadAdpcmRom(...args),
-      } : undefined;
-      const rf5c164Target = typeof this.engine.writeRf5c164 === "function" ? {
-        writeRegister: (register, value) => this.engine.writeRf5c164(register, value),
-        writeMemory: (offset, value) => this.engine.writeRf5c164Memory(offset, value),
-        loadBankedMemory: (data, offset) => this.engine.loadRf5c164Memory(data, offset),
-      } : undefined;
-      const targets = {
-        resolveChip: this.engine.getVgmTarget?.bind(this.engine),
-        pwm: { writeRegister: (register, value) => this.engine.writePwm?.(register, value) },
-        rf5c164: rf5c164Target,
-        ym2612: ym2612Target,
-        ym2203: ym2203Target,
-        ym2413: ym2413Target,
-        ym2151: ym2151Target,
-        huc6280: typeof this.engine.writeHuc6280 === "function" ? {
-          writeRegister:(r,v)=>this.engine.writeHuc6280(r,v),
-          writeStream:(p,r,v)=>this.engine.writeHuc6280Stream(p,r,v),
-        } : undefined,
-        okim6295: typeof this.engine.writeOki6295 === 'function' ? {
-          writeRegister:(r,v)=>this.engine.writeOki6295(r,v),
-          loadSampleMemory:(data,offset,size)=>this.engine.loadOki6295Rom(data,offset,size),
-        } : undefined,
-        okim6258: typeof this.engine.writeOki6258 === "function" ? {writeRegister:(r,v)=>this.engine.writeOki6258(r,v)} : undefined,
-        ym3526: ym3526Target, ym3812: ym3812Target, ymf262: ymf262Target,
-        y8950: y8950Target, ymf278b: ymf278bTarget,
-        ay8910: ay8910Target,
-        k051649: k051649Target,
-        segapcm: segapcmTarget,
-        nesApu: typeof this.engine.writeNesApu === 'function' ? {
-          writeRegister:(r,v)=>this.engine.writeNesApu(r,v),
-          loadSampleMemory:(data,offset)=>this.engine.loadNesMemory(data,offset),
-        } : undefined,
-        gameboyDmg: gameboyDmgTarget,
-        ym2608: ym2608Target,
-        ym2610: ym2610Target,
-        psg: { write: (value) => this.engine.writePsg?.(value) },
-      };
+      const targets = this.engine.vgmTargets ?? createVgmTargets(this.engine);
       const event = this.parser.playStep(targets);
       this.processedEvents += 1;
 
@@ -621,4 +535,95 @@ function stateByteLength(value, seen = new Set()) {
   if (value instanceof ArrayBuffer) return value.byteLength;
   const children = value instanceof Map ? [...value.entries()].flat() : value instanceof Set ? [...value] : Object.values(value);
   return 64 + children.reduce((n,v) => n + stateByteLength(v, seen), 0);
+}
+
+// Shared register/memory adapters for legacy engines and the generic mixer.
+export function createVgmTargets(engine) {
+  const ym2612Target = typeof engine.writeYm2612 === "function"
+    ? { writeRegister: (register, value, port = 0) => engine.writeYm2612(port, register, value) }
+    : undefined;
+  const ay8910Target = typeof engine.writeAy8910 === "function"
+    ? { writeRegister: (register, value) => engine.writeAy8910(register, value) }
+    : undefined;
+  const k051649Target = typeof engine.writeK051649 === "function"
+    ? { writeRegister: (port, register, value) => engine.writeK051649(port, register, value) }
+    : undefined;
+  const segapcmTarget = typeof engine.writeSegaPcm === "function" ? {
+    writeRegister: (offset, value) => engine.writeSegaPcm(offset, value),
+    loadSampleMemory: (...args) => engine.loadSampleMemory(...args),
+  } : undefined;
+  const gameboyDmgTarget = typeof engine.writeGameboyApu === "function"
+    ? { writeRegister: (register, value) => engine.writeGameboyApu(register, value) }
+    : undefined;
+  const y8950Target = typeof engine.writeY8950 === 'function' ? {
+    writeRegister: (register, value) => engine.writeY8950(register, value),
+    loadSampleMemory: (...args) => engine.loadSampleMemory(...args),
+  } : undefined;
+  const ymf278bTarget = typeof engine.writeYmf278b === 'function' ? {
+    writeRegister: (register, value, port) => engine.writeYmf278b(port, register, value),
+    loadSampleMemory: (...args) => engine.loadSampleMemory(...args),
+  } : undefined;
+  const ym3526Target = typeof engine.writeYm3526 === "function"
+    ? { writeRegister: (register, value) => engine.writeYm3526(register, value) } : undefined;
+  const ym3812Target = typeof engine.writeYm3812 === "function"
+    ? { writeRegister: (register, value) => engine.writeYm3812(register, value) } : undefined;
+  const ymf262Target = typeof engine.writeYmf262 === "function"
+    ? { writeRegister: (register, value, port) => engine.writeYmf262(port, register, value) } : undefined;
+  const ym2151Target = typeof engine.writeYm2151 === "function"
+    ? { writeRegister: (register, value) => engine.writeYm2151(register, value) }
+    : undefined;
+  const ym2413Target = typeof engine.writeYm2413 === "function"
+    ? { writeRegister: (register, value) => engine.writeYm2413(register, value) }
+    : undefined;
+  const ym2203Target = typeof engine.writeYm2203 === "function"
+    ? { writeRegister: (register, value) => engine.writeYm2203(register, value) }
+    : undefined;
+  const ym2608Target = typeof engine.writeYm2608 === "function"
+    ? {
+      writeRegister: (register, value, port = 0) => engine.writeYm2608(port, register, value),
+      loadAdpcmBMemory: typeof engine.loadAdpcmBMemory === "function"
+        ? (data, offset, memorySize) => engine.loadAdpcmBMemory(data, offset, memorySize)
+        : undefined,
+    }
+    : undefined;
+  const ym2610Target = typeof engine.writeYm2610B === 'function' ? {
+    writeRegister:(register,value,port=0)=>engine.writeYm2610B(port,register,value),
+    loadAdpcmRom:(...args)=>engine.loadAdpcmRom(...args),
+  } : undefined;
+  const rf5c164Target = typeof engine.writeRf5c164 === "function" ? {
+    writeRegister: (register, value) => engine.writeRf5c164(register, value),
+    writeMemory: (offset, value) => engine.writeRf5c164Memory(offset, value),
+    loadBankedMemory: (data, offset) => engine.loadRf5c164Memory(data, offset),
+  } : undefined;
+  return {
+    resolveChip: engine.getVgmTarget?.bind(engine),
+    pwm: { writeRegister: (register, value) => engine.writePwm?.(register, value) },
+    rf5c164: rf5c164Target,
+    ym2612: ym2612Target,
+    ym2203: ym2203Target,
+    ym2413: ym2413Target,
+    ym2151: ym2151Target,
+    huc6280: typeof engine.writeHuc6280 === "function" ? {
+      writeRegister:(r,v)=>engine.writeHuc6280(r,v),
+      writeStream:(p,r,v)=>engine.writeHuc6280Stream(p,r,v),
+    } : undefined,
+    okim6295: typeof engine.writeOki6295 === 'function' ? {
+      writeRegister:(r,v)=>engine.writeOki6295(r,v),
+      loadSampleMemory:(data,offset,size)=>engine.loadOki6295Rom(data,offset,size),
+    } : undefined,
+    okim6258: typeof engine.writeOki6258 === "function" ? {writeRegister:(r,v)=>engine.writeOki6258(r,v)} : undefined,
+    ym3526: ym3526Target, ym3812: ym3812Target, ymf262: ymf262Target,
+    y8950: y8950Target, ymf278b: ymf278bTarget,
+    ay8910: ay8910Target,
+    k051649: k051649Target,
+    segapcm: segapcmTarget,
+    nesApu: typeof engine.writeNesApu === 'function' ? {
+      writeRegister:(r,v)=>engine.writeNesApu(r,v),
+      loadSampleMemory:(data,offset)=>engine.loadNesMemory(data,offset),
+    } : undefined,
+    gameboyDmg: gameboyDmgTarget,
+    ym2608: ym2608Target,
+    ym2610: ym2610Target,
+    psg: { write: (value) => engine.writePsg?.(value) },
+  };
 }

@@ -28,12 +28,13 @@ test('YM2610B enables extra FM channels while YM2610 does not',async()=>{
     assert.equal(result.bytes.subarray(44).some(v=>v!==0),chip==='ym2610b');
   }
 });
-test('YM2610 variants reject dual chips, unsupported mixtures and invalid embedded ROM ranges',async()=>{
+test('YM2610 variants reject dual chips, invalid flags and invalid embedded ROM ranges',async()=>{
   for(const chip of ['ym2610','ym2610b']) {
     const original=await readSource(fixture(chip,'adpcm-a'));
     for(const [offset,value] of [[0x4c,(chip==='ym2610b'?0xc0000000:0x40000000)+8000000],[0x0c,3579545],[0x48,8000000]]) {
       const bad=original.slice();new DataView(bad.buffer).setUint32(offset,value,true);
-      await assert.rejects(renderSource(bad),e=>e.code==='UNSUPPORTED_CONFIGURATION');
+      if(offset===0x4c) await assert.rejects(renderSource(bad),e=>e.code==='UNSUPPORTED_CONFIGURATION');
+      else assert((await renderSource(bad,{maxSeconds:.01})).bytes.subarray(44).some(Boolean));
     }
     const bad=original.slice();new DataView(bad.buffer).setUint32(267,256,true);
     await assert.rejects(renderSource(bad),/Invalid YM2610 ROM range/);

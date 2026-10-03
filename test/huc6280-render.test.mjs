@@ -16,5 +16,5 @@ test('HuC6280 VGZ renders audible WAV and supports channel mute through shared p
     await assert.rejects(renderSource(b),e=>e.code==='UNSUPPORTED_CONFIGURATION');
   }
   const mixed=source.slice();new DataView(mixed.buffer).setUint32(0x2c,7670454,true);
-  await assert.rejects(renderSource(mixed),e=>e.code==='UNSUPPORTED_CONFIGURATION');
+  assert((await renderSource(mixed,{maxSeconds:.01})).bytes.subarray(44).some(Boolean));
 });

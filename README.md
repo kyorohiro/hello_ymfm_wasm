@@ -311,8 +311,8 @@ registers 0x00–0x07 are not emulated specially.
 MSX mixtures with AY / YM2149, YM2413, Y8950 and SCC / SCC+ support
 playback, chip/channel mutes, Live / Song Note-ish and MIDI / MusicXML /
 LilyPond export. Mixed configurations use normal seeking and do not expose
-OPM voice exports or MML. A second chip instance and mixtures with OPL4
-remain unsupported.
+OPM voice exports or MML. A second chip instance remains unsupported. Other supported chip families use
+the generic playback mixer described below.
 Build with `sh scripts/build_ym2151_wasm.sh`.
 The JavaScript engine accepts `ym2151Variant: 'ym2164'`; the chip wrapper
 accepts `variant: 'ym2164'`. Both default to YM2151.
@@ -323,7 +323,8 @@ YM3812 and YMF262 VGM/VGZ files can be played in the Analyzer, with optional Seg
 PSG. OPL3 supports both register ports; its four output buses are folded into
 stereo (A+C left, B+D right). YMF262 supports base-pitch Note-ish and
 MusicXML / LilyPond scores; instrument editing remains unavailable.
-Second chips, OPL DAC streams and other chip combinations are not supported.
+Second chips and OPL DAC streams are not supported. Other supported chip
+combinations use the generic playback mixer.
 This does not emulate Sound Blaster PCM/DMA hardware. Build with
 `sh scripts/build_ym3812_wasm.sh` and `sh scripts/build_ymf262_wasm.sh`.
 
@@ -337,14 +338,14 @@ PCM Sample Explorer support is planned. Sample data can be embedded in the
 VGM (blocks 0x88 for Y8950, 0x84/0x87 for YMF278B). For Moonsound logs such as
 Sonyc that omit the built-in samples, import your `yrw801.rom` (2 MiB) through
 the file selector or drag and drop, then press Play. The ROM remains loaded
-for track changes and seeking in the current page session; no wave ROM is bundled. Each supports optional Sega PSG; second chips, DAC streams and other
-chip combinations other than the MSX configuration below are not supported. Build with `sh scripts/build_y8950_wasm.sh`
+for track changes and seeking in the current page session; no wave ROM is bundled. Each supports optional Sega PSG; second chips and DAC streams are not supported. Other supported chip
+combinations use the generic playback mixer. Build with `sh scripts/build_y8950_wasm.sh`
 and `sh scripts/build_ymf278b_wasm.sh`.
 
 YM3526 (OPL) VGM/VGZ playback is supported, including melodic and rhythm modes,
 with optional Sega PSG. No sample ROM is required. This uses `ymfm::ym3526`,
 including its fixed sine waveform, rather than substituting the OPL2 core.
-Second YM3526 chips, DAC streams and other chip combinations remain unsupported;
+Second YM3526 chips and DAC streams remain unsupported;
 instrument editing is not yet available.
 
 YM3526, YM3812 and standalone Y8950 support nine-channel base-pitch Note-ish, MIDI, MusicXML
@@ -377,8 +378,8 @@ The Analyzer mixes any subset of AY-3-8910/YM2149, YM2413, Y8950,
 SCC/SCC+ and YM2151/YM2164 (one of each family), including embedded Y8950
 ADPCM. It provides chip/channel mutes, Live / Song Note-ish and base-pitch
 MIDI / MusicXML / LilyPond exports. Mixed mode does not provide instrument
-editing, voice export or MML. OPL4 mixtures and second instances remain
-unsupported. Synthetic tests cover OPM and OPP with all 15 subsets of the
+editing, voice export or MML. Second instances remain unsupported. OPL4
+mixtures use the generic playback mixer, without combined note analysis. Synthetic tests cover OPM and OPP with all 15 subsets of the
 other four families, including replay, seek and mute routing.
 
 `web/multichipaudioengine.js` registers engines by chip type and instance index.
@@ -390,12 +391,28 @@ continue advancing. `web/msxaudioengine.js` constructs the MSX chip adapters.
 The programmatic `chips` option accepts descriptors `{type, index, options}`,
 so the registry can represent repeated types without sharing chip state.
 Dual-chip playback is **not verified** and is still rejected in the Analyzer UI.
-Other combinations need adapters and validation before being offered there.
+Other supported chip combinations are assembled automatically by the shared
+playback core; no pair-specific allowlist is required.
 AY, YM2413 and Y8950 DAC streams remain unsupported; they are skipped with a visible warning while other playback continues.
 
 Run `node --test web/ay8910.test.mjs` for three-chip mixing against independent
 renders, embedded ADPCM, reset/seek repeatability and sample clearing between
 songs. These fixtures are synthetic; real-game playback remains to be checked.
+
+### Header-driven multi-chip playback
+
+Analyzer and CLI playback can combine the supported chip families declared in
+one VGM header. Existing Genesis, MSX and other established configurations keep
+their monitors and controls. Other combinations use a common 44.1 kHz mixer,
+with isolated register/sample-memory targets and master volume applied once.
+Genesis FM / PSG / RF5C164 / PWM stay together to preserve their shared timing.
+
+The generic path provides playback, WAV export and chip-level mute (one combined
+Genesis mute). It uses normal seeking; combined Note-ish/voice analysis and seek
+checkpoints are not available. Existing chip-specific ROM requirements, unsupported
+commands and dual-chip restrictions still apply. This does not add new chip cores
+or guarantee every real-world track. Tests cover all supported engine adapters,
+FM sum equivalence, mixed output rates, muting and sample-memory routing.
 
 ### NES APU
 

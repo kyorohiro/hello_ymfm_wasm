@@ -29,7 +29,8 @@ test('YMF278B diagnoses missing/bad ROM and rejects unsupported configurations',
   for(const bad of [new Uint8Array(),new Uint8Array(2097151),new Uint8Array(2097153),new ArrayBuffer(2097152)])await assert.rejects(renderSource(source,{roms:{ymf278bWave:bad}}),/2097152/);
   for(const [offset,value] of [[0x60,0x40000000+33868800],[0x60,0x80000000+33868800],[0x2c,7670454]]) {
     const bad=source.slice();new DataView(bad.buffer).setUint32(offset,value,true);
-    await assert.rejects(renderSource(bad),e=>e.code==='UNSUPPORTED_CONFIGURATION');
+    if(offset===0x60) await assert.rejects(renderSource(bad),e=>e.code==='UNSUPPORTED_CONFIGURATION');
+    else assert((await renderSource(bad,{maxSeconds:.01,roms:{ymf278bWave:testRom()}})).bytes.subarray(44).some(Boolean));
   }
   const bad=await readSource(fixture('embedded'));new DataView(bad.buffer).setUint32(267,512,true);
   await assert.rejects(renderSource(bad),/range/i);

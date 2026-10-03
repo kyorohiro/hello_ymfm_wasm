@@ -33,10 +33,11 @@ test('32X PWM direct/stream/stereo and Genesis combinations match Browser engine
   for(let i=44;i<outputs.stereo.length;i+=4){assert(v.getInt16(i,true)>0);assert(v.getInt16(i+2,true)<0);}
   for(const name of ['fm','psg','pcm','all'])assert.notDeepEqual(outputs[name],outputs.direct,name);
 });
-test('32X PWM rejects dual/variant flags and unsupported mixed chip families',async()=>{
+test('32X PWM rejects dual/variant flags and mixes other supported chip families',async()=>{
   const source=await readSource(fixture('direct'));
   for(const [offset,value] of [[0x70,0x40000000+23011361],[0x70,0x80000000+23011361],[0x30,3579545],[0x74,1789773]]){
     const bad=source.slice();new DataView(bad.buffer).setUint32(offset,value,true);
-    await assert.rejects(renderSource(bad),e=>e.code==='UNSUPPORTED_CONFIGURATION');
+    if(offset===0x70) await assert.rejects(renderSource(bad),e=>e.code==='UNSUPPORTED_CONFIGURATION');
+    else assert((await renderSource(bad,{maxSeconds:.01})).bytes.subarray(44).some(Boolean));
   }
 });

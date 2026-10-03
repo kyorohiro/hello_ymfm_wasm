@@ -36,7 +36,8 @@ test('Sega PCM rejects unsupported configurations and invalid embedded ROM range
   const source=await readSource(fixture('bank1'));
   for(const [offset,value] of [[0x38,0x40000000+4000000],[0x38,0x80000000+4000000],[0x2c,7670454]]){
     const bad=source.slice();new DataView(bad.buffer).setUint32(offset,value,true);
-    await assert.rejects(renderSource(bad),e=>e.code==='UNSUPPORTED_CONFIGURATION');
+    if(offset===0x38) await assert.rejects(renderSource(bad),e=>e.code==='UNSUPPORTED_CONFIGURATION');
+    else assert((await renderSource(bad,{maxSeconds:.01})).bytes.subarray(44).some(Boolean));
   }
   for(const [offset,value] of [[267,2048],[263,0x200001]]){
     const bad=source.slice();new DataView(bad.buffer).setUint32(offset,value,true);

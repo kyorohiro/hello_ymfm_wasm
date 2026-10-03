@@ -20,7 +20,7 @@ test('configuration handles variants, compositions, ROM needs and reserved heade
     [{ym2612Clock:7670453,rf5c164Clock:12500000,psgClock:3579545},'ym2612'],
   ]) assert.equal(selectPlaybackConfiguration(parser(header)).kind,kind);
   assert.throws(()=>selectPlaybackConfiguration(parser({ym2610Clock:0x40000000+8000000})),{code:'UNSUPPORTED_CONFIGURATION'});
-  assert.throws(()=>selectPlaybackConfiguration(parser({ym2612Clock:7670453,ym2203Clock:4000000})),{code:'UNSUPPORTED_CONFIGURATION'});
+  assert.equal(selectPlaybackConfiguration(parser({ym2612Clock:7670453,ym2203Clock:4000000})).kind,'mixed');
   const p=parser({ym2608Clock:8000000});p.requiresYm2608RhythmRom=()=>true;
   assert.deepEqual(selectPlaybackConfiguration(p).requiredRoms,['ym2608AdpcmA']);
   assert.deepEqual(selectPlaybackConfiguration(parser({ay8910Clock:1789773,gameBoyDmgClock:0xc0000001})).ignoredClocks,['gameBoyDmgClock']);
@@ -148,7 +148,7 @@ test('YM2203 renders FM and SSG independently and matches the shared Browser eng
   assert.notDeepEqual(rendered[2],rendered[0],'mix includes SSG');
   assert.notDeepEqual(rendered[2],rendered[1],'mix includes FM');
   const original=await readSource(fixture('ym2203-mix'));
-  for(const [offset,value] of [[0x44,0x40000000+4000000],[0x44,0x80000000+4000000],[0x0c,3579545],[0x48,8000000],[0x6c,12500000]]) {
+  for(const [offset,value] of [[0x44,0x40000000+4000000],[0x44,0x80000000+4000000]]) {
     const source=original.slice();new DataView(source.buffer).setUint32(offset,value,true);
     await assert.rejects(renderSource(source),error=>error.code==='UNSUPPORTED_CONFIGURATION');
   }
