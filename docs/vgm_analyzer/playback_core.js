@@ -108,7 +108,7 @@ const composition = {
   msx: ['ay8910','ym2413','y8950','k051649','ym2151'],
   ym2413: ['ym2413','psg'], y8950: ['y8950','psg'],
   ymf278b: ['ymf278b','psg'], ym3526: ['ym3526','psg'],
-  ym3812: ['ym3812','psg'], ymf262: ['ymf262','psg'],
+  ym3812: ['ym3812','psg','okim6295'], ymf262: ['ymf262','psg'],
   huc6280: ['huc6280'], segapcm: ['segaPcm','psg'], nes: ['nesApu'], gameboy: ['gameBoyDmg'], okim6258: ['okim6258'], okim6295: ['okim6295'],
 };
 export function selectPlaybackConfiguration(vgm) {

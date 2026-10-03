@@ -177,16 +177,16 @@ for these fixtures, and none is provided for this chip. Missing sample data
 cannot be reconstructed. Dual chips and combinations with Sega PSG or other
 OPN chips are rejected; OKIM6258 attachment is available through the shared Core; this pairing has no dedicated CLI mix test yet.
 
-## OKIM6295 and YM2151 + OKIM6295
+## OKIM6295 with YM2151 / YM2164 / YM3812
 
-`render` supports standalone OKIM6295 and YM2151 / YM2164 + OKIM6295
-(the CPS-1 sound configuration), using embedded VGM ROM blocks (0x8B).
+`render` supports standalone OKIM6295, YM2151 / YM2164 + OKIM6295
+(the CPS-1 sound configuration), and YM3812 + OKIM6295, using embedded VGM ROM blocks (0x8B).
 Four ADPCM voices, clock/pin7 changes and standard/NMK112 ROM banks are supported.
 Use `--mute okim6295` to mute the entire chip. Seeking replays from the start;
 this combination does not use state checkpoints. Second chips, OKIM6295 DAC
 streams, sample export and instrument extraction are not supported.
 The synchronous JavaScript decoder is shared with the browser; no new WASM
-build or external ROM download is required. Real YM2151 mixing is covered by
+build or external ROM download is required. Real YM2151 and YM3812 mixing is covered by
 synthetic-ROM tests, not an audit of commercial CPS-1 tracks.
 
 ## OKIM6258 and YM2151 + OKIM6258

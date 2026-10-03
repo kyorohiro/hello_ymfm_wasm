@@ -190,7 +190,7 @@ libymfm.wasm's Rust port was reviewed as prior work and is not copied here.
 
 ### MAME / libvgm OKIM6295 (`third_party/mame-okim6295/`)
 
-Analyzer and CLI playback support OKIM6295 alone or with YM2151 / YM2164.
+Analyzer and CLI playback support OKIM6295 alone or with YM2151 / YM2164 / YM3812.
 The JavaScript ADPCM engine is adapted from BSD-3-Clause MAME/libvgm sources;
 see [source notes](third_party/mame-okim6295/README.md) and
 [license](third_party/mame-okim6295/LICENSE). Embedded VGM ROMs supply samples;

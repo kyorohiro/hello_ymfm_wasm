@@ -26,7 +26,7 @@ Output files are never overwritten unless --force is supplied.
 Render: standalone YM2612/YM2151/YM2413/YM3526/YM3812/YMF262 (optional Sega PSG),
 YM2612 + RF5C164 (optional Sega PSG), standalone YM2203 (FM + internal SSG), YM2608 and YM2610/B (FM / SSG / ADPCM), Sega PSG alone, AY-3-8910, or Game Boy DMG. Other configurations may require additional WASM factories or ROMs; see CLI.md.
 Y8950 (FM / embedded ADPCM, optional Sega PSG) is supported.
-OKIM6295 alone or with YM2151 / YM2164 is supported (embedded sample ROM).
+OKIM6295 alone or with YM2151 / YM2164 / YM3812 is supported (embedded sample ROM).
 OKIM6258 alone or with YM2151 is supported (4-bit ADPCM only).
 YMF278B (FM / PCM, optional Sega PSG) is supported.
 32X PWM alone or with Genesis FM / PSG / RF5C164 uses the Browser PWM approximation.

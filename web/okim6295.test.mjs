@@ -89,3 +89,36 @@ test('player reset replays identical PCM; loading another track clears sample RO
   p.stop();p.load(file([0xb8,0,128,0xb8,0,16,0x61,255,255,0x66]));assert(render().every(v=>v===0));
  }finally{e.dispose();}
 });
+
+test('YM3812 3.58 MHz + OKIM6295 1.32 MHz: independent mix, mutes and replay',async()=>{
+ const fm=await readSource(new URL('../test/fixtures/ym3812-tone.vgz',import.meta.url));
+ const dataOffset=new DataView(fm.buffer,fm.byteOffset).getUint32(0x34,true)+0x34;
+ const mixed=file([...commands().slice(0,-4),...fm.subarray(dataOffset)],{oki:1320000});
+ new DataView(mixed.buffer).setUint32(0x50,3580000,true);
+ const okiOnly=file(commands(),{oki:1320000});
+ const fmOnly=file([...fm.subarray(dataOffset)],{oki:0});
+ new DataView(fmOnly.buffer).setUint32(0x50,3580000,true);
+ async function render(bytes,mutes=[],sizes=[1000],replay=false){
+  const vgm=new Ym2612VGM(bytes),config=selectPlaybackConfiguration(vgm);
+  const e=await createPlaybackEngine(vgm,{getFactory:getNodePlaybackFactory});
+  try{
+   applyPlaybackMutes(e,config,mutes);
+   const p=new VgmPlayer(e);p.load(bytes);
+   const pass=()=>{p.play();return sizes.flatMap(n=>{const l=new Float32Array(n),r=new Float32Array(n);p.process(l,r,n);assert.deepEqual(l,r);return [...l];});};
+   const output=pass();if(replay){p.reset();assert.deepEqual(pass(),output);}return output;
+  }finally{e.dispose();}
+ }
+ const config=selectPlaybackConfiguration(new Ym2612VGM(mixed));
+ assert.equal(config.kind,'ym3812');
+ assert.deepEqual(config.chips.map(c=>c.id).sort(),['okim6295','ym3812']);
+ const [oki,opl,mix]=await Promise.all([render(okiOnly),render(fmOnly),render(mixed,[],[1000],true)]);
+ assert(oki.some(v=>v!==0));assert(opl.some(v=>v!==0));
+ assert.deepEqual(mix,oki.map((v,i)=>Math.fround(v+opl[i])));
+ assert.deepEqual(await render(mixed,['okim6295']),opl);
+ assert.deepEqual(await render(mixed,Array.from({length:9},(_,i)=>`ym3812-ch-${i+1}`)),oki);
+ assert.deepEqual(await render(mixed,[],[1,2,7,90,300,600]),mix);
+ assert(sourcesForChip('ym3812',false,true).some(s=>s.key==='oki6295'));
+ const wav=await renderSource(mixed,{maxSeconds:.02});assert.deepEqual(wav.warnings,[]);assert(wav.bytes.subarray(44).some(v=>v!==0));
+ const dual=mixed.slice();new DataView(dual.buffer).setUint32(0x98,1320000|0x40000000,true);
+ assert.throws(()=>selectPlaybackConfiguration(new Ym2612VGM(dual)),/Dual/);
+});
