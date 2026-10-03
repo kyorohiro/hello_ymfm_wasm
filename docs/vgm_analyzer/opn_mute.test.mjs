@@ -4,7 +4,7 @@ import vm from 'node:vm';
 import {readFileSync} from 'node:fs';
 test('YM2203 channel buttons use output mute without issuing key-off',()=>{
  const source=readFileSync(new URL('./vgm_analyzer.js',import.meta.url),'utf8'),calls=[];
- const context=vm.createContext({currentChipKind:'ym2203',channelMonitor:[{muted:false,changedAt:{}}],channelMuteStates:[],
+ const context=vm.createContext({noteishHeader:{},currentChipKind:'ym2203',channelMonitor:[{muted:false,changedAt:{}}],channelMuteStates:[],
   performance,requestChannelMonitorRender(){},renderMonitorToggles(){},engine:{setChannelMuted:(...args)=>calls.push(args)},
   baseEngineWriteYm2203:()=>assert.fail('must not alter key-on'),flushPendingAudio:()=>calls.push('flush')});
  vm.runInContext(source.slice(source.indexOf('function toggleChannelMute('),source.indexOf('function flushPendingAudio(')),context);
@@ -23,7 +23,7 @@ for(const connected of [false,true])test(`CH toggles refresh both panels without
  const root={children:[],set innerHTML(v){this.children=[];},append(b){this.children.push(b);}};
  const inline={children:[],replaceChildren(...b){this.children=b;}};
  const writes=[];
- const context=vm.createContext({currentChipKind:'ym2612',channelMonitor:[{channel:0,muted:false,b4Value:0xc0,changedAt:{}}],channelMuteStates:[],
+ const context=vm.createContext({noteishHeader:{},currentChipKind:'ym2612',channelMonitor:[{channel:0,muted:false,b4Value:0xc0,changedAt:{}}],channelMuteStates:[],
   performance,requestChannelMonitorRender(){},engine:connected?{}:null,
   monitorToggles:root,inlineMonitorToggles:inline,ensureMonitorToggleHandler(){},CHANNEL_MUTE_CHIPS:[],
   sourcesForChip:()=>[],sourceChipKind:()=> 'megacd',hasOkiSource:()=>false,

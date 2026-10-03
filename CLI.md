@@ -177,6 +177,18 @@ for these fixtures, and none is provided for this chip. Missing sample data
 cannot be reconstructed. Dual chips and combinations with Sega PSG or other
 OPN chips are rejected; OKIM6258 attachment is available through the shared Core; this pairing has no dedicated CLI mix test yet.
 
+## OKIM6295 and YM2151 + OKIM6295
+
+`render` supports standalone OKIM6295 and YM2151 / YM2164 + OKIM6295
+(the CPS-1 sound configuration), using embedded VGM ROM blocks (0x8B).
+Four ADPCM voices, clock/pin7 changes and standard/NMK112 ROM banks are supported.
+Use `--mute okim6295` to mute the entire chip. Seeking replays from the start;
+this combination does not use state checkpoints. Second chips, OKIM6295 DAC
+streams, sample export and instrument extraction are not supported.
+The synchronous JavaScript decoder is shared with the browser; no new WASM
+build or external ROM download is required. Real YM2151 mixing is covered by
+synthetic-ROM tests, not an audit of commercial CPS-1 tracks.
+
 ## OKIM6258 and YM2151 + OKIM6258
 
 Standalone OKIM6258 and YM2151 + OKIM6258 use the same `render` command and
@@ -513,7 +525,7 @@ and present chips. Unsupported-ID errors include the available IDs.
 | `ym2413-ch-1..9`, `ym3526-ch-1..9`, `ym3812-ch-1..9`, `y8950-ch-1..9` | Primary engine FM channels |
 | `ymf262-ch-1..18`, `ymf278b-ch-1..18`, `ymf278b-pcm-1..24` | OPL3 FM / OPL4 PCM channels |
 | `gameboy-ch-1..4` | DMG channels |
-| `psg`, `rf5c164`, `pwm`, `okim6258` | Present companion/standalone source |
+| `psg`, `rf5c164`, `pwm`, `okim6258`, `okim6295` | Present companion/standalone source |
 | `ssg`, `rhythm`, `adpcm-a`, `adpcm-b` | OPN internal sources as applicable (rhythm: YM2608; ADPCM-A: YM2610/B) |
 | `y8950-adpcm` | Standalone Y8950 ADPCM |
 | `segapcm`, `segapcm-ch-1..16` | Sega PCM alone or with YM2151 |

@@ -105,6 +105,7 @@ export class VgmPlayer {
   load(buffer, options = {}) {
     this.clearCheckpoints();
     this.parser = new Ym2612VGM(buffer, options);
+    this.engine.clearOki6295Rom?.();
     this.engine.clearSampleMemory?.();
     this.engine.clearAdpcmBMemory?.();
     this.engine.clearAdpcmRoms?.();
@@ -497,6 +498,10 @@ export class VgmPlayer {
         huc6280: typeof this.engine.writeHuc6280 === "function" ? {
           writeRegister:(r,v)=>this.engine.writeHuc6280(r,v),
           writeStream:(p,r,v)=>this.engine.writeHuc6280Stream(p,r,v),
+        } : undefined,
+        okim6295: typeof this.engine.writeOki6295 === 'function' ? {
+          writeRegister:(r,v)=>this.engine.writeOki6295(r,v),
+          loadSampleMemory:(data,offset,size)=>this.engine.loadOki6295Rom(data,offset,size),
         } : undefined,
         okim6258: typeof this.engine.writeOki6258 === "function" ? {writeRegister:(r,v)=>this.engine.writeOki6258(r,v)} : undefined,
         ym3526: ym3526Target, ym3812: ym3812Target, ymf262: ymf262Target,

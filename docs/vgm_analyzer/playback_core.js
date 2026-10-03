@@ -1,3 +1,4 @@
+import {Oki6295AudioEngine, attachOki6295} from '../js/okim6295audioengine.js';
 import {Huc6280AudioEngine} from '../js/huc6280audioengine.js';
 import {createNesApuAudioEngine,validateNesApuClock} from '../js/nesapuaudioengine.js';
 import {Oki6258AudioEngine,attachOki6258,validateOki6258Header} from '../js/okim6258audioengine.js';
@@ -42,6 +43,7 @@ export function detectPlaybackChipKind(header) {
     return "ym2608";
   }
   if (header.huc6280Clock & 0x3fffffff) return "huc6280";
+  if (header.okim6295Clock & 0x3fffffff) return "okim6295";
   if (header.okim6258Clock && !header.ym2612Clock && !header.psgClock && !header.pwmClock) return "okim6258";
   if (header.ym2612Clock & 0x3fffffff) return "ym2612";
   // Sega PCM and Game Boy DMG clocks were only added to the VGM header in
@@ -102,12 +104,12 @@ export class PlaybackError extends Error {
 const composition = {
   ym2612: ['ym2612','psg','rf5c164','pwm'],
   ym2203: ['ym2203'], ym2608: ['ym2608'], ym2610: ['ym2610'],
-  ym2151: ['ym2151','psg','segaPcm'], ay8910: ['ay8910','ym2413'],
+  ym2151: ['ym2151','psg','segaPcm','okim6295'], ay8910: ['ay8910','ym2413'],
   msx: ['ay8910','ym2413','y8950','k051649','ym2151'],
   ym2413: ['ym2413','psg'], y8950: ['y8950','psg'],
   ymf278b: ['ymf278b','psg'], ym3526: ['ym3526','psg'],
   ym3812: ['ym3812','psg'], ymf262: ['ymf262','psg'],
-  huc6280: ['huc6280'], segapcm: ['segaPcm','psg'], nes: ['nesApu'], gameboy: ['gameBoyDmg'], okim6258: ['okim6258'],
+  huc6280: ['huc6280'], segapcm: ['segaPcm','psg'], nes: ['nesApu'], gameboy: ['gameBoyDmg'], okim6258: ['okim6258'], okim6295: ['okim6295'],
 };
 export function selectPlaybackConfiguration(vgm) {
   const header = {...vgm.header};
@@ -122,7 +124,7 @@ export function selectPlaybackConfiguration(vgm) {
   try {
     const unsupported=chips.filter(c=>!composition[kind].includes(c.id) && c.id !== 'okim6258');
     if (unsupported.length) throw new Error(`This chip combination is not supported: ${chips.map(c=>c.id).join(' + ')}`);
-    if (chips.some(c=>(c.rawClock & (['ym2610','ym2151','k051649','nesApu'].includes(c.id) ? 0x40000000 : 0xc0000000)))) throw new Error('Dual/variant configuration is not supported');
+    if (chips.some(c=>(c.rawClock & (['ym2610','ym2151','k051649','nesApu','okim6295'].includes(c.id) ? 0x40000000 : 0xc0000000)))) throw new Error('Dual/variant configuration is not supported');
     if (kind === 'nes') validateNesApuClock(header.nesApuClock & 0x3fffffff);
     if (header.okim6258Clock) validateOki6258Header(header);
     if (kind === 'msx') validateMsxPlaybackHeader(header);
@@ -137,6 +139,7 @@ export function selectPlaybackConfiguration(vgm) {
   ]};
 }
 const recipes = {
+  okim6295: async (vgm, resource, masterVolume) => new Oki6295AudioEngine({clock:vgm.header.okim6295Clock,masterVolume}),
   huc6280: async (vgm, resource, masterVolume) => Huc6280AudioEngine.create({moduleFactory:await resource("huc6280"),clock:vgm.header.huc6280Clock,masterVolume}),
   nes: async (vgm, resource, masterVolume) => createNesApuAudioEngine({clock:vgm.header.nesApuClock & 0x3fffffff,fds:!!(vgm.header.nesApuClock & 0x80000000),masterVolume}),
   okim6258: async (vgm, resource, masterVolume) => Oki6258AudioEngine.create({moduleFactory:await resource('okim6258'),clock:vgm.header.okim6258Clock,flags:vgm.header.okim6258Flags,masterVolume}),
@@ -251,6 +254,7 @@ export async function createPlaybackEngine(vgm, {getFactory, masterVolume=1, rom
   let engine;
   try {
     engine = await recipes[configuration.kind]({header:configuration.header},resource,masterVolume);
+    if (configuration.header.okim6295Clock && !engine.writeOki6295) attachOki6295(engine, new Oki6295AudioEngine({clock:configuration.header.okim6295Clock,outputSampleRate:engine.sampleRate()}));
     if (vgm.header.okim6258Clock && typeof engine.writeOki6258 !== 'function') {
       const oki = await Oki6258AudioEngine.create({moduleFactory:await resource('okim6258'),clock:vgm.header.okim6258Clock,flags:vgm.header.okim6258Flags,outputSampleRate:engine.sampleRate()});
       attachOki6258(engine,oki);
@@ -284,6 +288,7 @@ export function playbackMuteControls(configuration) {
   if(['ym2203','ym2608','ym2610'].includes(kind))add('ssg','setSsgMuted');
   if(['ym2608','ym2610'].includes(kind)){add(kind==='ym2608'?'rhythm':'adpcm-a','setRhythmMuted');add('adpcm-b','setAdpcmBMuted');}
   if(kind==='y8950')add('y8950-adpcm','setAdpcmMuted');
+  if(h.okim6295Clock)add('okim6295','setOki6295Muted');
   if(h.okim6258Clock)add('okim6258','setOkiMuted');
   if(h.segaPcmClock && ['segapcm','ym2151'].includes(kind)){add('segapcm','setSegaPcmMuted');channels('segapcm-ch',16,'setSegaPcmChannelMuted');}
   if(['ay8910','msx'].includes(kind)&&h.ay8910Clock){add('ay8910','setAyMuted');channels('ay8910-ch',3,'setAyChannelMuted');}

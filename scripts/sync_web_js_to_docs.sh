@@ -14,6 +14,7 @@ soundchip_factory.js
 soundchip.js
 huc6280audioengine.js
 okim6258audioengine.js
+okim6295audioengine.js
 bitcrusher-worklet.js
 genesisaudioengine.js
 rf5c164.js

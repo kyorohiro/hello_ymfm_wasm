@@ -6,7 +6,7 @@ import vm from 'node:vm';
 const source = readFileSync(new URL('./vgm_analyzer.js', import.meta.url), 'utf8');
 function setup(track) {
   const calls = [];
-  const context = vm.createContext({
+  const context = vm.createContext({noteishHeader:{},
     Uint8Array, currentBuffer: track, currentChipKind: 'ym2608',
     ym2608AdpcmARomBytes: null, ym2608AdpcmARomName: '',
     engine: {loadAdpcmARom: bytes => calls.push(['rom', bytes.length])},
