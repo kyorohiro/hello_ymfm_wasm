@@ -32,6 +32,7 @@ playground_sync.js
 playground_ui.js
 playground_virtual_files.js
 playground_file_tree.js
+playground_file_resize.js
 playground_tfi_editor.js
 playground_midi_import.js
 playground_vgm_presets.js

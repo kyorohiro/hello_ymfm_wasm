@@ -104,7 +104,7 @@ export const EXAMPLE_FILES = [
   {
     "path": "/examples/fm/fm-api-beep.js",
     "name": "fm-api-beep",
-    "data": "fm.reset();\n\n// CH1 = YM2612 channel 1\n// OP4 is the audible carrier in this simple setup\nfm.setOperator(CH1, OP1, { tl: 127, ar: 31, d1r: 0, d2r: 0, sl: 0, rr: 15 });\nfm.setOperator(CH1, OP2, { tl: 127, ar: 31, d1r: 0, d2r: 0, sl: 0, rr: 15 });\nfm.setOperator(CH1, OP3, { tl: 127, ar: 31, d1r: 0, d2r: 0, sl: 0, rr: 15 });\nfm.setOperator(CH1, OP4, {\n  dt: 0,\n  multi: 1,\n  tl: 8,\n  ar: 22,\n  d1r: 6,\n  d2r: 3,\n  sl: 3,\n  rr: 8,\n});\n\nfm.setAlgo(CH1, 7, 0);\nfm.setPan(CH1, true, true);\n\nfm.noteOn(CH1, 4, 553);\nawait sleep(0.4);\nfm.noteOff(CH1);\nawait sleep(0.3);\n"
+    "data": "fm.reset();\n\n// CH1 = YM2612 channel 1\n// OP4 is the audible carrier in this simple setup\n// Each entry is [operator, parameters]; omitted parameters keep their values.\nfm.setOperators(CH1, [\n  [OP1, { tl: 127, ar: 31, d1r: 0, d2r: 0, sl: 0, rr: 15 }],\n  [OP2, { tl: 127, ar: 31, d1r: 0, d2r: 0, sl: 0, rr: 15 }],\n  [OP3, { tl: 127, ar: 31, d1r: 0, d2r: 0, sl: 0, rr: 15 }],\n  [OP4, {\n    dt: 0,\n    multi: 1,\n    tl: 8,\n    ar: 22,\n    d1r: 6,\n    d2r: 3,\n    sl: 3,\n    rr: 8,\n  }],\n]);\n\nfm.setAlgo(CH1, 7, 0);\nfm.setPan(CH1, true, true);\n\nfm.noteOn(CH1, 4, 553);\nawait sleep(0.4);\nfm.noteOff(CH1);\nawait sleep(0.3);\n"
   },
   {
     "path": "/examples/fm/fm-low-level-note.js",

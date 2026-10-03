@@ -693,12 +693,26 @@
       }
 
       .file-explorer {
-        flex: 0 0 190px;
+        flex: 0 0 var(--file-explorer-width, 210px);
+        box-sizing: border-box;
+        min-width: 0;
         overflow: auto;
         padding: 10px;
         background: #202329;
         color: #dbe2e8;
       }
+
+      .file-explorer-divider {
+        flex: 0 0 6px;
+        cursor: col-resize;
+        touch-action: none;
+        background: #303740;
+      }
+      .file-explorer-divider:hover,
+      .file-explorer-divider:focus-visible,
+      .code-workspace.is-resizing .file-explorer-divider { background: var(--accent); }
+      .code-workspace.is-resizing,
+      .code-workspace.is-resizing * { cursor: col-resize !important; user-select: none !important; }
 
       .file-explorer-header {
         display: flex;
@@ -1682,6 +1696,9 @@
                 </div>
                 <div id="fileExplorerList"></div>
               </aside>
+              <div id="fileExplorerDivider" class="file-explorer-divider" role="separator" tabindex="0"
+                aria-label="File explorer width" aria-orientation="vertical" aria-controls="fileExplorer"
+                title="Drag to resize · Double-click to reset · Arrow keys to adjust"></div>
               <section id="tfiFileEditor" class="tfi-file-editor" aria-label="TFI editor" hidden>
                 <p id="tfiFileTitle" class="subtext"></p>
                 <div id="tfiFileOperator"></div>

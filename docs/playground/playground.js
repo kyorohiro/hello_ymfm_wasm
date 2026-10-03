@@ -1,3 +1,4 @@
+import {installFileExplorerResize} from './playground_file_resize.js';
 import {exportYm2608FullVgm} from './ym2608_vgm_import.js?v=loop-async-tasks-1';
 import {prepareVgmImport, exportGameboyVgm, exportRf5c164Vgm, addVgmSoundChipSetup, exportYm2203FullVgm} from './playground_vgm_import.js?v=loop-async-tasks-1';
 import {installPlaygroundPageLifecycle} from "./playground_page_lifecycle.js";
@@ -114,6 +115,7 @@ const exportCassetteButton = document.getElementById("exportCassetteButton");
 const exportTfiButton = document.getElementById("exportTfiButton");
 const exportVgiButton = document.getElementById("exportVgiButton");
 const fileExplorer = document.getElementById("fileExplorer");
+installFileExplorerResize(fileExplorer, document.getElementById("fileExplorerDivider"));
 const cassetteExportDialog = document.getElementById("cassetteExportDialog");
 const cassetteLicenseSelect = document.getElementById("cassetteLicenseSelect");
 const cassetteWorkTypeSelect = document.getElementById("cassetteWorkTypeSelect");
