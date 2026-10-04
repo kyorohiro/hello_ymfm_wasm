@@ -35,4 +35,13 @@
   document.querySelectorAll("a[data-playground-src]").forEach((link) => {
     link.href = buildUrl(link.dataset.playgroundSrc, link.dataset.playgroundMode || "");
   });
+
+  // Interactive lessons update their readable source as controls change.
+  document.addEventListener("playground-source-change", (event) => {
+    document.querySelectorAll("a[data-playground-src]").forEach((link) => {
+      if (link.dataset.playgroundSrc === event.detail?.id) {
+        link.href = buildUrl(link.dataset.playgroundSrc, link.dataset.playgroundMode || "");
+      }
+    });
+  });
 })();

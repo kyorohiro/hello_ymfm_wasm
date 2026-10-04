@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Game Boy：発音後の音量を、時間で変える | Tetorica</title><link rel="stylesheet" href="./gameboy-introduction.css"></head>
+<body><main><header class="panel"><p class="kicker">GAME BOY / 02</p><h1>発音後の音量を、時間で変える</h1><p>短く消える音、ゆっくり大きくなる音。Envelopeは、発音した後の音量をAPU自身が段階的に変える仕組みです。</p>
+<nav aria-label="Game Boyの解説"><a href="./tetorica-gameboy-pulse.html">01 Pulse</a> ／ <a href="./tetorica-gameboy-envelope.html">02 Envelope</a> ／ <a href="./tetorica-gameboy-wave.html">03 Wave</a></nav></header>
+<section class="panel"><h2>値を変えて、聴き比べる</h2>
+<p>まず初期音量12・down・周期2で再生します。周期を7にすると、同じ一段の変化までの時間が長くなります。次に初期音量3・up・周期2で、音が大きくなる向きを比べましょう。</p>
+<form id="lesson-controls">
+<label>初期音量（0〜15）<select name="volume"><option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option><option value="9">9</option><option value="10">10</option><option value="11">11</option><option value="12" selected>12</option><option value="13">13</option><option value="14">14</option><option value="15">15</option></select></label>
+<label>方向<select name="direction"><option value="down" selected>down：小さくする</option><option value="up">up：大きくする</option></select></label>
+<label>周期（0〜7）<select name="period"><option value="0">0：自動変化なし</option><option value="1">1</option><option value="2" selected>2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option></select></label></form>
+<figure><canvas id="waveform" width="960" height="240" role="img" aria-label="再生すると振幅を表示します"></canvas>
+<figcaption>生成した左出力PCMの最大値−最小値を10 msごとに測った図。横軸0〜2秒、縦軸0〜0.25の固定スケール。APUの内部音量値を読み出したものではありません。</figcaption></figure><div class="actions"><button id="play" type="button">▶ 再生</button><button id="stop" type="button">停止</button><button id="reset" type="button">初期値に戻す</button></div>
+<p id="status" role="status" aria-live="polite">再生ボタンを押すまで音は鳴りません。</p>
+<p class="hint">DMGのデジタル音源を既存WASMコアで生成します。実機のアンプ・スピーカー・アナログフィルターは再現しません。試聴だけに固定ゲインと両端10 msのフェードを加えます。図は加工前のPCMです。設定を変えると試聴が止まるので、もう一度再生してください。</p><noscript>試聴と編集にはJavaScriptが必要です。</noscript></section><section class="panel"><h2>同じ設定を、コードで持ち帰る</h2><p>値を変えるとコードとリンクが更新されます。PlaygroundでRunして試し、Stopで停止できます。</p>
+<div class="actions"><button id="copy" type="button">コードをコピー</button><a data-playground-src="lesson-source" target="_blank" rel="noopener noreferrer">Playgroundで編集 ↗</a></div>
+<pre><code id="code"></code></pre><script type="text/plain" id="lesson-source"></script></section>
+<section class="panel"><h2>チップでは、何が起きる？</h2>
+<p>Pulse 1（CH1）をA4・デューティ50%に固定し、NR12の初期音量・方向・周期だけを変えています。音量は0〜15の16段階で、周期1〜7のとき、概ね<code>period / 64</code>秒ごとに1段変わります。0または15の端に達するとそれ以上は変わりません。周期0はこの自動変化を止めます。</p>
+<p>初期音量0・upでは、無音から大きくする設定も試せます。0・downではDACが停止して発音しません。音量変化で0に達することと、DACを停止する<code>keyOff()</code>は別の動作です。</p>
+<p><code>setVoice()</code>の設定後に<code>keyOn()</code>を呼び、毎回初期音量から始めます。発音中のNR12書き換えには機種・コアによる副作用があるため、このページでは設定変更時に止めてから発音し直します。</p>
+<p><code>sleep(2)</code>は試聴を2秒で止めるJavaScriptの処理です。図の途中で起こる音量の変化は、JavaScriptで音量を繰り返し書き換えず、APU自身が進めています。固定ゲイン以外の音量の自動調整は行いません。</p>
+<p><a href="https://gbdev.io/pandocs/Audio_Registers.html#ff12--nr12-channel-1-volume--envelope">NR12：Volume &amp; Envelopeの仕様</a></p></section>
+<footer class="panel"><a href="./tetorica-gameboy-wave.html">次：32点のWaveを描いて鳴らす →</a><p>仕様の参照：<a href="https://gbdev.io/pandocs/Audio_Registers.html">Pan Docs — Audio Registers</a> ／ <a href="https://gbdev.io/pandocs/Audio_details.html">Audio Details</a>。独自の説明・波形を使用しています。</p></footer>
+</main><script src="./playground-embed.js"></script><script type="module" src="./gameboy-envelope-ui.js"></script></body></html>

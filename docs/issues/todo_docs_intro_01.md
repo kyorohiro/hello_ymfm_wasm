@@ -1,6 +1,6 @@
 # 音源チップを、その場で試せる解説にする
 
-状態：相談内容をまとめた企画・設計メモ。Game Boy を最初の題材とする案であり、このメモに記載した解説ページや連携機能の実装完了を意味しない。
+状態：Game Boy の Pulse / Envelope / Wave の試作ページを実装済み（2026-10-05）。Sweep / Noise、物理配置図、Analyzerからの専用導線は未実装。WaveのJSON配列コピー・貼り付けには対応。全体の設計メモと進捗を兼ねる。
 
 関連：[既存の紹介ページ](../introductions/index.html)／[Game Boy API](gameboy_api_01.md)／[v1 TODO](v1_todo_01.md)
 
@@ -107,4 +107,33 @@ VGM Analyzer の GB Info で得られる情報を、解説で試せる形へつ�
 5. GB Info から波形・設定を持ち込む導線を作る。
 6. 使い方を評価し、他チップの解説にも広げる。
 
-完成の目安は、読者が説明を読み、値を変え、違いを聴き、同じ設定のコードを持ち帰れること。今回のメモ作成では、解説ページやランタイムの実装変更は行わない。
+完成の目安は、読者が説明を読み、値を変え、違いを聴き、同じ設定のコードを持ち帰れること。
+
+## 実装記録（2026-10-05）
+
+- [x] 既存API、Nodeサンプル、`playground-embed.js`を調査。現行の`setVoice()`は即時書き込みであり、古い仕様案の「次回発音時のみ適用」と混同しない。
+- [x] 初代DMGを対象に選択。Gekkio氏の[DMG-CPU-06基板資料](https://github.com/Gekkio/gb-schematics#original-game-boy-dmg)を参照先に採用し、対象リビジョンとCC BY 4.0を確認。基板図・回路図へリンクする。
+- [x] [Pulse試作ページ](../introductions/tetorica-gameboy-pulse.html)を追加し、既存紹介ページからリンク。
+- [x] 4種類のデューティ比、音程、音量、CH1 / CH2を操作し、ユーザーの再生操作で1.5秒試聴。停止・初期値へのリセットを用意。
+- [x] 実WASMの左出力PCMを固定振幅スケールで表示。模式図と区別し、試聴にのみ加えるゲイン・フェードと実機のアナログ回路を再現しない点を説明。
+- [x] UIの値をコピー用コードへ反映し、既存埋め込みヘルパーを拡張してPlaygroundへのリンクも更新。再生中の設定変更・連続再生・停止・ページ離脱は以前の再生準備を無効にする。
+- [x] 音源はPCM生成ごとに`finally`で解放。Web Audioの再生ノードは再生終了／停止時に切断、ページ離脱時にAudioContextを閉じる。
+- [x] 実WASMテスト3件成功。44.1 / 48 kHz、全デューティ比・両Pulse CHの音程、左右出力、コピー用コードによるPCM一致、不正入力を検証。
+- [x] Chromeでページ表示、設定変更後のコード・Playgroundリンク更新とPCM表示を確認。主観的な聴感評価、狭い画面での確認は今後行う。
+- [ ] 本体・基板・IC・アンプ・スピーカー・端子の物理配置図。今回は位置を推測して描かず、基板資料へのリンクと信号の機能図まで。
+- [x] [Envelope](../introductions/tetorica-gameboy-envelope.html)と[Wave](../introductions/tetorica-gameboy-wave.html)編集・試聴のページ。
+- [ ] SweepとNoise、効果音のページ。
+- [ ] GB Infoからの配列・音色設定コピーの導線と再現範囲の説明。
+- [ ] 読者による使い方評価、他チップへの展開。
+
+### Envelope / Wave追加
+
+- Envelope：初期音量0〜15、up / down、周期0〜7を指定して2秒試聴。APU自身の時間変化とJavaScriptの停止時間を区別。内部音量を読んだことにせず、生成PCMの最大値−最小値を10 msごとに測って表示する。
+- Wave：32点をキーボードでも操作できるスライダーで編集。自作の三角波・ノコギリ波・矩形波・32点内2周期の波形を用意。音程・4段階のレベルを指定して1.5秒試聴。編集値の図と生成PCMの図を分ける。
+- Wave配列はJSONのみ受け付け、32点・各0〜15の整数を全検証してから反映。不正入力は現在の波形を保持。配列だけのコピーにも対応。Analyzerからの専用リンク・音色設定の持ち込みは未対応。
+- 両ページで設定に追従するコードコピーとPlaygroundリンク、停止・リセットを実装。共通プレーヤーは準備中のStop・設定変更を無効化し、再生ノードを終了時に切断。pagehideでAudioContextを閉じる。
+- 検証：実WASMで全波形プリセット・全レベル、Envelope増減・端点・周期0、44.1 / 48 kHz、コピーコードとのPCM一致、波形の周期構造と音名による音高変化を確認。共通プレーヤーの準備中キャンセル・連続再生・終了・Reset・非表示・離脱も自動テストで確認。計11件成功。
+- ブラウザー：ChromeでEnvelopeページ表示、SafariでWaveの32点編集UI・初期Playgroundリンク・再生PCM表示・リセット・配列入力欄を確認。主観的な聴感評価と狭い画面での確認は未実施。
+
+検証コマンド：`node --test docs/introductions/gameboy-pulse.test.mjs docs/introductions/gameboy-lessons.test.mjs docs/introductions/gameboy-lesson-player.test.mjs`。
+公開・配布作業は未実施。後続作業は「進める順序」の4以降と、物理配置図の追加を対象にする。
