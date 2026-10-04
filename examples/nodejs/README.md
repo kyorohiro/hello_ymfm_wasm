@@ -33,6 +33,24 @@ node examples/nodejs/main_gameboy_wave.js /tmp/gameboy.wav
 Playgroundと同じGameboySynthで音名・pulse／wave／noiseを操作する。
 DirectTransportはchipを借りるだけなので、最後にSynthとchipをそれぞれdisposeする。
 
+## YM2151 → WAV（OPM）
+
+```sh
+node examples/nodejs/main_ym2151_wave.js
+node examples/nodejs/main_ym2151_wave.js /tmp/ym2151.wav
+```
+
+[main_ym2151_wave.js](main_ym2151_wave.js) は外部ROM不要。
+CH1のAlgorithm 7でC2だけを発音し、A4（約440 Hz）のサイン波を左右に出力する。
+発音3秒＋Key Off後0.5秒、48 kHz・16 bitステレオのWAVを保存する。
+出力先省略時はスクリプトの隣の `ym2151.wav`。同名ファイルは上書きする。
+必要なWASMは `sh scripts/build_ym2151_wasm.sh` で生成する。
+
+`Ym2151.create()` → アドレス／データポートへの `chip.write()` →
+`chip.generateStereo()` → WAV保存 → `finally` で `chip.dispose()` の低レベルAPI例。
+OPMの音程はKey Code / Key Fractionで設定し、Operatorのレジスタ順はM1 / C1 / M2 / C2。
+ネイティブPCMは共通の `preview_pcm.js` で48 kHzへ変換する。
+
 ## OPN 系の独立サンプル
 
 各ファイルに初期化・音色設定・発音・PCM 生成・WAV 保存・解放までを記載している。
