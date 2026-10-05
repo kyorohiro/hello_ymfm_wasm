@@ -6,7 +6,7 @@ import { Ymf276 } from './ymf276.js';
 import { Ymf288 } from './ymf288.js';
 import { YM3438Synth, YMF276Synth, YMF288Synth } from './opn_variant_synth.js';
 import { OPNDirectTransport } from './opn_fm_synth.js';
-import { FM_PRESETS } from './megadrive-fm-presets.js';
+import { FM_PRESETS } from './megasynth-fm-presets.js';
 import { hzToBlockFnum } from './pitch.js';
 
 const cases = [['ym3438', Ym3438, YM3438Synth], ['ymf276', Ymf276, YMF276Synth], ['ymf288', Ymf288, YMF288Synth]];

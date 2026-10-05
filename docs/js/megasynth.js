@@ -34,7 +34,7 @@ export { MegaSynthLooper } from "./looper.js";
 export {
   FM_PRESETS,
   FM_PRESET_ORDER,
-} from "./megadrive-fm-presets.js";
+} from "./megasynth-fm-presets.js";
 
 // YM2612 outputs one mixed sample every 144 master clocks.
 // Keep its clock domain intact and let Web Audio resample for the device.

@@ -26,7 +26,7 @@ import {access} from 'node:fs/promises';
 import {createSoundChip} from 'tetorica-fm2612';
 import {YM2612Synth, YM2612DirectTransport} from 'tetorica-fm2612/ym2612synth';
 import {Ym2612} from 'tetorica-fm2612/ym2612.js';
-import {FM_PRESETS} from 'tetorica-fm2612/megadrive-fm-presets';
+import {FM_PRESETS} from 'tetorica-fm2612/megasynth-fm-presets';
 import {runtimeAssetUrl} from 'tetorica-fm2612/assets';
 const chip = await createSoundChip('ym2612');
 try {

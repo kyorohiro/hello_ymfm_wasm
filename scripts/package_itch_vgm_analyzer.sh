@@ -140,7 +140,7 @@ ym2608audioengine.js
 ym2612.js
 ym2612vgm.js
 looper.js
-megadrive-fm-presets.js
+megasynth-fm-presets.js
 megasynth.js
 megasynth_fx.js
 playground_chip_port.js

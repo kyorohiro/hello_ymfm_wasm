@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {midiToSource, assignMidiRoutes} from './midi_source.js';
 import {createMidiApi, midiNote} from './playground_midi.js';
-import {FM_PRESETS} from './megadrive-fm-presets.js';
+import {FM_PRESETS} from './megasynth-fm-presets.js';
 const AsyncFunction=Object.getPrototypeOf(async function(){}).constructor;
 function smf(...tracks){const out=[77,84,104,100,0,0,0,6,0,tracks.length>1?1:0,0,tracks.length,0,96];for(const t of tracks)out.push(77,84,114,107,0,0,t.length>>8,t.length&255,...t);return Uint8Array.from(out);}
 const route={part:'[1,0,"",1]',destination:'tetorica-ym2612',channel:15,preset:'sine'};

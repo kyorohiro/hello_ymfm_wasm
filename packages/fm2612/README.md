@@ -13,7 +13,7 @@ Node.js 22 or later. No AudioContext, Worker or native audio driver is required.
 ```js
 import {createSoundChip} from 'tetorica-fm2612';
 import {YM2612Synth, YM2612DirectTransport} from 'tetorica-fm2612/ym2612synth';
-import {FM_PRESETS} from 'tetorica-fm2612/megadrive-fm-presets';
+import {FM_PRESETS} from 'tetorica-fm2612/megasynth-fm-presets';
 
 const chip = await createSoundChip('ym2612');
 try {

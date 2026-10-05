@@ -8,7 +8,7 @@ import {fileURLToPath} from 'node:url';
 const root=fileURLToPath(new URL('../',import.meta.url)).replace(/\/$/,'');
 const {createYm2612,YM2612_CLOCK}=await import(root+'/web/ym2612.js');
 const {YM2612Synth,YM2612DirectTransport}=await import(root+'/web/ym2612synth.js');
-const {FM_PRESETS}=await import(root+'/web/megadrive-fm-presets.js');
+const {FM_PRESETS}=await import(root+'/web/megasynth-fm-presets.js');
 const {hzToBlockFnum}=await import(root+'/web/pitch.js');
 const {default:factory}=await import(root+'/docs/generated/ym2612_wasm.js');
 const chip=await createYm2612(factory,{wasmBinary:await readFile(root+'/docs/generated/ym2612_wasm.wasm')});

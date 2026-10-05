@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 import { downsamplePreview } from "./preview_pcm.js";
 import { Ym2203, YM2203_CLOCK } from "../../web/ym2203.js";
 import { YM2203Synth, YM2203DirectTransport } from "../../web/ym2203synth.js";
-import { FM_PRESETS } from "../../web/megadrive-fm-presets.js";
+import { FM_PRESETS } from "../../web/megasynth-fm-presets.js";
 import { hzToBlockFnum } from "../../web/pitch.js";
 import { encodeStereoWav } from "../../docs/vgm_analyzer/vgm_wav.js";
 import moduleFactory from "../../docs/generated/ym2203_wasm.js";

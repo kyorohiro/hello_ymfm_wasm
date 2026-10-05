@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createMidiRack,createMidiApi} from './playground_midi.js';
-import {FM_PRESETS} from './megadrive-fm-presets.js';
+import {FM_PRESETS} from './megasynth-fm-presets.js';
 import {parseMidiFile} from './midi_file.js';
 function rack(n=6){const writes=[],psg=[];return {writes,psg,r:createMidiRack({write:e=>writes.push(e),writePsg:e=>psg.push(e),preset:FM_PRESETS.sine,fmChannels:n})};}
 function smf(...tracks){const out=[77,84,104,100,0,0,0,6,0,tracks.length>1?1:0,0,tracks.length,0,96];for(const t of tracks){out.push(77,84,114,107,0,0,t.length>>8,t.length&255,...t);}return Uint8Array.from(out);}

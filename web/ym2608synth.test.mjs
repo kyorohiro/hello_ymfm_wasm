@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {YM2608Synth, YM2608DirectTransport} from './ym2608synth.js';
 import {Ym2608} from './ym2608.js';
-import {FM_PRESETS} from './megadrive-fm-presets.js';
+import {FM_PRESETS} from './megasynth-fm-presets.js';
 import {hzToBlockFnum} from './pitch.js';
 
 test('SSG mixer preserves raw writes, other channels and I/O; reset stays within SSG', () => {

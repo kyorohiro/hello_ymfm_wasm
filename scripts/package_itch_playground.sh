@@ -89,7 +89,7 @@ custom_fx.js
 native_audio_effect.wasm
 megasynth_looper.js
 megasynth_recording.js
-megadrive-fm-presets.js
+megasynth-fm-presets.js
 opn_fm_synth.js
 opn_runtime_synth.js
 opn_fm_vgm.js

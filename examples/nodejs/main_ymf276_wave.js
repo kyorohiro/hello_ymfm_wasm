@@ -5,7 +5,7 @@ import { downsamplePreview } from "./preview_pcm.js";
 import { createYmf276, YMF276_CLOCK } from "../../web/ymf276.js";
 import { YMF276Synth } from "../../web/opn_variant_synth.js";
 import { OPNDirectTransport } from "../../web/opn_fm_synth.js";
-import { FM_PRESETS } from "../../web/megadrive-fm-presets.js";
+import { FM_PRESETS } from "../../web/megasynth-fm-presets.js";
 import { hzToBlockFnum } from "../../web/pitch.js";
 import { encodeStereoWav } from "../../docs/vgm_analyzer/vgm_wav.js";
 import moduleFactory from "../../docs/generated/ymf276_wasm.js";

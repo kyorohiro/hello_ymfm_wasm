@@ -5,7 +5,7 @@ import { downsamplePreview } from "./preview_pcm.js";
 import { createYmf288, YMF288_CLOCK } from "../../web/ymf288.js";
 import { YMF288Synth } from "../../web/opn_variant_synth.js";
 import { OPNDirectTransport } from "../../web/opn_fm_synth.js";
-import { FM_PRESETS } from "../../web/megadrive-fm-presets.js";
+import { FM_PRESETS } from "../../web/megasynth-fm-presets.js";
 import { hzToBlockFnum } from "../../web/pitch.js";
 import { encodeStereoWav } from "../../docs/vgm_analyzer/vgm_wav.js";
 import moduleFactory from "../../docs/generated/ymf288_wasm.js";

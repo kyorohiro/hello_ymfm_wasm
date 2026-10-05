@@ -45,7 +45,7 @@ native-fx-worklet.js
 custom_fx.js
 native_audio_effect.wasm
 megasynth_recording.js
-megadrive-fm-presets.js
+megasynth-fm-presets.js
 opn_fm_synth.js
 opn_runtime_synth.js
 pitch.js
