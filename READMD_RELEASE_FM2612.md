@@ -1,5 +1,17 @@
 # tetorica-fm2612 の npm リリース手順
 
+## 0.2.1 公開記録（2026-10-06）
+
+- 公開元 commit: `89cf53c`。
+- Homepage を `https://github.com/kyorohiro/tetorica-fm2612-examples` に変更。
+- 公開済み `0.2.0` と配布物を比較し、差分は package.json と README.md のみ。216ファイルのランタイム・アセット構成は同一。
+- 通常の Node.js と Node.js 22 で配布物検証成功。23 WASM エンジン・15 renderer・Synth PCM・アセット参照を確認。
+- 関連96テスト、Chromium での Mega CD 8CH・左右パン・FM/PSG/PCM混合・reset・再起動・Playground Worker の検証成功。
+- npm registry の `latest: 0.2.1`、Homepage、配布物 integrity を確認。registry から再インストールし、音のあるステレオPCM生成を確認。
+- integrity: `sha512-2IeRc501cOOOK3oORW4CSgsyCbEbt1e4sFerrL20+nyGsQEXfyoV6sJOfQwHvVLS0reFDF2v8mCLQI9ZV/b0CA==`。
+
+## リリース手順
+
 リポジトリのルートで実行する。以下は `0.2.1` を公開する例。
 版番号を変更する場合は、tgz名と公開後の確認コマンドも読み替える。
 
