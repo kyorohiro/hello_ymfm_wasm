@@ -30,10 +30,15 @@
     "pack": "node scripts/pack_cli.mjs",
     "build:fm2612": "node scripts/build_fm2612_package.mjs",
     "pack:fm2612": "node scripts/pack_fm2612.mjs",
-    "test:fm2612": "node scripts/check_fm2612_package.mjs"
+    "test:fm2612": "node scripts/check_fm2612_package.mjs",
+    "test:fm2612:browser": "npm run build:fm2612 && node scripts/check_megacd_browser.cjs",
+    "setup:browser": "playwright install chromium"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/kyorohiro/hello_ymfm_wasm.git"
+  },
+  "devDependencies": {
+    "playwright": "1.63.0"
   }
 }

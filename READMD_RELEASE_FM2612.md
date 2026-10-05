@@ -52,13 +52,14 @@ SynthのPCM生成を確認する。npmへの公開は行わない。
 npm exec --yes --package=node@22 -- node scripts/check_fm2612_package.mjs
 ```
 
-Mega CD対応の実ブラウザ確認にはPlaywrightとChromiumが必要。
-Playwrightを解決できる環境で、ビルド後に実行する。
+Mega CD対応の実ブラウザ確認には、開発用依存のPlaywrightとChromiumが必要。
+初回は依存とブラウザを準備する。その後はブラウザテストのコマンドで
+FM2612のビルドと検証を実行できる。
 
 ```sh
-node scripts/check_megacd_browser.cjs
-# 別の場所にあるPlaywrightを使う場合:
-node scripts/check_megacd_browser.cjs /absolute/path/to/node_modules/playwright
+npm ci
+npm run setup:browser
+npm run test:fm2612:browser
 ```
 
 RF5C164の8CH・左右パン・FM/PSG/PCMの混合出力・Stop/Reset・終了後の再起動、

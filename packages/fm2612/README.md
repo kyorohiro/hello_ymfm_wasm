@@ -147,9 +147,18 @@ npm run pack:fm2612
 npm run test:fm2612
 ```
 
-With Playwright and Chromium available, `node scripts/check_megacd_browser.cjs`
-checks all eight RF5C164 channels, stereo pan, FM/PSG/PCM mixing, stop/reset and
-close/restart in a browser. An optional argument selects the Playwright module path.
+For browser verification in the repository, prepare the development dependencies
+and Chromium once, then run the browser test:
+
+```sh
+npm ci
+npm run setup:browser
+npm run test:fm2612:browser
+```
+
+This builds the runtime and checks all eight RF5C164 channels, stereo pan,
+FM/PSG/PCM mixing, stop/reset and close/restart. Playwright is a development
+dependency; it is not required by users of the sound-chip runtime.
 
 The build is staged in `dist/fm2612/`; packing produces
 `tetorica-fm2612-0.2.0.tgz`. To install a local build in another project:
