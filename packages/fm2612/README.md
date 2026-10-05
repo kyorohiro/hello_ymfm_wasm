@@ -96,7 +96,7 @@ not copy assets. Keep dependent files alongside each deployed entry point.
 
 ## Mega CD PCM with MegaSynth
 
-The `0.2.0` local build adds opt-in RF5C164 support. Enable `megaCD` before
+Since `0.2.0`, the package includes opt-in RF5C164 support. Enable `megaCD` before
 `start()`. YM2612, Sega PSG and RF5C164 share one AudioContext, master volume
 and effects chain. Sega PSG is enabled with Mega CD unless its URL is explicitly
 set to `null`. Existing FM-only construction stays unchanged.
@@ -161,10 +161,10 @@ FM/PSG/PCM mixing, stop/reset and close/restart. Playwright is a development
 dependency; it is not required by users of the sound-chip runtime.
 
 The build is staged in `dist/fm2612/`; packing produces
-`tetorica-fm2612-0.2.0.tgz`. To install a local build in another project:
+`tetorica-fm2612-0.2.1.tgz`. To install a local build in another project:
 
 ```sh
-npm install /absolute/path/to/tetorica-fm2612-0.2.0.tgz
+npm install /absolute/path/to/tetorica-fm2612-0.2.1.tgz
 ```
 
 The existing `tetorica-vgm` CLI package is built separately. This first package
@@ -177,3 +177,9 @@ Project code is BSD-3-Clause. Third-party notices and component licenses are
 included; Nuked-OPN2 is LGPL-2.1-or-later, with its source and build script in
 `sources/`. The OPNA rhythm data is Tetorica-generated and includes its license
 and generator. External instrument/sample ROMs are not included.
+
+## Release notes
+
+`0.2.1` updates the npm Homepage link to
+[tetorica-fm2612-examples](https://github.com/kyorohiro/tetorica-fm2612-examples).
+Sound-chip runtime behavior is unchanged from `0.2.0`.
