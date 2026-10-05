@@ -27,7 +27,10 @@
     "test:sbi": "node --test docs/vgm_analyzer/sbi_export.test.mjs docs/vgm_analyzer/sbi_ui.test.mjs docs/vgm_analyzer/sbi_info.test.mjs test/sbi.test.mjs",
     "prepack": "npm run build",
     "pack:check": "npm run pack -- --dry-run",
-    "pack": "node scripts/pack_cli.mjs"
+    "pack": "node scripts/pack_cli.mjs",
+    "build:fm2612": "node scripts/build_fm2612_package.mjs",
+    "pack:fm2612": "node scripts/pack_fm2612.mjs",
+    "test:fm2612": "node scripts/check_fm2612_package.mjs"
   },
   "repository": {
     "type": "git",

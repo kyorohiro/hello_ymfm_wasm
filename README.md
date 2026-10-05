@@ -48,6 +48,12 @@ This repository has four goals:
 
 ## Download
 
+The `tetorica-fm2612` npm package candidate contains the existing web runtime,
+prebuilt chip WASM, Synth helpers and browser Worker/AudioWorklet assets.
+Its default entry point also supports Node.js PCM generation. See
+[the package README](packages/fm2612/README.md) for local packaging and usage.
+It has not been published to npm yet; `tetorica-vgm` remains the separate CLI.
+
 Release files are available here:
 
 - WebAssembly (wasm) builds for YM2612
