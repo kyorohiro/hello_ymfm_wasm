@@ -13,6 +13,9 @@ import {
 } from "./ym2612synth.js";
 import { YM2612_CLOCK } from "./ym2612.js";
 import { createSegaPsgApi } from "./segapsg_api.js";
+import { createRf5c164Audio } from "./playground_rf5c164_audio.js";
+import { createRf5c164Client } from "./playground_rf5c164.js";
+import { samplePCM } from "./native_sample.js";
 import { TetoricaAudioRuntime } from "./tetorica_audio_runtime.js?v=native-fx-1";
 export {
   createFXBranch,
@@ -132,6 +135,10 @@ const YM2612_NATIVE_SAMPLE_RATE =
  *   bitcrusherWorkletUrl?: string,
  *   ym2612WasmUrl?: string,
  *   segaPsgWasmUrl?: string | null,
+ *   megaCD?: boolean,
+ *   rf5c164WasmUrl?: string,
+ *   rf5c164WorkletUrl?: string,
+ *   rf5c164Fetch?: typeof fetch,
  *   chipSampleRate?: number,
  *   masterVolume?: number,
  *   sampleOutputNode?: AudioNode | null,
@@ -301,11 +308,21 @@ export class MegaSynth {
     /**
      * Optional. When set, the worklet also loads a Sega PSG core and mixes
      * it with the YM2612 output, exposed on `this.psg`. Left unset by
-     * default so callers that only want YM2612 (e.g. the Synth demo) are
-     * unaffected.
+     * default except in Mega CD mode, so FM-only callers are unaffected.
      */
-    this.segaPsgWasmUrl =
-      options.segaPsgWasmUrl ?? null;
+    this.megaCD = options.megaCD === true;
+    this.segaPsgWasmUrl = options.segaPsgWasmUrl !== undefined
+      ? options.segaPsgWasmUrl
+      : this.megaCD ? resolveSiblingWorkletUrl(this.ym2612WasmUrl, 'segapsg_wasm.wasm') : null;
+    this.rf5c164WasmUrl = options.rf5c164WasmUrl ??
+      resolveSiblingWorkletUrl(this.ym2612WasmUrl, 'rf5c164_wasm.wasm');
+    this.rf5c164WorkletUrl = options.rf5c164WorkletUrl ??
+      resolveSiblingWorkletUrl(this.workletUrl, 'rf5c164-worklet.js');
+    this.rf5c164Fetch = options.rf5c164Fetch;
+    /** RF5C164 API after start() when megaCD is enabled; its methods return promises. */
+    this.pcm = null;
+    this.pcmDevice = null;
+    this.pcmDecodeId = 0;
 
     this.node = null;
     this.recordingManager = null;
@@ -371,6 +388,8 @@ export class MegaSynth {
       } catch (error) {
         if (this.initializationController === controller) {
           controller.abort();
+          this.#disposePcm();
+          this.fm?.transport?.dispose?.();
           this.node?.disconnect();
           this.node?.port.close();
           this.node = null;
@@ -419,10 +438,11 @@ export class MegaSynth {
   }
 
   /**
-   * @returns {void}
+   * @returns {Promise<void>|undefined} Await to also reset Mega CD PCM.
    */
   reset() {
     this.fm?.reset();
+    return this.pcm?.reset();
   }
 
   /**
@@ -629,6 +649,7 @@ export class MegaSynth {
     this.recordingManager?.attachSynth(null);
     this.audio.closeMedia();
     this.audio.disposeFXChain();
+    this.#disposePcm();
 
     this.fm?.transport?.dispose?.();
     if (this.node) {
@@ -819,8 +840,37 @@ export class MegaSynth {
       });
     }
 
+    if (this.megaCD) {
+      const device = await createRf5c164Audio(this.audioContext, this.masterInputNode, {
+        wasmUrl: this.rf5c164WasmUrl, workletUrl: this.rf5c164WorkletUrl,
+        fetch: this.rf5c164Fetch, signal,
+      });
+      if (signal.aborted) { device.dispose(); signal.throwIfAborted(); }
+      this.pcmDevice = device;
+      this.pcm = createRf5c164Client(device.port, async source => {
+        signal.throwIfAborted();
+        if (source?.channels && source.sampleRate) return source;
+        if (source instanceof Uint8Array) source = source.buffer.slice(source.byteOffset, source.byteOffset + source.byteLength);
+        if (typeof Blob !== 'undefined' && source instanceof Blob) source = await source.arrayBuffer();
+        signal.throwIfAborted();
+        const name = '__megasynth_rf5c164_decode_' + (++this.pcmDecodeId);
+        try {
+          const buffer = await this.sample.load(name, source);
+          signal.throwIfAborted();
+          return samplePCM(buffer);
+        }
+        finally { this.sample.unload(name); }
+      });
+    }
     this.#ensureRecordingManager();
     this.#installRecordingHooks();
+  }
+
+  #disposePcm() {
+    this.pcm?.dispose();
+    this.pcm = null;
+    this.pcmDevice?.dispose();
+    this.pcmDevice = null;
   }
 
   #waitForWorkletReady(node, signal) {

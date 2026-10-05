@@ -31,6 +31,12 @@ opn_fm_vgm.js
 bitcrusher-worklet.js
 looper.js
 megasynth.js
+rf5c164.js
+rf5c164synth.js
+rf5c164_pcm.js
+playground_rf5c164.js
+playground_rf5c164_audio.js
+rf5c164-worklet.js
 megasynth_fx.js
 playground_chip_port.js
 playground_worker_chip.js
@@ -169,13 +175,15 @@ cp "${SOURCE_GENERATED_DIR}/nuked_opn2_wasm.js" "${STAGE_DIR}/generated/nuked_op
 cp "${SOURCE_GENERATED_DIR}/nuked_opn2_wasm.wasm" "${STAGE_DIR}/generated/nuked_opn2_wasm.wasm"
 cp "${SOURCE_GENERATED_DIR}/segapsg_wasm.js" "${STAGE_DIR}/generated/segapsg_wasm.js"
 cp "${SOURCE_GENERATED_DIR}/segapsg_wasm.wasm" "${STAGE_DIR}/generated/segapsg_wasm.wasm"
-for chip in ym2203 ym2608; do
+for chip in ym2203 ym2608 rf5c164; do
   if [ -f "${SOURCE_GENERATED_DIR}/${chip}_wasm.js" ] && [ -f "${SOURCE_GENERATED_DIR}/${chip}_wasm.wasm" ]; then
     cp "${SOURCE_GENERATED_DIR}/${chip}_wasm.js" "${STAGE_DIR}/generated/${chip}_wasm.js"
     cp "${SOURCE_GENERATED_DIR}/${chip}_wasm.wasm" "${STAGE_DIR}/generated/${chip}_wasm.wasm"
   fi
 done
 cp "${LICENSE_FILE}" "${STAGE_DIR}/LICENSE"
+mkdir -p "${STAGE_DIR}/licenses/mame-rf5c164"
+cp "${ROOT_DIR}/third_party/mame-rf5c164/LICENSE" "${ROOT_DIR}/third_party/mame-rf5c164/README.md" "${STAGE_DIR}/licenses/mame-rf5c164/"
 
 for file in ${NUKED_LICENSE_FILES}; do
   cp "${NUKED_LICENSE_DIR}/${file}" "${STAGE_DIR}/licenses/nuked-opn2/${file}"

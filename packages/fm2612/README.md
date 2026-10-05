@@ -4,7 +4,25 @@ Tetorica sound-chip cores, Synth helpers and browser audio runtime, distributed 
 ES modules with prebuilt WASM. The package retains the existing web runtime;
 its default entry point provides chip creation without starting browser audio.
 
-This is a local package candidate, not yet published to npm.
+## Install
+
+```sh
+npm install tetorica-fm2612
+```
+
+## Included sound chips
+
+| Family | Chips |
+| --- | --- |
+| Yamaha OPN | YM2203, YM2608, YM2610/YM2610B, YM2612, YM3438, YMF276, YMF288 |
+| Yamaha OPM | YM2151 |
+| Yamaha OPL | YM2413, YM3526, YM3812, Y8950, YMF262, YMF278B |
+| PSG and console audio | AY8910, Sega PSG, Game Boy APU, HuC6280, K051649 |
+| PCM and ADPCM | RF5C164, Sega PCM, OKIM6258, OKIM6295 |
+
+YM2612 includes ymfm and Nuked-OPN2 backends. YM2610 uses the YM2610B core
+with `variant: false`; OKIM6295 is implemented in JavaScript. The distribution
+includes 23 generated JS/WASM pairs. Chip and high-level Synth API coverage differ.
 
 ## Node.js: generate PCM
 
@@ -76,6 +94,49 @@ const synth = new MegaSynth({
 `moduleFactory`/`moduleOptions` for explicit loader injection. A URL helper does
 not copy assets. Keep dependent files alongside each deployed entry point.
 
+## Mega CD PCM with MegaSynth
+
+The `0.2.0` local build adds opt-in RF5C164 support. Enable `megaCD` before
+`start()`. YM2612, Sega PSG and RF5C164 share one AudioContext, master volume
+and effects chain. Sega PSG is enabled with Mega CD unless its URL is explicitly
+set to `null`. Existing FM-only construction stays unchanged.
+
+```js
+import {MegaSynth} from 'tetorica-fm2612/megasynth';
+
+const synth = new MegaSynth({megaCD: true});
+// Run start() from a click or another user gesture.
+await synth.start();
+const wave = Float32Array.from({length: 256}, (_, i) => Math.sin(i * 2 * Math.PI / 256));
+const sample = await synth.pcm.loadSample(
+  {channels: [wave], sampleRate: 32768},
+  {address: 0, loopStart: 0},
+);
+await synth.pcm.setChannel(0, {
+  ...sample, volume: 200, pan: {left: 15, right: 15},
+});
+await synth.pcm.keyOn(0);
+// Later:
+await synth.pcm.keyOff(0);
+await synth.close();
+```
+
+`pcm` exposes `loadSample`, `loadMemory`, `setChannel`, `setPitch`, `keyOn`,
+`keyOff`, `writeRegister` and `reset`; await their completion. `loadSample`
+accepts decoded `{channels, sampleRate}`, AudioBuffer, encoded ArrayBuffer/
+Uint8Array, Blob or a URL supported by the existing sample loader. Decoded
+stereo samples are mixed to mono and encoded for the chip. The shared RAM is
+64 KiB, channel indices are 0..7, starts are 256-byte aligned, volume is 0..255
+and left/right pan levels are 0..15. Reserve non-overlapping RAM regions when
+loading multiple samples. `setPitch` uses the chip's raw playback step.
+
+`synth.pcm` is available after `start()` and is cleared by `close()`. Await
+`synth.reset()` to reset PCM along with FM while preserving waveform RAM.
+RF5C164 URLs can be overridden with `rf5c164WasmUrl` and `rf5c164WorkletUrl`;
+otherwise they are siblings of the YM2612 assets. The FM command recorder
+continues to record FM/DAC actions; PCM commands are not recorded. This adds
+the Mega CD PCM chip, not CD disc-image emulation or 32X PWM.
+
 ## Local packaging
 
 From the repository root:
@@ -86,11 +147,15 @@ npm run pack:fm2612
 npm run test:fm2612
 ```
 
+With Playwright and Chromium available, `node scripts/check_megacd_browser.cjs`
+checks all eight RF5C164 channels, stereo pan, FM/PSG/PCM mixing, stop/reset and
+close/restart in a browser. An optional argument selects the Playwright module path.
+
 The build is staged in `dist/fm2612/`; packing produces
-`tetorica-fm2612-0.1.0.tgz`. To install the candidate in another project:
+`tetorica-fm2612-0.2.0.tgz`. To install a local build in another project:
 
 ```sh
-npm install /absolute/path/to/tetorica-fm2612-0.1.0.tgz
+npm install /absolute/path/to/tetorica-fm2612-0.2.0.tgz
 ```
 
 The existing `tetorica-vgm` CLI package is built separately. This first package

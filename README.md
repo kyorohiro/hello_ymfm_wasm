@@ -48,11 +48,15 @@ This repository has four goals:
 
 ## Download
 
-The `tetorica-fm2612` npm package candidate contains the existing web runtime,
+The [`tetorica-fm2612` npm package](https://www.npmjs.com/package/tetorica-fm2612) contains the existing web runtime,
 prebuilt chip WASM, Synth helpers and browser Worker/AudioWorklet assets.
 Its default entry point also supports Node.js PCM generation. See
 [the package README](packages/fm2612/README.md) for local packaging and usage.
-It has not been published to npm yet; `tetorica-vgm` remains the separate CLI.
+Install it with `npm install tetorica-fm2612`; `tetorica-vgm` remains the separate CLI.
+
+The local `0.2.0` build adds Mega CD RF5C164 PCM to MegaSynth through
+`new MegaSynth({megaCD: true})` and `synth.pcm`. See the package README for the
+eight-channel sample API. The published npm version is currently `0.1.0`.
 
 Release files are available here:
 

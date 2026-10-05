@@ -15,23 +15,25 @@ async function until(predicate) {
   }
   assert.fail('Async boundary was not reached');
 }
-function harness(t, stage = '') {
+function harness(t, stage = '', options = {}) {
   const gate = deferred();
   let reached = false;
   const nodes = [];
   const context = {
     state: 'running', currentTime: 0, destination: {},
     resume: async () => {}, close: async () => {},
-    audioWorklet: { addModule: async () => {
-      if (stage === 'module') { reached = true; await gate.promise; }
+    audioWorklet: { addModule: async url => {
+      if (stage === 'module' || (stage === 'pcm-module' && String(url).includes('rf5c164'))) { reached = true; await gate.promise; }
     } },
     createGain: () => ({ gain: { value: 1 }, connect() {}, disconnect() {} }),
   };
   const priorNode = globalThis.AudioWorkletNode;
   globalThis.AudioWorkletNode = class {
-    constructor() {
+    constructor(_context, name) {
       nodes.push(this);
       this.connected = false;
+      this.name = name;
+      this.commands = [];
       this.handlers = new Set();
       this.port = {
         closed: false,
@@ -40,24 +42,105 @@ function harness(t, stage = '') {
         removeEventListener: (_, fn) => this.handlers.delete(fn),
         start() {},
         postMessage: message => {
+          this.commands.push(message);
+          if (message.port && typeof message.port.postMessage === 'function') {
+            this.remote = message.port;
+            this.remote.onmessage = ({data}) => {
+              this.commands.push(data);
+              if (data.id) this.remote.postMessage({id: data.id});
+            };
+            this.remote.start();
+          }
+          if (message.method === 'dispose') this.remote?.close();
           if (message.type !== 'initialize') return;
           reached = true;
           if (stage !== 'ready') queueMicrotask(() => this.send('ready'));
         },
       };
+      if (name === 'tetorica-rf5c164') {
+        reached = true;
+        if (stage !== 'pcm-ready') queueMicrotask(() => this.port.onmessage?.({data: {ready: true}}));
+      }
     }
     send(type) { for (const fn of [...this.handlers]) fn({ data: { type } }); }
-    connect() { this.connected = true; }
+    connect(destination) { this.connected = true; this.destination = destination; }
     disconnect() { this.connected = false; }
   };
   t.after(() => { globalThis.AudioWorkletNode = priorNode; });
-  t.mock.method(globalThis, 'fetch', async () => {
-    if (stage === 'fetch') { reached = true; await gate.promise; }
+  t.mock.method(globalThis, 'fetch', async url => {
+    if (stage === 'fetch' || (stage === 'pcm-fetch' && String(url).includes('rf5c164'))) { reached = true; await gate.promise; }
     return { ok: true, arrayBuffer: async () => new ArrayBuffer(1) };
   });
-  const synth = new MegaSynth({ audioContext: context, stereoWidthWorkletUrl: '', bitcrusherWorkletUrl: '' });
+  const synth = new MegaSynth({ audioContext: context, stereoWidthWorkletUrl: '', bitcrusherWorkletUrl: '', rf5c164Fetch: globalThis.fetch, ...options });
   return { synth, context, nodes, gate, reached: () => reached };
 }
+
+test('Mega CD uses the shared mixer, exposes eight-channel PCM commands and releases stale clients on close', async t => {
+  const {synth, nodes} = harness(t, '', {megaCD: true});
+  assert.equal(synth.pcm, null);
+  await synth.start();
+  const device = nodes.find(n => n.name === 'tetorica-rf5c164');
+  assert.ok(synth.psg);
+  assert.equal(device.destination, nodes[0].destination);
+  const client = synth.pcm;
+  const wave = await client.loadSample({channels: [new Float32Array(256).fill(.5)], sampleRate: 32000}, {loopStart: 0});
+  assert.equal(wave.start, 0);
+  assert.equal(wave.loopStart, 0);
+  await client.setChannel(7, {...wave, volume: 255, pan: {left: 15, right: 15}});
+  await client.keyOn(7);
+  assert.ok(device.commands.some(m => m.method === 'keyOn' && m.args[0] === 7));
+  await synth.reset();
+  assert.ok(device.commands.some(m => m.method === 'reset'));
+  const pending = client.keyOff(7);
+  const rejected = assert.rejects(pending, /disposed/);
+  await synth.close();
+  await rejected;
+  await assert.rejects(client.keyOn(0), /disposed/);
+  await assert.rejects(client.loadSample(new ArrayBuffer(0)), /disposed/);
+  assert.equal(synth.pcm, null);
+  assert.ok(nodes.every(n => !n.connected && n.port.closed));
+  await synth.start();
+  assert.notEqual(synth.pcm, client);
+  await synth.close();
+});
+
+for (const stage of ['pcm-module', 'pcm-fetch', 'pcm-ready']) {
+  test(`Mega CD close cancels ${stage} without leaking nodes and permits restart`, async t => {
+    const h = harness(t, stage, {megaCD: true});
+    const cancelled = assert.rejects(h.synth.start(), {name: 'AbortError'});
+    // The FM initialization also reaches the harness; wait for the PCM boundary.
+    await until(() => stage === 'pcm-ready' ? h.nodes.some(n => n.name === 'tetorica-rf5c164') : h.synth.fm !== null && h.reached());
+    await h.synth.close();
+    await cancelled;
+    h.gate.resolve();
+    assert.equal(h.synth.pcm, null);
+    assert.ok(h.nodes.every(n => !n.connected && n.port.closed));
+    const restart = h.synth.start();
+    if (stage === 'pcm-ready') {
+      await until(() => h.nodes.filter(n => n.name === 'tetorica-rf5c164').length === 2);
+      h.nodes.at(-1).port.onmessage({data: {ready: true}});
+    }
+    await restart;
+    assert.ok(h.synth.pcm);
+    await h.synth.close();
+  });
+}
+
+test('Mega CD Worklet errors release FM/PCM nodes and allow retry', async t => {
+  const h = harness(t, 'pcm-ready', {megaCD: true});
+  const failed = assert.rejects(h.synth.start(), /PCM initialization failed/);
+  await until(() => h.nodes.length === 2);
+  h.nodes[1].port.onmessage({data: {error: 'PCM initialization failed'}});
+  await failed;
+  assert.equal(h.synth.pcm, null);
+  assert.ok(h.nodes.every(n => !n.connected && n.port.closed));
+  const retry = h.synth.start();
+  await until(() => h.nodes.length === 4);
+  h.nodes[3].port.onmessage({data: {ready: true}});
+  await retry;
+  assert.ok(h.synth.pcm);
+  await h.synth.close();
+});
 function timers(manager) {
   let id = 0;
   const pending = new Map();

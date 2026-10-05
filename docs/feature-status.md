@@ -68,6 +68,7 @@ WASMが存在するだけでPlayground APIも利用可能とは判断しない�
 | 機能 | 実装・範囲 | 制限・手動確認 | 自動検証・詳細 |
 |---|---|---|---|
 | ライブコーディング・埋め込みRuntime | 実装済。FM／PSG／DAC、サンプル、ループ等 | 音源選択によって使えるAPIが異なる。手動記録は未整理 | [Runtime](../web/README.md)、[テスト](../web/playground_runtime.test.mjs)、[examples](playground/examples/README.md) |
+| MegaSynth Mega CD PCM | `megaCD: true`でRF5C164を有効化。`pcm`から8CH・64 KiB RAM・サンプル読込・パンを操作。FM／PSGと共通の出力・FX経路 | npm公開版0.1.0には未収録。ローカル0.2.0。FMコマンド録音にPCMは含まれない。CDディスク／32X対応は別 | [APIと例](../packages/fm2612/README.md)、[終了・再起動テスト](../web/megasynth.test.mjs)、[実ブラウザー検証](../scripts/check_megacd_browser.cjs)：8CH・左右パン・混合出力・Stop／Reset／再起動を確認 |
 | `createSoundChip('rf5c164')` | 実装済。独立PCM音源・RAM・CH制御 | ブラウザー試聴・実曲検証未確認 | [作業記録](issues/rf5c164_01.md)、[テスト](../web/playground_rf5c164.test.mjs) |
 | `createSoundChip('ym2608')` | 実装済。FM／SSG／リズム／ADPCM-B | 同梱リズムROM・差し替え対応。同期読み取り／IRQ・サンプル単位予約は未対応。聴感未確認 | [成功記録・制限](issues/playground_ym2608_01.md)、[テスト](../web/playground_ym2608.test.mjs) |
 | `createSoundChip('gameboy')` raw API | 実装済。レジスタ操作・4CHの例 | 高水準APIは別。ブラウザー聴感確認記録なし | [成功記録](issues/playground_gameboy_raw_01.md)、[テスト](../web/playground_gameboy.test.mjs) |

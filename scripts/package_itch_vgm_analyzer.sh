@@ -98,6 +98,11 @@ ym2610b.js
 ym2610baudioengine.js
 genesisaudioengine.js
 rf5c164.js
+rf5c164synth.js
+rf5c164_pcm.js
+playground_rf5c164.js
+playground_rf5c164_audio.js
+rf5c164-worklet.js
 opn_fm_vgm.js
 opn_fm_synth.js
 segapsg.js

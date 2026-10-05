@@ -42,6 +42,8 @@ export function createTetoricaSynth(options = {}) {
       fmChannels: 6,
       psg: Boolean(synth.segaPsgWasmUrl),
       dac: true,
+      pcm: synth.megaCD,
+      pcmChannels: synth.megaCD ? 8 : 0,
       recorder: true,
     });
     return synth;

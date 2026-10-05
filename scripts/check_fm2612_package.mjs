@@ -46,6 +46,14 @@ const mega = new MegaSynth();
 assert.equal(mega.audioContext, null);
 await access(new URL(mega.workletUrl));
 await access(new URL(mega.ym2612WasmUrl));
+const cd = new MegaSynth({megaCD: true});
+assert.equal(cd.pcm, null);
+assert.equal(cd.audioContext, null);
+await access(new URL(cd.rf5c164WorkletUrl));
+await access(new URL(cd.rf5c164WasmUrl));
+await access(new URL(cd.segaPsgWasmUrl));
+const {createTetoricaSynth} = await import('tetorica-fm2612/tetorica_synth');
+assert.equal(createTetoricaSynth({megaCD: true}).capabilities.pcmChannels, 8);
 for (const name of ['ym2203synth', 'ym2608synth', 'ym2610bsynth', 'playground_runtime', 'tetorica_audio_runtime', 'vgm_runtime']) {
   await import('tetorica-fm2612/' + name);
 }
