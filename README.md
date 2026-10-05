@@ -125,7 +125,9 @@ npx tetorica-vgm render song.vgz --output song.wav
 ```
 
 See the [CLI quick start](cli/README.md) and [full CLI / Node API reference](CLI.md).
-For maintainers, see the [npm release procedure](READMD_RELEASE.md).
+For maintainers, see the npm release procedures for
+[tetorica-vgm](READMD_RELEASE_VGM.md) and
+[tetorica-fm2612](READMD_RELEASE_FM2612.md).
 
 OPL-family melodic voices can be exported as SBI (2op or OPL3 4op), individually
 or as a ZIP. The browser's **SBI Info** tab displays extracted voice parameters
