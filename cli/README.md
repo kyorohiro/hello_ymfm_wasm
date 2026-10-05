@@ -19,6 +19,18 @@ npx tetorica-vgm render song.vgz --output song.wav --max-seconds 120
 Before publication, install the distribution tarball with
 `npm install ./tetorica-vgm-0.1.0.tgz`, then use `npx tetorica-vgm --help`.
 
+## Sound chip support
+
+- [Sound chip support table](https://kyorohiro.github.io/hello_ymfm_wasm/vgm_analyzer/support.html): the shared browser Analyzer reference, with playback/export coverage and limitations.
+- [CLI chip support and restrictions](https://github.com/kyorohiro/hello_ymfm_wasm/blob/main/CLI.md): Node rendering, chip combinations and ROM requirements.
+
+Browser and CLI coverage can differ. For the exact operations available for a
+file in your installed CLI version, run:
+
+```sh
+npx tetorica-vgm support song.vgz --json
+```
+
 ## Commands
 
 - `to-json` / `from-json`: lossless, fixed-layout VGM/JSON conversion.
