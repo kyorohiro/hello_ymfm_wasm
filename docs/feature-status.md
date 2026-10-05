@@ -1,6 +1,6 @@
 # Tetorica 機能対応状況
 
-更新日：2026-09-29。**現在のリポジトリの機能を探す入口**。
+更新日：2026-10-06。**現在のリポジトリの機能を探す入口**。
 機能単位の状態はこの一覧で管理し、細かなチップ条件・設計・作業経緯はリンク先に残す。
 公開版と現在のコードは同一とは限らない。再生対応だけで、音色Export・高速シーク・高水準APIも対応済みとは判断しない。
 
@@ -98,16 +98,21 @@ WASMが存在するだけでPlayground APIも利用可能とは判断しない�
 
 ## 公開状況の記録
 
-会話での利用者からの公開報告を転記。今回はnpm／GitHub Pages／itch.ioの配布物を取得・照合していない。
+利用者からの公開報告と、実際に公開・配布物を照合した記録を併記する。CLI v0.2.5はnpm配布物を照合済み。ほかの公開報告はGitHub Pages／itch.ioの配布物を取得・照合していない。
 版番号だけを根拠に、後から追加したコードまで公開済みにしない。
 
 | 対象 | 公開報告 | この一覧での扱い |
 |---|---|---|
-| CLI `tetorica-vgm` | v0.2.1公開済みとの報告 | `package.json`も0.2.1。ただし公開後の変更を含む現行コードとnpm配布物の同一性は未照合 |
+| CLI `tetorica-vgm` | [v0.2.5をnpm公開](https://www.npmjs.com/package/tetorica-vgm)（2026-10-06） | npmの`latest`と公開tarballのSHA-1を照合。npmから新規インストールし、READMEのチップ一覧・参照リンク、CLI版番号、Node APIによる解析・WAV生成を確認 |
 | VGM Analyzer | v0.40.7公開済みとの報告（SBI対応の時期） | 後続のROM・高速シーク等がどの公開版に入ったかは未照合 |
 | Playground／Game Boy VGM→JavaScript変換 | itch.io向けv0.40.11公開済みとの報告（2026-09-30） | raw／解説付きraw／高水準API＋raw fallback、チップ別オプション。公開配布物の照合・ブラウザー聴感確認は未実施 |
 
-次回公開時は、対象アプリ・版番号・commit・公開URL・同梱した機能・確認結果をここに追記し、該当行も更新する。
+CLI v0.2.4はcommit `df977a7`を基に、`package.json`／`package-lock.json`の版番号を更新して公開。READMEに共通のチップ対応表とCLI制限の参照リンクを同梱。公開tarballのSHA-1は`8cf98128decca6ef924fa9bbc3c39f78d9fb5228`。
+公開前の検証はNode v22.23.3／v25.2.1でCLIテスト各165件成功、Analyzer関連テストは並列数2で1136件成功・任意の外部コンパイラー依存1件skip。`pack:check`とpublishのdry-runも成功。
+
+CLI v0.2.5ではnpm READMEに21行のチップ一覧を直接掲載。`scripts/build_cli_chip_list.mjs`がAnalyzerの対応表からチップ名・再生概要を生成し、`npm run pack`時も同期する。v0.2.4との差分は配布READMEと版番号メタデータのみで、実行コードは同一。生成結果の同期チェック、publishのdry-run、公開版インストール後の解析・WAV生成を確認。公開tarballのSHA-1は`b1a6ff08701f307417e33e6a6a3bd80a083443cf`。
+
+次回公開時も、対象アプリ・版番号・commit・公開URL・同梱した機能・確認結果をここに追記し、該当行も更新する。
 
 ## 更新ルールと次の確認
 

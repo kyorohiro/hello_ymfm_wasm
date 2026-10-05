@@ -165,9 +165,12 @@ https://www.npmjs.com/package/tetorica-vgm
 ```sh
 node scripts/build_analyzer_support.mjs
 node scripts/build_analyzer_support.mjs --check
+node scripts/build_cli_chip_list.mjs
+node scripts/build_cli_chip_list.mjs --check
 ```
 
 生成したHTMLもcommitし、GitHub Pagesへ反映する。JavaScriptやダイアログ操作なしで読める。
+CLIのnpm READMEには同じ表のチップ名・再生概要を自動転記する。`npm run pack`でも自動更新するため、別のチップ一覧を手で保守する必要はない。生成された`cli/README.md`もcommitする。
 itch.ioの梱包でも同期チェックを行い、このページを同梱する。
 公開後の案内URL: https://kyorohiro.github.io/hello_ymfm_wasm/vgm_analyzer/support.html
 

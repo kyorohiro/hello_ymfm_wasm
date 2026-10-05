@@ -51,6 +51,7 @@
     }
 
     .panel {
+      overflow-wrap: anywhere;
       background: color-mix(in srgb, var(--panel) 90%, white 10%);
       border: 1px solid var(--line);
       border-radius: 24px;
@@ -72,7 +73,7 @@
 
     .grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr));
       gap: 16px;
       margin-top: 24px;
     }
@@ -199,6 +200,40 @@
     .panel>h2:not(:first-child) {
       margin-top: 28px;
     }
+
+    .package-card {
+      min-width: 0;
+    }
+
+    .package-kind {
+      margin-bottom: 8px;
+      color: var(--accent-dark);
+      font-size: 0.78rem;
+      font-weight: 700;
+    }
+
+    .package-card pre {
+      margin: 16px 0;
+      padding: 12px;
+      overflow-x: auto;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: var(--panel);
+      font-size: 0.78rem;
+      line-height: 1.7;
+    }
+
+    .package-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px 16px;
+      font-size: 0.85rem;
+    }
+
+    .package-links a {
+      color: var(--accent-dark);
+      text-underline-offset: 3px;
+    }
   </style>
 </head>
 
@@ -253,6 +288,53 @@
         <a href="https://github.com/aaronsgiles/ymfm">ymfm</a>
         by Aaron Giles under the BSD 3-Clause License.
       </p>
+
+      <h2 id="npm-packages">npm Packages</h2>
+
+      <p>
+        Use Tetorica in your own projects: analyze existing VGM music with
+        <code>tetorica-vgm</code>, or build sound-chip audio with
+        <code>tetorica-fm2612</code>. Node.js usage requires Node.js 22 or later.
+      </p>
+
+      <div class="grid" aria-labelledby="npm-packages">
+        <article class="card package-card">
+          <p class="package-kind">VGM tools &middot; Node.js CLI / API</p>
+          <strong>tetorica-vgm</strong>
+          <p>
+            Analyze VGM/VGZ files, export scores and FM voices, and render WAV
+            audio. Use the command line or import the analysis and export APIs
+            into a Node.js application.
+          </p>
+          <pre><code>npm install tetorica-vgm
+npx tetorica-vgm analyze song.vgz --json</code></pre>
+          <div class="package-links">
+            <a href="https://www.npmjs.com/package/tetorica-vgm">npm &rarr;</a>
+            <a href="https://github.com/kyorohiro/hello_ymfm_wasm/blob/main/cli/README.md">Usage &amp; Node API &rarr;</a>
+            <a href="https://github.com/kyorohiro/hello_ymfm_wasm/blob/main/CLI.md">CLI reference &rarr;</a>
+          </div>
+        </article>
+
+        <article class="card package-card">
+          <p class="package-kind">Sound-chip audio &middot; Browser / Node.js</p>
+          <strong>tetorica-fm2612</strong>
+          <p>
+            Import sound-chip cores and synth APIs as ES modules with prebuilt
+            WASM. Generate PCM in Node.js, or add FM, PSG and PCM audio to a
+            browser app with the included Web Audio runtime.
+          </p>
+          <pre><code>npm install tetorica-fm2612</code></pre>
+          <p>
+            Includes YM2612, related Yamaha chips, Sega PSG, RF5C164 and other
+            sound chips. Start with <code>createSoundChip</code>,
+            <code>YM2612Synth</code> or <code>MegaSynth</code>.
+          </p>
+          <div class="package-links">
+            <a href="https://www.npmjs.com/package/tetorica-fm2612">npm &rarr;</a>
+            <a href="https://github.com/kyorohiro/hello_ymfm_wasm/blob/main/packages/fm2612/README.md">Usage &amp; browser setup &rarr;</a>
+          </div>
+        </article>
+      </div>
 
       <h2>Tetorica Tools (Genesis / Mega Drive)</h2>
 
@@ -497,7 +579,8 @@
       </p>
 
       <p>
-        GitHub Releases is the primary download entry point for packaged wasm and browser-side runtime files.
+        Install the sound-chip runtime from npm with <code>npm install tetorica-fm2612</code>,
+        or download the packaged WASM and browser-side runtime files from GitHub Releases.
       </p>
 
       <p>

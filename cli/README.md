@@ -21,6 +21,36 @@ Before publication, install the distribution tarball with
 
 ## Sound chip support
 
+The following chip families have playback implementations in the shared core
+used by the CLI. Playback coverage does not imply score or voice export support.
+Some tracks need sample ROMs; dual chips, variants and combinations have limits.
+
+<!-- chip-list:start -->
+| Chip | Playback in the shared core |
+| --- | --- |
+| YM2612 | FM + DAC |
+| YM2203 | FM + SSG |
+| YM2608 | FM + SSG + Rhythm + ADPCM-B |
+| YM2610 / YM2610B | FM + SSG + ADPCM-A/B |
+| YM2151 / YM2164 (OPM / OPP) | 8 FM CH |
+| Sega PSG | Tone + noise |
+| RF5C164 | PCM (Mega-CD) |
+| 32X PWM | PWM |
+| YM2413 | OPLL |
+| YMF262 (OPL3) | 2OP / 4OP / rhythm |
+| YM3526 / YM3812 | OPL / OPL2 |
+| Y8950 | FM + ADPCM |
+| YMF278B | OPL4 FM + PCM |
+| AY-3-8910 / YM2149 | Tone + noise + envelope |
+| K051649 / K052539 (SCC / SCC+) | 5-channel wavetable; mixed with MSX AY/YM2413/Y8950 |
+| HuC6280 | 6-channel wavetable, DDA, noise, LFO (MAME) |
+| OKIM6295 | 4-voice ADPCM; standalone or with YM2151 / YM2164 (CPS-1 sound configuration), or YM3812 |
+| OKIM6258 | 4-bit ADPCM; standalone or mixed |
+| Sega PCM (315-5218) | 16-voice 8-bit PCM; standalone, mixed with Sega PSG, or mixed with YM2151 / YM2164 |
+| NES APU + FDS (NTSC) | 2 pulse + triangle + noise + DMC; optional FDS wavetable |
+| Game Boy DMG (LR35902) | 2 square + wave + noise |
+<!-- chip-list:end -->
+
 - [Sound chip support table](https://kyorohiro.github.io/hello_ymfm_wasm/vgm_analyzer/support.html): the shared browser Analyzer reference, with playback/export coverage and limitations.
 - [CLI chip support and restrictions](https://github.com/kyorohiro/hello_ymfm_wasm/blob/main/CLI.md): Node rendering, chip combinations and ROM requirements.
 

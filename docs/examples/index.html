@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>tetorica-fm2612 — Package Examples</title>
+  <meta name="description" content="tetorica-fm2612 を import して使う、実行できる JavaScript サンプル。FM、メロディ、PCM と WAV 出力。">
+  <link rel="stylesheet" href="./package/style.css">
+  <script type="importmap">
+  {"imports": {
+    "tetorica-fm2612": "https://cdn.jsdelivr.net/npm/tetorica-fm2612@0.2.0/soundchip.js",
+    "tetorica-fm2612/": "https://cdn.jsdelivr.net/npm/tetorica-fm2612@0.2.0/"
+  }}
+  </script>
+</head>
+<body>
+  <main>
+    <nav><a href="../index.html">← Tetorica</a><a href="https://www.npmjs.com/package/tetorica-fm2612">npm package ↗</a></nav>
+    <header>
+      <p class="eyebrow">PACKAGE EXAMPLES · v0.2.0</p>
+      <h1>Import. Play. Build.</h1>
+      <p><code>tetorica-fm2612</code> を自分のアプリで使うための、小さな JavaScript サンプル。<br>コードを読んで、実行して、そのまま持ち帰れます。</p>
+      <pre><code>npm install tetorica-fm2612</code></pre>
+      <p class="muted">このページは import map で npm パッケージの ES modules を CDN から読み込みます。初回はネット接続が必要です。音は Run を押すと再生されます。</p>
+    </header>
+    <section class="workspace" aria-label="Package examples">
+      <aside>
+        <h2>Examples</h2>
+        <button class="example" data-example="note" aria-pressed="true"><span>01</span> FM の音を鳴らす</button>
+        <button class="example" data-example="melody" aria-pressed="false"><span>02</span> メロディを再生</button>
+        <button class="example" data-example="wav" aria-pressed="false"><span>03</span> PCM → WAV</button>
+      </aside>
+      <article>
+        <h2 id="title">FM の音を鳴らす</h2>
+        <p id="description"></p>
+        <div class="actions">
+          <button id="run" disabled>Run example</button>
+          <button id="stop" disabled>Stop</button>
+          <button id="copy" disabled>Copy code</button>
+          <a id="source" href="./package/note.js">Source ↗</a>
+          <a id="download" hidden download="tetorica-example.wav">Download WAV</a>
+        </div>
+        <p id="status" role="status" aria-live="polite">Loading example…</p>
+        <pre class="source"><code id="code"></code></pre>
+      </article>
+    </section>
+    <section class="setup">
+      <h2>自分のプロジェクトで使う</h2>
+      <p>サンプルは <code>run()</code> を export しています。ブラウザではボタンの click から呼び出してください。<code>run({signal})</code> に AbortSignal を渡すと再生を停止できます。</p>
+      <pre><code>import {run} from './note.js';
+document.querySelector('button').addEventListener('click', () => run());</code></pre>
+      <p>静的サイトではパッケージの中身を <code>/vendor/tetorica-fm2612/</code> にコピーして、次の import map を module script より前に置きます。JS・WASM・Worklet のディレクトリ構成を保ってください。</p>
+      <pre><code>&lt;script type="importmap"&gt;
+{"imports": {
+  "tetorica-fm2612": "/vendor/tetorica-fm2612/soundchip.js",
+  "tetorica-fm2612/": "/vendor/tetorica-fm2612/"
+}}
+&lt;/script&gt;</code></pre>
+      <p>ブラウザでは import map のサブパスに <code>.js</code> を付けます。npm を使う Node.js ではこのコードの import をそのまま解決できます。PCM → WAV の例は Node.js 22 以降でも実行できます。</p>
+      <pre><code>import {writeFile} from 'node:fs/promises';
+import {run} from './wav.js';
+const wav = await run();
+await writeFile('example.wav', new Uint8Array(await wav.arrayBuffer()));</code></pre>
+      <p>バンドラーを使う場合も WASM・Worker・Worklet を配布する必要があります。詳しい設定は <a href="https://github.com/kyorohiro/hello_ymfm_wasm/blob/main/packages/fm2612/README.md">package README</a> を参照してください。</p>
+    </section>
+  </main>
+  <script type="module" src="./package/page.js"></script>
+</body>
+</html>

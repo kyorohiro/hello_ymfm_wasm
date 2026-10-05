@@ -1,0 +1,32 @@
+:root { color-scheme: light; --ink:#27251f; --line:#d8d1bf; --accent:#88401f; }
+* { box-sizing:border-box; }
+body { margin:0; color:var(--ink); background:#f5f1e7; font-family:"Avenir Next",system-ui,sans-serif; line-height:1.65; }
+main { max-width:1180px; margin:auto; padding:28px 24px 64px; }
+nav { display:flex; justify-content:space-between; gap:16px; }
+a { color:var(--accent); text-underline-offset:3px; }
+header { padding:48px 0 28px; max-width:800px; }
+.eyebrow { font-size:.75rem; letter-spacing:.14em; color:var(--accent); font-weight:700; }
+h1 { font-size:clamp(2.5rem,6vw,4.8rem); letter-spacing:-.05em; line-height:1.05; margin:14px 0 24px; }
+h2 { font-size:1.25rem; margin:0 0 14px; }
+p { margin:0 0 18px; }
+pre { padding:18px; background:#ede8dc; border-radius:10px; overflow:auto; font-size:.85rem; line-height:1.7; }
+code { font-family:ui-monospace,SFMono-Regular,Consolas,monospace; }
+.muted { color:#666052; font-size:.88rem; }
+.workspace { display:grid; grid-template-columns:240px minmax(0,1fr); border:1px solid var(--line); border-radius:16px; background:#fffcf5; overflow:hidden; }
+aside { padding:24px 16px; border-right:1px solid var(--line); }
+button { font:inherit; cursor:pointer; border:1px solid var(--line); border-radius:8px; padding:8px 14px; color:var(--ink); background:#fffdf8; }
+button:hover:enabled { border-color:var(--accent); }
+button:disabled { opacity:.5; cursor:default; }
+button:focus-visible,a:focus-visible { outline:3px solid #b96b42; outline-offset:3px; }
+.example { display:block; width:100%; text-align:left; margin-bottom:10px; }
+.example span { color:var(--accent); margin-right:8px; font-size:.8rem; }
+.example[aria-pressed="true"] { background:#f3dfbd; border-color:#b5874f; }
+article { padding:28px; min-width:0; }
+.actions { display:flex; flex-wrap:wrap; gap:10px; align-items:center; }
+.actions a { font-size:.9rem; }
+#run { background:var(--accent); color:white; border-color:var(--accent); }
+#status { font-size:.85rem; color:#66583f; margin:16px 0 0; overflow-wrap:anywhere; }
+.source { background:#242620; color:#eeeadd; max-height:580px; tab-size:2; }
+.setup { max-width:850px; margin-top:40px; }
+[hidden] { display:none !important; }
+@media(max-width:720px) { main { padding:20px 16px 40px; } .workspace { grid-template-columns:1fr; } aside { border-right:0; border-bottom:1px solid var(--line); } article { padding:20px 16px; } header { padding-top:32px; } }
