@@ -111,6 +111,9 @@ ymf262.js
 ymf262audioengine.js
 ym2151.js
 ym2151audioengine.js
+playground_segapsg.js
+playground_segapsg_audio.js
+playground_segapsg_worklet.js
 ym2413.js
 ym2413audioengine.js
 ym2203.js
@@ -194,5 +197,8 @@ perl -0pi -e 's#./generated/gameboy_apu#../generated/gameboy_apu#g' \
   "${DOCS_JS_DIR}/playground_gameboy_audio.js" "${DOCS_JS_DIR}/playground_gameboy_worklet.js"
 
 # Independent OPN worklets and their dynamically selected WASM binaries.
+perl -0pi -e 's#\./generated/segapsg#../generated/segapsg#g' \
+  "${DOCS_JS_DIR}/playground_segapsg_audio.js" "${DOCS_JS_DIR}/playground_segapsg_worklet.js"
+
 perl -0pi -e 's#\./generated/#../generated/#g' \
   "${DOCS_JS_DIR}/playground_opn_audio.js" "${DOCS_JS_DIR}/playground_opn_worklet.js"

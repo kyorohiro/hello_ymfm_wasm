@@ -7,7 +7,7 @@ export async function createSegaPsgAudio(context, destination) {
     return response.arrayBuffer();
   };
   const [wasmBinary] = await Promise.all([
-    bytes('./generated/segapsg_wasm.wasm'),
+    bytes('../generated/segapsg_wasm.wasm'),
     context.audioWorklet.addModule(new URL('./playground_segapsg_worklet.js', import.meta.url)),
   ]);
   const node = new AudioWorkletNode(context, 'tetorica-segapsg', {

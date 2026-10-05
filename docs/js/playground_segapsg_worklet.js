@@ -1,5 +1,5 @@
 import {SegaPSG} from './segapsg.js';
-import factory from './generated/segapsg_wasm.js';
+import factory from '../generated/segapsg_wasm.js';
 class Processor extends AudioWorkletProcessor {
   constructor(options) {
     super(); this.chip = null; this.dead = false;
