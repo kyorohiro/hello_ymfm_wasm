@@ -8,8 +8,153 @@
 まずオフラインの PCM / WAV 生成、その後にリアルタイム再生を検証する。
 この文書は設計案であり、Node 対応の実装や依存ライブラリの採用はまだ確定していない。
 
+## 実装状況（最初の検証）
+
+実験用の別入口 `web/megasynth_offline.js` に `createMegaSynthOffline()` を追加した。
+現在の対応範囲は YM2612 FM / DirectTransport の DAC、nativeFX、オフライン PCM 生成。
+既存のブラウザ `MegaSynth` のコンストラクターやリアルタイム出力 API は変更していない。
+
+- nativeFX の DSP を `web/native_fx_engine.js` へ分離。ブラウザの nativeFX Worklet も同じ実装を使う。
+- `fm` と `fx` の操作後、`render(frames)` でサンプル時計を進めてステレオ PCM を生成する。
+- `schedule(frame, {target: 'fm', method, args})` で、絶対出力フレーム位置に FM コマンドを適用する。同時刻の命令は登録順を保つ。
+- YM2612 の無発音時オフセットを除去し、ブラウザ Worklet と同じサンプルレート変換を使う。
+- Native FX のパラメーター ramp は既存 Worklet と同様に処理ブロックごとに進む。任意の render 分割で ramp 結果が常に同一になる保証は、まだ付けていない。
+- `scripts/demo_megasynth_offline.mjs` は Node Worker 内で WASM 読み込み・発音・FX・WAV 保存を完結し、Main へは出力先とフレーム数などの情報だけを返す。
+
+```sh
+node scripts/demo_megasynth_offline.mjs /private/tmp/megasynth-native-fx.wav
+```
+
+```js
+import {createMegaSynthOffline} from '../../web/megasynth_offline.js';
+import {FM_PRESETS} from '../../web/megasynth-fm-presets.js';
+const synth = await createMegaSynthOffline({sampleRate: 48000});
+try {
+  synth.fm.setPreset(0, FM_PRESETS.sine);
+  const fx = synth.fx;
+  fx.setChain([fx.delay({time: 0.12, mix: 0.25})]);
+  synth.schedule(0, {target: 'fm', method: 'noteOn', args: [0, 4, 553]});
+  synth.schedule(24000, {target: 'fm', method: 'noteOff', args: [0]});
+  const pcm = synth.render(48000);
+} finally { synth.close(); }
+```
+
+この API はローカルの実験実装で、npm の公開版にはまだ含まれない。
+PSG / Mega CD PCM は次段階。looper の PCM キャプチャは下記の追加検証で対応。
+同一入力で Node・ブラウザのオフライン処理・実際の nativeFX AudioWorklet 出力が完全一致することを Chromium で確認した。
+オフラインの Worklet は初期設定を `processorOptions.initialCommands` で渡し、描画より設定メッセージが遅れる競合を避ける。
+対応済み範囲を全ブラウザ・全デバイスの互換性と同一視しない。
+
+検証コマンド:
+
+```sh
+node --test web/megasynth_offline.test.mjs test/playground_native_fx.test.mjs web/synth-worklet.test.mjs web/megasynth.test.mjs web/custom_fx.test.mjs
+npm run build:fm2612
+node scripts/check_megasynth_offline_browser.cjs
+```
+
+## 実装状況（リアルタイム出力の検証）
+
+`node/megasynth.mjs` に実験用 `MegaSynthNode` を追加した。
+Worker 内で同じオフライン engine を連続実行し、nativeFX を通した PCM を音声デバイスへ出力する。
+Main 側は `fm` の非同期命令、nativeFX controller、状態通知だけを扱う。
+ローカル配布物では `tetorica-fm2612/node` から import できる。公開済み 0.2.4 にはまだ含まれない。
+
+- audify 1.10.1 の CoreAudio 出力を、macOS の Node Worker 内で検証した。
+- 4 × 512フレームを先行生成し、デバイスの消費通知で補充する。Main が忙しくても生成・出力を続ける。
+- 起動・停止には20msのフェードを使う。停止後のキューを排出し、再開時は音色・FX設定を保つ。
+- 初期化中のキャンセル、非同期命令の応答、出力失敗、停止・再開、終了後の新しい Worker での再起動を検証する。
+- 実デバイス確認では CoreAudio の消費フレーム数の進行と、WASM が生成した有限・非ゼロの PCM を確認した。
+- audify はオプションの peer dependency。ブラウザやオフライン生成へ必須依存として追加しない。
+
+```sh
+npm install audify
+node scripts/demo_megasynth_node.mjs
+```
+
+アダプターの契約・非同期 API・実行例は [node/README.md](../../node/README.md) を参照。
+`@kmamal/sdl@0.11.13` は Main Thread 専用だったため採用しなかった。
+audify の stream 終了後に callback 参照が残るケースがあるため、stream を閉じた後に所有 Worker を明示的に終了する。
+他の OS・デバイス、長時間・高負荷での音切れは、まだ確認が必要。
+
+## 実装状況（イベント録音・looper）
+
+`web/megasynth_session.js` の `createMegaSynthSession()` で、オフライン engine と既存の recording / looper を接続した。
+`web/sample_clock.js` のタイマーを生成フレーム数で進め、イベント時刻の境界で PCM 生成を区切る。
+非同期の looper 録音終了を待てるよう、この入口の `render(frames)` は Promise を返す。
+従来の `createMegaSynthOffline().render()` は同期のまま維持する。
+
+- Node の `synth.recording` / `synth.looper` は Worker 内のオブジェクトへ RPC を送る。
+- 自分で演奏した FM 操作を記録し、再演と音色復元を二重に録音しない。
+- `megasynth-recording-v1` の JSON を export / import / play できる。
+- 録音ループは長さのフレーム数で繰り返し、実時間タイマー用の10ms余白を加えない。
+- looper は noteOn / noteOff、音色、unit、undo、再録音の自動終了を扱う。既定はイベント方式、PCM モードは下記で選択する。
+- 不正な録音データを、実際の chip を変更する前に検証する。
+- 停止・終了で録音と繰り返しタイマーを解放する。停止後は unit を保持するが、自動でループ再生を再開しない。
+- イベント JSON はチップ内部の発振・エンベロープ位相を保存しない。イベント時刻と音色を再現する形式で、WAV の完全保存ではない。
+
+```sh
+node --test web/megasynth_session.test.mjs test/megasynth_node.test.mjs web/megasynth.test.mjs
+node scripts/demo_megasynth_node_events.mjs
+```
+
+実行例は録音 JSON を `/private/tmp/megasynth-events.json` に保存し、JSON 再生と looper を短く実演する。
+CoreAudio の Worker 出力で、録音・繰り返し再生・looper・undo・終了まで確認した。
+ループの発音境界、累積するタイマーの解放、再開後の古いイベントのキャンセルはデバイスなしのテストでも確認する。
+この機能もまだローカルの実験実装で、npm には未公開。
+
 新しい API・examples・説明では `MegaSynth` を使う。
 `MegaDriveSynth` は過去互換のために残す別名として扱う。
+
+## 実装状況（PCM looper）
+
+`createMegaSynthSession({looperMode: 'pcm'})` で FM の dry PCM を取り込み、native sample mixer で繰り返し再生する。
+Node の指定は `new MegaSynthNode({engineOptions: {looperMode: 'pcm'}})`。
+既定のイベント方式は維持する。
+
+- FX / masterVolume / 録音済み PCM のミックス前に取り込むため、重ね録りに以前のループが混入しない。
+- 再生は nativeFX を通る。現在の FX 設定を録音済みループにも適用する。
+- PCM は Worker に保持し、通常の unit 応答は情報だけを返す。`looper.exportAudio(unit.id)` で明示的にコピーできる。
+- サンプル境界で再生し、同一 unit・同一フレームの二重再生を防ぐ。
+- undo / clear は不要な bank を解放する。停止で voice と未来の再生をキャンセルする。
+- 録音中と保持済み PCM の合計は既定60秒まで（`looperMaxAudioSeconds` で最大600秒）。最大64 bank。
+- FX の残響込みの最終出力やマイク入力の録音にはまだ対応しない。
+
+```sh
+node scripts/demo_megasynth_node_pcm_looper.mjs
+```
+
+実行例は nativeFX 付きで PCM ループを再生し、dry PCM を WAV に保存する。
+macOS / Node 22 / CoreAudio で12288フレームの録音・繰り返し再生・WAV 保存・undo・終了を確認した。
+イベント方式と PCM 方式の検証・公開状況は [node/README.md](../../node/README.md) を参照。
+
+## package を import する examples の検証
+
+`w/tetorica-fm2612-examples` に開発版 tarball を `--no-save --package-lock=false` で一時導入し、本体の source へ直接 import せずに実行する。
+公開済み package と同じバージョン表記の開発 tarball のため、新例には「開発版 package が必要」と明記する。
+依存 manifest / lockfile の公開版指定は release 後に更新する。
+
+- `embedding/06`：Node オフライン FM / nativeFX / WAV。
+- `embedding/07`：イベント JSON の録音・import・繰り返し再演。
+- `embedding/08`：イベント looper・undo・停止。
+- `embedding/09`：PCM looper・dry PCM export・FX 適用後の WAV。
+- `embedding/10`：Node Worker 内で audify 出力・録音・PCM looper・停止・再開。
+
+全28件の Node オフライン例で WAV 生成と非ゼロ PCM を確認した。
+10番は Node 22 / CoreAudio の実デバイスで、package の `tetorica-fm2612/node` export から実行した。
+Browser の既存28例は Chromium で、生成した静的サイトを repository 名の URL 配下に置いて検証する。
+再生完了・非ゼロ音声出力・途中停止・AudioContext 解放を確認する。
+新しい Node 専用の一覧カードには Web リンクを作らない。
+
+```sh
+# examples repository（開発版 tarball 導入後）
+npm run check:node
+npm run build
+# 本体 repository（上で生成した dist を使う）
+node scripts/check_fm2612_examples_browser.cjs
+```
+
+examples の `dist` は開発版で再生成した。公開用 `docs` の差し替えと npm release はまだ行っていない。
 
 ## 現状
 

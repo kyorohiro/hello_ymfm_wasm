@@ -46,6 +46,11 @@ rf5c164-worklet.js
 native_sample_processor.js
 native_fx_rack.js
 native_fx_graph.js
+native_fx_engine.js
+megasynth_offline.js
+sample_clock.js
+megasynth_session.js
+megasynth_pcm_looper.js
 native-fx-worklet.js
 custom_fx.js
 native_audio_effect.wasm

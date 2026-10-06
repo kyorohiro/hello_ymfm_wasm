@@ -41,6 +41,11 @@ try {
   assert.ok(left.some(x => Math.abs(x) > 0.001), 'Synth must produce audible PCM');
 } finally { chip.dispose(); }
 assert.equal(typeof globalThis.AudioContext, 'undefined');
+const {MegaSynthNode} = await import('tetorica-fm2612/node');
+const nodeSynth = new MegaSynthNode();
+assert.equal(nodeSynth.state, 'idle');
+await nodeSynth.close();
+assert.equal(nodeSynth.state, 'closed');
 const {MegaSynth} = await import('tetorica-fm2612/megasynth');
 const mega = new MegaSynth();
 assert.equal(mega.audioContext, null);
