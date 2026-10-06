@@ -347,6 +347,9 @@ npx tetorica-vgm analyze song.vgz --json</code></pre>
             Try a small JavaScript playground with <code>play()</code>, <code>beat()</code>, <code>liveLoop()</code>, and
             raw <code>fm</code> access.
             <a class="card-engine-link" href="./playground/index.html?engine=nuked">Try with Nuked-OPN2 &rarr;</a>
+            <a class="card-engine-link" href="./playground/index.html?chip=ym2608">PC-98 YM2608 Playground &rarr;</a>
+            <a class="card-engine-link" href="./playground/index.html?chip=ym2203">PC-98 YM2203 Playground &rarr;</a>
+            <a class="card-engine-link" href="./playground/index.html?chip=ym2610">Neo Geo YM2610 Playground &rarr;</a>
           </div>
         </div>
       </div>
@@ -376,42 +379,11 @@ npx tetorica-vgm analyze song.vgz --json</code></pre>
         </div>
       </div>
 
-      <h2>Tetorica Tools (Experimental: PC-98, Neo Geo)</h2>
+      <h2>Tetorica Tools (Experimental)</h2>
 
       <p>
-        Experimental OPN-family FM modes and a MIDI live coding app for macOS. Genesis / Mega Drive support remains the project's primary goal.
+        A MIDI live coding app for macOS.
       </p>
-
-      <div class="grid">
-        <div class="card card-playground">
-          <a class="card-primary-link" href="./playground/index.html?chip=ym2608"
-            aria-label="PC-98 sound playground"></a>
-          <strong>PC-98 Sound: YM2608</strong>
-          Experimental YM2608 FM mode for PC-98 style sound. FM is available now; SSG, Rhythm, and ADPCM-B will be added
-          as dedicated APIs.
-          <a class="card-engine-link" href="./playground/index.html?chip=ym2608">Open PC-98 YM2608 Playground &rarr;</a>
-        </div>
-        <div class="card card-playground">
-          <a class="card-primary-link" href="./playground/index.html?chip=ym2203"
-            aria-label="PC-98 YM2203 sound playground"></a>
-          <strong>PC-98 Sound: YM2203</strong>
-          Experimental three-channel YM2203 FM mode for earlier PC-98 compatible sound.
-          <a class="card-engine-link" href="./playground/index.html?chip=ym2203">Open PC-98 YM2203 Playground (3 FM
-            channels) &rarr;</a>
-        </div>
-      </div>
-
-      <div class="grid">
-        <div class="card card-playground">
-          <a class="card-primary-link" href="./playground/index.html?chip=ym2610"
-            aria-label="Neo Geo sound playground"></a>
-          <strong>Neo Geo Sound: YM2610</strong>
-          Experimental four-channel YM2610 FM mode for Neo Geo style sound. SSG and ADPCM-A/B will be added as dedicated
-          APIs.
-          <a class="card-engine-link" href="./playground/index.html?chip=ym2610">Open Neo Geo YM2610 Playground
-            &rarr;</a>
-        </div>
-      </div>
 
       <div class="grid">
         <div class="card card-playground card-with-icon">
@@ -484,34 +456,6 @@ npx tetorica-vgm analyze song.vgz --json</code></pre>
         </a>
       </div>
 
-      <h2>Demos</h2>
-
-      <div class="grid">
-        <!--a class="card" href="./demos/embed.html">
-            <strong>Integration Sample</strong>
-            Minimal browser-side sample for app or game embedding with FM SFX, PSG SFX, and VGM playback.
-          </a-->
-        <a class="card" href="./demos/beep.html">
-          <strong>YM2612 Beep Demo</strong>
-          Play the same YM2612 beep configuration used in <code>ex03_beep.cpp</code>.
-        </a>
-        <a class="card" href="./demos/psg.html">
-          <strong>Sega PSG Demo</strong>
-          Play a minimal Sega PSG / SN76489-compatible tone through WebAssembly.
-        </a>
-        <a class="card" href="./demos/vgm.html">
-          <strong>YM2612 VGM Parser and Playback Demo</strong>
-          Load a VGM file, inspect the header, preview parsed YM2612-oriented commands, and play it through WebAssembly.
-        </a>
-        <a class="card" href="./demos/operator1.html">
-          <strong>1 Operator Demo</strong>
-          Change one audible operator first: MULTI, TL, AR, RR, and pitch.
-        </a>
-        <a class="card" href="./demos/operator2.html">
-          <strong>2 Operator Demo</strong>
-          Compare parallel and serial relationships, then add feedback to operator 1.
-        </a>
-      </div>
     </section>
     <section class="panel">
       <h2>Sega Genesis / Mega Drive YM2612 FM Introduction with JavaScript</h2>
@@ -521,32 +465,12 @@ npx tetorica-vgm analyze song.vgz --json</code></pre>
         browser.
       </p>
       <p>
-        Start here if you want pin notes, beep-oriented register notes, or VGM basics in browser-readable pages.
+        Start here to explore FM synthesis and the YM2612's operators and algorithms with an embedded Playground.
       </p>
       <div class="grid">
         <a class="card" href="./introductions/index.html">
           <strong>Introduction</strong>
           What FM synthesis and the YM2612's operators/algorithms actually do, with a live Playground embedded.
-        </a>
-        <a class="card" href="./tutorials/">
-          <strong>Tutorials</strong>
-          Learn how to use the YM2612 and related technologies.
-        </a>
-        <a class="card" href="./info/index.html">
-          <strong>Info Hub</strong>
-          Open the browser-side reading hub for YM2612, FM, and VGM notes.
-        </a>
-        <a class="card" href="./info/ym2612.html">
-          <strong>YM2612 Basics</strong>
-          Read the minimum path from pins and ports to a simple beep.
-        </a>
-        <a class="card" href="./info/ym2612-ja.html">
-          <strong>YM2612 Basics (JA)</strong>
-          日本語で YM2612 の基本と beep までの流れを読む。
-        </a>
-        <a class="card" href="./info/vgm.html">
-          <strong>VGM Basics</strong>
-          Learn what VGM stores and which YM2612-related commands matter first.
         </a>
       </div>
     </section>
