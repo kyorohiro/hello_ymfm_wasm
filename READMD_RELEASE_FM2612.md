@@ -1,5 +1,14 @@
 # tetorica-fm2612 の npm リリース手順
 
+## 0.2.4 公開記録（2026-10-07）
+
+- 公開元 commit: `8e2774c`（修正実装: `9093b0d`）。
+- ymfm YM2612 の DAC ladder の無発音時オフセットを AudioWorklet 出力から除去。FM / PSG 初期化中は無音を維持し、起動・終了時のクリック音を軽減。生チップ PCM は変更しない。
+- 関連79テスト、通常の Node.js と Node.js 22 の配布物検証を通過。23 WASM エンジン・15 renderer・229モジュール/アセット参照、218ファイルを確認。
+- Chromium の Playground 共通経路で起動時・無発音時・停止後の一定出力が約0.0138から0になることと、通常の FM 発音を確認。Mega CD 8CH・左右パン・FM/PSG/PCM混合・reset・終了後の再起動・Playground Worker も検証。
+- npm registry の `latest: 0.2.4` とローカル tgz の integrity 一致を確認。公開版を新規インストールし、修正 Worklet・WASM 自動読み込み・生 PCM・FM 発音・WAV 出力を確認。
+- integrity: `sha512-pJVY5L8xdSWl78DTFBpsxdkVyUjawRGaCkDkBW6PIDYMjmKa90HstSXX0I6D3TCVMXFtRkfO024hW7rvsskeJw==`。
+
 ## 0.2.3 公開記録（2026-10-06）
 
 - 公開元 commit: `2c6efea`（API 実装: `d227f88`）。
