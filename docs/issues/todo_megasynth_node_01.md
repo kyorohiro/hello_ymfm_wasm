@@ -128,6 +128,34 @@ node scripts/demo_megasynth_node_pcm_looper.mjs
 macOS / Node 22 / CoreAudio で12288フレームの録音・繰り返し再生・WAV 保存・undo・終了を確認した。
 イベント方式と PCM 方式の検証・公開状況は [node/README.md](../../node/README.md) を参照。
 
+## package を import する examples の検証
+
+`w/tetorica-fm2612-examples` に開発版 tarball を `--no-save --package-lock=false` で一時導入し、本体の source へ直接 import せずに実行する。
+公開済み package と同じバージョン表記の開発 tarball のため、新例には「開発版 package が必要」と明記する。
+依存 manifest / lockfile の公開版指定は release 後に更新する。
+
+- `embedding/06`：Node オフライン FM / nativeFX / WAV。
+- `embedding/07`：イベント JSON の録音・import・繰り返し再演。
+- `embedding/08`：イベント looper・undo・停止。
+- `embedding/09`：PCM looper・dry PCM export・FX 適用後の WAV。
+- `embedding/10`：Node Worker 内で audify 出力・録音・PCM looper・停止・再開。
+
+全28件の Node オフライン例で WAV 生成と非ゼロ PCM を確認した。
+10番は Node 22 / CoreAudio の実デバイスで、package の `tetorica-fm2612/node` export から実行した。
+Browser の既存28例は Chromium で、生成した静的サイトを repository 名の URL 配下に置いて検証する。
+再生完了・非ゼロ音声出力・途中停止・AudioContext 解放を確認する。
+新しい Node 専用の一覧カードには Web リンクを作らない。
+
+```sh
+# examples repository（開発版 tarball 導入後）
+npm run check:node
+npm run build
+# 本体 repository（上で生成した dist を使う）
+node scripts/check_fm2612_examples_browser.cjs
+```
+
+examples の `dist` は開発版で再生成した。公開用 `docs` の差し替えと npm release はまだ行っていない。
+
 ## 現状
 
 - `web/megasynth.js` は AudioContext / AudioWorkletNode を使うブラウザのランタイム。
