@@ -1,5 +1,16 @@
 # tetorica-fm2612 の npm リリース手順
 
+## 0.2.3 公開記録（2026-10-06）
+
+- 公開元 commit: `2c6efea`（API 実装: `d227f88`）。
+- Web / Node 共通の `encodeWav()` を追加。PCM / AudioBuffer から PCM16 WAV を生成。
+- `createSoundChip()` が WASM バイト列を環境に応じて自動読み込み。明示的な WASM 指定なしで生成でき、AbortSignal にも対応。
+- 関連138テスト、通常の Node.js と Node.js 22 の配布物検証を通過。23 WASM エンジン・15 renderer・229モジュール/アセット参照を確認。
+- Chromium で14種類のチップの自動読み込み、Web / Node の WAV 一致、Blob、読み込み失敗を検証。既存 loadSample の実音声・終了後の再起動、Mega CD PCM・Playground Worker も確認。
+- 配布物は218ファイル。npm registry の `latest: 0.2.3` とローカル tgz の integrity 一致を確認。
+- 公開版を examples に再インストールし、全21例の Node PCM / WAV 出力、20例の Web 再生と Node WAV 一致、AudioWorklet の実音声・停止・再起動・エラー復帰を検証。
+- integrity: `sha512-y7kX0uYtTg1fwyoX8gIKKCdNQW+kt6hW4J4NkMDOhC4HbxK+iVRowTw387W1zVpHbofVwJsMpouCIl0obHFD1A==`。
+
 ## 0.2.2 公開記録（2026-10-06）
 
 - 公開元 commit: `eea2b5e`。
