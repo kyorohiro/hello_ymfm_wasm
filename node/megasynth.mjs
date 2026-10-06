@@ -27,7 +27,7 @@ export class MegaSynthNode extends EventEmitter {
   start() {
     if (this.#closing) return this.#closing.then(() => this.start());
     if (this.#starting) return this.#starting;
-    if (this.state === 'playing' || this.state === 'stopped') return Promise.resolve(this);
+    if (['ready', 'playing', 'stopped'].includes(this.state)) return Promise.resolve(this);
     this.state = 'starting'; this.#failure = null;
     const generation = ++this.#generation;
     let worker;
@@ -41,7 +41,7 @@ export class MegaSynthNode extends EventEmitter {
     });
     worker.on('message', message => {
       if (worker !== this.#worker) return;
-      if (message.type === 'ready') {this.state = 'playing'; this.#ready?.resolve(); this.#ready = null;}
+      if (message.type === 'ready') {this.state = message.result.state; this.#ready?.resolve(); this.#ready = null;}
       else if (message.type === 'reply') {
         const pending = this.#pending.get(message.id); if (!pending) return;
         this.#pending.delete(message.id);
@@ -67,7 +67,7 @@ export class MegaSynthNode extends EventEmitter {
   }
   get lastError() {return this.#failure;}
   #request(op, args = []) {
-    if (!['playing', 'stopped'].includes(this.state) || !this.#worker) {
+    if (!['ready', 'playing', 'stopped'].includes(this.state) || !this.#worker) {
       const promise = Promise.reject(new Error('MegaSynthNode is not ready')); promise.catch(() => {}); return promise;
     }
     const id = ++this.#id;
@@ -82,6 +82,10 @@ export class MegaSynthNode extends EventEmitter {
   async flush() {await this.#request('flush'); if (this.#failure) {const error = this.#failure; this.#failure = null; throw error;}}
   schedule(frame, command) {return this.#request('schedule', [frame, command]);}
   getState() {return this.#request('status');}
+  /** Explicit PCM transfer for offline rendering / WAV export. */
+  render(frames) {return this.#request('render', [frames]);}
+  async connectOutput(options = {}) {const result = await this.#request('connectOutput', [options]); this.state = result.state; return result;}
+  async disconnectOutput() {const result = await this.#request('disconnectOutput'); this.state = result.state; return result;}
   async stop() {await this.#request('stop'); this.state = 'stopped';}
   async resume() {await this.#request('resume'); this.state = 'playing';}
   close() {

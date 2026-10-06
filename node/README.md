@@ -2,11 +2,13 @@
 
 `MegaSynthNode` は Worker 内で YM2612、nativeFX、音声出力アダプターを動かす。
 Main へ送るのは操作命令・応答・状態だけで、通常再生の PCM は Main を通らない。
-この入口は現在のローカル開発版に含まれ、公開済み npm 0.2.4 にはまだ含まれない。
+既存の Node 入口は npm 0.2.5 で公開済み。以下の出力なし初期化・後付け接続は、その次版に向けたローカル実装。
 
 ## 実行
 
-アプリ側で `npm install audify` を実行する。ブラウザとオフライン利用では不要。
+スピーカー出力に既定の audify アダプターを使う場合は、アプリ側で `npm install audify` を実行する。ブラウザとオフライン利用では不要。
+
+以下の出力なし初期化・後付け接続 API はローカル開発版の追加機能で、公開済み npm 0.2.5 にはまだ含まれない。
 初期アダプターは audify 1.10.1 の RtAudio。macOS の CoreAudio を Worker から開いて検証した。
 Windows / Linux と他の音声デバイスは未検証。
 
@@ -33,9 +35,75 @@ try {
 実行例は `node scripts/demo_megasynth_node.mjs`。
 検証用に別の場所へ audify をインストールした場合は、実行例の第1引数に `audify/index.js` の file URL を渡せる。
 
+## 出力なしで開始し、あとから接続する（開発版）
+
+```js
+import {MegaSynthNode} from 'tetorica-fm2612/node';
+import {FM_PRESETS} from 'tetorica-fm2612/megasynth-fm-presets.js';
+import {encodeWav} from 'tetorica-fm2612';
+import {writeFile} from 'node:fs/promises';
+
+const synth = new MegaSynthNode({outputModule: null});
+try {
+  await synth.start(); // ready。音声ドライバー不要。
+  await synth.fm.setPreset(0, FM_PRESETS.sine);
+  await synth.fm.noteOn(0, 4, 553);
+  const pcm = await synth.render(48000);
+  await synth.fm.noteOff(0);
+  await writeFile('note.wav', encodeWav(pcm));
+
+  // audify を導入済みなら、同じ Worker に既定のスピーカー出力を接続する。
+  await synth.connectOutput();
+  await synth.fm.noteOn(0, 4, 696);
+  await new Promise(resolve => setTimeout(resolve, 300));
+  await synth.fm.noteOff(0);
+  await synth.disconnectOutput();
+
+  // 利用者が選んだ別の出力アダプターへ切り替える。
+  await synth.connectOutput({
+    outputModule: new URL('./my-output.mjs', import.meta.url).href,
+    outputOptions: {device: 'chosen-device'},
+  });
+} finally {await synth.close();}
+```
+
+`outputModule: null` は明示的なオフライン指定。出力指定を省略した場合、audify があれば従来どおりリアルタイムで開始し、未インストールなら `ready` / `output: null` で開始する。
+音声なしの状態では `render(frames)` のときだけサンプル時計が進む。無音の仮想デバイスや実時間タイマーは作らない。
+`render()` は `{left, right, sampleRate}` を Main に返す明示的な PCM 取得 API。音声出力を接続したままでは呼べない。
+`stop()` は出力なしでも予定したイベントを消す。`resume()` は出力未接続なら接続を促すエラーを返す。
+
+`connectOutput()` の失敗は呼び出しの Promise で受け取る。デバイスを開けない場合も出力なしの音源は維持する。
+既定でオフラインへ移るのは audify が見つからない場合だけで、導入済み addon の読み込み失敗やデバイスのエラーを無音の成功に置き換えない。
+`disconnectOutput()` はフェード・排出・停止・デバイス解放を待ち、`ready` に戻す。
+切り替え時は演奏・予定イベントを止めるが、音色・FX 設定・looper unit は保持する。別の出力へ連続無停止で切り替える API ではない。
+
+## 利用者側の既存 PCM 出力へ渡す
+
+出力オブジェクトが既に Main にある場合、Worker へそのオブジェクトを送る必要はない。
+`outputModule: null` で生成した PCM を、利用者側で必要な形式に変換して渡せる。
+例えば `speaker` の Writable は interleaved PCM を受け取るので、以下のように接続する。
+この `speaker` 経路は API 使用例であり、実デバイスではまだ検証していない。
+
+```js
+import Speaker from 'speaker'; // アプリが選んでインストールする依存
+
+const pcm = await synth.render(48000); // 出力なしで初期化した MegaSynthNode
+const bytes = Buffer.alloc(pcm.left.length * 8);
+for (let i = 0; i < pcm.left.length; i++) {
+  bytes.writeFloatLE(Math.max(-1, Math.min(1, pcm.left[i])), i * 8);
+  bytes.writeFloatLE(Math.max(-1, Math.min(1, pcm.right[i])), i * 8 + 4);
+}
+const speaker = new Speaker({channels: 2, bitDepth: 32, float: true, sampleRate: pcm.sampleRate});
+speaker.end(bytes);
+```
+
+継続して `write()` する場合は、利用者側の stream の backpressure と終了・エラー処理を扱う。
+[speaker の API](https://github.com/TooTallNate/node-speaker) のような形式変換は出力側の責務で、MegaSynth の renderer は特定の出力依存を要求しない。
+通常の音声生成を Main に戻したくない場合は、下記のアダプターを Worker 内で生成する。
+
 ## 操作と時計
 
-- `start()`：Worker とデバイスを初期化し、無音から短いフェードで開始する。
+- `start()`：Worker を初期化する。出力ありならデバイスを開いて短いフェードで開始する。既定の audify が未インストールなら出力なしの `ready` 状態になる。
 - `fm`：非同期の命令 API。各メソッドの Promise を await する。
 - `fx`：既存の nativeFX controller。命令は FIFO で送る。`flush()` を await して Worker での設定完了・エラーを確認する。
 - `schedule(frame, command)`：絶対出力フレーム位置へ FM 命令を登録する。
@@ -55,11 +123,14 @@ Main の JavaScript が忙しくても Worker の生成・出力は続くが、W
 
 ## 出力アダプター
 
-初期化オプションの `outputModule`（Node ESM の URL）と `outputOptions` で差し替えられる。
+初期化オプション、または `connectOutput()` の `outputModule`（Node ESM の URL）と `outputOptions` で差し替えられる。
 モジュールは `createOutput({sampleRate, bufferFrames, onDrain, onError, ...outputOptions})` を export する。
 返すオブジェクトは `frames`、`queuedFrames`、`write(pcm)`、`start()`、`stop()`、`close()`、`getState()` を持つ。
-PCM は stereo Float32。デバイスから1ブロック消費されるごとに `queuedFrames` を更新して `onDrain()` を呼ぶ。
-初期化と操作は Worker 内で実行される。オプションは structured clone 可能な値だけを指定する。
+`write`、`start`、`stop`、`close` は同期関数または Promise を返す関数として実装できる。`getState()` と `queuedFrames` は同期で取得できること。
+PCM は `{left, right, sampleRate}` の planar stereo Float32。デバイスから1ブロック消費されるごとに `queuedFrames` を更新して `onDrain()` を呼ぶ。
+通知はそのアダプターの音声消費／backpressureに合わせて実装し、過剰な先行生成を避ける。
+初期化と操作は Worker 内で実行される。オプションは structured clone 可能な値だけを指定する。Main の関数や既存の音声オブジェクトは `outputOptions` に渡せない。
+切り離したアダプターから遅れて届く通知・エラーは新しい出力に影響させない。
 
 検証した `@kmamal/sdl@0.11.13` は Main Thread 専用だったため、このアダプターには採用していない。
 audify の callback 参照が stream 終了後も残るケースに備え、音声 stream の解放後に所有 Worker を明示的に terminate する。

@@ -1,6 +1,6 @@
 /** Device-free test adapter. Runs in the actual Node Worker. */
-export async function createOutput({sampleRate, bufferFrames: frames, onDrain,
-  failOpen, failWrite, initDelay = 0}) {
+export async function createOutput({sampleRate, bufferFrames: frames, onDrain, onError,
+  failOpen, failWrite, initDelay = 0, lateErrorOnClose = false}) {
   if (initDelay) await new Promise(resolve => setTimeout(resolve, initDelay));
   if (failOpen) throw new Error('Test output unavailable');
   let queuedFrames = 0, consumedFrames = 0, timer, peak = 0, writes = 0;
@@ -22,7 +22,10 @@ export async function createOutput({sampleRate, bufferFrames: frames, onDrain,
       }, frames * 1000 / sampleRate);
     },
     stop() {clearInterval(timer); timer = null; queuedFrames = 0;},
-    close() {clearInterval(timer); timer = null; queuedFrames = 0;},
+    close() {
+      clearInterval(timer); timer = null; queuedFrames = 0;
+      if (lateErrorOnClose) setTimeout(() => onError(new Error('Old output callback')), 5);
+    },
     getState() {return {consumedFrames, queuedFrames, peak, bufferFrames: frames};},
   };
 }

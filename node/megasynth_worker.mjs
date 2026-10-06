@@ -15,9 +15,9 @@ function status() {
     output: output?.getState() ?? null, pendingTimers: synth?.pendingTimers ?? 0,
     recording: synth?.recording.getState() ?? null, looper: synth?.looper.getState() ?? null};
 }
-function write(pcm) {
+async function write(pcm) {
   for (const channel of [pcm.left, pcm.right]) for (const value of channel) peak = Math.max(peak, Math.abs(value));
-  output.write(pcm); maxQueuedFrames = Math.max(maxQueuedFrames, output.queuedFrames);
+  await output.write(pcm); maxQueuedFrames = Math.max(maxQueuedFrames, output.queuedFrames);
 }
 function pump() {
   if (pumping) return pumping;
@@ -29,7 +29,7 @@ function pump() {
         const gain = Math.min(1, ++rampFrame / fadeFrames);
         pcm.left[i] *= gain; pcm.right[i] *= gain;
       }
-      write(pcm);
+      await write(pcm);
     }
   })().catch(error => {void fail(error).catch(() => {});}).finally(() => {pumping = null;});
   return pumping;
@@ -38,8 +38,38 @@ function onDrain() {
   if (draining && output.queuedFrames === 0) {draining(); draining = null;}
   pump();
 }
+async function connectOutput(config = {}) {
+  if (output) throw new Error('Disconnect the current output before connecting another');
+  const bufferFrames = config.bufferFrames ?? options.bufferFrames ?? 512;
+  if (!Number.isInteger(bufferFrames) || bufferFrames < 128 || bufferFrames > 8192) throw new RangeError('bufferFrames must be from 128 to 8192');
+  const module = config.outputModule ?? new URL('./output_audify.mjs', import.meta.url).href;
+  const {createOutput} = await import(module);
+  let candidate;
+  try {
+    candidate = await createOutput({...config.outputOptions, sampleRate, bufferFrames,
+      onDrain: () => {if (output === candidate) onDrain();},
+      onError: error => {if (!closing && output === candidate) void fail(error).catch(() => {});}});
+    abort.signal.throwIfAborted();
+    if (!Number.isSafeInteger(candidate.frames) || candidate.frames < 1 || candidate.frames > 8192 ||
+        !Number.isFinite(candidate.queuedFrames) || candidate.queuedFrames < 0 ||
+        ['write', 'start', 'stop', 'close', 'getState'].some(method => typeof candidate[method] !== 'function')) throw new Error('Invalid audio output adapter');
+  } catch (error) {await candidate?.close(); throw error;}
+  output = candidate;
+  try {await resume();} catch (error) {output = null; state = 'ready'; await candidate.close(); throw error;}
+  return status();
+}
+async function disconnectOutput() {
+  if (output) {
+    await stop();
+    const previous = output; output = null; await previous.close();
+  }
+  state = 'ready'; return status();
+}
 function stop() {
   if (stopping) return stopping;
+  if (!output && ['ready', 'stopped'].includes(state)) {
+    return synth.stop().then(() => {state = 'stopped';});
+  }
   if (state !== 'playing') return Promise.resolve();
   state = 'stopping';
   stopping = (async () => {
@@ -53,19 +83,20 @@ function stop() {
       const gain = Math.max(0, 1 - (block * output.frames + i + 1) / fadeFrames);
       pcm.left[i] *= gain; pcm.right[i] *= gain;
     }
-    write(pcm);
+    await write(pcm);
   }
   await new Promise(resolve => {
     const timer = setTimeout(() => {draining = null; resolve();}, output.queuedFrames * 1000 / sampleRate + 250);
     draining = () => {clearTimeout(timer); resolve();};
   });
-  output.stop(); await synth.stop(); state = 'stopped';
+  await output.stop(); await synth.stop(); state = 'stopped';
   })().finally(() => {stopping = null;});
   return stopping;
 }
 async function resume() {
   if (state === 'playing') return;
-  state = 'playing'; rampFrame = 0; await pump(); if (!closing) output.start();
+  if (!output) throw new Error('No audio output connected; use render() or connectOutput()');
+  state = 'playing'; rampFrame = 0; await pump(); if (!closing) await output.start();
 }
 async function fail(error) {
   parentPort.postMessage({type: 'fatal', error: error.message});
@@ -80,7 +111,7 @@ async function shutdown() {
       parentPort.postMessage({type: 'fatal', error: error.message});
     } finally {
       state = 'closed';
-      try {output?.close();} finally {await synth?.close(); parentPort.postMessage({type: 'closed'});}
+      try {await output?.close();} finally {await synth?.close(); parentPort.postMessage({type: 'closed'});}
       // The owner terminates this Worker after native stream cleanup. Some
       // native addons retain callback references even after closeStream().
     }
@@ -110,6 +141,11 @@ parentPort.on('message', message => {
       else if (op === 'resume') await resume();
       else if (op === 'status') result = status();
       else if (op === 'flush') result = status();
+      else if (op === 'render') {
+        if (output) throw new Error('Disconnect audio output before offline rendering');
+        result = await synth.render(args[0]);
+      } else if (op === 'connectOutput') result = await connectOutput(args[0]);
+      else if (op === 'disconnectOutput') result = await disconnectOutput();
       else throw new Error(`Unknown operation: ${op}`);
       parentPort.postMessage({type: 'reply', id: message.id, result});
     } catch (error) {parentPort.postMessage({type: 'reply', id: message.id, error: error.message});}
@@ -119,11 +155,15 @@ const initialized = (async () => {
   synth = await createMegaSynthSession({...options.engineOptions, sampleRate,
     masterVolume: options.masterVolume ?? .25, signal: abort.signal});
   abort.signal.throwIfAborted();
-  const {createOutput} = await import(options.outputModule ?? new URL('./output_audify.mjs', import.meta.url).href);
-  output = await createOutput({...options.outputOptions, sampleRate,
-    bufferFrames: options.bufferFrames ?? 512, onDrain, onError: error => {void fail(error).catch(() => {});}});
-  abort.signal.throwIfAborted();
-  if (!Number.isSafeInteger(output.frames) || output.frames < 1 || output.frames > 8192) throw new Error('Invalid output frame size');
-  await resume(); abort.signal.throwIfAborted(); parentPort.postMessage({type: 'ready', result: status()});
+  // null explicitly selects offline mode. With no selection, only a missing
+  // audify package falls back to offline; device/native-addon errors stay visible.
+  let connect = options.outputModule !== null;
+  if (options.outputModule === undefined && !options.outputOptions?.moduleUrl) {
+    try {import.meta.resolve('audify');}
+    catch (error) {if (error.code === 'ERR_MODULE_NOT_FOUND') connect = false; else throw error;}
+  }
+  state = 'ready';
+  if (connect) await connectOutput({outputModule: options.outputModule, outputOptions: options.outputOptions});
+  abort.signal.throwIfAborted(); parentPort.postMessage({type: 'ready', result: status()});
 })();
 initialized.catch(error => {if (!closing) void fail(error).catch(() => {});});
