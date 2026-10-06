@@ -8,6 +8,51 @@
 まずオフラインの PCM / WAV 生成、その後にリアルタイム再生を検証する。
 この文書は設計案であり、Node 対応の実装や依存ライブラリの採用はまだ確定していない。
 
+## 実装状況（最初の検証）
+
+実験用の別入口 `web/megasynth_offline.js` に `createMegaSynthOffline()` を追加した。
+現在の対応範囲は YM2612 FM / DirectTransport の DAC、nativeFX、オフライン PCM 生成。
+既存のブラウザ `MegaSynth` のコンストラクターやリアルタイム出力 API は変更していない。
+
+- nativeFX の DSP を `web/native_fx_engine.js` へ分離。ブラウザの nativeFX Worklet も同じ実装を使う。
+- `fm` と `fx` の操作後、`render(frames)` でサンプル時計を進めてステレオ PCM を生成する。
+- `schedule(frame, {target: 'fm', method, args})` で、絶対出力フレーム位置に FM コマンドを適用する。同時刻の命令は登録順を保つ。
+- YM2612 の無発音時オフセットを除去し、ブラウザ Worklet と同じサンプルレート変換を使う。
+- Native FX のパラメーター ramp は既存 Worklet と同様に処理ブロックごとに進む。任意の render 分割で ramp 結果が常に同一になる保証は、まだ付けていない。
+- `scripts/demo_megasynth_offline.mjs` は Node Worker 内で WASM 読み込み・発音・FX・WAV 保存を完結し、Main へは出力先とフレーム数などの情報だけを返す。
+
+```sh
+node scripts/demo_megasynth_offline.mjs /private/tmp/megasynth-native-fx.wav
+```
+
+```js
+import {createMegaSynthOffline} from '../../web/megasynth_offline.js';
+import {FM_PRESETS} from '../../web/megasynth-fm-presets.js';
+const synth = await createMegaSynthOffline({sampleRate: 48000});
+try {
+  synth.fm.setPreset(0, FM_PRESETS.sine);
+  const fx = synth.fx;
+  fx.setChain([fx.delay({time: 0.12, mix: 0.25})]);
+  synth.schedule(0, {target: 'fm', method: 'noteOn', args: [0, 4, 553]});
+  synth.schedule(24000, {target: 'fm', method: 'noteOff', args: [0]});
+  const pcm = synth.render(48000);
+} finally { synth.close(); }
+```
+
+この API はローカルの実験実装で、npm の公開版にはまだ含まれない。
+音声デバイスへのリアルタイム出力、PSG / Mega CD PCM、looper / recording の統合、Main から動作中 Worker へ命令を送る常設 API は次段階。
+同一入力で Node・ブラウザのオフライン処理・実際の nativeFX AudioWorklet 出力が完全一致することを Chromium で確認した。
+オフラインの Worklet は初期設定を `processorOptions.initialCommands` で渡し、描画より設定メッセージが遅れる競合を避ける。
+対応済み範囲を全ブラウザ・全デバイスの互換性と同一視しない。
+
+検証コマンド:
+
+```sh
+node --test web/megasynth_offline.test.mjs test/playground_native_fx.test.mjs web/synth-worklet.test.mjs web/megasynth.test.mjs web/custom_fx.test.mjs
+npm run build:fm2612
+node scripts/check_megasynth_offline_browser.cjs
+```
+
 新しい API・examples・説明では `MegaSynth` を使う。
 `MegaDriveSynth` は過去互換のために残す別名として扱う。
 
