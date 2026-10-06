@@ -208,7 +208,7 @@ Worklet uploads complete before the returned promise resolves.
 `loadMemory()` remains the API for already-encoded ADPCM-B bytes.
 This does not add arbitrary sample loading to YM2608's fixed ADPCM-A rhythm.
 
-## Chip output transports (next development version)
+## Chip output transports (0.2.6)
 
 Basic chip examples use a shared factory followed by a transport and Synth.
 Browser `createSoundChip(name, {execution: 'worklet'})` creates the WASM chip
@@ -227,7 +227,7 @@ device-only Worker. Use `await start()`, `await stop()`, `await close()`, then
 `chip.dispose()`. Audify remains optional, but is required by this chosen output.
 MegaSynth stays available as the integrated game-embedding API.
 DirectTransport is the separate offline PCM / WAV interface.
-These new transport/factory APIs are local development additions, not yet in npm 0.2.5.
+These transport/factory APIs are available starting in 0.2.6.
 
 ## Local packaging
 
@@ -253,10 +253,10 @@ FM/PSG/PCM mixing, stop/reset and close/restart. Playwright is a development
 dependency; it is not required by users of the sound-chip runtime.
 
 The build is staged in `dist/fm2612/`; packing produces
-`tetorica-fm2612-0.2.4.tgz`. To install a local build in another project:
+`tetorica-fm2612-0.2.6.tgz`. To install a local build in another project:
 
 ```sh
-npm install /absolute/path/to/tetorica-fm2612-0.2.4.tgz
+npm install /absolute/path/to/tetorica-fm2612-0.2.6.tgz
 ```
 
 The existing `tetorica-vgm` CLI package is built separately. This first package
@@ -271,6 +271,18 @@ included; Nuked-OPN2 is LGPL-2.1-or-later, with its source and build script in
 and generator. External instrument/sample ROMs are not included.
 
 ## Release notes
+
+`0.2.6` adds browser Worklet chip creation and chip-specific Audify transports
+for YM2612, YM2608, Game Boy, Sega PSG and YM2151. Basic examples use
+WorkletTransport on Web and AudifyTransport on Node; DirectTransport remains
+available for explicit PCM generation and WAV export. Applications can move
+Synth/Transport into their own Worker using a dedicated MessagePort.
+MegaSynthNode can also start without an audio driver, render PCM offline,
+and attach, detach or replace an output adapter later.
+
+`0.2.5` adds experimental MegaSynth Node APIs for offline nativeFX rendering,
+event recording, PCM looping and Worker-based realtime device output.
+Audify is an optional peer dependency.
 
 `0.2.4` removes the ymfm YM2612 DAC ladder's idle offset from AudioWorklet
 output and keeps output silent until FM/PSG initialization completes. This

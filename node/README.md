@@ -2,13 +2,13 @@
 
 `MegaSynthNode` は Worker 内で YM2612、nativeFX、音声出力アダプターを動かす。
 Main へ送るのは操作命令・応答・状態だけで、通常再生の PCM は Main を通らない。
-既存の Node 入口は npm 0.2.5 で公開済み。以下の出力なし初期化・後付け接続は、その次版に向けたローカル実装。
+Node 入口は npm 0.2.5 以降、出力なし初期化・後付け接続は 0.2.6 以降で利用できる。
 
 ## 実行
 
 スピーカー出力に既定の audify アダプターを使う場合は、アプリ側で `npm install audify` を実行する。ブラウザとオフライン利用では不要。
 
-以下の出力なし初期化・後付け接続 API はローカル開発版の追加機能で、公開済み npm 0.2.5 にはまだ含まれない。
+出力なし初期化・後付け接続 API は npm 0.2.6 以降で利用できる。
 初期アダプターは audify 1.10.1 の RtAudio。macOS の CoreAudio を Worker から開いて検証した。
 Windows / Linux と他の音声デバイスは未検証。
 
@@ -35,7 +35,7 @@ try {
 実行例は `node scripts/demo_megasynth_node.mjs`。
 検証用に別の場所へ audify をインストールした場合は、実行例の第1引数に `audify/index.js` の file URL を渡せる。
 
-## 出力なしで開始し、あとから接続する（開発版）
+## 出力なしで開始し、あとから接続する（0.2.6）
 
 ```js
 import {MegaSynthNode} from 'tetorica-fm2612/node';
@@ -222,7 +222,7 @@ CoreAudio で短い PCM ループを再生し、`/private/tmp/megasynth-pcm-loop
 PSG / Mega CD PCM、マイク入力、他の AudioNode への接続は未対応。
 既存のブラウザ MegaSynth を置き換える API ではなく、Node 用の実験入口として検証を進める。
 
-## チップ別の AudifyTransport（次版の開発 API）
+## チップ別の AudifyTransport（0.2.6）
 
 `node/chip_transports.mjs` / package の `tetorica-fm2612/node/transports` から、
 YM2612 / YM2608 / Gameboy / SegaPSG / YM2151 の AudifyTransport を import できる。
@@ -236,4 +236,4 @@ bufferFrames（512）、queueBlocks（4）、gain（0.25）、outputModule / out
 `getState()` で出力のキュー・消費数・エラーを確認できる。
 Transport は借りた chip を破棄しない。終了は `await transport.close(); chip.dispose();` の順。
 詳細と WorkletTransport の例は [soundchip.md](../web/soundchip.md) を参照。
-公開済み0.2.5にはこの入口はまだない。
+この入口は npm 0.2.6 以降で利用できる。

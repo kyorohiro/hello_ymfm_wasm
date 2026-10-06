@@ -53,7 +53,7 @@ const opm = await createSoundChip('ym2151');
 この登録方式にはNode.js固有の依存もありません。Workerでは必要に応じて
 WASMバイナリーとmoduleFactoryをローダーへ注入できます。
 
-## チップ別の再生 Transport（次版の開発 API）
+## チップ別の再生 Transport（0.2.6）
 
 MegaSynth はゲーム埋め込み向けの統合 API として維持する。
 基本のチップ例は `createSoundChip → Transport → Synth` で構成する。
@@ -112,4 +112,4 @@ chip の `dispose()` は利用者の責任で、Transport を閉じてから行�
 
 DirectTransport は、手元で `generateStereo()` により PCM を生成し、WAV 保存や利用者の出力へ渡す用途に使う。
 examples の `transport/direct/01-single-note` に PCM 生成・連結・Web 再生・WAV 保存をすべて記述する。
-これらの追加入口はまだ npm 0.2.5 には含まれない。
+これらの追加入口は npm 0.2.6 以降で利用できる。

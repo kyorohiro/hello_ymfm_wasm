@@ -42,7 +42,7 @@
 
 ## リリース手順
 
-リポジトリのルートで実行する。以下は `0.2.4` を公開する例。
+リポジトリのルートで実行する。以下は `0.2.6` を公開する例。
 版番号を変更する場合は、tgz名と公開後の確認コマンドも読み替える。
 
 VGM CLIの手順は [READMD_RELEASE_VGM.md](READMD_RELEASE_VGM.md) を参照。
@@ -57,7 +57,7 @@ npm view tetorica-fm2612 name version versions maintainers --registry=https://re
 ```
 
 `packages/fm2612/package.json` の `version` を、公開する未使用の番号へ更新する。
-現在のローカル版は `0.2.4`。この番号で公開するなら変更は不要。
+現在のローカル版は `0.2.6`。公開前に npm registry で未使用であることを確認する。
 公開済みの同じ名前・バージョンは再利用できない。
 
 - `packages/fm2612/README.md`: npmに同梱する使い方、対応チップ、ブラウザのアセット配置。
@@ -111,16 +111,16 @@ RF5C164の8CH・左右パン・FM/PSG/PCMの混合出力・Stop/Reset・終了�
 
 ```sh
 npm run pack:fm2612 -- --silent
-tar -tzf tetorica-fm2612-0.2.4.tgz
-tar -xOf tetorica-fm2612-0.2.4.tgz package/package.json
-tar -xOf tetorica-fm2612-0.2.4.tgz package/README.md
+tar -tzf tetorica-fm2612-0.2.6.tgz
+tar -xOf tetorica-fm2612-0.2.6.tgz package/package.json
+tar -xOf tetorica-fm2612-0.2.6.tgz package/README.md
 ```
 
 専用スクリプトは `dist/fm2612/` に既存webランタイムを集め、WASM・Worker・
 AudioWorklet・音源データ・ライセンス文書を同梱する。npm用READMEは
 `packages/fm2612/README.md` からコピーする。ルートにtgzが生成される。
 
-配布manifestの名前が `tetorica-fm2612`、版番号が `0.2.4` であることを確認する。
+配布manifestの名前が `tetorica-fm2612`、版番号が `0.2.6` であることを確認する。
 `megasynth-fm-presets.js`、RF5C164のWASM/Worklet、第三者ライセンス、
 Nuked-OPN2のソースとビルドスクリプト、自作OPNAリズムデータも確認する。
 外部ROM・ゲームファイル・`w/`・キャッシュは含めない。
@@ -136,7 +136,7 @@ FM2612のビルド・packを再実行する。ルートに作成済みのtgzは�
 以下の変数はリポジトリのルートで設定する。
 
 ```sh
-fm2612_tarball="$PWD/tetorica-fm2612-0.2.4.tgz"
+fm2612_tarball="$PWD/tetorica-fm2612-0.2.6.tgz"
 fm2612_test_dir="$(mktemp -d)"
 (
   cd "$fm2612_test_dir" || exit 1
@@ -178,10 +178,10 @@ npm whoami --registry=https://registry.npmjs.org/
 
 ```sh
 # 公開しない確認
-npm publish ./tetorica-fm2612-0.2.4.tgz --access public --dry-run --registry=https://registry.npmjs.org/
+npm publish ./tetorica-fm2612-0.2.6.tgz --access public --dry-run --registry=https://registry.npmjs.org/
 
 # 同じtgzを公開
-npm publish ./tetorica-fm2612-0.2.4.tgz --access public --tag latest --registry=https://registry.npmjs.org/
+npm publish ./tetorica-fm2612-0.2.6.tgz --access public --tag latest --registry=https://registry.npmjs.org/
 ```
 
 dry-runは公開権限や名前の利用可否を保証しない。
@@ -191,17 +191,17 @@ dry-runは公開権限や名前の利用可否を保証しない。
 
 ```sh
 npm view tetorica-fm2612 version dist-tags --registry=https://registry.npmjs.org/ --prefer-online
-npm view tetorica-fm2612@0.2.4 dist.integrity --registry=https://registry.npmjs.org/ --prefer-online
+npm view tetorica-fm2612@0.2.6 dist.integrity --registry=https://registry.npmjs.org/ --prefer-online
 ```
 
-`latest` が `0.2.4` を指していることを確認する。npmが公開後の処理中と案内した
+`latest` が `0.2.6` を指していることを確認する。npmが公開後の処理中と案内した
 場合は、数分待ってから確認する。反映待ちの間に同じ版を再公開しない。
 
 ```sh
 fm2612_verify_dir="$(mktemp -d)"
 (
   cd "$fm2612_verify_dir" || exit 1
-  npm install tetorica-fm2612@0.2.4 --ignore-scripts --no-audit --no-fund --registry=https://registry.npmjs.org/ || exit 1
+  npm install tetorica-fm2612@0.2.6 --ignore-scripts --no-audit --no-fund --registry=https://registry.npmjs.org/ || exit 1
   node --input-type=module <<'JS'
 import {createSoundChip} from 'tetorica-fm2612';
 const chip = await createSoundChip('ym2151');
