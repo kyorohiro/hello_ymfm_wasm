@@ -12,6 +12,7 @@ DOCS_JS_DIR="${ROOT_DIR}/docs/js"
 SYNC_FILES="
 soundchip_factory.js
 soundchip.js
+wav.js
 huc6280audioengine.js
 okim6258audioengine.js
 okim6295audioengine.js

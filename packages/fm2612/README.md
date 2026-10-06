@@ -54,6 +54,42 @@ Both `tetorica-fm2612/ym2612` and `tetorica-fm2612/ym2612.js` are available.
 Synth APIs vary by chip; directly generating PCM does not play it on a speaker.
 No Node audio output dependency (`audioworklet`) is installed by this package.
 
+## Automatic WASM loading and WAV export (next release)
+
+The source version adds `encodeWav` to the default package entry and fixes
+default browser WASM loading. These changes are not in published `0.2.2` yet.
+`await createSoundChip('ym2612')` loads the generated JS and WASM beside the
+runtime without separate WASM options. Node reads file URLs; browsers/Workers
+fetch HTTP URLs. `signal`, `assetBaseUrl`, explicit `wasmBinary` and injected
+`moduleFactory` remain available for advanced asset loading.
+
+```js
+import {createSoundChip, encodeWav} from 'tetorica-fm2612';
+import {YM2612Synth, YM2612DirectTransport} from 'tetorica-fm2612/ym2612synth.js';
+import {FM_PRESETS} from 'tetorica-fm2612/megasynth-fm-presets.js';
+
+const chip = await createSoundChip('ym2612');
+let wav;
+try {
+  const transport = new YM2612DirectTransport(chip);
+  const synth = new YM2612Synth({transport});
+  synth.setPreset(0, FM_PRESETS.sine);
+  synth.noteOn(0, 4, 553);
+  const pcm = transport.generateStereo(chip.sampleRate());
+  wav = encodeWav({...pcm, sampleRate: chip.sampleRate()}, {gain: 0.25});
+} finally {
+  chip.dispose();
+}
+```
+
+`encodeWav` returns `Uint8Array` containing mono/stereo PCM16 RIFF WAV.
+It accepts `{left, right, sampleRate}`, `{channels, sampleRate}`, or AudioBuffer.
+The default gain is 1; values outside -1..1 are clipped. Sample rate is a
+positive integer. Node can save the returned bytes with
+`await writeFile('tone.wav', wav)` from `node:fs/promises`; browsers can create
+`new Blob([wav], {type: 'audio/wav'})` for a download or media player.
+Chip creation, PCM generation and WAV encoding do not create an audio device.
+
 ## Browser runtime
 
 Browser-only modules are included through separate module entry points:

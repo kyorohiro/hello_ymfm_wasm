@@ -4,14 +4,17 @@
  * 動的 import の配布方法はバンドラーに依存するため、この入口はサイズ削減を保証しない。
  */
 import { createSoundChipFactory } from './soundchip_factory.js';
+export {encodeWav} from './wav.js';
 
 /**
  * @typedef {Object} SoundChipOptions
  * @property {URL|string} [assetBaseUrl] 生成済み *_wasm.js / .wasm のディレクトリURL（末尾 /）。
  * @property {Function} [moduleFactory] 注入する Emscripten factory。指定時は自動ロードを省略。
  * @property {Object} [moduleOptions] wasmBinary、locateFile などをそのまま渡す。
+ * @property {AbortSignal} [signal] WASM ファイルの読み込みを中断する。
  */
 async function loadModule(name, options = {}) {
+  options.signal?.throwIfAborted();
   if (options.moduleFactory) return options;
   // Source tree: web/ -> docs/generated/. Published tree: js/ -> generated/.
   const base = new URL(options.assetBaseUrl ??
@@ -22,11 +25,16 @@ async function loadModule(name, options = {}) {
     const wasmUrl = new URL(`${name}_wasm.wasm`, base);
     if (wasmUrl.protocol === 'file:' && typeof process !== 'undefined' && process.versions?.node) {
       const { readFile } = await import('node:fs/promises');
-      moduleOptions.wasmBinary = await readFile(wasmUrl);
+      moduleOptions.wasmBinary = await readFile(wasmUrl, {signal: options.signal});
     } else {
-      moduleOptions.locateFile = path => new URL(path, base).href;
+      // Not all generated loaders accept locateFile. Read the bytes ourselves
+      // and pass the supported wasmBinary option in every environment.
+      const response = await fetch(wasmUrl, {signal: options.signal});
+      if (!response.ok) throw new Error(`Failed to load ${name} WASM: HTTP ${response.status}`);
+      moduleOptions.wasmBinary = new Uint8Array(await response.arrayBuffer());
     }
   }
+  options.signal?.throwIfAborted();
   return { moduleFactory, moduleOptions };
 }
 

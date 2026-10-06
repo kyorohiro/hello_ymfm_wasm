@@ -31,3 +31,15 @@ for (const name of ['ym2151', 'ymf262', 'ym2612', 'ym3438', 'ymf276', 'ymf288'])
     } finally { chip.dispose(); }
   });
 }
+
+test('aborted default WASM loading and injected factories', async () => {
+  const controller = new AbortController(); controller.abort();
+  await assert.rejects(createSoundChip('ym2612', {signal: controller.signal}), /abort/i);
+  const {default: moduleFactory} = await import('../docs/generated/ym2612_wasm.js');
+  const {readFile} = await import('node:fs/promises');
+  const chip = await createSoundChip('ym2612', {moduleFactory, moduleOptions: {
+    wasmBinary: await readFile(new URL('../docs/generated/ym2612_wasm.wasm', import.meta.url)),
+  }});
+  try { assert.equal(chip.generateStereo(32).left.length, 32); }
+  finally { chip.dispose(); }
+});
