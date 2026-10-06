@@ -1,5 +1,15 @@
 # tetorica-fm2612 の npm リリース手順
 
+## 0.2.2 公開記録（2026-10-06）
+
+- 公開元 commit: `eea2b5e`。
+- YM2608 ADPCM-B の `loadSample()` を追加。PCM / AudioBuffer / PCM・Float WAV の mono 化、ADPCM-B 変換、メモリ転送、再生範囲・速度の設定に対応。
+- AudioWorklet の ADPCM メモリ転送完了通知と、OPN Runtime の終了・再起動時の routing 解放を追加。
+- 関連127テスト、通常の Node.js と Node.js 22 の配布物検証を通過。23 WASM エンジン・15 renderer・228モジュール/アセット参照を確認。
+- Chromium で新しい loadSample の実音声・転送応答・終了後の再起動と、既存 FM/PSG/Mega CD PCM・Playground Worker を確認。
+- 配布物は217ファイル。npm registry の `latest: 0.2.2` と integrity を確認し、公開版の再インストール後に loadSample と音のあるPCM生成を検証。
+- integrity: `sha512-oetYxq6ipNGLI/I1CJVS3v4bPG1S0AkGzudmGDCWD23HtW0v9JEHvfeERoTx5Uw5x5cqeLZbIlXhmkc508kXdg==`。
+
 ## 0.2.1 公開記録（2026-10-06）
 
 - 公開元 commit: `89cf53c`。
