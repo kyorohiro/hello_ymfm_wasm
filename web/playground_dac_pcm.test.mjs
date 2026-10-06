@@ -6,7 +6,7 @@ import {createChipPortReceiver} from './playground_chip_port.js';
 import {YM2612DacPlayer, receiveDacCommand} from './ym2612_dac.js';
 import {YM2612Synth, YM2612DirectTransport} from './ym2612synth.js';
 import {createFmProxy} from './playground_sync.js';
-const source=readFileSync(new URL('../docs/playground/examples/dac/dac-pcm-sample.js',import.meta.url),'utf8');
+const source=readFileSync(new URL('../docs/playground/examples/basic/dac/dac-pcm-sample.js',import.meta.url),'utf8');
 
 function workerFixture() {
  const writes=[],held=[];

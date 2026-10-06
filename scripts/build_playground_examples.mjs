@@ -2,6 +2,7 @@
 import { readdir, readFile, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { resolve } from 'node:path';
+import {EXAMPLE_FOLDER_ORDER} from '../docs/playground/playground_example_order.js';
 const root = new URL('../docs/playground/examples/', import.meta.url);
 const target = new URL('../docs/playground/playground_examples.js', import.meta.url);
 
@@ -10,7 +11,9 @@ export async function buildExampleBundle() {
   const names = new Set();
   async function walk(relative = '') {
     const entries = await readdir(new URL(relative, root), {withFileTypes: true});
-    entries.sort((a,b) => a.name < b.name ? -1 : a.name > b.name ? 1 : 0);
+    const rank = entry => !relative && entry.isDirectory() && EXAMPLE_FOLDER_ORDER.includes(entry.name)
+      ? EXAMPLE_FOLDER_ORDER.indexOf(entry.name) : EXAMPLE_FOLDER_ORDER.length;
+    entries.sort((a,b) => rank(a) - rank(b) || (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
     for (const entry of entries) {
       const path = relative + entry.name;
       if (entry.isDirectory()) await walk(path + '/');

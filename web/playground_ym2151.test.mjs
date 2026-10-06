@@ -55,7 +55,7 @@ test('OPM validates before writes and preserves adjacent bitfields, including ra
 });
 test('OPM example runs against the real worklet', async () => {
   const {chip,processor,render}=await setup(48000);
-  const source=await readFile(new URL('../docs/playground/examples/chip-saw/ym2151-tone.js',import.meta.url),'utf8');
+  const source=await readFile(new URL('../docs/playground/examples/x68000/ym2151-tone.js',import.meta.url),'utf8');
   try {
     let calls=0;
     await new (Object.getPrototypeOf(async function(){}).constructor)('useSoundChip','sleep',source)(

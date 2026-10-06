@@ -87,7 +87,7 @@ test('YM2608 port client and real worklet core: rhythm, SSG, ADPCM memory, reset
     const rejection = assert.rejects(cancelled, /cancelled/);
     synth.resetRegisters(); await rejection;
     // Execute the actual example without a global fm; every scheduled hit must sound.
-    const example = await readFile(new URL('../docs/playground/examples/chip-saw/ym2608-rhythm.js', import.meta.url), 'utf8');
+    const example = await readFile(new URL('../docs/playground/examples/pc98/ym2608-rhythm.js', import.meta.url), 'utf8');
     let hits = 0;
     const run = new (Object.getPrototypeOf(async function() {}).constructor)('createSoundChip', 'sleep', example);
     await run(async name => { assert.equal(name, 'ym2608'); return synth; }, async seconds => {

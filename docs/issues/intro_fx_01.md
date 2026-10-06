@@ -114,7 +114,7 @@ Distortionの導入では、倍音が増える様子を確認しやすいサイ�
 - `web/native_fx.js`：組み込みFXの種類、パラメーター、操作API。
 - `native/audio_effect/`：組み込みDSP。
 - `web/custom_fx.js`：liveFxの実行とstate/contextの管理。
-- `docs/playground/examples/livefx/live-fx-distortion.js`：現行の自作FXサンプル。
+- `docs/playground/examples/basic/livefx/live-fx-distortion.js`：現行の自作FXサンプル。
 - `docs/issues/custom_fx_01.md`：liveFxとFX Monitorの設計・制約。
 
 ## 試作した記事

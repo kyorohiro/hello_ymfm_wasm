@@ -7,7 +7,7 @@ export async function createYm2151Audio(context, destination) {
     return response.arrayBuffer();
   };
   const [wasmBinary] = await Promise.all([
-    bytes('./generated/ym2151_wasm.wasm'),
+    bytes('../generated/ym2151_wasm.wasm'),
     context.audioWorklet.addModule(new URL('./playground_ym2151_worklet.js', import.meta.url)),
   ]);
   const node = new AudioWorkletNode(context, 'tetorica-ym2151', {

@@ -1776,7 +1776,7 @@
               <li><code>const { bass } = await import("./lib/bass.js")</code> dynamically imports a project JavaScript module</li>
               <li>Imported modules may use <code>export</code> and nested relative <code>import()</code>; use dynamic <code>import()</code> instead of a top-level static <code>import</code></li>
               <li><code>liveFx(name, {context, process(input, output, state, context), resetState?})</code> registers JavaScript FX after native FX. Same-name Apply preserves state; Stop removes it. Input/output are arrays of channel Float32Arrays. The synchronous process runs in AudioWorklet: use context instead of captured variables, and avoid unbounded loops. Exceptions/non-finite output bypass that effect.</li>
-              <li><code>fx.updateContext(name, patch)</code> sends a context update; <code>fx.removeLiveFx(name)</code> removes it. Commands are queued, not sample-timestamped. See <code>examples/livefx/live-fx-distortion.js</code>.</li>
+              <li><code>fx.updateContext(name, patch)</code> sends a context update; <code>fx.removeLiveFx(name)</code> removes it. Commands are queued, not sample-timestamped. See <code>examples/basic/livefx/live-fx-distortion.js</code>.</li>
               <li><code>log(value)</code>, <code>console.log(value)</code>, <code>console.warn(value)</code>, and <code>console.error(value)</code> write to the Console tab</li>
               <li><code>tfiToPreset(await file("./bass.tfi", { type: "arrayBuffer" }))</code> converts a 42-byte TFI file for <code>fm.setPreset()</code></li>
               <li><code>vgiToPreset(await file("./bass.vgi", { type: "arrayBuffer" }))</code> converts a 43-byte VGI file for <code>fm.setPreset()</code> (binary files require <code>type: "arrayBuffer"</code>)</li>
@@ -1799,7 +1799,7 @@
               <li><code>opm.setNote(0, "A4")</code> sets pitch; <code>opm.keyOn(0)</code> starts the envelope; <code>opm.keyOff(0)</code> releases it. Notes accept <code>C#0..C8</code> or MIDI integers <code>13..108</code>.</li>
               <li><code>opm.setPitch(0, 0x4a, 0)</code> sets raw key code and key fraction (<code>0..63</code>). The clock is fixed at <code>3579545 Hz</code>.</li>
               <li><code>opm.setNoise(true, 12)</code> replaces CH8's last operator with noise (rate <code>0..31</code>); <code>opm.writeRegister(register, value)</code> accesses all registers, including LFO.</li>
-              <li><code>opm.reset()</code> resets this chip; <code>opm.dispose()</code> releases it. Open <code>examples/chip-saw/ym2151-tone.js</code> for a complete voice setup.</li>
+              <li><code>opm.reset()</code> resets this chip; <code>opm.dispose()</code> releases it. Open <code>examples/x68000/ym2151-tone.js</code> for a complete voice setup.</li>
             </ul>
 
             <h2 style="margin-top: 14px;">Sega PSG (independent chip)</h2>
@@ -1808,7 +1808,7 @@
               <li><code>chip.tone(0, { note: "C4", attenuation: 4 })</code> starts a tone on channel <code>0..2</code>; <code>chip.off(0)</code> silences it.</li>
               <li><code>chip.noise({ type: "white", rate: "medium", attenuation: 8 })</code> starts noise; <code>chip.noiseOff()</code> silences it.</li>
               <li>Uses the same API as <code>psg</code>. Both <code>reset()</code> and <code>resetAll()</code> reset only this instance. <code>dispose()</code> releases it; Stop releases all additional chips.</li>
-              <li>Open <code>examples/chip-saw/segapsg-tone-noise.js</code> in FILES for an example.</li>
+              <li>Open <code>examples/genesis/segapsg-tone-noise.js</code> in FILES for an example.</li>
             </ul>
 
             <h2 style="margin-top: 14px;">RF5C164 PCM</h2>
@@ -1820,7 +1820,7 @@
               <li><code>await pcm.setChannel(ch, { start, loopStart, step, volume, pan: { left, right } })</code> configures a channel. Start is 256-byte aligned; volume is <code>0..255</code>, pan values <code>0..15</code>.</li>
               <li><code>await pcm.setPitch(ch, step)</code> changes pitch; <code>await pcm.keyOn(ch)</code> starts or retriggers playback; <code>await pcm.keyOff(ch)</code> stops it.</li>
               <li><code>pcm.reset()</code> retains sample RAM; <code>pcm.dispose()</code> releases the chip.</li>
-              <li>Open <code>examples/chip-saw/rf5c164-sine.js</code> in FILES for an example.</li>
+              <li>Open <code>examples/genesis/rf5c164-sine.js</code> in FILES for an example.</li>
             </ul>
 
             <h2 style="margin-top: 14px;">dac (YM2612 mode)</h2>
@@ -1833,7 +1833,7 @@
               <li><code>await dac.load(name, data)</code> loads packed records from a <code>Uint8Array</code> or <code>ArrayBuffer</code>: each 5-byte record contains a little-endian uint32 sample offset followed by one uint8 DAC value. This is not a WAV file or a raw PCM byte array.</li>
               <li><code>dac.playStream(name, { atSamples: start })</code> schedules a loaded bank relative to the run's sample-clock origin; it does not wait for playback to finish. Enable DAC and set CH6 pan separately.</li>
               <li><code>await dac.loadBase64(name, encoded)</code> loads the same packed format from Base64; <code>dac.scheduleBase64(start, encoded)</code> schedules packed records directly.</li>
-              <li>Open <code>examples/dac/dac-byte-stream.js</code> in FILES for the 440 Hz sine-wave example. For ordinary decoded audio playback, use <code>sample</code> below.</li>
+              <li>Open <code>examples/basic/dac/dac-byte-stream.js</code> in FILES for the 440 Hz sine-wave example. For ordinary decoded audio playback, use <code>sample</code> below.</li>
             </ul>
 
             <h2 style="margin-top: 14px;">sample and noise</h2>

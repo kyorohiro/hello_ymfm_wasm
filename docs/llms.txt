@@ -27,9 +27,9 @@ Open these source files from Playground FILES → examples to run them.
 
 - [Live Loop](./playground/examples/basic/live-loop.js): Tempo, notes, and named loops
 - [Ambient Choir Sample](./playground/examples/basic/ambient-choir-sample.js): Sample loading, effects, and live state
-- [FM API Beep](./playground/examples/fm/fm-api-beep.js): Direct YM2612 setup
-- [PSG Scale](./playground/examples/psg/psg-scale.js): SN76489-compatible tone API
-- [Parallel FX](./playground/examples/fx/parallel-fx.js): Branched effect routing
+- [FM API Beep](./playground/examples/basic/fm/fm-api-beep.js): Direct YM2612 setup
+- [PSG Scale](./playground/examples/basic/psg/psg-scale.js): SN76489-compatible tone API
+- [Parallel FX](./playground/examples/basic/fx/parallel-fx.js): Branched effect routing
 
 ## Source
 

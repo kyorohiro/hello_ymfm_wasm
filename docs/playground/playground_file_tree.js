@@ -1,3 +1,5 @@
+import {EXAMPLE_FOLDER_ORDER} from './playground_example_order.js';
+
 export function buildFileTree(files) {
   const root = { children: new Map() };
   for (const file of files) {
@@ -13,8 +15,11 @@ export function buildFileTree(files) {
     });
   }
   function sorted(node) {
+    const rank = child => child.path.split('/').length === 3 && child.path.startsWith('/examples/') && child.children.size > 0
+      && EXAMPLE_FOLDER_ORDER.includes(child.name) ? EXAMPLE_FOLDER_ORDER.indexOf(child.name) : EXAMPLE_FOLDER_ORDER.length;
     return [...node.children.values()].sort((a, b) =>
       Number(b.children.size > 0) - Number(a.children.size > 0) ||
+      rank(a) - rank(b) ||
       a.name.localeCompare(b.name, undefined, { numeric: true })
     ).map(child => ({ ...child, children: sorted(child) }));
   }

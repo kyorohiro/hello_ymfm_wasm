@@ -1,5 +1,5 @@
 import {Ym2151} from './ym2151.js';
-import factory from './generated/ym2151_wasm.js';
+import factory from '../generated/ym2151_wasm.js';
 class Processor extends AudioWorkletProcessor {
   constructor(options) {
     super(); this.chip = null; this.dead = false; this.remainder = 0; this.left = 0; this.right = 0;

@@ -20,7 +20,7 @@ chip.dispose();
 - Worker → Workletへ直接通信し、共有のmaster入力へミックスする。
 - Stop・再Run・破棄は既存のデバイス管理に統合。停止中に初期化が完了した音源も解放する。
 - resetはサンプルメモリーを保持する。
-- サンプル：`docs/playground/examples/chip-saw/ym2608-chip.js`。
+- サンプル：`docs/playground/examples/pc98/ym2608-chip.js`。
 - Node.js例のファイル入出力や`generateStereo()`は移植対象外。ブラウザーではWorkletが出力する。
 - 同期のステータス読み取り・IRQ取得はこのtransportでは未対応。
 - 即時書き込み方式であり、サンプル単位の時刻予約は未対応。

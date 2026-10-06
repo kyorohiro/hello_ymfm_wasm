@@ -426,6 +426,6 @@ DirectTransportはチップを借りるだけで解放しない。Playgroundで�
 
 ### chip-saw examples
 
-Playgroundに `examples/chip-saw/gameboy-saw-pulse.js`、`gameboy-saw-wave.js`、
+Playgroundに `examples/gameboy/gameboy-saw-pulse.js`、`gameboy-saw-wave.js`、
 `gameboy-saw-noise.js` を追加。矩形波のデューティと左右出力、32点の波形RAM、
 7/15-bitノイズを個別に試せる。chip-sawはchip-rawの次に並べるための名前。

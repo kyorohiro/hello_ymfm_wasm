@@ -18,7 +18,7 @@ for (const highLevel of [true]) test(`Sega PSG ${highLevel ? 'Synth' : 'raw'} ex
   assert.equal((await ready).ready, true);
   const client = createSegaPsgClient({postMessage: data => processor.receive(data), close() {}});
   try {
-    const code = await readFile(new URL('../docs/playground/examples/chip-saw/segapsg-tone-noise.js', import.meta.url), 'utf8');
+    const code = await readFile(new URL('../docs/playground/examples/genesis/segapsg-tone-noise.js', import.meta.url), 'utf8');
     let played = 0;
     await new (Object.getPrototypeOf(async function() {}).constructor)('useSoundChip', 'sleep', 'write', '"use strict";\n' + code)(
       async name => { assert.equal(name, 'segapsg'); return client; },

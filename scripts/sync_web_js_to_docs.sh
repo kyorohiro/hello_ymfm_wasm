@@ -30,6 +30,9 @@ native_sample.js
 playground_rf5c164.js
 playground_ym2608.js
 playground_gameboy.js
+playground_ym2151.js
+playground_ym2151_audio.js
+playground_ym2151_worklet.js
 playground_gameboy_audio.js
 playground_gameboy_worklet.js
 playground_ym2608_audio.js
@@ -184,6 +187,10 @@ perl -0pi -e 's#"\./generated/ym2612_wasm\.js"#"../generated/ym2612_wasm.js"#g' 
 
 node "${ROOT_DIR}/scripts/copy_opna_rhythm.mjs" "${ROOT_DIR}/docs"
 echo "done: synced shared web runtime files into docs/js"
+
+# YM2151 WASM and static generated-loader import in the docs/js layout.
+perl -0pi -e 's#\./generated/ym2151#../generated/ym2151#g' \
+  "${DOCS_JS_DIR}/playground_ym2151_audio.js" "${DOCS_JS_DIR}/playground_ym2151_worklet.js"
 
 mkdir -p "${ROOT_DIR}/docs/licenses/mame-rf5c164"
 cp "${ROOT_DIR}/third_party/mame-rf5c164/LICENSE" "${ROOT_DIR}/third_party/mame-rf5c164/README.md" "${ROOT_DIR}/docs/licenses/mame-rf5c164/"

@@ -1,4 +1,4 @@
-// chip-saw: chip-rawの次に並ぶ高水準APIの例。sawは波形名ではありません。
+// Game Boy pulse: 高水準APIでデューティ比と左右出力を比較。
 // 2つの矩形波CHを左右に振り分け、4種類のデューティ比を比較します。
 const gb = await createSoundChip('gameboy');
 try {

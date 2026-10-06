@@ -6,16 +6,17 @@ FILES の `examples/` を開き、フォルダー内の `.js` を選択して Ru
 
 | Folder | 内容 |
 | --- | --- |
-| basic | 最初の発音、音階、liveLoop、context |
+| basic | グローバル fm・psg・dac と、liveLoop・context・FX・MIDI・noise・samples |
 | chip-raw | 音源レジスタを直接操作する例 |
-| chip-saw | Game Boy高水準API：pulse／wave／noise。chip-rawの次に表示 |
-| fm | FM API、レジスタ操作、CH3 special、音色 |
-| midi | MIDI FM/PSG、固定 CH、和音、CC・Pitch Bend |
-| psg | トーン・ノイズ |
-| dac | YM2612 DAC のバイト列再生 |
-| noise | 海・風・雨などのノイズ |
-| samples | サンプル音声の読み込み・再生 |
-| fx | エフェクトとルーティング |
+| genesis | 独立 Sega PSG・Mega CD PCM（RF5C164） |
+| gameboy | pulse・wave・noise・複数音源の設定 |
+| pc98 | 独立 YM2608 の SSG・rhythm・ADPCM-B |
+| x68000 | 独立 YM2151 の FM |
+
+FILES ではこの順に表示します。機種別のサンプルは各フォルダーに直接置きます。`basic/` 内の共通機能サンプルは機能別に分類しています。
+`chip-raw` は直接レジスタを書く入口として残しています。
+`basic/fm`・`basic/psg`・`basic/dac` は選択中の音源や Playground のグローバル API を使います。
+機種別フォルダーには `useSoundChip()` / `createSoundChip()` で独立した音源を取得する例を置きます。
 
 `?ex=...` は廃止。`?src=...` によるコード共有は引き続き利用できる。
 各サンプルの利用可能な音源・機能はコード内の API に依存する（DAC/PSG 等は YM2612 モード）。

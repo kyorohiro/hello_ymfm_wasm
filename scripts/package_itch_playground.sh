@@ -32,6 +32,7 @@ playground_sync.js
 playground_ui.js
 playground_virtual_files.js
 playground_file_tree.js
+playground_example_order.js
 playground_file_resize.js
 playground_tfi_editor.js
 playground_midi_import.js
@@ -129,6 +130,7 @@ ym2203-worklet.js
 ym2608.js
 ym2608audioengine.js
 ym2608synth.js
+adpcm_b_sample.js
 ym2608-worklet.js
 ym2610b.js
 ym2610bsynth.js
