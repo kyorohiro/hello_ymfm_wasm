@@ -14,6 +14,7 @@
     ".": "./soundchip.js",
     "./assets": "./package_assets.js",
     "./node": "./node/megasynth.mjs",
+    "./node/transports": "./node/chip_transports.mjs",
     "./generated/*": "./generated/*",
     "./*.js": "./*.js",
     "./*": "./*.js"

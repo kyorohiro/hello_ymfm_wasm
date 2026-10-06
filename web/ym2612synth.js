@@ -279,6 +279,8 @@ export class YM2612WorkletTransport {
    * @param {AudioWorkletNode} node
    */
   constructor(node) {
+    this.endpoint = node?.execution === 'worklet' ? node : null;
+    if (!node?.port && node?.postMessage) node = {port: node};
     this.node = node;
     this.irqAsserted = false;
     this.dacRequests = new Map();
@@ -306,6 +308,14 @@ export class YM2612WorkletTransport {
     }
   }
 
+  start() {
+    if (!this.endpoint) return Promise.reject(new Error('start() requires a createSoundChip worklet endpoint'));
+    return this.endpoint.start();
+  }
+  stop() {return this.endpoint?.stop() ?? Promise.resolve();}
+  async close() {this.dispose(); await this.endpoint?.dispose();}
+  flush() {return this.endpoint?.request('barrier') ?? Promise.resolve();}
+
   dacCommand(command) {
     if (this.disposed) return Promise.reject(new Error('DAC transport disposed'));
     if (typeof this.node.port.addEventListener !== 'function') return Promise.reject(new Error('DAC transport requires MessagePort events'));
@@ -320,6 +330,7 @@ export class YM2612WorkletTransport {
 
   /** Call before disconnecting/closing the node to reject unfinished registrations. */
   dispose() {
+    if (this.disposed) return;
     this.node.port.postMessage({type: 'clear-dac-playback'});
     this.disposed = true;
     for (const request of this.dacRequests.values()) request.reject(new Error('DAC transport disposed'));

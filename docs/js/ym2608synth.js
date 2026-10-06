@@ -4,7 +4,7 @@
  * 依存: 低レベル Synth / DirectTransport は注入したチップで動作し、Node.js でも使用可能。
  * RuntimeSynth 系の実再生は OPNRuntimeSynth 経由で AudioContext / AudioWorkletNode / fetch を使う。
  */
-import { OPNDirectTransport, OPNFMSynth } from "./opn_fm_synth.js";
+import { OPNDirectTransport, OPNWorkletTransport, OPNFMSynth } from "./opn_fm_synth.js";
 import { OPNRuntimeSynth } from "./opn_runtime_synth.js";
 import { SSGSynth } from "./ssgsynth.js?v=ssg-period-1";
 import { YM2608_CLOCK } from "./ym2608.js";
@@ -19,6 +19,10 @@ export class YM2608DirectTransport extends OPNDirectTransport {
   loadRhythmRom(bytes) { return this.chip.loadAdpcmARom(bytes); }
   /** Transfer already encoded ADPCM-B bytes to external sample memory. */
   loadAdpcmMemory(bytes, offset) { return this.chip.loadAdpcmBMemory(bytes, offset); }
+}
+
+export class YM2608WorkletTransport extends OPNWorkletTransport {
+  constructor(endpoint) {super(endpoint, {chipName: 'YM2608', portCount: 2});}
 }
 
 /** YM2608's six fixed rhythm voices. Names follow the ROM's hardware order. */

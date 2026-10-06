@@ -4,6 +4,7 @@
  * 動的 import の配布方法はバンドラーに依存するため、この入口はサイズ削減を保証しない。
  */
 import { createSoundChipFactory } from './soundchip_factory.js';
+import {createWorkletSoundChip} from './soundchip_worklet.js';
 export {encodeWav} from './wav.js';
 
 /**
@@ -12,6 +13,9 @@ export {encodeWav} from './wav.js';
  * @property {Function} [moduleFactory] 注入する Emscripten factory。指定時は自動ロードを省略。
  * @property {Object} [moduleOptions] wasmBinary、locateFile などをそのまま渡す。
  * @property {AbortSignal} [signal] WASM ファイルの読み込みを中断する。
+ * @property {'direct'|'worklet'} [execution='direct'] チップの実行場所。worklet はブラウザーのみ。
+ * @property {AudioContext} [audioContext] Worklet の接続先。省略時は factory が生成・解放する。
+ * @property {number} [gain=0.25] Worklet endpoint の出力音量。
  */
 async function loadModule(name, options = {}) {
   options.signal?.throwIfAborted();
@@ -35,10 +39,18 @@ async function loadModule(name, options = {}) {
     }
   }
   options.signal?.throwIfAborted();
-  return { moduleFactory, moduleOptions };
+  return { ...options, moduleFactory, moduleOptions };
 }
 
 const loaders = {
+  gameboy: async (options) => {
+    const {GameboyApu} = await import('./gameboyapu.js');
+    return GameboyApu.create(await loadModule('gameboy_apu', options));
+  },
+  segapsg: async (options) => {
+    const {SegaPSG} = await import('./segapsg.js');
+    return SegaPSG.create(await loadModule('segapsg', options));
+  },
   /** @param {SoundChipOptions} [options] */
   ay8910: async (options) => {
     const { Ay8910 } = await import('./ay8910.js');
@@ -124,4 +136,18 @@ const loaders = {
  * const chip = await createSoundChip('ym2151');
  * try { const pcm = chip.generateStereo(128); } finally { chip.dispose(); }
  */
-export const createSoundChip = createSoundChipFactory(loaders);
+const createLocalSoundChip = createSoundChipFactory(loaders);
+export function createSoundChip(name, options = {}) {
+  if (options.execution === 'worklet') {
+    if (options.moduleFactory) return Promise.reject(new Error('Worklet execution uses the packaged chip factory'));
+    const moduleName = name === 'gameboy' ? 'gameboy_apu' : name;
+    return createWorkletSoundChip(name, options, async () => {
+      const loaded = await loadModule(moduleName, options);
+      const bytes = loaded.moduleOptions.wasmBinary;
+      if (!bytes) throw new Error('Worklet execution requires WASM bytes; use wasmBinary or default asset loading');
+      return bytes;
+    });
+  }
+  if (options.execution !== undefined && options.execution !== 'direct') return Promise.reject(new Error('Unknown sound-chip execution mode'));
+  return createLocalSoundChip(name, options);
+}

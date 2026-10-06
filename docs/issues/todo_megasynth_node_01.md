@@ -156,6 +156,20 @@ node scripts/check_fm2612_examples_browser.cjs
 
 examples の `dist` は開発版で再生成した。公開用 `docs` の差し替えと npm release はまだ行っていない。
 
+## 出力なし初期化・出力の後付け（次版のローカル実装）
+
+公開済み0.2.5では、既定出力の audify がないと `start()` が失敗する。
+次版のローカル実装では、audify が未導入なら音源だけを `ready` にし、`render()` で PCM / WAV を生成できるようにした。
+`outputModule: null` で明示的に出力なしを選べる。あとから `connectOutput()` で既定の audify、または利用者の出力モジュールを接続する。
+`disconnectOutput()` で旧デバイスを解放し、別のモジュールへ切り替えられる。
+
+- 出力なしでは生成フレーム数でのみ時間が進む。
+- 接続の失敗時も音源を保持し、PCM 生成・接続の再試行ができる。
+- 既存の Main 側 speaker / PCM 出力には明示的に取得した PCM を渡す。
+- 通常出力の PCM を Main に戻したくない場合は、Worker 内で利用者のアダプターを生成する。
+- アダプターの Promise を返す write / start / stop / close を待ち、切り離したアダプターの遅延通知は無視する。
+- 詳細・対応範囲・出力契約は [node/README.md](../../node/README.md) を参照。この変更はまだ npm に未公開。
+
 ## 現状
 
 - `web/megasynth.js` は AudioContext / AudioWorkletNode を使うブラウザのランタイム。
@@ -247,3 +261,15 @@ AudioWorklet 相当を利用する案では、少なくとも次を実際に検�
 
 起動・停止時の無音、DC オフセット、通常の発音、FX、録音再生、長時間再生、終了後の再起動を確認する。
 まず実行経路の小さな検証を行い、Node 用 Web Audio 実装を使うか、Worker と独自の出力アダプターで完結させるかを判断する。
+
+## チップ別 Transport の基本 examples（次版）
+
+MegaSynth はゲーム埋め込み用として残し、基本例17件を WorkletTransport / AudifyTransport に揃える。
+Web は Main に Synth / Transport、Worklet に WASM。Node は呼び出し元に chip / Synth / Transport、デバイス管理だけ内部 Worker。
+DirectTransport の PCM 生成・保存は `examples/transport/direct/01-single-note` に分けた。
+createSoundChip の Gameboy / SegaPSG 自動読み込みと、execution: worklet の生成入口を追加。
+従来の createSoundChip の既定と既存 AudioWorkletNode / MessagePort の Transport 接続も維持する。
+この変更はローカル開発版で、npm はまだ0.2.5のまま。
+
+検証: 関連63テスト、Node 22の配布物（256参照・23 WASM・15 renderer）、Node基本例17件のCoreAudio再生・正常終了、Web29件の発音・途中停止・AudioContext解放、オフライン12件のWAV出力を確認。
+利用者が追加したWorkerにSynth / WorkletTransportを置き、追加MessagePort経由で発音・YM2608メモリ応答・Mainでの終了を行う経路もChromiumで確認。

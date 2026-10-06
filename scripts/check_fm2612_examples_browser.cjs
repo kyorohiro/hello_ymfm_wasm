@@ -19,7 +19,7 @@ const server=http.createServer(async(req,res)=>{try{let url=new URL(req.url,'htt
   const card=page.locator('.sample-card').filter({has:page.locator('p.eyebrow',{hasText:item.id})});assert.equal(await card.locator('a').count(),2);assert.equal(await card.locator('a',{hasText:'Web →'}).count(),0);
  }
  let count=0;
- for(const item of manifest.filter(x=>!x.environments||x.environments.includes('web'))){
+ for(const item of manifest.filter(x=>(!x.environments||x.environments.includes('web'))&&(!process.argv[3]||new RegExp(process.argv[3]).test(x.id)))){
   errors=[];await page.goto(base+`examples/${item.id}/web/index.html`);await page.locator('#play').click();
   await page.waitForFunction(()=>/^(Finished\.|Error:)/.test(document.querySelector('#status')?.textContent||''),{},{timeout:20000});
   const status=await page.locator('#status').textContent();assert.equal(status,'Finished.',item.id+': '+status);

@@ -12,6 +12,10 @@ DOCS_JS_DIR="${ROOT_DIR}/docs/js"
 SYNC_FILES="
 soundchip_factory.js
 soundchip.js
+soundchip_worklet.js
+soundchip-output-worklet.js
+chip_worklet_transport.js
+chip_pcm_renderer.js
 wav.js
 huc6280audioengine.js
 okim6258audioengine.js
@@ -216,3 +220,5 @@ perl -0pi -e 's#\./generated/segapsg#../generated/segapsg#g' \
 
 perl -0pi -e 's#\./generated/#../generated/#g' \
   "${DOCS_JS_DIR}/playground_opn_audio.js" "${DOCS_JS_DIR}/playground_opn_worklet.js"
+
+perl -0pi -e 's#\./generated/#../generated/#g' "${DOCS_JS_DIR}/soundchip-output-worklet.js"

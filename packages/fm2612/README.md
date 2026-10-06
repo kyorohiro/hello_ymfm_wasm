@@ -208,6 +208,27 @@ Worklet uploads complete before the returned promise resolves.
 `loadMemory()` remains the API for already-encoded ADPCM-B bytes.
 This does not add arbitrary sample loading to YM2608's fixed ADPCM-A rhythm.
 
+## Chip output transports (next development version)
+
+Basic chip examples use a shared factory followed by a transport and Synth.
+Browser `createSoundChip(name, {execution: 'worklet'})` creates the WASM chip
+inside AudioWorklet. `YM2612WorkletTransport` / `YM2608WorkletTransport` send
+register commands from Main, and accept an existing AudioWorkletNode or MessagePort
+for applications that manage the connection themselves.
+Gameboy, SegaPSG and YM2151 transports are exported by `chip_worklet_transport.js`.
+The worklet factory supports `ym2612`, `ym2608`, `gameboy`, `segapsg`, `ym2151`.
+Default factory execution stays local; Game Boy and Sega PSG now also support
+`createSoundChip('gameboy')` and `createSoundChip('segapsg')`.
+
+Node `YM2612AudifyTransport(chip)` and the corresponding YM2608 / Gameboy /
+SegaPSG / YM2151 classes are exported by `tetorica-fm2612/node/transports`.
+They borrow the caller's chip, render PCM on the calling thread, and own a
+device-only Worker. Use `await start()`, `await stop()`, `await close()`, then
+`chip.dispose()`. Audify remains optional, but is required by this chosen output.
+MegaSynth stays available as the integrated game-embedding API.
+DirectTransport is the separate offline PCM / WAV interface.
+These new transport/factory APIs are local development additions, not yet in npm 0.2.5.
+
 ## Local packaging
 
 From the repository root:

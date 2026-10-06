@@ -32,6 +32,17 @@ for (const name of ['ym2151', 'ymf262', 'ym2612', 'ym3438', 'ymf276', 'ymf288'])
   });
 }
 
+for (const name of ['gameboy', 'segapsg']) {
+  test(`${name}: common factory loads WASM and forwards sampleRate`, async () => {
+    const chip = await createSoundChip(name, {sampleRate: 48000});
+    try {
+      assert.equal(chip.sampleRate(), 48000);
+      const pcm = chip.generateStereo(128);
+      assert.equal(pcm.left.length, 128); assert.ok(pcm.left.every(Number.isFinite));
+    } finally {chip.dispose();}
+  });
+}
+
 test('aborted default WASM loading and injected factories', async () => {
   const controller = new AbortController(); controller.abort();
   await assert.rejects(createSoundChip('ym2612', {signal: controller.signal}), /abort/i);
@@ -42,4 +53,10 @@ test('aborted default WASM loading and injected factories', async () => {
   }});
   try { assert.equal(chip.generateStereo(32).left.length, 32); }
   finally { chip.dispose(); }
+});
+
+test('worklet endpoint requires browser audio and rejects canceled creation before allocating', async () => {
+  await assert.rejects(createSoundChip('ym2612', {execution: 'worklet'}), /browser AudioContext/);
+  const controller = new AbortController(); controller.abort();
+  await assert.rejects(createSoundChip('ym2612', {execution: 'worklet', signal: controller.signal}), /abort/i);
 });

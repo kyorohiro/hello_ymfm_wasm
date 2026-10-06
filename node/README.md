@@ -221,3 +221,19 @@ CoreAudio で短い PCM ループを再生し、`/private/tmp/megasynth-pcm-loop
 
 PSG / Mega CD PCM、マイク入力、他の AudioNode への接続は未対応。
 既存のブラウザ MegaSynth を置き換える API ではなく、Node 用の実験入口として検証を進める。
+
+## チップ別の AudifyTransport（次版の開発 API）
+
+`node/chip_transports.mjs` / package の `tetorica-fm2612/node/transports` から、
+YM2612 / YM2608 / Gameboy / SegaPSG / YM2151 の AudifyTransport を import できる。
+これは MegaSynthNode とは別の入口で、チップ・Synth は呼び出し元に置く。
+Transport 内の出力 Worker はデバイス管理と PCM キューだけを担当し、終了時に明示的に終了する。
+利用者がさらに音源処理を Worker に分ける場合は、チップ・Synth・Transport をその Worker で生成する。
+
+`new YM2612AudifyTransport(chip, options)` の options は、sampleRate（既定48000）、
+bufferFrames（512）、queueBlocks（4）、gain（0.25）、outputModule / outputOptions。
+`start()` / `stop()` / `close()` は Promise を返す。レジスタ操作は同期。
+`getState()` で出力のキュー・消費数・エラーを確認できる。
+Transport は借りた chip を破棄しない。終了は `await transport.close(); chip.dispose();` の順。
+詳細と WorkletTransport の例は [soundchip.md](../web/soundchip.md) を参照。
+公開済み0.2.5にはこの入口はまだない。

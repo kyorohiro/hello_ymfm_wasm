@@ -91,6 +91,8 @@ export class OPNWorkletTransport {
     this.node.port.postMessage({type: 'loadRhythmRom', bytes});
   }
   constructor(node, { portCount, chipName }) {
+    this.endpoint = node?.execution === 'worklet' ? node : null;
+    if (!node?.port && node?.postMessage) node = {port: node};
     if (!node?.port?.postMessage) {
       throw new Error(`${chipName}WorkletTransport requires an AudioWorkletNode`);
     }
@@ -110,6 +112,14 @@ export class OPNWorkletTransport {
     this.node.port.addEventListener?.('message', this.onMemoryMessage);
     this.node.port.start?.();
   }
+
+  start() {
+    if (!this.endpoint) return Promise.reject(new Error('start() requires a createSoundChip worklet endpoint'));
+    return this.endpoint.start();
+  }
+  stop() {return this.endpoint?.stop() ?? Promise.resolve();}
+  async close() {this.dispose(); await this.endpoint?.dispose();}
+  flush() {return this.endpoint?.request('barrier') ?? Promise.resolve();}
 
   loadAdpcmMemory(bytes, address = 0) {
     if (this.disposed) return Promise.reject(new Error('ADPCM transport disposed'));
