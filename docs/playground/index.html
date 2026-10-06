@@ -1811,6 +1811,12 @@
               <li>Open <code>examples/genesis/segapsg-tone-noise.js</code> in FILES for an example.</li>
             </ul>
 
+            <h2 style="margin-top: 14px;">YM2608 ADPCM-B sample loading</h2>
+            <p class="subtext">YM2608 ADPCM-B can also load decoded PCM or PCM/Float WAV with
+              <code>await ym2608.adpcm.loadSample(source, {address: 0})</code>.
+              It converts the sample, uploads memory and selects the range/rate; use
+              <code>setVolume()</code>, <code>setPan()</code> and <code>keyOn()</code> to play.
+              Open <code>examples/pc98/ym2608-adpcm-load-sample.js</code> in FILES.</p>
             <h2 style="margin-top: 14px;">RF5C164 PCM</h2>
             <ul class="helper-list">
               <li><code>const pcm = await createSoundChip("rf5c164")</code> creates an eight-channel PCM chip. Physical channels are <code>CH1..CH8</code>.</li>

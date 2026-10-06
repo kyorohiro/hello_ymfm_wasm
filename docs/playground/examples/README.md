@@ -10,7 +10,7 @@ FILES の `examples/` を開き、フォルダー内の `.js` を選択して Ru
 | chip-raw | 音源レジスタを直接操作する例 |
 | genesis | 独立 Sega PSG・Mega CD PCM（RF5C164） |
 | gameboy | pulse・wave・noise・複数音源の設定 |
-| pc98 | 独立 YM2608 の SSG・rhythm・ADPCM-B |
+| pc98 | 独立 YM2608 の SSG・rhythm・ADPCM-B（PCM からの loadSample を含む） |
 | x68000 | 独立 YM2151 の FM |
 
 FILES ではこの順に表示します。機種別のサンプルは各フォルダーに直接置きます。`basic/` 内の共通機能サンプルは機能別に分類しています。

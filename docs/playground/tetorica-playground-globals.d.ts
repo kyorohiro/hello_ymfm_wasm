@@ -1115,6 +1115,10 @@ type PlaygroundYm2608 = {setClock(clock: number): Promise<void>; resetRegisters(
     reset(): void;
   };
   adpcm: {
+    /** PCM/WAV -> mono ADPCM-B -> memory. Selects range/rate but does not key on. */
+    loadSample(source: {channels: ArrayLike<number>[]; sampleRate: number} | AudioBuffer | string | URL | Uint8Array | ArrayBuffer | Blob,
+      options?: {address?: number; sampleRate?: number; signal?: AbortSignal; decodeAudio?: (bytes: ArrayBuffer) => Promise<AudioBuffer | {channels: ArrayLike<number>[]; sampleRate: number}>}):
+      Promise<{start: number; end: number; frames: number; paddedFrames: number; sampleRate: number; deltaN: number; duration: number}>;
     loadMemory(bytes: Uint8Array | ArrayBuffer, address?: number): Promise<void>;
     setSample(range: {start: number; end: number}): void;
     setVolume(volume: number): void;
@@ -1162,8 +1166,8 @@ type PlaygroundCreatedYm2203 = PlaygroundCreatedOPN<0 | 1 | 2> & {ssg: Playgroun
 declare function createSoundChip(name: 'ym2203'): Promise<PlaygroundCreatedYm2203>;
 type PlaygroundCreatedYm2610 = PlaygroundCreatedOPN<0 | 1 | 2 | 3> & {
   ssg: PlaygroundYm2608['ssg'];
-  adpcm: PlaygroundYm2608['adpcm'];
-  adpcmB: PlaygroundYm2608['adpcm'];
+  adpcm: Omit<PlaygroundYm2608['adpcm'], 'loadSample'>;
+  adpcmB: Omit<PlaygroundYm2608['adpcm'], 'loadSample'>;
   adpcmA: {
     loadMemory(bytes: Uint8Array | ArrayBuffer, address?: number): Promise<void>;
     setSample(ch: number, range: {start: number; end: number}): void;
