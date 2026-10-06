@@ -106,6 +106,38 @@ test('real YM2612 WASM advances one chip second for one second of 48 kHz output'
   } finally { ym.dispose(); }
 });
 
+for (const tree of ['web', 'docs/js']) {
+  test(`${tree}: YM2612 idle DAC level is silent in browser output, including reset`, async () => {
+    const {default: factory} = await import('../docs/generated/ym2612_wasm.js');
+    const {createYm2612} = await import('./ym2612.js');
+    const {p, messages} = processor(tree, 'ym2612-worklet.js', 48000, {ym2612ModuleFactory: factory, createYm2612});
+    await p.init(fs.readFileSync(new URL('../docs/generated/ym2612_wasm.wasm', import.meta.url)));
+    try {
+      assert.ok(messages.some(message => message.type === 'ready'));
+      assert.ok(p.idleLeft > 0.01); // Real core models the DAC ladder offset.
+      for (let i = 0; i < 10; i++) {
+        const pcm = render(p, 128);
+        assert.ok(pcm.left.every(sample => sample === 0));
+        assert.ok(pcm.right.every(sample => sample === 0));
+      }
+      p.applyCommand({type: 'reset'});
+      assert.ok(render(p, 128).left.every(sample => sample === 0));
+      // A programmed signal still passes through; the chip API is untouched.
+      p.ym2612.writeRegister(0xb6, 0xc0, 1);
+      p.ym2612.writeRegister(0x2b, 0x80, 0);
+      p.ym2612.writeRegister(0x2a, 200, 0);
+      assert.ok(render(p, 128).left.some(sample => Math.abs(sample) > 0.01));
+    } finally { p.ym2612?.dispose(); }
+  });
+  test(`${tree}: a partially initialized YM2612/PSG pair stays silent until ready`, () => {
+    const {p} = processor(tree, 'ym2612-worklet.js', 48000);
+    p.ym2612 = chip(48000);
+    p.initializing = true;
+    assert.ok(render(p, 128).left.every(sample => sample === 0));
+    assert.equal(p.ym2612.frames, 0);
+  });
+}
+
 test('MIDI PSG writes share the sample-accurate FM scheduling queue', () => {
  const {p,context}=processor('web','ym2612-worklet.js',48000);
  p.ym2612=chip(48000);p.psg=chip(48000);

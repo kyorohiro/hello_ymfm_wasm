@@ -32,9 +32,12 @@ class YM2612Processor extends AudioWorkletProcessor {
 
     this.ym2612 = null;
     this.psg = null;
+    this.initializing = false;
     this.resampleRemainder = 0;
     this.lastLeft = 0;
     this.lastRight = 0;
+    this.idleLeft = 0;
+    this.idleRight = 0;
     this.pendingCommands = [];
     this.scheduledCommands = [];
     this.scheduledHead = 0;
@@ -73,6 +76,7 @@ class YM2612Processor extends AudioWorkletProcessor {
   }
 
   async init(wasmBinary, psgWasmBinary) {
+    this.initializing = true;
     try {
       this.ym2612 = await createYm2612(
         ym2612ModuleFactory,
@@ -115,11 +119,20 @@ class YM2612Processor extends AudioWorkletProcessor {
       this.ym2612.reserveStereoFrames(capacity);
       this.psg?.reserveStereoFrames(capacity);
 
+      // ymfm models the YM2612 DAC ladder's nonzero idle level. Keep that
+      // behavior in the raw chip API, but center browser output on silence:
+      // connecting/disconnecting a constant DC level otherwise makes a click.
+      const idle = this.ym2612.generateStereoView(1);
+      this.idleLeft = idle.left[0];
+      this.idleRight = idle.right[0];
+      this.ym2612.reset();
+
       for (const command of this.pendingCommands) {
         this.applyCommand(command);
       }
 
       this.pendingCommands.length = 0;
+      this.initializing = false;
 
       this.port.postMessage({
         type: "ready",
@@ -250,7 +263,7 @@ class YM2612Processor extends AudioWorkletProcessor {
     const leftOut = output[0];
     const rightOut = output[1];
 
-    if (!this.ym2612) {
+    if (!this.ym2612 || this.initializing) {
       leftOut.fill(0);
       rightOut.fill(0);
       return true;
@@ -364,8 +377,10 @@ class YM2612Processor extends AudioWorkletProcessor {
       if (count > 0) {
         let left = 0, right = 0;
         for (let j = 0; j < count; j++, sourceOffset++) {
-          left += psg ? clampSample(pcm.left[sourceOffset] * YM_GAIN + psg.left[sourceOffset] * PSG_GAIN) : pcm.left[sourceOffset];
-          right += psg ? clampSample(pcm.right[sourceOffset] * YM_GAIN + psg.right[sourceOffset] * PSG_GAIN) : pcm.right[sourceOffset];
+          const fmLeft = pcm.left[sourceOffset] - this.idleLeft;
+          const fmRight = pcm.right[sourceOffset] - this.idleRight;
+          left += psg ? clampSample(fmLeft * YM_GAIN + psg.left[sourceOffset] * PSG_GAIN) : fmLeft;
+          right += psg ? clampSample(fmRight * YM_GAIN + psg.right[sourceOffset] * PSG_GAIN) : fmRight;
         }
         this.lastLeft = left / count;
         this.lastRight = right / count;
