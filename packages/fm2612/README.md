@@ -54,10 +54,10 @@ Both `tetorica-fm2612/ym2612` and `tetorica-fm2612/ym2612.js` are available.
 Synth APIs vary by chip; directly generating PCM does not play it on a speaker.
 No Node audio output dependency (`audioworklet`) is installed by this package.
 
-## Automatic WASM loading and WAV export (next release)
+## Automatic WASM loading and WAV export
 
-The source version adds `encodeWav` to the default package entry and fixes
-default browser WASM loading. These changes are not in published `0.2.2` yet.
+Since `0.2.3`, the default package entry exports `encodeWav` and default
+browser WASM loading works without separate WASM options.
 `await createSoundChip('ym2612')` loads the generated JS and WASM beside the
 runtime without separate WASM options. Node reads file URLs; browsers/Workers
 fetch HTTP URLs. `signal`, `assetBaseUrl`, explicit `wasmBinary` and injected
@@ -232,10 +232,10 @@ FM/PSG/PCM mixing, stop/reset and close/restart. Playwright is a development
 dependency; it is not required by users of the sound-chip runtime.
 
 The build is staged in `dist/fm2612/`; packing produces
-`tetorica-fm2612-0.2.2.tgz`. To install a local build in another project:
+`tetorica-fm2612-0.2.3.tgz`. To install a local build in another project:
 
 ```sh
-npm install /absolute/path/to/tetorica-fm2612-0.2.2.tgz
+npm install /absolute/path/to/tetorica-fm2612-0.2.3.tgz
 ```
 
 The existing `tetorica-vgm` CLI package is built separately. This first package
@@ -250,6 +250,11 @@ included; Nuked-OPN2 is LGPL-2.1-or-later, with its source and build script in
 and generator. External instrument/sample ROMs are not included.
 
 ## Release notes
+
+`0.2.3` adds common `encodeWav()` for mono/stereo PCM16 WAV bytes and fixes
+default browser/Worker `createSoundChip()` loading by reading WASM internally.
+Node and browsers use the same chip creation and WAV encoding API; output
+file saving or Blob/media playback remains the embedding application's choice.
 
 `0.2.2` adds YM2608 ADPCM-B `loadSample()` for decoded PCM, AudioBuffer and
 PCM/Float WAV sources, with mono conversion, ADPCM-B encoding, memory upload
