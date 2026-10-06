@@ -1,5 +1,15 @@
 # tetorica-fm2612 の npm リリース手順
 
+## 0.2.6 公開記録（2026-10-07）
+
+- 公開元 commit: `233159c`（Transport 実装: `c575074`）。
+- Worklet 内のチップ生成、YM2612 / YM2608 / Game Boy / Sega PSG / YM2151 の WorkletTransport・AudifyTransport を追加。基本例は Web / Node のリアルタイム再生に揃え、DirectTransport の PCM / WAV を専用例へ分離。
+- MegaSynthNode は音声ドライバーなしの PCM 生成と出力アダプターの後付け・交換に対応。
+- Node.js 22 / 25 の配布物検証、Node.js 22 の関連56テスト、publish dry-run を通過。234ファイル・23 WASM・15 renderer・257モジュール/アセット参照を確認。
+- 公開前の開発配布物で Web29例、Node基本例17件のCoreAudio発音・終了、オフライン12例のWAV生成、利用者Worker→Workletの追加MessagePort接続を確認。
+- npm registry の latest: 0.2.6 とローカル tgz の integrity 一致を確認。公開版を examples に新規導入し、Web29例の発音・停止・終了、Nodeリアルタイム17例のCoreAudio発音・終了、オフライン12例のPCM / WAV、追加Worker→Worklet接続を確認。依存・lockfile・配信用docsを更新。
+- integrity: `sha512-i0gTwmf/PRYCoD34rB2ydNMskcz1g9PAFiQHJmfopXKPigHUGywdL4ogmS/dKkm2H8a1Wq9OwrKkMNTHdFqtjQ==`。
+
 ## 0.2.4 公開記録（2026-10-07）
 
 - 公開元 commit: `8e2774c`（修正実装: `9093b0d`）。

@@ -273,3 +273,10 @@ createSoundChip の Gameboy / SegaPSG 自動読み込みと、execution: worklet
 
 検証: 関連63テスト、Node 22の配布物（256参照・23 WASM・15 renderer）、Node基本例17件のCoreAudio再生・正常終了、Web29件の発音・途中停止・AudioContext解放、オフライン12件のWAV出力を確認。
 利用者が追加したWorkerにSynth / WorkletTransportを置き、追加MessagePort経由で発音・YM2608メモリ応答・Mainでの終了を行う経路もChromiumで確認。
+
+## npm 0.2.6（2026-10-07）
+
+`233159c` を公開元に npm 0.2.6 を公開。registry latest と tarball integrity を照合した。
+WorkletTransport / AudifyTransport と MegaSynthNode の出力なし PCM 生成・後付け出力が公開版に入った。
+examples の依存・lockfile を公開版 0.2.6 に変更し、dist / docs を再生成。
+公開版で Web29例の発音・停止・終了、Nodeリアルタイム17例のCoreAudio発音・終了、オフライン12例、追加Worker→Worklet接続を確認。
