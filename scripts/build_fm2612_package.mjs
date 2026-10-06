@@ -13,6 +13,12 @@ for (const name of ['package.json', 'README.md', 'package_assets.js']) {
   await cp(join(root, 'packages/fm2612', name), join(stage, name));
 }
 await cp(join(root, 'LICENSE'), join(stage, 'LICENSE'));
+await mkdir(join(stage, 'node'), {recursive: true});
+for (const name of (await readdir(join(root, 'node'))).filter(name => name.endsWith('.mjs'))) {
+  const source = await readFile(join(root, 'node', name), 'utf8');
+  await writeFile(join(stage, 'node', name), source.replaceAll("'../web/", "'../"));
+}
+await cp(join(root, 'node/README.md'), join(stage, 'node/README.md'));
 
 // These existing defaults are document-relative in the website. In the npm payload,
 // resolve them beside their module so embedding pages can live at any URL depth.

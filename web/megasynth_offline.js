@@ -89,6 +89,20 @@ class MegaSynthOffline {
   get currentTime() { return this.#frame / this.sampleRate; }
   #assertOpen() { if (this.#closed) throw new Error('MegaSynthOffline is closed'); }
 
+  /** Cancel future notes and FX tails while retaining the configured patches/chain. */
+  stop() {
+    this.#assertOpen(); this.clearSchedule();
+    for (let channel = 0; channel < 6; channel++) this.fm.noteOff(channel);
+    this.#transport.dacPlayer?.reset();
+    this.#transport.write(0, 0x2b, 0);
+    this.#dsp.samples.clear(); this.#dsp.resetNoise(); this.#dsp.command({op: 'clear'});
+  }
+
+  clearSchedule() {this.#assertOpen(); this.#events.length = 0;}
+
+  /** Apply the shared native FX command protocol without a Web Audio transport. */
+  applyFX(command) { this.#assertOpen(); this.#dsp.command(structuredClone(command)); }
+
   /** Absolute output-frame timestamp; serializable FM commands, stable order. */
   schedule(frame, command) {
     this.#assertOpen();

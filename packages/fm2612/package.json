@@ -13,13 +13,16 @@
   "exports": {
     ".": "./soundchip.js",
     "./assets": "./package_assets.js",
+    "./node": "./node/megasynth.mjs",
     "./generated/*": "./generated/*",
     "./*.js": "./*.js",
     "./*": "./*.js"
   },
+  "peerDependencies": { "audify": "^1.10.1" },
+  "peerDependenciesMeta": { "audify": { "optional": true } },
   "files": [
     "*.js", "*.wasm", "tetorica_ym2608_adpcm_rom.bin",
-    "generated/", "assets/", "licenses/", "sources/",
+    "generated/", "assets/", "licenses/", "sources/", "node/",
     "LICENSE", "THIRD_PARTY_LICENSES.txt", "RUNTIME.md",
     "soundchip.md", "runtime-manifest.json"
   ]

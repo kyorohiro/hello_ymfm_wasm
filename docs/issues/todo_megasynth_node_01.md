@@ -40,7 +40,7 @@ try {
 ```
 
 この API はローカルの実験実装で、npm の公開版にはまだ含まれない。
-音声デバイスへのリアルタイム出力、PSG / Mega CD PCM、looper / recording の統合、Main から動作中 Worker へ命令を送る常設 API は次段階。
+PSG / Mega CD PCM、looper / recording の統合は次段階。
 同一入力で Node・ブラウザのオフライン処理・実際の nativeFX AudioWorklet 出力が完全一致することを Chromium で確認した。
 オフラインの Worklet は初期設定を `processorOptions.initialCommands` で渡し、描画より設定メッセージが遅れる競合を避ける。
 対応済み範囲を全ブラウザ・全デバイスの互換性と同一視しない。
@@ -52,6 +52,30 @@ node --test web/megasynth_offline.test.mjs test/playground_native_fx.test.mjs we
 npm run build:fm2612
 node scripts/check_megasynth_offline_browser.cjs
 ```
+
+## 実装状況（リアルタイム出力の検証）
+
+`node/megasynth.mjs` に実験用 `MegaSynthNode` を追加した。
+Worker 内で同じオフライン engine を連続実行し、nativeFX を通した PCM を音声デバイスへ出力する。
+Main 側は `fm` の非同期命令、nativeFX controller、状態通知だけを扱う。
+ローカル配布物では `tetorica-fm2612/node` から import できる。公開済み 0.2.4 にはまだ含まれない。
+
+- audify 1.10.1 の CoreAudio 出力を、macOS の Node Worker 内で検証した。
+- 4 × 512フレームを先行生成し、デバイスの消費通知で補充する。Main が忙しくても生成・出力を続ける。
+- 起動・停止には20msのフェードを使う。停止後のキューを排出し、再開時は音色・FX設定を保つ。
+- 初期化中のキャンセル、非同期命令の応答、出力失敗、停止・再開、終了後の新しい Worker での再起動を検証する。
+- 実デバイス確認では CoreAudio の消費フレーム数の進行と、WASM が生成した有限・非ゼロの PCM を確認した。
+- audify はオプションの peer dependency。ブラウザやオフライン生成へ必須依存として追加しない。
+
+```sh
+npm install audify
+node scripts/demo_megasynth_node.mjs
+```
+
+アダプターの契約・非同期 API・実行例は [node/README.md](../../node/README.md) を参照。
+`@kmamal/sdl@0.11.13` は Main Thread 専用だったため採用しなかった。
+audify の stream 終了後に callback 参照が残るケースがあるため、stream を閉じた後に所有 Worker を明示的に終了する。
+他の OS・デバイス、長時間・高負荷での音切れ、looper / recording の統合は、まだ確認が必要。
 
 新しい API・examples・説明では `MegaSynth` を使う。
 `MegaDriveSynth` は過去互換のために残す別名として扱う。
