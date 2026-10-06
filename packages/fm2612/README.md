@@ -137,6 +137,42 @@ otherwise they are siblings of the YM2612 assets. The FM command recorder
 continues to record FM/DAC actions; PCM commands are not recorded. This adds
 the Mega CD PCM chip, not CD disc-image emulation or 32X PWM.
 
+## YM2608 ADPCM-B sample loading (next release)
+
+The source version adds `synth.adpcm.loadSample()` to `YM2608Synth`.
+This API is not included in the published `0.2.1` package yet.
+It accepts decoded `{channels, sampleRate}`, AudioBuffer, PCM/Float RIFF WAV
+bytes, Blob, a browser URL, or a Node.js path/file URL. It mixes channels to
+mono, encodes Yamaha ADPCM-B, transfers it, and configures the sample range
+and playback rate. It does not start playback or change volume/pan.
+
+```js
+const wave = Float32Array.from({length: 8000}, (_, i) =>
+  0.5 * Math.sin(i * 2 * Math.PI * 440 / 8000));
+const info = await synth.adpcm.loadSample(
+  {channels: [wave], sampleRate: 8000},
+  {address: 0},
+);
+synth.adpcm.setVolume(180);
+synth.adpcm.setPan(true, true);
+synth.adpcm.keyOn();
+```
+
+Use a 32-byte aligned address and reserve non-overlapping areas of the 2 MiB
+memory yourself. Loading stops ADPCM-B; it preserves FM, SSG and rhythm.
+`info` contains `start`, exclusive `end`, `frames`, `paddedFrames`, actual
+`sampleRate`, `deltaN` and padded `duration`. Alignment adds at most 63 decoded
+frames of encoded silence. `keyOn({repeat: true})` repeats the padded range.
+The optional `sampleRate` selects a conversion rate; by default the source
+rate is capped to the chip range. Rate conversion uses linear interpolation.
+WAV PCM 8/16/24/32-bit and float 32/64-bit work without AudioContext in Node
+and browsers. Other formats require an optional `decodeAudio(arrayBuffer)`
+callback returning AudioBuffer or decoded PCM. `signal` can cancel loading.
+Worklet uploads complete before the returned promise resolves.
+
+`loadMemory()` remains the API for already-encoded ADPCM-B bytes.
+This does not add arbitrary sample loading to YM2608's fixed ADPCM-A rhythm.
+
 ## Local packaging
 
 From the repository root:

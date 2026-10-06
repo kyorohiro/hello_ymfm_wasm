@@ -97,6 +97,37 @@ export class OPNWorkletTransport {
     this.node = node;
     this.portCount = portCount;
     this.chipName = chipName;
+    this.memorySequence = 0;
+    this.memoryRequests = new Map();
+    this.disposed = false;
+    this.onMemoryMessage = ({data}) => {
+      if (data?.type !== 'adpcm-memory-loaded') return;
+      const request = this.memoryRequests.get(data.id);
+      if (!request) return;
+      this.memoryRequests.delete(data.id);
+      data.error ? request.reject(new Error(data.error)) : request.resolve();
+    };
+    this.node.port.addEventListener?.('message', this.onMemoryMessage);
+    this.node.port.start?.();
+  }
+
+  loadAdpcmMemory(bytes, address = 0) {
+    if (this.disposed) return Promise.reject(new Error('ADPCM transport disposed'));
+    if (this.chipName !== 'YM2608') return Promise.reject(new Error('ADPCM memory upload requires YM2608'));
+    if (!(bytes instanceof Uint8Array) || !Number.isInteger(address) || address < 0 || address + bytes.length > 0x200000) return Promise.reject(new RangeError('Invalid ADPCM memory upload'));
+    const id = ++this.memorySequence;
+    return new Promise((resolve, reject) => {
+      this.memoryRequests.set(id, {resolve, reject});
+      try { this.node.port.postMessage({type: 'loadAdpcmMemory', id, bytes, address}); }
+      catch (error) { this.memoryRequests.delete(id); reject(error); }
+    });
+  }
+
+  dispose() {
+    this.disposed = true;
+    this.node.port.removeEventListener?.('message', this.onMemoryMessage);
+    for (const request of this.memoryRequests.values()) request.reject(new Error('ADPCM transport disposed'));
+    this.memoryRequests.clear();
   }
 
   reset() {

@@ -18,6 +18,15 @@ class YM2608Processor extends AudioWorkletProcessor {
     const handle = data => {
       if (data.type === "initialize") void this.initialize(data.wasmBinary, data.rhythmRom);
       if (data.type === 'loadRhythmRom' && this.chip) this.chip.loadAdpcmARom(data.bytes);
+      if (data.type === 'loadAdpcmMemory') {
+        try {
+          if (!this.chip) throw new Error('YM2608 is not ready');
+          this.chip.loadAdpcmBMemory(data.bytes, data.address);
+          this.port.postMessage({type: 'adpcm-memory-loaded', id: data.id});
+        } catch (error) {
+          this.port.postMessage({type: 'adpcm-memory-loaded', id: data.id, error: String(error.message ?? error)});
+        }
+      }
       if (data.type === "write" && this.chip) this.write(data.port, data.register, data.value);
       if (data.type === "reset") this.chip?.reset();
     };

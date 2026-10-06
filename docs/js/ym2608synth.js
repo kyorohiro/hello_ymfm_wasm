@@ -8,6 +8,7 @@ import { OPNDirectTransport, OPNFMSynth } from "./opn_fm_synth.js";
 import { OPNRuntimeSynth } from "./opn_runtime_synth.js";
 import { SSGSynth } from "./ssgsynth.js?v=ssg-period-1";
 import { YM2608_CLOCK } from "./ym2608.js";
+import {readSamplePCM, encodeAdpcmB} from './adpcm_b_sample.js';
 
 /** Direct transport for YM2608 register operations. */
 export class YM2608DirectTransport extends OPNDirectTransport {
@@ -97,7 +98,7 @@ const adpcmInteger = (name, value, max) => {
 };
 
 /** YM2608 ADPCM-B external-memory playback, using 8-bit DRAM addressing (32-byte units).
- * Browser / Worker / Node.js: no file decoding, audio output or memory ownership here.
+ * Browser / Worker / Node.js. loadSample decodes PCM WAV without an audio device.
  */
 export class YM2608AdpcmSynth {
   /** @param {{write: function(number, number): void, loadMemory: function(Uint8Array, number): void}} transport
@@ -132,6 +133,33 @@ export class YM2608AdpcmSynth {
     adpcmInteger("address", address, 0x200000);
     if (bytes.length > 0x200000 - address) throw new RangeError("ADPCM-B memory exceeds 2 MiB");
     return this.transport.loadMemory(bytes, address);
+  }
+  /** Decode PCM/AudioBuffer/WAV, mix to mono, encode ADPCM-B and select it.
+   * Does not start playback. The caller owns memory allocation: repeated calls
+   * at the same address replace the data. Range padding may add up to 63 frames.
+   * @param {*} source Decoded {channels, sampleRate}, AudioBuffer, WAV bytes, Blob or path/URL.
+   * @param {{address?: number, sampleRate?: number, signal?: AbortSignal, decodeAudio?: Function}} options
+   * @returns {Promise<{start:number,end:number,frames:number,paddedFrames:number,sampleRate:number,deltaN:number,duration:number}>}
+   */
+  async loadSample(source, {address = 0, sampleRate, signal, decodeAudio} = {}) {
+    adpcmInteger('address', address, 0x1fffff);
+    if (address % 32) throw new RangeError('ADPCM-B address must be 32-byte aligned');
+    const pcm = await readSamplePCM(source, {signal, decodeAudio});
+    const requested = sampleRate ?? Math.min(pcm.sampleRate, Math.floor(this.clock / 144));
+    if (!Number.isFinite(requested) || requested <= 0) throw new RangeError('Invalid ADPCM-B sample rate');
+    const deltaN = Math.round(requested * 144 * 65536 / this.clock);
+    if (deltaN < 1 || deltaN > 65535) throw new RangeError('ADPCM-B sample rate is outside the chip range');
+    const actualRate = deltaN * this.clock / (144 * 65536);
+    const encoded = encodeAdpcmB(pcm, actualRate, 0x200000 - address);
+    signal?.throwIfAborted();
+    this.keyOff();
+    await this.loadMemory(encoded.bytes, address);
+    signal?.throwIfAborted();
+    this.setSample({start: address, end: address + encoded.bytes.length});
+    this.setDeltaN(deltaN);
+    return {start: address, end: address + encoded.bytes.length, frames: encoded.frames,
+      paddedFrames: encoded.paddedFrames, sampleRate: actualRate, deltaN,
+      duration: encoded.paddedFrames / actualRate};
   }
   /** Configure a byte range [start, end). Both boundaries must be 32-byte aligned.
    * Selects 8-bit DRAM mode and the full 2 MiB address limit; call while stopped.

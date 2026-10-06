@@ -137,10 +137,13 @@ export class OPNRuntimeSynth {
   async #close() {
     this.audio.closeMedia();
     this.audio.disposeFXChain();
+    this.fm?.transport.dispose?.();
     this.node?.disconnect();
     this.node?.port.close();
     this.node = null;
     this.audio.disconnectRouting();
+    this.audio.masterInputNode = null;
+    this.audio.masterOutputNode = null;
     this.fm = null;
     this.readyPromise = null;
     this.state = "closed";

@@ -124,6 +124,7 @@ ym2203-worklet.js
 ym2608.js
 ym2608audioengine.js
 ym2608synth.js
+adpcm_b_sample.js
 ym2608-worklet.js
 ym2610b.js
 ym2610baudioengine.js
