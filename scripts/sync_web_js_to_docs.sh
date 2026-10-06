@@ -50,6 +50,7 @@ native_fx_engine.js
 megasynth_offline.js
 sample_clock.js
 megasynth_session.js
+megasynth_pcm_looper.js
 native-fx-worklet.js
 custom_fx.js
 native_audio_effect.wasm

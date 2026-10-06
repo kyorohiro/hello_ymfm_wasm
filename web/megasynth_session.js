@@ -4,6 +4,7 @@ import {MegaSynthRecordingManager} from './megasynth_recording.js';
 import {MegaSynthLooper} from './looper.js';
 import {SampleClock} from './sample_clock.js';
 import {YM2612Synth} from './ym2612synth.js';
+import {MegaSynthPCMLooper} from './megasynth_pcm_looper.js';
 
 const COMMANDS = {
   reset: () => ({type: 'reset'}),
@@ -20,21 +21,24 @@ const COMMANDS = {
 };
 const FM_METHODS = new Set([...Object.keys(COMMANDS), 'setPreset', 'setFrequency', 'write']);
 const LOOP_METHODS = new Set(['start', 'stop', 'clear', 'startRecording', 'finishRecording',
-  'toggleRecord', 'undo', 'noteOn', 'noteOff', 'getState', 'getUnits']);
+  'toggleRecord', 'undo', 'noteOn', 'noteOff', 'getState', 'getUnits', 'exportAudio']);
 const validationFM = () => new YM2612Synth({transport: {write(port, register, value) {}, reset() {}}});
 
 export async function createMegaSynthSession(options = {}) {
+  if (!['events', 'pcm'].includes(options.looperMode ?? 'events')) throw new Error('Invalid looperMode');
   const engine = await createMegaSynthOffline(options);
-  try {return new MegaSynthSession(engine);} catch (error) {engine.close(); throw error;}
+  try {return new MegaSynthSession(engine, options);} catch (error) {engine.close(); throw error;}
 }
 
 class MegaSynthSession {
   #engine; #clock; #suppressed = 0; #closed = false; #rendering = false;
   #userTimers = new Set(); #recording;
   #closing;
-  constructor(engine) {
+  #pcmLooper;
+  constructor(engine, options) {
     this.#engine = engine; this.fm = engine.fm; this.fx = engine.fx;
     this.#clock = new SampleClock(engine.sampleRate, () => engine.currentFrame);
+    if (options.looperMode === 'pcm') this.#pcmLooper = new MegaSynthPCMLooper(engine, this.#clock, options.looperMaxAudioSeconds);
     const original = Object.fromEntries([...FM_METHODS, 'getState'].map(method => [method, this.fm[method].bind(this.fm)]));
     // Replayed commands and patch restoration must not record themselves.
     const playback = Object.fromEntries(Object.entries(original).map(([method, fn]) => [method, (...args) => {
@@ -58,7 +62,12 @@ class MegaSynthSession {
     };
     this.looper = new MegaSynthLooper({synth: this.fm, liveTarget: this.fm, playbackTarget: playback,
       now: () => this.currentTime, setTimer: this.#clock.setTimer, clearTimer: this.#clock.clearTimer,
-      getPatch: original.getState, applyPatch});
+      getPatch: original.getState, applyPatch, audioPaddingSeconds: 0,
+      ...(this.#pcmLooper ? {
+        startAudioCapture: this.#pcmLooper.startCapture, stopAudioCapture: this.#pcmLooper.stopCapture,
+        scheduleAudioPlayback: this.#pcmLooper.schedulePlayback, stopAudioPlayback: this.#pcmLooper.stopPlayback,
+        onStateChange: () => this.#pcmLooper.prune(this.looper.getUnits()),
+      } : {})});
     this.recording = {
       start: () => {this.#assertOpen(); return this.#recording.start();},
       stop: () => {this.#assertOpen(); return this.#recording.stop();},
@@ -105,6 +114,10 @@ class MegaSynthSession {
   }
   async callLooper(method, args = []) {
     this.#assertOpen(); if (!LOOP_METHODS.has(method) || !Array.isArray(args)) throw new Error('Invalid looper command');
+    if (method === 'exportAudio') {
+      if (!this.#pcmLooper) throw new Error('PCM looper mode is not enabled');
+      return this.#pcmLooper.exportAudio(this.looper.getUnits().find(unit => unit.id === args[0]));
+    }
     // start() returns its class instance, which is not a transferable RPC result.
     const result = await this.looper[method](...args);
     return method === 'start' ? this.looper.getState() : result;
@@ -141,7 +154,8 @@ class MegaSynthSession {
         await this.#clock.runDue();
         if (offset === frames) break;
         const count = Math.min(frames - offset, this.#clock.nextFrame - this.currentFrame);
-        const pcm = this.#engine.render(count); left.set(pcm.left, offset); right.set(pcm.right, offset); offset += count;
+        this.#pcmLooper?.assertCanRender(count);
+        const pcm = this.#engine.render(count, {onSource: this.#pcmLooper?.capture}); left.set(pcm.left, offset); right.set(pcm.right, offset); offset += count;
       }
       return {left, right, sampleRate: this.sampleRate};
     } finally {this.#rendering = false;}
@@ -150,7 +164,7 @@ class MegaSynthSession {
     if (this.#closing) return this.#closing;
     if (this.#closed) return Promise.resolve();
     this.#closing = (async () => {
-      try {await this.stopEvents();} finally {this.#closed = true; this.#clock.clear(); this.#engine.close();}
+      try {await this.stopEvents();} finally {this.#pcmLooper?.prune([]); this.#closed = true; this.#clock.clear(); this.#engine.close();}
     })();
     return this.#closing;
   }

@@ -6,6 +6,26 @@ const outputModule = new URL('./fixtures/megasynth_output.mjs', import.meta.url)
 const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
 const create = options => new MegaSynthNode({outputModule, ...options});
 
+test('PCM looper stays in Worker and only exports PCM on explicit request', async () => {
+  const synth = create({engineOptions: {looperMode: 'pcm'}});
+  try {
+    await synth.start(); await synth.fm.setPreset(0, FM_PRESETS.sine);
+    await synth.looper.start(); await synth.looper.startRecording();
+    await synth.looper.noteOn(0, 4, 553); await wait(35); await synth.looper.noteOff(0); await wait(15);
+    const unit = await synth.looper.finishRecording();
+    assert.ok(unit.audio.frames > 0); assert.equal(unit.audio.channels, undefined);
+    const units = await synth.looper.getUnits(); assert.equal(units[0].audio.channels, undefined);
+    const pcm = await synth.looper.exportAudio(unit.id);
+    assert.equal(pcm.channels[0].length, unit.audio.frames);
+    assert.ok(pcm.channels[0].some(value => Math.abs(value) > .01));
+    await synth.fm.reset(); await wait(80);
+    assert.ok((await synth.getState()).peak > .001);
+    await synth.stop(); assert.equal((await synth.getState()).pendingTimers, 0);
+    await synth.looper.clear();
+    await assert.rejects(synth.looper.exportAudio(unit.id), /No PCM/);
+  } finally {await synth.close();}
+});
+
 test('Worker owns continuous PCM/FX/output even when Main is busy; stop/resume/close drain and restart', async () => {
   const synth = create();
   try {

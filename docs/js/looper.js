@@ -72,6 +72,7 @@ export class MegaSynthLooper {
    *   scheduleAudioPlayback?: (unit: MegaSynthLooperUnit, startTime: number) => void,
    *   stopAudioPlayback?: (unit?: MegaSynthLooperUnit | string | null) => void,
    *   onStateChange?: (detail: { reason: string, unit?: MegaSynthLooperUnit | null, auto?: boolean }) => void,
+   *   audioPaddingSeconds?: number,
    * }} options
    */
   constructor(options = {}) {
@@ -80,6 +81,10 @@ export class MegaSynthLooper {
     }
 
     this.synth = options.synth;
+    this.audioPaddingSeconds = options.audioPaddingSeconds ?? 0.01;
+    if (!Number.isFinite(this.audioPaddingSeconds) || this.audioPaddingSeconds < 0) {
+      throw new RangeError('Invalid audioPaddingSeconds');
+    }
     this.now =
       options.now ??
       (() => performance.now() / 1000);
@@ -777,7 +782,7 @@ export class MegaSynthLooper {
     this.scheduleAudioPlayback(
       unit,
       unitStartTime <= now
-        ? now + 0.01
+        ? now + this.audioPaddingSeconds
         : unitStartTime
     );
   }
@@ -815,7 +820,7 @@ export class MegaSynthLooper {
     ) {
       this.scheduleAudioPlayback(
         unit,
-        now + 0.01
+        now + this.audioPaddingSeconds
       );
       return;
     }

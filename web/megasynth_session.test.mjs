@@ -3,6 +3,56 @@ import assert from 'node:assert/strict';
 import {createMegaSynthSession} from './megasynth_session.js';
 import {FM_PRESETS} from './megasynth-fm-presets.js';
 
+test('PCM looper captures dry FM, repeats without padding, excludes backing and explicitly exports audio', async () => {
+  const session = await createMegaSynthSession({looperMode: 'pcm'});
+  try {
+    session.fm.setPreset(0, FM_PRESETS.sine);
+    await session.looper.start(); await session.looper.startRecording();
+    session.looper.noteOn(0, 4, 553); await session.render(128);
+    session.looper.noteOff(0); await session.render(128);
+    const unit = await session.looper.finishRecording();
+    assert.equal(unit.audio.frames, 256);
+    assert.equal(session.looper.getState().units[0].hasAudio, true);
+    assert.equal(unit.audio.channels, undefined); // Ordinary RPC results contain metadata only.
+    const pcm = await session.callLooper('exportAudio', [unit.id]);
+    assert.ok(pcm.channels[0].some(value => Math.abs(value) > .05));
+    // Reset live FM after capture so only the native PCM voice remains.
+    session.fm.reset();
+    const playback = await session.render(256 * 3);
+    assert.deepEqual(playback.left.slice(0, 256), playback.left.slice(256, 512));
+    assert.deepEqual(playback.left.slice(0, 256), playback.left.slice(512, 768));
+    assert.ok(playback.left.some(value => Math.abs(value) > .01));
+    await session.looper.startRecording();
+    session.looper.noteOff(0); // Record an event while live FM is silent.
+    await session.render(256); // Auto finish; the existing PCM must not enter the overdub.
+    const units = session.looper.getUnits(); assert.equal(units.length, 2);
+    const overdub = await session.callLooper('exportAudio', [units[1].id]);
+    assert.ok(overdub.channels.every(channel => channel.every(value => Math.abs(value) < 1e-7)));
+    const combined = await session.render(256 * 3);
+    assert.deepEqual(combined.left, playback.left); // No duplicate voices at the new unit's boundary.
+    await session.looper.undo();
+    assert.deepEqual((await session.render(256 * 3)).left, playback.left);
+    await assert.rejects(session.callLooper('exportAudio', [units[1].id]), /No PCM/);
+    await session.stop(); assert.equal(session.pendingTimers, 0);
+    await session.looper.clear(); assert.equal(session.looper.getUnits().length, 0);
+  } finally {await session.close();}
+});
+
+test('PCM capture has a bounded audio budget and canceled/empty recordings free their banks', async () => {
+  const session = await createMegaSynthSession({looperMode: 'pcm', looperMaxAudioSeconds: 256 / 48000});
+  try {
+    await session.looper.start(); await session.looper.startRecording();
+    await session.render(256); // Empty performance gets discarded even though PCM exists.
+    assert.equal(await session.looper.finishRecording(), null);
+    await session.looper.startRecording(); session.looper.noteOff(0);
+    await session.render(256);
+    await assert.rejects(session.render(1), /audio limit/); assert.equal(session.currentFrame, 512);
+    await session.looper.undo();
+    await session.looper.startRecording(); await session.render(256); await session.looper.undo();
+    assert.equal(session.looper.getUnits().length, 0);
+  } finally {await session.close();}
+});
+
 test('recording stores frame-clock timestamps and JSON playback restores notes without recording itself', async () => {
   const session = await createMegaSynthSession();
   try {

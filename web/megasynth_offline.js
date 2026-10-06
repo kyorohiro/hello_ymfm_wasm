@@ -103,6 +103,9 @@ class MegaSynthOffline {
   /** Apply the shared native FX command protocol without a Web Audio transport. */
   applyFX(command) { this.#assertOpen(); this.#dsp.command(structuredClone(command)); }
 
+  /** Session-owned PCM banks/voices use the same native mixer as the Worklet. */
+  sampleCommand(command) {this.#assertOpen(); return this.#dsp.samples.command(command);}
+
   /** Absolute output-frame timestamp; serializable FM commands, stable order. */
   schedule(frame, command) {
     this.#assertOpen();
@@ -116,7 +119,7 @@ class MegaSynthOffline {
   }
 
   /** Advance the sample clock, render the chip, then apply native FX. */
-  render(frames) {
+  render(frames, {onSource} = {}) {
     this.#assertOpen();
     if (!Number.isSafeInteger(frames) || frames < 0 || frames > 10000000 || !Number.isSafeInteger(this.#frame + frames)) {
       throw new RangeError('frames must be an integer from 0 to 10000000');
@@ -149,6 +152,8 @@ class MegaSynthOffline {
         }
         input[0][i] = this.#lastLeft; input[1][i] = this.#lastRight;
       }
+      // Capture FM before sample playback, FX and master volume, avoiding overdub feedback.
+      onSource?.(input);
       const output = [left.subarray(offset, offset + count), right.subarray(offset, offset + count)];
       this.#dsp.process(input, output);
       for (const channel of output) for (let i = 0; i < count; i++) channel[i] *= this.masterVolume;

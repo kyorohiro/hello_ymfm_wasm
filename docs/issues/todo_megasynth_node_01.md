@@ -40,7 +40,7 @@ try {
 ```
 
 この API はローカルの実験実装で、npm の公開版にはまだ含まれない。
-PSG / Mega CD PCM、looper の PCM 音声キャプチャは次段階。
+PSG / Mega CD PCM は次段階。looper の PCM キャプチャは下記の追加検証で対応。
 同一入力で Node・ブラウザのオフライン処理・実際の nativeFX AudioWorklet 出力が完全一致することを Chromium で確認した。
 オフラインの Worklet は初期設定を `processorOptions.initialCommands` で渡し、描画より設定メッセージが遅れる競合を避ける。
 対応済み範囲を全ブラウザ・全デバイスの互換性と同一視しない。
@@ -88,7 +88,7 @@ audify の stream 終了後に callback 参照が残るケースがあるため�
 - 自分で演奏した FM 操作を記録し、再演と音色復元を二重に録音しない。
 - `megasynth-recording-v1` の JSON を export / import / play できる。
 - 録音ループは長さのフレーム数で繰り返し、実時間タイマー用の10ms余白を加えない。
-- looper は noteOn / noteOff、音色、unit、undo、再録音の自動終了を扱う。PCM キャプチャは未接続。
+- looper は noteOn / noteOff、音色、unit、undo、再録音の自動終了を扱う。既定はイベント方式、PCM モードは下記で選択する。
 - 不正な録音データを、実際の chip を変更する前に検証する。
 - 停止・終了で録音と繰り返しタイマーを解放する。停止後は unit を保持するが、自動でループ再生を再開しない。
 - イベント JSON はチップ内部の発振・エンベロープ位相を保存しない。イベント時刻と音色を再現する形式で、WAV の完全保存ではない。
@@ -105,6 +105,28 @@ CoreAudio の Worker 出力で、録音・繰り返し再生・looper・undo・�
 
 新しい API・examples・説明では `MegaSynth` を使う。
 `MegaDriveSynth` は過去互換のために残す別名として扱う。
+
+## 実装状況（PCM looper）
+
+`createMegaSynthSession({looperMode: 'pcm'})` で FM の dry PCM を取り込み、native sample mixer で繰り返し再生する。
+Node の指定は `new MegaSynthNode({engineOptions: {looperMode: 'pcm'}})`。
+既定のイベント方式は維持する。
+
+- FX / masterVolume / 録音済み PCM のミックス前に取り込むため、重ね録りに以前のループが混入しない。
+- 再生は nativeFX を通る。現在の FX 設定を録音済みループにも適用する。
+- PCM は Worker に保持し、通常の unit 応答は情報だけを返す。`looper.exportAudio(unit.id)` で明示的にコピーできる。
+- サンプル境界で再生し、同一 unit・同一フレームの二重再生を防ぐ。
+- undo / clear は不要な bank を解放する。停止で voice と未来の再生をキャンセルする。
+- 録音中と保持済み PCM の合計は既定60秒まで（`looperMaxAudioSeconds` で最大600秒）。最大64 bank。
+- FX の残響込みの最終出力やマイク入力の録音にはまだ対応しない。
+
+```sh
+node scripts/demo_megasynth_node_pcm_looper.mjs
+```
+
+実行例は nativeFX 付きで PCM ループを再生し、dry PCM を WAV に保存する。
+macOS / Node 22 / CoreAudio で12288フレームの録音・繰り返し再生・WAV 保存・undo・終了を確認した。
+イベント方式と PCM 方式の検証・公開状況は [node/README.md](../../node/README.md) を参照。
 
 ## 現状
 

@@ -21,7 +21,7 @@ export class MegaSynthNode extends EventEmitter {
     this.recording = Object.fromEntries(['start', 'stop', 'export', 'import', 'play', 'stopPlayback', 'getState']
       .map(method => [method, (...args) => this.#request('recording', [method, args])]));
     this.looper = Object.fromEntries(['start', 'stop', 'clear', 'startRecording', 'finishRecording',
-      'toggleRecord', 'undo', 'noteOn', 'noteOff', 'getState', 'getUnits']
+      'toggleRecord', 'undo', 'noteOn', 'noteOff', 'getState', 'getUnits', 'exportAudio']
       .map(method => [method, (...args) => this.#request('looper', [method, args])]));
   }
   start() {

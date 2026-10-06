@@ -100,7 +100,7 @@ await synth.looper.stop();
 - `looper`：`start`、`stop`、`clear`、`startRecording`、`finishRecording`、`toggleRecord`、`undo`、`noteOn`、`noteOff`、`getState`、`getUnits`。
 - JSON はブラウザと同じ `megasynth-recording-v1`。FM の音色・モード・発音イベントを扱い、FX 操作・PCM 波形は保存しない。
 - JSON にはチップ内部の発振・エンベロープ位相を含まないため、イベント再演と PCM の完全保存は異なる。
-- looper は音符イベントと音色を保存する。PCM 音声キャプチャはまだ接続していない。
+- looper は既定で音符イベントと音色を保存する。PCM モードは下記のオプションで選ぶ。
 - 再演したイベントを再び録音することを避け、演奏入力と再生側を分けている。
 - Node の録音ループは、ブラウザ実時間タイマー用の10ms余白を使わず、録音長のフレーム数で繰り返す。
 - `stop()` / `close()` は録音・ループを停止し、予定したイベントを消す。`resume()` で古いループを勝手に再開しない。保持した looper unit は明示的に `looper.start()` すると再利用できる。
@@ -114,7 +114,39 @@ await synth.looper.stop();
 `await session.render(frames)` でのみ時計が進み、壁時計を待たずに録音・ループを生成できる。
 ループ中の音符イベントを sample frame の境界で適用し、録音データの読み込みは live chip を変更する前に検証する。
 
+## PCM looper
+
+```js
+const synth = new MegaSynthNode({engineOptions: {
+  looperMode: 'pcm', looperMaxAudioSeconds: 60,
+}});
+// start()、音色設定、looper の演奏・録音操作は上の例と同じ。
+const unit = await synth.looper.finishRecording();
+const pcm = await synth.looper.exportAudio(unit.id);
+// pcm = {sampleRate, channels: [Float32Array, Float32Array]}
+```
+
+FM を nativeFX・masterVolume・録音済み PCM のミックス前に取り込む。
+重ね録りで以前のループを取り込まず、native の sample mixer で再生してから現在の FX と masterVolume を適用する。
+録音対象は FM 全チャンネルで、FM 経路の DAC も含む。マイク入力や FX の残響を含む最終出力の録音ではない。
+現在の FM に同時にイベント録音を再演していれば、その FM 出力も録音対象になる。
+ノートイベントのない録音は従来どおり破棄する。
+
+`finishRecording()` と `getUnits()` の `audio` は `{name, frames, sampleRate}` の情報だけ。
+PCM は Worker 内に保持し、`exportAudio(unit.id)` で明示的に取得したときだけ Main へコピーする。
+書き出す波形は FX と masterVolume の適用前である。
+`undo()` / `clear()` は不要な PCM bank を解放し、`stop()` は再生 voice と予定した再生を止める。
+`close()` 前に保存が必要な PCM を export する。
+
+メモリーを制限するため、録音中の音声と保持済み unit の合計に `looperMaxAudioSeconds`（既定60秒、最大600秒）を適用する。
+上限に達すると render はエラーを返す。リアルタイム Worker は音声処理エラーとして終了するため、長い録音には事前に十分な上限を指定する。
+オフライン session では `undo()` / `clear()` で解放して続行できる。
+PCM bank は最大64個。PCM モードでもサンプル時計を使い、ブラウザ用の10ms余白を加えない。
+
+実行例: `node scripts/demo_megasynth_node_pcm_looper.mjs`。
+CoreAudio で短い PCM ループを再生し、`/private/tmp/megasynth-pcm-loop.wav` に dry PCM を保存する。
+
 ## 未対応
 
-PSG / Mega CD PCM、looper の PCM 音声キャプチャ、マイク入力、他の AudioNode への接続は未対応。
+PSG / Mega CD PCM、マイク入力、他の AudioNode への接続は未対応。
 既存のブラウザ MegaSynth を置き換える API ではなく、Node 用の実験入口として検証を進める。
