@@ -232,10 +232,10 @@ FM/PSG/PCM mixing, stop/reset and close/restart. Playwright is a development
 dependency; it is not required by users of the sound-chip runtime.
 
 The build is staged in `dist/fm2612/`; packing produces
-`tetorica-fm2612-0.2.3.tgz`. To install a local build in another project:
+`tetorica-fm2612-0.2.4.tgz`. To install a local build in another project:
 
 ```sh
-npm install /absolute/path/to/tetorica-fm2612-0.2.3.tgz
+npm install /absolute/path/to/tetorica-fm2612-0.2.4.tgz
 ```
 
 The existing `tetorica-vgm` CLI package is built separately. This first package
@@ -250,6 +250,11 @@ included; Nuked-OPN2 is LGPL-2.1-or-later, with its source and build script in
 and generator. External instrument/sample ROMs are not included.
 
 ## Release notes
+
+`0.2.4` removes the ymfm YM2612 DAC ladder's idle offset from AudioWorklet
+output and keeps output silent until FM/PSG initialization completes. This
+reduces clicks when browser audio starts or disconnects. Raw chip PCM remains
+unchanged.
 
 `0.2.3` adds common `encodeWav()` for mono/stereo PCM16 WAV bytes and fixes
 default browser/Worker `createSoundChip()` loading by reading WASM internally.
