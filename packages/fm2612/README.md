@@ -137,10 +137,9 @@ otherwise they are siblings of the YM2612 assets. The FM command recorder
 continues to record FM/DAC actions; PCM commands are not recorded. This adds
 the Mega CD PCM chip, not CD disc-image emulation or 32X PWM.
 
-## YM2608 ADPCM-B sample loading (next release)
+## YM2608 ADPCM-B sample loading
 
-The source version adds `synth.adpcm.loadSample()` to `YM2608Synth`.
-This API is not included in the published `0.2.1` package yet.
+Since `0.2.2`, `YM2608Synth` provides `synth.adpcm.loadSample()`.
 It accepts decoded `{channels, sampleRate}`, AudioBuffer, PCM/Float RIFF WAV
 bytes, Blob, a browser URL, or a Node.js path/file URL. It mixes channels to
 mono, encodes Yamaha ADPCM-B, transfers it, and configures the sample range
@@ -197,10 +196,10 @@ FM/PSG/PCM mixing, stop/reset and close/restart. Playwright is a development
 dependency; it is not required by users of the sound-chip runtime.
 
 The build is staged in `dist/fm2612/`; packing produces
-`tetorica-fm2612-0.2.1.tgz`. To install a local build in another project:
+`tetorica-fm2612-0.2.2.tgz`. To install a local build in another project:
 
 ```sh
-npm install /absolute/path/to/tetorica-fm2612-0.2.1.tgz
+npm install /absolute/path/to/tetorica-fm2612-0.2.2.tgz
 ```
 
 The existing `tetorica-vgm` CLI package is built separately. This first package
@@ -215,6 +214,11 @@ included; Nuked-OPN2 is LGPL-2.1-or-later, with its source and build script in
 and generator. External instrument/sample ROMs are not included.
 
 ## Release notes
+
+`0.2.2` adds YM2608 ADPCM-B `loadSample()` for decoded PCM, AudioBuffer and
+PCM/Float WAV sources, with mono conversion, ADPCM-B encoding, memory upload
+and range/rate setup. Worklet memory uploads are acknowledged, and OPN browser
+runtimes release routing nodes when closed so they can restart safely.
 
 `0.2.1` updates the npm Homepage link to
 [tetorica-fm2612-examples](https://github.com/kyorohiro/tetorica-fm2612-examples).
