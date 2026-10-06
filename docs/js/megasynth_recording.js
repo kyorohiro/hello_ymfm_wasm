@@ -21,6 +21,8 @@ export class MegaSynthRecordingManager {
     this.clearTimer =
       options.clearTimer ??
       ((timerId) => window.clearTimeout(timerId));
+    this.cyclePaddingSeconds = options.cyclePaddingSeconds ?? 0.01;
+    if (!Number.isFinite(this.cyclePaddingSeconds) || this.cyclePaddingSeconds < 0) throw new RangeError('Invalid recording cycle padding');
 
     this.recording = false;
     this.playing = false;
@@ -208,7 +210,7 @@ export class MegaSynthRecordingManager {
         0,
         recording.durationSeconds *
           1000
-      ) + 10;
+      ) + this.cyclePaddingSeconds * 1000;
     this._schedulePlayback(() => {
       if (this.loopPlayback) {
         this._playCycle(recording, options);

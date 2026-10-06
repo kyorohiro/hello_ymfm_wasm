@@ -40,7 +40,7 @@ try {
 ```
 
 この API はローカルの実験実装で、npm の公開版にはまだ含まれない。
-PSG / Mega CD PCM、looper / recording の統合は次段階。
+PSG / Mega CD PCM、looper の PCM 音声キャプチャは次段階。
 同一入力で Node・ブラウザのオフライン処理・実際の nativeFX AudioWorklet 出力が完全一致することを Chromium で確認した。
 オフラインの Worklet は初期設定を `processorOptions.initialCommands` で渡し、描画より設定メッセージが遅れる競合を避ける。
 対応済み範囲を全ブラウザ・全デバイスの互換性と同一視しない。
@@ -75,7 +75,33 @@ node scripts/demo_megasynth_node.mjs
 アダプターの契約・非同期 API・実行例は [node/README.md](../../node/README.md) を参照。
 `@kmamal/sdl@0.11.13` は Main Thread 専用だったため採用しなかった。
 audify の stream 終了後に callback 参照が残るケースがあるため、stream を閉じた後に所有 Worker を明示的に終了する。
-他の OS・デバイス、長時間・高負荷での音切れ、looper / recording の統合は、まだ確認が必要。
+他の OS・デバイス、長時間・高負荷での音切れは、まだ確認が必要。
+
+## 実装状況（イベント録音・looper）
+
+`web/megasynth_session.js` の `createMegaSynthSession()` で、オフライン engine と既存の recording / looper を接続した。
+`web/sample_clock.js` のタイマーを生成フレーム数で進め、イベント時刻の境界で PCM 生成を区切る。
+非同期の looper 録音終了を待てるよう、この入口の `render(frames)` は Promise を返す。
+従来の `createMegaSynthOffline().render()` は同期のまま維持する。
+
+- Node の `synth.recording` / `synth.looper` は Worker 内のオブジェクトへ RPC を送る。
+- 自分で演奏した FM 操作を記録し、再演と音色復元を二重に録音しない。
+- `megasynth-recording-v1` の JSON を export / import / play できる。
+- 録音ループは長さのフレーム数で繰り返し、実時間タイマー用の10ms余白を加えない。
+- looper は noteOn / noteOff、音色、unit、undo、再録音の自動終了を扱う。PCM キャプチャは未接続。
+- 不正な録音データを、実際の chip を変更する前に検証する。
+- 停止・終了で録音と繰り返しタイマーを解放する。停止後は unit を保持するが、自動でループ再生を再開しない。
+- イベント JSON はチップ内部の発振・エンベロープ位相を保存しない。イベント時刻と音色を再現する形式で、WAV の完全保存ではない。
+
+```sh
+node --test web/megasynth_session.test.mjs test/megasynth_node.test.mjs web/megasynth.test.mjs
+node scripts/demo_megasynth_node_events.mjs
+```
+
+実行例は録音 JSON を `/private/tmp/megasynth-events.json` に保存し、JSON 再生と looper を短く実演する。
+CoreAudio の Worker 出力で、録音・繰り返し再生・looper・undo・終了まで確認した。
+ループの発音境界、累積するタイマーの解放、再開後の古いイベントのキャンセルはデバイスなしのテストでも確認する。
+この機能もまだローカルの実験実装で、npm には未公開。
 
 新しい API・examples・説明では `MegaSynth` を使う。
 `MegaDriveSynth` は過去互換のために残す別名として扱う。

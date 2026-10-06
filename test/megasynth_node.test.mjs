@@ -79,3 +79,49 @@ test('an output failure during playback is reported and shuts down the owned Wor
     assert.match(synth.lastError.message, /Test write failed/);
   } finally {await synth.close();}
 });
+
+test('recording and looper RPCs run inside the Worker and Stop cancels their sample timers', async () => {
+  const synth = create();
+  try {
+    await synth.start(); await synth.fm.setPreset(0, FM_PRESETS.sine);
+    await synth.recording.start();
+    await synth.fm.noteOn(0, 4, 553); await wait(60); await synth.fm.noteOff(0);
+    const recording = await synth.recording.stop();
+    assert.equal(recording.format, 'megasynth-recording-v1');
+    assert.equal(recording.commands.filter(command => command.type === 'noteOn').length, 1);
+    assert.ok(recording.durationSeconds >= .03);
+    assert.ok(recording.commands.every(command => Math.abs(command.time * 48000 - Math.round(command.time * 48000)) < 1e-6));
+    await synth.recording.import(JSON.parse(JSON.stringify(recording)));
+    await synth.recording.play(null, {loop: true}); await wait(80);
+    assert.equal((await synth.recording.getState()).playing, true);
+    assert.ok((await synth.getState()).pendingTimers > 0);
+    await synth.recording.stopPlayback();
+    assert.equal((await synth.getState()).pendingTimers, 0);
+    await synth.looper.start(); await synth.looper.startRecording();
+    await synth.looper.noteOn(0, 4, 696); await wait(50); await synth.looper.noteOff(0);
+    const unit = await synth.looper.finishRecording();
+    assert.equal(unit.events.length, 2); await wait(50);
+    const loopState = await synth.looper.getState();
+    assert.equal(loopState.unitCount, 1); assert.equal(loopState.running, true);
+    assert.equal((await synth.looper.getUnits()).length, 1);
+    await synth.stop();
+    const stopped = await synth.getState();
+    assert.equal(stopped.pendingTimers, 0); assert.equal(stopped.looper.running, false);
+    assert.equal(stopped.recording.playing, false);
+    await synth.resume();
+    const resumed = await synth.getState();
+    assert.equal(resumed.pendingTimers, 0); assert.equal(resumed.looper.unitCount, 1);
+    await synth.looper.undo(); assert.equal((await synth.looper.getState()).unitCount, 0);
+  } finally {await synth.close();}
+});
+
+test('invalid imported recording rejects through RPC and leaves the Worker usable', async () => {
+  const synth = create();
+  try {
+    await synth.start();
+    await assert.rejects(synth.recording.import({format: 'wrong'}), /Invalid recording/);
+    await assert.rejects(synth.flush(), /Invalid recording/);
+    await synth.fm.setPreset(0, FM_PRESETS.sine); await synth.fm.noteOn(0, 4, 553);
+    await synth.flush(); await synth.stop();
+  } finally {await synth.close();}
+});

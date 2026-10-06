@@ -963,7 +963,7 @@ export class MegaSynthLooper {
           return;
         }
 
-        this.finishRecording({
+        return this.finishRecording({
           auto: true,
         });
       }, remainingSeconds * 1000);
