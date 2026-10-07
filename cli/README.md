@@ -358,3 +358,10 @@ YM2151 S98 normalization is also included in this release.
 ## Version 0.2.7
 
 Adds npm discovery keywords for VGM/VGZ/S98, sound chips and supported score exports.
+
+## Version 0.2.8
+
+The shared playback engine now uses the common chip-mixer PCM implementation.
+The npm payload includes `soundchip_mixer.js` and its complete dependency path,
+so CLI and Node rendering load the same playback core as the Analyzer.
+Existing render defaults and mute options retain their behavior.
