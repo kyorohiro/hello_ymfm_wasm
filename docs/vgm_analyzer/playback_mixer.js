@@ -8,7 +8,8 @@ const properties = {
   ymf262: 'ymf262', ymf278b: 'ymf278b', k051649: 'k051649',
   segaPcm: 'segapcm', gameBoyDmg: 'gameboy',
 };
-export const mixerDefaults = () => ({gain: 1, pan: 0, muted: false});
+// Analyzer starting balance; callers without a chip ID retain unity gain.
+export const mixerDefaults = id => ({gain: id === 'gameBoyDmg' ? .28 : 1, pan: 0, muted: false});
 
 export class PlaybackMixer {
   constructor() { this.strips = new Map(); }

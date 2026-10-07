@@ -34,8 +34,8 @@ export function createMixerUi({container, resetButton, onChange}) {
       mute.addEventListener('click', () => {values.muted = !values.muted; updateMute(); change(id, values);});
       updateMute(); title.append(heading, mute); strip.append(title);
       for (const [key, label, min, max, value, format] of [
-        ['gain', 'Volume', 0, 200, values.gain * 100, v => `${v}%`],
-        ['pan', 'Pan', -100, 100, values.pan * 100, v => v === 0 ? 'Center' : `${v < 0 ? 'L' : 'R'} ${Math.abs(v)}`],
+        ['gain', 'Volume', 0, 200, Math.round(values.gain * 100), v => `${v}%`],
+        ['pan', 'Pan', -100, 100, Math.round(values.pan * 100), v => v === 0 ? 'Center' : `${v < 0 ? 'L' : 'R'} ${Math.abs(v)}`],
       ]) {
         const row = document.createElement('label'); row.className = 'mixer-control'; row.append(label);
         const range = document.createElement('input'); range.type = 'range'; range.min = min; range.max = max;
@@ -51,14 +51,14 @@ export function createMixerUi({container, resetButton, onChange}) {
     }
   }
   resetButton.addEventListener('click', () => {
-    for (const id of settings.keys()) change(id, mixerDefaults());
+    for (const id of settings.keys()) change(id, mixerDefaults(id));
     render();
   });
   render();
   return {
     load(configuration) {
       mixer = null; settings.clear();
-      for (const chip of configuration?.chips ?? []) settings.set(chip.id, mixerDefaults());
+      for (const chip of configuration?.chips ?? []) settings.set(chip.id, mixerDefaults(chip.id));
       render();
     },
     attach(next) {

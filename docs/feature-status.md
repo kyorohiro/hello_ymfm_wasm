@@ -25,7 +25,7 @@ Playback欄の`Seek cache`表示で高速シークの対応構成を確認でき
 | 機能 | 実装・範囲 | 制限・残作業 | 自動検証・詳細 |
 |---|---|---|---|
 | VGM／VGZ再生・音源別表示・ミュート | 実装済。OPN／OPM／OPL／PSG／PCMなど | 対応はチップ・Dual・併用構成ごとに異なる | [対応表](vgm_analyzer/support.html)、[再生構成判定](vgm_analyzer/playback_core.js) |
-| Chip Mixer | ローカル実装。Play/Ch・Effect横のMixerでチップ別Volume／Pan／Mute、Master、チップ設定Reset。再生・WAVに反映 | チップ設定は曲の読込でリセット。既存のDual対応範囲は変更なし。DC除去・自動音量補正は未実装。未公開 | [PCMテスト](vgm_analyzer/playback_mixer.test.mjs)、[実装](vgm_analyzer/playback_mixer.js) |
+| Chip Mixer | ローカル実装。Play/Ch・Effect横のMixerでチップ別Volume／Pan／Mute、Master、チップ設定Reset。再生・WAVに反映 | Game Boyの初期値・Resetは28%、他は100%。チップ設定は曲の読込でリセット。既存のDual対応範囲は変更なし。DC除去・自動音量補正は未実装。未公開 | [PCMテスト](vgm_analyzer/playback_mixer.test.mjs)、[実装](vgm_analyzer/playback_mixer.js) |
 | S98入力 | 一部。単一YM2203／YM2608／YM2612／YM2151 | 圧縮S98・複数デバイスは未対応。YM2151の追加はローカル版で、npm 0.2.6には未収録 | [入力仕様](../CLI.md#s98-input-and-source-documents) |
 | 高速シーク | 一部。OPN／OPM／Genesis構成 | 下の専用表参照。実曲・長時間のブラウザー試聴未確認、公開版未照合 | [成功記録・詳細](issues/seekvgm_save_load_01.md) |
 | Note-ish／楽譜表示・MIDI／MusicXML／LilyPond Export | 一部。対応音源の基音・キー区間を抽出 | 原譜の復元ではない。チップごとに除外区間あり | [対応表](vgm_analyzer/support.html)、[MusicXMLテスト](vgm_analyzer/vgm_musicxml.test.mjs)、[LilyPond作業記録](issues/lilypond_export_01.md) |
