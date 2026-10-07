@@ -1886,7 +1886,7 @@ function renderHeader(header) {
     `ident: ${header.ident}`,
     `version: ${formatHex(header.version, 8)}`,
     `rf5c164Clock: ${header.rf5c164Clock}`,
-    `pwmClock: ${header.pwmClock} (approximate PWM playback)`,
+    `pwmClock: ${header.pwmClock} (MAME-derived PWM FIFO/timer; cycle-normalized output)`,
     `ym2612Clock: ${header.ym2612Clock}`,
     `ym2203Clock: ${header.ym2203Clock}`,
     `y8950Clock: ${header.y8950Clock}`,

@@ -97,6 +97,7 @@ okim6295audioengine.js
 ym2610b.js
 ym2610baudioengine.js
 genesisaudioengine.js
+pwm32x.js
 rf5c164.js
 rf5c164synth.js
 rf5c164_pcm.js
@@ -326,6 +327,9 @@ cp "${ROOT_DIR}/third_party/mame-rf5c164/LICENSE" "${ROOT_DIR}/third_party/mame-
 mkdir -p "${STAGE_DIR}/licenses/mame-k051649"
 cp "${ROOT_DIR}/third_party/mame-k051649/LICENSE" "${ROOT_DIR}/third_party/mame-k051649/README.md" "${STAGE_DIR}/licenses/mame-k051649/"
 
+mkdir -p "${STAGE_DIR}/licenses/mame-32x-pwm"
+cp "${ROOT_DIR}/third_party/mame-32x-pwm/LICENSE" "${ROOT_DIR}/third_party/mame-32x-pwm/README.md" "${STAGE_DIR}/licenses/mame-32x-pwm/"
+
 mkdir -p "${STAGE_DIR}/licenses/mame-segapcm"
 cp "${ROOT_DIR}/third_party/mame-segapcm/LICENSE" "${ROOT_DIR}/third_party/mame-segapcm/README.md" "${STAGE_DIR}/licenses/mame-segapcm/"
 
@@ -358,6 +362,8 @@ K051649 (Konami SCC): MAME adaptation by Bryan McPhail, BSD-3-Clause. See licens
 Sega PCM (315-5218): MAME adaptation by Hiromitsu Shioya, Olivier Galibert, BSD-3-Clause. See licenses/mame-segapcm/LICENSE and README.md.
 
 Game Boy APU (LR35902 DMG): MAME adaptation by Wilbert Pol, Anthony Kruize, BSD-3-Clause. See licenses/mame-gameboy/LICENSE and README.md.
+
+MAME 32X PWM adaptation: BSD-3-Clause. See licenses/mame-32x-pwm/.
 
 This package includes two YM2612 engine options:
 

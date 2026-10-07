@@ -207,11 +207,11 @@ class HeaderMixedAudioEngine extends MultiChipAudioEngine {
   loadWaveRom(data){this.entries.get('ymf278b:0')?.engine.loadWaveRom(data);}
   setRhythmMuted(value){this.entries.get('ym2608:0')?.engine.setRhythmMuted(value);}
 }
-async function createHeaderMixedEngine(configuration,resource,volume){
+async function createHeaderMixedEngine(configuration,resource,volume,options){
   const parts=[];
   try{
     for(const part of configuration.parts){
-      const engine=await recipes[part.kind]({header:part.header},resource,1);
+      const engine=await recipes[part.kind]({header:part.header},resource,1,options);
       parts.push({...part,engine});
     }
     return new HeaderMixedAudioEngine(parts,volume);
@@ -307,7 +307,7 @@ const recipes = {
         ym2608Clock: vgm.header.ym2608Clock,
         masterVolume,
       }),
-  ym2612: async (vgm, resource, masterVolume) => createGenesisAudioEngine({
+  ym2612: async (vgm, resource, masterVolume, options = {}) => createGenesisAudioEngine({
         ym2612ModuleFactory: await resource('ym2612'),
         segaPsgModuleFactory: await resource('segapsg'),
         ym2612Clock: (vgm.header.ym2612Clock & 0x3fffffff) || undefined,
@@ -316,10 +316,15 @@ const recipes = {
         rf5c164ModuleFactory: Boolean(vgm.header.rf5c164Clock)
           ? await resource('rf5c164') : undefined,
         masterVolume,
+        pwmModel: vgm.header.pwmClock ? options.pwmModel : 'legacy',
+        pwmClock: vgm.header.pwmClock & 0x3fffffff,
+        pwmOutputMode: options.pwmOutputMode,
       }),
 };
 /** Factories are supplied by the host. No URL, filesystem or output device here. */
-export async function createPlaybackEngine(vgm, {getFactory, masterVolume=1, roms={}, allowMissingYm2608RhythmRom=false} = {}) {
+export async function createPlaybackEngine(vgm, {getFactory, masterVolume=1, roms={}, allowMissingYm2608RhythmRom=false, pwmModel='mame', pwmOutputMode='duty'} = {}) {
+  if (!['legacy', 'mame'].includes(pwmModel)) throw new Error('Unknown PWM model');
+  if (!['dac', 'duty'].includes(pwmOutputMode)) throw new Error('Unknown PWM output mode');
   const configuration = selectPlaybackConfiguration(vgm);
   // Browser audition can omit the rhythm source; full CLI rendering stays strict.
   for (const name of configuration.requiredRoms) {
@@ -333,7 +338,7 @@ export async function createPlaybackEngine(vgm, {getFactory, masterVolume=1, rom
   };
   let engine;
   try {
-    engine = configuration.kind==='mixed' ? await createHeaderMixedEngine(configuration,resource,masterVolume) : await recipes[configuration.kind]({header:configuration.header},resource,masterVolume);
+    engine = configuration.kind==='mixed' ? await createHeaderMixedEngine(configuration,resource,masterVolume,{pwmModel,pwmOutputMode}) : await recipes[configuration.kind]({header:configuration.header},resource,masterVolume,{pwmModel,pwmOutputMode});
     if (configuration.kind!=='mixed' && configuration.header.okim6295Clock && !engine.writeOki6295) attachOki6295(engine, new Oki6295AudioEngine({clock:configuration.header.okim6295Clock,outputSampleRate:engine.sampleRate()}));
     if (configuration.kind!=='mixed' && vgm.header.okim6258Clock && typeof engine.writeOki6258 !== 'function') {
       const oki = await Oki6258AudioEngine.create({moduleFactory:await resource('okim6258'),clock:vgm.header.okim6258Clock,flags:vgm.header.okim6258Flags,outputSampleRate:engine.sampleRate()});

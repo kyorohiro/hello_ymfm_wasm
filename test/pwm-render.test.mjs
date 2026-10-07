@@ -17,10 +17,13 @@ test('32X PWM direct/stream/stereo and Genesis combinations match Browser engine
       ym2612ModuleFactory:await getNodePlaybackFactory('ym2612'),segaPsgModuleFactory:await getNodePlaybackFactory('segapsg'),
       ym2612Clock:h.ym2612Clock||undefined,psgClock:h.psgClock||undefined,
       rf5c164Clock:h.rf5c164Clock,rf5c164ModuleFactory:h.rf5c164Clock?await getNodePlaybackFactory('rf5c164'):undefined,
+      pwmModel:'mame',pwmClock:h.pwmClock,
     });
     try{
       const p=createPlaybackPlayer(e,source);
-      if(name==='stereo'){p.play();const l=new Float32Array(100),r=new Float32Array(100);p.process(l,r,100);for(let i=0;i<100;i++)assert.equal(l[i]-r[i],1);}
+      if(name==='stereo'){p.play();const l=new Float32Array(100),r=new Float32Array(100);p.process(l,r,100);
+        assert(l[0]-r[0]>0&&l[0]-r[0]<1,'first FIFO value waits for the PWM timer');
+        for(let i=1;i<100;i++)assert(Math.abs(l[i]-r[i]-1)<1e-6);}
       for(let run=0;run<2;run++){p.reset();p.play();assert.deepEqual(result.bytes,(await renderVgmToWav(p,{maxSeconds:.05})).bytes);}
       if(name==='all')for(const mute of [()=>e.setPwmMuted(true),()=>e.setPcmMuted(true),()=>e.setPsgMuted(true)]){
         p.reset();mute();p.play();assert.notDeepEqual(result.bytes,(await renderVgmToWav(p,{maxSeconds:.05})).bytes);

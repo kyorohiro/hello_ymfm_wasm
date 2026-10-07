@@ -8,6 +8,7 @@ import { Ym2612, YM2612_CLOCK } from "./ym2612.js";
 import { SegaPSG, SEGAPSG_CLOCK } from "./segapsg.js";
 
 import { Rf5c164 } from "./rf5c164.js";
+import {PWM32X} from './pwm32x.js';
 
 /**
  * GenesisAudioEngine adapter for synchronous stereo rendering and VGM register dispatch.
@@ -17,11 +18,14 @@ import { Rf5c164 } from "./rf5c164.js";
 export class GenesisAudioEngine {
   #states = new WeakMap();
 
-  constructor(ym2612, psg, sampleRate, masterVolume = 1, pcm = null) {
+  constructor(ym2612, psg, sampleRate, masterVolume = 1, pcm = null, pwmOptions = {}) {
     this.ym2612 = ym2612;
     this.psg = psg;
     this.pcm = pcm;
-    this.pwm = new SimplePwm();
+    if (!['legacy', 'mame'].includes(pwmOptions.model ?? 'legacy')) throw new Error('Unknown PWM model');
+    const outputMode = pwmOptions.outputMode ?? 'duty';
+    this.pwm = pwmOptions.model === 'mame' ? new PWM32X({...pwmOptions, sampleRate, outputMode,
+      gain:outputMode === 'duty' ? 1 : .4}) : new SimplePwm();
     this._pcmMuted = false;
     this._psgMuted = false;
     this._sampleRate = sampleRate;
@@ -37,6 +41,10 @@ export class GenesisAudioEngine {
    * @returns {Promise<GenesisAudioEngine>} Initialized engine owned by the caller.
    */
   static async create(options = {}) {
+    if (!['legacy', 'mame'].includes(options.pwmModel ?? 'legacy')) throw new Error('Unknown PWM model');
+    if (!['dac', 'duty'].includes(options.pwmOutputMode ?? 'duty')) throw new Error('Unknown PWM output mode');
+    if (options.pwmModel === 'mame' && options.pwmClock !== undefined && options.pwmClock !== 0 &&
+      (!Number.isFinite(options.pwmClock) || options.pwmClock <= 0 || options.pwmClock > 100000000)) throw new RangeError('Invalid PWM clock');
     const {
       ym2612ModuleFactory,
       ym2612ModuleOptions,
@@ -81,7 +89,8 @@ export class GenesisAudioEngine {
       psg,
       sampleRate,
       masterVolume,
-      pcm
+      pcm,
+      {model:options.pwmModel, clock:options.pwmClock || undefined, outputMode:options.pwmOutputMode}
     );
   }
 
@@ -93,6 +102,7 @@ export class GenesisAudioEngine {
     this.ym2612.dispose();
     this.psg.dispose();
     this.pcm?.dispose();
+    this.pwm.dispose?.();
   }
 
   supportsState() {
@@ -100,19 +110,21 @@ export class GenesisAudioEngine {
     return !this.writeOki6258 && this.ym2612.supportsState?.() && this.psg.supportsState?.() && (!this.pcm || this.pcm.supportsState?.());
   }
   stateSettingsKey() {
-    return JSON.stringify([this._sampleRate, this._masterVolume, this._psgMuted, this._pcmMuted, this.pwm.muted]);
+    return JSON.stringify([this._sampleRate, this._masterVolume, this._psgMuted, this._pcmMuted, this.pwm.muted,
+      this.pwm.constructor.name, this.pwm.clock, this.pwm.gain, this.pwm.outputMode]);
   }
   saveState() {
     if (!this.supportsState()) throw new Error('Genesis state saving unavailable');
     const data = {ym: this.ym2612.saveState(), psg: this.psg.saveState(), pcm: this.pcm?.saveState(),
       pwm: this.pwm.saveState(), key: this.stateSettingsKey()};
-    const state = Object.freeze({byteLength: data.ym.byteLength + data.psg.byteLength + (data.pcm?.byteLength || 0) + 64});
+    const state = Object.freeze({byteLength: data.ym.byteLength + data.psg.byteLength + (data.pcm?.byteLength || 0) + (data.pwm.byteLength || 64)});
     this.#states.set(state, data); return state;
   }
   validateState(state) {
     const data = this.#states.get(state);
     if (!this.supportsState() || !data || data.key !== this.stateSettingsKey()) throw new Error('Incompatible Genesis state');
     this.ym2612.validateState(data.ym); this.psg.validateState(data.psg); this.pcm?.validateState(data.pcm);
+    this.pwm.validateState?.(data.pwm);
   }
   loadState(state) {
     this.validateState(state);
@@ -225,14 +237,15 @@ export class GenesisAudioEngine {
     const pcm = this.pcm?.generateStereo(frames);
     const pcmGain = this._pcmMuted ? 0 : 1;
     const psgGain = this._psgMuted ? 0 : 0.35;
-    const [pwmLeft, pwmRight] = this.pwm.output();
+    const pwm = this.pwm.generateStereo?.(frames);
+    const [pwmLeft, pwmRight] = pwm ? [0, 0] : this.pwm.output();
 
     for (let index = 0; index < frames; index += 1) {
       left[index] =
-        (ym.left[index] * 0.9 + psg.left[index] * psgGain + pwmLeft + (pcm ? pcm.left[index] * pcmGain : 0)) *
+        (ym.left[index] * 0.9 + psg.left[index] * psgGain + (pwm ? pwm.left[index] : pwmLeft) + (pcm ? pcm.left[index] * pcmGain : 0)) *
         this._masterVolume;
       right[index] =
-        (ym.right[index] * 0.9 + psg.right[index] * psgGain + pwmRight + (pcm ? pcm.right[index] * pcmGain : 0)) *
+        (ym.right[index] * 0.9 + psg.right[index] * psgGain + (pwm ? pwm.right[index] : pwmRight) + (pcm ? pcm.right[index] * pcmGain : 0)) *
         this._masterVolume;
     }
   }

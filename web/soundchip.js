@@ -5,6 +5,7 @@
  */
 import { createSoundChipFactory } from './soundchip_factory.js';
 import {createWorkletSoundChip} from './soundchip_worklet.js';
+import {PWM32X} from './pwm32x.js';
 export {encodeWav} from './wav.js';
 
 /**
@@ -149,5 +150,8 @@ export function createSoundChip(name, options = {}) {
     });
   }
   if (options.execution !== undefined && options.execution !== 'direct') return Promise.reject(new Error('Unknown sound-chip execution mode'));
+  if (name === 'pwm') {
+    return Promise.resolve().then(() => {options.signal?.throwIfAborted(); return new PWM32X(options);});
+  }
   return createLocalSoundChip(name, options);
 }

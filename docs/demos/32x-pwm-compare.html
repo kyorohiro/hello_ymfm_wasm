@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="ja"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>32X PWM comparison</title>
+<style>body{max-width:850px;margin:40px auto;padding:0 20px;font:16px/1.7 system-ui;background:#182322;color:#eee}button,input{font:inherit;margin:8px;padding:8px}a{color:#9ed9d2}pre{white-space:pre-wrap}</style>
+<h1>32X PWM：従来方式と MAME 由来コアの比較</h1>
+<p>32X PWM を含む VGM / VGZ の先頭10秒を2方式で生成します。Genesis FM / PSG / RF5C164 の混合にも対応します。</p>
+<p>両方とも曲の先頭から同じ時間を生成します。MAME 由来コアは3段 FIFO・周期・ルーティングを再現し、比較用の出力は従来方式と同じ cycle 基準の振幅に揃えています。実機との一致はまだ確認していません。</p>
+<input id="file" type="file" accept=".vgm,.vgz"><button id="render">比較音声を生成</button><button id="stop">停止</button>
+<div id="results"></div><pre id="status">VGM / VGZ を選択してください。</pre>
+<script type="module">
+import {maybeDecodeVgmFile} from '../js/vgm_file.js';
+import {Ym2612VGM} from '../js/ym2612vgm.js';
+import {createPlaybackEngine,createPlaybackPlayer} from '../vgm_analyzer/playback_core.js';
+import {renderVgmToWav} from '../vgm_analyzer/vgm_wav.js';
+import ym2612 from '../generated/ym2612_wasm.js';
+import segapsg from '../generated/segapsg_wasm.js';
+import rf5c164 from '../generated/rf5c164_wasm.js';
+const factories={ym2612,segapsg,rf5c164};
+const status=document.querySelector('#status'),results=document.querySelector('#results'),render=document.querySelector('#render');
+let context,source;const urls=[];
+function stop(){source?.stop();source=null;}
+document.querySelector('#stop').onclick=stop;
+render.onclick=async()=>{
+ const file=document.querySelector('#file').files[0];if(!file){status.textContent='VGM / VGZ を選択してください。';return;}
+ render.disabled=true;stop();results.replaceChildren();for(const url of urls)URL.revokeObjectURL(url);urls.length=0;
+ try{
+  const buffer=await maybeDecodeVgmFile(await file.arrayBuffer()),parser=new Ym2612VGM(buffer,{logger:null});
+  if(!parser.header.pwmClock)throw new Error('32X PWM を含む VGM が必要です。');
+  for(const pwmModel of ['legacy','mame']){
+   status.textContent=`Generating ${pwmModel}…`;
+   const engine=await createPlaybackEngine(parser,{pwmModel,getFactory:async name=>{if(!factories[name])throw new Error(`この比較ページの対象外: ${name}`);return factories[name];}});
+   let wav;try{const player=createPlaybackPlayer(engine,buffer);player.play();wav=(await renderVgmToWav(player,{maxSeconds:10})).bytes;}finally{engine.dispose();}
+   const row=document.createElement('p'),play=document.createElement('button'),download=document.createElement('a');
+   play.textContent=`Play ${pwmModel}`;play.onclick=async()=>{try{stop();context??=new AudioContext();await context.resume();const audio=await context.decodeAudioData(wav.slice().buffer);source=context.createBufferSource();source.buffer=audio;source.connect(context.destination);source.start();}catch(error){status.textContent=error.message;}};
+   const url=URL.createObjectURL(new Blob([wav],{type:'audio/wav'}));urls.push(url);download.href=url;download.download=`32x-${pwmModel}.wav`;download.textContent='WAV 保存';row.append(play,download);results.append(row);
+  }
+  status.textContent=`Ready: ${file.name}\nPWM clock: ${parser.header.pwmClock} Hz`;
+ }catch(error){status.textContent=`Error: ${error.message}`;}finally{render.disabled=false;}
+};
+window.addEventListener('pagehide',()=>{stop();void context?.close();for(const url of urls)URL.revokeObjectURL(url);});
+</script></html>

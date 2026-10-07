@@ -113,3 +113,17 @@ chip の `dispose()` は利用者の責任で、Transport を閉じてから行�
 DirectTransport は、手元で `generateStereo()` により PCM を生成し、WAV 保存や利用者の出力へ渡す用途に使う。
 examples の `transport/direct/01-single-note` に PCM 生成・連結・Web 再生・WAV 保存をすべて記述する。
 これらの追加入口は npm 0.2.6 以降で利用できる。
+
+## 32X PWM 共通コア（開発版）
+
+`createSoundChip('pwm', {clock: 23011361, sampleRate: 48000})` は MAME 由来の
+FIFO・タイマー処理を持つ JavaScript コアを生成する。WASM・音声デバイスは不要。
+レジスタ0〜4を `writeRegister(register, value)` で設定し、`generateStereo(frames)` で進める。
+`reset` / `read` / `saveState` / `loadState` / `dispose` に対応。
+
+これはまだ npm 0.2.6 に含まれない開発版。共通Worklet / Audify Transportと
+MegaSynth / Playgroundの高水準入口は未接続。Worklet内への直接importは動作確認済み。
+VGM比較には `pwmModel: 'mame'` を使う。VGM側はcycle基準の振幅に揃える。
+元の固定DAC換算を使う場合は `pwmOutputMode: 'dac'`。コア単体の既定はDAC換算、Analyzer／CLIのVGM再生の既定はMAME由来方式とcycle基準の振幅。
+従来方式は `pwmModel: legacy` で選べる。
+詳しくは `docs/issues/pwm32x_01.md` と `docs/demos/32x-pwm-compare.html` を参照。

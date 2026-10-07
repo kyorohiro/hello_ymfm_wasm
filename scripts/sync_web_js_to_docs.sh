@@ -22,6 +22,7 @@ okim6258audioengine.js
 okim6295audioengine.js
 bitcrusher-worklet.js
 genesisaudioengine.js
+pwm32x.js
 rf5c164.js
 looper.js
 megasynth.js
