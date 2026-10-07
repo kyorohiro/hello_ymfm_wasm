@@ -1,12 +1,14 @@
 # tetorica-vgm の npm リリース手順
 
-## 0.2.8 リリース準備（2026-10-08）
+## 0.2.8 公開記録（2026-10-08）
 
+- 公開元commit: `14ba730`。
 - 共通ミキサーPCM処理を含む共有再生エンジンと、`soundchip_mixer.js`依存をnpm配布物へ同梱。
 - Playgroundの別配布スクリプトに`soundchip_mixer.js`を追加。`release/itch_playground_dev`を再生成し、Chromeのlocalhost:8888画面で404解消・エディター初期化を確認。
 - Node.js 25.2.1でCLI191テスト成功。Node.js 22.23.3で共有再生・複数チップ12テスト成功。Analyzer関連1186テスト成功（任意外部コンパイラー依存1件skip）は同じランタイム実装で確認済み。
 - 実tarballの新規導入・Node.js 22のCLI版番号／Game Boy解析／WAV出力・publish dry-runを検証。
-- 公開予定integrity: `sha512-bn9m63mT6ghWzGG/TQJWwDV21qZCvaopL64Qu2O3y/FdB3nhf17qqWQ1lk/qNedrXBfqYlb25WcY4wc69PW79A==`。
+- npm registryのlatest 0.2.8とローカルtgzのintegrity一致を確認。公開版を新規導入し、CLI版番号・Node API解析・Game Boy WAV出力・ミキサー依存ファイルを検証。
+- integrity: `sha512-bn9m63mT6ghWzGG/TQJWwDV21qZCvaopL64Qu2O3y/FdB3nhf17qqWQ1lk/qNedrXBfqYlb25WcY4wc69PW79A==`。
 
 リポジトリのルートで実行する。以下の `0.2.4` は版番号の例。
 公開済みの版を確認し、実際に公開する未使用の番号へ読み替える。
