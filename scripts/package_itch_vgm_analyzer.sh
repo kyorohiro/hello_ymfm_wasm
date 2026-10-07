@@ -157,6 +157,7 @@ native_sample.js
 native_sample_processor.js
 native_fx_rack.js
 native_fx_graph.js
+native_fx_engine.js
 native-fx-worklet.js
 custom_fx.js
 native_audio_effect.wasm

@@ -47,10 +47,12 @@ native_sample.js
 native_sample_processor.js
 native_fx_rack.js
 native_fx_graph.js
+native_fx_engine.js
 native-fx-worklet.js
 custom_fx.js
 native_audio_effect.wasm
 megasynth_recording.js
+megasynth_looper.js
 megasynth-fm-presets.js
 opn_fm_synth.js
 opn_runtime_synth.js
@@ -70,6 +72,7 @@ ym2203-worklet.js
 ym2608.js
 ym2608audioengine.js
 ym2608synth.js
+adpcm_b_sample.js
 ym2608-worklet.js
 ym2612.js
 ym2612_dac.js
@@ -139,6 +142,10 @@ mkdir -p "${STAGE_DIR}/js" "${STAGE_DIR}/generated" "${STAGE_DIR}/licenses/nuked
 
 cp "${SOURCE_HTML}" "${STAGE_DIR}/index.html"
 mkdir -p "${STAGE_DIR}/playground"
+mkdir -p "${STAGE_DIR}/vgm_analyzer"
+for file in opm_export.js opm_tfi.js opm_monitor.js stored_zip.js; do
+  cp "${ROOT_DIR}/docs/vgm_analyzer/${file}" "${STAGE_DIR}/vgm_analyzer/${file}"
+done
 cp "${ROOT_DIR}/docs/playground/playground_vgm_presets.js" "${STAGE_DIR}/playground/"
 cp "${ROOT_DIR}/docs/playground/playground_vgm_import.js" "${STAGE_DIR}/playground/"
 cp "${ROOT_DIR}/docs/playground/ym2203_high.js" "${STAGE_DIR}/playground/"
@@ -208,7 +215,7 @@ EOF
 perl -0pi -e 's#import "\\./synth\\.js";#import "./synth.js";#g' "${STAGE_DIR}/index.html"
 perl -0pi -e 's#\.\./js/([A-Za-z0-9._-]+\.js)#./js/$1#g; s#\.\./generated/#./generated/#g' "${STAGE_DIR}/synth.js"
 perl -0pi -e 's#\.\./js/([A-Za-z0-9._-]+\.js)#./js/$1#g' "${STAGE_DIR}/synth_keyboard.js" "${STAGE_DIR}/synth_runtime.js"
-perl -0pi -e 's#\.\./js/#./js/#g; s#\.\./playground/#./playground/#g' "${STAGE_DIR}/synth_preset_import.js"
+perl -0pi -e 's#\.\./js/#./js/#g; s#\.\./playground/#./playground/#g; s#\.\./vgm_analyzer/#./vgm_analyzer/#g' "${STAGE_DIR}/synth_preset_import.js"
 perl -0pi -e 's#\.\./js/megasynth\.js#./js/megasynth.js#g#' "${STAGE_DIR}/synth_runtime.js"
 perl -0pi -e 's#\./ym2612-worklet\.js#./js/ym2612-worklet.js#g; s#\./generated/ym2612_wasm\.wasm#./generated/ym2612_wasm.wasm#g' "${STAGE_DIR}/js/megasynth.js"
 perl -0pi -e 's#import ym2612ModuleFactory from "\\.\\./generated/ym2612_wasm\\.js";#import ym2612ModuleFactory from "../generated/ym2612_wasm.js";#g' "${STAGE_DIR}/js/ym2612-worklet.js"
