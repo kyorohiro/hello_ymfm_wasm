@@ -253,10 +253,10 @@ FM/PSG/PCM mixing, stop/reset and close/restart. Playwright is a development
 dependency; it is not required by users of the sound-chip runtime.
 
 The build is staged in `dist/fm2612/`; packing produces
-`tetorica-fm2612-0.2.7.tgz`. To install a local build in another project:
+`tetorica-fm2612-0.2.8.tgz`. To install a local build in another project:
 
 ```sh
-npm install /absolute/path/to/tetorica-fm2612-0.2.7.tgz
+npm install /absolute/path/to/tetorica-fm2612-0.2.8.tgz
 ```
 
 The existing `tetorica-vgm` CLI package is built separately. This first package
@@ -271,6 +271,13 @@ included; Nuked-OPN2 is LGPL-2.1-or-later, with its source and build script in
 and generator. External instrument/sample ROMs are not included.
 
 ## Release notes
+
+`0.2.8` includes JSDoc-generated TypeScript declarations for browser and Node
+entry points, typed Direct/Worklet chip creation and async Worker APIs.
+The build validates every declaration and strict installed-package examples
+under NodeNext/Bundler resolution, including a browser without Node types.
+This release also adds npm discovery keywords.
+
 
 `0.2.7` adds the MAME-derived 32X PWM core, output-frame scheduling,
 MegaSynth/MegaSynthNode integration, Playground support and PWM Worklet/Audify/Direct
@@ -322,12 +329,12 @@ Standalone `PWM32XWorkletTransport`, `PWM32XAudifyTransport` and PCM-only
 `PWM32XDirectTransport` use the same MAME-derived core.
 See [implementation and validation](https://github.com/kyorohiro/hello_ymfm_wasm/blob/main/docs/issues/pwm32x_01.md).
 
-## TypeScript (next release)
+## TypeScript (0.2.8)
 
-The development build now generates `.d.ts` and Node `.d.mts` declarations from
+Version 0.2.8 generates `.d.ts` and Node `.d.mts` declarations from
 JSDoc and includes them in the npm tarball. `types` export conditions cover the
 root, assets, Node APIs, transports and both extensionless and `.js` subpaths.
-The published 0.2.7 package predates this change.
+These declarations are available from 0.2.8; 0.2.7 predates this change.
 
 ```ts
 import {createSoundChip} from 'tetorica-fm2612';

@@ -250,10 +250,10 @@ For standalone PWM, use `createSoundChip('pwm', {outputMode: 'duty', gain: 1})` 
 PWM frame scheduling is independent of FM event recording/looping; the PWM methods are not recorded as FM events.
 These additions are available from npm 0.2.7.
 
-## TypeScript (next release)
+## TypeScript (0.2.8)
 
-Node `.d.mts` declarations are generated from JSDoc in the development build.
+Node `.d.mts` declarations are generated from JSDoc and included from npm 0.2.8.
 The exported `MegaSynthNode` options, FM/PWM commands, frame rendering,
 recording, looping and output connection APIs carry Promise return types.
-They will ship with the next npm release; published 0.2.7 does not contain them.
+Version 0.2.7 does not contain them.
 Node TypeScript projects should install `@types/node`.

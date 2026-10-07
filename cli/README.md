@@ -354,3 +354,7 @@ reconstructed. MusicXML/LilyPond use the existing sixteenth-note grid.
 cycle-normalized amplitude. The PWM clock is taken from the VGM header.
 The package includes the BSD-3-Clause license and source provenance.
 YM2151 S98 normalization is also included in this release.
+
+## Version 0.2.7
+
+Adds npm discovery keywords for VGM/VGZ/S98, sound chips and supported score exports.
