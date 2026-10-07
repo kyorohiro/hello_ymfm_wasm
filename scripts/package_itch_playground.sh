@@ -50,6 +50,7 @@ tetorica-playground-ym2612.d.ts
 "
 
 RUNTIME_FILES="
+soundchip_mixer.js
 pwm32x.js
 pwm32x_playback.js
 playground_pwm_audio.js
