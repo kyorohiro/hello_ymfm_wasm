@@ -1,0 +1,100 @@
+// Chip output trims, before the existing engine balance, master gain and FX.
+// Register writes and synthesis keep advancing even when a strip is muted.
+const properties = {
+  ym2612: 'ym2612', psg: 'psg', rf5c164: 'pcm', pwm: 'pwm',
+  ym2203: 'ym2203', ym2608: 'ym2608', ym2610: 'chip',
+  ym2151: 'ym2151', ay8910: 'ay8910', ym2413: 'ym2413',
+  y8950: 'y8950', ym3526: 'ym3526', ym3812: 'ym3812',
+  ymf262: 'ymf262', ymf278b: 'ymf278b', k051649: 'k051649',
+  segaPcm: 'segapcm', gameBoyDmg: 'gameboy',
+};
+export const mixerDefaults = () => ({gain: 1, pan: 0, muted: false});
+
+export class PlaybackMixer {
+  constructor() { this.strips = new Map(); }
+  addSource(id, source, method = 'generateStereo', rate = 44100) {
+    if (this.strips.has(id)) throw new Error(`Duplicate mixer source: ${id}`);
+    if (typeof source?.[method] !== 'function') throw new Error(`Missing mixer renderer: ${id}`);
+    const strip = {settings: mixerDefaults(), left: 1, right: 1, remaining: 0, rate};
+    this.strips.set(id, strip);
+    const render = source[method].bind(source);
+    source[method] = (...args) => {
+      const result = render(...args);
+      const pcm = method === 'generateStereoInto' ? {left: args[0], right: args[1]} : result;
+      this.apply(strip, pcm, method === 'generateStereoInto' ? (args[2] ?? args[0].length) : pcm.left.length);
+      return result;
+    };
+  }
+  set(id, settings) {
+    const strip = this.strips.get(id);
+    if (!strip) throw new Error(`Unknown mixer source: ${id}`);
+    const next = {...strip.settings, ...settings};
+    if (!Number.isFinite(next.gain) || next.gain < 0 || next.gain > 2 ||
+        !Number.isFinite(next.pan) || next.pan < -1 || next.pan > 1 || typeof next.muted !== 'boolean') {
+      throw new RangeError('Invalid mixer settings');
+    }
+    strip.settings = next;
+    strip.remaining = Math.max(1, Math.round(strip.rate * .005));
+  }
+  get(id) { return {...this.strips.get(id)?.settings}; }
+  targets(strip) {
+    const {gain, pan, muted} = strip.settings;
+    return muted ? [0, 0] : [gain * (1 - Math.max(0, pan)), gain * (1 + Math.min(0, pan))];
+  }
+  reset() {
+    for (const strip of this.strips.values()) {
+      [strip.left, strip.right] = this.targets(strip);
+      strip.remaining = 0;
+    }
+  }
+  apply(strip, pcm, frames) {
+    const [left, right] = this.targets(strip);
+    if (!strip.remaining && left === 1 && right === 1) return;
+    for (let i = 0; i < frames; i++) {
+      if (strip.remaining) {
+        strip.left += (left - strip.left) / strip.remaining;
+        strip.right += (right - strip.right) / strip.remaining;
+        strip.remaining--;
+      }
+      pcm.left[i] *= strip.left;
+      pcm.right[i] *= strip.right;
+    }
+  }
+}
+
+export function installPlaybackMixer(engine, configuration) {
+  const mixer = new PlaybackMixer();
+  const visit = (part, ids) => {
+    if (part.mixerEngine) return visit(part.mixerEngine, ids);
+    if (part.entries instanceof Map) {
+      for (const [key, entry] of part.entries) {
+        const type = key.split(':')[0];
+        const subset = configuration.parts?.find(p => p.id === type)?.chips ??
+          ids.filter(id => id === type);
+        visit(entry.engine, subset);
+      }
+      return;
+    }
+    let found = false;
+    for (const id of ids) {
+      const source = part[properties[id]];
+      if (!source) continue;
+      const method = typeof source.generateStereoInto === 'function' ? 'generateStereoInto' : 'generateStereo';
+      if (typeof source[method] !== 'function') continue;
+      mixer.addSource(id, source, method, part.chipRate ?? part.chipSampleRate ?? part._chipSampleRate ?? part.sampleRate());
+      found = true;
+    }
+    // NES, HuC6280 and OKI render directly rather than through a chip wrapper.
+    if (!found && ids.length === 1) mixer.addSource(ids[0], part, 'processFrames', part.sampleRate());
+  };
+  visit(engine, configuration.chips.map(c => c.id).filter(id =>
+    !(id === 'okim6258' && !engine.writeOki6258) && !(id === 'okim6295' && !engine.writeOki6295)));
+  const reset = engine.reset.bind(engine);
+  engine.reset = () => {reset(); mixer.reset();};
+  if (engine.stateSettingsKey) {
+    const key = engine.stateSettingsKey.bind(engine);
+    engine.stateSettingsKey = () => JSON.stringify([key(), [...mixer.strips].map(([id, strip]) => [id, strip.settings])]);
+  }
+  engine.playbackMixer = mixer;
+  return mixer;
+}

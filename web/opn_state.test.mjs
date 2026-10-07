@@ -146,7 +146,7 @@ test('Analyzer enables OPN checkpoints, retains same-song cache and restores FM/
  for(const kind of ['ym2203','ym2608','ym2610','ym2610b']){
   const e=await make(kind);try{
    const selected=kind==='ym2610b'?'ym2610':kind,bytes=shortWaitSong(fixture(kind,'ssg'));
-   const c=vm.createContext({engine:e,engineClockKey:'',currentChipKind:selected,player:null,VgmPlayer,
+   const c=vm.createContext({mixerUi:{attach(){}},engine:e,engineClockKey:'',currentChipKind:selected,player:null,VgmPlayer,
     vgm:new Ym2612VGM(bytes),currentBuffer:bytes,structuredClone,selectPlaybackConfiguration:()=>({kind:selected}),CHANNEL_MUTE_CHIPS:[],
     channelMonitor:[{muted:false,fnum:123}],monitorFrequencyHigh:[1,2],psgMonitor:{latchedRegister:6},pcmMonitor:{ramBank:3},lastYm2612DacEnable:0,
     requestChannelMonitorRender(){},applySourceMutes(){},sourceChipKind:()=>selected,effectiveSourceMutes:()=>({}),hasOkiSource:()=>false,

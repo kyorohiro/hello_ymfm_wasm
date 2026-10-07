@@ -24,6 +24,8 @@ vgm_json.js
 score_groups.js
 score_group_ui.js
 playback_core.js
+playback_mixer.js
+mixer_ui.js
 index.html
 support.html
 analyzer_theme.css
@@ -91,6 +93,19 @@ seek_playback.js
 "
 
 JS_FILES="
+soundchip.js
+soundchip_factory.js
+soundchip_worklet.js
+soundchip-output-worklet.js
+chip_pcm_renderer.js
+opn_variant.js
+wav.js
+ym3438.js
+ymf276.js
+ymf288.js
+playground_pwm_audio.js
+playground_pwm_worklet.js
+pwm32x_playback.js
 huc6280audioengine.js
 okim6258audioengine.js
 okim6295audioengine.js

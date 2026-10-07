@@ -1,3 +1,4 @@
+import {installPlaybackMixer} from './playback_mixer.js';
 import {Oki6295AudioEngine, attachOki6295} from '../js/okim6295audioengine.js';
 import {Huc6280AudioEngine} from '../js/huc6280audioengine.js';
 import {createNesApuAudioEngine,validateNesApuClock} from '../js/nesapuaudioengine.js';
@@ -163,6 +164,7 @@ function atOutputRate(engine,rate){
   if(inputRate===rate)return engine;
   let phase=0,lastLeft=0,lastRight=0;
   const adapter={
+    mixerEngine: engine,
     sampleRate:()=>rate,
     reset(){engine.reset();phase=lastLeft=lastRight=0;},
     dispose:()=>engine.dispose(),
@@ -339,9 +341,15 @@ export async function createPlaybackEngine(vgm, {getFactory, masterVolume=1, rom
   let engine;
   try {
     engine = configuration.kind==='mixed' ? await createHeaderMixedEngine(configuration,resource,masterVolume,{pwmModel,pwmOutputMode}) : await recipes[configuration.kind]({header:configuration.header},resource,masterVolume,{pwmModel,pwmOutputMode});
-    if (configuration.kind!=='mixed' && configuration.header.okim6295Clock && !engine.writeOki6295) attachOki6295(engine, new Oki6295AudioEngine({clock:configuration.header.okim6295Clock,outputSampleRate:engine.sampleRate()}));
+    const mixer = installPlaybackMixer(engine, configuration);
+    if (configuration.kind!=='mixed' && configuration.header.okim6295Clock && !engine.writeOki6295) {
+      const oki = new Oki6295AudioEngine({clock:configuration.header.okim6295Clock,outputSampleRate:engine.sampleRate()});
+      mixer.addSource('okim6295', oki, 'processFrames', engine.sampleRate());
+      attachOki6295(engine, oki);
+    }
     if (configuration.kind!=='mixed' && vgm.header.okim6258Clock && typeof engine.writeOki6258 !== 'function') {
       const oki = await Oki6258AudioEngine.create({moduleFactory:await resource('okim6258'),clock:vgm.header.okim6258Clock,flags:vgm.header.okim6258Flags,outputSampleRate:engine.sampleRate()});
+      mixer.addSource('okim6258', oki, 'processFrames', engine.sampleRate());
       attachOki6258(engine,oki);
     }
     if (configuration.header.ym2608Clock && allowMissingYm2608RhythmRom && !roms.ym2608AdpcmA) engine.setRhythmMuted(true);

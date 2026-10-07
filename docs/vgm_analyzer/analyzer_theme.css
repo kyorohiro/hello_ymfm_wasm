@@ -231,3 +231,9 @@ button.instrument-specs:focus-visible { outline: 3px solid var(--accent); outlin
 .chip-support-table th, .chip-support-table td { padding: 10px; border: 1px solid var(--line); text-align: left; vertical-align: top; }
 .chip-support-table thead { background: var(--accent-dark); color: white; }
 .chip-support-dialog li { margin: 10px 0; }
+
+.mixer-toolbar, .mixer-strip-title { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.mixer-strip { padding: 10px 0; border-top: 1px solid var(--accent-dark); display: flex; flex-direction: column; gap: 8px; }
+.mixer-control { display: flex; align-items: center; gap: 8px; font-size: .85rem; }
+.mixer-control input[type="range"] { flex: 1; min-width: 0; }
+.mixer-control output { min-width: 4em; text-align: right; font-variant-numeric: tabular-nums; }

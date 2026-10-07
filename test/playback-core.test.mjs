@@ -40,7 +40,7 @@ async function browserPlayer(source) {
     createPlaybackEngine,selectPlaybackConfiguration,VgmPlayer,
     getBrowserPlaybackFactory:getNodePlaybackFactory,currentBuffer:source,
     currentChipKind:'ym2612',engine:null,player:null,engineClockKey:null,
-    masterVolume:1,ym2608AdpcmARomBytes:null,ymf278bWaveRomBytes:null,
+    mixerUi:{attach:noOp},masterVolume:1,ym2608AdpcmARomBytes:null,ymf278bWaveRomBytes:null,
     CHANNEL_MUTE_CHIPS:[],channelMonitor:[],
     observePsgPlaybackEngine:noOp,applySourceMutes:noOp,applyMasterVolume:noOp,
     sourceChipKind:()=> 'ym2612',effectiveSourceMutes:()=>({}),hasOkiSource:()=>false,
@@ -97,7 +97,7 @@ test('Browser and CLI call shared creation; Core has no platform imports',async(
 test('shared creation disposes the primary engine when an attached resource fails',async()=>{
   const original=GenesisAudioEngine.create;
   let disposed=0;
-  GenesisAudioEngine.create=async()=>({sampleRate:()=>44100,dispose:()=>disposed++});
+  GenesisAudioEngine.create=async()=>({sampleRate:()=>44100,reset(){},processFrames:n=>({left:new Float32Array(n),right:new Float32Array(n)}),dispose:()=>disposed++});
   try {
     await assert.rejects(createPlaybackEngine(parser({ym2612Clock:7670454,okim6258Clock:4000000,okim6258Flags:4}),{
       getFactory:name=>name==='okim6258'?undefined:()=>{},
@@ -117,7 +117,7 @@ test('OPN recipes use the same injected factory and ROM contract without a CLI e
   ]) {
     const original=Engine.create,factory=()=>{},requests=[],rom=new Uint8Array([1,2]);
     let options,loaded;
-    Engine.create=async o=>{options=o;return {dispose(){},loadAdpcmARom:r=>{loaded=r;}};};
+    Engine.create=async o=>{options=o;return {sampleRate:()=>44100,reset(){},processFrames:n=>({left:new Float32Array(n),right:new Float32Array(n)}),dispose(){},loadAdpcmARom:r=>{loaded=r;}};};
     try {
       const engine=await createPlaybackEngine(parser(header),{getFactory:name=>{requests.push(name);return factory;},roms:resource==='ym2608'?{ym2608AdpcmA:rom}:{}});
       assert.deepEqual(requests,[resource]);assert.equal(options[key],factory);

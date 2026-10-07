@@ -68,6 +68,7 @@ test('all supported clocks instantiate with isolated targets; unknown chips/dual
  const engine=await createPlaybackEngine({...vgm,requiresYm2608RhythmRom:()=>false,requiresYmf278bWaveRom:()=>false},{getFactory:getNodePlaybackFactory});
  try{
   assert.equal(engine.sampleRate(),44100);
+  assert.deepEqual([...engine.playbackMixer.strips.keys()].sort(),c.chips.map(c=>c.id).sort());
   const pcm=engine.processFrames(17);assert.equal(pcm.left.length,17);assert(pcm.left.every(Number.isFinite));
   const calls=[];
   for(const id of ['y8950','ymf278b','segaPcm'])engine.entries.get(id+':0').engine.loadSampleMemory=(...args)=>calls.push([id,...args]);

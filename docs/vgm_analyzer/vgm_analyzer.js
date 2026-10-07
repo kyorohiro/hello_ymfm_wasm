@@ -1,3 +1,4 @@
+import {createMixerUi} from './mixer_ui.js';
 import {connectDesktop} from './desktop_interface.js';
 import {exportFmRegisterSnapshot} from './fm_snapshot.js';
 import {updateNoteishHtml, updateNoteishGraph} from './noteish_dom.js';
@@ -12,7 +13,7 @@ import {createOpl3Monitor,applyOpl3Write,describeOpl3Notes} from './ymf262_notes
 import {createNesMonitor,applyNesWrite,describeNesNotes} from './nes_notes.js';
 import {createDefaultTfiPreset, findOperatorFromSlotOffset, cloneTfiPreset, presetSignature, decodeKeyOnChannel, extractTfiPatchesFromVgm} from './tfi_extract.js';
 import {createStoredZipBytes} from './stored_zip.js';
-import { createPlaybackEngine, selectPlaybackConfiguration, detectPlaybackChipKindFromVgm, detectPlaybackChipKind } from './playback_core.js?v=optional-opna-rom-1';
+import { createPlaybackEngine, selectPlaybackConfiguration, detectPlaybackChipKindFromVgm, detectPlaybackChipKind } from './playback_core.js?v=chip-mixer-1';
 import { mountMusicSheet } from "./music_sheet.js?v=tab-1";
 import { renderVgmToWav } from "./vgm_wav.js";
 import { createExportTempoSettings } from "./export_tempo.js";
@@ -258,14 +259,17 @@ function createReverbImpulse(context, duration = 2, decay = 3) {
 }
 
 function setDockView(mode) {
-  if (!['play', 'effect'].includes(mode)) return;
+  if (!['play', 'effect', 'mixer'].includes(mode)) return;
   dockPlayPane.hidden = mode !== 'play';
   dockEffectPane.hidden = mode !== 'effect';
+  document.getElementById('dockMixerPane').hidden = mode !== 'mixer';
+  document.getElementById('dockMixerTab').setAttribute('aria-pressed', String(mode === 'mixer'));
   dockPlayTab.setAttribute('aria-pressed', String(mode === 'play'));
   dockEffectTab.setAttribute('aria-pressed', String(mode === 'effect'));
 }
 dockPlayTab.addEventListener('click', () => setDockView('play'));
 dockEffectTab.addEventListener('click', () => setDockView('effect'));
+document.getElementById('dockMixerTab').addEventListener('click', () => setDockView('mixer'));
 
 // Textbook chain order: EQ -> Noise Gate -> Compressor -> time-based effects
 // (Reverb) -> final output Gain. Gate ahead of Compressor keeps the noise
@@ -518,6 +522,15 @@ let lastStreamingStatusSuffix = "";
 let lastStreamingStatusAt = 0;
 let lastParseInfo = null;
 let masterVolume = 1;
+const mixerUi = createMixerUi({
+  container: document.getElementById('mixerStrips'),
+  resetButton: document.getElementById('mixerReset'),
+  onChange() { player?.clearCheckpoints(); flushPendingAudio(); },
+});
+document.getElementById('mixerMaster').addEventListener('input', event => {
+  masterVolume = Number(event.target.value) / 100;
+  updateMasterVolumeUi(); applyMasterVolume(); flushPendingAudio();
+});
 let playbackPreparePromise = null;
 let activeYm2203ModuleFactoryPromise = null;
 let activeYm2608ModuleFactoryPromise = null;
@@ -592,6 +605,8 @@ function currentStatusSuffix() {
 }
 
 function updateMasterVolumeUi() {
+  document.getElementById('mixerMaster').value = String(Math.round(masterVolume * 100));
+  document.getElementById('mixerMasterValue').textContent = `${Math.round(masterVolume * 100)}%`;
   if (masterVolumeRange) {
     masterVolumeRange.value =
       String(Math.round(masterVolume * 100));
@@ -2651,6 +2666,7 @@ async function ensurePlaybackReady(vgm) {
       baseEngineWriteYm2612 = engine.writeYm2612.bind(engine);
     }
   }
+  mixerUi.attach(engine.playbackMixer);
   engineClockKey = nextClockKey;
   if (currentChipKind === "ym2203") channelMonitor.forEach((channel, index) => engine.setChannelMuted(index, channel.muted));
   if (CHANNEL_MUTE_CHIPS.includes(currentChipKind)) channelMutesForChip(currentChipKind).forEach((muted, index) => engine.setChannelMuted(index, muted));
@@ -3279,6 +3295,7 @@ async function handleFile(file, preserveEditor = false) {
   player?.pause();
   setStatus(`Loading ${file.name}...`);
   lastLoadedFileName = file.name;
+  mixerUi.load(null);
   const rawBuffer = await file.arrayBuffer();
   currentBuffer = null;
   exportMmlButton.disabled = true;
@@ -3333,6 +3350,7 @@ async function handleFile(file, preserveEditor = false) {
   let playbackConfiguration;
   try { playbackConfiguration=selectPlaybackConfiguration(vgm); } catch { /* Playback reports unsupported chips; parsing remains available. */ }
   const nextChipKind = playbackConfiguration?.kind ?? detectPlaybackChipKindFromVgm(vgm);
+  mixerUi.load(playbackConfiguration);
   mixedPlaybackParts = playbackConfiguration?.parts ?? [];
   if (engine && currentChipKind !== nextChipKind) {
     stopActiveStream();

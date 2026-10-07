@@ -101,7 +101,7 @@ test('Analyzer retains OPM checkpoints and restores OPM displays on backward see
  try{
   const monitor=createOpmState(()=>0),tracker=createOpmNoteTracker(3579545,()=>{});
   monitor.write(0x19,41);tracker.write(0x28,0x4a,0);tracker.write(8,0x78,10);
-  const c=vm.createContext({engine:e,engineClockKey:'',currentChipKind:'ym2151',player:null,VgmPlayer,
+  const c=vm.createContext({mixerUi:{attach(){}},engine:e,engineClockKey:'',currentChipKind:'ym2151',player:null,VgmPlayer,
    vgm:new Ym2612VGM(bytes),currentBuffer:bytes,structuredClone,selectPlaybackConfiguration:()=>({kind:'ym2151'}),CHANNEL_MUTE_CHIPS:[],
    channelMonitor:[],monitorFrequencyHigh:[],psgMonitor:{latchedRegister:6},pcmMonitor:{},lastYm2612DacEnable:0,
    opmMonitor:monitor,opmNoteTracker:tracker,opmNoteChannels:structuredClone(tracker.channels),

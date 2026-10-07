@@ -563,7 +563,7 @@
       }
 
     </style>
-    <link rel="stylesheet" href="./analyzer_theme.css?v=chip-support-1">
+    <link rel="stylesheet" href="./analyzer_theme.css?v=chip-mixer-1">
   </head>
   <body>
     <p id="chipSupportNotice" role="status" hidden>YM2413 analysis and instrument editing: Support coming soon.</p>
@@ -953,6 +953,7 @@
       <div class="playback-dock-tools">
         <button id="dockPlayTab" class="link-button" type="button" aria-controls="dockPlayPane" aria-pressed="true">Play/Ch</button>
         <button id="dockEffectTab" class="link-button" type="button" aria-controls="dockEffectPane" aria-pressed="false">Effect</button>
+        <button id="dockMixerTab" class="link-button" type="button" aria-controls="dockMixerPane" aria-pressed="false">Mixer</button>
       </div>
       <div class="playback-dock-scroll">
         <div id="dockPlayPane">
@@ -967,6 +968,11 @@
             <button id="stopButton" type="button" disabled>Stop</button>
           </div>
           <div id="monitorToggles" class="monitor-toggles" role="group" aria-label="Playback channel and sound source toggles"></div>
+        </div>
+        <div id="dockMixerPane" hidden>
+          <div class="mixer-toolbar"><strong>Chip Mixer</strong><button id="mixerReset" type="button" class="link-button">Reset</button></div>
+          <label class="mixer-control">Master<input id="mixerMaster" aria-label="Mixer master volume" type="range" min="0" max="380" value="100"><output id="mixerMasterValue" for="mixerMaster">100%</output></label>
+          <div id="mixerStrips"><p>Load a VGM to adjust chip levels.</p></div>
         </div>
         <div id="dockEffectPane" hidden>
           <button id="effectEnabled" type="button" class="channel-toggle is-muted" aria-pressed="false">Effect Off</button>
@@ -983,7 +989,7 @@
       </div>
     </section>
 
-    <script type="module" src="./vgm_analyzer.js?v=gb-info-perf-1"></script>
+    <script type="module" src="./vgm_analyzer.js?v=chip-mixer-1"></script>
   <dialog id="scoreGroupDialog"><form method="dialog">
 <h2>Channel Groups</h2><p>Combine notes for scores and the Song timeline. Playback and live physical CH monitors are unchanged. Settings last for this loaded track only.</p>
 <button type="button" data-all>Merge all channels</button> <button type="button" data-clear>Clear groups</button>

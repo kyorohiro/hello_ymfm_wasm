@@ -129,7 +129,7 @@ test('Analyzer preparation retains same-track checkpoints and restores monitor s
  const body=source.slice(source.indexOf('async function ensurePlaybackReady('),source.indexOf('\nfunction isPlaybackReady('));
  const e=await make(false);try {
   let renders=0;const bytes=song();
-  const c=vm.createContext({engine:e,engineClockKey:'',currentChipKind:'ym2612',player:null,VgmPlayer,
+  const c=vm.createContext({mixerUi:{attach(){}},engine:e,engineClockKey:'',currentChipKind:'ym2612',player:null,VgmPlayer,
     vgm:new Ym2612VGM(bytes),currentBuffer:bytes,structuredClone,
     selectPlaybackConfiguration:()=>({kind:'ym2612'}),CHANNEL_MUTE_CHIPS:[],
     channelMonitor:[{muted:false,fnum:123}],monitorFrequencyHigh:[1,2],psgMonitor:{latchedRegister:6},pcmMonitor:{ramBank:3},lastYm2612DacEnable:128,
