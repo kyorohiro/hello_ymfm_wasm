@@ -290,7 +290,8 @@ FM/PSG/RF5C164 combinations and their full mix, plus installed CLI/Node output.
 ## S98 input and source documents
 
 S98 uses the Browser's existing S98 → VGM converter for analyze/export/render.
-Supported: versions 0–3, one YM2203, YM2608 or YM2612 device. Compressed S98,
+Supported: versions 0–3, one YM2203, YM2608, YM2612 or YM2151 device.
+YM2151 S98 normalization is a repository addition after npm 0.2.5; it is not in that published CLI version. Compressed S98,
 multiple devices, device panning and other device types are rejected. Rendering
 keeps the existing ROM requirements and does not expand loops.
 

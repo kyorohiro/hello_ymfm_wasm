@@ -40,10 +40,10 @@ export function convertS98ToVgm(source) {
     }
   }
   if (!devices.length) devices.push({ type: 4, clock: 7987200, pan: 0 });
-  if (devices.length !== 1) fail("multiple devices are not supported; use one YM2203, YM2608 or YM2612");
+  if (devices.length !== 1) fail("multiple devices are not supported; use one YM2203, YM2608, YM2612 or YM2151");
   const device = devices[0];
-  const config = { 2: [0x55, 0x44, "YM2203"], 3: [0x52, 0x2c, "YM2612"], 4: [0x56, 0x48, "YM2608"] }[device.type];
-  if (!config) fail(`unsupported device type ${device.type}; supported: YM2203, YM2608, YM2612`);
+  const config = { 2: [0x55, 0x44, "YM2203"], 3: [0x52, 0x2c, "YM2612"], 4: [0x56, 0x48, "YM2608"], 5: [0x54, 0x30, "YM2151"] }[device.type];
+  if (!config) fail(`unsupported device type ${device.type}; supported: YM2203, YM2608, YM2612, YM2151`);
   if (!device.clock || device.clock >= 0x40000000) fail("invalid device clock");
   if (device.pan) fail("device-level panning is not supported");
   const output = new Array(0x100).fill(0);
@@ -82,7 +82,7 @@ export function convertS98ToVgm(source) {
       wait(value + 2);
       continue;
     }
-    if (command > 1 || (device.type === 2 && command === 1)) fail(`invalid device/port command ${command}`);
+    if (command > 1 || ([2, 5].includes(device.type) && command === 1)) fail(`invalid device/port command ${command}`);
     if (pos + 2 > dataEnd) fail("truncated register write");
     output.push(config[0] + command, bytes[pos++], bytes[pos++]);
   }

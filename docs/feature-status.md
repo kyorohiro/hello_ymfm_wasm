@@ -1,6 +1,6 @@
 # Tetorica 機能対応状況
 
-更新日：2026-10-06。**現在のリポジトリの機能を探す入口**。
+更新日：2026-10-07。**現在のリポジトリの機能を探す入口**。
 機能単位の状態はこの一覧で管理し、細かなチップ条件・設計・作業経緯はリンク先に残す。
 公開版と現在のコードは同一とは限らない。再生対応だけで、音色Export・高速シーク・高水準APIも対応済みとは判断しない。
 
@@ -25,7 +25,7 @@ Playback欄の`Seek cache`表示で高速シークの対応構成を確認でき
 | 機能 | 実装・範囲 | 制限・残作業 | 自動検証・詳細 |
 |---|---|---|---|
 | VGM／VGZ再生・音源別表示・ミュート | 実装済。OPN／OPM／OPL／PSG／PCMなど | 対応はチップ・Dual・併用構成ごとに異なる | [対応表](vgm_analyzer/support.html)、[再生構成判定](vgm_analyzer/playback_core.js) |
-| S98入力 | 一部。単一YM2203／YM2608／YM2612 | 圧縮S98・複数デバイスは未対応 | [入力仕様](../CLI.md#s98-input-and-source-documents) |
+| S98入力 | 一部。単一YM2203／YM2608／YM2612／YM2151 | 圧縮S98・複数デバイスは未対応。YM2151の追加はローカル版で、npm 0.2.6には未収録 | [入力仕様](../CLI.md#s98-input-and-source-documents) |
 | 高速シーク | 一部。OPN／OPM／Genesis構成 | 下の専用表参照。実曲・長時間のブラウザー試聴未確認、公開版未照合 | [成功記録・詳細](issues/seekvgm_save_load_01.md) |
 | Note-ish／楽譜表示・MIDI／MusicXML／LilyPond Export | 一部。対応音源の基音・キー区間を抽出 | 原譜の復元ではない。チップごとに除外区間あり | [対応表](vgm_analyzer/support.html)、[MusicXMLテスト](vgm_analyzer/vgm_musicxml.test.mjs)、[LilyPond作業記録](issues/lilypond_export_01.md) |
 | MML Export | 一部。OPN、OPM、MSX系の対象形式 | グリッド量子化・リズム等の除外あり | [OPNテスト](vgm_analyzer/vgm_mml.test.mjs)、[OPMテスト](vgm_analyzer/opm_mml.test.mjs)、[MGSDRVテスト](vgm_analyzer/mgsdrv_mml.test.mjs) |
@@ -79,7 +79,7 @@ WASMが存在するだけでPlayground APIも利用可能とは判断しない�
 | 仮想ファイル・Cassette・音色編集 | 実装済。プロジェクト保存、VGMからのTFI取込等 | ファイル編集と元のディスクファイルへの保存は別。手動記録は未整理 | [Cassetteテスト](playground/playground_cassette.test.mjs)、[TFIテスト](playground/playground_tfi_editor.test.mjs)、[取込テスト](playground/playground_vgm_presets.test.mjs) |
 | Native Audio Effect | 実装済。WASM FX・ルーティング・Playground接続 | 独立ページはWindows確認記録あり。Playground移行後の試聴は残作業 | [FX一覧・成功記録](issues/native_audioeffect_01.md)、[テスト](../test/playground_native_fx.test.mjs) |
 | Tetorica製YM2608リズムROM | 実装済。同梱・差し替え、比較ページで調整／生成 | 元ROMの複製ではない。音色調整は継続 | [ROM説明](../assets/opna-rhythm/README.md)、[比較ページ](demos/opna-rhythm-compare.html)、[作業記録](issues/tetorica_ym2608_rom.md)、[テスト](../web/opna_rhythm_rom.test.mjs) |
-| Synthアプリ | 実装済。FM音色編集・取込・鍵盤試聴 | チップ別Runtime APIとは別の画面。手動記録は未整理 | [画面](synth/index.html)、[取込テスト](synth/synth_preset_import.test.mjs)、[操作テスト](synth/synth_controls.test.mjs) |
+| Synthアプリ | 実装済。FM音色編集・TFI／VGI・VGM／VGZ／S98音色取込・鍵盤試聴 | OPN FMと単一YM2151。YM2151はYM2612へ近似変換し、DT2／LFO／ノイズ等は保持しない。S98／OPM取込はローカル追加。ChromiumでVGM／VGZ／S98のYM2151取込・鍵盤発音・失敗時の保持を確認 | [画面](synth/index.html)、[取込テスト](synth/synth_preset_import.test.mjs)、[操作テスト](synth/synth_controls.test.mjs) |
 | Node.js例・Web Runtime配布 | 実装済。音源ラッパー・Synth・WASM・使用例 | 高水準Synthの対応はチップごとに異なる | [Node.js例](../examples/nodejs/README.md)、[Runtime](../web/README.md)、[配布説明](../README.md#download) |
 
 ## CLI／Node API

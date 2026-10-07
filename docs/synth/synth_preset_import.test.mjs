@@ -3,11 +3,28 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import vm from 'node:vm';
 import { gzipSync } from 'node:zlib';
-import { readPresetFile } from './synth_preset_import.js';
+import { readPresetFile, OPM_IMPORT_NOTICE } from './synth_preset_import.js';
 import { createTfiFromPreset } from '../js/tfi.js';
 import { createVgiFromPreset } from '../js/vgi.js';
 
 const patch = { algorithm: 4, feedback: 2, operators: { 1: { ar: 23, tl: 12 } } };
+function s98(commands, type = 5) {
+  const bytes = new Uint8Array(48 + commands.length), view = new DataView(bytes.buffer);
+  bytes.set([83, 57, 56, 51]);
+  view.setUint32(4, 10, true); view.setUint32(8, 1000, true);
+  view.setUint32(20, 48, true); view.setUint32(28, 1, true);
+  view.setUint32(32, type, true); view.setUint32(36, type === 5 ? 4000000 : 7987200, true);
+  bytes.set(commands, 48); return bytes;
+}
+function opmVgm() {
+  const commands = [0x54, 0x20, 0xdd, 0x54, 0x60, 12, 0x54, 0x68, 13,
+    0x54, 0x70, 14, 0x54, 0x78, 15, 0x54, 0xc0, 0x40,
+    0x54, 8, 0x78, 0x54, 8, 0x78, 0x61, 10, 0, 0x66];
+  const bytes = new Uint8Array(256 + commands.length), view = new DataView(bytes.buffer);
+  bytes.set([86, 103, 109, 32]); view.setUint32(4, bytes.length - 4, true);
+  view.setUint32(8, 0x171, true); view.setUint32(0x34, 204, true); view.setUint32(0x30, 4000000, true);
+  bytes.set(commands, 256); return bytes;
+}
 test('TFI and VGI retain instrument parameters, including renamed files', async () => {
   for (const bytes of [createTfiFromPreset(patch), createVgiFromPreset(patch)]) {
     const [entry] = await readPresetFile(bytes, 'test.tfi');
@@ -34,6 +51,46 @@ test('VGM key-on snapshots become named presets; malformed files reject', async 
   await assert.rejects(() => readPresetFile(new Uint8Array(3), 'bad.tfi'));
 });
 
+test('S98 OPN imports use the same key-on extraction as VGM', async () => {
+  for (const [type, chip] of [[2, 'ym2203'], [3, 'ym2612'], [4, 'ym2608']]) {
+    const entries = await readPresetFile(s98([0, 0xb0, 4, 0, 0x28, 0xf0, 255, 253], type), 'song.s98');
+    assert.equal(entries.length, 1);
+    assert.match(entries[0].label, new RegExp(chip));
+    assert.equal(entries[0].preset.algorithm, 4);
+    assert.equal(entries[0].notice, undefined);
+  }
+  await assert.rejects(readPresetFile(new Uint8Array(3), 'bad.s98'), /S98.*header/);
+});
+
+test('YM2151 VGM, VGZ and S98 import approximate presets with logical operator mapping', async () => {
+  const bytes = opmVgm();
+  const vgm = await readPresetFile(bytes, 'opm.vgm');
+  assert.equal(vgm.length, 1, 'repeated key-ons deduplicate');
+  assert.deepEqual(await readPresetFile(gzipSync(bytes), 'opm.vgz'), vgm);
+  const commands = Array.from(bytes.subarray(256, bytes.length - 4));
+  for (let index = 0; index < commands.length; index += 3) commands[index] = 0;
+  const normalized = await readPresetFile(s98([...commands, 255, 253]), 'opm.s98');
+  assert.deepEqual(normalized, vgm);
+  assert.equal(vgm[0].preset.algorithm, 5);
+  assert.equal(vgm[0].preset.feedback, 3);
+  assert.deepEqual([1, 2, 3, 4].map(op => vgm[0].preset.operators[op].tl), [12, 14, 13, 15]);
+  assert.match(vgm[0].label, /ym2151.*YM2612/);
+  assert.equal(vgm[0].notice, OPM_IMPORT_NOTICE);
+  assert.deepEqual(await readPresetFile(s98([255, 253]), 'empty.s98'), []);
+});
+
+test('mixed OPN and OPM logs retain both families; dual OPM rejects explicitly', async () => {
+  const base = opmVgm(), mixed = new Uint8Array(base.length + 6);
+  mixed.set(base.subarray(0, base.length - 1));
+  mixed.set([0x52, 0xb0, 4, 0x52, 0x28, 0xf0, 0x66], base.length - 1);
+  new DataView(mixed.buffer).setUint32(0x2c, 7670454, true);
+  const entries = await readPresetFile(mixed, 'mixed.vgm');
+  assert.equal(entries.length, 2);
+  assert.match(entries[0].label, /ym2612/); assert.match(entries[1].label, /ym2151/);
+  new DataView(base.buffer).setUint32(0x30, 0x40000000 | 4000000, true);
+  await assert.rejects(readPresetFile(base, 'dual.vgm'), /single YM2151/);
+});
+
 async function loader() {
   const source = await readFile(new URL('./synth.js', import.meta.url), 'utf8');
   let change;
@@ -42,6 +99,7 @@ async function loader() {
   const groups = [defaultOption];
   const listeners = {};
   const importError = { hidden: true, textContent: "" };
+  const importNotice = { hidden: true, textContent: "" };
   const applied = [];
   const statuses = [];
   const context = vm.createContext({
@@ -49,15 +107,27 @@ async function loader() {
     tfiFileInput: input,
     importedPresets: new Map(), importedPresetSerial: 0,
     presetSelect: { get firstChild() { return groups[0]; }, insertBefore(group, before) { groups.splice(groups.indexOf(before), 0, group); } },
-    document: { getElementById() { return importError; }, addEventListener(type, fn) { listeners[type] = fn; }, createElement() { return { children: [], remove() { groups.splice(groups.indexOf(this), 1); }, appendChild(child) { this.children.push(child); } }; } },
+    document: { getElementById(id) { return id === 'presetImportNotice' ? importNotice : importError; }, addEventListener(type, fn) { listeners[type] = fn; }, createElement() { return { children: [], remove() { groups.splice(groups.indexOf(this), 1); }, appendChild(child) { this.children.push(child); } }; } },
     tfiSummary: {}, updateTfiSummary() {}, stopAllNotes() {},
     applyPresetState(id) { applied.push(id); }, setStatus(text) { statuses.push(text); },
   });
   vm.runInContext(source.slice(source.indexOf('function buildTfiLoader()'), source.indexOf('function buildTfiExporter()')), context);
   context.buildTfiLoader();
-  return { context, input, groups, applied, statuses, change, listeners, defaultOption, importError };
+  return { context, input, groups, applied, statuses, change, listeners, defaultOption, importError, importNotice };
 }
 const file = (name, bytes) => ({ name, async arrayBuffer() { return bytes.buffer; } });
+
+test('OPM conversion notice remains on failed imports and clears for an OPN replacement', async () => {
+  const ui = await loader();
+  await ui.change({target: {files: [file('opm.vgz', new Uint8Array(gzipSync(opmVgm())))]}});
+  assert.equal(ui.importNotice.hidden, false);
+  assert.equal(ui.importNotice.textContent, OPM_IMPORT_NOTICE);
+  await ui.change({target: {files: [file('bad.s98', new Uint8Array(3))]}});
+  assert.equal(ui.importNotice.hidden, false);
+  assert.match(ui.importError.textContent, /S98/);
+  await ui.change({target: {files: [file('opn.tfi', createTfiFromPreset(patch))]}});
+  assert.equal(ui.importNotice.hidden, true);
+});
 
 test('new selection replaces imports, keeps defaults below them, and isolates failed files', async () => {
   const ui = await loader();

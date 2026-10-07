@@ -38,7 +38,7 @@ test('S98 versions 0–3 and chip writes survive normalization', () => {
     assert.equal(e[1].value, 7);
     assert.equal(e[2].samples, 441);
   }
-  for (const [type, event] of [[2, 'ym2203-write'], [3, 'ym2612-write']]) {
+  for (const [type, event] of [[2, 'ym2203-write'], [3, 'ym2612-write'], [5, 'ym2151-write']]) {
     const { buffer } = convertS98ToVgm(fixture([0, 0x28, 0xf0, 255, 253], { type }));
     assert.equal(events(buffer)[0].type, event);
     if (type === 3) assert.equal(typeof exportAnalysisMml(buffer, { bpm: 120, fileName: 'test.s98' }), 'string');
@@ -65,7 +65,8 @@ test('long waits split at VGM limits and typed array slices are accepted', () =>
 
 test('rejects unsupported and malformed inputs', () => {
   for (const [b, pattern] of [
-    [fixture([253], { type: 5 }), /unsupported device/],
+    [fixture([253], { type: 6 }), /unsupported device/],
+    [fixture([1, 1, 2, 253], {type: 5}), /device\/port/],
     [fixture([0, 1]), /truncated register/],
     [fixture([254, 128]), /variable-length wait/],
     [fixture([255]), /missing end/],

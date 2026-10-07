@@ -1318,7 +1318,7 @@ function updateTfiSummary() {
     tfiSummary.textContent =
       importedPresets.size
         ? `${importedPresets.size} imported presets (this session)`
-        : "Drop VGM / VGZ / TFI / VGI anywhere to load.";
+        : "Drop VGM / VGZ / S98 / TFI / VGI anywhere to load.";
     return;
   }
 
@@ -2379,6 +2379,7 @@ function buildPresetSelect() {
 function buildTfiLoader() {
   if (!tfiFileInput) return;
   const importError = document.getElementById("presetImportError");
+  const importNotice = document.getElementById("presetImportNotice");
   let loadGeneration = 0;
   let importedGroups = [];
 
@@ -2399,7 +2400,7 @@ function buildTfiLoader() {
         const presets = await readPresetFile(bytes, file.name);
         if (generation !== loadGeneration) return;
         if (presets.length) batches.push({ file, presets });
-        else failures.push(`${file.name}: no supported OPN FM instruments found`);
+        else failures.push(`${file.name}: no supported OPN / YM2151 FM instruments found`);
       } catch (error) {
         failures.push(`${file.name}: ${error.message}`);
       }
@@ -2437,9 +2438,12 @@ function buildTfiLoader() {
       }
       applyPresetState(firstPresetId);
       tfiSummary.textContent = `${importedPresets.size} imported presets (this session)`;
+      const notices = [...new Set(batches.flatMap(batch => batch.presets.map(preset => preset.notice).filter(Boolean)))];
+      importNotice.textContent = notices.join("\n");
+      importNotice.hidden = !notices.length;
     }
     if (failures.length) {
-      importError.textContent = `Could not load some files:\n${failures.join("\n")}\nSupported formats: VGM, VGZ, TFI, VGI. VGM/VGZ extraction supports OPN FM instruments only.${batches.length ? "" : " Previous presets were kept."}`;
+      importError.textContent = `Could not load some files:\n${failures.join("\n")}\nSupported formats: VGM, VGZ, S98, TFI, VGI. Log extraction supports OPN FM and approximate YM2151 conversion. S98 requires one YM2203, YM2608, YM2612 or YM2151; compressed S98 is unsupported.${batches.length ? "" : " Previous presets were kept."}`;
       importError.hidden = false;
     }
     const count = batches.reduce((sum, batch) => sum + batch.presets.length, 0);
