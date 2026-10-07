@@ -1,5 +1,6 @@
 /** Shared sample-rate conversion for chip output transports. No audio device. */
 export class ChipPCMRenderer {
+/** @param {{sampleRate(): number, generateStereo(frames: number): {left: Float32Array, right: Float32Array}}} chip @param {{sampleRate: number, gain?: number, generate?: (frames: number) => {left: Float32Array, right: Float32Array}, removeIdleOffset?: boolean}} options */
   constructor(chip, {sampleRate, gain = .25, generate, removeIdleOffset = false} = {}) {
     if (!Number.isInteger(sampleRate) || sampleRate <= 0) throw new RangeError('Invalid output sample rate');
     if (!Number.isFinite(gain) || gain < 0 || gain > 4) throw new RangeError('Invalid output gain');

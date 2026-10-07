@@ -39,6 +39,7 @@ export class GameboySynth {
   #transport; #clock; #disposed = false; #initialized = false;
   // Sent registers and configured values retained across keyOff. Neither is core status.
   #shadow = new Uint8Array(48); #voice = new Uint8Array(48);
+  /** @param {{transport: {writeRegister(offset: number, value: number): void, reset(): void}, clock?: number}} [options] */
   constructor({transport, clock = GAMEBOY_APU_CLOCK} = {}) {
     if (!transport || typeof transport.writeRegister !== 'function' || typeof transport.reset !== 'function') throw new TypeError('Expected transport');
     integer(clock, 1, 0x3fffffff);

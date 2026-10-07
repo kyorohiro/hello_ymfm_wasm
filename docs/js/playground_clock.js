@@ -7,6 +7,7 @@
  */
 /** One deadline timer, with a separate task per continuation so microtasks drain
  * before another loop's context is restored. No per-loop deadline timers. */
+/** @param {{now: () => number, setTimer?: typeof globalThis.setTimeout, clearTimer?: typeof globalThis.clearTimeout, createTaskChannel?: () => MessageChannel | null}} options */
 export function createDeadlineScheduler({
   now,
   setTimer = (fn, ms) => setTimeout(fn, ms),

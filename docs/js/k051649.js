@@ -4,6 +4,7 @@
  * 依存: WASM（moduleFactory と moduleOptions で読み込み方法を注入）。
  * チップ操作・PCM 生成に DOM・AudioContext は不要。ローダーは実行環境に合わせて渡す。
  */
+/** @param {{clock: number, sampleRate?: number}} options */
 export function validateK051649({clock, sampleRate=44100}={}) {
   if(!Number.isInteger(clock)||clock<=0||clock>0x3fffffff||!Number.isInteger(sampleRate)||sampleRate<=0||sampleRate>384000)
     throw new RangeError('Invalid K051649 clock or sample rate');
@@ -17,7 +18,7 @@ export class K051649 {
   /**
    * Initialize K051649 and its native WASM module.
    * The generated module factory is injected so browser and Node callers can choose asset loading.
-   * @param {Object} [options={}] Chip and Emscripten initialization settings.
+   * @param {import("./soundchip.js").SoundChipOptions & {bankShift?: number, bankMask?: number}} [options={}] Chip and Emscripten initialization settings.
    * @param {function(Object): (Object|Promise<Object>)} options.moduleFactory Generated WASM module factory.
    * @param {Object} [options.moduleOptions] Forwarded loader options, e.g. wasmBinary or locateFile.
    * @param {number} [options.clock] Input chip clock in Hz.

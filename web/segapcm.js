@@ -19,7 +19,7 @@ export class SegaPcm {
   /**
    * Initialize SegaPcm and its native WASM module.
    * The generated module factory is injected so browser and Node callers can choose asset loading.
-   * @param {Object} [options={}] Chip and Emscripten initialization settings.
+   * @param {import("./soundchip.js").SoundChipOptions & {bankShift?: number, bankMask?: number}} [options={}] Chip and Emscripten initialization settings.
    * @param {function(Object): (Object|Promise<Object>)} options.moduleFactory Generated WASM module factory.
    * @param {Object} [options.moduleOptions] Forwarded loader options, e.g. wasmBinary or locateFile.
    * @param {number} [options.clock] Input chip clock in Hz.

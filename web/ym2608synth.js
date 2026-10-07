@@ -42,7 +42,7 @@ const rhythmVoice = voice => {
 
 /** Register control for the fixed rhythm ROM; does not decode WAV or allocate PCM voices. */
 export class YM2608RhythmSynth {
-  /** @param {{write: function(number, number): void, loadRom: function(Uint8Array): void}} transport */
+  /** @param {{write: (register: number, value: number) => void, loadRom: (bytes: Uint8Array) => void}} transport */
   constructor(transport) {
     this.transport = transport;
     this.resetState();
@@ -105,7 +105,7 @@ const adpcmInteger = (name, value, max) => {
  * Browser / Worker / Node.js. loadSample decodes PCM WAV without an audio device.
  */
 export class YM2608AdpcmSynth {
-  /** @param {{write: function(number, number): void, loadMemory: function(Uint8Array, number): void}} transport
+  /** @param {{write: (register: number, value: number) => void, loadMemory: (bytes: Uint8Array, address: number) => void}} transport
    * @param {number} clock Master clock in Hz; rate conversion assumes standard FM prescaling.
    */
   constructor(transport, clock = YM2608_CLOCK) {

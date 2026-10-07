@@ -23,6 +23,7 @@ export class Ym2151AudioEngine {
    * @param {number} [options.masterVolume=1] Linear output gain, not dB.
    * @returns {Promise<Ym2151AudioEngine>} Initialized engine owned by the caller.
    */
+  /** @param {{ym2151ModuleFactory: Function, ym2151ModuleOptions?: Record<string, unknown>, ym2151Clock?: number, ym2151Variant?: 'ym2151'|'ym2164', segaPsgModuleFactory?: Function, psgClock?: number, segaPcmModuleFactory?: Function, segaPcmModuleOptions?: Record<string, unknown>, segaPcmClock?: number, segaPcmBankShift?: number, segaPcmBankMask?: number, outputSampleRate?: number, masterVolume?: number}} options */
   static async create({ ym2151ModuleFactory, ym2151ModuleOptions, ym2151Clock = YM2151_CLOCK, ym2151Variant = 'ym2151',
     segaPsgModuleFactory, psgClock = 0,
     segaPcmModuleFactory, segaPcmModuleOptions, segaPcmClock = 0, segaPcmBankShift = 0, segaPcmBankMask = 0,

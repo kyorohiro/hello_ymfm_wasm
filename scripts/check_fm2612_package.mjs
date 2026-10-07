@@ -78,6 +78,7 @@ assert.throws(() => runtimeAssetUrl('../outside.js'), TypeError);
 console.log('Installed package verified: module exports, audible Synth PCM, browser entry imports and asset URLs.');
 `);
   execFileSync(process.execPath, [join(consumer, 'check.mjs')], {cwd: consumer, stdio: 'inherit'});
+  execFileSync(process.execPath, [join(root, 'scripts/check_fm2612_types.mjs'), installed], {cwd: consumer, stdio: 'inherit'});
   console.log(`Tarball: ${packed.size} bytes compressed, ${packed.unpackedSize} bytes unpacked, ${packed.files.length} files.`);
 } finally {
   await rm(scratch, {recursive: true, force: true});

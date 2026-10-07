@@ -31,7 +31,7 @@ export class Ym2610B {
   /**
    * Initialize Ym2610B and its native WASM module.
    * The generated module factory is injected so browser and Node callers can choose asset loading.
-   * @param {Object} [options={}] Chip and Emscripten initialization settings.
+   * @param {import("./soundchip.js").SoundChipOptions} [options={}] Chip and Emscripten initialization settings.
    * @param {function(Object): (Object|Promise<Object>)} options.moduleFactory Generated WASM module factory.
    * @param {Object} [options.moduleOptions] Forwarded loader options, e.g. wasmBinary or locateFile.
    * @param {boolean} [options.variant=true] True for YM2610B; false for YM2610.

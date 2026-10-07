@@ -23,6 +23,7 @@ export class Oki6258AudioEngine {
    * @param {number} [options.masterVolume=1] Linear output gain, not dB.
    * @returns {Promise<Oki6258AudioEngine>} Initialized engine owned by the caller.
    */
+  /** @param {{moduleFactory: Function, clock: number, flags?: number, outputSampleRate?: number, masterVolume?: number}} options */
   static async create({moduleFactory,clock,flags=4,outputSampleRate=44100,masterVolume=1}) {
     validateOki6258Header({okim6258Clock:clock,okim6258Flags:flags});
     if(!Number.isInteger(clock)||clock<=0||clock>0x3fffffff||!Number.isInteger(outputSampleRate)||outputSampleRate<8000)throw new RangeError('Invalid OKIM6258 clock/sample rate');

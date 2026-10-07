@@ -15,7 +15,7 @@
 /**
  * @typedef {Object} Ym2612ModuleOptions
  * @property {Uint8Array} [wasmBinary] Preloaded WASM bytes; Node Buffers are accepted.
- * @property {function(string, string): string} [locateFile]
+ * @property {(filename: string, prefix: string) => string} [locateFile]
  * Resolve an asset filename and loader prefix to its URL or filesystem path.
  * Other Emscripten module options are also passed through to the factory.
  */
@@ -34,11 +34,11 @@
 
 /**
  * @typedef {Object} Ym2612Hooks
- * @property {function({offset: number, data: number}): void} [onWrite]
+ * @property {(event: {offset: number, data: number}) => void} [onWrite]
  * Called after each bus write, with offset 0..3 and the supplied data byte.
- * @property {function({offset: number, value: number}): void} [onRead]
+ * @property {(event: {offset: number, value: number}) => void} [onRead]
  * Called after each bus/status read, with the returned value.
- * @property {function(boolean): void} [onIrq]
+ * @property {(asserted: boolean) => void} [onIrq]
  * Called with the current IRQ state when installed, then when a checked state changes.
  */
 
@@ -105,7 +105,7 @@ export class Ym2612 {
    * @param {Uint8Array} [options.moduleOptions.wasmBinary]
    *   Preloaded WASM bytes (for example, a Buffer from node:fs/promises readFile).
    *   If omitted, the generated module uses its default WASM loading mechanism.
-   * @param {function(string, string): string} [options.moduleOptions.locateFile]
+   * @param {(filename: string, prefix: string) => string} [options.moduleOptions.locateFile]
    *   Resolve an asset path and loader prefix to a URL or filesystem path,
    *   when the WASM asset is hosted separately from the generated JavaScript.
    * @returns {Promise<Ym2612>} A chip ready for register writes and PCM generation.

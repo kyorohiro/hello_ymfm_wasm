@@ -114,6 +114,7 @@ k051649audioengine.js
 segapcm.js
 segapcmaudioengine.js
 gameboyapu.js
+gameboysynth.js
 gameboyapuaudioengine.js
 multichipaudioengine.js
 msxaudioengine.js

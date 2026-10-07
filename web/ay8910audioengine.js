@@ -18,6 +18,7 @@ export class Ay8910AudioEngine {
    * @param {number} [options.masterVolume=1] Linear output gain, not dB.
    * @returns {Promise<Ay8910AudioEngine>} Initialized engine owned by the caller.
    */
+  /** @param {{moduleFactory: Function, moduleOptions?: Record<string, unknown>, clock: number, type?: number, flags?: number, outputSampleRate?: number, masterVolume?: number}} options */
   static async create({moduleFactory,moduleOptions,clock,type=0,flags=1,outputSampleRate=44100,masterVolume=1}={}) {
     const chip=await Ay8910.create({moduleFactory,moduleOptions,clock,type,flags,sampleRate:outputSampleRate});
     try{return new Ay8910AudioEngine(chip,masterVolume);}catch(error){chip.dispose();throw error;}

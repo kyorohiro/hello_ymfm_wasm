@@ -18,6 +18,7 @@ export class K051649AudioEngine {
    * @param {number} [options.masterVolume=1] Linear output gain, not dB.
    * @returns {Promise<K051649AudioEngine>} Initialized engine owned by the caller.
    */
+  /** @param {{moduleFactory: Function, moduleOptions?: Record<string, unknown>, clock: number, outputSampleRate?: number, masterVolume?: number}} options */
   static async create({moduleFactory,moduleOptions,clock,outputSampleRate=44100,masterVolume=1}={}) {
     const chip=await K051649.create({moduleFactory,moduleOptions,clock,sampleRate:outputSampleRate});
     try{return new K051649AudioEngine(chip,masterVolume);}catch(error){chip.dispose();throw error;}

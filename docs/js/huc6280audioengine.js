@@ -18,6 +18,7 @@ export class Huc6280AudioEngine {
    * @param {number} [options.masterVolume=1] Linear output gain, not dB.
    * @returns {Promise<Huc6280AudioEngine>} Initialized engine owned by the caller.
    */
+  /** @param {{moduleFactory: Function, clock: number, outputSampleRate?: number, masterVolume?: number}} options */
   static async create({moduleFactory, clock, outputSampleRate = 44100, masterVolume = 1}) {
     if (!Number.isInteger(clock) || clock <= 0 || clock > 0x3fffffff ||
         !Number.isInteger(outputSampleRate) || outputSampleRate < 8000 || outputSampleRate > 384000) {

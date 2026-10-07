@@ -5,7 +5,7 @@ const integer = (name, value, max) => {
 };
 /** Three tone/noise channels sharing one noise generator and one envelope. */
 export class SSGSynth {
-  /** @param {{transport: {write: function(number, number): void}, clock: number}} options
+  /** @param {{transport: {write: (register: number, value: number) => void}, clock: number}} options
    * clock is the effective SSG clock, not necessarily the package's master clock.
    */
   constructor({transport, clock}) {

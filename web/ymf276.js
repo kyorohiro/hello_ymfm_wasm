@@ -8,7 +8,7 @@ export const YMF276_CLOCK = 7670454;
 /** YMF276 native core. Uses the variant-specific DAC/output implementation. */
 export class Ymf276 extends OpnVariant {
   /**
-   * @param {moduleFactory: Function, moduleOptions?: Object} options WASM loader settings.
+   * @param {{moduleFactory: Function, moduleOptions?: Object}} options WASM loader settings.
    * @returns {Promise<Ymf276>} Caller-owned chip; dispose when finished.
    */
   static async create({moduleFactory, moduleOptions} = {}) {

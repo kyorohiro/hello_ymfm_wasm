@@ -21,6 +21,7 @@ export class Ym3526AudioEngine {
    * @param {number} [options.masterVolume=1] Linear output gain, not dB.
    * @returns {Promise<Ym3526AudioEngine>} Initialized engine owned by the caller.
    */
+  /** @param {{ym3526ModuleFactory: Function, ym3526ModuleOptions?: Record<string, unknown>, ym3526Clock?: number, segaPsgModuleFactory?: Function, psgClock?: number, outputSampleRate?: number, masterVolume?: number}} options */
   static async create({ ym3526ModuleFactory, ym3526ModuleOptions, ym3526Clock = YM3526_CLOCK,
     segaPsgModuleFactory, psgClock = 0, outputSampleRate = 44100, masterVolume = 1 } = {}) {
     if (!Number.isFinite(outputSampleRate) || outputSampleRate <= 0 ||

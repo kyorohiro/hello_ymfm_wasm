@@ -1,17 +1,25 @@
 import {PWM32X} from './pwm32x.js';
 
+/** @typedef {{frame: number, register: 0|1|2|3|4, value: number}} PWMWrite */
+/** @typedef {Pick<PWM32XPlayback, 'write'|'writeRegister'|'read'|'reset'|'scheduleWrites'|'clearSchedule'|'getState'>} PWMAPI */
+/** @typedef {{[K in keyof PWMAPI]: (...args: Parameters<PWMAPI[K]>) => Promise<ReturnType<PWMAPI[K]>>}} AsyncPWMAPI */
 /** MAME-derived PWM plus output-frame scheduling; no timers or audio device. */
 export class PWM32XPlayback {
+  /** @param {import("./pwm32x.js").PWM32XOptions} [options] @param {PWM32X} [chip] */
   constructor(options = {}, chip) {
     this.chip = chip ?? new PWM32X({outputMode: 'duty', gain: 1, ...options});
     this.frame = 0; this.queue = []; this.order = 0;
   }
   sampleRate() {return this.chip.sampleRate();}
+  /** @param {number} register @param {number} value */
   write(register, value) {this.chip.writeRegister(register, value);}
+  /** @param {number} register @param {number} value */
   writeRegister(register, value) {this.write(register, value);}
+  /** @param {number} register */
   read(register) {return this.chip.read(register);}
   reset() {this.chip.reset(); this.queue.length = 0;}
   /** Entries are relative to the next output frame when this command is received. */
+  /** @param {PWMWrite[]} entries */
   scheduleWrites(entries) {
     this.chip.assertOpen();
     if (!Array.isArray(entries) || entries.length + this.queue.length > 1000000) throw new RangeError('Invalid PWM write queue');
@@ -26,8 +34,9 @@ export class PWM32XPlayback {
     return this.frame;
   }
   clearSchedule() {this.chip.assertOpen(); this.queue.length = 0;}
-  getState() {return {model: 'mame', outputMode: this.chip.outputMode, clock: this.chip.clock,
+  getState() {return {model: /** @type {const} */ ('mame'), outputMode: this.chip.outputMode, clock: this.chip.clock,
     sampleRate: this.sampleRate(), currentFrame: this.frame, queuedWrites: this.queue.length};}
+  /** @param {number} frames */
   generateStereo(frames) {
     this.chip.assertOpen();
     if (!Number.isSafeInteger(frames) || frames < 0 || frames > 10000000 || !Number.isSafeInteger(this.frame + frames)) throw new RangeError('Invalid PWM render frames');
@@ -52,6 +61,7 @@ export class PWM32XPlayback {
 export const PWM_METHODS = new Set(['write', 'writeRegister', 'read', 'reset', 'scheduleWrites', 'clearSchedule', 'getState']);
 
 /** Main or logic Worker client; PCM and scheduling stay in the AudioWorklet. */
+/** @param {MessagePort} port @returns {AsyncPWMAPI & {dispose(): void}} */
 export function createPWM32XClient(port) {
   let id = 0, disposed = false;
   const pending = new Map();

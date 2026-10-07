@@ -32,13 +32,34 @@
     "pack:fm2612": "node scripts/pack_fm2612.mjs",
     "test:fm2612": "node scripts/check_fm2612_package.mjs",
     "test:fm2612:browser": "npm run build:fm2612 && node scripts/check_megacd_browser.cjs",
-    "setup:browser": "playwright install chromium"
+    "setup:browser": "playwright install chromium",
+    "test:fm2612:types": "node scripts/check_fm2612_types.mjs"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/kyorohiro/hello_ymfm_wasm.git"
   },
   "devDependencies": {
-    "playwright": "1.63.0"
-  }
+    "@types/node": "^26.6.4",
+    "playwright": "1.63.0",
+    "typescript": "^7.0.2"
+  },
+  "keywords": [
+    "chiptune",
+    "sound-chip",
+    "emulation",
+    "retro",
+    "audio",
+    "vgm",
+    "vgz",
+    "s98",
+    "cli",
+    "ym2612",
+    "32x",
+    "pwm",
+    "vgm-analyzer",
+    "midi",
+    "musicxml",
+    "lilypond"
+  ]
 }

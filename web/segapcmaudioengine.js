@@ -20,6 +20,7 @@ export class SegaPcmAudioEngine {
    * @param {number} [options.masterVolume=1] Linear output gain, not dB.
    * @returns {Promise<SegaPcmAudioEngine>} Initialized engine owned by the caller.
    */
+  /** @param {{moduleFactory: Function, moduleOptions?: Record<string, unknown>, clock: number, bankShift?: number, bankMask?: number, segaPsgModuleFactory?: Function, psgClock?: number, outputSampleRate?: number, masterVolume?: number}} options */
   static async create({moduleFactory,moduleOptions,clock,bankShift=0,bankMask=0,segaPsgModuleFactory,psgClock=0,outputSampleRate=44100,masterVolume=1}={}) {
     const chip=await SegaPcm.create({moduleFactory,moduleOptions,clock,bankShift,bankMask,sampleRate:outputSampleRate});
     let psg;

@@ -21,7 +21,7 @@ export class RF5C164DirectTransport {
 
 /** Physical-channel controls. A new/reset chip is expected; route raw writes through this Synth. */
 export class RF5C164Synth {
-  /** @param {{transport: {write: function(number, number): void, loadMemory: function(Uint8Array, number): *, reset: function(): void}}} options
+  /** @param {{transport: {write: (register: number, value: number) => void, loadMemory: function(Uint8Array, number): *, reset: function(): void}}} options
    * Transport writes/reset must be synchronous or FIFO fire-and-forget. Memory transfer may return a completion promise.
    */
   constructor({transport} = {}) {

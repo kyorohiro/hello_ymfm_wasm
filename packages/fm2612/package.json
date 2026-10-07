@@ -5,26 +5,89 @@
   "type": "module",
   "license": "BSD-3-Clause",
   "homepage": "https://github.com/kyorohiro/tetorica-fm2612-examples",
-  "engines": { "node": ">=22" },
+  "engines": {
+    "node": ">=22"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/kyorohiro/hello_ymfm_wasm.git"
   },
   "exports": {
-    ".": "./soundchip.js",
-    "./assets": "./package_assets.js",
-    "./node": "./node/megasynth.mjs",
-    "./node/transports": "./node/chip_transports.mjs",
+    ".": {
+      "types": "./soundchip.d.ts",
+      "import": "./soundchip.js",
+      "default": "./soundchip.js"
+    },
+    "./assets": {
+      "types": "./package_assets.d.ts",
+      "import": "./package_assets.js",
+      "default": "./package_assets.js"
+    },
+    "./node": {
+      "types": "./node/megasynth.d.mts",
+      "import": "./node/megasynth.mjs",
+      "default": "./node/megasynth.mjs"
+    },
+    "./node/transports": {
+      "types": "./node/chip_transports.d.mts",
+      "import": "./node/chip_transports.mjs",
+      "default": "./node/chip_transports.mjs"
+    },
     "./generated/*": "./generated/*",
-    "./*.js": "./*.js",
-    "./*": "./*.js"
+    "./*.js": {
+      "types": "./*.d.ts",
+      "import": "./*.js",
+      "default": "./*.js"
+    },
+    "./*": {
+      "types": "./*.d.ts",
+      "import": "./*.js",
+      "default": "./*.js"
+    }
   },
-  "peerDependencies": { "audify": "^1.10.1" },
-  "peerDependenciesMeta": { "audify": { "optional": true } },
+  "peerDependencies": {
+    "audify": "^1.10.1"
+  },
+  "peerDependenciesMeta": {
+    "audify": {
+      "optional": true
+    }
+  },
   "files": [
-    "*.js", "*.wasm", "tetorica_ym2608_adpcm_rom.bin",
-    "generated/", "assets/", "licenses/", "sources/", "node/",
-    "LICENSE", "THIRD_PARTY_LICENSES.txt", "RUNTIME.md",
-    "soundchip.md", "runtime-manifest.json"
-  ]
+    "*.js",
+    "*.d.ts",
+    "*.wasm",
+    "tetorica_ym2608_adpcm_rom.bin",
+    "generated/",
+    "assets/",
+    "licenses/",
+    "sources/",
+    "node/",
+    "LICENSE",
+    "THIRD_PARTY_LICENSES.txt",
+    "RUNTIME.md",
+    "soundchip.md",
+    "runtime-manifest.json"
+  ],
+  "keywords": [
+    "chiptune",
+    "sound-chip",
+    "emulation",
+    "retro",
+    "audio",
+    "ym2612",
+    "fm-synthesis",
+    "wasm",
+    "webassembly",
+    "audioworklet",
+    "synthesizer",
+    "sega-genesis",
+    "mega-drive",
+    "32x",
+    "pwm",
+    "typescript",
+    "nodejs",
+    "game-audio"
+  ],
+  "types": "./soundchip.d.ts"
 }

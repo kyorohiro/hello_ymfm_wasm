@@ -1774,6 +1774,7 @@ export function createPlaygroundRuntime(
     });
   }
 
+  /** @param {string} sourceCode @param {{execution?: "main" | "worker"}} [playOptions] */
   async function playSource(
     sourceCode,
     playOptions = {}

@@ -16,7 +16,7 @@ await cp(join(root, 'LICENSE'), join(stage, 'LICENSE'));
 await mkdir(join(stage, 'node'), {recursive: true});
 for (const name of (await readdir(join(root, 'node'))).filter(name => name.endsWith('.mjs'))) {
   const source = await readFile(join(root, 'node', name), 'utf8');
-  await writeFile(join(stage, 'node', name), source.replaceAll("'../web/", "'../"));
+  await writeFile(join(stage, 'node', name), source.replaceAll("'../web/", "'../").replaceAll('"../web/', '"../'));
 }
 await cp(join(root, 'node/README.md'), join(stage, 'node/README.md'));
 
@@ -56,4 +56,5 @@ for (const name of (await readdir(stage)).filter(n => n.endsWith('.js'))) {
     await readFile(new URL(match[2].split('?')[0], pathToFileURL(join(stage, name))));
   }
 }
+execFileSync(process.execPath, [join(root, 'scripts/build_fm2612_types.mjs')], {cwd: root, stdio: 'inherit'});
 console.log(`Built ${stage}`);

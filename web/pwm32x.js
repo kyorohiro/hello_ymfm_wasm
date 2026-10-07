@@ -2,9 +2,11 @@
 // copyright-holders:David Haywood
 // FIFO, routing and timer behavior adapted from MAME mega32x.cpp.
 // See third_party/mame-32x-pwm/README.md for provenance and differences.
+/** @typedef {{clock?: number, sampleRate?: number, gain?: number, outputMode?: 'dac'|'duty'}} PWM32XOptions */
 export const PWM32X_CLOCK = 23011361;
 export class PWM32X {
   #states = new WeakMap();
+  /** @param {PWM32XOptions} [options] */
   constructor({clock = PWM32X_CLOCK, sampleRate = 48000, gain = .4, outputMode = 'dac'} = {}) {
     if (!['dac', 'duty'].includes(outputMode)) throw new RangeError('Invalid PWM output mode');
     if (!Number.isFinite(clock) || clock <= 0 || clock > 100000000) throw new RangeError('Invalid PWM clock');
@@ -27,7 +29,9 @@ export class PWM32X {
       this.untilTick = this.cycle - 1;
     }
   }
+  /** @param {number} register @param {number} value */
   write(register, value) {this.writeRegister(register, value);}
+  /** @param {number} register @param {number} value */
   writeRegister(register, value) {
     this.assertOpen();
     if (!Number.isInteger(register) || register < 0 || register > 4 || !Number.isInteger(value)) throw new RangeError('Invalid PWM register write');
@@ -36,6 +40,7 @@ export class PWM32X {
     else if (register === 1) {this.cycleRegister = this.cycle = value & 4095; this.configureTimer();}
     else {if (register === 2 || register === 4) push(this.leftFifo); if (register === 3 || register === 4) push(this.rightFifo);}
   }
+  /** @param {number} register */
   read(register) {
     this.assertOpen();
     const flag = fifo => fifo.length === 0 ? 0x4000 : fifo.length === 3 ? 0x8000 : 0;
@@ -63,6 +68,7 @@ export class PWM32X {
     const sample = value => value === null ? 0 : ((value & 4095) / scale - 1) * this.gain;
     return this.muted ? [0, 0] : [sample(this.left), sample(this.right)];
   }
+  /** @param {number} frames */
   generateStereo(frames) {
     this.assertOpen();
     if (!Number.isInteger(frames) || frames < 0) throw new RangeError('Invalid PWM frame count');

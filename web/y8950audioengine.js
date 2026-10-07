@@ -21,6 +21,7 @@ export class Y8950AudioEngine {
    * @param {number} [options.masterVolume=1] Linear output gain, not dB.
    * @returns {Promise<Y8950AudioEngine>} Initialized engine owned by the caller.
    */
+  /** @param {{y8950ModuleFactory: Function, y8950ModuleOptions?: Record<string, unknown>, y8950Clock?: number, segaPsgModuleFactory?: Function, psgClock?: number, outputSampleRate?: number, masterVolume?: number}} options */
   static async create({ y8950ModuleFactory, y8950ModuleOptions, y8950Clock = Y8950_CLOCK,
     segaPsgModuleFactory, psgClock = 0, outputSampleRate = 44100, masterVolume = 1 } = {}) {
     if (!Number.isFinite(outputSampleRate) || outputSampleRate <= 0 ||

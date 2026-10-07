@@ -43,6 +43,7 @@ export function createNativeFXController(send, {getBeatSeconds=()=>.5}={}) {
   return structuredClone(value);
  };
  const api={
+  /** @param {string} name @param {{process: (input: Float32Array[], output: Float32Array[], state: Record<string, unknown>, context: Record<string, unknown>) => void, context?: Record<string, unknown>, resetState?: boolean}} [options] */
   liveFx(name,{process,context={},resetState=false}={}){
    if(typeof name!=='string'||!name)throw new Error('liveFx requires a name');
    if(typeof process!=='function'||process.constructor.name!=='Function')throw new Error('process must be synchronous');

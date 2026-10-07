@@ -321,3 +321,33 @@ The integrated default is `duty` output, gain 1; `pwmOptions` can select `clock`
 Standalone `PWM32XWorkletTransport`, `PWM32XAudifyTransport` and PCM-only
 `PWM32XDirectTransport` use the same MAME-derived core.
 See [implementation and validation](https://github.com/kyorohiro/hello_ymfm_wasm/blob/main/docs/issues/pwm32x_01.md).
+
+## TypeScript (next release)
+
+The development build now generates `.d.ts` and Node `.d.mts` declarations from
+JSDoc and includes them in the npm tarball. `types` export conditions cover the
+root, assets, Node APIs, transports and both extensionless and `.js` subpaths.
+The published 0.2.7 package predates this change.
+
+```ts
+import {createSoundChip} from 'tetorica-fm2612';
+import {YM2612Synth, YM2612WorkletTransport} from 'tetorica-fm2612/ym2612synth.js';
+
+const chip = await createSoundChip('ym2612', {execution: 'worklet'});
+const transport = new YM2612WorkletTransport(chip);
+const fm = new YM2612Synth({transport});
+await transport.start();
+fm.noteOn(0, 4, 553);
+// await transport.close() when finished.
+```
+
+`createSoundChip('ym2612')` infers the direct `Ym2612` core;
+`execution: 'worklet'` infers the remote endpoint. Browser APIs require DOM
+library types. Node APIs use Node's `EventEmitter` types; Node TypeScript
+projects should include `@types/node`. The emitted declarations use generic
+TypedArray types, supported by TypeScript 5.7 and later.
+
+Development validation: `npm run build:fm2612` generates and checks every
+declaration; `npm run test:fm2612:types` verifies strict consumer examples under
+NodeNext and Bundler resolution, including expected errors. The tarball
+installation check also runs the consumer type tests against the installed package.

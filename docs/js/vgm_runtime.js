@@ -289,7 +289,7 @@ export function createVgmRuntime(options = {}) {
 
   /**
    * @param {ArrayBuffer | Uint8Array} buffer
-   * @param {ConstructorParameters<typeof VgmPlayer.prototype.load>[1]} [parserOptions]
+   * @param {Parameters<typeof VgmPlayer.prototype.load>[1]} [parserOptions]
    */
   async function load(
     buffer,

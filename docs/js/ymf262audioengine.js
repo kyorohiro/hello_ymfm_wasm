@@ -21,6 +21,7 @@ export class Ymf262AudioEngine {
    * @param {number} [options.masterVolume=1] Linear output gain, not dB.
    * @returns {Promise<Ymf262AudioEngine>} Initialized engine owned by the caller.
    */
+  /** @param {{ymf262ModuleFactory: Function, ymf262ModuleOptions?: Record<string, unknown>, ymf262Clock?: number, segaPsgModuleFactory?: Function, psgClock?: number, outputSampleRate?: number, masterVolume?: number}} options */
   static async create({ ymf262ModuleFactory, ymf262ModuleOptions, ymf262Clock = YMF262_CLOCK,
     segaPsgModuleFactory, psgClock = 0, outputSampleRate = 44100, masterVolume = 1 } = {}) {
     if (!Number.isFinite(outputSampleRate) || outputSampleRate <= 0 ||

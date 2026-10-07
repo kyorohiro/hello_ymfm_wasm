@@ -1,5 +1,19 @@
+/**
+ * @typedef {{
+ * execution: 'worklet', name: import('./soundchip.js').WorkletChipName,
+ * port: MessagePort, node: AudioWorkletNode, audioContext: AudioContext,
+ * sampleRate(): number, request(method: string, args?: unknown[]): Promise<unknown>,
+ * createTransportPort(): MessagePort, start(): Promise<void>, stop(): Promise<void>, dispose(): Promise<void>
+ * }} WorkletSoundChip
+ */
 /** Main-side chip endpoint. The actual WASM chip is created inside AudioWorklet. */
 const supported = new Set(['ym2612', 'ym2608', 'gameboy', 'segapsg', 'ym2151', 'pwm']);
+/**
+ * @param {import('./soundchip.js').WorkletChipName} name
+ * @param {import('./soundchip.js').SoundChipOptions} options
+ * @param {() => Promise<Uint8Array | ArrayBuffer | undefined>} loadBinary
+ * @returns {Promise<WorkletSoundChip>}
+ */
 export async function createWorkletSoundChip(name, options, loadBinary) {
   if (!supported.has(name)) throw new Error(`Worklet chip not supported: ${name}`);
   options.signal?.throwIfAborted();

@@ -21,6 +21,7 @@ export class Ym2413AudioEngine {
    * @param {number} [options.masterVolume=1] Linear output gain, not dB.
    * @returns {Promise<Ym2413AudioEngine>} Initialized engine owned by the caller.
    */
+  /** @param {{ym2413ModuleFactory: Function, ym2413ModuleOptions?: Record<string, unknown>, ym2413Clock?: number, segaPsgModuleFactory?: Function, psgClock?: number, outputSampleRate?: number, masterVolume?: number}} options */
   static async create({ ym2413ModuleFactory, ym2413ModuleOptions, ym2413Clock = YM2413_CLOCK,
     segaPsgModuleFactory, psgClock = 0, outputSampleRate = 44100, masterVolume = 1 } = {}) {
     if (!Number.isFinite(outputSampleRate) || outputSampleRate <= 0 ||

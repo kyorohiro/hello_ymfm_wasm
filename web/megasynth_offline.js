@@ -32,6 +32,10 @@ async function loadFX(options) {
  * Options: sampleRate (default 48000), masterVolume (default 1), chipOptions,
  * fxModule / fxWasmBinary / fxWasmUrl, signal, mega32X, pwmOptions.
  */
+/** @typedef {{sampleRate?: number, masterVolume?: number, chipOptions?: import('./soundchip.js').SoundChipOptions,
+ * fxModule?: WebAssembly.Module, fxWasmBinary?: Uint8Array | ArrayBuffer, fxWasmUrl?: string | URL,
+ * signal?: AbortSignal, mega32X?: boolean, pwmOptions?: import('./pwm32x.js').PWM32XOptions}} MegaSynthOfflineOptions */
+/** @param {MegaSynthOfflineOptions} [options] */
 export async function createMegaSynthOffline(options = {}) {
   const sampleRate = options.sampleRate ?? 48000;
   const masterVolume = options.masterVolume ?? 1;
@@ -58,6 +62,7 @@ class MegaSynthOffline {
   #idleLeft; #idleRight; #chipRate;
   #sampleRate; #masterVolume;
 
+  /** @param {import("./ym2612.js").Ym2612} chip @param {NativeFXEngine} dsp @param {number} sampleRate @param {number} masterVolume @param {MegaSynthOfflineOptions} options */
   constructor(chip, dsp, sampleRate, masterVolume, options) {
     this.pwm = options.mega32X === true ? new PWM32XPlayback({...options.pwmOptions, sampleRate}) : null;
     this.#chip = chip; this.#dsp = dsp; this.#sampleRate = sampleRate;
@@ -122,6 +127,7 @@ class MegaSynthOffline {
   }
 
   /** Advance the sample clock, render the chip, then apply native FX. */
+/** @param {number} frames @param {{onSource?: (input: Float32Array[]) => void}} [options] */
   render(frames, {onSource} = {}) {
     this.#assertOpen();
     if (!Number.isSafeInteger(frames) || frames < 0 || frames > 10000000 || !Number.isSafeInteger(this.#frame + frames)) {

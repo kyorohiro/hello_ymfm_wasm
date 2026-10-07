@@ -427,6 +427,7 @@ export class OPNFMSynth {
     return value;
   }
 
+  /** @param {import("./ym2612.js").Ym2612Hooks} [hooks] */
   setHooks({ onWrite, onRead, onIrq } = {}) {
     assertHook("onWrite", onWrite);
     assertHook("onRead", onRead);

@@ -48,7 +48,7 @@ const YM2612_NATIVE_SAMPLE_RATE =
 
 /**
  * @typedef {import("./megasynth_fx.js").AnyFXUnit} AnyFXUnit
- * @typedef {import("./ym2612synth.js").YM2612Synth} YM2612Synth
+ * @typedef {import("./ym2612synth.js").YM2612Synth} YM2612SynthType
  * @typedef {import("./ym2612synth.js").YM2612Transport} YM2612Transport
  */
 
@@ -317,6 +317,7 @@ export class MegaSynth {
     this.megaCD = options.megaCD === true;
     this.mega32X = options.mega32X === true;
     this.pwmOptions = options.pwmOptions ?? {};
+    /** @type {(import("./pwm32x_playback.js").AsyncPWMAPI & {dispose(): void}) | null} */
     this.pwm = null; this.pwmDevice = null;
     this.segaPsgWasmUrl = options.segaPsgWasmUrl !== undefined
       ? options.segaPsgWasmUrl
@@ -337,7 +338,7 @@ export class MegaSynth {
       false;
     this.listeners = new Set();
 
-    /** @type {YM2612Synth | null} */
+    /** @type {YM2612SynthType | null} */
     this.fm = null;
 
     /** @type {{ write(value: number): void, reset(): void } | null} */

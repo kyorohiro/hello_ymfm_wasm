@@ -27,7 +27,7 @@ const adpcmInteger = (name, value, max) => {
  * Browser / Worker / Node.js: no file decoding, audio output or memory ownership here.
  */
 export class YM2610BAdpcmBSynth {
-  /** @param {{write: function(number, number): void, loadMemory: function(Uint8Array, number): void}} transport
+  /** @param {{write: (register: number, value: number) => void, loadMemory: (bytes: Uint8Array, address: number) => void}} transport
    * @param {number} clock Master clock in Hz; rate conversion assumes standard FM prescaling.
    */
   constructor(transport, clock = YM2610B_CLOCK) {
@@ -115,7 +115,7 @@ export class YM2610BAdpcmBSynth {
 
 /** Six independent ADPCM-A ROM voices. Fixed decoded rate clock/432; no hardware repeat or pitch control. */
 export class YM2610BAdpcmASynth {
-  /** @param {{write: function(number, number): void, loadMemory: function(Uint8Array, number): void}} transport */
+  /** @param {{write: (register: number, value: number) => void, loadMemory: (bytes: Uint8Array, address: number) => void}} transport */
   constructor(transport) { this.transport = transport; this.resetState(); }
   /** Reset only the register shadow after a whole-chip reset. */
   resetState() { this.levels = new Uint8Array(6); }
@@ -142,6 +142,7 @@ export class YM2610BAdpcmASynth {
   /** Global hardware level 0..63, increasing loudness. */
   setVolume(volume) { this.transport.write(1, adpcmInteger("volume", volume, 63)); }
   /** Individual level 0..31 and stereo gates; omitted values are retained. */
+  /** @param {number} ch @param {{volume?: number, left?: boolean, right?: boolean}} [options] */
   setVoice(ch, {volume, left, right} = {}) {
     adpcmInteger("voice", ch, 5);
     let value=this.levels[ch];

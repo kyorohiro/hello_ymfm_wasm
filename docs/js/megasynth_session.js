@@ -25,6 +25,8 @@ const LOOP_METHODS = new Set(['start', 'stop', 'clear', 'startRecording', 'finis
   'toggleRecord', 'undo', 'noteOn', 'noteOff', 'getState', 'getUnits', 'exportAudio']);
 const validationFM = () => new YM2612Synth({transport: {write(port, register, value) {}, reset() {}}});
 
+/** @typedef {import('./megasynth_offline.js').MegaSynthOfflineOptions & {looperMode?: 'events'|'pcm', looperMaxAudioSeconds?: number}} MegaSynthSessionOptions */
+/** @param {MegaSynthSessionOptions} [options] */
 export async function createMegaSynthSession(options = {}) {
   if (!['events', 'pcm'].includes(options.looperMode ?? 'events')) throw new Error('Invalid looperMode');
   const engine = await createMegaSynthOffline(options);
@@ -74,6 +76,7 @@ class MegaSynthSession {
       stop: () => {this.#assertOpen(); return this.#recording.stop();},
       export: () => {this.#assertOpen(); return this.#recording.exportRecording();},
       import: data => {this.#assertOpen(); this.#validateRecording(data); return this.#recording.importRecording(data);},
+      /** @param {unknown} [data] @param {{loop?: boolean, reset?: boolean, ignorePatch?: boolean, ignoreOperators?: boolean}} [options] */
       play: (data = null, options = {}) => {
         this.#assertOpen(); const selected = data ?? this.#recording.exportRecording();
         if (!selected) throw new Error('No recording to play');

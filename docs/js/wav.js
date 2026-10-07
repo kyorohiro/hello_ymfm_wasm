@@ -1,6 +1,9 @@
 /** Browser / Worker / Node: decoded mono/stereo PCM -> PCM16 RIFF WAV bytes.
  * Does not create AudioContext, save a file or play audio.
  */
+/** @typedef {{sampleRate: number, left: Float32Array, right?: Float32Array}} StereoPCM */
+/** @typedef {{sampleRate: number, channels: Float32Array[]}} ChannelPCM */
+/** @param {StereoPCM | ChannelPCM | AudioBuffer} pcm @param {{gain?: number}} [options] */
 export function encodeWav(pcm, {gain = 1} = {}) {
   const sampleRate = pcm?.sampleRate;
   const channels = typeof pcm?.getChannelData === 'function'
