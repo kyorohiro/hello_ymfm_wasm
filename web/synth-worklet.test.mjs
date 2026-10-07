@@ -290,3 +290,17 @@ for(const tree of ['web','docs/js'])for(const file of ['ym2612-worklet.js','ym26
  p.applyCommand({type:'clear-scheduled-writes'});send([[160,10]]);render(p,128);
  assert.deepEqual(writes,[1,2,3,4,5,6,7,8,10]);assert.equal(p.scheduledCommands.length,0);
 });
+
+for(const tree of ['web','docs/js'])for(const file of ['ym2612-worklet.js','ym2612-worklet-nuked.js']) {
+ test(`${tree} ${file}: chip mixer trims before summing and muted sources keep advancing`,()=>{
+  const {p}=processor(tree,file,48000);p.ym2612=chip(48000);p.psg=chip(48000);
+  p.ym2612.value=.5;p.psg.value=.25;
+  p.applyCommand({type:'mixer-settings',name:'ym2612',gains:[0,0]});
+  let out=render(p,256);assert(Math.abs(out.left[255]-.0875)<1e-6);
+  assert.equal(p.ym2612.frames,256);assert.equal(p.psg.frames,256);
+  p.applyCommand({type:'mixer-settings',name:'segapsg',gains:[.5,0]});
+  out=render(p,256);assert(Math.abs(out.left[255]-.04375)<1e-6);assert.equal(out.right[255],0);
+  p.applyCommand({type:'mixer-settings',name:'ym2612',gains:[.5,.5]});
+  out=render(p,256);assert(Math.abs(out.left[255]-.26875)<1e-6);assert(Math.abs(out.right[255]+.225)<1e-6);
+ });
+}

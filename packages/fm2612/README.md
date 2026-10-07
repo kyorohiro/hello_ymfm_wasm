@@ -10,6 +10,53 @@ its default entry point provides chip creation without starting browser audio.
 npm install tetorica-fm2612
 ```
 
+## Chip mixer
+
+Browser outputs share `SoundChipMixer`: `volume` is a linear multiplier (0–2),
+`pan` is stereo balance (-1 left, 0 center, 1 right), and `muted` silences the
+output while the chip keeps running. Game Boy starts at 28%; other chips start
+at 100%. `reset(id)` restores that chip's balance; `reset()` restores all strips.
+
+```js
+import {createSoundChip, SoundChipMixer} from 'tetorica-fm2612';
+const mixer = new SoundChipMixer();
+const audioContext = new AudioContext();
+const chip = await createSoundChip('gameboy', {
+  execution: 'worklet', audioContext, mixer, id: 'gb1',
+});
+mixer.set(chip.id, {volume: 0.28, pan: 0, muted: false});
+// Configure registers or use a Synth, then await chip.start().
+// await chip.dispose() removes its strip; caller owns audioContext.close().
+```
+
+Worklet endpoints expose `chip.mixer` and `chip.id` even without an explicit
+mixer. Each endpoint retains its existing `gain` trim (default 0.25); the mixer
+balance multiplies that trim. Direct chips continue to generate raw PCM and
+accept no output mixer. `PCMChipMixer` is available from `soundchip_mixer.js`
+for synchronous rendering, as used by the Analyzer.
+
+For browser MegaSynth, use `synth.mixer.set('ym2612', {volume: 0.5})`.
+Built-in strip IDs are `ym2612`, `segapsg` when enabled, `rf5c164` in Mega CD
+mode and `pwm` in Mega 32X mode. Settings can be specified before `start()`.
+Mixer output feeds the existing FX chain, then the master volume. Closing the
+synth removes its connected strips. A shared mixer can be passed as `{mixer}`.
+
+Inside Playground Main or Worker code:
+
+```js
+const gb = await createSoundChip('gameboy', {id: 'gb1'});
+await mixer.set(gb.id, {volume: 0.28, pan: -0.5});
+const settings = await pg.mixer.get(gb.id);
+await mixer.reset(gb.id);
+gb.dispose();
+```
+
+Worker controls return promises; `await` works in both execution modes.
+`createSoundChip` assigns an ID when omitted and preserves independent
+instances. Explicit IDs must be unique. `useSoundChip` retains its existing
+per-name cache; its `{id}` option is not supported. Disposing a client or
+stopping the runtime removes its output route.
+
 ## Included sound chips
 
 | Family | Chips |

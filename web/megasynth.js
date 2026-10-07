@@ -1,3 +1,4 @@
+import {chipMixGains} from './soundchip_mixer.js';
 import {createPWM32XAudio} from './playground_pwm_audio.js';
 import {createPWM32XClient} from './pwm32x_playback.js';
 /**
@@ -144,6 +145,7 @@ const YM2612_NATIVE_SAMPLE_RATE =
  *   rf5c164WorkletUrl?: string,
  *   rf5c164Fetch?: typeof fetch,
  *   chipSampleRate?: number,
+ *   mixer?: import('./soundchip_mixer.js').SoundChipMixer,
  *   masterVolume?: number,
  *   sampleOutputNode?: AudioNode | null,
  * }} MegaSynthOptions
@@ -264,6 +266,7 @@ export class MegaSynth {
       outputNode: options.outputNode,
       sampleOutputNode: options.sampleOutputNode,
       masterVolume: clampMasterVolume(options.masterVolume ?? 1),
+      mixer: options.mixer,
     });
     for (const property of [
       "ownsAudioContext",
@@ -287,6 +290,7 @@ export class MegaSynth {
       });
     }
 
+    this.mixerReleases = [];
     this.workletUrl =
       options.workletUrl ?? "./ym2612-worklet.js";
     this.stereoWidthWorkletUrl =
@@ -396,6 +400,7 @@ export class MegaSynth {
       } catch (error) {
         if (this.initializationController === controller) {
           controller.abort();
+          this.releaseMixerSources();
           this.#disposePcm();
           this.fm?.transport?.dispose?.();
           this.node?.disconnect();
@@ -658,6 +663,7 @@ export class MegaSynth {
     this.recordingManager?.attachSynth(null);
     this.audio.closeMedia();
     this.audio.disposeFXChain();
+    this.releaseMixerSources();
     this.#disposePcm();
 
     this.fm?.transport?.dispose?.();
@@ -849,6 +855,11 @@ export class MegaSynth {
       });
     }
 
+    for (const name of ['ym2612', ...(psgWasmBinary ? ['segapsg'] : [])]) {
+      this.mixerReleases.push(this.mixer.register(name, name, settings => {
+        this.node.port.postMessage({type: 'mixer-settings', name, gains: chipMixGains(settings)});
+      }));
+    }
     if (this.megaCD) {
       const device = await createRf5c164Audio(this.audioContext, this.masterInputNode, {
         wasmUrl: this.rf5c164WasmUrl, workletUrl: this.rf5c164WorkletUrl,
@@ -856,6 +867,8 @@ export class MegaSynth {
       });
       if (signal.aborted) { device.dispose(); signal.throwIfAborted(); }
       this.pcmDevice = device;
+      device.node.disconnect(this.masterInputNode);
+      this.mixerReleases.push(this.mixer.connect('rf5c164', 'rf5c164', device.node, this.masterInputNode, this.audioContext));
       this.pcm = createRf5c164Client(device.port, async source => {
         signal.throwIfAborted();
         if (source?.channels && source.sampleRate) return source;
@@ -874,10 +887,20 @@ export class MegaSynth {
     if (this.mega32X) {
       const device = await createPWM32XAudio(this.audioContext, this.masterInputNode, {...this.pwmOptions, signal});
       if (signal.aborted) {device.dispose(); signal.throwIfAborted();}
-      this.pwmDevice = device; this.pwm = createPWM32XClient(device.port);
+      this.pwmDevice = device;
+      device.node.disconnect(this.masterInputNode);
+      this.mixerReleases.push(this.mixer.connect('pwm', 'pwm', device.node, this.masterInputNode, this.audioContext));
+      this.pwm = createPWM32XClient(device.port);
     }
     this.#ensureRecordingManager();
     this.#installRecordingHooks();
+  }
+
+  /** @returns {import('./soundchip_mixer.js').SoundChipMixer} */
+  get mixer() { return this.audio.mixer; }
+
+  releaseMixerSources() {
+    for (const release of this.mixerReleases.splice(0)) release();
   }
 
   #disposePcm() {

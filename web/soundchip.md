@@ -150,3 +150,27 @@ await transport.start();
 The runtime wrappers use `duty` output with core gain 1; low-level direct `createSoundChip('pwm')` keeps raw `dac` gain .4. The Worklet endpoint's `gain` controls output volume (default .25).
 For standalone Node playback, use `PWM32XAudifyTransport` from `tetorica-fm2612/node/transports`; it accepts the direct factory chip, wraps the same frame scheduler and borrows rather than disposes that chip. `PWM32XDirectTransport` generates PCM for a consumer-owned output or WAV export.
 These APIs are available from npm 0.2.7. A PCM `loadSample`/`play` facade is not included; register writes and scheduling are available.
+
+## 共通出力ミキサー
+
+`execution: 'worklet'` では `SoundChipMixer` を指定でき、返されたendpointの
+`chip.mixer` / `chip.id` からも設定できます。省略時はendpoint専用のミキサーです。
+
+```js
+import {createSoundChip, SoundChipMixer} from './soundchip.js';
+const mixer = new SoundChipMixer();
+const chip = await createSoundChip('gameboy', {
+  execution: 'worklet', mixer, id: 'gb1',
+});
+mixer.set(chip.id, {volume: 0.28, pan: 0, muted: false});
+// レジスタ設定後に await chip.start()。使用後に await chip.dispose()。
+```
+
+`volume` は0〜2の倍率、`pan` は-1〜1のステレオバランスです。
+Game Boyは28%、他は100%が初期値。`reset(id)`もその値に戻ります。
+既存のendpointの`gain`（既定0.25）とは別の倍率です。複数endpointを同じ
+ミキサーに登録する場合は、異なるIDと共通のAudioContext／出力先を指定します。
+`dispose()`で当該登録を解除し、ほかのチップは維持します。
+直生成モードは生のPCMを保ち、出力ミキサー指定はWorklet専用です。
+MegaSynthの`synth.mixer`、playgroundの`mixer`／`pg.mixer`も同じ設定項目を使います。
+playgroundのWorkerでは各操作を`await`してください。

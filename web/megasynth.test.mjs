@@ -25,7 +25,9 @@ function harness(t, stage = '', options = {}) {
     audioWorklet: { addModule: async url => {
       if (stage === 'module' || (stage === 'pcm-module' && String(url).includes('rf5c164'))) { reached = true; await gate.promise; }
     } },
-    createGain: () => ({ gain: { value: 1 }, connect() {}, disconnect() {} }),
+    createGain: () => ({ gain: { value: 1, cancelScheduledValues(){}, setValueAtTime(v){this.value=v;}, linearRampToValueAtTime(v){this.value=v;} }, connect() {}, disconnect() {} }),
+    createChannelSplitter: () => ({connect(){}, disconnect(){}}),
+    createChannelMerger: () => ({connect(){}, disconnect(){}}),
   };
   const priorNode = globalThis.AudioWorkletNode;
   globalThis.AudioWorkletNode = class {
@@ -81,7 +83,7 @@ test('Mega CD uses the shared mixer, exposes eight-channel PCM commands and rele
   await synth.start();
   const device = nodes.find(n => n.name === 'tetorica-rf5c164');
   assert.ok(synth.psg);
-  assert.equal(device.destination, nodes[0].destination);
+  assert.deepEqual(synth.mixer.list().map(s=>s.id), ['ym2612', 'segapsg', 'rf5c164']);
   const client = synth.pcm;
   const wave = await client.loadSample({channels: [new Float32Array(256).fill(.5)], sampleRate: 32000}, {loopStart: 0});
   assert.equal(wave.start, 0);

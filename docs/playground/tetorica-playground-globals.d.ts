@@ -1,3 +1,12 @@
+type PlaygroundChipMix = {volume: number; pan: number; muted: boolean};
+interface PlaygroundMixer {
+  set(id: string, settings: {volume?: number; pan?: number; muted?: boolean}): PlaygroundChipMix | Promise<PlaygroundChipMix>;
+  get(id: string): PlaygroundChipMix | Promise<PlaygroundChipMix>;
+  list(): Array<PlaygroundChipMix & {id: string; name: string; connected: boolean}> | Promise<Array<PlaygroundChipMix & {id: string; name: string; connected: boolean}>>;
+  reset(id?: string): void | Promise<void>;
+}
+declare const mixer: PlaygroundMixer;
+interface PlaygroundCreateSoundChipOptions {id?: string;}
 /**
  * One logical YM2612 operator parameter block used by `fm.setOperator()`.
  *
@@ -847,6 +856,7 @@ declare function setInterval(handler: () => void, timeout?: number): number;
 declare function clearInterval(id: number): void;
 
 type PlaygroundAPI = {
+  mixer: PlaygroundMixer;
   /** Track a liveLoop task; rejection interrupts its waits and ends that loop. */
   trackAsync(task: PromiseLike<unknown>): void;
   createSoundChip: typeof createSoundChip;
@@ -1037,7 +1047,7 @@ interface PlaygroundRf5c164 {
   reset(): Promise<void>;
   dispose(): void;
 }
-declare function createSoundChip(name: 'rf5c164'): Promise<PlaygroundRf5c164>;
+declare function createSoundChip(name: 'rf5c164', options?: PlaygroundCreateSoundChipOptions): Promise<PlaygroundRf5c164 & {readonly id: string}>;
 /** Game Boy note names (C4=MIDI 60) or integer MIDI 0..127. */
 type GameboyNote = string | number;
 interface GameboyEnvelope { direction?: 'up' | 'down'; period?: number; }
@@ -1091,7 +1101,7 @@ interface PlaygroundGameboy {
   reset(): void;
   dispose(): void;
 }
-declare function createSoundChip(name: 'gameboy'): Promise<PlaygroundGameboy>;
+declare function createSoundChip(name: 'gameboy', options?: PlaygroundCreateSoundChipOptions): Promise<PlaygroundGameboy & {readonly id: string}>;
 /** Independent YM2608; memory uploads are asynchronous, register setters are ordered writes. */
 type PlaygroundYm2608 = {setClock(clock: number): Promise<void>; resetRegisters(): void; prepareTimeline(events: Array<[number, number, number, number]>, blocks: Uint8Array[], durationSamples: number): Promise<void>; playTimeline(): Promise<void>} & Pick<FMApi, 'reset' | 'setPreset' | 'setOperator' | 'setOperators' | 'setAlgo' | 'setPan' | 'setLfo' | 'setChannel3SpecialMode' | 'setChannel3SpecialFrequency' | 'setFrequency' | 'keyOn' | 'keyOff' | 'noteOn' | 'noteOff' | 'writeAddress' | 'writeData'> & {
   write(port: number, register: number, value: number): void;
@@ -1130,7 +1140,7 @@ type PlaygroundYm2608 = {setClock(clock: number): Promise<void>; resetRegisters(
     reset(): void;
   };
 };
-declare function createSoundChip(name: 'ym2608'): Promise<PlaygroundYm2608>;
+declare function createSoundChip(name: 'ym2608', options?: PlaygroundCreateSoundChipOptions): Promise<PlaygroundYm2608 & {readonly id: string}>;
 
 
 /** Runtime-managed chip lookup. Reuses pending/ready instances until Stop.
@@ -1162,9 +1172,9 @@ declare function useSoundChip<Name extends keyof PlaygroundSoundChipMap>(name: N
 /** Independent chips. Global play/write still target the default Playground chip. */
 type PlaygroundCreatedFm = Omit<FMApi, 'dac' | 'scheduleWrites' | 'read' | 'readStatus' | 'getIrq'> & {dispose(): void};
 type PlaygroundCreatedOPN<C extends YM2612Channel> = Omit<PlaygroundOPNFm<C>, 'scheduleWrites' | 'read' | 'readStatus' | 'getIrq' | 'rawWrite' | 'writeAddress' | 'writeData'> & {dispose(): void};
-declare function createSoundChip(name: 'ym2612'): Promise<PlaygroundCreatedFm>;
+declare function createSoundChip(name: 'ym2612', options?: PlaygroundCreateSoundChipOptions): Promise<PlaygroundCreatedFm & {readonly id: string}>;
 type PlaygroundCreatedYm2203 = PlaygroundCreatedOPN<0 | 1 | 2> & {ssg: PlaygroundYm2608['ssg']; setClock(clock: number): Promise<void>; scheduleRegisters(entries: Array<[number, number, number]>, durationSamples: number): Promise<void>};
-declare function createSoundChip(name: 'ym2203'): Promise<PlaygroundCreatedYm2203>;
+declare function createSoundChip(name: 'ym2203', options?: PlaygroundCreateSoundChipOptions): Promise<PlaygroundCreatedYm2203 & {readonly id: string}>;
 type PlaygroundCreatedYm2610 = PlaygroundCreatedOPN<0 | 1 | 2 | 3> & {
   ssg: PlaygroundYm2608['ssg'];
   adpcm: Omit<PlaygroundYm2608['adpcm'], 'loadSample'>;
@@ -1179,7 +1189,7 @@ type PlaygroundCreatedYm2610 = PlaygroundCreatedOPN<0 | 1 | 2 | 3> & {
     reset(): void;
   };
 };
-declare function createSoundChip(name: 'ym2610'): Promise<PlaygroundCreatedYm2610>;
+declare function createSoundChip(name: 'ym2610', options?: PlaygroundCreateSoundChipOptions): Promise<PlaygroundCreatedYm2610 & {readonly id: string}>;
 
 /** Independent Sega PSG; resetAll only resets this chip. */
 type PlaygroundSegaPsg = Omit<PSGApi, 'resetAll'> & {
@@ -1187,7 +1197,7 @@ type PlaygroundSegaPsg = Omit<PSGApi, 'resetAll'> & {
   resetAll(): void;
   dispose(): void;
 };
-declare function createSoundChip(name: 'segapsg'): Promise<PlaygroundSegaPsg>;
+declare function createSoundChip(name: 'segapsg', options?: PlaygroundCreateSoundChipOptions): Promise<PlaygroundSegaPsg & {readonly id: string}>;
 
 /** OPM channels 0..7; operators in register order M1, C1, M2, C2 (0..3). */
 interface PlaygroundYm2151 {
@@ -1205,7 +1215,7 @@ interface PlaygroundYm2151 {
   setNoise(enabled: boolean, frequency?: number): void;
   dispose(): void;
 }
-declare function createSoundChip(name: 'ym2151'): Promise<PlaygroundYm2151>;
+declare function createSoundChip(name: 'ym2151', options?: PlaygroundCreateSoundChipOptions): Promise<PlaygroundYm2151 & {readonly id: string}>;
 
 /** MAME-derived 32X PWM. Offsets use the output sample rate, not 44,100 Hz VGM units. */
 type PlaygroundPWM32X = {
@@ -1218,4 +1228,4 @@ type PlaygroundPWM32X = {
   getState(): Promise<{model: 'mame'; outputMode: 'dac' | 'duty'; clock: number; sampleRate: number; currentFrame: number; queuedWrites: number}>;
   dispose(): void;
 };
-declare function createSoundChip(name: 'pwm'): Promise<PlaygroundPWM32X>;
+declare function createSoundChip(name: 'pwm', options?: PlaygroundCreateSoundChipOptions): Promise<PlaygroundPWM32X & {readonly id: string}>;

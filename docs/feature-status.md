@@ -25,7 +25,7 @@ Playback欄の`Seek cache`表示で高速シークの対応構成を確認でき
 | 機能 | 実装・範囲 | 制限・残作業 | 自動検証・詳細 |
 |---|---|---|---|
 | VGM／VGZ再生・音源別表示・ミュート | 実装済。OPN／OPM／OPL／PSG／PCMなど | 対応はチップ・Dual・併用構成ごとに異なる | [対応表](vgm_analyzer/support.html)、[再生構成判定](vgm_analyzer/playback_core.js) |
-| Chip Mixer | ローカル実装。Play/Ch・Effect横のMixerでチップ別Volume／Pan／Mute、Master、チップ設定Reset。再生・WAVに反映 | Game Boyの初期値・Resetは28%、他は100%。チップ設定は曲の読込でリセット。既存のDual対応範囲は変更なし。DC除去・自動音量補正は未実装。未公開 | [PCMテスト](vgm_analyzer/playback_mixer.test.mjs)、[実装](vgm_analyzer/playback_mixer.js) |
+| Chip Mixer | 共通PCM部品に移行。ローカル実装。Play/Ch・Effect横のMixerでチップ別Volume／Pan／Mute、Master、チップ設定Reset。再生・WAVに反映 | Game Boyの初期値・Resetは28%、他は100%。チップ設定は曲の読込でリセット。既存のDual対応範囲は変更なし。DC除去・自動音量補正は未実装。未公開 | [PCMテスト](vgm_analyzer/playback_mixer.test.mjs)、[実装](vgm_analyzer/playback_mixer.js) |
 | S98入力 | 一部。単一YM2203／YM2608／YM2612／YM2151 | 圧縮S98・複数デバイスは未対応。YM2151の追加はローカル版で、npm 0.2.6には未収録 | [入力仕様](../CLI.md#s98-input-and-source-documents) |
 | 高速シーク | 一部。OPN／OPM／Genesis構成 | 下の専用表参照。実曲・長時間のブラウザー試聴未確認、公開版未照合 | [成功記録・詳細](issues/seekvgm_save_load_01.md) |
 | Note-ish／楽譜表示・MIDI／MusicXML／LilyPond Export | 一部。対応音源の基音・キー区間を抽出 | 原譜の復元ではない。チップごとに除外区間あり | [対応表](vgm_analyzer/support.html)、[MusicXMLテスト](vgm_analyzer/vgm_musicxml.test.mjs)、[LilyPond作業記録](issues/lilypond_export_01.md) |
@@ -77,6 +77,7 @@ WASMが存在するだけでPlayground APIも利用可能とは判断しない�
 | Game Boy高水準API | 即時設定APIへ改訂・自動テスト済。v0.40.11公開報告あり | pulse／wave／noiseの個別即時設定、明示的トリガー、initialize、setNote、raw同期。ブラウザー聴感確認は未実施。duration／自動CH割当は後段 | [設計案](issues/gameboy_api_01.md) |
 | Genesis VGM→JavaScriptのPSG変換 | Schedule / Write / HighでFM・DACとPSGを出力。Include PSGで選択 | HighはPSGの個別設定API＋raw fallback、固定クロック。PSG単独Import・デュアルPSGは未対応。未公開・ブラウザー試聴未実施 | [作業記録](issues/genesis_psg_vgm_javascript.md) |
 | RF5C164 VGM→JavaScript変換 | Write／High＋raw fallbackでレジスター・RAM転送を出力。単独／YM2612＋DAC＋PSG混在に対応 | 12.5 MHz・単一チップ。liveLoop／FM CH分割対応、RFは共有ループ。非同期タイミング。ScheduleはFM/DAC/PSGに適用（RFはWrite）。最新変更のブラウザー試聴は未実施 | [作業記録](issues/rf5c164_vgm_javascript.md) |
+| 共通チップミキサー | ローカル実装。browser MegaSynth／OPN runtime／playground Main・Worker／createSoundChip WorkletでVolume・Pan・Mute・Reset、ID管理 | Game Boy初期値28%。raw PCMは変更なし。Nodeのデバイス出力は別API。未公開 | [仕様](../packages/fm2612/README.md#chip-mixer)、[テスト](../web/soundchip_mixer.test.mjs) |
 | Playground useSoundChip | YM2612／YM2203／YM2610の既定FM取得、RF5C164／YM2608／Game Boyの再利用。Main／Worker・型推論対応 | IDによる複数台は未対応。ブラウザー実画面・実音は未確認 | [設計・実装記録](issues/multisoundchip_01.md) |
 | 仮想ファイル・Cassette・音色編集 | 実装済。プロジェクト保存、VGMからのTFI取込等 | ファイル編集と元のディスクファイルへの保存は別。手動記録は未整理 | [Cassetteテスト](playground/playground_cassette.test.mjs)、[TFIテスト](playground/playground_tfi_editor.test.mjs)、[取込テスト](playground/playground_vgm_presets.test.mjs) |
 | Native Audio Effect | 実装済。WASM FX・ルーティング・Playground接続 | 独立ページはWindows確認記録あり。Playground移行後の試聴は残作業 | [FX一覧・成功記録](issues/native_audioeffect_01.md)、[テスト](../test/playground_native_fx.test.mjs) |

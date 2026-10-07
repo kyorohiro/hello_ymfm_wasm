@@ -15,6 +15,7 @@ import { SegaPSG, SEGAPSG_CLOCK } from "./segapsg.js";
 const YM_GAIN = 0.9;
 const PSG_GAIN = 0.35;
 const VGM_SAMPLE_RATE = 44100;
+const MIX_SOURCES = ['ym2612', 'segapsg'];
 
 function clampSample(value) {
   if (value < -1) {
@@ -35,6 +36,9 @@ class YM2612Processor extends AudioWorkletProcessor {
     this.resampleRemainder = 0;
     this.lastLeft = 0;
     this.lastRight = 0;
+    this.mixTargets = {ym2612: [1, 1], segapsg: [1, 1]};
+    this.mixCurrent = {ym2612: [1, 1], segapsg: [1, 1]};
+    this.mixRemaining = {ym2612: 0, segapsg: 0};
     this.pendingCommands = [];
     this.scheduledCommands = [];
     this.scheduledHead = 0;
@@ -129,6 +133,12 @@ class YM2612Processor extends AudioWorkletProcessor {
   }
 
   applyCommand(command, reply = message => this.port.postMessage(message)) {
+    if (command.type === 'mixer-settings') {
+      if (!['ym2612', 'segapsg'].includes(command.name) || !Array.isArray(command.gains) || command.gains.length !== 2 || command.gains.some(v => !Number.isFinite(v) || v < 0 || v > 2)) throw new RangeError('Invalid mixer settings');
+      this.mixTargets[command.name] = command.gains;
+      this.mixRemaining[command.name] = Math.max(1, Math.round(sampleRate * .005));
+      return;
+    }
     if (receiveDacCommand(this.pcmDac, command, currentFrame, reply)) return;
     if (command.type === "schedule-writes") {
       // Compact only when new work arrives, not once per audio event.
@@ -352,14 +362,22 @@ class YM2612Processor extends AudioWorkletProcessor {
     const psg = sourceFrames > 0 ? this.psg?.generateStereo(sourceFrames) : null;
     let sourceOffset = 0;
     for (let i = 0; i < frames; i++) {
+      for (const name of MIX_SOURCES) {
+        if (this.mixRemaining[name] > 0) {
+          for (let c = 0; c < 2; c++) this.mixCurrent[name][c] += (this.mixTargets[name][c] - this.mixCurrent[name][c]) / this.mixRemaining[name];
+          this.mixRemaining[name]--;
+        }
+      }
+      const fmGains = this.mixCurrent.ym2612;
+      const psgGains = this.mixCurrent.segapsg;
       this.resampleRemainder += chipRate;
       const count = Math.floor(this.resampleRemainder / sampleRate);
       this.resampleRemainder -= count * sampleRate;
       if (count > 0) {
         let left = 0, right = 0;
         for (let j = 0; j < count; j++, sourceOffset++) {
-          left += psg ? clampSample(pcm.left[sourceOffset] * YM_GAIN + psg.left[sourceOffset] * PSG_GAIN) : pcm.left[sourceOffset];
-          right += psg ? clampSample(pcm.right[sourceOffset] * YM_GAIN + psg.right[sourceOffset] * PSG_GAIN) : pcm.right[sourceOffset];
+          left += psg ? clampSample(pcm.left[sourceOffset] * YM_GAIN * fmGains[0] + psg.left[sourceOffset] * PSG_GAIN * psgGains[0]) : pcm.left[sourceOffset] * fmGains[0];
+          right += psg ? clampSample(pcm.right[sourceOffset] * YM_GAIN * fmGains[1] + psg.right[sourceOffset] * PSG_GAIN * psgGains[1]) : pcm.right[sourceOffset] * fmGains[1];
         }
         this.lastLeft = left / count;
         this.lastRight = right / count;

@@ -453,6 +453,7 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
     (run.collectingCleanups ?? run.cleanups).push({ names, fn });
   };
   const pcmClients = new Set();
+  const pcmIds = new Set(); let pcmSequence = 0;
   const soundChips = createSoundChipRegistry();
   const loopTasks = createLoopAsyncTasks({getLoop: () => run.currentLoop,
     cancelWaits: loop => clock.cancelWaits(loop),
@@ -584,14 +585,26 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
       check();
       return chip;
     },
-    async createSoundChip(name){
+    async createSoundChip(name, options = {}){
       if(run.stopped)throw new Error('Run stopped');
       const token=run.token;
-      const port=await request('pcm.create',[name]);
+      if (!options || typeof options !== 'object' || Array.isArray(options) || Object.keys(options).some(k => k !== 'id')) throw new TypeError('createSoundChip supports {id}');
+      let mixerId=options.id ?? name;
+      const primary=capabilities.chip ?? 'ym2612';
+      if(options.id===undefined)while(pcmIds.has(mixerId)||mixerId===primary||mixerId==='segapsg'&&capabilities.psg)mixerId=`${name}:${++pcmSequence}`;
+      if(pcmIds.has(mixerId))throw new Error(`Mixer id is already connected: ${mixerId}`);
+      pcmIds.add(mixerId);
+      let port;
+      try {port=await request('pcm.create',[name, {id:mixerId}]);}
+      catch(error){pcmIds.delete(mixerId);throw error;}
       const pcm=name === 'pwm' ? createPWM32XClient(port) : ['ym2612', 'ym2203', 'ym2610'].includes(name) ? createOpnClient(name, port) : name === 'ym2151' ? createYm2151Client(port) : name === 'segapsg' ? createSegaPsgClient(port) : name === 'gameboy' ? createGameboyClient(port) : name === 'ym2608' ? createYm2608Client(port) : createRf5c164Client(port,source=>request('pcm.decode',[source]));
       if(run.stopped || token!==run.token){pcm.dispose();throw new Error('Run stopped');}
+      pcm.id=mixerId;
+      const dispose=pcm.dispose.bind(pcm); let disposed=false;
+      pcm.dispose=()=>{if(disposed)return;disposed=true;dispose();pcmClients.delete(pcm);pcmIds.delete(mixerId);postCommand('pcm.dispose',[mixerId]);};
       pcmClients.add(pcm);return pcm;
     },
+    mixer: Object.fromEntries(['set', 'get', 'reset', 'list'].map(method => [method, (...args) => request('mixer.' + method, args, run.currentLoop)])),
     midi,
     console: {
       log: (...args) => postCommand("log", args),

@@ -1,7 +1,9 @@
+import {SoundChipMixer} from './soundchip_mixer.js';
 /**
  * @typedef {{
  * execution: 'worklet', name: import('./soundchip.js').WorkletChipName,
  * port: MessagePort, node: AudioWorkletNode, audioContext: AudioContext,
+ * mixer: import('./soundchip_mixer.js').SoundChipMixer, id: string,
  * sampleRate(): number, request(method: string, args?: unknown[]): Promise<unknown>,
  * createTransportPort(): MessagePort, start(): Promise<void>, stop(): Promise<void>, dispose(): Promise<void>
  * }} WorkletSoundChip
@@ -19,8 +21,13 @@ export async function createWorkletSoundChip(name, options, loadBinary) {
   options.signal?.throwIfAborted();
   if (!Number.isFinite(options.gain ?? .25) || (options.gain ?? .25) < 0 || (options.gain ?? .25) > 4) throw new RangeError('Invalid worklet output gain');
   if (!options.audioContext && typeof AudioContext === 'undefined') throw new Error('Worklet execution requires a browser AudioContext');
+  const mixer = options.mixer ?? new SoundChipMixer();
+  const id = options.id ?? name;
+  mixer.checkId(id);
+  if(mixer.list().some(s=>s.id===id&&s.connected))throw new Error(`Mixer id is already connected: ${id}`);
   const ownsContext = !options.audioContext;
   const context = options.audioContext ?? new AudioContext(options.sampleRate ? {sampleRate: options.sampleRate} : undefined);
+  let releaseMixer;
   let node, gain, closed = false, closing, failure;
   const requests = new Map(); let sequence = 0;
   const request = (method, args = []) => {
@@ -43,6 +50,7 @@ export async function createWorkletSoundChip(name, options, loadBinary) {
         gain.gain.linearRampToValueAtTime(0, context.currentTime + .02);
         await new Promise(resolve => setTimeout(resolve, 20));
       }
+      releaseMixer?.(); releaseMixer = null;
       node?.port.postMessage({method: 'dispose'}); node?.disconnect(); gain?.disconnect();
       if (ownsContext && context.state !== 'closed') await context.close();
     })();
@@ -81,9 +89,10 @@ export async function createWorkletSoundChip(name, options, loadBinary) {
       };
     });
     options.signal?.throwIfAborted();
-    gain = context.createGain(); gain.gain.value = options.gain ?? .25; node.connect(gain);
+    gain = context.createGain(); gain.gain.value = options.gain ?? .25;
+    releaseMixer = mixer.connect(id, name, node, gain, context);
     return {
-      execution: 'worklet', name, port: node.port, node, audioContext: context,
+      execution: 'worklet', name, mixer, id, port: node.port, node, audioContext: context,
       sampleRate: () => ready.sampleRate,
       request,
       createTransportPort() {

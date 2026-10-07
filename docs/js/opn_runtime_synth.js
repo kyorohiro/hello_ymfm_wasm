@@ -28,6 +28,7 @@ export class OPNRuntimeSynth {
       outputNode: options.outputNode,
       sampleOutputNode: options.sampleOutputNode,
       masterVolume: clampMasterVolume(options.masterVolume ?? 1),
+      mixer: options.mixer,
     });
     this.workletUrl = options.workletUrl ?? config.workletUrl;
     this.wasmUrl = options.wasmUrl ?? config.wasmUrl;
@@ -37,6 +38,7 @@ export class OPNRuntimeSynth {
     this.FMSynth = config.FMSynth;
     this.rhythmRom = options.rhythmRom;
     this.rhythmRomUrl = options.rhythmRomUrl ?? config.rhythmRomUrl;
+    this.mixerRelease = null;
     this.node = null;
     this.fm = null;
     this.psg = null;
@@ -58,6 +60,8 @@ export class OPNRuntimeSynth {
     this.noise = this.audio.createNoiseApi();
   }
 
+  /** @returns {import('./soundchip_mixer.js').SoundChipMixer} */
+  get mixer() { return this.audio.mixer; }
   get audioContext() { return this.audio.audioContext; }
   set audioContext(value) { this.audio.audioContext = value; }
   get ownsAudioContext() { return this.audio.ownsAudioContext; }
@@ -78,6 +82,7 @@ export class OPNRuntimeSynth {
         } catch (error) {
           if (this.initializationController === controller) {
             controller.abort();
+            this.mixerRelease?.(); this.mixerRelease = null;
             this.node?.disconnect();
             this.node?.port.close();
             this.node = null;
@@ -137,6 +142,7 @@ export class OPNRuntimeSynth {
   async #close() {
     this.audio.closeMedia();
     this.audio.disposeFXChain();
+    this.mixerRelease?.(); this.mixerRelease = null;
     this.fm?.transport.dispose?.();
     this.node?.disconnect();
     this.node?.port.close();
@@ -177,7 +183,7 @@ export class OPNRuntimeSynth {
       outputChannelCount: [2],
     });
     this.audio.ensureRouting(this.audioContext);
-    this.audio.connectChipOutput(this.node);
+    this.mixerRelease = this.mixer.connect(this.chip, this.chip, this.node, this.audio.masterInputNode, this.audioContext);
     const ready = this.#waitForWorkletReady(this.node, signal);
     ready.catch(() => {});
     this.node.port.postMessage({ type: "initialize", wasmBinary, rhythmRom }, [wasmBinary]);

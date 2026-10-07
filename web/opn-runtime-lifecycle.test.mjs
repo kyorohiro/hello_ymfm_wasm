@@ -25,7 +25,9 @@ function harness(t, stage = '') {
     audioWorklet: { addModule: async () => {
       if (stage === 'module') { reached = true; await gate.promise; }
     } },
-    createGain: () => ({ gain: { value: 1 }, connect() {}, disconnect() {} }),
+    createGain: () => ({ gain: { value: 1, cancelScheduledValues(){}, setValueAtTime(v){this.value=v;}, linearRampToValueAtTime(v){this.value=v;} }, connect() {}, disconnect() {} }),
+    createChannelSplitter: () => ({connect(){}, disconnect(){}}),
+    createChannelMerger: () => ({connect(){}, disconnect(){}}),
   };
   const priorNode = globalThis.AudioWorkletNode;
   globalThis.AudioWorkletNode = class {

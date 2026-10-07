@@ -1,3 +1,4 @@
+import {SoundChipMixer} from './soundchip_mixer.js';
 /**
  * @file tetorica_audio_runtime.js
  * 実行環境: Browser（音声処理時）
@@ -21,6 +22,8 @@ export class TetoricaAudioRuntime {
     this.outputNode = options.outputNode ?? null;
     this.sampleOutputNode = options.sampleOutputNode ?? null;
     this.masterVolume = options.masterVolume ?? 1;
+    /** @type {SoundChipMixer} */
+    this.mixer = options.mixer ?? new SoundChipMixer();
     this.masterInputNode = null;
     this.masterOutputNode = null;
     this.fxChain = [];

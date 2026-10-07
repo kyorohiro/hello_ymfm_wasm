@@ -39,7 +39,7 @@ neo.setFrequency(3, 4, 1000);
 // @ts-expect-error Neo Geo has four logical FM channels.
 neo.keyOn(4);
 // In YM2612 mode, YM2610 is an additional full chip.
-neo.ssg.tone(0, {frequency:440});
+if ('ssg' in neo) neo.ssg.tone(0, {frequency:440});
 
 const extraFm = await createSoundChip('ym2612');
 extraFm.setPreset(CH1, FM_PRESETS['one-op-basic']);
@@ -82,3 +82,11 @@ opm.keyOn(7);
 (await pg.createSoundChip('ym2151')).setNoise(true, 12);
 // @ts-expect-error OPM only has eight channels
 opm.keyOn(8);
+
+const mixedGb = await createSoundChip('gameboy', {id:'gb1'});
+await mixer.set(mixedGb.id, {volume:0.28, pan:-0.5});
+const gbMix = await pg.mixer.get(mixedGb.id);
+gbMix.volume.toFixed(2);
+await pg.mixer.reset(mixedGb.id);
+// @ts-expect-error Volume is numeric.
+await mixer.set('gb1', {volume:'quiet'});

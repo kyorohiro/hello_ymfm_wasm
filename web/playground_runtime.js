@@ -199,14 +199,35 @@ export function createPlaygroundRuntime(
   let logicWorker = null;
   let workerGlobals = null;
   const pcmDevices = new Set();
+  const pendingPcmIds = new Set();
+  let pcmSequence = 0;
   const soundChips = createSoundChipRegistry();
   let sharedFm;
   let sharedFmSynth;
-  async function openPcm(name, token = currentRunToken) {
+  async function openPcm(name, token = currentRunToken, options = {}) {
+    if (!options || typeof options !== 'object' || Array.isArray(options) || Object.keys(options).some(k => k !== 'id')) throw new TypeError('createSoundChip supports {id}');
+    let mixerId = options.id ?? name;
+    const occupied = id => pendingPcmIds.has(id) || megaDrive.mixer?.list().some(s => s.id === id && s.connected);
+    if (options.id === undefined) while (occupied(mixerId)) mixerId = `${name}:${++pcmSequence}`;
+    megaDrive.mixer?.checkId(mixerId);
+    if (occupied(mixerId)) throw new Error(`Mixer id is already connected: ${mixerId}`);
     if(!['ym2612', 'ym2203', 'ym2610', 'rf5c164', 'ym2608', 'gameboy', 'segapsg', 'ym2151', 'pwm'].includes(name)) throw new Error('Unsupported Playground sound chip: ' + name);
     const createAudio = name === 'pwm' ? createPWM32XAudio : ['ym2612', 'ym2203', 'ym2610'].includes(name) ? (context, destination) => createOpnAudio(context, destination, name) : name === 'ym2151' ? createYm2151Audio : name === 'segapsg' ? createSegaPsgAudio : name === 'gameboy' ? createGameboyAudio : name === 'ym2608' ? createYm2608Audio : createRf5c164Audio;
-    const device = await createAudio(megaDrive.audioContext, megaDrive.audio.masterInputNode);
-    if(token !== currentRunToken){device.dispose();throw new Error('Run stopped');}
+    pendingPcmIds.add(mixerId);
+    let device;
+    try {device = await createAudio(megaDrive.audioContext, megaDrive.audio.masterInputNode);}
+    catch (error) {pendingPcmIds.delete(mixerId); throw error;}
+    if(token !== currentRunToken){pendingPcmIds.delete(mixerId);device.dispose();throw new Error('Run stopped');}
+    try {
+      if (megaDrive.mixer) {
+        device.node.disconnect(megaDrive.audio.masterInputNode);
+        const release = megaDrive.mixer.connect(mixerId, name, device.node, megaDrive.audio.masterInputNode, megaDrive.audioContext);
+        const dispose = device.dispose; let disposed = false;
+        device.dispose = () => {if (disposed) return; disposed = true; release(); pcmDevices.delete(device); dispose();};
+      }
+    } catch (error) {device.dispose(); throw error;}
+    finally {pendingPcmIds.delete(mixerId);}
+    device.mixerId = mixerId;
     pcmDevices.add(device);return device;
   }
   async function decodePcm(source){
@@ -852,7 +873,9 @@ export function createPlaygroundRuntime(
       throw new Error("Playground Worker is not running");
     }
 
-    if(command==='pcm.create')return (await openPcm(args[0])).port;
+    if(command==='pcm.create')return (await openPcm(args[0], currentRunToken, args[1])).port;
+    if(command==='pcm.dispose') {for(const device of pcmDevices) if(device.mixerId===args[0]) device.dispose(); return;}
+    if(command.startsWith('mixer.')) {const method=command.slice(6);if(!['set','get','reset','list'].includes(method)) throw new Error('Unknown mixer method');return megaDrive.mixer[method](...args);}
     if(command==='pcm.decode')return decodePcm(args[0]);
     if (command === "midi.file") return globals.midi.playFile(...args);
     if (command === "midi.invoke") {
@@ -1347,6 +1370,7 @@ export function createPlaygroundRuntime(
       check:()=>{if(runToken!==currentRunToken)throw new DOMException('Run stopped','AbortError');}});
     midiApis.add(midi);
     const pg = {
+      mixer: megaDrive.mixer,
       trackAsync: promise => loopTasks.track(promise),
       useSoundChip: async (name, options) => {
         const check = () => { if (runToken !== currentRunToken) throw new DOMException('Run stopped', 'AbortError'); };
@@ -1359,11 +1383,13 @@ export function createPlaygroundRuntime(
         check();
         return chip;
       },
-      createSoundChip: async name => {
-        const device=await openPcm(name,runToken);
+      createSoundChip: async (name, options = {}) => {
+        const device=await openPcm(name,runToken,options);
         const client=name === 'pwm' ? createPWM32XClient(device.port) : ['ym2612', 'ym2203', 'ym2610'].includes(name) ? createOpnClient(name, device.port) : name === 'ym2151' ? createYm2151Client(device.port) : name === 'segapsg' ? createSegaPsgClient(device.port) : name === 'gameboy' ? createGameboyClient(device.port) : name === 'ym2608' ? createYm2608Client(device.port) : createRf5c164Client(device.port,decodePcm);
-        const dispose=device.dispose;
-        device.dispose=()=>{client.dispose();dispose();};
+        client.id=device.mixerId;
+        const dispose=device.dispose, disposeClient=client.dispose.bind(client); let disposed=false;
+        client.dispose=()=>{if(disposed)return;disposed=true;disposeClient();dispose();};
+        device.dispose=client.dispose;
         return client;
       },
       midi,
@@ -1509,6 +1535,7 @@ export function createPlaygroundRuntime(
         console:
           playgroundConsole,
         pg,
+        mixer: pg.mixer,
         createSoundChip: pg.createSoundChip,
         useSoundChip: pg.useSoundChip,
         midi,
@@ -2040,6 +2067,7 @@ export function createPlaygroundRuntime(
   }
 
   return {
+    mixer: megaDrive.mixer,
     logicWorkerUrl,
     initialize,
     ensureReady,

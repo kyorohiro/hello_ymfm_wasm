@@ -23,7 +23,7 @@ export async function createSegaPsgAudio(context, destination) {
   const channel = new MessageChannel();
   node.port.postMessage({port: channel.port1}, [channel.port1]);
   let disposed = false;
-  return {port: channel.port2, dispose() {
+  return {node, port: channel.port2, dispose() {
     if (disposed) return;
     disposed = true; node.port.postMessage({method: 'dispose'}); node.disconnect(); node.port.close();
   }};

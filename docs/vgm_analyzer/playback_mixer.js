@@ -1,3 +1,4 @@
+import {PCMChipMixer, soundChipMixDefaults} from '../js/soundchip_mixer.js';
 // Chip output trims, before the existing engine balance, master gain and FX.
 // Register writes and synthesis keep advancing even when a strip is muted.
 const properties = {
@@ -9,58 +10,15 @@ const properties = {
   segaPcm: 'segapcm', gameBoyDmg: 'gameboy',
 };
 // Analyzer starting balance; callers without a chip ID retain unity gain.
-export const mixerDefaults = id => ({gain: id === 'gameBoyDmg' ? .28 : 1, pan: 0, muted: false});
+export const mixerDefaults = id => {
+  const {volume, ...settings} = soundChipMixDefaults(id);
+  return {gain: volume, ...settings};
+};
 
-export class PlaybackMixer {
-  constructor() { this.strips = new Map(); }
-  addSource(id, source, method = 'generateStereo', rate = 44100) {
-    if (this.strips.has(id)) throw new Error(`Duplicate mixer source: ${id}`);
-    if (typeof source?.[method] !== 'function') throw new Error(`Missing mixer renderer: ${id}`);
-    const strip = {settings: mixerDefaults(), left: 1, right: 1, remaining: 0, rate};
-    this.strips.set(id, strip);
-    const render = source[method].bind(source);
-    source[method] = (...args) => {
-      const result = render(...args);
-      const pcm = method === 'generateStereoInto' ? {left: args[0], right: args[1]} : result;
-      this.apply(strip, pcm, method === 'generateStereoInto' ? (args[2] ?? args[0].length) : pcm.left.length);
-      return result;
-    };
-  }
-  set(id, settings) {
-    const strip = this.strips.get(id);
-    if (!strip) throw new Error(`Unknown mixer source: ${id}`);
-    const next = {...strip.settings, ...settings};
-    if (!Number.isFinite(next.gain) || next.gain < 0 || next.gain > 2 ||
-        !Number.isFinite(next.pan) || next.pan < -1 || next.pan > 1 || typeof next.muted !== 'boolean') {
-      throw new RangeError('Invalid mixer settings');
-    }
-    strip.settings = next;
-    strip.remaining = Math.max(1, Math.round(strip.rate * .005));
-  }
-  get(id) { return {...this.strips.get(id)?.settings}; }
-  targets(strip) {
-    const {gain, pan, muted} = strip.settings;
-    return muted ? [0, 0] : [gain * (1 - Math.max(0, pan)), gain * (1 + Math.min(0, pan))];
-  }
-  reset() {
-    for (const strip of this.strips.values()) {
-      [strip.left, strip.right] = this.targets(strip);
-      strip.remaining = 0;
-    }
-  }
-  apply(strip, pcm, frames) {
-    const [left, right] = this.targets(strip);
-    if (!strip.remaining && left === 1 && right === 1) return;
-    for (let i = 0; i < frames; i++) {
-      if (strip.remaining) {
-        strip.left += (left - strip.left) / strip.remaining;
-        strip.right += (right - strip.right) / strip.remaining;
-        strip.remaining--;
-      }
-      pcm.left[i] *= strip.left;
-      pcm.right[i] *= strip.right;
-    }
-  }
+// Preserve Analyzer's existing gain-facing API while sharing rendering and defaults.
+export class PlaybackMixer extends PCMChipMixer {
+  set(id, {gain, ...settings}) { super.set(id, {...settings, ...(gain === undefined ? {} : {volume: gain})}); }
+  get(id) { const {volume, ...settings} = super.get(id); return {gain: volume, ...settings}; }
 }
 
 export function installPlaybackMixer(engine, configuration) {

@@ -1,3 +1,4 @@
+export {SoundChipMixer, soundChipMixDefaults} from './soundchip_mixer.js';
 /**
  * @file Browser / Node.js の便利なチップ生成入口。DOM・AudioContext は不要。
  * 選択した WASM だけを読み込む。最小配布には soundchip_factory.js を使うこと。
@@ -13,6 +14,8 @@ export {encodeWav} from './wav.js';
  * @property {URL|string} [assetBaseUrl] 生成済み *_wasm.js / .wasm のディレクトリURL（末尾 /）。
  * @property {Function} [moduleFactory] 注入する Emscripten factory。指定時は自動ロードを省略。
  * @property {Object} [moduleOptions] wasmBinary、locateFile などをそのまま渡す。
+ * @property {import('./soundchip_mixer.js').SoundChipMixer} [mixer] Worklet output mixer.
+ * @property {string} [id] Mixer strip ID (defaults to the chip name).
  * @property {AbortSignal} [signal] WASM ファイルの読み込みを中断する。
  * @property {'direct'|'worklet'} [execution='direct'] チップの実行場所。worklet はブラウザーのみ。
  * @property {AudioContext} [audioContext] Worklet の接続先。省略時は factory が生成・解放する。
@@ -189,6 +192,7 @@ const createLocalSoundChip = createSoundChipFactory(loaders);
  */
 /** @param {keyof SoundChipMap} name @param {SoundChipOptions} [options] */
 export function createSoundChip(name, options = {}) {
+  if (options.mixer && options.execution !== 'worklet') return Promise.reject(new Error('An output mixer requires execution: worklet; direct chips generate raw PCM'));
   if (options.execution === 'worklet') {
     if (options.moduleFactory) return Promise.reject(new Error('Worklet execution uses the packaged chip factory'));
     const moduleName = name === 'gameboy' ? 'gameboy_apu' : name;
