@@ -35,7 +35,7 @@ Some tracks need sample ROMs; dual chips, variants and combinations have limits.
 | YM2151 / YM2164 (OPM / OPP) | 8 FM CH |
 | Sega PSG | Tone + noise |
 | RF5C164 | PCM (Mega-CD) |
-| 32X PWM | PWM |
+| 32X PWM | MAME-derived PWM |
 | YM2413 | OPLL |
 | YMF262 (OPL3) | 2OP / 4OP / rhythm |
 | YM3526 / YM3812 | OPL / OPL2 |
@@ -347,3 +347,10 @@ Y8950 FM supports MIDI, MusicXML and LilyPond, including optional Sega PSG tones
 Score channel IDs are `y8950-ch1` through `y8950-ch9`. ADPCM, rhythm-mode CH7–9
 and CSM intervals are omitted; original timbres and envelope release are not
 reconstructed. MusicXML/LilyPond use the existing sixteenth-note grid.
+
+## Version 0.2.6
+
+32X PWM playback now defaults to the MAME-derived FIFO/timer core with
+cycle-normalized amplitude. The PWM clock is taken from the VGM header.
+The package includes the BSD-3-Clause license and source provenance.
+YM2151 S98 normalization is also included in this release.

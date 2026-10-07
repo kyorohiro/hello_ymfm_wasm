@@ -825,3 +825,10 @@ Native JSON preserves the complete interval (subject to the one-million-write ca
 including timed pan/clock/divider changes. Divider phase restarts at each capture start:
 pre-start idle phase is not reconstructed, so a nonzero start time need not match whole-track
 rendering sample-for-sample. FIFO underflow follows the existing core's held-output behavior. Recording, 3-bit mode and dual/variant configurations are excluded.
+
+## Version 0.2.6
+
+32X PWM playback now defaults to the MAME-derived FIFO/timer core with
+cycle-normalized amplitude. The PWM clock is taken from the VGM header.
+The package includes the BSD-3-Clause license and source provenance.
+YM2151 S98 normalization is also included in this release.

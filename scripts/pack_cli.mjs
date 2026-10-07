@@ -5,8 +5,8 @@ import { resolve, dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { execFileSync } from 'node:child_process';
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-execFileSync(process.execPath, [join(root, 'scripts/build_cli_chip_list.mjs')], {cwd: root, stdio: ['ignore', 'inherit', 'inherit']});
-execFileSync(process.execPath, [join(root, 'scripts/build_cli.mjs')], {cwd: root, stdio: ['ignore', 'inherit', 'inherit']});
+execFileSync(process.execPath, [join(root, 'scripts/build_cli_chip_list.mjs')], {cwd: root, stdio: ['ignore', 2, 2]});
+execFileSync(process.execPath, [join(root, 'scripts/build_cli.mjs')], {cwd: root, stdio: ['ignore', 2, 2]});
 const stage = await mkdtemp(join(tmpdir(), 'tetorica-npm-stage-'));
 try {
   const pkg = JSON.parse(await readFile(join(root, 'package.json'), 'utf8'));

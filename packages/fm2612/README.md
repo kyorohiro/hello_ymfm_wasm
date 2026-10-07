@@ -253,10 +253,10 @@ FM/PSG/PCM mixing, stop/reset and close/restart. Playwright is a development
 dependency; it is not required by users of the sound-chip runtime.
 
 The build is staged in `dist/fm2612/`; packing produces
-`tetorica-fm2612-0.2.6.tgz`. To install a local build in another project:
+`tetorica-fm2612-0.2.7.tgz`. To install a local build in another project:
 
 ```sh
-npm install /absolute/path/to/tetorica-fm2612-0.2.6.tgz
+npm install /absolute/path/to/tetorica-fm2612-0.2.7.tgz
 ```
 
 The existing `tetorica-vgm` CLI package is built separately. This first package
@@ -271,6 +271,12 @@ included; Nuked-OPN2 is LGPL-2.1-or-later, with its source and build script in
 and generator. External instrument/sample ROMs are not included.
 
 ## Release notes
+
+`0.2.7` adds the MAME-derived 32X PWM core, output-frame scheduling,
+MegaSynth/MegaSynthNode integration, Playground support and PWM Worklet/Audify/Direct
+transports. Integrated output uses cycle-normalized amplitude; the low-level
+core also offers raw DAC scaling. The BSD license and source provenance are included.
+
 
 `0.2.6` adds browser Worklet chip creation and chip-specific Audify transports
 for YM2612, YM2608, Game Boy, Sega PSG and YM2151. Basic examples use
@@ -303,11 +309,11 @@ runtimes release routing nodes when closed so they can restart safely.
 [tetorica-fm2612-examples](https://github.com/kyorohiro/tetorica-fm2612-examples).
 Sound-chip runtime behavior is unchanged from `0.2.0`.
 
-### Development: 32X PWM
+### 32X PWM (0.2.7)
 
-The development source adds MAME-derived PWM to `MegaSynth({mega32X: true})`,
+Version 0.2.7 adds MAME-derived PWM to `MegaSynth({mega32X: true})`,
 `MegaSynthNode({mega32X: true})` and Playground's `useSoundChip('pwm')`.
-This is not included in npm 0.2.6 yet. After `start()`, use `synth.pwm.write(register, value)`
+After `start()`, use `synth.pwm.write(register, value)`
 or `synth.pwm.scheduleWrites([{frame, register, value}, ...])`. Frames are offsets
 from receipt of the batch at the output sample rate returned by `pwm.getState()`.
 The integrated default is `duty` output, gain 1; `pwmOptions` can select `clock`,

@@ -248,4 +248,4 @@ The default integrated PWM output is cycle-normalized (`duty`, gain 1), like the
 
 For standalone PWM, use `createSoundChip('pwm', {outputMode: 'duty', gain: 1})` with `PWM32XAudifyTransport` from `tetorica-fm2612/node/transports`.
 PWM frame scheduling is independent of FM event recording/looping; the PWM methods are not recorded as FM events.
-These additions are in the development source; npm 0.2.6 does not include them.
+These additions are available from npm 0.2.7.
