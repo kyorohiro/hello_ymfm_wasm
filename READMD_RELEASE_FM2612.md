@@ -1,13 +1,14 @@
 # tetorica-fm2612 の npm リリース手順
 
-## 0.2.9 リリース準備（2026-10-08）
+## 0.2.9 公開記録（2026-10-08）
 
-- ミキサー実装 commit: `509d03c`。
+- 公開元 commit: `e57e928`（ミキサー実装: `509d03c`）。
 - 共通 `SoundChipMixer` を追加。browser MegaSynth／OPN runtime／playground Main・Worker／`createSoundChip` WorkletでVolume・Pan・Mute・Reset、IDによる個別調整と生成・破棄の登録管理に対応。
 - Game Boyの出力バランスは28%、他は100%。Analyzerも同じPCM処理・初期バランスを使用。生チップPCMは維持。
 - Node.js 25.2.1／22.23.3でtgzの新規導入・23 WASM・15 renderer・420ファイル・型定義を検証。publish dry-run成功。
 - Chromiumで音量・左右バランス・MuteのPCM、MegaSynth、単体Worklet、playground Main／Worker、Analyzer配布版を確認。CLI191テスト、Analyzer関連1186テスト成功（1件skip）。
-- 公開予定tgz integrity: `sha512-KYEwUvXT4Ye4tclnzn0Y/znoAFSgKHfUs2ZtVgYOEoMc30iyEIc78DaXoxvAUV/S0u4M/hXWtPoARyR+FrPtwQ==`。
+- npm registryのlatestが0.2.9、配布integrityがローカルtgzと一致することを確認。公開版を新規導入し、音のあるSynth PCM・23 WASM・15 renderer・型定義、ChromiumのミキサーPCM／MegaSynth／単体Worklet／playground Main・Workerを検証。
+- integrity: `sha512-KYEwUvXT4Ye4tclnzn0Y/znoAFSgKHfUs2ZtVgYOEoMc30iyEIc78DaXoxvAUV/S0u4M/hXWtPoARyR+FrPtwQ==`。
 
 ## 0.2.6 公開記録（2026-10-07）
 
