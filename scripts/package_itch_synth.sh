@@ -24,6 +24,10 @@ synth_runtime.js
 synth_preset_import.js
 "
 RUNTIME_FILES="
+pwm32x.js
+pwm32x_playback.js
+playground_pwm_audio.js
+playground_pwm_worklet.js
 vgm_file.js
 s98_file.js
 ym2612vgm.js
@@ -189,6 +193,8 @@ for chip in ym2203 ym2608 rf5c164; do
   fi
 done
 cp "${LICENSE_FILE}" "${STAGE_DIR}/LICENSE"
+mkdir -p "${STAGE_DIR}/licenses/mame-32x-pwm"
+cp "${ROOT_DIR}/third_party/mame-32x-pwm/LICENSE" "${ROOT_DIR}/third_party/mame-32x-pwm/README.md" "${STAGE_DIR}/licenses/mame-32x-pwm/"
 mkdir -p "${STAGE_DIR}/licenses/mame-rf5c164"
 cp "${ROOT_DIR}/third_party/mame-rf5c164/LICENSE" "${ROOT_DIR}/third_party/mame-rf5c164/README.md" "${STAGE_DIR}/licenses/mame-rf5c164/"
 
@@ -197,6 +203,8 @@ for file in ${NUKED_LICENSE_FILES}; do
 done
 
 cat > "${STAGE_DIR}/THIRD_PARTY_LICENSES.txt" <<EOF
+32X PWM: MAME-derived FIFO/timer core, BSD-3-Clause. See licenses/mame-32x-pwm/.
+
 This package includes two YM2612 engine options:
 
 - Default engine: ymfm

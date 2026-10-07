@@ -1,3 +1,4 @@
+import {PWM_METHODS} from './pwm32x_playback.js';
 /** Render-clock event recording / looping for offline and Node Worker engines. */
 import {createMegaSynthOffline} from './megasynth_offline.js';
 import {MegaSynthRecordingManager} from './megasynth_recording.js';
@@ -111,6 +112,12 @@ class MegaSynthSession {
   callFM(method, args) {
     this.#assertOpen(); if (!FM_METHODS.has(method) || !Array.isArray(args)) throw new Error('Invalid FM command');
     return this.fm[method](...args);
+  }
+  callPWM(method, args = []) {
+    this.#assertOpen();
+    if (!this.#engine.pwm) throw new Error('Enable mega32X to use PWM');
+    if (!PWM_METHODS.has(method) || !Array.isArray(args)) throw new Error('Invalid PWM command');
+    return this.#engine.pwm[method](...args);
   }
   async callLooper(method, args = []) {
     this.#assertOpen(); if (!LOOP_METHODS.has(method) || !Array.isArray(args)) throw new Error('Invalid looper command');

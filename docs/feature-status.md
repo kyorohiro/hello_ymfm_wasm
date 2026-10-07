@@ -68,7 +68,7 @@ WASMが存在するだけでPlayground APIも利用可能とは判断しない�
 | 機能 | 実装・範囲 | 制限・手動確認 | 自動検証・詳細 |
 |---|---|---|---|
 | ライブコーディング・埋め込みRuntime | 実装済。FM／PSG／DAC、サンプル、ループ等 | 音源選択によって使えるAPIが異なる。手動記録は未整理 | [Runtime](../web/README.md)、[テスト](../web/playground_runtime.test.mjs)、[examples](playground/examples/README.md) |
-| 32X PWM 共通コア | MAME由来のFIFO／周期／ルーティング・PCM・状態復元。VGMはpwmModel: mameで比較可能 | 開発版。Analyzer／CLIのVGM再生はMAME由来方式が既定（cycle基準の振幅）。MegaSynth／Playground高水準入口と実機比較は残作業 | [実装と検証](issues/pwm32x_01.md)、[比較ページ](demos/32x-pwm-compare.html) |
+| 32X PWM 共通コア | MAME由来のFIFO／周期／ルーティング・PCM・状態復元。VGMはpwmModel: mameで比較可能 | 開発版。Analyzer／CLIのVGM再生はMAME由来方式が既定（cycle基準の振幅）。MegaSynth／MegaSynthNodeはmega32X: true、PlaygroundはuseSoundChip('pwm')。フレーム単位の書き込みと共通Worklet／Audify Transportを追加。PCMサンプル高級APIと実機比較は残作業 | [実装と検証](issues/pwm32x_01.md)、[比較ページ](demos/32x-pwm-compare.html) |
 | MegaSynth Mega CD PCM | `megaCD: true`でRF5C164を有効化。`pcm`から8CH・64 KiB RAM・サンプル読込・パンを操作。FM／PSGと共通の出力・FX経路 | npm公開版0.2.6に収録。FMコマンド録音にPCMは含まれない。CDディスク／32X対応は別 | [APIと例](../packages/fm2612/README.md)、[終了・再起動テスト](../web/megasynth.test.mjs)、[実ブラウザー検証](../scripts/check_megacd_browser.cjs)：8CH・左右パン・混合出力・Stop／Reset／再起動を確認 |
 | `createSoundChip('rf5c164')` | 実装済。独立PCM音源・RAM・CH制御 | ブラウザー試聴・実曲検証未確認 | [作業記録](issues/rf5c164_01.md)、[テスト](../web/playground_rf5c164.test.mjs) |
 | `createSoundChip('ym2608')` | 実装済。FM／SSG／リズム／ADPCM-B | 同梱リズムROM・差し替え対応。同期読み取り／IRQ・サンプル単位予約は未対応。聴感未確認 | [成功記録・制限](issues/playground_ym2608_01.md)、[テスト](../web/playground_ym2608.test.mjs) |

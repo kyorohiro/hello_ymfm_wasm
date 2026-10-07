@@ -121,9 +121,32 @@ FIFO・タイマー処理を持つ JavaScript コアを生成する。WASM・音
 レジスタ0〜4を `writeRegister(register, value)` で設定し、`generateStereo(frames)` で進める。
 `reset` / `read` / `saveState` / `loadState` / `dispose` に対応。
 
-これはまだ npm 0.2.6 に含まれない開発版。共通Worklet / Audify Transportと
-MegaSynth / Playgroundの高水準入口は未接続。Worklet内への直接importは動作確認済み。
+これはまだ npm 0.2.6 に含まれない開発版。共通Worklet / Audify Transport、
+MegaSynth / Playground / Node の入口を追加済み。利用方法は以下を参照。
 VGM比較には `pwmModel: 'mame'` を使う。VGM側はcycle基準の振幅に揃える。
 元の固定DAC換算を使う場合は `pwmOutputMode: 'dac'`。コア単体の既定はDAC換算、Analyzer／CLIのVGM再生の既定はMAME由来方式とcycle基準の振幅。
 従来方式は `pwmModel: legacy` で選べる。
 詳しくは `docs/issues/pwm32x_01.md` と `docs/demos/32x-pwm-compare.html` を参照。
+
+### 32X PWM runtime (development)
+
+The MAME-derived core is now available in MegaSynth (`new MegaSynth({mega32X: true})` / `synth.pwm` after `start()`), MegaSynthNode (`mega32X: true`) and Playground (`await useSoundChip('pwm')`).
+Browser synthesis runs in AudioWorklet; MegaSynthNode generates it in its audio Worker. `scheduleWrites([{frame, register, value}, ...])` uses output-frame offsets relative to receipt of the batch. `getState().sampleRate` gives the units; these are not VGM 44,100 Hz offsets.
+
+Standalone browser output:
+
+```js
+import {createSoundChip} from 'tetorica-fm2612';
+import {PWM32XWorkletTransport} from 'tetorica-fm2612/pwm32x_transport.js';
+const chip = await createSoundChip('pwm', {execution: 'worklet'});
+const transport = new PWM32XWorkletTransport(chip);
+await transport.write(0, 5);
+await transport.write(1, 1047);
+await transport.write(4, 700);
+await transport.start();
+// await transport.close() when finished.
+```
+
+The runtime wrappers use `duty` output with core gain 1; low-level direct `createSoundChip('pwm')` keeps raw `dac` gain .4. The Worklet endpoint's `gain` controls output volume (default .25).
+For standalone Node playback, use `PWM32XAudifyTransport` from `tetorica-fm2612/node/transports`; it accepts the direct factory chip, wraps the same frame scheduler and borrows rather than disposes that chip. `PWM32XDirectTransport` generates PCM for a consumer-owned output or WAV export.
+These APIs are not yet in npm 0.2.6. A PCM `loadSample`/`play` facade is not included; register writes and scheduling are available.

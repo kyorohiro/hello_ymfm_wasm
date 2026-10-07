@@ -1154,6 +1154,7 @@ type PlaygroundSoundChipMap = {
   gameboy: PlaygroundGameboy;
   segapsg: PlaygroundSegaPsg;
   ym2151: PlaygroundYm2151;
+  pwm: PlaygroundPWM32X;
 };
 type PlaygroundUseSoundChipOptions = { [key: string]: never };
 declare function useSoundChip<Name extends keyof PlaygroundSoundChipMap>(name: Name, options?: PlaygroundUseSoundChipOptions): Promise<PlaygroundSoundChipMap[Name]>;
@@ -1205,3 +1206,16 @@ interface PlaygroundYm2151 {
   dispose(): void;
 }
 declare function createSoundChip(name: 'ym2151'): Promise<PlaygroundYm2151>;
+
+/** MAME-derived 32X PWM. Offsets use the output sample rate, not 44,100 Hz VGM units. */
+type PlaygroundPWM32X = {
+  write(register: 0 | 1 | 2 | 3 | 4, value: number): Promise<void>;
+  writeRegister(register: 0 | 1 | 2 | 3 | 4, value: number): Promise<void>;
+  read(register: number): Promise<number>;
+  reset(): Promise<void>;
+  scheduleWrites(entries: Array<{frame: number; register: 0 | 1 | 2 | 3 | 4; value: number}>): Promise<number>;
+  clearSchedule(): Promise<void>;
+  getState(): Promise<{model: 'mame'; outputMode: 'dac' | 'duty'; clock: number; sampleRate: number; currentFrame: number; queuedWrites: number}>;
+  dispose(): void;
+};
+declare function createSoundChip(name: 'pwm'): Promise<PlaygroundPWM32X>;

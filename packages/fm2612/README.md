@@ -302,3 +302,16 @@ runtimes release routing nodes when closed so they can restart safely.
 `0.2.1` updates the npm Homepage link to
 [tetorica-fm2612-examples](https://github.com/kyorohiro/tetorica-fm2612-examples).
 Sound-chip runtime behavior is unchanged from `0.2.0`.
+
+### Development: 32X PWM
+
+The development source adds MAME-derived PWM to `MegaSynth({mega32X: true})`,
+`MegaSynthNode({mega32X: true})` and Playground's `useSoundChip('pwm')`.
+This is not included in npm 0.2.6 yet. After `start()`, use `synth.pwm.write(register, value)`
+or `synth.pwm.scheduleWrites([{frame, register, value}, ...])`. Frames are offsets
+from receipt of the batch at the output sample rate returned by `pwm.getState()`.
+The integrated default is `duty` output, gain 1; `pwmOptions` can select `clock`,
+`outputMode` and core `gain`. PWM is mixed before the common FX/master output.
+Standalone `PWM32XWorkletTransport`, `PWM32XAudifyTransport` and PCM-only
+`PWM32XDirectTransport` use the same MAME-derived core.
+See [implementation and validation](https://github.com/kyorohiro/hello_ymfm_wasm/blob/main/docs/issues/pwm32x_01.md).

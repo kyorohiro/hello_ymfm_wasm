@@ -23,6 +23,10 @@ okim6295audioengine.js
 bitcrusher-worklet.js
 genesisaudioengine.js
 pwm32x.js
+pwm32x_playback.js
+pwm32x_transport.js
+playground_pwm_audio.js
+playground_pwm_worklet.js
 rf5c164.js
 looper.js
 megasynth.js

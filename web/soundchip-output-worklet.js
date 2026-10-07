@@ -1,3 +1,4 @@
+import {PWM32XPlayback, PWM_METHODS} from './pwm32x_playback.js';
 import {Ym2612} from './ym2612.js';
 import {Ym2608} from './ym2608.js';
 import {Ym2151} from './ym2151.js';
@@ -15,15 +16,15 @@ import {YM2612DacPlayer} from './ym2612_dac.js';
 
 const profiles = {ym2612: [Ym2612, ym2612Factory], ym2608: [Ym2608, ym2608Factory],
   ym2151: [Ym2151, ym2151Factory], gameboy: [GameboyApu, gameboyFactory], segapsg: [SegaPSG, psgFactory]};
-const createSoundChip = createSoundChipFactory(Object.fromEntries(Object.entries(profiles).map(([name, [Type, moduleFactory]]) =>
-  [name, options => Type.create({...options, moduleFactory})])));
+const createSoundChip = createSoundChipFactory(Object.fromEntries([...Object.entries(profiles).map(([name, [Type, moduleFactory]]) =>
+  [name, options => Type.create({...options, moduleFactory})]), ['pwm', options => new PWM32XPlayback(options)]]));
 
 class SoundChipProcessor extends AudioWorkletProcessor {
   constructor({processorOptions: {name, chipOptions, wasmBinary}}) {
     super(); this.dead = false; this.running = false; this.name = name; this.remotePorts = new Set();
     this.scheduled = []; this.banks = new Map();
     this.port.onmessage = ({data}) => this.receive(data);
-    createSoundChip(name, {...chipOptions, ...(name === 'gameboy' || name === 'segapsg' ? {sampleRate} : {}), moduleOptions: {wasmBinary}})
+    createSoundChip(name, {...chipOptions, ...(name === 'gameboy' || name === 'segapsg' || name === 'pwm' ? {sampleRate} : {}), moduleOptions: {wasmBinary}})
       .then(chip => {
         if (this.dead) {chip.dispose(); return;}
         this.chip = chip;
@@ -51,6 +52,7 @@ class SoundChipProcessor extends AudioWorkletProcessor {
       let value;
       if (method === 'start') this.running = true;
       else if (method === 'stop') this.running = false;
+      else if (this.name === 'pwm' && PWM_METHODS.has(method)) value = this.chip[method](...args);
       else if (method === 'reset') {this.pcmDac?.reset(); this.direct ? this.direct.reset() : this.chip.reset(); this.renderer.resetHistory();}
       else if (method === 'write') {
         if (data.type) {

@@ -237,3 +237,15 @@ bufferFrames（512）、queueBlocks（4）、gain（0.25）、outputModule / out
 Transport は借りた chip を破棄しない。終了は `await transport.close(); chip.dispose();` の順。
 詳細と WorkletTransport の例は [soundchip.md](../web/soundchip.md) を参照。
 この入口は npm 0.2.6 以降で利用できる。
+
+### 32X PWM (MAME-derived)
+
+Enable `new MegaSynthNode({mega32X: true, outputModule: null})`, then `await synth.start()`.
+The `synth.pwm` methods (`write`, `read`, `reset`, `scheduleWrites`, `clearSchedule`, `getState`) run in the existing audio Worker.
+`await synth.pwm.scheduleWrites([{frame: 0, register: 0, value: 5}, {frame: 0, register: 1, value: 1047}, {frame: 32, register: 4, value: 700}])` queues output-frame offsets relative to receipt of that batch.
+`await synth.render(48000)` includes PWM in the FM/nativeFX mix; `connectOutput()` uses the same mixer.
+The default integrated PWM output is cycle-normalized (`duty`, gain 1), like the VGM player. Raw MAME DAC scaling is available through `pwmOptions: {outputMode: 'dac', gain: .4}`.
+
+For standalone PWM, use `createSoundChip('pwm', {outputMode: 'duty', gain: 1})` with `PWM32XAudifyTransport` from `tetorica-fm2612/node/transports`.
+PWM frame scheduling is independent of FM event recording/looping; the PWM methods are not recorded as FM events.
+These additions are in the development source; npm 0.2.6 does not include them.

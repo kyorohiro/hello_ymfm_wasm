@@ -1,3 +1,4 @@
+import {PWM32XDirectTransport} from '../web/pwm32x_transport.js';
 import {YM2612DirectTransport} from '../web/ym2612synth.js';
 import {YM2608DirectTransport} from '../web/ym2608synth.js';
 import {GameboyDirectTransport} from '../web/gameboysynth.js';
@@ -91,3 +92,5 @@ export const YM2608AudifyTransport = audifyTransport(YM2608DirectTransport, 'ym2
 export const GameboyAudifyTransport = audifyTransport(GameboyDirectTransport, 'gameboy');
 export const SegaPSGAudifyTransport = audifyTransport(SegaPSGDirectTransport, 'segapsg');
 export const YM2151AudifyTransport = audifyTransport(RegisterDirectTransport, 'ym2151');
+
+export const PWM32XAudifyTransport = audifyTransport(PWM32XDirectTransport, 'pwm');

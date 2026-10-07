@@ -50,6 +50,10 @@ tetorica-playground-ym2612.d.ts
 "
 
 RUNTIME_FILES="
+pwm32x.js
+pwm32x_playback.js
+playground_pwm_audio.js
+playground_pwm_worklet.js
 rf5c164.js
 bitcrusher-worklet.js
 looper.js
@@ -277,6 +281,8 @@ for chip in ym2203 ym2608 ym2610b; do
   fi
 done
 
+mkdir -p "${STAGE_DIR}/licenses/mame-32x-pwm"
+cp "${ROOT_DIR}/third_party/mame-32x-pwm/LICENSE" "${ROOT_DIR}/third_party/mame-32x-pwm/README.md" "${STAGE_DIR}/licenses/mame-32x-pwm/"
 mkdir -p "${STAGE_DIR}/licenses/mame-rf5c164"
 mkdir -p "${STAGE_DIR}/licenses/mame-gameboy"
 cp "${ROOT_DIR}/third_party/mame-gameboy/LICENSE" "${ROOT_DIR}/third_party/mame-gameboy/README.md" "${STAGE_DIR}/licenses/mame-gameboy/"
@@ -295,6 +301,8 @@ for file in ${NUKED_LICENSE_FILES}; do
 done
 
 cat > "${STAGE_DIR}/THIRD_PARTY_LICENSES.txt" <<EOF
+32X PWM: MAME-derived FIFO/timer core, BSD-3-Clause. See licenses/mame-32x-pwm/.
+
 Game Boy DMG APU: MAME adaptation, BSD-3-Clause. See licenses/mame-gameboy/.
 
 RF5C164: MAME adaptation, BSD-3-Clause.

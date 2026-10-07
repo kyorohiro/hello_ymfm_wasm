@@ -130,7 +130,8 @@ parentPort.on('message', message => {
       if (op === 'fm') {
         const [method, parameters] = args;
         result = synth.callFM(method, parameters);
-      } else if (op === 'fx') synth.applyFX(args[0]);
+      } else if (op === 'pwm') result = synth.callPWM(...args);
+      else if (op === 'fx') synth.applyFX(args[0]);
       else if (op === 'recording') {
         const [method, parameters] = args;
         if (!['start', 'stop', 'export', 'import', 'play', 'stopPlayback', 'getState'].includes(method)) throw new Error('Invalid recording command');
@@ -152,7 +153,9 @@ parentPort.on('message', message => {
   });
 });
 const initialized = (async () => {
-  synth = await createMegaSynthSession({...options.engineOptions, sampleRate,
+  synth = await createMegaSynthSession({...options.engineOptions,
+    mega32X: options.mega32X ?? options.engineOptions?.mega32X,
+    pwmOptions: options.pwmOptions ?? options.engineOptions?.pwmOptions, sampleRate,
     masterVolume: options.masterVolume ?? .25, signal: abort.signal});
   abort.signal.throwIfAborted();
   // null explicitly selects offline mode. With no selection, only a missing

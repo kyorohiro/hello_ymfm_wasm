@@ -1,3 +1,5 @@
+import {createPWM32XAudio} from './playground_pwm_audio.js';
+import {createPWM32XClient} from './pwm32x_playback.js';
 import {createYm2151Audio} from './playground_ym2151_audio.js';
 import {createYm2151Client} from './playground_ym2151.js';
 import {createSegaPsgAudio} from './playground_segapsg_audio.js';
@@ -201,8 +203,8 @@ export function createPlaygroundRuntime(
   let sharedFm;
   let sharedFmSynth;
   async function openPcm(name, token = currentRunToken) {
-    if(!['ym2612', 'ym2203', 'ym2610', 'rf5c164', 'ym2608', 'gameboy', 'segapsg', 'ym2151'].includes(name)) throw new Error('Unsupported Playground sound chip: ' + name);
-    const createAudio = ['ym2612', 'ym2203', 'ym2610'].includes(name) ? (context, destination) => createOpnAudio(context, destination, name) : name === 'ym2151' ? createYm2151Audio : name === 'segapsg' ? createSegaPsgAudio : name === 'gameboy' ? createGameboyAudio : name === 'ym2608' ? createYm2608Audio : createRf5c164Audio;
+    if(!['ym2612', 'ym2203', 'ym2610', 'rf5c164', 'ym2608', 'gameboy', 'segapsg', 'ym2151', 'pwm'].includes(name)) throw new Error('Unsupported Playground sound chip: ' + name);
+    const createAudio = name === 'pwm' ? createPWM32XAudio : ['ym2612', 'ym2203', 'ym2610'].includes(name) ? (context, destination) => createOpnAudio(context, destination, name) : name === 'ym2151' ? createYm2151Audio : name === 'segapsg' ? createSegaPsgAudio : name === 'gameboy' ? createGameboyAudio : name === 'ym2608' ? createYm2608Audio : createRf5c164Audio;
     const device = await createAudio(megaDrive.audioContext, megaDrive.audio.masterInputNode);
     if(token !== currentRunToken){device.dispose();throw new Error('Run stopped');}
     pcmDevices.add(device);return device;
@@ -1359,7 +1361,7 @@ export function createPlaygroundRuntime(
       },
       createSoundChip: async name => {
         const device=await openPcm(name,runToken);
-        const client=['ym2612', 'ym2203', 'ym2610'].includes(name) ? createOpnClient(name, device.port) : name === 'ym2151' ? createYm2151Client(device.port) : name === 'segapsg' ? createSegaPsgClient(device.port) : name === 'gameboy' ? createGameboyClient(device.port) : name === 'ym2608' ? createYm2608Client(device.port) : createRf5c164Client(device.port,decodePcm);
+        const client=name === 'pwm' ? createPWM32XClient(device.port) : ['ym2612', 'ym2203', 'ym2610'].includes(name) ? createOpnClient(name, device.port) : name === 'ym2151' ? createYm2151Client(device.port) : name === 'segapsg' ? createSegaPsgClient(device.port) : name === 'gameboy' ? createGameboyClient(device.port) : name === 'ym2608' ? createYm2608Client(device.port) : createRf5c164Client(device.port,decodePcm);
         const dispose=device.dispose;
         device.dispose=()=>{client.dispose();dispose();};
         return client;

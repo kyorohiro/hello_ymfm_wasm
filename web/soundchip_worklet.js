@@ -1,5 +1,5 @@
 /** Main-side chip endpoint. The actual WASM chip is created inside AudioWorklet. */
-const supported = new Set(['ym2612', 'ym2608', 'gameboy', 'segapsg', 'ym2151']);
+const supported = new Set(['ym2612', 'ym2608', 'gameboy', 'segapsg', 'ym2151', 'pwm']);
 export async function createWorkletSoundChip(name, options, loadBinary) {
   if (!supported.has(name)) throw new Error(`Worklet chip not supported: ${name}`);
   options.signal?.throwIfAborted();
@@ -42,7 +42,7 @@ export async function createWorkletSoundChip(name, options, loadBinary) {
     const wasmBinary = await loadBinary();
     await context.audioWorklet.addModule(new URL('./soundchip-output-worklet.js', import.meta.url).href);
     options.signal?.throwIfAborted();
-    const chipOptions = Object.fromEntries(['clock', 'sampleRate', 'flags', 'variant'].filter(key => options[key] !== undefined).map(key => [key, options[key]]));
+    const chipOptions = Object.fromEntries(['clock', 'sampleRate', 'flags', 'variant', 'outputMode'].filter(key => options[key] !== undefined).map(key => [key, options[key]]));
     node = new AudioWorkletNode(context, 'tetorica-soundchip', {
       numberOfInputs: 0, outputChannelCount: [2],
       processorOptions: {name, chipOptions, wasmBinary},

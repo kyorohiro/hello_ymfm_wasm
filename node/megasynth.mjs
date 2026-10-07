@@ -1,3 +1,4 @@
+import {PWM_METHODS} from '../web/pwm32x_playback.js';
 /** Experimental Node controller. PCM stays in the owned Worker. */
 import {Worker} from 'node:worker_threads';
 import {EventEmitter} from 'node:events';
@@ -17,6 +18,7 @@ export class MegaSynthNode extends EventEmitter {
     if (!Number.isInteger(options.queueBlocks ?? 4) || (options.queueBlocks ?? 4) < 2 || (options.queueBlocks ?? 4) > 16) throw new RangeError('queueBlocks must be from 2 to 16');
     if (!Number.isInteger(options.bufferFrames ?? 512) || (options.bufferFrames ?? 512) < 128 || (options.bufferFrames ?? 512) > 8192) throw new RangeError('bufferFrames must be from 128 to 8192');
     this.#options = structuredClone(options);
+    this.pwm = Object.fromEntries([...PWM_METHODS].map(method => [method, (...args) => this.#request('pwm', [method, args])]));
     this.fm = Object.fromEntries(methods.map(method => [method, (...args) => this.#request('fm', [method, args])]));
     this.recording = Object.fromEntries(['start', 'stop', 'export', 'import', 'play', 'stopPlayback', 'getState']
       .map(method => [method, (...args) => this.#request('recording', [method, args])]));

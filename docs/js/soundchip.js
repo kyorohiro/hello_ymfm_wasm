@@ -143,6 +143,7 @@ export function createSoundChip(name, options = {}) {
     if (options.moduleFactory) return Promise.reject(new Error('Worklet execution uses the packaged chip factory'));
     const moduleName = name === 'gameboy' ? 'gameboy_apu' : name;
     return createWorkletSoundChip(name, options, async () => {
+      if (name === 'pwm') return undefined;
       const loaded = await loadModule(moduleName, options);
       const bytes = loaded.moduleOptions.wasmBinary;
       if (!bytes) throw new Error('Worklet execution requires WASM bytes; use wasmBinary or default asset loading');
