@@ -15,12 +15,13 @@ import { createMusicXmlScore } from './vgm_musicxml.js';
 import { exportAnalysisMidi } from './vgm_midi.js';
 import { exportMucomMml, exportOpnavoidMml } from './vgm_mml.js';
 import { exportMxdrvMml } from './opm_mml.js';
+import { exportMdx } from './mdx_export.js';
 import { exportMgsdrvMml } from './mgsdrv_mml.js';
 export { analyzeLilyPondSource, exportLilyPondAnalysis } from './vgm_lilypond.js';
 export { exportAnalysisMidi } from './vgm_midi.js';
 export { createMusicXmlScore } from './vgm_musicxml.js';
 export { renderVgmToWav } from './vgm_wav.js';
-export const exportFormats = Object.freeze(['sbi', 'sbi-zip', 'tfi', 'vgi', 'opm', 'tfi-zip', 'vgi-zip', 'opm-zip', 'midi', 'musicxml', 'lilypond', 'mucom', 'opnavoid', 'mxdrv', 'mgsdrv']);
+export const exportFormats = Object.freeze(['sbi', 'sbi-zip', 'tfi', 'vgi', 'opm', 'tfi-zip', 'vgi-zip', 'opm-zip', 'midi', 'musicxml', 'lilypond', 'mucom', 'opnavoid', 'mxdrv', 'mdx', 'mgsdrv']);
 
 /** Decode and normalize input, preserving original S98 information explicitly. */
 export async function decodeSourceDocument(input) {
@@ -70,6 +71,7 @@ export function exportSource(source, { format, bpm, fileName = 'VGM', atSeconds,
   if (format === 'tfi-zip') return exportTfiZip(source,{fileName});
   const score = bpm === undefined || ['musicxml','lilypond'].includes(format) ? analyzeLilyPondSource(source) : null;
   const options = { bpm: bpm ?? score.tempo.bpm, fileName };
+  if (format === 'mdx') return exportMdx(source, options);
   if (format === 'midi') return exportAnalysisMidi(source, options);
   if (format === 'musicxml' || format === 'lilypond') {
     const create = format === 'musicxml' ? createMusicXmlScore : createLilyPondScore;

@@ -29,7 +29,7 @@ test('VGM/VGZ decode identically; CLI JSON matches browser parser',async()=>{
 test('every advertised export executes through CLI and score output equals browser',async()=>{
   const dir=mkdtempSync(join(tmpdir(),'tetorica-export-'));
   try {
-    for(const [format,name] of [['opm-zip','opm-audible'],['vgi-zip','ym2610b-fm'],['tfi-zip','ym2203-fm'],['midi','psg-tone'],['musicxml','psg-tone'],['lilypond','psg-tone'],['mgsdrv','ay-tone'],['mxdrv','opm-tone'],['mucom','opn-tone'],['opnavoid','opn-tone']]) {
+    for(const [format,name] of [['mdx','opm-audible'],['opm-zip','opm-audible'],['vgi-zip','ym2610b-fm'],['tfi-zip','ym2203-fm'],['midi','psg-tone'],['musicxml','psg-tone'],['lilypond','psg-tone'],['mgsdrv','ay-tone'],['mxdrv','opm-tone'],['mucom','opn-tone'],['opnavoid','opn-tone']]) {
       const input=fixture(name+'.vgz'),output=join(dir,format);
       const result=cli('export',input,'--format',format,'--output',output,'--bpm','120');
       assert.equal(result.status,0,result.stderr);assert(readFileSync(output).length>0);
@@ -199,6 +199,12 @@ test('npm tarball installs offline, runs via npx, and exports the library',async
     const vgiApi=execFileSync(process.execPath,['--input-type=module','-e',"import {readSource,exportSource} from 'tetorica-vgm'; process.stdout.write(exportSource(await readSource(process.argv[1]),{format:'vgi-zip'}).bytes)",vgiInput],{cwd:dir});
     assert.deepEqual(vgiApi,Buffer.from(vgiExpected));
     const opmInput=fixture('opm-audible.vgz'),opmOut=join(dir,'opm.zip');
+    const mdxOut=join(dir,'song.mdx');
+    execFileSync('npm',[...args,'export',opmInput,'--format','mdx','--bpm','120','--output',mdxOut],{cwd:dir});
+    const mdxExpected=exportSource(await readSource(opmInput),{format:'mdx',bpm:120,fileName:'opm-audible.vgz'}).bytes;
+    assert.deepEqual(readFileSync(mdxOut),Buffer.from(mdxExpected));
+    const mdxApi=execFileSync(process.execPath,['--input-type=module','-e',"import {readSource,exportSource} from 'tetorica-vgm'; process.stdout.write(exportSource(await readSource(process.argv[1]),{format:'mdx',bpm:120,fileName:'opm-audible.vgz'}).bytes)",opmInput],{cwd:dir});
+    assert.deepEqual(mdxApi,Buffer.from(mdxExpected));
     execFileSync('npm',[...args,'export',opmInput,'--format','opm-zip','--output',opmOut],{cwd:dir});
     const opmExpected=exportSource(await readSource(opmInput),{format:'opm-zip'}).bytes;
     assert.deepEqual(readFileSync(opmOut),Buffer.from(opmExpected));

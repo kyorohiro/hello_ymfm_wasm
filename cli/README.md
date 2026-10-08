@@ -66,7 +66,7 @@ npx tetorica-vgm support song.vgz --json
 - `to-json` / `from-json`: lossless, fixed-layout VGM/JSON conversion.
 - `analyze`: chip configuration, metadata and command summaries; `--json` for structured output.
 - `support`: check a file's render configuration and export availability; `--json` includes reasons and warnings.
-- `export`: MIDI, MusicXML, LilyPond, MML formats, SBI/TFI/VGI/OPM voice snapshots and voice ZIPs.
+- `export`: MIDI, MusicXML, LilyPond, MML formats, FM-only MDX files, SBI/TFI/VGI/OPM voice snapshots and voice ZIPs.
 - `score-channels`: list stable channel IDs for MusicXML/LilyPond `--channels` selection.
 - `samples`: list embedded samples, export native data or render a selected sample to WAV.
 - `render`: stereo PCM16 WAV, optional start time, duration limit and supported channel/chip mutes.
@@ -365,3 +365,19 @@ The shared playback engine now uses the common chip-mixer PCM implementation.
 The npm payload includes `soundchip_mixer.js` and its complete dependency path,
 so CLI and Node rendering load the same playback core as the Analyzer.
 Existing render defaults and mute options retain their behavior.
+
+## MDX export
+
+The new `--format mdx` option writes a compiled `.mdx` file for YM2151 FM A–H.
+In a local checkout:
+
+```sh
+node cli/main.js export song.vgz --format mdx --bpm 120 --output song.mdx
+```
+
+The same conversion is available in the browser's **MML / MDX** dialog.
+It uses a sixteenth-note grid and sampled voices, with rounded semitone pitch.
+No PDX is produced. CH8 noise, partial keys, CSM, live register changes,
+pan, LFO, audible release and loops are not reproduced. Warnings are printed
+on stderr and returned by `exportSource()`. See [CLI.md](CLI.md#mdx-file-export).
+MDX export is a local addition and is not in published npm 0.2.8 yet.

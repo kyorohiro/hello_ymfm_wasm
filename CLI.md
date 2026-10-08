@@ -48,9 +48,10 @@ tetorica-vgm render song.vgz --output song.wav --max-seconds 120
 - `analyze`: header-declared chips/clocks, GD3 metadata, declared duration,
   command counts, data-block and PCM-RAM summaries, special-command details.
   JSON has `schemaVersion: 1`; declared chips are not a playback compatibility claim.
-- `export`: `sbi`, `tfi`, `vgi`, `opm` (snapshots), `sbi-zip`, `tfi-zip`, `vgi-zip`, `opm-zip`, `midi`, `musicxml`, `lilypond`, `mucom`, `opnavoid`, `mxdrv`, `mgsdrv`.
+- `export`: `sbi`, `tfi`, `vgi`, `opm` (snapshots), `sbi-zip`, `tfi-zip`, `vgi-zip`, `opm-zip`, `midi`, `musicxml`, `lilypond`, `mucom`, `opnavoid`, `mxdrv`, `mdx`, `mgsdrv`.
   Supported chips and approximation limits are those of the browser exporters.
   MUCOM/OPN-Avoid target OPN, MXDRV targets YM2151, MGSDRV targets AY/OPLL.
+  `mxdrv` writes MML text; `mdx` writes a compiled MDX binary for FM A–H.
   BPM is an integer 4–999. Without `--bpm`, use the browser score suggestion,
   falling back to 120. This is not guaranteed musical beat detection.
 - `render`: 16-bit stereo WAV, no loop expansion, up to 120 seconds by default.
@@ -836,3 +837,31 @@ YM2151 S98 normalization is also included in this release.
 ## Version 0.2.7
 
 Adds npm discovery keywords for VGM/VGZ/S98, sound chips and supported score exports.
+
+## MDX file export
+
+```sh
+node cli/main.js export song.vgz --format mdx --bpm 120 --output song.mdx
+```
+
+`exportSource(source, {format: 'mdx', bpm: 120, fileName: 'song'})` returns
+`bytes`, `extension`, `mimeType`, `voiceCount`, actual `bpm` and `warnings`.
+The browser uses the same converter through **MML / MDX → MDX file (.mdx)**.
+YM2151 FM A–H is transcribed from a single chip; other chips in composite
+sources are omitted. No external compiler is required and no PDX file is generated.
+
+This uses the same approximation as MXDRV MML: a sixteenth-note grid,
+rounded semitone pitch and voices sampled at note/pitch boundaries.
+CH8 noise, partial operator keys and CSM are omitted. Live register changes,
+pan, LFO, audible release and source loops are not reproduced. Clock-dependent
+base pitch is transposed to nominal MDX tuning; envelopes/detune may differ.
+BPM must be 34–999; the MDX Timer B tempo is rounded and reported in warnings.
+At most 256 voices and 16-bit relative track/voice offsets are supported;
+oversized outputs fail instead of writing wrapped offsets.
+Titles are encoded in Shift_JIS; unsupported characters become `?` with a warning.
+
+MDX binary fields and commands follow the
+[mdxtools format documentation](https://github.com/vampirefrog/mdxtools/blob/master/docs/MDX.md).
+Exported files were opened and rendered with the independent
+[mdxmini player](https://github.com/mistydemeo/mdxmini).
+This addition is local; published npm 0.2.8 does not yet include MDX export.

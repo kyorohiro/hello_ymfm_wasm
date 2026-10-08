@@ -34,7 +34,8 @@ export function createOpmNoteTracker(clock, changed = () => {}) {
   };
 }
 export function extractOpmNotes(source, {includeVoices = false} = {}) {
-  const parser = new Ym2612VGM(source);
+  // This pass intentionally dispatches only OPM; other chips are not audio targets.
+  const parser = new Ym2612VGM(source, {logger: null});
   const clock = parser.header.ym2151Clock & 0x3fffffff;
   if (!clock) throw new Error('YM2151 clock required');
   if (parser.header.ym2151Clock & 0x40000000) throw new Error('Dual/variant YM2151 Note-ish is not supported');

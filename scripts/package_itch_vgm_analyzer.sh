@@ -64,6 +64,7 @@ msx_mutes.js
 opm_monitor.js
 opm_export.js
 opm_mml.js
+mdx_export.js
 opm_tfi.js
 opm_info.js
 sbi_export.js

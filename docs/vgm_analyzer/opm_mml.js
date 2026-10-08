@@ -1,7 +1,7 @@
-import {extractOpmNotes} from './opm_notes.js?v=voices-1';
+import {extractOpmNotes} from './opm_notes.js?v=mdx-1';
 import {quantizeSixteenthNotes} from './vgm_mml_music.js';
 // MXDRV/MAC voice: four register-order rows of 11 values, then CON, FL, OP.
-export function exportMxdrvMml(source, {bpm=120,fileName='VGM'} = {}) {
+export function prepareMxdrvScore(source, {bpm=120} = {}) {
   if (!Number.isFinite(bpm) || bpm<34 || bpm>999) throw new RangeError('MXDRV BPM must be 34–999');
   const {channels,time,voices}=extractOpmNotes(source,{includeVoices:true});
   const timer=Math.max(0,Math.min(255,Math.round(256-78125/(16*bpm))));
@@ -9,9 +9,13 @@ export function exportMxdrvMml(source, {bpm=120,fileName='VGM'} = {}) {
   const parts=channels.map(ch=>quantizeSixteenthNotes(ch.notes,time,actualBpm));
   const playable=e=>e.type==='note' && Number.isInteger(e.midi) && e.midi>=15 && e.midi<=110;
   const used=[...new Set(parts.flat().filter(playable).map(e=>e.preset))];
-  if(!used.length)throw new Error('No convertible YM2151 notes for MXDRV');
-  if(used.length>256)throw new Error('MXDRV supports at most 256 voices');
+  if(!used.length)throw new Error('No convertible YM2151 notes for MXDRV / MDX');
+  if(used.length>256)throw new Error('MXDRV / MDX supports at most 256 voices');
   const ids=new Map(used.map((id,i)=>[id,i]));
+  return {parts, voices, used, ids, timer, actualBpm, bpm, playable};
+}
+export function exportMxdrvMml(source, {bpm=120,fileName='VGM'} = {}) {
+  const {parts, voices, used, ids, timer, actualBpm, playable}=prepareMxdrvScore(source,{bpm});
   const title=String(fileName).replace(/["\r\n\x00-\x1f\x7f]/g,' ').slice(0,120);
   const lines=[`#title "${title}"`,
     '; YM2151 FM transcription for MXDRV / mml2mdr (MDX). FM A-H only.',

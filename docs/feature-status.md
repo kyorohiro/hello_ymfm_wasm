@@ -29,6 +29,7 @@ Playback欄の`Seek cache`表示で高速シークの対応構成を確認でき
 | S98入力 | 一部。単一YM2203／YM2608／YM2612／YM2151 | 圧縮S98・複数デバイスは未対応。YM2151の追加はローカル版で、npm 0.2.6には未収録 | [入力仕様](../CLI.md#s98-input-and-source-documents) |
 | 高速シーク | 一部。OPN／OPM／Genesis構成 | 下の専用表参照。実曲・長時間のブラウザー試聴未確認、公開版未照合 | [成功記録・詳細](issues/seekvgm_save_load_01.md) |
 | Note-ish／楽譜表示・MIDI／MusicXML／LilyPond Export | 一部。対応音源の基音・キー区間を抽出 | 原譜の復元ではない。チップごとに除外区間あり | [対応表](vgm_analyzer/support.html)、[MusicXMLテスト](vgm_analyzer/vgm_musicxml.test.mjs)、[LilyPond作業記録](issues/lilypond_export_01.md) |
+| MDX file Export | ローカル実装。AnalyzerのMML / MDXダイアログとCLI `--format mdx`でYM2151 FM A–HのMDXバイナリーを生成 | 外部コンパイラー不要、Shift_JISタイトル、最大256音色・16bit相対offset。MXDRV MMLと同じ16分音符量子化・半音丸め・音符境界の音色。PDX・CH8 noise・部分key・CSM・live register／pan／LFO・release・loopは未再現。mdxminiで読み込み・発音確認。npm未公開 | [仕様](../CLI.md#mdx-file-export)、[テスト](vgm_analyzer/mdx_export.test.mjs) |
 | MML Export | 一部。OPN、OPM、MSX系の対象形式 | グリッド量子化・リズム等の除外あり | [OPNテスト](vgm_analyzer/vgm_mml.test.mjs)、[OPMテスト](vgm_analyzer/opm_mml.test.mjs)、[MGSDRVテスト](vgm_analyzer/mgsdrv_mml.test.mjs) |
 | 音色抽出・スナップショット・ZIP | 一部。TFI／VGI／OPM／SBI | 音色形式に入らない演奏変化・状態は保存しない | 下の音色表参照 |
 | Sample Explorer／データ抽出・試聴 | 一部。認識できるPCM／ADPCMデータ。Sega PCMのROM範囲、OKIM6258の時刻付きADPCMキャプチャを追加。波形・保存／ZIP・ステレオ試聴／WAV | Sega PCMは発音時点の設定による1回再生。OKIM6258は最大10秒の試聴・開始前の分周位相は未再現。実ブラウザー試聴未確認・追加分未公開 | [未対応音源・優先順](issues/todo_vgm_01.md)、[Explorerテスト](vgm_analyzer/sample_explorer.test.mjs)、[CLIサンプル仕様](../CLI.md#sample-inventory) |

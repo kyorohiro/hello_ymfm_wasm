@@ -44,6 +44,7 @@ import { createRf5c164Monitor, describeRf5c164Monitor, observeRf5c164Engine } fr
 import { sourcesForChip, applySourceMutes, allSourcesMuted } from "./source_mutes.js?v=msx-mix-1";
 import { createPsgMonitor, describePsgMonitor, observePsgEngine, applySsgWrite } from "./psg_monitor.js?v=ym2610-vgm-2";
 import { exportMucomMml, exportOpnavoidMml } from "./vgm_mml.js?v=mml-formats-1";
+import { exportMdx } from "./mdx_export.js?v=mdx-1";
 import { exportMgsdrvMml } from "./mgsdrv_mml.js";
 import {
   Ym2612VGM,
@@ -2802,9 +2803,11 @@ function stopActiveStream() {
 
 function updatePlaybackButtons(state = {}) {
   const hasBuffer = Boolean(currentBuffer);
+  const opmExport = Boolean(noteishHeader.ym2151Clock & 0x3fffffff) && !(noteishHeader.ym2151Clock & 0x40000000);
+  exportMmlButton.textContent = opmExport ? 'MML / MDX' : 'MML';
   playbackSeek.disabled = !hasBuffer || Number(playbackSeek.max) <= 0 || Boolean(timelineSeekController);
   updateSeekPosition();
-  exportMmlButton.disabled = !hasBuffer || currentChipKind==='mixed' || !(currentChipKind === "ym2151" || currentChipKind === "ay8910" || currentChipKind === "ym2413" || ["ym2612", "ym2203", "ym2608", "ym2610"].includes(midiChipKind(noteishHeader)));
+  exportMmlButton.disabled = !hasBuffer || (!opmExport && (currentChipKind==='mixed' || !(currentChipKind === "ay8910" || currentChipKind === "ym2413" || ["ym2612", "ym2203", "ym2608", "ym2610"].includes(midiChipKind(noteishHeader)))));
   exportMidiButton.disabled = !hasBuffer || !midiExportAvailable;
   const playing = Boolean(state.playing);
   const paused = Boolean(state.paused);
@@ -2861,9 +2864,9 @@ function updateChipSupport() {
       button.title = OPM_TFI_NOTICE;
       continue;
     }
-    if (currentChipKind === 'ym2151' && (button === exportMidiButton || button === exportMmlButton)) {
+    if ((currentChipKind === 'ym2151' || (button === exportMmlButton && (noteishHeader.ym2151Clock & 0x3fffffff))) && (button === exportMidiButton || button === exportMmlButton)) {
       button.disabled = !currentBuffer || (button === exportMidiButton && !midiExportAvailable);
-      button.title = button === exportMidiButton ? 'Export base-pitch notes; original YM2151 timbres are not reproduced.' : 'MXDRV MML: FM 8CH and sampled voices on a sixteenth-note grid.';
+      button.title = button === exportMidiButton ? 'Export base-pitch notes; original YM2151 timbres are not reproduced.' : 'MXDRV MML / MDX file: FM 8CH and sampled voices on a sixteenth-note grid.';
       continue;
     }
     if (ay && (button === exportMidiButton || button === exportMmlButton)) {
@@ -2891,7 +2894,7 @@ function updateChipSupport() {
   }
   const notice = document.getElementById('chipSupportNotice');
   notice.hidden = !playbackOnly;
-  notice.textContent = currentChipKind === 'msx' ? 'MSX AY / OPLL / Y8950 / SCC / SCC+ / OPM / OPP: Live and Song Note-ish, Sheet Music, MIDI / MusicXML / LilyPond use base pitches. ADPCM, noise, partial OPM keys, CSM, timbre and modulation are omitted. SCC waveform harmonics and rewriting are not transcribed. More than 15 channels require multi-port MIDI playback.' : currentChipKind === 'ymf278b' ? 'YMF278B FM Note-ish: 18-channel 2op/4op base pitches; pairs use the leading CH. PCM voices, rhythm, timbre, modulation and release are omitted. FM Sheet Music / MIDI / MusicXML / LilyPond export available. PCM Sample Explorer provides key-on snapshots, waveform, raw preview and WAV; load Wave ROM when required.' : currentChipKind === 'huc6280' ? 'HuC6280 Note-ish: 6-channel wavetable base pitches. PCM/DDA, noise and LFO CH1/CH2 intervals are omitted from notes. MIDI / MusicXML / LilyPond and WAV export available. Original timbres and PCM pitch are not reconstructed; instrument editing: Support coming soon.' : opl ? 'OPL / OPL2 / Y8950: 9-channel base-pitch Note-ish, MIDI, MusicXML and LilyPond. Rhythm CH7–9, CSM and Y8950 ADPCM are omitted. Voice / Operator Info includes a register-state JSON snapshot export; no TFI/VGI conversion or instrument editing.' : currentChipKind === 'ymf262' ? 'YMF262 Note-ish / Sheet Music / MIDI / MusicXML / LilyPond: 2op and 4op base pitches; pairs use the leading CH. Rhythm, timbre, modulation and release are omitted. MIDI playback requires multi-port support.' : currentChipKind === 'ym2151' ? 'YM2151 register monitor available. Base-pitch Note-ish available; noise/partial keys/CSM are omitted. MIDI base-pitch export available. OPM snapshots are available in the Export group. MXDRV MML export available. Instrument editing: Support coming soon.' : ay ? 'AY / YM2149 register monitor and base-pitch Note-ish available; noise/envelope shape are omitted. MIDI and LilyPond/Music Sheet base-pitch export available. Instrument editing and MML export: Support coming soon.' : opll ? 'YM2413 register monitor and base-pitch Note-ish available: FNUM/BLOCK base pitch, instrument number, volume and rhythm mode state; rhythm channels other than Bass Drum have no single pitch. MIDI and LilyPond/Music Sheet base-pitch export available. Instrument editing and MML export: Support coming soon.' : ['gameboy','nes','ymf278b','ymf262'].includes(currentChipKind) ? (currentChipKind==='nes'?'NES APU / FDS: pulse, triangle and optional FDS base-pitch notes, MIDI and Music Sheet. FDS modulation and envelope timing are not transcribed. Noise/DMC are omitted from scores; time-based modulation is approximate.': 'Game Boy DMG base-pitch Note-ish available for CH1/CH2 (square) and CH3 (wave); CH4 (noise) has no pitch, and length counter/CH1 sweep are not reconstructed. MIDI and LilyPond/Music Sheet base-pitch export available. Register monitor, instrument editing and MML export: Support coming soon.') : `${currentChipKind.toUpperCase()} analysis and instrument editing: Support coming soon.`;
+  notice.textContent = currentChipKind === 'msx' ? 'MSX AY / OPLL / Y8950 / SCC / SCC+ / OPM / OPP: Live and Song Note-ish, Sheet Music, MIDI / MusicXML / LilyPond use base pitches. ADPCM, noise, partial OPM keys, CSM, timbre and modulation are omitted. SCC waveform harmonics and rewriting are not transcribed. More than 15 channels require multi-port MIDI playback.' : currentChipKind === 'ymf278b' ? 'YMF278B FM Note-ish: 18-channel 2op/4op base pitches; pairs use the leading CH. PCM voices, rhythm, timbre, modulation and release are omitted. FM Sheet Music / MIDI / MusicXML / LilyPond export available. PCM Sample Explorer provides key-on snapshots, waveform, raw preview and WAV; load Wave ROM when required.' : currentChipKind === 'huc6280' ? 'HuC6280 Note-ish: 6-channel wavetable base pitches. PCM/DDA, noise and LFO CH1/CH2 intervals are omitted from notes. MIDI / MusicXML / LilyPond and WAV export available. Original timbres and PCM pitch are not reconstructed; instrument editing: Support coming soon.' : opl ? 'OPL / OPL2 / Y8950: 9-channel base-pitch Note-ish, MIDI, MusicXML and LilyPond. Rhythm CH7–9, CSM and Y8950 ADPCM are omitted. Voice / Operator Info includes a register-state JSON snapshot export; no TFI/VGI conversion or instrument editing.' : currentChipKind === 'ymf262' ? 'YMF262 Note-ish / Sheet Music / MIDI / MusicXML / LilyPond: 2op and 4op base pitches; pairs use the leading CH. Rhythm, timbre, modulation and release are omitted. MIDI playback requires multi-port support.' : currentChipKind === 'ym2151' ? 'YM2151 register monitor available. Base-pitch Note-ish available; noise/partial keys/CSM are omitted. MIDI base-pitch export available. OPM snapshots are available in the Export group. MXDRV MML / MDX file export available. Instrument editing: Support coming soon.' : ay ? 'AY / YM2149 register monitor and base-pitch Note-ish available; noise/envelope shape are omitted. MIDI and LilyPond/Music Sheet base-pitch export available. Instrument editing and MML export: Support coming soon.' : opll ? 'YM2413 register monitor and base-pitch Note-ish available: FNUM/BLOCK base pitch, instrument number, volume and rhythm mode state; rhythm channels other than Bass Drum have no single pitch. MIDI and LilyPond/Music Sheet base-pitch export available. Instrument editing and MML export: Support coming soon.' : ['gameboy','nes','ymf278b','ymf262'].includes(currentChipKind) ? (currentChipKind==='nes'?'NES APU / FDS: pulse, triangle and optional FDS base-pitch notes, MIDI and Music Sheet. FDS modulation and envelope timing are not transcribed. Noise/DMC are omitted from scores; time-based modulation is approximate.': 'Game Boy DMG base-pitch Note-ish available for CH1/CH2 (square) and CH3 (wave); CH4 (noise) has no pitch, and length counter/CH1 sweep are not reconstructed. MIDI and LilyPond/Music Sheet base-pitch export available. Register monitor, instrument editing and MML export: Support coming soon.') : `${currentChipKind.toUpperCase()} analysis and instrument editing: Support coming soon.`;
   oplMonitorRoot.hidden = !opl;
   opnMonitorRoot.hidden = currentChipKind==='mixed' || opl || ay || opll || currentChipKind === 'ym2151';
   if(currentChipKind==='mixed')notice.textContent='Multi-chip playback: '+mixedPlaybackParts.map(p=>p.chips.join(' + ')).join(' + ')+'. Source mute and WAV export are available. Combined note/instrument analysis and seek checkpoints are not available.';
@@ -3970,9 +3973,21 @@ musicSheet = mountMusicSheet({getTrack: () => ({buffer:currentBuffer, available:
 function downloadMml(format) {
   if (!currentBuffer || !mmlBpmInput.reportValidity()) return;
   const mgsdrv = currentChipKind === 'ay8910' || currentChipKind === 'ym2413';
-  if (mgsdrv ? format !== 'mgsdrv' : currentChipKind === 'ym2151' ? format !== 'mxdrv' : !['mucom88','opnavoid'].includes(format)) return;
+  const opm = currentChipKind === 'ym2151' || Boolean(noteishHeader.ym2151Clock & 0x3fffffff);
+  if (opm ? !['mxdrv','mdx'].includes(format) : mgsdrv ? format !== 'mgsdrv' : !['mucom88','opnavoid'].includes(format)) return;
   try {
     const options = { bpm: Number(mmlBpmInput.value), fileName: lastLoadedFileName };
+    if (format === 'mdx') {
+      const result = exportMdx(currentBuffer, options);
+      const url = URL.createObjectURL(new Blob([result.bytes], {type: result.mimeType}));
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = `${lastLoadedFileName.replace(/\.[^.]+$/, '') || 'analysis'}.mdx`;
+      anchor.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      setStatus(`Exported MDX (${result.voiceCount} voices). ${result.warnings.join(' ')}`);
+      return;
+    }
     const text = format === "mxdrv" ? exportMxdrvMml(currentBuffer, options) : format === "mucom88" ? exportMucomMml(currentBuffer, options) : format === "mgsdrv" ? exportMgsdrvMml(currentBuffer, options) : exportOpnavoidMml(currentBuffer, options);
     const url = URL.createObjectURL(new Blob([text], { type: "text/plain;charset=utf-8" }));
     const anchor = document.createElement("a");
@@ -3980,19 +3995,21 @@ function downloadMml(format) {
     anchor.download = `${lastLoadedFileName.replace(/\.[^.]+$/, "") || "analysis"}.mml`;
     anchor.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
-    setStatus(`Exported ${format === "mxdrv" ? "MXDRV (MDX)" : format === "mucom88" ? "MUCOM88" : format === "mgsdrv" ? "MGSDRV" : "OPNAVOID"} FM MML on a sixteenth-note grid.`);
+    setStatus(`Exported ${format === "mxdrv" ? "MXDRV" : format === "mucom88" ? "MUCOM88" : format === "mgsdrv" ? "MGSDRV" : "OPNAVOID"} FM MML on a sixteenth-note grid.`);
   } catch (error) {
-    setStatus(`MML export failed: ${error.message}`);
+    setStatus(`${format === 'mdx' ? 'MDX' : 'MML'} export failed: ${error.message}`);
   }
 }
 
 exportMmlButton.addEventListener("click", () => {
   if (!currentBuffer) return;
   const mgsdrv = currentChipKind === 'ay8910' || currentChipKind === 'ym2413';
+  const opm = currentChipKind === 'ym2151' || Boolean(noteishHeader.ym2151Clock & 0x3fffffff);
+  document.getElementById('mdxExportHelp').hidden = !opm;
   for (const button of mmlFormatDialog.querySelectorAll('button[value]')) {
     if (button.value === 'cancel') continue;
-    button.hidden = button.disabled = mgsdrv ? button.value !== 'mgsdrv'
-      : currentChipKind === 'ym2151' ? button.value !== 'mxdrv' : button.value === 'mxdrv' || button.value === 'mgsdrv';
+    button.hidden = button.disabled = opm ? !['mxdrv','mdx'].includes(button.value)
+      : mgsdrv ? button.value !== 'mgsdrv' : ['mxdrv','mdx','mgsdrv'].includes(button.value);
   }
   try {
     exportTempo.prepare(currentBuffer, mmlBpmInput, document.getElementById('mmlBpmHelp'), '34–999 BPM; used for sixteenth-note quantization.');
@@ -4001,7 +4018,7 @@ exportMmlButton.addEventListener("click", () => {
 });
 mmlFormatDialog.querySelector("form").addEventListener("submit", (event) => {
   const format = event.submitter?.value;
-  if (["mucom88", "opnavoid", "mxdrv", "mgsdrv"].includes(format)) downloadMml(format);
+  if (["mucom88", "opnavoid", "mxdrv", "mdx", "mgsdrv"].includes(format)) downloadMml(format);
 });
 
 exportMidiButton.addEventListener("click", () => {
