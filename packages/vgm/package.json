@@ -1,0 +1,49 @@
+{
+  "name": "tetorica-vgm",
+  "version": "0.2.8",
+  "description": "Tetorica VGM Analyzer CLI and shared analysis core",
+  "type": "module",
+  "license": "BSD-3-Clause",
+  "engines": {
+    "node": ">=22"
+  },
+  "bin": {
+    "tetorica-vgm": "cli/main.js"
+  },
+  "exports": {
+    ".": "./cli/index.js",
+    "./core": "./docs/vgm_analyzer/analyzer_core.js"
+  },
+  "files": [
+    "cli/",
+    "docs/",
+    "web/",
+    "licenses/",
+    "assets/",
+    "README.md",
+    "CLI.md",
+    "LICENSE"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kyorohiro/hello_ymfm_wasm.git"
+  },
+  "keywords": [
+    "chiptune",
+    "sound-chip",
+    "emulation",
+    "retro",
+    "audio",
+    "vgm",
+    "vgz",
+    "s98",
+    "cli",
+    "ym2612",
+    "32x",
+    "pwm",
+    "vgm-analyzer",
+    "midi",
+    "musicxml",
+    "lilypond"
+  ]
+}

@@ -93,7 +93,7 @@ WASMが存在するだけでPlayground APIも利用可能とは判断しない�
 |---|---|---|
 | `analyze`／`support` | 実装済。メタ情報、再生構成・必要ROM・Export可否の確認 | [仕様](../CLI.md#file-support-report)、[テスト](../test/support.test.mjs) |
 | `render` | 実装済。WAV、開始位置・時間・ミュート指定 | [仕様](../CLI.md#wav-start-and-duration)。ブラウザーと同じ全機能を保証するものではない |
-| `export`／`score-channels` | 実装済。楽譜・音色・トラック選択 | [CLI説明](../cli/README.md)。形式・チップごとに制限あり |
+| `export`／`score-channels` | 実装済。楽譜・音色・トラック選択 | [CLI説明](../packages/vgm/README.md)。形式・チップごとに制限あり |
 | `samples` | 実装済。一覧・nativeデータ・対応サンプルのWAV | [仕様](../CLI.md#sample-inventory)、[テスト](../test/sample-wav.test.mjs) |
 | `to-json`／`from-json` | 実装済。VGMバイト列を保持するJSON往復 | [仕様](../CLI.md#lossless-vgm--json-round-trip)。固定レイアウト編集。解析サマリーJSONとは別 |
 | Node API／共有解析Core | 実装済。ファイル入力・解析・Export・render | [API仕様](../CLI.md#node-api)。Node.js 22以上 |
@@ -146,3 +146,11 @@ CLI v0.2.5ではnpm READMEに21行のチップ一覧を直接掲載。`scripts/b
 - YM2608全音源VGM ImportにSchedule／Highを追加。ScheduleはADPCMデータを音声側へ事前転送し、元位置でメモリー転送・レジスター操作を実行。HighはWriteと同じ書き込みを再現できる操作のみ高レベル化。単一liveLoop・全体反復。
 
 - Playground `pg.trackAsync()`：liveLoop単位で非同期処理を追跡し、失敗時は待機を解除して元のエラーを報告。Main／Worker対応。YM2608 Write／Highの手動memoryErrorチェックを廃止。
+
+## npm 配布構成
+
+ルートは開発用の `private: true`。配布用manifest／READMEは
+`packages/vgm/` と `packages/fm2612/` に分離し、生成先は
+`dist/vgm/` と `dist/fm2612/`。build／packは相互の生成物を削除しない。
+CLI実装と共有ランタイムのソースは従来の場所を使用する。
+この構成変更はローカル追加で、公開済みnpmの構成は変更していない。

@@ -1,39 +1,12 @@
 {
-  "name": "tetorica-vgm",
-  "version": "0.2.8",
-  "description": "Tetorica VGM Analyzer CLI and shared analysis core",
+  "name": "tetorica-development",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Development workspace for Tetorica sound-chip runtime and VGM Analyzer",
   "type": "module",
   "license": "BSD-3-Clause",
   "engines": {
     "node": ">=22"
-  },
-  "bin": {
-    "tetorica-vgm": "dist/cli/main.js"
-  },
-  "exports": {
-    ".": "./dist/cli/index.js",
-    "./core": "./dist/docs/vgm_analyzer/analyzer_core.js"
-  },
-  "files": [
-    "dist/",
-    "README.md",
-    "CLI.md",
-    "LICENSE"
-  ],
-  "scripts": {
-    "build": "node scripts/build_cli.mjs",
-    "test": "node --test test/*.test.mjs",
-    "test:analyzer": "node --test web/*.test.mjs docs/vgm_analyzer/*.test.mjs",
-    "test:sbi": "node --test docs/vgm_analyzer/sbi_export.test.mjs docs/vgm_analyzer/sbi_ui.test.mjs docs/vgm_analyzer/sbi_info.test.mjs test/sbi.test.mjs",
-    "prepack": "npm run build",
-    "pack:check": "npm run pack -- --dry-run",
-    "pack": "node scripts/pack_cli.mjs",
-    "build:fm2612": "node scripts/build_fm2612_package.mjs",
-    "pack:fm2612": "node scripts/pack_fm2612.mjs",
-    "test:fm2612": "node scripts/check_fm2612_package.mjs",
-    "test:fm2612:browser": "npm run build:fm2612 && node scripts/check_megacd_browser.cjs",
-    "setup:browser": "playwright install chromium",
-    "test:fm2612:types": "node scripts/check_fm2612_types.mjs"
   },
   "repository": {
     "type": "git",
@@ -44,22 +17,21 @@
     "playwright": "1.63.0",
     "typescript": "^7.0.2"
   },
-  "keywords": [
-    "chiptune",
-    "sound-chip",
-    "emulation",
-    "retro",
-    "audio",
-    "vgm",
-    "vgz",
-    "s98",
-    "cli",
-    "ym2612",
-    "32x",
-    "pwm",
-    "vgm-analyzer",
-    "midi",
-    "musicxml",
-    "lilypond"
-  ]
+  "scripts": {
+    "build": "npm run build:vgm",
+    "test": "node --test test/*.test.mjs",
+    "test:analyzer": "node --test web/*.test.mjs docs/vgm_analyzer/*.test.mjs",
+    "test:sbi": "node --test docs/vgm_analyzer/sbi_export.test.mjs docs/vgm_analyzer/sbi_ui.test.mjs docs/vgm_analyzer/sbi_info.test.mjs test/sbi.test.mjs",
+    "pack:check": "npm run pack:vgm -- --dry-run",
+    "pack": "npm run pack:vgm --",
+    "build:fm2612": "node scripts/build_fm2612_package.mjs",
+    "pack:fm2612": "node scripts/pack_fm2612.mjs",
+    "test:fm2612": "node scripts/check_fm2612_package.mjs",
+    "test:fm2612:browser": "npm run build:fm2612 && node scripts/check_megacd_browser.cjs",
+    "setup:browser": "playwright install chromium",
+    "test:fm2612:types": "node scripts/check_fm2612_types.mjs",
+    "build:vgm": "node scripts/build_cli.mjs",
+    "pack:vgm": "node scripts/pack_cli.mjs",
+    "pack:vgm:check": "npm run pack:vgm -- --dry-run"
+  }
 }

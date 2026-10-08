@@ -1,9 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync, spawnSync } from 'node:child_process';
-import { mkdtempSync, readFileSync, writeFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { basename, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { readSource, analyzeSource, exportSource, renderSource } from '../cli/index.js';
 import { Ym2612VGM } from '../docs/js/ym2612vgm.js';
@@ -106,34 +106,45 @@ test('npm tarball installs offline, runs via npx, and exports the library',async
   const repositoryReadme=readFileSync(join(root,'README.md'),'utf8');
   const dir=mkdtempSync(join(tmpdir(),'tetorica-package-'));
   const cache=join(dir,'cache');
+  const fmSentinel=join(root,'dist/fm2612',`vgm-pack-${basename(dir)}.sentinel`);
+  mkdirSync(join(root,'dist/fm2612'),{recursive:true});
+  writeFileSync(fmSentinel,'FM2612 must survive VGM packing');
   try {
+    const workspace=JSON.parse(readFileSync(join(root,'package.json'),'utf8'));
+    const manifest=JSON.parse(readFileSync(join(root,'packages/vgm/package.json'),'utf8'));
+    assert.equal(workspace.private,true);assert.equal(workspace.bin,undefined);assert.equal(workspace.exports,undefined);
+    assert.equal(cli('--version').stdout.trim(),manifest.version);
     const packed=JSON.parse(execFileSync(process.execPath,['scripts/pack_cli.mjs','--json','--pack-destination',dir,'--cache',cache],{cwd:root,encoding:'utf8'}))[0];
+    assert.equal(readFileSync(fmSentinel,'utf8'),'FM2612 must survive VGM packing');
+    assert.equal(execFileSync(process.execPath,[join(root,'dist/vgm/cli/main.js'),'--version'],{encoding:'utf8'}).trim(),manifest.version);
     const paths=packed.files.map(f=>f.path);
-    assert(paths.includes('dist/cli/main.js'));
-    assert(paths.includes('dist/docs/generated/ym2612_wasm.wasm'));
-    assert(paths.includes('dist/docs/generated/rf5c164_wasm.wasm'));
-    assert(paths.includes('dist/docs/generated/ym2203_wasm.wasm'));
-    assert(paths.includes('dist/docs/generated/ym2608_wasm.wasm'));
-    assert(paths.includes('dist/docs/generated/ym2610b_wasm.wasm'));
-    assert(paths.includes('dist/docs/generated/okim6258_wasm.wasm'));
-    assert(paths.includes('dist/docs/generated/y8950_wasm.wasm'));
-    assert(paths.includes('dist/docs/generated/ymf278b_wasm.wasm'));
-    assert(paths.includes('dist/docs/generated/segapcm_wasm.wasm'));
-    assert(paths.includes('dist/licenses/mame-segapcm.txt'));
-    assert(paths.includes('dist/docs/generated/k051649_wasm.wasm'));
-    assert(paths.includes('dist/licenses/mame-k051649.txt'));
-    assert(paths.includes('dist/licenses/mame-okim6258.txt'));
+    assert(!paths.some(p=>p.startsWith('dist/')||p.startsWith('fm2612/')||p.startsWith('packages/')));
+    assert(paths.includes('cli/main.js'));
+    assert(paths.includes('docs/generated/ym2612_wasm.wasm'));
+    assert(paths.includes('docs/generated/rf5c164_wasm.wasm'));
+    assert(paths.includes('docs/generated/ym2203_wasm.wasm'));
+    assert(paths.includes('docs/generated/ym2608_wasm.wasm'));
+    assert(paths.includes('docs/generated/ym2610b_wasm.wasm'));
+    assert(paths.includes('docs/generated/okim6258_wasm.wasm'));
+    assert(paths.includes('docs/generated/y8950_wasm.wasm'));
+    assert(paths.includes('docs/generated/ymf278b_wasm.wasm'));
+    assert(paths.includes('docs/generated/segapcm_wasm.wasm'));
+    assert(paths.includes('licenses/mame-segapcm.txt'));
+    assert(paths.includes('docs/generated/k051649_wasm.wasm'));
+    assert(paths.includes('licenses/mame-k051649.txt'));
+    assert(paths.includes('licenses/mame-okim6258.txt'));
     assert(paths.includes('LICENSE'));
-    assert(paths.includes('dist/licenses/jsnes/LICENSE'));
-    assert(paths.includes('dist/docs/js/nes_apu_vendor/index.js'));
-    assert.deepEqual(paths.filter(p=>/\.rom$|\.bin$/.test(p)), ['dist/web/tetorica_ym2608_adpcm_rom.bin']);
-    assert(paths.includes('dist/assets/opna-rhythm/LICENSE'));
+    assert(paths.includes('licenses/jsnes/LICENSE'));
+    assert(paths.includes('docs/js/nes_apu_vendor/index.js'));
+    assert.deepEqual(paths.filter(p=>/\.rom$|\.bin$/.test(p)), ['web/tetorica_ym2608_adpcm_rom.bin']);
+    assert(paths.includes('assets/opna-rhythm/LICENSE'));
     assert(!paths.some(p=>/\.(?:html|css|png|vgz|vgm)$/.test(p)||p.includes('/vendor/')||p.endsWith('.s98')||p.startsWith('w/')));
     execFileSync('npm',['install','--offline','--ignore-scripts','--no-audit','--no-fund','--prefix',dir,'--cache',cache,join(dir,packed.filename)],{encoding:'utf8'});
     assert.equal(readFileSync(join(root,'README.md'),'utf8'),repositoryReadme);
-    assert.equal(readFileSync(join(dir,'node_modules/tetorica-vgm/README.md'),'utf8'),readFileSync(join(root,'cli/README.md'),'utf8'));
+    assert.equal(readFileSync(join(dir,'node_modules/tetorica-vgm/README.md'),'utf8'),readFileSync(join(root,'packages/vgm/README.md'),'utf8'));
     assert.notEqual(readFileSync(join(dir,'node_modules/tetorica-vgm/README.md'),'utf8'),repositoryReadme);
     const args=['exec','--offline','--prefix',dir,'--cache',cache,'--','tetorica-vgm'];
+    assert.equal(execFileSync('npm',[...args,'--version'],{cwd:dir,encoding:'utf8'}).trim(),manifest.version);
     const result=JSON.parse(execFileSync('npm',[...args,'analyze',fixture('ay-tone.vgz'),'--json'],{cwd:dir,encoding:'utf8'}));
     assert.equal(result.chips[0].id,'ay8910');
     const wav=join(dir,'tone.wav');
@@ -267,7 +278,7 @@ test('npm tarball installs offline, runs via npx, and exports the library',async
       const api=execFileSync(process.execPath,['--input-type=module','-e',"import {readSource,analyzeSource} from 'tetorica-vgm'; process.stdout.write(String(analyzeSource(await readSource(process.argv[1])).schemaVersion))",fixture('ay-tone.vgz')],{cwd:dir,encoding:'utf8',env});
       assert.equal(api,'1');
     }
-  } finally {rmSync(dir,{recursive:true,force:true});}
+  } finally {rmSync(fmSentinel,{force:true});rmSync(dir,{recursive:true,force:true});}
 });
 
 test('CLI manual score groups and merge-all share browser output and reject bad assignments',async()=>{

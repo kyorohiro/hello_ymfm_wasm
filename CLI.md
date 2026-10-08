@@ -6,19 +6,18 @@ This package is prepared for npm publication; it has not been published by this 
 ## From this repository
 
 The BSD-3-Clause synthetic YM2608 rhythm replacement is included at
-`web/tetorica_ym2608_adpcm_rom.bin` (under `dist/` in the npm
-package). Use `render music.vgm --ym2608-rom PATH --output music.wav` with
+`web/tetorica_ym2608_adpcm_rom.bin` (under `dist/vgm/` in a local build). Use `render music.vgm --ym2608-rom PATH --output music.wav` with
 that path to select it. Original Yamaha ROMs are not bundled; this replacement
-has different sounds. See `assets/opna-rhythm/LICENSE` (under `dist/` in npm).
+has different sounds. See `assets/opna-rhythm/LICENSE` (also included in the npm package).
 
 ```sh
 npm test
-npm run build
-node dist/cli/main.js analyze test/fixtures/psg-tone.vgz --json
-node dist/cli/main.js export test/fixtures/psg-tone.vgz --format musicxml --output /tmp/tone.musicxml
-node dist/cli/main.js render test/fixtures/psg-tone.vgz --output /tmp/tone.wav
-npm run pack:check
-npm run pack
+npm run build:vgm
+node dist/vgm/cli/main.js analyze test/fixtures/psg-tone.vgz --json
+node dist/vgm/cli/main.js export test/fixtures/psg-tone.vgz --format musicxml --output /tmp/tone.musicxml
+node dist/vgm/cli/main.js render test/fixtures/psg-tone.vgz --output /tmp/tone.wav
+npm run pack:vgm:check
+npm run pack:vgm
 # Test the actual tarball without publishing:
 npm exec --offline --package ./tetorica-vgm-0.1.0.tgz -- tetorica-vgm --help
 ```
@@ -29,10 +28,12 @@ consumers do not need Emscripten. To rebuild YM2203/YM2608/YM2610(B)/YM2612/Sega
 `scripts/build_ym2203_wasm.sh`, `scripts/build_ym2608_wasm.sh`, `scripts/build_ym2610b_wasm.sh`, `scripts/build_ym2612_wasm.sh`, `scripts/build_segapsg_wasm.sh`, and
 `scripts/build_rf5c164_wasm.sh` with Emscripten installed.
 
-The distribution README comes from `cli/README.md`; the repository README stays unchanged.
-Use `npm run pack` for distribution, not bare `npm pack` at the repository root
-(which includes the repository README). Publish the resulting tarball when ready.
-The pack script stages files in a temporary directory and removes it afterward.
+The distribution README comes from `packages/vgm/README.md`; the repository README stays unchanged.
+Use `npm run pack:vgm` to build and pack `dist/vgm/`. Publish the resulting tarball when ready.
+The root package is a private development workspace. VGM metadata lives in
+`packages/vgm/package.json`; FM2612 metadata lives in `packages/fm2612/package.json`.
+Each builder replaces only its own distribution folder. `build`, `pack` and
+`pack:check` remain aliases for the VGM commands.
 
 ## Commands
 
@@ -117,8 +118,8 @@ The npm allowlist includes only staged dependencies, README/CLI documentation
 and licenses. It excludes game files, fixtures, ROMs, HTML/CSS/images, OSMD,
 LilyPond runtime, Nuked-OPN2, `w/`, caches and browser bundles. Included chip code
 is BSD-3-Clause except the Apache-2.0 JSNES APU and the fixNES FDS adaptation
-under the MIT license; third-party notices are shipped under `dist/licenses/`.
-Before publication run `npm test`, `npm run test:analyzer`, `npm run pack:check`,
+under the MIT license; third-party notices are shipped under `licenses/`.
+Before publication run `npm test`, `npm run test:analyzer`, `npm run pack:vgm:check`,
 and install/test the tarball in a clean directory. The analyzer suite has one optional compiler integration test that requires
 `MML2MDR_DIR`; without that external compiler it is skipped.
 
@@ -583,7 +584,7 @@ No VGM loop expansion. Invalid requests leave existing output untouched.
 
 Standalone NTSC NES APU supports pulse 1/2, triangle, noise and DMC playback,
 including embedded VGM C2 RAM blocks. Browser and Node use the same JavaScript
-APU engine (JSNES, Apache-2.0; see `dist/licenses/jsnes/`). No extra WASM is needed.
+APU engine (JSNES, Apache-2.0; see `licenses/jsnes/`). No extra WASM is needed.
 `render --mute nes-ch-1` through `nes-ch-5` control these five channels.
 MIDI, MusicXML and LilyPond export pulse/triangle base pitches; score IDs are
 `nes-ch1`, `nes-ch2`, `nes-ch3`. Noise/DMC have no score pitch. Length, envelope,
@@ -617,12 +618,12 @@ counts. `unavailable` can also mean no convertible data. Probes discard generate
 outputs and never write files, but may take time on large tracks.
 
 This command is added after 0.1.1. Before the next publication, use
-`npm run build` then `node dist/cli/main.js support song.vgz --json`.
+`npm run build` then `node dist/vgm/cli/main.js support song.vgz --json`.
 
 ## Lossless VGM / JSON round trip
 
 These commands are new after 0.1.2. From the repository, run `npm run build`
-and use `node dist/cli/main.js` in place of `npx tetorica-vgm` until published.
+and use `node dist/vgm/cli/main.js` in place of `npx tetorica-vgm` until published.
 
 ```sh
 npx tetorica-vgm to-json song.vgz --output song.vgm.json
@@ -711,8 +712,8 @@ YMF262 is rejected. MIDI uses two MIDI ports for independent pitch bends across
 18 melodic channels; a multi-port MIDI player is required. Rhythm is omitted.
 
 ```sh
-node dist/cli/main.js score-channels song.vgz --json
-node dist/cli/main.js export song.vgz --format musicxml --output song.musicxml
+node dist/vgm/cli/main.js score-channels song.vgz --json
+node dist/vgm/cli/main.js export song.vgz --format musicxml --output song.musicxml
 ```
 
 ## Manual score groups

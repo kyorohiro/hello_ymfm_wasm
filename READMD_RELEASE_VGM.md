@@ -20,7 +20,7 @@ FM2612の手順は [READMD_RELEASE_FM2612.md](READMD_RELEASE_FM2612.md) を参�
 ```sh
 git status --short
 npm view tetorica-vgm name version versions maintainers
-npm version 0.2.4 --no-git-tag-version
+npm --prefix packages/vgm version 0.2.4 --no-git-tag-version
 ```
 
 `--no-git-tag-version` は自動commit・tag作成を行わず、バージョンを更新する。
@@ -28,7 +28,7 @@ npm version 0.2.4 --no-git-tag-version
 
 次の説明を実装に合わせて更新する。
 
-- `cli/README.md`: npm配布用README。利用者向けの導入・コマンド・API。
+- `packages/vgm/README.md`: npm配布用README。利用者向けの導入・コマンド・API。
 - `CLI.md`: 詳細な対応音源、オプション、制約、Node API。
 - `README.md`: GitHubリポジトリ全体の説明。
 - [docs/feature-status.md](docs/feature-status.md): 実装・検証状態を更新し、公開後に対象アプリ・版番号・commit・公開URL・含めた機能を記録する。
@@ -53,19 +53,19 @@ git diff --check
 ## 3. 配布物を作成・確認する
 
 ```sh
-npm run pack:check
-npm run pack
+npm run pack:vgm:check
+npm run pack:vgm
 ```
 
 `tetorica-vgm-0.2.4.tgz` がリポジトリのルートに生成される。
-ファイル名のバージョンは `package.json` に従う。
+ファイル名のバージョンは `packages/vgm/package.json` に従う。
 
-専用packスクリプトはビルド後、一時ディレクトリへ配布ファイルを集め、
-`cli/README.md` を配布物のルート `README.md` として配置する。
+専用packスクリプトは `dist/vgm/` へ依存ファイルと配布用manifestを集め、
+`packages/vgm/README.md` を配布物のルート `README.md` として配置する。
 GitHub用READMEは書き換えない。
 
-**配布物は `npm run pack` で作る。ルートで直接 `npm pack` や引数なしの
-`npm publish` を使うと、GitHub用READMEが入る。**
+**配布物は `npm run pack:vgm` で作り、検証したtgzを指定して公開する。
+ルートのpackage.jsonは開発用の `private: true` で、公開対象ではない。**
 
 ```sh
 tar -tzf tetorica-vgm-0.2.4.tgz
@@ -73,11 +73,11 @@ tar -xOf tetorica-vgm-0.2.4.tgz package/README.md
 tar -xOf tetorica-vgm-0.2.4.tgz package/package.json
 ```
 
-README・バージョン・WASM・LICENSE・`dist/licenses/` を確認する。
+README・バージョン・WASM・LICENSE・配布物内の `licenses/` を確認する。
 ゲームファイル、外部ROM、`w/`、キャッシュなどが含まれていないことも確認する。
 
-現状は `prepack` とpackスクリプトの両方でビルドするため、
-`Staged ...` が2回出ることがある。ビルド重複は既知の整理事項。
+packスクリプトがVGMのビルドを1回実行し、`dist/vgm/` をpackする。
+ルートの `prepack` による追加ビルドは行わない。
 
 ## 4. 生成したtarballを別ディレクトリで試す
 
@@ -150,7 +150,7 @@ npmが公開後の処理中と案内した場合は、数分待ってから確�
 同名・同バージョンのpackageがあるリポジトリ内では、npxがローカルpackageを
 選び、`sh: tetorica-vgm: command not found` になる場合がある。
 公開版の確認は上記のように別ディレクトリで行う。
-ローカルのビルドを確認する場合は `node dist/cli/main.js ...` を使う。
+ローカルのビルドを確認する場合は `node dist/vgm/cli/main.js ...` を使う。
 
 npmページで専用READMEも確認する。
 
@@ -180,14 +180,14 @@ node scripts/build_cli_chip_list.mjs --check
 ```
 
 生成したHTMLもcommitし、GitHub Pagesへ反映する。JavaScriptやダイアログ操作なしで読める。
-CLIのnpm READMEには同じ表のチップ名・再生概要を自動転記する。`npm run pack`でも自動更新するため、別のチップ一覧を手で保守する必要はない。生成された`cli/README.md`もcommitする。
+CLIのnpm READMEには同じ表のチップ名・再生概要を自動転記する。`npm run pack:vgm`でも自動更新するため、別のチップ一覧を手で保守する必要はない。生成された`packages/vgm/README.md`もcommitする。
 itch.ioの梱包でも同期チェックを行い、このページを同梱する。
 公開後の案内URL: https://kyorohiro.github.io/hello_ymfm_wasm/vgm_analyzer/support.html
 
 ## FM2612とのビルド先の関係
 
-VGMビルドは `dist/` を作り直すため、FM2612の `dist/fm2612/` も削除される。
-必要ならFM2612の専用ビルド・packを再実行する。ルートに作成済みのtgzは残る。
+VGMビルドは `dist/vgm/`、FM2612ビルドは `dist/fm2612/` だけを作り直す。
+相互の生成物を削除せず、どちらの順番でもbuild／packできる。
 
 # Tetorica YM2608 rhythm replacement
 
@@ -196,13 +196,13 @@ original synthetic rhythm replacement under BSD-3-Clause. Its sound differs
 from the Yamaha ROM. The original `ym2608_adpcm_rom.bin` is still excluded.
 
 - Source: `web/tetorica_ym2608_adpcm_rom.bin`
-- npm: `dist/web/tetorica_ym2608_adpcm_rom.bin`
+- npm: `web/tetorica_ym2608_adpcm_rom.bin`
 - Analyzer / Synth / Playground / browser examples ZIPs: `js/tetorica_ym2608_adpcm_rom.bin`
 - Flat web runtime ZIP: `tetorica_ym2608_adpcm_rom.bin`
 - Pages: `docs/js/tetorica_ym2608_adpcm_rom.bin`
 
 The license, README and generator are in `assets/opna-rhythm/`
-(under `dist/` for npm or `docs/` for Pages).
+(at the npm package root or under `docs/` for Pages).
 CLI and Analyzer ROM selection remains explicit. These changes apply to the
 next release; the already published CLI 0.2.3 and web 0.40.7 are unchanged.
 
@@ -212,5 +212,5 @@ Before packaging:
 node assets/opna-rhythm/generate.mjs --check
 node scripts/copy_opna_rhythm.mjs docs
 node --test web/opna_rhythm_rom.test.mjs
-npm run pack:check
+npm run pack:vgm:check
 ```

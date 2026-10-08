@@ -1,7 +1,7 @@
 // Reuse the Analyzer's chip names and playback descriptions in the npm README.
 import {readFileSync, writeFileSync} from 'node:fs';
 const source = new URL('../docs/vgm_analyzer/index.html', import.meta.url);
-const target = new URL('../cli/README.md', import.meta.url);
+const target = new URL('../packages/vgm/README.md', import.meta.url);
 const start = '<!-- chip-list:start -->';
 const end = '<!-- chip-list:end -->';
 const dialog = readFileSync(source, 'utf8').match(/<dialog id="chipSupportDialog"[\s\S]*?<\/dialog>/)?.[0];

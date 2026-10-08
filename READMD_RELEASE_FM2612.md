@@ -85,8 +85,8 @@
 版番号を変更する場合は、tgz名と公開後の確認コマンドも読み替える。
 
 VGM CLIの手順は [READMD_RELEASE_VGM.md](READMD_RELEASE_VGM.md) を参照。
-ルートの `package.json` は `tetorica-vgm` 用。FM2612のmanifestは
-`packages/fm2612/package.json` にある。
+ルートの `package.json` は `private: true` の開発用。各manifestは
+`packages/vgm/package.json` と `packages/fm2612/package.json` にある。
 
 ## 1. バージョンとドキュメントを更新する
 
@@ -164,11 +164,11 @@ AudioWorklet・音源データ・ライセンス文書を同梱する。npm用RE
 Nuked-OPN2のソースとビルドスクリプト、自作OPNAリズムデータも確認する。
 外部ROM・ゲームファイル・`w/`・キャッシュは含めない。
 
-**FM2612は `pack:fm2612` で作り、tgzを指定して公開する。ルートで引数なしの
-`npm publish` を実行すると `tetorica-vgm` が対象になる。**
+**FM2612は `pack:fm2612` で作り、検証したtgzを指定して公開する。
+ルートは開発用のprivate packageなので、公開対象ではない。**
 
-VGMビルドは `dist/` 全体を作り直す。VGMもビルドした場合は、必要に応じて
-FM2612のビルド・packを再実行する。ルートに作成済みのtgzは残る。
+VGMは `dist/vgm/`、FM2612は `dist/fm2612/` のみを作り直す。
+相互の生成物を削除しないので、どちらの順番でもbuild／packできる。
 
 ## 4. 公開するtgzを別ディレクトリで試す
 

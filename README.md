@@ -113,6 +113,22 @@ This is the easiest way to test YM2612 control, sound design, and Genesis-orient
 3. Edit its FM parameters and use the number and letter keys to audition it. Text and number fields keep normal typing behavior; leave the field before playing.
 4. Use **Export Cassette** to download your project, including its virtual files, before leaving the page. TFI editor changes update the virtual file; they do not write back to your original disk file.
 
+## npm package layout
+
+The root `package.json` is a private development workspace. Distribution metadata
+and npm READMEs live in `packages/vgm/` and `packages/fm2612/`; implementations
+remain in `cli/`, `web/`, `node/` and the shared Analyzer modules.
+
+```sh
+npm run build:vgm       # dist/vgm/
+npm run pack:vgm        # tetorica-vgm-VERSION.tgz
+npm run build:fm2612    # dist/fm2612/
+npm run pack:fm2612     # tetorica-fm2612-VERSION.tgz
+```
+
+Each build replaces only its own output folder. `build`, `pack` and `pack:check`
+remain VGM aliases. Publish an explicitly selected, verified tarball.
+
 ## CLI / Node.js
 
 The VGM Analyzer is also available as the [`tetorica-vgm` npm package](https://www.npmjs.com/package/tetorica-vgm)
@@ -124,7 +140,7 @@ npx tetorica-vgm export song.vgz --format musicxml --output song.musicxml
 npx tetorica-vgm render song.vgz --output song.wav
 ```
 
-See the [CLI quick start](cli/README.md) and [full CLI / Node API reference](CLI.md).
+See the [CLI quick start](packages/vgm/README.md) and [full CLI / Node API reference](CLI.md).
 For maintainers, see the npm release procedures for
 [tetorica-vgm](READMD_RELEASE_VGM.md) and
 [tetorica-fm2612](READMD_RELEASE_FM2612.md).

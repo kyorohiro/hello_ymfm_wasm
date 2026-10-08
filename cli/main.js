@@ -45,7 +45,7 @@ try {
   } });
   if (values.help) { console.log(help); }
   else if (values.version) {
-    const pkg = JSON.parse(await readFile(new URL('../package.json', import.meta.url)));
+    const pkg = JSON.parse(await readFile(new URL('../packages/vgm/package.json', import.meta.url)));
     console.log(pkg.version);
   } else {
     const [command, input] = positionals;

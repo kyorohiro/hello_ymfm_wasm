@@ -93,9 +93,9 @@ S98 support is limited to the supported single-chip YM2203/YM2608/YM2612 configu
 Unsupported chip combinations and missing required ROMs produce errors.
 External ROMs and music files are not included. An original BSD-3-Clause
 synthetic YM2608 rhythm replacement is bundled at
-`dist/web/tetorica_ym2608_adpcm_rom.bin` inside the installed
+`web/tetorica_ym2608_adpcm_rom.bin` inside the installed
 package. Pass its path to `--ym2608-rom` to use it; it sounds different from
-the original Yamaha ROM. `dist/assets/opna-rhythm/LICENSE` covers the data and generator.
+the original Yamaha ROM. `assets/opna-rhythm/LICENSE` covers the data and generator.
 
 Score export is a quantized transcription, not an original score. BPM can be
 specified with `--bpm`; the automatic suggestion is not guaranteed beat detection.
@@ -139,7 +139,7 @@ The main entry point adds Node file access and WASM initialization for rendering
 
 ## License and source
 
-BSD-3-Clause. See [LICENSE](LICENSE) and the included `dist/licenses/` notices.
+BSD-3-Clause. See [LICENSE](LICENSE) and the included `licenses/` notices.
 The package excludes the browser score display libraries, LilyPond runtime and
 external ROMs; the Tetorica synthetic rhythm replacement is included.
 
@@ -149,7 +149,7 @@ Source and browser project: [hello_ymfm_wasm](https://github.com/kyorohiro/hello
 
 Standalone NTSC NES APU supports pulse 1/2, triangle, noise and DMC playback,
 including embedded VGM C2 RAM blocks. Browser and Node use the same JavaScript
-APU engine (JSNES, Apache-2.0; see `dist/licenses/jsnes/`). No extra WASM is needed.
+APU engine (JSNES, Apache-2.0; see `licenses/jsnes/`). No extra WASM is needed.
 `render --mute nes-ch-1` through `nes-ch-5` control these five channels.
 MIDI, MusicXML and LilyPond export pulse/triangle base pitches; score IDs are
 `nes-ch1`, `nes-ch2`, `nes-ch3`. Noise/DMC have no score pitch. Length, envelope,
@@ -178,14 +178,14 @@ counts. `unavailable` can also mean no convertible data. Probes discard generate
 outputs and never write files, but may take time on large tracks.
 
 This command is added after 0.1.1. Before the next publication, use
-`npm run build` then `node dist/cli/main.js support song.vgz --json`.
+`npm run build` then `node dist/vgm/cli/main.js support song.vgz --json`.
 
 ### Example: check MusicXML availability, then convert
 
 Suppose you have `song.vgz` and want a score for a notation editor.
 The following commands assume a published version that includes `support`.
 For the current repository build, replace `npx tetorica-vgm` with
-`node dist/cli/main.js` after running `npm run build`.
+`node dist/vgm/cli/main.js` after running `npm run build`.
 
 1. Inspect the file before converting:
 
@@ -230,7 +230,7 @@ For the current repository build, replace `npx tetorica-vgm` with
 ## Lossless VGM / JSON round trip
 
 These commands are new after 0.1.2. From the repository, run `npm run build`
-and use `node dist/cli/main.js` in place of `npx tetorica-vgm` until published.
+and use `node dist/vgm/cli/main.js` in place of `npx tetorica-vgm` until published.
 
 ```sh
 npx tetorica-vgm to-json song.vgz --output song.vgm.json
