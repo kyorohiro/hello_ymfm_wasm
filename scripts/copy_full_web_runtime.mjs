@@ -23,11 +23,17 @@ for (const name of modules) {
   // Match the established docs/js layout for module-relative generated assets.
   if (nested && (name.includes('worklet') || name === 'vgm_runtime.js' || name === 'playground_rf5c164_audio.js' || name === 'playground_ym2608_audio.js' || name === 'playground_gameboy_audio.js'))
     source=source.replaceAll('./generated/', '../generated/');
+  if (name === 'nesapu.js') source=source.replace('../docs/js/nesapuaudioengine.js', './nesapuaudioengine.js');
   if (name === 'soundchip.js') {
     source=source.replace("(import.meta.url.includes('/web/') ? '../docs/generated/' : '../generated/')", JSON.stringify(nested ? '../generated/' : './generated/'));
   }
   writeFileSync(join(jsDir,name),source);
 }
+// Reuse the Analyzer's existing NES/FDS engines and their pinned third-party core.
+for (const name of ['nesapuaudioengine.js','fds_audio.js']) copyFileSync(join(root,'docs/js',name),join(jsDir,name));
+const {cpSync} = await import('node:fs');
+cpSync(join(root,'docs/js/nes_apu_vendor'),join(jsDir,'nes_apu_vendor'),{recursive:true});
+for (const name of ['jsnes','fixnes-fds']) cpSync(join(root,'third_party',name),join(stage,'licenses',name),{recursive:true});
 copyFileSync(join(root,'web/native_audio_effect.wasm'),join(jsDir,'native_audio_effect.wasm'));
 copyFileSync(join(root,'web/soundchip.md'),join(jsDir,'soundchip.md'));
 const notices = ['nuked-opn2', 'mame-ay8910','mame-gameboy','mame-huc6280','mame-k051649','mame-okim6258','mame-okim6295','mame-rf5c164','mame-segapcm','mame-32x-pwm'];
@@ -35,7 +41,7 @@ for (const name of notices) {
   const dir=join(stage,'licenses',name); mkdirSync(dir,{recursive:true});
   for (const file of ['LICENSE','README.md']) copyFileSync(join(root,'third_party',name,file),join(dir,file));
 }
-writeFileSync(join(stage,'THIRD_PARTY_LICENSES.txt'), `ymfm: BSD-3-Clause; see LICENSE.\n${notices.map(n=>`${n}: see licenses/${n}/LICENSE and README.md.`).join('\n')}\nNuked-OPN2 is LGPL-2.1-or-later; the MAME adaptations listed above are BSD-3-Clause.\nNo external instrument/sample ROMs are included.\n`);
-writeFileSync(join(stage,'runtime-manifest.json'), JSON.stringify({modules,chips,layout:nested?'js':'flat'},null,2)+'\n');
+writeFileSync(join(stage,'THIRD_PARTY_LICENSES.txt'), `ymfm: BSD-3-Clause; see LICENSE.\n${notices.map(n=>`${n}: see licenses/${n}/LICENSE and README.md.`).join('\n')}\nNuked-OPN2 is LGPL-2.1-or-later; the MAME adaptations listed above are BSD-3-Clause.\nNES APU: JSNES (Apache-2.0), FDS: fixNES (MIT); see licenses/jsnes and licenses/fixnes-fds.\nNo external instrument/sample ROMs are included.\n`);
+writeFileSync(join(stage,'runtime-manifest.json'), JSON.stringify({modules:[...modules,'nesapuaudioengine.js','fds_audio.js',...readdirSync(join(root,'docs/js/nes_apu_vendor')).filter(n=>n.endsWith('.js')).map(n=>'nes_apu_vendor/'+n)],javascriptChips:['nes'],chips,layout:nested?'js':'flat'},null,2)+'\n');
 writeFileSync(join(stage,'RUNTIME.md'), `# Full web runtime\n\nIncludes all ${modules.length} top-level web runtime modules and ${chips.length} generated chip/engine pairs.\n\n${chips.join(', ')}\n\nYM2610 uses ym2610b with variant:false; YM2610B is the default.\nChip APIs and high-level Synth coverage differ; inclusion does not imply a common Synth API for every chip.\nNo external sample/instrument ROMs are bundled. In particular, ym2608_adpcm_rom.bin and yrw801.rom are excluded.\n\nImport only the chip you need. Files in the archive do not initialize engines automatically.\nFor a smaller application deployment, retain your entry point's dependencies, its WASM pair, and applicable licenses.\n\nYamaha convenience factory:\n\n\`\`\`javascript\nimport {createSoundChip} from './${nested?'js/':''}soundchip.js';\nconst chip = await createSoundChip('ym2610b');\ntry { const pcm = chip.generateStereo(128); } finally { chip.dispose(); }\n\`\`\`\n\nOther chips use their individual wrappers/audio engines. See runtime-manifest.json for the exact contents.\n`);
 console.log(`Full runtime copied: ${modules.length} modules, ${chips.length} chip/engine pairs.`);

@@ -100,3 +100,20 @@ await playground.playSource(() => {});
 chip.id.toUpperCase();
 // @ts-expect-error Direct chip IDs are readonly.
 chip.id = 'other';
+
+import {NesApuSynth, NesApuDirectTransport} from 'tetorica-fm2612/nesapusynth.js';
+import {NesApuAudifyTransport} from 'tetorica-fm2612/node/transports';
+const nesChip = await createSoundChip('nes', {fds: true});
+const nesSynth = new NesApuSynth({transport: new NesApuDirectTransport(nesChip)});
+nesSynth.pulse.setVoice(0, {duty: 0.5, volume: 10});
+nesSynth.triangle.noteOn('C3');
+nesSynth.fds.setWave(new Uint8Array(64));
+nesSynth.fds.setModulation({table: new Uint8Array(32), rate: 120, depth: 4});
+await nesSynth.dmc.loadSample(new Uint8Array(33));
+new NesApuAudifyTransport(nesChip);
+// @ts-expect-error Pulse duty is a discrete hardware value.
+nesSynth.pulse.setVoice(0, {duty: 0.3});
+// @ts-expect-error Noise mode is boolean.
+nesSynth.noise.setVoice({shortMode: 'short'});
+// @ts-expect-error DMC loads encoded bytes, not note names.
+await nesSynth.dmc.loadSample('C4');

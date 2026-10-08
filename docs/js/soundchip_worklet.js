@@ -4,12 +4,13 @@ import {SoundChipMixer} from './soundchip_mixer.js';
  * execution: 'worklet', name: import('./soundchip.js').WorkletChipName,
  * port: MessagePort, node: AudioWorkletNode, audioContext: AudioContext,
  * mixer: import('./soundchip_mixer.js').SoundChipMixer, readonly id: string,
+ * readonly fdsEnabled?: boolean, readonly clock?: number,
  * sampleRate(): number, request(method: string, args?: unknown[]): Promise<unknown>,
  * createTransportPort(): MessagePort, start(): Promise<void>, stop(): Promise<void>, dispose(): Promise<void>
  * }} WorkletSoundChip
  */
-/** Main-side chip endpoint. The actual WASM chip is created inside AudioWorklet. */
-const supported = new Set(['ym2612', 'ym2608', 'gameboy', 'segapsg', 'ym2151', 'pwm']);
+/** Main-side chip endpoint. The actual chip is created inside AudioWorklet. */
+const supported = new Set(['ym2612', 'ym2608', 'gameboy', 'segapsg', 'ym2151', 'pwm', 'nes']);
 /**
  * @param {import('./soundchip.js').WorkletChipName} name
  * @param {import('./soundchip.js').SoundChipOptions} options
@@ -66,7 +67,7 @@ export async function createWorkletSoundChip(name, options, loadBinary) {
     const wasmBinary = await loadBinary();
     await context.audioWorklet.addModule(new URL('./soundchip-output-worklet.js', import.meta.url).href);
     options.signal?.throwIfAborted();
-    const chipOptions = Object.fromEntries(['clock', 'sampleRate', 'flags', 'variant', 'outputMode'].filter(key => options[key] !== undefined).map(key => [key, options[key]]));
+    const chipOptions = Object.fromEntries(['clock', 'sampleRate', 'flags', 'variant', 'outputMode', 'fds'].filter(key => options[key] !== undefined).map(key => [key, options[key]]));
     node = new AudioWorkletNode(context, 'tetorica-soundchip', {
       numberOfInputs: 0, outputChannelCount: [2],
       processorOptions: {name, chipOptions, wasmBinary},
@@ -107,6 +108,7 @@ export async function createWorkletSoundChip(name, options, loadBinary) {
       async stop() {await request('stop'); gain.disconnect();},
       dispose,
     };
+    if (name === 'nes') Object.defineProperties(endpoint, {fdsEnabled: {value: Boolean(options.fds), enumerable: true}, clock: {value: options.clock ?? 1789773, enumerable: true}});
     Object.defineProperty(endpoint, 'id', {value: id, enumerable: true, writable: false, configurable: false});
     return endpoint;
   } catch (error) {await dispose(); throw error;}

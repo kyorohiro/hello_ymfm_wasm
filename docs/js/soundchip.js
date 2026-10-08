@@ -21,6 +21,7 @@ export {encodeWav} from './wav.js';
  * @property {'direct'|'worklet'} [execution='direct'] チップの実行場所。worklet はブラウザーのみ。
  * @property {AudioContext} [audioContext] Worklet の接続先。省略時は factory が生成・解放する。
  * @property {number} [clock] Input clock in Hz.
+ * @property {boolean} [fds=false] Enable the FDS expansion on NES.
  * @property {number} [sampleRate] Requested PCM/output sample rate.
  * @property {number} [type] AY chip variant type.
  * @property {number} [flags] Chip-specific flags.
@@ -55,6 +56,12 @@ async function loadModule(name, options = {}) {
 }
 
 const loaders = {
+  nes: async options => {
+    options.signal?.throwIfAborted();
+    const {NesApu} = await import('./nesapu.js');
+    options.signal?.throwIfAborted();
+    return NesApu.create(options);
+  },
   gameboy: async (options) => {
     const {GameboyApu} = await import('./gameboyapu.js');
     return GameboyApu.create(await loadModule('gameboy_apu', options));
@@ -153,6 +160,7 @@ const createLocalSoundChip = createSoundChipFactory(loaders);
  *   gameboy: import('./gameboyapu.js').GameboyApu,
  *   segapsg: import('./segapsg.js').SegaPSG,
  *   pwm: import('./pwm32x.js').PWM32X,
+ *   nes: import('./nesapu.js').NesApu,
  *   ay8910: import('./ay8910.js').Ay8910,
  *   y8950: import('./y8950.js').Y8950,
  *   ym2610b: import('./ym2610b.js').Ym2610B,
@@ -169,7 +177,7 @@ const createLocalSoundChip = createSoundChipFactory(loaders);
  *   ymf278b: import('./ymf278b.js').Ymf278b,
  *   ymf288: import('./ymf288.js').Ymf288,
  * }} SoundChipMap */
-/** @typedef {'ym2612'|'ym2608'|'ym2151'|'gameboy'|'segapsg'|'pwm'} WorkletChipName */
+/** @typedef {'ym2612'|'ym2608'|'ym2151'|'gameboy'|'segapsg'|'pwm'|'nes'} WorkletChipName */
 /**
  * @template {WorkletChipName} Name
  * @overload
@@ -198,7 +206,7 @@ export function createSoundChip(name, options = {}) {
     if (options.moduleFactory) return Promise.reject(new Error('Worklet execution uses the packaged chip factory'));
     const moduleName = name === 'gameboy' ? 'gameboy_apu' : name;
     return createWorkletSoundChip(name, options, async () => {
-      if (name === 'pwm') return undefined;
+      if (name === 'pwm' || name === 'nes') return undefined;
       const loaded = await loadModule(moduleName, options);
       const bytes = loaded.moduleOptions.wasmBinary;
       if (!bytes) throw new Error('Worklet execution requires WASM bytes; use wasmBinary or default asset loading');

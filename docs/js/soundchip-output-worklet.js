@@ -4,6 +4,7 @@ import {Ym2608} from './ym2608.js';
 import {Ym2151} from './ym2151.js';
 import {GameboyApu} from './gameboyapu.js';
 import {SegaPSG} from './segapsg.js';
+import {NesApu} from './nesapu.js';
 import ym2612Factory from '../generated/ym2612_wasm.js';
 import ym2608Factory from '../generated/ym2608_wasm.js';
 import ym2151Factory from '../generated/ym2151_wasm.js';
@@ -15,7 +16,7 @@ import {YM2612DirectTransport} from './ym2612synth.js';
 import {YM2612DacPlayer} from './ym2612_dac.js';
 
 const profiles = {ym2612: [Ym2612, ym2612Factory], ym2608: [Ym2608, ym2608Factory],
-  ym2151: [Ym2151, ym2151Factory], gameboy: [GameboyApu, gameboyFactory], segapsg: [SegaPSG, psgFactory]};
+  ym2151: [Ym2151, ym2151Factory], gameboy: [GameboyApu, gameboyFactory], segapsg: [SegaPSG, psgFactory], nes: [NesApu, undefined]};
 const createSoundChip = createSoundChipFactory(Object.fromEntries([...Object.entries(profiles).map(([name, [Type, moduleFactory]]) =>
   [name, options => Type.create({...options, moduleFactory})]), ['pwm', options => new PWM32XPlayback(options)]]));
 
@@ -24,7 +25,7 @@ class SoundChipProcessor extends AudioWorkletProcessor {
     super(); this.dead = false; this.running = false; this.name = name; this.remotePorts = new Set();
     this.scheduled = []; this.banks = new Map();
     this.port.onmessage = ({data}) => this.receive(data);
-    createSoundChip(name, {...chipOptions, ...(name === 'gameboy' || name === 'segapsg' || name === 'pwm' ? {sampleRate} : {}), moduleOptions: {wasmBinary}})
+    createSoundChip(name, {...chipOptions, ...(name === 'gameboy' || name === 'segapsg' || name === 'pwm' || name === 'nes' ? {sampleRate} : {}), moduleOptions: {wasmBinary}})
       .then(chip => {
         if (this.dead) {chip.dispose(); return;}
         this.chip = chip;
@@ -64,6 +65,9 @@ class SoundChipProcessor extends AudioWorkletProcessor {
         if (typeof this.chip.writeRegister === 'function') this.chip.writeRegister(...args);
         else {const [register, value, port = 0] = args; this.chip.write(port * 2, register); this.chip.write(port * 2 + 1, value);}
       }
+      else if (this.name === 'nes' && method === 'loadMemory') value = this.chip.loadMemory(...args);
+      else if (this.name === 'nes' && method === 'setChannelEnabled') value = this.chip.setChannelEnabled(...args);
+      else if (this.name === 'nes' && method === 'setChannelMuted') value = this.chip.setChannelMuted(...args);
       else if (method === 'loadRhythmRom') this.chip.loadAdpcmARom(data.bytes);
       else if (method === 'loadAdpcmMemory') this.chip.loadAdpcmBMemory(data.bytes, data.address);
       else if (method === 'pcm-dac') this.pcmDac.command(data.command, currentFrame);

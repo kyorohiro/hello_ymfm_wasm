@@ -457,3 +457,81 @@ Development validation: `npm run build:fm2612` generates and checks every
 declaration; `npm run test:fm2612:types` verifies strict consumer examples under
 NodeNext and Bundler resolution, including expected errors. The tarball
 installation check also runs the consumer type tests against the installed package.
+
+## NES APU + FDS Synth
+
+The local build adds `createSoundChip('nes')` and `NesApuSynth`. Enable FDS
+with `{fds: true}`. It reuses the Analyzer's JSNES APU and fixNES-derived FDS
+engines; no WASM, CPU program, cartridge or instrument ROM is needed.
+This addition is not in published npm 0.2.11 yet.
+
+```javascript
+import {createSoundChip} from 'tetorica-fm2612';
+import {NesApuSynth, NesApuWorkletTransport} from 'tetorica-fm2612/nesapusynth.js';
+
+const chip = await createSoundChip('nes', {execution: 'worklet', fds: true, signal});
+const transport = new NesApuWorkletTransport(chip);
+try {
+  const nes = new NesApuSynth({transport});
+  nes.pulse.setVoice(0, {duty: 0.5, volume: 10});
+  await transport.start();
+  nes.pulse.noteOn(0, 'C4');
+  nes.fds.noteOn('E4'); // Default 64-sample sine wave.
+  // Wait for the desired duration with your app's abortable timer.
+  nes.pulse.noteOff(0);
+  nes.fds.noteOff();
+  await transport.flush();
+} finally {
+  await transport.close();
+  await chip.dispose();
+}
+```
+
+Use `NesApuDirectTransport(chip)` for owned stereo PCM via
+`chip.generateStereo(frames)` or `transport.generateStereo(frames)`.
+Use `NesApuAudifyTransport(chip)` from `tetorica-fm2612/node/transports` for
+Node device output. Transports borrow the chip. The Synth borrows the transport.
+NTSC clocks (1780000–1800000 Hz) are supported; PAL is not implemented.
+`clock` and FDS capability are inferred from the provided transport. For a custom
+register transport or bare MessagePort, supply `clock` / `fds` explicitly.
+
+| Part | API |
+| --- | --- |
+| Pulse 1 / 2 | `pulse.setVoice(0 or 1, {duty, volume, envelope, sweep})`, `setNote`, `noteOn`, `noteOff` |
+| Triangle | `triangle.setNote(note)`, `noteOn(note)`, `noteOff()`; hardware has fixed volume |
+| Noise | `noise.setVoice({volume, period, shortMode})`, `noteOn()`, `noteOff()`; period index 0–15 |
+| DMC | `await dmc.loadSample(encodedBytes, {address})`, `dmc.play({rate, loop, level})`, `dmc.stop()` |
+| FDS | `fds.setWave(samples)`, `setVolume(gain, masterScale)`, `setNote`, `noteOn`, `noteOff`, `setModulation(options)` |
+
+Notes are names such as `C4` / `F#3` or MIDI integers. `setFrequency(channel, hz)`
+accepts Hz; each channel's timer range is checked and rounded to hardware steps.
+Common tone channels are 0/1 (Pulse), 2 (Triangle), 5 (FDS).
+Noise uses a hardware period index and DMC uses a rate index, not musical notes.
+Pulse duty is .125 / .25 / .5 / .75; fixed volume is 0–15. Envelope `{period, loop}`
+selects the hardware decay mode instead of fixed volume; period is 0–15.
+Sweep `{enabled, period, negate, shift}` uses 0–7 period/shift fields.
+
+FDS waves contain 64 integers 0–63. Replacing a wave temporarily halts the
+oscillator, writes RAM, then restores its control state. Fixed gain is 0–32;
+master scale is 0–3. `fds.setModulation({table, rate, depth, bias, enabled})`
+accepts 32 entries 0–7, raw 12-bit modulation rate 0–4095, depth 0–63 and
+signed bias -64..63. Volume/wave helpers use fixed-gain mode; advanced hardware
+envelopes can be programmed through `writeRegister()` after note-on.
+
+DMC takes **pre-encoded DPCM**, not PCM/WAV. Samples contain 1–4081 bytes and are
+padded with alternating-bit bytes to 16*n+1. Addresses are 64-byte aligned in
+$C000–$FFFF and must fit the padded sample. Load completion is acknowledged before
+playback; reset invalidates pending descriptors. DMC upload through Worklet needs
+its full `createSoundChip` endpoint. Rate index is 0–15, initial DAC level 0–127.
+
+`writeRegister(address, value)` uses native CPU addresses ($4000–$4017,
+$4023, $4040–$408A), unlike VGM's packed NES offsets. FDS addresses require
+`fds: true`. `reset()` resets the chip, voices and loaded DMC descriptor.
+The wrapper seeds the integer core's silent DAC baseline and applies a floating
+10 Hz DC blocker so startup and held-DAC residuals do not produce a steady offset.
+The existing Analyzer engine remains available separately.
+Chip-level `SoundChipMixer`, automatic `chip.id`, and abortable creation work
+with the NES Worklet endpoint like the other chips.
+
+Register semantics follow [NESdev APU documentation](https://www.nesdev.org/wiki/APU)
+and [FDS audio documentation](https://www.nesdev.org/wiki/FDS_audio).

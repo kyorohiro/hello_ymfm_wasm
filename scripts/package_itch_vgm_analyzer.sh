@@ -96,6 +96,8 @@ seek_playback.js
 
 JS_FILES="
 soundchip_mixer.js
+nesapu.js
+nesapusynth.js
 soundchip.js
 soundchip_factory.js
 soundchip_worklet.js

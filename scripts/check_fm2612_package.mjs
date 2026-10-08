@@ -26,6 +26,7 @@ import {access} from 'node:fs/promises';
 import {createSoundChip} from 'tetorica-fm2612';
 import {YM2612Synth, YM2612DirectTransport} from 'tetorica-fm2612/ym2612synth';
 import {YM2151Synth, YM2151DirectTransport} from 'tetorica-fm2612/ym2151synth';
+import {NesApuSynth, NesApuDirectTransport} from 'tetorica-fm2612/nesapusynth';
 import {Ym2612} from 'tetorica-fm2612/ym2612.js';
 import {FM_PRESETS} from 'tetorica-fm2612/megasynth-fm-presets';
 import {runtimeAssetUrl} from 'tetorica-fm2612/assets';
@@ -51,6 +52,13 @@ try {
   assert.ok(pcm.left.every(Number.isFinite) && pcm.left.some(x => Math.abs(x) > .001));
   synth.noteOff(7);
 } finally {opmChip.dispose();}
+const nesChip = await createSoundChip('nes', {fds: true});
+try {
+  const synth = new NesApuSynth({transport: new NesApuDirectTransport(nesChip)});
+  synth.fds.noteOn('A4');
+  const pcm = nesChip.generateStereo(4096);
+  assert.ok(pcm.left.every(Number.isFinite) && pcm.left.some(v => Math.abs(v) > .001));
+} finally {nesChip.dispose();}
 assert.equal(typeof globalThis.AudioContext, 'undefined');
 const {MegaSynthNode} = await import('tetorica-fm2612/node');
 const nodeSynth = new MegaSynthNode();

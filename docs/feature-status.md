@@ -154,3 +154,14 @@ CLI v0.2.5ではnpm READMEに21行のチップ一覧を直接掲載。`scripts/b
 `dist/vgm/` と `dist/fm2612/`。build／packは相互の生成物を削除しない。
 CLI実装と共有ランタイムのソースは従来の場所を使用する。
 この構成変更はローカル追加で、公開済みnpmの構成は変更していない。
+
+## NES APU / FDS 高水準 API
+
+ローカル追加。`createSoundChip('nes', {fds:true})` と `NesApuSynth`、
+Direct／Worklet／Node Audify Transportを追加。Pulse×2の音名・音量・duty・
+envelope・sweep、Triangle、Noiseのperiod／short mode、DMCの符号化済みサンプル転送、
+FDSの64点波形・音量・32点modulationを扱う。NTSCのみ。
+NES Workletは共通Mixerと自動IDに対応。起動時のDAC基準値と整数コアの残留DCは
+新しいラッパーで補正する。既存Analyzerのエンジンは変更していない。
+全音源のDirect／Worklet発音、音程、停止・再開、DMC ACK／reset、型定義を確認。
+公開済みnpm 0.2.11には未収録。

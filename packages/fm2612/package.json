@@ -67,7 +67,8 @@
     "THIRD_PARTY_LICENSES.txt",
     "RUNTIME.md",
     "soundchip.md",
-    "runtime-manifest.json"
+    "runtime-manifest.json",
+    "nes_apu_vendor/"
   ],
   "keywords": [
     "chiptune",

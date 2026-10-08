@@ -4,6 +4,7 @@ import {YM2608DirectTransport} from '../web/ym2608synth.js';
 import {GameboyDirectTransport} from '../web/gameboysynth.js';
 import {SegaPSGDirectTransport} from '../web/segapsgsynth.js';
 import {YM2151DirectTransport} from '../web/ym2151synth.js';
+import {NesApuDirectTransport} from '../web/nesapusynth.js';
 import {ChipPCMRenderer} from '../web/chip_pcm_renderer.js';
 import {createThreadOutput} from './output_thread.mjs';
 
@@ -97,3 +98,5 @@ export const SegaPSGAudifyTransport = audifyTransport(SegaPSGDirectTransport, 's
 export const YM2151AudifyTransport = audifyTransport(YM2151DirectTransport, 'ym2151');
 
 export const PWM32XAudifyTransport = audifyTransport(PWM32XDirectTransport, 'pwm');
+
+export const NesApuAudifyTransport = audifyTransport(NesApuDirectTransport, 'nes');

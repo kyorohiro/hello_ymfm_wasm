@@ -36,3 +36,11 @@ opm.noteOn(7, 'C4', {operatorMask: 8});
 opm.noteOff(7);
 // @ts-expect-error Raw key fraction is numeric.
 opm.setPitch(0, 0x4a, 'quarter');
+
+import {NesApuSynth, NesApuWorkletTransport} from 'tetorica-fm2612/nesapusynth.js';
+const nesEndpoint = await createSoundChip('nes', {execution: 'worklet', fds: true});
+const nes = new NesApuSynth({transport: new NesApuWorkletTransport(nesEndpoint)});
+nes.fds.noteOn('C4');
+nes.pulse.noteOn(0, 'E4');
+// @ts-expect-error FDS wave is an array of samples.
+nes.fds.setWave('sine');

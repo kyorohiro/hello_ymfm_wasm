@@ -11,6 +11,8 @@ DOCS_JS_DIR="${ROOT_DIR}/docs/js"
 #
 SYNC_FILES="
 soundchip_mixer.js
+nesapu.js
+nesapusynth.js
 soundchip_factory.js
 soundchip.js
 soundchip_worklet.js
@@ -230,3 +232,5 @@ perl -0pi -e 's#\./generated/#../generated/#g' \
   "${DOCS_JS_DIR}/playground_opn_audio.js" "${DOCS_JS_DIR}/playground_opn_worklet.js"
 
 perl -0pi -e 's#\./generated/#../generated/#g' "${DOCS_JS_DIR}/soundchip-output-worklet.js"
+
+perl -0pi -e 's#../docs/js/nesapuaudioengine.js#./nesapuaudioengine.js#g' "${DOCS_JS_DIR}/nesapu.js"
