@@ -526,6 +526,9 @@ its full `createSoundChip` endpoint. Rate index is 0–15, initial DAC level 0�
 `writeRegister(address, value)` uses native CPU addresses ($4000–$4017,
 $4023, $4040–$408A), unlike VGM's packed NES offsets. FDS addresses require
 `fds: true`. `reset()` resets the chip, voices and loaded DMC descriptor.
+The local build also adds `resetRegisters()` for native reset without Synth defaults,
+and `loadMemory(bytes, address)` for exact CPU RAM uploads without DMC padding;
+Playground VGM import uses these to preserve the original writes and memory blocks.
 The wrapper seeds the integer core's silent DAC baseline and applies a floating
 10 Hz DC blocker so startup and held-DAC residuals do not produce a steady offset.
 The existing Analyzer engine remains available separately.

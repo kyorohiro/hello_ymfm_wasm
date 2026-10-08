@@ -1233,6 +1233,8 @@ declare function createSoundChip(name: 'pwm', options?: PlaygroundCreateSoundChi
 
 /** NTSC NES APU; FDS methods require createSoundChip('nes', {fds:true}). */
 interface PlaygroundNes {
+  resetRegisters():void;
+  loadMemory(bytes:Uint8Array|ArrayBuffer,address?:number):void|Promise<unknown>;
   readonly clock: number;
   readonly fdsEnabled: boolean;
   pulse: {

@@ -101,3 +101,13 @@ test('YM2608 exposes Schedule and High and forwards the selected mode',async()=>
  const html=readFileSync(new URL('./index.html',import.meta.url),'utf8');
  for(const mode of ['write','schedule','high'])assert.ok(html.includes(`name="ym2608ImportMode" value="${mode}"`));
 });
+
+test('NES/FDS import shows its own conversion modes and forwards the selected mode',async()=>{
+ const ui=setup(async()=>({detection:{family:'nes',chips:['nesApu'],fds:true,supported:true,message:'NES + FDS'}}));
+ await ui.choose('disk.vgm');
+ assert.equal(ui.node('nesImportOptions').hidden,false);assert.equal(ui.node('nesImportOptions').disabled,false);
+ assert.equal(ui.node('gameboyImportOptions').hidden,true);assert.equal(ui.node('opnImportOptions').hidden,true);
+ assert.match(ui.node('vgmImportDetected').textContent,/NES APU \+ FDS/);
+ ui.node('convertVgmButton').events.click();assert.equal(ui.imports[0].o.nesMode,'high');
+ const html=readFileSync(new URL('./index.html',import.meta.url),'utf8');assert.equal((html.match(/id="nesImportOptions"/g)||[]).length,1);for(const mode of ['raw','readable','high'])assert.ok(html.includes(`name="nesImportMode" value="${mode}"`));
+});

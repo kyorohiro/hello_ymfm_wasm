@@ -129,8 +129,24 @@ export class NesApuSynth {
   if(this.transport.setChannelEnabled){this.#enabled=enabled?this.#enabled|(1<<channel):this.#enabled&~(1<<channel);this.transport.setChannelEnabled(channel,enabled);}
   else this.writeRegister(0x4015,enabled?this.#enabled|(1<<channel):this.#enabled&~(1<<channel));
  }
+ /** Reset native registers and the shadow without writing Synth voice defaults. */
+ resetRegisters(){
+  ++this.#generation;this.#sample=null;this.#fdsActive=false;this.#fdsGain=32;this.#fdsMaster=0;
+  this.transport.reset?.();this.#registers.fill(0);
+ }
+ /** Upload raw CPU RAM without DMC alignment, padding or playback configuration.
+  * @param {Uint8Array|ArrayBuffer} input @param {number} [address=0] CPU RAM address.
+  * @returns {void|Promise<unknown>} Await acknowledgement on a Worklet transport.
+  */
+ loadMemory(input,address=0){
+  const bytes=input instanceof ArrayBuffer?new Uint8Array(input):input;
+  if(!(bytes instanceof Uint8Array)||!Number.isInteger(address)||address<0||address+bytes.length>65536)throw new RangeError('Invalid NES RAM range');
+  if(!this.transport.loadMemory)throw new Error('Transport does not support NES memory');
+  ++this.#generation;this.#sample=null;
+  return this.transport.loadMemory(bytes.slice(),address);
+ }
  reset(){
-  ++this.#generation;this.#sample=null;this.#fdsActive=false;this.transport.reset?.();this.#registers.fill(0);this.#registers[0x83]=128;this.#registers[0x87]=128;
+  this.resetRegisters();this.#registers[0x83]=128;this.#registers[0x87]=128;
   this.writeRegister(0x4015,0);this.writeRegister(0x4017,64);
   this.pulse.setVoice(0,{duty:0.5,volume:8});this.pulse.setVoice(1,{duty:0.5,volume:8});this.writeRegister(0x4008,255);this.noise.setVoice();
   if(this.fdsEnabled){this.fds.setVolume(32);this.writeRegister(0x4083,128);this.writeRegister(0x4087,128);this.fds.setWave(Array.from({length:64},(_,i)=>Math.round(31.5+31.5*Math.sin(i*Math.PI/32))));}

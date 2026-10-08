@@ -143,3 +143,9 @@ new GameboyApuAudioEngine(0);
 await createMsxAudioEngine({chips: [{type: 'ay8910', options: {ym2151ModuleFactory: wasmFactory}}]});
 // @ts-expect-error Game Boy duty is one of the four hardware ratios.
 new GameboySynth({transport: new GameboyWorkletTransport(gb)}).pulse.setDuty(0, 0.3);
+
+// Raw NES import preserves CPU memory and avoids adding Synth voice defaults.
+nesSynth.resetRegisters();
+await nesSynth.loadMemory(new Uint8Array([0x55, 0xaa]), 0xc000);
+// @ts-expect-error Raw RAM uploads require bytes, not strings.
+await nesSynth.loadMemory('DPCM', 0xc000);

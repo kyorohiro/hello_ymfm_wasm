@@ -1,6 +1,6 @@
 import {installFileExplorerResize} from './playground_file_resize.js';
 import {exportYm2608FullVgm} from './ym2608_vgm_import.js?v=loop-async-tasks-1';
-import {prepareVgmImport, exportGameboyVgm, exportRf5c164Vgm, addVgmSoundChipSetup, exportYm2203FullVgm} from './playground_vgm_import.js?v=loop-async-tasks-1';
+import {prepareVgmImport, exportGameboyVgm, exportNesVgm, exportRf5c164Vgm, addVgmSoundChipSetup, exportYm2203FullVgm} from './playground_vgm_import.js?v=loop-async-tasks-1';
 import {installPlaygroundPageLifecycle} from "./playground_page_lifecycle.js";
 import {createFXMonitor} from './playground_fx_monitor.js?v=stable-select-1';
 import {installMidiImport} from './playground_midi_import.js?v=midi-sections-1';
@@ -949,6 +949,9 @@ async function importVgmFile(file, options) {
   }}), statusMessage: 'for YM2608 FM + SSG + rhythm + ADPCM-B'} : fullYm2203 ? {source: exportYm2203FullVgm(buffer, {mode: options.ym2203Mode}), statusMessage: 'for YM2203 FM + SSG'} : detection.family === 'gameboy' ? {
     source: exportGameboyVgm(buffer, {mode: options.gameboyMode}),
     statusMessage: 'for Game Boy (all four channels; one pass)',
+  } : detection.family === 'nes' ? {
+    source: exportNesVgm(buffer, {mode: options.nesMode}),
+    statusMessage: 'for NES APU' + (detection.fds ? ' + FDS' : '') + ' (including DMC RAM; one pass)',
   } : (detection.rf5c164 && options.includeRf5c164) || detection.family === 'rf5c164' ? {
     source: exportRf5c164Vgm(buffer, {...options, writeDacFile(bytes) {
       let path;
@@ -1990,6 +1993,7 @@ runButton.addEventListener(
           ym2608Target: document.getElementById('ym2608TargetOptions').hidden ? undefined : document.getElementById('ym2608TargetInput').value,
           ym2203Target: document.getElementById('ym2203TargetOptions').hidden ? undefined : document.getElementById('ym2203TargetInput').value,
           ym2203Mode: document.querySelector('input[name="ym2203ImportMode"]:checked')?.value ?? 'write',
+          nesMode: document.querySelector('input[name="nesImportMode"]:checked')?.value ?? 'raw',
           gameboyMode: document.querySelector('input[name="gameboyImportMode"]:checked')?.value ?? 'raw',
           targetPath,
           noteish: selectedMode?.value === "high" && document.getElementById("noteishVgmInput").checked,
@@ -2131,10 +2135,13 @@ runButton.addEventListener(
       pendingVgmImport = prepared;
       const {detection} = prepared;
       vgmImportFilename.textContent = file.name;
-      document.getElementById('vgmImportDetected').textContent = `Detected: ${detection.chips.map(chip => chip === 'gameBoyDmg' ? 'Game Boy DMG' : chip.toUpperCase()).join(' + ') || 'unknown'}`;
+      document.getElementById('vgmImportDetected').textContent = `Detected: ${detection.chips.map(chip => chip === 'gameBoyDmg' ? 'Game Boy DMG' : chip === 'nesApu' ? 'NES APU' + (detection.fds ? ' + FDS' : '') : chip.toUpperCase()).join(' + ') || 'unknown'}`;
       document.getElementById('vgmImportNotice').textContent = detection.message;
       const opnOptions = document.getElementById('opnImportOptions');
       const gbOptions = document.getElementById('gameboyImportOptions');
+      const nesOptions = document.getElementById('nesImportOptions');
+      nesOptions.hidden = detection.family !== 'nes' || !detection.supported;
+      nesOptions.disabled = nesOptions.hidden;
       opnOptions.hidden = !['opn','rf5c164'].includes(detection.family) || !detection.supported;
       gbOptions.hidden = detection.family !== 'gameboy' || !detection.supported;
       opnOptions.disabled = opnOptions.hidden;

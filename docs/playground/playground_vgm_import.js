@@ -34,6 +34,12 @@ export function detectVgmImport(header) {
     return {...base, family: 'gameboy', supported: true, message: 'All four channels. Register order and VGM sample waits are preserved for one pass; loops are not repeated. Playback uses asynchronous waits, not sample-accurate scheduling.'};
   }
 
+  if (chips.length === 1 && chips[0] === 'nesApu') {
+    if ((header.nesApuClock & 0x3fffffff) !== 1789773) return {...base, message: 'NES conversion requires the standard NTSC 1789773 Hz clock; PAL is not supported.'};
+    const fds = !!(header.nesApuClock & 0x80000000);
+    return {...base, family: 'nes', supported: true, fds, message: 'NES APU' + (fds ? ' + FDS' : '') + ': all channels and DMC RAM uploads. One pass; loops are not repeated. Playback uses asynchronous waits and RAM acknowledgements, not sample-accurate scheduling.'};
+  }
+
   return {...base, message: chips.length > 1 ? 'This chip combination cannot be converted. No files will be changed.' : 'Conversion for this chip is not supported.'};
 }
 
@@ -45,6 +51,10 @@ export async function prepareVgmImport(file) {
   // Validate the complete Game Boy stream before presenting conversion as available.
   if (detection.family === 'gameboy') {
     try { readGameboyEvents(buffer); }
+    catch (error) { detection = {...detection, supported: false, message: error.message}; }
+  }
+  if (detection.family === 'nes') {
+    try { readNesEvents(buffer, detection.fds); }
     catch (error) { detection = {...detection, supported: false, message: error.message}; }
   }
   if (detection.family === 'rf5c164') {
@@ -212,5 +222,109 @@ export function exportYm2203FullVgm(buffer, {mode = 'write'} = {}) {
     if (time > previous) lines.push(`  await sleepSamples(${time - previous}, 44100);`);
     lines.push('});');
   }
+  return lines.join('\n') + '\n';
+}
+
+/** Native CPU address corresponding to a packed VGM NES/FDS offset. */
+function nesAddress(register, fds) {
+  if (register <= 0x17) return 0x4000 + register;
+  if (!fds) throw new Error('FDS writes require the NES FDS header flag.');
+  if (register === 0x3f) return 0x4023;
+  if (register >= 0x20 && register <= 0x2a) return 0x4080 + register - 0x20;
+  if (register >= 0x40 && register <= 0x7f) return 0x4000 + register;
+  throw new Error(`Unsupported NES/FDS register: ${hex(register)}.`);
+}
+function readNesEvents(buffer, fds) {
+  const warnings = [];
+  const parser = new Ym2612VGM(buffer, {logger: {warn: message => warnings.push(message)}});
+  const events = []; let time = 0, writes = 0;
+  for (;;) {
+    const command = parser.bytes[parser.position];
+    if (![0xb4, 0x67, 0x61, 0x62, 0x63, 0x66].includes(command) && !(command >= 0x70 && command <= 0x7f)) {
+      throw new Error('NES conversion supports NES/FDS writes, NES RAM blocks and waits only.');
+    }
+    const event = parser.step();
+    if (warnings.length) throw new Error(`Cannot preserve this NES stream: ${warnings[0]}`);
+    if (event.type === 'end') break;
+    if (event.type === 'wait') {time += event.samples; continue;}
+    if (event.chipIndex || !['nes-apu-write', 'nes-apu-data'].includes(event.type)) throw new Error(`Unsupported NES event: ${event.type}.`);
+    if (event.type === 'nes-apu-write') {event.address = nesAddress(event.register, fds); writes++;}
+    events.push({...event, time});
+  }
+  if (!writes) throw new Error('No NES/FDS register writes were found.');
+  return {events, time};
+}
+function describeNes(event, state) {
+  const {address: r, value: v} = event;
+  if (r >= 0x4040 && r <= 0x407f) return `FDS wave RAM sample ${r - 0x4040}: ${v & 63}`;
+  if ([0x4000, 0x4004].includes(r)) return `pulse ${(r - 0x4000) / 4 + 1}: duty ${[12.5, 25, 50, 75][v >> 6]}%, ${v & 16 ? 'constant volume' : 'envelope period'} ${v & 15}, length halt/envelope loop ${!!(v & 32)}`;
+  if ([0x4001, 0x4005].includes(r)) return `pulse sweep: enabled ${!!(v & 128)}, period ${(v >> 4) & 7}, negate ${!!(v & 8)}, shift ${v & 7}`;
+  if (r === 0x4008) return `triangle linear counter ${v & 127}, control ${!!(v & 128)}`;
+  if (r === 0x400e) return `noise period index ${v & 15}, short mode ${!!(v & 128)}`;
+  if (r === 0x4010) return `DMC rate index ${v & 15}, loop ${!!(v & 64)}, IRQ ${!!(v & 128)}`;
+  if (r === 0x4012) return `DMC sample address ${hex(0xc000 + v * 64)}`;
+  if (r === 0x4013) return `DMC sample length ${v * 16 + 1} bytes`;
+  if (r === 0x4015) return 'APU channel enables / DMC start-stop';
+  if (r === 0x4017) return `frame counter: ${v & 128 ? 5 : 4}-step, IRQ inhibited ${!!(v & 64)}`;
+  if (r === 0x4023) return `FDS I/O enable ${!!(v & 2)}`;
+  if (r === 0x4080) return `FDS volume: ${v & 128 ? 'direct gain' : 'envelope speed'} ${v & 63}`;
+  if ([0x4082, 0x4083].includes(r)) return `FDS frequency step ${state[0x82] | ((state[0x83] & 15) << 8)}, wave halt ${!!(state[0x83] & 128)}`;
+  if (r >= 0x4084 && r <= 0x4088) return 'FDS modulation / envelope register';
+  if (r === 0x4089) return `FDS master scale ${v & 3}, wave RAM write enable ${!!(v & 128)}`;
+  return `native register ${hex(r)}`;
+}
+// Each substitution emits exactly the original bytes, in the original order.
+function nesHighOperation(event, next, state) {
+  const {address: r, value: v} = event;
+  if ([0x4000, 0x4004].includes(r)) {
+    const duty = [0.125, 0.25, 0.5, 0.75][v >> 6], channel = (r - 0x4000) / 4;
+    if ((v & 0x30) === 0x30) return {code: `nes.pulse.setVoice(${channel}, {duty: ${duty}, volume: ${v & 15}});`, count: 1};
+    if (!(v & 16)) return {code: `nes.pulse.setVoice(${channel}, {duty: ${duty}, envelope: {period: ${v & 15}, loop: ${!!(v & 32)}}});`, count: 1};
+  }
+  if (!next || next.type !== 'nes-apu-write' || next.time !== event.time) return null;
+  if ([0x4002, 0x4006, 0x400a].includes(r) && next.address === r + 1 && (next.value & 0xf8) === 8) {
+    const channel = (r - 0x4002) / 4, period = v | ((next.value & 7) << 8);
+    if (period >= (channel === 2 ? 2 : 8)) return {code: `nes.setFrequency(${channel}, ${1789773 / ((channel === 2 ? 32 : 16) * (period + 1))});`, count: 2};
+  }
+  if (r === 0x4082 && next.address === 0x4083 && (next.value & 0xf0) === (state[0x83] & 0xc0)) {
+    const step = v | ((next.value & 15) << 8);
+    if (step) return {code: `nes.setFrequency(5, ${step * 1789773 / 4194304});`, count: 2};
+  }
+  if (r === 0x400c && (v & 0xf0) === 0x30 && next.address === 0x400e && !(next.value & 0x70)) {
+    return {code: `nes.noise.setVoice({volume: ${v & 15}, period: ${next.value & 15}, shortMode: ${!!(next.value & 128)}});`, count: 2};
+  }
+  return null;
+}
+/** NES APU + optional FDS, including arbitrary DMC RAM uploads. */
+export function exportNesVgm(buffer, {mode = 'raw'} = {}) {
+  if (!['raw', 'readable', 'high'].includes(mode)) throw new Error('Unknown NES conversion mode.');
+  const detection = detectVgmImport(new Ym2612VGM(buffer, {logger: null}).header);
+  if (!detection.supported || detection.family !== 'nes') throw new Error(detection.message || 'Expected NES VGM.');
+  const {events, time} = readNesEvents(buffer, detection.fds);
+  const lines = ['// NES APU' + (detection.fds ? ' + FDS' : '') + ': one pass, original write order and 44100 Hz sample waits.',
+    '// Asynchronous waits and RAM acknowledgements are not sample-accurate audio scheduling.',
+    '// Comments describe register writes, not live envelope/sweep state.',
+    `const nes = await createSoundChip('nes', {fds: ${detection.fds}});`, 'try {',
+    '  nes.resetRegisters(); // Native reset, without Synth voice defaults.'];
+  const state = new Uint8Array(0x90); let previous = 0;
+  for (let i = 0; i < events.length; i++) {
+    const event = events[i];
+    if (event.time > previous) lines.push(`  await sleepSamples(${event.time - previous}, 44100);`);
+    if (event.type === 'nes-apu-data') {
+      lines.push(`  await nes.loadMemory(Uint8Array.from(${JSON.stringify([...event.data])}), ${hex(event.offset)});`);
+    } else {
+      const operation = mode === 'high' ? nesHighOperation(event, events[i + 1], state) : null;
+      const count = operation?.count ?? 1;
+      for (let j = 0; j < count; j++) {
+        const item = events[i + j]; state[item.address - 0x4000] = item.value;
+        if (mode !== 'raw') lines.push(`  // ${item.time} samples: ${describeNes(item, state)}`);
+      }
+      lines.push('  ' + (operation?.code ?? `nes.writeRegister(${hex(event.address)}, ${hex(event.value)});`));
+      i += count - 1;
+    }
+    previous = event.time;
+  }
+  if (time > previous) lines.push(`  await sleepSamples(${time - previous}, 44100);`);
+  lines.push('} finally { nes.dispose(); }');
   return lines.join('\n') + '\n';
 }
