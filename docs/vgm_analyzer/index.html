@@ -975,7 +975,7 @@
           <div id="mixerStrips"><p>Load a VGM to adjust chip levels.</p></div>
         </div>
         <div id="dockEffectPane" hidden>
-          <button id="effectEnabled" type="button" class="channel-toggle is-muted" aria-pressed="false">Effect Off</button>
+          <div class="mixer-toolbar"><button id="effectEnabled" type="button" class="channel-toggle is-muted" aria-pressed="false">Effect Off</button><button id="effectReset" type="button" class="link-button">Reset</button></div>
           <div id="effectControls" class="effect-controls">
             <label>Gain<input id="effectGain" type="range" min="0" max="200" value="100" disabled><output id="effectGainValue" for="effectGain">100%</output></label>
             <label>Bass<input id="effectBass" type="range" min="-12" max="12" value="0" disabled><output id="effectBassValue" for="effectBass">0 dB</output></label>
@@ -989,7 +989,7 @@
       </div>
     </section>
 
-    <script type="module" src="./vgm_analyzer.js?v=chip-mixer-1"></script>
+    <script type="module" src="./vgm_analyzer.js?v=audio-preferences-1"></script>
   <dialog id="scoreGroupDialog"><form method="dialog">
 <h2>Channel Groups</h2><p>Combine notes for scores and the Song timeline. Playback and live physical CH monitors are unchanged. Settings last for this loaded track only.</p>
 <button type="button" data-all>Merge all channels</button> <button type="button" data-clear>Clear groups</button>

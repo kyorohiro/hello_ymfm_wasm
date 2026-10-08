@@ -26,6 +26,7 @@ score_group_ui.js
 playback_core.js
 playback_mixer.js
 mixer_ui.js
+audio_preferences.js
 index.html
 support.html
 analyzer_theme.css

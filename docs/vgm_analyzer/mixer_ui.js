@@ -2,12 +2,13 @@ import {mixerDefaults} from './playback_mixer.js';
 
 const names = {psg: 'Sega PSG', gameBoyDmg: 'Game Boy', segaPcm: 'Sega PCM', nesApu: 'NES APU',
   rf5c164: 'RF5C164', pwm: 'PWM', k051649: 'SCC / SCC+', ay8910: 'AY8910'};
-export function createMixerUi({container, resetButton, onChange}) {
+export function createMixerUi({container, resetButton, onChange, preferences, onReset = () => {}}) {
   let mixer = null;
   const settings = new Map();
   const change = (id, values) => {
     settings.set(id, {...settings.get(id), ...values});
     if (mixer?.strips.has(id)) mixer.set(id, settings.get(id));
+    preferences?.setChip(id, settings.get(id));
     onChange();
   };
   function render() {
@@ -17,7 +18,7 @@ export function createMixerUi({container, resetButton, onChange}) {
       empty.textContent = 'Load a supported VGM to adjust chip levels.';
       container.append(empty);
     }
-    resetButton.disabled = !settings.size;
+    resetButton.disabled = false;
     for (const [id, values] of settings) {
       const name = names[id] ?? id.toUpperCase();
       const strip = document.createElement('div');
@@ -51,14 +52,16 @@ export function createMixerUi({container, resetButton, onChange}) {
     }
   }
   resetButton.addEventListener('click', () => {
+    preferences?.resetMixer();
     for (const id of settings.keys()) change(id, mixerDefaults(id));
+    onReset();
     render();
   });
   render();
   return {
     load(configuration) {
       mixer = null; settings.clear();
-      for (const chip of configuration?.chips ?? []) settings.set(chip.id, mixerDefaults(chip.id));
+      for (const chip of configuration?.chips ?? []) settings.set(chip.id, preferences?.getChip(chip.id) ?? mixerDefaults(chip.id));
       render();
     },
     attach(next) {

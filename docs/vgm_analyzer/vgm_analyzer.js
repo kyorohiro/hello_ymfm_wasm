@@ -1,3 +1,4 @@
+import {createAudioPreferences, effectDefaults} from './audio_preferences.js';
 import {createMixerUi} from './mixer_ui.js';
 import {connectDesktop} from './desktop_interface.js';
 import {exportFmRegisterSnapshot} from './fm_snapshot.js';
@@ -240,7 +241,8 @@ let audioContext = null;
 let engine = null;
 let player = null;
 let activeStream = null;
-const effectSettings = { enabled: false, gain: 100, bass: 0, middle: 0, treble: 0, reverb: 0, compressor: 0, noiseGate: 0 };
+const audioPreferences = createAudioPreferences();
+const effectSettings = audioPreferences.getEffect();
 let effectsChain = null;
 
 // A short burst of white noise with an exponential decay makes a plausible
@@ -433,6 +435,7 @@ function updateEffectEnabledUi() {
 effectEnabled.addEventListener('click', () => {
   effectSettings.enabled = !effectSettings.enabled;
   updateEffectEnabledUi();
+  audioPreferences.setEffect(effectSettings);
   rewireAudioGraph();
 });
 for (const [input, key] of [[effectGain, 'gain'], [effectBass, 'bass'], [effectMiddle, 'middle'], [effectTreble, 'treble'], [effectReverb, 'reverb'], [effectCompressor, 'compressor'], [effectNoiseGate, 'noiseGate']]) {
@@ -440,10 +443,18 @@ for (const [input, key] of [[effectGain, 'gain'], [effectBass, 'bass'], [effectM
     effectSettings[key] = Number(input.value);
     updateEffectValueOutputs();
     applyEffectSettings();
+    audioPreferences.setEffect(effectSettings);
   });
 }
-updateEffectValueOutputs();
-updateEffectEnabledUi();
+function restoreEffectControls() {
+  for (const [input, key] of [[effectGain, "gain"], [effectBass, "bass"], [effectMiddle, "middle"], [effectTreble, "treble"], [effectReverb, "reverb"], [effectCompressor, "compressor"], [effectNoiseGate, "noiseGate"]]) input.value = String(effectSettings[key]);
+  updateEffectValueOutputs(); updateEffectEnabledUi();
+}
+document.getElementById("effectReset").addEventListener("click", () => {
+  Object.assign(effectSettings, effectDefaults());
+  audioPreferences.setEffect(effectSettings); restoreEffectControls(); rewireAudioGraph();
+});
+restoreEffectControls();
 let workletModuleReady = false;
 let wavExportBusy = false;
 let extractedTfiPatches = [];
@@ -521,11 +532,13 @@ let playbackUiRenderScheduled = false;
 let lastStreamingStatusSuffix = "";
 let lastStreamingStatusAt = 0;
 let lastParseInfo = null;
-let masterVolume = 1;
+let masterVolume = audioPreferences.getMaster();
 const mixerUi = createMixerUi({
   container: document.getElementById('mixerStrips'),
   resetButton: document.getElementById('mixerReset'),
+  preferences: audioPreferences,
   onChange() { player?.clearCheckpoints(); flushPendingAudio(); },
+  onReset() {masterVolume = 1; updateMasterVolumeUi(); applyMasterVolume(); flushPendingAudio();},
 });
 document.getElementById('mixerMaster').addEventListener('input', event => {
   masterVolume = Number(event.target.value) / 100;
@@ -619,6 +632,7 @@ function updateMasterVolumeUi() {
 }
 
 function applyMasterVolume() {
+  audioPreferences.setMaster(masterVolume);
   engine?.setMasterVolume?.(masterVolume);
   player?.setMasterVolume?.(masterVolume);
 }
