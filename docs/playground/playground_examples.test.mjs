@@ -35,7 +35,7 @@ test('wobble sample loop plays only samples loaded during preparation', async ()
 test('bundled examples match editable categorized source files', async () => {
   const folders = [...new Set(EXAMPLE_FILES.map(file => file.path.split('/')[2]))];
   assert.equal(folders.indexOf('chip-raw'), folders.indexOf('basic') + 1);
-  assert.deepEqual(folders, ['basic', 'chip-raw', 'genesis', 'gameboy', 'pc98', 'x68000']);
+  assert.deepEqual(folders, ['basic', 'chip-raw', 'genesis', 'gameboy', 'nes', 'pc98', 'x68000']);
   assert.ok(EXAMPLE_FILES.some(file => file.path === '/examples/chip-raw/ym2612-raw-write-beep.js'));
   assert.ok(EXAMPLE_FILES.some(file => file.path === '/examples/chip-raw/gameboy-raw-write-sample.js'));
   assert.deepEqual(EXAMPLE_FILES.filter(file => file.path.startsWith('/examples/basic/livefx/')).map(file => file.name), ['live-fx-distortion']);
@@ -47,8 +47,8 @@ test('bundled examples match editable categorized source files', async () => {
   }
   assert.equal(await buildExampleBundle(), await readFile(new URL('./playground_examples.js',import.meta.url),'utf8'));
   for(const file of EXAMPLE_FILES){
-    assert.match(file.path,/^\/examples\/(basic|chip-raw|genesis|gameboy|pc98|x68000)\/(?:[\w-]+\/)*[\w-]+\.js$/);
-    if (/^\/examples\/(genesis|gameboy|pc98|x68000)\//.test(file.path)) {
+    assert.match(file.path,/^\/examples\/(basic|chip-raw|genesis|gameboy|nes|pc98|x68000)\/(?:[\w-]+\/)*[\w-]+\.js$/);
+    if (/^\/examples\/(genesis|gameboy|nes|pc98|x68000)\//.test(file.path)) {
       assert.equal(file.path.split('/').length, 4, 'machine examples have no subfolders');
     }
     assert.equal(file.data,await readFile(new URL('.'+file.path,import.meta.url),'utf8'));
@@ -61,7 +61,7 @@ test('examples appear in the folder tree and edited source survives cassette exp
   const tree=buildFileTree(fs.list());
   assert.equal(tree[0].name,'examples');
   assert.equal(tree[0].children.length,new Set(EXAMPLE_FILES.map(file=>file.path.split('/')[2])).size);
-  assert.deepEqual(tree[0].children.map(node => node.name), ['basic', 'chip-raw', 'genesis', 'gameboy', 'pc98', 'x68000']);
+  assert.deepEqual(tree[0].children.map(node => node.name), ['basic', 'chip-raw', 'genesis', 'gameboy', 'nes', 'pc98', 'x68000']);
   const path='/examples/basic/midi/midi-auto-chord.js';
   fs.writeText(path,'// user edited\n'+fs.get(path).data);
   const zip=createPlaygroundCassetteZip(fs.list());

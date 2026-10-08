@@ -1,3 +1,4 @@
+import {createNesClient} from './playground_nes.js';
 import {createPWM32XClient} from './pwm32x_playback.js';
 import {createYm2151Client} from './playground_ym2151.js';
 import {createSegaPsgClient} from './playground_segapsg.js';
@@ -589,12 +590,13 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
     async createSoundChip(name, options = {}){
       if(run.stopped)throw new Error('Run stopped');
       const token=run.token;
-      if (!options || typeof options !== 'object' || Array.isArray(options) || Object.keys(options).some(k => k !== 'id')) throw new TypeError('createSoundChip supports {id}');
+      if (!options || typeof options !== 'object' || Array.isArray(options) || Object.keys(options).some(k => !['id', ...(name === 'nes' ? ['fds'] : [])].includes(k))) throw new TypeError('createSoundChip supports {id}, and {fds} for NES');
+      if (name === 'nes' && options.fds !== undefined && typeof options.fds !== 'boolean') throw new TypeError('fds must be boolean');
       const response=await request('pcm.create',[name, options]);
       // Older test/host shims may return a bare port; production returns its allocated ID.
       const port=response.port ?? response;
       const mixerId=response.id ?? options.id ?? `${name}:${++pcmSequence}`;
-      const pcm=name === 'pwm' ? createPWM32XClient(port) : ['ym2612', 'ym2203', 'ym2610'].includes(name) ? createOpnClient(name, port) : name === 'ym2151' ? createYm2151Client(port) : name === 'segapsg' ? createSegaPsgClient(port) : name === 'gameboy' ? createGameboyClient(port) : name === 'ym2608' ? createYm2608Client(port) : createRf5c164Client(port,source=>request('pcm.decode',[source]));
+      const pcm=name === 'nes' ? createNesClient(port, response) : name === 'pwm' ? createPWM32XClient(port) : ['ym2612', 'ym2203', 'ym2610'].includes(name) ? createOpnClient(name, port) : name === 'ym2151' ? createYm2151Client(port) : name === 'segapsg' ? createSegaPsgClient(port) : name === 'gameboy' ? createGameboyClient(port) : name === 'ym2608' ? createYm2608Client(port) : createRf5c164Client(port,source=>request('pcm.decode',[source]));
       if(run.stopped || token!==run.token){pcm.dispose();throw new Error('Run stopped');}
       Object.defineProperty(pcm, 'id', {value: mixerId, enumerable: true});
       const dispose=pcm.dispose.bind(pcm); let disposed=false;

@@ -1786,7 +1786,8 @@
             <ul class="helper-list">
               <li><code>const chip = await useSoundChip(name)</code> reuses a chip until Stop. For YM2612, YM2203, and YM2610, it returns the default chip when selected; otherwise it creates an independent chip.</li>
               <li><code>const chip = await createSoundChip(name)</code> creates a fresh independent chip routed through master FX.</li>
-              <li>Supported names: <code>ym2612</code>, <code>ym2203</code>, <code>ym2610</code>, <code>ym2608</code>, <code>rf5c164</code>, <code>gameboy</code>, <code>segapsg</code>, and <code>ym2151</code>.</li>
+              <li><code>createSoundChip("nes", {fds: true})</code> enables FDS. Use <code>chip.pulse</code>, <code>chip.triangle</code>, <code>chip.noise</code>, <code>chip.dmc</code>, and <code>chip.fds</code>; see <code>examples/nes/</code>.</li>
+              <li>Supported names: <code>ym2612</code>, <code>ym2203</code>, <code>ym2610</code>, <code>ym2608</code>, <code>rf5c164</code>, <code>gameboy</code>, <code>segapsg</code>, <code>ym2151</code>, <code>pwm</code>, and <code>nes</code>.</li>
               <li>Control additional chips through the returned object. Global <code>play()</code> and <code>write()</code> target the default chip; Stop disposes additional chips.</li>
               <li>Concurrent <code>useSoundChip()</code> requests share initialization. Options other than an empty object are not supported.</li>
             </ul>

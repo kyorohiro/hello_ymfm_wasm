@@ -44,6 +44,9 @@ playground_rf5c164.js
 playground_ym2608.js
 playground_gameboy.js
 playground_ym2151.js
+playground_nes.js
+playground_nes_audio.js
+playground_nes_worklet.js
 playground_ym2151_audio.js
 playground_ym2151_worklet.js
 playground_gameboy_audio.js

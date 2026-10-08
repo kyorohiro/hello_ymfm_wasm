@@ -70,8 +70,15 @@ playground_rf5c164.js
 playground_ym2608.js
 ym2151.js
 ym2151synth.js
+nesapu.js
+nesapusynth.js
+nesapuaudioengine.js
+fds_audio.js
 chip_worklet_transport.js
 playground_ym2151.js
+playground_nes.js
+playground_nes_audio.js
+playground_nes_worklet.js
 playground_ym2151_audio.js
 playground_ym2151_worklet.js
 playground_segapsg.js
@@ -253,6 +260,14 @@ for file in ${RUNTIME_FILES}; do
   cp "${src}" "${dst}"
 done
 
+cp -R "${DOCS_JS_DIR}/nes_apu_vendor" "${STAGE_DIR}/js/nes_apu_vendor"
+for chip in jsnes fixnes-fds; do
+  mkdir -p "${STAGE_DIR}/licenses/${chip}"
+  cp "${ROOT_DIR}/third_party/${chip}/LICENSE" "${ROOT_DIR}/third_party/${chip}/README.md" "${STAGE_DIR}/licenses/${chip}/"
+done
+
+cp "${ROOT_DIR}/third_party/jsnes/AUTHORS.md" "${STAGE_DIR}/licenses/jsnes/"
+
 for file in ${SYNTH_SUPPORT_FILES}; do
   src="${DOCS_SYNTH_DIR}/${file}"
   dst="${STAGE_DIR}/synth/${file}"
@@ -304,6 +319,9 @@ for file in ${NUKED_LICENSE_FILES}; do
 done
 
 cat > "${STAGE_DIR}/THIRD_PARTY_LICENSES.txt" <<EOF
+NES APU: JSNES, Apache-2.0. See licenses/jsnes/.
+FDS: fixNES-derived, MIT. See licenses/fixnes-fds/.
+
 32X PWM: MAME-derived FIFO/timer core, BSD-3-Clause. See licenses/mame-32x-pwm/.
 
 Game Boy DMG APU: MAME adaptation, BSD-3-Clause. See licenses/mame-gameboy/.

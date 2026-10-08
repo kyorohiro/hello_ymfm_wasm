@@ -1164,6 +1164,7 @@ type PlaygroundSoundChipMap = {
   gameboy: PlaygroundGameboy;
   segapsg: PlaygroundSegaPsg;
   ym2151: PlaygroundYm2151;
+  nes: PlaygroundNes;
   pwm: PlaygroundPWM32X;
 };
 type PlaygroundUseSoundChipOptions = { [key: string]: never };
@@ -1229,3 +1230,37 @@ type PlaygroundPWM32X = {
   dispose(): void;
 };
 declare function createSoundChip(name: 'pwm', options?: PlaygroundCreateSoundChipOptions): Promise<PlaygroundPWM32X & {readonly id: string}>;
+
+/** NTSC NES APU; FDS methods require createSoundChip('nes', {fds:true}). */
+interface PlaygroundNes {
+  readonly clock: number;
+  readonly fdsEnabled: boolean;
+  pulse: {
+    setVoice(channel: 0|1, voice: {duty?:0.125|0.25|0.5|0.75; volume?:number; envelope?:{period:number; loop?:boolean}; sweep?:{enabled?:boolean; period?:number; negate?:boolean; shift?:number}}): void;
+    setNote(channel: 0|1, note: string|number): void;
+    noteOn(channel: 0|1, note: string|number): void;
+    noteOff(channel: 0|1): void;
+  };
+  triangle: {setNote(note:string|number):void; noteOn(note:string|number):void; noteOff():void};
+  noise: {setVoice(options?:{volume?:number; period?:number; shortMode?:boolean}):void; noteOn():void; noteOff():void};
+  dmc: {
+    loadSample(bytes:Uint8Array|ArrayBuffer, options?:{address?:number}):Promise<{address:number; length:number}>;
+    play(options?:{rate?:number; loop?:boolean; level?:number}):void;
+    stop():void;
+  };
+  fds: {
+    setWave(wave:ArrayLike<number>):void;
+    setVolume(gain:number, masterScale?:number):void;
+    setNote(note:string|number):void;
+    noteOn(note:string|number):void;
+    noteOff():void;
+    setModulation(options:{table:ArrayLike<number>; rate?:number; depth?:number; bias?:number; enabled?:boolean}):void;
+  };
+  writeRegister(address:number, value:number):void;
+  setFrequency(channel:0|1|2|5, hz:number):number;
+  noteOn(channel:0|1|2|5, note:string|number):void;
+  noteOff(channel:number):void;
+  reset():void;
+  dispose():void;
+}
+declare function createSoundChip(name:'nes', options?:PlaygroundCreateSoundChipOptions & {fds?:boolean}):Promise<PlaygroundNes & {readonly id:string}>;
