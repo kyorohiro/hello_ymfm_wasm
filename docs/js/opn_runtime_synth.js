@@ -7,6 +7,8 @@
 import { TetoricaAudioRuntime } from "./tetorica_audio_runtime.js?v=native-fx-1";
 import { OPNWorkletTransport } from "./opn_fm_synth.js";
 
+/** @typedef {Pick<import('./megasynth.js').MegaSynthOptions,'audioContext'|'outputNode'|'sampleOutputNode'|'masterVolume'|'mixer'|'workletUrl'> & {wasmUrl?:string,rhythmRom?:Uint8Array,rhythmRomUrl?:string}} OPNRuntimeSynthOptions */
+
 const MAX_MASTER_VOLUME = 3.8;
 
 /**
@@ -14,6 +16,7 @@ const MAX_MASTER_VOLUME = 3.8;
  * provide their worklet protocol and high-level FM constructor.
  */
 export class OPNRuntimeSynth {
+  /** @param {OPNRuntimeSynthOptions|undefined} options */
   constructor(options = {}, config) {
     this.chip = config.chip;
     this.capabilities = Object.freeze({
@@ -118,6 +121,7 @@ export class OPNRuntimeSynth {
     return () => this.listeners.delete(listener);
   }
   removeListener(listener) { this.listeners.delete(listener); }
+  /** @param {number} volume */
   setMasterVolume(volume) { return this.audio.setMasterVolume(clampMasterVolume(volume)); }
   getMasterVolume() { return this.audio.masterVolume; }
   setFXChain(effects = [], options = {}) { return this.audio.setFXChain(effects, options); }

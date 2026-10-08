@@ -16,12 +16,11 @@ import { SegaPSG } from './segapsg.js';
 export class Ym3812AudioEngine {
   /**
    * Create the chip instances required by this engine.
-   * @param {Object} [options={}] Chip factories, clocks in Hz and loader settings.
+   * @param {{ym3812ModuleFactory: import('./soundchip.js').WasmModuleFactory, ym3812ModuleOptions?: import('./soundchip.js').WasmModuleOptions, ym3812Clock?: number, segaPsgModuleFactory?: import('./soundchip.js').WasmModuleFactory, psgClock?: number, outputSampleRate?: number, masterVolume?: number}} [options={}] Chip factories, clocks in Hz and loader settings.
    * @param {number} [options.outputSampleRate=44100] Output stereo frames per second.
    * @param {number} [options.masterVolume=1] Linear output gain, not dB.
    * @returns {Promise<Ym3812AudioEngine>} Initialized engine owned by the caller.
    */
-  /** @param {{ym3812ModuleFactory: Function, ym3812ModuleOptions?: Record<string, unknown>, ym3812Clock?: number, segaPsgModuleFactory?: Function, psgClock?: number, outputSampleRate?: number, masterVolume?: number}} options */
   static async create({ ym3812ModuleFactory, ym3812ModuleOptions, ym3812Clock = YM3812_CLOCK,
     segaPsgModuleFactory, psgClock = 0, outputSampleRate = 44100, masterVolume = 1 } = {}) {
     if (!Number.isFinite(outputSampleRate) || outputSampleRate <= 0 ||
@@ -34,6 +33,11 @@ export class Ym3812AudioEngine {
     } catch (error) { chip.dispose(); psg?.dispose(); throw error; }
   }
 
+  /** @param {Ym3812} chip
+   * @param {SegaPSG | undefined} psg
+   * @param {number} chipRate
+   * @param {number} outputRate
+   * @param {number} volume */
   constructor(chip, psg, chipRate, outputRate, volume) {
     this.ym3812 = chip;
     this.psg = psg;
@@ -62,6 +66,7 @@ export class Ym3812AudioEngine {
    * @returns {number} Gain multiplier, not a dB value.
    */
   getMasterVolume() { return this.volume; }
+  /** @param {boolean} value */
   setPsgMuted(value) { this.psgMuted = Boolean(value); }
   /**
    * Change one physical channel mute flag.
@@ -136,4 +141,5 @@ export class Ym3812AudioEngine {
     return { left, right };
   }
 }
+/** @param {Parameters<typeof Ym3812AudioEngine.create>[0]} [options] */
 export const createYm3812AudioEngine = options => Ym3812AudioEngine.create(options);

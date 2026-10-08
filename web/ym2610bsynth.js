@@ -12,9 +12,11 @@ import { YM2610B_CLOCK } from "./ym2610b.js";
 
 const NEO_GEO_FM_CHANNELS = [1, 2, 4, 5];
 
+/** @extends {OPNDirectTransport<import('./ym2610b.js').Ym2610B>} */
 export class YM2610BDirectTransport extends OPNDirectTransport {
+  /** @param {import('./ym2610b.js').Ym2610B} chip */
   constructor(chip) { super(chip, { chipName: "YM2610B", portCount: 2 }); }
-  /** Transfer encoded A/B data. Keep the full address space so later loads never truncate earlier samples. */
+   /** Transfer encoded A/B data. Keep the full address space so later loads never truncate earlier samples. @param {Uint8Array} bytes @param {number} address  @param {0|1} type */
   loadAdpcmMemory(type, bytes, address) { return this.chip.loadAdpcmRom(type, bytes, address, 0x1000000); }
 }
 
@@ -41,10 +43,11 @@ export class YM2610BAdpcmBSynth {
     this.registers = new Uint8Array(16);
     this.registers[12] = this.registers[13] = 255;
   }
-  /** Track normalized ADPCM-B writes through the parent Synth. */
+   /** Track normalized ADPCM-B writes through the parent Synth. @param {number} register  @param {number} value */
   observeWrite(register, value) {
     if (register >= 0 && register < 12) this.registers[register] = value;
   }
+   /** @param {number} register  @param {number} value */
   _write(register, value) {
     this.transport.write(register, value);
     this.observeWrite(register, value);
@@ -82,6 +85,7 @@ export class YM2610BAdpcmBSynth {
   }
   /** Set decoded PCM samples/second, not byte rate. Returns the quantized actual rate.
    * A byte contains two samples; changing this rate changes both speed and pitch.
+   * @param {number} rate
    */
   setPlaybackRate(rate) {
     if (!Number.isFinite(rate) || rate <= 0) throw new RangeError("Invalid ADPCM-B playback rate");
@@ -89,9 +93,9 @@ export class YM2610BAdpcmBSynth {
     this.setDeltaN(delta);
     return delta * this.clock / (144 * 65536);
   }
-  /** Linear level 0..255 (0=silence). */
+  /** Linear level 0..255 (0=silence). @param {number} volume */
   setVolume(volume) { this._write(11, adpcmInteger("volume", volume, 255)); }
-  /** Stereo gates; preserves memory-mode bits from raw register writes. */
+   /** Stereo gates; preserves memory-mode bits from raw register writes.  @param {boolean} right  @param {boolean} left */
   setPan(left, right) {
     if (typeof left !== "boolean" || typeof right !== "boolean") throw new TypeError("ADPCM-B pan expects booleans");
     this._write(1, (this.registers[1] & 0x3f) | (left ? 128 : 0) | (right ? 64 : 0));
@@ -119,9 +123,9 @@ export class YM2610BAdpcmASynth {
   constructor(transport) { this.transport = transport; this.resetState(); }
   /** Reset only the register shadow after a whole-chip reset. */
   resetState() { this.levels = new Uint8Array(6); }
-  /** Track normalized port-1 register writes. */
+   /** Track normalized port-1 register writes.  @param {number} value */
   observeWrite(reg, value) { if (reg >= 8 && reg < 14) this.levels[reg-8] = value; }
-  /** Transfer ADPCM-A bytes (not ADPCM-B or WAV) into the 16 MiB ROM address space. */
+  /** Transfer ADPCM-A bytes (not ADPCM-B or WAV) into the 16 MiB ROM address space. @param {Uint8Array} bytes @param {number} [address] */
   loadMemory(bytes, address = 0) {
     if (bytes instanceof ArrayBuffer) bytes = new Uint8Array(bytes);
     if (!(bytes instanceof Uint8Array)) throw new TypeError("ADPCM-A expects binary bytes");
@@ -131,6 +135,7 @@ export class YM2610BAdpcmASynth {
   }
   /** Select [start,end) byte addresses on a voice 0..5, both aligned to 256 bytes.
    * Limit each range to less than 1 MiB: the core compares only the low 20 address bits at the end.
+   * @param {number} ch
    */
   setSample(ch, {start, end}) {
     adpcmInteger("voice", ch, 5);
@@ -139,7 +144,7 @@ export class YM2610BAdpcmASynth {
     const first=start/256, last=end/256-1;
     for (const [reg,value] of [[0x10,first&255],[0x18,first>>8],[0x20,last&255],[0x28,last>>8]]) this.transport.write(reg+ch,value);
   }
-  /** Global hardware level 0..63, increasing loudness. */
+  /** Global hardware level 0..63, increasing loudness. @param {number} volume */
   setVolume(volume) { this.transport.write(1, adpcmInteger("volume", volume, 63)); }
   /** Individual level 0..31 and stereo gates; omitted values are retained. */
   /** @param {number} ch @param {{volume?: number, left?: boolean, right?: boolean}} [options] */
@@ -176,7 +181,7 @@ export class YM2610BAdpcmASynth {
 
 /** Six-channel FM, CH3 special, SSG, and separate ADPCM-A/B ROM playback. */
 export class YM2610BSynth extends OPNFMSynth {
-  /** @param {{transport: OPNDirectTransport, clock?: number}} options Master clock in Hz, default 8 MHz. */
+  /** @param {{transport: import('./opn_fm_synth.js').OPNTransport, clock?: number}} options Master clock in Hz, default 8 MHz. */
   constructor({ transport, clock = YM2610B_CLOCK } = {}) {
     super({ transport, chipName: "YM2610B", channelCount: 6, portCount: 2, supportsPan: true, supportsLfo: true });
     const load = type => (bytes,address) => {
@@ -192,6 +197,9 @@ export class YM2610BSynth extends OPNFMSynth {
   reset() {
     super.reset(); this.ssg?.resetState(); this.adpcmA?.resetState(); this.adpcmB?.resetState();
   }
+  /** @param {number} port
+   * @param {number} value
+   * @param {number} register */
   _write(port,register,value) {
     super._write(port,register,value);
     if (port === 0 && register < 14) this.ssg?.observeWrite(register,value);
@@ -225,17 +233,29 @@ export class NeoGeoFMSynth {
   setLfo(...args) { return this.fm.setLfo(...args); }
   setChannel3SpecialMode(...args) { return this.fm.setChannel3SpecialMode(...args); }
   setChannel3SpecialFrequency(...args) { return this.fm.setChannel3SpecialFrequency(...args); }
+  /** @param {number} channel */
   setPreset(channel, ...args) { return this.fm.setPreset(this.#channel(channel), ...args); }
+  /** @param {number} channel */
   setOperators(channel, ...args) { return this.fm.setOperators(this.#channel(channel), ...args); }
+  /** @param {number} channel */
   setOperator(channel, ...args) { return this.fm.setOperator(this.#channel(channel), ...args); }
+  /** @param {number} channel */
   setAlgo(channel, ...args) { return this.fm.setAlgo(this.#channel(channel), ...args); }
+  /** @param {number} channel */
   setPan(channel, ...args) { return this.fm.setPan(this.#channel(channel), ...args); }
+  /** @param {number} channel */
   setModulation(channel, ...args) { return this.fm.setModulation(this.#channel(channel), ...args); }
+  /** @param {number} channel */
   setFrequency(channel, ...args) { return this.fm.setFrequency(this.#channel(channel), ...args); }
+  /** @param {number} channel */
   keyOn(channel, ...args) { return this.fm.keyOn(this.#channel(channel), ...args); }
+  /** @param {number} channel */
   keyOff(channel, ...args) { return this.fm.keyOff(this.#channel(channel), ...args); }
+  /** @param {number} channel */
   noteOn(channel, ...args) { return this.fm.noteOn(this.#channel(channel), ...args); }
+  /** @param {number} channel */
   noteOff(channel, ...args) { return this.fm.noteOff(this.#channel(channel), ...args); }
+  /** @param {number} channel */
   #channel(channel) {
     const physical = NEO_GEO_FM_CHANNELS[Number(channel)];
     if (physical === undefined) throw new Error("Neo Geo FM channel must be 0..3");

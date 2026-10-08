@@ -32,8 +32,8 @@ export class Ym2610B {
    * Initialize Ym2610B and its native WASM module.
    * The generated module factory is injected so browser and Node callers can choose asset loading.
    * @param {import("./soundchip.js").SoundChipOptions} [options={}] Chip and Emscripten initialization settings.
-   * @param {function(Object): (Object|Promise<Object>)} options.moduleFactory Generated WASM module factory.
-   * @param {Object} [options.moduleOptions] Forwarded loader options, e.g. wasmBinary or locateFile.
+   * @param {import('./soundchip.js').WasmModuleFactory} options.moduleFactory Generated WASM module factory.
+   * @param {import('./soundchip.js').WasmModuleOptions} [options.moduleOptions] Forwarded loader options, e.g. wasmBinary or locateFile.
    * @param {boolean} [options.variant=true] True for YM2610B; false for YM2610.
    * @returns {Promise<Ym2610B>} Ready-to-use chip; the caller must dispose it.
    */
@@ -62,6 +62,7 @@ export class Ym2610B {
   supportsState() { return !!this.handle && typeof this.module._ym2610b_save_state === 'function' && typeof this.module._ym2610b_load_state === 'function'; }
 
   // Opaque, same-instance, same-build state. Output buffers and hooks are not state.
+  /** @returns {Readonly<{byteLength:number}>} Opaque snapshot owned by this instance. */
   saveState() {
     if (!this.supportsState()) throw new Error('State saving unavailable');
     const size = this.module._ym2610b_save_state(this.handle, 0);
@@ -73,9 +74,11 @@ export class Ym2610B {
       const state = Object.freeze({byteLength: size}); this.#states.set(state, bytes); return state;
     } finally { this.module._free(ptr); }
   }
+  /** @param {Readonly<{byteLength:number}>} state Snapshot returned by this instance. */
   validateState(state) {
     if (!this.supportsState() || !this.#states.has(state)) throw new Error('Invalid or foreign chip state');
   }
+  /** @param {Readonly<{byteLength:number}>} state Snapshot returned by this instance. */
   loadState(state) {
     this.validateState(state);
     const bytes = this.#states.get(state), ptr = this.module._malloc(bytes.length);
@@ -104,7 +107,12 @@ export class Ym2610B {
    * @returns {void}
    */
   clearAdpcmRoms() { this.api.clearRoms(this.handle); }
+  /** @param {number} mask */
   setSourceMuteMask(mask) { this.api.mute(this.handle, mask); }
+  /** @param {Uint8Array} bytes
+   * @param {0|1} type
+   * @param {number} size
+   * @param {number} [offset] */
   loadAdpcmRom(type, bytes, offset = 0, size = offset + bytes.length) {
     if (!(bytes instanceof Uint8Array) || ![0,1].includes(type) ||
       !Number.isInteger(offset) || !Number.isInteger(size) || offset < 0 || size < 0 ||
@@ -174,6 +182,7 @@ export class Ym2610B {
     };
   }
 
+  /** @param {number} frames */
   #ensureBuffers(frames) {
     if (!Number.isInteger(frames) || frames < 0 || frames > 0x1000000) {
       throw new RangeError("Invalid frame count");

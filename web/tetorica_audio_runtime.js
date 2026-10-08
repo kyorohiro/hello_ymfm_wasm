@@ -16,6 +16,7 @@ import {createNativeFXRack} from "./native_fx_rack.js";
  * the mutable state so chip synths can compose it without changing callers.
  */
 export class TetoricaAudioRuntime {
+  /** @param {{audioContext?:AudioContext|null,outputNode?:AudioNode|null,sampleOutputNode?:AudioNode|null,masterVolume?:number,mixer?:SoundChipMixer}} [options] */
   constructor(options = {}) {
     this.ownsAudioContext = !options.audioContext;
     this.audioContext = options.audioContext ?? null;
@@ -42,6 +43,7 @@ export class TetoricaAudioRuntime {
     this.stream = stream;
   }
 
+  /** @param {string} name */
   stopSample(name) {
     if(name==null)this.nativeFX?.sample.stopAll();else this.nativeFX?.sample.stop(name);
     for (const voice of this.sampleVoices) {
@@ -49,6 +51,7 @@ export class TetoricaAudioRuntime {
     }
   }
 
+  /** @param {string} name */
   unloadSample(name) {
     const normalizedName = String(name);
     this.stopSample(normalizedName);
@@ -56,16 +59,20 @@ export class TetoricaAudioRuntime {
     return this.sampleBuffers.delete(normalizedName);
   }
 
+  /** @param {string} name
+   * @param {AudioBuffer} buffer */
   storeSample(name, buffer) {
     this.nativeFX?.sample.unload(name);
     this.sampleBuffers.set(name, buffer);
     return buffer;
   }
 
+  /** @param {string} name */
   getSample(name) {
     return this.sampleBuffers.get(String(name)) ?? null;
   }
 
+  /** @param {string} name */
   hasSample(name) {
     return this.sampleBuffers.has(String(name));
   }
@@ -855,6 +862,7 @@ export class TetoricaAudioRuntime {
     await element.play();
   }
 
+  /** @param {string} name */
   pauseStream(name) {
     for (const entry of this.streamEntries.values()) {
       if (
@@ -866,6 +874,7 @@ export class TetoricaAudioRuntime {
     }
   }
 
+  /** @param {string} name */
   stopStream(name) {
     for (const entry of this.streamEntries.values()) {
       if (
@@ -877,6 +886,7 @@ export class TetoricaAudioRuntime {
     }
   }
 
+  /** @param {string} name */
   unloadStream(name) {
     const entry =
       this.streamEntries.get(
@@ -904,6 +914,7 @@ export class TetoricaAudioRuntime {
     );
   }
 
+  /** @param {AudioContext} audioContext */
   ensureRouting(audioContext) {
     this.audioContext = audioContext;
     if (!this.masterInputNode) this.masterInputNode = audioContext.createGain();
@@ -914,6 +925,7 @@ export class TetoricaAudioRuntime {
     this.rebuildFXChain();
   }
 
+  /** @param {AudioNode} node */
   connectChipOutput(node) {
     if (!node || !this.masterInputNode) throw new Error("Audio routing is not ready");
     node.connect(this.masterInputNode);
@@ -951,11 +963,13 @@ export class TetoricaAudioRuntime {
     for (const effect of previous) effect?.dispose?.();
   }
 
+  /** @param {AudioNode|null} [node] */
   connectOutput(node = null) {
     this.outputNode = node ?? this.outputNode ?? this.audioContext?.destination ?? null;
     this.rebuildFXChain();
   }
 
+  /** @param {number} volume */
   setMasterVolume(volume) {
     this.masterVolume = volume;
     if (this.masterOutputNode) this.masterOutputNode.gain.value = volume;

@@ -16,12 +16,11 @@ import { SegaPSG } from './segapsg.js';
 export class Ym2413AudioEngine {
   /**
    * Create the chip instances required by this engine.
-   * @param {Object} [options={}] Chip factories, clocks in Hz and loader settings.
+   * @param {{ym2413ModuleFactory: import('./soundchip.js').WasmModuleFactory, ym2413ModuleOptions?: import('./soundchip.js').WasmModuleOptions, ym2413Clock?: number, segaPsgModuleFactory?: import('./soundchip.js').WasmModuleFactory, psgClock?: number, outputSampleRate?: number, masterVolume?: number}} [options={}] Chip factories, clocks in Hz and loader settings.
    * @param {number} [options.outputSampleRate=44100] Output stereo frames per second.
    * @param {number} [options.masterVolume=1] Linear output gain, not dB.
    * @returns {Promise<Ym2413AudioEngine>} Initialized engine owned by the caller.
    */
-  /** @param {{ym2413ModuleFactory: Function, ym2413ModuleOptions?: Record<string, unknown>, ym2413Clock?: number, segaPsgModuleFactory?: Function, psgClock?: number, outputSampleRate?: number, masterVolume?: number}} options */
   static async create({ ym2413ModuleFactory, ym2413ModuleOptions, ym2413Clock = YM2413_CLOCK,
     segaPsgModuleFactory, psgClock = 0, outputSampleRate = 44100, masterVolume = 1 } = {}) {
     if (!Number.isFinite(outputSampleRate) || outputSampleRate <= 0 ||
@@ -34,6 +33,11 @@ export class Ym2413AudioEngine {
     } catch (error) { chip.dispose(); psg?.dispose(); throw error; }
   }
 
+  /** @param {Ym2413} chip
+   * @param {SegaPSG | undefined} psg
+   * @param {number} chipRate
+   * @param {number} outputRate
+   * @param {number} volume */
   constructor(chip, psg, chipRate, outputRate, volume) {
     this.ym2413 = chip;
     this.psg = psg;
@@ -62,6 +66,7 @@ export class Ym2413AudioEngine {
    * @returns {number} Gain multiplier, not a dB value.
    */
   getMasterVolume() { return this.volume; }
+  /** @param {boolean} value */
   setPsgMuted(value) { this.psgMuted = Boolean(value); }
   /**
    * Change one physical channel mute flag.
@@ -135,4 +140,5 @@ export class Ym2413AudioEngine {
     return { left, right };
   }
 }
+/** @param {Parameters<typeof Ym2413AudioEngine.create>[0]} [options] */
 export const createYm2413AudioEngine = options => Ym2413AudioEngine.create(options);

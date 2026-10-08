@@ -18,6 +18,11 @@ import {PWM32X} from './pwm32x.js';
 export class GenesisAudioEngine {
   #states = new WeakMap();
 
+  /** @param {Ym2612} ym2612
+   * @param {SegaPSG} psg
+   * @param {number} sampleRate
+   * @param {number} [masterVolume]
+   * @param {Rf5c164 | null} [pcm] */
   constructor(ym2612, psg, sampleRate, masterVolume = 1, pcm = null, pwmOptions = {}) {
     this.ym2612 = ym2612;
     this.psg = psg;
@@ -34,7 +39,7 @@ export class GenesisAudioEngine {
 
   /**
    * Create the chip instances required by this engine.
-   * @param {Object} [options={}] Chip factories, clocks in Hz and loader settings.
+   * @param {{ym2612ModuleFactory: import('./soundchip.js').WasmModuleFactory, ym2612ModuleOptions?: import('./soundchip.js').WasmModuleOptions, segaPsgModuleFactory: import('./soundchip.js').WasmModuleFactory, segaPsgModuleOptions?: import('./soundchip.js').WasmModuleOptions, ym2612Clock?: number, psgClock?: number, masterVolume?: number, rf5c164ModuleFactory?: import('./soundchip.js').WasmModuleFactory, rf5c164ModuleOptions?: import('./soundchip.js').WasmModuleOptions, rf5c164Clock?: number, pwmModel?: "legacy"|"mame", pwmOutputMode?: "dac"|"duty", pwmClock?: number}} [options={}] Chip factories, clocks in Hz and loader settings.
    * Output rate is derived from the YM2612 clock; sampleRate() reports the actual rate.
    * @param {number} [options.ym2612Clock=YM2612_CLOCK] YM2612 input clock in Hz.
    * @param {number} [options.masterVolume=1] Linear output gain, not dB.
@@ -113,6 +118,7 @@ export class GenesisAudioEngine {
     return JSON.stringify([this._sampleRate, this._masterVolume, this._psgMuted, this._pcmMuted, this.pwm.muted,
       this.pwm.constructor.name, this.pwm.clock, this.pwm.gain, this.pwm.outputMode]);
   }
+  /** @returns {Readonly<{byteLength:number}>} Opaque snapshot owned by this instance. */
   saveState() {
     if (!this.supportsState()) throw new Error('Genesis state saving unavailable');
     const data = {ym: this.ym2612.saveState(), psg: this.psg.saveState(), pcm: this.pcm?.saveState(),
@@ -120,12 +126,14 @@ export class GenesisAudioEngine {
     const state = Object.freeze({byteLength: data.ym.byteLength + data.psg.byteLength + (data.pcm?.byteLength || 0) + (data.pwm.byteLength || 64)});
     this.#states.set(state, data); return state;
   }
+  /** @param {Readonly<{byteLength:number}>} state Snapshot returned by this instance. */
   validateState(state) {
     const data = this.#states.get(state);
     if (!this.supportsState() || !data || data.key !== this.stateSettingsKey()) throw new Error('Incompatible Genesis state');
     this.ym2612.validateState(data.ym); this.psg.validateState(data.psg); this.pcm?.validateState(data.pcm);
     this.pwm.validateState?.(data.pwm);
   }
+  /** @param {Readonly<{byteLength:number}>} state Snapshot returned by this instance. */
   loadState(state) {
     this.validateState(state);
     const data = this.#states.get(state);
@@ -180,8 +188,10 @@ export class GenesisAudioEngine {
     this.ym2612.writeRegister(register, value, port);
   }
 
+  /** @param {boolean} muted */
   setPsgMuted(muted) { this._psgMuted = Boolean(muted); }
 
+  /** @param {boolean} muted */
   setPcmMuted(muted) { this._pcmMuted = Boolean(muted); }
   clearRf5c164Memory() { this.pcm?.clearMemory(); }
   /**
@@ -196,6 +206,8 @@ export class GenesisAudioEngine {
    * @param {number} value Register/command data value.
    */
   writeRf5c164Memory(offset, value) { this.#requirePcm().writeMemory(offset, value); }
+  /** @param {Uint8Array} data
+   * @param {number} offset */
   loadRf5c164Memory(data, offset) { this.#requirePcm().loadBankedMemory(data, offset); }
   #requirePcm() {
     if (!this.pcm) throw new Error("RF5C164 playback requires a PCM-enabled engine");
@@ -216,6 +228,7 @@ export class GenesisAudioEngine {
    * @param {number} value Register/command data value.
    */
   writePwm(register, value) { this.pwm.writeRegister(register, value); }
+  /** @param {boolean} muted */
   setPwmMuted(muted) { this.pwm.muted = Boolean(muted); }
 
   /**
@@ -268,7 +281,9 @@ export class GenesisAudioEngine {
  */
 export class SimplePwm {
   constructor() { this.muted = false; this.reset(); }
+  /** @returns {Readonly<{byteLength:number}>} Opaque snapshot owned by this instance. */
   saveState() { return Object.freeze({cycle: this.cycle, control: this.control, left: this.left, right: this.right}); }
+  /** @param {Readonly<{byteLength:number}>} state Snapshot returned by this instance. */
   loadState(state) {
     if (!state || !['cycle', 'control'].every(k => Number.isInteger(state[k]) && state[k] >= 0 && state[k] <= 4095) ||
         !['left', 'right'].every(k => state[k] === null || (Number.isInteger(state[k]) && state[k] >= 0 && state[k] <= 4095))) throw new Error('Invalid PWM state');
@@ -307,6 +322,7 @@ export class SimplePwm {
   }
 }
 
+/** @param {Parameters<typeof GenesisAudioEngine.create>[0]} [options] */
 export async function createGenesisAudioEngine(options) {
   return GenesisAudioEngine.create(options);
 }

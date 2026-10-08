@@ -13,16 +13,17 @@ import {Ay8910} from './ay8910.js';
 export class Ay8910AudioEngine {
   /**
    * Create the chip instances required by this engine.
-   * @param {Object} [options={}] Chip factories, clocks in Hz and loader settings.
+   * @param {{moduleFactory: import('./soundchip.js').WasmModuleFactory, moduleOptions?: import('./soundchip.js').WasmModuleOptions, clock?: number, type?: number, flags?: number, outputSampleRate?: number, masterVolume?: number}} [options={}] Chip factories, clocks in Hz and loader settings.
    * @param {number} [options.outputSampleRate=44100] Output stereo frames per second.
    * @param {number} [options.masterVolume=1] Linear output gain, not dB.
    * @returns {Promise<Ay8910AudioEngine>} Initialized engine owned by the caller.
    */
-  /** @param {{moduleFactory: Function, moduleOptions?: Record<string, unknown>, clock: number, type?: number, flags?: number, outputSampleRate?: number, masterVolume?: number}} options */
   static async create({moduleFactory,moduleOptions,clock,type=0,flags=1,outputSampleRate=44100,masterVolume=1}={}) {
     const chip=await Ay8910.create({moduleFactory,moduleOptions,clock,type,flags,sampleRate:outputSampleRate});
     try{return new Ay8910AudioEngine(chip,masterVolume);}catch(error){chip.dispose();throw error;}
   }
+  /** @param {Ay8910} chip
+   * @param {number} [volume] */
   constructor(chip,volume=1){this.ay8910=chip;this.channelMask=0;this.muted=false;this.setMasterVolume(volume);}
   /**
    * Return the rate used by process() and processFrames().
@@ -45,7 +46,10 @@ export class Ay8910AudioEngine {
    * @param {number} value Register/command data value.
    */
   writeAy8910(register,value){this.ay8910.writeRegister(register,value);}
+  /** @param {boolean} muted */
   setAyMuted(muted){this.muted=Boolean(muted);this.applyMute();}
+  /** @param {number} channel
+   * @param {boolean} muted */
   setAyChannelMuted(channel,muted){
     if(!Number.isInteger(channel)||channel<0||channel>2)throw new RangeError('Invalid AY channel');
     this.channelMask=muted?this.channelMask|(1<<channel):this.channelMask&~(1<<channel);this.applyMute();
@@ -78,6 +82,7 @@ export class Ay8910AudioEngine {
     const pcm=this.processFrames(frames);left.set(pcm.left);right.set(pcm.right);
   }
 }
+/** @param {Parameters<typeof Ay8910AudioEngine.create>[0]} [options] */
 export const createAy8910AudioEngine=options=>Ay8910AudioEngine.create(options);
 
 // Only AY plus optional OPLL is currently routed by the Analyzer's MSX engine.

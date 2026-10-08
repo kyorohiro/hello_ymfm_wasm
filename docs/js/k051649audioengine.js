@@ -13,16 +13,17 @@ import {K051649} from './k051649.js';
 export class K051649AudioEngine {
   /**
    * Create the chip instances required by this engine.
-   * @param {Object} [options={}] Chip factories, clocks in Hz and loader settings.
+   * @param {{moduleFactory: import('./soundchip.js').WasmModuleFactory, moduleOptions?: import('./soundchip.js').WasmModuleOptions, clock?: number, outputSampleRate?: number, masterVolume?: number}} [options={}] Chip factories, clocks in Hz and loader settings.
    * @param {number} [options.outputSampleRate=44100] Output stereo frames per second.
    * @param {number} [options.masterVolume=1] Linear output gain, not dB.
    * @returns {Promise<K051649AudioEngine>} Initialized engine owned by the caller.
    */
-  /** @param {{moduleFactory: Function, moduleOptions?: Record<string, unknown>, clock: number, outputSampleRate?: number, masterVolume?: number}} options */
   static async create({moduleFactory,moduleOptions,clock,outputSampleRate=44100,masterVolume=1}={}) {
     const chip=await K051649.create({moduleFactory,moduleOptions,clock,sampleRate:outputSampleRate});
     try{return new K051649AudioEngine(chip,masterVolume);}catch(error){chip.dispose();throw error;}
   }
+  /** @param {K051649} chip
+   * @param {number} [volume] */
   constructor(chip,volume=1){this.k051649=chip;this.channelMask=0;this.muted=false;this.setMasterVolume(volume);}
   /**
    * Return the rate used by process() and processFrames().
@@ -46,7 +47,10 @@ export class K051649AudioEngine {
    * @param {number} value Register/command data value.
    */
   writeK051649(port,register,value){this.k051649.writeRegister(port,register,value);}
+  /** @param {boolean} muted */
   setSccMuted(muted){this.muted=Boolean(muted);this.applyMute();}
+  /** @param {number} channel
+   * @param {boolean} muted */
   setSccChannelMuted(channel,muted){
     if(!Number.isInteger(channel)||channel<0||channel>4)throw new RangeError('Invalid SCC channel');
     this.channelMask=muted?this.channelMask|(1<<channel):this.channelMask&~(1<<channel);this.applyMute();
@@ -79,4 +83,5 @@ export class K051649AudioEngine {
     const pcm=this.processFrames(frames);left.set(pcm.left);right.set(pcm.right);
   }
 }
+/** @param {Parameters<typeof K051649AudioEngine.create>[0]} [options] */
 export const createK051649AudioEngine=options=>K051649AudioEngine.create(options);

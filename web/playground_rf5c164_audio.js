@@ -1,5 +1,8 @@
 /** Browser setup shared by Playground and MegaSynth. PCM generation stays in the Worklet. */
 const nativeFetch = globalThis.fetch?.bind(globalThis);
+/** @param {AudioContext} context
+ * @param {AudioNode} destination
+ * @param {{signal?:AbortSignal,wasmUrl?:string|URL,workletUrl?:string|URL,fetch?:typeof globalThis.fetch}} [options] */
 export async function createRf5c164Audio(context, destination, options = {}) {
   const {signal} = options;
   const wait = promise => {

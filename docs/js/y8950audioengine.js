@@ -16,12 +16,11 @@ import { SegaPSG } from './segapsg.js';
 export class Y8950AudioEngine {
   /**
    * Create the chip instances required by this engine.
-   * @param {Object} [options={}] Chip factories, clocks in Hz and loader settings.
+   * @param {{y8950ModuleFactory: import('./soundchip.js').WasmModuleFactory, y8950ModuleOptions?: import('./soundchip.js').WasmModuleOptions, y8950Clock?: number, segaPsgModuleFactory?: import('./soundchip.js').WasmModuleFactory, psgClock?: number, outputSampleRate?: number, masterVolume?: number}} [options={}] Chip factories, clocks in Hz and loader settings.
    * @param {number} [options.outputSampleRate=44100] Output stereo frames per second.
    * @param {number} [options.masterVolume=1] Linear output gain, not dB.
    * @returns {Promise<Y8950AudioEngine>} Initialized engine owned by the caller.
    */
-  /** @param {{y8950ModuleFactory: Function, y8950ModuleOptions?: Record<string, unknown>, y8950Clock?: number, segaPsgModuleFactory?: Function, psgClock?: number, outputSampleRate?: number, masterVolume?: number}} options */
   static async create({ y8950ModuleFactory, y8950ModuleOptions, y8950Clock = Y8950_CLOCK,
     segaPsgModuleFactory, psgClock = 0, outputSampleRate = 44100, masterVolume = 1 } = {}) {
     if (!Number.isFinite(outputSampleRate) || outputSampleRate <= 0 ||
@@ -34,6 +33,11 @@ export class Y8950AudioEngine {
     } catch (error) { chip.dispose(); psg?.dispose(); throw error; }
   }
 
+  /** @param {Y8950} chip
+   * @param {SegaPSG | undefined} psg
+   * @param {number} chipRate
+   * @param {number} outputRate
+   * @param {number} volume */
   constructor(chip, psg, chipRate, outputRate, volume) {
     this.y8950 = chip;
     this.psg = psg;
@@ -74,12 +78,15 @@ export class Y8950AudioEngine {
     this.channelMask = value ? this.channelMask | (1 << channel) : this.channelMask & ~(1 << channel);
     this.applyMute();
   }
+  /** @param {boolean} value */
   setAdpcmMuted(value) { this.adpcmMuted = Boolean(value); this.applyMute(); }
+  /** @param {boolean} value */
   setY8950Muted(value) { this.muted = Boolean(value); this.applyMute(); }
   applyMute() {
     this.y8950.setMuteMask(this.muted ? 0x3ff : this.channelMask | (this.adpcmMuted ? 0x200 : 0));
     this.lastLeft = this.lastRight = 0;
   }
+  /** @param {boolean} value */
   setPsgMuted(value) { this.psgMuted = Boolean(value); }
   /**
    * Dispatch a VGM register/command write to the corresponding sound chip.
@@ -92,6 +99,9 @@ export class Y8950AudioEngine {
    * @param {number} value Register/command data value.
    */
   writeY8950(register, value) { this.y8950.write(0, register); this.y8950.write(1, value); }
+  /** @param {Uint8Array} data
+   * @param {number} memorySize
+   * @param {number} offset */
   loadSampleMemory(data, offset, memorySize) { this.y8950.loadSampleMemory(data, offset, memorySize); }
   clearSampleMemory() { this.y8950.clearSampleMemory(); }
   /**
@@ -144,4 +154,5 @@ export class Y8950AudioEngine {
     return { left, right };
   }
 }
+/** @param {Parameters<typeof Y8950AudioEngine.create>[0]} [options] */
 export const createY8950AudioEngine = options => Y8950AudioEngine.create(options);

@@ -12,6 +12,8 @@
  * YM2203 and YM2608 APIs as they grow.
  */
 
+/** @typedef {import('./ym2612synth.js').YM2612Transport} OPNTransport */
+
 const OPERATOR_COUNT = 4;
 const KEY_OPERATOR_BITS = [0x10, 0x20, 0x40, 0x80];
 const OPERATOR_SLOT_OFFSETS = [0x00, 0x08, 0x04, 0x0c];
@@ -42,7 +44,10 @@ const DEFAULT_OPERATOR_STATE = Object.freeze({
  * Their WASM API uses address/data offsets rather than a packed register
  * method, while the synth API consistently uses `write(port, reg, value)`.
  */
+/** @template {{write(offset:number,value:number):void}} Chip */
 export class OPNDirectTransport {
+  /** @param {Chip} chip
+   * @param {{chipName:string, portCount:number}} config */
   constructor(chip, { chipName, portCount }) {
     if (!chip || typeof chip.write !== "function") {
       throw new Error(`${chipName}DirectTransport requires a chip with write(offset, data)`);
@@ -56,12 +61,17 @@ export class OPNDirectTransport {
     this.chip.reset?.();
   }
 
+  /** @param {number} port
+   * @param {number} register
+   * @param {number} value */
   write(port, register, value) {
     assertRange("port", port, 0, this.portCount - 1);
     this.chip.write(port * 2, register);
     this.chip.write((port * 2) + 1, value);
   }
 
+  /** @param {number} offset
+   * @returns {number} Register value; zero when native reads are unavailable. */
   read(offset) {
     if (typeof this.chip.read !== "function") {
       throw new Error(`${this.chipName}DirectTransport chip does not support read(offset)`);
@@ -69,12 +79,14 @@ export class OPNDirectTransport {
     return this.chip.read(offset);
   }
 
+  /** @returns {number} */
   readStatus() {
     return typeof this.chip.readStatus === "function"
       ? this.chip.readStatus()
       : this.read(0);
   }
 
+  /** @returns {boolean} */
   getIrq() {
     return typeof this.chip.getIrq === "function" && this.chip.getIrq();
   }
@@ -85,12 +97,16 @@ export class OPNDirectTransport {
  * uses the same port/register/value shape as the high-level FM API.
  */
 export class OPNWorkletTransport {
+  /** @param {Uint8Array} bytes */
   loadRhythmRom(bytes) {
     if (this.chipName !== 'YM2608') throw new Error('Rhythm ROM loading requires YM2608');
     if (!(bytes instanceof Uint8Array) || bytes.length !== 8192) throw new RangeError('Expected 8192-byte rhythm ROM');
     this.node.port.postMessage({type: 'loadRhythmRom', bytes});
   }
+  /** @param {AudioWorkletNode|MessagePort|import('./soundchip_worklet.js').WorkletSoundChip} node
+   * @param {{portCount:number,chipName:string}} config */
   constructor(node, { portCount, chipName }) {
+    /** @type {import('./soundchip_worklet.js').WorkletSoundChip|null} */
     this.endpoint = node?.execution === 'worklet' ? node : null;
     if (!node?.port && node?.postMessage) node = {port: node};
     if (!node?.port?.postMessage) {
@@ -121,6 +137,8 @@ export class OPNWorkletTransport {
   async close() {this.dispose(); await this.endpoint?.dispose();}
   flush() {return this.endpoint?.request('barrier') ?? Promise.resolve();}
 
+  /** @param {Uint8Array} bytes
+   * @param {number} [address] */
   loadAdpcmMemory(bytes, address = 0) {
     if (this.disposed) return Promise.reject(new Error('ADPCM transport disposed'));
     if (this.chipName !== 'YM2608') return Promise.reject(new Error('ADPCM memory upload requires YM2608'));
@@ -144,6 +162,9 @@ export class OPNWorkletTransport {
     this.node.port.postMessage({ type: "reset" });
   }
 
+  /** @param {number} port
+   * @param {number} register
+   * @param {number} value */
   write(port, register, value) {
     assertRange("port", port, 0, this.portCount - 1);
     this.node.port.postMessage({
@@ -156,6 +177,7 @@ export class OPNWorkletTransport {
 }
 
 export class OPNFMSynth {
+  /** @param {{transport:OPNTransport,chipName:string,channelCount:number,portCount:number,supportsPan?:boolean,supportsLfo?:boolean}} options */
   constructor({
     transport,
     chipName,
@@ -192,6 +214,8 @@ export class OPNFMSynth {
     this._syncIrq();
   }
 
+  /** @param {number} channel
+   * @param {import('./ym2612synth.js').YM2612Preset} preset */
   setPreset(channel, preset) {
     this._assertChannel(channel);
     if (!preset || typeof preset !== "object") {
@@ -248,6 +272,9 @@ export class OPNFMSynth {
     for (const [operator, params] of validated) this.setOperator(channel, operator, params);
   }
 
+  /** @param {number} channel
+   * @param {number} operator
+   * @param {import('./ym2612synth.js').YM2612OperatorParams} params */
   setOperator(channel, operator, params) {
     this._assertChannel(channel);
     assertRange("operator", operator, 0, OPERATOR_COUNT - 1);
@@ -294,6 +321,9 @@ export class OPNFMSynth {
     }
   }
 
+  /** @param {number} channel
+   * @param {number} algorithm
+   * @param {number} [feedback] */
   setAlgo(channel, algorithm, feedback = 0) {
     this._assertChannel(channel);
     const state = this.channels[channel];
@@ -303,6 +333,9 @@ export class OPNFMSynth {
     this._write(port, 0xb0 + channelOffset, (state.feedback << 3) | state.algorithm);
   }
 
+  /** @param {number} channel
+   * @param {number} ams
+   * @param {number} pms */
   setModulation(channel, ams, pms) {
     this._assertChannel(channel);
     if (!this.supportsLfo) {
@@ -314,6 +347,11 @@ export class OPNFMSynth {
     this._writeChannelPanAndModulation(channel);
   }
 
+  /** @param {number} channel
+   * @param {number} [ams]
+   * @param {number} [pms] */
+  /** @param {boolean} left
+   * @param {boolean} right */
   setPan(channel, left, right, ams = undefined, pms = undefined) {
     this._assertChannel(channel);
     if (!this.supportsPan) {
@@ -327,6 +365,8 @@ export class OPNFMSynth {
     this._writeChannelPanAndModulation(channel);
   }
 
+  /** @param {number} frequency */
+  /** @param {boolean} enabled */
   setLfo(enabled, frequency) {
     if (!this.supportsLfo) {
       throw new Error(`${this.chipName} does not support FM LFO`);
@@ -336,12 +376,16 @@ export class OPNFMSynth {
     this._write(0, 0x22, (this.lfo.enabled ? 0x08 : 0) | this.lfo.frequency);
   }
 
+  /** @param {boolean} enabled */
   setChannel3SpecialMode(enabled) {
     const value = assertBoolean("enabled", enabled);
     this._modeRegister = value ? this._modeRegister | 0x40 : this._modeRegister & ~0x40;
     this._write(0, 0x27, this._modeRegister);
   }
 
+  /** @param {number} operator
+   * @param {number} block
+   * @param {number} fnum */
   setChannel3SpecialFrequency(operator, block, fnum) {
     assertRange("operator", operator, 0, OPERATOR_COUNT - 1);
     const validBlock = assertRange("block", block, 0, 7);
@@ -352,6 +396,9 @@ export class OPNFMSynth {
     this._write(0, registers.low, validFnum & 0xff);
   }
 
+  /** @param {number} channel
+   * @param {number} block
+   * @param {number} fnum */
   setFrequency(channel, block, fnum) {
     this._assertChannel(channel);
     const validBlock = assertRange("block", block, 0, 7);
@@ -364,25 +411,35 @@ export class OPNFMSynth {
     this._write(port, 0xa0 + channelOffset, validFnum & 0xff);
   }
 
+  /** @param {number} channel
+   * @param {number[]} [operators] */
   keyOn(channel, operators = undefined) {
     this._assertChannel(channel);
     this._write(0, 0x28, buildKeyOperatorMask(operators) | KEY_CHANNEL_CODES[channel]);
   }
 
+  /** @param {number} channel */
   keyOff(channel) {
     this._assertChannel(channel);
     this._write(0, 0x28, KEY_CHANNEL_CODES[channel]);
   }
 
+  /** @param {number} channel
+   * @param {number} block
+   * @param {number} fnum */
   noteOn(channel, block, fnum) {
     this.setFrequency(channel, block, fnum);
     this.keyOn(channel);
   }
 
+  /** @param {number} channel */
   noteOff(channel) {
     this.keyOff(channel);
   }
 
+  /** @param {number} port
+   * @param {number} register
+   * @param {number} value */
   write(port, register, value) {
     this._write(
       assertRange("port", port, 0, this.portCount - 1),
@@ -391,15 +448,21 @@ export class OPNFMSynth {
     );
   }
 
+  /** @param {number} port
+   * @param {number} register
+   * @param {number} value */
   rawWrite(port, register, value) {
     this.write(port, register, value);
   }
 
+  /** @param {number} port
+   * @param {number} register */
   writeAddress(port, register) {
     this._pendingAddressPort = assertRange("port", port, 0, this.portCount - 1);
     this._pendingAddressRegister = assertRange("register", register, 0, 0xff);
   }
 
+  /** @param {number} value */
   writeData(value) {
     if (this._pendingAddressPort === undefined) {
       throw new Error("writeData(value) requires a previous writeAddress(port, register)");
@@ -407,6 +470,8 @@ export class OPNFMSynth {
     this._write(this._pendingAddressPort, this._pendingAddressRegister, assertRange("value", value, 0, 0xff));
   }
 
+  /** @param {number} offset
+   * @returns {number} Register value; zero when native reads are unavailable. */
   read(offset) {
     if (typeof this.transport.read !== "function") {
       throw new Error(`${this.chipName} transport does not support read(offset)`);
@@ -418,6 +483,7 @@ export class OPNFMSynth {
     return value;
   }
 
+  /** @returns {number} */
   readStatus() {
     const value = typeof this.transport.readStatus === "function"
       ? this.transport.readStatus()
@@ -441,6 +507,7 @@ export class OPNFMSynth {
     return clone({ modeRegister: this._modeRegister, lfo: this.lfo, channels: this.channels });
   }
 
+  /** @param {number} channel */
   _writeChannelPanAndModulation(channel) {
     const state = this.channels[channel];
     const { port, channelOffset } = this._splitChannel(channel);
@@ -450,16 +517,20 @@ export class OPNFMSynth {
     this._write(port, 0xb4 + channelOffset, pan | (state.ams << 4) | state.pms);
   }
 
+  /** @param {number} channel */
   _splitChannel(channel) {
     return channel < 3
       ? { port: 0, channelOffset: channel }
       : { port: 1, channelOffset: channel - 3 };
   }
 
+  /** @param {number} channel */
   _assertChannel(channel) {
     assertRange("channel", channel, 0, this.channelCount - 1);
   }
 
+  /** @param {number} port
+   * @param {number} register */
   _write(port, register, value) {
     const command = { port, register, value };
     if (this.transport.write.length >= 3) {

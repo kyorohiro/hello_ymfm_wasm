@@ -13,16 +13,17 @@ import {GameboyApu} from './gameboyapu.js';
 export class GameboyApuAudioEngine {
   /**
    * Create the chip instances required by this engine.
-   * @param {Object} [options={}] Chip factories, clocks in Hz and loader settings.
+   * @param {{moduleFactory: import('./soundchip.js').WasmModuleFactory, moduleOptions?: import('./soundchip.js').WasmModuleOptions, clock?: number, outputSampleRate?: number, masterVolume?: number}} [options={}] Chip factories, clocks in Hz and loader settings.
    * @param {number} [options.outputSampleRate=44100] Output stereo frames per second.
    * @param {number} [options.masterVolume=1] Linear output gain, not dB.
    * @returns {Promise<GameboyApuAudioEngine>} Initialized engine owned by the caller.
    */
-  /** @param {{moduleFactory: Function, moduleOptions?: Record<string, unknown>, clock: number, outputSampleRate?: number, masterVolume?: number}} options */
   static async create({moduleFactory,moduleOptions,clock,outputSampleRate=44100,masterVolume=1}={}) {
     const chip=await GameboyApu.create({moduleFactory,moduleOptions,clock,sampleRate:outputSampleRate});
     try{return new GameboyApuAudioEngine(chip,masterVolume);}catch(error){chip.dispose();throw error;}
   }
+  /** @param {GameboyApu} chip
+   * @param {number} [volume] */
   constructor(chip,volume=1){this.gameboy=chip;this.channelMask=0;this.setMasterVolume(volume);}
   /**
    * Return the rate used by process() and processFrames().
@@ -86,4 +87,5 @@ export class GameboyApuAudioEngine {
     const pcm=this.processFrames(frames);left.set(pcm.left);right.set(pcm.right);
   }
 }
+/** @param {Parameters<typeof GameboyApuAudioEngine.create>[0]} [options] */
 export const createGameboyApuAudioEngine=options=>GameboyApuAudioEngine.create(options);

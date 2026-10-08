@@ -15,12 +15,11 @@ import {SegaPSG} from './segapsg.js';
 export class SegaPcmAudioEngine {
   /**
    * Create the chip instances required by this engine.
-   * @param {Object} [options={}] Chip factories, clocks in Hz and loader settings.
+   * @param {{moduleFactory: import('./soundchip.js').WasmModuleFactory, moduleOptions?: import('./soundchip.js').WasmModuleOptions, clock?: number, bankShift?: number, bankMask?: number, segaPsgModuleFactory?: import('./soundchip.js').WasmModuleFactory, psgClock?: number, outputSampleRate?: number, masterVolume?: number}} [options={}] Chip factories, clocks in Hz and loader settings.
    * @param {number} [options.outputSampleRate=44100] Output stereo frames per second.
    * @param {number} [options.masterVolume=1] Linear output gain, not dB.
    * @returns {Promise<SegaPcmAudioEngine>} Initialized engine owned by the caller.
    */
-  /** @param {{moduleFactory: Function, moduleOptions?: Record<string, unknown>, clock: number, bankShift?: number, bankMask?: number, segaPsgModuleFactory?: Function, psgClock?: number, outputSampleRate?: number, masterVolume?: number}} options */
   static async create({moduleFactory,moduleOptions,clock,bankShift=0,bankMask=0,segaPsgModuleFactory,psgClock=0,outputSampleRate=44100,masterVolume=1}={}) {
     const chip=await SegaPcm.create({moduleFactory,moduleOptions,clock,bankShift,bankMask,sampleRate:outputSampleRate});
     let psg;
@@ -29,6 +28,9 @@ export class SegaPcmAudioEngine {
       return new SegaPcmAudioEngine(chip,psg,masterVolume);
     } catch(error){chip.dispose();psg?.dispose();throw error;}
   }
+  /** @param {SegaPcm} chip
+   * @param {SegaPSG | undefined} psg
+   * @param {number} [volume] */
   constructor(chip,psg,volume=1){this.segapcm=chip;this.psg=psg;this.channelMask=0;this.muted=false;this.psgMuted=false;this.setMasterVolume(volume);}
   /**
    * Return the rate used by process() and processFrames().
@@ -51,6 +53,9 @@ export class SegaPcmAudioEngine {
    * @param {number} value Register/command data value.
    */
   writeSegaPcm(offset,value){this.segapcm.writeRegister(offset,value);}
+  /** @param {Uint8Array} data
+   * @param {number} memorySize
+   * @param {number} offset */
   loadSampleMemory(data,offset,memorySize){this.segapcm.loadSampleMemory(data,offset,memorySize);}
   clearSampleMemory(){this.segapcm.clearSampleMemory();}
   /**
@@ -58,8 +63,12 @@ export class SegaPcmAudioEngine {
    * @param {number} value Register/command data value.
    */
   writePsg(value){this.psg?.write(value);}
+  /** @param {boolean} value */
   setPsgMuted(value){this.psgMuted=Boolean(value);}
+  /** @param {boolean} muted */
   setSegaPcmMuted(muted){this.muted=Boolean(muted);this.applyMute();}
+  /** @param {number} channel
+   * @param {boolean} muted */
   setSegaPcmChannelMuted(channel,muted){
     if(!Number.isInteger(channel)||channel<0||channel>15)throw new RangeError('Invalid Sega PCM channel');
     this.channelMask=muted?this.channelMask|(1<<channel):this.channelMask&~(1<<channel);this.applyMute();
@@ -100,4 +109,5 @@ export class SegaPcmAudioEngine {
     const pcm=this.processFrames(frames);left.set(pcm.left);right.set(pcm.right);
   }
 }
+/** @param {Parameters<typeof SegaPcmAudioEngine.create>[0]} [options] */
 export const createSegaPcmAudioEngine=options=>SegaPcmAudioEngine.create(options);

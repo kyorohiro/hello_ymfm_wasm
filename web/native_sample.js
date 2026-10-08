@@ -1,6 +1,7 @@
 /** Browser/Worker PCM playback controls. Loading/decoding is injected separately.
  * AudioWorklet acknowledges preparation directly; playback never needs a UI reply.
  */
+/** @param {(message:Record<string,unknown>)=>void} send Ordered transport sender. */
 export function createNativeSampleController(send){
  const banks=new Map(),pending=new Map();let sequence=0;
  const request=(action,data)=>new Promise((resolve,reject)=>{const id=++sequence;pending.set(id,{resolve,reject});send({op:'sample',action,id,...data});});
@@ -8,6 +9,8 @@ export function createNativeSampleController(send){
  const finite=(v,fallback)=>{const n=Number(v??fallback);if(!Number.isFinite(n))throw new Error('Invalid sample parameter');return n;};
  return {
   accept(d){if(d.op!=='sample-response')return;const p=pending.get(d.id);if(!p)return;pending.delete(d.id);if(d.error)p.reject(new Error(d.error));else p.resolve(d.value);},
+  /** @param {string} name
+   * @param {import('./wav.js').ChannelPCM} pcm */
   async load(name,pcm){
    if(!pcm||!(pcm.sampleRate>0)||!pcm.channels?.length||pcm.channels.length>2)throw new Error('Expected mono or stereo PCM');
    const length=pcm.channels[0].length;
@@ -17,6 +20,8 @@ export function createNativeSampleController(send){
   },
   /** Negative playbackRate reads backward. Offset counts from the playback start
    * (the end for reverse); duration counts source seconds, loops use original-file bounds. */
+  /** @param {string} name
+   * @param {import('./megasynth.js').MegaSynthSamplePlayOptions} [options] */
   async play(name,options={}){
    if(!banks.has(name))throw new Error(`Unknown sample: ${name}`);
    const normalized={};
@@ -34,6 +39,8 @@ export function createNativeSampleController(send){
  };
 }
 /** Convert a decoded AudioBuffer into copyable planar PCM without detaching it. */
+/** @param {AudioBuffer} buffer
+ * @returns {import("./wav.js").ChannelPCM} */
 export function samplePCM(buffer){
  if(buffer.numberOfChannels>2)throw new Error('Native sample playback supports mono/stereo audio');
  return {sampleRate:buffer.sampleRate,channels:Array.from({length:buffer.numberOfChannels},(_,i)=>buffer.getChannelData(i))};

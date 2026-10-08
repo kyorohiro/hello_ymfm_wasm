@@ -215,6 +215,9 @@ export class YM2612DirectTransport {
     }
   }
 
+  /** @param {number} port
+   * @param {number} register
+   * @param {number} value */
   write(port, register, value) {
     if (port === 1 && register === 0xb6) this.dacPanRegister = value;
     this.dacPlayer?.observeWrite(port, register, value);
@@ -232,7 +235,7 @@ export class YM2612DirectTransport {
     this.dacPlayer.command(command, this.frame);
   }
 
-  /** Render through this transport to advance PCM playback and the Node timeline together. */
+  /** Render through this transport to advance PCM playback and the Node timeline together. @param {number} frames */
   generateStereo(frames) {
     if (!Number.isSafeInteger(frames) || frames < 0) throw new RangeError('frames must be a nonnegative integer');
     const left = new Float32Array(frames), right = new Float32Array(frames);
@@ -252,6 +255,7 @@ export class YM2612DirectTransport {
     return {left, right};
   }
 
+  /** @param {number} offset */
   read(offset) {
     if (typeof this.chip.read !== "function") {
       throw new Error("YM2612DirectTransport chip does not support read(offset)");
@@ -343,6 +347,9 @@ export class YM2612WorkletTransport {
     });
   }
 
+  /** @param {number} port
+   * @param {number} register
+   * @param {number} value */
   write(port, register, value) {
     this.node.port.postMessage({
       type: "write",
@@ -1133,6 +1140,7 @@ export class YM2612Synth {
     });
   }
 
+  /** @param {number} offset */
   _notifyRead(offset, value) {
     if (typeof this.hooks.onRead === "function") {
       this.hooks.onRead({ offset, value });
@@ -1194,6 +1202,7 @@ function validateOperatorParams(params) {
   return result;
 }
 
+/** @param {number} channel */
 function splitChannel(channel) {
   if (channel < 3) {
     return { port: 0, channelOffset: channel };
@@ -1219,18 +1228,21 @@ function buildKeyOperatorMask(operators) {
   return mask;
 }
 
+/** @param {number} channel */
 function assertChannel(channel) {
   if (!Number.isInteger(channel) || channel < 0 || channel >= CHANNEL_COUNT) {
     throw new Error(`channel must be an integer in range 0..5, got ${channel}`);
   }
 }
 
+/** @param {number} operator */
 function assertOperator(operator) {
   if (!Number.isInteger(operator) || operator < 0 || operator >= OPERATOR_COUNT) {
     throw new Error(`operator must be an integer in range 0..3, got ${operator}`);
   }
 }
 
+/** @param {number} operator */
 function getPresetOperatorParams(
   preset,
   operator

@@ -1,7 +1,11 @@
 /** @file Browser / Worker / Node.js: decoded PCM to RF5C164 RAM encoding. No audio device or file decoder. */
 const integer=(v,max,name)=>{if(!Number.isInteger(v)||v<0||v>max)throw new RangeError(`Invalid ${name}`);return v;};
+/** @param {Uint8Array|ArrayBuffer} value
+ * @returns {Uint8Array} */
 export function sampleBytes(value){if(value instanceof ArrayBuffer)return new Uint8Array(value);if(value instanceof Uint8Array)return value;throw new TypeError('Expected Uint8Array or ArrayBuffer');}
 /** Convert decoded mono/stereo PCM to sign-magnitude RAM bytes, with a loop marker. */
+/** @param {import("./wav.js").ChannelPCM} pcm
+ * @returns {{bytes:Uint8Array,step:number,frames:number}} */
 export function encodeRf5c164({channels,sampleRate}){
  if(!channels?.length||!channels[0].length||!Number.isFinite(sampleRate)||sampleRate<=0)throw new Error('Invalid PCM');
  const n=channels[0].length;if(n+3>65536)throw new RangeError('Sample exceeds 64 KiB; shorten or resample it first');

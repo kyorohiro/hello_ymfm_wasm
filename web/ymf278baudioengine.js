@@ -16,12 +16,11 @@ import { SegaPSG } from './segapsg.js';
 export class Ymf278bAudioEngine {
   /**
    * Create the chip instances required by this engine.
-   * @param {Object} [options={}] Chip factories, clocks in Hz and loader settings.
+   * @param {{ymf278bModuleFactory: import('./soundchip.js').WasmModuleFactory, ymf278bModuleOptions?: import('./soundchip.js').WasmModuleOptions, ymf278bClock?: number, segaPsgModuleFactory?: import('./soundchip.js').WasmModuleFactory, psgClock?: number, outputSampleRate?: number, masterVolume?: number}} [options={}] Chip factories, clocks in Hz and loader settings.
    * @param {number} [options.outputSampleRate=44100] Output stereo frames per second.
    * @param {number} [options.masterVolume=1] Linear output gain, not dB.
    * @returns {Promise<Ymf278bAudioEngine>} Initialized engine owned by the caller.
    */
-  /** @param {{ymf278bModuleFactory: Function, ymf278bModuleOptions?: Record<string, unknown>, ymf278bClock?: number, segaPsgModuleFactory?: Function, psgClock?: number, outputSampleRate?: number, masterVolume?: number}} [options] */
   static async create({ ymf278bModuleFactory, ymf278bModuleOptions, ymf278bClock = YMF278B_CLOCK,
     segaPsgModuleFactory, psgClock = 0, outputSampleRate = 44100, masterVolume = 1 } = {}) {
     if (!Number.isFinite(outputSampleRate) || outputSampleRate <= 0 ||
@@ -34,6 +33,11 @@ export class Ymf278bAudioEngine {
     } catch (error) { chip.dispose(); psg?.dispose(); throw error; }
   }
 
+  /** @param {Ymf278b} chip
+   * @param {SegaPSG | undefined} psg
+   * @param {number} chipRate
+   * @param {number} outputRate
+   * @param {number} volume */
   constructor(chip, psg, chipRate, outputRate, volume) {
     this.ymf278b = chip;
     this.psg = psg;
@@ -63,6 +67,7 @@ export class Ymf278bAudioEngine {
    * @returns {number} Gain multiplier, not a dB value.
    */
   getMasterVolume() { return this.volume; }
+  /** @param {boolean} value */
   setPsgMuted(value) { this.psgMuted = Boolean(value); }
   /**
    * Change one physical channel mute flag.
@@ -75,6 +80,8 @@ export class Ymf278bAudioEngine {
     const bit = 1 << channel;
     this.ymf278b.setFmMuteMask(muted ? this.ymf278b.fmMuteMask | bit : this.ymf278b.fmMuteMask & ~bit);
   }
+  /** @param {number} channel
+   * @param {boolean} muted */
   setPcmChannelMuted(channel, muted) {
     if (!Number.isInteger(channel) || channel < 0 || channel >= 24) throw new RangeError('Invalid YMF278B PCM channel');
     const bit = 1 << channel;
@@ -92,7 +99,11 @@ export class Ymf278bAudioEngine {
    * @param {number} value Register/command data value.
    */
   writeYmf278b(port, register, value) { this.ymf278b.write(port * 2, register); this.ymf278b.write(port * 2 + 1, value); }
+  /** @param {Uint8Array} data
+   * @param {number} memorySize
+   * @param {number} offset */
   loadSampleMemory(data, offset, memorySize) { this.ymf278b.loadSampleMemory(data, offset, memorySize); }
+  /** @param {Uint8Array} data */
   loadWaveRom(data) {
     if (!(data instanceof Uint8Array) || data.length !== 0x200000)
       throw new RangeError('YMF278B wave ROM must be 2097152 bytes (yrw801.rom).');
@@ -154,4 +165,5 @@ export class Ymf278bAudioEngine {
     return { left, right };
   }
 }
+/** @param {Parameters<typeof Ymf278bAudioEngine.create>[0]} [options] */
 export const createYmf278bAudioEngine = options => Ymf278bAudioEngine.create(options);

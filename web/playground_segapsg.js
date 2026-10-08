@@ -1,5 +1,6 @@
 import {createSegaPsgApi} from './segapsg_api.js';
 /** Immediate ordered commands, shared by main-thread and Worker runtimes. */
+/** @param {MessagePort} port */
 export function createSegaPsgClient(port) {
   let disposed = false;
   const send = (method, args = []) => {

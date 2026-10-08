@@ -38,8 +38,8 @@ export class Ym2203 {
    * Initialize Ym2203 and its native WASM module.
    * The generated module factory is injected so browser and Node callers can choose asset loading.
    * @param {Object} [options={}] Chip and Emscripten initialization settings.
-   * @param {function(Object): (Object|Promise<Object>)} options.moduleFactory Generated WASM module factory.
-   * @param {Object} [options.moduleOptions] Forwarded loader options, e.g. wasmBinary or locateFile.
+   * @param {import('./soundchip.js').WasmModuleFactory} options.moduleFactory Generated WASM module factory.
+   * @param {import('./soundchip.js').WasmModuleOptions} [options.moduleOptions] Forwarded loader options, e.g. wasmBinary or locateFile.
    * @returns {Promise<Ym2203>} Ready-to-use chip; the caller must dispose it.
    */
   static async create(options = {}) {
@@ -70,6 +70,7 @@ export class Ym2203 {
   supportsState() { return !!this.handle && typeof this.module._ym2203_save_state === 'function' && typeof this.module._ym2203_load_state === 'function'; }
 
   // Opaque, same-instance, same-build state. Output buffers and hooks are not state.
+  /** @returns {Readonly<{byteLength:number}>} Opaque snapshot owned by this instance. */
   saveState() {
     if (!this.supportsState()) throw new Error('State saving unavailable');
     const size = this.module._ym2203_save_state(this.handle, 0);
@@ -81,9 +82,11 @@ export class Ym2203 {
       const state = Object.freeze({byteLength: size}); this.#states.set(state, bytes); return state;
     } finally { this.module._free(ptr); }
   }
+  /** @param {Readonly<{byteLength:number}>} state Snapshot returned by this instance. */
   validateState(state) {
     if (!this.supportsState() || !this.#states.has(state)) throw new Error('Invalid or foreign chip state');
   }
+  /** @param {Readonly<{byteLength:number}>} state Snapshot returned by this instance. */
   loadState(state) {
     this.validateState(state);
     const bytes = this.#states.get(state), ptr = this.module._malloc(bytes.length);
@@ -216,6 +219,7 @@ export class Ym2203 {
    */
   setMuteMask(mask) { this.api.setMuteMask(this.handle, mask & 7); }
 
+  /** @param {number} mask */
   setSourceMuteMask(mask) {
     if (!this.api.setSourceMuteMask) throw new Error("Reload the generated YM2203 WASM runtime to use source mute controls.");
     this.api.setSourceMuteMask(this.handle, mask);
@@ -241,6 +245,7 @@ export class Ym2203 {
     return { left, right };
   }
 
+  /** @param {number} frames */
   #ensureBuffers(frames) {
     if (!Number.isInteger(frames) || frames < 0 || frames > 0x1000000) {
       throw new RangeError("Invalid frame count");

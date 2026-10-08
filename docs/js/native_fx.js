@@ -19,6 +19,7 @@ export const FX_PARAMS = {
  slicer:{phase:[.25,.03125,16],duty:[.5,.05,.95],floor:[0,0,1],mix:[1,0,1]},
  chorus:{time:[.02,.01,.04],depth:[.005,0,.01],rate:[1,.03125,16],mix:[.5,0,1]},
 };
+/** @param {(message:Record<string,unknown>)=>void} send Ordered transport sender. */
 export function createNativeFXController(send, {getBeatSeconds=()=>.5}={}) {
  const units=new Set(); const slots={}; let chain=[];
  const contains=(root,u)=>root===u || (root.children??[]).some(c=>contains(c,u));

@@ -6,6 +6,7 @@ import {ChipWorkletTransport} from './chip_worklet_transport.js';
  * @typedef {{volume?:number, duty?:0.125|0.25|0.5|0.75, envelope?:{period:number,loop?:boolean}, sweep?:{enabled?:boolean,period?:number,negate?:boolean,shift?:number}}} NesPulseVoice
  */
 function integer(n,max,label){if(!Number.isInteger(n)||n<0||n>max)throw new RangeError(`${label} must be 0..${max}`);return n;}
+/** @param {string | number} note */
 function frequency(note){
  if(typeof note==='string'){
   const m=/^([A-Ga-g])([#b]?)(-?\d+)$/.exec(note);if(!m)throw new RangeError('Invalid NES note');
@@ -123,6 +124,7 @@ export class NesApuSynth {
  #checkFds(){if(!this.fdsEnabled)throw new Error('FDS requires createSoundChip(nes, {fds:true})');}
  /** @param {number} address @param {number} value */
  writeRegister(address,value){if(!((address>=0x4000&&address<=0x4017)||address===0x4023||(address>=0x4040&&address<=0x408a)))throw new RangeError('Unsupported NES address');if(address>=0x4023)this.#checkFds();integer(address-0x4000,0x8a,'NES address offset');integer(value,255,'NES register value');this.transport.writeRegister(address,value);this.#registers[address-0x4000]=value;if(address===0x4015)this.#enabled=value&31;if(address===0x4083)this.#fdsActive=!(value&128);}
+ /** @param {number} channel */
  #enable(channel,enabled){
   if(this.transport.setChannelEnabled){this.#enabled=enabled?this.#enabled|(1<<channel):this.#enabled&~(1<<channel);this.transport.setChannelEnabled(channel,enabled);}
   else this.writeRegister(0x4015,enabled?this.#enabled|(1<<channel):this.#enabled&~(1<<channel));
@@ -133,6 +135,7 @@ export class NesApuSynth {
   this.pulse.setVoice(0,{duty:0.5,volume:8});this.pulse.setVoice(1,{duty:0.5,volume:8});this.writeRegister(0x4008,255);this.noise.setVoice();
   if(this.fdsEnabled){this.fds.setVolume(32);this.writeRegister(0x4083,128);this.writeRegister(0x4087,128);this.fds.setWave(Array.from({length:64},(_,i)=>Math.round(31.5+31.5*Math.sin(i*Math.PI/32))));}
  }
+ /** @param {number} channel */
  #pulseVoice(channel,{duty,volume,envelope,sweep}){
   integer(channel,1,'Pulse channel');const base=0x4000+channel*4;let control=this.#registers[base-0x4000],sweepValue;
   if(duty!==undefined){const index=[0.125,0.25,0.5,0.75].indexOf(duty);if(index<0)throw new RangeError('Pulse duty must be .125, .25, .5 or .75');control=(control&63)|(index<<6);}

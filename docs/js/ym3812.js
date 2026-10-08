@@ -38,8 +38,8 @@ export class Ym3812 {
    * Initialize Ym3812 and its native WASM module.
    * The generated module factory is injected so browser and Node callers can choose asset loading.
    * @param {Object} [options={}] Chip and Emscripten initialization settings.
-   * @param {function(Object): (Object|Promise<Object>)} options.moduleFactory Generated WASM module factory.
-   * @param {Object} [options.moduleOptions] Forwarded loader options, e.g. wasmBinary or locateFile.
+   * @param {import('./soundchip.js').WasmModuleFactory} options.moduleFactory Generated WASM module factory.
+   * @param {import('./soundchip.js').WasmModuleOptions} [options.moduleOptions] Forwarded loader options, e.g. wasmBinary or locateFile.
    * @returns {Promise<Ym3812>} Ready-to-use chip; the caller must dispose it.
    */
   static async create(options = {}) {
@@ -211,6 +211,7 @@ export class Ym3812 {
     return { left, right };
   }
 
+  /** @param {number} frames */
   #ensureBuffers(frames) {
     if (!Number.isInteger(frames) || frames < 0 || frames > 0x1000000) {
       throw new RangeError("Invalid frame count");

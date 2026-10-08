@@ -13,12 +13,11 @@
 export class Huc6280AudioEngine {
   /**
    * Create the chip instances required by this engine.
-   * @param {Object} options Chip factories, clocks in Hz and loader settings.
+   * @param {{moduleFactory: import('./soundchip.js').WasmModuleFactory, clock: number, outputSampleRate?: number, masterVolume?: number}} options Chip factories, clocks in Hz and loader settings.
    * @param {number} [options.outputSampleRate=44100] Output stereo frames per second.
    * @param {number} [options.masterVolume=1] Linear output gain, not dB.
    * @returns {Promise<Huc6280AudioEngine>} Initialized engine owned by the caller.
    */
-  /** @param {{moduleFactory: Function, clock: number, outputSampleRate?: number, masterVolume?: number}} options */
   static async create({moduleFactory, clock, outputSampleRate = 44100, masterVolume = 1}) {
     if (!Number.isInteger(clock) || clock <= 0 || clock > 0x3fffffff ||
         !Number.isInteger(outputSampleRate) || outputSampleRate < 8000 || outputSampleRate > 384000) {
@@ -29,6 +28,10 @@ export class Huc6280AudioEngine {
     return new Huc6280AudioEngine(module, clock, outputSampleRate, masterVolume);
   }
 
+  /** @param {import('./soundchip.js').WasmChipModule} module
+   * @param {number} clock
+   * @param {number} rate
+   * @param {number} volume */
   constructor(module, clock, rate, volume) {
     this.module = module;
     this.rate = rate;

@@ -2,6 +2,7 @@
 import {createNativeSampleController} from './native_sample.js';
 import {createNativeNoiseController} from './native_noise.js';
 import {createNativeFXController} from './native_fx.js';
+/** @param {AudioContext} context */
 export async function createNativeFXRack(context){
  const [module]=await Promise.all([
   fetch(new URL('./native_audio_effect.wasm',import.meta.url)).then(r=>{if(!r.ok)throw new Error(`Native FX WASM: HTTP ${r.status}`);return r.arrayBuffer();}).then(b=>WebAssembly.compile(b)),

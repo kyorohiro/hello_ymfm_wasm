@@ -1,4 +1,7 @@
 import {NES_APU_CLOCK} from './nesapu.js';
+/** @param {AudioContext} context
+ * @param {AudioNode} destination
+ * @param {{fds?:boolean}} [options] */
 export async function createNesAudio(context, destination, {fds = false} = {}) {
   await context.audioWorklet.addModule(new URL('./playground_nes_worklet.js', import.meta.url));
   const node = new AudioWorkletNode(context, 'tetorica-nes', {

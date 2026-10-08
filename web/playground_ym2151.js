@@ -1,4 +1,5 @@
 /** Independent OPM client. Operator indices follow register order M1, C1, M2, C2. */
+/** @param {MessagePort} port */
 export function createYm2151Client(port) {
   let disposed = false;
   const registers = new Uint8Array(256);

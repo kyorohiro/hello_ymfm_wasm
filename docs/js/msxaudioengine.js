@@ -11,6 +11,8 @@ import {Y8950AudioEngine} from './y8950audioengine.js?v=mutes-1';
 import {K051649AudioEngine} from './k051649audioengine.js';
 import {MultiChipAudioEngine} from './multichipaudioengine.js';
 
+/** @typedef {{type:'ym2151',index?:number,options:NonNullable<Parameters<typeof Ym2151AudioEngine.create>[0]>} | {type:'ay8910',index?:number,options:NonNullable<Parameters<typeof Ay8910AudioEngine.create>[0]>} | {type:'ym2413',index?:number,options:NonNullable<Parameters<typeof Ym2413AudioEngine.create>[0]>} | {type:'y8950',index?:number,options:NonNullable<Parameters<typeof Y8950AudioEngine.create>[0]>} | {type:'k051649',index?:number,options:NonNullable<Parameters<typeof K051649AudioEngine.create>[0]>}} MsxChipDescriptor */
+
 /**
  * MsxAudioEngine adapter for synchronous stereo rendering and VGM register dispatch.
  * Output timing uses sampleRate() frames per second. No browser audio device is opened.
@@ -19,7 +21,7 @@ import {MultiChipAudioEngine} from './multichipaudioengine.js';
 export class MsxAudioEngine extends MultiChipAudioEngine {
   /**
    * Create the chip instances required by this engine.
-   * @param {Object} [options={}] Chip factories, clocks in Hz and loader settings.
+   * @param {{chips?:MsxChipDescriptor[],outputSampleRate?:number,masterVolume?:number, ym2151ModuleFactory?:import('./soundchip.js').WasmModuleFactory, ym2151ModuleOptions?:import('./soundchip.js').WasmModuleOptions, ym2151Clock?:number, ayModuleFactory?:import('./soundchip.js').WasmModuleFactory, ayModuleOptions?:import('./soundchip.js').WasmModuleOptions, ayClock?:number, ym2413ModuleFactory?:import('./soundchip.js').WasmModuleFactory, ym2413ModuleOptions?:import('./soundchip.js').WasmModuleOptions, ym2413Clock?:number, y8950ModuleFactory?:import('./soundchip.js').WasmModuleFactory, y8950ModuleOptions?:import('./soundchip.js').WasmModuleOptions, y8950Clock?:number, k051649ModuleFactory?:import('./soundchip.js').WasmModuleFactory, k051649ModuleOptions?:import('./soundchip.js').WasmModuleOptions, k051649Clock?:number,ym2151Variant?:'ym2151'|'ym2164',ayType?:number,ayFlags?:number}} [options={}] Chip factories, clocks in Hz and loader settings.
    * @param {number} [options.outputSampleRate=44100] Output stereo frames per second.
    * @param {number} [options.masterVolume=1] Linear output gain, not dB.
    * @returns {Promise<MsxAudioEngine>} Initialized engine owned by the caller.
@@ -49,20 +51,44 @@ export class MsxAudioEngine extends MultiChipAudioEngine {
       return new MsxAudioEngine(entries, outputSampleRate, masterVolume);
     } catch (error) { for (const {engine} of entries) engine.dispose(); throw error; }
   }
+  /** @param {number} register
+   * @param {number} value
+   * @param {number} [index] */
   writeYm2151(register, value, index = 0) { this.getVgmTarget('ym2151', index).writeRegister(register, value); }
+  /** @param {boolean} value */
   setOpmMuted(value) { this.setChipMuted('ym2151', 0, value); }
+  /** @param {number} channel
+   * @param {boolean} value */
   setOpmChannelMuted(channel, value) { this.entries.get('ym2151:0')?.engine.setChannelMuted(channel, value); }
+  /** @param {number} register
+   * @param {number} [index] */
   writeAy8910(register, value, index = 0) { this.getVgmTarget('ay8910', index).writeRegister(register, value); }
+  /** @param {number} register
+   * @param {number} [index] */
   writeYm2413(register, value, index = 0) { this.getVgmTarget('ym2413', index).writeRegister(register, value); }
+  /** @param {number} register
+   * @param {number} [index] */
   writeY8950(register, value, index = 0) { this.getVgmTarget('y8950', index).writeRegister(register, value); }
+  /** @param {number} port
+   * @param {number} register
+   * @param {number} [index] */
   writeK051649(port, register, value, index = 0) { this.getVgmTarget('k051649', index).writeRegister(port, register, value); }
+  /** @param {boolean} value */
   setAyMuted(value) { this.entries.get('ay8910:0')?.engine.setAyMuted(value); }
+  /** @param {number} channel
+   * @param {boolean} value */
   setAyChannelMuted(channel, value) { this.entries.get('ay8910:0')?.engine.setAyChannelMuted(channel, value); }
+  /** @param {boolean} value */
   setOpllMuted(value) { this.setChipMuted('ym2413', 0, value); }
+  /** @param {boolean} value */
   setY8950Muted(value) { this.setChipMuted('y8950', 0, value); }
+  /** @param {boolean} value */
   setSccMuted(value) { this.entries.get('k051649:0')?.engine.setSccMuted(value); }
+  /** @param {number} channel
+   * @param {boolean} value */
   setSccChannelMuted(channel, value) { this.entries.get('k051649:0')?.engine.setSccChannelMuted(channel, value); }
 }
+/** @param {Parameters<typeof MsxAudioEngine.create>[0]} [options] */
 export const createMsxAudioEngine = options => MsxAudioEngine.create(options);
 
 export function validateMsxPlaybackHeader(header) {

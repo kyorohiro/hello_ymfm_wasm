@@ -4,6 +4,7 @@ import { RF5C164Synth, RF5C164DirectTransport } from './rf5c164synth.js';
 export { sampleBytes, encodeRf5c164 } from './rf5c164_pcm.js';
 const integer=(v,max,name)=>{if(!Number.isInteger(v)||v<0||v>max)throw new RangeError(`Invalid ${name}`);return v;};
 /** Port RPC shared by main and Worker; commands never require main-thread synthesis. */
+/** @param {MessagePort} port */
 export function createRf5c164Client(port,decode){
  let sequence=0,disposed=false;const pending=new Map();
  port.onmessage=({data})=>{const p=pending.get(data.id);if(!p)return;pending.delete(data.id);data.error?p.reject(new Error(data.error)):p.resolve(data.value);};port.start?.();

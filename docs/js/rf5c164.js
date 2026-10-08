@@ -33,8 +33,8 @@ export class Rf5c164 {
    * Initialize Rf5c164 and its native WASM module.
    * The generated module factory is injected so browser and Node callers can choose asset loading.
    * @param {Object} [options={}] Chip and Emscripten initialization settings.
-   * @param {function(Object): (Object|Promise<Object>)} options.moduleFactory Generated WASM module factory.
-   * @param {Object} [options.moduleOptions] Forwarded loader options, e.g. wasmBinary or locateFile.
+   * @param {import('./soundchip.js').WasmModuleFactory} options.moduleFactory Generated WASM module factory.
+   * @param {import('./soundchip.js').WasmModuleOptions} [options.moduleOptions] Forwarded loader options, e.g. wasmBinary or locateFile.
    * @param {number} [options.clock] Input chip clock in Hz.
    * @param {number} [options.sampleRate=44100] Generated PCM frames per second.
    * @returns {Promise<Rf5c164>} Ready-to-use chip; the caller must dispose it.
@@ -140,6 +140,7 @@ export class Rf5c164 {
   }
 
   clearMemory() { this.api.clearMemory(this.handle); }
+  /** @param {number} offset */
   readMemory(offset) { return this.api.readMemory(this.handle, offset); }
   /**
    * Read a chip bus/status value; not a saved copy of all written voice registers.
@@ -219,6 +220,7 @@ export class Rf5c164 {
     return { left, right };
   }
 
+  /** @param {number} frames */
   #ensureBuffers(frames) {
     if (!Number.isInteger(frames) || frames < 0 || frames > 0x1000000) {
       throw new RangeError("Invalid frame count");

@@ -15,6 +15,10 @@ const DEFAULT_OUTPUT_SAMPLE_RATE = 44100;
  */
 export class Ym2203AudioEngine {
   #states = new WeakMap();
+  /** @param {Ym2203} ym2203
+   * @param {number} chipSampleRate
+   * @param {number} outputSampleRate
+   * @param {number} [masterVolume] */
   constructor(
     ym2203,
     chipSampleRate,
@@ -34,7 +38,7 @@ export class Ym2203AudioEngine {
 
   /**
    * Create the chip instances required by this engine.
-   * @param {Object} [options={}] Chip factories, clocks in Hz and loader settings.
+   * @param {{ym2203ModuleFactory: import('./soundchip.js').WasmModuleFactory, ym2203ModuleOptions?: import('./soundchip.js').WasmModuleOptions, ym2203Clock?: number, outputSampleRate?: number, masterVolume?: number}} [options={}] Chip factories, clocks in Hz and loader settings.
    * @param {number} [options.outputSampleRate=44100] Output stereo frames per second.
    * @param {number} [options.masterVolume=1] Linear output gain, not dB.
    * @returns {Promise<Ym2203AudioEngine>} Initialized engine owned by the caller.
@@ -68,6 +72,7 @@ export class Ym2203AudioEngine {
 
   supportsState() { return !this.writeOki6258 && Boolean(this.ym2203.supportsState?.()); }
   stateSettingsKey() { return JSON.stringify([this._chipSampleRate, this._sampleRate, this._masterVolume, this._sourceMuteMask, this.channelMuteMask]); }
+  /** @returns {Readonly<{byteLength:number}>} Opaque snapshot owned by this instance. */
   saveState() {
     if (!this.supportsState()) throw new Error('OPN state saving unavailable');
     const chip = this.ym2203.saveState();
@@ -75,11 +80,13 @@ export class Ym2203AudioEngine {
     this.#states.set(state, {chip, key: this.stateSettingsKey(), timing: [this._resampleRemainder, this._lastLeft, this._lastRight]});
     return state;
   }
+  /** @param {Readonly<{byteLength:number}>} state Snapshot returned by this instance. */
   validateState(state) {
     const saved = this.#states.get(state);
     if (!this.supportsState() || !saved || saved.key !== this.stateSettingsKey()) throw new Error('Incompatible OPN state');
     this.ym2203.validateState(saved.chip);
   }
+  /** @param {Readonly<{byteLength:number}>} state Snapshot returned by this instance. */
   loadState(state) {
     this.validateState(state);
     const saved = this.#states.get(state);
@@ -154,8 +161,10 @@ export class Ym2203AudioEngine {
     this.channelMuteMask = muted ? this.channelMuteMask | bit : this.channelMuteMask & ~bit;
     this.ym2203.setMuteMask(this.channelMuteMask);
   }
+  /** @param {boolean} muted */
   setSsgMuted(muted) { this.setSourceMuted(1, muted); }
 
+   /** @param {boolean} muted  @param {number} bit */
   setSourceMuted(bit, muted) {
     const mask = muted ? this._sourceMuteMask | bit : this._sourceMuteMask & ~bit;
     this.ym2203.setSourceMuteMask(mask);
@@ -219,6 +228,7 @@ export class Ym2203AudioEngine {
   }
 }
 
+/** @param {Parameters<typeof Ym2203AudioEngine.create>[0]} [options] */
 export async function createYm2203AudioEngine(options) {
   return Ym2203AudioEngine.create(options);
 }

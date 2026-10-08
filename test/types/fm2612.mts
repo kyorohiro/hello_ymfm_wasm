@@ -117,3 +117,29 @@ nesSynth.pulse.setVoice(0, {duty: 0.3});
 nesSynth.noise.setVoice({shortMode: 'short'});
 // @ts-expect-error DMC loads encoded bytes, not note names.
 await nesSynth.dmc.loadSample('C4');
+
+// Engine factory options retain their native loader types through convenience exports.
+import {createGameboyApuAudioEngine, GameboyApuAudioEngine} from 'tetorica-fm2612/gameboyapuaudioengine.js';
+import {createGenesisAudioEngine} from 'tetorica-fm2612/genesisaudioengine.js';
+import {createYm2610BAudioEngine} from 'tetorica-fm2612/ym2610baudioengine.js';
+import {createMsxAudioEngine} from 'tetorica-fm2612/msxaudioengine.js';
+import type {WasmModuleFactory} from 'tetorica-fm2612';
+declare const wasmFactory: WasmModuleFactory;
+type IsAny<T> = 0 extends (1 & T) ? true : false;
+const gameboyEngineOptionsAreAny: IsAny<Parameters<typeof createGameboyApuAudioEngine>[0]> = false;
+const engine = await createGameboyApuAudioEngine({moduleFactory: wasmFactory, clock: 4194304, outputSampleRate: 48000});
+new GameboyApuAudioEngine(engine.gameboy, 0.5);
+await createGameboyApuAudioEngine({moduleFactory: wasmFactory});
+await createGenesisAudioEngine({ym2612ModuleFactory: wasmFactory, segaPsgModuleFactory: wasmFactory, pwmModel: 'mame'});
+await createYm2610BAudioEngine({moduleFactory: wasmFactory, clock: 8000000, variant: false});
+await createMsxAudioEngine({chips: [{type: 'ay8910', options: {moduleFactory: wasmFactory, clock: 1789773}}]});
+// @ts-expect-error Sample rates are numbers.
+await createGameboyApuAudioEngine({moduleFactory: wasmFactory, clock: 4194304, outputSampleRate: '48000'});
+// @ts-expect-error Factories return native chip modules, not arbitrary values.
+await createGameboyApuAudioEngine({moduleFactory: () => 42, clock: 4194304});
+// @ts-expect-error An engine borrows a Game Boy chip, not a channel number.
+new GameboyApuAudioEngine(0);
+// @ts-expect-error Explicit MSX descriptors must match their selected chip's options.
+await createMsxAudioEngine({chips: [{type: 'ay8910', options: {ym2151ModuleFactory: wasmFactory}}]});
+// @ts-expect-error Game Boy duty is one of the four hardware ratios.
+new GameboySynth({transport: new GameboyWorkletTransport(gb)}).pulse.setDuty(0, 0.3);

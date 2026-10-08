@@ -19,8 +19,10 @@ export class Oki6295AudioEngine {
     this.reset();
   }
   sampleRate(){return this.rate;}
+  /** @param {number} v */
   setMasterVolume(v){if(!Number.isFinite(v))throw new RangeError('Invalid volume');this.volume=Math.max(0,Math.min(3.8,v));}
   getMasterVolume(){return this.volume;}
+  /** @param {boolean} v */
   setOki6295Muted(v){this.muted=Boolean(v);}
   supportsState(){return false;}
   reset(){
@@ -32,12 +34,16 @@ export class Oki6295AudioEngine {
     this.voices=Array.from({length:4},()=>({playing:false,signal:0,step:0,output:0}));
   }
   dispose(){this.reset();this.rom=new Uint8Array();}
+  /** @param {Uint8Array} data
+   * @param {number} size
+   * @param {number} [offset] */
   loadOki6295Rom(data,offset=0,size=offset+data.length){
     if (!(data instanceof Uint8Array) || !Number.isInteger(size) || size<0 || size>0x4000000 || !Number.isInteger(offset) || offset<0 || offset+data.length>size) throw new RangeError('Invalid OKIM6295 ROM range');
     if(this.rom.length!==size)this.rom=new Uint8Array(size).fill(255);
     this.rom.set(data,offset);
   }
   clearOki6295Rom(){this.rom=new Uint8Array();}
+  /** @param {number} address */
   readRom(address){
     address &= 0x3ffff;
     let offset;
@@ -50,6 +56,7 @@ export class Oki6295AudioEngine {
     return this.rom[offset] ?? 0;
   }
   readStatus(){return this.voices.reduce((n,v,i)=>n|(v.playing?1<<i:0),0xf0);}
+   /** @param {number} register  @param {number} value */
   writeOki6295(register,value){
     if(!Number.isInteger(register)||!Number.isInteger(value)||value<0||value>255)throw new RangeError('Invalid OKIM6295 write');
     if(register===0){this.command(value);return;}
@@ -93,6 +100,7 @@ export class Oki6295AudioEngine {
       if(++v.cursor>=v.count)v.playing=false;
     }
   }
+  /** @param {number} frames */
   processFrames(frames){
     if(!Number.isInteger(frames)||frames<0||frames>0x1000000)throw new RangeError('Invalid frame count');
     const left=new Float32Array(frames),right=new Float32Array(frames);

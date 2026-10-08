@@ -1,4 +1,7 @@
 /** Commands travel directly from Main or logic Worker to the PWM AudioWorklet. */
+/** @param {AudioContext} context
+ * @param {AudioNode} destination
+ * @param {{signal?:AbortSignal,clock?:number,gain?:number,outputMode?:'dac'|'duty'}} [options] */
 export async function createPWM32XAudio(context, destination, options = {}) {
   options.signal?.throwIfAborted();
   await context.audioWorklet.addModule(new URL('./playground_pwm_worklet.js', import.meta.url));

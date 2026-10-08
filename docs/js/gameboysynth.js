@@ -1,5 +1,14 @@
 /** Shared, synchronous Game Boy register synthesizer. No audio-device dependency. */
 import {GAMEBOY_APU_CLOCK} from './gameboyapu.js';
+/** @typedef {{direction?:'down'|'up',period?:number}} GameboyEnvelope
+ * @typedef {{duty?:0.125|0.25|0.5|0.75,volume?:number,envelope?:GameboyEnvelope}} GameboyPulseVoice
+ * @typedef {{volume?:number,envelope?:GameboyEnvelope,divisor?:number,shift?:number,width?:7|15}} GameboyNoiseVoice
+ * @typedef {GameboyEnvelope & {volume?:number}} GameboyEnvelopeSettings
+ * @typedef {{direction?:'down'|'up',period?:number,shift?:number}} GameboySweep
+ * @typedef {{setVoice(ch:number,voice:GameboyPulseVoice):void,setDuty(ch:number,duty:0.125|0.25|0.5|0.75):void,setEnvelope(ch:number,envelope:GameboyEnvelopeSettings):void,setSweep(sweep:GameboySweep):void,setFrequency(ch:number,hz:number):number,setNote(ch:number,note:string|number):number,keyOn(ch:number):void,keyOff(ch:number):void}} GameboyPulseApi
+ * @typedef {{stopAndSetWaveform(samples:number[]|Uint8Array):void,setWaveform(samples:number[]|Uint8Array):void,setLevel(level:0|1|0.5|0.25):void,setFrequency(hz:number):number,setNote(note:string|number):number,keyOn():void,keyOff():void}} GameboyWaveApi
+ * @typedef {{setVoice(voice:GameboyNoiseVoice):void,setEnvelope(envelope:GameboyEnvelopeSettings):void,setParameters(parameters:Pick<GameboyNoiseVoice,'divisor'|'shift'|'width'>):void,keyOn():void,keyOff():void}} GameboyNoiseApi
+ */
 const DUTIES = [0.125, 0.25, 0.5, 0.75];
 const LEVELS = [0, 1, 0.5, 0.25];
 const TRIGGERS = new Set([4, 9, 14, 19]);
@@ -16,6 +25,7 @@ function options(value, keys) {
       (Object.getPrototypeOf(value) !== null && Object.getPrototypeOf(Object.getPrototypeOf(value)) !== null)) throw new TypeError('Expected options object');
   for (const key of Reflect.ownKeys(value)) if (!keys.includes(key)) throw new TypeError(`Unknown property: ${String(key)}`);
 }
+/** @param {string | number} note */
 function noteHz(note) {
   let midi = note;
   if (typeof note === 'string') {
@@ -28,10 +38,13 @@ function noteHz(note) {
 }
 /** Borrows the core. Disposing a Synth never destroys this transport's chip. */
 export class GameboyDirectTransport {
+  /** @param {import('./gameboyapu.js').GameboyApu} chip */
   constructor(chip) {
     if (!chip || typeof chip.writeRegister !== 'function' || typeof chip.reset !== 'function') throw new TypeError('Expected GameboyApu');
     this.chip = chip;
   }
+  /** @param {number} offset
+   * @param {number} value */
   writeRegister(offset, value) { this.chip.writeRegister(offset, value); }
   reset() { this.chip.reset(); }
 }
@@ -44,6 +57,7 @@ export class GameboySynth {
     if (!transport || typeof transport.writeRegister !== 'function' || typeof transport.reset !== 'function') throw new TypeError('Expected transport');
     integer(clock, 1, 0x3fffffff);
     this.#transport = transport; this.#clock = clock;
+    /** @type {Readonly<GameboyPulseApi>} */
     this.pulse = Object.freeze({
       setVoice: (ch, value) => this.#setVoice(this.#pulse(ch), value, false),
       setDuty: (ch, duty) => this.#setVoice(this.#pulse(ch), {duty}, false),
@@ -54,6 +68,7 @@ export class GameboySynth {
       keyOn: ch => this.#keyOn(this.#pulse(ch)),
       keyOff: ch => { const base = this.#pulse(ch); this.#ready(); this.#send(base + 2, 0); },
     });
+    /** @type {Readonly<GameboyWaveApi>} */
     this.wave = Object.freeze({
       stopAndSetWaveform: samples => this.#waveform(samples),
       setWaveform: samples => this.#waveform(samples), // Compatibility alias; also stops DAC.
@@ -63,6 +78,7 @@ export class GameboySynth {
       keyOn: () => { this.#ready(); this.#send(10, this.#voice[10] | 0x80); this.#send(12, this.#voice[12]); this.#trigger(13); },
       keyOff: () => { this.#ready(); this.#send(10, this.#shadow[10] & 0x7f); },
     });
+    /** @type {Readonly<GameboyNoiseApi>} */
     this.noise = Object.freeze({
       setVoice: value => this.#setVoice(15, value, true),
       setEnvelope: value => this.#envelope(15, value),
@@ -76,15 +92,21 @@ export class GameboySynth {
   }
   #alive() { if (this.#disposed) throw new Error('Game Boy disposed'); }
   #ready() { this.#alive(); if (!this.#initialized) throw new Error('Call initialize() before high-level operations'); }
+  /** @param {number} ch */
   #pulse(ch) { this.#alive(); integer(ch, 0, 1); return ch * 5; }
+  /** @param {number} offset */
   #send(offset, value) {
     this.#shadow[offset] = TRIGGERS.has(offset) ? value & 0x7f : value;
     this.#transport.writeRegister(offset, value);
   }
+  /** @param {number} offset
+   * @param {number} mask */
   #update(offset, mask, bits, immediate = false) {
     this.#voice[offset] = (this.#voice[offset] & ~mask) | bits;
     if (immediate) this.#send(offset, (this.#shadow[offset] & ~mask) | bits);
   }
+  /** @param {number} offset
+   * @param {number} value */
   writeRegister(offset, value) {
     this.#alive(); integer(offset, 0, 47); integer(value, 0, 255);
     this.#voice[offset] = TRIGGERS.has(offset) ? value & 0x7f : value;
@@ -158,6 +180,7 @@ export class GameboySynth {
     if ('shift' in value) next = (next & ~7) | integer(value.shift, 0, 7);
     if (Reflect.ownKeys(value).length) { this.#voice[0] = next; this.#send(0, next); }
   }
+  /** @param {number} hz */
   #frequency(low, hz, divisor) {
     this.#ready();
     if (!Number.isFinite(hz) || hz <= 0) throw new RangeError('Expected finite positive Hz');
@@ -188,11 +211,16 @@ export class GameboySynth {
     this.wave.keyOff();
     for (let i = 0; i < 16; i++) this.#update(32 + i, 255, packed[i], true);
   }
+  /** @param {number} ch
+   * @param {boolean} left
+   * @param {boolean} right */
   setPan(ch, left, right) {
     this.#ready(); integer(ch, 0, 3);
     if (typeof left !== 'boolean' || typeof right !== 'boolean') throw new TypeError('Expected boolean pan');
     this.#update(21, (1 << ch) | (16 << ch), (left ? 16 << ch : 0) | (right ? 1 << ch : 0), true);
   }
+  /** @param {number} left
+   * @param {number} right */
   setMasterVolume(left, right) {
     this.#ready(); integer(left, 0, 7); integer(right, 0, 7);
     this.#update(20, 0x77, (left << 4) | right, true);

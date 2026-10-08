@@ -1,6 +1,7 @@
 /** Shared main-thread / Worker facade; register writes and memory transfers share one ordered port. */
 import {YM2608Synth} from './ym2608synth.js?v=ym2608-modes-1';
 
+/** @param {MessagePort} port */
 export function createYm2608Client(port) {
   let disposed = false, sequence = 0;
   const pending = new Map();

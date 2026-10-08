@@ -67,7 +67,7 @@ stopping the runtime removes its output route.
 | Yamaha OPN | YM2203, YM2608, YM2610/YM2610B, YM2612, YM3438, YMF276, YMF288 |
 | Yamaha OPM | YM2151 |
 | Yamaha OPL | YM2413, YM3526, YM3812, Y8950, YMF262, YMF278B |
-| PSG and console audio | AY8910, Sega PSG, Game Boy APU, HuC6280, K051649 |
+| PSG and console audio | AY8910, Sega PSG, Game Boy APU, NES APU + FDS, HuC6280, K051649 |
 | PCM and ADPCM | RF5C164, Sega PCM, OKIM6258, OKIM6295 |
 
 YM2612 includes ymfm and Nuked-OPN2 backends. YM2610 uses the YM2610B core

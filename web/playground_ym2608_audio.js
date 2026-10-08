@@ -1,5 +1,7 @@
 /** Browser setup; commands subsequently travel directly from Worker to Worklet. */
 const nativeFetch = globalThis.fetch?.bind(globalThis);
+/** @param {AudioContext} context
+ * @param {AudioNode} destination */
 export async function createYm2608Audio(context, destination) {
   const bytes = async path => {
     const response = await nativeFetch(new URL(path, import.meta.url));

@@ -27,7 +27,7 @@ export function normalizeTetoricaChip(chip) {
 
 /**
  * Construct the runtime synth for the selected chip. Call start() to initialize audio.
- * @param {Object} [options={}] Forwarded to the selected synth constructor.
+ * @param {import("./megasynth.js").MegaSynthOptions & import("./opn_runtime_synth.js").OPNRuntimeSynthOptions & {chip?:string}} [options={}] Forwarded to the selected synth constructor.
  * @param {string} [options.chip="ym2612"] One of TETORICA_CHIPS.
  * @returns {MegaSynth|YM2203RuntimeSynth|YM2608RuntimeSynth|NeoGeoSynth|YM2610BRuntimeSynth}
  *   Unstarted runtime; construction alone does not load WASM or open an audio device.

@@ -14,14 +14,18 @@ export class RF5C164DirectTransport {
     }
     this.chip = chip;
   }
+  /** @param {number} register
+   * @param {number} value */
   write(register, value) { this.chip.writeRegister(register, value); }
+  /** @param {Uint8Array} bytes
+   * @param {number} address */
   loadMemory(bytes, address) { return this.chip.loadMemory(bytes, address); }
   reset() { this.chip.reset(); }
 }
 
 /** Physical-channel controls. A new/reset chip is expected; route raw writes through this Synth. */
 export class RF5C164Synth {
-  /** @param {{transport: {write: (register: number, value: number) => void, loadMemory: function(Uint8Array, number): *, reset: function(): void}}} options
+  /** @param {{transport: {write: (register: number, value: number) => void, loadMemory: (bytes:Uint8Array, address:number)=>void|Promise<unknown>, reset: function(): void}}} options
    * Transport writes/reset must be synchronous or FIFO fire-and-forget. Memory transfer may return a completion promise.
    */
   constructor({transport} = {}) {
@@ -31,20 +35,21 @@ export class RF5C164Synth {
     this.transport = transport;
     this.channelMask = 255;
   }
-  /** Copy chip-encoded bytes into absolute 64 KiB RAM. Await when using an asynchronous transport. */
+  /** Copy chip-encoded bytes into absolute 64 KiB RAM. Await when using an asynchronous transport. @param {Uint8Array|ArrayBuffer} bytes @param {number} [address] */
   loadMemory(bytes, address = 0) {
     const data = sampleBytes(bytes);
     integer(address, 65536, 'address');
     if (address + data.length > 65536) throw new RangeError('RF5C164 RAM range exceeds 64 KiB');
     return this.transport.loadMemory(data, address);
   }
-  /** Raw register write, also updating the tracked active-low channel mask. */
+  /** Raw register write, also updating the tracked active-low channel mask. @param {number} register @param {number} value */
   writeRegister(register, value) {
     integer(register, 8, 'register');
     integer(value, 255, 'value');
     this.transport.write(register, value);
     if (register === 8) this.channelMask = value;
   }
+  /** @param {number} channel */
   _select(channel) { this.writeRegister(7, 0xc0 | integer(channel, 7, 'channel')); }
   /** @param {number} channel Physical index 0..7.
    * @param {{start?: number, loopStart?: number, step?: number, volume?: number, pan?: {left: number, right: number}}} options
@@ -73,14 +78,15 @@ export class RF5C164Synth {
     this._select(channel);
     for (const [register, value] of entries) this.writeRegister(register, value);
   }
-  /** Set raw 16-bit playback step, not a MIDI note. */
+  /** Set raw 16-bit playback step, not a MIDI note. @param {number} channel @param {number} step */
   setPitch(channel, step) { this.setChannel(channel, {step}); }
-  /** Retrigger the selected physical channel; other channels keep playing. */
+  /** Retrigger the selected physical channel; other channels keep playing. @param {number} channel */
   keyOn(channel) {
     this._select(channel);
     this.writeRegister(8, this.channelMask | (1 << channel));
     this.writeRegister(8, this.channelMask & ~(1 << channel));
   }
+  /** @param {number} channel */
   keyOff(channel) {
     integer(channel, 7, 'channel');
     this.writeRegister(8, this.channelMask | (1 << channel));

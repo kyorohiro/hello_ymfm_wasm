@@ -17,8 +17,10 @@ export class SSGSynth {
   }
   /** Reset tracked registers after the parent chip was reset. Does not write hardware. */
   resetState() { this.registers = new Uint8Array(16); }
-  /** Track parent Synth raw writes so mixer changes preserve other channels and I/O bits. */
+   /** Track parent Synth raw writes so mixer changes preserve other channels and I/O bits. @param {number} register  @param {number} value */
   observeWrite(register, value) { if (register >= 0 && register < 16) this.registers[register] = value; }
+  /** @param {number} register
+   * @param {number} value */
   write(register, value) {
     integer('register', register, 15); integer('value', value, 255);
     this.transport.write(register, value);
@@ -46,7 +48,7 @@ export class SSGSynth {
     this.setVolume(channel, volume, envelope);
     return period;
   }
-  /** Enable shared noise on one channel. Changing period affects all noise-enabled channels. */
+  /** Enable shared noise on one channel. Changing period affects all noise-enabled channels. @param {number} channel */
   noise(channel, {period = 16, volume = 10, envelope = false} = {}) {
     integer('channel', channel, 2); integer('period', period, 31); integer('volume', volume, 15);
     if (typeof envelope !== 'boolean') throw new TypeError('SSG envelope must be boolean');
@@ -54,25 +56,26 @@ export class SSGSynth {
     this.setMixer(channel, {tone: false, noise: true});
     this.setVolume(channel, volume, envelope);
   }
-  /** Change only tone pitch, preserving mixer/volume. Raw 12-bit hardware period. */
+  /** Change only tone pitch, preserving mixer/volume. Raw 12-bit hardware period. @param {number} channel @param {number} period */
   setTonePeriod(channel, period) {
     integer('channel', channel, 2); integer('period', period, 4095);
     this.write(channel * 2, period & 255);
     this.write(channel * 2 + 1, period >> 8);
   }
-  /** Mixer gates may combine tone and noise on the same channel. */
+  /** Mixer gates may combine tone and noise on the same channel. @param {number} channel */
   setMixer(channel, {tone, noise}) {
     integer('channel', channel, 2);
     if (typeof tone !== 'boolean' || typeof noise !== 'boolean') throw new TypeError('SSG mixer expects booleans');
     const bits = (1 << channel) | (8 << channel);
     this.write(7, (this.registers[7] & ~bits) | (tone ? 0 : 1 << channel) | (noise ? 0 : 8 << channel));
   }
-  /** Envelope selection replaces fixed volume with the shared hardware envelope. */
+  /** Envelope selection replaces fixed volume with the shared hardware envelope. @param {number} channel @param {number} volume */
   setVolume(channel, volume, envelope = false) {
     integer('channel', channel, 2); integer('volume', volume, 15);
     if (typeof envelope !== 'boolean') throw new TypeError('SSG envelope must be boolean');
     this.write(8 + channel, envelope ? 16 : volume);
   }
+  /** @param {number} channel */
   off(channel) { this.setVolume(channel, 0); }
   /** Set the shared envelope period/shape; writing shape retriggers the envelope. */
   setEnvelope({period, shape}) {

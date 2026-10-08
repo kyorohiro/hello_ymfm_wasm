@@ -30,6 +30,7 @@ function bool(value, label) {
 function object(value, label) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw new TypeError(`${label} must be an object`);
 }
+/** @param {string | number} note */
 function midiNote(note) {
   if (typeof note === 'number') {
     if (!Number.isInteger(note) || note < 13 || note > 108) throw new RangeError('YM2151 note must be C#0..C8 (MIDI 13..108)');

@@ -838,6 +838,7 @@ export class MegaSynth {
     if (psgWasmBinary) {
       const node = this.node;
       this.psg = createSegaPsgApi({
+        /** @param {number} value */
         write(value) {
           node.port.postMessage({
             type: "psg-write",

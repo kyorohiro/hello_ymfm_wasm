@@ -11,10 +11,32 @@ import {PWM32X} from './pwm32x.js';
 export {encodeWav} from './wav.js';
 
 /**
+ * Loader settings forwarded to an Emscripten chip factory.
+ * @typedef {Object} WasmLoaderOptions
+ * @property {Uint8Array|ArrayBuffer} [wasmBinary] Preloaded WASM bytes.
+ * @property {(path:string, prefix:string)=>string} [locateFile] Resolve generated assets.
+ * @property {(message:string)=>void} [print] Standard output callback.
+ * @property {(message:string)=>void} [printErr] Error output callback.
+ * @property {boolean} [noInitialRun] Skip the generated main entry point.
+ */
+/**
+ * Common native memory and binding surface used by the chip wrappers.
+ * Generated modules may expose additional chip-specific functions.
+ * @typedef {Object} WasmChipModule
+ * @property {Float32Array} HEAPF32 Native float sample memory.
+ * @property {Uint8Array} HEAPU8 Native byte memory.
+ * @property {(bytes:number)=>number} _malloc Allocate native memory.
+ * @property {(pointer:number)=>void} _free Release native memory.
+ * @property {((name:string, result:'number', args:string[]) => (...values:number[])=>number) & ((name:string, result:null, args:string[]) => (...values:number[])=>void)} cwrap Bind a native chip entry point.
+ */
+/** @typedef {WasmLoaderOptions & Record<string, unknown>} WasmModuleOptions */
+/** @typedef {(options?: WasmModuleOptions)=>WasmChipModule|Promise<WasmChipModule>} WasmModuleFactory */
+
+/**
  * @typedef {Object} SoundChipOptions
  * @property {URL|string} [assetBaseUrl] 生成済み *_wasm.js / .wasm のディレクトリURL（末尾 /）。
- * @property {Function} [moduleFactory] 注入する Emscripten factory。指定時は自動ロードを省略。
- * @property {Object} [moduleOptions] wasmBinary、locateFile などをそのまま渡す。
+ * @property {WasmModuleFactory} [moduleFactory] 注入する Emscripten factory。指定時は自動ロードを省略。
+ * @property {WasmModuleOptions} [moduleOptions] wasmBinary、locateFile などをそのまま渡す。
  * @property {import('./soundchip_mixer.js').SoundChipMixer} [mixer] Worklet output mixer.
  * @property {string} [id] Stable chip ID (automatically allocated when omitted).
  * @property {AbortSignal} [signal] WASM ファイルの読み込みを中断する。
@@ -25,7 +47,7 @@ export {encodeWav} from './wav.js';
  * @property {number} [sampleRate] Requested PCM/output sample rate.
  * @property {number} [type] AY chip variant type.
  * @property {number} [flags] Chip-specific flags.
- * @property {boolean} [variant] Chip variant selection.
+ * @property {boolean|'ym2151'|'ym2164'} [variant] Chip variant selection.
  * @property {'dac'|'duty'} [outputMode] PWM amplitude scaling.
  * @property {AudioNode} [outputNode] Browser output destination.
  * @property {number} [gain=0.25] Worklet endpoint の出力音量。

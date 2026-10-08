@@ -12,6 +12,8 @@
  * Dispose the engine when done to release its underlying chips.
  */
 export class MultiChipAudioEngine {
+  /** @param {number} [outputSampleRate]
+   * @param {number} [masterVolume] */
   constructor(entries, outputSampleRate = 44100, masterVolume = 1) {
     if (!Number.isFinite(outputSampleRate) || outputSampleRate <= 0) throw new RangeError('Invalid output sample rate');
     this.entries = new Map();
@@ -24,11 +26,14 @@ export class MultiChipAudioEngine {
     this.outputSampleRate = outputSampleRate;
     this.setMasterVolume(masterVolume);
   }
+  /** @param {number} [index] */
   getVgmTarget(type, index = 0) {
     const entry = this.entries.get(`${type}:${index}`);
     if (!entry) throw new Error(`No playback instance for ${type}:${index}`);
     return entry.target;
   }
+  /** @param {number} index
+   * @param {boolean} muted */
   setChipMuted(type, index, muted) {
     const entry = this.entries.get(`${type}:${index}`);
     if (!entry) throw new Error(`No playback instance for ${type}:${index}`);

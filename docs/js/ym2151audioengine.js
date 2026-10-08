@@ -18,12 +18,11 @@ export class Ym2151AudioEngine {
   #states = new WeakMap();
   /**
    * Create the chip instances required by this engine.
-   * @param {Object} [options={}] Chip factories, clocks in Hz and loader settings.
+   * @param {{ym2151ModuleFactory: import('./soundchip.js').WasmModuleFactory, ym2151ModuleOptions?: import('./soundchip.js').WasmModuleOptions, ym2151Clock?: number, ym2151Variant?: 'ym2151'|'ym2164', segaPsgModuleFactory?: import('./soundchip.js').WasmModuleFactory, psgClock?: number, segaPcmModuleFactory?: import('./soundchip.js').WasmModuleFactory, segaPcmModuleOptions?: import('./soundchip.js').WasmModuleOptions, segaPcmClock?: number, segaPcmBankShift?: number, segaPcmBankMask?: number, outputSampleRate?: number, masterVolume?: number}} [options={}] Chip factories, clocks in Hz and loader settings.
    * @param {number} [options.outputSampleRate=44100] Output stereo frames per second.
    * @param {number} [options.masterVolume=1] Linear output gain, not dB.
    * @returns {Promise<Ym2151AudioEngine>} Initialized engine owned by the caller.
    */
-  /** @param {{ym2151ModuleFactory: Function, ym2151ModuleOptions?: Record<string, unknown>, ym2151Clock?: number, ym2151Variant?: 'ym2151'|'ym2164', segaPsgModuleFactory?: Function, psgClock?: number, segaPcmModuleFactory?: Function, segaPcmModuleOptions?: Record<string, unknown>, segaPcmClock?: number, segaPcmBankShift?: number, segaPcmBankMask?: number, outputSampleRate?: number, masterVolume?: number}} options */
   static async create({ ym2151ModuleFactory, ym2151ModuleOptions, ym2151Clock = YM2151_CLOCK, ym2151Variant = 'ym2151',
     segaPsgModuleFactory, psgClock = 0,
     segaPcmModuleFactory, segaPcmModuleOptions, segaPcmClock = 0, segaPcmBankShift = 0, segaPcmBankMask = 0,
@@ -42,6 +41,12 @@ export class Ym2151AudioEngine {
     } catch (error) { chip.dispose(); psg?.dispose(); segapcm?.dispose(); throw error; }
   }
 
+  /** @param {Ym2151} chip
+   * @param {SegaPSG | undefined} psg
+   * @param {SegaPcm | undefined} segapcm
+   * @param {number} chipRate
+   * @param {number} outputRate
+   * @param {number} volume */
   constructor(chip, psg, segapcm, chipRate, outputRate, volume) {
     this.ym2151 = chip;
     this.psg = psg;
@@ -72,6 +77,7 @@ export class Ym2151AudioEngine {
    * @returns {number} Gain multiplier, not a dB value.
    */
   getMasterVolume() { return this.volume; }
+  /** @param {boolean} value */
   setPsgMuted(value) { this.psgMuted = Boolean(value); }
   /**
    * Change one physical channel mute flag.
@@ -102,9 +108,15 @@ export class Ym2151AudioEngine {
    * @param {number} value Register/command data value.
    */
   writeSegaPcm(offset, value) { this.segapcm?.writeRegister(offset, value); }
+  /** @param {Uint8Array} data
+   * @param {number} memorySize
+   * @param {number} offset */
   loadSampleMemory(data, offset, memorySize) { this.segapcm?.loadSampleMemory(data, offset, memorySize); }
   clearSampleMemory() { this.segapcm?.clearSampleMemory(); }
+  /** @param {boolean} value */
   setSegaPcmMuted(value) { this.segapcmMuted = Boolean(value); this.applySegaPcmMute(); }
+  /** @param {number} channel
+   * @param {boolean} muted */
   setSegaPcmChannelMuted(channel, muted) {
     if (!Number.isInteger(channel) || channel < 0 || channel > 15) throw new RangeError('Invalid Sega PCM channel');
     this.segapcmChannelMask = muted ? this.segapcmChannelMask | (1 << channel) : this.segapcmChannelMask & ~(1 << channel);
@@ -126,6 +138,7 @@ export class Ym2151AudioEngine {
     return JSON.stringify([this.chipRate,this.outputRate,this.volume,this.ym2151.muteMask,this.psgMuted,
       this.segapcmMuted,this.segapcmChannelMask,this.attachedOki6258?.stateSettingsKey()]);
   }
+  /** @returns {Readonly<{byteLength:number}>} Opaque snapshot owned by this instance. */
   saveState() {
     if (!this.supportsState()) throw new Error('YM2151 state saving unavailable');
     const chips=[this.ym2151,this.psg,this.segapcm,this.attachedOki6258];
@@ -134,11 +147,13 @@ export class Ym2151AudioEngine {
     this.#states.set(state,{chips,states,key:this.stateSettingsKey(),timing:[this.remainder,this.lastLeft,this.lastRight]});
     return state;
   }
+  /** @param {Readonly<{byteLength:number}>} state Snapshot returned by this instance. */
   validateState(state) {
     const saved=this.#states.get(state),chips=[this.ym2151,this.psg,this.segapcm,this.attachedOki6258];
     if (!this.supportsState() || !saved || saved.key!==this.stateSettingsKey() || chips.some((c,i)=>c!==saved.chips[i])) throw new Error('Incompatible YM2151 state');
     chips.forEach((c,i)=>c?.validateState(saved.states[i]));
   }
+  /** @param {Readonly<{byteLength:number}>} state Snapshot returned by this instance. */
   loadState(state) {
     this.validateState(state);const saved=this.#states.get(state);
     saved.chips.forEach((c,i)=>c?.loadState(saved.states[i]));
@@ -189,4 +204,5 @@ export class Ym2151AudioEngine {
     return { left, right };
   }
 }
+/** @param {Parameters<typeof Ym2151AudioEngine.create>[0]} [options] */
 export const createYm2151AudioEngine = options => Ym2151AudioEngine.create(options);

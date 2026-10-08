@@ -1,5 +1,8 @@
 /** Browser setup; commands subsequently travel directly from Worker to Worklet. */
 const nativeFetch = globalThis.fetch?.bind(globalThis);
+/** @param {AudioContext} context
+ * @param {AudioNode} destination
+ * @param {'ym2612'|'ym2203'|'ym2610'} name */
 export async function createOpnAudio(context, destination, name) {
   if (!['ym2612', 'ym2203', 'ym2610'].includes(name)) throw new Error(`Unsupported OPN chip: ${name}`);
   const backend = name === 'ym2610' ? 'ym2610b' : name;

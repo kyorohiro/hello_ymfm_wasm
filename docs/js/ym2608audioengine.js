@@ -15,6 +15,10 @@ const DEFAULT_OUTPUT_SAMPLE_RATE = 44100;
  */
 export class Ym2608AudioEngine {
   #states = new WeakMap();
+  /** @param {Ym2608} ym2608
+   * @param {number} chipSampleRate
+   * @param {number} outputSampleRate
+   * @param {number} [masterVolume] */
   constructor(
     ym2608,
     chipSampleRate,
@@ -34,7 +38,7 @@ export class Ym2608AudioEngine {
 
   /**
    * Create the chip instances required by this engine.
-   * @param {Object} [options={}] Chip factories, clocks in Hz and loader settings.
+   * @param {{ym2608ModuleFactory: import('./soundchip.js').WasmModuleFactory, ym2608ModuleOptions?: import('./soundchip.js').WasmModuleOptions, ym2608Clock?: number, outputSampleRate?: number, masterVolume?: number}} [options={}] Chip factories, clocks in Hz and loader settings.
    * @param {number} [options.outputSampleRate=44100] Output stereo frames per second.
    * @param {number} [options.masterVolume=1] Linear output gain, not dB.
    * @returns {Promise<Ym2608AudioEngine>} Initialized engine owned by the caller.
@@ -68,6 +72,7 @@ export class Ym2608AudioEngine {
 
   supportsState() { return !this.writeOki6258 && Boolean(this.ym2608.supportsState?.()); }
   stateSettingsKey() { return JSON.stringify([this._chipSampleRate, this._sampleRate, this._masterVolume, this._sourceMuteMask, this._rhythmRomRevision]); }
+  /** @returns {Readonly<{byteLength:number}>} Opaque snapshot owned by this instance. */
   saveState() {
     if (!this.supportsState()) throw new Error('OPN state saving unavailable');
     const chip = this.ym2608.saveState();
@@ -75,11 +80,13 @@ export class Ym2608AudioEngine {
     this.#states.set(state, {chip, key: this.stateSettingsKey(), timing: [this._resampleRemainder, this._lastLeft, this._lastRight]});
     return state;
   }
+  /** @param {Readonly<{byteLength:number}>} state Snapshot returned by this instance. */
   validateState(state) {
     const saved = this.#states.get(state);
     if (!this.supportsState() || !saved || saved.key !== this.stateSettingsKey()) throw new Error('Incompatible OPN state');
     this.ym2608.validateState(saved.chip);
   }
+  /** @param {Readonly<{byteLength:number}>} state Snapshot returned by this instance. */
   loadState(state) {
     this.validateState(state);
     const saved = this.#states.get(state);
@@ -143,11 +150,16 @@ export class Ym2608AudioEngine {
     this.ym2608.write((port * 2) + 1, value);
   }
 
+  /** @param {Uint8Array} bytes
+   * @param {number} [offset] */
   loadAdpcmARom(bytes, offset = 0) {
     this.ym2608.loadAdpcmARom(bytes, offset);
     this._rhythmRomRevision++;
   }
 
+  /** @param {Uint8Array} bytes
+   * @param {number} memorySize
+   * @param {number} offset */
   loadAdpcmBMemory(bytes, offset = 0, memorySize) {
     this.ym2608.loadAdpcmBMemory(bytes, offset, memorySize);
   }
@@ -156,10 +168,14 @@ export class Ym2608AudioEngine {
     this.ym2608.clearAdpcmBMemory();
   }
 
+  /** @param {boolean} muted */
   setSsgMuted(muted) { this.setSourceMuted(1, muted); }
+  /** @param {boolean} muted */
   setRhythmMuted(muted) { this.setSourceMuted(2, muted); }
+  /** @param {boolean} muted */
   setAdpcmBMuted(muted) { this.setSourceMuted(4, muted); }
 
+   /** @param {boolean} muted  @param {number} bit */
   setSourceMuted(bit, muted) {
     const mask = muted ? this._sourceMuteMask | bit : this._sourceMuteMask & ~bit;
     this.ym2608.setSourceMuteMask(mask);
@@ -222,6 +238,7 @@ export class Ym2608AudioEngine {
   }
 }
 
+/** @param {Parameters<typeof Ym2608AudioEngine.create>[0]} [options] */
 export async function createYm2608AudioEngine(options) {
   return Ym2608AudioEngine.create(options);
 }
