@@ -258,6 +258,55 @@ Worklet uploads complete before the returned promise resolves.
 `loadMemory()` remains the API for already-encoded ADPCM-B bytes.
 This does not add arbitrary sample loading to YM2608's fixed ADPCM-A rhythm.
 
+## YM2151 Synth
+
+`YM2151Synth` supports all eight OPM channels and shares one register-generation
+implementation across Direct, Worklet and Node Audify transports.
+
+```javascript
+import {createSoundChip} from 'tetorica-fm2612';
+import {YM2151Synth, YM2151WorkletTransport} from 'tetorica-fm2612/ym2151synth.js';
+import {FM_PRESETS} from 'tetorica-fm2612/megasynth-fm-presets.js';
+
+const chip = await createSoundChip('ym2151', {execution: 'worklet', signal});
+const transport = new YM2151WorkletTransport(chip);
+try {
+  const fm = new YM2151Synth({transport});
+  fm.setPreset(0, FM_PRESETS.sine);
+  await transport.start();
+  fm.noteOn(0, 'C4'); // A note name or MIDI integer, C#0..C8 (13..108).
+  // Wait for the desired duration using your app's timer.
+  fm.noteOff(0);
+  await transport.flush();
+} finally {
+  await transport.close();
+  await chip.dispose();
+}
+```
+
+Use `YM2151DirectTransport(chip)` from the same module for `generateStereo()`
+and offline PCM. Use `YM2151AudifyTransport(chip)` from
+`tetorica-fm2612/node/transports` for Node device output.
+
+`setPreset`, `setOperator`, `setAlgo`, `setPan`, `setNote`, `setFrequency`,
+`setPitch`, `keyOn` / `keyOff`, and `noteOn` / `noteOff` are available.
+`setLFO({frequency, amDepth, pmDepth, waveform})` and
+`setNoise(enabled, frequency)` expose OPM-specific controls. Noise affects channel 7.
+`setFrequency` quantizes Hz to the chip's 1/64-semitone key fraction;
+note/frequency conversion assumes the default 3579545 Hz clock.
+`setPitch(channel, keyCode, keyFraction)` accepts raw KC/KF values.
+
+Synth operators and `operatorMask` bits use logical M1, M2, C1, C2 order (0..3),
+matching the algorithm order used by `FM_PRESETS`. All bundled `FM_PRESETS` can
+be applied; OPM and OPN have different hardware behavior, so their sounds need
+not match. OPM adds `dt2` (0..3) and has no OPN SSG envelope.
+Operator aliases `dt1`, `mul`, `ks`, `sr`, `d1l` are accepted for
+`dt`, `multi`, `rs`, `d2r`, `sl`; specifying both aliases in one update is rejected.
+Partial edits preserve adjacent bits. Presets are validated before writes.
+
+The older Playground YM2151 client retains its register-order operator indexing
+(M1, C1, M2, C2) and its existing API. `YM2151Synth` is the package Synth layer.
+
 ## Chip output transports (0.2.6)
 
 Basic chip examples use a shared factory followed by a transport and Synth.

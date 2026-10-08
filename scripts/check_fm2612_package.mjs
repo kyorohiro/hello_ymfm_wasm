@@ -25,6 +25,7 @@ import assert from 'node:assert/strict';
 import {access} from 'node:fs/promises';
 import {createSoundChip} from 'tetorica-fm2612';
 import {YM2612Synth, YM2612DirectTransport} from 'tetorica-fm2612/ym2612synth';
+import {YM2151Synth, YM2151DirectTransport} from 'tetorica-fm2612/ym2151synth';
 import {Ym2612} from 'tetorica-fm2612/ym2612.js';
 import {FM_PRESETS} from 'tetorica-fm2612/megasynth-fm-presets';
 import {runtimeAssetUrl} from 'tetorica-fm2612/assets';
@@ -40,6 +41,16 @@ try {
   assert.ok(left.every(Number.isFinite) && right.every(Number.isFinite));
   assert.ok(left.some(x => Math.abs(x) > 0.001), 'Synth must produce audible PCM');
 } finally { chip.dispose(); }
+const opmChip = await createSoundChip('ym2151');
+try {
+  const transport = new YM2151DirectTransport(opmChip);
+  const synth = new YM2151Synth({transport});
+  synth.setPreset(7, FM_PRESETS.sine);
+  synth.noteOn(7, 'A4');
+  const pcm = transport.generateStereo(4096);
+  assert.ok(pcm.left.every(Number.isFinite) && pcm.left.some(x => Math.abs(x) > .001));
+  synth.noteOff(7);
+} finally {opmChip.dispose();}
 assert.equal(typeof globalThis.AudioContext, 'undefined');
 const {MegaSynthNode} = await import('tetorica-fm2612/node');
 const nodeSynth = new MegaSynthNode();

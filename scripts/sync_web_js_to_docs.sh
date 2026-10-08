@@ -130,6 +130,7 @@ ym3812audioengine.js
 ymf262.js
 ymf262audioengine.js
 ym2151.js
+ym2151synth.js
 ym2151audioengine.js
 playground_segapsg.js
 playground_segapsg_audio.js

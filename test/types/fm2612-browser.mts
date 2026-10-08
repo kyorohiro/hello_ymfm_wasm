@@ -29,3 +29,10 @@ const autoChip = await createSoundChip('gameboy', {execution:'worklet', mixer});
 autoChip.mixer.set(autoChip.id, {volume:0.3});
 // @ts-expect-error Chip IDs cannot be reassigned.
 autoChip.id = 'other';
+import {YM2151Synth, YM2151WorkletTransport} from 'tetorica-fm2612/ym2151synth.js';
+const opmEndpoint = await createSoundChip('ym2151', {execution: 'worklet'});
+const opm = new YM2151Synth({transport: new YM2151WorkletTransport(opmEndpoint)});
+opm.noteOn(7, 'C4', {operatorMask: 8});
+opm.noteOff(7);
+// @ts-expect-error Raw key fraction is numeric.
+opm.setPitch(0, 0x4a, 'quarter');

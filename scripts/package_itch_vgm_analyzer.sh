@@ -153,6 +153,8 @@ ym3812audioengine.js
 ymf262.js
 ymf262audioengine.js
 ym2151.js
+ym2151synth.js
+chip_worklet_transport.js
 ym2151audioengine.js
 ym2413.js
 ym2413audioengine.js

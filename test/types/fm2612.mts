@@ -10,6 +10,27 @@ import {GameboyWorkletTransport} from 'tetorica-fm2612/chip_worklet_transport.js
 import {createMegaSynthOffline} from 'tetorica-fm2612/megasynth_offline.js';
 import {MegaSynthNode} from 'tetorica-fm2612/node';
 import {YM2612AudifyTransport, PWM32XAudifyTransport} from 'tetorica-fm2612/node/transports';
+import {YM2151AudifyTransport} from 'tetorica-fm2612/node/transports';
+import {YM2151Synth, YM2151DirectTransport} from 'tetorica-fm2612/ym2151synth.js';
+import {FM_PRESETS} from 'tetorica-fm2612/megasynth-fm-presets.js';
+
+const opmChip = await createSoundChip('ym2151');
+const opm = new YM2151Synth({transport: new YM2151DirectTransport(opmChip)});
+opm.setPreset(0, FM_PRESETS.sine);
+opm.noteOn(0, 'A4');
+opm.setOperator(0, 1, {dt2: 2, multi: 3, am: true});
+opm.setPan(0, true, false, 2, 3);
+opm.setLFO({frequency: 128, amDepth: 50, pmDepth: 60, waveform: 2});
+opm.setFrequency(0, 440);
+new YM2151Synth({transport: new YM2151AudifyTransport(opmChip)});
+// @ts-expect-error Notes are strings or MIDI numbers.
+opm.noteOn(0, {});
+// @ts-expect-error Pan is boolean.
+opm.setPan(0, 'left', true);
+// @ts-expect-error OPM has no SSG envelope.
+opm.setOperator(0, 1, {ssg: 2});
+// @ts-expect-error LFO depths are numeric.
+opm.setLFO({pmDepth: 'high'});
 
 const chip = await createSoundChip('ym2612', {sampleRate: 48000, signal: new AbortController().signal});
 chip.writeRegister(0x28, 0xf0);

@@ -69,6 +69,8 @@ native_sample.js
 playground_rf5c164.js
 playground_ym2608.js
 ym2151.js
+ym2151synth.js
+chip_worklet_transport.js
 playground_ym2151.js
 playground_ym2151_audio.js
 playground_ym2151_worklet.js
