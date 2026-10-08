@@ -460,10 +460,9 @@ installation check also runs the consumer type tests against the installed packa
 
 ## NES APU + FDS Synth
 
-The local build adds `createSoundChip('nes')` and `NesApuSynth`. Enable FDS
+Version 0.2.12 adds `createSoundChip('nes')` and `NesApuSynth`. Enable FDS
 with `{fds: true}`. It reuses the Analyzer's JSNES APU and fixNES-derived FDS
 engines; no WASM, CPU program, cartridge or instrument ROM is needed.
-This addition is not in published npm 0.2.11 yet.
 
 ```javascript
 import {createSoundChip} from 'tetorica-fm2612';

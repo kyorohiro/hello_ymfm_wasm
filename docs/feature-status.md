@@ -103,13 +103,13 @@ WASMが存在するだけでPlayground APIも利用可能とは判断しない�
 
 ## 公開状況の記録
 
-利用者からの公開報告と、実際に公開・配布物を照合した記録を併記する。CLI v0.2.8とFM2612 v0.2.11はnpm配布物を照合済み。ほかの公開報告はGitHub Pages／itch.ioの配布物を取得・照合していない。
+利用者からの公開報告と、実際に公開・配布物を照合した記録を併記する。CLI v0.2.8とFM2612 v0.2.12はnpm配布物を照合済み。ほかの公開報告はGitHub Pages／itch.ioの配布物を取得・照合していない。
 版番号だけを根拠に、後から追加したコードまで公開済みにしない。
 
 | 対象 | 公開報告 | この一覧での扱い |
 |---|---|---|
 | CLI `tetorica-vgm` | [v0.2.8をnpm公開](https://www.npmjs.com/package/tetorica-vgm/v/0.2.8)（2026-10-08） | latestと公開tarball integrityを照合。共通ミキサーPCM依存を同梱。公開版の新規導入・版番号・Node API解析・Game Boy WAV出力を確認。公開元commit `14ba730` |
-| Sound-chip runtime `tetorica-fm2612` | [v0.2.11をnpm公開](https://www.npmjs.com/package/tetorica-fm2612/v/0.2.11)（2026-10-08） | latestと公開tarball integrityを照合。共通ミキサー・Game Boy初期値28%・自動IDとreadonly chip.id・YM2151Synthを収録。公開版の新規導入・型定義・PCM・MegaSynth／Worklet／playground Main・Workerを確認 |
+| Sound-chip runtime `tetorica-fm2612` | [v0.2.12をnpm公開](https://www.npmjs.com/package/tetorica-fm2612/v/0.2.12)（2026-10-09） | latestと公開tarball integrityを照合。既存Mixer・自動ID・YM2151Synthに加えNES APU／FDS SynthとPlayground接続・examplesを収録。新規導入・型定義・Direct／Worklet発音と終了、Node CoreAudio、Playground Main／Workerを確認 |
 | VGM Analyzer | v0.40.7公開済みとの報告（SBI対応の時期） | 後続のROM・高速シーク等がどの公開版に入ったかは未照合 |
 | Playground／Game Boy VGM→JavaScript変換 | itch.io向けv0.40.11公開済みとの報告（2026-09-30） | raw／解説付きraw／高水準API＋raw fallback、チップ別オプション。公開配布物の照合・ブラウザー聴感確認は未実施 |
 
@@ -157,11 +157,14 @@ CLI実装と共有ランタイムのソースは従来の場所を使用する�
 
 ## NES APU / FDS 高水準 API
 
-ローカル追加。`createSoundChip('nes', {fds:true})` と `NesApuSynth`、
+npm `tetorica-fm2612` 0.2.12で公開（2026-10-09）。`createSoundChip('nes', {fds:true})` と `NesApuSynth`、
 Direct／Worklet／Node Audify Transportを追加。Pulse×2の音名・音量・duty・
 envelope・sweep、Triangle、Noiseのperiod／short mode、DMCの符号化済みサンプル転送、
 FDSの64点波形・音量・32点modulationを扱う。NTSCのみ。
 NES Workletは共通Mixerと自動IDに対応。起動時のDAC基準値と整数コアの残留DCは
 新しいラッパーで補正する。既存Analyzerのエンジンは変更していない。
 全音源のDirect／Worklet発音、音程、停止・再開、DMC ACK／reset、型定義を確認。
-公開済みnpm 0.2.11には未収録。
+公開tarballのSHA-512 integrityは
+`sha512-d08sGEu19yriuc35xJE5bHlcKKWv308FJfKykmbaVtdfbKEVGGHLvD6g/eMOPFbB9p2otCcuTd4wvSSxgP0HTQ==`。
+Playgroundとnpm examplesにAPU・FDS波形／変調・DMCの3例を追加。
+npm examplesのWeb発音・停止・AudioContext解放、Node CoreAudioでの再生・終了を確認。
