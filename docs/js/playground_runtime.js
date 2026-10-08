@@ -206,18 +206,19 @@ export function createPlaygroundRuntime(
   let sharedFmSynth;
   async function openPcm(name, token = currentRunToken, options = {}) {
     if (!options || typeof options !== 'object' || Array.isArray(options) || Object.keys(options).some(k => k !== 'id')) throw new TypeError('createSoundChip supports {id}');
-    let mixerId = options.id ?? name;
-    const occupied = id => pendingPcmIds.has(id) || megaDrive.mixer?.list().some(s => s.id === id && s.connected);
-    if (options.id === undefined) while (occupied(mixerId)) mixerId = `${name}:${++pcmSequence}`;
-    megaDrive.mixer?.checkId(mixerId);
-    if (occupied(mixerId)) throw new Error(`Mixer id is already connected: ${mixerId}`);
     if(!['ym2612', 'ym2203', 'ym2610', 'rf5c164', 'ym2608', 'gameboy', 'segapsg', 'ym2151', 'pwm'].includes(name)) throw new Error('Unsupported Playground sound chip: ' + name);
+    const occupied = id => pendingPcmIds.has(id) || megaDrive.mixer?.list().some(s => s.id === id && s.connected);
+    const reservation = megaDrive.mixer?.reserveId?.(name, options.id);
+    let mixerId = reservation?.id ?? options.id;
+    if (mixerId === undefined) do {mixerId = `${name}:${++pcmSequence}`;} while (occupied(mixerId));
+    if (typeof mixerId !== 'string' || !mixerId.trim()) throw new TypeError('Mixer id must be a nonempty string');
+    if (occupied(mixerId)) {reservation?.release(); throw new Error(`Mixer id is already connected: ${mixerId}`);}
     const createAudio = name === 'pwm' ? createPWM32XAudio : ['ym2612', 'ym2203', 'ym2610'].includes(name) ? (context, destination) => createOpnAudio(context, destination, name) : name === 'ym2151' ? createYm2151Audio : name === 'segapsg' ? createSegaPsgAudio : name === 'gameboy' ? createGameboyAudio : name === 'ym2608' ? createYm2608Audio : createRf5c164Audio;
     pendingPcmIds.add(mixerId);
     let device;
     try {device = await createAudio(megaDrive.audioContext, megaDrive.audio.masterInputNode);}
-    catch (error) {pendingPcmIds.delete(mixerId); throw error;}
-    if(token !== currentRunToken){pendingPcmIds.delete(mixerId);device.dispose();throw new Error('Run stopped');}
+    catch (error) {pendingPcmIds.delete(mixerId); reservation?.release(); throw error;}
+    if(token !== currentRunToken){pendingPcmIds.delete(mixerId);reservation?.release();device.dispose();throw new Error('Run stopped');}
     try {
       if (megaDrive.mixer) {
         device.node.disconnect(megaDrive.audio.masterInputNode);
@@ -226,7 +227,7 @@ export function createPlaygroundRuntime(
         device.dispose = () => {if (disposed) return; disposed = true; release(); pcmDevices.delete(device); dispose();};
       }
     } catch (error) {device.dispose(); throw error;}
-    finally {pendingPcmIds.delete(mixerId);}
+    finally {pendingPcmIds.delete(mixerId);reservation?.release();}
     device.mixerId = mixerId;
     pcmDevices.add(device);return device;
   }
@@ -873,7 +874,7 @@ export function createPlaygroundRuntime(
       throw new Error("Playground Worker is not running");
     }
 
-    if(command==='pcm.create')return (await openPcm(args[0], currentRunToken, args[1])).port;
+    if(command==='pcm.create'){const device=await openPcm(args[0], currentRunToken, args[1]);return {port:device.port,id:device.mixerId};}
     if(command==='pcm.dispose') {for(const device of pcmDevices) if(device.mixerId===args[0]) device.dispose(); return;}
     if(command.startsWith('mixer.')) {const method=command.slice(6);if(!['set','get','reset','list'].includes(method)) throw new Error('Unknown mixer method');return megaDrive.mixer[method](...args);}
     if(command==='pcm.decode')return decodePcm(args[0]);
@@ -1036,7 +1037,7 @@ export function createPlaygroundRuntime(
         if (message.type === "request") {
           worker.postMessage(error
             ? { type: "response", id: message.id, error: error?.message ?? String(error) }
-            : { type: "response", id: message.id, value }, !error && message.command === "pcm.create" ? [value] : []);
+            : { type: "response", id: message.id, value }, !error && message.command === "pcm.create" ? [value.port] : []);
         } else if (error) emitLog(error?.stack ?? String(error));
       };
       workerCommandQueue = workerCommandQueue
@@ -1235,7 +1236,7 @@ export function createPlaygroundRuntime(
         "__anonymous__",
     };
     const fx = createFxApi();
-    if (sharedFmSynth !== synth) { sharedFm = createFmProxy(synth); sharedFmSynth = synth; }
+    if (sharedFmSynth !== synth) { sharedFm = createFmProxy(synth); Object.defineProperty(sharedFm, 'id', {value: capabilities.chip ?? 'ym2612', enumerable: true}); sharedFmSynth = synth; }
     const fm = sharedFm;
     const psg = megaDrive.psg;
     const musicApi =
@@ -1386,7 +1387,7 @@ export function createPlaygroundRuntime(
       createSoundChip: async (name, options = {}) => {
         const device=await openPcm(name,runToken,options);
         const client=name === 'pwm' ? createPWM32XClient(device.port) : ['ym2612', 'ym2203', 'ym2610'].includes(name) ? createOpnClient(name, device.port) : name === 'ym2151' ? createYm2151Client(device.port) : name === 'segapsg' ? createSegaPsgClient(device.port) : name === 'gameboy' ? createGameboyClient(device.port) : name === 'ym2608' ? createYm2608Client(device.port) : createRf5c164Client(device.port,decodePcm);
-        client.id=device.mixerId;
+        Object.defineProperty(client, 'id', {value: device.mixerId, enumerable: true});
         const dispose=device.dispose, disposeClient=client.dispose.bind(client); let disposed=false;
         client.dispose=()=>{if(disposed)return;disposed=true;disposeClient();dispose();};
         device.dispose=client.dispose;

@@ -42,3 +42,13 @@ test('browser stereo routing applies defaults, ramps changes and unregisters onl
   assert.deepEqual(right.gain.calls.at(-1), ['ramp', 0, 10.005]);
   release(); assert.equal(source.targets.length, 0); assert.equal(mixer.list().length, 0);
 });
+
+test('initializing outputs reserve automatic and explicit IDs before any awaits', () => {
+ const mixer=new SoundChipMixer();
+ const a=mixer.reserveId('gameboy'),b=mixer.reserveId('gameboy');assert.notEqual(a.id,b.id);
+ const manual=mixer.reserveId('gameboy','lead');assert.throws(()=>mixer.reserveId('gameboy','lead'),/initializing/);
+ manual.release();const retry=mixer.reserveId('gameboy','lead');manual.release();assert.throws(()=>mixer.reserveId('gameboy','lead'),/initializing/);
+ const release=mixer.register(retry.id,'gameboy',()=>{});retry.release();
+ assert.throws(()=>mixer.reserveId('gameboy','lead'),/connected/);
+ release();assert.doesNotThrow(()=>mixer.reserveId('gameboy','lead').release());a.release();b.release();
+});

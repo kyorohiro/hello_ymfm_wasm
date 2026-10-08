@@ -320,6 +320,7 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
   run.resetSampleClock = () => { clock.resetSampleClock(); workerDac?.reset(); };
   const fm = new Proxy({}, {
     get(_target, property) {
+      if (property === "id") return capabilities.chip ?? "ym2612";
       if (property === "then") return undefined;
       if (property === "dac") {
         if (!capabilities.dac) return undefined;
@@ -453,7 +454,7 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
     (run.collectingCleanups ?? run.cleanups).push({ names, fn });
   };
   const pcmClients = new Set();
-  const pcmIds = new Set(); let pcmSequence = 0;
+  let pcmSequence = 0;
   const soundChips = createSoundChipRegistry();
   const loopTasks = createLoopAsyncTasks({getLoop: () => run.currentLoop,
     cancelWaits: loop => clock.cancelWaits(loop),
@@ -589,19 +590,15 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
       if(run.stopped)throw new Error('Run stopped');
       const token=run.token;
       if (!options || typeof options !== 'object' || Array.isArray(options) || Object.keys(options).some(k => k !== 'id')) throw new TypeError('createSoundChip supports {id}');
-      let mixerId=options.id ?? name;
-      const primary=capabilities.chip ?? 'ym2612';
-      if(options.id===undefined)while(pcmIds.has(mixerId)||mixerId===primary||mixerId==='segapsg'&&capabilities.psg)mixerId=`${name}:${++pcmSequence}`;
-      if(pcmIds.has(mixerId))throw new Error(`Mixer id is already connected: ${mixerId}`);
-      pcmIds.add(mixerId);
-      let port;
-      try {port=await request('pcm.create',[name, {id:mixerId}]);}
-      catch(error){pcmIds.delete(mixerId);throw error;}
+      const response=await request('pcm.create',[name, options]);
+      // Older test/host shims may return a bare port; production returns its allocated ID.
+      const port=response.port ?? response;
+      const mixerId=response.id ?? options.id ?? `${name}:${++pcmSequence}`;
       const pcm=name === 'pwm' ? createPWM32XClient(port) : ['ym2612', 'ym2203', 'ym2610'].includes(name) ? createOpnClient(name, port) : name === 'ym2151' ? createYm2151Client(port) : name === 'segapsg' ? createSegaPsgClient(port) : name === 'gameboy' ? createGameboyClient(port) : name === 'ym2608' ? createYm2608Client(port) : createRf5c164Client(port,source=>request('pcm.decode',[source]));
       if(run.stopped || token!==run.token){pcm.dispose();throw new Error('Run stopped');}
-      pcm.id=mixerId;
+      Object.defineProperty(pcm, 'id', {value: mixerId, enumerable: true});
       const dispose=pcm.dispose.bind(pcm); let disposed=false;
-      pcm.dispose=()=>{if(disposed)return;disposed=true;dispose();pcmClients.delete(pcm);pcmIds.delete(mixerId);postCommand('pcm.dispose',[mixerId]);};
+      pcm.dispose=()=>{if(disposed)return;disposed=true;dispose();pcmClients.delete(pcm);postCommand('pcm.dispose',[mixerId]);};
       pcmClients.add(pcm);return pcm;
     },
     mixer: Object.fromEntries(['set', 'get', 'reset', 'list'].map(method => [method, (...args) => request('mixer.' + method, args, run.currentLoop)])),

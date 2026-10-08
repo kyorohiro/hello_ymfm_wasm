@@ -160,7 +160,7 @@ These APIs are available from npm 0.2.7. A PCM `loadSample`/`play` facade is not
 import {createSoundChip, SoundChipMixer} from './soundchip.js';
 const mixer = new SoundChipMixer();
 const chip = await createSoundChip('gameboy', {
-  execution: 'worklet', mixer, id: 'gb1',
+  execution: 'worklet', mixer,
 });
 mixer.set(chip.id, {volume: 0.28, pan: 0, muted: false});
 // レジスタ設定後に await chip.start()。使用後に await chip.dispose()。
@@ -174,3 +174,9 @@ Game Boyは28%、他は100%が初期値。`reset(id)`もその値に戻ります
 直生成モードは生のPCMを保ち、出力ミキサー指定はWorklet専用です。
 MegaSynthの`synth.mixer`、playgroundの`mixer`／`pg.mixer`も同じ設定項目を使います。
 playgroundのWorkerでは各操作を`await`してください。
+
+IDの指定は省略できます。`createSoundChip`で生成したDirect／Workletのどちらも
+`chip.id`から取得できます。自動IDは生成要求時に連番で確保し、同時初期化でも
+重複しません。IDは生成後に変更できません。手動の`{id: 'gb1'}`も利用できます。
+playgroundの`createSoundChip`／`useSoundChip`でも返されたオブジェクトの`.id`を
+`await mixer.set(chip.id, {volume: 0.3})`へ渡せます。

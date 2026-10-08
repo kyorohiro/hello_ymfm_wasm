@@ -22,15 +22,17 @@ import {createSoundChip, SoundChipMixer} from 'tetorica-fm2612';
 const mixer = new SoundChipMixer();
 const audioContext = new AudioContext();
 const chip = await createSoundChip('gameboy', {
-  execution: 'worklet', audioContext, mixer, id: 'gb1',
+  execution: 'worklet', audioContext, mixer,
 });
 mixer.set(chip.id, {volume: 0.28, pan: 0, muted: false});
 // Configure registers or use a Synth, then await chip.start().
 // await chip.dispose() removes its strip; caller owns audioContext.close().
 ```
 
-Worklet endpoints expose `chip.mixer` and `chip.id` even without an explicit
-mixer. Each endpoint retains its existing `gain` trim (default 0.25); the mixer
+All chips created by `createSoundChip` expose a stable, readonly `chip.id`.
+Omitting `{id}` assigns an automatic ID such as `gameboy:1`; simultaneous
+creation also gets distinct IDs. Worklet endpoints expose `chip.mixer` even
+without an explicit mixer. Each endpoint retains its existing `gain` trim (default 0.25); the mixer
 balance multiplies that trim. Direct chips continue to generate raw PCM and
 accept no output mixer. `PCMChipMixer` is available from `soundchip_mixer.js`
 for synchronous rendering, as used by the Analyzer.
@@ -44,7 +46,7 @@ synth removes its connected strips. A shared mixer can be passed as `{mixer}`.
 Inside Playground Main or Worker code:
 
 ```js
-const gb = await createSoundChip('gameboy', {id: 'gb1'});
+const gb = await createSoundChip('gameboy');
 await mixer.set(gb.id, {volume: 0.28, pan: -0.5});
 const settings = await pg.mixer.get(gb.id);
 await mixer.reset(gb.id);
@@ -53,8 +55,9 @@ gb.dispose();
 
 Worker controls return promises; `await` works in both execution modes.
 `createSoundChip` assigns an ID when omitted and preserves independent
-instances. Explicit IDs must be unique. `useSoundChip` retains its existing
-per-name cache; its `{id}` option is not supported. Disposing a client or
+instances. Explicit IDs must be unique within a shared mixer, including while initialization is pending.
+For a stable application name, `{id: 'gb1'}` remains available. `useSoundChip` retains its existing
+per-name cache and returns the same object/ID until disposed or stopped; its `{id}` option is not supported. Disposing a client or
 stopping the runtime removes its output route.
 
 ## Included sound chips

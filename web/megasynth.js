@@ -321,7 +321,7 @@ export class MegaSynth {
     this.megaCD = options.megaCD === true;
     this.mega32X = options.mega32X === true;
     this.pwmOptions = options.pwmOptions ?? {};
-    /** @type {(import("./pwm32x_playback.js").AsyncPWMAPI & {dispose(): void}) | null} */
+    /** @type {(import("./pwm32x_playback.js").AsyncPWMAPI & {dispose(): void, readonly id: string}) | null} */
     this.pwm = null; this.pwmDevice = null;
     this.segaPsgWasmUrl = options.segaPsgWasmUrl !== undefined
       ? options.segaPsgWasmUrl
@@ -331,7 +331,8 @@ export class MegaSynth {
     this.rf5c164WorkletUrl = options.rf5c164WorkletUrl ??
       resolveSiblingWorkletUrl(this.workletUrl, 'rf5c164-worklet.js');
     this.rf5c164Fetch = options.rf5c164Fetch;
-    /** RF5C164 API after start() when megaCD is enabled; its methods return promises. */
+    /** RF5C164 API after start() when megaCD is enabled; its methods return promises.
+     * @type {(ReturnType<typeof createRf5c164Client> & {readonly id: string}) | null} */
     this.pcm = null;
     this.pcmDevice = null;
     this.pcmDecodeId = 0;
@@ -342,10 +343,10 @@ export class MegaSynth {
       false;
     this.listeners = new Set();
 
-    /** @type {YM2612SynthType | null} */
+    /** @type {(YM2612SynthType & {readonly id: string}) | null} */
     this.fm = null;
 
-    /** @type {{ write(value: number): void, reset(): void } | null} */
+    /** @type {(ReturnType<typeof createSegaPsgApi> & {readonly id: string}) | null} */
     this.psg = null;
 
     /** @type {MegaSynthSampleAPI} */
@@ -833,6 +834,7 @@ export class MegaSynth {
         transport,
       });
 
+    Object.defineProperty(this.fm, 'id', {value: 'ym2612', enumerable: true});
     if (psgWasmBinary) {
       const node = this.node;
       this.psg = createSegaPsgApi({
@@ -855,6 +857,7 @@ export class MegaSynth {
       });
     }
 
+    if(this.psg) Object.defineProperty(this.psg, 'id', {value: 'segapsg', enumerable: true});
     for (const name of ['ym2612', ...(psgWasmBinary ? ['segapsg'] : [])]) {
       this.mixerReleases.push(this.mixer.register(name, name, settings => {
         this.node.port.postMessage({type: 'mixer-settings', name, gains: chipMixGains(settings)});
@@ -884,6 +887,7 @@ export class MegaSynth {
         finally { this.sample.unload(name); }
       });
     }
+    if(this.pcm) Object.defineProperty(this.pcm, 'id', {value: 'rf5c164', enumerable: true});
     if (this.mega32X) {
       const device = await createPWM32XAudio(this.audioContext, this.masterInputNode, {...this.pwmOptions, signal});
       if (signal.aborted) {device.dispose(); signal.throwIfAborted();}
@@ -892,6 +896,7 @@ export class MegaSynth {
       this.mixerReleases.push(this.mixer.connect('pwm', 'pwm', device.node, this.masterInputNode, this.audioContext));
       this.pwm = createPWM32XClient(device.port);
     }
+    if(this.pwm) Object.defineProperty(this.pwm, 'id', {value: 'pwm', enumerable: true});
     this.#ensureRecordingManager();
     this.#installRecordingHooks();
   }

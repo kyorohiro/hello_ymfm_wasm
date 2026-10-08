@@ -90,3 +90,10 @@ gbMix.volume.toFixed(2);
 await pg.mixer.reset(mixedGb.id);
 // @ts-expect-error Volume is numeric.
 await mixer.set('gb1', {volume:'quiet'});
+
+const autoGb = await createSoundChip('gameboy');
+await mixer.set(autoGb.id, {volume:0.3});
+const cachedGb = await useSoundChip('gameboy');
+cachedGb.id.toUpperCase();
+// @ts-expect-error IDs are stable metadata.
+autoGb.id = 'another';

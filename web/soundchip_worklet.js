@@ -3,7 +3,7 @@ import {SoundChipMixer} from './soundchip_mixer.js';
  * @typedef {{
  * execution: 'worklet', name: import('./soundchip.js').WorkletChipName,
  * port: MessagePort, node: AudioWorkletNode, audioContext: AudioContext,
- * mixer: import('./soundchip_mixer.js').SoundChipMixer, id: string,
+ * mixer: import('./soundchip_mixer.js').SoundChipMixer, readonly id: string,
  * sampleRate(): number, request(method: string, args?: unknown[]): Promise<unknown>,
  * createTransportPort(): MessagePort, start(): Promise<void>, stop(): Promise<void>, dispose(): Promise<void>
  * }} WorkletSoundChip
@@ -22,11 +22,12 @@ export async function createWorkletSoundChip(name, options, loadBinary) {
   if (!Number.isFinite(options.gain ?? .25) || (options.gain ?? .25) < 0 || (options.gain ?? .25) > 4) throw new RangeError('Invalid worklet output gain');
   if (!options.audioContext && typeof AudioContext === 'undefined') throw new Error('Worklet execution requires a browser AudioContext');
   const mixer = options.mixer ?? new SoundChipMixer();
-  const id = options.id ?? name;
-  mixer.checkId(id);
-  if(mixer.list().some(s=>s.id===id&&s.connected))throw new Error(`Mixer id is already connected: ${id}`);
+  const reservation = mixer.reserveId(name, options.id);
+  const id = reservation.id;
   const ownsContext = !options.audioContext;
-  const context = options.audioContext ?? new AudioContext(options.sampleRate ? {sampleRate: options.sampleRate} : undefined);
+  let context;
+  try {context = options.audioContext ?? new AudioContext(options.sampleRate ? {sampleRate: options.sampleRate} : undefined);}
+  catch (error) {reservation.release(); throw error;}
   let releaseMixer;
   let node, gain, closed = false, closing, failure;
   const requests = new Map(); let sequence = 0;
@@ -41,6 +42,7 @@ export async function createWorkletSoundChip(name, options, loadBinary) {
   const dispose = () => {
     if (closing) return closing;
     closed = true;
+    reservation.release();
     for (const pending of requests.values()) pending.reject(new Error('Worklet chip is disposed'));
     requests.clear();
     closing = (async () => {
@@ -91,7 +93,7 @@ export async function createWorkletSoundChip(name, options, loadBinary) {
     options.signal?.throwIfAborted();
     gain = context.createGain(); gain.gain.value = options.gain ?? .25;
     releaseMixer = mixer.connect(id, name, node, gain, context);
-    return {
+    const endpoint = {
       execution: 'worklet', name, mixer, id, port: node.port, node, audioContext: context,
       sampleRate: () => ready.sampleRate,
       request,
@@ -105,6 +107,8 @@ export async function createWorkletSoundChip(name, options, loadBinary) {
       async stop() {await request('stop'); gain.disconnect();},
       dispose,
     };
+    Object.defineProperty(endpoint, 'id', {value: id, enumerable: true, writable: false, configurable: false});
+    return endpoint;
   } catch (error) {await dispose(); throw error;}
-  finally {options.signal?.removeEventListener('abort', abort);}
+  finally {reservation.release(); options.signal?.removeEventListener('abort', abort);}
 }

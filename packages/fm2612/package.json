@@ -72,10 +72,10 @@
   "keywords": [
     "chiptune",
     "sound-chip",
-    "emulation",
-    "retro",
     "audio",
     "ym2612",
+    "ym2608",
+    "ym2151",
     "fm-synthesis",
     "wasm",
     "webassembly",
@@ -87,7 +87,7 @@
     "pwm",
     "typescript",
     "nodejs",
-    "game-audio"
+    "ymfm"
   ],
   "types": "./soundchip.d.ts"
 }

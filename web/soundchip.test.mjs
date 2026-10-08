@@ -60,3 +60,13 @@ test('worklet endpoint requires browser audio and rejects canceled creation befo
   const controller = new AbortController(); controller.abort();
   await assert.rejects(createSoundChip('ym2612', {execution: 'worklet', signal: controller.signal}), /abort/i);
 });
+
+test('direct chips expose stable automatic IDs, including overlapping creation and manual IDs', async () => {
+  const chips=await Promise.all([createSoundChip('pwm'),createSoundChip('pwm'),createSoundChip('pwm',{id:'lead'})]);
+  try {
+    assert.equal(new Set(chips.map(chip=>chip.id)).size,3);
+    assert.match(chips[0].id,/^pwm:\d+$/);assert.equal(chips[2].id,'lead');
+    assert.throws(()=>{chips[0].id='other';},TypeError);
+    await assert.rejects(createSoundChip('pwm',{id:''}),/nonempty/);
+  } finally {for(const chip of chips)chip.dispose();}
+});

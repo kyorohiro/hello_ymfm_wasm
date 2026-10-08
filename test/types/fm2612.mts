@@ -75,3 +75,7 @@ await node.looper.exportAudio('unit-1');
 await node.recording.nonexistent();
 // @ts-expect-error Source is JavaScript text, not a callback.
 await playground.playSource(() => {});
+
+chip.id.toUpperCase();
+// @ts-expect-error Direct chip IDs are readonly.
+chip.id = 'other';

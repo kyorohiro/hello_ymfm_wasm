@@ -2,6 +2,20 @@
  * @typedef {{volume: number, pan: number, muted: boolean}} ChipMixSettings
  * @typedef {{volume?: number, pan?: number, muted?: boolean}} ChipMixOptions
  */
+let chipIdSequence = 0;
+/** Allocate synchronously, before asynchronous chip initialization can overlap.
+ * @param {string} name @param {string} [requested] @param {(id:string)=>boolean} [occupied]
+ */
+export function allocateSoundChipId(name, requested, occupied = () => false) {
+  if (requested !== undefined) {
+    if (typeof requested !== 'string' || !requested.trim()) throw new TypeError('Mixer id must be a nonempty string');
+    if (occupied(requested)) throw new Error(`Mixer id is already connected or initializing: ${requested}`);
+    return requested;
+  }
+  let id;
+  do {id = `${name}:${++chipIdSequence}`;} while (occupied(id));
+  return id;
+}
 /** @param {string} [name] @returns {ChipMixSettings} */
 export function soundChipMixDefaults(name = undefined) {
   return {volume: ['gameboy', 'gameBoyDmg'].includes(name) ? .28 : 1, pan: 0, muted: false};
@@ -21,7 +35,7 @@ export function chipMixGains({volume, pan, muted}) {
 
 /** Settings can be prepared before start(). Importing this module opens no audio device. */
 export class SoundChipMixer {
-  constructor() { this.entries = new Map(); }
+  constructor() { this.entries = new Map(); this.reservedIds = new Set(); }
   /** @param {string} id @param {ChipMixOptions} settings @returns {ChipMixSettings} */
   set(id, settings) {
     this.checkId(id);
@@ -39,6 +53,14 @@ export class SoundChipMixer {
   reset(id = undefined) {
     if (id !== undefined) return this.set(id, soundChipMixDefaults(this.entries.get(id)?.name ?? id));
     for (const [key, entry] of this.entries) this.set(key, soundChipMixDefaults(entry.name));
+  }
+  /** Reserve an ID until the initializing endpoint has registered or failed.
+   * @param {string} name @param {string} [requested] */
+  reserveId(name, requested) {
+    const id = allocateSoundChipId(name, requested, key => this.reservedIds.has(key) || Boolean(this.entries.get(key)?.apply));
+    this.reservedIds.add(id);
+    let released = false;
+    return {id, release: () => {if (released) return; released = true; this.reservedIds.delete(id);}};
   }
   checkId(id) { if (typeof id !== 'string' || !id.trim()) throw new TypeError('Mixer id must be a nonempty string'); }
   /** Register an output. The returned release only unregisters this connection.

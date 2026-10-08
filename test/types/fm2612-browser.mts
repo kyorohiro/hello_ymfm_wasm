@@ -24,3 +24,8 @@ mixedSynth.mixer.set('ym2612', {volume:0.5});
 // @ts-expect-error Mixer volume is a number.
 mixer.set('gb1', {volume:'quiet'});
 await mixedChip.dispose();
+
+const autoChip = await createSoundChip('gameboy', {execution:'worklet', mixer});
+autoChip.mixer.set(autoChip.id, {volume:0.3});
+// @ts-expect-error Chip IDs cannot be reassigned.
+autoChip.id = 'other';

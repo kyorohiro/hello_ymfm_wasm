@@ -195,6 +195,7 @@ export class OPNRuntimeSynth {
         chipName: this.chipName,
       }),
     });
+    Object.defineProperty(this.fm, 'id', {value: this.chip, enumerable: true});
   }
 
   #waitForWorkletReady(node, signal) {
