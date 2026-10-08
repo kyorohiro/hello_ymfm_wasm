@@ -582,7 +582,7 @@ No VGM loop expansion. Invalid requests leave existing output untouched.
 
 ## NES APU
 
-Standalone NTSC NES APU supports pulse 1/2, triangle, noise and DMC playback,
+Standalone NES APU supports pulse 1/2, triangle, noise and DMC playback,
 including embedded VGM C2 RAM blocks. Browser and Node use the same JavaScript
 APU engine (JSNES, Apache-2.0; see `licenses/jsnes/`). No extra WASM is needed.
 `render --mute nes-ch-1` through `nes-ch-5` control these five channels.
@@ -594,7 +594,9 @@ envelopes are played by a shared fixNES-derived JavaScript core. Use
 `render --mute nes-ch-6` to mute FDS; score channel ID `fds` selects its base-pitch
 notes. FDS modulation and timed envelopes are not transcribed; gates controlled
 by envelopes are approximate. Analog APU/FDS balance is not hardware-calibrated.
-PAL, dual chips and other expansion-chip combinations are not supported.
+Local builds now use the recorded CPU clock (1600000–1900000 Hz), with PAL timing
+below 1700000 Hz and NTSC/Dendy timing above it. Published versions remain NTSC-only.
+Dual chips and other expansion-chip combinations are not supported.
 
 ## File support report
 

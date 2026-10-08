@@ -207,7 +207,7 @@ export function createPlaygroundRuntime(
   let sharedFm;
   let sharedFmSynth;
   async function openPcm(name, token = currentRunToken, options = {}) {
-    if (!options || typeof options !== 'object' || Array.isArray(options) || Object.keys(options).some(k => !['id', ...(name === 'nes' ? ['fds'] : [])].includes(k))) throw new TypeError('createSoundChip supports {id}, and {fds} for NES');
+    if (!options || typeof options !== 'object' || Array.isArray(options) || Object.keys(options).some(k => !['id', ...(name === 'nes' ? ['fds', 'clock'] : [])].includes(k))) throw new TypeError('createSoundChip supports {id}, and {fds, clock} for NES');
     if (name === 'nes' && options.fds !== undefined && typeof options.fds !== 'boolean') throw new TypeError('fds must be boolean');
     if(!['ym2612', 'ym2203', 'ym2610', 'rf5c164', 'ym2608', 'gameboy', 'segapsg', 'ym2151', 'pwm', 'nes'].includes(name)) throw new Error('Unsupported Playground sound chip: ' + name);
     const occupied = id => pendingPcmIds.has(id) || megaDrive.mixer?.list().some(s => s.id === id && s.connected);

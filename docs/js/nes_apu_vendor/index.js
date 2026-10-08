@@ -21,6 +21,8 @@ const FRAME_STEPS_4 = [7457, 14913, 22371, 29828, 29829];
 // fine because fireFrameStep step 3 in 5-step mode is a no-op (no clock or IRQ).
 const FRAME_STEPS_5 = [7457, 14913, 22371, 29829, 37281];
 const FRAME_PERIOD_4 = 29830; // Total CPU cycles for 4-step sequence
+const FRAME_STEPS_4_PAL = [8313, 16627, 24939, 33252, 33253];
+const FRAME_STEPS_5_PAL = [8313, 16627, 24939, 33253, 41565];
 const FRAME_PERIOD_5 = 37282; // Total CPU cycles for 5-step sequence
 
 class PAPU {
@@ -406,8 +408,9 @@ class PAPU {
   // See https://www.nesdev.org/wiki/APU_Frame_Counter
   _advanceFrameSteps(frameCounterCycles) {
     this.frameCycleCounter += frameCounterCycles;
-    let steps = this.countSequence === 0 ? FRAME_STEPS_4 : FRAME_STEPS_5;
-    let period = this.countSequence === 0 ? FRAME_PERIOD_4 : FRAME_PERIOD_5;
+    const pal = !!this.nes.opts.pal;
+    let steps = this.countSequence === 0 ? (pal ? FRAME_STEPS_4_PAL : FRAME_STEPS_4) : (pal ? FRAME_STEPS_5_PAL : FRAME_STEPS_5);
+    let period = this.countSequence === 0 ? (pal ? 33254 : FRAME_PERIOD_4) : (pal ? 41566 : FRAME_PERIOD_5);
     for (;;) {
       if (
         this.frameStep < steps.length &&

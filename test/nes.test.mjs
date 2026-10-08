@@ -26,7 +26,8 @@ test('NES DMC consumes embedded sample RAM; output mute and region rendering pre
  const a=await renderSource(dmc(0xaa),{maxSeconds:.1}),b=await renderSource(dmc(0xff),{maxSeconds:.1});assert.notDeepEqual(a.bytes,b.bytes);
  const muted=await renderSource(dmc(0xaa),{maxSeconds:.1,mute:['nes-ch-5']});assert.notDeepEqual(a.bytes,muted.bytes);
  const region=await renderSource(pulse,{startSeconds:.02,maxSeconds:.03}),full=await renderSource(pulse,{maxSeconds:.1});assert.deepEqual(region.bytes.subarray(44),full.bytes.subarray(44+882*4,44+2205*4));
- await assert.rejects(renderSource(vgm([],1662607)),/NTSC/);
+ const pal=await renderSource(vgm([...w(0x15,1),...w(0,0xbf),...w(2,253),...w(3,8),...wait],1662607),{maxSeconds:.1});assert(pal.bytes.subarray(44).some(x=>x!==0));
+ await assert.rejects(renderSource(vgm([],2000000)),/clock/);
  await assert.rejects(renderSource(vgm(w(0x20,1))),/FDS/);
 });
 

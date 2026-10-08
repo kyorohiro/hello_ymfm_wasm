@@ -590,7 +590,7 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
     async createSoundChip(name, options = {}){
       if(run.stopped)throw new Error('Run stopped');
       const token=run.token;
-      if (!options || typeof options !== 'object' || Array.isArray(options) || Object.keys(options).some(k => !['id', ...(name === 'nes' ? ['fds'] : [])].includes(k))) throw new TypeError('createSoundChip supports {id}, and {fds} for NES');
+      if (!options || typeof options !== 'object' || Array.isArray(options) || Object.keys(options).some(k => !['id', ...(name === 'nes' ? ['fds', 'clock'] : [])].includes(k))) throw new TypeError('createSoundChip supports {id}, and {fds, clock} for NES');
       if (name === 'nes' && options.fds !== undefined && typeof options.fds !== 'boolean') throw new TypeError('fds must be boolean');
       const response=await request('pcm.create',[name, options]);
       // Older test/host shims may return a bare port; production returns its allocated ID.

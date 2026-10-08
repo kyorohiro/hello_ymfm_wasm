@@ -19,14 +19,14 @@ test('support JSON matches shared API and separates NES score and voice exports'
   assert.equal(cli.status,0,cli.stderr);
   assert.deepEqual(JSON.parse(cli.stdout),result);
 });
-test('unsupported render does not suppress analysis; PAL and dual NES are rejected',async()=>{
-  for(const clock of [1662607,0x401b4f4d]){
+test('unsupported render does not suppress analysis; invalid clocks and dual NES are rejected',async()=>{
+  for(const clock of [2000000,0x401b4f4d]){
     const bytes=new Uint8Array(readFileSync(new URL('./fixtures/nes-tone.vgm',import.meta.url)));
     new DataView(bytes.buffer).setUint32(0x84,clock,true);
     const result=await inspectSourceSupport(bytes);
     assert.equal(result.analysis.status,'available');
     assert.equal(result.render.status,'unsupported');
-    assert.match(result.render.reason,/NTSC|Dual/);
+    assert.match(result.render.reason,/clock|Dual/);
   }
 });
 test('support rejects invalid options rather than reporting success',()=>{

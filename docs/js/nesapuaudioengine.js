@@ -4,24 +4,30 @@ import PAPU from './nes_apu_vendor/index.js';
 // VGM provides the CPU's recorded writes and DMC memory. CPU IRQs and DMA
 // stalls must not delay this already-recorded timeline.
 export function validateNesApuClock(clock) {
-  if (!Number.isFinite(clock) || clock < 1780000 || clock > 1800000) throw new RangeError('NES APU currently supports NTSC clocks only');
+  if (!Number.isFinite(clock) || clock < 1600000 || clock > 1900000) throw new RangeError(`Unsupported NES APU clock: ${clock} Hz (expected 1600000..1900000 Hz)`);
 }
 
 export class NesApuAudioEngine {
   constructor({clock=1789773, outputSampleRate=44100, masterVolume=1,fds=false}={}) {
     validateNesApuClock(clock);
     if (!Number.isInteger(outputSampleRate) || outputSampleRate < 8000 || outputSampleRate > 192000) throw new RangeError('Invalid NES sample rate');
-    this.fdsEnabled=!!fds;this.clock=clock; this.rate=outputSampleRate; this.mask=0;
+    this.fdsEnabled=!!fds;this.clock=clock;this.region=clock<1700000?'pal':'ntsc'; this.rate=outputSampleRate; this.mask=0;
     this.setMasterVolume(masterVolume); this.reset();
   }
   sampleRate(){return this.rate;}
   reset(){
     this.fds=this.fdsEnabled?new FdsAudio(this.rate):null;
     this.memory=new Uint8Array(65536); this.samples=[];
-    const nes={opts:{sampleRate:this.rate,onAudioSample:(l,r)=>this.samples.push([l,r])},
+    const nes={opts:{sampleRate:this.rate,pal:this.region==='pal',onAudioSample:(l,r)=>this.samples.push([l,r])},
       cpu:{dataBus:0,instrBusCycles:0,apuCatchupCycles:0,IRQ_NORMAL:0,requestIrq(){},haltCycles(){}},
       mmap:{load:address=>this.memory[address & 65535]}};
     this.apu=new PAPU(nes);
+    if(this.region==='pal'){
+      // NESdev APU Noise / DMC periods in CPU cycles; JSNES DMC counts eighth cycles.
+      this.apu.noiseWavelengthLookup=[4,8,14,30,60,88,118,148,188,236,354,472,708,944,1890,3778];
+      this.apu.dmcFreqLookup=[398,354,316,298,276,236,210,198,176,148,132,118,98,78,66,50].map(n=>n*8);
+      this.apu.dmc.dmaFrequency=this.apu.getDmcFrequency(0);
+    }
     this.apu.sampleTimerMax=Math.floor(1024*this.clock/this.rate);
     this.apu.setPanning([128,128,128,128,128]);
     this.apu.muteMask=this.mask;

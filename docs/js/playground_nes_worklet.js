@@ -11,7 +11,7 @@ class Processor extends AudioWorkletProcessor {
       } else this.receive(data, this.port);
     };
     try {
-      this.chip = new NesApu({sampleRate, fds: options.processorOptions.fds});
+      this.chip = new NesApu({sampleRate, clock: options.processorOptions.clock, fds: options.processorOptions.fds});
       this.port.postMessage({ready: true});
     } catch (error) { this.port.postMessage({error: error.message}); this.dispose(); }
   }

@@ -1,11 +1,12 @@
-import {NES_APU_CLOCK} from './nesapu.js';
+import {NES_APU_CLOCK, validateNesApuClock} from './nesapu.js';
 /** @param {AudioContext} context
  * @param {AudioNode} destination
- * @param {{fds?:boolean}} [options] */
-export async function createNesAudio(context, destination, {fds = false} = {}) {
+ * @param {{fds?:boolean,clock?:number}} [options] */
+export async function createNesAudio(context, destination, {fds = false, clock = NES_APU_CLOCK} = {}) {
+  validateNesApuClock(clock);
   await context.audioWorklet.addModule(new URL('./playground_nes_worklet.js', import.meta.url));
   const node = new AudioWorkletNode(context, 'tetorica-nes', {
-    numberOfInputs: 0, numberOfOutputs: 1, outputChannelCount: [2], processorOptions: {fds},
+    numberOfInputs: 0, numberOfOutputs: 1, outputChannelCount: [2], processorOptions: {fds, clock},
   });
   try {
     await new Promise((resolve, reject) => {
@@ -19,7 +20,7 @@ export async function createNesAudio(context, destination, {fds = false} = {}) {
   const channel = new MessageChannel();
   node.port.postMessage({port: channel.port1}, [channel.port1]);
   let disposed = false;
-  return {node, port: channel.port2, clock: NES_APU_CLOCK, fdsEnabled: fds, dispose() {
+  return {node, port: channel.port2, clock, fdsEnabled: fds, dispose() {
     if (disposed) return;
     disposed = true; node.port.postMessage({method: 'dispose'}); node.disconnect(); node.port.close();
   }};

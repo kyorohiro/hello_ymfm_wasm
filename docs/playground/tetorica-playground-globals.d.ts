@@ -1231,7 +1231,7 @@ type PlaygroundPWM32X = {
 };
 declare function createSoundChip(name: 'pwm', options?: PlaygroundCreateSoundChipOptions): Promise<PlaygroundPWM32X & {readonly id: string}>;
 
-/** NTSC NES APU; FDS methods require createSoundChip('nes', {fds:true}). */
+/** NES APU; FDS methods require createSoundChip('nes', {fds:true}). */
 interface PlaygroundNes {
   resetRegisters():void;
   loadMemory(bytes:Uint8Array|ArrayBuffer,address?:number):void|Promise<unknown>;
@@ -1265,4 +1265,4 @@ interface PlaygroundNes {
   reset():void;
   dispose():void;
 }
-declare function createSoundChip(name:'nes', options?:PlaygroundCreateSoundChipOptions & {fds?:boolean}):Promise<PlaygroundNes & {readonly id:string}>;
+declare function createSoundChip(name:'nes', options?:PlaygroundCreateSoundChipOptions & {fds?:boolean;clock?:number}):Promise<PlaygroundNes & {readonly id:string}>;

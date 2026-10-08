@@ -76,7 +76,7 @@ WASMが存在するだけでPlayground APIも利用可能とは判断しない�
 | `createSoundChip('ym2608')` | 実装済。FM／SSG／リズム／ADPCM-B | 同梱リズムROM・差し替え対応。同期読み取り／IRQ・サンプル単位予約は未対応。聴感未確認 | [成功記録・制限](issues/playground_ym2608_01.md)、[テスト](../web/playground_ym2608.test.mjs) |
 | `createSoundChip('gameboy')` raw API | 実装済。レジスタ操作・4CHの例 | 高水準APIは別。ブラウザー聴感確認記録なし | [成功記録](issues/playground_gameboy_raw_01.md)、[テスト](../web/playground_gameboy.test.mjs) |
 | Game Boy高水準API | 即時設定APIへ改訂・自動テスト済。v0.40.11公開報告あり | pulse／wave／noiseの個別即時設定、明示的トリガー、initialize、setNote、raw同期。ブラウザー聴感確認は未実施。duration／自動CH割当は後段 | [設計案](issues/gameboy_api_01.md) |
-| NES APU / FDS VGM→JavaScript | ローカル追加。Playground ImportでRaw／解説付き／Highを選択。APU全5ch・FDS波形／変調・DMC RAM転送 | NTSC 1789773 Hz、単体チップのみ、1回分。Highは書き込みバイトが一致する操作だけ置換。非対応命令・dual・PAL・FDS flag不足を事前拒否。元VGMとのレジスタ順・時刻・RAM・PCM一致、配布版UIとMain／Worker再生を確認。npm／itch.io未公開 | [変換テスト](playground/nes_vgm_import.test.mjs) |
+| NES APU / FDS VGM→JavaScript | ローカル追加。Playground ImportでRaw／解説付き／Highを選択。APU全5ch・FDS波形／変調・DMC RAM転送 | ソースクロック1600000–1900000 Hz、単体チップのみ、1回分。1700000 Hz未満はPAL、以上はNTSC/Dendy。Highは書き込みバイトが一致する操作だけ置換。非対応命令・dual・範囲外clock・FDS flag不足を事前拒否。元VGMとのレジスタ順・時刻・RAM・PCM一致、配布版UIとMain／Worker再生を確認。npm／itch.io未公開 | [変換テスト](playground/nes_vgm_import.test.mjs) |
 | Genesis VGM→JavaScriptのPSG変換 | Schedule / Write / HighでFM・DACとPSGを出力。Include PSGで選択 | HighはPSGの個別設定API＋raw fallback、固定クロック。PSG単独Import・デュアルPSGは未対応。未公開・ブラウザー試聴未実施 | [作業記録](issues/genesis_psg_vgm_javascript.md) |
 | RF5C164 VGM→JavaScript変換 | Write／High＋raw fallbackでレジスター・RAM転送を出力。単独／YM2612＋DAC＋PSG混在に対応 | 12.5 MHz・単一チップ。liveLoop／FM CH分割対応、RFは共有ループ。非同期タイミング。ScheduleはFM/DAC/PSGに適用（RFはWrite）。最新変更のブラウザー試聴は未実施 | [作業記録](issues/rf5c164_vgm_javascript.md) |
 | YM2151 Synth API | npm `tetorica-fm2612` 0.2.11公開（2026-10-08）。8CHの共通Synth・Direct／Worklet／Audify Transport | FM_PRESETS、音名／MIDI・周波数／KC・KF、論理operator順、DT2／LFO／Noise。既存Playground clientの番号・APIは維持。全CH×operatorの発音・音程・Pan・release、公開版の型定義・CoreAudio、X68000 Web例を確認 | [仕様](../packages/fm2612/README.md#ym2151-synth)、[テスト](../web/ym2151synth.test.mjs) |
@@ -161,7 +161,8 @@ CLI実装と共有ランタイムのソースは従来の場所を使用する�
 npm `tetorica-fm2612` 0.2.12で公開（2026-10-09）。`createSoundChip('nes', {fds:true})` と `NesApuSynth`、
 Direct／Worklet／Node Audify Transportを追加。Pulse×2の音名・音量・duty・
 envelope・sweep、Triangle、Noiseのperiod／short mode、DMCの符号化済みサンプル転送、
-FDSの64点波形・音量・32点modulationを扱う。NTSCのみ。
+FDSの64点波形・音量・32点modulationを扱う。公開0.2.12はNTSCのみ。
+ローカル追加ではソースclockを保持し、PALのnoise／DMC／frame counterにも対応。
 NES Workletは共通Mixerと自動IDに対応。起動時のDAC基準値と整数コアの残留DCは
 新しいラッパーで補正する。既存Analyzerのエンジンは変更していない。
 全音源のDirect／Worklet発音、音程、停止・再開、DMC ACK／reset、型定義を確認。

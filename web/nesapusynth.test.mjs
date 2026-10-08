@@ -51,3 +51,22 @@ test('Worklet transport sends register commands and capability metadata',async()
  const transport=new NesApuWorkletTransport(endpoint);const synth=new NesApuSynth({transport});assert.equal(synth.fdsEnabled,true);messages.length=0;
  synth.noteOn(0,'A4');assert.ok(messages.some(m=>m.method==='setChannelEnabled'));await synth.dmc.loadSample(new Uint8Array(1));assert.ok(messages.some(m=>m.method==='loadMemory'));
 });
+
+test('source clocks preserve pulse pitch and PAL switches noise, DMC and frame timing',async()=>{
+ for(const clock of [1789750,1662607,1773448]){
+  const chip=await createSoundChip('nes',{clock});const synth=new NesApuSynth({transport:new NesApuDirectTransport(chip)});
+  try{
+   synth.pulse.noteOn(0,'A4');chip.generateStereo(4410);const pcm=chip.generateStereo(44100).left;
+   let crossings=0;for(let i=1;i<pcm.length;i++)if(pcm[i-1]<0&&pcm[i]>=0)crossings++;
+   assert.ok(Math.abs(crossings-440)<4,`${clock}: ${crossings}`);
+   const apu=chip.engine.apu,steps=[];apu.frameStep=0;apu.frameCycleCounter=0;apu.countSequence=0;
+   apu.fireFrameStep=i=>steps.push(i);
+   const first=clock<1700000?8313:7457;
+   apu._advanceFrameSteps(first-1);assert.equal(steps.length,0);apu._advanceFrameSteps(1);assert.deepEqual(steps,[0]);
+   apu.frameStep=0;apu.frameCycleCounter=0;apu.countSequence=1;steps.length=0;
+   const period=clock<1700000?41566:37282;apu._advanceFrameSteps(period);assert.deepEqual(steps,[0,1,2,3,4]);assert.equal(apu.frameCycleCounter,0);
+   if(clock<1700000){assert.equal(apu.noiseWavelengthLookup[2],14);assert.equal(apu.getDmcFrequency(0),398*8);assert.equal(apu.getDmcFrequency(15),50*8);}else{assert.equal(apu.noiseWavelengthLookup[2],16);assert.equal(apu.getDmcFrequency(0),428*8);}
+   chip.reset();assert.equal(chip.engine.apu.noiseWavelengthLookup[2],clock<1700000?14:16);
+  }finally{chip.dispose();}
+ }
+});

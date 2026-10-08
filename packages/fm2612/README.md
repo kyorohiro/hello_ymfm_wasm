@@ -490,7 +490,10 @@ Use `NesApuDirectTransport(chip)` for owned stereo PCM via
 `chip.generateStereo(frames)` or `transport.generateStereo(frames)`.
 Use `NesApuAudifyTransport(chip)` from `tetorica-fm2612/node/transports` for
 Node device output. Transports borrow the chip. The Synth borrows the transport.
-NTSC clocks (1780000–1800000 Hz) are supported; PAL is not implemented.
+The local build supports source clocks from 1600000–1900000 Hz. Clocks below
+1700000 Hz select PAL noise/DMC periods and frame-counter timing; higher clocks
+use NTSC/Dendy timing. Playground VGM import passes the recorded clock through
+`createSoundChip("nes", {clock, fds})`. Published 0.2.12 remains NTSC-only.
 `clock` and FDS capability are inferred from the provided transport. For a custom
 register transport or bare MessagePort, supply `clock` / `fds` explicitly.
 

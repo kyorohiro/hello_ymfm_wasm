@@ -1,3 +1,4 @@
+import {validateNesApuClock} from '../js/nesapu.js';
 import {ym2203HighOperation} from './ym2203_high.js';
 import {exportRf5c164Vgm} from './rf5c164_vgm_export.js?v=megacd-loops-2';
 export {exportRf5c164Vgm} from './rf5c164_vgm_export.js?v=megacd-loops-2';
@@ -35,9 +36,11 @@ export function detectVgmImport(header) {
   }
 
   if (chips.length === 1 && chips[0] === 'nesApu') {
-    if ((header.nesApuClock & 0x3fffffff) !== 1789773) return {...base, message: 'NES conversion requires the standard NTSC 1789773 Hz clock; PAL is not supported.'};
+    const clock = header.nesApuClock & 0x3fffffff;
+    try {validateNesApuClock(clock);} catch(error) {return {...base, clock, message:error.message};}
+    const region = clock < 1700000 ? 'PAL' : 'NTSC/Dendy';
     const fds = !!(header.nesApuClock & 0x80000000);
-    return {...base, family: 'nes', supported: true, fds, message: 'NES APU' + (fds ? ' + FDS' : '') + ': all channels and DMC RAM uploads. One pass; loops are not repeated. Playback uses asynchronous waits and RAM acknowledgements, not sample-accurate scheduling.'};
+    return {...base, family: 'nes', supported: true, fds, clock, region, message: 'NES APU' + (fds ? ' + FDS' : '') + `: ${clock} Hz (${region}), all channels and DMC RAM uploads. One pass; loops are not repeated. Playback uses asynchronous waits and RAM acknowledgements, not sample-accurate scheduling.`};
   }
 
   return {...base, message: chips.length > 1 ? 'This chip combination cannot be converted. No files will be changed.' : 'Conversion for this chip is not supported.'};
@@ -274,7 +277,7 @@ function describeNes(event, state) {
   return `native register ${hex(r)}`;
 }
 // Each substitution emits exactly the original bytes, in the original order.
-function nesHighOperation(event, next, state) {
+function nesHighOperation(event, next, state, clock) {
   const {address: r, value: v} = event;
   if ([0x4000, 0x4004].includes(r)) {
     const duty = [0.125, 0.25, 0.5, 0.75][v >> 6], channel = (r - 0x4000) / 4;
@@ -284,11 +287,11 @@ function nesHighOperation(event, next, state) {
   if (!next || next.type !== 'nes-apu-write' || next.time !== event.time) return null;
   if ([0x4002, 0x4006, 0x400a].includes(r) && next.address === r + 1 && (next.value & 0xf8) === 8) {
     const channel = (r - 0x4002) / 4, period = v | ((next.value & 7) << 8);
-    if (period >= (channel === 2 ? 2 : 8)) return {code: `nes.setFrequency(${channel}, ${1789773 / ((channel === 2 ? 32 : 16) * (period + 1))});`, count: 2};
+    if (period >= (channel === 2 ? 2 : 8)) return {code: `nes.setFrequency(${channel}, ${clock / ((channel === 2 ? 32 : 16) * (period + 1))});`, count: 2};
   }
   if (r === 0x4082 && next.address === 0x4083 && (next.value & 0xf0) === (state[0x83] & 0xc0)) {
     const step = v | ((next.value & 15) << 8);
-    if (step) return {code: `nes.setFrequency(5, ${step * 1789773 / 4194304});`, count: 2};
+    if (step) return {code: `nes.setFrequency(5, ${step * clock / 4194304});`, count: 2};
   }
   if (r === 0x400c && (v & 0xf0) === 0x30 && next.address === 0x400e && !(next.value & 0x70)) {
     return {code: `nes.noise.setVoice({volume: ${v & 15}, period: ${next.value & 15}, shortMode: ${!!(next.value & 128)}});`, count: 2};
@@ -304,7 +307,7 @@ export function exportNesVgm(buffer, {mode = 'raw'} = {}) {
   const lines = ['// NES APU' + (detection.fds ? ' + FDS' : '') + ': one pass, original write order and 44100 Hz sample waits.',
     '// Asynchronous waits and RAM acknowledgements are not sample-accurate audio scheduling.',
     '// Comments describe register writes, not live envelope/sweep state.',
-    `const nes = await createSoundChip('nes', {fds: ${detection.fds}});`, 'try {',
+    `const nes = await createSoundChip('nes', {fds: ${detection.fds}, clock: ${detection.clock}});`, 'try {',
     '  nes.resetRegisters(); // Native reset, without Synth voice defaults.'];
   const state = new Uint8Array(0x90); let previous = 0;
   for (let i = 0; i < events.length; i++) {
@@ -313,7 +316,7 @@ export function exportNesVgm(buffer, {mode = 'raw'} = {}) {
     if (event.type === 'nes-apu-data') {
       lines.push(`  await nes.loadMemory(Uint8Array.from(${JSON.stringify([...event.data])}), ${hex(event.offset)});`);
     } else {
-      const operation = mode === 'high' ? nesHighOperation(event, events[i + 1], state) : null;
+      const operation = mode === 'high' ? nesHighOperation(event, events[i + 1], state, detection.clock) : null;
       const count = operation?.count ?? 1;
       for (let j = 0; j < count; j++) {
         const item = events[i + j]; state[item.address - 0x4000] = item.value;

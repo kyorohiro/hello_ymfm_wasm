@@ -24,29 +24,31 @@ const commands = [
  ...write(0x23, 128), ...write(0x10, 0x4f), ...write(0x11, 64), ...write(0x12, 0), ...write(0x13, 0), ...write(0x15, 16),
  0x61,0x20,0x03, ...write(0x15, 0), 0x61,100,0, 0x66,
 ];
-test('NES detection: NTSC/FDS, mixed, dual and PAL', () => {
+test('NES detection: source clocks/FDS, mixed and dual', () => {
  assert.equal(detectVgmImport({nesApuClock:1789773}).family,'nes');
  assert.equal(detectVgmImport({nesApuClock:1789773|0x80000000}).fds,true);
- for (const header of [{nesApuClock:1662607},{nesApuClock:1789773|0x40000000},{nesApuClock:1789773,gameBoyDmgClock:4194304}]) assert.equal(detectVgmImport(header).supported,false);
+ for(const clock of [1789750,1662607,1773448])assert.equal(detectVgmImport({nesApuClock:clock}).supported,true);
+ for (const header of [{nesApuClock:2000000},{nesApuClock:1789773|0x40000000},{nesApuClock:1789773,gameBoyDmgClock:4194304}]) assert.equal(detectVgmImport(header).supported,false);
 });
 test('NES preflight rejects bad commands, registers, RAM and missing FDS flag', async () => {
  const inputs = [vgm([...write(0x80,1),0x66]),vgm([...write(0x18,1),0x66]),vgm([...write(0x2b,1),0x66]),vgm([...write(0x3f,2),0x66],1789773),vgm([0x50,0x90,0x66]),vgm([...memory(65535,[1,2]),...write(0,1),0x66]),vgm([...write(0,1)]),vgm([0x66])];
  for(const bytes of inputs){assert.equal((await prepareVgmImport({arrayBuffer:async()=>bytes})).detection.supported,false);assert.throws(()=>exportNesVgm(bytes));}
  assert.equal((await prepareVgmImport({arrayBuffer:async()=>vgm(commands)})).detection.supported,true);
 });
-for (const mode of ['raw','readable','high']) test(`NES ${mode}: exact ordered writes, uploads, waits and audible PCM`, async () => {
- const source = exportNesVgm(vgm(commands),{mode});
- const chip = new NesApu({fds:true}), reference = new NesApu({fds:true});
+for (const clock of [1789773,1789750,1662607,1773448]) for (const mode of ['raw','readable','high']) test(`NES ${clock} Hz ${mode}: exact ordered writes, uploads, waits and audible PCM`, async () => {
+ const input = vgm(commands, clock | 0x80000000);
+ const source = exportNesVgm(input,{mode});
+ const chip = new NesApu({fds:true,clock}), reference = new NesApu({fds:true,clock});
  const writes=[], uploads=[];let time=0, disposed=0;const pcm=[];
- const transport={clock:1789773,fdsEnabled:true,
+ const transport={clock,fdsEnabled:true,
   reset(){chip.reset();},writeRegister(r,v){writes.push([time,r,v]);chip.writeRegister(r,v);},
   loadMemory(bytes,address){uploads.push([time,address,[...bytes]]);chip.loadMemory(bytes,address);},
  };
  const synth = new NesApuSynth({transport});writes.length=0;
  synth.dispose=()=>{disposed++;chip.dispose();};
- await new AsyncFunction('createSoundChip','sleepSamples',source)(async(name,options)=>{assert.equal(name,'nes');assert.equal(options.fds,true);return synth;},async(n,rate)=>{assert.equal(rate,44100);pcm.push(...chip.generateStereo(n).left);time+=n;});
+ await new AsyncFunction('createSoundChip','sleepSamples',source)(async(name,options)=>{assert.equal(name,'nes');assert.equal(options.fds,true);assert.equal(options.clock,clock);return synth;},async(n,rate)=>{assert.equal(rate,44100);pcm.push(...chip.generateStereo(n).left);time+=n;});
  const expected=[], expectedPcm=[];let t=0;
- const {Ym2612VGM}=await import('../js/ym2612vgm.js');const parser=new Ym2612VGM(vgm(commands),{logger:null});
+ const {Ym2612VGM}=await import('../js/ym2612vgm.js');const parser=new Ym2612VGM(input,{logger:null});
  for(;;){const e=parser.step();if(e.type==='end')break;if(e.type==='wait'){expectedPcm.push(...reference.generateStereo(e.samples).left);t+=e.samples;}else if(e.type==='nes-apu-data')reference.loadMemory(e.data,e.offset);else {const r=e.register<=0x17?0x4000+e.register:e.register===0x3f?0x4023:e.register<=0x2a?0x4080+e.register-0x20:0x4000+e.register;expected.push([t,r,e.value]);reference.writeRegister(r,e.value);}}
  assert.deepEqual(writes,expected);assert.deepEqual(uploads,[[0,0xc000,[255,0,255,0]]]);assert.equal(time,t);assert.equal(disposed,1);assert.deepEqual(pcm,expectedPcm);assert.ok(pcm.some(x=>Math.abs(x)>.01));reference.dispose();
  assert.doesNotMatch(source,/nes\.noteOn|nes\.reset\(/);

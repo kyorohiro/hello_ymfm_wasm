@@ -149,3 +149,6 @@ nesSynth.resetRegisters();
 await nesSynth.loadMemory(new Uint8Array([0x55, 0xaa]), 0xc000);
 // @ts-expect-error Raw RAM uploads require bytes, not strings.
 await nesSynth.loadMemory('DPCM', 0xc000);
+
+// Playground accepts the source NES CPU clock independently of FDS expansion.
+await createSoundChip('nes', {clock:1662607, fds:false});

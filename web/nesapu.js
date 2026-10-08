@@ -1,4 +1,5 @@
-import {NesApuAudioEngine} from '../docs/js/nesapuaudioengine.js';
+import {NesApuAudioEngine, validateNesApuClock} from '../docs/js/nesapuaudioengine.js';
+export {validateNesApuClock};
 export const NES_APU_CLOCK = 1789773;
 /** NES APU with optional FDS. JavaScript cores; no CPU, cartridge or ROM required. */
 export class NesApu {

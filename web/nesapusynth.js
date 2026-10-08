@@ -1,4 +1,4 @@
-import {NES_APU_CLOCK} from './nesapu.js';
+import {NES_APU_CLOCK,validateNesApuClock} from './nesapu.js';
 import {ChipWorkletTransport} from './chip_worklet_transport.js';
 /** @typedef {{writeRegister(address:number,value:number):void, reset?:()=>void,
  * setChannelEnabled?:(channel:number,enabled:boolean)=>void,
@@ -41,7 +41,7 @@ export class NesApuWorkletTransport extends ChipWorkletTransport {
  /** @param {Uint8Array} bytes @param {number} address */
  loadMemory(bytes,address){if(!this.endpoint)return Promise.reject(new Error('Memory uploads need a worklet endpoint'));return this.endpoint.request('loadMemory',[bytes,address]);}
 }
-/** NTSC NES tones and optional FDS. Pulse indices 0/1; common tone channels 0/1/2/5. */
+/** NES tones and optional FDS. Pulse indices 0/1; common tone channels 0/1/2/5. */
 export class NesApuSynth {
  #registers=new Uint8Array(0x90);
  #enabled=0;
@@ -53,7 +53,7 @@ export class NesApuSynth {
  /** @param {{transport:NesApuTransport, clock?:number, fds?:boolean}} options */
  constructor({transport,clock=transport?.clock??NES_APU_CLOCK,fds=transport?.fdsEnabled??false}={}){
   if(!transport?.writeRegister)throw new TypeError('NesApuSynth requires writeRegister(address,value)');
-  if(!Number.isFinite(clock)||clock<1780000||clock>1800000)throw new RangeError('NES Synth currently supports NTSC clocks only');
+  validateNesApuClock(clock);
   this.transport=transport;this.clock=clock;this.fdsEnabled=fds;
   this.pulse={
    /** @param {0|1} channel @param {NesPulseVoice} voice */
