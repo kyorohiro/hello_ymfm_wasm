@@ -1,5 +1,14 @@
 # tetorica-fm2612 の npm リリース手順
 
+## 0.2.10 公開記録（2026-10-08）
+
+- 実装 commit: `bf1c4e6`。`createSoundChip()` の ID 省略時に自動採番し、Direct / Worklet の `chip.id` を読み取り専用で公開。非同期初期化前の ID 予約で同時生成の衝突を防止。
+- MegaSynth / OPN の組み込み音源と Playground Main / Worker のチップにも ID を公開。`useSoundChip()` のキャッシュ済み音源は同じ ID を維持。
+- 420ファイル・23 WASM・15 renderer、配布物の発音と NodeNext / Bundler / Browser 型定義を検証。関連47テスト、npm publish dry-run を通過。
+- npm registry の latest が 0.2.10、integrity が検証済み tgz と一致。公開版を examples に新規導入し、Chromium で PCM の音量 / Pan / Mute、同時生成の自動 ID、MegaSynth、Playground Main / Worker を再検証。
+- examples の依存 / lockfile / docs 配布物を 0.2.10 に更新。複数 Game Boy の自動 ID と個別 Volume / Pan / Mute / Reset の Web 例を追加。Web30例の発音・終了・停止・解放、Node オフライン12例の WAV / JSON、追加例の個別調整と Reset を確認。
+- integrity: `sha512-t/3O9Yb2z6Qpa7pBwige2vMh1wSW2A2y+z4lZY7EWxchWqxJ90PkRRNeJ44Ds5D8inn4lwLFoQuvfj3R8qHIQg==`。
+
 ## 0.2.9 公開記録（2026-10-08）
 
 - 公開元 commit: `e57e928`（ミキサー実装: `509d03c`）。
@@ -62,7 +71,7 @@
 
 ## リリース手順
 
-リポジトリのルートで実行する。以下は `0.2.9` を公開する例。
+リポジトリのルートで実行する。以下は `0.2.10` を公開する例。
 版番号を変更する場合は、tgz名と公開後の確認コマンドも読み替える。
 
 VGM CLIの手順は [READMD_RELEASE_VGM.md](READMD_RELEASE_VGM.md) を参照。
@@ -77,7 +86,7 @@ npm view tetorica-fm2612 name version versions maintainers --registry=https://re
 ```
 
 `packages/fm2612/package.json` の `version` を、公開する未使用の番号へ更新する。
-現在のローカル版は `0.2.9`。公開前に npm registry で未使用であることを確認する。
+現在のローカル版は `0.2.10`。公開前に npm registry で未使用であることを確認する。
 公開済みの同じ名前・バージョンは再利用できない。
 
 - `packages/fm2612/README.md`: npmに同梱する使い方、対応チップ、ブラウザのアセット配置。
@@ -131,16 +140,16 @@ RF5C164の8CH・左右パン・FM/PSG/PCMの混合出力・Stop/Reset・終了�
 
 ```sh
 npm run pack:fm2612 -- --silent
-tar -tzf tetorica-fm2612-0.2.9.tgz
-tar -xOf tetorica-fm2612-0.2.9.tgz package/package.json
-tar -xOf tetorica-fm2612-0.2.9.tgz package/README.md
+tar -tzf tetorica-fm2612-0.2.10.tgz
+tar -xOf tetorica-fm2612-0.2.10.tgz package/package.json
+tar -xOf tetorica-fm2612-0.2.10.tgz package/README.md
 ```
 
 専用スクリプトは `dist/fm2612/` に既存webランタイムを集め、WASM・Worker・
 AudioWorklet・音源データ・ライセンス文書を同梱する。npm用READMEは
 `packages/fm2612/README.md` からコピーする。ルートにtgzが生成される。
 
-配布manifestの名前が `tetorica-fm2612`、版番号が `0.2.9` であることを確認する。
+配布manifestの名前が `tetorica-fm2612`、版番号が `0.2.10` であることを確認する。
 `megasynth-fm-presets.js`、RF5C164のWASM/Worklet、第三者ライセンス、
 Nuked-OPN2のソースとビルドスクリプト、自作OPNAリズムデータも確認する。
 外部ROM・ゲームファイル・`w/`・キャッシュは含めない。
@@ -156,7 +165,7 @@ FM2612のビルド・packを再実行する。ルートに作成済みのtgzは�
 以下の変数はリポジトリのルートで設定する。
 
 ```sh
-fm2612_tarball="$PWD/tetorica-fm2612-0.2.9.tgz"
+fm2612_tarball="$PWD/tetorica-fm2612-0.2.10.tgz"
 fm2612_test_dir="$(mktemp -d)"
 (
   cd "$fm2612_test_dir" || exit 1
@@ -198,10 +207,10 @@ npm whoami --registry=https://registry.npmjs.org/
 
 ```sh
 # 公開しない確認
-npm publish ./tetorica-fm2612-0.2.9.tgz --access public --dry-run --registry=https://registry.npmjs.org/
+npm publish ./tetorica-fm2612-0.2.10.tgz --access public --dry-run --registry=https://registry.npmjs.org/
 
 # 同じtgzを公開
-npm publish ./tetorica-fm2612-0.2.9.tgz --access public --tag latest --registry=https://registry.npmjs.org/
+npm publish ./tetorica-fm2612-0.2.10.tgz --access public --tag latest --registry=https://registry.npmjs.org/
 ```
 
 dry-runは公開権限や名前の利用可否を保証しない。
@@ -211,17 +220,17 @@ dry-runは公開権限や名前の利用可否を保証しない。
 
 ```sh
 npm view tetorica-fm2612 version dist-tags --registry=https://registry.npmjs.org/ --prefer-online
-npm view tetorica-fm2612@0.2.9 dist.integrity --registry=https://registry.npmjs.org/ --prefer-online
+npm view tetorica-fm2612@0.2.10 dist.integrity --registry=https://registry.npmjs.org/ --prefer-online
 ```
 
-`latest` が `0.2.9` を指していることを確認する。npmが公開後の処理中と案内した
+`latest` が `0.2.10` を指していることを確認する。npmが公開後の処理中と案内した
 場合は、数分待ってから確認する。反映待ちの間に同じ版を再公開しない。
 
 ```sh
 fm2612_verify_dir="$(mktemp -d)"
 (
   cd "$fm2612_verify_dir" || exit 1
-  npm install tetorica-fm2612@0.2.9 --ignore-scripts --no-audit --no-fund --registry=https://registry.npmjs.org/ || exit 1
+  npm install tetorica-fm2612@0.2.10 --ignore-scripts --no-audit --no-fund --registry=https://registry.npmjs.org/ || exit 1
   node --input-type=module <<'JS'
 import {createSoundChip} from 'tetorica-fm2612';
 const chip = await createSoundChip('ym2151');
