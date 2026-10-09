@@ -32,3 +32,18 @@ test('replacing a project resets a missing cwd without leaking the subscription'
   fs.mkdir('/temporary');await shell.execute('cd /temporary');shell.dispose();
   fs.remove('/temporary');assert.equal(shell.cwd,'/temporary');
 });
+test('nested commands execute without waiting for their parent and accept safe argument arrays',async()=>{
+  const fs=createVirtualFileSystem();const shell=createShell({fs});
+  let context;
+  shell.register('script',async ctx=>{context=ctx;return ctx.execute(['write','/a b.js','literal ; | text']);});
+  assert.equal((await shell.execute('script')).code,0);
+  assert.equal(fs.get('/a b.js').data,'literal ; | text');
+  assert.equal((await context.execute(['write','/late','bad'])).code,1);assert.equal(fs.has('/late'),false);
+});
+test('abort releases the command queue even when a custom command never settles',async()=>{
+  const fs=createVirtualFileSystem();const shell=createShell({fs});
+  let started=false;shell.register('hang',()=>{started=true;return new Promise(()=>{});});
+  const controller=new AbortController();const pending=shell.execute('hang',{signal:controller.signal});
+  while(!started)await Promise.resolve();controller.abort();
+  assert.equal((await pending).code,130);assert.equal((await shell.execute('pwd')).code,0);
+});

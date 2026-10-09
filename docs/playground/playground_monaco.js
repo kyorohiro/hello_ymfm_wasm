@@ -360,7 +360,7 @@ async function registerMonacoPlaygroundGlobals(
   chip = "ym2612"
 ) {
   const libraryModels = new Map();
-  for (const name of ["tetorica-playground-globals", `tetorica-playground-${chip}`]) {
+  for (const name of ["tetorica-playground-globals", `tetorica-playground-${chip}`, "tetorica-shell"]) {
     const response = await fetch(new URL(`./${name}.d.ts?v=loop-async-tasks-1`, import.meta.url), { cache: "no-cache" });
     if (!response.ok) throw new Error(`Failed to load playground type declarations: ${response.status}`);
     let declarations = await response.text();

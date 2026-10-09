@@ -18,7 +18,8 @@ export function parseCommand(source) {
   return args;
 }
 /** @typedef {{code:number,stdout:string,stderr:string}} CommandResult */
-/** @typedef {{fs:ReturnType<typeof import('./filesystem.js').createVirtualFileSystem>,args:string[],cwd:string,resolve:(path:string)=>string,signal?:AbortSignal,stdin:string}} CommandContext */
+/** @typedef {{signal?:AbortSignal,stdin?:string,fs?:ReturnType<typeof import('./filesystem.js').createVirtualFileSystem>}} ExecuteOptions */
+/** @typedef {{execute:(source:string|string[],options?:ExecuteOptions)=>Promise<CommandResult>,assertActive:()=>void,fs:ReturnType<typeof import('./filesystem.js').createVirtualFileSystem>,args:string[],cwd:string,resolve:(path:string)=>string,signal?:AbortSignal,stdin:string}} CommandContext */
 /** @typedef {(context:CommandContext)=>string|void|CommandResult|Promise<string|void|CommandResult>} Command */
 /** @param {{fs:ReturnType<typeof import('./filesystem.js').createVirtualFileSystem>,cwd?:string,authorize?:(operation:string,paths:string[])=>void}} options */
 export function createShell({fs,cwd = '/',authorize = () => {}}) {
@@ -33,32 +34,50 @@ export function createShell({fs,cwd = '/',authorize = () => {}}) {
     dispose() {unsubscribe();},
     /** @param {string} name @param {Command} command */
     register(name,command) {if (!/^[\w-]+$/.test(name) || typeof command !== 'function') throw Error('Invalid command registration');commands.set(name,command);},
-    /** Commands in one shell execute in order, including cwd changes.
-     * @param {string} source @param {{signal?:AbortSignal,stdin?:string}} [options] @returns {Promise<CommandResult>} */
-    execute(source,{signal,stdin = ''} = {}) {
+    /** Commands in one shell execute in order. Context.execute dispatches nested commands directly.
+     * @param {string|string[]} source @param {ExecuteOptions} [options] @returns {Promise<CommandResult>} */
+    execute(source,options = {}) {
+      const request=Array.isArray(source)?source.slice():source;
       const run=queue.then(async()=>{
-        try {
-          signal?.throwIfAborted();const [name,...args]=parseCommand(source);
-          if (!name) return {code:0,stdout:'',stderr:''};
-          const command=commands.get(name);
-          if (!command) return {code:127,stdout:'',stderr:`Unknown command: ${name}`};
-          const result=await command({fs,args,cwd,resolve:path=>resolvePath(path,cwd),signal,stdin});
-          return typeof result === 'object' && result ? result : {code:0,stdout:result ?? '',stderr:''};
-        } catch (error) {return {code:signal?.aborted ? 130 : 1,stdout:'',stderr:String(error.message ?? error)};}
+        let active=true;
+        try{return await dispatch(request,options,()=>active);}
+        finally{active=false;}
       });
       queue=run.then(()=>{});return run;
     },
   };
+  async function dispatch(source, {signal,stdin = '',fs:commandFs = fs} = {}, isActive) {
+    try {
+      if(!isActive())throw Error('Command session has ended');
+      signal?.throwIfAborted();
+      if(Array.isArray(source)&&source.some(arg=>typeof arg!=='string'))throw TypeError('Command arguments must be strings');
+      const [name,...args]=Array.isArray(source)?source:parseCommand(source);
+      if(!name)return {code:0,stdout:'',stderr:''};
+      const command=commands.get(name);
+      if(!command)return {code:127,stdout:'',stderr:`Unknown command: ${name}`};
+      const context={fs:commandFs,args,cwd,resolve:path=>resolvePath(path,cwd),signal,stdin,
+        assertActive(){if(!isActive())throw Error('Command session has ended');signal?.throwIfAborted();},
+        execute:(request,options = {})=>dispatch(request,{signal,stdin,fs:commandFs,...options},isActive)};
+      const task=Promise.resolve().then(()=>{context.assertActive();return command(context);});
+      let abort;
+      const result=signal ? await Promise.race([task,new Promise((_,reject)=>{
+        abort=()=>reject(signal.reason??new Error('Command aborted'));
+        signal.addEventListener('abort',abort,{once:true});if(signal.aborted)abort();
+      })]).finally(()=>signal.removeEventListener('abort',abort)) : await task;
+      context.assertActive();
+      return typeof result==='object'&&result ? result : {code:0,stdout:result??'',stderr:''};
+    }catch(error){return {code:signal?.aborted?130:1,stdout:'',stderr:String(error?.message??error)};}
+  }
   shell.register('pwd',()=>cwd+'\n');
   shell.register('help',()=>[...commands.keys()].sort().join(' ')+'\n');
-  shell.register('cd',({args,resolve})=>{if(args.length>1)throw Error('Expected one directory');const path=resolve(args[0]??'/');if(fs.stat(path).type!=='directory')throw Error('Not a directory');cwd=path;});
-  shell.register('ls',({args,resolve})=>{if(args.length>1)throw Error('Expected one path');const path=resolve(args[0]??'.');return fs.stat(path).type==='file' ? path+'\n' : fs.readdir(path).map(name=>name+(fs.stat(resolvePath(name,path)).type==='directory'?'/':'')).join('\n')+'\n';});
-  shell.register('cat',async({args,resolve})=>{count(args,1);return fs.createFileReader('/')(resolve(args[0]),{type:'text'});});
+  shell.register('cd',({fs,args,resolve})=>{if(args.length>1)throw Error('Expected one directory');const path=resolve(args[0]??'/');if(fs.stat(path).type!=='directory')throw Error('Not a directory');cwd=path;});
+  shell.register('ls',({fs,args,resolve})=>{if(args.length>1)throw Error('Expected one path');const path=resolve(args[0]??'.');return fs.stat(path).type==='file' ? path+'\n' : fs.readdir(path).map(name=>name+(fs.stat(resolvePath(name,path)).type==='directory'?'/':'')).join('\n')+'\n';});
+  shell.register('cat',async({fs,args,resolve})=>{count(args,1);return fs.createFileReader('/')(resolve(args[0]),{type:'text'});});
   shell.register('echo',({args})=>args.join(' ')+'\n');
-  shell.register('mkdir',({args,resolve})=>{const recursive=args[0]==='-p';if(recursive)args=args.slice(1);count(args,1);const path=resolve(args[0]);write('mkdir',[path]);fs.mkdir(path,{recursive});});
-  shell.register('touch',({args,resolve})=>{count(args,1);const path=resolve(args[0]);write('touch',[path]);if(!fs.has(path))fs.writeText(path,'');else if(fs.stat(path).type!=='file')throw Error('Not a file');});
-  shell.register('write',({args,resolve})=>{count(args,2);const path=resolve(args[0]);write('write',[path]);fs.writeText(path,args[1]);});
-  shell.register('rm',({args,resolve})=>{const recursive=args[0]==='-r';if(recursive)args=args.slice(1);count(args,1);const path=resolve(args[0]);write('rm',[path]);fs.remove(path,{recursive});});
-  for (const name of ['cp','mv']) shell.register(name,({args,resolve})=>{count(args,2);const paths=args.map(resolve);write(name,paths);transferVirtualFiles(fs,paths[0],paths[1],{copy:name==='cp'});});
+  shell.register('mkdir',({fs,args,resolve})=>{const recursive=args[0]==='-p';if(recursive)args=args.slice(1);count(args,1);const path=resolve(args[0]);write('mkdir',[path]);fs.mkdir(path,{recursive});});
+  shell.register('touch',({fs,args,resolve})=>{count(args,1);const path=resolve(args[0]);write('touch',[path]);if(!fs.has(path))fs.writeText(path,'');else if(fs.stat(path).type!=='file')throw Error('Not a file');});
+  shell.register('write',({fs,args,resolve})=>{count(args,2);const path=resolve(args[0]);write('write',[path]);fs.writeText(path,args[1]);});
+  shell.register('rm',({fs,args,resolve})=>{const recursive=args[0]==='-r';if(recursive)args=args.slice(1);count(args,1);const path=resolve(args[0]);write('rm',[path]);fs.remove(path,{recursive});});
+  for (const name of ['cp','mv']) shell.register(name,({fs,args,resolve})=>{count(args,2);const paths=args.map(resolve);write(name,paths);transferVirtualFiles(fs,paths[0],paths[1],{copy:name==='cp'});});
   return shell;
 }

@@ -33,6 +33,10 @@ playground_sync.js
 playground_ui.js
 playground_virtual_files.js
 playground_shell.js
+playground_shell_modules.js
+playground_shell_session.js
+playground_shell_runner.js
+playground_shell_worker.js
 playground_autosave.js
 playground_file_tree.js
 playground_example_order.js
@@ -46,6 +50,7 @@ ym2608_vgm_import.js
 ym2608_high.js
 rf5c164_vgm_export.js
 tetorica-playground-globals.d.ts
+tetorica-shell.d.ts
 tetorica-playground-ym2203.d.ts
 tetorica-playground-ym2608.d.ts
 tetorica-playground-ym2610.d.ts
@@ -323,6 +328,8 @@ for file in ${NUKED_LICENSE_FILES}; do
 done
 
 cat > "${STAGE_DIR}/THIRD_PARTY_LICENSES.txt" <<EOF
+JavaScript import parser: es-module-lexer 3.0.3, MIT. See vendor/es-module-lexer-LICENSE.
+
 NES APU: JSNES, Apache-2.0. See licenses/jsnes/.
 FDS: fixNES-derived, MIT. See licenses/fixnes-fds/.
 
@@ -357,6 +364,8 @@ perl -0pi -e 's#"\./playground\.js"#"./playground.js"#g; s#\.\./js/#./js/#g; s#\
   "${STAGE_DIR}/playground.js" \
   "${STAGE_DIR}/playground_virtual_files.js" \
   "${STAGE_DIR}/playground_shell.js" \
+  "${STAGE_DIR}/playground_shell_session.js" \
+  "${STAGE_DIR}/playground_shell_modules.js" \
   "${STAGE_DIR}/playground_monaco.js" \
   "${STAGE_DIR}/playground_monaco_definitions.js" \
   "${STAGE_DIR}/playground_monaco_completion.js" \

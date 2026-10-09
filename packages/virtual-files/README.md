@@ -53,7 +53,13 @@ shell.register('count', ({fs, signal}) => {
 await shell.execute('count', {signal: new AbortController().signal});
 ```
 
-Custom commands receive `fs`, `args`, `cwd`, `resolve`, `signal` and `stdin`.
+Custom commands receive `fs`, `args`, `cwd`, `resolve`, `signal`, `stdin`,
+`execute` and `assertActive`. Use the context's `execute` for nested commands:
+it dispatches directly rather than waiting behind the enclosing command.
+`shell.execute(['write', '/name with spaces.txt', 'text'])` also accepts an
+argument array without shell quoting. An aborted command returns code 130 and
+releases the queue. Host commands must check `assertActive()` before delayed
+mutations; aborting cannot forcibly stop arbitrary command functions.
 An `authorize(operation, paths)` callback can reject built-in file mutations.
 Custom commands must enforce their own host policies. This library is not a
 security sandbox for arbitrary JavaScript.

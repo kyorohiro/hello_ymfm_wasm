@@ -7,13 +7,14 @@
 - `packages/virtual-files/src/` にメモリー上のファイルシステム、パス解決、読み出し、軽量シェルを分離した。
 - ルート・空ディレクトリー・コピーを返すバイナリ読み出し・検証後の一括変更・スナップショット・変更通知に対応した。
 - Playground は同じコアを使い、Console の Shell から編集中のファイルを含めて操作できる。
+- Playground に `js PATH [ARGS...]` と `play PATH` を追加（2026-10-10）。共有ファイルの操作、相対 dynamic import、実行停止、編集競合の検出に対応。詳細は [JavaScript Shell の実装記録](tetorica-virtual-files-01.md#実装結果2026-10-10) を参照。
 - 空フォルダーは FILES に表示し、Tauri の自動保存と Cassette ZIP にも保持する。
 - `npm run build:virtual-files` で `dist/virtual-files/` とブラウザー用モジュールを生成する。JSDoc から生成する `.d.ts` を含む。
 - `npm run test:virtual-files` で独立コアとシェルのテストを実行できる。
 - [単独の実験ページ](../examples/virtual-files/) で、ファイル編集・シェル・バイナリ・空フォルダー・ブラウザー内への保存／復元を試せる。Playground の下書きとは別の IndexedDB を使う。
 
 IndexedDB の保存処理は、現在も Playground のアダプターとして残している。
-Git・整形／構文チェックツール・実フォルダー接続・任意の JavaScript の実行は次の段階。
+Git・整形／構文チェックツール・実フォルダー接続は次の段階。
 以下の API 例や構成には、今後の拡張案も含まれる。
 
 ## 目的

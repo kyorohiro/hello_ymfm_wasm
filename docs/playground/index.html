@@ -1749,7 +1749,10 @@
               <label id="shellPrompt" for="shellInput">/ $</label>
               <input id="shellInput" type="text" autocomplete="off" spellcheck="false" style="flex:1;min-width:0;font-family:monospace" aria-label="Shell command">
               <button type="submit">Execute</button>
+              <button id="shellStopButton" type="button" disabled>Stop Script</button>
             </form>
+            <p id="shellState" class="subtext" role="status">Ready.</p>
+            <p class="subtext"><code>js /scripts/example.js hello</code> runs a file. <code>play /index.js</code> uses the music player. Stop Script stops shell work; the toolbar STOP stops music. Up/Down recalls commands.</p>
           </section>
 
           <section id="helpersPanel" class="tab-panel" role="tabpanel" aria-labelledby="helpersTab" hidden>

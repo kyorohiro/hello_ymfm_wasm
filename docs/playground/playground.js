@@ -2,6 +2,7 @@ import {installFileExplorerResize} from './playground_file_resize.js';
 import {installPlaygroundShell} from './playground_shell.js';
 import {openDraftStore, createProjectAutosave} from './playground_autosave.js';
 let desktopAutosave = null;
+let playgroundShell = null;
 let restoredDesktopProject = false;
 let pendingDesktopCassetteAssets = null;
 const cassettePresetNames = new Set();
@@ -293,6 +294,16 @@ const bundledExampleFiles = EXAMPLE_FILES;
 const initialProjectFiles = [
   // A new project starts with the previous Live Loop example as its entry point.
   { path: "/index.js", data: DEFAULT_CODE },
+  { path: "/scripts/example.js", data: [
+    "const {fs, shell, args, cwd} = await import('tetorica:shell');",
+    "console.log('Shell script:', cwd, args);",
+    "const source = await fs.readFile('/index.js');",
+    "await fs.writeText('/scripts/index-copy.js', source);",
+    "const result = await shell.execute(['ls', '/scripts']);",
+    "if (result.code) throw new Error(result.stderr);",
+    "console.log(result.stdout);",
+    "",
+  ].join('\n') },
   { path: "/presets/README.md", data: [
     "# Presets",
     "",
@@ -1523,7 +1534,7 @@ masterVolumeRange?.addEventListener(
   }
 );
 
-async function runCode() {
+async function runCode({propagateError = false} = {}) {
   runButton.disabled = true;
   if (workerExecution) workerExecution.disabled = true;
   clearConsole();
@@ -1561,6 +1572,7 @@ async function runCode() {
     );
   } catch (error) {
     console.error(error);
+    if(propagateError)throw error;
   } finally {
     runButton.disabled = false;
     syncWorkerExecutionLock();
@@ -1671,6 +1683,7 @@ function formatCassetteStatus(assets) {
 }
 
 function restoreVirtualFilesFromCassette(cassette) {
+  playgroundShell?.invalidate('Project changed');
   const textExtensions = /\.(?:js|json|md|txt)$/i;
   const previousSource = getEditorValue();
   clearVirtualTfiPresets();
@@ -1891,6 +1904,7 @@ function installPlaygroundEventHandlers() {
   });
   newCassetteDialog.addEventListener('close', async () => {
     if (newCassetteDialog.returnValue !== 'new') return;
+    playgroundShell?.invalidate('New Cassette');
     await stopRun();
     pendingDesktopCassetteAssets = null;
     for (const name of cassettePresetNames) {
@@ -2308,8 +2322,11 @@ async function initializeDesktopAutosave() {
 await initializeDesktopAutosave();
 bootPlayground();
 let shellPreviousPath = activeVirtualPath;
-installPlaygroundShell({fs:virtualFiles,
-  beforeCommand(){shellPreviousPath=activeVirtualPath;if(!isSystemVirtualPath(activeVirtualPath))saveActiveVirtualFile();},
+playgroundShell=installPlaygroundShell({fs:virtualFiles,
+  beforeCommand(){
+    shellPreviousPath=activeVirtualPath;
+    if(!isSystemVirtualPath(activeVirtualPath)&&virtualFiles.get(activeVirtualPath)?.data!==getEditorValue())saveActiveVirtualFile();
+  },
   afterCommand(){
     if(!isSystemVirtualPath(activeVirtualPath)){
       if(!virtualFiles.has(activeVirtualPath))activeVirtualPath='/index.js';
@@ -2321,7 +2338,14 @@ installPlaygroundShell({fs:virtualFiles,
   },
   output:document.getElementById('shellOutput'),form:document.getElementById('shellForm'),
   input:document.getElementById('shellInput'),prompt:document.getElementById('shellPrompt'),
+  stopButton:document.getElementById('shellStopButton'),state:document.getElementById('shellState'),
+  async onPlay(path){
+    if(isSystemVirtualPath(path))throw Error('/sys is read-only');
+    const file=virtualFiles.get(path);if(file?.type!=='text'||!path.endsWith('.js'))throw Error('Choose a project JavaScript file');
+    runVirtualPath=path;renderRunFileOptions();await runCode({propagateError:true});
+  },
 });
+window.addEventListener('pagehide',()=>playgroundShell.invalidate('Page closed'));
 
 installMidiImport({button:document.getElementById('importMidiButton'), presets:playgroundPresets,
   enabled:selectedChip==='ym2612'&&!useNukedEngine,
