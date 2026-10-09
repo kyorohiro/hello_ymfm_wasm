@@ -289,7 +289,7 @@ let editorAdapter =
     editor
   );
 const bundledExampleFiles = EXAMPLE_FILES;
-const virtualFiles = createVirtualFileSystem([
+const initialProjectFiles = [
   // A new project starts with the previous Live Loop example as its entry point.
   { path: "/index.js", data: DEFAULT_CODE },
   { path: "/presets/README.md", data: [
@@ -370,7 +370,8 @@ const virtualFiles = createVirtualFileSystem([
     "",
   ].join("\n") },
   ...bundledExampleFiles,
-]);
+];
+const virtualFiles = createVirtualFileSystem(initialProjectFiles);
 let activeVirtualPath = "/index.js";
 let runVirtualPath = "/index.js";
 const virtualPresetIds = new Map();
@@ -1895,7 +1896,10 @@ function installPlaygroundEventHandlers() {
     for (const name of cassetteSampleNames) runtime.sample.unload(name);
     cassetteSampleNames.clear();
     currentCassetteMetadata = null; currentCassetteHasMetadataFile = false;
-    restoreVirtualFilesFromCassette({files:new Map([['index.js', new TextEncoder().encode('setBpm(120);\n\n')]])});
+    restoreVirtualFilesFromCassette({files:new Map(initialProjectFiles.map(file => [
+      file.path.replace(/^\//, ''),
+      typeof file.data === 'string' ? new TextEncoder().encode(file.data) : file.data,
+    ]))});
     setBottomTab('code');
     desktopAutosave?.changed();
     setStatus('New cassette.');
