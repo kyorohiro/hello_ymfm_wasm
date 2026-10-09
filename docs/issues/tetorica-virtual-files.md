@@ -1,6 +1,6 @@
 # Tetorica Virtual Files
 
-状態：最初の実装を追加。`tetorica-virtual-files` 0.1.0 を npm に公開（2026-10-09）。
+状態：`tetorica-virtual-files` 0.1.1 を npm に公開（2026-10-10）。初回公開は 0.1.0（2026-10-09）。
 
 ## 今回できたこと
 
