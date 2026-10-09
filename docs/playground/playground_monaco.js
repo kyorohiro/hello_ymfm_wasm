@@ -1,3 +1,4 @@
+import {createDefinitionViewer} from './playground_monaco_definitions.js?v=definitions-2';
 import { registerMonacoCompletions } from "./playground_monaco_completion.js";
 
 function registerMonacoHover(
@@ -358,6 +359,7 @@ async function registerMonacoPlaygroundGlobals(
   monaco,
   chip = "ym2612"
 ) {
+  const libraryModels = new Map();
   for (const name of ["tetorica-playground-globals", `tetorica-playground-${chip}`]) {
     const response = await fetch(new URL(`./${name}.d.ts?v=loop-async-tasks-1`, import.meta.url), { cache: "no-cache" });
     if (!response.ok) throw new Error(`Failed to load playground type declarations: ${response.status}`);
@@ -366,8 +368,12 @@ async function registerMonacoPlaygroundGlobals(
       // YM2203 has three channels; Neo Geo YM2610 exposes four.
       declarations = declarations.replace(chip === "ym2203" ? /declare const CH[456]: [345];\n/g : /declare const CH[56]: [45];\n/g, "");
     }
-    monaco.languages.typescript.javascriptDefaults.addExtraLib(declarations, `file:///${name}.d.ts`);
+    const uri = monaco.Uri.parse(`file:///${name}.d.ts`);
+    monaco.languages.typescript.javascriptDefaults.addExtraLib(declarations, uri.toString());
+    const model = monaco.editor.getModel(uri) ?? monaco.editor.createModel(declarations, 'typescript', uri);
+    libraryModels.set(uri.toString(), model);
   }
+  return libraryModels;
 }
 
 function loadMonacoLoader() {
@@ -507,7 +513,7 @@ export async function initializePlaygroundMonaco(
     registerMonacoSignatureHelp(
       monaco
     );
-    await registerMonacoPlaygroundGlobals(monaco, options.chip);
+    const libraryModels = await registerMonacoPlaygroundGlobals(monaco, options.chip);
 
     const modelUri =
       monaco.Uri.parse(
@@ -598,6 +604,10 @@ export async function initializePlaygroundMonaco(
         }
       );
     monacoEditor.onDidDispose(() => overflowHost.remove());
+    const definitionViewer = createDefinitionViewer(monaco, monacoEditor, libraryModels, {
+      chip: options.chip, openVirtualFile: options.openVirtualFile,
+    });
+    monacoEditor.onDidDispose(() => {definitionViewer.dispose();for (const model of libraryModels.values()) model.dispose();});
     let currentModel = monacoModel;
 
     function getModelForVirtualPath(path, source) {
