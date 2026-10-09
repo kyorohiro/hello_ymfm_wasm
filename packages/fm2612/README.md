@@ -10,6 +10,79 @@ its default entry point provides chip creation without starting browser audio.
 npm install tetorica-fm2612
 ```
 
+## API entry points
+
+Find an API by task below. Import paths are complete npm module specifiers;
+these modules ship with the package. The table lists the main application-facing
+entry points, rather than every internal Worker or Worklet module.
+
+| Task | Import from | Main APIs |
+| --- | --- | --- |
+| Create a chip / mix browser outputs / encode WAV | `tetorica-fm2612` | `createSoundChip`, `SoundChipMixer`, `encodeWav` |
+| Convert Hz or MIDI to YM2612 BLOCK/FNUM | `tetorica-fm2612/pitch.js` | `hzToBlockFnum`, `createPitchFromMidi` |
+| FM preset sounds | `tetorica-fm2612/megasynth-fm-presets.js` | `FM_PRESETS`, `FM_PRESET_ORDER` |
+| YM2612 FM and DAC | `tetorica-fm2612/ym2612synth.js` | `YM2612Synth`, `YM2612DirectTransport`, `YM2612WorkletTransport` |
+| YM2203 FM and SSG | `tetorica-fm2612/ym2203synth.js` | `YM2203Synth`, `YM2203DirectTransport`, `YM2203RuntimeSynth` |
+| YM2608 FM, SSG, rhythm and ADPCM-B | `tetorica-fm2612/ym2608synth.js` | `YM2608Synth`, `YM2608DirectTransport`, `YM2608WorkletTransport` |
+| YM2610 / YM2610B FM, SSG and ADPCM | `tetorica-fm2612/ym2610bsynth.js` | `YM2610BSynth`, `YM2610BDirectTransport`, `NeoGeoFMSynth`, `NeoGeoSynth` |
+| YM2151 FM | `tetorica-fm2612/ym2151synth.js` | `YM2151Synth`, `YM2151DirectTransport`, `YM2151WorkletTransport` |
+| Game Boy pulse, wave and noise | `tetorica-fm2612/gameboysynth.js` | `GameboySynth`, `GameboyDirectTransport` |
+| NES APU and FDS | `tetorica-fm2612/nesapusynth.js` | `NesApuSynth`, `NesApuDirectTransport`, `NesApuWorkletTransport` |
+| Sega PSG tone and noise | `tetorica-fm2612/segapsgsynth.js` | `SegaPSGSynth`, `SegaPSGDirectTransport`, `psgPeriodFromFrequency`, `psgPeriodFromNote` |
+| RF5C164 PCM | `tetorica-fm2612/rf5c164synth.js` | `RF5C164Synth`, `RF5C164DirectTransport` |
+| 32X PWM | `tetorica-fm2612/pwm32x_transport.js` | `PWM32XDirectTransport`, `PWM32XWorkletTransport` |
+| Shared browser chip transports | `tetorica-fm2612/chip_worklet_transport.js` | `GameboyWorkletTransport`, `SegaPSGWorkletTransport`, `YM2151WorkletTransport` |
+| Real-time chip playback on Node | `tetorica-fm2612/node/transports` | `YM2612AudifyTransport`, `YM2608AudifyTransport`, `YM2151AudifyTransport`, `GameboyAudifyTransport`, `SegaPSGAudifyTransport`, `NesApuAudifyTransport`, `PWM32XAudifyTransport` |
+| Browser synth with FX, recording and looping | `tetorica-fm2612/megasynth.js` | `MegaSynth` |
+| Browser live-code runtime | `tetorica-fm2612/playground_runtime.js` | `Playground`, `createPlaygroundRuntime` |
+| Offline FM + native FX rendering | `tetorica-fm2612/megasynth_offline.js` | `createMegaSynthOffline` (experimental) |
+| Offline recording and looping | `tetorica-fm2612/megasynth_session.js` | `createMegaSynthSession` (experimental) |
+| Node synth with Worker audio output | `tetorica-fm2612/node` | `MegaSynthNode` (experimental) |
+| PCM to WAV | `tetorica-fm2612/wav.js` | `encodeWav` |
+| PCM to YM2608 ADPCM-B | `tetorica-fm2612/adpcm_b_sample.js` | `readSamplePCM`, `encodeAdpcmB` |
+| PCM to RF5C164 sample RAM | `tetorica-fm2612/rf5c164_pcm.js` | `encodeRf5c164` |
+| TFI voice files | `tetorica-fm2612/tfi.js` | `parseTfi`, `applyTfiToSynth`, `createTfiFromPreset` |
+| VGI voice files | `tetorica-fm2612/vgi.js` | `parseVgi`, `createVgiFromPreset` |
+| Browser VGM playback | `tetorica-fm2612/vgm_runtime.js` | `VgmRuntime`, `createVgmRuntime` |
+| VGM metadata / VGZ decoding | `tetorica-fm2612/vgm_file.js` | `parseVgmMetadata`, `maybeDecodeVgmFile` |
+| Resolve packaged assets | `tetorica-fm2612/assets` | `runtimeAssetUrl` |
+
+Direct transports generate PCM without a speaker. Worklet transports require
+browser Web Audio; Audify transports require Node and the optional `audify`
+package. Pure helpers such as `pitch.js`, `wav.js`, `tfi.js` and `vgi.js` can run
+in both browser and Node without opening an audio device.
+
+### Pitch conversion example
+
+```js
+import {hzToBlockFnum} from 'tetorica-fm2612/pitch.js';
+
+const {block, fnum} = hzToBlockFnum(440);
+console.log({block, fnum}); // {block: 4, fnum: 1083}
+```
+
+Pass the result to an initialized YM2612 Synth:
+`fm.setFrequency(channel, block, fnum)`. This changes pitch without triggering a
+new note. The optional second argument to `hzToBlockFnum(hz, clock)` is the
+chip's input clock in Hz (default `7670454`), not the audio sample rate.
+`createPitchFromMidi(midi, {referenceMidi, referenceBlock, referenceFnum})`
+converts relative to a caller-selected MIDI/BLOCK/FNUM reference.
+
+### Find signatures and options
+
+After installing, use your editor's import completion, hover and Go to Definition.
+Declarations are shipped beside each module, for example
+`node_modules/tetorica-fm2612/pitch.d.ts` and
+`node_modules/tetorica-fm2612/node/chip_transports.d.mts`. They describe exported
+functions/classes, parameter types, options and return types. Plain JavaScript
+projects can use the same editor assistance with JSDoc-aware tooling.
+
+`node_modules/tetorica-fm2612/runtime-manifest.json` lists every shipped runtime
+module and asset. It is a distribution inventory, including internal modules;
+start with the task table above when choosing an application API. See the
+[runnable examples](https://github.com/kyorohiro/tetorica-fm2612-examples) for
+complete setup, playback and cleanup.
+
 ## Chip mixer
 
 Browser outputs share `SoundChipMixer`: `volume` is a linear multiplier (0–2),
