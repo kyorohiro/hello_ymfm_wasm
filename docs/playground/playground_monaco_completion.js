@@ -357,6 +357,7 @@ function createKnownObjectSuggestions(
           "scale",
           "chord",
           "noteToBlockFnum",
+          "hzToBlockFnum",
           "noteLerp",
           "choose",
           "cycle",

@@ -1750,6 +1750,7 @@
               <li><code>await pg.livePrepare("main-fx", async ({ fx }) =&gt; ...)</code> reuses prepared live state across runs</li>
               <li><code>pg.scale("Eb2", "majorPentatonic", 2)</code>, <code>pg.chord("B2", "minor")</code></li>
               <li><code>pg.noteToBlockFnum("C4")</code>, <code>pg.noteLerp("B2", "E3", 0.5)</code>, <code>pg.lerp(0, 100, 0.5)</code></li>
+              <li><code>hzToBlockFnum(440)</code> / <code>pg.hzToBlockFnum(440)</code> converts Hz to <code>{block, fnum}</code> for <code>fm.setFrequency(channel, block, fnum)</code>. Optional second argument: chip clock in Hz (default 7670454), not the audio sample rate.</li>
               <li><code>pg.choose(array)</code>, <code>pg.cycle(array)</code>, <code>pg.cycle("bass", array)</code></li>
               <li><code>pg.rand()</code>, <code>pg.rrange(0.2, 0.8)</code>, <code>pg.randInt(0, 7)</code></li>
               <li><code>pg.stopLoop(name)</code>, <code>pg.stopAllLoops()</code>, <code>pg.stopAll()</code></li>
