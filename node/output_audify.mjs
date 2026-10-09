@@ -14,7 +14,11 @@ export async function createOutput({sampleRate, bufferFrames, onDrain, onError, 
         if (closed || !running) return;
         queuedFrames = Math.max(0, queuedFrames - frames); consumedFrames += frames;
         onDrain();
-      }, 0, (_type, message) => {if (!closed) onError(new Error(message));});
+      }, 0, (type, message) => {
+        // RtAudio uses a process-wide callback. Destruction of another, unopened
+        // instance can report a benign closeStream warning to the active stream.
+        if (!closed && type > 1) onError(new Error(message));
+      });
     if (audio.getStreamSampleRate() !== sampleRate) throw new Error('Audio device sample rate differs from renderer');
   } catch (error) {if (audio.isStreamOpen()) audio.closeStream(); throw error;}
   return {
