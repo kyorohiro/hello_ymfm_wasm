@@ -1441,6 +1441,11 @@
         <details class="toolbar-menu" id="mainMenu">
           <summary aria-label="Playground menu">Menu</summary>
           <div class="toolbar-menu-panel">
+            <button id="newCassetteButton" type="button">New Cassette</button>
+            <button id="importCassetteButton" type="button">Import Cassette</button>
+            <button id="exportCassetteButton" type="button">Export Cassette</button>
+            <p id="autosaveStatus" class="subtext" role="status" hidden></p>
+            <hr>
             <button id="importMidiButton" type="button">Import MIDI</button>
             <button id="importVgmButton" type="button">Import VGM / S98</button>
             <dialog id="vgmImportDialog" aria-labelledby="vgmImportTitle" aria-describedby="vgmImportFilename">
@@ -1538,8 +1543,6 @@
                   <button id="convertVgmButton" type="button">Convert</button>
                 </div>
             </dialog>
-            <button id="importCassetteButton" type="button">Import Cassette</button>
-            <button id="exportCassetteButton" type="button">Export Cassette</button>
             <button id="exportTfiButton" type="button">Export TFI ZIP (CH1-CH6)</button>
             <button id="exportVgiButton" type="button">Export VGI ZIP (CH1-CH6)</button>
             <button id="resetOfflineCacheButton" data-reset-offline-cache type="button">Reset Offline Cache and Reload</button>
@@ -1569,6 +1572,14 @@
                   <button id="cancelCassetteExportButton" value="cancel" type="submit">Cancel</button>
                   <button id="confirmCassetteExportButton" value="default" type="submit">Export</button>
                 </div>
+              </form>
+            </dialog>
+            <dialog id="newCassetteDialog" aria-labelledby="newCassetteTitle">
+              <form method="dialog">
+                <h2 id="newCassetteTitle">New Cassette</h2>
+                <p>Start a new project? Export the current cassette first if you want to keep it.</p>
+                <button value="cancel" type="submit">Cancel</button>
+                <button value="new" type="submit">New Cassette</button>
               </form>
             </dialog>
           </div>
@@ -1968,6 +1979,6 @@
       </label>
     </footer>
 
-    <script type="module" src="./playground.js?v=definitions-4"></script>
+    <script type="module" src="./playground.js?v=cassette-autosave-1"></script>
   </body>
 </html>

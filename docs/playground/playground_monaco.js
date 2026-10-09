@@ -517,7 +517,7 @@ export async function initializePlaygroundMonaco(
 
     const modelUri =
       monaco.Uri.parse(
-        "file:///project/index.js"
+        `file:///project${options.getActiveVirtualPath?.() ?? '/index.js'}`
       );
     const existingModel =
       monaco.editor.getModel(

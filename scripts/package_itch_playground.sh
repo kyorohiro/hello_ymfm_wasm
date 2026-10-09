@@ -32,6 +32,7 @@ playground_query.js
 playground_sync.js
 playground_ui.js
 playground_virtual_files.js
+playground_autosave.js
 playground_file_tree.js
 playground_example_order.js
 playground_file_resize.js

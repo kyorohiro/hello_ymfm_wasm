@@ -1,4 +1,10 @@
 import {installFileExplorerResize} from './playground_file_resize.js';
+import {openDraftStore, createProjectAutosave} from './playground_autosave.js';
+let desktopAutosave = null;
+let restoredDesktopProject = false;
+let pendingDesktopCassetteAssets = null;
+const cassettePresetNames = new Set();
+const cassetteSampleNames = new Set();
 import {exportYm2608FullVgm} from './ym2608_vgm_import.js?v=loop-async-tasks-1';
 import {prepareVgmImport, exportGameboyVgm, exportNesVgm, exportRf5c164Vgm, addVgmSoundChipSetup, exportYm2203FullVgm} from './playground_vgm_import.js?v=loop-async-tasks-1';
 import {installPlaygroundPageLifecycle} from "./playground_page_lifecycle.js";
@@ -24,7 +30,7 @@ import {
 } from "./playground_operator_tab.js";
 import { createPlaygroundOperatorKeyboard } from "./playground_operator_keyboard.js";
 import { DEFAULT_CODE, EXAMPLES, EXAMPLE_FILES } from "./playground_examples.js?v=play-units-1";
-import { initializePlaygroundMonaco } from "./playground_monaco.js?v=definitions-4";
+import { initializePlaygroundMonaco } from "./playground_monaco.js?v=cassette-autosave-1";
 import {
   decodeBase64Bytes,
   loadTfiPresetsFromQuery,
@@ -41,7 +47,7 @@ import {
   normalizeVirtualPath,
   transferVirtualFiles,
   resolveVirtualDynamicImports,
-} from "./playground_virtual_files.js?v=midi-import-1";
+} from "./playground_virtual_files.js?v=cassette-autosave-1";
 import { unzipSync, zipSync } from "./vendor/fflate.js";
 import {
   exportYm2203FmVgmToPlaygroundJavaScript,
@@ -522,6 +528,7 @@ function createTextareaEditorAdapter(
     },
     setValue(value) {
       textarea.value = value;
+      desktopAutosave?.changed();
     },
     setReadOnly(readOnly) {
       textarea.readOnly = readOnly;
@@ -542,6 +549,7 @@ function createTextareaEditorAdapter(
         end,
         "end"
       );
+      desktopAutosave?.changed();
       textarea.focus();
     },
     focus() {
@@ -1519,6 +1527,10 @@ async function runCode() {
 
   try {
     await pageLifecycle.beforeRun();
+    if (pendingDesktopCassetteAssets) {
+      await registerCassetteAssets(pendingDesktopCassetteAssets);
+      pendingDesktopCassetteAssets = null;
+    }
     saveActiveVirtualFile();
     const entryFile = virtualFiles.get(runVirtualPath);
     if (!entryFile || entryFile.type !== "text") {
@@ -1613,10 +1625,12 @@ async function registerCassetteAssets(assets) {
         sampleEntry.name,
         sampleEntry.bytes.buffer
       );
+      cassetteSampleNames.add(sampleEntry.name);
     }
   }
 
   for (const timbre of assets.timbres) {
+    cassettePresetNames.add(timbre.name);
     playgroundPresets[timbre.name] = timbre.preset;
     runtime.presets[timbre.name] = timbre.preset;
     operatorTab.registerPresetOption(timbre.name);
@@ -1687,6 +1701,7 @@ async function loadCassetteSource(
       source,
       { name }
     );
+  pendingDesktopCassetteAssets = null;
   currentCassetteHasMetadataFile =
     cassette.files.has("metadata.json") ||
     cassette.files.has("cassette.metadata.js");
@@ -1862,6 +1877,29 @@ function setExpandedMode(expanded) {
 }
 
 function installPlaygroundEventHandlers() {
+  const newCassetteDialog = document.getElementById('newCassetteDialog');
+  document.body.append(newCassetteDialog);
+  document.getElementById('newCassetteButton').addEventListener('click', () => {
+    mainMenu.open = false;
+    newCassetteDialog.returnValue = '';
+    newCassetteDialog.showModal();
+  });
+  newCassetteDialog.addEventListener('close', () => {
+    if (newCassetteDialog.returnValue !== 'new') return;
+    stopRun();
+    pendingDesktopCassetteAssets = null;
+    for (const name of cassettePresetNames) {
+      delete playgroundPresets[name]; delete runtime.presets[name]; operatorTab.removePresetOption(name);
+    }
+    cassettePresetNames.clear(); cassetteExamples.clear();
+    for (const name of cassetteSampleNames) runtime.sample.unload(name);
+    cassetteSampleNames.clear();
+    currentCassetteMetadata = null; currentCassetteHasMetadataFile = false;
+    restoreVirtualFilesFromCassette({files:new Map([['index.js', new TextEncoder().encode('setBpm(120);\n\n')]])});
+    setBottomTab('code');
+    desktopAutosave?.changed();
+    setStatus('New cassette.');
+  });
   document.body.append(vgmImportDialog);
   importVgmButton.addEventListener("click", promptVgmImport);
   vgmImportDialog.addEventListener("close", () => {
@@ -2169,7 +2207,7 @@ runButton.addEventListener(
 }
 
 function bootPlayground() {
-  applyInitialSourceFromQuery();
+  if (!restoredDesktopProject) applyInitialSourceFromQuery();
   void applyCassetteFromQuery();
   applySimpleModeFromQuery();
   if (playgroundSearch.get("expanded") === "1" && playgroundSearch.get("mode") !== "simple") {
@@ -2189,6 +2227,7 @@ installFileExplorerDropTarget();
     editor,
     editorHost,
     getEditorValue,
+    getActiveVirtualPath: () => activeVirtualPath,
     listVirtualFiles() {
       return virtualFiles.list();
     },
@@ -2200,6 +2239,8 @@ installFileExplorerDropTarget();
     onMonacoEditorReady({
       monacoEditor,
     }) {
+      monacoEditor.onDidChangeModelContent(() => desktopAutosave?.changed());
+      monacoEditor.onDidChangeModel(() => desktopAutosave?.changed());
       monacoEditor.addAction({
         id: "tetorica-insert-tfi-object",
         label:
@@ -2215,6 +2256,46 @@ installFileExplorerDropTarget();
   });
 }
 
+async function initializeDesktopAutosave() {
+  if (!window.__TAURI_INTERNALS__) return;
+  const label = document.getElementById('autosaveStatus');
+  label.hidden = false;
+  const status = text => {label.textContent = text;};
+  status('Restoring autosave…');
+  try {
+    const store = await openDraftStore(window.indexedDB, selectedChip + (useNukedEngine ? ':nuked' : ''));
+    const snapshot = await store.load();
+    // Explicit shared URLs take precedence over a previous local draft.
+    const explicitSource = ['cassette', 'code', 'src', 'source', 'example'].some(key => playgroundSearch.has(key));
+    if (snapshot?.version === 1 && !explicitSource) {
+      currentCassetteMetadata = snapshot.metadata ?? null;
+      currentCassetteHasMetadataFile = Boolean(snapshot.hasMetadataFile);
+      restoreVirtualFilesFromCassette({files:new Map(snapshot.files.map(file => [file.path.replace(/^\//, ''), file.type === 'text' ? new TextEncoder().encode(file.data) : file.data]))});
+      if (snapshot.activePath && virtualFiles.get(snapshot.activePath)?.type === 'text') openVirtualFile(snapshot.activePath);
+      if (snapshot.runPath && virtualFiles.get(snapshot.runPath)?.type === 'text') runVirtualPath = snapshot.runPath;
+      restoredDesktopProject = true;
+      // Recreate imported sample/preset names when Run initializes audio, without playing on startup.
+      try {
+        const archive = createPlaygroundCassetteZip(snapshot.files.filter(file => !['/metadata.json','/cassette.metadata.js'].includes(file.path)));
+        pendingDesktopCassetteAssets = parseCassetteAssets(await loadPlaygroundCassette(archive, {name:'autosave'}));
+      } catch (error) {setStatus(`Project restored; cassette assets could not be prepared: ${error.message}`);}
+    }
+    desktopAutosave = createProjectAutosave({store, onStatus:status, capture:() => ({
+      version:1, activePath:activeVirtualPath, runPath:runVirtualPath,
+      metadata:currentCassetteMetadata, hasMetadataFile:currentCassetteHasMetadataFile,
+      files:virtualFiles.list().filter(file => !isSystemVirtualPath(file.path)).map(file =>
+        file.path === activeVirtualPath && file.type === 'text' ? {...file, data:getEditorValue()} : file),
+    })});
+    virtualFiles.onDidChange(() => desktopAutosave.changed());
+    editor.addEventListener('input', () => desktopAutosave.changed());
+    runFileSelect.addEventListener('change', () => queueMicrotask(() => desktopAutosave.changed()));
+    window.addEventListener('pagehide', () => desktopAutosave.changed());
+    window.__tetoricaAutosaveFlush = () => desktopAutosave.changed();
+    status(restoredDesktopProject ? 'Autosave restored' : 'Autosave enabled');
+  } catch (error) {status(`Autosave unavailable: ${error.message ?? error}`);}
+}
+
+await initializeDesktopAutosave();
 bootPlayground();
 
 installMidiImport({button:document.getElementById('importMidiButton'), presets:playgroundPresets,

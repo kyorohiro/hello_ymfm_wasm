@@ -61,12 +61,18 @@ export function normalizeVirtualPath(path, basePath = "/") {
 
 export function createVirtualFileSystem(entries = []) {
   const files = new Map();
+  const listeners = new Set();
+  const changed = () => { for (const listener of listeners) listener(); };
 
   for (const entry of entries) {
     writeVirtualFile(files, entry.path, entry.data);
   }
 
   return {
+    onDidChange(listener) {
+      listeners.add(listener);
+      return () => listeners.delete(listener);
+    },
     has(path) {
       return files.has(normalizeVirtualPath(path));
     },
@@ -84,15 +90,20 @@ export function createVirtualFileSystem(entries = []) {
       for (const entry of entries) {
         writeVirtualFile(files, entry.path, entry.data);
       }
+      changed();
     },
     writeText(path, text) {
       writeVirtualFile(files, path, String(text));
+      changed();
     },
     writeBinary(path, bytes) {
       writeVirtualFile(files, path, bytes);
+      changed();
     },
     delete(path) {
-      return files.delete(normalizeVirtualPath(path));
+      const deleted = files.delete(normalizeVirtualPath(path));
+      if (deleted) changed();
+      return deleted;
     },
     createFileReader(currentPath = "/index.js") {
       return createVirtualFileReader(this, currentPath);
