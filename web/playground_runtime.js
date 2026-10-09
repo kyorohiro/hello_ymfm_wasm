@@ -191,6 +191,25 @@ export function createPlaygroundRuntime(
   let midiWriteBatch = null;
   let synth = null;
   let prepareAudioPromise = null;
+  let stopFadeNode = null;
+  let previousOutputNode = null;
+  let pendingFadeStop = null;
+  function resumeStopFade() {
+    const context = megaDrive.audioContext;
+    const audio = megaDrive.audio;
+    if (!stopFadeNode && context?.createGain && audio?.connectOutput) {
+      previousOutputNode = audio.outputNode ?? null;
+      stopFadeNode = context.createGain();
+      stopFadeNode.connect(previousOutputNode ?? context.destination);
+      audio.connectOutput(stopFadeNode);
+    }
+    if (stopFadeNode && stopFadeNode.gain.value !== 1) {
+      const now = context.currentTime;
+      stopFadeNode.gain.cancelScheduledValues(now);
+      stopFadeNode.gain.setValueAtTime(stopFadeNode.gain.value, now);
+      stopFadeNode.gain.linearRampToValueAtTime(1, now + 0.008);
+    }
+  }
   let currentRunToken = 0;
   let currentLoopContext = null;
   const keyboardHandlers = new Map();
@@ -694,13 +713,16 @@ export function createPlaygroundRuntime(
   }
 
   async function ensureReady() {
+    if (pendingFadeStop) await pendingFadeStop;
     if (prepareAudioPromise) {
       await prepareAudioPromise;
+      resumeStopFade();
       return synth;
     }
 
     if (synth) {
       await megaDrive.resume();
+      resumeStopFade();
       emitRuntimeState(
         "Audio ready"
       );
@@ -718,6 +740,7 @@ export function createPlaygroundRuntime(
       (async () => {
         await megaDrive.start();
         await megaDrive.audio?.prepareNativeFX?.();
+        resumeStopFade();
         if (megaDrive.audio?.nativeFX) {
           megaDrive.audio.nativeFX.onError = (message) => {
             options.onLog?.(`[FX] ${message}`);
@@ -1810,6 +1833,7 @@ export function createPlaygroundRuntime(
     sourceCode,
     playOptions = {}
   ) {
+    if (pendingFadeStop) await pendingFadeStop;
     const execution =
       playOptions.execution ??
       defaultExecution;
@@ -2017,6 +2041,34 @@ export function createPlaygroundRuntime(
     );
   }
 
+  /** Fade the complete output (including FX tails) before destructive audio cleanup. */
+  function stopWithFade() {
+    if (pendingFadeStop) return pendingFadeStop;
+    const context = megaDrive.audioContext;
+    if (!stopFadeNode || context?.state !== 'running') {
+      stop();
+      return Promise.resolve();
+    }
+    const runToken = currentRunToken;
+    const now = context.currentTime, end = now + 0.04;
+    const gain = stopFadeNode.gain;
+    if (typeof gain.cancelAndHoldAtTime === 'function') gain.cancelAndHoldAtTime(now);
+    else {gain.cancelScheduledValues(now);gain.setValueAtTime(gain.value, now);}
+    gain.linearRampToValueAtTime(0, end);
+    pendingFadeStop = (async () => {
+      // Follow the audio clock: a wall timer alone may fire before the ramp is rendered.
+      while (runToken === currentRunToken && context.state === 'running' && context.currentTime < end) {
+        await new Promise(resolve => setTimeout(resolve, 5));
+      }
+      gain.cancelScheduledValues(context.currentTime);
+      gain.setValueAtTime(0, context.currentTime);
+      if (runToken !== currentRunToken) return;
+      stop();
+      if (logicWorkerStopPromise) await logicWorkerStopPromise;
+    })().finally(() => {pendingFadeStop = null;});
+    return pendingFadeStop;
+  }
+
   function clear() {
     stop();
     sourceMap.clear();
@@ -2035,6 +2087,9 @@ export function createPlaygroundRuntime(
     removeMegaDriveListener =
       null;
     await megaDrive.close();
+    stopFadeNode?.disconnect();
+    if (stopFadeNode && megaDrive.audio) megaDrive.audio.outputNode = previousOutputNode;
+    stopFadeNode = null;
     emitStatus("Finalized.");
     emitRuntimeState("Audio idle");
   }
@@ -2081,6 +2136,7 @@ export function createPlaygroundRuntime(
     play,
     playSource,
     stop,
+    stopWithFade,
     clear,
     finalize,
     getState,

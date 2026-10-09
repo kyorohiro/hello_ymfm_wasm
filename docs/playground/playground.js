@@ -59,7 +59,7 @@ import { exportYm2608VgmToPlaygroundJavaScript } from "../js/ym2608vgm.js";
 import { exportYm2610BVgmToPlaygroundJavaScript } from "../js/ym2610bvgm.js";
 import {
   createPlaygroundRuntime,
-} from "../js/playground_runtime.js?v=play-units-1";
+} from "../js/playground_runtime.js?v=stop-fade-1";
 import { createVgmPresetFiles } from "./playground_vgm_presets.js";
 import { createTfiFileEditor, tfiToEditorPreset } from "./playground_tfi_editor.js";
 import { renderFileTree } from "./playground_file_tree.js";
@@ -1565,10 +1565,11 @@ async function runCode() {
   }
 }
 
-function stopRun() {
-  runtime.stop();
-  runButton.disabled = false;
-  syncWorkerExecutionLock();
+async function stopRun() {
+  runButton.disabled = true;
+  stopButton.disabled = true;
+  try { await runtime.stopWithFade(); }
+  finally { runButton.disabled = false; stopButton.disabled = false; syncWorkerExecutionLock(); }
 }
 
 function parseCassetteAssets(cassette) {
@@ -1885,9 +1886,9 @@ function installPlaygroundEventHandlers() {
     newCassetteDialog.returnValue = '';
     newCassetteDialog.showModal();
   });
-  newCassetteDialog.addEventListener('close', () => {
+  newCassetteDialog.addEventListener('close', async () => {
     if (newCassetteDialog.returnValue !== 'new') return;
-    stopRun();
+    await stopRun();
     pendingDesktopCassetteAssets = null;
     for (const name of cassettePresetNames) {
       delete playgroundPresets[name]; delete runtime.presets[name]; operatorTab.removePresetOption(name);

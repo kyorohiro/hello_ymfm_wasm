@@ -39,6 +39,35 @@ function setup(t, capabilities) {
   return { runtime, megaDrive, listeners, statuses };
 }
 
+test('fade stop silences output before cleanup and a new Run waits for it', async t => {
+  const {runtime, megaDrive} = setup(t, {fmChannels:1});
+  const events=[];
+  const gain={value:1,cancelScheduledValues(){},setValueAtTime(value){this.value=value;events.push(['gain',value]);},
+    linearRampToValueAtTime(value,time){events.push(['ramp',value,time]);}};
+  megaDrive.audioContext={state:'running',currentTime:0,destination:{},createGain:()=>({gain,connect(){},disconnect(){}})};
+  megaDrive.audio={outputNode:null,connectOutput(){}};
+  megaDrive.fm.noteOff=()=>events.push(['cleanup',megaDrive.audioContext.currentTime]);
+  await runtime.ensureReady();
+  const stopping=runtime.stopWithFade();
+  assert.equal(runtime.stopWithFade(),stopping);
+  assert.deepEqual(events,[['gain',1],['ramp',0,0.04]]);
+  globalThis.playgroundReview={started:false};
+  const restart=runtime.playSource('globalThis.playgroundReview.started=true;');
+  await Promise.resolve();assert.equal(globalThis.playgroundReview.started,false);
+  megaDrive.audioContext.currentTime=0.045;
+  await stopping;await restart;
+  assert.ok(events.findIndex(e=>e[0]==='gain'&&e[1]===0)<events.findIndex(e=>e[0]==='cleanup'));
+  assert.ok(events.some(e=>e[0]==='ramp'&&e[1]===1));
+  assert.equal(globalThis.playgroundReview.started,true);
+});
+
+test('fade stop does not wait for a suspended audio clock', async t => {
+  const {runtime,megaDrive}=setup(t);
+  megaDrive.audioContext.state='suspended';
+  await runtime.stopWithFade();
+  assert.equal(runtime.getState().playback,'stopped');
+});
+
 for (const example of ['chip-raw/gameboy-raw-write-sample', 'gameboy/gameboy-synth']) test(`Game Boy ${example} compiles with the full Playground global argument list`, async t => {
   const {runtime} = setup(t);
   const source = await readFile(new URL(`../docs/playground/examples/${example}.js`, import.meta.url), 'utf8');
