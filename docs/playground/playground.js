@@ -1,4 +1,5 @@
 import {installFileExplorerResize} from './playground_file_resize.js';
+import {installPlaygroundShell} from './playground_shell.js';
 import {openDraftStore, createProjectAutosave} from './playground_autosave.js';
 let desktopAutosave = null;
 let restoredDesktopProject = false;
@@ -40,14 +41,14 @@ import {
 import {
   createPlaygroundCassetteZip,
   loadPlaygroundCassette,
-} from "./playground_cassette.js";
+} from "./playground_cassette.js?v=virtual-files-1";
 import {
   createVirtualFileSystem,
   createVirtualFileRuntimeSource,
   normalizeVirtualPath,
   transferVirtualFiles,
   resolveVirtualDynamicImports,
-} from "./playground_virtual_files.js?v=cassette-autosave-1";
+} from "./playground_virtual_files.js?v=virtual-files-1";
 import { unzipSync, zipSync } from "./vendor/fflate.js";
 import {
   exportYm2203FmVgmToPlaygroundJavaScript,
@@ -62,7 +63,7 @@ import {
 } from "../js/playground_runtime.js?v=stop-fade-1";
 import { createVgmPresetFiles } from "./playground_vgm_presets.js";
 import { createTfiFileEditor, tfiToEditorPreset } from "./playground_tfi_editor.js";
-import { renderFileTree } from "./playground_file_tree.js";
+import { renderFileTree } from "./playground_file_tree.js?v=virtual-files-1";
 import { createPlaygroundUi } from "./playground_ui.js?v=fx-monitor-1";
 import {
   handleMegaSynthEvent,
@@ -797,6 +798,7 @@ function exportCassette() {
         file.path !== "/cassette.metadata.js"
       ),
       {
+        directories: virtualFiles.listDirectories(),
         license: selectedLicense,
         licenseName: updateLicense ? cassetteLicenseCustomName?.value ?? "" : existingMetadata?.licenseName ?? "",
         workType: selectedWorkType,
@@ -1133,7 +1135,7 @@ const expandedFileFolders = new Map();
 function renderVirtualFileExplorer() {
   const selectedPath = activeTfiFilePath ?? activeVirtualPath;
   renderFileTree(fileExplorerList,
-    virtualFiles.list().filter(file => !isSystemVirtualPath(file.path)), {
+    [...virtualFiles.list(), ...virtualFiles.listDirectories().filter(path => path !== '/').map(path => ({path,type:'directory'}))].filter(file => !isSystemVirtualPath(file.path)), {
       selectedPath,
       expanded: expandedFileFolders,
       onOpen: openVirtualFile,
@@ -1678,7 +1680,8 @@ function restoreVirtualFilesFromCassette(cassette) {
       data: textExtensions.test(path)
         ? new TextDecoder().decode(bytes)
         : bytes,
-    }))
+    })),
+    cassette.directories ?? []
   );
 
   if (!virtualFiles.has("/index.js")) {
@@ -2276,6 +2279,7 @@ async function initializeDesktopAutosave() {
       currentCassetteMetadata = snapshot.metadata ?? null;
       currentCassetteHasMetadataFile = Boolean(snapshot.hasMetadataFile);
       restoreVirtualFilesFromCassette({files:new Map(snapshot.files.map(file => [file.path.replace(/^\//, ''), file.type === 'text' ? new TextEncoder().encode(file.data) : file.data]))});
+      for (const directory of snapshot.directories ?? []) virtualFiles.mkdir(directory,{recursive:true});
       if (snapshot.activePath && virtualFiles.get(snapshot.activePath)?.type === 'text') openVirtualFile(snapshot.activePath);
       if (snapshot.runPath && virtualFiles.get(snapshot.runPath)?.type === 'text') runVirtualPath = snapshot.runPath;
       restoredDesktopProject = true;
@@ -2287,6 +2291,7 @@ async function initializeDesktopAutosave() {
     }
     desktopAutosave = createProjectAutosave({store, onStatus:status, capture:() => ({
       version:1, activePath:activeVirtualPath, runPath:runVirtualPath,
+      directories:virtualFiles.listDirectories(),
       metadata:currentCassetteMetadata, hasMetadataFile:currentCassetteHasMetadataFile,
       files:virtualFiles.list().filter(file => !isSystemVirtualPath(file.path)).map(file =>
         file.path === activeVirtualPath && file.type === 'text' ? {...file, data:getEditorValue()} : file),
@@ -2302,6 +2307,21 @@ async function initializeDesktopAutosave() {
 
 await initializeDesktopAutosave();
 bootPlayground();
+let shellPreviousPath = activeVirtualPath;
+installPlaygroundShell({fs:virtualFiles,
+  beforeCommand(){shellPreviousPath=activeVirtualPath;if(!isSystemVirtualPath(activeVirtualPath))saveActiveVirtualFile();},
+  afterCommand(){
+    if(!isSystemVirtualPath(activeVirtualPath)){
+      if(!virtualFiles.has(activeVirtualPath))activeVirtualPath='/index.js';
+      const file=virtualFiles.get(activeVirtualPath);
+      if(file?.type==='text'&&(activeVirtualPath!==shellPreviousPath||getEditorValue()!==file.data))showVirtualFile(file);
+    }
+    editorAdapter.syncVirtualFiles?.(virtualFiles.list());
+    renderVirtualFileExplorer();renderRunFileOptions();desktopAutosave?.changed();
+  },
+  output:document.getElementById('shellOutput'),form:document.getElementById('shellForm'),
+  input:document.getElementById('shellInput'),prompt:document.getElementById('shellPrompt'),
+});
 
 installMidiImport({button:document.getElementById('importMidiButton'), presets:playgroundPresets,
   enabled:selectedChip==='ym2612'&&!useNukedEngine,

@@ -326,3 +326,10 @@ function concatBytes(parts) {
 
   return result;
 }
+
+test('cassette preserves empty directories alongside files', async () => {
+  const zip = createPlaygroundCassetteZip([{path:'/index.js',type:'text',data:'entry'}], {directories:['/','/empty','/deep/empty']});
+  const cassette = await loadPlaygroundCassette(zip);
+  assert.deepEqual(cassette.directories.sort(), ['/deep/empty','/empty']);
+  assert.equal(new TextDecoder().decode(cassette.files.get('index.js')), 'entry');
+});

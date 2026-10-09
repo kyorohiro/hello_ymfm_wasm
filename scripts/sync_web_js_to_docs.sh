@@ -237,3 +237,5 @@ perl -0pi -e 's#\./generated/#../generated/#g' \
 perl -0pi -e 's#\./generated/#../generated/#g' "${DOCS_JS_DIR}/soundchip-output-worklet.js"
 
 perl -0pi -e 's#../docs/js/nesapuaudioengine.js#./nesapuaudioengine.js#g' "${DOCS_JS_DIR}/nesapu.js"
+mkdir -p "${DOCS_JS_DIR}/tetorica_virtual_files"
+cp -R "${ROOT_DIR}/packages/virtual-files/src/." "${DOCS_JS_DIR}/tetorica_virtual_files/"

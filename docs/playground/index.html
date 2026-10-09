@@ -1742,6 +1742,14 @@
           </section>
           <section id="consolePanel" class="tab-panel" role="tabpanel" aria-labelledby="consoleTab" hidden>
             <pre id="consoleOutput"></pre>
+            <h3>Shell</h3>
+            <p class="subtext">Project files only. Try <code>help</code>, <code>ls</code>, or <code>cat /index.js</code>.</p>
+            <pre id="shellOutput" aria-label="Shell output" style="max-height:240px;overflow:auto;white-space:pre-wrap"></pre>
+            <form id="shellForm" style="display:flex;gap:8px;align-items:center">
+              <label id="shellPrompt" for="shellInput">/ $</label>
+              <input id="shellInput" type="text" autocomplete="off" spellcheck="false" style="flex:1;min-width:0;font-family:monospace" aria-label="Shell command">
+              <button type="submit">Execute</button>
+            </form>
           </section>
 
           <section id="helpersPanel" class="tab-panel" role="tabpanel" aria-labelledby="helpersTab" hidden>
@@ -1979,6 +1987,6 @@
       </label>
     </footer>
 
-    <script type="module" src="./playground.js?v=stop-fade-1"></script>
+    <script type="module" src="./playground.js?v=virtual-files-1"></script>
   </body>
 </html>

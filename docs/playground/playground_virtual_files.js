@@ -1,145 +1,12 @@
-const textDecoder = new TextDecoder();
-const textEncoder = new TextEncoder();
+import {createVirtualFileSystem, normalizeVirtualPath, transferVirtualFiles as transfer} from '../js/tetorica_virtual_files/index.js';
+export {createVirtualFileSystem, normalizeVirtualPath, createVirtualFileReader} from '../js/tetorica_virtual_files/index.js';
 
-// Validate the whole operation before changing any files, including folder contents.
-export function transferVirtualFiles(fileSystem, source, destination, { copy = false } = {}) {
-  source = normalizeVirtualPath(source);
-  destination = normalizeVirtualPath(destination);
-  if ([source, destination].some(path => path === '/sys' || path.startsWith('/sys/'))) {
-    throw new Error('/sys is reserved for built-in files.');
-  }
-  if (source === destination) return [];
-  if (destination.startsWith(`${source}/`)) throw new Error('Cannot place a folder inside itself.');
-  const files = fileSystem.list();
-  const selected = files.filter(file => file.path === source || file.path.startsWith(`${source}/`));
-  if (!selected.length) throw new Error('Source file or folder does not exist.');
-  if (!copy && selected.some(file => file.path === '/index.js')) throw new Error('/index.js cannot be moved.');
-  const moves = selected.map(file => ({ file, path: destination + file.path.slice(source.length) }));
-  for (const { path } of moves) {
-    if (files.some(file => file.path === path || file.path.startsWith(`${path}/`) || path.startsWith(`${file.path}/`))) {
-      throw new Error(`Destination already exists or conflicts with a file: ${path}`);
-    }
-  }
-  for (const { file, path } of moves) {
-    if (file.type === 'binary') fileSystem.writeBinary(path, file.data);
-    else fileSystem.writeText(path, file.data);
-  }
-  if (!copy) for (const { file } of moves) fileSystem.delete(file.path);
-  return moves.map(({ file, path }) => ({ from: file.path, to: path }));
-}
-
-export function normalizeVirtualPath(path, basePath = "/") {
-  const input = String(path ?? "");
-  const base = String(basePath ?? "/");
-  const parts = input.startsWith("/")
-    ? []
-    : base.split("/").slice(0, -1).filter(Boolean);
-
-  for (const part of input.split("/")) {
-    if (!part || part === ".") {
-      continue;
-    }
-    if (part === "..") {
-      if (parts.length === 0) {
-        throw new Error(`Virtual file path escapes the project: ${input}`);
-      }
-      parts.pop();
-      continue;
-    }
-    if (part.includes("\\")) {
-      throw new Error(`Virtual file path contains a backslash: ${input}`);
-    }
-    parts.push(part);
-  }
-
-  if (parts.length === 0) {
-    throw new Error(`Virtual file path is empty: ${input}`);
-  }
-
-  return `/${parts.join("/")}`;
-}
-
-export function createVirtualFileSystem(entries = []) {
-  const files = new Map();
-  const listeners = new Set();
-  const changed = () => { for (const listener of listeners) listener(); };
-
-  for (const entry of entries) {
-    writeVirtualFile(files, entry.path, entry.data);
-  }
-
-  return {
-    onDidChange(listener) {
-      listeners.add(listener);
-      return () => listeners.delete(listener);
-    },
-    has(path) {
-      return files.has(normalizeVirtualPath(path));
-    },
-    get(path) {
-      return files.get(normalizeVirtualPath(path)) ?? null;
-    },
-    list() {
-      return Array.from(files.values(), (file) => ({
-        ...file,
-        data: copyFileData(file.data),
-      }));
-    },
-    replace(entries) {
-      files.clear();
-      for (const entry of entries) {
-        writeVirtualFile(files, entry.path, entry.data);
-      }
-      changed();
-    },
-    writeText(path, text) {
-      writeVirtualFile(files, path, String(text));
-      changed();
-    },
-    writeBinary(path, bytes) {
-      writeVirtualFile(files, path, bytes);
-      changed();
-    },
-    delete(path) {
-      const deleted = files.delete(normalizeVirtualPath(path));
-      if (deleted) changed();
-      return deleted;
-    },
-    createFileReader(currentPath = "/index.js") {
-      return createVirtualFileReader(this, currentPath);
-    },
-  };
-}
-
-export function createVirtualFileReader(fileSystem, currentPath) {
-  return async function file(path, options = {}) {
-    const resolvedPath = normalizeVirtualPath(path, currentPath);
-    const entry = fileSystem.get(resolvedPath);
-    if (!entry) {
-      throw new Error(`Virtual file not found: ${resolvedPath}`);
-    }
-
-    const type = options.type ?? "text";
-    if (type === "text") {
-      return entry.type === "text"
-        ? entry.data
-        : textDecoder.decode(entry.data);
-    }
-    if (type === "arrayBuffer") {
-      const bytes = entry.type === "text"
-        ? textEncoder.encode(entry.data)
-        : entry.data;
-      return bytes.buffer.slice(
-        bytes.byteOffset,
-        bytes.byteOffset + bytes.byteLength
-      );
-    }
-    if (type === "json") {
-      return JSON.parse(await file(path, { type: "text" }));
-    }
-
-    throw new Error(`Unsupported virtual file type: ${type}`);
-  };
+// Entry-point and built-in-file policies belong to Playground, not the generic filesystem.
+export function transferVirtualFiles(fs, source, destination, options = {}) {
+  source = normalizeVirtualPath(source); destination = normalizeVirtualPath(destination);
+  if ([source,destination].some(path => path === '/sys' || path.startsWith('/sys/'))) throw Error('/sys is reserved for built-in files.');
+  if (!options.copy && source === '/index.js' && source !== destination) throw Error('/index.js cannot be moved.');
+  return transfer(fs, source, destination, options);
 }
 
 export function resolveVirtualDynamicImports(
@@ -258,41 +125,6 @@ const file = async (path, options = {}) => {
 };
 ${options.install ? 'if (typeof midi !== "undefined") midi.setFileReader(file);' : ''}
 ${sampleFileSource}`;
-}
-
-function writeVirtualFile(files, path, data) {
-  const normalizedPath = normalizeVirtualPath(path);
-  if (typeof data === "string") {
-    files.set(normalizedPath, {
-      path: normalizedPath,
-      type: "text",
-      data,
-    });
-    return;
-  }
-
-  const bytes = toUint8Array(data);
-  files.set(normalizedPath, {
-    path: normalizedPath,
-    type: "binary",
-    data: new Uint8Array(bytes),
-  });
-}
-
-function copyFileData(data) {
-  return typeof data === "string"
-    ? data
-    : new Uint8Array(data);
-}
-
-function toUint8Array(data) {
-  if (data instanceof Uint8Array) {
-    return data;
-  }
-  if (data instanceof ArrayBuffer) {
-    return new Uint8Array(data);
-  }
-  throw new TypeError("Virtual file data must be text or binary bytes.");
 }
 
 function encodeBase64(bytes) {

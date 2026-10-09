@@ -11,14 +11,17 @@ export function buildFileTree(files) {
         parent.children.set(name, { name, path, children: new Map() });
       }
       parent = parent.children.get(name);
-      if (index === parts.length - 1) parent.file = file;
+      if (index === parts.length - 1) {
+        if(file.type==='directory')parent.directory=true;
+        else parent.file = file;
+      }
     });
   }
   function sorted(node) {
     const rank = child => child.path.split('/').length === 3 && child.path.startsWith('/examples/') && child.children.size > 0
       && EXAMPLE_FOLDER_ORDER.includes(child.name) ? EXAMPLE_FOLDER_ORDER.indexOf(child.name) : EXAMPLE_FOLDER_ORDER.length;
     return [...node.children.values()].sort((a, b) =>
-      Number(b.children.size > 0) - Number(a.children.size > 0) ||
+      Number(Boolean(b.directory)||b.children.size > 0) - Number(Boolean(a.directory)||a.children.size > 0) ||
       rank(a) - rank(b) ||
       a.name.localeCompare(b.name, undefined, { numeric: true })
     ).map(child => ({ ...child, children: sorted(child) }));
@@ -66,7 +69,7 @@ export function renderFileTree(root, files, { selectedPath, expanded, onOpen, on
     list.className = 'file-tree';
     for (const node of nodes) {
       const item = document.createElement('li');
-      if (node.children.length) {
+      if (node.directory || node.children.length) {
         const folder = document.createElement('details');
         folder.open = expanded.get(node.path) ?? selectedPath?.startsWith(`${node.path}/`) ?? false;
         const label = document.createElement('summary');

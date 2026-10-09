@@ -24,6 +24,12 @@ const CASSETTE_DIRECTORIES = {
 
 export function createPlaygroundCassetteZip(files, options = {}) {
   const entries = {};
+  for (const directory of options.directories ?? []) {
+    if (directory === '/') continue;
+    const path = String(directory).replace(/^\//, '').replace(/\/$/, '');
+    validateZipPath(path);
+    entries[path + '/'] = new Uint8Array();
+  }
 
   for (const file of files) {
     const path = String(file.path ?? "").replace(/^\//, "");
@@ -94,6 +100,7 @@ export async function loadPlaygroundCassette(
       options.name
     ),
     files: new Map(),
+    directories: [],
     timbres: [],
     examples: [],
     samples: [],
@@ -102,6 +109,10 @@ export async function loadPlaygroundCassette(
   const namesByCategory = new Map();
 
   for (const entry of zipEntries) {
+    if (entry.path.endsWith('/')) {
+      cassette.directories.push('/' + entry.path.slice(0, -1));
+      continue;
+    }
     if (cassette.files.has(entry.path)) {
       throw new Error(
         `Duplicate cassette file path "${entry.path}".`
@@ -392,7 +403,7 @@ async function readZipEntries(bytes) {
     );
     validateZipPath(path);
 
-    if (!path.endsWith("/")) {
+    {
       entries.push({
         path,
         read: () => readZipEntryData({
@@ -564,7 +575,7 @@ function validateZipPath(path) {
     !path ||
     path.startsWith("/") ||
     path.includes("\\") ||
-    path.split("/").some(
+    path.replace(/\/$/, '').split("/").some(
       (part) =>
         part === "" ||
         part === "." ||

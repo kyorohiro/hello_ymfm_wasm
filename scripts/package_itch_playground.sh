@@ -32,6 +32,7 @@ playground_query.js
 playground_sync.js
 playground_ui.js
 playground_virtual_files.js
+playground_shell.js
 playground_autosave.js
 playground_file_tree.js
 playground_example_order.js
@@ -263,6 +264,7 @@ for file in ${RUNTIME_FILES}; do
 done
 
 cp -R "${DOCS_JS_DIR}/nes_apu_vendor" "${STAGE_DIR}/js/nes_apu_vendor"
+cp -R "${ROOT_DIR}/packages/virtual-files/src" "${STAGE_DIR}/js/tetorica_virtual_files"
 for chip in jsnes fixnes-fds; do
   mkdir -p "${STAGE_DIR}/licenses/${chip}"
   cp "${ROOT_DIR}/third_party/${chip}/LICENSE" "${ROOT_DIR}/third_party/${chip}/README.md" "${STAGE_DIR}/licenses/${chip}/"
@@ -353,6 +355,8 @@ perl -0pi -e 's#<a class="link-button" href="\.\./index\.html">Back</a>##g' \
 perl -0pi -e 's#"\./playground\.js"#"./playground.js"#g; s#\.\./js/#./js/#g; s#\.\./synth/#./synth/#g; s#\.\./generated/#./generated/#g' \
   "${STAGE_DIR}/index.html" \
   "${STAGE_DIR}/playground.js" \
+  "${STAGE_DIR}/playground_virtual_files.js" \
+  "${STAGE_DIR}/playground_shell.js" \
   "${STAGE_DIR}/playground_monaco.js" \
   "${STAGE_DIR}/playground_monaco_definitions.js" \
   "${STAGE_DIR}/playground_monaco_completion.js" \

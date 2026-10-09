@@ -1,6 +1,19 @@
 # Tetorica Virtual Files
 
-状態：構想・実装計画の整理。パッケージ名と API は仮案。
+状態：最初の実装を追加。`tetorica-virtual-files` 0.1.0 の配布物をローカルで生成できる。npm は未公開。
+
+## 今回できたこと
+
+- `packages/virtual-files/src/` にメモリー上のファイルシステム、パス解決、読み出し、軽量シェルを分離した。
+- ルート・空ディレクトリー・コピーを返すバイナリ読み出し・検証後の一括変更・スナップショット・変更通知に対応した。
+- Playground は同じコアを使い、Console の Shell から編集中のファイルを含めて操作できる。
+- 空フォルダーは FILES に表示し、Tauri の自動保存と Cassette ZIP にも保持する。
+- `npm run build:virtual-files` で `dist/virtual-files/` とブラウザー用モジュールを生成する。JSDoc から生成する `.d.ts` を含む。
+- `npm run test:virtual-files` で独立コアとシェルのテストを実行できる。
+
+IndexedDB の保存処理は、現在も Playground のアダプターとして残している。
+Git・整形／構文チェックツール・実フォルダー接続・任意の JavaScript の実行は次の段階。
+以下の API 例や構成には、今後の拡張案も含まれる。
 
 ## 目的
 
