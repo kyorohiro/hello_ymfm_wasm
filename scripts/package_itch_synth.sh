@@ -35,6 +35,10 @@ opn_fm_vgm.js
 bitcrusher-worklet.js
 looper.js
 megasynth.js
+soundchip_mixer.js
+nesapu.js
+nesapuaudioengine.js
+fds_audio.js
 rf5c164.js
 rf5c164synth.js
 rf5c164_pcm.js
@@ -180,6 +184,13 @@ for file in ${RUNTIME_FILES}; do
   cp "${src}" "${dst}"
 done
 
+cp -R "${SOURCE_JS_DIR}/nes_apu_vendor" "${STAGE_DIR}/js/nes_apu_vendor"
+for chip in jsnes fixnes-fds; do
+  mkdir -p "${STAGE_DIR}/licenses/${chip}"
+  cp "${ROOT_DIR}/third_party/${chip}/LICENSE" "${ROOT_DIR}/third_party/${chip}/README.md" "${STAGE_DIR}/licenses/${chip}/"
+done
+cp "${ROOT_DIR}/third_party/jsnes/AUTHORS.md" "${STAGE_DIR}/licenses/jsnes/"
+
 cp "${SOURCE_GENERATED_DIR}/ym2612_wasm.js" "${STAGE_DIR}/generated/ym2612_wasm.js"
 cp "${SOURCE_GENERATED_DIR}/ym2612_wasm.wasm" "${STAGE_DIR}/generated/ym2612_wasm.wasm"
 cp "${SOURCE_GENERATED_DIR}/nuked_opn2_wasm.js" "${STAGE_DIR}/generated/nuked_opn2_wasm.js"
@@ -204,6 +215,8 @@ done
 
 cat > "${STAGE_DIR}/THIRD_PARTY_LICENSES.txt" <<EOF
 32X PWM: MAME-derived FIFO/timer core, BSD-3-Clause. See licenses/mame-32x-pwm/.
+NES APU: JSNES, Apache-2.0. See licenses/jsnes/.
+FDS: fixNES-derived, MIT. See licenses/fixnes-fds/.
 
 This package includes two YM2612 engine options:
 
