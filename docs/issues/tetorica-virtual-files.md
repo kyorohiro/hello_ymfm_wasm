@@ -10,6 +10,7 @@
 - 空フォルダーは FILES に表示し、Tauri の自動保存と Cassette ZIP にも保持する。
 - `npm run build:virtual-files` で `dist/virtual-files/` とブラウザー用モジュールを生成する。JSDoc から生成する `.d.ts` を含む。
 - `npm run test:virtual-files` で独立コアとシェルのテストを実行できる。
+- [単独の実験ページ](../examples/virtual-files/) で、ファイル編集・シェル・バイナリ・空フォルダー・ブラウザー内への保存／復元を試せる。Playground の下書きとは別の IndexedDB を使う。
 
 IndexedDB の保存処理は、現在も Playground のアダプターとして残している。
 Git・整形／構文チェックツール・実フォルダー接続・任意の JavaScript の実行は次の段階。

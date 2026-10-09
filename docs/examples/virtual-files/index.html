@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Tetorica Virtual Files — 実験室</title>
+  <link rel="stylesheet" href="./style.css">
+  <script type="importmap">
+    {"imports":{"tetorica-virtual-files":"../../js/tetorica_virtual_files/index.js"}}
+  </script>
+</head>
+<body>
+  <main>
+    <nav><a href="../index.html">← Examples</a><a href="../../playground/">Playground</a><a href="./demo.js">Source</a></nav>
+    <header>
+      <p class="eyebrow">TETORICA VIRTUAL FILES · EXPERIMENT</p>
+      <h1>ファイルとシェルを、同じ場所に。</h1>
+      <p>メモリー上のファイルを編集し、シェルから操作する実験ページです。保存すると、テキスト・バイナリ・空フォルダーをブラウザー内に保持します。</p>
+    </header>
+    <div class="actions">
+      <button id="save" type="button">ブラウザー内に保存</button>
+      <button id="restore" type="button">保存内容を復元</button>
+      <button id="reset" type="button">初期データに戻す</button>
+      <label class="file-button">ファイルを追加<input id="import" type="file" multiple></label>
+    </div>
+    <p id="status" role="status">Loading…</p>
+    <section class="workspace" aria-label="Virtual files workspace">
+      <aside>
+        <h2>Files</h2>
+        <div id="files"></div>
+      </aside>
+      <section class="editor-panel">
+        <div class="editor-heading"><h2 id="selectedPath">Editor</h2><span id="fileInfo"></span></div>
+        <textarea id="editor" aria-label="File editor" spellcheck="false"></textarea>
+      </section>
+    </section>
+    <section class="shell-panel">
+      <h2>Shell</h2>
+      <div id="recipes" class="recipes" aria-label="Example commands"></div>
+      <pre id="output" role="log" aria-label="Shell output"></pre>
+      <form id="shellForm">
+        <label id="prompt" for="command">/ $</label>
+        <input id="command" aria-label="Shell command" autocomplete="off" spellcheck="false" placeholder="help">
+        <button type="submit">Execute</button>
+      </form>
+      <p class="hint">コマンド例を押すと入力欄に入ります。Execute で実行してください。<code>write PATH TEXT</code> で編集でき、<code>count</code> はこのページが登録した追加コマンドです。</p>
+    </section>
+    <footer>この実験では JavaScript の実行・Git・リモート通信はまだ扱いません。npm 公開前のライブラリーを、ローカルの import map で読み込んでいます。</footer>
+  </main>
+  <script type="module" src="./demo.js"></script>
+</body>
+</html>
