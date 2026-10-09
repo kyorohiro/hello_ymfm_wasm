@@ -27,12 +27,29 @@ export function definitionSource(text, position, chip = 'ym2612') {
 
 export function sourcePosition(text, symbol) {
   const escaped = symbol.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const pattern = new RegExp(`^\\s*(?:(?:export\\s+)?(?:async\\s+)?function\\s+)?(?:async\\s+)?${escaped}\\s*(?:\\(|:)`, 'm');
+  const pattern = new RegExp(`^\\s*(?:(?:export\\s+)?(?:default\\s+)?(?:(?:async\\s+)?function\\s+|(?:const|let|var|class)\\s+))?(?:async\\s+)?${escaped}\\s*(?:\\(|:|=|\\{)`, 'm');
   const match = pattern.exec(text);
   if (!match) return {lineNumber:1, column:1};
   const index = match.index + match[0].indexOf(symbol);
   const prefix = text.slice(0,index);
   return {lineNumber:prefix.split('\n').length, column:index - prefix.lastIndexOf('\n')};
+}
+
+/** Locate the module needed to resolve an imported identifier without loading the whole runtime. */
+export function runtimeImport(text, symbol) {
+  const imports=/^\s*import\s+([\w$\s{},*]+?)\s+from\s*['"]([^'"]+)['"]/gm;
+  for(const match of text.matchAll(imports)){
+    const [,bindings,specifier]=match;
+    if(!specifier.startsWith('./')&&!specifier.startsWith('../'))continue;
+    const named=/\{([^}]+)\}/.exec(bindings)?.[1];
+    for(const entry of (named??'').split(',')){
+      const [imported,local=imported]=entry.trim().split(/\s+as\s+/);
+      if(local===symbol)return {specifier,symbol:imported};
+    }
+    const defaultName=/^\s*([\w$]+)/.exec(bindings)?.[1];
+    if(defaultName===symbol)return {specifier,symbol:'default'};
+  }
+  return null;
 }
 
 export function sourceChip(editor, fallback) {
@@ -75,7 +92,67 @@ export function createDefinitionViewer(monaco, mainEditor, libraryModels, option
   const host=document.createElement('div');host.style.height='min(65vh, 620px)';host.style.width='100%';
   header.append(title,implementation,close);dialog.append(header,message,host);document.body.append(dialog);
   let viewer=null, target=null, revision=0, ownerChip=options.chip??'ym2612', disposed=false;
+  const contextMenu=document.createElement('div');contextMenu.setAttribute('role','menu');contextMenu.hidden=true;
+  Object.assign(contextMenu.style,{position:'absolute',zIndex:'10',padding:'6px',background:'#1e293b',border:'1px solid #475569',borderRadius:'6px'});
+  const goDefinition=document.createElement('button');goDefinition.type='button';goDefinition.textContent='Go to Definition';goDefinition.setAttribute('role','menuitem');
+  contextMenu.append(goDefinition);dialog.append(contextMenu);
+  goDefinition.addEventListener('mousedown',event=>event.preventDefault());
+  goDefinition.addEventListener('click',()=>{contextMenu.hidden=true;viewer?.focus();viewer?.trigger('runtime-context-menu','editor.action.revealDefinition',{});});
+  dialog.addEventListener('mousedown',event=>{if(!contextMenu.contains(event.target))contextMenu.hidden=true;});
+  dialog.addEventListener('cancel',event=>{if(!contextMenu.hidden){event.preventDefault();contextMenu.hidden=true;viewer?.focus();}});
   const sources=new Map();
+  const pendingSources=new Map();
+  async function loadSource(uri){
+    const existing=sources.get(uri.toString());
+    if(existing)return existing;
+    if(uri.scheme!=='file'||!uri.path.startsWith('/tetorica-runtime/')||!uri.path.endsWith('.js'))return null;
+    const key=uri.toString();
+    if(!pendingSources.has(key))pendingSources.set(key,(async()=>{
+      const file=uri.path.slice('/tetorica-runtime/'.length);
+      const response=await nativeFetch(new URL(`../js/${file}`,import.meta.url),{cache:'no-cache'});
+      if(!response.ok)throw new Error(`HTTP ${response.status}: ${file}`);
+      const text=await response.text();
+      if(disposed)return null;
+      const model=monaco.editor.getModel(uri)??monaco.editor.createModel(text,'javascript',uri);
+      sources.set(key,model);return model;
+    })().finally(()=>pendingSources.delete(key)));
+    return pendingSources.get(key);
+  }
+  // Avoid the built-in provider returning a stale, unresolved import alias in parallel.
+  const runtimeDefinitions=monaco.languages.registerDefinitionProvider({language:'javascript',scheme:'file',pattern:'**/tetorica-runtime/**',exclusive:true},{
+    async provideDefinition(model,position,token){
+      if(!sources.has(model.uri.toString()))return null;
+      const word=model.getWordAtPosition(position);
+      if(!word)return null;
+      const imported=runtimeImport(model.getValue(),word.word);
+      try{
+        // Query strings are cache versions, not part of the source model's identity.
+        let importedModel=null;
+        if(imported){
+          const url=new URL(imported.specifier,model.uri.toString());url.search='';url.hash='';
+          importedModel=await loadSource(monaco.Uri.parse(url.href));
+          if(!importedModel)return null;
+        }
+        if(token.isCancellationRequested||disposed)return null;
+        const getWorker=await monaco.languages.typescript.getJavaScriptWorker();
+        const worker=await getWorker(...[model.uri,importedModel?.uri].filter(Boolean));
+        const definitions=await worker.getDefinitionAtPosition(model.uri.toString(),model.getOffsetAt(position));
+        if(token.isCancellationRequested||disposed)return null;
+        const resolved=definitions?.flatMap(definition=>{
+          const uri=monaco.Uri.parse(definition.fileName),target=monaco.editor.getModel(uri);
+          if(!target)return [];
+          // An unresolved import alias still points at its own import statement.
+          if(definition.kind==='alias'&&uri.toString()===model.uri.toString())return [];
+          const start=target.getPositionAt(definition.textSpan.start),end=target.getPositionAt(definition.textSpan.start+definition.textSpan.length);
+          return [{uri,range:{startLineNumber:start.lineNumber,startColumn:start.column,endLineNumber:end.lineNumber,endColumn:end.column}}];
+        });
+        if(resolved?.length)return resolved;
+        if(!importedModel)return null;
+        const point=sourcePosition(importedModel.getValue(),imported.symbol);
+        return {uri:importedModel.uri,range:{startLineNumber:point.lineNumber,startColumn:point.column,endLineNumber:point.lineNumber,endColumn:point.column}};
+      }catch(error){if(!disposed&&!token.isCancellationRequested)message.textContent=`Could not load definition: ${error.message}`;return null;}
+    },
+  });
   const globals=monaco.languages.registerDefinitionProvider('javascript',{
     async provideDefinition(model,position,token){
       if(!model.uri.path.startsWith('/project/'))return null;
@@ -100,10 +177,20 @@ export function createDefinitionViewer(monaco, mainEditor, libraryModels, option
   function show(model, position) {
     if(disposed)return;
     if(!dialog.open)dialog.showModal();
-    if(!viewer)viewer=monaco.editor.create(host,{model,readOnly:true,domReadOnly:true,theme:'vs-dark',automaticLayout:true,minimap:{enabled:false},fontSize:13,scrollBeyondLastLine:false,renderValidationDecorations:'off'});
+    if(!viewer){
+      viewer=monaco.editor.create(host,{model,readOnly:true,domReadOnly:true,theme:'vs-dark',automaticLayout:true,minimap:{enabled:false},fontSize:13,scrollBeyondLastLine:false,renderValidationDecorations:'off',contextmenu:false});
+      viewer.onContextMenu(event=>{
+        event.event.preventDefault();
+        if(event.target.position)viewer.setPosition(event.target.position);
+        const rect=dialog.getBoundingClientRect(),mouse=event.event.browserEvent;
+        contextMenu.style.left=Math.max(0,Math.min(rect.width-180,mouse.clientX-rect.left))+'px';
+        contextMenu.style.top=Math.max(0,Math.min(rect.height-50,mouse.clientY-rect.top))+'px';
+        contextMenu.hidden=false;
+      });
+    }
     else viewer.setModel(model);
     title.textContent=model.uri.path.split('/').at(-1)+' (read-only)';
-    message.textContent='';
+    message.textContent='';contextMenu.hidden=true;
     if(model.uri.path.endsWith('.d.ts'))target=definitionSource(model.getValue(),position,ownerChip);
     else target=null;
     implementation.hidden=!target;implementation.disabled=false;
@@ -129,19 +216,12 @@ export function createDefinitionViewer(monaco, mainEditor, libraryModels, option
     implementation.disabled=true;message.textContent='Loading implementation…';
     try{
       const uri=monaco.Uri.parse(`file:///tetorica-runtime/${selected.file}`);
-      let model=sources.get(uri.toString());
-      if(!model){
-        const response=await nativeFetch(new URL(`../js/${selected.file}`,import.meta.url),{cache:'no-cache'});
-        if(!response.ok)throw new Error(`HTTP ${response.status}`);
-        const text=await response.text();
-        if(disposed||token!==revision)return;
-        model=monaco.editor.createModel(text,'javascript',uri);sources.set(uri.toString(),model);
-      }
-      if(disposed||token!==revision)return;
+      const model=await loadSource(uri);
+      if(!model||disposed||token!==revision)return;
       show(model,sourcePosition(model.getValue(),selected.symbol));
     }catch(error){if(!disposed&&token===revision){message.textContent=`Could not load implementation: ${error.message}`;implementation.disabled=false;}}
   });
   close.addEventListener('click',()=>dialog.close());
-  dialog.addEventListener('close',()=>{revision++;mainEditor.focus();});
-  return {dispose(){disposed=true;revision++;globals.dispose();opener.dispose();viewer?.dispose();for(const model of sources.values())model.dispose();dialog.remove();}};
+  dialog.addEventListener('close',()=>{revision++;contextMenu.hidden=true;mainEditor.focus();});
+  return {dispose(){disposed=true;revision++;runtimeDefinitions.dispose();globals.dispose();opener.dispose();viewer?.dispose();for(const model of sources.values())model.dispose();dialog.remove();}};
 }

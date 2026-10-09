@@ -1,4 +1,4 @@
-import {createDefinitionViewer} from './playground_monaco_definitions.js?v=definitions-2';
+import {createDefinitionViewer} from './playground_monaco_definitions.js?v=definitions-4';
 import { registerMonacoCompletions } from "./playground_monaco_completion.js";
 
 function registerMonacoHover(

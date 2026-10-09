@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-import {definitionSource, sourcePosition, sourceChip, globalDefinition} from './playground_monaco_definitions.js';
+import {definitionSource, sourcePosition, sourceChip, globalDefinition, runtimeImport} from './playground_monaco_definitions.js';
 
 test('actual Playground declarations navigate to the factory and YM2612 implementation', async () => {
   const declarations = await readFile(new URL('./tetorica-playground-globals.d.ts', import.meta.url), 'utf8');
@@ -33,6 +33,16 @@ test('implementation lookup skips call sites and unsupported declarations', () =
   const source = '// setFrequency()\nthis.setFrequency(0);\n  setFrequency(channel) {}';
   assert.deepEqual(sourcePosition(source, 'setFrequency'), {lineNumber:3, column:3});
   assert.equal(definitionSource('interface Unknown {\n  method(): void;\n}', {lineNumber:2, column:3}), null);
+});
+
+test('runtime imports resolve named aliases, multiline bindings and cache versions', async () => {
+  const source=await readFile(new URL('../js/playground_runtime.js',import.meta.url),'utf8');
+  assert.deepEqual(runtimeImport(source,'createPlaygroundNoiseApi'),{specifier:'./playground_noise.js',symbol:'createPlaygroundNoiseApi'});
+  assert.deepEqual(runtimeImport('import {\n original as local, other\n} from "./module.js?v=1";','local'),{specifier:'./module.js?v=1',symbol:'original'});
+  assert.deepEqual(runtimeImport('import Default, {helper} from "./module.js";','Default'),{specifier:'./module.js',symbol:'default'});
+  assert.equal(runtimeImport('import {helper} from "https://example.com/module.js";','helper'),null);
+  assert.equal(runtimeImport('import {helper} from "./module.js";','unrelated'),null);
+  assert.deepEqual(sourcePosition('export const helper = () => {};','helper'),{lineNumber:1,column:14});
 });
 
 test('explicit instance chip overrides the selected Playground chip', () => {

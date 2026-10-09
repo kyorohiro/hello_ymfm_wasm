@@ -24,7 +24,7 @@ import {
 } from "./playground_operator_tab.js";
 import { createPlaygroundOperatorKeyboard } from "./playground_operator_keyboard.js";
 import { DEFAULT_CODE, EXAMPLES, EXAMPLE_FILES } from "./playground_examples.js?v=play-units-1";
-import { initializePlaygroundMonaco } from "./playground_monaco.js?v=definitions-2";
+import { initializePlaygroundMonaco } from "./playground_monaco.js?v=definitions-4";
 import {
   decodeBase64Bytes,
   loadTfiPresetsFromQuery,
