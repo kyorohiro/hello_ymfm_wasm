@@ -1,10 +1,10 @@
 /** Optional Node Worker output adapter. Requires audify 1.10.x, loaded only here. */
-export async function createOutput({sampleRate, bufferFrames, onDrain, onError, moduleUrl, deviceId}) {
+export async function createOutput({sampleRate, bufferFrames, onDrain, onError, moduleUrl, deviceId, api}) {
   let loaded;
   try { loaded = await import(moduleUrl ?? 'audify'); }
   catch (cause) {throw new Error(`Could not load audify: ${cause.message}. Install with npm install audify`, {cause});}
   const {RtAudio, RtAudioFormat} = loaded.default ?? loaded;
-  const audio = new RtAudio();
+  const audio = api == null ? new RtAudio() : new RtAudio(api);
   let queuedFrames = 0, consumedFrames = 0, closed = false, running = false;
   let frames;
   try {
