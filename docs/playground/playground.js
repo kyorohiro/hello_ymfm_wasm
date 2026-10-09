@@ -1440,6 +1440,8 @@ const ui =
     fxMonitorTab: document.getElementById("fxMonitorTab"),
     fxMonitorPanel: document.getElementById("fxMonitorPanel"),
     consoleTab,
+    shellTab: document.getElementById("shellTab"),
+    shellPanel: document.getElementById("shellPanel"),
     helpersTab,
     operatorTabButton,
     keyboardTab,
@@ -2339,6 +2341,8 @@ playgroundShell=installPlaygroundShell({fs:virtualFiles,
   output:document.getElementById('shellOutput'),form:document.getElementById('shellForm'),
   input:document.getElementById('shellInput'),prompt:document.getElementById('shellPrompt'),
   stopButton:document.getElementById('shellStopButton'),state:document.getElementById('shellState'),
+  panel:document.getElementById('shellPanel'),terminal:document.getElementById('shellTerminal'),
+  clearButton:document.getElementById('shellClearButton'),
   async onPlay(path){
     if(isSystemVirtualPath(path))throw Error('/sys is read-only');
     const file=virtualFiles.get(path);if(file?.type!=='text'||!path.endsWith('.js'))throw Error('Choose a project JavaScript file');

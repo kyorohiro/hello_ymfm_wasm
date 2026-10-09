@@ -6,7 +6,7 @@
 
 - `packages/virtual-files/src/` にメモリー上のファイルシステム、パス解決、読み出し、軽量シェルを分離した。
 - ルート・空ディレクトリー・コピーを返すバイナリ読み出し・検証後の一括変更・スナップショット・変更通知に対応した。
-- Playground は同じコアを使い、Console の Shell から編集中のファイルを含めて操作できる。
+- Playground は同じコアを使い、独立した Shell タブから編集中のファイルを含めて操作できる。出力と入力をターミナル風に表示し、履歴・パス補完・Ctrl+C の停止に対応する。
 - Playground に `js PATH [ARGS...]` と `play PATH` を追加（2026-10-10）。共有ファイルの操作、相対 dynamic import、実行停止、編集競合の検出に対応。詳細は [JavaScript Shell の実装記録](tetorica-virtual-files-01.md#実装結果2026-10-10) を参照。
 - 空フォルダーは FILES に表示し、Tauri の自動保存と Cassette ZIP にも保持する。
 - `npm run build:virtual-files` で `dist/virtual-files/` とブラウザー用モジュールを生成する。JSDoc から生成する `.d.ts` を含む。

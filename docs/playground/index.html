@@ -521,6 +521,7 @@
       body.mode-simple .status,
       body.mode-simple .tabbar,
       body.mode-simple #consolePanel,
+      body.mode-simple #shellPanel,
       body.mode-simple #helpersPanel,
       body.mode-simple #operatorPanel {
         display: none;
@@ -837,6 +838,17 @@
         min-height: 100%;
         border-radius: 0;
       }
+
+      #shellPanel:not([hidden]) { display: flex; flex-direction: column; overflow: hidden; }
+      .shell-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 8px 12px; border-bottom: 1px solid var(--line); }
+      .shell-toolbar #shellState { margin: 0; margin-right: auto; }
+      #shellTerminal { flex: 1; min-height: 0; overflow: auto; padding: 16px; background: #151b23; color: #e2e8f0; font: 14px/1.6 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; cursor: text; }
+      #shellOutput { margin: 0; padding: 0; border: 0; border-radius: 0; min-height: 0; background: transparent; color: inherit; font: inherit; white-space: pre-wrap; overflow-wrap: anywhere; }
+      #shellForm { display: flex; gap: 10px; align-items: baseline; margin: 0; }
+      #shellPrompt { flex-shrink: 0; color: #8ed8a5; white-space: pre; }
+      #shellInput { flex: 1; min-width: 0; width: 0; padding: 0; border: 0; border-radius: 0; background: transparent; color: inherit; font: inherit; box-shadow: none; }
+      #shellInput:focus-visible { outline: 1px solid #617587; outline-offset: 3px; }
+      .shell-help { margin: 0; padding: 8px 12px; border-top: 1px solid var(--line); }
 
       .status-bar {
         position: fixed;
@@ -1671,6 +1683,7 @@
             >
               Console
             </button>
+            <button id="shellTab" class="tab-button" type="button" role="tab" aria-selected="false" aria-controls="shellPanel">Shell</button>
             <button
               id="operatorTabButton"
               class="tab-button"
@@ -1742,17 +1755,22 @@
           </section>
           <section id="consolePanel" class="tab-panel" role="tabpanel" aria-labelledby="consoleTab" hidden>
             <pre id="consoleOutput"></pre>
-            <h3>Shell</h3>
-            <p class="subtext">Project files only. Try <code>help</code>, <code>ls</code>, or <code>cat /index.js</code>.</p>
-            <pre id="shellOutput" aria-label="Shell output" style="max-height:240px;overflow:auto;white-space:pre-wrap"></pre>
-            <form id="shellForm" style="display:flex;gap:8px;align-items:center">
-              <label id="shellPrompt" for="shellInput">/ $</label>
-              <input id="shellInput" type="text" autocomplete="off" spellcheck="false" style="flex:1;min-width:0;font-family:monospace" aria-label="Shell command">
-              <button type="submit">Execute</button>
+          </section>
+          <section id="shellPanel" class="tab-panel" role="tabpanel" aria-labelledby="shellTab" hidden>
+            <div class="shell-toolbar">
+              <span id="shellState" class="subtext" role="status">Ready.</span>
+              <button id="shellClearButton" type="button">Clear</button>
               <button id="shellStopButton" type="button" disabled>Stop Script</button>
-            </form>
-            <p id="shellState" class="subtext" role="status">Ready.</p>
-            <p class="subtext"><code>js /scripts/example.js hello</code> runs a file. <code>play /index.js</code> uses the music player. Stop Script stops shell work; the toolbar STOP stops music. Up/Down recalls commands.</p>
+            </div>
+            <div id="shellTerminal" aria-label="Project terminal">
+              <pre id="shellOutput" aria-label="Shell output">Tetorica Shell — type help for commands.
+</pre>
+              <form id="shellForm">
+                <label id="shellPrompt" for="shellInput">/ $</label>
+                <input id="shellInput" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Shell command" aria-describedby="shellHelp">
+              </form>
+            </div>
+            <p id="shellHelp" class="subtext shell-help">Enter: execute · ↑↓: history · Tab: complete · Ctrl+C: stop script · Ctrl+L: clear. Try <code>js /scripts/example.js hello</code> or <code>play /index.js</code>. Music stops with the toolbar STOP.</p>
           </section>
 
           <section id="helpersPanel" class="tab-panel" role="tabpanel" aria-labelledby="helpersTab" hidden>

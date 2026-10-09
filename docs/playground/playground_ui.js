@@ -9,6 +9,8 @@ export function createPlaygroundUi(
     fxMonitorTab,
     fxMonitorPanel,
     consoleTab,
+    shellTab,
+    shellPanel,
     helpersTab,
     operatorTabButton,
     keyboardTab,
@@ -91,6 +93,7 @@ export function createPlaygroundUi(
       button: consoleTab,
       panel: consolePanel,
     },
+    {name: "shell", button: shellTab, panel: shellPanel},
     {
       name: "operator",
       button: operatorTabButton,
