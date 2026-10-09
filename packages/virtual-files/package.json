@@ -4,6 +4,10 @@
   "description": "Memory filesystem and lightweight command shell for browser and Node.js editors",
   "type": "module",
   "license": "BSD-3-Clause",
+  "engines": {"node": ">=22"},
+  "repository": {"type": "git", "url": "git+https://github.com/kyorohiro/hello_ymfm_wasm.git", "directory": "packages/virtual-files"},
+  "homepage": "https://github.com/kyorohiro/hello_ymfm_wasm/tree/main/packages/virtual-files",
+  "bugs": {"url": "https://github.com/kyorohiro/hello_ymfm_wasm/issues"},
   "exports": {
     ".": {"types": "./src/index.d.ts", "import": "./src/index.js"},
     "./shell.js": {"types": "./src/shell.d.ts", "import": "./src/shell.js"},

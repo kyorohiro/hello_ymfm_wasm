@@ -1,8 +1,14 @@
 # tetorica-virtual-files
 
 Memory filesystem and a small extensible shell for browser and Node.js tools.
-The package has no sound-chip, DOM, storage or network dependency. npm publication
-is pending; build its distribution with `npm run build:virtual-files` in the repository root.
+The package has no sound-chip, DOM, storage or network dependency. Requires Node.js
+22 or later, or a modern browser with ES modules.
+
+```sh
+npm install tetorica-virtual-files
+```
+
+Build its distribution from source with `npm run build:virtual-files` in the repository root.
 
 ```javascript
 import {createVirtualFileSystem, createShell} from 'tetorica-virtual-files';

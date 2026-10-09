@@ -35,7 +35,7 @@ js scripts/example.js
 API は次の形式を目標とします。
 
 ```javascript
-import { fs, shell } from 'tetorica:shell';
+const { fs, shell } = await import('tetorica:shell');
 
 const files = await fs.readdir('/src');
 
@@ -46,7 +46,16 @@ for (const file of files) {
 
 `tetorica:shell` は仮想モジュールとして提供します。
 
-既存の Playground の import 解決機構を調査し、可能なら再利用してください。
+import は既存の Playground と同様、dynamic import を使う方針です。
+静的な `import { ... } from '...'` の対応は今回の対象外です。
+
+既存の解決処理は、主に文字列リテラルで指定した相対パスの `import(...)` を扱います。
+この処理を再利用し、`await import('tetorica:shell')` を実行ごとの API に解決する処理を追加してください。
+`tetorica:shell` は現在の解決処理では扱えないため、dynamic import に書き換えるだけでは利用できません。
+
+初期段階では、文字列リテラルで指定する相対パスと `tetorica:shell` を対象とします。
+変数や式で import 先を指定する機能は、必要になった段階で検討してください。
+`js` の入口ファイルは Shell の作業ディレクトリーから解決し、そのファイル内の相対 import は、import を記述したファイルから解決してください。
 
 スクリプトには、少なくとも次の機能を提供します。
 
@@ -186,7 +195,8 @@ Git、パイプ、リダイレクト、複雑なシェル構文、npm パッケ�
 実装後、以下を確認してください。
 
 - `js` コマンドで Virtual Files 内の JavaScript を実行できる。
-- `tetorica:shell` から共有 Virtual Files にアクセスできる。
+- `await import('tetorica:shell')` から共有 Virtual Files にアクセスできる。
+- 相対パスの dynamic import で Virtual Files 内の別ファイルを読み込める。
 - `console.log()` が Shell パネルに表示される。
 - 相対パスとコマンドライン引数を扱える。
 - Monaco と Shell のファイル変更が相互に反映される。
@@ -203,7 +213,7 @@ Git、パイプ、リダイレクト、複雑なシェル構文、npm パッケ�
 これが実現すると、将来的には次のようなコードも書けます。
 
 ```javascript
-import { fs, shell } from 'tetorica:shell';
+const { fs, shell } = await import('tetorica:shell');
 
 const files = await fs.readdir('/');
 
