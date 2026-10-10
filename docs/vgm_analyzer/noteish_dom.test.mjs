@@ -19,13 +19,15 @@ test('graph retains viewport, static SVG and history node; identical layers do n
 test('metadata only reparses when its content changes',()=>{const n=node();updateNoteishHtml(n,'same');updateNoteishHtml(n,'same');assert.equal(n.writes,1);updateNoteishHtml(n,'new');assert.equal(n.writes,2);});
 const source=readFileSync(new URL('./vgm_analyzer.js',import.meta.url),'utf8');
 const fn=name=>{const a=source.indexOf(`function ${name}(`);return source.slice(a,source.indexOf('\n}',a)+2);};
-test('keyboard dynamic updates skip all 73 keys and preserve range, key-off color and out-of-range behavior',()=>{
+test('keyboard dynamic updates skip all 128 keys and preserve range, key-off color and out-of-range behavior',()=>{
  let labels=0;const c=vm.createContext({NOTEISH_GRAPH_MIN_MIDI:24,NOTEISH_GRAPH_MAX_MIDI:96,midiToNoteName:n=>{labels++;return String(n);},clamp:(v,l,h)=>Math.max(l,Math.min(h,v))});
  vm.runInContext(fn('renderNoteishKeyboard'),c);
  const channel={keyOn:true,noteMinMidi:20,noteMaxMidi:110},note={midiFloat:60,note:'C4'};
- const full=c.renderNoteishKeyboard(channel,note);assert.equal(labels,73);assert.equal((full.match(/<rect /g)||[]).length,73);
- const parts=c.renderNoteishKeyboard(channel,note,true);assert.equal(labels,73);assert.match(parts.current,/#007c91/);assert(full.includes(parts.range));
+ const full=c.renderNoteishKeyboard(channel,note);assert.equal(labels,128);assert.equal((full.match(/<rect /g)||[]).length,128);
+ const parts=c.renderNoteishKeyboard(channel,note,true);assert.equal(labels,128);assert.match(parts.current,/#007c91/);assert(full.includes(parts.range));
  channel.keyOn=false;assert.match(c.renderNoteishKeyboard(channel,note,true).current,/#777/);
- assert.equal(c.renderNoteishKeyboard(channel,{midiFloat:120,note:'high'},true).current,'');
+ assert.equal(c.renderNoteishKeyboard(channel,{midiFloat:128,note:'high'},true).current,'');
+ for (const midi of [0, 24, 96, 120, 127]) assert.match(c.renderNoteishKeyboard(channel,{midiFloat:midi,note:String(midi)},true).current,/<circle/);
+ assert.equal(c.renderNoteishKeyboard(channel,{midiFloat:-1,note:'low'},true).current,'');
  assert.equal(c.renderNoteishKeyboard(channel,{midiFloat:null,note:'off'},true).current,'');
 });

@@ -5,6 +5,31 @@
 #noteishPanel.is-detailed .noteish-graph svg { width: 2660px; max-width: none; height: 112px; }
 .noteish-graph:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
 #noteishPanel.is-detailed #noteishOverview svg { height: 1810px; }
+/* One aligned, full-range keyboard per channel. */
+#noteishPanel.is-keyboard .noteish-grid { grid-template-columns: minmax(0, 1fr); gap: 2px; }
+#noteishPanel.is-keyboard .noteish-card {
+  display: grid;
+  grid-template-columns: 146px minmax(0, 1fr);
+  grid-template-rows: 15px 15px;
+  column-gap: 8px;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+#noteishPanel.is-keyboard .noteish-head { grid-column: 1; grid-row: 1; margin: 0; padding: 0; background: none; color: var(--ink); gap: 4px; }
+#noteishPanel.is-keyboard .noteish-title { font-size: 0.72rem; letter-spacing: 0; white-space: nowrap; }
+#noteishPanel.is-keyboard .noteish-state { color: #5b4a33; font-size: 0.6rem; }
+#noteishPanel.is-keyboard .noteish-row { grid-column: 1; grid-row: 2; margin: 0; gap: 4px; flex-wrap: nowrap; }
+#noteishPanel.is-keyboard .noteish-note { font-size: 0.8rem; }
+#noteishPanel.is-keyboard .noteish-cents { font-size: 0.6rem; white-space: nowrap; }
+#noteishPanel.is-keyboard .noteish-graph { grid-column: 2; grid-row: 1 / 3; min-width: 0; margin: 0; overflow: visible; }
+#noteishPanel.is-keyboard .noteish-graph svg { width: 100%; max-width: 100%; height: 30px; }
+#noteishPanel.is-keyboard .noteish-meta,
+#noteishPanel.is-keyboard .noteish-actions { display: none; }
+@media (max-width: 600px) {
+  #noteishPanel.is-keyboard .noteish-card { grid-template-columns: 90px minmax(0, 1fr); column-gap: 4px; padding: 2px 4px; }
+  #noteishPanel.is-keyboard .noteish-state,
+  #noteishPanel.is-keyboard .noteish-cents { display: none; }
+}
 :root {
   --bg: #eee5d9;
   --panel: #fff8ee;

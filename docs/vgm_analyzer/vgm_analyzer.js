@@ -1552,28 +1552,42 @@ function renderNoteishGraph(channel, estimated, dynamicOnly = false) {
 }
 
 function renderNoteishKeyboard(channel, estimated, dynamicOnly = false) {
-  const x = midi => 34 + (midi - NOTEISH_GRAPH_MIN_MIDI) * 36;
-  const keys = dynamicOnly ? "" : Array.from({ length: 73 }, (_, index) => {
-    const midi = NOTEISH_GRAPH_MIN_MIDI + index;
-    const black = [1, 3, 6, 8, 10].includes(midi % 12);
-    return `<rect x="${x(midi) - 18}" y="34" width="36" height="64" fill="${black ? '#383838' : '#fffdf7'}" stroke="#b9a38e" />
-      <text x="${x(midi)}" y="88" text-anchor="middle" font-size="12" fill="${black ? '#fffdf7' : '#42382e'}">${midiToNoteName(midi)}</text>`;
-  }).join("");
+  const minMidi = 0;
+  const maxMidi = 127;
+  const blackPitch = pitch => [1, 3, 6, 8, 10].includes(pitch % 12);
+  const keyX = midi => {
+    const offset = midi - minMidi;
+    const octave = Math.floor(offset / 12);
+    const pitch = offset % 12;
+    const whiteBefore = [0, 1, 1, 2, 2, 3, 4, 4, 5, 5, 6, 6][pitch];
+    return (octave * 7 + whiteBefore) * 20 + (blackPitch(midi) ? 0 : 10);
+  };
+  const x = midi => {
+    const lower = Math.floor(midi);
+    return lower >= maxMidi ? keyX(maxMidi)
+      : keyX(lower) + (keyX(lower + 1) - keyX(lower)) * (midi - lower);
+  };
+  const keys = dynamicOnly ? "" : Array.from({ length: maxMidi - minMidi + 1 }, (_, index) => {
+    const midi = minMidi + index;
+    const black = blackPitch(midi);
+    const name = midiToNoteName(midi);
+    return { black, svg: `<rect x="${x(midi) - (black ? 6 : 10)}" y="1" width="${black ? 12 : 20}" height="${black ? 24 : 42}" fill="${black ? '#383838' : '#fffdf7'}" stroke="#b9a38e" stroke-width="0.7"><title>${name}</title></rect>
+      ${midi % 12 === 0 || midi === maxMidi ? `<text x="${x(midi)}" y="38" text-anchor="middle" font-size="9" fill="#42382e">${name}</text>` : ''}` };
+  }).sort((a, b) => Number(a.black) - Number(b.black)).map(key => key.svg).join("");
   let range = "";
   if (channel.noteMinMidi !== null && channel.noteMaxMidi !== null &&
-      channel.noteMaxMidi >= NOTEISH_GRAPH_MIN_MIDI && channel.noteMinMidi <= NOTEISH_GRAPH_MAX_MIDI) {
-    range = `<line x1="${x(clamp(channel.noteMinMidi, 24, 96))}" x2="${x(clamp(channel.noteMaxMidi, 24, 96))}" y1="56" y2="56" stroke="#ef8f6b" stroke-width="8" stroke-linecap="round" />`;
+      channel.noteMaxMidi >= minMidi && channel.noteMinMidi <= maxMidi) {
+    range = `<line x1="${x(clamp(channel.noteMinMidi, minMidi, maxMidi))}" x2="${x(clamp(channel.noteMaxMidi, minMidi, maxMidi))}" y1="29" y2="29" stroke="#ef8f6b" stroke-width="4" stroke-linecap="round" />`;
   }
   let marker = "";
   const midi = estimated.midiFloat;
-  if (midi !== null && midi >= NOTEISH_GRAPH_MIN_MIDI && midi <= NOTEISH_GRAPH_MAX_MIDI) {
+  if (midi !== null && midi >= minMidi && midi <= maxMidi) {
     const color = channel.keyOn ? '#007c91' : '#777';
-    marker = `<line x1="${x(midi)}" x2="${x(midi)}" y1="30" y2="73" stroke="${color}" stroke-width="3" />
-      <circle cx="${x(midi)}" cy="56" r="6" fill="${color}" />
-      <text x="${x(midi)}" y="21" text-anchor="middle" font-size="14" font-weight="bold" fill="${color}">${estimated.note}</text>`;
+    marker = `<line x1="${x(midi)}" x2="${x(midi)}" y1="3" y2="31" stroke="${color}" stroke-width="2" />
+      <circle cx="${x(midi)}" cy="29" r="4" fill="${color}" />`;
   }
   if (dynamicOnly) return {range, current:marker};
-  return `<svg viewBox="0 0 2660 112" aria-hidden="true">${keys}<g data-noteish-range>${range}</g><g data-noteish-current>${marker}</g></svg>`;
+  return `<svg viewBox="0 0 1500 44" preserveAspectRatio="none" aria-hidden="true">${keys}<g data-noteish-range>${range}</g><g data-noteish-current>${marker}</g></svg>`;
 }
 
 function noteishOverviewY(midiFloat) {
@@ -3898,6 +3912,7 @@ function setNoteishView(mode) {
   document.getElementById('noteTimelineMode').value = mode === 'song' ? 'score' : 'live';
   noteishPanel.classList.toggle('is-detailed', mode === 'song' || mode === 'keyboard');
   noteishPanel.classList.toggle('is-fretboard', fretboard);
+  noteishPanel.classList.toggle('is-keyboard', mode === 'keyboard');
   const fretOptions = document.getElementById('fretboardOptions');
   fretOptions.hidden = !fretboard;
   if (fretboard) document.getElementById(paneIds[mode]).prepend(fretOptions);
