@@ -1,5 +1,10 @@
 # tetorica-virtual-files
 
+Version 0.2.0 adds bounded inspection/search, atomic patches, file revisions,
+conflict-safe snapshot undo, and virtual text pipelines/redirection.
+Playground-only commands (`check`, `js`, `result`, `play`) and its Tauri MCP
+adapter are supplied by the host, not by this npm package.
+
 Memory filesystem and a small extensible shell for browser and Node.js tools.
 The package has no sound-chip, DOM, storage or network dependency. Requires Node.js
 22 or later, or a modern browser with ES modules.
@@ -40,7 +45,7 @@ directories and are suitable for structured cloning in IndexedDB. JSON serializa
 requires a separate binary encoding. Persistence is supplied by the host application.
 
 The shell supports `pwd`, `ls`, `cd`, `cat`, `mkdir [-p]`, `cp`, `mv`, `rm [-r]`,
-`touch`, `write PATH TEXT`, `echo`, `help`, `find`, `rg`, `read` and `edit`. `cp` and `mv` accept files or entire directories.
+`touch`, `write PATH TEXT`, `echo`, `help`, `find`, `rg`, `read`, `edit`, `patch`, `snapshot`, `diff`, `undo` and `pipeline`. `cp` and `mv` accept files or entire directories.
 It parses quotes and escapes, runs requests in order, and returns
 `{code, stdout, stderr}`. Command chaining, expansions, host commands and JavaScript execution are
 outside the independent core; host commands can be registered separately.
@@ -64,12 +69,12 @@ An `authorize(operation, paths)` callback can reject built-in file mutations.
 Custom commands must enforce their own host policies. This library is not a
 security sandbox for arbitrary JavaScript.
 
-Git and JavaScript formatting/checking tools are planned extensions. There is no
+Git and JavaScript formatting are planned extensions. Syntax checking is provided by the Playground host. There is no
 Git implementation, remote access, filesystem mount or `tetorica-fm2612` re-export yet.
 
-## Agent-friendly inspection and editing (working tree)
+## Agent-friendly inspection and editing
 
-These additions are available in the repository build and Playground shell.
+These commands are available in tetorica-virtual-files 0.2.0 and the Playground shell.
 Use `help --json` to discover commands and their usage; `help read` describes a
 single command. The commands also work through `shell.execute()` from
 `tetorica:shell` scripts. A host MCP adapter can pass an argument array directly
@@ -120,7 +125,7 @@ preserve the rest of the file, emit one filesystem change, and call the host's
 `authorize('edit', [absolutePath])` policy. Guarded Playground script sessions
 still enforce their project, cancellation and human-edit checks.
 
-## File revisions (working tree)
+## File revisions
 
 `fs.get(path)`, `fs.list()` and `fs.stat(path)` include `revision`.
 `read --json PATH` and `find --json` expose it to shell clients.
@@ -168,7 +173,7 @@ content-only: restoring one creates new live revisions for changed paths and
 never resets the counters. Named shell snapshots also retain in-memory revision
 checkpoints for the explicit undo operation below.
 
-## Safe snapshot undo (working tree)
+## Safe snapshot undo
 
 ```javascript
 await shell.execute('snapshot before');
@@ -212,7 +217,7 @@ The host policy receives `authorize('undo', paths)` and separate `rm` checks for
 removed/replaced types. Playground keeps `/sys` read-only and protects `/index.js`
 from deletion, including undo of a newly created entry point.
 
-## Atomic patches and snapshot diffs (working tree)
+## Atomic patches and snapshot diffs
 
 `patch [--json] [--dry-run] PATCH_FILE` reads a JSON array of text edits.
 `patch -` reads the JSON array from `execute`'s `stdin` option. Paths are resolved
@@ -322,7 +327,7 @@ Serialized reports fit within 32,000 characters, with `truncated` flags marking
 omitted stream, console or report content. In JSON mode nested scripts do not
 stream extra text into the top-level JSON response.
 
-## Virtual text pipelines and redirection (working tree)
+## Virtual text pipelines and redirection
 
 String commands passed to `shell.execute()` support `|`, `<`, `>` and `>>`,
 including operators without surrounding spaces. Quotes and escapes keep these

@@ -1,7 +1,7 @@
 # AIが使うVirtual Files / Shell
 
 2026-10-11。PlaygroundのshellをAIが操作することを前提にした最初の拡張。
-共通コアとPlaygroundに反映済み。npmの公開版は0.1.1のまま。
+共通コアとPlaygroundに反映済み。npm 0.2.0 の公開準備中（現在の公開版は0.1.1）。
 
 ## 今回の優先項目
 
@@ -19,7 +19,7 @@ Playgroundの`/sys`保護、プロジェクト切替・停止・人間の編集�
 
 MCP固有のAPIをこのライブラリーには追加していない。ホストがshellへ渡す文字列または引数配列をそのまま処理できる。
 引数配列を使うと、改行・引用符・空白・シェル記号を含む置換文字列も誤解釈されない。
-詳しい構文と応答は[パッケージREADME](../../packages/virtual-files/README.md#agent-friendly-inspection-and-editing-working-tree)を参照。
+詳しい構文と応答は[パッケージREADME](../../packages/virtual-files/README.md#agent-friendly-inspection-and-editing)を参照。
 
 ## 確認
 
