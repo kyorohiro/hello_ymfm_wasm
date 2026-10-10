@@ -1,6 +1,7 @@
 import {GameboyApu} from '../js/gameboyapu.js';
 import {GameboySynth, GameboyDirectTransport} from '../js/gameboysynth.js';
 import moduleFactory from '../generated/gameboy_apu_wasm.js';
+import {lessonText} from './introduction-locale.js';
 
 export const DEFAULT_PULSE = Object.freeze({channel: 0, duty: 0.5, note: 'A4', volume: 10});
 export const PULSE_SECONDS = 1.5;
@@ -28,7 +29,7 @@ export function pulseCode(settings) {
   return `const gb = await useSoundChip('gameboy');
 try {
 ${pulseSetupCode(settings).split('\n').map(line => '  ' + line).join('\n')}
-  // sleepはJavaScript側の再生時間。ハードウェアの長さカウンターではない。
+  // ${lessonText('sleepはJavaScript側の再生時間。ハードウェアの長さカウンターではない。', 'sleep controls playback duration in JavaScript, not the hardware length counter.')}
   await sleep(${PULSE_SECONDS});
   gb.pulse.keyOff(${settings.channel});
 } finally {

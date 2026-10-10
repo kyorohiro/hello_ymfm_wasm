@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="describedby" href="./llms.txt" type="text/markdown">
+    <title>Tetorica Playground — AI向けガイド</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #f4efe4;
+        --panel: #fffaf0;
+        --ink: #1f1b16;
+        --accent: #7e381c;
+        --line: #d7c8ac;
+        --code: #24211d;
+      }
+
+      * { box-sizing: border-box; }
+
+      body {
+        margin: 0;
+        color: var(--ink);
+        background: var(--bg);
+        font-family: "Avenir Next", "Helvetica Neue", Helvetica, Arial, sans-serif;
+      }
+
+      main {
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 40px 20px 64px;
+      }
+
+      article {
+        padding: clamp(22px, 5vw, 42px);
+        border: 1px solid var(--line);
+        border-radius: 22px;
+        background: var(--panel);
+      }
+
+      h1, h2 { line-height: 1.1; }
+      h1 { margin: 0 0 12px; }
+      h2 { margin: 30px 0 10px; }
+      p, li { line-height: 1.6; }
+      a { color: var(--accent); }
+      code {
+        padding: 1px 5px;
+        border-radius: 5px;
+        background: rgba(126, 56, 28, 0.09);
+        font-family: "SFMono-Regular", Menlo, Consolas, monospace;
+      }
+      pre {
+        overflow: auto;
+        padding: 16px;
+        border-radius: 12px;
+        color: #f5efe5;
+        background: var(--code);
+      }
+      pre code { padding: 0; background: transparent; }
+      .back { display: inline-block; margin-bottom: 22px; }
+    </style>
+  <link rel="alternate" hreflang="en" href="./for-ai.html"><link rel="alternate" hreflang="ja" href="./for-ai_ja.html"><style>.language-nav{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}.language-nav a[aria-current="page"]{font-weight:700}</style></head>
+  <body>
+    <main>
+      <a class="back" href="./index-ja.html">ドキュメントへ戻る</a>
+      <article>
+        <h1>Tetorica Playground — AI向けガイド</h1><nav class="language-nav" aria-label="Language"><a href="./for-ai.html" lang="en" hreflang="en">English</a> | <a href="./for-ai_ja.html" lang="ja" hreflang="ja" aria-current="page">日本語</a></nav>
+        <p>Tetoricaのブラウザー版Playground用のJavaScriptを生成するときは、以下の型定義と動作するサンプルを参照してください。</p>
+
+        <h2>型定義</h2>
+        <ul>
+          <li><a href="./playground/tetorica-playground-globals.d.ts">Playground共通API</a></li>
+          <li><a href="./playground/tetorica-playground-ym2612.d.ts">YM2612 / メガドライブ用</a></li>
+          <li><a href="./playground/tetorica-playground-ym2608.d.ts">YM2608 / PC-98用</a></li>
+          <li><a href="./playground/tetorica-playground-ym2203.d.ts">YM2203 / PC-98用</a></li>
+          <li><a href="./playground/tetorica-playground-ym2610.d.ts">YM2610 / Neo Geo用</a></li>
+        </ul>
+        <p>共通APIと、対象のPlaygroundで選択するチップの型定義を読んでください。</p>
+
+        <h2>動作するサンプル</h2>
+        <p>サンプルの正本は<a href="./playground/playground_examples.js">playground_examples.js</a>です。以下のリンクはPlaygroundで利用する代表的なサンプルです。読み込んでも自動では実行されません。</p>
+        <ul>
+          <li>PlaygroundのFILES → examplesからソースを開いて実行してください。</li>
+          <li><a href="./playground/defaults/index.js">Live Loop</a>— テンポ、音符、名前付きループ</li>
+          <li><a href="./playground/examples/basic/ambient-choir-sample.js">Ambient Choir Sample</a>— サンプルの読み込み、FX、実行中の状態</li>
+          <li><a href="./playground/examples/basic/noise/noise-ocean.js">Noise Ocean</a>— ノイズの生成とパラメーター操作</li>
+          <li><a href="./playground/examples/basic/fm/fm-api-beep.js">FM API Beep</a>— YM2612の直接設定</li>
+          <li><a href="./playground/examples/basic/psg/psg-scale.js">PSG Scale</a>— SN76489互換のトーンAPI</li>
+          <li><a href="./playground/examples/basic/fx/parallel-fx.js">Parallel FX</a>— 分岐したエフェクト経路</li>
+        </ul>
+
+        <h2>実行時のルール</h2>
+        <ul>
+          <li>TypeScriptではなくJavaScriptを生成してください。</li>
+          <li>トップレベルの<code>await</code>に対応しています。</li>
+          <li>PlaygroundのAPIは、グローバル変数としても<code>pg</code>経由でも利用できます。</li>
+          <li>独立した<code>liveLoop()</code>と<code>livePrepare()</code>の状態には、安定した一意の名前を使ってください。</li>
+          <li>プロジェクトのファイルは<code>file()</code>で読みます。相対パスは実行するファイルを基準に解決します。</li>
+          <li>ユーザーコードの実行中は、ネットワークAPIや外部パッケージのインストールを利用できません。</li>
+        </ul>
+
+        <h2>プロンプトに添える情報</h2>
+        <pre><code>Tetorica Playgroundで動くJavaScriptを書いてください。
+リンク先の共通APIと選択チップの.d.tsで宣言されたAPIだけを使ってください。
+動作する公式サンプルに従ってください。
+Playgroundへ貼り付けてそのまま実行できるJavaScriptを返してください。</code></pre>
+      </article>
+    </main>
+  </body>
+</html>

@@ -44,7 +44,13 @@ test('all embedded FX lessons register valid APIs and complete their reference l
     assert.deepEqual(chain.children.map(u=>u.type),['slicer','reverb','gain']);
     assert.equal(chain.units.find(u=>u.type==='gain').values.gain,3);
     const example=await readFile(new URL('../playground/examples/basic/fx/slicer-sweep.js',import.meta.url),'utf8');
-    assert.equal(source.trim(),example.trim());
+    const withoutAttribution = code => code.trim().replace(/^\/\*\*[\s\S]*?\*\/\s*/, '');
+    assert.equal(withoutAttribution(source),withoutAttribution(example));
+    assert.ok(source.includes('Coded by Sam Aaron'));
+    assert.ok(source.includes('https://sonic-pi.net/examples.html'));
+    const japanese = await readFile(new URL('./tetorica-fx-slicer_ja.html',import.meta.url),'utf8');
+    const japaneseSource = japanese.match(/<script type="text\/plain" id="slicer-opening">([\s\S]*?)<\/script>/)[1];
+    assert.equal(japaneseSource.trim(),example.trim());
     assert.ok(messages.some(m=>m.op==='parameter'&&m.key==='phase'&&m.value===.25));
     continue;
    }

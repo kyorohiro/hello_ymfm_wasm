@@ -99,7 +99,9 @@ sh scripts/sync_web_js_to_docs.sh
 
 ツールや入門ページの追加・リンク変更は両方のトップページへ反映する。
 
-YM2612の入門も`docs/introductions/index.html`（英語）と`docs/introductions/index-ja.html`（日本語）に分けている。日英トップページは、それぞれの言語の入門へリンクする。日本語版には本文・ボタン・アルゴリズム試聴のステータス表示を翻訳し、埋め込みコードとデモの動作は保持している。その他の入門ページと、埋め込むPlayground・Synth・Analyzer自体まで一括翻訳したわけではない。
+YM2612の入門も`docs/introductions/index.html`（英語）と`docs/introductions/index-ja.html`（日本語）に分けている。日英トップページは、それぞれの言語の入門へリンクする。日本語版には本文・ボタン・アルゴリズム試聴のステータス表示を翻訳し、埋め込みコードとデモの動作は保持している。
+
+その他の紹介記事（Sega PSG、Mega CD、Game Boy、調律、レジスター入門、FXの全15章と目次）と`docs/for-ai.html`は、英語を元のURL、日本語を`*_ja.html`として提供する。日本語だけだった記事は内容を日本語版へ残して英語版を作成した。既存の`index-ja.html`は改名しない。言語切り替え・alternateリンク・前後の章・日英トップからのリンクをそれぞれの言語に合わせる。Game Boyの動的UIと生成コードのコメントは`docs/introductions/introduction-locale.js`でページの`lang`に従う。埋め込むPlayground・Synth・Analyzer自体はこの翻訳対象に含めない。
 
 ## ローカルでブラウザー版を開く
 

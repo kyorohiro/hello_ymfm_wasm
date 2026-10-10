@@ -1,6 +1,7 @@
 import {GameboyApu} from '../js/gameboyapu.js';
 import {GameboySynth, GameboyDirectTransport} from '../js/gameboysynth.js';
 import moduleFactory from '../generated/gameboy_apu_wasm.js';
+import {lessonText} from './introduction-locale.js';
 
 export const ENVELOPE_DEFAULTS = Object.freeze({volume: 12, direction: 'down', period: 2});
 export const WAVE_DEFAULTS = Object.freeze({note: 'A3', level: 0.5});
@@ -15,12 +16,12 @@ export function wavePreset(name) {
 export function validateSamples(samples) {
   if (!Array.isArray(samples) || samples.length !== 32 ||
       !Array.from(samples).every(value => Number.isInteger(value) && value >= 0 && value <= 15)) {
-    throw new RangeError('32点すべてを、0〜15の整数にしてください。');
+    throw new RangeError(lessonText('32点すべてを、0〜15の整数にしてください。', 'Use exactly 32 integers from 0 to 15.'));
   }
   return samples.slice();
 }
 export function parseWave(text) {
-  if (typeof text !== 'string' || text.length > 2048) throw new RangeError('波形配列が長すぎます。');
+  if (typeof text !== 'string' || text.length > 2048) throw new RangeError(lessonText('波形配列が長すぎます。', 'The waveform array is too long.'));
   return validateSamples(JSON.parse(text));
 }
 export function validateLesson(kind, s) {
@@ -39,7 +40,7 @@ export function lessonCode(kind, s) {
     envelope: {direction: '${s.direction}', period: ${s.period}}});
   gb.pulse.setNote(0, 'A4');
   gb.pulse.keyOn(0);` : `const samples = ${JSON.stringify(s.samples)};
-  // 転送前にWaveのDACを停止する。発音はkeyOnから。
+  // ${lessonText('転送前にWaveのDACを停止する。発音はkeyOnから。', 'Stop the Wave DAC before transfer. keyOn starts playback.')}
   gb.wave.stopAndSetWaveform(samples);
   gb.wave.setLevel(${s.level});
   gb.wave.setNote('${s.note}');
@@ -50,7 +51,7 @@ try {
   gb.initialize();
   gb.setMasterVolume(3, 3);
   ${setup}
-  // JavaScript側の発音時間。${kind === 'envelope' ? 'EnvelopeはAPU自身が進める。' : '波形はAPU自身が繰り返し読む。'}
+  // ${lessonText('JavaScript側の発音時間。', 'Note duration is controlled by JavaScript. ')}${kind === 'envelope' ? lessonText('EnvelopeはAPU自身が進める。', 'The APU advances the envelope itself.') : lessonText('波形はAPU自身が繰り返し読む。', 'The APU repeats the waveform itself.')}
   await sleep(${LESSON_SECONDS[kind]});
   ${off}
 } finally {

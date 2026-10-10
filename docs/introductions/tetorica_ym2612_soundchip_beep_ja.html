@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>音源チップからビープ音まで：JavaScriptでYM2612を操作する</title>
+  <style>
+    :root { color-scheme: light; --ink: #1f1b16; --accent: #7e381c; --line: #d7c8ac; }
+    * { box-sizing: border-box; }
+    body { margin: 0; color: var(--ink); background: #f4efe4; font-family: "Avenir Next", "Helvetica Neue", Arial, sans-serif; line-height: 1.65; }
+    main { max-width: 980px; margin: auto; padding: 32px 20px 64px; }
+    section, header { background: #fffaf0; border: 1px solid var(--line); border-radius: 24px; padding: 28px; margin: 20px 0; }
+    h1, h2, h3 { line-height: 1.2; letter-spacing: -.03em; }
+    h1 { font-size: clamp(2rem, 4vw, 3rem); }
+    h2 { font-size: 1.5rem; }
+    a { color: var(--accent); }
+    code { font-family: "SFMono-Regular", Menlo, Consolas, monospace; }
+    pre { overflow-x: auto; padding: 16px; border-radius: 12px; background: #29231e; color: #fff5e6; line-height: 1.6; }
+    .table-scroll { overflow-x: auto; }
+    table { border-collapse: collapse; width: 100%; }
+    th, td { text-align: left; padding: 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+    .route { padding: 16px; border: 1px solid var(--line); border-radius: 12px; text-align: center; }
+    iframe { display: block; width: 100%; height: 720px; border: 1px solid var(--line); border-radius: 14px; background: white; }
+    @media (max-width: 600px) { main { padding: 16px 10px 40px; } section, header { padding: 18px; } }
+  </style>
+<link rel="alternate" hreflang="en" href="./tetorica_ym2612_soundchip_beep.html"><link rel="alternate" hreflang="ja" href="./tetorica_ym2612_soundchip_beep_ja.html"><style>.language-nav{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}.language-nav a[aria-current="page"]{font-weight:700}</style></head>
+<body>
+<main>
+  <nav aria-label="戻る"><a href="./index-ja.html">← 音源の解説</a></nav>
+  <header>
+    <h1>音源チップからビープ音まで</h1><nav class="language-nav" aria-label="Language"><a href="./tetorica_ym2612_soundchip_beep.html" lang="en" hreflang="en">English</a> | <a href="./tetorica_ym2612_soundchip_beep_ja.html" lang="ja" hreflang="ja" aria-current="page">日本語</a></nav>
+    <p>メガドライブのYM2612を、JavaScriptでレジスターごとに操作します。</p>
+    <p>このページは、<a href="../tutorials/ex00.md">音源チップの基礎</a>と<a href="../tutorials/ex03.md">C++のビープ音チュートリアル</a>に対応するブラウザー版です。1つのチャンネルと、音を出す1つのオペレーターを使います。以下のコード全体をPlaygroundで編集・実行できます。</p>
+  </header>
+
+  <section>
+    <h2>1. 音源チップは何をする？</h2>
+    <p>YM2612は、プログラムが書き込んだ設定から音を作ります。6つのFMチャンネルがあり、それぞれ4つのオペレーターを持ちます。オペレーターは正弦波をもとにした信号を作り、エンベロープで音量を時間変化させます。音声出力になったり、別のオペレーターを変調したりします。</p>
+    <p>最初のビープ音には、音を出すオペレーター1つで十分です。変調とフィードバックを使わず、一定の音を鳴らします。</p>
+    <div class="route">JavaScript → レジスター設定 → YM2612エミュレーター → 音声 → スピーカー</div>
+    <p>実機ではCPUがチップのデータバスへバイトを送り、クロックがチップを動かします。ここではPlaygroundがエミュレーターを実行し、生成したサンプルをブラウザーの音声出力へ送ります。コードでは設定とタイミングを指定します。</p>
+  </section>
+
+  <section>
+    <h2>2. レジスターは小さな設定の入れ物</h2>
+    <p>レジスターにはアドレスがあり、1バイトの値を持ちます。アドレスで変更する項目を選び、値で設定を指定します。JavaScriptの<code>0x</code>という接頭辞は16進数を表します。<code>0x07</code>は7、<code>0x7f</code>は127です。</p>
+    <pre><code>write(0xb0, 0x07); // CH1：アルゴリズム7、フィードバック0</code></pre>
+    <p>この<code>write(address, value)</code>はPlaygroundのヘルパーです。C++のチュートリアルで使う「レジスターを選ぶ」「値を送る」という2回のバス書き込みをまとめています。</p>
+    <pre><code>// C++ / チップのバス操作：
+chip.write(0, 0xb0); // bank 0のレジスターを選びます。
+chip.write(1, 0x07); // 値を送ります。
+
+// JavaScript / Playground：
+write(0xb0, 0x07);</code></pre>
+    <p>多くのチャンネル用レジスターは、CH1〜CH3のbank 0と、CH4〜CH6のbank 1に分かれます。Playgroundでは、このbankの引数を<code>port</code>と呼びます。明示すると<code>write(0, 0xb0, 0x07)</code>です。引数2つの形式ではbank 0を使います。</p>
+    <p>C++側のバスオフセットは別です。0と1はbank 0の選択・書き込み、2と3はbank 1の選択・書き込みに使います。このビープ音ではすべてbank 0へ書き込みます。</p>
+  </section>
+
+  <section>
+    <h2>3. 単純な音色を選ぶ</h2>
+    <p>アルゴリズム7は、4つのオペレーターを並列に音声出力へつなぎます。OP1〜OP3をほぼ無音にして、OP4だけを鳴らします。</p>
+    <div class="route">ALG 7: OP1 + OP2 + OP3 + <strong>OP4</strong>→ 出力<br>OP1〜OP3はほぼ無音 · OP4を鳴らす · FBなし</div>
+    <p>4つのハードウェアスロットのオフセットは<code>0, 4, 8, 12</code>です。レジスター群の基準アドレスにオフセットを足すと、スロットを選べます。最後の12（<code>0x0c</code>）がOP4です。たとえば、そのTLは<code>0x4c</code>です。</p>
+    <p>これはハードウェアのアドレスオフセットで、Playgroundの<code>OP1</code>–<code>OP4</code>定数とは異なります。中央の2スロットは論理的な順序が異なりますが、この例では同じ設定を書き込みます。</p>
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>CH1のレジスター群</th><th>設定</th><th>このビープ音での設定</th></tr></thead>
+        <tbody>
+          <tr><td><code>0x30 + offset</code></td><td>DT / MULTI：デチューンと周波数倍率</td><td><code>0x01</code>：デチューンなし、1倍</td></tr>
+          <tr><td><code>0x40 + offset</code></td><td>TL：減衰量</td><td><code>0x7f</code>でほぼ無音。<code>0x00</code>はOP4用です。大きい値ほど小さな音になります。</td></tr>
+          <tr><td><code>0x50 + offset</code></td><td>AR：立ち上がりの速さ</td><td><code>0x1f</code>：最速の立ち上がり、レートスケーリングなし</td></tr>
+          <tr><td><code>0x80 + offset</code></td><td>SL / RR：減衰段階の切り替えレベルと離鍵後の減衰速度</td><td><code>0x0f</code>：SL 0、最速のリリース</td></tr>
+          <tr><td><code>0xb0</code></td><td>アルゴリズム / フィードバック</td><td><code>0x07</code>：アルゴリズム7、フィードバックなし</td></tr>
+          <tr><td><code>0xb4</code></td><td>左右の出力 / LFO感度</td><td><code>0xc0</code>：左右出力を有効にし、感度は0</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>最初に<code>fm.reset()</code>を呼びます。D1RとD2Rは0になるので、キーオフまで音が一定に続きます。その後、リリースで素早く減衰します。</p>
+  </section>
+
+  <section>
+    <h2>4. 音程を設定してからキーオンする</h2>
+    <p>チップは音程を、音域を表す<code>BLOCK</code>と11ビットの数値<code>FNUM</code>で指定します。C++の例ではBLOCK 4、FNUM <code>0x269</code>を使います。2つのレジスターに分けて書きます。</p>
+    <pre><code>write(0xa4, 0x22); // 上位：(BLOCK 4 &lt;&lt; 3) | FNUMの上位ビット2
+write(0xa0, 0x69); // 下位：FNUMの残り8ビット</code></pre>
+    <p>上位を先に書き、次に下位を書きます。下位の書き込みで音程設定が確定します。この値はチュートリアルの音程を再現するもので、Hzの数値ではありません。</p>
+    <p>最後に、レジスター<code>0x28</code>でキーオンとキーオフを操作します。<code>0xf0</code>では、上位4ビットが4つのオペレーターをオンにし、下位ビットがCH1を選びます。キーオンはエンベロープを開始する操作で、音色や音程の指定ではありません。</p>
+    <pre><code>write(0x28, 0xf0); // CH1：キーオン
+await sleep(3);    // 3秒間鳴らします。
+write(0x28, 0x00); // CH1：キーオフ</code></pre>
+  </section>
+
+  <section>
+    <h2>5. ビープ音を鳴らす</h2>
+    <p>PlaygroundでRunを押してください。<a href="../tutorials/ex03_beep.cpp">ex03_beep.cpp</a>のレジスター設定をJavaScriptで書き、時間を置いてキーオフする完全な例です。Playgroundには<code>fm</code>、<code>write</code>、<code>sleep</code>が用意されています。</p>
+    <script type="text/plain" id="example-register-beep">
+fm.reset();
+
+// CH1の4つのハードウェアスロットを設定します。OP4だけを鳴らします。
+for (const offset of [0, 4, 8, 12]) {
+  write(0x30 + offset, 0x01); // デチューンなし、倍率1。
+  write(0x40 + offset, offset === 12 ? 0x00 : 0x7f);
+  write(0x50 + offset, 0x1f); // 速い立ち上がり。
+  write(0x80 + offset, 0x0f); // 速いリリース。
+}
+
+write(0xb0, 0x07); // アルゴリズム7、フィードバックなし。
+write(0xb4, 0xc0); // 左右の出力。
+
+write(0xa4, 0x22); // 音程の上位：BLOCK 4、FNUMの上位ビット2。
+write(0xa0, 0x69); // 音程の下位：FNUM = 0x269。
+
+write(0x28, 0xf0); // CH1をキーオン。
+await sleep(3);
+write(0x28, 0x00); // CH1をキーオフ。
+await sleep(0.1);  // リリースの終了を待ちます。
+    </script>
+    <iframe data-playground-src="example-register-beep" title="Playground：YM2612のレジスターでビープ音を鳴らす" allow="autoplay" loading="lazy"></iframe>
+    <p><a data-playground-src="example-register-beep" target="_blank" rel="noopener noreferrer">Playground全体で開く →</a></p>
+    <h3>1つ変えて聴き比べる</h3>
+    <ul>
+      <li>条件式のOP4のTLを<code>0x00</code>から<code>0x20</code>に変えると、音が小さくなります。</li>
+      <li>音程の上位設定を<code>0x22</code>から<code>0x2a</code>に変えると、BLOCKが4から5になり、1オクターブ上がります。</li>
+      <li>設定を<code>sleep(3)</code>から<code>sleep(0.3)</code>に変えると、短いビープ音になります。</li>
+      <li>左右出力を<code>0xc0</code>から<code>0x80</code>または<code>0x40</code>に変えると、左だけ、または右だけから鳴ります。</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>6. レジスターのバイトから演奏用の操作へ</h2>
+    <p>レジスターでの設定が分かったら、Playgroundのメソッドを使って、同じチャンネル設定をより直接的に書けます。</p>
+    <pre><code>fm.setAlgo(CH1, 7, 0);          // write(0xb0, 0x07)
+fm.setPan(CH1, true, true);    // write(0xb4, 0xc0)
+fm.setFrequency(CH1, 4, 0x269); // 0xa4と0xa0へ書き込みます
+fm.keyOn(CH1);                // write(0x28, 0xf0)
+await sleep(3);
+fm.keyOff(CH1);               // write(0x28, 0x00)</code></pre>
+    <p>このコードはチャンネル設定と再生の部分を置き換えます。上のオペレーター設定も必要です。「音色設定 → 音程設定 → キーオン → 待つ → キーオフ」という流れは同じです。</p>
+    <p>次は、<a href="./index-ja.html">オペレーターとFMの音作り</a>、または<a href="./tetorica-just-intonation-equal-temperament-ym2612_ja.html">1つの音から調律と音程を調べるページ</a>へ進めます。</p>
+  </section>
+</main>
+<script src="./playground-embed.js"></script>
+</body>
+</html>

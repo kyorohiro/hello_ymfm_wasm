@@ -1,18 +1,18 @@
 <!doctype html>
-<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Slicer：鳴り続ける音を刻む — Tetorica FX入門</title><link rel="stylesheet" href="./fx-introduction.css"></head>
-<body><main><nav aria-label="記事ナビゲーション"><a href="./tetorica-fx.html">FX入門一覧（作成中）</a><a href="./tetorica-fx-gain.html">1. Gain</a><a href="./tetorica-fx-slicer.html">2. Slicer</a></nav>
-<header class="panel"><p class="kicker">FX INTRODUCTION / 02</p><h1>Slicer：鳴り続ける音を刻む</h1><p>Slicerは、鳴っている音を細かく刻んでリズムを作るエフェクトです。</p><p>まず演奏を聴いて、どんな使い方ができるか試してみましょう。</p></header>
-<section class="panel"><h2>1. まずは、この音を聴いてみる</h2>
-<p>Runを押してみてください。音の高さが滑らかに動きながら、細かく刻まれたリズムが聞こえます。音を刻んでいるのがSlicerです。この例ではReverbで余韻も加えています。</p>
-<p class="hint">Runで再生、Stopで停止します。次のサンプルを試す前に、この演奏をStopしてください。</p>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Slicer: chop a sustained sound — Tetorica FX introduction</title><link rel="stylesheet" href="./fx-introduction.css"><link rel="alternate" hreflang="en" href="./tetorica-fx-slicer.html"><link rel="alternate" hreflang="ja" href="./tetorica-fx-slicer_ja.html"><style>.language-nav{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}.language-nav a[aria-current="page"]{font-weight:700}</style></head>
+<body><main><nav aria-label="Article navigation"><a href="./tetorica-fx.html">FX introduction index (work in progress)</a><a href="./tetorica-fx-gain.html">1. Gain</a><a href="./tetorica-fx-slicer.html">2. Slicer</a></nav>
+<header class="panel"><p class="kicker">FX INTRODUCTION / 02</p><h1>Slicer: chop a sustained sound</h1><nav class="language-nav" aria-label="Language"><a href="./tetorica-fx-slicer.html" lang="en" hreflang="en" aria-current="page">English</a> | <a href="./tetorica-fx-slicer_ja.html" lang="ja" hreflang="ja">日本語</a></nav><p>Slicer creates rhythm by chopping a playing sound into short pieces.</p><p>Listen to the performance first, then explore how to use it.</p></header>
+<section class="panel"><h2>1. Listen to this sound</h2>
+<p>Press Run. You will hear a finely chopped rhythm while the pitch moves smoothly. Slicer does the chopping; Reverb adds a tail in this example.</p>
+<p class="hint">Run starts playback and Stop ends it. Stop this performance before trying the next example.</p>
 <script type="text/plain" id="slicer-opening">
 /**
- * Sonic Pi「Tron Bikes」を参考にしたYM2612向けのアレンジ。
+ * An arrangement for YM2612 inspired by Sonic Pi "Tron Bikes".
  * Original: Coded by Sam Aaron
- * 出典: https://sonic-pi.net/examples.html
+ * Source: https://sonic-pi.net/examples.html
  *
- * 元のサンプル（Ruby）より引用:
+ * Excerpt from the original Ruby example:
  * # Tron Bikes
  * # Coded by Sam Aaron
  *
@@ -36,9 +36,9 @@
  *   sleep 8
  * end
  *
- * この例ではdsawをFM Stringsに置き換え、音程をtweenで動かします。
- * cutoffの変化の代わりにOP4のTLを変え、最後にGain 3倍を加えています。
- * ランダムseedは固定せず、発音時間・待ち時間も変更しています。
+ * This example replaces dsaw with FM Strings and moves pitch with tween.
+ * It changes OP4 TL instead of cutoff and applies a final Gain of 3.
+ * The random seed is not fixed, and note durations and waits are changed.
  */
 setBpm(96);
 
@@ -94,16 +94,16 @@ liveLoop("bikes", async () => {
   await beat(2);
 });
 </script>
-<iframe data-playground-src="slicer-opening" data-playground-mode="full" title="Slicerで刻む音程スイープとReverbの演奏" loading="lazy" allow="autoplay"></iframe>
-<p><a data-playground-src="slicer-opening" target="_blank" rel="noopener noreferrer">このコードを別タブのPlaygroundで開く ↗</a></p>
-<p>刻み方を変えてみるなら、<code>choose([0.25, 0.125])</code>を<code>choose([0.5, 0.25])</code>に変えてApplyしてみましょう。刻む間隔が長くなります。</p>
-<p>次はシンプルな音で、Slicerの設定を1つずつ試してみます。</p>
+<iframe data-playground-src="slicer-opening" data-playground-mode="full" title="Pitch sweep chopped with Slicer and accompanied by Reverb" loading="lazy" allow="autoplay"></iframe>
+<p><a data-playground-src="slicer-opening" target="_blank" rel="noopener noreferrer">Open this code in a separate Playground tab ↗</a></p>
+<p>To change the chopping, replace <code>choose([0.25, 0.125])</code> with <code>choose([0.5, 0.25])</code> and Apply. The chopping interval becomes longer.</p>
+<p>Next, use a simple sound to try each Slicer setting separately.</p>
 </section>
-<section class="panel"><h2>2. シンプルな音で設定を試す</h2>
-<p>音源はGainの章と同じ長いサイン波です。音符を細かく鳴らし直す代わりに、鳴っている音をFXで開閉します。</p>
-<table><thead><tr><th>設定</th><th>意味</th></tr></thead><tbody><tr><td>phase</td><td>1周期の長さ（拍）。初期位相の指定ではありません。</td></tr><tr><td>duty</td><td>周期のうち開く割合。0.5なら半分。</td></tr><tr><td>floor</td><td>閉じている間のGain。0なら無音。</td></tr><tr><td>mix</td><td>加工音を混ぜる割合。1で加工音のみ。</td></tr></tbody></table>
-<p>BPM 120では1拍が0.5秒。phase 0.5なら1周期0.25秒、1秒に4回の開閉になります。</p><p class="hint">iframe内の<strong>Run</strong>で再生し、<strong>Stop</strong>で停止します。再生中に値を編集したら<strong>Apply</strong>で反映してください。比較する前に、もう一方のPlaygroundをStopしてください。それぞれ独立した音声環境です。</p>
-<p>Runしたら<strong>FX Monitor</strong>で<code>none</code>を選ぶと、組み込みFXを通った後の波形が見られます。<code>liveFx("none", …)</code>は観測用の素通し処理です。青とオレンジは同じ波形で重なり、組み込みFXの加工前後の比較ではありません。設定を変更してApplyし、波形の変化を見てください。</p>
+<section class="panel"><h2>2. Explore settings with a simple sound</h2>
+<p>The source is the same long sine wave used in the Gain chapter. Instead of retriggering short notes, the FX opens and closes the playing sound.</p>
+<table><thead><tr><th>Setting</th><th>Meaning</th></tr></thead><tbody><tr><td>phase</td><td>Length of one cycle in beats, not the initial phase</td></tr><tr><td>duty</td><td>Open proportion of the cycle; 0.5 means half</td></tr><tr><td>floor</td><td>Gain while closed; 0 means silence</td></tr><tr><td>mix</td><td>Wet signal proportion; 1 means only processed sound</td></tr></tbody></table>
+<p>At BPM 120, one beat lasts 0.5 seconds. phase 0.5 gives a 0.25-second cycle: four openings per second.</p><p class="hint">In the iframe, use <strong>Run</strong> to start and <strong>Stop</strong> to stop. After editing values during playback, use <strong>Apply</strong> to apply them. Stop the other Playground before comparing; each has an independent audio environment.</p>
+<p>After pressing Run, use <strong>FX Monitor</strong> to select <code>none</code> to see the waveform after the built-in FX.<code>liveFx("none", …)</code> is a pass-through observer. Blue and orange overlap; this is not a before/after comparison of the built-in FX. Edit settings and Apply to see the waveform change.</p>
 <script type="text/plain" id="slicer-native">
 setBpm(120);
 const gate = await livePrepare("slicer-demo", async ({ fx }) =>
@@ -132,16 +132,16 @@ liveLoop("reference", async () => {
   await beat(1);
 });
 </script>
-<iframe data-playground-src="slicer-native" data-playground-mode="full" title="組み込みSlicerの周期と開閉率を試す" loading="lazy" allow="autoplay"></iframe>
-<p><a data-playground-src="slicer-native" target="_blank" rel="noopener noreferrer">このコードを別タブのPlaygroundで開く ↗</a></p>
-<p>phaseを1にするとゆっくり、0.25にすると速く刻みます。dutyを0.2にすると短い音の粒、0.8にすると短い隙間になります。floorを0.2にすると完全な無音を避けられます。</p></section>
-<section class="panel"><h2>3. 1周期を0〜1の位置で考える</h2>
+<iframe data-playground-src="slicer-native" data-playground-mode="full" title="Explore the built-in Slicer period and duty" loading="lazy" allow="autoplay"></iframe>
+<p><a data-playground-src="slicer-native" target="_blank" rel="noopener noreferrer">Open this code in a separate Playground tab ↗</a></p>
+<p>phase 1 chops slowly; 0.25 chops faster. duty 0.2 produces short sound fragments; 0.8 produces short gaps. floor 0.2 avoids complete silence.</p></section>
+<section class="panel"><h2>3. Think of a cycle as a position from 0 to 1</h2>
 <p class="formula">phase = position / period<br>level = phase &lt; duty ? 1 : floor<br>output = input × level</p>
-<p>duty 0.5なら前半は開き、後半は閉じます。これは音量を動かす処理で、音源のキーオン・キーオフやエンベロープの再始動ではありません。</p>
-<p>急に音を切ると波形に不連続ができ、クリック音や追加の周波数成分が生じます。高速にすれば、リズムよりも音色の変化として聞こえる場合があります。</p></section>
-<section class="panel"><h2>4. サンプルを数えるSlicer</h2>
-<p>まずは秒やBPMへの変換を分けて、周期をサンプル数で指定します。<code>periodSamples: 12000</code>は48 kHzなら0.25秒、44.1 kHzなら約0.272秒です。この例はBPMへ自動追従しません。</p>
-<p>秒から変換するなら <code>periodSamples = 周期の秒数 × 実際の出力サンプルレート</code>。拍から変換するなら周期の秒数を <code>60 / BPM × 拍数</code> とします。出力レートはFX Monitorに表示されます。</p>
+<p>At duty 0.5, the first half is open and the second half is closed. This changes loudness; it does not key the source on/off or restart its envelope.</p>
+<p>Cutting sound abruptly introduces waveform discontinuities, clicks, and additional frequency components. At high rates, it may sound like a change in tone rather than rhythm.</p></section>
+<section class="panel"><h2>4. A Slicer that counts samples</h2>
+<p>First, separate out conversion from seconds or BPM and specify the period as a sample count.<code>periodSamples: 12000</code> lasts 0.25 seconds at 48 kHz, or about 0.272 seconds at 44.1 kHz. This example does not automatically follow BPM.</p>
+<p>To convert from seconds, use <code>periodSamples = period in seconds × actual output sample rate</code>. To convert from beats, calculate the period in seconds as <code>60 / BPM × beats</code>. FX Monitor displays the output rate.</p>
 <script type="text/plain" id="slicer-live">
 setBpm(120);
 liveFx("slicer-lab", {
@@ -170,16 +170,16 @@ liveLoop("reference", async () => {
   await beat(1);
 });
 </script>
-<iframe data-playground-src="slicer-live" data-playground-mode="full" title="stateで周期を維持するliveFx Slicer" loading="lazy" allow="autoplay"></iframe>
-<p><a data-playground-src="slicer-live" target="_blank" rel="noopener noreferrer">このコードを別タブのPlaygroundで開く ↗</a></p>
-<ol class="steps"><li>Runし、FX Monitorで<code>slicer-lab</code>を選びます。入力は続いていても、出力が0になる区間があります。</li><li>contextのdutyを0.2や0.8に変えてApplyし、聞こえる長さを比較します。</li><li>floorを0.2にして、閉じた区間の振幅を見ます。</li><li>細かい開閉を波形で見るにはperiodSamplesを1000にします。Monitorの2048サンプル窓に複数の周期が入ります。</li></ol>
-<p>12000サンプル周期では、短い表示窓が開いた部分だけ、または閉じた部分だけを捉える場合があります。1枚の波形だけでなく、変化と音を合わせて確認してください。</p></section>
-<section class="panel"><h2>5. なぜstateに位置を残すのか</h2>
+<iframe data-playground-src="slicer-live" data-playground-mode="full" title="A liveFx Slicer that preserves its position in state" loading="lazy" allow="autoplay"></iframe>
+<p><a data-playground-src="slicer-live" target="_blank" rel="noopener noreferrer">Open this code in a separate Playground tab ↗</a></p>
+<ol class="steps"><li>Press Run and select <code>slicer-lab</code> in FX Monitor. The input continues while some output sections are zero.</li><li>Change context.duty to 0.2 or 0.8 and Apply to compare the audible durations.</li><li>Set floor to 0.2 and look at the amplitude during closed sections.</li><li>Set periodSamples to 1000 to see fine chopping in the waveform. Several cycles fit into the Monitor's 2048-sample window.</li></ol>
+<p>With a 12000-sample period, a short window may show only an open or a closed section. Look at changes over time and listen, rather than judging one image alone.</p></section>
+<section class="panel"><h2>5. Why preserve the position in state?</h2>
 <pre><code>state.position ??= 0;
-// サンプルを1つ処理するたびに進める
+// Advance once for each processed sample.
 state.position = (state.position + 1) % period;</code></pre>
-<p>processは何度も呼ばれ、毎回iは0へ戻ります。iだけで周期を計算すると、音声ブロックごとに周期も再始動してしまいます。state.positionなら次のブロックへ位置を引き継げます。</p>
-<p>左右を処理した後に1回だけ位置を進めるので、左右は同じタイミングで開閉します。同じ名前でApplyするとstateは維持され、Stopで破棄されます。</p>
-<p>これは仕組みを学ぶための矩形ゲートです。組み込み版の全動作の再現ではありません。次の実験として、境界のGainを少しずつ変えればクリック音を和らげられます。</p>
-<p><a href="./tetorica-fx-gain.html">← Gainへ戻る</a> · <a href="./tetorica-fx-distortion.html">次の章：Distortionで波形の形を変える →</a></p></section>
+<p>process is called repeatedly, and i returns to zero each time. Computing the cycle from i alone restarts it every audio block. state.position carries the position into the next block.</p>
+<p>Advance the position once after processing both channels so left and right open together. Applying the same name preserves state; Stop discards it.</p>
+<p>This rectangular gate is for learning the mechanism, not reproducing every behavior of the built-in effect. As a next experiment, change Gain gradually at boundaries to soften clicks.</p>
+<p><a href="./tetorica-fx-gain.html">← Back to Gain</a> · <a href="./tetorica-fx-distortion.html">Next chapter: change waveform shape with Distortion →</a></p></section>
 </main><script src="./playground-embed.js"></script></body></html>

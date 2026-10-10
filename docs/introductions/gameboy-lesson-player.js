@@ -1,3 +1,4 @@
+import {lessonText} from './introduction-locale.js';
 /** Finite preview playback shared by interactive Game Boy lessons. */
 export function attachLesson({read, code, render, draw, clear, reset}) {
   const status = document.querySelector('#status');
@@ -19,7 +20,7 @@ export function attachLesson({read, code, render, draw, clear, reset}) {
     document.querySelector('#code').textContent = text;
     document.querySelector('#lesson-source').textContent = text;
     document.dispatchEvent(new CustomEvent('playground-source-change', {detail: {id: 'lesson-source'}}));
-    status.textContent = '再生して、設定の違いを聴き比べてください。';
+    status.textContent = lessonText('再生して、設定の違いを聴き比べてください。', 'Press Play to compare the settings.');
   }
   document.querySelector('#play').addEventListener('click', async () => {
     stop(); const run = generation;
@@ -29,7 +30,7 @@ export function attachLesson({read, code, render, draw, clear, reset}) {
       const audio = context;
       await audio.resume();
       if (run !== generation) return;
-      status.textContent = '音を準備しています…';
+      status.textContent = lessonText('音を準備しています…', 'Preparing audio…');
       const pcm = await render(settings, {sampleRate: audio.sampleRate});
       if (run !== generation) return;
       draw(pcm);
@@ -44,20 +45,20 @@ export function attachLesson({read, code, render, draw, clear, reset}) {
       active = {source, gain, audio};
       source.onended = () => {
         source.disconnect(); gain.disconnect();
-        if (run === generation) { active = null; status.textContent = '再生が終了しました。'; }
+        if (run === generation) { active = null; status.textContent = lessonText('再生が終了しました。', 'Playback finished.'); }
       };
-      source.start(); status.textContent = `${buffer.duration}秒間再生しています。`;
+      source.start(); status.textContent = lessonText(`${buffer.duration}秒間再生しています。`, `Playing for ${buffer.duration} seconds.`);
     } catch (error) {
-      if (run === generation) { stop(); status.textContent = `再生できませんでした：${error.message}`; }
+      if (run === generation) { stop(); status.textContent = lessonText(`再生できませんでした：${error.message}`, `Playback failed: ${error.message}`); }
     }
   });
-  document.querySelector('#stop').addEventListener('click', () => { stop(); status.textContent = '停止しました。'; });
-  document.querySelector('#reset').addEventListener('click', () => { reset(); update(); status.textContent = '初期値に戻しました。'; });
+  document.querySelector('#stop').addEventListener('click', () => { stop(); status.textContent = lessonText('停止しました。', 'Stopped.'); });
+  document.querySelector('#reset').addEventListener('click', () => { reset(); update(); status.textContent = lessonText('初期値に戻しました。', 'Restored the defaults.'); });
   document.querySelector('#copy').addEventListener('click', async () => {
-    try { await navigator.clipboard.writeText(code(read())); status.textContent = 'コードをコピーしました。'; }
-    catch { status.textContent = '下のコードを選択してコピーしてください。'; }
+    try { await navigator.clipboard.writeText(code(read())); status.textContent = lessonText('コードをコピーしました。', 'Copied the code.'); }
+    catch { status.textContent = lessonText('下のコードを選択してコピーしてください。', 'Select and copy the code below.'); }
   });
-  document.addEventListener('visibilitychange', () => { if (document.hidden) { stop(); status.textContent = 'ページを離れたため停止しました。'; } });
+  document.addEventListener('visibilitychange', () => { if (document.hidden) { stop(); status.textContent = lessonText('ページを離れたため停止しました。', 'Stopped because the page was hidden.'); } });
   window.addEventListener('pagehide', () => { stop(); if (context) { void context.close(); context = null; } });
   update();
   return {update, stop};

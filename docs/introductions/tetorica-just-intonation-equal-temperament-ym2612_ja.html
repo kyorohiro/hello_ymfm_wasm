@@ -1,10 +1,10 @@
 <!doctype html>
-<html lang="en">
+<html lang="ja">
 
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Just Intonation and Equal Temperament with JavaScript and Sega Genesis / Mega Drive YM2612</title>
+  <title>JavaScriptとメガドライブのYM2612で試す純正律と平均律</title>
   <!--title>Hear Ratios: Just Intonation and Equal Temperament with YM2612</title-->
   <style>
     :root {
@@ -389,34 +389,26 @@
   <main>
 
     <header class="panel">
-      <p class="kicker">Tetorica · sound experiments / 02</p>
-      <h1>Start with one sound.<br>Hear the ratios.</h1><nav class="language-nav" aria-label="Language"><a href="./tetorica-just-intonation-equal-temperament-ym2612.html" lang="en" hreflang="en" aria-current="page">English</a> | <a href="./tetorica-just-intonation-equal-temperament-ym2612_ja.html" lang="ja" hreflang="ja">日本語</a></nav>
-      <p>Just intonation and equal temperament with JavaScript and the Sega Genesis / Mega Drive YM2612.</p>
-      <p>Before C, D and E, there can be one reference sound. Call its frequency <strong>1</strong>. An octave is twice
-        that frequency. A pure fifth is one and a half times it. Let’s build from there—and listen.</p>
-      <a href="./index.html">← FM introduction</a> · <a href="#listen">Jump to the Playground experiment</a>
+      <p class="kicker">Tetorica · 音の実験 / 02</p>
+      <h1>1つの音から始めよう。<br>周波数の比を聴いてみよう。</h1><nav class="language-nav" aria-label="Language"><a href="./tetorica-just-intonation-equal-temperament-ym2612.html" lang="en" hreflang="en">English</a> | <a href="./tetorica-just-intonation-equal-temperament-ym2612_ja.html" lang="ja" hreflang="ja" aria-current="page">日本語</a></nav>
+      <p>JavaScriptとメガドライブのYM2612で、純正律と平均律を試します。</p>
+      <p>ド・レ・ミの前に、基準になる音を1つ決めてみましょう。その周波数を<strong>1</strong>とします。1オクターブ上は2倍、純正5度は1.5倍です。ここから音を作って聴いてみます。</p>
+      <a href="./index-ja.html">← FM入門</a> · <a href="#listen">Playgroundの実験へ移動</a>
     </header>
     <section class="panel">
-      <h2>1. Does music begin at 440 Hz?</h2>
-      <p>Today, <strong>A4 = 440 Hz</strong> is a widely used tuning reference. It is also the standard musical pitch
-        specified in <a href="https://www.iso.org/standard/3601.html">ISO 16</a>.</p>
-      <p>You may have heard the story that a baby's cry is 440 Hz. It is an evocative connection, but a cry does not
-        stay at one fixed pitch: <a href="https://pubmed.ncbi.nlm.nih.gov/10577825/">research on newborn cries</a>
-        describes fundamental frequencies around 400–600 Hz.</p>
-      <p>So let's use 440 Hz as the starting sound for this explanation. We do not need to assume that it was a special
-        number when music theory began. Here, it gives us a familiar reference from which to explore relationships
-        between sounds.</p>
-      <p><strong>Let's hear it on the YM2612.</strong> Press Run in the Playground below to hear a sustained tone for
-        three seconds. The example sets a simple voice and calls <code>sound(CH1, 440, 3)</code>: channel, frequency in
-        Hz, and duration in seconds.</p>
+      <h2>1. 音楽は440 Hzから始まる？</h2>
+      <p>現在、<strong>A4 = 440 Hz</strong>は広く使われる調律の基準です。標準音として<a href="https://www.iso.org/standard/3601.html">ISO 16</a>にも規定されています。</p>
+      <p>赤ちゃんの泣き声は440 Hz、という話を聞いたことがあるかもしれません。しかし泣き声は一定の音程に留まらず、<a href="https://pubmed.ncbi.nlm.nih.gov/10577825/">新生児の泣き声の研究</a>では基本周波数がおよそ400〜600 Hzと報告されています。</p>
+      <p>この説明では、440 Hzを出発点にします。音楽理論が生まれたころから特別な数だったと仮定する必要はありません。なじみのある基準として、音同士の関係を探るために使います。</p>
+      <p><strong>YM2612で聴いてみましょう。</strong>下のPlaygroundでRunを押すと3秒間鳴ります。単純な音色を設定して、<code>sound(CH1, 440, 3)</code>を呼びます。引数はチャンネル、周波数（Hz）、長さ（秒）です。</p>
       <script type="text/plain" id="example-440hz">
-// A simple, one-op-basic-like voice.
+// one-op-basicに近い単純な音色。
 fm.setPreset(CH1, FM_PRESETS["sine"]);
 
-// Our starting sound: A4, targeting 440 Hz.
+// 出発点の音：A4、目標440 Hz。
 await sound(CH1, 440, 3);
 
-// Play one tone in Hz using the voice already set on this channel.
+// このチャンネルに設定した音色で、Hz指定の音を1つ鳴らします。
 /** @param {YM2612Channel} channel */
 async function sound(channel, hz, seconds = 2) {
   const { block, fnum } = hzToBlockFnum(hz);
@@ -430,37 +422,31 @@ async function sound(channel, hz, seconds = 2) {
 }
 </script>
       <iframe class="playground-frame" data-playground-src="example-440hz"
-        title="Playground: hear a 440 Hz reference tone" loading="lazy" allow="autoplay"
+        title="Playground：440 Hzの基準音を聴く" loading="lazy" allow="autoplay"
         style="height:640px;width:100%;border:1px solid var(--line);border-radius:14px"></iframe>
-      <p>The YM2612 uses integer frequency settings, so the tone is an approximation to 440 Hz. The local
-        <code>sound</code> function below the example converts Hz to chip settings.
-      </p>
+      <p>YM2612の周波数設定は整数なので、440 Hzに近い音になります。サンプル下部の<code>sound</code>関数がHzをチップの設定へ変換します。</p>
     </section>
     <section class="panel">
-      <h2>2. Just intonation: choose simple ratios</h2>
-      <p>Start with 440 Hz. To explore just intonation, choose simple whole-number ratios relative to that reference.
-        We can try a third, a fourth, or a fifth; the fifth does not have to come first.</p>
+      <h2>2. 純正律：単純な比を選ぶ</h2>
+      <p>440 Hzを基準に、単純な整数の比で周波数を選びます。3度、4度、5度を試せます。5度から始める必要はありません。</p>
       <table>
-        <thead><tr><th>Ratio to the reference</th><th>Frequency</th><th>Interval</th></tr></thead>
+        <thead><tr><th>基準との比</th><th>周波数</th><th>音程</th></tr></thead>
         <tbody>
-          <tr><td>1/1</td><td>440 Hz</td><td>Unison</td></tr>
-          <tr><td>5/4</td><td>550 Hz</td><td>Pure major third</td></tr>
-          <tr><td>4/3</td><td>586.67 Hz (approximately)</td><td>Pure fourth</td></tr>
-          <tr><td>3/2</td><td>660 Hz</td><td>Pure fifth</td></tr>
+          <tr><td>1/1</td><td>440 Hz</td><td>同度</td></tr>
+          <tr><td>5/4</td><td>550 Hz</td><td>純正長3度</td></tr>
+          <tr><td>4/3</td><td>約586.67 Hz</td><td>純正4度</td></tr>
+          <tr><td>3/2</td><td>660 Hz</td><td>純正5度</td></tr>
         </tbody>
       </table>
-      <p>Each frequency is calculated from the same 440 Hz reference, not from the preceding result.
-        This is a small selection of intervals to explore, not a complete scale.</p>
-      <h3>Double the frequency: one octave up</h3>
-      <p><strong>880 Hz is one octave above 440 Hz.</strong> Multiplying a frequency by two moves it up one octave;
-        dividing by two moves it down one octave. We can therefore compare pitches within one octave,
-        from 440 Hz up to 880 Hz, by repeatedly doubling or halving them.</p>
-      <p>One way to find simple ratios is to start with integer multiples of 440 Hz, then bring them into that octave:</p>
+      <p>各周波数は直前の結果からではなく、同じ440 Hzを基準に計算します。これは試すための音程の一部で、完全な音階ではありません。</p>
+      <h3>周波数を2倍にすると、1オクターブ上</h3>
+      <p><strong>880 Hzは440 Hzの1オクターブ上です。</strong>周波数を2倍にすると1オクターブ上がり、半分にすると1オクターブ下がります。2倍・半分を繰り返すことで、440〜880 Hzの1オクターブ内へ音を移して比較できます。</p>
+      <p>単純な比を探す方法の1つは、440 Hzの整数倍から始めて、その1オクターブへ戻すことです。</p>
       <ul>
-        <li><strong>2 times:</strong> 880 Hz is the upper octave boundary. Halve it to return to 440 Hz.</li>
-        <li><strong>3 times:</strong> 1320 Hz ÷ 2 = 660 Hz, or <code>440 × 3/2</code>.</li>
-        <li><strong>4 times:</strong> 1760 Hz ÷ 2 ÷ 2 = 440 Hz, the starting pitch again.</li>
-        <li><strong>5 times:</strong> 2200 Hz ÷ 2 ÷ 2 = 550 Hz, or <code>440 × 5/4</code>.</li>
+        <li><strong>2倍：</strong>880 Hzは上のオクターブの境界です。半分にすると440 Hzへ戻ります。</li>
+        <li><strong>3倍：</strong>1320 Hz ÷ 2 = 660 Hz、つまり<code>440 × 3/2</code>.</li>
+        <li><strong>4倍：</strong>1760 Hz ÷ 2 ÷ 2 = 440 Hzとなり、元の音へ戻ります。</li>
+        <li><strong>5倍：</strong>2200 Hz ÷ 2 ÷ 2 = 550 Hz、つまり<code>440 × 5/4</code>.</li>
       </ul>
       <pre><code>const base = 440;
 const n = 5;
@@ -469,32 +455,16 @@ let frequency = base * n;
 while (frequency >= base * 2) {
   frequency /= 2;
 }
-// 550 Hz: the fifth harmonic, moved down two octaves.</code></pre>
-      <p>The loop treats 880 Hz as the start of the next octave and returns it to 440 Hz.
-        It always starts from <code>base × n</code>; it does not multiply the previous result by <code>3/2</code>.</p>
-      <h3>Why not multiply by 4 or 5 as well?</h3>
-      <p><strong>We can—and tuning systems do use that idea.</strong> Multiplying by 4 only moves a sound up two
-        octaves, so bringing it back adds no new pitch class. Multiplying by 5 introduces a different possibility:
-        <code>440 × 5 ÷ 4 = 550 Hz</code>, a pure major third.</p>
-      <p>We can combine the steps too. From 550 Hz, multiply by 3 and halve the result:
-        <code>550 × 3 ÷ 2 = 825 Hz</code>. Its ratio to the original reference is <code>15/8</code>.
-        Combining factors of 2, 3, and 5 is the basis of five-limit just intonation.</p>
-      <p>The difficulty is not producing these sounds. It is fitting the different routes into one fixed set of notes.
-        Four fifths from 440 Hz give <code>440 × 81/64 = 556.875 Hz</code>, while the direct pure third gives
-        <code>440 × 5/4 = 550 Hz</code>. Both serve as a major third, but one fixed key cannot have both frequencies
-        at once. More choices give us more ways to tune a chord, and more decisions when chords or keys change.</p>
-      <p>So the question is not “Why was the other approach never used?” It is “Which relationships do we want to keep
-        exact, and how do we handle the ones that disagree?” Pythagorean tuning, five-limit just intonation,
-        and temperaments make different choices. This is a way to explore those choices, not a single origin story
-        for all modern music. See <a href="https://math.ucr.edu/home/baez/tuning_book/">John Baez's
-        discussion of just intonation</a> for more background.</p>
-      <p>Integer multiples are one way to explore just ratios, not the only way.
-        The fourth, <code>4/3</code>, does not come from an integer multiple of the reference followed only by halving.
-        It is the ratio between the fourth and third harmonics; it also complements a pure fifth to make an octave:
-        <code>(3/2) × (4/3) = 2</code>.</p>
+// 550 Hz：第5倍音を2オクターブ下げた音。</code></pre>
+      <p>このループでは880 Hzを次のオクターブの始まりとして、440 Hzへ戻します。常に<code>base × n</code>から始めます。直前の結果に<code>3/2</code>を繰り返し掛ける手順ではありません。</p>
+      <h3>4倍や5倍も使える？</h3>
+      <p><strong>使えます。実際にその考え方を使う調律もあります。</strong>4倍は2オクターブ上なので、戻すと新しい音は増えません。5倍なら別の音を作れます。<code>440 × 5 ÷ 4 = 550 Hz</code>で純正長3度になります。</p>
+      <p>手順を組み合わせることもできます。550 Hzを3倍にして半分にすると、<code>550 × 3 ÷ 2 = 825 Hz</code>です。元の基準との比は<code>15/8</code>になります。2・3・5の因子を組み合わせる考え方が、5-limitの純正律の基礎です。</p>
+      <p>難しいのは音を作ることではなく、異なる手順の結果を固定した音の組に収めることです。440 Hzから純正5度を4回進むと<code>440 × 81/64 = 556.875 Hz</code>、純正長3度を直接選ぶと<code>440 × 5/4 = 550 Hz</code>になります。どちらも長3度として使えますが、固定した1つの鍵盤で両方の周波数を同時には持てません。和音の調律の選択肢が増える一方、和音や調が変わるときの判断も増えます。</p>
+      <p>どの関係を正確に保ち、食い違う関係をどう扱うか、という問題です。ピタゴラス音律、5-limitの純正律、各種の音律は異なる選択をします。これはその選択を試すための説明で、現代の音楽全体の唯一の起源を示すものではありません。詳しくは<a href="https://math.ucr.edu/home/baez/tuning_book/">John Baezによる純正律の解説</a>を参照してください。</p>
+      <p>整数倍は純正な比を探す方法の1つです。4度の<code>4/3</code>は、基準の整数倍を半分にするだけでは得られません。第4倍音と第3倍音の比であり、純正5度と掛け合わせると1オクターブになります。<code>(3/2) × (4/3) = 2</code>です。</p>
 
-      <p>Keep the reference on CH1 and listen to each ratio on CH2. The code uses <code>440 * 4 / 3</code>,
-        so the rounded number in the table does not affect the calculation.</p>
+      <p>CH1で基準を鳴らし、CH2で各比率の音を聴きます。コードでは<code>440 * 4 / 3</code>を使うので、表の丸めた数値は計算に影響しません。</p>
       <script type="text/plain" id="example-just-ratios">
 fm.setPreset(CH1, FM_PRESETS["sine"]);
 fm.setPreset(CH2, FM_PRESETS["sine"]);
@@ -510,7 +480,7 @@ for (const ratio of ratios) {
   await sleep(0.25);
 }
 
-// Play one tone in Hz using the voice already set on this channel.
+// このチャンネルに設定した音色で、Hz指定の音を1つ鳴らします。
 /** @param {YM2612Channel} channel */
 async function sound(channel, hz, seconds = 2) {
   const { block, fnum } = hzToBlockFnum(hz);
@@ -524,20 +494,16 @@ async function sound(channel, hz, seconds = 2) {
 }
 </script>
       <iframe class="playground-frame" data-playground-src="example-just-ratios"
-        title="Playground: simple just-intonation ratios from 440 Hz" loading="lazy" allow="autoplay"
+        title="Playground：440 Hzを基準にした純正律の比" loading="lazy" allow="autoplay"
         style="height:640px;width:100%;border:1px solid var(--line);border-radius:14px"></iframe>
-      <h3>Try your own route</h3>
-      <p>Change only <code>multipliers</code> and press Run. <code>[4]</code> returns to the reference;
-        <code>[5]</code> makes a pure third; <code>[5, 3]</code> goes through 550 Hz to 825 Hz.
-        <code>[3, 3, 3, 3]</code> reaches the different third made by four fifths.
-        Try <code>[7]</code> too: the result is 770 Hz, or <code>7/4</code> of the reference.
-        Ratios involving 7 take this experiment beyond five-limit just intonation.</p>
+      <h3>自分の手順を試す</h3>
+      <p>変更するのは<code>multipliers</code>だけです。Runを押してください。<code>[4]</code>は基準へ戻り、<code>[5]</code>は純正長3度、<code>[5, 3]</code>は550 Hzを通って825 Hzへ進みます。<code>[3, 3, 3, 3]</code>は純正5度を4回進んで作る別の長3度です。<code>[7]</code>も試せます。770 Hz、基準の<code>7/4</code>になります。7を含む比では、5-limitの範囲を超えた実験になります。</p>
       <script type="text/plain" id="example-multiplier-route">
 fm.setPreset(CH1, FM_PRESETS["sine"]);
 fm.setPreset(CH2, FM_PRESETS["sine"]);
 
 const base = 440;
-const multipliers = [5, 3]; // Try [4], [5], [3, 3, 3, 3], or [7].
+const multipliers = [5, 3]; // [4]、[5]、[3, 3, 3, 3]、[7]を試してください。
 let frequency = base;
 
 for (const n of multipliers) {
@@ -552,7 +518,7 @@ for (const n of multipliers) {
   await sleep(0.25);
 }
 
-// Play one tone in Hz using the voice already set on this channel.
+// このチャンネルに設定した音色で、Hz指定の音を1つ鳴らします。
 /** @param {YM2612Channel} channel */
 async function sound(channel, hz, seconds = 2) {
   const { block, fnum } = hzToBlockFnum(hz);
@@ -566,12 +532,10 @@ async function sound(channel, hz, seconds = 2) {
 }
 </script>
       <iframe class="playground-frame" data-playground-src="example-multiplier-route"
-        title="Playground: explore different frequency multipliers" loading="lazy" allow="autoplay"
+        title="Playground：周波数の倍率を組み合わせる" loading="lazy" allow="autoplay"
         style="height:640px;width:100%;border:1px solid var(--line);border-radius:14px"></iframe>
-      <h3>Two routes, two different thirds</h3>
-      <p>Now compare 550 Hz and 556.875 Hz against 440 Hz. Finally, hear the two thirds together.
-        Listen for the pulsing, or beating, between these nearby frequencies. Neither calculation is a mistake:
-        the routes preserve different relationships.</p>
+      <h3>2つの手順、2つの長3度</h3>
+      <p>440 Hzに対して550 Hzと556.875 Hzを比較します。最後は2つの長3度を同時に鳴らします。近い周波数の間のうなりを聴いてください。どちらの計算も間違いではなく、保っている関係が異なります。</p>
       <script type="text/plain" id="example-two-thirds">
 fm.setPreset(CH1, FM_PRESETS["sine"]);
 fm.setPreset(CH2, FM_PRESETS["sine"]);
@@ -580,7 +544,7 @@ const base = 440;
 const directThird = base * 5 / 4;       // 550 Hz
 const fifthsThird = base * 3 ** 4 / 64; // 556.875 Hz
 
-// First compare each third against the same reference.
+// まず各長3度を同じ基準音と比較します。
 for (const third of [directThird, fifthsThird]) {
   await Promise.all([
     sound(CH1, base),
@@ -589,13 +553,13 @@ for (const third of [directThird, fifthsThird]) {
   await sleep(0.25);
 }
 
-// Then hear the two different thirds together.
+// 次に異なる2つの長3度を同時に聴きます。
 await Promise.all([
   sound(CH1, directThird, 4),
   sound(CH2, fifthsThird, 4),
 ]);
 
-// Play one tone in Hz using the voice already set on this channel.
+// このチャンネルに設定した音色で、Hz指定の音を1つ鳴らします。
 /** @param {YM2612Channel} channel */
 async function sound(channel, hz, seconds = 2) {
   const { block, fnum } = hzToBlockFnum(hz);
@@ -609,25 +573,22 @@ async function sound(channel, hz, seconds = 2) {
 }
 </script>
       <iframe class="playground-frame" data-playground-src="example-two-thirds"
-        title="Playground: compare the pure and Pythagorean major thirds" loading="lazy" allow="autoplay"
+        title="Playground：純正長3度とピタゴラス音律の長3度を比較" loading="lazy" allow="autoplay"
         style="height:640px;width:100%;border:1px solid var(--line);border-radius:14px"></iframe>
     </section>
     <section class="panel" id="listen">
-      <p class="kicker">Try it · edit the JavaScript</p>
-      <h2>3. One reference, two sounds</h2>
-      <p>Press Run in the Playground below. First hear the reference, then the upper sound, then both together. Change
-        <code>ratio</code> from <code>3 / 2</code> to <code>5 / 4</code> and run it again. What changed?
-      </p>
-      <p>Next change <code>base</code> from 220 to 440. The register changes, but the ratio stays the same. Change the
-        values at the top, then run the example again.</p>
+      <p class="kicker">JavaScriptを編集して試す</p>
+      <h2>3. 基準1つ、音2つ</h2>
+      <p>下のPlaygroundでRunを押します。基準音、上の音、両方同時の順に鳴ります。<code>ratio</code>を<code>3 / 2</code>から<code>5 / 4</code>へ変えて再実行すると、何が変わるでしょうか。</p>
+      <p>次は<code>base</code>を220から440へ変えます。レジスターの設定は変わりますが、比は同じです。コード上部の値を変更して、もう一度実行してください。</p>
       <script type="text/plain" id="example-frequency-ratios">
-// A simple, one-op-basic-like voice.
+// one-op-basicに近い単純な音色。
 fm.setPreset(CH1, FM_PRESETS["sine"]);
 fm.setPreset(CH2, FM_PRESETS["sine"]);
 
-// Change the reference and the ratio, then Run again.
+// 基準と比率を変えて、もう一度Runしてください。
 const base = 220;
-const ratio = 3 / 2; // Try 2/1 (octave), 4/3 (fourth), or 5/4 (third).
+const ratio = 3 / 2; // 2/1（オクターブ）、4/3（4度）、5/4（3度）を試してください。
 
 await sound(CH1, base, 1);
 await sound(CH1, base * ratio, 1);
@@ -636,7 +597,7 @@ await Promise.all([
   sound(CH2, base * ratio, 3),
 ]);
 
-// Play one tone in Hz using the voice already set on this channel.
+// このチャンネルに設定した音色で、Hz指定の音を1つ鳴らします。
 /** @param {YM2612Channel} channel */
 async function sound(channel, hz, seconds = 2) {
   const { block, fnum } = hzToBlockFnum(hz);
@@ -650,18 +611,18 @@ async function sound(channel, hz, seconds = 2) {
 }
 </script>
       <iframe class="playground-frame" data-playground-src="example-frequency-ratios"
-        title="Playground: explore frequency ratios" loading="lazy" allow="autoplay"
+        title="Playground：周波数の比を試す" loading="lazy" allow="autoplay"
         style="height:640px;width:100%;border:1px solid var(--line);border-radius:14px"></iframe>
       <script type="text/plain" id="example-ratios-full">
-// Change the reference and the ratio, then Run again.
+// 基準と比率を変えて、もう一度Runしてください。
 const base = 220;
-const ratio = 3 / 2; // Try 2/1 (octave), 4/3 (fourth), or 5/4 (third).
+const ratio = 3 / 2; // 2/1（オクターブ）、4/3（4度）、5/4（3度）を試してください。
 
 await sound([base], 1);
 await sound([base * ratio], 1);
 await sound([base, base * ratio], 3);
 
-// YM2612 bridge: Hz -> the closest integer BLOCK/FNUM pair.
+// YM2612へ：Hzを最も近い整数のBLOCK/FNUMへ変換します。
 function pitchFromHz(hz) {
   const clock = 7670454;
   let best;
@@ -677,7 +638,7 @@ function pitchFromHz(hz) {
 }
 
 function prepareVoice(channel) {
-  fm.setAlgo(channel, 7, 0); // Additive: four independent carriers.
+  fm.setAlgo(channel, 7, 0); // 加算合成：4つの独立したキャリアー。
   fm.setPan(channel, true, true);
   for (const [operator, multi, tl] of /** @type {const} */ ([
     [OP1, 1, 32], [OP2, 2, 48], [OP3, 3, 56], [OP4, 5, 60],
@@ -704,52 +665,42 @@ async function sound(frequencies, seconds = 2) {
   await sleep(0.25);
 }
 </script>
-      <p><a data-playground-src="example-ratios-full" target="_blank" rel="noopener noreferrer">Open this example in the
-          full Playground ↗</a> · <a href="./tuning-ratios.js">JavaScript source</a></p>
-      <p class="muted">Each example ends by releasing its notes. Use Stop before starting another Playground. The same
-        additive patch includes harmonics 1, 2, 3 and 5, with the upper harmonics quieter.</p>
+      <p><a data-playground-src="example-ratios-full" target="_blank" rel="noopener noreferrer">Playground全体で開く ↗</a> · <a href="./tuning-ratios.js">JavaScriptのソース</a></p>
+      <p class="muted">各例は最後にキーオフします。別のPlaygroundを始める前にStopしてください。同じ加算合成の音色に、第1・第2・第3・第5倍音を含め、上の倍音ほど小さくしています。</p>
     </section>
     <section class="panel">
-      <h2>4. Pythagorean tuning: repeat one pure fifth</h2>
+      <h2>4. ピタゴラス音律：純正5度を繰り返す</h2>
 
-      <p>Now try a different construction rule. Choose a <strong>pure
-          fifth</strong>, the frequency ratio <code>3/2</code>, and repeat it. Each new sound becomes the starting point
-        for the next fifth. When the frequency becomes too high, divide it by two to move it back near the starting
-        register.</p>
+      <p>次は別の手順です。<strong>純正5度</strong>の周波数比<code>3/2</code>を繰り返します。新しい音を次の5度の出発点にし、高くなったら半分にして元の音域へ戻します。</p>
 
-      <p>Starting on C, the note names follow this chain:</p>
+      <p>Cから始めると、音名は次の順に進みます。</p>
 
       <pre><code>C → G → D → A → E → B → F♯
 → C♯ → G♯ → D♯ → A♯ → E♯ → B♯</code></pre>
 
-      <p>In twelve-tone equal temperament, E♯ shares a pitch with F, and B♯ with C. The first twelve steps therefore
-        pass through all twelve pitch classes. But with exact <code>3/2</code> ratios, twelve pure fifths do not return
-        exactly to the starting pitch after octave adjustment. The note names describe the chain; they do not guarantee
-        that it closes.</p>
+      <p>12平均律ではE♯とF、B♯とCは同じ周波数です。そのため最初の12段階で12種類の音を通ります。しかし正確な<code>3/2</code>の比では、純正5度を12回進んでオクターブを戻しても、出発点と完全には一致しません。音名は手順を示すもので、元へ戻ることを保証しません。</p>
 
-      <p><strong>Let's write that process as a for loop.</strong> Keep the 440 Hz sound from the first example as a
-        reference. Starting from A, multiply the frequency by <code>3/2</code> at each step: one pure fifth upward.
-        Then shift the result by octaves so that it stays close to the starting A.</p>
+      <p><strong>この手順をforループで書いてみましょう。</strong>最初の例の440 Hzを基準として残します。Aから始めて、各段階で<code>3/2</code>を掛け、純正5度上へ進みます。その後、オクターブ単位で移して、出発点のAに近い音域へ戻します。</p>
 
-      <p>Starting on A, this gives:</p>
+      <p>Aから始めると次の順です。</p>
 
       <pre><code>A → E → B → F♯ → C♯ → G♯ → D♯
 → A♯ → E♯ → B♯ → F𝄪 → C𝄪 → G𝄪</code></pre>
 
-      <p>The code calculates frequencies directly; it does not use equal-tempered note-name playback.</p>
+      <p>コードは周波数を直接計算し、平均律の音名による再生は使いません。</p>
 
       <script type="text/plain" id="example-fifths-chain">
-// A simple, one-op-basic-like voice.
+// one-op-basicに近い単純な音色。
 fm.setPreset(CH1, FM_PRESETS["sine"]);
 fm.setPreset(CH2, FM_PRESETS["sine"]);
 
-// Keep A4 sounding against each note generated by pure fifths.
+// 純正5度から作る各音に対して、A4を鳴らし続けます。
 const base = 440;
 
 for (let i = 0; i <= 12; i++) {
   let frequency = base * (3 / 2) ** i;
 
-  // Move the note to the octave closest to A4.
+  // A4に最も近いオクターブへ移します。
   while (frequency > base * Math.sqrt(2)) {
     frequency /= 2;
   }
@@ -768,7 +719,7 @@ for (let i = 0; i <= 12; i++) {
   await sleep(0.25);
 }
 
-// Play one tone in Hz using the voice already set on this channel.
+// このチャンネルに設定した音色で、Hz指定の音を1つ鳴らします。
 /** @param {YM2612Channel} channel */
 async function sound(channel, hz, seconds = 2) {
   const { block, fnum } = hzToBlockFnum(hz);
@@ -784,55 +735,43 @@ async function sound(channel, hz, seconds = 2) {
 </script>
 
       <iframe class="playground-frame" data-playground-src="example-fifths-chain"
-        title="Playground: build a chain of pure fifths from 440 Hz" loading="lazy" allow="autoplay"
+        title="Playground：440 Hzから純正5度を繰り返す" loading="lazy" allow="autoplay"
         style="height:640px;width:100%;border:1px solid var(--line);border-radius:14px"></iframe>
 
-      <p>Each step plays two sounds together: the unchanged 440 Hz reference on CH1 and the calculated frequency on CH2.
-        <code>sound(channel, hz)</code> plays one tone; <code>Promise.all</code> starts the two calls together and waits
-        for both to finish. After twelve pure fifths, the octave-adjusted target is about <strong>446.0 Hz</strong>,
-        roughly <strong>23.46 cents above</strong> the starting A. Listen for the beating between the two nearby
-        pitches.
-        The YM2612 approximates the requested frequencies with its available settings.
-      </p>
+      <p>各段階で、CH1の一定の440 Hzと、CH2の計算した周波数を同時に鳴らします。<code>sound(channel, hz)</code>は1つの音を鳴らし、<code>Promise.all</code>は2つの呼び出しを同時に開始して、両方の終了を待ちます。純正5度を12回進んで音域を戻すと、目標は約<strong>446.0 Hz</strong>で、出発点のAより約<strong>23.46セント高く</strong>なります。近い2音のうなりを聴いてください。YM2612は、使える設定で目標周波数を近似します。</p>
 
-      <p>This construction is called <a href="https://tuning.ableton.com/glossary/pythagorean-tuning/">Pythagorean tuning</a>:
-        build the pitches from pure fifths and octaves. It is often classified as 3-limit just intonation,
-        but we explain it separately here because its construction rule is different from choosing ratios
-        such as <code>5/4</code> directly against a reference.</p>
-      <p>For example, four pure fifths, brought into one octave, give <code>81/64</code>.
-        That differs from the pure major third <code>5/4</code> we heard earlier.
-        Both use exact ratios, but they choose different thirds.</p>
+      <p>この作り方を<a href="https://tuning.ableton.com/glossary/pythagorean-tuning/">ピタゴラス音律</a>と呼びます。純正5度とオクターブから音を作ります。3-limitの純正律として分類されることもありますが、このページでは、基準に対して<code>5/4</code>などの比を直接選ぶ方法とは区別して説明します。</p>
+      <p>純正5度を4回進んで1オクターブ内へ戻すと<code>81/64</code>です。先ほどの純正長3度の<code>5/4</code>とは異なります。どちらも正確な比を使いますが、選ぶ長3度が違います。</p>
     </section>
     <section class="panel">
-      <h2>5. Equal steps, different thirds</h2>
-      <p>Twelve-tone equal temperament divides the octave into twelve equal <em>ratios</em>, not twelve equal
-        differences in Hz.</p>
+      <h2>5. 等しい段階、異なる長3度</h2>
+      <p>12平均律は、オクターブを12個の等しい<em>比</em>で分けます。Hzの差が等しいわけではありません。</p>
       <div class="formula"><code>frequency = base * 2 ** (semitones / 12)</code></div>
       <div class="table-wrap">
         <table>
           <thead>
             <tr>
-              <th>Interval</th>
-              <th>Just ratio</th>
-              <th>Just cents</th>
-              <th>Equal cents</th>
+              <th>音程</th>
+              <th>純正な比</th>
+              <th>純正律のセント値</th>
+              <th>平均律のセント値</th>
             </tr>
           </thead>
           <tbody>
             <tr>
-              <td>Major third</td>
+              <td>長3度</td>
               <td>5/4</td>
               <td>386.31</td>
               <td>400</td>
             </tr>
             <tr>
-              <td>Perfect fifth</td>
+              <td>完全5度</td>
               <td>3/2</td>
               <td>701.96</td>
               <td>700</td>
             </tr>
             <tr>
-              <td>Octave</td>
+              <td>オクターブ</td>
               <td>2/1</td>
               <td>1200</td>
               <td>1200</td>
@@ -840,33 +779,30 @@ async function sound(channel, hz, seconds = 2) {
           </tbody>
         </table>
       </div>
-      <p>The equal-tempered major third is about 13.69 cents wider than 5/4. Its fifth is about 1.96 cents narrower than
-        3/2. The experiment changes these ratios while holding the root and patch fixed.</p>
-      <h3>Build the chord yourself</h3>
-      <p>Run with <code>tuning = "just"</code>, then change it to <code>"equal"</code>. The root and patch stay fixed.
-        Listen especially to the sustained major third. Try keeping only the first two ratios to focus on that interval.
-      </p>
+      <p>平均律の長3度は5/4より約13.69セント広く、5度は3/2より約1.96セント狭くなります。基準音と音色を固定して比率だけを変えます。</p>
+      <h3>自分で和音を作る</h3>
+      <p>まず<code>tuning = "just"</code>でRunし、その後<code>"equal"</code>へ変えます。基準音と音色は同じです。持続する長3度をよく聴いてください。最初の2つの比だけを残すと、その音程に集中できます。</p>
       <script type="text/plain" id="example-just-equal-chords">
-// A simple, one-op-basic-like voice.
+// one-op-basicに近い単純な音色。
 fm.setPreset(CH1, FM_PRESETS["sine"]);
 fm.setPreset(CH2, FM_PRESETS["sine"]);
 fm.setPreset(CH3, FM_PRESETS["sine"]);
 
-// Choose "just" or "equal", then Run again.
+// "just"または"equal"を選んで再実行します。
 const tuning = "just";
 const base = 220;
 const ratios = tuning === "just"
   ? [1, 5 / 4, 3 / 2]
   : [1, 2 ** (4 / 12), 2 ** (7 / 12)];
 
-// Remove the CH3 line to hear just the major third.
+// CH3の行を外すと、長3度だけを聴けます。
 await Promise.all([
   sound(CH1, base * ratios[0], 4),
   sound(CH2, base * ratios[1], 4),
   sound(CH3, base * ratios[2], 4),
 ]);
 
-// Play one tone in Hz using the voice already set on this channel.
+// このチャンネルに設定した音色で、Hz指定の音を1つ鳴らします。
 /** @param {YM2612Channel} channel */
 async function sound(channel, hz, seconds = 2) {
   const { block, fnum } = hzToBlockFnum(hz);
@@ -880,20 +816,20 @@ async function sound(channel, hz, seconds = 2) {
 }
 </script>
       <iframe class="playground-frame" data-playground-src="example-just-equal-chords"
-        title="Playground: just and equal-tempered chords" loading="lazy" allow="autoplay"
+        title="Playground：純正律と平均律の和音" loading="lazy" allow="autoplay"
         style="height:640px;width:100%;border:1px solid var(--line);border-radius:14px"></iframe>
       <script type="text/plain" id="example-chords-full">
-// Choose "just" or "equal", then Run again.
+// "just"または"equal"を選んで再実行します。
 const tuning = "just";
 const base = 220;
 const ratios = tuning === "just"
   ? [1, 5 / 4, 3 / 2]
   : [1, 2 ** (4 / 12), 2 ** (7 / 12)];
 
-// Try ratios.slice(0, 2) to hear just the major third.
+// ratios.slice(0, 2)で長3度だけを聴けます。
 await sound(ratios.map(ratio => base * ratio), 4);
 
-// YM2612 bridge: Hz -> the closest integer BLOCK/FNUM pair.
+// YM2612へ：Hzを最も近い整数のBLOCK/FNUMへ変換します。
 function pitchFromHz(hz) {
   const clock = 7670454;
   let best;
@@ -909,7 +845,7 @@ function pitchFromHz(hz) {
 }
 
 function prepareVoice(channel) {
-  fm.setAlgo(channel, 7, 0); // Additive: four independent carriers.
+  fm.setAlgo(channel, 7, 0); // 加算合成：4つの独立したキャリアー。
   fm.setPan(channel, true, true);
   for (const [operator, multi, tl] of /** @type {const} */ ([
     [OP1, 1, 32], [OP2, 2, 48], [OP3, 3, 56], [OP4, 5, 60],
@@ -936,49 +872,39 @@ async function sound(frequencies, seconds = 2) {
   await sleep(0.25);
 }
 </script>
-      <p><a data-playground-src="example-chords-full" target="_blank" rel="noopener noreferrer">Open this example in the
-          full Playground ↗</a> · <a href="./tuning-chords.js">JavaScript source</a></p>
-      <p>For a deeper listening explanation, see Joe Wolfe’s <a
-          href="https://www.phys.unsw.edu.au/jw/tartini-temperament.html" target="_blank" rel="noopener noreferrer">UNSW
-          introduction to tones and temperament</a>.</p>
+      <p><a data-playground-src="example-chords-full" target="_blank" rel="noopener noreferrer">Playground全体で開く ↗</a> · <a href="./tuning-chords.js">JavaScriptのソース</a></p>
+      <p>さらに聴き比べて理解したいときは、Joe Wolfeによる<a
+          href="https://www.phys.unsw.edu.au/jw/tartini-temperament.html" target="_blank" rel="noopener noreferrer">UNSWの音と音律の解説</a>を参照してください。</p>
     </section>
     <section class="panel">
-      <h2>6. Why don’t twelve pure fifths close the circle?</h2>
+      <h2>6. 純正5度を12回進んでも戻らないのはなぜ？</h2>
       <pre><code>C → G → D → A → E → B → F♯ → C♯ …
 (3/2) ** 12 / 2 ** 7 ≈ 1.01364
 1200 * Math.log2((3/2) ** 12 / 2 ** 7) ≈ 23.46 cents</code></pre>
-      <p>Twelve pure fifths land slightly above seven octaves. That difference is the Pythagorean comma. Building
-        pitches from pure fifths is associated with Pythagorean tuning; adding pure 5/4 thirds introduces a different
-        set of relationships.</p>
-      <p>Four pure fifths, brought into one octave, give <code>81/64</code>. That is not <code>5/4</code>: their ratio
-        is <code>81/80</code>, the syntonic comma. “Just intonation” therefore does not mean one universal twelve-key
-        layout with every possible interval pure.</p>
-      <p>On a twelve-tone equal-tempered keyboard, C♯ and D♭ share a pitch. In other tunings their exact relationship
-        depends on how those pitches are constructed. Even when they sound alike, their spellings can still describe
-        different musical roles.</p>
+      <p>純正5度12回は、7オクターブより少し上へ届きます。その差がピタゴラスコンマです。純正5度から音を作るのがピタゴラス音律で、5/4の純正長3度を加えると別の関係が入ります。</p>
+      <p>純正5度を4回進んで1オクターブ内へ戻すと<code>81/64</code>です。これは<code>5/4</code>とは異なり、その比の<code>81/80</code>がシントニックコンマです。「純正律」は、すべての音程が純正になる唯一の12鍵配置を意味するものではありません。</p>
+      <p>12平均律の鍵盤ではC♯とD♭は同じ周波数です。他の音律では、どう作った音かによって関係が変わります。同じ響きでも、音名の表記が異なる音楽上の役割を示すことがあります。</p>
     </section>
     <section class="panel">
-      <h2>7. Pitch can be a continuous coordinate</h2>
-      <p>Define pitch as a distance in semitones from your own reference. It need not be an integer.</p>
+      <h2>7. 音程を連続した座標で考える</h2>
+      <p>自分の基準から何半音離れたかで音程を表します。整数でなくても構いません。</p>
       <pre><code>const ratioToPitch = ratio => 12 * Math.log2(ratio);
 const pitchToHz = (pitch, base = 220) => base * 2 ** (pitch / 12);
 
 const equal = [0, 4, 7];
 const just = [0, ratioToPitch(5/4), ratioToPitch(3/2)];
-// 0.01 semitone = 1 cent. A smooth bend can use fractional values.</code></pre>
-      <p>This is an article-defined coordinate system, not a new Tetorica API. At the chip boundary, frequencies must
-        become integer BLOCK/FNUM values. Mathematical continuity does not make the YM2612 infinitely precise.</p>
-      <h3>Try a fractional pitch</h3>
-      <p>Run with the pure third, then replace <code>pitch</code> with <code>4</code>. Try <code>4.1</code> next. You
-        are moving on the same pitch axis; there is no need to choose a new note-name system.</p>
+// 0.01半音 = 1セント。滑らかなベンドには小数を使えます。</code></pre>
+      <p>これは記事内で定義した座標で、新しいTetorica APIではありません。チップへ渡すときは整数のBLOCK/FNUMへ変換します。数式が連続的でも、YM2612の精度が無限になるわけではありません。</p>
+      <h3>小数の音程を試す</h3>
+      <p>純正長3度でRunした後、<code>pitch</code>を<code>4</code>へ置き換えます。その次に<code>4.1</code>も試してください。同じ音程の軸を動かすので、新しい音名体系を選ぶ必要はありません。</p>
       <script type="text/plain" id="example-fractional-semitones">
-// A simple, one-op-basic-like voice.
+// one-op-basicに近い単純な音色。
 fm.setPreset(CH1, FM_PRESETS["sine"]);
 fm.setPreset(CH2, FM_PRESETS["sine"]);
 
-// A pitch coordinate measured in semitones from base.
+// baseからの距離を半音で表す音程の座標。
 const base = 220;
-const pitch = 12 * Math.log2(5 / 4); // 3.863...; try 4 or 4.1.
+const pitch = 12 * Math.log2(5 / 4); // 3.863…、4や4.1も試してください。
 const frequency = base * 2 ** (pitch / 12);
 
 console.log("Semitones:", pitch, "Cents:", pitch * 100);
@@ -987,7 +913,7 @@ await Promise.all([
   sound(CH2, frequency, 3),
 ]);
 
-// Play one tone in Hz using the voice already set on this channel.
+// このチャンネルに設定した音色で、Hz指定の音を1つ鳴らします。
 /** @param {YM2612Channel} channel */
 async function sound(channel, hz, seconds = 2) {
   const { block, fnum } = hzToBlockFnum(hz);
@@ -1001,18 +927,18 @@ async function sound(channel, hz, seconds = 2) {
 }
 </script>
       <iframe class="playground-frame" data-playground-src="example-fractional-semitones"
-        title="Playground: fractional semitone coordinates" loading="lazy" allow="autoplay"
+        title="Playground：小数の半音座標" loading="lazy" allow="autoplay"
         style="height:640px;width:100%;border:1px solid var(--line);border-radius:14px"></iframe>
       <script type="text/plain" id="example-pitch-full">
-// A pitch coordinate measured in semitones from base.
+// baseからの距離を半音で表す音程の座標。
 const base = 220;
-const pitch = 12 * Math.log2(5 / 4); // 3.863...; try 4 or 4.1.
+const pitch = 12 * Math.log2(5 / 4); // 3.863…、4や4.1も試してください。
 const frequency = base * 2 ** (pitch / 12);
 
 console.log("Semitones:", pitch, "Cents:", pitch * 100);
 await sound([base, frequency], 3);
 
-// YM2612 bridge: Hz -> the closest integer BLOCK/FNUM pair.
+// YM2612へ：Hzを最も近い整数のBLOCK/FNUMへ変換します。
 function pitchFromHz(hz) {
   const clock = 7670454;
   let best;
@@ -1028,7 +954,7 @@ function pitchFromHz(hz) {
 }
 
 function prepareVoice(channel) {
-  fm.setAlgo(channel, 7, 0); // Additive: four independent carriers.
+  fm.setAlgo(channel, 7, 0); // 加算合成：4つの独立したキャリアー。
   fm.setPan(channel, true, true);
   for (const [operator, multi, tl] of /** @type {const} */ ([
     [OP1, 1, 32], [OP2, 2, 48], [OP3, 3, 56], [OP4, 5, 60],
@@ -1055,25 +981,17 @@ async function sound(frequencies, seconds = 2) {
   await sleep(0.25);
 }
 </script>
-      <p><a data-playground-src="example-pitch-full" target="_blank" rel="noopener noreferrer">Open this example in the
-          full Playground ↗</a> · <a href="./tuning-pitch.js">JavaScript source</a></p>
-      <p class="muted">The example helpers use Hz directly rather than the Playground note-name reference. The full
-        Playground console shows target and approximated chip frequencies. Small residual errors remain because
-        BLOCK/FNUM is discrete; pure mathematical ratios are targets, not exact chip guarantees.</p>
+      <p><a data-playground-src="example-pitch-full" target="_blank" rel="noopener noreferrer">Playground全体で開く ↗</a> · <a href="./tuning-pitch.js">JavaScriptのソース</a></p>
+      <p class="muted">例のヘルパーはPlaygroundの音名の基準ではなくHzを直接使います。Playground全体のConsoleには目標とチップでの近似周波数が表示されます。BLOCK/FNUMは離散的なので、小さな誤差が残ります。純正な数式の比は目標であり、チップでの完全一致を保証しません。</p>
 
     </section>
     <section class="panel">
-      <h2>8. From intervals to FM ratios</h2>
-      <p>So far we compared separate voices. FM synthesis relates oscillators inside a voice: changing the
-        modulator-to-carrier frequency ratio changes the spectrum. Harmonic relationships can produce harmonic spectra;
-        other ratios can produce inharmonic components.</p>
-      <p>A 3:2 operator ratio is not the same experiment as playing a 3:2 musical interval. Routing, modulation depth,
-        envelopes and feedback also matter. The YM2612’s MULTI settings are discrete (0 means one-half; 1–15 are integer
-        multipliers), so not every arbitrary ratio can be dialled in with MULTI alone.</p>
-      <p>The useful connection is the question: <strong>what changes when one frequency is related to another?</strong>
-        Start with a reference, choose a ratio, then listen.</p>
-      <a class="link-button" href="./index.html">Explore FM operators</a> <a class="link-button"
-        href="../playground/index.html" target="_blank" rel="noopener noreferrer">Open Playground ↗</a>
+      <h2>8. 音程からFMの比率へ</h2>
+      <p>ここまでは別々の音を比較しました。FM合成では1つの音の中の発振器同士を関係づけます。モジュレーターとキャリアーの周波数比を変えると、スペクトラムが変わります。整数の倍音関係なら調和した倍音を、別の比率なら非整数の成分を作る場合があります。</p>
+      <p>オペレーター間の3:2は、3:2の音程を2音で鳴らす実験と同じではありません。接続、変調の強さ、エンベロープ、フィードバックも関係します。YM2612のMULTIは離散的で、0が0.5倍、1〜15が整数倍です。MULTIだけですべての比率を指定できるわけではありません。</p>
+      <p>共通する問いは、<strong>1つの周波数をもう1つと関係づけると、何が変わるか？</strong>ということです。基準を決め、比を選んで、聴いてみましょう。</p>
+      <a class="link-button" href="./index-ja.html">FMオペレーターを試す</a> <a class="link-button"
+        href="../playground/index.html" target="_blank" rel="noopener noreferrer">Playgroundを開く ↗</a>
     </section>
   </main>
   <script src="./playground-embed.js"></script>

@@ -1,14 +1,14 @@
 <!doctype html>
-<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Sega Genesis / Mega Drive Sega PSG Introduction with JavaScript</title><link rel="stylesheet" href="./fx-introduction.css"></head>
-<body><main><header class="panel"><p class="kicker">SEGA SOUND / INTRODUCTION</p><h1>Sega Genesis / Mega Drive Sega PSG Introduction with JavaScript</h1><p>FMとは違う、矩形波とノイズの音作りを、短いJavaScriptで試してみましょう。</p><nav aria-label="Segaの音源解説"><a href="./index.html">YM2612 FM</a><a href="./tetorica-segapsg.html">Sega PSG</a><a href="./tetorica-rf5c164.html">Mega CD / RF5C164</a><a href="../index.html">Introduction一覧</a></nav></header>
-<section class="panel"><h2>このページの試し方</h2><p>各例のRunで再生、Stopで停止します。コードの値を一つ変えて、もう一度Runして聴き比べてください。再生は自動では始まりません。比較するときは、先にもう一方の例をStopしてください。</p><p>サンプルは最後に音源を解放する短い演奏です。実機のスピーカーやアンプの音色を再現するものではありません。</p></section>
-<section class="panel"><h2>FMの隣にある、もう一つの音源</h2><p>メガドライブではYM2612のFM音源に加えて、Sega PSGが矩形波とノイズを担当します。3つのトーンチャンネルと1つのノイズチャンネルがあり、それぞれ音量を設定できます。</p><p>トーンは50%デューティの矩形波です。Game Boyのようなデューティ比の切り替えや、自動のエンベロープを設定する機能はありません。音程と減衰量の変化を組み合わせて音を作ります。</p></section><section class="panel"><h2>1. 矩形波で、ドレミを鳴らす</h2><p>A4などの音名からトーン周期を計算します。まずそのままRun。次に<code>attenuation = 6</code>を12に変えて、小さくなることを確かめます。数値を大きくすると音量は下がり、15は消音です。</p>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sega Genesis / Mega Drive Sega PSG Introduction with JavaScript</title><link rel="stylesheet" href="./fx-introduction.css"><link rel="alternate" hreflang="en" href="./tetorica-segapsg.html"><link rel="alternate" hreflang="ja" href="./tetorica-segapsg_ja.html"><style>.language-nav{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}.language-nav a[aria-current="page"]{font-weight:700}</style></head>
+<body><main><header class="panel"><p class="kicker">SEGA SOUND / INTRODUCTION</p><h1>Sega Genesis / Mega Drive Sega PSG Introduction with JavaScript</h1><nav class="language-nav" aria-label="Language"><a href="./tetorica-segapsg.html" lang="en" hreflang="en" aria-current="page">English</a> | <a href="./tetorica-segapsg_ja.html" lang="ja" hreflang="ja">日本語</a></nav><p>Explore square-wave and noise sounds with short JavaScript examples.</p><nav aria-label="Sega sound introductions"><a href="./index.html">YM2612 FM</a><a href="./tetorica-segapsg.html">Sega PSG</a><a href="./tetorica-rf5c164.html">Mega CD / RF5C164</a><a href="../index.html">Introduction index</a></nav></header>
+<section class="panel"><h2>How to use this page</h2><p>Run starts each example; Stop ends it. Change one code value and Run again to compare. Playback never starts automatically. Stop the other example before comparing.</p><p>These short performances release their sound chip at the end. They do not reproduce the tone of physical speakers or amplifiers.</p></section>
+<section class="panel"><h2>Another sound chip alongside FM</h2><p>Alongside the YM2612 FM chip, the Mega Drive uses Sega PSG for square waves and noise. It has three tone channels and one noise channel, each with a level control.</p><p>The tones are 50% duty square waves. Unlike Game Boy, there is no duty selector or automatic envelope setting. Create sounds by combining changes in pitch and attenuation.</p></section><section class="panel"><h2>1. Play a scale with a square wave</h2><p>Calculate the tone period from note names such as A4. First Run the code unchanged. Then change <code>attenuation = 6</code> to 12 and hear the quieter sound. Higher values reduce volume; 15 mutes it.</p>
 <script type="text/plain" id="psg-scale">
 const psg = await useSoundChip('segapsg');
 try {
   psg.reset();
-  // 0は物理CH1。attenuationは減衰量：0が最大、15が消音。
+  // 0 is physical CH1. Attenuation: 0 is loudest; 15 mutes.
   const attenuation = 6;
   for (const note of ['C4', 'D4', 'E4', 'F4', 'G4', 'A4', 'B4', 'C5']) {
     psg.tone(0, {note, attenuation});
@@ -18,8 +18,8 @@ try {
   }
 } finally { psg.dispose(); }
 </script>
-<iframe data-playground-src="psg-scale" data-playground-mode="full" title="1. 矩形波で、ドレミを鳴らす" loading="lazy" allow="autoplay"></iframe>
-<p><a data-playground-src="psg-scale" target="_blank" rel="noopener noreferrer">このコードを別タブのPlaygroundで編集 ↗</a></p></section><section class="panel"><h2>2. 3チャンネルを重ねる</h2><p>3つのトーンチャンネルを同時に使ってC・E・Gの和音を鳴らします。<code>notes</code>を変えると和音が変わります。同時発音では音量が加算されるため、この例は各CHの減衰量を10にしています。</p>
+<iframe data-playground-src="psg-scale" data-playground-mode="full" title="1. Play a scale with a square wave" loading="lazy" allow="autoplay"></iframe>
+<p><a data-playground-src="psg-scale" target="_blank" rel="noopener noreferrer">Edit this code in a separate Playground tab ↗</a></p></section><section class="panel"><h2>2. Layer three channels</h2><p>Use three tone channels together to play a C–E–G chord. Change <code>notes</code> to change the chord. Simultaneous channels add in level, so each uses attenuation 10 here.</p>
 <script type="text/plain" id="psg-chord">
 const psg = await useSoundChip('segapsg');
 try {
@@ -32,13 +32,13 @@ try {
   for (let ch = 0; ch < 3; ch++) psg.off(ch);
 } finally { psg.dispose(); }
 </script>
-<iframe data-playground-src="psg-chord" data-playground-mode="full" title="2. 3チャンネルを重ねる" loading="lazy" allow="autoplay"></iframe>
-<p><a data-playground-src="psg-chord" target="_blank" rel="noopener noreferrer">このコードを別タブのPlaygroundで編集 ↗</a></p></section><section class="panel"><h2>3. ノイズも、音色を選べる</h2><p>whiteのlow → medium → high、次にperiodicの同じ3種類を鳴らします。whiteは不規則な質感、periodicは繰り返しが聞こえる質感です。<code>type</code>と<code>rate</code>を固定すると、一つの音だけを繰り返し比較できます。</p><p>別の設定<code>rate: "tone3"</code>ではCH3のトーン周期がノイズの周期に関係します。CH3のトーンとノイズを完全に独立して調整できる設定ではありません。</p>
+<iframe data-playground-src="psg-chord" data-playground-mode="full" title="2. Layer three channels" loading="lazy" allow="autoplay"></iframe>
+<p><a data-playground-src="psg-chord" target="_blank" rel="noopener noreferrer">Edit this code in a separate Playground tab ↗</a></p></section><section class="panel"><h2>3. Choose a noise character</h2><p>Play white noise at low → medium → high, then the same rates for periodic noise. White has an irregular texture; periodic has an audible repeating pattern. Fix <code>type</code> and <code>rate</code> to compare just one sound repeatedly.</p><p>With <code>rate: "tone3"</code>, the CH3 tone period affects the noise period. This does not allow completely independent adjustment of the CH3 tone and noise.</p>
 <script type="text/plain" id="psg-noise">
 const psg = await useSoundChip('segapsg');
 try {
   psg.reset();
-  // ノイズの切り替えはLFSRもリセットする。
+  // Changing noise settings also resets the LFSR.
   for (const type of ['white', 'periodic']) {
     for (const rate of ['low', 'medium', 'high']) {
       psg.noise({type, rate, attenuation: 10});
@@ -49,5 +49,5 @@ try {
   }
 } finally { psg.dispose(); }
 </script>
-<iframe data-playground-src="psg-noise" data-playground-mode="full" title="3. ノイズも、音色を選べる" loading="lazy" allow="autoplay"></iframe>
-<p><a data-playground-src="psg-noise" target="_blank" rel="noopener noreferrer">このコードを別タブのPlaygroundで編集 ↗</a></p></section><section class="panel"><h2>音程・音量・時間の関係</h2><table><thead><tr><th>API</th><th>PSGでの操作</th></tr></thead><tbody><tr><td><code>tone(ch, {note})</code></td><td>物理CH 0〜2の10 bit周期。既定クロック3,579,545 Hzでは周波数は概ねclock / (32 × period)。音名は表現できる周期に丸めます。</td></tr><tr><td><code>attenuation</code></td><td>0〜14は約2 dBずつの減衰、15は消音。音量の線形倍率を表す数値ではありません。</td></tr><tr><td><code>noise({type, rate})</code></td><td>ノイズ方式と周期。white / periodic、low / medium / high / tone3。</td></tr><tr><td><code>off(ch)</code> / <code>noiseOff()</code></td><td>該当チャンネルの減衰量を15にします。</td></tr></tbody></table><p><code>sleep()</code>はJavaScript側の待ち時間です。音量を段階的に書き換えると減衰する音を作れますが、それはPSGの自動エンベロープではなくソフトウェアによる制御です。</p><p>実際の曲では音程・音量・ノイズの設定を演奏中に書き換えます。発音時の設定だけでは、その時間変化まで再現できません。</p></section><footer class="panel"><p>次は、波形をメモリーから読む<a href="./tetorica-rf5c164.html">Mega CD / RF5C164</a>へ。</p><p>仕様の参照：SEGA <a href="https://gendev.spritesmind.net/files/md/tech/Genesis%20Sound%20Software%20Manual%20%5B1992-02-21%5D.pdf">Genesis Sound Software Manual — Programmable Sound Generator</a>。説明とサンプルは独自に作成しています。</p><nav aria-label="Segaの音源解説"><a href="./index.html">YM2612 FM</a><a href="./tetorica-segapsg.html">Sega PSG</a><a href="./tetorica-rf5c164.html">Mega CD / RF5C164</a><a href="../index.html">Introduction一覧</a></nav></footer></main><script src="./playground-embed.js"></script></body></html>
+<iframe data-playground-src="psg-noise" data-playground-mode="full" title="3. Choose a noise character" loading="lazy" allow="autoplay"></iframe>
+<p><a data-playground-src="psg-noise" target="_blank" rel="noopener noreferrer">Edit this code in a separate Playground tab ↗</a></p></section><section class="panel"><h2>Pitch, level, and timing</h2><table><thead><tr><th>API</th><th>PSG operation</th></tr></thead><tbody><tr><td><code>tone(ch, {note})</code></td><td>A 10-bit period for physical channels 0–2. At the default clock of 3,579,545 Hz, frequency is approximately clock / (32 × period). Note names are rounded to representable periods.</td></tr><tr><td><code>attenuation</code></td><td>Values 0–14 give roughly 2 dB attenuation steps; 15 mutes. This is not a linear volume multiplier.</td></tr><tr><td><code>noise({type, rate})</code></td><td>Noise type and rate: white / periodic, low / medium / high / tone3.</td></tr><tr><td><code>off(ch)</code> / <code>noiseOff()</code></td><td>Sets the corresponding channel's attenuation to 15.</td></tr></tbody></table><p><code>sleep()</code> is a JavaScript wait. Repeated level writes can create a decay, but that is software control rather than a PSG automatic envelope.</p><p>Actual songs change pitch, volume, and noise settings during playback. The settings at note-on alone cannot reproduce all those changes.</p></section><footer class="panel"><p>Next: read waveforms from memory<a href="./tetorica-rf5c164.html">Mega CD / RF5C164</a>.</p><p>Specification reference: SEGA <a href="https://gendev.spritesmind.net/files/md/tech/Genesis%20Sound%20Software%20Manual%20%5B1992-02-21%5D.pdf">Genesis Sound Software Manual — Programmable Sound Generator</a>. The explanations and examples are original.</p><nav aria-label="Sega sound introductions"><a href="./index.html">YM2612 FM</a><a href="./tetorica-segapsg.html">Sega PSG</a><a href="./tetorica-rf5c164.html">Mega CD / RF5C164</a><a href="../index.html">Introduction index</a></nav></footer></main><script src="./playground-embed.js"></script></body></html>

@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Game Boy：32点の波形を、描いて鳴らす | Tetorica</title><link rel="stylesheet" href="./gameboy-introduction.css"><link rel="alternate" hreflang="en" href="./tetorica-gameboy-wave.html"><link rel="alternate" hreflang="ja" href="./tetorica-gameboy-wave_ja.html"><style>.language-nav{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}.language-nav a[aria-current="page"]{font-weight:700}</style></head>
+<body><main><header class="panel"><p class="kicker">GAME BOY / 03</p><h1>32点の波形を、描いて鳴らす</h1><nav class="language-nav" aria-label="Language"><a href="./tetorica-gameboy-wave.html" lang="en" hreflang="en">English</a> | <a href="./tetorica-gameboy-wave_ja.html" lang="ja" hreflang="ja" aria-current="page">日本語</a></nav><p>Waveチャンネルは32点の小さな波形を繰り返し読みます。形を変える操作と、その波形を読む速さを変える操作を、別々に試しましょう。</p>
+<nav aria-label="Game Boyの解説"><a href="./tetorica-gameboy-pulse_ja.html">01 Pulse</a> ／ <a href="./tetorica-gameboy-envelope_ja.html">02 Envelope</a> ／ <a href="./tetorica-gameboy-wave_ja.html">03 Wave</a></nav></header>
+<section class="panel"><h2>値を変えて、聴き比べる</h2>
+<p>三角波とノコギリ波を、同じA3で聴き比べます。下の32点はそれぞれ0〜15。スライダーを動かすと、自作の波形とコードへ反映されます。</p>
+<label>自作波形のプリセット<select id="preset"><option value="triangle">三角波</option><option value="saw">ノコギリ波</option><option value="pulse">矩形波</option><option value="double">32点に2周期の三角波</option><option value="custom">手動編集 / 読み込んだ配列</option></select></label>
+<figure><canvas id="shape" width="960" height="220" role="img" aria-label="編集した32点の波形"></canvas><figcaption>波形RAMに書く32点の値。横軸：点0〜31、縦軸：0〜15。音源の出力PCMではありません。</figcaption></figure>
+<form id="lesson-controls"><div id="sample-editor" class="sample-editor"></div>
+<div class="wave-options"><label>繰り返しの音程<select name="note"><option selected>A3</option><option>C4</option><option>A4</option></select></label>
+<label>出力レベル<select name="level"><option value="0">0：ミュート</option><option value="0.25">1/4</option><option value="0.5" selected>1/2</option><option value="1">1</option></select></label></div></form>
+<figure><canvas id="waveform" width="960" height="240" role="img" aria-label="再生すると生成PCMを表示します"></canvas>
+<figcaption>生成した左出力PCM。発音開始100 ms後から12 ms。縦軸−0.25〜0.25の固定スケール。波形RAMの値をそのまま描いた図とは、振幅・時間の単位が違います。</figcaption></figure>
+<details><summary>32点の配列をコピー・貼り付けする</summary><p>JSON配列を貼り付けて「配列を読み込む」を押します。32点、各0〜15の整数のみを受け付けます。JavaScriptは実行しません。自作波形の受け渡しやAnalyzerから取り出した配列の試聴に使えます。</p>
+<label>波形配列<textarea id="samples-json" rows="4" maxlength="2048" spellcheck="false"></textarea></label>
+<div class="actions"><button id="import" type="button">配列を読み込む</button><button id="copy-array" type="button">波形配列をコピー</button></div></details><div class="actions"><button id="play" type="button">▶ 再生</button><button id="stop" type="button">停止</button><button id="reset" type="button">初期値に戻す</button></div>
+<p id="status" role="status" aria-live="polite">再生ボタンを押すまで音は鳴りません。</p>
+<p class="hint">DMGのデジタル音源を既存WASMコアで生成します。実機のアンプ・スピーカー・アナログフィルターは再現しません。試聴だけに固定ゲインと両端10 msのフェードを加えます。図は加工前のPCMです。設定を変えると試聴が止まるので、もう一度再生してください。</p><noscript>試聴と編集にはJavaScriptが必要です。</noscript></section><section class="panel"><h2>同じ設定を、コードで持ち帰る</h2><p>値を変えるとコードとリンクが更新されます。PlaygroundでRunして試し、Stopで停止できます。</p>
+<div class="actions"><button id="copy" type="button">コードをコピー</button><a data-playground-src="lesson-source" target="_blank" rel="noopener noreferrer">Playgroundで編集 ↗</a></div>
+<pre><code id="code"></code></pre><script type="text/plain" id="lesson-source"></script></section>
+<section class="panel"><h2>チップでは、何が起きる？</h2>
+<p>32個の4 bit値を2点ずつ詰め、16 byteの波形RAM（FF30〜FF3F）へ転送します。<code>stopAndSetWaveform()</code>は転送前にWaveのDACを停止します。<code>setNote()</code>はNR33 / NR34、<code>setLevel()</code>はNR32、<code>keyOn()</code>はDAC有効化とtriggerに対応します。</p>
+<p>音程をA3からA4へ変えると、同じ32点を読む速さが約2倍になります。録音PCMの「元の音程」を指定する操作ではありません。ここには長い録音サンプルもありません。</p>
+<p>「32点に2周期」をA3で鳴らすと、32点全体を読む速さは同じでも、波の山が2回現れるため、1周期の波形より約1オクターブ高く聞こえます。配列の中の周期構造も音高に影響します。</p>
+<p>出力レベルは4段階です。1/2と1/4は4 bit値のビットシフトなので、精密な連続ゲインとは異なり小さい値の段差も変わります。0はNR32のミュートで、DAC停止の<code>keyOff()</code>とは異なります。図に一定値が残る場合でも、交流成分のない出力は音程のある音にはなりません。</p>
+<p>貼り付けた波形だけで元のゲームの音が完全に再現されるとは限りません。元データの音程・レベル・発音タイミングや、発音後のレジスター変更も音を作っています。本ページにゲーム由来の波形は同梱していません。</p>
+<p><a href="https://gbdev.io/pandocs/Audio_Registers.html#sound-channel-3--wave-output">Waveのレジスター仕様</a></p></section>
+<footer class="panel"><a href="./tetorica-gameboy-envelope_ja.html">← Envelopeの時間変化へ</a><p>仕様の参照：<a href="https://gbdev.io/pandocs/Audio_Registers.html">Pan Docs — Audio Registers</a> ／ <a href="https://gbdev.io/pandocs/Audio_details.html">Audio Details</a>。独自の説明・波形を使用しています。</p></footer>
+</main><script src="./playground-embed.js"></script><script type="module" src="./gameboy-wave-ui.js"></script></body></html>

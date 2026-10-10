@@ -1,10 +1,10 @@
 <!doctype html>
-<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>組み合わせ：直列・並列と処理順 — Tetorica FX入門</title><link rel="stylesheet" href="./fx-introduction.css"></head>
-<body><main><nav aria-label="記事ナビゲーション"><a href="./tetorica-fx.html">FX入門一覧（作成中）</a><a href="./tetorica-fx-reverb.html">← 前の章</a></nav>
-<header class="panel"><p class="kicker">FX INTRODUCTION / 15 / 下書き</p><h1>組み合わせ：直列・並列と処理順</h1><p>ここまでのFXを組み合わせて、順序と混ぜ方で音がどう変わるかを確かめます。</p>
-<p class="hint">作成中の記事です。サンプルは試聴しながら調整していきます。Runで再生、Stopで停止。値を編集したらApplyします。別のiframeを試す前に、再生中のものをStopしてください。</p></header>
-<section class="panel"><h2>直列：処理する順序を変える</h2><p>setChainの配列の順に音が通ります。Filter → Distortionは高域を落とした後に倍音を作ります。Distortion → Filterは作った倍音も削ります。reverseを変更してApplyし、明るさの違いを聞きます。</p><script type="text/plain" id="chains-order">
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Combining FX: series, parallel, and processing order — Tetorica FX introduction</title><link rel="stylesheet" href="./fx-introduction.css"><link rel="alternate" hreflang="en" href="./tetorica-fx-chains.html"><link rel="alternate" hreflang="ja" href="./tetorica-fx-chains_ja.html"><style>.language-nav{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}.language-nav a[aria-current="page"]{font-weight:700}</style></head>
+<body><main><nav aria-label="Article navigation"><a href="./tetorica-fx.html">FX introduction index (work in progress)</a><a href="./tetorica-fx-reverb.html">← Previous chapter</a></nav>
+<header class="panel"><p class="kicker">FX INTRODUCTION / 15 / DRAFT</p><h1>Combining FX: series, parallel, and processing order</h1><nav class="language-nav" aria-label="Language"><a href="./tetorica-fx-chains.html" lang="en" hreflang="en" aria-current="page">English</a> | <a href="./tetorica-fx-chains_ja.html" lang="ja" hreflang="ja">日本語</a></nav><p>Combine the effects from earlier chapters and hear how order and mixing change the sound.</p>
+<p class="hint">This article is a work in progress. The examples will be refined through listening. Run starts playback; Stop ends it. Use Apply after editing values. Stop the playing iframe before trying another one.</p></header>
+<section class="panel"><h2>Series: change the processing order</h2><p>Audio passes through the setChain array in order. Filter → Distortion removes high frequencies before creating harmonics. Distortion → Filter also removes some of the newly created harmonics. Change reverse and Apply to compare brightness.</p><script type="text/plain" id="chains-order">
 setBpm(120);
 const rack = await livePrepare("order", async ({ fx }) => ({
   filter: fx.filter({ type: "lowpass", cutoff: 900, q: 0.707 }),
@@ -31,8 +31,8 @@ liveLoop("reference", async () => {
   await beat(1);
 });
 </script>
-<iframe data-playground-src="chains-order" data-playground-mode="full" title="FilterとDistortionの順序を比較する" loading="lazy" allow="autoplay"></iframe>
-<p><a data-playground-src="chains-order" target="_blank" rel="noopener noreferrer">別タブのPlaygroundで開く ↗</a></p></section><section class="panel"><h2>並列：原音と遅延音を別々に調整する</h2><p>branchは1本の経路の直列処理、parallelは各経路に同じ入力を送り、その出力を加算します。平均にはしません。両方をGain 1にすると、同じ音が重なる部分は振幅が増えます。</p><p>この例は原音を0.5倍、Delayの加工音だけを0.5倍して混ぜます。dryを0で遅延音だけ、wetを0で原音だけになります。feedbackがあるため、この設定だけでピークを必ず防げるわけではありません。</p><script type="text/plain" id="chains-parallel">
+<iframe data-playground-src="chains-order" data-playground-mode="full" title="Compare the order of Filter and Distortion" loading="lazy" allow="autoplay"></iframe>
+<p><a data-playground-src="chains-order" target="_blank" rel="noopener noreferrer">Open in a separate Playground tab ↗</a></p></section><section class="panel"><h2>Parallel: adjust dry and delayed sound separately</h2><p>branch processes one path in series. parallel sends the same input to each path and adds their outputs, without averaging. With both gains at 1, overlapping copies of the same sound increase the amplitude.</p><p>This example mixes the dry signal at 0.5 with only the wet Delay signal at 0.5. Set dry to 0 for delayed sound alone, or wet to 0 for dry sound alone. Because feedback is present, these settings do not guarantee a limited peak.</p><script type="text/plain" id="chains-parallel">
 setBpm(120);
 const rack = await livePrepare("parallel", async ({ fx }) => {
   const dry = fx.gain({ gain: 0.5 });
@@ -62,6 +62,6 @@ liveLoop("reference", async () => {
   await beat(3);
 });
 </script>
-<iframe data-playground-src="chains-parallel" data-playground-mode="full" title="branchとparallelで原音と遅延音を混ぜる" loading="lazy" allow="autoplay"></iframe>
-<p><a data-playground-src="chains-parallel" target="_blank" rel="noopener noreferrer">別タブのPlaygroundで開く ↗</a></p></section><section class="panel"><h2>グラフとliveFxの違い</h2><p>FXノードはlivePrepareで一度作り、Applyでは設定や接続を変更します。同じノードを複数の経路で共有せず、それぞれ作成します。liveLoop内でノードを作り続けないようにします。</p><p>ここでのliveFx("none")は組み込みチェーンの後を観測します。Monitorの入力・出力は同じで、各branchの途中を表示するものではありません。liveFxは組み込みノードと別の処理段です。この例のsetChainにliveFxを混ぜて配置することはできません。</p><p>直列と並列は音量も変わります。処理順を比べる際は、最終的な音量も揃えて判断してください。</p></section>
-<nav aria-label="記事ナビゲーション"><a href="./tetorica-fx.html">FX入門一覧（作成中）</a><a href="./tetorica-fx-reverb.html">← 前の章</a></nav></main><script src="./playground-embed.js"></script></body></html>
+<iframe data-playground-src="chains-parallel" data-playground-mode="full" title="Mix dry and delayed sound with branch and parallel" loading="lazy" allow="autoplay"></iframe>
+<p><a data-playground-src="chains-parallel" target="_blank" rel="noopener noreferrer">Open in a separate Playground tab ↗</a></p></section><section class="panel"><h2>Graphs and liveFx</h2><p>Create FX nodes once with livePrepare; change settings or connections with Apply. Create separate nodes for each path rather than sharing one node between paths. Avoid repeatedly creating nodes inside liveLoop.</p><p>Here, liveFx("none") observes the signal after the built-in chain. Monitor input and output are identical; it does not show intermediate points in each branch. liveFx is a separate processing stage and cannot be inserted among built-in nodes in this example's setChain.</p><p>Series and parallel routing also change loudness. Match the final loudness when judging differences in processing order.</p></section>
+<nav aria-label="Article navigation"><a href="./tetorica-fx.html">FX introduction index (work in progress)</a><a href="./tetorica-fx-reverb.html">← Previous chapter</a></nav></main><script src="./playground-embed.js"></script></body></html>

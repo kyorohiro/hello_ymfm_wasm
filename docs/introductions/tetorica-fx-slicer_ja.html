@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Slicer：鳴り続ける音を刻む — Tetorica FX入門</title><link rel="stylesheet" href="./fx-introduction.css"><link rel="alternate" hreflang="en" href="./tetorica-fx-slicer.html"><link rel="alternate" hreflang="ja" href="./tetorica-fx-slicer_ja.html"><style>.language-nav{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}.language-nav a[aria-current="page"]{font-weight:700}</style></head>
+<body><main><nav aria-label="記事ナビゲーション"><a href="./tetorica-fx_ja.html">FX入門一覧（作成中）</a><a href="./tetorica-fx-gain_ja.html">1. Gain</a><a href="./tetorica-fx-slicer_ja.html">2. Slicer</a></nav>
+<header class="panel"><p class="kicker">FX INTRODUCTION / 02</p><h1>Slicer：鳴り続ける音を刻む</h1><nav class="language-nav" aria-label="Language"><a href="./tetorica-fx-slicer.html" lang="en" hreflang="en">English</a> | <a href="./tetorica-fx-slicer_ja.html" lang="ja" hreflang="ja" aria-current="page">日本語</a></nav><p>Slicerは、鳴っている音を細かく刻んでリズムを作るエフェクトです。</p><p>まず演奏を聴いて、どんな使い方ができるか試してみましょう。</p></header>
+<section class="panel"><h2>1. まずは、この音を聴いてみる</h2>
+<p>Runを押してみてください。音の高さが滑らかに動きながら、細かく刻まれたリズムが聞こえます。音を刻んでいるのがSlicerです。この例ではReverbで余韻も加えています。</p>
+<p class="hint">Runで再生、Stopで停止します。次のサンプルを試す前に、この演奏をStopしてください。</p>
+<script type="text/plain" id="slicer-opening">
+/**
+ * Sonic Pi「Tron Bikes」を参考にしたYM2612向けのアレンジ。
+ * Original: Coded by Sam Aaron
+ * 出典: https://sonic-pi.net/examples.html
+ *
+ * 元のサンプル（Ruby）より引用:
+ * # Tron Bikes
+ * # Coded by Sam Aaron
+ *
+ * use_random_seed 10
+ * notes =  (ring :b1, :b2, :e1, :e2, :b3, :e3)
+ *
+ * live_loop :tron do
+ *   with_synth :dsaw do
+ *     with_fx(:slicer, phase: [0.25,0.125].choose) do
+ *       with_fx(:reverb, room: 0.5, mix: 0.3) do
+ *
+ *         n1 = (chord notes.choose, :minor).choose
+ *         n2 = (chord notes.choose, :minor).choose
+ *
+ *         p = play n1, amp: 2, release: 8, note_slide: 4, cutoff: 30, cutoff_slide: 4, detune: rrand(0, 0.2)
+ *         control p, note: n2, cutoff: rrand(80, 120)
+ *       end
+ *     end
+ *   end
+ *
+ *   sleep 8
+ * end
+ *
+ * この例ではdsawをFM Stringsに置き換え、音程をtweenで動かします。
+ * cutoffの変化の代わりにOP4のTLを変え、最後にGain 3倍を加えています。
+ * ランダムseedは固定せず、発音時間・待ち時間も変更しています。
+ */
+setBpm(96);
+
+fm.setPreset(CH2, FM_PRESETS["fm-strings"]);
+
+const mainFx = await livePrepare("slicer-sweep-chain", async ({ fx }) => {
+  const slicer = fx.slicer({
+    phase: 0.25,
+    mix: 1,
+  });
+  const reverb = fx.reverb({
+    mix: 0.3,
+    tone: 5200,
+  });
+
+  const volume = fx.gain({
+    gain: 3.0,
+  });
+
+  return {
+    slicer,
+    reverb,
+    volume,
+  };
+});
+
+fx.setChain([
+  mainFx.slicer,
+  mainFx.reverb,
+  mainFx.volume,
+]);
+
+liveLoop("bikes", async () => {
+  const roots = ["B1", "B2", "E1", "E2", "B3", "E3"];
+  mainFx.slicer.phase.set(choose([0.25, 0.125]));
+
+  const startNote = choose(chord(choose(roots), "minor"));
+  const finalNote = choose(chord(choose(roots), "minor"));
+  const start = noteToBlockFnum(startNote);
+
+  fm.setFrequency(CH2, start.block, start.fnum);
+  fm.keyOn(CH2);
+
+  await tween(1.5, (t) => {
+    const pitch = noteLerp(startNote, finalNote, t);
+    fm.setFrequency(CH2, pitch.block, pitch.fnum);
+    fm.setOperator(CH2, OP4, {
+      tl: Math.round(lerp(36, 12, t)),
+    });
+  });
+
+  fm.keyOff(CH2);
+  await beat(2);
+});
+</script>
+<iframe data-playground-src="slicer-opening" data-playground-mode="full" title="Slicerで刻む音程スイープとReverbの演奏" loading="lazy" allow="autoplay"></iframe>
+<p><a data-playground-src="slicer-opening" target="_blank" rel="noopener noreferrer">このコードを別タブのPlaygroundで開く ↗</a></p>
+<p>刻み方を変えてみるなら、<code>choose([0.25, 0.125])</code>を<code>choose([0.5, 0.25])</code>に変えてApplyしてみましょう。刻む間隔が長くなります。</p>
+<p>次はシンプルな音で、Slicerの設定を1つずつ試してみます。</p>
+</section>
+<section class="panel"><h2>2. シンプルな音で設定を試す</h2>
+<p>音源はGainの章と同じ長いサイン波です。音符を細かく鳴らし直す代わりに、鳴っている音をFXで開閉します。</p>
+<table><thead><tr><th>設定</th><th>意味</th></tr></thead><tbody><tr><td>phase</td><td>1周期の長さ（拍）。初期位相の指定ではありません。</td></tr><tr><td>duty</td><td>周期のうち開く割合。0.5なら半分。</td></tr><tr><td>floor</td><td>閉じている間のGain。0なら無音。</td></tr><tr><td>mix</td><td>加工音を混ぜる割合。1で加工音のみ。</td></tr></tbody></table>
+<p>BPM 120では1拍が0.5秒。phase 0.5なら1周期0.25秒、1秒に4回の開閉になります。</p><p class="hint">iframe内の<strong>Run</strong>で再生し、<strong>Stop</strong>で停止します。再生中に値を編集したら<strong>Apply</strong>で反映してください。比較する前に、もう一方のPlaygroundをStopしてください。それぞれ独立した音声環境です。</p>
+<p>Runしたら<strong>FX Monitor</strong>で<code>none</code>を選ぶと、組み込みFXを通った後の波形が見られます。<code>liveFx("none", …)</code>は観測用の素通し処理です。青とオレンジは同じ波形で重なり、組み込みFXの加工前後の比較ではありません。設定を変更してApplyし、波形の変化を見てください。</p>
+<script type="text/plain" id="slicer-native">
+setBpm(120);
+const gate = await livePrepare("slicer-demo", async ({ fx }) =>
+  fx.slicer({ phase: 0.5, duty: 0.5, floor: 0, mix: 1 })
+);
+gate.phase.set(0.5); // 1周期の拍数。0.25、0.5、1を試してください。
+gate.duty.set(0.5);  // 開く割合。0.2、0.5、0.8を試してください。
+gate.floor.set(0);   // 閉じている間のゲイン。0、0.2を試してください。
+fx.setChain([gate]);
+
+// 組み込みFXの出力を変更せずに観測します。
+liveFx("none", {
+  process(input, output, state, context) {
+    for (let ch = 0; ch < input.length; ch++) {
+      output[ch].set(input[ch]);
+    }
+  },
+});
+fm.setPreset(CH1, FM_PRESETS["sine"]);
+const pitch = hzToBlockFnum(220);
+fm.setFrequency(CH1, pitch.block, pitch.fnum);
+liveLoop("reference", async () => {
+  fm.keyOn(CH1);
+  await beat(4);
+  fm.keyOff(CH1);
+  await beat(1);
+});
+</script>
+<iframe data-playground-src="slicer-native" data-playground-mode="full" title="組み込みSlicerの周期と開閉率を試す" loading="lazy" allow="autoplay"></iframe>
+<p><a data-playground-src="slicer-native" target="_blank" rel="noopener noreferrer">このコードを別タブのPlaygroundで開く ↗</a></p>
+<p>phaseを1にするとゆっくり、0.25にすると速く刻みます。dutyを0.2にすると短い音の粒、0.8にすると短い隙間になります。floorを0.2にすると完全な無音を避けられます。</p></section>
+<section class="panel"><h2>3. 1周期を0〜1の位置で考える</h2>
+<p class="formula">phase = position / period<br>level = phase &lt; duty ? 1 : floor<br>output = input × level</p>
+<p>duty 0.5なら前半は開き、後半は閉じます。これは音量を動かす処理で、音源のキーオン・キーオフやエンベロープの再始動ではありません。</p>
+<p>急に音を切ると波形に不連続ができ、クリック音や追加の周波数成分が生じます。高速にすれば、リズムよりも音色の変化として聞こえる場合があります。</p></section>
+<section class="panel"><h2>4. サンプルを数えるSlicer</h2>
+<p>まずは秒やBPMへの変換を分けて、周期をサンプル数で指定します。<code>periodSamples: 12000</code>は48 kHzなら0.25秒、44.1 kHzなら約0.272秒です。この例はBPMへ自動追従しません。</p>
+<p>秒から変換するなら <code>periodSamples = 周期の秒数 × 実際の出力サンプルレート</code>。拍から変換するなら周期の秒数を <code>60 / BPM × 拍数</code> とします。出力レートはFX Monitorに表示されます。</p>
+<script type="text/plain" id="slicer-live">
+setBpm(120);
+liveFx("slicer-lab", {
+  context: { periodSamples: 12000, duty: 0.5, floor: 0, gain: 0.7 },
+  process(input, output, state, context) {
+    state.position ??= 0;
+    const period = Math.max(2, Math.round(context.periodSamples));
+    const duty = Math.max(0, Math.min(1, context.duty));
+    for (let i = 0; i < input[0].length; i++) {
+      const phase = (state.position % period) / period;
+      const level = phase < duty ? 1 : context.floor;
+      for (let ch = 0; ch < input.length; ch++) {
+        output[ch][i] = input[ch][i] * level * context.gain;
+      }
+      state.position = (state.position + 1) % period;
+    }
+  },
+});
+fm.setPreset(CH1, FM_PRESETS["sine"]);
+const pitch = hzToBlockFnum(220);
+fm.setFrequency(CH1, pitch.block, pitch.fnum);
+liveLoop("reference", async () => {
+  fm.keyOn(CH1);
+  await beat(4);
+  fm.keyOff(CH1);
+  await beat(1);
+});
+</script>
+<iframe data-playground-src="slicer-live" data-playground-mode="full" title="stateで周期を維持するliveFx Slicer" loading="lazy" allow="autoplay"></iframe>
+<p><a data-playground-src="slicer-live" target="_blank" rel="noopener noreferrer">このコードを別タブのPlaygroundで開く ↗</a></p>
+<ol class="steps"><li>Runし、FX Monitorで<code>slicer-lab</code>を選びます。入力は続いていても、出力が0になる区間があります。</li><li>contextのdutyを0.2や0.8に変えてApplyし、聞こえる長さを比較します。</li><li>floorを0.2にして、閉じた区間の振幅を見ます。</li><li>細かい開閉を波形で見るにはperiodSamplesを1000にします。Monitorの2048サンプル窓に複数の周期が入ります。</li></ol>
+<p>12000サンプル周期では、短い表示窓が開いた部分だけ、または閉じた部分だけを捉える場合があります。1枚の波形だけでなく、変化と音を合わせて確認してください。</p></section>
+<section class="panel"><h2>5. なぜstateに位置を残すのか</h2>
+<pre><code>state.position ??= 0;
+// サンプルを1つ処理するたびに進める
+state.position = (state.position + 1) % period;</code></pre>
+<p>processは何度も呼ばれ、毎回iは0へ戻ります。iだけで周期を計算すると、音声ブロックごとに周期も再始動してしまいます。state.positionなら次のブロックへ位置を引き継げます。</p>
+<p>左右を処理した後に1回だけ位置を進めるので、左右は同じタイミングで開閉します。同じ名前でApplyするとstateは維持され、Stopで破棄されます。</p>
+<p>これは仕組みを学ぶための矩形ゲートです。組み込み版の全動作の再現ではありません。次の実験として、境界のGainを少しずつ変えればクリック音を和らげられます。</p>
+<p><a href="./tetorica-fx-gain_ja.html">← Gainへ戻る</a> · <a href="./tetorica-fx-distortion_ja.html">次の章：Distortionで波形の形を変える →</a></p></section>
+</main><script src="./playground-embed.js"></script></body></html>

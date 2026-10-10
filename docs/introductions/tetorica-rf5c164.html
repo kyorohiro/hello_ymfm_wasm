@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Sega Mega CD RF5C164 Introduction with JavaScript</title><link rel="stylesheet" href="./fx-introduction.css"></head>
-<body><main><header class="panel"><p class="kicker">SEGA SOUND / INTRODUCTION</p><h1>Sega Mega CD RF5C164 Introduction with JavaScript</h1><p>波形をメモリーへ入れ、読む速さと左右の音量を変える。PCM音源の基本を、動くコードで試します。</p><nav aria-label="Segaの音源解説"><a href="./index.html">YM2612 FM</a><a href="./tetorica-segapsg.html">Sega PSG</a><a href="./tetorica-rf5c164.html">Mega CD / RF5C164</a><a href="../index.html">Introduction一覧</a></nav></header>
-<section class="panel"><h2>このページの試し方</h2><p>各例のRunで再生、Stopで停止します。コードの値を一つ変えて、もう一度Runして聴き比べてください。再生は自動では始まりません。比較するときは、先にもう一方の例をStopしてください。</p><p>サンプルは最後に音源を解放する短い演奏です。実機のスピーカーやアンプの音色を再現するものではありません。</p></section>
-<section class="panel"><h2>音を合成する代わりに、波形を読む</h2><p>Sega Mega CDのRF5C164は、波形RAMから音のデータを読み、最大8チャンネルで再生するPCM音源です。64 KiBのRAMをチャンネル間で共有し、各チャンネルに開始位置・ループ位置・再生速度・音量・左右出力を設定します。</p><p>CDの音楽トラックを再生するCD-DAとは別の機能です。このページでは、外部ROMやゲームから取り出した音を使わず、自作のサイン波をRAMに入れて鳴らします。</p></section><section class="panel"><h2>1. 波形を入れて、ループ再生する</h2><p>256点で1周期のサイン波を生成します。<code>loadMemory()</code>でチップ形式のバイトを転送し、<code>keyOn()</code>で再生。<code>stepForHz(440)</code>を220に変えると、同じデータをゆっくり読んで約1オクターブ低く鳴らします。</p><p><code>loadMemory()</code>へ渡す配列はWAVファイルのバイト列ではありません。WAV / FLACを使う場合の<code>loadSample()</code>とは区別してください。</p>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sega Mega CD RF5C164 Introduction with JavaScript</title><link rel="stylesheet" href="./fx-introduction.css"><link rel="alternate" hreflang="en" href="./tetorica-rf5c164.html"><link rel="alternate" hreflang="ja" href="./tetorica-rf5c164_ja.html"><style>.language-nav{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}.language-nav a[aria-current="page"]{font-weight:700}</style></head>
+<body><main><header class="panel"><p class="kicker">SEGA SOUND / INTRODUCTION</p><h1>Sega Mega CD RF5C164 Introduction with JavaScript</h1><nav class="language-nav" aria-label="Language"><a href="./tetorica-rf5c164.html" lang="en" hreflang="en" aria-current="page">English</a> | <a href="./tetorica-rf5c164_ja.html" lang="ja" hreflang="ja">日本語</a></nav><p>Put a waveform in memory, then change its read speed and stereo levels. Explore PCM basics with working code.</p><nav aria-label="Sega sound introductions"><a href="./index.html">YM2612 FM</a><a href="./tetorica-segapsg.html">Sega PSG</a><a href="./tetorica-rf5c164.html">Mega CD / RF5C164</a><a href="../index.html">Introduction index</a></nav></header>
+<section class="panel"><h2>How to use this page</h2><p>Run starts each example; Stop ends it. Change one code value and Run again to compare. Playback never starts automatically. Stop the other example before comparing.</p><p>These short performances release their sound chip at the end. They do not reproduce the tone of physical speakers or amplifiers.</p></section>
+<section class="panel"><h2>Read a waveform instead of synthesizing one</h2><p>The Sega Mega CD RF5C164 is a PCM chip that reads waveform RAM and plays up to eight channels. They share 64 KiB of RAM, with separate start address, loop address, playback speed, volume, and stereo output settings.</p><p>This is separate from CD-DA music track playback. Rather than using external ROMs or sounds extracted from games, this page writes an original sine wave to RAM.</p></section><section class="panel"><h2>1. Load a waveform and loop it</h2><p>Generate one sine-wave cycle with 256 points. <code>loadMemory()</code> transfers chip-format bytes, and <code>keyOn()</code> starts playback. Change <code>stepForHz(440)</code> to 220 to read the same data more slowly and play about an octave lower.</p><p><code>loadMemory()</code> takes an array of chip-format bytes, not WAV file bytes. For WAV / FLAC, use <code>loadSample()</code> instead.</p>
 <script type="text/plain" id="rf5c164-tone">
 const pcm = await useSoundChip('rf5c164');
 try {
@@ -12,12 +12,12 @@ try {
   const bytes = new Uint8Array(waveLength + 8);
   for (let i = 0; i < waveLength; i++) {
     const value = Math.sin(2 * Math.PI * i / waveLength);
-    // 符号＋振幅。0xffは波形値でなくループマーカー。
+    // Sign and magnitude. 0xff is a loop marker, not a sample value.
     bytes[i] = Math.round(Math.abs(value) * 100) | (value >= 0 ? 0x80 : 0);
   }
   bytes.fill(0xff, waveLength);
   await pcm.loadMemory(bytes, 0);
-  // 256点で1周期の波形向け。ループ位置の丸めで音程は近似になる。
+  // For one cycle in 256 points. Loop-address rounding makes pitch approximate.
   const stepForHz = hz => Math.round(hz * waveLength * 2048 / (12500000 / 384));
   await pcm.setChannel(0, {
     start: 0, loopStart: 0, step: stepForHz(440), volume: 160,
@@ -28,8 +28,8 @@ try {
   await pcm.keyOff(0);
 } finally { pcm.dispose(); }
 </script>
-<iframe data-playground-src="rf5c164-tone" data-playground-mode="full" title="1. 波形を入れて、ループ再生する" loading="lazy" allow="autoplay"></iframe>
-<p><a data-playground-src="rf5c164-tone" target="_blank" rel="noopener noreferrer">このコードを別タブのPlaygroundで編集 ↗</a></p></section><section class="panel"><h2>2. 同じ波形で、音程と左右を変える</h2><p>左に440 Hz、右に660 Hzを目標にした設定で1秒鳴らし、その後左だけを約220 Hzに下げます。この波形とコアでの実測は左が約440 Hz、右が約651 Hzです。左右で違う音程が聞こえることと、ピッチ変更時もRAMを転送し直さないことを確かめます。</p><p><code>pan</code>のleft / rightはそれぞれ0〜15のレベルです。0はその側へ出力せず、15は最大です。イヤホンなどで左右を分けて比較できます。</p>
+<iframe data-playground-src="rf5c164-tone" data-playground-mode="full" title="1. Load a waveform and loop it" loading="lazy" allow="autoplay"></iframe>
+<p><a data-playground-src="rf5c164-tone" target="_blank" rel="noopener noreferrer">Edit this code in a separate Playground tab ↗</a></p></section><section class="panel"><h2>2. Change pitch and stereo output with the same waveform</h2><p>Play for one second with a target of 440 Hz on the left and 660 Hz on the right, then lower only the left to about 220 Hz. With this waveform and core, measured frequencies are about 440 Hz left and 651 Hz right. Listen for different pitches on each side and check that pitch changes do not require retransferring RAM.</p><p><code>pan</code> has left / right levels from 0 to 15. Zero sends nothing to that side; 15 is maximum. Headphones help compare the sides.</p>
 <script type="text/plain" id="rf5c164-pan">
 const pcm = await useSoundChip('rf5c164');
 try {
@@ -38,14 +38,14 @@ try {
   const bytes = new Uint8Array(waveLength + 8);
   for (let i = 0; i < waveLength; i++) {
     const value = Math.sin(2 * Math.PI * i / waveLength);
-    // 符号＋振幅。0xffは波形値でなくループマーカー。
+    // Sign and magnitude. 0xff is a loop marker, not a sample value.
     bytes[i] = Math.round(Math.abs(value) * 100) | (value >= 0 ? 0x80 : 0);
   }
   bytes.fill(0xff, waveLength);
   await pcm.loadMemory(bytes, 0);
-  // 256点で1周期の波形向け。ループ位置の丸めで音程は近似になる。
+  // For one cycle in 256 points. Loop-address rounding makes pitch approximate.
   const stepForHz = hz => Math.round(hz * waveLength * 2048 / (12500000 / 384));
-  // 同じRAMの波形を2チャンネルで共有する。
+  // Both channels share the same waveform in RAM.
   await pcm.setChannel(0, {
     start: 0, loopStart: 0, step: stepForHz(440), volume: 120,
     pan: {left: 15, right: 0},
@@ -57,12 +57,12 @@ try {
   await pcm.keyOn(0);
   await pcm.keyOn(1);
   await sleep(1);
-  // 発音したまま、左チャンネルの読む速さを変える。
+  // Change the left channel read speed while it plays.
   await pcm.setPitch(0, stepForHz(220));
   await sleep(1);
   await pcm.keyOff(0);
   await pcm.keyOff(1);
 } finally { pcm.dispose(); }
 </script>
-<iframe data-playground-src="rf5c164-pan" data-playground-mode="full" title="2. 同じ波形で、音程と左右を変える" loading="lazy" allow="autoplay"></iframe>
-<p><a data-playground-src="rf5c164-pan" target="_blank" rel="noopener noreferrer">このコードを別タブのPlaygroundで編集 ↗</a></p></section><section class="panel"><h2>波形の形式と、再生する速さ</h2><table><thead><tr><th>設定</th><th>意味</th></tr></thead><tbody><tr><td><code>start</code></td><td>開始RAMアドレス。256 byte境界。</td></tr><tr><td><code>loopStart</code></td><td>0xffのマーカーを読んだときに戻るRAMアドレス。</td></tr><tr><td><code>step</code></td><td>16 bitのアドレス進み幅。小数部11 bit。2048で内部更新1回に1 byte進みます。</td></tr><tr><td><code>volume</code></td><td>0〜255のチャンネル音量。</td></tr><tr><td><code>pan</code></td><td>左右それぞれ0〜15の出力レベル。</td></tr></tbody></table><p>波形の1 byteはbit 7が符号（1が正）、下位7 bitが振幅です。0xffはループマーカーなので、正の最大波形値として使いません。この例の振幅は100に抑えています。</p><p>内部更新レートはclock / 384（このランタイムの既定12.5 MHzでは約32.55 kHz）。PCM出力の48 kHzなどのレートとは別です。再生速度が速いとRAMアドレスを飛び越すため、この例では末尾に8 byteのマーカーを並べ、220〜660 Hzの比較でループを検出できるようにしています。</p><p><code>stepForHz()</code>は256点が1周期の波形に合わせた近似です。任意の録音サンプルでは、その元の音程と長さを考えて再生速度を決めます。<code>setPitch()</code>に渡す数値はMIDI番号でもHzでもなく、rawのstepです。</p><p><code>await</code>はブラウザーの音源へ転送・設定が届くのを待つために使います。<code>sleep()</code>はJavaScript側の発音時間です。サンプルは最後に<code>dispose()</code>で解放します。</p></section><footer class="panel"><p>仕様の参照：SEGA <a href="https://segaretro.org/images/5/51/Mega-CD_Hardware_Manual.pdf">Mega-CD Hardware Manual — PCM Sound Source (RF5C164)</a>。採用コアと変更点は<a href="https://github.com/kyorohiro/hello_ymfm_wasm/blob/main/third_party/mame-rf5c164/README.md">MAME RF5C164 adaptation</a>に記載しています。説明と波形は独自に作成しています。</p><nav aria-label="Segaの音源解説"><a href="./index.html">YM2612 FM</a><a href="./tetorica-segapsg.html">Sega PSG</a><a href="./tetorica-rf5c164.html">Mega CD / RF5C164</a><a href="../index.html">Introduction一覧</a></nav></footer></main><script src="./playground-embed.js"></script></body></html>
+<iframe data-playground-src="rf5c164-pan" data-playground-mode="full" title="2. Change pitch and stereo output with the same waveform" loading="lazy" allow="autoplay"></iframe>
+<p><a data-playground-src="rf5c164-pan" target="_blank" rel="noopener noreferrer">Edit this code in a separate Playground tab ↗</a></p></section><section class="panel"><h2>Waveform format and playback speed</h2><table><thead><tr><th>Setting</th><th>Meaning</th></tr></thead><tbody><tr><td><code>start</code></td><td>Start RAM address, aligned to a 256-byte boundary.</td></tr><tr><td><code>loopStart</code></td><td>RAM address to return to after reading an 0xff marker.</td></tr><tr><td><code>step</code></td><td>16-bit address increment with 11 fractional bits. At 2048, each internal update advances one byte.</td></tr><tr><td><code>volume</code></td><td>Channel volume, 0–255.</td></tr><tr><td><code>pan</code></td><td>Separate left and right output levels, 0–15.</td></tr></tbody></table><p>In each waveform byte, bit 7 is the sign (1 means positive); the lower seven bits encode amplitude. 0xff is the loop marker, not the maximum positive sample. This example limits amplitude to 100.</p><p>The internal update rate is clock / 384: about 32.55 kHz with this runtime's default 12.5 MHz clock. This differs from a PCM output rate such as 48 kHz. Fast playback can skip RAM addresses, so the example places eight marker bytes at the end to ensure loop detection in the 220–660 Hz comparison.</p><p><code>stepForHz()</code> is an approximation for a waveform containing one cycle in 256 points. For arbitrary recordings, choose playback speed based on the sample's original pitch and length.<code>setPitch()</code> takes a raw step value, not a MIDI number or Hz.</p><p><code>await</code> waits for the browser audio backend to receive uploads or settings. <code>sleep()</code> sets note duration in JavaScript. The example releases the chip at the end with <code>dispose()</code>.</p></section><footer class="panel"><p>Specification reference: SEGA <a href="https://segaretro.org/images/5/51/Mega-CD_Hardware_Manual.pdf">Mega-CD Hardware Manual — PCM Sound Source (RF5C164)</a>. The selected core and modifications are documented in <a href="https://github.com/kyorohiro/hello_ymfm_wasm/blob/main/third_party/mame-rf5c164/README.md">MAME RF5C164 adaptation</a>. The explanations and waveforms are original.</p><nav aria-label="Sega sound introductions"><a href="./index.html">YM2612 FM</a><a href="./tetorica-segapsg.html">Sega PSG</a><a href="./tetorica-rf5c164.html">Mega CD / RF5C164</a><a href="../index.html">Introduction index</a></nav></footer></main><script src="./playground-embed.js"></script></body></html>

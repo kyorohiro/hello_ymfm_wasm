@@ -1,3 +1,4 @@
+import {lessonText} from './introduction-locale.js';
 import {DEFAULT_PULSE, pulseCode, renderPulse} from './gameboy-pulse.js';
 
 const form = document.querySelector('#pulse-controls');
@@ -22,7 +23,7 @@ function clearWaveform() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   ctx.fillStyle = '#61716a';
   ctx.font = '18px sans-serif';
-  ctx.fillText('再生すると、生成したPCMを表示します', 20, 100);
+  ctx.fillText(lessonText('再生すると、生成したPCMを表示します', 'Play to display the generated PCM.'), 20, 100);
 }
 
 function drawWaveform(pcm) {
@@ -39,7 +40,7 @@ function drawWaveform(pcm) {
     if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
   }
   ctx.stroke();
-  canvas.setAttribute('aria-label', `${form.elements.duty.value * 100}%、${form.elements.note.value}の生成PCM、発音開始100 ms後から12 ms、固定振幅スケール`);
+  canvas.setAttribute('aria-label', lessonText(`${form.elements.duty.value * 100}%、${form.elements.note.value}の生成PCM、発音開始100 ms後から12 ms、固定振幅スケール`, `Generated PCM at ${form.elements.duty.value * 100}% duty and ${form.elements.note.value}: 12 ms starting 100 ms after note-on; fixed amplitude scale.`));
 }
 
 function stop() {
@@ -60,7 +61,7 @@ function stop() {
 
 form.addEventListener('input', () => {
   stop(); updateCode(); clearWaveform();
-  status.textContent = '設定を変更しました。再生して聴き比べてください。';
+  status.textContent = lessonText('設定を変更しました。再生して聴き比べてください。', 'Settings changed. Press Play to compare.');
 });
 
 document.querySelector('#play').addEventListener('click', async () => {
@@ -70,7 +71,7 @@ document.querySelector('#play').addEventListener('click', async () => {
     context ??= new AudioContext();
     await context.resume();
     if (run !== generation) return;
-    status.textContent = '音を準備しています…';
+    status.textContent = lessonText('音を準備しています…', 'Preparing audio…');
     const pcm = await renderPulse(settings(), {sampleRate: context.sampleRate});
     if (run !== generation) return;
     drawWaveform(pcm);
@@ -87,28 +88,28 @@ document.querySelector('#play').addEventListener('click', async () => {
     const activeSource = source, activeGain = gain;
     source.onended = () => {
       activeSource.disconnect(); activeGain.disconnect();
-      if (run === generation) { source = null; gain = null; status.textContent = '再生が終了しました。別のデューティ比も試してください。'; }
+      if (run === generation) { source = null; gain = null; status.textContent = lessonText('再生が終了しました。別のデューティ比も試してください。', 'Playback finished. Try another duty setting.'); }
     };
-    source.start(); status.textContent = '1.5秒間再生しています。';
+    source.start(); status.textContent = lessonText('1.5秒間再生しています。', 'Playing for 1.5 seconds.');
   } catch (error) {
-    if (run === generation) { stop(); status.textContent = `再生できませんでした：${error.message}`; }
+    if (run === generation) { stop(); status.textContent = lessonText(`再生できませんでした：${error.message}`, `Playback failed: ${error.message}`); }
   }
 });
 
-document.querySelector('#stop').addEventListener('click', () => { stop(); status.textContent = '停止しました。'; });
+document.querySelector('#stop').addEventListener('click', () => { stop(); status.textContent = lessonText('停止しました。', 'Stopped.'); });
 document.querySelector('#reset').addEventListener('click', () => {
   stop();
   for (const [name, value] of Object.entries(DEFAULT_PULSE)) form.elements[name].value = value;
-  updateCode(); clearWaveform(); status.textContent = '初期値に戻しました。';
+  updateCode(); clearWaveform(); status.textContent = lessonText('初期値に戻しました。', 'Restored the defaults.');
 });
 document.querySelector('#copy').addEventListener('click', async () => {
-  try { await navigator.clipboard.writeText(pulseCode(settings())); status.textContent = 'コードをコピーしました。'; }
-  catch { status.textContent = 'コピーできませんでした。下のコードを選択してコピーしてください。'; }
+  try { await navigator.clipboard.writeText(pulseCode(settings())); status.textContent = lessonText('コードをコピーしました。', 'Copied the code.'); }
+  catch { status.textContent = lessonText('コピーできませんでした。下のコードを選択してコピーしてください。', 'Could not copy. Select and copy the code below.'); }
 });
 function releaseAudio() {
   stop();
   if (context) { void context.close(); context = null; }
 }
 window.addEventListener('pagehide', releaseAudio);
-document.addEventListener('visibilitychange', () => { if (document.hidden) { stop(); status.textContent = 'ページを離れたため停止しました。'; } });
+document.addEventListener('visibilitychange', () => { if (document.hidden) { stop(); status.textContent = lessonText('ページを離れたため停止しました。', 'Stopped because the page was hidden.'); } });
 updateCode(); clearWaveform();

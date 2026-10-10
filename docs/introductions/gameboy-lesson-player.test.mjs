@@ -2,8 +2,10 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import vm from 'node:vm';
-const source = (await readFile(new URL('./gameboy-lesson-player.js', import.meta.url), 'utf8')).replaceAll('export function', 'function');
-function setup(render) {
+const localeSource = await readFile(new URL('./introduction-locale.js', import.meta.url), 'utf8');
+const source = (localeSource + '\n' + (await readFile(new URL('./gameboy-lesson-player.js', import.meta.url), 'utf8'))
+  .replace("import {lessonText} from './introduction-locale.js';", '')).replaceAll('export function', 'function');
+function setup(render, language = 'ja') {
   const nodes = new Map(), documentEvents = new Map(), windowEvents = new Map();
   const node = id => {
     if (!nodes.has(id)) nodes.set(id, {textContent: '', handlers: new Map(), addEventListener(type, fn) {this.handlers.set(type, fn);}});
@@ -25,7 +27,7 @@ function setup(render) {
     }
   }
   let draws = 0, resets = 0;
-  const document = {hidden: false, querySelector: node, addEventListener: (type, fn) => documentEvents.set(type, fn), dispatchEvent: event => events.push(event)};
+  const document = {documentElement: {lang: language}, hidden: false, querySelector: node, addEventListener: (type, fn) => documentEvents.set(type, fn), dispatchEvent: event => events.push(event)};
   const context = vm.createContext({AudioContext, CustomEvent: class {constructor(type, options) {this.type = type; this.detail = options.detail;}},
     document,
     window: {addEventListener: (type, fn) => windowEvents.set(type, fn)}, navigator: {clipboard: {writeText: async () => {}}},
@@ -66,4 +68,16 @@ test('Replay/Stop/end/hidden/pagehide clean up audio, and Reset refreshes settin
   await s.click('#play');
   s.windowEvents.get('pagehide')();
   assert.equal(s.sources[4].stopped, true); assert.equal(s.contexts[0].closed, true);
+});
+
+
+test('English lesson status follows the page language throughout playback and reset', async () => {
+  const s = setup(async () => pcm(), 'en');
+  assert.equal(s.node('#status').textContent, 'Press Play to compare the settings.');
+  await s.click('#play');
+  assert.equal(s.node('#status').textContent, 'Playing for 2 seconds.');
+  s.click('#stop');
+  assert.equal(s.node('#status').textContent, 'Stopped.');
+  s.click('#reset');
+  assert.equal(s.node('#status').textContent, 'Restored the defaults.');
 });

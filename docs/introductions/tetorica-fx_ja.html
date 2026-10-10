@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>FX入門 — 作成中 — Tetorica</title>
+  <link rel="stylesheet" href="./fx-introduction.css">
+<link rel="alternate" hreflang="en" href="./tetorica-fx.html"><link rel="alternate" hreflang="ja" href="./tetorica-fx_ja.html"><style>.language-nav{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}.language-nav a[aria-current="page"]{font-weight:700}</style></head>
+<body>
+<main>
+  <nav aria-label="記事ナビゲーション">
+    <a href="../index-ja.html">Tetorica ホーム</a>
+    <a href="./index-ja.html">YM2612 / FM入門</a>
+  </nav>
+  <header class="panel">
+    <p class="kicker">FX INTRODUCTION / 作成中</p>
+    <h1>音を聴いて、コードで学ぶFX</h1><nav class="language-nav" aria-label="Language"><a href="./tetorica-fx.html" lang="en" hreflang="en">English</a> | <a href="./tetorica-fx_ja.html" lang="ja" hreflang="ja" aria-current="page">日本語</a></nav>
+    <p>音量を変える、音を刻む、波形を歪ませる。PCMの小さな加工から、
+      フィルターや残響まで、Playgroundで試しながら学ぶシリーズです。</p>
+    <p class="hint"><strong>このシリーズは作成中です。</strong>
+      Gainから組み合わせまで、全15章の下書きを掲載しています。内容・サンプルは試聴しながら今後調整します。</p>
+  </header>
+  <section class="panel">
+    <h2>まず試してみる</h2>
+    <ol class="steps">
+      <li><a href="./tetorica-fx-gain_ja.html"><strong>Gain：音の波形に掛け算する</strong></a> — 試作<br>
+        振幅と音量の関係を、組み込みFXとliveFxの掛け算で確かめます。</li>
+      <li><a href="./tetorica-fx-slicer_ja.html"><strong>Slicer：鳴り続ける音を刻む</strong></a> — 試作<br>
+        Gainを周期的に変え、stateで処理の位置を引き継ぎます。</li>
+    </ol>
+    <p>各記事のiframe内に編集可能なPlaygroundがあります。Runで再生、Stopで停止。
+      コードを変えてApplyし、liveFxの入力・出力をFX Monitorで比較できます。
+      比較するときは、先に再生したPlaygroundをStopしてください。</p>
+  </section>
+  <section class="panel">
+    <h2>続きのテーマ（下書き）</h2>
+    <p>現在のサンプルを加工するところから、履歴を使い、過去の音をためる処理へ進む予定です。
+      以下は学習用の簡易実装を含む下書きです。</p>
+    <ol start="3" class="steps">
+      <li><a href="./tetorica-fx-distortion_ja.html"><a href="./tetorica-fx-distortion_ja.html"><strong>Distortion</strong></a></a> — 波形を変形して倍音を作る</li>
+      <li><a href="./tetorica-fx-bitcrusher_ja.html"><a href="./tetorica-fx-bitcrusher_ja.html"><strong>Bitcrusher</strong></a></a> — 振幅の段階とサンプルの保持</li>
+      <li><a href="./tetorica-fx-filter_ja.html"><a href="./tetorica-fx-filter_ja.html"><strong>Filter</strong></a></a> — 前回の値を使って音を変える</li>
+      <li><a href="./tetorica-fx-eq_ja.html"><a href="./tetorica-fx-eq_ja.html"><strong>EQ</strong></a></a> — 周波数帯ごとの強さを調整する</li>
+      <li><a href="./tetorica-fx-wobble_ja.html"><a href="./tetorica-fx-wobble_ja.html"><strong>Wobble</strong></a></a> — フィルターを周期的に動かす</li>
+      <li><a href="./tetorica-fx-envelope-follower_ja.html"><a href="./tetorica-fx-envelope-follower_ja.html"><strong>Envelope Follower</strong></a></a> — 入力音量を追う基礎編</li>
+      <li><a href="./tetorica-fx-noise-gate_ja.html"><a href="./tetorica-fx-noise-gate_ja.html"><strong>Noise Gate</strong></a></a> — 小さな音を抑える</li>
+      <li><a href="./tetorica-fx-compressor_ja.html"><a href="./tetorica-fx-compressor_ja.html"><strong>Compressor</strong></a></a> — 大きな音を抑える</li>
+      <li><a href="./tetorica-fx-delay_ja.html"><a href="./tetorica-fx-delay_ja.html"><strong>Delay</strong></a></a> — 過去の音を読み出す</li>
+      <li><a href="./tetorica-fx-flanger_ja.html"><a href="./tetorica-fx-flanger_ja.html"><strong>Flanger</strong></a></a> — 短い遅延を動かして混ぜる</li>
+      <li><a href="./tetorica-fx-chorus_ja.html"><a href="./tetorica-fx-chorus_ja.html"><strong>Chorus</strong></a></a> — 音に揺れと厚みを作る</li>
+      <li><a href="./tetorica-fx-reverb_ja.html"><a href="./tetorica-fx-reverb_ja.html"><strong>Reverb</strong></a></a> — 遅延を組み合わせて残響を作る</li>
+      <li><a href="./tetorica-fx-chains_ja.html"><a href="./tetorica-fx-chains_ja.html"><strong>組み合わせ</strong></a></a> — 直列・並列と処理順の違い</li>
+    </ol>
+  </section>
+</main>
+</body>
+</html>

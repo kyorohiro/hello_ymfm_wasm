@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Game Boy：パルス波を聴き比べる | Tetorica</title>
+<link rel="stylesheet" href="./gameboy-introduction.css">
+<link rel="alternate" hreflang="en" href="./tetorica-gameboy-pulse.html"><link rel="alternate" hreflang="ja" href="./tetorica-gameboy-pulse_ja.html"><style>.language-nav{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}.language-nav a[aria-current="page"]{font-weight:700}</style></head>
+<body><main>
+<header class="panel"><p class="kicker">GAME BOY / 01</p><h1>パルスの幅を変えると、<br>音はどう変わる？</h1><nav class="language-nav" aria-label="Language"><a href="./tetorica-gameboy-pulse.html" lang="en" hreflang="en">English</a> | <a href="./tetorica-gameboy-pulse_ja.html" lang="ja" hreflang="ja" aria-current="page">日本語</a></nav>
+<p>同じ「ラ」の音でも、波の幅を変えると響きが変わります。まず50%で聴き、12.5%と比べてみましょう。</p>
+<nav aria-label="Game Boyの解説"><a href="./tetorica-gameboy-pulse_ja.html">01 Pulse</a> ／ <a href="./tetorica-gameboy-envelope_ja.html">02 Envelope</a> ／ <a href="./tetorica-gameboy-wave_ja.html">03 Wave</a></nav></header>
+<section class="panel" aria-labelledby="lab-title"><h2 id="lab-title">1. 一つの値を変えて、聴く</h2>
+<p>デューティ比は、繰り返すパルスの幅の割合です。音程をA4、音量を10に固定して、幅だけを変えてください。25%と75%は波形の向き・位相が違いますが、単独ではほぼ同じ音色になります。</p>
+<form id="pulse-controls">
+<label>デューティ比<select name="duty"><option value="0.125">12.5%</option><option value="0.25">25%</option><option value="0.5" selected>50%</option><option value="0.75">75%</option></select></label>
+<label>音程<select name="note"><option>C4</option><option selected>A4</option><option>C5</option></select></label>
+<label>音量<select name="volume"><option value="3">3</option><option value="6">6</option><option value="10" selected>10</option><option value="15">15</option></select></label>
+<label>チャンネル<select name="channel"><option value="0">Pulse 1（CH1）</option><option value="1">Pulse 2（CH2）</option></select></label>
+</form>
+<div class="actions"><button id="play" type="button">▶ 1.5秒再生</button><button id="stop" type="button">停止</button><button id="reset" type="button">初期値に戻す</button></div>
+<p id="status" role="status" aria-live="polite">再生ボタンを押すまで音は鳴りません。</p>
+<figure><canvas id="waveform" width="960" height="220" role="img" aria-label="再生すると生成PCMを表示します"></canvas>
+<figcaption>実際に生成した左出力のPCM。発音開始100 ms後から12 msを表示。横軸：時間（0〜12 ms）、縦軸：固定の振幅スケール。聴き比べるときも表示倍率は変えません。</figcaption></figure>
+<p class="hint">この試作はDMGのデジタル音源をエミュレートします。実機のアンプ・スピーカーの音色やアナログの高域通過フィルターは再現していません。試聴時のみ一定の音量調整と始端・終端10 msのフェードを加えています。図は加工前のPCMです。</p>
+<noscript>試聴にはJavaScriptを有効にしてください。</noscript>
+</section>
+<section class="panel"><h2>2. 同じ設定を、コードで持ち帰る</h2>
+<p>上の値を変えると、このコードも変わります。PlaygroundでRunすると同じ音色設定を再現できます。Stopで停止してください。</p>
+<div class="actions"><button id="copy" type="button">コードをコピー</button><a data-playground-src="pulse-source" target="_blank" rel="noopener noreferrer">Playgroundで編集 ↗</a></div>
+<pre><code id="code"></code></pre><script type="text/plain" id="pulse-source"></script>
+<p><code>initialize()</code>は4チャンネルを無音で準備します。<code>keyOn()</code>から発音し、<code>keyOff()</code>で停止します。ここではエンベロープの周期を0にして音量を一定にし、CH1のスウィープも初期値で無効にしています。<code>sleep(1.5)</code>はJavaScript側の時間制御です。</p>
+<table><caption>APIからハードウェアへの対応</caption><thead><tr><th>操作</th><th>対応する設定</th></tr></thead><tbody>
+<tr><td><code>pulse.setVoice(ch, {duty})</code></td><td>CH1のNR11 / CH2のNR21、上位2 bit</td></tr>
+<tr><td><code>volume, envelope</code></td><td>NR12 / NR22（初期音量・方向・周期）</td></tr>
+<tr><td><code>pulse.setNote(ch, 'A4')</code></td><td>NR13・NR14 / NR23・NR24の周波数値。実際の周波数はレジスター精度へ丸められます。</td></tr>
+<tr><td><code>keyOn(ch)</code></td><td>NR14 / NR24のtrigger。高レベルAPIでは長さカウンターを無効にします。</td></tr>
+</tbody></table>
+<p><a href="https://gbdev.io/pandocs/Audio_Registers.html#ff11--nr11-channel-1-length-timer--duty-cycle">仕様：Pan Docsのデューティ比</a>／<a href="../issues/gameboy_api_01.md">このプロジェクトのGame Boy API仕様</a></p>
+</section>
+<section class="panel"><h2>3. 実機では、どこで音が生まれる？</h2>
+<p>ここで説明する実機は初代Game Boy（DMG）、基板資料の対象は<strong>DMG-CPU-06</strong>です。APUはCPUと同じICの中にあります。独立したYM2612を載せるメガドライブとは構成が違います。</p>
+<figure><div class="signal" aria-label="信号の流れ：CPUの設定から内蔵APU、左右のミキサー、アンプ、音の出口へ">
+<div>CPUから設定<br><small>同じIC内のAPUへ</small></div><span aria-hidden="true">↓</span>
+<div>APU：Pulse 1・Pulse 2<br>Wave・Noise</div><span aria-hidden="true">↓</span>
+<div>左右へ混ぜる・出力</div><span aria-hidden="true">↓</span>
+<div>アンプ → スピーカー / ヘッドホン</div></div>
+<figcaption>信号の流れを簡略化した機能図。基板の部品位置やシリコンの配置を表す図ではありません。</figcaption></figure>
+<p>Pulse 1だけがハードウェアの音程スウィープを持ち、Pulse 2にも同じ4種類のデューティ比があります。Waveは32点の波形メモリー、Noiseは疑似乱数列を使う別の発音回路です。</p>
+<p>実際の部品位置は、<a href="https://github.com/Gekkio/gb-schematics/blob/main/DMG-CPU-06/DMG-CPU-06.svg">Gekkio氏のDMG-CPU-06基板トレース</a>と<a href="https://github.com/Gekkio/gb-schematics/blob/main/DMG-CPU-06/schematic/DMG-CPU-06.pdf">回路図</a>で確認できます。これらの資料はCC BY 4.0です。本ページへの画像転載は行っていません。DMGの別リビジョンやGame Boy Colorへ部品配置を一般化しないでください。</p>
+</section>
+<footer class="panel"><h2>次に試すこと</h2><p><a href="./tetorica-gameboy-envelope_ja.html">Envelopeで発音後の音量を変える →</a> ／ <a href="./tetorica-gameboy-wave_ja.html">32点のWaveを編集して鳴らす →</a></p>
+<p>参考：<a href="https://gbdev.io/pandocs/Audio_Registers.html">Pan Docs — Audio Registers</a>、<a href="https://gbdev.io/pandocs/Audio_details.html">Audio Details</a>、<a href="https://github.com/Gekkio/gb-schematics#original-game-boy-dmg">Gekkio — DMG基板資料</a>。</p>
+</footer></main>
+<script src="./playground-embed.js"></script><script type="module" src="./gameboy-pulse-ui.js"></script>
+</body></html>
