@@ -3,6 +3,8 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="alternate" hreflang="en" href="./index.html">
+    <link rel="alternate" hreflang="ja" href="./index-ja.html">
     <title>Sega Genesis / Mega Drive YM2612 FM Introduction with JavaScript</title>
     <style>
       :root {
@@ -71,6 +73,22 @@
 
       p {
         margin: 0 0 16px;
+      }
+
+      .language-nav {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 20px;
+      }
+
+      .language-nav a {
+        color: var(--accent-dark);
+        text-underline-offset: 3px;
+      }
+
+      .language-nav a[aria-current="page"] {
+        font-weight: 700;
       }
 
       ul, ol {
@@ -289,6 +307,11 @@
     <main>
       <section class="panel">
         <h1>Sega Genesis / Mega Drive YM2612 FM Introduction with JavaScript</h1>
+        <nav class="language-nav" aria-label="Language">
+          <a href="./index.html" lang="en" hreflang="en" aria-current="page">English</a>
+          <span aria-hidden="true">|</span>
+          <a href="./index-ja.html" lang="ja" hreflang="ja">日本語</a>
+        </nav>
         <p>
           FM synthesis can be difficult at first.
           It asks you to learn both parameter design and performance technique.
@@ -630,19 +653,19 @@ for (const note of notes) {
         <h2>Keep Reading</h2>
         <p><a href="./tetorica-segapsg.html">Sega Genesis / Mega Drive Sega PSG Introduction with JavaScript →</a></p>
         <p><a href="./tetorica-rf5c164.html">Sega Mega CD RF5C164 Introduction with JavaScript →</a></p>
-        <p><a href="./tetorica-gameboy-pulse.html">Game Boy：パルス波の幅を変えて、音と波形を聴き比べる →</a></p>
-        <p><a href="./tetorica-gameboy-envelope.html">Game Boy：Envelopeの音量変化を聴く →</a> ／ <a href="./tetorica-gameboy-wave.html">32点のWaveを編集する →</a></p>
+        <p><a href="./tetorica-gameboy-pulse.html">Game Boy: Compare pulse widths, sounds, and waveforms →</a></p>
+        <p><a href="./tetorica-gameboy-envelope.html">Game Boy: Hear envelope volume changes →</a> / <a href="./tetorica-gameboy-wave.html">Edit a 32-sample waveform →</a></p>
         <p><a href="./tetorica_ym2612_soundchip_beep.html">From sound chip to beep: YM2612 register control in JavaScript →</a></p>
         <p><a href="./tetorica-just-intonation-equal-temperament-ym2612.html">Start with one sound: just intonation and equal temperament with YM2612 →</a></p>
         <p>Explore frequency ratios, pure thirds, equal steps and fractional pitches in editable Playground examples.</p>
         <a class="link-button" href="../index.html">Back</a>
       </section>
       <section class="panel">
-        <h2><a href="./tetorica-fx.html">FX introductions / FX入門（作成中）</a></h2>
-        <p>Playgroundで音を聴き、PCMを加工するコードを書いて学ぶシリーズです。GainからReverb・組み合わせまで全15章の下書きを、上の目次から読めます。</p>
+        <h2><a href="./tetorica-fx.html">FX Introductions — Work in progress</a></h2>
+        <p>Learn by listening in the Playground and writing code that processes PCM. Explore drafts of 15 chapters, from Gain to Reverb and effect combinations, through the FX contents page.</p>
         <ul>
-          <li><a href="./tetorica-fx-gain.html">1. Gain：音の波形に掛け算する</a></li>
-          <li><a href="./tetorica-fx-slicer.html">2. Slicer：鳴り続ける音を刻む</a></li>
+          <li><a href="./tetorica-fx-gain.html">1. Gain: Multiply the audio waveform</a></li>
+          <li><a href="./tetorica-fx-slicer.html">2. Slicer: Chop a continuous sound</a></li>
         </ul>
       </section>
     </main>

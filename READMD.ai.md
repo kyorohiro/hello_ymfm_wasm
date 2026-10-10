@@ -97,7 +97,9 @@ sh scripts/sync_web_js_to_docs.sh
 
 `docs/index.html`は英語、`docs/index-ja.html`は日本語。同じデザインとツールへのリンクを持つ静的ページで、言語切り替えとAI/SIへのリンクを置いている。ページの`lang`、title、description、Open Graph、表示文、aria-labelもそれぞれの言語に合わせる。
 
-ツールや入門ページの追加・リンク変更は両方のトップページへ反映する。言語選択で移動するのはトップページだけで、リンク先の各アプリや入門ページまで翻訳・切り替えたわけではない。
+ツールや入門ページの追加・リンク変更は両方のトップページへ反映する。
+
+YM2612の入門も`docs/introductions/index.html`（英語）と`docs/introductions/index-ja.html`（日本語）に分けている。日英トップページは、それぞれの言語の入門へリンクする。日本語版には本文・ボタン・アルゴリズム試聴のステータス表示を翻訳し、埋め込みコードとデモの動作は保持している。その他の入門ページと、埋め込むPlayground・Synth・Analyzer自体まで一括翻訳したわけではない。
 
 ## ローカルでブラウザー版を開く
 

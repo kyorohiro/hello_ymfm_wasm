@@ -38,7 +38,7 @@ Tetoricaは、JavaScriptでメガドライブやゲームボーイなどのレ�
 - メインページ：
   [https://kyorohiro.github.io/hello_ymfm_wasm/](https://kyorohiro.github.io/hello_ymfm_wasm/)
 - JavaScriptで学ぶSega Genesis / メガドライブのYM2612 FM音源：
-  [https://kyorohiro.github.io/hello_ymfm_wasm/introductions/index.html](https://kyorohiro.github.io/hello_ymfm_wasm/introductions/index.html)
+  [https://kyorohiro.github.io/hello_ymfm_wasm/introductions/index-ja.html](https://kyorohiro.github.io/hello_ymfm_wasm/introductions/index-ja.html)
 - Playground：
   [https://kyorohiro.github.io/hello_ymfm_wasm/playground/index.html](https://kyorohiro.github.io/hello_ymfm_wasm/playground/index.html)
 - Playground Runtimeの組み込みデモ：

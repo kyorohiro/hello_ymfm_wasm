@@ -1,0 +1,625 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="alternate" hreflang="en" href="./index.html">
+    <link rel="alternate" hreflang="ja" href="./index-ja.html">
+    <title>JavaScriptで学ぶメガドライブのYM2612 FM音源</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #f4efe4;
+        --panel: #fffaf0;
+        --ink: #1f1b16;
+        --accent: #b4572f;
+        --accent-dark: #7e381c;
+        --line: #d7c8ac;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: "Avenir Next", "Helvetica Neue", Helvetica, Arial, sans-serif;
+        color: var(--ink);
+        background:
+          radial-gradient(circle at top left, #fff8df 0, transparent 28%),
+          radial-gradient(circle at bottom right, #f0d8ba 0, transparent 24%),
+          linear-gradient(160deg, var(--bg), #eadfc9 60%, #e0cfb5);
+      }
+
+      main {
+        max-width: 980px;
+        margin: 0 auto;
+        padding: 48px 20px 64px;
+      }
+
+      .panel {
+        background: color-mix(in srgb, var(--panel) 90%, white 10%);
+        border: 1px solid var(--line);
+        border-radius: 24px;
+        padding: 28px;
+        box-shadow: 0 18px 40px rgba(90, 62, 30, 0.12);
+        margin-bottom: 24px;
+      }
+
+      h1, h2, h3 {
+        margin: 0 0 12px;
+        line-height: 1.15;
+        letter-spacing: -0.04em;
+      }
+
+      h1 {
+        font-size: clamp(2rem, 4vw, 3.2rem);
+      }
+
+      h2 {
+        margin-top: 28px;
+        font-size: 1.35rem;
+      }
+
+      h3 {
+        margin-top: 20px;
+        font-size: 1.05rem;
+      }
+
+      p, li {
+        line-height: 1.6;
+      }
+
+      p {
+        margin: 0 0 16px;
+      }
+
+      .language-nav {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 20px;
+      }
+
+      .language-nav a {
+        color: var(--accent-dark);
+        text-underline-offset: 3px;
+      }
+
+      .language-nav a[aria-current="page"] {
+        font-weight: 700;
+      }
+
+      ul, ol {
+        margin: 0 0 16px 20px;
+      }
+
+      code {
+        font-family: "SFMono-Regular", Menlo, Consolas, monospace;
+      }
+
+      .figure {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 16px;
+        margin: 0 0 16px;
+      }
+
+      .figure .box {
+        flex: 1 1 160px;
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 14px 16px;
+        background: rgba(255, 255, 255, 0.5);
+      }
+
+      .figure .box strong {
+        display: block;
+        margin-bottom: 4px;
+      }
+
+      .algo-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 12px;
+        margin: 20px 0 12px;
+      }
+
+      .algo-button {
+        display: block;
+        width: 100%;
+        text-align: left;
+        cursor: pointer;
+        font: inherit;
+        color: inherit;
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 12px 14px;
+        background: rgba(255, 255, 255, 0.5);
+        transition: transform 140ms ease, box-shadow 140ms ease, border-color 140ms ease;
+      }
+
+      .algo-button:hover {
+        transform: translateY(-2px);
+        border-color: var(--accent);
+        box-shadow: 0 14px 28px rgba(126, 56, 28, 0.16);
+      }
+
+      .algo-button.is-active {
+        border-color: var(--accent);
+        background: color-mix(in srgb, var(--accent) 14%, white 86%);
+      }
+
+      .algo-button strong {
+        display: block;
+        margin-bottom: 4px;
+      }
+
+      .algo-button span {
+        font-size: 0.85rem;
+        opacity: 0.85;
+      }
+
+      .algo-status {
+        margin-bottom: 0;
+        font-size: 0.9rem;
+        opacity: 0.85;
+      }
+
+      .playground-frame {
+        width: 100%;
+        height: 640px;
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        background: white;
+      }
+
+      .hero-media {
+        display: grid;
+        grid-template-columns: minmax(0, 1.2fr) minmax(260px, 0.8fr);
+        gap: 20px;
+        align-items: stretch;
+        margin-top: 24px;
+      }
+
+      .hero-stack {
+        display: grid;
+        gap: 16px;
+      }
+
+      .hero-card {
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        padding: 16px;
+        background: rgba(255, 255, 255, 0.55);
+      }
+
+      .hero-card img {
+        display: block;
+        max-width: 100%;
+        height: auto;
+        margin: 0 auto;
+      }
+
+      .hero-card--logos {
+        display: grid;
+        gap: 14px;
+      }
+
+      .hero-card--art {
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+      }
+
+      .hero-card--art img {
+        width: 100%;
+        border-radius: 12px;
+      }
+
+      .hero-caption {
+        margin: 12px 0 0;
+        font-size: 0.92rem;
+        opacity: 0.82;
+      }
+
+      .diagram {
+        margin: 20px 0 18px;
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        padding: 12px;
+        background: rgba(255, 255, 255, 0.42);
+      }
+
+      .diagram img {
+        display: block;
+        width: 100%;
+        height: auto;
+        border-radius: 12px;
+      }
+
+      .demo-loader {
+        margin-top: 18px;
+        border: 1px dashed var(--line);
+        border-radius: 18px;
+        padding: 20px;
+        background: rgba(255, 255, 255, 0.36);
+      }
+
+      .demo-loader p {
+        margin-bottom: 12px;
+      }
+
+      .demo-loader .playground-frame {
+        margin-top: 14px;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 16px;
+        margin-top: 24px;
+      }
+
+      .card {
+        display: block;
+        text-decoration: none;
+        color: inherit;
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        padding: 18px;
+        background: rgba(255, 255, 255, 0.45);
+        transition: transform 140ms ease, box-shadow 140ms ease, border-color 140ms ease;
+      }
+
+      .card:hover {
+        transform: translateY(-2px);
+        border-color: var(--accent);
+        box-shadow: 0 14px 28px rgba(126, 56, 28, 0.16);
+      }
+
+      .card strong {
+        display: block;
+        margin-bottom: 8px;
+        font-size: 1.05rem;
+      }
+
+      .link-button {
+        display: inline-block;
+        margin-top: 16px;
+        border-radius: 999px;
+        padding: 12px 18px;
+        font-weight: 700;
+        color: white;
+        background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+        text-decoration: none;
+      }
+
+      @media (max-width: 760px) {
+        .hero-media {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <section class="panel">
+        <h1>JavaScriptで学ぶメガドライブのYM2612 FM音源</h1>
+        <nav class="language-nav" aria-label="言語">
+          <a href="./index.html" lang="en" hreflang="en">English</a>
+          <span aria-hidden="true">|</span>
+          <a href="./index-ja.html" lang="ja" hreflang="ja" aria-current="page">日本語</a>
+        </nav>
+        <p>FM音源は、最初は難しく感じるかもしれません。音色のパラメーター設計と、演奏のための操作の両方を学ぶ必要があります。</p>
+        <p>Sega Genesis / メガドライブはレトロゲーム機ですが、4オペレーター・6チャンネルのFM音源チップ、YM2612を搭載しています。現代のシンセサイザーと比べると小さな構成に見えますが、数多くの印象的な音楽や効果音を生み出してきました。</p>
+        <p>そのノウハウの多くは、愛好家が作成・保存してきたVGMファイルに今も残っています。VGMを読み解き、再生することで、当時どのようにチップを使い、音を作っていたかを調べられます。</p>
+        <p>今でも、この4オペレーター・6チャンネルという構成は、FMを学ぶための面白い出発点になります。Tetoricaでは、JavaScriptから直接試せる環境を用意しました。</p>
+        <p>興味があれば、ぜひ触ってみてください。</p>
+        <div class="hero-media">
+          <div class="hero-stack">
+            <div class="hero-card hero-card--logos">
+              <img src="./GenesisLogo.png" alt="Sega Genesisのロゴ">
+              <img src="./Megadrive_logo.svg" alt="メガドライブのロゴ">
+            </div>
+          </div>
+          <div class="hero-card hero-card--art">
+            <img src="./VirtuaRacing.png" alt="バーチャレーシングの画面">
+            <p class="hero-caption">入門ページの参考画像として、Genesis / メガドライブのロゴと、FM音源が使われた時代を代表するゲームの画面を掲載しています。</p>
+          </div>
+        </div>
+        <p class="hero-caption">画像の参照元：<a href="https://en.wikipedia.org/wiki/Sega_Genesis">Sega Genesis - Wikipedia</a></p>
+      </section>
+
+      <section class="panel">
+        <h2>こんにちは、YM2612のFMサウンド！</h2>
+        <p>まずはメガドライブの音を聴いてみましょう。Sega Genesis / メガドライブは、YamahaのYM2612音源チップを使っています。</p>
+        <p><a href="https://aarongiles.com/">Aaron Giles</a>によるライブラリー<a href="https://github.com/aaronsgiles/ymfm">ymfm</a>を使うと、そのチップの音をWebブラウザーでも再現できます。</p>
+        <p>簡単なところから、ド・レ・ミ・ファ・ソ・ラ・シ・ドを鳴らしてみます。</p>
+        <p>YM2612の世界へようこそ。</p>
+        <script type="text/plain" id="example-hello-ym2612-scale">
+fm.setPreset(CH1, FM_PRESETS["one-op-basic"]);
+
+const notes = ["C4", "D4", "E4", "F4", "G4", "A4", "B4", "C5"];
+
+for (const note of notes) {
+  await play(note, { channel: CH1, duration: 0.3 });
+  await sleep(0.1);
+}
+</script>
+        <iframe class="playground-frame" data-playground-src="example-hello-ym2612-scale"
+          title="YM2612 Playground" allow="autoplay" loading="lazy" style="height: 560px;"></iframe>
+        <p><a data-playground-src="example-hello-ym2612-scale">Playground全体を開く（Console、実行例、オペレーターエディター付き） &rarr;</a></p>
+      </section>
+
+      <section class="panel">
+        <h2>FMサウンドの魔法</h2>
+        <p>次はADSRを試すとよいでしょう。<strong>Attack（立ち上がり）</strong>、<strong>Decay（減衰）</strong>、<strong>Sustain（持続）</strong>、<strong>Release（離鍵後の減衰）</strong>です。弦を弾いた音、ベル、オルガン、ブラス、柔らかくゆっくりした音など、音の印象を作る部分です。</p>
+        <p>YM2612では、<code>AR</code>、<code>D1R</code>、<code>D2R</code>、<code>SL</code>、<code>RR</code>などのパラメーターで操作します。立ち上がり、ピーク後の減衰、キーを押し続けている間の後半の減衰、キーオフ後の減衰を制御します。持続段階が一定の音量になる単純なADSRとは異なり、YM2612はキーを押している間も減衰を続けられます。その後半の減衰を制御するのが<code>D2R</code>です。</p>
+        <div class="diagram"><img src="./adsr_diagram.svg" alt="ADSRエンベロープの図"></div>
+        <p>ほかにも<code>DT</code>、<code>MULTI</code>、<code>TL</code>などがあります。まずは小さな音色の例で、コードで「音を設定する」とどのような形になるかを見てみましょう。</p>
+        <script type="text/plain" id="example-fm-patch-basic">
+fm.reset();
+
+// Same 4-operator patch as MEGADRIVE_FM_PRESETS["one-op-basic"],
+// written out by hand instead of using fm.setPreset().
+fm.setAlgo(CH1, 7, 0);
+
+// OP1, OP2, OP3: tl = 127 means "as quiet as possible" -> effectively silent.
+fm.setOperator(CH1, OP1, { dt: 0, multi: 1, tl: 127, ar: 31, d1r: 0, d2r: 0, sl: 0, rr: 15 });
+fm.setOperator(CH1, OP2, { dt: 0, multi: 1, tl: 127, ar: 31, d1r: 0, d2r: 0, sl: 0, rr: 15 });
+fm.setOperator(CH1, OP3, { dt: 0, multi: 1, tl: 127, ar: 31, d1r: 0, d2r: 0, sl: 0, rr: 15 });
+
+// OP4 is the only one that actually makes sound.
+fm.setOperator(CH1, OP4, { dt: 0, multi: 1, tl: 8, ar: 22, d1r: 6, d2r: 3, sl: 3, rr: 8 });
+
+const notes = ["C4", "D4", "E4", "F4", "G4", "A4", "B4", "C5"];
+
+for (const note of notes) {
+  await play(note, { channel: CH1, duration: 0.3 });
+  await sleep(0.1);
+}
+</script>
+        <iframe class="playground-frame" data-playground-src="example-fm-patch-basic"
+          title="FM音色設定の例" allow="autoplay" loading="lazy" style="height: 620px;"></iframe>
+      </section>
+
+      <section class="panel">
+        <h2>1つのオペレーターから始める</h2>
+        <p>YM2612は、各チャンネルの4つのオペレーターを組み合わせて音を作ります。ただ、4つを同時に変更すると、結果を予測しにくくなり、ADSRの感覚もつかみにくくなります。</p>
+        <p>まずはオペレーターを1つだけ使ってみませんか？</p>
+        <h3>試してみる：1つの音の形を変える</h3>
+        <p>設定を1つずつ変え、<strong>Hold to Play</strong>を押し続けて聴き比べます。ボタンを離すとリリースを聴けます。再生を止めたいときは<strong>Stop</strong>を使ってください。</p>
+        <ol>
+          <li><strong>立ち上がりを変える。</strong>OP1で<code>AR = 31</code>と<code>AR = 12</code>を比較します。鋭い立ち上がりとゆっくりした立ち上がりを聴き、Envelope表示も比べてください。</li>
+          <li><strong>リリースを聴く。</strong><code>AR = 31</code>、<code>D1R = 0</code>、<code>D2R = 0</code>にして、押している間は音が続くようにします。<code>RR = 15</code>と<code>RR = 4</code>を設定し、その都度ボタンを離して比較します。どちらが長く余韻を残すでしょうか？</li>
+          <li><strong>音程と音量を分けて考える。</strong><code>MULTI = 1</code>と<code>MULTI = 2</code>を比較します。次に<code>MULTI = 1</code>へ戻し、<code>TL</code>を0から32へ上げてください。音程が変わることと、音が小さくなることの違いを聴きます。</li>
+        </ol>
+        <p><strong>数値の読み方：</strong>TLは減衰量なので、大きくするほどオペレーターの音は小さくなります。AR、D1R、D2R、RRは秒数ではなく変化の速さで、一般に大きくするほど変化が速くなります。SLは最初の減衰から後半の減衰へ切り替わる音量を設定し、持続時間を指定するものではありません。Envelopeの図は形を理解するための目安で、実測した時間・音量の目盛りではありません。</p>
+        <div class="demo-loader" data-demo-loader>
+          <p>1つのオペレーターの音とエンベロープを調べたいときは、1 Operator Demoを読み込んでください。</p>
+          <button type="button" class="link-button" data-iframe-src="../demos/operator1.html"
+            data-iframe-title="YM2612 1オペレーターのデモ" data-iframe-height="900">1オペレーターのデモを読み込む</button>
+          <a href="../demos/operator1.html" style="margin-left: 12px;">別のページで開く &rarr;</a>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>オペレーター：音を作る基本要素</h2>
+        <p>YM2612の音色は、<strong>オペレーター</strong>という基本要素の組み合わせで作ります。オペレーターは、独自の音程と音量エンベロープを持ち、デチューンや周波数の倍率で調整できる正弦波の発振器です。単体では素朴なトーンですが、その出力をスピーカーへ直接送る代わりに、別のオペレーターの周波数を変調すると、FM合成ならではの音になります。</p>
+        <div class="figure">
+          <div class="box"><strong>キャリアー</strong>音声出力へ接続するオペレーター。その音を直接聴きます。</div>
+          <div class="box"><strong>モジュレーター</strong>別のオペレーターの周波数入力へ接続するオペレーター。その音を直接聴く代わりに、キャリアーの波形がどう変わるかを聴きます。</div>
+        </div>
+        <p>YM2612は、6つのチャンネルそれぞれに4つのオペレーターを持ちます。誰が誰を変調し、誰が出力へつながるかという接続を<strong>アルゴリズム</strong>と呼び、各チャンネルで8種類から選べます。最初に試すならアルゴリズム7が分かりやすいでしょう。4つともキャリアーとして出力へ直接接続し、互いを変調しないので、それぞれの音を聴いてから変調を加えられます。</p>
+        <h3>試してみる：2つのオペレーターをつなぐ</h3>
+        <p>Commonで<strong>Plain Dual</strong>プリセットを読み込み、Common / OP1 / OP2タブを使ってください。接続ラベルは、デモ内のOP1・OP2という名前で現在の接続を表示します。</p>
+        <ol>
+          <li><strong>接続を比べる。</strong><code>FB = 0</code>でParallelとSerialを切り替え、その都度演奏します。Parallelでは2つの音を混ぜ、SerialではOP1をOP2へ送ります。</li>
+          <li><strong>モジュレーターを変える。</strong>SerialでOP1のTL、次にMULTIを変えてください。OP1は出力に直接混ざる代わりに、OP2の音を変化させます。Parallelへ戻し、TLの比較を繰り返してみます。</li>
+          <li><strong>フィードバックを加える。</strong>Serialへ戻り、Commonで<code>FB = 0</code>、3、6を比較します。オペレーターの設定を変えずに、音の質感がどう変わるかを聴きます。</li>
+        </ol>
+        <p><strong>フィードバック</strong>は、OP1の出力の一部を自身へ戻します。FBの値がその強さを制御し、0で無効になります。音への影響はオペレーターの設定と接続によって変わるため、両方のモードで比べてみてください。</p>
+        <div class="demo-loader" data-demo-loader>
+          <p>キャリアーとモジュレーターの働きを直接比べたいときは、2 Operator Demoを読み込んでください。</p>
+          <button type="button" class="link-button" data-iframe-src="../demos/operator2.html"
+            data-iframe-title="YM2612 2オペレーターのデモ" data-iframe-height="1100">2オペレーターのデモを読み込む</button>
+          <a href="../demos/operator2.html" style="margin-left: 12px;">別のページで開く &rarr;</a>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>8種類のアルゴリズムを聴き比べる</h2>
+        <p>同じ4オペレーターの音色を8通りにつなぎます。変えるのはアルゴリズムだけです。ボタンを押して、1つのキャリアーに多くのオペレーターを送る接続（ALGO 0など）の金属的で複雑な音と、複数のオペレーターを並列に出力する接続（ALGO 7など）の素朴なトーンを重ねたような音を比べてください。</p>
+        <div id="algoButtons" class="algo-grid"></div>
+        <p id="algoStatus" class="algo-status">ボタンを押すと音源を読み込み、再生します。</p>
+        <div class="demo-loader" data-demo-loader>
+          <p>より多くの操作項目で同じ考え方を試したいときは、Synthアプリ全体を読み込んでください。</p>
+          <button type="button" class="link-button" data-iframe-src="../synth/index.html"
+            data-iframe-title="YM2612 Synth" data-iframe-height="1200">Synthデモ全体を読み込む</button>
+          <a href="../synth/index.html" style="margin-left: 12px;">別のページで開く &rarr;</a>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>Analyzerで実際の音を調べる</h2>
+        <p>ここまでは手書きのパラメーターを使いました。FM2612 VGM Analyzerでは、逆に実際のVGM記録を読み込み、ゲームがチップへ送ったレジスター書き込みを調べます。解析したコマンドとYM2612の6チャンネルをリアルタイムに確認し、現在のオペレーター・アルゴリズム設定をスナップショットやTFI音色としてエクスポートできます。</p>
+        <p>実際のメガドライブ / Genesisのゲーム音楽のVGMは、<a href="https://vgmrips.net/packs/system/sega/mega-drive">vgmrips.net</a>、<a href="https://www.zophar.net/music/sega-mega-drive-genesis">zophar.net</a>、<a href="https://www.smspower.org/Music/Index">smspower.org</a>などにあります。<a href="https://web.archive.org/web/20240502023240/https://project2612.org/">project2612.orgの保存版</a>と、まとめたアーカイブの<a href="https://archive.org/details/Project2612CompleteArchive20180623681Sets.7z">Project 2612 Complete Archive（2018-06-23、681セット）</a>、<a href="https://archive.org/details/project-2612-complete-archive-2021-07-12-704-sets.-7z">Project 2612 Complete Archive（2021-07-12、704セット）</a>も参照できます。</p>
+        <h3>試してみる：音から設定へたどる</h3>
+        <ol>
+          <li><strong>音を見つける。</strong>VGM / VGZを読み込んで再生し、発音するチャンネルを確認します。調べたい音の途中で一時停止してください。</li>
+          <li><strong>構成を調べる。</strong>そのチャンネルのアルゴリズム、オペレーターのレベル、エンベロープのパラメーターを見ます。出力へつながるオペレーターと、別のオペレーターを変調するものを見分けます。</li>
+          <li><strong>音色作りへ戻す。</strong><strong>Export Snapshot TFI</strong>を押してダウンロードを展開し、対象チャンネルのTFIファイルを選びます。<a href="../synth/index.html">Synth</a>のTFIファイル入力で読み込み、音符を鳴らし、パラメーターを1つ変えて元の音と比べます。</li>
+        </ol>
+        <p>音色ファイルが保存するのは、ある瞬間の設定です。元の演奏では音程、レベル、その他のレジスターも時間とともに変わることがあるため、TFIだけでフレーズ全体を再現できるとは限りません。</p>
+        <div class="demo-loader" data-demo-loader>
+          <p>実際のVGMファイルやレジスターの変化を調べ、音色を抽出したいときはAnalyzerを読み込んでください。</p>
+          <button type="button" class="link-button" data-iframe-src="../vgm_analyzer/index.html"
+            data-iframe-title="Tetorica FM2612 VGM Analyzer" data-iframe-height="900">VGM Analyzerを読み込む</button>
+          <a href="../vgm_analyzer/index.html" style="margin-left: 12px;">別のページで開く &rarr;</a>
+        </div>
+        <p><a href="../vgm_analyzer/index.html">VGM Analyzerを別のページで開く &rarr;</a></p>
+      </section>
+
+      <section class="panel">
+        <h2>ソフトウェアはどうチップを操作するのか</h2>
+        <p>実際のチップには8-bitのデータバスと2本のアドレス選択ピン（<code>A0</code>、<code>A1</code>）があり、パラメーターの変更は、レジスターのアドレスを選ぶ書き込みと、値を書き込む操作の2段階です。<code>ymfm</code>とこのリポジトリーのJavaScript層は、読みやすいメソッド呼び出しでこの操作をまとめていますが、その下では同じパターンを使います。</p>
+        <ul>
+          <li><code>0x30-0x3c</code> &mdash; オペレーターごとのデチューンと周波数倍率</li>
+          <li><code>0x40-0x4c</code> &mdash; オペレーターごとのトータルレベル（音量）</li>
+          <li><code>0x50-0x5c</code> / <code>0x80-0x8c</code> &mdash; オペレーターごとのエンベロープのレート（アタック、サステイン、リリース）</li>
+          <li><code>0xa0</code> / <code>0xa4</code> &mdash; チャンネルごとの周波数</li>
+          <li><code>0xb0</code> &mdash; チャンネルごとのアルゴリズムとフィードバック</li>
+          <li><code>0x28</code> &mdash; 音符を開始・終了するキーオン／キーオフ</li>
+        </ul>
+        <p><a href="../info/ym2612.html">YM2612 Basics</a>では、レジスターマップとピン配置、1つのビープ音を鳴らすための具体的なバイト列を詳しく説明しています。</p>
+      </section>
+
+      <section class="panel">
+        <h2>続けて読む</h2>
+        <p><a href="./tetorica-segapsg.html">JavaScriptで学ぶメガドライブのSega PSG →</a></p>
+        <p><a href="./tetorica-rf5c164.html">JavaScriptで学ぶメガCDのRF5C164 →</a></p>
+        <p><a href="./tetorica-gameboy-pulse.html">Game Boy：パルス波の幅を変えて、音と波形を聴き比べる →</a></p>
+        <p><a href="./tetorica-gameboy-envelope.html">Game Boy：Envelopeの音量変化を聴く →</a> ／ <a href="./tetorica-gameboy-wave.html">32点のWaveを編集する →</a></p>
+        <p><a href="./tetorica_ym2612_soundchip_beep.html">音源チップからビープ音まで：JavaScriptでYM2612のレジスターを操作する →</a></p>
+        <p><a href="./tetorica-just-intonation-equal-temperament-ym2612.html">1つの音から始める：YM2612で聴く純正律と平均律 →</a></p>
+        <p>編集できるPlaygroundの例で、周波数の比率、純正な長3度、等しい音程幅、小数の音程を試せます。</p>
+        <a class="link-button" href="../index-ja.html">トップページへ戻る</a>
+      </section>
+      <section class="panel">
+        <h2><a href="./tetorica-fx.html">FX入門（作成中）</a></h2>
+        <p>Playgroundで音を聴き、PCMを加工するコードを書いて学ぶシリーズです。GainからReverb・組み合わせまで全15章の下書きを、FXの目次から読めます。</p>
+        <ul>
+          <li><a href="./tetorica-fx-gain.html">1. Gain：音の波形に掛け算する</a></li>
+          <li><a href="./tetorica-fx-slicer.html">2. Slicer：鳴り続ける音を刻む</a></li>
+        </ul>
+      </section>
+    </main>
+
+    <script type="module">
+      import { MegaDriveSynth } from "../js/megasynth.js";
+
+      const CHANNEL = 0;
+      const NOTE_BLOCK = 4;
+      const NOTE_FNUM = 644;
+      const NOTE_DURATION_MS = 900;
+
+      // Same 4-operator patch (based on the "4OP Brass-ish" preset) reused for
+      // every algorithm below, so the algorithm wiring is the only thing that
+      // changes from button to button.
+      const OPERATORS = {
+        1: { dt: 0, multi: 2, tl: 18, ar: 28, d1r: 9, d2r: 4, sl: 4, rr: 7 },
+        2: { dt: 0, multi: 1, tl: 12, ar: 26, d1r: 8, d2r: 3, sl: 4, rr: 7 },
+        3: { dt: 0, multi: 3, tl: 22, ar: 24, d1r: 10, d2r: 5, sl: 5, rr: 7 },
+        4: { dt: 0, multi: 1, tl: 6, ar: 30, d1r: 7, d2r: 3, sl: 3, rr: 6 },
+      };
+
+      const ALGORITHMS = [
+        { algorithm: 0, routing: "OP1 -> OP2 -> OP3 -> OP4 -> OUT", note: "すべて直列" },
+        { algorithm: 1, routing: "(OP1 + OP2) -> OP3 -> OP4 -> OUT", note: "2つのモジュレーターを1つの直列経路へ送る" },
+        { algorithm: 2, routing: "(OP1 + (OP2 -> OP3)) -> OP4 -> OUT", note: "直接入力と2段の直列経路" },
+        { algorithm: 3, routing: "((OP1 -> OP2) + OP3) -> OP4 -> OUT", note: "2段の直列経路と直接入力" },
+        { algorithm: 4, routing: "(OP1 -> OP2) + (OP3 -> OP4) -> OUT", note: "独立した2オペレーターのペアを2組" },
+        { algorithm: 5, routing: "(OP1 -> OP2) + (OP1 -> OP3) + (OP1 -> OP4) -> OUT", note: "1つのモジュレーターで3つのキャリアーを変調" },
+        { algorithm: 6, routing: "(OP1 -> OP2) + OP3 + OP4 -> OUT", note: "1つのペアと独立した2つのキャリアー" },
+        { algorithm: 7, routing: "OP1 + OP2 + OP3 + OP4 -> OUT", note: "4つともキャリアー、変調なし" },
+      ];
+
+      const buttonsRoot = document.getElementById("algoButtons");
+      const statusEl = document.getElementById("algoStatus");
+
+      const megaDrive = new MegaDriveSynth({
+        workletUrl: "../js/ym2612-worklet.js",
+        ym2612WasmUrl: "../generated/ym2612_wasm.wasm",
+      });
+
+      let synth = null;
+      let stopTimer = null;
+
+      function installDeferredIframes() {
+        for (const loader of document.querySelectorAll("[data-demo-loader]")) {
+          const button = loader.querySelector("button[data-iframe-src]");
+          if (!button) {
+            continue;
+          }
+          button.addEventListener("click", () => {
+            if (loader.querySelector("iframe")) {
+              return;
+            }
+            const frame = document.createElement("iframe");
+            frame.className = "playground-frame";
+            frame.src = button.dataset.iframeSrc;
+            frame.title = button.dataset.iframeTitle || "Demo";
+            frame.allow = "autoplay";
+            frame.loading = "lazy";
+            frame.style.height = `${button.dataset.iframeHeight || 900}px`;
+            loader.appendChild(frame);
+            button.disabled = true;
+            button.textContent = "読み込み済み";
+          }, { once: true });
+        }
+      }
+
+      async function ensureReady() {
+        if (synth) {
+          await megaDrive.resume();
+          return;
+        }
+        statusEl.textContent = "音源を読み込み中…";
+        await megaDrive.start();
+        synth = megaDrive.fm;
+      }
+
+      function playAlgorithm(entry, button) {
+        for (const other of buttonsRoot.querySelectorAll(".algo-button")) {
+          other.classList.toggle("is-active", other === button);
+        }
+
+        synth.reset();
+        synth.setPreset(CHANNEL, {
+          algorithm: entry.algorithm,
+          feedback: 0,
+          operators: OPERATORS,
+        });
+        synth.setPan(CHANNEL, true, true);
+        synth.noteOn(CHANNEL, NOTE_BLOCK, NOTE_FNUM);
+
+        statusEl.textContent = `ALGO ${entry.algorithm}を再生中：${entry.routing}（${entry.note}）`;
+
+        if (stopTimer) {
+          clearTimeout(stopTimer);
+        }
+        stopTimer = setTimeout(() => {
+          synth.noteOff(CHANNEL);
+        }, NOTE_DURATION_MS);
+      }
+
+      for (const entry of ALGORITHMS) {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "algo-button";
+        button.innerHTML =
+          `<strong>ALGO ${entry.algorithm}</strong><span>${entry.routing}</span>`;
+
+        button.addEventListener("click", async () => {
+          button.disabled = true;
+          try {
+            await ensureReady();
+            playAlgorithm(entry, button);
+          } catch (error) {
+            console.error(error);
+            statusEl.textContent = `エラー：${error.message}`;
+          } finally {
+            button.disabled = false;
+          }
+        });
+
+        buttonsRoot.appendChild(button);
+      }
+
+      installDeferredIframes();
+    </script>
+    <script src="./playground-embed.js"></script>
+  </body>
+</html>
