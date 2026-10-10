@@ -16,6 +16,7 @@ public:
 
     void reset();
     void write(uint8_t data);
+    void set_mute_mask(uint8_t mask) { m_mute_mask = mask & 0x0f; }
     void generate(float *left, float *right, uint32_t frames);
 
     uint32_t sample_rate() const { return m_sample_rate; }
@@ -29,6 +30,8 @@ public:
         io.field(m_noise_counter); io.field(m_noise_output_high); io.field(m_latched_channel); io.field(m_latched_volume);
     }
 private:
+    // Playback setting: preserve it across reset and synthesis state restoration.
+    uint8_t m_mute_mask = 0;
     struct ToneChannel
     {
         uint16_t period;

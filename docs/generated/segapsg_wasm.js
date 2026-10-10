@@ -1454,6 +1454,7 @@ var _segapsg_create = Module['_segapsg_create'] = makeInvalidEarlyAccess('_segap
 var _segapsg_destroy = Module['_segapsg_destroy'] = makeInvalidEarlyAccess('_segapsg_destroy');
 var _segapsg_reset = Module['_segapsg_reset'] = makeInvalidEarlyAccess('_segapsg_reset');
 var _segapsg_write = Module['_segapsg_write'] = makeInvalidEarlyAccess('_segapsg_write');
+var _segapsg_set_mute_mask = Module['_segapsg_set_mute_mask'] = makeInvalidEarlyAccess('_segapsg_set_mute_mask');
 var _segapsg_sample_rate = Module['_segapsg_sample_rate'] = makeInvalidEarlyAccess('_segapsg_sample_rate');
 var _segapsg_generate = Module['_segapsg_generate'] = makeInvalidEarlyAccess('_segapsg_generate');
 var _segapsg_save_state = Module['_segapsg_save_state'] = makeInvalidEarlyAccess('_segapsg_save_state');
@@ -1478,6 +1479,7 @@ function assignWasmExports(wasmExports) {
   assert(typeof wasmExports['segapsg_destroy'] != 'undefined', 'missing Wasm export: segapsg_destroy');
   assert(typeof wasmExports['segapsg_reset'] != 'undefined', 'missing Wasm export: segapsg_reset');
   assert(typeof wasmExports['segapsg_write'] != 'undefined', 'missing Wasm export: segapsg_write');
+  assert(typeof wasmExports['segapsg_set_mute_mask'] != 'undefined', 'missing Wasm export: segapsg_set_mute_mask');
   assert(typeof wasmExports['segapsg_sample_rate'] != 'undefined', 'missing Wasm export: segapsg_sample_rate');
   assert(typeof wasmExports['segapsg_generate'] != 'undefined', 'missing Wasm export: segapsg_generate');
   assert(typeof wasmExports['segapsg_save_state'] != 'undefined', 'missing Wasm export: segapsg_save_state');
@@ -1499,6 +1501,7 @@ function assignWasmExports(wasmExports) {
   _segapsg_destroy = Module['_segapsg_destroy'] = createExportWrapper('segapsg_destroy', wasmExports['segapsg_destroy'], 1);
   _segapsg_reset = Module['_segapsg_reset'] = createExportWrapper('segapsg_reset', wasmExports['segapsg_reset'], 1);
   _segapsg_write = Module['_segapsg_write'] = createExportWrapper('segapsg_write', wasmExports['segapsg_write'], 2);
+  _segapsg_set_mute_mask = Module['_segapsg_set_mute_mask'] = createExportWrapper('segapsg_set_mute_mask', wasmExports['segapsg_set_mute_mask'], 2);
   _segapsg_sample_rate = Module['_segapsg_sample_rate'] = createExportWrapper('segapsg_sample_rate', wasmExports['segapsg_sample_rate'], 1);
   _segapsg_generate = Module['_segapsg_generate'] = createExportWrapper('segapsg_generate', wasmExports['segapsg_generate'], 4);
   _segapsg_save_state = Module['_segapsg_save_state'] = createExportWrapper('segapsg_save_state', wasmExports['segapsg_save_state'], 2);

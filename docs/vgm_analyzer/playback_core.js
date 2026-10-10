@@ -374,7 +374,7 @@ export function playbackMuteControls(configuration) {
   const counts={huc6280:6,ym2203:3,ym2151:8,ym2413:9,ym3526:9,ym3812:9,ymf262:18,ymf278b:18,y8950:9,gameboy:4,nes:(h.nesApuClock & 0x80000000)?6:5};
   if(counts[kind])channels(kind+'-ch',counts[kind],'setChannelMuted');
   if(kind==='ymf278b')channels('ymf278b-pcm',24,'setPcmChannelMuted');
-  if(h.psgClock)add('psg','setPsgMuted');
+  if(h.psgClock){add('psg','setPsgMuted');channels('psg-ch',4,'setPsgChannelMuted');}
   if(kind==='ym2612'){
     if(h.rf5c164Clock)add('rf5c164','setPcmMuted');
     if(h.pwmClock)add('pwm','setPwmMuted');

@@ -78,6 +78,10 @@ export class Ym2151AudioEngine {
    */
   getMasterVolume() { return this.volume; }
   /** @param {boolean} value */
+  setPsgChannelMuted(channel, muted) {
+    if (!Number.isInteger(channel) || channel < 0 || channel > 3) throw new RangeError('Invalid Sega PSG channel');
+    this.psg?.setChannelMuted(channel, muted);
+  }
   setPsgMuted(value) { this.psgMuted = Boolean(value); }
   /**
    * Change one physical channel mute flag.
@@ -135,7 +139,7 @@ export class Ym2151AudioEngine {
       (!this.segapcm || this.segapcm.supportsState?.()) && (!this.writeOki6258 || this.attachedOki6258?.supportsState?.()));
   }
   stateSettingsKey() {
-    return JSON.stringify([this.chipRate,this.outputRate,this.volume,this.ym2151.muteMask,this.psgMuted,
+    return JSON.stringify([this.chipRate,this.outputRate,this.volume,this.ym2151.muteMask,this.psgMuted,this.psg?.muteMask,
       this.segapcmMuted,this.segapcmChannelMask,this.attachedOki6258?.stateSettingsKey()]);
   }
   /** @returns {Readonly<{byteLength:number}>} Opaque snapshot owned by this instance. */

@@ -542,6 +542,7 @@ and present chips. Unsupported-ID errors include the available IDs.
 | `ymf262-ch-1..18`, `ymf278b-ch-1..18`, `ymf278b-pcm-1..24` | OPL3 FM / OPL4 PCM channels |
 | `gameboy-ch-1..4` | DMG channels |
 | `psg`, `rf5c164`, `pwm`, `okim6258`, `okim6295` | Present companion/standalone source |
+| `psg-ch-1..4` | Sega PSG Tone 1–3 and Noise; muting preserves registers and oscillator state |
 | `ssg`, `rhythm`, `adpcm-a`, `adpcm-b` | OPN internal sources as applicable (rhythm: YM2608; ADPCM-A: YM2610/B) |
 | `y8950-adpcm` | Standalone Y8950 ADPCM |
 | `segapcm`, `segapcm-ch-1..16` | Sega PCM alone or with YM2151 |

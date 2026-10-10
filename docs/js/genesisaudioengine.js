@@ -115,7 +115,7 @@ export class GenesisAudioEngine {
     return !this.writeOki6258 && this.ym2612.supportsState?.() && this.psg.supportsState?.() && (!this.pcm || this.pcm.supportsState?.());
   }
   stateSettingsKey() {
-    return JSON.stringify([this._sampleRate, this._masterVolume, this._psgMuted, this._pcmMuted, this.pwm.muted,
+    return JSON.stringify([this._sampleRate, this._masterVolume, this._psgMuted, this.psg.muteMask, this._pcmMuted, this.pwm.muted,
       this.pwm.constructor.name, this.pwm.clock, this.pwm.gain, this.pwm.outputMode]);
   }
   /** @returns {Readonly<{byteLength:number}>} Opaque snapshot owned by this instance. */
@@ -189,6 +189,10 @@ export class GenesisAudioEngine {
   }
 
   /** @param {boolean} muted */
+  setPsgChannelMuted(channel, muted) {
+    if (!Number.isInteger(channel) || channel < 0 || channel > 3) throw new RangeError('Invalid Sega PSG channel');
+    this.psg?.setChannelMuted(channel, muted);
+  }
   setPsgMuted(muted) { this._psgMuted = Boolean(muted); }
 
   /** @param {boolean} muted */

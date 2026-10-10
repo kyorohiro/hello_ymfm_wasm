@@ -27,6 +27,7 @@ export class SegaPSG {
     this.leftPtr = 0;
     this.rightPtr = 0;
     this.bufferFrames = 0;
+    this.muteMask = 0;
   }
 
   /**
@@ -57,6 +58,7 @@ export class SegaPSG {
       destroy: module.cwrap("segapsg_destroy", null, ["number"]),
       reset: module.cwrap("segapsg_reset", null, ["number"]),
       write: module.cwrap("segapsg_write", null, ["number", "number"]),
+      setMuteMask: module.cwrap("segapsg_set_mute_mask", null, ["number", "number"]),
       sampleRate: module.cwrap("segapsg_sample_rate", "number", ["number"]),
       generate: module.cwrap("segapsg_generate", null, ["number", "number", "number", "number"]),
     };
@@ -126,6 +128,13 @@ export class SegaPSG {
    */
   write(data) {
     this.api.write(this.handle, data);
+  }
+
+  /** Mute Tone 1–3 / Noise (0–3) without changing registers or oscillator state. */
+  setChannelMuted(channel, muted) {
+    if (!Number.isInteger(channel) || channel < 0 || channel > 3) throw new RangeError('Invalid Sega PSG channel');
+    this.muteMask = muted ? this.muteMask | (1 << channel) : this.muteMask & ~(1 << channel);
+    this.api.setMuteMask(this.handle, this.muteMask);
   }
 
   /**

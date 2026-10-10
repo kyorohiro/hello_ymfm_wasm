@@ -467,10 +467,10 @@ let pcmMonitor = createRf5c164Monitor();
 let engineClockKey = null;
 const sourceChipKind = () => noteishHeader?.pwmClock && currentChipKind === "ym2612" ? "32x" : currentHasPcm && currentChipKind === "ym2612" ? "megacd" : currentChipKind;
 const hasOkiSource = () => Boolean(noteishHeader?.okim6258Clock);
+let noteishHeader = {};
 let channelMonitor = createChannelMonitorState();
 let monitorFrequencyHigh = [0, 0];
 let psgMonitor = createPsgMonitor(currentChipKind);
-let noteishHeader = {};
 let toneChannels = [];
 let apuNoteMonitor = createGameboyMonitor();
 let apuNoteChannels = [];
@@ -501,6 +501,7 @@ const huc6280ChannelMutes = Array(6).fill(false);
 const nesChannelMutes = Array(6).fill(false);
 let mixedPlaybackParts = [];
 const sourceMutes = { psg: false, ssg: false, rhythm: false, adpcmB: false, pcm: false, pwm: false, oki: false, oki6295: false, segapcm: false };
+const psgChannelMutes = [false, false, false, false];
 // Without the rhythm ROM, decoding its all-zero sample stream is audible
 // noise, not silence (see YM2608_RHYTHM_ROM_WARNING) - force the source
 // mute so the chip stays quiet there regardless of the user's toggle,
@@ -684,6 +685,18 @@ function renderMonitorToggles() {
     return;
   }
 
+  if (noteishHeader?.psgClock & 0x3fffffff) {
+    psgChannelMutes.forEach((muted, index) => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = `channel-toggle${muted ? ' is-muted' : ''}`;
+      button.textContent = `PSG ${index === 3 ? 'CH4 Noise' : `CH${index + 1}`} ${muted ? 'Off' : 'On'}`;
+      button.setAttribute('aria-pressed', String(!muted));
+      button.setAttribute('data-monitor-toggle-kind', 'psg-channel');
+      button.setAttribute('data-channel-index', String(index));
+      monitorToggles.append(button);
+    });
+  }
   if (['msx', 'y8950'].includes(currentChipKind)) {
     for (const control of msxMuteControls(currentChipKind, noteishHeader)) {
       const muted = msxMutes.get(control.key) ?? false;
@@ -785,6 +798,16 @@ function ensureMonitorToggleHandler() {
     }
     event.preventDefault();
     const kind = target.getAttribute("data-monitor-toggle-kind");
+    if (kind === 'psg-channel') {
+      const index = Number(target.getAttribute('data-channel-index'));
+      if (!Number.isInteger(index) || index < 0 || index > 3 || !(noteishHeader?.psgClock & 0x3fffffff)) return;
+      psgChannelMutes[index] = !psgChannelMutes[index];
+      engine?.setPsgChannelMuted?.(index, psgChannelMutes[index]);
+      renderMonitorToggles();
+      requestChannelMonitorRender();
+      flushPendingAudio();
+      return;
+    }
     if(kind==='mixed-source' && currentChipKind==='mixed'){toggleSourceMute(target.getAttribute('data-mixed-source'));return;}
     if (kind === 'msx-control' && ['msx', 'y8950'].includes(currentChipKind)) {
       const control = msxMuteControls(currentChipKind, noteishHeader).find(c => c.key === target.getAttribute('data-msx-control'));
@@ -822,6 +845,8 @@ function ensureMonitorToggleHandler() {
 }
 
 function createChannelMonitorState() {
+  // PSG-only / PWM-only inputs share the Genesis renderer, but have no FM channels.
+  if (currentChipKind === 'ym2612' && !(noteishHeader.ym2612Clock & 0x3fffffff)) return [];
   if (["mixed", "huc6280", "okim6295", "okim6258", "msx", "y8950", "ymf278b", "ym3526", "ym3812", "ymf262", "segapcm", "nes", "gameboy", "ym2151", "ym2413", "ay8910"].includes(currentChipKind)) return [];
   const channelCount = currentChipKind === "ym2203" ? 3 : 6;
   return Array.from({ length: channelCount }, (_, index) => buildMonitorChannel(index));
@@ -1877,9 +1902,10 @@ function flushPendingAudio() {
     player.clearQueuedAudio();
   }
   if (activeStream && activeStream.mode === "worklet") {
+    activeStream.queueRevision = (activeStream.queueRevision ?? 0) + 1;
     activeStream.workletQueuedFrames = 0;
     activeStream.endSent = false;
-    activeStream.node.port.postMessage({ type: "flush", startupFrames: currentWorkletTargetFrames(), smoothFrames: Math.round(activeStream.node.context.sampleRate * 0.005) });
+    activeStream.node.port.postMessage({ type: "flush", queueRevision: activeStream.queueRevision, paused: Boolean(player?.isPaused()), startupFrames: currentWorkletTargetFrames(), smoothFrames: Math.round(activeStream.node.context.sampleRate * 0.005) });
     scheduleWorkletPump();
   }
 }
@@ -2696,6 +2722,7 @@ async function ensurePlaybackReady(vgm) {
     }
   }
   mixerUi.attach(engine.playbackMixer);
+  if (noteishHeader?.psgClock & 0x3fffffff) psgChannelMutes.forEach((muted, index) => engine.setPsgChannelMuted?.(index, muted));
   engineClockKey = nextClockKey;
   if (currentChipKind === "ym2203") channelMonitor.forEach((channel, index) => engine.setChannelMuted(index, channel.muted));
   if (CHANNEL_MUTE_CHIPS.includes(currentChipKind)) channelMutesForChip(currentChipKind).forEach((muted, index) => engine.setChannelMuted(index, muted));
@@ -3206,7 +3233,7 @@ async function startWorkletStream(sampleRate) {
   }
   if (!workletModuleReady) {
     try {
-      await audioContext.audioWorklet.addModule("../js/vgm-output-worklet.js?v=underrun-recovery-1");
+      await audioContext.audioWorklet.addModule("../js/vgm-output-worklet.js?v=mute-refill-2");
       workletModuleReady = true;
     } catch (error) {
       console.warn("AudioWorklet module load failed; falling back to ScriptProcessorNode.", error);
@@ -3226,6 +3253,7 @@ async function startWorkletStream(sampleRate) {
     node,
     chunkFrames,
     workletQueuedFrames: 0,
+    queueRevision: 0,
     underruns: 0, renderMs: 0, maxRenderMs: 0,
     endSent: false,
   };
@@ -3235,6 +3263,8 @@ async function startWorkletStream(sampleRate) {
       return;
     }
     const data = event.data || {};
+    // Notifications sent before the latest mute flush describe discarded PCM.
+    if (data.queueRevision !== stream.queueRevision) return;
     if (typeof data.queuedFrames === "number") {
       stream.workletQueuedFrames = data.queuedFrames;
     }
@@ -3647,6 +3677,7 @@ async function resumeTimelinePlayback() {
   if (!player || timelineSeekController) return;
   if (timelineSelectionPending) { await playCurrentVgm(seekSelection ?? songTimeline.selected()); return; }
   player.resume();
+  if (activeStream?.mode === 'worklet') activeStream.node.port.postMessage({type: 'resume'});
   await audioContext?.resume();
   scheduleWorkletPump();
   updatePlaybackButtons(player.stats());
@@ -3696,6 +3727,7 @@ pauseButton.addEventListener("click", async () => {
     return;
   }
   player.pause();
+  if (activeStream?.mode === 'worklet') activeStream.node.port.postMessage({type: 'pause'});
   await audioContext?.suspend();
   updatePlaybackButtons(player.stats());
   setStatus("Paused.");

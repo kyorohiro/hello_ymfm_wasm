@@ -87,6 +87,10 @@ export class Y8950AudioEngine {
     this.lastLeft = this.lastRight = 0;
   }
   /** @param {boolean} value */
+  setPsgChannelMuted(channel, muted) {
+    if (!Number.isInteger(channel) || channel < 0 || channel > 3) throw new RangeError('Invalid Sega PSG channel');
+    this.psg?.setChannelMuted(channel, muted);
+  }
   setPsgMuted(value) { this.psgMuted = Boolean(value); }
   /**
    * Dispatch a VGM register/command write to the corresponding sound chip.

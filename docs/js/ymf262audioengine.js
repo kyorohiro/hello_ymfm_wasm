@@ -70,6 +70,10 @@ export class Ymf262AudioEngine {
    */
   getMasterVolume() { return this.volume; }
   /** @param {boolean} value */
+  setPsgChannelMuted(channel, muted) {
+    if (!Number.isInteger(channel) || channel < 0 || channel > 3) throw new RangeError('Invalid Sega PSG channel');
+    this.psg?.setChannelMuted(channel, muted);
+  }
   setPsgMuted(value) { this.psgMuted = Boolean(value); }
   /**
    * Change one physical channel mute flag.

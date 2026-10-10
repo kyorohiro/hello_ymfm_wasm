@@ -114,3 +114,57 @@ for(const path of ['../../web/vgm-output-worklet.js','../js/vgm-output-worklet.j
  // A second immediate toggle starts from the last audible value, not from zero.
  w.send({type:'flush',startupFrames:4,smoothFrames:4});w.enqueue(Array(8).fill(.8));assert(Math.abs(w.output(1)[0][0]+.8)<1e-6);
 });
+
+for(const path of ['../../web/vgm-output-worklet.js','../js/vgm-output-worklet.js'])test(`${path}: mute refill reports current revision and keeps pause intact`,()=>{
+ const w=processor(path,8192);
+ w.send({type:'flush',queueRevision:3,startupFrames:8192,paused:true});
+ w.enqueue(Array(2048).fill(.5));w.output(128);
+ assert.equal(w.p.paused,true);assert.equal(w.p.consumedFrames,0);
+ w.send({type:'resume'});w.output(128);
+ assert.equal(w.messages.at(-1).queueRevision,3);
+ assert.equal(w.messages.at(-1).queuedFrames,2048);
+ // Reports below the refill threshold wake a stalled producer.
+ w.enqueue(Array(6144).fill(.5));assert.equal(w.output(128)[0][0],.5);
+ assert.equal(w.p.consumedFrames,128);
+});
+
+test('Analyzer ignores pre-mute queue/end reports and accepts current refill reports',async()=>{
+ const w=processor('../js/vgm-output-worklet.js',8192);
+ let scheduled=0,stopped=0,paused=false;
+ const node={context:{sampleRate:44100},port:{postMessage:data=>w.send(data)}};
+ const c=vm.createContext({audioContext:{audioWorklet:{},sampleRate:44100},workletModuleReady:true,workletQueueMultiplier:4,
+  AudioWorkletNode:function(){return node;},playbackFade:{checked:false},activeStream:null,
+  player:{clearQueuedAudio(){},isPaused:()=>paused},currentWorkletTargetFrames:()=>8192,
+  scheduleWorkletPump(){scheduled++;},rewireAudioGraph(){},pumpWorkletChunks(){},
+  stopActiveStream(){stopped++;},resetTimelineToStart(){},requestPlaybackUiRender(){},setStatus(){},currentStatusSuffix(){},advancePlaylist(){},
+ });
+ const start=source.indexOf('async function startWorkletStream('),end=source.indexOf('\nfunction startScriptProcessorStream',start);
+ vm.runInContext(source.slice(start,end),c);
+ const flush=source.indexOf('function flushPendingAudio(');
+ vm.runInContext(source.slice(flush,source.indexOf('\nfunction toggleSourceMute',flush)),c);
+ await c.startWorkletStream(44100);
+ c.activeStream.workletQueuedFrames=8192;c.flushPendingAudio();
+ assert.equal(c.activeStream.queueRevision,1);assert.equal(w.p.queueRevision,1);
+ const count=scheduled;
+ node.port.onmessage({data:{queueRevision:0,queuedFrames:8192,ended:true}});
+ assert.equal(stopped,0);assert.equal(scheduled,count);assert.equal(c.activeStream.workletQueuedFrames,0);
+ w.output(128);node.port.onmessage({data:w.messages.at(-1)});
+ assert.equal(scheduled,count+1);
+ paused=true;c.flushPendingAudio();assert.equal(w.p.paused,true);
+ assert.equal(c.activeStream.queueRevision,2);
+ c.timelineSeekController=null;c.timelineSelectionPending=false;
+ c.player.resume=()=>{paused=false;};c.player.stats=()=>({});c.audioContext.resume=async()=>{};c.updatePlaybackButtons=()=>{};
+ const resume=source.indexOf('async function resumeTimelinePlayback(');
+ vm.runInContext(source.slice(resume,source.indexOf('\nvar songTimeline',resume)),c);
+ await c.resumeTimelinePlayback();assert.equal(w.p.paused,false);assert.equal(paused,false);
+ node.port.onmessage({data:{queueRevision:1,queuedFrames:8192}});assert.equal(c.activeStream.workletQueuedFrames,0);
+});
+
+test('PSG-only Game Gear uses no phantom FM monitor channels',()=>{
+ const start=source.indexOf('function createChannelMonitorState('),end=source.indexOf('\nfunction buildMonitorChannel',start);
+ const c=vm.createContext({currentChipKind:'ym2612',noteishHeader:{psgClock:3579545},buildMonitorChannel:channel=>({channel})});
+ vm.runInContext(source.slice(start,end),c);
+ assert.equal(c.createChannelMonitorState().length,0);
+ c.noteishHeader.ym2612Clock=7670454;assert.equal(c.createChannelMonitorState().length,6);
+ c.currentChipKind='ym2203';c.noteishHeader={ym2203Clock:4000000};assert.equal(c.createChannelMonitorState().length,3);
+});

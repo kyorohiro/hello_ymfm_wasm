@@ -172,10 +172,10 @@ void SegaPSG::generate(float *left, float *right, uint32_t frames)
 
         float mixed = 0.0f;
 
-        mixed += tone_level(0);
-        mixed += tone_level(1);
-        mixed += tone_level(2);
-        mixed += noise_level();
+        if (!(m_mute_mask & 1)) mixed += tone_level(0);
+        if (!(m_mute_mask & 2)) mixed += tone_level(1);
+        if (!(m_mute_mask & 4)) mixed += tone_level(2);
+        if (!(m_mute_mask & 8)) mixed += noise_level();
 
         mixed *= OUTPUT_GAIN;
 

@@ -124,7 +124,7 @@ for (const mode of ['worklet', 'script']) {
     vm.runInContext(source.slice(start, end), p.context);
     if (mode === 'worklet') {
       await p.context.startWorkletStream(44100);
-      node.port.onmessage({ data: { ended: true, queuedFrames: 0 } });
+      node.port.onmessage({ data: { ended: true, queuedFrames: 0, queueRevision: 0 } });
     } else {
       p.context.startScriptProcessorStream();
       node.onaudioprocess({ outputBuffer: { getChannelData: () => new Float32Array(2048) } });

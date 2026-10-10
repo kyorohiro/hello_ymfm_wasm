@@ -64,6 +64,10 @@ export class SegaPcmAudioEngine {
    */
   writePsg(value){this.psg?.write(value);}
   /** @param {boolean} value */
+  setPsgChannelMuted(channel, muted) {
+    if (!Number.isInteger(channel) || channel < 0 || channel > 3) throw new RangeError('Invalid Sega PSG channel');
+    this.psg?.setChannelMuted(channel, muted);
+  }
   setPsgMuted(value){this.psgMuted=Boolean(value);}
   /** @param {boolean} muted */
   setSegaPcmMuted(muted){this.muted=Boolean(muted);this.applyMute();}

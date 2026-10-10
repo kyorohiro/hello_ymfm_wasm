@@ -21,6 +21,7 @@ class VgmOutputProcessor extends AudioWorkletProcessor {
     this.transitionRemaining = 0;
     this.transitionFrom = [0, 0];
     this.stopRemaining = null;
+    this.queueRevision = 0;
     this.queue = [];
     this.queuedFrames = 0;
     this.consumedFrames = 0;
@@ -68,7 +69,8 @@ class VgmOutputProcessor extends AudioWorkletProcessor {
           this.startupFrames = data.startupFrames;
           this.refillFrames = this.recoveryFrames > 0 ? Math.max(this.startupFrames, this.fadeFrames + 128) : this.startupFrames;
         }
-        this.paused = false;
+        this.queueRevision = Number.isSafeInteger(data.queueRevision) ? data.queueRevision : this.queueRevision + 1;
+        this.paused = Boolean(data.paused);
         this.queue = [];
         this.queuedFrames = 0;
         this.consumedFrames = 0;
@@ -116,7 +118,7 @@ class VgmOutputProcessor extends AudioWorkletProcessor {
       this.transitionFrames = this.recoveryFrames;
       this.transitionRemaining = this.recoveryFrames;
       this.transitionFrom = this.lastOutput.slice();
-      this.port.postMessage({type: "state", queuedFrames: this.queuedFrames,
+      this.port.postMessage({type: "state", queueRevision: this.queueRevision, queuedFrames: this.queuedFrames,
         consumedFrames: this.consumedFrames, underruns: this.underruns});
     }
     if (this.buffering) {
@@ -124,6 +126,9 @@ class VgmOutputProcessor extends AudioWorkletProcessor {
       if (this.queuedFrames < Math.max(this.startupFrames, this.refillFrames) && !this.endRequested) {
         left.fill(0);
         right.fill(0);
+        // Keep requesting refill even if a delayed queue report stalled the producer.
+        this.port.postMessage({type: "state", queueRevision: this.queueRevision,
+          queuedFrames: this.queuedFrames, consumedFrames: this.consumedFrames, underruns: this.underruns});
         return true;
       }
       this.buffering = false;
@@ -207,6 +212,7 @@ class VgmOutputProcessor extends AudioWorkletProcessor {
     ) {
       this.port.postMessage({
         type: "state",
+        queueRevision: this.queueRevision,
         queuedFrames: this.queuedFrames,
         consumedFrames: this.consumedFrames,
         underruns: this.underruns,

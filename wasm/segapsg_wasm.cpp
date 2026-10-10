@@ -36,6 +36,11 @@ void segapsg_write(void *ptr, uint8_t data)
     cast_handle(ptr)->write(data);
 }
 
+void segapsg_set_mute_mask(void *ptr, uint8_t mask)
+{
+    cast_handle(ptr)->set_mute_mask(mask);
+}
+
 uint32_t segapsg_sample_rate(void *ptr)
 {
     return cast_handle(ptr)->sample_rate();

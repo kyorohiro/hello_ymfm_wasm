@@ -33,7 +33,7 @@ test('AY common controls retain masks, reset on load and leave Operator display 
   assert.deepEqual(applied,[[0,true],[1,false],[2,false],['ay',true],['opll',true]]);
   const source=readFileSync(new URL('./vgm_analyzer.js',import.meta.url),'utf8');
   const root={children:[],append(b){this.children.push(b);}},inline={replaceChildren(...children){this.children=children;}};
-  const ctx=vm.createContext({currentChipKind:'ay8910',ayMonitor:monitor,ensureMonitorToggleHandler(){},monitorToggles:root,inlineMonitorToggles:inline,
+  const ctx=vm.createContext({noteishHeader:{},currentChipKind:'ay8910',ayMonitor:monitor,ensureMonitorToggleHandler(){},monitorToggles:root,inlineMonitorToggles:inline,
    document:{createElement(){return {attrs:{},setAttribute(k,v){this.attrs[k]=v;},cloneNode(){return this;}};}}});
   vm.runInContext(source.slice(source.indexOf('function renderMonitorToggles()'),source.indexOf('function ensureMonitorToggleHandler()')),ctx);
   ctx.renderMonitorToggles();
