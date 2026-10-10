@@ -23,6 +23,11 @@ export type Snapshot = {
     files: StoredFile[];
     directories: string[];
 };
+export type FileCheckpoint = {
+    snapshot: Snapshot;
+    revisions: Record<string, number>;
+    scope: object;
+};
 /** Memory filesystem. Reads return copies; replace/restore validate before committing.
  * @param {Array<{path:string,data:string|Uint8Array|ArrayBuffer}>} [entries] */
 export declare function createVirtualFileSystem(entries?: Array<{
@@ -59,6 +64,8 @@ export declare function createVirtualFileSystem(entries?: Array<{
     }>, dirs?: string[]): void;
     /** @returns {Snapshot} */
     snapshot(): Snapshot;
+    /** In-memory checkpoint, bound to this store. @returns {FileCheckpoint} */
+    checkpoint(): FileCheckpoint;
     /** @param {Snapshot} snapshot */
     restore(snapshot: Snapshot): void;
     /** @param {string} path @param {string|Uint8Array|ArrayBuffer} data @param {{expectedRevision?:number}} [options] */

@@ -1,4 +1,4 @@
-import {applyTextPatch,diffSnapshots} from './patch.js';
+import {applyTextPatch,diffSnapshots,undoFileChanges} from './patch.js';
 const compare=(a,b)=>a<b?-1:a>b?1:0;
 const lines=text=>{const result=text.split('\n');if(result.at(-1)==='')result.pop();return result;};
 const integer=(value,min,max,name)=>{const n=Number(value);if(!/^\d+$/.test(value)||!Number.isSafeInteger(n)||n<min||n>max)throw Error(`Invalid ${name}: expected ${min}..${max}`);return n;};
@@ -114,13 +114,22 @@ export function registerAgentCommands(register,authorize){
     if(flags['--list'])return JSON.stringify([...snapshots.keys()].sort())+'\n';
     if(flags['--remove']){if(!positional.length||!snapshots.delete(name))throw Error('Snapshot not found');return;}
     if(!snapshots.has(name)&&snapshots.size>=8)throw Error('At most 8 snapshots; remove one first');
-    snapshots.set(name,context.fs.snapshot());return flags['--json']?JSON.stringify({name,files:snapshots.get(name).files.length})+'\n':`Snapshot ${name} saved\n`;
+    snapshots.set(name,context.fs.checkpoint());return flags['--json']?JSON.stringify({name,files:snapshots.get(name).snapshot.files.length})+'\n':`Snapshot ${name} saved\n`;
+  });
+  register('undo',context=>{
+    const {flags,positional}=options(context.args,['--json','--dry-run'],[]);
+    if(positional.length<2||positional.length>3)throw Error('Usage: undo [--json] [--dry-run] BEFORE AFTER [PATH]');
+    const before=snapshots.get(positional[0]),after=snapshots.get(positional[1]);
+    if(!before||!after)throw Error('Snapshot not found');
+    const report=undoFileChanges(context.fs,before,after,{path:context.resolve(positional[2]??'/'),dryRun:!!flags['--dry-run'],authorize,assertActive:context.assertActive});
+    const stdout=flags['--json']?JSON.stringify(report)+'\n':report.conflicts.length?`Undo conflict: ${report.conflicts.map(c=>c.path).join(', ')}\n`:`${report.applied?'Undid':'Preview'} ${report.total} path change(s)\n`;
+    return {code:report.conflicts.length?1:0,stdout,stderr:''};
   });
   register('diff',context=>{
     const {flags,positional}=options(context.args,['--json'],['--offset','--limit']);
     if(positional.length>2)throw Error('Usage: diff [--json] [--offset N] [--limit N] [NAME] [PATH]');
     const name=positional[0]??'baseline',before=snapshots.get(name);if(!before)throw Error(`Snapshot not found: ${name}`);
-    const changes=diffSnapshots(before,context.fs.snapshot(),{path:context.resolve(positional[1]??'/')});
+    const changes=diffSnapshots(before.snapshot,context.fs.snapshot(),{path:context.resolve(positional[1]??'/')});
     return resultPage(changes,flags,e=>e.hunk?`--- ${e.path} (before)\n+++ ${e.path} (after)\n${e.hunk}${e.hunkTruncated?'[hunk truncated]\n':''}`:`${e.status}: ${e.path} (${e.beforeType??'missing'} -> ${e.afterType??'missing'})`);
   });
   return {clearSnapshots(){snapshots.clear();}};

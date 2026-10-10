@@ -70,3 +70,14 @@ test('script sessions reject ABA and delete/recreate, including an observed miss
  assert.throws(()=>session.facade.writeText('/new','bad'),/changed during/);
  session.facade.get('/new');session.facade.writeText('/new','accepted',{expectedRevision:fs.getRevision('/new')});
 });
+test('undo inside a script shares checkpoints but retains reserved-file and entry-point protection',async()=>{
+ const {fs,session}=setup(),shell=createShell({fs});fs.writeText('/sys/file','reserved');
+ await shell.execute('snapshot before');fs.writeText('/index.js','updated');fs.writeText('/sys/file','changed');await shell.execute('snapshot after');
+ const blocked=await shell.execute('undo before after',{fs:session.facade});assert.equal(blocked.code,1);assert.equal(fs.get('/index.js').data,'updated');
+ assert.equal((await shell.execute('undo before after /index.js',{fs:session.facade})).code,0);assert.equal(fs.get('/index.js').data,'initial');
+ await shell.execute('snapshot absent');fs.delete('/index.js');await shell.execute('snapshot deleted');
+ // Restoration of the entry point is permitted; deletion by undo is protected.
+ assert.equal((await shell.execute('undo absent deleted /index.js',{fs:session.facade})).code,0);
+ const second=createShell({fs});fs.delete('/index.js');await second.execute('snapshot missing');fs.writeText('/index.js','new');await second.execute('snapshot created');
+ assert.equal((await second.execute('undo missing created',{fs:session.facade})).code,1);assert.equal(fs.get('/index.js').data,'new');
+});

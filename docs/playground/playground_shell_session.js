@@ -50,6 +50,7 @@ export function createShellFileSession({fs,context,isCurrent=()=>true,sync=()=>{
     readdir(path='.'){guard();return fs.readdir(pathOf(path));},
     list(){guard();const files=fs.list();for(const file of files){observed.set(file.path,file);revisions.set(file.path,fs.getRevision(file.path));}return files;},
     listDirectories(){guard();return fs.listDirectories();},
+    checkpoint(){guard();facade.snapshot();return fs.checkpoint();},
     snapshot(){guard();const snapshot=fs.snapshot();for(const file of fs.list()){observed.set(file.path,file);revisions.set(file.path,fs.getRevision(file.path));}return snapshot;},
     writeText(path,text,options={}){path=pathOf(path);if(typeof text!=='string')throw TypeError('Expected text');return mutate([path],'write',()=>fs.writeText(path,text,options));},
     writeBinary(path,bytes,options={}){path=pathOf(path);return mutate([path],'write',()=>fs.writeBinary(path,bytes,options));},

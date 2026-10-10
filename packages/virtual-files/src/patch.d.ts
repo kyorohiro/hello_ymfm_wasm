@@ -67,3 +67,30 @@ export type SnapshotChange = {
 export declare function diffSnapshots(before: import('./filesystem.js').Snapshot, after: import('./filesystem.js').Snapshot, { path }?: {
     path?: string;
 }): SnapshotChange[];
+/** Undo only the paths changed between two live-store checkpoints. Unrelated
+ * edits are retained; any conflict prevents the entire commit.
+ * @param {ReturnType<typeof createVirtualFileSystem>} fs
+ * @param {import('./filesystem.js').FileCheckpoint} before
+ * @param {import('./filesystem.js').FileCheckpoint} after
+ * @param {{path?:string,dryRun?:boolean,authorize?:(operation:string,paths:string[])=>void,assertActive?:()=>void}} [options] */
+export declare function undoFileChanges(fs: ReturnType<typeof createVirtualFileSystem>, before: import('./filesystem.js').FileCheckpoint, after: import('./filesystem.js').FileCheckpoint, { path, dryRun, authorize, assertActive }?: {
+    path?: string;
+    dryRun?: boolean;
+    authorize?: (operation: string, paths: string[]) => void;
+    assertActive?: () => void;
+}): {
+    applied: boolean;
+    total: number;
+    changes: {
+        path: string;
+        status: 'added' | 'removed' | 'modified';
+        beforeType: 'text' | 'binary' | 'directory' | null;
+        afterType: 'text' | 'binary' | 'directory' | null;
+    }[];
+    conflicts: {
+        path: string;
+        reason: string;
+    }[];
+    totalConflicts: number;
+    truncated: boolean;
+};

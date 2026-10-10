@@ -116,7 +116,7 @@ export function createShell({fs,cwd = '/',authorize = () => {}}) {
     find:'find [PATH] [-name GLOB] [-type f|d] [--json] [--offset N] [--limit N]',
     rg:'rg [-n] [-F] [-i] [-l] [--json] [--offset N] [--limit N] LITERAL [PATH]',
     read:'read [--start N] [--end N] [--max-chars N] [--json] PATH',
-    js:'js [--json] PATH [ARGS...]',result:'result [--json] [RUN_ID]',check:'check [--json] [PATH]',patch:'patch [--json] [--dry-run] PATCH_FILE|-',snapshot:'snapshot [NAME] | snapshot --list | snapshot --remove NAME',diff:'diff [--json] [--offset N] [--limit N] [NAME] [PATH]',
+    js:'js [--json] PATH [ARGS...]',result:'result [--json] [RUN_ID]',check:'check [--json] [PATH]',patch:'patch [--json] [--dry-run] PATCH_FILE|-',undo:'undo [--json] [--dry-run] BEFORE AFTER [PATH]',snapshot:'snapshot [NAME] | snapshot --list | snapshot --remove NAME',diff:'diff [--json] [--offset N] [--limit N] [NAME] [PATH]',
     edit:'edit [--revision N] [--expect N] [--dry-run] [--json] PATH OLD_TEXT NEW_TEXT',help:'help [COMMAND|--json]'};
   shell.register('help',({args})=>{
     if(args.length>1)throw Error('Usage: help [COMMAND|--json]');

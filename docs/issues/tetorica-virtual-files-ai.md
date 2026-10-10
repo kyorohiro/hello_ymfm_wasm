@@ -57,9 +57,8 @@ MCP固有のAPIをこのライブラリーには追加していない。ホス�
 
 ## 次の候補
 
-1. snapshotを使う明示的な変更取消。人間の後続編集を上書きしない競合判定が必要。
-2. MCP経由で検索→patch→check→js→resultの一連操作を確認。
-3. npmへの追加機能の公開。
+1. MCP経由で検索→patch→check→js→resultの一連操作を確認。
+2. npmへの追加機能の公開。
 
 検索はリテラル方式。正規表現検索、Git、command chainingは今後の拡張として残す。
 
@@ -69,5 +68,13 @@ MCP固有のAPIをこのライブラリーには追加していない。ホス�
 - `read --json`／`find --json`／get・list・statで取得、`getRevision`で削除済みパスも確認。
 - `edit --revision N`、patch各操作の`expectedRevision`、直接writeの条件付き更新に対応。patchは1件の競合で全件拒否。
 - Playgroundのスクリプト実行と出力リダイレクトもrevisionで競合判定。
-- revisionはFSインスタンス内の情報。snapshotは内容のみ保存し、restoreで現在の番号を巻き戻さない。明示的な取消コマンドは引き続き残件。
+- revisionはFSインスタンス内の情報。snapshotは内容のみ保存し、restoreで現在の番号を巻き戻さない。明示的な取消は後述のundoで対応。
 - 検証: core＋Playgroundの65テスト成功、Node 22でcoreの34テスト成功。Chromiumでrevision取得／古いedit拒否／worker API／編集して元に戻した場合の競合保護、既存pipelineとautosaveを確認。dev ZIPの296参照検査も成功。
+
+## snapshotの安全な取消（実装済み・未公開）
+
+- `undo [--json] [--dry-run] BEFORE AFTER [PATH]`：名前付きsnapshot間の変更だけを取消。snapshotは内容に加え、同じFSインスタンス内のrevision履歴も保存。
+- AFTER以降のrevision変更、削除・再作成、削除対象ディレクトリーへの後続追加を検知。1件でも競合したら全件を止め、無関係な編集は保持。
+- テキスト／バイナリ／作成／削除／型変更／空ディレクトリーに対応。原子的に反映し、sys・entry pointの既存保護を適用。
+- APIは`fs.checkpoint()`と`undoFileChanges`。履歴はメモリ内のみ。BEFORE〜AFTER間の編集者判定は行わないので、AFTERは対象作業直後に保存する。
+- 検証: core＋Playgroundの74テスト成功。Node 22でもundoを確認。Chromiumでpreview／取消／人間の後続編集と元に戻す編集の保護／対象パス指定／入れ子のjs／autosave／再読込時の履歴破棄を確認。dev ZIPの296参照検査成功。

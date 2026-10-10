@@ -3,6 +3,7 @@ import {createVirtualFileReader} from './reader.js';
 /** @typedef {{path:string, revision:number, type:'text', data:string}|{path:string,revision:number,type:'binary',data:Uint8Array}} VirtualFile */
 /** @typedef {{path:string,type:'text',data:string}|{path:string,type:'binary',data:Uint8Array}} StoredFile */
 /** @typedef {{version:1, files:StoredFile[], directories:string[]}} Snapshot */
+/** @typedef {{snapshot:Snapshot,revisions:Record<string,number>,scope:object}} FileCheckpoint */
 /** @param {string|Uint8Array|ArrayBuffer} data */
 function copy(data) {
   if (typeof data === 'string') return data;
@@ -18,6 +19,7 @@ export function createVirtualFileSystem(entries = []) {
   let directories = new Set(['/']);
   const listeners = new Set();
   // Tombstones keep deleted paths from reusing an earlier revision. Session-local only.
+  const scope=Object.freeze({});
   const revisions = new Map([['/',1]]);let sequence=1;
   const same=(a,b)=>a===b?true:!a||!b?false:a.type===b.type&&(a.type==='text'?a.data===b.data:a.data.length===b.data.length&&a.data.every((v,i)=>v===b.data[i]));
   function updateRevisions(nextFiles,nextDirs){
@@ -84,6 +86,8 @@ export function createVirtualFileSystem(entries = []) {
     replace(entries, dirs = []) {commit(entries, dirs);},
     /** @returns {Snapshot} */
     snapshot() {return {version:1,files:fs.list().map(({revision,...file})=>file),directories:fs.listDirectories()};},
+    /** In-memory checkpoint, bound to this store. @returns {FileCheckpoint} */
+    checkpoint() {return {snapshot:fs.snapshot(),revisions:Object.fromEntries(revisions),scope};},
     /** @param {Snapshot} snapshot */
     restore(snapshot) {if (snapshot.version !== 1) throw Error('Unsupported filesystem snapshot');commit(snapshot.files,snapshot.directories);},
     /** @param {string} path @param {string|Uint8Array|ArrayBuffer} data @param {{expectedRevision?:number}} [options] */

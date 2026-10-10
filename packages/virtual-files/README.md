@@ -165,7 +165,52 @@ also use revisions to detect subsequent edits that return to the same content.
 Revisions belong to one filesystem instance and are not timestamps or persistent
 IDs. Discard cached revisions when a project reloads. Version-1 snapshots remain
 content-only: restoring one creates new live revisions for changed paths and
-never resets the counters. Explicit snapshot undo is still pending.
+never resets the counters. Named shell snapshots also retain in-memory revision
+checkpoints for the explicit undo operation below.
+
+## Safe snapshot undo (working tree)
+
+```javascript
+await shell.execute('snapshot before');
+await shell.execute(['edit', '/index.js', 'value = 1', 'value = 2']);
+await shell.execute('snapshot after'); // Save immediately after the intended changes.
+await shell.execute('undo --dry-run --json before after');
+await shell.execute('undo --json before after');
+```
+
+`undo [--json] [--dry-run] BEFORE AFTER [PATH]` requires two named snapshots.
+It reverses the content/type/existence differences between them, optionally
+restricted to a path or subtree (default `/`). Each affected path must still
+match the AFTER snapshot's revision and state. Any conflict stops the entire
+operation, including previews, with exit code 1. No force option bypasses this.
+A directory scheduled for removal must not contain later additions.
+
+Only selected changes are restored; unrelated human edits remain. Text, binary
+files, deletions, creations, type transitions and empty directories are supported.
+Validation completes before a single filesystem commit. A dry run and an empty
+change set never write. Undo creates new revisions, so repeating the same undo
+usually reports a conflict. Save new snapshots for subsequent operations.
+
+The JSON report has `applied`, `total`, `changes`, `conflicts`, `totalConflicts`
+and `truncated`. Change and conflict lists each show at most 100 paths; the whole
+operation is validated regardless of display limits. Conflict entries contain
+`path` and `reason`. Successful no-ops report `applied: false`, `total: 0`.
+Authorization errors follow the ordinary shell error response.
+
+Snapshots cover the entire virtual filesystem, and undo cannot identify who made
+changes *between* BEFORE and AFTER. Save AFTER immediately after the intended
+work; use the optional path filter to narrow the scope. Subsequent edits are
+protected by revisions, even if contents later return to the same value.
+History is memory-only and cleared when the project changes or shell is disposed.
+
+For API consumers, `fs.checkpoint()` captures content, revision history (including
+deleted paths), and an opaque instance scope. `undoFileChanges(fs, before, after,
+{path, dryRun, authorize, assertActive})` implements the same operation.
+Checkpoints must come from the same live filesystem instance and must not be
+serialized or modified. Plain version-1 content snapshots are not undo checkpoints.
+The host policy receives `authorize('undo', paths)` and separate `rm` checks for
+removed/replaced types. Playground keeps `/sys` read-only and protects `/index.js`
+from deletion, including undo of a newly created entry point.
 
 ## Atomic patches and snapshot diffs (working tree)
 

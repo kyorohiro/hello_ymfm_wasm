@@ -78,3 +78,42 @@ export function diffSnapshots(before,after,{path='/'}={}){
   }
   return changes;
 }
+
+/** Undo only the paths changed between two live-store checkpoints. Unrelated
+ * edits are retained; any conflict prevents the entire commit.
+ * @param {ReturnType<typeof createVirtualFileSystem>} fs
+ * @param {import('./filesystem.js').FileCheckpoint} before
+ * @param {import('./filesystem.js').FileCheckpoint} after
+ * @param {{path?:string,dryRun?:boolean,authorize?:(operation:string,paths:string[])=>void,assertActive?:()=>void}} [options] */
+export function undoFileChanges(fs,before,after,{path='/',dryRun=false,authorize=()=>{},assertActive=()=>{}}={}){
+  assertActive();
+  if(!before||!after||before.scope!==fs.checkpoint().scope||after.scope!==before.scope)throw Error('Undo checkpoints belong to a different filesystem');
+  const changes=diffSnapshots(before.snapshot,after.snapshot,{path}).map(({hunk,hunkTruncated,...change})=>change);
+  const oldFiles=new Map(before.snapshot.files.map(f=>[f.path,f]));
+  const afterFiles=new Map(after.snapshot.files.map(f=>[f.path,f]));
+  const afterDirs=new Set(after.snapshot.directories),selected=new Set(changes.map(c=>c.path));
+  function conflicts(){
+    assertActive();const found=[];
+    const currentPaths=[...fs.list().map(f=>f.path),...fs.listDirectories()];
+    for(const change of changes){
+      const path=change.path,current=fs.get(path),expected=afterFiles.get(path);
+      const revision=after.revisions[path]??0;
+      if(!Number.isSafeInteger(revision)||revision<0)throw Error('Invalid checkpoint revision');
+      if(fs.getRevision(path)!==revision||(current||expected?(!current||!expected||!same(current,expected)):fs.listDirectories().includes(path)!==afterDirs.has(path)))found.push({path,reason:'changed since AFTER snapshot'});
+      else if(change.afterType==='directory'&&change.beforeType!=='directory'&&currentPaths.some(p=>p.startsWith(path+'/')&&!selected.has(p)))found.push({path,reason:'directory contains later additions'});
+    }
+    return found;
+  }
+  let blocked=conflicts();
+  const report=()=>({applied:false,total:changes.length,changes:changes.slice(0,100),conflicts:blocked.slice(0,100),totalConflicts:blocked.length,truncated:changes.length>100||blocked.length>100});
+  if(blocked.length||dryRun||!changes.length)return report();
+  authorize('undo',changes.map(c=>c.path));
+  for(const change of changes)if(change.afterType!==null&&change.afterType!==change.beforeType)authorize('rm',[change.path]);
+  blocked=conflicts();if(blocked.length)return report();
+  // Merge into the latest store so authorization callbacks cannot erase unrelated edits.
+  const files=new Map(fs.list().map(f=>[f.path,f])),dirs=new Set(fs.listDirectories());
+  for(const change of changes){files.delete(change.path);dirs.delete(change.path);if(oldFiles.has(change.path))files.set(change.path,oldFiles.get(change.path));if(change.beforeType==='directory')dirs.add(change.path);}
+  const draft=createVirtualFileSystem();draft.replace([...files.values()],[...dirs]);
+  assertActive();fs.replace(draft.list(),draft.listDirectories());
+  return {...report(),applied:true};
+}
