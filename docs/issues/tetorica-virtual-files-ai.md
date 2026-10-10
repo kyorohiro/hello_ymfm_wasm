@@ -45,10 +45,20 @@ MCP固有のAPIをこのライブラリーには追加していない。ホス�
 - ブラウザーで例外JSON→edit→再実行、import先のエラー位置、Promise失敗、停止結果、従来出力を確認。
 - 共通コア／Playground関連51テスト成功。ブラウザー配布梱包の294参照チェック成功。
 
+## 第4段階（実装・検証済み）
+
+- `|` / `<` / `>` / `>>`: 仮想文字列のpipeとファイル入出力。引数配列・引用符・escape内では記号を文字列として維持。
+- `cat -` / `read -` / `rg PATTERN -`: stdin対応。patchも`patch - < FILE`でJSONを読む。
+- 途中の失敗で後段を停止。stderrは分離。`pipeline --json SOURCE`と`reportStages`で各段の終了コードを取得。
+- リダイレクトの書込みは全段成功後にまとめて反映。出力先の内容変更・権限・型・親パスを検証し、人間の編集を維持。
+- 上限: 32段、stdin／中間stdoutは100万文字。コマンド固有の読込・検索の出力上限は維持。
+- Chromiumでpipe／stdin／追記／途中失敗／patch入力／JS出力の非stream化／人間の編集競合／sys保護／autosaveを確認。
+- コマンド自身の副作用はpipeline全体で巻き戻さない。redirectの出力のみを遅延commitする。
+
 ## 次の候補
 
 1. snapshotを使う明示的な変更取消。人間の後続編集を上書きしない競合判定が必要。
 2. MCP経由で検索→patch→check→js→resultの一連操作を確認。
 3. npmへの追加機能の公開。
 
-検索はリテラル方式。正規表現検索、Git、pipe／redirect／command chainingは今後の拡張として残す。
+検索はリテラル方式。正規表現検索、Git、command chainingは今後の拡張として残す。

@@ -1,5 +1,5 @@
 import {registerShellCheck} from './playground_shell_check.js';
-import {createShell,parseCommand,resolvePath} from '../js/tetorica_virtual_files/index.js';
+import {createShell,parsePipeline,resolvePath} from '../js/tetorica_virtual_files/index.js';
 import {createShellScriptRunner} from './playground_shell_runner.js';
 
 /** The shell shares the editor's store; synchronize live edits before each command. */
@@ -38,8 +38,9 @@ export function installPlaygroundShell({fs, beforeCommand, afterCommand, output,
       if(stopButton)stopButton.disabled=false;
       const startOutput=streamed;append(`${shell.cwd} $ ${source}\n`);setState('Running…');
       try{
-        let tokens=[];try{tokens=Array.isArray(source)?source:parseCommand(source);}catch{}
-        structuredOutput=tokens[0]==='js'&&tokens[1]==='--json';
+        let plan=[];try{plan=Array.isArray(source)?[{args:source}]:parsePipeline(source);}catch{}
+        const tokens=plan[0]?.args??[];
+        structuredOutput=plan.length>1||plan.some(stage=>stage.input||stage.output)||(tokens[0]==='js'||tokens[0]==='pipeline')&&tokens[1]==='--json';
         beforeCommand();
         const result=await shell.execute(source,{signal:controller.signal});
         if(requestedEpoch===epoch)afterCommand();
@@ -99,11 +100,13 @@ export function completeShellPath(fs,cwd,source){
     if(quote){if(char===quote)quote='';else word+=char;continue;}
     if(char==='"'||char==="'"){quote=char;continue;}
     if(/\s/.test(char)){start=index+1;word='';continue;}
+    if('|<>'.includes(char)){start=index+1;word='';continue;}
     word+=char;
   }
   const unchanged={source,matches:[]};
   try{
-    const args=parseCommand(source.slice(0,start));
+    const commandPrefix=source.slice(0,start);
+    const args=/(?:>>|[<>])\s*$/.test(commandPrefix)?['redirect']:parsePipeline(commandPrefix).at(-1)?.args??[];
     if(!args.length||escaped)return unchanged;
     const slash=word.lastIndexOf('/'),prefix=word.slice(0,slash+1),name=word.slice(slash+1);
     const directory=resolvePath(prefix||'.',cwd);

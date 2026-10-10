@@ -26,3 +26,9 @@ test('spaces, quotes and unfinished quoted paths round-trip through the shell pa
   }
   assert.deepEqual(parseCommand(completeShellPath(fs,'/scripts','cat quo').source),['cat','quote".js']);
 });
+test('path completion works after pipes and redirection without treating quoted operators as syntax',()=>{
+ assert.equal(completeShellPath(fs,'/','cat /index.js|cat /ind').source,'cat /index.js|cat /index.js ');
+ assert.equal(completeShellPath(fs,'/','echo x>/ind').source,'echo x>/index.js ');
+ assert.equal(completeShellPath(fs,'/','cat - < /ind').source,'cat - < /index.js ');
+ assert.equal(completeShellPath(fs,'/','echo "| >" /ind').source,'echo "| >" /index.js ');
+});

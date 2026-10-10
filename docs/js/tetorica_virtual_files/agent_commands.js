@@ -51,9 +51,9 @@ export function registerAgentCommands(register,authorize){
     const pattern=flags['-i']?positional[0].toLowerCase():positional[0];
     if(!pattern||pattern.includes('\n')||pattern.includes('\r'))throw Error('Search pattern must be a nonempty single-line literal');
     const entries=[],{offset,limit}=page(flags);let total=0,scanned=0;
-    const files=[...walk(context,context.resolve(positional[1]??'.'))].filter(entry=>entry.type==='file').sort((a,b)=>compare(a.path,b.path));
+    const files=positional[1]==='-'?[{path:'-',type:'file',size:context.stdin.length}]:[...walk(context,context.resolve(positional[1]??'.'))].filter(entry=>entry.type==='file').sort((a,b)=>compare(a.path,b.path));
     for(const entry of files){
-      if(entry.type!=='file')continue;const file=context.fs.get(entry.path);if(file.type!=='text')continue;
+      if(entry.type!=='file')continue;const file=entry.path==='-'?{type:'text',data:context.stdin}:context.fs.get(entry.path);if(file.type!=='text')continue;
       const content=lines(file.data);
       for(let i=0;i<content.length;i++){
         if(++scanned%2048===0)await new Promise(resolve=>setTimeout(resolve,0));
@@ -70,7 +70,7 @@ export function registerAgentCommands(register,authorize){
   register('read',context=>{
     const {flags,positional}=options(context.args,['--json'],['--start','--end','--max-chars']);
     if(positional.length!==1)throw Error('Usage: read [--start N] [--end N] [--max-chars N] [--json] PATH');
-    const path=context.resolve(positional[0]),content=lines(textFile(context,path));
+    const path=positional[0]==='-'?'-':context.resolve(positional[0]),content=lines(path==='-'?context.stdin:textFile(context,path));
     const start=integer(flags['--start']??'1',1,Number.MAX_SAFE_INTEGER,'start');
     const end=integer(flags['--end']??String(start+199),start,Number.MAX_SAFE_INTEGER,'end');
     const max=integer(flags['--max-chars']??'16000',1,64000,'max-chars');

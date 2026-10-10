@@ -42,8 +42,8 @@ requires a separate binary encoding. Persistence is supplied by the host applica
 The shell supports `pwd`, `ls`, `cd`, `cat`, `mkdir [-p]`, `cp`, `mv`, `rm [-r]`,
 `touch`, `write PATH TEXT`, `echo`, `help`, `find`, `rg`, `read` and `edit`. `cp` and `mv` accept files or entire directories.
 It parses quotes and escapes, runs requests in order, and returns
-`{code, stdout, stderr}`. Pipes, redirection, chaining, expansions, host commands
-and JavaScript execution are outside this initial implementation.
+`{code, stdout, stderr}`. Command chaining, expansions, host commands and JavaScript execution are
+outside the independent core; host commands can be registered separately.
 
 ```javascript
 shell.register('count', ({fs, signal}) => {
@@ -229,3 +229,55 @@ console message production, preventing a logging loop from flooding the UI.
 Serialized reports fit within 32,000 characters, with `truncated` flags marking
 omitted stream, console or report content. In JSON mode nested scripts do not
 stream extra text into the top-level JSON response.
+
+## Virtual text pipelines and redirection (working tree)
+
+String commands passed to `shell.execute()` support `|`, `<`, `>` and `>>`,
+including operators without surrounding spaces. Quotes and escapes keep these
+characters literal. Argument arrays always remain literal; use a string when
+requesting a pipeline. `parsePipeline(source)` exposes the same parser.
+`parseCommand(source)` remains the strict argument-only parser.
+
+```sh
+cat /index.js | rg -F setBpm -
+read --start 2 --end 10 - < /index.js
+patch - < /changes.json
+find --json /scripts > /files.json
+echo next >> /notes.txt
+pipeline --json 'cat /index.js | rg setBpm -'
+```
+
+`cat -`, `read -` and `rg PATTERN -` read stdin. Search identifies stdin as path
+`-` in its numbered or JSON output. Existing result limits and pagination stay
+in effect for `read` and `rg`. `<` reads an existing text file and is supported
+on the first pipeline stage. Each stage accepts at most one input and one output
+redirect. `>` replaces a text file; `>>` appends or creates it. Binary outputs,
+directory targets, missing redirect paths, file descriptors such as `2>` and
+command chaining (`&&`, `||`, `;`, background `&`) are rejected.
+
+Stages run sequentially with virtual string buffers. Only stdout is passed to
+the next stage; stderr is collected separately. A nonzero stage stops the
+pipeline and its code becomes the final code. No matches in `rg` therefore stop
+subsequent stages. At most 32 stages and 1,000,000 characters of pipeline input
+or intermediate stdout are supported. A stage whose stdout is redirected gives
+empty stdin to the next stage. Commands and redirect paths use the pipeline's
+starting cwd; a `cd` command can still change cwd for later shell requests.
+
+Output redirects are staged and written together only after every stage
+succeeds. Before commit the shell authorizes `redirect` with all output paths
+and checks that their contents still match what was read before execution.
+A human edit, a binary/directory conflict, denied host policy, failed stage or
+cancellation prevents those redirect writes. Validated writes commit in one
+filesystem change, preserving unrelated files, binary data and empty directories.
+Side effects performed explicitly by stage commands (such as `patch` or `write`)
+are not rolled back if a later stage fails.
+
+Pipeline results include `stages: [{command: string[], code: number}]` for the
+stages actually executed. `execute(source, {reportStages:true})` also requests
+this metadata for a single command. `pipeline --json SOURCE` serializes the
+full `{code, stdout, stderr, stages}` result into stdout for terminal/MCP callers.
+An aborted wrapper may return the normal code-130 cancellation response.
+Playground suppresses direct script streaming during pipelines/redirection,
+so only the pipeline's final output and collected stderr appear in the terminal.
+Path completion also works after operators, and nested `tetorica:shell` scripts
+use the same pipeline implementation and guarded filesystem.

@@ -5,10 +5,15 @@ export type CommandResult = {
     code: number;
     stdout: string;
     stderr: string;
+    stages?: Array<{
+        command: string[];
+        code: number;
+    }>;
 };
 export type ExecuteOptions = {
     signal?: AbortSignal;
     stdin?: string;
+    reportStages?: boolean;
     fs?: ReturnType<typeof import('./filesystem.js').createVirtualFileSystem>;
 };
 export type CommandContext = {
@@ -22,8 +27,8 @@ export type CommandContext = {
     stdin: string;
 };
 export type Command = (context: CommandContext) => string | void | CommandResult | Promise<string | void | CommandResult>;
-/** @typedef {{code:number,stdout:string,stderr:string}} CommandResult */
-/** @typedef {{signal?:AbortSignal,stdin?:string,fs?:ReturnType<typeof import('./filesystem.js').createVirtualFileSystem>}} ExecuteOptions */
+/** @typedef {{code:number,stdout:string,stderr:string,stages?:Array<{command:string[],code:number}>}} CommandResult */
+/** @typedef {{signal?:AbortSignal,stdin?:string,reportStages?:boolean,fs?:ReturnType<typeof import('./filesystem.js').createVirtualFileSystem>}} ExecuteOptions */
 /** @typedef {{execute:(source:string|string[],options?:ExecuteOptions)=>Promise<CommandResult>,assertActive:()=>void,fs:ReturnType<typeof import('./filesystem.js').createVirtualFileSystem>,args:string[],cwd:string,resolve:(path:string)=>string,signal?:AbortSignal,stdin:string}} CommandContext */
 /** @typedef {(context:CommandContext)=>string|void|CommandResult|Promise<string|void|CommandResult>} Command */
 /** @param {{fs:ReturnType<typeof import('./filesystem.js').createVirtualFileSystem>,cwd?:string,authorize?:(operation:string,paths:string[])=>void}} options */

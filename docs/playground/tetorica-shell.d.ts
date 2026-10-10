@@ -13,7 +13,7 @@ declare module 'tetorica:shell' {
     error: {name: string; message: string; stack: string; path: string | null; line: number | null; column: number | null} | null;
     truncated: {stdout: boolean; stderr: boolean; console: boolean; report: boolean};
   };
-  export type CommandResult = {code: number; stdout: string; stderr: string};
+  export type CommandResult = {code: number; stdout: string; stderr: string; stages?: Array<{command: string[]; code: number}>};
   export interface ShellFiles {
     get(path: string): Promise<VirtualFile | null>;
     has(path: string): Promise<boolean>;

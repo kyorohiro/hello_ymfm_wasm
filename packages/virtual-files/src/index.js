@@ -3,3 +3,4 @@ export {normalizeVirtualPath,resolvePath,dirname} from './path.js';
 export {createVirtualFileReader} from './reader.js';
 export {createShell,parseCommand} from './shell.js';
 export {applyTextPatch,diffSnapshots} from './patch.js';
+export {parsePipeline} from './pipeline.js';

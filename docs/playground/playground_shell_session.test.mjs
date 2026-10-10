@@ -53,3 +53,8 @@ test('atomic patches honor session reserved paths and retain the project entry p
  const remove=[{type:'delete',path:'/index.js',expectedText:'initial'}];assert.equal((await shell.execute(['patch','-'],{stdin:JSON.stringify(remove),fs:session.facade})).code,1);assert.equal(fs.has('/index.js'),true);
  const edits=[{path:'/index.js',oldText:'initial',newText:'updated'},{path:'/scripts/main.js',oldText:'script',newText:'changed'}];assert.equal((await shell.execute(['patch','-'],{stdin:JSON.stringify(edits),fs:session.facade})).code,0);assert.equal(fs.get('/index.js').data,'updated');assert.equal(fs.get('/scripts/main.js').data,'changed');
 });
+test('pipeline redirection uses guarded files and protects /sys',async()=>{
+ const {fs,session}=setup();fs.writeText('/sys/locked','reserved');const shell=createShell({fs});const before=fs.snapshot();
+ assert.equal((await shell.execute('echo bad > /sys/locked',{fs:session.facade})).code,1);assert.deepEqual(fs.snapshot(),before);
+ assert.equal((await shell.execute('echo good | cat - > /scripts/out.txt',{fs:session.facade})).code,0);assert.equal(fs.get('/scripts/out.txt').data,'good\n');
+});
