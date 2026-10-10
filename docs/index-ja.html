@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="ja">
 
 <head>
   <meta charset="utf-8">
@@ -7,10 +7,10 @@
   <link rel="describedby" href="./llms.txt" type="text/markdown">
   <link rel="alternate" hreflang="en" href="./index.html">
   <link rel="alternate" hreflang="ja" href="./index-ja.html">
-  <title>Tetorica FM2612 — JavaScript FM Synthesis and VGM Tools</title>
-    <meta name="description" content="Explore YM2612 FM synthesis in your browser: live-code music in JavaScript, analyze VGM files, and edit extracted TFI instruments with Tetorica.">
-    <meta property="og:title" content="Tetorica FM2612 — JavaScript FM Synthesis and VGM Tools">
-    <meta property="og:description" content="Explore YM2612 FM synthesis in your browser: live-code music in JavaScript, analyze VGM files, and edit extracted TFI instruments with Tetorica.">
+  <title>Tetorica FM2612 — JavaScriptのFM音源とVGMツール</title>
+    <meta name="description" content="JavaScriptでレトロゲームサウンドをライブコーディング。TetoricaでVGMファイルを解析し、抽出したTFI音色を編集・試聴できます。">
+    <meta property="og:title" content="Tetorica FM2612 — JavaScriptのFM音源とVGMツール">
+    <meta property="og:description" content="JavaScriptでレトロゲームサウンドをライブコーディング。TetoricaでVGMファイルを解析し、抽出したTFI音色を編集・試聴できます。">
     <meta property="og:type" content="website">
   <style>
     :root {
@@ -260,103 +260,90 @@
     <section class="panel">
       <h1>Tetorica FM2612 (hello_ymfm_wasm)</h1>
 
-      <nav class="language-nav" aria-label="Language and AI documentation">
-        <a href="./index.html" lang="en" hreflang="en" aria-current="page">English</a>
+      <nav class="language-nav" aria-label="言語とAI向けドキュメント">
+        <a href="./index.html" lang="en" hreflang="en">English</a>
         <span aria-hidden="true">|</span>
-        <a href="./index-ja.html" lang="ja" hreflang="ja">日本語</a>
+        <a href="./index-ja.html" lang="ja" hreflang="ja" aria-current="page">日本語</a>
         <span aria-hidden="true">|</span>
         <a href="./for-ai.html">AI/SI</a>
       </nav>
 
       <p>
-        Tetorica is a tool for live coding retro game sounds in JavaScript,
-        including the sounds of the Sega Genesis / Mega Drive and Game Boy.
+        Tetoricaは、JavaScriptでメガドライブやゲームボーイなどのレトロゲームサウンドをライブコーディングするツールです。
       </p>
 
-      <h2>Goals</h2>
+      <h2>プロジェクトの目標</h2>
 
-      <p>This repository has four goals:</p>
+      <p>このリポジトリーには4つの目標があります。</p>
 
       <ul>
-        <li>To understand the YM2612 chip.</li>
-        <li>To create documentation that helps anyone understand the YM2612 chip.</li>
+        <li>YM2612チップを理解すること。</li>
+        <li>誰でもYM2612チップを理解できるドキュメントを作ること。</li>
         <li>
-          To create documentation that helps anyone embed YM2612 audio
-          in a browser app or game.
+          ブラウザーアプリやゲームにYM2612の音声を組み込む方法を、誰でも理解できるドキュメントを作ること。
         </li>
         <li>
-          To preserve older game music and sound chip technology as cultural heritage
-          that people today can read, investigate, learn from, and reconstruct—not only
-          archive and play back.
+          古いゲーム音楽や音源チップの技術を文化的な遺産として残すこと。保存・再生に加え、今の人たちが読み解き、調査し、学び、再構成できる形を目指します。
         </li>
       </ul>
 
       <p>
-        This repository also provides YM2612 WebAssembly modules and
-        JavaScript interfaces for browser-side use.
+        このリポジトリーでは、ブラウザーで使うYM2612のWebAssemblyモジュールとJavaScriptインターフェースも提供しています。
       </p>
 
       <p>
-        Repository:
+        リポジトリー：
         <a href="https://github.com/kyorohiro/hello_ymfm_wasm">
           https://github.com/kyorohiro/hello_ymfm_wasm
         </a>
       </p>
 
       <p>
-        These demos use
+        これらのデモは
         <a href="https://github.com/aaronsgiles/ymfm">ymfm</a>
-        by Aaron Giles under the BSD 3-Clause License.
+        （Aaron Giles、BSD 3-Clause License）を使っています。
       </p>
 
-      <h2 id="npm-packages">npm Packages</h2>
+      <h2 id="npm-packages">npmパッケージ</h2>
 
       <p>
-        Use Tetorica in your own projects: analyze existing VGM music with
-        <code>tetorica-vgm</code>, or build sound-chip audio with
-        <code>tetorica-fm2612</code>. Node.js usage requires Node.js 22 or later.
+        自分のプロジェクトでもTetoricaを使えます。<code>tetorica-vgm</code>でVGM音楽を解析し、<code>tetorica-fm2612</code>で音源チップの音声を生成できます。Node.jsでの利用にはNode.js 22以降が必要です。
       </p>
 
       <div class="grid" aria-labelledby="npm-packages">
         <article class="card package-card">
-          <p class="package-kind">VGM tools &middot; Node.js CLI / API</p>
+          <p class="package-kind">VGM解析 &middot; Node.js CLI / API</p>
           <strong>tetorica-vgm</strong>
           <p>
-            Analyze VGM/VGZ files, export scores and FM voices, and render WAV
-            audio. Use the command line or import the analysis and export APIs
-            into a Node.js application.
+            VGM / VGZファイルの解析、楽譜・FM音色のエクスポート、WAV生成を行います。コマンドラインから使うほか、解析・エクスポートAPIをNode.jsアプリに組み込めます。
           </p>
           <pre><code>npm install tetorica-vgm
 npx tetorica-vgm analyze song.vgz --json</code></pre>
           <div class="package-links">
             <a href="https://www.npmjs.com/package/tetorica-vgm">npm &rarr;</a>
-            <a href="https://github.com/kyorohiro/hello_ymfm_wasm/blob/main/packages/vgm/README.md">Usage &amp; Node API &rarr;</a>
-            <a href="https://github.com/kyorohiro/hello_ymfm_wasm/blob/main/CLI.md">CLI reference &rarr;</a>
+            <a href="https://github.com/kyorohiro/hello_ymfm_wasm/blob/main/packages/vgm/README.md">使い方・Node API &rarr;</a>
+            <a href="https://github.com/kyorohiro/hello_ymfm_wasm/blob/main/CLI.md">CLIリファレンス &rarr;</a>
           </div>
         </article>
 
         <article class="card package-card">
-          <p class="package-kind">Sound-chip audio &middot; Browser / Node.js</p>
+          <p class="package-kind">音源チップ &middot; ブラウザー / Node.js</p>
           <strong>tetorica-fm2612</strong>
           <p>
-            Import sound-chip cores and synth APIs as ES modules with prebuilt
-            WASM. Generate PCM in Node.js, or add FM, PSG and PCM audio to a
-            browser app with the included Web Audio runtime.
+            ビルド済みWASMとともに、音源コア・Synth APIをESモジュールとして読み込めます。Node.jsでPCMを生成したり、同梱のWeb AudioランタイムでブラウザーアプリにFM・PSG・PCMの音声を組み込めます。
           </p>
           <pre><code>npm install tetorica-fm2612</code></pre>
           <p>
-            Includes YM2612, related Yamaha chips, Sega PSG, RF5C164 and other
-            sound chips. Start with <code>createSoundChip</code>,
-            <code>YM2612Synth</code> or <code>MegaSynth</code>.
+            YM2612や関連するYamaha音源、Sega PSG、RF5C164などを収録しています。<code>createSoundChip</code>、<code>YM2612Synth</code>、<code>MegaSynth</code>から試せます。
           </p>
           <div class="package-links">
             <a href="https://www.npmjs.com/package/tetorica-fm2612">npm &rarr;</a>
-            <a href="https://kyorohiro.github.io/tetorica-fm2612-examples/">Web &amp; Node.js examples &rarr;</a>
+            <a href="https://kyorohiro.github.io/tetorica-fm2612-examples/">Web・Node.jsの実行例 &rarr;</a>
           </div>
         </article>
       </div>
 
-      <h2>Tetorica Tools (Experimental)</h2>
+      <h2>Tetoricaのツール（実験的）</h2>
 
       <div class="grid">
         <div class="card card-playground card-with-icon">
@@ -364,12 +351,11 @@ npx tetorica-vgm analyze song.vgz --json</code></pre>
           <img class="card-icon" src="./icons/playground-192.png" width="192" height="192" alt="" decoding="async">
           <div class="card-content">
             <strong>YM2612 Playground</strong>
-            Try a small JavaScript playground with <code>play()</code>, <code>beat()</code>, <code>liveLoop()</code>, and
-            raw <code>fm</code> access.
-            <a class="card-engine-link" href="./playground/index.html?engine=nuked">Try with Nuked-OPN2 &rarr;</a>
-            <a class="card-engine-link" href="./playground/index.html?chip=ym2608">PC-98 YM2608 Playground &rarr;</a>
-            <a class="card-engine-link" href="./playground/index.html?chip=ym2203">PC-98 YM2203 Playground &rarr;</a>
-            <a class="card-engine-link" href="./playground/index.html?chip=ym2610">Neo Geo YM2610 Playground &rarr;</a>
+            <code>play()</code>、<code>beat()</code>、<code>liveLoop()</code>と低レベルの<code>fm</code>操作を使い、JavaScriptで音楽を作れます。
+            <a class="card-engine-link" href="./playground/index.html?engine=nuked">Nuked-OPN2で試す &rarr;</a>
+            <a class="card-engine-link" href="./playground/index.html?chip=ym2608">PC-98 YM2608で試す &rarr;</a>
+            <a class="card-engine-link" href="./playground/index.html?chip=ym2203">PC-98 YM2203で試す &rarr;</a>
+            <a class="card-engine-link" href="./playground/index.html?chip=ym2610">Neo Geo YM2610で試す &rarr;</a>
           </div>
         </div>
       </div>
@@ -380,8 +366,8 @@ npx tetorica-vgm analyze song.vgz --json</code></pre>
           <img class="card-icon" src="./icons/icon-192.png" width="192" height="192" alt="" decoding="async">
           <div class="card-content">
             <strong>YM2612 Synth Demo</strong>
-            Try a small YM2612Synth keyboard with a guitar-like PC key layout and preset switching.
-            <a class="card-engine-link" href="./synth/index.html?engine=nuked">Try with Nuked-OPN2 &rarr;</a>
+            ギター風に配置したPCキーボードとプリセット切り替えで、YM2612の音色を演奏・試聴できます。
+            <a class="card-engine-link" href="./synth/index.html?engine=nuked">Nuked-OPN2で試す &rarr;</a>
           </div>
         </div>
       </div>
@@ -392,115 +378,111 @@ npx tetorica-vgm analyze song.vgz --json</code></pre>
           <img class="card-icon" src="./icons/analyzer-192.png" width="192" height="192" alt="" decoding="async">
           <div class="card-content">
             <strong>FM2612 VGM Analyzer</strong>
-            Inspect parsed commands, watch 6 YM2612 channels, and export snapshot data or TFI patches.
-            <a class="card-engine-link" href="./vgm_analyzer/support.html">Sound chip support &rarr;</a>
-            <a class="card-engine-link" href="./vgm_analyzer/index.html?engine=nuked">Try with Nuked-OPN2 &rarr;</a>
+            解析したコマンドとYM2612の6チャンネルを確認し、スナップショットやTFI音色をエクスポートできます。
+            <a class="card-engine-link" href="./vgm_analyzer/support.html">音源チップの対応状況 &rarr;</a>
+            <a class="card-engine-link" href="./vgm_analyzer/index.html?engine=nuked">Nuked-OPN2で試す &rarr;</a>
           </div>
         </div>
       </div>
 
       <div class="grid">
         <div class="card card-playground card-with-icon">
-          <a class="card-primary-link" href="https://kyorohiro.github.io/tetorica-midi-playground/index.html" aria-label="Tetorica MIDI Playground — macOS app"></a>
+          <a class="card-primary-link" href="https://kyorohiro.github.io/tetorica-midi-playground/index.html" aria-label="Tetorica MIDI Playground — macOSアプリ"></a>
           <img class="card-icon" src="./icons/midi-playground.png" width="1254" height="1254" alt="" decoding="async" loading="lazy">
           <div class="card-content">
             <strong>Tetorica MIDI Playground</strong>
-            Live-code MIDI melodies and loops in JavaScript. Connect this macOS app to GarageBand, a DAW, or a MIDI instrument.
-            <a class="card-engine-link" href="https://github.com/kyorohiro/tetorica-midi-playground/releases">Download for macOS &rarr;</a>
-            <a class="card-engine-link" href="https://kyorohiro.itch.io/tetorica-midi-playground">View on itch.io &rarr;</a>
+            JavaScriptでMIDIのメロディーやループをライブコーディング。macOSアプリからGarageBand、DAW、MIDI楽器へ接続できます。
+            <a class="card-engine-link" href="https://github.com/kyorohiro/tetorica-midi-playground/releases">macOS版をダウンロード &rarr;</a>
+            <a class="card-engine-link" href="https://kyorohiro.itch.io/tetorica-midi-playground">itch.ioで見る &rarr;</a>
           </div>
         </div>
       </div>
 
-      <h2>Introduction</h2>
+      <h2>入門</h2>
 
       <div class="grid">
         <a class="card card-introduction" href="./introductions/index.html">
-          <strong>Sega Genesis / Mega Drive YM2612 FM Introduction with JavaScript</strong>
-          New here? Start with what FM synthesis and the YM2612's operators/algorithms actually do,
-          with a live Playground embedded right in the page.
+          <strong>JavaScriptで学ぶメガドライブのYM2612 FM音源</strong>
+          FM合成とYM2612のオペレーター・アルゴリズムの働きを、ページ内のPlaygroundで実際に試しながら学べます。
         </a>
       </div>
       <div class="grid">
         <a class="card card-introduction" href="./introductions/tetorica-segapsg.html">
-          <strong>Sega Genesis / Mega Drive Sega PSG Introduction with JavaScript</strong>
-          Compare square waves, three-note chords, and noise with editable JavaScript examples.
+          <strong>JavaScriptで学ぶメガドライブのSega PSG</strong>
+          矩形波・3音の和音・ノイズを、編集できるJavaScriptで聴き比べます。
         </a>
       </div>
       <div class="grid">
         <a class="card card-introduction" href="./introductions/tetorica-rf5c164.html">
-          <strong>Sega Mega CD RF5C164 Introduction with JavaScript</strong>
-          Play custom waveforms from RAM and explore PCM by changing playback rate, volume, and stereo output.
+          <strong>JavaScriptで学ぶメガCDのRF5C164</strong>
+          自作波形をRAMから再生し、読む速さ・音量・左右出力を変えてPCM音源の基本を試します。
         </a>
       </div>
       <div class="grid">
         <a class="card card-introduction" href="./introductions/tetorica-just-intonation-equal-temperament-ym2612.html">
-          <strong>Just Intonation and Equal Temperament with JavaScript and Sega Genesis / Mega Drive YM2612</strong>
-          Start with one frequency, build intervals from simple ratios, and hear the difference between
-          just intonation and equal temperament directly on the YM2612.
+          <strong>JavaScriptとメガドライブのYM2612で聴く純正律と平均律</strong>
+          1つの周波数から単純な比率で音程を作り、純正律と平均律の違いをYM2612で直接聴き比べます。
         </a>
       </div>
 
       <div class="grid">
         <a class="card card-introduction" href="./introductions/tetorica_ym2612_soundchip_beep.html">
-          <strong>From Sound Chip to Beep: YM2612 in JavaScript</strong>
-          Learn how registers control the YM2612, then edit and run a simple beep in the embedded Playground.
+          <strong>音源チップからビープ音まで：JavaScriptで扱うYM2612</strong>
+          レジスターでYM2612を操作する仕組みを学び、埋め込まれたPlaygroundでビープ音のコードを編集・実行します。
         </a>
       </div>
 
       <div class="grid">
         <a class="card card-introduction" href="./introductions/tetorica-fx.html">
-          <strong>FX Introduction with JavaScript — Work in progress</strong>
-          Explore 15 draft FX lessons, from Gain to Reverb and effect chains, with editable Playground examples.
+          <strong>JavaScriptで学ぶFX — 作成中</strong>
+          GainからReverb、エフェクトチェーンまで、作成中の15のFXレッスンを編集可能なPlaygroundの例で試せます。
         </a>
       </div>
 
       <div class="grid">
         <a class="card card-introduction" href="./introductions/tetorica-gameboy-pulse.html">
-          <strong>Game Boy 01 — Pulse: Compare Pulse Waves</strong>
-          Change duty cycle, pitch, and volume, compare the sound and PCM waveforms, and take your settings home as JavaScript.
+          <strong>Game Boy 01 — Pulse：パルス波を聴き比べる</strong>
+          デューティ比・音程・音量を変え、実際の音とPCM波形を比較。設定をJavaScriptで持ち帰れます。
         </a>
         <a class="card card-introduction" href="./introductions/tetorica-gameboy-envelope.html">
-          <strong>Game Boy 02 — Envelope: Shape Volume over Time</strong>
-          Adjust starting volume, direction, and period, then hear the envelope and inspect the generated PCM amplitude.
+          <strong>Game Boy 02 — Envelope：発音後の音量を変える</strong>
+          初期音量・増減方向・周期を操作し、音量の時間変化を聴いて、生成PCMの振幅から確かめます。
         </a>
         <a class="card card-introduction" href="./introductions/tetorica-gameboy-wave.html">
-          <strong>Game Boy 03 — Wave: Draw and Play a 32-Sample Waveform</strong>
-          Edit triangle and sawtooth waveforms, copy and paste their arrays, and continue editing in the Playground.
+          <strong>Game Boy 03 — Wave：32点の波形を描いて鳴らす</strong>
+          波形を編集して三角波やノコギリ波を比較。配列のコピー・貼り付けとPlaygroundでの編集にも対応。
         </a>
       </div>
 
     </section>
     <section class="panel">
-      <h2>Embed Sound Chips in Web Apps and Games</h2>
+      <h2>Webアプリやゲームに音源チップを組み込む</h2>
       <p>
-        Learn how to use the tetorica-fm2612 npm package through small, complete examples.
-        Explore direct chip control, AudioWorklet output, MegaSynth with FX,
-        event recording and looping, Playground embedding, VGM playback, and TFI / VGI instruments.
+        小さな実行例を通じて、tetorica-fm2612 npmパッケージの使い方を学べます。チップの直接操作、AudioWorklet出力、FX付きMegaSynth、イベントの記録とループ、Playgroundの組み込み、VGM再生、TFI / VGI音色を試せます。
       </p>
       <div class="grid">
         <a class="card" href="https://kyorohiro.github.io/tetorica-fm2612-examples/">
-          <strong>tetorica-fm2612 Examples</strong>
-          Run browser demos, read complete Web and Node.js source, and learn how the runtime fits together.
+          <strong>tetorica-fm2612の実行例</strong>
+          ブラウザーデモを動かし、Web・Node.jsのソース全体を読んで、ランタイムの構成を確認できます。
         </a>
       </div>
     </section>
     <section class="panel">
-      <h2>References</h2>
+      <h2>参考資料</h2>
       <p>
         <a href="https://github.com/aaronsgiles/ymfm">ymfm</a>,
         <a href="https://github.com/h1romas4/libymfm.wasm">libymfm.wasm</a>,
         <a href="https://www.mamedev.org/">MAME</a>,
         <a href="http://retropc.net/cisc/m88/">retropc.net</a>,
-        <a href="http://www.chipdir.nl/pinusr/ym2612.txt">YM2612 pin reference</a>,
+        <a href="http://www.chipdir.nl/pinusr/ym2612.txt">YM2612のピン情報</a>,
         <a href="https://www.vgmpf.com/Wiki/index.php?title=YM2612">VGMPF YM2612</a>,
-        <a href="https://gendev.spritesmind.net/forum/viewtopic.php?start=585&amp;t=386">SpritesMind thread</a>,
+        <a href="https://gendev.spritesmind.net/forum/viewtopic.php?start=585&amp;t=386">SpritesMindの議論</a>,
         <a href="https://chipmusic.org/music#s=ym2612">chipmusic YM2612</a>,
         <a href="https://www.deflemask.com/">DefleMask</a>,
         <a href="https://github.com/jamatarmusic/GENajam">GENajam</a>,
         <a href="https://github.com/ulalume/megatoy">megatoy</a>,
-        <a href="https://another.maple4ever.net/archives/3027/">Maple's Garden article</a>,
-        <a href="https://www.aidanlawrence.com/hardware-sega-genesis-video-game-music-player/">Aidan Lawrence's Sega Genesis video game music player</a>,
+        <a href="https://another.maple4ever.net/archives/3027/">Maple's Gardenの記事</a>,
+        <a href="https://www.aidanlawrence.com/hardware-sega-genesis-video-game-music-player/">Aidan LawrenceのSega Genesis音楽プレーヤー</a>,
         <a href="https://www.zophar.net/music/sega-mega-drive-genesis">Zophar's Domain Genesis Music</a>,
         <a href="https://www.smspower.org/">SMS Power</a>
       </p>

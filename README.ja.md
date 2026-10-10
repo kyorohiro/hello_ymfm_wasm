@@ -136,12 +136,6 @@ npx tetorica-vgm export song.vgz --format sbi --at 1.5 --channel 1 --output voic
 npx tetorica-vgm export song.vgz --format sbi-zip --output voices.zip
 ```
 
-## ヘルプと不具合報告
-
-まずは[操作できる入門ページ](https://kyorohiro.github.io/hello_ymfm_wasm/introductions/index.html)を試してください。再現できる問題があれば、[不具合報告](https://github.com/kyorohiro/hello_ymfm_wasm/issues/new?template=bug_report.md)を作成してください。
-
-ページのURL、ブラウザー・OS、再現手順、期待した動作と実際の動作を記載してください。小さなCassetteのエクスポートや、最小限のコード例があると再現しやすくなります。
-
 ## itch.ioで試す
 
 - [https://kyorohiro.itch.io](https://kyorohiro.itch.io)

@@ -141,13 +141,6 @@ Extract melodic voices from the whole track into a ZIP:
 npx tetorica-vgm export song.vgz --format sbi-zip --output voices.zip
 ```
 
-## Help and bug reports
-
-Start with the [interactive introductions](https://kyorohiro.github.io/hello_ymfm_wasm/introductions/index.html).
-For a reproducible problem, [open a bug report](https://github.com/kyorohiro/hello_ymfm_wasm/issues/new?template=bug_report.md).
-Include the page URL, browser/OS, steps, and expected versus actual behavior.
-A small exported Cassette or a minimal code example helps us reproduce the issue.
-
 ## Try it on itch.io
 
 - [https://kyorohiro.itch.io](https://kyorohiro.itch.io)
