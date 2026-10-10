@@ -516,6 +516,18 @@
         font-size: 0.85rem;
       }
 
+      .audio-monitor-plots { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+      .audio-monitor-plots canvas { width: 100%; height: auto; display: block; }
+      #audioMonitorPanel { padding: 16px; overflow: auto; }
+      body.has-inline-audio-monitor #codePanel { overflow: auto; }
+      body.has-inline-audio-monitor .code-workspace { min-height: 360px; }
+      body.has-inline-audio-monitor #audioMonitorPanel { flex: none; overflow: visible; }
+      #audioMonitorPanel h3 { margin: 8px 0; }
+      #audioMonitorStatus { font-size: .8rem; }
+      @media (max-width: 700px) {
+        .audio-monitor-plots { grid-template-columns: 1fr; }
+      }
+
       body.mode-simple .topbar,
       body.mode-simple .toolbar,
       body.mode-simple .status,
@@ -891,6 +903,30 @@
       .status-bar .volume-control input[type="range"] {
         width: 92px;
       }
+
+      #workPanels.workbench {
+        display: grid;
+        grid-template-columns: var(--file-explorer-width, 210px) 6px minmax(0, 1fr);
+        grid-template-rows: minmax(0, 1fr);
+      }
+      .workbench > .file-explorer { width: auto; }
+      .workbench-right, .workbench-editor, .workbench-primary-panels, .workbench-dock {
+        display: flex; flex-direction: column; min-width: 0; min-height: 0; overflow: hidden;
+      }
+      .workbench-editor, .workbench-primary-panels { flex: 1; }
+      .workbench-dock { flex: 0 0 var(--bottom-panel-height, 260px); border-top: 1px solid var(--line); }
+      .workbench .tabbar { flex: none; overflow-x: auto; padding-top: 0; }
+      .workbench .tab-button { white-space: nowrap; border-radius: 0; }
+      .dock-toggle, .dock-close { margin-left: auto; flex: none; padding: 4px 12px; min-height: 30px; }
+      .dock-close { background: transparent; color: var(--ink); box-shadow: none; font-size: 1.2rem; }
+      .bottom-panel-divider { flex: 0 0 6px; background: rgba(87, 188, 198, .08); cursor: row-resize; touch-action: none; }
+      .bottom-panel-divider:hover, .bottom-panel-divider:focus-visible { background: var(--accent); outline: none; }
+      .workbench.is-resizing, .workbench.is-resizing * { user-select: none; }
+      .workbench-dock[hidden], .bottom-panel-divider[hidden] { display: none; }
+      .workbench #consolePanel:not([hidden]) { display: flex; flex-direction: column; }
+      .workbench #consoleOutput { flex: 1; min-height: 0; overflow: auto; border-radius: 0; }
+      .workbench #shellPanel { overflow: hidden; }
+      .workbench #codePanel .section-heading { display: none; }
 
       .tab-panel[hidden] {
         display: none;
@@ -1672,6 +1708,7 @@
             >
               Code
             </button>
+            <button id="audioMonitorTab" class="tab-button" type="button" role="tab" aria-selected="false" aria-controls="audioMonitorPanel">Audio</button>
             <button id="fxMonitorTab" class="tab-button" type="button" role="tab" aria-selected="false" aria-controls="fxMonitorPanel">FX Monitor</button>
             <button
               id="consoleTab"
@@ -1742,6 +1779,15 @@
             </div>
           </section>
 
+          <section id="audioMonitorPanel" class="tab-panel" role="tabpanel" aria-labelledby="audioMonitorTab" hidden>
+            <label>Channel <select id="audioMonitorChannel"><option value="0">Left</option><option value="1">Right</option></select></label>
+            <p id="audioMonitorStatus" role="status">Press Run to observe audio.</p>
+            <div class="audio-monitor-plots">
+              <div><h3>Oscilloscope</h3><canvas id="audioMonitorWave" width="700" height="220" aria-label="Output waveform over 20 milliseconds"></canvas></div>
+              <div><h3>Spectrum</h3><canvas id="audioMonitorSpectrum" width="700" height="220" aria-label="Output frequency spectrum on a logarithmic frequency axis"></canvas></div>
+            </div>
+            <p class="subtext">Waveform: ±1, 20 ms. Spectrum: −100 to 0 dBFS, 4096-point FFT. These plots show the mixed output after effects and master volume.</p>
+          </section>
           <section id="fxMonitorPanel" class="tab-panel" role="tabpanel" aria-labelledby="fxMonitorTab" hidden>
             <h2>FX Monitor</h2>
             <label>liveFx <select id="fxMonitorTarget" aria-label="Observed liveFx"></select></label>
@@ -2008,6 +2054,6 @@
       </label>
     </footer>
 
-    <script type="module" src="./playground.js?v=virtual-files-1"></script>
+    <script type="module" src="./playground.js?v=workbench-1"></script>
   </body>
 </html>

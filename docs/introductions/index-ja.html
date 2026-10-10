@@ -436,8 +436,8 @@ const pcm = Uint8Array.from({ length: sampleRate * seconds }, (_, i) => {
 await fm.dac.play(pcm, { sampleRate });
 await sleep(seconds);
 </script>
-        <iframe class="playground-frame" data-playground-src="example-diy-fm-sine"
-          title="JavaScriptで正弦波を鳴らす" allow="autoplay" loading="lazy" style="height: 660px;"></iframe>
+        <iframe class="playground-frame" data-playground-src="example-diy-fm-sine" data-playground-monitor="true"
+          title="JavaScriptで正弦波を鳴らす" allow="autoplay" loading="lazy" style="height: 1080px;"></iframe>
         <p><a data-playground-src="example-diy-fm-sine">Playground全体で開く &rarr;</a></p>
         <h3>2. 変調させてみる</h3>
         <p>先ほどの<code>Math.sin(p)</code>を、<code>Math.sin(p2 + a1 * Math.sin(p1))</code>へ変えてみます。元の波の位置<code>p2</code>に、もう1つの波の出力を足します。<code>a1</code>を0、1、3に変えて、その都度Runを押して聴き比べてください。0では先ほどと同じ正弦波に戻ります。</p>
@@ -462,8 +462,8 @@ const pcm = Uint8Array.from({ length: sampleRate * seconds }, (_, i) => {
 await fm.dac.play(pcm, { sampleRate });
 await sleep(seconds);
 </script>
-        <iframe class="playground-frame" data-playground-src="example-diy-fm-modulation"
-          title="JavaScriptで正弦波を変調する" allow="autoplay" loading="lazy" style="height: 740px;"></iframe>
+        <iframe class="playground-frame" data-playground-src="example-diy-fm-modulation" data-playground-monitor="true"
+          title="JavaScriptで正弦波を変調する" allow="autoplay" loading="lazy" style="height: 1160px;"></iframe>
         <p><a data-playground-src="example-diy-fm-modulation">Playground全体で開く &rarr;</a></p>
         <p>次は<code>frequency1</code>だけを880に変えてみましょう。変調の強さだけでなく、2つの波の周波数の比率でも音色が変わります。この例では位相に波を加えています。YM2612のFM音源も、オペレーター同士をこのように位相変調します。</p>
       </section>

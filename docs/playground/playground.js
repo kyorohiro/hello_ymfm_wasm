@@ -1,4 +1,5 @@
 import {installFileExplorerResize} from './playground_file_resize.js';
+import {installPlaygroundWorkbench} from './playground_workbench.js';
 import {installPlaygroundShell} from './playground_shell.js';
 import {openDraftStore, createProjectAutosave} from './playground_autosave.js';
 let desktopAutosave = null;
@@ -11,6 +12,7 @@ import {exportYm2608FullVgm} from './ym2608_vgm_import.js?v=loop-async-tasks-1';
 import {prepareVgmImport, exportGameboyVgm, exportNesVgm, exportRf5c164Vgm, addVgmSoundChipSetup, exportYm2203FullVgm} from './playground_vgm_import.js?v=loop-async-tasks-1';
 import {installPlaygroundPageLifecycle} from "./playground_page_lifecycle.js";
 import {createFXMonitor} from './playground_fx_monitor.js?v=stable-select-1';
+import {createAudioMonitor} from './playground_audio_monitor.js';
 import {installMidiImport} from './playground_midi_import.js?v=midi-sections-1';
 import {
   FM_PRESET_ORDER,
@@ -123,6 +125,7 @@ const exportCassetteButton = document.getElementById("exportCassetteButton");
 const exportTfiButton = document.getElementById("exportTfiButton");
 const exportVgiButton = document.getElementById("exportVgiButton");
 const fileExplorer = document.getElementById("fileExplorer");
+const workbench = installPlaygroundWorkbench(document.getElementById("workPanels"));
 installFileExplorerResize(fileExplorer, document.getElementById("fileExplorerDivider"));
 const cassetteExportDialog = document.getElementById("cassetteExportDialog");
 const cassetteLicenseSelect = document.getElementById("cassetteLicenseSelect");
@@ -1430,15 +1433,37 @@ function deleteActiveVirtualFile() {
 }
 
 const fxMonitor = createFXMonitor(() => runtime.megaDrive?.audio?.nativeFX);
+const inlineAudioMonitor = !workbench && new URLSearchParams(window.location.search).get("monitor") === "1";
+const audioMonitorPanel = document.getElementById("audioMonitorPanel");
+if (inlineAudioMonitor) {
+  document.body.classList.add("has-inline-audio-monitor");
+  codePanel.appendChild(audioMonitorPanel);
+  audioMonitorPanel.setAttribute("role", "region");
+  audioMonitorPanel.removeAttribute("aria-labelledby");
+  audioMonitorPanel.setAttribute("aria-label", "Audio monitor");
+  document.getElementById("audioMonitorTab").hidden = true;
+}
+const audioMonitor = createAudioMonitor(() => runtime.megaDrive?.audio, {
+  panel: audioMonitorPanel,
+  waveCanvas: document.getElementById("audioMonitorWave"),
+  spectrumCanvas: document.getElementById("audioMonitorSpectrum"),
+  channel: document.getElementById("audioMonitorChannel"),
+  status: document.getElementById("audioMonitorStatus"),
+});
 
 const ui =
   createPlaygroundUi({
+    dockedPanels: Boolean(workbench),
+    initialBottomTab: workbench?.initialBottomTab,
+    initialDockOpen: workbench?.initialDockOpen,
     status,
     runtimeState,
     consoleOutput,
     codeTab,
     fxMonitorTab: document.getElementById("fxMonitorTab"),
     fxMonitorPanel: document.getElementById("fxMonitorPanel"),
+    audioMonitorTab: inlineAudioMonitor ? null : document.getElementById("audioMonitorTab"),
+    audioMonitorPanel: inlineAudioMonitor ? null : audioMonitorPanel,
     consoleTab,
     shellTab: document.getElementById("shellTab"),
     shellPanel: document.getElementById("shellPanel"),
@@ -1450,12 +1475,19 @@ const ui =
     helpersPanel,
     operatorPanel,
     keyboardPanel,
-    onBottomTabChange(tabName) {
-      fxMonitor.setVisible(tabName === "fxMonitor");
-      operatorKeyboard.setView(tabName);
-      tfiFileEditor.setVisible(tabName === "code" && Boolean(activeTfiFilePath));
+    onBottomTabChange(tabName, layout) {
+      if (layout) workbench.sync(layout);
+      const tool = layout ? (layout.dockOpen ? layout.bottomTab : null) : tabName;
+      const primary = layout?.primaryTab ?? tabName;
+      fxMonitor.setVisible(tool === "fxMonitor");
+      const showAudio = tool === "audio" || (inlineAudioMonitor && primary === "code");
+      if (inlineAudioMonitor) audioMonitorPanel.hidden = !showAudio;
+      audioMonitor.setVisible(showAudio);
+      operatorKeyboard.setView(primary);
+      tfiFileEditor.setVisible(primary === "code" && Boolean(activeTfiFilePath));
     },
   });
+workbench?.onVisibilityChange(value => ui.setDockVisible(value));
 const {
   setStatus,
   setRuntimeState,

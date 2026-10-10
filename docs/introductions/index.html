@@ -521,8 +521,8 @@ const pcm = Uint8Array.from({ length: sampleRate * seconds }, (_, i) => {
 await fm.dac.play(pcm, { sampleRate });
 await sleep(seconds);
 </script>
-        <iframe class="playground-frame" data-playground-src="example-diy-fm-sine"
-          title="Play a sine wave in JavaScript" allow="autoplay" loading="lazy" style="height: 660px;"></iframe>
+        <iframe class="playground-frame" data-playground-src="example-diy-fm-sine" data-playground-monitor="true"
+          title="Play a sine wave in JavaScript" allow="autoplay" loading="lazy" style="height: 1080px;"></iframe>
         <p><a data-playground-src="example-diy-fm-sine">Open in the full Playground &rarr;</a></p>
         <h3>2. Try modulation</h3>
         <p>Change <code>Math.sin(p)</code> to <code>Math.sin(p2 + a1 * Math.sin(p1))</code>. Add the output of another wave to the original wave's position, <code>p2</code>. Set <code>a1</code> to 0, 1, and 3, pressing Run each time to compare. At 0, you get the same sine wave as before.</p>
@@ -547,8 +547,8 @@ const pcm = Uint8Array.from({ length: sampleRate * seconds }, (_, i) => {
 await fm.dac.play(pcm, { sampleRate });
 await sleep(seconds);
 </script>
-        <iframe class="playground-frame" data-playground-src="example-diy-fm-modulation"
-          title="Modulate a sine wave in JavaScript" allow="autoplay" loading="lazy" style="height: 740px;"></iframe>
+        <iframe class="playground-frame" data-playground-src="example-diy-fm-modulation" data-playground-monitor="true"
+          title="Modulate a sine wave in JavaScript" allow="autoplay" loading="lazy" style="height: 1160px;"></iframe>
         <p><a data-playground-src="example-diy-fm-modulation">Open in the full Playground &rarr;</a></p>
         <p>Next, change only <code>frequency1</code> to 880. The ratio between the two frequencies changes the tone, as does the modulation strength. This example adds a wave to the phase. The YM2612 FM sound chip also uses this kind of phase modulation between operators.</p>
       </section>

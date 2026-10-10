@@ -5,6 +5,7 @@
 //   <script type="text/plain" id="example-foo">...source...</script>
 //   <iframe data-playground-src="example-foo" ...></iframe>
 //   <a data-playground-src="example-foo" ...>Open in full Playground</a>
+// Add data-playground-monitor="true" to an iframe to show Oscilloscope / Spectrum below its editor.
 (function () {
   function toBase64(text) {
     const bytes = new TextEncoder().encode(text);
@@ -20,16 +21,16 @@
     return node ? node.textContent.trim() : "";
   }
 
-  function buildUrl(id, mode, expanded = false) {
+  function buildUrl(id, mode, expanded = false, monitor = false) {
     const encoded = encodeURIComponent(toBase64(sourceFor(id)));
     const modeParam = mode ? `mode=${mode}&` : "";
-    return `../playground/index.html?${modeParam}${expanded ? "expanded=1&" : ""}src=${encoded}`;
+    return `../playground/index.html?${modeParam}${expanded ? "expanded=1&" : ""}${monitor ? "monitor=1&" : ""}src=${encoded}`;
   }
 
   document.querySelectorAll("iframe[data-playground-src]").forEach((iframe) => {
     const mode = iframe.dataset.playgroundMode || "simple";
     // Keep all tabs available while using the iframe area for the editor.
-    iframe.src = buildUrl(iframe.dataset.playgroundSrc, mode, mode === "full");
+    iframe.src = buildUrl(iframe.dataset.playgroundSrc, mode, mode === "full", iframe.dataset.playgroundMonitor === "true");
   });
 
   document.querySelectorAll("a[data-playground-src]").forEach((link) => {

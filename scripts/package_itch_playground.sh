@@ -21,6 +21,8 @@ index.html
 playground.js
 playground_page_lifecycle.js
 playground_fx_monitor.js
+playground_audio_monitor.js
+playground_workbench.js
 playground_cassette.js
 playground_examples.js
 playground_monaco.js
@@ -380,7 +382,9 @@ perl -0pi -e 's#"\./playground\.js"#"./playground.js"#g; s#\.\./js/#./js/#g; s#\
   "${STAGE_DIR}/rf5c164_vgm_export.js" \
   "${STAGE_DIR}/playground_query.js" \
   "${STAGE_DIR}/playground_examples.js" \
-  "${STAGE_DIR}/playground_ui.js"
+  "${STAGE_DIR}/playground_ui.js" \
+  "${STAGE_DIR}/playground_audio_monitor.js" \
+  "${STAGE_DIR}/playground_workbench.js"
 
 node "${ROOT_DIR}/scripts/copy_opna_rhythm.mjs" "${STAGE_DIR}"
 node --experimental-vm-modules "${ROOT_DIR}/scripts/check_playground_package.mjs" "${STAGE_DIR}"

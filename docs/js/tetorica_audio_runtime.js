@@ -27,6 +27,8 @@ export class TetoricaAudioRuntime {
     this.mixer = options.mixer ?? new SoundChipMixer();
     this.masterInputNode = null;
     this.masterOutputNode = null;
+    /** @type {Set<AudioNode>} Non-audible observation branches after FX and master volume. */
+    this.outputMonitors = new Set();
     this.fxChain = [];
     this.sampleBuffers = new Map();
     this.sampleVoices = new Set();
@@ -969,6 +971,21 @@ export class TetoricaAudioRuntime {
     this.rebuildFXChain();
   }
 
+  /**
+   * Observe the mixed output without changing its destination. Reconnected after FX changes.
+   * @param {AudioNode} node Observation input in this runtime's AudioContext.
+   * @returns {() => void} Disconnect this observation branch.
+   */
+  connectOutputMonitor(node) {
+    if (node.context !== this.audioContext) throw new Error("Output monitor must use the same AudioContext");
+    this.outputMonitors.add(node);
+    this.masterOutputNode?.connect(node);
+    return () => {
+      this.outputMonitors.delete(node);
+      try { this.masterOutputNode?.disconnect(node); } catch {}
+    };
+  }
+
   /** @param {number} volume */
   setMasterVolume(volume) {
     this.masterVolume = volume;
@@ -984,6 +1001,10 @@ export class TetoricaAudioRuntime {
   }
 
   closeMedia() {
+    for (const node of this.outputMonitors) {
+      try { this.masterOutputNode?.disconnect(node); } catch {}
+    }
+    this.outputMonitors.clear();
     this.sample?.stopAll?.();
     this.sampleBuffers.clear();
     this.stream?.stop?.();
@@ -1008,6 +1029,7 @@ export class TetoricaAudioRuntime {
     if (target) {
       current.connect(this.masterOutputNode);
       this.masterOutputNode.connect(target);
+      for (const node of this.outputMonitors) this.masterOutputNode.connect(node);
     }
   }
 }

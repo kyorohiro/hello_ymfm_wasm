@@ -8,6 +8,8 @@ export function createPlaygroundUi(
     codeTab,
     fxMonitorTab,
     fxMonitorPanel,
+    audioMonitorTab,
+    audioMonitorPanel,
     consoleTab,
     shellTab,
     shellPanel,
@@ -83,6 +85,7 @@ export function createPlaygroundUi(
       button: codeTab,
       panel: codePanel,
     },
+    {name: "audio", button: audioMonitorTab, panel: audioMonitorPanel},
     {
       name: "fxMonitor",
       button: fxMonitorTab,
@@ -111,28 +114,46 @@ export function createPlaygroundUi(
     },
   ];
 
+  const auxiliaryTabs = new Set(["audio", "fxMonitor", "console", "shell"]);
+  let primaryTab = "code";
+  let bottomTab = options.initialBottomTab ?? "console";
+  let dockOpen = options.initialDockOpen ?? true;
+
   function setBottomTab(tabName) {
-    options.onBottomTabChange?.(tabName);
+    if (options.dockedPanels) {
+      if (auxiliaryTabs.has(tabName)) { bottomTab = tabName; dockOpen = true; }
+      else primaryTab = tabName;
+    }
     for (const tab of bottomTabs) {
       const isSelected =
-        tab.name === tabName;
+        options.dockedPanels
+          ? tab.name === (auxiliaryTabs.has(tab.name) ? bottomTab : primaryTab)
+          : tab.name === tabName;
       tab.button?.setAttribute(
         "aria-selected",
         isSelected ? "true" : "false"
       );
       if (tab.panel) {
         tab.panel.hidden =
-          !isSelected && !(tab.name === "keyboard" && tabName === "operator");
+          (options.dockedPanels && auxiliaryTabs.has(tab.name) && !dockOpen) ||
+          (!isSelected && !(tab.name === "keyboard" && (options.dockedPanels ? primaryTab : tabName) === "operator"));
       }
     }
+    options.onBottomTabChange?.(tabName, options.dockedPanels ? {primaryTab, bottomTab, dockOpen} : null);
+  }
+
+  function setDockVisible(value) {
+    dockOpen = Boolean(value);
+    setBottomTab(primaryTab);
   }
 
   function moveBottomTabFocus(
     activeTab,
     direction
   ) {
+    const activeName = bottomTabs.find(tab => tab.button === activeTab)?.name;
     const tabs = bottomTabs.filter(
-      (tab) => Boolean(tab.button)
+      (tab) => Boolean(tab.button) && (!options.dockedPanels || auxiliaryTabs.has(tab.name) === auxiliaryTabs.has(activeName))
     );
     const currentIndex = tabs.findIndex(
       (tab) => tab.button === activeTab
@@ -190,6 +211,7 @@ export function createPlaygroundUi(
     clearConsole,
     formatLogArgs,
     setBottomTab,
+    setDockVisible,
     moveBottomTabFocus,
     installBottomTabHandlers,
   };
