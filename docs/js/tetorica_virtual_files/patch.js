@@ -1,6 +1,6 @@
 import {createVirtualFileSystem} from './filesystem.js';
 import {resolvePath} from './path.js';
-/** @typedef {{path:string,type?:'replace',oldText:string,newText:string,expect?:number}|{path:string,type:'create',text:string}|{path:string,type:'delete',expectedText:string}} TextPatch */
+/** @typedef {{path:string,expectedRevision?:number,type?:'replace',oldText:string,newText:string,expect?:number}|{path:string,expectedRevision?:number,type:'create',text:string}|{path:string,expectedRevision?:number,type:'delete',expectedText:string}} TextPatch */
 /** Stage every operation, then commit once. Failed validation never writes to the live store.
  * @param {ReturnType<typeof createVirtualFileSystem>} fs
  * @param {TextPatch[]} edits
@@ -8,13 +8,16 @@ import {resolvePath} from './path.js';
 export function applyTextPatch(fs,edits,{cwd='/',dryRun=false,authorize=()=>{},assertActive=()=>{}}={}){
   if(!Array.isArray(edits)||!edits.length||edits.length>1000)throw Error('Patch must contain 1..1000 edits');
   assertActive();const draft=createVirtualFileSystem();draft.restore(fs.snapshot());
-  const changes=[],removed=[];
+  const changes=[],removed=[],revisions=new Map();
   for(const edit of edits){
     assertActive();if(!edit||typeof edit!=='object'||typeof edit.path!=='string'||!edit.path)throw Error('Each edit needs a nonempty path');
     const path=resolvePath(edit.path,cwd),type=edit.type??'replace',file=draft.get(path);
     if(path==='/')throw Error('Cannot patch the filesystem root');
+    if(!revisions.has(path))revisions.set(path,fs.getRevision(path));
+    if(edit.expectedRevision!==undefined&&(!Number.isSafeInteger(edit.expectedRevision)||edit.expectedRevision<0))throw Error(`Invalid expectedRevision: ${path}`);
+    if(edit.expectedRevision!==undefined&&edit.expectedRevision!==revisions.get(path))throw Error(`Revision conflict: ${path}; read the file again`);
     const allowed=type==='replace'?['path','type','oldText','newText','expect']:type==='create'?['path','type','text']:type==='delete'?['path','type','expectedText']:[];
-    if(!allowed.length||Object.keys(edit).some(k=>!allowed.includes(k)))throw Error(`Invalid patch fields: ${path}`);
+    if(!allowed.length||Object.keys(edit).some(k=>k!=='expectedRevision'&&!allowed.includes(k)))throw Error(`Invalid patch fields: ${path}`);
     if(type==='create'){
       if(file||draft.listDirectories().includes(path))throw Error(`Patch conflict: path exists: ${path}`);
       if(typeof edit.text!=='string')throw Error(`Create requires text: ${path}`);
@@ -34,8 +37,8 @@ export function applyTextPatch(fs,edits,{cwd='/',dryRun=false,authorize=()=>{},a
   }
   assertActive();
   const paths=[...new Set(changes.map(c=>c.path))];
-  if(!dryRun){authorize('patch',paths);for(const path of new Set(removed))authorize('rm',[path]);assertActive();fs.replace(draft.list(),draft.listDirectories());}
-  return {applied:!dryRun,changes};
+  if(!dryRun){authorize('patch',paths);for(const path of new Set(removed))authorize('rm',[path]);assertActive();for(const [path,revision] of revisions)if(fs.getRevision(path)!==revision)throw Error(`Revision conflict: ${path}; read the file again`);fs.replace(draft.list(),draft.listDirectories());}
+  return {applied:!dryRun,changes:changes.map(change=>({...change,beforeRevision:revisions.get(change.path),revision:fs.getRevision(change.path)}))};
 }
 function same(a,b){return a.type===b.type&&(a.type==='text'?a.data===b.data:a.data.length===b.data.length&&a.data.every((v,i)=>v===b.data[i]));}
 function textDiff(before,after){

@@ -62,3 +62,12 @@ MCP固有のAPIをこのライブラリーには追加していない。ホス�
 3. npmへの追加機能の公開。
 
 検索はリテラル方式。正規表現検索、Git、command chainingは今後の拡張として残す。
+
+## ファイルrevision（実装済み・未公開）
+
+- ファイル／ディレクトリーのrevisionと削除後の履歴を保持。同一内容の再書込みは変更扱いにせず、変更後に戻した場合や削除・再作成は検知。
+- `read --json`／`find --json`／get・list・statで取得、`getRevision`で削除済みパスも確認。
+- `edit --revision N`、patch各操作の`expectedRevision`、直接writeの条件付き更新に対応。patchは1件の競合で全件拒否。
+- Playgroundのスクリプト実行と出力リダイレクトもrevisionで競合判定。
+- revisionはFSインスタンス内の情報。snapshotは内容のみ保存し、restoreで現在の番号を巻き戻さない。明示的な取消コマンドは引き続き残件。
+- 検証: core＋Playgroundの65テスト成功、Node 22でcoreの34テスト成功。Chromiumでrevision取得／古いedit拒否／worker API／編集して元に戻した場合の競合保護、既存pipelineとautosaveを確認。dev ZIPの296参照検査も成功。

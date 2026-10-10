@@ -80,7 +80,7 @@ and return the existing `{code, stdout, stderr}` result.
 | `find [PATH] [-name GLOB] [-type f or -type d]` | Recursive, sorted path inventory; `*` and `?` match basenames, including dotfiles |
 | `rg [-n] [-F] [-i] [-l] LITERAL [PATH]` | Literal text search with absolute paths, 1-based lines and columns; `-i` ignores case, `-l` returns file paths |
 | `read [--start N] [--end N] [--max-chars N] PATH` | Numbered, inclusive line range; text files only |
-| `edit [--expect N] [--dry-run] PATH OLD_TEXT NEW_TEXT` | Exact, nonoverlapping replacement, defaulting to exactly one occurrence |
+| `edit [--revision N] [--expect N] [--dry-run] PATH OLD_TEXT NEW_TEXT` | Exact, nonoverlapping replacement, defaulting to exactly one occurrence |
 
 All four accept `--json`. Put `--` before positional arguments beginning with
 `-`. There are no regex patterns or implicit glob expansions in `rg`; the
@@ -98,7 +98,7 @@ excerpt around the first match, with `column`, `snippetStartColumn` and
 honor the command's abort signal.
 
 `read` defaults to lines 1..200 and a 16,000-character content budget.
-`--max-chars` accepts 1..64000. Its JSON includes `path`, `lines` (line / text),
+`--max-chars` accepts 1..64000. Its JSON includes `path`, `revision`, `lines` (line / text),
 `totalLines`, `nextLine` and `truncated`. When a single line is clipped,
 `nextLine` refers to that same line; increase the budget or use `cat` to read it
 in full. `cat` retains its existing unbounded behavior.
@@ -119,6 +119,53 @@ require `--expect N` (1..1000). Empty old text is rejected. Successful edits
 preserve the rest of the file, emit one filesystem change, and call the host's
 `authorize('edit', [absolutePath])` policy. Guarded Playground script sessions
 still enforce their project, cancellation and human-edit checks.
+
+## File revisions (working tree)
+
+`fs.get(path)`, `fs.list()` and `fs.stat(path)` include `revision`.
+`read --json PATH` and `find --json` expose it to shell clients.
+`fs.getRevision(path)` returns the last revision even after deletion; a path
+that has never existed returns 0. For stdin, `read --json -` reports `revision: null`.
+
+Revisions advance on content/type or path existence changes, including binary
+writes, moves, deletions, replacement and restore. Writing identical data does
+not advance the revision. Unchanged files retain their revisions. Deleted paths
+retain a tombstone, so deleting and recreating the same content, or changing it
+and changing it back, still invalidates an older revision. Directory revisions
+track their own existence, not their children's contents.
+
+```javascript
+const read = await shell.execute(['read', '--json', '/index.js']);
+if (read.code) throw new Error(read.stderr);
+const {revision} = JSON.parse(read.stdout);
+const result = await shell.execute([
+  'edit', '--json', '--revision', String(revision),
+  '/index.js', 'value = 1', 'value = 2',
+]);
+if (result.code) throw new Error(result.stderr); // Re-read before retrying.
+```
+
+`edit --revision N` checks the whole file, even when `OLD_TEXT` still matches.
+Without this optional flag, existing exact-match editing remains available.
+`edit --json` returns `beforeRevision` and the resulting `revision`; a dry run
+checks the same precondition without changing either file or revision.
+
+Every patch operation optionally accepts `expectedRevision: N`. All operations
+for the same path compare against the live revision **before the patch**, not
+against intermediate draft revisions. A single stale revision rejects the entire
+patch, including dry runs. Patch reports include `beforeRevision` and the final
+`revision` per operation. A guarded creation can use 0 for a never-present path,
+or `fs.getRevision(path)` for a deleted path.
+
+Direct `fs.writeFile`, `fs.writeText` and `fs.writeBinary` accept a third argument
+`{expectedRevision: N}` for the same check. Playground's asynchronous script API
+exposes these options and `getRevision`; script sessions and output redirection
+also use revisions to detect subsequent edits that return to the same content.
+
+Revisions belong to one filesystem instance and are not timestamps or persistent
+IDs. Discard cached revisions when a project reloads. Version-1 snapshots remain
+content-only: restoring one creates new live revisions for changed paths and
+never resets the counters. Explicit snapshot undo is still pending.
 
 ## Atomic patches and snapshot diffs (working tree)
 

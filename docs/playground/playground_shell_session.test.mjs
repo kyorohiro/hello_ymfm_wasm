@@ -58,3 +58,15 @@ test('pipeline redirection uses guarded files and protects /sys',async()=>{
  assert.equal((await shell.execute('echo bad > /sys/locked',{fs:session.facade})).code,1);assert.deepEqual(fs.snapshot(),before);
  assert.equal((await shell.execute('echo good | cat - > /scripts/out.txt',{fs:session.facade})).code,0);assert.equal(fs.get('/scripts/out.txt').data,'good\n');
 });
+test('script sessions reject ABA and delete/recreate, including an observed missing path',()=>{
+ const {fs,session}=setup();session.facade.get('/index.js');
+ fs.writeText('/index.js','human');fs.writeText('/index.js','initial');
+ assert.throws(()=>session.facade.writeText('/index.js','bad'),/changed during/);
+ session.facade.get('/index.js');const revision=session.invoke('getRevision',['/index.js']);
+ session.facade.writeText('/index.js','accepted',{expectedRevision:revision});
+ session.facade.get('/scripts/main.js');fs.delete('/scripts/main.js');fs.writeText('/scripts/main.js','script');
+ assert.throws(()=>session.facade.delete('/scripts/main.js'),/changed during/);
+ session.facade.get('/new');fs.writeText('/new','human');fs.delete('/new');
+ assert.throws(()=>session.facade.writeText('/new','bad'),/changed during/);
+ session.facade.get('/new');session.facade.writeText('/new','accepted',{expectedRevision:fs.getRevision('/new')});
+});

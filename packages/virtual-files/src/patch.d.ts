@@ -1,20 +1,23 @@
 import { createVirtualFileSystem } from './filesystem.js';
 export type TextPatch = {
     path: string;
+    expectedRevision?: number;
     type?: 'replace';
     oldText: string;
     newText: string;
     expect?: number;
 } | {
     path: string;
+    expectedRevision?: number;
     type: 'create';
     text: string;
 } | {
     path: string;
+    expectedRevision?: number;
     type: 'delete';
     expectedText: string;
 };
-/** @typedef {{path:string,type?:'replace',oldText:string,newText:string,expect?:number}|{path:string,type:'create',text:string}|{path:string,type:'delete',expectedText:string}} TextPatch */
+/** @typedef {{path:string,expectedRevision?:number,type?:'replace',oldText:string,newText:string,expect?:number}|{path:string,expectedRevision?:number,type:'create',text:string}|{path:string,expectedRevision?:number,type:'delete',expectedText:string}} TextPatch */
 /** Stage every operation, then commit once. Failed validation never writes to the live store.
  * @param {ReturnType<typeof createVirtualFileSystem>} fs
  * @param {TextPatch[]} edits
@@ -30,14 +33,20 @@ export declare function applyTextPatch(fs: ReturnType<typeof createVirtualFileSy
         path: string;
         type: "create";
         matches: number;
+        beforeRevision: any;
+        revision: number;
     } | {
         path: string;
         type: "delete";
         matches: number;
+        beforeRevision: any;
+        revision: number;
     } | {
         path: string;
         type: "replace";
         matches: number;
+        beforeRevision: any;
+        revision: number;
     })[];
 };
 export type SnapshotChange = {

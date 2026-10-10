@@ -84,7 +84,7 @@ export function createShell({fs,cwd = '/',authorize = () => {}}) {
     const same=(a,b)=>a===null?b===null:b!==null&&a.type===b.type&&(a.type==='text'?a.data===b.data:a.data.length===b.data.length&&a.data.every((v,i)=>v===b.data[i]));
     try{
       const targets=new Map();
-      for(const stage of plan)if(stage.output){const path=resolvePath(stage.output.path,baseCwd),before=commandFs.get(path);if(before&&before.type!=='text')throw Error(`Redirect requires text: ${path}`);if(!before&&commandFs.listDirectories().includes(path))throw Error(`Redirect target is a directory: ${path}`);targets.set(path,before);}
+      for(const stage of plan)if(stage.output){const path=resolvePath(stage.output.path,baseCwd),before=commandFs.get(path);if(before&&before.type!=='text')throw Error(`Redirect requires text: ${path}`);if(!before&&commandFs.listDirectories().includes(path))throw Error(`Redirect target is a directory: ${path}`);targets.set(path,{file:before,revision:commandFs.getRevision(path)});}
       if(plan[0]?.input!==null&&plan.length){const path=resolvePath(plan[0].input,baseCwd),file=commandFs.get(path);if(!file||file.type!=='text')throw Error(`Input requires an existing text file: ${path}`);stdin=file.data;}
       if(stdin.length>1000000)throw Error('Pipeline input exceeds 1,000,000 characters');
       for(const stage of plan){
@@ -98,7 +98,7 @@ export function createShell({fs,cwd = '/',authorize = () => {}}) {
       active();
       if(writes.length){
         const paths=[...targets.keys()];write('redirect',paths);active();
-        for(const [path,before] of targets)if(!same(before,commandFs.get(path)))throw Error(`Redirect conflict: file changed during execution: ${path}`);
+        for(const [path,before] of targets)if((before.revision!==commandFs.getRevision(path)||!same(before.file,commandFs.get(path))))throw Error(`Redirect conflict: file changed during execution: ${path}`);
         const draft=createVirtualFileSystem();draft.restore(commandFs.snapshot());
         for(const output of writes){const old=draft.get(output.path);if(old&&old.type!=='text')throw Error(`Redirect requires text: ${output.path}`);draft.writeText(output.path,(output.append?(old?.data??''):'')+output.text);}
         active();commandFs.replace(draft.list(),draft.listDirectories());
@@ -117,7 +117,7 @@ export function createShell({fs,cwd = '/',authorize = () => {}}) {
     rg:'rg [-n] [-F] [-i] [-l] [--json] [--offset N] [--limit N] LITERAL [PATH]',
     read:'read [--start N] [--end N] [--max-chars N] [--json] PATH',
     js:'js [--json] PATH [ARGS...]',result:'result [--json] [RUN_ID]',check:'check [--json] [PATH]',patch:'patch [--json] [--dry-run] PATCH_FILE|-',snapshot:'snapshot [NAME] | snapshot --list | snapshot --remove NAME',diff:'diff [--json] [--offset N] [--limit N] [NAME] [PATH]',
-    edit:'edit [--expect N] [--dry-run] [--json] PATH OLD_TEXT NEW_TEXT',help:'help [COMMAND|--json]'};
+    edit:'edit [--revision N] [--expect N] [--dry-run] [--json] PATH OLD_TEXT NEW_TEXT',help:'help [COMMAND|--json]'};
   shell.register('help',({args})=>{
     if(args.length>1)throw Error('Usage: help [COMMAND|--json]');
     if(args[0]==='--json')return JSON.stringify([...commands.keys()].sort().map(name=>({name,usage:usages[name]??name})))+'\n';

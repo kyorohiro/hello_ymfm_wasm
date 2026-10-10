@@ -3,8 +3,8 @@
  */
 declare module 'tetorica:shell' {
   export type VirtualFile =
-    | {path: string; type: 'text'; data: string}
-    | {path: string; type: 'binary'; data: Uint8Array};
+    | {path: string; revision: number; type: 'text'; data: string}
+    | {path: string; revision: number; type: 'binary'; data: Uint8Array};
   export type ShellRunReport = {
     id: number; path: string | null; code: number;
     status: 'completed' | 'failed' | 'cancelled'; durationMs: number;
@@ -16,19 +16,20 @@ declare module 'tetorica:shell' {
   export type CommandResult = {code: number; stdout: string; stderr: string; stages?: Array<{command: string[]; code: number}>};
   export interface ShellFiles {
     get(path: string): Promise<VirtualFile | null>;
+    getRevision(path: string): Promise<number>;
     has(path: string): Promise<boolean>;
-    stat(path: string): Promise<{type: 'file' | 'directory'; size: number}>;
+    stat(path: string): Promise<{type: 'file' | 'directory'; size: number; revision: number}>;
     readdir(path?: string): Promise<string[]>;
     list(): Promise<VirtualFile[]>;
     listDirectories(): Promise<string[]>;
-    snapshot(): Promise<{version: 1; files: VirtualFile[]; directories: string[]}>;
+    snapshot(): Promise<{version: 1; files: Array<Omit<VirtualFile, 'revision'>>; directories: string[]}>;
     readFile(path: string, options?: {type?: 'text'}): Promise<string>;
     readFile(path: string, options: {type: 'json'}): Promise<unknown>;
     readFile(path: string, options: {type: 'binary'}): Promise<Uint8Array>;
     readFile(path: string, options: {type: 'arrayBuffer'}): Promise<ArrayBuffer>;
-    writeFile(path: string, data: string | Uint8Array | ArrayBuffer): Promise<void>;
-    writeText(path: string, text: string): Promise<void>;
-    writeBinary(path: string, bytes: Uint8Array | ArrayBuffer): Promise<void>;
+    writeFile(path: string, data: string | Uint8Array | ArrayBuffer, options?: {expectedRevision?: number}): Promise<void>;
+    writeText(path: string, text: string, options?: {expectedRevision?: number}): Promise<void>;
+    writeBinary(path: string, bytes: Uint8Array | ArrayBuffer, options?: {expectedRevision?: number}): Promise<void>;
     mkdir(path: string, options?: {recursive?: boolean}): Promise<void>;
     delete(path: string): Promise<boolean>;
     remove(path: string, options?: {recursive?: boolean}): Promise<void>;

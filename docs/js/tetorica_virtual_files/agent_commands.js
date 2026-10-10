@@ -18,7 +18,7 @@ function* walk(context,path){
   const pending=[path];
   while(pending.length){
     context.assertActive();const path=pending.pop(),stat=context.fs.stat(path);
-    yield {path,type:stat.type,size:stat.size};
+    yield {path,type:stat.type,size:stat.size,revision:stat.revision};
     if(stat.type==='directory')for(const name of context.fs.readdir(path).reverse())pending.push(context.resolve(path==='/'?'/'+name:path+'/'+name));
   }
 }
@@ -82,19 +82,21 @@ export function registerAgentCommands(register,authorize){
       if(text.length<line.length){nextLine=i+1;break;}
     }
     if(nextLine===null&&end<content.length)nextLine=end+1;
-    return {code:0,stdout:flags['--json']?JSON.stringify({path,lines:selected,totalLines:content.length,nextLine,truncated:nextLine!==null})+'\n':selected.map(e=>`${e.line}\t${e.text}`).join('\n')+(selected.length?'\n':''),stderr:nextLine!==null&&!flags['--json']?`Output truncated: continue with --start ${nextLine}\n`:''};
+    return {code:0,stdout:flags['--json']?JSON.stringify({path,revision:path==='-'?null:context.fs.getRevision(path),lines:selected,totalLines:content.length,nextLine,truncated:nextLine!==null})+'\n':selected.map(e=>`${e.line}\t${e.text}`).join('\n')+(selected.length?'\n':''),stderr:nextLine!==null&&!flags['--json']?`Output truncated: continue with --start ${nextLine}\n`:''};
   });
   register('edit',context=>{
-    const {flags,positional}=options(context.args,['--json','--dry-run'],['--expect']);
-    if(positional.length!==3)throw Error('Usage: edit [--expect N] [--dry-run] [--json] PATH OLD_TEXT NEW_TEXT');
+    const {flags,positional}=options(context.args,['--json','--dry-run'],['--expect','--revision']);
+    if(positional.length!==3)throw Error('Usage: edit [--revision N] [--expect N] [--dry-run] [--json] PATH OLD_TEXT NEW_TEXT');
     const [input,oldText,newText]=positional,path=context.resolve(input),before=textFile(context,path);
+    const revision=context.fs.getRevision(path),expectedRevision=flags['--revision']===undefined?revision:integer(flags['--revision'],0,Number.MAX_SAFE_INTEGER,'revision');
+    if(revision!==expectedRevision)throw Error(`Revision conflict: ${path}; read the file again`);
     if(!oldText)throw Error('OLD_TEXT must not be empty');
     const expected=integer(flags['--expect']??'1',1,1000,'expect');
     const segments=before.split(oldText),matches=segments.length-1;
     if(matches!==expected)throw Error(`Edit conflict: expected ${expected} occurrence(s), found ${matches}; read the file again`);
     const after=segments.join(newText),changed=before!==after;
-    if(!flags['--dry-run']&&changed){context.assertActive();authorize('edit',[path]);context.fs.writeText(path,after);}
-    const report={path,matches,changed,applied:!flags['--dry-run']&&changed};
+    if(!flags['--dry-run']&&changed){context.assertActive();authorize('edit',[path]);context.fs.writeText(path,after,{expectedRevision});}
+    const report={path,revision:context.fs.getRevision(path),beforeRevision:revision,matches,changed,applied:!flags['--dry-run']&&changed};
     return flags['--json']?JSON.stringify(report)+'\n':`${flags['--dry-run']?'Preview':'Edit'} ${path}: ${matches} occurrence(s), ${report.applied?'applied':changed?'not applied':'unchanged'}\n`;
   });
   register('patch',context=>{

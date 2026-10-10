@@ -43,7 +43,7 @@ self.addEventListener('message',async event=>{
   if(data.type!=='start'||api)return;
   entryPath=data.path;
   const fs={};
-  for(const method of ['get','has','stat','readdir','list','listDirectories','snapshot','readFile','writeFile','writeText','writeBinary','mkdir','delete','remove','rename','copy'])fs[method]=(...args)=>rpc('fs.'+method,args);
+  for(const method of ['get','getRevision','has','stat','readdir','list','listDirectories','snapshot','readFile','writeFile','writeText','writeBinary','mkdir','delete','remove','rename','copy'])fs[method]=(...args)=>rpc('fs.'+method,args);
   const shell={cwd:data.cwd,async execute(source){const reply=await rpc('execute',[source]);shell.cwd=reply.cwd;return reply.result;}};
   api=Object.freeze({fs:Object.freeze(fs),shell,console:shellConsole,args:Object.freeze(data.args),cwd:data.cwd});
   globalThis.__tetoricaShellImport=load;globalThis.console=shellConsole;

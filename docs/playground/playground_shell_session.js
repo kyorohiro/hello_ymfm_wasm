@@ -10,6 +10,7 @@ export function sameShellFile(a,b){
 export function createShellFileSession({fs,context,isCurrent=()=>true,sync=()=>{},onChange=()=>{}}){
   const observed=new Map(fs.list().map(file=>[file.path,file]));
   const observedDirs=new Set(fs.listDirectories());
+  const revisions=new Map([...observed.keys(),...observedDirs].map(path=>[path,fs.getRevision(path)]));
   const pathOf=path=>{if(typeof path!=='string')throw TypeError('File path must be a string');return context.resolve(path);};
   function guard(){context.assertActive();if(!isCurrent())throw Error('Shell project changed');sync();}
   function writable(paths,operation){
@@ -19,7 +20,7 @@ export function createShellFileSession({fs,context,isCurrent=()=>true,sync=()=>{
     }
   }
   function unchanged(path){
-    if(!sameShellFile(observed.get(path)??null,fs.get(path)))throw Error(`File changed during script execution: ${path}; read it again before writing`);
+    if((revisions.get(path)??0)!==fs.getRevision(path)||!sameShellFile(observed.get(path)??null,fs.get(path)))throw Error(`File changed during script execution: ${path}; read it again before writing`);
   }
   const inside=(path,root)=>path===root||path.startsWith(root+'/');
   function unchangedTree(path){
@@ -27,7 +28,7 @@ export function createShellFileSession({fs,context,isCurrent=()=>true,sync=()=>{
     for(const file of paths)if(inside(file,path))unchanged(file);
     const current=new Set(fs.listDirectories().filter(dir=>inside(dir,path)));
     const previous=new Set([...observedDirs].filter(dir=>inside(dir,path)));
-    if(current.size!==previous.size||[...current].some(dir=>!previous.has(dir)))throw Error(`Directory changed during script execution: ${path}`);
+    if(current.size!==previous.size||[...current].some(dir=>!previous.has(dir)||revisions.get(dir)!==fs.getRevision(dir)))throw Error(`Directory changed during script execution: ${path}`);
   }
   function mutate(paths,operation,action,tree=false){
     guard();writable(paths,operation);for(const path of paths)tree?unchangedTree(path):unchanged(path);
@@ -36,21 +37,23 @@ export function createShellFileSession({fs,context,isCurrent=()=>true,sync=()=>{
     for(const path of [...observed.keys()])if(paths.some(root=>inside(path,root)))observed.delete(path);
     for(const file of fs.list())if(paths.some(root=>inside(file.path,root)))observed.set(file.path,file);
     const afterDirs=new Set(fs.listDirectories());
-    for(const dir of beforeDirs)if(!afterDirs.has(dir))observedDirs.delete(dir);
-    for(const dir of afterDirs)if(!beforeDirs.has(dir))observedDirs.add(dir);
+    for(const dir of beforeDirs)if(!afterDirs.has(dir)){observedDirs.delete(dir);revisions.set(dir,fs.getRevision(dir));}
+    for(const dir of afterDirs)if(!beforeDirs.has(dir)){observedDirs.add(dir);revisions.set(dir,fs.getRevision(dir));}
+    for(const path of new Set([...revisions.keys(),...paths,...observed.keys(),...observedDirs]))if(paths.some(root=>inside(path,root)))revisions.set(path,fs.getRevision(path));
     onChange();return result;
   }
   const facade={
-    get(path){guard();path=pathOf(path);const file=fs.get(path);observed.set(path,file);return file;},
+    get(path){guard();path=pathOf(path);const file=fs.get(path);observed.set(path,file);revisions.set(path,fs.getRevision(path));return file;},
+    getRevision(path){guard();return fs.getRevision(pathOf(path));},
     has(path){guard();return fs.has(pathOf(path));},
     stat(path){guard();return fs.stat(pathOf(path));},
     readdir(path='.'){guard();return fs.readdir(pathOf(path));},
-    list(){guard();const files=fs.list();for(const file of files)observed.set(file.path,file);return files;},
+    list(){guard();const files=fs.list();for(const file of files){observed.set(file.path,file);revisions.set(file.path,fs.getRevision(file.path));}return files;},
     listDirectories(){guard();return fs.listDirectories();},
-    snapshot(){guard();const snapshot=fs.snapshot();for(const file of snapshot.files)observed.set(file.path,file);return snapshot;},
-    writeText(path,text){path=pathOf(path);if(typeof text!=='string')throw TypeError('Expected text');return mutate([path],'write',()=>fs.writeText(path,text));},
-    writeBinary(path,bytes){path=pathOf(path);return mutate([path],'write',()=>fs.writeBinary(path,bytes));},
-    writeFile(path,data){path=pathOf(path);return mutate([path],'write',()=>fs.writeFile(path,data));},
+    snapshot(){guard();const snapshot=fs.snapshot();for(const file of fs.list()){observed.set(file.path,file);revisions.set(file.path,fs.getRevision(file.path));}return snapshot;},
+    writeText(path,text,options={}){path=pathOf(path);if(typeof text!=='string')throw TypeError('Expected text');return mutate([path],'write',()=>fs.writeText(path,text,options));},
+    writeBinary(path,bytes,options={}){path=pathOf(path);return mutate([path],'write',()=>fs.writeBinary(path,bytes,options));},
+    writeFile(path,data,options={}){path=pathOf(path);return mutate([path],'write',()=>fs.writeFile(path,data,options));},
     mkdir(path,options={}){path=pathOf(path);return mutate([path],'mkdir',()=>fs.mkdir(path,options));},
     delete(path){path=pathOf(path);return mutate([path],'delete',()=>fs.delete(path));},
     remove(path,options={}){path=pathOf(path);return mutate([path],'remove',()=>fs.remove(path,options),true);},
@@ -76,6 +79,6 @@ export function createShellFileSession({fs,context,isCurrent=()=>true,sync=()=>{
     },
   };
   // Whole-store replacement is used only by trusted built-in copy/move, never exposed over RPC.
-  const exposed=['get','has','stat','readdir','list','listDirectories','snapshot','readFile','writeFile','writeText','writeBinary','mkdir','delete','remove','rename','copy'];
+  const exposed=['get','getRevision','has','stat','readdir','list','listDirectories','snapshot','readFile','writeFile','writeText','writeBinary','mkdir','delete','remove','rename','copy'];
   return {facade,guard,invoke(method,args){if(!exposed.includes(method))throw Error('Unsupported filesystem operation');return facade[method](...args);}};
 }
