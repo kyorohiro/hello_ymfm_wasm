@@ -57,8 +57,7 @@ MCP固有のAPIをこのライブラリーには追加していない。ホス�
 
 ## 次の候補
 
-1. MCP経由で検索→patch→check→js→resultの一連操作を確認。
-2. npmへの追加機能の公開。
+1. npmへの追加機能の公開。
 
 検索はリテラル方式。正規表現検索、Git、command chainingは今後の拡張として残す。
 
@@ -78,3 +77,11 @@ MCP固有のAPIをこのライブラリーには追加していない。ホス�
 - テキスト／バイナリ／作成／削除／型変更／空ディレクトリーに対応。原子的に反映し、sys・entry pointの既存保護を適用。
 - APIは`fs.checkpoint()`と`undoFileChanges`。履歴はメモリ内のみ。BEFORE〜AFTER間の編集者判定は行わないので、AFTERは対象作業直後に保存する。
 - 検証: core＋Playgroundの74テスト成功。Node 22でもundoを確認。Chromiumでpreview／取消／人間の後続編集と元に戻す編集の保護／対象パス指定／入れ子のjs／autosave／再読込時の履歴破棄を確認。dev ZIPの296参照検査成功。
+
+## Tauri MCPからのshell操作（検証済み）
+
+- `w/tetorica-fm2612-playground-tauri` のMCPに `shell_execute` を追加。projectId／command／stdin／timeoutMsを受け、code／stdout／stderrを返す。
+- 上流shellの実行APIに外部AbortSignalと待機終了時の事前チェックを追加。MCP Off／プロジェクト切替／期限切れの要求を停止し、期限切れ待機要求の後続実行を防止。
+- projectIdはプロジェクトのinvalidate時に更新し、patch／undoの原子的replaceでは維持する。
+- core＋Playground 74件、Tauri Python 8件／Node 26件／Rust 11件成功。ブラウザーで競合、停止、保護パスも確認。
+- 2026-10-11: 起動中のTauriにStreamable HTTPで接続し、専用仮想ファイルでsnapshot→write→rg→read→patch→check→js→result→undoを検証。テストファイルとsnapshotの後片付けも確認。

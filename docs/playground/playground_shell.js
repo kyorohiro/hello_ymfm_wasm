@@ -30,24 +30,28 @@ export function installPlaygroundShell({fs, beforeCommand, afterCommand, output,
     beforeCommand();await onPlay(path);context.assertActive();return `Played ${path}\n`;
   });
   fs.onDidChange(()=>{prompt.textContent=shell.cwd+' $';});
-  function execute(source){
+  function execute(source,options={}){
     const requestedEpoch=epoch;
     const command=queue.then(async()=>{
+      if(options.signal?.aborted)return {code:130,stdout:'',stderr:'Command cancelled before execution'};
       if(requestedEpoch!==epoch)return {code:130,stdout:'',stderr:'Project changed; queued command cancelled'};
       const controller=new AbortController();active=controller;
+      const abort=()=>controller.abort(options.signal?.reason);
+      options.signal?.addEventListener('abort',abort,{once:true});
       if(stopButton)stopButton.disabled=false;
       const startOutput=streamed;append(`${shell.cwd} $ ${source}\n`);setState('Running…');
       try{
         let plan=[];try{plan=Array.isArray(source)?[{args:source}]:parsePipeline(source);}catch{}
         const tokens=plan[0]?.args??[];
         structuredOutput=plan.length>1||plan.some(stage=>stage.input||stage.output)||(tokens[0]==='js'||tokens[0]==='pipeline')&&tokens[1]==='--json';
-        beforeCommand();
-        const result=await shell.execute(source,{signal:controller.signal});
+        beforeCommand();options.beforeExecute?.();
+        if(options.signal?.aborted)abort();
+        const result=await shell.execute(source,{signal:controller.signal,stdin:options.stdin??''});
         if(requestedEpoch===epoch)afterCommand();
         if(streamed===startOutput)append(result.stdout+(result.stderr?result.stderr+'\n':''));
         prompt.textContent=shell.cwd+' $';setState(result.code===0?'Finished.':result.code===130?'Stopped.':`Exit ${result.code}`);
         return result;
-      }finally{structuredOutput=false;if(active===controller)active=null;if(stopButton)stopButton.disabled=true;}
+      }finally{options.signal?.removeEventListener('abort',abort);structuredOutput=false;if(active===controller)active=null;if(stopButton)stopButton.disabled=true;}
     });
     queue=command.catch(()=>{});return command;
   }
