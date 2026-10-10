@@ -1,90 +1,35 @@
 # Tetorica FM2612 (hello_ymfm_wasm)
 
-Tetorica FM2612 is a browser toolkit for JavaScript music coding, VGM analysis,
-and YM2612 FM sound design. Open a VGM, explore its instruments, and edit and
-audition extracted TFI files in a folder-based workspace.
+[English](README.md) | [日本語](README.ja.md) | [AI/SI](READMD.ai.md)
 
-FM synthesis can be difficult at first.
-It asks you to learn both parameter design and performance technique.
+Tetorica is a tool for live coding retro game sounds in JavaScript, including
+the sounds of the Sega Genesis / Mega Drive and Game Boy.
 
-The Sega Genesis / Mega Drive is a retro game console, but it includes the YM2612,
-a 4-operator, 6-channel FM sound chip.
-Compared with modern synth setups, that may look small, but it created a huge amount of memorable music and sound.
+This project includes:
 
-A lot of that know-how still survives in VGM files made and preserved by enthusiasts.
-By reading and replaying them, we can study how people actually used the chip and how they shaped its sound.
-
-With Tetorica, we prepared an environment where you can try it directly from JavaScript.
-If that sounds interesting, let&apos;s keep going.
+- `tetorica-fm2612`: an npm package for controlling retro game sound chips from JavaScript.
+- `tetorica-vgm`: an npm package for analyzing retro game VGM files.
+- A browser-based synthesizer app for extracting instruments from VGM files and trying them immediately.
+- A browser-based Playground app for live coding with an API inspired by Sonic Pi.
+- A browser-based analyzer app for inspecting and playing VGM files.
 
 ![Tetorica FM2612 Playground](docs/tetorica_fm2612_playground_screen_shot.png)
 
 [Tetorica FM2612 Playground](https://kyorohiro.github.io/hello_ymfm_wasm/playground/index.html)
 
-Playground VGM import also saves OPN FM key-on timbres as virtual files such as
-`/presets/song/ym2612_ch1_001.tfi` and adds them to the Operator Preset list.
-Repeated timbres within each channel are deduplicated; importing the same filename
-again uses a new folder (`song-2`, etc.). TFI stores static FM parameters, not
-pan, LFO, or pitch/volume automation.
+## What we are aiming for
 
-## Project goals
+We want to make retro game sound chips playable as instruments through JavaScript,
+and make their sound generation and the Playground runtime easy to embed in your own games and apps.
 
-This repository has four goals:
+We also want to preserve older game music and sound-chip techniques in a form
+that people can read, investigate, learn from and reconstruct.
 
-- To understand the YM2612 chip.
-- To create documentation that helps anyone understand the YM2612 chip.
-- To create documentation that helps anyone embed YM2612 audio in a browser app or game.
-- To preserve older game music and sound chip technology as cultural heritage that people today can read, investigate, learn from, and reconstruct—not only archive and play back.
-
-## What this repository provides
+## Feature status
 
 [機能対応状況 / Feature status](docs/feature-status.md): implementation coverage, verification records, limitations and release status across Analyzer, CLI and Playground.
 
-- YM2612 WebAssembly builds and JavaScript wrappers for browser-side use
-- a reusable `Playground(...)` runtime layer for browser games and app embedding
-- a browser playground for trying YM2612 control and live coding from JavaScript
-- a browser synth app for hands-on YM2612 sound design
-- a VGM analyzer for playback, inspection, and patch extraction, including YM2610 / YM2610B FM, SSG and ADPCM-A/B playback from embedded VGM ROM blocks
-
-## Download
-
-The [`tetorica-fm2612` npm package](https://www.npmjs.com/package/tetorica-fm2612) contains the existing web runtime,
-prebuilt chip WASM, Synth helpers and browser Worker/AudioWorklet assets.
-Its default entry point also supports Node.js PCM generation. See
-[the package README](packages/fm2612/README.md) for local packaging and usage.
-Install it with `npm install tetorica-fm2612`; `tetorica-vgm` remains the separate CLI.
-
-The local `0.2.0` build adds Mega CD RF5C164 PCM to MegaSynth through
-`new MegaSynth({megaCD: true})` and `synth.pcm`. See the package README for the
-eight-channel sample API. The published npm version is currently `0.1.0`.
-
-Release files are available here:
-
-- WebAssembly (wasm) builds for YM2612
-- JavaScript wrappers for browser-side use
-- browser demos and app-style tools
-
-- [https://github.com/kyorohiro/hello_ymfm_wasm/releases](https://github.com/kyorohiro/hello_ymfm_wasm/releases)
-
-GitHub Releases is the primary download entry point for packaged wasm and browser-side runtime files.
-
-The `web_runtime` and `web_runtime_exsample` archives include the complete current
-`web/` runtime: OPN, OPM, OPL, PSG and PCM wrappers/audio engines, Synth helpers,
-and all 23 generated chip/engine JS + WASM pairs. The example archive additionally
-contains the existing browser demo pages. High-level Synth support varies by chip.
-Only imported/created engines are initialized; applications may ship a smaller
-subset with its dependencies and licenses. External instrument/sample ROMs are
-not included. Analyzer-only implementations outside `web/` are not added by this package.
-
-```sh
-sh scripts/package_web_runtime_release.sh dev
-sh scripts/package_web_runtime_exsample.sh dev
-```
-
-Both scripts fail if a required WASM pair is missing and validate staged imports,
-default chip-loader paths, and WASM loading before making the ZIP. Each archive
-includes `RUNTIME.md`, `runtime-manifest.json`, and third-party license notices.
-
+See [Memo.md](Memo.md#chip-playback-notes-english) for chip-specific playback details, limitations and implementation notes.
 
 ## Try it in the browser
 
@@ -106,30 +51,66 @@ This is the easiest way to test YM2612 control, sound design, and Genesis-orient
 
 [VGM Analyzer sound chip support and limitations](https://kyorohiro.github.io/hello_ymfm_wasm/vgm_analyzer/support.html)
 
-## First session: explore a VGM instrument
+## npm packages
 
-1. Open [Playground](https://kyorohiro.github.io/hello_ymfm_wasm/playground/index.html) and import a supported VGM/VGZ file.
-2. Expand `presets/<filename>/` in the file explorer and open a `.tfi` file.
-3. Edit its FM parameters and use the number and letter keys to audition it. Text and number fields keep normal typing behavior; leave the field before playing.
-4. Use **Export Cassette** to download your project, including its virtual files, before leaving the page. TFI editor changes update the virtual file; they do not write back to your original disk file.
+### tetorica-fm2612
 
-## npm package layout
-
-The root `package.json` is a private development workspace. Distribution metadata
-and npm READMEs live in `packages/vgm/` and `packages/fm2612/`; implementations
-remain in `cli/`, `web/`, `node/` and the shared Analyzer modules.
+[`tetorica-fm2612`](https://www.npmjs.com/package/tetorica-fm2612) lets you control retro game sound chips from JavaScript. Use it for browser playback or PCM/WAV generation in Node.js.
 
 ```sh
-npm run build:vgm       # dist/vgm/
-npm run pack:vgm        # tetorica-vgm-VERSION.tgz
-npm run build:fm2612    # dist/fm2612/
-npm run pack:fm2612     # tetorica-fm2612-VERSION.tgz
+npm install tetorica-fm2612
 ```
 
-Each build replaces only its own output folder. `build`, `pack` and `pack:check`
-remain VGM aliases. Publish an explicitly selected, verified tarball.
+Selected supported chips:
 
-## CLI / Node.js
+| Family | Chips |
+| --- | --- |
+| Yamaha OPN | YM2203, YM2608, YM2610 / YM2610B, YM2612 |
+| Yamaha OPM | YM2151 |
+| Yamaha OPL | YM2413, YM3812, YMF262 |
+| PSG and console audio | AY8910, Sega PSG, Game Boy APU, NES APU + FDS, HuC6280 |
+| PCM and ADPCM | RF5C164, Sega PCM, OKIM6258, OKIM6295 |
+
+This browser example plays C4, D4 and E4 on the YM2612. Use a setup such as Vite that resolves npm module imports, then click the button.
+
+```js
+import {createSoundChip} from 'tetorica-fm2612';
+import {YM2612Synth, YM2612WorkletTransport} from 'tetorica-fm2612/ym2612synth.js';
+import {FM_PRESETS} from 'tetorica-fm2612/megasynth-fm-presets.js';
+import {hzToBlockFnum} from 'tetorica-fm2612/pitch.js';
+
+const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
+const button = document.createElement('button');
+button.textContent = 'Do–Re–Mi';
+document.body.append(button);
+
+button.addEventListener('click', async () => {
+  button.disabled = true;
+  let chip;
+  try {
+    chip = await createSoundChip('ym2612', {execution: 'worklet'});
+    const transport = new YM2612WorkletTransport(chip);
+    const fm = new YM2612Synth({transport});
+    fm.setPreset(0, FM_PRESETS.sine);
+    await transport.start();
+
+    for (const hz of [261.63, 293.66, 329.63]) { // C4, D4, E4
+      const {block, fnum} = hzToBlockFnum(hz);
+      fm.noteOn(0, block, fnum);
+      await wait(300);
+      fm.noteOff(0);
+      await wait(100);
+    }
+  } finally {
+    await chip?.dispose();
+    button.disabled = false;
+  }
+});
+```
+
+See the [package README](packages/fm2612/README.md) for the complete chip list and APIs, and the [examples](https://github.com/kyorohiro/tetorica-fm2612-examples) for runnable Web/Node projects. High-level Synth API coverage varies by chip.
+
+### tetorica-vgm
 
 The VGM Analyzer is also available as the [`tetorica-vgm` npm package](https://www.npmjs.com/package/tetorica-vgm)
 for command-line analysis, export and WAV rendering (Node.js 22+).
@@ -141,14 +122,23 @@ npx tetorica-vgm render song.vgz --output song.wav
 ```
 
 See the [CLI quick start](packages/vgm/README.md) and [full CLI / Node API reference](CLI.md).
-For maintainers, see the npm release procedures for
-[tetorica-vgm](READMD_RELEASE_VGM.md) and
-[tetorica-fm2612](READMD_RELEASE_FM2612.md).
+For maintainers, see [release procedures](README_RELEASE.md).
 
 OPL-family melodic voices can be exported as SBI (2op or OPL3 4op), individually
 or as a ZIP. The browser's **SBI Info** tab displays extracted voice parameters
-and provides keyboard audition. CLI equivalents are `--format sbi` with
-`--at` / `--channel`, and `--format sbi-zip` for the whole track.
+and provides keyboard audition.
+
+Export the voice on channel 1 at 1.5 seconds (`--channel` is 1-based):
+
+```sh
+npx tetorica-vgm export song.vgz --format sbi --at 1.5 --channel 1 --output voice.sbi
+```
+
+Extract melodic voices from the whole track into a ZIP:
+
+```sh
+npx tetorica-vgm export song.vgz --format sbi-zip --output voices.zip
+```
 
 ## Help and bug reports
 
@@ -218,31 +208,16 @@ libymfm.wasm's Rust port was reviewed as prior work and is not copied here.
 
 ### MAME / libvgm OKIM6295 (`third_party/mame-okim6295/`)
 
-Analyzer and CLI playback support OKIM6295 alone or with YM2151 / YM2164 / YM3812.
-The JavaScript ADPCM engine is adapted from BSD-3-Clause MAME/libvgm sources;
-see [source notes](third_party/mame-okim6295/README.md) and
-[license](third_party/mame-okim6295/LICENSE). Embedded VGM ROMs supply samples;
-no game ROMs are bundled. Tests: `node --test web/okim6295.test.mjs`.
+The JavaScript OKIM6295 ADPCM engine is adapted from BSD-3-Clause MAME/libvgm sources.
+See [source notes](third_party/mame-okim6295/README.md) and
+[license](third_party/mame-okim6295/LICENSE). No game ROMs are bundled.
 
 ### MAME OKIM6258 (`third_party/mame-okim6258/`)
 
-Analyzer playback includes OKIM6258 4-bit ADPCM, alone or mixed with the primary
-engine (including YM2151). VGM direct writes and DAC streams supply sample data;
-no external sample ROM is required. The decoder is adapted from Barry Rodewald's
-MAME implementation under BSD-3-Clause. See the
-[license](third_party/mame-okim6258/LICENSE) and
+The OKIM6258 decoder is adapted from Barry Rodewald's MAME implementation under BSD-3-Clause.
+See the [license](third_party/mame-okim6258/LICENSE) and
 [pinned source and adaptation notes](third_party/mame-okim6258/README.md).
-Analyzer and runtime example packages include these notices in
-`licenses/mame-okim6258/`.
-
-3-bit ADPCM, recording, and a second OKIM6258 instance are not implemented.
-Unsupported header configurations report a playback error; second-instance
-writes/streams are warned about and skipped. This adds playback, not OKI
-instrument analysis or sample export. Verification uses synthetic VGM and
-real WASM cores; real-track listening remains to be checked.
-
-Build: `sh scripts/build_okim6258_wasm.sh`.
-Test: `node --test web/okim6258.test.mjs`.
+Analyzer and runtime example packages include these notices in `licenses/mame-okim6258/`.
 
 ### MAME RF5C164 (`third_party/mame-rf5c164/`)
 
@@ -253,6 +228,11 @@ by Olivier Galibert and Aaron Giles. The adapted core and its generated
 See [the license](third_party/mame-rf5c164/LICENSE) and
 [source and adaptation notes](third_party/mame-rf5c164/README.md).
 Packages containing this engine include these notices under `licenses/mame-rf5c164/`.
+
+### MAME HuC6280 (`third_party/mame-huc6280/`)
+
+The HuC6280 core is adapted from Charles MacDonald's BSD-3-Clause MAME implementation.
+Pinned originals, license and adaptation notes are in `third_party/mame-huc6280/`.
 
 ### Nuked-OPN2 (`third_party/nuked-opn2/`)
 
@@ -318,162 +298,3 @@ and the local [sample notes](docs/playground/samples/sonic-pi/README.md).
   - https://vgmrips.net/wiki/VGM_Specification
 - SMS Power:
   - https://www.smspower.org/
-
-### AY-3-8910 / YM2149 VGM playback
-
-The VGM Analyzer supports AY-3-8910 and YM2149 playback, standalone or with
-YM2413, using a pinned MAME adaptation. Operator Info shows AY register settings
-and tone pitch, with channel and source mute controls. Instrument editing and
-MIDI/MML export for these chips are not yet available. See the
-[AY implementation notes](third_party/mame-ay8910/README.md) for supported flags
-and limitations. Build with `sh scripts/build_ay8910_wasm.sh`.
-
-### YM2151 / YM2164 VGM playback
-
-The VGM Analyzer supports YM2151 (OPM) and YM2164 (OPP), including stereo
-output and optional Sega PSG / Sega PCM. YM2164 is selected by bit 31 of
-the VGM YM2151 clock field and uses the bundled ymfm OPP variant, with a
-Timer B period twice that of YM2151. Note-ish, MIDI/MML and OPM voice
-extraction share the compatible register layout. Undocumented YM2164
-registers 0x00–0x07 are not emulated specially.
-MSX mixtures with AY / YM2149, YM2413, Y8950 and SCC / SCC+ support
-playback, chip/channel mutes, Live / Song Note-ish and MIDI / MusicXML /
-LilyPond export. Mixed configurations use normal seeking and do not expose
-OPM voice exports or MML. A second chip instance remains unsupported. Other supported chip families use
-the generic playback mixer described below.
-Build with `sh scripts/build_ym2151_wasm.sh`.
-The JavaScript engine accepts `ym2151Variant: 'ym2164'`; the chip wrapper
-accepts `variant: 'ym2164'`. Both default to YM2151.
-
-### OPL2 / OPL3 VGM playback
-
-YM3812 and YMF262 VGM/VGZ files can be played in the Analyzer, with optional Sega
-PSG. OPL3 supports both register ports; its four output buses are folded into
-stereo (A+C left, B+D right). YMF262 supports base-pitch Note-ish and
-MusicXML / LilyPond scores; instrument editing remains unavailable.
-Second chips and OPL DAC streams are not supported. Other supported chip
-combinations use the generic playback mixer.
-This does not emulate Sound Blaster PCM/DMA hardware. Build with
-`sh scripts/build_ym3812_wasm.sh` and `sh scripts/build_ymf262_wasm.sh`.
-
-Y8950 (MSX-Audio, FM + ADPCM) and YMF278B (OPL4/Moonsound, FM + PCM)
-are also supported for VGM/VGZ playback. YMF278B supports FM base-pitch
-Note-ish (Live / Song) for 18 channels, including 4OP pairs using the leading
-channel. PCM voices, rhythm, timbre, modulation and release are omitted;
-FM Sheet Music / MIDI / MusicXML / LilyPond export is supported. MIDI uses
-multiple ports for independent channel pitch bends; a multi-port player is required.
-PCM Sample Explorer support is planned. Sample data can be embedded in the
-VGM (blocks 0x88 for Y8950, 0x84/0x87 for YMF278B). For Moonsound logs such as
-Sonyc that omit the built-in samples, import your `yrw801.rom` (2 MiB) through
-the file selector or drag and drop, then press Play. The ROM remains loaded
-for track changes and seeking in the current page session; no wave ROM is bundled. Each supports optional Sega PSG; second chips and DAC streams are not supported. Other supported chip
-combinations use the generic playback mixer. Build with `sh scripts/build_y8950_wasm.sh`
-and `sh scripts/build_ymf278b_wasm.sh`.
-
-YM3526 (OPL) VGM/VGZ playback is supported, including melodic and rhythm modes,
-with optional Sega PSG. No sample ROM is required. This uses `ymfm::ym3526`,
-including its fixed sine waveform, rather than substituting the OPL2 core.
-Second YM3526 chips and DAC streams remain unsupported;
-instrument editing is not yet available.
-
-YM3526, YM3812 and standalone Y8950 support nine-channel base-pitch Note-ish, MIDI, MusicXML
-and LilyPond export. Rhythm-mode CH7–9 and CSM intervals are omitted from
-transcription; Y8950 ADPCM is also omitted. Timbre, modulation and envelope
-release are not reconstructed. Optional Sega PSG tones are included in exports.
-Combined MSX configurations also support base-pitch Note-ish and score exports.
-Operator Info displays both operators, feedback/connection and waveform state,
-and exports the current register state as a JSON voice snapshot. YM3526 uses
-a fixed sine waveform, as does Y8950; YM3812 respects the waveform-selection enable bit.
-The JSON snapshot is not a TFI/VGI instrument or an audio-state save.
-
-To inspect and reconstruct this playback path:
-
-- `web/ym2612vgm.js` reads the VGM 1.51+ clock at `0x54` and decodes `0x5B rr vv`
-  into a YM3526 register-write event. `0xAB` identifies the unsupported second chip.
-- `web/vgmplayer.js` sends writes to `web/ym3526audioengine.js`, which advances
-  the chip during VGM waits and resamples its mono output to stereo buffers.
-- `web/ym3526.js` exposes register writes, reads, IRQ hooks and sample generation
-  through `wasm/ym3526_wasm.cpp`; the chip implementation is in `src/ymfm_opl.*`.
-- Rebuild with `sh scripts/build_ym3526_wasm.sh` (Emscripten required). Generated
-  browser assets go to `docs/generated/`; sync JavaScript with
-  `sh scripts/sync_web_js_to_docs.sh`.
-- Run `node --test web/opl.test.mjs` to verify register delivery, audible output,
-  rhythm mode, timers, waveform behavior and reproducible resets/seeks.
-
-### MSX multi-chip playback
-
-The Analyzer mixes any subset of AY-3-8910/YM2149, YM2413, Y8950,
-SCC/SCC+ and YM2151/YM2164 (one of each family), including embedded Y8950
-ADPCM. It provides chip/channel mutes, Live / Song Note-ish and base-pitch
-MIDI / MusicXML / LilyPond exports. Mixed mode does not provide instrument
-editing, voice export or MML. Second instances remain unsupported. OPL4
-mixtures use the generic playback mixer, without combined note analysis. Synthetic tests cover OPM and OPP with all 15 subsets of the
-other four families, including replay, seek and mute routing.
-
-`web/multichipaudioengine.js` registers engines by chip type and instance index.
-Each owns its register state, sample memory and resampling state. Parser targets
-route writes and sample blocks to that instance; the mixer advances every engine
-by the same duration, sums outputs and applies master volume once. Muted engines
-continue advancing. `web/msxaudioengine.js` constructs the MSX chip adapters.
-
-The programmatic `chips` option accepts descriptors `{type, index, options}`,
-so the registry can represent repeated types without sharing chip state.
-Dual-chip playback is **not verified** and is still rejected in the Analyzer UI.
-Other supported chip combinations are assembled automatically by the shared
-playback core; no pair-specific allowlist is required.
-AY, YM2413 and Y8950 DAC streams remain unsupported; they are skipped with a visible warning while other playback continues.
-
-Run `node --test web/ay8910.test.mjs` for three-chip mixing against independent
-renders, embedded ADPCM, reset/seek repeatability and sample clearing between
-songs. These fixtures are synthetic; real-game playback remains to be checked.
-
-### Header-driven multi-chip playback
-
-Analyzer and CLI playback can combine the supported chip families declared in
-one VGM header. Existing Genesis, MSX and other established configurations keep
-their monitors and controls. Other combinations use a common 44.1 kHz mixer,
-with isolated register/sample-memory targets and master volume applied once.
-Genesis FM / PSG / RF5C164 / PWM stay together to preserve their shared timing.
-
-The generic path provides playback, WAV export and chip-level mute (one combined
-Genesis mute). It uses normal seeking; combined Note-ish/voice analysis and seek
-checkpoints are not available. Existing chip-specific ROM requirements, unsupported
-commands and dual-chip restrictions still apply. This does not add new chip cores
-or guarantee every real-world track. Tests cover all supported engine adapters,
-FM sum equivalence, mixed output rates, muting and sample-memory routing.
-
-### NES APU
-
-Analyzer and CLI support standalone NTSC NES APU playback (pulse, triangle,
-noise and embedded DMC samples), five channel mutes, and pulse/triangle
-Note-ish, MIDI and Music Sheet export. FDS adds one wavetable channel with modulation/envelope playback and base-pitch
-Note-ish / MIDI / MusicXML / LilyPond. FDS modulation and envelope timing are
-not transcribed; analog mix balance is approximate. PAL/dual remain unsupported.
-The shared JavaScript APU uses [JSNES](third_party/jsnes/README.md), licensed
-under Apache-2.0; it is included in npm and Browser distributions.
-
-### MAME HuC6280 (`third_party/mame-huc6280/`)
-
-Analyzer and CLI playback support a single HuC6280 (PC Engine / TurboGrafx-16):
-six wavetable channels, DDA, noise, LFO, stereo balance, per-channel mute, and
-WAV export. VGM 0xB9 writes and HuC6280 PCM streams are supported without an
-external ROM. Note-ish Live and Song views show six-channel wavetable base
-pitches, closing notes during PCM/DDA, noise and LFO CH1/CH2 intervals.
-MIDI, MusicXML and LilyPond export reuse those base-pitch intervals. MIDI keeps
-pitch changes as bends; MusicXML/LilyPond use the existing sixteenth-note grid.
-Instrument editing and dual-chip playback are not implemented. Noise/LFO accuracy retains MAME's known limitations.
-
-The core is adapted from Charles MacDonald's BSD-3-Clause MAME implementation.
-Pinned originals, license and adaptation notes are in `third_party/mame-huc6280/`.
-Rebuild with `sh scripts/build_huc6280_wasm.sh` (Emscripten required).
-
-K052539 (SCC+) VGM/VGZ playback uses the shared K051649 core, with five
-independent waveform channels. Standalone and MSX AY/YM2413/Y8950 mixtures,
-per-channel muting and CLI WAV rendering are supported. SCC/SCC+ and MSX
-AY/OPLL/Y8950 mixtures support Live / Song Note-ish, Sheet Music and MIDI /
-MusicXML / LilyPond export. SCC notes use clock / (32 × (period + 1)); waveform
-harmonics and waveform rewriting are not transcribed. Constant waves, halted
-periods and unsupported test frequency modes are omitted. SCC CH4/5 share
-waveforms; SCC+ port 4 keeps all five independent. ADPCM/noise are excluded
-from pitched notes. MIDI with more than 15 melodic tracks uses multiple ports;
-a compatible player is required. Dual chips remain unsupported.
