@@ -17,13 +17,14 @@ This project includes:
 
 [Tetorica FM2612 Playground](https://kyorohiro.github.io/hello_ymfm_wasm/playground/index.html)
 
-## What we are aiming for
+## Project goals
 
-We want to make retro game sound chips playable as instruments through JavaScript,
-and make their sound generation and the Playground runtime easy to embed in your own games and apps.
+This repository has four goals:
 
-We also want to preserve older game music and sound-chip techniques in a form
-that people can read, investigate, learn from and reconstruct.
+- To understand the YM2612 chip.
+- To create documentation that helps anyone understand the YM2612 chip.
+- To create documentation that helps anyone embed YM2612 audio in a browser app or game.
+- To preserve older game music and sound chip technology as cultural heritage that people today can read, investigate, learn from, and reconstruct—not only archive and play back.
 
 ## Feature status
 
