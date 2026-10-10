@@ -1,3 +1,4 @@
+import {registerShellCheck} from './playground_shell_check.js';
 import {createShell,parseCommand,resolvePath} from '../js/tetorica_virtual_files/index.js';
 import {createShellScriptRunner} from './playground_shell_runner.js';
 
@@ -5,8 +6,9 @@ import {createShellScriptRunner} from './playground_shell_runner.js';
 export function installPlaygroundShell({fs, beforeCommand, afterCommand, output, form, input, prompt,stopButton,state,onPlay,panel,terminal,clearButton}) {
   const shell=createShell({fs,authorize(operation,paths){
     if(paths.some(path=>path==='/sys'||path.startsWith('/sys/')))throw Error('/sys is read-only');
-    if((operation==='rm'||operation==='mv')&&paths[0]==='/index.js')throw Error('/index.js is the project entry point');
+    if((operation==='rm'||operation==='mv')&&paths.includes('/index.js'))throw Error('/index.js is the project entry point');
   }});
+  registerShellCheck(shell);
   let queue=Promise.resolve(),epoch=0,active=null,streamed=0;
   const history=[];let historyIndex=0,draft='';
   const setState=text=>{if(state)state.textContent=text;};
@@ -77,7 +79,7 @@ export function installPlaygroundShell({fs, beforeCommand, afterCommand, output,
   document.getElementById('shellTab')?.addEventListener('click',()=>{input.focus();scroll();});
   clearButton?.addEventListener('click',()=>{clear();input.focus();});
   stopButton?.addEventListener('click',stop);
-  return {execute,shell,stop,invalidate(reason='Project changed'){epoch++;active?.abort();runner.stop(reason);setState('Project changed.');}};
+  return {execute,shell,stop,invalidate(reason='Project changed'){shell.clearSnapshots();epoch++;active?.abort();runner.stop(reason);setState('Project changed.');}};
 }
 
 /** Complete the final path argument without evaluating command text, including unfinished quotes. */

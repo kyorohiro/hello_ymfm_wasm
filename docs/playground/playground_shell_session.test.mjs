@@ -46,3 +46,10 @@ test('agent edit uses the guarded session and cannot change reserved or stale fi
  end();assert.equal((await shell.execute(['edit','/index.js','updated','bad'],{fs:session.facade})).code,1);
  assert.equal(fs.get('/index.js').data,'updated');
 });
+test('atomic patches honor session reserved paths and retain the project entry point',async()=>{
+ const {fs,session}=setup();fs.writeText('/sys/locked','reserved');const shell=createShell({fs});
+ const before=fs.snapshot();const failed=[{path:'/scripts/main.js',oldText:'script',newText:'changed'},{path:'/sys/locked',oldText:'reserved',newText:'bad'}];
+ assert.equal((await shell.execute(['patch','-'],{stdin:JSON.stringify(failed),fs:session.facade})).code,1);assert.deepEqual(fs.snapshot(),before);
+ const remove=[{type:'delete',path:'/index.js',expectedText:'initial'}];assert.equal((await shell.execute(['patch','-'],{stdin:JSON.stringify(remove),fs:session.facade})).code,1);assert.equal(fs.has('/index.js'),true);
+ const edits=[{path:'/index.js',oldText:'initial',newText:'updated'},{path:'/scripts/main.js',oldText:'script',newText:'changed'}];assert.equal((await shell.execute(['patch','-'],{stdin:JSON.stringify(edits),fs:session.facade})).code,0);assert.equal(fs.get('/index.js').data,'updated');assert.equal(fs.get('/scripts/main.js').data,'changed');
+});

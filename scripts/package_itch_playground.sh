@@ -35,6 +35,7 @@ playground_sync.js
 playground_ui.js
 playground_virtual_files.js
 playground_shell.js
+playground_shell_check.js
 playground_shell_modules.js
 playground_shell_session.js
 playground_shell_runner.js

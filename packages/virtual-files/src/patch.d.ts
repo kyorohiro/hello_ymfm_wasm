@@ -1,0 +1,60 @@
+import { createVirtualFileSystem } from './filesystem.js';
+export type TextPatch = {
+    path: string;
+    type?: 'replace';
+    oldText: string;
+    newText: string;
+    expect?: number;
+} | {
+    path: string;
+    type: 'create';
+    text: string;
+} | {
+    path: string;
+    type: 'delete';
+    expectedText: string;
+};
+/** @typedef {{path:string,type?:'replace',oldText:string,newText:string,expect?:number}|{path:string,type:'create',text:string}|{path:string,type:'delete',expectedText:string}} TextPatch */
+/** Stage every operation, then commit once. Failed validation never writes to the live store.
+ * @param {ReturnType<typeof createVirtualFileSystem>} fs
+ * @param {TextPatch[]} edits
+ * @param {{cwd?:string,dryRun?:boolean,authorize?:(operation:string,paths:string[])=>void,assertActive?:()=>void}} [options] */
+export declare function applyTextPatch(fs: ReturnType<typeof createVirtualFileSystem>, edits: TextPatch[], { cwd, dryRun, authorize, assertActive }?: {
+    cwd?: string;
+    dryRun?: boolean;
+    authorize?: (operation: string, paths: string[]) => void;
+    assertActive?: () => void;
+}): {
+    applied: boolean;
+    changes: ({
+        path: string;
+        type: "create";
+        matches: number;
+    } | {
+        path: string;
+        type: "delete";
+        matches: number;
+    } | {
+        path: string;
+        type: "replace";
+        matches: number;
+    })[];
+};
+export type SnapshotChange = {
+    path: string;
+    status: 'added' | 'removed' | 'modified';
+    beforeType: 'text' | 'binary' | 'directory' | null;
+    afterType: 'text' | 'binary' | 'directory' | null;
+    hunk?: string;
+    hunkTruncated?: boolean;
+};
+/** @typedef {{path:string,status:'added'|'removed'|'modified',beforeType:'text'|'binary'|'directory'|null,afterType:'text'|'binary'|'directory'|null,hunk?:string,hunkTruncated?:boolean}} SnapshotChange */
+/** Compare validated snapshots, including binary changes and empty directories.
+ * Text excerpts are bounded review output, not an executable unified patch.
+ * @param {import('./filesystem.js').Snapshot} before
+ * @param {import('./filesystem.js').Snapshot} after
+ * @param {{path?:string}} [options]
+ * @returns {SnapshotChange[]} */
+export declare function diffSnapshots(before: import('./filesystem.js').Snapshot, after: import('./filesystem.js').Snapshot, { path }?: {
+    path?: string;
+}): SnapshotChange[];

@@ -1,3 +1,4 @@
+import {applyTextPatch,diffSnapshots} from './patch.js';
 const compare=(a,b)=>a<b?-1:a>b?1:0;
 const lines=text=>{const result=text.split('\n');if(result.at(-1)==='')result.pop();return result;};
 const integer=(value,min,max,name)=>{const n=Number(value);if(!/^\d+$/.test(value)||!Number.isSafeInteger(n)||n<min||n>max)throw Error(`Invalid ${name}: expected ${min}..${max}`);return n;};
@@ -8,7 +9,7 @@ function options(args,booleans,values){
     if(arg==='--'){positional.push(...args.slice(i+1));break;}
     if(booleans.includes(arg)){flags[arg]=true;continue;}
     if(values.includes(arg)){if(i+1>=args.length)throw Error(`Missing value for ${arg}`);flags[arg]=args[++i];continue;}
-    if(arg.startsWith('-'))throw Error(`Unknown option: ${arg}; use -- before a path or pattern starting with -`);
+    if(arg!=='-'&&arg.startsWith('-'))throw Error(`Unknown option: ${arg}; use -- before a path or pattern starting with -`);
     positional.push(arg);
   }
   return {flags,positional};
@@ -35,6 +36,7 @@ function textFile(context,path){const file=context.fs.get(path);if(!file)throw E
  * @param {(name:string,command:import('./shell.js').Command)=>void} register
  * @param {(operation:string,paths:string[])=>void} authorize */
 export function registerAgentCommands(register,authorize){
+  const snapshots=new Map();
   register('find',context=>{
     const {flags,positional}=options(context.args,['--json'],['-name','-type','--offset','--limit']);
     if(positional.length>1)throw Error('Usage: find [PATH] [-name GLOB] [-type f|d] [--json] [--offset N] [--limit N]');
@@ -95,4 +97,30 @@ export function registerAgentCommands(register,authorize){
     const report={path,matches,changed,applied:!flags['--dry-run']&&changed};
     return flags['--json']?JSON.stringify(report)+'\n':`${flags['--dry-run']?'Preview':'Edit'} ${path}: ${matches} occurrence(s), ${report.applied?'applied':changed?'not applied':'unchanged'}\n`;
   });
+  register('patch',context=>{
+    const {flags,positional}=options(context.args,['--json','--dry-run'],[]);
+    if(positional.length!==1)throw Error('Usage: patch [--json] [--dry-run] PATCH_FILE|-');
+    const source=positional[0]==='-'?context.stdin:textFile(context,context.resolve(positional[0]));
+    if(source.length>1000000)throw Error('Patch document exceeds 1,000,000 characters');
+    const report=applyTextPatch(context.fs,JSON.parse(source),{cwd:context.cwd,dryRun:!!flags['--dry-run'],authorize,assertActive:context.assertActive});
+    return flags['--json']?JSON.stringify(report)+'\n':`${report.applied?'Applied':'Preview'} ${report.changes.length} patch edit(s)\n`;
+  });
+  register('snapshot',context=>{
+    const {flags,positional}=options(context.args,['--json','--list','--remove'],[]);
+    if(positional.length>1||flags['--list']&&(positional.length||flags['--remove']))throw Error('Usage: snapshot [--json] [NAME] | snapshot --list | snapshot --remove NAME');
+    const name=positional[0]??'baseline';
+    if(flags['--list'])return JSON.stringify([...snapshots.keys()].sort())+'\n';
+    if(flags['--remove']){if(!positional.length||!snapshots.delete(name))throw Error('Snapshot not found');return;}
+    if(!snapshots.has(name)&&snapshots.size>=8)throw Error('At most 8 snapshots; remove one first');
+    snapshots.set(name,context.fs.snapshot());return flags['--json']?JSON.stringify({name,files:snapshots.get(name).files.length})+'\n':`Snapshot ${name} saved\n`;
+  });
+  register('diff',context=>{
+    const {flags,positional}=options(context.args,['--json'],['--offset','--limit']);
+    if(positional.length>2)throw Error('Usage: diff [--json] [--offset N] [--limit N] [NAME] [PATH]');
+    const name=positional[0]??'baseline',before=snapshots.get(name);if(!before)throw Error(`Snapshot not found: ${name}`);
+    const changes=diffSnapshots(before,context.fs.snapshot(),{path:context.resolve(positional[1]??'/')});
+    return resultPage(changes,flags,e=>e.hunk?`--- ${e.path} (before)\n+++ ${e.path} (after)\n${e.hunk}${e.hunkTruncated?'[hunk truncated]\n':''}`:`${e.status}: ${e.path} (${e.beforeType??'missing'} -> ${e.afterType??'missing'})`);
+  });
+  return {clearSnapshots(){snapshots.clear();}};
+
 }

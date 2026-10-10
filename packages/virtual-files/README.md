@@ -119,3 +119,71 @@ require `--expect N` (1..1000). Empty old text is rejected. Successful edits
 preserve the rest of the file, emit one filesystem change, and call the host's
 `authorize('edit', [absolutePath])` policy. Guarded Playground script sessions
 still enforce their project, cancellation and human-edit checks.
+
+## Atomic patches and snapshot diffs (working tree)
+
+`patch [--json] [--dry-run] PATCH_FILE` reads a JSON array of text edits.
+`patch -` reads the JSON array from `execute`'s `stdin` option. Paths are resolved
+relative to the shell cwd. A document may contain up to 1,000 edits and the shell
+accepts up to 1,000,000 characters. Each edit has one of these shapes:
+
+```json
+[
+  {"path":"/index.js","oldText":"value = 1","newText":"value = 2"},
+  {"type":"create","path":"/lib/new.js","text":"export const enabled = true;\n"},
+  {"type":"delete","path":"/obsolete.js","expectedText":"exact previous contents"}
+]
+```
+
+Replacements default to exactly one match; `expect` explicitly permits more.
+Edits are checked in order against a temporary filesystem, so successive edits
+can target the same file. Creates require a missing path. Deletes require the
+complete expected text. Binary targets, unknown fields, invalid parent paths and
+stale or ambiguous matches fail before the live filesystem changes.
+
+All operations commit together with one change notification. Host policies run
+before commit: `authorize('patch', paths)` checks all targets, and each deletion
+also calls `authorize('rm', [path])`. A dry run performs validation without writing.
+JSON output reports `applied` and `changes` (path, type, matches).
+The exported `applyTextPatch(fs, edits, options)` API uses the same implementation;
+its optional `assertActive` callback can enforce a host command's lifetime.
+
+```javascript
+fs.writeText('/changes.json', JSON.stringify([
+  {path: '/index.js', oldText: 'value = 1', newText: 'value = 2'}
+]));
+await shell.execute('snapshot before');
+await shell.execute('patch --dry-run --json /changes.json');
+await shell.execute('patch --json /changes.json');
+console.log((await shell.execute('diff --json before /index.js')).stdout);
+```
+
+`snapshot [NAME]` saves a baseline in shell memory (default `baseline`).
+`snapshot --list` lists names; `snapshot --remove NAME` removes one. Up to eight
+baselines are kept, and saving an existing name replaces that baseline.
+`diff [NAME] [PATH]` compares a baseline with current files and empty directories.
+Both snapshots and diffs accept `--json`; diff also accepts `--offset` / `--limit`
+with the same paging rules as `find`. Text changes include a bounded `hunk` and
+`hunkTruncated`; binary changes report metadata. The exported
+`diffSnapshots(before, after, {path})` API also accepts external filesystem snapshots.
+
+Baselines remain in memory through ordinary edits. Use `shell.clearSnapshots()`
+when replacing a host project; `dispose()` also clears them. Playground clears
+baselines on project invalidation. Baselines are not part of autosave or Cassette ZIPs.
+Diff hunks are review excerpts, with changed middle sections and surrounding
+context; they may be truncated and are not patch input.
+
+## Playground JavaScript syntax check
+
+The Playground host registers `check [--json] [PATH]` using Monaco's JavaScript
+parser. With no path it checks JavaScript files beneath cwd; a directory checks
+its `.js`, `.mjs` and `.cjs` files recursively. A file checks that single text file.
+Project code is parsed without execution. Static imports and exports can be checked.
+This host command is discoverable through `help --json`; it is separate from the
+independent filesystem package and needs Monaco to be available.
+
+JSON output contains `files`, `diagnostics`, `total` and `truncated`. Diagnostics
+have path, 1-based line / column, code, severity and message. Syntax errors return
+exit code 1. Output is limited to 40 diagnostics with short messages; inspect a
+narrower path for remaining diagnostics. This checks syntax, not runtime behavior
+or imported-module availability.

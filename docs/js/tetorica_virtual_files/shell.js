@@ -32,7 +32,8 @@ export function createShell({fs,cwd = '/',authorize = () => {}}) {
   const write=(operation,paths)=>authorize(operation,paths);
   const shell={
     get cwd() {return cwd;},
-    dispose() {unsubscribe();},
+    dispose() {unsubscribe();agentCommands.clearSnapshots();},
+    clearSnapshots() {agentCommands.clearSnapshots();},
     /** @param {string} name @param {Command} command */
     register(name,command) {if (!/^[\w-]+$/.test(name) || typeof command !== 'function') throw Error('Invalid command registration');commands.set(name,command);},
     /** Commands in one shell execute in order. Context.execute dispatches nested commands directly.
@@ -74,6 +75,7 @@ export function createShell({fs,cwd = '/',authorize = () => {}}) {
     find:'find [PATH] [-name GLOB] [-type f|d] [--json] [--offset N] [--limit N]',
     rg:'rg [-n] [-F] [-i] [-l] [--json] [--offset N] [--limit N] LITERAL [PATH]',
     read:'read [--start N] [--end N] [--max-chars N] [--json] PATH',
+    check:'check [--json] [PATH]',patch:'patch [--json] [--dry-run] PATCH_FILE|-',snapshot:'snapshot [NAME] | snapshot --list | snapshot --remove NAME',diff:'diff [--json] [--offset N] [--limit N] [NAME] [PATH]',
     edit:'edit [--expect N] [--dry-run] [--json] PATH OLD_TEXT NEW_TEXT',help:'help [COMMAND|--json]'};
   shell.register('help',({args})=>{
     if(args.length>1)throw Error('Usage: help [COMMAND|--json]');
@@ -90,6 +92,6 @@ export function createShell({fs,cwd = '/',authorize = () => {}}) {
   shell.register('write',({fs,args,resolve})=>{count(args,2);const path=resolve(args[0]);write('write',[path]);fs.writeText(path,args[1]);});
   shell.register('rm',({fs,args,resolve})=>{const recursive=args[0]==='-r';if(recursive)args=args.slice(1);count(args,1);const path=resolve(args[0]);write('rm',[path]);fs.remove(path,{recursive});});
   for (const name of ['cp','mv']) shell.register(name,({fs,args,resolve})=>{count(args,2);const paths=args.map(resolve);write(name,paths);transferVirtualFiles(fs,paths[0],paths[1],{copy:name==='cp'});});
-  registerAgentCommands((name,command)=>shell.register(name,command),write);
+  const agentCommands=registerAgentCommands((name,command)=>shell.register(name,command),write);
   return shell;
 }

@@ -34,6 +34,7 @@ export declare function createShell({ fs, cwd, authorize }: {
 }): {
     readonly cwd: string;
     dispose(): void;
+    clearSnapshots(): void;
     /** @param {string} name @param {Command} command */
     register(name: string, command: Command): void;
     /** Commands in one shell execute in order. Context.execute dispatches nested commands directly.

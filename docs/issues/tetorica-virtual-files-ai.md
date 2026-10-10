@@ -27,10 +27,18 @@ MCP固有のAPIをこのライブラリーには追加していない。ホス�
 - Node.js 22.22.0でも独立コアのテスト成功。
 - Chromiumでhelp / find / rg / read / dry-run / edit / stale editを操作。エディター同期、入れ子のjsスクリプト、autosaveと再読込を確認。
 
+## 第2段階（実装・検証済み）
+
+- `patch`: JSON配列の置換・作成・削除を一時領域で検証し、全件成功時だけ一度に反映。dry-run / stdin / JSON応答。
+- `snapshot` / `diff`: 名前付きbaseline（最大8個）と現在のファイル・空ディレクトリーを比較。テキスト差分は上限付き、バイナリはメタデータ。プロジェクト変更時にbaselineを破棄。
+- `check`: PlaygroundがMonacoのJavaScript構文解析を登録。コードを実行せず、ファイル・行・列・エラーコードをJSONで取得。静的import / exportにも対応。
+- 共通APIとして`applyTextPatch` / `diffSnapshots`をexport。guarded sessionと既存のホスト権限を維持。
+- Chromiumでpatch / preview / diff / check / ESM / 構文エラー / 途中失敗の無変更 / 入れ子のjsを確認。
+- itch梱包に構文チェック用モジュールを追加。
+
 ## 次の候補
 
-1. 複数箇所・複数ファイルのpatchをまとめて検証し、全件成功時だけ適用する。
-2. snapshot間のdiffを表示し、AIが変更結果を確認できるようにする。
-3. JavaScript構文チェックと、AIから取得できる実行エラーの構造化。
+1. 実行エラー・コンソール出力の取得を構造化し、AIの修正ループへ渡す。
+2. snapshotを使う明示的な変更取消。人間の後続編集を上書きしない競合判定が必要。
 
-今回の追加はリテラル検索と単一ファイル置換。正規表現検索、Git、pipe／redirect／command chainingは今後の拡張として残す。
+検索はリテラル方式。正規表現検索、Git、pipe／redirect／command chainingは今後の拡張として残す。
