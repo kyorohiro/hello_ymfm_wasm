@@ -5,6 +5,12 @@
  * チップ操作・PCM 生成に DOM・AudioContext は不要。ローダーは実行環境に合わせて渡す。
  */
 export const GAMEBOY_APU_CLOCK = 4194304;
+/**
+ * Validate Game Boy APU generation settings.
+ * @param {{clock?: number, sampleRate?: number}} [options={}] Chip clock in Hz and PCM samples per second.
+ * @returns {void}
+ * @throws {RangeError} For an invalid clock or sample rate.
+ */
 export function validateGameboyApu({clock=GAMEBOY_APU_CLOCK,sampleRate=44100}={}) {
   if(!Number.isInteger(clock)||clock<=0||clock>0x3fffffff||!Number.isInteger(sampleRate)||sampleRate<=0||sampleRate>384000)
     throw new RangeError('Invalid Game Boy APU clock or sample rate');

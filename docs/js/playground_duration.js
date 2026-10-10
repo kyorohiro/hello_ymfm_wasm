@@ -1,4 +1,12 @@
 /** Resolve a note length once, before any sound is started. Legacy units differ by API. */
+/**
+ * @param {{beats?: number, seconds?: number, duration?: number}} options Specify at most one duration field.
+ * @param {number} bpm Positive beats per minute when converting beats.
+ * @param {'seconds' | 'beats'} [legacyUnit='seconds'] Unit of the legacy duration field and defaultDuration.
+ * @param {number} [defaultDuration=0.2] Fallback in legacyUnit.
+ * @returns {number} Finite nonnegative duration in seconds.
+ * @throws {TypeError | RangeError} For conflicting fields or invalid duration/tempo.
+ */
 export function resolvePlaySeconds(options, bpm, legacyUnit = 'seconds', defaultDuration = 0.2) {
   const keys = ['beats', 'seconds', 'duration'].filter(key => options[key] !== undefined);
   if (keys.length > 1) throw new TypeError('Specify only one of beats, seconds or duration');

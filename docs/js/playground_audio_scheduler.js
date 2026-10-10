@@ -6,12 +6,12 @@
 /**
  * Queue events by absolute audio-clock time and send batches within a lookahead window.
  * The recipient must still schedule each event at its time; send() runs ahead of playback.
- * @param {{now: () => number, send: (entries: any[]) => void, setTimer?: typeof setTimeout, clearTimer?: typeof clearTimeout}} options Clock, destination and optional timer hooks.
- * @param {function(): number} options.now Current audio-clock time in seconds.
- * @param {Function} options.send Receives a time-sorted array of due entries.
- * @param {Function} [options.setTimer=setTimeout] Schedule a callback after a delay in milliseconds.
- * @param {Function} [options.clearTimer=clearTimeout] Cancel the returned timer handle.
- * @returns {Object} getTiming/setTiming, enqueue and clear operations.
+ * @template {{time: number}} Entry
+ * @param {{now: () => number, send: (entries: Entry[]) => void,
+ *   setTimer?: typeof globalThis.setTimeout, clearTimer?: typeof globalThis.clearTimeout}} options Clock in seconds, batch sender and timer hooks (milliseconds).
+ * @returns {{getTiming: () => {lookaheadSeconds: number, schedulerIntervalMs: number},
+ *   setTiming: (options?: {lookaheadSeconds?: number, schedulerIntervalMs?: number}) => {lookaheadSeconds: number, schedulerIntervalMs: number},
+ *   enqueue: (entries: Entry[]) => void, clear: () => void}} Queue and timing controls.
  */
 export function createAudioScheduler({ now, send, setTimer = setTimeout, clearTimer = clearTimeout }) {
   let timing = { lookaheadSeconds: 0.25, schedulerIntervalMs: 10 };
@@ -41,7 +41,7 @@ export function createAudioScheduler({ now, send, setTimer = setTimeout, clearTi
     },
     /**
      * Merge entries and immediately dispatch those within the lookahead horizon.
-     * @param {Object[]} entries Each entry has an absolute time in seconds; other fields pass through.
+     * @param {Entry[]} entries Absolute times in seconds; other fields pass through unchanged.
      * @returns {void}
      */
     enqueue(entries) {

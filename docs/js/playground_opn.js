@@ -3,6 +3,14 @@ import {YM2612Synth} from './ym2612synth.js';
 import {YM2203Synth} from './ym2203synth.js';
 import {YM2610BSynth, NeoGeoFMSynth} from './ym2610bsynth.js';
 
+/**
+ * Create a high-level OPN synth backed by ordered Worklet port commands.
+ * The client owns the port; dispose rejects pending requests and closes it.
+ * @param {'ym2612' | 'ym2203' | 'ym2610'} name Chip family to expose.
+ * @param {MessagePort} port Paired with the chip's audio processor.
+ * @returns The chip-specific synth and its disposal/optional scheduling controls.
+ * @throws {Error} For an unsupported chip name.
+ */
 export function createOpnClient(name, port) {
   let disposed = false, sequence = 0;
   const pending = new Map();

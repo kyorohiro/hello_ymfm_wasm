@@ -5,6 +5,12 @@
  */
 const YM2612_VGM_CLOCK = 7670454;
 
+/**
+ * Test whether a write belongs to the supported YM2608 FM register subset.
+ * @param {number} port Register port (0 or 1).
+ * @param {number} register Register address.
+ * @returns {boolean} Whether the FM translator should forward this write.
+ */
 export function isYm2608FmRegister(port, register) {
   if (port === 0 && (register === 0x22 || register === 0x27 || register === 0x28)) {
     return true;
@@ -12,16 +18,36 @@ export function isYm2608FmRegister(port, register) {
   return register >= 0x30 && register <= 0xb6;
 }
 
+/**
+ * Test whether a write belongs to the supported YM2610 FM register subset.
+ * @param {number} port Register port (0 or 1).
+ * @param {number} register Register address.
+ * @returns {boolean} Whether the FM translator should forward this write.
+ */
 export function isYm2610FmRegister(port, register) {
   return isYm2608FmRegister(port, register);
 }
 
+/**
+ * Test whether a write belongs to the supported YM2203 FM register subset.
+ * @param {number} port Register port (0 or 1).
+ * @param {number} register Register address.
+ * @returns {boolean} Whether the FM translator should forward this write.
+ */
 export function isYm2203FmRegister(port, register) {
   if (port !== 0) return false;
   if (register === 0x27 || register === 0x28) return true;
   return register >= 0x30 && register <= 0xb2;
 }
 
+/**
+ * Translate OPN FM frequency writes to the YM2612 VGM reference clock.
+ * High-byte writes update shared latches; low-byte writes commit the converted pair.
+ * @param {number} sourceClock VGM source clock in Hz, including optional variant bits.
+ * @param {(register: number, value: number, port: number) => void} writeRegister Target register writer.
+ * @param {(port: number, register: number) => boolean} isFmRegister Supported-register predicate.
+ * @returns {(register: number, value: number, port?: number) => void} Ordered, stateful write translator.
+ */
 export function createOpnFmWriteTranslator(sourceClock, writeRegister, isFmRegister) {
   const normalizedSourceClock =
     (Number(sourceClock) & 0x3fffffff) || YM2612_VGM_CLOCK;

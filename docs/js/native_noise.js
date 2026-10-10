@@ -4,7 +4,8 @@
 const types=['white','pink','brown','gray','clip'];
 const modes=['lowpass','highpass','bandpass','notch','allpass','peaking','lowshelf','highshelf'];
 const params={gain:[0,.3,0,8],pan:[1,0,-1,1],cutoff:[2,1600,10,20000],q:[3,.2,.0001,1000],attack:[4,0,0,60],release:[5,0,0,60]};
-/** @param {(message:Record<string,unknown>)=>void} send Ordered transport sender. */
+/** @param {(message:Record<string,unknown>)=>void} send Ordered transport sender.
+ * @returns Native noise voice creation and stop/dispose controls; the controller owns at most 32 voices. */
 export function createNativeNoiseController(send){
  const voices=new Map();let sequence=1;
  const api={
@@ -39,6 +40,12 @@ export function createNativeNoiseController(send){
  };
  return api;
 }
+/**
+ * Set or ramp a native noise voice's gain, pan and filter controls.
+ * @param {ReturnType<ReturnType<typeof createNativeNoiseController>['create']>} voice Existing noise voice.
+ * @param {{gain?: number, pan?: number, cutoff?: number, q?: number, slide?: number}} [options={}] Target values; slide is ramp duration in seconds.
+ * @returns {void}
+ */
 export function controlNativeNoise(voice,options={}){
  const slide=Math.max(0,Number(options.slide)||0);
  for(const [key,param] of [['gain',voice.gain],['pan',voice.pan],['cutoff',voice.filter.cutoff],['q',voice.filter.q]]){

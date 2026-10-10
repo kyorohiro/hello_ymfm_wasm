@@ -1,7 +1,8 @@
 /** Browser/Worker PCM playback controls. Loading/decoding is injected separately.
  * AudioWorklet acknowledges preparation directly; playback never needs a UI reply.
  */
-/** @param {(message:Record<string,unknown>)=>void} send Ordered transport sender. */
+/** @param {(message:Record<string,unknown>)=>void} send Ordered transport sender.
+ * @returns PCM bank/voice controls and acknowledgement handling; preparation promises await Worklet replies. */
 export function createNativeSampleController(send){
  const banks=new Map(),pending=new Map();let sequence=0;
  const request=(action,data)=>new Promise((resolve,reject)=>{const id=++sequence;pending.set(id,{resolve,reject});send({op:'sample',action,id,...data});});

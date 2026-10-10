@@ -5,6 +5,9 @@
  */
 /**
  * Playground compatibility entry point for the runtime-owned noise API.
+ * @template {{create: (...args: unknown[]) => unknown, stopAll: () => void}} Noise
+ * @param {{noise?: Noise, audio?: {createNoiseApi?: () => Noise}} | null} megaDrive Audio owner.
+ * @returns Existing noise API, lazily created API, or a placeholder that rejects create until initialized.
  */
 export function createPlaygroundNoiseApi(megaDrive) {
   if (megaDrive?.noise) return megaDrive.noise;

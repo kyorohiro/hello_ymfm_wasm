@@ -2,6 +2,9 @@
  * @file Worker / Node.js: DAC bank preparation and sample-relative commands.
  * AudioWorklet owns the audio-clock origin and performs timed register writes.
  */
+/** @param {(command: Record<string, unknown>) => void} send Ordered chip-port sender.
+ * @param {{lookaheadSeconds?: number}} [options={}] Initial scheduling lead time in seconds.
+ * @returns DAC bank preparation and 44100-Hz sample-relative register scheduling helpers. */
 export function createWorkerDac(send, {lookaheadSeconds = 0.25} = {}) {
   const banks = new Set();
   const bytesFrom = data => {

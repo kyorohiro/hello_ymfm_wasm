@@ -1668,6 +1668,13 @@ export class Ym2612VGM {
 
 // Original decoder based on the VGM format specification, not emulator code.
 // Shared recorded-bank decoder; export name retained for existing callers.
+/**
+ * Decode a VGM compressed data-bank block (also shared by recorded PWM banks).
+ * @param {Uint8Array} data Compressed block contents including its compression header.
+ * @param {Map<string, {bits: number, packed: number, values: number[] | Uint16Array}>} [tables] Decompression tables keyed by compression type/subtype.
+ * @returns {Uint8Array} Unpacked little-endian sample bytes.
+ * @throws {Error} For invalid/unsupported encoding, missing tables or excessive allocation.
+ */
 export function decodePwmBlock(data, tables = new Map()) {
   if (data.length < 10) throw new Error("Truncated compressed PWM header");
   const view = new DataView(data.buffer, data.byteOffset, data.byteLength);
@@ -1793,6 +1800,11 @@ export function exportYm2203FmVgmToPlaygroundJavaScript(source, options = {}) {
 /**
  * Export YM2203 FM writes for a native YM2203 target without changing FNUM.
  */
+/**
+ * @param {ArrayBuffer | ArrayBufferView | Ym2612VGM} source VGM file or parsed source.
+ * @param {{includeHeaderComment?: boolean, scheduled?: boolean, totalLoopSamples?: number | null}} [options={}] Source formatting, timed batches and loop expansion.
+ * @returns {string} Playground JavaScript source for the selected FM target.
+ */
 export function exportYm2203VgmToPlaygroundJavaScript(source, options = {}) {
   return exportOpnFmVgmToPlaygroundJavaScript(source, options, "ym2203", "ym2203");
 }
@@ -1800,16 +1812,31 @@ export function exportYm2203VgmToPlaygroundJavaScript(source, options = {}) {
 /**
  * Export YM2608 FM writes for a native YM2608 target without changing FNUM.
  */
+/**
+ * @param {ArrayBuffer | ArrayBufferView | Ym2612VGM} source VGM file or parsed source.
+ * @param {{includeHeaderComment?: boolean, scheduled?: boolean, totalLoopSamples?: number | null}} [options={}] Source formatting, timed batches and loop expansion.
+ * @returns {string} Playground JavaScript source for the selected FM target.
+ */
 export function exportYm2608VgmToPlaygroundJavaScript(source, options = {}) {
   return exportOpnFmVgmToPlaygroundJavaScript(source, options, "ym2608", "ym2608");
 }
 
 /** Export YM2610B FM writes while omitting SSG and ADPCM registers. */
+/**
+ * @param {ArrayBuffer | ArrayBufferView | Ym2612VGM} source VGM file or parsed source.
+ * @param {{includeHeaderComment?: boolean, scheduled?: boolean, totalLoopSamples?: number | null}} [options={}] Source formatting, timed batches and loop expansion.
+ * @returns {string} Playground JavaScript source for the selected FM target.
+ */
 export function exportYm2610BVgmToPlaygroundJavaScript(source, options = {}) {
   return exportOpnFmVgmToPlaygroundJavaScript(source, options, "ym2610", "ym2610");
 }
 
 /** Export Neo Geo FM through the YM2612 compatibility target. */
+/**
+ * @param {ArrayBuffer | ArrayBufferView | Ym2612VGM} source VGM file or parsed source.
+ * @param {{includeHeaderComment?: boolean, scheduled?: boolean, totalLoopSamples?: number | null}} [options={}] Source formatting, timed batches and loop expansion.
+ * @returns {string} Playground JavaScript source for the selected FM target.
+ */
 export function exportYm2610FmVgmToPlaygroundJavaScript(source, options = {}) {
   return exportOpnFmVgmToPlaygroundJavaScript(source, options, "ym2610", "ym2612");
 }

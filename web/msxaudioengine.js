@@ -91,6 +91,12 @@ export class MsxAudioEngine extends MultiChipAudioEngine {
 /** @param {Parameters<typeof MsxAudioEngine.create>[0]} [options] */
 export const createMsxAudioEngine = options => MsxAudioEngine.create(options);
 
+/**
+ * Check supported MSX chip combinations and single-chip variant flags.
+ * @param {import('./ym2612vgm.js').Ym2612VgmHeader} header Parsed VGM clock/variant fields.
+ * @returns {void}
+ * @throws {Error} For unsupported chip combinations or variants.
+ */
 export function validateMsxPlaybackHeader(header) {
   for (const type of ['ay8910','ym2413','y8950','k051649','ym2151']) {
     // K051649 bit 31 selects K052539 (SCC+); port 4 already writes independent waveforms.

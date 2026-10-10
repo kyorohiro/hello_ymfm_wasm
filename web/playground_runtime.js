@@ -72,6 +72,7 @@ const SCALE_INTERVALS = {
 };
 
 /**
+ * Create a reusable browser runtime with clocks, music helpers and execution lifecycle.
  * @param {{
  *   synth?: object | null,
  *   megaDrive?: object | null,
@@ -91,6 +92,7 @@ const SCALE_INTERVALS = {
  *   onReady?: ((context: { synth: object, megaDrive: object }) => void) | null,
  *   onMegaDriveEvent?: ((event: object) => void) | null,
  * }} [options]
+ * @returns Runtime controls and accessors; initialize audio before using the synth.
  */
 export function createPlaygroundRuntime(
   options = {}
@@ -2175,7 +2177,9 @@ export function createPlaygroundRuntime(
 }
 
 /**
+ * Compatibility factory for createPlaygroundRuntime.
  * @param {Parameters<typeof createPlaygroundRuntime>[0]} [options]
+ * @returns {ReturnType<typeof createPlaygroundRuntime>} Playground runtime.
  */
 export function Playground(
   options = {}

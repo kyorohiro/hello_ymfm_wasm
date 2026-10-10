@@ -18,6 +18,12 @@ const activeGuardStates = new WeakMap();
  * }} PlaygroundExecutionGuardOptions
  */
 
+/**
+ * Temporarily block network/navigation APIs in a realm; nested installations share guards.
+ * @param {typeof globalThis} [realm=globalThis] Realm to patch.
+ * @param {PlaygroundExecutionGuardOptions} [options={}] Whether guards are enabled.
+ * @returns {() => void} Idempotent release function that restores APIs after the final owner releases.
+ */
 export function installPlaygroundExecutionGuards(
   realm = globalThis,
   options = {}
@@ -201,6 +207,14 @@ function createGuardRelease(realm, state) {
   };
 }
 
+/**
+ * Run a callback with guards, restoring the realm even when the callback rejects.
+ * @template T
+ * @param {() => T | PromiseLike<T>} callback Work to execute.
+ * @param {typeof globalThis} [realm=globalThis] Realm to patch.
+ * @param {PlaygroundExecutionGuardOptions} [options={}] Guard settings.
+ * @returns {Promise<Awaited<T>>} Callback result.
+ */
 export async function executeWithPlaygroundGuards(
   callback,
   realm = globalThis,

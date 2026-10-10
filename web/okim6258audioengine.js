@@ -5,6 +5,12 @@
  * 同期 PCM 生成・ミックス用。DOM・AudioContext・スピーカー出力は不要。
  */
 // MAME-derived OKIM6258 decoder. Source and license: third_party/mame-okim6258/.
+/**
+ * Require a single OKIM6258 using 4-bit ADPCM.
+ * @param {{okim6258Clock: number, okim6258Flags: number}} header VGM clock and format flags.
+ * @returns {void}
+ * @throws {Error} For dual/variant chips or 3-bit ADPCM.
+ */
 export function validateOki6258Header(header) {
   if (header.okim6258Clock & 0xc0000000) throw new Error('Dual/variant OKIM6258 playback is not supported');
   if (!(header.okim6258Flags & 4)) throw new Error('OKIM6258 3-bit ADPCM playback is not supported (4-bit required)');
@@ -117,6 +123,14 @@ export class Oki6258AudioEngine {
 }
 // Player renders through processFrames. Keep the primary engine's monitor hooks
 // and channel controls; advance ADPCM over exactly the same output interval.
+/**
+ * Add OKIM6258 rendering and controls to an existing engine in place.
+ * The combined reset/dispose also reset/dispose the attached ADPCM engine.
+ * @template {{processFrames: (frames: number) => {left: Float32Array, right: Float32Array}, reset: () => void, dispose: () => void, getMasterVolume: () => number}} Engine
+ * @param {Engine} engine Primary engine whose master volume also scales ADPCM.
+ * @param {Oki6258AudioEngine} oki ADPCM engine advanced over the same output frames.
+ * @returns {Engine & {attachedOki6258: Oki6258AudioEngine, writeOki6258: (register: number, value: number) => void, setOkiMuted: (muted: boolean) => void}} The mutated primary engine.
+ */
 export function attachOki6258(engine, oki) {
   const render=engine.processFrames.bind(engine),reset=engine.reset.bind(engine),dispose=engine.dispose.bind(engine);
   engine.attachedOki6258=oki;

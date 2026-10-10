@@ -44,6 +44,9 @@ function operatorFromBytes(bytes, base) {
 }
 
 /** Parse a 43-byte VGI file into a logical YM2612 preset. */
+/** @param {Uint8Array | ArrayBuffer} data Exact-size VGI binary data.
+ * @returns {import('./ym2612synth.js').YM2612Preset} Logical operators, algorithm, feedback and pan/modulation.
+ * @throws {Error} For invalid size or out-of-range register values. */
 export function parseVgi(data) {
   const bytes = bytesOf(data);
   if (bytes.length !== VGI_FILE_SIZE) {
@@ -66,6 +69,8 @@ export function parseVgi(data) {
 }
 
 /** Create a 43-byte VGI file from a logical YM2612 preset. */
+/** @param {import('./ym2612synth.js').YM2612Preset} preset Logical YM2612 patch.
+ * @returns {Uint8Array} VGI file bytes in the format's operator order. */
 export function createVgiFromPreset(preset) {
   if (!preset || typeof preset !== "object") throw new Error("preset must be an object");
   const bytes = new Uint8Array(VGI_FILE_SIZE);

@@ -5,6 +5,12 @@
  * チップ操作・PCM 生成に DOM・AudioContext は不要。ローダーは実行環境に合わせて渡す。
  */
 export const AY8910_CLOCK = 1789773;
+/**
+ * Validate clock/rate and the AY variants supported by the backend.
+ * @param {{clock?: number, sampleRate?: number, type?: number, flags?: number}} [options={}] Clock in Hz and PCM samples per second.
+ * @returns {void}
+ * @throws {Error | RangeError} For unsupported variants/flags or invalid clock/rate.
+ */
 export function validateAy8910({clock=AY8910_CLOCK,sampleRate=44100,type=0,flags=1}={}) {
   if(!Number.isInteger(clock)||clock<=0||clock>0x3fffffff||!Number.isInteger(sampleRate)||sampleRate<=0||sampleRate>384000)
     throw new RangeError('Invalid AY clock or sample rate');

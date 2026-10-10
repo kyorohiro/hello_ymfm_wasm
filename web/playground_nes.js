@@ -1,6 +1,9 @@
 import {NesApuSynth} from './nesapusynth.js';
 import {NES_APU_CLOCK} from './nesapu.js';
 /** Same register generator as the public NES API; uploads await Worklet acknowledgement. */
+/** @param {MessagePort} port Ordered Worklet command/acknowledgement port, owned by the client.
+ * @param {{clock?: number, fdsEnabled?: boolean}} [options={}] Clock in Hz and FDS availability.
+ * @returns {NesApuSynth} Synth whose dispose closes the port and rejects pending uploads. */
 export function createNesClient(port, {clock = NES_APU_CLOCK, fdsEnabled = false} = {}) {
   let disposed = false, sequence = 0;
   const pending = new Map();

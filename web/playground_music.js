@@ -17,6 +17,13 @@ const CHORD_INTERVALS = {
   dominant7: [0, 4, 7, 10],
 };
 
+/**
+ * Linear interpolation; t is not clamped, so values outside 0..1 extrapolate.
+ * @param {number} a Starting value.
+ * @param {number} b Ending value.
+ * @param {number} t Interpolation fraction.
+ * @returns {number}
+ */
 export function lerp(
   a,
   b,
@@ -29,6 +36,17 @@ export function lerp(
   );
 }
 
+/**
+ * Create note/pitch, scale, chord and loop-local sequence helpers.
+ * @param {{noteToSemitone: Record<string, number>, scaleIntervals: Record<string, number[]>,
+ *   createPitchFromMidi: typeof import('./pitch.js').createPitchFromMidi,
+ *   pitchReference: {referenceMidi: number, referenceBlock: number, referenceFnum: number},
+ *   synth: () => import('./ym2612synth.js').YM2612Synth | null,
+ *   presets: Record<string, import('./ym2612synth.js').YM2612Preset>, activeNotes: Set<number>,
+ *   sleep: (seconds: number) => Promise<void>, getBpm?: () => number,
+ *   getCurrentLoopContext?: () => {cycleState: Map<string, number>, cycleCallIndex: number} | null}} options Pitch reference, synth lookup, waits and sequence context.
+ * @returns Music helpers; play waits for note duration and releases only the note it owns.
+ */
 export function createPlaygroundMusic(
   options
 ) {
@@ -47,6 +65,8 @@ export function createPlaygroundMusic(
   const globalCycleState =
     new Map();
 
+  /** @param {string} noteName Note such as C4, F#3 or Bb2.
+   * @returns {number} MIDI note number. */
   function parseNoteName(noteName) {
     const match =
       /^([A-G](?:#|b)?)(-?\d+)$/.exec(
@@ -75,6 +95,8 @@ export function createPlaygroundMusic(
     return (octave + 1) * 12 + semitone;
   }
 
+  /** @param {string | number} noteOrMidi Note name or MIDI number.
+   * @returns {{block: number, fnum: number}} FM pitch at the configured reference. */
   function toPitch(noteOrMidi) {
     const midi =
       typeof noteOrMidi ===
@@ -92,6 +114,8 @@ export function createPlaygroundMusic(
     });
   }
 
+  /** @param {string | number} note Note name or MIDI number.
+   * @returns {{block: number, fnum: number}} */
   function noteToBlockFnum(note) {
     const pitch = toPitch(note);
     return {
@@ -100,6 +124,11 @@ export function createPlaygroundMusic(
     };
   }
 
+  /**
+   * @param {string | number} note Note name or MIDI number.
+   * @param {{channel?: number, preset?: string, beats?: number, seconds?: number, duration?: number}} [options={}] Duration defaults to 0.2 seconds; beats uses current BPM.
+   * @returns {Promise<void>} Resolves after note release; rejected waits still release owned notes.
+   */
   async function play(
     note,
     options = {}
@@ -156,6 +185,8 @@ export function createPlaygroundMusic(
     }
   }
 
+  /** @param {number} midi Integer MIDI note number.
+   * @returns {string} Note name using sharps. */
   function midiToNoteName(midi) {
     const names = [
       "C",
@@ -180,6 +211,10 @@ export function createPlaygroundMusic(
     return `${note}${octave}`;
   }
 
+  /** @param {string} root Root note including octave.
+   * @param {string} name Scale key in scaleIntervals.
+   * @param {number} [octaves=1] Octaves to expand.
+   * @returns {string[]} Note names in ascending scale order. */
   function scale(
     root,
     name,
@@ -217,6 +252,9 @@ export function createPlaygroundMusic(
     return notes;
   }
 
+  /** @param {string} root Root note including octave.
+   * @param {'major' | 'minor' | 'major7' | 'minor7' | 'dominant7'} name Chord quality.
+   * @returns {string[]} Chord note names. */
   function chord(
     root,
     name
@@ -241,6 +279,9 @@ export function createPlaygroundMusic(
     );
   }
 
+  /** @template T
+   * @param {T[]} values Nonempty array.
+   * @returns {T} Random element. */
   function choose(values) {
     if (
       !Array.isArray(values) ||
@@ -259,6 +300,10 @@ export function createPlaygroundMusic(
     ];
   }
 
+  /** @template T
+   * @param {string | T[]} keyOrValues Named sequence key or nonempty values.
+   * @param {T[]} [maybeValues] Values when a key is supplied.
+   * @returns {T} Next loop-local (or global) cyclic value. */
   function cycle(
     keyOrValues,
     maybeValues
@@ -322,6 +367,10 @@ export function createPlaygroundMusic(
     );
   }
 
+  /** @param {string} from Starting note name.
+   * @param {string} to Ending note name.
+   * @param {number} t Interpolation fraction in MIDI semitones.
+   * @returns {{block: number, fnum: number}} */
   function noteLerp(
     from,
     to,

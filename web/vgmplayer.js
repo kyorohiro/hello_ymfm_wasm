@@ -538,6 +538,11 @@ function stateByteLength(value, seen = new Set()) {
 }
 
 // Shared register/memory adapters for legacy engines and the generic mixer.
+/**
+ * Adapt an engine's available register/memory methods to VGM runtime targets.
+ * @param {VgmPlaybackEngine} engine Playback engine; optional chip methods enable their targets.
+ * @returns Chip-specific targets; unavailable chip targets are undefined.
+ */
 export function createVgmTargets(engine) {
   const ym2612Target = typeof engine.writeYm2612 === "function"
     ? { writeRegister: (register, value, port = 0) => engine.writeYm2612(port, register, value) }

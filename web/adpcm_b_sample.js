@@ -76,6 +76,10 @@ export async function readSamplePCM(source, {signal, decodeAudio} = {}) {
  * predictor, initial step 127 and Yamaha's multiplicative step adjustment.
  * Linear interpolation handles rate conversion; pad with encoded silence to
  * the chip's 32-byte addressing boundary (64 decoded frames).
+ * @param {import('./wav.js').ChannelPCM} pcm Mono/multichannel PCM; channels are averaged before encoding.
+ * @param {number} outputRate Target decoded samples per second.
+ * @param {number} [maxBytes=0x200000] Maximum encoded size in bytes.
+ * @returns Encoded ADPCM-B bytes and playback metadata.
  */
 export function encodeAdpcmB({channels, sampleRate}, outputRate, maxBytes = 0x200000) {
   if (!Array.isArray(channels) || !channels.length || channels.length > 32 ||

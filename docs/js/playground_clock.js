@@ -5,9 +5,31 @@
  * createDeadlineScheduler は共用。createPlaygroundClock の既定タイマーは window を使うため、
  * Worker / Node.js では setTimer を注入する。音声時計と実行コンテキストも呼び出し側から渡す。
  */
-/** One deadline timer, with a separate task per continuation so microtasks drain
- * before another loop's context is restored. No per-loop deadline timers. */
-/** @param {{now: () => number, setTimer?: typeof globalThis.setTimeout, clearTimer?: typeof globalThis.clearTimeout, createTaskChannel?: () => MessageChannel | null}} options */
+/**
+ * @typedef {{runToken: number, stopped: boolean, cursorBeat: number,
+ *   sampleCursorSeconds?: number, interruptError?: Error}} PlaygroundClockLoop
+ * @typedef {{bpm: number, clockStartTime: number | null,
+ *   sampleClockStartTime: number | null}} PlaygroundClockState
+ * @typedef {{now: () => number, setTimer?: typeof globalThis.setTimeout,
+ *   clearTimer?: typeof globalThis.clearTimeout,
+ *   createTaskChannel?: () => MessageChannel | null}} DeadlineSchedulerOptions
+ * @typedef {{wait: (at: number, resume: () => void, owner?: unknown) => void,
+ *   cancel: (owner?: unknown | ((owner: unknown) => boolean)) => void}} DeadlineScheduler
+ * @typedef {Object} PlaygroundClockOptions
+ * @property {PlaygroundClockState} runtime Mutable tempo and clock origins (seconds).
+ * @property {() => Pick<BaseAudioContext, 'currentTime'> | null | undefined} [getAudioContext] Audio clock; falls back to performance.now().
+ * @property {() => number} getCurrentRunToken Generation identifying the current Run.
+ * @property {() => PlaygroundClockLoop | null} getCurrentLoopContext Current liveLoop state.
+ * @property {(loop: PlaygroundClockLoop | null) => void} [setCurrentLoopContext] Restore the loop before resuming an await.
+ * @property {typeof globalThis.setTimeout} [setTimer] Required outside a browser window; delay is milliseconds.
+ * @property {typeof globalThis.clearTimeout} [clearTimer] Cancels a handle returned by setTimer.
+ * @property {() => MessageChannel | null} [createTaskChannel] Optional task dispatch hook.
+ */
+/**
+ * Share one deadline timer, dispatching each continuation in a separate task.
+ * @param {DeadlineSchedulerOptions} options Clock in seconds and optional timer hooks.
+ * @returns {DeadlineScheduler} Queue waits and wake cancelled owners; callers check cancellation themselves.
+ */
 export function createDeadlineScheduler({
   now,
   setTimer = (fn, ms) => setTimeout(fn, ms),
@@ -92,6 +114,20 @@ export function createDeadlineScheduler({
   };
 }
 
+/**
+ * Create beat/sample waits and tempo helpers against the runtime's audio clock.
+ * Waits reject when their Run or liveLoop stops. Timers resume JavaScript;
+ * they do not schedule sample-accurate audio rendering.
+ * @param {PlaygroundClockOptions} options Runtime state, loop context and clock hooks.
+ * @returns {{cancelWaits: DeadlineScheduler['cancel'], nowSeconds: () => number,
+ *   ensureMusicClock: () => void, beatsToSeconds: (beats: number) => number,
+ *   currentBeat: () => number, sleep: (seconds: number, runToken?: number) => Promise<void>,
+ *   sleepSamples: (samples: number, sampleRate?: number, runToken?: number) => Promise<void>,
+ *   waitForBeat: (targetBeat: number, runToken?: number, loopState?: PlaygroundClockLoop | null) => Promise<void>,
+ *   beat: (beats?: number) => Promise<void>, nextBeat: () => Promise<void>,
+ *   setBpm: (bpm: number) => void,
+ *   tween: (seconds: number, fn: (progress: number) => void | Promise<void>, runToken?: number) => Promise<void>}}
+ */
 export function createPlaygroundClock(
   options
 ) {
@@ -159,6 +195,13 @@ export function createPlaygroundClock(
     resolve(value);
   }
 
+  /**
+   * Wait for a relative duration, restoring the captured loop on resume.
+   * @param {number} seconds Duration in seconds; negative values are clamped to zero.
+   * @param {number} [runToken] Current Run generation.
+   * @returns {Promise<void>}
+   * @throws {Error} When the Run/loop stops or a loop-owned asynchronous task fails.
+   */
   async function sleep(
     seconds,
     runToken = getCurrentRunToken()
@@ -195,6 +238,13 @@ export function createPlaygroundClock(
     }
   }
 
+  /**
+   * Advance the loop's cumulative sample cursor, avoiding per-wait timer drift.
+   * @param {number} samples Number of samples to wait.
+   * @param {number} [sampleRate=44100] Samples per second, independent of the chip clock.
+   * @param {number} [runToken] Current Run generation.
+   * @returns {Promise<void>}
+   */
   async function sleepSamples(
     samples,
     sampleRate = 44100,
@@ -250,6 +300,13 @@ export function createPlaygroundClock(
     }
   }
 
+  /**
+   * Wait until an absolute beat position on the current music clock.
+   * @param {number} targetBeat Absolute beat position.
+   * @param {number} [runToken] Current Run generation.
+   * @param {PlaygroundClockLoop | null} [loopState] Loop whose context is restored on resume.
+   * @returns {Promise<void>}
+   */
   async function waitForBeat(
     targetBeat,
     runToken = getCurrentRunToken(),
@@ -285,6 +342,8 @@ export function createPlaygroundClock(
     }
   }
 
+  /** @param {number} [beats=1] Advance this loop's beat cursor by this amount.
+   * @returns {Promise<void>} Resolves at the new beat position. */
   async function beat(beats = 1) {
     const loopState =
       getCurrentLoopContext();
@@ -309,6 +368,7 @@ export function createPlaygroundClock(
     );
   }
 
+  /** @returns {Promise<void>} Wait for the next integer beat after the current loop cursor/audio time. */
   async function nextBeat() {
     const loopState =
       getCurrentLoopContext();
@@ -336,6 +396,12 @@ export function createPlaygroundClock(
     );
   }
 
+  /**
+   * Change tempo while preserving the current beat position.
+   * @param {number} bpm Positive finite beats per minute.
+   * @returns {void}
+   * @throws {Error} When BPM is invalid.
+   */
   function setBpm(bpm) {
     const nextBpm = Number(bpm);
 
@@ -356,6 +422,13 @@ export function createPlaygroundClock(
       beatsToSeconds(beatPosition);
   }
 
+  /**
+   * Call a progress callback from 0 to 1 over a duration (zero duration calls only 1).
+   * @param {number} seconds Duration in seconds.
+   * @param {(progress: number) => void | Promise<void>} fn Callback; asynchronous callbacks are awaited.
+   * @param {number} [runToken] Current Run generation.
+   * @returns {Promise<void>}
+   */
   async function tween(
     seconds,
     fn,

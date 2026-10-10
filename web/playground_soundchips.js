@@ -1,8 +1,19 @@
 /** Per-runtime lookup cache. Creation and Stop disposal remain owned by the runtime. */
+/**
+ * Create a chip cache that coalesces concurrent requests and invalidates stopped generations.
+ * @returns Cached use and clear operations. use rejects unsupported chips/nonempty options;
+ * clear invalidates pending lookups but does not dispose resolved chips.
+ */
 export function createSoundChipRegistry() {
   const entries = new Map();
   let generation = 0;
   return {
+    /** @template {{dispose?: () => void}} Chip
+     * @param {string} name Supported Playground chip name.
+     * @param {Record<string, never> | undefined} options Omit or pass an empty object.
+     * @param {(name: string) => Chip | PromiseLike<Chip>} resolve Chip factory owned by the runtime.
+     * @param {{evictOnDispose?: boolean}} [settings] Remove manually disposed extra clients from the cache.
+     * @returns {Promise<Chip>} Shared pending/resolved chip. */
     use(name, options, resolve, {evictOnDispose = !['ym2612', 'ym2203', 'ym2610'].includes(name)} = {}) {
       if (!['ym2612', 'ym2203', 'ym2610', 'rf5c164', 'ym2608', 'gameboy', 'segapsg', 'ym2151', 'pwm', 'nes'].includes(name)) {
         return Promise.reject(new Error(`Unsupported useSoundChip name: ${String(name)}`));

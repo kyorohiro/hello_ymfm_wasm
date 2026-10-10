@@ -4,7 +4,9 @@ import { RF5C164Synth, RF5C164DirectTransport } from './rf5c164synth.js';
 export { sampleBytes, encodeRf5c164 } from './rf5c164_pcm.js';
 const integer=(v,max,name)=>{if(!Number.isInteger(v)||v<0||v>max)throw new RangeError(`Invalid ${name}`);return v;};
 /** Port RPC shared by main and Worker; commands never require main-thread synthesis. */
-/** @param {MessagePort} port */
+/** @param {MessagePort} port Ordered Worklet command/acknowledgement port.
+ * @param {(source: unknown) => Promise<import('./wav.js').ChannelPCM>} decode PCM decoder for loadSample.
+ * @returns RF5C164 register, memory, voice and disposal controls. */
 export function createRf5c164Client(port,decode){
  let sequence=0,disposed=false;const pending=new Map();
  port.onmessage=({data})=>{const p=pending.get(data.id);if(!p)return;pending.delete(data.id);data.error?p.reject(new Error(data.error)):p.resolve(data.value);};port.start?.();
@@ -19,6 +21,8 @@ export function createRf5c164Client(port,decode){
  };
 }
 /** Compatibility facade. New offline code can construct Synth + DirectTransport. */
+/** @param {import('./rf5c164.js').Rf5c164} chip Native chip owned by the facade.
+ * @returns Bound Synth controls; dispose releases the supplied chip. */
 export function createRf5c164Control(chip) {
   const synth = new RF5C164Synth({transport: new RF5C164DirectTransport(chip)});
   return {...Object.fromEntries(['loadMemory', 'writeRegister', 'setChannel', 'setPitch', 'keyOn', 'keyOff', 'reset']

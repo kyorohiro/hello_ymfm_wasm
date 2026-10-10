@@ -5,11 +5,22 @@
  */
 // S98 register logs are normalized to VGM for the analyzer's existing pipeline.
 // Format reference: https://github.com/ValleyBell/libvgm/blob/master/player/s98player.cpp
+/**
+ * Check the three-byte S98 signature without validating the whole file.
+ * @param {Uint8Array | ArrayBuffer} source Binary file contents.
+ * @returns {boolean} Whether the file starts with S98.
+ */
 export function looksLikeS98(source) {
   const b = source instanceof Uint8Array ? source : new Uint8Array(source);
   return b.length >= 3 && b[0] === 0x53 && b[1] === 0x39 && b[2] === 0x38;
 }
 
+/**
+ * Convert an uncompressed, supported single-device S98 log into VGM.
+ * @param {Uint8Array | ArrayBuffer} source S98 file contents.
+ * @returns {{buffer: ArrayBuffer, sourceHeader: {format: string, numerator: number, denominator: number, dataOffset: number, loopOffset: number, tagOffset: number, devices: Array<{type: number, clock: number, pan: number}>, tag: string}}} VGM bytes and source metadata.
+ * @throws {Error} For invalid/truncated data, compression or unsupported devices.
+ */
 export function convertS98ToVgm(source) {
   const bytes = source instanceof Uint8Array ? source : new Uint8Array(source);
   const fail = (message) => { throw new Error(`S98: ${message}`); };

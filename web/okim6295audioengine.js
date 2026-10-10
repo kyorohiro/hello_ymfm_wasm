@@ -115,6 +115,14 @@ export class Oki6295AudioEngine {
   }
 }
 
+/**
+ * Add OKIM6295 rendering, ROM uploads and mute controls to an engine in place.
+ * Combined state snapshots are disabled; reset/dispose cover both engines.
+ * @template {{processFrames: (frames: number) => {left: Float32Array, right: Float32Array}, reset: () => void, dispose: () => void, getMasterVolume: () => number}} Engine
+ * @param {Engine} engine Primary engine whose master volume also scales ADPCM.
+ * @param {Oki6295AudioEngine} oki ADPCM engine to attach.
+ * @returns The mutated primary engine with OKIM6295 controls.
+ */
 export function attachOki6295(engine,oki){
   const render=engine.processFrames.bind(engine),reset=engine.reset.bind(engine),dispose=engine.dispose.bind(engine);
   engine.writeOki6295=(r,v)=>oki.writeOki6295(r,v);

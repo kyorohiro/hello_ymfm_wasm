@@ -32,7 +32,7 @@ export class SegaPSGDirectTransport {
 
 /** Tone/noise register generation shared by Node.js and browser transports. */
 export class SegaPSGSynth {
-  /** @param {{transport: {write: function(number): void, reset?: function(): void, resetAll?: function(): void}}} options */
+  /** @param {{transport: {write: (value: number) => void, reset?: () => void, resetAll?: () => void}}} [options] Ordered register transport. */
   constructor({transport} = {}) {
     if (!transport || typeof transport.write !== 'function') throw new TypeError('SegaPSGSynth requires a transport with write(value)');
     this.transport = transport;
