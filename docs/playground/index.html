@@ -1781,12 +1781,13 @@
 
           <section id="audioMonitorPanel" class="tab-panel" role="tabpanel" aria-labelledby="audioMonitorTab" hidden>
             <label>Channel <select id="audioMonitorChannel"><option value="0">Left</option><option value="1">Right</option></select></label>
+            <button id="audioMonitorPause" type="button" aria-pressed="false" title="Pause analysis while audio keeps playing">Pause</button>
             <p id="audioMonitorStatus" role="status">Press Run to observe audio.</p>
             <div class="audio-monitor-plots">
               <div><h3>Oscilloscope</h3><canvas id="audioMonitorWave" width="700" height="220" aria-label="Output waveform over 20 milliseconds"></canvas></div>
               <div><h3>Spectrum</h3><canvas id="audioMonitorSpectrum" width="700" height="220" aria-label="Output frequency spectrum on a logarithmic frequency axis"></canvas></div>
             </div>
-            <p class="subtext">Waveform: ±1, 20 ms. Spectrum: −100 to 0 dBFS, 4096-point FFT. These plots show the mixed output after effects and master volume.</p>
+            <p class="subtext">Waveform: ±1, 20 ms. Spectrum: −100 to 0 dBFS, 4096-point FFT, up to 15 updates/sec. These plots show the mixed output after effects and master volume. Pause stops analysis while audio keeps playing.</p>
           </section>
           <section id="fxMonitorPanel" class="tab-panel" role="tabpanel" aria-labelledby="fxMonitorTab" hidden>
             <h2>FX Monitor</h2>

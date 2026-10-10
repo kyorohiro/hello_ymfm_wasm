@@ -1,7 +1,8 @@
-/** Observe final mixed audio. Analysis and canvas drawing stay outside the audio thread. */
-export function createAudioMonitor(getAudio, {panel, waveCanvas, spectrumCanvas, channel, status}) {
-  let visible = false, inView = true, frame = 0, lastDraw = 0;
-  let audio = null, context = null, splitter = null, analysers = [], release = null;
+/** Read Web Audio analyser snapshots and draw the mixed output without changing audible routing. */
+export function createAudioMonitor(getAudio, {panel, waveCanvas, spectrumCanvas, channel, status, pauseButton}) {
+  let visible = false, inView = true, paused = false, frame = 0, lastDraw = -Infinity;
+  let audio = null, context = null, splitter = null, analyser = null, release = null;
+  let selectedChannel = 0;
   let samples = null, bins = null;
   let idleDrawn = false;
 
@@ -12,22 +13,20 @@ export function createAudioMonitor(getAudio, {panel, waveCanvas, spectrumCanvas,
   function detach() {
     release?.(); release = null;
     splitter?.disconnect();
-    for (const analyser of analysers) analyser.disconnect();
-    audio = context = splitter = null; analysers = [];
+    analyser?.disconnect();
+    audio = context = splitter = analyser = null;
   }
 
   function attach(next) {
     detach();
     audio = next; context = next.audioContext;
     splitter = context.createChannelSplitter(2);
-    analysers = [0, 1].map(index => {
-      const analyser = context.createAnalyser();
-      analyser.fftSize = 4096;
-      analyser.smoothingTimeConstant = 0;
-      analyser.minDecibels = -100; analyser.maxDecibels = 0;
-      splitter.connect(analyser, index);
-      return analyser;
-    });
+    selectedChannel = Number(channel.value) === 1 ? 1 : 0;
+    analyser = context.createAnalyser();
+    analyser.fftSize = 4096;
+    analyser.smoothingTimeConstant = 0;
+    analyser.minDecibels = -100; analyser.maxDecibels = 0;
+    splitter.connect(analyser, selectedChannel);
     release = audio.connectOutputMonitor(splitter);
     samples = new Float32Array(4096); bins = new Float32Array(2048);
     idleDrawn = false;
@@ -96,9 +95,9 @@ export function createAudioMonitor(getAudio, {panel, waveCanvas, spectrumCanvas,
 
   function tick(time) {
     frame = 0;
-    if (!visible || !inView || document.hidden) return;
+    if (!visible || !inView || paused || document.hidden) return;
     frame = requestAnimationFrame(tick);
-    if (time - lastDraw < 1000 / 30) return;
+    if (time - lastDraw < 1000 / 15) return;
     lastDraw = time;
     const next = getAudio();
     if (!next?.masterOutputNode || !next.audioContext || next.audioContext.state === 'closed') {
@@ -111,8 +110,7 @@ export function createAudioMonitor(getAudio, {panel, waveCanvas, spectrumCanvas,
       setStatus('Press Run to observe audio.');
       return;
     }
-    if (audio !== next || context !== next.audioContext || !next.outputMonitors.has(splitter)) attach(next);
-    const analyser = analysers[Number(channel.value) || 0];
+    if (audio !== next || context !== next.audioContext || !next.outputMonitors.has(splitter) || selectedChannel !== (Number(channel.value) === 1 ? 1 : 0)) attach(next);
     analyser.getFloatTimeDomainData(samples); analyser.getFloatFrequencyData(bins);
     draw(context.sampleRate);
     setStatus(`${context.sampleRate} Hz · ${channel.value === '1' ? 'Right' : 'Left'} · mixed output after effects and volume`);
@@ -120,9 +118,18 @@ export function createAudioMonitor(getAudio, {panel, waveCanvas, spectrumCanvas,
 
   function refresh() {
     cancelAnimationFrame(frame); frame = 0;
-    if (visible && inView && !document.hidden) frame = requestAnimationFrame(tick);
+    if (visible && inView && !paused && !document.hidden) frame = requestAnimationFrame(tick);
     else detach();
   }
+  function togglePause() {
+    paused = !paused;
+    pauseButton.textContent = paused ? 'Resume' : 'Pause';
+    pauseButton.setAttribute('aria-pressed', String(paused));
+    if (paused) setStatus('Analysis paused. Audio playback continues.');
+    lastDraw = -Infinity;
+    refresh();
+  }
+  pauseButton?.addEventListener('click', togglePause);
   const observer = typeof IntersectionObserver === 'function' ? new IntersectionObserver(entries => {
     inView = entries[0].isIntersecting; refresh();
   }) : null;
@@ -136,6 +143,7 @@ export function createAudioMonitor(getAudio, {panel, waveCanvas, spectrumCanvas,
       visible = false; refresh(); observer?.disconnect();
       document.removeEventListener('visibilitychange', refresh);
       window.removeEventListener('pagehide', onPageHide);
+      pauseButton?.removeEventListener('click', togglePause);
     },
   };
 }

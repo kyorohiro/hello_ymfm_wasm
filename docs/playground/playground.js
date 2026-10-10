@@ -1449,6 +1449,7 @@ const audioMonitor = createAudioMonitor(() => runtime.megaDrive?.audio, {
   spectrumCanvas: document.getElementById("audioMonitorSpectrum"),
   channel: document.getElementById("audioMonitorChannel"),
   status: document.getElementById("audioMonitorStatus"),
+  pauseButton: document.getElementById("audioMonitorPause"),
 });
 
 const ui =
