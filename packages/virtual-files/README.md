@@ -187,3 +187,45 @@ have path, 1-based line / column, code, severity and message. Syntax errors retu
 exit code 1. Output is limited to 40 diagnostics with short messages; inspect a
 narrower path for remaining diagnostics. This checks syntax, not runtime behavior
 or imported-module availability.
+
+## Playground structured script results
+
+`js --json PATH [ARGS...]` executes a shell script and returns a JSON report in
+stdout. The command still returns code 0 for success and code 1 for failure.
+Plain `js PATH` retains streaming text output. `result --json [RUN_ID]` retrieves
+an already completed run, defaulting to the most recently completed one.
+This is a Playground host feature discoverable through `help --json`.
+
+Reports contain `id`, `path`, `code`, `status` (`completed`, `failed`, `cancelled`),
+`durationMs`, `stdout`, `stderr`, `console`, `error` and `truncated`.
+Console entries contain their sequence, level (`log`, `info`, `warn`, `error`,
+`debug`) and text. `console.error()` alone does not fail the script.
+An execution error contains name, message, stack, path and 1-based line / column
+when a source frame is available. Imported-module failures keep their own file
+location. Locations unavailable in a browser stack are null. Import rewriting
+preserves source lines; columns after a rewritten import on the same line may
+refer to generated code.
+
+```javascript
+const result = await shell.execute(['js', '--json', '/scripts/build.js']);
+const report = JSON.parse(result.stdout);
+if (report.status === 'failed') {
+  console.log(report.error.path, report.error.line, report.error.message);
+}
+// After a stopped run, query its retained report separately:
+const previous = await shell.execute(['result', '--json']);
+```
+
+The shell's abort signal can return the usual cancellation result before the
+script's JSON response. After Stop, use `result --json` to obtain the `cancelled`
+report and output captured before cancellation. Only the last ten completed
+reports are kept in memory. Project invalidation clears reports; they are not
+saved in autosave or Cassette ZIPs. Inspecting a result does not rerun code.
+
+Worker console output and host collection are bounded: stdout / stderr each
+hold up to 8,000 characters; console records hold up to 100 entries and 8,000
+characters, with a 1,000-character excerpt per record. The worker also limits
+console message production, preventing a logging loop from flooding the UI.
+Serialized reports fit within 32,000 characters, with `truncated` flags marking
+omitted stream, console or report content. In JSON mode nested scripts do not
+stream extra text into the top-level JSON response.

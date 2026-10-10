@@ -36,9 +36,19 @@ MCP固有のAPIをこのライブラリーには追加していない。ホス�
 - Chromiumでpatch / preview / diff / check / ESM / 構文エラー / 途中失敗の無変更 / 入れ子のjsを確認。
 - itch梱包に構文チェック用モジュールを追加。
 
+## 第3段階（実装・検証済み）
+
+- `js --json`: 実行結果・終了状態・consoleのレベル・例外名／message／stack／file／line／columnをJSONで取得。
+- `result --json [RUN_ID]`: 直近の完了結果または指定IDを取得。停止時の部分出力も保持。最大10件、プロジェクト変更時に破棄。
+- 通常のjsはテキスト出力を維持。JSONモードでは入れ子のjsが余分なストリーム出力を混ぜない。
+- Worker側とホスト側の両方でconsole出力を制限。出力・履歴のメモリー上限とtruncatedフラグ。
+- ブラウザーで例外JSON→edit→再実行、import先のエラー位置、Promise失敗、停止結果、従来出力を確認。
+- 共通コア／Playground関連51テスト成功。ブラウザー配布梱包の294参照チェック成功。
+
 ## 次の候補
 
-1. 実行エラー・コンソール出力の取得を構造化し、AIの修正ループへ渡す。
-2. snapshotを使う明示的な変更取消。人間の後続編集を上書きしない競合判定が必要。
+1. snapshotを使う明示的な変更取消。人間の後続編集を上書きしない競合判定が必要。
+2. MCP経由で検索→patch→check→js→resultの一連操作を確認。
+3. npmへの追加機能の公開。
 
 検索はリテラル方式。正規表現検索、Git、pipe／redirect／command chainingは今後の拡張として残す。

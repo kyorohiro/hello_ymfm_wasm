@@ -39,6 +39,7 @@ playground_shell_check.js
 playground_shell_modules.js
 playground_shell_session.js
 playground_shell_runner.js
+playground_shell_diagnostics.js
 playground_shell_worker.js
 playground_autosave.js
 playground_file_tree.js

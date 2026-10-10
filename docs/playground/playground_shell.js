@@ -9,7 +9,7 @@ export function installPlaygroundShell({fs, beforeCommand, afterCommand, output,
     if((operation==='rm'||operation==='mv')&&paths.includes('/index.js'))throw Error('/index.js is the project entry point');
   }});
   registerShellCheck(shell);
-  let queue=Promise.resolve(),epoch=0,active=null,streamed=0;
+  let queue=Promise.resolve(),epoch=0,active=null,streamed=0,structuredOutput=false;
   const history=[];let historyIndex=0,draft='';
   const setState=text=>{if(state)state.textContent=text;};
   const scroll=()=>{const viewport=terminal??output;viewport.scrollTop=viewport.scrollHeight;};
@@ -17,8 +17,13 @@ export function installPlaygroundShell({fs, beforeCommand, afterCommand, output,
   const clear=()=>{output.textContent='';scroll();};
   const stop=()=>{active?.abort();runner.stop();};
   const runner=createShellScriptRunner({fs,sync:beforeCommand,onChange:afterCommand,
-    onOutput(text){streamed++;append(text);}});
+    onOutput(text){if(structuredOutput)return;streamed++;append(text);}});
   shell.register('js',context=>runner.run(context));
+  shell.register('result',context=>{
+    const args=context.args.filter(arg=>arg!=='--json');
+    if(args.length>1||args.length&&(!/^\d+$/.test(args[0])||!Number.isSafeInteger(Number(args[0]))||Number(args[0])<1))throw Error('Usage: result [--json] [RUN_ID]');
+    return JSON.stringify(runner.result(args.length?Number(args[0]):undefined))+'\n';
+  });
   if(onPlay)shell.register('play',async context=>{
     if(context.args.length!==1)throw Error('Usage: play PATH');
     context.assertActive();const path=context.resolve(context.args[0]);
@@ -33,13 +38,15 @@ export function installPlaygroundShell({fs, beforeCommand, afterCommand, output,
       if(stopButton)stopButton.disabled=false;
       const startOutput=streamed;append(`${shell.cwd} $ ${source}\n`);setState('Running…');
       try{
+        let tokens=[];try{tokens=Array.isArray(source)?source:parseCommand(source);}catch{}
+        structuredOutput=tokens[0]==='js'&&tokens[1]==='--json';
         beforeCommand();
         const result=await shell.execute(source,{signal:controller.signal});
         if(requestedEpoch===epoch)afterCommand();
         if(streamed===startOutput)append(result.stdout+(result.stderr?result.stderr+'\n':''));
         prompt.textContent=shell.cwd+' $';setState(result.code===0?'Finished.':result.code===130?'Stopped.':`Exit ${result.code}`);
         return result;
-      }finally{if(active===controller)active=null;if(stopButton)stopButton.disabled=true;}
+      }finally{structuredOutput=false;if(active===controller)active=null;if(stopButton)stopButton.disabled=true;}
     });
     queue=command.catch(()=>{});return command;
   }
@@ -79,7 +86,7 @@ export function installPlaygroundShell({fs, beforeCommand, afterCommand, output,
   document.getElementById('shellTab')?.addEventListener('click',()=>{input.focus();scroll();});
   clearButton?.addEventListener('click',()=>{clear();input.focus();});
   stopButton?.addEventListener('click',stop);
-  return {execute,shell,stop,invalidate(reason='Project changed'){shell.clearSnapshots();epoch++;active?.abort();runner.stop(reason);setState('Project changed.');}};
+  return {execute,shell,stop,invalidate(reason='Project changed'){shell.clearSnapshots();epoch++;active?.abort();runner.stop(reason);runner.clearResults();setState('Project changed.');}};
 }
 
 /** Complete the final path argument without evaluating command text, including unfinished quotes. */

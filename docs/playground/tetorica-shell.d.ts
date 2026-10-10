@@ -5,6 +5,14 @@ declare module 'tetorica:shell' {
   export type VirtualFile =
     | {path: string; type: 'text'; data: string}
     | {path: string; type: 'binary'; data: Uint8Array};
+  export type ShellRunReport = {
+    id: number; path: string | null; code: number;
+    status: 'completed' | 'failed' | 'cancelled'; durationMs: number;
+    stdout: string; stderr: string;
+    console: Array<{sequence: number; level: 'log' | 'info' | 'warn' | 'error' | 'debug'; text: string}>;
+    error: {name: string; message: string; stack: string; path: string | null; line: number | null; column: number | null} | null;
+    truncated: {stdout: boolean; stderr: boolean; console: boolean; report: boolean};
+  };
   export type CommandResult = {code: number; stdout: string; stderr: string};
   export interface ShellFiles {
     get(path: string): Promise<VirtualFile | null>;
