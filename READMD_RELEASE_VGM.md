@@ -1,5 +1,15 @@
 # tetorica-vgm の npm リリース手順
 
+## 0.2.9 公開記録（2026-10-11）
+
+- 公開元commit: `3b416be`（機能実装は `6a32398` までを含む）。
+- YM2151 / YM2164のFM-only MDX直接出力と、Sega PSGのTone 1–3 / NoiseのCH別ミュートを追加。CLI / Node APIからも `psg-ch-1` ～ `psg-ch-4` を指定可能。
+- Node.js 25.2.1と22.22.0でCLI194テストをそれぞれ成功。Analyzer関連1229テスト成功、任意外部コンパイラー依存1件skip（`MML2MDR_DIR`未設定）。
+- pack dry-run、178ファイルの配布内容、393ローカル依存参照、実tarballの新規導入・Node.js 22でCLI版番号／解析／MDX出力／PSG CH別ミュート、publish dry-runを確認。
+- npm registryのlatest 0.2.9とローカルtgzのintegrity一致を確認。公開版を新規ディレクトリへ導入し、Node.js 22.22.0でCLI版番号・Node API解析・MDX出力・PSG CH別ミュートを検証。
+- 公開URL: https://www.npmjs.com/package/tetorica-vgm/v/0.2.9
+- integrity: `sha512-ukeeNjQ5VU2QjarcWEO/3PoVwHByFRPnpMCE+nzNe2ZbAuh30rfBd3PFwcmvnjFiEP8Eq72GipOa0JKmRfNalg==`。
+
 ## 0.2.8 公開記録（2026-10-08）
 
 - 公開元commit: `14ba730`。

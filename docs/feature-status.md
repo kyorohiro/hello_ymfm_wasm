@@ -1,6 +1,6 @@
 # Tetorica 機能対応状況
 
-更新日：2026-10-08。**現在のリポジトリの機能を探す入口**。
+更新日：2026-10-11。**現在のリポジトリの機能を探す入口**。
 機能単位の状態はこの一覧で管理し、細かなチップ条件・設計・作業経緯はリンク先に残す。
 公開版と現在のコードは同一とは限らない。再生対応だけで、音色Export・高速シーク・高水準APIも対応済みとは判断しない。
 
@@ -26,10 +26,11 @@ Playback欄の`Seek cache`表示で高速シークの対応構成を確認でき
 |---|---|---|---|
 | VGM／VGZ再生・音源別表示・ミュート | 実装済。OPN／OPM／OPL／PSG／PCMなど | 対応はチップ・Dual・併用構成ごとに異なる | [対応表](vgm_analyzer/support.html)、[再生構成判定](vgm_analyzer/playback_core.js) |
 | Chip Mixer | 共通PCM部品に移行。ローカル実装。Play/Ch・Effect横のMixerでチップ別Volume／Pan／Mute、Master、チップ設定Reset。再生・WAVに反映 | Game Boyの初期値・Resetは28%、他は100%。Effect On/Off・各値、チップ別音量／Pan／Mute、Masterをローカル保存し、曲変更・再起動で復元。Effect ResetはOff・初期値、Mixer Resetは保存済み全チップとMasterを初期化。今回の保存・Reset追加はローカル実装。既存のDual対応範囲は変更なし。DC除去・自動音量補正は未実装。未公開 | [PCMテスト](vgm_analyzer/playback_mixer.test.mjs)、[実装](vgm_analyzer/playback_mixer.js) |
+| Sega PSG CH別ミュート | Tone 1–3 / Noiseを個別にOn/Off。CLI / Nodeの `psg-ch-1..4` にも対応 | ミュート中もレジスター更新・発振状態・Tone 3連動ノイズを維持。PSG-only入力のFM表示を非表示。Browserで連続切替・通知遅延・Pause／再開を確認。CLI／共有コアはnpm tetorica-vgm 0.2.9で公開（2026-10-11、commit `3b416be`） | [音声テスト](../web/segapsg_mute.test.mjs)、[再生キューテスト](vgm_analyzer/playback_buffering.test.mjs) |
 | S98入力 | 一部。単一YM2203／YM2608／YM2612／YM2151 | 圧縮S98・複数デバイスは未対応。YM2151の追加はローカル版で、npm 0.2.6には未収録 | [入力仕様](../CLI.md#s98-input-and-source-documents) |
 | 高速シーク | 一部。OPN／OPM／Genesis構成 | 下の専用表参照。実曲・長時間のブラウザー試聴未確認、公開版未照合 | [成功記録・詳細](issues/seekvgm_save_load_01.md) |
 | Note-ish／楽譜表示・MIDI／MusicXML／LilyPond Export | 一部。対応音源の基音・キー区間を抽出 | 原譜の復元ではない。チップごとに除外区間あり | [対応表](vgm_analyzer/support.html)、[MusicXMLテスト](vgm_analyzer/vgm_musicxml.test.mjs)、[LilyPond作業記録](issues/lilypond_export_01.md) |
-| MDX file Export | ローカル実装。AnalyzerのMML / MDXダイアログとCLI `--format mdx`でYM2151 FM A–HのMDXバイナリーを生成 | 外部コンパイラー不要、Shift_JISタイトル、最大256音色・16bit相対offset。MXDRV MMLと同じ16分音符量子化・半音丸め・音符境界の音色。PDX・CH8 noise・部分key・CSM・live register／pan／LFO・release・loopは未再現。mdxminiで読み込み・発音確認。npm未公開 | [仕様](../CLI.md#mdx-file-export)、[テスト](vgm_analyzer/mdx_export.test.mjs) |
+| MDX file Export | 実装済。AnalyzerのMML / MDXダイアログとCLI `--format mdx`でYM2151 FM A–HのMDXバイナリーを生成 | 外部コンパイラー不要、Shift_JISタイトル、最大256音色・16bit相対offset。MXDRV MMLと同じ16分音符量子化・半音丸め・音符境界の音色。PDX・CH8 noise・部分key・CSM・live register／pan／LFO・release・loopは未再現。mdxminiで読み込み・発音確認。ブラウザー操作はユーザー確認済。CLI／共有コアはnpm tetorica-vgm 0.2.9で公開（2026-10-11、commit `3b416be`） | [仕様](../CLI.md#mdx-file-export)、[テスト](vgm_analyzer/mdx_export.test.mjs) |
 | MML Export | 一部。OPN、OPM、MSX系の対象形式 | グリッド量子化・リズム等の除外あり | [OPNテスト](vgm_analyzer/vgm_mml.test.mjs)、[OPMテスト](vgm_analyzer/opm_mml.test.mjs)、[MGSDRVテスト](vgm_analyzer/mgsdrv_mml.test.mjs) |
 | 音色抽出・スナップショット・ZIP | 一部。TFI／VGI／OPM／SBI | 音色形式に入らない演奏変化・状態は保存しない | 下の音色表参照 |
 | Sample Explorer／データ抽出・試聴 | 一部。認識できるPCM／ADPCMデータ。Sega PCMのROM範囲、OKIM6258の時刻付きADPCMキャプチャを追加。波形・保存／ZIP・ステレオ試聴／WAV | Sega PCMは発音時点の設定による1回再生。OKIM6258は最大10秒の試聴・開始前の分周位相は未再現。実ブラウザー試聴未確認・追加分未公開 | [未対応音源・優先順](issues/todo_vgm_01.md)、[Explorerテスト](vgm_analyzer/sample_explorer.test.mjs)、[CLIサンプル仕様](../CLI.md#sample-inventory) |
@@ -170,3 +171,11 @@ NES Workletは共通Mixerと自動IDに対応。起動時のDAC基準値と整�
 `sha512-d08sGEu19yriuc35xJE5bHlcKKWv308FJfKykmbaVtdfbKEVGGHLvD6g/eMOPFbB9p2otCcuTd4wvSSxgP0HTQ==`。
 Playgroundとnpm examplesにAPU・FDS波形／変調・DMCの3例を追加。
 npm examplesのWeb発音・停止・AudioContext解放、Node CoreAudioでの再生・終了を確認。
+
+## tetorica-vgm 0.2.9 公開記録
+
+2026-10-11、commit `3b416be` から [npm tetorica-vgm 0.2.9](https://www.npmjs.com/package/tetorica-vgm/v/0.2.9) を公開。
+YM2151 / YM2164のFM-only MDX直接出力とSega PSGのCH別ミュートを含む。
+Node.js 25.2.1／22.22.0でCLI194テストをそれぞれ成功。Analyzer関連1229テスト成功、任意外部コンパイラー依存1件skip。
+registryのlatest・SHA-512 integrityを照合し、公開版の新規導入とNode.js 22でのCLI／解析／MDX出力／PSGミュートを確認。
+詳細は [npmリリース記録](../READMD_RELEASE_VGM.md) を参照。
