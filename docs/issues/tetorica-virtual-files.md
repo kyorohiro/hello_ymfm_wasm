@@ -1,6 +1,8 @@
 # Tetorica Virtual Files
 
-状態：`tetorica-virtual-files` 0.1.1 を npm に公開（2026-10-10）。初回公開は 0.1.0（2026-10-09）。
+状態：`tetorica-virtual-files` 0.2.0 を npm の latest として公開（2026-10-11）。初回公開は 0.1.0（2026-10-09）、前回は 0.1.1（2026-10-10）。
+
+0.2.0 はAI向け検索・読取り・patch、revisionによる競合判定、snapshot間の安全なundo、仮想パイプ／リダイレクトを追加。検証・配布情報は [AI向け拡張とリリース記録](tetorica-virtual-files-ai.md#npm-020-リリース2026-10-11) を参照。
 
 ## 今回できたこと
 
@@ -14,7 +16,7 @@
 - [単独の実験ページ](../examples/virtual-files/) で、ファイル編集・シェル・バイナリ・空フォルダー・ブラウザー内への保存／復元を試せる。Playground の下書きとは別の IndexedDB を使う。
 
 IndexedDB の保存処理は、現在も Playground のアダプターとして残している。
-Git・整形／構文チェックツール・実フォルダー接続は次の段階。
+Git・整形ツール・実フォルダー接続は次の段階。構文チェックはPlaygroundのhostコマンドとして実装済み。
 以下の API 例や構成には、今後の拡張案も含まれる。
 
 ## 目的

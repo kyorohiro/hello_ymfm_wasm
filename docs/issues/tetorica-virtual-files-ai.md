@@ -1,7 +1,7 @@
 # AIが使うVirtual Files / Shell
 
 2026-10-11。PlaygroundのshellをAIが操作することを前提にした最初の拡張。
-共通コアとPlaygroundに反映済み。npm 0.2.0 の公開準備中（現在の公開版は0.1.1）。
+共通コアとPlaygroundに反映済み。`tetorica-virtual-files@0.2.0` を npm の latest として公開済み（2026-10-11）。
 
 ## 今回の優先項目
 
@@ -57,11 +57,11 @@ MCP固有のAPIをこのライブラリーには追加していない。ホス�
 
 ## 次の候補
 
-1. npmへの追加機能の公開。
+今回の追加機能のnpm公開とMCP経由の検証は完了。
 
 検索はリテラル方式。正規表現検索、Git、command chainingは今後の拡張として残す。
 
-## ファイルrevision（実装済み・未公開）
+## ファイルrevision（0.2.0で公開）
 
 - ファイル／ディレクトリーのrevisionと削除後の履歴を保持。同一内容の再書込みは変更扱いにせず、変更後に戻した場合や削除・再作成は検知。
 - `read --json`／`find --json`／get・list・statで取得、`getRevision`で削除済みパスも確認。
@@ -70,7 +70,7 @@ MCP固有のAPIをこのライブラリーには追加していない。ホス�
 - revisionはFSインスタンス内の情報。snapshotは内容のみ保存し、restoreで現在の番号を巻き戻さない。明示的な取消は後述のundoで対応。
 - 検証: core＋Playgroundの65テスト成功、Node 22でcoreの34テスト成功。Chromiumでrevision取得／古いedit拒否／worker API／編集して元に戻した場合の競合保護、既存pipelineとautosaveを確認。dev ZIPの296参照検査も成功。
 
-## snapshotの安全な取消（実装済み・未公開）
+## snapshotの安全な取消（0.2.0で公開）
 
 - `undo [--json] [--dry-run] BEFORE AFTER [PATH]`：名前付きsnapshot間の変更だけを取消。snapshotは内容に加え、同じFSインスタンス内のrevision履歴も保存。
 - AFTER以降のrevision変更、削除・再作成、削除対象ディレクトリーへの後続追加を検知。1件でも競合したら全件を止め、無関係な編集は保持。
@@ -85,3 +85,13 @@ MCP固有のAPIをこのライブラリーには追加していない。ホス�
 - projectIdはプロジェクトのinvalidate時に更新し、patch／undoの原子的replaceでは維持する。
 - core＋Playground 74件、Tauri Python 8件／Node 26件／Rust 11件成功。ブラウザーで競合、停止、保護パスも確認。
 - 2026-10-11: 起動中のTauriにStreamable HTTPで接続し、専用仮想ファイルでsnapshot→write→rg→read→patch→check→js→result→undoを検証。テストファイルとsnapshotの後片付けも確認。
+
+## npm 0.2.0 リリース（2026-10-11）
+
+- ソースコミット: `65cd0b9`。
+- 配布物: `tetorica-virtual-files-0.2.0.tgz`、19ファイル、25,718 bytes（展開後84,527 bytes）。外部依存なし。
+- integrity: `sha512-+jm9bkVIQFj+uIHpTYlnDMImU5goua4NJAV8Cpzc0yim3GD56id7lCzqjcfwdE48nIsS/yRJeZWrJGJO5MsKmw==`
+- shasum: `c745655dbe066a56978a779868b4067fd8713268`。
+- core＋Playgroundの74テスト、Node 22のcore 42テスト、tarballの独立インストール／Node 22実行／公開export／TypeScript strict型検査を確認。
+- npmには共通コアを公開。Playgroundのcheck／js／result／playとTauri MCP adapterはホスト側で提供する。
+- 公開レジストリのlatest=0.2.0とintegrityを照合。公開版の新規インストール後、Node 22と現在のNodeで実行し、TypeScript strict型検査も成功。
