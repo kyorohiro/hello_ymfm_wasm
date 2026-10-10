@@ -356,23 +356,31 @@ for (const note of notes) {
       <section class="panel">
         <h2>FMサウンドの魔法</h2>
         <p>次はADSRを試すとよいでしょう。<strong>Attack（立ち上がり）</strong>、<strong>Decay（減衰）</strong>、<strong>Sustain（持続）</strong>、<strong>Release（離鍵後の減衰）</strong>です。弦を弾いた音、ベル、オルガン、ブラス、柔らかくゆっくりした音など、音の印象を作る部分です。</p>
-        <p>YM2612では、<code>AR</code>、<code>D1R</code>、<code>D2R</code>、<code>SL</code>、<code>RR</code>などのパラメーターで操作します。立ち上がり、ピーク後の減衰、キーを押し続けている間の後半の減衰、キーオフ後の減衰を制御します。持続段階が一定の音量になる単純なADSRとは異なり、YM2612はキーを押している間も減衰を続けられます。その後半の減衰を制御するのが<code>D2R</code>です。</p>
-        <div class="diagram"><img src="./adsr_diagram.svg" alt="ADSRエンベロープの図"></div>
+        <p>YM2612では、<code>AR</code>、<code>D1R</code>、<code>D2R</code>、<code>SL</code>、<code>RR</code>などのパラメーターで操作します。立ち上がり、ピーク後の減衰、キーを押し続けている間の後半の減衰、キーオフ後の減衰を制御します。</p>
+        <div class="diagram"><img src="./adsr_diagram.svg" alt="YM2612のエンベロープ。ARで立ち上がり、D1RでSLのレベルまで減衰し、D2Rで次の減衰へ進む。キーオフ後はRRで減衰する。"></div>
+        <p class="hero-caption">AR・D1R・D2R・RRは変化の速さ、SLはD1RからD2Rへ切り替わるレベルです。図はD2Rが0より大きい場合の模式図で、実測した時間・音量の目盛りではありません。</p>
         <p>ほかにも<code>DT</code>、<code>MULTI</code>、<code>TL</code>などがあります。まずは小さな音色の例で、コードで「音を設定する」とどのような形になるかを見てみましょう。</p>
         <script type="text/plain" id="example-fm-patch-basic">
 fm.reset();
 
-// Same 4-operator patch as MEGADRIVE_FM_PRESETS["one-op-basic"],
-// written out by hand instead of using fm.setPreset().
+// MEGADRIVE_FM_PRESETS["one-op-basic"]と同じ4オペレーターの音色を、
+// fm.setPreset()を使わずに各パラメーターを指定して設定します。
 fm.setAlgo(CH1, 7, 0);
 
-// OP1, OP2, OP3: tl = 127 means "as quiet as possible" -> effectively silent.
+// OP1・OP2・OP3は、tlを127（最小音量）にして、ほぼ無音にします。
 fm.setOperator(CH1, OP1, { dt: 0, multi: 1, tl: 127, ar: 31, d1r: 0, d2r: 0, sl: 0, rr: 15 });
 fm.setOperator(CH1, OP2, { dt: 0, multi: 1, tl: 127, ar: 31, d1r: 0, d2r: 0, sl: 0, rr: 15 });
 fm.setOperator(CH1, OP3, { dt: 0, multi: 1, tl: 127, ar: 31, d1r: 0, d2r: 0, sl: 0, rr: 15 });
 
-// OP4 is the only one that actually makes sound.
-fm.setOperator(CH1, OP4, { dt: 0, multi: 1, tl: 8, ar: 22, d1r: 6, d2r: 3, sl: 3, rr: 8 });
+// OP4だけが音を出します。
+fm.setOperator(CH1, OP4, {
+  dt: 0, multi: 1, tl: 8,
+  ar: 22, // 0〜31：立ち上がりの速さ。大きいほど速く、0では立ち上がりません。
+  d1r: 6, // 0〜31：ピークからSLまでの減衰の速さ。大きいほど速く、0では減衰しません。
+  d2r: 3, // 0〜31：SLに達した後の減衰の速さ。大きいほど速く、0では音量を保ちます。
+  sl: 3,  // 0〜15：D1RからD2Rへ切り替わるレベル。大きいほど低い音量になります。
+  rr: 8   // 0〜15：キーを離した後の減衰の速さ。大きいほど速く、0でもゆっくり減衰します。
+});
 
 const notes = ["C4", "D4", "E4", "F4", "G4", "A4", "B4", "C5"];
 

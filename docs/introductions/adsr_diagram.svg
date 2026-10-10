@@ -1,51 +1,49 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 520" role="img" aria-labelledby="title desc">
-  <title id="title">ADSR envelope diagram</title>
-  <desc id="desc">Attack, Decay, Sustain, and Release envelope guide for YM2612-style sound design.</desc>
+  <title id="title">YM2612 operator envelope: AR, D1R, D2R, SL and RR</title>
+  <desc id="desc">One operator's schematic level over time with D2R greater than zero. After note on, AR controls the rise. D1R controls decay to the level marked SL. D2R controls the following decay while the key is held. Note off switches to release controlled by RR. The diagram is not a measured time or level scale.</desc>
   <defs>
-    <linearGradient id="bg" x1="0" x2="0" y1="0" y2="1">
-      <stop offset="0%" stop-color="#f1f3f2" />
-      <stop offset="26%" stop-color="#c8d2e2" />
-      <stop offset="62%" stop-color="#90a3c4" />
-      <stop offset="100%" stop-color="#e4e8ee" />
-    </linearGradient>
     <style>
-      .label { font: 700 22px Arial, sans-serif; fill: #071224; }
-      .small { font: 700 18px Arial, sans-serif; fill: #071224; }
-      .axis { stroke: #071224; stroke-width: 5; }
-      .env { fill: none; stroke: #071224; stroke-width: 8; }
-      .guide { stroke: #071224; stroke-width: 3; stroke-dasharray: 7 7; opacity: 0.8; }
-      .arrow { stroke: #071224; stroke-width: 3; fill: none; }
+      text { font-family: Arial, sans-serif; fill: #1f1b16; }
+      .parameter { font-size: 36px; font-weight: 700; }
+      .label { font-size: 23px; }
+      .small { font-size: 21px; fill: #625344; }
+      .axis { stroke: #625344; stroke-width: 3; fill: none; }
+      .guide { stroke: #b7a78e; stroke-width: 2; stroke-dasharray: 7 7; }
+      .event { stroke: #625344; stroke-width: 2; fill: none; }
+      .envelope { fill: none; stroke-width: 7; stroke-linecap: round; stroke-linejoin: round; }
     </style>
-    <marker id="arrowhead" markerWidth="10" markerHeight="10" refX="7" refY="3.5" orient="auto">
-      <polygon points="0 0, 8 3.5, 0 7" fill="#071224" />
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 Z" fill="#625344"/>
     </marker>
   </defs>
 
-  <rect width="960" height="520" fill="url(#bg)" />
+  <rect width="960" height="520" rx="16" fill="#fffaf0"/>
+  <text x="100" y="38" class="small">YM2612 · One operator · D2R &gt; 0</text>
+  <path d="M 100 420 V 100 M 100 420 H 900" class="axis" marker-end="url(#arrow)"/>
+  <text x="32" y="275" class="label" transform="rotate(-90 32 275)">Level</text>
+  <text x="842" y="463" class="label">Time</text>
 
-  <line x1="60" y1="430" x2="860" y2="430" class="axis" />
-  <line x1="60" y1="430" x2="60" y2="90" class="axis" />
+  <!-- SL is the level at the first-to-second decay transition, not a duration. -->
+  <line x1="100" y1="245" x2="440" y2="245" class="guide"/>
+  <line x1="440" y1="245" x2="440" y2="420" class="guide"/>
+  <line x1="690" y1="325" x2="690" y2="420" class="guide"/>
+  <text x="85" y="257" text-anchor="end" class="parameter">SL</text>
 
-  <polyline points="120,430 300,140 470,240 650,240 820,430" class="env" />
+  <text x="130" y="80" text-anchor="middle" class="label">fm.noteOn()</text>
+  <path d="M 130 96 V 402" class="event" marker-end="url(#arrow)"/>
+  <text x="690" y="80" text-anchor="middle" class="label">fm.noteOff()</text>
+  <path d="M 690 96 V 307" class="event" marker-end="url(#arrow)"/>
 
-  <line x1="300" y1="140" x2="300" y2="430" class="guide" />
-  <line x1="470" y1="240" x2="470" y2="430" class="guide" />
-  <line x1="650" y1="240" x2="650" y2="430" class="guide" />
-
-  <text x="140" y="288" class="label" transform="rotate(-90 24 278)">Level</text>
-  <text x="802" y="475" class="label">Time</text>
-
-  <text x="68" y="55" class="small">fm.noteOn</text>
-  <text x="614" y="55" class="small">fm.noteOff</text>
-
-  <line x1="120" y1="72" x2="120" y2="338" class="arrow" marker-end="url(#arrowhead)" />
-  <line x1="654" y1="72" x2="654" y2="208" class="arrow" marker-end="url(#arrowhead)" />
-
-  <text x="205" y="318" class="label">A</text>
-  <text x="372" y="318" class="label">D</text>
-
-  <text x="552" y="318" class="label">S</text>
-
-  <text x="728" y="318" class="label">R</text>
-
+  <!-- The curve illustrates the stage sequence, not exact hardware timing. -->
+  <path d="M 130 420 C 148 240 207 140 275 140" class="envelope" stroke="#4276b7"/>
+  <path d="M 275 140 L 440 245" class="envelope" stroke="#b4572f"/>
+  <path d="M 440 245 L 690 325" class="envelope" stroke="#4b8758"/>
+  <path d="M 690 325 L 850 420" class="envelope" stroke="#8a5b9f"/>
+  <circle cx="440" cy="245" r="7" fill="#b4572f"/>
+  <circle cx="690" cy="325" r="7" fill="#8a5b9f"/>
+  <text x="196" y="325" class="parameter">AR</text>
+  <text x="323" y="158" class="parameter">D1R</text>
+  <text x="532" y="250" class="parameter">D2R</text>
+  <text x="767" y="332" class="parameter">RR</text>
+  <text x="100" y="495" class="small">AR / D1R / D2R / RR = rates · SL = transition level · Schematic</text>
 </svg>

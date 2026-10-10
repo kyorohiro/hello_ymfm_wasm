@@ -408,8 +408,9 @@ for (const note of notes) {
           the YM2612 can keep fading while the key is held: that later decay is controlled by <code>D2R</code>.
         </p>
         <div class="diagram">
-          <img src="./adsr_diagram.svg" alt="ADSR envelope diagram">
+          <img src="./adsr_diagram.svg" alt="YM2612 envelope: AR controls the rise, D1R the decay to SL, D2R the following decay, and RR the release after note off.">
         </div>
+        <p class="hero-caption">AR, D1R, D2R and RR are rates; SL marks the transition from D1R to D2R. This schematic shows D2R greater than zero, not measured time or level values.</p>
         <p>
           There are more parameters too, such as <code>DT</code>, <code>MULTI</code>, and <code>TL</code>.
           But first, here is a small example patch so you can see what "setting a sound" looks like in code.
@@ -427,7 +428,14 @@ fm.setOperator(CH1, OP2, { dt: 0, multi: 1, tl: 127, ar: 31, d1r: 0, d2r: 0, sl:
 fm.setOperator(CH1, OP3, { dt: 0, multi: 1, tl: 127, ar: 31, d1r: 0, d2r: 0, sl: 0, rr: 15 });
 
 // OP4 is the only one that actually makes sound.
-fm.setOperator(CH1, OP4, { dt: 0, multi: 1, tl: 8, ar: 22, d1r: 6, d2r: 3, sl: 3, rr: 8 });
+fm.setOperator(CH1, OP4, {
+  dt: 0, multi: 1, tl: 8,
+  ar: 22, // 0–31: Attack rate. Higher is faster; 0 prevents the level from rising.
+  d1r: 6, // 0–31: Decay rate from the peak to SL. Higher is faster; 0 prevents decay.
+  d2r: 3, // 0–31: Decay rate after reaching SL. Higher is faster; 0 holds the level.
+  sl: 3,  // 0–15: Level where D1R changes to D2R. Higher values mean a lower volume.
+  rr: 8   // 0–15: Decay rate after key-off. Higher is faster; even 0 decays slowly.
+});
 
 const notes = ["C4", "D4", "E4", "F4", "G4", "A4", "B4", "C5"];
 
