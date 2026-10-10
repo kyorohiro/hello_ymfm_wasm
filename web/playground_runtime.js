@@ -268,6 +268,7 @@ export function createPlaygroundRuntime(
   let workerCommandQueue = Promise.resolve();
   let resolveLogicWorkerStop = null;
   let logicWorkerStopPromise = null;
+  let workerLevelsMuted = false;
   const workerRunRequests = [];
   // Test doubles may not expose an audio runtime; production handles live there.
   const fallbackAudioHandles = new Map();
@@ -723,7 +724,20 @@ export function createPlaygroundRuntime(
     }
 
     if (synth) {
+      if (logicWorkerStopPromise) await logicWorkerStopPromise;
       await megaDrive.resume();
+      // Worker Stop silences hardware TL registers without changing saved patches.
+      // Restore them before a main-thread keyboard audition or the next Run.
+      if (workerLevelsMuted) {
+        const core = synth.fm ?? synth;
+        const channels = core.getState?.()?.channels;
+        if (channels && typeof core.setOperator === 'function') {
+          channels.forEach((channel, index) => channel.operators.forEach((operator, slot) => {
+            core.setOperator(index, slot, {tl: operator.tl});
+          }));
+        }
+        workerLevelsMuted = false;
+      }
       resumeStopFade();
       emitRuntimeState(
         "Audio ready"
@@ -828,6 +842,7 @@ export function createPlaygroundRuntime(
     }
     if (logicWorkerStopPromise) return logicWorkerStopPromise;
     const worker = logicWorker;
+    workerLevelsMuted = true;
     let timer;
     let finish;
     const stopped = new Promise((resolve) => {

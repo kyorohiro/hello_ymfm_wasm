@@ -159,3 +159,33 @@ test('Operator dock can choose a channel and switch to round robin', () => {
   t.send('keydown');
   assert.deepEqual(t.notes.at(-1), ['on', 4, 4, 553]);
 });
+
+test('an attached synth still resumes audio before audition in Keyboard and Operator views', async () => {
+  for (const view of ['keyboard', 'operator']) {
+    let resumed = false, resumes = 0;
+    const t = setup(async () => { resumed = true; resumes++; });
+    t.keyboard.attachSynth(t.synth);
+    const original = t.synth.noteOn;
+    t.synth.noteOn = (...args) => { assert.equal(resumed, true); original(...args); };
+    t.keyboard.setView(view);
+    t.send('keydown');
+    await new Promise(setImmediate);
+    t.send('keyup');
+    resumed = false; // Stop fades the shared output to zero while retaining the synth.
+    t.send('keydown', 's');
+    await new Promise(setImmediate);
+    t.send('keyup', 's');
+    assert.equal(resumes, 2);
+    assert.equal(t.notes.filter(note => note[0] === 'on').length, 2);
+  }
+});
+
+test('releasing an attached synth key while output resumes prevents a late note', async () => {
+  let ready;
+  const t = setup(() => new Promise(resolve => { ready = resolve; }));
+  t.keyboard.attachSynth(t.synth);
+  t.keyboard.setView('keyboard');
+  t.send('keydown'); t.send('keyup'); ready();
+  await new Promise(setImmediate);
+  assert.deepEqual(t.notes, []);
+});

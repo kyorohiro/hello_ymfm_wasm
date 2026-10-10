@@ -346,6 +346,10 @@ test(
 
     try {
       const megaDrive = createMegaDriveStub();
+      const savedLevels = [20, 40, 60, 80];
+      const restoredLevels = [];
+      megaDrive.fm.getState = () => ({channels: [{operators: savedLevels.map(tl => ({tl}))}]});
+      megaDrive.fm.setOperator = (channel, slot, params) => restoredLevels.push([channel, slot, params.tl]);
       let stopAllCount = 0;
       let clearFxCount = 0;
       megaDrive.sample.stopAll = () => { stopAllCount += 1; };
@@ -374,6 +378,10 @@ test(
       assert.equal(messages.filter((message) => message.type === "run").length, 1);
       assert.equal(stopAllCount, 1);
       assert.equal(clearFxCount, 1);
+      await runtime.ensureReady();
+      assert.deepEqual(restoredLevels, savedLevels.map((tl, slot) => [0, slot, tl]));
+      await runtime.ensureReady();
+      assert.equal(restoredLevels.length, 4, 'restore stopped Worker levels only once');
     } finally {
       globalThis.window = originalWindow;
       globalThis.Worker = originalWorker;

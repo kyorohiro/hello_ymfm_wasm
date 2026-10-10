@@ -162,7 +162,7 @@ export function createPlaygroundOperatorKeyboard({
     if (!enabled || held.has(entry.key)) return;
     const note = { button };
     held.set(entry.key, note);
-    if (!synth && ensureAudioReady) {
+    if (ensureAudioReady) {
       setPreparing(true);
       try {
         await ensureAudioReady();
