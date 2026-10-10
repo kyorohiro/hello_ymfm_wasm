@@ -499,32 +499,69 @@ for (const note of notes) {
       </section>
 
       <section class="panel">
-        <h2>Operators: the Only Sound Source</h2>
-        <p>
-          Every voice the YM2612 makes comes from combinations of just one building block, called an
-          <strong>operator</strong>. An operator is a sine wave generator with its own pitch, volume envelope,
-          and a couple of shaping knobs (detune, frequency multiplier). On its own an operator just sounds like
-          a plain tone. What makes FM synthesis interesting is what happens when one operator's output is used
-          to modulate another operator's frequency instead of being sent straight to the speakers.
-        </p>
+        <h2>Build an FM sound yourself</h2>
+        <p>Next, calculate a waveform in JavaScript and play it. Start with a sine wave, then add another sine wave inside the formula and listen to the difference. The calculated waveform plays through the YM2612 DAC.</p>
+        <h3>1. Play a sine wave</h3>
+        <p>Use <code>Math.sin()</code> to create a 440 Hz sine wave. Press Run to play it for two seconds. Change <code>frequency</code> to change the pitch.</p>
+        <script type="text/plain" id="example-diy-fm-sine">
+const sampleRate = 22050;
+const seconds = 2;
+const frequency = 440;
+
+const pcm = Uint8Array.from({ length: sampleRate * seconds }, (_, i) => {
+  const time = i / sampleRate;
+  const p = 2 * Math.PI * frequency * time;
+  const wave = Math.sin(p); // Sine wave: -1 to 1
+
+  // Fade the first and last 10 ms to reduce clicks.
+  const fade = Math.max(0, Math.min(1, time / 0.01, (seconds - time) / 0.01));
+  return Math.round(128 + 80 * fade * wave); // 8-bit PCM: 128 is silence
+});
+
+await fm.dac.play(pcm, { sampleRate });
+await sleep(seconds);
+</script>
+        <iframe class="playground-frame" data-playground-src="example-diy-fm-sine"
+          title="Play a sine wave in JavaScript" allow="autoplay" loading="lazy" style="height: 660px;"></iframe>
+        <p><a data-playground-src="example-diy-fm-sine">Open in the full Playground &rarr;</a></p>
+        <h3>2. Try modulation</h3>
+        <p>Change <code>Math.sin(p)</code> to <code>Math.sin(p2 + a1 * Math.sin(p1))</code>. Add the output of another wave to the original wave's position, <code>p2</code>. Set <code>a1</code> to 0, 1, and 3, pressing Run each time to compare. At 0, you get the same sine wave as before.</p>
+        <script type="text/plain" id="example-diy-fm-modulation">
+const sampleRate = 22050;
+const seconds = 2;
+const frequency1 = 440; // Frequency of the wave doing the modulation
+const frequency2 = 440; // Frequency of the wave producing the audible sound
+const a1 = 3; // Modulation strength. Start by comparing 0, 1, and 3.
+
+const pcm = Uint8Array.from({ length: sampleRate * seconds }, (_, i) => {
+  const time = i / sampleRate;
+  const p1 = 2 * Math.PI * frequency1 * time;
+  const p2 = 2 * Math.PI * frequency2 * time;
+  const op1 = a1 * Math.sin(p1);
+  const wave = Math.sin(p2 + op1); // Add the other wave's output to this wave's position
+
+  const fade = Math.max(0, Math.min(1, time / 0.01, (seconds - time) / 0.01));
+  return Math.round(128 + 80 * fade * wave);
+});
+
+await fm.dac.play(pcm, { sampleRate });
+await sleep(seconds);
+</script>
+        <iframe class="playground-frame" data-playground-src="example-diy-fm-modulation"
+          title="Modulate a sine wave in JavaScript" allow="autoplay" loading="lazy" style="height: 740px;"></iframe>
+        <p><a data-playground-src="example-diy-fm-modulation">Open in the full Playground &rarr;</a></p>
+        <p>Next, change only <code>frequency1</code> to 880. The ratio between the two frequencies changes the tone, as does the modulation strength. This example adds a wave to the phase. The YM2612 FM sound chip also uses this kind of phase modulation between operators.</p>
+      </section>
+
+      <section class="panel">
+        <h2>Operators: the building blocks of sound</h2>
+        <p>In the previous example, <code>op1</code> generated a wave, and its output was added inside another wave's <code>sin()</code>. In the YM2612, a wave generator and the controls that adjust its output level through TL and an envelope together form an <strong>operator</strong>.</p>
         <div class="figure">
-          <div class="box">
-            <strong>Carrier</strong>
-            An operator connected to the audio output. You hear it directly.
-          </div>
-          <div class="box">
-            <strong>Modulator</strong>
-            An operator connected into another operator's frequency input. You do not hear it directly &mdash;
-            you hear how it reshapes the carrier's waveform.
-          </div>
+          <div class="box"><strong>Carrier</strong>The side producing the sound you hear. In the previous example, it is the side generating the wave with <code>Math.sin(p2 + op1)</code>.</div>
+          <div class="box"><strong>Modulator</strong>The side changing that wave: <code>op1</code> in the previous example. Its output is added to the carrier's phase.</div>
         </div>
-        <p>
-          The YM2612 gives each of its 6 channels exactly 4 operators. How those 4 operators are wired together
-          &mdash; who modulates whom, and who reaches the output &mdash; is called the <strong>algorithm</strong>.
-          There are 8 fixed algorithms to choose from per channel. Algorithm 7 is the simplest to start with:
-          all 4 operators are carriers, wired straight to the output with no modulation between them, so you can
-          hear each operator's raw contribution before adding modulation back in.
-        </p>
+        <p>The strength represented by <code>a1</code> is controlled by the modulator's TL and envelope. Lowering TL increases the modulation strength; the envelope changes that strength over time.</p>
+        <p>The YM2612 has four operators in each of its six channels. Their connections — who modulates whom, and who reaches the output — form an <strong>algorithm</strong>. Each channel offers eight choices. In algorithm 7, all four operators connect directly to the audio output without modulating each other.</p>
         <h3>Try this: connect two operators</h3>
         <p>
           Load the <strong>Plain Dual</strong> preset in Common, then use the Common / OP1 / OP2 tabs.
