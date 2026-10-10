@@ -36,7 +36,7 @@ test('missing resources are distinct from unsupported compositions, before initi
 async function browserPlayer(source) {
   const code=await readFile(new URL('../docs/vgm_analyzer/vgm_analyzer.js',import.meta.url),'utf8');
   const noOp=()=>{};
-  const context=vm.createContext({
+  const context=vm.createContext({psgChannelMutes:[false,false,false,false],
     createPlaybackEngine,selectPlaybackConfiguration,VgmPlayer,
     getBrowserPlaybackFactory:getNodePlaybackFactory,currentBuffer:source,
     currentChipKind:'ym2612',engine:null,player:null,engineClockKey:null,

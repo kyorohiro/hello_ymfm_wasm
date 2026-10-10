@@ -8,7 +8,7 @@ the sounds of the Sega Genesis / Mega Drive and Game Boy.
 This project includes:
 
 - `tetorica-fm2612`: an npm package for controlling retro game sound chips from JavaScript.
-- `tetorica-vgm`: an npm package for analyzing retro game VGM files.
+- `tetorica-vgm`: an npm package for analyzing retro game VGM files, rendering WAV with channel mutes, and exporting scores, voices and FM-only MDX files.
 - A browser-based synthesizer app for extracting instruments from VGM files and trying them immediately.
 - A browser-based Playground app for live coding with an API inspired by Sonic Pi.
 - A browser-based analyzer app for inspecting and playing VGM files.

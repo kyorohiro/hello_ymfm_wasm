@@ -177,13 +177,12 @@ conversion of every chip. Outputs can be empty; inspect warnings and note/sample
 counts. `unavailable` can also mean no convertible data. Probes discard generated
 outputs and never write files, but may take time on large tracks.
 
-This command is added after 0.1.1. Before the next publication, use
-`npm run build` then `node dist/vgm/cli/main.js support song.vgz --json`.
+For a repository build, run `npm run build` then
+`node dist/vgm/cli/main.js support song.vgz --json`.
 
 ### Example: check MusicXML availability, then convert
 
 Suppose you have `song.vgz` and want a score for a notation editor.
-The following commands assume a published version that includes `support`.
 For the current repository build, replace `npx tetorica-vgm` with
 `node dist/vgm/cli/main.js` after running `npm run build`.
 
@@ -229,8 +228,8 @@ For the current repository build, replace `npx tetorica-vgm` with
 
 ## Lossless VGM / JSON round trip
 
-These commands are new after 0.1.2. From the repository, run `npm run build`
-and use `node dist/vgm/cli/main.js` in place of `npx tetorica-vgm` until published.
+From the repository, run `npm run build` and use
+`node dist/vgm/cli/main.js` in place of `npx tetorica-vgm`.
 
 ```sh
 npx tetorica-vgm to-json song.vgz --output song.vgm.json
@@ -366,13 +365,19 @@ The npm payload includes `soundchip_mixer.js` and its complete dependency path,
 so CLI and Node rendering load the same playback core as the Analyzer.
 Existing render defaults and mute options retain their behavior.
 
+## Version 0.2.9
+
+Adds direct FM-only MDX export for YM2151 / YM2164 sources and Sega PSG
+per-channel mute controls (`psg-ch-1` through `psg-ch-4`, with CH4 for noise).
+PSG muting preserves register writes, oscillator phase and Tone 3-linked noise.
+
 ## MDX export
 
 The new `--format mdx` option writes a compiled `.mdx` file for YM2151 FM A–H.
-In a local checkout:
+Using the installed CLI:
 
 ```sh
-node cli/main.js export song.vgz --format mdx --bpm 120 --output song.mdx
+tetorica-vgm export song.vgz --format mdx --bpm 120 --output song.mdx
 ```
 
 The same conversion is available in the browser's **MML / MDX** dialog.
@@ -380,4 +385,4 @@ It uses a sixteenth-note grid and sampled voices, with rounded semitone pitch.
 No PDX is produced. CH8 noise, partial keys, CSM, live register changes,
 pan, LFO, audible release and loops are not reproduced. Warnings are printed
 on stderr and returned by `exportSource()`. See [CLI.md](CLI.md#mdx-file-export).
-MDX export is a local addition and is not in published npm 0.2.8 yet.
+MDX export is available starting with version 0.2.9.

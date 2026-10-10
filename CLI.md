@@ -1,7 +1,7 @@
 # tetorica-vgm
 
 Node.js 22+ CLI and library for the existing Tetorica VGM Analyzer.
-This package is prepared for npm publication; it has not been published by this change.
+Install the CLI and library with `npm install tetorica-vgm`.
 
 ## From this repository
 
@@ -293,7 +293,7 @@ FM/PSG/RF5C164 combinations and their full mix, plus installed CLI/Node output.
 
 S98 uses the Browser's existing S98 → VGM converter for analyze/export/render.
 Supported: versions 0–3, one YM2203, YM2608, YM2612 or YM2151 device.
-YM2151 S98 normalization is a repository addition after npm 0.2.5; it is not in that published CLI version. Compressed S98,
+Compressed S98,
 multiple devices, device panning and other device types are rejected. Rendering
 keeps the existing ROM requirements and does not expand loops.
 
@@ -620,13 +620,13 @@ conversion of every chip. Outputs can be empty; inspect warnings and note/sample
 counts. `unavailable` can also mean no convertible data. Probes discard generated
 outputs and never write files, but may take time on large tracks.
 
-This command is added after 0.1.1. Before the next publication, use
-`npm run build` then `node dist/vgm/cli/main.js support song.vgz --json`.
+For a repository build, run `npm run build` then
+`node dist/vgm/cli/main.js support song.vgz --json`.
 
 ## Lossless VGM / JSON round trip
 
-These commands are new after 0.1.2. From the repository, run `npm run build`
-and use `node dist/vgm/cli/main.js` in place of `npx tetorica-vgm` until published.
+From the repository, run `npm run build` and use
+`node dist/vgm/cli/main.js` in place of `npx tetorica-vgm`.
 
 ```sh
 npx tetorica-vgm to-json song.vgz --output song.vgm.json
@@ -762,8 +762,6 @@ node cli/main.js export test/fixtures/huc6280-tone.vgz --format musicxml --bpm 1
 node cli/main.js export test/fixtures/huc6280-tone.vgz --format lilypond --bpm 120 --output huc6280.ly
 ```
 
-This is available in the working tree; the published `tetorica-vgm@0.1.5` package
-predates HuC6280 support.
 
 ## Y8950 score export examples
 
@@ -868,4 +866,4 @@ MDX binary fields and commands follow the
 [mdxtools format documentation](https://github.com/vampirefrog/mdxtools/blob/master/docs/MDX.md).
 Exported files were opened and rendered with the independent
 [mdxmini player](https://github.com/mistydemeo/mdxmini).
-This addition is local; published npm 0.2.8 does not yet include MDX export.
+MDX export is available starting with tetorica-vgm 0.2.9.
