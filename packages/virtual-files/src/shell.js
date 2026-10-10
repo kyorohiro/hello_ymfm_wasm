@@ -1,3 +1,4 @@
+import {registerAgentCommands} from './agent_commands.js';
 import {resolvePath} from './path.js';
 import {transferVirtualFiles} from './filesystem.js';
 /** Quotes and escapes only. No JavaScript evaluation or host shell invocation.
@@ -69,7 +70,17 @@ export function createShell({fs,cwd = '/',authorize = () => {}}) {
     }catch(error){return {code:signal?.aborted?130:1,stdout:'',stderr:String(error?.message??error)};}
   }
   shell.register('pwd',()=>cwd+'\n');
-  shell.register('help',()=>[...commands.keys()].sort().join(' ')+'\n');
+  const usages={pwd:'pwd',ls:'ls [PATH]',cd:'cd [PATH]',cat:'cat PATH',echo:'echo [TEXT...]',mkdir:'mkdir [-p] PATH',touch:'touch PATH',write:'write PATH TEXT',rm:'rm [-r] PATH',cp:'cp SOURCE DESTINATION',mv:'mv SOURCE DESTINATION',
+    find:'find [PATH] [-name GLOB] [-type f|d] [--json] [--offset N] [--limit N]',
+    rg:'rg [-n] [-F] [-i] [-l] [--json] [--offset N] [--limit N] LITERAL [PATH]',
+    read:'read [--start N] [--end N] [--max-chars N] [--json] PATH',
+    edit:'edit [--expect N] [--dry-run] [--json] PATH OLD_TEXT NEW_TEXT',help:'help [COMMAND|--json]'};
+  shell.register('help',({args})=>{
+    if(args.length>1)throw Error('Usage: help [COMMAND|--json]');
+    if(args[0]==='--json')return JSON.stringify([...commands.keys()].sort().map(name=>({name,usage:usages[name]??name})))+'\n';
+    if(args.length){if(!commands.has(args[0]))throw Error(`Unknown command: ${args[0]}`);return (usages[args[0]]??args[0])+'\n';}
+    return [...commands.keys()].sort().join(' ')+'\n';
+  });
   shell.register('cd',({fs,args,resolve})=>{if(args.length>1)throw Error('Expected one directory');const path=resolve(args[0]??'/');if(fs.stat(path).type!=='directory')throw Error('Not a directory');cwd=path;});
   shell.register('ls',({fs,args,resolve})=>{if(args.length>1)throw Error('Expected one path');const path=resolve(args[0]??'.');return fs.stat(path).type==='file' ? path+'\n' : fs.readdir(path).map(name=>name+(fs.stat(resolvePath(name,path)).type==='directory'?'/':'')).join('\n')+'\n';});
   shell.register('cat',async({fs,args,resolve})=>{count(args,1);return fs.createFileReader('/')(resolve(args[0]),{type:'text'});});
@@ -79,5 +90,6 @@ export function createShell({fs,cwd = '/',authorize = () => {}}) {
   shell.register('write',({fs,args,resolve})=>{count(args,2);const path=resolve(args[0]);write('write',[path]);fs.writeText(path,args[1]);});
   shell.register('rm',({fs,args,resolve})=>{const recursive=args[0]==='-r';if(recursive)args=args.slice(1);count(args,1);const path=resolve(args[0]);write('rm',[path]);fs.remove(path,{recursive});});
   for (const name of ['cp','mv']) shell.register(name,({fs,args,resolve})=>{count(args,2);const paths=args.map(resolve);write(name,paths);transferVirtualFiles(fs,paths[0],paths[1],{copy:name==='cp'});});
+  registerAgentCommands((name,command)=>shell.register(name,command),write);
   return shell;
 }

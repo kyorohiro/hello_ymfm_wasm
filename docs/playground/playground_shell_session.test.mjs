@@ -37,3 +37,12 @@ test('nested builtins use the guarded facade for writes',async()=>{
   shell.register('script',async context=>{fs.writeText('/index.js','human');return context.execute(['write','/index.js','bad'],{fs:session.facade});});
   assert.equal((await shell.execute('script')).code,1);assert.equal(fs.get('/index.js').data,'human');
 });
+test('agent edit uses the guarded session and cannot change reserved or stale files',async()=>{
+ const {fs,session,end}=setup();fs.writeText('/sys/readme.txt','reserved');const shell=createShell({fs});
+ assert.equal((await shell.execute(['edit','/index.js','initial','updated'],{fs:session.facade})).code,0);
+ assert.equal(fs.get('/index.js').data,'updated');
+ assert.equal((await shell.execute(['edit','/sys/readme.txt','reserved','bad'],{fs:session.facade})).code,1);
+ assert.equal(fs.get('/sys/readme.txt').data,'reserved');
+ end();assert.equal((await shell.execute(['edit','/index.js','updated','bad'],{fs:session.facade})).code,1);
+ assert.equal(fs.get('/index.js').data,'updated');
+});
