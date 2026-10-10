@@ -414,13 +414,69 @@ for (const note of notes) {
       </section>
 
       <section class="panel">
+        <h2>FM音を自作してみる</h2>
+        <p>次は、JavaScriptで波形を計算して鳴らしてみましょう。まずは正弦波、次にその式へもう1つの正弦波を加えて、音の違いを聴きます。計算した波形は、YM2612のDACから再生します。</p>
+        <h3>1. Sin波を鳴らす</h3>
+        <p><code>Math.sin()</code>で440 Hzの正弦波を作ります。Runを押すと2秒間鳴ります。<code>frequency</code>を変えると、音の高さが変わります。</p>
+        <script type="text/plain" id="example-diy-fm-sine">
+const sampleRate = 22050;
+const seconds = 2;
+const frequency = 440;
+
+const pcm = Uint8Array.from({ length: sampleRate * seconds }, (_, i) => {
+  const time = i / sampleRate;
+  const p = 2 * Math.PI * frequency * time;
+  const wave = Math.sin(p); // 正弦波：-1〜1
+
+  // 最初と最後の10 msを小さくして、プチッという音を抑えます。
+  const fade = Math.max(0, Math.min(1, time / 0.01, (seconds - time) / 0.01));
+  return Math.round(128 + 80 * fade * wave); // 8bit PCM：128が無音
+});
+
+await fm.dac.play(pcm, { sampleRate });
+await sleep(seconds);
+</script>
+        <iframe class="playground-frame" data-playground-src="example-diy-fm-sine"
+          title="JavaScriptで正弦波を鳴らす" allow="autoplay" loading="lazy" style="height: 660px;"></iframe>
+        <p><a data-playground-src="example-diy-fm-sine">Playground全体で開く &rarr;</a></p>
+        <h3>2. 変調させてみる</h3>
+        <p>先ほどの<code>Math.sin(p)</code>を、<code>Math.sin(p2 + a1 * Math.sin(p1))</code>へ変えてみます。元の波の位置<code>p2</code>に、もう1つの波の出力を足します。<code>a1</code>を0、1、3に変えて、その都度Runを押して聴き比べてください。0では先ほどと同じ正弦波に戻ります。</p>
+        <script type="text/plain" id="example-diy-fm-modulation">
+const sampleRate = 22050;
+const seconds = 2;
+const frequency1 = 440; // 変調する側の周波数
+const frequency2 = 440; // 聞こえる音を作る側の周波数
+const a1 = 3; // 変調の強さ。まずは0、1、3を比較します。
+
+const pcm = Uint8Array.from({ length: sampleRate * seconds }, (_, i) => {
+  const time = i / sampleRate;
+  const p1 = 2 * Math.PI * frequency1 * time;
+  const p2 = 2 * Math.PI * frequency2 * time;
+  const op1 = a1 * Math.sin(p1);
+  const wave = Math.sin(p2 + op1); // 自分の波の位置に、相手の出力を足す
+
+  const fade = Math.max(0, Math.min(1, time / 0.01, (seconds - time) / 0.01));
+  return Math.round(128 + 80 * fade * wave);
+});
+
+await fm.dac.play(pcm, { sampleRate });
+await sleep(seconds);
+</script>
+        <iframe class="playground-frame" data-playground-src="example-diy-fm-modulation"
+          title="JavaScriptで正弦波を変調する" allow="autoplay" loading="lazy" style="height: 740px;"></iframe>
+        <p><a data-playground-src="example-diy-fm-modulation">Playground全体で開く &rarr;</a></p>
+        <p>次は<code>frequency1</code>だけを880に変えてみましょう。変調の強さだけでなく、2つの波の周波数の比率でも音色が変わります。この例では位相に波を加えています。YM2612のFM音源も、オペレーター同士をこのように位相変調します。</p>
+      </section>
+
+      <section class="panel">
         <h2>オペレーター：音を作る基本要素</h2>
-        <p>YM2612の音色は、<strong>オペレーター</strong>という基本要素の組み合わせで作ります。オペレーターは、独自の音程と音量エンベロープを持ち、デチューンや周波数の倍率で調整できる正弦波の発振器です。単体では素朴なトーンですが、その出力をスピーカーへ直接送る代わりに、別のオペレーターの周波数を変調すると、FM合成ならではの音になります。</p>
+        <p>先ほどの例では、<code>op1</code>で波を作り、その出力をもう1つの波の<code>sin()</code>へ加えました。YM2612では、波を作る部分と、TL・エンベロープでその出力の大きさを調整する部分をまとめて<strong>オペレーター</strong>と呼びます。</p>
         <div class="figure">
-          <div class="box"><strong>キャリアー</strong>音声出力へ接続するオペレーター。その音を直接聴きます。</div>
-          <div class="box"><strong>モジュレーター</strong>別のオペレーターの周波数入力へ接続するオペレーター。その音を直接聴く代わりに、キャリアーの波形がどう変わるかを聴きます。</div>
+          <div class="box"><strong>キャリアー</strong>最終的に聞こえる音を作る側。先ほどの例では、<code>Math.sin(p2 + op1)</code>で波を作る側です。</div>
+          <div class="box"><strong>モジュレーター</strong>その波を変化させる側。先ほどの例の<code>op1</code>です。その出力をキャリアーの位相に加えます。</div>
         </div>
-        <p>YM2612は、6つのチャンネルそれぞれに4つのオペレーターを持ちます。誰が誰を変調し、誰が出力へつながるかという接続を<strong>アルゴリズム</strong>と呼び、各チャンネルで8種類から選べます。最初に試すならアルゴリズム7が分かりやすいでしょう。4つともキャリアーとして出力へ直接接続し、互いを変調しないので、それぞれの音を聴いてから変調を加えられます。</p>
+        <p>先ほどの<code>a1</code>に対応する強さは、モジュレーターのTLとエンベロープで調整します。TLを小さくすると変調が強くなり、エンベロープを使うと、その強さを時間とともに変えられます。</p>
+        <p>YM2612は、6つのチャンネルそれぞれに4つのオペレーターを持ちます。誰が誰を変調し、誰が出力へつながるかという接続を<strong>アルゴリズム</strong>と呼び、各チャンネルで8種類から選べます。アルゴリズム7では、4つとも音声出力へ直接つながり、互いを変調しません。</p>
         <h3>試してみる：2つのオペレーターをつなぐ</h3>
         <p>Commonで<strong>Plain Dual</strong>プリセットを読み込み、Common / OP1 / OP2タブを使ってください。接続ラベルは、デモ内のOP1・OP2という名前で現在の接続を表示します。</p>
         <ol>
