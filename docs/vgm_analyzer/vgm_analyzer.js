@@ -14,7 +14,7 @@ import {createOpl3Monitor,applyOpl3Write,describeOpl3Notes} from './ymf262_notes
 import {createNesMonitor,applyNesWrite,describeNesNotes} from './nes_notes.js';
 import {createDefaultTfiPreset, findOperatorFromSlotOffset, cloneTfiPreset, presetSignature, decodeKeyOnChannel, extractTfiPatchesFromVgm} from './tfi_extract.js';
 import {createStoredZipBytes} from './stored_zip.js';
-import { createPlaybackEngine, selectPlaybackConfiguration, detectPlaybackChipKindFromVgm, detectPlaybackChipKind } from './playback_core.js?v=apu-seek-cache-2';
+import { createPlaybackEngine, selectPlaybackConfiguration, detectPlaybackChipKindFromVgm, detectPlaybackChipKind } from './playback_core.js?v=msm5205-3';
 import { mountMusicSheet } from "./music_sheet.js?v=tab-1";
 import { renderVgmToWav } from "./vgm_wav.js";
 import { createExportTempoSettings } from "./export_tempo.js";
@@ -41,14 +41,14 @@ import { midiChipKind } from "./vgm_notes.js?v=ym2610-vgm-2";
 import { renderFretboard, FRET_TRAIL_MS, createFretboardTracker } from "./fretboard.js?v=hand-position-2";
 import { exportAnalysisMidi } from "./analyzer_core.js?v=scc-plus-1";
 import { createRf5c164Monitor, describeRf5c164Monitor, observeRf5c164Engine } from "./rf5c164_monitor.js";
-import { sourcesForChip, applySourceMutes, allSourcesMuted } from "./source_mutes.js?v=msx-mix-1";
+import { sourcesForChip, applySourceMutes, allSourcesMuted } from "./source_mutes.js?v=msm5205-2";
 import { createPsgMonitor, describePsgMonitor, observePsgEngine, applySsgWrite } from "./psg_monitor.js?v=ym2610-vgm-2";
 import { exportMucomMml, exportOpnavoidMml } from "./vgm_mml.js?v=mml-formats-1";
 import { exportMdx } from "./mdx_export.js?v=mdx-1";
 import { exportMgsdrvMml } from "./mgsdrv_mml.js";
 import {
   Ym2612VGM,
-} from "../js/ym2612vgm.js?v=dac-warning-1";
+} from "../js/ym2612vgm.js?v=msm5205-1";
 import { createTfiFromPreset } from "../js/tfi.js";
 import { createVgiFromPreset } from "../js/vgi.js";
 import ym2612ModuleFactory from "../generated/ym2612_wasm.js";
@@ -56,7 +56,7 @@ import nukedOpn2ModuleFactory from "../generated/nuked_opn2_wasm.js";
 import segaPsgModuleFactory from "../generated/segapsg_wasm.js?v=channel-mute-1";
 const segaPsgWasmUrl = new URL('../generated/segapsg_wasm.wasm?v=channel-mute-1', import.meta.url);
 const gameboyApuWasmUrl = new URL('../generated/gameboy_apu_wasm.wasm?v=seek-state-1', import.meta.url);
-import { VgmPlayer } from "../js/vgmplayer.js?v=cooperative-waits-1";
+import { VgmPlayer } from "../js/vgmplayer.js?v=msm5205-2";
 import { looksLikeS98, convertS98ToVgm } from "../js/s98_file.js";
 import { maybeDecodeVgmFile, parseVgmMetadata, VGM_METADATA_FIELDS } from "../js/vgm_file.js";
 
@@ -506,7 +506,7 @@ const gameboyChannelMutes = Array(4).fill(false);
 const huc6280ChannelMutes = Array(6).fill(false);
 const nesChannelMutes = Array(6).fill(false);
 let mixedPlaybackParts = [];
-const sourceMutes = { psg: false, ssg: false, rhythm: false, adpcmB: false, pcm: false, pwm: false, oki: false, oki6295: false, segapcm: false };
+const sourceMutes = { psg: false, ssg: false, rhythm: false, adpcmB: false, pcm: false, pwm: false, oki: false, oki6295: false, segapcm: false, msm5205:false };
 const psgChannelMutes = [false, false, false, false];
 // Without the rhythm ROM, decoding its all-zero sample stream is audible
 // noise, not silence (see YM2608_RHYTHM_ROM_WARNING) - force the source
@@ -735,7 +735,7 @@ function renderMonitorToggles() {
     inlineMonitorToggles.replaceChildren(...Array.from(monitorToggles.children, button => button.cloneNode(true)));
     return;
   }
-  for (const source of sourcesForChip(sourceChipKind(), hasOkiSource(), Boolean(noteishHeader?.okim6295Clock))) {
+  for (const source of sourcesForChip(sourceChipKind(), hasOkiSource(), Boolean(noteishHeader?.okim6295Clock), Boolean(noteishHeader?.msm5205Clock))) {
     const button = document.createElement("button");
     const muted = sourceMutes[source.key];
     button.type = "button";
@@ -829,7 +829,7 @@ function ensureMonitorToggleHandler() {
       ayMonitor.toggle(target.getAttribute('data-ay-control'));
       return;
     }
-    if (sourcesForChip(sourceChipKind(), hasOkiSource(), Boolean(noteishHeader?.okim6295Clock)).some((source) => source.key === kind)) {
+    if (sourcesForChip(sourceChipKind(), hasOkiSource(), Boolean(noteishHeader?.okim6295Clock), Boolean(noteishHeader?.msm5205Clock)).some((source) => source.key === kind)) {
       toggleSourceMute(kind);
       return;
     }
@@ -1920,7 +1920,7 @@ function toggleSourceMute(kind) {
   sourceMutes[kind] = !sourceMutes[kind];
   try {
     if(engine && currentChipKind==='mixed'){for(const part of mixedPlaybackParts)engine.setChipMuted(part.id,0,Boolean(sourceMutes[part.id]));}
-    else if (engine) applySourceMutes(engine, sourceChipKind(), effectiveSourceMutes(), hasOkiSource(), Boolean(noteishHeader?.okim6295Clock));
+    else if (engine) applySourceMutes(engine, sourceChipKind(), effectiveSourceMutes(), hasOkiSource(), Boolean(noteishHeader?.okim6295Clock), Boolean(noteishHeader?.msm5205Clock));
   } catch (error) {
     sourceMutes[kind] = !sourceMutes[kind];
     setStatus(`Error: ${error.message}`);
@@ -1935,14 +1935,14 @@ function allAudibleSourcesMuted() {
   // ym2151/ym2413/ymf262/ym3526/ym3812 track channel mutes in their own arrays,
   // not channelMonitor (which is empty for these chip kinds); okim6258 standalone
   // has no channels at all; ymf278b has two independent arrays (FM + PCM).
-  if (['okim6258','okim6295'].includes(currentChipKind)) return sourcesForChip(currentChipKind, hasOkiSource(), Boolean(noteishHeader?.okim6295Clock)).every((source) => sourceMutes[source.key]);
+  if (['okim6258','okim6295'].includes(currentChipKind)) return sourcesForChip(currentChipKind, hasOkiSource(), Boolean(noteishHeader?.okim6295Clock), Boolean(noteishHeader?.msm5205Clock)).every((source) => sourceMutes[source.key]);
   if (currentChipKind === 'ymf278b') {
     return ymf278bFmChannelMutes.every(Boolean) && ymf278bPcmChannelMutes.every(Boolean) &&
-      sourcesForChip(sourceChipKind(), hasOkiSource(), Boolean(noteishHeader?.okim6295Clock)).every((source) => sourceMutes[source.key]);
+      sourcesForChip(sourceChipKind(), hasOkiSource(), Boolean(noteishHeader?.okim6295Clock), Boolean(noteishHeader?.msm5205Clock)).every((source) => sourceMutes[source.key]);
   }
   const perChannelMutes = channelMutesForChip(currentChipKind);
   const channels = perChannelMutes === null ? channelMonitor : perChannelMutes.map((muted) => ({ muted }));
-  return allSourcesMuted(sourceChipKind(), channels, effectiveSourceMutes(), hasOkiSource(), Boolean(noteishHeader?.okim6295Clock));
+  return allSourcesMuted(sourceChipKind(), channels, effectiveSourceMutes(), hasOkiSource(), Boolean(noteishHeader?.okim6295Clock), Boolean(noteishHeader?.msm5205Clock));
 }
 
 function applyAnalyzerMuteToBuffer(left, right, frames) {
@@ -1974,6 +1974,8 @@ function renderHeader(header) {
     `segaPcmClock: ${header.segaPcmClock}, bankShift: ${header.segaPcmBankShift}, bankMask: ${formatHex(header.segaPcmBankMask)}`,
     `gameBoyDmgClock: ${header.gameBoyDmgClock}`,
     `huc6280Clock: ${header.huc6280Clock}`,
+    `msm5205Clock: ${header.msm5205Clock}`,
+    `msm5205Flags: ${header.msm5205Flags}`,
     `nesApuClock: ${header.nesApuClock}`,
     `okim6295Clock: ${header.okim6295Clock}`,
     `okim6258Clock: ${header.okim6258Clock}`,
@@ -2021,6 +2023,7 @@ const HEADER_CHIP_FIELDS = [
   ['segaPcmClock', 'Sega PCM'],
   ['gameBoyDmgClock', 'Game Boy DMG'],
   ['huc6280Clock', 'HuC6280'],
+  ['msm5205Clock', 'MSM5205 ADPCM'],
   ['nesApuClock', 'NES APU'],
 ];
 function detectHeaderChips(header) {
@@ -2613,7 +2616,7 @@ function downloadSnapshotVgiZip() {
 
 async function ensurePlaybackReady(vgm) {
   const nextChipKind = selectPlaybackConfiguration(vgm).kind;
-  const nextClockKey = JSON.stringify([nextChipKind, vgm.header.okim6295Clock, vgm.header.huc6280Clock, vgm.header.okim6258Clock, vgm.header.okim6258Flags, vgm.header.ym2612Clock, vgm.header.psgClock,
+  const nextClockKey = JSON.stringify([nextChipKind, vgm.header.okim6295Clock, vgm.header.huc6280Clock, vgm.header.msm5205Clock, vgm.header.msm5205Flags, vgm.header.okim6258Clock, vgm.header.okim6258Flags, vgm.header.ym2612Clock, vgm.header.psgClock,
     vgm.header.ymf278bClock, vgm.header.ym3526Clock, vgm.header.ym3812Clock, vgm.header.ymf262Clock, vgm.header.segaPcmClock, vgm.header.segaPcmBankShift, vgm.header.segaPcmBankMask, vgm.header.nesApuClock, vgm.header.gameBoyDmgClock, vgm.header.ym2151Clock, vgm.header.ay8910Clock, vgm.header.ay8910Type, vgm.header.ay8910Flags, vgm.header.y8950Clock, vgm.header.k051649Clock, vgm.header.ym2413Clock, vgm.header.rf5c164Clock, vgm.header.ym2203Clock, vgm.header.ym2608Clock, vgm.header.ym2610Clock]);
 
   if (engine && (currentChipKind !== nextChipKind || engineClockKey !== nextClockKey)) {
@@ -2741,7 +2744,7 @@ async function ensurePlaybackReady(vgm) {
     for (const control of msxMuteControls(currentChipKind, noteishHeader)) applyMsxMute(engine, currentChipKind, control, msxMutes.get(control.key) ?? false);
   }
   else if(currentChipKind==='mixed'){for(const part of mixedPlaybackParts)engine.setChipMuted(part.id,0,Boolean(sourceMutes[part.id]));}
-  else applySourceMutes(engine, sourceChipKind(), effectiveSourceMutes(), hasOkiSource(), Boolean(noteishHeader?.okim6295Clock));
+  else applySourceMutes(engine, sourceChipKind(), effectiveSourceMutes(), hasOkiSource(), Boolean(noteishHeader?.okim6295Clock), Boolean(noteishHeader?.msm5205Clock));
   if (!player) {
     player = new VgmPlayer(engine);
     if (['ym2612', 'ym2203', 'ym2608', 'ym2610', 'ym2151', 'gameboy', 'nes'].includes(currentChipKind)) {
@@ -3535,7 +3538,7 @@ async function handleYm2608RomFile(file) {
     // The rhythm source was force-muted while the ROM was missing; now that
     // it's loaded, reapply mutes so rhythm follows the user's actual toggle.
     if(currentChipKind==='mixed')engine.setRhythmMuted(false);
-    else applySourceMutes(engine, sourceChipKind(), effectiveSourceMutes(), hasOkiSource(), Boolean(noteishHeader?.okim6295Clock));
+    else applySourceMutes(engine, sourceChipKind(), effectiveSourceMutes(), hasOkiSource(), Boolean(noteishHeader?.okim6295Clock), Boolean(noteishHeader?.msm5205Clock));
   }
   playbackWarnings.delete(YM2608_RHYTHM_ROM_WARNING);
   renderPlaybackWarnings();

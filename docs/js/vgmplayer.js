@@ -3,7 +3,7 @@
  * 実行環境: Browser / Node.js
  * 依存: VGM パーサーと注入された音声エンジン。PCM 生成にはエンジンが必要。AudioContext は不要。
  */
-import { Ym2612VGM } from "./ym2612vgm.js?v=dac-warning-1";
+import { Ym2612VGM } from "./ym2612vgm.js?v=msm5205-1";
 
 /**
  * One rendered stereo chunk waiting to be copied into the audio callback
@@ -557,6 +557,8 @@ function stateByteLength(value, seen = new Set()) {
  * @returns Chip-specific targets; unavailable chip targets are undefined.
  */
 export function createVgmTargets(engine) {
+  const msm5205 = typeof engine.writeMsm5205==='function'
+    ? {writeRegister:(register,value)=>engine.writeMsm5205(register,value)} : undefined;
   const ym2612Target = typeof engine.writeYm2612 === "function"
     ? { writeRegister: (register, value, port = 0) => engine.writeYm2612(port, register, value) }
     : undefined;
@@ -615,6 +617,7 @@ export function createVgmTargets(engine) {
   } : undefined;
   return {
     resolveChip: engine.getVgmTarget?.bind(engine),
+    msm5205,
     pwm: { writeRegister: (register, value) => engine.writePwm?.(register, value) },
     rf5c164: rf5c164Target,
     ym2612: ym2612Target,

@@ -1,4 +1,5 @@
 import {installPlaybackMixer} from './playback_mixer.js';
+import {Msm5205AudioEngine,attachMsm5205} from '../js/msm5205audioengine.js';
 import {Oki6295AudioEngine, attachOki6295} from '../js/okim6295audioengine.js';
 import {Huc6280AudioEngine} from '../js/huc6280audioengine.js';
 import {createNesApuAudioEngine,validateNesApuClock} from '../js/nesapuaudioengine.js?v=seek-state-1';
@@ -19,7 +20,7 @@ import { createGenesisAudioEngine } from "../js/genesisaudioengine.js";
 import { createYm2203AudioEngine } from "../js/ym2203audioengine.js";
 import { createYm2608AudioEngine } from "../js/ym2608audioengine.js";
 import {MultiChipAudioEngine} from "../js/multichipaudioengine.js";
-import { VgmPlayer, createVgmTargets } from "../js/vgmplayer.js";
+import { VgmPlayer, createVgmTargets } from "../js/vgmplayer.js?v=msm5205-2";
 export function detectPlaybackChipKind(header) {
   if ((header.ym2151Clock & 0x3fffffff) && ['ay8910','ym2413','y8950','k051649'].some(kind => header[`${kind}Clock`] & 0x3fffffff)) return 'msx';
   if (header.k051649Clock & 0x3fffffff) return "msx";
@@ -45,6 +46,7 @@ export function detectPlaybackChipKind(header) {
     return "ym2608";
   }
   if (header.huc6280Clock & 0x3fffffff) return "huc6280";
+  if (header.msm5205Clock & 0x3fffffff) return 'msm5205';
   if (header.okim6295Clock & 0x3fffffff) return "okim6295";
   if (header.okim6258Clock && !header.ym2612Clock && !header.psgClock && !header.pwmClock) return "okim6258";
   if (header.ym2612Clock & 0x3fffffff) return "ym2612";
@@ -111,7 +113,7 @@ const composition = {
   ym2413: ['ym2413','psg'], y8950: ['y8950','psg'],
   ymf278b: ['ymf278b','psg'], ym3526: ['ym3526','psg'],
   ym3812: ['ym3812','psg','okim6295'], ymf262: ['ymf262','psg'],
-  huc6280: ['huc6280'], segapcm: ['segaPcm','psg'], nes: ['nesApu'], gameboy: ['gameBoyDmg'], okim6258: ['okim6258'], okim6295: ['okim6295'],
+  huc6280: ['huc6280','msm5205'], msm5205:['msm5205'], segapcm: ['segaPcm','psg'], nes: ['nesApu'], gameboy: ['gameBoyDmg'], okim6258: ['okim6258'], okim6295: ['okim6295'],
 };
 export function selectPlaybackConfiguration(vgm) {
   const header = {...vgm.header};
@@ -133,7 +135,7 @@ export function selectPlaybackConfiguration(vgm) {
     if (header.ay8910Clock) validateAyPlaybackHeader({ay8910Clock:header.ay8910Clock,ay8910Type:header.ay8910Type,ay8910Flags:header.ay8910Flags});
     // These are compatibility paths (monitors and snapshots), not an allowlist.
     // Any other combination of supported chips is assembled by the mixer.
-    if (!chips.every(c=>composition[kind].includes(c.id) || c.id==='okim6258')) kind='mixed';
+    if (kind==='msm5205' || !chips.every(c=>composition[kind].includes(c.id) || c.id==='okim6258')) kind='mixed';
   } catch (error) { throw new PlaybackError('UNSUPPORTED_CONFIGURATION', error.message, {kind,header}); }
   return {kind, header, chips, ignoredClocks, ...(kind==='mixed' ? {parts:planPlaybackParts(header)} : {}), requiredRoms: [
     ...(header.ym2608Clock && vgm.requiresYm2608RhythmRom?.() ? ['ym2608AdpcmA'] : []),
@@ -221,6 +223,7 @@ async function createHeaderMixedEngine(configuration,resource,volume,options){
 }
 
 const recipes = {
+  msm5205: async (vgm,resource,masterVolume) => new Msm5205AudioEngine({clock:vgm.header.msm5205Clock,flags:vgm.header.msm5205Flags,masterVolume}),
   okim6295: async (vgm, resource, masterVolume) => new Oki6295AudioEngine({clock:vgm.header.okim6295Clock,masterVolume}),
   huc6280: async (vgm, resource, masterVolume) => Huc6280AudioEngine.create({moduleFactory:await resource("huc6280"),clock:vgm.header.huc6280Clock,masterVolume}),
   nes: async (vgm, resource, masterVolume) => createNesApuAudioEngine({clock:vgm.header.nesApuClock & 0x3fffffff,fds:!!(vgm.header.nesApuClock & 0x80000000),masterVolume}),
@@ -341,7 +344,13 @@ export async function createPlaybackEngine(vgm, {getFactory, masterVolume=1, rom
   let engine;
   try {
     engine = configuration.kind==='mixed' ? await createHeaderMixedEngine(configuration,resource,masterVolume,{pwmModel,pwmOutputMode}) : await recipes[configuration.kind]({header:configuration.header},resource,masterVolume,{pwmModel,pwmOutputMode});
-    const mixer = installPlaybackMixer(engine, configuration);
+    const attachMsm=configuration.kind==='huc6280' && configuration.header.msm5205Clock;
+    const mixer = installPlaybackMixer(engine, attachMsm ? {...configuration,chips:configuration.chips.filter(c=>c.id!=='msm5205')} : configuration);
+    if (attachMsm) {
+      const msm=new Msm5205AudioEngine({clock:configuration.header.msm5205Clock,flags:configuration.header.msm5205Flags,outputSampleRate:engine.sampleRate()});
+      mixer.addSource('msm5205',msm,'processFrames',engine.sampleRate());
+      attachMsm5205(engine,msm);
+    }
     if (configuration.kind!=='mixed' && configuration.header.okim6295Clock && !engine.writeOki6295) {
       const oki = new Oki6295AudioEngine({clock:configuration.header.okim6295Clock,outputSampleRate:engine.sampleRate()});
       mixer.addSource('okim6295', oki, 'processFrames', engine.sampleRate());
@@ -384,6 +393,7 @@ export function playbackMuteControls(configuration) {
   if(kind==='y8950')add('y8950-adpcm','setAdpcmMuted');
   if(h.okim6295Clock)add('okim6295','setOki6295Muted');
   if(h.okim6258Clock)add('okim6258','setOkiMuted');
+  if(h.msm5205Clock)add('msm5205','setMsm5205Muted');
   if(h.segaPcmClock && ['segapcm','ym2151'].includes(kind)){add('segapcm','setSegaPcmMuted');channels('segapcm-ch',16,'setSegaPcmChannelMuted');}
   if(['ay8910','msx'].includes(kind)&&h.ay8910Clock){add('ay8910','setAyMuted');channels('ay8910-ch',3,'setAyChannelMuted');}
   if(kind==='msx'){

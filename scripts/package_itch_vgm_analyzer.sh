@@ -95,6 +95,7 @@ seek_playback.js
 "
 
 JS_FILES="
+msm5205audioengine.js
 soundchip_mixer.js
 nesapu.js
 nesapusynth.js
@@ -338,6 +339,8 @@ mkdir -p "${STAGE_DIR}/licenses/mame-okim6295"
 cp "${ROOT_DIR}/third_party/mame-okim6295/LICENSE" "${ROOT_DIR}/third_party/mame-okim6295/README.md" "${STAGE_DIR}/licenses/mame-okim6295/"
 mkdir -p "${STAGE_DIR}/licenses/mame-okim6258"
 cp "${ROOT_DIR}/third_party/mame-okim6258/LICENSE" "${ROOT_DIR}/third_party/mame-okim6258/README.md" "${STAGE_DIR}/licenses/mame-okim6258/"
+mkdir -p "${STAGE_DIR}/licenses/libvgm-msm5205"
+cp "${ROOT_DIR}/third_party/libvgm-msm5205/LICENSE" "${ROOT_DIR}/third_party/libvgm-msm5205/README.md" "${STAGE_DIR}/licenses/libvgm-msm5205/"
 
 mkdir -p "${STAGE_DIR}/licenses/mame-ay8910"
 cp "${ROOT_DIR}/third_party/mame-ay8910/LICENSE" "${ROOT_DIR}/third_party/mame-ay8910/README.md" "${STAGE_DIR}/licenses/mame-ay8910/"
@@ -376,6 +379,7 @@ AY-3-8910 / YM2149: MAME adaptation, BSD-3-Clause. See licenses/mame-ay8910/.
 HuC6280: MAME adaptation by Charles MacDonald, BSD-3-Clause. See licenses/mame-huc6280/.
 OKIM6295: MAME/libvgm adaptation, BSD-3-Clause. See licenses/mame-okim6295/.
 OKIM6258: MAME adaptation by Barry Rodewald, BSD-3-Clause. See licenses/mame-okim6258/.
+MSM5205: libvgm ADPCM adaptation, BSD-3-Clause. See licenses/libvgm-msm5205/.
 
 RF5C164: MAME adaptation, BSD-3-Clause. See licenses/mame-rf5c164/LICENSE and README.md.
 

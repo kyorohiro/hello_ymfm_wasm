@@ -277,6 +277,8 @@ export class Ym2612VGM {
     const ay8910Flags = version >= 0x151 ? headerByte(0x79) : 0;
     const y8950Clock = version >= 0x151 ? extendedClock(0x58) : 0;
     const huc6280Clock = version >= 0x161 ? extendedClock(0xa4) : 0;
+    const msm5205Clock = version >= 0x172 ? extendedClock(0xf0) : 0;
+    const msm5205Flags = version >= 0x172 ? headerByte(0xd7) : 0;
     const okim6295Clock = version >= 0x161 ? extendedClock(0x98) : 0;
     const okim6258Clock = version >= 0x161 ? extendedClock(0x90) : 0;
     const okim6258Flags = version >= 0x161 ? headerByte(0x94) : 0;
@@ -292,7 +294,7 @@ export class Ym2612VGM {
       ym2612Clock,
       ym2413Clock, ym2151Clock, ym3526Clock, ym3812Clock, ymf262Clock, ymf278bClock, segaPcmClock,
       segaPcmBankShift, segaPcmBankMask,
-      ay8910Clock, ay8910Type, ay8910Flags, y8950Clock, k051649Clock, huc6280Clock, nesApuClock, gameBoyDmgClock, okim6295Clock, okim6258Clock, okim6258Flags,
+      ay8910Clock, ay8910Type, ay8910Flags, y8950Clock, k051649Clock, huc6280Clock, msm5205Clock, msm5205Flags, nesApuClock, gameBoyDmgClock, okim6295Clock, okim6258Clock, okim6258Flags,
       ym2203Clock,
       ym2608Clock,
       ym2610Clock,
@@ -626,6 +628,11 @@ export class Ym2612VGM {
         this.position += 3;
         return { type: "rf5c164-write", register: register & 0x7f, value, chipIndex: register >>> 7 };
       }
+      case 0x32: {
+        this.#ensureAvailable(2);
+        const data=this.bytes[this.position+1];this.position+=2;
+        return {type:'msm5205-write',register:(data>>>4)&7,value:data&15,chipIndex:data>>>7};
+      }
       case 0xb9: {
         this.#ensureAvailable(3);
         const r=this.bytes[this.position+1], value=this.bytes[this.position+2];
@@ -945,6 +952,12 @@ export class Ym2612VGM {
       targets.ymf262?.writeRegister(event.register, event.value, event.port);
       return event;
     }
+    if (event.type === 'msm5205-write') {
+      if (event.chipIndex) this.#warn('Skipping unsupported second MSM5205 chip');
+      else if (!targets.msm5205) this.#warn('MSM5205 playback target unavailable; ADPCM audio omitted');
+      else targets.msm5205.writeRegister(event.register,event.value);
+      return event;
+    }
     if (event.type === "huc6280-write") {
       if (event.chipIndex) this.#warn("Skipping unsupported second HuC6280 chip");
       else if (!targets.huc6280) this.#warn("HuC6280 playback target unavailable; audio omitted");
@@ -1145,6 +1158,10 @@ export class Ym2612VGM {
   }
 
   #describeRawCommand(command, position) {
+    if (command === 0x32) {
+      const data=this.bytes[position+1];
+      return `cmd=0x32 msm5205 chip=${data>>>7} register=${formatHexNumber((data>>>4)&7)} value=${formatHexNumber(data&15)}`;
+    }
     if (command === 0x50) {
       return `cmd=0x50 psg value=${formatHexNumber(this.bytes[position + 1])}`;
     }

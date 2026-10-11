@@ -42,7 +42,7 @@ await writeFile(resolve(out,'package.json'), JSON.stringify(pkg,null,2)+'\n');
 await cp(resolve(root,'packages/vgm/README.md'),resolve(out,'README.md'));
 for (const name of ['CLI.md','LICENSE']) await cp(resolve(root,name),resolve(out,name));
 await mkdir(resolve(out,'licenses'),{recursive:true});
-for (const name of ['mame-huc6280','mame-okim6258','mame-okim6295','mame-gameboy','mame-ay8910','mame-rf5c164','mame-segapcm','mame-32x-pwm','mame-k051649']) {
+for (const name of ['mame-huc6280','mame-okim6258','mame-okim6295','mame-gameboy','mame-ay8910','mame-rf5c164','mame-segapcm','mame-32x-pwm','mame-k051649','libvgm-msm5205']) {
   await cp(resolve(root,`third_party/${name}/LICENSE`),resolve(out,`licenses/${name}.txt`));
 }
 await cp(resolve(root,'third_party/jsnes'),resolve(out,'licenses/jsnes'),{recursive:true});
