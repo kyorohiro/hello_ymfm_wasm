@@ -177,12 +177,12 @@ export function createPlaygroundRuntime(
     options.execution ?? "main";
   const defaultLogicWorkerUrl =
     new URL(
-      "./playground_logic_worker.js?v=smooth-stop-1",
+      "./playground_logic_worker.js?v=stop-restart-1",
       import.meta.url
     );
   defaultLogicWorkerUrl.searchParams.set(
     "v",
-    "smooth-stop-1"
+    "stop-restart-1"
   );
   const logicWorkerUrl =
     options.logicWorkerUrl ??
@@ -858,7 +858,15 @@ export function createPlaygroundRuntime(
     });
     logicWorkerStopPromise = stopped;
     resolveLogicWorkerStop = finish;
-    timer = setTimeout(finish, 100);
+    // A timeout is not a stop acknowledgement: old cleanup commands can still
+    // arrive and mute the next Run. Retire an unresponsive Worker instead.
+    timer = setTimeout(() => {
+      if (logicWorker === worker) {
+        terminateLogicWorker();
+        stopAllAudio();
+      }
+      finish();
+    }, 2000);
     worker.postMessage({ type: "stop" });
     return stopped;
   }
@@ -1165,6 +1173,10 @@ export function createPlaygroundRuntime(
       emitLog(error.message);
       while (workerRunRequests.length > 0) {
         workerRunRequests.shift().reject(error);
+      }
+      if (resolveLogicWorkerStop) {
+        terminateLogicWorker();
+        stopAllAudio();
       }
     };
   }

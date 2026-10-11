@@ -758,10 +758,15 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
 
 let lifecycleQueue = Promise.resolve();
 let stopping = Promise.resolve();
+let lifecycleGeneration = 0;
 
-async function handleLifecycleMessage(message) {
+async function handleLifecycleMessage(message, generation = lifecycleGeneration) {
   if (message.type === "run") {
     await stopping;
+    if (generation !== lifecycleGeneration) {
+      postMessage({type: 'execution-error', message: 'Run stopped'});
+      return;
+    }
     const previousRun = currentRun;
     currentRun = previousRun ?? createRun(message.sourceCode, message.presets ?? {}, message.scaleIntervals ?? {}, message.capabilities ?? {}, message.timing ?? {});
     if (currentRun.stopped) {
@@ -779,8 +784,8 @@ async function handleLifecycleMessage(message) {
     }
     return;
   }
-  if (message.type === "stop" && currentRun) {
-    await currentRun.stop();
+  if (message.type === "stop") {
+    await currentRun?.stop();
     postMessage({ type: "stopped" });
   }
 }
@@ -791,6 +796,7 @@ self.onmessage = (event) => {
   if (message.type === "chip-port") { chipConnection?.port.close(); chipConnection={port:message.port,state:message.state}; return; }
   if (message.type === "native-fx") { nativeFXPort?.close(); nativeFXPort = message.port; return; }
   if (message.type === "stop") {
+    lifecycleGeneration += 1;
     // Interrupt waits now: queuing stop behind run.execute would wait for the
     // very evaluation we need to cancel.
     stopping = stopping.then(() => handleLifecycleMessage(message))
@@ -809,7 +815,8 @@ self.onmessage = (event) => {
     currentRun?.handleKeyboard(message.id, message.event);
     return;
   }
+  const generation = lifecycleGeneration;
   lifecycleQueue = lifecycleQueue
     .catch(() => undefined)
-    .then(() => handleLifecycleMessage(message));
+    .then(() => handleLifecycleMessage(message, generation));
 };

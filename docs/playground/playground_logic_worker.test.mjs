@@ -94,6 +94,18 @@ async function waitFor(predicate, timeoutMs = 100) {
   }
 }
 
+test('Stop before Worker run initialization cancels that run and permits restart', async () => {
+  const worker=createWorkerHarness();
+  worker.post({type:'run',sourceCode:'console.log("old run");',presets:{},scaleIntervals:{}});
+  worker.post({type:'stop'});
+  await waitFor(()=>worker.messages.some(message=>message.type==='stopped'));
+  await worker.send({type:'run',sourceCode:'liveLoop("new",async()=>{console.log("new run");await sleep(60);});',presets:{},scaleIntervals:{}});
+  assert.ok(!worker.messages.some(message=>message.command==='log'&&message.args[0]==='old run'));
+  assert.ok(worker.messages.some(message=>message.command==='log'&&message.args[0]==='new run'));
+  assert.ok(worker.messages.some(message=>message.type==='complete'&&message.loopCount===1));
+  await worker.send({type:'stop'});
+});
+
 test("Worker sample positions advance across loop cycles", async () => {
   const worker = createWorkerHarness();
   try {

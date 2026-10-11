@@ -235,6 +235,33 @@ function workerBridge(t) {
   };
   t.after(()=>{globalThis.Worker=previous;});return workers;
 }
+test('a delayed Worker Stop must finish before the next Run is sent', async t => {
+  const {runtime, megaDrive}=setup(t);
+  const previous=globalThis.Worker, workers=[];
+  globalThis.Worker=class {
+    constructor(){this.runs=0;workers.push(this);}
+    postMessage(message){
+      if(message.type==='run') {this.runs++;queueMicrotask(()=>this.onmessage({data:{type:'complete',loopCount:1}}));}
+      if(message.type==='stop')this.stopping=true;
+    }
+    terminate(){}
+  };
+  t.after(()=>{globalThis.Worker=previous;});
+  await runtime.playSource('',{execution:'worker'});
+  const worker=workers[0];runtime.stop();
+  const restarting=runtime.playSource('',{execution:'worker'});
+  await new Promise(resolve=>setTimeout(resolve,150));
+  assert.equal(worker.runs,1,'the old 100ms timeout must not allow another Run');
+  let cleanupDone=false;
+  megaDrive.sample.stopAll=()=>{cleanupDone=true;};
+  worker.onmessage({data:{type:'command',command:'audio.stopAll',args:[]}});
+  worker.onmessage({data:{type:'stopped'}});
+  await restarting;
+  assert.equal(cleanupDone,true);
+  assert.equal(worker.runs,2);
+  assert.equal(runtime.getState().playback,'running');
+  runtime.stop();worker.onmessage({data:{type:'stopped'}});
+});
 test('Worker play durations do not serialize independent live-loop notes or Stop',async t=>{
  const {runtime,megaDrive}=setup(t),workers=workerBridge(t),notes=[],offs=[];
  megaDrive.fm.noteOn=ch=>notes.push(ch);megaDrive.fm.noteOff=ch=>offs.push(ch);
