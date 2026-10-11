@@ -97,6 +97,33 @@ test('fade stop does not wait for a suspended audio clock', async t => {
   assert.equal(runtime.getState().playback,'stopped');
 });
 
+test('sample preparation completing after Stop cannot reopen output or start a voice', async t => {
+  const {runtime,megaDrive}=setup(t,{fmChannels:1});
+  const gate=deferred(), ramps=[];let entered=false, plays=0;
+  const gain={value:1,cancelScheduledValues(){},setValueAtTime(value){this.value=value;},
+    setValueCurveAtTime(){},linearRampToValueAtTime(value){ramps.push(value);}};
+  megaDrive.audioContext={state:'running',currentTime:0,destination:{},createGain:()=>({gain,connect(){},disconnect(){}})};
+  megaDrive.audio={outputNode:null,connectOutput(){}};
+  megaDrive.sample.play=()=>{plays++;};
+  globalThis.playgroundReview={delayResume(){megaDrive.resume=()=>{entered=true;return gate.promise;};}};
+  await runtime.playSource('globalThis.playgroundReview.delayResume(); liveLoop("choir",async()=>{await sample.play("choir");await sleep(60);});');
+  await until(()=>entered);
+  const stopping=runtime.stopWithFade();
+  megaDrive.audioContext.currentTime=0.125;
+  await stopping;
+  gate.resolve();
+  await new Promise(resolve=>setTimeout(resolve,0));
+  assert.equal(plays,0);
+  assert.equal(gain.value,0);
+  assert.deepEqual(ramps,[],'the old sample request must not fade the output back in');
+  assert.equal(runtime.getState().playback,'stopped');
+  megaDrive.resume=async()=>{};
+  await runtime.playSource('liveLoop("new",async()=>{await sample.play("choir");await sleep(60);});');
+  await until(()=>plays===1);
+  assert.equal(plays,1,'an explicit new Run still starts audio');
+  assert.deepEqual(ramps,[1]);
+});
+
 for (const example of ['chip-raw/gameboy-raw-write-sample', 'gameboy/gameboy-synth']) test(`Game Boy ${example} compiles with the full Playground global argument list`, async t => {
   const {runtime} = setup(t);
   const source = await readFile(new URL(`../docs/playground/examples/${example}.js`, import.meta.url), 'utf8');

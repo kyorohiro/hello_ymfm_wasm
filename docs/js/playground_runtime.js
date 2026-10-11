@@ -177,12 +177,12 @@ export function createPlaygroundRuntime(
     options.execution ?? "main";
   const defaultLogicWorkerUrl =
     new URL(
-      "./playground_logic_worker.js?v=stop-restart-1",
+      "./playground_logic_worker.js?v=stop-media-race-1",
       import.meta.url
     );
   defaultLogicWorkerUrl.searchParams.set(
     "v",
-    "stop-restart-1"
+    "stop-media-race-1"
   );
   const logicWorkerUrl =
     options.logicWorkerUrl ??
@@ -425,11 +425,19 @@ export function createPlaygroundRuntime(
     apply(voice.filter.q, options.q);
   }
 
+  async function ensureMediaReady() {
+    const token = currentRunToken, loop = currentLoopContext;
+    if (pendingFadeStop || logicWorkerStopPromise || loop?.stopped) throw new Error('Run stopped');
+    // Media preparation must never reopen the output gate after Stop.
+    await ensureReady({resumeOutput: false});
+    if (token !== currentRunToken || pendingFadeStop || logicWorkerStopPromise || loop?.stopped) throw new Error('Run stopped');
+  }
+
   async function loadSample(
     name,
     source
   ) {
-    await ensureReady();
+    await ensureMediaReady();
     return megaDrive.sample.load(
       name,
       source
@@ -440,7 +448,7 @@ export function createPlaygroundRuntime(
     name,
     sampleOptions = {}
   ) {
-    await ensureReady();
+    await ensureMediaReady();
     return megaDrive.sample.play(
       name,
       sampleOptions
@@ -459,7 +467,7 @@ export function createPlaygroundRuntime(
     name,
     url
   ) {
-    await ensureReady();
+    await ensureMediaReady();
     return megaDrive.stream.load(
       name,
       url
@@ -470,7 +478,7 @@ export function createPlaygroundRuntime(
     name,
     streamOptions = {}
   ) {
-    await ensureReady();
+    await ensureMediaReady();
     return megaDrive.stream.play(
       name,
       streamOptions
@@ -716,11 +724,15 @@ export function createPlaygroundRuntime(
     });
   }
 
-  async function ensureReady() {
+  async function ensureReady({resumeOutput = true} = {}) {
+    const token = currentRunToken;
+    const resumeOutputIfCurrent = () => {
+      if (resumeOutput && token === currentRunToken && !pendingFadeStop) resumeStopFade();
+    };
     if (pendingFadeStop) await pendingFadeStop;
     if (prepareAudioPromise) {
       await prepareAudioPromise;
-      resumeStopFade();
+      resumeOutputIfCurrent();
       return synth;
     }
 
@@ -739,7 +751,7 @@ export function createPlaygroundRuntime(
         }
         workerLevelsMuted = false;
       }
-      resumeStopFade();
+      resumeOutputIfCurrent();
       emitRuntimeState(
         "Audio ready"
       );
@@ -757,7 +769,7 @@ export function createPlaygroundRuntime(
       (async () => {
         await megaDrive.start();
         await megaDrive.audio?.prepareNativeFX?.();
-        resumeStopFade();
+        resumeOutputIfCurrent();
         if (megaDrive.audio?.nativeFX) {
           megaDrive.audio.nativeFX.onError = (message) => {
             options.onLog?.(`[FX] ${message}`);
