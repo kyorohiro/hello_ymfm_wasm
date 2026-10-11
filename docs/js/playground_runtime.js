@@ -805,6 +805,12 @@ export function createPlaygroundRuntime(
     await ensureReady();
   }
 
+  /** An explicit keyboard audition starts after the preceding Stop has finished. */
+  async function prepareAudition() {
+    if (pendingFadeStop) await pendingFadeStop;
+    return ensureReady();
+  }
+
   function registerKeyboardHandler(
     eventType,
     name,
@@ -2181,6 +2187,7 @@ export function createPlaygroundRuntime(
     logicWorkerUrl,
     initialize,
     ensureReady,
+    prepareAudition,
     load,
     put,
     get,

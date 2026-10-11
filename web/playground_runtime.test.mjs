@@ -97,6 +97,27 @@ test('fade stop does not wait for a suspended audio clock', async t => {
   assert.equal(runtime.getState().playback,'stopped');
 });
 
+test('keyboard audition requested during Stop reopens output after cleanup', async t => {
+  const {runtime,megaDrive}=setup(t,{fmChannels:1});
+  const events=[];
+  const gain={value:1,cancelScheduledValues(){},setValueAtTime(value){this.value=value;events.push(['gain',value]);},
+    setValueCurveAtTime(){},linearRampToValueAtTime(value){events.push(['ramp',value]);}};
+  megaDrive.audioContext={state:'running',currentTime:0,destination:{},createGain:()=>({gain,connect(){},disconnect(){}})};
+  megaDrive.audio={outputNode:null,connectOutput(){}};
+  megaDrive.fm.noteOff=()=>events.push(['cleanup']);
+  await runtime.ensureReady();
+  const stopping=runtime.stopWithFade();
+  const audition=runtime.prepareAudition();
+  assert.ok(!events.some(event=>event[0]==='ramp'));
+  megaDrive.audioContext.currentTime=0.125;
+  await stopping;
+  assert.equal(await audition,megaDrive.fm);
+  const cleanup=events.findIndex(event=>event[0]==='cleanup');
+  const resume=events.findIndex(event=>event[0]==='ramp'&&event[1]===1);
+  assert.ok(cleanup>=0&&resume>cleanup,'audition must reopen the output after Stop cleanup');
+  assert.equal(runtime.getState().playback,'stopped','audition must not restart the script');
+});
+
 test('sample preparation completing after Stop cannot reopen output or start a voice', async t => {
   const {runtime,megaDrive}=setup(t,{fmChannels:1});
   const gate=deferred(), ramps=[];let entered=false, plays=0;
