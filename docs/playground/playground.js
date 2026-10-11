@@ -1,6 +1,6 @@
 import {installFileExplorerResize} from './playground_file_resize.js';
-import {installPlaygroundWorkbench} from './playground_workbench.js';
-import {installPlaygroundShell} from './playground_shell.js';
+import {installPlaygroundWorkbench} from './playground_workbench.js?v=compact-shell-1';
+import {installPlaygroundShell} from './playground_shell.js?v=compact-shell-1';
 import {openDraftStore, createProjectAutosave} from './playground_autosave.js';
 let desktopAutosave = null;
 let playgroundShell = null;
@@ -1484,6 +1484,10 @@ const ui =
     onBottomTabChange(tabName, layout) {
       if (layout) workbench.sync(layout);
       const tool = layout ? (layout.dockOpen ? layout.bottomTab : null) : tabName;
+      document.getElementById('shellActions').hidden = tool !== 'shell';
+      if (tool !== 'shell') {
+        for (const id of ['shellMenu', 'shellHelp']) document.getElementById(id).hidePopover?.();
+      }
       const primary = layout?.primaryTab ?? tabName;
       fxMonitor.setVisible(tool === "fxMonitor");
       const showAudio = tool === "audio" || (inlineAudioMonitor && primary === "code");

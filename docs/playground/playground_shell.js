@@ -11,7 +11,7 @@ export function installPlaygroundShell({fs, beforeCommand, afterCommand, output,
   registerShellCheck(shell);
   let queue=Promise.resolve(),epoch=0,active=null,streamed=0,structuredOutput=false;
   const history=[];let historyIndex=0,draft='';
-  const setState=text=>{if(state)state.textContent=text;};
+  const setState=text=>{if(state){state.textContent=text;state.hidden=['Ready.','Finished.','Stopped.'].includes(text);}};
   const scroll=()=>{const viewport=terminal??output;viewport.scrollTop=viewport.scrollHeight;};
   function append(text){output.textContent+=text;if(output.textContent.length>50000)output.textContent=output.textContent.slice(-50000);scroll();}
   const clear=()=>{output.textContent='';scroll();};
@@ -38,7 +38,7 @@ export function installPlaygroundShell({fs, beforeCommand, afterCommand, output,
       const controller=new AbortController();active=controller;
       const abort=()=>controller.abort(options.signal?.reason);
       options.signal?.addEventListener('abort',abort,{once:true});
-      if(stopButton)stopButton.disabled=false;
+      if(stopButton){stopButton.disabled=false;stopButton.hidden=false;}
       const startOutput=streamed;append(`${shell.cwd} $ ${source}\n`);setState('Running…');
       try{
         let plan=[];try{plan=Array.isArray(source)?[{args:source}]:parsePipeline(source);}catch{}
@@ -51,7 +51,7 @@ export function installPlaygroundShell({fs, beforeCommand, afterCommand, output,
         if(streamed===startOutput)append(result.stdout+(result.stderr?result.stderr+'\n':''));
         prompt.textContent=shell.cwd+' $';setState(result.code===0?'Finished.':result.code===130?'Stopped.':`Exit ${result.code}`);
         return result;
-      }finally{options.signal?.removeEventListener('abort',abort);structuredOutput=false;if(active===controller)active=null;if(stopButton)stopButton.disabled=true;}
+      }finally{options.signal?.removeEventListener('abort',abort);structuredOutput=false;if(active===controller)active=null;if(stopButton){stopButton.disabled=true;stopButton.hidden=true;}}
     });
     queue=command.catch(()=>{});return command;
   }
@@ -89,7 +89,7 @@ export function installPlaygroundShell({fs, beforeCommand, afterCommand, output,
   });
   terminal?.addEventListener('click',event=>{if(event.target===terminal&&!globalThis.getSelection?.()?.toString())input.focus();});
   document.getElementById('shellTab')?.addEventListener('click',()=>{input.focus();scroll();});
-  clearButton?.addEventListener('click',()=>{clear();input.focus();});
+  clearButton?.addEventListener('click',()=>{clear();clearButton.closest('[popover]')?.hidePopover?.();input.focus();});
   stopButton?.addEventListener('click',stop);
   return {execute,shell,stop,invalidate(reason='Project changed'){shell.clearSnapshots();epoch++;active?.abort();runner.stop(reason);runner.clearResults();setState('Project changed.');}};
 }

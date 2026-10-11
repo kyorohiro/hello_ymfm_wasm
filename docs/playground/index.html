@@ -852,15 +852,22 @@
       }
 
       #shellPanel:not([hidden]) { display: flex; flex-direction: column; overflow: hidden; }
-      .shell-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 8px 12px; border-bottom: 1px solid var(--line); }
-      .shell-toolbar #shellState { margin: 0; margin-right: auto; }
+      .shell-actions { display: flex; align-items: center; gap: 6px; margin-left: auto; padding: 0 8px; flex: none; }
+      .shell-actions[hidden], .shell-actions [hidden] { display: none; }
+      .shell-actions button { min-height: 26px; padding: 2px 8px; border-radius: 4px; box-shadow: none; }
+      .shell-actions #shellState { margin: 0; font-size: .75rem; }
+      .shell-actions:not([hidden]) + .dock-close { margin-left: 0; }
+      .shell-popup { max-width: min(380px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); overflow: auto; padding: 16px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); color: var(--ink); box-shadow: 0 8px 30px #12363b40; }
+      .shell-popup h3 { margin: 0 0 12px; }
+      .shell-popup p { margin: 8px 0 0; }
+      .shell-popup dl { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 4px 16px; }
+      .shell-popup dd { margin: 0; }
       #shellTerminal { flex: 1; min-height: 0; overflow: auto; padding: 16px; background: #151b23; color: #e2e8f0; font: 14px/1.6 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; cursor: text; }
       #shellOutput { margin: 0; padding: 0; border: 0; border-radius: 0; min-height: 0; background: transparent; color: inherit; font: inherit; white-space: pre-wrap; overflow-wrap: anywhere; }
       #shellForm { display: flex; gap: 10px; align-items: baseline; margin: 0; }
       #shellPrompt { flex-shrink: 0; color: #8ed8a5; white-space: pre; }
       #shellInput { flex: 1; min-width: 0; width: 0; padding: 0; border: 0; border-radius: 0; background: transparent; color: inherit; font: inherit; box-shadow: none; }
       #shellInput:focus-visible { outline: 1px solid #617587; outline-offset: 3px; }
-      .shell-help { margin: 0; padding: 8px 12px; border-top: 1px solid var(--line); }
 
       .status-bar {
         position: fixed;
@@ -1744,6 +1751,12 @@
             >
               Helper
             </button>
+            <div id="shellActions" class="shell-actions" role="toolbar" aria-label="Shell controls" hidden>
+              <span id="shellState" class="subtext" role="status" hidden>Ready.</span>
+              <button id="shellStopButton" type="button" title="Stop script (Ctrl+C)" disabled hidden>Stop Script</button>
+              <button type="button" popovertarget="shellMenu" aria-label="Shell menu" title="Shell menu">⋯</button>
+              <button type="button" popovertarget="shellHelp" aria-label="Shell help" title="Shell help">?</button>
+            </div>
           </div>
 
           <section id="codePanel" class="tab-panel" role="tabpanel" aria-labelledby="codeTab">
@@ -1804,11 +1817,6 @@
             <pre id="consoleOutput"></pre>
           </section>
           <section id="shellPanel" class="tab-panel" role="tabpanel" aria-labelledby="shellTab" hidden>
-            <div class="shell-toolbar">
-              <span id="shellState" class="subtext" role="status">Ready.</span>
-              <button id="shellClearButton" type="button">Clear</button>
-              <button id="shellStopButton" type="button" disabled>Stop Script</button>
-            </div>
             <div id="shellTerminal" aria-label="Project terminal">
               <pre id="shellOutput" aria-label="Shell output">Tetorica Shell — type help for commands.
 </pre>
@@ -1817,8 +1825,22 @@
                 <input id="shellInput" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Shell command" aria-describedby="shellHelp">
               </form>
             </div>
-            <p id="shellHelp" class="subtext shell-help">Enter: execute · ↑↓: history · Tab: complete · Ctrl+C: stop script · Ctrl+L: clear. Try <code>js /scripts/example.js hello</code> or <code>play /index.js</code>. Music stops with the toolbar STOP.</p>
           </section>
+          <div id="shellMenu" class="shell-popup" popover="auto" role="group" aria-label="Shell menu">
+            <button id="shellClearButton" type="button">Clear output <span class="subtext">Ctrl+L</span></button>
+          </div>
+          <div id="shellHelp" class="shell-popup" popover="auto" role="region" aria-label="Shell help">
+            <h3>Shell</h3>
+            <dl>
+              <dt>Enter</dt><dd>Execute</dd>
+              <dt>↑ / ↓</dt><dd>History</dd>
+              <dt>Tab</dt><dd>Complete path</dd>
+              <dt>Ctrl+C</dt><dd>Stop script</dd>
+              <dt>Ctrl+L</dt><dd>Clear output</dd>
+            </dl>
+            <p>Try <code>js /scripts/example.js hello</code> or <code>play /index.js</code>. Type <code>help</code> for commands.</p>
+            <p>Stop Script ends the shell script. Music stops with the toolbar STOP.</p>
+          </div>
 
           <section id="helpersPanel" class="tab-panel" role="tabpanel" aria-labelledby="helpersTab" hidden>
             <p class="subtext" style="margin-bottom: 14px;">
@@ -2055,6 +2077,6 @@
       </label>
     </footer>
 
-    <script type="module" src="./playground.js?v=stop-media-race-1"></script>
+    <script type="module" src="./playground.js?v=compact-shell-1"></script>
   </body>
 </html>

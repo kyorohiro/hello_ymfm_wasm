@@ -38,6 +38,8 @@ export function installPlaygroundWorkbench(root, {storage, search = window.locat
   const close = element('button', 'dock-close');
   close.type = 'button'; close.textContent = '×';
   close.title = 'Hide bottom panel'; close.setAttribute('aria-label', close.title);
+  const shellActions = document.getElementById('shellActions');
+  if (shellActions) dockTabs.appendChild(shellActions);
   dockTabs.appendChild(close); dock.prepend(dockTabs);
   const toggle = element('button', 'dock-toggle');
   toggle.type = 'button'; toggle.textContent = 'Panel'; toggle.setAttribute('aria-controls', 'bottomDock');
