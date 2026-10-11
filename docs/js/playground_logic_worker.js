@@ -23,7 +23,7 @@ import {createMidiApi, createMidiRack} from './playground_midi.js?v=play-units-1
 import { hzToBlockFnum } from "./pitch.js";
 import { createDeadlineScheduler } from "./playground_clock.js?v=loop-async-tasks-1";
 
-import {createNativeFXController} from "./native_fx.js";
+import {createNativeFXController} from "./native_fx.js?v=prepared-fx-rerun-2";
 let nativeFXPort = null;
 let chipConnection = null;
 let currentRun = null;

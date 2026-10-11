@@ -72,7 +72,12 @@ export function createPlaygroundLive(
     }
   }
 
-  function clearRunFxChain() {
+  function clearRunFxChain({preservePrepared = false} = {}) {
+    const currentChain = megaDrive.getFXChain?.();
+    // Prepared effects and their tails belong to the live session. Clearing
+    // a native rack also stops its samples, so leave a reusable chain intact.
+    if (preservePrepared && currentChain && currentChain.every(effect =>
+      preparedFxUnits.has(effect) || containsPreparedFxUnit(effect))) return;
     const previousChain =
       megaDrive.clearFXChain();
 

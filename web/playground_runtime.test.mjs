@@ -39,6 +39,19 @@ function setup(t, capabilities) {
   return { runtime, megaDrive, listeners, statuses };
 }
 
+test('re-running a prepared sample FX chain retains routing; Stop still detaches and disposes it',async t=>{
+ const {runtime,megaDrive}=setup(t,{fmChannels:1});let cleared=0,disposed=0;
+ const effect={input:{},output:{},dispose(){disposed++;}};
+ let chain=[];
+ megaDrive.getFXChain=()=>chain.slice();
+ megaDrive.clearFXChain=()=>{cleared++;const previous=chain;chain=[];return previous;};
+ globalThis.playgroundReview={setChain(){chain=[effect];},effect};
+ const source='await livePrepare("choir-fx",()=>({reverb:globalThis.playgroundReview.effect}));globalThis.playgroundReview.setChain();';
+ await runtime.playSource(source);await runtime.playSource(source);
+ assert.equal(cleared,0);assert.equal(disposed,0);assert.deepEqual(chain,[effect]);
+ runtime.stop();assert.equal(cleared,1);assert.equal(disposed,1);assert.deepEqual(chain,[]);
+});
+
 test('fade stop silences output before cleanup and a new Run waits for it', async t => {
   const {runtime, megaDrive} = setup(t, {fmChannels:1});
   const events=[];

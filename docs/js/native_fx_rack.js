@@ -1,7 +1,7 @@
 /** Browser-only AudioWorklet setup. FX controls themselves also run in Workers. */
 import {createNativeSampleController} from './native_sample.js';
 import {createNativeNoiseController} from './native_noise.js';
-import {createNativeFXController} from './native_fx.js';
+import {createNativeFXController} from './native_fx.js?v=prepared-fx-rerun-2';
 /** @param {AudioContext} context Owner of the native FX AudioWorklet.
  * @returns Native rack node, FX/sample/noise controllers and Main/Worker ownership/lifecycle methods. */
 export async function createNativeFXRack(context){

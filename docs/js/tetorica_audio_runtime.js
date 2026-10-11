@@ -7,7 +7,7 @@ import {SoundChipMixer} from './soundchip_mixer.js';
  */
 import {samplePCM} from "./native_sample.js";
 import * as fx from "./megasynth_fx.js";
-import {createNativeFXRack} from "./native_fx_rack.js";
+import {createNativeFXRack} from "./native_fx_rack.js?v=prepared-fx-rerun-2";
 
 /**
  * Chip-independent browser audio state shared by Tetorica synths.

@@ -28,14 +28,14 @@ import {parseMidiFile} from './midi_file.js?v=readable-midi-1';
 import { createAudioScheduler } from "./playground_audio_scheduler.js";
 import {
   FM_PRESETS,
-} from "./megasynth.js";
+} from "./megasynth.js?v=prepared-fx-rerun-2";
 import { createTetoricaSynth } from "./tetorica_synth.js";
 import {
   createPitchFromMidi,
 } from "./pitch.js";
 import { createPlaygroundClock } from "./playground_clock.js?v=loop-async-tasks-1";
 import { executeWithPlaygroundGuards } from "./playground_execution.js";
-import { createPlaygroundLive } from "./playground_live.js?v=loop-async-tasks-1";
+import { createPlaygroundLive } from "./playground_live.js?v=prepared-fx-rerun-2";
 import { createPlaygroundMusic } from "./playground_music.js?v=play-units-1";
 import { createPlaygroundNoiseApi } from "./playground_noise.js";
 import { createFmProxy } from "./playground_sync.js?v=dac-pcm-1";
@@ -176,7 +176,7 @@ export function createPlaygroundRuntime(
     options.execution ?? "main";
   const defaultLogicWorkerUrl =
     new URL(
-      "./playground_logic_worker.js?v=native-fx-1",
+      "./playground_logic_worker.js?v=prepared-fx-rerun-2",
       import.meta.url
     );
   defaultLogicWorkerUrl.searchParams.set(
@@ -1886,7 +1886,7 @@ export function createPlaygroundRuntime(
     await ensureReady();
     if (runToken !== currentRunToken) return;
     clearKeyboardHandlers();
-    liveApi.clearRunFxChain();
+    liveApi.clearRunFxChain({preservePrepared: true});
     setPlaybackState("running");
     emitStatus("Running...");
     emitRuntimeState("Running");

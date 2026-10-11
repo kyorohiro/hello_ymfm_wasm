@@ -21,7 +21,7 @@ import {
 import {
   createTetoricaSynth,
   normalizeTetoricaChip,
-} from "../js/tetorica_synth.js";
+} from "../js/tetorica_synth.js?v=prepared-fx-rerun-2";
 import {
   createTfiOperatorObjectText,
   createTfiPresetObjectText,
@@ -63,7 +63,7 @@ import { exportYm2608VgmToPlaygroundJavaScript } from "../js/ym2608vgm.js";
 import { exportYm2610BVgmToPlaygroundJavaScript } from "../js/ym2610bvgm.js";
 import {
   createPlaygroundRuntime,
-} from "../js/playground_runtime.js?v=stop-fade-1";
+} from "../js/playground_runtime.js?v=prepared-fx-rerun-2";
 import { createVgmPresetFiles } from "./playground_vgm_presets.js";
 import { createTfiFileEditor, tfiToEditorPreset } from "./playground_tfi_editor.js";
 import { renderFileTree } from "./playground_file_tree.js?v=virtual-files-1";

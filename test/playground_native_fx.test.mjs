@@ -24,6 +24,16 @@ test('native Playground runs every supported effect, removes unsupported constru
  for(const name of ['lofi','radioTone','tapeSaturation','stereoWidth'])assert.equal(h.fx[name],undefined);
  assert.deepEqual(h.errors,[]);
 });
+
+test('reapplying the same native FX routing preserves the reverb tail and sends no graph rebuild',()=>{
+ const a=harness(),b=harness(),ar=a.fx.reverb({mix:.4}),br=b.fx.reverb({mix:.4});
+ a.fx.setChain([ar]);b.fx.setChain([br]);
+ a.render(200);b.render(200);
+ const before=a.messages.length;
+ a.fx.setChain([ar]);assert.equal(a.messages.length,before);
+ for(let i=0;i<100;i++)assert.deepEqual(a.render(1,0),b.render(1,0));
+ a.fx.clear();a.fx.setChain([ar]);assert.equal(a.messages.at(-1).op,'chain');
+});
 test('parallel sums in WASM; ramps progress on audio thread and stop clears reverb tails',()=>{
  const h=harness();const a=h.fx.gain({gain:.25}),b=h.fx.gain({gain:.5});
  h.fx.setChain([h.fx.parallel(h.fx.branch(a),h.fx.branch(b))]);assert.ok(Math.abs(h.render(30)[100]-.075)<1e-5);

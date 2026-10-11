@@ -26,7 +26,7 @@ export const FX_PARAMS = {
  * @returns Effect factories, chain management and controller lifecycle methods.
  */
 export function createNativeFXController(send, {getBeatSeconds=()=>.5}={}) {
- const units=new Set(); const slots={}; let chain=[];
+ const units=new Set(); const slots={}; let chain=[],chainSignature=null;
  const contains=(root,u)=>root===u || (root.children??[]).some(c=>contains(c,u));
  const snapshot=u=>({type:u.type,slot:u.slot,values:{...u.values}});
  const parameter=(u,key,value,seconds=0)=>{
@@ -65,10 +65,12 @@ export function createNativeFXController(send, {getBeatSeconds=()=>.5}={}) {
    const seen=new Set(); const children=effects.map(u=>descriptor(u,seen));
    if(seen.size+1>32) throw new Error('Native FX maximum is 32 graph nodes');
    for(const u of seen) if(u.type==='parallel'&&!u.children.length) throw new Error('Empty parallel FX');
-   send({op:'chain',children,units:[...units].map(snapshot),beatSeconds:getBeatSeconds()}); chain=effects.slice();return effects;
+   const beatSeconds=getBeatSeconds(),signature=JSON.stringify({children,beatSeconds});
+   if(signature!==chainSignature){send({op:'chain',children,units:[...units].map(snapshot),beatSeconds});chainSignature=signature;}
+   chain=effects.slice();return effects;
   },
   clear({dispose=false}={}){ const previous=chain; api.setChain([]);send({op:'clear'});if(dispose) api.dispose();return previous; },
-  dispose(){send({op:'reset'});units.clear();for(const k of Object.keys(slots)) delete slots[k];chain=[];},
+  dispose(){send({op:'reset'});units.clear();for(const k of Object.keys(slots)) delete slots[k];chain=[];chainSignature=null;},
   getChain(){return chain.slice();},
   syncTempo(){send({op:'tempo',beatSeconds:getBeatSeconds()});},
  };
