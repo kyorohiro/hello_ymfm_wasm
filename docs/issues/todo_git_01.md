@@ -1,0 +1,167 @@
+# Tauri 版 Playground：内蔵 Git の実装メモ
+
+状態：検討・計画段階。Git 機能の実装はまだ開始していない。
+
+## 目的
+
+Tauri 版 Playground で、編集した音楽コード・プリセット・サンプルなどを Git で管理できるようにする。
+既存の Virtual Files、Monaco Editor、Shell を利用し、実フォルダと native 側の Git 処理につなぐ。
+
+## 決めた方針
+
+- Git はアプリに内蔵し、システムの Git CLI は呼ばない。
+- `.git`、実ファイルの保存、Git 操作、SSH 認証は native 側で扱う。
+- WebView は編集・操作要求・結果表示を担当する。
+- WebView から native にプロジェクトの snapshot を渡す構成とする。
+- 利用できる SSH 鍵は、Playground が native 側で生成したものだけとする。
+- SSH 秘密鍵はパスフレーズ必須とし、空のパスフレーズ・暗号化していない保存を認めない。
+- 既存の秘密鍵の取り込み、システムの ssh-agent を利用した認証は対象外とする。
+- 秘密鍵・パスフレーズを WebView、Virtual Files、snapshot に渡さない。
+
+## 全体構成
+
+```text
+Playground / WebView
+  Virtual Files・Monaco・Shell・Git 操作 UI
+       ↓ snapshot / 専用 API の操作要求
+Tauri / Rust
+  プロジェクト管理・ファイル同期・競合検出
+  内蔵 Git ライブラリ
+  SSH 鍵の生成・暗号化保存・認証
+       ↓ 状態 / 差分 / 履歴 / 更新されたファイル
+Playground / WebView
+```
+
+Git ライブラリは `git2` + `libgit2` の組み込みを第一候補とする。
+`git2` は Rust の API、`libgit2` は C の Git 実装であり、pure Rust の実装ではない。
+`libgit2` と必要な SSH・HTTPS の依存ライブラリをアプリに同梱する構成を検証する。
+鍵生成も内蔵ライブラリで行う方針とし、`ssh-keygen` などの外部コマンドには依存しない。
+
+## 実フォルダと Virtual Files の連携
+
+現在の Playground は Virtual Files を共有して編集・実行し、Tauri 版の自動保存は IndexedDB に保存している。
+Git の導入には、実フォルダのプロジェクトとの連携が必要になる。
+
+### フォルダを開く
+
+1. ユーザーが実フォルダを選択する。
+2. native が管理対象のファイルを読み、Virtual Files に取り込む。
+3. native が読み込み時の内容・管理対象一覧・プロジェクト ID を保持する。
+4. `.git` は native 側に残し、Virtual Files に取り込まない。
+
+### 保存・コミット
+
+1. Monaco の未反映の編集を Virtual Files に反映する。
+2. WebView が snapshot と保存元のリビジョンを native に渡す。
+3. native がパス・管理対象・外部変更を検証する。
+4. 変更・追加・明示的な削除を実フォルダへ反映する。
+5. 保存完了後に Git の差分取得・ステージ・コミットなどを実行する。
+
+**snapshot に存在しないという理由だけで、実フォルダのファイルを全部削除しない。**
+Playground が管理している範囲だけを更新し、削除は管理対象と削除の意図を確認して扱う。
+実フォルダで別のエディタが変更した場合は、読み込み時の内容と比較して競合を検出し、無条件に上書きしない。
+
+保存と Git 操作は同じプロジェクト内で直列化する。
+古い snapshot が新しい保存を上書きすることや、保存途中にコミットすることを防ぐ。
+複数ファイル保存の途中で失敗した場合の復旧方法は、実装時に決める。
+
+### Git によるファイル更新
+
+pull・checkout などで実フォルダが変更されたら、Virtual Files と Monaco に取り込み直す。
+未保存の編集がある場合の扱いを決め、取り込みで編集内容を失わないようにする。
+IndexedDB の自動保存と実フォルダ保存の役割、復元時の優先順位も整理する。
+
+## SSH 鍵・認証
+
+- 鍵は native 側で生成し、暗号化した秘密鍵をアプリ専用領域に保存する。
+- 鍵の生成・復号に使うパスフレーズは、OS の native 入力 UI で受け取る方針とする。
+- WebView に返す情報は、鍵 ID・公開鍵・フィンガープリント・表示用の名前などに限定する。
+- ユーザーが公開鍵を Git ホスティングサービスへ登録できるようにする。
+- 復号された鍵は native の認証処理に限って利用し、利用後は保持を最小限にする。
+- 秘密鍵とパスフレーズをログ、エラー、cassette のエクスポート、自動保存に含めない。
+- 接続先のホスト鍵を検証し、初回接続・鍵変更時の確認方法を用意する。
+
+パスフレーズによる暗号化は保存中の鍵を保護する。
+WebView からの不正な利用要求は、native API の操作範囲・プロジェクト・接続先の検証で別途制限する。
+
+## native API と Shell
+
+API 名は仮案。任意のコマンド文字列を実行する API は作らず、Git の操作ごとに処理を用意する。
+
+| 操作 | API の例 |
+| --- | --- |
+| フォルダを開く・同期する | `project_open` / `project_save_snapshot` / `project_reload` |
+| 初期化・変更確認 | `git_init` / `git_status` / `git_diff` |
+| ステージ・コミット・履歴 | `git_stage` / `git_commit` / `git_log` |
+| リモート操作 | `git_clone` / `git_fetch` / `git_pull` / `git_push` |
+| 鍵の管理 | `ssh_key_generate` / `ssh_key_list` / `ssh_key_public` |
+
+Shell の `git status` などは、対応する入力を解析して専用 API に渡す。
+システムの Git CLI を実行するものではなく、対応するサブコマンド・オプションを明示する。
+処理結果・進捗・失敗理由を Shell または Git 操作 UI に表示する。
+
+native 側で以下を保証する。
+
+- 操作対象はユーザーが開いたプロジェクト ID に結び付ける。
+- snapshot やパス指定から `.git`・鍵の保存領域・プロジェクト外へ書き込めない。
+- 相対パスの `..`、絶対パス、シンボリックリンクによる範囲外アクセスを検証する。
+- WebView から任意の秘密鍵パスや認証先を指定させず、アプリ管理の鍵 ID と設定済み remote を使う。
+- push では接続先・ブランチ・送信する変更を確認できるようにする。
+- 重いファイル処理・Git 操作を音声処理や WebView の UI スレッドで実行しない。
+
+## 実装順序の案
+
+### 1. 実フォルダ連携とローカル Git
+
+- [ ] 実フォルダの選択・読み込みと Virtual Files への取り込み。
+- [ ] snapshot 保存、管理対象一覧、外部変更の競合検出。
+- [ ] `git2` / `libgit2` を組み込んだ Tauri ビルド。
+- [ ] `init` / `status` / `diff` / `add` / `commit` / `log`。
+- [ ] Shell への基本操作の接続。
+
+まず「snapshot を保存し、差分を見て、ローカルでコミットできる」状態を作る。
+
+### 2. アプリ専用の SSH 鍵
+
+- [ ] 鍵生成とパスフレーズ必須の暗号化保存。
+- [ ] native のパスフレーズ入力 UI。
+- [ ] 公開鍵の表示・コピーと鍵 ID の管理。
+- [ ] 内蔵 SSH ライブラリで生成した鍵を利用できることの検証。
+- [ ] ホスト鍵の検証・接続先と鍵の関連付け。
+
+### 3. リモート Git
+
+- [ ] `clone` / `fetch` / `push`、進捗表示とキャンセル。
+- [ ] `pull` と実フォルダ・Virtual Files・Monaco の再同期。
+- [ ] 未保存の編集、分岐した履歴、マージ競合の扱い。
+
+## 実装前・実装中に確認すること
+
+- Tauri native 側のコードの所在と、既存のプロジェクト保存機能との接続方法。
+- macOS / Windows / Linux の対象範囲と、Git・SSH 依存の同梱方法。
+- 内蔵ライブラリの鍵形式・暗号化方式の互換性。鍵の種類は未決定。
+- WebView を経由しないパスフレーズ入力 UI を各 OS でどう実装するか。
+- native が保管する snapshot のリビジョンと、外部変更の検出方法。
+- 読み込むファイルの範囲、大きいサンプルの転送方法、`.gitignore` の扱い。
+- 最初の `pull` は fast-forward のみに限定するか、マージまで実装するか。
+- ブランチ操作、履歴の書き換え、コミット署名、LFS、submodule は初期段階に必要か。
+- Git CLI・OpenSSH の設定や hooks など、内蔵実装で対応する範囲を明示する。
+
+## 主な検証項目
+
+- Git 未インストールの環境で、ローカル操作・SSH 通信が動作する。
+- テキスト・バイナリ・追加・削除を保存でき、管理外ファイルを維持する。
+- 外部変更・古い snapshot・未保存の編集でデータを失わない。
+- 不正なパス・プロジェクト ID・鍵 ID を native 側で拒否する。
+- パスフレーズなしの鍵、外部の鍵、未検証の接続先を利用しない。
+- 認証失敗・ネットワーク切断・キャンセルから再試行できる。
+- Git 操作中も Playground の再生・停止・試聴が正常に動作する。
+
+## 参考
+
+- [git2：Rust API](https://docs.rs/git2/latest/git2/)
+- [git2：組み込み・SSH・HTTPS の feature](https://docs.rs/crate/git2/latest/features)
+- [git2：SSH 認証 API](https://docs.rs/git2/latest/git2/struct.Cred.html)
+- [Tauri：WebView から Rust を呼ぶ仕組み](https://v2.tauri.app/develop/calling-rust/)
+
+外部コマンドを使う方針は会話中に取り下げた。実装では内蔵ライブラリを利用する。
