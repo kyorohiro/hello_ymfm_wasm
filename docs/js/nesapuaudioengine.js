@@ -1,6 +1,15 @@
 import {FdsAudio} from './fds_audio.js';
 import PAPU from './nes_apu_vendor/index.js';
 
+// Preserve every core field, including filter/IRQ/sample timing omitted by
+// register-only snapshots. Host callbacks and cyclic core references stay live.
+const coreFields = (core, excluded=[]) => Object.fromEntries(Object.entries(core)
+  .filter(([key,value])=>!excluded.includes(key)&&typeof value!=='function'));
+const stateSize = value => ArrayBuffer.isView(value) ? value.byteLength
+  : Array.isArray(value) ? value.reduce((n,v)=>n+stateSize(v),0)
+  : value&&typeof value==='object' ? Object.values(value).reduce((n,v)=>n+stateSize(v),64) : 8;
+const apuChannels = ['square1','square2','triangle','noise','dmc'];
+
 // VGM provides the CPU's recorded writes and DMC memory. CPU IRQs and DMA
 // stalls must not delay this already-recorded timeline.
 export function validateNesApuClock(clock) {
@@ -8,6 +17,7 @@ export function validateNesApuClock(clock) {
 }
 
 export class NesApuAudioEngine {
+  #states = new WeakMap();
   constructor({clock=1789773, outputSampleRate=44100, masterVolume=1,fds=false}={}) {
     validateNesApuClock(clock);
     if (!Number.isInteger(outputSampleRate) || outputSampleRate < 8000 || outputSampleRate > 192000) throw new RangeError('Invalid NES sample rate');
@@ -15,6 +25,30 @@ export class NesApuAudioEngine {
     this.setMasterVolume(masterVolume); this.reset();
   }
   sampleRate(){return this.rate;}
+  supportsState(){return Boolean(this.apu&&this.memory);}
+  stateSettingsKey(){return JSON.stringify([this.clock,this.rate,this.volume,this.mask,this.fdsEnabled]);}
+  saveState(){
+    if(!this.supportsState())throw new Error('NES state saving unavailable');
+    const data=structuredClone({apu:coreFields(this.apu,['nes',...apuChannels]),
+      channels:Object.fromEntries(apuChannels.map(name=>[name,coreFields(this.apu[name],['papu'])])),
+      cpu:coreFields(this.apu.nes.cpu),memory:this.memory,samples:this.samples,
+      fds:this.fds?coreFields(this.fds):null});
+    const state=Object.freeze({byteLength:stateSize(data)});
+    this.#states.set(state,{data,key:this.stateSettingsKey()});return state;
+  }
+  validateState(state){
+    const saved=this.#states.get(state);
+    if(!this.supportsState()||!saved||saved.key!==this.stateSettingsKey())throw new Error('Incompatible NES state');
+  }
+  loadState(state){
+    this.validateState(state);
+    const data=structuredClone(this.#states.get(state).data);
+    Object.assign(this.apu,data.apu);
+    for(const name of apuChannels)Object.assign(this.apu[name],data.channels[name]);
+    Object.assign(this.apu.nes.cpu,data.cpu);
+    this.memory=data.memory;this.samples=data.samples;
+    if(this.fds)Object.assign(this.fds,data.fds);
+  }
   reset(){
     this.fds=this.fdsEnabled?new FdsAudio(this.rate):null;
     this.memory=new Uint8Array(65536); this.samples=[];

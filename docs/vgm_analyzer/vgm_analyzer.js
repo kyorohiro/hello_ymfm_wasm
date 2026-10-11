@@ -14,7 +14,7 @@ import {createOpl3Monitor,applyOpl3Write,describeOpl3Notes} from './ymf262_notes
 import {createNesMonitor,applyNesWrite,describeNesNotes} from './nes_notes.js';
 import {createDefaultTfiPreset, findOperatorFromSlotOffset, cloneTfiPreset, presetSignature, decodeKeyOnChannel, extractTfiPatchesFromVgm} from './tfi_extract.js';
 import {createStoredZipBytes} from './stored_zip.js';
-import { createPlaybackEngine, selectPlaybackConfiguration, detectPlaybackChipKindFromVgm, detectPlaybackChipKind } from './playback_core.js?v=chip-mixer-1';
+import { createPlaybackEngine, selectPlaybackConfiguration, detectPlaybackChipKindFromVgm, detectPlaybackChipKind } from './playback_core.js?v=apu-seek-cache-2';
 import { mountMusicSheet } from "./music_sheet.js?v=tab-1";
 import { renderVgmToWav } from "./vgm_wav.js";
 import { createExportTempoSettings } from "./export_tempo.js";
@@ -55,6 +55,7 @@ import ym2612ModuleFactory from "../generated/ym2612_wasm.js";
 import nukedOpn2ModuleFactory from "../generated/nuked_opn2_wasm.js";
 import segaPsgModuleFactory from "../generated/segapsg_wasm.js?v=channel-mute-1";
 const segaPsgWasmUrl = new URL('../generated/segapsg_wasm.wasm?v=channel-mute-1', import.meta.url);
+const gameboyApuWasmUrl = new URL('../generated/gameboy_apu_wasm.wasm?v=seek-state-1', import.meta.url);
 import { VgmPlayer } from "../js/vgmplayer.js?v=cooperative-waits-1";
 import { looksLikeS98, convertS98ToVgm } from "../js/s98_file.js";
 import { maybeDecodeVgmFile, parseVgmMetadata, VGM_METADATA_FIELDS } from "../js/vgm_file.js";
@@ -2743,16 +2744,24 @@ async function ensurePlaybackReady(vgm) {
   else applySourceMutes(engine, sourceChipKind(), effectiveSourceMutes(), hasOkiSource(), Boolean(noteishHeader?.okim6295Clock));
   if (!player) {
     player = new VgmPlayer(engine);
-    if (['ym2612', 'ym2203', 'ym2608', 'ym2610', 'ym2151'].includes(currentChipKind)) {
+    if (['ym2612', 'ym2203', 'ym2608', 'ym2610', 'ym2151', 'gameboy', 'nes'].includes(currentChipKind)) {
       player.checkpointIntervalSeconds = 5;
       player.captureSeekState = () => structuredClone({channelMonitor, monitorFrequencyHigh, psgMonitor, pcmMonitor, lastYm2612DacEnable,
-        ...(currentChipKind === 'ym2151' ? {opm:opmMonitor.saveState(),opmTracker:opmNoteTracker.saveState(),opmNoteChannels} : {})});
+        ...(currentChipKind === 'ym2151' ? {opm:opmMonitor.saveState(),opmTracker:opmNoteTracker.saveState(),opmNoteChannels} : {}),
+        ...(['gameboy','nes'].includes(currentChipKind) ? {apuNoteMonitor,apuNoteChannels} : {})});
       player.restoreSeekState = state => {
         ({channelMonitor, monitorFrequencyHigh, psgMonitor, pcmMonitor, lastYm2612DacEnable} = state);
         if (state.opm) { opmMonitor.loadState(state.opm);opmNoteTracker.loadState(state.opmTracker);opmNoteChannels=state.opmNoteChannels; }
+        if (state.apuNoteMonitor) {
+          apuNoteMonitor=state.apuNoteMonitor;apuNoteChannels=state.apuNoteChannels;
+          // structuredClone preserves FDS data but not its class methods.
+          if (apuNoteMonitor.fds) apuNoteMonitor.fds=Object.assign(createNesMonitor(true).fds,apuNoteMonitor.fds);
+          requestNoteishRender();
+        }
         requestChannelMonitorRender();
       };
-      player.seekSettingsKey = () => JSON.stringify(channelMonitor.map(ch => ch.muted));
+      player.seekSettingsKey = () => JSON.stringify(['gameboy','nes'].includes(currentChipKind)
+        ? channelMutesForChip(currentChipKind) : channelMonitor.map(ch => ch.muted));
     }
   }
   applyMasterVolume();
@@ -2775,7 +2784,7 @@ async function ensurePlaybackReady(vgm) {
   player.setLoopEnabled(loopCheckbox.checked);
   if (currentChipKind === 'ymf278b' && ymf278bWaveRomBytes) engine.loadWaveRom(ymf278bWaveRomBytes);
   // Keep same-track checkpoints across Play/seek. A new player or buffer starts fresh.
-  if (!['ym2612', 'ym2203', 'ym2608', 'ym2610', 'ym2151'].includes(currentChipKind) || player.loadedSource !== currentBuffer) {
+  if (!['ym2612', 'ym2203', 'ym2608', 'ym2610', 'ym2151', 'gameboy', 'nes'].includes(currentChipKind) || player.loadedSource !== currentBuffer) {
     player.load(currentBuffer, {logger:{warn:reportPlaybackWarning}});
     player.loadedSource = currentBuffer;
   }
@@ -4283,7 +4292,13 @@ async function getBrowserPlaybackFactory(name) {
     ym3812: async () => (await import('../generated/ym3812_wasm.js')).default,
     ymf262: async () => (await import('../generated/ymf262_wasm.js')).default,
     segapcm: async () => (await import('../generated/segapcm_wasm.js')).default,
-    gameboy_apu: async () => (await import('../generated/gameboy_apu_wasm.js')).default,
+    gameboy_apu: async () => async (options = {}) => {
+      const factory=(await import('../generated/gameboy_apu_wasm.js?v=seek-state-1')).default;
+      if (options.wasmBinary) return factory(options);
+      const response=await fetch(gameboyApuWasmUrl);
+      if (!response.ok) throw new Error(`Failed to load Game Boy WASM: HTTP ${response.status}`);
+      return factory({...options,wasmBinary:new Uint8Array(await response.arrayBuffer())});
+    },
     ym2151: async () => (await import('../generated/ym2151_wasm.js')).default,
     ym2610b: async () => (await import('../generated/ym2610b_wasm.js')).default,
     rf5c164: async () => (await import('../generated/rf5c164_wasm.js')).default,

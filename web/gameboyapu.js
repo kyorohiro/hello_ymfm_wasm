@@ -21,6 +21,7 @@ export function validateGameboyApu({clock=GAMEBOY_APU_CLOCK,sampleRate=44100}={}
  * Register writes program the chip; generateStereo() advances it to produce PCM.
  */
 export class GameboyApu {
+  #states = new WeakMap();
   /**
    * Initialize GameboyApu and its native WASM module.
    * The generated module factory is injected so browser and Node callers can choose asset loading.
@@ -57,6 +58,27 @@ export class GameboyApu {
    * @throws {Error} When the chip has been disposed.
    */
   assertAlive(){if(!this.handle)throw new Error('GameboyApu is disposed');}
+  supportsState(){return !!this.handle && typeof this.module._gameboy_apu_save_state==='function' && typeof this.module._gameboy_apu_load_state==='function';}
+  saveState(){
+    if(!this.supportsState())throw new Error('Game Boy state saving unavailable');
+    const size=this.module._gameboy_apu_save_state(this.handle,0),ptr=this.module._malloc(size);
+    if(!ptr)throw new Error('Game Boy state allocation failed');
+    try{
+      this.module._gameboy_apu_save_state(this.handle,ptr);
+      const bytes=new Uint8Array(this.module.HEAPF32.buffer,ptr,size).slice();
+      const state=Object.freeze({byteLength:size});this.#states.set(state,bytes);return state;
+    }finally{this.module._free(ptr);}
+  }
+  validateState(state){if(!this.supportsState()||!this.#states.has(state))throw new Error('Invalid or foreign Game Boy state');}
+  loadState(state){
+    this.validateState(state);
+    const bytes=this.#states.get(state),ptr=this.module._malloc(bytes.length);
+    if(!ptr)throw new Error('Game Boy state allocation failed');
+    try{
+      new Uint8Array(this.module.HEAPF32.buffer,ptr,bytes.length).set(bytes);
+      if(!this.module._gameboy_apu_load_state(this.handle,ptr,bytes.length))throw new Error('Invalid native Game Boy state');
+    }finally{this.module._free(ptr);}
+  }
   /**
    * Reset synthesis state for a new playback pass. Reapply voice and key registers afterward.
    * @returns {void}

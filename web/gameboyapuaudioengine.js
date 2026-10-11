@@ -4,13 +4,14 @@
  * 依存: 音源チップ／WASM バックエンド（ファクトリーまたはエンジンを注入）。
  * 同期 PCM 生成・ミックス用。DOM・AudioContext・スピーカー出力は不要。
  */
-import {GameboyApu} from './gameboyapu.js';
+import {GameboyApu} from './gameboyapu.js?v=seek-state-1';
 /**
  * GameboyApuAudioEngine adapter for synchronous stereo rendering and VGM register dispatch.
  * Output timing uses sampleRate() frames per second. No browser audio device is opened.
  * Dispose the engine when done to release its underlying chips.
  */
 export class GameboyApuAudioEngine {
+  #states = new WeakMap();
   /**
    * Create the chip instances required by this engine.
    * @param {{moduleFactory: import('./soundchip.js').WasmModuleFactory, moduleOptions?: import('./soundchip.js').WasmModuleOptions, clock?: number, outputSampleRate?: number, masterVolume?: number}} [options={}] Chip factories, clocks in Hz and loader settings.
@@ -30,6 +31,19 @@ export class GameboyApuAudioEngine {
    * @returns {number} Output stereo frames per second (Hz).
    */
   sampleRate(){return this.gameboy.sampleRate();}
+  supportsState(){return Boolean(this.gameboy.supportsState?.());}
+  stateSettingsKey(){return JSON.stringify([this.sampleRate(),this.volume,this.channelMask]);}
+  saveState(){
+    if(!this.supportsState())throw new Error('Game Boy state saving unavailable');
+    const chip=this.gameboy.saveState(),state=Object.freeze({byteLength:chip.byteLength});
+    this.#states.set(state,{chip,key:this.stateSettingsKey()});return state;
+  }
+  validateState(state){
+    const saved=this.#states.get(state);
+    if(!this.supportsState()||!saved||saved.key!==this.stateSettingsKey())throw new Error('Incompatible Game Boy state');
+    this.gameboy.validateState(saved.chip);
+  }
+  loadState(state){this.validateState(state);this.gameboy.loadState(this.#states.get(state).chip);}
   /**
    * Reset chip/playback state for a new pass. This is not pause/resume; replay setup writes afterward.
    * @returns {void}

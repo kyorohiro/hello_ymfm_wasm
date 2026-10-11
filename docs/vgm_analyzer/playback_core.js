@@ -1,11 +1,11 @@
 import {installPlaybackMixer} from './playback_mixer.js';
 import {Oki6295AudioEngine, attachOki6295} from '../js/okim6295audioengine.js';
 import {Huc6280AudioEngine} from '../js/huc6280audioengine.js';
-import {createNesApuAudioEngine,validateNesApuClock} from '../js/nesapuaudioengine.js';
+import {createNesApuAudioEngine,validateNesApuClock} from '../js/nesapuaudioengine.js?v=seek-state-1';
 import {Oki6258AudioEngine,attachOki6258,validateOki6258Header} from '../js/okim6258audioengine.js';
 import {createYm3526AudioEngine} from '../js/ym3526audioengine.js';
 import {createSegaPcmAudioEngine} from '../js/segapcmaudioengine.js';
-import {createGameboyApuAudioEngine} from '../js/gameboyapuaudioengine.js';
+import {createGameboyApuAudioEngine} from '../js/gameboyapuaudioengine.js?v=seek-state-1';
 import {createY8950AudioEngine} from '../js/y8950audioengine.js';
 import {createYmf278bAudioEngine} from '../js/ymf278baudioengine.js';
 import {createYm3812AudioEngine} from '../js/ym3812audioengine.js';

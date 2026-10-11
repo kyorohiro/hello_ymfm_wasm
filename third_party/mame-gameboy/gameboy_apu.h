@@ -14,6 +14,7 @@ public:
     void write(uint8_t offset, uint8_t value);
     void generate(float *left, float *right, uint32_t frames);
     uint32_t sample_rate() const { return rate; }
+    uint32_t input_clock() const { return clock; }
     // bit0-3 mute square1/square2/wave/noise.
     void set_mute_mask(uint32_t mask) { mute_mask = mask & 0xf; }
 private:
