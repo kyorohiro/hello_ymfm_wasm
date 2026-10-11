@@ -1,5 +1,13 @@
 # tetorica-vgm の npm リリース手順
 
+## 0.2.10 公開準備（2026-10-11）
+
+- MSM5205のVGM 1.72 `0x32` ADPCM再生、HuC6280とのPC Engine CD混合再生、独立ミュート／Mixer／WAV／通常シークを追加。ユーザー提供の「01 Battle.vgz」で再生を確認。
+- Game Boy DMGとNES APU＋FDS（NTSC）の状態保存を追加。共有エンジンのシークチェックポイントに対応。CLIの`render --start`は従来の無音再生で移動する。
+- 音声生成の時間制限と待ち時間の分割を追加。PCM一致・DAC時刻・未消化waitの保存／復元を確認。
+- Node.js 25.2.1／22.22.0でCLIテスト194件ずつ成功。Analyzer関連1252件成功、`MML2MDR_DIR`未設定の任意外部コンパイラーテスト1件skip。
+- 公開版・integrity・公開元commitは公開完了後に記録する。
+
 ## 0.2.9 公開記録（2026-10-11）
 
 - 公開元commit: `3b416be`（機能実装は `6a32398` までを含む）。

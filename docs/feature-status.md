@@ -48,7 +48,8 @@ Playback欄の`Seek cache`表示で高速シークの対応構成を確認でき
 | YM2151単体、Sega PSG／Sega PCM／OKIM6258併用 | 実装済 | [成功記録](issues/seekvgm_save_load_01.md)・[テスト](../web/opm_state.test.mjs) | 同上 | 未照合 |
 | Genesis／OPN＋OKIM6258 | 未対応 | 従来シークへフォールバック | — | — |
 | Sega PCM単体／OKIM6258単体 | Analyzer高速シークは未対応。コア保存APIは実装済 | コアとYM2151併用経路を検証 | — | — |
-| OPLL／OPL、AY単体、SCC、HuC6280、NES／FDS、Game Boy等 | 未対応 | チップ別Save／Loadの調査・拡張が必要 | — | — |
+| Game Boy DMG、NES APU＋FDS（NTSC） | 状態保存とAnalyzerチェックポイントを実装。波形／変調／DMC RAM／フィルタとNote-ish表示を復元 | [音声・シークテスト](../web/apu_state.test.mjs)成功。通常再生とPCM一致、キャッシュで再生成を削減 | ブラウザーでキャッシュ復元を確認。実曲・長時間試聴は未確認 | npm 0.2.10準備中。CLIのstart指定は従来シーク |
+| OPLL／OPL、AY単体、SCC、HuC6280等 | 未対応 | チップ別Save／Loadの調査・拡張が必要 | — | — |
 
 同種複数インスタンスや任意のチップ混在を一括対応したわけではない。
 OPM追加時の全体回帰は1130件中1129成功・既存skip 1・失敗0（詳細文書の実行記録）。

@@ -43,7 +43,8 @@ Some tracks need sample ROMs; dual chips, variants and combinations have limits.
 | YMF278B | OPL4 FM + PCM |
 | AY-3-8910 / YM2149 | Tone + noise + envelope |
 | K051649 / K052539 (SCC / SCC+) | 5-channel wavetable; mixed with MSX AY/YM2413/Y8950 |
-| HuC6280 | 6-channel wavetable, DDA, noise, LFO (MAME) |
+| HuC6280 / PC Engine CD | 6-channel wavetable, DDA, noise, LFO (MAME); optional MSM5205 ADPCM |
+| MSM5205 | 3/4-bit ADPCM; VGM 1.72 command 0x32 |
 | OKIM6295 | 4-voice ADPCM; standalone or with YM2151 / YM2164 (CPS-1 sound configuration), or YM3812 |
 | OKIM6258 | 4-bit ADPCM; standalone or mixed |
 | Sega PCM (315-5218) | 16-voice 8-bit PCM; standalone, mixed with Sega PSG, or mixed with YM2151 / YM2164 |
@@ -154,7 +155,21 @@ APU engine (JSNES, Apache-2.0; see `licenses/jsnes/`). No extra WASM is needed.
 MIDI, MusicXML and LilyPond export pulse/triangle base pitches; score IDs are
 `nes-ch1`, `nes-ch2`, `nes-ch3`. Noise/DMC have no score pitch. Length, envelope,
 sweep and linear-counter timing are not reconstructed in note extraction.
-PAL, FDS, dual chips and expansion-chip combinations are not supported.
+The NES header FDS flag enables FDS wavetable playback and the `nes-ch-6`
+mute control. PAL and dual configurations are not supported.
+
+## PC Engine CD ADPCM (0.2.10)
+
+HuC6280 + MSM5205 playback includes the CD system's ADPCM audio. The shared
+core reads VGM 1.72's MSM5205 clock/flags and packed `0x32` writes, including
+reset, FIFO, prescaler, 3/4-bit data and external VCLK. No extra ROM is needed.
+`render --mute msm5205` suppresses ADPCM while retaining HuC6280 playback.
+Normal seeking and WAV output include ADPCM; score exports remain HuC6280
+base pitches. MSM6585 and dual MSM5205 configurations are not supported.
+
+Game Boy DMG and NES APU with optional FDS also support opaque playback state
+snapshots in the shared engines. This enables Analyzer seek checkpoints;
+the CLI's `render --start` uses normal silent replay.
 
 ## File support report
 
@@ -370,6 +385,15 @@ Existing render defaults and mute options retain their behavior.
 Adds direct FM-only MDX export for YM2151 / YM2164 sources and Sega PSG
 per-channel mute controls (`psg-ch-1` through `psg-ch-4`, with CH4 for noise).
 PSG muting preserves register writes, oscillator phase and Tone 3-linked noise.
+
+## Version 0.2.10
+
+- MSM5205 ADPCM playback, normal seeking, independent mute/mixer and WAV
+  output, including HuC6280 + MSM5205 PC Engine CD tracks (VGM 1.72).
+- Game Boy DMG and NES APU/FDS playback state snapshots for shared-core seek
+  checkpoints. The CLI continues to replay silently for `render --start`.
+- Bounded cooperative audio generation for interactive playback, preserving
+  partially consumed waits and exact sample timing.
 
 ## MDX export
 

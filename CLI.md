@@ -749,6 +749,11 @@ also exports register-state JSON voice snapshots.
 Single HuC6280 playback uses the MAME-derived WASM core: six wavetable channels,
 DDA (direct writes and PCM streams), noise, LFO and stereo balance. No ROM is
 needed. Channel mute IDs are `huc6280-ch-1` through `huc6280-ch-6`.
+Starting with 0.2.10, PC Engine CD tracks with an MSM5205 clock also play
+ADPCM from VGM 1.72 command `0x32`. Reset, FIFO, prescaler, 3/4-bit data and
+external VCLK are supported. Use `--mute msm5205` to omit ADPCM from WAV
+output. Normal seeking includes the decoder state by replaying the timeline.
+MSM6585 and dual MSM5205 are unsupported. ADPCM is omitted from score exports.
 MIDI, MusicXML and LilyPond export six-channel wavetable base pitches. DDA,
 noise and LFO CH1/CH2 intervals are omitted. MIDI preserves timing with pitch
 bends; MusicXML/LilyPond use a sixteenth-note grid and rounded pitches. Original
