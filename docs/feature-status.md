@@ -48,7 +48,7 @@ Playback欄の`Seek cache`表示で高速シークの対応構成を確認でき
 | YM2151単体、Sega PSG／Sega PCM／OKIM6258併用 | 実装済 | [成功記録](issues/seekvgm_save_load_01.md)・[テスト](../web/opm_state.test.mjs) | 同上 | 未照合 |
 | Genesis／OPN＋OKIM6258 | 未対応 | 従来シークへフォールバック | — | — |
 | Sega PCM単体／OKIM6258単体 | Analyzer高速シークは未対応。コア保存APIは実装済 | コアとYM2151併用経路を検証 | — | — |
-| Game Boy DMG、NES APU＋FDS（NTSC） | 状態保存とAnalyzerチェックポイントを実装。波形／変調／DMC RAM／フィルタとNote-ish表示を復元 | [音声・シークテスト](../web/apu_state.test.mjs)成功。通常再生とPCM一致、キャッシュで再生成を削減 | ブラウザーでキャッシュ復元を確認。実曲・長時間試聴は未確認 | npm 0.2.10準備中。CLIのstart指定は従来シーク |
+| Game Boy DMG、NES APU＋FDS（NTSC） | 状態保存とAnalyzerチェックポイントを実装。波形／変調／DMC RAM／フィルタとNote-ish表示を復元 | [音声・シークテスト](../web/apu_state.test.mjs)成功。通常再生とPCM一致、キャッシュで再生成を削減 | ブラウザーでキャッシュ復元を確認。実曲・長時間試聴は未確認 | 共有コアはnpm 0.2.10公開・配布物照合済。Analyzer画面はローカル実装。CLIのstart指定は従来シーク |
 | OPLL／OPL、AY単体、SCC、HuC6280等 | 未対応 | チップ別Save／Loadの調査・拡張が必要 | — | — |
 
 同種複数インスタンスや任意のチップ混在を一括対応したわけではない。
@@ -106,12 +106,12 @@ WASMが存在するだけでPlayground APIも利用可能とは判断しない�
 
 ## 公開状況の記録
 
-利用者からの公開報告と、実際に公開・配布物を照合した記録を併記する。CLI v0.2.8とFM2612 v0.2.12はnpm配布物を照合済み。ほかの公開報告はGitHub Pages／itch.ioの配布物を取得・照合していない。
+利用者からの公開報告と、実際に公開・配布物を照合した記録を併記する。CLI v0.2.10とFM2612 v0.2.12はnpm配布物を照合済み。ほかの公開報告はGitHub Pages／itch.ioの配布物を取得・照合していない。
 版番号だけを根拠に、後から追加したコードまで公開済みにしない。
 
 | 対象 | 公開報告 | この一覧での扱い |
 |---|---|---|
-| CLI `tetorica-vgm` | [v0.2.8をnpm公開](https://www.npmjs.com/package/tetorica-vgm/v/0.2.8)（2026-10-08） | latestと公開tarball integrityを照合。共通ミキサーPCM依存を同梱。公開版の新規導入・版番号・Node API解析・Game Boy WAV出力を確認。公開元commit `14ba730` |
+| CLI `tetorica-vgm` | [v0.2.10をnpm公開](https://www.npmjs.com/package/tetorica-vgm/v/0.2.10)（2026-10-11） | latestと公開tarball integrityを照合。MSM5205／PC Engine CD ADPCM、Game Boy・NES/FDS状態保存を含む。公開版の新規導入・Node.js 22で解析／WAV／start／ADPCMミュート／状態復元PCM一致を確認。公開元commit `85e2093` |
 | Sound-chip runtime `tetorica-fm2612` | [v0.2.12をnpm公開](https://www.npmjs.com/package/tetorica-fm2612/v/0.2.12)（2026-10-09） | latestと公開tarball integrityを照合。既存Mixer・自動ID・YM2151Synthに加えNES APU／FDS SynthとPlayground接続・examplesを収録。新規導入・型定義・Direct／Worklet発音と終了、Node CoreAudio、Playground Main／Workerを確認 |
 | VGM Analyzer | v0.40.7公開済みとの報告（SBI対応の時期） | 後続のROM・高速シーク等がどの公開版に入ったかは未照合 |
 | Playground／Game Boy VGM→JavaScript変換 | itch.io向けv0.40.11公開済みとの報告（2026-09-30） | raw／解説付きraw／高水準API＋raw fallback、チップ別オプション。公開配布物の照合・ブラウザー聴感確認は未実施 |
