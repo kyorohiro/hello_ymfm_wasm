@@ -10,6 +10,7 @@ import {createGameboyClient} from './playground_gameboy.js';
 import {createYm2608Client} from './playground_ym2608.js?v=loop-async-tasks-1';
 import {createRf5c164Client} from './playground_rf5c164.js';
 import {createNativeSampleController} from './native_sample.js';
+import {serializeLogError} from './playground_log.js';
 /**
  * @file playground_logic_worker.js
  * 実行環境: Browser（Web Worker）
@@ -173,6 +174,10 @@ function patchWorkerProperty(target, property, replacement, restoreSteps) {
 }
 
 function postCommand(command, args = []) {
+  // DOMException details can be lost by structured cloning in browsers.
+  if (command === 'log' || command === 'warn' || command === 'error') {
+    args = args.map(serializeLogError);
+  }
   postMessage({ type: "command", command, args });
 }
 

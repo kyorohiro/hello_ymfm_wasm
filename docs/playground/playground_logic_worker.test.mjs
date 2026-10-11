@@ -1,4 +1,5 @@
 import {createYm2151Client} from '../../web/playground_ym2151.js';
+import {serializeLogError} from '../../web/playground_log.js';
 import {createSegaPsgClient} from '../../web/playground_segapsg.js';
 import {resolvePlaySeconds} from '../../web/playground_duration.js';
 import {createLoopAsyncTasks} from '../../web/playground_async_tasks.js';
@@ -28,6 +29,7 @@ const workerSource = readFileSync(
 function createWorkerHarness() {
   const messages = [];
   const context = {
+    serializeLogError,
     resolvePlaySeconds, createNativeSampleController, createNativeNoiseController, controlNativeNoise, createWorkerDac, atob, createMidiApi, createMidiRack, createWorkerChip, createNativeFXController, DOMException, structuredClone,
     createYm2151Client, createSegaPsgClient, createLoopAsyncTasks, createDeadlineScheduler, createOpnClient, createGameboyClient, createSoundChipRegistry, createRf5c164Client, createYm2608Client,
     hzToBlockFnum,
@@ -61,6 +63,15 @@ function createWorkerHarness() {
     },
   };
 }
+
+test('Worker console preserves errors across the message boundary', async () => {
+  const worker = createWorkerHarness();
+  await worker.send({type: 'run', presets: {}, scaleIntervals: {}, sourceCode: 'console.log(new Error("OPM failure")); console.error(new DOMException("Run stopped", "AbortError"));'});
+  const logs = structuredClone(worker.messages.filter(message => message.command === 'log' || message.command === 'error'));
+  assert.ok(logs.some(message => message.command === 'log' && message.args[0].includes('Error: OPM failure')));
+  assert.ok(logs.some(message => message.command === 'error' && message.args[0].includes('AbortError: Run stopped')));
+  await worker.send({type: 'stop'});
+});
 
 test("Worker forwards ordered operator entries without changing their values", async () => {
   const worker = createWorkerHarness();

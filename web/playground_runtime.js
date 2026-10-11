@@ -17,6 +17,7 @@ import {createYm2608Client} from './playground_ym2608.js?v=loop-async-tasks-1';
 import {createRf5c164Client} from './playground_rf5c164.js';
 import {createRf5c164Audio} from './playground_rf5c164_audio.js';
 import {samplePCM} from './native_sample.js';
+import {formatLogArgs} from './playground_log.js';
 /**
  * @file playground_runtime.js
  * 実行環境: Browser（メインスレッド）
@@ -176,7 +177,7 @@ export function createPlaygroundRuntime(
     options.execution ?? "main";
   const defaultLogicWorkerUrl =
     new URL(
-      "./playground_logic_worker.js?v=prepared-fx-rerun-2",
+      "./playground_logic_worker.js?v=readable-errors-1",
       import.meta.url
     );
   defaultLogicWorkerUrl.searchParams.set(
@@ -2202,22 +2203,4 @@ export function Playground(
   return createPlaygroundRuntime(
     options
   );
-}
-
-function formatLogArgs(args) {
-  return args
-    .map((value) =>
-      typeof value === "string"
-        ? value
-        : safeStringify(value)
-    )
-    .join(" ");
-}
-
-function safeStringify(value) {
-  try {
-    return JSON.stringify(value);
-  } catch {
-    return String(value);
-  }
 }

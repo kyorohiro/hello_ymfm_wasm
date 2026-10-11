@@ -16,7 +16,7 @@ async function until(predicate) {
   assert.fail('Async boundary was not reached');
 }
 function setup(t, capabilities) {
-  const listeners = new Set(), statuses = [];
+  const listeners = new Set(), statuses = [], logs = [];
   const previous = globalThis.window;
   globalThis.window = {
     addEventListener: (_, fn) => listeners.add(fn),
@@ -30,14 +30,21 @@ function setup(t, capabilities) {
     async start() { this.state = 'ready'; }, async resume() {}, async close() {},
     clearFXChain: () => [],
   };
-  const runtime = createPlaygroundRuntime({ megaDrive, guardExecution: false, onStatus: s => statuses.push(s) });
+  const runtime = createPlaygroundRuntime({ megaDrive, guardExecution: false, onStatus: s => statuses.push(s), onLog: line => logs.push(line) });
   t.after(() => {
     runtime.stop();
     globalThis.window = previous;
     delete globalThis.playgroundReview;
   });
-  return { runtime, megaDrive, listeners, statuses };
+  return { runtime, megaDrive, listeners, statuses, logs };
 }
+
+test('caught errors retain their message and stack in the Playground console', async t => {
+  const {runtime, logs} = setup(t);
+  await runtime.playSource('try { throw new Error("OPM failure"); } catch (e) { console.log("e", e); } console.warn(new DOMException("Run stopped", "AbortError"));');
+  assert.ok(logs.some(line => line.includes('e Error: OPM failure') && line.includes('\n')));
+  assert.ok(logs.some(line => line.includes('[warn] AbortError: Run stopped')));
+});
 
 test('re-running a prepared sample FX chain retains routing; Stop still detaches and disposes it',async t=>{
  const {runtime,megaDrive}=setup(t,{fmChannels:1});let cleared=0,disposed=0;
