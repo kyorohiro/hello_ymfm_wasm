@@ -125,7 +125,12 @@ h1 { margin: 0; letter-spacing: -0.045em; }
   padding: 16px;
 }
 .playback-dock-scroll > div:not([hidden]) { display: flex; flex-direction: column; gap: 12px; }
-.playback-dock-buttons { display: flex; gap: 8px; }
+.playback-dock-buttons { display: flex; align-items: center; gap: 6px; }
+.playback-dock-buttons button { padding: 8px 6px; font-size: .78rem; flex-shrink: 0; }
+.playback-dock-buttons #playButton::before, .playback-dock-buttons #pauseButton::before, .playback-dock-buttons #stopButton::before { content: none; }
+.playback-dock-buttons .volume-control { flex: 1; max-width: 200px; min-width: 0; min-height: 0; padding: 0; gap: 4px; border: 0; background: none; font-size: .75rem; flex-wrap: nowrap; }
+.playback-dock-buttons .volume-control input[type="range"] { flex: 1; width: 0; min-width: 28px; }
+.playback-dock-buttons .volume-readout { min-width: 3.2em; }
 .playback-dock .monitor-toggles { margin: 0; }
 .playback-dock-tools {
   position: absolute;
@@ -209,6 +214,8 @@ button.tab-button[aria-selected="true"] { background: var(--red-enamel); color: 
 .channel-meta, .noteish-state { color: #fff0df; font-size: 0.72rem; }
 .channel-toggle { border-radius: 5px; min-height: 30px; padding: 4px 9px; color: var(--accent-dark); background: #fff7ec; }
 .channel-toggle.is-muted { color: #66574d; background: #e2d1c2; }
+.monitor-toggles .channel-toggle[aria-pressed="true"] { background: #fff7ec; border-color: #976347; box-shadow: inset 0 1px 3px #75492c40; }
+.monitor-toggles .channel-toggle[aria-pressed="false"] { color: #66574d; background: #e2d1c2; border-color: #a49181; border-style: dashed; box-shadow: none; }
 .channel-card.is-key-on, .noteish-card.is-key-on { border-color: var(--accent); background: #fff6e8; box-shadow: inset 0 0 0 2px #f1b5a0; }
 .channel-chip, .param-token { border-radius: 3px; background: #eadacc80; font-variant-numeric: tabular-nums; }
 .operator-box { border: 1px solid #dfbdab; border-radius: 6px; background: #fffbf380; }

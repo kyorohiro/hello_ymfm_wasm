@@ -32,9 +32,9 @@ for(const connected of [false,true])test(`CH toggles refresh both panels without
  vm.runInContext(source.slice(source.indexOf('function renderMonitorToggles()'),source.indexOf('function ensureMonitorToggleHandler()')),context);
  vm.runInContext(source.slice(source.indexOf('function toggleChannelMute('),source.indexOf('function flushPendingAudio(')),context);
  context.renderMonitorToggles();
- for(const [label,pressed] of [['Off','false'],['On','true']]){
+ for(const pressed of ['false','true']){
   context.toggleChannelMute(0);
-  for(const panel of [root,inline]){assert.equal(panel.children[0].textContent,`CH1 ${label}`);assert.equal(panel.children[0].attrs['aria-pressed'],pressed);}
+  for(const panel of [root,inline]){assert.equal(panel.children[0].textContent,'CH1');assert.equal(panel.children[0].attrs['aria-pressed'],pressed);}
  }
  assert.deepEqual(writes,connected?[[0,0xb4,0],[0,0xb4,0xc0]]:[]);
 });

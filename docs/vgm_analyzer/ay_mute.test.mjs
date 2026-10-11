@@ -37,7 +37,8 @@ test('AY common controls retain masks, reset on load and leave Operator display 
    document:{createElement(){return {attrs:{},setAttribute(k,v){this.attrs[k]=v;},cloneNode(){return this;}};}}});
   vm.runInContext(source.slice(source.indexOf('function renderMonitorToggles()'),source.indexOf('function ensureMonitorToggleHandler()')),ctx);
   ctx.renderMonitorToggles();
-  assert.deepEqual(root.children.map(b=>b.textContent),['AY / YM2149 Off','CH A Off','CH B On','CH C On','YM2413 Off']);
+  assert.deepEqual(root.children.map(b=>b.textContent),['AY / YM2149','CH A','CH B','CH C','YM2413']);
+  assert.deepEqual(root.children.map(b=>b.attrs['aria-pressed']),['false','false','true','true','false']);
   assert.equal(inline.children.length,5);
   assert.equal(root.children[1].attrs['data-ay-control'],'0');
   assert.equal(root.children[1].attrs['aria-pressed'],'false');

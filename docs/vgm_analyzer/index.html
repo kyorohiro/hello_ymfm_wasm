@@ -563,7 +563,7 @@
       }
 
     </style>
-    <link rel="stylesheet" href="./analyzer_theme.css?v=semantic-keyboard-2">
+    <link rel="stylesheet" href="./analyzer_theme.css?v=channel-buttons-no-dot-6">
   </head>
   <body>
     <p id="chipSupportNotice" role="status" hidden>YM2413 analysis and instrument editing: Support coming soon.</p>
@@ -968,6 +968,13 @@
             <button id="playButton" type="button" disabled>Play</button>
             <button id="pauseButton" type="button" disabled>Pause</button>
             <button id="stopButton" type="button" disabled>Stop</button>
+            <button id="playlistPrevButton" type="button" aria-label="Previous track" disabled>&lt;</button>
+            <button id="playlistNextButton" type="button" aria-label="Next track" disabled>&gt;</button>
+            <label class="volume-control" for="dockVolumeRange">
+              V
+              <input id="dockVolumeRange" aria-label="Playback volume" type="range" min="0" max="380" value="100" step="1">
+              <output id="dockVolumeValue" class="volume-readout" for="dockVolumeRange">100%</output>
+            </label>
           </div>
           <div id="monitorToggles" class="monitor-toggles" role="group" aria-label="Playback channel and sound source toggles"></div>
         </div>
@@ -991,7 +998,7 @@
       </div>
     </section>
 
-    <script type="module" src="./vgm_analyzer.js?v=psg-channel-mute-2"></script>
+    <script type="module" src="./vgm_analyzer.js?v=separate-play-pause-7"></script>
   <dialog id="scoreGroupDialog"><form method="dialog">
 <h2>Channel Groups</h2><p>Combine notes for scores and the Song timeline. Playback and live physical CH monitors are unchanged. Settings last for this loaded track only.</p>
 <button type="button" data-all>Merge all channels</button> <button type="button" data-clear>Clear groups</button>

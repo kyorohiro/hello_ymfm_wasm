@@ -19,7 +19,8 @@ function setup(load = async () => true, desktopHost = {}) {
   const context = vm.createContext({
     connectDesktop: options => connectDesktop(options, desktopHost),
     console, playlistList: list, playlistSummary: element(), fileInput: input,
-    playlistLoopCheckbox: { checked: false }, playlistLoopControl: element(),
+    playlistLoopCheckbox: Object.assign(element(), { checked: false }), playlistLoopControl: element(),
+    playlistPrevButton: element(), playlistNextButton: element(), wavExportBusy: false,
     document: { createElement: element }, currentBuffer: null,
     player: { pause() {} }, timelineSeekController: null,
     stopActiveStream() {}, setStatus: text => calls.push(['status', text]),
@@ -66,6 +67,47 @@ test('track completion advances in order and stops at the end', async () => {
   await p.context.advancePlaylist();
   assert.deepEqual(p.calls, [['load', 'first.vgm'], ['load', 'second.vgm'], ['play', 'second.vgm'], ['load', 'third.vgm'], ['play', 'third.vgm']]);
   assert.equal(p.list.children[2].children[0].attributes['aria-current'], 'true');
+});
+
+test('Prev and Next play adjacent tracks, respect boundaries and follow playlist loop', async () => {
+  const p = setup();
+  const {playlistPrevButton: prev, playlistNextButton: next, playlistLoopCheckbox: loop} = p.context;
+  assert.equal(prev.disabled, true);
+  assert.equal(next.disabled, true);
+  await p.add(['first.vgm', 'second.vgm', 'third.vgm']);
+  assert.equal(prev.disabled, true);
+  assert.equal(next.disabled, false);
+  next.listeners.click();
+  await p.settle();
+  assert.deepEqual(p.calls.slice(-2), [['load', 'second.vgm'], ['play', 'second.vgm']]);
+  prev.listeners.click();
+  await p.settle();
+  assert.deepEqual(p.calls.slice(-2), [['load', 'first.vgm'], ['play', 'first.vgm']]);
+  loop.checked = true;
+  loop.listeners.change();
+  assert.equal(prev.disabled, false);
+  prev.listeners.click();
+  await p.settle();
+  assert.deepEqual(p.calls.slice(-2), [['load', 'third.vgm'], ['play', 'third.vgm']]);
+  next.listeners.click();
+  await p.settle();
+  assert.deepEqual(p.calls.slice(-2), [['load', 'first.vgm'], ['play', 'first.vgm']]);
+  loop.checked = false;
+  await p.context.selectPlaylistTrack(2, false);
+  assert.equal(next.disabled, true);
+  p.context.wavExportBusy = true;
+  p.context.updatePlaylistNavigation();
+  assert.equal(prev.disabled, true);
+  const count = p.calls.length;
+  prev.listeners.click();
+  await p.settle();
+  assert.equal(p.calls.length, count);
+  await p.add(['single.vgm']);
+  p.context.wavExportBusy = false;
+  loop.checked = true;
+  loop.listeners.change();
+  assert.equal(prev.disabled, true);
+  assert.equal(next.disabled, true);
 });
 
 test('clicking a track selects and plays it; newer selections supersede queued selections', async () => {

@@ -53,8 +53,9 @@ import { createTfiFromPreset } from "../js/tfi.js";
 import { createVgiFromPreset } from "../js/vgi.js";
 import ym2612ModuleFactory from "../generated/ym2612_wasm.js";
 import nukedOpn2ModuleFactory from "../generated/nuked_opn2_wasm.js";
-import segaPsgModuleFactory from "../generated/segapsg_wasm.js";
-import { VgmPlayer } from "../js/vgmplayer.js?v=frame-count-1";
+import segaPsgModuleFactory from "../generated/segapsg_wasm.js?v=channel-mute-1";
+const segaPsgWasmUrl = new URL('../generated/segapsg_wasm.wasm?v=channel-mute-1', import.meta.url);
+import { VgmPlayer } from "../js/vgmplayer.js?v=cooperative-waits-1";
 import { looksLikeS98, convertS98ToVgm } from "../js/s98_file.js";
 import { maybeDecodeVgmFile, parseVgmMetadata, VGM_METADATA_FIELDS } from "../js/vgm_file.js";
 
@@ -166,6 +167,10 @@ const prefetchFactorSelect = document.getElementById("prefetchFactorSelect");
 const workletQueueSelect = document.getElementById("workletQueueSelect");
 const masterVolumeRange = document.getElementById("masterVolumeRange");
 const masterVolumeValue = document.getElementById("masterVolumeValue");
+const dockVolumeRange = document.getElementById("dockVolumeRange");
+const dockVolumeValue = document.getElementById("dockVolumeValue");
+const playlistPrevButton = document.getElementById("playlistPrevButton");
+const playlistNextButton = document.getElementById("playlistNextButton");
 const exportAllTfiButton = document.getElementById("exportAllTfiButton");
 const exportAllVgiButton = document.getElementById("exportAllVgiButton");
 let midiExportAvailable = false;
@@ -620,6 +625,8 @@ function currentStatusSuffix() {
 }
 
 function updateMasterVolumeUi() {
+  dockVolumeRange.value = String(Math.round(masterVolume * 100));
+  dockVolumeValue.textContent = `${Math.round(masterVolume * 100)}%`;
   document.getElementById('mixerMaster').value = String(Math.round(masterVolume * 100));
   document.getElementById('mixerMasterValue').textContent = `${Math.round(masterVolume * 100)}%`;
   if (masterVolumeRange) {
@@ -676,7 +683,7 @@ function renderMonitorToggles() {
     for(const part of mixedPlaybackParts){
       const muted=Boolean(sourceMutes[part.id]),button=document.createElement('button');
       button.type='button';button.className=`channel-toggle${muted?' is-muted':''}`;
-      button.textContent=`${part.chips.join(' + ')} ${muted?'Off':'On'}`;
+      button.textContent=part.chips.join(' + ');
       button.setAttribute('aria-pressed',String(!muted));
       button.setAttribute('data-monitor-toggle-kind','mixed-source');
       button.setAttribute('data-mixed-source',part.id);monitorToggles.append(button);
@@ -690,7 +697,7 @@ function renderMonitorToggles() {
       const button = document.createElement('button');
       button.type = 'button';
       button.className = `channel-toggle${muted ? ' is-muted' : ''}`;
-      button.textContent = `PSG ${index === 3 ? 'CH4 Noise' : `CH${index + 1}`} ${muted ? 'Off' : 'On'}`;
+      button.textContent = `PSG ${index === 3 ? 'CH4 Noise' : `CH${index + 1}`}`;
       button.setAttribute('aria-pressed', String(!muted));
       button.setAttribute('data-monitor-toggle-kind', 'psg-channel');
       button.setAttribute('data-channel-index', String(index));
@@ -703,7 +710,7 @@ function renderMonitorToggles() {
       const button = document.createElement('button');
       button.type = 'button';
       button.className = `channel-toggle${muted ? ' is-muted' : ''}`;
-      button.textContent = `${control.label} ${muted ? 'Off' : 'On'}`;
+      button.textContent = control.label;
       if (control.chip !== 'ay8910' && control.channel >= 6) button.title = 'Rhythm: CH7 bass drum, CH8 hi-hat/snare, CH9 tom/cymbal.';
       button.setAttribute('aria-pressed', String(!muted));
       button.setAttribute('data-monitor-toggle-kind', 'msx-control');
@@ -718,7 +725,7 @@ function renderMonitorToggles() {
       const button = document.createElement('button');
       button.type = 'button';
       button.className = `channel-toggle${control.muted ? ' is-muted' : ''}`;
-      button.textContent = `${control.label} ${control.muted ? 'Off' : 'On'}`;
+      button.textContent = control.label;
       button.setAttribute('aria-pressed', String(!control.muted));
       button.setAttribute('data-monitor-toggle-kind', 'ay-control');
       button.setAttribute('data-ay-control', control.key);
@@ -732,7 +739,7 @@ function renderMonitorToggles() {
     const muted = sourceMutes[source.key];
     button.type = "button";
     button.className = `channel-toggle${muted ? " is-muted" : ""}`;
-    button.textContent = `${source.label} ${muted ? "Off" : "On"}`;
+    button.textContent = source.label;
     button.setAttribute("aria-pressed", String(!muted));
     button.setAttribute("data-monitor-toggle-kind", source.key);
     monitorToggles.append(button);
@@ -743,7 +750,7 @@ function renderMonitorToggles() {
       const button = document.createElement('button');
       button.type = 'button';
       button.className = `channel-toggle${muted ? ' is-muted' : ''}`;
-      button.textContent = `CH${index + 1} ${muted ? 'Off' : 'On'}`;
+      button.textContent = `CH${index + 1}`;
       button.setAttribute('aria-pressed', String(!muted));
       button.setAttribute('data-monitor-toggle-kind', 'opm-channel');
       if (currentChipKind === 'ym2413') button.title = 'Rhythm: CH7 bass drum, CH8 hi-hat/snare, CH9 tom/cymbal.';
@@ -760,7 +767,7 @@ function renderMonitorToggles() {
         const button = document.createElement('button');
         button.type = 'button';
         button.className = `channel-toggle${muted ? ' is-muted' : ''}`;
-        button.textContent = `${label} CH${index + 1} ${muted ? 'Off' : 'On'}`;
+        button.textContent = `${label} CH${index + 1}`;
         button.setAttribute('aria-pressed', String(!muted));
         button.setAttribute('data-monitor-toggle-kind', kind);
         button.setAttribute('data-channel-index', String(index));
@@ -773,9 +780,7 @@ function renderMonitorToggles() {
     const button = document.createElement("button");
     button.type = "button";
     button.className = `channel-toggle${channel.muted ? " is-muted" : ""}`;
-    button.textContent = channel.muted
-      ? `CH${channel.channel + 1} Off`
-      : `CH${channel.channel + 1} On`;
+    button.textContent = `CH${channel.channel + 1}`;
     button.setAttribute("data-monitor-toggle-kind", "channel");
     button.setAttribute("aria-pressed", String(!channel.muted));
     button.setAttribute("data-channel-index", String(channel.channel));
@@ -2853,7 +2858,7 @@ function updatePlaybackButtons(state = {}) {
   const playing = Boolean(state.playing);
   const paused = Boolean(state.paused);
   playButton.disabled = !hasBuffer || playing || wavExportBusy;
-  playButton.textContent = paused ? "Resume" : "Play";
+  playButton.textContent = "Play";
   replayButton.disabled = !hasBuffer || wavExportBusy;
   pauseButton.disabled = !playing || wavExportBusy;
   stopButton.disabled = !hasBuffer || (!playing && !paused) || wavExportBusy;
@@ -2862,6 +2867,7 @@ function updatePlaybackButtons(state = {}) {
   exportSnapshotTfiButton.disabled = !hasBuffer;
   exportSnapshotVgiButton.disabled = !hasBuffer;
   exportSnapshotButton.disabled = !hasBuffer;
+  updatePlaylistNavigation();
   updateChipSupport();
 }
 
@@ -3196,14 +3202,14 @@ function pumpWorkletChunks(targetFrames = currentWorkletTargetFrames()) {
     const left = new Float32Array(frames);
     const right = new Float32Array(frames);
     const renderStarted = performance.now();
-    const copied = player.process(left, right, frames) ?? frames;
+    const copied = player.process(left, right, frames, {budgetMs: 8}) ?? frames;
     activeStream.renderMs = performance.now() - renderStarted;
     activeStream.maxRenderMs = Math.max(activeStream.maxRenderMs, activeStream.renderMs);
     applyAnalyzerMuteToBuffer(left, right, frames);
     const outputLeft = copied === frames ? left : left.slice(0, copied);
     const outputRight = copied === frames ? right : right.slice(0, copied);
     activeStream.workletQueuedFrames += copied;
-    activeStream.node.port.postMessage(
+    if (copied > 0) activeStream.node.port.postMessage(
       { type: "enqueue", left: outputLeft.buffer, right: outputRight.buffer },
       [outputLeft.buffer, outputRight.buffer],
     );
@@ -3481,7 +3487,8 @@ async function handleFile(file, preserveEditor = false) {
   exportAllVgiButton.disabled = extractedTfiPatches.length === 0;
   updatePlaybackButtons({});
   if (!preserveEditor) commandEditor.load(buffer, file.name);
-  setOutputTab("parsed-output");
+  // Refresh track-dependent views without moving away from the selected tab.
+  setOutputTab(selectedOutputTab());
   setStatus(`Parsed ${file.name} (${currentHasPcm ? "MEGA-CD" : (currentChipKind === "ym2610" && (noteishHeader.ym2610Clock & 0x80000000) ? "YM2610B" : currentChipKind.toUpperCase())}).${currentStatusSuffix()}`);
 }
 
@@ -3547,6 +3554,7 @@ function queuePlaylistTask(task) {
 }
 
 function renderPlaylist() {
+  updatePlaylistNavigation();
   playlistLoopControl.hidden = playlistFiles.length < 2;
   playlistSummary.textContent = playlistFiles.length
     ? `Playlist — ${playlistFiles.length} tracks · ${playlistIndex + 1} selected`
@@ -3591,6 +3599,29 @@ function advancePlaylist() {
     return selectPlaylistTrack(0, true);
   }
 }
+
+function playlistNeighbor(direction) {
+  if (playlistIndex < 0 || playlistFiles.length < 2) return -1;
+  const index = playlistIndex + direction;
+  if (index >= 0 && index < playlistFiles.length) return index;
+  return playlistLoopCheckbox.checked
+    ? (index + playlistFiles.length) % playlistFiles.length
+    : -1;
+}
+
+function updatePlaylistNavigation() {
+  playlistPrevButton.disabled = wavExportBusy || playlistNeighbor(-1) < 0;
+  playlistNextButton.disabled = wavExportBusy || playlistNeighbor(1) < 0;
+}
+
+for (const [button, direction] of [[playlistPrevButton, -1], [playlistNextButton, 1]]) {
+  button.addEventListener('click', () => {
+    if (wavExportBusy) return;
+    const index = playlistNeighbor(direction);
+    if (index >= 0) void selectPlaylistTrack(index, true);
+  });
+}
+playlistLoopCheckbox.addEventListener('change', updatePlaylistNavigation);
 
 function importPlaylistFiles(files) {
   const tracks = Array.from(files).filter(file => /\.(vgm|vgz|s98)$/i.test(file.name));
@@ -3779,6 +3810,11 @@ masterVolumeRange?.addEventListener("input", () => {
   updateMasterVolumeUi();
   applyMasterVolume();
 });
+dockVolumeRange.addEventListener("input", () => {
+  masterVolume = Number(dockVolumeRange.value) / 100;
+  updateMasterVolumeUi();
+  applyMasterVolume();
+});
 
 exportAllTfiButton.addEventListener("click", () => {
   downloadAllTfiZip();
@@ -3865,6 +3901,17 @@ const tfiInfo = mountTfiInfo({ root: document.getElementById('tfiInfoPanel'), on
 });
 tfiInfoTab.addEventListener('click', () => setOutputTab('tfi-info'));
 window.addEventListener('pagehide', event => { if (!event.persisted) { void tfiInfo.dispose(); void opmInfo.dispose(); void sbiInfo.dispose(); } });
+
+function selectedOutputTab() {
+  for (const [tab, name] of [
+    [operatorInfoTab, 'operator-info'], [parsedOutputTab, 'parsed-output'],
+    [noteishTab, 'noteish'], [tfiInfoTab, 'tfi-info'],
+    [sampleTab, 'samples'], [sheetMusicTab, 'sheet-music'],
+  ]) {
+    if (!tab.disabled && tab.getAttribute('aria-selected') === 'true') return name;
+  }
+  return 'parsed-output';
+}
 
 function setOutputTab(tabName) {
   const sbi = ['ym3526','ym3812','y8950','ymf262','ymf278b'].includes(currentChipKind);
@@ -4215,6 +4262,14 @@ lilyPondExportDialog.querySelector("form").addEventListener("submit", event => {
   } catch (error) { setStatus(`LilyPond export failed: ${error.message}`); }
 });
 
+// Version both assets together: older cached glue lacks the channel mute export.
+async function createAnalyzerSegaPsgModule(options = {}) {
+  if (options.wasmBinary) return segaPsgModuleFactory(options);
+  const response = await fetch(segaPsgWasmUrl);
+  if (!response.ok) throw new Error(`Failed to load Sega PSG WASM: HTTP ${response.status}`);
+  return segaPsgModuleFactory({...options, wasmBinary: new Uint8Array(await response.arrayBuffer())});
+}
+
 async function getBrowserPlaybackFactory(name) {
   const loaders = {
     huc6280: async () => (await import('../generated/huc6280_wasm.js')).default,
@@ -4233,7 +4288,7 @@ async function getBrowserPlaybackFactory(name) {
     ym2610b: async () => (await import('../generated/ym2610b_wasm.js')).default,
     rf5c164: async () => (await import('../generated/rf5c164_wasm.js')).default,
     ym2612: async () => activeYm2612ModuleFactory,
-    segapsg: async () => segaPsgModuleFactory,
+    segapsg: async () => createAnalyzerSegaPsgModule,
     ym2203: loadYm2203ModuleFactory,
     ym2608: loadYm2608ModuleFactory,
   };

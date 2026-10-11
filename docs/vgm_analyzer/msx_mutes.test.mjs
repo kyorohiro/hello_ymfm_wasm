@@ -28,9 +28,9 @@ test('MSX common and inline buttons dispatch, reflect state and flush audio',()=
  const ctx=vm.createContext({Element:Button,currentChipKind:'msx',noteishHeader:header,msxMutes:new Map(),msxMuteControls,applyMsxMute:(...args)=>calls.push(args.slice(1)),engine:{},monitorToggleHandlerBound:false,monitorToggles:main,inlineMonitorToggles:inline,document:{createElement:()=>new Button()},flushPendingAudio:()=>calls.push('flush')});
  vm.runInContext(source.slice(source.indexOf('function renderMonitorToggles()'),source.indexOf('function createChannelMonitorState()')),ctx);
  ctx.renderMonitorToggles();assert.equal(main.children.length,25);assert.equal(inline.children.length,25);
- const button=inline.children.find(b=>b.textContent==='Y8950 ADPCM On');
+ const button=inline.children.find(b=>b.textContent==='Y8950 ADPCM');
  inline.handler({target:button,preventDefault(){}});
  assert.equal(calls[0][0],'msx');assert.equal(calls[0][1].method,'setAdpcmMuted');assert.equal(calls[0][2],true);assert.equal(calls[1],'flush');
- assert(main.children.some(b=>b.textContent==='Y8950 ADPCM Off'&&b.attrs['aria-pressed']==='false'));
+ assert(main.children.some(b=>b.textContent==='Y8950 ADPCM'&&b.attrs['aria-pressed']==='false'));
  ctx.currentChipKind='y8950';ctx.renderMonitorToggles();assert.equal(main.children.length,11);
 });
