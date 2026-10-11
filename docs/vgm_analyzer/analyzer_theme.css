@@ -125,11 +125,11 @@ h1 { margin: 0; letter-spacing: -0.045em; }
   padding: 16px;
 }
 .playback-dock-scroll > div:not([hidden]) { display: flex; flex-direction: column; gap: 12px; }
-.playback-dock-buttons { display: flex; align-items: center; gap: 6px; }
-.playback-dock-buttons button { padding: 8px 6px; font-size: .78rem; flex-shrink: 0; }
+.playback-dock-buttons { display: flex; align-items: center; gap: 4px; }
+.playback-dock-buttons button { padding: 8px 5px; font-size: .78rem; flex-shrink: 0; }
 .playback-dock-buttons #playButton::before, .playback-dock-buttons #pauseButton::before, .playback-dock-buttons #stopButton::before { content: none; }
-.playback-dock-buttons .volume-control { flex: 1; max-width: 200px; min-width: 0; min-height: 0; padding: 0; gap: 4px; border: 0; background: none; font-size: .75rem; flex-wrap: nowrap; }
-.playback-dock-buttons .volume-control input[type="range"] { flex: 1; width: 0; min-width: 28px; }
+.playback-dock-buttons .volume-control { flex: 1; max-width: 240px; min-width: 100px; padding: 0 4px; gap: 4px; font-size: .75rem; flex-wrap: nowrap; }
+.playback-dock-buttons .volume-control input[type="range"] { flex: 1; width: 0; min-width: 24px; }
 .playback-dock-buttons .volume-readout { min-width: 3.2em; }
 .playback-dock .monitor-toggles { margin: 0; }
 .playback-dock-tools {
