@@ -177,12 +177,12 @@ export function createPlaygroundRuntime(
     options.execution ?? "main";
   const defaultLogicWorkerUrl =
     new URL(
-      "./playground_logic_worker.js?v=readable-errors-1",
+      "./playground_logic_worker.js?v=smooth-stop-1",
       import.meta.url
     );
   defaultLogicWorkerUrl.searchParams.set(
     "v",
-    "play-units-1"
+    "smooth-stop-1"
   );
   const logicWorkerUrl =
     options.logicWorkerUrl ??
@@ -2068,11 +2068,20 @@ export function createPlaygroundRuntime(
       return Promise.resolve();
     }
     const runToken = currentRunToken;
-    const now = context.currentTime, end = now + 0.04;
+    const now = context.currentTime, duration = 0.12, end = now + duration;
     const gain = stopFadeNode.gain;
     if (typeof gain.cancelAndHoldAtTime === 'function') gain.cancelAndHoldAtTime(now);
     else {gain.cancelScheduledValues(now);gain.setValueAtTime(gain.value, now);}
-    gain.linearRampToValueAtTime(0, end);
+    // Zero slope at both ends avoids a sharp envelope change on sustained
+    // samples and reverb tails. The gate sits after the entire FX chain.
+    const startGain = gain.value;
+    if (typeof gain.setValueCurveAtTime === 'function') {
+      const curve = Float32Array.from({length: 65}, (_, i) =>
+        startGain * (1 + Math.cos(Math.PI * i / 64)) / 2);
+      gain.setValueCurveAtTime(curve, now, duration);
+    } else {
+      gain.linearRampToValueAtTime(0, end);
+    }
     pendingFadeStop = (async () => {
       // Follow the audio clock: a wall timer alone may fire before the ramp is rendered.
       while (runToken === currentRunToken && context.state === 'running' && context.currentTime < end) {
