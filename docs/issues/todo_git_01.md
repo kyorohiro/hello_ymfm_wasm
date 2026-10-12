@@ -248,3 +248,9 @@ native 側で以下を保証する。
 - Linux：keyring/sync-secret-service＋crypto-rust で Secret Service に保存。GTK のパスワード入力欄と選択画面を使う。
 - Linux の保管庫未導入・未起動・ロック時は案内を返し、平文保存にフォールバックしない。
 - JS へ返すのは名前・ID・ホスト・保存先の表示名だけ。PAT 本文は native 側のみで扱う。
+
+### 旧 Rust Git／SSH 実装の削除（2026-10-12）
+
+- ユーザーが rust-git にバックアップした後、旧 git.rs／git_keys.rs／project_git.rs と IPC・初期化・SSH テストを削除。
+- git2／ssh-key／直接指定の rand_core、テスト用 ssh2 を依存から削除。libgit2-sys／libssh2-sys は依存に含まれない。
+- 未使用の native folder import 呼び出しを削除。Git 操作は Virtual Files＋isomorphic-git、通信・PAT は Rust の現行方式を使用する。

@@ -5,7 +5,7 @@ const local=path.resolve(__dirname,'..'),root=process.env.GIT_SOURCE_ROOT||local
   const page=await browser.newPage({acceptDownloads:true}),errors=[];page.on('pageerror',error=>errors.push(error.message));page.on('dialog',dialog=>dialog.accept(dialog.type()==='prompt'?'git-round-trip':undefined));
   if(desktop){
     await page.addInitScript(storage=>{
-      window.__gitRequests=[];let saved=[{id:'native-personal-token',name:'Personal',host:'https://github.com'},{id:'native-work-token',name:'Work',host:'https://github.com'}];let selectedId=null;
+      window.__gitRequests=[];window.__gitFocusAtBegin=[];let saved=[{id:'native-personal-token',name:'Personal',host:'https://github.com'},{id:'native-work-token',name:'Work',host:'https://github.com'}];let selectedId=null;
       const pkt=text=>(new TextEncoder().encode(text).length+4).toString(16).padStart(4,'0')+text;
       window.__TAURI_INTERNALS__={invoke:async(command,args)=>{
         window.__gitRequests.push({command,args});
@@ -17,7 +17,7 @@ const local=path.resolve(__dirname,'..'),root=process.env.GIT_SOURCE_ROOT||local
           if(r.action==='replace')return{updated:true};
           if(r.action==='delete'){saved=saved.filter(e=>e.id!==r.id);if(selectedId===r.id)selectedId=null;return{deleted:true};}
         }
-        if(command==='git_https_begin'){selectedId='native-work-token';if(!selectedId)throw 'No app token selected';if(saved.find(e=>e.id===selectedId).host!==new URL(args.request.url).origin)throw 'Wrong token host';window.__gitChosen=selectedId;return 'native-session';}
+        if(command==='git_https_begin'){window.__gitFocusAtBegin.push(document.activeElement?.id);if(document.activeElement?.id==='shellInput')throw 'Shell input must be blurred before the native dialog';if(window.__gitCancelNext){window.__gitCancelNext=false;throw 'Cancelled';}selectedId='native-work-token';if(!selectedId)throw 'No app token selected';if(saved.find(e=>e.id===selectedId).host!==new URL(args.request.url).origin)throw 'Wrong token host';window.__gitChosen=selectedId;return 'native-session';}
         if(command==='git_https_request'){
           const {url,method}=args.request;
           if(window.__gitRejectNext){window.__gitRejectNext=false;throw 'Git host rejected authentication. Check token permissions and the repository URL';}
@@ -50,8 +50,12 @@ const local=path.resolve(__dirname,'..'),root=process.env.GIT_SOURCE_ROOT||local
     assert.equal(await page.locator('[data-token=select],[data-token=replace]').count(),0);
     assert((await page.locator('#gitTokenStorage').textContent()).includes(process.env.GIT_TEST_STORAGE||'macOS Keychain'));
     assert.equal(await page.locator('#desktop-git-dialog input[type=password]').count(),0);await page.locator('#gitClose').click();
+    await page.evaluate(()=>window.__gitCancelNext=true);await run('git push origin main','Cancelled');
+    assert.equal(await page.locator('#shellInput').evaluate(e=>document.activeElement===e),true);
     await page.evaluate(()=>window.__gitRejectNext=true);await run('git push origin main','Git host rejected authentication. Check token permissions');await run('git push origin main','"completed": true');
     const requests=await page.evaluate(()=>window.__gitRequests);assert(requests.some(r=>r.command==='git_https_request'&&r.args.request.method==='POST'));
+    assert.equal(await page.locator('#shellInput').evaluate(e=>document.activeElement===e),true);
+    assert.equal((await page.evaluate(()=>window.__gitFocusAtBegin)).length,3);
     assert.equal(await page.evaluate(()=>window.__gitChosen),'native-work-token');assert(!requests.some(r=>r.command==='git_request'));assert(requests.every(r=>!JSON.stringify(r).match(/password|authorization|personal_access_token/i)));
   }else await run('git push origin main','Browser Git supports local operations');
   await page.locator('#mainMenu').evaluate(e=>e.open=true);await page.locator('#exportCassetteButton').click();
