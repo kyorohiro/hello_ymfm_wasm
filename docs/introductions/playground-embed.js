@@ -5,7 +5,8 @@
 //   <script type="text/plain" id="example-foo">...source...</script>
 //   <iframe data-playground-src="example-foo" ...></iframe>
 //   <a data-playground-src="example-foo" ...>Open in full Playground</a>
-// Add data-playground-monitor="true" to an iframe to show Oscilloscope / Spectrum below its editor.
+// With data-playground-mode="full", data-playground-monitor="true" opens the
+// standard resizable bottom Audio tab. Simple mode uses the legacy inline panel.
 (function () {
   function toBase64(text) {
     const bytes = new TextEncoder().encode(text);
