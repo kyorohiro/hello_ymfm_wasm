@@ -4,6 +4,26 @@
  * Slots are private to a controller; activate one controller at a time per rack.
  */
 export const FX_TYPES = {gain:2, eq:3, gate:4, compressor:5, reverb:6, filter:7, delay:8, distortion:9, bitcrusher:10, wobble:11, flanger:12, slicer:13, chorus:14};
+/** Keep named liveFx declarations in sync with successful script evaluations. */
+export function createLiveFxLifecycle() {
+ let active=new Map();const prepared=new Map();
+ return {
+  track(api,definitions){return new Proxy(api,{get(target,key){
+   if(key!=='liveFx')return Reflect.get(target,key);
+   return (name,options)=>{const result=target.liveFx(name,options);definitions.set(name,{remove:()=>target.removeLiveFx(name),restore:()=>target.liveFx(name,options)});return result;};
+  }});},
+  async prepare(name,definitions,create){
+   const before=new Map(definitions),value=await create();
+   const retained=prepared.get(name)??new Map();
+   for(const [key,remove] of definitions)if(before.get(key)!==remove)retained.set(key,remove);
+   prepared.set(name,retained);
+   for(const [key,definition] of retained)if(!definitions.has(key)){if(!active.has(key))definition.restore();definitions.set(key,definition);}
+   return value;
+  },
+  commit(definitions){for(const [name,definition] of active)if(!definitions.has(name))definition.remove();active=definitions;},
+  clear(){for(const definition of active.values())definition.remove();active=new Map();prepared.clear();},
+ };
+}
 // [default, minimum, maximum]. Times use seconds; modulation periods use beats.
 export const FX_PARAMS = {
  gain:{gain:[1,0,10]}, eq:{bass:[0,-12,12],mid:[0,-12,12],treble:[0,-12,12]},

@@ -10,7 +10,7 @@ import {createSoundChipRegistry} from '../../web/playground_soundchips.js';
 import {createGameboyClient} from '../../web/playground_gameboy.js';
 import {createNativeSampleController} from "../../web/native_sample.js";
 import {createNativeNoiseController, controlNativeNoise} from "../../web/native_noise.js";
-import {createNativeFXController} from "../../web/native_fx.js";
+import {createNativeFXController,createLiveFxLifecycle} from "../../web/native_fx.js";
 import {createWorkerDac} from "../../web/playground_worker_dac.js";
 import {createWorkerChip} from "../../web/playground_worker_chip.js";
 import {createMidiApi, createMidiRack} from "../js/playground_midi.js";
@@ -30,7 +30,7 @@ function createWorkerHarness() {
   const messages = [];
   const context = {
     serializeLogError,
-    resolvePlaySeconds, createNativeSampleController, createNativeNoiseController, controlNativeNoise, createWorkerDac, atob, createMidiApi, createMidiRack, createWorkerChip, createNativeFXController, DOMException, structuredClone,
+    resolvePlaySeconds, createNativeSampleController, createNativeNoiseController, controlNativeNoise, createWorkerDac, atob, createMidiApi, createMidiRack, createWorkerChip, createNativeFXController, createLiveFxLifecycle, DOMException, structuredClone,
     createYm2151Client, createSegaPsgClient, createLoopAsyncTasks, createDeadlineScheduler, createOpnClient, createGameboyClient, createSoundChipRegistry, createRf5c164Client, createYm2608Client,
     hzToBlockFnum,
     Error,
@@ -430,6 +430,23 @@ test('native FX commands go directly to Worklet port, never the main audio bridg
  assert.ok(fxMessages.some(m=>m.op==='parameter'&&m.value===2000));
  assert.ok(!worker.messages.some(m=>m.command?.startsWith('fx.')||m.command==='audio.call'));
  await worker.send({type:'stop'});assert.equal(fxMessages.at(-1).op,'reset');
+});
+
+test('Worker rerun prunes old liveFx while its loop finishes and keeps cached preparation', async()=>{
+ const worker=createWorkerHarness(),fxMessages=[];
+ await worker.send({type:'native-fx',port:{postMessage:data=>fxMessages.push(data),close(){}}});
+ const source=`await livePrepare('fx-resource',({fx})=>{fx.liveFx('distortion',{process(input,output){output.forEach((channel,c)=>channel.set(input[c]));}});return {};});liveLoop('lead',async()=>{console.log('old-start');await sleep(.08);console.log('old-end');await sleep(.04);});`;
+ try {
+  await worker.send({type:'run',sourceCode:source});
+  await worker.send({type:'run',sourceCode:source});
+  assert.equal(fxMessages.filter(m=>m.op==='live-fx'&&m.action==='register').length,1);
+  await worker.send({type:'run',sourceCode:`liveLoop('lead',async()=>{console.log('new-start');await sleep(60);});`});
+  assert(fxMessages.some(m=>m.op==='live-fx'&&m.action==='remove'&&m.name==='distortion'));
+  assert(!worker.messages.some(m=>m.command==='audio.stopAll'));
+  await waitFor(()=>worker.messages.some(m=>m.command==='log'&&m.args[0]==='new-start'),1000);
+  const logs=worker.messages.filter(m=>m.command==='log').map(m=>m.args[0]);
+  assert(logs.indexOf('old-end')<logs.indexOf('new-start'));
+ } finally {await worker.send({type:'stop'});}
 });
 
 test("Direct chip port plays FM, PSG and MIDI without main-thread audio replies", async () => {

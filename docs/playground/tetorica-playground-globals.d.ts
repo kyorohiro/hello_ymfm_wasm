@@ -691,6 +691,7 @@ type LiveFXOptions<C extends object = Record<string, unknown>> = {
   resetState?: boolean;
   process(input: Float32Array[], output: Float32Array[], state: Record<string, any>, context: C): void;
 };
+/** Named effects omitted from the next successful Run are removed. Same names retain DSP state unless resetState is set. */
 declare function liveFx<C extends object>(name: string, options: LiveFXOptions<C>): void;
 type FXApi = {
   liveFx: typeof liveFx;

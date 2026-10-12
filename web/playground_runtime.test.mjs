@@ -2,6 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import { createPlaygroundRuntime } from './playground_runtime.js';
+import {createNativeFXController} from './native_fx.js';
+import {LiveFX} from './custom_fx.js';
 
 function deferred() {
   let resolve;
@@ -38,6 +40,51 @@ function setup(t, capabilities) {
   });
   return { runtime, megaDrive, listeners, statuses, logs };
 }
+
+test('rerun replaces a liveLoop only after its current iteration completes', async t => {
+  const {runtime} = setup(t);
+  const old = deferred(), next = deferred(), events = [];
+  globalThis.playgroundReview = {old: old.promise, next: next.promise, events};
+  await runtime.playSource(`liveLoop('lead',async()=>{globalThis.playgroundReview.events.push('old-start');await globalThis.playgroundReview.old;globalThis.playgroundReview.events.push('old-end');});`);
+  await runtime.playSource(`liveLoop('lead',async()=>{globalThis.playgroundReview.events.push('new-start');await globalThis.playgroundReview.next;});`);
+  assert.deepEqual(events, ['old-start']);
+  old.resolve();
+  await until(()=>events.includes('new-start'));
+  assert.deepEqual(events, ['old-start','old-end','new-start']);
+});
+
+test('rerun removes undeclared liveFx without stopping audio or the current loop', async t => {
+  const {runtime,megaDrive} = setup(t);
+  const processor = new LiveFX(48000), gate = deferred(), events = [];
+  const fx = createNativeFXController(message => processor.command(message));
+  megaDrive.audio = {createFXApi:()=>fx};
+  megaDrive.getFXChain = ()=>[];
+  let stops = 0;
+  megaDrive.sample.stopAll = ()=>{stops++;};
+  globalThis.playgroundReview = {gate:gate.promise,events};
+  await runtime.playSource(`liveFx('distortion',{process(input,output){output.forEach((channel,c)=>channel.set(input[c]));}});liveLoop('lead',async()=>{globalThis.playgroundReview.events.push('old-start');await globalThis.playgroundReview.gate;});`);
+  assert(processor.effects.has('distortion'));
+  await runtime.playSource(`liveLoop('lead',async()=>{await globalThis.playgroundReview.gate;});`);
+  assert(!processor.effects.has('distortion'));
+  assert.deepEqual(events,['old-start']);
+  assert.equal(stops,0);
+});
+
+test('cached livePrepare retains its liveFx on rerun and releases it when absent', async t => {
+  const {runtime,megaDrive} = setup(t);
+  const processor = new LiveFX(48000), fx = createNativeFXController(message=>processor.command(message));
+  megaDrive.audio = {createFXApi:()=>fx};
+  megaDrive.getFXChain = ()=>[];
+  const source = `await livePrepare('custom-fx',({fx})=>{fx.liveFx('prepared',{process(input,output){output.forEach((channel,c)=>channel.set(input[c]));}});return {};});`;
+  await runtime.playSource(source);
+  const state = processor.effects.get('prepared').state;
+  await runtime.playSource(source);
+  assert.equal(processor.effects.get('prepared').state,state);
+  await runtime.playSource('');
+  assert(!processor.effects.has('prepared'));
+  await runtime.playSource(source);
+  assert(processor.effects.has('prepared'), 'cached preparation can reactivate its named FX');
+});
 
 test('caught errors retain their message and stack in the Playground console', async t => {
   const {runtime, logs} = setup(t);

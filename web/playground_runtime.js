@@ -18,6 +18,7 @@ import {createRf5c164Client} from './playground_rf5c164.js';
 import {createRf5c164Audio} from './playground_rf5c164_audio.js';
 import {samplePCM} from './native_sample.js';
 import {formatLogArgs} from './playground_log.js';
+import {createLiveFxLifecycle} from './native_fx.js?v=live-fx-definitions-1';
 /**
  * @file playground_runtime.js
  * 実行環境: Browser（メインスレッド）
@@ -142,6 +143,7 @@ export function createPlaygroundRuntime(
     };
   const sourceMap =
     new Map();
+  const liveFxLifecycle = createLiveFxLifecycle();
   const runtime = {
     bpm: 120,
     clockStartTime: null,
@@ -177,7 +179,7 @@ export function createPlaygroundRuntime(
     options.execution ?? "main";
   const defaultLogicWorkerUrl =
     new URL(
-      "./playground_logic_worker.js?v=stop-media-race-1",
+      "./playground_logic_worker.js?v=live-fx-definitions-1",
       import.meta.url
     );
   defaultLogicWorkerUrl.searchParams.set(
@@ -1302,6 +1304,7 @@ export function createPlaygroundRuntime(
   ) {
     const evaluationState = {
       loopDefinitions: new Map(),
+      liveFxDefinitions: new Map(),
       cleanupDefinitions: [],
       cleanupCallIndex: 0,
       keyboardDefinitions: new Map(),
@@ -1309,7 +1312,7 @@ export function createPlaygroundRuntime(
         currentSourceName ??
         "__anonymous__",
     };
-    const fx = createFxApi();
+    const fx = liveFxLifecycle.track(createFxApi(), evaluationState.liveFxDefinitions);
     if (sharedFmSynth !== synth) { sharedFm = createFmProxy(synth); Object.defineProperty(sharedFm, 'id', {value: capabilities.chip ?? 'ym2612', enumerable: true}); sharedFmSynth = synth; }
     const fm = sharedFm;
     const psg = megaDrive.psg;
@@ -1504,11 +1507,11 @@ export function createPlaygroundRuntime(
       tfiToPreset: parseTfi,
       vgiToPreset: parseVgi,
       livePrepare: (name, fn) =>
-        liveApi.livePrepare(
+        liveFxLifecycle.prepare(name, evaluationState.liveFxDefinitions, () => liveApi.livePrepare(
           name,
           fn,
           livePrepareApi
-        ),
+        )),
       play: (note, playOptions) =>
         musicApi.play(
           note,
@@ -1836,6 +1839,7 @@ export function createPlaygroundRuntime(
     clearKeyboardHandlers();
     liveApi.stopAllLoops();
     if (!logicWorker) {
+      liveFxLifecycle.clear();
       liveApi.clearRunFxChain();
       liveApi.clearPrepared();
     }
@@ -1952,6 +1956,7 @@ export function createPlaygroundRuntime(
       );
 
       if (runToken !== currentRunToken) return;
+      liveFxLifecycle.commit(evaluationState.liveFxDefinitions);
       liveApi.commitLiveLoops(
         evaluationState.loopDefinitions
       );
@@ -2078,6 +2083,7 @@ export function createPlaygroundRuntime(
       );
       liveApi.clearRunFxChain();
       liveApi.clearPrepared();
+      liveFxLifecycle.clear();
       megaDrive.audio?.nativeFX?.controller.dispose();
       runtime.context = {};
       megaDrive.stopRecordingPlayback?.();

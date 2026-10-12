@@ -24,7 +24,7 @@ import {createMidiApi, createMidiRack} from './playground_midi.js?v=play-units-1
 import { hzToBlockFnum } from "./pitch.js";
 import { createDeadlineScheduler } from "./playground_clock.js?v=loop-async-tasks-1";
 
-import {createNativeFXController} from "./native_fx.js?v=prepared-fx-rerun-2";
+import {createNativeFXController,createLiveFxLifecycle} from "./native_fx.js?v=live-fx-definitions-1";
 let nativeFXPort = null;
 let chipConnection = null;
 let currentRun = null;
@@ -309,6 +309,7 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
     runningLoops: new Set(),
     collectingLoops: null,
     prepared: new Map(),
+    liveFxDefinitions: new Map(),
     keyboard: new Map(),
     cleanups: [],
     collectingCleanups: null,
@@ -413,7 +414,8 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
       },
     }
   );
-  const fx = nativeFXPort ? createNativeFXController(data => nativeFXPort.postMessage(data), {getBeatSeconds: () => 60 / clock.getBpm()}) : new Proxy({}, {
+  const liveFxLifecycle = createLiveFxLifecycle();
+  const fxBase = nativeFXPort ? createNativeFXController(data => nativeFXPort.postMessage(data), {getBeatSeconds: () => 60 / clock.getBpm()}) : new Proxy({}, {
     get(_target, method) {
       if (method === "setChain") return (effects) => postCommand("fx.setChain", [effects.map(handleId)]);
       if (method === "clear") return () => postCommand("fx.clear");
@@ -429,6 +431,10 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
       };
     },
   });
+  const fx = new Proxy(fxBase, {get(target,key){
+    if(key!=='liveFx')return Reflect.get(target,key);
+    return (...args)=>liveFxLifecycle.track(target, run.collectingLiveFx ?? run.liveFxDefinitions).liveFx(...args);
+  }});
   run.syncFXTempo = () => { if (nativeFXPort) fx.syncTempo(); };
   const nativeNoise = nativeFXPort ? createNativeNoiseController(data=>nativeFXPort.postMessage(data)) : null;
   const noise = nativeNoise ?? {
@@ -440,7 +446,7 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
     stopAll: () => postCommand("noise.stopAll"),
   };
 
-  const livePrepare = async (name, fn) => {
+  const prepareResource = async (name, fn) => {
     if (run.prepared.has(name)) return run.prepared.get(name);
     const generation = run.generation;
     const value = await fn({ fm, fx, psg, sample, stream, dac, noise, control: (voice, options) => nativeNoise ? controlNativeNoise(voice,options) : postCommand("noise.control", [handleId(voice), options]), context: run.context, log: (...args) => postCommand("log", args) });
@@ -448,6 +454,7 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
     run.prepared.set(name, value);
     return value;
   };
+  const livePrepare = (name,fn) => liveFxLifecycle.prepare(name, run.collectingLiveFx ?? run.liveFxDefinitions, () => prepareResource(name,fn));
   const liveLoop = (name, fn) => {
     if (typeof name !== "string" || !name) throw new Error("liveLoop(name, fn) requires a non-empty name");
     if (typeof fn !== "function") throw new Error("liveLoop(name, fn) requires a callback");
@@ -490,6 +497,7 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
     postCommand("audio.disposeHandles", [[...run.audioHandles]]);
     run.audioHandles.clear();
     run.prepared.clear();
+    liveFxLifecycle.clear();
     run.cleanups = [];
     run.keyboard.clear();
     run.loops.clear();
@@ -702,6 +710,7 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
   run.execute = async (nextSourceCode = sourceCode) => {
     const generation = run.generation;
     run.collectingLoops = new Map();
+    run.collectingLiveFx = new Map();
     run.collectingCleanups = [];
     const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
     const userFunction = new AsyncFunction(...Object.keys(globals), `"use strict";\n{\n${nextSourceCode}\n}`);
@@ -713,6 +722,9 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
     const cleanupDefinitions = run.collectingCleanups;
     run.collectingLoops = null;
     run.collectingCleanups = null;
+    liveFxLifecycle.commit(run.collectingLiveFx);
+    run.liveFxDefinitions = run.collectingLiveFx;
+    run.collectingLiveFx = null;
     for (const name of run.loops.keys()) {
       if (!definitions.has(name)) { run.loops.delete(name); clock.cancelLoop(name); }
     }
