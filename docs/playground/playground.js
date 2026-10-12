@@ -76,6 +76,7 @@ import {
 } from "./playground_sync.js";
 
 const REFERENCE_MIDI = 62;
+window.__playgroundStartup?.stage('Starting Playground… Preparing your project.');
 const REFERENCE_BLOCK = 4;
 const REFERENCE_FNUM = 553;
 const NOTE_TO_SEMITONE = {
@@ -2321,6 +2322,9 @@ function bootPlayground() {
   renderVirtualFileExplorer();
   renderRunFileOptions();
   installPlaygroundEventHandlers();
+  fileExplorerList.setAttribute('aria-busy', 'false');
+  editor.readOnly = false;
+  window.__playgroundStartup?.stage('Project ready. Loading the code editor…');
   editor.addEventListener('input', syncActiveEditorFile);
   ui.installBottomTabHandlers();
 installTfiEditorDropTarget();
@@ -2369,7 +2373,7 @@ installFileExplorerDropTarget();
         },
       });
     },
-  });
+  }).then(() => window.__playgroundStartup?.ready(), error => window.__playgroundStartup?.fail(error));
 }
 
 async function initializeDesktopAutosave() {
@@ -2413,6 +2417,7 @@ async function initializeDesktopAutosave() {
   } catch (error) {status(`Autosave unavailable: ${error.message ?? error}`);}
 }
 
+if (window.__TAURI_INTERNALS__) window.__playgroundStartup?.stage('Starting Playground… Restoring your saved project.');
 await initializeDesktopAutosave();
 bootPlayground();
 let shellPreviousPath = activeVirtualPath;

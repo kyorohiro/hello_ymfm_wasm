@@ -704,6 +704,23 @@
         flex: 1;
         min-height: 0;
       }
+      .startup-notice {
+        display: flex; align-items: center; gap: 10px; padding: 10px 14px;
+        background: #20383e; color: #dce6e3; font-size: 0.85rem;
+        border-bottom: 1px solid #536268; flex-shrink: 0;
+      }
+      .startup-notice[hidden] { display: none; }
+      .startup-spinner {
+        width: 16px; height: 16px; flex-shrink: 0;
+        border: 2px solid #57bcc640; border-top-color: #57bcc6;
+        border-radius: 50%; animation: startup-spin 1s linear infinite;
+      }
+      @keyframes startup-spin { to { transform: rotate(360deg); } }
+      @media (prefers-reduced-motion: reduce) { .startup-spinner { animation: none; } }
+      .startup-files { padding: 12px 8px; color: #c7d5d2; font-size: 0.78rem; }
+      .startup-files span { display: block; height: 8px; margin-top: 16px; border-radius: 3px; background: #334248; }
+      .startup-files span:nth-child(2) { width: 70%; }
+      .startup-files span:nth-child(3) { width: 50%; }
 
       .file-explorer {
         flex: 0 0 var(--file-explorer-width, 210px);
@@ -1781,6 +1798,12 @@
               <h2>Code</h2>
               <span class="shortcut-hint">Ctrl/Cmd+Shift+Space/I · Ctrl/Cmd+Space/I</span>
             </div>
+            <div id="startupNotice" class="startup-notice" role="status" aria-live="polite">
+              <span id="startupSpinner" class="startup-spinner" aria-hidden="true"></span>
+              <span id="startupMessage">Loading Playground… Downloading the application.</span>
+              <button id="startupRetry" type="button" hidden>Reload</button>
+              <noscript>JavaScript is required to start Playground.</noscript>
+            </div>
             <div class="code-workspace">
               <aside id="fileExplorer" class="file-explorer" aria-label="Project files">
                 <div class="file-explorer-header">
@@ -1793,7 +1816,7 @@
                     <button id="deleteFileButton" type="button" title="Delete file">-</button>
                   </span>
                 </div>
-                <div id="fileExplorerList"></div>
+                <div id="fileExplorerList" aria-busy="true"><div class="startup-files">Loading project files…<span></span><span></span><span></span></div></div>
               </aside>
               <div id="fileExplorerDivider" class="file-explorer-divider" role="separator" tabindex="0"
                 aria-label="File explorer width" aria-orientation="vertical" aria-controls="fileExplorer"
@@ -1804,7 +1827,7 @@
                 <p class="subtext">Changes are saved to this virtual TFI file automatically. Pan, LFO, AMS/PMS, AM and CH3 settings are for audition only; TFI does not store them.</p>
               </section>
               <div id="editorHost" class="editor-host" data-ready="false"></div>
-              <textarea id="editor" spellcheck="false"></textarea>
+              <textarea id="editor" spellcheck="false" readonly placeholder="Loading code… Your project will appear here."></textarea>
             </div>
           </section>
 
@@ -2085,7 +2108,7 @@
 
     <footer class="status-bar">
       <span id="runtimeState" class="pill">Audio idle</span>
-      <span class="status" id="status">Ready.</span>
+      <span class="status" id="status">Loading Playground…</span>
       <label class="volume-control" for="masterVolumeRange">
         <span>Vol</span>
         <input id="masterVolumeRange" type="range" min="0" max="380" value="100" step="1">
@@ -2093,6 +2116,41 @@
       </label>
     </footer>
 
-    <script type="module" src="./playground.js?v=file-menu-1"></script>
+    <script>
+      (() => {
+        const notice = document.getElementById('startupNotice');
+        const message = document.getElementById('startupMessage');
+        const retry = document.getElementById('startupRetry');
+        let failed = false;
+        const slow = setTimeout(() => {
+          if (!notice.hidden && !failed) message.textContent += ' The first load may take a little longer.';
+        }, 12000);
+        retry.addEventListener('click', () => location.reload());
+        window.__playgroundStartup = {
+          stage(text) { if (!failed) message.textContent = text; },
+          ready() {
+            if (failed) return;
+            clearTimeout(slow);
+            notice.hidden = true;
+            document.getElementById('editor').removeAttribute('placeholder');
+            const status = document.getElementById('status');
+            if (status.textContent === 'Loading Playground…') status.textContent = 'Ready.';
+          },
+          fail(error) {
+            failed = true;
+            clearTimeout(slow);
+            notice.hidden = false;
+            message.textContent = 'Playground could not start. Check your connection and reload.';
+            document.getElementById('startupSpinner').hidden = true;
+            retry.hidden = false;
+            document.getElementById('status').textContent = 'Startup failed.';
+            console.error('Playground startup failed:', error);
+          }
+        };
+      })();
+    </script>
+    <script type="module">
+      import('./playground.js?v=startup-feedback-1').catch(error => window.__playgroundStartup.fail(error));
+    </script>
   </body>
 </html>
