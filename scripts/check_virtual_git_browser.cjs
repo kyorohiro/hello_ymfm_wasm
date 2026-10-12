@@ -4,14 +4,14 @@ const local=path.resolve(__dirname,'..'),root=process.env.GIT_SOURCE_ROOT||local
 (async()=>{const browser=await (process.argv.includes('--webkit')?webkit:chromium).launch({headless:true});try{
   const page=await browser.newPage({acceptDownloads:true}),errors=[];page.on('pageerror',error=>errors.push(error.message));page.on('dialog',dialog=>dialog.accept(dialog.type()==='prompt'?'git-round-trip':undefined));
   if(desktop){
-    await page.addInitScript(()=>{
+    await page.addInitScript(storage=>{
       window.__gitRequests=[];let saved=[{id:'native-personal-token',name:'Personal',host:'https://github.com'},{id:'native-work-token',name:'Work',host:'https://github.com'}];let selectedId=null;
       const pkt=text=>(new TextEncoder().encode(text).length+4).toString(16).padStart(4,'0')+text;
       window.__TAURI_INTERNALS__={invoke:async(command,args)=>{
         window.__gitRequests.push({command,args});
         if(command==='git_tokens'){
           const r=args.request;
-          if(r.action==='list')return{tokens:saved,selectedId,supported:true};
+          if(r.action==='list')return{tokens:saved,selectedId,supported:true,storage};
           if(r.action==='add'){const entry={id:'native-spare-token',name:r.name,host:r.host};saved.push(entry);selectedId=entry.id;return{saved:true,entry};}
           if(r.action==='select'){if(!saved.some(e=>e.id===r.id))throw 'Unknown token';selectedId=r.id;return{selectedId};}
           if(r.action==='replace')return{updated:true};
@@ -25,7 +25,7 @@ const local=path.resolve(__dirname,'..'),root=process.env.GIT_SOURCE_ROOT||local
           return{url,statusCode:200,statusMessage:'OK',headers:{'content-type':method==='GET'?'application/x-git-receive-pack-advertisement':'application/x-git-receive-pack-result'},body:btoa(body)};
         }
       }};
-    });
+    },process.env.GIT_TEST_STORAGE||'macOS Keychain');
     await page.route('**/desktop-git-runtime.js',route=>route.fulfill({contentType:'text/javascript',body:fs.readFileSync(path.join(root,'w/tetorica-fm2612-playground-tauri/desktop/git-runtime.bundle.js'),'utf8')}));
     await page.route('**/playground.js?*',async route=>{const response=await route.fetch();await route.fulfill({response,body:await response.text()+'\n;\n'+fs.readFileSync(path.join(root,'w/tetorica-fm2612-playground-tauri/desktop/git-interface.js'),'utf8')});});
   }
@@ -48,6 +48,7 @@ const local=path.resolve(__dirname,'..'),root=process.env.GIT_SOURCE_ROOT||local
     await page.locator('#gitTokenName').fill('Spare');await page.locator('[data-token=add]').click();await page.waitForFunction(()=>document.querySelectorAll('#gitTokenSelect option').length===4);
     await page.locator('#gitTokenSelect').selectOption('native-spare-token');await page.locator('[data-token=delete]').click();await page.waitForFunction(()=>document.querySelectorAll('#gitTokenSelect option').length===3);
     assert.equal(await page.locator('[data-token=select],[data-token=replace]').count(),0);
+    assert((await page.locator('#gitTokenStorage').textContent()).includes(process.env.GIT_TEST_STORAGE||'macOS Keychain'));
     assert.equal(await page.locator('#desktop-git-dialog input[type=password]').count(),0);await page.locator('#gitClose').click();
     await page.evaluate(()=>window.__gitRejectNext=true);await run('git push origin main','Git host rejected authentication. Check token permissions');await run('git push origin main','"completed": true');
     const requests=await page.evaluate(()=>window.__gitRequests);assert(requests.some(r=>r.command==='git_https_request'&&r.args.request.method==='POST'));

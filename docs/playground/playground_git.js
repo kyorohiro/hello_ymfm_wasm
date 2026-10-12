@@ -16,7 +16,7 @@ export function installPlaygroundGit({fs,shell,beforeCommand=()=>{},beginRemote,
       <hr><label>保存済みトークン <select id="gitTokenSelect"></select></label>
       <button data-token="delete">選んだトークンを削除…</button>
       <p id="gitTokenBinding" role="status"></p>
-      <small>トークン本文は macOS Keychain に保存し、Cassette には含めません。</small>
+      <small id="gitTokenStorage"></small>
     </section>
     <p id="gitNetworkHelp"></p><pre id="gitOutput" role="status"></pre><button id="gitClose">閉じる</button>`;
   const style=document.createElement('style');style.textContent=`#desktop-git-dialog{width:min(540px,calc(100vw - 32px));max-height:calc(100dvh - 32px);overflow:auto;padding:20px;border:1px solid var(--line);border-radius:12px;background:var(--panel);color:var(--ink)}#desktop-git-dialog h2{margin:0 0 8px}#desktop-git-dialog label{display:block;margin:8px 0}#desktop-git-dialog label input,#desktop-git-dialog select{display:block;width:100%;box-sizing:border-box;padding:5px;margin-top:3px}#desktop-git-dialog button{margin:3px}#desktop-git-dialog p,#desktop-git-dialog small{font-size:12px}#gitOutput{white-space:pre-wrap;overflow-wrap:anywhere;max-height:90px;overflow:auto}`;
@@ -30,7 +30,8 @@ export function installPlaygroundGit({fs,shell,beforeCommand=()=>{},beginRemote,
     select.replaceChildren();const placeholder=document.createElement('option');placeholder.value='';placeholder.textContent='トークンを選択';select.append(placeholder);
     for(const entry of result.tokens){const option=document.createElement('option');option.value=entry.id;option.textContent=`${entry.name} (${entry.host})`;select.append(option);}
     select.value=preferredId??result.selectedId??'';
-    field('gitTokenBinding').textContent=!result.supported?'保存済みトークンは現在 macOS のみ対応しています。':'push などの確認画面でトークンを選べます。前回の選択を初期値にします。';
+    field('gitTokenStorage').textContent=`トークン本文は ${result.storage??'OS の資格情報ストア'} に保存し、Cassette には含めません。`;
+    field('gitTokenBinding').textContent=!result.supported?'この OS では保存済みトークンに対応していません。':'push などの確認画面でトークンを選べます。前回の選択を初期値にします。';
     for(const button of field('gitTokens').querySelectorAll('button'))button.disabled=!result.supported;
   }
   if(tokens){

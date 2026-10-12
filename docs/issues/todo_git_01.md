@@ -241,3 +241,10 @@ native 側で以下を保証する。
 - 設定画面はトークンの登録・削除のみ。「使う」「更新」のボタンを廃止。
 - push/fetch/pull の native 確認画面でホストに合う保存済みトークンを選択する。前回の選択を初期値にする。
 - PAT の差し替えは削除・再登録で行う。登録したトークンは次の通信時の初期値になる。
+
+### Windows／Linux の資格情報ストア（2026-10-12）
+
+- Windows：Credential Manager に keyring/windows-native で保存。Win32 のパスワード入力欄とトークン選択画面を使う。
+- Linux：keyring/sync-secret-service＋crypto-rust で Secret Service に保存。GTK のパスワード入力欄と選択画面を使う。
+- Linux の保管庫未導入・未起動・ロック時は案内を返し、平文保存にフォールバックしない。
+- JS へ返すのは名前・ID・ホスト・保存先の表示名だけ。PAT 本文は native 側のみで扱う。
