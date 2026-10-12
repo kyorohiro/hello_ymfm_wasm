@@ -19,6 +19,7 @@ LICENSE_FILE="${ROOT_DIR}/LICENSE"
 PLAYGROUND_FILES="
 index.html
 playground.js
+playground_git.js
 playground_page_lifecycle.js
 playground_fx_monitor.js
 playground_audio_monitor.js
@@ -127,6 +128,7 @@ playground_clock.js
 playground_execution.js
 playground_live.js
 playground_logic_worker.js
+playground_log.js
 playground_midi.js
 playground_duration.js
 midi_song.js
@@ -274,6 +276,14 @@ done
 
 cp -R "${DOCS_JS_DIR}/nes_apu_vendor" "${STAGE_DIR}/js/nes_apu_vendor"
 cp -R "${ROOT_DIR}/packages/virtual-files/src" "${STAGE_DIR}/js/tetorica_virtual_files"
+for file in git.bundle.js GIT_LICENSES.txt; do
+  src="${DOCS_JS_DIR}/tetorica_virtual_files/${file}"
+  if [ ! -f "${src}" ]; then
+    echo "error: missing browser Git asset: ${src}; run npm run build:virtual-files" >&2
+    exit 1
+  fi
+  cp "${src}" "${STAGE_DIR}/js/tetorica_virtual_files/${file}"
+done
 for chip in jsnes fixnes-fds; do
   mkdir -p "${STAGE_DIR}/licenses/${chip}"
   cp "${ROOT_DIR}/third_party/${chip}/LICENSE" "${ROOT_DIR}/third_party/${chip}/README.md" "${STAGE_DIR}/licenses/${chip}/"
@@ -334,6 +344,8 @@ done
 cat > "${STAGE_DIR}/THIRD_PARTY_LICENSES.txt" <<EOF
 JavaScript import parser: es-module-lexer 3.0.3, MIT. See vendor/es-module-lexer-LICENSE.
 
+Browser Git: isomorphic-git and bundled dependencies. See js/tetorica_virtual_files/GIT_LICENSES.txt.
+
 NES APU: JSNES, Apache-2.0. See licenses/jsnes/.
 FDS: fixNES-derived, MIT. See licenses/fixnes-fds/.
 
@@ -366,6 +378,7 @@ perl -0pi -e 's#<a class="link-button" href="\.\./index\.html">Back</a>##g' \
 perl -0pi -e 's#"\./playground\.js"#"./playground.js"#g; s#\.\./js/#./js/#g; s#\.\./synth/#./synth/#g; s#\.\./generated/#./generated/#g' \
   "${STAGE_DIR}/index.html" \
   "${STAGE_DIR}/playground.js" \
+  "${STAGE_DIR}/playground_git.js" \
   "${STAGE_DIR}/playground_virtual_files.js" \
   "${STAGE_DIR}/playground_shell.js" \
   "${STAGE_DIR}/playground_shell_session.js" \
