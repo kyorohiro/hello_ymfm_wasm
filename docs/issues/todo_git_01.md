@@ -209,3 +209,35 @@ native 側で以下を保証する。
 - 未確認：新方式での GitHub への実際の認証と push、他OSの native secure input。
 
 これ以降は、この節を現在の仕様とする。旧 SSH 方式の節は初期実装の記録として残す。
+
+## 名前付き PAT の native 保存（2026-10-12）
+
+- Menu → Git の Personal access tokens から、名前付き PAT の登録・選択・更新・削除を行う。
+- PAT 本文は macOS Keychain に保存する。入力は native secure text field で行い、JavaScript／IPC に値を渡さない。
+- JavaScript に公開するのは名前・ID・HTTPS host・現在の選択 ID のみ。秘密を読み出す API は提供しない。
+- アプリの private metadata に名前と ID、host、repository URL → token ID の選択を保存する。
+- native の接続先確認を経てリポジトリごとに選択する。Cassette からの token ID 指定は認めない。
+- push / fetch / pull は native が保存済み PAT を取得する。毎回の PAT 入力を廃止する。
+- 登録 host と異なる host への送信を拒否する。更新・削除時には該当トークンの active session を破棄する。
+- New/Import Cassette はトークンの登録・接続先の選択に触れない。
+- 検証：実 Keychain の dummy credential の保存・読み出し・更新・削除、metadata の再起動時復元、
+  host と repository 制限、IPC の secret 値拒否、WebKit で複数選択と管理操作、Cassette に ID を含めないこと。
+- 対応 OS は macOS。保存済み PAT を使った実 GitHub push はユーザーの環境で確認する。
+
+## 設定専用メニュー・アプリ共通の選択（2026-10-12）
+
+- ユーザーの指定により、Menu → Git 設定は PAT の登録・選択・更新・削除だけに絞る。
+- Git 操作は Shell コマンドで行う。Git 設定画面はプロジェクトの状態を読み書きしない。
+- repository URL → token ID の紐付けを廃止し、native metadata に app-wide selectedId を保存する。
+- 初回のトークン登録時は自動選択。複数の場合は名前を選んでアプリの使用トークンを切り替える。
+- New/Import Cassette とアプリ再起動でも登録と選択を維持する。削除した選択は勝手に別トークンへ切り替えない。
+- 旧 metadata のトークンを保ち、唯一の旧選択または唯一の登録から app-wide 選択へ移行する。
+- 登録 host の制限は維持する。native で通信先を確認してから Keychain の秘密を利用する。
+- 登録名・ホスト・登録ボタンを画面の先頭へ置き、日本語の案内に変更する。
+- WebKit で登録ボタンが初期 viewport 内に見えること、操作ボタンがないこと、New Cassette 後の選択維持を確認。
+
+### Git 通信時のトークン選択（2026-10-12）
+
+- 設定画面はトークンの登録・削除のみ。「使う」「更新」のボタンを廃止。
+- push/fetch/pull の native 確認画面でホストに合う保存済みトークンを選択する。前回の選択を初期値にする。
+- PAT の差し替えは削除・再登録で行う。登録したトークンは次の通信時の初期値になる。

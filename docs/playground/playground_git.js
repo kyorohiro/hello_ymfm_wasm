@@ -1,66 +1,56 @@
-import {createVirtualGit,registerGitShell,formatGitStatus} from '../js/tetorica_virtual_files/git.bundle.js';
+import {createVirtualGit,registerGitShell} from '../js/tetorica_virtual_files/git.bundle.js';
 
-/** Shared browser/desktop Git UI. Secrets and remote transport are provided by the host. */
-export function installPlaygroundGit({fs,shell,lifecycle,beforeCommand=()=>{},afterCommand=()=>{},beginRemote,importFolder}){
+/** Git commands share Virtual Files. The menu holds app-wide native credentials only. */
+export function installPlaygroundGit({fs,shell,beforeCommand=()=>{},beginRemote,tokens}){
   const repository=createVirtualGit({fs,beginRemote,syncWorkingFiles:beforeCommand});registerGitShell(shell,repository);
-  const button=document.createElement('button');button.type='button';button.id='desktop-git';button.textContent='Git…';
+  const button=document.createElement('button');button.type='button';button.id='desktop-git';button.textContent='Git 設定…';
   document.querySelector('#mainMenu > .toolbar-menu-panel')?.append(button);
-  const dialog=document.createElement('dialog');dialog.id='desktop-git-dialog';dialog.setAttribute('aria-label','Project Git');
-  dialog.innerHTML=`<h2>Project Git</h2><p>Git history is stored in this Cassette’s <code>/.git</code>. Export Cassette includes the history. New Cassette starts without it.</p>
-    <div><button data-git="init">Initialize Git</button><button data-git="status">Changes</button><button data-git="diff">Diff</button><button data-git="cached">Staged diff</button><button data-git="log">History</button></div>
-    <div id="gitChanges"></div>
-    <label>Author <input id="gitAuthor" autocomplete="off"></label><label>Email <input id="gitEmail" type="email" autocomplete="off"></label>
-    <label>Commit message <input id="gitMessage" autocomplete="off"></label><button data-git="commit">Stage selected and commit</button>
-    <p>The commit also includes files already staged. Review Staged diff first.</p>
-    <label>HTTPS repository URL <input id="gitRemote" placeholder="https://github.com/owner/repository.git" autocomplete="off"></label>
-    <div><button data-git="remote">Set origin</button><button data-git="fetch">Fetch</button><button data-git="pull">Pull (fast-forward)</button><button data-git="push">Push…</button></div>
-    <p id="gitNetworkHelp"></p><button id="gitImportFolder" hidden>Import existing repository folder…</button>
-    <pre id="gitOutput" role="status"></pre><button id="gitCancel" hidden>Cancel operation</button><button id="gitClose">Close</button>`;
-  const style=document.createElement('style');style.textContent=`#desktop-git-dialog{width:min(700px,calc(100vw - 32px));max-height:calc(100dvh - 32px);overflow:auto;padding:20px;border:1px solid var(--line);border-radius:12px;background:var(--panel);color:var(--ink)}#desktop-git-dialog label{display:block;margin:8px 0}#desktop-git-dialog label input{width:100%;box-sizing:border-box}#desktop-git-dialog button{margin:3px}#desktop-git-dialog p{font-size:12px}#gitChanges{max-height:160px;overflow:auto}#gitOutput{white-space:pre-wrap;overflow-wrap:anywhere;max-height:260px;overflow:auto}`;
+  const dialog=document.createElement('dialog');dialog.id='desktop-git-dialog';dialog.setAttribute('aria-label','Git settings');
+  dialog.innerHTML=`<h2>Git 設定</h2><p>Git の操作は Shell の <code>git</code> コマンドで行います。</p>
+    <section id="gitTokens" hidden>
+      <p>登録したトークンはアプリ共通です。使用するトークンは push などの通信時に選びます。</p>
+      <label>登録名 <input id="gitTokenName" autocomplete="off" placeholder="例：GitHub用"></label>
+      <label>接続先ホスト <input id="gitTokenHost" autocomplete="off" value="https://github.com"></label>
+      <button data-token="add">トークンを登録…</button>
+      <p>登録ボタンを押すと、別の入力画面が出ます。そこへ GitHub で発行した PAT を貼り付けてください。</p>
+      <hr><label>保存済みトークン <select id="gitTokenSelect"></select></label>
+      <button data-token="delete">選んだトークンを削除…</button>
+      <p id="gitTokenBinding" role="status"></p>
+      <small>トークン本文は macOS Keychain に保存し、Cassette には含めません。</small>
+    </section>
+    <p id="gitNetworkHelp"></p><pre id="gitOutput" role="status"></pre><button id="gitClose">閉じる</button>`;
+  const style=document.createElement('style');style.textContent=`#desktop-git-dialog{width:min(540px,calc(100vw - 32px));max-height:calc(100dvh - 32px);overflow:auto;padding:20px;border:1px solid var(--line);border-radius:12px;background:var(--panel);color:var(--ink)}#desktop-git-dialog h2{margin:0 0 8px}#desktop-git-dialog label{display:block;margin:8px 0}#desktop-git-dialog label input,#desktop-git-dialog select{display:block;width:100%;box-sizing:border-box;padding:5px;margin-top:3px}#desktop-git-dialog button{margin:3px}#desktop-git-dialog p,#desktop-git-dialog small{font-size:12px}#gitOutput{white-space:pre-wrap;overflow-wrap:anywhere;max-height:90px;overflow:auto}`;
   document.head.append(style);document.body.append(dialog);
   const field=id=>dialog.querySelector('#'+id),output=value=>field('gitOutput').textContent=String(value);
-  field('gitNetworkHelp').textContent=beginRemote?'Remote operations use native HTTPS. The token is entered in a native window and is not saved in the Cassette.':'Browser Git supports local operations. Use the Tauri app for remote operations.';
-  for(const action of ['push','fetch','pull'])dialog.querySelector(`[data-git="${action}"]`).hidden=!beginRemote;
-  let busy=false,controller=null,generation=0;
-  // Project replacement invalidates pending work, including native authentication.
-  const invalidate=lifecycle?.invalidate?.bind(lifecycle);
-  if(invalidate)lifecycle.invalidate=(...args)=>{generation++;controller?.abort();return invalidate(...args);};
-  function showStatus(result){
-    field('gitChanges').replaceChildren();
-    for(const file of result.files??[]){const label=document.createElement('label'),check=document.createElement('input');check.type='checkbox';check.value='/'+file.path;check.checked=true;check.style.width='auto';
-      label.append(check,document.createTextNode(` ${file.staged?'[staged] ':''}${file.untracked?'[untracked] ':''}${file.worktree&&!file.untracked?'[unstaged] ':''}${file.path}`));field('gitChanges').append(label);}
-    output(formatGitStatus(result));
+  field('gitNetworkHelp').textContent=tokens?'':'ブラウザ版はローカルの Git 操作のみ対応しています。リモートとの通信には Tauri 版を使ってください。';
+  let tokenBusy=false,tokenSupported=false;
+  async function refreshTokens(preferredId){
+    if(!tokens)return;
+    const result=await tokens.list(),select=field('gitTokenSelect');tokenSupported=result.supported;
+    select.replaceChildren();const placeholder=document.createElement('option');placeholder.value='';placeholder.textContent='トークンを選択';select.append(placeholder);
+    for(const entry of result.tokens){const option=document.createElement('option');option.value=entry.id;option.textContent=`${entry.name} (${entry.host})`;select.append(option);}
+    select.value=preferredId??result.selectedId??'';
+    field('gitTokenBinding').textContent=!result.supported?'保存済みトークンは現在 macOS のみ対応しています。':'push などの確認画面でトークンを選べます。前回の選択を初期値にします。';
+    for(const button of field('gitTokens').querySelectorAll('button'))button.disabled=!result.supported;
   }
-  async function run(action){
-    if(busy)return;busy=true;controller=new AbortController();const started=generation;
-    for(const element of dialog.querySelectorAll('button[data-git]'))element.disabled=true;field('gitCancel').hidden=false;output('Working…');
-    const assertActive=()=>{controller.signal.throwIfAborted();if(started!==generation)throw Error('Project changed');};
-    const execute=(action,args={})=>repository.execute(action,args,{signal:controller.signal,assertActive});
-    try{
-      beforeCommand();let result;
-      if(action==='commit'){
-        const paths=[...field('gitChanges').querySelectorAll('input:checked')].map(input=>input.value);
-        if(!paths.length)throw Error('Choose files from Changes first');
-        await execute('stage',{paths});result=await execute('commit',{message:field('gitMessage').value,name:field('gitAuthor').value,email:field('gitEmail').value});
-      }else if(action==='cached')result=await execute('diff',{staged:true});
-      else if(action==='remote')result=await execute('remote',{url:field('gitRemote').value});
-      else result=await execute(action);
-      assertActive();afterCommand();
-      if(action==='status'||action==='init')showStatus(result);
-      else if(action==='diff'||action==='cached')output(result.text||`No ${action==='cached'?'staged':'unstaged'} changes.`);
-      else if(action==='log')output(result.length?result.map(c=>`${c.id.slice(0,10)} ${c.message.trim()}`).join('\n'):'No commits yet.');
-      else if(action==='commit'){showStatus(await execute('status'));output(`Committed ${result.commit}`);}
-      else output(JSON.stringify(result,null,2));
-    }catch(error){output(error.message??String(error));}
-    finally{busy=false;controller=null;field('gitCancel').hidden=true;for(const element of dialog.querySelectorAll('button[data-git]'))element.disabled=false;}
+  if(tokens){
+    field('gitTokens').hidden=false;
+    field('gitTokens').addEventListener('click',async event=>{
+      const action=event.target.closest('button[data-token]')?.dataset.token;if(!action||tokenBusy)return;
+      tokenBusy=true;for(const button of field('gitTokens').querySelectorAll('button'))button.disabled=true;
+      try{
+        const id=field('gitTokenSelect').value;let preferred;
+        if(action==='add'){const result=await tokens.add({name:field('gitTokenName').value,host:field('gitTokenHost').value});preferred=result.entry.id;field('gitTokenName').value='';output('トークンを登録しました。');}
+        else {
+          if(!id)throw Error('保存済みトークンを選んでください。');
+          if(action==='delete'){await tokens.remove(id);output('保存済みトークンを削除しました。');}
+        }
+        await refreshTokens(preferred);
+      }catch(error){output(error.message??String(error));}
+      finally{tokenBusy=false;for(const button of field('gitTokens').querySelectorAll('button'))button.disabled=!tokenSupported;}
+    });
   }
-  button.addEventListener('click',()=>{document.getElementById('mainMenu').open=false;dialog.showModal();void run('status');});
-  dialog.addEventListener('click',event=>{const action=event.target.closest('button[data-git]')?.dataset.git;if(action)void run(action);});
-  field('gitClose').addEventListener('click',()=>dialog.close());field('gitCancel').addEventListener('click',()=>controller?.abort());
-  if(importFolder){field('gitImportFolder').hidden=false;field('gitImportFolder').addEventListener('click',async()=>{
-    if(busy)return;
-    if(!window.confirm('Replace current files and Git history with the selected folder? Export your current Cassette first if you want to keep it.'))return;
-    try{await importFolder();output('Repository imported. Use Changes to review it.');}catch(error){output(error.message??String(error));}
-  });}
+  button.addEventListener('click',async()=>{document.getElementById('mainMenu').open=false;dialog.showModal();try{await refreshTokens();}catch(error){output(error.message??String(error));}});
+  field('gitClose').addEventListener('click',()=>dialog.close());
   return repository;
 }

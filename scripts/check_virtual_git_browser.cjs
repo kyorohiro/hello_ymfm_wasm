@@ -5,11 +5,19 @@ const local=path.resolve(__dirname,'..'),root=process.env.GIT_SOURCE_ROOT||local
   const page=await browser.newPage({acceptDownloads:true}),errors=[];page.on('pageerror',error=>errors.push(error.message));page.on('dialog',dialog=>dialog.accept(dialog.type()==='prompt'?'git-round-trip':undefined));
   if(desktop){
     await page.addInitScript(()=>{
-      window.__gitRequests=[];
+      window.__gitRequests=[];let saved=[{id:'native-personal-token',name:'Personal',host:'https://github.com'},{id:'native-work-token',name:'Work',host:'https://github.com'}];let selectedId=null;
       const pkt=text=>(new TextEncoder().encode(text).length+4).toString(16).padStart(4,'0')+text;
       window.__TAURI_INTERNALS__={invoke:async(command,args)=>{
         window.__gitRequests.push({command,args});
-        if(command==='git_https_begin')return 'native-session';
+        if(command==='git_tokens'){
+          const r=args.request;
+          if(r.action==='list')return{tokens:saved,selectedId,supported:true};
+          if(r.action==='add'){const entry={id:'native-spare-token',name:r.name,host:r.host};saved.push(entry);selectedId=entry.id;return{saved:true,entry};}
+          if(r.action==='select'){if(!saved.some(e=>e.id===r.id))throw 'Unknown token';selectedId=r.id;return{selectedId};}
+          if(r.action==='replace')return{updated:true};
+          if(r.action==='delete'){saved=saved.filter(e=>e.id!==r.id);if(selectedId===r.id)selectedId=null;return{deleted:true};}
+        }
+        if(command==='git_https_begin'){selectedId='native-work-token';if(!selectedId)throw 'No app token selected';if(saved.find(e=>e.id===selectedId).host!==new URL(args.request.url).origin)throw 'Wrong token host';window.__gitChosen=selectedId;return 'native-session';}
         if(command==='git_https_request'){
           const {url,method}=args.request;
           if(window.__gitRejectNext){window.__gitRejectNext=false;throw 'Git host rejected authentication. Check token permissions and the repository URL';}
@@ -34,15 +42,22 @@ const local=path.resolve(__dirname,'..'),root=process.env.GIT_SOURCE_ROOT||local
   await page.evaluate(()=>monaco.editor.getEditors().find(e=>e.getModel()?.uri.path==='/project/index.js').setValue('// browser edit\n'));
   await run('git status .','[unstaged] index.js');await run('git diff','browser edit');
   if(desktop){
-    await run('git remote add origin https://github.com/owner/repository.git','origin');await run('git remote -v','repository.git (push)');await page.evaluate(()=>window.__gitRejectNext=true);await run('git push origin main','Git host rejected authentication. Check token permissions');await run('git push origin main','"completed": true');
+    await run('git remote add origin https://github.com/owner/repository.git','origin');await run('git remote -v','repository.git (push)');await page.locator('#mainMenu').evaluate(e=>e.open=true);await page.locator('#desktop-git').click();
+    await page.waitForFunction(()=>document.querySelectorAll('#gitTokenSelect option').length===3);
+    assert.equal(await page.locator('[data-git]').count(),0);assert.equal(await page.locator('#gitRemote').count(),0);const saveBounds=await page.locator('[data-token=add]').boundingBox();assert(saveBounds.y+saveBounds.height<=page.viewportSize().height);
+    await page.locator('#gitTokenName').fill('Spare');await page.locator('[data-token=add]').click();await page.waitForFunction(()=>document.querySelectorAll('#gitTokenSelect option').length===4);
+    await page.locator('#gitTokenSelect').selectOption('native-spare-token');await page.locator('[data-token=delete]').click();await page.waitForFunction(()=>document.querySelectorAll('#gitTokenSelect option').length===3);
+    assert.equal(await page.locator('[data-token=select],[data-token=replace]').count(),0);
+    assert.equal(await page.locator('#desktop-git-dialog input[type=password]').count(),0);await page.locator('#gitClose').click();
+    await page.evaluate(()=>window.__gitRejectNext=true);await run('git push origin main','Git host rejected authentication. Check token permissions');await run('git push origin main','"completed": true');
     const requests=await page.evaluate(()=>window.__gitRequests);assert(requests.some(r=>r.command==='git_https_request'&&r.args.request.method==='POST'));
-    assert(!requests.some(r=>r.command==='git_request'));assert(requests.every(r=>!JSON.stringify(r).match(/password|authorization|personal_access_token/i)));
+    assert.equal(await page.evaluate(()=>window.__gitChosen),'native-work-token');assert(!requests.some(r=>r.command==='git_request'));assert(requests.every(r=>!JSON.stringify(r).match(/password|authorization|personal_access_token/i)));
   }else await run('git push origin main','Browser Git supports local operations');
   await page.locator('#mainMenu').evaluate(e=>e.open=true);await page.locator('#exportCassetteButton').click();
   const downloadPromise=page.waitForEvent('download');await page.locator('#confirmCassetteExportButton').click();const download=await downloadPromise;
-  const archive=await download.path();const {loadPlaygroundCassette}=await import(path.join(root,'docs/playground/playground_cassette.js'));const cassette=await loadPlaygroundCassette(fs.readFileSync(archive));assert(cassette.files.has('.git/HEAD'));assert(cassette.files.has('.git/index'));assert(cassette.files.has('.git/refs/heads/main'));
+  const archive=await download.path();const {loadPlaygroundCassette}=await import(path.join(root,'docs/playground/playground_cassette.js'));const cassette=await loadPlaygroundCassette(fs.readFileSync(archive));assert(cassette.files.has('.git/HEAD'));assert(cassette.files.has('.git/index'));assert(cassette.files.has('.git/refs/heads/main'));for(const bytes of cassette.files.values())assert(!Buffer.from(bytes).includes(Buffer.from('native-work-token')));
   await page.locator('#mainMenu').evaluate(e=>e.open=true);await page.locator('#newCassetteButton').click();await page.locator('#newCassetteDialog button[value=new]').click();await page.waitForFunction(()=>document.querySelector('#status').textContent.includes('New cassette'));
-  await run('git status','No Git repository');
+  await run('git status','No Git repository');if(desktop){await page.locator('#mainMenu').evaluate(e=>e.open=true);await page.locator('#desktop-git').click();await page.waitForFunction(()=>document.querySelector('#gitTokenBinding').textContent.includes('確認画面でトークンを選べます'));await page.locator('#gitClose').click();}
   await page.locator('input[type=file][accept=".zip,application/zip"]').setInputFiles({name:'git-round-trip.cassette.zip',mimeType:'application/zip',buffer:fs.readFileSync(archive)});
   await page.waitForFunction(()=>document.querySelector('#status').textContent.includes('Loaded cassette'));
   await run('git log','first');await run('git diff','browser edit');
