@@ -25,7 +25,16 @@
       "types": "./src/shell.d.ts",
       "import": "./src/shell.js"
     },
+    "./git": {
+      "types": "./src/git.d.ts",
+      "import": "./src/git.js"
+    },
     "./package.json": "./package.json"
+  },
+  "dependencies": {
+    "buffer": "^6.0.3",
+    "isomorphic-git": "^1.43.3",
+    "diff": "^9.0.0"
   },
   "files": [
     "src",

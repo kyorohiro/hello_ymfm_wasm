@@ -6,6 +6,7 @@ import {createShellScriptRunner} from './playground_shell_runner.js';
 export function installPlaygroundShell({fs, beforeCommand, afterCommand, output, form, input, prompt,stopButton,state,onPlay,panel,terminal,clearButton}) {
   const shell=createShell({fs,authorize(operation,paths){
     if(paths.some(path=>path==='/sys'||path.startsWith('/sys/')))throw Error('/sys is read-only');
+    if(paths.some(path=>path==='/.git'||path.startsWith('/.git/')))throw Error('/.git is managed by Git commands');
     if((operation==='rm'||operation==='mv')&&paths.includes('/index.js'))throw Error('/index.js is the project entry point');
   }});
   registerShellCheck(shell);

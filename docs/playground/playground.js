@@ -1,6 +1,7 @@
 import {installFileExplorerResize} from './playground_file_resize.js';
 import {installPlaygroundWorkbench} from './playground_workbench.js?v=compact-shell-1';
 import {installPlaygroundShell} from './playground_shell.js?v=compact-shell-1';
+import {installPlaygroundGit} from './playground_git.js';
 import {openDraftStore, createProjectAutosave} from './playground_autosave.js';
 let desktopAutosave = null;
 let playgroundShell = null;
@@ -1099,6 +1100,8 @@ function syncActiveEditorFile() {
 }
 
 function saveActiveVirtualFile() {
+  const file=virtualFiles.get(activeVirtualPath);
+  if(file?.type!=='text'||isSystemVirtualPath(activeVirtualPath)||activeVirtualPath==='/.git'||activeVirtualPath.startsWith('/.git/'))return;
   virtualFiles.writeText(
     activeVirtualPath,
     getEditorValue()
@@ -1734,7 +1737,7 @@ function restoreVirtualFilesFromCassette(cassette) {
   virtualFiles.replace(
     Array.from(cassette.files, ([path, bytes]) => ({
       path: `/${path}`,
-      data: textExtensions.test(path)
+      data: !path.startsWith('.git/') && textExtensions.test(path)
         ? new TextDecoder().decode(bytes)
         : bytes,
     })),
@@ -2395,6 +2398,9 @@ playgroundShell=installPlaygroundShell({fs:virtualFiles,
     runVirtualPath=path;renderRunFileOptions();await runCode({propagateError:true});
   },
 });
+if(!window.__TAURI_INTERNALS__)installPlaygroundGit({fs:virtualFiles,shell:playgroundShell.shell,lifecycle:playgroundShell,beforeCommand:saveActiveVirtualFile,afterCommand(){
+  editorAdapter.syncVirtualFiles?.(virtualFiles.list());renderVirtualFileExplorer();renderRunFileOptions();
+}});
 window.addEventListener('pagehide',()=>playgroundShell.invalidate('Page closed'));
 
 installMidiImport({button:document.getElementById('importMidiButton'), presets:playgroundPresets,

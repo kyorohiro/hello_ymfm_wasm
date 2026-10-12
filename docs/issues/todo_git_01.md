@@ -1,6 +1,6 @@
 # Tauri 版 Playground：内蔵 Git の実装メモ
 
-状態：検討・計画段階。Git 機能の実装はまだ開始していない。
+状態：初期実装を Tauri ラッパーの別リポジトリ `w/tetorica-fm2612-playground-tauri` に追加。配布・実ホストでの検証は未実施。
 
 ## 目的
 
@@ -113,33 +113,34 @@ native 側で以下を保証する。
 
 ### 1. 実フォルダ連携とローカル Git
 
-- [ ] 実フォルダの選択・読み込みと Virtual Files への取り込み。
-- [ ] snapshot 保存、管理対象一覧、外部変更の競合検出。
-- [ ] `git2` / `libgit2` を組み込んだ Tauri ビルド。
-- [ ] `init` / `status` / `diff` / `add` / `commit` / `log`。
-- [ ] Shell への基本操作の接続。
+- [x] 実フォルダの選択・読み込みと Virtual Files への取り込み。
+- [x] snapshot 保存、管理対象一覧、外部変更の競合検出。
+- [x] `git2` / `libgit2` を組み込んだ Tauri ビルド。
+- [x] `init` / `status` / `diff` / `add` / `commit` / `log`。
+- [x] Shell への基本操作の接続。
 
 まず「snapshot を保存し、差分を見て、ローカルでコミットできる」状態を作る。
 
 ### 2. アプリ専用の SSH 鍵
 
-- [ ] 鍵生成とパスフレーズ必須の暗号化保存。
-- [ ] native のパスフレーズ入力 UI。
-- [ ] 公開鍵の表示・コピーと鍵 ID の管理。
-- [ ] 内蔵 SSH ライブラリで生成した鍵を利用できることの検証。
-- [ ] ホスト鍵の検証・接続先と鍵の関連付け。
+- [x] 鍵生成とパスフレーズ必須の暗号化保存。
+- [x] native のパスフレーズ入力 UI（macOS）。他OSは未実装。
+- [x] 公開鍵の表示と鍵 ID の管理。コピーは表示されたテキストの選択で行う。
+- [x] 内蔵 SSH ライブラリで生成した鍵を利用できることの検証。
+- [x] ホスト鍵の検証・接続先と鍵の関連付け。
 
 ### 3. リモート Git
 
-- [ ] `clone` / `fetch` / `push`、進捗表示とキャンセル。
-- [ ] `pull` と実フォルダ・Virtual Files・Monaco の再同期。
+- [x] `clone` / `fetch` / `push` とキャンセル要求。
+- [ ] 実ホストでの通信確認、転送量を含む詳細な進捗表示。
+- [x] fast-forward `pull` と実フォルダ・Virtual Files・Monaco の再同期。
 - [ ] 未保存の編集、分岐した履歴、マージ競合の扱い。
 
 ## 実装前・実装中に確認すること
 
 - Tauri native 側のコードの所在と、既存のプロジェクト保存機能との接続方法。
 - macOS / Windows / Linux の対象範囲と、Git・SSH 依存の同梱方法。
-- 内蔵ライブラリの鍵形式・暗号化方式の互換性。鍵の種類は未決定。
+- 内蔵ライブラリの鍵形式・暗号化方式の互換性。初期実装では Ed25519 を使用。
 - WebView を経由しないパスフレーズ入力 UI を各 OS でどう実装するか。
 - native が保管する snapshot のリビジョンと、外部変更の検出方法。
 - 読み込むファイルの範囲、大きいサンプルの転送方法、`.gitignore` の扱い。
@@ -165,3 +166,46 @@ native 側で以下を保証する。
 - [Tauri：WebView から Rust を呼ぶ仕組み](https://v2.tauri.app/develop/calling-rust/)
 
 外部コマンドを使う方針は会話中に取り下げた。実装では内蔵ライブラリを利用する。
+
+
+## 初期実装の進捗（2026-10-12）
+
+- native：実フォルダの選択、snapshot 保存・再読み込み、外部変更と古いリビジョンの拒否。
+- 内蔵 Git：init / status / diff / stage / commit / log、clone / fetch / push、fast-forward pull。
+- desktop UI：Menu → Git、ファイル選択によるコミット、公開鍵表示、Shell の基本 git コマンド。
+- SSH：Rust の `ssh-key` で Ed25519 を生成し、パスフレーズ必須で暗号化保存。libssh2 のメモリ認証を使用。
+- native のパスフレーズ入力は macOS で実装。Windows/Linux は安全な入力が実装されるまで SSH 操作を拒否。
+- 鍵は現在一つだけ管理し、既存の鍵の上書き・インポート・システム ssh-agent の利用はしない。
+- ホスト鍵は初回に native で確認し、登録後の変更は拒否。remote 設定と認証先も native に表示する。
+- キャンセルはチェック地点での通信中断要求であり、即時停止や完了済み push の取り消しではない。
+- 検証：テキスト/バイナリ同期、ローカル Git、内蔵 transport の fetch/push/fast-forward、暗号化鍵、
+  一時 SSH サーバーへの内蔵 libssh2 認証、配布 Web 本体を使った UI と Shell の接続、
+  macOS アプリの secure input 表示・キャンセルと公開鍵未生成の応答。
+- 未確認：実際の Git ホスティングサービスでの clone/fetch/push、他OSの実機動作。
+- 制限：linked worktree・シンボリックリンク・hard link・外部 workdir・非UTF-8パス・merge/rebase・LFS・submodule・署名は未対応。
+  保存はファイル単位の一時ファイル/rename と可能な範囲のロールバックで、全ファイルのクラッシュ時原子性は保証しない。
+
+実装・利用方法は `w/tetorica-fm2612-playground-tauri/README.md` の「内蔵 Git（開発中）」を参照。
+上流の配布 Web ファイルと `release.lock.json` は変更せず、desktop 専用モジュールを追加している。
+
+## 方針変更：Cassette Git と native HTTPS（2026-10-12）
+
+会話で、SSH 方式から HTTPS＋トークン認証へ変更した。現在の方針は以下。
+
+- ローカルの init / status / diff / add / commit / log は `isomorphic-git` で JavaScript に統一する。
+- `tetorica-virtual-files/git` を独立した import として提供し、`/.git` を Virtual Files 内に持つ。
+- Export Cassette に `.git` を含め、Import で作業ファイルと履歴を復元する。New Cassette は両方を消す。
+- Browser 版はローカル操作のみ。clone / fetch / pull / push の通信は提供しない。
+- Tauri の push / fetch / fast-forward pull は、isomorphic-git の HTTP client を IPC 経由で Rust に接続する。
+- Rust は HTTPS と native secure input を担当する。トークンは操作単位の native メモリに置き、
+  WebView・Cassette・ディスクには保存しない。現在の secure input は macOS のみ。
+- 承認済みリポジトリの Git HTTPS endpoint に通信を限定し、redirect を拒否する。
+  push の送信パケットも native で確認した commit と branch に一致することを検証する。
+- 前の実フォルダ方式は import から履歴を Cassette にコピーできる。元の実フォルダを変更しない。
+- SSH 鍵は新方式では使用しない。既存の鍵・実リポジトリは削除しない。
+- Git 操作は隔離 snapshot で実行し、編集の競合・New/Import・キャンセルで古い snapshot を反映しない。
+- 検証済み：ローカル Git、binary/deletion、履歴入り Cassette の往復、New での履歴消去、
+  native HTTPS の IPC と push protocol fixture、URL/endpoint/commit/branch の制限。
+- 未確認：新方式での GitHub への実際の認証と push、他OSの native secure input。
+
+これ以降は、この節を現在の仕様とする。旧 SSH 方式の節は初期実装の記録として残す。

@@ -14,11 +14,15 @@
   },
   "devDependencies": {
     "@types/node": "^26.6.4",
+    "buffer": "^6.0.3",
+    "diff": "^9.0.0",
+    "esbuild": "^0.28.2",
+    "isomorphic-git": "^1.43.3",
     "playwright": "1.63.0",
     "typescript": "^7.0.2"
   },
   "scripts": {
-    "build:virtual-files": "node scripts/build_virtual_files.mjs",
+    "build:virtual-files": "node scripts/build_virtual_files.mjs && node scripts/build_virtual_git.mjs",
     "test:virtual-files": "node --test packages/virtual-files/tests/*.test.mjs",
     "build": "npm run build:vgm",
     "test": "node --test test/*.test.mjs",

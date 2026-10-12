@@ -69,8 +69,49 @@ An `authorize(operation, paths)` callback can reject built-in file mutations.
 Custom commands must enforce their own host policies. This library is not a
 security sandbox for arbitrary JavaScript.
 
-Git and JavaScript formatting are planned extensions. Syntax checking is provided by the Playground host. There is no
-Git implementation, remote access, filesystem mount or `tetorica-fm2612` re-export yet.
+Git is an optional import from `tetorica-virtual-files/git`. The core import still has no storage or network dependency.
+JavaScript formatting, host filesystem mounts and a `tetorica-fm2612` re-export are not included.
+
+## Git in Virtual Files
+
+```javascript
+import {createVirtualGit, registerGitShell} from 'tetorica-virtual-files/git';
+const repository = createVirtualGit({fs});
+registerGitShell(shell, repository);
+await shell.execute('git init');
+await shell.execute('git config user.name "Your Name"');
+await shell.execute('git config user.email "you@example.com"');
+await shell.execute('git add .');
+await shell.execute('git commit -m "First commit"');
+```
+
+The isomorphic-git engine stores `/.git` in the same virtual filesystem. Snapshots and
+Cassette ZIPs carry the repository history, index, author settings and remote URL.
+Restoring a snapshot restores that repository; replacing it with a fresh filesystem removes it.
+The host must flush its live editor buffer before running Git commands.
+
+Supported commands: `init`, `status [-s|--short|--porcelain] [PATH...]`, `diff [--cached|--staged] [PATH...]`, `add PATH...`,
+`commit -m MESSAGE`, `log`, `branch [-a|--all|-r|--remotes|NAME]`, `config user.name|user.email [VALUE]`, and
+`remote [-v|--verbose]`, `remote add|set-url origin HTTPS_URL`, and `remote get-url origin`.
+Explicit paths are resolved relative to the shell's current directory; `--` ends option parsing.
+For example, `git status .` restricts changes to that directory and `git diff --cached index.js`
+shows only the staged diff for that file. `git start` is an alias for `git init`.
+Working files remain text/binary as before; Git metadata is binary data.
+Do not directly edit `/.git` while a Git operation is running.
+
+Git runs in an isolated copy. Cancellation or a concurrent filesystem change prevents
+publishing stale results. A successful remote push cannot be undone by cancellation.
+Normal files are supported; symlinks, executable modes, submodules and Git LFS are not.
+Operations currently copy the snapshot and are intended for small editor projects.
+
+Remote `push [-u|--set-upstream] [REMOTE [BRANCH]]`/`fetch`/fast-forward `pull` require a host-supplied HTTP client or
+`beginRemote({url,operation,branch,commit})` returning `{http,close}`. Browser Playground
+provides local operations only. Tauri supplies native HTTPS and token authentication.
+Credentials do not belong in virtual files, repository URLs or Cassette exports.
+Push resolves the selected local branch, supplies its commit and destination branch to the host,
+and sets tracking configuration after a successful `-u` push. Force push and refspec mapping are not supported.
+The browser build is `docs/js/tetorica_virtual_files/git.bundle.js`; dependency notices
+are in `GIT_LICENSES.txt`.
 
 ## Agent-friendly inspection and editing
 

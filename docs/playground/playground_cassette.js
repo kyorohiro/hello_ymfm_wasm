@@ -71,6 +71,10 @@ export function createPlaygroundCassetteZip(files, options = {}) {
     : `${JSON.stringify(metadata, null, 2)}\n`;
   entries[metadataFileName] = strToU8(metadataSource);
 
+  if(Object.values(entries).reduce((sum,entry)=>sum+entry.byteLength,0)>MAX_CASSETTE_BYTES){
+    throw new Error("Cassette exceeds the 16 MiB expanded size loader limit.");
+  }
+
   const zip = zipSync(entries, { level: 6 });
   if (zip.byteLength > MAX_CASSETTE_BYTES) {
     throw new Error(
