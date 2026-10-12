@@ -1,6 +1,10 @@
 # Tetorica Virtual Files
 
-状態：`tetorica-virtual-files` 0.2.0 を npm の latest として公開（2026-10-11）。初回公開は 0.1.0（2026-10-09）、前回は 0.1.1（2026-10-10）。
+状態：`tetorica-virtual-files` 0.3.0 を npm の latest として公開（2026-10-13）。初回公開は 0.1.0（2026-10-09）、前回は 0.2.0（2026-10-11）。
+
+0.3.0 は `tetorica-virtual-files/git` を追加。Git の履歴・index は仮想ファイルシステム内の `/.git` に保存し、ローカル操作とホスト提供 HTTP によるリモート操作に対応する。Git 用の `isomorphic-git`・`buffer`・`diff` は optional peer dependencies とし、通常のコア利用ではインストールされない。利用方法は [パッケージ README](../../packages/virtual-files/README.md#git-in-virtual-files) を参照。
+
+公開検証：48 件のテスト、配布 tarball の追加依存なしインストール、peer 導入後の init/add/commit/status を確認。npm 上の `latest: 0.3.0`、optional peer 設定、配布物の integrity 一致も確認済み。
 
 0.2.0 はAI向け検索・読取り・patch、revisionによる競合判定、snapshot間の安全なundo、仮想パイプ／リダイレクトを追加。検証・配布情報は [AI向け拡張とリリース記録](tetorica-virtual-files-ai.md#npm-020-リリース2026-10-11) を参照。
 
@@ -16,7 +20,7 @@
 - [単独の実験ページ](../examples/virtual-files/) で、ファイル編集・シェル・バイナリ・空フォルダー・ブラウザー内への保存／復元を試せる。Playground の下書きとは別の IndexedDB を使う。
 
 IndexedDB の保存処理は、現在も Playground のアダプターとして残している。
-Git・整形ツール・実フォルダー接続は次の段階。構文チェックはPlaygroundのhostコマンドとして実装済み。
+Git は 0.3.0 の optional import として実装済み。整形ツール・実フォルダー接続は次の段階。構文チェックはPlaygroundのhostコマンドとして実装済み。
 以下の API 例や構成には、今後の拡張案も含まれる。
 
 ## 目的
