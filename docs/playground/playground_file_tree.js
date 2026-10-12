@@ -75,6 +75,7 @@ export function renderFileTree(root, files, { selectedPath, expanded, onOpen, on
         const label = document.createElement('summary');
         label.textContent = node.name;
         label.title = node.path;
+        label.setAttribute('data-file-path', node.path);
         draggable(label, node.path);
         dropTarget(label, node.path);
         folder.append(label, render(node.children));
@@ -87,6 +88,7 @@ export function renderFileTree(root, files, { selectedPath, expanded, onOpen, on
         button.className = 'file-entry';
         button.textContent = node.name;
         button.title = node.path;
+        button.setAttribute('data-file-path', node.path);
         draggable(button, node.path);
         button.setAttribute('aria-current', String(node.path === selectedPath));
         button.addEventListener('click', () => { button.blur(); onOpen(node.path); });
@@ -100,6 +102,7 @@ export function renderFileTree(root, files, { selectedPath, expanded, onOpen, on
   if (onTransfer || onImport) {
     const project = document.createElement('div');
     project.className = 'file-tree-root';
+    project.setAttribute('data-file-path', '/');
     project.textContent = 'Project /';
     project.title = 'Drop files here to import or move to the project root. Hold Ctrl or Option to copy project files.';
     dropTarget(project, '');

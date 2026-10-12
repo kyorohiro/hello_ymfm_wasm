@@ -44,6 +44,7 @@ playground_shell_diagnostics.js
 playground_shell_worker.js
 playground_autosave.js
 playground_file_tree.js
+playground_file_menu.js
 playground_example_order.js
 playground_file_resize.js
 playground_tfi_editor.js
