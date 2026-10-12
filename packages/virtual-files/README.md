@@ -1,6 +1,8 @@
 # tetorica-virtual-files
 
-Version 0.2.0 adds bounded inspection/search, atomic patches, file revisions,
+Version 0.3.0 adds optional Git integration. The core installs without dependencies;
+Git dependencies are optional peers installed explicitly by the application.
+Version 0.2.0 added bounded inspection/search, atomic patches, file revisions,
 conflict-safe snapshot undo, and virtual text pipelines/redirection.
 Playground-only commands (`check`, `js`, `result`, `play`) and its Tauri MCP
 adapter are supplied by the host, not by this npm package.
@@ -74,8 +76,23 @@ JavaScript formatting, host filesystem mounts and a `tetorica-fm2612` re-export 
 
 ## Git in Virtual Files
 
+Install the Git dependencies only when using the `/git` entry point:
+
+```sh
+npm install tetorica-virtual-files isomorphic-git@^1.43.3 buffer@^6.0.3 diff@^9.0.0
+```
+
+These are optional peer dependencies, so installing the core package does not
+automatically install them. Applications can share compatible versions already
+in their dependency tree. Importing `/git` requires all three; importing the core
+or `/shell.js` does not load them. Bundlers can bundle `/git` for browser use;
+native browser imports require an import map or the standalone browser bundle.
+
 ```javascript
+import {createVirtualFileSystem, createShell} from 'tetorica-virtual-files';
 import {createVirtualGit, registerGitShell} from 'tetorica-virtual-files/git';
+const fs = createVirtualFileSystem([{path:'/index.js', data:'export const value = 1;'}]);
+const shell = createShell({fs});
 const repository = createVirtualGit({fs});
 registerGitShell(shell, repository);
 await shell.execute('git init');

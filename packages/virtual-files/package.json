@@ -1,6 +1,6 @@
 {
   "name": "tetorica-virtual-files",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Memory filesystem and lightweight command shell for browser and Node.js editors",
   "type": "module",
   "license": "BSD-3-Clause",
@@ -31,10 +31,15 @@
     },
     "./package.json": "./package.json"
   },
-  "dependencies": {
+  "peerDependencies": {
     "buffer": "^6.0.3",
     "isomorphic-git": "^1.43.3",
     "diff": "^9.0.0"
+  },
+  "peerDependenciesMeta": {
+    "buffer": {"optional": true},
+    "isomorphic-git": {"optional": true},
+    "diff": {"optional": true}
   },
   "files": [
     "src",
