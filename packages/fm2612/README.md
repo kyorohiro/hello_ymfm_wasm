@@ -444,6 +444,18 @@ and generator. External instrument/sample ROMs are not included.
 
 ## Release notes
 
+`0.2.13` adds common Hz/note/key controls to FM, PSG, Game Boy, NES and SSG
+Synth APIs, with explicit `setBlockFnum` / `noteOnRaw` FM methods. Existing
+three-argument raw FM calls remain supported. Playground's ten SoundChip
+clients can change their master clock with `await setClock(hz)`.
+
+Playground `play()` and internal MIDI FM playback now tune A4 to 440 Hz,
+matching `setNote` and the MIDI Playground. **Existing Playground songs using
+the old reference will change pitch** (A4 was approximately 337 Hz at the
+default YM2612 clock). MIDI interfaces and raw BLOCK/F-NUM/VGM writes remain
+unchanged. This release also includes NES PAL/NTSC clock selection and exact
+register reset/memory upload helpers for VGM playback.
+
 `0.2.8` includes JSDoc-generated TypeScript declarations for browser and Node
 entry points, typed Direct/Worklet chip creation and async Worker APIs.
 The build validates every declaration and strict installed-package examples
@@ -569,7 +581,7 @@ tone channels 0, 1, 2 (triangle) and 5 (FDS). `noteOn(channel, note)` continues 
 set a note name or MIDI note number before starting playback.
 Use `NesApuAudifyTransport(chip)` from `tetorica-fm2612/node/transports` for
 Node device output. Transports borrow the chip. The Synth borrows the transport.
-The local build supports source clocks from 1600000–1900000 Hz. Clocks below
+Version 0.2.13 supports source clocks from 1600000–1900000 Hz. Clocks below
 1700000 Hz select PAL noise/DMC periods and frame-counter timing; higher clocks
 use NTSC/Dendy timing. Playground VGM import passes the recorded clock through
 `createSoundChip("nes", {clock, fds})`. Published 0.2.12 remains NTSC-only.
@@ -608,7 +620,7 @@ its full `createSoundChip` endpoint. Rate index is 0–15, initial DAC level 0�
 `writeRegister(address, value)` uses native CPU addresses ($4000–$4017,
 $4023, $4040–$408A), unlike VGM's packed NES offsets. FDS addresses require
 `fds: true`. `reset()` resets the chip, voices and loaded DMC descriptor.
-The local build also adds `resetRegisters()` for native reset without Synth defaults,
+Version 0.2.13 also adds `resetRegisters()` for native reset without Synth defaults,
 and `loadMemory(bytes, address)` for exact CPU RAM uploads without DMC padding;
 Playground VGM import uses these to preserve the original writes and memory blocks.
 The wrapper seeds the integer core's silent DAC baseline and applies a floating
