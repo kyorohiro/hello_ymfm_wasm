@@ -26,6 +26,7 @@ export class YM2203Synth extends OPNFMSynth {
   constructor({ transport, clock = YM2203_CLOCK } = {}) {
     super({
       transport,
+      clock,
       chipName: "YM2203",
       channelCount: 3,
       portCount: 1,

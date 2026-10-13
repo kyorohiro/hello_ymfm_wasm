@@ -1,3 +1,4 @@
+import {noteToHz as frequency} from './soundchip_pitch.js';
 import {NES_APU_CLOCK,validateNesApuClock} from './nesapu.js';
 import {ChipWorkletTransport} from './chip_worklet_transport.js';
 /** @typedef {{writeRegister(address:number,value:number):void, reset?:()=>void,
@@ -6,14 +7,6 @@ import {ChipWorkletTransport} from './chip_worklet_transport.js';
  * @typedef {{volume?:number, duty?:0.125|0.25|0.5|0.75, envelope?:{period:number,loop?:boolean}, sweep?:{enabled?:boolean,period?:number,negate?:boolean,shift?:number}}} NesPulseVoice
  */
 function integer(n,max,label){if(!Number.isInteger(n)||n<0||n>max)throw new RangeError(`${label} must be 0..${max}`);return n;}
-/** @param {string | number} note */
-function frequency(note){
- if(typeof note==='string'){
-  const m=/^([A-Ga-g])([#b]?)(-?\d+)$/.exec(note);if(!m)throw new RangeError('Invalid NES note');
-  note=(Number(m[3])+1)*12+({C:0,D:2,E:4,F:5,G:7,A:9,B:11}[m[1].toUpperCase()])+(m[2]==='#'?1:m[2]==='b'?-1:0);
- }
- integer(note,127,'MIDI note');return 440*2**((note-69)/12);
-}
 function table(values,length,max,label){
  if(!values||values.length!==length)throw new RangeError(`${label} needs ${length} entries`);
  const copy=Array.from(values);for(const value of copy)integer(value,max,label);return copy;
@@ -59,7 +52,7 @@ export class NesApuSynth {
    /** @param {0|1} channel @param {NesPulseVoice} voice */
    setVoice:(channel,voice)=>this.#pulseVoice(channel,voice),
    /** @param {0|1} channel @param {string|number} note */
-   setNote:(channel,note)=>this.setFrequency(channel,frequency(note)),
+   setNote:(channel,note)=>this.setNote(channel,note),
    /** Set Hz without starting playback. Returns the hardware timer period.
     * @param {0|1} channel @param {number} hz */
    setFrequency:(channel,hz)=>this.setFrequency(integer(channel,1,'Pulse channel'),hz),
@@ -74,7 +67,9 @@ export class NesApuSynth {
    noteOff:channel=>this.noteOff(channel),
   };
   this.triangle={
-   /** @param {string|number} note */ setNote:note=>this.setFrequency(2,frequency(note)),
+   /** @param {number} hz */ setFrequency:hz=>this.setFrequency(2,hz),
+   keyOn:()=>this.keyOn(2),keyOff:()=>this.keyOff(2),
+   /** @param {string|number} note */ setNote:note=>this.setNote(2,note),
    /** @param {string|number} note */ noteOn:note=>this.noteOn(2,note),noteOff:()=>this.noteOff(2),
   };
   this.noise={
@@ -117,7 +112,9 @@ export class NesApuSynth {
    },
    /** @param {number} volume Fixed gain 0..32. @param {number} [master] Hardware scale 0..3. */
    setVolume:(volume,master=0)=>{this.#checkFds();integer(volume,32,'FDS volume');integer(master,3,'FDS master scale');this.#fdsGain=volume;this.#fdsMaster=master;this.writeRegister(0x4023,2);this.writeRegister(0x4080,128|(this.#fdsActive?volume:0));this.writeRegister(0x4089,master);},
-   /** @param {string|number} note */ setNote:note=>{this.#checkFds();return this.setFrequency(5,frequency(note));},
+   /** @param {number} hz */ setFrequency:hz=>this.setFrequency(5,hz),
+   keyOn:()=>this.keyOn(5),keyOff:()=>this.keyOff(5),
+   /** @param {string|number} note */ setNote:note=>this.setNote(5,note),
    /** @param {string|number} note */ noteOn:note=>this.noteOn(5,note),noteOff:()=>this.noteOff(5),
    /** @param {{table:ArrayLike<number>,rate?:number,depth?:number,bias?:number,enabled?:boolean}} options */
    setModulation:({table:values,rate=0,depth=0,bias=0,enabled=true})=>{
@@ -175,6 +172,8 @@ export class NesApuSynth {
   const period=Math.round(this.clock/((channel===2?32:16)*hz)-1);if(period<(channel===2?2:8)||period>2047)throw new RangeError('NES frequency outside timer range');
   const base=0x4000+channel*4;this.writeRegister(base+2,period&255);this.writeRegister(base+3,8|(period>>8));return period;
  }
+ /** Configure a note without triggering. @param {0|1|2|5} channel @param {string|number} note */
+ setNote(channel,note){return this.setFrequency(channel,frequency(note));}
  /** @param {0|1|2|5} channel @param {string|number} note */
  noteOn(channel,note){
   this.setFrequency(channel,frequency(note));

@@ -231,6 +231,7 @@ export class YM2608Synth extends OPNFMSynth {
   constructor({ transport, clock = YM2608_CLOCK } = {}) {
     super({
       transport,
+      clock,
       chipName: "YM2608",
       channelCount: 6,
       portCount: 2,

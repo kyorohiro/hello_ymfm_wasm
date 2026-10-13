@@ -38,7 +38,7 @@ export function createWorkerChip({port,capabilities,state,observe=()=>{}}){
  attachChipClock(raw, port, state?.clock ?? CHIP_CLOCKS[name], {primary:true,batch:true});
  adoptState(state);
  enabled=true;
- const channelMethods=new Set(['setPreset','setOperator','setOperators','setAlgo','setPan','setModulation','setFrequency','keyOn','keyOff','noteOn','noteOff']);
+ const channelMethods=new Set(['setPreset','setOperator','setOperators','setAlgo','setPan','setModulation','setFrequency','setNote','setBlockFnum','noteOnRaw','keyOn','keyOff','noteOn','noteOff']);
  function invoke(method,args){
   if(typeof raw[method]!=='function'||method.startsWith('_')||['setHooks'].includes(method))throw new Error(`Unsupported fm method: ${method}`);
   const physical=args.slice();
@@ -46,7 +46,7 @@ export function createWorkerChip({port,capabilities,state,observe=()=>{}}){
   batch=[];
   let result;
   try{
-   if((method==='noteOn'||method==='keyOn') && mutedChannels.delete(physical[0])) {
+   if((method==='noteOn'||method==='noteOnRaw'||method==='keyOn') && mutedChannels.delete(physical[0])) {
     // Stop mutes the device immediately without destroying the saved patch.
     raw.channels[physical[0]].operators.forEach((operator,index)=>raw.setOperator(physical[0],index,{tl:operator.tl}));
    }

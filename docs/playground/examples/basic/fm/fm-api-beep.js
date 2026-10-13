@@ -22,7 +22,7 @@ fm.setOperators(CH1, [
 fm.setAlgo(CH1, 7, 0);
 fm.setPan(CH1, true, true);
 
-fm.noteOn(CH1, 4, 553);
+fm.noteOnRaw(CH1, 4, 553);
 await sleep(0.4);
 fm.noteOff(CH1);
 await sleep(0.3);

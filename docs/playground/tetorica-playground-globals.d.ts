@@ -604,7 +604,13 @@ type FMApi = PlaygroundChipClock & {
   setChannel3SpecialFrequency(operator: YM2612Operator, block: number, fnum: number): void;
   /** Enable or disable the YM2612 DAC playback path on channel 6. */
   setDacEnabled(enabled: boolean): void;
-  /** Write BLOCK / F-NUM without KEY ON. */
+  /** Set frequency in Hz, without KEY ON. */
+  setFrequency(channel: YM2612Channel, hz: number): void;
+  /** Set a note name or integer MIDI 0..127, without KEY ON. */
+  setNote(channel: YM2612Channel, note: string | number): void;
+  /** Explicit raw hardware pitch, without KEY ON. */
+  setBlockFnum(channel: YM2612Channel, block: number, fnum: number): void;
+  /** Compatibility form: three arguments specify raw BLOCK / F-NUM. */
   setFrequency(channel: YM2612Channel, block: number, fnum: number): void;
   /** Trigger KEY ON on one channel. */
   keyOn(channel: YM2612Channel, operators?: YM2612Operator[]): void;
@@ -612,7 +618,11 @@ type FMApi = PlaygroundChipClock & {
   keyOff(channel: YM2612Channel, operators?: YM2612Operator[]): void;
   /** Write one 8-bit DAC sample byte to YM2612 register 0x2A. */
   writeDac(value: number): void;
-  /** Trigger note on with raw YM2612 BLOCK/F-NUM values. */
+  /** Set a note name or integer MIDI 0..127 and trigger KEY ON. */
+  noteOn(channel: YM2612Channel, note: string | number): void;
+  /** Explicit raw pitch plus KEY ON. */
+  noteOnRaw(channel: YM2612Channel, block: number, fnum: number): void;
+  /** Compatibility form: three arguments specify raw BLOCK / F-NUM. */
   noteOn(channel: YM2612Channel, block: number, fnum: number): void;
   /** Trigger note off on one channel. */
   noteOff(channel: YM2612Channel): void;
@@ -637,6 +647,15 @@ type FMApi = PlaygroundChipClock & {
 declare const fm: FMApi;
 
 type PSGApi = {
+  /** Configure Hz without triggering or changing attenuation. */
+  setFrequency(channel: 0 | 1 | 2, hz: number): number;
+  /** Configure a note name or integer MIDI 0..127 without triggering. */
+  setNote(channel: 0 | 1 | 2, note: string | number): number;
+  /** Restore configured attenuation, retaining pitch. */
+  keyOn(channel: 0 | 1 | 2): void;
+  /** Silence while remembering configured attenuation and pitch. */
+  keyOff(channel: 0 | 1 | 2): void;
+  noteOn(channel: 0 | 1 | 2, note: string | number): void;
   /** Exact 10-bit period (0..1023), without changing attenuation. Writes latch then data. */
   setPeriod(channel: 0 | 1 | 2, period: number): number;
   /** 0 = loudest, 15 = silent. Channel 3 is noise; no noise reset. */
@@ -814,8 +833,10 @@ declare function scale(root: string, name: string, octaves?: number): string[];
 /** Build a simple chord from a root note. */
 declare function chord(root: string, name: "major" | "minor" | "major7" | "minor7" | "dominant7"): string[];
 /** Convert one note name into raw YM2612 BLOCK / F-NUM values. */
-declare function noteToBlockFnum(note: string): { block: number; fnum: number };
+/** Note name or MIDI pitch at A4=440 Hz, using the selected chip and current master clock. */
+declare function noteToBlockFnum(note: string | number): { block: number; fnum: number };
 /** Convert Hz to YM2612 BLOCK/FNUM. Clock defaults to 7670454 Hz. */
+/** Convert Hz using the selected FM chip and its current master clock; clock overrides the master Hz. */
 declare function hzToBlockFnum(hz: number, clock?: number): { block: number; fnum: number };
 /** Interpolate between two numbers. */
 declare function lerp(a: number, b: number, t: number): number;
@@ -958,7 +979,7 @@ type PlaygroundAPI = {
   livePrepare: (name: string, fn: (context: { fx: FXApi; fm: FMApi; psg: PSGApi; sample: PlaygroundSampleAPI; stream: PlaygroundStreamAPI; noise: PlaygroundNoiseAPI; log: (...args: unknown[]) => void }) => Promise<any> | any) => Promise<any>;
   scale: (root: string, name: string, octaves?: number) => string[];
   chord: (root: string, name: "major" | "minor" | "major7" | "minor7" | "dominant7") => string[];
-  noteToBlockFnum: (note: string) => { block: number; fnum: number };
+  noteToBlockFnum: (note: string | number) => { block: number; fnum: number };
   hzToBlockFnum: (hz: number, clock?: number) => { block: number; fnum: number };
   noteLerp: (from: string, to: string, t: number) => { block: number; fnum: number };
   choose: <T>(values: T[]) => T;
@@ -1083,6 +1104,13 @@ type GameboyNote = string | number;
 interface GameboyEnvelope { direction?: 'up' | 'down'; period?: number; }
 interface GameboyPulseVoice { duty?: 0.125 | 0.25 | 0.5 | 0.75; volume?: number; envelope?: GameboyEnvelope; }
 interface PlaygroundGameboy {
+  /** Tone channels 0/1=pulse, 2=wave. Requires initialize() or adoptRegisterState(). */
+  setFrequency(ch: 0 | 1 | 2, hz: number): number;
+  setNote(ch: 0 | 1 | 2, note: GameboyNote): number;
+  noteOn(ch: 0 | 1 | 2, note: GameboyNote): void;
+  /** Channel 3 is noise. */
+  keyOn(ch: 0 | 1 | 2 | 3): void;
+  keyOff(ch: 0 | 1 | 2 | 3): void;
   /** Enable high-level operations using tracked raw writes. Requires NR52 power ON; no reset or register writes. Not a core readback. */
   adoptRegisterState(): void;
   /** Reset and prepare silent defaults. Required before high-level operations. */
@@ -1098,6 +1126,7 @@ interface PlaygroundGameboy {
     setSweep(options: {direction?: 'up' | 'down'; period?: number; shift?: number}): void;
     setFrequency(ch: 0 | 1, hz: number): number;
     setNote(ch: 0 | 1, note: GameboyNote): number;
+    noteOn(ch: 0 | 1, note: GameboyNote): void;
     keyOn(ch: 0 | 1): void;
     keyOff(ch: 0 | 1): void;
   };
@@ -1110,6 +1139,7 @@ interface PlaygroundGameboy {
     setLevel(level: 0 | 0.25 | 0.5 | 1): void;
     setFrequency(hz: number): number;
     setNote(note: GameboyNote): number;
+    noteOn(note: GameboyNote): void;
     keyOn(): void;
     keyOff(): void;
   };
@@ -1133,10 +1163,16 @@ interface PlaygroundGameboy {
 }
 declare function createSoundChip(name: 'gameboy', options?: PlaygroundCreateSoundChipOptions): Promise<PlaygroundGameboy & PlaygroundChipClock & {readonly id: string}>;
 /** Independent YM2608; memory uploads are asynchronous, register setters are ordered writes. */
-type PlaygroundYm2608 = {setClock(clock: number): Promise<void>; resetRegisters(): void; prepareTimeline(events: Array<[number, number, number, number]>, blocks: Uint8Array[], durationSamples: number): Promise<void>; playTimeline(): Promise<void>} & Pick<FMApi, 'reset' | 'setPreset' | 'setOperator' | 'setOperators' | 'setAlgo' | 'setPan' | 'setLfo' | 'setChannel3SpecialMode' | 'setChannel3SpecialFrequency' | 'setFrequency' | 'keyOn' | 'keyOff' | 'noteOn' | 'noteOff' | 'writeAddress' | 'writeData'> & {
+type PlaygroundYm2608 = {setClock(clock: number): Promise<void>; resetRegisters(): void; prepareTimeline(events: Array<[number, number, number, number]>, blocks: Uint8Array[], durationSamples: number): Promise<void>; playTimeline(): Promise<void>} & Pick<FMApi, 'reset' | 'setPreset' | 'setOperator' | 'setOperators' | 'setAlgo' | 'setPan' | 'setLfo' | 'setChannel3SpecialMode' | 'setChannel3SpecialFrequency' | 'setFrequency' | 'setNote' | 'setBlockFnum' | 'noteOnRaw' | 'keyOn' | 'keyOff' | 'noteOn' | 'noteOff' | 'writeAddress' | 'writeData'> & {
   write(port: number, register: number, value: number): void;
   dispose(): void;
   ssg: {
+    /** Pitch setters preserve volume and mixer. Configure setVolume before keyOn. */
+    setFrequency(ch: number, hz: number): number;
+    setNote(ch: number, note: string | number): number;
+    keyOn(ch: number): void;
+    keyOff(ch: number): void;
+    noteOn(ch: number, note: string | number): void;
     tone(ch: number, options: {frequency?: number; period?: number; volume?: number; envelope?: boolean}): number;
     noise(ch: number, options: {period: number; volume?: number; envelope?: boolean}): void;
     setTonePeriod(ch: number, period: number): void;
@@ -1180,7 +1216,13 @@ declare function createSoundChip(name: 'ym2608', options?: PlaygroundCreateSound
 /** Existing OPN FM facade, with logical channel bounds and no YM2612 DAC API. */
 type PlaygroundOPNFm<Channel extends YM2612Channel> = {
   [K in Exclude<keyof FMApi, 'setDacEnabled' | 'writeDac' | 'dac'>]:
-    K extends 'setPreset' | 'setOperator' | 'setOperators' | 'setAlgo' | 'setPan' | 'setFrequency' | 'keyOn' | 'keyOff' | 'noteOn' | 'noteOff'
+    K extends 'setFrequency' ? {
+      (channel: Channel, hz: number): void;
+      (channel: Channel, block: number, fnum: number): void;
+    } : K extends 'noteOn' ? {
+      (channel: Channel, note: string | number): void;
+      (channel: Channel, block: number, fnum: number): void;
+    } : K extends 'setPreset'  | 'setOperator' | 'setOperators' | 'setAlgo' | 'setPan' | 'setFrequency' | 'setNote' | 'setBlockFnum' | 'noteOnRaw' | 'keyOn' | 'keyOff' | 'noteOn' | 'noteOff'
       ? FMApi[K] extends (channel: YM2612Channel, ...args: infer Args) => infer Result
         ? (channel: Channel, ...args: Args) => Result : never
       : FMApi[K];
@@ -1245,8 +1287,10 @@ interface PlaygroundYm2151 {
   setOperator(ch: 0|1|2|3|4|5|6|7, operator: 0|1|2|3, options: {dt1?: number; mul?: number; tl?: number; ks?: number; ar?: number; am?: 0|1; d1r?: number; dt2?: number; d2r?: number; d1l?: number; rr?: number}): void;
   setAlgo(ch: 0|1|2|3|4|5|6|7, algorithm: number, feedback?: number): void;
   setPan(ch: 0|1|2|3|4|5|6|7, left: boolean, right: boolean): void;
-  /** C#0..C8 or MIDI integer 13..108, calculated for the current master clock. */
+  /** Note name or integer MIDI 0..127; representable KC/KF range depends on the current clock. */
   setNote(ch: 0|1|2|3|4|5|6|7, note: string|number): number;
+  setFrequency(ch: 0|1|2|3|4|5|6|7, hz: number): {keyCode: number; keyFraction: number};
+  noteOn(ch: 0|1|2|3|4|5|6|7, note: string|number): void;
   setPitch(ch: 0|1|2|3|4|5|6|7, keyCode: number, keyFraction?: number): void;
   keyOn(ch: 0|1|2|3|4|5|6|7, mask?: number): void;
   keyOff(ch: 0|1|2|3|4|5|6|7): void;
@@ -1287,7 +1331,7 @@ interface PlaygroundNes {
     noteOn(channel: 0|1, note: string|number): void;
     noteOff(channel: 0|1): void;
   };
-  triangle: {setNote(note:string|number):void; noteOn(note:string|number):void; noteOff():void};
+  triangle: {setFrequency(hz:number):number; keyOn():void; keyOff():void; setNote(note:string|number):void; noteOn(note:string|number):void; noteOff():void};
   noise: {setVoice(options?:{volume?:number; period?:number; shortMode?:boolean}):void; noteOn():void; noteOff():void};
   dmc: {
     loadSample(bytes:Uint8Array|ArrayBuffer, options?:{address?:number}):Promise<{address:number; length:number}>;
@@ -1297,6 +1341,9 @@ interface PlaygroundNes {
   fds: {
     setWave(wave:ArrayLike<number>):void;
     setVolume(gain:number, masterScale?:number):void;
+    setFrequency(hz:number):number;
+    keyOn():void;
+    keyOff():void;
     setNote(note:string|number):void;
     noteOn(note:string|number):void;
     noteOff():void;
@@ -1304,6 +1351,7 @@ interface PlaygroundNes {
   };
   writeRegister(address:number, value:number):void;
   setFrequency(channel:0|1|2|5, hz:number):number;
+  setNote(channel:0|1|2|5, note:string|number):number;
   /** Start/retrigger the frequency already configured with setFrequency or setNote. */
   keyOn(channel:0|1|2|5):void;
   keyOff(channel:number):void;

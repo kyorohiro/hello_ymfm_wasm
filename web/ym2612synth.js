@@ -1,3 +1,4 @@
+import {noteToHz, opnPitchFromHz} from './soundchip_pitch.js';
 import {YM2612Dac, YM2612DacPlayer} from "./ym2612_dac.js";
 /**
  * @file ym2612synth.js
@@ -72,6 +73,7 @@ import {YM2612Dac, YM2612DacPlayer} from "./ym2612_dac.js";
 
 /**
  * @typedef {{
+ *   clock?: number,
  *   transport: YM2612Transport,
  * }} YM2612SynthOptions
  */
@@ -400,7 +402,9 @@ export class YM2612Synth {
       throw new Error("YM2612Synth requires a transport with a write(...) function");
     }
 
+    if (!Number.isFinite(options.clock ?? 7670454) || (options.clock ?? 7670454) <= 0) throw new RangeError('Clock must be positive finite Hz');
     this.transport = transport;
+    this.clock = options.clock ?? 7670454;
     this.hooks = {
       onWrite: undefined,
       onRead: undefined,
@@ -823,19 +827,20 @@ export class YM2612Synth {
     this._write(0, 0x2a, validValue);
   }
 
-  /**
-   * Write BLOCK / F-NUM without triggering KEY ON.
-   *
-   * This is the explicit YM2612-shaped frequency helper:
-   * - setFrequency(CH1, 4, 553)
-   * - keyOn(CH1)
-   *
-   * @param {number} channel
-   * @param {number} block
-   * @param {number} fnum
-   * @returns {void}
-   */
-  setFrequency(channel, block, fnum) {
+  /** Set frequency in Hz without KEY ON. @overload @param {number} channel @param {number} hz @returns {void} */
+  /** @overload @param {number} channel @param {number} block @param {number} fnum @returns {void} */
+  /** Frequency in Hz with two arguments; legacy three-argument form is raw BLOCK/F-NUM.
+   * @param {number} channel @param {number} hzOrBlock @param {number} [fnum] */
+  setFrequency(channel, hzOrBlock, fnum) {
+    if (arguments.length > 2) return this.setBlockFnum(channel, hzOrBlock, fnum);
+    const pitch = opnPitchFromHz(hzOrBlock, this.clock, 144);
+    this.setBlockFnum(channel, pitch.block, pitch.fnum);
+  }
+  /** Configure a note name or integer MIDI 0..127 without triggering.
+   * @param {number} channel @param {string|number} note */
+  setNote(channel, note) { this.setFrequency(channel, noteToHz(note)); }
+  /** Raw hardware pitch, without triggering. @param {number} channel @param {number} block @param {number} fnum */
+  setBlockFnum(channel, block, fnum) {
     assertChannel(channel);
     const validBlock = validateRange("block", block, 0, 7);
     const validFnum = validateRange("fnum", fnum, 0, 0x7ff);
@@ -897,16 +902,18 @@ export class YM2612Synth {
     this._write(0, 0x28, operatorMask | KEY_CHANNEL_CODES[channel]);
   }
 
-  /**
-   * Write BLOCK/FNUM and trigger Key On for all operators on one channel.
-   *
-   * @param {number} channel
-   * @param {number} block
-   * @param {number} fnum
-   * @returns {void}
-   */
-  noteOn(channel, block, fnum) {
-    this.setFrequency(channel, block, fnum);
+  /** Note name or integer MIDI plus KEY ON. @overload @param {number} channel @param {string|number} note @returns {void} */
+  /** @overload @param {number} channel @param {number} block @param {number} fnum @returns {void} */
+  /** Set a musical note and trigger. Legacy three-argument form uses raw pitch.
+   * @param {number} channel @param {string|number} noteOrBlock @param {number} [fnum] */
+  noteOn(channel, noteOrBlock, fnum) {
+    if (arguments.length > 2) return this.noteOnRaw(channel, noteOrBlock, fnum);
+    this.setNote(channel, noteOrBlock);
+    this.keyOn(channel);
+  }
+  /** Raw pitch plus trigger. @param {number} channel @param {number} block @param {number} fnum */
+  noteOnRaw(channel, block, fnum) {
+    this.setBlockFnum(channel, block, fnum);
     this.keyOn(channel);
   }
 

@@ -1,3 +1,4 @@
+import {midiToOpnPitch} from './soundchip_pitch.js';
 import {resolvePlaySeconds,resolvePlayDuration} from './playground_duration.js?v=shared-beat-clock-1';
 /**
  * @file playground_midi.js
@@ -8,7 +9,6 @@ import {resolvePlaySeconds,resolvePlayDuration} from './playground_duration.js?v
 import {createMidiSongPlayer} from './midi_song.js?v=readable-midi-1';
 import {YM2612Synth} from './ym2612synth.js';
 import {createSegaPsgApi, psgPeriodFromFrequency} from './segapsg_api.js';
-import {createPitchFromMidi} from './pitch.js';
 import {parseTfi} from './tfi.js';
 import {parseVgi} from './vgi.js';
 
@@ -87,8 +87,8 @@ export function createMidiRack({write, writePsg, preset, fmChannels = 6, getCloc
     const control=controls[destination][voice.channel];
     const note=voice.note+control.bend*control.range;
     if(destination===destinations[0]) {
-      const pitch=createPitchFromMidi(note,{referenceMidi:62,referenceBlock:4,referenceFnum:553 * getClockScale()});
-      fm.setFrequency(slot,pitch.block,pitch.fnum);
+      const pitch=midiToOpnPitch(note, 7670454 / getClockScale());
+      fm.setBlockFnum(slot,pitch.block,pitch.fnum);
     } else {
       const period=psgPeriodFromFrequency(440*2**((note-69)/12));
       psg.write(0x80|(slot<<5)|(period&15));psg.write(period>>4);

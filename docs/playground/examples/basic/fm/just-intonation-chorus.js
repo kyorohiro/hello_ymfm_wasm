@@ -97,17 +97,17 @@ liveLoop("just-intonation-chorus", async () => {
 
   choirFx.filter.cutoff.set(choose([4200, 4800, 5200, 5600]));
 
-  fm.setFrequency(
+  fm.setBlockFnum(
     melodyChannel,
     melodyPitch.block,
     melodyPitch.fnum
   );
-  fm.setFrequency(
+  fm.setBlockFnum(
     harmonyChannels[0],
     harmonyPitch1.block,
     harmonyPitch1.fnum
   );
-  fm.setFrequency(
+  fm.setBlockFnum(
     harmonyChannels[1],
     harmonyPitch2.block,
     harmonyPitch2.fnum

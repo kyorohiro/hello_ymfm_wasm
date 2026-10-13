@@ -1,3 +1,4 @@
+import {midiToOpnPitch, opnPitchFromHz} from '../../web/soundchip_pitch.js';
 import {CHIP_CLOCKS} from '../../web/playground_chip_clock.js';
 import {createYm2151Client} from '../../web/playground_ym2151.js';
 import {serializeLogError} from '../../web/playground_log.js';
@@ -31,7 +32,7 @@ function createWorkerHarness(overrides = {}) {
   const messages = [];
   const context = {
     serializeLogError,
-    CHIP_CLOCKS, resolvePlaySeconds, resolvePlayDuration, createBeatClock, runTween, createNativeSampleController, createNativeNoiseController, controlNativeNoise, createWorkerDac, atob, createMidiApi, createMidiRack, createWorkerChip, createNativeFXController, createLiveFxLifecycle, DOMException, structuredClone,
+    midiToOpnPitch, opnPitchFromHz, CHIP_CLOCKS, resolvePlaySeconds, resolvePlayDuration, createBeatClock, runTween, createNativeSampleController, createNativeNoiseController, controlNativeNoise, createWorkerDac, atob, createMidiApi, createMidiRack, createWorkerChip, createNativeFXController, createLiveFxLifecycle, DOMException, structuredClone,
     createYm2151Client, createSegaPsgClient, createLoopAsyncTasks, createDeadlineScheduler, createOpnClient, createGameboyClient, createSoundChipRegistry, createRf5c164Client, createYm2608Client,
     hzToBlockFnum,
     Error,
@@ -735,4 +736,23 @@ test('Worker direct play rejects conflicting units before register writes',async
  await worker.send({type:'run',presets:{},scaleIntervals:{},capabilities:{chip:'ym2612',fmChannels:6,dac:true},sourceCode:"await play('C4', {beats:1, seconds:1});"});
  assert.ok(worker.messages.some(m=>m.type==='execution-error'&&m.message.includes('only one')));
  assert.equal(commands.length,0);await worker.send({type:'stop'});
+});
+
+test('Worker fallback pitch helpers use numeric clock metadata and await setClock replies',async()=>{
+ const worker=createWorkerHarness();
+ worker.post({type:'run',capabilities:{chip:'ym2612'},timing:{chipClock:7670454},sourceCode:`
+  console.log('before',JSON.stringify(noteToBlockFnum('A4')));
+  await fm.setClock(3835227);
+  console.log('after',fm.clock,JSON.stringify(hzToBlockFnum(440)));
+ `});
+ await waitFor(()=>worker.messages.some(m=>m.command==='fm.setClock'));
+ const request=worker.messages.find(m=>m.command==='fm.setClock');assert.ok(request.id);
+ assert.ok(!worker.messages.some(m=>m.command==='log'&&m.args[0]==='after'));
+ worker.post({type:'response',id:request.id});
+ await waitFor(()=>worker.messages.some(m=>m.command==='log'&&m.args[0]==='after'));
+ const before=worker.messages.find(m=>m.command==='log'&&m.args[0]==='before');
+ const after=worker.messages.find(m=>m.command==='log'&&m.args[0]==='after');
+ assert.deepEqual(JSON.parse(before.args[1]),midiToOpnPitch(69));
+ assert.equal(after.args[1],3835227);assert.deepEqual(JSON.parse(after.args[2]),midiToOpnPitch(69,3835227));
+ await worker.send({type:'stop'});
 });

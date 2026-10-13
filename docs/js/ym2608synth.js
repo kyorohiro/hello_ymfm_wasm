@@ -231,6 +231,7 @@ export class YM2608Synth extends OPNFMSynth {
   constructor({ transport, clock = YM2608_CLOCK } = {}) {
     super({
       transport,
+      clock,
       chipName: "YM2608",
       channelCount: 6,
       portCount: 2,
@@ -290,7 +291,7 @@ export class YM2608RuntimeSynth extends OPNRuntimeSynth {
       portCount: 2,
       processorName: "ym2608-processor",
       workletUrl: "./ym2608-worklet.js",
-      wasmUrl: "./generated/ym2608_wasm.wasm",
+      wasmUrl: "../generated/ym2608_wasm.wasm",
       FMSynth: YM2608Synth,
       rhythmRomUrl: new URL('./tetorica_ym2608_adpcm_rom.bin', import.meta.url),
     });

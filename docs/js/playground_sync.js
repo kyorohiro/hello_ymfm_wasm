@@ -186,13 +186,10 @@ export function createFmProxy(
         enabled
       );
     },
-    setFrequency(channel, block, fnum) {
-      targetSynth.setFrequency(
-        channel,
-        block,
-        fnum
-      );
-    },
+    setFrequency(channel, ...args) { return targetSynth.setFrequency(channel, ...args); },
+    setNote(channel, note) { return targetSynth.setNote(channel, note); },
+    setBlockFnum(channel, block, fnum) { return targetSynth.setBlockFnum(channel, block, fnum); },
+    noteOnRaw(channel, block, fnum) { return targetSynth.noteOnRaw(channel, block, fnum); },
     keyOn(channel, operators) {
       targetSynth.keyOn(
         channel,
@@ -210,13 +207,7 @@ export function createFmProxy(
         value
       );
     },
-    noteOn(channel, block, fnum) {
-      targetSynth.noteOn(
-        channel,
-        block,
-        fnum
-      );
-    },
+    noteOn(channel, ...args) { return targetSynth.noteOn(channel, ...args); },
     noteOff(channel) {
       targetSynth.noteOff(
         channel

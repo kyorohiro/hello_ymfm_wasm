@@ -127,6 +127,7 @@ pitch.js
 playground_audio_scheduler.js
 playground_clock.js
 playground_chip_clock.js
+soundchip_pitch.js
 playground_execution.js
 playground_live.js
 playground_logic_worker.js

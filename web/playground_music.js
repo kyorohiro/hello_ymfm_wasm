@@ -39,9 +39,11 @@ export function lerp(
 /**
  * Create note/pitch, scale, chord and loop-local sequence helpers.
  * @param {{noteToSemitone: Record<string, number>, scaleIntervals: Record<string, number[]>,
- *   createPitchFromMidi: typeof import('./pitch.js').createPitchFromMidi,
+ *   createPitchFromMidi?: typeof import('./pitch.js').createPitchFromMidi,
+ *   getPitch?: (midi:number) => {block:number,fnum:number},
+ *   getFrequencyPitch?: (hz:number,clock?:number) => {block:number,fnum:number},
  *   getClockScale?: () => number,
- *   pitchReference: {referenceMidi: number, referenceBlock: number, referenceFnum: number},
+ *   pitchReference?: {referenceMidi: number, referenceBlock: number, referenceFnum: number},
  *   synth: () => import('./ym2612synth.js').YM2612Synth | null,
  *   presets: Record<string, import('./ym2612synth.js').YM2612Preset>, activeNotes: Set<number>,
  *   sleep: (seconds: number) => Promise<void>, waitBeats?: (beats:number) => Promise<void>, getBpm?: () => number,
@@ -64,6 +66,8 @@ export function createPlaygroundMusic(
     getCurrentLoopContext,
     getBpm = () => 120,
     getClockScale = () => 1,
+    getPitch,
+    getFrequencyPitch,
   } = options;
   const globalCycleState =
     new Map();
@@ -107,6 +111,8 @@ export function createPlaygroundMusic(
         ? noteOrMidi
         : parseNoteName(noteOrMidi);
 
+    if (getPitch) return getPitch(midi);
+    if (!createPitchFromMidi || !pitchReference) throw new Error('Provide getPitch or a custom pitchReference and converter');
     return createPitchFromMidi(midi, {
       referenceMidi:
         pitchReference.referenceMidi,
@@ -399,7 +405,7 @@ export function createPlaygroundMusic(
     noteToBlockFnum,
     noteLerp,
     play,
-    hzToBlockFnum,
+    hzToBlockFnum: getFrequencyPitch ?? hzToBlockFnum,
     midiToNoteName,
     scale,
     chord,

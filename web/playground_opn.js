@@ -63,6 +63,7 @@ export function createOpnClient(name, port) {
     pending.clear(); port.close();
   };
   return attachChipClock(synth, port, CHIP_CLOCKS[name], {onApplied: hz => {
+    if (name === 'ym2610') synth.fm.clock = hz;
     if (synth.ssg) synth.ssg.clock = hz / (name === 'ym2203' ? 2 : 4);
     if (synth.adpcmB) synth.adpcmB.clock = hz;
   }});

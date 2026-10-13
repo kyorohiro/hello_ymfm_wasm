@@ -1,3 +1,4 @@
+import {noteToHz} from './soundchip_pitch.js';
 /** @file Browser / Worker / Node.js. AY-compatible SSG register helper; no audio output or DOM. */
 const integer = (name, value, max) => {
   if (!Number.isInteger(value) || value < 0 || value > max) throw new RangeError(`Invalid SSG ${name}`);
@@ -5,6 +6,7 @@ const integer = (name, value, max) => {
 };
 /** Three tone/noise channels sharing one noise generator and one envelope. */
 export class SSGSynth {
+  #levels = new Uint8Array(3);
   /** @param {{transport: {write: (register: number, value: number) => void}, clock: number}} options
    * clock is the effective SSG clock, not necessarily the package's master clock.
    */
@@ -16,9 +18,9 @@ export class SSGSynth {
     this.resetState();
   }
   /** Reset tracked registers after the parent chip was reset. Does not write hardware. */
-  resetState() { this.registers = new Uint8Array(16); }
+  resetState() { this.registers = new Uint8Array(16); this.#levels.fill(0); }
    /** Track parent Synth raw writes so mixer changes preserve other channels and I/O bits. @param {number} register  @param {number} value */
-  observeWrite(register, value) { if (register >= 0 && register < 16) this.registers[register] = value; }
+  observeWrite(register, value) { if (register >= 0 && register < 16) this.registers[register] = value; if (register >= 8 && register <= 10) this.#levels[register - 8] = value; }
   /** @param {number} register
    * @param {number} value */
   write(register, value) {
@@ -48,6 +50,28 @@ export class SSGSynth {
     this.setVolume(channel, volume, envelope);
     return period;
   }
+  /** Configure Hz without changing mixer or volume. @param {number} channel @param {number} hz */
+  setFrequency(channel, hz) {
+    integer('channel', channel, 2);
+    if (!Number.isFinite(hz) || hz <= 0) throw new RangeError('Frequency must be positive finite Hz');
+    const period = Math.max(1, Math.min(4095, Math.round(this.clock / (16 * hz))));
+    this.setTonePeriod(channel, period); return period;
+  }
+  /** @param {number} channel @param {string|number} note */
+  setNote(channel, note) { return this.setFrequency(channel, noteToHz(note)); }
+  /** Enable tone and restore configured volume/envelope selection; retain noise gates. @param {number} channel */
+  keyOn(channel) {
+    integer('channel', channel, 2);
+    this.write(7, this.registers[7] & ~(1 << channel)); this.write(8 + channel, this.#levels[channel]);
+  }
+  /** Silence this channel while remembering volume/envelope and pitch. Shared noise and other channels keep their settings.
+   * @param {number} channel */
+  keyOff(channel) {
+    integer('channel', channel, 2); const level = this.#levels[channel];
+    this.write(8 + channel, 0); this.#levels[channel] = level;
+  }
+  /** @param {number} channel @param {string|number} note */
+  noteOn(channel, note) { this.setNote(channel, note); this.keyOn(channel); }
   /** Enable shared noise on one channel. Changing period affects all noise-enabled channels. @param {number} channel */
   noise(channel, {period = 16, volume = 10, envelope = false} = {}) {
     integer('channel', channel, 2); integer('period', period, 31); integer('volume', volume, 15);
@@ -76,7 +100,7 @@ export class SSGSynth {
     this.write(8 + channel, envelope ? 16 : volume);
   }
   /** @param {number} channel */
-  off(channel) { this.setVolume(channel, 0); }
+  off(channel) { this.keyOff(channel); }
   /** Set the shared envelope period/shape; writing shape retriggers the envelope. */
   setEnvelope({period, shape}) {
     integer('envelope period', period, 65535); integer('shape', shape, 15);

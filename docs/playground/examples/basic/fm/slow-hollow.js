@@ -72,7 +72,7 @@ for (const part of parts) {
       }
       fm.setOperator(channel, OP2, { tl: 127 });
       const pitch = noteToBlockFnum(choose(part.notes));
-      fm.setFrequency(channel, pitch.block, pitch.fnum);
+      fm.setBlockFnum(channel, pitch.block, pitch.fnum);
       fm.keyOn(channel);
       await envelope(channel, part.attack, true);
       await envelope(channel, part.release, false);

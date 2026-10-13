@@ -1,3 +1,4 @@
+import {midiToOpnPitch, opnPitchFromHz} from './soundchip_pitch.js';
 import {CHIP_CLOCKS} from './playground_chip_clock.js';
 import {createNesClient} from './playground_nes.js';
 import {createPWM32XClient} from './pwm32x_playback.js';
@@ -341,8 +342,11 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
   run.resumeChip = () => chip?.resume();
   const workerDac = chip && capabilities.dac ? createWorkerDac(chip.send, timing) : null;
   run.resetSampleClock = () => { clock.resetSampleClock(); workerDac?.reset(); };
+  let fallbackClock = timing.chipClock ?? CHIP_CLOCKS[capabilities.chip ?? 'ym2612'];
   const fm = new Proxy({}, {
     get(_target, property) {
+      if (property === 'clock') return chip?.fm.clock ?? fallbackClock;
+      if (property === 'setClock' && !chip) return async hz => { await request('fm.setClock', [hz], run.currentLoop); fallbackClock = hz; };
       if (property === "id") return capabilities.chip ?? "ym2612";
       if (property === "then") return undefined;
       if (property === "dac") {
@@ -553,19 +557,7 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
     const rootMidi = noteToMidi(root);
     return intervals.map((interval) => midiToNote(rootMidi + interval));
   };
-  const pitchFromMidi = (midi) => {
-    let block = 4;
-    let fnum = 553 * (CHIP_CLOCKS[capabilities.chip ?? 'ym2612'] / (fm.clock ?? CHIP_CLOCKS[capabilities.chip ?? 'ym2612'])) * Math.pow(2, (midi - 62) / 12);
-    while (fnum >= 1024 && block < 7) {
-      fnum /= 2;
-      block += 1;
-    }
-    while (fnum < 512 && block > 0) {
-      fnum *= 2;
-      block -= 1;
-    }
-    return { block, fnum: Math.max(0, Math.min(0x7ff, Math.round(fnum))) };
-  };
+  const pitchFromMidi = midi => midiToOpnPitch(midi, fm.clock ?? CHIP_CLOCKS[capabilities.chip ?? 'ym2612'], capabilities.chip === 'ym2203' ? 72 : 144);
   const noteToBlockFnum = (note) => pitchFromMidi(typeof note === "number" ? note : noteToMidi(note));
   const noteLerp = (from, to, amount) => pitchFromMidi(
     noteToMidi(from) + (noteToMidi(to) - noteToMidi(from)) * Number(amount)
@@ -598,7 +590,7 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
   },{sleep:clock.sleep,waitBeats:clock.waitBeats,bpm:clock.getBpm,owner:()=>run.currentLoop?.name??null,check:()=>{if(run.stopped || run.currentLoop?.stopped)throw new DOMException('Run stopped','AbortError');}});
   run.midi=midi;
   run.adoptChipState=state=>chip?.adoptState(state);
-  run.adoptChipClock=hz=>chip?.raw._adoptClock(hz);
+  run.adoptChipClock=hz=>{fallbackClock=hz;chip?.raw._adoptClock(hz);};
   const localNoteOwners=new Map();
   const globals = {
     trackAsync: promise => loopTasks.track(promise),
@@ -704,7 +696,7 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
     chord,
     tween,
     noteToBlockFnum,
-    hzToBlockFnum,
+    hzToBlockFnum: (hz, clock) => opnPitchFromHz(hz, clock ?? fm.clock ?? CHIP_CLOCKS[capabilities.chip ?? 'ym2612'], capabilities.chip === 'ym2203' ? 72 : 144, {clamp:true}),
     noteLerp,
     presets,
   };

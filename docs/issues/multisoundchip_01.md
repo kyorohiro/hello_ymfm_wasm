@@ -328,3 +328,79 @@ liveLoop("ym2608", async () => {
 ループの1周が終わるとランタイムが登録タスクの完了を待つ。Stop・ループ削除でこの待機も解除し、終了後に届いた古い失敗は無視する。Stopは通常の停止として扱い、転送失敗と混同しない。専用の例外型で包む代わりにループの中断理由と元のErrorを保持する。任意のPromiseそのものや、すでに送信した音声コマンドを取り消す機能ではない。
 
 YM2608 Write／High生成コードのpendingMemory／memoryErrorと各行のチェックを削除した。Scheduleは完了Promiseを直接awaitする従来経路を維持。新しい生成形式を使うには再Importする。
+
+## 2026-10-13：音程付きチャンネルの共通操作
+
+音程を設定する操作と発音を分離し、次の名前・単位をそろえた。
+
+| 操作 | 引数の意味 | 発音 |
+| --- | --- | --- |
+| `setFrequency(channel, hz)` | 正の有限値、Hz | 新しいキーオンは行わない |
+| `setNote(channel, note)` | 音名（C4 / C#4 / Db4など）または整数MIDI 0〜127 | 新しいキーオンは行わない |
+| `keyOn(channel)` | 設定済み音程を使用 | 発音・再発音 |
+| `keyOff(channel)` | 音程設定を保持 | 停止 |
+| `noteOn(channel, note)` | setNote + keyOn。数値はMIDI番号でありHzではない | 発音 |
+
+単一チャンネルの `wave` / `triangle` / `fds` では channel 引数を省く。周波数や音名の表現可能範囲・量子化はハードウェアに依存する。FMのオペレーターマスク等、音源固有の追加引数は維持。
+
+| 音源・部位 | 共通操作の対象 |
+| --- | --- |
+| YM2612 / YM2203 / YM2610 / YM2608 | FM。YM2610は引き続き論理0〜3→物理1,2,4,5の対応 |
+| YM2151 | 0〜7。raw KC/KFは既存setPitchを維持 |
+| Sega PSG | tone 0〜2。keyOffはattenuationを記憶してミュート、keyOnで復元 |
+| Game Boy | chip直下0/1=pulse, 2=wave、およびpulse/wave各部位。高水準操作には引き続きinitialize/adoptRegisterStateが必要 |
+| NES | chip直下0/1=pulse, 2=triangle, 5=FDS、およびpulse/triangle/fds各部位。FDSは生成時fds:trueが必要 |
+| YM2203 / YM2608 / YM2610 のSSG | 0〜2。setVolumeで音量を準備。keyOffで音量を記憶してミュート、keyOnで復元しtoneを有効化。noiseのゲート・他チャンネル・I/Oは維持 |
+| Noise / rhythm / PCM / PWM | 専用操作を維持。波形・サンプルの基準音程を仮定してHz/MIDIへ変換する操作は追加しない |
+
+### FM の移行と互換性
+
+| 旧指定 | 明示的な指定 |
+| --- | --- |
+| `fm.setFrequency(ch, block, fnum)` | `fm.setBlockFnum(ch, block, fnum)` |
+| `fm.noteOn(ch, block, fnum)` | `fm.noteOnRaw(ch, block, fnum)` |
+| 音名を別途BLOCK/F-NUMへ換算 | `fm.setNote(ch, 'C4')` / `fm.noteOn(ch, 'C4')` |
+
+旧3引数形式も維持する。2引数setFrequencyはHz、2引数noteOnは音名/MIDI、3引数はrawとして区別する。既存VGM変換コードのraw値・予約時刻を変更しない。通常OPNプリスケーラーでのHz変換を共通化し、YM2203はclock/72、他の対象OPNはclock/144で換算する。rawプリスケーラーを変更する場合はsetBlockFnumを利用する。
+
+新しい音名指定はA4=MIDI69=440Hz。setClock変更後も新しい高水準指定には現在のclockを用いる。API追加時点では既存グローバルplay/MIDIの参照音程による変換を維持したが、後続の合意でA4=440Hzへ統一した（下記参照）。
+
+### 実装・型・使用例
+
+- `soundchip_pitch.js` に音名/MIDIの検証・OPNのHz→BLOCK/F-NUM・OPMのHz→KC/KFを共通化。
+- 各Synth、MainのFM facade、Workerの論理チャンネル変換とStop後の音色復元に新メソッドを接続。
+- Playground型定義（Monacoの補完・ホバーの原本）とnpm用JSDoc型宣言を更新。
+- `/examples/basic/fm/soundchip-tone-controls.js` を追加。既存のNES周波数例・raw/VGMコードも引き続き利用可能。
+- 原音源4種類のFMでHz / 音名 / MIDIのA4が約440Hzで一致すること、raw互換、無効入力の非書き込み、PSG/SSGの音量復元、Neo Geo/Workerの物理チャンネル対応をテスト。
+- BrowserのMain/Workerで8音源・各部位・既定FM・clock変更後の操作を確認。Windows/Linux/Tauri実機は未確認。
+
+最終検証：関連回帰テスト257件成功。Playgroundの共通操作・論理チャンネル制限・旧raw形式を型検証。npmビルドでJSDoc宣言196件を生成・検査し、単独インストール、15音源のPCM、23 WASM、公開exportsとasset URL、NodeNext/Bundler/ブラウザ型を確認。itch ZIPの333ローカル参照検査も成功。ブラウザでは既定YM2612/YM2203/YM2610についてMain/Worker両経路を確認した。
+
+### 音名検証の共通化（追加確認）
+
+Game BoyとNESの重複した音名パーサーもsoundchip_pitch.noteToHzへ統一した。英字の大文字・小文字、異名同音（C#4/Db4）、整数MIDIの扱いをそろえ、不正値でレジスターを書かないことを検証。関連35テストとPlayground型検証が成功。
+
+既存Playgroundの参照値（MIDI62、BLOCK4、F-NUM553）は、YM2612のA4を計算上約336.90Hzへ変換する。新しいsetNote('A4')は約440.13Hz（raw量子化後）。play/MIDIを新基準へそろえると既存曲の音高も変わるため、ユーザー確認後、MIDIのインターフェースを維持して内部音程を統一することに合意した。
+
+### MIDI互換性の確認
+
+ユーザー指定の比較対象は `w/tetorica-midi-playground`。MIDI出力ハンドルの `noteOn(note, {velocity})`、`noteOff(note)`、`play(note, {duration, velocity})`、`midi.output(destination, {channel})` という既存インターフェースを維持し、SoundChipのchannel-first操作に置き換えない。MIDIのdurationは引き続き拍。
+
+比較先のネイティブ音源 `src-tauri/src/synth_core.rs` は `440 * 2^((pitch-69)/12)` を使用しており、A4は440Hz。約337Hzという旧変換はFM Playground側にある。インターフェース維持と内部音程の統一は別の判断であるため、その後ユーザーが内部音程の統一を承認し、FM Playground側の変換を修正した。比較対象のMIDI版ソースは変更していない。
+
+
+### play / MIDI の音程基準を統一（実装済み）
+
+ユーザーの合意に基づき、FM PlaygroundのplayとMIDI音源の内部変換を、MIDI Playgroundと同じ `440 * 2^((midi-69)/12)` へ修正。SoundChipのsetNote / noteOnとA4=440Hzで一致する。従来の固定参照（MIDI62 / BLOCK4 / F-NUM553）から計算していたplay/MIDIの音高は変わる。
+
+- MIDIの公開メソッド名・引数・チャンネル・velocity・音符の所有権・durationの拍単位は維持。setNote / keyOnのチップ操作へ置き換えない。
+- 共通midiToOpnPitchはfractional MIDIを許容し、bendとnoteLerpに対応。表現範囲外は比較対象のnative MIDIレンダラーと同じ1..2047へのクランプ・最小誤差のBLOCK選択を行う。
+- MainとWorkerのplay / noteToBlockFnum / noteLerpは選択中音源のmaster clockと通常プリスケーラーで計算する。hzToBlockFnumの既定も現在のmaster clock。YM2203はdivider72、他の対象OPNは144。
+- createMidiRackのgetClockScale注入は維持し、現在のclockに換算してFMを調律。PSG MIDIの音程基準はもともとA4=440Hz。
+- clock変更時に送信済みのraw予約値を再計算する機能ではない。新しい音符・ピッチベンド時に現在のclockを使用する。
+- createPlaygroundMusicを別ホストで使う場合の明示的なcustom pitchReferenceは維持。Playgroundは校正済みgetPitch / getFrequencyPitchを注入し、古い固定参照定数を実行経路から除去した。
+- WorkerのMain RPCフォールバックも数値のclockを保持し、setClockの応答を待ってから音程を計算する。
+
+実音源のplay / MIDI A4とbend、native MIDI式との丸め・クランプ一致、custom reference互換をテスト。Chromiumで実際のWorklet出力を録音し、Main/WorkerともsetNote・play・MIDI・clock半減後のplayが約440Hz、+2半音のbendが約495Hz（短い観測窓の分解能内）であることを確認。選択中YM2203 / YM2610の音名・Hz・補間・clock変更後の計算も両経路で確認。Tauri / Windows / Linux実機は未確認。
+
+最終検証：関連回帰262テスト、Playground型、npm生成宣言196件とパッケージ単独インストール・15音源 / 23 WASM / exports / assets / NodeNext・Bundler・ブラウザ型が成功。itch配布物の337参照検査も成功。実ブラウザの録音はYM2612のMain/Worker、変換ヘルパーはYM2203 / YM2610 / YM2608のMain/Workerで確認。

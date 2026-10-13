@@ -1,3 +1,4 @@
+import {midiToOpnPitch, opnPitchFromHz} from './soundchip_pitch.js';
 import {attachChipClock, CHIP_CLOCKS} from './playground_chip_clock.js';
 import {createNesAudio} from './playground_nes_audio.js';
 import {createNesClient} from './playground_nes.js';
@@ -33,9 +34,6 @@ import {
   FM_PRESETS,
 } from "./megasynth.js?v=prepared-fx-rerun-2";
 import { createTetoricaSynth } from "./tetorica_synth.js";
-import {
-  createPitchFromMidi,
-} from "./pitch.js";
 import { createPlaygroundClock } from "./playground_clock.js?v=shared-beat-clock-1";
 import { executeWithPlaygroundGuards } from "./playground_execution.js";
 import { createPlaygroundLive } from "./playground_live.js?v=prepared-fx-rerun-2";
@@ -45,9 +43,6 @@ import { createFmProxy } from "./playground_sync.js?v=dac-pcm-1";
 import { parseTfi } from "./tfi.js";
 import { parseVgi } from "./vgi.js";
 
-const REFERENCE_MIDI = 62;
-const REFERENCE_BLOCK = 4;
-const REFERENCE_FNUM = 553;
 const NOTE_TO_SEMITONE = {
   C: 0,
   "C#": 1,
@@ -1326,6 +1321,7 @@ export function createPlaygroundRuntime(
       if (megaDrive.node?.port) attachChipClock(sharedFm, megaDrive.node.port, CHIP_CLOCKS[capabilities.chip ?? 'ym2612'], {
         primary:true,
         onApplied: hz => {
+          (synth.fm ?? synth).clock = hz;
           if (synth.ssg) synth.ssg.clock = hz / (capabilities.chip === 'ym2203' ? 2 : 4);
           if (synth.adpcmB) synth.adpcmB.clock = hz;
           if (synth.adpcm) synth.adpcm.clock = hz;
@@ -1343,16 +1339,8 @@ export function createPlaygroundRuntime(
           NOTE_TO_SEMITONE,
         scaleIntervals:
           SCALE_INTERVALS,
-        createPitchFromMidi,
-        getClockScale: () => CHIP_CLOCKS[capabilities.chip ?? 'ym2612'] / (fm.clock ?? CHIP_CLOCKS[capabilities.chip ?? 'ym2612']),
-        pitchReference: {
-          referenceMidi:
-            REFERENCE_MIDI,
-          referenceBlock:
-            REFERENCE_BLOCK,
-          referenceFnum:
-            REFERENCE_FNUM,
-        },
+        getPitch: midi => midiToOpnPitch(midi, fm.clock ?? CHIP_CLOCKS[capabilities.chip ?? 'ym2612'], capabilities.chip === 'ym2203' ? 72 : 144),
+        getFrequencyPitch: (hz, clock) => opnPitchFromHz(hz, clock ?? fm.clock ?? CHIP_CLOCKS[capabilities.chip ?? 'ym2612'], capabilities.chip === 'ym2203' ? 72 : 144, {clamp:true}),
         synth: () => synth,
         presets,
         activeNotes,
@@ -1899,7 +1887,7 @@ export function createPlaygroundRuntime(
         presets,
         scaleIntervals: SCALE_INTERVALS,
         capabilities,
-        timing: getTiming(),
+        timing: {...getTiming(),chipClock:sharedFm?.clock ?? CHIP_CLOCKS[capabilities.chip ?? 'ym2612']},
       });
     });
   }

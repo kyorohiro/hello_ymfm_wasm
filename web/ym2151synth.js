@@ -1,3 +1,4 @@
+import {noteToHz, opmPitchFromHz} from './soundchip_pitch.js';
 export {YM2151_CLOCK} from './ym2151.js';
 export {YM2151WorkletTransport} from './chip_worklet_transport.js';
 
@@ -30,22 +31,6 @@ function bool(value, label) {
 function object(value, label) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw new TypeError(`${label} must be an object`);
 }
-/** @param {string | number} note */
-function midiNote(note) {
-  if (typeof note === 'number') {
-    if (!Number.isInteger(note) || note < 13 || note > 108) throw new RangeError('YM2151 note must be C#0..C8 (MIDI 13..108)');
-    return note;
-  }
-  if (typeof note !== 'string') throw new TypeError('YM2151 note must be a note name or MIDI integer');
-  const match = /^([A-Ga-g])([#b]?)(-?\d+)$/.exec(note);
-  if (!match) throw new RangeError('Invalid YM2151 note');
-  return midiNote((Number(match[3]) + 1) * 12 + ({C:0,D:2,E:4,F:5,G:7,A:9,B:11}[match[1].toUpperCase()]) + (match[2] === '#' ? 1 : match[2] === 'b' ? -1 : 0));
-}
-function keyCode(note) {
-  const index = note - 13;
-  return (Math.floor(index / 12) << 4) | [0,1,2,4,5,6,8,9,10,12,13,14][index % 12];
-}
-
 /** Borrows the caller's chip; does not create or close an audio device. */
 export class YM2151DirectTransport {
   /** @param {import('./ym2151.js').Ym2151} chip */
@@ -67,14 +52,16 @@ export class YM2151DirectTransport {
 
 /** Eight-channel OPM Synth, shared by Direct, Worklet and Node transports.
  * Operators and key masks use logical M1, M2, C1, C2 order (0..3).
- * Notes use the default YM2151_CLOCK; setPitch() exposes raw KC/KF values.
+ * Notes use the configured master clock; setPitch() exposes raw KC/KF values.
  */
 export class YM2151Synth {
   #registers = new Uint8Array(256);
-  /** @param {{transport: YM2151Transport}} options */
-  constructor({transport} = {}) {
+  /** @param {{transport: YM2151Transport, clock?:number}} options */
+  constructor({transport, clock=3579545} = {}) {
     if (!transport || typeof transport.writeRegister !== 'function') throw new TypeError('YM2151Synth requires writeRegister(register, value)');
+    if (!Number.isFinite(clock) || (clock) <= 0) throw new RangeError('Clock must be positive finite Hz');
     this.transport = transport;
+    this.clock = clock;
     this.reset();
   }
   reset() {
@@ -145,23 +132,19 @@ export class YM2151Synth {
   setAlgo(ch, algorithm, feedback = 0) {this.setPreset(ch, {algorithm, feedback});}
   /** @param {number} ch @param {boolean} left @param {boolean} right @param {number} [ams] @param {number} [pms] */
   setPan(ch, left, right, ams = undefined, pms = undefined) {this.setPreset(ch, {pan: {left, right}, ams, pms});}
-  /** @param {number} ch @param {string | number} note Note name or MIDI integer 13..108.
+  /** @param {number} ch @param {string | number} note Note name or MIDI integer 0..127, within the clock-dependent hardware range.
    * @returns {number} Written raw key code. */
   setNote(ch, note) {
-    const code = keyCode(midiNote(note));
-    this.setPitch(ch, code);
-    return code;
+    return this.setFrequency(ch, noteToHz(note)).keyCode;
   }
-  /** Frequency in Hz at the default 3579545 Hz clock; quantized to 1/64 semitone.
+  /** Frequency in Hz at the configured master clock; quantized to 1/64 semitone.
    * @param {number} ch @param {number} frequency */
   setFrequency(ch, frequency) {
     integer(ch, 7, 'YM2151 channel');
     if (!Number.isFinite(frequency) || frequency <= 0) throw new RangeError('Frequency must be positive');
-    const units = Math.round((69 + 12 * Math.log2(frequency / 440) - 13) * 64);
-    if (units < 0 || units > 95 * 64 + 63) throw new RangeError('YM2151 frequency is outside the KC/KF range');
-    const code = keyCode(13 + Math.floor(units / 64));
-    this.setPitch(ch, code, units % 64);
-    return {keyCode: code, keyFraction: units % 64};
+    const pitch = opmPitchFromHz(frequency, this.clock);
+    this.setPitch(ch, pitch.keyCode, pitch.keyFraction);
+    return pitch;
   }
   /** Raw key code 0..127 and key fraction 0..63.
    * @param {number} ch @param {number} code @param {number} [fraction] */
@@ -179,7 +162,7 @@ export class YM2151Synth {
   /** @param {number} ch @param {string | number} note @param {{operatorMask?: number}} [options] */
   noteOn(ch, note, {operatorMask = 15} = {}) {
     integer(ch, 7, 'YM2151 channel'); integer(operatorMask, 15, 'Operator mask');
-    midiNote(note); // Validate before either pitch register is written.
+    noteToHz(note); // Validate before either pitch register is written.
     this.setNote(ch, note); this.keyOn(ch, operatorMask);
   }
   /** @param {number} ch */

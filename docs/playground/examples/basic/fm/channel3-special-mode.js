@@ -42,7 +42,7 @@ fm.setChannel3SpecialFrequency(OP3, 4, 768); // G-ish
 
 // OP4 frequency is written through the normal CH3 frequency registers.
 // noteOn also performs KEY ON for all operators.
-fm.noteOn(CH3, 5, 512); // upper C-ish
+fm.noteOnRaw(CH3, 5, 512); // upper C-ish
 
 await sleep(1.5);
 

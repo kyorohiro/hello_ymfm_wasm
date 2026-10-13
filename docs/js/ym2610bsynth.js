@@ -183,7 +183,7 @@ export class YM2610BAdpcmASynth {
 export class YM2610BSynth extends OPNFMSynth {
   /** @param {{transport: import('./opn_fm_synth.js').OPNTransport, clock?: number}} options Master clock in Hz, default 8 MHz. */
   constructor({ transport, clock = YM2610B_CLOCK } = {}) {
-    super({ transport, chipName: "YM2610B", channelCount: 6, portCount: 2, supportsPan: true, supportsLfo: true });
+    super({ transport, clock, chipName: "YM2610B", channelCount: 6, portCount: 2, supportsPan: true, supportsLfo: true });
     const load = type => (bytes,address) => {
       if (typeof transport.loadAdpcmMemory !== "function") throw new Error("Transport does not support ADPCM ROM loading");
       return transport.loadAdpcmMemory(type,bytes,address);
@@ -214,7 +214,7 @@ export class YM2610BRuntimeSynth extends OPNRuntimeSynth {
     super(options, {
       chip: "ym2610b", chipName: "YM2610B", fmChannels: 6, portCount: 2,
       processorName: "ym2610b-processor", workletUrl: "./ym2610b-worklet.js",
-      wasmUrl: "./generated/ym2610b_wasm.wasm", FMSynth: YM2610BSynth,
+      wasmUrl: "../generated/ym2610b_wasm.wasm", FMSynth: YM2610BSynth,
     });
   }
 }
@@ -225,6 +225,8 @@ export class YM2610BRuntimeSynth extends OPNRuntimeSynth {
  */
 export class NeoGeoFMSynth {
   constructor(fm) { this.fm = fm; this.channelCount = 4; }
+  get clock() { return this.fm.clock; }
+  set clock(hz) { this.fm.clock = hz; }
   reset() { this.fm.reset(); }
   write(...args) { return this.fm.write(...args); }
   read(...args) { return this.fm.read?.(...args); }
@@ -246,6 +248,9 @@ export class NeoGeoFMSynth {
   /** @param {number} channel */
   setModulation(channel, ...args) { return this.fm.setModulation(this.#channel(channel), ...args); }
   /** @param {number} channel */
+  setNote(channel, note) { return this.fm.setNote(this.#channel(channel), note); }
+  setBlockFnum(channel, block, fnum) { return this.fm.setBlockFnum(this.#channel(channel), block, fnum); }
+  noteOnRaw(channel, block, fnum) { return this.fm.noteOnRaw(this.#channel(channel), block, fnum); }
   setFrequency(channel, ...args) { return this.fm.setFrequency(this.#channel(channel), ...args); }
   /** @param {number} channel */
   keyOn(channel, ...args) { return this.fm.keyOn(this.#channel(channel), ...args); }

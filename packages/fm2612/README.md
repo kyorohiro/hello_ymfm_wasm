@@ -619,3 +619,26 @@ with the NES Worklet endpoint like the other chips.
 
 Register semantics follow [NESdev APU documentation](https://www.nesdev.org/wiki/APU)
 and [FDS audio documentation](https://www.nesdev.org/wiki/FDS_audio).
+
+## Common tone controls
+
+YM2612/OPN FM, YM2151, Sega PSG, Game Boy tone channels, NES tone channels and
+SSG expose `setFrequency(channel, hz)`, `setNote(channel, note)`, `keyOn(channel)`,
+`keyOff(channel)` and `noteOn(channel, note)`. Notes are names or integer MIDI
+numbers (A4 = 69 = 440 Hz); numbers passed to `noteOn` are never Hz. Hardware
+pitch limits and quantization apply. Single-channel wave/triangle/FDS facades
+omit the channel argument. Configure the voice/volume first; Game Boy still
+requires `initialize()` or `adoptRegisterState()`, and FDS requires `{fds:true}`.
+
+FM raw pitch has explicit `setBlockFnum(channel, block, fnum)` and
+`noteOnRaw(channel, block, fnum)` methods. Existing three-argument
+`setFrequency`/`noteOn` forms remain compatible; the new two-argument forms
+mean Hz and musical notes respectively. PSG and SSG keyOff remember the
+configured attenuation/volume for keyOn. Noise, rhythm, PCM and PWM retain
+their chip-specific controls.
+
+Playground `play()` and internal MIDI FM playback now use the standard A4 =
+MIDI 69 = 440 Hz conversion, matching MIDI Playground and the Synth note API.
+Scripts using the previous Playground reference tuning will sound higher.
+MIDI handles, channels, velocity and beat-based legacy duration keep their
+existing interface. Explicit raw BLOCK/F-NUM playback is unchanged.

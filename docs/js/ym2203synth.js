@@ -26,6 +26,7 @@ export class YM2203Synth extends OPNFMSynth {
   constructor({ transport, clock = YM2203_CLOCK } = {}) {
     super({
       transport,
+      clock,
       chipName: "YM2203",
       channelCount: 3,
       portCount: 1,
@@ -62,7 +63,7 @@ export class YM2203RuntimeSynth extends OPNRuntimeSynth {
       portCount: 1,
       processorName: "ym2203-processor",
       workletUrl: "./ym2203-worklet.js",
-      wasmUrl: "./generated/ym2203_wasm.wasm",
+      wasmUrl: "../generated/ym2203_wasm.wasm",
       FMSynth: YM2203Synth,
     });
   }
