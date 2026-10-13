@@ -862,9 +862,9 @@ declare function stopLoop(name: string): void;
 declare function stopAllLoops(): void;
 /** Stop all sounding notes and playback state. */
 declare function stopAll(): void;
-/** Set the final browser-side master output volume. 1.0 = 100%. */
+/** Set the script's master gain. 1.0 = unity; multiplied by the UI Vol, which is retained across Run. */
 declare function setMasterVolume(volume: number): number;
-/** Read the current browser-side master output volume. */
+/** Read the script's master gain, independently of the UI Vol. */
 declare function getMasterVolume(): number;
 
 /** Sets the AudioWorklet scheduling margin used by DAC streams. */

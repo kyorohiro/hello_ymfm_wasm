@@ -71,3 +71,28 @@ test('a replaced output gain starts from its own value',()=>{
  first.runtime.masterOutputNode={gain:second.gain};first.runtime.setMasterVolume(.5);
  near(second.at(1.002),.3);near(second.at(1.007),.5+(.3-.5)*Math.exp(-5));
 });
+
+test('listening volume survives repeated script defaults and still permits script gain changes',()=>{
+ const {runtime,context,at}=harness();
+ runtime.setListeningVolume(3.8);near(runtime.masterVolume,1);near(runtime.listeningVolume,3.8);
+ context.currentTime=2;runtime.setMasterVolume(1);near(at(2.05),3.8);
+ context.currentTime=3;runtime.setMasterVolume(.5);near(at(3.05),1.9);
+ assert.equal(runtime.masterVolume,.5);assert.equal(runtime.listeningVolume,3.8);
+ context.currentTime=4;runtime.setMasterVolume(1);near(at(4.05),3.8);
+ context.currentTime=5;runtime.setListeningVolume(2.5);near(at(5.05),2.5);
+ context.currentTime=6;runtime.setMasterVolume(0);near(at(6.05),0);
+ assert.equal(runtime.listeningVolume,2.5);
+});
+
+test('listening gain is applied when routing is initialized or replaced',()=>{
+ const nodes=[];
+ const context={state:'suspended',currentTime:0,destination:{},createGain:()=>{
+  const node={gain:{value:1},connect(){},disconnect(){}};nodes.push(node);return node;
+ }};
+ const runtime=new TetoricaAudioRuntime({audioContext:context});
+ runtime.setListeningVolume(3.8);runtime.setMasterVolume(.5);runtime.ensureRouting(context);
+ near(runtime.masterOutputNode.gain.value,1.9);
+ runtime.masterOutputNode=null;runtime.ensureRouting(context);near(runtime.masterOutputNode.gain.value,1.9);
+ for(const value of [NaN,Infinity,-1,8.1])assert.throws(()=>runtime.setListeningVolume(value));
+ assert.equal(runtime.listeningVolume,3.8);
+});

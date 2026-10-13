@@ -23,6 +23,8 @@ export class TetoricaAudioRuntime {
     this.outputNode = options.outputNode ?? null;
     this.sampleOutputNode = options.sampleOutputNode ?? null;
     this.masterVolume = options.masterVolume ?? 1;
+    // Host listening level is independent of a script's master gain.
+    this.listeningVolume = 1;
     /** @type {SoundChipMixer} */
     this.mixer = options.mixer ?? new SoundChipMixer();
     this.masterInputNode = null;
@@ -951,7 +953,7 @@ export class TetoricaAudioRuntime {
     if (!this.masterInputNode) this.masterInputNode = audioContext.createGain();
     if (!this.masterOutputNode) {
       this.masterOutputNode = audioContext.createGain();
-      this.masterOutputNode.gain.value = this.masterVolume;
+      this.masterOutputNode.gain.value = this.masterVolume * this.listeningVolume;
     }
     this.rebuildFXChain();
   }
@@ -1018,6 +1020,7 @@ export class TetoricaAudioRuntime {
   /** @param {number} volume Requested gain; running output approaches it with a 1 ms time constant (~99.3% in 5 ms). */
   setMasterVolume(volume) {
     this.masterVolume = volume;
+    const outputVolume = volume * this.listeningVolume;
     const gain = this.masterOutputNode?.gain;
     if (!gain) return volume;
     const now = this.audioContext?.currentTime;
@@ -1026,13 +1029,24 @@ export class TetoricaAudioRuntime {
       // Before audio starts (or while suspended), keep initialization immediate.
       const at = Number.isFinite(now) ? now : 0;
       gain.cancelScheduledValues?.(at);
-      if (typeof gain.setValueAtTime === "function") gain.setValueAtTime(volume, at);
-      else gain.value = volume;
+      if (typeof gain.setValueAtTime === "function") gain.setValueAtTime(outputVolume, at);
+      else gain.value = outputVolume;
       return volume;
     }
     // Native automation starts from the running gain. Avoid JS-side interpolation
     // and future ramp endpoints, which can step when controls arrive late.
-    gain.setTargetAtTime(volume, now, .001);
+    gain.setTargetAtTime(outputVolume, now, .001);
+    return volume;
+  }
+
+  /** Host playback level (0..8), retained when scripts set their master gain.
+   * The final output and its monitors include both gains. @param {number} volume */
+  setListeningVolume(volume) {
+    if (!Number.isFinite(volume) || volume < 0 || volume > 8) {
+      throw new RangeError('Listening volume must be between 0 and 8');
+    }
+    this.listeningVolume = volume;
+    this.setMasterVolume(this.masterVolume);
     return volume;
   }
 

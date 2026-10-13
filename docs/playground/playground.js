@@ -180,6 +180,7 @@ const masterVolumeValue =
   document.getElementById(
     "masterVolumeValue"
   );
+let listeningVolume = 1;
 const consoleOutput =
   document.getElementById(
     "consoleOutput"
@@ -518,7 +519,7 @@ window.addEventListener("pagehide", event => {
 
 function updateMasterVolumeUi() {
   const masterVolume =
-    runtime?.getMasterVolume?.() ?? 1;
+    listeningVolume;
   if (masterVolumeRange) {
     masterVolumeRange.value =
       String(
@@ -533,9 +534,7 @@ function updateMasterVolumeUi() {
 }
 
 function applyMasterVolume() {
-  runtime.setMasterVolume(
-    runtime.getMasterVolume()
-  );
+  megaDrive.audio.setListeningVolume(listeningVolume);
 }
 
 function createTextareaEditorAdapter(
@@ -1605,11 +1604,9 @@ updateMasterVolumeUi();
 masterVolumeRange?.addEventListener(
   "input",
   () => {
-    runtime.setMasterVolume(
-      Number(masterVolumeRange.value) /
-        100
-    );
-    tfiFileEditor.setMasterVolume(runtime.getMasterVolume());
+    listeningVolume = Number(masterVolumeRange.value) / 100;
+    applyMasterVolume();
+    tfiFileEditor.setMasterVolume(listeningVolume);
     updateMasterVolumeUi();
   }
 );
