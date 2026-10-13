@@ -2358,7 +2358,6 @@ installFileExplorerDropTarget();
     }) {
       monacoEditor.onDidChangeModelContent(() => {
         if (monacoEditor.getModel()?.uri.path === '/project' + activeVirtualPath) syncActiveEditorFile();
-        desktopAutosave?.changed();
       });
       monacoEditor.onDidChangeModel(() => desktopAutosave?.changed());
       monacoEditor.addAction({
@@ -2409,10 +2408,13 @@ async function initializeDesktopAutosave() {
         file.path === activeVirtualPath && file.type === 'text' ? {...file, data:getEditorValue()} : file),
     })});
     virtualFiles.onDidChange(() => desktopAutosave.changed());
-    editor.addEventListener('input', () => desktopAutosave.changed());
     runFileSelect.addEventListener('change', () => queueMicrotask(() => desktopAutosave.changed()));
-    window.addEventListener('pagehide', () => desktopAutosave.changed());
-    window.__tetoricaAutosaveFlush = () => desktopAutosave.changed();
+    window.addEventListener('pagehide', () => {
+      desktopAutosave.changed(); void desktopAutosave.flush().catch(() => {});
+    });
+    window.__tetoricaAutosaveFlush = () => {
+      desktopAutosave.changed(); return desktopAutosave.flush();
+    };
     status(restoredDesktopProject ? 'Autosave restored' : 'Autosave enabled');
   } catch (error) {status(`Autosave unavailable: ${error.message ?? error}`);}
 }

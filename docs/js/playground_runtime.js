@@ -35,7 +35,7 @@ import {
 } from "./megasynth.js?v=prepared-fx-rerun-2";
 import { createTetoricaSynth } from "./tetorica_synth.js";
 import { createPlaygroundClock } from "./playground_clock.js?v=shared-beat-clock-1";
-import { executeWithPlaygroundGuards } from "./playground_execution.js";
+import { capturePlaygroundNativeIpc, executeWithPlaygroundGuards } from "./playground_execution.js";
 import { createPlaygroundLive } from "./playground_live.js?v=prepared-fx-rerun-2";
 import { createPlaygroundMusic } from "./playground_music.js?v=shared-beat-clock-1";
 import { createPlaygroundNoiseApi } from "./playground_noise.js";
@@ -171,6 +171,9 @@ export function createPlaygroundRuntime(
     new Set();
   const guardExecution =
     options.guardExecution !== false;
+  // Tauri's invoke transport calls fetch dynamically. Keep only its native IPC
+  // endpoint available while Main scripts/live callbacks block network access.
+  const nativeIpc = capturePlaygroundNativeIpc(window);
   const defaultExecution =
     options.execution ?? "main";
   const defaultLogicWorkerUrl =
@@ -554,6 +557,7 @@ export function createPlaygroundRuntime(
       window,
       {
         enabled: guardExecution,
+        nativeIpc,
       }
     );
   }
@@ -1964,6 +1968,7 @@ export function createPlaygroundRuntime(
         window,
         {
           enabled: guardExecution,
+          nativeIpc,
         }
       );
 

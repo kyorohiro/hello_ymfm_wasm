@@ -11,10 +11,66 @@ const NAVIGATION_DISABLED_MESSAGE =
   "Navigation is disabled in Tetorica FM2612 Playground.";
 
 const activeGuardStates = new WeakMap();
+const nativeIpcTransports = new WeakMap();
+
+/**
+ * Snapshot Tauri's authenticated IPC endpoint before user code starts. The
+ * returned capability does not expose fetch and accepts no ordinary network
+ * URLs. Tauri still validates its private invoke key and command permissions.
+ * @param {typeof globalThis} [realm=globalThis] Trusted application realm.
+ * @returns {object | null} Opaque capability for the execution guard, or null outside Tauri.
+ */
+export function capturePlaygroundNativeIpc(realm = globalThis) {
+  if (!realm || activeGuardStates.has(realm)) return null;
+  const internals = realm.__TAURI_INTERNALS__;
+  if (typeof internals?.invoke !== "function" ||
+      typeof internals.convertFileSrc !== "function" ||
+      typeof realm.fetch !== "function") return null;
+
+  const NativeURL = realm.URL ?? globalThis.URL;
+  const NativeHeaders = realm.Headers ?? globalThis.Headers;
+  if (typeof NativeURL !== "function" || typeof NativeHeaders !== "function") return null;
+  let endpoint;
+  try {
+    endpoint = new NativeURL(internals.convertFileSrc("tetorica-native-ipc-probe", "ipc"));
+  } catch (_error) {
+    return null;
+  }
+  const isNativeEndpoint = endpoint.protocol === "ipc:" && endpoint.hostname === "localhost" ||
+    ["http:", "https:"].includes(endpoint.protocol) && endpoint.hostname === "ipc.localhost";
+  if (!isNativeEndpoint || endpoint.port || endpoint.username || endpoint.password ||
+      endpoint.search || endpoint.hash || endpoint.pathname !== "/tetorica-native-ipc-probe") return null;
+
+  const nativeFetch = realm.fetch.bind(realm);
+  const capability = Object.freeze({});
+  nativeIpcTransports.set(capability, {
+    realm,
+    fetch(input, init) {
+      // Tauri's custom-protocol transport uses a URL string and POST. Require
+      // its authentication/callback headers as well as the exact captured host.
+      if (typeof input !== "string" || init?.method !== "POST") return null;
+      let target, headers;
+      try {
+        target = new NativeURL(input);
+        headers = new NativeHeaders(init.headers);
+      } catch (_error) {
+        return null;
+      }
+      if (target.protocol !== endpoint.protocol || target.host !== endpoint.host ||
+          target.username || target.password || target.search || target.hash ||
+          !/^\/[^/]+$/.test(target.pathname) ||
+          !headers.get("Tauri-Invoke-Key") || !headers.get("Tauri-Callback") ||
+          !headers.get("Tauri-Error")) return null;
+      return nativeFetch(target.href, {...init, method: "POST", headers});
+    },
+  });
+  return capability;
+}
 
 /**
  * @typedef {{
  *   enabled?: boolean,
+ *   nativeIpc?: object | null,
  * }} PlaygroundExecutionGuardOptions
  */
 
@@ -30,6 +86,7 @@ export function installPlaygroundExecutionGuards(
 ) {
   const {
     enabled = true,
+    nativeIpc = null,
   } = options;
 
   if (!enabled) {
@@ -55,6 +112,7 @@ export function installPlaygroundExecutionGuards(
   }
 
   const restoreSteps = [];
+  const ipcTransport = nativeIpcTransports.get(nativeIpc);
   const blockedFunction = (
     message
   ) => {
@@ -64,10 +122,13 @@ export function installPlaygroundExecutionGuards(
   patchProperty(
     realm,
     "fetch",
-    () =>
-      blockedFunction(
-        NETWORK_DISABLED_MESSAGE
-      ),
+    (input, init) => {
+      if (ipcTransport?.realm === realm) {
+        const response = ipcTransport.fetch(input, init);
+        if (response !== null) return response;
+      }
+      return blockedFunction(NETWORK_DISABLED_MESSAGE);
+    },
     restoreSteps
   );
   patchProperty(

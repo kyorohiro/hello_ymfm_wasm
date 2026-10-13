@@ -93,6 +93,46 @@ test('caught errors retain their message and stack in the Playground console', a
   assert.ok(logs.some(line => line.includes('[warn] AbortError: Run stopped')));
 });
 
+test('Main evaluation and live loops retain native Tauri IPC while user network stays blocked', async t => {
+  const {megaDrive} = setup(t);
+  const requests = [], evaluation = deferred(), iteration = deferred();
+  window.URL = URL;
+  window.Headers = Headers;
+  window.fetch = async (url, init) => {requests.push([url, init.method]);return "IPC ready";};
+  const originalFetch = window.fetch;
+  window.__TAURI_INTERNALS__ = {
+    convertFileSrc: command => `ipc://localhost/${encodeURIComponent(command)}`,
+    invoke(command) {
+      return window.fetch(this.convertFileSrc(command, "ipc"), {
+        method:"POST", headers:{"Tauri-Invoke-Key":"test-key", "Tauri-Callback":"1", "Tauri-Error":"2"},
+      });
+    },
+  };
+  const runtime = createPlaygroundRuntime({megaDrive});
+  t.after(() => runtime.stop());
+  globalThis.playgroundReview = {evaluation:evaluation.promise, iteration:iteration.promise, entered:false, looping:false};
+  const playing = runtime.playSource(`
+    globalThis.playgroundReview.entered = true;
+    await globalThis.playgroundReview.evaluation;
+    liveLoop('choir', async () => {
+      globalThis.playgroundReview.looping = true;
+      await globalThis.playgroundReview.iteration;
+    });
+  `);
+  await until(() => globalThis.playgroundReview.entered);
+  assert.throws(() => window.fetch("https://example.com"), /Network access is disabled/);
+  assert.equal(await window.__TAURI_INTERNALS__.invoke("mcp_status"), "IPC ready");
+  evaluation.resolve();
+  await playing;
+  await until(() => globalThis.playgroundReview.looping);
+  assert.throws(() => window.fetch("https://example.com"), /Network access is disabled/);
+  assert.equal(await window.__TAURI_INTERNALS__.invoke("mcp_set"), "IPC ready");
+  assert.deepEqual(requests, [["ipc://localhost/mcp_status", "POST"], ["ipc://localhost/mcp_set", "POST"]]);
+  runtime.stop();
+  iteration.resolve();
+  await until(() => window.fetch === originalFetch);
+});
+
 test('re-running a prepared sample FX chain retains routing; Stop still detaches and disposes it',async t=>{
  const {runtime,megaDrive}=setup(t,{fmChannels:1});let cleared=0,disposed=0;
  const effect={input:{},output:{},dispose(){disposed++;}};
