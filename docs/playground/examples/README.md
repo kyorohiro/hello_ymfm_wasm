@@ -19,6 +19,10 @@ FILES ではこの順に表示します。機種別のサンプルは各フォ�
 `basic/fm`・`basic/psg`・`basic/dac` は選択中の音源や Playground のグローバル API を使います。
 機種別フォルダーには `useSoundChip()` / `createSoundChip()` で独立した音源を取得する例を置きます。
 
+`nes/nes-pulse-frequency.js` は Hz 指定の例です。`nes.pulse.setFrequency(0, 440)`
+で周波数を設定し、`keyOn(0)` / `keyOff(0)` でその音程の発音・停止を行います。
+`noteOn(0, 'A4')` は音名または MIDI ノート番号を指定して発音する別の入口です。
+
 `?ex=...` は廃止。`?src=...` によるコード共有は引き続き利用できる。
 各サンプルの利用可能な音源・機能はコード内の API に依存する（DAC/PSG 等は YM2612 モード）。
 

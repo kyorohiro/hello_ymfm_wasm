@@ -70,3 +70,35 @@ test('source clocks preserve pulse pitch and PAL switches noise, DMC and frame t
   }finally{chip.dispose();}
  }
 });
+
+for(const channel of [0,1])test(`pulse ${channel}: arbitrary Hz, separate trigger and retained pitch on restart`,async()=>{
+ const chip=await createSoundChip('nes');const synth=new NesApuSynth({transport:new NesApuDirectTransport(chip)});
+ const hz=437;
+ const measure=()=>{
+  chip.generateStereo(4410);const pcm=chip.generateStereo(44100).left;
+  let crossings=0;for(let i=1;i<pcm.length;i++)if(pcm[i-1]<0&&pcm[i]>=0)crossings++;
+  return crossings;
+ };
+ try{
+  const timer=synth.pulse.setFrequency(channel,hz);
+  const expected=synth.clock/(16*(timer+1));
+  assert.equal(chip.enableMask&3,0);assert.ok(chip.generateStereo(1024).left.every(v=>Math.abs(v)<.001));
+  synth.pulse.keyOn(channel);assert.ok(Math.abs(measure()-expected)<3);
+  synth.pulse.keyOff(channel);chip.generateStereo(4410);assert.ok(chip.generateStereo(1024).left.every(v=>Math.abs(v)<.001));
+  synth.pulse.keyOn(channel);assert.ok(Math.abs(measure()-expected)<3);
+  synth.pulse.setFrequency(channel,660);assert.ok(Math.abs(measure()-660)<3);
+  const other=1-channel;synth.pulse.setFrequency(other,330);synth.pulse.keyOn(other);
+  synth.pulse.keyOff(channel);assert.equal(chip.enableMask&3,1<<other);
+ }finally{chip.dispose();}
+});
+
+test('pulse trigger preserves timer registers and rejects invalid inputs before any writes',()=>{
+ const writes=[];const synth=new NesApuSynth({transport:{writeRegister:(...args)=>writes.push(args)}});
+ synth.pulse.setFrequency(0,437);const frequencyWrites=writes.filter(([r])=>r===0x4002||r===0x4003);const high=frequencyWrites.at(-1)[1];writes.length=0;
+ synth.pulse.keyOn(0);assert.deepEqual(writes,[[0x4015,1],[0x4003,high]]);
+ writes.length=0;synth.pulse.keyOff(0);assert.deepEqual(writes,[[0x4015,0]]);
+ writes.length=0;
+ for(const fn of [()=>synth.pulse.setFrequency(2,440),()=>synth.pulse.keyOn(2),()=>synth.pulse.keyOff(5),()=>synth.keyOn(3),()=>synth.keyOn(5),
+  ...[NaN,Infinity,0,-1].map(hz=>()=>synth.pulse.setFrequency(0,hz)),()=>synth.pulse.noteOn(0)])assert.throws(fn);
+ assert.equal(writes.length,0);
+});

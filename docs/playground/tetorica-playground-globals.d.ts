@@ -1278,6 +1278,12 @@ interface PlaygroundNes {
   pulse: {
     setVoice(channel: 0|1, voice: {duty?:0.125|0.25|0.5|0.75; volume?:number; envelope?:{period:number; loop?:boolean}; sweep?:{enabled?:boolean; period?:number; negate?:boolean; shift?:number}}): void;
     setNote(channel: 0|1, note: string|number): void;
+    /** Set frequency in Hz without starting playback. Returns the hardware timer period. */
+    setFrequency(channel: 0|1, hz: number): number;
+    /** Start/retrigger the configured pitch, without replacing its frequency. */
+    keyOn(channel: 0|1): void;
+    /** Stop playback while keeping the configured pitch. */
+    keyOff(channel: 0|1): void;
     noteOn(channel: 0|1, note: string|number): void;
     noteOff(channel: 0|1): void;
   };
@@ -1298,6 +1304,9 @@ interface PlaygroundNes {
   };
   writeRegister(address:number, value:number):void;
   setFrequency(channel:0|1|2|5, hz:number):number;
+  /** Start/retrigger the frequency already configured with setFrequency or setNote. */
+  keyOn(channel:0|1|2|5):void;
+  keyOff(channel:number):void;
   noteOn(channel:0|1|2|5, note:string|number):void;
   noteOff(channel:number):void;
   reset():void;

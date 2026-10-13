@@ -24,7 +24,7 @@ async function setup(fds, sampleRate) {
   }};
 }
 for (const sampleRate of [44100, 48000]) {
-  for (const [example, fds] of [['nes-apu-tones', false], ['nes-fds-wave', true], ['nes-dmc-sample', false]]) {
+  for (const [example, fds] of [['nes-apu-tones', false], ['nes-pulse-frequency', false], ['nes-fds-wave', true], ['nes-dmc-sample', false]]) {
     test(`${example}: real NES processor at ${sampleRate} Hz`, async () => {
       const {chip, processor, render} = await setup(fds, sampleRate);
       let peak = 0;

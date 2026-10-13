@@ -60,6 +60,14 @@ export class NesApuSynth {
    setVoice:(channel,voice)=>this.#pulseVoice(channel,voice),
    /** @param {0|1} channel @param {string|number} note */
    setNote:(channel,note)=>this.setFrequency(channel,frequency(note)),
+   /** Set Hz without starting playback. Returns the hardware timer period.
+    * @param {0|1} channel @param {number} hz */
+   setFrequency:(channel,hz)=>this.setFrequency(integer(channel,1,'Pulse channel'),hz),
+   /** Start/retrigger the configured pitch without replacing it.
+    * @param {0|1} channel */
+   keyOn:channel=>this.keyOn(integer(channel,1,'Pulse channel')),
+   /** Stop playback while keeping the configured pitch. @param {0|1} channel */
+   keyOff:channel=>this.keyOff(integer(channel,1,'Pulse channel')),
    /** @param {0|1} channel @param {string|number} note */
    noteOn:(channel,note)=>this.noteOn(channel,note),
    /** @param {0|1} channel */
@@ -170,9 +178,17 @@ export class NesApuSynth {
  /** @param {0|1|2|5} channel @param {string|number} note */
  noteOn(channel,note){
   this.setFrequency(channel,frequency(note));
-  if(channel===5){this.#fdsActive=true;this.fds.setVolume(this.#fdsGain,this.#fdsMaster);this.writeRegister(0x4083,0x40|(this.#registers[0x83]&15));return;}
+  this.keyOn(channel);
+ }
+ /** Start/retrigger the configured timer or FDS frequency without changing pitch.
+  * @param {0|1|2|5} channel */
+ keyOn(channel){
+  if(![0,1,2,5].includes(channel))throw new RangeError('Tone channel must be 0, 1, 2 or 5');
+  if(channel===5){this.#checkFds();this.#fdsActive=true;this.fds.setVolume(this.#fdsGain,this.#fdsMaster);this.writeRegister(0x4083,0x40|(this.#registers[0x83]&15));return;}
   this.#enable(channel,true);const high=0x4003+channel*4;this.writeRegister(high,this.#registers[high-0x4000]);
  }
+ /** Stop a channel without replacing its configured pitch. @param {number} channel */
+ keyOff(channel){this.noteOff(channel);}
  /** @param {number} channel */
  noteOff(channel){integer(channel,5,'NES channel');if(channel===5){this.#checkFds();this.writeRegister(0x4083,this.#registers[0x83]|128);this.writeRegister(0x4080,128);}else this.#enable(channel,false);}
 }

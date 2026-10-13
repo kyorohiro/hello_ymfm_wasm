@@ -18,3 +18,19 @@ async function checkChipClockTypes() {
   for (const chip of chips) await chip.setClock(chip.clock);
   await fm.setClock(fm.clock);
 }
+
+async function checkNesPulseFrequencyTypes() {
+  const nes = await useSoundChip('nes');
+  const timer:number = nes.pulse.setFrequency(0,440);
+  nes.pulse.keyOn(0);
+  nes.pulse.keyOff(0);
+  nes.setFrequency(1,660);
+  nes.keyOn(1);
+  nes.keyOff(1);
+  // @ts-expect-error pulse only accepts channels 0 and 1
+  nes.pulse.keyOn(2);
+  // @ts-expect-error Hz must be numeric
+  nes.pulse.setFrequency(0,'A4');
+  // @ts-expect-error noteOn still requires a musical note
+  nes.pulse.noteOn(0);
+}

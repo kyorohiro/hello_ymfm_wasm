@@ -561,6 +561,12 @@ try {
 
 Use `NesApuDirectTransport(chip)` for owned stereo PCM via
 `chip.generateStereo(frames)` or `transport.generateStereo(frames)`.
+For Hz instead of musical notes, use `nes.pulse.setFrequency(0, 440)` followed
+by `nes.pulse.keyOn(0)`. `nes.pulse.keyOff(0)` stops the voice and keeps its
+configured pitch for the next `keyOn`. Frequency can also change while sounding.
+The common `nes.setFrequency(channel, hz)` / `nes.keyOn(channel)` controls support
+tone channels 0, 1, 2 (triangle) and 5 (FDS). `noteOn(channel, note)` continues to
+set a note name or MIDI note number before starting playback.
 Use `NesApuAudifyTransport(chip)` from `tetorica-fm2612/node/transports` for
 Node device output. Transports borrow the chip. The Synth borrows the transport.
 The local build supports source clocks from 1600000–1900000 Hz. Clocks below
