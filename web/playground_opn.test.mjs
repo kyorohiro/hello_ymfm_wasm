@@ -1,3 +1,4 @@
+import {validateChipClock} from './playground_chip_clock.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
@@ -13,7 +14,7 @@ const source=(await readFile(new URL('./playground_opn_worklet.js',import.meta.u
 async function setup(name, overrides={}) {
  let Processor, ready;
  const promise=new Promise(resolve=>{ready=resolve;});
- vm.runInNewContext(source,{Ym2612,Ym2203,Ym2610B,ym2612Factory,ym2203Factory,ym2610Factory,sampleRate:48000,
+ vm.runInNewContext(source,{validateChipClock,Ym2612,Ym2203,Ym2610B,ym2612Factory,ym2203Factory,ym2610Factory,sampleRate:48000,
   AudioWorkletProcessor:class{constructor(){this.port={postMessage:ready};}},registerProcessor:(_,cls)=>{Processor=cls;},...overrides});
  const wasmBinary=await readFile(new URL(`../docs/generated/${name==='ym2610'?'ym2610b':name}_wasm.wasm`,import.meta.url));
  const processor=new Processor({processorOptions:{name,wasmBinary}});
@@ -30,6 +31,9 @@ for(const name of ['ym2612','ym2203','ym2610']) test(`${name}: two real WASM pro
   if(name!=='ym2203')client.setPan(0,true,true);
   client.setOperator(0,3,{multi:1,tl:0,ar:31,d1r:0,d2r:0,sl:0,rr:15});client.noteOn(0,4,600);
   assert.ok(render(a.processor).some(x=>Math.abs(x)>.001));
+  const clock=client.clock;await client.setClock(Math.round(clock/2));
+  assert.ok(render(a.processor).some(x=>Math.abs(x)>.001));
+  await client.setClock(clock);
   assert.deepEqual(render(b.processor),render(control.processor));
   if(name!=='ym2612'){client.reset();client.ssg.tone(0,{frequency:440,volume:12});assert.ok(render(a.processor).some(x=>Math.abs(x)>.001));}
   if(name==='ym2610') await client.adpcmA.loadMemory(new Uint8Array(256));
@@ -54,6 +58,9 @@ test('YM2203 schedules ordered FM/SSG writes at output frames and cancels on res
  processor.receive({id:1,method:'clock',args:[4000000]},port);assert.equal(processor.rate,4000000);
  processor.receive({id:2,method:'schedule',args:[[[0,0,12],[0,8,15],[441,0xa0,99],[882,8,0]],882]},port);
  assert.equal(replies.length,1);
+ // Clock changes must not move VGM sample reservations to different output frames.
+ processor.receive({id:99,method:'clock',args:[8000000]},port);
+ assert.equal(processor.rate,8000000);assert.ok(processor.schedule);
  for(frame=0;frame<=960;frame++)processor.process([],[[new Float32Array(1),new Float32Array(1)]]);
  assert.deepEqual(writes,[[0,0,0],[0,1,12],[0,0,8],[0,1,15],[480,0,0xa0],[480,1,99],[960,0,8],[960,1,0]]);
  assert.equal(replies.at(-1).id,2);assert.equal(replies.at(-1).error,undefined);

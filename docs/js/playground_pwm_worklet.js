@@ -17,6 +17,7 @@ class PWMProcessor extends AudioWorkletProcessor {
   }
   receive({method, args = [], id}, port) {
     try {
+      if (method === 'clock') method = 'setClock';
       if (method === 'dispose') {this.dead = true; this.pwm.dispose(); this.clientPort?.close(); return;}
       if (this.dead || !PWM_METHODS.has(method)) throw new Error('Invalid PWM command');
       const value = this.pwm[method](...args);

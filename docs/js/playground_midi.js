@@ -57,10 +57,11 @@ export function midiNote(note) {
  * @param {Function} options.write Receives FM writes with port, register, value and optional time in seconds.
  * @param {Function} options.writePsg Receives PSG writes.
  * @param {Object} options.preset Initial FM voice, validated by YM2612Synth.
+ * @param {() => number} [options.getClockScale] Default/master-clock ratio for new FM notes.
  * @param {number} [options.fmChannels=6] Number of available physical FM voices.
  * @returns {Object} Rack command handlers and voice lifecycle operations.
  */
-export function createMidiRack({write, writePsg, preset, fmChannels = 6}) {
+export function createMidiRack({write, writePsg, preset, fmChannels = 6, getClockScale = () => 1}) {
   let at;
   const pending = new Map();
   const controls = Object.fromEntries(destinations.map(d=>[d,Array.from({length:16},defaultControls)]));
@@ -86,7 +87,7 @@ export function createMidiRack({write, writePsg, preset, fmChannels = 6}) {
     const control=controls[destination][voice.channel];
     const note=voice.note+control.bend*control.range;
     if(destination===destinations[0]) {
-      const pitch=createPitchFromMidi(note,{referenceMidi:62,referenceBlock:4,referenceFnum:553});
+      const pitch=createPitchFromMidi(note,{referenceMidi:62,referenceBlock:4,referenceFnum:553 * getClockScale()});
       fm.setFrequency(slot,pitch.block,pitch.fnum);
     } else {
       const period=psgPeriodFromFrequency(440*2**((note-69)/12));

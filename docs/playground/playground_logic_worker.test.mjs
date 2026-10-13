@@ -1,3 +1,4 @@
+import {CHIP_CLOCKS} from '../../web/playground_chip_clock.js';
 import {createYm2151Client} from '../../web/playground_ym2151.js';
 import {serializeLogError} from '../../web/playground_log.js';
 import {createSegaPsgClient} from '../../web/playground_segapsg.js';
@@ -30,7 +31,7 @@ function createWorkerHarness(overrides = {}) {
   const messages = [];
   const context = {
     serializeLogError,
-    resolvePlaySeconds, resolvePlayDuration, createBeatClock, runTween, createNativeSampleController, createNativeNoiseController, controlNativeNoise, createWorkerDac, atob, createMidiApi, createMidiRack, createWorkerChip, createNativeFXController, createLiveFxLifecycle, DOMException, structuredClone,
+    CHIP_CLOCKS, resolvePlaySeconds, resolvePlayDuration, createBeatClock, runTween, createNativeSampleController, createNativeNoiseController, controlNativeNoise, createWorkerDac, atob, createMidiApi, createMidiRack, createWorkerChip, createNativeFXController, createLiveFxLifecycle, DOMException, structuredClone,
     createYm2151Client, createSegaPsgClient, createLoopAsyncTasks, createDeadlineScheduler, createOpnClient, createGameboyClient, createSoundChipRegistry, createRf5c164Client, createYm2608Client,
     hzToBlockFnum,
     Error,

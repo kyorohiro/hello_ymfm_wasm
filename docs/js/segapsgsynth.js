@@ -32,7 +32,7 @@ export class SegaPSGDirectTransport {
 
 /** Tone/noise register generation shared by Node.js and browser transports. */
 export class SegaPSGSynth {
-  /** @param {{transport: {write: (value: number) => void, reset?: () => void, resetAll?: () => void}}} [options] Ordered register transport. */
+  /** @param {{transport: {clock?:number, write: (value: number) => void, reset?: () => void, resetAll?: () => void}}} [options] Ordered register transport. */
   constructor({transport} = {}) {
     if (!transport || typeof transport.write !== 'function') throw new TypeError('SegaPSGSynth requires a transport with write(value)');
     this.transport = transport;
@@ -47,7 +47,7 @@ export class SegaPSGSynth {
    */
   tone(channel, options = {}) {
     const normalizedChannel = normalizeToneChannel(channel);
-    const period = resolveTonePeriod(options);
+    const period = resolveTonePeriod(options, this.transport.clock ?? SEGAPSG_CLOCK);
     const attenuation = resolveAttenuation(options);
     writeTone(this.write.bind(this), normalizedChannel, period, attenuation);
     return period;
@@ -106,25 +106,25 @@ export class SegaPSGSynth {
 }
 
 /** @param {number} frequency */
-export function psgPeriodFromFrequency(frequency) {
+export function psgPeriodFromFrequency(frequency, clock = SEGAPSG_CLOCK) {
   const value = Number(frequency);
   if (!Number.isFinite(value) || value <= 0) {
     throw new Error(`PSG frequency must be a positive finite number, got ${frequency}`);
   }
-  return Math.max(1, Math.min(0x3ff, Math.round(SEGAPSG_CLOCK / (32 * value))));
+  return Math.max(1, Math.min(0x3ff, Math.round(clock / (32 * value))));
 }
 
 /** @param {string | number} note */
-export function psgPeriodFromNote(note) {
+export function psgPeriodFromNote(note, clock = SEGAPSG_CLOCK) {
   const match = /^([A-G](?:#|b)?)(-?\d+)$/.exec(String(note).trim());
   if (!match || NOTE_TO_SEMITONE[match[1]] === undefined) {
     throw new Error(`Unsupported PSG note: ${note}`);
   }
   const midi = (Number(match[2]) + 1) * 12 + NOTE_TO_SEMITONE[match[1]];
-  return psgPeriodFromFrequency(440 * 2 ** ((midi - 69) / 12));
+  return psgPeriodFromFrequency(440 * 2 ** ((midi - 69) / 12), clock);
 }
 
-function resolveTonePeriod(options) {
+function resolveTonePeriod(options, clock = SEGAPSG_CLOCK) {
   if (!options || typeof options !== "object") {
     throw new Error("psg.tone options must be an object");
   }
@@ -132,10 +132,10 @@ function resolveTonePeriod(options) {
     return normalizePeriod(options.period);
   }
   if (options.frequency !== undefined) {
-    return psgPeriodFromFrequency(options.frequency);
+    return psgPeriodFromFrequency(options.frequency, clock);
   }
   if (options.note !== undefined) {
-    return psgPeriodFromNote(options.note);
+    return psgPeriodFromNote(options.note, clock);
   }
   throw new Error("psg.tone requires period, frequency, or note");
 }

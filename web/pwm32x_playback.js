@@ -1,7 +1,8 @@
+import {attachChipClock, CHIP_CLOCKS, validateChipClock} from './playground_chip_clock.js';
 import {PWM32X} from './pwm32x.js';
 
 /** @typedef {{frame: number, register: 0|1|2|3|4, value: number}} PWMWrite */
-/** @typedef {Pick<PWM32XPlayback, 'write'|'writeRegister'|'read'|'reset'|'scheduleWrites'|'clearSchedule'|'getState'>} PWMAPI */
+/** @typedef {Pick<PWM32XPlayback, 'write'|'writeRegister'|'read'|'reset'|'scheduleWrites'|'clearSchedule'|'getState'|'setClock'>} PWMAPI */
 /** @typedef {{[K in keyof PWMAPI]: (...args: Parameters<PWMAPI[K]>) => Promise<ReturnType<PWMAPI[K]>>}} AsyncPWMAPI */
 /** MAME-derived PWM plus output-frame scheduling; no timers or audio device. */
 export class PWM32XPlayback {
@@ -10,6 +11,8 @@ export class PWM32XPlayback {
     this.chip = chip ?? new PWM32X({outputMode: 'duty', gain: 1, ...options});
     this.frame = 0; this.queue = []; this.order = 0;
   }
+  /** Change master Hz without resetting FIFO, phase or output-frame reservations. @param {number} hz */
+  setClock(hz) { this.chip.assertOpen(); this.chip.clock = validateChipClock(hz); }
   sampleRate() {return this.chip.sampleRate();}
   /** @param {number} register @param {number} value */
   write(register, value) {this.chip.writeRegister(register, value);}
@@ -58,7 +61,7 @@ export class PWM32XPlayback {
   dispose() {this.queue.length = 0; this.chip.dispose();}
 }
 
-export const PWM_METHODS = new Set(['write', 'writeRegister', 'read', 'reset', 'scheduleWrites', 'clearSchedule', 'getState']);
+export const PWM_METHODS = new Set(['write', 'writeRegister', 'read', 'reset', 'scheduleWrites', 'clearSchedule', 'getState', 'setClock']);
 
 /** Main or logic Worker client; PCM and scheduling stay in the AudioWorklet. */
 /** @param {MessagePort} port @returns {AsyncPWMAPI & {dispose(): void}} */
@@ -86,5 +89,5 @@ export function createPWM32XClient(port) {
     for (const request of pending.values()) request.reject(new Error('PWM client disposed'));
     pending.clear();
   };
-  return client;
+  return attachChipClock(client, port, CHIP_CLOCKS.pwm);
 }

@@ -40,6 +40,7 @@ export function lerp(
  * Create note/pitch, scale, chord and loop-local sequence helpers.
  * @param {{noteToSemitone: Record<string, number>, scaleIntervals: Record<string, number[]>,
  *   createPitchFromMidi: typeof import('./pitch.js').createPitchFromMidi,
+ *   getClockScale?: () => number,
  *   pitchReference: {referenceMidi: number, referenceBlock: number, referenceFnum: number},
  *   synth: () => import('./ym2612synth.js').YM2612Synth | null,
  *   presets: Record<string, import('./ym2612synth.js').YM2612Preset>, activeNotes: Set<number>,
@@ -62,6 +63,7 @@ export function createPlaygroundMusic(
     waitBeats,
     getCurrentLoopContext,
     getBpm = () => 120,
+    getClockScale = () => 1,
   } = options;
   const globalCycleState =
     new Map();
@@ -111,7 +113,7 @@ export function createPlaygroundMusic(
       referenceBlock:
         pitchReference.referenceBlock,
       referenceFnum:
-        pitchReference.referenceFnum,
+        pitchReference.referenceFnum * getClockScale(),
     });
   }
 

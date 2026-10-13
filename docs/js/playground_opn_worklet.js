@@ -1,3 +1,4 @@
+import {validateChipClock} from './playground_chip_clock.js';
 import {Ym2612} from './ym2612.js';
 import {Ym2203} from './ym2203.js';
 import {Ym2610B} from './ym2610b.js';
@@ -41,8 +42,7 @@ class Processor extends AudioWorkletProcessor {
         case 'write': this.chip.write(args[0] * 2, args[1]); this.chip.write(args[0] * 2 + 1, args[2]); break;
         case 'reset': this.cancelSchedule(); this.chip.reset(); this.remainder = 0; this.left = this.right = 0; break;
         case 'clock':
-          if (this.name !== 'ym2203' || !Number.isInteger(args[0]) || args[0] < 100000 || args[0] > 20000000) throw new Error('Invalid YM2203 clock');
-          if (this.schedule && this.clock !== args[0]) throw new Error('Cannot change clock during scheduled playback');
+          validateChipClock(args[0]);
           this.clock = args[0]; this.rate = this.chip.sampleRate(args[0]); break;
         case 'schedule': {
           if (this.name !== 'ym2203') throw new Error('Scheduling requires YM2203');

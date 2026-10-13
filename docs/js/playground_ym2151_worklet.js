@@ -1,3 +1,4 @@
+import {validateChipClock} from './playground_chip_clock.js';
 import {Ym2151} from './ym2151.js';
 import factory from '../generated/ym2151_wasm.js';
 class Processor extends AudioWorkletProcessor {
@@ -7,9 +8,9 @@ class Processor extends AudioWorkletProcessor {
       if (data.port) {
         if (this.dead) { data.port.close(); return; }
         this.remote = data.port;
-        this.remote.onmessage = event => this.receive(event.data);
+        this.remote.onmessage = event => this.receive(event.data, this.remote);
         this.remote.start();
-      } else this.receive(data);
+      } else this.receive(data, this.port);
     };
     Ym2151.create({moduleFactory: factory, moduleOptions: {wasmBinary: options.processorOptions.wasmBinary}, sampleRate})
       .then(chip => {
@@ -18,8 +19,13 @@ class Processor extends AudioWorkletProcessor {
       }).catch(error => { this.dispose(); this.port.postMessage({error: error.message}); });
   }
   dispose() { this.dead = true; this.chip?.dispose(); this.chip = null; this.remote?.close(); }
-  receive(data) {
+  receive(data, port) {
     if (data.method === 'dispose') { this.dispose(); return; }
+    if (data.method === 'clock') {
+      try { if (!this.chip) throw new Error('OPM not ready'); this.rate = this.chip.sampleRate(validateChipClock(data.args[0])); port.postMessage({id:data.id}); }
+      catch (error) { port.postMessage({id:data.id,error:error.message}); }
+      return;
+    }
     if (!this.chip) return;
     if (data.method === 'reset') { this.chip.reset(); this.remainder = 0; this.left = this.right = 0; }
     if (data.method === 'writeRegister') { this.chip.write(0, data.args[0]); this.chip.write(1, data.args[1]); }

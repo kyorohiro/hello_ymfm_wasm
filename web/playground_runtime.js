@@ -1,3 +1,4 @@
+import {attachChipClock, CHIP_CLOCKS} from './playground_chip_clock.js';
 import {createNesAudio} from './playground_nes_audio.js';
 import {createNesClient} from './playground_nes.js';
 import {createPWM32XAudio} from './playground_pwm_audio.js';
@@ -335,7 +336,7 @@ export function createPlaygroundRuntime(
           options.onMegaDriveEvent?.(event);
           if(logicWorker && !applyingChipObserver) {
             const core=synth?.fm??synth;
-            logicWorker.postMessage({type:"chip-state",state:core?.getState?.()});
+            logicWorker.postMessage({type:"chip-state",state:{...core?.getState?.(),clock:sharedFm?.clock}});
           }
         }
       );
@@ -1147,6 +1148,7 @@ export function createPlaygroundRuntime(
           applyingChipObserver=true;
           if(core) core.transport={write(port,register,value){},reset(){}};
           const {method,args}=message.event;
+          if (method === 'setClock') sharedFm?._adoptClock(args[0]);
           if(typeof synth?.[method]==="function" && !method.startsWith("_")) synth[method](...args);
         } catch(error){emitLog(`Observer: ${error.message}`);}
         finally {if(core)core.transport=transport;applyingChipObserver=false;}
@@ -1238,7 +1240,7 @@ export function createPlaygroundRuntime(
   function getMidiRack() {
     if (synth?.dac?.enabled) throw new Error('Disable DAC before using MIDI FM playback');
     if (capabilities.chip !== "ym2612") throw new Error("MIDI outputs currently require YM2612 mode");
-    return midiRack ??= createMidiRack({preset: Object.values(presets)[0],
+    return midiRack ??= createMidiRack({getClockScale:() => CHIP_CLOCKS.ym2612 / (sharedFm?.clock ?? CHIP_CLOCKS.ym2612),preset: Object.values(presets)[0],
       write: entry => entry.time === undefined ? synth.write(entry.port,entry.register,entry.value) : midiWriteBatch ? midiWriteBatch.push(entry) : audioScheduler.enqueue([entry]),
       writePsg: entry => entry.time === undefined ? megaDrive.psg.write(entry.value) : (midiWriteBatch ? midiWriteBatch.push({...entry,type:"psg-write"}) : audioScheduler.enqueue([{...entry,type:"psg-write"}])),
     });
@@ -1319,7 +1321,20 @@ export function createPlaygroundRuntime(
         "__anonymous__",
     };
     const fx = liveFxLifecycle.track(createFxApi(), evaluationState.liveFxDefinitions);
-    if (sharedFmSynth !== synth) { sharedFm = createFmProxy(synth); Object.defineProperty(sharedFm, 'id', {value: capabilities.chip ?? 'ym2612', enumerable: true}); sharedFmSynth = synth; }
+    if (sharedFmSynth !== synth) {
+      sharedFm = createFmProxy(synth);
+      if (megaDrive.node?.port) attachChipClock(sharedFm, megaDrive.node.port, CHIP_CLOCKS[capabilities.chip ?? 'ym2612'], {
+        primary:true,
+        onApplied: hz => {
+          if (synth.ssg) synth.ssg.clock = hz / (capabilities.chip === 'ym2203' ? 2 : 4);
+          if (synth.adpcmB) synth.adpcmB.clock = hz;
+          if (synth.adpcm) synth.adpcm.clock = hz;
+          logicWorker?.postMessage({type:'chip-clock-state',clock:hz});
+        },
+      });
+      Object.defineProperty(sharedFm, 'id', {value: capabilities.chip ?? 'ym2612', enumerable: true});
+      sharedFmSynth = synth;
+    }
     const fm = sharedFm;
     const psg = megaDrive.psg;
     const musicApi =
@@ -1329,6 +1344,7 @@ export function createPlaygroundRuntime(
         scaleIntervals:
           SCALE_INTERVALS,
         createPitchFromMidi,
+        getClockScale: () => CHIP_CLOCKS[capabilities.chip ?? 'ym2612'] / (fm.clock ?? CHIP_CLOCKS[capabilities.chip ?? 'ym2612']),
         pitchReference: {
           referenceMidi:
             REFERENCE_MIDI,
@@ -1868,7 +1884,7 @@ export function createPlaygroundRuntime(
         const channel=new MessageChannel();
         megaDrive.node.port.postMessage({type:"attach-chip-port",port:channel.port1},[channel.port1]);
         const core=synth?.fm??synth;
-        worker.postMessage({type:"chip-port",port:channel.port2,state:core?.getState?.()},[channel.port2]);
+        worker.postMessage({type:"chip-port",port:channel.port2,state:{...core?.getState?.(),clock:sharedFm?.clock}},[channel.port2]);
       }
       const port = megaDrive.audio?.nativeFX?.workerPort();
       if (port) worker.postMessage({type: "native-fx", port}, [port]);

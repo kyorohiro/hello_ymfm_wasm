@@ -1,3 +1,4 @@
+import {attachChipClock, CHIP_CLOCKS} from './playground_chip_clock.js';
 import {createSegaPsgApi} from './segapsg_api.js';
 /** Immediate ordered commands, shared by main-thread and Worker runtimes. */
 /** @param {MessagePort} port */
@@ -7,7 +8,8 @@ export function createSegaPsgClient(port) {
     if (disposed) throw new Error('Sega PSG disposed');
     port.postMessage({method, args});
   };
-  return {...createSegaPsgApi({
+  const client = {...createSegaPsgApi({
+    get clock() { return client.clock; },
     write: value => send('write', [value]),
     reset: () => send('reset'),
     resetAll: () => send('reset'),
@@ -15,4 +17,5 @@ export function createSegaPsgClient(port) {
     if (disposed) return;
     send('dispose'); disposed = true; port.close();
   }};
+  return attachChipClock(client, port, CHIP_CLOCKS.segapsg);
 }

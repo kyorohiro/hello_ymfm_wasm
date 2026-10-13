@@ -1,3 +1,4 @@
+import {validateChipClock} from './playground_chip_clock.js';
 import {Ym2608Timeline} from './playground_ym2608_timeline.js';
 import {Ym2608AudioEngine} from './ym2608audioengine.js';
 import factory from '../generated/ym2608_wasm.js';
@@ -38,7 +39,7 @@ class Processor extends AudioWorkletProcessor {
           if (!(args[0] instanceof Uint8Array) || args[0].length !== 8192) throw new Error('Expected 8192-byte rhythm ROM');
           this.engine.loadAdpcmARom(...args); break;
         case 'clock':
-          if (!Number.isInteger(args[0]) || args[0] < 100000 || args[0] > 20000000) throw new Error('Invalid YM2608 clock');
+          validateChipClock(args[0]);
           this.engine._chipSampleRate = this.engine.ym2608.sampleRate(args[0]); break;
         case 'prepareTimeline': this.timeline.prepare(...args); break;
         case 'playTimeline': this.timeline.play(error => port.postMessage({id: data.id, ...(error ? {error} : {})})); return;

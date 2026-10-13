@@ -1,3 +1,4 @@
+import {validateChipClock} from './playground_chip_clock.js';
 import {createChipPortReceiver} from "./playground_chip_port.js";
 /**
  * @file ym2610b-worklet.js
@@ -13,9 +14,14 @@ class YM2610BProcessor extends AudioWorkletProcessor {
     super();
     this.chip = null;
     this.chipRate = sampleRate;
-    this.remainder = 0;
-    const receiveChipPort = createChipPortReceiver(data => handle(data));
-    const handle = data => {
+    this.remainder = 0; this.lastLeft = 0; this.lastRight = 0;
+    const receiveChipPort = createChipPortReceiver((data, reply) => handle(data, reply));
+    const handle = (data, reply = message => this.port.postMessage(message)) => {
+      if (data.type === 'chip-clock') {
+        try { if (!this.chip) throw new Error('Chip not ready'); this.chipRate = this.chip.sampleRate(validateChipClock(data.clock)); reply({type:'chip-clock-result',id:data.id}); }
+        catch (error) { reply({type:'chip-clock-result',id:data.id,error:error.message}); }
+        return;
+      }
       if (data.type === "initialize") void this.initialize(data.wasmBinary);
       if (data.type === "write" && this.chip) this.chip.write(data.port * 2, data.register), this.chip.write(data.port * 2 + 1, data.value);
       if (data.type === "reset") this.chip?.reset();
@@ -43,13 +49,15 @@ class YM2610BProcessor extends AudioWorkletProcessor {
     if (!this.chip) { left.fill(0); right.fill(0); return true; }
     for (let frame = 0; frame < left.length; frame += 1) {
       this.remainder += this.chipRate;
-      const count = Math.max(1, Math.floor(this.remainder / sampleRate));
+      const count = Math.floor(this.remainder / sampleRate);
       this.remainder -= count * sampleRate;
+      if (count) {
       const pcm = this.chip.generateStereo(count);
       let l = 0; let r = 0;
       for (let index = 0; index < count; index += 1) { l += pcm.left[index]; r += pcm.right[index]; }
-      left[frame] = l / count;
-      right[frame] = r / count;
+      this.lastLeft = l / count; this.lastRight = r / count;
+      }
+      left[frame] = this.lastLeft; right[frame] = this.lastRight;
     }
     return true;
   }

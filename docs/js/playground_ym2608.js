@@ -1,3 +1,4 @@
+import {attachChipClock, CHIP_CLOCKS} from './playground_chip_clock.js';
 /** Shared main-thread / Worker facade; register writes and memory transfers share one ordered port. */
 import {YM2608Synth} from './ym2608synth.js?v=ym2608-modes-1';
 
@@ -37,15 +38,11 @@ export function createYm2608Client(port) {
   };
   synth.prepareTimeline = (events, blocks, durationSamples) => transfer('prepareTimeline', [events, blocks, durationSamples]);
   synth.playTimeline = () => transfer('playTimeline', []);
-  synth.setClock = async clock => {
-    await transfer('clock', [clock]);
-    synth.ssg.clock = clock / 4; synth.adpcm.clock = clock;
-  };
   synth.dispose = () => {
     if (disposed) return;
     send('dispose'); disposed = true;
     for (const request of pending.values()) request.reject(new Error('YM2608 disposed'));
     pending.clear(); port.close();
   };
-  return synth;
+  return attachChipClock(synth, port, CHIP_CLOCKS.ym2608, {onApplied: hz => { synth.ssg.clock = hz / 4; synth.adpcm.clock = hz; }});
 }

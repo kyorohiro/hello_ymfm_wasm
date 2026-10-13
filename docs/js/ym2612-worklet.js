@@ -1,3 +1,4 @@
+import {validateChipClock} from './playground_chip_clock.js';
 import {YM2612DacPlayer, receiveDacCommand} from "./ym2612_dac.js";
 import {createChipPortReceiver} from "./playground_chip_port.js?v=dac-pcm-1";
 /**
@@ -152,6 +153,11 @@ class YM2612Processor extends AudioWorkletProcessor {
   }
 
   applyCommand(command, reply = message => this.port.postMessage(message)) {
+    if (command.type === 'chip-clock') {
+      try { if (!this.ym2612) throw new Error('Chip not ready'); this.clock = validateChipClock(command.clock); reply({type:'chip-clock-result',id:command.id}); }
+      catch (error) { reply({type:'chip-clock-result',id:command.id,error:error.message}); }
+      return;
+    }
     if (command.type === 'mixer-settings') {
       if (!['ym2612', 'segapsg'].includes(command.name) || !Array.isArray(command.gains) || command.gains.length !== 2 || command.gains.some(v => !Number.isFinite(v) || v < 0 || v > 2)) throw new RangeError('Invalid mixer settings');
       this.mixTargets[command.name] = command.gains;
@@ -375,11 +381,15 @@ class YM2612Processor extends AudioWorkletProcessor {
 
   renderFrames(leftOut, rightOut, offset, frames) {
     if (frames <= 0) return;
-    const chipRate = this.ym2612.sampleRate();
+    const chipRate = this.ym2612.sampleRate(this.clock);
+    const psgRate = this.ym2612.sampleRate();
+    this.psgRemainder ??= 0;
+    this.psgLeft ??= 0; this.psgRight ??= 0;
+    const psgFrames = Math.floor((this.psgRemainder + frames * psgRate) / sampleRate);
     const sourceFrames = Math.floor((this.resampleRemainder + frames * chipRate) / sampleRate);
     const pcm = sourceFrames > 0 ? this.ym2612.generateStereoView(sourceFrames) : null;
-    const psg = sourceFrames > 0 ? this.psg?.generateStereoView(sourceFrames) : null;
-    let sourceOffset = 0;
+    const psg = psgFrames > 0 ? this.psg?.generateStereoView(psgFrames) : null;
+    let sourceOffset = 0, psgOffset = 0;
     for (let i = 0; i < frames; i++) {
       for (const name of MIX_SOURCES) {
         if (this.mixRemaining[name] > 0) {
@@ -389,6 +399,14 @@ class YM2612Processor extends AudioWorkletProcessor {
       }
       const fmGains = this.mixCurrent.ym2612;
       const psgGains = this.mixCurrent.segapsg;
+      this.psgRemainder += psgRate;
+      const psgCount = Math.floor(this.psgRemainder / sampleRate);
+      this.psgRemainder -= psgCount * sampleRate;
+      if (psg && psgCount) {
+        let l = 0, r = 0;
+        for (let j = 0; j < psgCount; j++, psgOffset++) { l += psg.left[psgOffset]; r += psg.right[psgOffset]; }
+        this.psgLeft = l / psgCount; this.psgRight = r / psgCount;
+      }
       this.resampleRemainder += chipRate;
       const count = Math.floor(this.resampleRemainder / sampleRate);
       this.resampleRemainder -= count * sampleRate;
@@ -397,16 +415,16 @@ class YM2612Processor extends AudioWorkletProcessor {
         for (let j = 0; j < count; j++, sourceOffset++) {
           const fmLeft = (pcm.left[sourceOffset] - this.idleLeft) * fmGains[0];
           const fmRight = (pcm.right[sourceOffset] - this.idleRight) * fmGains[1];
-          left += psg ? clampSample(fmLeft * YM_GAIN + psg.left[sourceOffset] * PSG_GAIN * psgGains[0]) : fmLeft;
-          right += psg ? clampSample(fmRight * YM_GAIN + psg.right[sourceOffset] * PSG_GAIN * psgGains[1]) : fmRight;
+          left += fmLeft;
+          right += fmRight;
         }
         this.lastLeft = left / count;
         this.lastRight = right / count;
       }
       // Hold the previous sample during upsampling. Preserve phase across
       // render segments so scheduled writes stay on the output timeline.
-      leftOut[offset + i] = this.lastLeft;
-      rightOut[offset + i] = this.lastRight;
+      leftOut[offset + i] = this.psg ? clampSample(this.lastLeft * YM_GAIN + this.psgLeft * PSG_GAIN * psgGains[0]) : this.lastLeft;
+      rightOut[offset + i] = this.psg ? clampSample(this.lastRight * YM_GAIN + this.psgRight * PSG_GAIN * psgGains[1]) : this.lastRight;
     }
   }
 

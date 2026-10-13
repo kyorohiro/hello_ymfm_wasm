@@ -1,3 +1,4 @@
+import {attachChipClock, CHIP_CLOCKS} from './playground_chip_clock.js';
 /** Independent OPM client. Operator indices follow register order M1, C1, M2, C2. */
 /** @param {MessagePort} port */
 export function createYm2151Client(port) {
@@ -21,7 +22,7 @@ export function createYm2151Client(port) {
     ks: [0x80, 6, 3], ar: [0x80, 0, 31], am: [0xa0, 7, 1], d1r: [0xa0, 0, 31],
     dt2: [0xc0, 6, 3], d2r: [0xc0, 0, 31], d1l: [0xe0, 4, 15], rr: [0xe0, 0, 15],
   };
-  return {
+  const client = {
     writeRegister,
     reset() { send('reset'); registers.fill(0); },
     setOperator(ch, operator, options) {
@@ -50,9 +51,11 @@ export function createYm2151Client(port) {
         midi = (Number(match[3]) + 1) * 12 + ({C:0,D:2,E:4,F:5,G:7,A:9,B:11}[match[1].toUpperCase()]) + (match[2] === '#' ? 1 : match[2] === 'b' ? -1 : 0);
       }
       if (!Number.isInteger(midi) || midi < 13 || midi > 108) throw new RangeError('YM2151 note must be C#0..C8 (MIDI 13..108)');
-      const index = midi - 13;
+      const pitch = Math.round((midi - 13 + 12 * Math.log2(CHIP_CLOCKS.ym2151 / client.clock)) * 64);
+      if (pitch < 0 || pitch > 95 * 64 + 63) throw new RangeError('Note outside the YM2151 range at this clock');
+      const index = Math.floor(pitch / 64);
       const keyCode = (Math.floor(index / 12) << 4) | [0,1,2,4,5,6,8,9,10,12,13,14][index % 12];
-      writeRegister(0x28 + ch, keyCode); writeRegister(0x30 + ch, 0);
+      writeRegister(0x28 + ch, keyCode); writeRegister(0x30 + ch, (pitch % 64) << 2);
       return keyCode;
     },
     /** Raw key code and 6-bit key fraction; useful for bends and VGM values. */
@@ -65,4 +68,5 @@ export function createYm2151Client(port) {
     setNoise(enabled, frequency = 0) { integer(frequency, 31, 'Noise frequency'); writeRegister(15, (enabled ? 128 : 0) | frequency); },
     dispose() { if (disposed) return; send('dispose'); disposed = true; port.close(); },
   };
+  return attachChipClock(client, port, CHIP_CLOCKS.ym2151);
 }

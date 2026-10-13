@@ -1,3 +1,4 @@
+import {validateChipClock} from './playground_chip_clock.js';
 import {createChipPortReceiver} from "./playground_chip_port.js";
 /**
  * @file ym2608-worklet.js
@@ -13,9 +14,14 @@ class YM2608Processor extends AudioWorkletProcessor {
     super();
     this.chip = null;
     this.chipRate = sampleRate;
-    this.remainder = 0;
-    const receiveChipPort = createChipPortReceiver(data => handle(data));
-    const handle = data => {
+    this.remainder = 0; this.lastLeft = 0; this.lastRight = 0;
+    const receiveChipPort = createChipPortReceiver((data, reply) => handle(data, reply));
+    const handle = (data, reply = message => this.port.postMessage(message)) => {
+      if (data.type === 'chip-clock') {
+        try { if (!this.chip) throw new Error('Chip not ready'); this.chipRate = this.chip.sampleRate(validateChipClock(data.clock)); reply({type:'chip-clock-result',id:data.id}); }
+        catch (error) { reply({type:'chip-clock-result',id:data.id,error:error.message}); }
+        return;
+      }
       if (data.type === "initialize") void this.initialize(data.wasmBinary, data.rhythmRom);
       if (data.type === 'loadRhythmRom' && this.chip) this.chip.loadAdpcmARom(data.bytes);
       if (data.type === 'loadAdpcmMemory') {
@@ -62,13 +68,15 @@ class YM2608Processor extends AudioWorkletProcessor {
     if (!this.chip) { left.fill(0); right.fill(0); return true; }
     for (let frame = 0; frame < left.length; frame += 1) {
       this.remainder += this.chipRate;
-      const samples = Math.max(1, Math.floor(this.remainder / sampleRate));
+      const samples = Math.floor(this.remainder / sampleRate);
       this.remainder -= samples * sampleRate;
+      if (samples) {
       const pcm = this.chip.generateStereo(samples);
       let mixedLeft = 0, mixedRight = 0;
       for (let index = 0; index < samples; index += 1) { mixedLeft += pcm.left[index]; mixedRight += pcm.right[index]; }
-      left[frame] = mixedLeft / samples;
-      right[frame] = mixedRight / samples;
+      this.lastLeft = mixedLeft / samples; this.lastRight = mixedRight / samples;
+      }
+      left[frame] = this.lastLeft; right[frame] = this.lastRight;
     }
     return true;
   }

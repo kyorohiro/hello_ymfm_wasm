@@ -235,7 +235,7 @@ Worker の BPM 通知は Main の command queue を迂回し、待機中の Main
 | MIDI output の `play` | seconds / beats は通常 play と同じ動作 | 明示的な単位を推奨 |
 | `tween({seconds:n}, onUpdate)` | 経過秒。非追従 | `tween(n, fn)` の標準的な置き換え |
 | `tween({beats:n}, onUpdate)` | 経過拍。途中変更に追従 | 新規追加 |
-| `tween(n, fn)` | 秒。非追従 | 互換性のため維持、型定義では deprecated |
+| `tween(n, fn)` | 秒。非追従 | 秒指定の短い書き方として維持。非推奨扱いにしない |
 | runtime の `setBpm` / `getBpm` | 実行中の共有テンポ | ホスト用に追加。コード内の pg の追加メソッドとは別 |
 
 今回の変更では旧 `duration` の削除と既定長の統一は行っていない。
@@ -249,7 +249,7 @@ Worker の BPM 通知は Main の command queue を迂回し、待機中の Main
 - 通常 play と MIDI output.play は JS 待機後に note-off する。音声側に送信済みの絶対時刻を再予約する方式ではない。
 - MIDI ファイルの再生と createSongPlayer の譜面テンポは、今回共有 BPM に追従する対象へ変更していない。録音済み音声サンプルの速度も自動変更しない。
 - native FX は BPM 通知で既存周期パラメーターを Hz に再換算する。FX を作り直さず位相を保持する。反映は音声処理が通知を受けたブロックからで、JS の変更時刻との完全な同時性は保証しない。
-- FX の `rate` / `phase` → `periodBeats` 改名、予約の名前整理、stream.fadeOut の整合、他音源への setClock 追加は未実施。
+- FX の `rate` / `phase` → `periodBeats` 改名、予約の名前整理、stream.fadeOut の整合は未実施。他音源への setClock 追加は下記の追記で対応。
 - 低水準の createPlaygroundMusic / createMidiApi を別ホストで使う場合、拍追従には waitBeats の注入が必要。Playground では両経路に接続済み。未注入の既存ホストは開始時 BPM の秒換算を維持する。
 
 ### 検証
@@ -266,3 +266,42 @@ Worker の BPM 通知は Main の command queue を迂回し、待機中の Main
 これは引数処理の参考値であり、実音声・大量の同時ループの負荷測定ではない。オブジェクト形式を避ける必要があるという結果にはなっていない。
 
 新しい使用例は `/examples/basic/tempo-follow.js`。既存 slicer の tween 例と紹介ページは `{seconds}` 形式へ移行し、例コードの生成物も更新した。
+
+
+## 2026-10-13 追記：Playground の10音源に setClock
+
+`await chip.setClock(hz)` と読み取り専用の `chip.clock` を、useSoundChip / createSoundChip の全10音源へ追加。選択中の既定 FM と独立音源、Main と Worker の両経路が対象。
+
+| 音源 | 既定クロック（Hz） |
+| --- | ---: |
+| YM2612 | 7,670,454 |
+| YM2203 | 4,000,000 |
+| YM2610 | 8,000,000 |
+| YM2608 | 8,000,000 |
+| YM2151 | 3,579,545 |
+| Sega PSG | 3,579,545 |
+| Game Boy | 4,194,304 |
+| NES APU / FDS | 1,789,773（生成時の clock 指定を優先） |
+| RF5C164 | 12,500,000 |
+| 32X PWM | 23,011,361 |
+
+### 動作
+
+- 整数100,000〜100,000,000 Hzを受け付ける。NaN、Infinity、範囲外、非整数は Promise の拒否。既存 YM2203 / YM2608 の受け付け範囲もこれに拡張。
+- 音声側の適用完了を await できる。チップのレジスター、音源メモリー、キーオン状態を維持し、チップを再生成しない。reset はクロック設定を維持する。
+- 書き込み済みの raw 音程はクロック比に応じて上下する。チップ内部の envelope、LFO、noise、PCM 読み出しも速さが変わる。setNote / setFrequency 等の新しい高水準指定は更新後クロックで計算する（ハードウェアの表現範囲内）。FM の raw BLOCK / F-NUM や OPM の raw KeyCode / KeyFraction は変換しない。
+- 通常 play と MIDI output の新しい FM 音符も更新後クロックで換算する。録音された MIDI ファイルの予約済みレジスター値を後から再計算する機能ではない。
+- 出力 sampleRate、BPM、sleep / beat / tween の進行、44,100 Hz の VGM sample timeline、PWM の出力フレーム予約は変化しない。予約済み書き込みは元の時刻・値で実行する。
+- 既定 YM2612 のクロックを変えても、同時に鳴る内蔵 Sega PSG のクロックは変えない。独立 PSG の setClock はその音源だけに反映する。
+- NES の変更は既存 NTSC / PAL コアの進行速度の変更。途中で地域固有のテーブルを入れ替える操作ではない。PAL の初期化には引き続き生成時の clock オプションを使う。
+
+### 実装と確認
+
+OPN / OPM はネイティブ生成レートを変更して既存状態を維持。固定レートの GB / PSG / NES / RF5C164 はコアの進行フレーム数をクロック比で変換し、出力時間軸を維持。PWM は内部の master clock を更新。共有の検証・要求応答・固定レート変換は playground_chip_clock.js に集約した。
+
+Monaco が読む型定義、npm 向け JSDoc 宣言、itch 配布リスト、web / docs の両実装を更新。使用例は `/examples/chip-raw/chip-clock-sweep.js`。数値版 tween の秒指定で、鳴っている PSG のクロックを連続変更する。
+
+- 関連回帰テスト210件成功。実 GB の持続音は440→220 Hz、新しい周波数指定は440 Hzへ戻ることを確認。
+- npm パッケージのビルド・JSDoc宣言195件・単独インストール・15音源 / 23 WASM・型検証、Playground型検証、itch ZIPの327参照検査が成功。
+- Chromium の Main / Worker で全10音源のクロック変更・復帰・不正値拒否、および選択中 FM の変更を確認。
+- Windows / Linux および Tauri 実機の音声出力は未確認。Tauri の Rust・配布物・バージョン指定は変更していない。

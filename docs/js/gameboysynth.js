@@ -49,14 +49,14 @@ export class GameboyDirectTransport {
   reset() { this.chip.reset(); }
 }
 export class GameboySynth {
-  #transport; #clock; #disposed = false; #initialized = false;
+  #transport; #disposed = false; #initialized = false;
   // Sent registers and configured values retained across keyOff. Neither is core status.
   #shadow = new Uint8Array(48); #voice = new Uint8Array(48);
   /** @param {{transport: {writeRegister(offset: number, value: number): void, reset(): void}, clock?: number}} [options] */
   constructor({transport, clock = GAMEBOY_APU_CLOCK} = {}) {
     if (!transport || typeof transport.writeRegister !== 'function' || typeof transport.reset !== 'function') throw new TypeError('Expected transport');
     integer(clock, 1, 0x3fffffff);
-    this.#transport = transport; this.#clock = clock;
+    this.#transport = transport; this.clock = clock;
     /** @type {Readonly<GameboyPulseApi>} */
     this.pulse = Object.freeze({
       setVoice: (ch, value) => this.#setVoice(this.#pulse(ch), value, false),
@@ -184,11 +184,11 @@ export class GameboySynth {
   #frequency(low, hz, divisor) {
     this.#ready();
     if (!Number.isFinite(hz) || hz <= 0) throw new RangeError('Expected finite positive Hz');
-    const n = Math.round(2048 - this.#clock / (divisor * hz));
+    const n = Math.round(2048 - this.clock / (divisor * hz));
     integer(n, 0, 2047);
     this.#update(low, 255, n & 255, true);
     this.#update(low + 1, 0x87, n >> 8, true); // Never replay trigger; retain length-enable.
-    return this.#clock / (divisor * (2048 - n));
+    return this.clock / (divisor * (2048 - n));
   }
   #trigger(low) {
     this.#send(low, this.#voice[low]);

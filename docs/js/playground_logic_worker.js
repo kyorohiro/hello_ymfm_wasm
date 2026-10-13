@@ -1,3 +1,4 @@
+import {CHIP_CLOCKS} from './playground_chip_clock.js';
 import {createNesClient} from './playground_nes.js';
 import {createPWM32XClient} from './pwm32x_playback.js';
 import {createYm2151Client} from './playground_ym2151.js';
@@ -554,7 +555,7 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
   };
   const pitchFromMidi = (midi) => {
     let block = 4;
-    let fnum = 553 * Math.pow(2, (midi - 62) / 12);
+    let fnum = 553 * (CHIP_CLOCKS[capabilities.chip ?? 'ym2612'] / (fm.clock ?? CHIP_CLOCKS[capabilities.chip ?? 'ym2612'])) * Math.pow(2, (midi - 62) / 12);
     while (fnum >= 1024 && block < 7) {
       fnum /= 2;
       block += 1;
@@ -585,6 +586,7 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
     if(chip && capabilities.chip==='ym2612'){
       if(chip.raw.dac?.enabled)throw new Error('Disable DAC before using MIDI FM playback');
       localMidiRack ??= createMidiRack({
+        getClockScale:() => CHIP_CLOCKS.ym2612 / (fm.clock ?? CHIP_CLOCKS.ym2612),
         preset:Object.values(presets)[0] ?? {},
         write:entry=>chip.write(entry.port,entry.register,entry.value),
         writePsg:entry=>chip.psg.write(entry.value),
@@ -596,6 +598,7 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
   },{sleep:clock.sleep,waitBeats:clock.waitBeats,bpm:clock.getBpm,owner:()=>run.currentLoop?.name??null,check:()=>{if(run.stopped || run.currentLoop?.stopped)throw new DOMException('Run stopped','AbortError');}});
   run.midi=midi;
   run.adoptChipState=state=>chip?.adoptState(state);
+  run.adoptChipClock=hz=>chip?.raw._adoptClock(hz);
   const localNoteOwners=new Map();
   const globals = {
     trackAsync: promise => loopTasks.track(promise),
@@ -819,6 +822,7 @@ async function handleLifecycleMessage(message, generation = lifecycleGeneration)
 self.onmessage = (event) => {
   const message = event.data;
   if (message.type === 'tempo') { currentRun?.setBpm(message.bpm); return; }
+  if (message.type === 'chip-clock-state') { currentRun?.adoptChipClock(message.clock); return; }
   if (message.type === "chip-state") { currentRun?.adoptChipState(message.state); return; }
   if (message.type === "chip-port") { chipConnection?.port.close(); chipConnection={port:message.port,state:message.state}; return; }
   if (message.type === "native-fx") { nativeFXPort?.close(); nativeFXPort = message.port; return; }

@@ -1,3 +1,4 @@
+import {attachChipClock, CHIP_CLOCKS} from './playground_chip_clock.js';
 import {NesApuSynth} from './nesapusynth.js';
 import {NES_APU_CLOCK} from './nesapu.js';
 /** Same register generator as the public NES API; uploads await Worklet acknowledgement. */
@@ -32,10 +33,11 @@ export function createNesClient(port, {clock = NES_APU_CLOCK, fdsEnabled = false
     }),
   };
   const synth = new NesApuSynth({transport});
-  return Object.assign(synth, {dispose() {
+  Object.assign(synth, {dispose() {
     if (disposed) return;
     send('dispose'); disposed = true;
     for (const request of pending.values()) request.reject(new Error('NES disposed'));
     pending.clear(); port.close();
   }});
+  return attachChipClock(synth, port, clock);
 }

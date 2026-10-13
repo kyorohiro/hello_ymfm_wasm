@@ -1,3 +1,4 @@
+import {CHIP_CLOCKS, ChipClockResampler} from './playground_chip_clock.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
@@ -7,7 +8,7 @@ import {createNesClient} from './playground_nes.js';
 async function setup(fds, sampleRate) {
   let Processor;
   const source = (await readFile(new URL('./playground_nes_worklet.js', import.meta.url), 'utf8')).replace(/^import .*;$/gm, '');
-  vm.runInNewContext(source, {NesApu, sampleRate,
+  vm.runInNewContext(source, {CHIP_CLOCKS, ChipClockResampler,NesApu, sampleRate,
     AudioWorkletProcessor: class {constructor() {this.port = {postMessage() {}};}},
     registerProcessor: (_, value) => {Processor = value;},
   });

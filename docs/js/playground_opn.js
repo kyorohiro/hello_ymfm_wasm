@@ -1,3 +1,4 @@
+import {attachChipClock, CHIP_CLOCKS} from './playground_chip_clock.js';
 /** Independent OPN client. All writes and memory uploads use one ordered port. */
 import {YM2612Synth} from './ym2612synth.js';
 import {YM2203Synth} from './ym2203synth.js';
@@ -52,7 +53,6 @@ export function createOpnClient(name, port) {
     Object.assign(synth, {ssg: full.ssg, adpcmA: full.adpcmA, adpcmB: full.adpcmB, adpcm: full.adpcm});
   } else throw new Error(`Unsupported OPN chip: ${name}`);
   if (name === 'ym2203') {
-    synth.setClock = async clock => { await request('clock', [clock]); synth.ssg.clock = clock / 2; };
     // Relative VGM sample positions, executed in the audio processor.
     synth.scheduleRegisters = (entries, durationSamples) => request('schedule', [entries, durationSamples]);
   }
@@ -62,5 +62,8 @@ export function createOpnClient(name, port) {
     for (const request of pending.values()) request.reject(new Error(`${name} disposed`));
     pending.clear(); port.close();
   };
-  return synth;
+  return attachChipClock(synth, port, CHIP_CLOCKS[name], {onApplied: hz => {
+    if (synth.ssg) synth.ssg.clock = hz / (name === 'ym2203' ? 2 : 4);
+    if (synth.adpcmB) synth.adpcmB.clock = hz;
+  }});
 }
