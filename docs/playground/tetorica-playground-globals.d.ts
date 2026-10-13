@@ -161,7 +161,9 @@ type PlaygroundSamplePlayOptions = {
   /** Loop bounds in source seconds from the original file start, even in reverse. */
   loopStart?: number;
   loopEnd?: number;
+  /** Output seconds, independent of playbackRate. */
   fadeIn?: number;
+  /** Output seconds; fades the natural end (if bounded) and explicit stop. */
   fadeOut?: number;
   pan?: number;
 };

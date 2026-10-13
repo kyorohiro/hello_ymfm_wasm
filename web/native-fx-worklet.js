@@ -4,6 +4,7 @@ import {setChain} from './native_fx_graph.js';
 export class NativeFXProcessor extends AudioWorkletProcessor {
  constructor(options){
   super();this.engine=new NativeFXEngine(options.processorOptions.module,sampleRate);this.active=true;
+  this.emptySource=[];this.reportError=error=>this.port.postMessage({error});
   this.port.onmessage=({data})=>{
    if(data.op==='fx-monitor'){
     this.monitor=null;
@@ -55,7 +56,7 @@ export class NativeFXProcessor extends AudioWorkletProcessor {
  }
  process(inputs,outputs){
   const target=outputs[0];if(!target?.length)return true;
-  this.engine.process(inputs[0]??[],target,error=>this.port.postMessage({error}),this.monitor?this.observeFX:undefined);
+  this.engine.process(inputs[0]??this.emptySource,target,this.reportError,this.monitor?this.observeFX:undefined);
   return true;
  }
 

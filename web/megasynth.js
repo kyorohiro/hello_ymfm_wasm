@@ -66,6 +66,8 @@ const YM2612_NATIVE_SAMPLE_RATE =
  *   fadeOut?: number,
  *   pan?: number,
  * }} MegaSynthSamplePlayOptions
+ * Fade times are output seconds. fadeOut also fades the natural end of a
+ * one-shot or duration-limited loop; an unbounded loop fades only on stop.
  */
 
 /**
@@ -130,6 +132,10 @@ const YM2612_NATIVE_SAMPLE_RATE =
  */
 
 /**
+ * Browser output uses the AudioContext/device rate by default. outputSampleRate
+ * explicitly requests an output frame rate; an explicitly supplied legacy
+ * chipSampleRate still requests that rate. An injected audioContext owns its
+ * rate. None of these options change the chip master clock or note tuning.
  * @typedef {{
  *   audioContext?: AudioContext | null,
  *   outputNode?: AudioNode | null,
@@ -144,6 +150,7 @@ const YM2612_NATIVE_SAMPLE_RATE =
  *   rf5c164WasmUrl?: string,
  *   rf5c164WorkletUrl?: string,
  *   rf5c164Fetch?: typeof fetch,
+ *   outputSampleRate?: number,
  *   chipSampleRate?: number,
  *   mixer?: import('./soundchip_mixer.js').SoundChipMixer,
  *   masterVolume?: number,
@@ -312,6 +319,16 @@ export class MegaSynth {
       options.chipSampleRate ??
         YM2612_NATIVE_SAMPLE_RATE
     );
+    // The worklet already converts chip frames to the output clock. Let Web
+    // Audio use the device rate instead of requesting the unusual FM rate
+    // (53,267 Hz), which adds another resampling stage on the device path.
+    // Preserve an explicitly requested legacy chipSampleRate as output rate.
+    this.outputSampleRate = options.outputSampleRate ??
+      (options.chipSampleRate == null ? undefined : this.chipSampleRate);
+    if (options.outputSampleRate != null &&
+        (!Number.isInteger(this.outputSampleRate) || this.outputSampleRate < 8000 || this.outputSampleRate > 384000)) {
+      throw new RangeError('outputSampleRate must be an integer from 8000 to 384000');
+    }
 
     /**
      * Optional. When set, the worklet also loads a Sega PSG core and mixes
@@ -709,9 +726,8 @@ export class MegaSynth {
   }
 
   #createAudioContext() {
-    return new AudioContext({
-      sampleRate: this.chipSampleRate,
-    });
+    return new AudioContext(this.outputSampleRate === undefined
+      ? undefined : {sampleRate: this.outputSampleRate});
   }
 
   async #initialize(signal) {

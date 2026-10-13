@@ -27,6 +27,7 @@ export class LiveFX {
   process(channels,report,observe) {
     const n=channels[0].length;
     this.hasProcessed=true;
+    if(this.effects.size===0)return;
     if(!this.input||this.input.length!==channels.length||this.input[0].length!==n){
       this.input=channels.map(()=>new Float32Array(n));
       this.output=channels.map(()=>new Float32Array(n));

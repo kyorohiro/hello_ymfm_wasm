@@ -20,7 +20,8 @@ export function createNativeSampleController(send){
    const info={name,length,sampleRate:pcm.sampleRate,numberOfChannels:pcm.channels.length,duration:length/pcm.sampleRate};banks.set(name,info);return info;
   },
   /** Negative playbackRate reads backward. Offset counts from the playback start
-   * (the end for reverse); duration counts source seconds, loops use original-file bounds. */
+   * (the end for reverse); duration counts source seconds, loops use original-file bounds.
+   * fadeIn/fadeOut are output seconds; fadeOut applies at a bounded natural end and on stop. */
   /** @param {string} name
    * @param {import('./megasynth.js').MegaSynthSamplePlayOptions} [options] */
   async play(name,options={}){

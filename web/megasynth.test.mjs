@@ -201,6 +201,34 @@ test('start waits for an owned AudioContext to finish closing', async t => {
   await h.synth.close();
 });
 
+for (const [options, expected] of [
+  [{}, undefined],
+  [{outputSampleRate: 48000}, {sampleRate: 48000}],
+  [{chipSampleRate: 44100}, {sampleRate: 44100}],
+  [{chipSampleRate: 384000}, {sampleRate: 384000}],
+  [{outputSampleRate: 384000}, {sampleRate: 384000}],
+  [{chipSampleRate: 53267, outputSampleRate: 48000}, {sampleRate: 48000}],
+]) test(`owned AudioContext uses device rate by default and preserves explicit rate ${JSON.stringify(options)}`, async t => {
+  const h = harness(t, '', options);
+  h.synth.audioContext = null;
+  const previous = globalThis.AudioContext;
+  let requested;
+  globalThis.AudioContext = class {
+    constructor(value) { requested = value; return {...h.context}; }
+  };
+  t.after(() => {globalThis.AudioContext = previous;});
+  await h.synth.start();
+  assert.deepEqual(requested, expected);
+  assert.equal(h.synth.isReady(), true);
+  await h.synth.close();
+});
+
+test('output rate rejects invalid values before audio initialization', () => {
+  for (const outputSampleRate of [NaN, Infinity, -1, 0, 7999, 48000.5, 384001]) {
+    assert.throws(() => new MegaSynth({outputSampleRate}), /outputSampleRate/);
+  }
+});
+
 test('worklet initialization failure releases its node and permits retry', async t => {
   const h = harness(t, 'ready');
   const failed = assert.rejects(h.synth.start(), /initialization failed/);

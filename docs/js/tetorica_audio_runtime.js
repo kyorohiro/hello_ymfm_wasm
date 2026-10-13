@@ -536,10 +536,32 @@ export class TetoricaAudioRuntime {
 
     const now =
       this.audioContext.currentTime;
+    // Source positions are seconds in the material; fades are output seconds.
+    // A bounded loop has the same natural release as a one-shot sample.
+    const sourceRemaining = source.loop
+      ? Infinity
+      : Math.max(0, buffer.duration - offset);
+    const naturalSeconds = Math.min(sourceRemaining, duration ?? Infinity) /
+      Math.abs(playbackRate);
+    const hasNaturalRelease = fadeOut > 0 && Number.isFinite(naturalSeconds);
+    const envelopeAt = elapsed => Math.min(
+      1,
+      fadeIn > 0 ? Math.max(0, elapsed) / fadeIn : 1,
+      hasNaturalRelease ? Math.max(0, naturalSeconds - elapsed) / fadeOut : 1
+    );
     gainNode.gain.cancelScheduledValues(
       now
     );
-    if (fadeIn > 0) {
+    if (hasNaturalRelease && naturalSeconds <= 0) {
+      gainNode.gain.setValueAtTime(0, now);
+    } else if (hasNaturalRelease && fadeIn > 0 && fadeIn + fadeOut > naturalSeconds) {
+      // Short samples may end before the attack completes. Intersect the
+      // attack/release ramps instead of jumping up to full gain at release.
+      const peakTime = naturalSeconds * fadeIn / (fadeIn + fadeOut);
+      gainNode.gain.setValueAtTime(0, now);
+      gainNode.gain.linearRampToValueAtTime(gain * envelopeAt(peakTime), now + peakTime);
+      gainNode.gain.linearRampToValueAtTime(0, now + naturalSeconds);
+    } else if (fadeIn > 0) {
       gainNode.gain.setValueAtTime(
         0,
         now
@@ -550,9 +572,15 @@ export class TetoricaAudioRuntime {
       );
     } else {
       gainNode.gain.setValueAtTime(
-        gain,
+        gain * envelopeAt(0),
         now
       );
+    }
+    if (hasNaturalRelease && naturalSeconds > 0 && fadeIn + fadeOut <= naturalSeconds) {
+      gainNode.gain.setValueAtTime(gain, now + naturalSeconds - fadeOut);
+      gainNode.gain.linearRampToValueAtTime(0, now + naturalSeconds);
+    } else if (hasNaturalRelease && naturalSeconds > 0 && fadeIn <= 0) {
+      gainNode.gain.linearRampToValueAtTime(0, now + naturalSeconds);
     }
 
     source.connect(gainNode);
@@ -584,15 +612,16 @@ export class TetoricaAudioRuntime {
             stopTime
           );
           gainNode.gain.setValueAtTime(
-            gainNode.gain.value,
+            gain * envelopeAt(stopTime - now),
             stopTime
           );
+          const stopEnd = Math.min(stopTime + fadeOut, now + naturalSeconds);
           gainNode.gain.linearRampToValueAtTime(
             0,
-            stopTime + fadeOut
+            Math.max(stopTime, stopEnd)
           );
           source.stop(
-            stopTime + fadeOut
+            Math.max(stopTime, stopEnd)
           );
         } else {
           source.stop();
@@ -986,10 +1015,24 @@ export class TetoricaAudioRuntime {
     };
   }
 
-  /** @param {number} volume */
+  /** @param {number} volume Requested gain; running output approaches it with a 1 ms time constant (~99.3% in 5 ms). */
   setMasterVolume(volume) {
     this.masterVolume = volume;
-    if (this.masterOutputNode) this.masterOutputNode.gain.value = volume;
+    const gain = this.masterOutputNode?.gain;
+    if (!gain) return volume;
+    const now = this.audioContext?.currentTime;
+    if (this.audioContext?.state !== "running" || !Number.isFinite(now) ||
+        typeof gain.setTargetAtTime !== "function") {
+      // Before audio starts (or while suspended), keep initialization immediate.
+      const at = Number.isFinite(now) ? now : 0;
+      gain.cancelScheduledValues?.(at);
+      if (typeof gain.setValueAtTime === "function") gain.setValueAtTime(volume, at);
+      else gain.value = volume;
+      return volume;
+    }
+    // Native automation starts from the running gain. Avoid JS-side interpolation
+    // and future ramp endpoints, which can step when controls arrive late.
+    gain.setTargetAtTime(volume, now, .001);
     return volume;
   }
 

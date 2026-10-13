@@ -33,6 +33,25 @@ function render(p, frames) {
   p.process([], [[left, right]]);
   return { left, right };
 }
+for (const tree of ['web', 'docs/js']) for (const file of ['ym2612-worklet.js', 'ym2612-worklet-nuked.js']) {
+  test(`${tree} ${file}: envelope monitoring is opt-in and spans complete 512-frame buckets`, () => {
+    const {p, messages} = processor(tree, file, 48000);
+    const left = new Float32Array(128).fill(.25), right = left;
+    for (let i = 0; i < 80; i++) p.captureOutputEnvelope(left, right);
+    assert.equal(messages.length, 0);
+    p.applyCommand({type: 'set-output-envelope', enabled: true});
+    // 16 actual 512-frame buckets take 64 normal audio quanta, not 16.
+    for (let i = 0; i < 63; i++) p.captureOutputEnvelope(left, right);
+    assert.equal(messages.length, 0);
+    p.captureOutputEnvelope(left, right);
+    assert.equal(messages.length, 1);
+    assert.equal(messages[0].type, 'output-envelope');
+    assert.deepEqual(messages[0].rmsValues, new Float32Array(16).fill(.25));
+    p.applyCommand({type: 'set-output-envelope', enabled: false});
+    for (let i = 0; i < 80; i++) p.captureOutputEnvelope(left, right);
+    assert.equal(messages.length, 1);
+  });
+}
 for (const tree of ['web', 'docs/js']) {
   for (const [name, klass] of [['ym2203', 'Ym2203'], ['ym2608', 'Ym2608'], ['ym2610b', 'Ym2610B']]) {
     test(`${tree} ${name}: failed initialization reports an error to the runtime`, async () => {

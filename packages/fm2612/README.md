@@ -253,6 +253,12 @@ const synth = new MegaSynth({
 `moduleFactory`/`moduleOptions` for explicit loader injection. A URL helper does
 not copy assets. Keep dependent files alongside each deployed entry point.
 
+In the development runtime, an owned `MegaSynth` AudioContext uses the device's
+default sample rate. Set `{outputSampleRate: 48000}` to request a specific output
+frame rate; an explicit legacy `chipSampleRate` request remains supported. An
+injected AudioContext keeps its own rate. Chip clocks and note tuning are
+independent of the output rate. Published 0.2.13 predates this default change.
+
 ## Mega CD PCM with MegaSynth
 
 Since `0.2.0`, the package includes opt-in RF5C164 support. Enable `megaCD` before

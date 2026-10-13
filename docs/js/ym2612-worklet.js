@@ -49,7 +49,11 @@ class YM2612Processor extends AudioWorkletProcessor {
     this.dacBanks = new Map();
     this.dacStreams = [];
     this.pcmDac = new YM2612DacPlayer(sampleRate, (p, r, v) => this.ym2612.writeRegister(r, v, p));
-    this.envelopeRmsBuckets = [];
+    this.envelopeEnabled = false;
+    this.envelopeRmsBuckets = new Float32Array(16);
+    this.envelopeOffset = 0;
+    this.envelopeFrames = 0;
+    this.envelopeSum = 0;
     this.envelopeBucketSize = 512;
     this.envelopeMessageSize = 16;
     this.captureActive = false;
@@ -162,6 +166,11 @@ class YM2612Processor extends AudioWorkletProcessor {
       if (!['ym2612', 'segapsg'].includes(command.name) || !Array.isArray(command.gains) || command.gains.length !== 2 || command.gains.some(v => !Number.isFinite(v) || v < 0 || v > 2)) throw new RangeError('Invalid mixer settings');
       this.mixTargets[command.name] = command.gains;
       this.mixRemaining[command.name] = Math.max(1, Math.round(sampleRate * .005));
+      return;
+    }
+    if (command.type === 'set-output-envelope') {
+      this.envelopeEnabled = command.enabled === true;
+      this.envelopeOffset = this.envelopeFrames = this.envelopeSum = 0;
       return;
     }
     if (receiveDacCommand(this.pcmDac, command, currentFrame, reply)) return;
@@ -391,7 +400,8 @@ class YM2612Processor extends AudioWorkletProcessor {
     const psg = psgFrames > 0 ? this.psg?.generateStereoView(psgFrames) : null;
     let sourceOffset = 0, psgOffset = 0;
     for (let i = 0; i < frames; i++) {
-      for (const name of MIX_SOURCES) {
+      for (let source = 0; source < MIX_SOURCES.length; source++) {
+        const name = MIX_SOURCES[source];
         if (this.mixRemaining[name] > 0) {
           for (let c = 0; c < 2; c++) this.mixCurrent[name][c] += (this.mixTargets[name][c] - this.mixCurrent[name][c]) / this.mixRemaining[name];
           this.mixRemaining[name]--;
@@ -429,76 +439,23 @@ class YM2612Processor extends AudioWorkletProcessor {
   }
 
   captureOutputEnvelope(left, right) {
-    const frames =
-      Math.min(
-        left.length,
-        right.length
-      );
-
-    for (
-      let start = 0;
-      start < frames;
-      start +=
-        this.envelopeBucketSize
-    ) {
-      const end = Math.min(
-        frames,
-        start +
-          this.envelopeBucketSize
-      );
-      let sum = 0;
-
-      for (
-        let index = start;
-        index < end;
-        index += 1
-      ) {
-        const mixed =
-          (left[index] +
-            right[index]) *
-          0.5;
-        sum += mixed * mixed;
+    // The Playground analyses the final output with an AnalyserNode. Avoid
+    // unsolicited worklet -> UI traffic; raw chip monitoring opts in explicitly.
+    if (!this.envelopeEnabled) return;
+    const frames = Math.min(left.length, right.length);
+    for (let i = 0; i < frames; i++) {
+      const mixed = (left[i] + right[i]) * 0.5;
+      this.envelopeSum += mixed * mixed;
+      if (++this.envelopeFrames !== this.envelopeBucketSize) continue;
+      this.envelopeRmsBuckets[this.envelopeOffset++] =
+        Math.sqrt(this.envelopeSum / this.envelopeFrames);
+      this.envelopeFrames = this.envelopeSum = 0;
+      if (this.envelopeOffset === this.envelopeMessageSize) {
+        const rmsValues = this.envelopeRmsBuckets;
+        this.port.postMessage({type: 'output-envelope', rmsValues}, [rmsValues.buffer]);
+        this.envelopeRmsBuckets = new Float32Array(this.envelopeMessageSize);
+        this.envelopeOffset = 0;
       }
-
-      const rms = Math.sqrt(
-        sum /
-          Math.max(
-            1,
-            end - start
-          )
-      );
-      this.envelopeRmsBuckets.push(rms);
-    }
-
-    if (
-      this.envelopeRmsBuckets.length >=
-      this.envelopeMessageSize
-    ) {
-      const rmsValues =
-        new Float32Array(
-          this.envelopeRmsBuckets.splice(
-            0,
-            this.envelopeMessageSize
-          )
-        );
-
-      this.port.postMessage(
-        {
-          type: "output-envelope",
-          rmsValues,
-        },
-        [rmsValues.buffer]
-      );
-    }
-
-    while (
-      this.envelopeRmsBuckets.length >
-      this.envelopeMessageSize * 8
-    ) {
-      this.envelopeRmsBuckets.splice(
-        0,
-        this.envelopeMessageSize
-      );
     }
   }
 
