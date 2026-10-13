@@ -73,7 +73,7 @@ liveLoop("bikes", async () => {
   fm.setFrequency(CH2, start.block, start.fnum);
   fm.keyOn(CH2);
 
-  await tween(1.5, (t) => {
+  await tween({seconds: 1.5}, (t) => {
     const pitch = noteLerp(startNote, finalNote, t);
     fm.setFrequency(CH2, pitch.block, pitch.fnum);
     fm.setOperator(CH2, OP4, {

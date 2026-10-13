@@ -1,4 +1,4 @@
-import {resolvePlaySeconds} from './playground_duration.js';
+import {resolvePlaySeconds,resolvePlayDuration} from './playground_duration.js?v=shared-beat-clock-1';
 /**
  * @file playground_midi.js
  * 実行環境: Browser / Node.js
@@ -225,13 +225,14 @@ export function createMidiRack({write, writePsg, preset, fmChannels = 6}) {
  * @param {Function} invoke Dispatch a rack method and its argument array.
  * @param {Object} options Timing and execution context callbacks.
  * @param {Function} options.sleep Await a duration in seconds.
+ * @param {Function} [options.waitBeats] Await elapsed beats on the shared tempo clock.
  * @param {Function} options.bpm Read the current beats-per-minute value.
  * @param {Function} [options.check] Throw when the current run is cancelled.
  * @param {Function} [options.owner] Return the current live-loop ownership token.
  * @param {Function} [options.now] Read the scheduling clock in seconds.
  * @returns {Object} MIDI API with output handles, sound-chip mode selection and cleanup helpers.
  */
-export function createMidiApi(invoke, {sleep, bpm, check = ()=>{}, owner = ()=>null, now = ()=>performance.now()/1000}) {
+export function createMidiApi(invoke, {sleep, bpm, waitBeats, check = ()=>{}, owner = ()=>null, now = ()=>performance.now()/1000}) {
   let readFile;
   const held=new Map(),pedals=new Map();
   const channelKey=(destination,channel)=>JSON.stringify([destination,channel]);
@@ -308,8 +309,9 @@ export function createMidiApi(invoke, {sleep, bpm, check = ()=>{}, owner = ()=>n
         async play(note,options={}) {
           const {velocity=100}=options;
           const seconds=resolvePlaySeconds(options,bpm(),'beats',1);
+          const length=resolvePlayDuration(options,'beats',1);
           const n=midiNote(note),id=await this.noteOn(n,{velocity});
-          try {await sleep(seconds);} finally {releaseHeld(id);try{await invoke('release',[destination,ch,n,id]);}catch(error){if(error.name!=='AbortError')throw error;}}
+          try {if(length.beats!==undefined && waitBeats)await waitBeats(length.beats);else await sleep(seconds);} finally {releaseHeld(id);try{await invoke('release',[destination,ch,n,id]);}catch(error){if(error.name!=='AbortError')throw error;}}
         },
       };
     },

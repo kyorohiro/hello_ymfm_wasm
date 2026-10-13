@@ -130,16 +130,21 @@ declare const OP4: 3;
 
 /**
  * Common play helper options used by `play()` and `pg.play()`.
+ * Beats follow shared BPM changes while the note is held; seconds do not.
+ * Omitted length defaults to 0.2 seconds. Legacy duration is seconds.
  */
-type PlaygroundPlayOptions = {
+/** Explicit note lengths are mutually exclusive. Legacy duration retains its API's unit. */
+type PlaygroundNoteLength =
+  | {seconds: number; beats?: never; duration?: never}
+  | {beats: number; seconds?: never; duration?: never}
+  | {
+      /** @deprecated Use seconds or beats. Legacy unit is seconds for play, beats for MIDI output.play. */
+      duration?: number; seconds?: never; beats?: never
+    };
+
+type PlaygroundPlayOptions = PlaygroundNoteLength & {
   /** YM2612 channel 0..5. */
   channel?: YM2612Channel;
-  /** Beats at BPM when play starts. Mutually exclusive with seconds/duration. */
-  beats?: number;
-  /** Fixed seconds. Mutually exclusive with beats/duration. */
-  seconds?: number;
-  /** Legacy duration in seconds (default 0.2). */
-  duration?: number;
   /** Optional preset applied before playing the note. */
   preset?: YM2612Preset;
 };
@@ -770,15 +775,38 @@ declare const dac: {
   schedule(startSamples: number, entries: Array<[number, number]>): void;
   scheduleBase64(startSamples: number, encoded: string): void;
 };
-/** Wait for a number of beat units. */
+/** Wait for elapsed beats on the shared clock; outstanding waits follow setBpm changes. */
 declare function beat(beats?: number): Promise<void>;
-/** Wait for the next integer beat boundary. */
+/** Wait for the next integer position on the shared beat clock, preserving phase across BPM changes. */
 declare function nextBeat(): Promise<void>;
-/** Update something gradually over time with `t = 0..1`. */
-declare function tween(seconds: number, fn: (t: number) => void | Promise<void>): Promise<void>;
+/**
+ * Call onUpdate repeatedly over the requested duration, then finish at progress = 1.
+ * @param duration Exactly one of {seconds} or {beats}. Seconds ignore BPM;
+ * beats follow shared setBpm changes, including during the animation.
+ * @param onUpdate Receives progress from 0 (start) to 1 (end), not elapsed seconds.
+ * At progress = 0.5, half the selected seconds/beats have elapsed.
+ * An async callback is awaited before the next update. Positive durations call 0
+ * and end at 1 exactly once. Zero duration calls only 1. Cancellation rejects
+ * without forcing a final callback. Durations must be finite and nonnegative.
+ * @returns Resolves after the animation completes; `await tween(...)` waits for it.
+ * @example
+ * const durationSeconds = 4;
+ * await tween({seconds: durationSeconds}, progress => {
+ *   const elapsedSeconds = progress * durationSeconds; // 0 to 4 seconds
+ *   const fnum = 679 + 13 * Math.sin(2 * Math.PI * 4.57 * elapsedSeconds);
+ *   fm.setFrequency(CH1, 2, Math.round(fnum));
+ * });
+ */
+type PlaygroundTweenDuration = {seconds: number; beats?: never} | {beats: number; seconds?: never};
+declare function tween(duration: PlaygroundTweenDuration, onUpdate: (progress: number) => void | Promise<void>): Promise<void>;
+/** @deprecated Use tween({seconds: durationSeconds}, onUpdate). Numeric duration remains seconds. */
+declare function tween(durationSeconds: number, onUpdate: (progress: number) => void | Promise<void>): Promise<void>;
 /**
  * Set the shared tempo used by beat() and nextBeat().
  * @param bpm Beats per minute. For example, 120 means 120 quarter-note beats per minute.
+ * Shared by every liveLoop in the active runtime. Changes take effect immediately
+ * without changing the current beat position. Beat waits, beat-length notes,
+ * beat tweens and beat-synchronised FX follow changes; seconds/samples do not.
  */
 declare function setBpm(bpm: number): void;
 /** Build an array of note names from one named scale. */
@@ -920,7 +948,8 @@ type PlaygroundAPI = {
   scheduleWritesSamples: (startSamples: number, entries: Array<[number, number, number, number] | [number, "psg", number]>) => void;
   beat: (beats?: number) => Promise<void>;
   nextBeat: () => Promise<void>;
-  tween: (seconds: number, fn: (t: number) => void | Promise<void>) => Promise<void>;
+  /** Animate over {seconds} or {beats}; progress is 0..1. Beat durations follow shared BPM changes. */
+  tween: typeof tween;
   setBpm: (bpm: number) => void;
   liveFx: typeof liveFx;
   liveLoop: (name: string, fn: () => Promise<void> | void) => void;
@@ -970,8 +999,8 @@ interface PlaygroundMidiOutput {
   pitchBend(value: number): Promise<void>;
   /** Symmetric range in semitones, 0..96; default 2. Retunes held notes. */
   setPitchBendRange(semitones: number): Promise<void>;
-  /** Choose beats or seconds. Legacy duration remains beats (default 1); do not combine length options. */
-  play(note: string | number, options?: {velocity?: number; duration?: number; beats?: number; seconds?: number}): Promise<void>;
+  /** Beats follow tempo changes while held; seconds ignore BPM. Legacy duration/default remain beats (default 1). */
+  play(note: string | number, options?: PlaygroundNoteLength & {velocity?: number}): Promise<void>;
   noteOn(note: string | number, options?: {velocity?: number}): Promise<number>;
   noteOff(note: string | number): Promise<void> | void;
   /** YM2612 only; affects subsequent notes, not held voices. */

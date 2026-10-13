@@ -1,7 +1,7 @@
 import {createYm2151Client} from '../../web/playground_ym2151.js';
 import {serializeLogError} from '../../web/playground_log.js';
 import {createSegaPsgClient} from '../../web/playground_segapsg.js';
-import {resolvePlaySeconds} from '../../web/playground_duration.js';
+import {resolvePlaySeconds,resolvePlayDuration} from '../../web/playground_duration.js';
 import {createLoopAsyncTasks} from '../../web/playground_async_tasks.js';
 import {createOpnClient} from '../../web/playground_opn.js';
 import {createRf5c164Client} from '../../web/playground_rf5c164.js';
@@ -19,18 +19,18 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 import vm from "node:vm";
 import { hzToBlockFnum } from "../js/pitch.js";
-import { createDeadlineScheduler } from "../js/playground_clock.js";
+import {createDeadlineScheduler,createBeatClock,runTween} from '../js/playground_clock.js';
 
 const workerSource = readFileSync(
   new URL("../js/playground_logic_worker.js", import.meta.url),
   "utf8"
 );
 
-function createWorkerHarness() {
+function createWorkerHarness(overrides = {}) {
   const messages = [];
   const context = {
     serializeLogError,
-    resolvePlaySeconds, createNativeSampleController, createNativeNoiseController, controlNativeNoise, createWorkerDac, atob, createMidiApi, createMidiRack, createWorkerChip, createNativeFXController, createLiveFxLifecycle, DOMException, structuredClone,
+    resolvePlaySeconds, resolvePlayDuration, createBeatClock, runTween, createNativeSampleController, createNativeNoiseController, controlNativeNoise, createWorkerDac, atob, createMidiApi, createMidiRack, createWorkerChip, createNativeFXController, createLiveFxLifecycle, DOMException, structuredClone,
     createYm2151Client, createSegaPsgClient, createLoopAsyncTasks, createDeadlineScheduler, createOpnClient, createGameboyClient, createSoundChipRegistry, createRf5c164Client, createYm2608Client,
     hzToBlockFnum,
     Error,
@@ -47,6 +47,7 @@ function createWorkerHarness() {
       messages.push(message);
     },
     setTimeout,
+    ...overrides,
   };
   context.self = context;
   vm.runInNewContext(workerSource.replace(/^import .*;\n/gm, "").replace(/^import .* from "\.\/(?:playground_clock|pitch|native_fx)\.js";\n/gm, ""), context, {
@@ -63,6 +64,47 @@ function createWorkerHarness() {
     },
   };
 }
+
+test('Worker shared tempo retimes beat, tween, direct FM and MIDI notes while seconds stay fixed',async()=>{
+  let time=0;const tasks=new Set(),commands=[];
+  const worker=createWorkerHarness({performance:{now:()=>time*1000},
+    setTimeout(fn,ms){const entry={fn,at:time+ms/1000};tasks.add(entry);return entry;},
+    clearTimeout:entry=>tasks.delete(entry),
+  });
+  async function advance(seconds){
+    const target=time+seconds;
+    for(let count=0;count<10000;count++){
+      for(let i=0;i<50;i++)await Promise.resolve();
+      const next=[...tasks].sort((a,b)=>a.at-b.at)[0];
+      if(!next||next.at>target){time=target;for(let i=0;i<50;i++)await Promise.resolve();return;}
+      tasks.delete(next);time=next.at;next.fn();
+    }
+    assert.fail('Worker clock did not advance');
+  }
+  worker.post({type:'chip-port',port:{postMessage:batch=>commands.push(...batch),close(){}}});
+  worker.post({type:'run',presets:{},scaleIntervals:{},capabilities:{chip:'ym2612',fmChannels:6,dac:true},sourceCode:`
+    setBpm(120);
+    const output=midi.output('tetorica-ym2612');
+    await Promise.all([
+      beat(1).then(()=>console.log('beat',performance.now()/1000)),
+      tween({beats:1},progress=>{if(progress===1)console.log('tween',performance.now()/1000);}),
+      play('C4',{beats:1}).then(()=>console.log('fm',performance.now()/1000)),
+      output.play('E4',{beats:1}).then(()=>console.log('midi',performance.now()/1000)),
+      sleep(.5).then(()=>console.log('seconds',performance.now()/1000)),
+      sleepSamples(48000/2,48000).then(()=>console.log('samples',performance.now()/1000))
+    ]);
+  `});
+  await advance(.25);worker.post({type:'tempo',bpm:60});await advance(.25);
+  let logs=worker.messages.filter(message=>message.command==='log');
+  assert.deepEqual(logs.map(message=>message.args[0]).sort(),['samples','seconds']);
+  await advance(.25);
+  logs=worker.messages.filter(message=>message.command==='log');
+  for(const name of ['beat','tween','fm','midi']){
+    const log=logs.find(message=>message.args[0]===name);assert(log,name);assert(Math.abs(log.args[1]-.75)<1e-8,name);
+  }
+  assert(worker.messages.some(message=>message.type==='tempo'&&message.bpm===60));
+  worker.post({type:'stop'});await advance(0);
+});
 
 test('Worker console preserves errors across the message boundary', async () => {
   const worker = createWorkerHarness();
@@ -679,11 +721,11 @@ for(const method of ['sleep','sleepSamples','beat'])test(`Worker tracked error i
  await worker.send({type:'stop'});
 });
 
-test('Worker fallback converts beats using its own BPM before requesting Main playback',async()=>{
+test('Worker fallback preserves beat length for tempo-aware Main playback',async()=>{
  const worker=createWorkerHarness();
  await worker.send({type:'run',presets:{},scaleIntervals:{},sourceCode:"setBpm(240); await play('C4', {beats: 2});"});
  const request=worker.messages.find(m=>m.type==='request'&&m.command==='play');
- assert.equal(request.args[1].seconds,.5);
+ assert.equal(request.args[1].beats,2);assert.equal(request.args[1].seconds,undefined);
  await worker.send({type:'response',id:request.id,result:null});await worker.send({type:'stop'});
 });
 test('Worker direct play rejects conflicting units before register writes',async()=>{

@@ -4,6 +4,7 @@
 const shifts=[-1,-1,-1,-1,2,4,6,8];
 const steps=Array.from({length:49},(_,i)=>Math.floor(16*Math.pow(1.1,i)));
 export class Msm5205AudioEngine {
+  /** @param {{clock:number,flags?:number,outputSampleRate?:number,masterVolume?:number}} options Chip clock in Hz and output frames per second. */
   constructor({clock,flags=4,outputSampleRate=44100,masterVolume=1}={}) {
     if(!Number.isInteger(clock)||clock<=0||clock>0x3fffffff||!Number.isInteger(outputSampleRate)||outputSampleRate<8000||outputSampleRate>384000)
       throw new RangeError('Invalid MSM5205 clock/sample rate');

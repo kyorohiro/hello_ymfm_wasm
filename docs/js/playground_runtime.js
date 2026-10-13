@@ -25,7 +25,7 @@ import {createLiveFxLifecycle} from './native_fx.js?v=live-fx-definitions-1';
  * 依存: window のイベント処理、Web Audio 対応 Synth、Worker（Worker モード時）。
  * import とブラウザー上の実行・音声初期化は別。Node.js での実再生用ではない。
  */
-import {createMidiRack, createMidiApi, validateBendRange, MIDI_SUPPORTED_CC} from './playground_midi.js?v=play-units-1';
+import {createMidiRack, createMidiApi, validateBendRange, MIDI_SUPPORTED_CC} from './playground_midi.js?v=shared-beat-clock-1';
 import {parseMidiFile} from './midi_file.js?v=readable-midi-1';
 import { createAudioScheduler } from "./playground_audio_scheduler.js";
 import {
@@ -35,10 +35,10 @@ import { createTetoricaSynth } from "./tetorica_synth.js";
 import {
   createPitchFromMidi,
 } from "./pitch.js";
-import { createPlaygroundClock } from "./playground_clock.js?v=loop-async-tasks-1";
+import { createPlaygroundClock } from "./playground_clock.js?v=shared-beat-clock-1";
 import { executeWithPlaygroundGuards } from "./playground_execution.js";
 import { createPlaygroundLive } from "./playground_live.js?v=prepared-fx-rerun-2";
-import { createPlaygroundMusic } from "./playground_music.js?v=play-units-1";
+import { createPlaygroundMusic } from "./playground_music.js?v=shared-beat-clock-1";
 import { createPlaygroundNoiseApi } from "./playground_noise.js";
 import { createFmProxy } from "./playground_sync.js?v=dac-pcm-1";
 import { parseTfi } from "./tfi.js";
@@ -179,7 +179,7 @@ export function createPlaygroundRuntime(
     options.execution ?? "main";
   const defaultLogicWorkerUrl =
     new URL(
-      "./playground_logic_worker.js?v=live-fx-definitions-1",
+      "./playground_logic_worker.js?v=shared-beat-clock-1",
       import.meta.url
     );
   defaultLogicWorkerUrl.searchParams.set(
@@ -1090,6 +1090,12 @@ export function createPlaygroundRuntime(
 
   function handleWorkerMessage(event) {
     const message = event.data ?? {};
+    // Tempo bypasses the command queue: a queued play may still be waiting.
+    if (message.type === 'tempo') {
+      clockApi.setBpm(message.bpm);
+      megaDrive.audio?.nativeFX?.controller.syncTempo();
+      return;
+    }
     if (message.type === "command" || message.type === "request") {
       if (message.command === "keyboard.register") {
         registerWorkerKeyboardHandler(
@@ -1335,6 +1341,7 @@ export function createPlaygroundRuntime(
         presets,
         activeNotes,
         getBpm: () => runtime.bpm,
+        waitBeats: beats => clockApi.waitForBeat(clockApi.currentBeat() + beats, runToken),
         sleep: (seconds) =>
           clockApi.sleep(
             seconds,
@@ -1444,7 +1451,7 @@ export function createPlaygroundRuntime(
       const rack=getMidiRack();
       if(method==='release')return rack.noteOff(args[0],args[1],args[2],undefined,args[3],args[4]);
       return rack[method](...args);
-    }, {now:clockApi.nowSeconds,sleep:seconds=>clockApi.sleep(seconds,runToken),bpm:()=>runtime.bpm,owner:()=>currentLoopContext?.name??null,
+    }, {now:clockApi.nowSeconds,sleep:seconds=>clockApi.sleep(seconds,runToken),waitBeats:beats=>clockApi.waitForBeat(clockApi.currentBeat()+beats,runToken),bpm:()=>runtime.bpm,owner:()=>currentLoopContext?.name??null,
       check:()=>{if(runToken!==currentRunToken)throw new DOMException('Run stopped','AbortError');}});
     midiApis.add(midi);
     const pg = {
@@ -1872,6 +1879,7 @@ export function createPlaygroundRuntime(
       worker.postMessage({
         type: "run",
         sourceCode,
+        bpm: runtime.bpm,
         presets,
         scaleIntervals: SCALE_INTERVALS,
         capabilities,
@@ -2208,6 +2216,12 @@ export function createPlaygroundRuntime(
     getMasterVolume,
     setTiming,
     getTiming,
+    setBpm(value) {
+      clockApi.setBpm(value);
+      if (logicWorker) logicWorker.postMessage({type:'tempo',bpm:value});
+      else megaDrive.audio?.nativeFX?.controller.syncTempo();
+    },
+    getBpm: () => runtime.bpm,
     get presets() {
       return presets;
     },

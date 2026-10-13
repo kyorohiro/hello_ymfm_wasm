@@ -1,4 +1,4 @@
-import {resolvePlaySeconds} from './playground_duration.js';
+import {resolvePlaySeconds,resolvePlayDuration} from './playground_duration.js?v=shared-beat-clock-1';
 /**
  * @file playground_music.js
  * 実行環境: Browser / Node.js
@@ -43,7 +43,7 @@ export function lerp(
  *   pitchReference: {referenceMidi: number, referenceBlock: number, referenceFnum: number},
  *   synth: () => import('./ym2612synth.js').YM2612Synth | null,
  *   presets: Record<string, import('./ym2612synth.js').YM2612Preset>, activeNotes: Set<number>,
- *   sleep: (seconds: number) => Promise<void>, getBpm?: () => number,
+ *   sleep: (seconds: number) => Promise<void>, waitBeats?: (beats:number) => Promise<void>, getBpm?: () => number,
  *   getCurrentLoopContext?: () => {cycleState: Map<string, number>, cycleCallIndex: number} | null}} options Pitch reference, synth lookup, waits and sequence context.
  * @returns Music helpers; play waits for note duration and releases only the note it owns.
  */
@@ -59,6 +59,7 @@ export function createPlaygroundMusic(
     presets,
     activeNotes,
     sleep,
+    waitBeats,
     getCurrentLoopContext,
     getBpm = () => 120,
   } = options;
@@ -126,7 +127,7 @@ export function createPlaygroundMusic(
 
   /**
    * @param {string | number} note Note name or MIDI number.
-   * @param {{channel?: number, preset?: string, beats?: number, seconds?: number, duration?: number}} [options={}] Duration defaults to 0.2 seconds; beats uses current BPM.
+   * @param {{channel?: number, preset?: string, beats?: number, seconds?: number, duration?: number}} [options={}] Defaults to 0.2 seconds. Beats follow tempo changes when waitBeats is supplied; standalone hosts without it retain start-time BPM conversion.
    * @returns {Promise<void>} Resolves after note release; rejected waits still release owned notes.
    */
   async function play(
@@ -145,6 +146,7 @@ export function createPlaygroundMusic(
     const channel =
       options.channel ?? 0;
     const duration = resolvePlaySeconds(options, getBpm());
+    const length = resolvePlayDuration(options);
     const presetName =
       options.preset ?? null;
 
@@ -174,7 +176,8 @@ export function createPlaygroundMusic(
     owners.set(channel, voice);
     activeNotes.add(channel);
     try {
-      await sleep(duration);
+      if (length.beats !== undefined && waitBeats) await waitBeats(length.beats);
+      else await sleep(duration);
     } finally {
       // A cancelled/older note must not release a newer note on this channel.
       if (activeNotes.has(channel) && owners.get(channel) === voice) {

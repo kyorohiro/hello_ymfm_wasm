@@ -28,7 +28,13 @@ function registerMonacoHover(
           beat:
             "Wait using the shared beat clock.",
           nextBeat:
-            "Wait for the next beat boundary.",
+            "Wait for the next integer position on the shared beat clock. BPM changes preserve the current beat position.",
+          beat:
+            "Wait for elapsed beats on the shared clock. Waiting loops follow BPM changes without rounding to a beat boundary.",
+          setBpm:
+            "Change the shared tempo immediately while preserving beat position. Beat waits, beat-length notes and beat tweens follow; seconds and samples do not.",
+          tween:
+            "Animate over {seconds} or {beats}. Progress goes from 0 to 1. Beat durations follow shared setBpm changes; seconds ignore tempo.",
           fx: "Create and connect master FX units.",
           fm: "Control raw YM2612Synth behavior.",
         };
@@ -55,6 +61,20 @@ function registerMonacoSignatureHelp(
   monaco
 ) {
   const signatures = [
+    {
+      prefixes: ["tween("],
+      label: "tween(duration: {seconds: number} | {beats: number}, onUpdate: (progress: number) => void | Promise<void>): Promise<void>",
+      parameters: [
+        {
+          label: "duration: {seconds: number} | {beats: number}",
+          documentation: "Choose exactly one of {seconds: n} or {beats: n}. Beat durations follow tempo changes; seconds do not.",
+        },
+        {
+          label: "onUpdate: (progress: number) => void | Promise<void>",
+          documentation: "Progress = 0 at the start and 1 at the end, measured in the selected unit. Half the beats is 0.5 even when BPM changes. This is not elapsed seconds.",
+        },
+      ],
+    },
     {
       prefixes: ["setBpm("],
       label:
