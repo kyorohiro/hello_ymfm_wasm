@@ -29,6 +29,7 @@ export function setupSynthFiles({project, getPreset, getPresetId, applyPreset, a
   let busy = true, importGeneration = 0, visibilityTouched = false, draftLoaded = false;
   let basePresetId = getPresetId(), basePreset = structuredClone(getPreset());
   let draftStore = null, saveTimer = null, restoring = false;
+  let renderedFiles = null;
 
   function writeDraft() {
     return new Promise((resolve,reject) => {
@@ -70,6 +71,7 @@ export function setupSynthFiles({project, getPreset, getPresetId, applyPreset, a
   function closeMenu() {menu.hidden = true;}
   function updateButtons() {
     byId('synthFileSaveButton').disabled = busy || (!dirty && Boolean(activeTonePath));
+    byId('synthFileSaveButton').textContent=activeTonePath?'Save':'Save…';
     byId('synthFileDirty').textContent = dirty ? 'Unsaved' : '';
     byId('synthActiveFilePath').textContent = activeTonePath || (dirty ? 'Custom instrument' : 'Built-in instrument');
     byId('synthFileUndoButton').disabled = busy || (!history.length && !dirty);
@@ -86,7 +88,10 @@ export function setupSynthFiles({project, getPreset, getPresetId, applyPreset, a
   function render() {
     document.body.classList.toggle('synth-files-open',!panel.hidden);
     if (selectedPath && !project.fs.has(selectedPath) && !project.fs.listDirectories().includes(selectedPath)) selectedPath = activeTonePath;
-    renderFileTree(tree, [...project.fs.list(), ...project.fs.listDirectories().filter(path => path !== '/').map(path => ({path, type:'directory'}))], {
+    const entries=project.listEntries().filter(entry=>entry.path!=='/');
+    const revision=entries.map(entry=>`${entry.path}:${entry.revision}`).join('\n');
+    if(revision!==renderedFiles){
+      renderFileTree(tree, entries, {
       selectedPath, expanded,
       onOpen: path => void selectFile(path),
       onTransfer: (source, destination, copy) => void transfer(source, destination, copy),
@@ -94,10 +99,17 @@ export function setupSynthFiles({project, getPreset, getPresetId, applyPreset, a
         if(files.length===1&&/\.cassette\.zip$/i.test(files[0].name))void importCassette(files[0]);
         else void importInstruments(files,directory||'/');
       },
-    });
+      });
+      renderedFiles=revision;
+      onListChanged();
+    }else{
+      for(const item of tree.querySelectorAll('[data-file-path]')){
+        item.setAttribute('aria-current',String(item.dataset.filePath===selectedPath));
+        if(item.tagName==='SUMMARY'&&expanded.has(item.dataset.filePath))item.parentElement.open=expanded.get(item.dataset.filePath);
+      }
+    }
     byId('synthCassetteName').textContent = project.cassetteName + '.cassette.zip';
     updateButtons();
-    onListChanged();
   }
 
   function askName(title, initial, validate) {
@@ -136,6 +148,7 @@ export function setupSynthFiles({project, getPreset, getPresetId, applyPreset, a
   }
   function validateDestination(directory, value) {
     validName(value);
+    if(directory==='/'&&['metadata.json','cassette.metadata.js'].includes(value))throw Error('That name is reserved for Cassette metadata.');
     const path = `${directory === '/' ? '' : directory}/${value}`;
     if (project.fs.has(path) || project.fs.listDirectories().includes(path)) throw Error('That name already exists in this folder.');
     return path;
@@ -236,7 +249,7 @@ export function setupSynthFiles({project, getPreset, getPresetId, applyPreset, a
           basePresetId=previous.basePresetId;basePreset=previous.basePreset;
           stopAllNotes(); applySnapshot(previous.preset, previous.presetId);
         }
-        render(); remember(); setStatus('Undid file operation.'); return;
+        render(); await remember(true); setStatus('Undid file operation.'); return;
       }
       if (!await resolveDirty()) return;
       if (action === 'new') {

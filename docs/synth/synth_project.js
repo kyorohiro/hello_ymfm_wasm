@@ -290,6 +290,10 @@ export function createSynthProject({ snapshot: initialSnapshot } = {}) {
     exportCassette(options = {}) {
       const files = fs.list();
       const hasMetadata = files.some(file => METADATA_PATHS.has(file.path));
+      const metadataPath = options.metadataFileName === 'cassette.metadata.js' ? '/cassette.metadata.js' : '/metadata.json';
+      if (!hasMetadata && fs.listDirectories().includes(metadataPath)) {
+        throw new Error(`Cassette metadata path ${metadataPath} is a folder. Rename it before exporting.`);
+      }
       const metadata = options.metadata ?? cassetteMetadata ?? {};
       return createPlaygroundCassetteZip(files, {
         ...options,

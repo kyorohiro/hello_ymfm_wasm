@@ -298,3 +298,22 @@ test('file-tree and tone listing avoid copying opaque sample and Git data', () =
   assert.deepEqual(reads, ['/presets/tone.vgi']);
   assert.deepEqual(tones[0].data, createVgiFromPreset(patch));
 });
+
+test('Cassette export rejects a generated metadata file conflicting with a folder', async () => {
+  const project = createSynthProject();
+  project.mkdir('/metadata.json');
+  const before = project.snapshot();
+  assert.throws(() => project.exportCassette(), /metadata\.json is a folder.*Rename/);
+  assert.deepEqual(project.snapshot(), before);
+  // A preserved module uses its original metadata path, so an opaque folder
+  // with the other metadata name is legal and must remain available.
+  project.fs.writeText('/cassette.metadata.js', 'export default {"version":1,"license":"PRIVATE","workType":"NONE"};\n');
+  const restored = createSynthProject();
+  await restored.importCassette(project.exportCassette());
+  assert.ok(restored.fs.listDirectories().includes('/metadata.json'));
+  assert.equal(restored.cassetteMetadata.license, 'PRIVATE');
+  const moduleProject = createSynthProject();
+  moduleProject.mkdir('/cassette.metadata.js');
+  assert.throws(() => moduleProject.exportCassette({ metadataFileName: 'cassette.metadata.js' }), /cassette\.metadata\.js is a folder/);
+  await createSynthProject().importCassette(moduleProject.exportCassette());
+});

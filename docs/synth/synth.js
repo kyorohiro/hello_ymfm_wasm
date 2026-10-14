@@ -2732,7 +2732,8 @@ synthFiles = setupSynthFiles({
   onSaved(path) {
     currentPresetName='vfs:'+path;
     importedTfiName=path.split('/').pop();
-    syncFilePresetOptions();
+    presetSelect.value=currentPresetName;
+    updateTfiSummary();
   },
   onListChanged:syncFilePresetOptions,
   stopAllNotes,
