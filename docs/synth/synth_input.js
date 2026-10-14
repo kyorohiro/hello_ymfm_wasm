@@ -1,3 +1,5 @@
+import {bendPitch} from './synth_pitch_bend.js';
+
 export function createSynthInputController({
   getKeyLayout,
   findLayoutEntry,
@@ -8,6 +10,7 @@ export function createSynthInputController({
   voices,
   getAudioReadyPromise,
   getSynth,
+  getPitchBend = () => 0,
   ensureAudioReady,
   chooseVoice,
   updateKeyboardVisuals,
@@ -91,10 +94,12 @@ export function createSynthInputController({
       }
     }
 
+    voice.basePitch = {...entry.pitch};
+    const pitch = bendPitch(voice.basePitch, getPitchBend());
     synth.noteOn(
       voice.channel,
-      entry.pitch.block,
-      entry.pitch.fnum
+      pitch.block,
+      pitch.fnum
     );
 
     voice.held = true;

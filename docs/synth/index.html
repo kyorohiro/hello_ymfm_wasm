@@ -763,6 +763,21 @@
 
       .keyboard-wrap {
         position: relative;
+        min-width: 0;
+        flex: 1;
+      }
+
+      .performance-keyboard { display: flex; gap: 10px; align-items: stretch; }
+      .modulation-control {
+        display: flex; flex-direction: column; align-items: center; gap: 8px;
+        width: 44px; flex-shrink: 0; padding: 8px 2px;
+        border: 1px solid #41615b; border-radius: 12px; background: #10191a;
+        color: #a8bfba; font-size: 0.68rem;
+      }
+      [data-modulation-wheel], [data-pitch-bend-wheel] {
+        writing-mode: vertical-lr; direction: rtl;
+        width: 30px; height: 110px; flex: 1; min-height: 90px;
+        accent-color: #7be0d6; cursor: ns-resize;
       }
 
       .keyboard.is-loading {
@@ -825,6 +840,12 @@
         gap: 6px;
         margin-bottom: 8px;
       }
+
+      .visual-display-row { display: flex; gap: 10px; align-items: stretch; }
+      .visual-display-row canvas { flex: 1; min-width: 0; width: 0; }
+      .visual-display-row .modulation-control { padding: 4px 2px; gap: 4px; }
+      .visual-display-row [data-modulation-wheel], .visual-display-row [data-pitch-bend-wheel] { min-height: 60px; height: 60px; }
+      .visual-display-row .modulation-control { width: 36px; }
 
       #visualizerDescription {
         margin: 4px 0 6px;
@@ -1127,7 +1148,19 @@
               </div>
               <p id="envelopeDescription"></p>
               <p id="visualizerDescription">Operator envelope guides and chip-output RMS.</p>
-              <canvas id="envelopeCanvas" width="720" height="160"></canvas>
+              <div class="visual-display-row">
+                <canvas id="envelopeCanvas" width="720" height="160"></canvas>
+                <label class="modulation-control" for="visualPitchBendWheel" title="Pitch bend: ±2 semitones. Release to return to the original pitch.">
+                  <span>Pitch</span>
+                  <input id="visualPitchBendWheel" data-pitch-bend-wheel aria-label="Display pitch bend: plus or minus two semitones" type="range" min="-1000" max="1000" step="10" value="0">
+                  <output data-pitch-bend-value for="visualPitchBendWheel">0.00</output>
+                </label>
+                <label class="modulation-control" for="visualModulationWheel" title="Add vibrato with the chip LFO. LFOF sets its speed; return to 0 to restore the patch modulation.">
+                  <span>Mod</span>
+                  <input id="visualModulationWheel" data-modulation-wheel aria-label="Display modulation wheel: vibrato depth" type="range" min="0" max="127" step="1" value="0">
+                  <output id="visualModulationValue" data-modulation-value for="visualModulationWheel">0%</output>
+                </label>
+              </div>
             </div>
 
             <div class="control-section">
@@ -1213,6 +1246,17 @@
                   <div class="toolbar-group" id="stringWindowControls"></div>
                 </div>
               </div>
+              <div class="performance-keyboard">
+                <label class="modulation-control" for="pitchBendWheel" title="Pitch bend: ±2 semitones. Release to return to the original pitch.">
+                  <span>Pitch</span>
+                  <input id="pitchBendWheel" data-pitch-bend-wheel aria-label="Pitch bend: plus or minus two semitones" type="range" min="-1000" max="1000" step="10" value="0">
+                  <output data-pitch-bend-value for="pitchBendWheel">0.00</output>
+                </label>
+                <label class="modulation-control" for="modulationWheel" title="Add vibrato with the chip LFO. LFOF sets its speed; return to 0 to restore the patch modulation.">
+                  <span>Mod</span>
+                  <input id="modulationWheel" data-modulation-wheel aria-label="Modulation wheel: vibrato depth" type="range" min="0" max="127" step="1" value="0">
+                  <output id="modulationValue" data-modulation-value for="modulationWheel">0%</output>
+                </label>
               <div class="keyboard-wrap">
                 <div class="keyboard" id="keyboard"></div>
                 <div class="prepare-overlay" id="prepareOverlay" aria-live="polite" aria-hidden="true">
@@ -1221,6 +1265,7 @@
                     <span>Please wait a moment. The YM2612 worklet and WASM are loading.</span>
                   </div>
                 </div>
+              </div>
               </div>
             </div>
           </section>

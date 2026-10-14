@@ -1,5 +1,7 @@
 import { readPresetFile } from "./synth_preset_import.js";
 import { createSynthOutputVisualizer } from "./synth_output_visualizer.js";
+import { applyModulation, modulationSettings } from "./synth_modulation.js";
+import {applyPitchBend, bendPitch} from './synth_pitch_bend.js';
 import {
   FM_PRESETS,
   FM_PRESET_ORDER,
@@ -179,7 +181,103 @@ for (const button of visualModeButtons) {
   });
 }
 const heldKeys = new Set();
+const modulationWheels = document.querySelectorAll('[data-modulation-wheel]');
+const modulationValues = document.querySelectorAll('[data-modulation-value]');
+let modulationWheelValue = 0;
+for (const modulationWheel of modulationWheels) {
+  let pointerInteraction = false;
+  let pointerId = null;
+  modulationWheel.addEventListener('pointerdown', event => {
+    pointerInteraction = true;
+    pointerId = event.pointerId;
+    modulationWheel.blur();
+  });
+  modulationWheel.addEventListener('focus', () => {
+    if (pointerInteraction) modulationWheel.blur();
+  });
+  const releaseWheelPointer = event => {
+    if (!pointerInteraction || event.pointerId !== pointerId) return;
+    pointerInteraction = false;
+    pointerId = null;
+    modulationWheel.blur();
+  };
+  window.addEventListener('pointerup', releaseWheelPointer);
+  window.addEventListener('pointercancel', releaseWheelPointer);
+  modulationWheel.addEventListener('input', () => {
+    modulationWheelValue = Number(modulationWheel.value);
+    for (const wheel of modulationWheels) wheel.value = String(modulationWheelValue);
+    for (const readout of modulationValues) readout.textContent = `${Math.round(modulationWheelValue / 127 * 100)}%`;
+    if (synth) applyModulation(synth, commonState, modulationWheelValue, VOICE_COUNT);
+  });
+  // Keep range-keyboard controls separate from the fretboard's arrow shortcuts.
+  modulationWheel.addEventListener('keydown', event => {
+    if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) {
+      event.stopPropagation();
+    }
+    // WebKit's native range does not consistently implement Home/End.
+    if (event.key === 'Home' || event.key === 'End') {
+      event.preventDefault();
+      modulationWheel.value = event.key === 'Home' ? '0' : '127';
+      modulationWheel.dispatchEvent(new Event('input', {bubbles: true}));
+    }
+  });
+  modulationWheel.addEventListener('keyup', event => {
+    if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) {
+      event.stopPropagation();
+    }
+  });
+}
 const activePointers = new Map();
+const pitchBendWheels = document.querySelectorAll('[data-pitch-bend-wheel]');
+const pitchBendValues = document.querySelectorAll('[data-pitch-bend-value]');
+let pitchBendSemitones = 0;
+function updatePitchBend(value) {
+  pitchBendSemitones = value / 1000 * 2;
+  for (const wheel of pitchBendWheels) wheel.value = String(value);
+  for (const readout of pitchBendValues) readout.textContent = `${pitchBendSemitones > 0 ? '+' : ''}${pitchBendSemitones.toFixed(2)}`;
+  if (synth) {
+    applyPitchBend(synth, voices, pitchBendSemitones);
+    if (channel3SpecialState.enabled) {
+      channel3SpecialState.frequencies.forEach((basePitch, operator) => {
+        const pitch = bendPitch(basePitch, pitchBendSemitones);
+        synth.setChannel3SpecialFrequency(operator, pitch.block, pitch.fnum);
+      });
+    }
+  }
+}
+for (const wheel of pitchBendWheels) {
+  let pointerInteraction = false;
+  let pointerId = null;
+  wheel.addEventListener('pointerdown', event => {pointerInteraction = true; pointerId = event.pointerId; wheel.blur();});
+  wheel.addEventListener('focus', () => {if (pointerInteraction) wheel.blur();});
+  const release = event => {
+    if (!pointerInteraction || event.pointerId !== pointerId) return;
+    pointerInteraction = false;
+    pointerId = null;
+    wheel.blur();
+    updatePitchBend(0);
+  };
+  window.addEventListener('pointerup', release);
+  window.addEventListener('pointercancel', release);
+  window.addEventListener('blur', () => {pointerInteraction = false; updatePitchBend(0);});
+  wheel.addEventListener('input', () => updatePitchBend(Number(wheel.value)));
+  wheel.addEventListener('keydown', event => {
+    if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Home', 'End', 'Escape'].includes(event.key)) {
+      event.stopPropagation();
+      if (['Home', 'End', 'Escape'].includes(event.key)) {
+        event.preventDefault();
+        updatePitchBend(event.key === 'Home' ? -1000 : event.key === 'End' ? 1000 : 0);
+      }
+    }
+  });
+  wheel.addEventListener('keyup', event => {
+    if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Home', 'End', 'Escape'].includes(event.key)) {
+      event.stopPropagation();
+      updatePitchBend(0);
+    }
+  });
+  wheel.addEventListener('blur', () => {if (!pointerInteraction) updatePitchBend(0);});
+}
 
 const OPERATOR_NUMBERS = [
   1,
@@ -1230,10 +1328,8 @@ function applyPatchToVoices() {
     return;
   }
 
-  synth.setLfo(
-    commonState.lfoEnabled,
-    commonState.lfoFrequency
-  );
+  const modulation = modulationSettings(commonState, modulationWheelValue);
+  synth.setLfo(modulation.lfoEnabled, modulation.lfoFrequency);
   synth.setDacEnabled(
     commonState.dacEnabled
   );
@@ -1295,9 +1391,10 @@ function applyPatchToVoices() {
       true,
       true,
       commonState.ams,
-      commonState.pms
+      modulation.pms
     );
   }
+  updatePitchBend(pitchBendSemitones * 500);
 }
 
 function syncControlsFromState() {
@@ -1418,17 +1515,18 @@ function buildCurrentPresetState() {
 }
 
 function buildLooperPatchSnapshot() {
+  const modulation = modulationSettings(commonState, modulationWheelValue);
   return {
     algorithm:
       commonState.algorithm,
     feedback:
       commonState.feedback,
     ams: commonState.ams,
-    pms: commonState.pms,
+    pms: modulation.pms,
     lfoEnabled:
-      commonState.lfoEnabled,
+      modulation.lfoEnabled,
     lfoFrequency:
-      commonState.lfoFrequency,
+      modulation.lfoFrequency,
     dacEnabled:
       commonState.dacEnabled,
     pan: {
@@ -2580,6 +2678,7 @@ inputController =
     voices,
     getAudioReadyPromise:
       () => audioReadyPromise,
+    getPitchBend: () => pitchBendSemitones,
     getSynth: () =>
       getPlayableSynth(),
     ensureAudioReady,

@@ -10,6 +10,7 @@ export function createVoices(
       held: false,
       key: null,
       startedAt: 0,
+      basePitch: null,
     })
   );
 }
@@ -110,6 +111,7 @@ export function resetVoiceState({
     voice.held = false;
     voice.key = null;
     voice.startedAt = 0;
+    voice.basePitch = null;
   }
 
   nextVoiceSearchStart = 0;
