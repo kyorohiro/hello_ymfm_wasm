@@ -16,7 +16,10 @@ const METADATA_PATHS = new Set(['/metadata.json', '/cassette.metadata.js']);
 const comparePaths = (a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' });
 
 export function isSynthTonePath(path) {
-  return TONE_EXTENSION.test(String(path));
+  path = String(path);
+  // Git refs/objects are opaque project data even when a branch or object
+  // happens to end in an instrument extension.
+  return !path.split('/').includes('.git') && TONE_EXTENSION.test(path);
 }
 
 function safeName(name, fallback = 'tone') {
@@ -172,6 +175,7 @@ export function createSynthProject({ snapshot: initialSnapshot } = {}) {
     async importInstrumentFiles(files, { isCurrent = () => true, directory } = {}) {
       if (directory !== undefined) {
         directory = resolvePath(directory);
+        if (directory.split('/').includes('.git')) throw new Error('Instrument imports cannot target a .git folder.');
         if (fs.stat(directory).type !== 'directory') throw new Error(`Not a folder: ${directory}`);
       }
       const sequence = ++importSequence;
@@ -193,7 +197,8 @@ export function createSynthProject({ snapshot: initialSnapshot } = {}) {
       const occupied = new Set(project.listEntries().map(entry => entry.path));
       const addedFiles = [], addedDirectories = [], notices = new Set();
       for (const batch of batches) {
-        const source = safeName(batch.name.replace(/\.(vgm|vgz|s98|tfi|vgi)$/i, ''), 'instrument');
+        let source = safeName(batch.name.replace(/\.(vgm|vgz|s98|tfi|vgi)$/i, ''), 'instrument');
+        if (source === '.git') source = '.git-instruments';
         const directTone = directory !== undefined && TONE_EXTENSION.test(batch.name);
         const base = `${directory ?? '/presets'}/${source}`.replace(/^\/\//, '/');
         let targetDirectory = directTone ? directory : base, suffix = 2;

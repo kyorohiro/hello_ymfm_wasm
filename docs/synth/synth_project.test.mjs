@@ -317,3 +317,28 @@ test('Cassette export rejects a generated metadata file conflicting with a folde
   assert.throws(() => moduleProject.exportCassette({ metadataFileName: 'cassette.metadata.js' }), /cassette\.metadata\.js is a folder/);
   await createSynthProject().importCassette(moduleProject.exportCassette());
 });
+
+test('Git refs with instrument extensions remain opaque through Cassette round trips', async () => {
+  const ref = new TextEncoder().encode('0123456789012345678901234567890123456789\n');
+  const files = [
+    { path: '/.git/refs/heads/song.vgi', type: 'binary', data: ref },
+    { path: '/.git/refs/heads/song.tfi', type: 'binary', data: ref },
+    { path: '/nested/.git/refs/tags/tone.VGI', type: 'binary', data: ref },
+    { path: '/presets/real.vgi', type: 'binary', data: createVgiFromPreset(patch) },
+  ];
+  const project = createSynthProject();
+  await project.importCassette(createPlaygroundCassetteZip(files));
+  assert.deepEqual(project.listTones().map(file => file.path), ['/presets/real.vgi']);
+  assert.equal(project.selectedPath, '/presets/real.vgi');
+  assert.equal(isSynthTonePath('/.git/refs/heads/song.vgi'), false);
+  assert.equal(isSynthTonePath('/nested/.git/refs/heads/song.tfi'), false);
+  assert.throws(() => project.readTone('/.git/refs/heads/song.vgi'), /Choose a TFI or VGI/);
+  const exported = await loadPlaygroundCassette(project.exportCassette());
+  for (const file of files) assert.deepEqual(exported.files.get(file.path.slice(1)), file.data, file.path);
+  const instrumentResult = await project.importInstrumentFiles([instrument('.git.tfi')]);
+  assert.deepEqual(instrumentResult.paths, ['/presets/.git-instruments/.git.tfi']);
+  assert.equal(project.readTone(instrumentResult.paths[0]).preset.algorithm, 4);
+  const before = project.snapshot();
+  await assert.rejects(project.importInstrumentFiles([instrument('tone.tfi')], { directory: '/.git/refs/heads' }), /cannot target a \.git folder/);
+  assert.deepEqual(project.snapshot(), before);
+});

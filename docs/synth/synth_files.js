@@ -88,8 +88,8 @@ export function setupSynthFiles({project, getPreset, getPresetId, applyPreset, a
   function render() {
     document.body.classList.toggle('synth-files-open',!panel.hidden);
     if (selectedPath && !project.fs.has(selectedPath) && !project.fs.listDirectories().includes(selectedPath)) selectedPath = activeTonePath;
-    const entries=project.listEntries().filter(entry=>entry.path!=='/');
-    const revision=entries.map(entry=>`${entry.path}:${entry.revision}`).join('\n');
+    const entries=project.listEntries().filter(entry=>entry.path!=='/'&&!entry.path.split('/').includes('.git'));
+    const revision=JSON.stringify(entries.map(entry=>[entry.path,entry.revision]));
     if(revision!==renderedFiles){
       renderFileTree(tree, entries, {
       selectedPath, expanded,
@@ -145,6 +145,7 @@ export function setupSynthFiles({project, getPreset, getPresetId, applyPreset, a
   }
   function validName(value) {
     if (!value || value === '.' || value === '..' || /[\\/\x00-\x1f:*?"<>|]/.test(value)) throw Error('Enter a name without a folder path or reserved characters.');
+    if(value==='.git')throw Error('That name is reserved for Git data.');
   }
   function validateDestination(directory, value) {
     validName(value);
