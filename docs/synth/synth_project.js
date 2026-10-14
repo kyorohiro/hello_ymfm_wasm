@@ -69,7 +69,7 @@ export function createSynthProject({ snapshot: initialSnapshot } = {}) {
   }
   fs.onDidChange(changed);
 
-  function uniquePath(path, occupied = new Set([...fs.listDirectories(), ...fs.list().map(file => file.path)])) {
+  function uniquePath(path, occupied = new Set(project.listEntries().map(entry => entry.path))) {
     path = resolvePath(path);
     const baseName = path.slice(path.lastIndexOf('/') + 1);
     const extensionAt = baseName.lastIndexOf('.');
@@ -101,8 +101,21 @@ export function createSynthProject({ snapshot: initialSnapshot } = {}) {
       return selectedPath;
     },
     uniquePath,
+    /** File-tree metadata without copying binary samples or Git objects. */
+    listEntries() {
+      const directories = fs.listDirectories();
+      const directorySet = new Set(directories);
+      const entries = directories.map(path => ({ path, ...fs.stat(path) }));
+      for (const directory of directories) {
+        for (const name of fs.readdir(directory)) {
+          const path = `${directory === '/' ? '' : directory}/${name}`;
+          if (!directorySet.has(path)) entries.push({ path, ...fs.stat(path) });
+        }
+      }
+      return entries.sort((a, b) => comparePaths(a.path, b.path));
+    },
     listTones() {
-      return fs.list().filter(file => isSynthTonePath(file.path)).sort((a, b) => comparePaths(a.path, b.path));
+      return project.listEntries().filter(entry => entry.type === 'file' && isSynthTonePath(entry.path)).map(entry => fs.get(entry.path));
     },
     readTone(path) {
       path = resolvePath(path);
@@ -177,7 +190,7 @@ export function createSynthProject({ snapshot: initialSnapshot } = {}) {
         if (!current()) return { paths: [], failures: [], notices: [], cancelled: true };
       }
       batches.sort((a, b) => comparePaths(a.name, b.name));
-      const occupied = new Set([...fs.listDirectories(), ...fs.list().map(file => file.path)]);
+      const occupied = new Set(project.listEntries().map(entry => entry.path));
       const addedFiles = [], addedDirectories = [], notices = new Set();
       for (const batch of batches) {
         const source = safeName(batch.name.replace(/\.(vgm|vgz|s98|tfi|vgi)$/i, ''), 'instrument');

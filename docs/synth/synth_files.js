@@ -26,21 +26,30 @@ export function setupSynthFiles({project, getPreset, getPresetId, applyPreset, a
   const expanded = new Map([['/presets', true]]);
   const history = [];
   let activeTonePath = null, selectedPath = null, dirty = false;
-  let busy = false, importGeneration = 0, touched = false;
+  let busy = true, importGeneration = 0, visibilityTouched = false, draftLoaded = false;
   let basePresetId = getPresetId(), basePreset = structuredClone(getPreset());
   let draftStore = null, saveTimer = null, restoring = false;
 
-  function remember() {
-    if (restoring || !draftStore) return;
-    clearTimeout(saveTimer);
-    saveTimer = setTimeout(() => {
-      saveTimer = null;
+  function writeDraft() {
+    return new Promise((resolve,reject) => {
       try {
         const transaction = draftStore.transaction('projects', 'readwrite');
         transaction.objectStore('projects').put({project:project.snapshot(), activeTonePath, filesVisible:!panel.hidden}, 'current');
-        transaction.onerror = () => setStatus('Could not save the local draft. Export Cassette to keep this project.');
-      } catch (error) {setStatus(`Could not save the local draft: ${error.message}`);}
+        transaction.oncomplete = () => resolve(true);
+        transaction.onerror = () => reject(transaction.error);
+        transaction.onabort = () => reject(transaction.error || Error('Draft save aborted.'));
+      } catch (error) {reject(error);}
+    });
+  }
+  function remember(immediate=false) {
+    if (restoring || !draftLoaded || !draftStore) return Promise.resolve(false);
+    clearTimeout(saveTimer);
+    if(immediate){saveTimer=null;return writeDraft();}
+    saveTimer = setTimeout(() => {
+      saveTimer = null;
+      void writeDraft().catch(error=>setStatus(`Could not save the local draft: ${error.message}. Export Cassette to keep this project.`));
     }, 500);
+    return Promise.resolve(true);
   }
 
   function capture() {
@@ -69,6 +78,10 @@ export function setupSynthFiles({project, getPreset, getPresetId, applyPreset, a
     }
     byId('synthFileNewButton').disabled = busy;
     byId('synthFileNewFolderButton').disabled = busy;
+    byId('importPresetButton').disabled=busy;
+    byId('importCassetteButton').disabled=busy;
+    byId('exportCassetteButton').disabled=busy;
+    byId('presetSelect').disabled=busy;
   }
   function render() {
     document.body.classList.toggle('synth-files-open',!panel.hidden);
@@ -77,7 +90,10 @@ export function setupSynthFiles({project, getPreset, getPresetId, applyPreset, a
       selectedPath, expanded,
       onOpen: path => void selectFile(path),
       onTransfer: (source, destination, copy) => void transfer(source, destination, copy),
-      onImport: (files, directory) => void importInstruments(files, directory || '/'),
+      onImport: (files, directory) => {
+        if(files.length===1&&/\.cassette\.zip$/i.test(files[0].name))void importCassette(files[0]);
+        else void importInstruments(files,directory||'/');
+      },
     });
     byId('synthCassetteName').textContent = project.cassetteName + '.cassette.zip';
     updateButtons();
@@ -167,7 +183,7 @@ export function setupSynthFiles({project, getPreset, getPresetId, applyPreset, a
       reveal(path);
       onSaved(path);
       setBaseline();
-      render(); remember();
+      render(); await remember(true);
       setStatus(`Saved ${path}.`);
       return true;
     } catch (error) {report(error); return false;}
@@ -175,7 +191,6 @@ export function setupSynthFiles({project, getPreset, getPresetId, applyPreset, a
   async function selectFile(path) {
     if (busy) return false;
     busy=true;updateButtons();
-    touched = true;
     try {
       // Parse before asking about edits, so a bad file never changes the sound.
       const tone = isSynthTonePath(path) ? project.readTone(path) : null;
@@ -202,14 +217,13 @@ export function setupSynthFiles({project, getPreset, getPresetId, applyPreset, a
     busy=true;updateButtons();
     try {
       if (!await resolveDirty()) return false;
-      touched = true; activeTonePath = null; dirty = false;
+      activeTonePath = null; dirty = false;
       stopAllNotes(); applyPreset(id);setBaseline();render();remember();return true;
     } finally {busy=false;updateButtons();}
   }
   async function perform(action, path = selectedPath) {
     if (busy) return;
     busy=true;updateButtons();
-    touched = true;
     closeMenu();
     try {
       if (action === 'save') {await saveTone(); return;}
@@ -226,7 +240,7 @@ export function setupSynthFiles({project, getPreset, getPresetId, applyPreset, a
       }
       if (!await resolveDirty()) return;
       if (action === 'new') {
-        const directory = path && project.fs.listDirectories().includes(path) && path.startsWith('/presets') ? path : '/presets';
+        const directory = path?.startsWith('/presets') ? (project.fs.listDirectories().includes(path)?path:dirname(path)) : '/presets';
         const filename = await askName('New instrument', 'Untitled.vgi', value => {
           validateDestination(directory,value);if(!isSynthTonePath(value))throw Error('Use a .tfi or .vgi file name.');
         });
@@ -258,67 +272,80 @@ export function setupSynthFiles({project, getPreset, getPresetId, applyPreset, a
         if (inside(activeTonePath,path)) {activeTonePath=null;dirty=false;stopAllNotes();applyPreset('one-op-basic');setBaseline();}
         selectedPath = null;
       }
-      render(); remember(); setStatus(`${action === 'delete' ? 'Deleted' : 'Updated'} ${selectedPath || path || 'Cassette'}.`);
+      render(); await remember(true); setStatus(`${action === 'delete' ? 'Deleted' : 'Updated'} ${selectedPath || path || 'Cassette'}.`);
     } catch (error) {report(error);}
     finally {busy=false;updateButtons();}
   }
   async function transfer(source,destination,copy) {
-    if (busy || source === destination || !await resolveDirty()) return;
-    touched=true;
+    if (busy || source === destination) return;
+    busy=true;updateButtons();
     try {
+      if(!await resolveDirty())return;
       pushUndo();
       if(copy)destination=project.duplicate(source,project.uniquePath(destination));
       else project.move(source,destination);
-      if(!copy&&inside(activeTonePath,source)){activeTonePath=destination+activeTonePath.slice(source.length);onSaved(activeTonePath);}
-      selectedPath=destination;reveal(destination);render();remember();setStatus(`${copy?'Copied':'Moved'} ${destination}.`);
-    }catch(error){report(error);}
+      if(!copy&&inside(activeTonePath,source)){activeTonePath=destination+activeTonePath.slice(source.length);onSaved(activeTonePath);setBaseline();}
+      selectedPath=destination;reveal(destination);render();await remember(true);setStatus(`${copy?'Copied':'Moved'} ${destination}.`);
+    }catch(error){report(error);}finally{busy=false;updateButtons();}
   }
   async function importInstruments(files, directory) {
     const selection=Array.from(files || []); if(!selection.length||busy)return;
-    if(!await resolveDirty())return;
-    touched=true; const generation=++importGeneration;const previous=capture();busy=true;updateButtons();
+    busy=true;updateButtons();
+    const generation=++importGeneration;let previous;
     const importError=byId('presetImportError'), notice=byId('presetImportNotice');
     importError.hidden=true;notice.hidden=true;setStatus('Loading instruments…');
     try{
+      if(!await resolveDirty())return;
+      previous=capture();
       const result=await project.importInstrumentFiles(selection,{...(directory?{directory}:{}),isCurrent:()=>generation===importGeneration});
       if(result.cancelled)return;
-      if(result.paths.length){pushUndo(previous);activeTonePath=selectedPath=result.paths[0];dirty=false;stopAllNotes();applyPreset('vfs:'+activeTonePath);reveal(activeTonePath);panel.hidden=false;workspace.classList.add('has-files');toggle.setAttribute('aria-expanded','true');toggle.classList.add('is-selected');}
+      if(result.paths.length){pushUndo(previous);activeTonePath=selectedPath=result.paths[0];dirty=false;stopAllNotes();applyPreset('vfs:'+activeTonePath);setBaseline();reveal(activeTonePath);panel.hidden=false;workspace.classList.add('has-files');toggle.setAttribute('aria-expanded','true');toggle.classList.add('is-selected');}
       if(result.failures.length){importError.textContent=`Could not load some files:\n${result.failures.join('\n')}${result.paths.length?'':' Previous presets were kept.'}`;importError.hidden=false;}
       notice.textContent=result.notices.join('\n');notice.hidden=!result.notices.length;
       setStatus(`Loaded ${result.paths.length} instrument(s).${result.failures.length?' Some files could not be loaded.':''}`);
-      render();remember();
+      render();await remember(true);
     }catch(error){report(error);}finally{busy=false;updateButtons();document.activeElement?.blur?.();}
   }
   async function importCassette(file) {
-    if(!file||busy||!await resolveDirty())return;
-    touched=true;const previous=capture(),generation=++importGeneration;busy=true;updateButtons();
+    if(!file||busy)return;
+    busy=true;updateButtons();
+    let previous;const generation=++importGeneration;
     try{
+      if(!await resolveDirty())return;
+      previous=capture();
       const result=await project.importCassette(new Uint8Array(await file.arrayBuffer()),{name:file.name,isCurrent:()=>generation===importGeneration});
       if(result.cancelled)return;
       pushUndo(previous);dirty=false;selectedPath=project.selectedPath;activeTonePath=isSynthTonePath(selectedPath)?selectedPath:null;
-      stopAllNotes();if(activeTonePath){applyPreset('vfs:'+activeTonePath);reveal(activeTonePath);}else applyPreset('one-op-basic');
+      stopAllNotes();if(activeTonePath){applyPreset('vfs:'+activeTonePath);reveal(activeTonePath);}else applyPreset('one-op-basic');setBaseline();
       panel.hidden=false;workspace.classList.add('has-files');toggle.setAttribute('aria-expanded','true');toggle.classList.add('is-selected');
-      render();remember();setStatus(`Imported ${file.name}.`);
+      render();await remember(true);setStatus(`Imported ${file.name}.`);
     }catch(error){setStatus(`Failed to import Cassette: ${error.message}`);}finally{busy=false;updateButtons();document.activeElement?.blur?.();}
   }
   async function exportCassette() {
-    if(busy||!await resolveDirty())return;
+    if(busy)return;
+    busy=true;updateButtons();
     try{
+      if(!await resolveDirty())return;
       const bytes=project.exportCassette();
       const filename=project.cassetteName.replace(/\.cassette\.zip$/i,'')+'.cassette.zip';
       const url=URL.createObjectURL(new Blob([bytes],{type:'application/zip'}));
       const link=document.createElement('a');link.href=url;link.download=filename;document.body.append(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
       setStatus(`Exported ${filename}.`);
-    }catch(error){setStatus(`Failed to export Cassette: ${error.message}`);}
+    }catch(error){setStatus(`Failed to export Cassette: ${error.message}`);}finally{busy=false;updateButtons();}
   }
 
   toggle.addEventListener('pointerdown',event=>event.preventDefault());
-  toggle.addEventListener('click',()=>{touched=true;panel.hidden=!panel.hidden;workspace.classList.toggle('has-files',!panel.hidden);toggle.setAttribute('aria-expanded',String(!panel.hidden));toggle.classList.toggle('is-selected',!panel.hidden);remember();});
+  toggle.addEventListener('click',()=>{visibilityTouched=true;panel.hidden=!panel.hidden;workspace.classList.toggle('has-files',!panel.hidden);document.body.classList.toggle('synth-files-open',!panel.hidden);toggle.setAttribute('aria-expanded',String(!panel.hidden));toggle.classList.toggle('is-selected',!panel.hidden);remember();});
   panel.addEventListener('pointerdown',event=>{if(event.target.closest('button'))event.preventDefault();});
   panel.addEventListener('click',event=>{const item=event.target.closest('summary[data-file-path],.file-tree-root[data-file-path]');if(item){selectedPath=item.dataset.filePath;updateButtons();}});
   panel.addEventListener('keydown',event=>{if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' ','Enter','Home','End','ContextMenu'].includes(event.key))event.stopPropagation();});
   const actions={synthFileSaveButton:'save',synthFileNewButton:'new',synthFileDuplicateButton:'duplicate',synthFileRenameButton:'rename',synthFileDeleteButton:'delete',synthFileUndoButton:'undo',synthFileNewFolderButton:'folder'};
-  for(const [id,action]of Object.entries(actions))byId(id).addEventListener('click',()=>void perform(action));
+  for(const [id,action]of Object.entries(actions)){
+    byId(id).addEventListener('pointerdown',event=>event.preventDefault());
+    byId(id).addEventListener('keydown',event=>{if(event.key===' '||event.key==='Enter')event.stopPropagation();});
+    byId(id).addEventListener('click',()=>void perform(action));
+  }
+  toggle.addEventListener('keydown',event=>{if(event.key===' '||event.key==='Enter')event.stopPropagation();});
   tree.addEventListener('contextmenu',event=>{
     event.preventDefault();event.stopPropagation();const anchor=event.target.closest('[data-file-path]');selectedPath=anchor?.dataset.filePath||'/';
     updateButtons();menu.hidden=false;for(const button of menu.querySelectorAll('[data-file-action]'))button.disabled=selectedPath==='/'&&['rename','delete','duplicate'].includes(button.dataset.fileAction);
@@ -346,9 +373,19 @@ export function setupSynthFiles({project, getPreset, getPresetId, applyPreset, a
     try{
       draftStore=await openDraftStore();if(!draftStore)return;
       const saved=await new Promise((resolve,reject)=>{const request=draftStore.transaction('projects','readonly').objectStore('projects').get('current');request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error);});
-      if(saved?.project&&!touched){restoring=true;project.restore(saved.project);activeTonePath=saved.activeTonePath&&project.fs.has(saved.activeTonePath)?saved.activeTonePath:null;selectedPath=activeTonePath||project.selectedPath;if(activeTonePath){project.readTone(activeTonePath);applyPreset('vfs:'+activeTonePath);reveal(activeTonePath);}panel.hidden=saved.filesVisible===false;workspace.classList.toggle('has-files',!panel.hidden);toggle.setAttribute('aria-expanded',String(!panel.hidden));toggle.classList.toggle('is-selected',!panel.hidden);restoring=false;render();setStatus('Restored local Cassette draft.');}
-      restored=true;
+      if(saved?.project){
+        restoring=true;project.restore(saved.project);
+        // Files are restored even if a user already tried a knob. In that case
+        // retain the unsaved sound rather than replacing it with the old tone.
+        activeTonePath=!dirty&&saved.activeTonePath&&project.fs.has(saved.activeTonePath)?saved.activeTonePath:null;
+        selectedPath=activeTonePath||project.selectedPath;
+        if(activeTonePath){project.readTone(activeTonePath);applyPreset('vfs:'+activeTonePath);setBaseline();reveal(activeTonePath);}
+        if(!visibilityTouched)panel.hidden=saved.filesVisible===false;
+        workspace.classList.toggle('has-files',!panel.hidden);toggle.setAttribute('aria-expanded',String(!panel.hidden));toggle.classList.toggle('is-selected',!panel.hidden);
+        restoring=false;render();setStatus('Restored local Cassette draft.');
+      }
     }catch(error){restoring=false;setStatus(`Local draft unavailable: ${error.message}. Cassette import/export is still available.`);}
+    finally{draftLoaded=true;busy=false;updateButtons();remember();}
   })();
-  return {ready, selectFile, selectPreset, importInstruments, get activeTonePath(){return activeTonePath;}, get dirty(){return dirty;}, markDirty(){touched=true;dirty=true;updateButtons();}, refresh:render};
+  return {ready, selectFile, selectPreset, importInstruments, get activeTonePath(){return activeTonePath;}, get dirty(){return dirty;}, markDirty(){dirty=true;updateButtons();}, refresh:render};
 }

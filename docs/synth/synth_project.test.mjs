@@ -274,3 +274,27 @@ test('non-instrument files are preserved without being parsed and subscriptions 
   project.fs.writeText('/index.js', 'updated');
   assert.equal(changes, 2);
 });
+
+test('file-tree and tone listing avoid copying opaque sample and Git data', () => {
+  const project = createSynthProject();
+  project.writeTone('/presets/tone.vgi', patch);
+  project.fs.writeBinary('/samples/large.wav', new Uint8Array(1024 * 1024));
+  project.fs.writeBinary('/.git/objects/pack/large.pack', new Uint8Array(1024 * 1024));
+  project.mkdir('/empty');
+  // A tree render must not ask for the full contents of every file. Verify
+  // through the public VFS calls, rather than a timing-sensitive benchmark.
+  const fsGet = project.fs.get;
+  const reads = [];
+  project.fs.list = () => assert.fail('Listing the tree copied all project bytes');
+  project.fs.get = path => { reads.push(path); return fsGet(path); };
+  const entries = project.listEntries();
+  assert.deepEqual(reads, []);
+  assert.ok(entries.some(entry => entry.path === '/empty' && entry.type === 'directory'));
+  assert.ok(entries.some(entry => entry.path === '/samples/large.wav' && entry.type === 'file' && entry.size === 1024 * 1024));
+  assert.ok(entries.every(entry => !Object.hasOwn(entry, 'data')));
+  assert.equal(project.uniquePath('/presets/tone.vgi'), '/presets/tone-2.vgi');
+  assert.deepEqual(reads, []);
+  const tones = project.listTones();
+  assert.deepEqual(reads, ['/presets/tone.vgi']);
+  assert.deepEqual(tones[0].data, createVgiFromPreset(patch));
+});

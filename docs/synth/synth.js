@@ -1545,10 +1545,7 @@ function buildLooperPatchSnapshot() {
       modulation.lfoFrequency,
     dacEnabled:
       commonState.dacEnabled,
-    pan: {
-      left: true,
-      right: true,
-    },
+    pan: {...currentPresetPan},
     operators: [
       {
         ...operatorStates[1],
