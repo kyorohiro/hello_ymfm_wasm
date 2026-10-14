@@ -95,6 +95,33 @@
         flex-wrap: wrap;
       }
 
+      .synth-title-group { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; }
+      .synth-toolbar { display: flex; align-items: center; gap: 6px; position: relative; }
+      .synth-menu { position: relative; }
+      .synth-icon-button {
+        display: inline-flex; align-items: center; justify-content: center;
+        width: 36px; height: 36px; padding: 0; border: 1px solid #41615b;
+        border-radius: 50%; background: #172423; color: #c8e3dd; cursor: pointer;
+        list-style: none;
+      }
+      .synth-icon-button::-webkit-details-marker { display: none; }
+      .synth-icon-button svg { width: 19px; height: 19px; }
+      .synth-icon-button:hover, .synth-icon-button.is-selected { background: #254c45; border-color: #7be0d6; }
+      .synth-icon-button.is-selected .pin-head { fill: #7be0d6; }
+      .synth-icon-button:focus-visible { outline: 2px solid #7be0d6; outline-offset: 3px; }
+      .synth-icon-button[hidden] { display: none; }
+      .synth-menu-panel {
+        position: absolute; top: calc(100% + 8px); left: 0; z-index: 30;
+        width: min(320px, calc(100vw - 52px)); max-height: min(70vh, 520px); overflow-y: auto;
+        box-sizing: border-box; padding: 14px; border: 1px solid #41615b; border-radius: 14px;
+        background: #172423; box-shadow: 0 12px 32px #0009;
+      }
+      .synth-menu-section + .synth-menu-section { margin-top: 12px; padding-top: 12px; border-top: 1px solid #35504b; }
+      .synth-menu-section h2 { margin: 0 0 8px; color: #a8bfba; font-size: 0.72rem; }
+      .synth-menu-actions { display: grid; gap: 6px; }
+      .synth-menu-actions .toolbar-button { text-align: left; padding: 8px 10px; min-height: 32px; }
+      #synthBrowserAudioHint { margin: 0; font-size: 0.75rem; color: #a8bfba; }
+
       .meta {
         margin: 0;
         font-size: 0.9rem;
@@ -1132,9 +1159,46 @@
     <main>
       <section class="panel">
         <div class="topline" id="pageTitle">
+          <div class="synth-title-group">
+            <div class="synth-toolbar">
+              <details id="synthMenu" class="synth-menu">
+                <summary id="synthMenuButton" class="synth-icon-button" aria-label="Menu" title="Menu" aria-expanded="false" aria-controls="synthMenuPanel">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+                </summary>
+                <div id="synthMenuPanel" class="synth-menu-panel">
+                  <section class="synth-menu-section">
+                    <h2>Import</h2>
+                    <div class="synth-menu-actions">
+                      <button id="importPresetButton" class="toolbar-button" type="button" data-close-synth-menu>Instrument files…</button>
+                      <input id="tfiFile" type="file" multiple accept=".vgm,.vgz,.s98,.tfi,.vgi,application/octet-stream" hidden>
+                      <button id="importEventRecordingButton" class="toolbar-button" type="button" data-close-synth-menu>Event recording…</button>
+                      <input id="eventRecordImportInput" type="file" accept=".json,application/json" hidden>
+                    </div>
+                  </section>
+                  <section class="synth-menu-section">
+                    <h2>Export</h2>
+                    <div class="synth-menu-actions">
+                      <button id="exportTfiButton" class="toolbar-button" type="button" data-close-synth-menu>Instrument · TFI</button>
+                      <button id="exportVgiButton" class="toolbar-button" type="button" data-close-synth-menu>Instrument · VGI</button>
+                      <button id="eventRecordExportButton" class="toolbar-button" type="button" data-close-synth-menu disabled>Event recording · JSON</button>
+                    </div>
+                  </section>
+                  <section id="synthMenuAudio" class="synth-menu-section">
+                    <p id="synthBrowserAudioHint">Audio output · System default (Web Audio)</p>
+                  </section>
+                  <section class="synth-menu-section synth-menu-actions">
+                    <button class="toolbar-button" data-reset-offline-cache data-close-synth-menu type="button">Reset Offline Cache</button>
+                  </section>
+                </div>
+              </details>
+              <button id="synthPinButton" type="button" class="synth-icon-button" aria-label="Pin window on top" title="Pin window on top" aria-pressed="false" hidden>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true"><path class="pin-head" d="M9 3h6v5l3 5v2H6v-2l3-5z"/><path d="M12 15v7"/></svg>
+              </button>
+            </div>
           <div class="synth-brand">
             <span class="synth-brand-name">Tetorica</span>
             <h1><span>FM</span>2612</h1>
+          </div>
           </div>
           <p class="synth-brand-caption">Mega Drive Sound <span>Sound laboratory</span></p>
         </div>
@@ -1167,12 +1231,7 @@
               <div class="preset-row">
                 <label for="presetSelect">Preset</label>
                 <select id="presetSelect"></select>
-                <label for="tfiFile">VGM / VGZ / S98 / TFI / VGI</label>
-                <input id="tfiFile" class="tfi-file" type="file" multiple accept=".vgm,.vgz,.s98,.tfi,.vgi,application/octet-stream">
                 <div id="tfiSummary" class="tfi-summary">Drop VGM / VGZ / S98 / TFI / VGI anywhere to load.</div>
-                <button id="exportTfiButton" class="toolbar-button" type="button">Export TFI</button>
-                <button id="exportVgiButton" class="toolbar-button" type="button">Export VGI</button>
-                <button class="toolbar-button" data-reset-offline-cache type="button">Reset Offline Cache</button>
               </div>
               <p id="presetImportError" class="preset-import-error" role="alert" hidden></p>
               <p id="presetImportNotice" class="tfi-summary" role="status" hidden></p>
@@ -1214,9 +1273,6 @@
               <button id="eventRecordStartButton" class="toolbar-button" type="button">Event Rec Start</button>
               <button id="eventRecordStopButton" class="toolbar-button" type="button" hidden disabled>Record</button>
               <button id="eventRecordPlayButton" class="toolbar-button" type="button" disabled>Play</button>
-              <button id="eventRecordExportButton" class="toolbar-button" type="button" disabled>Export</button>
-              <label for="eventRecordImportInput" class="toolbar-button">Import</label>
-              <input id="eventRecordImportInput" type="file" accept=".json,application/json" hidden>
               <label class="toolbar-check" for="eventRecordIgnoreOperators">
                 <input id="eventRecordIgnoreOperators" type="checkbox" checked>
                 Ignore Op

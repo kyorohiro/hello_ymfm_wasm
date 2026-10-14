@@ -83,14 +83,21 @@ const server = http.createServer(async (request, response) => {
           }};
         });
         await page.goto(origin+'/synth/index.html');
-        await page.waitForSelector('#desktop-audio-output');
+        await page.waitForSelector('#desktop-audio-output', {state:'attached'});
+        const openAudioMenu = async () => {
+          if (!await page.locator('#synthMenu').evaluate(menu => menu.open)) await page.locator('#synthMenuButton').click();
+          if (!await page.locator('#desktop-audio-output').evaluate(menu => menu.open)) await page.locator('#desktop-audio-output summary').click();
+        };
         await page.locator('#keyboard .key').first().click();
         await page.waitForFunction(()=>document.getElementById('status').textContent.includes('Audio ready'));
-        await page.locator('#desktop-audio-output summary').click();
+        await openAudioMenu();
+        assert.equal(await page.locator('#desktop-audio-output').evaluate(output => output.closest('#synthMenuAudio')?.id), 'synthMenuAudio');
         await page.locator('#desktop-audio-mode').selectOption('native');
         await page.waitForFunction(() => !document.getElementById('desktop-audio-mode').disabled);
+        assert.equal(await page.locator('#synthMenu').evaluate(menu => menu.open), true, 'Audio settings remain open after selecting an output');
         assert.match(await page.locator('#desktop-audio-status').textContent(), /^Native →/);
         await page.waitForFunction(() => window.__nativeMock.writes > 4);
+        await page.screenshot({path:`/private/tmp/synth-native-menu-${name}.png`});
         assert.equal(await page.evaluate(()=>document.activeElement?.id), '');
         await page.evaluate(async () => {
           const context=window.__synthNativeTest.audio(), signal=context.createConstantSource();
@@ -108,6 +115,7 @@ const server = http.createServer(async (request, response) => {
         });
         assert(Math.abs(mix-.125)<.005, `${name}: final mix ${mix}`);
         // Both visualisers remain alive after routing to the native sink.
+        await page.locator('#synthMenuButton').click();
         for (const mode of ['waveform','spectrum','envelope']) await page.locator(`[data-visual-mode=${mode}]`).click();
         await page.evaluate(()=>{const input=document.getElementById('masterVolumeRange');input.value='0';input.dispatchEvent(new Event('input',{bubbles:true}));window.__nativeSignals.loop.offset.value=0;});
         await page.waitForFunction(()=>window.__nativeMock.packets.slice(-3).every(packet=>Math.abs(packet.mean)<.0001));
@@ -121,10 +129,14 @@ const server = http.createServer(async (request, response) => {
         await page.locator('#looperStartButton').click();
         await page.waitForFunction(()=>window.__synthNativeTest.looper()?.running);
         await page.locator('#looperRecordButton').click();
-        await page.keyboard.down('a');await page.waitForTimeout(150);await page.keyboard.up('a');
+        await page.waitForFunction(()=>window.__synthNativeTest.looper().recording);
+        await page.keyboard.down('a');
+        await page.waitForFunction(()=>document.querySelector('#keyboard .key[data-key="a"]')?.classList.contains('is-active'));
+        await page.waitForTimeout(600);await page.keyboard.up('a');
         await page.locator('#looperRecordButton').click();
         await page.waitForFunction(()=>window.__synthNativeTest.looper().units.length>0);
         const unitCount=await page.evaluate(()=>window.__synthNativeTest.looper().units.length);
+        await openAudioMenu();
         await page.locator('#desktop-audio-mode').selectOption('web');
         await page.waitForFunction(()=>document.getElementById('desktop-audio-status').textContent==='Web Audio output');
         assert.equal(await page.evaluate(()=>window.__synthNativeTest.looper().running), false);

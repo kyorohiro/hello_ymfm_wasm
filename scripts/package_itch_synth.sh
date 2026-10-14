@@ -22,6 +22,7 @@ synth_input.js
 synth_keyboard.js
 synth_runtime.js
 synth_preset_import.js
+synth_menu.js
 synth_output_visualizer.js
 synth_modulation.js
 synth_pitch_bend.js

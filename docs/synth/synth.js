@@ -1,4 +1,5 @@
 import { readPresetFile } from "./synth_preset_import.js";
+import { setupSynthMenu } from './synth_menu.js';
 import { createSynthOutputVisualizer } from "./synth_output_visualizer.js";
 import { applyModulation, modulationSettings } from "./synth_modulation.js";
 import {applyPitchBend, bendPitch} from './synth_pitch_bend.js';
@@ -1508,7 +1509,8 @@ function buildCurrentPresetState() {
   };
 
   for (const operator of OPERATOR_NUMBERS) {
-    preset.operators[operator - 1] = {
+    // TFI's preset encoder uses logical operator labels 1..4.
+    preset.operators[operator] = {
       ...operatorStates[operator],
     };
   }
@@ -2724,6 +2726,7 @@ inputController =
   });
 
 inputController.attachWindowInput();
+setupSynthMenu({document, window});
 
 buildCommonHeader();
 buildCommonControls();
