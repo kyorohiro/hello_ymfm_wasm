@@ -7,6 +7,10 @@ const chip = await createSoundChip('ym2612', {execution: 'worklet'});
 const fm = new YM2612Synth({transport: new YM2612WorkletTransport(chip)});
 fm.noteOn(0, 4, 553);
 const synth = new MegaSynth({mega32X: true});
+synth.setOutputEnvelopeOptions({samplesPerPoint:128, pointsPerMessage:16});
+synth.setOutputEnvelopeOptions({enabled:false});
+// @ts-expect-error Sample counts are numbers.
+synth.setOutputEnvelopeOptions({samplesPerPoint:'128'});
 await synth.pwm?.read(0);
 const pg = Playground({execution: 'worker'});
 await pg.playSource('fm.noteOn(0, 4, 553);');

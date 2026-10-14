@@ -7,7 +7,10 @@ test("Synth opts into worklet envelope messages and forwards the data", () => {
   const commands = [];
   const envelopes = [];
   attachOutputEnvelopeTap({
-    megaSynth: { node: { port: {
+    megaSynth: { setOutputEnvelopeOptions(options) {
+      assert.equal(typeof listener, "function");
+      commands.push(options);
+    }, node: { port: {
       addEventListener(type, callback) {
         assert.equal(type, "message");
         listener = callback;
@@ -19,7 +22,7 @@ test("Synth opts into worklet envelope messages and forwards the data", () => {
     } } },
     onEnvelope: values => envelopes.push(values),
   });
-  assert.deepEqual(commands, [{ type: "set-output-envelope", enabled: true }]);
+  assert.deepEqual(commands, [{ samplesPerPoint: 128, pointsPerMessage: 16 }]);
   const values = new Float32Array([0.1, 0.2]);
   listener({ data: { type: "output-envelope", rmsValues: values } });
   listener({ data: { type: "output-envelope", rmsValues: [0.3] } });

@@ -150,6 +150,15 @@ class YM2612Processor extends AudioWorkletProcessor {
       return;
     }
     if (command.type === 'set-output-envelope') {
+      const samplesPerPoint = command.samplesPerPoint === undefined ? this.envelopeBucketSize : command.samplesPerPoint;
+      const pointsPerMessage = command.pointsPerMessage === undefined ? this.envelopeMessageSize : command.pointsPerMessage;
+      if (!Number.isInteger(samplesPerPoint) || samplesPerPoint < 1 || samplesPerPoint > 65536 ||
+          !Number.isInteger(pointsPerMessage) || pointsPerMessage < 1 || pointsPerMessage > 1024) {
+        throw new RangeError('Invalid output envelope sample or message size');
+      }
+      this.envelopeBucketSize = samplesPerPoint;
+      this.envelopeMessageSize = pointsPerMessage;
+      this.envelopeRmsBuckets = new Float32Array(pointsPerMessage);
       this.envelopeEnabled = command.enabled === true;
       this.envelopeOffset = this.envelopeFrames = this.envelopeSum = 0;
       return;

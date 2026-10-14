@@ -77,6 +77,31 @@ function harness(t, stage = '', options = {}) {
   return { synth, context, nodes, gate, reached: () => reached };
 }
 
+test('envelope options validate, apply during playback and survive worklet recreation', async t => {
+  const {synth, nodes} = harness(t);
+  assert.equal(synth.setOutputEnvelopeOptions({samplesPerPoint:128, pointsPerMessage:16}), synth);
+  await synth.start();
+  const commands = () => nodes.at(-1).commands.filter(c => c.type === 'set-output-envelope');
+  assert.deepEqual(commands().at(-1), {type:'set-output-envelope', samplesPerPoint:128, pointsPerMessage:16, enabled:true});
+  for (const value of [null, 0, -1, NaN, Infinity, .5, 65537]) {
+    assert.throws(() => synth.setOutputEnvelopeOptions({samplesPerPoint:value}), RangeError);
+  }
+  for (const value of [null, 0, -1, NaN, Infinity, .5, 1025]) {
+    assert.throws(() => synth.setOutputEnvelopeOptions({pointsPerMessage:value}), RangeError);
+  }
+  assert.throws(() => synth.setOutputEnvelopeOptions(null), TypeError);
+  assert.throws(() => synth.setOutputEnvelopeOptions({enabled:1}), TypeError);
+  assert.equal(commands().length, 1);
+  synth.setOutputEnvelopeOptions({pointsPerMessage:2, enabled:false});
+  assert.deepEqual(commands().at(-1), {type:'set-output-envelope', samplesPerPoint:128, pointsPerMessage:2, enabled:false});
+  await synth.close();
+  await synth.start();
+  assert.equal(commands().at(-1).enabled, false);
+  synth.setOutputEnvelopeOptions({samplesPerPoint:256});
+  assert.deepEqual(commands().at(-1), {type:'set-output-envelope', samplesPerPoint:256, pointsPerMessage:2, enabled:true});
+  await synth.close();
+});
+
 test('Mega CD uses the shared mixer, exposes eight-channel PCM commands and releases stale clients on close', async t => {
   const {synth, nodes} = harness(t, '', {megaCD: true});
   assert.equal(synth.pcm, null);

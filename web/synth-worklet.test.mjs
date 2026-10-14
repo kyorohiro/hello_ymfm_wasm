@@ -52,6 +52,28 @@ for (const tree of ['web', 'docs/js']) for (const file of ['ym2612-worklet.js', 
     assert.equal(messages.length, 1);
   });
 }
+for (const tree of ['web', 'docs/js']) for (const file of ['ym2612-worklet.js', 'ym2612-worklet-nuked.js']) {
+  test(`${tree} ${file}: configurable RMS buckets reset partial points and batches`, () => {
+    const {p, messages} = processor(tree, file, 48000);
+    const capture = (n, value) => p.captureOutputEnvelope(new Float32Array(n).fill(value), new Float32Array(n).fill(value));
+    p.applyCommand({type:'set-output-envelope', enabled:true, samplesPerPoint:128, pointsPerMessage:2});
+    capture(128, .5); // Completed point in an unfinished batch.
+    capture(64, 1); // Partial point must also be discarded on reconfiguration.
+    p.applyCommand({type:'set-output-envelope', enabled:true, samplesPerPoint:256, pointsPerMessage:1});
+    capture(255, .25);
+    assert.equal(messages.length, 0);
+    capture(1, .25);
+    assert.deepEqual(messages[0].rmsValues, new Float32Array([.25]));
+    assert.throws(() => p.applyCommand({type:'set-output-envelope', samplesPerPoint:0}), /Invalid output envelope/);
+    assert.equal(p.envelopeBucketSize, 256);
+    p.applyCommand({type:'set-output-envelope', enabled:false});
+    capture(512, 1);
+    assert.equal(messages.length, 1);
+    p.applyCommand({type:'set-output-envelope', enabled:true, samplesPerPoint:1, pointsPerMessage:1});
+    capture(2, .5);
+    assert.equal(messages.length, 3);
+  });
+}
 for (const tree of ['web', 'docs/js']) {
   for (const [name, klass] of [['ym2203', 'Ym2203'], ['ym2608', 'Ym2608'], ['ym2610b', 'Ym2610B']]) {
     test(`${tree} ${name}: failed initialization reports an error to the runtime`, async () => {

@@ -259,6 +259,24 @@ frame rate; an explicit legacy `chipSampleRate` request remains supported. An
 injected AudioContext keeps its own rate. Chip clocks and note tuning are
 independent of the output rate. Published 0.2.13 predates this default change.
 
+The development runtime also supports chip-output RMS monitoring:
+
+```js
+synth.setOutputEnvelopeOptions({samplesPerPoint: 128, pointsPerMessage: 16});
+// After start(), listen on synth.node.port for:
+// {type: 'output-envelope', rmsValues: Float32Array}
+```
+
+This measures mixed chip output before browser FX and master volume, separately
+from Playground's final-output waveform analyser. Sample counts are output frames
+at the AudioContext sample rate. Defaults are 512 frames per point and 16 points
+per message; monitoring stays off until requested. Integer ranges are 1–65536 and
+1–1024 respectively. Calls before start and during playback are supported, and
+settings survive close/start. Omitted sizes keep their previous values. Each call
+discards incomplete points and batches and enables monitoring unless
+`{enabled: false}` is supplied. Message intervals are approximately
+`samplesPerPoint * pointsPerMessage / audioContext.sampleRate` seconds.
+
 ## Mega CD PCM with MegaSynth
 
 Since `0.2.0`, the package includes opt-in RF5C164 support. Enable `megaCD` before

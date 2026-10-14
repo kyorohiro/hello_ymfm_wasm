@@ -48,6 +48,12 @@ const YM2612_NATIVE_SAMPLE_RATE =
   Math.floor(YM2612_CLOCK / 144);
 
 /**
+ * Chip-output RMS monitoring before browser FX and master volume, not the final
+ * output waveform. All sample counts use the AudioContext output sample rate.
+ * @typedef {{samplesPerPoint?: number, pointsPerMessage?: number, enabled?: boolean}} OutputEnvelopeOptions
+ */
+
+/**
  * @typedef {import("./megasynth_fx.js").AnyFXUnit} AnyFXUnit
  * @typedef {import("./ym2612synth.js").YM2612Synth} YM2612SynthType
  * @typedef {import("./ym2612synth.js").YM2612Transport} YM2612Transport
@@ -355,6 +361,8 @@ export class MegaSynth {
     this.pcmDecodeId = 0;
 
     this.node = null;
+    /** @type {{samplesPerPoint: number, pointsPerMessage: number, enabled: boolean} | null} */
+    this.outputEnvelopeOptions = null;
     this.recordingManager = null;
     this._recordingHooksInstalled =
       false;
@@ -551,6 +559,37 @@ export class MegaSynth {
   connectOutput(node = null) {
     this.audio.connectOutput(node);
 
+    return this;
+  }
+
+  /**
+   * Configure chip-output RMS messages (`output-envelope`, `rmsValues`) on
+   * node.port. Calling this enables monitoring unless enabled is false.
+   * samplesPerPoint: integer 1..65536 output frames per RMS point (default 512).
+   * pointsPerMessage: integer 1..1024 points per message (default 16).
+   * Omitted fields retain their previous values. Changes discard partial data.
+   * May be called before start() or during playback; settings survive close/start.
+   * This does not configure Playground's final-output AnalyserNode.
+   * @param {OutputEnvelopeOptions} options
+   * @returns {MegaSynth}
+   */
+  setOutputEnvelopeOptions(options) {
+    if (!options || typeof options !== 'object' || Array.isArray(options)) {
+      throw new TypeError('Output envelope options must be an object');
+    }
+    const previous = this.outputEnvelopeOptions;
+    const samplesPerPoint = options.samplesPerPoint === undefined ? previous?.samplesPerPoint ?? 512 : options.samplesPerPoint;
+    const pointsPerMessage = options.pointsPerMessage === undefined ? previous?.pointsPerMessage ?? 16 : options.pointsPerMessage;
+    const enabled = options.enabled === undefined ? true : options.enabled;
+    if (!Number.isInteger(samplesPerPoint) || samplesPerPoint < 1 || samplesPerPoint > 65536) {
+      throw new RangeError('samplesPerPoint must be an integer from 1 to 65536');
+    }
+    if (!Number.isInteger(pointsPerMessage) || pointsPerMessage < 1 || pointsPerMessage > 1024) {
+      throw new RangeError('pointsPerMessage must be an integer from 1 to 1024');
+    }
+    if (typeof enabled !== 'boolean') throw new TypeError('enabled must be a boolean');
+    this.outputEnvelopeOptions = {samplesPerPoint, pointsPerMessage, enabled};
+    this.node?.port.postMessage({type: 'set-output-envelope', ...this.outputEnvelopeOptions});
     return this;
   }
 
@@ -839,6 +878,10 @@ export class MegaSynth {
 
     await workletReady;
     signal.throwIfAborted();
+
+    if (this.outputEnvelopeOptions) {
+      this.node.port.postMessage({type: 'set-output-envelope', ...this.outputEnvelopeOptions});
+    }
 
     const transport =
       new YM2612WorkletTransport(
