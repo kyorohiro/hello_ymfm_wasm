@@ -22,6 +22,9 @@ synth_input.js
 synth_keyboard.js
 synth_runtime.js
 synth_preset_import.js
+synth_output_visualizer.js
+synth_modulation.js
+synth_pitch_bend.js
 "
 RUNTIME_FILES="
 pwm32x.js
@@ -36,6 +39,8 @@ bitcrusher-worklet.js
 looper.js
 megasynth.js
 soundchip_mixer.js
+soundchip_pitch.js
+playground_chip_clock.js
 nesapu.js
 nesapuaudioengine.js
 fds_audio.js

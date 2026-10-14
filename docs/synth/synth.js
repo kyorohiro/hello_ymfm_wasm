@@ -486,6 +486,8 @@ let loopMegaSynth = null;
 let loopSynth = null;
 let liveOutputBus = null;
 let loopOutputBus = null;
+let finalOutputBus = null;
+let switchingAudioOutput = false;
 let looperCaptureTapNode = null;
 let looperCaptureSilentGain = null;
 let currentLooperCapture = null;
@@ -2284,10 +2286,15 @@ function togglePrimaryRecordAction() {
 async function initializeDirectAudio() {
   updateKeyboardAvailability();
 
+  if (!finalOutputBus) {
+    finalOutputBus = audioContext.createGain();
+    finalOutputBus.connect(audioContext.destination);
+  }
+
   liveOutputBus =
     audioContext.createGain();
   liveOutputBus.connect(
-    audioContext.destination
+    finalOutputBus
   );
 
   const runtime =
@@ -2308,7 +2315,7 @@ async function initializeDirectAudio() {
   loopOutputBus =
     audioContext.createGain();
   loopOutputBus.connect(
-    audioContext.destination
+    finalOutputBus
   );
   const loopRuntime =
     await initializeDirectAudioRuntime({
@@ -2679,6 +2686,7 @@ inputController =
     getAudioReadyPromise:
       () => audioReadyPromise,
     getPitchBend: () => pitchBendSemitones,
+    isInputEnabled: () => !switchingAudioOutput,
     getSynth: () =>
       getPlayableSynth(),
     ensureAudioReady,
@@ -2787,6 +2795,37 @@ buildKeyboard();
 applyPresetState(currentPresetName);
 updateKeyboardAvailability();
 updateMasterVolumeUi();
+
+// A desktop output adapter observes/reroutes this final bus. Chip rendering,
+// analyser branches and the looper's live capture remain in the Web Audio graph.
+if (window.__TAURI_INTERNALS__) {
+  Object.defineProperty(window, 'tetoricaSynthAudio', {
+    value: Object.freeze({
+      setSwitching(value) {
+        switchingAudioOutput = value === true;
+      },
+      async ensureReady() {
+        await ensureAudioReady();
+        return {context: audioContext, output: finalOutputBus};
+      },
+      async stopPlayback() {
+        if (megaSynth?.isRecording()) megaSynth.stopRecord();
+        megaSynth?.stopRecordingPlayback();
+        eventRecordSessionActive = false;
+        if (looper?.running) await looper.stop();
+        stopLooperAudioPlayback();
+        stopAllNotes();
+        // Key-off alone can leave a long release tail playing after switching.
+        synth?.reset();
+        loopSynth?.reset();
+        applyPatchToVoices();
+        updateLooperUi();
+        updateEventRecordUi();
+      },
+    }),
+  });
+  window.dispatchEvent(new Event('tetorica-synth-ready'));
+}
 masterVolumeRange?.addEventListener(
   "input",
   () => {

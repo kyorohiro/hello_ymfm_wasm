@@ -11,6 +11,7 @@ export function createSynthInputController({
   getAudioReadyPromise,
   getSynth,
   getPitchBend = () => 0,
+  isInputEnabled = () => true,
   ensureAudioReady,
   chooseVoice,
   updateKeyboardVisuals,
@@ -21,6 +22,7 @@ export function createSynthInputController({
   onToggleRecord,
 }) {
   async function pressKey(key) {
+    if (!isInputEnabled()) return;
     heldKeys.add(key);
     const keyLayout =
       getKeyLayout();
@@ -215,6 +217,8 @@ export function createSynthInputController({
   }
 
   function handleKeyDown(event) {
+    // Leave native application shortcuts (for example Cmd+Q) to the host.
+    if (event.metaKey || event.ctrlKey || event.altKey) return;
     const key =
       event.key.toLowerCase();
     const keyLayout =
