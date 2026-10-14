@@ -146,3 +146,20 @@ test('noneditable buttons retain performance letters and page shortcuts still wo
   assert.deepEqual(ui.strings, [-1]);
   assert.equal(ui.recordingToggles, 1);
 });
+
+test('focused performance sliders keep musical letters and native navigation without page shortcuts', async t => {
+  const ui=inputFixture(t);
+  const range={
+    closest(query){return query.split(',').some(part=>part.trim()==='input'||part.trim()==='input[type="range"]')?this:null;},
+    matches(query){return query==='input[type="range"]';},
+  };
+  for(const key of ['ArrowLeft','ArrowUp','Home','End',' ']){
+    const down=keyEvent(key,range),up=keyEvent(key,range);
+    ui.handlers.get('keydown')(down);ui.handlers.get('keyup')(up);
+    assert.equal(down.prevented,0);assert.equal(up.prevented,0);
+  }
+  assert.deepEqual(ui.frets,[]);assert.deepEqual(ui.strings,[]);assert.equal(ui.recordingToggles,0);
+  ui.handlers.get('keydown')(keyEvent('a',range));await Promise.resolve();
+  assert.deepEqual(ui.notes,[[0,4,553]]);
+  ui.handlers.get('keyup')(keyEvent('a',range));assert.deepEqual(ui.releases,[0]);
+});

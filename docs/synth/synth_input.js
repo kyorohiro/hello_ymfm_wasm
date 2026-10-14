@@ -1,5 +1,13 @@
 import {bendPitch} from './synth_pitch_bend.js';
 
+function isEditingTarget(target) {
+  if(target?.closest?.('dialog[open],#synthFileContextMenu'))return true;
+  const control=target?.closest?.('input,textarea,select,[contenteditable="true"]');
+  // Performance wheels keep letter keys available while their own navigation
+  // keys adjust the slider. File-name inputs consume ordinary text instead.
+  return Boolean(control&&!control.matches?.('input[type="range"]'));
+}
+
 export function createSynthInputController({
   getKeyLayout,
   findLayoutEntry,
@@ -221,11 +229,13 @@ export function createSynthInputController({
     if (event.metaKey || event.ctrlKey || event.altKey) return;
     // Naming files and choosing dialog actions must not play notes or consume
     // cursor/space keys. Pointer file selection still leaves performance focus.
-    if (event.target?.closest?.('input,textarea,select,[contenteditable="true"],dialog[open],#synthFileContextMenu')) return;
+    if (isEditingTarget(event.target)) return;
     const key =
       event.key.toLowerCase();
     const keyLayout =
       getKeyLayout();
+
+    if(event.target?.closest?.('input[type="range"]')&&!hasLayoutKey(keyLayout,key))return;
 
     if (event.key === "ArrowLeft") {
       event.preventDefault();
@@ -281,7 +291,7 @@ export function createSynthInputController({
   function handleKeyUp(event) {
     const key =
       event.key.toLowerCase();
-    if (event.target?.closest?.('input,textarea,select,[contenteditable="true"],dialog[open],#synthFileContextMenu')) {
+    if (isEditingTarget(event.target)) {
       // Release a note started before an input gained focus without disrupting
       // normal text editing or a native dialog control.
       releaseKey(key);
@@ -289,6 +299,8 @@ export function createSynthInputController({
     }
     const keyLayout =
       getKeyLayout();
+
+    if(event.target?.closest?.('input[type="range"]')&&!hasLayoutKey(keyLayout,key))return;
 
     if (
       event.key === "ArrowLeft" ||

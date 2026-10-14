@@ -40,6 +40,34 @@ function fileEntries(cassette) {
   return [...cassette.files].map(([name, bytes]) => [name, [...bytes]]).sort(([a], [b]) => a.localeCompare(b));
 }
 
+async function waitForStoredDraft(page, expected) {
+  const deadline = Date.now() + 10000;
+  while (Date.now() < deadline) {
+    // waitForFunction treats a Promise as truthy without polling its resolved
+    // value. Await each actual read explicitly before testing persisted state.
+    const ready = await page.evaluate(expected => new Promise(resolve => {
+      const request = indexedDB.open('tetorica-fm2612-synth-drafts', 1);
+      request.onerror = () => resolve(false);
+      request.onsuccess = () => {
+        const database = request.result;
+        const read = database.transaction('projects', 'readonly').objectStore('projects').get('current');
+        read.onerror = () => {database.close(); resolve(false);};
+        read.onsuccess = () => {
+          const draft = read.result;
+          const ready = draft?.activeTonePath === expected.activePath &&
+            draft.filesVisible === expected.visible &&
+            draft.project.files.some(file => file.path === expected.activePath) &&
+            (expected.count === undefined || draft.project.files.length === expected.count);
+          database.close(); resolve(Boolean(ready));
+        };
+      };
+    }), expected);
+    if (ready) return;
+    await new Promise(resolve => setTimeout(resolve, 50));
+  }
+  assert.fail(`Local draft was not persisted: ${JSON.stringify(expected)}`);
+}
+
 (async () => {
   const {createTfiFromPreset, parseTfi} = await import(pathToFileURL(path.join(docs, 'js/tfi.js')));
   const {createVgiFromPreset} = await import(pathToFileURL(path.join(docs, 'js/vgi.js')));
@@ -209,29 +237,62 @@ function fileEntries(cassette) {
         const savedAlgorithm = await algorithm();
         await page.locator('#synthFilesToggle').click();
         await panel.waitFor({state:'hidden'});
-        await page.waitForFunction(expected => new Promise(resolve => {
-          const request = indexedDB.open('tetorica-fm2612-synth-drafts', 1);
-          request.onerror = () => resolve(false);
-          request.onsuccess = () => {
-            const database = request.result;
-            const read = database.transaction('projects', 'readonly').objectStore('projects').get('current');
-            read.onerror = () => {database.close(); resolve(false);};
-            read.onsuccess = () => {
-              const draft = read.result;
-              const ready = draft?.activeTonePath === expected && draft.filesVisible === false && draft.project.files.some(file => file.path === expected);
-              database.close(); resolve(Boolean(ready));
-            };
-          };
-        }), savedPath);
+        await waitForStoredDraft(page, {activePath:savedPath, visible:false});
         await page.reload();
         await page.waitForSelector('#keyboard .key');
         await page.waitForFunction(expected => document.getElementById('synthActiveFilePath').textContent === expected, savedPath);
+        await page.waitForFunction(() => !document.getElementById('synthFileNewButton').disabled);
         assert.equal(await panel.isVisible(), false, 'The local draft remembers the hidden Files panel');
         assert.equal(await algorithm(), savedAlgorithm, 'Reload restores the saved editable instrument');
         await page.locator('#keyboard .key').first().click();
         await page.waitForFunction(() => document.getElementById('status').textContent.includes('Audio ready'));
         await openFiles();
         await page.screenshot({path:`/private/tmp/synth-files-${name}-desktop.png`});
+
+        // A slow local draft read must not let a Files visibility click save the
+        // still-empty project over the stored Cassette. Delay only delivery of
+        // the first real IDB get, keeping persisted data and writes unmocked.
+        const savedEntries = fileEntries(cassette);
+        // Export generates metadata.json when the workspace does not contain a
+        // metadata file; that generated entry is not a local virtual file.
+        const savedFileCount = savedEntries.filter(([name]) => name !== 'metadata.json').length;
+        await page.locator('#synthFilesToggle').click();
+        await panel.waitFor({state:'hidden'});
+        await waitForStoredDraft(page, {activePath:savedPath, visible:false, count:savedFileCount});
+        await page.addInitScript(() => {
+          const get = IDBObjectStore.prototype.get;
+          let delayed = false;
+          IDBObjectStore.prototype.get = function(key) {
+            const request = get.call(this, key);
+            if (delayed || this.name !== 'projects' || key !== 'current') return request;
+            delayed = true;
+            window.__synthDraftReadPending = true;
+            const delivery = {
+              onsuccess:null, onerror:null,
+              get result() {return request.result;},
+              get error() {return request.error;},
+            };
+            request.onsuccess = event => setTimeout(() => {
+              window.__synthDraftReadPending = false;
+              delivery.onsuccess?.(event);
+            }, 1200);
+            request.onerror = event => delivery.onerror?.(event);
+            return delivery;
+          };
+        });
+        await page.reload();
+        await page.waitForFunction(() => window.__synthDraftReadPending === true);
+        await page.locator('#synthFilesToggle').click();
+        await panel.waitFor({state:'visible'});
+        assert.equal(await page.locator('#synthFileNewButton').isDisabled(), true, 'File edits wait for the stored project');
+        await page.waitForFunction(expected => document.getElementById('synthActiveFilePath').textContent === expected, savedPath);
+        assert.equal(await panel.isVisible(), true, 'The visibility click during loading takes priority over the stored setting');
+        assert.equal(await algorithm(), savedAlgorithm, 'A delayed read restores the active tone');
+        cassette = await exportCassette();
+        assert.deepEqual(fileEntries(cassette), savedEntries, 'A visibility click during draft loading preserves all saved files');
+        await waitForStoredDraft(page, {activePath:savedPath, visible:true, count:savedFileCount});
+        await page.locator('#keyboard .key').first().click();
+        await page.waitForFunction(() => document.getElementById('status').textContent.includes('Audio ready'));
 
         await chooseFile('#importCassetteButton', [{name:'shared.cassette.zip', mimeType:'application/zip', buffer:fixture}]);
         await page.waitForFunction(() => document.getElementById('status').textContent.includes('shared'));

@@ -70,6 +70,7 @@ async function downloadBytes(download) {
         await page.waitForFunction(() => document.getElementById('status').textContent.includes('Audio ready'));
         await openMenu();
         assert.equal(await page.locator('#synthBrowserAudioHint').isVisible(), true);
+        assert.equal(await page.locator('#importPresetButton').textContent(), 'VGM / VGZ / S98 / TFI / VGI…', 'Import names its supported instrument sources');
         assert.equal(await page.locator('#tfiFile').isVisible(), false, 'Menu file pickers are buttons, with hidden native inputs');
         assert.equal(await page.locator('#eventRecordImportInput').isVisible(), false);
         assert.equal(await page.locator('[data-reset-offline-cache]').evaluate(element => !!element.closest('#synthMenu')), true);
