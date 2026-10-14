@@ -1,4 +1,5 @@
 import { readPresetFile } from "./synth_preset_import.js";
+import { createSynthOutputVisualizer } from "./synth_output_visualizer.js";
 import {
   FM_PRESETS,
   FM_PRESET_ORDER,
@@ -155,6 +156,28 @@ const envelopeCanvas =
   document.getElementById("envelopeCanvas");
 const envelopeContext =
   envelopeCanvas.getContext("2d");
+const outputVisualizer = createSynthOutputVisualizer();
+let visualMode = 'envelope';
+const visualModeButtons = document.querySelectorAll('[data-visual-mode]');
+const visualizerDescription = document.getElementById('visualizerDescription');
+const visualDescriptions = {
+  envelope: 'Operator envelope guides and chip-output RMS.',
+  waveform: 'Final output waveform · live + looper · after FX and volume.',
+  spectrum: 'Final output spectrum · live + looper · after FX and volume · dB.',
+};
+for (const button of visualModeButtons) {
+  button.addEventListener('click', () => {
+    visualMode = button.dataset.visualMode;
+    for (const item of visualModeButtons) {
+      const selected = item === button;
+      item.classList.toggle('is-selected', selected);
+      item.setAttribute('aria-pressed', String(selected));
+    }
+    visualizerDescription.textContent = visualDescriptions[visualMode];
+    megaSynth?.setOutputEnvelopeOptions({enabled: visualMode === 'envelope'});
+    drawEnvelopeGuide();
+  });
+}
 const heldKeys = new Set();
 const activePointers = new Map();
 
@@ -1523,6 +1546,10 @@ function renderAlgorithmDiagram() {
 }
 
 function drawEnvelopeGuide() {
+  if (visualMode !== 'envelope') {
+    outputVisualizer.draw(envelopeCanvas, envelopeContext, visualMode);
+    return;
+  }
   drawEnvelopeGuideView({
     canvas: envelopeCanvas,
     context: envelopeContext,
@@ -2235,6 +2262,8 @@ async function initializeDirectAudio() {
     onEnvelope:
       appendOutputEnvelopePoints,
   });
+  megaSynth.setOutputEnvelopeOptions({enabled: visualMode === 'envelope'});
+  outputVisualizer.connect(audioContext, [liveOutputBus, loopOutputBus]);
 
   applyPatchToVoices();
   stopAllNotes();

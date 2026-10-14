@@ -819,6 +819,19 @@
         padding: 8px;
       }
 
+      .visual-mode-controls {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-bottom: 8px;
+      }
+
+      #visualizerDescription {
+        margin: 4px 0 6px;
+        color: #a8bfba;
+        font-size: 0.68rem;
+      }
+
       .algo-inline {
         font-family: "SFMono-Regular", Menlo, Consolas, monospace;
         margin: 0 0 4px;
@@ -1107,7 +1120,13 @@
         <div class="layout">
           <section class="controls-stack">
             <div class="card visual-card">
+              <div class="visual-mode-controls" role="group" aria-label="Audio visualization">
+                <button type="button" class="toolbar-button is-selected" data-visual-mode="envelope" aria-pressed="true">Envelope</button>
+                <button type="button" class="toolbar-button" data-visual-mode="waveform" aria-pressed="false">Waveform</button>
+                <button type="button" class="toolbar-button" data-visual-mode="spectrum" aria-pressed="false">Spectrum</button>
+              </div>
               <p id="envelopeDescription"></p>
+              <p id="visualizerDescription">Operator envelope guides and chip-output RMS.</p>
               <canvas id="envelopeCanvas" width="720" height="160"></canvas>
             </div>
 
