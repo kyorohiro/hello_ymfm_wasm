@@ -53,6 +53,12 @@ export function attachOutputEnvelopeTap({
       }
     }
   );
+
+  // Worklets send envelope data only when a display explicitly requests it.
+  megaSynth.node.port.postMessage({
+    type: "set-output-envelope",
+    enabled: true,
+  });
 }
 
 export function chooseVoice(voices) {
