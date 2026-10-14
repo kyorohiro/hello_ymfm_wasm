@@ -1,10 +1,30 @@
 import { createPlaygroundOperatorTab } from './playground_operator_tab.js';
 import { createPlaygroundOperatorKeyboard } from './playground_operator_keyboard.js';
 import { createTfiFromPreset, parseTfi } from '../js/tfi.js';
+import { createVgiFromPreset, parseVgi } from '../js/vgi.js';
 
 export function tfiToEditorPreset(bytes) {
   const preset = parseTfi(bytes);
   return { ...preset, operators: [1, 2, 3, 4].map(op => preset.operators[op]) };
+}
+
+/** Load either file format into the operator editor's zero-based preset array. */
+export function instrumentToEditorPreset(path, bytes) {
+  // Existing Synth imports can contain renamed files. The exact binary size
+  // determines their real format; a name change must not discard VGI data.
+  const preset = (bytes.byteLength ?? bytes.length) === 43 ? parseVgi(bytes) : parseTfi(bytes);
+  return { ...preset, operators: [1, 2, 3, 4].map(op => preset.operators[op]) };
+}
+
+/** Save the editor's one-based operator state without changing the file format. */
+export function createInstrumentFromEditorPreset(path, preset, originalB4 = preset?.b4 ?? 0, format = /\.vgi$/i.test(path) ? 'vgi' : 'tfi') {
+  if (format !== 'vgi') return createTfiFromPreset(preset);
+  const { b4, ...editable } = preset;
+  const bytes = createVgiFromPreset(editable);
+  // Bit 3 has no editor control, but a loaded VGI may contain it. Rebuild the
+  // editable pan/AMS/PMS bits and preserve only this otherwise unused bit.
+  bytes[2] |= originalB4 & 0x08;
+  return bytes;
 }
 
 export function createTfiFileEditor({ root, operatorRoot, keyboardRoot, title, createAudio, onSave, onStatus, savedLabel }) {
@@ -15,12 +35,14 @@ export function createTfiFileEditor({ root, operatorRoot, keyboardRoot, title, c
   let readyPromise = null;
   let disposed = false;
   let volume = 1;
+  let originalB4 = 0;
+  let format = 'tfi';
   const operator = createPlaygroundOperatorTab({
     root: operatorRoot, presets, presetOrder: [], channelCount: 1,
     idPrefix: 'file-', onStatus,
     onEdit() {
       if (loading || !path) return;
-      onSave(path, createTfiFromPreset(operator.getChannelPreset(0)));
+      onSave(path, createInstrumentFromEditorPreset(path, operator.getChannelPreset(0), originalB4, format));
       title.textContent = savedLabel?.(path) ?? `${path} · Saved`;
     },
   });
@@ -44,13 +66,15 @@ export function createTfiFileEditor({ root, operatorRoot, keyboardRoot, title, c
   });
   return {
     open(nextPath, bytes) {
-      const preset = tfiToEditorPreset(bytes);
+      const preset = instrumentToEditorPreset(nextPath, bytes);
       keyboard.setView('code');
       loading = true;
       try {
         presets.file = preset;
         operator.selectPreset(0, 'file');
         path = nextPath;
+        originalB4 = preset.b4 ?? 0;
+        format = (bytes.byteLength ?? bytes.length) === 43 ? 'vgi' : 'tfi';
         title.textContent = nextPath;
         root.hidden = false;
         keyboard.setView('operator');

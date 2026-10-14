@@ -13,7 +13,7 @@ function setup(accept = true) {
   const context = vm.createContext({
     virtualFiles: fs, normalizeVirtualPath, unzipSync, Uint8Array,
     isSystemVirtualPath: path => path.startsWith('/sys/'),
-    registerVirtualTfiPreset: path => registered.push(path),
+    registerVirtualInstrumentPreset: path => registered.push(path),
     expandedFileFolders: new Map(), renderVirtualFileExplorer() {}, renderRunFileOptions() {}, setStatus() {},
     window: { confirm: message => { confirmations.push(message); return accept; } },
   });
@@ -24,8 +24,8 @@ const file = (name, bytes = new Uint8Array([42])) => ({ name, arrayBuffer: async
 
 test('imports multiple files into the selected folder and ZIP hierarchy beneath it', async () => {
   const { fs, run, registered } = setup();
-  await run([file('bass.tfi'), file('lead.tfi')], '/presets');
-  assert.deepEqual(registered, ['/presets/bass.tfi', '/presets/lead.tfi']);
+  await run([file('bass.tfi'), file('lead.vgi')], '/presets');
+  assert.deepEqual(registered, ['/presets/bass.tfi', '/presets/lead.vgi']);
   assert.deepEqual(fs.get('/presets/bass.tfi').data, new Uint8Array([42]));
   await run([file('tones.zip', zipSync({ 'song/one.tfi': new Uint8Array([7]) }))], '/presets');
   assert.deepEqual(fs.get('/presets/song/one.tfi').data, new Uint8Array([7]));

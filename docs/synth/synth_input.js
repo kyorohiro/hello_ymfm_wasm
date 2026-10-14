@@ -219,6 +219,9 @@ export function createSynthInputController({
   function handleKeyDown(event) {
     // Leave native application shortcuts (for example Cmd+Q) to the host.
     if (event.metaKey || event.ctrlKey || event.altKey) return;
+    // Naming files and choosing dialog actions must not play notes or consume
+    // cursor/space keys. Pointer file selection still leaves performance focus.
+    if (event.target?.closest?.('input,textarea,select,[contenteditable="true"],dialog[open],#synthFileContextMenu')) return;
     const key =
       event.key.toLowerCase();
     const keyLayout =
@@ -278,6 +281,12 @@ export function createSynthInputController({
   function handleKeyUp(event) {
     const key =
       event.key.toLowerCase();
+    if (event.target?.closest?.('input,textarea,select,[contenteditable="true"],dialog[open],#synthFileContextMenu')) {
+      // Release a note started before an input gained focus without disrupting
+      // normal text editing or a native dialog control.
+      releaseKey(key);
+      return;
+    }
     const keyLayout =
       getKeyLayout();
 

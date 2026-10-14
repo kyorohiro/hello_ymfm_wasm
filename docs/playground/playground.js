@@ -68,7 +68,7 @@ import {
   createPlaygroundRuntime,
 } from "../js/playground_runtime.js?v=shared-beat-clock-1";
 import { createVgmPresetFiles } from "./playground_vgm_presets.js";
-import { createTfiFileEditor, tfiToEditorPreset } from "./playground_tfi_editor.js";
+import { createTfiFileEditor, instrumentToEditorPreset } from "./playground_tfi_editor.js";
 import { renderFileTree } from "./playground_file_tree.js?v=file-menu-1";
 import { createPlaygroundUi } from "./playground_ui.js?v=fx-monitor-1";
 import {
@@ -315,16 +315,16 @@ const initialProjectFiles = [
   { path: "/presets/README.md", data: [
     "# Presets",
     "",
-    "Store your YM2612 TFI instruments in this folder.",
+    "Store your YM2612 TFI or VGI instruments in this folder.",
     "",
-    "1. Use FILES > Import and choose a .tfi file. The suggested path is /presets/<filename>.tfi.",
-    "2. Open the TFI in FILES to edit its Operator parameters and audition it with the keyboard.",
-    "3. Download the edited TFI, or use Export Cassette to save the project and its files.",
+    "1. Use FILES > Import and choose a .tfi or .vgi file. The suggested path is /presets/<filename>.",
+    "2. Open the instrument in FILES to edit its Operator parameters and audition it with the keyboard.",
+    "3. Download the edited instrument, or use Export Cassette to save the project and its files.",
     "",
     "VGM imports also place extracted TFI instruments under /presets/<track>/.",
-    "Drop TFI files onto the presets folder to add them to the preset list. ZIP contents keep their internal paths beneath the drop folder.",
+    "Drop TFI or VGI files onto the presets folder to add them to the preset list. ZIP contents keep their internal paths beneath the drop folder.",
     "",
-    "TFI contains instrument parameters, not the source chip clock. Keep any source OPM and conversion.json alongside converted instruments for reference.",
+    "TFI and VGI contain instrument parameters, not the source chip clock. VGI also stores pan, AMS and PMS. Neither format stores global LFO enable/rate or per-operator AM flags. Keep any source OPM and conversion.json alongside converted instruments for reference.",
     "",
     "This README is a starter file. You can edit or delete it.",
     "",
@@ -509,7 +509,7 @@ const tfiFileEditor = createTfiFileEditor({
   createAudio: () => createTetoricaSynth(synthOptions),
   onSave(path, bytes) {
     virtualFiles.writeBinary(path, bytes);
-    registerVirtualTfiPreset(path);
+    registerVirtualInstrumentPreset(path);
   },
   onStatus: message => setStatus(message),
 });
@@ -1011,7 +1011,7 @@ async function importVgmFile(file, options) {
   for (const { path, bytes } of dacFiles) virtualFiles.writeBinary(path, bytes);
   for (const { path, data } of presetFiles) {
     virtualFiles.writeBinary(path, data);
-    registerVirtualTfiPreset(path);
+    registerVirtualInstrumentPreset(path);
   }
   saveActiveVirtualFile();
   virtualFiles.writeText(targetPath, (fullYm2203 || fullYm2608) ? strategy.source : addVgmSoundChipSetup(strategy.source, detection, selectedChip));
@@ -1178,7 +1178,7 @@ function openVirtualFile(path) {
   if (!file) {
     return;
   }
-  if (file.type === "binary" && /\.tfi$/i.test(path)) {
+  if (file.type === "binary" && /\.(?:tfi|vgi)$/i.test(path)) {
     try {
       saveActiveVirtualFile();
       tfiFileEditor.open(path, file.data);
@@ -1234,7 +1234,7 @@ function promptVirtualFileImport() {
 async function importVirtualFile(file) {
   const path = window.prompt(
     "Import file path",
-    /\.tfi$/i.test(file.name) ? `/presets/${file.name}` : `/${file.name}`
+    /\.(?:tfi|vgi)$/i.test(file.name) ? `/presets/${file.name}` : `/${file.name}`
   );
   if (!path) {
     return;
@@ -1255,7 +1255,7 @@ async function importVirtualFile(file) {
     normalizedPath,
     new Uint8Array(await file.arrayBuffer())
   );
-  registerVirtualTfiPreset(normalizedPath);
+  registerVirtualInstrumentPreset(normalizedPath);
   renderVirtualFileExplorer();
   renderRunFileOptions();
   setStatus(`Imported binary file: ${normalizedPath}`);
@@ -1289,7 +1289,7 @@ async function importDroppedFiles(files, directory = "") {
   if (replacements.length && !window.confirm(`Replace ${replacements.length} existing file(s)?\n${replacements.join("\n")}`)) return;
   for (const [path, bytes] of pending) {
     virtualFiles.writeBinary(path, bytes);
-    registerVirtualTfiPreset(path);
+    registerVirtualInstrumentPreset(path);
   }
   if (destination) expandedFileFolders.set(destination, true);
   renderVirtualFileExplorer();
@@ -1314,8 +1314,8 @@ function installFileExplorerDropTarget() {
   });
 }
 
-function registerVirtualTfiPreset(path) {
-  if (!path.startsWith("/presets/") || !/\.tfi$/i.test(path)) {
+function registerVirtualInstrumentPreset(path) {
+  if (!path.startsWith("/presets/") || !/\.(?:tfi|vgi)$/i.test(path)) {
     return;
   }
   const virtualFile = virtualFiles.get(path);
@@ -1324,7 +1324,7 @@ function registerVirtualTfiPreset(path) {
   }
 
   const presetId = `vfs:${path}`;
-  const preset = tfiToEditorPreset(virtualFile.data);
+  const preset = instrumentToEditorPreset(path, virtualFile.data);
   virtualPresetIds.set(path, presetId);
   playgroundPresets[presetId] = preset;
   runtime.presets[presetId] = preset;
@@ -1334,13 +1334,13 @@ function registerVirtualTfiPreset(path) {
   );
 }
 
-function registerVirtualTfiPresets() {
+function registerVirtualInstrumentPresets() {
   for (const file of virtualFiles.list()) {
-    registerVirtualTfiPreset(file.path);
+    registerVirtualInstrumentPreset(file.path);
   }
 }
 
-function clearVirtualTfiPresets() {
+function clearVirtualInstrumentPresets() {
   for (const presetId of virtualPresetIds.values()) {
     delete playgroundPresets[presetId];
     delete runtime.presets[presetId];
@@ -1366,8 +1366,8 @@ function transferExplorerFiles(source, destination, copy = false) {
       } else if (active) showVirtualFile(virtualFiles.get(activeVirtualPath));
     }
     editorAdapter.syncVirtualFiles?.(virtualFiles.list());
-    clearVirtualTfiPresets();
-    registerVirtualTfiPresets();
+    clearVirtualInstrumentPresets();
+    registerVirtualInstrumentPresets();
     expandedFileFolders.set(normalizeVirtualPath(destination).split('/').slice(0, -1).join('/'), true);
     renderVirtualFileExplorer();
     renderRunFileOptions();
@@ -1381,8 +1381,8 @@ function transferExplorerFiles(source, destination, copy = false) {
 
 function refreshExplorerFiles(directory = '/') {
   editorAdapter.syncVirtualFiles?.(virtualFiles.list());
-  clearVirtualTfiPresets();
-  registerVirtualTfiPresets();
+  clearVirtualInstrumentPresets();
+  registerVirtualInstrumentPresets();
   expandedFileFolders.set(directory, true);
   renderVirtualFileExplorer();
   renderRunFileOptions();
@@ -1668,7 +1668,7 @@ function parseCassetteAssets(cassette) {
     cassette,
     timbres: cassette.timbres.map((timbre) => ({
       ...timbre,
-      preset: parseTfi(timbre.bytes),
+      preset: instrumentToEditorPreset(timbre.path, timbre.bytes),
     })),
     examples: cassette.examples.map((example) => ({
       optionValue: `cassette:${cassette.id}/${example.name}`,
@@ -1764,7 +1764,7 @@ function restoreVirtualFilesFromCassette(cassette) {
   fileExplorerMenu?.clear();
   const textExtensions = /\.(?:js|json|md|txt)$/i;
   const previousSource = getEditorValue();
-  clearVirtualTfiPresets();
+  clearVirtualInstrumentPresets();
   virtualFiles.replace(
     Array.from(cassette.files, ([path, bytes]) => ({
       path: `/${path}`,
@@ -1780,7 +1780,7 @@ function restoreVirtualFilesFromCassette(cassette) {
   }
   restoreBundledExampleFiles();
   editorAdapter.syncVirtualFiles?.(virtualFiles.list());
-  registerVirtualTfiPresets();
+  registerVirtualInstrumentPresets();
   activeVirtualPath = "/index.js";
   showVirtualFile(virtualFiles.get(activeVirtualPath));
   renderVirtualFileExplorer();

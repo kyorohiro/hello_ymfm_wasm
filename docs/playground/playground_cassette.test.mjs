@@ -6,6 +6,7 @@ import {
   createPlaygroundCassetteZip,
   loadPlaygroundCassette,
 } from "./playground_cassette.js";
+import { createVgiFromPreset } from '../js/vgi.js';
 
 const encoder = new TextEncoder();
 
@@ -97,6 +98,65 @@ test("round-trips Virtual FS files through a cassette zip", async () => {
     cassette.files.get("samples/hit.bin"),
     new Uint8Array([1, 2])
   );
+});
+
+test('shared Synth cassette preserves nested VGI instruments, code, samples and Git files', async () => {
+  const vgi = createVgiFromPreset({ algorithm: 4, feedback: 5, ams: 2, pms: 6 });
+  const files = [
+    { path: '/presets/game-a/YM2612_CH1.vgi', type: 'binary', data: vgi },
+    { path: '/presets/game-b/YM2612_CH1.vgi', type: 'binary', data: vgi },
+    { path: '/timbres/legacy.vgi', type: 'binary', data: vgi },
+    { path: '/index.js', type: 'text', data: "play('C4');" },
+    { path: '/samples/choir.wav', type: 'binary', data: new Uint8Array([0, 1, 2, 255]) },
+    { path: '/.git/config', type: 'binary', data: encoder.encode('[core]\n') },
+    { path: '/.git/objects/ab/cdef', type: 'binary', data: new Uint8Array([0, 255, 31]) },
+  ];
+  const cassette = await loadPlaygroundCassette(createPlaygroundCassetteZip(files, { directories: ['/presets/empty'] }));
+  assert.equal(cassette.timbres[0].name, 'legacy');
+  assert.equal(cassette.timbres[0].path, 'timbres/legacy.vgi');
+  assert.deepEqual(cassette.timbres[0].bytes, vgi);
+  assert.equal(cassette.files.size, files.length + 1);
+  for (const file of files) {
+    assert.deepEqual(cassette.files.get(file.path.slice(1)), file.type === 'text' ? encoder.encode(file.data) : file.data);
+  }
+  assert.deepEqual(cassette.directories, ['/presets/empty']);
+});
+
+test('legacy TFI and VGI public names share collision checks', async () => {
+  await assert.rejects(loadPlaygroundCassette(createStoredZip([
+    ['timbres/same.tfi', new Uint8Array([1])],
+    ['timbres/same.vgi', new Uint8Array([2])],
+  ])), /Duplicate cassette timbres name "same"/);
+});
+
+test('opt-in export preserves exact metadata files and unknown metadata fields', async () => {
+  const json = '{ "version": 2, "title": "My voices", "tags": ["fm"], "license": "CC0-1.0", "custom": { "future": true } }\n';
+  const module = '/** cassette notes */\nexport default {"version":2,"workType":"ORIGINAL","license":"NONE","author":"Ada"};\n';
+  for (const [path, source] of [['/metadata.json', json], ['/cassette.metadata.js', module]]) {
+    const cassette = await loadPlaygroundCassette(createPlaygroundCassetteZip([
+      { path: '/index.js', type: 'text', data: 'original source' },
+      { path, type: 'binary', data: encoder.encode(source) },
+    ], { preserveMetadataFiles: true, license: 'PRIVATE' }));
+    assert.equal(new TextDecoder().decode(cassette.files.get(path.slice(1))), source);
+    assert.equal(cassette.files.size, 2);
+    assert.notEqual(cassette.metadata.license, 'PRIVATE');
+    assert.equal(cassette.metadata.version, 2);
+  }
+});
+
+test('metadata preservation still rejects invalid JSON/modules and default exports keep reserved names', () => {
+  const file = (path, data) => ({ path, type: 'text', data });
+  assert.throws(() => createPlaygroundCassetteZip([file('/metadata.json', '{}')]), /reserved/);
+  assert.throws(() => createPlaygroundCassetteZip([file('/metadata.json', '{oops')], { preserveMetadataFiles: true }), /Invalid cassette metadata.json/);
+  assert.throws(() => createPlaygroundCassetteZip([file('/cassette.metadata.js', 'throw new Error()')], { preserveMetadataFiles: true }), /Invalid cassette cassette.metadata.js/);
+});
+
+test('metadata preservation without an existing metadata file creates normal cassette metadata', async () => {
+  const cassette = await loadPlaygroundCassette(createPlaygroundCassetteZip([
+    { path: '/index.js', type: 'text', data: 'source' },
+  ], { preserveMetadataFiles: true, license: 'CC-BY-4.0', workType: 'ORIGINAL' }));
+  assert.equal(cassette.metadata.license, 'CC-BY-4.0');
+  assert.equal(cassette.metadata.workType, 'ORIGINAL');
 });
 
 test("round-trips cassette license metadata and defaults old archives to NONE", async () => {

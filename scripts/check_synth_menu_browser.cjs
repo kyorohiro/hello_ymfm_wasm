@@ -90,8 +90,8 @@ async function downloadBytes(download) {
           {name:'a-tone.tfi', mimeType:'application/octet-stream', buffer:tfi},
           {name:'b-tone.vgi', mimeType:'application/octet-stream', buffer:vgi},
         ]);
-        await page.waitForFunction(() => document.getElementById('tfiSummary').textContent.includes('2 imported presets'));
-        assert.equal(await page.locator('#presetSelect optgroup').count(), 2);
+        await page.waitForFunction(() => document.querySelectorAll('#synthFilesTree button.file-entry[data-file-path]').length === 2);
+        assert.equal(await page.locator('#synthFilesTree button.file-entry[data-file-path]').count(), 2);
         assert.equal(await page.locator('#tfiFile').inputValue(), '');
         const tfiDownload = await exportFile('#exportTfiButton');
         assert.match(tfiDownload.name, /\.tfi$/);
@@ -103,7 +103,7 @@ async function downloadBytes(download) {
         await chooseFile('#importPresetButton', [{name:'bad.tfi', mimeType:'application/octet-stream', buffer:Buffer.alloc(2)}]);
         await page.waitForFunction(() => !document.getElementById('presetImportError').hidden);
         assert.match(await page.locator('#presetImportError').textContent(), /bad\.tfi/);
-        assert.equal(await page.locator('#presetSelect optgroup').count(), 2, 'A failed import retains prior sound choices');
+        assert.equal(await page.locator('#synthFilesTree button.file-entry[data-file-path]').count(), 2, 'A failed import retains prior sound choices');
 
         await chooseFile('#importEventRecordingButton', [{name:'take.json', mimeType:'application/json', buffer:Buffer.from(JSON.stringify(recording))}]);
         await page.waitForFunction(() => document.getElementById('status').textContent.includes('Imported event recording: take.json'));

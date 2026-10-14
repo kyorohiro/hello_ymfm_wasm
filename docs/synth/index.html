@@ -121,6 +121,43 @@
       .synth-menu-actions { display: grid; gap: 6px; }
       .synth-menu-actions .toolbar-button { text-align: left; padding: 8px 10px; min-height: 32px; }
       #synthBrowserAudioHint { margin: 0; font-size: 0.75rem; color: #a8bfba; }
+      body.synth-files-open main { max-width: 1510px; }
+      .synth-workspace { display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px; align-items: start; }
+      .synth-workspace.has-files { grid-template-columns: 250px minmax(0, 1fr); }
+      .synth-editor { min-width: 0; }
+      .synth-files-panel { min-width: 0; border: 1px solid #41615b; border-radius: 14px; padding: 12px; background: #172423; }
+      .synth-files-panel[hidden] { display: none; }
+      .synth-files-heading, .synth-file-editor-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+      .synth-files-heading h2 { margin: 0; letter-spacing: .15em; font-size: .8rem; }
+      .synth-files-actions { display: flex; flex-wrap: wrap; gap: 5px; padding-top: 10px; }
+      .synth-files-panel .toolbar-button { font-size: .7rem; padding: 5px 7px; }
+      .synth-files-caption, #synthFileSelectionInfo { margin: 8px 0 0; color: #a8bfba; font-size: .72rem; overflow-wrap: anywhere; }
+      #synthCassetteName { font-size: .72rem; color: #a8bfba; overflow-wrap: anywhere; margin: 0 0 8px; }
+      #synthFilesTree { max-height: 65vh; overflow-y: auto; }
+      #synthFilesTree .file-tree { list-style: none; padding: 0; margin: 0; }
+      #synthFilesTree .file-tree .file-tree { padding-left: 12px; }
+      #synthFilesTree summary { cursor: pointer; padding: 5px 2px; font-size: .78rem; overflow-wrap: anywhere; }
+      #synthFilesTree .file-entry { display: block; width: 100%; border: none; border-radius: 6px; padding: 6px; background: transparent; color: #d8e7e2; text-align: left; font: inherit; font-size: .75rem; cursor: pointer; overflow-wrap: anywhere; }
+      #synthFilesTree .file-entry[aria-current="true"] { background: #345750; }
+      #synthFilesTree .file-entry:hover, #synthFilesTree summary:hover { background: #25443d; }
+      #synthFilesTree .file-tree-root { font-size: .72rem; padding: 5px; border-bottom: 1px solid #35504b; margin-bottom: 6px; cursor: pointer; }
+      #synthFilesTree .file-drop-target { background: #345750; outline: 1px solid #7be0d6; }
+      #synthActiveFilePath { font-size: .76rem; overflow-wrap: anywhere; min-width: 0; flex: 1; }
+      #synthFileDirty { font-size: .72rem; color: #ffd19b; }
+      .synth-file-format-note { color: #a8bfba; font-size: .7rem; margin: 0 0 10px; }
+      .synth-file-dialog { max-width: min(430px, calc(100vw - 32px)); box-sizing: border-box; padding: 20px; color: #e4eee8; background: #172423; border: 1px solid #7c9d91; border-radius: 14px; }
+      .synth-file-dialog::backdrop { background: #0009; }
+      .synth-file-dialog h2 { margin-bottom: 12px; }
+      .synth-file-dialog p { font-size: .82rem; }
+      .synth-file-dialog label { display: grid; gap: 6px; font-size: .82rem; }
+      .synth-file-dialog input { font: inherit; min-width: 0; width: 100%; box-sizing: border-box; background: #243b34; color: #e4eee8; border: 1px solid #7c9d91; border-radius: 6px; padding: 8px; }
+      .synth-file-dialog-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; margin-top: 14px; }
+      #synthFileNameError { color: #ffbdad; margin: 8px 0; }
+      .synth-file-context-menu { position: fixed; z-index: 80; display: grid; gap: 3px; min-width: 180px; max-width: calc(100vw - 12px); border: 1px solid #7c9d91; border-radius: 10px; background: #172423; padding: 7px; box-shadow: 0 8px 28px #0009; }
+      .synth-file-context-menu[hidden] { display: none; }
+      .synth-file-context-menu button { text-align: left; }
+      @media(max-width: 850px) { .synth-workspace.has-files { grid-template-columns: minmax(0, 1fr); } #synthFilesTree { max-height: 260px; } }
+      @media(pointer: coarse) { #synthFilesTree .file-entry, #synthFilesTree summary, .synth-files-actions .toolbar-button { min-height: 40px; } }
 
       .meta {
         margin: 0;
@@ -1171,6 +1208,8 @@
                     <div class="synth-menu-actions">
                       <button id="importPresetButton" class="toolbar-button" type="button" data-close-synth-menu>Instrument files…</button>
                       <input id="tfiFile" type="file" multiple accept=".vgm,.vgz,.s98,.tfi,.vgi,application/octet-stream" hidden>
+                      <button id="importCassetteButton" class="toolbar-button" type="button" data-close-synth-menu>Cassette…</button>
+                      <input id="cassetteImportInput" type="file" accept=".zip,application/zip" hidden>
                       <button id="importEventRecordingButton" class="toolbar-button" type="button" data-close-synth-menu>Event recording…</button>
                       <input id="eventRecordImportInput" type="file" accept=".json,application/json" hidden>
                     </div>
@@ -1180,6 +1219,7 @@
                     <div class="synth-menu-actions">
                       <button id="exportTfiButton" class="toolbar-button" type="button" data-close-synth-menu>Instrument · TFI</button>
                       <button id="exportVgiButton" class="toolbar-button" type="button" data-close-synth-menu>Instrument · VGI</button>
+                      <button id="exportCassetteButton" class="toolbar-button" type="button" data-close-synth-menu>Cassette · ZIP</button>
                       <button id="eventRecordExportButton" class="toolbar-button" type="button" data-close-synth-menu disabled>Event recording · JSON</button>
                     </div>
                   </section>
@@ -1201,7 +1241,28 @@
           </div>
           </div>
           <p class="synth-brand-caption">Mega Drive Sound <span>Sound laboratory</span></p>
+          <button id="synthFilesToggle" class="toolbar-button" type="button" aria-controls="synthFilesPanel" aria-expanded="false">Files</button>
         </div>
+        <div id="synthWorkspace" class="synth-workspace">
+          <aside id="synthFilesPanel" class="synth-files-panel" aria-label="Cassette files" hidden>
+            <div class="synth-files-heading"><h2>FILES</h2><button id="synthFileNewButton" class="toolbar-button" type="button">＋ Instrument</button></div>
+            <p id="synthCassetteName">cassette.cassette.zip</p>
+            <div id="synthFilesTree"></div>
+            <div class="synth-files-actions">
+              <button id="synthFileDuplicateButton" class="toolbar-button" type="button" disabled>Duplicate</button>
+              <button id="synthFileRenameButton" class="toolbar-button" type="button" disabled>Rename…</button>
+              <button id="synthFileDeleteButton" class="toolbar-button" type="button" disabled>Delete</button>
+              <button id="synthFileNewFolderButton" class="toolbar-button" type="button">New folder…</button>
+            </div>
+            <p id="synthFileSelectionInfo" class="synth-files-caption">Choose an instrument file to edit. Other files stay in the Cassette.</p>
+          </aside>
+          <div class="synth-editor">
+            <div class="synth-file-editor-heading">
+              <span id="synthActiveFilePath">Built-in instrument</span><span id="synthFileDirty"></span>
+              <button id="synthFileSaveButton" class="toolbar-button" type="button">Save…</button>
+              <button id="synthFileUndoButton" class="toolbar-button" type="button" disabled>Undo</button>
+            </div>
+            <p class="synth-file-format-note">TFI/VGI store instrument parameters. Chip LFO, operator AM and CH3 special mode remain session controls.</p>
         <div class="layout">
           <section class="controls-stack">
             <div class="card visual-card">
@@ -1327,8 +1388,27 @@
           </section>
 
         </div>
+          </div>
+        </div>
       </section>
     </main>
+    <dialog id="synthFileNameDialog" class="synth-file-dialog">
+      <h2 id="synthFileNameTitle">Rename</h2>
+      <label>Name<input id="synthFileNameInput" autocomplete="off"></label>
+      <p id="synthFileNameError" role="alert"></p>
+      <div class="synth-file-dialog-actions"><button type="button" class="toolbar-button" data-file-name-cancel>Cancel</button><button type="button" class="toolbar-button" data-file-name-confirm>Save</button></div>
+    </dialog>
+    <dialog id="synthFileDirtyDialog" class="synth-file-dialog">
+      <h2>Unsaved instrument</h2><p>Save your changes before switching instruments or changing files?</p>
+      <div class="synth-file-dialog-actions"><button type="button" class="toolbar-button" data-dirty-action="cancel">Cancel</button><button type="button" class="toolbar-button" data-dirty-action="discard">Discard</button><button type="button" class="toolbar-button" data-dirty-action="save">Save</button></div>
+    </dialog>
+    <div id="synthFileContextMenu" class="synth-file-context-menu" role="menu" aria-label="File actions" hidden>
+      <button class="toolbar-button" type="button" role="menuitem" data-file-action="duplicate">Duplicate</button>
+      <button class="toolbar-button" type="button" role="menuitem" data-file-action="rename">Rename…</button>
+      <button class="toolbar-button" type="button" role="menuitem" data-file-action="delete">Delete</button>
+      <button class="toolbar-button" type="button" role="menuitem" data-file-action="new">New instrument…</button>
+      <button class="toolbar-button" type="button" role="menuitem" data-file-action="folder">New folder…</button>
+    </div>
 
     <script type="module">
       import "./synth.js";

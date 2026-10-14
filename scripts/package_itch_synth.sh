@@ -26,6 +26,8 @@ synth_menu.js
 synth_output_visualizer.js
 synth_modulation.js
 synth_pitch_bend.js
+synth_project.js
+synth_files.js
 "
 RUNTIME_FILES="
 pwm32x.js
@@ -156,12 +158,24 @@ mkdir -p "${STAGE_DIR}/js" "${STAGE_DIR}/generated" "${STAGE_DIR}/licenses/nuked
 
 cp "${SOURCE_HTML}" "${STAGE_DIR}/index.html"
 mkdir -p "${STAGE_DIR}/playground"
+mkdir -p "${STAGE_DIR}/playground/vendor"
+mkdir -p "${STAGE_DIR}/js/tetorica_virtual_files"
 mkdir -p "${STAGE_DIR}/vgm_analyzer"
 for file in opm_export.js opm_tfi.js opm_monitor.js stored_zip.js; do
   cp "${ROOT_DIR}/docs/vgm_analyzer/${file}" "${STAGE_DIR}/vgm_analyzer/${file}"
 done
 cp "${ROOT_DIR}/docs/playground/playground_vgm_presets.js" "${STAGE_DIR}/playground/"
 cp "${ROOT_DIR}/docs/playground/playground_vgm_import.js" "${STAGE_DIR}/playground/"
+cp "${ROOT_DIR}/docs/playground/playground_cassette.js" "${STAGE_DIR}/playground/"
+cp "${ROOT_DIR}/docs/playground/playground_file_tree.js" "${ROOT_DIR}/docs/playground/playground_example_order.js" "${STAGE_DIR}/playground/"
+cp "${ROOT_DIR}/docs/playground/vendor/fflate.js" "${ROOT_DIR}/docs/playground/vendor/fflate-LICENSE" "${STAGE_DIR}/playground/vendor/"
+# Synth uses the memory filesystem only; Git and its optional dependencies are
+# deliberately excluded from this standalone sound editor.
+for file in filesystem.js path.js reader.js; do
+  cp "${ROOT_DIR}/docs/js/tetorica_virtual_files/${file}" "${STAGE_DIR}/js/tetorica_virtual_files/"
+done
+mkdir -p "${STAGE_DIR}/licenses/tetorica-virtual-files"
+cp "${ROOT_DIR}/packages/virtual-files/LICENSE" "${STAGE_DIR}/licenses/tetorica-virtual-files/"
 cp "${ROOT_DIR}/docs/playground/ym2203_high.js" "${STAGE_DIR}/playground/"
 cp "${ROOT_DIR}/docs/playground/rf5c164_vgm_export.js" "${STAGE_DIR}/playground/"
 perl -0pi -e 's#\s*<link rel="manifest" href="\.\./[^\"]+\.webmanifest">##g; s#\s*<link rel="icon" href="\.\./[^\"]+\.ico" sizes="any">##g; s#\s*<script src="\.\./sw-register\.js"></script>##g' "${STAGE_DIR}/index.html"
@@ -223,6 +237,8 @@ cat > "${STAGE_DIR}/THIRD_PARTY_LICENSES.txt" <<EOF
 32X PWM: MAME-derived FIFO/timer core, BSD-3-Clause. See licenses/mame-32x-pwm/.
 NES APU: JSNES, Apache-2.0. See licenses/jsnes/.
 FDS: fixNES-derived, MIT. See licenses/fixnes-fds/.
+Virtual filesystem: tetorica-virtual-files core, BSD-3-Clause. See licenses/tetorica-virtual-files/.
+Cassette ZIP: fflate, MIT. See playground/vendor/fflate-LICENSE.
 
 This package includes two YM2612 engine options:
 
@@ -242,6 +258,7 @@ EOF
 perl -0pi -e 's#import "\\./synth\\.js";#import "./synth.js";#g' "${STAGE_DIR}/index.html"
 perl -0pi -e 's#\.\./js/([A-Za-z0-9._-]+\.js)#./js/$1#g; s#\.\./generated/#./generated/#g' "${STAGE_DIR}/synth.js"
 perl -0pi -e 's#\.\./js/([A-Za-z0-9._-]+\.js)#./js/$1#g' "${STAGE_DIR}/synth_keyboard.js" "${STAGE_DIR}/synth_runtime.js"
+perl -0pi -e 's#\.\./js/#./js/#g; s#\.\./playground/#./playground/#g' "${STAGE_DIR}/synth_project.js" "${STAGE_DIR}/synth_files.js"
 perl -0pi -e 's#\.\./js/#./js/#g; s#\.\./playground/#./playground/#g; s#\.\./vgm_analyzer/#./vgm_analyzer/#g' "${STAGE_DIR}/synth_preset_import.js"
 perl -0pi -e 's#\.\./js/megasynth\.js#./js/megasynth.js#g#' "${STAGE_DIR}/synth_runtime.js"
 perl -0pi -e 's#\./ym2612-worklet\.js#./js/ym2612-worklet.js#g; s#\./generated/ym2612_wasm\.wasm#./generated/ym2612_wasm.wasm#g' "${STAGE_DIR}/js/megasynth.js"

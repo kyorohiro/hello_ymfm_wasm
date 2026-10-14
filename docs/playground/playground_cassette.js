@@ -11,7 +11,7 @@ const ZIP_DEFLATE = 8;
 const MAX_CASSETTE_BYTES = 16 * 1024 * 1024;
 
 const CASSETTE_DIRECTORIES = {
-  timbres: new Set([".tfi"]),
+  timbres: new Set([".tfi", ".vgi"]),
   examples: new Set([".js"]),
   samples: new Set([
     ".wav",
@@ -22,6 +22,11 @@ const CASSETTE_DIRECTORIES = {
   ]),
 };
 
+/**
+ * Export a virtual filesystem. With preserveMetadataFiles: true, existing
+ * metadata files are parsed for validity and copied byte-for-byte. Otherwise
+ * these names remain reserved for the generated cassette metadata.
+ */
 export function createPlaygroundCassetteZip(files, options = {}) {
   const entries = {};
   for (const directory of options.directories ?? []) {
@@ -51,8 +56,20 @@ export function createPlaygroundCassetteZip(files, options = {}) {
   const metadataFileName = options.metadataFileName === "cassette.metadata.js"
     ? "cassette.metadata.js"
     : "metadata.json";
-  if (Object.hasOwn(entries, "metadata.json") || Object.hasOwn(entries, "cassette.metadata.js")) {
+  const metadataPaths = ["metadata.json", "cassette.metadata.js"]
+    .filter(path => Object.hasOwn(entries, path));
+  if (metadataPaths.length && !options.preserveMetadataFiles) {
     throw new Error("Cassette metadata files are reserved for cassette metadata.");
+  }
+  for (const path of metadataPaths) {
+    try {
+      const source = new TextDecoder().decode(entries[path]);
+      normalizeCassetteMetadata(path === "metadata.json"
+        ? JSON.parse(source)
+        : parseCassetteMetadataModule(source));
+    } catch (error) {
+      throw new Error(`Invalid cassette ${path}: ${error.message}`);
+    }
   }
   const existingMetadata = options.metadata && typeof options.metadata === "object"
     ? options.metadata
@@ -69,7 +86,7 @@ export function createPlaygroundCassetteZip(files, options = {}) {
   const metadataSource = metadataFileName === "cassette.metadata.js"
     ? `/** @type {CassetteMetadata} */\nexport default ${JSON.stringify(metadata, null, 2)};\n`
     : `${JSON.stringify(metadata, null, 2)}\n`;
-  entries[metadataFileName] = strToU8(metadataSource);
+  if (!metadataPaths.length) entries[metadataFileName] = strToU8(metadataSource);
 
   if(Object.values(entries).reduce((sum,entry)=>sum+entry.byteLength,0)>MAX_CASSETTE_BYTES){
     throw new Error("Cassette exceeds the 16 MiB expanded size loader limit.");

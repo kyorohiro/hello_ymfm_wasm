@@ -29,6 +29,8 @@ export async function readPresetFile(bytes, filename) {
     const entries = createVgmPresetFiles(bytes, filename).map(file => ({
       label: file.path.split('/').pop().replace(/\.tfi$/i, ''),
       preset: parseTfi(file.data),
+      bytes: new Uint8Array(file.data),
+      format: 'tfi',
     }));
     const parser = new Ym2612VGM(bytes, {logger: null});
     if (parser.header.ym2151Clock) {
@@ -37,6 +39,8 @@ export async function readPresetFile(bytes, filename) {
         entries.push({
           label: `ym2151_${patch.name.replace(/\.opm$/i, '')} → YM2612`,
           preset: parseTfi(converted.data),
+          bytes: new Uint8Array(converted.data),
+          format: 'tfi',
           notice: OPM_IMPORT_NOTICE,
         });
       }
@@ -50,5 +54,10 @@ export async function readPresetFile(bytes, filename) {
     throw new Error('Invalid TFI/VGI file: expected 42 bytes (TFI) or 43 bytes (VGI).');
   }
   // As in the original loader, size distinguishes TFI from VGI even if renamed.
-  return [{ label: filename, preset: bytes.length === 43 ? parseVgi(bytes) : parseTfi(bytes) }];
+  return [{
+    label: filename,
+    preset: bytes.length === 43 ? parseVgi(bytes) : parseTfi(bytes),
+    bytes: new Uint8Array(bytes),
+    format: bytes.length === 43 ? 'vgi' : 'tfi',
+  }];
 }

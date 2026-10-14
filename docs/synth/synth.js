@@ -1,4 +1,5 @@
-import { readPresetFile } from "./synth_preset_import.js";
+import {createSynthProject} from './synth_project.js';
+import {setupSynthFiles} from './synth_files.js';
 import { setupSynthMenu } from './synth_menu.js';
 import { createSynthOutputVisualizer } from "./synth_output_visualizer.js";
 import { applyModulation, modulationSettings } from "./synth_modulation.js";
@@ -112,8 +113,8 @@ const operatorControlsRoot =
   document.getElementById("operatorControls");
 const operatorHeaderRoot =
   document.getElementById("operatorHeader");
-const importedPresets = new Map();
-let importedPresetSerial = 0;
+const synthProject = createSynthProject();
+let synthFiles = null;
 
 const presetSelect =
   document.getElementById("presetSelect");
@@ -353,6 +354,8 @@ const channel3SpecialState = {
 let currentPresetName =
   "one-op-basic";
 let importedTfiName = "";
+let currentPresetPan = {left:true, right:true};
+let currentPresetB4 = 0xc0;
 let activeHelpId = "";
 let masterVolume = 1;
 
@@ -1391,8 +1394,8 @@ function applyPatchToVoices() {
 
     synth.setPan(
       channel,
-      true,
-      true,
+      currentPresetPan.left,
+      currentPresetPan.right,
       commonState.ams,
       modulation.pms
     );
@@ -1439,28 +1442,35 @@ function updateTfiSummary() {
 
   if (!importedTfiName) {
     tfiSummary.textContent =
-      importedPresets.size
-        ? `${importedPresets.size} imported presets (this session)`
+      synthProject.listTones().length
+        ? `${synthProject.listTones().length} instruments in Cassette`
         : "Drop VGM / VGZ / S98 / TFI / VGI anywhere to load.";
     return;
   }
 
   tfiSummary.textContent =
-    `TFI/VGI: ${importedTfiName} -> Custom`;
+    `TFI/VGI: ${importedTfiName}`;
 }
 
 function applyPresetState(
   presetName
 ) {
-  const preset = importedPresets.get(presetName) ?? FM_PRESETS[presetName];
+  const preset = presetName.startsWith('vfs:')
+    ? synthProject.readTone(presetName.slice(4)).preset
+    : FM_PRESETS[presetName];
 
   if (!preset) {
     return;
   }
 
-  currentPresetName =
-    presetName;
-  importedTfiName = "";
+  applyPresetData(preset, presetName);
+}
+
+function applyPresetData(preset, presetName) {
+  currentPresetName = presetName;
+  importedTfiName = presetName.startsWith('vfs:') ? presetName.split('/').pop() : '';
+  currentPresetPan = {...(preset.pan ?? {left:true, right:true})};
+  currentPresetB4 = preset.b4 ?? 0xc0;
   commonState.algorithm =
     preset.algorithm ?? 7;
   commonState.feedback =
@@ -1499,13 +1509,15 @@ function buildCurrentPresetState() {
       commonState.feedback,
     ams: commonState.ams,
     pms: commonState.pms,
+    pan: {...currentPresetPan},
+    b4: (currentPresetB4 & 0x08) | (currentPresetPan.left ? 0x80 : 0) | (currentPresetPan.right ? 0x40 : 0) | (commonState.ams << 4) | commonState.pms,
     lfo: {
       enabled:
         commonState.lfoEnabled,
       frequency:
         commonState.lfoFrequency,
     },
-    operators: [],
+    operators: {},
   };
 
   for (const operator of OPERATOR_NUMBERS) {
@@ -1609,7 +1621,7 @@ function applyLooperPatchToChannel(
 function createTfiExportName() {
   const baseName =
     importedTfiName
-      ? importedTfiName.replace(/\.tfi$/i, "")
+      ? importedTfiName.replace(/\.(tfi|vgi)$/i, "")
       : currentPresetName ===
           "custom"
         ? "ym2612-custom"
@@ -1944,12 +1956,7 @@ function buildCommonControls() {
     onHelpToggle: toggleParamHelp,
     onChange: (id, nextValue) => {
       commonState[id] = nextValue;
-      currentPresetName =
-        "custom";
-      if (presetSelect) {
-        presetSelect.value =
-          "custom";
-      }
+      if (['algorithm','feedback','ams','pms'].includes(id)) markPresetEdited();
       renderAlgorithmDiagram();
       drawEnvelopeGuide();
       if (synth) {
@@ -1991,12 +1998,7 @@ function buildOperatorControls() {
     ) => {
       operatorStates[operator][id] =
         nextValue;
-      currentPresetName =
-        "custom";
-      if (presetSelect) {
-        presetSelect.value =
-          "custom";
-      }
+      if (id !== 'am') markPresetEdited();
       drawEnvelopeGuide();
       if (synth) {
         applyPatchToVoices();
@@ -2491,20 +2493,12 @@ function buildPresetSelect() {
   presetSelect.addEventListener(
     "change",
     () => {
-      if (
-        presetSelect.value ===
-        "custom"
-      ) {
-        currentPresetName =
-          "custom";
-        return;
+      const next = presetSelect.value;
+      if (synthFiles) {
+        void synthFiles.selectPreset(next).then(() => {presetSelect.value=currentPresetName; presetSelect.blur();});
+      } else if (next !== 'custom') {
+        stopAllNotes(); applyPresetState(next); presetSelect.blur();
       }
-
-      stopAllNotes();
-      applyPresetState(
-        presetSelect.value
-      );
-      presetSelect.blur();
     }
   );
 
@@ -2512,92 +2506,32 @@ function buildPresetSelect() {
     currentPresetName;
 }
 
-function buildTfiLoader() {
-  if (!tfiFileInput) return;
-  const importError = document.getElementById("presetImportError");
-  const importNotice = document.getElementById("presetImportNotice");
-  let loadGeneration = 0;
-  let importedGroups = [];
+function markPresetEdited() {
+  if (!synthFiles?.activeTonePath) currentPresetName = 'custom';
+  if (presetSelect) presetSelect.value = currentPresetName;
+  synthFiles?.markDirty();
+}
 
-  async function loadFiles(selection) {
-    const files = Array.from(selection || []);
-    if (!files.length) return;
-    const generation = ++loadGeneration;
-    tfiFileInput.value = "";
-    importError.hidden = true;
-    importError.textContent = "";
-    setStatus("Loading instruments…");
-    const batches = [];
-    const failures = [];
-    for (const file of files) {
-      try {
-        const bytes = new Uint8Array(await file.arrayBuffer());
-        if (generation !== loadGeneration) return;
-        const presets = await readPresetFile(bytes, file.name);
-        if (generation !== loadGeneration) return;
-        if (presets.length) batches.push({ file, presets });
-        else failures.push(`${file.name}: no supported OPN / YM2151 FM instruments found`);
-      } catch (error) {
-        failures.push(`${file.name}: ${error.message}`);
-      }
+function syncFilePresetOptions() {
+  if (!presetSelect) return;
+  for (const group of presetSelect.querySelectorAll('[data-file-presets]')) group.remove();
+  const groups = new Map();
+  for (const file of synthProject.listTones()) {
+    const directory = file.path.slice(0, file.path.lastIndexOf('/'));
+    if (!groups.has(directory)) {
+      const group = document.createElement('optgroup');
+      group.label = directory.slice(1);
+      group.dataset.filePresets = '';
+      groups.set(directory, group);
     }
-    if (generation !== loadGeneration) return;
-
-    const compareNames = (a, b) => a.localeCompare(b, "en", { numeric: true, sensitivity: "base" });
-    batches.sort((a, b) => compareNames(a.file.name, b.file.name));
-    for (const batch of batches) {
-      batch.presets.sort((a, b) => compareNames(a.label, b.label));
-    }
-
-    // Commit a complete selection at once. Failed imports keep the current sound.
-    if (batches.length) {
-      stopAllNotes();
-      for (const group of importedGroups) group.remove();
-      importedGroups = [];
-      importedPresets.clear();
-      const firstDefault = presetSelect.firstChild;
-      let firstPresetId = null;
-      for (const { file, presets } of batches) {
-        const group = document.createElement("optgroup");
-        group.label = file.name;
-        for (const { label, preset } of presets) {
-          const id = `imported-${++importedPresetSerial}`;
-          importedPresets.set(id, preset);
-          const option = document.createElement("option");
-          option.value = id;
-          option.textContent = label;
-          group.appendChild(option);
-          firstPresetId ??= id;
-        }
-        presetSelect.insertBefore(group, firstDefault);
-        importedGroups.push(group);
-      }
-      applyPresetState(firstPresetId);
-      tfiSummary.textContent = `${importedPresets.size} imported presets (this session)`;
-      const notices = [...new Set(batches.flatMap(batch => batch.presets.map(preset => preset.notice).filter(Boolean)))];
-      importNotice.textContent = notices.join("\n");
-      importNotice.hidden = !notices.length;
-    }
-    if (failures.length) {
-      importError.textContent = `Could not load some files:\n${failures.join("\n")}\nSupported formats: VGM, VGZ, S98, TFI, VGI. Log extraction supports OPN FM and approximate YM2151 conversion. S98 requires one YM2203, YM2608, YM2612 or YM2151; compressed S98 is unsupported.${batches.length ? "" : " Previous presets were kept."}`;
-      importError.hidden = false;
-    }
-    const count = batches.reduce((sum, batch) => sum + batch.presets.length, 0);
-    setStatus(`Loaded ${count} instrument(s).${failures.length ? ` Failed: ${failures.join("; ")}` : ""}`);
-    document.activeElement?.blur?.();
+    const option = document.createElement('option');
+    option.value = 'vfs:' + file.path;
+    option.textContent = file.path.split('/').pop();
+    groups.get(directory).append(option);
   }
-
-  tfiFileInput.addEventListener("change", event => loadFiles(event.target.files));
-  document.addEventListener("dragover", event => {
-    if (!Array.from(event.dataTransfer?.types || []).includes("Files")) return;
-    event.preventDefault();
-    event.dataTransfer.dropEffect = "copy";
-  });
-  document.addEventListener("drop", event => {
-    if (!event.dataTransfer?.files?.length) return;
-    event.preventDefault();
-    return loadFiles(event.dataTransfer.files);
-  });
+  const first = presetSelect.firstChild;
+  for (const group of groups.values()) presetSelect.insertBefore(group, first);
+  presetSelect.value = currentPresetName;
   updateTfiSummary();
 }
 
@@ -2656,10 +2590,7 @@ function buildVgiExporter() {
   exportVgiButton.addEventListener("click", () => {
     try {
       const preset = buildCurrentPresetState();
-      const bytes = createVgiFromPreset({
-        ...preset,
-        b4: 0xc0 | ((preset.ams ?? 0) << 4) | (preset.pms ?? 0),
-      });
+      const bytes = createVgiFromPreset(preset);
       const url = URL.createObjectURL(new Blob([bytes], { type: "application/octet-stream" }));
       const anchor = document.createElement("a");
       anchor.href = url;
@@ -2734,7 +2665,6 @@ buildOperatorHeader();
 buildOperatorControls();
 buildChannel3SpecialControls();
 buildPresetSelect();
-buildTfiLoader();
 buildTfiExporter();
 buildVgiExporter();
 looperStartButton?.addEventListener(
@@ -2796,6 +2726,21 @@ eventRecordImportInput?.addEventListener(
 renderFretboardUi();
 buildKeyboard();
 applyPresetState(currentPresetName);
+synthFiles = setupSynthFiles({
+  project:synthProject,
+  getPreset:buildCurrentPresetState,
+  getPresetId:()=>currentPresetName,
+  applyPreset:applyPresetState,
+  applySnapshot:applyPresetData,
+  onSaved(path) {
+    currentPresetName='vfs:'+path;
+    importedTfiName=path.split('/').pop();
+    syncFilePresetOptions();
+  },
+  onListChanged:syncFilePresetOptions,
+  stopAllNotes,
+  setStatus,
+});
 updateKeyboardAvailability();
 updateMasterVolumeUi();
 
