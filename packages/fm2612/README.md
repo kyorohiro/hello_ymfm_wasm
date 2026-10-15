@@ -4,6 +4,12 @@ Tetorica sound-chip cores, Synth helpers and browser audio runtime, distributed 
 ES modules with prebuilt WASM. The package retains the existing web runtime;
 its default entry point provides chip creation without starting browser audio.
 
+**[Try the Playground in your browser](https://kyorohiro.github.io/hello_ymfm_wasm/playground/index.html)**
+— no installation needed. Open it and press **Run** to hear the default example.
+
+For browser and Node.js projects, see the
+[runnable examples](https://github.com/kyorohiro/tetorica-fm2612-examples).
+
 ## Install
 
 ```sh
