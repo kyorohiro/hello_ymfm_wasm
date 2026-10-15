@@ -1,6 +1,14 @@
 # tetorica-virtual-files
 
-Version 0.3.0 adds optional Git integration. The core installs without dependencies;
+Version 0.4.0 adds file/folder synchronization, persistent single-generation
+file checkpoints, automatic first-edit capture, and atomic grouped writes and
+checkpoint updates. `sync(sourcePath, {syncRoot?})` returns a Promise; Auto is
+off unless explicitly enabled. Checkpoints use `/.tet.ss`, follow file moves,
+copies and deletion, and stay out of the optional Git worktree operations.
+The default checkpoint namespace is reserved, but ordinary paths and snapshots
+remain compatible. The host still supplies persistence to external storage.
+
+Version 0.3.0 added optional Git integration. The core installs without dependencies;
 Git dependencies are optional peers installed explicitly by the application.
 Version 0.2.0 added bounded inspection/search, atomic patches, file revisions,
 conflict-safe snapshot undo, and virtual text pipelines/redirection.
@@ -54,7 +62,7 @@ Paths cannot traverse above `/`. Snapshots contain text, `Uint8Array` data and
 directories and are suitable for structured cloning in IndexedDB. JSON serialization
 requires a separate binary encoding. Persistence is supplied by the host application.
 
-## File and folder synchronization (development)
+## File and folder synchronization
 
 `sync(sourcePath, {syncRoot?})` mirrors a file or folder into another virtual
 root, preserving its absolute source path. It always returns a Promise.
@@ -92,13 +100,13 @@ as `{syncRoot:'app-storage://~/'}` are a future extension and currently reject
 with an unsupported-location error before path normalization. No external I/O
 or storage-provider framework is included in this MVP.
 
-## File checkpoints (development)
+## File checkpoints
 
 Normal paths contain the current working files. `fs.checkpoints` keeps one
 restore point per file, separately from transactional Undo, Git history and
-host-supplied external persistence. Explicit Set/Revert share the file/folder
-mirror implementation with `sync`; automatic first-edit capture and checkpoint
-lifecycle rules are a separate policy.
+host-supplied external persistence. Explicit checkpoint operations validate
+before an atomic update; automatic first-edit capture and checkpoint lifecycle
+rules are separate from generic `sync`.
 
 ```javascript
 const fs = createVirtualFileSystem([
