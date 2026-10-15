@@ -1,3 +1,4 @@
+import {formatLogArgs} from './playground_log.js';
 /**
  * @file playground_live.js
  * 実行環境: Browser / Node.js
@@ -385,7 +386,7 @@ export function createPlaygroundLive(
 
           console.error(error);
           logLine(
-            `[liveLoop:${state.name}] ${error?.stack ?? String(error)}`
+            `[liveLoop:${state.name}] ${formatLogArgs([error])}`
           );
 
           if (
@@ -415,7 +416,7 @@ export function createPlaygroundLive(
       } else {
         console.error(error);
         logLine(
-          `[liveLoop:${state.name}] ${error?.stack ?? String(error)}`
+          `[liveLoop:${state.name}] ${formatLogArgs([error])}`
         );
         setStatus(
           `Loop error: ${state.name}`
@@ -531,7 +532,7 @@ export function createPlaygroundLive(
         (error) => {
           console.error(error);
           logLine(
-            `[liveCleanup:${definition.names.join(",")}] ${error?.stack ?? String(error)}`
+            `[liveCleanup:${definition.names.join(",")}] ${formatLogArgs([error])}`
           );
           setStatus("Cleanup error");
         }
@@ -539,7 +540,7 @@ export function createPlaygroundLive(
     } catch (error) {
       console.error(error);
       logLine(
-        `[liveCleanup:${definition.names.join(",")}] ${error?.stack ?? String(error)}`
+        `[liveCleanup:${definition.names.join(",")}] ${formatLogArgs([error])}`
       );
       setStatus("Cleanup error");
     }

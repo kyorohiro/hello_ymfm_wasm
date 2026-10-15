@@ -1118,7 +1118,7 @@ export function createPlaygroundRuntime(
           worker.postMessage(error
             ? { type: "response", id: message.id, error: error?.message ?? String(error) }
             : { type: "response", id: message.id, value }, !error && message.command === "pcm.create" ? [value.port] : []);
-        } else if (error) emitLog(error?.stack ?? String(error));
+        } else if (error) emitLog(formatLogArgs([error]));
       };
       workerCommandQueue = workerCommandQueue
         .catch(() => undefined)
@@ -1219,7 +1219,7 @@ export function createPlaygroundRuntime(
           () => definition.fn(event)
         ).catch((error) => {
           emitLog(
-            `[keyboard:${definition.name}] ${error?.stack ?? String(error)}`
+            `[keyboard:${definition.name}] ${formatLogArgs([error])}`
           );
           emitStatus("Keyboard handler error");
         });
@@ -1919,7 +1919,7 @@ export function createPlaygroundRuntime(
         setPlaybackState("stopped");
         emitStatus(`Error: ${error.message}`);
         emitRuntimeState("Error");
-        emitLog(error?.stack ?? String(error));
+        emitLog(formatLogArgs([error]));
         throw error;
       }
     }
@@ -2038,10 +2038,7 @@ export function createPlaygroundRuntime(
         `Error: ${error.message}`
       );
       emitRuntimeState("Error");
-      emitLog(
-        error?.stack ??
-          String(error)
-      );
+      emitLog(formatLogArgs([error]));
       throw error;
     }
   }

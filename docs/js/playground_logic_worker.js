@@ -712,7 +712,7 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
       postMessage({
         type: "log",
         level: "error",
-        message: `[keyboard:${id}] ${error?.stack ?? String(error)}`,
+        message: `[keyboard:${id}] ${serializeLogError(error)}`,
       });
     });
   };
@@ -762,7 +762,7 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
             if (loopContext.interruptError) throw loopContext.interruptError;
           } catch (error) {
             if (error?.message === "Run stopped") break;
-            if (!run.stopped) postMessage({ type: "log", level: "error", message: `[liveLoop:${name}] ${error?.stack ?? String(error)}` });
+            if (!run.stopped) postMessage({ type: "log", level: "error", message: `[liveLoop:${name}] ${serializeLogError(error)}` });
             if (loopContext.interruptError) break;
             await new Promise((resolve) => setTimeout(resolve, 16));
           } finally {

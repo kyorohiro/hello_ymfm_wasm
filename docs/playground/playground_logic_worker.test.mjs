@@ -118,6 +118,20 @@ test('Worker console preserves errors across the message boundary', async () => 
   await worker.send({type: 'stop'});
 });
 
+test('Worker liveLoop preserves an error message omitted from a WebKit stack', async () => {
+  const worker = createWorkerHarness();
+  try {
+    await worker.send({type: 'run', sourceCode: `liveLoop('choir', async () => {
+      const error = new Error('Unknown sample: sonic-pi/ambi-choir');
+      error.stack = 'playSample@tauri://localhost/js/tetorica_audio_runtime.js:427:33';
+      throw error;
+    });`});
+    await waitFor(() => worker.messages.some(message => message.type === 'log'));
+    const log = worker.messages.find(message => message.type === 'log');
+    assert.equal(log.message, '[liveLoop:choir] Error: Unknown sample: sonic-pi/ambi-choir\nplaySample@tauri://localhost/js/tetorica_audio_runtime.js:427:33');
+  } finally { await worker.send({type: 'stop'}); }
+});
+
 test("Worker forwards ordered operator entries without changing their values", async () => {
   const worker = createWorkerHarness();
   await worker.send({

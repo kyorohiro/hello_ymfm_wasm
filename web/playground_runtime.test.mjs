@@ -93,6 +93,30 @@ test('caught errors retain their message and stack in the Playground console', a
   assert.ok(logs.some(line => line.includes('[warn] AbortError: Run stopped')));
 });
 
+for (const route of ['evaluation', 'liveLoop', 'liveCleanup']) {
+  test(`Main ${route} logs retain the error message when WebKit stacks contain only locations`, async t => {
+    const {runtime, logs} = setup(t);
+    t.mock.method(console, 'error', () => {});
+    const failure = `const error = new Error('Unknown sample: sonic-pi/ambi-choir');
+      error.stack = 'playSample@tauri://localhost/js/tetorica_audio_runtime.js:427:33';
+      throw error;`;
+    if (route === 'evaluation') {
+      await assert.rejects(runtime.playSource(failure), /Unknown sample/);
+    } else if (route === 'liveLoop') {
+      await runtime.playSource(`liveLoop('choir', async () => { ${failure} });`);
+    } else {
+      await runtime.playSource(`liveLoop('choir', async () => { await sleep(60); });
+        liveCleanup(['choir'], () => { ${failure} });`);
+      await runtime.playSource('');
+    }
+    await until(() => logs.some(line => line.includes('Unknown sample: sonic-pi/ambi-choir')));
+    const errorLog = logs.find(line => line.includes('Unknown sample: sonic-pi/ambi-choir'));
+    assert.ok(errorLog.includes('Error: Unknown sample: sonic-pi/ambi-choir\nplaySample@tauri://localhost/'));
+    if (route !== 'evaluation') assert.ok(errorLog.startsWith(`[${route}:choir] `));
+    runtime.stop();
+  });
+}
+
 test('Main evaluation and live loops retain native Tauri IPC while user network stays blocked', async t => {
   const {megaDrive} = setup(t);
   const requests = [], evaluation = deferred(), iteration = deferred();
