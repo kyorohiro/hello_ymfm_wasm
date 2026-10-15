@@ -144,6 +144,11 @@
       #synthFilesTree .file-drop-target { background: #345750; outline: 1px solid #7be0d6; }
       #synthActiveFilePath { font-size: .76rem; overflow-wrap: anywhere; min-width: 0; flex: 1; }
       #synthFileDirty { font-size: .72rem; color: #ffd19b; }
+      .synth-file-sync-actions { display: flex; align-items: center; gap: 6px; margin-left: auto; flex: none; }
+      #synthFileSaveButton { width: 80px; flex: none; }
+      #synthFileSaveButton[data-feedback="success"] { background: #2f765a; color: #fff; border-color: #245f47; }
+      .synth-sync-announcement { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
+      .synth-editor[aria-busy="true"] .param-control { opacity: .6; }
       .synth-file-format-note { color: #a8bfba; font-size: .7rem; margin: 0 0 10px; }
       .synth-file-dialog { max-width: min(430px, calc(100vw - 32px)); box-sizing: border-box; padding: 20px; color: #e4eee8; background: #172423; border: 1px solid #7c9d91; border-radius: 14px; }
       .synth-file-dialog::backdrop { background: #0009; }
@@ -1253,16 +1258,20 @@
               <button id="synthFileRenameButton" class="toolbar-button" type="button" disabled>Rename…</button>
               <button id="synthFileDeleteButton" class="toolbar-button" type="button" disabled>Delete</button>
               <button id="synthFileNewFolderButton" class="toolbar-button" type="button">New folder…</button>
+              <button id="synthFileUndoButton" class="toolbar-button" type="button" title="Undo the last file operation" disabled>Undo files</button>
             </div>
             <p id="synthFileSelectionInfo" class="synth-files-caption">Choose an instrument file to edit. Other files stay in the Cassette.</p>
           </aside>
           <div class="synth-editor">
             <div class="synth-file-editor-heading">
               <span id="synthActiveFilePath">Built-in instrument</span><span id="synthFileDirty"></span>
-              <button id="synthFileSaveButton" class="toolbar-button" type="button">Save…</button>
-              <button id="synthFileUndoButton" class="toolbar-button" type="button" disabled>Undo</button>
+              <div class="synth-file-sync-actions" role="toolbar" aria-label="Instrument file controls">
+                <button id="synthFileSaveButton" class="toolbar-button" type="button" title="Sync this instrument (Ctrl/Cmd+S)" aria-keyshortcuts="Control+S Meta+S" disabled>Sync</button>
+                <button id="synthFileRevertButton" class="toolbar-button" type="button" title="Restore this instrument from its last synced copy" disabled>Revert</button>
+                <span id="synthSyncAnnouncement" class="synth-sync-announcement" role="status" aria-live="polite" aria-atomic="true"></span>
+              </div>
             </div>
-            <p class="synth-file-format-note" title="TFI stores FM operators, algorithm and feedback. VGI also stores pan, AMS and PMS. Chip LFO, DAC, operator AM and CH3 special mode remain session controls.">TFI / VGI instruments · Format info ⓘ</p>
+            <p class="synth-file-format-note" title="TFI stores FM operators, algorithm and feedback. VGI also stores pan, AMS and PMS. Extra Synth settings are stored beside the tone as &lt;tone&gt;.synth.json and included in Cassette export. DAC and CH3 special mode remain session controls.">TFI / VGI + Synth settings · Format info ⓘ</p>
         <div class="layout">
           <section class="controls-stack">
             <div class="card visual-card">
@@ -1398,10 +1407,6 @@
       <p id="synthFileNameError" role="alert"></p>
       <div class="synth-file-dialog-actions"><button type="button" class="toolbar-button" data-file-name-cancel>Cancel</button><button type="button" class="toolbar-button" data-file-name-confirm>Save</button></div>
     </dialog>
-    <dialog id="synthFileDirtyDialog" class="synth-file-dialog">
-      <h2>Unsaved instrument</h2><p>Save your changes before switching instruments or changing files?</p>
-      <div class="synth-file-dialog-actions"><button type="button" class="toolbar-button" data-dirty-action="cancel">Cancel</button><button type="button" class="toolbar-button" data-dirty-action="discard">Discard</button><button type="button" class="toolbar-button" data-dirty-action="save">Save</button></div>
-    </dialog>
     <div id="synthFileContextMenu" class="synth-file-context-menu" role="menu" aria-label="File actions" hidden>
       <button class="toolbar-button" type="button" role="menuitem" data-file-action="duplicate">Duplicate</button>
       <button class="toolbar-button" type="button" role="menuitem" data-file-action="rename">Rename…</button>
@@ -1411,7 +1416,7 @@
     </div>
 
     <script type="module">
-      import "./synth.js";
+      import "./synth.js?v=auto-sync-1";
     </script>
   </body>
 </html>

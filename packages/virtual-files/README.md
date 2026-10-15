@@ -40,6 +40,14 @@ requires an existing parent. Files cannot replace directories or occupy their an
 Reads copy binary data. Whole-project replacement, snapshot restoration and
 copy/move validate the operation before committing and emit one change notification.
 
+`fs.writeFiles(entries, {checkpointChanges:true})` writes several text/binary
+files together without replacing unrelated files. Each entry has `path`, `data`
+and optional `expectedRevision`. Paths, data and revision preconditions are
+validated before publishing one filesystem change; a duplicate or conflicting
+path rejects the whole batch. An empty array is a no-op. The default
+`checkpointChanges:true` applies the instance's automatic-checkpoint policy;
+hosts restoring an already validated file group can explicitly pass `false`.
+
 `resolvePath(path, cwd)` resolves relative to a directory;
 `normalizeVirtualPath(path, baseFile)` resolves relative to a file.
 Paths cannot traverse above `/`. Snapshots contain text, `Uint8Array` data and
@@ -110,6 +118,7 @@ fs.checkpoints.setAuto(false); // Retain checkpoints; stop auto-creation.
 | API | Meaning |
 | --- | --- |
 | `fs.checkpoints.set(path, {expectedRevision?})` | Create/update the restore point; return its copied checkpoint file |
+| `fs.checkpoints.setMany(paths)` | Create/update several existing files' restore points in one validated commit; return copied checkpoint files in input order |
 | `fs.checkpoints.revert(path, {expectedRevision?})` | Restore an existing current file; retain the restore point; return the copied current file |
 | `fs.checkpoints.get(path)` | Copied checkpoint file or `null`; path/revision refer to the hidden checkpoint file |
 | `fs.checkpoints.has(path)` | Whether a restore point exists |
@@ -123,6 +132,14 @@ and initial creation do not create checkpoints; a newly created file's first
 later edit can capture its initial contents. Auto OFF retains existing points.
 Text/binary types and bytes are preserved, and reads return copies. The optional
 revision precondition checks the current ordinary file before any mutation.
+
+Use `setMany()` when a logical document consists of several files, such as an
+instrument and its JSON settings sidecar. It requires a nonempty array of unique
+ordinary file paths. Every source and destination, including the managed ignore
+file, is validated before changing any checkpoint. It does not provide a batch
+revision-precondition option. To restore a validated group atomically, the host
+can read its checkpoints and use `writeFiles(entries, {checkpointChanges:false})`;
+the host remains responsible for validating its document format first.
 
 The point for `/index.js` is stored at `/.tet.ss/index.js`.
 The reserved checkpoint tree and any `.git` subtree cannot be checkpoint targets.

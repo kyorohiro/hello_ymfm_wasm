@@ -70,7 +70,7 @@ async function waitForStoredDraft(page, expected) {
 
 (async () => {
   const {createTfiFromPreset, parseTfi} = await import(pathToFileURL(path.join(docs, 'js/tfi.js')));
-  const {createVgiFromPreset} = await import(pathToFileURL(path.join(docs, 'js/vgi.js')));
+  const {createVgiFromPreset, parseVgi} = await import(pathToFileURL(path.join(docs, 'js/vgi.js')));
   const {createPlaygroundCassetteZip, loadPlaygroundCassette} = await import(pathToFileURL(path.join(docs, 'playground/playground_cassette.js')));
   const patch = {algorithm:4, feedback:2, operators:{1:{multi:2, ar:23, tl:12}, 2:{ar:17, tl:24}, 3:{ar:20, tl:18}, 4:{ar:31, tl:8}}};
   const tfi = createTfiFromPreset(patch);
@@ -100,12 +100,31 @@ async function waitForStoredDraft(page, expected) {
       const browser = await type.launch({headless:true});
       try {
         const page = await browser.newPage({acceptDownloads:true, viewport:{width:1440, height:1050}});
-        const errors = [];
+        const errors = [], dialogs = [];
         page.on('pageerror', error => errors.push(error.message));
-        page.on('dialog', dialog => dialog.accept());
+        page.on('dialog', dialog => {dialogs.push({type:dialog.type(), message:dialog.message()}); return dialog.accept();});
         await page.goto(url);
         await page.waitForSelector('#keyboard .key');
+        const waitReady = () => page.waitForFunction(() => !document.getElementById('synthFileNewButton').disabled);
+        await waitReady();
+        assert.equal(await page.locator('#synthFileDirtyDialog').count(), 0, 'Instrument switching no longer has an Unsaved dialog');
         const panel = page.locator('#synthFilesPanel');
+        const syncButton = page.locator('#synthFileSaveButton'), revertButton = page.locator('#synthFileRevertButton');
+        const bytesAt = (cassette, tonePath) => {
+          const bytes = cassette.files.get(tonePath.replace(/^\//, ''));
+          assert(bytes, `Missing Cassette file: ${tonePath}`);
+          return bytes;
+        };
+        const parsedTone = (cassette, tonePath) => {
+          const bytes = bytesAt(cassette, tonePath);
+          return bytes.length === 43 ? parseVgi(bytes) : parseTfi(bytes);
+        };
+        const extras = (cassette, tonePath) => JSON.parse(new TextDecoder().decode(bytesAt(cassette, tonePath + '.synth.json')));
+        const assertSyncFeedback = async () => {
+          await page.waitForFunction(() => document.getElementById('synthFileSaveButton').dataset.feedback === 'success');
+          assert.equal(await syncButton.getAttribute('data-feedback'), 'success');
+          assert.equal((await syncButton.textContent()).trim(), '✓ Synced');
+        };
         const openFiles = async () => {
           if (!await panel.isVisible()) await page.locator('#synthFilesToggle').click();
           await panel.waitFor({state:'visible'});
@@ -138,6 +157,7 @@ async function waitForStoredDraft(page, expected) {
           await expandDirectories();
           await toneButton(tonePath).click();
           await page.waitForFunction(expected => document.getElementById('synthActiveFilePath').textContent.includes(expected), tonePath);
+          await waitReady();
         };
         const confirmName = async nextName => {
           const dialog = page.locator('#synthFileNameDialog');
@@ -154,6 +174,7 @@ async function waitForStoredDraft(page, expected) {
           const before = await algorithm();
           await algorithmControl.locator('..').locator('.param-button').nth(before < 7 ? 1 : 0).click();
           assert.notEqual(await algorithm(), before);
+          return algorithm();
         };
         const assertKeyboardWorks = async () => {
           await page.keyboard.down('a');
@@ -169,15 +190,62 @@ async function waitForStoredDraft(page, expected) {
         await page.locator('#synthFilesToggle').click();
         await panel.waitFor({state:'hidden'});
         assert.equal(await algorithm(), initialAlgorithm, 'Hiding Files keeps the selected instrument');
+        assert.equal(await syncButton.isVisible(), true, 'Sync remains available with Files hidden');
+        assert.equal(await revertButton.isVisible(), true, 'Revert remains available with Files hidden');
         await assertKeyboardWorks();
         await openFiles();
+
+        // The first edit materializes a working file and captures the built-in
+        // sound before modification. No name dialog or manual Save is needed.
+        const builtinId = await page.locator('#presetSelect').inputValue();
+        const editedBuiltinAlgorithm = await editAlgorithm();
+        await page.waitForFunction(() => document.getElementById('synthActiveFilePath').textContent.startsWith('/presets/'));
+        const builtinPath = (await page.locator('#synthActiveFilePath').textContent()).trim();
+        assert.match(builtinPath, /\.vgi$/);
+        assert.equal(await page.locator('#synthFileNameDialog').isVisible(), false);
+        let cassette = await exportCassette();
+        assert.equal(parsedTone(cassette, builtinPath).algorithm, editedBuiltinAlgorithm);
+        assert.equal(parsedTone(cassette, '/.tet.ss' + builtinPath).algorithm, initialAlgorithm);
+        const builtinBaseline = Buffer.from(bytesAt(cassette, '/.tet.ss' + builtinPath));
+        const initialExtras = extras(cassette, builtinPath);
+        const lfoControl = page.locator('#commonControls .param-value[aria-label="LFO"]');
+        const amControl = page.locator('#operatorControls .param-value[aria-label="AM"]').first();
+        const beforeLfo = await lfoControl.textContent(), beforeAm = await amControl.textContent();
+        await lfoControl.click();
+        await amControl.click();
+        const lfoFrequency = page.locator('#commonControls .param-value[aria-label="LFOF"]');
+        const beforeFrequency = Number(await lfoFrequency.textContent());
+        await lfoFrequency.locator('..').locator('.param-button').nth(beforeFrequency < 7 ? 1 : 0).click();
+        const editedLfo = await lfoControl.textContent(), editedAm = await amControl.textContent();
+        const editedFrequency = Number(await lfoFrequency.textContent());
+        assert.notEqual(editedLfo, beforeLfo);
+        assert.notEqual(editedAm, beforeAm);
+        cassette = await exportCassette();
+        assert.deepEqual(Buffer.from(bytesAt(cassette, '/.tet.ss' + builtinPath)), builtinBaseline);
+        const builtinExtras = extras(cassette, builtinPath);
+        assert.equal(builtinExtras.version, 1);
+        assert.equal(builtinExtras.kind, 'tetorica-fm2612-synth');
+        assert.equal(builtinExtras.lfo.enabled, editedLfo === 'ON');
+        assert.equal(builtinExtras.lfo.frequency, editedFrequency);
+        assert.equal(builtinExtras.operatorAM[0], editedAm === 'ON');
+        assert.deepEqual(extras(cassette, '/.tet.ss' + builtinPath), initialExtras);
+        assert.equal(await page.locator('#synthFilesTree [data-file-path$=".synth.json"]').count(), 0, 'Tone sidecars stay out of the normal Files tree');
+        const anotherBuiltin = await page.locator('#presetSelect').evaluate((select, original) => [...select.options].find(option => option.value !== original && option.value !== 'custom' && !option.value.startsWith('vfs:')).value, builtinId);
+        await page.locator('#presetSelect').selectOption(anotherBuiltin);
+        await waitReady();
+        await selectTone(builtinPath);
+        assert.equal(await algorithm(), editedBuiltinAlgorithm, 'Switching away and back preserves the edited built-in sound');
+        assert.equal(await lfoControl.textContent(), editedLfo);
+        assert.equal(await amControl.textContent(), editedAm);
+        assert.equal(Number(await lfoFrequency.textContent()), editedFrequency);
+        await assertKeyboardWorks();
 
         await chooseFile('#importPresetButton', [
           {name:'song.vgm', mimeType:'application/octet-stream', buffer:vgm(4)},
           {name:'song.vgm', mimeType:'application/octet-stream', buffer:vgm(5)},
         ]);
         await page.waitForFunction(() => document.getElementById('status').textContent.includes('Loaded 2'));
-        let cassette = await exportCassette();
+        cassette = await exportCassette();
         const importedPaths = [...cassette.files.keys()].filter(file => file.endsWith('/ym2612_ch1_001.tfi'));
         assert.deepEqual(importedPaths.sort(), ['presets/song-2/ym2612_ch1_001.tfi', 'presets/song/ym2612_ch1_001.tfi']);
         assert.equal(parseTfi(cassette.files.get('presets/song/ym2612_ch1_001.tfi')).algorithm, 4);
@@ -185,32 +253,47 @@ async function waitForStoredDraft(page, expected) {
 
         const first = '/presets/song/ym2612_ch1_001.tfi';
         const second = '/presets/song-2/ym2612_ch1_001.tfi';
+        assert.equal(cassette.files.has('.tet.ss' + first), false, 'Import does not create a checkpoint before an edit');
+        assert.equal(cassette.files.has(first.slice(1) + '.synth.json'), false, 'Import retains raw bytes until the first edit');
         await selectTone(first);
         await editAlgorithm();
-        await expandDirectories();
-        await toneButton(second).click();
-        await page.locator('#synthFileDirtyDialog').waitFor({state:'visible'});
-        await page.locator('[data-dirty-action="cancel"]').click();
-        assert.equal(await algorithm(), 5, 'Cancel retains edits and the original active path');
-        assert.match(await page.locator('#synthActiveFilePath').textContent(), /presets\/song\//);
-        await toneButton(second).click();
-        await page.locator('[data-dirty-action="save"]').click();
-        await page.waitForFunction(() => document.getElementById('synthActiveFilePath').textContent.includes('/presets/song-2/'));
+        await selectTone(second);
         cassette = await exportCassette();
-        assert.equal(parseTfi(cassette.files.get(first.slice(1))).algorithm, 5, 'Switch-with-Save persists the edited sound');
-
+        assert.equal(parsedTone(cassette, first).algorithm, 5, 'Switching keeps the current sound without a Save dialog');
+        assert.equal(parsedTone(cassette, '/.tet.ss' + first).algorithm, 4, 'Switching and Export retain the pre-edit checkpoint');
         await editAlgorithm();
-        await toneButton(first).click();
-        await page.locator('[data-dirty-action="discard"]').click();
-        await page.waitForFunction(() => document.getElementById('synthActiveFilePath').textContent.includes('/presets/song/'));
-        assert.equal(await algorithm(), 5, 'Discard switches to the target instrument');
+        assert.equal((await page.locator('#synthFileDirty').textContent()).trim(), 'Modified');
+        await page.reload();
+        await page.waitForSelector('#keyboard .key');
+        await waitReady();
+        await page.waitForFunction(expected => document.getElementById('synthActiveFilePath').textContent === expected, second);
+        assert.equal(await algorithm(), 6, 'Immediate reload retains the second instrument edit');
         cassette = await exportCassette();
-        assert.equal(parseTfi(cassette.files.get(second.slice(1))).algorithm, 5, 'Discard does not save the previous edit');
-
+        assert.equal(parsedTone(cassette, first).algorithm, 5, 'Editing another tone does not replace the first tone recovery');
+        assert.equal(parsedTone(cassette, '/.tet.ss' + first).algorithm, 4);
+        assert.equal(parsedTone(cassette, second).algorithm, 6);
+        assert.equal(parsedTone(cassette, '/.tet.ss' + second).algorithm, 5);
+        await page.locator('#keyboard .key').first().click();
+        await page.waitForFunction(() => document.getElementById('status').textContent.includes('Audio ready'));
+        await selectTone(first);
+        assert.equal(await algorithm(), 5, 'Returning to an instrument restores its current edit');
+        cassette = await exportCassette();
+        assert.equal(parsedTone(cassette, second).algorithm, 6);
+        assert.equal(parsedTone(cassette, '/.tet.ss' + second).algorithm, 5);
+        assert.equal(await revertButton.isEnabled(), true);
+        await syncButton.click();
+        await assertSyncFeedback();
+        assert.equal(await revertButton.isDisabled(), true);
         await editAlgorithm();
-        await page.locator('#synthFileSaveButton').click();
+        assert.equal(await revertButton.isEnabled(), true);
+        await revertButton.click();
+        assert.equal(await algorithm(), 5, 'Revert restores the last Sync point');
         cassette = await exportCassette();
-        assert.equal(parseTfi(cassette.files.get(first.slice(1))).algorithm, 6);
+        assert.equal(parsedTone(cassette, first).algorithm, 5);
+        assert.equal(parsedTone(cassette, '/.tet.ss' + first).algorithm, 5, 'Revert does not update the Sync point');
+        assert.equal(parsedTone(cassette, second).algorithm, 6, 'Revert affects only the active instrument');
+        await assertKeyboardWorks();
+        await editAlgorithm(); // Leave this current edit unsynced during file operations.
         await page.locator('#synthFileDuplicateButton').click();
         if (await page.locator('#synthFileNameDialog').isVisible()) await confirmName('My tone.tfi');
         await page.waitForFunction(() => document.getElementById('synthActiveFilePath').textContent !== '/presets/song/ym2612_ch1_001.tfi');
@@ -221,12 +304,15 @@ async function waitForStoredDraft(page, expected) {
         const renamed = [...cassette.files.keys()].find(file => file.endsWith('/Lead.tfi'));
         assert(renamed, 'Rename changes the virtual path');
         assert.equal(parseTfi(cassette.files.get(renamed)).algorithm, 6);
+        assert.equal(parseTfi(cassette.files.get('.tet.ss/' + renamed)).algorithm, 5, 'Duplicate and Rename carry the checkpoint');
+        assert(cassette.files.has(renamed + '.synth.json'), 'Rename carries the Synth sidecar');
         await page.locator('#synthFileDeleteButton').click();
         cassette = await exportCassette();
         assert(!cassette.files.has(renamed), 'Delete removes the selected file');
         await page.locator('#synthFileUndoButton').click();
         cassette = await exportCassette();
         assert.equal(parseTfi(cassette.files.get(renamed)).algorithm, 6, 'Undo restores the deleted tone');
+        assert.equal(parseTfi(cassette.files.get('.tet.ss/' + renamed)).algorithm, 5, 'File Undo also restores its checkpoint');
         await page.locator('#synthFileNewFolderButton').click();
         await confirmName('My sounds');
         cassette = await exportCassette();
@@ -237,7 +323,26 @@ async function waitForStoredDraft(page, expected) {
         assert([...cassette.files.keys()].some(file => file.endsWith('/Created.tfi')), 'New File creates an editable instrument');
         await assertKeyboardWorks();
         const savedPath = await page.locator('#synthActiveFilePath').textContent();
-        const savedAlgorithm = await algorithm();
+        await syncButton.click();
+        await assertSyncFeedback();
+        await waitReady();
+        const savedCheckpointAlgorithm = await algorithm();
+        cassette = await exportCassette();
+        const savedCheckpointExtras = Buffer.from(bytesAt(cassette, '/.tet.ss' + savedPath + '.synth.json'));
+        const savedAlgorithm = await editAlgorithm();
+        assert.equal((await page.locator('#synthFileDirty').textContent()).trim(), 'Modified', 'The current edit is recorded before testing immediate reload');
+        // Reload before the 500 ms debounce: pagehide must start the real IDB
+        // write so a current edit is retained along with its older checkpoint.
+        await page.reload();
+        await page.waitForSelector('#keyboard .key');
+        await waitReady();
+        await page.waitForFunction(expected => document.getElementById('synthActiveFilePath').textContent === expected, savedPath);
+        assert.equal(await algorithm(), savedAlgorithm, 'Immediate reload retains the most recent current edit');
+        cassette = await exportCassette();
+        assert.equal(parsedTone(cassette, savedPath).algorithm, savedAlgorithm);
+        assert.equal(parsedTone(cassette, '/.tet.ss' + savedPath).algorithm, savedCheckpointAlgorithm);
+        assert.deepEqual(Buffer.from(bytesAt(cassette, '/.tet.ss' + savedPath + '.synth.json')), savedCheckpointExtras);
+        assert.equal(await revertButton.isEnabled(), true, 'Reload retains the separate Sync point');
         await page.locator('#synthFilesToggle').click();
         await panel.waitFor({state:'hidden'});
         await waitForStoredDraft(page, {activePath:savedPath, visible:false});
@@ -246,7 +351,7 @@ async function waitForStoredDraft(page, expected) {
         await page.waitForFunction(expected => document.getElementById('synthActiveFilePath').textContent === expected, savedPath);
         await page.waitForFunction(() => !document.getElementById('synthFileNewButton').disabled);
         assert.equal(await panel.isVisible(), false, 'The local draft remembers the hidden Files panel');
-        assert.equal(await algorithm(), savedAlgorithm, 'Reload restores the saved editable instrument');
+        assert.equal(await algorithm(), savedAlgorithm, 'Reload restores the current editable instrument');
         await page.locator('#keyboard .key').first().click();
         await page.waitForFunction(() => document.getElementById('status').textContent.includes('Audio ready'));
         await openFiles();
@@ -288,30 +393,55 @@ async function waitForStoredDraft(page, expected) {
         await page.locator('#synthFilesToggle').click();
         await panel.waitFor({state:'visible'});
         assert.equal(await page.locator('#synthFileNewButton').isDisabled(), true, 'File edits wait for the stored project');
+        const inertRegions = ['commonControls', 'operatorControls', 'channel3SpecialControls'];
+        assert.deepEqual(await page.evaluate(ids => ids.map(id => document.getElementById(id).inert), inertRegions), [true,true,true], 'Parameter editing is blocked until draft restoration completes');
+        const pendingAlgorithm = await algorithm();
+        const incrementBounds = await algorithmControl.locator('..').locator('.param-button').nth(pendingAlgorithm < 7 ? 1 : 0).boundingBox();
+        await page.mouse.click(incrementBounds.x + incrementBounds.width / 2, incrementBounds.y + incrementBounds.height / 2);
+        assert.equal(await algorithm(), pendingAlgorithm, 'An inert startup control cannot replace the stored project');
         await page.waitForFunction(expected => document.getElementById('synthActiveFilePath').textContent === expected, savedPath);
+        await waitReady();
+        assert.deepEqual(await page.evaluate(ids => ids.map(id => document.getElementById(id).inert), inertRegions), [false,false,false]);
         assert.equal(await panel.isVisible(), true, 'The visibility click during loading takes priority over the stored setting');
         assert.equal(await algorithm(), savedAlgorithm, 'A delayed read restores the active tone');
         cassette = await exportCassette();
         assert.deepEqual(fileEntries(cassette), savedEntries, 'A visibility click during draft loading preserves all saved files');
+        await editAlgorithm();
+        await algorithmControl.locator('..').locator('.param-button').nth(savedAlgorithm === 7 ? 1 : 0).click();
+        assert.equal(await algorithm(), savedAlgorithm, 'Parameter editing resumes after draft restoration');
+        cassette = await exportCassette();
+        assert.deepEqual(fileEntries(cassette), savedEntries, 'Editing back to the same current value preserves the Sync point');
         await waitForStoredDraft(page, {activePath:savedPath, visible:true, count:savedFileCount});
         await page.locator('#keyboard .key').first().click();
         await page.waitForFunction(() => document.getElementById('status').textContent.includes('Audio ready'));
 
         await chooseFile('#importCassetteButton', [{name:'shared.cassette.zip', mimeType:'application/zip', buffer:fixture}]);
-        await page.waitForFunction(() => document.getElementById('status').textContent.includes('shared'));
+        await page.waitForFunction(() => document.getElementById('status').textContent.includes('shared'), null, {timeout:10000}).catch(async error => {
+          const state = await page.evaluate(() => ({
+            status:document.getElementById('status').textContent,
+            cassette:document.getElementById('synthCassetteName').textContent,
+            active:document.getElementById('synthActiveFilePath').textContent,
+            busy:document.getElementById('importCassetteButton').disabled,
+          }));
+          throw Error(`Shared Cassette import did not complete: ${JSON.stringify({state, errors, dialogs})}`, {cause:error});
+        });
         cassette = await exportCassette();
         assert.deepEqual(fileEntries(cassette), fileEntries(sourceCassette), 'Cassette preserves code, opaque bytes, .git and raw metadata');
         assert.equal(await page.locator('#synthFilesTree [data-file-path^="/.tet.ss"]').count(), 0, 'Checkpoint metadata stays hidden in Files');
+        assert.equal(await page.locator('#synthFilesTree [data-file-path$=".synth.json"]').count(), 0, 'Synth metadata stays hidden in Files');
         assert.equal(await page.locator('#presetSelect option[value^="vfs:/.tet.ss"]').count(), 0, 'Checkpoint instruments are not duplicate presets');
         for (const directory of sourceCassette.directories) assert(cassette.directories.includes(directory), `Preserves ${directory}`);
         await selectTone('/timbres/voice.vgi');
         assert.equal(await algorithm(), 4, 'VGI from Playground Cassette loads in Synth');
-        assert.equal(await page.locator('#synthFileSaveButton').isDisabled(), true, 'An unedited saved tone needs no rewrite');
+        assert.equal(await syncButton.isEnabled(), true, 'An unchanged tone can explicitly update its older Sync point');
+        assert.equal(await revertButton.isEnabled(), true, 'The imported current tone differs from its checkpoint');
         await editAlgorithm();
         await algorithmControl.locator('..').locator('.param-button').first().click();
-        await page.locator('#synthFileSaveButton').click();
+        await syncButton.click();
+        await assertSyncFeedback();
         cassette = await exportCassette();
-        assert.deepEqual([...cassette.files.get('timbres/voice.vgi')], [...vgi], 'Saving an unedited VGI retains its format and parameters');
+        assert.deepEqual([...cassette.files.get('timbres/voice.vgi')], [...vgi], 'Sync retains the VGI format and parameters');
+        assert.deepEqual([...cassette.files.get('.tet.ss/timbres/voice.vgi')], [...vgi], 'Sync explicitly replaces the older checkpoint');
         await expandDirectories();
         await toneButton('/index.js').click();
         assert.equal(await algorithm(), 4, 'Selecting shared code keeps the active Synth instrument');
@@ -333,8 +463,9 @@ async function waitForStoredDraft(page, expected) {
         await page.locator('#synthFilesToggle').click();
         await panel.waitFor({state:'hidden'});
         await assertKeyboardWorks();
+        assert.deepEqual(dialogs, [], 'Switching, exporting and reloading do not ask about unsaved instruments');
         assert.deepEqual(errors, []);
-        console.log(JSON.stringify({browser:name, passed:true, uniqueVgmDirectories:2, cassetteFiles:cassette.files.size, preservedEmptyDirectories:3}));
+        console.log(JSON.stringify({browser:name, passed:true, autoCurrent:true, builtinExtras:true, syncRevert:true, immediateReload:true, draftInitializationGuard:true, uniqueVgmDirectories:2, cassetteFiles:cassette.files.size, preservedEmptyDirectories:3}));
         await page.close();
       } finally { await browser.close(); }
     }

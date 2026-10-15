@@ -2,6 +2,7 @@ import {
   createVirtualFileSystem,
   transferVirtualFiles,
   isCheckpointPath,
+  CHECKPOINT_ROOT,
 } from '../js/tetorica_virtual_files/filesystem.js';
 import { resolvePath, dirname } from '../js/tetorica_virtual_files/path.js';
 import {
@@ -15,6 +16,59 @@ import { readPresetFile } from './synth_preset_import.js';
 const TONE_EXTENSION = /\.(tfi|vgi)$/i;
 const METADATA_PATHS = new Set(['/metadata.json', '/cassette.metadata.js']);
 const comparePaths = (a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' });
+const SYNTH_STATE_KIND = 'tetorica-fm2612-synth';
+
+export const synthStatePath = path => resolvePath(path) + '.synth.json';
+export const isSynthStatePath = path => /\.(?:tfi|vgi)\.synth\.json$/i.test(String(path));
+
+function range(name,value,maximum) {
+  if(!Number.isInteger(value)||value<0||value>maximum)throw Error(`${name} must be an integer in range 0..${maximum}`);
+  return value;
+}
+function boolean(name,value) {if(typeof value!=='boolean')throw Error(`${name} must be a boolean`);return value;}
+function extraState(preset,format) {
+  const operators=preset.operators??{},offset=operators[0]===undefined?1:0;
+  const state={version:1,kind:SYNTH_STATE_KIND,
+    lfo:{enabled:boolean('lfo.enabled',preset.lfo?.enabled??false),frequency:range('lfo.frequency',preset.lfo?.frequency??0,7)},
+    operatorAM:[0,1,2,3].map(index=>boolean('operator AM',operators[index+offset]?.am??false)),
+  };
+  if(format==='tfi'){
+    state.pan={left:boolean('pan.left',preset.pan?.left??true),right:boolean('pan.right',preset.pan?.right??true)};
+    state.ams=range('ams',preset.ams??0,3);state.pms=range('pms',preset.pms??0,7);
+    state.b4=(range('b4',preset.b4??0,255)&8)|(state.pan.left?128:0)|(state.pan.right?64:0)|(state.ams<<4)|state.pms;
+  }
+  return state;
+}
+function stateText(preset,format) {return JSON.stringify(extraState(preset,format),null,2)+'\n';}
+function parseState(data,format) {
+  let state;
+  try{state=JSON.parse(typeof data==='string'?data:new TextDecoder('utf-8',{fatal:true}).decode(data));}
+  catch(error){throw Error(`Invalid Synth state: ${error.message}`);}
+  if(state?.version!==1||state.kind!==SYNTH_STATE_KIND||!state.lfo||!Array.isArray(state.operatorAM)||state.operatorAM.length!==4)throw Error('Unsupported Synth state format');
+  const preset={lfo:state.lfo,operators:Object.fromEntries(state.operatorAM.map((am,index)=>[index+1,{am}]))};
+  if(format==='tfi'){
+    if(!state.pan||state.b4===undefined||state.ams===undefined||state.pms===undefined)throw Error('TFI Synth state must include pan, B4, AMS and PMS');
+    Object.assign(preset,{pan:state.pan,b4:state.b4,ams:state.ams,pms:state.pms});
+  }
+  return extraState(preset,format);
+}
+function mergeState(preset,state) {
+  const merged=structuredClone(preset);
+  merged.lfo={...state.lfo};
+  for(let op=1;op<=4;op++)merged.operators[op]={...merged.operators[op],am:state.operatorAM[op-1]};
+  if(state.pan)Object.assign(merged,{pan:{...state.pan},b4:state.b4,ams:state.ams,pms:state.pms});
+  return merged;
+}
+function validateToneStates(files) {
+  const entries=new Map(files.map(file=>[resolvePath(file.path),file]));
+  for(const [path,file] of entries)if(isSynthTonePath(path)){
+    const bytes=file.data;
+    const format=bytes.byteLength===43?'vgi':'tfi';
+    if(format==='vgi')parseVgi(bytes);else parseTfi(bytes);
+    const state=entries.get(synthStatePath(path));
+    if(state)parseState(state.data,format);
+  }
+}
 
 export function isSynthTonePath(path) {
   path = String(path);
@@ -42,7 +96,7 @@ function fileBytes(file) {
  * @param {{snapshot?: object}} [options]
  */
 export function createSynthProject({ snapshot: initialSnapshot } = {}) {
-  const fs = createVirtualFileSystem();
+  const fs = createVirtualFileSystem([], {autoCheckpoint:true});
   const listeners = new Set();
   let selectedPath = null;
   let cassetteName = 'cassette';
@@ -82,6 +136,20 @@ export function createSynthProject({ snapshot: initialSnapshot } = {}) {
     let candidate = path, suffix = 2;
     while (occupied.has(candidate)) candidate = `${stem}-${suffix++}${extension}`;
     return candidate;
+  }
+  function transferTone(path,destination,copy) {
+    const pairs=[[path,destination]];
+    if(fs.has(path)&&isSynthTonePath(path)){
+      const state=synthStatePath(path),target=synthStatePath(destination);
+      if(exists(target)||exists(CHECKPOINT_ROOT+target))throw Error(`Synth state destination already exists: ${target}`);
+      if(fs.has(state))pairs.push([state,target]);
+      else if(fs.listDirectories().includes(state))throw Error(`Synth state path is a folder: ${state}`);
+    }
+    // Preview path conflicts using metadata only, never copying sample/pack bytes.
+    const preview=createVirtualFileSystem();
+    preview.replace(project.listEntries().filter(entry=>entry.type==='file').map(entry=>({path:entry.path,data:''})),fs.listDirectories());
+    for(const [source,target] of pairs)transferVirtualFiles(preview,source,target,{copy});
+    for(const [source,target] of pairs)transferVirtualFiles(fs,source,target,{copy});
   }
 
   const project = {
@@ -130,10 +198,13 @@ export function createSynthProject({ snapshot: initialSnapshot } = {}) {
       const bytes = file.data;
       // Historical Synth imports accepted renamed TFI/VGI files by byte size.
       const format = bytes.byteLength === 43 ? 'vgi' : 'tfi';
-      const preset = format === 'vgi' ? parseVgi(bytes) : parseTfi(bytes);
+      let preset = format === 'vgi' ? parseVgi(bytes) : parseTfi(bytes);
+      const state=fs.get(synthStatePath(path));
+      if(state)preset=mergeState(preset,parseState(state.data,format));
+      else preset=mergeState(preset,extraState(preset,format));
       return { path, format, preset, bytes };
     },
-    writeTone(path, preset, { format, overwrite = true, expectedRevision } = {}) {
+    writeTone(path, preset, { format, overwrite = true, expectedRevision, baselinePreset } = {}) {
       path = resolvePath(path);
       if (!isSynthTonePath(path)) throw new Error('Instrument file names must end in .tfi or .vgi.');
       const previous = fs.get(path);
@@ -161,11 +232,66 @@ export function createSynthProject({ snapshot: initialSnapshot } = {}) {
         vgiPreset = { ...preset, b4 };
       }
       const bytes = format === 'vgi' ? createVgiFromPreset(vgiPreset) : createTfiFromPreset(preset);
+      const metadataPreset={...previousTone?.preset,...preset};
+      metadataPreset.operators={...previousTone?.preset.operators,...preset.operators};
+      const sidecar=synthStatePath(path),text=stateText(metadataPreset,format);
+      const currentState=fs.get(sidecar);
+      // Validate before materializing a legacy instrument's missing metadata.
+      if(expectedRevision!==undefined&&fs.getRevision(path)!==expectedRevision)throw Error(`Revision conflict: ${path}; read the file again`);
+      const baseline=previousTone?stateText(baselinePreset??previousTone.preset,format):null;
       mutate(() => {
-        fs.writeBinary(path, bytes, { expectedRevision });
+        if(previous&&!currentState)fs.writeText(sidecar,baseline);
+        const changed=!previous||previous.data.length!==bytes.length||previous.data.some((value,index)=>value!==bytes[index])||fs.get(sidecar)?.data!==text;
+        if(previous&&changed&&fs.checkpoints.auto){
+          const missing=[path,sidecar].filter(candidate=>!fs.checkpoints.has(candidate));
+          // Legacy Cassettes can have a binary baseline without its sidecar.
+          // Its unknown extras use deterministic format defaults, never today's
+          // edited LFO/AM state. Existing checkpoints are never advanced here.
+          const legacy=missing.includes(sidecar)&&fs.checkpoints.has(path)?fs.checkpoints.get(path):null;
+          let legacyText=null;
+          if(legacy){
+            const oldFormat=legacy.data.length===43?'vgi':'tfi';
+            legacyText=stateText(oldFormat==='vgi'?parseVgi(legacy.data):parseTfi(legacy.data),oldFormat);
+          }
+          if(missing.length)fs.checkpoints.setMany(missing);
+          if(legacyText!==null)fs.writeText(CHECKPOINT_ROOT+sidecar,legacyText);
+        }
+        fs.writeFiles([{path,data:bytes,expectedRevision},{path:sidecar,data:text}],{checkpointChanges:false});
         selectedPath = path;
       });
       return project.readTone(path);
+    },
+    syncTone(path) {
+      const tone=project.readTone(path),sidecar=synthStatePath(tone.path);
+      mutate(()=>{
+        if(!fs.has(sidecar))fs.writeText(sidecar,stateText(tone.preset,tone.format));
+        fs.checkpoints.setMany([tone.path,sidecar]);
+      });
+      return project.readTone(tone.path);
+    },
+    revertTone(path) {
+      path=resolvePath(path);
+      if(!isSynthTonePath(path)||fs.get(path)?.type!=='binary')throw Error('Choose a TFI or VGI instrument file.');
+      const sidecar=synthStatePath(path);
+      const saved=fs.checkpoints.get(path),savedState=fs.checkpoints.get(sidecar);
+      if(!saved||saved.type!=='binary')throw Error(`Instrument checkpoint not found: ${path}`);
+      const format=saved.data.length===43?'vgi':'tfi';
+      const preset=format==='vgi'?parseVgi(saved.data):parseTfi(saved.data);
+      const state=savedState?parseState(savedState.data,format):extraState(preset,format);
+      // Validate the full pair before changing either current file.
+      mergeState(preset,state);
+      const text=JSON.stringify(state,null,2)+'\n';
+      const entries=[{path,data:saved.data},{path:sidecar,data:text}];
+      // Complete legacy binary-only checkpoints with their deterministic extra
+      // defaults so future recovery always has a complete, valid saved pair.
+      if(!savedState)entries.push({path:CHECKPOINT_ROOT+sidecar,data:text});
+      fs.writeFiles(entries,{checkpointChanges:false});
+      return project.readTone(path);
+    },
+    isToneModified(path) {
+      path=resolvePath(path);
+      if(!isSynthTonePath(path)||!fs.has(path))return false;
+      return fs.checkpoints.isModified(path)||fs.checkpoints.isModified(synthStatePath(path));
     },
     /**
      * Valid input files are appended in one filesystem commit. A bad file does
@@ -235,7 +361,7 @@ export function createSynthProject({ snapshot: initialSnapshot } = {}) {
         destination = uniquePath(`${stem} copy${extension}`);
       } else destination = resolvePath(destination);
       mutate(() => {
-        transferVirtualFiles(fs, path, destination, { copy: true });
+        transferTone(path,destination,true);
         selectedPath = destination;
       });
       return destination;
@@ -245,7 +371,7 @@ export function createSynthProject({ snapshot: initialSnapshot } = {}) {
       destination = resolvePath(destination);
       const selection = selectedPath;
       mutate(() => {
-        transferVirtualFiles(fs, path, destination);
+        transferTone(path,destination,false);
         if (selection === path || selection?.startsWith(`${path}/`)) {
           selectedPath = destination + selection.slice(path.length);
         }
@@ -264,7 +390,10 @@ export function createSynthProject({ snapshot: initialSnapshot } = {}) {
       return project.move(path, `${dirname(path)}/${newName}`);
     },
     delete(path, { recursive = false } = {}) {
-      fs.remove(resolvePath(path), { recursive });
+      path=resolvePath(path);
+      const sidecar=fs.has(path)&&isSynthTonePath(path)?synthStatePath(path):null;
+      if(sidecar&&fs.listDirectories().includes(sidecar))throw Error(`Synth state path is a folder: ${sidecar}`);
+      mutate(()=>{fs.remove(path,{recursive});if(sidecar&&fs.has(sidecar))fs.remove(sidecar);});
     },
     mkdir(path) {
       fs.mkdir(resolvePath(path), { recursive: true });
@@ -282,6 +411,7 @@ export function createSynthProject({ snapshot: initialSnapshot } = {}) {
       // The VFS validates every path and conflict before replacing anything.
       const candidate = createVirtualFileSystem();
       candidate.restore(snapshot);
+      validateToneStates(snapshot.files);
       const selection = snapshot.selectedPath == null ? null : resolvePath(snapshot.selectedPath);
       if (selection) candidate.stat(selection);
       const nextName = String(snapshot.cassetteName ?? 'cassette');
@@ -325,6 +455,7 @@ export function createSynthProject({ snapshot: initialSnapshot } = {}) {
           throw new Error(`Invalid instrument ${file.path}: ${error.message}`);
         }
       }
+      validateToneStates(files);
       // Validate known instruments, but preserve their original bytes. All
       // other files remain opaque, avoiding JavaScript/metadata re-encoding.
       mutate(() => {

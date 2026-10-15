@@ -152,10 +152,18 @@ export function createVirtualFileSystem(entries = [], {autoCheckpoint = false} =
        * @param {string} path @param {{expectedRevision?:number}} [options] @returns {VirtualFile} */
       set(path,{expectedRevision}={}) {
         path=ordinaryPath(path,{existing:true});expectRevision(path,expectedRevision);
+        return fs.checkpoints.setMany([path])[0];
+      },
+      /** Update multiple existing file checkpoints in one validated commit.
+       * @param {string[]} paths @returns {VirtualFile[]} */
+      setMany(paths) {
+        if(!Array.isArray(paths)||!paths.length)throw Error('Checkpoint setMany requires at least one path');
+        paths=paths.map(path=>ordinaryPath(path,{existing:true}));
+        if(new Set(paths).size!==paths.length)throw Error('Checkpoint paths must be unique');
         const next={files:new Map(files),directories:new Set(directories)};
         ensureCheckpointIgnore(next);
-        const plan=planVirtualFileSync({version:1,files:[...next.files.values()],directories:[...next.directories]},path,checkpointPath(path),{shareUnchanged:true});
-        publishSync(plan.snapshot);return /** @type {VirtualFile} */ (fs.checkpoints.get(path));
+        for(const path of paths)addFile(next,checkpointPath(path),next.files.get(path).data);
+        publish(next);return paths.map(path=>/** @type {VirtualFile} */(fs.checkpoints.get(path)));
       },
       /** Restore current from its checkpoint without advancing that checkpoint.
        * @param {string} path @param {{expectedRevision?:number}} [options] @returns {VirtualFile} */
@@ -221,6 +229,22 @@ export function createVirtualFileSystem(entries = [], {autoCheckpoint = false} =
           addFile(next,saved,path==='/.gitignore'?ignoredData(before.data):before.data);
         }
       }
+      publish(next);
+    },
+    /** Write a group atomically without copying unrelated file data.
+     * @param {Array<{path:string,data:string|Uint8Array|ArrayBuffer,expectedRevision?:number}>} entries
+     * @param {{checkpointChanges?:boolean}} [options] */
+    writeFiles(entries,{checkpointChanges=true}={}) {
+      if(!Array.isArray(entries))throw TypeError('writeFiles entries must be an array');
+      if(!entries.length)return;
+      const next={files:new Map(files),directories:new Set(directories)},paths=new Set();
+      for(const entry of entries){
+        if(!entry||typeof entry!=='object')throw TypeError('Invalid writeFiles entry');
+        const path=resolvePath(entry.path);
+        if(paths.has(path))throw Error(`Duplicate writeFiles path: ${path}`);
+        paths.add(path);expectRevision(path,entry.expectedRevision);addFile(next,path,entry.data);
+      }
+      if(checkpointChanges)captureChanges(next);
       publish(next);
     },
     /** @param {string} path @param {string} text @param {{expectedRevision?:number}} [options] */

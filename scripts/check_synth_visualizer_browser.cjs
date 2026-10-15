@@ -36,12 +36,13 @@ const server = http.createServer(async (req, res) => {
           });
           page.on('pageerror', error => errors.push(error.message));
           page.on('console', message => { if (message.type() === 'error') console.error(message.text()); });
-          await page.route('**/synth/synth.js', async route => {
+          await page.route('**/synth/synth.js*', async route => {
             const response = await route.fetch();
             await route.fulfill({response, body: await response.text() + '\nwindow.__scopeTest = {ensureAudioReady, history: () => outputEnvelopeHistory.slice(), configure: options => megaSynth.setOutputEnvelopeOptions(options), port: () => megaSynth.node.port, fm: () => synth, audio: () => audioContext, loopBus: () => loopOutputBus, patch: () => ({...commonState}), snapshot: buildLooperPatchSnapshot, voices: () => structuredClone(voices)};'});
           });
           await page.goto(url + (engine === 'nuked' ? '?engine=nuked' : ''));
           await page.waitForFunction(() => !!window.__scopeTest);
+          await page.waitForFunction(() => !document.getElementById('synthFileNewButton').disabled);
           await page.evaluate(() => {
             const wheel = document.getElementById('modulationWheel');
             wheel.value = '64'; wheel.dispatchEvent(new Event('input', {bubbles:true}));

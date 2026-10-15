@@ -38,6 +38,11 @@ try {
     assert.equal(tracked.checkpoints.isModified('/work.txt'),true);
     tracked.checkpoints.set('/work.txt');tracked.writeText('/work.txt','D');
     tracked.checkpoints.revert('/work.txt');assert.equal(tracked.get('/work.txt').data,'C');
+    tracked.writeFiles([{path:'/work.txt',data:'E'},{path:'/state.json',data:'{}'}]);
+    tracked.checkpoints.setMany(['/work.txt','/state.json']);
+    assert.equal(tracked.checkpoints.get('/work.txt').data,'E');
+    assert.equal(tracked.checkpoints.get('/state.json').data,'{}');
+    tracked.writeText('/work.txt','C');tracked.checkpoints.set('/work.txt');
     transferVirtualFiles(tracked,'/work.txt','/moved.txt');
     assert.equal(tracked.checkpoints.get('/moved.txt').data,'C');
     assert.equal(CHECKPOINT_ROOT,'/.tet.ss');assert(isCheckpointPath('/.tet.ss/moved.txt'));
@@ -52,6 +57,12 @@ try {
     const saved=fs.checkpoints.get('/a');
     if(saved?.type==='text')saved.data.toUpperCase();
     fs.checkpoints.revert('/a');fs.checkpoints.setAuto(false);
+    fs.writeFiles([{path:'/a',data:'B',expectedRevision:fs.getRevision('/a')},{path:'/b',data:new Uint8Array([1])}],{checkpointChanges:false});
+    fs.checkpoints.setMany(['/a','/b']);
+    // @ts-expect-error Batch writes require valid file data.
+    fs.writeFiles([{path:'/a',data:123}]);
+    // @ts-expect-error Checkpoint batches require path strings.
+    fs.checkpoints.setMany([123]);
     const enabled:boolean=fs.checkpoints.auto, changed:boolean=fs.checkpoints.isModified('/a');
     const internal:boolean=isCheckpointPath(CHECKPOINT_ROOT);
     const synced:Promise<{sourcePath:string,destinationPath:string,changed:boolean}>=fs.sync('/a',{syncRoot:'/ss.tet'});
@@ -89,7 +100,7 @@ try {
     assert.match((await shell.execute('git status')).stdout,/Working tree clean/);
     assert(fs.has('/.git/HEAD'));
   `],consumer);
-  console.log('Packed core installs without dependencies; sync/checkpoint APIs/types pass NodeNext/Bundler; optional Git peers enable init/add/commit/status.');
+  console.log('Packed core installs without dependencies; sync/checkpoint/batch APIs/types pass NodeNext/Bundler; optional Git peers enable init/add/commit/status.');
 } finally {
   await rm(temporary,{recursive:true,force:true});
 }

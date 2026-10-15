@@ -1,5 +1,5 @@
-import {createSynthProject} from './synth_project.js';
-import {setupSynthFiles} from './synth_files.js';
+import {createSynthProject} from './synth_project.js?v=auto-sync-1';
+import {setupSynthFiles} from './synth_files.js?v=auto-sync-1';
 import { setupSynthMenu } from './synth_menu.js';
 import { createSynthOutputVisualizer } from "./synth_output_visualizer.js";
 import { applyModulation, modulationSettings } from "./synth_modulation.js";
@@ -1479,6 +1479,8 @@ function applyPresetData(preset, presetName) {
     preset.ams ?? 0;
   commonState.pms =
     preset.pms ?? 0;
+  commonState.lfoEnabled = preset.lfo?.enabled ?? false;
+  commonState.lfoFrequency = preset.lfo?.frequency ?? 0;
 
   for (const operator of OPERATOR_NUMBERS) {
     const nextOperator =
@@ -1488,6 +1490,7 @@ function applyPresetData(preset, presetName) {
     operatorStates[operator] = {
       ...operatorStates[operator],
       ...nextOperator,
+      am: nextOperator.am ?? false,
     };
   }
 
@@ -1953,7 +1956,7 @@ function buildCommonControls() {
     onHelpToggle: toggleParamHelp,
     onChange: (id, nextValue) => {
       commonState[id] = nextValue;
-      if (['algorithm','feedback','ams','pms'].includes(id)) markPresetEdited();
+      if (id !== 'dacEnabled') markPresetEdited();
       renderAlgorithmDiagram();
       drawEnvelopeGuide();
       if (synth) {
@@ -1995,7 +1998,7 @@ function buildOperatorControls() {
     ) => {
       operatorStates[operator][id] =
         nextValue;
-      if (id !== 'am') markPresetEdited();
+      markPresetEdited();
       drawEnvelopeGuide();
       if (synth) {
         applyPatchToVoices();

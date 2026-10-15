@@ -72,6 +72,9 @@ export declare function createVirtualFileSystem(entries?: Array<{
         set(path: string, { expectedRevision }?: {
             expectedRevision?: number;
         }): VirtualFile;
+        /** Update multiple existing file checkpoints in one validated commit.
+         * @param {string[]} paths @returns {VirtualFile[]} */
+        setMany(paths: string[]): VirtualFile[];
         /** Restore current from its checkpoint without advancing that checkpoint.
          * @param {string} path @param {{expectedRevision?:number}} [options] @returns {VirtualFile} */
         revert(path: string, { expectedRevision }?: {
@@ -119,6 +122,16 @@ export declare function createVirtualFileSystem(entries?: Array<{
     /** @param {string} path @param {string|Uint8Array|ArrayBuffer} data @param {{expectedRevision?:number}} [options] */
     writeFile(path: string, data: string | Uint8Array | ArrayBuffer, { expectedRevision }?: {
         expectedRevision?: number;
+    }): void;
+    /** Write a group atomically without copying unrelated file data.
+     * @param {Array<{path:string,data:string|Uint8Array|ArrayBuffer,expectedRevision?:number}>} entries
+     * @param {{checkpointChanges?:boolean}} [options] */
+    writeFiles(entries: Array<{
+        path: string;
+        data: string | Uint8Array | ArrayBuffer;
+        expectedRevision?: number;
+    }>, { checkpointChanges }?: {
+        checkpointChanges?: boolean;
     }): void;
     /** @param {string} path @param {string} text @param {{expectedRevision?:number}} [options] */
     writeText(path: string, text: string, options?: {

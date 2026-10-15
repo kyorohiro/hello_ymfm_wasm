@@ -1,7 +1,7 @@
 # Virtual Files: 汎用 sync と checkpoint
 
 作成日: 2026-10-15
-状態: 共通 sync／checkpoint 実装・検証済み。Synth UI 接続は次段階（未公開）
+状態: 共通 sync／checkpoint 実装・検証済み。Synth の current 自動反映と Sync／Revert UI を実装中（未公開）
 
 ## 汎用 sync を基礎にする
 
@@ -102,6 +102,10 @@ console.log(fs.checkpoints.auto);
 `checkpoints.get()` は内部保存点ファイルのコピー（内部パス・revision を含む）を返す。
 `set/revert` の `expectedRevision` は通常ファイルの revision を検証する。
 保存点がない場合の `isModified()` は false。存在の判別には `has()` を使う。
+`setMany(paths)` は既存の通常ファイルを重複なく指定し、全保存点を一つの検証済み commit で更新する。
+音色と補助設定のような複数ファイルを一つの復元点として扱うために使用する。
+`writeFiles([{path, data, expectedRevision?}, ...], {checkpointChanges?})` は複数の current を一括更新する。
+既定は `checkpointChanges:true`。検証済みの組を復元するときは false とし、復元元の保存点を進めない。
 
 ## 編集・復元・ファイル操作
 
@@ -129,13 +133,14 @@ console.log(fs.checkpoints.auto);
 3. README、Node/browser 配布モジュール、インストール済み package の検証。
 4. 実装結果と未実施事項をこの文書へ追記する。npm 公開は今回の指示には含めない。
 
-### 次段階: Synth UI への適用
+### Synth UI への適用（実装中）
 
-共通機能の後、Set checkpoint／Revert to checkpoint／Auto checkpoint を Synth に接続し、切替時の Unsaved instrument 確認を置き換える。
-現在の Synth は変更中の音色を VFS へ都度反映する構造ではないため、共通 API 追加だけではダイアログの動作は変わらない。
-内蔵音色の初回編集時のファイル化、起動時 IndexedDB 復元との競合、ファイル操作 Undo との区別も対象にする。
-TFI/VGI に含まれない編集情報を無断で失わないよう、音色ファイルの表現範囲を先に整理する。
-Auto checkpoint の ON/OFF と current の永続化を混同しない。
+Synth では Auto checkpoint を ON にし、音色の編集を通常ファイルの current へ反映する。
+切替時の Unsaved instrument 確認は Sync／Revert の明示操作へ置き換える。
+内蔵音色は初回編集時に通常の VGI としてファイル化する。
+TFI/VGI に収まらない音色設定は隣接する `<tone>.synth.json` に記録し、音色と一組で checkpoint／復元／Cassette を扱う。
+起動時の復元・直後の reload・Undo との整合も対象とし、Auto checkpoint と current の永続化は別々に実装する。
+詳細と追加接続の最終検証結果は末尾の Synth 接続仕様を参照。
 
 ## 必須検証
 
@@ -178,11 +183,10 @@ Auto checkpoint の ON/OFF と current の永続化を混同しない。
 npm への公開とバージョン更新は行っていない。今回のブラウザー Git 検証はローカル操作で、native HTTPS push は対象外。
 Tauri 実機・Windows／Linux アプリでの再検証、外部 Storage の実装も今回行っていない。
 
-### 残る作業
+### 共通機能の検証後に追加した作業
 
-Synth の現在の音色編集を都度 VFS へ反映し、Set／Revert／Auto の UI と接続する。
-今回の共通機能だけでは **Unsaved instrument ダイアログはまだ置き換わっていない**。
-前述の音色ファイルで表現できる状態・初回ファイル化・起動時復元の整理を含めて次段階で対応する。
+以下の Playground 操作と Synth の current 自動反映／Sync／Revert を同じ基盤へ接続する。
+上表は共通機能の検証結果であり、その後の Synth 接続の最終検証結果を含まない。
 `app-storage://~/` の provider、外部同期中の競合検出／原子性は将来の実装として扱う。
 
 ## Playground での試用: Ctrl/Cmd+S（2026-10-15）
@@ -232,3 +236,71 @@ rename の既存モデル回帰テストは古い mock を実 VFS に変更し�
 
 検証: Chromium／WebKit の Monaco／textarea でクリックと両ショートカット、変更なしの再同期、表示解除と時間経過、固定幅・Panel 位置・フォーカスを確認した。
 既存 Revert／Undo／Redo も成功。関連 Node テスト **12/12** と itch 配布生成も確認した。
+
+## Synth の current 自動反映と Sync／Revert（実装済み・2026-10-15）
+
+### 編集と操作
+
+- Synth の VFS は **Auto checkpoint ON** で作成する。ライブラリー自体の既定値 OFF は変更しない。今回 Auto の UI チェックボックスは追加しない。
+- 音色パラメーターを変更すると、通常パスの current を更新する。最初の実変更の前に元の内容を一世代だけ退避し、二回目以降の編集でその退避先を進めない。
+- 既存の音色ファイルは元の実形式を保つ。拡張子だけ変更された TFI／VGI もバイト長で形式を判断し、編集によって勝手に別形式へ変換しない。
+- 内蔵音色は初回編集時に `/presets/<builtin-id>.vgi` を一意な名前で作成する。同名があれば別名にし、内蔵プリセット自体を変更しない。元の内蔵音色を baseline としてから編集内容を反映する。
+- **Sync**／**Ctrl+S・Command+S** は、現在の音色と補助設定を最後の同期コピーへ反映する。変更がない再同期も成功表示を返す。
+- **Revert** は最後の同期コピーを current へ戻す。同期コピー自体と他の音色は維持する。コピーがない場合や内容が同じ場合は無効にする。
+- 音色切替・ファイル選択・Import・Cassette Export では current を保持し、保存確認ダイアログを出さない。これらの操作が明示的な Sync の代わりに baseline を更新することもない。
+- 名前付きの別音色は既存の **＋ Instrument**、Rename／Duplicate で扱う。ファイルのダウンロードは従来の TFI／VGI Export を使う。
+- Sync／Revert は Files を閉じても見える音色見出しに置く。Sync 完了は Playground と同じ緑色の `✓ Synced` と読み上げ通知で示す。ファイル操作の **Undo files** は Files 側へ分ける。
+
+### 音色と補助設定の組
+
+```text
+/presets/bass.vgi                        current の標準音色
+/presets/bass.vgi.synth.json             current の Synth 補助設定
+/.tet.ss/presets/bass.vgi                 標準音色の同期コピー
+/.tet.ss/presets/bass.vgi.synth.json      補助設定の同期コピー
+```
+
+- TFI の本体は operators／algorithm／feedback。VGI の本体は加えて pan／AMS／PMS／B4 を保持する。
+- 補助設定は版番号と種類を持つ JSON。TFI／VGI で表現できない LFO の有効状態・速度、operator AM を保存する。TFI では pan／AMS／PMS／B4 も補助設定に入れる。
+- 音色の本体を通常の TFI／VGI として使い続けるため、既存フォーマットへ独自のバイト列を付け足さない。
+- 読み込みだけでは既存ファイルを書き換えない。旧 Cassette に補助設定がなければ、編集または明示的 Sync の際に補助設定を作成する。baseline は変更後の設定から推測せず、元音色・既存保存点と定義済みの既定値から決める。
+- 本体と補助設定を一組として検証する。Sync は `checkpoints.setMany()`、複数 current の反映・Revert は `writeFiles()` を使い、不正な補助設定や保存先衝突による片方だけの復元を防ぐ。
+- 個別音色の移動・名前変更・複製・削除では、補助設定と対応する checkpoint も追従する。フォルダー全体の操作、Cassette の Export／Import も両方を保持する。
+- **DAC と CH3 special mode はセッション設定**として扱い、今回の音色保存対象には含めない。
+- Playground は同じ Cassette の current と補助設定を保持するが、**補助設定の LFO／operator AM などをまだ演奏へ適用しない**。Synth から持ち出した TFI／VGI 単体にも、その形式に収まらない設定は含まれない。
+
+### 起動・永続化と確認項目
+
+current と checkpoint はどちらも Cassette と IndexedDB のプロジェクト保存対象にする。
+ノブ操作直後の reload は、従来の遅延した全体保存だけでは書込み完了前になり得るため、小さな pending-tone journal をその場で書き込み、IndexedDB の全体 draft と組み合わせる。
+起動時は保存済みプロジェクトの復元を優先し、古い画面や空の初期プロジェクトを上書き保存しない。復元中のパラメーター操作も競合させない。
+ブラウザーの Storage が利用不能・容量不足の場合は保持を保証せず、エラーを表示して Cassette Export による退避を可能にする。
+
+この追加接続では、次を実ブラウザーと関連 Node テストで確認した。
+
+- 初回の元音色退避、二回目以降の baseline 不変、内蔵音色の一意なファイル化。
+- ダイアログなしの音色切替、Sync／Revert、変更なしの Sync、Files 非表示、キーボード試奏の継続。
+- LFO／operator AM と TFI の追加設定、ファイル本体と sidecar、checkpoint の組の移動・復元。
+- 音色編集直後・Sync 直後・ファイル操作直後の reload、IndexedDB の遅い復元、Storage エラー。
+- Cassette 往復で current と元音色・補助設定を保持し、不正な sidecar を部分適用しない。
+- Playground の既存 Sync／Revert と、配布 ZIP に必要な VFS モジュールが含まれること。
+
+### 追加接続の検証結果
+
+| 検証 | 結果 |
+| --- | --- |
+| VFS 全 Node テスト＋Synth project／補助設定／recovery | **124/124 成功** |
+| Synth Files の自動反映、初回退避、Sync／Revert、ファイル操作、Cassette 往復 | Chromium／WebKit 成功。確認ダイアログ・page error ともなし |
+| 編集直後の reload、A を編集→B に切替→B を編集→即 reload | 両ブラウザーで current と両 checkpoint を保持 |
+| 遅延した IndexedDB 復元中の操作 | 保存済みファイルを保持し、起動中のノブ操作を抑止。Files の表示切替は維持 |
+| localStorage 書込み失敗／IndexedDB なしの障害注入 | 両ブラウザーで確認。前者は実 IndexedDB へ即時保存、後者はエラー表示で切替を止め、Cassette Export は可能 |
+| メニュー・演奏・visualizer | Chromium／WebKit 成功。visualizer は ymfm／Nuked 両エンジン |
+| Playground Sync／Revert | 両ブラウザーの実 Monaco／textarea とも成功 |
+| npm pack の別 consumer への offline install・型・optional Git | 成功。依存なし core、batch API、NodeNext／Bundler と init／add／commit／status を確認 |
+| itch 配布生成 | Synth **165**、Playground **353** のローカル参照を検証 |
+
+recovery は編集中の音色本体・補助設定・両 checkpoint・`.gitignore` のみを同期的に localStorage へ書く。上限は 128 KiB。workspace ID と世代を IndexedDB にも記録し、古い保存完了で新しい退避を消さない。別の音色への切替前には前の draft の書込み完了を待ち、A の退避が B に置き換わる前に A を保持する。
+
+主な実装: `docs/synth/{synth_files,synth_project,synth_recovery,synth}.js`、`docs/synth/index.html`、VFS の `writeFiles()`／`checkpoints.setMany()` と生成済み型・browser／Git bundle、Synth 配布スクリプト。検証スクリプトは `check_synth_files_browser.cjs`／`check_synth_recovery_browser.cjs` など。
+
+検証用 ZIP は `release/hello_ymfm_wasm_synth-auto-sync-dev_itch_{synth,playground}.zip`。npm 公開・バージョン更新は行っていない。Tauri アプリ実機、Windows／Linux、実 itch.io 埋込み環境は未確認。Storage 障害時に全ファイルの永続化は保証しないため、エラーを表示し Export を利用できるようにした。
