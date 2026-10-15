@@ -156,7 +156,7 @@ initialized once. In the initial MVP, no FM, envelope, sine, filter, allocator,
 or clipping formula was changed. Native comparison uses the same patches, not an
 uninitialized stock build.
 
-## Live control extension (2026-10-16, unpublished)
+## Live control extension (0.3.0, 2026-10-16)
 
 The Google MSFA source/revision remains the base. No Dexed/Synth_Dexed/
 MiniDexed source or DSP was imported. The concrete changes are:
@@ -186,8 +186,12 @@ MiniDexed source or DSP was imported. The concrete changes are:
 Rendering still uses 64 internal frames, existing gain interpolation, fixed
 44,100 Hz, original operator kernels/filter/clipping, and persistent output resampling.
 Edits allocate no native heap storage. New constants/state are per instance.
-Abrupt frequency/feedback changes can step; algorithm crossfades and general EG
-automation are deferred. See `docs/issues/msfa-live-parameters/` for the adopted
+Abrupt frequency/feedback changes apply directly, with discontinuities/clicks
+explicitly accepted. No automatic parameter smoothing, frequency glide, feedback
+interpolation, crossfade or click suppression is added. Phase/EG/history are
+preserved; non-finite input rejects and corrupted output/divergence/crashes remain
+unacceptable. General EG/algorithm live editing is deferred.
+See `docs/issues/msfa-live-parameters/` for the adopted
 contract, license record, performance and verification results.
 
 ## Worklet MVP boundary

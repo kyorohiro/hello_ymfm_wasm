@@ -1,4 +1,4 @@
-// Live DX7 operator editing (development source; not in npm 0.2.15).
+// Live DX7 operator editing (tetorica-fm2612 0.2.16 / DX7 core 0.3.0).
 // Level/frequency edits affect this patch's held notes and release tails.
 const dx7 = await useSoundChip('dx7');
 await dx7.setPreset({

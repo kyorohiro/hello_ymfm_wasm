@@ -1,14 +1,16 @@
 # Vendored DX7 package
 
-This directory is based on the `tetorica-msfa-dx7-wasm@0.2.0` npm release.
-It also contains development JS/types and a rebuilt WASM with live operator
-level/frequency editing and `setFeedback`, which are not in published 0.2.0.
+This directory is based on the `tetorica-msfa-dx7-wasm@0.3.0` npm release,
+including live operator level/frequency editing and `setFeedback`.
+Runtime JavaScript, declarations and WASM match that release byte for byte.
+Documentation additionally clarifies that abrupt frequency/feedback clicks are
+accepted and no automatic parameter smoothing or interpolation is added.
 The upstream Google MSFA revision and Apache-2.0 license are retained; local
 DSP/adapter changes are recorded in the bundled research/UPSTREAM documents.
 No runtime CDN or npm production dependency is required.
 
-- Tarball: `https://registry.npmjs.org/tetorica-msfa-dx7-wasm/-/tetorica-msfa-dx7-wasm-0.2.0.tgz`
-- Verified base release tarball integrity: `sha512-ECvXa2xo8vLOpVJxDpPq1K/6q7fM98btHaJECTwUjttgFWs1HtPcqpbrjuIXQbh4rkKiLRF8gJYHRDH0qN7blw==`
+- Tarball: `https://registry.npmjs.org/tetorica-msfa-dx7-wasm/-/tetorica-msfa-dx7-wasm-0.3.0.tgz`
+- Verified base release tarball integrity: `sha512-o/DE0hpPmTlWba9cT9NTm8rBlpnXftxjXmiHxB0cr5b/vdfJ7nekkD6mNuSL+KlQUu92j7MTXjWSp1+2aSu2yA==`
 - Package license: `LICENSE` (Apache-2.0).
 - Third-party notices: `THIRD_PARTY_NOTICES.md`.
 - Upstream MSFA license and revision: `vendor/msfa/COPYING`, `vendor/msfa/UPSTREAM.md`.

@@ -10,8 +10,9 @@ DX7 single-voice or 32-voice-bank SysEx files. No other Tetorica package is requ
 **Version 0.2.0 adds object presets:** create and edit patches with
 `setPreset`, `setOperator`, `setOperators`, and `getPreset`.
 
-The development source also supports live operator level/frequency changes
-and `setFeedback`; these additions are not in published 0.2.0.
+**Version 0.3.0 adds live operator level/frequency changes and `setFeedback`.**
+Supported operator edits now affect sounding notes of the edited patch;
+see the behavior change and patch-isolation rules below.
 
 ## Install
 
@@ -134,7 +135,7 @@ All numeric values below must be finite integers within their range.
 | `transpose` | `0..48`, neutral `24`; retained, subject to engine limitations |
 | `oscillatorSync` | Boolean; retained, subject to engine limitations |
 
-### Live parameters (development)
+### Live parameters (0.3.0)
 
 `setOperator` / `setOperators` apply changed **outputLevel, mode, coarse, fine
 and detune** to this patch's sounding notes, including release tails. Notes keep
@@ -152,9 +153,21 @@ Live level/frequency/feedback edits do not touch the shared LFO.
 The core applies edits synchronously; browser/Playground setters return Promises.
 They affect the next ungenerated **64-frame internal block**, after any generated
 PCM leftovers and resampling lookahead. An acknowledgement reports applied state,
-not that the audio device has played it. Gain interpolates across a block; abrupt
-frequency or feedback changes can still cause steps and are not a promise of
-click-free modulation. Smooth parameter steps and audition the result.
+not that the audio device has played it.
+
+**Abrupt frequency and feedback changes are applied directly. Waveform
+discontinuities and audible clicks caused by those changes are accepted API
+behavior.** The engine adds no automatic parameter smoothing, frequency glide,
+feedback interpolation, crossfade or click suppression. Oscillator phase, EG
+progression and feedback history are retained; an edit does not retrigger a note.
+Users may explicitly supply intermediate parameter values when desired.
+
+The existing upstream 64-frame operator-gain interpolation and the 44.1-to-48 kHz
+PCM output resampler are retained. They do not interpolate frequency/feedback
+control values. Invalid values such as NaN or Infinity reject atomically; non-finite
+PCM, corrupted amplitude, divergence and crashes are not accepted consequences
+of parameter changes. The normal Int16 clipping and Float32 output range remain
+as described below.
 
 Live level control preserves the existing progressing EG as a fixed reference
 and changes operator attenuation. An initially silent/clamped operator uses a

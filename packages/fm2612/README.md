@@ -333,7 +333,7 @@ The pinned engine, WASM and Apache-2.0 notices are included in this package's
 
 Version 0.2.15 provides `await dx7.setPreset(preset)`,
 `await dx7.setOperator(operator, params)`, `await dx7.setOperators(entries)`,
-and `await dx7.getPreset()`, using the bundled `tetorica-msfa-dx7-wasm` 0.2.0.
+and `await dx7.getPreset()`. Version 0.2.16 bundles `tetorica-msfa-dx7-wasm` 0.3.0.
 
 ```js
 const dx7 = await useSoundChip('dx7');
@@ -357,15 +357,20 @@ duplicate operators and invalid values atomically; an empty array is a no-op.
 Objects are copied at the boundary, and `getPreset` returns a full independent copy.
 Algorithm numbers are zero based (0..31); outputLevel is 0..99, higher is louder;
 envelopes use four DX7 rate/level values 0..99 rather than seconds or YM2612 AR/TL.
-The development source also applies outputLevel/mode/coarse/fine/detune edits
+Since 0.2.16, outputLevel/mode/coarse/fine/detune edits apply
 to sounding notes of the edited patch, including release tails. Its additive
-`await dx7.setFeedback(0..7)` edits feedback. These changes are not in npm 0.2.15.
+`await dx7.setFeedback(3)` edits feedback (raw range 0..7).
 `setPreset`/`loadSysex` replace patch identities; old notes retain the previous
 patch. `selectVoice` preserves each bank slot's identity. General EG/algorithm
 edits remain future-note-only. Phase/key/EG state and original velocity/scaling
 are retained, with edits applied at the next ungenerated 64-frame internal block.
 An acknowledgement does not bypass generated PCM or device buffering.
-Gain has block interpolation; abrupt frequency/feedback changes can still step.
+Abrupt frequency/feedback changes apply directly; their waveform discontinuities
+and clicks are accepted API behavior. No automatic parameter smoothing, glide,
+feedback interpolation, crossfade or click suppression is added. Phase, EG and
+feedback history are retained. Existing upstream operator-gain interpolation and
+PCM output resampling remain. NaN/Infinity reject atomically; non-finite output,
+corrupted amplitude, divergence and crashes are not accepted behavior.
 Return async setters from Playground `tween` callbacks, e.g.
 `await tween(1, p => dx7.setOperator(2, {outputLevel: Math.round(99*p)}))`.
 Live edits leave the shared LFO untouched; selection/replacement can reconfigure
@@ -545,10 +550,10 @@ FM/PSG/PCM mixing, stop/reset and close/restart. Playwright is a development
 dependency; it is not required by users of the sound-chip runtime.
 
 The build is staged in `dist/fm2612/`; packing produces
-`tetorica-fm2612-0.2.15.tgz`. To install a local build in another project:
+`tetorica-fm2612-0.2.16.tgz`. To install a local build in another project:
 
 ```sh
-npm install /absolute/path/to/tetorica-fm2612-0.2.15.tgz
+npm install /absolute/path/to/tetorica-fm2612-0.2.16.tgz
 ```
 
 The existing `tetorica-vgm` CLI package is built separately. This first package
@@ -565,6 +570,14 @@ Tetorica-generated and includes its license and generator. External
 instrument/sample ROMs are not included.
 
 ## Release notes
+
+`0.2.16` bundles `tetorica-msfa-dx7-wasm` 0.3.0. DX7 operator output level,
+ratio/fixed frequency, fine and detune can change while notes sound, and the new
+`setFeedback(0..7)` edits feedback. **Supported operator edits now also affect
+sounding notes of the edited patch, including release tails.** Patch replacement
+and bank loading isolate old notes; algorithm and general EG edits remain
+future-note-only. This release retains ordinary unedited PCM, defines extreme
+frequency phase wraparound, and fixes stale selection metadata acknowledgements.
 
 `0.2.15` adds Object-based DX7 presets and operator editing in browser
 Playground, with acknowledged async setters in Main and Worker modes.

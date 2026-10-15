@@ -153,7 +153,7 @@ Promise を返すので、`await synth.setPreset({...})` のように適用完�
 - `setOperator(op, patch)`: 現在の音色の指定 OP だけを部分更新します。
 - `setOperators([[op, patch], ...])`: 全体を検証して一括反映します。同じ OP の重複はエラー、空配列は何もしません。
 - `getPreset()`: 現在の音色を Object で読みます。コア／単体ブラウザで音色未作成の場合はエラーです。
-- `setFeedback(value)`: 開発版で追加。0..7 の Feedback を発音中／次の発音へ反映します。
+- `setFeedback(value)`: 0.3.0 で追加。0..7 の Feedback を発音中／次の発音へ反映します。
 
 音色がない状態で最初の setter を呼ぶと、INIT SINE を基準に音色0を作成します。
 32音色を読み込んだ場合も、選択番号と他の31音色を保持します。
@@ -175,7 +175,7 @@ OP は論理番号 **1〜6**。チャンネル引数はありません。Object 
 | lfo | speed・delay・pitchModDepth・ampModDepth: 0..99、waveform: 0..5、pitchModSensitivity: 0..7、sync: boolean |
 | name | 最大10文字の表示可能な ASCII |
 
-### 発音中の変更（開発版・npm 0.2.0 未提供）
+### 発音中の変更（0.3.0）
 
 `setOperator`／`setOperators` の `outputLevel`・`mode`・`coarse`・`fine`・`detune`
 は、編集中の音色から発音した音へ即時反映します。release 中も対象です。
@@ -191,7 +191,19 @@ OP は論理番号 **1〜6**。チャンネル引数はありません。Object 
 
 適用は次の未生成の64内部フレームのブロックからです。生成済み PCM や補間先読みには
 遡りません。Promise 完了は適用状態を示し、デバイスで聞こえた時刻ではありません。
-ゲインはブロック内で補間しますが、急な周波数・Feedback 変更による段差は残り得ます。
+
+**急な周波数・Feedback 変更は、その値を直接反映します。それによる波形の不連続・
+クリックノイズは仕様上許容します。** 自動的なパラメーターのスムージング、周波数の
+滑らかな移行、Feedback の補間、クロスフェード、クリック抑制処理は追加しません。
+変更時も位相・EG の進行・Feedback 履歴を保持し、再発音しません。
+途中の値を指定したい場合は、利用者が明示的に制御できます。
+
+上流 MSFA の既存の64フレームの OP ゲイン補間と、44.1→48 kHz の PCM 出力補間は
+維持します。周波数・Feedback の指定値を補間する処理はありません。
+NaN・Infinity 等は音色を変更せず拒否します。パラメーター変更による非有限の PCM、
+振幅の破損、発散、クラッシュは許容しません。通常の Int16 クリップと出力範囲は
+下記の音声モデルに従います。
+
 Playground では `await tween(1, p => dx7.setOperator(2, {outputLevel: Math.round(99*p)}))`
 のように setter の Promise を返します。数値の時間指定は秒です。
 

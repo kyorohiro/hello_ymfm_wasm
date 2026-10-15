@@ -110,5 +110,9 @@ console.log('Installed package verified: module exports, audible Synth PCM, brow
   }
   console.log(`Tarball: ${packed.size} bytes compressed, ${packed.unpackedSize} bytes unpacked, ${packed.files.length} files.`);
 } finally {
-  await rm(scratch, {recursive: true, force: true});
+  if (process.env.FM2612_KEEP_PACKAGE_CHECK === '1') {
+    console.log(`Package-check artifacts retained at ${scratch}`);
+  } else {
+    await rm(scratch, {recursive: true, force: true});
+  }
 }

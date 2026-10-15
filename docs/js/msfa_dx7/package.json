@@ -1,6 +1,6 @@
 {
   "name": "tetorica-msfa-dx7-wasm",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Standalone MSFA DX7 synthesizer for JavaScript, Node.js and AudioWorklet",
   "keywords": [
     "dx7",
@@ -63,6 +63,7 @@
     "THIRD_PARTY_NOTICES.md",
     "docs/research.md",
     "docs/verification.md",
+    "docs/issues/msfa-live-parameters/",
     "vendor/msfa/COPYING",
     "vendor/msfa/UPSTREAM.md"
   ],

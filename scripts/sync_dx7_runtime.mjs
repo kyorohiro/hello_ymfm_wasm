@@ -15,6 +15,8 @@ for(const location of ['web/msfa_dx7/','docs/js/msfa_dx7/']){
     'vendor/msfa/COPYING', 'vendor/msfa/UPSTREAM.md']) {
     await cp(new URL(name,source),new URL(name,target));
   }
+  await cp(new URL('docs/issues/msfa-live-parameters/',source),
+    new URL('docs/issues/msfa-live-parameters/',target),{recursive:true});
 }
 // Monaco loads an ambient declaration file, so inline the canonical data types
 // rather than introduce unresolved relative module imports into its virtual FS.

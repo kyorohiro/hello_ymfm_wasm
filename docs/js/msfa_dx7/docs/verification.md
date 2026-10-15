@@ -96,7 +96,7 @@ The Firefox test used the matching Playwright Firefox 155.0 build.
   held notes. This adds no live
   per-note operator editor, and retains upstream AM/transpose/sync limitations.
 
-## Live parameters — 2026-10-16 development source
+## Live parameters — 0.3.0 (2026-10-16)
 
 - Operator outputLevel/mode/coarse/fine/detune and additive setFeedback affect
   sounding notes of the edited patch, including release tails. Identities isolate
@@ -114,4 +114,19 @@ The Firefox test used the matching Playwright Firefox 155.0 build.
 - Full scope, performance method, fixed regressions and limitations are recorded
   in `issues/msfa-live-parameters/result.md`. Algorithm and general EG live edits
   are deferred; Tauri/physical hardware/Windows/Linux remain unverified.
-- Versions remain 0.2.0 (standalone) / 0.2.15 (FM); changes are not published.
+- Release versions: 0.3.0 (standalone) / 0.2.16 (FM).
+
+### Abrupt-change policy clarification — 2026-10-16
+
+Frequency and feedback values apply directly with no new parameter smoothing,
+interpolation, glide, crossfade or click suppression. Their waveform
+discontinuities/clicks are accepted; non-finite input, corrupted amplitude,
+divergence and crashes are not. Existing upstream gain interpolation and output
+resampling are retained. A native/Worklet-path audit confirmed phase/EG/history
+are not reinitialized by those edits; DSP, JavaScript and WASM were unchanged.
+
+The suite now passes **77/77, skipped 0**. New 44.1/48 kHz regressions exercise
+384 abrupt ratio/fixed-frequency and feedback0/7 changes on 16 notes, irregular
+render chunks, NaN/Infinity rejection with preserved state/PCM, continuing slow
+envelopes, recovery to an AC waveform, release and panic. No click-size limit or
+new click-suppression requirement is imposed.
