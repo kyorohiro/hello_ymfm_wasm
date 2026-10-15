@@ -1,4 +1,5 @@
 import { DEFAULT_WASM_URL } from './index.js';
+import { validatePreset, validateOperator, validateOperators } from './preset.js';
 
 const PROCESSOR_NAME = 'tetorica-msfa-dx7';
 const loadedModules = new WeakMap();
@@ -18,7 +19,8 @@ function copyBytes(input) {
 /**
  * Create a ready, unconnected mono AudioWorklet instrument. Each instance owns
  * its WASM state. The output rate follows context.sampleRate; internal synthesis
- * is fixed at 44,100 Hz. Await loadSysex() before using the newly loaded voices.
+ * is fixed at 44,100 Hz. Await loadSysex() or a preset setter before using a
+ * newly loaded/edited patch; a fresh node starts without a voice bank.
  */
 export async function createDX7Node(context, options = {}) {
   if (!context?.audioWorklet || context.state === 'closed') {
@@ -113,6 +115,19 @@ export async function createDX7Node(context, options = {}) {
     assertUsable();
     node.port.postMessage({ type, ...data });
   }
+  function request(type, data = {}, transfer = []) {
+    assertUsable();
+    const id = nextId++;
+    return new Promise((resolve, reject) => {
+      pending.set(id, { resolve, reject });
+      try { node.port.postMessage({ type, id, ...data }, transfer); }
+      catch (error) { pending.delete(id); reject(error); }
+    });
+  }
+  function updateMetadata(result) {
+    voices = result.voices;
+    selectedVoice = result.selectedVoice;
+  }
   try { await ready; } catch (error) {
     cleanup();
     throw error;
@@ -126,14 +141,32 @@ export async function createDX7Node(context, options = {}) {
     async loadSysex(input) {
       assertUsable();
       const bytes = copyBytes(input);
-      const id = nextId++;
-      const result = await new Promise((resolve, reject) => {
-        pending.set(id, { resolve, reject });
-        node.port.postMessage({ type: 'loadSysex', id, bytes }, [bytes.buffer]);
-      });
-      voices = result.voices;
-      selectedVoice = result.selectedVoice;
+      const result = await request('loadSysex', { bytes }, [bytes.buffer]);
+      updateMetadata(result);
       return voices;
+    },
+    async setPreset(preset) {
+      assertUsable();
+      validatePreset(preset);
+      const copy = structuredClone(preset);
+      updateMetadata(await request('setPreset', { preset: copy }));
+    },
+    async setOperator(op, patch) {
+      assertUsable();
+      validateOperator(op, patch);
+      const copy = structuredClone(patch);
+      updateMetadata(await request('setOperator', { op, patch: copy }));
+    },
+    async setOperators(operators) {
+      assertUsable();
+      validateOperators(operators);
+      const copy = structuredClone(operators);
+      updateMetadata(await request('setOperators', { operators: copy }));
+    },
+    async getPreset() {
+      const result = await request('getPreset');
+      updateMetadata(result);
+      return result.preset;
     },
     selectVoice(index) {
       midiInteger(index, 'Voice index', 0, voices.length - 1);

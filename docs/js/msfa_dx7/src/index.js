@@ -1,4 +1,5 @@
-import { parseSysex } from './sysex.js';
+import { parseSysex,packVoice,createInitVoice } from './sysex.js';
+import {presetToVoice,voiceToPreset,validateOperator,validateOperators} from './preset.js';
 export { parseSysex, packVoice, unpackVoice, createVoiceSysex, createBankSysex, createInitVoice } from './sysex.js';
 
 export const INTERNAL_SAMPLE_RATE = 44100;
@@ -87,6 +88,46 @@ class DX7Core {
     this.#voiceView.set(this.#voices[index].data);
     this.#api.dx7_set_voice(this.#handle);
     this.#selected = index;
+  }
+
+  #applyVoice(data) {
+    // Prepare all fallible JS validation/copies before changing native state.
+    const packedData=packVoice(data);
+    let name='';
+    for(let index=145;index<155;index++)name+=data[index]<32||data[index]===127?' ':String.fromCharCode(data[index]);
+    const voice={name:name.trimEnd(),data,packedData};
+    this.#voiceView.set(data);
+    this.#api.dx7_set_voice(this.#handle);
+    if(this.#selected<0){this.#voices=[voice];this.#selected=0;}
+    else this.#voices[this.#selected]=voice;
+  }
+
+  /** Replace the selected slot using INIT defaults plus this partial preset. */
+  setPreset(preset) {
+    this.#check();
+    this.#applyVoice(presetToVoice(preset));
+  }
+
+  /** Edit the selected voice in public OP1..OP6 order; existing notes keep
+   * captured operator parameters. The chip-wide LFO is reset by SetVoice. */
+  setOperator(operator,patch) {
+    this.#check();validateOperator(operator,patch);
+    const base=this.#selected<0?createInitVoice():this.#voices[this.#selected].data;
+    this.#applyVoice(presetToVoice({operators:{[operator]:patch}},base));
+  }
+
+  /** Atomically apply a unique tuple batch; an empty batch changes nothing. */
+  setOperators(entries) {
+    this.#check();validateOperators(entries);
+    if(!entries.length)return;
+    const base=this.#selected<0?createInitVoice():this.#voices[this.#selected].data;
+    this.#applyVoice(presetToVoice({operators:Object.fromEntries(entries)},base));
+  }
+
+  getPreset() {
+    this.#check();
+    if(this.#selected<0)throw new Error('No DX7 preset is selected.');
+    return voiceToPreset(this.#voices[this.#selected].data);
   }
 
   noteOn(note, velocity = 100) {

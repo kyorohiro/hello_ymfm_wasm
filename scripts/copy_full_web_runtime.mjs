@@ -33,7 +33,7 @@ for (const name of modules) {
 for (const name of ['nesapuaudioengine.js','fds_audio.js']) copyFileSync(join(root,'docs/js',name),join(jsDir,name));
 const {cpSync} = await import('node:fs');
 cpSync(join(root,'docs/js/nes_apu_vendor'),join(jsDir,'nes_apu_vendor'),{recursive:true});
-// Keep the published DX7 package's module/WASM layout and all Apache notices.
+// Keep the DX7 package's module/WASM layout, local JS extensions and Apache notices.
 cpSync(join(root,'web/msfa_dx7'),join(jsDir,'msfa_dx7'),{recursive:true});
 for (const name of ['jsnes','fixnes-fds']) cpSync(join(root,'third_party',name),join(stage,'licenses',name),{recursive:true});
 copyFileSync(join(root,'web/native_audio_effect.wasm'),join(jsDir,'native_audio_effect.wasm'));

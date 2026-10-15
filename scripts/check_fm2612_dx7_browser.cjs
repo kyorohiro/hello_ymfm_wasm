@@ -139,15 +139,40 @@ async function checkBrowser(name, type, url) {
         await run(`await mixer.set(context.dx7.id, {muted:true});`);
         assert((await meter()).every(value => value < .00001), `${name}/${execution}: mixer mute retained PCM`);
         await run(`await mixer.set(context.dx7.id, {muted:false, volume:1});`);
+        const object = await run(`
+          const dx7 = await useSoundChip('dx7'); dx7.panic();
+          await dx7.setPreset({name:'OBJ', algorithm:31, operators:{1:{coarse:2, outputLevel:90}}});
+          await dx7.setOperator(1, {fine:12});
+          await dx7.setOperators([[1,{detune:8}], [6,{coarse:3, outputLevel:0}]]);
+          const beforeInvalid = await dx7.getPreset();
+          let rejected = false;
+          try { await dx7.setOperators([[1,{outputLevel:0}], [6,{coarse:32}]]); }
+          catch { rejected = true; }
+          if (!rejected || JSON.stringify(beforeInvalid) !== JSON.stringify(await dx7.getPreset())) throw Error('Invalid batch changed a valid patch');
+          const exposed = await dx7.getPreset(); exposed.operators[1].coarse = 31;
+          const preset = await dx7.getPreset();
+          dx7.noteOn(60,100);
+          const result = {id:dx7.id, same:dx7 === context.dx7, voices:dx7.voices, selected:dx7.selectedVoice, preset, rejected};
+        `);
+        assert.equal(object.same, true); assert.equal(object.id, initial.id);
+        assert.equal(object.selected, 0); assert.deepEqual(object.voices, [{index:0, name:'OBJ'}]);
+        assert.equal(object.preset.name, 'OBJ'); assert.equal(object.preset.algorithm, 31);
+        assert.equal(object.preset.operators[1].coarse, 2); assert.equal(object.preset.operators[1].outputLevel, 90);
+        assert.equal(object.preset.operators[1].fine, 12); assert.equal(object.preset.operators[1].detune, 8);
+        assert.equal(object.preset.operators[6].coarse, 3); assert.equal(object.rejected, true);
+        const objectPcm = await meter();
+        assert(objectPcm.every(value => value > .005), `${name}/${execution}: object-authored patch is silent ${objectPcm}`);
         await bounded(page.evaluate(() => window.test.runtime.stopWithFade()), 'STOP');
         const stopped = await meter();
         assert(stopped.every(value => value < .00001), `${name}/${execution}: STOP retained PCM ${stopped}`);
         const recreated = await run(`
           const dx7 = await useSoundChip('dx7'); dx7.noteOn(60, 100);
-          const result = {id:dx7.id, voices:dx7.voices};
+          const result = {id:dx7.id, voices:dx7.voices, preset:await dx7.getPreset()};
         `);
         assert.notEqual(recreated.id, initial.id);
         assert.equal(recreated.voices[0].name, 'INIT SINE');
+        assert.equal(recreated.preset.operators[1].coarse, 1);
+        assert.equal(recreated.preset.operators[1].outputLevel, 85);
         assert((await meter()).every(value => value > .005), `${name}/${execution}: Run after STOP is silent`);
         await bounded(page.evaluate(async () => {
           await window.test.runtime.stopWithFade();
@@ -155,13 +180,13 @@ async function checkBrowser(name, type, url) {
           window.test.meters.forEach(node => node.disconnect()); window.test.silent.disconnect();
           await window.test.runtime.finalize();
         }), 'Finalization');
-        for (const asset of ['playground_dx7_worklet.js', 'msfa_dx7/src/index.js', 'msfa_dx7/wasm/msfa.wasm']) {
+        for (const asset of ['playground_dx7_worklet.js', 'msfa_dx7/src/index.js', 'msfa_dx7/src/preset.js', 'msfa_dx7/wasm/msfa.wasm']) {
           assert(servedAssets.has('/vendor/' + asset), `${name}/${execution}: installed ${asset} was not loaded`);
         }
         if (execution === 'worker') assert(servedAssets.has('/vendor/playground_logic_worker.js'));
         assert.deepEqual(errors, [], `${name}/${execution}: browser errors`);
         assert.deepEqual(unwantedRequests, [], `${name}/${execution}: external network requests`);
-        results.push({execution, sampleRate:initial.state.sampleRate, baseline, full, half, stopped});
+        results.push({execution, sampleRate:initial.state.sampleRate, baseline, full, half, objectPcm, stopped});
       } finally { await page.close(); }
     }
     console.log(JSON.stringify({browser:name, passed:true, results}));
@@ -176,6 +201,6 @@ async function checkBrowser(name, type, url) {
     const url = `http://127.0.0.1:${server.address().port}/nested/consumer/index.html`;
     await checkBrowser('chromium', chromium, url);
     await checkBrowser('webkit', webkit, url);
-    console.log(`Installed tetorica-fm2612@${metadata.version}: DX7 Main/Worker, SysEx, final PCM, mixer and STOP/restart passed.`);
+    console.log(`Installed tetorica-fm2612@${metadata.version}: DX7 Main/Worker, object presets, SysEx, final PCM, mixer and STOP/restart passed.`);
   } finally { await new Promise(resolve => server.close(resolve)); }
 })().catch(error => { console.error(error); process.exitCode = 1; });

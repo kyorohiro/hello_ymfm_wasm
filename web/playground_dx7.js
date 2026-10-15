@@ -1,4 +1,5 @@
 /** Direct Main/logic-Worker client for the Playground DX7 AudioWorklet. */
+import {validatePreset, validateOperator, validateOperators} from './msfa_dx7/src/preset.js';
 const REQUEST_TIMEOUT_MS = 15000;
 
 function midiInteger(value, name, maximum = 127) {
@@ -99,6 +100,28 @@ export function createDx7Client(port, initial = {}) {
       const state = updateState(await request('loadSysex', [bytes], [bytes.buffer]));
       return state.voices;
     },
+    /** Replace the selected slot from INIT defaults; retain the other bank voices.
+     * @param {import('./msfa_dx7/src/preset.js').DX7Preset} preset */
+    async setPreset(preset) {
+      assertUsable(); validatePreset(preset);
+      updateState(await request('setPreset', [structuredClone(preset)]));
+    },
+    /** Patch logical OP1..6; DX7 values, not YM2612 TL/AR units.
+     * @param {1|2|3|4|5|6} operator
+     * @param {import('./msfa_dx7/src/preset.js').DX7OperatorParams} params */
+    async setOperator(operator, params) {
+      assertUsable(); validateOperator(operator, params);
+      updateState(await request('setOperator', [operator, structuredClone(params)]));
+    },
+    /** Validate and apply the entire batch atomically.
+     * @param {ReadonlyArray<readonly [1|2|3|4|5|6, import('./msfa_dx7/src/preset.js').DX7OperatorParams]>} entries */
+    async setOperators(entries) {
+      assertUsable(); validateOperators(entries);
+      updateState(await request('setOperators', [structuredClone(entries)]));
+    },
+    /** A fresh complete object after preceding commands have been applied.
+     * @returns {Promise<import('./msfa_dx7/src/preset.js').DX7PresetState>} */
+    async getPreset() { return request('getPreset'); },
     selectVoice(index) {
       assertUsable();
       midiInteger(index, 'Voice index', voices.length - 1);

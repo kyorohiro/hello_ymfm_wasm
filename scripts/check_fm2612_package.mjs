@@ -14,7 +14,7 @@ try {
   }))[0];
   const packedPaths = new Set(packed.files.map(file => file.path));
   for (const file of ['playground_dx7.js', 'playground_dx7_audio.js', 'playground_dx7_worklet.js',
-    'msfa_dx7/src/index.js', 'msfa_dx7/src/index.d.ts', 'msfa_dx7/src/sysex.js', 'msfa_dx7/wasm/msfa.wasm',
+    'msfa_dx7/src/index.js', 'msfa_dx7/src/index.d.ts', 'msfa_dx7/src/preset.js', 'msfa_dx7/src/preset.d.ts', 'msfa_dx7/src/sysex.js', 'msfa_dx7/wasm/msfa.wasm',
     'msfa_dx7/LICENSE', 'msfa_dx7/THIRD_PARTY_NOTICES.md', 'msfa_dx7/README.vendor.md', 'msfa_dx7/vendor/msfa/COPYING']) {
     assert.ok(packedPaths.has(file), `DX7 package payload missing ${file}`);
   }
@@ -105,6 +105,9 @@ console.log('Installed package verified: module exports, audible Synth PCM, brow
 `);
   execFileSync(process.execPath, [join(consumer, 'check.mjs')], {cwd: consumer, stdio: 'inherit'});
   execFileSync(process.execPath, [join(root, 'scripts/check_fm2612_types.mjs'), installed], {cwd: consumer, stdio: 'inherit'});
+  if(process.argv.includes('--browser')){
+    execFileSync(process.execPath,[join(root,'scripts/check_fm2612_dx7_browser.cjs'),installed],{cwd:consumer,stdio:'inherit'});
+  }
   console.log(`Tarball: ${packed.size} bytes compressed, ${packed.unpackedSize} bytes unpacked, ${packed.files.length} files.`);
 } finally {
   await rm(scratch, {recursive: true, force: true});

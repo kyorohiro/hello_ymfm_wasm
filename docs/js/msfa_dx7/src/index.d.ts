@@ -1,4 +1,6 @@
 export * from './sysex.js';
+export type {DX7Operator,DX7EnvelopeValues,DX7EnvelopeParams,DX7KeyboardScalingParams,DX7OperatorParams,DX7Operators,DX7OperatorEntries,DX7LfoParams,DX7Preset,DX7EnvelopeState,DX7OperatorState,DX7PresetState} from './preset.js';
+import type {DX7Operator,DX7OperatorParams,DX7OperatorEntries,DX7Preset,DX7PresetState} from './preset.js';
 export declare const INTERNAL_SAMPLE_RATE: 44100;
 export declare const DEFAULT_WASM_URL: string;
 export interface DX7Options {
@@ -15,6 +17,15 @@ export interface DX7 {
   readonly selectedVoice: number;
   loadSysex(input: ArrayBuffer | ArrayBufferView): Promise<VoiceInfo[]>;
   selectVoice(index: number): void;
+  /** Replace only the selected bank slot, filling omitted fields from INIT.
+   * Creates slot 0 if no bank is loaded. Other bank slots remain unchanged. */
+  setPreset(preset: DX7Preset): void;
+  /** Edit public OP1..OP6 in the selected voice (or INIT when empty). */
+  setOperator(operator: DX7Operator, patch: DX7OperatorParams): void;
+  /** Validate the entire unique tuple batch before committing; [] is a no-op. */
+  setOperators(entries: DX7OperatorEntries): void;
+  /** Complete independent state; throws if no voice has been selected. */
+  getPreset(): DX7PresetState;
   /** MIDI note 0..127, velocity 0..127. Zero velocity is Note Off. */
   noteOn(note: number, velocity?: number): void;
   /** Releases every held voice of this pitch, following upstream MSFA. */

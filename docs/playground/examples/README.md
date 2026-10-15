@@ -13,7 +13,7 @@ FILES の `examples/` を開き、フォルダー内の `.js` を選択して Ru
 | nes | NES APU の pulse・triangle・noise、FDS 波形と変調、DMC サンプル |
 | pc98 | 独立 YM2608 の SSG・rhythm・ADPCM-B（PCM からの loadSample を含む） |
 | x68000 | 独立 YM2151 の FM |
-| dx7 | MSFA DX7 の16音発音、MIDIノート番号と SysEx 音色の読み込み |
+| dx7 | MSFA DX7 の16音発音、Object での音作りと SysEx 音色の読み込み |
 
 FILES ではこの順に表示します。機種別のサンプルは各フォルダーに直接置きます。`basic/` 内の共通機能サンプルは機能別に分類しています。
 `chip-raw` は直接レジスタを書く入口として残しています。
@@ -27,6 +27,14 @@ FILES ではこの順に表示します。機種別のサンプルは各フォ�
 `nes/nes-pulse-frequency.js` は Hz 指定の例です。`nes.pulse.setFrequency(0, 440)`
 で周波数を設定し、`keyOn(0)` / `keyOff(0)` でその音程の発音・停止を行います。
 `noteOn(0, 'A4')` は音名または MIDI ノート番号を指定して発音する別の入口です。
+
+`dx7/dx7-object-preset.js` は SysEx 不要の音作りです。`setPreset({...})`、
+`setOperators([[op, params], ...])`、`setOperator(op, params)` を使い、OP1〜6 を設定します。
+すべて `await` で適用完了を待ち、`await dx7.getPreset()` で現在の設定を取得できます。
+`setPreset` の未指定項目は INIT SINE に戻り、`setOperator(s)` は部分更新です。
+読み込んだバンクでは選択中の音色だけを更新し、他の音色は保持します。
+変更した OP・EG・algorithm は次の Note On から使い、共有 LFO は既存の声にも影響します。
+DX7 の outputLevel は0..99で、大きいほど大きな音。EG の rates／levels も0..99の値で、秒数ではありません。
 
 `dx7/dx7-init-sine.js` は、独立した16音の DX7 音源を使います。
 `dx7.noteOn(60, 100)` は MIDI C4、velocity 100 です。チャンネル引数はありません。

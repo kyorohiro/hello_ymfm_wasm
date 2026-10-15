@@ -114,6 +114,68 @@ test('DX7 upload acknowledgement, bank selection and malformed uploads keep usab
   assert.equal(peak(instrument.render(44100).channels[0]), 0);
 });
 
+for (const sampleRate of [44100, 48000]) {
+  test('DX7 object edits are acknowledged, ordered before notes, and match direct PCM at '+sampleRate+' Hz', async t => {
+    const instrument = await setup(sampleRate);
+    const core = await createDX7({sampleRate, wasmBytes});
+    t.after(() => {instrument.close();core.dispose();});
+    const preset = {name:'JS BELL',algorithm:0,operators:{
+      1:{coarse:1,outputLevel:90},
+      2:{coarse:2,outputLevel:70,envelope:{rates:[99,75,50,80],levels:[99,70,0,0]}},
+    }};
+    // The following Note On cannot overtake this unawaited edit on the port.
+    const applying = instrument.client.setPreset(preset);
+    instrument.client.noteOn(60,100);
+    preset.operators[2].coarse = 7; // The transmitted request owns its snapshot.
+    core.setPreset({...preset,operators:{...preset.operators,2:{...preset.operators[2],coarse:2}}});
+    core.noteOn(60,100);
+    await applying;await instrument.client.getState();
+    assert.equal((await instrument.client.getPreset()).operators[2].coarse,2);
+    assert.equal(instrument.client.voices[0].name,'JS BELL');
+    for(const frames of [128,17,257,1024]){
+      const {channels:[left,right]} = instrument.render(frames);
+      assert.deepEqual(left,core.render(frames));
+      assert.deepEqual(right,left);
+    }
+    instrument.client.panic();core.panic();await instrument.client.getState();
+    const patch = [[1,{outputLevel:82}],[2,{coarse:3}]];
+    await instrument.client.setOperators(patch);core.setOperators(patch);
+    await instrument.client.setOperator(1,{fine:25});core.setOperator(1,{fine:25});
+    assert.deepEqual(await instrument.client.getPreset(),core.getPreset());
+    instrument.client.noteOn(67,100);core.noteOn(67,100);await instrument.client.getState();
+    assert.deepEqual(instrument.render(4096).channels[0],core.render(4096));
+    const before = await instrument.client.getPreset();
+    before.operators[1].outputLevel=0;
+    assert.equal((await instrument.client.getPreset()).operators[1].outputLevel,82);
+    await assert.rejects(instrument.client.setOperators([[1,{outputLevel:0}],[7,{coarse:1}]]),/operator/i);
+    await assert.rejects(instrument.client.setPreset({algorithm:NaN}),/algorithm/i);
+    assert.equal((await instrument.client.getPreset()).operators[1].outputLevel,82);
+    instrument.client.noteOff(67);core.noteOff(67);await instrument.client.getState();
+    assert.deepEqual(instrument.render(8192).channels[0],core.render(8192));
+  });
+}
+
+test('DX7 object edits keep all other SysEx voices and reject nonfatal invalid updates', async t => {
+  const instrument=await setup();t.after(()=>instrument.close());
+  await instrument.client.loadSysex(createBankSysex(Array.from({length:32},(_,i)=>createInitVoice('VOICE '+i))));
+  instrument.client.selectVoice(31);
+  await instrument.client.setPreset({name:'EDITED',operators:{1:{coarse:3}}});
+  assert.equal(instrument.client.selectedVoice,31);
+  assert.equal(instrument.client.voices.length,32);
+  instrument.client.selectVoice(0);
+  assert.equal((await instrument.client.getPreset()).name,'VOICE 0');
+  instrument.client.selectVoice(31);
+  assert.equal((await instrument.client.getPreset()).name,'EDITED');
+  // Bypass Main validation to verify invalid requests don't kill the Worklet.
+  const reply=await new Promise(resolve=>{
+    instrument.processor.receive({id:987,method:'setPreset',args:[{algorithm:99}]},{postMessage:resolve});
+  });
+  assert.match(reply.error,/algorithm/i);
+  assert.equal((await instrument.client.getPreset()).name,'EDITED');
+  await instrument.client.setOperators([]);
+  assert.equal(instrument.client.voices.length,32);
+});
+
 test('DX7 notes cannot overtake a delayed SysEx upload on the direct port', async t => {
   const instrument = await setup();
   t.after(() => instrument.close());

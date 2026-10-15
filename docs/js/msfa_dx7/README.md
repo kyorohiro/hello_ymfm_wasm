@@ -119,6 +119,66 @@ const instrument = await createDX7Node(context, { workletUrl });
 `workletUrl`／`wasmUrl`／`wasmBytes` の指定で独自配置にも対応します。
 処理失敗を監視する場合は `onError(error)` を指定します。
 
+## Object で音色を設定する（開発版）
+
+SysEx ファイルを用意せず、JavaScript の Object から音色を作れます。
+この追加 API は開発中のソースに含まれ、公開済み npm 0.1.0 にはまだ含まれません。
+
+```javascript
+const synth = await createDX7({sampleRate: 44100});
+synth.setPreset({
+  name: 'JS BELL',
+  algorithm: 0, // 0..31。実機のアルゴリズム1..32に対応。
+  operators: {
+    1: {coarse: 1, outputLevel: 90},
+    2: {
+      coarse: 2, outputLevel: 68,
+      envelope: {rates: [99, 75, 50, 80], levels: [99, 70, 0, 0]},
+    },
+  },
+});
+synth.setOperator(2, {outputLevel: 60});
+synth.setOperators([[1, {fine: 25}], [2, {coarse: 3}]]);
+const preset = synth.getPreset(); // 全項目を持つ独立したコピー。
+synth.noteOn(60, 100);
+const pcm = synth.render(44100);
+synth.dispose();
+```
+
+PCM コアの4メソッドは同期処理です。ブラウザの `createDX7Node()` と Playground では
+4メソッドとも Promise を返すので、`await synth.setPreset({...})` のように適用完了を待ちます。
+音色変更と次の Note On は同じ MessagePort の順序で処理されます。
+
+- `setPreset(preset)`: 未指定項目を INIT SINE の値で埋め、選択中の音色を置換します。
+- `setOperator(op, patch)`: 現在の音色の指定 OP だけを部分更新します。
+- `setOperators([[op, patch], ...])`: 全体を検証して一括反映します。同じ OP の重複はエラー、空配列は何もしません。
+- `getPreset()`: 現在の音色を Object で読みます。コア／単体ブラウザで音色未作成の場合はエラーです。
+
+音色がない状態で最初の setter を呼ぶと、INIT SINE を基準に音色0を作成します。
+32音色を読み込んだ場合も、選択番号と他の31音色を保持します。
+入力・取得した Object を後で変更しても、適用済みの音色は変わりません。
+未知の項目、不正な値、途中に不正な要素があるバッチは、現在の音色を変更せず拒否します。
+
+OP は論理番号 **1〜6**。チャンネル引数はありません。Object の型は
+`DX7Preset`／`DX7OperatorParams`、完全な取得結果は `DX7PresetState` です。
+
+| 項目 | 値 |
+| --- | --- |
+| algorithm / feedback | 0..31 / 0..7 |
+| operators[op].outputLevel | 0..99。大きいほど大きな音。YM2612 TL と向きが異なります |
+| coarse / fine / mode | DX7 値0..31 / 0..99 / 'ratio' または 'fixed' |
+| detune | DX7 値0..14、中央は7 |
+| envelope / pitchEnvelope | rates と levels、各4個の0..99。秒数ではありません |
+| keyboardScaling | breakpoint・leftDepth・rightDepth: 0..99、leftCurve・rightCurve: 0..3 |
+| rateScaling / velocitySensitivity | 0..7 / 0..7 |
+| lfo | speed・delay・pitchModDepth・ampModDepth: 0..99、waveform: 0..5、pitchModSensitivity: 0..7、sync: boolean |
+| name | 最大10文字の表示可能な ASCII |
+
+基本的に変更は**次の Note On**から反映され、発音中の OP・EG・algorithm は変えません。
+共有 LFO は音色適用時に再設定され、既存の声にも影響する場合があります。
+`ampModSensitivity`、`transpose`（0..48、中央24）、`oscillatorSync` はデータとして保持しますが、
+下記の上流 msfa の制限を引き継ぎます。生の音色値を演奏中のパラメーターへ連続反映する機能は今回追加していません。
+
 ## レート・時間・音量
 
 - **内部レートは 44,100 Hz 固定**です。振幅エンベロープを含む上流の時間特性を保ちます。

@@ -79,6 +79,10 @@ class Dx7Processor extends AudioWorkletProcessor {
       let value;
       switch (data.method) {
         case 'loadSysex': await this.synth.loadSysex(args[0]); value = this.getState(); break;
+        case 'setPreset': this.synth.setPreset(args[0]); value = this.getState(); break;
+        case 'setOperator': this.synth.setOperator(args[0], args[1]); value = this.getState(); break;
+        case 'setOperators': this.synth.setOperators(args[0]); value = this.getState(); break;
+        case 'getPreset': value = this.synth.getPreset(); break;
         case 'getState': value = this.getState(); break;
         case 'selectVoice': this.synth.selectVoice(args[0]); break;
         case 'noteOn': this.synth.noteOn(args[0], args[1]); break;

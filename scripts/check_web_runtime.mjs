@@ -49,6 +49,13 @@ if (manifest.additionalInstruments?.includes('dx7')) {
       assert.equal(pcm.length, 4096);
       assert.ok(pcm.every(Number.isFinite) && pcm.some(value => Math.abs(value) > .001), 'Packaged DX7 must produce audible PCM');
       synth.noteOff(60);
+      synth.panic();
+      synth.setPreset({name:'OBJECT',algorithm:31,operators:{1:{coarse:2,outputLevel:90}}});
+      synth.setOperators([[1,{fine:25}],[6,{outputLevel:0}]]);
+      synth.setOperator(1,{coarse:1});
+      assert.equal(synth.getPreset().operators[1].fine,25);
+      synth.noteOn(64,100);
+      assert.ok(synth.render(4096).some(value=>Math.abs(value)>.001),'Packaged DX7 object preset must be audible');
     }
   } finally { for (const synth of synths) synth.dispose(); }
   console.log('Staged DX7 verified: vendored modules, Apache notices and audible PCM at 44100/48000 Hz.');

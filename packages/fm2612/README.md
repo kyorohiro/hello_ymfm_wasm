@@ -329,6 +329,39 @@ package (`createDX7` in Node/browsers, `createDX7Node` for browser audio).
 The pinned engine, WASM and Apache-2.0 notices are included in this package's
 `msfa_dx7/` directory; no extra runtime dependency or CDN request is required.
 
+### Object-based DX7 presets (development)
+
+The working tree also provides `await dx7.setPreset(preset)`,
+`await dx7.setOperator(operator, params)`, `await dx7.setOperators(entries)`,
+and `await dx7.getPreset()`. These additions are not in published 0.2.14 yet.
+
+```js
+const dx7 = await useSoundChip('dx7');
+await dx7.setPreset({
+  name: 'JS BELL', algorithm: 0,
+  operators: {
+    1: {coarse: 1, outputLevel: 90},
+    2: {coarse: 2, outputLevel: 68},
+  },
+});
+await dx7.setOperator(2, {outputLevel: 60});
+await dx7.setOperators([[1, {fine: 25}], [2, {coarse: 3}]]);
+console.log(await dx7.getPreset());
+dx7.noteOn(60, 100);
+```
+
+Public operators are OP1..6, with no channel argument. `setPreset` fills omitted
+fields from INIT SINE and replaces the selected slot; operator setters patch it.
+The selected bank index and other voices remain intact. Tuple batches reject
+duplicate operators and invalid values atomically; an empty array is a no-op.
+Objects are copied at the boundary, and `getPreset` returns a full independent copy.
+Algorithm numbers are zero based (0..31); outputLevel is 0..99, higher is louder;
+envelopes use four DX7 rate/level values 0..99 rather than seconds or YM2612 AR/TL.
+Existing notes retain captured operator/EG/algorithm settings; the shared LFO
+is reset when applying a voice and can affect held notes. MSFA's documented AM,
+transpose and oscillator-sync limitations still apply.
+The standalone DX7 PCM core exposes the same methods synchronously.
+
 ## Mega CD PCM with MegaSynth
 
 Since `0.2.0`, the package includes opt-in RF5C164 support. Enable `megaCD` before

@@ -44,6 +44,23 @@ async function checkStopDuringInitialization(browser, url, execution) {
     });
     await page.goto(url);
     await page.waitForFunction(() => window.__dx7Test && window.monaco?.editor?.getEditors().length);
+    // The real editor must know both the new methods and nested DX7 fields.
+    const completion = await page.evaluate(async () => {
+      const source = "async function objectVoice() {\nconst dx7 = await useSoundChip('dx7');\nawait dx7.setOperator(1, {  });\nawait dx7.setPreset({});\ndx7.\n}";
+      const model = monaco.editor.createModel(source,'javascript',monaco.Uri.parse('file:///dx7-object-completion.js'));
+      try {
+        const getWorker = await monaco.languages.typescript.getJavaScriptWorker();
+        const worker = await getWorker(model.uri);
+        const uri = model.uri.toString();
+        const methods = await worker.getCompletionsAtPosition(uri,source.indexOf('dx7.\n')+4);
+        const fields = await worker.getCompletionsAtPosition(uri,source.indexOf('{  }')+2);
+        const hover = await worker.getQuickInfoAtPosition(uri,source.indexOf('setPreset')+2);
+        return {methods:methods?.entries.map(entry=>entry.name),fields:fields?.entries.map(entry=>entry.name),hover:hover?.displayParts.map(part=>part.text).join('')};
+      } finally {model.dispose();}
+    });
+    for(const method of ['setPreset','setOperator','setOperators','getPreset'])assert(completion.methods?.includes(method),'Missing Monaco DX7 completion: '+method);
+    for(const field of ['coarse','fine','outputLevel','envelope'])assert(completion.fields?.includes(field),'Missing Monaco DX7 field: '+field);
+    assert(completion.hover?.includes('DX7Preset'),'Missing typed DX7 preset hover');
     await page.evaluate(execution => {
       document.getElementById('workerExecution').checked = execution === 'worker';
       window.monaco.editor.getEditors()[0].setValue("const dx7 = await useSoundChip('dx7'); dx7.noteOn(60, 100); console.log('DX7_LATE_NOTE');");
@@ -194,6 +211,37 @@ async function runBrowser(name, type, url, fixture) {
       `, execution);
       assert.equal(loaded.voices.length, 32); assert.equal(loaded.voices[31].name, 'BANK 31'); assert.equal(loaded.selected, 31);
       assert((await meter()).every(value => value > .005), `${name}/${execution}: bank selection then noteOn silent`);
+      const object = await run(`
+        const dx7 = await useSoundChip('dx7'); dx7.panic();
+        const bankBefore = dx7.voices;
+        await dx7.setPreset({name:'OBJ', algorithm:31, operators:{1:{coarse:2, outputLevel:90}}});
+        await dx7.setOperator(1, {fine:12});
+        await dx7.setOperators([[1,{detune:8}], [6,{coarse:3, outputLevel:0}]]);
+        const beforeInvalid = await dx7.getPreset();
+        let rejected = false;
+        try { await dx7.setOperators([[1,{outputLevel:0}], [6,{coarse:32}]]); }
+        catch { rejected = true; }
+        if (!rejected || JSON.stringify(beforeInvalid) !== JSON.stringify(await dx7.getPreset())) throw Error('Invalid operator batch changed the patch');
+        const after = dx7.voices;
+        if (after.length !== 32 || dx7.selectedVoice !== 31 || bankBefore.some((voice,index) => index !== 31 && voice.name !== after[index].name)) throw Error('Object edit replaced another bank slot');
+        dx7.selectVoice(0);
+        const other = await dx7.getPreset();
+        dx7.selectVoice(31);
+        const preset = await dx7.getPreset();
+        const exposed = await dx7.getPreset(); exposed.operators[1].coarse = 31;
+        if ((await dx7.getPreset()).operators[1].coarse !== 2) throw Error('getPreset leaked mutable state');
+        dx7.noteOn(60,100);
+        const result = {id:dx7.id, same:dx7 === context.dx7, voices:dx7.voices, selected:dx7.selectedVoice, preset, other, rejected};
+      `, execution);
+      assert.equal(object.same, true); assert.equal(object.id, initial.id);
+      assert.equal(object.selected, 31); assert.equal(object.voices.length, 32); assert.equal(object.voices[31].name, 'OBJ');
+      assert.equal(object.other.name, 'BANK 0'); assert.equal(object.other.operators[1].coarse, 1);
+      assert.equal(object.preset.name, 'OBJ'); assert.equal(object.preset.algorithm, 31);
+      assert.equal(object.preset.operators[1].coarse, 2); assert.equal(object.preset.operators[1].outputLevel, 90);
+      assert.equal(object.preset.operators[1].fine, 12); assert.equal(object.preset.operators[1].detune, 8);
+      assert.equal(object.preset.operators[6].coarse, 3); assert.equal(object.rejected, true);
+      const objectPcm = await meter();
+      assert(objectPcm.every(value => value > .005), `${name}/${execution}: object-authored DX7 patch is silent ${objectPcm}`);
       await run(`
         const dx7 = await useSoundChip('dx7'); dx7.panic();
         await dx7.loadSysex(${silentVoice});
@@ -210,8 +258,9 @@ async function runBrowser(name, type, url, fixture) {
       await page.evaluate(async () => window.__dx7Test.runtime.stopWithFade());
       const stopped = await meter(); assert(stopped.every(value => value < .00001), `${name}/${execution}: STOP retained audio ${stopped}`);
       assert.equal(await page.evaluate(() => window.__dx7Test.megaDrive.mixer.list().filter(chip => chip.name === 'dx7' && chip.connected).length), 0);
-      const recreated = await run(`const dx7 = await useSoundChip('dx7'); dx7.noteOn(60,100); const result = {id:dx7.id, voices:dx7.voices};`, execution);
+      const recreated = await run(`const dx7 = await useSoundChip('dx7'); dx7.noteOn(60,100); const result = {id:dx7.id, voices:dx7.voices, preset:await dx7.getPreset()};`, execution);
       assert.notEqual(recreated.id, initial.id); assert.equal(recreated.voices[0].name, 'INIT SINE');
+      assert.equal(recreated.preset.operators[1].coarse, 1); assert.equal(recreated.preset.operators[1].outputLevel, 85);
       assert((await meter()).every(value => value > .005), `${name}/${execution}: recreation after STOP silent`);
       const cancelled = await run(`
         const dx7 = await createSoundChip('dx7');
@@ -221,7 +270,7 @@ async function runBrowser(name, type, url, fixture) {
       `, execution);
       assert.equal(cancelled.rejected, true, 'Dispose rejects an in-flight SysEx request');
       await page.evaluate(async () => window.__dx7Test.runtime.stopWithFade());
-      results.push({execution, sampleRate:initial.state.sampleRate, baseline, half, master, fx, stopped});
+      results.push({execution, sampleRate:initial.state.sampleRate, baseline, half, master, fx, objectPcm, stopped});
     }
     assert.deepEqual(network, [], 'User network requests remain blocked');
     assert.deepEqual(errors, []);

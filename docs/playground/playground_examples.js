@@ -255,6 +255,11 @@ export const EXAMPLE_FILES = [
     "path": "/examples/dx7/dx7-init-sine.js",
     "name": "dx7-init-sine",
     "data": "// Independent MSFA DX7, ready with the self-authored INIT SINE voice.\n// MIDI note numbers 0..127; the DX7 allocates its own 16 voices.\nconst dx7 = await useSoundChip('dx7');\nsetBpm(110);\nawait mixer.set(dx7.id, {volume: 0.5});\n\n// To use your own DX7 SysEx, import a .syx file into FILES first:\n// await dx7.loadSysex(await file('/presets/my-bank.syx', {type:'arrayBuffer'}));\n// console.log(dx7.voices);\n// dx7.selectVoice(0);\n\nliveLoop('dx7-melody', async () => {\n  for (const note of [60, 64, 67, 72, 67, 64]) {\n    dx7.noteOn(note, 100);\n    await beat(0.4);\n    dx7.noteOff(note);\n    await beat(0.1);\n  }\n});\n"
+  },
+  {
+    "path": "/examples/dx7/dx7-object-preset.js",
+    "name": "dx7-object-preset",
+    "data": "// Build a DX7 voice with objects. No SysEx file is needed.\n// Operators are OP1..6; algorithm 0 is the instrument's algorithm 1.\nconst dx7 = await useSoundChip('dx7');\nawait dx7.setPreset({\n  name: 'JS BELL',\n  algorithm: 0,\n  feedback: 0,\n});\nawait dx7.setOperators([\n  [1, {\n    coarse: 1, outputLevel: 90,\n    envelope: {rates: [99, 70, 50, 75], levels: [99, 80, 60, 0]},\n  }],\n  [2, {\n    coarse: 2, outputLevel: 68,\n    envelope: {rates: [99, 75, 50, 80], levels: [99, 70, 0, 0]},\n  }],\n]);\nsetBpm(110);\nawait mixer.set(dx7.id, {volume: 0.5});\n\nliveLoop('dx7-object-melody', async () => {\n  // Partial edits keep the other parameters and apply to the next Note On.\n  await dx7.setOperator(2, {outputLevel: choose([55, 65, 75])});\n  for (const note of [60, 64, 67, 72]) {\n    dx7.noteOn(note, 100);\n    await beat(0.4);\n    dx7.noteOff(note);\n    await beat(0.1);\n  }\n});\n"
   }
 ];
 export const EXAMPLES = Object.fromEntries(EXAMPLE_FILES.map(file => [file.name, file.data]));

@@ -10,12 +10,24 @@ class DX7Processor extends AudioWorkletProcessor {
     // note events cannot overtake an asynchronous loadSysex() call.
     this.commands = Promise.resolve();
     this.port.onmessage = ({ data }) => {
+      // Disposal must not wait behind a pending command or allow its late reply.
+      if (data.type === 'dispose') { this.dispose(); return; }
       this.commands = this.commands.then(() => this.applyCommand(data)).catch(error => {
+        if (this.disposed || this.failed) return;
         if (data.id !== undefined) this.port.postMessage({ type: 'result', id: data.id, error: String(error.message ?? error) });
         else this.fail(error);
       });
     };
     this.initialize(processorOptions?.wasmBytes);
+  }
+
+  dispose() {
+    if (this.disposed) return;
+    this.disposed = true;
+    this.synth?.dispose();
+    this.synth = null;
+    this.port.onmessage = null;
+    this.port.close();
   }
 
   async initialize(wasmBytes) {
@@ -38,20 +50,29 @@ class DX7Processor extends AudioWorkletProcessor {
   }
 
   async applyCommand(data) {
-    if (data.type === 'dispose') {
-      this.disposed = true;
-      this.synth?.dispose();
-      this.synth = null;
-      this.port.onmessage = null;
-      this.port.close();
-      return;
-    }
+    if (data.type === 'dispose') { this.dispose(); return; }
     if (this.disposed) return;
     if (!this.synth || this.failed) throw new Error('DX7 processor is not ready.');
     switch (data.type) {
       case 'loadSysex':
         await this.synth.loadSysex(data.bytes);
-        this.port.postMessage({ type: 'result', id: data.id, voices: this.synth.voices, selectedVoice: 0 });
+        if (this.disposed || this.failed) return;
+        this.port.postMessage({ type: 'result', id: data.id, voices: this.synth.voices, selectedVoice: this.synth.selectedVoice });
+        break;
+      case 'setPreset':
+        this.synth.setPreset(data.preset);
+        this.port.postMessage({ type: 'result', id: data.id, voices: this.synth.voices, selectedVoice: this.synth.selectedVoice });
+        break;
+      case 'setOperator':
+        this.synth.setOperator(data.op, data.patch);
+        this.port.postMessage({ type: 'result', id: data.id, voices: this.synth.voices, selectedVoice: this.synth.selectedVoice });
+        break;
+      case 'setOperators':
+        this.synth.setOperators(data.operators);
+        this.port.postMessage({ type: 'result', id: data.id, voices: this.synth.voices, selectedVoice: this.synth.selectedVoice });
+        break;
+      case 'getPreset':
+        this.port.postMessage({ type: 'result', id: data.id, preset: this.synth.getPreset(), voices: this.synth.voices, selectedVoice: this.synth.selectedVoice });
         break;
       case 'selectVoice': this.synth.selectVoice(data.index); break;
       case 'noteOn': this.synth.noteOn(data.note, data.velocity); break;
