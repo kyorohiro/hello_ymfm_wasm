@@ -2,11 +2,12 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import {readFileSync} from 'node:fs';
+import {isCheckpointVirtualPath} from './playground_virtual_files.js';
 const source=readFileSync(new URL('./playground.js',import.meta.url),'utf8');
 function setup(prepare, gameboyMode = 'readable', ym2203Mode = 'schedule') {
   const nodes=new Map(), imports=[],statuses=[];
   const node=id=>{if(!nodes.has(id))nodes.set(id,{value:'/test.js',checked:false,disabled:false,hidden:false,events:{},addEventListener(name,fn){this.events[name]=fn;},setCustomValidity(v){this.validity=v;},reportValidity(){},showModal(){this.open=true;},close(){this.open=false;this.events.close?.();}});return nodes.get(id);};
-  const c=vm.createContext({selectedChip:'ym2612',prepareVgmImport:prepare,document:{getElementById:node,querySelector:q=>q.includes('gameboy')?{value:gameboyMode}:q.includes('ym2203')?{value:ym2203Mode}:{value:'high'}},setStatus:s=>statuses.push(s),normalizeVirtualPath:p=>p,isSystemVirtualPath:p=>p.startsWith('/sys/'),virtualFiles:{get(){}},importVgmFile:async(f,o)=>imports.push({f,o}),mainMenu:{open:true},syncDacBase64Option(){},runButton:{focus(){}}});
+  const c=vm.createContext({selectedChip:'ym2612',prepareVgmImport:prepare,document:{getElementById:node,querySelector:q=>q.includes('gameboy')?{value:gameboyMode}:q.includes('ym2203')?{value:ym2203Mode}:{value:'high'}},setStatus:s=>statuses.push(s),normalizeVirtualPath:p=>p,isSystemVirtualPath:p=>p.startsWith('/sys/'),isCheckpointVirtualPath,virtualFiles:{get(){}},importVgmFile:async(f,o)=>imports.push({f,o}),mainMenu:{open:true},syncDacBase64Option(){},runButton:{focus(){}}});
   for(const id of ['vgmImportInput','vgmImportDialog','vgmImportTarget','vgmImportFilename','convertVgmButton','cancelVgmImportButton','includeDacInput','dacBase64Input']) c[id]=node(id);
   vm.runInContext('let pendingVgmImportFile=null;let pendingVgmImport=null;let vgmImportRequest=0;',c);
   const change=source.slice(source.indexOf("  vgmImportInput.addEventListener('change'"),source.indexOf('\n}\n\nfunction bootPlayground'));
@@ -32,6 +33,7 @@ test('cancel, unsupported input, invalid destination and failed analysis do not 
   const ui=setup(async()=>prepared('gameboy'));await ui.choose('test.vgm');
   ui.node('cancelVgmImportButton').events.click();ui.node('convertVgmButton').events.click();assert.equal(ui.imports.length,0);
   await ui.choose('test.vgm');ui.node('vgmImportTarget').value='/sys/test.js';ui.node('convertVgmButton').events.click();assert.equal(ui.imports.length,0);
+  ui.node('vgmImportTarget').value='/.tet.ss/test.js';ui.node('convertVgmButton').events.click();assert.equal(ui.imports.length,0);
   const unsupported=setup(async()=>({detection:{chips:['nes'],supported:false,message:'not supported'}}));await unsupported.choose('test.vgm');
   assert.equal(unsupported.node('convertVgmButton').disabled,true);unsupported.node('convertVgmButton').events.click();assert.equal(unsupported.imports.length,0);
   const bad=setup(async()=>{throw new Error('invalid');});await bad.choose('bad.vgm');assert.equal(bad.node('vgmImportDialog').open,undefined);assert.match(bad.statuses.at(-1),/invalid/);

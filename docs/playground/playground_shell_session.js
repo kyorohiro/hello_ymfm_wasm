@@ -60,13 +60,13 @@ export function createShellFileSession({fs,context,isCurrent=()=>true,sync=()=>{
     remove(path,options={}){path=pathOf(path);return mutate([path],'remove',()=>fs.remove(path,options),true);},
     rename(from,to){from=pathOf(from);to=pathOf(to);writable([from],'rename');return mutate([from,to],'rename',()=>transferVirtualFiles(fs,from,to),true);},
     copy(from,to){from=pathOf(from);to=pathOf(to);return mutate([to],'copy',()=>transferVirtualFiles(fs,from,to,{copy:true}),true);},
-    replace(entries,dirs=[]){
+    replace(entries,dirs=[],options={}){
       guard();const current=fs.list(),next=new Map(entries.map(file=>[file.path,file]));
       const changed=[...new Set([...current.map(file=>file.path),...next.keys()])].filter(path=>!sameShellFile(fs.get(path),next.get(path)??null));
       const changedDirs=[...new Set([...fs.listDirectories(),...dirs])].filter(path=>fs.listDirectories().includes(path)!==dirs.includes(path));
       writable([...changed,...changedDirs],'replace');
       if(!next.has('/index.js')&&fs.has('/index.js'))throw Error('/index.js is the project entry point');
-      return mutate(changed,'replace',()=>fs.replace(entries,dirs));
+      return mutate(changed,'replace',()=>fs.replace(entries,dirs,options));
     },
     createFileReader(){return (path,options)=>facade.readFile(path,options);},
     readFile(path,{type='text'}={}){

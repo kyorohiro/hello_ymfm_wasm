@@ -37,7 +37,7 @@ export function applyTextPatch(fs,edits,{cwd='/',dryRun=false,authorize=()=>{},a
   }
   assertActive();
   const paths=[...new Set(changes.map(c=>c.path))];
-  if(!dryRun){authorize('patch',paths);for(const path of new Set(removed))authorize('rm',[path]);assertActive();for(const [path,revision] of revisions)if(fs.getRevision(path)!==revision)throw Error(`Revision conflict: ${path}; read the file again`);fs.replace(draft.list(),draft.listDirectories());}
+  if(!dryRun){authorize('patch',paths);for(const path of new Set(removed))authorize('rm',[path]);assertActive();for(const [path,revision] of revisions)if(fs.getRevision(path)!==revision)throw Error(`Revision conflict: ${path}; read the file again`);fs.replace(draft.list(),draft.listDirectories(),{checkpointChanges:true});}
   return {applied:!dryRun,changes:changes.map(change=>({...change,beforeRevision:revisions.get(change.path),revision:fs.getRevision(change.path)}))};
 }
 function same(a,b){return a.type===b.type&&(a.type==='text'?a.data===b.data:a.data.length===b.data.length&&a.data.every((v,i)=>v===b.data[i]));}

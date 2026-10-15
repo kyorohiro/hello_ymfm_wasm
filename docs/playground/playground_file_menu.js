@@ -1,8 +1,8 @@
-import {normalizeVirtualPath} from './playground_virtual_files.js';
+import {normalizeVirtualPath, isCheckpointVirtualPath, CHECKPOINT_ROOT} from './playground_virtual_files.js';
 
 const inside=(path,root)=>path===root||path.startsWith(root+'/');
 const exists=(fs,path)=>fs.has(path)||fs.listDirectories().includes(path);
-const writable=path=>path!=='/sys'&&!path.startsWith('/sys/');
+const writable=path=>path!=='/sys'&&!path.startsWith('/sys/')&&!isCheckpointVirtualPath(path);
 
 // Copy captures content; cut retains a source path until the move succeeds.
 export function createExplorerClipboard(fs) {
@@ -15,14 +15,18 @@ export function createExplorerClipboard(fs) {
       if(path==='/'||!writable(path))throw Error('This path cannot be copied or cut.');
       if(cut&&path==='/index.js')throw Error('/index.js cannot be moved.');
       fs.stat(path);
-      entry={path,cut,files:fs.list().filter(file=>inside(file.path,path)),directories:fs.listDirectories().filter(dir=>inside(dir,path))};
+      const allFiles=fs.list(),allDirectories=fs.listDirectories();
+      const savedRoot=path.split('/').includes('.git')?null:CHECKPOINT_ROOT+path;
+      entry={path,cut,files:allFiles.filter(file=>inside(file.path,path)),directories:allDirectories.filter(dir=>inside(dir,path)),
+        savedRoot,checkpointFiles:savedRoot?allFiles.filter(file=>inside(file.path,savedRoot)):[],
+        checkpointDirectories:savedRoot?allDirectories.filter(dir=>inside(dir,savedRoot)):[]};
     },
     paste(directory,move){
       if(!entry)throw Error('Copy or cut a file or folder first.');
       directory=normalizeVirtualPath(directory);
-      if(!writable(directory))throw Error('/sys is reserved for built-in files.');
+      if(!writable(directory))throw Error('This folder is reserved for built-in files or file checkpoints.');
       if(fs.stat(directory).type!=='directory')throw Error('Paste destination must be a folder.');
-      const {path,cut,files,directories}=entry;
+      const {path,cut,files,directories,savedRoot,checkpointFiles,checkpointDirectories}=entry;
       if(inside(directory,path))throw Error('Cannot paste a folder inside itself.');
       const name=path.split('/').pop();
       let destination=normalizeVirtualPath(`${directory}/${name}`);
@@ -38,8 +42,14 @@ export function createExplorerClipboard(fs) {
           destination=normalizeVirtualPath(`${directory}/${stem}-copy${number===1?'':`-${number}`}${extension}`);
         }
         const target=source=>destination+source.slice(path.length);
-        fs.replace([...fs.list(),...files.map(file=>({...file,path:target(file.path)}))],
-          [...fs.listDirectories(),...directories.map(target)]);
+        const currentFiles=fs.list(),currentDirectories=fs.listDirectories();
+        const savedTarget=CHECKPOINT_ROOT+destination;
+        const targetInternal=destination.split('/').includes('.git');
+        if(targetInternal&&checkpointFiles.length)throw Error('Cannot copy checkpoint-managed files into an internal path.');
+        if(!targetInternal&&savedRoot&&(currentFiles.some(file=>inside(file.path,savedTarget))||currentDirectories.some(dir=>inside(dir,savedTarget))))throw Error(`Checkpoint destination already exists: ${destination}`);
+        const checkpointTarget=source=>savedTarget+source.slice(savedRoot.length);
+        fs.replace([...currentFiles,...files.map(file=>({...file,path:target(file.path)})),...checkpointFiles.map(file=>({...file,path:checkpointTarget(file.path)}))],
+          [...currentDirectories,...directories.map(target),...checkpointDirectories.map(checkpointTarget)]);
       }
       return destination;
     },
@@ -79,7 +89,7 @@ export function installFileExplorerMenu({root,fs,sync,transfer,onChanged,onCreat
       const name=window.prompt(folder?'New folder name':'New file name',folder?'new-folder':'new-file.js');
       if(!name)return;
       const destination=normalizeVirtualPath(`${directory}/${name}`);
-      if(!writable(destination))throw Error('/sys is reserved for built-in files.');
+      if(!writable(destination))throw Error('This folder is reserved for built-in files or file checkpoints.');
       if(exists(fs,destination))throw Error(`Destination already exists: ${destination}`);
       sync();
       if(folder)fs.mkdir(destination,{recursive:true});else fs.writeText(destination,'');

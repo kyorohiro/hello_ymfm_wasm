@@ -46,6 +46,116 @@ Paths cannot traverse above `/`. Snapshots contain text, `Uint8Array` data and
 directories and are suitable for structured cloning in IndexedDB. JSON serialization
 requires a separate binary encoding. Persistence is supplied by the host application.
 
+## File and folder synchronization (development)
+
+`sync(sourcePath, {syncRoot?})` mirrors a file or folder into another virtual
+root, preserving its absolute source path. It always returns a Promise.
+
+```javascript
+await fs.sync('/samples/data.bin');
+// /.tet.ss/samples/data.bin (default syncRoot: '/.tet.ss')
+await fs.sync('/presets', {syncRoot:'/ss.tet'});
+// /ss.tet/presets/ and all its files/empty folders.
+const result = await fs.sync('/presets', {syncRoot:'/ss.tet'});
+// {sourcePath:'/presets', destinationPath:'/ss.tet/presets', changed:false}
+```
+
+Synchronization is one-way: replace existing files and remove destination-only
+children **inside the selected destination subtree**. Other destination-root
+contents and the source remain unchanged. Text/binary types and bytes, including
+empty files and empty folders, are preserved. All conflicts are checked before
+one atomic commit; an identical mirror does not change revisions or emit an
+event. Missing sources and file/folder type conflicts reject without mutation.
+
+`sync('/')` mirrors the full store under `syncRoot`, omitting the destination
+tree from the source so repeated calls never nest backups. A source already
+inside `syncRoot` is rejected; `{syncRoot:'/'}` is an identity operation.
+Relative virtual paths resolve from `/`. The second argument must be an options
+object, not a positional destination string.
+
+Generic sync does not create automatic checkpoints, add `.gitignore` rules, or
+hide arbitrary destinations. `.git` and other metadata are ordinary synced data.
+The default `/.tet.ss` root is the dedicated checkpoint storage described below;
+optional Git and application file pickers already exclude that specific root.
+Use `fs.checkpoints.set()` for checkpoint-specific ignore-rule management.
+
+Only paths in this virtual filesystem are implemented. Storage addresses such
+as `{syncRoot:'app-storage://~/'}` are a future extension and currently reject
+with an unsupported-location error before path normalization. No external I/O
+or storage-provider framework is included in this MVP.
+
+## File checkpoints (development)
+
+Normal paths contain the current working files. `fs.checkpoints` keeps one
+restore point per file, separately from transactional Undo, Git history and
+host-supplied external persistence. Explicit Set/Revert share the file/folder
+mirror implementation with `sync`; automatic first-edit capture and checkpoint
+lifecycle rules are a separate policy.
+
+```javascript
+const fs = createVirtualFileSystem([
+  {path:'/index.js', data:'A'},
+], {autoCheckpoint:true}); // Default: false.
+
+fs.writeText('/index.js', 'B');
+fs.checkpoints.get('/index.js').data; // A: copied before the first edit.
+fs.writeText('/index.js', 'C');
+fs.checkpoints.get('/index.js').data; // Still A.
+fs.checkpoints.set('/index.js'); // Explicitly update the restore point to C.
+fs.writeText('/index.js', 'D');
+fs.checkpoints.revert('/index.js'); // Current C, checkpoint C.
+fs.checkpoints.setAuto(false); // Retain checkpoints; stop auto-creation.
+```
+
+| API | Meaning |
+| --- | --- |
+| `fs.checkpoints.set(path, {expectedRevision?})` | Create/update the restore point; return its copied checkpoint file |
+| `fs.checkpoints.revert(path, {expectedRevision?})` | Restore an existing current file; retain the restore point; return the copied current file |
+| `fs.checkpoints.get(path)` | Copied checkpoint file or `null`; path/revision refer to the hidden checkpoint file |
+| `fs.checkpoints.has(path)` | Whether a restore point exists |
+| `fs.checkpoints.isModified(path)` | Compare current type/contents with an existing checkpoint; false if none exists |
+| `fs.checkpoints.auto` | Read-only automatic-creation setting |
+| `fs.checkpoints.setAuto(boolean)` | Change automatic creation for this instance |
+
+Auto captures an existing file immediately **before its first actual edit**
+when no checkpoint exists. Subsequent edits never advance it. Identical writes
+and initial creation do not create checkpoints; a newly created file's first
+later edit can capture its initial contents. Auto OFF retains existing points.
+Text/binary types and bytes are preserved, and reads return copies. The optional
+revision precondition checks the current ordinary file before any mutation.
+
+The point for `/index.js` is stored at `/.tet.ss/index.js`.
+The reserved checkpoint tree and any `.git` subtree cannot be checkpoint targets.
+`list()` and snapshots retain this opaque data; file pickers can hide it with
+`isCheckpointPath(path)`. Invalid targets, stale revisions and storage-path
+conflicts fail atomically. Prefer the checkpoint manager for these lifecycle
+rules; generic `sync` is an explicit overwrite of its selected destination.
+
+Creating a checkpoint adds `/.tet.ss/` to the root `.gitignore` without
+duplicating the rule. Existing UTF-8 text/bytes, newline style and BOM are
+preserved. A directory or invalid UTF-8 at `.gitignore` causes an atomic failure.
+Checkpointing `.gitignore` includes the managed rule in both current and its
+restore point. Optional Git status/staging also excludes checkpoint storage
+and rejects explicitly staging it, even if the ignore rule is later removed.
+Already tracked history imported from elsewhere is not rewritten.
+
+`transferVirtualFiles` moves/copies matching checkpoints with files/folders.
+Deleting a file/folder deletes its corresponding checkpoints; deleted-file
+recovery is outside this feature. `replace(entries, dirs)` and `restore(snapshot)`
+remain exact replacement operations for imports and Undo. Editing transactions
+use `replace(entries, dirs, {checkpointChanges:true})` to capture real changes,
+clean up deleted files' checkpoints, and retain existing checkpoints omitted
+for surviving files. Patches, Shell redirection and Git worktree publication
+use that editing mode.
+
+Snapshots/Cassettes contain both current and checkpoint files. Import/restore
+never creates additional points. The Auto preference is not in `snapshot()`;
+the host persists it separately. The older **`fs.checkpoint()`** still captures
+the whole store and session revisions for `undoFileChanges`, independently of
+the persistent **`fs.checkpoints`** manager.
+
+## Shell
+
 The shell supports `pwd`, `ls`, `cd`, `cat`, `mkdir [-p]`, `cp`, `mv`, `rm [-r]`,
 `touch`, `write PATH TEXT`, `echo`, `help`, `find`, `rg`, `read`, `edit`, `patch`, `snapshot`, `diff`, `undo` and `pipeline`. `cp` and `mv` accept files or entire directories.
 It parses quotes and escapes, runs requests in order, and returns

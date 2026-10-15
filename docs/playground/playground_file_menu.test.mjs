@@ -35,3 +35,21 @@ test('invalid cut and paste paths cannot mutate files',()=>{
   assert.throws(()=>clipboard.paste('/sys'),/reserved/);
   assert.deepEqual(fs.snapshot(),before);assert(clipboard.available);
 });
+
+test('copy retains captured current and checkpoint contents without advancing either baseline',()=>{
+  const fs=createVirtualFileSystem([{path:'/lib/a.js',data:'original'},{path:'/lib/hit.bin',data:new Uint8Array([0,255])}]);
+  fs.checkpoints.set('/lib/a.js');fs.checkpoints.set('/lib/hit.bin');
+  fs.writeText('/lib/a.js','captured edit');
+  const clipboard=createExplorerClipboard(fs);clipboard.capture('/lib');
+  fs.writeText('/lib/a.js','later edit');fs.checkpoints.set('/lib/a.js');
+  assert.equal(clipboard.paste('/'),'/lib-copy');
+  assert.equal(fs.get('/lib-copy/a.js').data,'captured edit');
+  assert.equal(fs.checkpoints.get('/lib-copy/a.js').data,'original');
+  assert.deepEqual(fs.checkpoints.get('/lib-copy/hit.bin').data,new Uint8Array([0,255]));
+  assert.equal(fs.get('/lib/a.js').data,'later edit');
+  assert.equal(fs.checkpoints.get('/lib/a.js').data,'later edit');
+  const before=fs.snapshot();
+  assert.throws(()=>clipboard.capture('/.tet.ss/lib/a.js'),/cannot be copied/);
+  assert.throws(()=>clipboard.paste('/.tet.ss'),/reserved/);
+  assert.deepEqual(fs.snapshot(),before);
+});

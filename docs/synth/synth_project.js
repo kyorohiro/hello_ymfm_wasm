@@ -1,6 +1,7 @@
 import {
   createVirtualFileSystem,
   transferVirtualFiles,
+  isCheckpointPath,
 } from '../js/tetorica_virtual_files/filesystem.js';
 import { resolvePath, dirname } from '../js/tetorica_virtual_files/path.js';
 import {
@@ -19,7 +20,7 @@ export function isSynthTonePath(path) {
   path = String(path);
   // Git refs/objects are opaque project data even when a branch or object
   // happens to end in an instrument extension.
-  return !path.split('/').includes('.git') && TONE_EXTENSION.test(path);
+  return !path.split('/').includes('.git') && !isCheckpointPath(path) && TONE_EXTENSION.test(path);
 }
 
 function safeName(name, fallback = 'tone') {
@@ -176,6 +177,7 @@ export function createSynthProject({ snapshot: initialSnapshot } = {}) {
       if (directory !== undefined) {
         directory = resolvePath(directory);
         if (directory.split('/').includes('.git')) throw new Error('Instrument imports cannot target a .git folder.');
+        if (isCheckpointPath(directory)) throw new Error('Instrument imports cannot target the /.tet.ss folder.');
         if (fs.stat(directory).type !== 'directory') throw new Error(`Not a folder: ${directory}`);
       }
       const sequence = ++importSequence;

@@ -1,5 +1,6 @@
 import {renderFileTree} from '../playground/playground_file_tree.js';
 import {isSynthTonePath} from './synth_project.js';
+import {isCheckpointPath} from '../js/tetorica_virtual_files/filesystem.js';
 
 const basename = path => path.split('/').pop();
 const dirname = path => path.slice(0, path.lastIndexOf('/')) || '/';
@@ -88,7 +89,7 @@ export function setupSynthFiles({project, getPreset, getPresetId, applyPreset, a
   function render() {
     document.body.classList.toggle('synth-files-open',!panel.hidden);
     if (selectedPath && !project.fs.has(selectedPath) && !project.fs.listDirectories().includes(selectedPath)) selectedPath = activeTonePath;
-    const entries=project.listEntries().filter(entry=>entry.path!=='/'&&!entry.path.split('/').includes('.git'));
+    const entries=project.listEntries().filter(entry=>entry.path!=='/'&&!entry.path.split('/').includes('.git')&&!isCheckpointPath(entry.path));
     const revision=JSON.stringify(entries.map(entry=>[entry.path,entry.revision]));
     if(revision!==renderedFiles){
       renderFileTree(tree, entries, {
@@ -149,6 +150,7 @@ export function setupSynthFiles({project, getPreset, getPresetId, applyPreset, a
   }
   function validateDestination(directory, value) {
     validName(value);
+    if(directory==='/'&&value==='.tet.ss')throw Error('That name is reserved for file checkpoints.');
     if(directory==='/'&&['metadata.json','cassette.metadata.js'].includes(value))throw Error('That name is reserved for Cassette metadata.');
     const path = `${directory === '/' ? '' : directory}/${value}`;
     if (project.fs.has(path) || project.fs.listDirectories().includes(path)) throw Error('That name already exists in this folder.');

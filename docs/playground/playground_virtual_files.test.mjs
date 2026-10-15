@@ -1,12 +1,72 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import {readFileSync} from 'node:fs';
+import vm from 'node:vm';
 
 import {
   createVirtualFileSystem,
   createVirtualFileRuntimeSource,
   normalizeVirtualPath,
+  isCheckpointVirtualPath,
   resolveVirtualDynamicImports,
 } from "./playground_virtual_files.js";
+
+test('checkpoint display filtering only recognizes the root metadata folder and does not mutate files', async () => {
+  const files = createVirtualFileSystem([
+    {path:'/index.js', data:'current'},
+    {path:'/.tet.ss/index.js', data:'original'},
+    {path:'/nested/.tet.ss/song.js', data:'ordinary nested folder'},
+    {path:'/.tet.ss-copy/song.js', data:'ordinary sibling folder'},
+  ]);
+  const before = files.snapshot();
+  assert.equal(isCheckpointVirtualPath('/.tet.ss'), true);
+  assert.deepEqual(files.list().filter(file => !isCheckpointVirtualPath(file.path)).map(file => file.path), [
+    '/index.js', '/nested/.tet.ss/song.js', '/.tet.ss-copy/song.js',
+  ]);
+  assert.deepEqual(files.snapshot(), before, 'Hidden checkpoint files stay in snapshots');
+  assert.equal(await files.createFileReader('/index.js')('/.tet.ss/index.js'), 'original');
+});
+
+test('Playground hides checkpoint files in Files and Run while preserving them in autosave', () => {
+  const source = readFileSync(new URL('./playground.js', import.meta.url), 'utf8');
+  const files = createVirtualFileSystem([
+    {path:'/index.js', data:'current source'},
+    {path:'/.tet.ss/index.js', data:'previous source'},
+    {path:'/.tet.ss/opaque.bin', data:new Uint8Array([0,255])},
+    {path:'/sys/builtin.js', data:'system source'},
+  ]);
+  let treeEntries;
+  const element = () => ({children:[], appendChild(child) {this.children.push(child);}});
+  const runSelect = {...element(), replaceChildren() {this.children=[];}};
+  const context = vm.createContext({
+    virtualFiles:files, isCheckpointVirtualPath,
+    runVirtualPath:'/.tet.ss/index.js', activeVirtualPath:'/index.js', activeTfiFilePath:null,
+    fileExplorerList:{}, expandedFileFolders:new Map(),
+    renderFileTree(_root, entries) {treeEntries=entries;},
+    openVirtualFile() {}, transferExplorerFiles() {}, importDroppedFiles() {},
+    renameFileButton:{}, deleteFileButton:{},
+    runFileSelect:runSelect, document:{createElement:element},
+    currentCassetteMetadata:null, currentCassetteHasMetadataFile:false,
+    getEditorValue:()=>'latest editor source',
+  });
+  const policies = source.slice(source.indexOf('function isSystemVirtualPath('), source.indexOf('\nfunction restoreBundledExampleFiles('));
+  const runOptions = source.slice(source.indexOf('function renderRunFileOptions('), source.indexOf('\nconst expandedFileFolders'));
+  const explorer = source.slice(source.indexOf('function renderVirtualFileExplorer('), source.indexOf('\nfunction openVirtualFile('));
+  vm.runInContext(`${policies}\n${runOptions}\n${explorer}\nrenderRunFileOptions();renderVirtualFileExplorer();`, context);
+  assert.deepEqual(runSelect.children.flatMap(group=>group.children.map(option=>option.value)), ['/index.js']);
+  assert.equal(context.runVirtualPath, '/index.js', 'A stored checkpoint run target falls back to current');
+  assert.deepEqual(Array.from(treeEntries, entry=>entry.path).filter(path=>path.endsWith('.js')), ['/index.js']);
+  assert.ok(treeEntries.every(entry=>!isCheckpointVirtualPath(entry.path)));
+  const captureStart = source.indexOf('capture:() => ({', source.indexOf('desktopAutosave = createProjectAutosave')) + 'capture:'.length;
+  const captureEnd = source.indexOf('\n    })});', captureStart) + '\n    })'.length;
+  vm.runInContext(`capture = ${source.slice(captureStart, captureEnd)};`, context);
+  const snapshot = context.capture();
+  assert.equal(snapshot.files.find(file=>file.path==='/index.js').data, 'latest editor source');
+  assert.equal(snapshot.files.find(file=>file.path==='/.tet.ss/index.js').data, 'previous source');
+  assert.deepEqual(snapshot.files.find(file=>file.path==='/.tet.ss/opaque.bin').data, new Uint8Array([0,255]));
+  assert.ok(snapshot.directories.includes('/.tet.ss'));
+  assert.equal(snapshot.files.some(file=>file.path.startsWith('/sys/')), false, 'Existing built-in persistence policy stays unchanged');
+});
 
 test("resolves virtual paths relative to the current file", () => {
   assert.equal(

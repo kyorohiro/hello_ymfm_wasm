@@ -1,10 +1,13 @@
 import {createVirtualFileSystem, normalizeVirtualPath, transferVirtualFiles as transfer} from '../js/tetorica_virtual_files/index.js';
-export {createVirtualFileSystem, normalizeVirtualPath, createVirtualFileReader} from '../js/tetorica_virtual_files/index.js';
+import {isCheckpointPath as isCheckpointVirtualPath} from '../js/tetorica_virtual_files/filesystem.js';
+export {createVirtualFileSystem, normalizeVirtualPath, createVirtualFileReader, CHECKPOINT_ROOT} from '../js/tetorica_virtual_files/index.js';
+export {isCheckpointVirtualPath};
 
 // Entry-point and built-in-file policies belong to Playground, not the generic filesystem.
 export function transferVirtualFiles(fs, source, destination, options = {}) {
   source = normalizeVirtualPath(source); destination = normalizeVirtualPath(destination);
   if ([source,destination].some(path => path === '/sys' || path.startsWith('/sys/'))) throw Error('/sys is reserved for built-in files.');
+  if ([source,destination].some(isCheckpointVirtualPath)) throw Error('/.tet.ss is reserved for file checkpoints.');
   if (!options.copy && source === '/index.js' && source !== destination) throw Error('/index.js cannot be moved.');
   return transfer(fs, source, destination, options);
 }

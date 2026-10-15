@@ -171,7 +171,7 @@ cp "${ROOT_DIR}/docs/playground/playground_file_tree.js" "${ROOT_DIR}/docs/playg
 cp "${ROOT_DIR}/docs/playground/vendor/fflate.js" "${ROOT_DIR}/docs/playground/vendor/fflate-LICENSE" "${STAGE_DIR}/playground/vendor/"
 # Synth uses the memory filesystem only; Git and its optional dependencies are
 # deliberately excluded from this standalone sound editor.
-for file in filesystem.js path.js reader.js; do
+for file in filesystem.js path.js reader.js sync.js; do
   cp "${ROOT_DIR}/docs/js/tetorica_virtual_files/${file}" "${STAGE_DIR}/js/tetorica_virtual_files/"
 done
 mkdir -p "${STAGE_DIR}/licenses/tetorica-virtual-files"

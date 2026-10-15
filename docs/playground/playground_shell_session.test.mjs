@@ -58,6 +58,18 @@ test('pipeline redirection uses guarded files and protects /sys',async()=>{
  assert.equal((await shell.execute('echo bad > /sys/locked',{fs:session.facade})).code,1);assert.deepEqual(fs.snapshot(),before);
  assert.equal((await shell.execute('echo good | cat - > /scripts/out.txt',{fs:session.facade})).code,0);assert.equal(fs.get('/scripts/out.txt').data,'good\n');
 });
+test('guarded patches and redirects retain the underlying automatic checkpoint policy', async () => {
+  const fs=createVirtualFileSystem([{path:'/index.js',data:'initial'}],{autoCheckpoint:true});
+  const context={resolve:path=>path,assertActive(){}};
+  const {facade}=createShellFileSession({fs,context}),shell=createShell({fs});
+  const edited=await shell.execute(['edit','/index.js','initial','edited'],{fs:facade});
+  assert.equal(edited.code,0,edited.stderr);
+  assert.equal(fs.get('/.tet.ss/index.js').data,'initial');
+  const redirected=await shell.execute('echo redirected > /index.js',{fs:facade});
+  assert.equal(redirected.code,0,redirected.stderr);
+  assert.equal(fs.get('/index.js').data,'redirected\n');
+  assert.equal(fs.get('/.tet.ss/index.js').data,'initial');
+});
 test('script sessions reject ABA and delete/recreate, including an observed missing path',()=>{
  const {fs,session}=setup();session.facade.get('/index.js');
  fs.writeText('/index.js','human');fs.writeText('/index.js','initial');

@@ -342,3 +342,32 @@ test('Git refs with instrument extensions remain opaque through Cassette round t
   await assert.rejects(project.importInstrumentFiles([instrument('tone.tfi')], { directory: '/.git/refs/heads' }), /cannot target a \.git folder/);
   assert.deepEqual(project.snapshot(), before);
 });
+
+test('root checkpoint files remain opaque and survive Synth snapshot and Cassette round trips', async () => {
+  const files = [
+    {path:'/presets/current.vgi', type:'binary', data:createVgiFromPreset(patch)},
+    {path:'/.tet.ss/presets/current.vgi', type:'binary', data:createVgiFromPreset({...patch, algorithm:2})},
+    // Internal snapshots are not imported as playable instruments, including
+    // metadata or bytes that a newer application version may understand.
+    {path:'/.tet.ss/opaque.tfi', type:'binary', data:new Uint8Array([0,255,128])},
+    {path:'/.tet.ss/index.js', type:'text', data:'previous source'},
+    {path:'/index.js', type:'text', data:'current source'},
+  ];
+  const project = createSynthProject();
+  await project.importCassette(createPlaygroundCassetteZip(files));
+  assert.deepEqual(project.listTones().map(file => file.path), ['/presets/current.vgi']);
+  assert.equal(project.selectedPath, '/presets/current.vgi');
+  assert.equal(project.readTone(project.selectedPath).preset.algorithm, 4, 'Synth reads current, not checkpoint');
+  assert.equal(isSynthTonePath('/.tet.ss/presets/current.vgi'), false);
+  assert.equal(isSynthTonePath('/nested/.tet.ss/tone.vgi'), true, 'Only the root folder is reserved');
+  assert.throws(() => project.readTone('/.tet.ss/presets/current.vgi'), /Choose a TFI or VGI/);
+  const snapshot = project.snapshot();
+  assert.deepEqual(createSynthProject({snapshot}).snapshot(), snapshot);
+  const exported = await loadPlaygroundCassette(project.exportCassette());
+  for (const file of files) {
+    const bytes = typeof file.data === 'string' ? new TextEncoder().encode(file.data) : file.data;
+    assert.deepEqual(exported.files.get(file.path.slice(1)), bytes, file.path);
+  }
+  await assert.rejects(project.importInstrumentFiles([instrument('tone.vgi')], {directory:'/.tet.ss/presets'}), /cannot target.*\/\.tet\.ss/);
+  assert.deepEqual(project.snapshot(), snapshot, 'A rejected import preserves current and checkpoint files');
+});

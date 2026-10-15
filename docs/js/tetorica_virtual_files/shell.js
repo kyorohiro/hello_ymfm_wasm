@@ -101,7 +101,7 @@ export function createShell({fs,cwd = '/',authorize = () => {}}) {
         for(const [path,before] of targets)if((before.revision!==commandFs.getRevision(path)||!same(before.file,commandFs.get(path))))throw Error(`Redirect conflict: file changed during execution: ${path}`);
         const draft=createVirtualFileSystem();draft.restore(commandFs.snapshot());
         for(const output of writes){const old=draft.get(output.path);if(old&&old.type!=='text')throw Error(`Redirect requires text: ${output.path}`);draft.writeText(output.path,(output.append?(old?.data??''):'')+output.text);}
-        active();commandFs.replace(draft.list(),draft.listDirectories());
+        active();commandFs.replace(draft.list(),draft.listDirectories(),{checkpointChanges:true});
       }
       return {code:0,stdout,stderr,stages};
     }catch(error){return {code:signal?.aborted?130:1,stdout:'',stderr:stderr+String(error?.message??error),stages};}

@@ -1,7 +1,7 @@
 import git from 'isomorphic-git';
 import {Buffer} from 'buffer';
 import {createTwoFilesPatch} from 'diff';
-import {createVirtualFileSystem} from './filesystem.js';
+import {createVirtualFileSystem,isCheckpointPath} from './filesystem.js';
 import {resolvePath} from './path.js';
 // isomorphic-git's ESM build expects the standard browser Buffer polyfill.
 if(!Reflect.get(globalThis,'Buffer'))Reflect.set(globalThis,'Buffer',Buffer);
@@ -52,9 +52,19 @@ export function createVirtualGit({fs,http,beginRemote,syncWorkingFiles=()=>{}}) 
     if(running)throw Error('A Git operation is already running');running=true;
     try{syncWorkingFiles();}catch(error){running=false;throw error;}
     const original=fs.checkpoint(),draft=createVirtualFileSystem();draft.restore(original.snapshot);
+    // A restored draft has fresh revision numbers. Reusing those as Git stat
+    // timestamps makes equal-sized edits appear unchanged across transactions.
+    // Preserve the live revisions until Git itself changes a draft file.
+    const draftRevisions=draft.checkpoint().revisions;
+    const revisionBase=Object.values(original.revisions).reduce((maximum,value)=>Math.max(maximum,value),0);
+    const adapter=createGitFileSystem({...draft,stat(path){
+      const entry=draft.stat(path),normalized=resolvePath(path);
+      return {...entry,revision:entry.revision===(draftRevisions[normalized]??0)
+        ? original.revisions[normalized]??0 : revisionBase+entry.revision};
+    }});
     const check=()=>{signal?.throwIfAborted();assertActive();const now=fs.checkpoint();if(JSON.stringify(now.revisions)!==JSON.stringify(original.revisions))throw Error('Files changed during Git operation; retry with the current project');};
     try{
-      check();const result=await action(draft,createGitFileSystem(draft));syncWorkingFiles();check();
+      check();const result=await action(draft,adapter);syncWorkingFiles();check();
       // Do not turn unchanged text working files into binary editor previews.
       const prior=new Map(original.snapshot.files.map(f=>[f.path,f]));
       const decoder=new TextDecoder('utf-8',{fatal:true,ignoreBOM:true});
@@ -66,15 +76,16 @@ export function createVirtualGit({fs,http,beginRemote,syncWorkingFiles=()=>{}}) 
         }
         return file;
       });
-      fs.replace(entries,draft.listDirectories());return result;
+      fs.replace(entries,draft.listDirectories(),{checkpointChanges:true});return result;
     }finally{running=false;}
   }
   const initialized=store=>store.has('/.git/HEAD');
   const common=adapter=>({fs:adapter,dir:'/',gitdir:'/.git'});
+  const workingPath=path=>!path.startsWith('sys/')&&!isCheckpointPath('/'+path);
   const selected=(path,paths)=>!paths?.length||paths.some(value=>{const absolute=resolvePath(value);return absolute==='/'||'/'+path===absolute||('/'+path).startsWith(absolute+'/');});
   async function status(store,adapter){
     if(!initialized(store))return {initialized:false,branch:null,files:[]};
-    const rows=await git.statusMatrix({...common(adapter),filter:path=>!path.startsWith('sys/')});
+    const rows=await git.statusMatrix({...common(adapter),filter:workingPath});
     return {initialized:true,branch:await git.currentBranch(common(adapter)),files:rows.filter(([,h,w,s])=>h!==w||w!==s).map(([path,h,w,s])=>({path,staged:h!==s,untracked:h===0&&s===0,worktree:w!==s,head:h,work:w,stage:s}))};
   }
   function requireRepo(store){if(!initialized(store))throw Error('No Git repository. Run git init first.');}
@@ -108,10 +119,11 @@ export function createVirtualGit({fs,http,beginRemote,syncWorkingFiles=()=>{}}) 
         return {current,local,remotes};
       }
       if(action==='stage'){
-        const rows=await git.statusMatrix({...base,filter:path=>!path.startsWith('sys/')});
+        const rows=await git.statusMatrix({...base,filter:workingPath});
         const requested=(args.paths??[]).map(path=>resolvePath(path));
         if(!requested.length)throw Error('Usage: git add PATH...');
         if(requested.some(isGitPath))throw Error('/.git is repository metadata and cannot be staged');
+        if(requested.some(isCheckpointPath))throw Error('/.tet.ss is local checkpoint data and cannot be staged');
         for(const path of requested)if(path!=='/'&&!rows.some(([p])=>'/'+p===path||('/'+p).startsWith(path+'/'))&&!store.has(path))throw Error(`Path not found: ${path}`);
         for(const [path,,work] of rows){if(!requested.some(p=>p==='/'||'/'+path===p||('/'+path).startsWith(p+'/')))continue;
           if(work===0)await git.remove({...base,filepath:path});else await git.add({...base,filepath:path});}

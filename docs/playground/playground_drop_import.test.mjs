@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
 import { zipSync, unzipSync } from './vendor/fflate.js';
-import { createVirtualFileSystem, normalizeVirtualPath } from './playground_virtual_files.js';
+import { createVirtualFileSystem, normalizeVirtualPath, isCheckpointVirtualPath } from './playground_virtual_files.js';
 
 const source = readFileSync(new URL('./playground.js', import.meta.url), 'utf8');
 const handler = source.slice(source.indexOf('async function importDroppedFiles('), source.indexOf('\nfunction installFileExplorerDropTarget'));
@@ -13,6 +13,7 @@ function setup(accept = true) {
   const context = vm.createContext({
     virtualFiles: fs, normalizeVirtualPath, unzipSync, Uint8Array,
     isSystemVirtualPath: path => path.startsWith('/sys/'),
+    isCheckpointVirtualPath,
     registerVirtualInstrumentPreset: path => registered.push(path),
     expandedFileFolders: new Map(), renderVirtualFileExplorer() {}, renderRunFileOptions() {}, setStatus() {},
     window: { confirm: message => { confirmations.push(message); return accept; } },
@@ -48,6 +49,7 @@ test('invalid ZIP paths, reserved destinations and file/folder conflicts do not 
   for (const [files, directory] of [
     [[file('ok.tfi'), file('bad.zip', zipSync({ '../outside.tfi': new Uint8Array([1]) }))], '/presets'],
     [[file('x.js')], '/sys/examples'],
+    [[file('x.js')], '/.tet.ss/examples'],
     [[file('ok.tfi'), file('x.tfi')], '/presets/README.md'],
     [[file('same.tfi'), file('same.tfi')], '/presets'],
   ]) {

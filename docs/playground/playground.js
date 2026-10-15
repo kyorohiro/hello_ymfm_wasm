@@ -52,6 +52,7 @@ import {
   createVirtualFileSystem,
   createVirtualFileRuntimeSource,
   normalizeVirtualPath,
+  isCheckpointVirtualPath,
   transferVirtualFiles,
   resolveVirtualDynamicImports,
 } from "./playground_virtual_files.js?v=virtual-files-1";
@@ -398,6 +399,11 @@ const virtualPresetIds = new Map();
 
 function isSystemVirtualPath(path) {
   return path.startsWith("/sys/");
+}
+
+// UI policy only: checkpoints remain in snapshots, autosaves and Cassettes.
+function isHiddenVirtualPath(path) {
+  return isSystemVirtualPath(path) || isCheckpointVirtualPath(path);
 }
 
 function projectFileOrder(left, right) {
@@ -847,7 +853,7 @@ function exportCassette() {
     virtualFiles.delete("/metadata.json");
     virtualFiles.writeText("/cassette.metadata.js", metadataModuleText);
     currentCassetteHasMetadataFile = true;
-    editorAdapter.syncVirtualFiles?.(virtualFiles.list());
+    editorAdapter.syncVirtualFiles?.(virtualFiles.list().filter(file => !isCheckpointVirtualPath(file.path)));
     if (activeVirtualPath === "/cassette.metadata.js") {
       editorAdapter.setValue(metadataModuleText);
     }
@@ -1130,7 +1136,7 @@ function renderRunFileOptions() {
       (file) =>
         file.type === "text" &&
         file.path.endsWith(".js") &&
-        !isSystemVirtualPath(file.path)
+        !isHiddenVirtualPath(file.path)
     )
     .sort(projectFileOrder);
   const groups = new Map();
@@ -1148,7 +1154,7 @@ function renderRunFileOptions() {
     groups.get(folder).appendChild(option);
   }
 
-  runVirtualPath = virtualFiles.has(previousPath)
+  runVirtualPath = virtualFiles.has(previousPath) && !isHiddenVirtualPath(previousPath)
     ? previousPath
     : "/index.js";
   runFileSelect.value = runVirtualPath;
@@ -1159,7 +1165,7 @@ const expandedFileFolders = new Map();
 function renderVirtualFileExplorer() {
   const selectedPath = activeTfiFilePath ?? activeVirtualPath;
   renderFileTree(fileExplorerList,
-    [...virtualFiles.list(), ...virtualFiles.listDirectories().filter(path => path !== '/').map(path => ({path,type:'directory'}))].filter(file => !isSystemVirtualPath(file.path)), {
+    [...virtualFiles.list(), ...virtualFiles.listDirectories().filter(path => path !== '/').map(path => ({path,type:'directory'}))].filter(file => !isHiddenVirtualPath(file.path)), {
       selectedPath,
       expanded: expandedFileFolders,
       onOpen: openVirtualFile,
@@ -1174,6 +1180,10 @@ function renderVirtualFileExplorer() {
 }
 
 function openVirtualFile(path) {
+  if (isCheckpointVirtualPath(path)) {
+    setStatus('/.tet.ss is reserved for file checkpoints.');
+    return;
+  }
   const file = virtualFiles.get(path);
   if (!file) {
     return;
@@ -1215,6 +1225,7 @@ function createVirtualFile() {
     if (isSystemVirtualPath(normalizedPath)) {
       throw new Error("/sys is reserved for built-in files.");
     }
+    if (isCheckpointVirtualPath(normalizedPath)) throw new Error('/.tet.ss is reserved for file checkpoints.');
     if (virtualFiles.has(normalizedPath)) {
       throw new Error("A file already exists at that path.");
     }
@@ -1242,6 +1253,10 @@ async function importVirtualFile(file) {
   const normalizedPath = normalizeVirtualPath(path);
   if (isSystemVirtualPath(normalizedPath)) {
     setStatus("/sys is reserved for built-in files.");
+    return;
+  }
+  if (isCheckpointVirtualPath(normalizedPath)) {
+    setStatus('/.tet.ss is reserved for file checkpoints.');
     return;
   }
   if (
@@ -1274,6 +1289,7 @@ async function importDroppedFiles(files, directory = "") {
       if (name.startsWith("/") || name.split("/").includes("..")) throw new Error(`Invalid import path: ${name}`);
       const path = normalizeVirtualPath(`${destination}/${name}`);
       if (path === "/sys" || isSystemVirtualPath(path)) throw new Error("/sys is reserved for built-in files.");
+      if (isCheckpointVirtualPath(path)) throw new Error('/.tet.ss is reserved for file checkpoints.');
       if (pending.has(path)) throw new Error(`Duplicate import path: ${path}`);
       pending.set(path, bytes);
     }
@@ -1365,7 +1381,7 @@ function transferExplorerFiles(source, destination, copy = false) {
         tfiFileEditor.open(tone.to, virtualFiles.get(tone.to).data);
       } else if (active) showVirtualFile(virtualFiles.get(activeVirtualPath));
     }
-    editorAdapter.syncVirtualFiles?.(virtualFiles.list());
+    editorAdapter.syncVirtualFiles?.(virtualFiles.list().filter(file => !isCheckpointVirtualPath(file.path)));
     clearVirtualInstrumentPresets();
     registerVirtualInstrumentPresets();
     expandedFileFolders.set(normalizeVirtualPath(destination).split('/').slice(0, -1).join('/'), true);
@@ -1380,7 +1396,7 @@ function transferExplorerFiles(source, destination, copy = false) {
 }
 
 function refreshExplorerFiles(directory = '/') {
-  editorAdapter.syncVirtualFiles?.(virtualFiles.list());
+  editorAdapter.syncVirtualFiles?.(virtualFiles.list().filter(file => !isCheckpointVirtualPath(file.path)));
   clearVirtualInstrumentPresets();
   registerVirtualInstrumentPresets();
   expandedFileFolders.set(directory, true);
@@ -1389,7 +1405,7 @@ function refreshExplorerFiles(directory = '/') {
 }
 
 function deleteExplorerPath(path) {
-  if (path === '/' || path === '/index.js' || path === '/sys' || isSystemVirtualPath(path)) {
+  if (path === '/' || path === '/index.js' || path === '/sys' || isHiddenVirtualPath(path)) {
     setStatus('This project path cannot be deleted.');
     return;
   }
@@ -1428,20 +1444,19 @@ function renameActiveVirtualFile() {
     if (isSystemVirtualPath(normalizedPath)) {
       throw new Error("/sys is reserved for built-in files.");
     }
+    if (isCheckpointVirtualPath(normalizedPath)) throw new Error('/.tet.ss is reserved for file checkpoints.');
     if (virtualFiles.has(normalizedPath)) {
       throw new Error("A file already exists at that path.");
     }
     saveActiveVirtualFile();
-    const currentFile = virtualFiles.get(activeVirtualPath);
-    virtualFiles.writeText(normalizedPath, currentFile.data);
-    virtualFiles.delete(activeVirtualPath);
+    transferVirtualFiles(virtualFiles, activeVirtualPath, normalizedPath);
     const previousPath = activeVirtualPath;
     activeVirtualPath = normalizedPath;
     if (runVirtualPath === previousPath) {
       runVirtualPath = normalizedPath;
     }
     showVirtualFile(virtualFiles.get(normalizedPath));
-    editorAdapter.syncVirtualFiles?.(virtualFiles.list());
+    editorAdapter.syncVirtualFiles?.(virtualFiles.list().filter(file => !isCheckpointVirtualPath(file.path)));
     renderVirtualFileExplorer();
     renderRunFileOptions();
   } catch (error) {
@@ -1779,7 +1794,7 @@ function restoreVirtualFilesFromCassette(cassette) {
     virtualFiles.writeText("/index.js", previousSource);
   }
   restoreBundledExampleFiles();
-  editorAdapter.syncVirtualFiles?.(virtualFiles.list());
+  editorAdapter.syncVirtualFiles?.(virtualFiles.list().filter(file => !isCheckpointVirtualPath(file.path)));
   registerVirtualInstrumentPresets();
   activeVirtualPath = "/index.js";
   showVirtualFile(virtualFiles.get(activeVirtualPath));
@@ -2118,6 +2133,7 @@ runButton.addEventListener(
         targetPath = normalizeVirtualPath(vgmImportTarget.value.trim());
         if (!targetPath.endsWith(".js")) throw new Error("Use a .js file path.");
         if (isSystemVirtualPath(targetPath)) throw new Error("/sys is reserved for built-in files.");
+        if (isCheckpointVirtualPath(targetPath)) throw new Error('/.tet.ss is reserved for file checkpoints.');
         if (virtualFiles.get(targetPath)?.type === "binary") throw new Error("Choose a text file or a new path.");
         vgmImportTarget.setCustomValidity("");
       } catch (error) {
@@ -2343,7 +2359,7 @@ installFileExplorerDropTarget();
     getEditorValue,
     getActiveVirtualPath: () => activeVirtualPath,
     listVirtualFiles() {
-      return virtualFiles.list();
+      return virtualFiles.list().filter(file => !isCheckpointVirtualPath(file.path));
     },
     openVirtualFile,
     setEditorNote,
@@ -2388,8 +2404,8 @@ async function initializeDesktopAutosave() {
       currentCassetteHasMetadataFile = Boolean(snapshot.hasMetadataFile);
       restoreVirtualFilesFromCassette({files:new Map(snapshot.files.map(file => [file.path.replace(/^\//, ''), file.type === 'text' ? new TextEncoder().encode(file.data) : file.data]))});
       for (const directory of snapshot.directories ?? []) virtualFiles.mkdir(directory,{recursive:true});
-      if (snapshot.activePath && virtualFiles.get(snapshot.activePath)?.type === 'text') openVirtualFile(snapshot.activePath);
-      if (snapshot.runPath && virtualFiles.get(snapshot.runPath)?.type === 'text') runVirtualPath = snapshot.runPath;
+      if (snapshot.activePath && !isCheckpointVirtualPath(snapshot.activePath) && virtualFiles.get(snapshot.activePath)?.type === 'text') openVirtualFile(snapshot.activePath);
+      if (snapshot.runPath && !isHiddenVirtualPath(snapshot.runPath) && virtualFiles.get(snapshot.runPath)?.type === 'text') runVirtualPath = snapshot.runPath;
       restoredDesktopProject = true;
       // Recreate imported sample/preset names when Run initializes audio, without playing on startup.
       try {
@@ -2431,7 +2447,7 @@ playgroundShell=installPlaygroundShell({fs:virtualFiles,
       const file=virtualFiles.get(activeVirtualPath);
       if(file?.type==='text'&&(activeVirtualPath!==shellPreviousPath||getEditorValue()!==file.data))showVirtualFile(file);
     }
-    editorAdapter.syncVirtualFiles?.(virtualFiles.list());
+    editorAdapter.syncVirtualFiles?.(virtualFiles.list().filter(file => !isCheckpointVirtualPath(file.path)));
     renderVirtualFileExplorer();renderRunFileOptions();desktopAutosave?.changed();
   },
   output:document.getElementById('shellOutput'),form:document.getElementById('shellForm'),
@@ -2441,12 +2457,13 @@ playgroundShell=installPlaygroundShell({fs:virtualFiles,
   clearButton:document.getElementById('shellClearButton'),
   async onPlay(path){
     if(isSystemVirtualPath(path))throw Error('/sys is read-only');
+    if(isCheckpointVirtualPath(path))throw Error('/.tet.ss is reserved for file checkpoints.');
     const file=virtualFiles.get(path);if(file?.type!=='text'||!path.endsWith('.js'))throw Error('Choose a project JavaScript file');
     runVirtualPath=path;renderRunFileOptions();await runCode({propagateError:true});
   },
 });
 if(!window.__TAURI_INTERNALS__)installPlaygroundGit({fs:virtualFiles,shell:playgroundShell.shell,lifecycle:playgroundShell,beforeCommand:saveActiveVirtualFile,afterCommand(){
-  editorAdapter.syncVirtualFiles?.(virtualFiles.list());renderVirtualFileExplorer();renderRunFileOptions();
+  editorAdapter.syncVirtualFiles?.(virtualFiles.list().filter(file => !isCheckpointVirtualPath(file.path)));renderVirtualFileExplorer();renderRunFileOptions();
 }});
 window.addEventListener('pagehide',()=>playgroundShell.invalidate('Page closed'));
 

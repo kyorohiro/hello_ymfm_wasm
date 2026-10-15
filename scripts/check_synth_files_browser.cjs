@@ -83,6 +83,9 @@ async function waitForStoredDraft(page, expected) {
     {path:'/opaque/data.bin', type:'binary', data:new Uint8Array([0, 255, 128, 13, 10, 0])},
     {path:'/.git/objects/ab/cd', type:'binary', data:new Uint8Array([120, 156, 0, 255, 0])},
     {path:'/.git/HEAD', type:'text', data:'ref: refs/heads/main\n'},
+    {path:'/.tet.ss/timbres/voice.vgi', type:'binary', data:createVgiFromPreset({...patch, algorithm:2})},
+    {path:'/.tet.ss/opaque.tfi', type:'binary', data:new Uint8Array([255,0,128])},
+    {path:'/.tet.ss/index.js', type:'text', data:'previous source'},
   ];
   const fixture = Buffer.from(createPlaygroundCassetteZip(fixtureFiles, {
     directories:['/empty', '/.git/refs/heads', '/assets/empty'],
@@ -298,6 +301,8 @@ async function waitForStoredDraft(page, expected) {
         await page.waitForFunction(() => document.getElementById('status').textContent.includes('shared'));
         cassette = await exportCassette();
         assert.deepEqual(fileEntries(cassette), fileEntries(sourceCassette), 'Cassette preserves code, opaque bytes, .git and raw metadata');
+        assert.equal(await page.locator('#synthFilesTree [data-file-path^="/.tet.ss"]').count(), 0, 'Checkpoint metadata stays hidden in Files');
+        assert.equal(await page.locator('#presetSelect option[value^="vfs:/.tet.ss"]').count(), 0, 'Checkpoint instruments are not duplicate presets');
         for (const directory of sourceCassette.directories) assert(cassette.directories.includes(directory), `Preserves ${directory}`);
         await selectTone('/timbres/voice.vgi');
         assert.equal(await algorithm(), 4, 'VGI from Playground Cassette loads in Synth');
