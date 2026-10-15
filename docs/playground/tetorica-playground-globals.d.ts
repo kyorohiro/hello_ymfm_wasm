@@ -1351,10 +1351,15 @@ interface PlaygroundDx7 {
    * shared LFO settings can affect held notes. No channel argument.
    */
   setPreset(preset: DX7Preset): Promise<void>;
-  /** Partially update logical OP1..6 using DX7 values. outputLevel 0..99: larger is louder. */
+  /** Partially update OP1..6 using DX7 values. outputLevel 0..99: larger is louder.
+   * outputLevel/mode/coarse/fine/detune also affect this patch's sounding notes
+   * and release tails without retriggering. Other fields affect future notes.
+   * setPreset/loadSysex create new patch identities; selectVoice retains them. */
   setOperator(operator: DX7Operator, params: DX7OperatorParams): Promise<void>;
   /** Apply a tuple batch atomically; duplicate operators reject, [] is a no-op. */
   setOperators(entries: ReadonlyArray<readonly [DX7Operator, DX7OperatorParams]>): Promise<void>;
+  /** Raw feedback 0..7 on this patch's sounding/future notes; may cause a step. */
+  setFeedback(feedback: number): Promise<void>;
   /** Read a complete independent object after preceding commands apply. */
   getPreset(): Promise<DX7PresetState>;
   /** Zero-based voice index. Existing notes retain their operator/envelope settings. */

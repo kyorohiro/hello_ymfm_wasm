@@ -20,10 +20,14 @@ export interface DX7 {
   /** Replace only the selected bank slot, filling omitted fields from INIT.
    * Creates slot 0 if no bank is loaded. Other bank slots remain unchanged. */
   setPreset(preset: DX7Preset): void;
-  /** Edit public OP1..OP6 in the selected voice (or INIT when empty). */
+  /** Edit OP1..OP6. outputLevel/mode/coarse/fine/detune affect sounding notes
+   * of this patch, including release tails, without retriggering; other fields
+   * affect future notes. setPreset/loadSysex establish new patch identities. */
   setOperator(operator: DX7Operator, patch: DX7OperatorParams): void;
   /** Validate the entire unique tuple batch before committing; [] is a no-op. */
   setOperators(entries: DX7OperatorEntries): void;
+  /** Raw feedback 0..7; this patch's sounding/future notes. May cause a step. */
+  setFeedback(feedback: number): void;
   /** Complete independent state; throws if no voice has been selected. */
   getPreset(): DX7PresetState;
   /** MIDI note 0..127, velocity 0..127. Zero velocity is Note Off. */

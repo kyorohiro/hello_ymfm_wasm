@@ -75,6 +75,8 @@
     "test": "node --test tests/*.test.mjs",
     "test:native": "npm run build:native && node --test tests/native.test.mjs",
     "test:lifecycle": "node scripts/check-lifecycle.mjs",
+    "test:live-native": "node scripts/check-live-native.mjs",
+    "perf:live": "node scripts/measure-live-parameters.mjs",
     "test:browser": "node scripts/check-browser.mjs",
     "test:package": "node scripts/check-package.mjs",
     "typecheck": "tsc --noEmit -p tsconfig.json"

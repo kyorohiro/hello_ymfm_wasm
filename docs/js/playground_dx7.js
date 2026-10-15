@@ -24,6 +24,7 @@ function copySysex(input) {
 export function createDx7Client(port, initial = {}) {
   let voices = (initial.voices ?? []).map(voice => ({...voice}));
   let selectedVoice = initial.selectedVoice ?? -1;
+  let selectionRevision = 0;
   let disposed = false, failed = null, nextId = 0;
   let client;
   const sampleRate = initial.sampleRate ?? 44100;
@@ -70,10 +71,16 @@ export function createDx7Client(port, initial = {}) {
       catch (error) { fail(error); }
     });
   }
-  function updateState(state) {
+  function updateState(state, revision) {
     voices = state.voices.map(voice => ({...voice}));
-    selectedVoice = state.selectedVoice;
+    // Return the command's ordered snapshot while keeping a newer optimistic
+    // selectVoice() visible on the client until its following acknowledgement.
+    if (revision === selectionRevision) selectedVoice = state.selectedVoice;
     return {...state, voices: voices.map(voice => ({...voice}))};
+  }
+  async function requestState(method, args = [], transfer = []) {
+    const revision = selectionRevision;
+    return updateState(await request(method, args, transfer), revision);
   }
   port.onmessage = ({data}) => {
     if (disposed || failed) return;
@@ -92,32 +99,39 @@ export function createDx7Client(port, initial = {}) {
     internalSampleRate,
     get voices() { return voices.map(voice => ({...voice})); },
     get selectedVoice() { return selectedVoice; },
-    async getState() { return updateState(await request('getState')); },
+    async getState() { return requestState('getState'); },
     async loadSysex(input) {
       assertUsable();
       // Do not detach the caller's file bytes when transferring to the Worklet.
       const bytes = copySysex(input);
-      const state = updateState(await request('loadSysex', [bytes], [bytes.buffer]));
+      const state = await requestState('loadSysex', [bytes], [bytes.buffer]);
       return state.voices;
     },
     /** Replace the selected slot from INIT defaults; retain the other bank voices.
      * @param {import('./msfa_dx7/src/preset.js').DX7Preset} preset */
     async setPreset(preset) {
       assertUsable(); validatePreset(preset);
-      updateState(await request('setPreset', [structuredClone(preset)]));
+      await requestState('setPreset', [structuredClone(preset)]);
     },
-    /** Patch logical OP1..6; DX7 values, not YM2612 TL/AR units.
+    /** Patch OP1..6. Level/frequency edits also affect this patch's sounding
+     * notes and release tails. Other operator parameters affect future notes.
      * @param {1|2|3|4|5|6} operator
      * @param {import('./msfa_dx7/src/preset.js').DX7OperatorParams} params */
     async setOperator(operator, params) {
       assertUsable(); validateOperator(operator, params);
-      updateState(await request('setOperator', [operator, structuredClone(params)]));
+      await requestState('setOperator', [operator, structuredClone(params)]);
     },
     /** Validate and apply the entire batch atomically.
      * @param {ReadonlyArray<readonly [1|2|3|4|5|6, import('./msfa_dx7/src/preset.js').DX7OperatorParams]>} entries */
     async setOperators(entries) {
       assertUsable(); validateOperators(entries);
-      updateState(await request('setOperators', [structuredClone(entries)]));
+      await requestState('setOperators', [structuredClone(entries)]);
+    },
+    /** Feedback 0..7, applied to this patch's sounding and future notes.
+     * @param {number} feedback */
+    async setFeedback(feedback) {
+      assertUsable(); midiInteger(feedback, 'Feedback', 7);
+      await requestState('setFeedback', [feedback]);
     },
     /** A fresh complete object after preceding commands have been applied.
      * @returns {Promise<import('./msfa_dx7/src/preset.js').DX7PresetState>} */
@@ -126,6 +140,7 @@ export function createDx7Client(port, initial = {}) {
       assertUsable();
       midiInteger(index, 'Voice index', voices.length - 1);
       send('selectVoice', [index]);
+      selectionRevision++;
       selectedVoice = index;
     },
     noteOn(note, velocity = 100) {

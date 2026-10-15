@@ -58,7 +58,7 @@ async function checkStopDuringInitialization(browser, url, execution) {
         return {methods:methods?.entries.map(entry=>entry.name),fields:fields?.entries.map(entry=>entry.name),hover:hover?.displayParts.map(part=>part.text).join('')};
       } finally {model.dispose();}
     });
-    for(const method of ['setPreset','setOperator','setOperators','getPreset'])assert(completion.methods?.includes(method),'Missing Monaco DX7 completion: '+method);
+    for(const method of ['setPreset','setOperator','setOperators','setFeedback','getPreset'])assert(completion.methods?.includes(method),'Missing Monaco DX7 completion: '+method);
     for(const field of ['coarse','fine','outputLevel','envelope'])assert(completion.fields?.includes(field),'Missing Monaco DX7 field: '+field);
     assert(completion.hover?.includes('DX7Preset'),'Missing typed DX7 preset hover');
     await page.evaluate(execution => {
@@ -242,6 +242,35 @@ async function runBrowser(name, type, url, fixture) {
       assert.equal(object.preset.operators[6].coarse, 3); assert.equal(object.rejected, true);
       const objectPcm = await meter();
       assert(objectPcm.every(value => value > .005), `${name}/${execution}: object-authored DX7 patch is silent ${objectPcm}`);
+      // The real editor's Main and Worker bridges must reach currently sounding
+      // notes, not just the next Note On's stored preset.
+      await run(`
+        const dx7=await useSoundChip('dx7'); dx7.panic();
+        await dx7.setPreset({name:'LIVE',algorithm:31,operators:{1:{coarse:1,fine:0,detune:7,outputLevel:90}}});
+        dx7.noteOn(69,100);
+      `, execution);
+      const liveHeld = await meter();
+      const frequency = () => page.evaluate(() => {
+        const meter=window.__dx7Meters.meters[0],pcm=new Float32Array(meter.fftSize),crossings=[];
+        meter.getFloatTimeDomainData(pcm);
+        for(let i=1;i<pcm.length;i++) if(pcm[i-1]<=0&&pcm[i]>0) crossings.push(i-1-pcm[i-1]/(pcm[i]-pcm[i-1]));
+        return crossings.length>1 ? window.__dx7Test.megaDrive.audioContext.sampleRate*(crossings.length-1)/(crossings.at(-1)-crossings[0]) : 0;
+      });
+      const liveInitialHz = await frequency();
+      await run(`await (await useSoundChip('dx7')).setOperator(1,{coarse:2});`, execution);
+      await meter();
+      const liveOctaveHz = await frequency();
+      assert(Math.abs(liveInitialHz / 440 - 1) < .03 && Math.abs(liveOctaveHz / 880 - 1) < .03, `${name}/${execution}: live frequency ${liveInitialHz} -> ${liveOctaveHz}`);
+      await run(`await (await useSoundChip('dx7')).setOperators([[1,{outputLevel:0}],[6,{fine:12}]]);`, execution);
+      const liveMuted = await meter();
+      assert(liveMuted.every((value,channel)=>value < liveHeld[channel]*.002), `${name}/${execution}: live Output Level zero retained held audio ${liveMuted}`);
+      const liveFeedback = await run(`
+        const dx7=await useSoundChip('dx7'); await dx7.setFeedback(7);
+        await dx7.setOperator(1,{outputLevel:90}); const result={feedback:(await dx7.getPreset()).feedback};
+      `, execution);
+      assert.equal(liveFeedback.feedback, 7, `${name}/${execution}: Feedback acknowledgement`);
+      const liveRestored = await meter();
+      assert(liveRestored.every((value,channel)=>value > liveHeld[channel]*.8), `${name}/${execution}: live Output Level did not restore held audio ${liveRestored}`);
       await run(`
         const dx7 = await useSoundChip('dx7'); dx7.panic();
         await dx7.loadSysex(${silentVoice});
@@ -270,7 +299,7 @@ async function runBrowser(name, type, url, fixture) {
       `, execution);
       assert.equal(cancelled.rejected, true, 'Dispose rejects an in-flight SysEx request');
       await page.evaluate(async () => window.__dx7Test.runtime.stopWithFade());
-      results.push({execution, sampleRate:initial.state.sampleRate, baseline, half, master, fx, objectPcm, stopped});
+      results.push({execution, sampleRate:initial.state.sampleRate, baseline, half, master, fx, objectPcm, liveHeld, liveMuted, liveRestored, liveInitialHz, liveOctaveHz, stopped});
     }
     assert.deepEqual(network, [], 'User network requests remain blocked');
     assert.deepEqual(errors, []);

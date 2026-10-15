@@ -10,6 +10,9 @@ DX7 single-voice or 32-voice-bank SysEx files. No other Tetorica package is requ
 **Version 0.2.0 adds object presets:** create and edit patches with
 `setPreset`, `setOperator`, `setOperators`, and `getPreset`.
 
+The development source also supports live operator level/frequency changes
+and `setFeedback`; these additions are not in published 0.2.0.
+
 ## Install
 
 ```sh
@@ -72,7 +75,7 @@ memory**, plus its JavaScript state. Instances do not share mutable synth state.
 
 ## Object presets
 
-The four object methods are **synchronous on the PCM core**. Their browser-node
+The object methods are **synchronous on the PCM core**. Their browser-node
 equivalents return Promises; await them to receive acknowledgement that the
 Worklet applied the change.
 
@@ -81,6 +84,7 @@ Worklet applied the change.
 | `setPreset(preset)` | Fill omitted fields from the project's INIT SINE patch, then replace the selected voice |
 | `setOperator(op, patch)` | Partially update logical OP1–OP6 in the current voice |
 | `setOperators([[op, patch], ...])` | Validate and apply a complete tuple batch atomically |
+| `setFeedback(value)` | Set feedback `0..7` for this patch's sounding and future notes |
 | `getPreset()` | Return a complete, independent `DX7PresetState` copy |
 
 ```javascript
@@ -130,11 +134,52 @@ All numeric values below must be finite integers within their range.
 | `transpose` | `0..48`, neutral `24`; retained, subject to engine limitations |
 | `oscillatorSync` | Boolean; retained, subject to engine limitations |
 
-Operator, envelope and algorithm edits apply to **subsequent Note On events**.
-Already sounding notes retain their copied operator/envelope settings. Applying
-a voice reconfigures the synth's **shared LFO**, so modulation of held notes can
-change even though the LFO's running phase is retained. These methods do not
-implement continuous per-note parameter automation.
+### Live parameters (development)
+
+`setOperator` / `setOperators` apply changed **outputLevel, mode, coarse, fine
+and detune** to this patch's sounding notes, including release tails. Notes keep
+their oscillator phase, envelope stage, key state, original velocity and keyboard
+scaling. Other operator fields, algorithm and EG shape remain future-note-only.
+`setFeedback(0..7)` updates feedback without replacing the rest of the patch.
+
+Patch identity follows each bank slot across `selectVoice` calls. Replacing a
+slot with `setPreset`, or loading a new bank with `loadSysex`, starts new identities:
+old notes continue with their previous patch and later edits do not rewrite them.
+Selecting a different patch does not rewrite old operators/EGs either. A shared
+LFO is still reconfigured on selection/replacement; its phase is retained.
+Live level/frequency/feedback edits do not touch the shared LFO.
+
+The core applies edits synchronously; browser/Playground setters return Promises.
+They affect the next ungenerated **64-frame internal block**, after any generated
+PCM leftovers and resampling lookahead. An acknowledgement reports applied state,
+not that the audio device has played it. Gain interpolates across a block; abrupt
+frequency or feedback changes can still cause steps and are not a promise of
+click-free modulation. Smooth parameter steps and audition the result.
+
+Live level control preserves the existing progressing EG as a fixed reference
+and changes operator attenuation. An initially silent/clamped operator uses a
+parallel full-level EG trajectory so it can become audible without retriggering.
+This deliberately preserves elapsed attack/release under mute; it does not claim
+hardware-identical timing after arbitrary level edits. A completed release stays
+completed. The original path remains bit-identical when no live edit is made.
+
+In Playground, numeric `tween` durations are seconds. Return the setter Promise
+so `tween` waits for application and propagates errors:
+
+```javascript
+dx7.noteOn(60, 100);
+await tween(1, progress =>
+  dx7.setOperator(2, {outputLevel: Math.round(99 * progress)})
+);
+dx7.noteOff(60);
+```
+
+This intentionally changes supported operator edits from 0.2.0's future-note-only
+behavior. The API signatures and unedited PCM are retained. General envelope and
+algorithm live editing remain outside this increment.
+Extreme valid ratios/notes/pitch envelopes use defined modular phase increments
+above the original LUT's 20-octave range; ultrasonic frequencies alias. Ordinary
+unedited PCM is unchanged, while the former out-of-range shift was undefined.
 
 ## Load and encode SysEx
 
@@ -225,7 +270,7 @@ try {
 
 `createDX7Node` resolves only when WASM is ready and returns an **unconnected,
 mono** `AudioWorkletNode` as `node`. The caller owns the AudioContext.
-`loadSysex`, `setPreset`, `setOperator`, `setOperators`, and `getPreset` return
+`loadSysex`, `setPreset`, `setOperator`, `setOperators`, `setFeedback`, and `getPreset` return
 Promises. Notes and selection remain synchronous message sends. Commands share
 an ordered MessagePort: a subsequent Note On cannot overtake a preceding patch
 update or bank load. There is no exposed pre-initialization event queue.
@@ -280,7 +325,7 @@ assets; include the Worklet, its dependencies and WASM in your deployment.
 - The upstream shared resonant output filter is retained. This does not assert
   that its output matches the physical DX7 analog stage.
 - Used voice slots continue computing after their release envelopes finish,
-  bounded at 16. Existing notes retain their patch except for shared-LFO effects.
+  bounded at 16. Live edits do not restart completed envelopes.
 - The API is one instrument, not a multitimbral MIDI rack. MIDI channel routing,
   Web MIDI input and raw streaming/parameter-change SysEx are not included.
 
@@ -314,6 +359,7 @@ npm test
 npm run typecheck
 npm run test:native
 npm run test:lifecycle
+npm run test:live-native
 npm run test:browser
 npm run test:package
 ```
@@ -334,10 +380,11 @@ in [docs/verification.md](docs/verification.md).
 ## Upstream and license
 
 The engine is pinned to msfa commit
-`f67d41d313b7dc85f6fb99e79e515cc9d208cfff`. The original scalar FM arithmetic,
-envelopes, algorithms, allocation, filter and clipping are retained. Local
-changes provide deterministic initialization, ownership/disposal, a thin direct
-control adapter and current-toolchain compatibility. Native comparison also
+`f67d41d313b7dc85f6fb99e79e515cc9d208cfff`. The original scalar operator kernels,
+algorithm routings, allocator, filter and clipping are retained. Local changes
+provide deterministic initialization, ownership/disposal, direct control,
+live envelope attenuation and defined extreme-frequency phase arithmetic, as
+described above and in the research record. Native comparison also
 uses the scalar path rather than the approximate ARM NEON kernel.
 
 Both msfa and the new code use **Apache-2.0**. Copyright headers and upstream

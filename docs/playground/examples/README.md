@@ -33,7 +33,11 @@ FILES ではこの順に表示します。機種別のサンプルは各フォ�
 すべて `await` で適用完了を待ち、`await dx7.getPreset()` で現在の設定を取得できます。
 `setPreset` の未指定項目は INIT SINE に戻り、`setOperator(s)` は部分更新です。
 読み込んだバンクでは選択中の音色だけを更新し、他の音色は保持します。
-変更した OP・EG・algorithm は次の Note On から使い、共有 LFO は既存の声にも影響します。
+開発版では OP の outputLevel/mode/coarse/fine/detune と setFeedback が、同じ音色由来の
+発音中の音（release を含む）にも反映されます。EG 形状・algorithm 等は次の Note On 用です。
+setPreset/loadSysex で音色を置換すると以前の発音は別扱いになります。共有 LFO は
+音色の選択・置換時には既存の声にも影響しますが、ライブ編集では変更しません。
+`dx7-live-parameters.js` は、発音したまま拍／秒の tween で OP を変える例です。
 DX7 の outputLevel は0..99で、大きいほど大きな音。EG の rates／levels も0..99の値で、秒数ではありません。
 
 `dx7/dx7-init-sine.js` は、独立した16音の DX7 音源を使います。

@@ -20,7 +20,7 @@ setBpm(110);
 await mixer.set(dx7.id, {volume: 0.5});
 
 liveLoop('dx7-object-melody', async () => {
-  // Partial edits keep the other parameters and apply to the next Note On.
+  // Level edits keep other parameters and also affect this patch's release tails.
   await dx7.setOperator(2, {outputLevel: choose([55, 65, 75])});
   for (const note of [60, 64, 67, 72]) {
     dx7.noteOn(note, 100);

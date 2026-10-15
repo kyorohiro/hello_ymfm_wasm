@@ -145,14 +145,15 @@ const pcm = synth.render(44100);
 synth.dispose();
 ```
 
-PCM コアの4メソッドは同期処理です。ブラウザの `createDX7Node()` と Playground では
-4メソッドとも Promise を返すので、`await synth.setPreset({...})` のように適用完了を待ちます。
+PCM コアの音色メソッドは同期処理です。ブラウザの `createDX7Node()` と Playground では
+Promise を返すので、`await synth.setPreset({...})` のように適用完了を待ちます。
 音色変更と次の Note On は同じ MessagePort の順序で処理されます。
 
 - `setPreset(preset)`: 未指定項目を INIT SINE の値で埋め、選択中の音色を置換します。
 - `setOperator(op, patch)`: 現在の音色の指定 OP だけを部分更新します。
 - `setOperators([[op, patch], ...])`: 全体を検証して一括反映します。同じ OP の重複はエラー、空配列は何もしません。
 - `getPreset()`: 現在の音色を Object で読みます。コア／単体ブラウザで音色未作成の場合はエラーです。
+- `setFeedback(value)`: 開発版で追加。0..7 の Feedback を発音中／次の発音へ反映します。
 
 音色がない状態で最初の setter を呼ぶと、INIT SINE を基準に音色0を作成します。
 32音色を読み込んだ場合も、選択番号と他の31音色を保持します。
@@ -174,10 +175,38 @@ OP は論理番号 **1〜6**。チャンネル引数はありません。Object 
 | lfo | speed・delay・pitchModDepth・ampModDepth: 0..99、waveform: 0..5、pitchModSensitivity: 0..7、sync: boolean |
 | name | 最大10文字の表示可能な ASCII |
 
-基本的に変更は**次の Note On**から反映され、発音中の OP・EG・algorithm は変えません。
-共有 LFO は音色適用時に再設定され、既存の声にも影響する場合があります。
+### 発音中の変更（開発版・npm 0.2.0 未提供）
+
+`setOperator`／`setOperators` の `outputLevel`・`mode`・`coarse`・`fine`・`detune`
+は、編集中の音色から発音した音へ即時反映します。release 中も対象です。
+位相・EG 段階・キー状態・元の velocity・鍵盤スケーリングを維持します。
+その他の OP 項目・algorithm・EG 形状は次の Note On から反映します。
+`setFeedback(0..7)` で同じ対象の Feedback も変更できます。
+
+音色の選択を往復しても各スロットの識別を保持します。`setPreset()` による置換と
+`loadSysex()` による再読込では新しい識別になるため、以前から鳴っている音は
+後の編集で書き換わりません。`selectVoice()` 自体も既存の OP・EG を変更しません。
+共有 LFO は音色の選択・置換時に再設定され、既存の声にも影響する場合がありますが、
+ライブの音量・周波数・Feedback 編集では変更しません。
+
+適用は次の未生成の64内部フレームのブロックからです。生成済み PCM や補間先読みには
+遡りません。Promise 完了は適用状態を示し、デバイスで聞こえた時刻ではありません。
+ゲインはブロック内で補間しますが、急な周波数・Feedback 変更による段差は残り得ます。
+Playground では `await tween(1, p => dx7.setOperator(2, {outputLevel: Math.round(99*p)}))`
+のように setter の Promise を返します。数値の時間指定は秒です。
+
+0.2.0 の「次の発音だけに適用」からの意図した挙動変更です。API の引数と、
+編集しない場合の PCM は維持します。
+
+ライブ音量は、進行中の EG を固定の基準にして OP の減衰量を変えます。
+最初から無音・下限に張り付いた OP には並行して進む最大レベルの EG を使い、
+再発音せず音を出せるようにします。ミュート中も attack/release の時間は進みます。
+任意の編集後の実機と完全に同じ EG 時間を保証するものではありません。
+完了した release は再開しません。
+極端な ratio・note・pitch EG では、元の LUT の20オクターブ範囲を超える位相増分も
+明示的にラップさせます。超音波域はエイリアスし、可聴域へクランプしません。
 `ampModSensitivity`、`transpose`（0..48、中央24）、`oscillatorSync` はデータとして保持しますが、
-下記の上流 msfa の制限を引き継ぎます。生の音色値を演奏中のパラメーターへ連続反映する機能は今回追加していません。
+下記の上流 msfa の制限を引き継ぎます。
 
 ## レート・時間・音量
 

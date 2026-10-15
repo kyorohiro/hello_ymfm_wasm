@@ -357,9 +357,19 @@ duplicate operators and invalid values atomically; an empty array is a no-op.
 Objects are copied at the boundary, and `getPreset` returns a full independent copy.
 Algorithm numbers are zero based (0..31); outputLevel is 0..99, higher is louder;
 envelopes use four DX7 rate/level values 0..99 rather than seconds or YM2612 AR/TL.
-Existing notes retain captured operator/EG/algorithm settings; the shared LFO
-is reconfigured when applying a voice and can affect held notes while retaining
-its running phase. MSFA's documented AM,
+The development source also applies outputLevel/mode/coarse/fine/detune edits
+to sounding notes of the edited patch, including release tails. Its additive
+`await dx7.setFeedback(0..7)` edits feedback. These changes are not in npm 0.2.15.
+`setPreset`/`loadSysex` replace patch identities; old notes retain the previous
+patch. `selectVoice` preserves each bank slot's identity. General EG/algorithm
+edits remain future-note-only. Phase/key/EG state and original velocity/scaling
+are retained, with edits applied at the next ungenerated 64-frame internal block.
+An acknowledgement does not bypass generated PCM or device buffering.
+Gain has block interpolation; abrupt frequency/feedback changes can still step.
+Return async setters from Playground `tween` callbacks, e.g.
+`await tween(1, p => dx7.setOperator(2, {outputLevel: Math.round(99*p)}))`.
+Live edits leave the shared LFO untouched; selection/replacement can reconfigure
+it while retaining its phase. MSFA's documented AM,
 transpose and oscillator-sync limitations still apply.
 The standalone DX7 PCM core exposes the same methods synchronously.
 

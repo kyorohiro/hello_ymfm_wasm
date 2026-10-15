@@ -74,6 +74,10 @@ class DX7Processor extends AudioWorkletProcessor {
       case 'getPreset':
         this.port.postMessage({ type: 'result', id: data.id, preset: this.synth.getPreset(), voices: this.synth.voices, selectedVoice: this.synth.selectedVoice });
         break;
+      case 'setFeedback':
+        this.synth.setFeedback(data.feedback);
+        this.port.postMessage({ type: 'result', id: data.id, voices: this.synth.voices, selectedVoice: this.synth.selectedVoice });
+        break;
       case 'selectVoice': this.synth.selectVoice(data.index); break;
       case 'noteOn': this.synth.noteOn(data.note, data.velocity); break;
       case 'noteOff': this.synth.noteOff(data.note); break;

@@ -95,3 +95,23 @@ The Firefox test used the matching Playwright Firefox 155.0 build.
   voice reconfigures the shared LFO while retaining its phase, which can affect
   held notes. This adds no live
   per-note operator editor, and retains upstream AM/transpose/sync limitations.
+
+## Live parameters — 2026-10-16 development source
+
+- Operator outputLevel/mode/coarse/fine/detune and additive setFeedback affect
+  sounding notes of the edited patch, including release tails. Identities isolate
+  bank slots and replaced patches. No retrigger or phase reset; original captured
+  scaling and ordinary unedited PCM are retained.
+- **75/75 standalone tests** and **49/49 parent tests** passed. Six native/WASM
+  comparisons (including four live-edit timelines) had **max/RMS error 0**.
+- Live native probe, focused shift UBSan and ASAN lifecycle passed; native edits
+  allocate no heap memory. Extreme legal frequency shifts are now well-defined.
+- Final-engine Playwright Chromium/WebKit/Firefox at 44.1/48 kHz, actual Playground
+  Chromium/WebKit Main/Worker, Monaco, and isolated standalone/FM npm consumers
+  passed. FM checks validated 203 declarations and actual Main/Worker audio.
+- 16-note/10-second offline medians: 64.570 ms without updates, 99.995 ms at
+  60 updates/sec, 115.460 ms at 240 updates/sec. Excludes Worklet/OS scheduling.
+- Full scope, performance method, fixed regressions and limitations are recorded
+  in `issues/msfa-live-parameters/result.md`. Algorithm and general EG live edits
+  are deferred; Tauri/physical hardware/Windows/Linux remain unverified.
+- Versions remain 0.2.0 (standalone) / 0.2.15 (FM); changes are not published.

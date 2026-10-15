@@ -105,6 +105,16 @@ async function checkBrowser(name, type, url) {
           }
           return [0, 1].map(channel => frames.reduce((sum, frame) => sum + frame[channel], 0) / frames.length);
         };
+        const signal = async () => {
+          const levels = await meter();
+          const hz = await page.evaluate(() => {
+            const meter = window.test.meters[0], pcm = new Float32Array(meter.fftSize), crossings = [];
+            meter.getFloatTimeDomainData(pcm);
+            for (let i = 1; i < pcm.length; i++) if (pcm[i - 1] <= 0 && pcm[i] > 0) crossings.push(i - 1 - pcm[i - 1] / (pcm[i] - pcm[i - 1]));
+            return crossings.length > 1 ? window.test.runtime.megaDrive.audioContext.sampleRate * (crossings.length - 1) / (crossings.at(-1) - crossings[0]) : 0;
+          });
+          return {rms:levels[0], hz};
+        };
         const initial = await run(`
           let guarded = false;
           try { await fetch('https://example.com/npm-dx7-forbidden'); }
@@ -162,6 +172,56 @@ async function checkBrowser(name, type, url) {
         assert.equal(object.preset.operators[6].coarse, 3); assert.equal(object.rejected, true);
         const objectPcm = await meter();
         assert(objectPcm.every(value => value > .005), `${name}/${execution}: object-authored patch is silent ${objectPcm}`);
+        const live = {};
+        await run(`
+          const dx7 = await useSoundChip('dx7'); dx7.panic();
+          context.heldPreset = {name:'LIVE A', algorithm:31, operators:{1:{coarse:1, fine:0, detune:7, outputLevel:90, envelope:{rates:[99,99,99,0], levels:[99,99,99,0]}}}};
+          await dx7.setPreset(context.heldPreset); dx7.noteOn(69,100);
+        `);
+        live.initial = await signal();
+        const feedback = await run(`const dx7=await useSoundChip('dx7'); await dx7.setFeedback(7); const result={feedback:(await dx7.getPreset()).feedback}; await dx7.setFeedback(0);`);
+        assert.equal(feedback.feedback, 7, `${name}/${execution}: Feedback acknowledgement`);
+        await run(`await (await useSoundChip('dx7')).setOperator(1,{coarse:2});`);
+        live.octave = await signal();
+        await run(`await (await useSoundChip('dx7')).setOperators([[1,{outputLevel:55}],[6,{fine:12}]]);`);
+        live.quiet = await signal();
+        const invalidLive = await run(`
+          const dx7 = await useSoundChip('dx7'); let rejected=false;
+          try {await dx7.setOperators([[1,{outputLevel:0}],[6,{coarse:32}]]);} catch {rejected=true;}
+          const result={rejected};
+        `);
+        assert.equal(invalidLive.rejected, true);
+        live.afterInvalid = await signal();
+        await run(`await (await useSoundChip('dx7')).setOperator(1,{outputLevel:0});`);
+        live.muted = await signal();
+        await run(`await (await useSoundChip('dx7')).setOperator(1,{outputLevel:90,mode:'fixed',coarse:2,fine:0});`);
+        live.fixed = await signal();
+        await run(`await (await useSoundChip('dx7')).setOperator(1,{mode:'ratio',coarse:1});`);
+        live.restored = await signal();
+        await run(`
+          const dx7=await useSoundChip('dx7'); await dx7.setPreset({...context.heldPreset,name:'LIVE B'});
+          await dx7.setOperator(1,{outputLevel:0,coarse:3});
+        `);
+        live.oldCohort = await signal();
+        await run(`const dx7=await useSoundChip('dx7'); dx7.panic(); dx7.noteOn(69,100);`);
+        live.newMuted = await signal();
+        await run(`await (await useSoundChip('dx7')).setOperator(1,{outputLevel:90});`);
+        live.newHeld = await signal();
+        await run(`const dx7=await useSoundChip('dx7'); dx7.noteOff(69); await dx7.setOperator(1,{outputLevel:0});`);
+        live.releaseMuted = await signal();
+        await run(`await (await useSoundChip('dx7')).setOperator(1,{outputLevel:90});`);
+        live.releaseRestored = await signal();
+        const nearHz = (frame, expected, label) => assert(Math.abs(frame.hz / expected - 1) < .03, `${name}/${execution}: ${label} ${JSON.stringify(frame)} expected ${expected} Hz`);
+        nearHz(live.initial,440,'initial held note'); nearHz(live.octave,880,'live coarse');
+        assert(live.quiet.rms > .000001 && live.quiet.rms < live.octave.rms * .15, `${name}/${execution}: live Output Level ${JSON.stringify(live)}`);
+        assert(Math.abs(live.afterInvalid.rms / live.quiet.rms - 1) < .1, `${name}/${execution}: rejected batch changed active PCM`);
+        assert(live.muted.rms < live.initial.rms * .002, `${name}/${execution}: live mute`);
+        nearHz(live.fixed,100,'live fixed mode'); nearHz(live.restored,440,'restored ratio mode'); nearHz(live.oldCohort,440,'old cohort');
+        assert(Math.abs(live.oldCohort.rms / live.restored.rms - 1) < .1, `${name}/${execution}: new-preset edits changed old cohort`);
+        assert(live.newMuted.rms < live.initial.rms * .002, `${name}/${execution}: new note ignored edited preset`);
+        nearHz(live.newHeld,1320,'new cohort');
+        assert(live.releaseMuted.rms < live.newHeld.rms * .002, `${name}/${execution}: release did not receive live mute`);
+        assert(live.releaseRestored.rms > live.newHeld.rms * .7, `${name}/${execution}: slow release was retriggered or lost`);
         await bounded(page.evaluate(() => window.test.runtime.stopWithFade()), 'STOP');
         const stopped = await meter();
         assert(stopped.every(value => value < .00001), `${name}/${execution}: STOP retained PCM ${stopped}`);
@@ -186,7 +246,7 @@ async function checkBrowser(name, type, url) {
         if (execution === 'worker') assert(servedAssets.has('/vendor/playground_logic_worker.js'));
         assert.deepEqual(errors, [], `${name}/${execution}: browser errors`);
         assert.deepEqual(unwantedRequests, [], `${name}/${execution}: external network requests`);
-        results.push({execution, sampleRate:initial.state.sampleRate, baseline, full, half, objectPcm, stopped});
+        results.push({execution, sampleRate:initial.state.sampleRate, baseline, full, half, objectPcm, live, stopped});
       } finally { await page.close(); }
     }
     console.log(JSON.stringify({browser:name, passed:true, results}));

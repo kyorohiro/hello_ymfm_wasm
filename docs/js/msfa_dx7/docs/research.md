@@ -79,8 +79,9 @@ without introducing a general multichannel framework.
 The portable scalar FM path is used for both native reference and WASM. On
 ARM64 upstream otherwise uses an approximate NEON sine kernel, which would
 make a native-versus-WASM PCM comparison measure different algorithms.
-Compilation uses `MSFA_FORCE_SCALAR`; DSP formulae in the selected path remain
-upstream's. Deterministic initial values and identical floating-point compiler
+Compilation uses `MSFA_FORCE_SCALAR`; unedited notes retain the upstream DSP
+path. The live-control extension below adds state-preserving level/frequency
+updates. Deterministic initial values and identical floating-point compiler
 settings are required when comparing the filter's native/WASM output.
 
 ## Voice allocation and release
@@ -135,7 +136,7 @@ bit-accurate hardware recreation. In this upstream version:
 
 These limitations are documented rather than expanded into a new DSP project.
 
-## Minimal local upstream changes
+## Initial MVP local upstream changes (0.1.0 / 0.2.0)
 
 All modified files carry “Tetorica modification” notices:
 
@@ -151,9 +152,43 @@ All modified files carry “Tetorica modification” notices:
 Value-initializing each allocated `Dx7Note` initializes its previously
 indeterminate feedback history. Feedback state is **not** reset on every
 reuse, preserving upstream reuse behavior. LFO phase/random/delay state is
-initialized once. No FM, envelope, sine, filter, allocator, or clipping formula
-has been changed. Native comparison uses these same minimal patches, not an
+initialized once. In the initial MVP, no FM, envelope, sine, filter, allocator,
+or clipping formula was changed. Native comparison uses the same patches, not an
 uninitialized stock build.
+
+## Live control extension (2026-10-16, unpublished)
+
+The Google MSFA source/revision remains the base. No Dexed/Synth_Dexed/
+MiniDexed source or DSP was imported. The concrete changes are:
+
+- `synth_unit.h/.cc`: private patch identities on note slots, separate selection
+  and partial live-edit paths. Only matching patch notes receive changed fields;
+  selection/replacement leaves captured old notes alone. No new allocator.
+- `dx7note.h/.cc`: retain note/key/velocity-derived scaling, update output level
+  and oscillator base pitch without calling init, plus feedback-shift updates
+  that retain feedback history. General EG and algorithm changes stay captured.
+- `env.h/.cc`: preserve the exact legacy trajectory for no-edit PCM. The first
+  effective live edit adopts the current progressing EG as its fixed reference;
+  live operator attenuation is applied after that trajectory, so muting cannot
+  terminate an attack/release. A full-level trajectory progresses alongside it
+  for an initially silent/clamped operator to become audible without a new key.
+  Completed releases cannot be revived. This is a documented live-control model,
+  not a claim of exact hardware behavior when changing DX7 envelope parameters.
+- `native/dx7.h/.cc`: select/edit entry points consume validated voice bytes and
+  a private identity. Panic restores that identity; legacy native SetVoice stays
+  available for comparisons.
+- `freqlut.cc`: define modular phase increments above the original lookup's
+  20-octave range instead of a negative shift count. Ordinary right-shift
+  results remain identical. Extreme valid notes/ratios/pitch EG can reach this
+  range; ultrasonic results alias, rather than being clamped to audible pitch.
+  `fm_core.cc` uses an unsigned block phase shift to retain defined wraparound.
+
+Rendering still uses 64 internal frames, existing gain interpolation, fixed
+44,100 Hz, original operator kernels/filter/clipping, and persistent output resampling.
+Edits allocate no native heap storage. New constants/state are per instance.
+Abrupt frequency/feedback changes can step; algorithm crossfades and general EG
+automation are deferred. See `docs/issues/msfa-live-parameters/` for the adopted
+contract, license record, performance and verification results.
 
 ## Worklet MVP boundary
 

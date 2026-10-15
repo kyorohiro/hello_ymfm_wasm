@@ -137,6 +137,12 @@ for (const sampleRate of [44100, 48000]) {
       assert.deepEqual(left,core.render(frames));
       assert.deepEqual(right,left);
     }
+    // Apply edits after Note On, through the actual command/acknowledgement path.
+    await instrument.client.setOperators([[1,{outputLevel:65}],[2,{coarse:3}]]);
+    core.setOperators([[1,{outputLevel:65}],[2,{coarse:3}]]);
+    await instrument.client.setFeedback(5);core.setFeedback(5);
+    assert.equal((await instrument.client.getPreset()).feedback,5);
+    assert.deepEqual(instrument.render(4096).channels[0],core.render(4096));
     instrument.client.panic();core.panic();await instrument.client.getState();
     const patch = [[1,{outputLevel:82}],[2,{coarse:3}]];
     await instrument.client.setOperators(patch);core.setOperators(patch);
@@ -248,6 +254,7 @@ test('DX7 client validates MIDI input, rejects pending requests on local disposa
   }
   for (const velocity of [-1, 128, .5, NaN]) assert.throws(() => client.noteOn(60, velocity), /Velocity/);
   for (const voice of [-1, 1, .5, NaN]) assert.throws(() => client.selectVoice(voice), /Voice index/);
+  for (const feedback of [-1,8,.5,NaN,Infinity,'3']) await assert.rejects(client.setFeedback(feedback), /Feedback/);
   await assert.rejects(client.loadSysex('bad'), /ArrayBuffer/);
   assert.equal(posts.length, 0);
   const bytes = createVoiceSysex(createInitVoice());
@@ -370,4 +377,27 @@ test('DX7 unsupported context rates fail before fetching or loading a Worklet', 
   for (const sampleRate of [22050, 96000, NaN]) {
     await assert.rejects(createDx7Audio({sampleRate, audioWorklet: {addModule: forbidden}}, {}, {fetch: forbidden}), /sampleRate/);
   }
+});
+
+test('DX7 metadata acknowledgements keep newer selection and reads return ordered snapshots', async t => {
+  const instrument = await setup(); t.after(() => instrument.close());
+  const {client} = instrument;
+  await client.loadSysex(createBankSysex(Array.from({length:32}, (_,i)=>createInitVoice('VOICE '+i))));
+  const feedback = client.setFeedback(3);
+  client.selectVoice(1);
+  await feedback;
+  assert.equal(client.selectedVoice, 1, 'Earlier feedback reply cannot restore selection 0');
+  assert.equal((await client.getPreset()).name, 'VOICE 1', 'The Worklet uses the newer selected slot');
+  const reading = client.getState();
+  client.selectVoice(31);
+  const snapshot = await reading;
+  assert.equal(snapshot.selectedVoice, 1, 'getState resolves to its ordered command snapshot');
+  assert.equal(client.selectedVoice, 31, 'An older read snapshot cannot overwrite newer client selection');
+  const editing = client.setOperator(1, {fine:25});
+  client.selectVoice(0);
+  await editing;
+  assert.equal(client.selectedVoice, 0, 'Operator replies also preserve later selection');
+  assert.equal((await client.getPreset()).feedback, 3, 'Feedback affected the originally selected slot');
+  client.selectVoice(31);
+  assert.equal((await client.getPreset()).operators[1].fine, 25, 'Operator edit used slot 31 before the later selection');
 });

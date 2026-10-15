@@ -47,6 +47,9 @@ export async function createDX7(options = {}) {
     wasi_snapshot_preview1: { proc_exit: abort },
   });
   const api = instance.exports;
+  if (typeof api.dx7_select_voice !== 'function' || typeof api.dx7_edit_voice !== 'function') {
+    throw new Error('DX7 WASM is outdated. Deploy the WASM asset bundled with this JavaScript version.');
+  }
   api._initialize?.();
   const handle = api.dx7_create();
   if (!handle) throw new Error('Could not create DX7 instance.');
@@ -56,7 +59,7 @@ export async function createDX7(options = {}) {
 class DX7Core {
   #api; #handle; #view; #voiceView;
   #sourceIndex = 64; #phase = 0; #left = 0; #right = 0; #primed = false;
-  #voices = []; #selected = -1;
+  #voices = []; #selected = -1; #nextVoiceId = 1;
 
   constructor(api, handle, sampleRate) {
     this.#api = api;
@@ -77,7 +80,8 @@ class DX7Core {
     this.#check();
     const parsed = parseSysex(input);
     // Parse and validate the complete input before replacing a working bank.
-    this.#voices = parsed.voices;
+    this.#reserveVoiceIds(parsed.voices.length);
+    this.#voices = parsed.voices.map(voice => ({...voice, id: this.#nextVoiceId++}));
     this.selectVoice(0);
     return this.voices;
   }
@@ -86,18 +90,28 @@ class DX7Core {
     this.#check();
     integer(index, 0, this.#voices.length - 1, 'Voice index');
     this.#voiceView.set(this.#voices[index].data);
-    this.#api.dx7_set_voice(this.#handle);
+    this.#api.dx7_select_voice(this.#handle, this.#voices[index].id);
     this.#selected = index;
   }
 
-  #applyVoice(data) {
+  #reserveVoiceIds(count) {
+    if (this.#nextVoiceId + count - 1 > 0xffffffff) {
+      throw new RangeError('DX7 voice identity limit reached. Create a new core.');
+    }
+  }
+
+  #applyVoice(data, live = false) {
     // Prepare all fallible JS validation/copies before changing native state.
     const packedData=packVoice(data);
     let name='';
     for(let index=145;index<155;index++)name+=data[index]<32||data[index]===127?' ':String.fromCharCode(data[index]);
-    const voice={name:name.trimEnd(),data,packedData};
+    const editing = live && this.#selected >= 0;
+    if (!editing) this.#reserveVoiceIds(1);
+    const id = editing ? this.#voices[this.#selected].id : this.#nextVoiceId++;
+    const voice={name:name.trimEnd(),data,packedData,id};
     this.#voiceView.set(data);
-    this.#api.dx7_set_voice(this.#handle);
+    if (editing) this.#api.dx7_edit_voice(this.#handle, id);
+    else this.#api.dx7_select_voice(this.#handle, id);
     if(this.#selected<0){this.#voices=[voice];this.#selected=0;}
     else this.#voices[this.#selected]=voice;
   }
@@ -108,12 +122,12 @@ class DX7Core {
     this.#applyVoice(presetToVoice(preset));
   }
 
-  /** Edit the selected voice in public OP1..OP6 order; existing notes keep
-   * captured operator parameters. The chip-wide LFO is reset by SetVoice. */
+  /** Edit OP1..OP6. Level/frequency edits also update this patch's sounding
+   * notes, including release tails, without retriggering their envelopes. */
   setOperator(operator,patch) {
     this.#check();validateOperator(operator,patch);
     const base=this.#selected<0?createInitVoice():this.#voices[this.#selected].data;
-    this.#applyVoice(presetToVoice({operators:{[operator]:patch}},base));
+    this.#applyVoice(presetToVoice({operators:{[operator]:patch}},base), true);
   }
 
   /** Atomically apply a unique tuple batch; an empty batch changes nothing. */
@@ -121,7 +135,14 @@ class DX7Core {
     this.#check();validateOperators(entries);
     if(!entries.length)return;
     const base=this.#selected<0?createInitVoice():this.#voices[this.#selected].data;
-    this.#applyVoice(presetToVoice({operators:Object.fromEntries(entries)},base));
+    this.#applyVoice(presetToVoice({operators:Object.fromEntries(entries)},base), true);
+  }
+
+  /** Change feedback 0..7 on this patch's sounding and subsequent notes. */
+  setFeedback(feedback) {
+    this.#check(); integer(feedback, 0, 7, 'Feedback');
+    const base=this.#selected<0?createInitVoice():this.#voices[this.#selected].data;
+    this.#applyVoice(presetToVoice({feedback},base), true);
   }
 
   getPreset() {
