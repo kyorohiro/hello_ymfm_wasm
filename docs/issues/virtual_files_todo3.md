@@ -184,3 +184,39 @@ Synth の現在の音色編集を都度 VFS へ反映し、Set／Revert／Auto �
 今回の共通機能だけでは **Unsaved instrument ダイアログはまだ置き換わっていない**。
 前述の音色ファイルで表現できる状態・初回ファイル化・起動時復元の整理を含めて次段階で対応する。
 `app-storage://~/` の provider、外部同期中の競合検出／原子性は将来の実装として扱う。
+
+## Playground での試用: Ctrl/Cmd+S（2026-10-15）
+
+コード画面で **Ctrl+S / Command+S** を押すと、表示中のテキストファイルを `fs.sync(path)` する。
+Monaco／textarea の最新内容を通常パスへ反映した後、既定の `/.tet.ss` 配下へ同期する。
+既存の同期コピーもこの明示操作では更新する。成功・失敗は既存の status に表示する。
+
+- `document` の capture handler 1 個で Monaco と textarea を共通に扱い、ブラウザーの「ページを保存」は同期の前にキャンセルする。
+- キー押し続けの repeat では重複同期しない。Shift／Alt 併用、IME composition は対象外。
+- Code 非表示、開いている dialog、Code 外の入力欄はショートカット対象外。
+- 音色ファイルを表示中、内部パス／Git metadata／非テキストでは同期しない。特に音色画面に切り替えると `activeVirtualPath` が直前のコードを指すため、それを誤って更新しない。
+- 対象は現在の 1 ファイルのみ。Run・Export・音色編集の checkpoint UI は変更しない。
+- これは VFS 内の同期。ブラウザーのローカルファイル保存・Cassette ダウンロードではない。Cassette Export には同期コピーを含む。Tauri の既存 autosave も VFS 変更として取り込む。
+
+検証: `scripts/check_playground_sync_shortcut_browser.cjs` で Chromium／WebKit の実 Monaco と textarea fallback の両方に対し、Ctrl+S／Command+S、最新バッファ、現在のファイル限定、手動再同期、音色画面の誤同期防止、衝突時のエラー表示を確認した。
+関連 Node テスト **32/32**、itch 配布生成と **353** 個の module／asset 参照確認も成功。
+WebKit の既存 Monaco `setModel` 時のキャンセル 1 件は rejection stack を確認して別記録し、それ以外の page error はテストで拒否する。
+今回 Tauri 実機でのキー操作は未確認。
+
+## Playground での試用: Sync / Revert ボタン（2026-10-15）
+
+既存 **Panel ボタンの左隣**へ、同じタブバー内に小さい `Sync`／`Revert` を追加した。新しいヘッダー行は増やさない。
+
+- **Sync**: Ctrl/Cmd+S と同じく、表示中の最新テキストを通常パスへ反映してから、そのファイルを既定ルートへ同期する。
+- **Revert**: 表示中のテキストを最後に同期した内容へ戻す。同期コピーは更新しない。他のファイルにも触れない。
+- 同期コピーがない、同期コピーが非テキスト、または現在のエディターと同じ内容なら Revert を無効にする。理由は tooltip に表示する。
+- Code 以外のパネルではボタン群を隠す。音色・内部ファイルを表示中は操作を無効にする。
+- Revert はエディターへの編集を先に適用してから通常の編集経路で VFS へ反映する。Monaco の Undo/Redo で Revert 前後を行き来でき、Undo 後も同期コピーは維持する。
+- textarea fallback でも復元と VFS への反映を行う。fallback のネイティブ Undo 履歴は保証しない。
+- 保存点の読み出しは path と checkpoint revision でキャッシュする。キー入力のたびに無関係なファイルやバイナリを複製しない。
+
+検証: 実ブラウザーの Chromium／WebKit でボタンとショートカット、最新内容、対象限定の復元、同期コピー保持、Monaco Undo/Redo、textarea、TFI／内部ファイルの無効化を確認した。
+1280px／390px で Panel の左隣に並び、ボタン同士の重なりがないことも確認済み。
+関連 Node テスト **42/42**、itch 配布生成と **353** 個の module／asset 参照確認が成功した。
+rename の既存モデル回帰テストは古い mock を実 VFS に変更し、名前変更で同期コピーも移動することを検証するよう更新した。
+検証用 ZIP: `release/hello_ymfm_wasm_sync-revert-dev_itch_playground.zip`。Tauri 実機は未確認。

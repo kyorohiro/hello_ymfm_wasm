@@ -890,6 +890,10 @@
       .shell-actions button { min-height: 26px; padding: 2px 8px; border-radius: 4px; box-shadow: none; }
       .shell-actions #shellState { margin: 0; font-size: .75rem; }
       .shell-actions:not([hidden]) + .dock-close { margin-left: 0; }
+      .code-file-actions { display: flex; align-items: center; gap: 6px; margin-left: auto; padding: 0 8px; flex: none; }
+      .code-file-actions[hidden] { display: none; }
+      .code-file-actions button { min-height: 26px; padding: 2px 8px; border-radius: 4px; box-shadow: none; font-size: .75rem; white-space: nowrap; }
+      .code-file-actions button:disabled { cursor: default; }
       .shell-popup { max-width: min(380px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); overflow: auto; padding: 16px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); color: var(--ink); box-shadow: 0 8px 30px #12363b40; }
       .shell-popup h3 { margin: 0 0 12px; }
       .shell-popup p { margin: 8px 0 0; }
@@ -958,6 +962,7 @@
       .workbench .tabbar { flex: none; overflow-x: auto; padding-top: 0; }
       .workbench .tab-button { white-space: nowrap; border-radius: 0; }
       .dock-toggle, .dock-close { margin-left: auto; flex: none; padding: 4px 12px; min-height: 30px; }
+      .workbench .code-file-actions:not([hidden]) ~ .dock-toggle { margin-left: 0; }
       .dock-close { background: transparent; color: var(--ink); box-shadow: none; font-size: 1.2rem; }
       .bottom-panel-divider { flex: 0 0 6px; background: rgba(87, 188, 198, .08); cursor: row-resize; touch-action: none; }
       .bottom-panel-divider:hover, .bottom-panel-divider:focus-visible { background: var(--accent); outline: none; }
@@ -1784,6 +1789,10 @@
             >
               Helper
             </button>
+            <div id="codeFileActions" class="code-file-actions" role="toolbar" aria-label="Code file controls">
+              <button id="syncCodeButton" type="button" title="Sync this code file (Ctrl/Cmd+S)" aria-keyshortcuts="Control+S Meta+S" disabled>Sync</button>
+              <button id="revertCodeButton" type="button" title="Restore this code file from its last synced copy" disabled>Revert</button>
+            </div>
             <div id="shellActions" class="shell-actions" role="toolbar" aria-label="Shell controls" hidden>
               <span id="shellState" class="subtext" role="status" hidden>Ready.</span>
               <button id="shellStopButton" type="button" title="Stop script (Ctrl+C)" disabled hidden>Stop Script</button>
@@ -2152,7 +2161,7 @@
       })();
     </script>
     <script type="module">
-      import('./playground.js?v=dx7-soundchip-1').catch(error => window.__playgroundStartup.fail(error));
+      import('./playground.js?v=sync-revert-1').catch(error => window.__playgroundStartup.fail(error));
     </script>
   </body>
 </html>

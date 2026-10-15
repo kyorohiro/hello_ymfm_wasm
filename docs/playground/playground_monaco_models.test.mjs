@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import vm from 'node:vm';
+import {createVirtualFileSystem, normalizeVirtualPath, transferVirtualFiles, isCheckpointVirtualPath} from './playground_virtual_files.js';
 
 test('virtual model sync registers renamed modules and removes stale paths without overwriting active edits', async () => {
   const source = await readFile(new URL('./playground_monaco.js', import.meta.url), 'utf8');
@@ -41,19 +42,18 @@ test('virtual model sync registers renamed modules and removes stale paths witho
 
 test('rename opens the new model before synchronizing virtual files', async () => {
   const source = await readFile(new URL('./playground.js', import.meta.url), 'utf8');
-  const files = new Map([['/lib/old.js', { data: 'export const hello = 1;' }]]);
+  const files = createVirtualFileSystem([
+    {path:'/lib/old.js', data:'export const hello = 1;'},
+    {path:'/.tet.ss/lib/old.js', data:'previous synced code'},
+  ]);
   const events = [];
   const context = vm.createContext({
     activeVirtualPath: '/lib/old.js', runVirtualPath: '/lib/old.js',
     isSystemVirtualPath: () => false, window: { prompt: () => '/lib/x.js' },
-    normalizeVirtualPath: path => path, saveActiveVirtualFile() {},
-    virtualFiles: {
-      has: path => files.has(path), get: path => ({ path, ...files.get(path) }),
-      writeText: (path, data) => files.set(path, { data }), delete: path => files.delete(path),
-      list: () => [...files.keys()],
-    },
+    normalizeVirtualPath, transferVirtualFiles, isCheckpointVirtualPath, saveActiveVirtualFile() {},
+    virtualFiles: files,
     showVirtualFile: file => events.push(['open', file.path]),
-    editorAdapter: { syncVirtualFiles: paths => events.push(['sync', ...paths]) },
+    editorAdapter: { syncVirtualFiles: entries => events.push(['sync', ...entries.map(file => file.path)]) },
     renderVirtualFileExplorer() {}, renderRunFileOptions() {},
     setStatus: message => assert.fail(message),
   });
@@ -61,4 +61,6 @@ test('rename opens the new model before synchronizing virtual files', async () =
   context.renameActiveVirtualFile();
   assert.deepEqual(events, [['open', '/lib/x.js'], ['sync', '/lib/x.js']]);
   assert.equal(context.runVirtualPath, '/lib/x.js');
+  assert.equal(files.get('/.tet.ss/lib/x.js').data, 'previous synced code');
+  assert.equal(files.has('/.tet.ss/lib/old.js'), false);
 });

@@ -52,6 +52,7 @@ import {
   createVirtualFileSystem,
   createVirtualFileRuntimeSource,
   normalizeVirtualPath,
+  CHECKPOINT_ROOT,
   isCheckpointVirtualPath,
   transferVirtualFiles,
   resolveVirtualDynamicImports,
@@ -206,6 +207,9 @@ const consolePanel =
   );
 const codePanel =
   document.getElementById("codePanel");
+const codeFileActions = document.getElementById('codeFileActions');
+const syncCodeButton = document.getElementById('syncCodeButton');
+const revertCodeButton = document.getElementById('revertCodeButton');
 const helpersPanel =
   document.getElementById(
     "helpersPanel"
@@ -380,6 +384,7 @@ const initialProjectFiles = [
     "",
     "Bundled examples are grouped into basic, fm, midi, psg, dac, noise, samples and fx folders.",
     "Open a .js file in FILES to edit it and select it as the Run file.",
+    "Ctrl/Cmd+S syncs the displayed code file to /.tet.ss. Cassette export includes that copy.",
     "For shared code, create a module in /lib/ and load it from your example:",
     "```js",
     "const { notes } = await import('../lib/notes.js');",
@@ -395,6 +400,7 @@ const initialProjectFiles = [
 const virtualFiles = createVirtualFileSystem(initialProjectFiles);
 let activeVirtualPath = "/index.js";
 let runVirtualPath = "/index.js";
+let codeCheckpointCache = null;
 const virtualPresetIds = new Map();
 
 function isSystemVirtualPath(path) {
@@ -554,6 +560,7 @@ function createTextareaEditorAdapter(
     setValue(value) {
       textarea.value = value;
       desktopAutosave?.changed();
+      refreshCodeFileActions();
     },
     setReadOnly(readOnly) {
       textarea.readOnly = readOnly;
@@ -576,6 +583,7 @@ function createTextareaEditorAdapter(
       );
       desktopAutosave?.changed();
       textarea.focus();
+      refreshCodeFileActions();
     },
     focus() {
       textarea.focus();
@@ -1100,11 +1108,78 @@ function setEditorValue(value) {
   const text = String(value);
   virtualFiles.writeText(activeVirtualPath, text);
   editorAdapter.setValue(text);
+  refreshCodeFileActions();
 }
 
 function syncActiveEditorFile() {
   const file = virtualFiles.get(activeVirtualPath);
   if (!isSystemVirtualPath(activeVirtualPath) && file?.type === "text" && file.data !== getEditorValue()) saveActiveVirtualFile();
+  refreshCodeFileActions();
+}
+
+function editableCodePath() {
+  const path = activeVirtualPath;
+  if (codePanel.hidden || activeTfiFilePath || isHiddenVirtualPath(path) || path.split('/').includes('.git')) return null;
+  return virtualFiles.get(path)?.type === 'text' ? path : null;
+}
+
+function codeCheckpoint(path) {
+  const revision = virtualFiles.getRevision(CHECKPOINT_ROOT + path);
+  if (codeCheckpointCache?.path !== path || codeCheckpointCache.revision !== revision) {
+    codeCheckpointCache = {path, revision, file: virtualFiles.checkpoints.get(path)};
+  }
+  return codeCheckpointCache.file;
+}
+
+function refreshCodeFileActions() {
+  const path = editableCodePath();
+  const saved = path ? codeCheckpoint(path) : null;
+  const modified = saved?.type === 'text' && saved.data !== getEditorValue();
+  if (codeFileActions) codeFileActions.hidden = codePanel.hidden;
+  if (syncCodeButton) syncCodeButton.disabled = !path;
+  if (revertCodeButton) {
+    revertCodeButton.disabled = !path || !modified;
+    revertCodeButton.title = !path ? 'Open a code file to revert' : !saved ? 'Sync this file first' :
+      saved.type !== 'text' ? 'The synced copy is not a text file' :
+      !modified ? 'No changes since the last sync' : 'Restore the last synced version of this file';
+  }
+}
+
+async function syncActiveCodeFile() {
+  const path = editableCodePath();
+  if (!path) {
+    setStatus('Open a code file to sync.');
+    return;
+  }
+  try {
+    syncActiveEditorFile();
+    const result = await virtualFiles.sync(path);
+    setStatus(`Synced ${path} to ${result.destinationPath}.`);
+  } catch (error) {
+    setStatus(`Could not sync ${path}: ${error.message ?? error}`);
+  } finally {
+    refreshCodeFileActions();
+  }
+}
+
+function revertActiveCodeFile() {
+  const path = editableCodePath();
+  if (!path) return;
+  try {
+    const saved = virtualFiles.checkpoints.get(path);
+    if (saved?.type !== 'text') throw Error('No synced text is available for this file.');
+    // Apply an editor edit first so Monaco retains Undo. Its content listener
+    // writes back to the VFS; explicitly flush as well for the textarea fallback.
+    if (editorAdapter.replaceAll) editorAdapter.replaceAll(saved.data);
+    else editorAdapter.setValue(saved.data);
+    syncActiveEditorFile();
+    editorAdapter.focus();
+    setStatus(`Reverted ${path} to the last synced version.`);
+  } catch (error) {
+    setStatus(`Could not revert ${path}: ${error.message ?? error}`);
+  } finally {
+    refreshCodeFileActions();
+  }
 }
 
 function saveActiveVirtualFile() {
@@ -1126,6 +1201,7 @@ function showVirtualFile(file) {
   );
   editorAdapter.setReadOnly?.(false);
   editorAdapter.setValue(file.data);
+  refreshCodeFileActions();
 }
 
 function renderRunFileOptions() {
@@ -1194,6 +1270,7 @@ function openVirtualFile(path) {
       tfiFileEditor.open(path, file.data);
       activeTfiFilePath = path;
       codePanel.dataset.fileKind = "tfi";
+      refreshCodeFileActions();
       setBottomTab("code");
       renderVirtualFileExplorer();
     } catch (error) { setStatus(`Could not open ${path}: ${error.message}`); }
@@ -1545,6 +1622,7 @@ const ui =
       audioMonitor.setVisible(showAudio);
       operatorKeyboard.setView(primary);
       tfiFileEditor.setVisible(primary === "code" && Boolean(activeTfiFilePath));
+      refreshCodeFileActions();
     },
   });
 workbench?.onVisibilityChange(value => ui.setDockVisible(value));
@@ -2069,6 +2147,20 @@ function installPlaygroundEventHandlers() {
   document.getElementById("copyFileButton")?.addEventListener("click", () => promptExplorerTransfer(true));
   renameFileButton?.addEventListener("click", renameActiveVirtualFile);
   deleteFileButton?.addEventListener("click", deleteActiveVirtualFile);
+  syncCodeButton?.addEventListener('click', () => {void syncActiveCodeFile();});
+  revertCodeButton?.addEventListener('click', revertActiveCodeFile);
+  // Capture before Monaco handles the key, and cancel the browser's Save Page
+  // command synchronously. One handler also covers the textarea fallback.
+  document.addEventListener('keydown', (event) => {
+    if (!(event.ctrlKey || event.metaKey) || event.altKey || event.shiftKey || event.isComposing ||
+        (event.code !== 'KeyS' && event.key?.toLowerCase() !== 's') ||
+        codePanel.hidden || document.querySelector('dialog[open]')) return;
+    const field = event.target?.closest?.('input, textarea, select, [contenteditable="true"]');
+    if (field && !codePanel.contains(field)) return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    if (!event.repeat) void syncActiveCodeFile();
+  }, true);
   expandButton?.addEventListener(
     "click",
     () => {
@@ -2335,6 +2427,8 @@ function bootPlayground() {
   renderVirtualFileExplorer();
   renderRunFileOptions();
   installPlaygroundEventHandlers();
+  virtualFiles.onDidChange(refreshCodeFileActions);
+  refreshCodeFileActions();
   fileExplorerList.setAttribute('aria-busy', 'false');
   editor.readOnly = false;
   window.__playgroundStartup?.stage('Project ready. Loading the code editor…');
@@ -2365,6 +2459,7 @@ installFileExplorerDropTarget();
     setEditorNote,
     setEditorAdapter: (nextAdapter) => {
       editorAdapter = nextAdapter;
+      refreshCodeFileActions();
     },
     onMonacoEditorReady({
       monacoEditor,
