@@ -12,3 +12,6 @@ with 16 voices at 0/60/240 updates per second. Details and deferred work are in
 no automatic smoothing/interpolation is to be added. The existing runtime
 already complies. README/specs were clarified and two 16-voice abrupt-change
 regressions added; **77/77 tests pass**, skipped 0. DSP/runtime/WASM unchanged.
+
+The policy documentation/test update is prepared for standalone 0.3.1 /
+bundled FM 0.2.17. Runtime/declaration/WASM payloads match the preceding release.

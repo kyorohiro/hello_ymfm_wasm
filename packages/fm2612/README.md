@@ -333,7 +333,7 @@ The pinned engine, WASM and Apache-2.0 notices are included in this package's
 
 Version 0.2.15 provides `await dx7.setPreset(preset)`,
 `await dx7.setOperator(operator, params)`, `await dx7.setOperators(entries)`,
-and `await dx7.getPreset()`. Version 0.2.16 bundles `tetorica-msfa-dx7-wasm` 0.3.0.
+and `await dx7.getPreset()`. Version 0.2.17 bundles `tetorica-msfa-dx7-wasm` 0.3.1.
 
 ```js
 const dx7 = await useSoundChip('dx7');
@@ -550,10 +550,10 @@ FM/PSG/PCM mixing, stop/reset and close/restart. Playwright is a development
 dependency; it is not required by users of the sound-chip runtime.
 
 The build is staged in `dist/fm2612/`; packing produces
-`tetorica-fm2612-0.2.16.tgz`. To install a local build in another project:
+`tetorica-fm2612-0.2.17.tgz`. To install a local build in another project:
 
 ```sh
-npm install /absolute/path/to/tetorica-fm2612-0.2.16.tgz
+npm install /absolute/path/to/tetorica-fm2612-0.2.17.tgz
 ```
 
 The existing `tetorica-vgm` CLI package is built separately. This first package
@@ -570,6 +570,11 @@ Tetorica-generated and includes its license and generator. External
 instrument/sample ROMs are not included.
 
 ## Release notes
+
+`0.2.17` bundles `tetorica-msfa-dx7-wasm` 0.3.1. It clarifies that abrupt
+frequency/feedback changes apply directly, their clicks are accepted, and no
+automatic parameter smoothing is added. Runtime JavaScript, declarations and
+WASM are unchanged; the standalone suite now includes 77 passing tests.
 
 `0.2.16` bundles `tetorica-msfa-dx7-wasm` 0.3.0. DX7 operator output level,
 ratio/fixed frequency, fine and detune can change while notes sound, and the new

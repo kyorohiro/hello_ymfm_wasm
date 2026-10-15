@@ -1,5 +1,9 @@
 # Tetorica MSFA DX7 WASM
 
+0.3.1 は、急な周波数・Feedback 変更のクリックを許容し、自動平滑化を追加しない
+方針を明記した版です。音源処理・型・WASM は 0.3.0 と同一です。
+急変操作の回帰テストを追加し、全77テストが通過しています。
+
 Google の [music-synthesizer-for-android (msfa)](https://github.com/google/music-synthesizer-for-android)
 を使う、独立した DX7 互換 FM 音源ライブラリの MVP です。
 DX7 の 1 Voice／32 Voice Bank SysEx を読み込み、ブラウザの鍵盤や

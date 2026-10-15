@@ -14,6 +14,10 @@ DX7 single-voice or 32-voice-bank SysEx files. No other Tetorica package is requ
 Supported operator edits now affect sounding notes of the edited patch;
 see the behavior change and patch-isolation rules below.
 
+Version **0.3.1** clarifies that abrupt frequency/feedback clicks are accepted
+and adds no automatic parameter smoothing. Runtime JavaScript, types and WASM
+are unchanged from 0.3.0; two rapid-change regressions bring the suite to 77 tests.
+
 ## Install
 
 ```sh

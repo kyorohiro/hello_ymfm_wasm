@@ -116,7 +116,7 @@ The Firefox test used the matching Playwright Firefox 155.0 build.
   are deferred; Tauri/physical hardware/Windows/Linux remain unverified.
 - Release versions: 0.3.0 (standalone) / 0.2.16 (FM).
 
-### Abrupt-change policy clarification — 2026-10-16
+### Abrupt-change policy clarification — 0.3.1 (2026-10-16)
 
 Frequency and feedback values apply directly with no new parameter smoothing,
 interpolation, glide, crossfade or click suppression. Their waveform
@@ -130,3 +130,6 @@ The suite now passes **77/77, skipped 0**. New 44.1/48 kHz regressions exercise
 render chunks, NaN/Infinity rejection with preserved state/PCM, continuing slow
 envelopes, recovery to an AC waveform, release and panic. No click-size limit or
 new click-suppression requirement is imposed.
+
+Release versions: standalone 0.3.1 / bundled FM 0.2.17. Runtime JavaScript,
+declarations and WASM are byte-identical to 0.3.0; this release updates docs and tests.

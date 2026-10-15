@@ -118,7 +118,7 @@ The new live-level model preserves time through mute but does not promise exact
 DX7 hardware EG timing after arbitrary parameter edits. No GPL source was copied;
 see `license-review.md` and the retained upstream notices.
 
-## Abrupt-change policy clarification — 2026-10-16
+## Abrupt-change policy clarification — 0.3.1 (2026-10-16)
 
 The user explicitly accepts waveform discontinuities/clicks caused by abrupt
 frequency/feedback edits. README/specs now state direct parameter application
@@ -133,3 +133,6 @@ Two regressions bring the standalone suite to **77/77, skipped 0**, testing
 atomic NaN/Infinity rejection, EG continuation, waveform recovery and normal
 release/panic. Audible steps are not test failures. Non-finite/corrupted output,
 divergence, crash and unnecessary phase/EG resets remain failures.
+
+This clarification is packaged as standalone 0.3.1 / bundled FM 0.2.17.
+Runtime JavaScript, declarations and WASM remain byte-identical to 0.3.0.
