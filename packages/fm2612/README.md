@@ -35,6 +35,7 @@ entry points, rather than every internal Worker or Worklet module.
 | Real-time chip playback on Node | `tetorica-fm2612/node/transports` | `YM2612AudifyTransport`, `YM2608AudifyTransport`, `YM2151AudifyTransport`, `GameboyAudifyTransport`, `SegaPSGAudifyTransport`, `NesApuAudifyTransport`, `PWM32XAudifyTransport` |
 | Browser synth with FX, recording and looping | `tetorica-fm2612/megasynth.js` | `MegaSynth` |
 | Browser live-code runtime | `tetorica-fm2612/playground_runtime.js` | `Playground`, `createPlaygroundRuntime` |
+| DX7 inside browser Playground scripts | `tetorica-fm2612/playground_runtime.js` | Script globals `useSoundChip('dx7')`, `createSoundChip('dx7')` |
 | Offline FM + native FX rendering | `tetorica-fm2612/megasynth_offline.js` | `createMegaSynthOffline` (experimental) |
 | Offline recording and looping | `tetorica-fm2612/megasynth_session.js` | `createMegaSynthSession` (experimental) |
 | Node synth with Worker audio output | `tetorica-fm2612/node` | `MegaSynthNode` (experimental) |
@@ -253,13 +254,13 @@ const synth = new MegaSynth({
 `moduleFactory`/`moduleOptions` for explicit loader injection. A URL helper does
 not copy assets. Keep dependent files alongside each deployed entry point.
 
-In the development runtime, an owned `MegaSynth` AudioContext uses the device's
+Since 0.2.14, an owned `MegaSynth` AudioContext uses the device's
 default sample rate. Set `{outputSampleRate: 48000}` to request a specific output
 frame rate; an explicit legacy `chipSampleRate` request remains supported. An
 injected AudioContext keeps its own rate. Chip clocks and note tuning are
-independent of the output rate. Published 0.2.13 predates this default change.
+independent of the output rate.
 
-The development runtime also supports chip-output RMS monitoring:
+Version 0.2.14 also supports chip-output RMS monitoring:
 
 ```js
 synth.setOutputEnvelopeOptions({samplesPerPoint: 128, pointsPerMessage: 16});
@@ -276,6 +277,57 @@ settings survive close/start. Omitted sizes keep their previous values. Each cal
 discards incomplete points and batches and enables monitoring unless
 `{enabled: false}` is supplied. Message intervals are approximately
 `samplesPerPoint * pointsPerMessage / audioContext.sampleRate` seconds.
+
+## DX7 in browser Playground (0.2.14)
+
+Scripts executed by `Playground` / `createPlaygroundRuntime` can use the MSFA
+DX7-compatible six-operator FM engine. It starts with the self-authored
+`INIT SINE` voice, so no external sound bank is needed:
+
+```js
+// Run inside a Playground script; these are runtime-provided globals.
+const dx7 = await useSoundChip('dx7');
+dx7.noteOn(60, 100); // MIDI C4, velocity 100.
+await beat(1);
+dx7.noteOff(60);
+```
+
+Read a DX7 single-voice or 32-voice-bank SysEx as binary before loading it.
+The Playground editor provides the virtual-file `file()` helper used below;
+an embedded runtime host supplies its own file access and passes binary data
+to the script:
+
+```js
+const bytes = await file('/presets/my-bank.syx', {type: 'arrayBuffer'});
+await dx7.loadSysex(bytes); // Applied in the Worklet before this resolves.
+console.log(dx7.voices); // [{index: 0, name: '...'}, ...]
+dx7.selectVoice(0);
+```
+
+`loadSysex` accepts an ArrayBuffer or ArrayBuffer view, validates the complete
+bank before replacing it, and selects voice 0. `noteOn` takes integer MIDI
+notes and velocity values from 0 to 127; velocity 0 is Note Off. There is no
+channel argument. Up to 16 voices can sound simultaneously. `noteOff(note)`
+releases all held voices of that pitch, `allNotesOff()` releases every voice,
+and `panic()` silences release tails and buffered audio immediately.
+
+Both Main and Worker script execution use AudioWorklet for audio generation.
+The engine renders mono at a fixed internal 44,100 Hz and supports output
+AudioContexts at 44,100 or 48,000 Hz; 48,000 Hz output is resampled. Its mono
+output feeds Playground's stereo mixer, FX and master volume. Use
+`await mixer.set(dx7.id, {volume: 0.5, pan: -0.25})` for balance. It has no
+chip-clock or raw-register API. STOP disposes the instance; a subsequent call
+to `useSoundChip('dx7')` creates a fresh one. Playground's
+`createSoundChip('dx7', {id: 'dx7-two'})` creates an independent instance and
+bank instead of reusing the cached `useSoundChip` instance.
+
+These globals belong to the Playground runtime. Importing `createSoundChip`
+from the **package root** does not add DX7 to that lower-level chip factory.
+For direct PCM generation or DX7 playback outside Playground, use the separate
+[`tetorica-msfa-dx7-wasm`](https://www.npmjs.com/package/tetorica-msfa-dx7-wasm)
+package (`createDX7` in Node/browsers, `createDX7Node` for browser audio).
+The pinned engine, WASM and Apache-2.0 notices are included in this package's
+`msfa_dx7/` directory; no extra runtime dependency or CDN request is required.
 
 ## Mega CD PCM with MegaSynth
 
@@ -449,10 +501,10 @@ FM/PSG/PCM mixing, stop/reset and close/restart. Playwright is a development
 dependency; it is not required by users of the sound-chip runtime.
 
 The build is staged in `dist/fm2612/`; packing produces
-`tetorica-fm2612-0.2.8.tgz`. To install a local build in another project:
+`tetorica-fm2612-0.2.14.tgz`. To install a local build in another project:
 
 ```sh
-npm install /absolute/path/to/tetorica-fm2612-0.2.8.tgz
+npm install /absolute/path/to/tetorica-fm2612-0.2.14.tgz
 ```
 
 The existing `tetorica-vgm` CLI package is built separately. This first package
@@ -463,10 +515,19 @@ adapter packages can reuse the core later without duplicating it.
 
 Project code is BSD-3-Clause. Third-party notices and component licenses are
 included; Nuked-OPN2 is LGPL-2.1-or-later, with its source and build script in
-`sources/`. The OPNA rhythm data is Tetorica-generated and includes its license
-and generator. External instrument/sample ROMs are not included.
+`sources/`. The bundled DX7 engine is Apache-2.0; its license, MSFA provenance
+and third-party notices are in `msfa_dx7/`. The OPNA rhythm data is
+Tetorica-generated and includes its license and generator. External
+instrument/sample ROMs are not included.
 
 ## Release notes
+
+`0.2.14` adds DX7 to browser Playground in Main and Worker modes, including
+single-voice / 32-voice-bank SysEx loading, 16-voice polyphony, mixer/FX routing
+and STOP cleanup. It bundles `tetorica-msfa-dx7-wasm` 0.1.0 and its licenses.
+The lower-level package-root `createSoundChip` API is unchanged. MegaSynth now
+uses the device's default output rate unless explicitly configured and adds
+configurable chip-output RMS monitoring with `setOutputEnvelopeOptions`.
 
 `0.2.13` adds common Hz/note/key controls to FM, PSG, Game Boy, NES and SSG
 Synth APIs, with explicit `setBlockFnum` / `noteOnRaw` FM methods. Existing

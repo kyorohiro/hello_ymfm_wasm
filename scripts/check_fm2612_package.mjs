@@ -4,6 +4,7 @@ import {mkdtemp, mkdir, writeFile, rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
+import assert from 'node:assert/strict';
 const root = fileURLToPath(new URL('../', import.meta.url));
 const scratch = await mkdtemp(join(tmpdir(), 'tetorica-fm2612-check-'));
 try {
@@ -11,6 +12,12 @@ try {
   const packed = JSON.parse(execFileSync('npm', ['pack', '--json', '--pack-destination', scratch], {
     cwd: join(root, 'dist/fm2612'), encoding: 'utf8',
   }))[0];
+  const packedPaths = new Set(packed.files.map(file => file.path));
+  for (const file of ['playground_dx7.js', 'playground_dx7_audio.js', 'playground_dx7_worklet.js',
+    'msfa_dx7/src/index.js', 'msfa_dx7/src/index.d.ts', 'msfa_dx7/src/sysex.js', 'msfa_dx7/wasm/msfa.wasm',
+    'msfa_dx7/LICENSE', 'msfa_dx7/THIRD_PARTY_NOTICES.md', 'msfa_dx7/README.vendor.md', 'msfa_dx7/vendor/msfa/COPYING']) {
+    assert.ok(packedPaths.has(file), `DX7 package payload missing ${file}`);
+  }
   const consumer = join(scratch, 'consumer');
   await mkdir(consumer);
   await writeFile(join(consumer, 'package.json'), '{"private":true,"type":"module"}\n');
