@@ -35,7 +35,7 @@ test('wobble sample loop plays only samples loaded during preparation', async ()
 test('bundled examples match editable categorized source files', async () => {
   const folders = [...new Set(EXAMPLE_FILES.map(file => file.path.split('/')[2]))];
   assert.equal(folders.indexOf('chip-raw'), folders.indexOf('basic') + 1);
-  assert.deepEqual(folders, ['basic', 'chip-raw', 'genesis', 'gameboy', 'nes', 'pc98', 'x68000']);
+  assert.deepEqual(folders, ['basic', 'chip-raw', 'genesis', 'gameboy', 'nes', 'pc98', 'x68000', 'dx7']);
   assert.ok(EXAMPLE_FILES.some(file => file.path === '/examples/chip-raw/ym2612-raw-write-beep.js'));
   assert.ok(EXAMPLE_FILES.some(file => file.path === '/examples/chip-raw/gameboy-raw-write-sample.js'));
   assert.deepEqual(EXAMPLE_FILES.filter(file => file.path.startsWith('/examples/basic/livefx/')).map(file => file.name), ['live-fx-distortion']);
@@ -47,8 +47,8 @@ test('bundled examples match editable categorized source files', async () => {
   }
   assert.equal(await buildExampleBundle(), await readFile(new URL('./playground_examples.js',import.meta.url),'utf8'));
   for(const file of EXAMPLE_FILES){
-    assert.match(file.path,/^\/examples\/(basic|chip-raw|genesis|gameboy|nes|pc98|x68000)\/(?:[\w-]+\/)*[\w-]+\.js$/);
-    if (/^\/examples\/(genesis|gameboy|nes|pc98|x68000)\//.test(file.path)) {
+    assert.match(file.path,/^\/examples\/(basic|chip-raw|genesis|gameboy|nes|pc98|x68000|dx7)\/(?:[\w-]+\/)*[\w-]+\.js$/);
+    if (/^\/examples\/(genesis|gameboy|nes|pc98|x68000|dx7)\//.test(file.path)) {
       assert.equal(file.path.split('/').length, 4, 'machine examples have no subfolders');
     }
     assert.equal(file.data,await readFile(new URL('.'+file.path,import.meta.url),'utf8'));
@@ -61,7 +61,7 @@ test('examples appear in the folder tree and edited source survives cassette exp
   const tree=buildFileTree(fs.list());
   assert.equal(tree[0].name,'examples');
   assert.equal(tree[0].children.length,new Set(EXAMPLE_FILES.map(file=>file.path.split('/')[2])).size);
-  assert.deepEqual(tree[0].children.map(node => node.name), ['basic', 'chip-raw', 'genesis', 'gameboy', 'nes', 'pc98', 'x68000']);
+  assert.deepEqual(tree[0].children.map(node => node.name), ['basic', 'chip-raw', 'genesis', 'gameboy', 'nes', 'pc98', 'x68000', 'dx7']);
   const path='/examples/basic/midi/midi-auto-chord.js';
   fs.writeText(path,'// user edited\n'+fs.get(path).data);
   const zip=createPlaygroundCassetteZip(fs.list());
@@ -116,6 +116,30 @@ test('haunted bells loads its sample before alternating forward and reverse play
   assert.ok((await readFile(new URL('./samples/sonic-pi/perc_bell.flac', import.meta.url))).length > 0);
 });
 
+test('DX7 example awaits its independent instrument and releases each MIDI note', async () => {
+  let loop;
+  const events = [];
+  const dx7 = {
+    id:'dx7',
+    noteOn(note, velocity) { events.push(['on', note, velocity]); },
+    noteOff(note) { events.push(['off', note]); },
+  };
+  const api = {
+    async useSoundChip(name) { assert.equal(name, 'dx7'); return dx7; },
+    setBpm(bpm) { assert.equal(bpm, 110); },
+    mixer: {async set(id, options) { assert.equal(id, dx7.id); assert.equal(options.volume, 0.5); }},
+    liveLoop(name, callback) { assert.equal(name, 'dx7-melody'); loop = callback; },
+    async beat(beats) { events.push(['beat', beats]); },
+  };
+  const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
+  await new AsyncFunction(...Object.keys(api), EXAMPLES['dx7-init-sine'])(...Object.values(api));
+  assert.equal(events.length, 0);
+  await loop();
+  assert.deepEqual(events, [60,64,67,72,67,64].flatMap(note => [
+    ['on', note, 100], ['beat', 0.4], ['off', note], ['beat', 0.1],
+  ]));
+});
+
 test('slow hollow alternates independent channels at the original note intervals', async () => {
   const loops = [], events = [];
   let now = 0;
@@ -125,6 +149,7 @@ test('slow hollow alternates independent channels at the original note intervals
       if (p.tl !== undefined) assert.ok(Number.isInteger(p.tl) && p.tl >= 0 && p.tl <= 127);
     },
     setFrequency() {},
+    setBlockFnum() {},
     keyOn(ch) { events.push({ch, time: now, on: true}); },
     keyOff(ch) { events.push({ch, time: now, on: false}); },
   };

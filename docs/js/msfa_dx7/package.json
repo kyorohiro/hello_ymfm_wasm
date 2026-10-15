@@ -1,0 +1,86 @@
+{
+  "name": "tetorica-msfa-dx7-wasm",
+  "version": "0.1.0",
+  "description": "Standalone MSFA DX7 synthesizer for JavaScript, Node.js and AudioWorklet",
+  "keywords": [
+    "dx7",
+    "msfa",
+    "fm-synthesis",
+    "synthesizer",
+    "midi",
+    "sysex",
+    "webassembly",
+    "wasm",
+    "audioworklet",
+    "web-audio",
+    "music",
+    "audio",
+    "nodejs",
+    "typescript"
+  ],
+  "author": "kyorohiro",
+  "homepage": "https://github.com/kyorohiro/tetorica-msfa-dx7-wasm#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kyorohiro/tetorica-msfa-dx7-wasm.git"
+  },
+  "bugs": {
+    "url": "https://github.com/kyorohiro/tetorica-msfa-dx7-wasm/issues"
+  },
+  "type": "module",
+  "main": "./src/index.js",
+  "types": "./src/index.d.ts",
+  "license": "Apache-2.0",
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "exports": {
+    ".": {
+      "types": "./src/index.d.ts",
+      "import": "./src/index.js"
+    },
+    "./browser": {
+      "types": "./src/browser.d.ts",
+      "import": "./src/browser.js"
+    },
+    "./sysex": {
+      "types": "./src/sysex.d.ts",
+      "import": "./src/sysex.js"
+    },
+    "./wasm/msfa.wasm": "./wasm/msfa.wasm",
+    "./worklet": "./src/dx7-worklet.js"
+  },
+  "files": [
+    "src",
+    "wasm/msfa.wasm",
+    "README.md",
+    "LICENSE",
+    "THIRD_PARTY_NOTICES.md",
+    "docs/research.md",
+    "docs/verification.md",
+    "vendor/msfa/COPYING",
+    "vendor/msfa/UPSTREAM.md"
+  ],
+  "scripts": {
+    "build:wasm": "node scripts/build-wasm.mjs",
+    "build:native": "node scripts/build-native.mjs",
+    "build:demo": "vite build --config vite.config.js",
+    "build": "npm run build:wasm && npm run build:demo",
+    "dev": "vite --host 127.0.0.1 --open /demo/",
+    "test": "node --test tests/*.test.mjs",
+    "test:native": "npm run build:native && node --test tests/native.test.mjs",
+    "test:lifecycle": "node scripts/check-lifecycle.mjs",
+    "test:browser": "node scripts/check-browser.mjs",
+    "test:package": "node scripts/check-package.mjs",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "devDependencies": {
+    "playwright": "1.63.0",
+    "typescript": "^5.9.3",
+    "vite": "^7.1.12"
+  }
+}

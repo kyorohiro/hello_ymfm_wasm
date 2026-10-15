@@ -1,6 +1,7 @@
 import {midiToOpnPitch, opnPitchFromHz} from '../../web/soundchip_pitch.js';
 import {CHIP_CLOCKS} from '../../web/playground_chip_clock.js';
 import {createYm2151Client} from '../../web/playground_ym2151.js';
+import {createDx7Client} from '../../web/playground_dx7.js';
 import {serializeLogError} from '../../web/playground_log.js';
 import {createSegaPsgClient} from '../../web/playground_segapsg.js';
 import {resolvePlaySeconds,resolvePlayDuration} from '../../web/playground_duration.js';
@@ -33,7 +34,7 @@ function createWorkerHarness(overrides = {}) {
   const context = {
     serializeLogError,
     midiToOpnPitch, opnPitchFromHz, CHIP_CLOCKS, resolvePlaySeconds, resolvePlayDuration, createBeatClock, runTween, createNativeSampleController, createNativeNoiseController, controlNativeNoise, createWorkerDac, atob, createMidiApi, createMidiRack, createWorkerChip, createNativeFXController, createLiveFxLifecycle, DOMException, structuredClone,
-    createYm2151Client, createSegaPsgClient, createLoopAsyncTasks, createDeadlineScheduler, createOpnClient, createGameboyClient, createSoundChipRegistry, createRf5c164Client, createYm2608Client,
+    createDx7Client, createYm2151Client, createSegaPsgClient, createLoopAsyncTasks, createDeadlineScheduler, createOpnClient, createGameboyClient, createSoundChipRegistry, createRf5c164Client, createYm2608Client,
     hzToBlockFnum,
     Error,
     Map,
@@ -651,7 +652,7 @@ test('Worker useSoundChip aliases global FM, permits const fm, reuses on reevalu
   assert.equal(worker.messages.filter(m=>m.command==='pcm.create' || m.command==='fm.then').length,0);
  }finally{await worker.send({type:'stop'});}
 });
-for(const name of ['rf5c164','ym2608','gameboy','ym2203','ym2610','ym2612','segapsg','ym2151'])test(`Worker useSoundChip ${name} shares pending creation, reuses and disposes on Stop`,async()=>{
+for(const name of ['rf5c164','ym2608','gameboy','ym2203','ym2610','ym2612','segapsg','ym2151','dx7'])test(`Worker useSoundChip ${name} shares pending creation, reuses and disposes on Stop`,async()=>{
  const worker=createWorkerHarness(),sent=[];let closed=0;
  const port={start(){},postMessage:data=>sent.push(data),close(){closed++;}};
  const source=`const [a,b]=await Promise.all([useSoundChip('${name}'),useSoundChip('${name}')]);

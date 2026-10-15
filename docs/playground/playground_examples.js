@@ -250,6 +250,11 @@ export const EXAMPLE_FILES = [
     "path": "/examples/x68000/ym2151-tone.js",
     "name": "ym2151-tone",
     "data": "// Independent OPM; numeric channels 0..7. Operator order: M1, C1, M2, C2.\nconst opm = await useSoundChip('ym2151');\ntry {\n  opm.reset();\n  opm.setAlgo(0, 7); // Four parallel carriers; enable only C2 below.\n  opm.setPan(0, true, true);\n  opm.setOperator(0, 3, {mul: 1, tl: 32, ar: 31, d1r: 0, d2r: 0, d1l: 0, rr: 15});\n  for (const note of ['C4', 'E4', 'G4', 'A4']) {\n    opm.setNote(0, note);\n    opm.keyOn(0, 8); // Only C2.\n    await sleep(0.2);\n    opm.keyOff(0);\n    await sleep(0.05);\n  }\n} finally { opm.dispose(); }\n"
+  },
+  {
+    "path": "/examples/dx7/dx7-init-sine.js",
+    "name": "dx7-init-sine",
+    "data": "// Independent MSFA DX7, ready with the self-authored INIT SINE voice.\n// MIDI note numbers 0..127; the DX7 allocates its own 16 voices.\nconst dx7 = await useSoundChip('dx7');\nsetBpm(110);\nawait mixer.set(dx7.id, {volume: 0.5});\n\n// To use your own DX7 SysEx, import a .syx file into FILES first:\n// await dx7.loadSysex(await file('/presets/my-bank.syx', {type:'arrayBuffer'}));\n// console.log(dx7.voices);\n// dx7.selectVoice(0);\n\nliveLoop('dx7-melody', async () => {\n  for (const note of [60, 64, 67, 72, 67, 64]) {\n    dx7.noteOn(note, 100);\n    await beat(0.4);\n    dx7.noteOff(note);\n    await beat(0.1);\n  }\n});\n"
   }
 ];
 export const EXAMPLES = Object.fromEntries(EXAMPLE_FILES.map(file => [file.name, file.data]));

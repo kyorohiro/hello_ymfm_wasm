@@ -54,3 +54,14 @@ test('explicit instance chip overrides the selected Playground chip', () => {
   assert.equal(sourceChip(editor, 'ym2608'), 'ym2612');
   assert.deepEqual(definitionSource('interface FMApi {\n  setFrequency(): void;\n}', {lineNumber:2, column:3}, 'ym2608'), {file:'opn_fm_synth.js', symbol:'setFrequency'});
 });
+
+test('DX7 declarations navigate to the independent DX7 client', async () => {
+  const declarations = await readFile(new URL('./tetorica-playground-globals.d.ts', import.meta.url), 'utf8');
+  const lines = declarations.split('\n');
+  const start = lines.findIndex(line => /^interface PlaygroundDx7 \{/.test(line));
+  const line = lines.findIndex((text, index) => index > start && /loadSysex\(/.test(text));
+  assert.ok(line > start);
+  assert.deepEqual(definitionSource(declarations, {lineNumber:line + 1, column:lines[line].indexOf('loadSysex') + 1}), {
+    file:'playground_dx7.js', symbol:'loadSysex',
+  });
+});

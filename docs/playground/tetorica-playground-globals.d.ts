@@ -1237,6 +1237,46 @@ interface PlaygroundChipClock {
   readonly clock: number;
   setClock(hz: number): Promise<void>;
 }
+interface PlaygroundDx7VoiceInfo {
+  readonly index: number;
+  readonly name: string;
+}
+interface PlaygroundDx7State {
+  voices: PlaygroundDx7VoiceInfo[];
+  selectedVoice: number;
+  /** AudioContext output rate, in Hz: 44100 or 48000. */
+  sampleRate: number;
+  /** MSFA engine rate, fixed at 44100 Hz. */
+  internalSampleRate: number;
+}
+/** Independent MSFA DX7 synthesizer. MIDI note numbers, 16 voices, mono output.
+ * Starts with the self-authored INIT SINE voice. No setClock/register API.
+ * Audio is routed through Playground volume, mixer and FX. STOP disposes the instance.
+ */
+interface PlaygroundDx7 {
+  readonly voices: PlaygroundDx7VoiceInfo[];
+  readonly selectedVoice: number;
+  readonly sampleRate: number;
+  readonly internalSampleRate: number;
+  /** Complete DX7 1-voice / 32-voice bank SysEx; selects voice 0.
+   * Await application before playing. Invalid data preserves the previous bank.
+   * Read binary files with file(path, {type:'arrayBuffer'}).
+   */
+  loadSysex(bytes: ArrayBuffer | ArrayBufferView): Promise<PlaygroundDx7VoiceInfo[]>;
+  /** Zero-based voice index. Existing notes retain their operator/envelope settings. */
+  selectVoice(index: number): void;
+  /** Integer MIDI note and velocity 0..127. Velocity 0 releases that note. */
+  noteOn(note: number, velocity?: number): void;
+  /** Release all held voices of this MIDI note; their release envelopes continue. */
+  noteOff(note: number): void;
+  /** Release every voice; release envelopes continue. */
+  allNotesOff(): void;
+  /** Immediately silence and clear buffered audio, retaining the selected voice. */
+  panic(): void;
+  /** Read metadata after preceding commands have been applied in the AudioWorklet. */
+  getState(): Promise<PlaygroundDx7State>;
+  dispose(): void;
+}
 type PlaygroundSoundChipMap = {
   ym2612: TetoricaSelectedChip extends 'ym2612' ? FMApi : PlaygroundCreatedFm;
   ym2203: TetoricaSelectedChip extends 'ym2203' ? PlaygroundOPNFm<0 | 1 | 2> : PlaygroundCreatedYm2203;
@@ -1248,9 +1288,17 @@ type PlaygroundSoundChipMap = {
   ym2151: PlaygroundYm2151;
   nes: PlaygroundNes;
   pwm: PlaygroundPWM32X;
+  dx7: PlaygroundDx7;
 };
 type PlaygroundUseSoundChipOptions = { [key: string]: never };
-declare function useSoundChip<Name extends keyof PlaygroundSoundChipMap>(name: Name, options?: PlaygroundUseSoundChipOptions): Promise<PlaygroundSoundChipMap[Name] & PlaygroundChipClock & {readonly id: string}>;
+type PlaygroundSoundChipClient<Name extends keyof PlaygroundSoundChipMap> = Name extends 'dx7'
+  ? PlaygroundSoundChipMap[Name] & {readonly id: string}
+  : PlaygroundSoundChipMap[Name] & PlaygroundChipClock & {readonly id: string};
+/** Reuse one instance of this instrument until STOP. For independent instances use createSoundChip. */
+declare function useSoundChip<Name extends keyof PlaygroundSoundChipMap>(name: Name, options?: PlaygroundUseSoundChipOptions): Promise<PlaygroundSoundChipClient<Name>>;
+
+/** Create an independent DX7 with its own 16 voices and SysEx bank. */
+declare function createSoundChip(name: 'dx7', options?: PlaygroundCreateSoundChipOptions): Promise<PlaygroundDx7 & {readonly id: string}>;
 
 /** Independent chips. Global play/write still target the default Playground chip. */
 type PlaygroundCreatedFm = Omit<FMApi, 'dac' | 'scheduleWrites' | 'read' | 'readStatus' | 'getIrq'> & {dispose(): void};

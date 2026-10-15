@@ -47,6 +47,9 @@ playground_ym2151.js
 playground_nes.js
 playground_nes_audio.js
 playground_nes_worklet.js
+playground_dx7.js
+playground_dx7_audio.js
+playground_dx7_worklet.js
 playground_ym2151_audio.js
 playground_ym2151_worklet.js
 playground_gameboy_audio.js
@@ -190,6 +193,10 @@ perl -0pi -e 's#"\./generated/ym2203_wasm\.js"#"../generated/ym2203_wasm.js"#g' 
 perl -0pi -e 's#"\./generated/ym2608_wasm\.js"#"../generated/ym2608_wasm.js"#g' "${DOCS_JS_DIR}/ym2608-worklet.js"
 perl -0pi -e 's#"\./generated/ym2610b_wasm\.js"#"../generated/ym2610b_wasm.js"#g' "${DOCS_JS_DIR}/ym2610b-worklet.js"
 
+# Synth factories also resolve their default WASM beside docs/generated/.
+perl -0pi -e 's#"\./generated/#"../generated/#g' \
+  "${DOCS_JS_DIR}/ym2203synth.js" "${DOCS_JS_DIR}/ym2608synth.js" "${DOCS_JS_DIR}/ym2610bsynth.js"
+
 perl -0pi -e 's#"\./generated/segapsg_wasm\.js"#"../generated/segapsg_wasm.js"#g' \
   "${DOCS_JS_DIR}/ym2612-worklet.js"
 
@@ -239,3 +246,12 @@ perl -0pi -e 's#\./generated/#../generated/#g' "${DOCS_JS_DIR}/soundchip-output-
 perl -0pi -e 's#../docs/js/nesapuaudioengine.js#./nesapuaudioengine.js#g' "${DOCS_JS_DIR}/nesapu.js"
 mkdir -p "${DOCS_JS_DIR}/tetorica_virtual_files"
 cp -R "${ROOT_DIR}/packages/virtual-files/src/." "${DOCS_JS_DIR}/tetorica_virtual_files/"
+
+# Pinned MSFA DX7 distribution: keep its src/ -> wasm/ layout and Apache notices.
+mkdir -p "${DOCS_JS_DIR}/msfa_dx7"
+cp -R "${WEB_DIR}/msfa_dx7/." "${DOCS_JS_DIR}/msfa_dx7/"
+mkdir -p "${ROOT_DIR}/docs/licenses/tetorica-msfa-dx7-wasm"
+cp "${WEB_DIR}/msfa_dx7/LICENSE" "${WEB_DIR}/msfa_dx7/THIRD_PARTY_NOTICES.md" \
+  "${WEB_DIR}/msfa_dx7/README.vendor.md" "${ROOT_DIR}/docs/licenses/tetorica-msfa-dx7-wasm/"
+cp "${WEB_DIR}/msfa_dx7/vendor/msfa/COPYING" "${WEB_DIR}/msfa_dx7/vendor/msfa/UPSTREAM.md" \
+  "${ROOT_DIR}/docs/licenses/tetorica-msfa-dx7-wasm/"

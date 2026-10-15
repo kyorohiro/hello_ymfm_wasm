@@ -21,12 +21,12 @@ function setup(t, selectedChip='ym2612') {
   connect(){} disconnect(){this.disconnects++;this.remote?.close();}
  };
  const media=()=>({stop(){},stopAll(){},pause(){},list:()=>[],unload(){}});
- const megaDrive={capabilities:{chip:selectedChip,fmChannels:6},audioContext:{get currentTime(){return performance.now()/1000;},audioWorklet:{async addModule(){}}},audio:{masterInputNode:{}},fm:{setPreset(){},noteOff(){}},psg:{},sample:media(),stream:media(),async start(){},async resume(){},clearFXChain:()=>[]};
+ const megaDrive={capabilities:{chip:selectedChip,fmChannels:6},audioContext:{sampleRate:44100,get currentTime(){return performance.now()/1000;},audioWorklet:{async addModule(){}}},audio:{masterInputNode:{}},fm:{setPreset(){},noteOff(){}},psg:{},sample:media(),stream:media(),async start(){},async resume(){},clearFXChain:()=>[]};
  const runtime=createPlaygroundRuntime({megaDrive,guardExecution:false});
  t.after(()=>{runtime.stop();Object.assign(globalThis,saved);});
  return {runtime,nodes,setDelay:value=>{delay=value;}};
 }
-for(const chip of ['rf5c164','ym2608','gameboy','ym2203','ym2610','ym2612','segapsg','ym2151','pwm','nes'])test(`Main managed ${chip} creates once, reuses on Run and recreates after Stop`,async t=>{
+for(const chip of ['rf5c164','ym2608','gameboy','ym2203','ym2610','ym2612','segapsg','ym2151','pwm','nes','dx7'])test(`Main managed ${chip} creates once, reuses on Run and recreates after Stop`,async t=>{
  const {runtime,nodes}=setup(t,chip==='ym2612'?'ym2203':'ym2612');
  const source=`const [a,b]=await Promise.all([useSoundChip('${chip}'),useSoundChip('${chip}')]);
  if(a!==b || (context.pcm && a!==context.pcm))throw Error('identity');context.pcm=a;
@@ -46,18 +46,31 @@ test('Main disposes initialization completed after Stop and permits a new lookup
  setDelay(false);await runtime.playSource(`await useSoundChip('rf5c164');`);assert.equal(nodes.length,2);
 });
 
-for (const name of ['ym2612','ym2203','ym2610','segapsg','ym2151']) test(`Main creates independent ${name} nodes and Stop disposes both`, async t => {
+for (const name of ['ym2612','ym2203','ym2610','segapsg','ym2151','dx7']) test(`Main creates independent ${name} nodes and Stop disposes both`, async t => {
  const {runtime,nodes}=setup(t);
- await runtime.playSource(`const [a,b]=await Promise.all([createSoundChip('${name}'),createSoundChip('${name}')]);if(a===b||a===fm)throw Error('identity');if('${name}'==='segapsg'){a.tone(0,{note:'C4'});b.noiseOff();}else if('${name}'==='ym2151'){a.setNote(7,'A4');a.keyOn(7);b.keyOff(7);}else{a.noteOn(0,4,600);b.noteOff(0);}context.a=a;`);
+ await runtime.playSource(`const [a,b]=await Promise.all([createSoundChip('${name}'),createSoundChip('${name}')]);if(a===b||a===fm)throw Error('identity');if('${name}'==='segapsg'){a.tone(0,{note:'C4'});b.noiseOff();}else if('${name}'==='ym2151'){a.setNote(7,'A4');a.keyOn(7);b.keyOff(7);}else if('${name}'==='dx7'){a.noteOn(60,100);b.noteOff(60);}else{a.noteOn(0,4,600);b.noteOff(0);}context.a=a;`);
  assert.equal(nodes.length,2);
  runtime.stop();assert.ok(nodes.every(n=>n.disconnects===1));assert.equal(Object.keys(runtime.context).length,0);
 });
 
-for (const name of ['ym2612','ym2203','ym2610','segapsg','ym2151','nes']) test(`Main Stop during ${name} creation disposes the late node`, async t => {
+for (const name of ['ym2612','ym2203','ym2610','segapsg','ym2151','nes','dx7']) test(`Main Stop during ${name} creation disposes the late node`, async t => {
  const {runtime,nodes,setDelay}=setup(t);setDelay(true);
  const state=runtime.context;
  const running=runtime.playSource(`await createSoundChip('${name}');context.completed=true;`);
  for(let i=0;i<100&&!nodes.length;i++)await tick();assert.equal(nodes.length,1);
  runtime.stop();nodes[0].ready();await running;
  assert.equal(state.completed,undefined);assert.equal(nodes[0].disconnects,1);
+});
+
+test('Main DX7 processor failure releases the cached endpoint and permits a fresh lookup', async t => {
+ const {runtime,nodes}=setup(t);
+ await runtime.playSource(`context.before=await useSoundChip('dx7');`);
+ assert.equal(nodes.length,1);
+ const before=runtime.context.before;
+ nodes[0].port.onmessage({data:{fatal:true,error:'DX7 processor failed'}});
+ assert.equal(nodes[0].disconnects,1);
+ assert.throws(()=>before.noteOn(60,100),/disposed/);
+ await runtime.playSource(`context.after=await useSoundChip('dx7');`);
+ assert.equal(nodes.length,2);
+ assert.notEqual(runtime.context.after,before);
 });

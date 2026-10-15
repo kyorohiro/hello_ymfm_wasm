@@ -9,7 +9,9 @@ const files = [];
 async function walk(directory) {
   for (const item of await readdir(directory, {withFileTypes: true})) {
     const path = join(directory, item.name);
-    if (item.isDirectory() && !['sources', 'licenses', 'assets'].includes(item.name)) await walk(path);
+    // The pinned DX7 distribution already supplies declarations. Regenerating
+    // its JS would overwrite .d.ts files resolved by the Playground worklet.
+    if (item.isDirectory() && !['sources', 'licenses', 'assets', 'msfa_dx7'].includes(item.name)) await walk(path);
     else if (item.isFile() && /\.(?:m?js)$/.test(item.name)) files.push(path);
   }
 }

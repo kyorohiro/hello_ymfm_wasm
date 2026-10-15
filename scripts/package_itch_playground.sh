@@ -93,6 +93,9 @@ playground_ym2151.js
 playground_nes.js
 playground_nes_audio.js
 playground_nes_worklet.js
+playground_dx7.js
+playground_dx7_audio.js
+playground_dx7_worklet.js
 playground_ym2151_audio.js
 playground_ym2151_worklet.js
 playground_segapsg.js
@@ -278,6 +281,7 @@ for file in ${RUNTIME_FILES}; do
 done
 
 cp -R "${DOCS_JS_DIR}/nes_apu_vendor" "${STAGE_DIR}/js/nes_apu_vendor"
+cp -R "${DOCS_JS_DIR}/msfa_dx7" "${STAGE_DIR}/js/msfa_dx7"
 cp -R "${ROOT_DIR}/packages/virtual-files/src" "${STAGE_DIR}/js/tetorica_virtual_files"
 for file in git.bundle.js GIT_LICENSES.txt; do
   src="${DOCS_JS_DIR}/tetorica_virtual_files/${file}"
@@ -351,6 +355,9 @@ Browser Git: isomorphic-git and bundled dependencies. See js/tetorica_virtual_fi
 
 NES APU: JSNES, Apache-2.0. See licenses/jsnes/.
 FDS: fixNES-derived, MIT. See licenses/fixnes-fds/.
+
+DX7: tetorica-msfa-dx7-wasm 0.1.0 / Google MSFA, Apache-2.0.
+See js/msfa_dx7/LICENSE, THIRD_PARTY_NOTICES.md and README.vendor.md.
 
 32X PWM: MAME-derived FIFO/timer core, BSD-3-Clause. See licenses/mame-32x-pwm/.
 

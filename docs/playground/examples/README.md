@@ -13,6 +13,7 @@ FILES の `examples/` を開き、フォルダー内の `.js` を選択して Ru
 | nes | NES APU の pulse・triangle・noise、FDS 波形と変調、DMC サンプル |
 | pc98 | 独立 YM2608 の SSG・rhythm・ADPCM-B（PCM からの loadSample を含む） |
 | x68000 | 独立 YM2151 の FM |
+| dx7 | MSFA DX7 の16音発音、MIDIノート番号と SysEx 音色の読み込み |
 
 FILES ではこの順に表示します。機種別のサンプルは各フォルダーに直接置きます。`basic/` 内の共通機能サンプルは機能別に分類しています。
 `chip-raw` は直接レジスタを書く入口として残しています。
@@ -26,6 +27,32 @@ FILES ではこの順に表示します。機種別のサンプルは各フォ�
 `nes/nes-pulse-frequency.js` は Hz 指定の例です。`nes.pulse.setFrequency(0, 440)`
 で周波数を設定し、`keyOn(0)` / `keyOff(0)` でその音程の発音・停止を行います。
 `noteOn(0, 'A4')` は音名または MIDI ノート番号を指定して発音する別の入口です。
+
+`dx7/dx7-init-sine.js` は、独立した16音の DX7 音源を使います。
+`dx7.noteOn(60, 100)` は MIDI C4、velocity 100 です。チャンネル引数はありません。
+初期音色は自作の `INIT SINE` なので、そのまま Run で演奏できます。
+自分の `.syx` ファイルを FILES に読み込んだ場合は、次のようにバイナリーとして渡します。
+
+```javascript
+const dx7 = await useSoundChip('dx7');
+await dx7.loadSysex(await file('/presets/my-bank.syx', {type:'arrayBuffer'}));
+console.log(dx7.voices); // {index, name} の一覧
+dx7.selectVoice(0);
+dx7.noteOn(60, 100);
+await beat(1);
+dx7.noteOff(60);
+```
+
+`loadSysex()` の完了は音色が Worklet に適用された通知です。発音前に必ず `await` してください。
+DX7 1 Voice / 32 Voice Bank の完全な SysEx に対応し、不正なデータでは既存音色を保持します。
+`useSoundChip('dx7')` は同じ音源を再利用し、`createSoundChip('dx7', {id:'pad'})` は独立音源を作ります。
+音量・mixer・FX に接続され、STOP で破棄されます。Main / Worker の両方で使えます。
+`allNotesOff()` はリリース、`panic()` は即時消音です。同じノートの Note Off は同音の全声をリリースします。
+上流の16音割り当てを保ち、16声を保持中の追加発音は無視します。独自のボイススティーリングはありません。
+内部は44,100 Hz固定、出力は AudioContext の44,100 / 48,000 Hzに対応します。
+48,000 Hzは出力側で線形補間します。`setClock` やサンプル精度の予約APIはありません。
+msfa の AM・transpose 等の制約は [DX7 ライブラリの README](../../js/msfa_dx7/README.md) を参照してください。
+外部の音色バンクは同梱していません。
 
 `?ex=...` は廃止。`?src=...` によるコード共有は引き続き利用できる。
 各サンプルの利用可能な音源・機能はコード内の API に依存する（DAC/PSG 等は YM2612 モード）。

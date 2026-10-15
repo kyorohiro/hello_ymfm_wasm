@@ -30,6 +30,7 @@ Open these source files from Playground FILES → examples to run them.
 - [FM API Beep](./playground/examples/basic/fm/fm-api-beep.js): Direct YM2612 setup
 - [PSG Scale](./playground/examples/basic/psg/psg-scale.js): SN76489-compatible tone API
 - [Parallel FX](./playground/examples/basic/fx/parallel-fx.js): Branched effect routing
+- [DX7 Init Sine](./playground/examples/dx7/dx7-init-sine.js): useSoundChip('dx7'), 16-voice MIDI-note playback and DX7 SysEx banks. Read SysEx with file(path, {type:'arrayBuffer'}); await loadSysex before noteOn. MSFA runs internally at 44,100 Hz and has no setClock API.
 
 ## Source
 

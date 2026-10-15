@@ -97,3 +97,27 @@ const cachedGb = await useSoundChip('gameboy');
 cachedGb.id.toUpperCase();
 // @ts-expect-error IDs are stable metadata.
 autoGb.id = 'another';
+
+const dx7 = await useSoundChip('dx7');
+dx7.noteOn(60, 100);
+dx7.noteOff(60);
+dx7.allNotesOff();
+dx7.panic();
+const dx7Voices = await dx7.loadSysex(await file('/presets/my-bank.syx', {type:'arrayBuffer'}));
+dx7Voices[0].name.toUpperCase();
+dx7.selectVoice(0);
+dx7.voices[0].index.toFixed();
+dx7.internalSampleRate.toFixed();
+(await dx7.getState()).sampleRate.toFixed();
+const extraDx7 = await pg.createSoundChip('dx7', {id:'dx7-pad'});
+await mixer.set(extraDx7.id, {volume:0.4});
+await extraDx7.loadSysex(new DataView(new ArrayBuffer(163)));
+extraDx7.dispose();
+// @ts-expect-error DX7 uses MIDI note numbers, not channel + note-name arguments.
+dx7.noteOn(0, 'C4');
+// @ts-expect-error MSFA has a fixed internal rate; it has no chip clock.
+dx7.setClock(4000000);
+// @ts-expect-error The Playground client renders internally through AudioWorklet.
+dx7.render(128);
+// @ts-expect-error SysEx must be binary, not the default text file result.
+await dx7.loadSysex(await file('/presets/my-bank.syx'));
