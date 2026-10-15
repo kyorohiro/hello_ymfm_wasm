@@ -53,6 +53,25 @@ async function dispatchSave(page, extra = {}) {
   }, extra);
 }
 
+async function checkSyncFeedback(page, success = true) {
+  const button = page.locator('#syncCodeButton');
+  if (success) {
+    assert.equal(await button.getAttribute('data-feedback'), 'success');
+    assert.equal((await button.textContent()).trim(), '✓ Synced');
+  } else {
+    assert.notEqual(await button.getAttribute('data-feedback'), 'success');
+    assert.equal((await button.textContent()).trim(), 'Sync');
+  }
+}
+
+async function syncControlBounds(page) {
+  return page.evaluate(() => {
+    const button = document.getElementById('syncCodeButton').getBoundingClientRect();
+    const panel = document.querySelector('.dock-toggle').getBoundingClientRect();
+    return {width:button.width, panelLeft:panel.left};
+  });
+}
+
 async function settleCurrentModel(page) {
   await page.evaluate(async () => {
     const model = monaco.editor.getEditors().find(editor => editor.getModel()?.uri.path.startsWith('/project/'))?.getModel();
@@ -72,21 +91,39 @@ async function checkCodeButtons(page) {
   });
   assert.equal(await syncButton.isEnabled(), true);
   assert.equal(await revertButton.isDisabled(), true);
+  await checkSyncFeedback(page, false);
+  const beforeFeedback = await syncControlBounds(page);
   const calls = await page.evaluate(() => window.__syncShortcutTest.calls.length);
+  let expectedCalls = calls + 1;
   const otherBefore = await page.evaluate(() => window.__syncShortcutTest.fs.get('/shortcut/second.js').data);
   await syncButton.click();
-  await waitSaved(page, '/index.js', '// baseline from Sync button\n', calls + 1);
+  await waitSaved(page, '/index.js', '// baseline from Sync button\n', expectedCalls);
+  await checkSyncFeedback(page);
+  const duringFeedback = await syncControlBounds(page);
+  assert(Math.abs(beforeFeedback.width - duringFeedback.width) < .75, 'Sync feedback changes the button width');
+  assert(Math.abs(beforeFeedback.panelLeft - duringFeedback.panelLeft) < .75, 'Sync feedback shifts Panel');
+  await page.evaluate(() => { window.__syncFeedbackFocusTarget = document.activeElement; });
+  await page.waitForFunction(() => document.getElementById('syncCodeButton').dataset.feedback !== 'success');
+  await checkSyncFeedback(page, false);
+  assert.equal(await page.evaluate(() => document.activeElement === window.__syncFeedbackFocusTarget), true);
+  const afterFeedback = await syncControlBounds(page);
+  assert(Math.abs(beforeFeedback.width - afterFeedback.width) < .75);
+  assert(Math.abs(beforeFeedback.panelLeft - afterFeedback.panelLeft) < .75);
+  await syncButton.click(); // No content changed; the feedback must still appear.
+  await waitSaved(page, '/index.js', '// baseline from Sync button\n', ++expectedCalls);
+  await checkSyncFeedback(page);
   assert.equal(await syncButton.isEnabled(), true);
   assert.equal(await revertButton.isDisabled(), true);
 
   await page.evaluate(() => window.__syncShortcutTest.editor.setValue('// edit to undo after Revert\n'));
+  await checkSyncFeedback(page, false);
   assert.equal(await revertButton.isEnabled(), true);
   await revertButton.click();
   await page.waitForFunction(() => window.__syncShortcutTest.editor.getValue() === '// baseline from Sync button\n');
   assert.equal(await page.evaluate(() => window.__syncShortcutTest.fs.get('/index.js').data), '// baseline from Sync button\n');
   assert.equal(await page.evaluate(() => window.__syncShortcutTest.fs.get('/.tet.ss/index.js').data), '// baseline from Sync button\n');
   assert.equal(await page.evaluate(() => window.__syncShortcutTest.fs.get('/shortcut/second.js').data), otherBefore);
-  assert.equal(await page.evaluate(() => window.__syncShortcutTest.calls.length), calls + 1);
+  assert.equal(await page.evaluate(() => window.__syncShortcutTest.calls.length), expectedCalls);
   assert.equal(await revertButton.isDisabled(), true);
 
   await page.evaluate(() => window.__syncShortcutTest.editor.focus());
@@ -98,7 +135,7 @@ async function checkCodeButtons(page) {
   await page.keyboard.press(modifier + '+Shift+z');
   await page.waitForFunction(() => window.__syncShortcutTest.editor.getValue() === '// baseline from Sync button\n');
   assert.equal(await page.evaluate(() => window.__syncShortcutTest.fs.get('/.tet.ss/index.js').data), '// baseline from Sync button\n');
-  assert.equal(await page.evaluate(() => window.__syncShortcutTest.calls.length), calls + 1);
+  assert.equal(await page.evaluate(() => window.__syncShortcutTest.calls.length), expectedCalls);
 
   for (const source of ['/sys/button-guard.js', '/.git/button-guard.js']) {
     await settleCurrentModel(page);
@@ -148,12 +185,15 @@ async function checkEditor(browser, url) {
     });
     await page.keyboard.press('Control+s');
     await waitSaved(page, '/index.js', '// latest editor text\n', 1);
+    await checkSyncFeedback(page);
     assert.equal(await page.evaluate(() => window.__syncShortcutTest.fs.get('/index.js').data), '// latest editor text\n');
 
     await page.evaluate(() => window.__syncShortcutTest.editor.setValue('// next unsynced edit\n'));
+    await checkSyncFeedback(page, false);
     assert.equal(await page.evaluate(() => window.__syncShortcutTest.fs.get('/.tet.ss/index.js').data), '// latest editor text\n');
     await page.keyboard.press('Meta+s');
     await waitSaved(page, '/index.js', '// next unsynced edit\n', 2);
+    await checkSyncFeedback(page);
     await settleCurrentModel(page);
 
     await page.evaluate(() => {
@@ -163,8 +203,10 @@ async function checkEditor(browser, url) {
       audit.editor.setValue('// second latest\n');
       audit.editor.focus();
     });
+    await checkSyncFeedback(page, false);
     await page.keyboard.press('Control+s');
     await waitSaved(page, '/shortcut/second.js', '// second latest\n', 3);
+    await checkSyncFeedback(page);
     assert.equal(await page.evaluate(() => window.__syncShortcutTest.fs.get('/.tet.ss/index.js').data), '// next unsynced edit\n');
 
     assert.deepEqual(await dispatchSave(page), {accepted:false, prevented:true});
@@ -204,6 +246,7 @@ async function checkEditor(browser, url) {
     });
     await page.keyboard.press('Control+s');
     await page.waitForFunction(() => document.getElementById('status').textContent.startsWith('Could not sync /index.js:'));
+    await checkSyncFeedback(page, false);
     assert.equal(await page.evaluate(() => window.__syncShortcutTest.calls.length), 5);
     assert.equal(await page.evaluate(() => window.__syncShortcutTest.fs.get('/index.js').data), '// editor content survives failure\n');
     assert.equal(await page.evaluate(() => window.__syncShortcutTest.fs.get('/.tet.ss/index.js/blocker').data), 'must survive sync failure');
@@ -232,12 +275,15 @@ async function checkFallback(browser, url) {
     await page.locator('#editor').fill('// textarea current\n');
     await page.keyboard.press('Control+s');
     await waitSaved(page, '/index.js', '// textarea current\n', 1);
+    await checkSyncFeedback(page);
     await page.evaluate(() => { window.__syncShortcutTest.rawEditor.value = '// latest textarea buffer without input event\n'; });
     assert.equal(await page.evaluate(() => window.__syncShortcutTest.fs.get('/.tet.ss/index.js').data), '// textarea current\n');
     await page.keyboard.press('Meta+s');
     await waitSaved(page, '/index.js', '// latest textarea buffer without input event\n', 2);
+    await checkSyncFeedback(page);
     assert.equal(await page.evaluate(() => window.__syncShortcutTest.fs.get('/index.js').data), '// latest textarea buffer without input event\n');
     await page.locator('#editor').fill('// textarea changes to revert\n');
+    await checkSyncFeedback(page, false);
     assert.equal(await page.locator('#revertCodeButton').isEnabled(), true);
     await page.locator('#revertCodeButton').click();
     assert.equal(await page.locator('#editor').inputValue(), '// latest textarea buffer without input event\n');
@@ -247,6 +293,7 @@ async function checkFallback(browser, url) {
     await page.evaluate(() => { window.__syncShortcutTest.rawEditor.value = '// textarea Sync button latest buffer\n'; });
     await page.locator('#syncCodeButton').click();
     await waitSaved(page, '/index.js', '// textarea Sync button latest buffer\n', 3);
+    await checkSyncFeedback(page);
     assert.deepEqual(errors, []);
   } finally { await page.close(); }
 }
@@ -261,7 +308,7 @@ async function checkFallback(browser, url) {
       try {
         const expectedMonacoModelCancellations = await checkEditor(browser, url);
         await checkFallback(browser, url);
-        console.log(JSON.stringify({engine, passed:true, editor:'monaco', fallback:'textarea', ctrlS:true, commandS:true, syncButton:true, revertButton:true, undoRedo:true, onlyActiveFile:true, guards:true, failuresVisible:true, expectedMonacoModelCancellations}));
+        console.log(JSON.stringify({engine, passed:true, editor:'monaco', fallback:'textarea', ctrlS:true, commandS:true, syncButton:true, syncFeedback:true, revertButton:true, undoRedo:true, onlyActiveFile:true, guards:true, failuresVisible:true, expectedMonacoModelCancellations}));
       } finally { await browser.close(); }
     }
   } finally { await new Promise(resolve => server.close(resolve)); }

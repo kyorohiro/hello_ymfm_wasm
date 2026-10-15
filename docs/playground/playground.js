@@ -210,6 +210,7 @@ const codePanel =
 const codeFileActions = document.getElementById('codeFileActions');
 const syncCodeButton = document.getElementById('syncCodeButton');
 const revertCodeButton = document.getElementById('revertCodeButton');
+const codeSyncAnnouncement = document.getElementById('codeSyncAnnouncement');
 const helpersPanel =
   document.getElementById(
     "helpersPanel"
@@ -401,6 +402,8 @@ const virtualFiles = createVirtualFileSystem(initialProjectFiles);
 let activeVirtualPath = "/index.js";
 let runVirtualPath = "/index.js";
 let codeCheckpointCache = null;
+let codeSyncFeedback = null;
+let codeSyncFeedbackTimer = null;
 const virtualPresetIds = new Map();
 
 function isSystemVirtualPath(path) {
@@ -1131,10 +1134,33 @@ function codeCheckpoint(path) {
   return codeCheckpointCache.file;
 }
 
+function clearCodeSyncFeedback() {
+  if (codeSyncFeedbackTimer !== null) window.clearTimeout(codeSyncFeedbackTimer);
+  codeSyncFeedbackTimer = null;
+  codeSyncFeedback = null;
+  if (syncCodeButton) {
+    syncCodeButton.textContent = 'Sync';
+    delete syncCodeButton.dataset.feedback;
+  }
+}
+
+function showCodeSyncFeedback(path, sourceRevision) {
+  if (!syncCodeButton || editableCodePath() !== path || virtualFiles.getRevision(path) !== sourceRevision) return;
+  clearCodeSyncFeedback();
+  codeSyncFeedback = {path, sourceRevision, checkpointRevision: virtualFiles.getRevision(CHECKPOINT_ROOT + path)};
+  syncCodeButton.textContent = '✓ Synced';
+  syncCodeButton.dataset.feedback = 'success';
+  if (codeSyncAnnouncement) codeSyncAnnouncement.textContent = `Synced ${path}.`;
+  codeSyncFeedbackTimer = window.setTimeout(clearCodeSyncFeedback, 1800);
+}
+
 function refreshCodeFileActions() {
   const path = editableCodePath();
   const saved = path ? codeCheckpoint(path) : null;
   const modified = saved?.type === 'text' && saved.data !== getEditorValue();
+  if (codeSyncFeedback && (path !== codeSyncFeedback.path || modified ||
+      virtualFiles.getRevision(path) !== codeSyncFeedback.sourceRevision ||
+      virtualFiles.getRevision(CHECKPOINT_ROOT + path) !== codeSyncFeedback.checkpointRevision)) clearCodeSyncFeedback();
   if (codeFileActions) codeFileActions.hidden = codePanel.hidden;
   if (syncCodeButton) syncCodeButton.disabled = !path;
   if (revertCodeButton) {
@@ -1146,6 +1172,7 @@ function refreshCodeFileActions() {
 }
 
 async function syncActiveCodeFile() {
+  clearCodeSyncFeedback();
   const path = editableCodePath();
   if (!path) {
     setStatus('Open a code file to sync.');
@@ -1153,8 +1180,10 @@ async function syncActiveCodeFile() {
   }
   try {
     syncActiveEditorFile();
+    const sourceRevision = virtualFiles.getRevision(path);
     const result = await virtualFiles.sync(path);
     setStatus(`Synced ${path} to ${result.destinationPath}.`);
+    showCodeSyncFeedback(path, sourceRevision);
   } catch (error) {
     setStatus(`Could not sync ${path}: ${error.message ?? error}`);
   } finally {

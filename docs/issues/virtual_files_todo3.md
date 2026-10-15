@@ -220,3 +220,15 @@ WebKit の既存 Monaco `setModel` 時のキャンセル 1 件は rejection stac
 関連 Node テスト **42/42**、itch 配布生成と **353** 個の module／asset 参照確認が成功した。
 rename の既存モデル回帰テストは古い mock を実 VFS に変更し、名前変更で同期コピーも移動することを検証するよう更新した。
 検証用 ZIP: `release/hello_ymfm_wasm_sync-revert-dev_itch_playground.zip`。Tauri 実機は未確認。
+
+## Sync 完了のフィードバック（2026-10-15）
+
+同期成功後、同じボタンを **緑色の `✓ Synced`** に 1.8 秒間変更する。ボタンクリック／Ctrl/Cmd+S の両方、同内容の再同期にも適用する。
+幅は 80px で固定し、ラベルが変わっても Revert／Panel の位置が動かないようにする。
+フォーカスは移動せず、読み上げ用の小さな非表示 `role=status` で完了を通知する。通常の Sync ラベルへ戻す際は読み上げ用のメッセージを更新しない。
+
+編集・ファイル／パネル切替・同期先更新・同期失敗時は古い成功表示を解除する。
+対象ファイルとその revision を確認して表示するため、別のファイルへ移った後に前の同期成功を表示しない。
+
+検証: Chromium／WebKit の Monaco／textarea でクリックと両ショートカット、変更なしの再同期、表示解除と時間経過、固定幅・Panel 位置・フォーカスを確認した。
+既存 Revert／Undo／Redo も成功。関連 Node テスト **12/12** と itch 配布生成も確認した。
