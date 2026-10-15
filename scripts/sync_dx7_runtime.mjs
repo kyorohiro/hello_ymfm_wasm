@@ -1,4 +1,4 @@
-// Explicit maintainer step: refresh the vendored JS surface without rebuilding
+// Explicit maintainer step: refresh the vendored JS, metadata and docs without rebuilding
 // or changing the pinned WASM/MSFA engine. Normal builds use the checked-in copy.
 import {cp,readFile,writeFile} from 'node:fs/promises';
 const root=new URL('../',import.meta.url);
@@ -6,7 +6,11 @@ const source=new URL('w/tetorica-msfa-dx7-wasm/',root);
 for(const location of ['web/msfa_dx7/','docs/js/msfa_dx7/']){
   const target=new URL(location,root);
   await cp(new URL('src/',source),new URL('src/',target),{recursive:true});
-  await cp(new URL('README.md',source),new URL('README.md',target));
+  for (const name of ['package.json', 'README.md', 'README.ja.md', 'LICENSE',
+    'THIRD_PARTY_NOTICES.md', 'docs/research.md', 'docs/verification.md',
+    'vendor/msfa/COPYING', 'vendor/msfa/UPSTREAM.md']) {
+    await cp(new URL(name,source),new URL(name,target));
+  }
 }
 // Monaco loads an ambient declaration file, so inline the canonical data types
 // rather than introduce unresolved relative module imports into its virtual FS.
@@ -27,4 +31,4 @@ if(declarations.includes(start)){
 }
 await writeFile(globals,declarations);
 await cp(new URL('web/msfa_dx7/README.vendor.md',root),new URL('docs/js/msfa_dx7/README.vendor.md',root));
-console.log('Synced DX7 JS/declarations to web, docs and Monaco; WASM unchanged.');
+console.log('Synced DX7 JS, metadata and docs to web/docs, and declarations to Monaco; WASM unchanged.');

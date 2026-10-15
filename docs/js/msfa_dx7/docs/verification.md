@@ -67,3 +67,31 @@ The Firefox test used the matching Playwright Firefox 155.0 build.
   high-order, band-limited resampler.
 - No third-party voice banks, Dexed code, or existing Tetorica runtime dependency
   were introduced.
+
+## Object preset API — 0.2.0 (2026-10-16)
+
+- Added synchronous core setPreset/setOperator/setOperators/getPreset and
+  acknowledged Promise equivalents for the browser and Playground.
+- The selected slot and the rest of a 32-voice bank survive edits. Invalid
+  objects and batches leave both patch data and held audio unchanged.
+- Standalone Node suite: **41/41 passed**, including independent full-VCED
+  fixtures, 44.1/48 kHz SysEx/Object PCM equality, held/future-note behavior,
+  built-in-object rejection, cross-realm records and existing native comparison.
+- Parent runtime/Playground example suite: **48/48 passed**.
+- Standalone browser suite passed Chromium, WebKit and Firefox at 44.1/48 kHz:
+  setter acknowledgements, FIFO, copied state, bank selection, rejected edits,
+  pending-request disposal and source/production demo playback.
+- Playground and an isolated installed FM npm tarball passed Chromium/WebKit
+  in Main and Worker modes, with actual final PCM, mixer/FX, STOP/recreation.
+  Monaco method/field completions and typed hover also passed.
+- Standalone packed consumer passed Node PCM, strict public types and Vite
+  public export/WASM/Worklet checks. Parent npm declarations passed
+  NodeNext/Bundler and browser consumers without Node ambient types.
+- Playground itch ZIP generation verified 357 local module/asset references.
+  WASM/C++ and chip-clock behavior were unchanged. This API is packaged for
+  standalone 0.2.0 and tetorica-fm2612 0.2.15. Physical Tauri/Windows/Linux were
+  not tested.
+- Operator, envelope and algorithm changes apply to future Note On. Applying a
+  voice reconfigures the shared LFO while retaining its phase, which can affect
+  held notes. This adds no live
+  per-note operator editor, and retains upstream AM/transpose/sync limitations.

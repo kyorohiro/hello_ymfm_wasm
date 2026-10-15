@@ -329,11 +329,11 @@ package (`createDX7` in Node/browsers, `createDX7Node` for browser audio).
 The pinned engine, WASM and Apache-2.0 notices are included in this package's
 `msfa_dx7/` directory; no extra runtime dependency or CDN request is required.
 
-### Object-based DX7 presets (development)
+### Object-based DX7 presets (0.2.15)
 
-The working tree also provides `await dx7.setPreset(preset)`,
+Version 0.2.15 provides `await dx7.setPreset(preset)`,
 `await dx7.setOperator(operator, params)`, `await dx7.setOperators(entries)`,
-and `await dx7.getPreset()`. These additions are not in published 0.2.14 yet.
+and `await dx7.getPreset()`, using the bundled `tetorica-msfa-dx7-wasm` 0.2.0.
 
 ```js
 const dx7 = await useSoundChip('dx7');
@@ -358,7 +358,8 @@ Objects are copied at the boundary, and `getPreset` returns a full independent c
 Algorithm numbers are zero based (0..31); outputLevel is 0..99, higher is louder;
 envelopes use four DX7 rate/level values 0..99 rather than seconds or YM2612 AR/TL.
 Existing notes retain captured operator/EG/algorithm settings; the shared LFO
-is reset when applying a voice and can affect held notes. MSFA's documented AM,
+is reconfigured when applying a voice and can affect held notes while retaining
+its running phase. MSFA's documented AM,
 transpose and oscillator-sync limitations still apply.
 The standalone DX7 PCM core exposes the same methods synchronously.
 
@@ -534,10 +535,10 @@ FM/PSG/PCM mixing, stop/reset and close/restart. Playwright is a development
 dependency; it is not required by users of the sound-chip runtime.
 
 The build is staged in `dist/fm2612/`; packing produces
-`tetorica-fm2612-0.2.14.tgz`. To install a local build in another project:
+`tetorica-fm2612-0.2.15.tgz`. To install a local build in another project:
 
 ```sh
-npm install /absolute/path/to/tetorica-fm2612-0.2.14.tgz
+npm install /absolute/path/to/tetorica-fm2612-0.2.15.tgz
 ```
 
 The existing `tetorica-vgm` CLI package is built separately. This first package
@@ -554,6 +555,12 @@ Tetorica-generated and includes its license and generator. External
 instrument/sample ROMs are not included.
 
 ## Release notes
+
+`0.2.15` adds Object-based DX7 presets and operator editing in browser
+Playground, with acknowledged async setters in Main and Worker modes.
+It bundles `tetorica-msfa-dx7-wasm` 0.2.0, including the synchronous PCM-core
+API, validation, public types, and English/Japanese documentation.
+Existing SysEx loading and other sound-chip APIs remain unchanged.
 
 `0.2.14` adds DX7 to browser Playground in Main and Worker modes, including
 single-voice / 32-voice-bank SysEx loading, 16-voice polyphony, mixer/FX routing

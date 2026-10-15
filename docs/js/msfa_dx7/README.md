@@ -1,26 +1,297 @@
 # Tetorica MSFA DX7 WASM
 
-Google の [music-synthesizer-for-android (msfa)](https://github.com/google/music-synthesizer-for-android)
-を使う、独立した DX7 互換 FM 音源ライブラリの MVP です。
-DX7 の 1 Voice／32 Voice Bank SysEx を読み込み、ブラウザの鍵盤や
-JavaScript／TypeScript から演奏できます。既存の Tetorica パッケージへの依存はありません。
+[日本語 README](README.ja.md)
 
-## npm から利用する
+A standalone DX7-compatible FM synthesizer for JavaScript and TypeScript, based
+on Google's [music-synthesizer-for-android (msfa)](https://github.com/google/music-synthesizer-for-android).
+Generate PCM in Node.js, play through an AudioWorklet in the browser, and load
+DX7 single-voice or 32-voice-bank SysEx files. No other Tetorica package is required.
+
+**Version 0.2.0 adds object presets:** create and edit patches with
+`setPreset`, `setOperator`, `setOperators`, and `getPreset`.
+
+## Install
 
 ```sh
 npm install tetorica-msfa-dx7-wasm
 ```
 
-ビルド済み WASM と TypeScript 型定義を同梱しています。
-利用側で Emscripten を導入する必要はありません。
-PCM 生成は `tetorica-msfa-dx7-wasm`、ブラウザ再生は
-`tetorica-msfa-dx7-wasm/browser` から読み込んでください。
+The package includes compiled WASM and TypeScript declarations. **Consumers do
+not need Emscripten or a C++ compiler.** Node.js requires version 22 or later;
+browser playback requires AudioWorklet support and HTTPS or localhost.
 
-## ビルドとデモ
+| Import / export | Purpose |
+| --- | --- |
+| `tetorica-msfa-dx7-wasm` | Offline core, object-preset types, SysEx helpers, `INTERNAL_SAMPLE_RATE`, `DEFAULT_WASM_URL` |
+| `tetorica-msfa-dx7-wasm/browser` | `createDX7Node` and browser types |
+| `tetorica-msfa-dx7-wasm/sysex` | Standalone SysEx parsing and encoding helpers |
+| `tetorica-msfa-dx7-wasm/worklet` | AudioWorklet processor module asset |
+| `tetorica-msfa-dx7-wasm/wasm/msfa.wasm` | Compiled WASM asset |
 
-必要環境は Node.js 22 以降、npm、Emscripten (`em++`) です。
-ネイティブ比較には C++17 コンパイラー（既定 `clang++`）も使います。
-Emscripten は `EMXX`、ネイティブコンパイラーは `CXX` で変更できます。
+## Quick start: create a patch and render PCM
+
+This example runs in Node.js as an ES module. It generates samples; sending
+those samples to an audio device or WAV encoder is the application's responsibility.
+
+```javascript
+import {createDX7} from 'tetorica-msfa-dx7-wasm';
+
+const synth = await createDX7({sampleRate: 44100});
+try {
+  synth.setPreset({
+    name: 'JS BELL',
+    algorithm: 0,
+    operators: {
+      1: {coarse: 1, outputLevel: 90},
+      2: {
+        coarse: 2,
+        outputLevel: 68,
+        envelope: {rates: [99, 75, 50, 80], levels: [99, 70, 0, 0]},
+      },
+    },
+  });
+  synth.noteOn(60, 100);             // MIDI C4, velocity 100.
+  const pcm = synth.render(44100);  // One second of mono Float32 PCM.
+  synth.noteOff(60);
+  const tail = new Float32Array(44100);
+  synth.renderInto(tail);           // Continue the same timeline into this array.
+  console.log(pcm.length, tail.length);
+} finally {
+  synth.dispose();
+}
+```
+
+`createDX7()` resolves after initialization. It loads the packaged WASM
+automatically, using the filesystem in Node.js and fetching it in the browser.
+Override `wasmUrl`, or supply `wasmBytes: ArrayBuffer | ArrayBufferView`, when
+using a different asset location or bytes you already loaded.
+
+Each core owns a separate WebAssembly instance and **16 MiB of fixed WASM
+memory**, plus its JavaScript state. Instances do not share mutable synth state.
+`INTERNAL_SAMPLE_RATE` is `44100`; `DEFAULT_WASM_URL` identifies the packaged asset.
+
+## Object presets
+
+The four object methods are **synchronous on the PCM core**. Their browser-node
+equivalents return Promises; await them to receive acknowledgement that the
+Worklet applied the change.
+
+| Method | Behavior |
+| --- | --- |
+| `setPreset(preset)` | Fill omitted fields from the project's INIT SINE patch, then replace the selected voice |
+| `setOperator(op, patch)` | Partially update logical OP1–OP6 in the current voice |
+| `setOperators([[op, patch], ...])` | Validate and apply a complete tuple batch atomically |
+| `getPreset()` | Return a complete, independent `DX7PresetState` copy |
+
+```javascript
+synth.setOperator(2, {outputLevel: 60});
+synth.setOperators([[1, {fine: 25}], [2, {coarse: 3}]]);
+const preset = synth.getPreset();
+```
+
+Public operator labels are **1 through 6**; OP1 is the last operator block in
+DX7 wire data. There is **no channel argument**. The preset's `operators` field
+is a record keyed by these labels, while `setOperators` takes an array of tuples.
+`DX7Preset`, `DX7OperatorParams`, `DX7OperatorEntries`, and `DX7PresetState` are
+exported types; the package also exports the related envelope, LFO, scaling,
+operator-label and state types.
+
+- A setter creates voice 0 from INIT SINE when no bank is loaded.
+  **Exception: `setOperators([])` is a no-op and does not create a voice.**
+- `setPreset({})` resets the selected voice to INIT SINE. Operator setters retain
+  the current values of fields they do not mention.
+- Editing a loaded 32-voice bank preserves the selected index and the other 31
+  slots. Switching away and back retains the edited patch.
+- A batch must use each operator at most once. Duplicate operators, unknown
+  fields, invalid values and invalid later entries reject the whole update.
+  Existing patch data, bank selection and held audio are retained on rejection.
+- Later mutations of an input object or a returned state cannot change the
+  applied patch. Browser inputs are validated and copied before posting.
+- A fresh standalone core/node has no loaded bank: `voices` is empty and
+  `selectedVoice` is `-1`. `getPreset()` throws/rejects until a voice exists.
+
+### Parameter values
+
+These are **raw DX7 values**, not seconds, hertz, decibels, or MIDI channels.
+All numeric values below must be finite integers within their range.
+
+| Field | Values |
+| --- | --- |
+| `algorithm` / `feedback` | `0..31` / `0..7`; algorithms correspond to hardware display 1–32 |
+| `name` | Up to ten printable ASCII characters |
+| `operators[op].outputLevel` | `0..99`; larger is louder, unlike YM2612 total level |
+| `coarse` / `fine` / `mode` | `0..31` / `0..99` / `'ratio'` or `'fixed'` |
+| `detune` | `0..14`, neutral `7` |
+| `envelope` / `pitchEnvelope` | Optional `rates` and `levels`, each exactly four values in `0..99` |
+| `keyboardScaling` | `breakpoint`, `leftDepth`, `rightDepth`: `0..99`; `leftCurve`, `rightCurve`: `0..3` |
+| `rateScaling` / `velocitySensitivity` | `0..7` / `0..7` |
+| `ampModSensitivity` | `0..3`; retained, subject to the engine limitations below |
+| `lfo` | `speed`, `delay`, `pitchModDepth`, `ampModDepth`: `0..99`; `waveform`: `0..5`; `pitchModSensitivity`: `0..7`; `sync`: boolean |
+| `transpose` | `0..48`, neutral `24`; retained, subject to engine limitations |
+| `oscillatorSync` | Boolean; retained, subject to engine limitations |
+
+Operator, envelope and algorithm edits apply to **subsequent Note On events**.
+Already sounding notes retain their copied operator/envelope settings. Applying
+a voice reconfigures the synth's **shared LFO**, so modulation of held notes can
+change even though the LFO's running phase is retained. These methods do not
+implement continuous per-note parameter automation.
+
+## Load and encode SysEx
+
+```javascript
+import {readFile} from 'node:fs/promises';
+import {createDX7} from 'tetorica-msfa-dx7-wasm';
+
+const synth = await createDX7();
+try {
+  await synth.loadSysex(new Uint8Array(await readFile('./voices.syx')));
+  synth.selectVoice(0);
+  synth.noteOn(60, 100);
+  const pcm = synth.render(44100);
+  console.log(synth.voices, pcm.length);
+} finally {
+  synth.dispose();
+}
+```
+
+`loadSysex()` validates the entire message, replaces the bank and selects voice
+0. Invalid input preserves the existing bank. Supported messages are one
+**163-byte single-voice dump** or one **4,104-byte 32-voice-bank dump**. Framing,
+length, seven-bit data, checksum, parameter ranges and reserved packed bits are
+validated. Concatenated dumps and real-time parameter-change SysEx are unsupported.
+
+The following helpers are available from the package root or `/sysex`:
+
+| Helper | Input and result |
+| --- | --- |
+| `parseSysex(bytes)` | Complete message → `{voices, format, channel}`; each voice contains copied VCED `data`, VMEM `packedData`, and a display name |
+| `packVoice(data)` | 155-byte VCED voice → copied 128-byte VMEM voice |
+| `unpackVoice(packedData)` | 128-byte VMEM voice → copied 155-byte VCED voice |
+| `createVoiceSysex(data, {channel?})` | One 155-byte voice → complete single-voice dump |
+| `createBankSysex(voices, {channel?})` | Exactly 32 155-byte voices → complete bank dump |
+| `createInitVoice(name?)` | New project-authored one-carrier INIT SINE voice |
+
+The codec's optional `channel` is the zero-based Yamaha device/channel nibble
+`0..15`, default `0`; it does not add channelized performance to the synth.
+Core/codec byte inputs accept an `ArrayBuffer` or an `ArrayBufferView`, respecting
+its offset and length. The browser node's `loadSysex` accepts an `ArrayBuffer`
+or `Uint8Array`. Wrap raw VCED/VMEM data in a complete message before passing it
+to `loadSysex`; raw voice arrays alone are not accepted there.
+
+## Core performance and PCM API
+
+| Member | Behavior |
+| --- | --- |
+| `voices`, `selectedVoice` | `{index, name}` metadata and the selected zero-based bank index |
+| `selectVoice(index)` | Select a loaded voice for future notes |
+| `noteOn(note, velocity = 100)` | MIDI note and velocity integers `0..127`; velocity 0 is Note Off |
+| `noteOff(note)` | Release all held voices of this pitch |
+| `allNotesOff()` | Release all held voices and allow their envelopes to continue |
+| `panic()` | Immediately clear notes, filter state, queued PCM and resampler history; retain the selected patch |
+| `render(frames)` | Allocate and return an owned mono `Float32Array` |
+| `renderInto(buffer)` | Fill a caller-owned `Float32Array` and advance by its full length |
+| `dispose()` | Destroy the instance; safe to call repeatedly |
+
+Both render methods continue the same audio timeline. Returned buffers survive
+later renders and disposal. Zero frames are allowed; negative, fractional,
+non-finite or more than **16,777,216** frames are rejected. `renderInto` accepts
+only a `Float32Array` and enforces the same length limit. Performance, patch and
+render methods reject after disposal, including empty operator batches.
+
+## Browser playback
+
+Use this inside an Audio Start button handler or another user gesture:
+
+```javascript
+import {createDX7Node} from 'tetorica-msfa-dx7-wasm/browser';
+
+const context = new AudioContext({latencyHint: 'interactive'});
+let instrument;
+try {
+  await context.resume();
+  instrument = await createDX7Node(context);
+  instrument.node.connect(context.destination);
+  await instrument.setPreset({name: 'JS SINE'});
+  await instrument.setOperator(1, {outputLevel: 85});
+  instrument.noteOn(60, 100);
+  await new Promise(resolve => setTimeout(resolve, 1000));
+  instrument.noteOff(60);
+  await new Promise(resolve => setTimeout(resolve, 500)); // Allow this patch's release.
+} finally {
+  instrument?.dispose();
+  await context.close();
+}
+```
+
+`createDX7Node` resolves only when WASM is ready and returns an **unconnected,
+mono** `AudioWorkletNode` as `node`. The caller owns the AudioContext.
+`loadSysex`, `setPreset`, `setOperator`, `setOperators`, and `getPreset` return
+Promises. Notes and selection remain synchronous message sends. Commands share
+an ordered MessagePort: a subsequent Note On cannot overtake a preceding patch
+update or bank load. There is no exposed pre-initialization event queue.
+
+Invalid object requests reject their own Promise and leave the instrument
+usable. Setup failures reject `createDX7Node()`; failures before the node exists,
+such as an invalid context, module load or WASM download failure, do not invoke
+`onError`. Fatal Worklet initialization/render failures and later context
+closure invoke `onError(error)`, reject pending operations and release resources.
+`dispose()` also rejects pending requests and is idempotent.
+
+### Serve or bundle the assets
+
+With directly served ES modules, preserve the package's relative `src/` and
+`wasm/` layout. Bare imports need a bundler or an import map.
+
+For Vite, explicitly bundle the Worklet and emit the WASM asset:
+
+```javascript
+import {createDX7Node} from 'tetorica-msfa-dx7-wasm/browser';
+import workletUrl from 'tetorica-msfa-dx7-wasm/worklet?worker&url';
+import wasmUrl from 'tetorica-msfa-dx7-wasm/wasm/msfa.wasm?url';
+
+const instrument = await createDX7Node(context, {workletUrl, wasmUrl});
+```
+
+`workletUrl`, `wasmUrl`, and `wasmBytes` support custom deployment locations.
+The core's `wasmUrl`/`wasmBytes` options are useful for browser-side offline
+rendering too. Compiling application JavaScript alone does not copy all runtime
+assets; include the Worklet, its dependencies and WASM in your deployment.
+
+## Audio model and limitations
+
+- **Mono, 16 voices.** The upstream allocator is retained: when all 16 keys are
+  held, another Note On is ignored. Released slots can be reused before their
+  tails finish. Repeated same-pitch Note On allocates separate voices; Note Off
+  releases every held voice of that pitch. No custom held-voice stealing is added.
+- **44,100 Hz internally.** Output `sampleRate` is `44100` by default; only
+  `44100` and `48000` are supported. The browser uses the actual
+  `AudioContext.sampleRate`. Other rates reject explicitly.
+- 48 kHz output uses stateful linear interpolation, preserving pitch, duration
+  and render-chunk continuity. This is not a high-order band-limited resampler.
+- DSP runs in **64 internal-frame blocks**. Events affect the next ungenerated
+  block; already generated leftovers and interpolation lookahead are unchanged.
+  No sample-accurate event scheduler is exposed.
+- PCM is the upstream clipped Int16 output divided by 32,768: range **−1 to
+  32767/32768**. Float32 storage retains that 16-bit output quantization. There
+  is no added automatic gain, compressor, dither or limiter.
+- Operator AM sensitivity and LFO amplitude-modulation fields are retained but
+  not fully applied by this upstream engine. Transpose and oscillator key sync
+  are retained but not applied; operator phases reset on each Note On.
+- The upstream shared resonant output filter is retained. This does not assert
+  that its output matches the physical DX7 analog stage.
+- Used voice slots continue computing after their release envelopes finish,
+  bounded at 16. Existing notes retain their patch except for shared-LFO effects.
+- The API is one instrument, not a multitimbral MIDI rack. MIDI channel routing,
+  Web MIDI input and raw streaming/parameter-change SysEx are not included.
+
+This is an msfa-derived DX7-compatible engine, not a full DX7 firmware emulator
+or a claim of bit-identical hardware output.
+
+## Develop and run the demo
+
+These requirements apply to **building this repository**, not installing the
+npm package: Node.js 22+, npm and Emscripten (`em++`). Native comparison also
+uses a C++17 compiler, default `clang++`. Override them with `EMXX` and `CXX`.
 
 ```sh
 npm ci
@@ -28,226 +299,49 @@ npm run build:wasm
 npm run dev
 ```
 
-表示されたローカル URL の `/demo/` を開き、**Audio Start** を押してください。
-初期音色は、このプロジェクトで作成した `INIT SINE` です。
-**Load SysEx** から `.syx` を読み込むと、音色一覧から選んで演奏できます。
-鍵盤はマウス／タッチ、または PC の `A W S E D F T G Y H U J K` で操作できます。
-準備中は鍵盤が無効になり、失敗時は理由を表示します。
-**All Notes Off** はリリース、**Panic** は残響・バッファを含めた即時消音です。
+Open `/demo/` at the printed local URL and click **Audio Start**. The keyboard
+uses mouse/touch or `A W S E D F T G Y H U J K`. Load a `.syx` file to browse its
+voices. The demo starts with the project's own INIT SINE, whose SysEx can also
+be downloaded. Third-party voice banks are not bundled.
 
-`npm run build` で WASM と配布用デモを生成します。
-`dist/` はそのまま静的ホストへ配置でき、デモの入口は `/demo/` です。
-AudioWorklet の利用には HTTPS または localhost が必要です。
-外部の音色バンクは同梱していません。デモから `INIT SINE` の SysEx を保存できます。
+`npm run build` builds WASM and the production demo. Serve `dist/` as static
+files; the demo entry is `/demo/`. HTTPS or localhost is required for AudioWorklet.
 
-## PCM を生成する API
-
-```typescript
-import { createDX7, createInitVoice, createVoiceSysex } from 'tetorica-msfa-dx7-wasm';
-
-const synth = await createDX7({ sampleRate: 44100 });
-await synth.loadSysex(createVoiceSysex(createInitVoice()));
-// 実際の音色ファイルなら await synth.loadSysex(new Uint8Array(fileBytes));
-synth.selectVoice(0);
-synth.noteOn(60, 100); // MIDI C4, velocity 100
-const pcm = synth.render(44100); // mono Float32Array: 1 秒
-synth.noteOff(60);
-const tail = new Float32Array(44100);
-synth.renderInto(tail);
-synth.dispose();
-```
-
-この API は DOM／AudioContext に依存せず、Node.js からも使えます。
-WASM は同梱の `wasm/msfa.wasm` を読み込みます。
-配置を変更する場合は `wasmUrl`、取得済みバイナリーを使う場合は `wasmBytes` を指定します。
-音源ごとに独立した WASM インスタンスとメモリを作成します。
-
-| API | 意味 |
-| --- | --- |
-| `createDX7({sampleRate?})` | 初期化完了後に音源を返す。出力レートの既定は 44,100 Hz |
-| `loadSysex(bytes)` | 全体を検証して音色を読み込み、先頭の音色を選択。失敗時は既存の音色一覧を保持 |
-| `voices`／`selectedVoice` | `{index, name}` の一覧と現在の選択。読み込み前の選択は `-1` |
-| `selectVoice(index)` | 0 始まりの音色を選択 |
-| `noteOn(note, velocity = 100)` | 音高 0〜127、velocity 0〜127 の整数。velocity 0 は Note Off |
-| `noteOff(note)` | 同じ音高で押されている声をすべてリリース |
-| `allNotesOff()` | 全声をリリース。音色のリリース期間は鳴り続ける |
-| `panic()` | 即時消音。発音・フィルター・生成済み PCM・リサンプル履歴をリセットし、音色選択は維持 |
-| `render(frames)` | 新しい、呼び出し側所有の mono `Float32Array` を返す |
-| `renderInto(buffer)` | 既存の `Float32Array` 全体へ書き込み、その長さ分の時間を進める |
-| `dispose()` | 音源を破棄。繰り返し呼び出してもよい |
-
-`render` と `renderInto` は同じ音源の続きを生成します。
-返された配列は後の生成や破棄で書き換わりません。
-フレーム数 0 は空配列／何もしない動作です。負数、小数、非有限値、
-16,777,216 を超えるフレーム数は拒否します。
-`renderInto` は `Float32Array` 以外を拒否します。
-破棄後の演奏・音色変更・PCM 生成はエラーになります。
-
-## ブラウザで再生する API
-
-```typescript
-import { createDX7Node } from 'tetorica-msfa-dx7-wasm/browser';
-
-// Audio Start などのユーザー操作内で呼ぶ。
-const context = new AudioContext({ latencyHint: 'interactive' });
-await context.resume();
-const instrument = await createDX7Node(context);
-instrument.node.connect(context.destination);
-await instrument.loadSysex(syxBytes); // Worklet 側での適用完了を待つ
-instrument.selectVoice(0);
-instrument.noteOn(60, 100);
-// …
-instrument.noteOff(60);
-// 終了時: instrument.dispose(); await context.close();
-```
-
-`createDX7Node` は WASM が準備できた後に返り、まだ接続されていない
-mono `AudioWorkletNode` を `node` として公開します。
-音声生成と出力レート変換は Worklet 内で行います。
-`loadSysex` の完了は適用済みの通知です。音色選択と演奏イベントは
-同じ MessagePort を順番に通り、後の Note On が前の音色選択を追い越しません。
-初期化前の要求キューは設けていません。呼び出し側で初期化と読み込みを待ってください。
-
-生の ES Modules として配布する場合は `src/` と `wasm/` の相対配置を維持してください。
-Vite を使う場合はデモのように Worklet を明示的にビルドできます。
-
-```javascript
-import workletUrl from 'tetorica-msfa-dx7-wasm/worklet?worker&url';
-const instrument = await createDX7Node(context, { workletUrl });
-```
-
-`workletUrl`／`wasmUrl`／`wasmBytes` の指定で独自配置にも対応します。
-処理失敗を監視する場合は `onError(error)` を指定します。
-
-## Object で音色を設定する（開発版）
-
-SysEx ファイルを用意せず、JavaScript の Object から音色を作れます。
-この追加 API は開発中のソースに含まれ、公開済み npm 0.1.0 にはまだ含まれません。
-
-```javascript
-const synth = await createDX7({sampleRate: 44100});
-synth.setPreset({
-  name: 'JS BELL',
-  algorithm: 0, // 0..31。実機のアルゴリズム1..32に対応。
-  operators: {
-    1: {coarse: 1, outputLevel: 90},
-    2: {
-      coarse: 2, outputLevel: 68,
-      envelope: {rates: [99, 75, 50, 80], levels: [99, 70, 0, 0]},
-    },
-  },
-});
-synth.setOperator(2, {outputLevel: 60});
-synth.setOperators([[1, {fine: 25}], [2, {coarse: 3}]]);
-const preset = synth.getPreset(); // 全項目を持つ独立したコピー。
-synth.noteOn(60, 100);
-const pcm = synth.render(44100);
-synth.dispose();
-```
-
-PCM コアの4メソッドは同期処理です。ブラウザの `createDX7Node()` と Playground では
-4メソッドとも Promise を返すので、`await synth.setPreset({...})` のように適用完了を待ちます。
-音色変更と次の Note On は同じ MessagePort の順序で処理されます。
-
-- `setPreset(preset)`: 未指定項目を INIT SINE の値で埋め、選択中の音色を置換します。
-- `setOperator(op, patch)`: 現在の音色の指定 OP だけを部分更新します。
-- `setOperators([[op, patch], ...])`: 全体を検証して一括反映します。同じ OP の重複はエラー、空配列は何もしません。
-- `getPreset()`: 現在の音色を Object で読みます。コア／単体ブラウザで音色未作成の場合はエラーです。
-
-音色がない状態で最初の setter を呼ぶと、INIT SINE を基準に音色0を作成します。
-32音色を読み込んだ場合も、選択番号と他の31音色を保持します。
-入力・取得した Object を後で変更しても、適用済みの音色は変わりません。
-未知の項目、不正な値、途中に不正な要素があるバッチは、現在の音色を変更せず拒否します。
-
-OP は論理番号 **1〜6**。チャンネル引数はありません。Object の型は
-`DX7Preset`／`DX7OperatorParams`、完全な取得結果は `DX7PresetState` です。
-
-| 項目 | 値 |
-| --- | --- |
-| algorithm / feedback | 0..31 / 0..7 |
-| operators[op].outputLevel | 0..99。大きいほど大きな音。YM2612 TL と向きが異なります |
-| coarse / fine / mode | DX7 値0..31 / 0..99 / 'ratio' または 'fixed' |
-| detune | DX7 値0..14、中央は7 |
-| envelope / pitchEnvelope | rates と levels、各4個の0..99。秒数ではありません |
-| keyboardScaling | breakpoint・leftDepth・rightDepth: 0..99、leftCurve・rightCurve: 0..3 |
-| rateScaling / velocitySensitivity | 0..7 / 0..7 |
-| lfo | speed・delay・pitchModDepth・ampModDepth: 0..99、waveform: 0..5、pitchModSensitivity: 0..7、sync: boolean |
-| name | 最大10文字の表示可能な ASCII |
-
-基本的に変更は**次の Note On**から反映され、発音中の OP・EG・algorithm は変えません。
-共有 LFO は音色適用時に再設定され、既存の声にも影響する場合があります。
-`ampModSensitivity`、`transpose`（0..48、中央24）、`oscillatorSync` はデータとして保持しますが、
-下記の上流 msfa の制限を引き継ぎます。生の音色値を演奏中のパラメーターへ連続反映する機能は今回追加していません。
-
-## レート・時間・音量
-
-- **内部レートは 44,100 Hz 固定**です。振幅エンベロープを含む上流の時間特性を保ちます。
-- `sampleRate` は **返す PCM の出力レート**です。MVP は 44,100／48,000 Hz に対応し、
-  その他は明示的なエラーにします。ブラウザでは実際の `AudioContext.sampleRate` を使います。
-- 48,000 Hz へは、位相を保持する線形補間で出力側をリサンプリングします。
-  音高・再生速度を維持する MVP 実装で、高品質な帯域制限補間ではありません。
-- 演算は 64 内部フレーム単位です。イベントは次の未生成ブロックから適用され、
-  生成済みの余り PCM と補間用の先読みには遡って適用しません。
-  サンプル精度の予約 API はありません。
-- PCM は上流の Int16 出力を 32,768 で割った値です。範囲は `-1`〜`32767/32768`。
-  Float32 を返しますが、内部の最終出力は元の 16 bit 量子化を保っています。
-  自動音量調整やコンプレッサーは追加していません。
-
-## 発音管理と既知の制限
-
-上流の 16 音の割り当てを使用します。全 16 声のキーを押している間、追加の Note On は無視します。
-リリース中の声は次の発音に再利用される場合があります。
-同音の連打は別の声を割り当てますが、Note Off は同音の全声をリリースします。
-音色変更後も既存の声はオペレーター／エンベロープ設定を保持し、
-音源全体で共有する LFO の設定は新しい音色に変わります。
-
-この上流版には次の制限があります。値は SysEx から保持しますが、完全な DX7 実機再現は行いません。
-
-- オペレーター AM 感度／LFO 振幅変調の一部は演算に適用されません。
-- 音色の transpose／oscillator key sync は演算に適用されず、オペレーター位相は発音ごとにリセットされます。
-- リリース終了後も使用済みの声の演算を継続します。負荷は最大 16 声に収まります。
-- msfa 独自の共通出力フィルターを保持しています。DX7 実機の出力段と同一という意味ではありません。
-- 現在の API は単一音色の楽器用です。MIDI チャンネル別の音源、Web MIDI 入力、
-  連結 SysEx／リアルタイムのパラメーター変更 SysEx は対象外です。
-
-SysEx はヘッダー、長さ、終端、7 bit データ、チェックサム、パラメーター範囲を検証します。
-生の VCED 155 バイト／VMEM 128 バイトを直接 `loadSysex` することはできません。
-コーデックの `createVoiceSysex`／`createBankSysex` で完全なメッセージにできます。
-
-## テスト
+## Tests
 
 ```sh
-npm run build:wasm
 npm test
+npm run typecheck
 npm run test:native
 npm run test:lifecycle
-npm run typecheck
 npm run test:browser
 npm run test:package
 ```
 
-ブラウザテストは開発用の Playwright が必要です。ワークスペースのインストール済み
-Playwright も利用できます。ブラウザ未導入の場合は結果に未検証として記録します。
-テスト用ブラウザは `npm exec playwright install chromium webkit firefox` で導入できます。
-`npm run test:native` は同じ scalar msfa と同じ薄いアダプターをネイティブビルドし、
-同条件の PCM を WASM と比較します。実機 DX7 との比較ではありません。
-`test:lifecycle` は AddressSanitizer と確保数カウンターで生成・破棄・Panic を検証します。
-Apple のリーク検出器には対応していないため、macOS では C++ 確保数の差分を確認します。
-`test:package` はローカル tarball を隔離したフォルダーへインストールし、
-Node.js の PCM 生成と、公開エクスポートを使う Vite ビルドを確認します。
+Build WASM first when testing a source checkout. Native comparison uses the
+same minimally patched scalar msfa and adapter as WASM, not DX7 hardware.
+The lifecycle probe uses AddressSanitizer and explicit allocation tracking;
+macOS uses the allocation counter because Apple's leak detector is unsupported.
 
-確認結果と未確認環境は [docs/verification.md](docs/verification.md) に記録しています。
+Browser checks require the development Playwright dependency and installed
+browsers (`npm exec playwright install chromium webkit firefox`). They exercise
+real AudioWorklet PCM, object/SysEx ordering, error cleanup and the demo.
+The package check installs a local tarball in isolation, verifies Node PCM and
+strict public TypeScript APIs, and builds a Vite consumer using exported assets.
+It does not publish anything. Results and unverified environments are recorded
+in [docs/verification.md](docs/verification.md).
 
-## Upstream とライセンス
+## Upstream and license
 
-採用コミットは `f67d41d313b7dc85f6fb99e79e515cc9d208cfff` です。
-詳細な調査、採用範囲、制約は [docs/research.md](docs/research.md)、
-上流からの変更一覧は [vendor/msfa/UPSTREAM.md](vendor/msfa/UPSTREAM.md) に記録しています。
+The engine is pinned to msfa commit
+`f67d41d313b7dc85f6fb99e79e515cc9d208cfff`. The original scalar FM arithmetic,
+envelopes, algorithms, allocation, filter and clipping are retained. Local
+changes provide deterministic initialization, ownership/disposal, a thin direct
+control adapter and current-toolchain compatibility. Native comparison also
+uses the scalar path rather than the approximate ARM NEON kernel.
 
-元の scalar FM 演算、エンベロープ、アルゴリズム、発音割り当て、フィルターとクリッピングを使います。
-変更は決定的な状態初期化、解放処理、薄い直接制御 API、現行ツールチェーンでのビルド対応です。
-ネイティブ比較でも scalar 経路を選び、ARM の近似 NEON カーネルとの差を混ぜません。
-
-msfa と新規コードは Apache-2.0 です。
-[LICENSE](LICENSE)、[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)、
-上流の著作権表示を保持しています。Dexed のコードは含みません。
+Both msfa and the new code use **Apache-2.0**. Copyright headers and upstream
+licensing are preserved. See [LICENSE](LICENSE),
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md),
+[vendor/msfa/UPSTREAM.md](vendor/msfa/UPSTREAM.md), and the implementation
+investigation in [docs/research.md](docs/research.md). No Dexed code is included.
