@@ -14,8 +14,8 @@ const cassetteSampleNames = new Set();
 import {exportYm2608FullVgm} from './ym2608_vgm_import.js?v=loop-async-tasks-1';
 import {prepareVgmImport, exportGameboyVgm, exportNesVgm, exportRf5c164Vgm, addVgmSoundChipSetup, exportYm2203FullVgm} from './playground_vgm_import.js?v=loop-async-tasks-1';
 import {installPlaygroundPageLifecycle} from "./playground_page_lifecycle.js";
-import {createFXMonitor} from './playground_fx_monitor.js?v=stable-select-1';
-import {createAudioMonitor} from './playground_audio_monitor.js';
+import {createFXMonitor} from './playground_fx_monitor.js?v=single-view-1';
+import {createAudioMonitor} from './playground_audio_monitor.js?v=audio-monitor-modes-1';
 import {installMidiImport} from './playground_midi_import.js?v=midi-sections-1';
 import {
   FM_PRESET_ORDER,
@@ -1619,8 +1619,16 @@ if (inlineAudioMonitor) {
 }
 const audioMonitor = createAudioMonitor(() => runtime.megaDrive?.audio, {
   panel: audioMonitorPanel,
+  envelopeCanvas: document.getElementById("audioMonitorEnvelope"),
   waveCanvas: document.getElementById("audioMonitorWave"),
   spectrumCanvas: document.getElementById("audioMonitorSpectrum"),
+  modeSelect: document.getElementById("audioMonitorMode"),
+  modePanels: {
+    envelope: document.getElementById("audioMonitorEnvelopeView"),
+    waveform: document.getElementById("audioMonitorWaveView"),
+    spectrum: document.getElementById("audioMonitorSpectrumView"),
+  },
+  description: document.getElementById("audioMonitorDescription"),
   channel: document.getElementById("audioMonitorChannel"),
   status: document.getElementById("audioMonitorStatus"),
   pauseButton: document.getElementById("audioMonitorPause"),

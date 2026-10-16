@@ -10,9 +10,30 @@ export function spectrum(samples) {
  }
  return Float64Array.from({length:n/2},(_,i)=>Math.max(-100,20*Math.log10(Math.max(1e-10,Math.hypot(re[i],im[i])*4/n))));
 }
-export function createFXMonitor(getRack) {
+export function createFXMonitor(getRack,{storage}={}) {
  const select=document.getElementById('fxMonitorTarget'),channel=document.getElementById('fxMonitorChannel');
  const status=document.getElementById('fxMonitorStatus');
+ const modeSelect=document.getElementById('fxMonitorMode');
+ const waveView=document.getElementById('fxMonitorWaveView'),spectrumView=document.getElementById('fxMonitorSpectrumView');
+ const waveCanvas=document.getElementById('fxMonitorWave'),spectrumCanvas=document.getElementById('fxMonitorFFT');
+ const description=document.getElementById('fxMonitorDescription');
+ const preferenceKey='tetorica.playground.fxMonitorMode';
+ let mode='waveform';
+ try{
+  if(storage===undefined)storage=globalThis.localStorage;
+  if(storage?.getItem(preferenceKey)==='spectrum')mode='spectrum';
+ }catch{ /* Embedded/private browsing may block storage. */ }
+ function updateModeUI(){
+  modeSelect.value=mode;waveView.hidden=mode!=='waveform';spectrumView.hidden=mode!=='spectrum';
+  if(description)description.textContent=(mode==='spectrum'
+   ?'−100 to 0 dBFS · 2048-point Hann FFT.'
+   :'±1 amplitude · 2048-sample window.')+' Input: blue · Output: orange. Observation stops when this tab or page is hidden.';
+ }
+ updateModeUI();
+ function selectedCanvas(){return mode==='spectrum'?spectrumCanvas:waveCanvas;}
+ function clearSelected(){
+  const canvas=selectedCanvas();canvas.getContext('2d').clearRect(0,0,canvas.width,canvas.height);
+ }
  let visible=false,timer=null,rack=null,pending=false,id=0;
  let displayedNames=[],latestNames=[];
  function updateTargets(){
@@ -36,7 +57,7 @@ export function createFXMonitor(getRack) {
    const y=top+(bottom-top)*j/4;ctx.strokeStyle='#33424e';ctx.beginPath();ctx.moveTo(left,y);ctx.lineTo(right,y);ctx.stroke();
    ctx.fillStyle='#bcc8d2';ctx.fillText(isSpectrum?String(-25*j):String(1-j*.5),3,y+4);
   }
-  ctx.fillStyle='#bcc8d2';ctx.fillText(isSpectrum?'dBFS':'amplitude',3,h-7);
+  ctx.fillStyle='#bcc8d2';ctx.fillText(isSpectrum?'dBFS':'amplitude',left,11);
   for(let j=0;j<=4;j++){
    const x=left+(right-left)*j/4;
    const label=isSpectrum?Math.round(rate/2*j/4)+' Hz':(sets[0].length/rate*1000*j/4).toFixed(1)+' ms';
@@ -56,15 +77,14 @@ export function createFXMonitor(getRack) {
   const names=data.names??[];
   latestNames=names.slice();updateTargets();
   if(data.input){
-   plot(document.getElementById('fxMonitorWave'),[data.input,data.output],false,data.rate);
-   plot(document.getElementById('fxMonitorFFT'),[spectrum(data.input),spectrum(data.output)],true,data.rate);
+   const isSpectrum=mode==='spectrum';
+   // FFT is deliberately lazy: waveform mode only uses the captured PCM.
+   const sets=isSpectrum?[spectrum(data.input),spectrum(data.output)]:[data.input,data.output];
+   plot(selectedCanvas(),sets,isSpectrum,data.rate);
    status.textContent=data.name+' · '+data.rate+' Hz · 2048 samples · input blue / output orange';
   }else {
    status.textContent=names.length?'Waiting for audio…':'Run code containing liveFx to begin.';
-   for(const id of ['fxMonitorWave','fxMonitorFFT']){
-    const canvas=document.getElementById(id);
-    canvas.getContext('2d').clearRect(0,0,canvas.width,canvas.height);
-   }
+   clearSelected();
   }
  }
  function cancel(){
@@ -80,6 +100,14 @@ export function createFXMonitor(getRack) {
   rack.node.port.postMessage({op:'fx-monitor',enabled:true,id:++id,name:select.value,channel:Number(channel.value)});
  }
  select.onchange=channel.onchange=()=>{cancel();tick();};
+ modeSelect.onchange=()=>{
+  mode=modeSelect.value==='spectrum'?'spectrum':'waveform';
+  updateModeUI();
+  try{storage?.setItem(preferenceKey,mode);}catch{ /* Analysis works without persistence. */ }
+  cancel();
+  if(visible&&!document.hidden)clearSelected();
+  tick();
+ };
  document.addEventListener('visibilitychange',()=>{cancel();tick();});
  return {setVisible(value){
   visible=value;clearInterval(timer);timer=null;cancel();

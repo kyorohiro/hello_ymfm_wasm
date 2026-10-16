@@ -521,7 +521,7 @@ const pcm = Uint8Array.from({ length: sampleRate * seconds }, (_, i) => {
 await fm.dac.play(pcm, { sampleRate });
 await sleep(seconds);
 </script>
-        <p>Observe the waveform and spectrum in the bottom Audio tab. Drag the divider above it to resize the code and audio panels.</p>
+        <p>Use View in the bottom Audio tab to switch between level history (Envelope), waveform (Oscilloscope), and frequency content (Spectrum). Drag the divider above it to resize the code and audio panels.</p>
         <iframe class="playground-frame" data-playground-src="example-diy-fm-sine" data-playground-mode="full" data-playground-monitor="true"
           title="Play a sine wave in JavaScript" allow="autoplay" loading="lazy" style="height: 780px;"></iframe>
         <p><a data-playground-src="example-diy-fm-sine">Open in the full Playground &rarr;</a></p>

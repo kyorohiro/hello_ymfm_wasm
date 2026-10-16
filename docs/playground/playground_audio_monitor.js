@@ -1,10 +1,38 @@
 /** Read Web Audio analyser snapshots and draw the mixed output without changing audible routing. */
-export function createAudioMonitor(getAudio, {panel, waveCanvas, spectrumCanvas, channel, status, pauseButton}) {
+export function createAudioMonitor(getAudio, {
+  panel, envelopeCanvas, waveCanvas, spectrumCanvas, modeSelect, modePanels = {},
+  channel, status, pauseButton, description, storage,
+}) {
+  const modes = ['envelope', 'waveform', 'spectrum'];
+  const preferenceKey = 'tetorica.playground.audioMonitorMode';
+  let mode = 'envelope';
+  try {
+    if (storage === undefined) storage = globalThis.localStorage;
+    const savedMode = storage?.getItem(preferenceKey);
+    if (modes.includes(savedMode)) mode = savedMode;
+  } catch { /* Storage can be unavailable in embedded/private browsing. */ }
   let visible = false, inView = true, paused = false, frame = 0, lastDraw = -Infinity;
   let audio = null, context = null, splitter = null, analyser = null, release = null;
   let selectedChannel = 0;
   let samples = null, bins = null;
   let idleDrawn = false;
+  // Bounded snapshot history, with real elapsed time on the horizontal axis.
+  const historyTimes = new Float64Array(80);
+  const historyRms = new Float32Array(80), historyPeaks = new Float32Array(80);
+  let historyHead = 0, historySize = 0;
+
+  function resetHistory() { historyHead = historySize = 0; }
+
+  function updateModeUI() {
+    modeSelect.value = mode;
+    for (const name of modes) if (modePanels[name]) modePanels[name].hidden = name !== mode;
+    if (description) description.textContent = {
+      envelope: 'Last 5 seconds · RMS (blue) and sampled peak (orange), 0–1.',
+      waveform: 'Waveform: ±1 amplitude over 20 milliseconds.',
+      spectrum: 'Spectrum: −100 to 0 dBFS · 4096-point FFT · logarithmic frequency axis.',
+    }[mode] + ' Up to 15 updates/sec. Mixed output after effects and master volume. Pause stops analysis while audio keeps playing.';
+  }
+  updateModeUI();
 
   function setStatus(message) {
     if (status.textContent !== message) status.textContent = message;
@@ -15,6 +43,7 @@ export function createAudioMonitor(getAudio, {panel, waveCanvas, spectrumCanvas,
     splitter?.disconnect();
     analyser?.disconnect();
     audio = context = splitter = analyser = null;
+    resetHistory();
   }
 
   function attach(next) {
@@ -32,7 +61,7 @@ export function createAudioMonitor(getAudio, {panel, waveCanvas, spectrumCanvas,
     idleDrawn = false;
   }
 
-  function axes(canvas, spectrum, sampleRate) {
+  function axes(canvas, kind, sampleRate) {
     const ctx = canvas.getContext('2d');
     const w = canvas.width, h = canvas.height;
     const left = 44, right = w - 18, top = 18, bottom = h - 30;
@@ -43,10 +72,10 @@ export function createAudioMonitor(getAudio, {panel, waveCanvas, spectrumCanvas,
       ctx.strokeStyle = '#33424e'; ctx.beginPath();
       ctx.moveTo(left, y); ctx.lineTo(right, y); ctx.stroke();
       ctx.fillStyle = '#bcc8d2';
-      ctx.fillText(String(spectrum ? -25 * j : 1 - j / 2), 5, y + 4);
+      ctx.fillText(String(kind === 'spectrum' ? -25 * j : kind === 'envelope' ? 1 - j / 4 : 1 - j / 2), 5, y + 4);
     }
-    ctx.fillText(spectrum ? 'dBFS' : 'amplitude', left, 12);
-    if (spectrum) {
+    ctx.fillText(kind === 'spectrum' ? 'dBFS' : 'amplitude', left, 12);
+    if (kind === 'spectrum') {
       const max = sampleRate / 2;
       for (const hz of [20, 100, 1000, 10000, max]) {
         if (hz > max || (hz === 10000 && max < 15000)) continue;
@@ -54,14 +83,45 @@ export function createAudioMonitor(getAudio, {panel, waveCanvas, spectrumCanvas,
         if (hz !== max && x > right - 105) continue;
         ctx.fillText(hz >= 1000 ? `${(hz / 1000).toFixed(1)}k Hz` : `${hz} Hz`, Math.min(right - 50, x), h - 8);
       }
+    } else if (kind === 'envelope') {
+      for (let j = 0; j <= 5; j++) ctx.fillText(j === 5 ? 'now' : `${j - 5} s`, left + (right - left) * j / 5 - (j === 5 ? 24 : 0), h - 8);
     } else {
       for (let j = 0; j <= 4; j++) ctx.fillText(`${j * 5} ms`, left + (right - left) * j / 4 - (j === 4 ? 32 : 0), h - 8);
     }
     return {ctx, left, right, top, bottom};
   }
 
-  function draw(sampleRate) {
-    const wave = axes(waveCanvas, false, sampleRate);
+  function drawEnvelope(time, capture) {
+    if (capture) {
+      let sum = 0, peak = 0;
+      for (let i = 0; i < samples.length; i++) {
+        const value = samples[i];
+        sum += value * value; peak = Math.max(peak, Math.abs(value));
+      }
+      historyTimes[historyHead] = time;
+      historyRms[historyHead] = Math.sqrt(sum / samples.length);
+      historyPeaks[historyHead] = peak;
+      historyHead = (historyHead + 1) % historyTimes.length;
+      historySize = Math.min(historySize + 1, historyTimes.length);
+    }
+    const plot = axes(envelopeCanvas, 'envelope');
+    for (const [values, color] of [[historyRms, '#69cfff'], [historyPeaks, '#ffba69']]) {
+      plot.ctx.strokeStyle = color; plot.ctx.beginPath();
+      let started = false;
+      for (let j = 0; j < historySize; j++) {
+        const i = (historyHead - historySize + j + historyTimes.length) % historyTimes.length;
+        const age = time - historyTimes[i];
+        if (age > 5000) continue;
+        const x = plot.right - age / 5000 * (plot.right - plot.left);
+        const y = plot.bottom - Math.min(1, values[i]) * (plot.bottom - plot.top);
+        if (started) plot.ctx.lineTo(x, y); else { plot.ctx.moveTo(x, y); started = true; }
+      }
+      plot.ctx.stroke();
+    }
+  }
+
+  function drawWaveform(sampleRate) {
+    const wave = axes(waveCanvas, 'waveform', sampleRate);
     const count = Math.min(Math.round(sampleRate * .02), samples.length / 2);
     // Start on a rising zero crossing for a steady view of periodic signals.
     let start = 0;
@@ -75,7 +135,10 @@ export function createAudioMonitor(getAudio, {panel, waveCanvas, spectrumCanvas,
       if (i) wave.ctx.lineTo(x, y); else wave.ctx.moveTo(x, y);
     }
     wave.ctx.stroke();
-    const fft = axes(spectrumCanvas, true, sampleRate);
+  }
+
+  function drawSpectrum(sampleRate) {
+    const fft = axes(spectrumCanvas, 'spectrum', sampleRate);
     fft.ctx.strokeStyle = '#ffba69'; fft.ctx.beginPath();
     // Take the strongest FFT bin in each screen column so narrow peaks remain visible.
     const max = sampleRate / 2, binHz = sampleRate / 4096;
@@ -93,6 +156,18 @@ export function createAudioMonitor(getAudio, {panel, waveCanvas, spectrumCanvas,
     fft.ctx.stroke();
   }
 
+  function draw(sampleRate, time, capture = false) {
+    if (mode === 'envelope') drawEnvelope(time, capture);
+    else if (mode === 'waveform') drawWaveform(sampleRate);
+    else drawSpectrum(sampleRate);
+  }
+
+  function drawIdle() {
+    samples = new Float32Array(4096); bins = new Float32Array(2048).fill(-100);
+    draw(48000, 0);
+    idleDrawn = true;
+  }
+
   function tick(time) {
     frame = 0;
     if (!visible || !inView || paused || document.hidden) return;
@@ -102,19 +177,24 @@ export function createAudioMonitor(getAudio, {panel, waveCanvas, spectrumCanvas,
     const next = getAudio();
     if (!next?.masterOutputNode || !next.audioContext || next.audioContext.state === 'closed') {
       detach();
-      if (!idleDrawn) {
-        samples = new Float32Array(4096); bins = new Float32Array(2048).fill(-100);
-        draw(48000);
-        idleDrawn = true;
-      }
+      if (!idleDrawn) drawIdle();
       setStatus('Press Run to observe audio.');
       return;
     }
     if (audio !== next || context !== next.audioContext || !next.outputMonitors.has(splitter) || selectedChannel !== (Number(channel.value) === 1 ? 1 : 0)) attach(next);
-    analyser.getFloatTimeDomainData(samples); analyser.getFloatFrequencyData(bins);
-    draw(context.sampleRate);
+    if (mode === 'spectrum') analyser.getFloatFrequencyData(bins);
+    else analyser.getFloatTimeDomainData(samples);
+    draw(context.sampleRate, time, true);
     setStatus(`${context.sampleRate} Hz · ${channel.value === '1' ? 'Right' : 'Left'} · mixed output after effects and volume`);
   }
+  function changeMode() {
+    mode = modes.includes(modeSelect.value) ? modeSelect.value : 'envelope';
+    try { storage?.setItem(preferenceKey, mode); } catch { /* Analysis works without persistence. */ }
+    updateModeUI(); resetHistory(); idleDrawn = false; lastDraw = -Infinity;
+    if (visible && paused) drawIdle();
+    refresh();
+  }
+  modeSelect.addEventListener('change', changeMode);
 
   function refresh() {
     cancelAnimationFrame(frame); frame = 0;
@@ -144,6 +224,7 @@ export function createAudioMonitor(getAudio, {panel, waveCanvas, spectrumCanvas,
       document.removeEventListener('visibilitychange', refresh);
       window.removeEventListener('pagehide', onPageHide);
       pauseButton?.removeEventListener('click', togglePause);
+      modeSelect.removeEventListener('change', changeMode);
     },
   };
 }

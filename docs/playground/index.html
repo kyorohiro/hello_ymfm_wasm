@@ -516,17 +516,14 @@
         font-size: 0.85rem;
       }
 
-      .audio-monitor-plots { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
-      .audio-monitor-plots canvas { width: 100%; height: auto; display: block; }
-      #audioMonitorPanel { padding: 16px; overflow: auto; }
+      .audio-monitor-plots, .fx-monitor-plots { max-width: 1000px; }
+      .audio-monitor-plots canvas, .fx-monitor-plots canvas { width: 100%; height: clamp(100px, calc(var(--bottom-panel-height, 260px) - 110px), 320px); display: block; }
+      #audioMonitorPanel { padding: 8px 12px; overflow: auto; }
       body.has-inline-audio-monitor #codePanel { overflow: auto; }
       body.has-inline-audio-monitor .code-workspace { min-height: 360px; }
       body.has-inline-audio-monitor #audioMonitorPanel { flex: none; overflow: visible; }
-      #audioMonitorPanel h3 { margin: 8px 0; }
-      #audioMonitorStatus { font-size: .8rem; }
-      @media (max-width: 700px) {
-        .audio-monitor-plots { grid-template-columns: 1fr; }
-      }
+      #audioMonitorStatus, #fxMonitorStatus { margin: 4px 0; font-size: .8rem; }
+      #audioMonitorDescription, #fxMonitorDescription { margin: 8px 0 0; }
 
       body.mode-simple .topbar,
       body.mode-simple .toolbar,
@@ -690,7 +687,7 @@
         min-height: 0;
       }
 
-      #fxMonitorPanel { overflow: auto; padding: 12px; }
+      #fxMonitorPanel { overflow: auto; padding: 8px 12px; }
 
       #codePanel:not([hidden]) {
         display: flex;
@@ -1879,25 +1876,27 @@
           </section>
 
           <section id="audioMonitorPanel" class="tab-panel" role="tabpanel" aria-labelledby="audioMonitorTab" hidden>
+            <label>View <select id="audioMonitorMode"><option value="envelope">Envelope</option><option value="waveform">Oscilloscope</option><option value="spectrum">Spectrum</option></select></label>
             <label>Channel <select id="audioMonitorChannel"><option value="0">Left</option><option value="1">Right</option></select></label>
             <button id="audioMonitorPause" type="button" aria-pressed="false" title="Pause analysis while audio keeps playing">Pause</button>
             <p id="audioMonitorStatus" role="status">Press Run to observe audio.</p>
             <div class="audio-monitor-plots">
-              <div><h3>Oscilloscope</h3><canvas id="audioMonitorWave" width="700" height="220" aria-label="Output waveform over 20 milliseconds"></canvas></div>
-              <div><h3>Spectrum</h3><canvas id="audioMonitorSpectrum" width="700" height="220" aria-label="Output frequency spectrum on a logarithmic frequency axis"></canvas></div>
+              <div id="audioMonitorEnvelopeView"><canvas id="audioMonitorEnvelope" width="700" height="160" aria-label="Output RMS and sampled peak over the last 5 seconds"></canvas></div>
+              <div id="audioMonitorWaveView" hidden><canvas id="audioMonitorWave" width="700" height="160" aria-label="Output waveform over 20 milliseconds"></canvas></div>
+              <div id="audioMonitorSpectrumView" hidden><canvas id="audioMonitorSpectrum" width="700" height="160" aria-label="Output frequency spectrum on a logarithmic frequency axis"></canvas></div>
             </div>
-            <p class="subtext">Waveform: ±1, 20 ms. Spectrum: −100 to 0 dBFS, 4096-point FFT, up to 15 updates/sec. These plots show the mixed output after effects and master volume. Pause stops analysis while audio keeps playing.</p>
+            <p id="audioMonitorDescription" class="subtext"></p>
           </section>
           <section id="fxMonitorPanel" class="tab-panel" role="tabpanel" aria-labelledby="fxMonitorTab" hidden>
-            <h2>FX Monitor</h2>
+            <label>View <select id="fxMonitorMode"><option value="waveform">Oscilloscope</option><option value="spectrum">Spectrum</option></select></label>
             <label>liveFx <select id="fxMonitorTarget" aria-label="Observed liveFx"></select></label>
             <label>Channel <select id="fxMonitorChannel"><option value="0">Left</option><option value="1">Right</option></select></label>
             <p id="fxMonitorStatus" role="status">Run code containing liveFx to begin.</p>
-            <p>Blue: input · Orange: output. Fixed scales; 2048-sample Hann FFT. Observation stops when this tab or page is hidden.</p>
-            <h3>Waveform</h3>
-            <canvas id="fxMonitorWave" width="900" height="220" style="width:100%;max-width:900px" aria-label="Input and output waveform"></canvas>
-            <h3>Spectrum</h3>
-            <canvas id="fxMonitorFFT" width="900" height="220" style="width:100%;max-width:900px" aria-label="Input and output frequency spectrum"></canvas>
+            <div class="fx-monitor-plots">
+              <div id="fxMonitorWaveView"><canvas id="fxMonitorWave" width="700" height="160" aria-label="Input and output waveform"></canvas></div>
+              <div id="fxMonitorSpectrumView" hidden><canvas id="fxMonitorFFT" width="700" height="160" aria-label="Input and output frequency spectrum"></canvas></div>
+            </div>
+            <p id="fxMonitorDescription" class="subtext"></p>
           </section>
           <section id="consolePanel" class="tab-panel" role="tabpanel" aria-labelledby="consoleTab" hidden>
             <pre id="consoleOutput"></pre>
@@ -2199,7 +2198,7 @@
       })();
     </script>
     <script type="module">
-      import('./playground.js?v=keyboard-controls-minimize-1').catch(error => window.__playgroundStartup.fail(error));
+      import('./playground.js?v=audio-fx-monitor-modes-1').catch(error => window.__playgroundStartup.fail(error));
     </script>
   </body>
 </html>

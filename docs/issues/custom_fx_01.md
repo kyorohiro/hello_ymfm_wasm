@@ -52,9 +52,12 @@ fx.updateContext("distortion", { drive: 4 });
 
 ## FX Monitor
 
-Codeの隣のFX Monitorタブで、liveFx名と左右CHを選択して入力／出力を比較する。
+下部のFX Monitorタブで、liveFx名と左右CHを選択して入力／出力を比較する。
+ViewでOscilloscope／Spectrumを切り替える。初期表示はOscilloscopeで、最後の選択を記憶する。
+入力（青）と出力（オレンジ）は、選んだグラフに重ねて表示する。
 波形は振幅±1、スペクトルは−100〜0 dBFSの共通固定スケール。
-2048サンプルのHann窓FFT（周波数軸は線形）で、最大約10回/秒更新する。
+2048サンプルの窓を最大約10回/秒更新する。Spectrumを選んだときだけ
+Hann窓FFT（周波数軸は線形）を計算し、表示中のCanvasだけ描画する。
 短い窓なので低音の分解能には限界があり、精密な測定器ではなく学習用の表示。
 
 AudioNodeは追加しない。Workletに1窓だけ要求し、連続した入力／出力サンプルを

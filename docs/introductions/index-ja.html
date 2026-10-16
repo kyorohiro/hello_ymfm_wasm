@@ -436,7 +436,7 @@ const pcm = Uint8Array.from({ length: sampleRate * seconds }, (_, i) => {
 await fm.dac.play(pcm, { sampleRate });
 await sleep(seconds);
 </script>
-        <p>下部の Audio タブで波形とスペクトラムを確認できます。コードとの境界をドラッグすると、表示サイズを調整できます。</p>
+        <p>下部の Audio タブの View で、音量の推移（Envelope）、波形（Oscilloscope）、周波数成分（Spectrum）を切り替えられます。コードとの境界をドラッグすると、表示サイズを調整できます。</p>
         <iframe class="playground-frame" data-playground-src="example-diy-fm-sine" data-playground-mode="full" data-playground-monitor="true"
           title="JavaScriptで正弦波を鳴らす" allow="autoplay" loading="lazy" style="height: 780px;"></iframe>
         <p><a data-playground-src="example-diy-fm-sine">Playground全体で開く &rarr;</a></p>
