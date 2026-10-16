@@ -206,7 +206,8 @@ export async function runTween(duration, onUpdate, clock) {
  * @param {PlaygroundClockOptions} options Runtime state, loop context and clock hooks.
  * @returns {{cancelWaits: DeadlineScheduler['cancel'], nowSeconds: () => number,
  *   ensureMusicClock: () => void, beatsToSeconds: (beats: number) => number,
- *   currentBeat: () => number, sleep: (seconds: number, runToken?: number) => Promise<void>,
+ *   currentBeat: () => number, currentSampleCursor: () => number,
+ *   sleep: (seconds: number, runToken?: number) => Promise<void>,
  *   sleepSamples: (samples: number, sampleRate?: number, runToken?: number) => Promise<void>,
  *   waitForBeat: (targetBeat: number, runToken?: number, loopState?: PlaygroundClockLoop | null) => Promise<void>,
  *   beat: (beats?: number) => Promise<void>, nextBeat: () => Promise<void>,
@@ -243,6 +244,14 @@ export function createPlaygroundClock(
     }
 
     return performance.now() / 1000;
+  }
+
+  // New loops join the shared sample timeline at the current position. Reusing
+  // zero after another Run would replay all elapsed waits without waiting.
+  // Capture this once per liveLoop commit so sibling channels stay aligned.
+  function currentSampleCursor() {
+    return runtime.sampleClockStartTime === null ? 0 :
+      Math.max(0, nowSeconds() - runtime.sampleClockStartTime);
   }
 
   function ensureMusicClock() {
@@ -499,6 +508,7 @@ export function createPlaygroundClock(
     ensureMusicClock,
     beatsToSeconds,
     currentBeat,
+    currentSampleCursor,
     sleep,
     sleepSamples,
     waitForBeat,

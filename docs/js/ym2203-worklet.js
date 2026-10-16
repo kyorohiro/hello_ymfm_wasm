@@ -1,4 +1,5 @@
 import {validateChipClock} from './playground_chip_clock.js';
+import {createOpnAuditionGuard, receiveOpnAuditionCommand} from './playground_audition_guard.js';
 import {createChipPortReceiver} from "./playground_chip_port.js";
 /**
  * @file ym2203-worklet.js
@@ -13,10 +14,12 @@ class YM2203Processor extends AudioWorkletProcessor {
   constructor() {
     super();
     this.chip = null;
+    this.auditions = null;
     this.chipRate = sampleRate;
     this.remainder = 0; this.lastLeft = 0; this.lastRight = 0;
     const receiveChipPort = createChipPortReceiver((data, reply) => handle(data, reply));
     const handle = (data, reply = message => this.port.postMessage(message)) => {
+      if (receiveOpnAuditionCommand(this.auditions, data, reply)) return;
       if (data.type === 'chip-clock') {
         try { if (!this.chip) throw new Error('Chip not ready'); this.chipRate = this.chip.sampleRate(validateChipClock(data.clock)); reply({type:'chip-clock-result',id:data.id}); }
         catch (error) { reply({type:'chip-clock-result',id:data.id,error:error.message}); }
@@ -35,6 +38,7 @@ class YM2203Processor extends AudioWorkletProcessor {
         moduleFactory: ym2203ModuleFactory,
         moduleOptions: { wasmBinary: new Uint8Array(wasmBinary) },
       });
+      this.auditions = createOpnAuditionGuard(this.chip, 3);
       this.chipRate = this.chip.sampleRate(YM2203_CLOCK);
       this.port.postMessage({ type: "ready" });
     } catch (error) {
@@ -48,8 +52,7 @@ class YM2203Processor extends AudioWorkletProcessor {
   }
 
   write(register, value) {
-    this.chip.write(0, register);
-    this.chip.write(1, value);
+    this.chip.writeRegister(register, value, 0);
   }
 
   process(_inputs, outputs) {

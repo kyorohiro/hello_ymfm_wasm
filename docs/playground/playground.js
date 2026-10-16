@@ -36,6 +36,7 @@ import {
   createPlaygroundOperatorTab,
 } from "./playground_operator_tab.js";
 import { createPlaygroundOperatorKeyboard } from "./playground_operator_keyboard.js";
+import { CHIP_CLOCKS } from "../js/playground_chip_clock.js";
 import { DEFAULT_CODE, EXAMPLES, EXAMPLE_FILES } from "./playground_examples.js?v=dx7-soundchip-1";
 import { initializePlaygroundMonaco } from "./playground_monaco.js?v=dx7-soundchip-1";
 import {
@@ -68,7 +69,7 @@ import { exportYm2608VgmToPlaygroundJavaScript } from "../js/ym2608vgm.js";
 import { exportYm2610BVgmToPlaygroundJavaScript } from "../js/ym2610bvgm.js";
 import {
   createPlaygroundRuntime,
-} from "../js/playground_runtime.js?v=dx7-soundchip-1";
+} from "../js/playground_runtime.js?v=run-sample-clock-1";
 import { createVgmPresetFiles } from "./playground_vgm_presets.js";
 import { createTfiFileEditor, instrumentToEditorPreset } from "./playground_tfi_editor.js";
 import { renderFileTree } from "./playground_file_tree.js?v=file-menu-1";
@@ -236,6 +237,7 @@ const playgroundSearch = new URLSearchParams(
 const selectedChip = normalizeTetoricaChip(
   playgroundSearch.get("chip")
 );
+const selectedChipClock = CHIP_CLOCKS[selectedChip === 'ym2610b' ? 'ym2610' : selectedChip];
 const useNukedEngine =
   selectedChip === "ym2612" &&
   playgroundSearch.get("engine") === "nuked";
@@ -487,6 +489,9 @@ const operatorTab =
   });
 const operatorKeyboard = createPlaygroundOperatorKeyboard({
   root: operatorKeyboardRoot,
+  auditionPriority: true,
+  getClock: () => (megaDrive.fm?.fm ?? megaDrive.fm)?.clock ?? selectedChipClock,
+  clockDivider: selectedChip === 'ym2203' ? 72 : 144,
   getSelectedChannel: () => operatorTab.getSelectedChannel(),
   channelCount: megaDrive.capabilities.fmChannels,
   presets: playgroundPresets,
@@ -522,6 +527,8 @@ const tfiFileEditor = createTfiFileEditor({
   keyboardRoot: document.getElementById("tfiFileKeyboard"),
   title: document.getElementById("tfiFileTitle"),
   createAudio: () => createTetoricaSynth(synthOptions),
+  clock: selectedChipClock,
+  clockDivider: selectedChip === 'ym2203' ? 72 : 144,
   onSave(path, bytes) {
     virtualFiles.writeBinary(path, bytes);
     registerVirtualInstrumentPreset(path);
@@ -1667,6 +1674,7 @@ function createRuntime() {
   return createPlaygroundRuntime({
     midiFileSupported: !useNukedEngine,
     megaDrive,
+    onAuditionReset: () => operatorKeyboard.releaseAll(),
     presets:
       playgroundPresets,
     onStatus(message) {
@@ -1682,7 +1690,7 @@ function createRuntime() {
     onReady(context) {
       synth = context.synth;
       operatorTab.attachSynth(synth);
-      operatorKeyboard.attachSynth(synth);
+      operatorKeyboard.attachSynth(runtime.getAuditionSynth());
       applyMasterVolume();
     },
     onMegaDriveEvent(event) {

@@ -314,21 +314,12 @@ const COMMON_PARAM_DEFS = [
 
 const VOICE_COUNT = 6;
 
-const REFERENCE_MIDI = 62;
-const REFERENCE_BLOCK = 4;
-const REFERENCE_FNUM = 553;
-
 const fretboardState =
   createFretboardState();
 let fretboardLayout =
   createFretboardLayout({
     state: fretboardState,
-    referenceMidi:
-      REFERENCE_MIDI,
-    referenceBlock:
-      REFERENCE_BLOCK,
-    referenceFnum:
-      REFERENCE_FNUM,
+    getClock: () => synth?.clock ?? YM2612_CLOCK,
   });
 
 const commonState = {
@@ -1277,12 +1268,7 @@ function rebuildFretboardLayout() {
   fretboardLayout =
     createFretboardLayout({
       state: fretboardState,
-      referenceMidi:
-        REFERENCE_MIDI,
-      referenceBlock:
-        REFERENCE_BLOCK,
-      referenceFnum:
-        REFERENCE_FNUM,
+      getClock: () => synth?.clock ?? YM2612_CLOCK,
     });
 }
 

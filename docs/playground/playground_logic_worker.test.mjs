@@ -68,6 +68,135 @@ function createWorkerHarness(overrides = {}) {
   };
 }
 
+function createTimedWorkerHarness(start = 10) {
+  let time = start;
+  const tasks = new Set();
+  const worker = createWorkerHarness({
+    performance: { now: () => time * 1000 },
+    consumeSetupTime(seconds) { time += seconds; },
+    setTimeout(fn, ms) {
+      const task = { fn, at: time + Math.max(0, ms) / 1000 };
+      tasks.add(task);
+      return task;
+    },
+    clearTimeout: task => tasks.delete(task),
+  });
+  const flush = async () => { for (let i = 0; i < 50; i++) await Promise.resolve(); };
+  return {
+    worker,
+    now: () => time,
+    logs: () => worker.messages.filter(message => message.command === 'log').map(message => message.args),
+    async advance(seconds) {
+      const target = time + seconds;
+      for (let count = 0; count < 10000; count++) {
+        await flush();
+        const next = [...tasks].sort((a, b) => a.at - b.at)[0];
+        if (!next || next.at > target) {
+          time = Math.max(time, target);
+          await flush();
+          if (![...tasks].some(task => task.at <= target)) return;
+          continue;
+        }
+        tasks.delete(next);
+        time = Math.max(time, next.at);
+        next.fn();
+      }
+      assert.fail('Worker generated an unbounded burst of expired waits');
+    },
+    async run(sourceCode, lookaheadSeconds = 0) {
+      worker.post({ type: 'run', presets: {}, scaleIntervals: {}, timing: { lookaheadSeconds }, sourceCode });
+      await this.advance(0);
+      const error = worker.messages.find(message => message.type === 'execution-error');
+      assert.equal(error, undefined, error?.message);
+    },
+    async stop() { worker.post({ type: 'stop' }); await this.advance(0); },
+  };
+}
+
+for (const lookahead of [0, .25]) test(`Worker sample/file/sample switch avoids expired-write bursts (lookahead ${lookahead}s)`, async () => {
+  const f = createTimedWorkerHarness();
+  try {
+    await f.run(`liveLoop('vgm', async () => {
+      await sleepSamples(441); console.log('old', performance.now()/1000);
+      await sleepSamples(441000); console.log('cancelled');
+    });`, lookahead);
+    await f.advance(lookahead + .01);
+    assert.equal(f.logs().filter(args => args[0] === 'old').length, 1);
+    await f.run(`liveLoop('other-file', async () => { await sleep(60); });`, lookahead);
+    await f.advance(20 - f.now());
+    await f.run(`liveLoop('vgm', async () => {
+      for (let i=0;i<4;i++) {
+        await sleepSamples(441); console.log('new', performance.now()/1000);
+      }
+      stopLoop('vgm');
+    });`, lookahead);
+    const events = () => f.logs().filter(args => args[0] === 'new');
+    assert.equal(events().length, 0);
+    await f.advance(lookahead + .009);
+    assert.equal(events().length, 0, 'fresh writes must wait instead of catching up to the old origin');
+    for (let i = 1; i <= 4; i++) {
+      await f.advance(i === 1 ? .002 : .01);
+      assert.equal(events().length, i, 'only one new 10ms event is due');
+      assert.ok(Math.abs(events().at(-1)[1] - (20 + lookahead + i * .01)) < 1e-10);
+    }
+    assert.ok(!f.logs().some(args => args[0] === 'cancelled'));
+    assert.ok(!f.worker.messages.some(message => message.type === 'log' && message.level === 'error'));
+  } finally { await f.stop(); }
+});
+
+test('Worker sibling sample loops share the commit origin despite synchronous setup work', async () => {
+  const f = createTimedWorkerHarness();
+  try {
+    await f.run(`liveLoop('old', async () => { await sleepSamples(4410000); });`, .25);
+    await f.advance(10);
+    await f.run(`
+      liveLoop('first', async () => {
+        console.log('position', 'first', beginSampleSchedule());
+        const wait=sleepSamples(441); consumeSetupTime(.003); await wait;
+        console.log('event', 'first', performance.now()/1000); stopLoop('first');
+      });
+      liveLoop('second', async () => {
+        console.log('position', 'second', beginSampleSchedule());
+        await sleepSamples(441);
+        console.log('event', 'second', performance.now()/1000); stopLoop('second');
+      });
+    `, .25);
+    const positions = f.logs().filter(args => args[0] === 'position');
+    assert.deepEqual(positions.map(args => args[2]), [441000, 441000]);
+    await f.advance(.26);
+    const events = f.logs().filter(args => args[0] === 'event');
+    assert.deepEqual(events.map(args => args[1]), ['first', 'second']);
+    for (const [, , at] of events) assert.ok(Math.abs(at - 20.26) < 1e-10);
+  } finally { await f.stop(); }
+});
+
+test('Worker same-name replacement preserves the current sample iteration and cursor', async () => {
+  const f = createTimedWorkerHarness();
+  try {
+    await f.run(`liveLoop('vgm', async () => {
+      console.log('old-start', performance.now()/1000);
+      await sleepSamples(4410); console.log('old-middle', performance.now()/1000);
+      await sleepSamples(4410); console.log('old-end', performance.now()/1000);
+    });`, .25);
+    await f.advance(.025);
+    await f.run(`liveLoop('vgm', async () => {
+      console.log('new-start', performance.now()/1000, beginSampleSchedule());
+      await sleepSamples(441); console.log('new-end', performance.now()/1000); stopLoop('vgm');
+    });`, .25);
+    assert.deepEqual(f.logs().map(args => args[0]), ['old-start']);
+    await f.advance(.326);
+    assert.deepEqual(f.logs().map(args => args[0]), ['old-start', 'old-middle']);
+    await f.advance(.1);
+    assert.deepEqual(f.logs().map(args => args[0]), ['old-start', 'old-middle', 'old-end', 'new-start']);
+    const start = f.logs().find(args => args[0] === 'new-start');
+    assert.ok(Math.abs(start[1] - 10.45) < 1e-10);
+    assert.equal(start[2], 8820);
+    await f.advance(.01);
+    const end = f.logs().find(args => args[0] === 'new-end');
+    assert.ok(Math.abs(end[1] - 10.46) < 1e-10);
+  } finally { await f.stop(); }
+});
+
 test('Worker shared tempo retimes beat, tween, direct FM and MIDI notes while seconds stay fixed',async()=>{
   let time=0;const tasks=new Set(),commands=[];
   const worker=createWorkerHarness({performance:{now:()=>time*1000},
@@ -770,4 +899,58 @@ test('Worker fallback pitch helpers use numeric clock metadata and await setCloc
  assert.deepEqual(JSON.parse(before.args[1]),midiToOpnPitch(69));
  assert.equal(after.args[1],3835227);assert.deepEqual(JSON.parse(after.args[2]),midiToOpnPitch(69,3835227));
  await worker.send({type:'stop'});
+});
+
+test('Worker remove/re-add starts a new runner while the old same-name cleanup is pending', async () => {
+  let releaseOldCleanup, releaseNewIteration;
+  const worker = createWorkerHarness({
+    holdOldCleanup(resolve) { releaseOldCleanup = resolve; },
+    holdNewIteration(resolve) { releaseNewIteration = resolve; },
+  });
+  const logCount = value => worker.messages.filter(message =>
+    message.command === 'log' && message.args?.[0] === value).length;
+  const run = sourceCode => worker.send({type: 'run', presets: {}, scaleIntervals: {}, sourceCode});
+  try {
+    await run(`liveLoop('x', async () => {
+      console.log('old-enter');
+      try { await sleep(100); }
+      finally {
+        await new Promise(holdOldCleanup);
+        console.log('old-cleanup-finished');
+      }
+    });`);
+    await waitFor(() => logCount('old-enter') === 1);
+    await run('');
+    await waitFor(() => typeof releaseOldCleanup === 'function');
+    await run(`liveLoop('x', async () => {
+      console.log('new-enter');
+      await new Promise(holdNewIteration);
+      console.log('new-iteration-finished');
+    });`);
+    await waitFor(() => logCount('new-enter') === 1);
+    assert.equal(logCount('old-cleanup-finished'), 0,
+      'the new runner must start before the removed runner finishes its asynchronous cleanup');
+
+    releaseOldCleanup();
+    await waitFor(() => logCount('old-cleanup-finished') === 1);
+    // Drain the old runner's catch/finally after its callback's final log.
+    await new Promise(resolve => setTimeout(resolve, 0));
+    assert.equal(logCount('new-enter'), 1, 'the old runner must not execute the replacement callback');
+    await run(`liveLoop('x', async () => {
+      console.log('updated-enter');
+      await sleep(100);
+    });`);
+    assert.equal(logCount('updated-enter'), 0,
+      'the old finally must not delete the replacement runner and cause an extra start on Run');
+
+    releaseNewIteration();
+    await waitFor(() => logCount('updated-enter') === 1);
+    assert.equal(logCount('new-iteration-finished'), 1);
+    assert.equal(logCount('old-enter'), 1);
+    assert.ok(!worker.messages.some(message => message.type === 'execution-error'));
+  } finally {
+    releaseOldCleanup?.();
+    releaseNewIteration?.();
+    await worker.send({type: 'stop'});
+  }
 });

@@ -1,6 +1,4 @@
-import {
-  createPitchFromMidi,
-} from "../js/pitch.js";
+import { midiToOpnPitch } from "../js/soundchip_pitch.js";
 
 const NOTE_NAMES = [
   "C",
@@ -186,9 +184,9 @@ export function getVisibleStrings(
 export function createFretboardLayout({
   state,
   rowKeyStrings = ROW_KEY_STRINGS,
-  referenceMidi,
-  referenceBlock,
-  referenceFnum,
+  clock = 7670454,
+  divider = 144,
+  getClock,
 }) {
   const config =
     getInstrumentConfig(
@@ -240,14 +238,11 @@ export function createFretboardLayout({
           midi,
           noteName:
             midiToNoteName(midi),
-          pitch: createPitchFromMidi(
-            midi,
-            {
-              referenceMidi,
-              referenceBlock,
-              referenceFnum,
-            }
-          ),
+          // Read the current chip clock when a key is played. Output sample
+          // rate and the displayed note's MIDI number do not change its tuning.
+          get pitch() {
+            return midiToOpnPitch(midi, getClock?.() ?? clock, divider);
+          },
           rowLength: keys.length,
           rowIndex,
           stringNumber,

@@ -1,4 +1,5 @@
 import {validateChipClock} from './playground_chip_clock.js';
+import {createOpnAuditionGuard, receiveOpnAuditionCommand} from './playground_audition_guard.js';
 import {createChipPortReceiver} from "./playground_chip_port.js";
 /**
  * @file ym2610b-worklet.js
@@ -13,17 +14,19 @@ class YM2610BProcessor extends AudioWorkletProcessor {
   constructor() {
     super();
     this.chip = null;
+    this.auditions = null;
     this.chipRate = sampleRate;
     this.remainder = 0; this.lastLeft = 0; this.lastRight = 0;
     const receiveChipPort = createChipPortReceiver((data, reply) => handle(data, reply));
     const handle = (data, reply = message => this.port.postMessage(message)) => {
+      if (receiveOpnAuditionCommand(this.auditions, data, reply)) return;
       if (data.type === 'chip-clock') {
         try { if (!this.chip) throw new Error('Chip not ready'); this.chipRate = this.chip.sampleRate(validateChipClock(data.clock)); reply({type:'chip-clock-result',id:data.id}); }
         catch (error) { reply({type:'chip-clock-result',id:data.id,error:error.message}); }
         return;
       }
       if (data.type === "initialize") void this.initialize(data.wasmBinary);
-      if (data.type === "write" && this.chip) this.chip.write(data.port * 2, data.register), this.chip.write(data.port * 2 + 1, data.value);
+      if (data.type === "write" && this.chip) this.chip.writeRegister(data.register, data.value, data.port);
       if (data.type === "reset") this.chip?.reset();
     };
     this.port.onmessage = ({data}) => { if (!receiveChipPort(data)) handle(data); };
@@ -32,6 +35,7 @@ class YM2610BProcessor extends AudioWorkletProcessor {
   async initialize(wasmBinary) {
     try {
       this.chip = await Ym2610B.create({ moduleFactory: ym2610bModuleFactory, moduleOptions: { wasmBinary: new Uint8Array(wasmBinary) } });
+      this.auditions = createOpnAuditionGuard(this.chip, 6);
       this.chipRate = this.chip.sampleRate(YM2610B_CLOCK);
       this.port.postMessage({ type: "ready" });
     } catch (error) {

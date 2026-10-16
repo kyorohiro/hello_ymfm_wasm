@@ -254,6 +254,11 @@ function createClock(run) {
   return {
     cancelWaits: scheduler.cancel,
     cancelLoop(name) {
+      // A runner may be awaiting an RPC or user Promise, not a clock wait.
+      // Mark its identity stopped before a later Run can reuse the same name.
+      for (const [key, loop] of run.runningLoops) {
+        if (name === undefined || key === name) loop.stopped = true;
+      }
       run.loopTasks?.releaseName(name);
       run.midi?.cancelOwner(name);
       scheduler.cancel((owner) => {
@@ -263,6 +268,10 @@ function createClock(run) {
       });
     },
     currentBeat,
+    // Keep new loop channels aligned without catching up from a previous Run.
+    // The Worker sample timeline includes its existing scheduling lookahead.
+    currentSampleCursor: () => sampleClockStart === null ? 0 :
+      Math.max(0, performance.now() / 1000 + dacLookaheadSeconds - sampleClockStart),
     getBpm: () => state.bpm,
     waitForBeat,
     waitBeats: beats => waitForBeat(currentBeat()+beats),
@@ -323,7 +332,7 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
     stopped: false,
     context: {},
     loops: new Map(),
-    runningLoops: new Set(),
+    runningLoops: new Map(),
     collectingLoops: null,
     prepared: new Map(),
     liveFxDefinitions: new Map(),
@@ -746,13 +755,15 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
       }
     }
     run.cleanups = cleanupDefinitions;
+    const sampleCursorSeconds = clock.currentSampleCursor();
     for (const name of definitions.keys()) {
-      if (run.runningLoops.has(name)) continue;
-      run.runningLoops.add(name);
+      const existing = run.runningLoops.get(name);
+      if (existing && !existing.stopped) continue;
       const generation = run.generation;
-      const loopContext = { name, generation, cursorBeat: clock.currentBeat?.() ?? 0, sampleCursorSeconds: 0 };
+      const loopContext = { name, generation, stopped: false, cursorBeat: clock.currentBeat?.() ?? 0, sampleCursorSeconds };
+      run.runningLoops.set(name, loopContext);
       void (async () => {
-        while (!run.stopped && generation === run.generation && run.loops.has(name)) {
+        while (!run.stopped && !loopContext.stopped && generation === run.generation && run.loops.has(name)) {
           try {
             run.currentLoop = loopContext;
             await executeWithWorkerGuards(
@@ -766,11 +777,11 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
             if (loopContext.interruptError) break;
             await new Promise((resolve) => setTimeout(resolve, 16));
           } finally {
-            run.currentLoop = null;
+            if (run.currentLoop === loopContext) run.currentLoop = null;
           }
         }
         loopTasks.release(loopContext);
-        if (generation === run.generation) run.runningLoops.delete(name);
+        if (run.runningLoops.get(name) === loopContext) run.runningLoops.delete(name);
       })();
     }
   };

@@ -36,9 +36,9 @@ import {
   FM_PRESETS,
 } from "./megasynth.js?v=prepared-fx-rerun-2";
 import { createTetoricaSynth } from "./tetorica_synth.js";
-import { createPlaygroundClock } from "./playground_clock.js?v=shared-beat-clock-1";
+import { createPlaygroundClock } from "./playground_clock.js?v=run-sample-clock-1";
 import { capturePlaygroundNativeIpc, executeWithPlaygroundGuards } from "./playground_execution.js";
-import { createPlaygroundLive } from "./playground_live.js?v=prepared-fx-rerun-2";
+import { createPlaygroundLive } from "./playground_live.js?v=run-sample-clock-1";
 import { createPlaygroundMusic } from "./playground_music.js?v=shared-beat-clock-1";
 import { createPlaygroundNoiseApi } from "./playground_noise.js";
 import { createFmProxy } from "./playground_sync.js?v=dac-pcm-1";
@@ -91,6 +91,7 @@ const SCALE_INTERVALS = {
  *   onLog?: ((line: string) => void) | null,
  *   onReady?: ((context: { synth: object, megaDrive: object }) => void) | null,
  *   onMegaDriveEvent?: ((event: object) => void) | null,
+ *   onAuditionReset?: (() => void) | null,
  * }} [options]
  * @returns Runtime controls and accessors; initialize audio before using the synth.
  */
@@ -185,7 +186,7 @@ export function createPlaygroundRuntime(
     );
   defaultLogicWorkerUrl.searchParams.set(
     "v",
-    "dx7-soundchip-1"
+    "run-sample-clock-1"
   );
   const logicWorkerUrl =
     options.logicWorkerUrl ??
@@ -231,6 +232,46 @@ export function createPlaygroundRuntime(
   const soundChips = createSoundChipRegistry();
   let sharedFm;
   let sharedFmSynth;
+  // UI notes share the chip and its output gain, but own their channel until
+  // released. The worklet arbitrates against Main and direct Worker writes.
+  const auditionTokens = new Map();
+  let auditionSequence = 0;
+  function auditionChannel(channel) {
+    if (!Number.isInteger(channel) || channel < 0 || channel >= capabilities.fmChannels) {
+      throw new RangeError('Invalid audition channel');
+    }
+    return capabilities.chip === 'ym2610' ? [1, 2, 4, 5][channel] : channel;
+  }
+  function clearAuditions() {
+    auditionTokens.clear();
+    megaDrive.node?.port?.postMessage({type: 'clear-auditions'});
+    options.onAuditionReset?.();
+  }
+  const auditionSynth = {
+    get clock() {
+      return sharedFm?.clock ?? (synth?.fm ?? synth)?.clock ?? CHIP_CLOCKS[capabilities.chip === 'ym2610b' ? 'ym2610' : capabilities.chip] ?? CHIP_CLOCKS.ym2612;
+    },
+    noteOn(channel, block, fnum) {
+      const physicalChannel = auditionChannel(channel);
+      if (!Number.isInteger(block) || block < 0 || block > 7 ||
+          !Number.isInteger(fnum) || fnum < 0 || fnum > 2047) {
+        throw new RangeError('Invalid audition pitch');
+      }
+      const port = megaDrive.node?.port;
+      if (!port) throw new Error('Audition audio is not ready');
+      if (auditionSequence >= Number.MAX_SAFE_INTEGER) throw new RangeError('Audition token limit reached');
+      const token = ++auditionSequence;
+      auditionTokens.set(channel, token);
+      port.postMessage({type: 'audition-note-on', channel: physicalChannel, block, fnum, token});
+    },
+    noteOff(channel) {
+      const physicalChannel = auditionChannel(channel);
+      const token = auditionTokens.get(channel);
+      if (token === undefined) return;
+      auditionTokens.delete(channel);
+      megaDrive.node?.port?.postMessage({type: 'audition-note-off', channel: physicalChannel, token});
+    },
+  };
   async function openPcm(name, token = currentRunToken, options = {}) {
     if (!options || typeof options !== 'object' || Array.isArray(options) || Object.keys(options).some(k => !['id', ...(name === 'nes' ? ['fds', 'clock'] : [])].includes(k))) throw new TypeError('createSoundChip supports {id}, and {fds, clock} for NES');
     if (name === 'nes' && options.fds !== undefined && typeof options.fds !== 'boolean') throw new TypeError('fds must be boolean');
@@ -501,6 +542,7 @@ export function createPlaygroundRuntime(
   }
 
   function stopAllNotes() {
+    clearAuditions();
     if (!synth) {
       return;
     }
@@ -573,6 +615,7 @@ export function createPlaygroundRuntime(
       preparedFxUnits,
       currentBeat:
         clockApi.currentBeat,
+      currentSampleCursor: clockApi.currentSampleCursor,
       getCurrentLoopContext: () =>
         currentLoopContext,
       setCurrentLoopContext: (
@@ -2085,6 +2128,7 @@ export function createPlaygroundRuntime(
   }
 
   function stop() {
+    clearAuditions();
     currentRunToken += 1;
     loopTasks.clear();
     clockApi.cancelWaits();
@@ -2212,6 +2256,8 @@ export function createPlaygroundRuntime(
     initialize,
     ensureReady,
     prepareAudition,
+    /** Host keyboard facade. Held notes take priority until release. */
+    getAuditionSynth: () => auditionSynth,
     load,
     put,
     get,

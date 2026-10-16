@@ -763,7 +763,11 @@ type FXApi = {
 declare const fx: FXApi;
 declare const context: PlaygroundContext;
 
-/** Create or replace a named repeating live loop. */
+/**
+ * Create a named repeating loop. Re-running an existing name replaces its
+ * callback at the next iteration; the current iteration finishes first.
+ * Names absent from the next successful Run are cancelled at their next wait.
+ */
 declare function liveLoop(name: string, fn: () => Promise<void> | void): void;
 /** Register a named key-down handler for the current Playground run. */
 declare function onKeyboardPressKey(name: string, fn: (event: KeyboardEvent) => void): void;
@@ -783,7 +787,11 @@ declare function write(port: number, register: number, value: number): void;
 declare function sleep(seconds: number): Promise<void>;
 /** Wait for VGM-style sample units. Default sampleRate is 44100. */
 declare function sleepSamples(samples: number, sampleRate?: number): Promise<void>;
-/** Return the current liveLoop cycle start in VGM sample units. */
+/**
+ * Return this liveLoop's cumulative cursor on the shared 44100-Hz sample timeline.
+ * New loops join at the current timeline position, so their first value may be nonzero.
+ * Pass this value as startSamples to scheduleWritesSamples; it is not a song-relative seek position.
+ */
 declare function beginSampleSchedule(): number;
 /** Queue [offsetSamples, port, register, value] writes for the current VGM cycle. */
 /** FM tuples: [offset, port, register, value]; PSG tuples: [offset, "psg", byte]. Offsets use 44100 Hz samples. */
@@ -967,6 +975,7 @@ type PlaygroundAPI = {
   };
   sleep: (seconds: number) => Promise<void>;
   sleepSamples: (samples: number, sampleRate?: number) => Promise<void>;
+  /** Shared 44100-Hz timeline cursor; a newly started loop may begin at a nonzero value. */
   beginSampleSchedule: () => number;
   scheduleWritesSamples: (startSamples: number, entries: Array<[number, number, number, number] | [number, "psg", number]>) => void;
   beat: (beats?: number) => Promise<void>;
@@ -975,6 +984,7 @@ type PlaygroundAPI = {
   tween: typeof tween;
   setBpm: (bpm: number) => void;
   liveFx: typeof liveFx;
+  /** Same-name updates take effect at the next iteration, preserving the current iteration. */
   liveLoop: (name: string, fn: () => Promise<void> | void) => void;
   onKeyboardPressKey: (name: string, fn: (event: KeyboardEvent) => void) => void;
   onKeyboardReleaseKey: (name: string, fn: (event: KeyboardEvent) => void) => void;

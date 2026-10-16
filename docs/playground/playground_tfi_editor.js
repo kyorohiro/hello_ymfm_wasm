@@ -27,7 +27,7 @@ export function createInstrumentFromEditorPreset(path, preset, originalB4 = pres
   return bytes;
 }
 
-export function createTfiFileEditor({ root, operatorRoot, keyboardRoot, title, createAudio, onSave, onStatus, savedLabel }) {
+export function createTfiFileEditor({ root, operatorRoot, keyboardRoot, title, createAudio, onSave, onStatus, savedLabel, clock = 7670454, clockDivider = 144 }) {
   const presets = {};
   let path = null;
   let loading = false;
@@ -48,6 +48,8 @@ export function createTfiFileEditor({ root, operatorRoot, keyboardRoot, title, c
   });
   const keyboard = createPlaygroundOperatorKeyboard({
     root: keyboardRoot, channelCount: 1, getSelectedChannel: () => 0,
+    getClock: () => (audio?.fm?.fm ?? audio?.fm)?.clock ?? clock,
+    clockDivider,
     idPrefix: 'file-', onStatus,
     async ensureAudioReady() {
       if (!readyPromise) {

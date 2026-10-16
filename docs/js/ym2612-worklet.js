@@ -1,4 +1,5 @@
 import {validateChipClock} from './playground_chip_clock.js';
+import {createOpnAuditionGuard, receiveOpnAuditionCommand} from './playground_audition_guard.js';
 import {YM2612DacPlayer, receiveDacCommand} from "./ym2612_dac.js";
 import {createChipPortReceiver} from "./playground_chip_port.js?v=dac-pcm-1";
 /**
@@ -33,6 +34,7 @@ class YM2612Processor extends AudioWorkletProcessor {
     super();
 
     this.ym2612 = null;
+    this.auditions = null;
     this.psg = null;
     this.initializing = false;
     this.resampleRemainder = 0;
@@ -93,6 +95,7 @@ class YM2612Processor extends AudioWorkletProcessor {
           wasmBinary: new Uint8Array(wasmBinary),
         }
       );
+      this.auditions = createOpnAuditionGuard(this.ym2612, 6);
       this.ym2612.setHooks({
         onIrq: (asserted) => {
           this.port.postMessage({
@@ -157,6 +160,7 @@ class YM2612Processor extends AudioWorkletProcessor {
   }
 
   applyCommand(command, reply = message => this.port.postMessage(message)) {
+    if (receiveOpnAuditionCommand(this.auditions, command, reply)) return;
     if (command.type === 'chip-clock') {
       try { if (!this.ym2612) throw new Error('Chip not ready'); this.clock = validateChipClock(command.clock); reply({type:'chip-clock-result',id:command.id}); }
       catch (error) { reply({type:'chip-clock-result',id:command.id,error:error.message}); }

@@ -11,6 +11,7 @@ import {formatLogArgs} from './playground_log.js';
  * @param {{clearFXChain: () => object[]}} options.megaDrive Audio owner used to detach effects.
  * @param {Set<object>} options.preparedFxUnits Effect units retained across evaluations.
  * @param {() => number} options.currentBeat Current beat position.
+ * @param {() => number} [options.currentSampleCursor] Current position in seconds on the shared sample timeline.
  * @param {() => object | null} options.getCurrentLoopContext Current loop.
  * @param {(loop: object | null) => void} options.setCurrentLoopContext Restore a loop context.
  * @param {(loop: object) => void} [options.cancelWaits] Wake a stopped loop's waits.
@@ -29,6 +30,7 @@ export function createPlaygroundLive(
     megaDrive,
     preparedFxUnits,
     currentBeat,
+    currentSampleCursor = () => 0,
     getCurrentLoopContext,
     setCurrentLoopContext,
     cancelWaits = () => {},
@@ -456,6 +458,7 @@ export function createPlaygroundLive(
       }
     }
 
+    const sampleCursorSeconds = currentSampleCursor();
     for (const [name, fn] of loopDefinitions.entries()) {
       const existing =
         runtime.liveLoops.get(name);
@@ -480,6 +483,7 @@ export function createPlaygroundLive(
         stopped: false,
         runToken: 1,
         cursorBeat: currentBeat(),
+        sampleCursorSeconds,
         cycleCallIndex: 0,
         cycleState: new Map(),
       };

@@ -1,4 +1,5 @@
 import test from 'node:test';
+import {createOpnAuditionGuard, receiveOpnAuditionCommand} from './playground_audition_guard.js';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
@@ -64,7 +65,7 @@ test('scheduled events preserve sample position and same-frame insertion order a
 test('offline stereo FM + native delay/reverb exactly match the AudioWorklet processors', async () => {
   let Processor;
   const scope = {sampleRate: 48000, currentFrame: 0, Float32Array, Uint8Array, Error,
-    YM2612DacPlayer, receiveDacCommand, createChipPortReceiver, createYm2612, ym2612ModuleFactory: factory,
+    YM2612DacPlayer, receiveDacCommand, createChipPortReceiver, createOpnAuditionGuard, receiveOpnAuditionCommand, createYm2612, ym2612ModuleFactory: factory,
     AudioWorkletProcessor: class {constructor() {this.port = {postMessage() {}};}},
     registerProcessor: (_name, Type) => {Processor = Type;}};
   vm.runInNewContext(fs.readFileSync(new URL('./ym2612-worklet.js', import.meta.url), 'utf8').replace(/^import .*;\n/gm, ''), scope);

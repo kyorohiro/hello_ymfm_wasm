@@ -1,4 +1,5 @@
 import {validateChipClock} from './playground_chip_clock.js';
+import {createOpnAuditionGuard, receiveOpnAuditionCommand} from './playground_audition_guard.js';
 import {createChipPortReceiver} from "./playground_chip_port.js";
 /**
  * @file ym2608-worklet.js
@@ -13,10 +14,12 @@ class YM2608Processor extends AudioWorkletProcessor {
   constructor() {
     super();
     this.chip = null;
+    this.auditions = null;
     this.chipRate = sampleRate;
     this.remainder = 0; this.lastLeft = 0; this.lastRight = 0;
     const receiveChipPort = createChipPortReceiver((data, reply) => handle(data, reply));
     const handle = (data, reply = message => this.port.postMessage(message)) => {
+      if (receiveOpnAuditionCommand(this.auditions, data, reply)) return;
       if (data.type === 'chip-clock') {
         try { if (!this.chip) throw new Error('Chip not ready'); this.chipRate = this.chip.sampleRate(validateChipClock(data.clock)); reply({type:'chip-clock-result',id:data.id}); }
         catch (error) { reply({type:'chip-clock-result',id:data.id,error:error.message}); }
@@ -45,6 +48,7 @@ class YM2608Processor extends AudioWorkletProcessor {
         moduleFactory: ym2608ModuleFactory,
         moduleOptions: { wasmBinary: new Uint8Array(wasmBinary) },
       });
+      this.auditions = createOpnAuditionGuard(this.chip, 6);
       this.chipRate = this.chip.sampleRate(YM2608_CLOCK);
       if (rhythmRom) this.chip.loadAdpcmARom(rhythmRom);
       this.port.postMessage({ type: "ready" });
@@ -59,8 +63,7 @@ class YM2608Processor extends AudioWorkletProcessor {
   }
 
   write(port, register, value) {
-    this.chip.write(port * 2, register);
-    this.chip.write(port * 2 + 1, value);
+    this.chip.writeRegister(register, value, port);
   }
 
   process(_inputs, outputs) {

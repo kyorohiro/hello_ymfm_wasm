@@ -9,12 +9,6 @@ import {
   setStringWindowIndex,
 } from "../synth/synth_keyboard.js";
 
-const REFERENCE = {
-  referenceMidi: 62,
-  referenceBlock: 4,
-  referenceFnum: 553,
-};
-
 export function createPlaygroundOperatorKeyboard({
   root,
   channelCount = 6,
@@ -26,13 +20,21 @@ export function createPlaygroundOperatorKeyboard({
   ensureAudioReady,
   onStatus,
   idPrefix = "",
+  getClock,
+  clockDivider = 144,
+  auditionPriority = false,
 }) {
   const state = createFretboardState();
   let synth = null;
   let channelMode = "fixed";
   let fixedChannel = 0;
   let roundRobinChannel = 0;
-  let layout = createFretboardLayout({ state, ...REFERENCE });
+  const layoutOptions = {
+    state,
+    getClock: () => getClock?.() ?? (synth?.fm ?? synth)?.clock ?? 7670454,
+    divider: clockDivider,
+  };
+  let layout = createFretboardLayout(layoutOptions);
   const held = new Map();
   let enabled = false;
   let operatorMode = false;
@@ -68,7 +70,9 @@ export function createPlaygroundOperatorKeyboard({
     </div>
     <div class="playground-keyboard" id="playgroundKeyboardKeys"></div>
     <p class="subtext" id="playgroundKeyboardStatus">Audio idle</p>
-    <p class="subtext">Click a key or use the number and letter rows. The selected Operator channel is used.</p>
+    <p class="subtext">Click a key or use the number and letter rows. ${auditionPriority
+      ? 'Held keys take priority on the selected channel; code resumes on its next note after release.'
+      : 'The selected Operator channel is used.'}</p>
   `;
 
   const keysRoot = root.querySelector("#playgroundKeyboardKeys");
@@ -127,7 +131,7 @@ export function createPlaygroundOperatorKeyboard({
 
   function rebuild() {
     releaseAll();
-    layout = createFretboardLayout({ state, ...REFERENCE });
+    layout = createFretboardLayout(layoutOptions);
     buildKeyboard({
       root: keysRoot,
       rowDefs: layout.rowDefs,
@@ -230,6 +234,7 @@ export function createPlaygroundOperatorKeyboard({
     for (const element of root.querySelectorAll("[id]")) element.id = idPrefix + element.id;
   }
   return {
+    releaseAll,
     setView(tabName) {
       releaseAll();
       enabled = tabName === "operator" || tabName === "keyboard";
