@@ -7,16 +7,38 @@ const source = readFileSync(new URL('./playground_operator_keyboard.js', import.
   .replace(/import[\s\S]*?from "\.\.\/synth\/synth_keyboard.js";/, '')
   .replace('export function', 'function');
 
+function classList() {
+  const classes = new Set();
+  return {
+    add(...names) { for (const name of names) classes.add(name); },
+    remove(...names) { for (const name of names) classes.delete(name); },
+    contains(name) { return classes.has(name); },
+    toggle(name, force = !classes.has(name)) {
+      if (force) classes.add(name); else classes.delete(name);
+      return force;
+    },
+  };
+}
+
 function setup(ensureAudioReady, keyboardOptions = {}) {
   const listeners = new Map();
   const elements = new Map();
   function element() {
-    return { listeners: new Map(), dataset: {}, classList: { add() {}, remove() {} },
+    const attributes = new Map();
+    return { listeners: new Map(), dataset: {}, classList: classList(),
+      setAttribute(name, value) { attributes.set(name, String(value)); },
+      getAttribute(name) { return attributes.get(name) ?? null; },
       appendChild() {}, addEventListener(name, fn) { this.listeners.set(name, fn); }, blur() {},
       querySelector(id) {
-        if (!elements.has(id)) elements.set(id, element());
+        if (!elements.has(id)) {
+          const child = element();
+          if (id.startsWith('#')) child.id = id.slice(1);
+          elements.set(id, child);
+        }
         return elements.get(id);
-      } };
+      },
+      querySelectorAll(selector) { return selector === '[id]' ? [...elements.values()].filter(child => child.id) : []; },
+    };
   }
   const root = element();
   const notes = [];
@@ -32,7 +54,8 @@ function setup(ensureAudioReady, keyboardOptions = {}) {
     findLayoutEntry: (entries, key) => entries.find(entry => entry.key === key),
   });
   vm.runInContext(source, context);
-  const keyboard = context.createPlaygroundOperatorKeyboard({ root, getSelectedChannel: () => selected, onChannelChange: ch => { selected = ch; }, ensureAudioReady, ...keyboardOptions });
+  const options = typeof keyboardOptions === 'function' ? keyboardOptions(root) : keyboardOptions;
+  const keyboard = context.createPlaygroundOperatorKeyboard({ root, getSelectedChannel: () => selected, onChannelChange: ch => { selected = ch; }, ensureAudioReady, ...options });
   const send = (name, key = 'a', extra = {}) => listeners.get(name)?.({ key, target: { tagName: 'BUTTON' }, preventDefault() {}, ...extra });
   return { keyboard, root, notes, synth, send, select: ch => { selected = ch; },
     pointerDown: (key = 'a') => pointerHandlers.onPointerDown({}, entries.find(entry => entry.key === key)),
@@ -341,4 +364,94 @@ test('unrelated lower tabs and dock visibility do not cut a held Operator auditi
   t.send('keydown');
   assert.equal(t.root.hidden,true);
   assert.equal(t.notes.length,2);
+});
+
+function toggleControls(t, prefix = '') {
+  const button = t.root.querySelector(`#${prefix}playgroundKeyboardMinimize`);
+  button.listeners.get('click')({ preventDefault() {}, stopPropagation() {} });
+  return button;
+}
+
+test('keyboard controls are minimizable only when the embedding opts in', () => {
+  const regular = setup();
+  assert(!regular.root.innerHTML.includes('id="playgroundKeyboardMinimize"'));
+  const states = [];
+  const host = { classList: classList() };
+  const t = setup(undefined, { minimizeHost: host, onControlsMinimizedChange: state => states.push(state) });
+  const button = t.root.querySelector('#playgroundKeyboardMinimize');
+  assert(t.root.innerHTML.includes('id="playgroundKeyboardMinimize"'));
+  assert.equal(host.classList.contains('is-keyboard-minimized'), false);
+  assert.equal(button.textContent, '−');
+  assert.equal(button.getAttribute('aria-expanded'), 'true');
+  assert.equal(button.getAttribute('aria-label'), 'Minimize keyboard controls');
+  assert.equal(button.title, 'Minimize keyboard controls');
+  toggleControls(t);
+  assert.equal(host.classList.contains('is-keyboard-minimized'), true);
+  assert.equal(t.root.classList.contains('is-keyboard-minimized'), false, 'the class belongs on the selected host');
+  assert.equal(button.textContent, 'Keys');
+  assert.equal(button.getAttribute('aria-expanded'), 'false');
+  assert.equal(button.getAttribute('aria-label'), 'Show keyboard controls');
+  assert.equal(button.title, 'Show keyboard controls');
+  toggleControls(t);
+  assert.equal(host.classList.contains('is-keyboard-minimized'), false);
+  assert.equal(button.textContent, '−');
+  assert.equal(button.getAttribute('aria-expanded'), 'true');
+  assert.deepEqual(states, [false, true, false]);
+});
+
+test('prefixed keyboard controls expose the correct accessible target IDs', () => {
+  const t = setup(undefined, root => ({ minimizeHost: root, idPrefix: 'preview-' }));
+  const button = t.root.querySelector('#preview-playgroundKeyboardMinimize');
+  assert.deepEqual(button.getAttribute('aria-controls').split(/\s+/).sort(), [
+    'preview-playgroundKeyboardChannelTools', 'preview-playgroundKeyboardFretTools',
+  ].sort());
+  toggleControls(t, 'preview-');
+  assert.equal(t.root.classList.contains('is-keyboard-minimized'), true);
+});
+
+test('minimizing and restoring controls preserves a held note and channel settings', () => {
+  const t = setup(undefined, root => ({ minimizeHost: root }));
+  t.keyboard.attachSynth(t.synth);
+  t.keyboard.setView('operator');
+  const channel = t.root.querySelector('#playgroundKeyboardChannel');
+  const mode = t.root.querySelector('#playgroundKeyboardChannelMode');
+  channel.value = '4';
+  channel.listeners.get('change')();
+  t.send('keydown');
+  toggleControls(t);
+  t.keyboard.setView('operator');
+  assert.deepEqual(t.notes, [['on', 4, 4, 553]]);
+  assert.equal(channel.value, '4');
+  assert.equal(mode.value, 'fixed');
+  toggleControls(t);
+  assert.deepEqual(t.notes, [['on', 4, 4, 553]], 'restoring controls must not retrigger or release the note');
+  t.send('keyup');
+  assert.deepEqual(t.notes, [['on', 4, 4, 553], ['off', 4]]);
+  mode.value = 'roundRobin';
+  mode.listeners.get('change')();
+  toggleControls(t);
+  t.keyboard.setView('code');
+  t.keyboard.setView('keyboard');
+  assert.equal(t.root.classList.contains('is-keyboard-minimized'), true, 'changing placement does not discard the session setting');
+  assert.equal(mode.value, 'roundRobin');
+  assert.equal(channel.disabled, true);
+  toggleControls(t);
+  t.send('keydown');
+  t.send('keydown', 's');
+  assert.deepEqual(t.notes.slice(-2), [['on', 0, 4, 553], ['on', 1, 4, 553]]);
+});
+
+test('minimizing controls while audio prepares neither cancels nor duplicates the held note', async () => {
+  let ready;
+  const t = setup(() => new Promise(resolve => { ready = resolve; }), root => ({ minimizeHost: root }));
+  t.keyboard.setView('operator');
+  t.send('keydown');
+  toggleControls(t);
+  toggleControls(t);
+  t.keyboard.attachSynth(t.synth);
+  ready();
+  await new Promise(setImmediate);
+  assert.deepEqual(t.notes, [['on', 2, 4, 553]]);
+  t.send('keyup');
+  assert.deepEqual(t.notes, [['on', 2, 4, 553], ['off', 2]]);
 });

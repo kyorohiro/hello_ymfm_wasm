@@ -798,6 +798,7 @@
       .file-tree summary:hover { background: rgba(87, 188, 198, 0.24); }
 
       .tfi-file-editor { flex: 1; min-width: 0; overflow: auto; padding: 12px 12px 220px; }
+      .tfi-file-editor.keyboard-controls-minimized { padding-bottom: 64px; }
       .tfi-file-editor[hidden], .tfi-file-keyboard[hidden],
       #codePanel[data-file-kind="tfi"] #editorHost,
       #codePanel[data-file-kind="tfi"] #editor { display: none; }
@@ -809,7 +810,7 @@
         padding: 16px; border: 2px solid var(--accent); border-radius: 16px;
         background: var(--panel); box-shadow: 0 8px 30px #12363b40;
       }
-      .tfi-file-keyboard > :not(.playground-keyboard-tools),
+      .tfi-file-keyboard > :not(.playground-keyboard-tools):not(.playground-keyboard-minimize),
       .tfi-file-keyboard [id$="playgroundKeyboardStrings"] { display: none; }
       .tfi-file-keyboard .playground-keyboard-tools { flex-direction: column; align-items: flex-start; margin: 0; }
 
@@ -1003,7 +1004,7 @@
         box-shadow: 0 8px 30px #12363b40;
       }
 
-      #operatorPanel:not([hidden]) ~ #keyboardPanel #operatorKeyboardRoot > :not(.playground-keyboard-tools):not(.playground-keyboard-channel-tools),
+      #operatorPanel:not([hidden]) ~ #keyboardPanel #operatorKeyboardRoot > :not(.playground-keyboard-tools):not(.playground-keyboard-channel-tools):not(.playground-keyboard-minimize),
       #operatorPanel:not([hidden]) ~ #keyboardPanel .playground-keyboard-preset,
       #operatorPanel:not([hidden]) ~ #keyboardPanel #playgroundKeyboardStrings {
         display: none;
@@ -1026,9 +1027,37 @@
         scroll-padding-bottom: 260px;
       }
 
+      #operatorPanel.keyboard-controls-minimized:not([hidden]) {
+        padding-bottom: 64px;
+        scroll-padding-bottom: 64px;
+      }
+
       .workbench #operatorPanel:not([hidden]):not(.has-floating-keyboard) {
         padding-bottom: 0;
         scroll-padding-bottom: 0;
+      }
+
+      .playground-keyboard-minimize { display: none; }
+      #operatorPanel:not([hidden]) ~ #keyboardPanel .playground-keyboard-minimize,
+      .tfi-file-keyboard > .playground-keyboard-minimize {
+        display: block; margin: 0 0 6px auto;
+        min-width: 30px; min-height: 28px; padding: 0 8px;
+      }
+
+      #operatorPanel:not([hidden]) ~ #keyboardPanel.is-keyboard-minimized,
+      .tfi-file-keyboard.is-keyboard-minimized {
+        width: max-content; padding: 0; border: 0; background: transparent;
+        border-radius: 10px; box-shadow: none; overflow: visible;
+      }
+
+      #operatorPanel:not([hidden]) ~ #keyboardPanel.is-keyboard-minimized #operatorKeyboardRoot > :not(.playground-keyboard-minimize),
+      .tfi-file-keyboard.is-keyboard-minimized > :not(.playground-keyboard-minimize) {
+        display: none;
+      }
+
+      #operatorPanel:not([hidden]) ~ #keyboardPanel.is-keyboard-minimized .playground-keyboard-minimize,
+      .tfi-file-keyboard.is-keyboard-minimized > .playground-keyboard-minimize {
+        margin: 0; min-width: 70px; min-height: 36px; padding: 8px 12px;
       }
 
       .operator-tab-toolbar {
@@ -2170,7 +2199,7 @@
       })();
     </script>
     <script type="module">
-      import('./playground.js?v=keyboard-helper-panel-1').catch(error => window.__playgroundStartup.fail(error));
+      import('./playground.js?v=keyboard-controls-minimize-1').catch(error => window.__playgroundStartup.fail(error));
     </script>
   </body>
 </html>

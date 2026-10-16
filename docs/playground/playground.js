@@ -35,7 +35,7 @@ import { createVgiFromPreset, parseVgi } from "../js/vgi.js";
 import {
   createPlaygroundOperatorTab,
 } from "./playground_operator_tab.js";
-import { createPlaygroundOperatorKeyboard } from "./playground_operator_keyboard.js?v=keyboard-helper-panel-1";
+import { createPlaygroundOperatorKeyboard } from "./playground_operator_keyboard.js?v=keyboard-controls-minimize-1";
 import { CHIP_CLOCKS } from "../js/playground_chip_clock.js";
 import { DEFAULT_CODE, EXAMPLES, EXAMPLE_FILES } from "./playground_examples.js?v=dx7-soundchip-1";
 import { initializePlaygroundMonaco } from "./playground_monaco.js?v=dx7-soundchip-1";
@@ -71,7 +71,7 @@ import {
   createPlaygroundRuntime,
 } from "../js/playground_runtime.js?v=run-sample-clock-1";
 import { createVgmPresetFiles } from "./playground_vgm_presets.js";
-import { createTfiFileEditor, instrumentToEditorPreset } from "./playground_tfi_editor.js";
+import { createTfiFileEditor, instrumentToEditorPreset } from "./playground_tfi_editor.js?v=keyboard-controls-minimize-1";
 import { renderFileTree } from "./playground_file_tree.js?v=file-menu-1";
 import { createPlaygroundUi } from "./playground_ui.js?v=keyboard-helper-panel-1";
 import {
@@ -490,6 +490,8 @@ const operatorTab =
 const operatorKeyboard = createPlaygroundOperatorKeyboard({
   root: operatorKeyboardRoot,
   auditionPriority: true,
+  minimizeHost: keyboardPanel,
+  onControlsMinimizedChange: minimized => operatorPanel.classList.toggle('keyboard-controls-minimized', minimized),
   // The opened instrument's independent preview owns computer keys while visible.
   // The main Keyboard panel remains available for pointer auditions.
   canHandleComputerKeys: () => !(activeTfiFilePath && !codePanel.hidden),
@@ -528,6 +530,7 @@ const tfiFileEditor = createTfiFileEditor({
   root: document.getElementById("tfiFileEditor"),
   operatorRoot: document.getElementById("tfiFileOperator"),
   keyboardRoot: document.getElementById("tfiFileKeyboard"),
+  minimizableKeyboard: true,
   title: document.getElementById("tfiFileTitle"),
   createAudio: () => createTetoricaSynth(synthOptions),
   clock: selectedChipClock,

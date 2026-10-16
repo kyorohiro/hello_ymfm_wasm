@@ -19,6 +19,8 @@ const server = http.createServer(async (request,response) => {
     let body = await fs.readFile(filename);
     if (pathname.endsWith('/playground.js')) body = Buffer.from(body.toString() +
       '\nwindow.__panelRegression={runtime,megaDrive,get editorAdapter(){return editorAdapter;},virtualFiles,openVirtualFile,createTfiFromPreset,FM_PRESETS};');
+    if (pathname.endsWith('/playground_tfi_editor.js')) body = Buffer.from(body.toString().replace(
+      'audio ??= createAudio();','audio ??= createAudio(); window.__panelFileAudio = audio;'));
     response.setHeader('Content-Type',mime[path.extname(filename)] || 'application/octet-stream');
     response.end(body);
   } catch (error) {response.writeHead(404).end(String(error));}
@@ -62,6 +64,25 @@ async function state(page) {
   });
 }
 
+async function floatingState(page,id) {
+  return page.evaluate(id => {
+    const host = document.getElementById(id),rect = host.getBoundingClientRect();
+    const value = suffix => host.querySelector(`[id$="${suffix}"]`)?.value;
+    return {
+      minimized:host.classList.contains('is-keyboard-minimized'),width:rect.width,height:rect.height,
+      mode:value('playgroundKeyboardChannelMode'),channel:value('playgroundKeyboardChannel'),
+      fret:host.querySelector('[id$="playgroundKeyboardFret"]')?.textContent,
+    };
+  },id);
+}
+
+function minimizedBounds(value) {
+  assert(value.minimized && value.width >= 30 && value.width <= 90 && value.height >= 24 && value.height <= 50,
+    'collapsed audition should be a Menu-sized button: ' + JSON.stringify(value));
+}
+
+function controls(value) {return {mode:value.mode,channel:value.channel,fret:value.fret};}
+
 async function checkBrowser(name,type,url) {
   const browser = await type.launch({headless:true,...(name === 'chromium' ? {args:['--autoplay-policy=no-user-gesture-required']} : {})});
   try {
@@ -72,7 +93,7 @@ async function checkBrowser(name,type,url) {
     await page.waitForFunction(() => window.__panelRegression?.editorAdapter.kind === 'monaco');
     await page.evaluate(() => {
       document.getElementById('workerExecution').checked = false;
-      window.__panelRegression.editorAdapter.setValue('fm.setPreset(CH1,FM_PRESETS.sine); await sleep(.01);');
+      window.__panelRegression.editorAdapter.setValue('fm.setPreset(CH1,FM_PRESETS.sine); fm.setPreset(CH2,FM_PRESETS.sine); await sleep(.01);');
     });
     await page.click('#runButton');
     await page.waitForFunction(() => !document.getElementById('runButton').disabled);
@@ -118,10 +139,28 @@ async function checkBrowser(name,type,url) {
     const operatorAudio = await layout(page);
     assert(operatorAudio.operator && operatorAudio.keyboard && !operatorAudio.keys && !operatorAudio.keyboardDocked);
     assert.equal(operatorAudio.keyboardPosition,'fixed','Operator + Audio keeps compact audition controls');
+    await page.selectOption('#operatorKeyboardRoot #playgroundKeyboardChannel','1');
+    await page.selectOption('#operatorKeyboardRoot #playgroundKeyboardChannelMode','roundRobin');
+    await page.locator('#operatorKeyboardRoot button').filter({hasText:'5th'}).click();
+    const expandedMain = await floatingState(page,'keyboardPanel');
+    assert(!expandedMain.minimized,'floating controls initially remain expanded');
     await page.screenshot({path:path.join(artifacts,`playground-panel-${name}-operator-audio.png`)});
     await key(page,'keydown'); await page.waitForTimeout(180);
     const held = await state(page);
     assert(held.rms > .001 && held.active === 1,'Operator audition must sound');
+    const mainToggle = page.locator('#keyboardPanel .playground-keyboard-minimize');
+    await mainToggle.click();
+    const minimizedMain = await floatingState(page,'keyboardPanel');
+    minimizedBounds(minimizedMain);
+    assert.deepEqual(controls(minimizedMain),controls(expandedMain));
+    assert.equal((await state(page)).off,held.off,'minimize must not release a held Operator note');
+    await page.screenshot({path:path.join(artifacts,`playground-panel-${name}-operator-minimized.png`)});
+    await mainToggle.click();
+    const restoredMain = await floatingState(page,'keyboardPanel');
+    assert(!restoredMain.minimized && restoredMain.width > 200);
+    assert.deepEqual(controls(restoredMain),controls(expandedMain),'restore retains channel mode, channel and fret');
+    assert.equal((await state(page)).off,held.off,'restore must not release a held Operator note');
+    await mainToggle.click(); // Keep the per-host preference minimized while changing views.
     for (const tab of ['fxMonitorTab','consoleTab','audioMonitorTab']) await page.click('#' + tab);
     await page.waitForTimeout(180);
     const afterTabs = await state(page);
@@ -135,6 +174,10 @@ async function checkBrowser(name,type,url) {
     assert(operatorKeyboard.operator && operatorKeyboard.keyboard && operatorKeyboard.keys && operatorKeyboard.keyboardDocked);
     assert.notEqual(operatorKeyboard.keyboardPosition,'fixed','Operator + lower Keyboard must use the full docked view');
     assert.equal(await page.locator('#keyboardPanel').count(),1,'one keyboard is moved instead of creating duplicate listeners');
+    assert(!(await mainToggle.isVisible()),'full lower Keyboard has no floating minimize button');
+    assert(await page.locator('#operatorKeyboardRoot .playground-keyboard-tools').isVisible(),
+      'full lower Keyboard ignores the retained floating minimize state');
+    assert.deepEqual(controls(await floatingState(page,'keyboardPanel')),controls(expandedMain));
 
     // A visible file preview already owns physical keys. The new simultaneous
     // lower Keyboard must still support its own pointer audition without
@@ -145,10 +188,29 @@ async function checkBrowser(name,type,url) {
       p.virtualFiles.writeBinary('/panel-test.tfi',bytes);
       p.openVirtualFile('/panel-test.tfi');
     });
+    const fileToggle = page.locator('#tfiFileKeyboard .playground-keyboard-minimize');
+    assert(!(await floatingState(page,'tfiFileKeyboard')).minimized,'file preview starts expanded independently of main controls');
+    await page.locator('#tfiFileKeyboard button').filter({hasText:'12th'}).click();
+    const expandedFile = await floatingState(page,'tfiFileKeyboard');
     const previewBefore = await state(page);
     await key(page,'keydown');
     await page.waitForFunction(() => document.querySelectorAll('#tfiFileKeyboard .key.is-active').length === 1);
     assert.equal((await state(page)).on,previewBefore.on,'TFI preview owns physical keys while Code is visible');
+    await page.evaluate(() => {
+      const synth = window.__panelFileAudio.fm,off = synth.noteOff.bind(synth);
+      window.__panelFileNoteOffs = 0;
+      synth.noteOff = (...args) => {window.__panelFileNoteOffs++; return off(...args);};
+    });
+    await fileToggle.click();
+    const minimizedFile = await floatingState(page,'tfiFileKeyboard');
+    minimizedBounds(minimizedFile);
+    assert.deepEqual(controls(minimizedFile),controls(expandedFile));
+    await page.screenshot({path:path.join(artifacts,`playground-panel-${name}-file-minimized.png`)});
+    await fileToggle.click();
+    assert.deepEqual(controls(await floatingState(page,'tfiFileKeyboard')),controls(expandedFile));
+    assert.equal(await page.evaluate(() => window.__panelFileNoteOffs),0,'file minimize/restore must preserve a held preview note');
+    assert.equal(await page.locator('#tfiFileKeyboard .key.is-active').count(),1);
+    await fileToggle.click();
     await key(page,'keyup');
     await page.waitForFunction(() => document.querySelectorAll('#tfiFileKeyboard .key.is-active').length === 0);
     const mainKey = page.locator('#operatorKeyboardRoot .key').filter({hasText:'A4'}).first();
@@ -157,13 +219,21 @@ async function checkBrowser(name,type,url) {
     assert.equal(await page.locator('#tfiFileKeyboard .key.is-active').count(),0,'main pointer audition must not trigger the file preview');
     await mainKey.dispatchEvent('pointerup',{pointerId:7,pointerType:'mouse',button:0,buttons:0});
 
+    await page.click('#operatorTabButton'); await page.click('#audioMonitorTab');
+    minimizedBounds(await floatingState(page,'keyboardPanel'));
+    await mainToggle.click();
+    assert(!(await floatingState(page,'keyboardPanel')).minimized);
+    await page.click('#codeTab');
+    minimizedBounds(await floatingState(page,'tfiFileKeyboard'));
+    assert(!(await floatingState(page,'keyboardPanel')).minimized,'main and file minimize preferences remain independent');
+
     await page.setViewportSize({width:640,height:800});
     await page.click('#helpersTab'); await page.click('#keyboardTab'); await page.click('#bottomDock .dock-close');
     assert(!(await layout(page)).dock,'lower tabs and close remain reachable at 640 px');
     await page.click('.dock-toggle');
     assert((await layout(page)).keyboard,'Panel reopens the selected Keyboard at 640 px');
     assert.deepEqual(errors,[]);
-    console.log(JSON.stringify({browser:name,codeKeyboard,codeHelpers,closed,operatorAudio,operatorKeyboard,held,afterTabs,tfiCoexistence:true,narrowTabs:true,errors}));
+    console.log(JSON.stringify({browser:name,codeKeyboard,codeHelpers,closed,operatorAudio,operatorKeyboard,held,afterTabs,minimizedMain,minimizedFile,tfiCoexistence:true,narrowTabs:true,errors}));
     await page.close();
   } finally {await browser.close();}
 }

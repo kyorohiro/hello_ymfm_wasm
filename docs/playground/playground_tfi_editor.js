@@ -1,5 +1,5 @@
 import { createPlaygroundOperatorTab } from './playground_operator_tab.js';
-import { createPlaygroundOperatorKeyboard } from './playground_operator_keyboard.js';
+import { createPlaygroundOperatorKeyboard } from './playground_operator_keyboard.js?v=keyboard-controls-minimize-1';
 import { createTfiFromPreset, parseTfi } from '../js/tfi.js';
 import { createVgiFromPreset, parseVgi } from '../js/vgi.js';
 
@@ -27,7 +27,7 @@ export function createInstrumentFromEditorPreset(path, preset, originalB4 = pres
   return bytes;
 }
 
-export function createTfiFileEditor({ root, operatorRoot, keyboardRoot, title, createAudio, onSave, onStatus, savedLabel, clock = 7670454, clockDivider = 144 }) {
+export function createTfiFileEditor({ root, operatorRoot, keyboardRoot, title, createAudio, onSave, onStatus, savedLabel, clock = 7670454, clockDivider = 144, minimizableKeyboard = false }) {
   const presets = {};
   let path = null;
   let loading = false;
@@ -51,6 +51,8 @@ export function createTfiFileEditor({ root, operatorRoot, keyboardRoot, title, c
     getClock: () => (audio?.fm?.fm ?? audio?.fm)?.clock ?? clock,
     clockDivider,
     idPrefix: 'file-', onStatus,
+    minimizeHost: minimizableKeyboard ? keyboardRoot : null,
+    onControlsMinimizedChange: minimized => root.classList.toggle('keyboard-controls-minimized', minimized),
     async ensureAudioReady() {
       if (!readyPromise) {
         audio ??= createAudio();

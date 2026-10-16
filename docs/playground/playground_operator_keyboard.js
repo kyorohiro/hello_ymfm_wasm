@@ -24,6 +24,8 @@ export function createPlaygroundOperatorKeyboard({
   clockDivider = 144,
   auditionPriority = false,
   canHandleComputerKeys = () => true,
+  minimizeHost = null,
+  onControlsMinimizedChange,
 }) {
   const state = createFretboardState();
   let synth = null;
@@ -49,7 +51,8 @@ export function createPlaygroundOperatorKeyboard({
   }
 
   root.innerHTML = `
-    <div class="playground-keyboard-toolbar playground-keyboard-channel-tools">
+    ${minimizeHost ? '<button id="playgroundKeyboardMinimize" class="playground-keyboard-minimize" type="button">−</button>' : ''}
+    <div id="playgroundKeyboardChannelTools" class="playground-keyboard-toolbar playground-keyboard-channel-tools">
       <label>Mo:
         <select id="playgroundKeyboardChannelMode">
           <option value="fixed">Fixed channel</option>
@@ -63,7 +66,7 @@ export function createPlaygroundOperatorKeyboard({
         <select id="playgroundKeyboardPreset"></select>
       </label>
     </div>
-    <div class="playground-keyboard-toolbar playground-keyboard-tools">
+    <div id="playgroundKeyboardFretTools" class="playground-keyboard-toolbar playground-keyboard-tools">
       <div id="playgroundKeyboardInstrument"></div>
       <div id="playgroundKeyboardPosition"></div>
       <span id="playgroundKeyboardFret"></span>
@@ -237,6 +240,21 @@ export function createPlaygroundOperatorKeyboard({
   rebuild();
   if (idPrefix) {
     for (const element of root.querySelectorAll("[id]")) element.id = idPrefix + element.id;
+  }
+  if (minimizeHost) {
+    const button = root.querySelector(`#${idPrefix}playgroundKeyboardMinimize`);
+    let minimized = false;
+    const update = () => {
+      minimizeHost.classList.toggle('is-keyboard-minimized', minimized);
+      button.textContent = minimized ? 'Keys' : '−';
+      button.title = minimized ? 'Show keyboard controls' : 'Minimize keyboard controls';
+      button.setAttribute('aria-label', button.title);
+      button.setAttribute('aria-expanded', String(!minimized));
+      onControlsMinimizedChange?.(minimized);
+    };
+    button.setAttribute('aria-controls', `${idPrefix}playgroundKeyboardChannelTools ${idPrefix}playgroundKeyboardFretTools`);
+    button.addEventListener('click', () => { minimized = !minimized; update(); });
+    update();
   }
   return {
     releaseAll,
