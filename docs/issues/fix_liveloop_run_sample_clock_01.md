@@ -79,13 +79,41 @@ Jungleの9ループは各2,651,880サンプル、約60.13秒が1周である。
   型チェック、15レンダラー・23WASMエンジンの起動確認に成功。
 - itch Playgroundのテスト用パッケージ生成：363件の参照・配布資産の確認に成功。
   公開・バージョン更新は行っていない。
-- Playground全体など368テスト中367件成功、1件失敗。
+- 初回の検証ではPlayground全体など368テスト中367件成功、1件失敗。
   失敗は `vgm_export.test.mjs` のDACストリーム変換テスト。
   HEAD `2db0425` の対象コードと依存を一時ディレクトリへ抽出しても同じ失敗を再現し、
-  今回の変更による回帰ではないことを確認した。既存fixtureのlength modeと
-  サンプル時刻期待値の整合は別課題として残す。
+  今回の変更による回帰ではないことを確認した。
+  続くDACテスト修正で解消した（下記）。
 
 主な変更：`web/playground_clock.js`、`playground_live.js`、`playground_runtime.js`、
 `playground_logic_worker.js` と `docs/js` 側の同名ファイル、
 Playground型定義・キャッシュ更新用の読み込みURL、時計・Workerの回帰テスト。
 実機TauriアプリとNative出力の音声確認は今回行っていない。
+
+## 追加対応：長期間失敗していたDAC変換テスト
+
+同日、利用者の依頼を受けて修正。
+9月2日作成のfixtureが、9月14日のDACストリーム処理修正
+（`709cf91`）に追従していなかった。
+
+- `0x93` のlength modeが0だった。0は前回の長さを再利用する指定であり、
+  初回の長さ3を設定するテストには1（コマンド数指定）が必要。
+  fixtureを1に直し、DACストリーム対応版のVGM 1.71ヘッダーも明示した。
+  [VGM仕様](https://raw.githubusercontent.com/vgmrips/vgmplay-legacy/master/VGMPlay/vgmspec171.txt)
+- 既存のPlayground／parserモデルは開始位置で最初のバイトを出力するため、
+  44,100Hzストリームの位置は0・1・2サンプル。古い1・2・3の期待値を修正した。
+  仕様本文は初回出力の位相を明文化していないため、仕様で0を要求しているとは扱わない。
+  libvgmの次の更新境界で初回出力する実装へ合わせる変更も、今回行わない。
+- テスト名の「ReadableではDACを省略」も古く、実際にはpacked bankとして保存される。
+  テスト名を修正し、packed bank全15バイトの時刻・値を厳密に確認する。
+- mode 0で未設定の長さ3を指定しても発音しない回帰テストを追加。
+  web／docsのparserとplayerの両方で確認し、既存の長さ再利用テストも維持する。
+
+追加した `dac_stream_export.test.mjs` では、変換コードを実行した結果を
+実際のWorklet DACスケジューラーとYM2612 WASMへ渡して比較する。
+Write／Schedule／High × raw／Base64／外部ファイル × 44,100／48,000Hz ×
+開始位置0／4,410サンプルの36経路で、元VGM PlayerとDAC書込時刻・順序、左右PCMが完全一致した。
+同時刻のDAC直接書き込みも含め、単にデータ読み込み関数が出力されるだけの確認にしない。
+
+Playground全体とDAC関連514テストがすべて成功（失敗・スキップ0）。
+この不整合を直すための再生エンジン変更は不要だった。

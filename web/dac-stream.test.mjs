@@ -25,6 +25,7 @@ const cases=[
  ['fast start followed by preserved bank position',[...block(0,[10]),...block(0,[20,30]),...setup(),0x95,0,1,0,0,...wait(5),...start(0xffffffff,0,0),...wait(5),0x66],[[0,20],[2,30],[5,20],[7,30]]],
  ['concatenated bank',[...block(0,[10]),...block(0,[20]),...setup(),...start(0,3,0),...wait(5),0x66],[[0,10],[2,20]]],
  ['zero commands',[...block(0,[10]),...setup(),...start(0,1,0),...wait(5),0x66],[]],
+ ['unset length stays empty in keep-length mode',[...block(0,[10,20,30]),...setup(),...start(0,0,3),...wait(7),0x66],[]],
  ['reserved id',[...block(0,[10]),...setup(255),...start(0,1,1,255),...wait(5),0x66],[]],
  ['stop all',[...block(0,[10,20,30]),...setup(),...start(),...wait(1),0x94,255,...wait(5),0x66],[[0,10]]],
  ['frequency change retains fractional phase',[...block(0,[10,20,30]),...setup(),...start(0,1,3),...wait(1),0x92,0,...u32(11025),...wait(7),0x66],[[0,10],[3,20],[7,30]]],

@@ -205,7 +205,7 @@ function createVgmBuffer(commands, options = {}) {
   bytes[2] = 0x6d;
   bytes[3] = 0x20;
   const view = new DataView(bytes.buffer);
-  view.setUint32(0x08, 0x00000150, true);
+  view.setUint32(0x08, options.version ?? 0x00000150, true);
   view.setUint32(0x18, options.totalSamples ?? 0, true);
   view.setUint32(0x2c, options.ym2612Clock ?? 7670454, true);
   view.setUint32(0x34, dataOffset - 0x34, true);
@@ -378,16 +378,17 @@ test("native OPN exports preserve FNUM and omit YM2612 compatibility writes", ()
   assert.doesNotMatch(ym2608Script, /FNUM converted/);
 });
 
-test("scheduled export expands YM2612 DAC stream data while readable export omits it", () => {
+test("packed and raw exports preserve YM2612 DAC stream bytes and sample positions", () => {
   const buffer = createVgmBuffer(Uint8Array.from([
     0x67, 0x66, 0x00, 0x03, 0x00, 0x00, 0x00, 0x70, 0x80, 0x90,
     0x90, 0x00, 0x02, 0x00, 0x2a,
     0x91, 0x00, 0x00, 0x01, 0x00,
     0x92, 0x00, 0x44, 0xac, 0x00, 0x00,
-    0x93, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00,
+    // Length mode 1 means three commands. Mode 0 would reuse the unset length.
+    0x93, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x03, 0x00, 0x00, 0x00,
     0x61, 0x03, 0x00,
     0x66,
-  ]));
+  ]), { version: 0x171, dataOffset: 0x100, totalSamples: 3 });
 
   const readable = exportYm2612VgmToPlaygroundJavaScript(buffer);
   const rawDac = exportYm2612VgmToPlaygroundJavaScript(buffer, {
@@ -403,15 +404,30 @@ test("scheduled export expands YM2612 DAC stream data while readable export omit
 
   assert.match(readable, /await dac\.loadBase64\("vgm-dac", "/);
   assert.match(readable, /dac\.playStream\("vgm-dac", \{ atSamples: dacStart \}\)/);
-  assert.doesNotMatch(readable, /\[1, 0x70\]/);
+  assert.doesNotMatch(readable, /write\(0x2a,/);
   assert.doesNotMatch(rawDac, /dac\.loadBase64|dac\.playStream/);
   assert.match(rawDac, /write\(0x2a, 0x70\)/);
-  assert.match(scheduled, /\[1, 0, 0x2a, 0x70\]/);
-  assert.match(scheduled, /\[2, 0, 0x2a, 0x80\]/);
-  assert.match(scheduled, /\[3, 0, 0x2a, 0x90\]/);
+  // The Playground timeline emits the first byte at stream start, then every
+  // 44100/frequency ticks, matching the parser/player stream timing tests.
+  assert.match(scheduled, /\[0, 0, 0x2a, 0x70\]/);
+  assert.match(scheduled, /\[1, 0, 0x2a, 0x80\]/);
+  assert.match(scheduled, /\[2, 0, 0x2a, 0x90\]/);
   assert.match(scheduledBase64, /await dac\.loadBase64\("vgm-dac", "/);
   assert.match(scheduledBase64, /dac\.playStream\("vgm-dac", \{ atSamples: cycleStart \}\)/);
-  assert.doesNotMatch(scheduledBase64, /\[1, 0, 0x2a, 0x70\]/);
+  assert.doesNotMatch(scheduledBase64, /\[\d+, 0, 0x2a,/);
+
+  // Check the packed bank's exact little-endian offsets and values too: merely
+  // finding loadBase64/playStream would not detect lost or shifted DAC writes.
+  const expectedBank = Buffer.from([
+    0, 0, 0, 0, 0x70,
+    1, 0, 0, 0, 0x80,
+    2, 0, 0, 0, 0x90,
+  ]);
+  for (const source of [readable, scheduledBase64]) {
+    const bank = source.match(/await dac\.loadBase64\("vgm-dac", "([^"]+)"\)/);
+    assert.ok(bank, 'the stream must produce a packed DAC bank');
+    assert.deepEqual(Buffer.from(bank[1], 'base64'), expectedBank);
+  }
 });
 
 test("export can omit DAC data and DAC enable writes", () => {
