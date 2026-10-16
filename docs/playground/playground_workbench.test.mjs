@@ -60,4 +60,72 @@ test('arrow-key navigation stays within the top or bottom tab group', () => {
   assert.equal(options.shellTab.focused,true);
   assert.equal(events.at(-1).primaryTab,'operator');
   assert.equal(events.at(-1).bottomTab,'shell');
+  ui.moveBottomTabFocus(options.operatorTabButton,1);
+  assert.equal(options.codeTab.focused,true);
+  assert.equal(events.at(-1).primaryTab,'code', 'only Code and Operator belong to the upper group');
+  ui.moveBottomTabFocus(options.shellTab,1);
+  assert.equal(options.keyboardTab.focused,true);
+  assert.equal(events.at(-1).bottomTab,'keyboard');
+  ui.moveBottomTabFocus(options.keyboardTab,1);
+  assert.equal(options.helpersTab.focused,true);
+  assert.equal(events.at(-1).bottomTab,'helpers');
+  ui.moveBottomTabFocus(options.helpersTab,1);
+  assert.equal(options.audioMonitorTab.focused,true);
+  assert.equal(events.at(-1).bottomTab,'audio');
+  assert.equal(events.at(-1).primaryTab,'code');
+});
+
+test('Keyboard and Helper are independent lower tools beside the visible Code editor', () => {
+  const {ui,options,events} = setup();
+  ui.setBottomTab('code');
+  ui.setBottomTab('keyboard');
+  assert.equal(options.codePanel.hidden,false);
+  assert.equal(options.keyboardPanel.hidden,false);
+  assert.equal(options.operatorPanel.hidden,true);
+  assert.equal(options.helpersPanel.hidden,true);
+  assert.equal(options.consolePanel.hidden,true);
+  assert.equal(options.codeTab.attributes['aria-selected'],'true');
+  assert.equal(options.keyboardTab.attributes['aria-selected'],'true');
+  assert.deepEqual(events.at(-1),{primaryTab:'code',bottomTab:'keyboard',dockOpen:true});
+  ui.setBottomTab('helpers');
+  assert.equal(options.codePanel.hidden,false);
+  assert.equal(options.helpersPanel.hidden,false);
+  assert.equal(options.keyboardPanel.hidden,true);
+  assert.equal(options.keyboardTab.attributes['aria-selected'],'false');
+  assert.equal(options.helpersTab.attributes['aria-selected'],'true');
+  assert.deepEqual(events.at(-1),{primaryTab:'code',bottomTab:'helpers',dockOpen:true});
+});
+
+for (const name of ['keyboard','helpers']) test(`closing and reopening lower ${name} retains Code and the selected tool`, () => {
+  const {ui,options,events} = setup();
+  ui.setBottomTab('code');
+  ui.setBottomTab(name);
+  ui.setDockVisible(false);
+  assert.equal(options.codePanel.hidden,false);
+  assert.equal(options[`${name}Panel`].hidden,true);
+  assert.deepEqual(events.at(-1),{primaryTab:'code',bottomTab:name,dockOpen:false});
+  ui.setDockVisible(true);
+  assert.equal(options.codePanel.hidden,false);
+  assert.equal(options[`${name}Panel`].hidden,false);
+  assert.deepEqual(events.at(-1),{primaryTab:'code',bottomTab:name,dockOpen:true});
+});
+
+test('Operator retains compact audition when the lower panel is another tool or closed', () => {
+  const {ui,options,events} = setup();
+  ui.setBottomTab('operator');
+  ui.setBottomTab('helpers');
+  assert.equal(options.operatorPanel.hidden,false);
+  assert.equal(options.helpersPanel.hidden,false);
+  assert.equal(options.keyboardPanel.hidden,false, 'Operator keeps its compact audition available');
+  ui.setDockVisible(false);
+  assert.equal(options.operatorPanel.hidden,false);
+  assert.equal(options.helpersPanel.hidden,true);
+  assert.equal(options.keyboardPanel.hidden,false, 'the floating audition is independent of a closed dock');
+  ui.setBottomTab('keyboard');
+  assert.equal(options.operatorPanel.hidden,false);
+  assert.equal(options.keyboardPanel.hidden,false);
+  assert.deepEqual(events.at(-1),{primaryTab:'operator',bottomTab:'keyboard',dockOpen:true});
+  ui.setBottomTab('code');
+  assert.equal(options.codePanel.hidden,false);
+  assert.equal(options.keyboardPanel.hidden,false, 'the full lower keyboard stays open when returning to Code');
 });

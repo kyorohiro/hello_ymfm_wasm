@@ -6,7 +6,7 @@ export function installPlaygroundWorkbench(root, {storage, search = window.locat
   const key = 'tetorica.playground.bottomPanel';
   let saved = {};
   try { saved = JSON.parse(storage?.getItem(key) || '{}') ?? {}; } catch {}
-  const tabs = new Set(['audio', 'fxMonitor', 'console', 'shell']);
+  const tabs = new Set(['audio', 'fxMonitor', 'console', 'shell', 'keyboard', 'helpers']);
   let state = {
     height: Number.isFinite(saved.height) ? Math.max(120, Math.min(600, saved.height)) : 260,
     bottomTab: tabs.has(saved.bottomTab) ? saved.bottomTab : 'console',
@@ -31,7 +31,7 @@ export function installPlaygroundWorkbench(root, {storage, search = window.locat
   divider.setAttribute('aria-orientation', 'horizontal'); divider.setAttribute('aria-label', 'Bottom panel height');
   divider.setAttribute('aria-controls', 'bottomDock');
   divider.title = 'Drag to resize · Double-click to reset · Arrow keys to adjust';
-  for (const [name, id] of [['audio','audioMonitor'], ['fxMonitor','fxMonitor'], ['console','console'], ['shell','shell']]) {
+  for (const id of ['audioMonitor', 'fxMonitor', 'console', 'shell', 'keyboard', 'helpers']) {
     dockTabs.appendChild(document.getElementById(`${id}Tab`));
     dock.appendChild(document.getElementById(`${id}Panel`));
   }
@@ -44,10 +44,12 @@ export function installPlaygroundWorkbench(root, {storage, search = window.locat
   const toggle = element('button', 'dock-toggle');
   toggle.type = 'button'; toggle.textContent = 'Panel'; toggle.setAttribute('aria-controls', 'bottomDock');
   primaryTabs.appendChild(toggle);
-  for (const id of ['codePanel','operatorPanel','keyboardPanel','helpersPanel']) primaryPanels.appendChild(document.getElementById(id));
+  for (const id of ['codePanel','operatorPanel']) primaryPanels.appendChild(document.getElementById(id));
   editor.append(primaryTabs, primaryPanels); right.append(editor, divider, dock);
   root.append(explorer, fileDivider, right);
   root.classList.add('workbench');
+  const keyboardPanel = document.getElementById('keyboardPanel');
+  const operatorPanel = document.getElementById('operatorPanel');
   let drag = null, visibilityHandler = null;
   function save() {try {storage?.setItem(key, JSON.stringify(state));} catch {}}
   function maxHeight() {return Math.max(120, right.clientHeight - 180);}
@@ -57,8 +59,14 @@ export function installPlaygroundWorkbench(root, {storage, search = window.locat
     divider.setAttribute('aria-valuemin', '120'); divider.setAttribute('aria-valuemax', String(Math.round(maxHeight())));
     divider.setAttribute('aria-valuenow', String(height)); divider.setAttribute('aria-valuetext', `${height} pixels`);
   }
-  function sync({bottomTab, dockOpen}) {
+  function sync({primaryTab, bottomTab, dockOpen}) {
     state.bottomTab = bottomTab; state.dockOpen = dockOpen;
+    // Reuse the same keyboard controls for Operator's compact audition overlay.
+    // Keep it outside the dock while floating, including when the dock is hidden.
+    const floatingKeyboard = primaryTab === 'operator' && !(dockOpen && bottomTab === 'keyboard');
+    const keyboardHost = floatingKeyboard ? primaryPanels : dock;
+    if (keyboardPanel.parentElement !== keyboardHost) keyboardHost.appendChild(keyboardPanel);
+    operatorPanel.classList.toggle('has-floating-keyboard', floatingKeyboard);
     dock.hidden = divider.hidden = !dockOpen;
     toggle.setAttribute('aria-expanded', String(dockOpen));
     toggle.setAttribute('aria-label', dockOpen ? 'Hide bottom panel' : 'Show bottom panel');

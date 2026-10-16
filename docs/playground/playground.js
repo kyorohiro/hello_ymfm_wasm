@@ -1,6 +1,6 @@
 import {installFileExplorerResize} from './playground_file_resize.js';
 import {installFileExplorerMenu} from './playground_file_menu.js?v=file-menu-1';
-import {installPlaygroundWorkbench} from './playground_workbench.js?v=compact-shell-1';
+import {installPlaygroundWorkbench} from './playground_workbench.js?v=keyboard-helper-panel-1';
 import {installPlaygroundShell} from './playground_shell.js?v=compact-shell-1';
 import {installPlaygroundGit} from './playground_git.js';
 import {openDraftStore, createProjectAutosave} from './playground_autosave.js';
@@ -35,7 +35,7 @@ import { createVgiFromPreset, parseVgi } from "../js/vgi.js";
 import {
   createPlaygroundOperatorTab,
 } from "./playground_operator_tab.js";
-import { createPlaygroundOperatorKeyboard } from "./playground_operator_keyboard.js";
+import { createPlaygroundOperatorKeyboard } from "./playground_operator_keyboard.js?v=keyboard-helper-panel-1";
 import { CHIP_CLOCKS } from "../js/playground_chip_clock.js";
 import { DEFAULT_CODE, EXAMPLES, EXAMPLE_FILES } from "./playground_examples.js?v=dx7-soundchip-1";
 import { initializePlaygroundMonaco } from "./playground_monaco.js?v=dx7-soundchip-1";
@@ -73,7 +73,7 @@ import {
 import { createVgmPresetFiles } from "./playground_vgm_presets.js";
 import { createTfiFileEditor, instrumentToEditorPreset } from "./playground_tfi_editor.js";
 import { renderFileTree } from "./playground_file_tree.js?v=file-menu-1";
-import { createPlaygroundUi } from "./playground_ui.js?v=fx-monitor-1";
+import { createPlaygroundUi } from "./playground_ui.js?v=keyboard-helper-panel-1";
 import {
   handleMegaSynthEvent,
 } from "./playground_sync.js";
@@ -490,6 +490,9 @@ const operatorTab =
 const operatorKeyboard = createPlaygroundOperatorKeyboard({
   root: operatorKeyboardRoot,
   auditionPriority: true,
+  // The opened instrument's independent preview owns computer keys while visible.
+  // The main Keyboard panel remains available for pointer auditions.
+  canHandleComputerKeys: () => !(activeTfiFilePath && !codePanel.hidden),
   getClock: () => (megaDrive.fm?.fm ?? megaDrive.fm)?.clock ?? selectedChipClock,
   clockDivider: selectedChip === 'ym2203' ? 72 : 144,
   getSelectedChannel: () => operatorTab.getSelectedChannel(),
@@ -1656,7 +1659,7 @@ const ui =
       const showAudio = tool === "audio" || (inlineAudioMonitor && primary === "code");
       if (inlineAudioMonitor) audioMonitorPanel.hidden = !showAudio;
       audioMonitor.setVisible(showAudio);
-      operatorKeyboard.setView(primary);
+      operatorKeyboard.setView(tool === "keyboard" ? "keyboard" : primary);
       tfiFileEditor.setVisible(primary === "code" && Boolean(activeTfiFilePath));
       refreshCodeFileActions();
     },

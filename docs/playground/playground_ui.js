@@ -114,7 +114,7 @@ export function createPlaygroundUi(
     },
   ];
 
-  const auxiliaryTabs = new Set(["audio", "fxMonitor", "console", "shell"]);
+  const auxiliaryTabs = new Set(["audio", "fxMonitor", "console", "shell", "keyboard", "helpers"]);
   let primaryTab = "code";
   let bottomTab = options.initialBottomTab ?? "console";
   let dockOpen = options.initialDockOpen ?? true;
@@ -124,6 +124,9 @@ export function createPlaygroundUi(
       if (auxiliaryTabs.has(tabName)) { bottomTab = tabName; dockOpen = true; }
       else primaryTab = tabName;
     }
+    const keyboardVisible = options.dockedPanels
+      ? primaryTab === "operator" || (dockOpen && bottomTab === "keyboard")
+      : tabName === "operator" || tabName === "keyboard";
     for (const tab of bottomTabs) {
       const isSelected =
         options.dockedPanels
@@ -134,9 +137,9 @@ export function createPlaygroundUi(
         isSelected ? "true" : "false"
       );
       if (tab.panel) {
-        tab.panel.hidden =
-          (options.dockedPanels && auxiliaryTabs.has(tab.name) && !dockOpen) ||
-          (!isSelected && !(tab.name === "keyboard" && (options.dockedPanels ? primaryTab : tabName) === "operator"));
+        tab.panel.hidden = tab.name === "keyboard"
+          ? !keyboardVisible
+          : (options.dockedPanels && auxiliaryTabs.has(tab.name) && !dockOpen) || !isSelected;
       }
     }
     options.onBottomTabChange?.(tabName, options.dockedPanels ? {primaryTab, bottomTab, dockOpen} : null);

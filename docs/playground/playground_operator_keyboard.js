@@ -23,6 +23,7 @@ export function createPlaygroundOperatorKeyboard({
   getClock,
   clockDivider = 144,
   auditionPriority = false,
+  canHandleComputerKeys = () => true,
 }) {
   const state = createFretboardState();
   let synth = null;
@@ -162,7 +163,7 @@ export function createPlaygroundOperatorKeyboard({
     });
   }
 
-  async function press(entry, button) {
+  async function press(entry, button, fromComputerKeys = false) {
     if (!enabled || held.has(entry.key)) return;
     const note = { button };
     held.set(entry.key, note);
@@ -179,6 +180,10 @@ export function createPlaygroundOperatorKeyboard({
       setPreparing(false);
     }
     if (!synth || !enabled || held.get(entry.key) !== note) return;
+    if (fromComputerKeys && !canHandleComputerKeys()) {
+      held.delete(entry.key);
+      return;
+    }
     const channel = channelMode === "roundRobin" ? roundRobinChannel++ % channelCount
       : operatorMode ? getSelectedChannel() : fixedChannel;
     // A channel has one voice: releasing a stolen key must not stop its replacement.
@@ -205,7 +210,7 @@ export function createPlaygroundOperatorKeyboard({
 
   function onKeyDown(event) {
     if (
-      !enabled || event.ctrlKey || event.metaKey || event.altKey ||
+      !enabled || !canHandleComputerKeys() || event.ctrlKey || event.metaKey || event.altKey ||
       event.target?.isContentEditable ||
       event.repeat ||
       (/INPUT|TEXTAREA|SELECT/.test(event.target?.tagName ?? "") &&
@@ -214,7 +219,7 @@ export function createPlaygroundOperatorKeyboard({
     const entry = findLayoutEntry(layout.entries, event.key);
     if (!entry) return;
     event.preventDefault();
-    void press(entry, keysRoot.querySelector(`[data-key="${CSS.escape(entry.key)}"]`));
+    void press(entry, keysRoot.querySelector(`[data-key="${CSS.escape(entry.key)}"]`), true);
   }
 
   function onKeyUp(event) {
@@ -236,9 +241,11 @@ export function createPlaygroundOperatorKeyboard({
   return {
     releaseAll,
     setView(tabName) {
-      releaseAll();
-      enabled = tabName === "operator" || tabName === "keyboard";
-      operatorMode = tabName === "operator";
+      const nextEnabled = tabName === "operator" || tabName === "keyboard";
+      const nextOperatorMode = tabName === "operator";
+      if (enabled !== nextEnabled || operatorMode !== nextOperatorMode) releaseAll();
+      enabled = nextEnabled;
+      operatorMode = nextOperatorMode;
       root.hidden = !enabled;
       channelModeSelect.disabled = false;
       channelSelect.disabled = channelMode === "roundRobin";
