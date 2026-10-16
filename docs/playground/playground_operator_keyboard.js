@@ -76,7 +76,7 @@ export function createPlaygroundOperatorKeyboard({
     <p class="subtext" id="playgroundKeyboardStatus">Audio idle</p>
     <p class="subtext">Click a key or use the number and letter rows. ${auditionPriority
       ? 'Held keys take priority on the selected channel; code resumes on its next note after release.'
-      : 'The selected Operator channel is used.'}</p>
+      : 'The selected YM2612 channel is used.'}</p>
   `;
 
   const keysRoot = root.querySelector("#playgroundKeyboardKeys");

@@ -1,4 +1,9 @@
-Tetorica FM2612 Playground Operator Tab
+Tetorica FM2612 Playground YM2612 Tab
+
+2026-10-17: The tab label is now `YM2612`, since this editor controls the
+YM2612 specifically. Future chip editors can use their chip names as tab
+labels. References to `Operator` below describe the original design; operator
+parameter names and internal module names remain unchanged.
 
 Goal
 

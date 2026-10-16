@@ -890,7 +890,7 @@ export function createPlaygroundOperatorTab(
         )
       );
       onStatus?.(
-        `Operator tab preset loaded for channel ${selectedChannel + 1}.`
+        `YM2612 preset loaded for channel ${selectedChannel + 1}.`
       );
     }
   );
