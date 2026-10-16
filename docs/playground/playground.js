@@ -15,7 +15,7 @@ import {exportYm2608FullVgm} from './ym2608_vgm_import.js?v=loop-async-tasks-1';
 import {prepareVgmImport, exportGameboyVgm, exportNesVgm, exportRf5c164Vgm, addVgmSoundChipSetup, exportYm2203FullVgm} from './playground_vgm_import.js?v=loop-async-tasks-1';
 import {installPlaygroundPageLifecycle} from "./playground_page_lifecycle.js";
 import {createFXMonitor} from './playground_fx_monitor.js?v=single-view-1';
-import {createAudioMonitor} from './playground_audio_monitor.js?v=audio-monitor-modes-1';
+import {createAudioMonitor} from './playground_audio_monitor.js?v=file-preview-1';
 import {installMidiImport} from './playground_midi_import.js?v=midi-sections-1';
 import {
   FM_PRESET_ORDER,
@@ -71,7 +71,7 @@ import {
   createPlaygroundRuntime,
 } from "../js/playground_runtime.js?v=run-sample-clock-1";
 import { createVgmPresetFiles } from "./playground_vgm_presets.js";
-import { createTfiFileEditor, instrumentToEditorPreset } from "./playground_tfi_editor.js?v=keyboard-controls-minimize-1";
+import { createTfiFileEditor, instrumentToEditorPreset } from "./playground_tfi_editor.js?v=audio-preview-monitor-1";
 import { renderFileTree } from "./playground_file_tree.js?v=file-menu-1";
 import { createPlaygroundUi } from "./playground_ui.js?v=keyboard-helper-panel-1";
 import {
@@ -1617,7 +1617,10 @@ if (inlineAudioMonitor) {
   audioMonitorPanel.setAttribute("aria-label", "Audio monitor");
   document.getElementById("audioMonitorTab").hidden = true;
 }
-const audioMonitor = createAudioMonitor(() => runtime.megaDrive?.audio, {
+const audioMonitor = createAudioMonitor(() => activeTfiFilePath && !codePanel.hidden
+  ? tfiFileEditor.getAudioRuntime()
+  : runtime.megaDrive?.audio, {
+  getSourceLabel: () => activeTfiFilePath && !codePanel.hidden ? 'File preview' : '',
   panel: audioMonitorPanel,
   envelopeCanvas: document.getElementById("audioMonitorEnvelope"),
   waveCanvas: document.getElementById("audioMonitorWave"),

@@ -312,3 +312,25 @@ test('explicitly disabling preference storage ignores saved mode and does not wr
   assert.equal(f.frequencyReads.length, 0);
   assert.deepEqual(f.captured, [0, 0]);
 });
+
+test('file-preview guidance and source labels follow the existing audio without starting it', t => {
+  let sourceLabel = 'File preview';
+  const f = setup(t, {monitorOptions: {getSourceLabel: () => sourceLabel}});
+  f.monitor.setVisible(true);
+  f.advance(0);
+  assert.match(f.status.textContent, /File preview.*Play a note/);
+  assert.equal(f.created, 0, 'an unopened preview must not initialize audio for the monitor');
+  f.setSource(f.audio());
+  f.advance(100);
+  assert.match(f.status.textContent, /File preview.*48000 Hz/);
+  const preview = f.source;
+  sourceLabel = '';
+  f.setSource(f.audio());
+  f.advance(200);
+  assert.equal(preview.outputMonitors.size, 0, 'leaving the preview releases its observation branch');
+  assert.equal(f.source.outputMonitors.size, 1);
+  assert.doesNotMatch(f.status.textContent, /File preview/);
+  f.setSource(null);
+  f.advance(300);
+  assert.match(f.status.textContent, /Press Run/);
+});

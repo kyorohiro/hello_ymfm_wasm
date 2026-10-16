@@ -1,7 +1,7 @@
 /** Read Web Audio analyser snapshots and draw the mixed output without changing audible routing. */
 export function createAudioMonitor(getAudio, {
   panel, envelopeCanvas, waveCanvas, spectrumCanvas, modeSelect, modePanels = {},
-  channel, status, pauseButton, description, storage,
+  channel, status, pauseButton, description, storage, getSourceLabel = () => '',
 }) {
   const modes = ['envelope', 'waveform', 'spectrum'];
   const preferenceKey = 'tetorica.playground.audioMonitorMode';
@@ -175,17 +175,18 @@ export function createAudioMonitor(getAudio, {
     if (time - lastDraw < 1000 / 15) return;
     lastDraw = time;
     const next = getAudio();
+    const sourceLabel = getSourceLabel();
     if (!next?.masterOutputNode || !next.audioContext || next.audioContext.state === 'closed') {
       detach();
       if (!idleDrawn) drawIdle();
-      setStatus('Press Run to observe audio.');
+      setStatus(sourceLabel ? `${sourceLabel} · Play a note to observe audio.` : 'Press Run to observe audio.');
       return;
     }
     if (audio !== next || context !== next.audioContext || !next.outputMonitors.has(splitter) || selectedChannel !== (Number(channel.value) === 1 ? 1 : 0)) attach(next);
     if (mode === 'spectrum') analyser.getFloatFrequencyData(bins);
     else analyser.getFloatTimeDomainData(samples);
     draw(context.sampleRate, time, true);
-    setStatus(`${context.sampleRate} Hz · ${channel.value === '1' ? 'Right' : 'Left'} · mixed output after effects and volume`);
+    setStatus(`${sourceLabel ? sourceLabel + ' · ' : ''}${context.sampleRate} Hz · ${channel.value === '1' ? 'Right' : 'Left'} · mixed output after effects and volume`);
   }
   function changeMode() {
     mode = modes.includes(modeSelect.value) ? modeSelect.value : 'envelope';

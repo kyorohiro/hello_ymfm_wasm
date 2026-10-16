@@ -21,6 +21,7 @@ test('TFI editor preserves all four logical operators through loading and saving
 test('file editing saves to the opened path and preview audio starts only on audition', async () => {
   let operatorOptions, keyboardOptions, currentPreset;
   let starts = 0;
+  const previewRuntime = {};
   const saves = [];
   const root = {};
   const title = {};
@@ -42,10 +43,11 @@ test('file editing saves to the opened path and preview audio starts only on aud
   });
   vm.runInContext(source, context);
   const editor = context.createTfiFileEditor({ root, title,
-    createAudio: () => ({ async start() { starts++; }, async resume() {}, close() {}, setMasterVolume() {}, fm: {} }),
+    createAudio: () => ({ audio: previewRuntime, async start() { starts++; }, async resume() {}, close() {}, setMasterVolume() {}, fm: {} }),
     onSave: (path, data) => saves.push({ path, data }),
   });
   editor.open('/presets/a.tfi', bytes);
+  assert.equal(editor.getAudioRuntime(), null);
   assert.equal(starts, 0);
   assert.equal(saves.length, 0);
   currentPreset.operators[2].tl = 60;
@@ -58,9 +60,115 @@ test('file editing saves to the opened path and preview audio starts only on aud
   await keyboardOptions.ensureAudioReady();
   await keyboardOptions.ensureAudioReady();
   assert.equal(starts, 1);
+  assert.equal(editor.getAudioRuntime(), previewRuntime);
   editor.setVisible(false);
   assert.equal(root.hidden, true);
   editor.dispose();
+  assert.equal(editor.getAudioRuntime(), null);
+});
+
+function auditionEditor({deferredStart = false} = {}) {
+  const calls = {create: 0, start: 0, resume: 0, close: 0, keyboardDispose: 0, volume: [], views: [], attachments: []};
+  const previewRuntime = {audioContext: {state: 'running'}, masterOutputNode: {}};
+  let finishStart;
+  const startPromise = deferredStart ? new Promise(resolve => { finishStart = resolve; }) : Promise.resolve();
+  const synth = {audio: previewRuntime, fm: {},
+    async start() { calls.start++; await startPromise; },
+    async resume() { calls.resume++; },
+    close() { calls.close++; },
+    setMasterVolume(volume) { calls.volume.push(volume); },
+  };
+  let keyboardOptions, currentPreset;
+  const source = readFileSync(new URL('./playground_tfi_editor.js', import.meta.url), 'utf8')
+    .replace(/^import .*;\n/gm, '').replaceAll('export function', 'function');
+  const context = vm.createContext({parseTfi, createTfiFromPreset, parseVgi, createVgiFromPreset,
+    createPlaygroundOperatorTab(options) {
+      return {
+        selectPreset() { currentPreset = options.presets.file; options.onEdit(); },
+        getChannelPreset() { return {...currentPreset, operators: Object.fromEntries(currentPreset.operators.map((op, i) => [i + 1, op]))}; },
+        attachSynth(fm) { calls.attachments.push(['operator', fm]); },
+      };
+    },
+    createPlaygroundOperatorKeyboard(options) {
+      keyboardOptions = options;
+      return {
+        setView(view) { calls.views.push(view); },
+        attachSynth(fm) { calls.attachments.push(['keyboard', fm]); },
+        dispose() { calls.keyboardDispose++; },
+      };
+    },
+  });
+  vm.runInContext(source, context);
+  const root = {};
+  const editor = context.createTfiFileEditor({root, title: {}, onSave() {},
+    createAudio() { calls.create++; return synth; },
+  });
+  return {editor, root, calls, synth, previewRuntime,
+    audition: () => keyboardOptions.ensureAudioReady(), finishStart};
+}
+
+for (const format of ['tfi', 'vgi']) {
+  test(`${format.toUpperCase()} preview runtime access is lazy, stable, and cleared by disposal`, async () => {
+    const f = auditionEditor();
+    const instrument = format === 'tfi' ? bytes : createVgiFromPreset({algorithm: 7, feedback: 0});
+    assert.equal(f.editor.getAudioRuntime(), null);
+    f.editor.open(`/presets/voice.${format}`, instrument);
+    f.editor.setVisible(false);
+    f.editor.setMasterVolume(2.5);
+    for (let i = 0; i < 5; i++) assert.equal(f.editor.getAudioRuntime(), null);
+    assert.equal(f.calls.create, 0);
+    assert.equal(f.calls.start, 0);
+    assert.equal(f.calls.resume, 0);
+    f.editor.setVisible(true);
+    await f.audition();
+    assert.equal(f.editor.getAudioRuntime(), f.previewRuntime);
+    assert.deepEqual(f.calls.attachments, [['operator', f.synth.fm], ['keyboard', f.synth.fm]]);
+    assert.deepEqual(f.calls.volume, [2.5]);
+    for (let i = 0; i < 20; i++) assert.equal(f.editor.getAudioRuntime(), f.previewRuntime);
+    assert.equal(f.calls.create, 1);
+    assert.equal(f.calls.start, 1);
+    assert.equal(f.calls.resume, 1, 'monitor reads must not resume audio');
+    f.editor.setVisible(false);
+    assert.equal(f.root.hidden, true);
+    assert.equal(f.calls.views.at(-1), 'code', 'hiding still tells the keyboard to release its audition');
+    assert.equal(f.editor.getAudioRuntime(), f.previewRuntime, 'visibility does not destroy the reusable runtime');
+    assert.equal(f.calls.close, 0);
+    assert.equal(f.calls.resume, 1);
+    f.editor.setVisible(true);
+    f.editor.open(`/presets/another.${format}`, instrument);
+    assert.equal(f.editor.getAudioRuntime(), f.previewRuntime);
+    assert.equal(f.calls.start, 1);
+    assert.equal(f.calls.resume, 1, 'showing or changing files must not create an audio gesture');
+    await f.audition();
+    assert.equal(f.calls.start, 1);
+    assert.equal(f.calls.resume, 2);
+    f.editor.dispose();
+    for (let i = 0; i < 5; i++) assert.equal(f.editor.getAudioRuntime(), null);
+    assert.equal(f.calls.keyboardDispose, 1, 'disposal still releases the keyboard');
+    assert.equal(f.calls.close, 1);
+    assert.equal(f.calls.create, 1);
+    assert.equal(f.calls.resume, 2);
+  });
+}
+
+test('reading or hiding a preparing preview does not start another session or attach after disposal', async () => {
+  const f = auditionEditor({deferredStart: true});
+  f.editor.open('/presets/voice.tfi', bytes);
+  const ready = f.audition();
+  for (let i = 0; i < 10; i++) f.editor.getAudioRuntime();
+  f.editor.setVisible(false);
+  assert.equal(f.calls.views.at(-1), 'code');
+  assert.equal(f.calls.create, 1);
+  assert.equal(f.calls.start, 1);
+  assert.equal(f.calls.resume, 0);
+  f.editor.dispose();
+  assert.equal(f.editor.getAudioRuntime(), null);
+  f.finishStart();
+  await ready;
+  assert.equal(f.editor.getAudioRuntime(), null);
+  assert.equal(f.calls.resume, 0);
+  assert.deepEqual(f.calls.attachments, []);
+  assert.equal(f.calls.close, 1);
 });
 
 test('VGI editing keeps its format, logical operators, pan, AMS/PMS and uneditable B4 bit', () => {

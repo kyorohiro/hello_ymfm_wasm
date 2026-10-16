@@ -92,6 +92,10 @@ export function createTfiFileEditor({ root, operatorRoot, keyboardRoot, title, c
       volume = nextVolume;
       audio?.setMasterVolume(volume);
     },
+    // Observe the existing preview without starting audio or changing its routing.
+    getAudioRuntime() {
+      return disposed ? null : audio?.audio ?? null;
+    },
     dispose() {
       disposed = true;
       keyboard.dispose();
