@@ -189,8 +189,34 @@ async function checkBrowser(name,type,url) {
     const codeMain = await measure(page);
     assert.equal(codeMain.observedContext,codeMain.mainContext); assert(codeMain.maxDb > -60);
     assert.doesNotMatch(codeMain.status,/File preview/);
+    await page.evaluate(() => window.__fileAudioTest.runtime.stop());
+
+    // A fresh editor has never constructed its preview source. Even when the
+    // main graph is audible, selecting this file must not fall back to it.
+    await page.reload();
+    await page.waitForFunction(() => window.__fileAudioTest?.editor.kind === 'monaco');
+    await page.evaluate(async () => {
+      const p = window.__fileAudioTest;
+      const [{createTfiFromPreset},{FM_PRESETS}] = await Promise.all([import('/js/tfi.js'),import('/js/megasynth-fm-presets.js')]);
+      const preset = FM_PRESETS.sine;
+      p.virtualFiles.writeBinary('/cold-preview.tfi',createTfiFromPreset({...preset,operators:Object.fromEntries(preset.operators.map((operator,i) => [i + 1,operator]))}));
+      document.getElementById('workerExecution').checked = false;
+      p.editor.setValue("fm.setPreset(CH1,FM_PRESETS.sine); liveLoop('cold-preview-test',async()=>{await play('A4',{seconds:60});});");
+    });
+    await page.click('#runButton'); await page.waitForFunction(() => !document.getElementById('runButton').disabled);
+    await attachMeter(page,false); await page.click('#audioMonitorTab');
+    await page.selectOption('#audioMonitorMode','waveform'); await page.waitForTimeout(200);
+    const coldBefore = await measure(page,300);
+    assert(coldBefore.timeReads > 0 && coldBefore.mainLevel > .001);
+    await page.evaluate(() => window.__fileAudioTest.openVirtualFile('/cold-preview.tfi')); await page.waitForTimeout(200);
+    const cold = await measure(page,300);
+    assert.equal(await page.evaluate(() => window.__fileAudioTest.tfiFileEditor.getAudioRuntime()),null);
+    assert.equal(cold.previewContext,null); assert.equal(cold.timeReads + cold.fftReads,0);
+    assert(cold.mainLevel > .001 && cold.mainMonitors === 0,'the main graph continues playing but is not observed as preview');
+    assert.equal(cold.contexts,coldBefore.contexts,'opening the cold preview must not construct a context');
+    assert.match(cold.status,/File preview.*Play a note/);
     assert.deepEqual(errors,[]);
-    console.log(JSON.stringify({browser:name,passed:true,beforeRun:true,results,idleMain,main,fileAgain,codeMain,errors}));
+    console.log(JSON.stringify({browser:name,passed:true,beforeRun:true,results,idleMain,main,fileAgain,codeMain,cold,errors}));
     await page.evaluate(() => window.__fileAudioTest.runtime.stop()); await page.close();
   } finally {await browser.close();}
 }
