@@ -5,8 +5,8 @@ YM2612 specifically. Future chip editors can use their chip names as tab
 labels. References to `Operator` below describe the original design; operator
 parameter names and internal module names remain unchanged.
 
-The editor now includes a collapsible `Operator envelopes` diagram, shared with
-Synth. OP1–OP4 use the same colors as the parameter rows. Changes to AR, D1R,
+The editor now includes a collapsible `Operator envelopes` editor using the
+shared Synth drawing module. OP1–OP4 use the same colors as the parameter rows. Changes to AR, D1R,
 D2R, SL, RR and TL update the guides, including preset/channel changes and code
 updates in Main or Worker mode. The same diagram appears in the TFI/VGI file
 editor.
@@ -16,6 +16,34 @@ in seconds. Note pitch, RS and SSG-EG affect actual chip behavior. Audio output
 remains available in the Audio panel. The guide creates no audio nodes, draws
 only after relevant changes, and defers drawing while collapsed, offscreen or
 hidden. Multiple changes in one frame share a single redraw.
+
+Mouse editing is inspired by h1romas4's
+[mmlx-lsp FM Voice panel](https://github.com/h1romas4/mmlx-lsp)
+([VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=h1romas4.mmlx-lsp)).
+Choose OP1–OP4 (initially OP4), then drag its four labeled points:
+
+| Point | Horizontal drag | Vertical drag |
+| --- | --- | --- |
+| AR / TL | AR, 0–31 | TL, 0–127 |
+| D1R / SL | D1R, 0–31 | SL, 0–15 |
+| D2R | D2R, 0–31 | — |
+| RR | RR, 0–15 | — |
+
+Moving a rate point left increases the rate, shortening its illustrated stage.
+The stages use separate relative ranges so every integer, including zero, stays
+reachable. Levels are schematic, with a visible minimum peak so a muted operator
+can still be edited. This changes the guide's editing geometry, not chip EG
+behavior; standalone Synth's original drawing is preserved.
+
+Focused points support arrow keys: left/right changes rate, up/down changes level
+(or rate for D2R/RR). Dragging preserves keyboard audition focus. Pointer capture
+keeps drags working outside the plot and clamps values to chip ranges. Closing,
+hiding, losing capture/focus, changing channel/preset/file or disposing the editor
+ends the gesture. Plain clicks do not change values. Pointer moves coalesce into
+one parameter patch per animation frame, with a final pending move committed on
+release. Numeric and graphical edits share the same partial `setOperator` path;
+the selected operator alone changes, without key-on, phase or envelope resets.
+TFI/VGI edits use the existing file save and Sync/Revert paths.
 
 Goal
 

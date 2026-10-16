@@ -9,8 +9,8 @@ function operators() {
   }]));
 }
 
-function setup(t, {observers = true, open = true, width = 640} = {}) {
-  const globalNames = ['document', 'requestAnimationFrame', 'cancelAnimationFrame', 'IntersectionObserver', 'ResizeObserver'];
+function setup(t, {observers = true, open = true, width = 640, editable = false} = {}) {
+  const globalNames = ['document', 'window', 'requestAnimationFrame', 'cancelAnimationFrame', 'IntersectionObserver', 'ResizeObserver'];
   const saved = new Map(globalNames.map(name => [name, Object.getOwnPropertyDescriptor(globalThis, name)]));
   let view;
   t.after(() => {
@@ -24,16 +24,22 @@ function setup(t, {observers = true, open = true, width = 640} = {}) {
     const listeners = new Map();
     return {
       listeners,
-      addEventListener(type, listener) { listeners.set(type, listener); },
-      removeEventListener(type, listener) {
-        assert.equal(listeners.get(type), listener, 'remove the same registered listener');
-        listeners.delete(type);
+      addEventListener(type, listener) {
+        if (!listeners.has(type)) listeners.set(type, new Set());
+        listeners.get(type).add(listener);
       },
-      emit(type) { listeners.get(type)?.(); },
+      removeEventListener(type, listener) {
+        assert(listeners.get(type)?.has(listener), 'remove the same registered listener');
+        listeners.get(type).delete(listener);
+        if (!listeners.get(type).size) listeners.delete(type);
+      },
+      emit(type, event) { for (const listener of listeners.get(type) ?? []) listener(event); },
     };
   }
   const document = {...events(), hidden: false};
   globalThis.document = document;
+  const window = events();
+  globalThis.window = window;
   const frames = new Map();
   const cancellations = [];
   let requests = 0;
@@ -70,31 +76,98 @@ function setup(t, {observers = true, open = true, width = 640} = {}) {
     lineTo(x, y) { points.push([x, y]); },
     stroke() { renders.at(-1).strokes.push({style: this.strokeStyle, points: [...points]}); },
     fillText(text) { renders.at(-1).texts.push(text); },
+    arc(x, y, radius) { points.push([x, y, radius]); },
+    fill() {},
   };
+  const captures = [], releases = [], captured = new Set();
   const canvas = {
+    ...events(),
     width: 700, height: 180,
     getContext(type) { assert.equal(type, '2d'); return context; },
-    getBoundingClientRect() { return {width}; },
+    getBoundingClientRect() { return {width, height: 180, left: 20, top: 30}; },
+    setPointerCapture(id) { captures.push(id); captured.add(id); },
+    hasPointerCapture(id) { return captured.has(id); },
+    releasePointerCapture(id) { releases.push(id); captured.delete(id); },
   };
+  function button(dataset) {
+    const classes = new Set();
+    return {
+      dataset, style: {}, attributes: new Map(),
+      closest(selector) {
+        return selector === '[data-envelope-handle]' && dataset.envelopeHandle !== undefined
+          || selector === '[data-envelope-operator]' && dataset.envelopeOperator !== undefined ? this : null;
+      },
+      setAttribute(name, value) { this.attributes.set(name, value); },
+      classList: {toggle(name, value) { if (value) classes.add(name); else classes.delete(name); }},
+      get selected() { return classes.has('is-selected'); },
+    };
+  }
+  const operatorButtons = [1, 2, 3, 4].map(operator => button({envelopeOperator: String(operator)}));
+  const handles = Object.fromEntries(['attack', 'decay', 'sustain', 'release'].map(handle => [handle, button({envelopeHandle: handle})]));
+  const readout = {};
   const root = {
     ...events(), open,
-    querySelector(selector) { assert.equal(selector, '[data-operator-envelope]'); return canvas; },
+    querySelector(selector) {
+      if (selector === '[data-operator-envelope]') return canvas;
+      assert.equal(selector, '[data-envelope-readout]');
+      return readout;
+    },
+    querySelectorAll(selector) {
+      if (selector === '[data-envelope-operator]') return operatorButtons;
+      assert.equal(selector, '[data-envelope-handle]');
+      return Object.values(handles);
+    },
   };
   let current = operators();
   let reads = 0;
-  view = createOperatorEnvelopeView({root, getOperators() { reads++; return current; }});
+  let selectionKey = 'channel-1';
+  const edits = [];
+  view = createOperatorEnvelopeView({root, getOperators() { reads++; return current; },
+    getSelectionKey: () => selectionKey,
+    ...(editable ? {onEdit(operator, patch) {
+      edits.push({operator, patch});
+      Object.assign(current[operator], patch);
+      view.invalidate(); // Production editor refreshes its guides after a register edit.
+    }} : {}),
+  });
   let disposed = false;
   return {
-    view, root, canvas, document, frames, cancellations, renders,
+    view, root, canvas, document, window, frames, cancellations, renders,
+    operatorButtons, handles, readout, edits, captures, releases, captured,
     get requests() { return requests; },
     get reads() { return reads; },
     get current() { return current; },
     get intersection() { return intersection; },
     get resize() { return resize; },
     setOperators(next) { current = next; },
+    setSelectionKey(next) { selectionKey = next; },
     setWidth(next) { width = next; },
     intersect(next) { intersection.callback([{isIntersecting: next}]); },
     resizeCanvas() { resize.callback([{target: canvas}]); },
+    event(target, properties = {}) {
+      return {target, button: 0, pointerId: 1, clientX: 20, clientY: 30,
+        preventDefault() { this.defaultPrevented = true; },
+        stopPropagation() { this.propagationStopped = true; },
+        ...properties,
+      };
+    },
+    pointerDown(handle = 'attack', properties = {}) {
+      const event = this.event(handles[handle], properties);
+      root.emit('pointerdown', event);
+      return event;
+    },
+    pointerMove(x, y, properties = {}) {
+      const rect = canvas.getBoundingClientRect();
+      const event = this.event(canvas, {clientX: rect.left + x * rect.width / canvas.width,
+        clientY: rect.top + y * rect.height / canvas.height, ...properties});
+      canvas.emit('pointermove', event);
+      return event;
+    },
+    pointerEnd(type = 'pointerup', properties = {}) {
+      const event = this.event(canvas, properties);
+      canvas.emit(type, event);
+      return event;
+    },
     advance() {
       const batch = [...frames.values()];
       frames.clear();
@@ -340,4 +413,295 @@ test('dispose cancels scheduled work, disconnects observers and removes listener
   assert.equal(f.renders.length, 1, 'even already queued callbacks cannot draw a disposed view');
   assert.equal(f.reads, 1);
   assert.equal(f.frames.size, 0);
+});
+
+test('editable guides select OP4 by default and expose parameter labels and handle locations', t => {
+  const f = setup(t, {editable: true});
+  f.start();
+  assert.deepEqual(f.operatorButtons.map(button => button.attributes.get('aria-pressed')), ['false', 'false', 'false', 'true']);
+  assert.deepEqual(f.operatorButtons.map(button => button.selected), [false, false, false, true]);
+  assert.match(f.readout.textContent, /^OP4 · AR 31 · TL 24/);
+  assert.equal(f.handles.attack.attributes.get('aria-label'), 'OP4 AR 31, TL 24');
+  assert.equal(f.handles.decay.attributes.get('aria-label'), 'OP4 D1R 12, SL 5');
+  for (const handle of Object.values(f.handles)) {
+    assert(Number.isFinite(parseFloat(handle.style.left)));
+    assert(Number.isFinite(parseFloat(handle.style.top)));
+    assert.match(handle.title, /^OP4 /);
+  }
+  assert.equal(f.edits.length, 0);
+  assert.equal(f.frames.size, 0);
+});
+
+test('only explicit handles start a primary-pointer drag and plain clicks do not edit', t => {
+  const f = setup(t, {editable: true});
+  f.start();
+  f.root.emit('pointerdown', f.event(f.canvas));
+  f.pointerDown('attack', {button: 2});
+  f.pointerMove(0, 0);
+  assert.deepEqual(f.captures, []);
+  assert.deepEqual(f.edits, []);
+  const down = f.pointerDown();
+  assert.equal(down.defaultPrevented, true, 'dragging retains the audition keyboard focus');
+  assert.deepEqual(f.captures, [1]);
+  f.pointerEnd();
+  f.advance();
+  assert.deepEqual(f.edits, [], 'pressing and releasing a handle does not re-quantize a patch');
+  assert.deepEqual(f.releases, [1]);
+  assert.equal(f.frames.size, 0);
+});
+
+test('pointer moves coalesce to the latest point and write only the selected operator', t => {
+  const f = setup(t, {editable: true});
+  f.start();
+  const untouched = structuredClone(f.current);
+  f.pointerDown();
+  f.pointerMove(200, 60);
+  f.pointerMove(150, 80);
+  f.pointerMove(-1000, -1000);
+  assert.equal(f.frames.size, 1);
+  assert.deepEqual(f.edits, [], 'pointer events do not each issue a register update');
+  f.advance();
+  assert.deepEqual(f.edits, [{operator: 4, patch: {tl: 0}}], 'unchanged AR is omitted from the patch');
+  assert.equal(f.requests, 2, 'the edit callback invalidation does not schedule a nested frame');
+  assert.equal(f.frames.size, 0);
+  assert.deepEqual(f.current[1], untouched[1]);
+  assert.deepEqual(f.current[2], untouched[2]);
+  assert.deepEqual(f.current[3], untouched[3]);
+  assert.match(f.readout.textContent, /^OP4 · AR 31 · TL 0/);
+  f.pointerMove(-1000, -1000);
+  f.advance();
+  assert.equal(f.edits.length, 1, 'unchanged quantized values never issue redundant writes');
+  f.pointerEnd();
+  assert.equal(f.frames.size, 0);
+});
+
+test('pointerup commits the latest pending move once even before its scheduled frame', t => {
+  const f = setup(t, {editable: true});
+  f.start();
+  f.pointerDown();
+  f.pointerMove(2000, 2000);
+  assert.equal(f.edits.length, 0);
+  f.pointerEnd();
+  assert.deepEqual(f.edits, [{operator: 4, patch: {ar: 0, tl: 127}}]);
+  assert.equal(f.captured.size, 0);
+  f.advance();
+  assert.equal(f.edits.length, 1);
+  assert.equal(f.frames.size, 0);
+});
+
+test('secondary pointers cannot move, end or replace the active drag', t => {
+  const f = setup(t, {editable: true});
+  f.start();
+  f.pointerDown('attack', {pointerId: 7});
+  f.pointerDown('release', {pointerId: 8});
+  f.pointerMove(2000, 2000, {pointerId: 8});
+  f.pointerEnd('pointerup', {pointerId: 8});
+  assert.deepEqual(f.captures, [7]);
+  assert.equal(f.captured.has(7), true);
+  assert.equal(f.frames.size, 0);
+  f.pointerMove(2000, 2000, {pointerId: 7});
+  f.advance();
+  assert.deepEqual(f.edits, [{operator: 4, patch: {ar: 0, tl: 127}}]);
+  f.pointerEnd('pointerup', {pointerId: 7});
+  assert.deepEqual(f.releases, [7]);
+});
+
+for (const [handle, values] of [
+  ['attack', {ar: 0, tl: 127}],
+  ['decay', {d1r: 0, sl: 15}],
+  ['sustain', {d2r: 0}],
+  ['release', {rr: 0}],
+]) {
+  test(`${handle} dragging clamps edits to finite integer register values`, t => {
+    const f = setup(t, {editable: true});
+    f.start();
+    f.pointerDown(handle);
+    f.pointerMove(1e6, 1e6);
+    f.advance();
+    assert.deepEqual(f.edits, [{operator: 4, patch: values}]);
+    assert(Object.values(f.edits[0].patch).every(value => Number.isInteger(value) && Number.isFinite(value)));
+    f.pointerEnd();
+  });
+}
+
+for (const invalid of [NaN, Infinity, -Infinity]) {
+  test(`nonfinite pointer coordinate ${String(invalid)} produces no edits`, t => {
+    const f = setup(t, {editable: true});
+    f.start();
+    f.pointerDown();
+    f.pointerMove(0, 0, {clientX: invalid});
+    f.advance();
+    f.pointerEnd();
+    assert.deepEqual(f.edits, []);
+    assert.equal(f.frames.size, 0);
+  });
+}
+
+test('operator selection changes the highlighted guide and directs subsequent edits', t => {
+  const f = setup(t, {editable: true});
+  f.start();
+  const button = f.operatorButtons[1];
+  const down = f.event(button);
+  f.root.emit('pointerdown', down);
+  assert.equal(down.defaultPrevented, true, 'operator selection keeps the audition keyboard focus');
+  f.root.emit('click', f.event(button));
+  f.advance();
+  assert.deepEqual(f.operatorButtons.map(item => item.selected), [false, true, false, false]);
+  assert.match(f.readout.textContent, /^OP2 /);
+  assert.equal(f.handles.attack.attributes.get('aria-label'), 'OP2 AR 31, TL 24');
+  f.pointerDown();
+  f.pointerMove(2000, 2000);
+  f.advance();
+  assert.deepEqual(f.edits, [{operator: 2, patch: {ar: 0, tl: 127}}]);
+  assert.equal(f.current[4].tl, 24);
+  f.pointerEnd();
+});
+
+for (const type of ['pointercancel', 'lostpointercapture']) {
+  test(`${type} drops pending edits and stops the drag`, t => {
+    const f = setup(t, {editable: true});
+    f.start();
+    f.pointerDown();
+    f.pointerMove(2000, 2000);
+    f.pointerEnd(type);
+    f.advance();
+    f.pointerMove(-1000, -1000);
+    f.pointerEnd();
+    f.advance();
+    assert.deepEqual(f.edits, []);
+    assert.equal(f.captured.size, 0);
+    assert.equal(f.frames.size, 0);
+  });
+}
+
+test('losing window focus drops pending edits and releases pointer capture', t => {
+  const f = setup(t, {editable: true});
+  f.start();
+  f.pointerDown();
+  f.pointerMove(2000, 2000);
+  f.window.emit('blur');
+  f.advance();
+  assert.deepEqual(f.edits, []);
+  assert.deepEqual(f.releases, [1]);
+  assert.equal(f.frames.size, 0);
+});
+
+for (const [name, hide, show] of visibilityCases) {
+  test(`${name} cancels a pending drag and prevents pointer and keyboard edits`, t => {
+    const f = setup(t, {editable: true});
+    f.start();
+    f.pointerDown();
+    f.pointerMove(2000, 2000);
+    hide(f);
+    assert.equal(f.frames.size, 0);
+    assert.equal(f.captured.size, 0);
+    f.pointerDown();
+    f.pointerMove(-1000, -1000);
+    f.pointerEnd();
+    f.root.emit('keydown', f.event(f.handles.attack, {key: 'ArrowRight'}));
+    f.advance();
+    assert.deepEqual(f.edits, []);
+    show(f);
+    f.advance();
+    assert.deepEqual(f.edits, [], 'restoring visibility never commits a cancelled drag');
+    assert.equal(f.frames.size, 0);
+  });
+}
+
+test('changing operator while dragging cancels the old pointer transaction', t => {
+  const f = setup(t, {editable: true});
+  f.start();
+  f.pointerDown();
+  f.pointerMove(2000, 2000);
+  f.root.emit('click', f.event(f.operatorButtons[0]));
+  f.advance();
+  f.pointerMove(-1000, -1000);
+  f.pointerEnd();
+  assert.deepEqual(f.edits, []);
+  assert.deepEqual(f.releases, [1]);
+  assert.match(f.readout.textContent, /^OP1 /);
+});
+
+for (const changePoint of ['invalidate', 'move', 'release']) {
+  test(`changing channel, file or preset identity before ${changePoint} cancels stale edits`, t => {
+    const f = setup(t, {editable: true});
+    f.start();
+    f.pointerDown();
+    f.pointerMove(2000, 2000);
+    f.setSelectionKey('channel-2-file-or-preset-epoch-1');
+    f.setOperators(operators());
+    if (changePoint === 'invalidate') f.view.invalidate();
+    else if (changePoint === 'move') f.pointerMove(-1000, -1000);
+    else f.pointerEnd();
+    f.advance();
+    assert.deepEqual(f.edits, []);
+    assert.equal(f.captured.size, 0);
+    assert.equal(f.current[4].tl, 24);
+    assert.equal(f.frames.size, 0);
+  });
+}
+
+test('arrow keys edit their labelled register values without duplicate writes at limits', t => {
+  const f = setup(t, {editable: true});
+  f.start();
+  const press = (handle, key, properties = {}) => {
+    const event = f.event(f.handles[handle], {key, ...properties});
+    f.root.emit('keydown', event);
+    return event;
+  };
+  const event = press('attack', 'ArrowRight');
+  assert.equal(event.defaultPrevented, true);
+  assert.equal(event.propagationStopped, true);
+  assert.deepEqual(f.edits.at(-1), {operator: 4, patch: {ar: 30}});
+  press('attack', 'ArrowDown');
+  assert.deepEqual(f.edits.at(-1), {operator: 4, patch: {tl: 25}});
+  press('decay', 'ArrowDown');
+  assert.deepEqual(f.edits.at(-1), {operator: 4, patch: {sl: 6}});
+  press('sustain', 'ArrowRight');
+  assert.deepEqual(f.edits.at(-1), {operator: 4, patch: {d2r: 5}});
+  press('release', 'ArrowLeft');
+  assert.deepEqual(f.edits.at(-1), {operator: 4, patch: {rr: 9}});
+  f.current[4].ar = 31;
+  const count = f.edits.length;
+  press('attack', 'ArrowLeft');
+  press('attack', 'Enter');
+  for (const modifier of ['ctrlKey', 'metaKey', 'altKey']) press('attack', 'ArrowRight', {[modifier]: true});
+  assert.equal(f.edits.length, count);
+  f.advance();
+  assert.equal(f.frames.size, 0);
+});
+
+test('disposing during a drag drops pending edits and removes every interaction listener', t => {
+  const f = setup(t, {editable: true});
+  f.start();
+  f.pointerDown();
+  f.pointerMove(2000, 2000);
+  const pending = [...f.frames.values()][0];
+  f.dispose();
+  assert.equal(f.captured.size, 0);
+  assert.deepEqual(f.releases, [1]);
+  assert.equal(f.root.listeners.size, 0);
+  assert.equal(f.canvas.listeners.size, 0);
+  assert.equal(f.window.listeners.size, 0);
+  assert.equal(f.document.listeners.size, 0);
+  pending();
+  f.pointerMove(-1000, -1000);
+  f.pointerEnd();
+  f.advance();
+  assert.deepEqual(f.edits, []);
+  assert.equal(f.frames.size, 0);
+});
+
+test('a view without an edit callback remains read-only when interaction controls are present', t => {
+  const f = setup(t);
+  f.start();
+  f.pointerDown();
+  f.pointerMove(2000, 2000);
+  f.pointerEnd();
+  f.root.emit('keydown', f.event(f.handles.attack, {key: 'ArrowRight'}));
+  f.advance();
+  assert.deepEqual(f.captures, []);
+  assert.deepEqual(f.edits, []);
+  assert.equal(f.requests, 1);
+  assert.equal(f.renders.length, 1);
 });

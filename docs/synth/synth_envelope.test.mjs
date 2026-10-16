@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import {
   drawEnvelopeGuide,
   drawOperatorEnvelopeGuides,
+  getOperatorEnvelopeGeometry,
+  operatorEnvelopePatchFromPoint,
 } from './synth_envelope.js';
 
 const colors = ['#f2c078', '#ff93bc', '#9dff9b', '#89b7ff'];
@@ -11,6 +13,7 @@ function createFixture() {
   const strokes = [];
   const texts = [];
   const fills = [];
+  const circles = [];
   let path = [];
   const context = {
     globalAlpha: 1,
@@ -29,6 +32,11 @@ function createFixture() {
     fillRect(x, y, width, height) {
       fills.push({color: this.fillStyle, x, y, width, height});
     },
+    arc(x, y, radius, start, end) {
+      circles.push({x, y, radius, start, end});
+      path.push(['arc', x, y, radius, start, end]);
+    },
+    fill() { fills.push({color: this.fillStyle, path: path.slice()}); },
   };
   const operatorStates = Object.fromEntries([1, 2, 3, 4].map(operator => [operator, {
     ar: 31,
@@ -50,7 +58,7 @@ function createFixture() {
     outputEnvelopeSilenceFloor: 0.01,
   };
   return {
-    options, context, strokes, texts, fills,
+    options, context, strokes, texts, fills, circles,
     operatorGuides: () => strokes.filter(stroke => colors.includes(stroke.color)),
   };
 }
@@ -144,4 +152,139 @@ test('Synth can render its original guide without an output history snapshot yet
   assert.equal(fixture.operatorGuides().length, 4);
   assert.ok(!fixture.strokes.some(stroke => stroke.color === '#7be0d6'));
   assert.ok(fixture.texts.some(({text}) => text.startsWith('Cyan: main envelope.')));
+});
+
+const limits = {ar: 31, d1r: 31, d2r: 31, rr: 15, tl: 127, sl: 15};
+
+function geometryFor(settings, dimensions = {}) {
+  return getOperatorEnvelopeGeometry({width: 600, height: 220, settings, ...dimensions});
+}
+
+function patchAt(settings, handle, point, dimensions = {}) {
+  return operatorEnvelopePatchFromPoint({
+    width: 600, height: 220, settings, handle, ...point, ...dimensions,
+  });
+}
+
+function assertGeometryAndRoundTrips(settings) {
+  const geometry = geometryFor(settings);
+  assert.ok(geometry);
+  assert.deepEqual(geometry.handles.map(({id, params}) => ({id, params})), [
+    {id: 'attack', params: ['ar', 'tl']},
+    {id: 'decay', params: ['d1r', 'sl']},
+    {id: 'sustain', params: ['d2r']},
+    {id: 'release', params: ['rr']},
+  ]);
+  for (const [index, point] of geometry.points.entries()) {
+    assert.ok(Number.isFinite(point.x) && Number.isFinite(point.y));
+    assert.ok(point.x >= geometry.layout.left && point.x <= geometry.layout.right);
+    assert.ok(point.y >= geometry.layout.top - 1e-12 && point.y <= geometry.layout.bottom + 1e-12);
+    if (index > 0) assert.ok(point.x > geometry.points[index - 1].x);
+  }
+  for (const handle of geometry.handles) {
+    const patch = patchAt(settings, handle.id, handle);
+    assert.deepEqual(Object.keys(patch), handle.params);
+    for (const parameter of handle.params) assert.equal(patch[parameter], settings[parameter]);
+  }
+}
+
+test('editable guides round-trip every valid integer register value through its handle', () => {
+  const base = createFixture().options.operatorStates[1];
+  for (const [parameter, maximum] of Object.entries(limits)) {
+    for (let value = 0; value <= maximum; value++) {
+      assertGeometryAndRoundTrips({...base, [parameter]: value});
+    }
+  }
+});
+
+test('all zero/max register combinations stay finite with independently editable ordered stages', () => {
+  const parameters = Object.keys(limits);
+  for (let bits = 0; bits < 2 ** parameters.length; bits++) {
+    const settings = Object.fromEntries(parameters.map((parameter, index) => [
+      parameter, bits & (1 << index) ? limits[parameter] : 0,
+    ]));
+    assertGeometryAndRoundTrips(settings);
+  }
+});
+
+test('dragging past the canvas clamps every editable parameter without adding unrelated fields', () => {
+  const settings = createFixture().options.operatorStates[1];
+  const negative = {x: -1000, y: -1000};
+  const positive = {x: 2000, y: 2000};
+  assert.deepEqual(patchAt(settings, 'attack', negative), {ar: 31, tl: 0});
+  assert.deepEqual(patchAt(settings, 'attack', positive), {ar: 0, tl: 127});
+  assert.deepEqual(patchAt(settings, 'decay', negative), {d1r: 31, sl: 0});
+  assert.deepEqual(patchAt(settings, 'decay', positive), {d1r: 0, sl: 15});
+  assert.deepEqual(patchAt(settings, 'sustain', negative), {d2r: 31});
+  assert.deepEqual(patchAt(settings, 'sustain', positive), {d2r: 0});
+  assert.deepEqual(patchAt(settings, 'release', negative), {rr: 15});
+  assert.deepEqual(patchAt(settings, 'release', positive), {rr: 0});
+});
+
+test('fractional or out-of-range finite settings are quantized and clamped without mutating input', () => {
+  const settings = {ar: 500, d1r: 11.7, d2r: -0.5, rr: -10, tl: 500, sl: 7.4};
+  const original = {...settings};
+  const geometry = geometryFor(Object.freeze(settings));
+  const combined = Object.assign({}, ...geometry.handles.map(handle => patchAt(settings, handle.id, handle)));
+  assert.deepEqual(combined, {ar: 31, tl: 127, d1r: 12, sl: 7, d2r: 0, rr: 0});
+  assert.deepEqual(settings, original);
+});
+
+test('invalid dimensions, register values, coordinates or handle names produce no patch', () => {
+  const base = createFixture().options.operatorStates[1];
+  for (const dimensions of [
+    {width: NaN}, {height: Infinity}, {width: -1}, {width: 40}, {height: 36},
+  ]) {
+    assert.equal(geometryFor(base, dimensions), null);
+    assert.equal(patchAt(base, 'attack', {x: 100, y: 100}, dimensions), null);
+  }
+  for (const parameter of Object.keys(limits)) {
+    for (const invalid of [NaN, Infinity, -Infinity, '7', undefined]) {
+      const settings = {...base, [parameter]: invalid};
+      assert.equal(geometryFor(settings), null);
+      assert.equal(patchAt(settings, 'attack', {x: 100, y: 100}), null);
+    }
+  }
+  for (const point of [{x: NaN, y: 100}, {x: 100, y: Infinity}]) {
+    assert.equal(patchAt(base, 'attack', point), null);
+  }
+  for (const handle of ['', 'unknown', '__proto__', 'constructor']) {
+    assert.equal(patchAt(base, handle, {x: 100, y: 100}), null);
+  }
+});
+
+test('D2R zero holds the sustain level while a positive rate draws a descending sustain segment', () => {
+  const base = createFixture().options.operatorStates[1];
+  const held = geometryFor({...base, d2r: 0});
+  const decaying = geometryFor({...base, d2r: 1});
+  assert.equal(held.handles[2].y, held.handles[1].y);
+  assert.ok(decaying.handles[2].y > decaying.handles[1].y);
+  assert.ok(decaying.handles[2].x < held.handles[2].x);
+});
+
+test('editable view renders all operators with the selected curve and its four handles on top', () => {
+  const fixture = createFixture();
+  drawOperatorEnvelopeGuides({...fixture.options, editable: true, selectedOperator: 2});
+  const guides = fixture.operatorGuides();
+  assert.deepEqual(guides.map(({color}) => color), [colors[0], colors[2], colors[3], colors[1]]);
+  assert.deepEqual(guides.map(({alpha}) => alpha), [0.4, 0.4, 0.4, 1]);
+  assert.equal(guides[3].width, 2.6);
+  const geometry = geometryFor(fixture.options.operatorStates[2]);
+  assert.deepEqual(fixture.circles.map(({x, y}) => ({x, y})), geometry.handles.map(({x, y}) => ({x, y})));
+  assert.ok(fixture.circles.every(({radius}) => radius === 5));
+  assert.equal(fixture.context.globalAlpha, 1);
+  assert.deepEqual(fixture.texts.map(({text}) => text), ['Level', 'Time →', 'AR / TL', 'D1R / SL', 'D2R', 'RR']);
+  assert.ok(!fixture.strokes.some(stroke => stroke.color === '#7be0d6'));
+});
+
+test('changing the editable selected operator moves only its selection styling and handle coordinates', () => {
+  const first = createFixture();
+  const fourth = createFixture();
+  for (const fixture of [first, fourth]) fixture.options.operatorStates[4].tl = 110;
+  drawOperatorEnvelopeGuides({...first.options, editable: true, selectedOperator: 1});
+  drawOperatorEnvelopeGuides({...fourth.options, editable: true, selectedOperator: 4});
+  const byColor = fixture => Object.fromEntries(fixture.operatorGuides().map(stroke => [stroke.color, stroke.path]));
+  assert.deepEqual(byColor(first), byColor(fourth));
+  assert.notEqual(first.circles[0].y, fourth.circles[0].y);
+  assert.equal(fourth.operatorGuides().at(-1).color, colors[3]);
 });

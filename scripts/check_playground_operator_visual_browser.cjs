@@ -61,6 +61,53 @@ async function snapshot(page,selector = main) {
 
 async function resetPaints(page) {await page.evaluate(() => {window.__operatorPaints = {};});}
 
+async function selectEnvelopeOperator(page,operator,root = '#operatorTabRoot') {
+  const selector = `${root} [data-envelope-operator="${operator}"]`;
+  await page.locator(selector).click();
+  // Selection and handle positions are painted together on one queued frame.
+  // Wait for that state rather than reading before WebKit has run the frame.
+  await page.waitForFunction(selector => document.querySelector(selector)?.getAttribute('aria-pressed') === 'true',selector);
+  assert.equal(await page.locator(selector).getAttribute('aria-pressed'),'true');
+}
+
+async function envelopeParameters(page,root = '#operatorTabRoot') {
+  return page.evaluate(root => [...document.querySelector(root).querySelectorAll('[id$="operatorTabOperatorControls"] .operator-row')]
+    .map(row => Object.fromEntries(['TL','AR','D1R','D2R','SL','RR'].map(label =>
+      [label,Number(row.querySelector(`.param-value[aria-label="${label}"]`).textContent)]))),root);
+}
+
+async function dragHandle(page,handle,{root = '#operatorTabRoot',dx = 30,dy = 0} = {}) {
+  const button = page.locator(`${root} [data-envelope-handle="${handle}"]`);
+  await button.scrollIntoViewIfNeeded(); const bounds = await button.boundingBox();
+  assert(bounds && bounds.width > 0 && bounds.height > 0,'drag handle must have a visible hit target: ' + handle);
+  const before = await envelopeParameters(page,root);
+  await page.evaluate(() => {window.__envelopeFocusBefore = document.activeElement;});
+  await page.mouse.move(bounds.x + bounds.width / 2,bounds.y + bounds.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(bounds.x + bounds.width / 2 + dx,bounds.y + bounds.height / 2 + dy,{steps:5});
+  await page.mouse.up(); await page.waitForTimeout(70);
+  const after = await envelopeParameters(page,root);
+  assert.equal(await page.evaluate(() => document.activeElement === window.__envelopeFocusBefore),true,'a pointer drag must preserve keyboard focus');
+  return {handle,before,after};
+}
+
+function assertDragFields(result,operator,changed) {
+  for (let index = 0; index < result.before.length; index++) {
+    if (index !== operator - 1) {
+      assert.deepEqual(result.after[index],result.before[index],'a graph drag must not change another operator'); continue;
+    }
+    for (const [field,value] of Object.entries(result.before[index])) {
+      if (changed.includes(field)) assert.notEqual(result.after[index][field],value,
+        result.handle + ' drag should change ' + field + ': ' + JSON.stringify(result));
+      else assert.equal(result.after[index][field],value,result.handle + ' drag should preserve ' + field);
+    }
+  }
+  const limits = {TL:127,AR:31,D1R:31,D2R:31,SL:15,RR:15};
+  for (const parameters of result.after) for (const [field,value] of Object.entries(parameters)) {
+    assert(Number.isInteger(value) && value >= 0 && value <= limits[field],field + ' must remain a valid chip register value');
+  }
+}
+
 async function showMain(page) {
   await page.click('#operatorTabButton'); await page.locator(main).scrollIntoViewIfNeeded();
   await page.waitForTimeout(100); return snapshot(page);
@@ -113,6 +160,60 @@ async function checkBrowser(name,type,url) {
       assert.equal(result.contexts,0,'editing an unplayed instrument must remain silent and lazy');
       edited.push({label,...result});
     }
+    assert.equal(await page.locator('#operatorTabRoot [data-envelope-operator="4"]').getAttribute('aria-pressed'),'true','the default selected operator is the audible OP4');
+    await page.evaluate(() => {
+      const tab = window.__operatorVisualTest.operatorTab;
+      for (const operator of [1,3]) tab.syncOperator(0,operator,{tl:48,ar:16,d1r:16,d2r:16,sl:7,rr:7});
+    });
+    await page.waitForTimeout(80);
+    const untouchedChannel = await page.evaluate(() => window.__operatorVisualTest.operatorTab.getChannelPreset(1));
+    const drags = [];
+    for (const [handle,dy,fields] of [['attack',16,['AR','TL']],['decay',14,['D1R','SL']],['sustain',0,['D2R']],['release',0,['RR']]]) {
+      const result = await dragHandle(page,handle,{dx:30,dy}); assertDragFields(result,4,fields); drags.push(result);
+      assert.equal((await snapshot(page)).contexts,0,'graph edits must not initialize audio');
+    }
+    await selectEnvelopeOperator(page,2);
+    const otherOperator = await dragHandle(page,'attack',{dx:30,dy:16});
+    assertDragFields(otherOperator,2,['AR','TL']);
+    assert.deepEqual(await page.evaluate(() => window.__operatorVisualTest.operatorTab.getChannelPreset(1)),untouchedChannel,'a drag must not change another channel');
+    await selectEnvelopeOperator(page,4);
+    const attackBounds = await page.locator('#operatorTabRoot [data-envelope-handle="attack"]').boundingBox();
+    const graphBounds = await page.locator(main).boundingBox();
+    const clamped = await dragHandle(page,'attack',{
+      dx:graphBounds.x - 30 - (attackBounds.x + attackBounds.width / 2),
+      dy:graphBounds.y + graphBounds.height + 40 - (attackBounds.y + attackBounds.height / 2),
+    });
+    assertDragFields(clamped,4,['AR','TL']);
+    assert.equal(clamped.after[3].TL,127,'dragging below the graph clamps TL at its maximum');
+    assert.equal(clamped.after[3].AR,31,'dragging left of the graph clamps attack at its fastest rate');
+
+    // Hiding the owning view cancels a captured edit. Later pointer movement
+    // must not update the now-hidden channel or keep a gesture alive.
+    const cancelHandle = page.locator('#operatorTabRoot [data-envelope-handle="decay"]');
+    await cancelHandle.scrollIntoViewIfNeeded(); const cancelBounds = await cancelHandle.boundingBox();
+    await page.mouse.move(cancelBounds.x + cancelBounds.width / 2,cancelBounds.y + cancelBounds.height / 2);
+    await page.mouse.down();
+    await page.evaluate(() => document.getElementById('codeTab').click());
+    await page.waitForFunction(() => document.getElementById('operatorPanel').hidden);
+    const cancelled = await envelopeParameters(page);
+    await page.mouse.move(cancelBounds.x + cancelBounds.width / 2 + 180,cancelBounds.y + cancelBounds.height / 2 + 80,{steps:3});
+    await page.mouse.up(); await page.waitForTimeout(80);
+    assert.deepEqual(await envelopeParameters(page),cancelled,'hidden views cancel captured envelope drags');
+    await showMain(page);
+    const pointerCancel = page.locator('#operatorTabRoot [data-envelope-handle="release"]');
+    await pointerCancel.scrollIntoViewIfNeeded(); const pointerBounds = await pointerCancel.boundingBox();
+    await pointerCancel.evaluate(button => button.addEventListener('pointerdown',event => {button.__testPointerId = event.pointerId;},{once:true}));
+    await page.mouse.move(pointerBounds.x + pointerBounds.width / 2,pointerBounds.y + pointerBounds.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(pointerBounds.x + pointerBounds.width / 2 - 10,pointerBounds.y + pointerBounds.height / 2,{steps:2});
+    await pointerCancel.evaluate(button => button.closest('.operator-envelope-plot').querySelector('canvas')
+      .dispatchEvent(new PointerEvent('pointercancel',{pointerId:button.__testPointerId,bubbles:true})));
+    assert.equal(await pointerCancel.evaluate(button => button.closest('.operator-envelope-plot').querySelector('canvas')
+      .hasPointerCapture(button.__testPointerId)),false,'pointercancel releases the actual captured pointer');
+    const pointerCancelled = await envelopeParameters(page);
+    await page.mouse.move(pointerBounds.x + pointerBounds.width / 2 - 160,pointerBounds.y + pointerBounds.height / 2,{steps:3});
+    await page.mouse.up(); await page.waitForTimeout(70);
+    assert.deepEqual(await envelopeParameters(page),pointerCancelled,'pointercancel ends the gesture without later mouse edits');
     await resetPaints(page); await page.waitForTimeout(250);
     assert.equal((await snapshot(page)).paints.operatorTabRoot || 0,0,'a static guide must not run a continuous render loop');
 
@@ -145,7 +246,8 @@ async function checkBrowser(name,type,url) {
         import('/js/tfi.js'),import('/js/megasynth-fm-presets.js')]);
       const preset = FM_PRESETS.sine;
       p.virtualFiles.writeBinary('/operator-guide.tfi',createTfiFromPreset({...preset,
-        operators:Object.fromEntries(preset.operators.map((operator,i) => [i + 1,operator]))}));
+        operators:Object.fromEntries(preset.operators.map((operator,i) => [i + 1,i === 3 ?
+          {...operator,tl:48,ar:16,d1r:16,d2r:16,sl:7,rr:7} : operator]))}));
       p.openVirtualFile('/operator-guide.tfi');
     });
     await page.locator(preview).scrollIntoViewIfNeeded(); await page.waitForTimeout(100);
@@ -164,6 +266,21 @@ async function checkBrowser(name,type,url) {
     assert.notEqual(fileEdited.hash,file.hash,'editing the file updates the independent guide');
     assert.equal(fileEdited.paints.operatorTabRoot || 0,0,'a file edit must not redraw the hidden main guide');
     assert.equal(fileEdited.contexts,0);
+    await page.locator('#syncCodeButton').click();
+    await page.waitForFunction(() => window.__operatorVisualTest.virtualFiles.get('/.tet.ss/operator-guide.tfi')?.type === 'binary');
+    assert.equal(await page.locator('#revertCodeButton').isDisabled(),true);
+    const syncedFile = await page.evaluate(() => Array.from(window.__operatorVisualTest.virtualFiles.get('/operator-guide.tfi').data));
+    const fileDrag = await dragHandle(page,'attack',{root:'#tfiFileOperator',dx:30,dy:16});
+    assertDragFields(fileDrag,4,['AR','TL']);
+    const changedFile = await page.evaluate(() => Array.from(window.__operatorVisualTest.virtualFiles.get('/operator-guide.tfi').data));
+    assert.notDeepEqual(changedFile,syncedFile,'dragging the file guide writes edited TFI bytes');
+    assert.equal(await page.locator('#revertCodeButton').isEnabled(),true,'a graph edit participates in Sync/Revert');
+    assert.equal((await snapshot(page,preview)).contexts,0,'binary graph edits remain lazy until audition');
+    await page.locator('#revertCodeButton').click(); await page.waitForTimeout(100);
+    assert.deepEqual(await page.evaluate(() => Array.from(window.__operatorVisualTest.virtualFiles.get('/operator-guide.tfi').data)),syncedFile,'Revert restores exact bytes after graph editing');
+    assert.deepEqual(await envelopeParameters(page,'#tfiFileOperator'),fileDrag.before,'Revert restores graph control parameters');
+    await page.locator(preview).scrollIntoViewIfNeeded(); await page.waitForTimeout(80);
+    assert.equal((await snapshot(page,preview)).hash,fileEdited.hash,'Revert restores the plotted file envelope');
     await page.screenshot({path:path.join(artifacts,`playground-operator-${name}-file.png`)});
 
     // Verify the actual code -> FM event -> operator editor path, then compare
@@ -200,6 +317,27 @@ async function checkBrowser(name,type,url) {
       p.runtime.stop(); await p.runtime.prepareAudition();
     });
     await page.waitForTimeout(100);
+    const liveDrag = await dragHandle(page,'attack',{dx:30,dy:16});
+    assertDragFields(liveDrag,4,['AR','TL']);
+    const liveChip = await page.evaluate(() => {
+      const fm = window.__operatorVisualTest.megaDrive.fm;
+      return (fm.fm ?? fm).getState().channels[0].operators[3];
+    });
+    assert.equal(liveChip.ar,liveDrag.after[3].AR,'live graph AR changes reach the actual FM chip state');
+    assert.equal(liveChip.tl,liveDrag.after[3].TL,'live graph TL changes reach the actual FM chip state');
+    await page.evaluate(() => {
+      const p = window.__operatorVisualTest,audition = p.runtime.getAuditionSynth(),on = audition.noteOn.bind(audition);
+      p.auditionCalls = 0;
+      audition.noteOn = (...args) => {p.auditionCalls++; return on(...args);};
+    });
+    const key = await page.locator('#operatorKeyboardRoot .key').first().getAttribute('data-key');
+    // No focus/blur repair here: the real graph pointer drag must leave the
+    // existing computer keyboard audition path usable by itself.
+    await page.keyboard.down(key);
+    await page.waitForFunction(() => window.__operatorVisualTest.auditionCalls > 0 &&
+      document.querySelectorAll('#operatorKeyboardRoot .key.is-active').length > 0);
+    await page.keyboard.up(key);
+    await page.waitForFunction(() => document.querySelectorAll('#operatorKeyboardRoot .key.is-active').length === 0);
     await page.evaluate(async () => {
       const p = window.__operatorVisualTest,{FM_PRESETS} = await import('/js/megasynth-fm-presets.js');
       p.megaDrive.fm.setPreset(0,FM_PRESETS.sine);
@@ -229,7 +367,7 @@ async function checkBrowser(name,type,url) {
     }
     await page.screenshot({path:path.join(artifacts,`playground-operator-${name}.png`)});
     assert.deepEqual(errors,[]);
-    console.log(JSON.stringify({browser:name,passed:true,hiddenInitial,first,edited,channel0,channel1,afterHidden,file,fileEdited,code,workerCode,baseline,audio,errors}));
+    console.log(JSON.stringify({browser:name,passed:true,hiddenInitial,first,edited,drags,otherOperator,clamped,channel0,channel1,afterHidden,file,fileEdited,fileDrag,code,workerCode,liveDrag,liveChip,baseline,audio,errors}));
     await page.evaluate(() => {window.__operatorVisualTest.megaDrive.fm.noteOff(0); window.__operatorVisualTest.runtime.stop();});
     await page.close();
   } finally {await browser.close();}

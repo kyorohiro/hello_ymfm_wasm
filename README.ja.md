@@ -176,6 +176,10 @@ OKIM6258対応では、[`chip_okim6258.rs`の`bb006894793c573b33a79a211e2769d021
 
 本リポジトリーのC++ OKIM6258デコーダーは、固定したMAMEソースから直接移植しています。libymfm.wasmのRust移植は先行事例として確認したもので、ここにコピーしていません。
 
+### FMエンベロープ編集UIの着想：mmlx-lsp
+
+マウスで編集できるFMエンベロープUIは、h1romas4による[mmlx-lsp](https://github.com/h1romas4/mmlx-lsp)（[VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=h1romas4.mmlx-lsp)）のFM Voice編集体験から着想を得ています。本リポジトリーのエンベロープエディターは、TetoricaのYM2612操作に合わせて独自に実装しています。
+
 ### MAME / libvgm OKIM6295（`third_party/mame-okim6295/`）
 
 JavaScriptのOKIM6295 ADPCMエンジンは、BSD-3-ClauseのMAME / libvgmソースをもとにしています。[ソースに関する記録](third_party/mame-okim6295/README.md)と[ライセンス](third_party/mame-okim6295/LICENSE)を参照してください。ゲームROMは同梱しません。

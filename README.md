@@ -203,6 +203,13 @@ See the [libymfm.wasm license at the reviewed revision](https://github.com/h1rom
 The C++ OKIM6258 decoder here is adapted directly from the pinned MAME source;
 libymfm.wasm's Rust port was reviewed as prior work and is not copied here.
 
+### FM envelope editor inspiration: mmlx-lsp
+
+The mouse-editable FM envelope UI was inspired by the FM Voice editing experience
+in h1romas4's [mmlx-lsp](https://github.com/h1romas4/mmlx-lsp)
+([VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=h1romas4.mmlx-lsp)).
+The envelope editor in this repository is an original implementation for Tetorica's YM2612 controls.
+
 ### MAME / libvgm OKIM6295 (`third_party/mame-okim6295/`)
 
 The JavaScript OKIM6295 ADPCM engine is adapted from BSD-3-Clause MAME/libvgm sources.
