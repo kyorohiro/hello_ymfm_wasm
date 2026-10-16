@@ -7,7 +7,7 @@
 <p>この章では、Gainの倍率、波形との関係、そして自分で書く<code>liveFx</code>の基本を扱います。</p></header>
 <section class="panel"><h2>1. まず聴いてみる</h2><p>YM2612のサイン波を、2拍鳴らして0.5拍休みます。</p>
 <p>ループごとに<code>cycle([0.25, 0.5, 1.0])</code>でGainを順に切り替えます。配列の値を変えて比較します。0は無音、1はこのFXでは振幅を変えない設定です。</p><p class="hint">iframe内の<strong>Run</strong>で再生し、<strong>Stop</strong>で停止します。再生中に値を編集したら<strong>Apply</strong>で反映してください。比較する前に、もう一方のPlaygroundをStopしてください。それぞれ独立した音声環境です。</p>
-<p>Runしたら<strong>FX Monitor</strong>で<code>none</code>を選んでください。音の大きさが切り替わると、波形の高さも変わります。</p>
+<p>Runしたら<strong>FX Monitor</strong>で<code>none</code>、Viewで<strong>Oscilloscope</strong>を選び、<strong>Yを1</strong>にして縦軸を固定してください。音の大きさが切り替わると、波形の高さも変わります。Autoは音に合わせて表示範囲を調整するため、音量を比較するときは固定値を使います。</p>
 <script type="text/plain" id="gain-native">
 setBpm(120);
 

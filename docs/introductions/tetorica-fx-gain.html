@@ -7,7 +7,7 @@
 <p>This chapter covers Gain multipliers, their effect on the waveform, and the basics of writing your own <code>liveFx</code>.</p></header>
 <section class="panel"><h2>1. Listen first</h2><p>Play a YM2612 sine wave for two beats, then rest for half a beat.</p>
 <p>Each loop uses <code>cycle([0.25, 0.5, 1.0])</code> to cycle through Gain values. Change the array to compare. Zero is silence; 1 leaves the amplitude unchanged in this effect.</p><p class="hint">In the iframe, use <strong>Run</strong> to start and <strong>Stop</strong> to stop. After editing values during playback, use <strong>Apply</strong> to apply them. Stop the other Playground before comparing; each has an independent audio environment.</p>
-<p>After pressing Run, use <strong>FX Monitor</strong> to select <code>none</code>. When loudness changes, the waveform height changes too.</p>
+<p>After pressing Run, use <strong>FX Monitor</strong> to select <code>none</code>, choose <strong>Oscilloscope</strong> in View, and set <strong>Y to 1</strong> to keep the vertical range fixed. When loudness changes, the waveform height changes too. Auto adjusts the display range to the sound, so use a fixed range when comparing levels.</p>
 <script type="text/plain" id="gain-native">
 setBpm(120);
 

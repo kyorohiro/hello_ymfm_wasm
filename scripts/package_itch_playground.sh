@@ -23,6 +23,7 @@ playground_git.js
 playground_page_lifecycle.js
 playground_fx_monitor.js
 playground_audio_monitor.js
+playground_monitor_scale.js
 playground_workbench.js
 playground_cassette.js
 playground_examples.js

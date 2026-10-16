@@ -1823,9 +1823,9 @@
             >
               Helper
             </button>
-            <div id="codeFileActions" class="code-file-actions" role="toolbar" aria-label="Code file controls">
-              <button id="syncCodeButton" type="button" title="Sync this code file (Ctrl/Cmd+S)" aria-keyshortcuts="Control+S Meta+S" disabled>Sync</button>
-              <button id="revertCodeButton" type="button" title="Restore this code file from its last synced copy" disabled>Revert</button>
+            <div id="codeFileActions" class="code-file-actions" role="toolbar" aria-label="Current file controls">
+              <button id="syncCodeButton" type="button" title="Sync this file (Ctrl/Cmd+S)" aria-keyshortcuts="Control+S Meta+S" disabled>Sync</button>
+              <button id="revertCodeButton" type="button" title="Restore this file from its last synced copy" disabled>Revert</button>
               <span id="codeSyncAnnouncement" class="code-sync-announcement" role="status" aria-live="polite" aria-atomic="true"></span>
             </div>
             <div id="shellActions" class="shell-actions" role="toolbar" aria-label="Shell controls" hidden>
@@ -1878,6 +1878,7 @@
           <section id="audioMonitorPanel" class="tab-panel" role="tabpanel" aria-labelledby="audioMonitorTab" hidden>
             <label>View <select id="audioMonitorMode"><option value="envelope">Envelope</option><option value="waveform">Oscilloscope</option><option value="spectrum">Spectrum</option></select></label>
             <label>Channel <select id="audioMonitorChannel"><option value="0">Left</option><option value="1">Right</option></select></label>
+            <label id="audioMonitorScaleControl" title="Vertical amplitude range: Envelope 0 to range, Oscilloscope ±range. Display only.">Y <select id="audioMonitorScale" aria-label="Audio vertical amplitude range"><option value="auto">Auto</option><option value="2">2</option><option value="1">1</option><option value="0.5">0.5</option><option value="0.2">0.2</option><option value="0.1">0.1</option><option value="0.05">0.05</option><option value="0.02">0.02</option><option value="0.01">0.01</option><option value="0.005">0.005</option><option value="0.001">0.001</option></select></label>
             <button id="audioMonitorPause" type="button" aria-pressed="false" title="Pause analysis while audio keeps playing">Pause</button>
             <p id="audioMonitorStatus" role="status">Press Run to observe audio.</p>
             <div class="audio-monitor-plots">
@@ -1891,6 +1892,7 @@
             <label>View <select id="fxMonitorMode"><option value="waveform">Oscilloscope</option><option value="spectrum">Spectrum</option></select></label>
             <label>liveFx <select id="fxMonitorTarget" aria-label="Observed liveFx"></select></label>
             <label>Channel <select id="fxMonitorChannel"><option value="0">Left</option><option value="1">Right</option></select></label>
+            <label id="fxMonitorScaleControl" title="Shared vertical ±amplitude range for input and output. Display only.">Y <select id="fxMonitorScale" aria-label="FX vertical amplitude range"><option value="auto">Auto</option><option value="2">2</option><option value="1">1</option><option value="0.5">0.5</option><option value="0.2">0.2</option><option value="0.1">0.1</option><option value="0.05">0.05</option><option value="0.02">0.02</option><option value="0.01">0.01</option><option value="0.005">0.005</option><option value="0.001">0.001</option></select></label>
             <p id="fxMonitorStatus" role="status">Run code containing liveFx to begin.</p>
             <div class="fx-monitor-plots">
               <div id="fxMonitorWaveView"><canvas id="fxMonitorWave" width="700" height="160" aria-label="Input and output waveform"></canvas></div>
@@ -2198,7 +2200,7 @@
       })();
     </script>
     <script type="module">
-      import('./playground.js?v=file-preview-audio-monitor-1').catch(error => window.__playgroundStartup.fail(error));
+      import('./playground.js?v=monitor-vertical-range-1').catch(error => window.__playgroundStartup.fail(error));
     </script>
   </body>
 </html>

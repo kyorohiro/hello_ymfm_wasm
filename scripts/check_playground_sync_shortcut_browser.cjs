@@ -19,6 +19,10 @@ window.__syncShortcutTest = {
   get editor() { return editorAdapter; },
   get path() { return activeVirtualPath; },
   get tfi() { return activeTfiFilePath; },
+  get preview() { return tfiFileEditor.__testPreviewSynth(); },
+  get previewAudio() { return tfiFileEditor.getAudioRuntime(); },
+  runtime, parseInstrument: instrumentToEditorPreset,
+  refresh: refreshCodeFileActions, revert: revertActiveCodeFile,
   codePanel, rawEditor: editor, open: openVirtualFile, tab: setBottomTab,
   calls: syncShortcutCalls,
 };`;
@@ -32,6 +36,11 @@ const server = http.createServer(async (request, response) => {
     if ((await fs.stat(file)).isDirectory()) file = path.join(file, 'index.html');
     let body = await fs.readFile(file);
     if (pathname.endsWith('/playground.js')) body = Buffer.from(body.toString() + accessor);
+    if (pathname.endsWith('/playground_tfi_editor.js')) {
+      const source = body.toString(), marker = '  return {\n    open(';
+      assert(source.includes(marker));
+      body = Buffer.from(source.replace(marker, '  return {\n    __testPreviewSynth: () => audio?.fm ?? null,\n    open('));
+    }
     response.setHeader('Content-Type', mime[path.extname(file)] || 'application/octet-stream');
     response.end(body);
   } catch (error) { response.writeHead(404).end(String(error)); }
@@ -79,6 +88,147 @@ async function settleCurrentModel(page) {
     const worker = await factory(model.uri);
     await worker.getSyntacticDiagnostics(model.uri.toString());
   });
+}
+
+async function binaryState(page, source) {
+  return page.evaluate(source => {
+    const audit = window.__syncShortcutTest,file = audit.fs.get(source),saved = audit.fs.checkpoints.get(source);
+    const preview = audit.preview?.fm ?? audit.preview;
+    return {bytes:Array.from(file.data),savedType:saved?.type,
+      saved:saved?.type === 'binary' ? Array.from(saved.data) : saved?.data,
+      registered:audit.runtime.presets['vfs:' + source],expected:audit.parseInstrument(source,file.data),
+      editorLevel:Number(document.querySelectorAll('#tfiFileOperator .param-value[aria-label="TL"]')[3].textContent),
+      previewLevel:preview?.getState().channels[0].operators[3].tl};
+  },source);
+}
+
+async function waitBinarySaved(page, source, bytes, calls) {
+  await page.waitForFunction(({source,bytes,calls}) => {
+    const audit = window.__syncShortcutTest,saved = audit.fs.checkpoints.get(source);
+    return saved?.type === 'binary' && saved.data.length === bytes.length &&
+      saved.data.every((value,index) => value === bytes[index]) && audit.calls.length === calls &&
+      document.getElementById('status').textContent === `Synced ${source} to /.tet.ss${source}.`;
+  },{source,bytes,calls});
+  await checkSyncFeedback(page);
+}
+
+async function previewLevel(page) {
+  await page.evaluate(() => document.activeElement?.blur());
+  await page.keyboard.down('1'); // Ukulele A4: real activation for WebKit's audio device.
+  await page.waitForFunction(() => document.querySelectorAll('#tfiFileKeyboard .key.is-active').length === 1);
+  await page.evaluate(() => {
+    const audit = window.__syncShortcutTest;
+    if (audit.meter) return;
+    // The editor's public runtime getter owns the final volume/effects output.
+    const audio = audit.previewAudio;
+    const mute = audio.audioContext.createGain(); mute.gain.value = 0; mute.connect(audio.audioContext.destination);
+    audit.meter = audio.audioContext.createAnalyser(); audit.meter.fftSize = 4096; audit.meter.connect(mute);
+    audio.connectOutputMonitor(audit.meter);
+  });
+  await page.waitForTimeout(200);
+  const level = await page.evaluate(() => {
+    const meter = window.__syncShortcutTest.meter,data = new Float32Array(meter.fftSize);
+    meter.getFloatTimeDomainData(data);
+    const mean = data.reduce((sum,value) => sum + value,0) / data.length;
+    return Math.sqrt(data.reduce((sum,value) => sum + (value - mean) ** 2,0) / data.length);
+  });
+  await page.keyboard.up('1');
+  return level;
+}
+
+async function checkBinaryInstruments(page) {
+  await page.evaluate(async () => {
+    const audit = window.__syncShortcutTest;
+    audit.editor.setValue('// second still being edited\n');
+    const [{createTfiFromPreset},{createVgiFromPreset},{FM_PRESETS}] = await Promise.all([
+      import('/js/tfi.js'),import('/js/vgi.js'),import('/js/megasynth-fm-presets.js'),
+    ]);
+    const preset = FM_PRESETS.sine;
+    audit.fs.writeBinary('/presets/shortcut.tfi',createTfiFromPreset({...preset,operators:Object.fromEntries(preset.operators.map((operator,i) => [i + 1,operator]))}));
+    audit.fs.writeBinary('/presets/shortcut.vgi',createVgiFromPreset({...preset,b4:0xc8}));
+  });
+  const texts = await page.evaluate(() => {
+    const audit = window.__syncShortcutTest;
+    return ['/index.js','/.tet.ss/index.js','/shortcut/second.js','/.tet.ss/shortcut/second.js'].map(path => [path,audit.fs.get(path).data]);
+  });
+  const results = [];
+  for (const format of ['tfi','vgi']) {
+    const source = '/presets/shortcut.' + format;
+    await settleCurrentModel(page);
+    await page.evaluate(source => window.__syncShortcutTest.open(source),source);
+    await checkSyncFeedback(page,false);
+    assert.equal(await page.locator('#syncCodeButton').isEnabled(),true);
+    assert.equal(await page.locator('#revertCodeButton').isDisabled(),true);
+    const original = await binaryState(page,source);
+    assert.equal(original.savedType,undefined,'Playground keeps automatic checkpoints off for binary files too');
+    const value = page.locator('#tfiFileOperator .param-value[aria-label="TL"]').nth(3);
+    const plus = value.locator('..').locator('.param-button').last();
+    await plus.click();
+    const first = await binaryState(page,source);
+    assert.notDeepEqual(first.bytes,original.bytes); assert.equal(first.savedType,undefined);
+    assert.equal(await page.locator('#revertCodeButton').isDisabled(),true,'an unsynced instrument has no Revert target');
+    let calls = await page.evaluate(() => window.__syncShortcutTest.calls.length);
+    await page.locator('#syncCodeButton').click();
+    await waitBinarySaved(page,source,first.bytes,++calls);
+    await plus.click(); await checkSyncFeedback(page,false);
+    const synced = await binaryState(page,source);
+    assert.equal(await page.locator('#revertCodeButton').isEnabled(),true);
+    await page.evaluate(() => document.activeElement?.blur());
+    await page.keyboard.press('Control+s'); await waitBinarySaved(page,source,synced.bytes,++calls);
+    await page.keyboard.press('Meta+s'); await waitBinarySaved(page,source,synced.bytes,++calls);
+    await page.locator('#tfiFileKeyboard button').filter({hasText:'Ukulele'}).click();
+    const baselineLevel = await previewLevel(page);
+    assert(baselineLevel > .001,'the synced instrument must produce actual preview PCM');
+    for (let i = 0;i < 12;i++) await plus.click();
+    await checkSyncFeedback(page,false);
+    const edited = await binaryState(page,source),editedLevel = await previewLevel(page);
+    assert.notDeepEqual(edited.bytes,synced.bytes); assert.deepEqual(edited.saved,synced.bytes);
+    assert(editedLevel < baselineLevel * .7,'Operator edits must reach the real preview synth');
+    await page.locator('#revertCodeButton').click();
+    await page.waitForFunction(({source,bytes}) => window.__syncShortcutTest.fs.get(source).data.every((value,i) => value === bytes[i]),{source,bytes:synced.bytes});
+    const restored = await binaryState(page,source),restoredLevel = await previewLevel(page);
+    assert.deepEqual(restored.bytes,synced.bytes); assert.deepEqual(restored.saved,synced.bytes);
+    assert.deepEqual(restored.registered,restored.expected,'Revert refreshes the registered VFS preset');
+    assert.equal(restored.editorLevel,synced.editorLevel); assert.equal(restored.previewLevel,synced.editorLevel);
+    assert(Math.abs(restoredLevel / baselineLevel - 1) < .03,'Revert restores the actual preview output level');
+    assert.equal(await page.locator('#revertCodeButton').isDisabled(),true);
+    if (format === 'vgi') {assert.equal(restored.bytes.length,43); assert.equal(restored.bytes[2],0xc8,'VGI reserved pan metadata survives edits and Revert');}
+    if (format === 'tfi') {
+      // Wrong saved types and malformed bytes must be rejected before the
+      // working file, displayed Operator values or preview state are changed.
+      for (const bad of ['wrong saved type',[1,2]]) {
+        await page.evaluate(({source,bad}) => {
+          const audit = window.__syncShortcutTest;
+          if (typeof bad === 'string') audit.fs.writeText('/.tet.ss' + source,bad);
+          else audit.fs.writeBinary('/.tet.ss' + source,new Uint8Array(bad));
+          audit.refresh();
+        },{source,bad});
+        if (typeof bad === 'string') {
+          assert.equal(await page.locator('#revertCodeButton').isDisabled(),true);
+          await page.evaluate(() => window.__syncShortcutTest.revert());
+        } else {
+          assert.equal(await page.locator('#revertCodeButton').isEnabled(),true);
+          await page.locator('#revertCodeButton').click();
+        }
+        await page.waitForFunction(source => document.getElementById('status').textContent.startsWith(`Could not revert ${source}:`),source);
+        const unchanged = await binaryState(page,source);
+        assert.deepEqual(unchanged.bytes,restored.bytes); assert.equal(unchanged.editorLevel,restored.editorLevel);
+        assert.equal(unchanged.previewLevel,restored.previewLevel); assert.deepEqual(unchanged.registered,restored.registered);
+        assert.deepEqual(unchanged.saved,bad);
+      }
+      await page.evaluate(({source,bytes}) => {
+        const audit = window.__syncShortcutTest; audit.fs.writeBinary('/.tet.ss' + source,new Uint8Array(bytes)); audit.refresh();
+      },{source,bytes:synced.bytes});
+    }
+    await page.locator('#syncCodeButton').click(); await waitBinarySaved(page,source,synced.bytes,++calls);
+    results.push({format,bytes:synced.bytes.length,baselineLevel,editedLevel,restoredLevel});
+  }
+  await settleCurrentModel(page);
+  await page.evaluate(() => window.__syncShortcutTest.open('/shortcut/second.js'));
+  await checkSyncFeedback(page,false);
+  assert.deepEqual(await page.evaluate(texts => texts.map(([path]) => [path,window.__syncShortcutTest.fs.get(path).data]),texts),texts,
+    'binary Sync/Revert must not flush, revert or sync another code file');
+  return results;
 }
 
 async function checkCodeButtons(page) {
@@ -218,22 +368,8 @@ async function checkEditor(browser, url) {
     assert.equal(await page.evaluate(() => window.__syncShortcutTest.calls.length), 4);
     await settleCurrentModel(page);
 
-    await page.evaluate(async () => {
-      const audit = window.__syncShortcutTest;
-      audit.editor.setValue('// second still being edited\n');
-      const {createVgiFromPreset} = await import('/js/vgi.js');
-      audit.fs.writeBinary('/presets/shortcut.vgi', createVgiFromPreset({algorithm:7}));
-      audit.open('/presets/shortcut.vgi');
-      document.activeElement?.blur();
-    });
-    assert.equal(await page.evaluate(() => window.__syncShortcutTest.tfi), '/presets/shortcut.vgi');
-    assert.equal(await page.locator('#syncCodeButton').isDisabled(), true);
-    assert.equal(await page.locator('#revertCodeButton').isDisabled(), true);
-    assert.deepEqual(await dispatchSave(page), {accepted:false, prevented:true});
-    assert.equal(await page.locator('#status').textContent(), 'Open a code file to sync.');
-    assert.equal(await page.evaluate(() => window.__syncShortcutTest.calls.length), 4);
-    assert.equal(await page.evaluate(() => window.__syncShortcutTest.fs.get('/.tet.ss/shortcut/second.js').data), '// second latest\n');
-    assert.equal(await page.evaluate(() => window.__syncShortcutTest.fs.has('/.tet.ss/presets/shortcut.vgi')), false);
+    const binaryResults = await checkBinaryInstruments(page);
+    const callsBeforeFailure = await page.evaluate(() => window.__syncShortcutTest.calls.length);
 
     await settleCurrentModel(page);
     await page.evaluate(() => {
@@ -247,7 +383,7 @@ async function checkEditor(browser, url) {
     await page.keyboard.press('Control+s');
     await page.waitForFunction(() => document.getElementById('status').textContent.startsWith('Could not sync /index.js:'));
     await checkSyncFeedback(page, false);
-    assert.equal(await page.evaluate(() => window.__syncShortcutTest.calls.length), 5);
+    assert.equal(await page.evaluate(() => window.__syncShortcutTest.calls.length), callsBeforeFailure + 1);
     assert.equal(await page.evaluate(() => window.__syncShortcutTest.fs.get('/index.js').data), '// editor content survives failure\n');
     assert.equal(await page.evaluate(() => window.__syncShortcutTest.fs.get('/.tet.ss/index.js/blocker').data), 'must survive sync failure');
     await checkCodeButtons(page);
@@ -259,7 +395,7 @@ async function checkEditor(browser, url) {
     const modelCancellations = errors.filter(error => ['Canceled', 'Canceled: Canceled'].includes(error.message) &&
       (modelTrace(error.stack) || rejections.some(reason => reason.message === 'Canceled' && modelTrace(reason.stack))));
     assert.deepEqual(errors.filter(error => !modelCancellations.includes(error)), [], JSON.stringify({rejections}));
-    return modelCancellations.length;
+    return {modelCancellations:modelCancellations.length,binaryResults};
   } finally { await page.close(); }
 }
 
@@ -306,9 +442,9 @@ async function checkFallback(browser, url) {
     for (const [engine, type] of engines) {
       const browser = await type.launch({headless:true});
       try {
-        const expectedMonacoModelCancellations = await checkEditor(browser, url);
+        const {modelCancellations:expectedMonacoModelCancellations,binaryResults} = await checkEditor(browser, url);
         await checkFallback(browser, url);
-        console.log(JSON.stringify({engine, passed:true, editor:'monaco', fallback:'textarea', ctrlS:true, commandS:true, syncButton:true, syncFeedback:true, revertButton:true, undoRedo:true, onlyActiveFile:true, guards:true, failuresVisible:true, expectedMonacoModelCancellations}));
+        console.log(JSON.stringify({engine, passed:true, editor:'monaco', fallback:'textarea', ctrlS:true, commandS:true, syncButton:true, syncFeedback:true, revertButton:true, undoRedo:true, onlyActiveFile:true, guards:true, failuresVisible:true, binaryResults, expectedMonacoModelCancellations}));
       } finally { await browser.close(); }
     }
   } finally { await new Promise(resolve => server.close(resolve)); }

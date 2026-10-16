@@ -191,6 +191,8 @@ Tauri 実機・Windows／Linux アプリでの再検証、外部 Storage の実�
 
 ## Playground での試用: Ctrl/Cmd+S（2026-10-15）
 
+以下は初回実装の記録。TFI／VGI の対象追加は後述の 2026-10-17 の拡張を参照。
+
 コード画面で **Ctrl+S / Command+S** を押すと、表示中のテキストファイルを `fs.sync(path)` する。
 Monaco／textarea の最新内容を通常パスへ反映した後、既定の `/.tet.ss` 配下へ同期する。
 既存の同期コピーもこの明示操作では更新する。成功・失敗は既存の status に表示する。
@@ -236,6 +238,22 @@ rename の既存モデル回帰テストは古い mock を実 VFS に変更し�
 
 検証: Chromium／WebKit の Monaco／textarea でクリックと両ショートカット、変更なしの再同期、表示解除と時間経過、固定幅・Panel 位置・フォーカスを確認した。
 既存 Revert／Undo／Redo も成功。関連 Node テスト **12/12** と itch 配布生成も確認した。
+
+## Playground の TFI／VGI に Sync／Revert を拡張（2026-10-17）
+
+- Files で表示中の TFI／VGI も、同じ Sync／Revert ボタンと Ctrl/Cmd+S の対象とする。
+- Playground の自動 checkpoint は従来どおり OFF。明示的な Sync が保存点を作り、その後の変更で Revert を有効にする。
+- Sync は現在のバイナリを `/.tet.ss` へコピーする。Revert はバイト列を復元し、登録済みプリセット・Operator 画面・既存の試聴音源へ反映する。保存点と他のファイルは更新しない。
+- バイナリの変更判定は内容を比較する。音色表示中は、隠れている Monaco／textarea の内容を読み書きせず、直前のコードへ誤って同期しない。
+- 保存点の種類が異なる場合は Revert を無効にする。不正な音色データは復元前に検証し、現在のファイルや試聴状態を変更せずエラーを表示する。
+- テキストの Revert は従来の編集経路を維持し、Monaco の Undo／Redo を残す。
+
+関連 Node 回帰 **434/434 成功**、配布パッケージの **363** 個のローカル参照確認が成功。
+`check_playground_sync_shortcut_browser.cjs` は Chromium／WebKit とも成功。TFI／VGI の
+ボタン・両ショートカット・バイト一致・音色登録・画面・実 PCM の復元と、既存の
+Monaco Undo／Redo・textarea fallback を確認した。既知の Monaco `setModel` 取消は
+既存の stack 判定で Chromium 4 件／WebKit 1 件を識別し、それ以外の page error は拒否する。
+Tauri 実機での今回の操作は未確認。
 
 ## Synth の current 自動反映と Sync／Revert（実装済み・2026-10-15）
 
