@@ -1065,6 +1065,42 @@
         margin-bottom: 10px;
       }
 
+      .operator-envelope-guide {
+        margin: 0 0 12px;
+        padding: 8px 10px;
+        border: 1px solid rgba(110, 122, 146, 0.28);
+        border-radius: 8px;
+      }
+
+      .operator-envelope-guide summary {
+        cursor: pointer;
+        font-size: 12px;
+        font-weight: 700;
+      }
+
+      [data-operator-envelope-legend] {
+        display: inline-flex;
+        gap: 10px;
+        margin-left: 12px;
+        padding: 2px 6px;
+        border-radius: 4px;
+        background: #10191a;
+      }
+
+      [data-operator-envelope] {
+        display: block;
+        width: 100%;
+        height: 144px;
+        margin-top: 8px;
+        border-radius: 5px;
+        background: #10191a;
+      }
+
+      .operator-envelope-guide .subtext {
+        margin: 5px 0 0;
+        font-size: 11px;
+      }
+
       .playground-keyboard-toolbar {
         display: flex;
         align-items: center;
@@ -2200,7 +2236,7 @@
       })();
     </script>
     <script type="module">
-      import('./playground.js?v=monitor-vertical-range-1').catch(error => window.__playgroundStartup.fail(error));
+      import('./playground.js?v=operator-envelope-1').catch(error => window.__playgroundStartup.fail(error));
     </script>
   </body>
 </html>

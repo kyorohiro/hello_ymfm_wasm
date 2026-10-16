@@ -198,16 +198,16 @@ function drawOperatorGuide(
   context.stroke();
 }
 
-export function drawEnvelopeGuide({
+function drawEnvelopeGuideCanvas({
   canvas,
   context,
   operatorNumbers,
   operatorStates,
-  outputEnvelopeHistory,
+  outputEnvelopeHistory = [],
   outputEnvelopeHeldVoicePeak,
   outputEnvelopeSilenceFloor,
   outputEnvelopeBaseScale,
-}) {
+}, showOutputEnvelope) {
   clearCanvas(context, canvas);
 
   const width = canvas.width;
@@ -281,26 +281,36 @@ export function drawEnvelopeGuide({
     );
   }
 
-  const normalizedHistory =
-    buildNormalizedHistory(
-      outputEnvelopeHistory,
-      currentEnvelopeScale(
-        outputEnvelopeBaseScale,
-        outputEnvelopeHeldVoicePeak
-      ),
-      outputEnvelopeSilenceFloor
-    );
+  if (showOutputEnvelope) {
+    const normalizedHistory =
+      buildNormalizedHistory(
+        outputEnvelopeHistory,
+        currentEnvelopeScale(
+          outputEnvelopeBaseScale,
+          outputEnvelopeHeldVoicePeak
+        ),
+        outputEnvelopeSilenceFloor
+      );
 
-  drawOutputEnvelopeOverlay(
-    context,
-    normalizedHistory,
-    layout,
-    {
-      color: "#7be0d6",
-      lineWidth: 3,
-      alpha: 0.95,
-    }
-  );
+    drawOutputEnvelopeOverlay(
+      context,
+      normalizedHistory,
+      layout,
+      {
+        color: "#7be0d6",
+        lineWidth: 3,
+        alpha: 0.95,
+      }
+    );
+  }
+
+  if (!showOutputEnvelope) {
+    context.fillStyle = "#b8cac6";
+    context.font = "12px sans-serif";
+    context.fillText("Level", left + 6, top + 12);
+    context.fillText("Time →", right - 44, bottom - 8);
+    return;
+  }
 
   context.fillStyle =
     "#f6ead7";
@@ -329,4 +339,23 @@ export function drawEnvelopeGuide({
     18,
     28
   );
+}
+
+export function drawEnvelopeGuide(options) {
+  drawEnvelopeGuideCanvas(options, true);
+}
+
+// Conceptual register-value guides only; this does not measure chip EG or audio.
+export function drawOperatorEnvelopeGuides({
+  canvas,
+  context,
+  operatorStates,
+  operatorNumbers = [1, 2, 3, 4],
+}) {
+  drawEnvelopeGuideCanvas({
+    canvas,
+    context,
+    operatorStates,
+    operatorNumbers,
+  }, false);
 }

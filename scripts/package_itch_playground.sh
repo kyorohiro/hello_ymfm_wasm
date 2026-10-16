@@ -31,6 +31,7 @@ playground_monaco.js
 playground_monaco_definitions.js
 playground_monaco_completion.js
 playground_operator_tab.js
+playground_operator_visual.js
 playground_operator_keyboard.js
 playground_query.js
 playground_sync.js
@@ -187,6 +188,7 @@ ym2612_dac.js
 
 SYNTH_SUPPORT_FILES="
 synth_controls.js
+synth_envelope.js
 synth_keyboard.js
 "
 
@@ -400,6 +402,7 @@ perl -0pi -e 's#"\./playground\.js"#"./playground.js"#g; s#\.\./js/#./js/#g; s#\
   "${STAGE_DIR}/playground_monaco_completion.js" \
   "${STAGE_DIR}/playground_sync.js" \
   "${STAGE_DIR}/playground_operator_tab.js" \
+  "${STAGE_DIR}/playground_operator_visual.js" \
   "${STAGE_DIR}/playground_operator_keyboard.js" \
   "${STAGE_DIR}/playground_tfi_editor.js" \
   "${STAGE_DIR}/playground_midi_import.js" \

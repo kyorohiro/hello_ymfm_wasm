@@ -542,7 +542,10 @@ const tfiFileEditor = createTfiFileEditor({
   onStatus: message => setStatus(message),
 });
 window.addEventListener("pagehide", event => {
-  if (!event.persisted) void tfiFileEditor.dispose();
+  if (!event.persisted) {
+    operatorTab.dispose();
+    void tfiFileEditor.dispose();
+  }
 });
 
 function updateMasterVolumeUi() {
@@ -1690,6 +1693,7 @@ const ui =
       const showAudio = tool === "audio" || (inlineAudioMonitor && primary === "code");
       if (inlineAudioMonitor) audioMonitorPanel.hidden = !showAudio;
       audioMonitor.setVisible(showAudio);
+      operatorTab.setVisible(primary === "operator");
       operatorKeyboard.setView(tool === "keyboard" ? "keyboard" : primary);
       tfiFileEditor.setVisible(primary === "code" && Boolean(activeTfiFilePath));
       refreshCodeFileActions();

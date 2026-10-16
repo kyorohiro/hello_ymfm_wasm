@@ -5,6 +5,18 @@ YM2612 specifically. Future chip editors can use their chip names as tab
 labels. References to `Operator` below describe the original design; operator
 parameter names and internal module names remain unchanged.
 
+The editor now includes a collapsible `Operator envelopes` diagram, shared with
+Synth. OP1–OP4 use the same colors as the parameter rows. Changes to AR, D1R,
+D2R, SL, RR and TL update the guides, including preset/channel changes and code
+updates in Main or Worker mode. The same diagram appears in the TFI/VGI file
+editor.
+
+These are schematic register-value guides, not measured EG levels or a timeline
+in seconds. Note pitch, RS and SSG-EG affect actual chip behavior. Audio output
+remains available in the Audio panel. The guide creates no audio nodes, draws
+only after relevant changes, and defers drawing while collapsed, offscreen or
+hidden. Multiple changes in one frame share a single redraw.
+
 Goal
 
 Add an `Operator` tab to `docs/playground`.

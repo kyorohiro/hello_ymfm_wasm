@@ -6,6 +6,7 @@ import {
   createParamControl,
   displayOperatorToApiOperator,
 } from "../synth/synth_controls.js";
+import { createOperatorEnvelopeView } from './playground_operator_visual.js';
 
 const OPERATOR_NUMBERS = [1, 2, 3, 4];
 const SPECIAL_MODE_CHANNEL = 2;
@@ -292,6 +293,11 @@ export function createPlaygroundOperatorTab(
       </label>
     </div>
     <p id="operatorTabAlgorithmDescription" class="algo-inline"></p>
+    <details class="operator-envelope-guide" open>
+      <summary>Operator envelopes <span data-operator-envelope-legend aria-label="Guide colors"><span class="op-color-1">OP1</span> <span class="op-color-2">OP2</span> <span class="op-color-3">OP3</span> <span class="op-color-4">OP4</span></span></summary>
+      <canvas data-operator-envelope width="720" height="144" role="img" aria-label="Schematic envelopes for OP1 through OP4. Adjust AR, D1R, D2R, SL, RR and TL to change the guides."></canvas>
+      <p class="subtext">Shape guides · relative time and level. Actual envelopes also depend on note pitch, RS and SSG-EG.</p>
+    </details>
     <div class="operator-stack">
       <div class="operator-header-row">
         <div class="operator-header-spacer"></div>
@@ -360,6 +366,10 @@ export function createPlaygroundOperatorTab(
     root.querySelector(
       "#operatorTabAlgorithmDescription"
     );
+  const envelopeView = createOperatorEnvelopeView({
+    root: root.querySelector('.operator-envelope-guide'),
+    getOperators: () => currentState().operators,
+  });
 
   buildHeader(
     commonHeader,
@@ -584,6 +594,7 @@ export function createPlaygroundOperatorTab(
     }
 
     updateSpecialUi();
+    envelopeView.invalidate();
   }
 
   function updateSpecialUi() {
@@ -788,6 +799,7 @@ export function createPlaygroundOperatorTab(
       currentState().operators[operator][
         id
       ] = value;
+      envelopeView.invalidate();
       markDirty();
       if (synth) {
         synth.setOperator(
@@ -924,6 +936,8 @@ export function createPlaygroundOperatorTab(
   }
 
   return {
+    setVisible: envelopeView.setVisible,
+    dispose: envelopeView.dispose,
     registerPresetOption,
     removePresetOption,
     selectChannel(channel) {

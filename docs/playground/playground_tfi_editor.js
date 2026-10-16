@@ -81,11 +81,13 @@ export function createTfiFileEditor({ root, operatorRoot, keyboardRoot, title, c
         format = (bytes.byteLength ?? bytes.length) === 43 ? 'vgi' : 'tfi';
         title.textContent = nextPath;
         root.hidden = false;
+        operator.setVisible?.(true);
         keyboard.setView('operator');
       } finally { loading = false; }
     },
     setVisible(visible) {
       root.hidden = !visible;
+      operator.setVisible?.(visible);
       keyboard.setView(visible ? 'operator' : 'code');
     },
     setMasterVolume(nextVolume) {
@@ -98,6 +100,7 @@ export function createTfiFileEditor({ root, operatorRoot, keyboardRoot, title, c
     },
     dispose() {
       disposed = true;
+      operator.dispose?.();
       keyboard.dispose();
       return audio?.close();
     },
