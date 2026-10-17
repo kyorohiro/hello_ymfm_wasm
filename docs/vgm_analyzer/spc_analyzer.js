@@ -28,6 +28,7 @@ export function mountSpcAnalyzer({root, getAudioContext, getMasterVolume, onAudi
   const muteControls = element('div', undefined, root); muteControls.className = 'monitor-toggles';
   const toggles = Array.from({length:8}, (_, channel) => {
     const button = element('button', `Voice ${channel + 1}`, muteControls); button.type = 'button';
+    button.className = 'channel-toggle';
     button.setAttribute('aria-pressed', 'true');
     button.addEventListener('click', () => {
       const bit = 1 << channel; state.muteMask ^= bit;
