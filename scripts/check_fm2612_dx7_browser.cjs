@@ -8,12 +8,33 @@ const path = require('node:path');
 
 if (!process.argv[2]) throw Error('Pass the installed tetorica-fm2612 package directory');
 const installed = path.resolve(process.argv[2]);
+function observeDX7Nodes() {
+  const nodes = globalThis.__dx7NodeLifecycle = [];
+  globalThis.AudioWorkletNode = new Proxy(globalThis.AudioWorkletNode, {
+    construct(Type, args, Target) {
+      const node = Reflect.construct(Type, args, Target);
+      if (args[1] === 'tetorica-playground-dx7') {
+        const state = {disposeSent:false, closed:false};
+        const send = node.port.postMessage.bind(node.port), close = node.port.close.bind(node.port);
+        node.port.postMessage = (data, ...transfer) => {
+          if (data?.method === 'dispose') state.disposeSent = true;
+          return send(data, ...transfer);
+        };
+        node.port.close = () => { state.closed = true; return close(); };
+        nodes.push(state);
+      }
+      return node;
+    },
+  });
+}
 // Playwright page response events omit AudioWorklet module fetches on some engines.
 const servedAssets = new Set();
 const html = `<!doctype html><meta charset="utf-8"><button id="start">Initialize audio</button>
 <script type="module">
 import {Playground} from '/vendor/playground_runtime.js';
 import {createInitVoice, createVoiceSysex} from '/vendor/msfa_dx7/src/sysex.js';
+${observeDX7Nodes.toString()}
+observeDX7Nodes();
 const logs = [], runtime = Playground({guardExecution:true, onLog:line => logs.push(line)});
 window.test = {runtime, logs, sysex:Array.from(createVoiceSysex(createInitVoice('NPM SINE')))};
 document.querySelector('#start').onclick = async () => {
@@ -94,7 +115,9 @@ async function checkBrowser(name, type, url) {
           }, marker);
         };
         const meter = async () => {
-          await page.waitForTimeout(100);
+          const lead = execution === 'worker' ? await page.evaluate(() => window.test.runtime.getTiming().workerLookaheadSeconds * 1000) : 0;
+          // Worker setters acknowledge acceptance before their reserved audio frame.
+          await page.waitForTimeout(100 + lead);
           const frames = [];
           for (let i = 0; i < 3; i++) {
             frames.push(await page.evaluate(() => window.test.meters.map(meter => {
@@ -126,6 +149,7 @@ async function checkBrowser(name, type, url) {
           context.dx7 = dx7;
           const result = {id:dx7.id, voices:dx7.voices, state:await dx7.getState()};
         `);
+        assert.equal(initial.id, 'dx7:shared');
         assert.equal(initial.voices[0].name, 'INIT SINE');
         assert.equal(initial.state.internalSampleRate, 44100);
         assert([44100, 48000].includes(initial.state.sampleRate));
@@ -222,14 +246,19 @@ async function checkBrowser(name, type, url) {
         nearHz(live.newHeld,1320,'new cohort');
         assert(live.releaseMuted.rms < live.newHeld.rms * .002, `${name}/${execution}: release did not receive live mute`);
         assert(live.releaseRestored.rms > live.newHeld.rms * .7, `${name}/${execution}: slow release was retriggered or lost`);
+        const beforeStop = await page.evaluate(() => window.__dx7NodeLifecycle.length);
+        assert.equal(beforeStop, 1, 'hot Runs reuse one DX7 Worklet');
         await bounded(page.evaluate(() => window.test.runtime.stopWithFade()), 'STOP');
         const stopped = await meter();
         assert(stopped.every(value => value < .00001), `${name}/${execution}: STOP retained PCM ${stopped}`);
+        assert.equal(await page.evaluate(() => window.__dx7NodeLifecycle.every(node => node.disposeSent && node.closed)), true, 'STOP disposes the DX7 processor and closes its port');
+        assert.equal(await page.evaluate(() => window.test.runtime.megaDrive.mixer.list().filter(chip => chip.name === 'dx7' && chip.connected).length), 0);
         const recreated = await run(`
           const dx7 = await useSoundChip('dx7'); dx7.noteOn(60, 100);
           const result = {id:dx7.id, voices:dx7.voices, preset:await dx7.getPreset()};
         `);
-        assert.notEqual(recreated.id, initial.id);
+        assert.equal(recreated.id, initial.id, 'the shared mixer identity survives Stop, independently of the audio instance');
+        assert.deepEqual(await page.evaluate(() => ({count:window.__dx7NodeLifecycle.length, current:window.__dx7NodeLifecycle.at(-1)})), {count:beforeStop + 1, current:{disposeSent:false, closed:false}}, 'Run after STOP creates a fresh DX7 Worklet');
         assert.equal(recreated.voices[0].name, 'INIT SINE');
         assert.equal(recreated.preset.operators[1].coarse, 1);
         assert.equal(recreated.preset.operators[1].outputLevel, 85);

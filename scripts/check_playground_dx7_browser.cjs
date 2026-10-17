@@ -8,6 +8,26 @@ const path = require('node:path');
 const {pathToFileURL} = require('node:url');
 const assert = require('node:assert/strict');
 
+function observeDX7Nodes() {
+  const nodes = globalThis.__dx7NodeLifecycle = [];
+  globalThis.AudioWorkletNode = new Proxy(globalThis.AudioWorkletNode, {
+    construct(Type, args, Target) {
+      const node = Reflect.construct(Type, args, Target);
+      if (args[1] === 'tetorica-playground-dx7') {
+        const state = {disposeSent:false, closed:false};
+        const send = node.port.postMessage.bind(node.port), close = node.port.close.bind(node.port);
+        node.port.postMessage = (data, ...transfer) => {
+          if (data?.method === 'dispose') state.disposeSent = true;
+          return send(data, ...transfer);
+        };
+        node.port.close = () => { state.closed = true; return close(); };
+        nodes.push(state);
+      }
+      return node;
+    },
+  });
+}
+
 const root = path.resolve(__dirname, '..');
 const docs = path.join(root, 'docs');
 const stageOption = process.argv.indexOf('--stage');
@@ -89,6 +109,7 @@ async function runBrowser(name, type, url, fixture) {
   const browser = await type.launch({headless:true, ...(name === 'chromium' ? {args:['--autoplay-policy=no-user-gesture-required']} : {})});
   try {
     const page = await browser.newPage({serviceWorkers:'block'}), errors = [], network = [], results = [];
+    await page.addInitScript(observeDX7Nodes);
     page.on('pageerror', error => errors.push(error.message));
     page.on('request', request => { if (request.url().includes('dx7-should-not-request')) network.push(request.url()); });
     if (process.env.DX7_TEST_URL) await page.route('**/playground.js?*', async route => {
@@ -162,6 +183,7 @@ async function runBrowser(name, type, url, fixture) {
         context.dx7 = dx7; context.initialId = dx7.id;
         const result = {id:dx7.id, voices:dx7.voices, state:await dx7.getState()};
       `, execution);
+      assert.equal(initial.id, 'dx7:shared');
       assert.equal(initial.voices.length, 1); assert.equal(initial.voices[0].name, 'TEST SINE');
       assert.equal(initial.state.internalSampleRate, 44100);
       assert([44100, 48000].includes(initial.state.sampleRate));
@@ -288,11 +310,15 @@ async function runBrowser(name, type, url, fixture) {
       await run(`const dx7=await useSoundChip('dx7'); dx7.noteOn(60,100); dx7.noteOn(64,100); await sleep(.05); dx7.allNotesOff(); await sleep(.5);`, execution);
       assert((await meter()).every(value => value < .0001), `${name}/${execution}: allNotesOff did not release voices`);
       await run(`(await useSoundChip('dx7')).noteOn(67,100);`, execution);
+      const beforeStop = await page.evaluate(() => window.__dx7NodeLifecycle.length);
       await page.evaluate(async () => window.__dx7Test.runtime.stopWithFade());
       const stopped = await meter(); assert(stopped.every(value => value < .00001), `${name}/${execution}: STOP retained audio ${stopped}`);
+      assert.equal(await page.evaluate(() => window.__dx7NodeLifecycle.every(node => node.disposeSent && node.closed)), true, 'STOP disposes the DX7 processors and closes their ports');
       assert.equal(await page.evaluate(() => window.__dx7Test.megaDrive.mixer.list().filter(chip => chip.name === 'dx7' && chip.connected).length), 0);
       const recreated = await run(`const dx7 = await useSoundChip('dx7'); dx7.noteOn(60,100); const result = {id:dx7.id, voices:dx7.voices, preset:await dx7.getPreset()};`, execution);
-      assert.notEqual(recreated.id, initial.id); assert.equal(recreated.voices[0].name, 'INIT SINE');
+      assert.equal(recreated.id, initial.id, 'the shared mixer identity survives Stop, independently of the audio instance');
+      assert.deepEqual(await page.evaluate(() => ({count:window.__dx7NodeLifecycle.length, current:window.__dx7NodeLifecycle.at(-1)})), {count:beforeStop + 1, current:{disposeSent:false, closed:false}}, 'Run after STOP creates a fresh DX7 Worklet');
+      assert.equal(recreated.voices[0].name, 'INIT SINE');
       assert.equal(recreated.preset.operators[1].coarse, 1); assert.equal(recreated.preset.operators[1].outputLevel, 85);
       assert((await meter()).every(value => value > .005), `${name}/${execution}: recreation after STOP silent`);
       const cancelled = await run(`

@@ -592,10 +592,10 @@ FM/PSG/PCM mixing, stop/reset and close/restart. Playwright is a development
 dependency; it is not required by users of the sound-chip runtime.
 
 The build is staged in `dist/fm2612/`; packing produces
-`tetorica-fm2612-0.2.18.tgz`. To install a local build in another project:
+`tetorica-fm2612-0.2.19.tgz`. To install a local build in another project:
 
 ```sh
-npm install /absolute/path/to/tetorica-fm2612-0.2.18.tgz
+npm install /absolute/path/to/tetorica-fm2612-0.2.19.tgz
 ```
 
 The existing `tetorica-vgm` CLI package is built separately. This first package
@@ -612,6 +612,11 @@ Tetorica-generated and includes its license and generator. External
 instrument/sample ROMs are not included.
 
 ## Release notes
+
+`0.2.19` optimizes the prebuilt YM2612, Sega PSG, YM2203, YM2608,
+YM2610 / YM2610B, YM2413, RF5C164 and Nuked-OPN2 WASM cores. Tested PCM
+remains identical to the previous builds; runtime assertions remain enabled.
+It also fixes Neo Geo runtime cleanup when closing or restarting the synth.
 
 `0.2.18` adds the `msfa` keyword, points the package homepage to the browser
 Playground, and adds a prominent try-it link alongside the runnable examples.
