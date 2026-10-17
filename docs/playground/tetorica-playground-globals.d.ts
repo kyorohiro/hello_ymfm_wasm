@@ -1,8 +1,8 @@
-type PlaygroundChipMix = {volume: number; pan: number; muted: boolean};
+type PlaygroundChipMix = {volume: number; pan: number; muted: boolean; solo: boolean};
 interface PlaygroundMixer {
-  set(id: string, settings: {volume?: number; pan?: number; muted?: boolean}): PlaygroundChipMix | Promise<PlaygroundChipMix>;
+  set(id: string, settings: {volume?: number; pan?: number; muted?: boolean; solo?: boolean}): PlaygroundChipMix | Promise<PlaygroundChipMix>;
   get(id: string): PlaygroundChipMix | Promise<PlaygroundChipMix>;
-  list(): Array<PlaygroundChipMix & {id: string; name: string; connected: boolean}> | Promise<Array<PlaygroundChipMix & {id: string; name: string; connected: boolean}>>;
+  list(): Array<PlaygroundChipMix & {id: string; name: string; connected: boolean; effectiveMuted: boolean}> | Promise<Array<PlaygroundChipMix & {id: string; name: string; connected: boolean; effectiveMuted: boolean}>>;
   reset(id?: string): void | Promise<void>;
 }
 declare const mixer: PlaygroundMixer;

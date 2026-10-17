@@ -1,3 +1,4 @@
+import {receiveChipInspector, readPwmInspector} from './playground_chip_inspector_state.js?v=chip-tabs-2';
 import {PWM32XPlayback, PWM_METHODS} from './pwm32x_playback.js';
 import {createProcessorPerformance} from './playground_performance_processor.js';
 import {validateChipClock} from './playground_chip_clock.js';
@@ -34,6 +35,7 @@ class PWMProcessor extends AudioWorkletProcessor {
     } catch (error) {this.dead = true; this.port.postMessage({error: error.message});}
   }
   receive(data,port) {
+    if(data?.type==='chip-inspector'&&receiveChipInspector(data,port,this.pwm ? (action,method,args)=>{if(action==='read')return readPwmInspector(this.pwm);if(!['write','writeRegister','reset'].includes(method))throw new Error('Unsupported PWM inspector operation');return this.pwm[method](...args);} : null))return;
     if(this.performance.receive(data,port))return;
     this.apply(data,port);
   }

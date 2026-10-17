@@ -1,12 +1,12 @@
-import {allocateSoundChipId} from './soundchip_mixer.js';
-export {SoundChipMixer, soundChipMixDefaults} from './soundchip_mixer.js';
+import {allocateSoundChipId} from './soundchip_mixer.js?v=chip-tabs-2';
+export {SoundChipMixer, soundChipMixDefaults} from './soundchip_mixer.js?v=chip-tabs-2';
 /**
  * @file Browser / Node.js の便利なチップ生成入口。DOM・AudioContext は不要。
  * 選択した WASM だけを読み込む。最小配布には soundchip_factory.js を使うこと。
  * 動的 import の配布方法はバンドラーに依存するため、この入口はサイズ削減を保証しない。
  */
 import { createSoundChipFactory } from './soundchip_factory.js';
-import {createWorkletSoundChip} from './soundchip_worklet.js';
+import {createWorkletSoundChip} from './soundchip_worklet.js?v=chip-tabs-2';
 import {PWM32X} from './pwm32x.js';
 export {encodeWav} from './wav.js';
 
@@ -37,7 +37,7 @@ export {encodeWav} from './wav.js';
  * @property {URL|string} [assetBaseUrl] 生成済み *_wasm.js / .wasm のディレクトリURL（末尾 /）。
  * @property {WasmModuleFactory} [moduleFactory] 注入する Emscripten factory。指定時は自動ロードを省略。
  * @property {WasmModuleOptions} [moduleOptions] wasmBinary、locateFile などをそのまま渡す。
- * @property {import('./soundchip_mixer.js').SoundChipMixer} [mixer] Worklet output mixer.
+ * @property {import('./soundchip_mixer.js?v=chip-tabs-2').SoundChipMixer} [mixer] Worklet output mixer.
  * @property {string} [id] Stable chip ID (automatically allocated when omitted).
  * @property {AbortSignal} [signal] WASM ファイルの読み込みを中断する。
  * @property {'direct'|'worklet'} [execution='direct'] チップの実行場所。worklet はブラウザーのみ。
@@ -205,7 +205,7 @@ const createLocalSoundChip = createSoundChipFactory(loaders);
  * @overload
  * @param {Name} name
  * @param {SoundChipOptions & {execution: 'worklet'}} options
- * @returns {Promise<import('./soundchip_worklet.js').WorkletSoundChip & {name: Name}>}
+ * @returns {Promise<import('./soundchip_worklet.js?v=chip-tabs-2').WorkletSoundChip & {name: Name}>}
  */
 /**
  * @template {keyof SoundChipMap} Name
@@ -219,7 +219,7 @@ const createLocalSoundChip = createSoundChipFactory(loaders);
  * @overload
  * @param {Name} name
  * @param {SoundChipOptions} options
- * @returns {Promise<(SoundChipMap[Name] & {readonly id: string}) | import('./soundchip_worklet.js').WorkletSoundChip>}
+ * @returns {Promise<(SoundChipMap[Name] & {readonly id: string}) | import('./soundchip_worklet.js?v=chip-tabs-2').WorkletSoundChip>}
  */
 /** @param {keyof SoundChipMap} name @param {SoundChipOptions} [options] */
 export function createSoundChip(name, options = {}) {

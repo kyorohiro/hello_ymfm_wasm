@@ -1,3 +1,5 @@
+import {PsgInspectorState,receiveChipInspector} from './playground_chip_inspector_state.js';
+import {CHIP_CLOCKS} from './playground_chip_clock.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
@@ -11,7 +13,7 @@ for (const highLevel of [true]) test(`Sega PSG ${highLevel ? 'Synth' : 'raw'} ex
   let Processor, resolveReady;
   const ready = new Promise(resolve => { resolveReady = resolve; });
   const source = (await readFile(new URL('./playground_segapsg_worklet.js', import.meta.url), 'utf8')).replace(/^import .*;$/gm, '');
-  vm.runInNewContext(source, {SegaPSG, factory, sampleRate: 48000,
+  vm.runInNewContext(source, {PsgInspectorState,receiveChipInspector,CHIP_CLOCKS,SegaPSG, factory, sampleRate: 48000,
     createProcessorPerformance:options=>createProcessorPerformance({...options,rate:48000,nowFrame:()=>0}),
     AudioWorkletProcessor: class { constructor() { this.port = {postMessage: resolveReady}; } },
     registerProcessor: (_, value) => { Processor = value; },

@@ -1,0 +1,21 @@
+#mixerPanel { overflow: auto; padding: 10px 12px; }
+.playground-mixer-master { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.playground-mixer-master > .playground-mixer-control { width: min(350px, 100%); }
+.playground-mixer-master > .playground-mixer-meter { width: 140px; }
+.playground-mixer-hint, .playground-mixer-empty { margin: 8px 0; }
+.playground-mixer-strips { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr)); gap: 10px; margin-top: 10px; }
+.playground-mixer-strip { padding: 10px; border: 1px solid var(--line); border-radius: 5px; min-width: 0; background: #fffefa; }
+.playground-mixer-heading { display: flex; align-items: center; gap: 7px; margin-bottom: 8px; }
+.playground-mixer-heading > strong { white-space: nowrap; }
+.playground-mixer-heading > .subtext { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-right: auto; }
+.playground-mixer-toggle { padding: 3px 7px; min-height: 25px; background: transparent; color: var(--ink); box-shadow: none; border-radius: 4px; font-size: .75rem; }
+.playground-mixer-toggle[aria-pressed="true"] { background: var(--accent-dark); color: white; border-color: var(--accent-dark); }
+.playground-mixer-control { display: grid; grid-template-columns: 45px minmax(40px, 1fr) 55px; align-items: center; gap: 7px; font-size: .75rem; margin: 4px 0; }
+.playground-mixer-control input { min-width: 0; width: 100%; accent-color: var(--accent-dark); }
+.playground-mixer-control output { text-align: right; font-variant-numeric: tabular-nums; }
+.playground-mixer-meter { display: grid; gap: 3px; margin: 8px 0 3px; }
+.playground-mixer-meter-side { height: 5px; overflow: hidden; border-radius: 2px; background: #dde4df; }
+.playground-mixer-meter-fill { display: block; height: 100%; width: 100%; background: #168b69; transform-origin: left; transform: scaleX(0); }
+.playground-mixer-meter-side.is-clipping .playground-mixer-meter-fill { background: #d9592f; }
+.playground-mixer-strip.is-output-muted .playground-mixer-meter { opacity: .45; }
+.playground-mixer-status { color: #9e3b22; }

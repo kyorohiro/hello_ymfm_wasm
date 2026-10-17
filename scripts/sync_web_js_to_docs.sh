@@ -11,6 +11,8 @@ DOCS_JS_DIR="${ROOT_DIR}/docs/js"
 #
 SYNC_FILES="
 soundchip_mixer.js
+playground_chip_inspector.js
+playground_chip_inspector_state.js
 nesapu.js
 nesapusynth.js
 soundchip_factory.js
@@ -260,3 +262,6 @@ cp "${WEB_DIR}/msfa_dx7/LICENSE" "${WEB_DIR}/msfa_dx7/THIRD_PARTY_NOTICES.md" \
   "${WEB_DIR}/msfa_dx7/README.vendor.md" "${ROOT_DIR}/docs/licenses/tetorica-msfa-dx7-wasm/"
 cp "${WEB_DIR}/msfa_dx7/vendor/msfa/COPYING" "${WEB_DIR}/msfa_dx7/vendor/msfa/UPSTREAM.md" \
   "${ROOT_DIR}/docs/licenses/tetorica-msfa-dx7-wasm/"
+
+# Cache identities belong to the website build; keep Node/package constructor identities unchanged.
+node "${ROOT_DIR}/scripts/version_playground_runtime.mjs"

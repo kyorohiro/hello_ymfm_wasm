@@ -21,7 +21,7 @@ export async function createRf5c164Audio(context, destination, options = {}) {
         if (!response.ok) throw new Error(`RF5C164 HTTP ${response.status}`);
         return response.arrayBuffer();
       }),
-    context.audioWorklet.addModule(options.workletUrl ?? new URL('./rf5c164-worklet.js', import.meta.url)),
+    context.audioWorklet.addModule(options.workletUrl ?? new URL('./rf5c164-worklet.js?v=chip-tabs-2', import.meta.url)),
   ]));
   signal?.throwIfAborted();
   const node = new AudioWorkletNode(context, 'tetorica-rf5c164', {

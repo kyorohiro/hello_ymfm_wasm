@@ -1,3 +1,4 @@
+import {PsgInspectorState, receiveChipInspector} from './playground_chip_inspector_state.js?v=chip-tabs-2';
 import {validateChipClock} from './playground_chip_clock.js';
 import {createPerformanceQueue, createPerformanceChipOwnership} from './playground_performance_queue.js';
 import {createOpnAuditionGuard, receiveOpnAuditionCommand} from './playground_audition_guard.js';
@@ -46,6 +47,9 @@ class YM2612Processor extends AudioWorkletProcessor {
     this.mixTargets = {ym2612: [1, 1], segapsg: [1, 1]};
     this.mixCurrent = {ym2612: [1, 1], segapsg: [1, 1]};
     this.mixRemaining = {ym2612: 0, segapsg: 0};
+    this.mixMeterEnabled = {ym2612: false, segapsg: false};
+    this.mixMeterPeaks = new Float32Array(4);
+    this.mixMeterFrames = 0;
     this.pendingCommands = [];
     this.scheduledCommands = [];
     this.scheduledHead = 0;
@@ -83,6 +87,7 @@ class YM2612Processor extends AudioWorkletProcessor {
     const receiveChipPort = createChipPortReceiver((command, reply) => this.applyCommand(command, reply), undefined, {performanceQueue: this.performanceQueue});
     this.port.onmessage = (event) => {
       const command = event.data;
+      if (command?.type==='chip-inspector' && receiveChipInspector(command,this.port,this.psgInspector ? (action,method,args)=>action==='read'?this.psgInspector.read():this.psgInspector.invoke(method,args) : null)) return;
       if (this.performanceQueue.receive(command, message => this.port.postMessage(message))) return;
       if (receiveChipPort(command)) return;
 
@@ -141,6 +146,8 @@ class YM2612Processor extends AudioWorkletProcessor {
           clock: SEGAPSG_CLOCK,
         });
       }
+
+      if (this.psg) this.psgInspector = new PsgInspectorState(this.psg, {sampleRate});
 
       // Reserve the usual 128-frame render quantum without advancing chip time.
       // Larger quanta remain supported by the wrappers' capacity checks.
@@ -223,6 +230,14 @@ class YM2612Processor extends AudioWorkletProcessor {
     if (command.type === 'chip-clock') {
       try { if (!this.ym2612) throw new Error('Chip not ready'); this.clock = validateChipClock(command.clock); if (!command.performanceAcknowledged) reply({type:'chip-clock-result',id:command.id}); }
       catch (error) { if (!command.performanceAcknowledged) reply({type:'chip-clock-result',id:command.id,error:error.message}); }
+      return;
+    }
+    if (command.type === 'mixer-metering') {
+      if (!MIX_SOURCES.includes(command.name) || typeof command.enabled !== 'boolean') throw new RangeError('Invalid mixer metering request');
+      this.mixMeterEnabled[command.name] = command.enabled;
+      const index = command.name === 'ym2612' ? 0 : 2;
+      this.mixMeterPeaks[index] = this.mixMeterPeaks[index + 1] = 0;
+      if (!this.mixMeterEnabled.ym2612 && !this.mixMeterEnabled.segapsg) this.mixMeterFrames = 0;
       return;
     }
     if (command.type === 'mixer-settings') {
@@ -403,6 +418,7 @@ class YM2612Processor extends AudioWorkletProcessor {
       this.pcmDac.advance(frame);
     }
     this.renderFrames(leftOut, rightOut, offset, leftOut.length - offset);
+    this.flushMixerMeters(leftOut.length);
     this.capturePcm(leftOut, rightOut);
     this.captureOutputEnvelope(
       leftOut,
@@ -509,11 +525,34 @@ class YM2612Processor extends AudioWorkletProcessor {
         this.lastLeft = left / count;
         this.lastRight = right / count;
       }
+      if (this.mixMeterEnabled.ym2612) {
+        const gain = this.psg ? YM_GAIN : 1;
+        this.mixMeterPeaks[0] = Math.max(this.mixMeterPeaks[0], Math.abs(this.lastLeft * gain));
+        this.mixMeterPeaks[1] = Math.max(this.mixMeterPeaks[1], Math.abs(this.lastRight * gain));
+      }
+      if (this.mixMeterEnabled.segapsg && this.psg) {
+        this.mixMeterPeaks[2] = Math.max(this.mixMeterPeaks[2], Math.abs(this.psgLeft * PSG_GAIN * psgGains[0]));
+        this.mixMeterPeaks[3] = Math.max(this.mixMeterPeaks[3], Math.abs(this.psgRight * PSG_GAIN * psgGains[1]));
+      }
       // Hold the previous sample during upsampling. Preserve phase across
       // render segments so scheduled writes stay on the output timeline.
       leftOut[offset + i] = this.psg ? clampSample(this.lastLeft * YM_GAIN + this.psgLeft * PSG_GAIN * psgGains[0]) : this.lastLeft;
       rightOut[offset + i] = this.psg ? clampSample(this.lastRight * YM_GAIN + this.psgRight * PSG_GAIN * psgGains[1]) : this.lastRight;
     }
+  }
+
+  flushMixerMeters(frames) {
+    if (!this.mixMeterEnabled.ym2612 && !this.mixMeterEnabled.segapsg) return;
+    this.mixMeterFrames += frames;
+    if (this.mixMeterFrames < sampleRate / 15) return;
+    this.mixMeterFrames = 0;
+    const entries = [];
+    for (let i = 0; i < MIX_SOURCES.length; i++) {
+      const name = MIX_SOURCES[i];
+      if (this.mixMeterEnabled[name]) entries.push({id: name, left: this.mixMeterPeaks[i * 2], right: this.mixMeterPeaks[i * 2 + 1]});
+    }
+    this.port.postMessage({type: 'mixer-peaks', entries});
+    this.mixMeterPeaks.fill(0);
   }
 
   captureOutputEnvelope(left, right) {

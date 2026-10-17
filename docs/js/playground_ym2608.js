@@ -1,6 +1,6 @@
 import {attachChipClock, CHIP_CLOCKS} from './playground_chip_clock.js';
 /** Shared main-thread / Worker facade; register writes and memory transfers share one ordered port. */
-import {YM2608Synth} from './ym2608synth.js?v=ym2608-modes-1';
+import {YM2608Synth} from './ym2608synth.js?v=chip-tabs-2';
 
 /** @param {MessagePort} port */
 export function createYm2608Client(port) {

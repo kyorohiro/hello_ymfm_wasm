@@ -1,3 +1,4 @@
+import {PsgInspectorState, receiveChipInspector} from './playground_chip_inspector_state.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -10,7 +11,7 @@ import {createOpnAuditionGuard, receiveOpnAuditionCommand} from './playground_au
 function processor(tree, file, rate, imports = {}) {
   let Type;
   const messages = [];
-  const context = { YM2612DacPlayer, receiveDacCommand, createPerformanceQueue, createPerformanceChipOwnership, createOpnAuditionGuard, receiveOpnAuditionCommand, createChipPortReceiver: (apply, _now, options) => createChipPortReceiver(apply, () => context.currentFrame / rate, options), ...imports, sampleRate: rate, currentFrame: 0, Float32Array, Uint8Array, Error,
+  const context = { PsgInspectorState, receiveChipInspector, YM2612DacPlayer, receiveDacCommand, createPerformanceQueue, createPerformanceChipOwnership, createOpnAuditionGuard, receiveOpnAuditionCommand, createChipPortReceiver: (apply, _now, options) => createChipPortReceiver(apply, () => context.currentFrame / rate, options), ...imports, sampleRate: rate, currentFrame: 0, Float32Array, Uint8Array, Error,
     AudioWorkletProcessor: class { constructor() { this.port = { postMessage: x => messages.push(x) }; } },
     registerProcessor: (_, value) => { Type = value; },
   };
@@ -346,4 +347,33 @@ for(const tree of ['web','docs/js'])for(const file of ['ym2612-worklet.js','ym26
   p.applyCommand({type:'mixer-settings',name:'ym2612',gains:[.5,.5]});
   out=render(p,256);assert(Math.abs(out.left[255]-.26875)<1e-6);assert(Math.abs(out.right[255]+.225)<1e-6);
  });
+}
+
+for (const file of ['ym2612-worklet.js', 'ym2612-worklet-nuked.js']) {
+  test(`${file}: source meters are opt-in, stereo post-trim, low-frequency and stop without PCM messages`, () => {
+    const {p, messages} = processor('web', file, 48000);
+    p.ym2612 = chip(48000); p.psg = chip(48000);
+    p.ym2612.value = .5; p.psg.value = .25;
+    for (let i = 0; i < 30; i++) render(p,128);
+    assert.equal(messages.length, 0);
+    p.applyCommand({type:'mixer-settings',name:'ym2612',gains:[.5,0]});
+    render(p,256);
+    p.applyCommand({type:'mixer-metering',name:'ym2612',enabled:true});
+    p.applyCommand({type:'mixer-metering',name:'segapsg',enabled:true});
+    for (let i = 0; i < 24; i++) render(p,128);
+    assert.equal(messages.length,0);
+    render(p,128);
+    assert.equal(messages.length,1);
+    assert.equal(messages[0].type,'mixer-peaks');
+    assert.equal(messages[0].entries.length,2);
+    const [fm,psg]=messages[0].entries;
+    assert.equal(fm.id,'ym2612'); assert(Math.abs(fm.left-.225)<1e-6); assert.equal(fm.right,0);
+    assert.equal(psg.id,'segapsg'); assert(Math.abs(psg.left-.0875)<1e-6); assert(Math.abs(psg.right-.0875)<1e-6);
+    assert.equal('pcm' in messages[0],false);
+    p.applyCommand({type:'mixer-metering',name:'ym2612',enabled:false});
+    p.applyCommand({type:'mixer-metering',name:'segapsg',enabled:false});
+    for (let i = 0; i < 30; i++) render(p,128);
+    assert.equal(messages.length,1);
+    assert.equal(p.ym2612.frames,p.psg.frames);
+  });
 }

@@ -7,7 +7,7 @@
 import { SSGSynth } from "./ssgsynth.js";
 import { YM2203_CLOCK } from "./ym2203.js";
 import { OPNDirectTransport, OPNFMSynth } from "./opn_fm_synth.js";
-import { OPNRuntimeSynth } from "./opn_runtime_synth.js";
+import { OPNRuntimeSynth } from "./opn_runtime_synth.js?v=chip-tabs-2";
 
 /** Direct transport for YM2203 FM and SSG registers. */
 /** @extends {OPNDirectTransport<import('./ym2203.js').Ym2203>} */

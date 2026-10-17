@@ -1,4 +1,4 @@
-import { createPlaygroundOperatorTab } from './playground_operator_tab.js';
+import { createPlaygroundOperatorTab } from './playground_operator_tab.js?v=chip-tabs-2';
 import { createPlaygroundOperatorKeyboard } from './playground_operator_keyboard.js?v=keyboard-controls-minimize-1';
 import { createTfiFromPreset, parseTfi } from '../js/tfi.js';
 import { createVgiFromPreset, parseVgi } from '../js/vgi.js';

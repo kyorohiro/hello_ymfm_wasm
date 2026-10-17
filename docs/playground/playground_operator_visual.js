@@ -2,7 +2,7 @@ import {
   drawOperatorEnvelopeGuides,
   getOperatorEnvelopeGeometry,
   operatorEnvelopePatchFromPoint,
-} from '../synth/synth_envelope.js';
+} from '../synth/synth_envelope.js?v=chip-tabs-2';
 
 // Patch editing without an analyser, audio initialization or animation loop.
 export function createOperatorEnvelopeView({ root, getOperators, onEdit, getSelectionKey = () => 0 }) {

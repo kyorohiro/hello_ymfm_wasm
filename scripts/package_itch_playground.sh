@@ -24,6 +24,10 @@ playground_page_lifecycle.js
 playground_fx_monitor.js
 playground_audio_monitor.js
 playground_monitor_scale.js
+playground_mixer.js
+playground_mixer.css
+playground_chip_tabs.js
+playground_chip_tabs.css
 playground_workbench.js
 playground_cassette.js
 playground_examples.js
@@ -67,6 +71,8 @@ tetorica-playground-ym2612.d.ts
 
 RUNTIME_FILES="
 soundchip_mixer.js
+playground_chip_inspector.js
+playground_chip_inspector_state.js
 pwm32x.js
 pwm32x_playback.js
 playground_pwm_audio.js

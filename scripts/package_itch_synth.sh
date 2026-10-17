@@ -43,6 +43,7 @@ bitcrusher-worklet.js
 looper.js
 megasynth.js
 soundchip_mixer.js
+playground_chip_inspector_state.js
 soundchip_pitch.js
 playground_chip_clock.js
 nesapu.js

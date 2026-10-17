@@ -5,7 +5,7 @@
  * RuntimeSynth 系の実再生は OPNRuntimeSynth 経由で AudioContext / AudioWorkletNode / fetch を使う。
  */
 import { OPNDirectTransport, OPNWorkletTransport, OPNFMSynth } from "./opn_fm_synth.js";
-import { OPNRuntimeSynth } from "./opn_runtime_synth.js";
+import { OPNRuntimeSynth } from "./opn_runtime_synth.js?v=chip-tabs-2";
 import { SSGSynth } from "./ssgsynth.js?v=ssg-period-1";
 import { YM2608_CLOCK } from "./ym2608.js";
 import {readSamplePCM, encodeAdpcmB} from './adpcm_b_sample.js';
@@ -24,7 +24,7 @@ export class YM2608DirectTransport extends OPNDirectTransport {
 }
 
 export class YM2608WorkletTransport extends OPNWorkletTransport {
-  /** @param {AudioWorkletNode|MessagePort|import('./soundchip_worklet.js').WorkletSoundChip} endpoint */
+  /** @param {AudioWorkletNode|MessagePort|import('./soundchip_worklet.js?v=chip-tabs-2').WorkletSoundChip} endpoint */
   constructor(endpoint) {super(endpoint, {chipName: 'YM2608', portCount: 2});}
 }
 

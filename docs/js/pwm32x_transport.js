@@ -3,7 +3,7 @@ import {PWM32XPlayback} from './pwm32x_playback.js';
 
 /** Main-side command API; chip rendering and the schedule live in AudioWorklet. */
 export class PWM32XWorkletTransport {
-  /** @param {import("./soundchip_worklet.js").WorkletSoundChip} chip */
+  /** @param {import("./soundchip_worklet.js?v=chip-tabs-2").WorkletSoundChip} chip */
   constructor(chip) {
     if (chip.execution !== 'worklet' || chip.name !== 'pwm') throw new TypeError('Expected a PWM worklet endpoint');
     this.chip = chip;

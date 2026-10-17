@@ -282,7 +282,7 @@ export class YM2612DirectTransport {
 
 export class YM2612WorkletTransport {
   /**
-   * @param {AudioWorkletNode | MessagePort | import('./soundchip_worklet.js').WorkletSoundChip} node
+   * @param {AudioWorkletNode | MessagePort | import('./soundchip_worklet.js?v=chip-tabs-2').WorkletSoundChip} node
    */
   constructor(node) {
     this.endpoint = node?.execution === 'worklet' ? node : null;

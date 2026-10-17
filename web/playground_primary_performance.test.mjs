@@ -19,7 +19,7 @@ test('served primary worklets resolve their real static module imports, includin
       assert.ok(fs.existsSync(resolved), `${tree}/${name}.js cannot load ${path}`);
     }
     const webSource = fs.readFileSync(new URL(`./${name}.js`, import.meta.url), 'utf8');
-    assert.equal(source, webSource.replaceAll('"./generated/', '"../generated/'));
+    assert.equal(source.replaceAll('?v=chip-tabs-2',''), webSource.replaceAll('"./generated/', '"../generated/'));
   }
 });
 function processor(tree, name, rate = 48000) {

@@ -6,7 +6,7 @@ export function installPlaygroundWorkbench(root, {storage, search = window.locat
   const key = 'tetorica.playground.bottomPanel';
   let saved = {};
   try { saved = JSON.parse(storage?.getItem(key) || '{}') ?? {}; } catch {}
-  const tabs = new Set(['audio', 'fxMonitor', 'console', 'shell', 'keyboard', 'helpers']);
+  const tabs = new Set(['audio', 'fxMonitor', 'console', 'shell', 'keyboard', 'helpers', 'mixer']);
   let state = {
     height: Number.isFinite(saved.height) ? Math.max(120, Math.min(600, saved.height)) : 260,
     bottomTab: tabs.has(saved.bottomTab) ? saved.bottomTab : 'console',
@@ -31,7 +31,7 @@ export function installPlaygroundWorkbench(root, {storage, search = window.locat
   divider.setAttribute('aria-orientation', 'horizontal'); divider.setAttribute('aria-label', 'Bottom panel height');
   divider.setAttribute('aria-controls', 'bottomDock');
   divider.title = 'Drag to resize · Double-click to reset · Arrow keys to adjust';
-  for (const id of ['audioMonitor', 'fxMonitor', 'console', 'shell', 'keyboard', 'helpers']) {
+  for (const id of ['audioMonitor', 'fxMonitor', 'mixer', 'console', 'shell', 'keyboard', 'helpers']) {
     dockTabs.appendChild(document.getElementById(`${id}Tab`));
     dock.appendChild(document.getElementById(`${id}Panel`));
   }
@@ -44,7 +44,7 @@ export function installPlaygroundWorkbench(root, {storage, search = window.locat
   const toggle = element('button', 'dock-toggle');
   toggle.type = 'button'; toggle.textContent = 'Panel'; toggle.setAttribute('aria-controls', 'bottomDock');
   primaryTabs.appendChild(toggle);
-  for (const id of ['codePanel','operatorPanel']) primaryPanels.appendChild(document.getElementById(id));
+  for (const id of ['codePanel','operatorPanel','segapsgPanel','rf5c164Panel','pwmPanel']) primaryPanels.appendChild(document.getElementById(id));
   editor.append(primaryTabs, primaryPanels); right.append(editor, divider, dock);
   root.append(explorer, fileDivider, right);
   root.classList.add('workbench');

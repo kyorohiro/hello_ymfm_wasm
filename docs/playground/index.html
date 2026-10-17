@@ -11,6 +11,8 @@
     <meta property="og:type" content="website">
     <link rel="manifest" href="../playground.webmanifest">
     <link rel="icon" href="../playground-favicon.ico" sizes="any">
+    <link rel="stylesheet" href="./playground_chip_tabs.css?v=chip-tabs-2">
+    <link rel="stylesheet" href="./playground_mixer.css?v=chip-tabs-2">
     <script src="../sw-register.js"></script>
     <style>
       :root {
@@ -961,7 +963,7 @@
       .workbench-editor, .workbench-primary-panels { flex: 1; }
       .workbench-dock { flex: 0 0 var(--bottom-panel-height, 260px); border-top: 1px solid var(--line); }
       .workbench .tabbar { flex: none; overflow-x: auto; padding-top: 0; }
-      .workbench .tab-button { white-space: nowrap; border-radius: 0; }
+      .workbench .tab-button { white-space: nowrap; border-radius: 0; flex-shrink: 0; }
       .dock-toggle, .dock-close { margin-left: auto; flex: none; padding: 4px 12px; min-height: 30px; }
       .workbench .code-file-actions:not([hidden]) ~ .dock-toggle { margin-left: 0; }
       .dock-close { background: transparent; color: var(--ink); box-shadow: none; font-size: 1.2rem; }
@@ -1906,6 +1908,10 @@
             >
               YM2612
             </button>
+            <button id="segapsgTab" class="tab-button" type="button" role="tab" aria-selected="false" aria-controls="segapsgPanel">Sega PSG</button>
+            <button id="rf5c164Tab" class="tab-button" type="button" role="tab" aria-selected="false" aria-controls="rf5c164Panel">RF5C164</button>
+            <button id="pwmTab" class="tab-button" type="button" role="tab" aria-selected="false" aria-controls="pwmPanel">32X PWM</button>
+            <button id="mixerTab" class="tab-button" type="button" role="tab" aria-selected="false" aria-controls="mixerPanel">Mixer</button>
             <button id="keyboardTab" class="tab-button" type="button" role="tab" aria-selected="false" aria-controls="keyboardPanel">
               Keyboard
             </button>
@@ -2097,6 +2103,16 @@
               <li>Concurrent <code>useSoundChip()</code> requests share initialization. Options other than an empty object are not supported.</li>
             </ul>
 
+            <h2 style="margin-top: 14px;">Chip editors and Mixer</h2>
+            <ul class="helper-list">
+              <li>Sega PSG, RF5C164 and 32X PWM tabs edit connected chips. Choose an instance at the top; opening a tab does not create or reset a chip.</li>
+              <li>Open the lower Mixer panel to adjust each chip's Volume, Pan, Mute and Solo. Multiple Solo buttons can be active; clearing Solo preserves manual Mute.</li>
+              <li><code>await mixer.set(chip.id, {volume: 0.5, pan: -0.25})</code> adjusts the same output as the UI. Volume is 0–2; Pan is −1–1. <code>await mixer.set(chip.id, {solo: true})</code> solos a chip.</li>
+              <li>Master mirrors the Vol slider. A script's <code>setMasterVolume()</code> remains a separate gain. Mixer settings survive Stop → Run for the default chips and cached <code>useSoundChip()</code> instances; explicit code changes still apply.</li>
+              <li>RF5C164 loads audio from FILES into free sample RAM. Choose Start or Loop to drag a waveform marker. 32X PWM exposes routing and FIFO state; it does not load sample files.</li>
+              <li>See <code>examples/genesis/mixer-chip-balance.js</code>. Chip polling and meter analysis pause while their panels or the page are hidden.</li>
+            </ul>
+
             <h2 style="margin-top: 14px;">YM2151 (OPM)</h2>
             <ul class="helper-list">
               <li><code>const opm = await useSoundChip("ym2151")</code> reuses an independent eight-channel FM chip; <code>createSoundChip("ym2151")</code> creates a fresh instance.</li>
@@ -2243,6 +2259,10 @@
           <section id="operatorPanel" class="tab-panel" role="tabpanel" aria-labelledby="operatorTabButton" hidden>
             <div id="operatorTabRoot"></div>
           </section>
+          <section id="segapsgPanel" class="tab-panel chip-editor-panel" role="tabpanel" aria-labelledby="segapsgTab" hidden></section>
+          <section id="rf5c164Panel" class="tab-panel chip-editor-panel" role="tabpanel" aria-labelledby="rf5c164Tab" hidden></section>
+          <section id="pwmPanel" class="tab-panel chip-editor-panel" role="tabpanel" aria-labelledby="pwmTab" hidden></section>
+          <section id="mixerPanel" class="tab-panel" role="tabpanel" aria-labelledby="mixerTab" hidden></section>
           <section id="keyboardPanel" class="tab-panel" role="tabpanel" aria-labelledby="keyboardTab" hidden>
             <div id="operatorKeyboardRoot"></div>
           </section>
@@ -2296,7 +2316,7 @@
       })();
     </script>
     <script type="module">
-      import('./playground.js?v=menu-settings-1').catch(error => window.__playgroundStartup.fail(error));
+      import('./playground.js?v=chip-tabs-2').catch(error => window.__playgroundStartup.fail(error));
     </script>
   </body>
 </html>

@@ -175,6 +175,18 @@ Game Boyは28%、他は100%が初期値。`reset(id)`もその値に戻ります
 MegaSynthの`synth.mixer`、playgroundの`mixer`／`pg.mixer`も同じ設定項目を使います。
 playgroundのWorkerでは各操作を`await`してください。
 
+`solo: true` は複数音源を同時に選択できます。Solo対象外の出力を抑えますが、
+手動の`muted`は変更しません。`list()`の`effectiveMuted`で実際の抑制状態を確認できます。
+標準音源や明示IDの設定は、同じMixerへの再接続時に復元します。
+自動IDの設定を別の新しい音源へ引き継ぐことはありません。
+
+ホスト側の`subscribe(listener)`は一覧・設定変更を通知します（初期値は`list()`）。
+`subscribeMeters(listener)`は`[{id, left, right}]`のステレオピークを約15Hzで通知します。
+計測位置は音源別ゲインの後、共通FX・Masterの前です。画面を隠すときに購読解除すると、
+最後の購読解除時に専用の計測・通知を停止します。これらの購読はホスト側専用で、
+Playground Workerの公開Mixer APIには含みません。
+
+
 IDの指定は省略できます。`createSoundChip`で生成したDirect／Workletのどちらも
 `chip.id`から取得できます。自動IDは生成要求時に連番で確保し、同時初期化でも
 重複しません。IDは生成後に変更できません。手動の`{id: 'gb1'}`も利用できます。

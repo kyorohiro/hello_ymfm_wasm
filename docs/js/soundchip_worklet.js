@@ -1,9 +1,9 @@
-import {SoundChipMixer} from './soundchip_mixer.js';
+import {SoundChipMixer} from './soundchip_mixer.js?v=chip-tabs-2';
 /**
  * @typedef {{
  * execution: 'worklet', name: import('./soundchip.js').WorkletChipName,
  * port: MessagePort, node: AudioWorkletNode, audioContext: AudioContext,
- * mixer: import('./soundchip_mixer.js').SoundChipMixer, readonly id: string,
+ * mixer: import('./soundchip_mixer.js?v=chip-tabs-2').SoundChipMixer, readonly id: string,
  * readonly fdsEnabled?: boolean, readonly clock?: number,
  * sampleRate(): number, request(method: string, args?: unknown[]): Promise<unknown>,
  * createTransportPort(): MessagePort, start(): Promise<void>, stop(): Promise<void>, dispose(): Promise<void>

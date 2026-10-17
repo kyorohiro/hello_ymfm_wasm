@@ -19,7 +19,7 @@ import { createSegaPsgApi } from "./segapsg_api.js";
 import { createRf5c164Audio } from "./playground_rf5c164_audio.js";
 import { createRf5c164Client } from "./playground_rf5c164.js";
 import { samplePCM } from "./native_sample.js";
-import { TetoricaAudioRuntime } from "./tetorica_audio_runtime.js?v=prepared-fx-rerun-2";
+import { TetoricaAudioRuntime } from "./tetorica_audio_runtime.js";
 export {
   createFXBranch,
   createBitcrusherFX,
@@ -918,10 +918,17 @@ export class MegaSynth {
     }
 
     if(this.psg) Object.defineProperty(this.psg, 'id', {value: 'segapsg', enumerable: true});
+    const meterNode = this.node;
+    const receiveMixerPeaks = ({data}) => {
+      if (data?.type !== 'mixer-peaks') return;
+      for (const entry of data.entries ?? []) this.mixer.reportMeter(entry.id, entry.left, entry.right);
+    };
+    meterNode.port.addEventListener('message', receiveMixerPeaks);
+    this.mixerReleases.push(() => meterNode.port.removeEventListener('message', receiveMixerPeaks));
     for (const name of ['ym2612', ...(psgWasmBinary ? ['segapsg'] : [])]) {
       this.mixerReleases.push(this.mixer.register(name, name, settings => {
-        this.node.port.postMessage({type: 'mixer-settings', name, gains: chipMixGains(settings)});
-      }));
+        meterNode.port.postMessage({type: 'mixer-settings', name, gains: chipMixGains(settings)});
+      }, {setMetering: enabled => meterNode.port.postMessage({type: 'mixer-metering', name, enabled})}));
     }
     if (this.megaCD) {
       const device = await createRf5c164Audio(this.audioContext, this.masterInputNode, {

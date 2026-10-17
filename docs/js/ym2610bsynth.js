@@ -5,7 +5,7 @@
  * RuntimeSynth 系の実再生は OPNRuntimeSynth 経由で AudioContext / AudioWorkletNode / fetch を使う。
  */
 import { OPNDirectTransport, OPNFMSynth } from "./opn_fm_synth.js";
-import { OPNRuntimeSynth } from "./opn_runtime_synth.js";
+import { OPNRuntimeSynth } from "./opn_runtime_synth.js?v=chip-tabs-2";
 
 import { SSGSynth } from "./ssgsynth.js";
 import { YM2610B_CLOCK } from "./ym2610b.js";

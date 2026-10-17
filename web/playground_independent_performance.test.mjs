@@ -1,3 +1,4 @@
+import {PsgInspectorState,RfInspectorState,receiveChipInspector,rfSampleMetadata,readPwmInspector} from './playground_chip_inspector_state.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -21,7 +22,7 @@ async function setup(file) {
     process(left,right){left.fill(chip.value);right.fill(chip.value);}};
   class SyncChip {constructor(){return chip;}static async create(){return chip;}}
   class Playback {constructor(){return Object.assign(chip,{write(_reg,value){this.value=value;}});}}
-  const scope={currentFrame:0,sampleRate:rate,ChipClockResampler,CHIP_CLOCKS,validateChipClock,Ym2608Timeline,RF5C164Synth,PWM_METHODS,
+  const scope={PsgInspectorState,RfInspectorState,receiveChipInspector,rfSampleMetadata,readPwmInspector,currentFrame:0,sampleRate:rate,ChipClockResampler,CHIP_CLOCKS,validateChipClock,Ym2608Timeline,RF5C164Synth,PWM_METHODS,
     NesApu:SyncChip,GameboyApu:SyncChip,SegaPSG:SyncChip,Ym2151:SyncChip,Ym2612:SyncChip,Ym2203:SyncChip,Ym2610B:SyncChip,Ym2608:SyncChip,Rf5c164:SyncChip,
     Ym2608AudioEngine:{create:async()=>engine},PWM32XPlayback:Playback,factory:{},ym2612Factory:{},ym2203Factory:{},ym2610Factory:{},ym2608Factory:{},ym2151Factory:{},gameboyFactory:{},psgFactory:{},
     createRf5c164Control:()=>({reset:()=>chip.reset(),writeRegister:(reg,value)=>chip.writeRegister(reg,value),dispose:()=>chip.dispose()}),
@@ -63,6 +64,19 @@ for(const[file,command]of[
     assert.deepEqual([...p.render(8).output[0]],[1,1,1,1,0,0,0,0]);assert.equal(p.render(8).active,false);
   });
 }
+
+for(const [file,command,readValue,expected]of[
+  ['./playground_segapsg_worklet.js',{method:'write',args:[0x96]},state=>state.channels[0].attenuation,6],
+  ['./rf5c164-worklet.js',{method:'writeRegister',args:[0,77]},state=>state.channels[0].volume,77],
+])test(`${file}: inspector reads applied values without flushing future lookahead writes`,async()=>{
+  const p=await setup(file);
+  const read=()=>{p.processor.receive({type:'chip-inspector',id:'inspect',action:'read'},p.port);return p.messages.at(-1).value;};
+  const before=readValue(read());p.enqueue(command,5);
+  assert.equal(readValue(read()),before,'scheduled values must not masquerade as applied register state');
+  p.render(4);assert.equal(readValue(read()),before,'reading must not drain the performance queue');
+  p.render(2);assert.equal(readValue(read()),expected);
+  p.processor.receive({method:'dispose'},p.port);
+});
 
 test('generic PCM DAC starts at the actual intraquantum performance frame',async()=>{
   const p=await setup('./soundchip-output-worklet.js'),commands=[];

@@ -1,4 +1,4 @@
-import {SoundChipMixer} from './soundchip_mixer.js';
+import {SoundChipMixer} from './soundchip_mixer.js?v=chip-tabs-2';
 /**
  * @file tetorica_audio_runtime.js
  * 実行環境: Browser（音声処理時）

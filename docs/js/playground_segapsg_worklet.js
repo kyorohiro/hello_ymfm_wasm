@@ -1,4 +1,5 @@
 import {ChipClockResampler, CHIP_CLOCKS} from './playground_chip_clock.js';
+import {PsgInspectorState, receiveChipInspector} from './playground_chip_inspector_state.js?v=chip-tabs-2';
 import {SegaPSG} from './segapsg.js';
 import factory from '../generated/segapsg_wasm.js';
 import {createProcessorPerformance} from './playground_performance_processor.js';
@@ -18,11 +19,12 @@ class Processor extends AudioWorkletProcessor {
     SegaPSG.create({moduleFactory: factory, moduleOptions: {wasmBinary: options.processorOptions.wasmBinary}, sampleRate})
       .then(chip => {
         if (this.dead) { chip.dispose(); return; }
-        this.chip = chip; this.port.postMessage({ready: true});
+        this.chip = chip; this.inspector = new PsgInspectorState(chip, {clock:()=>CHIP_CLOCKS.segapsg*(this.clockResampler?.ratio??1),sampleRate}); this.port.postMessage({ready: true});
       }).catch(error => { this.dispose(); this.port.postMessage({error: error.message}); });
   }
   dispose() { this.performance.clear(); this.dead = true; this.chip?.dispose(); this.chip = null; this.remote?.close(); }
   receive(data, port=this.port) {
+    if(data?.type==='chip-inspector'&&receiveChipInspector(data,port,this.inspector ? (action,method,args)=>action==='read'?this.inspector.read():this.inspector.invoke(method,args) : null))return;
     if(this.performance.receive(data,port))return;
     this.apply(data,port);
   }

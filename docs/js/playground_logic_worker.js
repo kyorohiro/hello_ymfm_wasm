@@ -13,7 +13,7 @@ import {createOpnClient} from './playground_opn.js';
 import {createSoundChipRegistry} from './playground_soundchips.js';
 import {createGameboyClient} from './playground_gameboy.js';
 import {createYm2608Client} from './playground_ym2608.js?v=loop-async-tasks-1';
-import {createRf5c164Client} from './playground_rf5c164.js';
+import {createRf5c164Client} from './playground_rf5c164.js?v=chip-tabs-2';
 import {createNativeSampleController} from './native_sample.js';
 import {serializeLogError} from './playground_log.js';
 /**
@@ -627,7 +627,7 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
       const chip = await soundChips.use(name, options, chipName => {
         check();
         if (['ym2612', 'ym2203', 'ym2610'].includes(chipName) && (capabilities.chip ?? 'ym2612') === chipName) return fm;
-        return globals.createSoundChip(chipName);
+        return globals.createSoundChip(chipName, {id:`${chipName}:shared`});
       }, {evictOnDispose: !(['ym2612', 'ym2203', 'ym2610'].includes(name) && (capabilities.chip ?? 'ym2612') === name)});
       check();
       return chip;
@@ -645,7 +645,7 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
       if(run.stopped || token!==run.token){pcm.dispose();throw new Error('Run stopped');}
       Object.defineProperty(pcm, 'id', {value: mixerId, enumerable: true});
       const dispose=pcm.dispose.bind(pcm); let disposed=false;
-      pcm.dispose=()=>{if(disposed)return;disposed=true;dispose();pcmClients.delete(pcm);postMessage({type:'command',command:'pcm.dispose',args:[mixerId],performance:performanceTransport.timestamp()});};
+      pcm.dispose=()=>{if(disposed)return;disposed=true;try{dispose();}finally{pcmClients.delete(pcm);postMessage({type:'command',command:'pcm.dispose',args:[mixerId],performance:performanceTransport.timestamp()});}};
       pcmClients.add(pcm);return pcm;
     },
     mixer: Object.fromEntries(['set', 'get', 'reset', 'list'].map(method => [method, (...args) => request('mixer.' + method, args, run.currentLoop)])),

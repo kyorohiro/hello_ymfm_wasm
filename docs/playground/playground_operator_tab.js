@@ -5,8 +5,8 @@ import {
   buildOperatorControls,
   createParamControl,
   displayOperatorToApiOperator,
-} from "../synth/synth_controls.js";
-import { createOperatorEnvelopeView } from './playground_operator_visual.js';
+} from "../synth/synth_controls.js?v=chip-tabs-2";
+import { createOperatorEnvelopeView } from './playground_operator_visual.js?v=chip-tabs-2';
 
 const OPERATOR_NUMBERS = [1, 2, 3, 4];
 const SPECIAL_MODE_CHANNEL = 2;

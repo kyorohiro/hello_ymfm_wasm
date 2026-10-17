@@ -104,10 +104,10 @@ export class OPNWorkletTransport {
     if (!(bytes instanceof Uint8Array) || bytes.length !== 8192) throw new RangeError('Expected 8192-byte rhythm ROM');
     this.node.port.postMessage({type: 'loadRhythmRom', bytes});
   }
-  /** @param {AudioWorkletNode|MessagePort|import('./soundchip_worklet.js').WorkletSoundChip} node
+  /** @param {AudioWorkletNode|MessagePort|import('./soundchip_worklet.js?v=chip-tabs-2').WorkletSoundChip} node
    * @param {{portCount:number,chipName:string}} config */
   constructor(node, { portCount, chipName }) {
-    /** @type {import('./soundchip_worklet.js').WorkletSoundChip|null} */
+    /** @type {import('./soundchip_worklet.js?v=chip-tabs-2').WorkletSoundChip|null} */
     this.endpoint = node?.execution === 'worklet' ? node : null;
     if (!node?.port && node?.postMessage) node = {port: node};
     if (!node?.port?.postMessage) {

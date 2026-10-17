@@ -1,0 +1,29 @@
+.chip-editor { min-width: 0; overflow: auto; padding: 12px; }
+.chip-editor-toolbar, .chip-fields, .chip-actions, .chip-channel-list { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: end; }
+.chip-editor-toolbar { align-items: center; margin-bottom: 8px; }
+.chip-editor-toolbar .chip-field { flex: 1 1 220px; max-width: 480px; }
+.chip-editor-status { min-height: 1.3em; margin: 4px 0 10px; color: #52615e; font-size: 12px; overflow-wrap: anywhere; }
+.chip-editor-status[data-error="true"] { color: #9e3b22; }
+.chip-editor-body { border: 0; padding: 0; margin: 0; min-width: 0; display: grid; gap: 12px; }
+.chip-section { min-width: 0; border: 1px solid var(--line, #c4c6bd); border-radius: 7px; padding: 10px 12px; }
+.chip-section h3 { margin: 0 0 10px; font-size: 13px; }
+.chip-field { display: flex; flex-direction: column; gap: 5px; min-width: 100px; font-size: 12px; }
+.chip-field-label { color: #52615e; }
+.chip-field input[type="number"], .chip-field input[type="text"], .chip-field select { box-sizing: border-box; font: inherit; color: var(--ink, #252b2e); background: #fff; border: 1px solid var(--line, #c4c6bd); border-radius: 6px; padding: 6px 8px; }
+.chip-field input:disabled, .chip-field select:disabled { color: #66716c; background: #f1f2ee; }
+.chip-field input[type="number"] { width: 118px; }
+.chip-field input[type="text"] { width: 85px; }
+.chip-field input[type="range"] { width: 125px; margin: 0; accent-color: var(--accent-dark, #087680); }
+.chip-field select { max-width: min(440px, 100%); }
+.chip-field output { min-height: 1.5em; font-variant-numeric: tabular-nums; }
+.chip-actions { gap: 6px; align-self: center; }
+.chip-advanced { margin-top: 10px; }
+.chip-advanced summary { cursor: pointer; color: #52615e; font-size: 12px; margin-bottom: 9px; }
+.chip-channel-list { align-items: center; gap: 6px; }
+.chip-channel-list button { min-width: 48px; }
+.chip-channel-list button[aria-pressed="true"] { outline: 2px solid var(--accent, #7bbcf7); outline-offset: 1px; }
+.chip-channel-list button[data-sounding="true"] { font-weight: 700; }
+.chip-sample-waveform { display: block; width: 100%; height: 150px; margin: 10px 0; background: #101820; border: 1px solid var(--line, #c4c6bd); border-radius: 4px; touch-action: none; cursor: crosshair; }
+.chip-memory-ranges { margin: 8px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; color: #52615e; font-size: 11px; }
+.chip-editor > .subtext { line-height: 1.5; }
+@media (max-width: 640px) { .chip-editor { padding: 8px; } .chip-fields { gap: 10px; } .chip-field { min-width: 90px; } .chip-field select { max-width: 240px; } }

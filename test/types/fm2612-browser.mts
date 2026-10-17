@@ -25,7 +25,14 @@ const bytes: Uint8Array = encodeWav({sampleRate: 48000, left: new Float32Array(1
 void bytes;
 
 const mixer = new SoundChipMixer();
-mixer.set('gb1', {volume:0.28, pan:0, muted:false});
+mixer.set('gb1', {volume:0.28, pan:0, muted:false, solo:true});
+const stopMixChanges = mixer.subscribe(entries => {entries[0]?.effectiveMuted.valueOf();});
+const stopMixMeters = mixer.subscribeMeters(entries => {entries[0]?.left.toFixed(2); entries[0]?.id.toUpperCase();});
+stopMixChanges(); stopMixMeters();
+// @ts-expect-error Solo is a boolean.
+mixer.set('gb1', {solo:'yes'});
+// @ts-expect-error Meter peaks are numbers.
+mixer.subscribeMeters(entries => entries[0]?.right.toUpperCase());
 mixer.reset();
 const mixedChip = await createSoundChip('gameboy', {execution:'worklet', mixer, id:'gb1'});
 mixedChip.mixer.get(mixedChip.id).volume.toFixed(2);

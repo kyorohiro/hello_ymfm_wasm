@@ -36,6 +36,19 @@ test('Worklet initializes real WASM, accepts direct port and disposes',async()=>
  const pcm=createRf5c164Client(port2,async()=>({channels:[new Float32Array(32).fill(.5)],sampleRate:32000}));
  const wave=await pcm.loadSample(new ArrayBuffer(0),{loopStart:0});await pcm.setChannel(7,{...wave,volume:255,pan:{left:15,right:15}});await pcm.keyOn(7);
  const output=[[new Float32Array(128),new Float32Array(128)]];assert.equal(processor.process([],output),true);assert(output[0][0].some(x=>x>0));
+ const admin=[];processor.port.postMessage=value=>admin.push(value);
+ processor.port.onmessage({data:{type:'chip-inspector',id:'admin-read',action:'read'}});
+ const snapshot=admin.at(-1).value;assert.equal(snapshot.kind,'rf5c164');assert.equal(snapshot.channels[7].active,true);assert.equal(snapshot.channels[7].step,wave.step);
+ assert.equal(snapshot.samples[0].frames,32);assert.equal(snapshot.samples[0].loopStart,0);
+ // The independent Main admin channel remains usable alongside the direct client port.
+ const more=encodeRf5c164({channels:[new Float32Array(16).fill(-.2)],sampleRate:16000});
+ processor.port.onmessage({data:{type:'chip-inspector',id:'admin-load',action:'loadSample',args:[more.bytes,{name:'second',frames:more.frames,step:more.step},{}]}});
+ assert.equal(admin.at(-1).value.address,256);
+ processor.port.onmessage({data:{type:'chip-inspector',id:'admin-overlap',action:'loadSample',args:[more.bytes,{frames:more.frames,step:more.step},{address:0}]}});
+ assert.match(admin.at(-1).error,/overwrite/);
+ await pcm.loadMemory(new Uint8Array([128]),0);
+ processor.port.onmessage({data:{type:'chip-inspector',id:'admin-invalidated',action:'read'}});
+ assert.deepEqual(admin.at(-1).value.samples.map(sample=>sample.name),['second']);
  pcm.dispose();await new Promise(r=>setTimeout(r,20));assert.equal(processor.process([],output),false);port1.close();
  delete globalThis.AudioWorkletProcessor;delete globalThis.registerProcessor;delete globalThis.sampleRate;delete globalThis.currentFrame;
 });

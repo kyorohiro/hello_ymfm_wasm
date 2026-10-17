@@ -1,3 +1,4 @@
+import {createChipInspector} from './playground_chip_inspector.js?v=chip-tabs-2';
 import {createPerformanceHost} from './playground_performance_host.js';
 import {validateWorkerLookahead} from './playground_performance_sender.js';
 import {midiToOpnPitch, opnPitchFromHz} from './soundchip_pitch.js';
@@ -6,11 +7,11 @@ import {createNesAudio} from './playground_nes_audio.js';
 import {createNesClient} from './playground_nes.js';
 import {createDx7Audio} from './playground_dx7_audio.js';
 import {createDx7Client} from './playground_dx7.js';
-import {createPWM32XAudio} from './playground_pwm_audio.js';
+import {createPWM32XAudio} from './playground_pwm_audio.js?v=chip-tabs-2';
 import {createPWM32XClient} from './pwm32x_playback.js';
 import {createYm2151Audio} from './playground_ym2151_audio.js';
 import {createYm2151Client} from './playground_ym2151.js';
-import {createSegaPsgAudio} from './playground_segapsg_audio.js';
+import {createSegaPsgAudio} from './playground_segapsg_audio.js?v=chip-tabs-2';
 import {createSegaPsgClient} from './playground_segapsg.js';
 import {createLoopAsyncTasks} from './playground_async_tasks.js';
 import {createOpnAudio} from './playground_opn_audio.js';
@@ -20,8 +21,8 @@ import {createGameboyAudio} from './playground_gameboy_audio.js';
 import {createGameboyClient} from './playground_gameboy.js';
 import {createYm2608Audio} from './playground_ym2608_audio.js?v=loop-async-tasks-1';
 import {createYm2608Client} from './playground_ym2608.js?v=loop-async-tasks-1';
-import {createRf5c164Client} from './playground_rf5c164.js';
-import {createRf5c164Audio} from './playground_rf5c164_audio.js';
+import {createRf5c164Client} from './playground_rf5c164.js?v=chip-tabs-2';
+import {createRf5c164Audio} from './playground_rf5c164_audio.js?v=chip-tabs-2';
 import {samplePCM} from './native_sample.js';
 import {formatLogArgs} from './playground_log.js';
 import {createLiveFxLifecycle} from './native_fx.js?v=live-fx-definitions-1';
@@ -36,8 +37,8 @@ import {parseMidiFile} from './midi_file.js?v=readable-midi-1';
 import { createAudioScheduler } from "./playground_audio_scheduler.js";
 import {
   FM_PRESETS,
-} from "./megasynth.js?v=prepared-fx-rerun-2";
-import { createTetoricaSynth } from "./tetorica_synth.js";
+} from "./megasynth.js?v=chip-tabs-2";
+import { createTetoricaSynth } from "./tetorica_synth.js?v=chip-tabs-2";
 import { createPlaygroundClock } from "./playground_clock.js?v=run-sample-clock-1";
 import { capturePlaygroundNativeIpc, executeWithPlaygroundGuards } from "./playground_execution.js";
 import { createPlaygroundLive } from "./playground_live.js?v=run-sample-clock-1";
@@ -111,7 +112,7 @@ export function createPlaygroundRuntime(
         options.workletUrl ??
         (options.chip === "ym2610"
           ? "./ym2610b-worklet.js"
-          : "./ym2612-worklet.js"),
+          : "./ym2612-worklet.js?v=chip-tabs-2"),
       ym2612WasmUrl:
         options.ym2612WasmUrl ??
         "./generated/ym2612_wasm.wasm",
@@ -190,7 +191,7 @@ export function createPlaygroundRuntime(
     options.execution ?? "main";
   const defaultLogicWorkerUrl =
     new URL(
-      "./playground_logic_worker.js?v=worker-lookahead-1",
+      "./playground_logic_worker.js?v=chip-tabs-2",
       import.meta.url
     );
   defaultLogicWorkerUrl.searchParams.set(
@@ -239,8 +240,22 @@ export function createPlaygroundRuntime(
     onSuspended: () => { stop(); emitStatus('Audio suspended. Press Run to start again.'); }});
   const pcmDevices = new Set();
   const pendingPcmIds = new Set();
+  const pendingPcmDisposals = new Map();
   let pcmSequence = 0;
   const soundChips = createSoundChipRegistry();
+  const chipInspector = createChipInspector({decode:decodePcm,endpoints:()=>{
+    const entries=[];
+    if(megaDrive.psg&&megaDrive.node?.port)entries.push({id:'segapsg',kind:'segapsg',label:'Sega PSG (primary)',port:megaDrive.node.port});
+    if(megaDrive.pcm&&megaDrive.pcmDevice?.node?.port)entries.push({id:'rf5c164',kind:'rf5c164',label:'RF5C164 (primary)',port:megaDrive.pcmDevice.node.port});
+    if(megaDrive.pwm&&megaDrive.pwmDevice?.node?.port)entries.push({id:'pwm',kind:'pwm',label:'32X PWM (primary)',port:megaDrive.pwmDevice.node.port});
+    for(const device of pcmDevices)if(['segapsg','rf5c164','pwm'].includes(device.chipName))entries.push({id:device.mixerId,kind:device.chipName,label:device.mixerId,port:device.node.port});
+    return entries;
+  }});
+  let releaseInspectorMixerSubscription=null;
+  function watchInspectorMixer() {
+    releaseInspectorMixerSubscription??=megaDrive.mixer?.subscribe?.(()=>queueMicrotask(()=>chipInspector.notify()));
+  }
+  watchInspectorMixer();
   let sharedFm;
   let sharedFmSynth;
   // UI notes share the chip and its output gain, but own their channel until
@@ -287,7 +302,12 @@ export function createPlaygroundRuntime(
     if (!options || typeof options !== 'object' || Array.isArray(options) || Object.keys(options).some(k => !['id', ...(name === 'nes' ? ['fds', 'clock'] : [])].includes(k))) throw new TypeError('createSoundChip supports {id}, and {fds, clock} for NES');
     if (name === 'nes' && options.fds !== undefined && typeof options.fds !== 'boolean') throw new TypeError('fds must be boolean');
     if(!['ym2612', 'ym2203', 'ym2610', 'rf5c164', 'ym2608', 'gameboy', 'segapsg', 'ym2151', 'pwm', 'nes', 'dx7'].includes(name)) throw new Error('Unsupported Playground sound chip: ' + name);
-    const occupied = id => pendingPcmIds.has(id) || megaDrive.mixer?.list().some(s => s.id === id && s.connected);
+    // A Worker can retire a logical source at its future lookahead position,
+    // then immediately request that same cached source again. Reconnect only
+    // after the old endpoint is actually released, never into a different chip.
+    if(options.id!==undefined)await pendingPcmDisposals.get(options.id);
+    if(token!==currentRunToken)throw new Error('Run stopped');
+    const occupied = id => pendingPcmIds.has(id) || [...pcmDevices].some(device=>device.mixerId===id) || megaDrive.mixer?.list().some(s => s.id === id && s.connected);
     const reservation = megaDrive.mixer?.reserveId?.(name, options.id);
     let mixerId = reservation?.id ?? options.id;
     if (mixerId === undefined) do {mixerId = `${name}:${++pcmSequence}`;} while (occupied(mixerId));
@@ -299,17 +319,24 @@ export function createPlaygroundRuntime(
     try {device = await createAudio(megaDrive.audioContext, megaDrive.audio.masterInputNode);}
     catch (error) {pendingPcmIds.delete(mixerId); reservation?.release(); throw error;}
     if(token !== currentRunToken){pendingPcmIds.delete(mixerId);reservation?.release();device.dispose();throw new Error('Run stopped');}
+    let release = () => {};
     try {
       if (megaDrive.mixer) {
         device.node.disconnect(megaDrive.audio.masterInputNode);
-        const release = megaDrive.mixer.connect(mixerId, name, device.node, megaDrive.audio.masterInputNode, megaDrive.audioContext);
-        const dispose = device.dispose; let disposed = false;
-        device.dispose = () => {if (disposed) return; disposed = true; release(); pcmDevices.delete(device); dispose();};
+        release = megaDrive.mixer.connect(mixerId, name, device.node, megaDrive.audio.masterInputNode, megaDrive.audioContext);
       }
     } catch (error) {device.dispose(); throw error;}
     finally {pendingPcmIds.delete(mixerId);reservation?.release();}
-    device.mixerId = mixerId;
-    pcmDevices.add(device);return device;
+    const dispose = device.dispose; let disposed = false;
+    device.dispose = () => {
+      if (disposed) return; disposed = true;
+      try {release();} finally {
+        pcmDevices.delete(device);
+        try {dispose();} finally {chipInspector.notify();}
+      }
+    };
+    device.mixerId = mixerId; device.chipName = name;
+    pcmDevices.add(device); chipInspector.notify(); return device;
   }
   async function decodePcm(source){
     if(source instanceof Uint8Array)source=source.buffer.slice(source.byteOffset,source.byteOffset+source.byteLength);
@@ -783,6 +810,7 @@ export function createPlaygroundRuntime(
   }
 
   async function ensureReady({resumeOutput = true} = {}) {
+    watchInspectorMixer();
     const token = currentRunToken;
     const resumeOutputIfCurrent = () => {
       if (resumeOutput && token === currentRunToken && !pendingFadeStop) resumeStopFade();
@@ -835,6 +863,7 @@ export function createPlaygroundRuntime(
           };
         }
         synth = megaDrive.fm;
+        chipInspector.notify();
         installMegaDriveListener();
         synth.setPreset(
           0,
@@ -1011,10 +1040,16 @@ export function createPlaygroundRuntime(
       return {port:device.port,id:device.mixerId,clock:device.clock,fdsEnabled:device.fdsEnabled,sampleRate:device.sampleRate,internalSampleRate:device.internalSampleRate,voices:device.voices,selectedVoice:device.selectedVoice};}
     if(command==='pcm.dispose') {
       const devices=[...pcmDevices].filter(device=>device.mixerId===args[0]);
+      if(!devices.length)return;
+      let finish;
+      const pending=new Promise(resolve=>{finish=resolve;});
+      pendingPcmDisposals.set(args[0],pending);
       const cleanup=()=>{
         if(performance && performanceHost.clock?.session===performance.session &&
             megaDrive.audioContext.currentTime < performance.time) {setTimeout(cleanup,10);return;}
-        for(const device of devices){performanceHost.detach(device.node?.port);device.dispose();}
+        try {for(const device of devices){performanceHost.detach(device.node?.port);device.dispose();}}
+        catch(error){emitLog(formatLogArgs([error]));}
+        finally {if(pendingPcmDisposals.get(args[0])===pending)pendingPcmDisposals.delete(args[0]);finish();}
       };
       cleanup(); return;
     }
@@ -1194,9 +1229,10 @@ export function createPlaygroundRuntime(
         .then(() => {
           if (logicWorker !== worker) return;
           const result = invokeWorkerCommand(message.command, message.args ?? [], message.performance);
-          if (message.command === "play" || message.command === "midi.file") {
+          if (message.command === "play" || message.command === "midi.file" || message.command === 'pcm.create') {
             // Start notes in FIFO order, but their durations must not block other
-            // loops, register writes or Stop. Reply only when this note completes.
+            // loops, register writes or Stop. Chip creation may also wait for a
+            // retired same-ID node; unrelated RPC must keep flowing meanwhile.
             void result.then(value => respond(value), error => respond(undefined, error));
             return;
           }
@@ -1542,7 +1578,7 @@ export function createPlaygroundRuntime(
         const chip = await soundChips.use(name, options, chipName => {
           check();
           if (['ym2612', 'ym2203', 'ym2610'].includes(chipName) && capabilities.chip === chipName) return fm;
-          return pg.createSoundChip(chipName);
+          return pg.createSoundChip(chipName, {id:`${chipName}:shared`});
         }, {evictOnDispose: !(['ym2612', 'ym2203', 'ym2610'].includes(name) && capabilities.chip === name)});
         check();
         return chip;
@@ -1552,7 +1588,7 @@ export function createPlaygroundRuntime(
         const client=name === 'dx7' ? createDx7Client(device.port, device) : name === 'nes' ? createNesClient(device.port, device) : name === 'pwm' ? createPWM32XClient(device.port) : ['ym2612', 'ym2203', 'ym2610'].includes(name) ? createOpnClient(name, device.port) : name === 'ym2151' ? createYm2151Client(device.port) : name === 'segapsg' ? createSegaPsgClient(device.port) : name === 'gameboy' ? createGameboyClient(device.port) : name === 'ym2608' ? createYm2608Client(device.port) : createRf5c164Client(device.port,decodePcm);
         Object.defineProperty(client, 'id', {value: device.mixerId, enumerable: true});
         const dispose=device.dispose, disposeClient=client.dispose.bind(client); let disposed=false;
-        client.dispose=()=>{if(disposed)return;disposed=true;disposeClient();dispose();};
+        client.dispose=()=>{if(disposed)return;disposed=true;try{disposeClient();}finally{dispose();}};
         // Keep the current method visible: useSoundChip wraps it to evict the
         // cached endpoint, including when a device fails asynchronously.
         device.dispose=()=>client.dispose();
@@ -2242,7 +2278,12 @@ export function createPlaygroundRuntime(
     removeMegaDriveListener?.();
     removeMegaDriveListener =
       null;
+    releaseInspectorMixerSubscription?.();
+    releaseInspectorMixerSubscription=null;
     await megaDrive.close();
+    // finalize() can be followed by initialize() on the same Runtime. Drop dead
+    // port listeners while retaining the UI subscriptions for that next audio session.
+    chipInspector.notify();
     stopFadeNode?.disconnect();
     if (stopFadeNode && megaDrive.audio) megaDrive.audio.outputNode = previousOutputNode;
     stopFadeNode = null;
@@ -2283,6 +2324,7 @@ export function createPlaygroundRuntime(
 
   return {
     mixer: megaDrive.mixer,
+    chipInspector,
     logicWorkerUrl,
     initialize,
     ensureReady,

@@ -41,6 +41,22 @@ function setup(t, capabilities) {
   return { runtime, megaDrive, listeners, statuses, logs };
 }
 
+test('chip inspector stays audio-free until initialization and retains subscriptions across finalize/reinitialize',async t=>{
+  const {runtime,megaDrive}=setup(t);
+  const subscribers=new Set();let starts=0;
+  megaDrive.mixer={subscribe:listener=>{subscribers.add(listener);return()=>subscribers.delete(listener);}};
+  megaDrive.start=async function(){starts++;this.state='ready';this.psg={};this.node={port:{postMessage(){}}};};
+  megaDrive.close=async function(){this.psg=null;this.node=null;this.state='closed';};
+  const snapshots=[];const unsubscribe=runtime.chipInspector.subscribe(entries=>snapshots.push(entries.map(entry=>entry.id)));
+  assert.deepEqual(runtime.chipInspector.list(),[]);
+  await assert.rejects(runtime.chipInspector.read('segapsg'),/not connected/);
+  assert.equal(starts,0);assert.equal(subscribers.size,0);
+  await runtime.initialize();assert.equal(starts,1);assert.equal(subscribers.size,1);assert.deepEqual(snapshots.at(-1),['segapsg']);
+  await runtime.finalize();assert.equal(subscribers.size,0);assert.deepEqual(snapshots.at(-1),[]);
+  await runtime.initialize();assert.equal(starts,2);assert.equal(subscribers.size,1);assert.deepEqual(snapshots.at(-1),['segapsg']);
+  await runtime.finalize();unsubscribe();
+});
+
 test('rerun replaces a liveLoop only after its current iteration completes', async t => {
   const {runtime} = setup(t);
   const old = deferred(), next = deferred(), events = [];

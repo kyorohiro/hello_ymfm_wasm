@@ -16,7 +16,7 @@ const server=http.createServer(async(request,response)=>{
   let body=await fs.readFile(file);
   if(pathname.endsWith('/playground.js'))body=Buffer.from(body.toString()+'\nwindow.__lookahead={runtime,megaDrive,get editor(){return editorAdapter;}};');
   if(pathname.endsWith('/playground_runtime.js')){
-   const anchor='pcmDevices.add(device);return device;';
+   const anchor='pcmDevices.add(device); chipInspector.notify(); return device;';
    body=Buffer.from(replace(body.toString(),anchor,`device.node.port.addEventListener('message',({data})=>{
     if(data.type==='lookahead-trace')(globalThis.__lookaheadDeviceTraces??=[]).push(data);
    });${anchor}`));

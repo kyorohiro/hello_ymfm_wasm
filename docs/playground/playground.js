@@ -1,6 +1,8 @@
 import {installFileExplorerResize} from './playground_file_resize.js';
 import {installFileExplorerMenu} from './playground_file_menu.js?v=file-menu-1';
-import {installPlaygroundWorkbench} from './playground_workbench.js?v=keyboard-helper-panel-1';
+import {installPlaygroundWorkbench} from './playground_workbench.js?v=chip-tabs-2';
+import {createPlaygroundMixer} from './playground_mixer.js?v=chip-tabs-2';
+import {createPlaygroundChipTabs} from './playground_chip_tabs.js?v=chip-tabs-2';
 import {installPlaygroundShell} from './playground_shell.js?v=compact-shell-1';
 import {installPlaygroundGit} from './playground_git.js';
 import {openDraftStore, createProjectAutosave} from './playground_autosave.js';
@@ -8,6 +10,8 @@ let desktopAutosave = null;
 let playgroundShell = null;
 let fileExplorerMenu = null;
 let restoredDesktopProject = false;
+let mixerPanel = null;
+let chipTabs = null;
 let pendingDesktopCassetteAssets = null;
 const cassettePresetNames = new Set();
 const cassetteSampleNames = new Set();
@@ -20,11 +24,11 @@ import {installMidiImport} from './playground_midi_import.js?v=midi-sections-1';
 import {
   FM_PRESET_ORDER,
   FM_PRESETS,
-} from "../js/megasynth.js";
+} from "../js/megasynth.js?v=chip-tabs-2";
 import {
   createTetoricaSynth,
   normalizeTetoricaChip,
-} from "../js/tetorica_synth.js?v=prepared-fx-rerun-2";
+} from "../js/tetorica_synth.js?v=chip-tabs-2";
 import {
   createTfiOperatorObjectText,
   createTfiPresetObjectText,
@@ -34,10 +38,10 @@ import {
 import { createVgiFromPreset, parseVgi } from "../js/vgi.js";
 import {
   createPlaygroundOperatorTab,
-} from "./playground_operator_tab.js";
+} from "./playground_operator_tab.js?v=chip-tabs-2";
 import { createPlaygroundOperatorKeyboard } from "./playground_operator_keyboard.js?v=keyboard-controls-minimize-1";
 import { CHIP_CLOCKS } from "../js/playground_chip_clock.js";
-import { DEFAULT_CODE, EXAMPLES, EXAMPLE_FILES } from "./playground_examples.js?v=dx7-soundchip-1";
+import { DEFAULT_CODE, EXAMPLES, EXAMPLE_FILES } from "./playground_examples.js?v=chip-tabs-2";
 import { initializePlaygroundMonaco } from "./playground_monaco.js?v=dx7-soundchip-1";
 import {
   decodeBase64Bytes,
@@ -69,11 +73,11 @@ import { exportYm2608VgmToPlaygroundJavaScript } from "../js/ym2608vgm.js";
 import { exportYm2610BVgmToPlaygroundJavaScript } from "../js/ym2610bvgm.js";
 import {
   createPlaygroundRuntime,
-} from "../js/playground_runtime.js?v=worker-lookahead-1";
+} from "../js/playground_runtime.js?v=chip-tabs-2";
 import { createVgmPresetFiles } from "./playground_vgm_presets.js";
-import { createTfiFileEditor, instrumentToEditorPreset } from "./playground_tfi_editor.js?v=audio-preview-monitor-1";
+import { createTfiFileEditor, instrumentToEditorPreset } from "./playground_tfi_editor.js?v=chip-tabs-2";
 import { renderFileTree } from "./playground_file_tree.js?v=file-menu-1";
-import { createPlaygroundUi, applyPlaygroundLayout } from "./playground_ui.js?v=menu-settings-1";
+import { createPlaygroundUi, applyPlaygroundLayout } from "./playground_ui.js?v=chip-tabs-2";
 import {
   handleMegaSynthEvent,
 } from "./playground_sync.js";
@@ -261,8 +265,8 @@ const selectedWorkletChip =
 const synthOptions = {
   chip: selectedChip,
   workletUrl: useNukedEngine
-    ? "../js/ym2612-worklet-nuked.js?v=perf-queue-1"
-    : `../js/${selectedWorkletChip}-worklet.js?v=perf-queue-1`,
+    ? "../js/ym2612-worklet-nuked.js?v=chip-tabs-2"
+    : `../js/${selectedWorkletChip}-worklet.js?v=chip-tabs-2`,
   ym2612WasmUrl: useNukedEngine
     ? "../generated/nuked_opn2_wasm.wasm"
     : "../generated/ym2612_wasm.wasm",
@@ -556,6 +560,8 @@ const tfiFileEditor = createTfiFileEditor({
 window.addEventListener("pagehide", event => {
   if (!event.persisted) {
     operatorTab.dispose();
+    mixerPanel?.dispose();
+    chipTabs?.dispose();
     void tfiFileEditor.dispose();
   }
 });
@@ -574,6 +580,7 @@ function updateMasterVolumeUi() {
     masterVolumeValue.textContent =
       `${Math.round(masterVolume * 100)}%`;
   }
+  mixerPanel?.syncOutputVolume();
 }
 
 function applyMasterVolume() {
@@ -1693,6 +1700,10 @@ const ui =
     helpersPanel,
     operatorPanel,
     keyboardPanel,
+    ...Object.fromEntries(['segapsg', 'rf5c164', 'pwm', 'mixer'].flatMap(name => [
+      [`${name}Tab`, document.getElementById(`${name}Tab`)],
+      [`${name}Panel`, document.getElementById(`${name}Panel`)],
+    ])),
     onBottomTabChange(tabName, layout) {
       if (layout) workbench.sync(layout);
       const tool = layout ? (layout.dockOpen ? layout.bottomTab : null) : tabName;
@@ -1706,6 +1717,8 @@ const ui =
       if (inlineAudioMonitor) audioMonitorPanel.hidden = !showAudio;
       audioMonitor.setVisible(showAudio);
       operatorTab.setVisible(primary === "operator");
+      chipTabs?.setVisible(['segapsg', 'rf5c164', 'pwm'].includes(primary) ? primary : null);
+      mixerPanel?.setVisible(tool === 'mixer');
       operatorKeyboard.setView(tool === "keyboard" ? "keyboard" : primary);
       tfiFileEditor.setVisible(primary === "code" && Boolean(activeTfiFilePath));
       refreshCodeFileActions();
@@ -1743,6 +1756,8 @@ function createRuntime() {
       operatorTab.attachSynth(synth);
       operatorKeyboard.attachSynth(runtime.getAuditionSynth());
       applyMasterVolume();
+      mixerPanel?.refresh();
+      chipTabs?.refresh();
     },
     onMegaDriveEvent(event) {
       handleMegaSynthEvent(
@@ -1760,6 +1775,27 @@ function createRuntime() {
 }
 
 const runtime = createRuntime();
+mixerPanel = createPlaygroundMixer({
+  root: document.getElementById('mixerPanel'),
+  getMixer: () => megaDrive.mixer,
+  getAudio: () => megaDrive.audio,
+  getOutputVolume: () => listeningVolume,
+  getScriptVolume: () => megaDrive.getMasterVolume(),
+  setOutputVolume(value) {
+    listeningVolume = value;
+    applyMasterVolume();
+    tfiFileEditor.setMasterVolume(listeningVolume);
+    updateMasterVolumeUi();
+  },
+  onError: error => setStatus(`Mixer: ${error.message}`),
+});
+chipTabs = createPlaygroundChipTabs({
+  roots: Object.fromEntries(['segapsg', 'rf5c164', 'pwm'].map(name => [name, document.getElementById(`${name}Panel`)])),
+  getInspector: () => runtime.chipInspector,
+  listFiles: () => virtualFiles.list().filter(file => !isCheckpointVirtualPath(file.path)),
+  readFile: path => virtualFiles.get(path),
+  onError: error => setStatus(`Sound chip: ${error.message}`),
+});
 const pageLifecycle = installPlaygroundPageLifecycle({
   target: window,
   getRuntime: () => runtime,

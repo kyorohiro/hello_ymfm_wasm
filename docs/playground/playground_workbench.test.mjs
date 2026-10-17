@@ -129,3 +129,34 @@ test('Operator retains compact audition when the lower panel is another tool or 
   assert.equal(options.codePanel.hidden,false);
   assert.equal(options.keyboardPanel.hidden,false, 'the full lower keyboard stays open when returning to Code');
 });
+
+test('chip editors remain above a separately selected Mixer and navigate in visual order', () => {
+  const {options} = setup();
+  for (const name of ['segapsg', 'rf5c164', 'pwm', 'mixer']) {
+    options[`${name}Panel`] = {};
+    options[`${name}Tab`] = {setAttribute() {}, focus() {this.focused = true;}};
+  }
+  const events = [];
+  options.onBottomTabChange = (_, state) => events.push(state);
+  const ui = createPlaygroundUi(options);
+  ui.setBottomTab('segapsg'); ui.setBottomTab('mixer');
+  assert.equal(options.segapsgPanel.hidden, false);
+  assert.equal(options.mixerPanel.hidden, false);
+  assert.equal(options.codePanel.hidden, true);
+  assert.equal(options.keyboardPanel.hidden, true);
+  assert.deepEqual(events.at(-1), {primaryTab: 'segapsg', bottomTab: 'mixer', dockOpen: true});
+  ui.moveBottomTabFocus(options.operatorTabButton, 1);
+  assert.equal(options.segapsgTab.focused, true);
+  ui.moveBottomTabFocus(options.segapsgTab, 1);
+  assert.equal(options.rf5c164Tab.focused, true);
+  ui.moveBottomTabFocus(options.pwmTab, 1);
+  assert.equal(options.codeTab.focused, true);
+  ui.moveBottomTabFocus(options.fxMonitorTab, 1);
+  assert.equal(options.mixerTab.focused, true);
+  ui.moveBottomTabFocus(options.mixerTab, 1);
+  assert.equal(options.consoleTab.focused, true);
+  ui.setDockVisible(false);
+  assert.equal(options.mixerPanel.hidden, true);
+  ui.setBottomTab('mixer');
+  assert.equal(options.mixerPanel.hidden, false);
+});

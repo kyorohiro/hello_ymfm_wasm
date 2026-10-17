@@ -95,7 +95,9 @@ complete setup, playback and cleanup.
 Browser outputs share `SoundChipMixer`: `volume` is a linear multiplier (0–2),
 `pan` is stereo balance (-1 left, 0 center, 1 right), and `muted` silences the
 output while the chip keeps running. Game Boy starts at 28%; other chips start
-at 100%. `reset(id)` restores that chip's balance; `reset()` restores all strips.
+at 100%. Multiple strips can be `solo: true`; other connected strips are
+suppressed without overwriting their manual `muted` settings. `list()` exposes
+`effectiveMuted` separately. `reset(id)` restores that chip's balance; `reset()` restores all strips.
 
 ```js
 import {createSoundChip, SoundChipMixer} from 'tetorica-fm2612';
@@ -122,6 +124,20 @@ Built-in strip IDs are `ym2612`, `segapsg` when enabled, `rf5c164` in Mega CD
 mode and `pwm` in Mega 32X mode. Settings can be specified before `start()`.
 Mixer output feeds the existing FX chain, then the master volume. Closing the
 synth removes its connected strips. A shared mixer can be passed as `{mixer}`.
+Explicit IDs (including MegaSynth's built-in IDs) retain their settings in that
+mixer when disconnected and reconnected. Automatic IDs are transient and do
+not transfer settings to newly created chips. This is session state, not
+persistent storage.
+
+Hosts can observe source lifetimes and settings with `mixer.subscribe(listener)`;
+read `mixer.list()` for the initial state. `mixer.subscribeMeters(listener)` opts
+into stereo peak summaries (`[{id, left, right}]`) at approximately 15 Hz per
+source. Levels are after the chip trim and before shared FX/master, and can
+exceed 1. Unsubscribe when the view is hidden: the last meter unsubscribe stops
+measurement and removes dedicated analyser branches. No continuous PCM stream
+is transferred to the UI. These subscription methods belong to the host-side
+`SoundChipMixer`; Playground Worker scripts use the asynchronous settings API.
+
 
 Inside Playground Main or Worker code:
 

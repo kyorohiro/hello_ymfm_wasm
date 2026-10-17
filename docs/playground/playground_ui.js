@@ -105,6 +105,7 @@ export function createPlaygroundUi(
       button: fxMonitorTab,
       panel: fxMonitorPanel,
     },
+    {name: 'mixer', button: options.mixerTab, panel: options.mixerPanel},
     {
       name: "console",
       button: consoleTab,
@@ -116,6 +117,7 @@ export function createPlaygroundUi(
       button: operatorTabButton,
       panel: operatorPanel,
     },
+    ...['segapsg', 'rf5c164', 'pwm'].map(name => ({name, button: options[`${name}Tab`], panel: options[`${name}Panel`]})),
     {
       name: "keyboard",
       button: keyboardTab,
@@ -128,7 +130,7 @@ export function createPlaygroundUi(
     },
   ];
 
-  const auxiliaryTabs = new Set(["audio", "fxMonitor", "console", "shell", "keyboard", "helpers"]);
+  const auxiliaryTabs = new Set(["audio", "fxMonitor", "console", "shell", "keyboard", "helpers", "mixer"]);
   let primaryTab = "code";
   let bottomTab = options.initialBottomTab ?? "console";
   let dockOpen = options.initialDockOpen ?? true;
