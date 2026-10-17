@@ -8,7 +8,7 @@ dependencies; Emscripten is not required to use the package.
 
 ## Quick start
 
-After npm publication:
+Run directly with npm:
 
 ```sh
 npx tetorica-vgm analyze song.vgz --json
@@ -16,8 +16,8 @@ npx tetorica-vgm export song.vgz --format musicxml --output song.musicxml
 npx tetorica-vgm render song.vgz --output song.wav --max-seconds 120
 ```
 
-Before publication, install the distribution tarball with
-`npm install ./tetorica-vgm-0.1.0.tgz`, then use `npx tetorica-vgm --help`.
+To test a local build, install its distribution tarball with
+`npm install ./tetorica-vgm-0.2.11.tgz`, then use `npx tetorica-vgm --help`.
 
 ## Sound chip support
 
@@ -394,6 +394,13 @@ PSG muting preserves register writes, oscillator phase and Tone 3-linked noise.
   checkpoints. The CLI continues to replay silently for `render --start`.
 - Bounded cooperative audio generation for interactive playback, preserving
   partially consumed waits and exact sample timing.
+
+## Version 0.2.11
+
+Optimizes the bundled YM2612, Sega PSG, YM2203, YM2608, YM2610 / YM2610B,
+YM2413 and RF5C164 WASM cores used by WAV rendering. Tested PCM matches
+the previous builds; runtime assertions remain enabled. Analysis and export
+command interfaces are unchanged.
 
 ## MDX export
 

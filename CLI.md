@@ -19,7 +19,7 @@ node dist/vgm/cli/main.js render test/fixtures/psg-tone.vgz --output /tmp/tone.w
 npm run pack:vgm:check
 npm run pack:vgm
 # Test the actual tarball without publishing:
-npm exec --offline --package ./tetorica-vgm-0.1.0.tgz -- tetorica-vgm --help
+npm exec --offline --package ./tetorica-vgm-0.2.11.tgz -- tetorica-vgm --help
 ```
 
 After publication, the same commands work as `npx tetorica-vgm ...`.
