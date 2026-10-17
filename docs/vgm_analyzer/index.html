@@ -248,6 +248,9 @@
         margin: 0 0 14px;
       }
 
+      .spc-brr-waveform { flex-basis: 100%; width: 100%; min-width: 0; scroll-margin-bottom: 180px; }
+      .spc-brr-waveform canvas { display: block; width: 100%; max-width: 900px; height: 150px; }
+
       .channel-meta {
         font-size: 0.82rem;
         color: #5b4a33;
@@ -1002,7 +1005,7 @@
       </div>
     </section>
 
-    <script type="module" src="./vgm_analyzer.js?v=spc-all-srcns-1"></script>
+    <script type="module" src="./vgm_analyzer.js?v=spc-inline-waveform-1"></script>
   <dialog id="scoreGroupDialog"><form method="dialog">
 <h2>Channel Groups</h2><p>Combine notes for scores and the Song timeline. Playback and live physical CH monitors are unchanged. Settings last for this loaded track only.</p>
 <button type="button" data-all>Merge all channels</button> <button type="button" data-clear>Clear groups</button>

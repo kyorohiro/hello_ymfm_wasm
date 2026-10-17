@@ -33,6 +33,7 @@ export function mountSpcAnalyzer({root, getAudioContext, getMasterVolume, onAudi
   let revision = 0, parsed = null, runtime = null, initialization = null, timer = null;
   let polling = false, preview = null, output = null, stem = 'sample', visible = false;
   let captureRevision = 0, captureAbort = null, capturing = false;
+  let selectedWaveform = null, waveformSerial = 0;
   let state = {active:false, playing:false, paused:false, busy:false, positionSeconds:0, durationSeconds:180};
   const title = element('h2', 'SNES / SPC', root);
   const summary = element('p', '', root);
@@ -60,7 +61,8 @@ export function mountSpcAnalyzer({root, getAudioContext, getMasterVolume, onAudi
   const scanHelp = element('p', 'Scan all SRCNs checks 0–255 in the current RAM snapshot and groups identical start/loop addresses. Readable candidates may include unused or unrelated data.', root);
   scanHelp.className = 'subtext';
   const sampleStatus = element('p', 'Open an SPC file to inspect its samples.', root); sampleStatus.setAttribute('role', 'status');
-  const canvas = element('canvas', undefined, root); canvas.width = 900; canvas.height = 150; canvas.style.width = '100%'; canvas.style.maxWidth = '900px'; canvas.setAttribute('aria-label', 'Decoded BRR waveform and loop region');
+  // Reuse one canvas beside the selected sample, even for a long SRCN list.
+  const canvas = element('canvas'); canvas.width = 900; canvas.height = 150;
   const samples = element('div', undefined, root);
   const registers = element('details', undefined, root); element('summary', 'Captured DSP registers', registers);
   const registerOutput = element('pre', '', registers);
@@ -88,6 +90,25 @@ export function mountSpcAnalyzer({root, getAudioContext, getMasterVolume, onAudi
   function cancelCapture() {
     captureRevision++;
     captureAbort?.abort(); captureAbort = null; capturing = false;
+  }
+  function resetWaveform() {
+    if (selectedWaveform) {
+      selectedWaveform.host.hidden = true;
+      selectedWaveform.button.setAttribute('aria-expanded', 'false');
+      selectedWaveform = null;
+    }
+    canvas.remove();
+  }
+  function showWaveform(entry, host, button, {toggle = false, reveal = true} = {}) {
+    const closing = toggle && selectedWaveform?.host === host;
+    resetWaveform();
+    if (closing || !host.isConnected) return;
+    host.append(canvas); host.hidden = false;
+    button.setAttribute('aria-expanded', 'true');
+    canvas.setAttribute('aria-label', `Decoded BRR waveform for SRCN ${sourceNumberLabel(entry.sourceNumbers ?? [entry.sourceNumber])}, with loop region`);
+    selectedWaveform = {host, button};
+    draw(entry);
+    if (reveal) host.scrollIntoView({block:'nearest', inline:'nearest'});
   }
   async function closeAudio() {
     stopPreview(); clearInterval(timer); timer = null;
@@ -177,21 +198,31 @@ export function mountSpcAnalyzer({root, getAudioContext, getMasterVolume, onAudi
         ? await scanSpcBrrCandidates(snapshot, {signal:controller.signal})
         : extractBrrSamples(snapshot, {sourceNumbers});
       if (current !== revision || request !== captureRevision) return;
-      samples.replaceChildren();
+      resetWaveform(); samples.replaceChildren();
       registerOutput.textContent = JSON.stringify({nativeFrames:snapshot.nativeFrames, internalSampleRate:32000,
         voices:readSnesVoices(snapshot), dsp:Array.from(snapshot.dsp)}, null, 2);
       const scanSummary = found.summary;
       sampleStatus.textContent = scanAll
         ? `${found.samples.length} candidate(s) · 256 SRCNs checked · ${scanSummary.aliasEntries} duplicate reference(s) grouped · captured at ${(snapshot.nativeFrames / 32000).toFixed(3)} s. ${scanSummary.invalidEntries} invalid entry/entries skipped.${scanSummary.budgetSkippedEntries ? ` Scan incomplete: ${scanSummary.budgetSkippedEntries} entry/entries exceeded the work limit; use Extract SRCN to inspect a specific number.` : ''}`
         : `${found.samples.length} sample(s) · captured at ${(snapshot.nativeFrames / 32000).toFixed(3)} s.${found.rejected.length ? ` ${found.rejected.length} invalid directory entry/entries skipped.` : ''}`;
+      let firstWaveform;
       for (const entry of found.samples) {
         const row = element('div', undefined, samples); row.className = 'actions';
         const sourceNumbers = entry.sourceNumbers ?? [entry.sourceNumber];
         row.dataset.sourceNumbers = sourceNumbers.join(',');
         element('span', `SRCN ${sourceNumberLabel(sourceNumbers)} · ${hex(entry.startAddress)} · ${entry.pcm.length} samples${entry.loopStartSamples === null ? '' : ` · loop ${entry.loopStartSamples}`}`, row);
         if (entry.voices.length) element('span', `Voice ${entry.voices.map(voice => voice.index + 1).join(', ')}`, row);
+        const waveformHost = element('div'); waveformHost.className = 'spc-brr-waveform'; waveformHost.hidden = true;
+        waveformHost.id = `${root.id}-waveform-${++waveformSerial}`;
+        const waveformButton = element('button', 'Waveform', row); waveformButton.type = 'button';
+        waveformButton.setAttribute('aria-expanded', 'false'); waveformButton.setAttribute('aria-controls', waveformHost.id);
+        waveformButton.addEventListener('click', () => showWaveform(entry, waveformHost, waveformButton, {toggle:true}));
+        firstWaveform ??= {entry, host:waveformHost, button:waveformButton};
         for (const [text, fn] of [
-          ['Waveform', () => draw(entry)], ['Preview', () => perform(() => previewSample(entry))],
+          ['Preview', () => {
+            showWaveform(entry, waveformHost, waveformButton);
+            return perform(() => previewSample(entry));
+          }],
           ['BRR', () => download(`${stem}_${entry.sourceNumber}.brr`, entry.brr, 'application/octet-stream')],
           ['WAV', () => download(`${stem}_${entry.sourceNumber}.wav`, exportBrrSample(entry).wav, 'audio/wav')],
           ['Metadata', () => download(`${stem}_${entry.sourceNumber}.json`, JSON.stringify({
@@ -199,8 +230,9 @@ export function mountSpcAnalyzer({root, getAudioContext, getMasterVolume, onAudi
             ...(entry.sourceEntries ? {sourceNumbers, sourceEntries:entry.sourceEntries} : {}),
           }, null, 2), 'application/json')],
         ]) {const button = element('button', text, row); button.type = 'button'; button.addEventListener('click', fn);}
+        row.append(waveformHost);
       }
-      draw(found.samples[0]);
+      if (firstWaveform) showWaveform(firstWaveform.entry, firstWaveform.host, firstWaveform.button, {reveal:false});
     } catch (error) {
       if (current === revision && request === captureRevision && error.name !== 'AbortError') sampleStatus.textContent = `BRR capture failed: ${error.message}`;
       throw error;
@@ -217,7 +249,7 @@ export function mountSpcAnalyzer({root, getAudioContext, getMasterVolume, onAudi
     setVisible(value) {visible = value; if (!visible) stopPreview();},
     async load(bytes, name) {
       const next = parseSpcFile(bytes), current = ++revision;
-      cancelCapture();
+      cancelCapture(); resetWaveform();
       await closeAudio();
       if (current !== revision) throw new DOMException('SPC selection changed', 'AbortError');
       parsed = next;
@@ -226,7 +258,7 @@ export function mountSpcAnalyzer({root, getAudioContext, getMasterVolume, onAudi
       for (const button of toggles) {button.setAttribute('aria-pressed', 'true'); button.classList.remove('is-muted');}
       emit(); await captureSamples(); return next;
     },
-    async clear() {const current = ++revision; cancelCapture(); state.active = false; await closeAudio(); if (current !== revision) return; parsed = null; samples.replaceChildren(); draw(); emit();},
+    async clear() {const current = ++revision; cancelCapture(); resetWaveform(); state.active = false; await closeAudio(); if (current !== revision) return; parsed = null; samples.replaceChildren(); emit();},
     async play() {
       stopPreview(); const current = revision, synth = await ready();
       if (current !== revision) return;
@@ -244,6 +276,6 @@ export function mountSpcAnalyzer({root, getAudioContext, getMasterVolume, onAudi
     },
     async seek(seconds) {stopPreview(); const current = revision, synth = await ready(); if (current !== revision) return; const next = await synth.seek(seconds); if (current !== revision) return; state.positionSeconds = next.positionSeconds; state.playing = next.playing; state.paused = !next.playing; applyTagFade(state.positionSeconds, next.playing); emit();},
     setMasterVolume(value) {runtime?.setMasterVolume(value);},
-    async dispose() {revision++; cancelCapture(); state.active = false; await closeAudio();},
+    async dispose() {revision++; cancelCapture(); resetWaveform(); state.active = false; await closeAudio();},
   };
 }

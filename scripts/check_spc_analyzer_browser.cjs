@@ -48,6 +48,15 @@ function withUnusedSamples(original) {
   for (let block = 0; block < Math.floor(65536 / 9); block++) ram[(0x3004 + block * 9) & 65535] &= 0xfe;
   return bytes;
 }
+function withLongSampleList(original) {
+  const bytes = Buffer.from(original), ram = bytes.subarray(0x100,0x10100);
+  for (let srcn = 0; srcn < 256; srcn++) {
+    const sample = srcn < 24 ? srcn : 0, address = 0x4000 + sample * 16;
+    ram.set([address & 255,address >> 8,address & 255,address >> 8], 0x1000 + srcn * 4);
+    ram.set([0xc3,0x13 + sample,0x57,0x75,0x31,0xfd,0xb9,0x9b,0xdf], address);
+  }
+  return bytes;
+}
 async function downloadBytes(page, button) {
   const downloaded = page.waitForEvent('download'); await button.click();
   return fs.readFile(await (await downloaded).path());
@@ -165,6 +174,52 @@ async function downloadBytes(page, button) {
         assert.doesNotMatch(await page.locator('#spcInfoPanel').innerText(), /256 SRCNs checked/,
           'A stale scan must not replace the new file capture status');
         assert.equal(await page.locator('#spcInfoPanel').getByRole('button', {name:'WAV', exact:true}).count(), 1);
+        // A real long candidate list must show the selected waveform alongside
+        // its controls instead of sending the user back to the panel header.
+        await page.locator('#fileInput').setInputFiles({name:'long-list.spc',mimeType:'application/octet-stream',buffer:withLongSampleList(original)});
+        await scan.click();
+        await page.waitForFunction(() => /24 candidate\(s\).*256 SRCNs checked/.test(document.getElementById('spcInfoPanel').textContent));
+        const last = page.locator('#spcInfoPanel [data-source-numbers="23"]');
+        const previous = page.locator('#spcInfoPanel [data-source-numbers="22"]');
+        const lastWaveform = last.getByRole('button', {name:'Waveform', exact:true});
+        const previousWaveform = previous.getByRole('button', {name:'Waveform', exact:true});
+        const inlineCanvas = page.locator('#spcInfoPanel .spc-brr-waveform canvas');
+        await lastWaveform.scrollIntoViewIfNeeded();
+        await lastWaveform.click();
+        await page.waitForFunction(() => document.querySelector('#spcInfoPanel canvas')?.closest('[data-source-numbers]')?.dataset.sourceNumbers === '23');
+        assert.equal(await lastWaveform.getAttribute('aria-expanded'), 'true');
+        const controlsId = await lastWaveform.getAttribute('aria-controls');
+        assert(controlsId, 'A waveform control must identify its inline region');
+        assert.equal(await last.locator(`[id="${controlsId}"]`).count(), 1, 'The expanded region belongs to the selected row');
+        const waveformBounds = await inlineCanvas.boundingBox(), viewport = page.viewportSize();
+        assert(waveformBounds.y >= 0 && waveformBounds.y + waveformBounds.height <= viewport.height,
+          'Opening a waveform near the bottom must bring that row waveform into the viewport');
+        const listHeading = await page.locator('#spcInfoPanel h2').boundingBox();
+        assert(listHeading.y + listHeading.height < 0, 'Opening the last waveform must keep the long-list header offscreen');
+        assert.equal(await page.locator('#spcInfoPanel canvas').count(), 1, 'The list must reuse one canvas');
+        await page.screenshot({path:`/private/tmp/spc-brr-inline-waveform-${name}.png`});
+        await previousWaveform.click();
+        await page.waitForFunction(() => document.querySelector('#spcInfoPanel canvas')?.closest('[data-source-numbers]')?.dataset.sourceNumbers === '22');
+        assert.equal(await lastWaveform.getAttribute('aria-expanded'), 'false');
+        assert.equal(await previousWaveform.getAttribute('aria-expanded'), 'true');
+        assert.equal(await page.locator('#spcInfoPanel button[aria-expanded="true"]').count(), 1, 'Only one candidate waveform may be expanded');
+        await previousWaveform.click();
+        assert.equal(await previousWaveform.getAttribute('aria-expanded'), 'false');
+        assert.equal(await inlineCanvas.isVisible(), false, 'Clicking Waveform again closes it');
+        await last.getByRole('button', {name:'Preview', exact:true}).click();
+        await page.waitForFunction(() => document.querySelector('#spcInfoPanel canvas')?.closest('[data-source-numbers]')?.dataset.sourceNumbers === '23');
+        assert.equal(await lastWaveform.getAttribute('aria-expanded'), 'true', 'Preview opens the waveform for the same candidate');
+        await page.waitForFunction(() => window.__spcTest.view.state.paused && !!window.__spcTest.view.outputNode);
+        await page.locator('#spcInfoPanel').getByRole('button', {name:'Capture BRR samples', exact:true}).click();
+        await page.locator('#spcInfoPanel [data-source-numbers="0"]').waitFor({state:'visible'});
+        assert.equal(await page.locator('#spcInfoPanel button[aria-expanded="true"]').count(), 1, 'Capturing replaces the old waveform selection with the first new sample');
+        assert.equal(await last.count(), 0, 'An old selected row must be discarded on capture');
+        assert.equal(await inlineCanvas.evaluate(canvas => canvas.closest('[data-source-numbers]').dataset.sourceNumbers), '0');
+        await page.locator('#spcInfoPanel input[type="number"]').fill('22');
+        await page.locator('#spcInfoPanel').getByRole('button', {name:'Extract SRCN',exact:true}).click();
+        await previous.waitFor({state:'visible'});
+        assert.equal(await page.locator('#spcInfoPanel button[aria-expanded="true"]').count(), 1, 'Explicit extraction selects its new sample instead of retaining an old row');
+        assert.equal(await inlineCanvas.evaluate(canvas => canvas.closest('[data-source-numbers]').dataset.sourceNumbers), '22');
         const tagged=Buffer.from(fixture); tagged[0x23]=0x1a;
         tagged.write('001',0xa9,'ascii'); tagged.write('01000',0xac,'ascii');
         await page.locator('#fileInput').setInputFiles({name:'tagged.spc',mimeType:'application/octet-stream',buffer:tagged});
@@ -196,7 +251,7 @@ async function downloadBytes(page, button) {
         await page.waitForTimeout(100); await page.locator('#inlineStopButton').click();
         assert.deepEqual(errors, []);
         console.log(JSON.stringify({browser:name, passed:true, playing, muted, brrWavBytes:wav.length, allSrcnScan:true,
-          unusedSources:[42,127], aliasMetadata:true, staleScanFenced:true, tagFade:true, staleLoadFenced:true, vgmAfterSpc:true}));
+          unusedSources:[42,127], aliasMetadata:true, staleScanFenced:true, inlineWaveform:true, tagFade:true, staleLoadFenced:true, vgmAfterSpc:true}));
         await page.close();
       } finally {await browser.close();}
     }
