@@ -1,8 +1,18 @@
 import {parseSpcFile} from '../js/spc_file.js';
 import {extractBrrSamples, exportBrrSample, readSnesVoices} from '../js/snes_brr.js';
+import {scanSpcBrrCandidates} from './spc_brr_candidates.js?v=all-srcns-1';
 
 const time = seconds => `${Math.floor(seconds / 60)}:${String(Math.floor(seconds % 60)).padStart(2, '0')}`;
 const hex = value => `$${value.toString(16).toUpperCase().padStart(4, '0')}`;
+function sourceNumberLabel(numbers) {
+  const ranges = [];
+  for (let i = 0; i < numbers.length; i++) {
+    const start = numbers[i];
+    while (i + 1 < numbers.length && numbers[i + 1] === numbers[i] + 1) i++;
+    ranges.push(numbers[i] === start ? String(start) : `${start}–${numbers[i]}`);
+  }
+  return ranges.join(', ');
+}
 function element(tag, text, parent) {
   const node = document.createElement(tag);
   if (text !== undefined) node.textContent = text;
@@ -22,6 +32,7 @@ function download(name, data, type) {
 export function mountSpcAnalyzer({root, getAudioContext, getMasterVolume, onAudioReady, onState, onStatus, onEnded}) {
   let revision = 0, parsed = null, runtime = null, initialization = null, timer = null;
   let polling = false, preview = null, output = null, stem = 'sample', visible = false;
+  let captureRevision = 0, captureAbort = null, capturing = false;
   let state = {active:false, playing:false, paused:false, busy:false, positionSeconds:0, durationSeconds:180};
   const title = element('h2', 'SNES / SPC', root);
   const summary = element('p', '', root);
@@ -40,11 +51,14 @@ export function mountSpcAnalyzer({root, getAudioContext, getMasterVolume, onAudi
   });
   const actions = element('div', undefined, root); actions.className = 'actions';
   const capture = element('button', 'Capture BRR samples', actions); capture.type = 'button';
+  const scan = element('button', 'Scan all SRCNs', actions); scan.type = 'button';
   const label = element('label', 'SRCN ', actions);
   const source = element('input', undefined, label); source.type = 'number'; source.min = '0'; source.max = '255'; source.value = '0'; source.style.width = '5em';
   const extract = element('button', 'Extract SRCN', actions); extract.type = 'button';
   const note = element('p', 'BRR preview plays decoded sample data. Its original tuning is unknown; DSP envelopes, pitch modulation and echo are not applied.', root);
   note.className = 'subtext';
+  const scanHelp = element('p', 'Scan all SRCNs checks 0–255 in the current RAM snapshot and groups identical start/loop addresses. Readable candidates may include unused or unrelated data.', root);
+  scanHelp.className = 'subtext';
   const sampleStatus = element('p', 'Open an SPC file to inspect its samples.', root); sampleStatus.setAttribute('role', 'status');
   const canvas = element('canvas', undefined, root); canvas.width = 900; canvas.height = 150; canvas.style.width = '100%'; canvas.style.maxWidth = '900px'; canvas.setAttribute('aria-label', 'Decoded BRR waveform and loop region');
   const samples = element('div', undefined, root);
@@ -64,13 +78,17 @@ export function mountSpcAnalyzer({root, getAudioContext, getMasterVolume, onAudi
   }
   function emit() {
     summary.textContent = parsed ? `${parsed.metadata.title || stem} · ${time(state.positionSeconds)} / ${time(state.durationSeconds)} · S-DSP 32,000 Hz stereo` : '';
-    capture.disabled = extract.disabled = !state.active || state.busy;
+    capture.disabled = scan.disabled = extract.disabled = !state.active || state.busy || capturing;
     onState?.({...state});
   }
   async function perform(fn) {
     try {return await fn();} catch (error) {if (error.name !== 'AbortError') onStatus?.(`SPC: ${error.message}`);}
   }
   function stopPreview() {if (preview) {try {preview.stop();} catch {} preview.disconnect(); preview = null;}}
+  function cancelCapture() {
+    captureRevision++;
+    captureAbort?.abort(); captureAbort = null; capturing = false;
+  }
   async function closeAudio() {
     stopPreview(); clearInterval(timer); timer = null;
     const old = runtime; runtime = null; initialization = null;
@@ -145,29 +163,53 @@ export function mountSpcAnalyzer({root, getAudioContext, getMasterVolume, onAudi
     node.start(); if (node.loop) node.stop(context.currentTime + 2);
     node.onended = () => {node.disconnect(); if (preview === node) preview = null;};
   }
-  async function captureSamples(sourceNumbers) {
+  async function captureSamples(sourceNumbers, {scanAll = false} = {}) {
     const current = revision;
-    const snapshot = runtime ? await runtime.snapshot() : {...parsed, nativeFrames:0};
-    if (current !== revision) return;
-    sourceNumbers ??= [...new Set(Array.from({length:8}, (_, i) => snapshot.dsp[i * 16 + 4]))];
-    const found = extractBrrSamples(snapshot, {sourceNumbers});
-    samples.replaceChildren();
-    registerOutput.textContent = JSON.stringify({nativeFrames:snapshot.nativeFrames, internalSampleRate:32000,
-      voices:readSnesVoices(snapshot), dsp:Array.from(snapshot.dsp)}, null, 2);
-    sampleStatus.textContent = `${found.samples.length} sample(s) · captured at ${(snapshot.nativeFrames / 32000).toFixed(3)} s.${found.rejected.length ? ` ${found.rejected.length} invalid directory entry/entries skipped.` : ''}`;
-    for (const entry of found.samples) {
-      const row = element('div', undefined, samples); row.className = 'actions';
-      element('span', `SRCN ${entry.sourceNumber} · ${hex(entry.startAddress)} · ${entry.pcm.length} samples${entry.loopStartSamples === null ? '' : ` · loop ${entry.loopStartSamples}`}`, row);
-      for (const [text, fn] of [
-        ['Waveform', () => draw(entry)], ['Preview', () => perform(() => previewSample(entry))],
-        ['BRR', () => download(`${stem}_${entry.sourceNumber}.brr`, entry.brr, 'application/octet-stream')],
-        ['WAV', () => download(`${stem}_${entry.sourceNumber}.wav`, exportBrrSample(entry).wav, 'audio/wav')],
-        ['Metadata', () => download(`${stem}_${entry.sourceNumber}.json`, JSON.stringify(exportBrrSample(entry).metadata, null, 2), 'application/json')],
-      ]) {const button = element('button', text, row); button.type = 'button'; button.addEventListener('click', fn);}
+    cancelCapture();
+    const request = captureRevision, controller = new AbortController();
+    captureAbort = controller; capturing = true; emit();
+    sampleStatus.textContent = scanAll ? 'Scanning SRCNs 0–255…' : 'Capturing BRR samples…';
+    try {
+      const snapshot = runtime ? await runtime.snapshot() : {...parsed, nativeFrames:0};
+      if (current !== revision || request !== captureRevision) return;
+      sourceNumbers ??= [...new Set(Array.from({length:8}, (_, i) => snapshot.dsp[i * 16 + 4]))];
+      const found = scanAll
+        ? await scanSpcBrrCandidates(snapshot, {signal:controller.signal})
+        : extractBrrSamples(snapshot, {sourceNumbers});
+      if (current !== revision || request !== captureRevision) return;
+      samples.replaceChildren();
+      registerOutput.textContent = JSON.stringify({nativeFrames:snapshot.nativeFrames, internalSampleRate:32000,
+        voices:readSnesVoices(snapshot), dsp:Array.from(snapshot.dsp)}, null, 2);
+      const scanSummary = found.summary;
+      sampleStatus.textContent = scanAll
+        ? `${found.samples.length} candidate(s) · 256 SRCNs checked · ${scanSummary.aliasEntries} duplicate reference(s) grouped · captured at ${(snapshot.nativeFrames / 32000).toFixed(3)} s. ${scanSummary.invalidEntries} invalid entry/entries skipped.${scanSummary.budgetSkippedEntries ? ` Scan incomplete: ${scanSummary.budgetSkippedEntries} entry/entries exceeded the work limit; use Extract SRCN to inspect a specific number.` : ''}`
+        : `${found.samples.length} sample(s) · captured at ${(snapshot.nativeFrames / 32000).toFixed(3)} s.${found.rejected.length ? ` ${found.rejected.length} invalid directory entry/entries skipped.` : ''}`;
+      for (const entry of found.samples) {
+        const row = element('div', undefined, samples); row.className = 'actions';
+        const sourceNumbers = entry.sourceNumbers ?? [entry.sourceNumber];
+        row.dataset.sourceNumbers = sourceNumbers.join(',');
+        element('span', `SRCN ${sourceNumberLabel(sourceNumbers)} · ${hex(entry.startAddress)} · ${entry.pcm.length} samples${entry.loopStartSamples === null ? '' : ` · loop ${entry.loopStartSamples}`}`, row);
+        if (entry.voices.length) element('span', `Voice ${entry.voices.map(voice => voice.index + 1).join(', ')}`, row);
+        for (const [text, fn] of [
+          ['Waveform', () => draw(entry)], ['Preview', () => perform(() => previewSample(entry))],
+          ['BRR', () => download(`${stem}_${entry.sourceNumber}.brr`, entry.brr, 'application/octet-stream')],
+          ['WAV', () => download(`${stem}_${entry.sourceNumber}.wav`, exportBrrSample(entry).wav, 'audio/wav')],
+          ['Metadata', () => download(`${stem}_${entry.sourceNumber}.json`, JSON.stringify({
+            ...exportBrrSample(entry).metadata,
+            ...(entry.sourceEntries ? {sourceNumbers, sourceEntries:entry.sourceEntries} : {}),
+          }, null, 2), 'application/json')],
+        ]) {const button = element('button', text, row); button.type = 'button'; button.addEventListener('click', fn);}
+      }
+      draw(found.samples[0]);
+    } catch (error) {
+      if (current === revision && request === captureRevision && error.name !== 'AbortError') sampleStatus.textContent = `BRR capture failed: ${error.message}`;
+      throw error;
+    } finally {
+      if (request === captureRevision) {captureAbort = null; capturing = false; emit();}
     }
-    draw(found.samples[0]);
   }
   capture.addEventListener('click', () => {void perform(() => captureSamples());});
+  scan.addEventListener('click', () => {void perform(() => captureSamples(undefined, {scanAll:true}));});
   extract.addEventListener('click', () => {void perform(() => captureSamples([Number(source.value)]));});
   return {
     get active() {return state.active;}, get state() {return {...state};},
@@ -175,6 +217,7 @@ export function mountSpcAnalyzer({root, getAudioContext, getMasterVolume, onAudi
     setVisible(value) {visible = value; if (!visible) stopPreview();},
     async load(bytes, name) {
       const next = parseSpcFile(bytes), current = ++revision;
+      cancelCapture();
       await closeAudio();
       if (current !== revision) throw new DOMException('SPC selection changed', 'AbortError');
       parsed = next;
@@ -183,7 +226,7 @@ export function mountSpcAnalyzer({root, getAudioContext, getMasterVolume, onAudi
       for (const button of toggles) {button.setAttribute('aria-pressed', 'true'); button.classList.remove('is-muted');}
       emit(); await captureSamples(); return next;
     },
-    async clear() {const current = ++revision; state.active = false; await closeAudio(); if (current !== revision) return; parsed = null; samples.replaceChildren(); draw(); emit();},
+    async clear() {const current = ++revision; cancelCapture(); state.active = false; await closeAudio(); if (current !== revision) return; parsed = null; samples.replaceChildren(); draw(); emit();},
     async play() {
       stopPreview(); const current = revision, synth = await ready();
       if (current !== revision) return;
@@ -201,6 +244,6 @@ export function mountSpcAnalyzer({root, getAudioContext, getMasterVolume, onAudi
     },
     async seek(seconds) {stopPreview(); const current = revision, synth = await ready(); if (current !== revision) return; const next = await synth.seek(seconds); if (current !== revision) return; state.positionSeconds = next.positionSeconds; state.playing = next.playing; state.paused = !next.playing; applyTagFade(state.positionSeconds, next.playing); emit();},
     setMasterVolume(value) {runtime?.setMasterVolume(value);},
-    async dispose() {revision++; state.active = false; await closeAudio();},
+    async dispose() {revision++; cancelCapture(); state.active = false; await closeAudio();},
   };
 }

@@ -34,9 +34,31 @@ async function signal(page) {
     return {peak, range:high - low, bad};
   });
 }
+function withUnusedSamples(original) {
+  const bytes = Buffer.from(original), ram = bytes.subarray(0x100, 0x10100);
+  // Every unused slot points to the same deliberately unterminated chain.
+  // Clear END only at that chain's 9-byte header positions, including wrapping
+  // RAM. The chosen alignment preserves the CPU program and the two real BRR
+  // headers. Some real payload low bits change, which is harmless authored data.
+  for (let srcn = 0; srcn < 256; srcn++) ram.set([0x04,0x30,0x04,0x30], 0x1000 + srcn * 4);
+  ram.set([0x00,0x20,0x00,0x20], 0x1000);
+  ram.set([0x00,0x20,0x00,0x20], 0x1000 + 42 * 4); // Unused alias.
+  ram.set([0x00,0x21,0x00,0x21], 0x1000 + 127 * 4); // Unused distinct sample.
+  ram.set([0xc3,0x76,0x54,0x32,0x10,0xfe,0xdc,0xba,0x98], 0x2100);
+  for (let block = 0; block < Math.floor(65536 / 9); block++) ram[(0x3004 + block * 9) & 65535] &= 0xfe;
+  return bytes;
+}
+async function downloadBytes(page, button) {
+  const downloaded = page.waitForEvent('download'); await button.click();
+  return fs.readFile(await (await downloaded).path());
+}
 (async () => {
   const {createSyntheticSpc} = await import(pathToFileURL(path.join(root, 'web/spc_test_fixture.mjs')));
-  const fixture = Buffer.from(createSyntheticSpc({voices:2}));
+  const original = Buffer.from(createSyntheticSpc({voices:2})), fixture = withUnusedSamples(original);
+  const {extractBrrSamples} = await import(pathToFileURL(path.join(root, 'web/snes_brr.js')));
+  const badSource = extractBrrSamples({ram:fixture.subarray(0x100,0x10100),dsp:fixture.subarray(0x10100,0x10180)}, {sourceNumbers:[255]});
+  assert.equal(badSource.samples.length, 0, 'The synthetic invalid SRCN must have no complete BRR segment');
+  assert.match(badSource.rejected[0].reason, /No BRR END/);
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
   try {
     for (const [name, engine] of [['chromium', chromium], ['webkit', webkit]]) {
@@ -56,6 +78,40 @@ async function signal(page) {
         assert(await page.locator('#spcInfoPanel').isVisible());
         assert.equal(await page.locator('#spcInfoPanel .monitor-toggles button').count(), 8);
         assert((await page.locator('#spcInfoPanel').getByRole('button', {name:'WAV', exact:true}).count()) > 0);
+        const scan = page.locator('#spcInfoPanel').getByRole('button', {name:'Scan all SRCNs', exact:true});
+        await scan.click();
+        await page.waitForFunction(() => /256 SRCNs checked/.test(document.getElementById('spcInfoPanel').textContent));
+        const aliasRow = page.locator('#spcInfoPanel [data-source-numbers="0,42"]');
+        const unusedRow = page.locator('#spcInfoPanel [data-source-numbers="127"]');
+        assert.equal(await aliasRow.count(), 1, 'Unused aliases must share one candidate');
+        assert.equal(await unusedRow.count(), 1, 'An unused valid SRCN must be discoverable');
+        assert.equal(await page.locator('#spcInfoPanel').getByRole('button', {name:'WAV', exact:true}).count(), 2,
+          'Scanning must deduplicate aliases and skip unterminated BRR entries');
+        assert.match(await page.locator('#spcInfoPanel').innerText(), /false.?positive|may not|not guaranteed|may include unused or unrelated data/i,
+          'Scanning must explain that plausible RAM data is not guaranteed to be an instrument');
+        const aliasMetadata = JSON.parse((await downloadBytes(page, aliasRow.getByRole('button', {name:'Metadata', exact:true}))).toString());
+        assert.deepEqual(aliasMetadata.sourceNumbers, [0,42], 'Exported metadata must preserve unused SRCN aliases');
+        assert.deepEqual(aliasMetadata.sourceEntries.map(entry => entry.sourceNumber).sort((a,b) => a-b), [0,42]);
+        for (const entry of aliasMetadata.sourceEntries) {
+          assert.equal(entry.startAddress, 0x2000); assert.equal(entry.loopAddress, 0x2000);
+        }
+        const unusedMetadata = JSON.parse((await downloadBytes(page, unusedRow.getByRole('button', {name:'Metadata', exact:true}))).toString());
+        assert.deepEqual(unusedMetadata.sourceNumbers, [127]);
+        const unusedWav = await downloadBytes(page, unusedRow.getByRole('button', {name:'WAV', exact:true}));
+        assert.equal(unusedWav.subarray(0,4).toString(), 'RIFF'); assert.equal(unusedWav.readUInt32LE(24), 32000);
+        await page.screenshot({path:`/private/tmp/spc-brr-scan-${name}.png`, fullPage:true});
+        await unusedRow.getByRole('button', {name:'Preview', exact:true}).click();
+        await page.waitForFunction(() => window.__spcTest.view.state.paused && !!window.__spcTest.view.outputNode);
+        assert((await signal(page)).peak > .001, 'An unused scanned sample must remain previewable');
+        await page.locator('#spcInfoPanel').getByRole('button', {name:'Capture BRR samples', exact:true}).click();
+        await page.locator('#spcInfoPanel [data-source-numbers="0"]').waitFor({state:'visible'});
+        assert.equal(await page.locator('#spcInfoPanel').getByRole('button', {name:'WAV', exact:true}).count(), 1,
+          'Capture current voice sources must retain its focused behavior');
+        await page.locator('#spcInfoPanel input[type="number"]').fill('127');
+        await page.locator('#spcInfoPanel').getByRole('button', {name:'Extract SRCN', exact:true}).click();
+        await unusedRow.waitFor({state:'visible'});
+        assert.equal(await page.locator('#spcInfoPanel').getByRole('button', {name:'WAV', exact:true}).count(), 1,
+          'Explicit SRCN extraction must still work');
         await page.locator('#inlinePlayButton').click();
         await page.waitForFunction(() => window.__spcTest.view.state.playing);
         const playing = await signal(page); assert.equal(playing.bad, 0); assert(playing.peak > .001 && playing.range > .001, JSON.stringify(playing));
@@ -78,6 +134,37 @@ async function signal(page) {
         await page.locator('#spcInfoPanel').getByRole('button', {name:'WAV', exact:true}).first().click();
         const wav = await fs.readFile(await (await downloaded).path());
         assert.equal(wav.subarray(0, 4).toString(), 'RIFF'); assert.equal(wav.readUInt32LE(24), 32000);
+        // Hold a real Worklet snapshot after it has resolved, then switch files
+        // through the Analyzer input. A completed obsolete scan must not publish
+        // its rows or status over the newly selected SPC.
+        await page.evaluate(async () => {
+          const {SpcRuntimeSynth} = await import('/js/spc_audio.js');
+          const original = SpcRuntimeSynth.prototype.snapshot;
+          let release;
+          const barrier = new Promise(resolve => {release = resolve;});
+          window.__spcScanRace = {entered:false, release, restore:() => {SpcRuntimeSynth.prototype.snapshot = original;}};
+          SpcRuntimeSynth.prototype.snapshot = async function(...args) {
+            const snapshot = await original.apply(this, args);
+            window.__spcScanRace.entered = true;
+            await barrier;
+            return snapshot;
+          };
+        });
+        try {
+          await scan.click();
+          await page.waitForFunction(() => window.__spcScanRace.entered);
+          await page.locator('#fileInput').setInputFiles({name:'scan-race-next.spc', mimeType:'application/octet-stream', buffer:original});
+          await page.waitForFunction(() => /scan-race-next/.test(document.querySelector('#spcInfoPanel p').textContent)
+            && !document.getElementById('inlinePlayButton').disabled);
+        } finally {
+          await page.evaluate(() => {window.__spcScanRace.release(); window.__spcScanRace.restore();});
+        }
+        await page.waitForTimeout(100);
+        assert.equal(await page.locator('#spcInfoPanel [data-source-numbers="127"]').count(), 0,
+          'A stale full scan must not publish candidates into the replacement file');
+        assert.doesNotMatch(await page.locator('#spcInfoPanel').innerText(), /256 SRCNs checked/,
+          'A stale scan must not replace the new file capture status');
+        assert.equal(await page.locator('#spcInfoPanel').getByRole('button', {name:'WAV', exact:true}).count(), 1);
         const tagged=Buffer.from(fixture); tagged[0x23]=0x1a;
         tagged.write('001',0xa9,'ascii'); tagged.write('01000',0xac,'ascii');
         await page.locator('#fileInput').setInputFiles({name:'tagged.spc',mimeType:'application/octet-stream',buffer:tagged});
@@ -108,7 +195,8 @@ async function signal(page) {
         await page.locator('#inlinePlayButton').click();
         await page.waitForTimeout(100); await page.locator('#inlineStopButton').click();
         assert.deepEqual(errors, []);
-        console.log(JSON.stringify({browser:name, passed:true, playing, muted, brrWavBytes:wav.length, tagFade:true, staleLoadFenced:true, vgmAfterSpc:true}));
+        console.log(JSON.stringify({browser:name, passed:true, playing, muted, brrWavBytes:wav.length, allSrcnScan:true,
+          unusedSources:[42,127], aliasMetadata:true, staleScanFenced:true, tagFade:true, staleLoadFenced:true, vgmAfterSpc:true}));
         await page.close();
       } finally {await browser.close();}
     }

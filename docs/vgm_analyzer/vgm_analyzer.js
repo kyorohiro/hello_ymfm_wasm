@@ -1,5 +1,5 @@
 import {createAudioPreferences, effectDefaults} from './audio_preferences.js';
-import {mountSpcAnalyzer} from './spc_analyzer.js?v=voice-toggle-1';
+import {mountSpcAnalyzer} from './spc_analyzer.js?v=all-srcns-1';
 import {createMixerUi} from './mixer_ui.js';
 import {connectDesktop} from './desktop_interface.js';
 import {exportFmRegisterSnapshot} from './fm_snapshot.js';
