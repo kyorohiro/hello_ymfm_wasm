@@ -73,7 +73,7 @@ import {
 import { createVgmPresetFiles } from "./playground_vgm_presets.js";
 import { createTfiFileEditor, instrumentToEditorPreset } from "./playground_tfi_editor.js?v=audio-preview-monitor-1";
 import { renderFileTree } from "./playground_file_tree.js?v=file-menu-1";
-import { createPlaygroundUi } from "./playground_ui.js?v=keyboard-helper-panel-1";
+import { createPlaygroundUi, applyPlaygroundLayout } from "./playground_ui.js?v=menu-settings-1";
 import {
   handleMegaSynthEvent,
 } from "./playground_sync.js";
@@ -112,17 +112,19 @@ const runButton =
   document.getElementById("runButton");
 const stopButton =
   document.getElementById("stopButton");
-const expandButton =
-  document.getElementById("expandButton");
 const mainMenu =
   document.getElementById("mainMenu");
-const mainMenuHome =
-  document.getElementById("mainMenuHome");
 const toolbar =
   document.querySelector(".toolbar");
 const statusBar =
   document.querySelector(".status-bar");
 const workerLookaheadInput = document.getElementById("workerLookaheadMs");
+const workerLookaheadButton = document.getElementById("workerLookaheadButton");
+const workerLookaheadValue = document.getElementById("workerLookaheadValue");
+const workerLookaheadDialog = document.getElementById("workerLookaheadDialog");
+const workerLookaheadForm = document.getElementById("workerLookaheadForm");
+const applyWorkerLookaheadButton = document.getElementById("applyWorkerLookaheadButton");
+const workerLookaheadPlaybackHint = document.getElementById("workerLookaheadPlaybackHint");
 const workerLookaheadStorageKey = "tetorica.playground.workerLookaheadMs";
 function readWorkerLookahead() {
   try {
@@ -337,7 +339,7 @@ const initialProjectFiles = [
     "",
     "1. Use FILES > Import and choose a .tfi or .vgi file. The suggested path is /presets/<filename>.",
     "2. Open the instrument in FILES to edit its Operator parameters and audition it with the keyboard.",
-    "3. Download the edited instrument, or use Export Cassette to save the project and its files.",
+    "3. Download the edited instrument, or use Save Cassette to save the project and its files.",
     "",
     "VGM imports also place extracted TFI instruments under /presets/<track>/.",
     "Drop TFI or VGI files onto the presets folder to add them to the preset list. ZIP contents keep their internal paths beneath the drop folder.",
@@ -384,7 +386,7 @@ const initialProjectFiles = [
     "",
     "The file must exist before running this example. Use an absolute project path when loading audio.",
     "Cassette imports classify audio files directly inside samples/ as samples; sample.load can also load other project paths.",
-    "Use Export Cassette to save the project together with its audio files.",
+    "Use Save Cassette to save the project together with its audio files.",
     "This README is a starter file. You can edit or delete it.",
     "",
   ].join("\n") },
@@ -1773,22 +1775,50 @@ const pageLifecycle = installPlaygroundPageLifecycle({
 });
 
 function syncWorkerExecutionLock() {
-  if (workerLookaheadInput) workerLookaheadInput.disabled = runtime.getState().playback === "running";
+  const running = runtime.getState().playback === "running";
+  if (workerLookaheadInput) workerLookaheadInput.disabled = running;
+  if (applyWorkerLookaheadButton) applyWorkerLookaheadButton.disabled = running;
+  if (workerLookaheadPlaybackHint) workerLookaheadPlaybackHint.hidden = !running;
+  updateWorkerLookaheadSummary();
   if (workerExecution) {
     workerExecution.disabled =
       runtime.getState().playback === "running";
   }
 }
 
-workerLookaheadInput?.addEventListener("change", () => {
-  const ms = Number(workerLookaheadInput.value);
-  if (!Number.isFinite(ms) || ms < 0 || ms > 2000 || workerLookaheadInput.value.trim() === "") {
-    workerLookaheadInput.value = String(runtime.getTiming().workerLookaheadSeconds * 1000);
+function updateWorkerLookaheadSummary() {
+  if (workerLookaheadValue) workerLookaheadValue.textContent = `${runtime.getTiming().workerLookaheadSeconds * 1000} ms`;
+}
+updateWorkerLookaheadSummary();
+workerLookaheadButton?.addEventListener("click", () => {
+  mainMenu.open = false;
+  workerLookaheadInput.value = String(runtime.getTiming().workerLookaheadSeconds * 1000);
+  workerLookaheadInput.setCustomValidity("");
+  syncWorkerExecutionLock();
+  document.activeElement?.blur?.();
+  workerLookaheadDialog.showModal();
+  if (!workerLookaheadInput.disabled) { workerLookaheadInput.focus(); workerLookaheadInput.select(); }
+});
+workerLookaheadInput?.addEventListener("input", () => workerLookaheadInput.setCustomValidity(""));
+document.getElementById("cancelWorkerLookaheadButton")?.addEventListener("click", () => workerLookaheadDialog.close());
+workerLookaheadDialog?.addEventListener("close", () => {
+  workerLookaheadInput.value = String(runtime.getTiming().workerLookaheadSeconds * 1000);
+  mainMenu.querySelector(":scope > summary")?.focus({preventScroll: true});
+});
+workerLookaheadForm?.addEventListener("submit", event => {
+  event.preventDefault();
+  if (runtime.getState().playback === "running") { syncWorkerExecutionLock(); return; }
+  const ms = workerLookaheadInput.valueAsNumber;
+  if (!Number.isFinite(ms) || ms < 0 || ms > 2000 || !Number.isInteger(ms)) {
+    workerLookaheadInput.setCustomValidity("Enter a whole number from 0 to 2000 ms.");
+    workerLookaheadInput.reportValidity();
     return;
   }
   runtime.setTiming({workerLookaheadSeconds: ms / 1000});
   try { localStorage.setItem(workerLookaheadStorageKey, String(ms)); } catch { /* Storage unavailable. */ }
+  updateWorkerLookaheadSummary();
   setStatus(`Worker lookahead: ${ms} ms.`);
+  workerLookaheadDialog.close("apply");
 });
 
 updateMasterVolumeUi();
@@ -2134,36 +2164,22 @@ function applySimpleModeFromQuery() {
   }
 }
 
-function setExpandedMode(expanded) {
-  document.body.classList.toggle(
-    "mode-expanded",
-    expanded
-  );
-  expandButton?.setAttribute(
-    "aria-pressed",
-    expanded ? "true" : "false"
-  );
-  expandButton?.setAttribute(
-    "aria-label",
-    expanded ? "Collapse editor" : "Expand editor"
-  );
-  if (expandButton) {
-    expandButton.title =
-      expanded ? "Collapse editor" : "Expand editor";
-  }
-
-  if (expanded) {
-    runButton.before(mainMenu);
-    toolbar?.after(statusBar);
-    return;
-  }
-
-  mainMenu.open = false;
-  mainMenuHome?.before(mainMenu);
-  document.body.append(statusBar);
-}
-
 function installPlaygroundEventHandlers() {
+  mainMenu.addEventListener("click", event => {
+    if (event.target.closest("button, a")) mainMenu.open = false;
+  });
+  mainMenu.addEventListener("toggle", () => {
+    if (!mainMenu.open) for (const submenu of mainMenu.querySelectorAll("details[open]")) submenu.open = false;
+  });
+  document.addEventListener("pointerdown", event => {
+    if (mainMenu.open && !mainMenu.contains(event.target)) mainMenu.open = false;
+  });
+  document.addEventListener("keydown", event => {
+    if (event.key === "Escape" && mainMenu.open && !document.querySelector("dialog[open]")) {
+      mainMenu.open = false;
+      mainMenu.querySelector(":scope > summary")?.focus({preventScroll: true});
+    }
+  });
   const newCassetteDialog = document.getElementById('newCassetteDialog');
   document.body.append(newCassetteDialog);
   document.getElementById('newCassetteButton').addEventListener('click', () => {
@@ -2259,26 +2275,6 @@ function installPlaygroundEventHandlers() {
     event.stopImmediatePropagation();
     if (!event.repeat) void syncActiveCodeFile();
   }, true);
-  expandButton?.addEventListener(
-    "click",
-    () => {
-      setExpandedMode(
-        !document.body.classList.contains("mode-expanded")
-      );
-    }
-  );
-  document.addEventListener(
-    "keydown",
-    (event) => {
-      if (
-        event.key === "Escape" &&
-        document.body.classList.contains("mode-expanded")
-      ) {
-        setExpandedMode(false);
-        expandButton?.focus();
-      }
-    }
-  );
 
 runButton.addEventListener(
     "click",
@@ -2516,9 +2512,8 @@ function bootPlayground() {
   if (!restoredDesktopProject) applyInitialSourceFromQuery();
   void applyCassetteFromQuery();
   applySimpleModeFromQuery();
-  if (playgroundSearch.get("expanded") === "1" && playgroundSearch.get("mode") !== "simple") {
-    setExpandedMode(true);
-  }
+  applyPlaygroundLayout({body: document.body, mainMenu, toolbar, statusBar,
+    simpleMode: playgroundSearch.get("mode") === "simple"});
   clearConsole();
   setBottomTab("code");
   setRuntimeState("Audio idle");

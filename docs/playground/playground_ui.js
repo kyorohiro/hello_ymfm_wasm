@@ -1,3 +1,17 @@
+/** Use the full editor layout; keep the compact lesson iframe mode intact. */
+export function applyPlaygroundLayout({
+  body,
+  mainMenu,
+  toolbar,
+  statusBar,
+  simpleMode = false,
+}) {
+  body.classList.toggle("mode-expanded", !simpleMode);
+  if (simpleMode) return;
+  if (toolbar && mainMenu) toolbar.prepend(mainMenu);
+  if (toolbar && statusBar) toolbar.after(statusBar);
+}
+
 export function createPlaygroundUi(
   options
 ) {

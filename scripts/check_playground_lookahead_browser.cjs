@@ -36,8 +36,8 @@ const server=http.createServer(async(request,response)=>{
    },`));
   }
   if(pathname.endsWith('/playground_performance_processor.js')){
-   const anchor='if(note(command,port,metadata))apply(command,port);';
-   body=Buffer.from(replace(body.toString(),anchor,'if(note(command,port,metadata)){command._lookaheadFrame=_frame;command._lookaheadPerformance=metadata;apply(command,port);}'));
+   const anchor='if(note(command,port,metadata))apply(command,port,frame,metadata);';
+   body=Buffer.from(replace(body.toString(),anchor,'if(note(command,port,metadata)){command._lookaheadFrame=frame;command._lookaheadPerformance=metadata;apply(command,port,frame,metadata);}'));
   }
   if(pathname.endsWith('/playground_nes_worklet.js')){
    const anchor='  apply(data, port) {';
@@ -75,11 +75,13 @@ async function check(engine,name,url){
   await page.goto(url);await page.waitForFunction(()=>window.__lookahead?.editor.kind==='textarea'&&!document.getElementById('runButton').disabled);
   assert.equal(await page.locator('#workerLookaheadMs').inputValue(),'150');
   assert.equal(await page.evaluate(()=>window.__lookahead.runtime.getTiming().workerLookaheadSeconds),.15);
-  await page.locator('#mainMenu summary').click();await page.locator('#workerLookaheadMs').fill('0');await page.keyboard.press('Tab');
+  await page.locator('#mainMenu > summary').click();await page.locator('#workerLookaheadButton').click();
+  await page.locator('#workerLookaheadMs').fill('0');await page.locator('#applyWorkerLookaheadButton').click();
   assert.equal(await page.evaluate(()=>window.__lookahead.runtime.getTiming().workerLookaheadSeconds),0);
   await page.reload();await page.waitForFunction(()=>window.__lookahead?.editor.kind==='textarea'&&!document.getElementById('runButton').disabled);
   assert.equal(await page.locator('#workerLookaheadMs').inputValue(),'0');
-  await page.locator('#mainMenu summary').click();await page.locator('#workerLookaheadMs').fill('150');await page.keyboard.press('Tab');await page.locator('#mainMenu summary').click();
+  await page.locator('#mainMenu > summary').click();await page.locator('#workerLookaheadButton').click();
+  await page.locator('#workerLookaheadMs').fill('150');await page.locator('#applyWorkerLookaheadButton').click();
   await page.evaluate(()=>{document.getElementById('workerExecution').checked=false;window.__lookahead.editor.setValue('// Initialize audio.');});
   await page.click('#runButton');await page.waitForFunction(()=>window.__lookahead.megaDrive.node&&!document.getElementById('runButton').disabled);
   await page.evaluate(async captureModule=>{

@@ -241,6 +241,7 @@
         background: transparent;
         text-align: left;
         font-weight: 700;
+        box-shadow: none;
       }
 
       .toolbar-menu-panel button:hover,
@@ -261,11 +262,14 @@
         color: var(--ink);
         background: transparent;
         text-align: left;
+        box-shadow: none;
       }
 
       .toolbar-menu-panel .toolbar-menu[open] > summary {
         background: rgba(17, 154, 167, 0.12);
       }
+      .toolbar-menu-panel .toolbar-menu > summary::after { content: '›'; float: right; }
+      .toolbar-menu-panel .toolbar-menu[open] > summary::after { content: '⌄'; }
 
       .toolbar-menu-panel .toolbar-menu-panel {
         position: static;
@@ -275,6 +279,33 @@
         border-radius: 0;
         box-shadow: none;
       }
+
+      #mainMenu > .toolbar-menu-panel {
+        width: min(300px, calc(100vw - 24px));
+        max-height: calc(100dvh - 68px);
+        overflow-y: auto;
+      }
+      .toolbar-menu-panel hr { width: 100%; margin: 5px 0; border: 0; border-top: 1px solid var(--line); }
+      .toolbar-menu-panel #desktopSettingsMenu { display: grid; }
+      .toolbar-menu-panel .menu-setting-row { display: flex; align-items: center; justify-content: space-between; gap: 14px; }
+      .menu-value { min-width: 0; max-width: 45%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #526467; font-size: .75rem; font-weight: 500; text-align: right; font-variant-numeric: tabular-nums; }
+      #desktopPinSlot:empty { display: none; }
+      #desktopPinSlot { display: inline-flex; }
+      .toolbar-utilities { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+      .toolbar-utilities button { font-size: .76rem; }
+      #runFileSelect { min-width: 100px; max-width: min(280px, 30vw); }
+      .playground-settings-dialog {
+        width: min(420px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); overflow: auto;
+        padding: 20px; border: 1px solid var(--line); border-radius: 14px;
+        color: var(--ink); background: var(--panel);
+      }
+      .playground-settings-dialog::backdrop { background: rgba(0, 0, 0, .4); }
+      .playground-settings-dialog h2 { margin: 0 0 16px; }
+      .playground-settings-dialog p { margin: 10px 0; }
+      .playground-settings-dialog label { display: block; margin-bottom: 6px; font-size: .84rem; }
+      .playground-settings-dialog input[type="number"] { width: 8em; padding: 7px; font: inherit; border: 1px solid var(--line); border-radius: 6px; }
+      .settings-dialog-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
+      .settings-dialog-actions button[type="submit"] { background: var(--accent-dark); color: white; }
 
       .vgm-import-options[hidden] { display: none; }
       .vgm-import-options {
@@ -371,29 +402,6 @@
         margin-left: auto;
       }
 
-      .expand-button {
-        width: 32px;
-        min-width: 32px;
-        margin-left: auto;
-        padding: 4px;
-      }
-
-      .expand-button svg {
-        display: block;
-        width: 16px;
-        height: 16px;
-        margin: auto;
-        fill: none;
-        stroke: currentColor;
-        stroke-linecap: round;
-        stroke-linejoin: round;
-        stroke-width: 2;
-      }
-
-      .expand-button .collapse-icon {
-        display: none;
-      }
-
       body.mode-expanded .app-bar {
         display: none;
       }
@@ -421,14 +429,6 @@
         order: initial;
         border-top: 0;
         border-bottom: 1px solid var(--line);
-      }
-
-      body.mode-expanded .expand-button .expand-icon {
-        display: none;
-      }
-
-      body.mode-expanded .expand-button .collapse-icon {
-        display: block;
       }
 
       .volume-control {
@@ -1643,24 +1643,89 @@
       }
     </style>
   </head>
-  <body>
+  <body class="mode-expanded">
     <nav class="app-bar" aria-label="Playground navigation">
       <div class="app-bar-leading">
-        <details class="toolbar-menu" id="mainMenu">
-          <summary aria-label="Playground menu">Menu</summary>
-          <div class="toolbar-menu-panel">
-            <label for="workerLookaheadMs">Worker lookahead (ms)</label>
-            <input id="workerLookaheadMs" type="number" min="0" max="2000" step="10" value="150"
-              aria-describedby="workerLookaheadHint" style="width: 6em;">
-            <small id="workerLookaheadHint" class="subtext">Script audio only. Applies after Stop → Run. Keyboard stays immediate.</small>
-            <hr>
-            <button id="newCassetteButton" type="button">New Cassette</button>
-            <button id="importCassetteButton" type="button">Import Cassette</button>
-            <button id="exportCassetteButton" type="button">Export Cassette</button>
-            <p id="autosaveStatus" class="subtext" role="status" hidden></p>
-            <hr>
-            <button id="importMidiButton" type="button">Import MIDI</button>
-            <button id="importVgmButton" type="button">Import VGM / S98</button>
+        <div class="app-bar-brand">
+          <h1 id="pageTitle">Tetorica FM2612 Playground</h1>
+          <p class="subtext">
+            Write a few lines of JavaScript, run them in the browser, then
+            drop down to raw YM2612 control when you want to.
+          </p>
+        </div>
+      </div>
+    </nav>
+    <main>
+      <section class="panel">
+        <div class="toolbar" id="playgroundToolbar">
+          <details class="toolbar-menu" id="mainMenu">
+            <summary aria-label="Playground menu">Menu</summary>
+            <div class="toolbar-menu-panel">
+              <button id="newCassetteButton" type="button">New Cassette</button>
+              <button id="exportCassetteButton" type="button">Save Cassette…</button>
+              <button id="importCassetteButton" type="button">Load Cassette…</button>
+              <p id="autosaveStatus" class="subtext" role="status" hidden></p>
+              <hr>
+              <details class="toolbar-menu" id="menuImport">
+                <summary>Import</summary>
+                <div class="toolbar-menu-panel">
+                  <button id="importVgmButton" type="button">VGM / S98…</button>
+                  <button id="importMidiButton" type="button">MIDI…</button>
+                </div>
+              </details>
+              <details class="toolbar-menu" id="menuExport">
+                <summary>Export</summary>
+                <div class="toolbar-menu-panel">
+                  <button id="exportTfiButton" type="button" title="Export CH1–CH6 as a ZIP of TFI files">TFI instruments (ZIP)</button>
+                  <button id="exportVgiButton" type="button" title="Export CH1–CH6 as a ZIP of VGI files">VGI instruments (ZIP)</button>
+                </div>
+              </details>
+              <hr>
+              <button id="workerLookaheadButton" class="menu-setting-row" type="button" aria-haspopup="dialog" aria-controls="workerLookaheadDialog">
+                <span>Worker lookahead…</span><small id="workerLookaheadValue" class="menu-value">150 ms</small>
+              </button>
+              <div id="desktopSettingsMenu"></div>
+            </div>
+          </details>
+          <button id="runButton" type="button">Run</button>
+          <button id="stopButton" type="button">Stop</button>
+          <label class="checkbox-label">
+            <input id="workerExecution" type="checkbox" title="Run the script in a Worker">
+            Worker
+          </label>
+          <label class="run-file-label" for="runFileSelect">Run file</label>
+          <select id="runFileSelect" aria-label="Run file">
+            <option value="single">Single Note</option>
+            <option value="midi-fixed-channels">MIDI fixed CH liveLoop + CC / Bend</option>
+            <option value="midi-auto-chord">MIDI auto chord liveLoop + CC / Bend</option>
+            <option value="midi-fm-psg">MIDI FM + PSG (YM2612)</option>
+            <option value="8-bit-arcade-sweep">8-bit Arcade Sweep</option>
+            <option value="fx-loop-minor">FX Loop Minor</option>
+            <option value="fx-loop-major">FX Loop Major</option>
+            <option value="guitar-fx-chain">Guitar FX Chain</option>
+            <option value="ambient-choir-sample">Ambient Choir Sample</option>
+            <option value="noise-ocean">Noise Ocean</option>
+            <option value="wind-noise">Wind Noise</option>
+            <option value="just-intonation-chorus">Just Intonation Chorus</option>
+            <option value="slicer-sweep">Slicer Sweep</option>
+            <option value="fx-motion">FX Motion</option>
+            <option value="parallel-fx">Parallel FX</option>
+            <option value="sonic-pi-sample-choir">Sonic Pi Sample Choir</option>
+            <option value="fm-api-beep">FM API Beep</option>
+            <option value="pg-context-init">pg.context Init</option>
+            <option value="fm-low-level-note">FM Low-Level Note</option>
+            <option value="raw-write-beep">Raw Write Beep</option>
+            <option value="channel3-special-mode">Channel 3 Special Mode</option>
+            <option value="dac-byte-stream">DAC Byte Stream</option>
+            <option value="psg-scale">PSG Scale</option>
+            <option value="psg-ocean">PSG Ocean</option>
+          </select>
+          <div class="toolbar-utilities">
+            <span id="desktopPinSlot"></span>
+            <button id="resetOfflineCacheButton" data-reset-offline-cache type="button" title="Clear the offline app cache and reload">Reset offline &amp; reload</button>
+          </div>
+        </div>
+
             <dialog id="vgmImportDialog" aria-labelledby="vgmImportTitle" aria-describedby="vgmImportFilename">
                 <h2 id="vgmImportTitle">Import VGM / S98</h2>
                 <p id="vgmImportDetected"></p>
@@ -1756,12 +1821,9 @@
                   <button id="convertVgmButton" type="button">Convert</button>
                 </div>
             </dialog>
-            <button id="exportTfiButton" type="button">Export TFI ZIP (CH1-CH6)</button>
-            <button id="exportVgiButton" type="button">Export VGI ZIP (CH1-CH6)</button>
-            <button id="resetOfflineCacheButton" data-reset-offline-cache type="button">Reset Offline Cache and Reload</button>
             <dialog id="cassetteExportDialog">
               <form method="dialog" class="vgm-import-dialog-form">
-                <h2>Export Cassette</h2>
+                <h2>Save Cassette</h2>
                 <p id="cassetteLicenseInherited" class="subtext"></p>
                 <label for="cassetteWorkTypeSelect">Work type</label>
                 <select id="cassetteWorkTypeSelect">
@@ -1783,83 +1845,31 @@
                 <input id="cassetteLicenseCustomName" type="text" placeholder="e.g. CC BY-NC 4.0 or personal terms">
                 <div class="vgm-import-actions">
                   <button id="cancelCassetteExportButton" value="cancel" type="submit">Cancel</button>
-                  <button id="confirmCassetteExportButton" value="default" type="submit">Export</button>
+                  <button id="confirmCassetteExportButton" value="default" type="submit">Save</button>
                 </div>
               </form>
             </dialog>
             <dialog id="newCassetteDialog" aria-labelledby="newCassetteTitle">
               <form method="dialog">
                 <h2 id="newCassetteTitle">New Cassette</h2>
-                <p>Start a new project? Export the current cassette first if you want to keep it.</p>
+                <p>Start a new project? Save the current cassette first if you want to keep it.</p>
                 <button value="cancel" type="submit">Cancel</button>
                 <button value="new" type="submit">New Cassette</button>
               </form>
             </dialog>
-          </div>
-        </details>
-        <span id="mainMenuHome" hidden></span>
-        <div class="app-bar-brand">
-          <h1 id="pageTitle">Tetorica FM2612 Playground</h1>
-          <p class="subtext">
-            Write a few lines of JavaScript, run them in the browser, then
-            drop down to raw YM2612 control when you want to.
-          </p>
-        </div>
-      </div>
-      <a class="link-button" href="../index.html">Back</a>
-    </nav>
-    <main>
-      <section class="panel">
-        <div class="toolbar">
-          <button id="runButton" type="button">Run</button>
-          <button id="stopButton" type="button">Stop</button>
-          <label class="checkbox-label">
-            <input id="workerExecution" type="checkbox">
-            Run in Worker
-          </label>
-          <label class="run-file-label" for="runFileSelect">Run file</label>
-          <select id="runFileSelect" aria-label="Run file">
-            <option value="single">Single Note</option>
-            <option value="midi-fixed-channels">MIDI fixed CH liveLoop + CC / Bend</option>
-            <option value="midi-auto-chord">MIDI auto chord liveLoop + CC / Bend</option>
-            <option value="midi-fm-psg">MIDI FM + PSG (YM2612)</option>
-            <option value="8-bit-arcade-sweep">8-bit Arcade Sweep</option>
-            <option value="fx-loop-minor">FX Loop Minor</option>
-            <option value="fx-loop-major">FX Loop Major</option>
-            <option value="guitar-fx-chain">Guitar FX Chain</option>
-            <option value="ambient-choir-sample">Ambient Choir Sample</option>
-            <option value="noise-ocean">Noise Ocean</option>
-            <option value="wind-noise">Wind Noise</option>
-            <option value="just-intonation-chorus">Just Intonation Chorus</option>
-            <option value="slicer-sweep">Slicer Sweep</option>
-            <option value="fx-motion">FX Motion</option>
-            <option value="parallel-fx">Parallel FX</option>
-            <option value="sonic-pi-sample-choir">Sonic Pi Sample Choir</option>
-            <option value="fm-api-beep">FM API Beep</option>
-            <option value="pg-context-init">pg.context Init</option>
-            <option value="fm-low-level-note">FM Low-Level Note</option>
-            <option value="raw-write-beep">Raw Write Beep</option>
-            <option value="channel3-special-mode">Channel 3 Special Mode</option>
-            <option value="dac-byte-stream">DAC Byte Stream</option>
-            <option value="psg-scale">PSG Scale</option>
-            <option value="psg-ocean">PSG Ocean</option>
-          </select>
-          <button
-            id="expandButton"
-            class="expand-button"
-            type="button"
-            aria-label="Expand editor"
-            aria-pressed="false"
-            title="Expand editor"
-          >
-            <svg class="expand-icon" viewBox="0 0 20 20" aria-hidden="true">
-              <path d="M7 3H3v4M13 3h4v4M17 13v4h-4M7 17H3v-4" />
-            </svg>
-            <svg class="collapse-icon" viewBox="0 0 20 20" aria-hidden="true">
-              <path d="M3 7h4V3M17 7h-4V3M13 17v-4h4M7 17v-4H3" />
-            </svg>
-          </button>
-        </div>
+        <dialog id="workerLookaheadDialog" class="playground-settings-dialog" aria-labelledby="workerLookaheadTitle" aria-describedby="workerLookaheadHint">
+          <form method="dialog" id="workerLookaheadForm">
+            <h2 id="workerLookaheadTitle">Worker lookahead</h2>
+            <label for="workerLookaheadMs">Lookahead (ms)</label>
+            <input id="workerLookaheadMs" type="number" min="0" max="2000" step="1" value="150" required aria-describedby="workerLookaheadHint">
+            <p id="workerLookaheadHint" class="subtext">Script audio only. Applies after Stop → Run. Keyboard stays immediate. Use 0 for no lookahead.</p>
+            <p id="workerLookaheadPlaybackHint" class="subtext" role="status" hidden>Stop playback to change this setting.</p>
+            <div class="settings-dialog-actions">
+              <button id="cancelWorkerLookaheadButton" type="button">Cancel</button>
+              <button id="applyWorkerLookaheadButton" type="submit">Apply</button>
+            </div>
+          </form>
+        </dialog>
 
         <section class="card" id="workPanels">
           <div class="tabbar" role="tablist" aria-label="Playground panels">
@@ -2286,7 +2296,7 @@
       })();
     </script>
     <script type="module">
-      import('./playground.js?v=worker-lookahead-1').catch(error => window.__playgroundStartup.fail(error));
+      import('./playground.js?v=menu-settings-1').catch(error => window.__playgroundStartup.fail(error));
     </script>
   </body>
 </html>
