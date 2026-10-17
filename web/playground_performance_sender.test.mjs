@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createPerformanceSender, validateWorkerLookahead} from './playground_performance_sender.js';
+import {createPerformanceSender, validateWorkerLookahead, DEFAULT_WORKER_LOOKAHEAD_SECONDS} from './playground_performance_sender.js';
 
 function fixture() {
   let now = 100000, loop = null;
@@ -78,6 +78,8 @@ test('splitting multiple preparation commands consumes their transfer list only 
 });
 
 test('Worker lead validation rejects nonfinite and negative values', () => {
+  assert.equal(DEFAULT_WORKER_LOOKAHEAD_SECONDS, .5);
+  assert.equal(validateWorkerLookahead(DEFAULT_WORKER_LOOKAHEAD_SECONDS), .5);
   for (const invalid of [NaN, Infinity, -.01, 2.01, '0.15']) assert.throws(() => validateWorkerLookahead(invalid));
   for (const valid of [0, .15, 2]) assert.equal(validateWorkerLookahead(valid), valid);
 });

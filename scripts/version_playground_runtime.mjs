@@ -6,8 +6,12 @@ import {join} from 'node:path';
 // imports query-free so direct class exports retain their constructor identity.
 const directory=fileURLToPath(new URL('../docs/js/',import.meta.url));
 const version='chip-tabs-2';
+const revisions={
+  'playground_runtime.js':'worker-lookahead-500-1',
+  'playground_performance_sender.js':'worker-lookahead-500-1',
+};
 const targets=[
-  'soundchip_mixer.js','megasynth.js','playground_runtime.js','playground_logic_worker.js',
+  'soundchip_mixer.js','megasynth.js','playground_runtime.js','playground_logic_worker.js','playground_performance_sender.js',
   'playground_rf5c164.js','playground_chip_inspector.js','playground_chip_inspector_state.js',
   'playground_segapsg_worklet.js','rf5c164-worklet.js','playground_pwm_worklet.js',
   'ym2612-worklet.js','ym2612-worklet-nuked.js',
@@ -25,7 +29,7 @@ let changed=0;
 for(const name of await readdir(directory)){
   if(!name.endsWith('.js'))continue;
   const path=join(directory,name),source=await readFile(path,'utf8');
-  const next=source.replace(references,(_match,quote,path)=>quote+path+'?v='+version+quote);
+  const next=source.replace(references,(_match,quote,path)=>quote+path+'?v='+(revisions[path.split('/').at(-1)]??version)+quote);
   if(next!==source){await writeFile(path,next);changed++;}
 }
 console.log('Versioned Playground browser runtime references in '+changed+' modules ('+version+').');

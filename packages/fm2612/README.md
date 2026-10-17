@@ -251,15 +251,18 @@ WASM, chip loader JS/WASM pairs and Tetorica's generated OPNA rhythm data are
 included. Website/editor pages and the Introduction/Ebook are separate consumers.
 
 Playground Worker scripts reserve FM/PSG, native sample/noise/FX and independent
-chip commands 150 ms ahead on the shared audio clock. UI Keyboard audition and
+chip commands 500 ms ahead by default on the shared audio clock. UI Keyboard audition and
 Main execution remain immediate. Adjust the lead before a fresh performance:
 
 ```js
-runtime.setTiming({workerLookaheadSeconds: 0.15}); // 0..2 seconds; 0 disables the lead
+runtime.setTiming({workerLookaheadSeconds: 0.5}); // 0..2 seconds; 0 disables the lead
 ```
 
 Changes apply after Stop, then Run; a hot Run keeps the current clock and lead.
 The website also exposes this setting in Menu as **Worker lookahead (ms)**.
+Saved preferences, including 0 or 150 ms, are preserved; 500 ms is the default
+when no valid preference exists. A larger lead tolerates longer command-delivery
+stalls, with the same added delay for script playback and live code changes.
 Explicit absolute audio-time and DAC/VGM sample schedules retain their own
 clocks and lead settings (`lookaheadSeconds` / `schedulerIntervalMs`). HTML media
 `stream` playback, external MIDI and MIDI-file scheduling use their existing

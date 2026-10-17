@@ -1,6 +1,6 @@
 import {createChipInspector} from './playground_chip_inspector.js?v=chip-tabs-2';
 import {createPerformanceHost} from './playground_performance_host.js';
-import {validateWorkerLookahead} from './playground_performance_sender.js';
+import {DEFAULT_WORKER_LOOKAHEAD_SECONDS, validateWorkerLookahead} from './playground_performance_sender.js?v=worker-lookahead-500-1';
 import {midiToOpnPitch, opnPitchFromHz} from './soundchip_pitch.js';
 import {attachChipClock, CHIP_CLOCKS} from './playground_chip_clock.js';
 import {createNesAudio} from './playground_nes_audio.js';
@@ -166,7 +166,7 @@ export function createPlaygroundRuntime(
     send: (entries) => synth.scheduleWrites(entries),
   });
   audioScheduler.setTiming({ lookaheadSeconds: runtime.dacLookaheadSeconds, schedulerIntervalMs: Math.min(10, Math.max(1, runtime.dacLookaheadSeconds * 1000)) });
-  let workerLookaheadSeconds = validateWorkerLookahead(options.workerLookaheadSeconds ?? 0.15);
+  let workerLookaheadSeconds = validateWorkerLookahead(options.workerLookaheadSeconds ?? DEFAULT_WORKER_LOOKAHEAD_SECONDS);
   /** Configure explicit scheduling and the next Worker performance's transport lead.
    * @param {{lookaheadSeconds?: number, schedulerIntervalMs?: number, workerLookaheadSeconds?: number}} options
    */

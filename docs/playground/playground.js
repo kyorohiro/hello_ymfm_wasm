@@ -41,7 +41,7 @@ import {
 } from "./playground_operator_tab.js?v=chip-tabs-2";
 import { createPlaygroundOperatorKeyboard } from "./playground_operator_keyboard.js?v=keyboard-controls-minimize-1";
 import { CHIP_CLOCKS } from "../js/playground_chip_clock.js";
-import { DEFAULT_CODE, EXAMPLES, EXAMPLE_FILES } from "./playground_examples.js?v=chip-tabs-2";
+import { DEFAULT_CODE, EXAMPLES, EXAMPLE_FILES } from "./playground_examples.js?v=worker-lookahead-500-1";
 import { initializePlaygroundMonaco } from "./playground_monaco.js?v=dx7-soundchip-1";
 import {
   decodeBase64Bytes,
@@ -73,7 +73,8 @@ import { exportYm2608VgmToPlaygroundJavaScript } from "../js/ym2608vgm.js";
 import { exportYm2610BVgmToPlaygroundJavaScript } from "../js/ym2610bvgm.js";
 import {
   createPlaygroundRuntime,
-} from "../js/playground_runtime.js?v=chip-tabs-2";
+} from "../js/playground_runtime.js?v=worker-lookahead-500-1";
+import {DEFAULT_WORKER_LOOKAHEAD_SECONDS} from '../js/playground_performance_sender.js?v=worker-lookahead-500-1';
 import { createVgmPresetFiles } from "./playground_vgm_presets.js";
 import { createTfiFileEditor, instrumentToEditorPreset } from "./playground_tfi_editor.js?v=chip-tabs-2";
 import { renderFileTree } from "./playground_file_tree.js?v=file-menu-1";
@@ -131,11 +132,12 @@ const applyWorkerLookaheadButton = document.getElementById("applyWorkerLookahead
 const workerLookaheadPlaybackHint = document.getElementById("workerLookaheadPlaybackHint");
 const workerLookaheadStorageKey = "tetorica.playground.workerLookaheadMs";
 function readWorkerLookahead() {
+  const defaultMs = DEFAULT_WORKER_LOOKAHEAD_SECONDS * 1000;
   try {
     const saved = localStorage.getItem(workerLookaheadStorageKey);
-    const value = saved === null ? 150 : Number(saved);
-    return Number.isFinite(value) && value >= 0 && value <= 2000 ? value : 150;
-  } catch { return 150; }
+    const value = saved === null ? defaultMs : Number(saved);
+    return Number.isFinite(value) && value >= 0 && value <= 2000 ? value : defaultMs;
+  } catch { return defaultMs; }
 }
 if (workerLookaheadInput) workerLookaheadInput.value = String(readWorkerLookahead());
 const workerExecution =

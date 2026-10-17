@@ -39,6 +39,24 @@ const server=http.createServer(async(request,response)=>{
    const anchor='if(note(command,port,metadata))apply(command,port,frame,metadata);';
    body=Buffer.from(replace(body.toString(),anchor,'if(note(command,port,metadata)){command._lookaheadFrame=frame;command._lookaheadPerformance=metadata;apply(command,port,frame,metadata);}'));
   }
+  if(pathname.endsWith('/playground_performance_sender.js')){
+   // A bounded FIFO transport stall after production timestamps are assigned.
+   // This isolates command delivery jitter; it does not simulate or identify
+   // macOS volume-key/OSD behavior, Worker starvation or audio-thread stalls.
+   const anchor='port.postMessage({performance: {session: configuration.session, owner, time}, commands: pending}, transfer);';
+   body=Buffer.from(replace(body.toString(),anchor,`{
+    const message={performance:{session:configuration.session,owner,time},commands:pending};
+    if(globalThis.__lookaheadTransportHoldMs){
+     const duration=globalThis.__lookaheadTransportHoldMs;globalThis.__lookaheadTransportHoldMs=0;
+     globalThis.__lookaheadHeldMessages=[];
+     setTimeout(()=>{const held=globalThis.__lookaheadHeldMessages;globalThis.__lookaheadHeldMessages=null;
+      for(const [port,message]of held)port.postMessage(message);},duration);
+    }
+    if(globalThis.__lookaheadHeldMessages){
+     globalThis.__lookaheadHeldMessages.push([port,transfer?.length?structuredClone(message,{transfer}):message]);
+    }else port.postMessage(message,transfer);
+   }`));
+  }
   if(pathname.endsWith('/playground_nes_worklet.js')){
    const anchor='  apply(data, port) {';
    body=Buffer.from(replace(body.toString(),anchor,anchor+`
@@ -64,6 +82,44 @@ const captureModule=`class LookaheadCapture extends AudioWorkletProcessor{
   this.port.onmessage=()=>{this.port.postMessage({pcm:this.pcm.slice(0,this.offset),first:this.first,rate:sampleRate});};}
  process(inputs){const data=inputs[0]?.[0];if(data&&this.offset+data.length<=this.pcm.length){if(this.first===null)this.first=currentFrame;this.pcm.set(data,this.offset);this.offset+=data.length;}return true;}
 }registerProcessor('lookahead-capture',LookaheadCapture);`;
+const stalledTransportSource=`
+fm.setPreset(CH1,FM_PRESETS['one-op-basic']);
+globalThis.__lookaheadTransportHoldMs=280;
+liveLoop('transport-stall',async()=>{
+ fm.noteOn(CH1,'E4');await sleep(.08);fm.noteOff(CH1);await sleep(.12);
+});`;
+async function checkTransportStall(page,leadSeconds){
+ await page.evaluate(async({leadSeconds,source})=>{
+  const p=window.__lookahead;p.traces=[];
+  p.runtime.setTiming({workerLookaheadSeconds:leadSeconds});
+  await p.runtime.playSource(source,{execution:'worker'});
+ },{leadSeconds,source:stalledTransportSource});
+ await page.waitForTimeout((leadSeconds+.9)*1000);
+ const result=await page.evaluate(async()=>{
+  const p=window.__lookahead,stats=await p.stats(),rate=p.megaDrive.audioContext.sampleRate;
+  const events=p.traces.filter(event=>event.chip==='fm'&&event.performance?.owner.startsWith('loop:')&&event.command.type==='write');
+  await p.runtime.stop();return{stats,rate,events};
+ });
+ const notes=result.events.filter(event=>event.command.value&0xf0);
+ const releases=result.events.filter(event=>!(event.command.value&0xf0));
+ assert(notes.length>=4&&releases.length>=4,'controlled transport stall must render at least four complete notes');
+ const first=notes[0],off=releases.find(event=>event.frame>=first.frame),next=notes[1];
+ const holdSeconds=(off.frame-first.frame)/result.rate,restSeconds=(next.frame-off.frame)/result.rate;
+ if(leadSeconds===.5){
+  assert.equal(result.stats.lateCommands,0,'500 ms lead absorbs a bounded 280 ms command delivery stall');
+  for(const event of result.events)assert.equal(event.frame,Math.round(event.performance.time*result.rate),'stall recovery must retain exact declared command frames');
+  // Compare rendered note/rest lengths with the timestamps actually produced
+  // by the real Worker clock, avoiding assumptions about timer precision.
+  assert(Math.abs(holdSeconds-(off.performance.time-first.performance.time))<=1/result.rate);
+  assert(Math.abs(restSeconds-(next.performance.time-off.performance.time))<=1/result.rate);
+  assert(holdSeconds>=.06&&holdSeconds<=.12,'note duration remains audible after the stall: '+holdSeconds);
+  assert(restSeconds>=.09&&restSeconds<=.16,'rest duration remains intact after the stall: '+restSeconds);
+ }else{
+  assert(result.stats.lateCommands>0,'150 ms lead must expose this deliberately longer command delivery stall');
+  assert(holdSeconds<.03,'late note-on and note-off collapse under the controlled stall: '+holdSeconds);
+ }
+ return{leadMs:leadSeconds*1000,holdMs:280,lateCommands:result.stats.lateCommands,maxLateMs:result.stats.maxLateFrames/result.rate*1000,noteMs:holdSeconds*1000,restMs:restSeconds*1000,notes:notes.length};
+}
 async function check(engine,name,url){
  const browser=await engine.launch({headless:true,...(name==='chromium'?{args:['--autoplay-policy=no-user-gesture-required']}:{} )});
  try{
@@ -73,8 +129,8 @@ async function check(engine,name,url){
   // the supported textarea fallback so both engines run without a CDN worker.
   await page.route('https://cdnjs.cloudflare.com/**',route=>route.abort());
   await page.goto(url);await page.waitForFunction(()=>window.__lookahead?.editor.kind==='textarea'&&!document.getElementById('runButton').disabled);
-  assert.equal(await page.locator('#workerLookaheadMs').inputValue(),'150');
-  assert.equal(await page.evaluate(()=>window.__lookahead.runtime.getTiming().workerLookaheadSeconds),.15);
+  assert.equal(await page.locator('#workerLookaheadMs').inputValue(),'500');
+  assert.equal(await page.evaluate(()=>window.__lookahead.runtime.getTiming().workerLookaheadSeconds),.5);
   await page.locator('#mainMenu > summary').click();await page.locator('#workerLookaheadButton').click();
   await page.locator('#workerLookaheadMs').fill('0');await page.locator('#applyWorkerLookaheadButton').click();
   assert.equal(await page.evaluate(()=>window.__lookahead.runtime.getTiming().workerLookaheadSeconds),0);
@@ -82,6 +138,11 @@ async function check(engine,name,url){
   assert.equal(await page.locator('#workerLookaheadMs').inputValue(),'0');
   await page.locator('#mainMenu > summary').click();await page.locator('#workerLookaheadButton').click();
   await page.locator('#workerLookaheadMs').fill('150');await page.locator('#applyWorkerLookaheadButton').click();
+  await page.reload();await page.waitForFunction(()=>window.__lookahead?.editor.kind==='textarea'&&!document.getElementById('runButton').disabled);
+  assert.equal(await page.locator('#workerLookaheadMs').inputValue(),'150','existing explicit 150 ms setting is preserved');
+  assert.equal(await page.evaluate(()=>window.__lookahead.runtime.getTiming().workerLookaheadSeconds),.15);
+  await page.locator('#mainMenu > summary').click();await page.locator('#workerLookaheadButton').click();
+  await page.locator('#workerLookaheadMs').fill('500');await page.locator('#applyWorkerLookaheadButton').click();
   await page.evaluate(()=>{document.getElementById('workerExecution').checked=false;window.__lookahead.editor.setValue('// Initialize audio.');});
   await page.click('#runButton');await page.waitForFunction(()=>window.__lookahead.megaDrive.node&&!document.getElementById('runButton').disabled);
   await page.evaluate(async captureModule=>{
@@ -98,7 +159,7 @@ async function check(engine,name,url){
    });
   },captureModule);
   await page.evaluate(async source=>{const p=window.__lookahead;await p.runtime.playSource(source,{execution:'worker'});},source);
-  await page.waitForTimeout(650);
+  await page.waitForTimeout(1000);
   const first=await page.evaluate(async()=>({stats:await window.__lookahead.stats(),disabled:document.getElementById('workerLookaheadMs').disabled}));
   assert.equal(first.disabled,true,'lookahead is fixed while a performance is playing');assert(first.stats.activeSession>0);
   await page.click('#operatorTabButton');await page.locator('#operatorKeyboardRoot button').filter({hasText:'Ukulele'}).click();
@@ -106,12 +167,12 @@ async function check(engine,name,url){
   await page.evaluate(()=>{window.__lookahead.keyboardBefore=window.__lookahead.megaDrive.audioContext.currentTime;});
   await page.keyboard.down(key);await page.waitForTimeout(40);await page.keyboard.up(key);
   const keyboard=await page.evaluate(()=>{const p=window.__lookahead,e=p.traces.find(event=>event.command.type==='audition-note-on');return {event:e,delay:e?e.frame/p.megaDrive.audioContext.sampleRate-p.keyboardBefore:null};});
-  assert(keyboard.event,'real keyboard audition reached the Worklet');assert(keyboard.delay>=-.01&&keyboard.delay<.12,'keyboard must bypass 150 ms script lead: '+JSON.stringify(keyboard));
+  assert(keyboard.event,'real keyboard audition reached the Worklet');assert(keyboard.delay>=-.01&&keyboard.delay<.12,'keyboard must bypass 500 ms script lead: '+JSON.stringify(keyboard));
   await page.evaluate(async source=>window.__lookahead.runtime.playSource(source,{execution:'worker'}),source);
   await page.waitForTimeout(450);const hot=await page.evaluate(()=>window.__lookahead.stats());assert.equal(hot.activeSession,first.stats.activeSession,'hot Run preserves its clock');
   const result=await page.evaluate(async()=>{
    const p=window.__lookahead;await p.runtime.stop();await new Promise(resolve=>setTimeout(resolve,40));
-   const stopped=await p.stats(),boundary=p.megaDrive.audioContext.currentTime;await new Promise(resolve=>setTimeout(resolve,230));
+   const stopped=await p.stats(),boundary=p.megaDrive.audioContext.currentTime;await new Promise(resolve=>setTimeout(resolve,650));
    const late=p.traces.filter(event=>event.performance&&event.frame/p.megaDrive.audioContext.sampleRate>boundary+.01);
    const captured=new Promise(resolve=>{p.tap.port.onmessage=({data})=>resolve(data);});p.tap.port.postMessage('end');const pcm=await captured;
    return {traces:p.traces,devices:window.__lookaheadDeviceTraces??[],stopped,late,pcm:Array.from(pcm.pcm),rate:pcm.rate,keyboardDelay: p.traces.find(event=>event.command.type==='audition-note-on').frame/pcm.rate-p.keyboardBefore};
@@ -126,14 +187,15 @@ async function check(engine,name,url){
   for(const event of loopNotes.slice(0,3)){
    for(const events of [samples,contexts,nes]){
     const distance=Math.min(...events.filter(other=>other.performance.owner===event.performance.owner).map(other=>Math.abs(other.frame-event.frame)/result.rate));
-    assert(distance<.04,'sample/FX/NES must share the FM lead rather than wait another 150 ms: '+distance);
+    assert(distance<.04,'sample/FX/NES must share the FM lead rather than wait another 500 ms: '+distance);
    }
   }
   assert(result.pcm.every(Number.isFinite));assert(result.pcm.some(value=>Math.abs(value)>.001),'real final PCM is audible');
   await page.evaluate(async()=>{await window.__lookahead.runtime.playSource("fm.setPreset(CH1,FM_PRESETS['one-op-basic']);liveLoop('fresh',async()=>{await play('C4',{seconds:.02});await sleep(.2);});",{execution:'worker'});});
   const fresh=await page.evaluate(()=>window.__lookahead.stats());assert(fresh.activeSession>first.stats.activeSession,'Stop then Run uses a fresh session');
   await page.evaluate(async()=>{await window.__lookahead.runtime.stop();window.__lookahead.detach();window.__lookahead.tap.disconnect();});
-  assert.deepEqual(errors,[]);console.log(JSON.stringify({passed:true,browser:name,defaultLeadMs:150,zeroSettingPersists:true,keyboardDelayMs:result.keyboardDelay*1000,fmNotes:loopNotes.length,sampleStarts:samples.length,fxChanges:contexts.length,nesStarts:nes.length,lateAfterStop:result.late.length,session:first.stats.activeSession,freshSession:fresh.activeSession}));
+  const transportStalls=[];for(const lead of[.15,.5])transportStalls.push(await checkTransportStall(page,lead));
+  assert.deepEqual(errors,[]);console.log(JSON.stringify({passed:true,browser:name,defaultLeadMs:500,zeroSettingPersists:true,existing150SettingPersists:true,keyboardDelayMs:result.keyboardDelay*1000,fmNotes:loopNotes.length,sampleStarts:samples.length,fxChanges:contexts.length,nesStarts:nes.length,lateAfterStop:result.late.length,session:first.stats.activeSession,freshSession:fresh.activeSession,controlledTransportStalls:transportStalls}));
  }finally{await browser.close();}
 }
 (async()=>{

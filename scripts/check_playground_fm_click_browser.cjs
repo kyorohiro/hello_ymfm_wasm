@@ -2,7 +2,7 @@
 // actual applied key/pitch writes. Never changes production files or smooths sound.
 // Run both engines, or --chromium / --webkit. Optional --seconds=5 --stall-ms=60
 // and --case=worker-distortion-ui for a narrow timing probe.
-// --lookahead-ms=150 configures the real Worker performance transport (default).
+// --lookahead-ms=500 configures the real Worker performance transport (default).
 // Use --lookahead-ms=0 for a comparison without transport lead.
 const assert = require('node:assert/strict');
 const http = require('node:http');
@@ -13,7 +13,7 @@ const {chromium,webkit} = require('playwright');
 const docs = path.resolve(__dirname,'../docs');
 const argument = (name,fallback) => process.argv.find(value => value.startsWith(name + '='))?.slice(name.length + 1) ?? fallback;
 const seconds = Number(argument('--seconds',5)),stallMs = Number(argument('--stall-ms',60));
-const lookaheadMs = Number(argument('--lookahead-ms',150));
+const lookaheadMs = Number(argument('--lookahead-ms',500));
 assert(Number.isFinite(seconds) && seconds >= 2 && seconds <= 60);
 assert(Number.isFinite(stallMs) && stallMs >= 0 && stallMs <= 250);
 assert(Number.isFinite(lookaheadMs) && lookaheadMs >= 0 && lookaheadMs <= 1000);

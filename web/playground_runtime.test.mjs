@@ -17,7 +17,7 @@ async function until(predicate) {
   }
   assert.fail('Async boundary was not reached');
 }
-function setup(t, capabilities) {
+function setup(t, capabilities, runtimeOptions = {}) {
   const listeners = new Set(), statuses = [], logs = [];
   const previous = globalThis.window;
   globalThis.window = {
@@ -32,7 +32,7 @@ function setup(t, capabilities) {
     async start() { this.state = 'ready'; }, async resume() {}, async close() {},
     clearFXChain: () => [],
   };
-  const runtime = createPlaygroundRuntime({ megaDrive, guardExecution: false, onStatus: s => statuses.push(s), onLog: line => logs.push(line) });
+  const runtime = createPlaygroundRuntime({ megaDrive, guardExecution: false, onStatus: s => statuses.push(s), onLog: line => logs.push(line), ...runtimeOptions });
   t.after(() => {
     runtime.stop();
     globalThis.window = previous;
@@ -40,6 +40,20 @@ function setup(t, capabilities) {
   });
   return { runtime, megaDrive, listeners, statuses, logs };
 }
+
+test('Worker playback defaults to 500 ms independently of the DAC scheduler', t => {
+  const {runtime} = setup(t);
+  assert.equal(runtime.getTiming().workerLookaheadSeconds, .5);
+  runtime.setTiming({lookaheadSeconds:.04});
+  assert.equal(runtime.getTiming().workerLookaheadSeconds, .5, 'the DAC scheduler setting is independent');
+});
+
+for (const seconds of [0, .15, .085, .5, 2]) test(`Worker playback retains the explicit ${seconds} second lead`, async t => {
+  const {runtime} = setup(t, undefined, {workerLookaheadSeconds:seconds});
+  assert.equal(runtime.getTiming().workerLookaheadSeconds, seconds);
+  await runtime.stop();
+  assert.equal(runtime.getTiming().workerLookaheadSeconds, seconds, 'Stop preserves the chosen lead');
+});
 
 test('chip inspector stays audio-free until initialization and retains subscriptions across finalize/reinitialize',async t=>{
   const {runtime,megaDrive}=setup(t);

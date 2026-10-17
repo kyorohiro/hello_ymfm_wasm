@@ -1,4 +1,4 @@
-import {createPerformanceSender} from './playground_performance_sender.js';
+import {createPerformanceSender} from './playground_performance_sender.js?v=worker-lookahead-500-1';
 import {midiToOpnPitch, opnPitchFromHz} from './soundchip_pitch.js';
 import {CHIP_CLOCKS} from './playground_chip_clock.js';
 import {createNesClient} from './playground_nes.js';

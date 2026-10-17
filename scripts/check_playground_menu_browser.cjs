@@ -117,21 +117,21 @@ async function checkLookahead(page) {
   const input = page.locator('#workerLookaheadMs');
   await openMenu(page);
   assert.equal(await input.isVisible(), false, 'the numeric setting belongs in its dialog');
-  assert.match(await page.locator('#workerLookaheadButton').textContent(), /150\s*ms/);
+  assert.match(await page.locator('#workerLookaheadButton').textContent(), /500\s*ms/);
   await page.locator('#workerLookaheadButton').click();
   const dialog = page.locator('#workerLookaheadDialog');
   await dialog.waitFor({state:'visible'});
-  assert.equal(await input.inputValue(), '150');
+  assert.equal(await input.inputValue(), '500');
   assert.equal(await input.getAttribute('aria-describedby'), 'workerLookaheadHint');
   assert.match(await dialog.textContent(), /Stop\s*→\s*Run/);
   assert.match(await dialog.textContent(), /Keyboard stays immediate/);
   assert(await input.evaluate(element => element === document.activeElement), 'opening the dialog focuses the latency input');
   await input.fill('90');
-  assert.equal(await page.evaluate(() => window.__menuRegression.runtime.getTiming().workerLookaheadSeconds), .15,
+  assert.equal(await page.evaluate(() => window.__menuRegression.runtime.getTiming().workerLookaheadSeconds), .5,
     'editing a draft does not change the active setting');
   await dismiss(page, dialog);
   await menuAction(page, '#workerLookaheadButton');
-  assert.equal(await input.inputValue(), '150', 'Escape discards the draft');
+  assert.equal(await input.inputValue(), '500', 'Escape discards the draft');
   await input.fill('90');
   await page.click('#applyWorkerLookaheadButton');
   await dialog.waitFor({state:'hidden'});
@@ -146,10 +146,21 @@ async function checkLookahead(page) {
   await page.click('#cancelWorkerLookaheadButton');
   await menuAction(page, '#workerLookaheadButton');
   assert.equal(await input.inputValue(), '90', 'Cancel discards the draft');
-  await input.fill('150');
+  // The larger default must not overwrite an explicitly chosen zero/old lead.
+  for (const milliseconds of [0, 150]) {
+    await input.fill(String(milliseconds));
+    await page.click('#applyWorkerLookaheadButton');
+    await dialog.waitFor({state:'hidden'});
+    await page.reload();
+    await ready(page);
+    await menuAction(page, '#workerLookaheadButton');
+    assert.equal(await input.inputValue(), String(milliseconds), 'an explicit ' + milliseconds + ' ms setting survives reload');
+    assert.equal(await page.evaluate(() => window.__menuRegression.runtime.getTiming().workerLookaheadSeconds), milliseconds / 1000);
+  }
+  await input.fill('500');
   await page.click('#applyWorkerLookaheadButton');
   await dialog.waitFor({state:'hidden'});
-  return {defaultMilliseconds:150, changedMilliseconds:90, persisted:true};
+  return {defaultMilliseconds:500, changedMilliseconds:90, persisted:true, zeroAndLegacy150Preserved:true};
 }
 
 async function checkCassetteAndImports(page, unzipSync) {

@@ -115,8 +115,14 @@ test('first-pass checkpoints remain correct after looping; near end/zero and can
   assert.equal(p.loopEnabled,true);assert.equal(p.prefetchFactor,3);
   p.play();q.play();assert.deepEqual(render(p,1700),render(q,1700));
   await seekPlayback(p,0);await seekPlayback(q,0);p.play();q.play();assert.deepEqual(render(p,1700),render(q,1700));
-  const abort=new AbortController();
-  await assert.rejects(seekPlayback(p,1e9,{signal:abort.signal,onProgress(){abort.abort();}}),{name:'AbortError'});
+  const abort=new AbortController(),process=p.process;let blocks=0;
+  // Cancel after a real render block, independently of the wall-clock progress
+  // interval: fast cores may finish before the first intermediate update.
+  p.process=function(...args){const result=process.apply(this,args);blocks++;abort.abort();return result;};
+  try{
+   await assert.rejects(seekPlayback(p,1e9,{signal:abort.signal}),{name:'AbortError'});
+   assert.equal(blocks,1);
+  }finally{p.process=process;}
   assert(p.isPaused());assert.equal(p.loopEnabled,true);
   p.setLoopEnabled(false);
   await seekPlayback(p,16*44100);await seekPlayback(q,16*44100);p.play();q.play();assert.deepEqual(render(p,1700),render(q,1700));

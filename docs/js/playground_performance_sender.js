@@ -1,6 +1,9 @@
 /** Worker command timestamps share the AudioContext clock captured by Main.
  * This is a transport lead, independent of beat/DAC scheduling and sample rate.
  */
+/** Default script lead; UI audition bypasses this transport. In seconds. */
+export const DEFAULT_WORKER_LOOKAHEAD_SECONDS = 0.5;
+
 export function validateWorkerLookahead(seconds) {
   if (!Number.isFinite(seconds) || seconds < 0 || seconds > 2) {
     throw new RangeError('workerLookaheadSeconds must be between 0 and 2 seconds');

@@ -1684,7 +1684,7 @@
               </details>
               <hr>
               <button id="workerLookaheadButton" class="menu-setting-row" type="button" aria-haspopup="dialog" aria-controls="workerLookaheadDialog">
-                <span>Worker lookahead…</span><small id="workerLookaheadValue" class="menu-value">150 ms</small>
+                <span>Worker lookahead…</span><small id="workerLookaheadValue" class="menu-value">500 ms</small>
               </button>
               <div id="desktopSettingsMenu"></div>
             </div>
@@ -1863,8 +1863,8 @@
           <form method="dialog" id="workerLookaheadForm">
             <h2 id="workerLookaheadTitle">Worker lookahead</h2>
             <label for="workerLookaheadMs">Lookahead (ms)</label>
-            <input id="workerLookaheadMs" type="number" min="0" max="2000" step="1" value="150" required aria-describedby="workerLookaheadHint">
-            <p id="workerLookaheadHint" class="subtext">Script audio only. Applies after Stop → Run. Keyboard stays immediate. Use 0 for no lookahead.</p>
+            <input id="workerLookaheadMs" type="number" min="0" max="2000" step="1" value="500" required aria-describedby="workerLookaheadHint">
+            <p id="workerLookaheadHint" class="subtext">Script audio only. Applies after Stop → Run. Keyboard stays immediate. More lookahead tolerates longer scheduling stalls, but delays script playback and live edits. Use 0 for no lookahead.</p>
             <p id="workerLookaheadPlaybackHint" class="subtext" role="status" hidden>Stop playback to change this setting.</p>
             <div class="settings-dialog-actions">
               <button id="cancelWorkerLookaheadButton" type="button">Cancel</button>
@@ -2316,7 +2316,7 @@
       })();
     </script>
     <script type="module">
-      import('./playground.js?v=chip-tabs-2').catch(error => window.__playgroundStartup.fail(error));
+      import('./playground.js?v=worker-lookahead-500-1').catch(error => window.__playgroundStartup.fail(error));
     </script>
   </body>
 </html>

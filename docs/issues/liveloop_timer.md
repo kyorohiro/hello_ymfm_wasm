@@ -2,22 +2,22 @@
 
 ## 2026-10-17 実装状況
 
-Workerのスクリプト音声は150msの先読みを標準にした。Main実行とUIのKeyboard試聴は即時。
+Workerのスクリプト音声は500msの先読みを標準にした。Main実行とUIのKeyboard試聴は即時。
 Menu → **Worker lookahead (ms)** で0〜2000msを設定し、端末のブラウザストレージへ保存する。
 設定は停止中に変更できる。APIでは次のように指定する。
 
 ```js
-runtime.setTiming({workerLookaheadSeconds: 0.15});
+runtime.setTiming({workerLookaheadSeconds: 0.5});
 // スクリプトからは await pg.setTiming({...})。変更はStop後のRunから反映。
 ```
 
 - MainでAudioContext時計と`performance.timeOrigin + performance.now()`の対応を一度取得し、
-  Workerは送信時刻に先読み量を加えた絶対音声秒を付ける。受信時刻から150msを足す方式ではない。
+  Workerは送信時刻に先読み量を加えた絶対音声秒を付ける。受信時刻から先読み量を足す方式ではない。
 - FM/PSG、native sample/noise/FX、独立SoundChipを同じ時計へ予約する。
   Workletは出力フレーム境界で処理を分割し、予約フレームで命令を適用する。
 - サンプル読み込みなどの準備は即時。非同期の設定操作は受付時に応答し、
-  `await`のたびに150ms待機が追加されないようにした。相対タイムラインの完了待ちは従来どおり。
-- 既存の絶対音声時刻予約と44,100Hzサンプル予約は別経路のまま。二重に150msを加算しない。
+  `await`のたびに先読み量の待機が追加されないようにした。相対タイムラインの完了待ちは従来どおり。
+- 既存の絶対音声時刻予約と44,100Hzサンプル予約は別経路のまま。先読み量を二重に加算しない。
   `lookaheadSeconds`（既定0.25秒）と`schedulerIntervalMs`は既存のSchedule/DAC予約用。
 - `stream`のHTMLメディア再生、外部MIDI、MIDI譜面の予約は従来の経路で、
   この先読みでは自動同期しない。UI通知やログも音声より先に反映され得る。
@@ -34,7 +34,7 @@ runtime.setTiming({workerLookaheadSeconds: 0.15});
 中断しない。全体Stopまたは音源disposeで停止する。明示的タイムライン内部のイベント順は
 この汎用Worker予約とは別管理のため、将来個別取消へ広げる場合は別途対応が必要。
 
-検証結果：Node回帰1,849件成功。npm向けJSDoc型定義208ファイルの生成・検証、
+当初の150ms先読みでの検証結果：Node回帰1,849件成功。npm向けJSDoc型定義208ファイルの生成・検証、
 Playground/Synthの配布用ZIPの依存解決チェックも成功。
 ChromeとWebKitの実ブラウザで設定保存、Hot Run、Stop/Run、即時Keyboard、
 FM・native sample・FX・NESの音声フレーム一致、DX7のMain/Worker音色編集・演奏を確認した。
@@ -42,6 +42,106 @@ Keyboardの観測遅延はChrome約5.3ms、WebKit約2.7msで、150ms先読みを
 60ms程度のMain/UI負荷を繰り返すWebKitの6秒検証では、150ms予約で51回の休符がすべて残り、
 80ms指定の発音は80〜86ms、予約の期限超過は0だった。
 Tauri配布アプリ実機の出力デバイスでの連続再生は未検証。
+
+### macOSの音量キー操作と既定500msへの変更
+
+macOSの音量キー操作時にノイズが出る一方、Worker lookaheadを500ms程度にすると
+収まるとのユーザー報告を受け、既定値を150msから500msへ変更した。
+OSの音量表示や、Main / Worker / 音声出力のどこに遅延があるかは未確定。
+この変更ではパラメーターの補間や波形のスムージングは追加しない。
+
+- SDKのRuntimeとWeb UIは、共通の`DEFAULT_WORKER_LOOKAHEAD_SECONDS = 0.5`を使う。
+- 保存済みの0ms、150ms、その他の有効値は上書きしない。設定がない、無効、またはストレージを読めない場合に500msを使う。
+- 既存の保存値でノイズが出る場合は、Menu → Worker lookaheadで500msに設定し、Stop → Runする。
+- スクリプトの開始・編集反映には先読み分の遅延が増える。Main実行とUI Keyboardは即時のまま。
+- `check_playground_lookahead_browser.cjs`に280msの命令配送遅延を与える比較を追加した。
+  これはmacOSの音量キー操作そのものの再現ではなく、予約を保てる範囲を確認する制御されたテスト。
+- 150ms / 500msの比較、音符・休符・予約フレーム、Stop後の古い予約、FM / sample / FX / NESの同期と即時鍵盤を確認する。
+- ブラウザー用のRuntimeとSenderの読み込み識別子を更新し、古い既定値のキャッシュを引き継がない。
+
+検証結果:
+
+| 制御された280ms配送遅延 | Chromium | WebKit |
+| --- | --- | --- |
+| 150ms先読み | 遅延命令8件、最初の音符が0msに短縮 | 遅延命令8件、最初の音符が0msに短縮 |
+| 500ms先読み | 遅延命令0件、音符約80.8ms／休符約122.8ms | 遅延命令0件、音符約84ms／休符約125ms |
+
+500msでは、命令の適用フレームが指定した絶対音声時刻のフレームと一致した。
+FM / sample / FX / NESの同期、Hot Run、Stop後650msまで古い予約が残らないこと、
+Keyboard入力が先読みを通らず約2.7〜5.3msで反映されることも両ブラウザーで確認した。
+設定画面はBrowser／Tauri mockの両方で初期500ms、保存済み0／150ms／90msの保持を確認。
+関連回帰1,586件・生成宣言210件の型チェック・403個の配布参照チェックが成功した。
+古いHTTPキャッシュを残す更新と、保存データの維持もChromium / WebKitで確認済み。
+
+検証用ZIPは`release/hello_ymfm_wasm_worker-lookahead-500-dev_itch_playground.zip`。
+Tauri開発プロジェクトにも539ファイルを取り込み・照合し、識別子は`sha256-e080ea6d744c`。
+実際のmacOS音量キー操作による再発有無と、音声出力デバイス上の聴感確認は未実施。
+
+### macOS音量キーの追加切り分け
+
+その後、ユーザー実機で500msでも再発した。メニューバーの音量スライダーでは出ず、
+MacBook Airの物理音量キーで発生する。Stop中は発生せず、SafariとTauriのWeb Audioで再現。
+Chromeでは有無を判断しにくい程度だった。
+
+同じローカル診断ページでユーザーが確認した結果:
+
+| 発音経路 | 音量キーでノイズが増える |
+| --- | --- |
+| 標準OscillatorNodeの持続音 | いいえ |
+| 最小のJS AudioWorkletの持続音 | いいえ |
+| YM2612＋PSG＋指定distortion、120秒分の音符を事前予約 | はい |
+| 同じ音源・FX、MainでliveLoop | はい |
+| 同じ音源・FX、WorkerでliveLoop、500ms先読み | はい |
+| 同じ音符・音色・distortionを事前にWAV化しAudioBufferSourceで再生 | いいえ |
+| 同じWAVをHTML audioで再生 | いいえ |
+
+音長80ms、休符20 / 20 / 40ms。distortionは`Math.tanh(input * 60) * .03`。
+WAVは本番YM2612 Workletと同じ音符時刻でオフライン生成し、再生中の音源計算・FX・
+音符送信を除いた。診断ページは一時ファイルで、Playground本体には組み込まない。
+
+事前予約でも発生するため、JSタイマーや命令配送の遅れだけでは説明できない。
+実WASMのYM2612と本番FXを同じイベント位置で大小・不規則なブロックに分割した比較では、
+左右のPCMは完全一致し、NaN / Infinityはなかった。
+これらはリアルタイム処理の負荷・締切を調べる根拠になるが、Worklet / WebKit / OSの
+どこで出力が途切れるかは未確定。音声時計の連続性だけでデバイス出力正常と判断しない。
+
+### YM2612 / PSGのリアルタイム処理軽量化
+
+`build_ym2612_wasm.sh`と`build_segapsg_wasm.sh`には最適化指定がなかった。
+両方を`-O2 -sASSERTIONS=1`に変更し、JS glueとWASMを再生成した。
+音色、EG、位相、先読み、波形補間の仕様は変更しない。`NDEBUG`やfast-mathも追加しない。
+
+Emscripten 6.0.6-git、Nodeで143 chip frames（48kHzの128出力frames相当）を
+20,000ブロック×3回測り、最小の平均処理時間を比較した参考値:
+
+| コア | 変更前 | `-O2 -sASSERTIONS=1` |
+| --- | --- | --- |
+| YM2612、6音同時、sampleRate照会2回・PCM生成・IRQ確認 | 178.75µs | 17.63µs |
+| PSG、tone / noise | 8.07µs | 1.87µs |
+
+これはSafariの出力締切や物理音量キーによる改善を保証する計測ではない。
+単音、6音同時、音程・Algorithm・LFO変更、Key Off、DAC、PSG全noise mode、mute / resetで
+変更前後の左右PCMを比較し、差分は0。save / load後の再現も一致した。
+本番Workletの提示コード相当8.18秒をWAV化した結果も変更前後で同一だった。
+
+通常の`-O2`だけでは旧JS glue / 新WASM等の混在に初期化エラーが出たため、
+速度差の小さい`ASSERTIONS=1`を採用した。この設定では両チップとも旧 / 新を双方向に
+混在させた初期化・生成の確認も成功し、実行時の検査機能を維持する。
+
+検証: web / Playground回帰1,586件、実WASM / native FX関連60件が成功。
+高速化で完了後の進捗通知からキャンセルしていたテスト1件の前提が成立しなくなったため、
+最初の実レンダーブロック直後に中断する検証へ変更した。製品のseek動作は変更しない。
+Chromium / WebKitで最適化前後の実音源・FX・停止を確認し、配布参照403件も成功。
+
+検証用ZIPは`release/hello_ymfm_wasm_audio-render-o2-dev_itch_playground.zip`。
+Tauri開発プロジェクトへ539ファイルを取り込み・照合済み、識別子は`sha256-c80160395bda`。
+インストール済みアプリのバイナリーは更新していない。
+2026-10-17、ユーザーがSafariの同一診断ページで最適化前後を比較し、
+「最適化版では出なくなった」と確認した。今回の物理音量キーによる再現条件では解消。
+事前予約でも発生し、同じ音の事前生成PCMでは発生せず、WASM最適化で解消した結果は、
+リアルタイム音声処理の余裕を増やす対策が有効だったことを示す。
+OS / WebKit内のどの処理が締切を圧迫したかまでは特定していない。
+Tauri開発用の取り込みは済んでいるが、Tauri実機での再確認は未実施。
 
 以下の前半は設計時のメモ。現在の採用仕様はこの節を優先する。
 
