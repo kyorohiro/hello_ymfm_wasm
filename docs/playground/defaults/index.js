@@ -14,7 +14,7 @@ liveFx("distortion", {
 });
 
 liveLoop("lead", async () => {
-  const notes = scale("E4", "minorPentatonic", 2);
+  const notes = scale("E3", "minorPentatonic", 2);
   //await nextBeat();
   await play(choose(notes), {
     channel: CH1,
