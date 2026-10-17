@@ -321,7 +321,13 @@ discards incomplete points and batches and enables monitoring unless
 `{enabled: false}` is supplied. Message intervals are approximately
 `samplesPerPoint * pointsPerMessage / audioContext.sampleRate` seconds.
 
-## SNES BRR instrument and SPC playback
+## Experimental SNES BRR instrument and SPC playback (0.2.20)
+
+**Experimental implementation.** SNES/SPC support has been checked with
+original synthetic fixtures, native/WASM PCM comparisons, and Chromium/WebKit
+in Main and Worker modes. Real-game SPC compatibility, Tauri application
+behavior, and long-running playback still need verification. These new APIs
+and their behavior may change as testing continues.
 
 The Playground script factory supports `useSoundChip('snes')` and
 `createSoundChip('snes', {id:'snes-bass'})` in Main and Worker modes.
@@ -648,10 +654,10 @@ FM/PSG/PCM mixing, stop/reset and close/restart. Playwright is a development
 dependency; it is not required by users of the sound-chip runtime.
 
 The build is staged in `dist/fm2612/`; packing produces
-`tetorica-fm2612-0.2.19.tgz`. To install a local build in another project:
+`tetorica-fm2612-0.2.20.tgz`. To install a local build in another project:
 
 ```sh
-npm install /absolute/path/to/tetorica-fm2612-0.2.19.tgz
+npm install /absolute/path/to/tetorica-fm2612-0.2.20.tgz
 ```
 
 The existing `tetorica-vgm` CLI package is built separately. This first package
@@ -661,13 +667,21 @@ adapter packages can reuse the core later without duplicating it.
 ## Licenses and assets
 
 Project code is BSD-3-Clause. Third-party notices and component licenses are
-included; Nuked-OPN2 is LGPL-2.1-or-later, with its source and build script in
+included; Nuked-OPN2 and snes_spc are LGPL-2.1-or-later, with their source and build scripts in
 `sources/`. The bundled DX7 engine is Apache-2.0; its license, MSFA provenance
 and third-party notices are in `msfa_dx7/`. The OPNA rhythm data is
 Tetorica-generated and includes its license and generator. External
 instrument/sample ROMs are not included.
 
 ## Release notes
+
+`0.2.20` adds **experimental SNES/SPC support**: a CPU-free, eight-voice
+S-DSP BRR instrument through Playground's `useSoundChip('snes')` and
+`createSoundChip('snes')`, plus SPC700/DSP file playback cores and a browser
+AudioWorklet player. Native audio is fixed at 32,000 Hz with output resampling.
+Main/Worker, Mixer/FX, explicit sample tuning, declarations, and corresponding
+LGPL source/build instructions are included. Real-game SPC and Tauri
+compatibility testing remains ongoing; no game data or Nintendo IPL ROM is bundled.
 
 `0.2.19` optimizes the prebuilt YM2612, Sega PSG, YM2203, YM2608,
 YM2610 / YM2610B, YM2413, RF5C164 and Nuked-OPN2 WASM cores. Tested PCM

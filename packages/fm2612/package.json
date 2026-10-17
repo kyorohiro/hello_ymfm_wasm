@@ -1,6 +1,6 @@
 {
   "name": "tetorica-fm2612",
-  "version": "0.2.19",
+  "version": "0.2.20",
   "description": "Tetorica sound chip WASM cores, Synth helpers and browser audio runtime",
   "type": "module",
   "license": "BSD-3-Clause",
@@ -95,7 +95,12 @@
     "dpcm",
     "dx7",
     "msfa",
-    "sysex"
+    "sysex",
+    "snes",
+    "spc700",
+    "s-dsp",
+    "spc",
+    "brr"
   ],
   "types": "./soundchip.d.ts"
 }
