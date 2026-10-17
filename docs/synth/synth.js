@@ -27,9 +27,7 @@ import {
   setStringWindowIndex,
   shiftFretPosition,
 } from "./synth_keyboard.js";
-import {
-  drawEnvelopeGuide as drawEnvelopeGuideView,
-} from "./synth_envelope.js";
+import {createOperatorEnvelopeView} from './synth_operator_envelope.js?v=synth-adsr-2';
 import {
   buildCommonControls as buildCommonControlsView,
   buildHeader,
@@ -165,11 +163,14 @@ let visualMode = 'envelope';
 const visualModeButtons = document.querySelectorAll('[data-visual-mode]');
 const visualizerDescription = document.getElementById('visualizerDescription');
 const visualDescriptions = {
-  envelope: 'Operator envelope guides and chip-output RMS.',
+  envelope: 'Drag OP1–OP4 points · Cyan: live chip-output RMS.',
   waveform: 'Final output waveform · live + looper · after FX and volume.',
   spectrum: 'Final output spectrum · live + looper · after FX and volume · dB.',
 };
 for (const button of visualModeButtons) {
+  button.addEventListener('keydown', event => {
+    if (event.key === ' ' || event.key === 'Enter') event.stopPropagation();
+  });
   button.addEventListener('click', () => {
     visualMode = button.dataset.visualMode;
     for (const item of visualModeButtons) {
@@ -178,6 +179,12 @@ for (const button of visualModeButtons) {
       item.setAttribute('aria-pressed', String(selected));
     }
     visualizerDescription.textContent = visualDescriptions[visualMode];
+    const editing = visualMode === 'envelope';
+    operatorEnvelopeRoot.hidden = !editing;
+    operatorEnvelopeRoot.parentElement.classList.toggle('is-editing-envelope', editing);
+    envelopeCanvas.hidden = editing;
+    operatorEnvelopeView.setVisible(editing);
+    if (editing) operatorEnvelopeView.invalidateOutput();
     megaSynth?.setOutputEnvelopeOptions({enabled: visualMode === 'envelope'});
     drawEnvelopeGuide();
   });
@@ -407,6 +414,25 @@ const operatorStates = {
 
 const commonControls = new Map();
 const operatorControls = new Map();
+let envelopeSelectionRevision = 0;
+const operatorEnvelopeRoot = document.getElementById('synthEnvelopeEditor');
+const operatorEnvelopeView = createOperatorEnvelopeView({
+  root: operatorEnvelopeRoot,
+  getOperators: () => operatorStates,
+  getSelectionKey: () => envelopeSelectionRevision,
+  onEdit: applyOperatorParams,
+  getOutputEnvelope: () => ({
+    history: outputEnvelopeHistory,
+    heldVoicePeak: outputEnvelopeHeldVoicePeak,
+    silenceFloor: OUTPUT_ENVELOPE_SILENCE_FLOOR,
+    baseScale: OUTPUT_ENVELOPE_SLOW_SCALE,
+  }),
+});
+operatorEnvelopeView.setVisible(true);
+operatorEnvelopeRoot.addEventListener('keydown', event => {
+  if (event.key === ' ' || event.key === 'Enter') event.stopPropagation();
+});
+window.addEventListener('pagehide', event => {if (!event.persisted) operatorEnvelopeView.dispose();});
 const channel3SpecialControls =
   new Map();
 const envelopeDescription =
@@ -1313,6 +1339,7 @@ function appendOutputEnvelopePoints(
   ) {
     outputEnvelopeHistory.shift();
   }
+  operatorEnvelopeView.invalidateOutput();
 }
 
 function applyPatchToVoices() {
@@ -1453,6 +1480,7 @@ function applyPresetState(
 }
 
 function applyPresetData(preset, presetName) {
+  envelopeSelectionRevision++;
   currentPresetName = presetName;
   importedTfiName = presetName.startsWith('vfs:') ? presetName.split('/').pop() : '';
   currentPresetPan = {...(preset.pan ?? {left:true, right:true})};
@@ -1481,6 +1509,7 @@ function applyPresetData(preset, presetName) {
   }
 
   syncControlsFromState();
+  operatorEnvelopeView.invalidate();
   updateTfiSummary();
   renderAlgorithmDiagram();
   drawEnvelopeGuide();
@@ -1646,23 +1675,9 @@ function renderAlgorithmDiagram() {
 }
 
 function drawEnvelopeGuide() {
-  if (visualMode !== 'envelope') {
-    outputVisualizer.draw(envelopeCanvas, envelopeContext, visualMode);
-    return;
-  }
-  drawEnvelopeGuideView({
-    canvas: envelopeCanvas,
-    context: envelopeContext,
-    operatorNumbers:
-      OPERATOR_NUMBERS,
-    operatorStates,
-    outputEnvelopeHistory,
-    outputEnvelopeHeldVoicePeak,
-    outputEnvelopeSilenceFloor:
-      OUTPUT_ENVELOPE_SILENCE_FLOOR,
-    outputEnvelopeBaseScale:
-      OUTPUT_ENVELOPE_SLOW_SCALE,
-  });
+  // Envelope redraws only for edits or incoming RMS batches, on one canvas.
+  if (visualMode === 'envelope') return;
+  outputVisualizer.draw(envelopeCanvas, envelopeContext, visualMode);
 }
 
 function renderChannel3SpecialMonitor() {
@@ -1982,15 +1997,23 @@ function buildOperatorControls() {
       id,
       nextValue
     ) => {
-      operatorStates[operator][id] =
-        nextValue;
-      markPresetEdited();
-      drawEnvelopeGuide();
-      if (synth) {
-        applyPatchToVoices();
-      }
+      applyOperatorParams(operator, {[id]: nextValue});
     },
   });
+}
+
+// Numeric and graphical edits share persistence and update only this operator.
+// Do not reset envelopes, re-key held notes, or rewrite channel frequencies.
+function applyOperatorParams(operator, patch) {
+  Object.assign(operatorStates[operator], patch);
+  for (const [id, value] of Object.entries(patch)) operatorControls.get(operator)?.get(id)?.updateVisual(value);
+  markPresetEdited();
+  operatorEnvelopeView.invalidate();
+  drawEnvelopeGuide();
+  if (synth) {
+    const apiOperator = displayOperatorToApiOperator(operator);
+    for (let channel = 0; channel < VOICE_COUNT; channel++) synth.setOperator(channel, apiOperator, patch);
+  }
 }
 
 function updateKeyboardVisuals() {

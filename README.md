@@ -53,6 +53,10 @@ This is the easiest way to test YM2612 control, sound design, and Genesis-orient
   [https://kyorohiro.github.io/hello_ymfm_wasm/demos/playground_runtime.html](https://kyorohiro.github.io/hello_ymfm_wasm/demos/playground_runtime.html)
 - Synth:
   [https://kyorohiro.github.io/hello_ymfm_wasm/synth/index.html](https://kyorohiro.github.io/hello_ymfm_wasm/synth/index.html)
+  In `Envelope`, choose OP1–OP4 and drag the points to edit AR/TL,
+  D1R/SL, D2R and RR while monitoring live chip-output RMS in cyan.
+  Numeric controls and Cassette instruments update together.
+  The graph shows relative register values; pitch, RS and SSG-EG affect actual timing.
 - VGM Analyzer:
   [https://kyorohiro.github.io/hello_ymfm_wasm/vgm_analyzer/index.html](https://kyorohiro.github.io/hello_ymfm_wasm/vgm_analyzer/index.html)
 
@@ -211,7 +215,7 @@ libymfm.wasm's Rust port was reviewed as prior work and is not copied here.
 The mouse-editable FM envelope UI was inspired by the FM Voice editing experience
 in h1romas4's [mmlx-lsp](https://github.com/h1romas4/mmlx-lsp)
 ([VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=h1romas4.mmlx-lsp)).
-The envelope editor in this repository is an original implementation for Tetorica's YM2612 controls.
+The Playground and Synth envelope editors are original implementations for Tetorica's YM2612 controls.
 
 ### MAME / libvgm OKIM6295 (`third_party/mame-okim6295/`)
 

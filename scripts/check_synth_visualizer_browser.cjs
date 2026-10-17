@@ -182,9 +182,11 @@ const server = http.createServer(async (req, res) => {
           assert.equal(await small.locator('#visualModulationWheel').inputValue(), '127');
           await small.locator('#visualModulationWheel').press('Home');
           assert.equal(await small.locator('#modulationWheel').inputValue(), '0');
-          const chart = await small.locator('#envelopeCanvas').boundingBox();
+          const chart = await small.locator('#synthEnvelopeEditor [data-operator-envelope]').boundingBox();
           const wheel = await small.locator('#visualModulationWheel').boundingBox();
-          assert(wheel.x >= chart.x + chart.width, 'Display wheel remains to the right on narrow screens');
+          assert(chart && wheel, 'Envelope editor and display wheel are visible on narrow screens');
+          assert(wheel.x >= chart.x + chart.width || wheel.y >= chart.y + chart.height,
+            'Display wheel remains beside or below the full-width Envelope editor');
           await small.locator('#visualModulationWheel').scrollIntoViewIfNeeded();
           await small.screenshot({path:`/private/tmp/synth-visualizer-mobile-${name}.png`});
           await small.close();

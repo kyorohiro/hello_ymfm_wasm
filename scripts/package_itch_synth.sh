@@ -18,6 +18,7 @@ SYNTH_FILES="
 synth.js
 synth_controls.js
 synth_envelope.js
+synth_operator_envelope.js
 synth_input.js
 synth_keyboard.js
 synth_runtime.js

@@ -208,6 +208,7 @@ ym2612_dac.js
 SYNTH_SUPPORT_FILES="
 synth_controls.js
 synth_envelope.js
+synth_operator_envelope.js
 synth_keyboard.js
 "
 

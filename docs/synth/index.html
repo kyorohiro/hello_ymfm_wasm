@@ -916,6 +916,25 @@
       .visual-display-row [data-modulation-wheel], .visual-display-row [data-pitch-bend-wheel] { min-height: 60px; height: 60px; }
       .visual-display-row .modulation-control { width: 36px; }
 
+      #synthEnvelopeEditor { flex: 1; min-width: 0; width: 0; }
+      #envelopeCanvas[hidden], #synthEnvelopeEditor[hidden] { display: none; }
+      #synthEnvelopeEditor summary { font-size: 0.72rem; cursor: pointer; }
+      .operator-envelope-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 5px 0; }
+      [data-operator-envelope-legend] { display: inline-flex; gap: 3px; }
+      [data-envelope-operator] { min-height: 26px; padding: 2px 7px; border: 1px solid transparent; border-radius: 4px; background: transparent; cursor: pointer; }
+      [data-envelope-operator].is-selected { border-color: currentColor; background: #ffffff16; }
+      [data-envelope-readout] { font-size: 0.65rem; overflow-wrap: anywhere; }
+      .operator-envelope-plot { position: relative; }
+      #synthEnvelopeEditor canvas { width: 100%; height: 144px; border: 0; border-radius: 5px; }
+      .operator-envelope-handle { position: absolute; width: 24px; height: 24px; padding: 0; border: 0; border-radius: 50%; background: transparent; transform: translate(-50%, -50%); cursor: ew-resize; touch-action: none; }
+      .operator-envelope-handle[data-envelope-handle="attack"], .operator-envelope-handle[data-envelope-handle="decay"] { cursor: move; }
+      .operator-envelope-handle:focus-visible { outline: 2px solid #fff; outline-offset: -2px; }
+      #synthEnvelopeEditor .subtext { margin: 5px 0 0; font-size: 0.65rem; color: #a8bfba; }
+      @media (max-width: 600px) {
+        .visual-display-row.is-editing-envelope { flex-wrap: wrap; }
+        .is-editing-envelope #synthEnvelopeEditor { flex-basis: 100%; width: 100%; }
+      }
+
       #visualizerDescription {
         margin: 4px 0 6px;
         color: #a8bfba;
@@ -1281,9 +1300,29 @@
                 <button type="button" class="toolbar-button" data-visual-mode="spectrum" aria-pressed="false">Spectrum</button>
               </div>
               <p id="envelopeDescription"></p>
-              <p id="visualizerDescription">Operator envelope guides and chip-output RMS.</p>
-              <div class="visual-display-row">
-                <canvas id="envelopeCanvas" width="720" height="160"></canvas>
+              <p id="visualizerDescription">Drag OP1–OP4 points · Cyan: live chip-output RMS.</p>
+              <div class="visual-display-row is-editing-envelope">
+                <canvas id="envelopeCanvas" width="720" height="160" hidden></canvas>
+                <details id="synthEnvelopeEditor" open>
+                  <summary>Operator envelopes</summary>
+                  <div class="operator-envelope-tools">
+                    <div data-operator-envelope-legend role="group" aria-label="Edit operator envelope">
+                      <button type="button" class="op-color-1" data-envelope-operator="1" aria-pressed="false">OP1</button>
+                      <button type="button" class="op-color-2" data-envelope-operator="2" aria-pressed="false">OP2</button>
+                      <button type="button" class="op-color-3" data-envelope-operator="3" aria-pressed="false">OP3</button>
+                      <button type="button" class="op-color-4" data-envelope-operator="4" aria-pressed="true">OP4</button>
+                    </div>
+                    <output data-envelope-readout></output>
+                  </div>
+                  <div class="operator-envelope-plot">
+                    <canvas data-operator-envelope width="720" height="144" role="img" aria-label="Editable operator envelope guides with live chip-output RMS in cyan. Select an operator and drag its labeled points to edit."></canvas>
+                    <button type="button" class="operator-envelope-handle" data-envelope-handle="attack" aria-label="Attack"></button>
+                    <button type="button" class="operator-envelope-handle" data-envelope-handle="decay" aria-label="Decay"></button>
+                    <button type="button" class="operator-envelope-handle" data-envelope-handle="sustain" aria-label="Sustain"></button>
+                    <button type="button" class="operator-envelope-handle" data-envelope-handle="release" aria-label="Release"></button>
+                  </div>
+                  <p class="subtext">Drag points · ←/→ rate, ↑/↓ level when focused. Colored guides use relative time/level; pitch, RS and SSG-EG affect actual envelopes.</p>
+                </details>
                 <label class="modulation-control" for="visualPitchBendWheel" title="Pitch bend: ±2 semitones. Release to return to the original pitch.">
                   <span>Pitch</span>
                   <input id="visualPitchBendWheel" data-pitch-bend-wheel aria-label="Display pitch bend: plus or minus two semitones" type="range" min="-1000" max="1000" step="10" value="0">
@@ -1416,7 +1455,7 @@
     </div>
 
     <script type="module">
-      import "./synth.js?v=keyboard-pitch-1";
+      import "./synth.js?v=synth-adsr-2";
     </script>
   </body>
 </html>

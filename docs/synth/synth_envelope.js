@@ -428,7 +428,7 @@ export function operatorEnvelopePatchFromPoint({width, height, settings, handle,
   return patch;
 }
 
-function drawEditableOperatorEnvelopeGuides({canvas, context, operatorStates, operatorNumbers, selectedOperator}) {
+function drawEditableOperatorEnvelopeGuides({canvas, context, operatorStates, operatorNumbers, selectedOperator, outputEnvelope}) {
   clearCanvas(context, canvas);
   const layout = editableGuideLayout(canvas.width, canvas.height);
   if (!layout) return;
@@ -473,6 +473,21 @@ function drawEditableOperatorEnvelopeGuides({canvas, context, operatorStates, op
     if (selected) selectedGeometry = geometry;
   }
   context.globalAlpha = 1;
+  if (outputEnvelope) {
+    const {
+      history = [],
+      heldVoicePeak,
+      silenceFloor,
+      baseScale,
+    } = outputEnvelope;
+    drawOutputEnvelopeOverlay(
+      context,
+      buildNormalizedHistory(history, currentEnvelopeScale(baseScale, heldVoicePeak), silenceFloor),
+      layout,
+      {color: '#7be0d6', lineWidth: 3, alpha: 0.95}
+    );
+  }
+  // Keep the selected points above the live trace so they remain easy to find.
   if (selectedGeometry) {
     for (const {x, y} of selectedGeometry.handles) {
       context.beginPath();
@@ -495,7 +510,8 @@ function drawEditableOperatorEnvelopeGuides({canvas, context, operatorStates, op
   context.textAlign = 'start';
 }
 
-// Conceptual register-value guides only; this does not measure chip EG or audio.
+// Operator curves are conceptual register-value guides, not measured chip EG.
+// An explicitly supplied output snapshot adds the measured chip RMS trace.
 export function drawOperatorEnvelopeGuides({
   canvas,
   context,
@@ -503,9 +519,10 @@ export function drawOperatorEnvelopeGuides({
   operatorNumbers = [1, 2, 3, 4],
   editable = false,
   selectedOperator = 1,
+  outputEnvelope = null,
 }) {
   if (editable) {
-    drawEditableOperatorEnvelopeGuides({canvas, context, operatorStates, operatorNumbers, selectedOperator});
+    drawEditableOperatorEnvelopeGuides({canvas, context, operatorStates, operatorNumbers, selectedOperator, outputEnvelope});
     return;
   }
   drawEnvelopeGuideCanvas({

@@ -288,3 +288,58 @@ test('changing the editable selected operator moves only its selection styling a
   assert.notEqual(first.circles[0].y, fourth.circles[0].y);
   assert.equal(fourth.operatorGuides().at(-1).color, colors[3]);
 });
+
+test('editable envelopes overlay the live chip RMS with the existing scale and keep handles on top', () => {
+  const original = createFixture();
+  const editable = createFixture();
+  const before = structuredClone(editable.options.operatorStates);
+  drawEnvelopeGuide(original.options);
+  drawOperatorEnvelopeGuides({
+    ...editable.options,
+    editable: true,
+    selectedOperator: 2,
+    outputEnvelope: {
+      history: editable.options.outputEnvelopeHistory,
+      heldVoicePeak: editable.options.outputEnvelopeHeldVoicePeak,
+      silenceFloor: editable.options.outputEnvelopeSilenceFloor,
+      baseScale: editable.options.outputEnvelopeBaseScale,
+    },
+  });
+  const expectedTrace = original.strokes.find(stroke => stroke.color === '#7be0d6');
+  const traceIndex = editable.strokes.findIndex(stroke => stroke.color === '#7be0d6');
+  assert.ok(traceIndex >= 0);
+  assert.deepEqual(editable.strokes[traceIndex], expectedTrace);
+  const handleIndices = editable.strokes.flatMap((stroke, index) =>
+    stroke.path.some(([kind]) => kind === 'arc') ? [index] : []);
+  assert.equal(handleIndices.length, 4);
+  assert.ok(handleIndices.every(index => index > traceIndex));
+  assert.deepEqual(editable.options.operatorStates, before);
+  assert.equal(editable.context.globalAlpha, 1);
+});
+
+test('live RMS changes redraw the trace without changing the editable operator geometry', () => {
+  const quiet = createFixture();
+  const loud = createFixture();
+  for (const [fixture, history] of [[quiet, [0, 0.01, 0]], [loud, [0, 0.3, 0]]]) {
+    drawOperatorEnvelopeGuides({
+      ...fixture.options,
+      editable: true,
+      selectedOperator: 4,
+      outputEnvelope: {history, heldVoicePeak: 1, silenceFloor: 0.01, baseScale: 0.2},
+    });
+  }
+  const trace = fixture => fixture.strokes.find(stroke => stroke.color === '#7be0d6');
+  assert.notDeepEqual(trace(quiet).path, trace(loud).path);
+  assert.deepEqual(quiet.operatorGuides(), loud.operatorGuides());
+  assert.deepEqual(quiet.circles, loud.circles);
+});
+
+test('guide-only mode does not inspect an optional live-output snapshot', () => {
+  const fixture = createFixture();
+  const outputEnvelope = {};
+  Object.defineProperty(outputEnvelope, 'history', {
+    get() { throw new Error('guide-only mode must not read output history'); },
+  });
+  drawOperatorEnvelopeGuides({...fixture.options, outputEnvelope});
+  assert.ok(!fixture.strokes.some(stroke => stroke.color === '#7be0d6'));
+});

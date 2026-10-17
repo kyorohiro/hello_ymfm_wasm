@@ -9,7 +9,7 @@ function operators() {
   }]));
 }
 
-function setup(t, {observers = true, open = true, width = 640, editable = false} = {}) {
+function setup(t, {observers = true, open = true, width = 640, editable = false, output = false} = {}) {
   const globalNames = ['document', 'window', 'requestAnimationFrame', 'cancelAnimationFrame', 'IntersectionObserver', 'ResizeObserver'];
   const saved = new Map(globalNames.map(name => [name, Object.getOwnPropertyDescriptor(globalThis, name)]));
   let view;
@@ -120,10 +120,13 @@ function setup(t, {observers = true, open = true, width = 640, editable = false}
   };
   let current = operators();
   let reads = 0;
+  let outputReads = 0;
+  let outputEnvelope = {history: [0, 0.1, 0], heldVoicePeak: 1, silenceFloor: 0.01, baseScale: 0.2};
   let selectionKey = 'channel-1';
   const edits = [];
   view = createOperatorEnvelopeView({root, getOperators() { reads++; return current; },
     getSelectionKey: () => selectionKey,
+    ...(output ? {getOutputEnvelope() { outputReads++; return outputEnvelope; }} : {}),
     ...(editable ? {onEdit(operator, patch) {
       edits.push({operator, patch});
       Object.assign(current[operator], patch);
@@ -136,10 +139,12 @@ function setup(t, {observers = true, open = true, width = 640, editable = false}
     operatorButtons, handles, readout, edits, captures, releases, captured,
     get requests() { return requests; },
     get reads() { return reads; },
+    get outputReads() { return outputReads; },
     get current() { return current; },
     get intersection() { return intersection; },
     get resize() { return resize; },
     setOperators(next) { current = next; },
+    setOutputHistory(history) { outputEnvelope = {...outputEnvelope, history}; },
     setSelectionKey(next) { selectionKey = next; },
     setWidth(next) { width = next; },
     intersect(next) { intersection.callback([{isIntersecting: next}]); },
@@ -266,6 +271,70 @@ test('unchanged guide values and changes to unrelated patch fields skip redraw',
   assert.equal(f.renders.length, 1, 'only values used by the guide belong to its draw signature');
   assert.equal(f.frames.size, 0);
 });
+
+test('new output RMS redraws unchanged editable guides once using the latest chunk', t => {
+  const f = setup(t, {editable: true, output: true});
+  f.start();
+  const before = structuredClone(f.current);
+  f.setOutputHistory([0, 0.02, 0]);
+  f.view.invalidateOutput();
+  f.setOutputHistory([0, 0.3, 0]);
+  f.view.invalidateOutput();
+  assert.equal(f.frames.size, 1);
+  f.advance();
+  assert.equal(f.renders.length, 2);
+  assert.equal(f.outputReads, 2);
+  const trace = render => render.strokes.find(stroke => stroke.style === '#7be0d6');
+  assert.notDeepEqual(trace(f.renders[0]), trace(f.renders[1]));
+  assert.deepEqual(f.current, before);
+  assert.equal(f.frames.size, 0, 'a live chunk does not start a continuous animation loop');
+});
+
+test('output-only redraw leaves handle positions, labels and operator selection DOM untouched', t => {
+  const f = setup(t, {editable: true, output: true});
+  f.start();
+  const unexpectedWrite = () => assert.fail('output-only repaint must not rewrite editor controls');
+  for (const button of [...f.operatorButtons, ...Object.values(f.handles)]) {
+    button.setAttribute = unexpectedWrite;
+    button.classList.toggle = unexpectedWrite;
+    button.style = new Proxy(button.style, {set: unexpectedWrite});
+    Object.defineProperty(button, 'title', {set: unexpectedWrite});
+  }
+  Object.defineProperty(f.readout, 'textContent', {set: unexpectedWrite});
+  f.setOutputHistory([0.1, 0.2, 0.3]);
+  f.view.invalidateOutput();
+  f.advance();
+  assert.equal(f.renders.length, 2);
+});
+
+for (const [name, hide, show] of [
+  ['hidden', f => f.view.setVisible(false), f => f.view.setVisible(true)],
+  ['folded', f => {f.root.open = false; f.root.emit('toggle');},
+    f => {f.root.open = true; f.root.emit('toggle');}],
+]) {
+  test(`${name} editor coalesces live output and catches up without changed register values`, t => {
+    const f = setup(t, {editable: true, output: true});
+    f.start();
+    hide(f);
+    for (const level of [0.05, 0.1, 0.3]) {
+      f.setOutputHistory([0, level, 0]);
+      f.view.invalidateOutput();
+    }
+    f.advance();
+    assert.equal(f.renders.length, 1);
+    assert.equal(f.outputReads, 1, 'hidden output is not read or drawn');
+    assert.equal(f.frames.size, 0);
+    show(f);
+    assert.equal(f.frames.size, 1);
+    f.advance();
+    assert.equal(f.renders.length, 2);
+    assert.equal(f.outputReads, 2);
+    const trace = f.renders[1].strokes.find(stroke => stroke.style === '#7be0d6');
+    assert.ok(Math.abs(trace.points[1][1] - (16 + (180 - 36) * 0.06)) < 1e-10,
+      'the latest peak is clamped to full scale');
+    assert.equal(f.frames.size, 0);
+  });
+}
 
 for (const [field, value] of [['ar', 0], ['d1r', 2], ['d2r', 25], ['sl', 14], ['rr', 1], ['tl', 110], ['dt', 7]]) {
   test(`a changed ${field} guide value redraws the current patch`, t => {
