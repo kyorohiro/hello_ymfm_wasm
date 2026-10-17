@@ -7,7 +7,8 @@ OUT_DIR="${1:-$ROOT_DIR/docs/generated}"
 
 mkdir -p "$OUT_DIR"
 
-emcc -std=c11 \
+# Keep runtime checks while optimizing the audio-thread synthesis hot path.
+emcc -std=c11 -O2 -sASSERTIONS=1 \
   -Ithird_party/nuked-opn2 \
   wasm/nuked_opn2_wasm.c \
   third_party/nuked-opn2/ym3438.c \

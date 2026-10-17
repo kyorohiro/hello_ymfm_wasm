@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { YM2203RuntimeSynth as RuntimeSynth } from './ym2203synth.js';
 import { YM2608RuntimeSynth } from './ym2608synth.js';
+import { NeoGeoSynth } from './ym2610bsynth.js';
 
 function deferred() {
   let resolve;
@@ -160,4 +161,38 @@ test('close cancels an existing-context resume and ignores its late completion',
   await Promise.resolve();
   assert.equal(h.synth.state, 'closed');
   assert.equal(h.synth.fm, null);
+});
+
+test('Neo Geo runtime closes the underlying transport and can restart after facade teardown', async t => {
+  const h = harness(t);
+  const synth = new NeoGeoSynth({audioContext: h.context});
+  await synth.start();
+  const node = h.nodes.at(-1), rawFm = synth.rawFm, transport = rawFm.transport;
+  const dispose = t.mock.method(transport, 'dispose');
+  assert.ok(node.handlers.has(transport.onMemoryMessage));
+
+  await synth.close();
+  await synth.close();
+  assert.equal(dispose.mock.callCount(), 1, 'close disposes the real transport exactly once');
+  assert.equal(transport.disposed, true);
+  assert.equal(node.handlers.size, 0, 'the transport message listener is removed');
+  assert.equal(node.connected, false);
+  assert.equal(node.port.closed, true);
+  assert.equal(synth.fm, null);
+  assert.equal(synth.state, 'closed');
+  assert.equal(h.context.state, 'running', 'an injected AudioContext remains available');
+
+  await synth.start();
+  const replacement = synth.rawFm.transport;
+  assert.notEqual(synth.rawFm, rawFm, 'restart replaces the retired underlying FM instance');
+  assert.notEqual(replacement, transport);
+  assert.equal(synth.fm.transport, replacement, 'the new facade exposes the active transport');
+  assert.equal(replacement.disposed, false);
+  assert.equal(synth.isReady(), true);
+  const disposeReplacement = t.mock.method(replacement, 'dispose');
+  await synth.close();
+  assert.equal(replacement.disposed, true);
+  assert.equal(disposeReplacement.mock.callCount(), 1);
+  assert.equal(dispose.mock.callCount() + disposeReplacement.mock.callCount(), 2);
+  assert.ok(h.nodes.every(n => !n.connected && n.port.closed && n.handlers.size === 0));
 });

@@ -7,7 +7,8 @@ OUT_DIR="${1:-$ROOT_DIR/docs/generated}"
 
 mkdir -p "$OUT_DIR"
 
-em++ -std=c++14 -Isrc \
+# Keep runtime checks while optimizing the audio-thread synthesis hot path.
+em++ -std=c++14 -O2 -sASSERTIONS=1 -Isrc \
   -Ithird_party/mame-rf5c164 \
   wasm/rf5c164_wasm.cpp \
   third_party/mame-rf5c164/rf5c164.cpp \

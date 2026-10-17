@@ -7,7 +7,8 @@ OUT_DIR="${1:-$ROOT_DIR/docs/generated}"
 
 mkdir -p "$OUT_DIR"
 
-em++ -std=c++14 \
+# Keep runtime checks while optimizing the audio-thread synthesis hot path.
+em++ -std=c++14 -O2 -sASSERTIONS=1 \
   -Isrc \
   wasm/ym2610b_wasm.cpp \
   src/ymfm_adpcm.cpp src/ymfm_misc.cpp src/ymfm_opl.cpp src/ymfm_opm.cpp \

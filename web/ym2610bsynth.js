@@ -225,6 +225,7 @@ export class YM2610BRuntimeSynth extends OPNRuntimeSynth {
  */
 export class NeoGeoFMSynth {
   constructor(fm) { this.fm = fm; this.channelCount = 4; }
+  get transport() { return this.fm.transport; }
   get clock() { return this.fm.clock; }
   set clock(hz) { this.fm.clock = hz; }
   reset() { this.fm.reset(); }
