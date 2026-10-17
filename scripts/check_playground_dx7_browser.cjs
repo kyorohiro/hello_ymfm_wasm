@@ -115,8 +115,9 @@ async function runBrowser(name, type, url, fixture) {
       const detach = megaDrive.audio.connectOutputMonitor(splitter);
       window.__dx7Meters = {meters, splitter, silent, detach};
     });
-    let serial = 0;
+    let serial = 0, activeExecution = 'main';
     const run = async (source, execution) => {
+      activeExecution = execution;
       const token = `DX7_RESULT_${++serial}:`;
       await page.evaluate(async ({source, execution, token}) => {
         await window.__dx7Test.runtime.playSource(source + `\nconsole.log(${JSON.stringify(token)} + JSON.stringify(typeof result === 'undefined' ? {} : result));`, {execution});
@@ -129,7 +130,10 @@ async function runBrowser(name, type, url, fixture) {
       }, token);
     };
     const meter = async () => {
-      await page.waitForTimeout(100);
+      const lead = activeExecution === 'worker' ? await page.evaluate(() => window.__dx7Test.runtime.getTiming().workerLookaheadSeconds * 1000) : 0;
+      // Setters acknowledge acceptance. Wait for the configured audio reservation
+      // and analyser window before measuring the changed waveform.
+      await page.waitForTimeout(100 + lead);
       const samples = [];
       for (let i = 0; i < 3; i++) {
         samples.push(await page.evaluate(() => window.__dx7Meters.meters.map(meter => {

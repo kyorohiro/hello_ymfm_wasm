@@ -1,4 +1,5 @@
 import {validateChipClock} from './playground_chip_clock.js';
+import {createPerformanceQueue, createPerformanceChipOwnership} from './playground_performance_queue.js';
 import {createOpnAuditionGuard, receiveOpnAuditionCommand} from './playground_audition_guard.js';
 import {YM2612DacPlayer, receiveDacCommand} from "./ym2612_dac.js";
 import {createChipPortReceiver} from "./playground_chip_port.js?v=dac-pcm-1";
@@ -64,9 +65,25 @@ class YM2612Processor extends AudioWorkletProcessor {
     this.captureRightChunks = [];
     this.captureFrameCount = 0;
 
-    const receiveChipPort = createChipPortReceiver((command, reply) => this.applyCommand(command, reply));
+    this.performanceOwnership = createPerformanceChipOwnership({
+      writeFm: (register, value, port) => this.ym2612?.writeRegister(register, value, port),
+      writePsg: value => this.psg?.write(value),
+      channelCount: 6,
+    });
+    this.performanceQueue = createPerformanceQueue({
+      apply: (command, reply, frame, performance) => this.applyCommand(command, reply, frame, performance),
+      onCancelOwner: owner => {
+        this.performanceOwnership.cancel(owner);
+        if (this.performanceDacOwner === owner) {this.performanceDacOwner = null; this.pcmDac.stop();}
+      },
+      nowFrame: () => currentFrame,
+      sampleRate,
+      prepare: (command, reply, performance) => this.preparePerformanceCommand(command, reply, performance),
+    });
+    const receiveChipPort = createChipPortReceiver((command, reply) => this.applyCommand(command, reply), undefined, {performanceQueue: this.performanceQueue});
     this.port.onmessage = (event) => {
       const command = event.data;
+      if (this.performanceQueue.receive(command, message => this.port.postMessage(message))) return;
       if (receiveChipPort(command)) return;
 
       if (command.type === "initialize") {
@@ -159,11 +176,53 @@ class YM2612Processor extends AudioWorkletProcessor {
     }
   }
 
-  applyCommand(command, reply = message => this.port.postMessage(message)) {
+  preparePerformanceCommand(command, reply, performance) {
+    if (command.type === 'chip-clock') {
+      try {
+        if (!this.ym2612) throw new Error('Chip not ready');
+        const clock = validateChipClock(command.clock);
+        reply?.({type: 'chip-clock-result', id: command.id});
+        return {...command, clock, performanceAcknowledged: true};
+      } catch (error) { reply?.({type: 'chip-clock-result', id: command.id, error: error.message}); return null; }
+    }
+    if (command.type !== 'pcm-dac') return command;
+    try {
+      const data = command.command;
+      if (data.action === 'play' && data.when === undefined) {
+        const probe = new YM2612DacPlayer(sampleRate, () => {});
+        probe.samples = this.pcmDac.samples;
+        probe.command(data, Math.round(performance.time * sampleRate));
+        reply?.({type: 'pcm-dac-result', id: command.id});
+        return {type: 'performance-pcm-dac-start', reservation: probe.queue[0]};
+      }
+      if (data.action === 'stop') {
+        reply?.({type: 'pcm-dac-result', id: command.id});
+        return {type: 'performance-pcm-dac-stop'};
+      }
+      // Loading/removing samples and explicit absolute-time reservations are
+      // preparation, not an extra delay added to the DAC's existing clock.
+      this.pcmDac.command(data, currentFrame);
+      reply?.({type: 'pcm-dac-result', id: command.id});
+    } catch (error) { reply?.({type: 'pcm-dac-result', id: command.id, error: error.message}); }
+    return null;
+  }
+
+  applyCommand(command, reply = message => this.port.postMessage(message), commandFrame = currentFrame, performance) {
+    this.performanceOwnership.observe(command, performance);
+    if (command.type === 'performance-pcm-dac-start') {
+      this.performanceDacOwner = performance?.owner ?? null;
+      const reservation = command.reservation, queue = this.pcmDac.queue;
+      reservation.start = Math.max(commandFrame, reservation.start);
+      let index = queue.length; queue.push(reservation);
+      while (index > 0 && queue[index - 1].start > reservation.start) { queue[index] = queue[index - 1]; index--; }
+      queue[index] = reservation;
+      return;
+    }
+    if (command.type === 'performance-pcm-dac-stop') { this.performanceDacOwner = null; this.pcmDac.stop(); return; }
     if (receiveOpnAuditionCommand(this.auditions, command, reply)) return;
     if (command.type === 'chip-clock') {
-      try { if (!this.ym2612) throw new Error('Chip not ready'); this.clock = validateChipClock(command.clock); reply({type:'chip-clock-result',id:command.id}); }
-      catch (error) { reply({type:'chip-clock-result',id:command.id,error:error.message}); }
+      try { if (!this.ym2612) throw new Error('Chip not ready'); this.clock = validateChipClock(command.clock); if (!command.performanceAcknowledged) reply({type:'chip-clock-result',id:command.id}); }
+      catch (error) { if (!command.performanceAcknowledged) reply({type:'chip-clock-result',id:command.id,error:error.message}); }
       return;
     }
     if (command.type === 'mixer-settings') {
@@ -186,7 +245,8 @@ class YM2612Processor extends AudioWorkletProcessor {
       this.envelopeOffset = this.envelopeFrames = this.envelopeSum = 0;
       return;
     }
-    if (receiveDacCommand(this.pcmDac, command, currentFrame, reply)) return;
+    if (command.type === 'pcm-dac' || command.type === 'reset') this.performanceDacOwner = null;
+    if (receiveDacCommand(this.pcmDac, command, commandFrame, reply)) return;
     if (command.type === "schedule-writes") {
       // Compact only when new work arrives, not once per audio event.
       if (this.scheduledHead) {
@@ -315,11 +375,16 @@ class YM2612Processor extends AudioWorkletProcessor {
         ? Math.round(scheduled.time * sampleRate)
         : Infinity;
       const dacFrame = this.nextDacFrame();
-      const frame = Math.min(scheduledFrame, dacFrame, this.pcmDac.nextFrame());
+      const performanceFrame = this.performanceQueue.nextFrame();
+      const frame = Math.min(scheduledFrame, dacFrame, this.pcmDac.nextFrame(), performanceFrame);
       if (frame >= endFrame) break;
       const eventOffset = Math.max(offset, frame - currentFrame);
       this.renderFrames(leftOut, rightOut, offset, eventOffset - offset);
       offset = eventOffset;
+      if (performanceFrame === frame) {
+        this.performanceQueue.advance(currentFrame + offset);
+        continue;
+      }
       if (scheduledFrame === frame) {
         this.scheduledCommands[this.scheduledHead++] = null;
         if (this.scheduledHead === this.scheduledCommands.length) {

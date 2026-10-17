@@ -4,7 +4,9 @@ import {readFile} from 'node:fs/promises';
 import vm from 'node:vm';
 import {createDx7Client} from './playground_dx7.js';
 import {createDx7Audio} from './playground_dx7_audio.js';
-import {createDX7, createInitVoice, createVoiceSysex, createBankSysex} from './msfa_dx7/src/index.js';
+import {createDX7, createInitVoice, createVoiceSysex, createBankSysex,parseSysex} from './msfa_dx7/src/index.js';
+import {presetToVoice,voiceToPreset,validatePreset,validateOperator,validateOperators} from './msfa_dx7/src/preset.js';
+import {createProcessorPerformance} from './playground_performance_processor.js';
 
 const wasmBytes = new Uint8Array(await readFile(new URL('./msfa_dx7/wasm/msfa.wasm', import.meta.url)));
 const workletSource = (await readFile(new URL('./playground_dx7_worklet.js', import.meta.url), 'utf8')).replace(/^import .*;$/gm, '');
@@ -13,11 +15,13 @@ const peak = pcm => pcm.reduce((maximum, value) => Math.max(maximum, Math.abs(va
 
 function processorClass(port, sampleRate) {
   let Processor;
-  vm.runInNewContext(workletSource, {
-    createDX7, createInitVoice, createVoiceSysex, sampleRate,
+  const scope={currentFrame:0,createDX7, createInitVoice, createVoiceSysex,parseSysex,presetToVoice,voiceToPreset,validatePreset,validateOperator,validateOperators,sampleRate,
     AudioWorkletProcessor: class { constructor() { this.port = port; } },
     registerProcessor(name, value) { assert.equal(name, 'tetorica-playground-dx7'); Processor = value; },
-  });
+  };
+  scope.createProcessorPerformance=options=>createProcessorPerformance({...options,rate:sampleRate,nowFrame:()=>scope.currentFrame});
+  vm.runInNewContext(workletSource,scope);
+  Processor.__scope=scope;
   return Processor;
 }
 
@@ -41,6 +45,7 @@ async function setup(sampleRate = 44100) {
     render(frames = 128) {
       const channels = [new Float32Array(frames), new Float32Array(frames)];
       const active = processor.process([], [channels]);
+      Processor.__scope.currentFrame+=frames;
       return {channels, active};
     },
     close() {
@@ -82,6 +87,38 @@ for (const sampleRate of [44100, 48000]) {
     assert.equal(peak(instrument.render(2051).channels[0]), 0);
   });
 }
+
+test('DX7 timed preset RPC is prepared immediately and its voice/note apply at one exact audio frame',async t=>{
+  const instrument=await setup(48000),core=await createDX7({sampleRate:48000,wasmBytes});
+  t.after(()=>{instrument.close();core.dispose();});await core.loadSysex(createVoiceSysex(createInitVoice()));
+  const messages=[],port={postMessage:message=>messages.push(message)},processor=instrument.processor;
+  processor.receive({type:'performance-start',session:1},port);
+  processor.receive({performance:{session:1,owner:'melody',time:64/48000},commands:[
+    {method:'setPreset',args:[{name:'FUTURE'}],id:77},{method:'noteOn',args:[69,100]},
+  ]},port);
+  const response=messages.find(message=>message.id===77);
+  assert.equal(response.value.voices[0].name,'FUTURE','acknowledgement describes the prepared logical patch');
+  assert.equal(processor.synth.getPreset().name,'INIT SINE','preparation must not change the audible patch early');
+  assert.equal((await instrument.client.getState()).voices[0].name,'FUTURE','queries include accepted pending edits');
+  assert.equal(peak(instrument.render(64).channels[0]),0);core.render(64);
+  core.setPreset({name:'FUTURE'});core.noteOn(69,100);
+  assert.deepEqual(instrument.render(256).channels[0],core.render(256));
+  assert.equal(processor.synth.getPreset().name,'FUTURE');
+  assert.equal(messages.filter(message=>message.id===77).length,1);
+});
+
+test('DX7 cancelled future patch rebuilds its logical state without discarding another owner',async t=>{
+  const instrument=await setup(48000);t.after(()=>instrument.close());
+  const messages=[],port={postMessage:message=>messages.push(message)},processor=instrument.processor;
+  processor.receive({type:'performance-start',session:2},port);
+  processor.receive({performance:{session:2,owner:'old',time:.1},commands:[{method:'setPreset',args:[{name:'CANCELLED'}],id:1}]},port);
+  processor.receive({performance:{session:2,owner:'kept',time:.2},commands:[{method:'setOperator',args:[6,{coarse:3}],id:2}]},port);
+  processor.receive({type:'performance-cancel-owner',session:2,owner:'old'},port);
+  const preset=await instrument.client.getPreset();
+  assert.equal(preset.name,'INIT SINE');assert.equal(preset.operators[6].coarse,3);
+  instrument.render(9601);
+  assert.equal(processor.synth.getPreset().name,'INIT SINE');assert.equal(processor.synth.getPreset().operators[6].coarse,3);
+});
 
 test('DX7 upload acknowledgement, bank selection and malformed uploads keep usable state', async t => {
   const instrument = await setup();

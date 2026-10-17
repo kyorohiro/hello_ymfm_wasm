@@ -1,5 +1,50 @@
 # liveLoopの時間同期と共通スケジューラー案
 
+## 2026-10-17 実装状況
+
+Workerのスクリプト音声は150msの先読みを標準にした。Main実行とUIのKeyboard試聴は即時。
+Menu → **Worker lookahead (ms)** で0〜2000msを設定し、端末のブラウザストレージへ保存する。
+設定は停止中に変更できる。APIでは次のように指定する。
+
+```js
+runtime.setTiming({workerLookaheadSeconds: 0.15});
+// スクリプトからは await pg.setTiming({...})。変更はStop後のRunから反映。
+```
+
+- MainでAudioContext時計と`performance.timeOrigin + performance.now()`の対応を一度取得し、
+  Workerは送信時刻に先読み量を加えた絶対音声秒を付ける。受信時刻から150msを足す方式ではない。
+- FM/PSG、native sample/noise/FX、独立SoundChipを同じ時計へ予約する。
+  Workletは出力フレーム境界で処理を分割し、予約フレームで命令を適用する。
+- サンプル読み込みなどの準備は即時。非同期の設定操作は受付時に応答し、
+  `await`のたびに150ms待機が追加されないようにした。相対タイムラインの完了待ちは従来どおり。
+- 既存の絶対音声時刻予約と44,100Hzサンプル予約は別経路のまま。二重に150msを加算しない。
+  `lookaheadSeconds`（既定0.25秒）と`schedulerIntervalMs`は既存のSchedule/DAC予約用。
+- `stream`のHTMLメディア再生、外部MIDI、MIDI譜面の予約は従来の経路で、
+  この先読みでは自動同期しない。UI通知やログも音声より先に反映され得る。
+- 同名liveLoopのHot Runは現在の周回を完了してから次の関数へ切り替え、時計と先読み量を維持する。
+  除去したループは固有ownerで未適用命令を破棄し、そのownerの発音だけを解放する。
+- StopはMainから各Workletのセッションを失効させ、Workerから遅れて届く古い命令を拒否する。
+  新しいセッションは全Workletの応答を待ってから演奏する。AudioContextのsuspend時も停止し、
+  次のRunで時計を取り直す。
+- キューの容量は命令数65,536で制限。不正時刻、NaN、Infinity、古い世代を検証する。
+  処理が先読み量を超えて遅れた場合は、時刻・同時刻の登録順序を保って直ちに適用する。
+- 位相・EG・波形へ自動補間を加えていない。再発音・強い歪みに由来するクリックは別問題。
+
+制約として、開始済みのYM2203/YM2608内部タイムラインは、個別liveLoopのowner取消では
+中断しない。全体Stopまたは音源disposeで停止する。明示的タイムライン内部のイベント順は
+この汎用Worker予約とは別管理のため、将来個別取消へ広げる場合は別途対応が必要。
+
+検証結果：Node回帰1,849件成功。npm向けJSDoc型定義208ファイルの生成・検証、
+Playground/Synthの配布用ZIPの依存解決チェックも成功。
+ChromeとWebKitの実ブラウザで設定保存、Hot Run、Stop/Run、即時Keyboard、
+FM・native sample・FX・NESの音声フレーム一致、DX7のMain/Worker音色編集・演奏を確認した。
+Keyboardの観測遅延はChrome約5.3ms、WebKit約2.7msで、150ms先読みを通っていない。
+60ms程度のMain/UI負荷を繰り返すWebKitの6秒検証では、150ms予約で51回の休符がすべて残り、
+80ms指定の発音は80〜86ms、予約の期限超過は0だった。
+Tauri配布アプリ実機の出力デバイスでの連続再生は未検証。
+
+以下の前半は設計時のメモ。現在の採用仕様はこの節を優先する。
+
 ## 背景
 
 VGM Importでチャンネルを別々のliveLoopへ分割すると、特に音の展開が速い箇所で
@@ -222,3 +267,81 @@ console.log(await pg.getTiming());
 
 自動テストで先読み範囲、絶対時刻、同時刻の順序、単一補充タイマー、キャンセル、設定検証を確認。
 実環境での音声確認は別途必要。
+
+## 2026-10-17: FMのプチプチ音と制御メッセージ遅延の切り分け
+
+v0.80.1のTauri / Web Audioで、`one-op-basic`、80ms発音、120BPMの
+`beat(cycle([0.04, 0.04, 0.08]))`、`tanh(input * 60) * 0.03`のliveFxを
+組み合わせた再生中のクリックが報告された。Keyboardはキー操作の瞬間にも発生する。
+
+追加した`scripts/check_playground_fm_click_browser.cjs`は、新規の自己ホストブラウザで、
+チップ出力と最終出力を同じ音声フレームで取得し、Key/Frequencyの送信時刻と
+Worklet適用時刻を記録する。表示を操作するケースは400msごとにエディターとメニューを
+更新し、60msのMainスレッド停止も意図的に加える。比較の再現性のため、音符の順序は固定する。
+
+```sh
+node scripts/check_playground_fm_click_browser.cjs --webkit --seconds=5
+node scripts/check_playground_fm_click_browser.cjs --chromium --seconds=5
+node scripts/check_playground_fm_click_browser.cjs --webkit --case=worker-distortion-ui --seconds=10
+```
+
+各エンジン9ケース（通常ループ、歪みあり・なし、Main/Worker、持続するKeyboard音、
+押し直すKeyboard音）を48,000Hzで確認した。結果はOSの一時ディレクトリのJSONへ保存する。
+
+- 通常の`noteOn/noteOff`ではOperator数値・Envelope図を更新しない。
+  したがって、この固定音色のループには新しい図の継続描画は発生しない。
+- 持続するA4では、UI負荷の有無ともに完全な無音ブロックはなかった。
+  最長の厳密なゼロ列は1サンプル。キャプチャの音声フレーム時計も連続していた。
+- 最終出力は、乾いた音ではチップ出力と一致し、歪み付きでは指定されたtanh処理と
+  最大約10^-9の誤差で一致した。取得した経路には別のDSP破損は見つからなかった。
+- ただし、WebKitのWorker + UI負荷では制御メッセージが最大91ms遅れた。
+  Workerが86msの間隔で送ったOn/Offが音声側では176msになり、続く休符が0フレームへ
+  圧縮された例がある。10秒間の94休符中12回が0フレームだった。
+  これはWorkerの待機自体の短縮ではなく、送信後からWorklet適用までの遅延だった。
+  ChromiumのWorkerでは同じ負荷で同程度の圧縮は観測しなかった。
+- キャプチャ内のPCMが正常でも、OSの出力デバイスでのアンダーランは否定できない。
+  また、これだけでWebKit自体の不具合と断定しない。
+
+実WASMを同期実行する別の検証では、余韻が残る同一CHを短い間隔で再発音すると、
+コアの位相・EG動作による段差が再現した。`one-op-basic`のRR13で、Note Offの0.5ms後に
+次の音を入れると振幅差約0.083、20ms後は0だった。強い歪みはチップ固有のDACの段差や
+通常の高調波も強調するため、隣接サンプル差が大きいことだけを音声欠落とみなさない。
+音質を変える自動スムージングや、位相・EGの追加リセットは行っていない。
+
+調査中、Workerの`cycle(values)`が常に先頭要素を返す別の不具合を修正した。
+Mainの既存実装を共有し、0.04 → 0.04 → 0.08が循環するようにした。
+呼び出し位置・ループごとの独立性、Run差し替え時の継続、Stop後の初期化を検証した。
+上記の比較録音と91msの遅延計測は、このcycle修正前の実装によるもの。
+cycle修正は演奏パターンの一致を直すもので、クリック解消の証明ではない。
+
+導入前は、一般の即時FM操作へ音声予約を適用するかどうかが課題だった。
+先読みは制御メッセージ遅延を吸収できるが、スクリプト音の開始・編集反映の遅延、
+Keyboard優先、Stop/Run、FX・DACとの同期まで含めた設計が必要。
+導入前の`pg.setTiming()`はSchedule/DAC用のみだった。現在は別項目の
+`workerLookaheadSeconds`を追加し、通常のWorker演奏にも予約を適用している。
+
+### 導入前の診断用予約試作（履歴）
+
+導入前の診断スクリプトは、配信するWorker命令へ送信時刻を付け、既存の音声予約キューへ
+150ms先の書き込みとして入れる試作だった。現在の`--lookahead-ms`は製品の
+`workerLookaheadSeconds`を設定する比較オプションに変更し、診断専用のキュー挿入は削除した。
+時刻変換には診断用のミリ秒精度の時計を用いるため、そのまま製品化する実装ではない。
+送信時刻と適用時刻のトレースは、予約を受信した時点ではなく、実際にレジスターへ
+適用した音声フレームを記録する。
+
+cycle修正後の同じWorkerコードと60ms UI負荷で、6秒間を比較した。
+
+| 予約 | 発音長の観測範囲 | 休符が0フレームになった回数 |
+| --- | --- | --- |
+| なし | 24〜170.7ms | 5 / 53 |
+| 150ms | 78.3〜87.7ms | 0 / 51 |
+
+```sh
+node scripts/check_playground_fm_click_browser.cjs --webkit --case=worker-distortion-ui --seconds=6 --lookahead-ms=0
+node scripts/check_playground_fm_click_browser.cjs --webkit --case=worker-distortion-ui --seconds=6 --lookahead-ms=150
+```
+
+送信側は約80msの発音長を保ち、150ms予約で今回の制御遅延を吸収できた。
+これはクリック音すべての解消や、実Tauriデバイスの連続再生を保証する結果ではない。
+音源の位相・EG・音量へ補間を加える対策ではない。導入する場合は開始・編集反映の
+遅延を設定として明示し、即時Keyboard・Stop・Run・FXとの整合性も検証する。

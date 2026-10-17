@@ -5,10 +5,12 @@ import {readFile} from 'node:fs/promises';
 import vm from 'node:vm';
 import {NesApu} from './nesapu.js';
 import {createNesClient} from './playground_nes.js';
+import {createProcessorPerformance} from './playground_performance_processor.js';
 async function setup(fds, sampleRate) {
   let Processor;
   const source = (await readFile(new URL('./playground_nes_worklet.js', import.meta.url), 'utf8')).replace(/^import .*;$/gm, '');
   vm.runInNewContext(source, {CHIP_CLOCKS, ChipClockResampler,NesApu, sampleRate,
+    createProcessorPerformance:options=>createProcessorPerformance({...options,rate:sampleRate,nowFrame:()=>0}),
     AudioWorkletProcessor: class {constructor() {this.port = {postMessage() {}};}},
     registerProcessor: (_, value) => {Processor = value;},
   });

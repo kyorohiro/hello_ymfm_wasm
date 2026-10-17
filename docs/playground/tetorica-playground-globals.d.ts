@@ -1017,8 +1017,17 @@ type PlaygroundAPI = {
 
 declare var pg: PlaygroundAPI;
 
-interface PlaygroundTiming { lookaheadSeconds: number; schedulerIntervalMs: number; }
-/** Configure Schedule lookahead and refill interval before starting loops. Await in Worker mode. */
+interface PlaygroundTiming {
+  /** Explicit DAC/VGM sample schedule refill lead; seconds. Default 0.25. */
+  lookaheadSeconds: number;
+  /** Explicit audio schedule refill interval; milliseconds. */
+  schedulerIntervalMs: number;
+  /** Worker script audio transport lead, 0..2 seconds; default 0.15.
+   * Applies to the next performance after Stop; hot Run keeps the active lead.
+   * Main execution, UI Keyboard and explicit audio/sample schedules are unaffected. */
+  workerLookaheadSeconds: number;
+}
+/** Configure timing. Worker transport lead changes apply after Stop → Run. Await in Worker mode. */
 declare function setTiming(options: Partial<PlaygroundTiming>): PlaygroundTiming | Promise<PlaygroundTiming>;
 declare function getTiming(): PlaygroundTiming | Promise<PlaygroundTiming>;
 

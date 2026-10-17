@@ -8,6 +8,7 @@ import {YM2612Synth} from '../js/ym2612synth.js';
 import {createYm2612} from '../js/ym2612.js';
 import {YM2612DacPlayer, receiveDacCommand} from '../js/ym2612_dac.js';
 import {createChipPortReceiver} from '../js/playground_chip_port.js';
+import {createPerformanceQueue, createPerformanceChipOwnership} from '../js/playground_performance_queue.js';
 import {createOpnAuditionGuard, receiveOpnAuditionCommand} from '../js/playground_audition_guard.js';
 import ym2612ModuleFactory from '../generated/ym2612_wasm.js';
 import {vgmBytes} from '../../web/test-support/vgm-mock.js';
@@ -42,7 +43,7 @@ async function renderer(rate) {
   const messages = [];
   const scope = {
     sampleRate: rate, currentFrame: 0, Float32Array, Uint8Array, Error,
-    YM2612DacPlayer, receiveDacCommand, createChipPortReceiver,
+    YM2612DacPlayer, receiveDacCommand, createChipPortReceiver, createPerformanceQueue, createPerformanceChipOwnership,
     createOpnAuditionGuard, receiveOpnAuditionCommand, createYm2612, ym2612ModuleFactory,
     AudioWorkletProcessor: class {constructor() {this.port = {postMessage: message => messages.push(message)};}},
     registerProcessor: (_name, type) => {Processor = type;},

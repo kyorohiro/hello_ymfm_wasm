@@ -56,6 +56,8 @@ playground_rf5c164_audio.js
 rf5c164-worklet.js
 megasynth_fx.js
 playground_chip_port.js
+playground_performance_queue.js
+playground_performance_processor.js
 playground_audition_guard.js
 playground_worker_chip.js
 playground_worker_dac.js

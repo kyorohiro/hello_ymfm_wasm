@@ -1,8 +1,11 @@
 import {ChipClockResampler, CHIP_CLOCKS} from './playground_chip_clock.js';
 import {NesApu} from './nesapu.js';
+import {createProcessorPerformance} from './playground_performance_processor.js';
 class Processor extends AudioWorkletProcessor {
   constructor(options) {
     super(); this.dead = false;
+    this.performance=createProcessorPerformance({chip:'nes',apply:(data,port)=>this.apply(data,port),immediate:['loadMemory']});
+    this.renderSegment=this.renderSegment.bind(this);
     this.port.onmessage = ({data}) => {
       if (data.port) {
         if (this.dead) { data.port.close(); return; }
@@ -17,8 +20,12 @@ class Processor extends AudioWorkletProcessor {
       this.port.postMessage({ready: true});
     } catch (error) { this.port.postMessage({error: error.message}); this.dispose(); }
   }
-  dispose() { this.dead = true; this.chip?.dispose(); this.chip = null; this.remote?.close(); }
+  dispose() { this.performance.clear(); this.dead = true; this.chip?.dispose(); this.chip = null; this.remote?.close(); }
   receive(data, port) {
+    if(this.performance.receive(data,port))return;
+    this.apply(data,port);
+  }
+  apply(data, port) {
     if (data.method === 'dispose') { this.dispose(); return; }
     try {
       if (this.dead) throw new Error('NES disposed');
@@ -36,10 +43,13 @@ class Processor extends AudioWorkletProcessor {
   process(inputs, outputs) {
     if (this.dead) return false;
     const [left, right] = outputs[0];
-    if (this.clockResampler) { this.clockResampler.render(this.chip, left, right); return true; }
+    this.performance.render(left,right,this.renderSegment);return true;
+  }
+  renderSegment(left,right) {
+    if(!this.chip){left.fill(0);right.fill(0);return;}
+    if (this.clockResampler) { this.clockResampler.render(this.chip, left, right); return; }
     const pcm = this.chip.generateStereo(left.length);
     left.set(pcm.left); right.set(pcm.right);
-    return true;
   }
 }
 registerProcessor('tetorica-nes', Processor);

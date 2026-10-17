@@ -10,11 +10,13 @@ import ym2612Factory from '../docs/generated/ym2612_wasm.js';
 import ym2203Factory from '../docs/generated/ym2203_wasm.js';
 import ym2610Factory from '../docs/generated/ym2610b_wasm.js';
 import {createOpnClient} from './playground_opn.js';
+import {createProcessorPerformance} from './playground_performance_processor.js';
 const source=(await readFile(new URL('./playground_opn_worklet.js',import.meta.url),'utf8')).replace(/^import .*;$/gm,'');
 async function setup(name, overrides={}) {
  let Processor, ready;
  const promise=new Promise(resolve=>{ready=resolve;});
  vm.runInNewContext(source,{validateChipClock,Ym2612,Ym2203,Ym2610B,ym2612Factory,ym2203Factory,ym2610Factory,sampleRate:48000,
+  createProcessorPerformance:options=>createProcessorPerformance({...options,rate:48000,nowFrame:()=>0}),
   AudioWorkletProcessor:class{constructor(){this.port={postMessage:ready};}},registerProcessor:(_,cls)=>{Processor=cls;},...overrides});
  const wasmBinary=await readFile(new URL(`../docs/generated/${name==='ym2610'?'ym2610b':name}_wasm.wasm`,import.meta.url));
  const processor=new Processor({processorOptions:{name,wasmBinary}});

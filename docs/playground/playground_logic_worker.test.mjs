@@ -1,3 +1,4 @@
+import {createPerformanceSender} from '../../web/playground_performance_sender.js';
 import {midiToOpnPitch, opnPitchFromHz} from '../../web/soundchip_pitch.js';
 import {CHIP_CLOCKS} from '../../web/playground_chip_clock.js';
 import {createYm2151Client} from '../../web/playground_ym2151.js';
@@ -6,6 +7,7 @@ import {serializeLogError} from '../../web/playground_log.js';
 import {createSegaPsgClient} from '../../web/playground_segapsg.js';
 import {resolvePlaySeconds,resolvePlayDuration} from '../../web/playground_duration.js';
 import {createLoopAsyncTasks} from '../../web/playground_async_tasks.js';
+import {createCycle, createPlaygroundMusic} from '../../web/playground_music.js';
 import {createOpnClient} from '../../web/playground_opn.js';
 import {createRf5c164Client} from '../../web/playground_rf5c164.js';
 import {createYm2608Client} from '../../web/playground_ym2608.js';
@@ -32,9 +34,9 @@ const workerSource = readFileSync(
 function createWorkerHarness(overrides = {}) {
   const messages = [];
   const context = {
-    serializeLogError,
+    createPerformanceSender, serializeLogError,
     midiToOpnPitch, opnPitchFromHz, CHIP_CLOCKS, resolvePlaySeconds, resolvePlayDuration, createBeatClock, runTween, createNativeSampleController, createNativeNoiseController, controlNativeNoise, createWorkerDac, atob, createMidiApi, createMidiRack, createWorkerChip, createNativeFXController, createLiveFxLifecycle, DOMException, structuredClone,
-    createDx7Client, createYm2151Client, createSegaPsgClient, createLoopAsyncTasks, createDeadlineScheduler, createOpnClient, createGameboyClient, createSoundChipRegistry, createRf5c164Client, createYm2608Client,
+    createDx7Client, createYm2151Client, createSegaPsgClient, createLoopAsyncTasks, createCycle, createDeadlineScheduler, createOpnClient, createGameboyClient, createSoundChipRegistry, createRf5c164Client, createYm2608Client,
     hzToBlockFnum,
     Error,
     Map,
@@ -72,7 +74,8 @@ function createTimedWorkerHarness(start = 10) {
   let time = start;
   const tasks = new Set();
   const worker = createWorkerHarness({
-    performance: { now: () => time * 1000 },
+    performance: { timeOrigin: 0, now: () => time * 1000 },
+    createPerformanceSender: options => createPerformanceSender({...options, now: () => time * 1000}),
     consumeSetupTime(seconds) { time += seconds; },
     setTimeout(fn, ms) {
       const task = { fn, at: time + Math.max(0, ms) / 1000 };
@@ -103,8 +106,8 @@ function createTimedWorkerHarness(start = 10) {
       }
       assert.fail('Worker generated an unbounded burst of expired waits');
     },
-    async run(sourceCode, lookaheadSeconds = 0) {
-      worker.post({ type: 'run', presets: {}, scaleIntervals: {}, timing: { lookaheadSeconds }, sourceCode });
+    async run(sourceCode, lookaheadSeconds = 0, runOptions = {}) {
+      worker.post({ type: 'run', presets: {}, scaleIntervals: {}, timing: { lookaheadSeconds }, sourceCode, ...runOptions });
       await this.advance(0);
       const error = worker.messages.find(message => message.type === 'execution-error');
       assert.equal(error, undefined, error?.message);
@@ -112,6 +115,165 @@ function createTimedWorkerHarness(start = 10) {
     async stop() { worker.post({ type: 'stop' }); await this.advance(0); },
   };
 }
+
+function mainCycle(loop = null) {
+  return createPlaygroundMusic({
+    noteToSemitone: {}, scaleIntervals: {}, synth: () => null, presets: {},
+    activeNotes: new Set(), sleep: async () => {}, getCurrentLoopContext: () => loop,
+  }).cycle;
+}
+
+test('Worker cycles three- and four-item sequences independently across loop iterations like Main', async () => {
+  const f = createTimedWorkerHarness();
+  try {
+    await f.run(`let iteration=0; liveLoop('lead', async () => {
+      console.log('cycles', cycle([.04,.04,.08]), cycle(['C','D','E','F']));
+      await sleep(.01); if(++iteration===12)stopLoop('lead');
+    });`);
+    await f.advance(.121);
+    const loop = {cycleState: new Map(), cycleCallIndex: 0}, cycle = mainCycle(loop);
+    const expected = Array.from({length: 12}, () => {
+      loop.cycleCallIndex = 0;
+      return [cycle([.04,.04,.08]), cycle(['C','D','E','F'])];
+    });
+    assert.deepEqual(f.logs().filter(args => args[0] === 'cycles').map(args => [...args].slice(1)), expected);
+    assert.deepEqual(expected.slice(0, 4), [[.04, 'C'], [.04, 'D'], [.08, 'E'], [.04, 'F']]);
+  } finally { await f.stop(); }
+});
+
+test('Worker unnamed call slots remain independent even when their arrays have identical values', async () => {
+  const f = createTimedWorkerHarness();
+  try {
+    await f.run(`let iteration=0; liveLoop('lead', async () => {
+      console.log('slots', cycle([10,20,30]));
+      await sleep(.001);
+      console.log('slots', cycle([10,20,30]));
+      await sleep(.001); if(++iteration===4)stopLoop('lead');
+    });`);
+    await f.advance(.01);
+    assert.deepEqual(f.logs().map(args => args[1]), [10,10,20,20,30,30,10,10]);
+  } finally { await f.stop(); }
+});
+
+test('Worker sibling loops keep separate sequence positions across asynchronous waits', async () => {
+  const f = createTimedWorkerHarness();
+  try {
+    await f.run(`let a=0,b=0;
+      liveLoop('a', async () => {
+        console.log('a', cycle([1,2,3])); await sleep(.01);
+        console.log('a-after',cycle(['a','b'])); if(++a===5)stopLoop('a');
+      });
+      liveLoop('b', async () => {
+        console.log('b', cycle([1,2,3])); await sleep(.015);
+        console.log('b-after',cycle(['a','b'])); if(++b===3)stopLoop('b');
+      });`);
+    await f.advance(.06);
+    const values = label => f.logs().filter(args => args[0] === label).map(args => args[1]);
+    assert.deepEqual(values('a'), [1,2,3,1,2]);
+    assert.deepEqual(values('b'), [1,2,3]);
+    assert.deepEqual(values('a-after'), ['a','b','a','b','a']);
+    assert.deepEqual(values('b-after'), ['a','b','a']);
+  } finally { await f.stop(); }
+});
+
+test('Worker named cycles share their key within a loop without consuming unnamed slots', async () => {
+  const f = createTimedWorkerHarness();
+  try {
+    await f.run(`let iteration=0; liveLoop('lead', async () => {
+      console.log('named', cycle('notes',[1,2,3]), cycle(['x','y']), cycle('notes',[1,2,3]));
+      await sleep(.01); if(++iteration===4)stopLoop('lead');
+    });`);
+    await f.advance(.041);
+    const loop = {cycleState: new Map(), cycleCallIndex: 0}, cycle = mainCycle(loop);
+    const expected = Array.from({length: 4}, () => {
+      loop.cycleCallIndex = 0;
+      return [cycle('notes',[1,2,3]), cycle(['x','y']), cycle('notes',[1,2,3])];
+    });
+    assert.deepEqual(f.logs().map(args => [...args].slice(1)), expected);
+    assert.deepEqual(expected, [[1,'x',2],[3,'y',1],[2,'x',3],[1,'y',2]]);
+  } finally { await f.stop(); }
+});
+
+test('Worker global cycles match Main and start fresh for each source evaluation', async () => {
+  const f = createTimedWorkerHarness();
+  const source = `console.log('global', cycle([1,2,3]),cycle([1,2,3]),cycle([1,2,3]),cycle([1,2,3]),cycle('named',['a','b']),cycle('named',['a','b']));`;
+  try {
+    await f.run(source);
+    await f.run(source);
+    const cycle = mainCycle();
+    const expected = [cycle([1,2,3]),cycle([1,2,3]),cycle([1,2,3]),cycle([1,2,3]),cycle('named',['a','b']),cycle('named',['a','b'])];
+    assert.deepEqual(f.logs().map(args => [...args].slice(1)), [expected, expected]);
+    assert.deepEqual(expected, [1,2,3,1,'a','b']);
+  } finally { await f.stop(); }
+});
+
+test('Worker same-name Run replacement preserves loop sequence positions until Stop', async () => {
+  const f = createTimedWorkerHarness();
+  try {
+    await f.run(`liveLoop('lead',async()=>{
+      console.log('old',cycle([1,2,3,4])); await sleep(.1);
+    });`);
+    await f.advance(.025);
+    await f.run(`let iteration=0; liveLoop('lead',async()=>{
+      console.log('new',cycle([1,2,3,4])); await sleep(.1);
+      if(++iteration===4)stopLoop('lead');
+    });`);
+    assert.deepEqual(f.logs().map(args => [...args]), [['old',1]]);
+    await f.advance(.476);
+    assert.deepEqual(f.logs().map(args => [...args]), [['old',1],['new',2],['new',3],['new',4],['new',1]]);
+    await f.stop();
+    await f.run(`liveLoop('lead',async()=>{
+      console.log('restarted',cycle([1,2,3,4]));stopLoop('lead');
+    });`);
+    assert.deepEqual([...f.logs().at(-1)], ['restarted',1]);
+  } finally { await f.stop(); }
+});
+
+test('Worker note/rest pattern uses the same .04/.04/.08 beat sequence and timing as Main', async () => {
+  const f = createTimedWorkerHarness();
+  const commands = [];
+  f.worker.post({type: 'chip-port', port: {postMessage: batch => commands.push(...batch), close() {}}});
+  try {
+    await f.run(`setBpm(120);let iteration=0;liveLoop('lead',async()=>{
+      await play('E4',{channel:CH1,duration:.08});
+      const rest=cycle([.04,.04,.08]);console.log('rest',rest,performance.now()/1000);
+      await beat(rest);if(++iteration===6)stopLoop('lead');
+    });`);
+    await f.advance(.65);
+    const loop = {cycleState: new Map(), cycleCallIndex: 0}, cycle = mainCycle(loop);
+    let time = 10;
+    const expected = Array.from({length: 6}, () => {
+      loop.cycleCallIndex = 0;
+      const rest = cycle([.04,.04,.08]);
+      time += .08;
+      const result = ['rest', rest, time];
+      time += rest * .5;
+      return result;
+    });
+    assert.equal(f.logs().length, expected.length);
+    f.logs().forEach((args, i) => {
+      assert.deepEqual([...args].slice(0,2), expected[i].slice(0,2));
+      assert(Math.abs(args[2] - expected[i][2]) < 1e-8, `note ${i+1} timing`);
+    });
+    assert.equal(commands.filter(command => command.type === 'write' && command.register === 0x28 && command.value === 0xf0).length, 6);
+  } finally { await f.stop(); }
+});
+
+test('Worker cycle rejects invalid sequences with the same error as Main', async () => {
+  const f = createTimedWorkerHarness();
+  try {
+    await f.run(`for(const value of [[],null,3]){
+      try{cycle(value);}catch(error){console.log('invalid',error.message);}
+    }try{cycle('key',[]);}catch(error){console.log('invalid',error.message);}`);
+    const cycle = mainCycle();
+    const expected = [[], null, 3].map(value => {
+      try { cycle(value); } catch (error) { return error.message; }
+    });
+    try { cycle('key', []); } catch (error) { expected.push(error.message); }
+    assert.deepEqual(f.logs().map(args => args[1]), expected);
+    assert(expected.every(message => message === 'cycle() requires a non-empty array'));
+  } finally { await f.stop(); }
+});
 
 for (const lookahead of [0, .25]) test(`Worker sample/file/sample switch avoids expired-write bursts (lookahead ${lookahead}s)`, async () => {
   const f = createTimedWorkerHarness();
@@ -953,4 +1115,196 @@ test('Worker remove/re-add starts a new runner while the old same-name cleanup i
     releaseNewIteration?.();
     await worker.send({type: 'stop'});
   }
+});
+
+const performanceCapabilities = {chip: 'ym2612', fmChannels: 6, psg: true, dac: true};
+function performanceClock(f, session = 1) {
+  return {session, audioSeconds: 30, performanceEpochMs: f.now() * 1000, lookaheadSeconds: .15};
+}
+function commandPackets(packets, predicate) {
+  return packets.filter(packet => packet.performance && packet.commands.some(predicate));
+}
+
+test('Worker performance mode stamps atomic FM, PSG and FX tempo commands against one audio anchor', async () => {
+  const f = createTimedWorkerHarness(), chipPackets = [], fxPackets = [];
+  f.worker.post({type: 'chip-port', port: {postMessage: data => chipPackets.push(data), start() {}, close() {}}});
+  f.worker.post({type: 'native-fx', port: {postMessage: data => fxPackets.push(data), start() {}, close() {}}});
+  try {
+    await f.run(`setBpm(120); fm.setAlgo(CH1,7,0);
+      liveLoop('lead',async()=>{fm.noteOn(CH1,'E4');psg.tone(PSG1,{period:400,attenuation:4});
+      const filter=fx.filter({cutoff:1000});fx.setChain([filter]);setBpm(90);
+      await sleep(.08);fm.keyOff(CH1);await sleep(100);});`, 0,
+      {performance: performanceClock(f), capabilities: performanceCapabilities});
+    const on = commandPackets(chipPackets, command => command.register === 0x28 && command.value === 0xf0)[0];
+    assert.equal(on.performance.time, 30.15);
+    assert.deepEqual(on.commands.map(command => command.register), [0xa4, 0xa0, 0x28]);
+    const psg = commandPackets(chipPackets, command => command.type === 'psg-write');
+    assert.ok(psg.length > 0);
+    assert.ok(psg.every(packet => packet.performance.owner === on.performance.owner && packet.performance.time === on.performance.time));
+    const tempo = commandPackets(fxPackets, command => command.op === 'tempo' && command.beatSeconds === 60 / 90)[0];
+    assert.equal(tempo.performance.owner, on.performance.owner);
+    assert.equal(tempo.performance.time, on.performance.time);
+    await f.advance(.08);
+    const off = commandPackets(chipPackets, command => command.register === 0x28 && command.value === 0)[0];
+    assert.ok(Math.abs(off.performance.time - on.performance.time - .08) < 1e-12);
+    assert.equal(off.performance.owner, on.performance.owner);
+  } finally {await f.stop();}
+});
+
+test('Worker hot Run retains the continuing loop owner and cancels only removed future notes', async () => {
+  const f = createTimedWorkerHarness(), packets = [];
+  f.worker.post({type: 'chip-port', port: {postMessage: data => packets.push(data), start() {}, close() {}}});
+  const options = {performance: performanceClock(f), capabilities: performanceCapabilities};
+  try {
+    await f.run(`liveLoop('lead',async()=>{fm.noteOn(CH1,'E4');await sleep(.08);fm.keyOff(CH1);await sleep(.02);});
+      liveLoop('removed',async()=>{try{fm.noteOn(CH2,'G4');await sleep(100);}finally{fm.keyOff(CH2);}});`, 0, options);
+    const leadOwner = commandPackets(packets, command => command.register === 0x28 && command.value === 0xf0)[0].performance.owner;
+    const removedOwner = commandPackets(packets, command => command.register === 0x28 && command.value === 0xf1)[0].performance.owner;
+    assert.notEqual(leadOwner, removedOwner);
+    packets.length = 0;
+    await f.run(`fm.setAlgo(CH1,6,0);liveLoop('lead',async()=>{fm.noteOn(CH1,'A4');await sleep(100);});`, 0, options);
+    assert.ok(packets.some(packet => packet.type === 'performance-cancel-owner' && packet.owner === removedOwner));
+    assert.ok(!packets.some(packet => packet.type === 'performance-cancel-owner' && packet.owner === leadOwner));
+    assert.equal(commandPackets(packets, command => command.register === 0xb0)[0].performance.owner, 'script');
+    assert.ok(!packets.some(packet => Array.isArray(packet) && packet.some(command => command.register === 0x28 && command.value === 1)),
+      'canceled finally cannot send an unowned immediate key off');
+    assert.ok(!commandPackets(packets, command => command.register === 0x28 && command.value === 0xf0).length);
+    await f.advance(.1);
+    const replacement = commandPackets(packets, command => command.register === 0x28 && command.value === 0xf0)[0];
+    assert.equal(replacement.performance.owner, leadOwner);
+    assert.equal(replacement.performance.session, 1);
+  } finally {await f.stop();}
+});
+
+test('Worker Stop fences the old performance and the next Run starts a fresh session without delayed cleanup writes', async () => {
+  const f = createTimedWorkerHarness(), packets = [];
+  f.worker.post({type: 'chip-port', port: {postMessage: data => packets.push(data), start() {}, close() {}}});
+  try {
+    await f.run(`liveLoop('lead',async()=>{try{fm.noteOn(CH1,'E4');await sleep(100);}finally{fm.keyOff(CH1);}});`, 0,
+      {performance: performanceClock(f, 1), capabilities: performanceCapabilities});
+    await f.stop();
+    assert.ok(packets.some(packet => packet.type === 'performance-stop' && packet.session === 1));
+    assert.ok(packets.some(packet => Array.isArray(packet) && packet.some(command => command.type === 'clear-scheduled-writes')));
+    packets.length = 0;
+    await f.run(`liveLoop('lead',async()=>{fm.noteOn(CH1,'G4');await sleep(100);});`, 0,
+      {performance: performanceClock(f, 2), capabilities: performanceCapabilities});
+    const on = commandPackets(packets, command => command.register === 0x28 && command.value === 0xf0)[0];
+    assert.equal(on.performance.session, 2);
+    assert.ok(packets.filter(packet => packet.performance).every(packet => packet.performance.session === 2));
+  } finally {await f.stop();}
+});
+
+test('Worker explicit DAC/sample schedules keep their own origin instead of receiving the performance lead twice', async () => {
+  const f = createTimedWorkerHarness(), packets = [];
+  f.worker.post({type: 'chip-port', port: {postMessage: data => packets.push(data), start() {}, close() {}}});
+  try {
+    await f.run(`await dac.loadBase64('tone','AAAAAIA=');beginSampleSchedule();
+      scheduleWritesSamples(0,[[0,0,0x2b,128]]);dac.playStream('tone',{atSamples:0});fm.noteOn(CH1,'E4');`, .25,
+      {performance: performanceClock(f), capabilities: performanceCapabilities});
+    const immediate = packets.filter(Array.isArray).flat();
+    assert.ok(immediate.some(command => command.type === 'load-dac-bank'));
+    assert.ok(immediate.some(command => command.type === 'begin-sample-schedule' && command.lookaheadSeconds === .25));
+    assert.ok(immediate.some(command => command.type === 'sample-writes' && command.entries[0].sample === 0));
+    assert.ok(immediate.some(command => command.type === 'sample-dac-bank' && command.sample === 0));
+    assert.ok(!commandPackets(packets, command => ['sample-writes', 'sample-dac-bank', 'load-dac-bank'].includes(command.type)).length);
+    assert.equal(commandPackets(packets, command => command.register === 0x28)[0].performance.time, 30.15);
+  } finally {await f.stop();}
+});
+
+test('Worker native sample RPC restores its loop owner before following FM, FX and noise commands', async () => {
+  const f = createTimedWorkerHarness(), chipPackets = [], fxPackets = [];
+  const fxPort = {start() {}, close() {}, postMessage(data) {
+    fxPackets.push(data);
+    if (data.op === 'sample' && data.action === 'load') {
+      Promise.resolve().then(() => fxPort.onmessage({data: {op: 'sample-response', id: data.id, value: true}}));
+    }
+  }};
+  f.worker.post({type: 'chip-port', port: {postMessage: data => chipPackets.push(data), start() {}, close() {}}});
+  f.worker.post({type: 'native-fx', port: fxPort});
+  try {
+    await f.run(`await sample.load('tone','test.wav');
+      liveLoop('a',async()=>{fm.keyOn(CH1);await sample.play('tone');
+        fm.noteOn(CH1,'E4');fx.filter({cutoff:1234});noise.create({gain:.1});await sleep(100);});
+      liveLoop('b',async()=>{fm.keyOn(CH2);await sleep(100);});`, 0,
+      {performance: performanceClock(f), capabilities: performanceCapabilities});
+    const decode = f.worker.messages.find(message => message.command === 'sample.decode');
+    assert.ok(decode);
+    f.worker.post({type: 'response', id: decode.id, value: {sampleRate: 48000, channels: [new Float32Array([0, .1, 0])]}});
+    await f.advance(0);
+    const playing = commandPackets(fxPackets, command => command.op === 'sample' && command.action === 'play')[0];
+    assert.ok(playing);
+    const a = commandPackets(chipPackets, command => command.register === 0x28 && command.value === 0xf0)[0].performance.owner;
+    const b = commandPackets(chipPackets, command => command.register === 0x28 && command.value === 0xf1)[0].performance.owner;
+    assert.notEqual(a, b); assert.equal(playing.performance.owner, a);
+    const request = playing.commands[0];
+    fxPort.onmessage({data: {op: 'sample-response', id: request.id, value: 19}});
+    await f.advance(0);
+    const after = commandPackets(chipPackets, command => command.register === 0xa4).at(-1);
+    assert.equal(after.performance.owner, a);
+    for (const packet of commandPackets(fxPackets, command => command.op === 'create' || command.op === 'noise')) {
+      assert.equal(packet.performance.owner, a); assert.equal(packet.performance.time, after.performance.time);
+    }
+    assert.ok(!f.worker.messages.some(message => message.type === 'execution-error'));
+  } finally {await f.stop();}
+});
+
+test('Worker independent DX7 RPC preserves its owner across a sibling loop and stamps following notes', async () => {
+  const f = createTimedWorkerHarness(), chipPackets = [], dxPackets = [];
+  const dxPort = {start() {}, close() {}, postMessage: data => dxPackets.push(data)};
+  f.worker.post({type: 'chip-port', port: {postMessage: data => chipPackets.push(data), start() {}, close() {}}});
+  try {
+    await f.run(`const dx=await createSoundChip('dx7');
+      liveLoop('a',async()=>{fm.keyOn(CH1);await dx.setFeedback(2);dx.noteOn(60,100);fm.noteOn(CH1,'E4');await sleep(100);});
+      liveLoop('b',async()=>{fm.keyOn(CH2);await sleep(100);});`, 0,
+      {performance: performanceClock(f), capabilities: performanceCapabilities});
+    const create = f.worker.messages.find(message => message.command === 'pcm.create');
+    assert.ok(create);
+    f.worker.post({type: 'response', id: create.id, value: {port: dxPort, id: 'dx7:test', voices: [{index: 0, name: 'INIT'}], selectedVoice: 0}});
+    await f.advance(0);
+    const feedback = commandPackets(dxPackets, command => command.method === 'setFeedback')[0];
+    assert.ok(feedback);
+    const a = commandPackets(chipPackets, command => command.register === 0x28 && command.value === 0xf0)[0].performance.owner;
+    const b = commandPackets(chipPackets, command => command.register === 0x28 && command.value === 0xf1)[0].performance.owner;
+    assert.notEqual(a, b); assert.equal(feedback.performance.owner, a);
+    dxPort.onmessage({data: {id: feedback.commands[0].id, value: {voices: [{index: 0, name: 'INIT'}], selectedVoice: 0}}});
+    await f.advance(0);
+    const on = commandPackets(dxPackets, command => command.method === 'noteOn')[0];
+    assert.equal(on.performance.owner, a);
+    const fm = commandPackets(chipPackets, command => command.register === 0xa4).at(-1);
+    assert.equal(fm.performance.owner, a); assert.equal(fm.performance.time, on.performance.time);
+  } finally {await f.stop();}
+});
+
+for (const [name, body, expectedErrors] of [
+  ['canceled clock RPC', 'await fm.setClock(4000000);', 0],
+  ['user cleanup exception', "throw new Error('cleanup failed');", 1],
+]) test(`Worker Stop completes device teardown and subsequent cleanup after ${name}`, async () => {
+  const f = createTimedWorkerHarness(), chipPackets = [], fxPackets = [];
+  f.worker.post({type: 'chip-port', port: {postMessage: data => chipPackets.push(data), start() {}, close() {}}});
+  f.worker.post({type: 'native-fx', port: {postMessage: data => fxPackets.push(data), start() {}, close() {}}});
+  await f.run(`liveCleanup(['lead'],async()=>{console.log('first cleanup');${body}});
+    liveCleanup(['lead'],()=>{console.log('next cleanup');});
+    liveLoop('lead',async()=>{fm.noteOn(CH1,'E4');noise.create({gain:.1});await sleep(100);});`, 0,
+    {performance: performanceClock(f), capabilities: performanceCapabilities});
+  const chipBoundary = chipPackets.length, fxBoundary = fxPackets.length;
+  await f.stop();
+  assert.ok(f.worker.messages.some(message => message.type === 'stopped'), 'Stop must acknowledge without the Runtime timeout');
+  assert.equal(f.logs().filter(args => args[0] === 'first cleanup').length, 1);
+  assert.equal(f.logs().filter(args => args[0] === 'next cleanup').length, 1);
+  const chipCleanup = chipPackets.slice(chipBoundary), fxCleanup = fxPackets.slice(fxBoundary);
+  assert.ok(!chipCleanup.some(packet => packet.performance), 'late user commands cannot reserve new sound after Stop');
+  assert.ok(chipCleanup.filter(Array.isArray).flat().some(command => command.type === 'clear-scheduled-writes'));
+  assert.equal(chipCleanup.filter(Array.isArray).flat().filter(command => command.type === 'write' && command.register >= 0x40 && command.register <= 0x4e && command.value === 127).length, 24);
+  assert.ok(fxCleanup.some(command => command.op === 'noise' && command.action === 'dispose'));
+  assert.ok(fxCleanup.some(command => command.op === 'reset'));
+  assert.ok(f.worker.messages.some(message => message.command === 'audio.stopAll'));
+  const errors = f.worker.messages.filter(message => message.type === 'log' && message.level === 'error');
+  assert.equal(errors.length, expectedErrors);
+  if (expectedErrors) assert.match(errors[0].message, /cleanup failed/);
+  try {
+    await f.run(`liveLoop('fresh',async()=>{fm.noteOn(CH1,'G4');await sleep(100);});`, 0,
+      {performance: performanceClock(f, 2), capabilities: performanceCapabilities});
+    const on = commandPackets(chipPackets, command => command.register === 0x28 && command.value === 0xf0).at(-1);
+    assert.equal(on.performance.session, 2);
+  } finally {await f.stop();}
 });

@@ -35,6 +35,10 @@ looper.js
 megasynth.js
 megasynth_fx.js
 playground_chip_port.js
+playground_performance_queue.js
+playground_performance_processor.js
+playground_performance_sender.js
+playground_performance_host.js
 playground_audition_guard.js
 playground_worker_chip.js
 playground_worker_dac.js

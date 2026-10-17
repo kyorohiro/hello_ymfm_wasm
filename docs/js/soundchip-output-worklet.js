@@ -14,6 +14,7 @@ import {createSoundChipFactory} from './soundchip_factory.js';
 import {ChipPCMRenderer} from './chip_pcm_renderer.js';
 import {YM2612DirectTransport} from './ym2612synth.js';
 import {YM2612DacPlayer} from './ym2612_dac.js';
+import {createProcessorPerformance,performanceNoteRelease} from './playground_performance_processor.js';
 
 const profiles = {ym2612: [Ym2612, ym2612Factory], ym2608: [Ym2608, ym2608Factory],
   ym2151: [Ym2151, ym2151Factory], gameboy: [GameboyApu, gameboyFactory], segapsg: [SegaPSG, psgFactory], nes: [NesApu, undefined]};
@@ -24,6 +25,16 @@ class SoundChipProcessor extends AudioWorkletProcessor {
   constructor({processorOptions: {name, chipOptions, wasmBinary}}) {
     super(); this.dead = false; this.running = false; this.name = name; this.remotePorts = new Set();
     this.scheduled = []; this.banks = new Map();
+    this.performance=createProcessorPerformance({chip:()=>this.name,
+      releaseNote:key=>['ym2612','ym2608'].includes(this.name)?{type:'write',port:0,register:0x28,value:[0,1,2,4,5,6][key]}:
+        performanceNoteRelease(this.name,key),apply:(data,port,frame)=>this.apply(data,port,frame),prepare:(data,port)=>{
+      const method=data.method??data.type;
+      if(['loadMemory','loadRhythmRom','loadAdpcmMemory','load-dac-bank','schedule-writes','play-dac-bank','read','getState'].includes(method)){this.apply(data,port);return null;}
+      if(method==='pcm-dac'&&(['load','remove'].includes(data.command?.action)||data.command?.when!==undefined)){this.apply(data,port);return null;}
+      if(data.id===undefined||method==='barrier')return data;
+      const {id,...command}=data;port.postMessage({type:method==='pcm-dac'?'pcm-dac-result':'response',id});return command;
+    }});
+    this.renderSegment=this.renderSegment.bind(this);
     this.port.onmessage = ({data}) => this.receive(data);
     createSoundChip(name, {...chipOptions, ...(name === 'gameboy' || name === 'segapsg' || name === 'pwm' || name === 'nes' ? {sampleRate} : {}), moduleOptions: {wasmBinary}})
       .then(chip => {
@@ -37,8 +48,12 @@ class SoundChipProcessor extends AudioWorkletProcessor {
       }).catch(error => {this.dead = true; this.chip?.dispose(); this.port.postMessage({error: error.message});});
   }
   receive(data, replyPort = this.port) {
+    if(this.performance.receive(data,replyPort))return;
+    this.apply(data,replyPort);
+  }
+  apply(data, replyPort = this.port, appliedFrame = currentFrame) {
     try {
-      if (data.method === 'dispose') {this.dead = true; this.chip?.dispose(); this.chip = null;
+      if (data.method === 'dispose') {this.performance.clear();this.dead = true; this.chip?.dispose(); this.chip = null;
         this.renderer = this.direct = this.pcmDac = null; this.scheduled = []; this.banks.clear();
         for (const port of this.remotePorts) port.close(); this.remotePorts.clear(); return;}
       if (data.method === 'attachPort') {
@@ -70,7 +85,7 @@ class SoundChipProcessor extends AudioWorkletProcessor {
       else if (this.name === 'nes' && method === 'setChannelMuted') value = this.chip.setChannelMuted(...args);
       else if (method === 'loadRhythmRom') this.chip.loadAdpcmARom(data.bytes);
       else if (method === 'loadAdpcmMemory') this.chip.loadAdpcmBMemory(data.bytes, data.address);
-      else if (method === 'pcm-dac') this.pcmDac.command(data.command, currentFrame);
+      else if (method === 'pcm-dac') this.pcmDac.command(data.command, appliedFrame);
       else if (method === 'clear-dac-playback') {this.pcmDac?.stop(); this.scheduled = this.scheduled.filter(entry => !entry.bank);}
       else if (method === 'schedule-writes') {
         for (const entry of data.entries ?? []) {
@@ -103,26 +118,29 @@ class SoundChipProcessor extends AudioWorkletProcessor {
   process(_inputs, outputs) {
     const [left, right] = outputs[0]; left.fill(0); right.fill(0);
     if (this.dead) return false;
+    this.performance.render(left,right,this.renderSegment);
+    if (this.chip?.getIrq && this.irq !== this.chip.getIrq()) {
+      this.irq = this.chip.getIrq(); const message = {type: 'irq', asserted: this.irq};
+      this.port.postMessage(message); for (const port of this.remotePorts) port.postMessage(message);
+    }
+    return true;
+  }
+  renderSegment(left,right,startFrame) {
     if (this.running && this.renderer) {
       let offset = 0;
       while (offset < left.length) {
-        const frame = currentFrame + offset;
+        const frame = startFrame + offset;
         while (this.scheduled[0]?.frame <= frame) {
           const entry = this.scheduled.shift();
           this.pcmDac?.observeWrite(entry.port, entry.register, entry.value);
           this.chip.writeRegister(entry.register, entry.value, entry.port);
         }
         this.pcmDac?.advance(frame);
-        const next = Math.min(currentFrame + left.length, this.scheduled[0]?.frame ?? Infinity, this.pcmDac?.nextFrame() ?? Infinity);
+        const next = Math.min(startFrame + left.length, this.scheduled[0]?.frame ?? Infinity, this.pcmDac?.nextFrame() ?? Infinity);
         const count = Math.max(1, next - frame);
         const pcm = this.renderer.render(count); left.set(pcm.left, offset); right.set(pcm.right, offset); offset += count;
       }
     }
-    if (this.chip?.getIrq && this.irq !== this.chip.getIrq()) {
-      this.irq = this.chip.getIrq(); const message = {type: 'irq', asserted: this.irq};
-      this.port.postMessage(message); for (const port of this.remotePorts) port.postMessage(message);
-    }
-    return true;
   }
 }
 registerProcessor('tetorica-soundchip', SoundChipProcessor);

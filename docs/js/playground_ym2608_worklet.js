@@ -2,10 +2,17 @@ import {validateChipClock} from './playground_chip_clock.js';
 import {Ym2608Timeline} from './playground_ym2608_timeline.js';
 import {Ym2608AudioEngine} from './ym2608audioengine.js';
 import factory from '../generated/ym2608_wasm.js';
+import {createProcessorPerformance} from './playground_performance_processor.js';
 
 class Processor extends AudioWorkletProcessor {
   constructor(options) {
     super(); this.engine = null; this.dead = false;
+    this.performance=createProcessorPerformance({chip:'ym2608',apply:(data,port)=>this.apply(data,port),prepare:(data,port)=>{
+      if(['rom','memory','prepareTimeline'].includes(data.method)){this.apply(data,port);return null;}
+      if(data.id===undefined||data.method==='playTimeline')return data;
+      const {id,...command}=data;port.postMessage({id});return command;
+    }});
+    this.renderSegment=this.renderSegment.bind(this);
     this.port.onmessage = ({data}) => {
       if (data.port) {
         if (this.dead) { data.port.close(); return; }
@@ -25,8 +32,12 @@ class Processor extends AudioWorkletProcessor {
         this.port.postMessage({ready: true});
       }).catch(error => { this.dispose(); this.port.postMessage({error: error.message}); });
   }
-  dispose() { this.timeline?.dispose(); this.dead = true; this.engine?.dispose(); this.engine = null; this.remote?.close(); }
+  dispose() { this.performance.clear();this.timeline?.dispose(); this.dead = true; this.engine?.dispose(); this.engine = null; this.remote?.close(); }
   receive(data, port) {
+    if(this.performance.receive(data,port))return;
+    this.apply(data,port);
+  }
+  apply(data,port) {
     try {
       if (data.method === 'dispose') { this.dispose(); return; }
       if (!this.engine) throw new Error('YM2608 not ready');
@@ -52,9 +63,11 @@ class Processor extends AudioWorkletProcessor {
   process(inputs, outputs) {
     if (this.dead) return false;
     const [left, right] = outputs[0];
+    this.performance.render(left,right,this.renderSegment);return true;
+  }
+  renderSegment(left,right) {
     if (this.engine) this.timeline.process(left, right);
     else { left.fill(0); right.fill(0); }
-    return true;
   }
 }
 registerProcessor('tetorica-ym2608', Processor);

@@ -1649,6 +1649,11 @@
         <details class="toolbar-menu" id="mainMenu">
           <summary aria-label="Playground menu">Menu</summary>
           <div class="toolbar-menu-panel">
+            <label for="workerLookaheadMs">Worker lookahead (ms)</label>
+            <input id="workerLookaheadMs" type="number" min="0" max="2000" step="10" value="150"
+              aria-describedby="workerLookaheadHint" style="width: 6em;">
+            <small id="workerLookaheadHint" class="subtext">Script audio only. Applies after Stop → Run. Keyboard stays immediate.</small>
+            <hr>
             <button id="newCassetteButton" type="button">New Cassette</button>
             <button id="importCassetteButton" type="button">Import Cassette</button>
             <button id="exportCassetteButton" type="button">Export Cassette</button>
@@ -2281,7 +2286,7 @@
       })();
     </script>
     <script type="module">
-      import('./playground.js?v=operator-envelope-edit-1').catch(error => window.__playgroundStartup.fail(error));
+      import('./playground.js?v=worker-lookahead-1').catch(error => window.__playgroundStartup.fail(error));
     </script>
   </body>
 </html>

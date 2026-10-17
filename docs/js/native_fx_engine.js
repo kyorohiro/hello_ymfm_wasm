@@ -20,6 +20,7 @@ export class NativeFXEngine {
   this.capacity=this.api.gain_capacity();this.gainRampFrames=Math.round(sampleRate*.005);
   this.noiseTokens=new Map();this.samples=createSampleProcessor(this.api,sampleRate);
   this.units=new Map();this.ramps=new Map();this.beatSeconds=.5;setChain(this.api,[]);
+  this.outputViews=new Map();
  }
  resetNoise(){this.api.noise_reset(this.sampleRate);this.noiseTokens.clear();}
  reset(){this.liveFX.clear();this.ramps.clear();this.units.clear();this.api.graph_reset(this.sampleRate);setChain(this.api,[]);}
@@ -88,10 +89,12 @@ export class NativeFXEngine {
   const cap=this.capacity;
   if(!this.input||this.input.buffer!==a.memory.buffer){
    this.input=new Float32Array(a.memory.buffer,a.gain_input(),cap*2);this.output=new Float32Array(a.memory.buffer,a.gain_output(),cap*2);
-   this.outputLeft=null;
+   this.outputViews.clear();this.outputLeft=null;
   }
   if(!this.outputLeft||this.outputLeft.length!==n){
-   this.outputLeft=this.output.subarray(0,n);this.outputRight=this.output.subarray(cap,cap+n);
+   let views=this.outputViews.get(n);
+   if(!views){views=[this.output.subarray(0,n),this.output.subarray(cap,cap+n)];this.outputViews.set(n,views);}
+   this.outputLeft=views[0];this.outputRight=views[1];
   }
 
   for(let c=0;c<2;c++){const ch=source[c]??source[0];if(ch)this.input.set(ch,c*cap);else this.input.fill(0,c*cap,c*cap+n);}

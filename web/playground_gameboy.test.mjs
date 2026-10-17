@@ -5,12 +5,14 @@ import vm from 'node:vm';
 import {createGameboyClient} from './playground_gameboy.js';
 import {GameboyApu} from './gameboyapu.js';
 import factory from '../docs/generated/gameboy_apu_wasm.js';
+import {createProcessorPerformance} from './playground_performance_processor.js';
 
 for (const highLevel of [false, true]) test(`Game Boy ${highLevel ? 'Synth' : 'raw'} example plays through client and worklet, then disposes`, async () => {
   let Processor, resolveReady;
   const ready = new Promise(resolve => { resolveReady = resolve; });
   const source = (await readFile(new URL('./playground_gameboy_worklet.js', import.meta.url), 'utf8')).replace(/^import .*;$/gm, '');
   vm.runInNewContext(source, {GameboyApu, factory, sampleRate: 48000,
+    createProcessorPerformance:options=>createProcessorPerformance({...options,rate:48000,nowFrame:()=>0}),
     AudioWorkletProcessor: class { constructor() { this.port = {postMessage: resolveReady}; } },
     registerProcessor: (_, value) => { Processor = value; },
   });

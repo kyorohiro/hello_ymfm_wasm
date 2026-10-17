@@ -1,3 +1,4 @@
+import {createPerformanceSender} from './playground_performance_sender.js';
 import {midiToOpnPitch, opnPitchFromHz} from './soundchip_pitch.js';
 import {CHIP_CLOCKS} from './playground_chip_clock.js';
 import {createNesClient} from './playground_nes.js';
@@ -7,6 +8,7 @@ import {createYm2151Client} from './playground_ym2151.js';
 import {createSegaPsgClient} from './playground_segapsg.js';
 import {resolvePlaySeconds,resolvePlayDuration} from './playground_duration.js?v=shared-beat-clock-1';
 import {createLoopAsyncTasks} from './playground_async_tasks.js';
+import {createCycle} from './playground_music.js?v=cycle-parity-1';
 import {createOpnClient} from './playground_opn.js';
 import {createSoundChipRegistry} from './playground_soundchips.js';
 import {createGameboyClient} from './playground_gameboy.js';
@@ -257,7 +259,7 @@ function createClock(run) {
       // A runner may be awaiting an RPC or user Promise, not a clock wait.
       // Mark its identity stopped before a later Run can reuse the same name.
       for (const [key, loop] of run.runningLoops) {
-        if (name === undefined || key === name) loop.stopped = true;
+        if (name === undefined || key === name) { run.performance.cancelOwner(loop.performanceOwner); loop.stopped = true; }
       }
       run.loopTasks?.releaseName(name);
       run.midi?.cancelOwner(name);
@@ -342,13 +344,16 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
     currentLoop: null,
     audioHandles: new Set(),
   };
+  const performanceTransport = createPerformanceSender({getLoop: () => run.currentLoop, restoreLoop: loop => { run.currentLoop = loop; }, onCancelOwner: metadata => postMessage({type:'performance-cancel-owner',...metadata})});
+  run.performance = performanceTransport;
+  let nextLoopOwner = 0;
   const clock = createClock(run);
   run.setBpm = clock.setBpm;
   clock.setDacLookahead(timing.lookaheadSeconds ?? 0.25);
   run.resetSampleClock = () => clock.resetSampleClock();
   const commandProxy = (command) => (...args) => postCommand(command, args);
   const requestProxy = (command) => (...args) => request(command, args, run.currentLoop);
-  const chip = chipConnection ? createWorkerChip({...chipConnection,capabilities,observe:event=>postMessage({type:"chip-observer",event})}) : null;
+  const chip = chipConnection ? createWorkerChip({...chipConnection,port:performanceTransport.port(chipConnection.port,'chip'),capabilities,observe:event=>postMessage({type:"chip-observer",event})}) : null;
   run.resumeChip = () => chip?.resume();
   const workerDac = chip && capabilities.dac ? createWorkerDac(chip.send, timing) : null;
   run.resetSampleClock = () => { clock.resetSampleClock(); workerDac?.reset(); };
@@ -380,8 +385,9 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
       return chip && !mainMethods.includes(property) ? chip.fm[property] : commandProxy(`fm.${String(property)}`);
     },
   });
-  const nativeSample=nativeFXPort?createNativeSampleController(data=>nativeFXPort.postMessage(data)):null;
-  if(nativeSample){nativeFXPort.onmessage=({data})=>nativeSample.accept(data);nativeFXPort.start?.();}
+  const fxPort = nativeFXPort ? performanceTransport.port(nativeFXPort, 'fx') : null;
+  const nativeSample=fxPort?createNativeSampleController(data=>fxPort.postMessage(data)):null;
+  if(nativeSample){fxPort.onmessage=({data})=>nativeSample.accept(data);fxPort.start?.();}
   const unloadedSamples=new Set();
   const sample = nativeSample ? {
     async load(name,source){const pcm=await request('sample.decode',[name,source],run.currentLoop);if(run.stopped)throw new Error('Run stopped');unloadedSamples.delete(name);return nativeSample.load(name,pcm);},
@@ -445,7 +451,7 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
     }
   );
   const liveFxLifecycle = createLiveFxLifecycle();
-  const fxBase = nativeFXPort ? createNativeFXController(data => nativeFXPort.postMessage(data), {getBeatSeconds: () => 60 / clock.getBpm()}) : new Proxy({}, {
+  const fxBase = nativeFXPort ? createNativeFXController(data => fxPort.postMessage(data), {getBeatSeconds: () => 60 / clock.getBpm()}) : new Proxy({}, {
     get(_target, method) {
       if (method === "setChain") return (effects) => postCommand("fx.setChain", [effects.map(handleId)]);
       if (method === "clear") return () => postCommand("fx.clear");
@@ -466,7 +472,7 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
     return (...args)=>liveFxLifecycle.track(target, run.collectingLiveFx ?? run.liveFxDefinitions).liveFx(...args);
   }});
   run.syncFXTempo = () => { if (nativeFXPort) fx.syncTempo(); };
-  const nativeNoise = nativeFXPort ? createNativeNoiseController(data=>nativeFXPort.postMessage(data)) : null;
+  const nativeNoise = nativeFXPort ? createNativeNoiseController(data=>fxPort.postMessage(data)) : null;
   const noise = nativeNoise ?? {
     create(options = {}) {
       const id = createHandle("noise");
@@ -506,24 +512,35 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
   run.stop = async () => {
     if (run.stopped) return;
     run.stopped = true;
+    performanceTransport.stop();
+    for (const loop of run.runningLoops.values()) loop.stopped = true;
     soundChips.clear();
     run.token += 1;
     loopTasks.clear();
     clock.cancelWaits();
     run.generation += 1;
     for (const cleanup of run.cleanups) {
-      await cleanup.fn();
+      try { await cleanup.fn(); }
+      catch (error) {
+        // Stop has already retired the performance. A user's awaited setter
+        // can reject cancellation; it must not skip the remaining teardown.
+        if (error?.name !== 'AbortError' && error?.message !== 'Run stopped') {
+          postMessage({type: 'log', level: 'error', message: `[liveCleanup] ${serializeLogError(error)}`});
+        }
+      }
     }
     run.resetSampleClock();
     // In Worker mode this is the sole source of audio-control commands.
-    for(const pcm of pcmClients)pcm.dispose();
-    pcmClients.clear();
-    nativeSample?.stopAll();
-    nativeNoise?.disposeAll();
-    chip?.stop();
-    localMidiRack?.stop();
+    performanceTransport.immediateCleanup(() => {
+      for(const pcm of pcmClients)pcm.dispose();
+      pcmClients.clear();
+      nativeSample?.stopAll();
+      nativeNoise?.disposeAll();
+      chip?.stop();
+      localMidiRack?.stop();
+    });
     postCommand("audio.stopAll");
-    if (nativeFXPort) fx.dispose(); else postCommand("fx.detach");
+    if (nativeFXPort) performanceTransport.immediateCleanup(() => fx.dispose()); else postCommand("fx.detach");
     postCommand("audio.disposeHandles", [[...run.audioHandles]]);
     run.audioHandles.clear();
     run.prepared.clear();
@@ -540,7 +557,6 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
     postCommand("keyboard.register", [id, eventType]);
   };
   const choose = (values) => values[Math.floor(Math.random() * values.length)];
-  const cycle = (values, index = 0) => values[Math.abs(Number(index) || 0) % values.length];
   const noteToMidi = (noteName) => {
     const match = /^([A-G](?:#|b)?)(-?\d+)$/.exec(String(noteName).trim());
     const semitones = { C: 0, "C#": 1, Db: 1, D: 2, "D#": 3, Eb: 3, E: 4, F: 5, "F#": 6, Gb: 6, G: 7, "G#": 8, Ab: 8, A: 9, "A#": 10, Bb: 10, B: 11 };
@@ -621,15 +637,15 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
       const token=run.token;
       if (!options || typeof options !== 'object' || Array.isArray(options) || Object.keys(options).some(k => !['id', ...(name === 'nes' ? ['fds', 'clock'] : [])].includes(k))) throw new TypeError('createSoundChip supports {id}, and {fds, clock} for NES');
       if (name === 'nes' && options.fds !== undefined && typeof options.fds !== 'boolean') throw new TypeError('fds must be boolean');
-      const response=await request('pcm.create',[name, options]);
+      const response=await request('pcm.create',[name, options],run.currentLoop);
       // Older test/host shims may return a bare port; production returns its allocated ID.
-      const port=response.port ?? response;
+      const port=performanceTransport.port(response.port ?? response, 'independent');
       const mixerId=response.id ?? options.id ?? `${name}:${++pcmSequence}`;
       const pcm=name === 'dx7' ? createDx7Client(port, response) : name === 'nes' ? createNesClient(port, response) : name === 'pwm' ? createPWM32XClient(port) : ['ym2612', 'ym2203', 'ym2610'].includes(name) ? createOpnClient(name, port) : name === 'ym2151' ? createYm2151Client(port) : name === 'segapsg' ? createSegaPsgClient(port) : name === 'gameboy' ? createGameboyClient(port) : name === 'ym2608' ? createYm2608Client(port) : createRf5c164Client(port,source=>request('pcm.decode',[source]));
       if(run.stopped || token!==run.token){pcm.dispose();throw new Error('Run stopped');}
       Object.defineProperty(pcm, 'id', {value: mixerId, enumerable: true});
       const dispose=pcm.dispose.bind(pcm); let disposed=false;
-      pcm.dispose=()=>{if(disposed)return;disposed=true;dispose();pcmClients.delete(pcm);postCommand('pcm.dispose',[mixerId]);};
+      pcm.dispose=()=>{if(disposed)return;disposed=true;dispose();pcmClients.delete(pcm);postMessage({type:'command',command:'pcm.dispose',args:[mixerId],performance:performanceTransport.timestamp()});};
       pcmClients.add(pcm);return pcm;
     },
     mixer: Object.fromEntries(['set', 'get', 'reset', 'list'].map(method => [method, (...args) => request('mixer.' + method, args, run.currentLoop)])),
@@ -697,7 +713,7 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
     onKeyboardReleaseKey: (name, fn) => registerKeyboard("keyup", name, fn),
     stopAll: () => postCommand("stopAll"),
     choose,
-    cycle,
+    cycle: createCycle(() => run.currentLoop),
     rand: Math.random,
     rrange: (min, max) => Number(min) + Math.random() * (Number(max) - Number(min)),
     randInt: (min, max) => Math.floor(Number(min) + Math.random() * (Number(max) - Number(min) + 1)),
@@ -727,6 +743,9 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
   };
   run.execute = async (nextSourceCode = sourceCode) => {
     const generation = run.generation;
+    run.currentLoop = null;
+    // Global sequences belong to this evaluation; active loop slots survive Run.
+    globals.cycle = createCycle(() => run.currentLoop);
     run.collectingLoops = new Map();
     run.collectingLiveFx = new Map();
     run.collectingCleanups = [];
@@ -760,12 +779,14 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
       const existing = run.runningLoops.get(name);
       if (existing && !existing.stopped) continue;
       const generation = run.generation;
-      const loopContext = { name, generation, stopped: false, cursorBeat: clock.currentBeat?.() ?? 0, sampleCursorSeconds };
+      const loopContext = { name, generation, performanceOwner: `loop:${++nextLoopOwner}`, stopped: false, cursorBeat: clock.currentBeat?.() ?? 0, sampleCursorSeconds,
+        cycleState: new Map(), cycleCallIndex: 0 };
       run.runningLoops.set(name, loopContext);
       void (async () => {
         while (!run.stopped && !loopContext.stopped && generation === run.generation && run.loops.has(name)) {
           try {
             run.currentLoop = loopContext;
+            loopContext.cycleCallIndex = 0;
             await executeWithWorkerGuards(
               () => run.loops.get(name)()
             );
@@ -801,6 +822,7 @@ async function handleLifecycleMessage(message, generation = lifecycleGeneration)
     }
     const previousRun = currentRun;
     currentRun = previousRun ?? createRun(message.sourceCode, message.presets ?? {}, message.scaleIntervals ?? {}, message.capabilities ?? {}, message.timing ?? {});
+    currentRun.performance.configure(message.performance ?? null);
     if (!previousRun && message.bpm !== undefined) currentRun.setBpm(message.bpm);
     if (currentRun.stopped) {
       currentRun.stopped = false;
@@ -842,7 +864,7 @@ self.onmessage = (event) => {
     const pending = pendingRequests.get(message.id);
     if (!pending) return;
     pendingRequests.delete(message.id);
-    if (pending.loopContext && currentRun) currentRun.currentLoop = pending.loopContext;
+    if (currentRun) currentRun.currentLoop = pending.loopContext;
     message.error ? pending.reject(new Error(message.error)) : pending.resolve(message.value);
     return;
   }

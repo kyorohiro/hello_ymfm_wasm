@@ -3,6 +3,31 @@ import assert from 'node:assert/strict';
 import {createChipPortReceiver} from './playground_chip_port.js';
 import {createWorkerChip} from './playground_worker_chip.js';
 import {YM2612Synth} from './ym2612synth.js';
+import {createPerformanceQueue} from './playground_performance_queue.js';
+
+test('replacing a performance port retires its session and removes already reserved commands', () => {
+  const applied = [];
+  const queue = createPerformanceQueue({apply: c => applied.push(c), nowFrame: () => 0, sampleRate: 48000});
+  const receive = createChipPortReceiver(c => applied.push(c), () => 0, {performanceQueue: queue});
+  const port = () => ({start() {}, close() {}, postMessage() {}});
+  const first = port(), second = port();
+  const packet = session => ({performance: {session, owner: 'loop:1', time: 1}, commands: [{type: 'write', value: session}]});
+  receive({type: 'attach-chip-port', port: first});
+  queue.receive({type: 'performance-start', session: 1});
+  first.onmessage({data: packet(1)});
+  receive({type: 'attach-chip-port', port: second});
+  assert.equal(queue.getStats().activeSession, 0);
+  first.onmessage({data: packet(1)});
+  second.onmessage({data: packet(1)});
+  queue.receive({type: 'performance-start', session: 2});
+  second.onmessage({data: packet(2)});
+  queue.advance(48000);
+  assert.deepEqual(applied, [{type: 'write', value: 2}]);
+  second.onmessage({data: {...packet(2), performance: {session: 2, owner: 'loop:1', time: 2}}});
+  receive({type: 'detach-chip-port'});
+  queue.advance(96000);
+  assert.equal(applied.length, 1);
+});
 
 test('Replacing or detaching a chip port rejects stale queued commands', () => {
   const received = [];

@@ -1,4 +1,6 @@
 import test from 'node:test';
+import {createProcessorPerformance} from '../web/playground_performance_processor.js';
+import {validateChipClock} from '../web/playground_chip_clock.js';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
@@ -48,7 +50,8 @@ test('Node Worker, offline MegaSynth and browser PWM processor render identical 
     assert.equal((await node.pwm.getState()).model, 'mame');
     await node.stop(); assert.ok((await node.render(128)).left.every(x => x === 0));
     let Processor;
-    const scope = {PWM32XPlayback, PWM_METHODS, sampleRate: 48000,
+    const scope = {PWM32XPlayback, PWM_METHODS, sampleRate: 48000,validateChipClock,
+      createProcessorPerformance:options=>createProcessorPerformance({...options,rate:48000,nowFrame:()=>0}),
       AudioWorkletProcessor: class {constructor() {this.port = {postMessage() {}};}},
       registerProcessor(_name, Type) {Processor = Type;}};
     vm.runInNewContext(fs.readFileSync(new URL('../web/playground_pwm_worklet.js', import.meta.url), 'utf8').replace(/^import .*;\n/gm, ''), scope);

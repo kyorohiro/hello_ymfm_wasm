@@ -7,6 +7,7 @@ import {GameboyApu} from './gameboyapu.js';
 import {createGameboyClient} from './playground_gameboy.js';
 import factory from '../docs/generated/gameboy_apu_wasm.js';
 import {createWorkerChip} from './playground_worker_chip.js';
+import {createProcessorPerformance} from './playground_performance_processor.js';
 
 test('clock requests are ordered, reject invalid values, coexist with RPC and reject on disposal', async () => {
  const sent=[];let previous=0,closed=0;
@@ -37,6 +38,7 @@ test('real Game Boy: clock shifts a held tone without reset; new setFrequency us
  let Processor,readyResolve;const ready=new Promise(r=>readyResolve=r);
  const source=(await readFile(new URL('./playground_gameboy_worklet.js',import.meta.url),'utf8')).replace(/^import .*;$/gm,'');
  vm.runInNewContext(source,{GameboyApu,factory,CHIP_CLOCKS,ChipClockResampler,sampleRate:48000,
+  createProcessorPerformance:options=>createProcessorPerformance({...options,rate:48000,nowFrame:()=>0}),
   AudioWorkletProcessor:class{constructor(){this.port={postMessage:readyResolve};}},registerProcessor:(_,p)=>Processor=p});
  const processor=new Processor({processorOptions:{wasmBinary:await readFile(new URL('../docs/generated/gameboy_apu_wasm.wasm',import.meta.url))}});await ready;
  const port={start(){},close(){},postMessage:data=>processor.receive(data,{postMessage:reply=>port.onmessage({data:reply})})};

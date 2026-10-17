@@ -5,6 +5,7 @@ import {Ym2610B} from './ym2610b.js';
 import ym2612Factory from '../generated/ym2612_wasm.js';
 import ym2203Factory from '../generated/ym2203_wasm.js';
 import ym2610Factory from '../generated/ym2610b_wasm.js';
+import {createProcessorPerformance} from './playground_performance_processor.js';
 
 /** One independent WASM chip per processor; shares only the AudioContext clock. */
 class Processor extends AudioWorkletProcessor {
@@ -12,6 +13,13 @@ class Processor extends AudioWorkletProcessor {
     super();
     this.chip = null; this.dead = false; this.schedule = null;
     this.remainder = 0; this.left = 0; this.right = 0;
+    this.performance=createProcessorPerformance({chip:()=>this.name,apply:(data,port)=>this.apply(data,port),prepare:(data,port)=>{
+      if(data.method==='memory'){this.apply(data,port);return null;}
+      // A schedule request resolves at its documented playback completion.
+      if(data.id===undefined||data.method==='schedule')return data;
+      const {id,...command}=data;port.postMessage({id});return command;
+    }});
+    this.renderSegment=this.renderSegment.bind(this);
     this.port.onmessage = ({data}) => {
       if (data.port) {
         if (this.dead) { data.port.close(); return; }
@@ -32,8 +40,12 @@ class Processor extends AudioWorkletProcessor {
     if (this.schedule) this.schedule.port.postMessage({id: this.schedule.id, error: 'Schedule cancelled'});
     this.schedule = null;
   }
-  dispose() { this.cancelSchedule(); this.dead = true; this.chip?.dispose(); this.chip = null; this.remote?.close(); }
+  dispose() { this.performance.clear();this.cancelSchedule(); this.dead = true; this.chip?.dispose(); this.chip = null; this.remote?.close(); }
   receive(data, port) {
+    if(this.performance.receive(data,port))return;
+    this.apply(data,port);
+  }
+  apply(data,port) {
     try {
       if (data.method === 'dispose') { this.dispose(); return; }
       if (!this.chip) throw new Error('OPN not ready');
@@ -71,6 +83,10 @@ class Processor extends AudioWorkletProcessor {
     if (this.dead) return false;
     const [left, right] = outputs[0];
     if (!this.chip) { left.fill(0); right.fill(0); return true; }
+    this.performance.render(left,right,this.renderSegment);return true;
+  }
+  renderSegment(left,right) {
+    if(!this.chip){left.fill(0);right.fill(0);return;}
     for (let i = 0; i < left.length; i++) {
       const schedule = this.schedule;
       if (schedule) {
@@ -94,7 +110,6 @@ class Processor extends AudioWorkletProcessor {
       }
       left[i] = this.left; right[i] = this.right;
     }
-    return true;
   }
 }
 registerProcessor('tetorica-opn', Processor);

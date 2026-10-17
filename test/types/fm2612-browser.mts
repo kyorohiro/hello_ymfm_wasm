@@ -12,7 +12,13 @@ synth.setOutputEnvelopeOptions({enabled:false});
 // @ts-expect-error Sample counts are numbers.
 synth.setOutputEnvelopeOptions({samplesPerPoint:'128'});
 await synth.pwm?.read(0);
-const pg = Playground({execution: 'worker'});
+const pg = Playground({execution: 'worker', workerLookaheadSeconds: 0.15});
+pg.setTiming({workerLookaheadSeconds: 0});
+pg.getTiming().workerLookaheadSeconds.toFixed(3);
+// @ts-expect-error Worker lead is specified in numeric seconds.
+pg.setTiming({workerLookaheadSeconds: '150ms'});
+// @ts-expect-error Constructor lead is specified in numeric seconds.
+Playground({workerLookaheadSeconds: 'fast'});
 await pg.playSource('fm.noteOn(0, 4, 553);');
 createDeadlineScheduler({now: () => performance.now()});
 const bytes: Uint8Array = encodeWav({sampleRate: 48000, left: new Float32Array(128)});

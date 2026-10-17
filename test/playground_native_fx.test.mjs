@@ -7,10 +7,11 @@ import {createNativeFXController,FX_TYPES,FX_PARAMS} from '../web/native_fx.js';
 import {createSampleProcessor} from "../web/native_sample_processor.js";
 import {setChain} from '../web/native_fx_graph.js';
 import {NativeFXEngine} from '../web/native_fx_engine.js';
+import {createPerformanceQueue} from '../web/playground_performance_queue.js';
 const module=await WebAssembly.compile(readFileSync(new URL('../web/native_audio_effect.wasm',import.meta.url)));
 function harness(){
  let Processor;const errors=[];
- const scope={NativeFXEngine,LiveFX,createSampleProcessor,WebAssembly,Float32Array,Map,Math,Number,Error,sampleRate:48000,setChain,FX_TYPES,
+ const scope={NativeFXEngine,LiveFX,createSampleProcessor,createPerformanceQueue,WebAssembly,Float32Array,Map,Math,Number,Error,sampleRate:48000,setChain,FX_TYPES,
   AudioWorkletProcessor:class{constructor(){this.port={postMessage:d=>errors.push(d)};}},registerProcessor:(name,p)=>Processor=p};
  vm.runInNewContext(readFileSync(new URL('../web/native-fx-worklet.js',import.meta.url),'utf8').replace(/^import .*\n/gm,'').replace('export class','class'),scope);
  const p=new Processor({processorOptions:{module}});

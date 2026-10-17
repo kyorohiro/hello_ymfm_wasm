@@ -1,9 +1,12 @@
 import {validateChipClock} from './playground_chip_clock.js';
 import {Ym2151} from './ym2151.js';
 import factory from '../generated/ym2151_wasm.js';
+import {createProcessorPerformance} from './playground_performance_processor.js';
 class Processor extends AudioWorkletProcessor {
   constructor(options) {
     super(); this.chip = null; this.dead = false; this.remainder = 0; this.left = 0; this.right = 0;
+    this.performance=createProcessorPerformance({chip:'ym2151',apply:(data,port)=>this.apply(data,port)});
+    this.renderSegment=this.renderSegment.bind(this);
     this.port.onmessage = ({data}) => {
       if (data.port) {
         if (this.dead) { data.port.close(); return; }
@@ -18,8 +21,12 @@ class Processor extends AudioWorkletProcessor {
         this.chip = chip; this.rate = chip.sampleRate(); this.port.postMessage({ready: true});
       }).catch(error => { this.dispose(); this.port.postMessage({error: error.message}); });
   }
-  dispose() { this.dead = true; this.chip?.dispose(); this.chip = null; this.remote?.close(); }
-  receive(data, port) {
+  dispose() { this.performance.clear(); this.dead = true; this.chip?.dispose(); this.chip = null; this.remote?.close(); }
+  receive(data, port=this.port) {
+    if(this.performance.receive(data,port))return;
+    this.apply(data,port);
+  }
+  apply(data,port) {
     if (data.method === 'dispose') { this.dispose(); return; }
     if (data.method === 'clock') {
       try { if (!this.chip) throw new Error('OPM not ready'); this.rate = this.chip.sampleRate(validateChipClock(data.args[0])); port.postMessage({id:data.id}); }
@@ -33,6 +40,9 @@ class Processor extends AudioWorkletProcessor {
   process(inputs, outputs) {
     if (this.dead) return false;
     const [left, right] = outputs[0];
+    this.performance.render(left,right,this.renderSegment);return true;
+  }
+  renderSegment(left,right) {
     if (this.chip) {
       // OPM generates at its native clock/64 rate; convert to the device rate.
       for (let i = 0; i < left.length; i++) {
@@ -49,7 +59,6 @@ class Processor extends AudioWorkletProcessor {
       }
     }
     else { left.fill(0); right.fill(0); }
-    return true;
   }
 }
 registerProcessor('tetorica-ym2151', Processor);

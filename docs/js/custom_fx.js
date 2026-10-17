@@ -3,7 +3,7 @@
  * in registration order. User code must be synchronous and bounded.
  */
 export class LiveFX {
-  constructor(rate) { this.rate=rate; this.effects=new Map(); this.hasProcessed=false; }
+  constructor(rate) { this.rate=rate; this.effects=new Map(); this.hasProcessed=false; this.buffers=new Map(); }
   command(d) {
     if(typeof d.name!=='string'||!d.name)throw new Error('liveFx requires a name');
     const previous=this.effects.get(d.name);
@@ -29,8 +29,16 @@ export class LiveFX {
     this.hasProcessed=true;
     if(this.effects.size===0)return;
     if(!this.input||this.input.length!==channels.length||this.input[0].length!==n){
-      this.input=channels.map(()=>new Float32Array(n));
-      this.output=channels.map(()=>new Float32Array(n));
+      let lengths=this.buffers.get(channels.length);
+      if(!lengths){lengths=new Map();if(channels.length<=2)this.buffers.set(channels.length,lengths);}
+      let buffers=lengths.get(n);
+      if(!buffers){
+        buffers={input:channels.map(()=>new Float32Array(n)),output:channels.map(()=>new Float32Array(n))};
+        // A render quantum can be split at any sample. Cache those bounded
+        // lengths; arbitrary standalone block sizes retain only the last size.
+        if(n<=128&&channels.length<=2)lengths.set(n,buffers);
+      }
+      this.input=buffers.input;this.output=buffers.output;
     }
     for(const [name,e] of this.effects){
       if(e.bypass){observe?.(name,channels,channels);continue;}

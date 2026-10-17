@@ -25,6 +25,7 @@ test('direct port RPC supports sample conversion, validation and disposal',async
 test('Worklet initializes real WASM, accepts direct port and disposes',async()=>{
  let Processor;const ready=new Promise(resolve=>{
  globalThis.sampleRate=48000;
+ globalThis.currentFrame=0;
  globalThis.AudioWorkletProcessor=class{constructor(){this.port={postMessage:data=>resolve(data)};}};
  globalThis.registerProcessor=(name,ctor)=>{Processor=ctor;};
  });
@@ -36,5 +37,5 @@ test('Worklet initializes real WASM, accepts direct port and disposes',async()=>
  const wave=await pcm.loadSample(new ArrayBuffer(0),{loopStart:0});await pcm.setChannel(7,{...wave,volume:255,pan:{left:15,right:15}});await pcm.keyOn(7);
  const output=[[new Float32Array(128),new Float32Array(128)]];assert.equal(processor.process([],output),true);assert(output[0][0].some(x=>x>0));
  pcm.dispose();await new Promise(r=>setTimeout(r,20));assert.equal(processor.process([],output),false);port1.close();
- delete globalThis.AudioWorkletProcessor;delete globalThis.registerProcessor;delete globalThis.sampleRate;
+ delete globalThis.AudioWorkletProcessor;delete globalThis.registerProcessor;delete globalThis.sampleRate;delete globalThis.currentFrame;
 });

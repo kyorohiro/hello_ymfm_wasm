@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import vm from 'node:vm';
 import {createOpnAuditionGuard, receiveOpnAuditionCommand} from './playground_audition_guard.js';
 import {createChipPortReceiver} from './playground_chip_port.js';
+import {createPerformanceQueue, createPerformanceChipOwnership} from './playground_performance_queue.js';
 import {YM2612DacPlayer, receiveDacCommand} from './ym2612_dac.js';
 
 function chip(registerApi = true) {
@@ -119,8 +120,8 @@ test('audition validation is atomic, rejects nonfinite data, and reports errors 
 function processor(file, imports = {}) {
   let Type;
   const messages = [];
-  const scope = {createOpnAuditionGuard, receiveOpnAuditionCommand, YM2612DacPlayer, receiveDacCommand,
-    createChipPortReceiver: apply => createChipPortReceiver(apply, () => 0),
+  const scope = {createOpnAuditionGuard, receiveOpnAuditionCommand, YM2612DacPlayer, receiveDacCommand, createPerformanceQueue, createPerformanceChipOwnership,
+    createChipPortReceiver: (apply, _now, options) => createChipPortReceiver(apply, () => 0, options),
     sampleRate: 48000, currentFrame: 0, Float32Array, Uint8Array, Error, ...imports,
     AudioWorkletProcessor: class {constructor() {this.port = {postMessage: message => messages.push(message)};}},
     registerProcessor(_name, value) {Type = value;},

@@ -17,6 +17,29 @@ const CHORD_INTERVALS = {
   dominant7: [0, 4, 7, 10],
 };
 
+/** Create an evaluation's sequences, using persistent loop-local slots when active.
+ * @param {() => {cycleState: Map<string, number>, cycleCallIndex: number} | null} [getCurrentLoopContext]
+ */
+export function createCycle(getCurrentLoopContext) {
+  const globalCycleState = new Map();
+  /** @template T
+   * @param {string | T[]} keyOrValues Named sequence key or nonempty values.
+   * @param {T[]} [maybeValues] Values when a key is supplied.
+   * @returns {T} Next loop-local (or global) cyclic value. */
+  return function cycle(keyOrValues, maybeValues) {
+    const {key, values} = normalizeCycleArgs(keyOrValues, maybeValues);
+    const loopState = getCurrentLoopContext?.() ?? null;
+    const stateMap = loopState?.cycleState ?? globalCycleState;
+    const stateKey = key ?? (loopState
+      ? `slot:${loopState.cycleCallIndex++}`
+      : `values:${createCycleSignature(values)}`);
+    const nextIndex = stateMap.get(stateKey) ?? 0;
+    const value = values[nextIndex % values.length];
+    stateMap.set(stateKey, (nextIndex + 1) % values.length);
+    return value;
+  };
+}
+
 /**
  * Linear interpolation; t is not clamped, so values outside 0..1 extrapolate.
  * @param {number} a Starting value.
@@ -69,8 +92,7 @@ export function createPlaygroundMusic(
     getPitch,
     getFrequencyPitch,
   } = options;
-  const globalCycleState =
-    new Map();
+  const cycle = createCycle(getCurrentLoopContext);
 
   /** @param {string} noteName Note such as C4, F#3 or Bb2.
    * @returns {number} MIDI note number. */
@@ -309,50 +331,6 @@ export function createPlaygroundMusic(
           values.length
       )
     ];
-  }
-
-  /** @template T
-   * @param {string | T[]} keyOrValues Named sequence key or nonempty values.
-   * @param {T[]} [maybeValues] Values when a key is supplied.
-   * @returns {T} Next loop-local (or global) cyclic value. */
-  function cycle(
-    keyOrValues,
-    maybeValues
-  ) {
-    const {
-      key,
-      values,
-    } = normalizeCycleArgs(
-      keyOrValues,
-      maybeValues
-    );
-    const loopState =
-      getCurrentLoopContext?.() ??
-      null;
-    const stateMap =
-      loopState?.cycleState ??
-      globalCycleState;
-    const stateKey =
-      key ??
-      (
-        loopState
-          ? `slot:${loopState.cycleCallIndex++}`
-          : `values:${createCycleSignature(values)}`
-      );
-    const nextIndex =
-      stateMap.get(stateKey) ?? 0;
-    const value =
-      values[
-        nextIndex % values.length
-      ];
-
-    stateMap.set(
-      stateKey,
-      (nextIndex + 1) %
-        values.length
-    );
-
-    return value;
   }
 
   function rand() {

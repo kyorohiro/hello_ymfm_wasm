@@ -8,6 +8,8 @@ import {MessageChannel} from 'node:worker_threads';
 import {createYm2608Client} from './playground_ym2608.js';
 import {Ym2608AudioEngine} from './ym2608audioengine.js';
 import factory from '../docs/generated/ym2608_wasm.js';
+import {createProcessorPerformance} from './playground_performance_processor.js';
+const performanceProcessor=options=>createProcessorPerformance({...options,rate:48000,nowFrame:()=>0});
 
 test('client disposal rejects outstanding memory uploads and closes the port', async () => {
   const channel = new MessageChannel();
@@ -24,7 +26,7 @@ test('Stop during worklet initialization disposes the late chip without announci
   let Processor, complete, disposed = false;
   const messages = [];
   const source = (await readFile(new URL('./playground_ym2608_worklet.js', import.meta.url), 'utf8')).replace(/^import .*;$/gm, '');
-  vm.runInNewContext(source, {validateChipClock,Ym2608Timeline,
+  vm.runInNewContext(source, {validateChipClock,Ym2608Timeline,createProcessorPerformance:performanceProcessor,
     Ym2608AudioEngine: {create: () => new Promise(resolve => { complete = resolve; })}, factory: {}, Uint8Array, sampleRate: 48000,
     AudioWorkletProcessor: class { constructor() { this.port = {postMessage: data => messages.push(data)}; } },
     registerProcessor: (_, cls) => { Processor = cls; },
@@ -42,7 +44,7 @@ test('YM2608 port client and real worklet core: rhythm, SSG, ADPCM memory, reset
   const ready = new Promise(resolve => { readyResolve = resolve; });
   const source = (await readFile(new URL('./playground_ym2608_worklet.js', import.meta.url), 'utf8'))
     .replace(/^import .*;$/gm, '');
-  vm.runInNewContext(source, {validateChipClock,Ym2608Timeline,Ym2608AudioEngine, factory, Uint8Array, sampleRate: 48000,
+  vm.runInNewContext(source, {validateChipClock,Ym2608Timeline,Ym2608AudioEngine, factory, Uint8Array, sampleRate: 48000,createProcessorPerformance:performanceProcessor,
     AudioWorkletProcessor: class { constructor() { this.port = {postMessage: data => readyResolve(data)}; } },
     registerProcessor: (_, cls) => { Processor = cls; },
   });

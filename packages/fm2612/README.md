@@ -234,6 +234,23 @@ Initialize audio from a user gesture. Worklets, the logic Worker, native effects
 WASM, chip loader JS/WASM pairs and Tetorica's generated OPNA rhythm data are
 included. Website/editor pages and the Introduction/Ebook are separate consumers.
 
+Playground Worker scripts reserve FM/PSG, native sample/noise/FX and independent
+chip commands 150 ms ahead on the shared audio clock. UI Keyboard audition and
+Main execution remain immediate. Adjust the lead before a fresh performance:
+
+```js
+runtime.setTiming({workerLookaheadSeconds: 0.15}); // 0..2 seconds; 0 disables the lead
+```
+
+Changes apply after Stop, then Run; a hot Run keeps the current clock and lead.
+The website also exposes this setting in Menu as **Worker lookahead (ms)**.
+Explicit absolute audio-time and DAC/VGM sample schedules retain their own
+clocks and lead settings (`lookaheadSeconds` / `schedulerIntervalMs`). HTML media
+`stream` playback, external MIDI and MIDI-file scheduling use their existing
+paths; this transport lead does not automatically align those paths. Stop
+retires pending Worker reservations. The lead absorbs short delivery stalls;
+it does not smooth waveform discontinuities or prevent device-level underruns.
+
 For a static site, copy the contents of `node_modules/tetorica-fm2612/` to a
 public directory, preserving its layout, and use module URLs:
 

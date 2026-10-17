@@ -69,7 +69,7 @@ import { exportYm2608VgmToPlaygroundJavaScript } from "../js/ym2608vgm.js";
 import { exportYm2610BVgmToPlaygroundJavaScript } from "../js/ym2610bvgm.js";
 import {
   createPlaygroundRuntime,
-} from "../js/playground_runtime.js?v=run-sample-clock-1";
+} from "../js/playground_runtime.js?v=worker-lookahead-1";
 import { createVgmPresetFiles } from "./playground_vgm_presets.js";
 import { createTfiFileEditor, instrumentToEditorPreset } from "./playground_tfi_editor.js?v=audio-preview-monitor-1";
 import { renderFileTree } from "./playground_file_tree.js?v=file-menu-1";
@@ -122,6 +122,16 @@ const toolbar =
   document.querySelector(".toolbar");
 const statusBar =
   document.querySelector(".status-bar");
+const workerLookaheadInput = document.getElementById("workerLookaheadMs");
+const workerLookaheadStorageKey = "tetorica.playground.workerLookaheadMs";
+function readWorkerLookahead() {
+  try {
+    const saved = localStorage.getItem(workerLookaheadStorageKey);
+    const value = saved === null ? 150 : Number(saved);
+    return Number.isFinite(value) && value >= 0 && value <= 2000 ? value : 150;
+  } catch { return 150; }
+}
+if (workerLookaheadInput) workerLookaheadInput.value = String(readWorkerLookahead());
 const workerExecution =
   document.getElementById("workerExecution");
 const importCassetteButton =
@@ -1711,6 +1721,7 @@ const {
 function createRuntime() {
   return createPlaygroundRuntime({
     midiFileSupported: !useNukedEngine,
+    workerLookaheadSeconds: readWorkerLookahead() / 1000,
     megaDrive,
     onAuditionReset: () => operatorKeyboard.releaseAll(),
     presets:
@@ -1762,11 +1773,23 @@ const pageLifecycle = installPlaygroundPageLifecycle({
 });
 
 function syncWorkerExecutionLock() {
+  if (workerLookaheadInput) workerLookaheadInput.disabled = runtime.getState().playback === "running";
   if (workerExecution) {
     workerExecution.disabled =
       runtime.getState().playback === "running";
   }
 }
+
+workerLookaheadInput?.addEventListener("change", () => {
+  const ms = Number(workerLookaheadInput.value);
+  if (!Number.isFinite(ms) || ms < 0 || ms > 2000 || workerLookaheadInput.value.trim() === "") {
+    workerLookaheadInput.value = String(runtime.getTiming().workerLookaheadSeconds * 1000);
+    return;
+  }
+  runtime.setTiming({workerLookaheadSeconds: ms / 1000});
+  try { localStorage.setItem(workerLookaheadStorageKey, String(ms)); } catch { /* Storage unavailable. */ }
+  setStatus(`Worker lookahead: ${ms} ms.`);
+});
 
 updateMasterVolumeUi();
 masterVolumeRange?.addEventListener(

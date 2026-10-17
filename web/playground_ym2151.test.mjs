@@ -5,12 +5,14 @@ import vm from 'node:vm';
 import {createYm2151Client} from './playground_ym2151.js';
 import {Ym2151} from './ym2151.js';
 import factory from '../docs/generated/ym2151_wasm.js';
+import {createProcessorPerformance} from './playground_performance_processor.js';
 
 async function setup(sampleRate) {
   let Processor, ready;
   const started = new Promise(resolve => {ready = resolve;});
   const source = (await readFile(new URL('./playground_ym2151_worklet.js', import.meta.url), 'utf8')).replace(/^import .*;$/gm, '');
   vm.runInNewContext(source, {Ym2151, factory, sampleRate,
+    createProcessorPerformance:options=>createProcessorPerformance({...options,rate:sampleRate,nowFrame:()=>0}),
     AudioWorkletProcessor: class { constructor() {this.port = {postMessage: ready};} },
     registerProcessor: (_, value) => {Processor = value;},
   });

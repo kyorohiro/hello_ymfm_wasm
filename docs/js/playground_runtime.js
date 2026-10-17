@@ -1,3 +1,5 @@
+import {createPerformanceHost} from './playground_performance_host.js';
+import {validateWorkerLookahead} from './playground_performance_sender.js';
 import {midiToOpnPitch, opnPitchFromHz} from './soundchip_pitch.js';
 import {attachChipClock, CHIP_CLOCKS} from './playground_chip_clock.js';
 import {createNesAudio} from './playground_nes_audio.js';
@@ -85,6 +87,7 @@ const SCALE_INTERVALS = {
  *   logicWorkerUrl?: string | null,
  *   execution?: "main" | "worker",
  *   dacLookaheadSeconds?: number,
+ *   workerLookaheadSeconds?: number,
  *   guardExecution?: boolean,
  *   onStatus?: ((message: string) => void) | null,
  *   onRuntimeState?: ((state: string) => void) | null,
@@ -162,12 +165,18 @@ export function createPlaygroundRuntime(
     send: (entries) => synth.scheduleWrites(entries),
   });
   audioScheduler.setTiming({ lookaheadSeconds: runtime.dacLookaheadSeconds, schedulerIntervalMs: Math.min(10, Math.max(1, runtime.dacLookaheadSeconds * 1000)) });
+  let workerLookaheadSeconds = validateWorkerLookahead(options.workerLookaheadSeconds ?? 0.15);
+  /** Configure explicit scheduling and the next Worker performance's transport lead.
+   * @param {{lookaheadSeconds?: number, schedulerIntervalMs?: number, workerLookaheadSeconds?: number}} options
+   */
   function setTiming(options) {
+    const nextLead = validateWorkerLookahead(options.workerLookaheadSeconds ?? workerLookaheadSeconds);
     const timing = audioScheduler.setTiming(options);
+    workerLookaheadSeconds = nextLead;
     runtime.dacLookaheadSeconds = timing.lookaheadSeconds;
-    return timing;
+    return {...timing, workerLookaheadSeconds};
   }
-  function getTiming() { return audioScheduler.getTiming(); }
+  function getTiming() { return {...audioScheduler.getTiming(), workerLookaheadSeconds}; }
   const preparedFxUnits =
     new WeakSet();
   const activeNotes =
@@ -181,7 +190,7 @@ export function createPlaygroundRuntime(
     options.execution ?? "main";
   const defaultLogicWorkerUrl =
     new URL(
-      "./playground_logic_worker.js?v=shared-beat-clock-1",
+      "./playground_logic_worker.js?v=worker-lookahead-1",
       import.meta.url
     );
   defaultLogicWorkerUrl.searchParams.set(
@@ -226,6 +235,8 @@ export function createPlaygroundRuntime(
   let playbackState = "stopped";
   let logicWorker = null;
   let workerGlobals = null;
+  const performanceHost = createPerformanceHost({getContext: () => megaDrive.audioContext,
+    onSuspended: () => { stop(); emitStatus('Audio suspended. Press Run to start again.'); }});
   const pcmDevices = new Set();
   const pendingPcmIds = new Set();
   let pcmSequence = 0;
@@ -906,6 +917,7 @@ export function createPlaygroundRuntime(
     if (!logicWorker) {
       return Promise.resolve();
     }
+    performanceHost.stop();
     if (logicWorkerStopPromise) return logicWorkerStopPromise;
     const worker = logicWorker;
     workerLevelsMuted = true;
@@ -937,6 +949,7 @@ export function createPlaygroundRuntime(
   }
 
   function terminateLogicWorker() {
+    performanceHost.stop();
     const error = new DOMException("Playground Worker was terminated", "AbortError");
     while (workerRunRequests.length > 0) workerRunRequests.shift().reject(error);
     resolveLogicWorkerStop?.();
@@ -984,15 +997,27 @@ export function createPlaygroundRuntime(
 
   async function invokeWorkerCommand(
     command,
-    args
+    args,
+    performance = null
   ) {
     const globals = workerGlobals;
     if (!globals) {
       throw new Error("Playground Worker is not running");
     }
 
-    if(command==='pcm.create'){const device=await openPcm(args[0], currentRunToken, args[1]);return {port:device.port,id:device.mixerId,clock:device.clock,fdsEnabled:device.fdsEnabled,sampleRate:device.sampleRate,internalSampleRate:device.internalSampleRate,voices:device.voices,selectedVoice:device.selectedVoice};}
-    if(command==='pcm.dispose') {for(const device of pcmDevices) if(device.mixerId===args[0]) device.dispose(); return;}
+    if(command==='pcm.create'){const device=await openPcm(args[0], currentRunToken, args[1]);
+      try { await performanceHost.attach(device.node?.port); } catch(error) {device.dispose();throw error;}
+      if(!performanceHost.clock && playbackState !== 'running'){device.dispose();throw new Error('Run stopped');}
+      return {port:device.port,id:device.mixerId,clock:device.clock,fdsEnabled:device.fdsEnabled,sampleRate:device.sampleRate,internalSampleRate:device.internalSampleRate,voices:device.voices,selectedVoice:device.selectedVoice};}
+    if(command==='pcm.dispose') {
+      const devices=[...pcmDevices].filter(device=>device.mixerId===args[0]);
+      const cleanup=()=>{
+        if(performance && performanceHost.clock?.session===performance.session &&
+            megaDrive.audioContext.currentTime < performance.time) {setTimeout(cleanup,10);return;}
+        for(const device of devices){performanceHost.detach(device.node?.port);device.dispose();}
+      };
+      cleanup(); return;
+    }
     if(command.startsWith('mixer.')) {const method=command.slice(6);if(!['set','get','reset','list'].includes(method)) throw new Error('Unknown mixer method');return megaDrive.mixer[method](...args);}
     if(command==='pcm.decode')return decodePcm(args[0]);
     if (command === "midi.file") return globals.midi.playFile(...args);
@@ -1135,6 +1160,7 @@ export function createPlaygroundRuntime(
 
   function handleWorkerMessage(event) {
     const message = event.data ?? {};
+    if (message.type === 'performance-cancel-owner') { performanceHost.cancelOwner(message); return; }
     // Tempo bypasses the command queue: a queued play may still be waiting.
     if (message.type === 'tempo') {
       clockApi.setBpm(message.bpm);
@@ -1167,7 +1193,7 @@ export function createPlaygroundRuntime(
         .catch(() => undefined)
         .then(() => {
           if (logicWorker !== worker) return;
-          const result = invokeWorkerCommand(message.command, message.args ?? []);
+          const result = invokeWorkerCommand(message.command, message.args ?? [], message.performance);
           if (message.command === "play" || message.command === "midi.file") {
             // Start notes in FIFO order, but their durations must not block other
             // loops, register writes or Stop. Reply only when this note completes.
@@ -1929,10 +1955,14 @@ export function createPlaygroundRuntime(
       if (port) worker.postMessage({type: "native-fx", port}, [port]);
     }
 
+    const performanceClock = await performanceHost.start(
+      [megaDrive.node?.port, megaDrive.audio?.nativeFX?.node?.port].filter(Boolean), workerLookaheadSeconds);
+    if (runToken !== currentRunToken) return;
     await new Promise((resolve, reject) => {
       workerRunRequests.push({ resolve, reject, runToken });
       worker.postMessage({
         type: "run",
+        performance: performanceClock,
         sourceCode,
         bpm: runtime.bpm,
         presets,
@@ -2128,6 +2158,7 @@ export function createPlaygroundRuntime(
   }
 
   function stop() {
+    performanceHost.stop();
     clearAuditions();
     currentRunToken += 1;
     loopTasks.clear();

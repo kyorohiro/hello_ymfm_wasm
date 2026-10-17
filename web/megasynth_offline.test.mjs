@@ -11,6 +11,7 @@ import {createYm2612} from './ym2612.js';
 import {YM2612Synth, YM2612WorkletTransport} from './ym2612synth.js';
 import {YM2612DacPlayer, receiveDacCommand} from './ym2612_dac.js';
 import {createChipPortReceiver} from './playground_chip_port.js';
+import {createPerformanceQueue, createPerformanceChipOwnership} from './playground_performance_queue.js';
 import factory from '../docs/generated/ym2612_wasm.js';
 
 const fxModule = await WebAssembly.compile(fs.readFileSync(new URL('./native_audio_effect.wasm', import.meta.url)));
@@ -65,7 +66,7 @@ test('scheduled events preserve sample position and same-frame insertion order a
 test('offline stereo FM + native delay/reverb exactly match the AudioWorklet processors', async () => {
   let Processor;
   const scope = {sampleRate: 48000, currentFrame: 0, Float32Array, Uint8Array, Error,
-    YM2612DacPlayer, receiveDacCommand, createChipPortReceiver, createOpnAuditionGuard, receiveOpnAuditionCommand, createYm2612, ym2612ModuleFactory: factory,
+    YM2612DacPlayer, receiveDacCommand, createChipPortReceiver, createPerformanceQueue, createPerformanceChipOwnership, createOpnAuditionGuard, receiveOpnAuditionCommand, createYm2612, ym2612ModuleFactory: factory,
     AudioWorkletProcessor: class {constructor() {this.port = {postMessage() {}};}},
     registerProcessor: (_name, Type) => {Processor = Type;}};
   vm.runInNewContext(fs.readFileSync(new URL('./ym2612-worklet.js', import.meta.url), 'utf8').replace(/^import .*;\n/gm, ''), scope);
