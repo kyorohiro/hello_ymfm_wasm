@@ -1395,6 +1395,69 @@ interface PlaygroundDx7 {
   getState(): Promise<PlaygroundDx7State>;
   dispose(): void;
 }
+type PlaygroundSnesChannel = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7;
+/** Raw BRR has no tuning metadata. Declare the note/frequency at basePitch.
+ * Native DSP rate is fixed at 32,000 Hz. Loop positions are native sample indices.
+ */
+type PlaygroundSnesBrrOptions = ({rootNote:string | number; baseFrequencyHz?:never} | {baseFrequencyHz:number; rootNote?:never}) & {
+  /** Hardware PITCH at the declared root, default 4096 (one source sample/frame). */
+  basePitch?:number;
+  /** Required for looping BRR, on a 16-sample BRR block boundary. */
+  loopStartSamples?:number;
+};
+interface PlaygroundSnesSample {
+  id:number; startAddress:number; loopAddress:number; byteLength:number; frames:number;
+  rootNote:string | number | null; rootFrequencyHz:number; basePitch:number;
+  loop:boolean; loopStartSamples:number | null;
+}
+interface PlaygroundSnesChannelState {
+  sample:number | null;
+  /** Hardware register values 0..255; ADSR1 bit7 enables ADSR, otherwise GAIN. */
+  adsr1:number; adsr2:number; gain:number;
+  /** Signed hardware volume -128..127, including phase inversion. */
+  volumeLeft:number; volumeRight:number;
+  /** Hardware PITCH 0..16383; not a frequency in Hz. */
+  pitch:number;
+}
+type PlaygroundSnesPreset = Partial<Omit<PlaygroundSnesChannelState, 'sample'>> & {sample?:number | PlaygroundSnesSample};
+interface PlaygroundSnesState {
+  /** Fixed internal DSP sample rate, 32,000 Hz. */
+  sampleRate:number;
+  samples:PlaygroundSnesSample[]; channels:PlaygroundSnesChannelState[]; nextAddress:number;
+}
+/** Independent CPU-free S-DSP, eight fixed physical voices, no automatic allocator.
+ * BRR uploads, tuning and voice configuration are explicit. Routes through mixer/FX.
+ * Worker performance commands follow Worker lookahead; STOP disposes this instance.
+ * Echo writes are off by default. Raw DSP edits must respect sample/directory RAM.
+ */
+interface PlaygroundSnes {
+  /** AudioContext output sample rate in Hz, independent of nativeSampleRate. */
+  readonly sampleRate:number;
+  readonly nativeSampleRate:32000;
+  loadBRR(bytes:ArrayBuffer | ArrayBufferView, options:PlaygroundSnesBrrOptions):Promise<PlaygroundSnesSample>;
+  setPreset(channel:PlaygroundSnesChannel, preset:PlaygroundSnesPreset):void;
+  setChannel(channel:PlaygroundSnesChannel, params:PlaygroundSnesPreset):void;
+  getPreset(channel:PlaygroundSnesChannel):Promise<PlaygroundSnesChannelState>;
+  /** Musical fundamental Hz using the assigned BRR sample's declared tuning. */
+  setFrequency(channel:PlaygroundSnesChannel, hz:number):void;
+  setNote(channel:PlaygroundSnesChannel, note:string | number):void;
+  /** Raw hardware PITCH 0..16383; 4096 means unity source playback rate. */
+  setPitch(channel:PlaygroundSnesChannel, pitch:number):void;
+  keyOn(channel:PlaygroundSnesChannel):void;
+  keyOff(channel:PlaygroundSnesChannel):void;
+  noteOn(channel:PlaygroundSnesChannel, note?:string | number):void;
+  noteOff(channel:PlaygroundSnesChannel):void;
+  allNotesOff():void;
+  /** Reset registers and release voices, retaining uploaded sample IDs/data. */
+  reset():void;
+  writeDsp(register:number, value:number):void;
+  readDsp(register:number):Promise<number>;
+  /** Applied state; future reserved Worker commands may not yet be reflected. */
+  getState():Promise<PlaygroundSnesState>;
+  /** Atomic 64KiB RAM and 128-byte DSP register copy; analysis, not a full checkpoint. */
+  snapshot():Promise<{ram:Uint8Array; dsp:Uint8Array; nativeFrames:number}>;
+  dispose():void;
+}
 type PlaygroundSoundChipMap = {
   ym2612: TetoricaSelectedChip extends 'ym2612' ? FMApi : PlaygroundCreatedFm;
   ym2203: TetoricaSelectedChip extends 'ym2203' ? PlaygroundOPNFm<0 | 1 | 2> : PlaygroundCreatedYm2203;
@@ -1407,9 +1470,10 @@ type PlaygroundSoundChipMap = {
   nes: PlaygroundNes;
   pwm: PlaygroundPWM32X;
   dx7: PlaygroundDx7;
+  snes: PlaygroundSnes;
 };
 type PlaygroundUseSoundChipOptions = { [key: string]: never };
-type PlaygroundSoundChipClient<Name extends keyof PlaygroundSoundChipMap> = Name extends 'dx7'
+type PlaygroundSoundChipClient<Name extends keyof PlaygroundSoundChipMap> = Name extends 'dx7' | 'snes'
   ? PlaygroundSoundChipMap[Name] & {readonly id: string}
   : PlaygroundSoundChipMap[Name] & PlaygroundChipClock & {readonly id: string};
 /** Reuse one instance of this instrument until STOP. For independent instances use createSoundChip. */
@@ -1417,6 +1481,8 @@ declare function useSoundChip<Name extends keyof PlaygroundSoundChipMap>(name: N
 
 /** Create an independent DX7 with its own 16 voices and SysEx bank. */
 declare function createSoundChip(name: 'dx7', options?: PlaygroundCreateSoundChipOptions): Promise<PlaygroundDx7 & {readonly id: string}>;
+/** Independent CPU-free S-DSP with separate RAM and eight physical voices. */
+declare function createSoundChip(name:'snes', options?:PlaygroundCreateSoundChipOptions):Promise<PlaygroundSnes & {readonly id:string}>;
 
 /** Independent chips. Global play/write still target the default Playground chip. */
 type PlaygroundCreatedFm = Omit<FMApi, 'dac' | 'scheduleWrites' | 'read' | 'readStatus' | 'getIrq'> & {dispose(): void};

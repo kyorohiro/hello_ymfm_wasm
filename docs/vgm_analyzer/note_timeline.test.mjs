@@ -94,6 +94,7 @@ test('seek bar previews a position and seeks immediately only during playback',a
  const handlers={},actions=[];let playing=false;
  const c=vm.createContext({
   playbackSeek:{value:'88200',addEventListener(type,fn){handlers[type]=fn;}},
+  spcView:{active:false},
   seekDragging:false,seekSelection:null,timelineSelectionPending:false,
   player:{isPlaying:()=>playing,stats:()=>({})},
   songTimeline:{cursor:sample=>actions.push(['cursor',sample])},

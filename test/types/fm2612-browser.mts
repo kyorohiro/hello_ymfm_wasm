@@ -61,3 +61,38 @@ nes.fds.noteOn('C4');
 nes.pulse.noteOn(0, 'E4');
 // @ts-expect-error FDS wave is an array of samples.
 nes.fds.setWave('sine');
+
+import {createSnesClient} from 'tetorica-fm2612/playground_snes.js';
+import {SpcRuntimeSynth} from 'tetorica-fm2612/spc_audio.js';
+import {SpcCore, SnesDspCore} from 'tetorica-fm2612/spc.js';
+import {SnesSynth} from 'tetorica-fm2612/snessynth.js';
+import spcFactory from 'tetorica-fm2612/generated/spc_wasm.js';
+const spcCore = await SpcCore.create({moduleFactory:spcFactory});
+spcCore.load(new Uint8Array());
+spcCore.nativeFrames.toFixed();
+const snesCore = await SnesDspCore.create({moduleFactory:spcFactory});
+const offlineSnes = new SnesSynth({core:snesCore});
+offlineSnes.renderInto(new Float32Array(128), new Float32Array(128));
+// @ts-expect-error Explicit factory/asset initialization is required.
+await SpcCore.create();
+// @ts-expect-error PCM output is Float32.
+spcCore.renderInto(new Int16Array(128), new Int16Array(128));
+const snes = createSnesClient(new MessageChannel().port1);
+const brr = new Uint8Array([3,0,0,0,0,0,0,0,0]);
+const snesSample = await snes.loadBRR(brr, {rootNote:'C4', loopStartSamples:0});
+snes.setPreset(0, {sample:snesSample, volumeLeft:90});
+snes.noteOn(0, 'C4');
+(await snes.getPreset(0)).pitch.toFixed();
+(await snes.getState()).nextAddress.toFixed();
+// @ts-expect-error Explicit musical tuning is required.
+await snes.loadBRR(brr, {loopStartSamples:0});
+// @ts-expect-error Root note and measured frequency are mutually exclusive.
+await snes.loadBRR(brr, {rootNote:60, baseFrequencyHz:440});
+// @ts-expect-error No variable S-DSP clock.
+snes.setClock(1024000);
+const spc = new SpcRuntimeSynth({audioContext:new AudioContext()});
+await spc.seek(1.5, {signal:new AbortController().signal, resume:false, onProgress:progress=>progress.toFixed(2)});
+(await spc.getState()).positionSeconds.toFixed(3);
+(await spc.snapshot()).ram.byteLength.toFixed();
+// @ts-expect-error Seek is in elapsed seconds, not unit strings.
+await spc.seek('1 beat');

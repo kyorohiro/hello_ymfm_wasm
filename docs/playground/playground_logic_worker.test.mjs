@@ -1,3 +1,4 @@
+import {createSnesClient} from '../../web/playground_snes.js';
 import {createPerformanceSender} from '../../web/playground_performance_sender.js';
 import {midiToOpnPitch, opnPitchFromHz} from '../../web/soundchip_pitch.js';
 import {CHIP_CLOCKS} from '../../web/playground_chip_clock.js';
@@ -36,7 +37,7 @@ function createWorkerHarness(overrides = {}) {
   const context = {
     createPerformanceSender, serializeLogError,
     midiToOpnPitch, opnPitchFromHz, CHIP_CLOCKS, resolvePlaySeconds, resolvePlayDuration, createBeatClock, runTween, createNativeSampleController, createNativeNoiseController, controlNativeNoise, createWorkerDac, atob, createMidiApi, createMidiRack, createWorkerChip, createNativeFXController, createLiveFxLifecycle, DOMException, structuredClone,
-    createDx7Client, createYm2151Client, createSegaPsgClient, createLoopAsyncTasks, createCycle, createDeadlineScheduler, createOpnClient, createGameboyClient, createSoundChipRegistry, createRf5c164Client, createYm2608Client,
+    createSnesClient, createDx7Client, createYm2151Client, createSegaPsgClient, createLoopAsyncTasks, createCycle, createDeadlineScheduler, createOpnClient, createGameboyClient, createSoundChipRegistry, createRf5c164Client, createYm2608Client,
     hzToBlockFnum,
     Error,
     Map,
@@ -957,11 +958,12 @@ test('Worker useSoundChip aliases global FM, permits const fm, reuses on reevalu
   assert.equal(worker.messages.filter(m=>m.command==='pcm.create' || m.command==='fm.then').length,0);
  }finally{await worker.send({type:'stop'});}
 });
-for(const name of ['rf5c164','ym2608','gameboy','ym2203','ym2610','ym2612','segapsg','ym2151','dx7'])test(`Worker useSoundChip ${name} shares pending creation, reuses and disposes on Stop`,async()=>{
+for(const name of ['rf5c164','ym2608','gameboy','ym2203','ym2610','ym2612','segapsg','ym2151','dx7','snes'])test(`Worker useSoundChip ${name} shares pending creation, reuses and disposes on Stop`,async()=>{
  const worker=createWorkerHarness(),sent=[];let closed=0;
  const port={start(){},postMessage:data=>sent.push(data),close(){closed++;}};
  const source=`const [a,b]=await Promise.all([useSoundChip('${name}'),useSoundChip('${name}')]);
  if(a!==b || (context.chip && context.chip!==a))throw Error('identity');context.chip=a;
+ if('${name}'==='snes' && (typeof a.loadBRR!=='function'||typeof a.writeDsp!=='function'))throw Error('Missing SNES DSP API');
  if('${name}'==='ym2608' && (typeof a.setClock!=='function'||typeof a.resetRegisters!=='function'))throw Error('Missing YM2608 import API');`;
  try {
   await worker.send({type:'run',capabilities:{chip:name==='ym2612'?'ym2203':'ym2612'},sourceCode:source});

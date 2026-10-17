@@ -14,6 +14,7 @@ DOCS_GENERATED_DIR="${ROOT_DIR}/docs/generated"
 LICENSE_FILE="${ROOT_DIR}/LICENSE"
 
 ANALYZER_FILES="
+spc_analyzer.js
 desktop_interface.js
 tfi_extract.js
 fm_snapshot.js
@@ -95,6 +96,12 @@ seek_playback.js
 "
 
 JS_FILES="
+spc.js
+spc_file.js
+snes_brr.js
+spc_audio.js
+spc-worklet.js
+spc_resampler.js
 msm5205audioengine.js
 soundchip_mixer.js
 soundchip_pitch.js
@@ -202,6 +209,8 @@ ym2612_dac.js
 "
 
 GENERATED_FILES="
+spc_wasm.js
+spc_wasm.wasm
 huc6280_wasm.js
 huc6280_wasm.wasm
 okim6258_wasm.js
@@ -379,7 +388,9 @@ for file in ${NUKED_LICENSE_FILES}; do
   cp "${src}" "${dst}"
 done
 
+node "${ROOT_DIR}/scripts/copy_spc_sources.mjs" "${STAGE_DIR}"
 cat > "${STAGE_DIR}/THIRD_PARTY_LICENSES.txt" <<EOF
+SNES SPC700 / S-DSP: snes_spc, LGPL-2.1-or-later. See licenses/snes-spc and sources/SNES-SPC.md for source and rebuilding.
 AY-3-8910 / YM2149: MAME adaptation, BSD-3-Clause. See licenses/mame-ay8910/.
 
 HuC6280: MAME adaptation by Charles MacDonald, BSD-3-Clause. See licenses/mame-huc6280/.
@@ -421,7 +432,7 @@ cp -R "${ROOT_DIR}/docs/vgm_analyzer/vendor/osmd/." "${STAGE_DIR}/vendor/osmd/"
 # Make the analyzer runnable from itch.io as a standalone app.
 perl -0pi -e 's#<a class="link-button" href="\.\./index\.html">Back</a>##g' "${STAGE_DIR}/index.html"
 perl -0pi -e "s#(['\"])\\.\\./js/#\$1./js/#g; s#(['\"])\\.\\./generated/#\$1./generated/#g" \
-  "${STAGE_DIR}/tfi_extract.js" "${STAGE_DIR}/tfi_archive.js" "${STAGE_DIR}/index.html" "${STAGE_DIR}/analyzer_core.js" "${STAGE_DIR}/playback_core.js" "${STAGE_DIR}/playback_mixer.js" "${STAGE_DIR}/vgm_analyzer.js" "${STAGE_DIR}/vgm_mml.js" \
+  "${STAGE_DIR}/tfi_extract.js" "${STAGE_DIR}/tfi_archive.js" "${STAGE_DIR}/index.html" "${STAGE_DIR}/analyzer_core.js" "${STAGE_DIR}/playback_core.js" "${STAGE_DIR}/playback_mixer.js" "${STAGE_DIR}/vgm_analyzer.js" "${STAGE_DIR}/spc_analyzer.js" "${STAGE_DIR}/vgm_mml.js" \
   "${STAGE_DIR}/opm_tfi.js" "${STAGE_DIR}/opm_info.js" "${STAGE_DIR}/opm_export.js" "${STAGE_DIR}/opm_notes.js" "${STAGE_DIR}/vgm_notes.js" "${STAGE_DIR}/tone_notes.js" "${STAGE_DIR}/gameboy_notes.js" "${STAGE_DIR}/huc6280_notes.js" "${STAGE_DIR}/nes_notes.js" "${STAGE_DIR}/vgm_midi.js" "${STAGE_DIR}/vgm_wav.js" "${STAGE_DIR}/vgm_lilypond.js" \
   "${STAGE_DIR}/osmd_trial.js" "${STAGE_DIR}/note_timeline_worker.js" "${STAGE_DIR}/sample_render.js" "${STAGE_DIR}/sample_core.js" "${STAGE_DIR}/sample_explorer.js" "${STAGE_DIR}/pwm_samples.js" "${STAGE_DIR}/ym2413_monitor.js" "${STAGE_DIR}/ym2413_notes.js" "${STAGE_DIR}/mgsdrv_mml.js" \
   "${STAGE_DIR}/fm_snapshot.js" "${STAGE_DIR}/vgm_json.js" "${STAGE_DIR}/command_editor.js" "${STAGE_DIR}/ymf262_notes.js" "${STAGE_DIR}/opl_notes.js" "${STAGE_DIR}/msx_notes.js" "${STAGE_DIR}/sbi_export.js"

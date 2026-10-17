@@ -97,7 +97,7 @@ test('setOutputTab allows noteish and parsed-output for gameboy but forces parse
   const context=vm.createContext({isOpl,currentChipKind:'gameboy',currentBuffer:null,midiExportAvailable:false,status:{textContent:'',hidden:true},
     noteishViewMode:'live',sampleExplorer:{stop(){}},songTimeline:{active(){}},requestNoteishRender(){},renderNoteishGrid(){},
     sheetMusicPanel:stub(),sheetMusicTab:stub(),musicSheet:null,tfiInfo:{setVisible(){}},opmInfo:{setVisible(){}},sbiInfo:{setVisible(){}},
-    tfiInfoTab:stub(),samplePanel:stub(),sampleTab:stub(),operatorInfoPanel:stub(),operatorInfoTab:stub(),
+    tfiInfoTab:stub(),samplePanel:stub(),sampleTab:stub(),spcPanel:stub(),spcView:{active:false,setVisible(){}},operatorInfoPanel:stub(),operatorInfoTab:stub(),
     parsedOutputPanel:stub(),parsedOutputTab:stub(),noteishPanel:stub(),noteishTab:stub(),
     setStatus(message){context.status.textContent=message;}});
   vm.runInContext(fn('setOutputTab'),context);

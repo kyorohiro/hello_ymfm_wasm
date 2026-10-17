@@ -46,6 +46,9 @@ This is the easiest way to test YM2612 control, sound design, and Genesis-orient
   Independent MSFA DX7 support is available through `await useSoundChip('dx7')`,
   including 16 voices, DX7 SysEx banks and Playground mixer/FX routing.
   Open `examples/dx7/dx7-init-sine.js` in FILES; the initial voice needs no external bank.
+  SNES S-DSP is available through `await useSoundChip('snes')`: eight independent
+  voices with BRR, explicit sample tuning and raw ADSR/GAIN controls.
+  Try `examples/snes/snes-brr-melody.js`; its original BRR needs no game files.
 - Playground Runtime Embedded Demo:
   [https://kyorohiro.github.io/hello_ymfm_wasm/demos/playground_runtime.html](https://kyorohiro.github.io/hello_ymfm_wasm/demos/playground_runtime.html)
 - Synth:

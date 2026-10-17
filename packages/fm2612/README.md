@@ -42,6 +42,7 @@ entry points, rather than every internal Worker or Worklet module.
 | Browser synth with FX, recording and looping | `tetorica-fm2612/megasynth.js` | `MegaSynth` |
 | Browser live-code runtime | `tetorica-fm2612/playground_runtime.js` | `Playground`, `createPlaygroundRuntime` |
 | DX7 inside browser Playground scripts | `tetorica-fm2612/playground_runtime.js` | Script globals `useSoundChip('dx7')`, `createSoundChip('dx7')` |
+| SNES S-DSP / SPC700 | `tetorica-fm2612/snessynth.js`, `tetorica-fm2612/spc.js` | CPU-free BRR instrument / SPC file PCM core |
 | Offline FM + native FX rendering | `tetorica-fm2612/megasynth_offline.js` | `createMegaSynthOffline` (experimental) |
 | Offline recording and looping | `tetorica-fm2612/megasynth_session.js` | `createMegaSynthSession` (experimental) |
 | Node synth with Worker audio output | `tetorica-fm2612/node` | `MegaSynthNode` (experimental) |
@@ -319,6 +320,61 @@ settings survive close/start. Omitted sizes keep their previous values. Each cal
 discards incomplete points and batches and enables monitoring unless
 `{enabled: false}` is supplied. Message intervals are approximately
 `samplesPerPoint * pointsPerMessage / audioContext.sampleRate` seconds.
+
+## SNES BRR instrument and SPC playback
+
+The Playground script factory supports `useSoundChip('snes')` and
+`createSoundChip('snes', {id:'snes-bass'})` in Main and Worker modes.
+Each instance has its own 64 KiB RAM and eight physical S-DSP voices, numbered
+0..7. It runs no game CPU and never writes into an SPC player's RAM.
+
+```javascript
+const snes = await useSoundChip('snes');
+const sample = await snes.loadBRR(
+  new Uint8Array([0xc3,0x13,0x57,0x75,0x31,0xfd,0xb9,0x9b,0xdf]),
+  {baseFrequencyHz:2000, loopStartSamples:0}
+);
+snes.setPreset(0, {sample, adsr1:0x8f, adsr2:0xe0, volumeLeft:90, volumeRight:90});
+snes.noteOn(0, 'C4');
+await beat(1);
+snes.noteOff(0);
+```
+
+BRR has no root-note metadata. Declare exactly one of `rootNote` (MIDI number
+or note name) and `baseFrequencyHz`, measured at `basePitch` (default 4096).
+Looping BRR also requires `loopStartSamples`, a multiple of 16 within the sample.
+Await `loadBRR()` before using its returned sample descriptor or numeric id.
+`setFrequency(channel, hz)` and `setNote(channel, note)` use this tuning;
+`setPitch(channel, pitch)` accepts the raw 14-bit DSP pitch value.
+ADSR1/ADSR2/GAIN and signed left/right volume are raw DSP values.
+Abrupt changes may click; no automatic smoothing is applied.
+
+`reset()` releases voices and reloads uploaded samples with the same ids.
+Samples occupy the instance's fixed 64 KiB RAM (directory at 0..1023); there is
+no automatic voice stealing, sample unloading or compaction. Echo writes are
+disabled by default. Raw `writeDsp()` edits must keep directory, BRR and echo
+RAM regions from conflicting. `await getState()`, `getPreset(channel)`, and
+`snapshot()` inspect applied state; future lookahead commands may still be pending.
+Mixer, FX, script lookahead and Stop resource ownership use the existing Playground paths.
+
+The native rate is fixed at **32,000 stereo frames/second**, with output-side
+resampling for the device. There is no `setClock()` or BPM-controlled DSP rate.
+`new SnesSynth({core: await SnesDspCore.create({moduleFactory})})` from
+`snessynth.js` / `spc.js` exposes direct PCM rendering outside Playground;
+pass the generated `spc_wasm.js` factory and its `moduleOptions.wasmBinary`
+when loading WASM explicitly. `SpcCore` in `spc.js` instead runs the SPC700 CPU, timers and DSP
+from an SPC file. Both offer `renderInto(left, right)` at the native rate.
+`SpcRuntimeSynth` in `spc_audio.js` supplies browser AudioWorklet playback.
+The package-root Yamaha `createSoundChip` factory remains a separate API.
+
+SPC support uses the accurate `snes_spc` 0.9.0 core, pinned in
+`sources/third_party/snes-spc/`. Its LGPL-2.1-or-later license, corresponding
+modified source and Emscripten build recipe ship with the runtime. No Nintendo
+IPL ROM, game music or game samples are bundled. SPC files requiring additional
+transfers from the game host or a complete IPL ROM may not play correctly.
+Stop restores the original file, including echo RAM; it is not a mid-song
+checkpoint. Voice mute removes dry output and new echo sends while CPU, BRR,
+envelopes and pitch modulation continue; existing echo tails can remain.
 
 ## DX7 in browser Playground (0.2.14)
 

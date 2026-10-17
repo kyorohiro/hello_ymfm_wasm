@@ -1,221 +1,200 @@
-以下をそのままCodexに渡せる形にまとめました。既存のTetoricaの構成を調査させたうえで、**SPC再生 → BRR抽出 → DSP解析 → Playground統合**の順に進める指示です。
+# SNES / SPC 対応計画
 
----
-
-# Tetorica FM2612 Playground — SNES/SPC対応
+更新日: 2026-10-18
 
 ## 目的
 
-Tetorica FM2612 Playgroundに、SNES（スーパーファミコン）の音源を追加する。
+ゲーム固有のサウンドドライバーを個別解析せず、SPC700 CPUとS-DSPを実行して、
+SPCファイルの楽曲再生・BRR抽出・音色再利用を実現する。
+既存のAnalyzer、AudioWorklet、Mixer、Virtual Files、Playgroundの仕組みを利用する。
+大規模な共通化やゲーム機本体のエミュレーションは行わない。
 
-SNESはゲームごとにサウンドドライバーやシーケンス形式が異なるため、ゲーム固有の実装を個別に解析する方式は採用しない。
+## 最初の完成条件
 
-**SPC700とS-DSPを共通の実行基盤として利用し、ゲーム固有のサウンドドライバーをそのまま実行することで汎用化する。**
+- SPCを読み込み、ブラウザーで音を再生できる。
+- Play / Pause / Stop / 再開始、音量、再生位置、メタデータを扱える。
+- 音源計算はAudioWorkletで実行し、UIスレッドで継続生成しない。
+- 内部32,000HzステレオPCMを出力レートへ変換する。
+- 読み込み途中の停止・ファイル切り替え・再初期化・終了で古い処理を残さない。
+- 合成SPCによる自動検証と、ネイティブ版とのPCM比較を通す。
 
-既存のVGM AnalyzerとPlaygroundの音源管理機構をできるだけ再利用する。
+BRR抽出、楽器としての演奏、詳細なDSP解析は下記の独立段階として進める。
+SPC再生を、これらの全機能の完成まで待たせない。
 
-## 1. 既存実装の調査
+## エンジン選定
 
-最初にリポジトリを調査すること。
+候補:
 
-- `useSoundChip()` の音源追加方法
-- AudioWorkletとWASMの構成
-- VGM Analyzerの音源解析・再生処理
-- PCMサンプルの読み込み・再生API
-- TFI/VGIなどの音色Import機構
-- 音源の停止・再起動・リソース解放処理
-- Worker lookaheadと音声バッファリング
+- [snes_spc](https://github.com/blarggs-audio-libraries/snes_spc): C++、SPC CPUとDSP単独のAPI、LGPL。
+- [spc700-js](https://github.com/digital-sound-antiques/spc700-js): TypeScript、ISC。上流READMEにGaussian補間、DSPの実行粒度、ダンプ中の持続音復元の近似が記載されている。
 
-既存の抽象化を優先し、SNES専用の並行した仕組みを増やさない。
+採用: **snes_spc 0.9.0 accurate DSP**、コミット `ec8ee2bbe30451614c1d02a83f7af1c97d497d45`。
+C++のCPU/DSP分離とネイティブ比較のしやすさを優先した。LGPL-2.1-or-later。
+fast DSP、SPC_Filter、テンポ変更、surround無効化は使用しない。
+採用コードのコミット、ライセンス、変更点、ビルド方法をthird_partyに残す。
+WASMを配布する場合は対応するラッパー、上流ソース、再ビルド方法も同梱する。
+未検証のゲーム互換性や実機との完全一致を主張しない。
 
-調査結果を簡潔にまとめ、実装方針を決定すること。
-
-## 2. SPC再生エンジン
-
-既存のSPC700/S-DSPエミュレーターを調査する。
-
-候補：
-
-- https://github.com/blarggs-audio-libraries/snes_spc
-- https://github.com/digital-sound-antiques/spc700-js
-
-ライセンス、再現精度、AudioWorkletとの相性、CPU負荷、メンテナンス状況を比較する。
-
-ライセンス上の問題があるコードを無断でコピーしないこと。
-
-必要であれば、既存実装をWASM化する。
-
-### 要件
-
-- `.spc` ファイルを読み込める
-- SPC700 CPUを実行できる
-- S-DSPによる8ボイスの音声生成
-- BRRデコード
-- ADSR / GAIN
-- Pitch Modulation
-- Noise
-- Echo / FIR
-- 再生・停止・再起動
-- 音量調整
-- AudioWorkletでの安定再生
-
-SPCファイルに保存されたCPU状態、RAM、DSPレジスタを正しく復元する。
-
-SPC700とS-DSPのクロック・タイミングを適切に扱うこと。
-
-## 3. BRRサンプル抽出
-
-SPC RAMからBRRサンプルを抽出する機能を追加する。
-
-### 要件
-
-- S-DSPのサンプルディレクトリを解析する
-- BRRサンプルの開始位置・ループ位置を取得する
-- BRRデータをPCMへデコードする
-- ループ情報を保持する
-- WAV形式でExportできる
-- Playgroundで再利用できる
-
-単純にRAMを走査してBRRらしいデータを抽出するだけでなく、DSPのサンプルディレクトリ情報を優先すること。
-
-サンプル番号、開始アドレス、ループアドレスなどのメタデータを保持する。
-
-## 4. S-DSPイベント解析
-
-SPC700の実行中に発生するS-DSPレジスタ操作を記録する。
-
-ゲーム固有のMMLやシーケンス形式を解析するのではなく、**S-DSPへの書き込みを共通イベントとして取得する。**
-
-### 取得対象
-
-- 時刻
-- DSPレジスタアドレス
-- 書き込み値
-- 対象ボイス
-- Pitch
-- Volume L/R
-- ADSR / GAIN
-- SRCN
-- KON / KOFF
-- Noise
-- Pitch Modulation
-- Echo関連設定
-
-イベント時刻は、SPC700の実行サイクルまたはサンプル時刻に基づいて記録する。
-
-既存のVGM Analyzerのイベントモデルを再利用できるか検討する。
-
-また、SPC RAMの内容が再生中に変更される場合に備え、BRRサンプルの変更を追跡できる構造を検討する。
-
-## 5. Analyzerへの統合
-
-既存のVGM AnalyzerにSPC対応を追加する。
-
-### Phase 1
-
-- SPCファイルのDrag & Drop
-- GD3相当のSPCメタデータ表示
-- SPC再生
-- 8ボイスのON/OFF
-- 再生時間表示
-
-### Phase 2
-
-- BRRサンプル一覧
-- サンプルの個別試聴
-- 波形表示
-- ループ位置表示
-- WAV Export
-
-### Phase 3
-
-- DSPレジスタ履歴
-- ボイスごとのPitch/Volume変化
-- ADSR/GAIN表示
-- KON/KOFFイベント表示
-
-既存UIコンポーネントを優先して利用する。
-
-## 6. Playgroundへの統合
-
-SPC再生と、BRR音色を使った演奏を分離する。
+## 設計上の分離
 
 ### SPC Player
 
-SPCファイルに含まれる楽曲を再生する。
+CPU・タイマー・RAM・S-DSPを含む自律した再生インスタンス。
+ファイルに含まれるドライバーがDSPを操作する。BPMやWorkerの音符先読みで再生速度を変えない。
 
 ### SNES SoundChip
 
-BRRサンプルとS-DSPを利用して、Playgroundから演奏する。
+別のRAMとS-DSPを持つ楽器インスタンス。ゲームのCPUは実行しない。
+SPC Playerと同じDSP実装を使い、BRR・ディレクトリー・ADSR/GAIN等をPlaygroundから設定する。
+固定8ボイスのチャンネル指定を基本とし、自動ボイス割り当ては独立した上位機能として扱う。
+SPC再生中のRAM/DSPへ楽器の命令を書き込んでドライバーと競合させない。
 
-APIは既存の`useSoundChip()`との整合性を優先する。
+## 時間・PCM・状態
 
-以下は概念例であり、既存APIを調査したうえで設計すること。
+- CPUは採用エンジンのネイティブサイクル、DSPは32,000Hzのステレオフレームを基準とする。
+- 44,100 / 48,000Hz等のデバイス出力フレームと区別する。VGMの44,100Hz待機単位を流用しない。
+- 公開PCMは左右Float32Arrayを基本とし、renderIntoで呼び出し側のバッファへ書き込める。
+- process()内で継続的な配列確保を行わず、分割生成でも状態と出力を維持する。
+- Pauseは再生位置を維持。Stopは停止して読み込み直後へ戻す。再開始はその初期状態から再生する。
+- 元のSPCファイルは完全な演奏途中チェックポイントと同一ではない。
+- 正確なチェックポイントにはCPU・タイマー・RAM・DSP内部・BRR履歴・Echo・リサンプラー状態が必要。
+- ミュートはCPUの実行停止やKOFFと区別し、Pitch ModulationやEchoへの影響を記録する。
+- Worker lookaheadは楽器の演奏命令の予約に使う。SPC楽曲のPCMバッファと混同しない。
 
-```typescript
-const snes = await useSoundChip("snes");
+## Phase 1: SPC再生
 
-await snes.loadBRR("instrument.brr");
+- [x] 上流固定・ビルド・低レベルラッパー
+- [x] ファイル検証、CPU/RAM/DSP復元、ID666とxid6メタデータ
+- [x] AudioWorklet再生、内部32kHzからの出力変換
+- [x] AnalyzerでSPCを開く、再生/停止/再開始、音量・時刻表示
+- [x] 8ボイスのミュートと影響の仕様化
+- [x] エラー、初期化取消、ファイル差し替え、終了処理
 
-snes.noteOn(60, 100);
-snes.noteOff(60);
+再生時間はSPCタグの情報と実際の経過時刻を区別する。
+タグなしの長さは明示した既定値または上限を使い、無限に先読みしない。
+SPCだけでゲーム本体からの追加転送を復元できないケースは対応範囲として記録する。
+
+## Phase 2: BRR抽出・試聴
+
+- [x] 選択した再生時点のRAM/DSPスナップショットから抽出
+- [x] DIRと利用中SRCNを優先し、明示指定のディレクトリー項目にも対応
+- [x] 開始位置、ループ位置、BRR終端、RAM参照、最大ブロック数を検証
+- [x] BRRデコード、波形、単体試聴、BRR/WAVとメタデータの保存
+- [x] 同じSRCNのRAM書き換えを区別できる内容識別子を保持
+
+BRRは音色全体ではない。ループ、ADSR/GAIN、Pitch、Volume等を別に保持する。
+BRRには元の基準音名がないため、C4等の音高は自動的に断定しない。
+WAV単体へ情報を詰め込まず、sidecar JSONまたはcassetteへ関連情報を保存できるようにする。
+無効なディレクトリー項目や終端のないデータで無限に走査しない。
+
+## Phase 3: Playgroundで演奏
+
+- [x] DSP単独インスタンスとBRRメモリー管理
+- [x] useSoundChip / createSoundChipのMain・Worker両経路
+- [x] 固定8チャンネルの発音、停止、音程、ADSR/GAIN等の設定
+- [x] MIDI演奏に必要な基準音程・再生比率を明示するプリセット
+- [x] Mixer、voice ownership、Stop/Run、初期化取消との整合
+- [x] 型定義、Monaco、examples、npm/itch配布依存を更新
+
+DX7/RF5C164の既存経路を参考にする。
+未知チップ向けのFM用解放処理へフォールバックさせず、SNESのKOFFを適用する。
+チップが独立して持つ8ボイスを超える自動スティーリングは今回必須としない。
+
+## Phase 4: DSP解析
+
+- [ ] DSP書き込みの時刻・順序・レジスター・値を記録
+- [x] Capture時点のボイスのPitch、Volume、ADSR/GAIN、SRCN、KON/KOFF等を表示
+  （Captured DSP registers内の構造化JSON。時系列のイベント表示ではない）
+- [ ] Noise、Pitch Modulation、Echo/FIRの状態を表示
+- [ ] 取得件数・保持時間を制限し、解析無効時のコストを抑える
+
+まずは表示・分析用ログとする。DSP書き込みだけを完全な再生ログと呼ばない。
+将来ロスレス再生へ拡張するなら、初期状態、RAM/ディレクトリーの変更と同時刻の順序も保持する。
+ゲーム固有のMML/シーケンス復元や、絶対音名の自動判定は別課題。
+
+## 検証
+
+- ネイティブ版とWASM版の32kHz PCMを同じ初期条件で比較する。
+- 生成分割数を変更してPCMが一致するか確認する。
+- BRR全フィルター、ループ、ADSR/GAIN、Noise、Pitch Modulation、Echo/FIRを確認する。
+- 44.1/48kHz出力、再生・Pause・Stop・再開始、切り替え、終了、複数インスタンスを確認する。
+- Main/Workerの楽器操作と先読み時刻、即時Keyboardとの関係を確認する。
+- UI操作・長時間再生の負荷と音切れを確認し、未検証の実機環境を明記する。
+- 著作権のあるゲームのSPCをテスト配布へ混入させない。自作の合成SPCを基本にする。
+- ゲーム由来SPCによる確認は利用可能なファイルで実施し、ゲーム別の追加ドライバーは作らない。
+- 既存のVGM/S98再生・解析、Playground、型、配布依存の回帰を実行する。
+
+## 調査・実装記録
+
+2026-10-18: レビュー指摘を採用し、段階別の完成条件、CPUとDSP単独の分離、
+時間単位、BRRの基準音程、RAM変更、ミュートと状態復元の注意を追記。Phase 1から実装開始。
+進捗・採用エンジン・制約・検証結果はこの節へ追記する。
+
+
+### 2026-10-18 実装結果
+
+**Phase 1〜3を実装。Phase 4の時系列ログは未実装で、次の段階とする。**
+
+Analyzer:
+
+- `.spc`を通常のファイル入力・プレイリストから開く。Play / Pause / Stop / Replay、seek、Vol、曲送りに対応。
+- 「SPC / BRR」で8ボイスのミュート、RAM/DSPの明示Capture、SRCN指定抽出、波形、試聴、BRR / WAV / JSONの保存。
+- ID666のtext/binaryとxid6を読み、未知フィールド・元バイト列を保持する。
+- 長さとfadeがタグにあれば使用する。タグなしは180秒、UIの上限は3,600秒。末尾停止／曲送りの判定は200msポーリング。
+- フェードは出力GainのAudioParamで予約し、pause／seek後に実際の経過秒から再設定する。
+- stopは元のSPC（echo RAM含む）を再ロード。seekは元から0.5秒以内のnativeブロックで再実行し、途中停止できる。
+- 解析用snapshotはRAM/DSPのコピー。出力位置と生成位置を区別し、リサンプラーの最大4ms程度の先読みとcore内の短いキューを含み得る。
+- BRR試聴は32kHz monoデコード結果。ゲームで鳴った音の完全再現ではなく、Gaussian補間、ADSR/GAIN、echo、元のtuningは適用しない。
+
+Playground:
+
+```javascript
+const snes = await useSoundChip('snes');
+const sample = await snes.loadBRR(await file('/samples/tone.brr', {type:'arrayBuffer'}), {
+  rootNote:'C4', loopStartSamples:0,
+});
+snes.setPreset(0, {sample, adsr1:0x8f, adsr2:0xe0, volumeLeft:90, volumeRight:90});
+snes.noteOn(0, 'E4');
+await beat(1);
+snes.noteOff(0);
 ```
 
-既存の`play()`、`beat()`、`liveLoop()`などとの連携を検討する。
+- `useSoundChip('snes')`はStopまで再利用。`createSoundChip('snes', {id})`は独立RAM/DSP。Main／Worker共通。
+- チャンネルは0〜7固定。`noteOn(channel, note?)` / `keyOn` / `keyOff`、`setFrequency`、`setNote`、raw `setPitch`。
+- BRR登録時は`rootNote`と`baseFrequencyHz`の片方が必須。基準PITCHは`basePitch`（既定4096）。ループ位置は16 native samplesの境界。
+- ADSR/GAINと左右volumeはraw DSP値。secondsやpercentではない。自動スムージングは追加しない。
+- 同native frame内の高水準keyOnをKONマスクへ集約する。DSPのKON取り込みはハードのパイプラインに従う。極小間隔の複数voiceは単一raw KONマスクでまとめられる。
+- DIR用1,024bytesを先頭に確保し、BRRは残りRAMへ追記。最大256サンプル、64KiBを超えたら拒否。unload／compaction／自動voice stealingは未実装。
+- `reset()`は登録済みBRRのIDと内容を維持。echo書き込みは既定で無効。raw DSP編集ではDIR／BRR／echo領域の衝突に利用者が注意する。
+- 32kHz固定で`setClock()`なし。出力はリサンプルし、BPMはbeat待機と演奏命令の予約にのみ影響する。
+- Mixer／FX／Worker lookahead、owner切り替え時のKOFF、Stop時の解放に対応。
+- 自作BRR付き`examples/snes/snes-brr-melody.js`、型、Monaco、README、npm/itch依存を更新。
 
-## 7. 動作検証
+エンジンのローカル変更:
 
-以下を確認する。
+- 上流のKOFF型muteを使わず、dry出力と新しいecho sendだけを抑えるmaskを追加。CPU、envelope、BRR、PMONは進行する。既存echo tailと生成済みキューは残る。
+- mute中は将来のecho RAM内容が変わるため、echo有効時の状態を「無音化しない場合と完全同一」とはしない。
+- 未定義の負数左シフト2箇所を等価なunsigned判定に置換。
+- DIR / SRCNが64KiB境界を越す場合のディレクトリー参照を16bitで折り返し、領域外読み出しを防ぐ。
+- ゼロmuteの4条件で、改変前の固定上流とnative PCMが一致。ラッパーと再ビルド手順、対応する変更済みソースをdocs／npm／itchへ同梱する。
 
-- 複数のゲーム由来のSPCを再生できる
-- ゲーム固有のドライバーを追加実装せずに再生できる
-- BRRのデコード結果が既存の実装と一致する
-- ループ再生が正しく動作する
-- 8ボイスのミュートが機能する
-- Echo/FIRの再現
-- 停止・再起動時にエラーが発生しない
-- 長時間再生で音切れやメモリリークが発生しない
+検証結果:
 
-可能であれば既存のSPCプレイヤーとのPCM出力比較を実施する。
+- core: 10/10成功、nativeとWASMのPCM完全一致。BRR、echo＋PMON、noise、CPU→DSP書込み、1 frameを含む分割、restart、RAM折返し、インスタンス分離。
+- BRRデコーダー: 元のaccurate DSPのデコーダーと20,480 samples一致。全filter／shift、履歴、ランダム列を比較。
+- SPC音声処理: 18/18成功。実ブラウザーはChromium／WebKit × 44.1／48kHzの4条件成功。
+- SNES Worklet＋Worker: 75/75成功。PCM一致、予約境界、owner解除、未来の音のキャンセル、Stopを確認。
+- Playground実ブラウザー: Chromium／WebKit × Main／Workerの4条件成功。実PCM、Mixer、FX、独立インスタンス、reset／Stopを確認。
+- Analyzer実ブラウザー: Chromium／WebKitでSPC再生、全mute、pause／seek／stop、BRR WAV、タグfade、同時loadの旧処理排除、SPC→VGMを確認。
+- 既存全回帰: 1,816件中1,815成功、失敗0。既存の任意`mml2mdr`コンパイラー連携1件のみskip。
+- docs/playground回帰: 556/556成功。Monacoと型のpositive／negativeチェックを実施。
+- npm: buildとtarballの隔離install、実PCM、NodeNext／Bundler／ブラウザー用宣言チェック成功。公開は行わない。
+- itch Playground／Analyzer: 依存チェックとZIP生成を確認。生成したAnalyzer配布配置もChromium／WebKitで再生・fade・BRR保存・SPC→VGMを確認。
 
-比較条件はサンプルレート、ゲイン、補間方式、初期状態を統一すること。
+未確認・残課題:
 
-## 8. 実装上の注意
-
-**最優先は、ゲーム固有対応を増やさないこと。**
-
-SPC700のプログラムをそのまま実行し、S-DSPの共通インターフェースで解析する。
-
-また、次の点に注意する。
-
-- SPCだけではゲーム本体からの追加データ転送を再現できない場合がある。
-- SPC700のRAMは64KBなので、サンプルディレクトリやBRRデータの参照範囲を検証する。
-- DSPレジスタ操作だけでは、すべての音色変化を復元できるとは限らない。
-- DSP内部状態やBRRデコード状態が必要になる場合は、エミュレーター側から取得する。
-- 既存のYM2612/OPNA/OPMなどの動作を壊さない。
-- SNES固有の処理を既存音源の共通APIへ無理に押し込まない。
-- 不明な仕様は推測で実装せず、既存実装や仕様資料を調査する。
-
-## 9. 実装順序
-
-以下の順序で進める。
-
-1. 既存構成の調査と採用エンジンの選定
-2. SPC読み込み・再生
-3. BRRサンプル抽出・試聴
-4. Analyzerへの統合
-5. S-DSPイベント解析
-6. Playgroundの`useSoundChip()`対応
-7. テスト・最適化・ドキュメント更新
-
-各段階で動作確認し、問題があれば修正してから次へ進むこと。
-
----
-
-### 最終目標
-
-**SNESのゲーム固有のサウンドドライバーを解析せずに、SPCファイルから音楽と音色を再生・解析・再利用できる環境を実現する。**
-
-Tetoricaの既存のSoundChipアーキテクチャを維持しながら、SNESのPCM音源をPlaygroundへ統合する。
-
-まずはSPC再生とBRR抽出を確実に動作させ、その後、演奏中の音色変化を解析できるようにする。s
+- 実ゲーム由来SPC、実機比較、Tauriの実アプリ（macOS／Windows／Linux）、長時間の実機音切れ検証は未実施。
+- Nintendo IPL ROMは同梱せず、上流の最小fallbackを使用。完全IPLやゲーム本体から後続転送を必要とするSPCは動かない場合がある。
+- SPCはDSP内部の全位相・BRR履歴を含む完全checkpointではない。ゲームごとの復元直後の音や互換性は別途確認が必要。
+- 出力リサンプラーは線形補間。高品質な変換、完全な途中checkpoint／seek cache、DSP時系列解析、BRRのroot推定、楽譜変換は後続課題。
+- 旧式タグの文字コード・text/binary判定は曖昧な場合がある。ライブラリーの`textEncoding`／`id666Format`指定で上書き可能。Analyzer内の選択UIは未追加。

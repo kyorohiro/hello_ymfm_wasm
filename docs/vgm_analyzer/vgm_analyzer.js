@@ -1,4 +1,5 @@
 import {createAudioPreferences, effectDefaults} from './audio_preferences.js';
+import {mountSpcAnalyzer} from './spc_analyzer.js';
 import {createMixerUi} from './mixer_ui.js';
 import {connectDesktop} from './desktop_interface.js';
 import {exportFmRegisterSnapshot} from './fm_snapshot.js';
@@ -96,7 +97,7 @@ function renderSeekPosition(sample) {
   const position = Math.max(0, Math.min(duration, sample || 0));
   playbackSeek.value = String(position);
   const time = value => {
-    const seconds = Math.floor(value / 44100);
+    const seconds = Math.floor(value / (spcView.active ? 1000 : 44100));
     return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
   };
   playbackSeekTime.textContent = `${time(position)} / ${time(duration)}`;
@@ -108,6 +109,10 @@ function renderSeekPosition(sample) {
 }
 
 function updateSeekPosition() {
+  if (spcView.active) {
+    if (!seekDragging) renderSeekPosition(spcView.state.positionSeconds * 1000);
+    return;
+  }
   if (seekDragging || timelineSeekController) return;
   if (timelineSelectionPending) {
     renderSeekPosition(seekSelection ?? songTimeline.selected());
@@ -251,6 +256,28 @@ let activeStream = null;
 const audioPreferences = createAudioPreferences();
 const effectSettings = audioPreferences.getEffect();
 let effectsChain = null;
+const spcPanel = document.getElementById('spcInfoPanel');
+const spcView = mountSpcAnalyzer({
+  root:spcPanel,
+  getAudioContext() {
+    if (!audioContext || audioContext.state === 'closed') {
+      const Context = window.AudioContext || window.webkitAudioContext;
+      audioContext = new Context();
+    }
+    return audioContext;
+  },
+  getMasterVolume:() => masterVolume,
+  onAudioReady:() => rewireAudioGraph(),
+  onState:state => updatePlaybackButtons(state),
+  onStatus:setStatus,
+  onEnded() {
+    if (loopCheckbox.checked) void spcAction(async () => {await spcView.stop(); await spcView.play();});
+    else {setStatus('SPC playback finished.'); void advancePlaylist();}
+  },
+});
+async function spcAction(fn) {
+  try {await fn();} catch (error) {if (error.name !== 'AbortError') {reportPlaybackError(error); setStatus(`SPC: ${error.message}`);}}
+}
 
 // A short burst of white noise with an exponential decay makes a plausible
 // synthetic room impulse response, so ConvolverNode-based reverb needs no
@@ -405,8 +432,8 @@ function releaseEffectsChain() {
 }
 
 function rewireAudioGraph() {
-  if (!activeStream || !audioContext) return;
-  const node = activeStream.node;
+  const node = spcView.active ? spcView.outputNode : activeStream?.node;
+  if (!node || !audioContext) return;
   node.disconnect();
   if (effectSettings.enabled) {
     const chain = ensureEffectsChain(audioContext);
@@ -643,6 +670,7 @@ function updateMasterVolumeUi() {
 
 function applyMasterVolume() {
   audioPreferences.setMaster(masterVolume);
+  spcView.setMasterVolume(masterVolume);
   engine?.setMasterVolume?.(masterVolume);
   player?.setMasterVolume?.(masterVolume);
 }
@@ -2860,6 +2888,26 @@ function stopActiveStream() {
 }
 
 function updatePlaybackButtons(state = {}) {
+  if (spcView.active) {
+    const info = spcView.state;
+    playButton.disabled = info.playing || info.busy;
+    playButton.textContent = info.busy ? 'Preparing...' : 'Play';
+    pauseButton.disabled = !info.playing || info.busy;
+    stopButton.disabled = !(info.playing || info.paused || info.positionSeconds || info.busy);
+    replayButton.disabled = info.busy;
+    playbackSeek.disabled = info.busy;
+    updateSeekPosition();
+    for (const button of [exportMmlButton, exportMidiButton, exportWavButton, exportSnapshotTfiButton,
+      exportSnapshotVgiButton, exportSnapshotButton, exportAllTfiButton, exportAllVgiButton,
+      exportAllOpmButton, exportOpmButton, exportLilyPondButton, document.getElementById('exportMusicSheetButton')]) button.disabled = true;
+    exportParseInfoButton.disabled = !lastParseInfo;
+    for (const tab of [operatorInfoTab, noteishTab, tfiInfoTab, sheetMusicTab]) tab.disabled = true;
+    document.getElementById('showSheetMusicButton').disabled = true;
+    sampleTab.disabled = false; sampleTab.textContent = 'SPC / BRR'; sampleTab.setAttribute('aria-controls', 'spcInfoPanel');
+    updatePlaylistNavigation();
+    return;
+  }
+  sampleTab.setAttribute('aria-controls', 'sampleExplorerPanel');
   const hasBuffer = Boolean(currentBuffer);
   const opmExport = Boolean(noteishHeader.ym2151Clock & 0x3fffffff) && !(noteishHeader.ym2151Clock & 0x40000000);
   exportMmlButton.textContent = opmExport ? 'MML / MDX' : 'MML';
@@ -3041,6 +3089,7 @@ function downloadParseInfo() {
 }
 
 async function playCurrentVgm(startSample = 0) {
+  if (spcView.active) {await spcAction(() => spcView.play()); return;}
   const revision = playlistRevision;
   if (timelineSeekController) return;
   if (!currentBuffer) {
@@ -3349,6 +3398,9 @@ function startScriptProcessorStream() {
 }
 
 async function handleFile(file, preserveEditor = false) {
+  await spcView.clear();
+  spcPanel.hidden = true;
+  playbackSeek.step = inlinePlaybackSeek.step = '4410';
   sbiInfo.loadVgm(null);
   if (!preserveEditor) commandEditor.load(null);
   msxMutes.clear();
@@ -3390,6 +3442,33 @@ async function handleFile(file, preserveEditor = false) {
   renderChannelMonitor();
   requestNoteishRender();
   renderNoteishGrid();
+
+  if (/\.spc$/i.test(file.name) || new TextDecoder().decode(new Uint8Array(rawBuffer).subarray(0, 26)) === 'SNES-SPC700 Sound File Data') {
+    engine?.dispose?.(); engine = null; player = null; engineClockKey = null; workletModuleReady = false;
+    currentChipKind = 'snes'; noteishHeader = {}; currentHasPcm = false;
+    try {
+      const parsed = await spcView.load(new Uint8Array(rawBuffer), file.name);
+      const info = spcView.state;
+      playbackSeek.max = String(info.durationSeconds * 1000);
+      playbackSeek.step = inlinePlaybackSeek.step = '100';
+      renderSeekPosition(0);
+      headerOutput.textContent = JSON.stringify({format:'SPC', cpu:parsed.cpu, internalSampleRate:32000,
+        durationSeconds:info.durationSeconds, durationSource:parsed.metadata.durationSeconds ? 'SPC tags' : '180-second default', warnings:parsed.warnings}, null, 2);
+      metadataOutput.replaceChildren();
+      for (const [key, value] of Object.entries(parsed.metadata)) {
+        const term = document.createElement('dt'), item = document.createElement('dd'); term.textContent = key; item.textContent = String(value); metadataOutput.append(term, item);
+      }
+      if (!metadataOutput.childElementCount) metadataOutput.textContent = 'No SPC metadata available.';
+      detectedChipsOutput.hidden = false; detectedChipsOutput.textContent = 'SNES SPC700 + S-DSP · 8 voices · 32,000 Hz';
+      for (const output of [commandUsageOutput, dataBlocksOutput, specialCommandsOutput, pcmRamWriteOutput, command92ContextOutput]) output.textContent = 'SPC CPU playback; VGM command analysis is not applicable.';
+      lastParseInfo = {type:'tetorica-spc-info', sourceFile:file.name, metadata:parsed.metadata, cpu:parsed.cpu, warnings:parsed.warnings};
+      tfiInfo.loadVgm(null); opmInfo.loadVgm(null);
+      monitorToggles.replaceChildren(); inlineMonitorToggles.replaceChildren();
+      updatePlaybackButtons(); setOutputTab(selectedOutputTab());
+      setStatus(`Loaded ${file.name} (SPC). Open SPC / BRR for samples and voice controls.`);
+    } catch (error) {await spcView.clear(); updatePlaybackButtons(); reportPlaybackError(error); setStatus(`SPC: ${error.message}`);}
+    return;
+  }
 
   let buffer;
   let sourceHeader = null;
@@ -3590,7 +3669,7 @@ async function loadPlaylistTrack(index, autoplay, revision) {
   playlistIndex = index;
   renderPlaylist();
   await handleFile(playlistFiles[index]);
-  if (autoplay && currentBuffer && revision === playlistRevision) await playCurrentVgm();
+  if (autoplay && (currentBuffer || spcView.active) && revision === playlistRevision) await playCurrentVgm();
 }
 
 function selectPlaylistTrack(index, autoplay) {
@@ -3636,7 +3715,7 @@ for (const [button, direction] of [[playlistPrevButton, -1], [playlistNextButton
 playlistLoopCheckbox.addEventListener('change', updatePlaylistNavigation);
 
 function importPlaylistFiles(files) {
-  const tracks = Array.from(files).filter(file => /\.(vgm|vgz|s98)$/i.test(file.name));
+  const tracks = Array.from(files).filter(file => /\.(vgm|vgz|s98|spc)$/i.test(file.name));
   const revision = tracks.length ? ++playlistRevision : playlistRevision;
   if (tracks.length) {
     stopActiveStream();
@@ -3655,12 +3734,12 @@ function importPlaylistFiles(files) {
         await handleYmf278bRomFile(file);
       } else if (/\.bin$/i.test(file.name)) {
         await handleYm2608RomFile(file);
-      } else if (!/\.(vgm|vgz|s98)$/i.test(file.name)) {
+      } else if (!/\.(vgm|vgz|s98|spc)$/i.test(file.name)) {
         rejected.push(file.name);
       }
     }
     if (tracks.length) await loadPlaylistTrack(0, false, revision);
-    if (rejected.length) setStatus(`Unsupported files: ${rejected.join(", ")}. Import VGM, VGZ, S98 yrw801.rom or a YM2608 ROM .bin file.`);
+    if (rejected.length) setStatus(`Unsupported files: ${rejected.join(", ")}. Import VGM, VGZ, S98, SPC, yrw801.rom or a YM2608 ROM .bin file.`);
   });
 }
 
@@ -3747,6 +3826,7 @@ playbackSeek.addEventListener("input", () => {
   renderSeekPosition(Number(playbackSeek.value));
 });
 playbackSeek.addEventListener("change", async () => {
+  if (spcView.active) {seekDragging = false; await spcAction(() => spcView.seek(Number(playbackSeek.value) / 1000)); return;}
   const sample = Number(playbackSeek.value);
   const wasPlaying = player?.isPlaying();
   seekDragging = false;
@@ -3766,6 +3846,7 @@ playButton.addEventListener("click", async () => {
 });
 
 pauseButton.addEventListener("click", async () => {
+  if (spcView.active) {await spcAction(() => spcView.pause()); setStatus('SPC paused.'); return;}
   if (!player) {
     return;
   }
@@ -3778,6 +3859,7 @@ pauseButton.addEventListener("click", async () => {
 
 
 replayButton.addEventListener("click", async () => {
+  if (spcView.active) {await spcAction(async () => {await spcView.stop(); await spcView.play();}); return;}
   if (!currentBuffer) {
     return;
   }
@@ -3786,6 +3868,7 @@ replayButton.addEventListener("click", async () => {
 
 stopButton.addEventListener("click", () => {
   playlistRevision += 1;
+  if (spcView.active) {void spcAction(() => spcView.stop()); setStatus('SPC stopped.'); return;}
   timelineSeekController?.abort();
   resetTimelineToStart();
   stopActiveStream();
@@ -3912,7 +3995,7 @@ const sbiInfo = mountSbiInfo({root:document.getElementById('sbiInfoPanel'),onSta
 const tfiInfo = mountTfiInfo({ root: document.getElementById('tfiInfoPanel'), onStatus: setStatus,
 });
 tfiInfoTab.addEventListener('click', () => setOutputTab('tfi-info'));
-window.addEventListener('pagehide', event => { if (!event.persisted) { void tfiInfo.dispose(); void opmInfo.dispose(); void sbiInfo.dispose(); } });
+window.addEventListener('pagehide', event => { if (!event.persisted) { void tfiInfo.dispose(); void opmInfo.dispose(); void sbiInfo.dispose(); void spcView.dispose(); } });
 
 function selectedOutputTab() {
   for (const [tab, name] of [
@@ -3926,6 +4009,7 @@ function selectedOutputTab() {
 }
 
 function setOutputTab(tabName) {
+  if (spcView.active && !['parsed-output', 'samples'].includes(tabName)) tabName = 'parsed-output';
   const sbi = ['ym3526','ym3812','y8950','ymf262','ymf278b'].includes(currentChipKind);
   if (!(sbi && tabName === 'tfi-info' && currentBuffer && !(noteishHeader[currentChipKind+'Clock'] & 0xc0000000)) && !((["ymf278b","gameboy"].includes(currentChipKind) || (["segapcm", "ym2151", "okim6258"].includes(currentChipKind) && (noteishHeader.segaPcmClock || noteishHeader.okim6258Clock))) && tabName === "samples") && !(tabName === "sheet-music" && currentBuffer && (midiExportAvailable || (currentChipKind === 'ymf262' && !(noteishHeader.ymf262Clock & 0xc0000000)))) && ((["mixed", "okim6295", "okim6258", "segapcm"].includes(currentChipKind) && tabName !== "parsed-output") || (["msx","huc6280","gameboy","nes","ymf278b","ymf262"].includes(currentChipKind) && !["parsed-output", "noteish"].includes(tabName)) || (currentChipKind === "ay8910" && !["operator-info", "parsed-output", "noteish"].includes(tabName)) || ((currentChipKind === "ym2413" || isOpl(currentChipKind)) && !["operator-info", "parsed-output", "noteish"].includes(tabName)) || (currentChipKind === "ym2151" && !["operator-info", "parsed-output", "noteish", "tfi-info"].includes(tabName)))) {
     setStatus('Analysis and instrument editing: Support coming soon.');
@@ -3941,7 +4025,9 @@ function setOutputTab(tabName) {
   tfiInfoTab.setAttribute("aria-controls", sbi ? 'sbiInfoPanel' : currentChipKind === "ym2151" ? "opmInfoPanel" : "tfiInfoPanel");
   tfiInfoTab.setAttribute("aria-selected", String(tabName === "tfi-info"));
   tfiInfoTab.tabIndex = tabName === "tfi-info" ? 0 : -1;
-  samplePanel.hidden = tabName !== 'samples';
+  samplePanel.hidden = tabName !== 'samples' || spcView.active;
+  spcPanel.hidden = tabName !== 'samples' || !spcView.active;
+  spcView.setVisible(tabName === 'samples' && spcView.active);
   sampleTab.setAttribute('aria-selected', String(tabName === 'samples'));
   sampleTab.tabIndex = tabName === 'samples' ? 0 : -1;
   if (tabName !== 'samples') sampleExplorer.stop();

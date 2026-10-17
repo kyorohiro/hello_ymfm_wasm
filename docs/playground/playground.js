@@ -73,7 +73,7 @@ import { exportYm2608VgmToPlaygroundJavaScript } from "../js/ym2608vgm.js";
 import { exportYm2610BVgmToPlaygroundJavaScript } from "../js/ym2610bvgm.js";
 import {
   createPlaygroundRuntime,
-} from "../js/playground_runtime.js?v=worker-lookahead-500-1";
+} from "../js/playground_runtime.js?v=snes-spc-1";
 import {DEFAULT_WORKER_LOOKAHEAD_SECONDS} from '../js/playground_performance_sender.js?v=worker-lookahead-500-1';
 import { createVgmPresetFiles } from "./playground_vgm_presets.js";
 import { createTfiFileEditor, instrumentToEditorPreset } from "./playground_tfi_editor.js?v=chip-tabs-2";

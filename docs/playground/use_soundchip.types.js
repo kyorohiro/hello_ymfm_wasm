@@ -121,3 +121,30 @@ dx7.setClock(4000000);
 dx7.render(128);
 // @ts-expect-error SysEx must be binary, not the default text file result.
 await dx7.loadSysex(await file('/presets/my-bank.syx'));
+
+const snes = await useSoundChip('snes');
+const brr = new Uint8Array([3,0,0,0,0,0,0,0,0]);
+const snesSample = await snes.loadBRR(brr, {baseFrequencyHz:2000, loopStartSamples:0});
+snes.setPreset(0, {sample:snesSample, adsr1:0x8f, volumeLeft:90});
+snes.noteOn(0, 'C4');
+snes.noteOn(7);
+snes.setFrequency(0, 440);
+snes.setNote(0, 69);
+snes.setPitch(0, 4096);
+snes.noteOff(0);
+(await snes.getPreset(0)).pitch.toFixed();
+(await snes.getState()).nextAddress.toFixed();
+(await snes.snapshot()).ram.byteLength.toFixed();
+await mixer.set(snes.id, {volume:0.5});
+(await pg.createSoundChip('snes', {id:'snes-bass'})).allNotesOff();
+await snes.loadBRR(brr, {rootNote:'C4', basePitch:4096, loopStartSamples:0});
+// @ts-expect-error Explicit tuning is required.
+await snes.loadBRR(brr, {loopStartSamples:0});
+// @ts-expect-error Choose exactly one tuning basis.
+await snes.loadBRR(brr, {rootNote:'C4', baseFrequencyHz:440});
+// @ts-expect-error Eight physical voices, numbered 0..7.
+snes.noteOn(8, 'C4');
+// @ts-expect-error S-DSP has no variable chip clock in this API.
+snes.setClock(1024000);
+// @ts-expect-error Velocity is not a third noteOn argument on this chip.
+snes.noteOn(0, 'C4', 100);

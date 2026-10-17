@@ -1,6 +1,6 @@
 import {ChipClockResampler, CHIP_CLOCKS} from './playground_chip_clock.js';
 import {NesApu} from './nesapu.js';
-import {createProcessorPerformance} from './playground_performance_processor.js';
+import {createProcessorPerformance} from './playground_performance_processor.js?v=snes-spc-1';
 class Processor extends AudioWorkletProcessor {
   constructor(options) {
     super(); this.dead = false;

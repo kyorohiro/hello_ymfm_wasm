@@ -20,13 +20,14 @@ test('TFI selection, edit download, independent audition volume, and tab visibil
   const visibility = [];
   let volume;
   let blob;
+  let extractionCalls = 0;
   const source = readFileSync(new URL('./tfi_info.js', import.meta.url), 'utf8')
     .replace(/^import .*;\n/gm, '').replace('export function', 'function');
   const context = vm.createContext({isOpl,
     document: { createElement: element },
     Blob: class { constructor(parts) { blob = parts[0]; } },
     URL: { createObjectURL: () => 'blob:test', revokeObjectURL() {} }, setTimeout() {},
-    createVgmPresetFiles: () => [{ path: '/presets/song/ch1.tfi', data: new Uint8Array([1]) }],
+    createVgmPresetFiles: () => { extractionCalls++; return [{ path: '/presets/song/ch1.tfi', data: new Uint8Array([1]) }]; },
     createTfiFileEditor(options) {
       editorOptions = options;
       return { open: (...args) => opened.push(args), setVisible: value => visibility.push(value),
@@ -35,7 +36,7 @@ test('TFI selection, edit download, independent audition volume, and tab visibil
   });
   vm.runInContext(source, context);
   const info = context.mountTfiInfo({ root, onStatus() {} });
-  info.loadVgm(null, 'song.vgm');
+  info.loadVgm(new Uint8Array([1]), 'song.vgm');
   const select = root.querySelector('select');
   assert.equal(select.children[1].textContent, 'song/ch1.tfi');
   info.setVisible(true);
@@ -55,6 +56,7 @@ test('TFI selection, edit download, independent audition volume, and tab visibil
   info.setVisible(false);
   assert.equal(visibility.at(-1), false);
   info.loadVgm(null, 'next.vgm');
+  assert.equal(extractionCalls, 1, 'clearing the source must not parse a null VGM');
   assert.equal(root.querySelector('button').disabled, true);
 });
 
@@ -83,6 +85,7 @@ test('TFI tab switching and first audition leave VGM playback running', () => {
     player: { isPlaying: () => true, pause: () => stopped++, stop: () => stopped++ },
     pauseButton: { click: () => stopped++ },
     samplePanel: element(), sampleTab: element(), sampleExplorer: { stop() {} },
+    spcPanel: element(), spcView: {active:false,setVisible(){}},
     operatorInfoTab: element(), parsedOutputTab: element(), noteishTab: element(),
     operatorInfoPanel: element(), parsedOutputPanel: element(), noteishPanel: element(),
     songTimeline: { active() {} }, noteishViewMode: 'song',

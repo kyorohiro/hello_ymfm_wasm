@@ -85,7 +85,7 @@ export function mountTfiInfo({ root, onStatus }) {
   });
   return {
     loadVgm(buffer, name) {
-      const extracted = createVgmPresetFiles(buffer, name);
+      const extracted = buffer ? createVgmPresetFiles(buffer, name) : [];
       editor.setVisible(false);
       selected = null; files.clear();
       select.replaceChildren();

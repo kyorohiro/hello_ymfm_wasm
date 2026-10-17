@@ -1,6 +1,6 @@
 import {receiveChipInspector, readPwmInspector} from './playground_chip_inspector_state.js?v=chip-tabs-2';
 import {PWM32XPlayback, PWM_METHODS} from './pwm32x_playback.js';
-import {createProcessorPerformance} from './playground_performance_processor.js';
+import {createProcessorPerformance} from './playground_performance_processor.js?v=snes-spc-1';
 import {validateChipClock} from './playground_chip_clock.js';
 
 class PWMProcessor extends AudioWorkletProcessor {

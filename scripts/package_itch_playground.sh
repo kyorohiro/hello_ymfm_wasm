@@ -70,6 +70,15 @@ tetorica-playground-ym2612.d.ts
 "
 
 RUNTIME_FILES="
+spc.js
+spc_file.js
+snes_brr.js
+wav.js
+spc_resampler.js
+snessynth.js
+playground_snes.js
+playground_snes_audio.js
+playground_snes_worklet.js
 soundchip_mixer.js
 playground_chip_inspector.js
 playground_chip_inspector_state.js
@@ -203,6 +212,8 @@ synth_keyboard.js
 "
 
 GENERATED_FILES="
+spc_wasm.js
+spc_wasm.wasm
 ym2151_wasm.js
 ym2151_wasm.wasm
 gameboy_apu_wasm.js
@@ -362,7 +373,9 @@ for file in ${NUKED_LICENSE_FILES}; do
   cp "${NUKED_LICENSE_DIR}/${file}" "${STAGE_DIR}/licenses/nuked-opn2/${file}"
 done
 
+node "${ROOT_DIR}/scripts/copy_spc_sources.mjs" "${STAGE_DIR}"
 cat > "${STAGE_DIR}/THIRD_PARTY_LICENSES.txt" <<EOF
+SNES S-DSP: snes_spc, LGPL-2.1-or-later. See licenses/snes-spc and sources/SNES-SPC.md for source and rebuilding.
 JavaScript import parser: es-module-lexer 3.0.3, MIT. See vendor/es-module-lexer-LICENSE.
 
 Browser Git: isomorphic-git and bundled dependencies. See js/tetorica_virtual_files/GIT_LICENSES.txt.

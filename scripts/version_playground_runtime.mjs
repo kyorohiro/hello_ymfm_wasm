@@ -7,8 +7,10 @@ import {join} from 'node:path';
 const directory=fileURLToPath(new URL('../docs/js/',import.meta.url));
 const version='chip-tabs-2';
 const revisions={
-  'playground_runtime.js':'worker-lookahead-500-1',
-  'playground_performance_sender.js':'worker-lookahead-500-1',
+  'playground_runtime.js':'snes-spc-1',
+  'playground_logic_worker.js':'snes-spc-1',
+  'playground_performance_sender.js':'snes-spc-1',
+  'playground_performance_processor.js':'snes-spc-1',
 };
 const targets=[
   'soundchip_mixer.js','megasynth.js','playground_runtime.js','playground_logic_worker.js','playground_performance_sender.js',
@@ -18,7 +20,9 @@ const targets=[
   'tetorica_synth.js','tetorica_audio_runtime.js','opn_runtime_synth.js',
   'ym2203synth.js','ym2608synth.js','ym2610bsynth.js',
   'playground_segapsg_audio.js','playground_rf5c164_audio.js','playground_pwm_audio.js',
-  'soundchip_worklet.js',
+  'soundchip_worklet.js','playground_performance_processor.js',
+  'spc.js','spc_audio.js','spc-worklet.js','spc_resampler.js','spc_file.js','snes_brr.js',
+  'snessynth.js','playground_snes.js','playground_snes_audio.js','playground_snes_worklet.js',
 ];
 const filenames=targets.map(name=>name.replaceAll('.', '\\.')).join('|');
 // Include bare sibling worklet filenames as well as relative module imports and

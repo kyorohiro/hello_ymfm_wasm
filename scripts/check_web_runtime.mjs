@@ -60,4 +60,26 @@ if (manifest.additionalInstruments?.includes('dx7')) {
   } finally { for (const synth of synths) synth.dispose(); }
   console.log('Staged DX7 verified: vendored modules, Apache notices and audible PCM at 44100/48000 Hz.');
 }
+if (manifest.additionalInstruments?.includes('snes')) {
+  const {SnesDspCore} = await import(pathToFileURL(join(dir,'spc.js')));
+  const {SnesSynth} = await import(pathToFileURL(join(dir,'snessynth.js')));
+  const {default:moduleFactory} = await import(pathToFileURL(join(root,'generated/spc_wasm.js')));
+  const core = await SnesDspCore.create({moduleFactory, moduleOptions:{wasmBinary:readFileSync(join(root,'generated/spc_wasm.wasm'))}});
+  assert.match(readFileSync(join(root,'licenses/snes-spc/LICENSE'),'utf8'), /LESSER GENERAL PUBLIC LICENSE/);
+  assert.match(readFileSync(join(root,'sources/wasm/spc_wasm.cpp'),'utf8'), /SPC_DSP/);
+  assert.match(readFileSync(join(root,'sources/scripts/build_spc_wasm.sh'),'utf8'), /em\+\+/);
+  assert.match(readFileSync(join(root,'sources/third_party/snes-spc/README.md'),'utf8'), /ec8ee2bbe30451614c1d02a83f7af1c97d497d45/);
+  const synth = new SnesSynth({core});
+  try {
+    const sample=synth.loadBRR(new Uint8Array([0xc3,0x13,0x57,0x75,0x31,0xfd,0xb9,0x9b,0xdf]),{baseFrequencyHz:2000,loopStartSamples:0});
+    synth.setPreset(0,{sample,gain:127}); synth.noteOn(0,'C4');
+    const left=new Float32Array(4096),right=new Float32Array(4096);
+    synth.renderInto(left,right);
+    assert.ok(left.every(Number.isFinite)&&right.every(Number.isFinite));
+    assert.ok(left.some(value=>Math.abs(value)>.001),'Packaged SNES DSP must produce audible PCM');
+    assert.equal(synth.snapshot().ram.length,65536);
+    assert.equal(core.sampleRate,32000);
+  } finally {synth.dispose();}
+  console.log('Staged SNES verified: original BRR produces 32kHz stereo PCM; LGPL notices and corresponding source included.');
+}
 console.log(`Staged runtime verified: ${yamaha.length} chip renderers; all ${manifest.chips.length} WASM engines loaded.`);

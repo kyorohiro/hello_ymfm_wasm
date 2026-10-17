@@ -6,6 +6,8 @@ import {createPerformanceQueue} from './playground_performance_queue.js';
  */
 export function identifyPerformanceNote(chip,{method,type,args=[] ,register,value}) {
   if(['reset','allNotesOff','panic'].includes(method))return {allOff:true};
+  if(chip==='snes'&&['noteOn','keyOn','noteOff','keyOff'].includes(method))return {key:args[0],on:method==='noteOn'||method==='keyOn'};
+  if(chip==='snes'&&method==='writeDsp'&&[0x4c,0x5c].includes(args[0]))return {events:Array.from({length:8},(_,key)=>key).filter(key=>args[1]&(1<<key)).map(key=>({key,on:args[0]===0x4c}))};
   if(chip==='dx7'&&(method==='noteOn'||method==='noteOff'))return {key:args[0],on:method==='noteOn'&&(args[1]??100)>0};
   if(chip==='rf5c164'&&(method==='keyOn'||method==='keyOff'))return {key:args[0],on:method==='keyOn'};
   if(chip==='nes'&&method==='setChannelEnabled')return {key:args[0],on:args[1]};
@@ -28,6 +30,7 @@ export function identifyPerformanceNote(chip,{method,type,args=[] ,register,valu
 }
 export function performanceNoteRelease(chip,key) {
   if(chip==='dx7')return {method:'noteOff',args:[key]};
+  if(chip==='snes')return {method:'keyOff',args:[key]};
   if(chip==='rf5c164')return {method:'keyOff',args:[key]};
   if(chip==='nes')return key===5?{method:'writeRegister',args:[0x4083,128]}:{method:'setChannelEnabled',args:[key,false]};
   if(chip==='gameboy')return {method:'writeRegister',args:[[2,7,10,17][key],0]};
@@ -43,6 +46,13 @@ export function createProcessorPerformance({apply,prepare,validate,onDiscard,chi
     const event=identifyPerformanceNote(typeof chip==='function'?chip():chip,command);
     if(!event)return true;
     if(event.allOff){owners.clear();return true;}
+    if(event.events){
+      if(event.events.some(event=>!event.on&&metadata&&owners.has(event.key)&&owners.get(event.key).owner!==metadata.owner))return false;
+      for(const entry of event.events){
+        if(entry.on)owners.set(entry.key,{owner:metadata?.owner??null,port});else owners.delete(entry.key);
+      }
+      return true;
+    }
     const previous=owners.get(event.key);
     if(!event.on&&metadata&&previous&&previous.owner!==metadata.owner)return false;
     if(event.on)owners.set(event.key,{owner:metadata?.owner??null,port});else owners.delete(event.key);

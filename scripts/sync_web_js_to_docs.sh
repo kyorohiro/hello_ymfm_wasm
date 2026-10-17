@@ -10,6 +10,16 @@ DOCS_JS_DIR="${ROOT_DIR}/docs/js"
 # between `web/` and `docs/js/`.
 #
 SYNC_FILES="
+spc.js
+spc_file.js
+snes_brr.js
+spc_audio.js
+spc-worklet.js
+spc_resampler.js
+snessynth.js
+playground_snes.js
+playground_snes_audio.js
+playground_snes_worklet.js
 soundchip_mixer.js
 playground_chip_inspector.js
 playground_chip_inspector_state.js
@@ -264,4 +274,8 @@ cp "${WEB_DIR}/msfa_dx7/vendor/msfa/COPYING" "${WEB_DIR}/msfa_dx7/vendor/msfa/UP
   "${ROOT_DIR}/docs/licenses/tetorica-msfa-dx7-wasm/"
 
 # Cache identities belong to the website build; keep Node/package constructor identities unchanged.
+perl -0pi -e 's#\./generated/spc_wasm#../generated/spc_wasm#g' \
+  "${DOCS_JS_DIR}/spc-worklet.js" "${DOCS_JS_DIR}/spc_audio.js" \
+  "${DOCS_JS_DIR}/playground_snes_worklet.js" "${DOCS_JS_DIR}/playground_snes_audio.js"
+node "${ROOT_DIR}/scripts/copy_spc_sources.mjs" "${ROOT_DIR}/docs"
 node "${ROOT_DIR}/scripts/version_playground_runtime.mjs"

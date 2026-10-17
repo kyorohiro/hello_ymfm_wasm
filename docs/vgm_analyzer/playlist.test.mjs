@@ -21,7 +21,7 @@ function setup(load = async () => true, desktopHost = {}) {
     console, playlistList: list, playlistSummary: element(), fileInput: input,
     playlistLoopCheckbox: Object.assign(element(), { checked: false }), playlistLoopControl: element(),
     playlistPrevButton: element(), playlistNextButton: element(), wavExportBusy: false,
-    document: { createElement: element }, currentBuffer: null,
+    document: { createElement: element }, currentBuffer: null, spcView:{active:false},
     player: { pause() {} }, timelineSeekController: null,
     stopActiveStream() {}, setStatus: text => calls.push(['status', text]),
     handleYmf278bRomFile: async file => calls.push(['wave-rom', file.name]),
