@@ -165,6 +165,8 @@ Playground:
 - Timelineの1行は`clock, kind, address, value`の4整数。kindは0=DSPレジスター、1=RAM。clockは1,024,000Hzの**DSPが実際に観測した実行順序**を保存し、CPU命令の生時刻ではない。32 clocksがnative 32kHzの1frame。出力sampleRate・44,100HzのVGM sample単位・BPMから独立する。同一clockの行の順序も維持する。
 - `snes.prepareTimeline(trace)`で初期状態とイベントを準備し、`await snes.playTimeline()`は実際の音声終了まで待機する。`stopTimeline()`／toolbar Stop／破棄／loop owner解除は待機をAbortErrorで中断する。Worker先読みは開始に一度だけ適用する。Timeline中は通常音色編集との混在を拒否し、`reset()`でBRR演奏へ戻る。再生中のJSによる逐次イベント送信を避け、WASM内でサンプル未満の時刻も処理する。
 - 上流のDSP catch-upと再生中のBRR RAM書き換えにより、元のSPCエンジン自体にrender分割依存がある。通常プレイヤーと同じ128 native frames単位で録音し、端数は完全な128-frame読み込みのprefixを切り出す。録音有無で元PCMを変更しない。書き出したTimelineの再生はrender分割に依存しない。実機の完全再現や任意の他プレイヤーとの完全一致を保証するものではない。
+- Song JavaScriptのRAM削減: 同じ128-frame実行を2回行う。1回目はDSPが実際に読む全RAMアドレス（BRR・ディレクトリー・echo、16bit読み出しの両byte・折り返し・無音Voiceも含む）の集合を調べ、2回目はその集合にあるRAM変更だけをイベント上限の判定前に記録する。CPUの実行自体は変えず、DSPレジスター書き込みは全部残す。元の区間で未読の作業用RAM変更がイベント上限を消費しなくなる。進捗はAnalyzing／Recordingを分ける。
+- 削減後のDSP／RAM件数と参照RAMアドレス数は`sourceinfo.json`の`conversion.optimization`に記録し、取り込み完了statusと生成JS冒頭にも件数を表示する。各イベントには秒数とDSPパラメーター名を添える。保証は元の区間の再現であり、編集によって未読領域へDIR／SRCN／PITCH／echo等の参照先を変える場合、そこへ元CPUが行った省略済み更新は含まれない。曲によって削減量は異なり、元から必要なDSP操作が多い場合の100万件上限は残る。
 
 ```javascript
 const snes = await useSoundChip('snes');
@@ -198,6 +200,7 @@ snes.noteOff(0);
 
 検証結果:
 
+- RAM削減追加（2026-10-18）: native／trace38件と生成／capture／統合18件が成功。検証曲では194→5イベント（DSP4＋RAM1、97.4%削減）となり、原本・旧JS・削減後JSのPCMが左右全sample一致。BRR／DIR変更、echo、noise、PMON、RAM折返し、無音Voice、インスタンス分離、上限判定前の除去、両passでのCancelも確認。docs／itch配布配置のChromium／WebKit × Main／Worker、Monaco型診断0、Stop後peak 0、既存Analyzerの両ブラウザ回帰、SDKビルド／224宣言生成と型チェックが成功。実ゲームSPC・Tauri実アプリは未確認。削減率は曲に依存する。
 - Song JavaScript追加（2026-10-18）: 変換・capture・生成コード33件、関連runtime／SPC／既存chip予約148件が成功。初期RAM・書き出しJS・binaryの再読込を含む元SPCとのPCM完全一致、128-frame端数切出し、32／44.1／48kHzのWorklet再生、Stop／owner解除、100万件上限とCancelを確認。docsとitch配布配置をChromium／WebKit × Main／Workerで実行し、全モードの出音・Stop後peak 0・Monaco型診断0・原本保持・取り込み先衝突回避が成功。既存Analyzerの両ブラウザ回帰、WASM再ビルド、SDKビルド／224宣言生成、型チェックも成功。実ゲームSPC・Tauri実アプリは未確認。
 - SPC Import追加（2026-10-18）: 生成・SPC client・Main管理52件、関連回帰57件、型チェックが成功。itch Playground配布配置をChromium／WebKit × Main／Workerで確認し、Songの連続Run、捕捉Voice／未参照BRRの試奏、Stop後の無音、Cancel時の無変更、取り込み先の衝突回避、原本SPCの完全保持を検証。既存AnalyzerのChromium／WebKit回帰も成功。使用データは自作の合成SPCで、実ゲームSPCとTauri実アプリは今回未確認。
 - core: 10/10成功、nativeとWASMのPCM完全一致。BRR、echo＋PMON、noise、CPU→DSP書込み、1 frameを含む分割、restart、RAM折返し、インスタンス分離。

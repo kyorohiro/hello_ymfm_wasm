@@ -6,8 +6,9 @@ export {SPC_TRACE_MAX_EVENTS};
 /** Execute a bounded SPC interval offline. Events retain the native DSP clock;
  * no AudioContext, BPM, output sample-rate conversion or audio playback is used.
  * @param {ArrayBuffer|ArrayBufferView} bytes
- * @param {{durationSeconds:number,moduleFactory:Function,moduleOptions?:object,
- * signal?:AbortSignal,onProgress?:(progress:{renderedSeconds:number,durationSeconds:number,ratio:number})=>void,
+ * @param {{durationSeconds:number,moduleFactory:import('./spc.js').SpcCoreOptions['moduleFactory'],
+ * moduleOptions?:import('./spc.js').SpcCoreOptions['moduleOptions'],
+ * signal?:AbortSignal,onProgress?:(progress:{stage:'analyze'|'record',renderedSeconds:number,durationSeconds:number,ratio:number})=>void,
  * maxEvents?:number}} options
  */
 export async function captureSpcTrace(bytes, {durationSeconds, moduleFactory, moduleOptions,
@@ -23,19 +24,33 @@ export async function captureSpcTrace(bytes, {durationSeconds, moduleFactory, mo
   try {
     signal?.throwIfAborted();
     core.load(bytes);
-    core.beginTrace({maxEvents});
     const frames = Math.round(durationSeconds * 32000);
     // Match file playback's native fetch size. The upstream core defers DSP
     // catch-up: CPU writes into live BRR RAM can depend on that fetch boundary.
     const blockFrames = 128, left = new Float32Array(blockFrames), right = new Float32Array(blockFrames);
-    for (let rendered = 0, blocks = 0; rendered < frames;) {
-      signal?.throwIfAborted();
-      core.renderInto(left, right, blockFrames); rendered += blockFrames;
-      if (++blocks % 128 === 0 || rendered >= frames) {
-        onProgress?.({renderedSeconds:Math.min(rendered, frames) / 32000, durationSeconds:frames / 32000, ratio:Math.min(rendered / frames, 1)});
-        await new Promise(resolve => setTimeout(resolve, 0));
+    /** @param {'analyze'|'record'} stage @param {number} pass */
+    async function renderPass(stage, pass) {
+      for (let rendered = 0, blocks = 0; rendered < frames;) {
+        signal?.throwIfAborted();
+        core.renderInto(left, right, blockFrames); rendered += blockFrames;
+        if (++blocks % 128 === 0 || rendered >= frames) {
+          onProgress?.({stage, renderedSeconds:Math.min(rendered, frames) / 32000, durationSeconds:frames / 32000,
+            ratio:(pass + Math.min(rendered / frames, 1)) / 2});
+          await new Promise(resolve => setTimeout(resolve, 0));
+        }
       }
     }
+    // Discover every address the original DSP actually reads, including sample
+    // directories, BRR and echo. The CPU still runs unmodified in both passes.
+    // Recording the second pass with this conservative union avoids filling the
+    // event limit with CPU work RAM which the DSP never observes.
+    core.beginRamReadTracking();
+    await renderPass('analyze', 0);
+    signal?.throwIfAborted();
+    const ramReadMask = core.endRamReadTracking();
+    core.restart();
+    core.beginTrace({maxEvents, ramReadMask});
+    await renderPass('record', 1);
     signal?.throwIfAborted();
     const trace = core.endTrace();
     trace.durationClocks = frames * 32;
@@ -44,6 +59,9 @@ export async function captureSpcTrace(bytes, {durationSeconds, moduleFactory, mo
     let words = trace.events.length;
     while (words && trace.events[words - 4] > trace.durationClocks) words -= 4;
     if (words !== trace.events.length) trace.events = trace.events.slice(0, words);
-    return trace;
+    let dspEvents = 0, ramEvents = 0, ramReadAddresses = 0;
+    for (const read of ramReadMask) if (read) ramReadAddresses++;
+    for (let i = 1; i < trace.events.length; i += 4) {if (trace.events[i] === 0) dspEvents++; else ramEvents++;}
+    return {...trace, optimization:{kind:'dsp-ram-read-set', ramReadAddresses, dspEvents, ramEvents}};
   } finally {core.dispose();}
 }

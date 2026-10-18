@@ -54,6 +54,10 @@ public:
 	// Tetorica output-only control: no repeated KOFF; old echo tails remain.
 	void set_output_mute_mask( int mask ) { output_mute_mask_ = mask & 0xff; }
 
+	// Offline discovery only: mark every physical RAM byte the DSP reads.
+	// The caller owns this optional 64 KiB byte mask; normal playback leaves it null.
+	void set_tetorica_ram_read_mask( unsigned char* mask ) { ram_read_mask_ = mask; }
+
 // State
 	
 	// Resets DSP and uses supplied values to initialize registers
@@ -124,6 +128,16 @@ public:
 	};
 private:
 	int output_mute_mask_;
+	unsigned char* ram_read_mask_ = 0;
+	void trace_ram_read( int address ) {
+		if ( ram_read_mask_ ) ram_read_mask_ [address & 0xFFFF] = 1;
+	}
+	void trace_ram_word( int address ) {
+		if ( ram_read_mask_ ) {
+			ram_read_mask_ [address & 0xFFFF] = 1;
+			ram_read_mask_ [(address + 1) & 0xFFFF] = 1;
+		}
+	}
 	enum { brr_block_size = 9 };
 	
 	struct state_t

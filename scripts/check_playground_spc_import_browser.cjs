@@ -46,6 +46,7 @@ function fixtureWithTimedWrites(bytes) {
   const delay = () => {
     code.push(0xcd,160); // MOV X,#160.
     const outer = code.length;
+    code.push(0xab,0x30); // INC $30: CPU bookkeeping that the DSP never reads.
     code.push(0x8d,255,0xfe,0xfe,0x1d,0xd0,0); // MOV Y,#255; DBNZ Y,-2; DEC X; BNE outer.
     code[code.length - 1] = (outer - code.length) & 255;
   };
@@ -290,11 +291,28 @@ async function checkBrowser(name,type,url,fixture) {
     const recorded = JSON.parse(javascript.files.find(file => file.path.endsWith('/sourceinfo.json')).data);
     assert.equal(recorded.mode,'javascript'); assert.equal(recorded.conversion.durationSeconds,2);
     assert.equal(recorded.conversion.clockRate,1024000); assert(recorded.conversion.eventCount >= 5);
+    const optimization = recorded.conversion.optimization;
+    assert.equal(optimization.kind,'dsp-ram-read-set');
+    assert(optimization.ramReadAddresses > 0 && optimization.ramReadAddresses < 65536,
+      'The import records an actual bounded DSP RAM-read set');
+    assert.equal(optimization.dspEvents + optimization.ramEvents,recorded.conversion.eventCount);
+    assert(optimization.dspEvents >= 4 && optimization.ramEvents >= 1,
+      'DSP changes and the live sample-RAM mutation must remain recorded');
+    assert(recorded.conversion.eventCount < 50,
+      'Hundreds of writes to the CPU-only counter must not become generated source rows');
+    assert((await page.locator('#status').innerText()).includes(
+      `${recorded.conversion.eventCount} writes (DSP ${optimization.dspEvents}, RAM ${optimization.ramEvents})`),
+    'The import completion status shows the actual retained DSP/RAM counts');
     assert.equal(javascript.files.find(file => file.path.endsWith('/initial.ram.bin')).data.length,65536);
     assert.equal(javascript.files.find(file => file.path.endsWith('/initial.dsp.bin')).data.length,128);
     const javascriptSource = javascript.files.find(file => file.path === javascript.entryPath).data;
     assert.match(javascriptSource,/prepareTimeline/); assert.match(javascriptSource,/playTimeline/);
     assert.match(javascriptSource,/0x2001/,'The editable source must retain sample RAM changes');
+    assert.doesNotMatch(javascriptSource,/, 1, 0x0030,/,
+      'DSP-unread CPU bookkeeping must be absent from the editable source');
+    assert.match(javascriptSource,/Work RAM.*omitted/);
+    assert.match(javascriptSource,/new RAM regions.*new capture/,
+      'The editable source explains the read-set capture constraint');
     assert.match(javascriptSource,/Pitch high/i); assert.match(javascriptSource,/Key off mask/i);
     diagnostics.push(await checkGeneratedDiagnostics(page,javascript.entryPath));
     const javascriptLevels = {};
@@ -310,7 +328,7 @@ async function checkBrowser(name,type,url,fixture) {
       && (modelTrace(error.stack) || rejections.some(reason => reason.message === 'Canceled' && modelTrace(reason.stack))));
     assert.deepEqual(errors.filter(error => !modelCancellations.includes(error)),[],JSON.stringify({rejections}));
     console.log(JSON.stringify({browser:name,passed:true,cancelNoChange:true,conversionCancelNoChange:true,repeatedSongRun:true,uniqueDirectories:[song.directory,repeatedSong.directory,instruments.directory,javascript.directory],
-      songLevels,instrumentLevels,javascriptLevels,diagnostics,modelCancellations:modelCancellations.length,unusedRootUnknown:true,originalSpcPreserved:true}));
+      songLevels,instrumentLevels,javascriptLevels,optimization,diagnostics,modelCancellations:modelCancellations.length,unusedRootUnknown:true,originalSpcPreserved:true}));
     await page.close();
   } finally {await browser.close();}
 }

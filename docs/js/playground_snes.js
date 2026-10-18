@@ -1,6 +1,6 @@
 /** Ordered Main/logic-Worker client for a CPU-free SNES DSP AudioWorklet. */
 import {SnesSynth,prepareSnesBRR} from './snessynth.js?v=spc-song-js-1';
-import {prepareSpcTimeline} from './spc.js?v=spc-song-js-1';
+import {prepareSpcTimeline} from './spc.js?v=spc-trace-filter-1';
 const TIMEOUT_MS=15000;
 /** @param {MessagePort} port
  * @param {{sampleRate?:number,nativeSampleRate?:number}} [initial] */
@@ -21,7 +21,7 @@ export function createSnesClient(port,initial={}) {
      * @returns {Promise<import('./snessynth.js?v=spc-song-js-1').SnesSample>} */
     async loadBRR(input,options){assertOpen();instrumentOnly();const prepared=prepareSnesBRR(input,options);const data=prepared.brr,validationBytes=data.slice(),savedOptions=structuredClone(options);const sample=await request('loadBRR',[data,savedOptions],[data.buffer]);assertOpen();validation.loadBRR(validationBytes,savedOptions);return sample;},
     /** Resource upload; clocks are 1,024,000 Hz, not native PCM frames.
-     * @param {import('./spc.js?v=spc-song-js-1').SpcTimeline} trace */
+     * @param {import('./spc.js?v=spc-trace-filter-1').SpcTimeline} trace */
     async prepareTimeline(trace){
       assertOpen();const data=prepareSpcTimeline(trace),previous=timelinePrepared,revision=++timelineRevision;timelinePrepared=true;
       try{const state=await request('prepareTimeline',[data],[data.initialState.ram.buffer,data.initialState.dsp.buffer,data.events.buffer]);assertOpen();if(revision!==timelineRevision)throw new DOMException('SNES timeline preparation cancelled','AbortError');return state;}

@@ -91,6 +91,7 @@ public:
 		trace_callback = callback; trace_user = user; trace_clock = 0;
 	}
 	void copy_tetorica_trace_initial( unsigned char* ram, unsigned char* regs ) const;
+	void set_tetorica_ram_read_mask( unsigned char* mask ) { dsp.set_tetorica_ram_read_mask( mask ); }
 	
 	// Skips count samples. Several times faster than play() when using fast DSP.
 	blargg_err_t skip( int count );

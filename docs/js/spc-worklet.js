@@ -1,5 +1,5 @@
-import moduleFactory from '../generated/spc_wasm.js?v=spc-song-js-1';
-import {SpcCore} from './spc.js?v=spc-song-js-1';
+import moduleFactory from '../generated/spc_wasm.js?v=spc-trace-filter-1';
+import {SpcCore} from './spc.js?v=spc-trace-filter-1';
 import {SpcResampler} from './spc_resampler.js?v=chip-tabs-2';
 
 const NATIVE_RATE = 32000;

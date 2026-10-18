@@ -58,6 +58,11 @@ This is the easiest way to test YM2612 control, sound design, and Genesis-orient
   Edit its annotated `events` array to change raw chip values and timing; initial
   BRR/RAM and DSP bytes are saved alongside the code. It retains sample changes,
   echo, noise and pitch modulation. Note names, loops and tag fade are not inferred.
+  Conversion first finds the RAM read by the DSP, then omits writes to unused CPU
+  work RAM. All DSP writes remain. Generated rows include seconds and register
+  labels, and the import status/source info report the retained DSP/RAM counts.
+  This preserves the recorded playback; edits that reference other RAM regions
+  may require additional original driver data that was not used in that interval.
 - Playground Runtime Embedded Demo:
   [https://kyorohiro.github.io/hello_ymfm_wasm/demos/playground_runtime.html](https://kyorohiro.github.io/hello_ymfm_wasm/demos/playground_runtime.html)
 - Synth:

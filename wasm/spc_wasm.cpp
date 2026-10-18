@@ -33,6 +33,8 @@ struct Player {
   int mute_mask = 0;
   std::string error;
   bool tracing = false, trace_failed = false, timeline_loaded = false;
+  bool read_tracking = false, read_failed = false, filter_ram = false;
+  std::vector<unsigned char> ram_read_mask, trace_ram_filter;
   std::string trace_error;
   uint32_t trace_limit = 0;
   std::array<unsigned char, 65536 + 128> trace_initial{};
@@ -44,6 +46,10 @@ struct Player {
   static void record(void* user, unsigned long long clock, int kind, int address, int value) {
     auto& p = *static_cast<Player*>(user);
     if (!p.tracing || p.trace_failed) return;
+    // Omit CPU working RAM before it consumes any event budget. The mask was
+    // discovered by an identical full pass, so future directory/BRR/echo reads
+    // are retained too, even if they have not occurred yet in this second pass.
+    if (kind == 1 && p.filter_ram && !p.trace_ram_filter[address]) return;
     if (clock > max_trace_clocks) {p.trace_failed = true; p.trace_error = "SPC trace limit exceeded; choose a shorter capture duration"; return;}
     const uint32_t time = static_cast<uint32_t>(clock);
     // Between DSP advances it cannot observe intermediate RAM values. Keep the
@@ -106,7 +112,7 @@ struct Player {
     // Keep original bytes only after validation; failed loads leave playback intact.
     if (data != original.data()) original.assign(data, data + size);
     cpu.swap(next);
-    tracing = trace_failed = false; trace_events.clear();
+    tracing = trace_failed = read_tracking = false; trace_events.clear(); ram_read_mask.clear();
     frames = 0;
     error.clear();
     return true;
@@ -170,6 +176,7 @@ void spc_set_mute_mask(Player* p, int mask) {
   if (p->tracing && p->mute_mask != (mask & 255)) {
     p->trace_failed = true; p->trace_error = "SPC tracing requires unchanged, unmuted output; start a fresh unmuted capture";
   }
+  if (p->read_tracking && p->mute_mask != (mask & 255)) p->read_failed = true;
   p->mute_mask = mask & 255;
   if (p->dsp_only) p->dsp->set_output_mute_mask(p->mute_mask);
   else p->cpu->set_output_mute_mask(p->mute_mask);
@@ -192,11 +199,14 @@ void spc_write_dsp(Player* p, int reg, int value) {
 int spc_read_dsp(Player* p, int reg) {
   return p && p->dsp_only && reg >= 0 && reg < 128 ? p->dsp->read(reg) : -1;
 }
-int spc_trace_begin(Player* p, int limit) {
-  if (!p || p->dsp_only || p->original.empty() || p->frames || p->mute_mask || limit < 1 || limit > static_cast<int>(max_trace_events)) {
+int spc_trace_begin(Player* p, int limit, const unsigned char* mask, int mask_size) {
+  if (!p || p->dsp_only || p->original.empty() || p->frames || p->mute_mask || p->read_tracking || limit < 1 || limit > static_cast<int>(max_trace_events)) {
     if (p) p->error = "Trace requires a freshly loaded, unmuted SPC and maxEvents from 1 to 1000000";
     return 0;
   }
+  if (mask_size != 0 && (!mask || mask_size != 65536)) {p->error = "DSP RAM read mask must contain 65536 bytes"; return 0;}
+  p->filter_ram = mask_size != 0;
+  if (p->filter_ram) p->trace_ram_filter.assign(mask, mask + 65536); else p->trace_ram_filter.clear();
   p->tracing = true; p->trace_failed = false; p->trace_limit = limit;
   p->trace_error.clear();
   p->trace_events.clear(); p->trace_events.reserve(std::min(limit, 4096));
@@ -214,6 +224,22 @@ int spc_trace_finish(Player* p) {
 unsigned char* spc_trace_initial_ptr(Player* p) {return p ? p->trace_initial.data() : nullptr;}
 TraceEvent* spc_trace_events_ptr(Player* p) {return p ? p->trace_events.data() : nullptr;}
 int spc_trace_event_count(Player* p) {return p ? p->trace_events.size() : 0;}
+int spc_ram_read_begin(Player* p) {
+  if (!p || p->dsp_only || p->original.empty() || p->frames || p->mute_mask || p->tracing || p->read_tracking) {
+    if (p) p->error = "DSP RAM discovery requires a freshly loaded, unmuted SPC without an active trace";
+    return 0;
+  }
+  p->ram_read_mask.assign(65536, 0); p->read_tracking = true; p->read_failed = false;
+  p->cpu->set_tetorica_ram_read_mask(p->ram_read_mask.data()); p->error.clear(); return 1;
+}
+int spc_ram_read_finish(Player* p) {
+  if (!p || !p->read_tracking) {if (p) p->error = "No DSP RAM discovery is active"; return 0;}
+  p->read_tracking = false; p->cpu->set_tetorica_ram_read_mask(nullptr);
+  if (!p->frames) {p->error = "DSP RAM discovery requires at least one rendered native frame"; return 0;}
+  if (p->mute_mask || p->read_failed) {p->error = "DSP RAM discovery requires unchanged, unmuted output"; return 0;}
+  p->error.clear(); return 1;
+}
+unsigned char* spc_ram_read_mask_ptr(Player* p) {return p && !p->ram_read_mask.empty() ? p->ram_read_mask.data() : nullptr;}
 int spc_load_timeline(Player* p, const unsigned char* initial, const TraceEvent* events, int count, int duration) {
   if (!p || !p->dsp_only || !initial || count < 0 || count > static_cast<int>(max_trace_events) ||
       (count && !events) || duration < 32 || duration > static_cast<int>(max_trace_clocks) || duration % 32) {

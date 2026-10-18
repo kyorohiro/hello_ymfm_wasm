@@ -7,8 +7,8 @@ import {join} from 'node:path';
 const directory=fileURLToPath(new URL('../docs/js/',import.meta.url));
 const version='chip-tabs-2';
 const revisions={
-  'spc.js':'spc-song-js-1',
-  'spc_trace.js':'spc-song-js-1',
+  'spc.js':'spc-trace-filter-1',
+  'spc_trace.js':'spc-trace-filter-1',
   'snessynth.js':'spc-song-js-1',
   'playground_snes.js':'spc-song-js-1',
   'playground_snes_worklet.js':'spc-song-js-1',
@@ -46,7 +46,7 @@ for(const name of await readdir(directory)){
   const path=join(directory,name),source=await readFile(path,'utf8');
   const next=source.replace(references,(_match,quote,path)=>quote+path+'?v='+(revisions[path.split('/').at(-1)]??version)+quote)
     .replace(/(['"])((?:\.\.?\/)+generated\/spc_wasm\.(?:js|wasm))(?:\?[^'"\s]*)?\1/g,
-      (_match,quote,path)=>quote+path+'?v=spc-song-js-1'+quote);
+      (_match,quote,path)=>quote+path+'?v=spc-trace-filter-1'+quote);
   if(next!==source){await writeFile(path,next);changed++;}
 }
 console.log('Versioned Playground browser runtime references in '+changed+' modules ('+version+').');

@@ -34,7 +34,7 @@ export function installSpcImport({button, existingPaths, existingDirectories = (
     const lengthLabel = element('label', 'Conversion seconds ', conversion);
     const seconds = element('input', undefined, lengthLabel); seconds.type = 'number'; seconds.min = '0.1'; seconds.max = '600'; seconds.step = 'any';
     seconds.dataset.spcConversionSeconds = ''; seconds.value = '120'; seconds.required = true;
-    element('p', 'Starts at the saved SPC position. Choose 0.1–600 seconds. No automatic loop detection or tag fade. Up to 1,000,000 timed writes; shorten the interval if it exceeds the limit.', conversion);
+    element('p', 'Starts at the saved SPC position. Choose 0.1–600 seconds. Unused work RAM is omitted after analyzing the song. No automatic loop detection or tag fade. Up to 1,000,000 retained writes; shorten the interval if it exceeds the limit.', conversion);
     const progress = element('progress', undefined, conversion); progress.max = 1; progress.value = 0; progress.hidden = true;
     progress.setAttribute('aria-label', 'SPC conversion progress');
     const conversionStatus = element('p', '', conversion); conversionStatus.setAttribute('role', 'status');
@@ -60,7 +60,7 @@ export function installSpcImport({button, existingPaths, existingDirectories = (
     const alive = () => current === request && !controller.signal.aborted && dialog.open;
     try {
       onStatus?.(`Reading ${file.name}…`);
-      const source = await import('./playground_spc_source.js?v=spc-song-js-1');
+      const source = await import('./playground_spc_source.js?v=spc-trace-filter-1');
       const prepared = await source.prepareSpcImport(await file.arrayBuffer(), file.name, {signal:controller.signal});
       if (!alive()) return;
       const tagSeconds = prepared.metadata.playSeconds;
@@ -119,13 +119,13 @@ export function installSpcImport({button, existingPaths, existingDirectories = (
           let plan;
           if (mode() === 'javascript') {
             progress.hidden = false; progress.value = 0; conversionStatus.textContent = 'Preparing conversion…';
-            const {convertSpcImport} = await import('./playground_spc_trace.js?v=spc-song-js-1');
+            const {convertSpcImport} = await import('./playground_spc_trace.js?v=spc-trace-filter-1');
             if (!alive()) return;
             plan = await convertSpcImport(prepared, {directory, durationSeconds:Number(seconds.value), signal:controller.signal,
               onProgress:value => {if (alive()) {
                 progress.value = value.ratio;
                 conversionStatus.textContent = value.stage === 'source' ? 'Generating JavaScript…'
-                  : `Recording ${value.renderedSeconds.toFixed(1)} / ${value.durationSeconds.toFixed(1)} seconds…`;
+                  : `${value.stage === 'analyze' ? 'Analyzing' : 'Recording'} ${value.renderedSeconds.toFixed(1)} / ${value.durationSeconds.toFixed(1)} seconds…`;
               }}});
           } else plan = source.buildSpcImportFiles(prepared, {mode:mode(), directory, selected});
           if (!alive()) return;

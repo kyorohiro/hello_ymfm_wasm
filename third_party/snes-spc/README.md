@@ -36,6 +36,13 @@ initial RAM/register bytes and the original four-frame output FIFO, without the
 SPC700 CPU. Same-address RAM writes between DSP advances may be coalesced because
 the DSP could not observe their intermediate values.
 
+An optional per-instance DSP RAM read mask covers directory words, BRR headers
+and payloads, and both channels of echo reads. A discovery pass collects their
+address union; a fresh second pass may omit only CPU RAM writes outside that
+union, before applying the trace event limit. The original CPU execution and all
+DSP register writes are retained. Tracking is disabled for normal playback.
+This preserves the original interval, not arbitrary edits that access new RAM.
+
 Upstream's live-BRR RAM writes can depend on render block boundaries. Playground
 conversion uses the same 128-native-frame blocks as its SPC player; the resulting
 recorded timeline replays independently of render partitioning. This does not

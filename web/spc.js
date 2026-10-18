@@ -187,13 +187,36 @@ export class SpcCore extends Core {
     finally { this._syncViews(); }
   }
   reset() { this.restart(); }
+  /** Discover the union of physical DSP RAM reads over an offline interval.
+   * Start fresh/unmuted, render with the same partition and duration as the
+   * following trace, then restart before beginTrace({ramReadMask}). The bounded
+   * 65536-byte mask includes directory, BRR and echo reads for silent voices too.
+   */
+  beginRamReadTracking() {
+    this._assertOpen(); this._check(this.module._spc_ram_read_begin(this.handle)); this._syncViews();
+  }
+  /** End discovery and return an owned 65536-byte 0/1 mask.
+   * @returns {Uint8Array} */
+  endRamReadTracking() {
+    this._assertOpen(); this._check(this.module._spc_ram_read_finish(this.handle)); this._syncViews();
+    const ptr = this.module._spc_ram_read_mask_ptr(this.handle);
+    return this.module.HEAPU8.slice(ptr, ptr + 65536);
+  }
   /** Begin bounded offline recording before rendering any frames after load.
    * Same-address RAM writes between DSP advances are coalesced: the DSP never
    * observed those intermediate values. A limit failure rejects the whole trace.
+   * Supply only a mask from a complete identical discovery pass; excluded working
+   * RAM cannot later be repurposed by edits without capturing that data again.
+   * @param {{maxEvents?:number,ramReadMask?:Uint8Array}} [options]
    */
-  beginTrace({maxEvents = SPC_TRACE_MAX_EVENTS} = {}) {
+  beginTrace({maxEvents = SPC_TRACE_MAX_EVENTS, ramReadMask} = {}) {
     this._assertOpen(); integer(maxEvents, 'maxEvents', 1, SPC_TRACE_MAX_EVENTS);
-    this._check(this.module._spc_trace_begin(this.handle, maxEvents)); this._syncViews();
+    if (ramReadMask !== undefined) {
+      if (!(ramReadMask instanceof Uint8Array) || ramReadMask.length !== 65536 || ramReadMask.some(value => value > 1)) {
+        throw new RangeError('DSP RAM read mask must be a Uint8Array of 65536 zero/one bytes');
+      }
+      this._withBytes(ramReadMask, ptr => this._check(this.module._spc_trace_begin(this.handle, maxEvents, ptr, ramReadMask.length)));
+    } else {this._check(this.module._spc_trace_begin(this.handle, maxEvents, 0, 0)); this._syncViews();}
   }
   /** Stop capture and return independent copied initial bytes and packed events.
    * @returns {SpcTimeline & {events:Uint32Array}} */

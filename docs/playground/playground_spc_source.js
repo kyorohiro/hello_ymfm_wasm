@@ -142,12 +142,16 @@ function javascriptSource(trace) {
     '// BRR/directory changes, echo, noise and pitch modulation are retained.',
     '// This is a finite captured interval; original note names and loops are not inferred.',
     '// Initial RAM includes the original BRR samples. Original SPC is kept for reference.',
+    ...(trace.optimization ? [
+      `// Work RAM never read by this DSP run was omitted; ${trace.optimization.dspEvents} DSP and ${trace.optimization.ramEvents} RAM writes remain.`,
+      '// Edits that access new RAM regions may require a new capture.',
+    ] : []),
     'const snes = await createSoundChip(\'snes\');', 'try {',
     '  const events = new Uint32Array([',
   ];
   for (let i = 0; i < trace.events.length; i += 4) {
     const clock = trace.events[i], kind = trace.events[i + 1], address = trace.events[i + 2], value = trace.events[i + 3];
-    lines.push(`    ${clock}, ${kind}, ${hex(address, kind ? 4 : 2)}, ${hex(value)},${kind ? '' : ` // ${dspLabel(address)}`}`);
+    lines.push(`    ${clock}, ${kind}, ${hex(address, kind ? 4 : 2)}, ${hex(value)}, // ${(clock / 1024000).toFixed(6)} s · ${kind ? 'RAM' : dspLabel(address)}`);
   }
   lines.push('  ]);', '  await snes.prepareTimeline({', '    version: 1,', '    clockRate: 1024000,',
     `    durationClocks: ${trace.durationClocks}, // ${(trace.durationClocks / 1024000).toFixed(6)} seconds`,
@@ -213,7 +217,8 @@ export function buildSpcImportFiles(prepared, {mode, directory, selected = [], t
       ...(mode === 'javascript' ? {conversion:{version:trace.version, clockRate:trace.clockRate,
         durationClocks:trace.durationClocks, durationSeconds:trace.durationClocks / trace.clockRate,
         eventCount:trace.events.length / 4, nativeSampleRate:32000,
-        outputDelayFrames:trace.initialState.outputDelayFrames}} : {}),
+        outputDelayFrames:trace.initialState.outputDelayFrames,
+        ...(trace.optimization ? {optimization:trace.optimization} : {})}} : {}),
       limitation:mode === 'javascript' ? 'Finite recorded DSP/RAM execution; original note names and loop structure are not inferred. Tag fade is not applied.'
         : 'BRR candidates describe this saved RAM snapshot, not every instrument used during the song.'})},
   ];
@@ -222,7 +227,8 @@ export function buildSpcImportFiles(prepared, {mode, directory, selected = [], t
     files.push({path:`${directory}/initial.ram.bin`, type:'binary', data:trace.initialState.ram.slice()},
       {path:`${directory}/initial.dsp.bin`, type:'binary', data:trace.initialState.dsp.slice()},
       {path:entryPath, type:'text', data:javascriptSource(trace)});
-    return {files, entryPath, directory, mode};
+    return {files, entryPath, directory, mode,
+      conversion:{eventCount:trace.events.length / 4, optimization:trace.optimization}};
   }
   if (mode === 'song') {
     const entryPath = `${directory}/index.js`;

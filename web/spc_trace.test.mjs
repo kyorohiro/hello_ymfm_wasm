@@ -37,6 +37,17 @@ async function replay(t, trace, segments) {
   const core = await SnesDspCore.create(options); t.after(() => core.dispose()); core.loadTimeline(trace);
   return {core, pcm:render(core, trace.durationClocks / 32, segments)};
 }
+async function filteredCapture(t, bytes, count = frames, {maxEvents = 1000000} = {}) {
+  const core = await SpcCore.create(options); t.after(() => core.dispose()); core.load(bytes);
+  core.beginRamReadTracking(); const discoveredPcm = render(core, count, [128]), mask = core.endRamReadTracking();
+  core.restart(); core.beginTrace({maxEvents, ramReadMask:mask});
+  const pcm = render(core, count, [128]), trace = core.endTrace();
+  assert.deepEqual(pcm, discoveredPcm, 'RAM discovery and filtering do not affect original emulation');
+  return {core, mask, pcm, trace};
+}
+function records(trace) {
+  return Array.from({length:trace.events.length / 4}, (_, index) => Array.from(trace.events.subarray(index * 4, index * 4 + 4)));
+}
 
 for (const [name, parameters] of [['dry', {}], ['echo', {echo:true}], ['noise', {noise:true}], ['pitch modulation', {voices:3,pmon:true}], ['echo+noise+PMON', {voices:3,echo:true,noise:true,pmon:true}]]) {
   test(`SPC trace/replay is bit-exact with static material, ${name}`, async t => {
@@ -131,4 +142,94 @@ test('timeline completes with silence and normal reset leaves raw timeline mode'
   assert.equal(core.nativeFrames, 128);
   core.reset(); assert.equal(core.getTimelineState().loaded, false);
   assert.throws(() => core.restartTimeline(), /Load a SNES timeline/);
+});
+
+for (const [name, parameters] of [['dry', {}], ['echo', {echo:true}], ['noise', {noise:true}], ['pitch modulation', {voices:3,pmon:true}], ['echo+noise+PMON', {voices:3,echo:true,noise:true,pmon:true}]]) {
+  test(`DSP RAM read-set filtering preserves exact ${name} PCM and every DSP write`, async t => {
+    const bytes = dynamicSpc(parameters), baseline = await capture(t, bytes, frames, [128]);
+    const filtered = await filteredCapture(t, bytes);
+    assert.deepEqual(filtered.pcm, baseline.pcm);
+    assert.deepEqual(records(filtered.trace).filter(([, kind]) => kind === 0), records(baseline.trace).filter(([, kind]) => kind === 0));
+    assert.ok(records(filtered.trace).some(([, kind, address]) => kind === 1 && address === 0x2001), 'modified BRR is kept');
+    const replayed = await replay(t, filtered.trace, [1, 7, 127]); assert.deepEqual(replayed.pcm, baseline.pcm);
+  });
+}
+
+test('DSP-unread working RAM is filtered before event limits, not after recording', async t => {
+  const bytes = createSyntheticSpc(), baseline = await capture(t, bytes, frames, [128]);
+  assert.ok(records(baseline.trace).some(([, kind, address]) => kind === 1 && address === 0x30));
+  const filtered = await filteredCapture(t, bytes, frames, {maxEvents:1});
+  assert.equal(filtered.mask[0x30], 0); assert.equal(filtered.trace.events.length, 0);
+  const replayed = await replay(t, filtered.trace); assert.deepEqual(replayed.pcm, baseline.pcm);
+  const limited = await SpcCore.create(options); t.after(() => limited.dispose()); limited.load(bytes); limited.beginTrace({maxEvents:1});
+  assert.throws(() => render(limited, frames, [128]), /trace limit exceeded/);
+});
+
+test('directory, silent-voice directory and disabled-echo reads remain conservative dependencies', async t => {
+  const bytes = createSyntheticSpc(), dsp = bytes.subarray(0x10100, 0x10180);
+  dsp[0x14] = 11; // Unkeyed/silent Voice 2 still reads its sample directory.
+  const {mask} = await filteredCapture(t, bytes);
+  for (const address of [0x1000, 0x1001, 0x1002, 0x1003, 0x102e, 0x102f, 0x2000, 0x2001, 0x2008,
+    0x6000, 0x6001, 0x6002, 0x6003]) assert.equal(mask[address], 1, `DSP read $${address.toString(16)} is retained`);
+});
+
+test('the complete first pass retains writes before a later DIR/SRCN change starts reading those addresses', async t => {
+  const bytes = createSyntheticSpc({echo:true}), ram = bytes.subarray(0x100, 0x10100);
+  // Build directory page $11 and sample $3000 before the driver selects either.
+  ram.set([0xc3, 0x13, 0x57, 0x75, 0x31, 0xfd, 0xb9, 0x9b, 0xdf], 0x3000);
+  ram.set([0xe8,0x30,0xc5,1,0x11,0xc5,3,0x11,
+    0xe8,0x72,0xc5,1,0x30,
+    0xcd,160,0x8d,255,0xfe,0xfe,0x1d,0xd0,0xf9,
+    0x8f,0x5d,0xf2,0x8f,0x11,0xf3,0x8f,0x4c,0xf2,0x8f,1,0xf3,0x2f,0xfe], 0x200);
+  const baseline = await capture(t, bytes, 16000, [128]), filtered = await filteredCapture(t, bytes, 16000);
+  for (const address of [0x1101, 0x1103, 0x3001]) {
+    assert.equal(filtered.mask[address], 1);
+    assert.ok(records(filtered.trace).some(([, kind, at]) => kind === 1 && at === address), `early write to future DSP input $${address.toString(16)} is kept`);
+  }
+  const replayed = await replay(t, filtered.trace, [127]); assert.deepEqual(replayed.pcm, baseline.pcm);
+});
+
+test('BRR reads wrapping through $ffff keep low-RAM CPU mutations', async t => {
+  const bytes = createSyntheticSpc(), ram = bytes.subarray(0x100, 0x10100);
+  ram.set([0xfc, 0xff, 0xfc, 0xff], 0x1000);
+  const brr = [0xc3, 0x13, 0x57, 0x75, 0x31, 0xfd, 0xb9, 0x9b, 0xdf];
+  for (let index = 0; index < brr.length; index++) ram[(0xfffc + index) & 65535] = brr[index];
+  ram.set([0xac, 1, 0, 0x2f, 0xfb], 0x200); // mutate wrapped BRR byte at $0001
+  const baseline = await capture(t, bytes, frames, [128]), filtered = await filteredCapture(t, bytes);
+  for (const address of [0xfffc, 0xfffd, 0xfffe, 0xffff, 0, 1, 2, 3, 4]) assert.equal(filtered.mask[address], 1);
+  assert.ok(records(filtered.trace).some(([, kind, address]) => kind === 1 && address === 1));
+  assert.deepEqual((await replay(t, filtered.trace, [127])).pcm, baseline.pcm);
+});
+
+test('CPU echo-RAM writes and a wrapped sample-directory address remain in the exact trace', async t => {
+  const echoBytes = createSyntheticSpc({echo:true}), echoRam = echoBytes.subarray(0x100,0x10100);
+  echoRam.set([0xac,1,0x60,0x2f,0xfb],0x200);
+  const echoBaseline = await capture(t,echoBytes,frames,[128]), echoFiltered = await filteredCapture(t,echoBytes);
+  assert.ok(records(echoFiltered.trace).some(([,kind,address]) => kind === 1 && address === 0x6001));
+  assert.deepEqual((await replay(t,echoFiltered.trace,[127])).pcm,echoBaseline.pcm);
+  const dirBytes = createSyntheticSpc(), dirRam = dirBytes.subarray(0x100,0x10100), dirDsp = dirBytes.subarray(0x10100,0x10180);
+  dirDsp[0x5d] = 255; dirDsp[4] = 255; // $ff00 + $ff*4 wraps to $02fc.
+  dirRam.set([0,0x20,0,0x20],0x2fc);
+  const dirBaseline = await capture(t,dirBytes,frames,[128]), dirFiltered = await filteredCapture(t,dirBytes);
+  for (const address of [0x2fc,0x2fd,0x2fe,0x2ff]) assert.equal(dirFiltered.mask[address],1);
+  assert.deepEqual((await replay(t,dirFiltered.trace,[127])).pcm,dirBaseline.pcm);
+});
+
+test('RAM discovery is instance-local, copied, fresh-only and cancelled by reload/disposal', async t => {
+  const a = await SpcCore.create(options), b = await SpcCore.create(options); t.after(() => {a.dispose(); b.dispose();});
+  const aBytes = createSyntheticSpc(), bBytes = createSyntheticSpc(), bRam = bBytes.subarray(0x100,0x10100), bDsp = bBytes.subarray(0x10100,0x10180);
+  bRam.set([0,0x30,0,0x30],0x1000); bRam.set(bRam.subarray(0x2000,0x2009),0x3000); bDsp[0x5d] = 0x10;
+  a.load(aBytes); b.load(bBytes); a.beginRamReadTracking(); b.beginRamReadTracking();
+  render(a, 256, [128]); render(b, 256, [128]); const first = a.endRamReadTracking(), second = b.endRamReadTracking();
+  assert.equal(first[0x2001],1); assert.equal(first[0x3001],0); assert.equal(second[0x3001],1); assert.equal(second[0x2001],0);
+  a.restart(); a.beginTrace({ramReadMask:first}); first.fill(0); render(a,128,[128]); a.endTrace();
+  assert.throws(() => a.beginRamReadTracking(), /freshly loaded/);
+  b.restart(); b.beginRamReadTracking(); b.load(bBytes); assert.throws(() => b.endRamReadTracking(), /No DSP RAM discovery/);
+  a.restart(); a.beginRamReadTracking(); assert.throws(() => a.beginTrace(), /freshly loaded/);
+  a.setMuteMask(1); a.setMuteMask(0); render(a,128,[128]); assert.throws(() => a.endRamReadTracking(), /unmuted/);
+  a.restart(); a.beginRamReadTracking(); assert.throws(() => a.endRamReadTracking(), /at least one/);
+  a.restart(); a.beginRamReadTracking(); const malformed = aBytes.slice(); malformed[0] = 0;
+  assert.throws(() => a.load(malformed), /header/); render(a,128,[128]); assert.equal(a.endRamReadTracking()[0x2001],1);
+  for (const mask of [new Uint8Array(1), new Uint8Array(65536).fill(2), new Uint16Array(65536)]) assert.throws(() => a.beginTrace({ramReadMask:mask}), /mask/);
+  a.restart(); a.beginRamReadTracking(); a.dispose(); assert.throws(() => a.endRamReadTracking(), /disposed/);
 });

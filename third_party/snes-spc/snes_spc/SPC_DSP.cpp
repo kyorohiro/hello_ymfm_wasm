@@ -288,6 +288,7 @@ inline void SPC_DSP::run_envelope( voice_t* const v )
 inline void SPC_DSP::decode_brr( voice_t* v )
 {
 	// Arrange the four input nybbles in 0xABCD order for easy decoding
+	trace_ram_read( v->brr_addr + v->brr_offset + 1 );
 	int nybbles = m.t_brr_byte * 0x100 + m.ram [(v->brr_addr + v->brr_offset + 1) & 0xFFFF];
 	
 	int const header = m.t_brr_header;
@@ -396,6 +397,7 @@ inline VOICE_CLOCK( V2 )
 	uint8_t const* entry = &m.ram [m.t_dir_addr];
 	if ( !v->kon_delay )
 		entry += 2;
+	trace_ram_word( entry - m.ram );
 	m.t_brr_next_addr = GET_LE16A( entry );
 	
 	m.t_adsr0 = VREG(v->regs,adsr0);
@@ -410,6 +412,8 @@ inline VOICE_CLOCK( V3a )
 inline VOICE_CLOCK( V3b )
 {
 	// Read BRR header and byte
+	trace_ram_read( v->brr_addr + v->brr_offset );
+	trace_ram_read( v->brr_addr );
 	m.t_brr_byte   = m.ram [(v->brr_addr + v->brr_offset) & 0xFFFF];
 	m.t_brr_header = m.ram [v->brr_addr]; // brr_addr doesn't need masking
 }
@@ -600,6 +604,7 @@ VOICE_CLOCK(V9_V6_V3) { voice_V9(v); voice_V6(v+1); voice_V3(v+2); }
 
 inline void SPC_DSP::echo_read( int ch )
 {
+	trace_ram_word( m.t_echo_ptr + ch * 2 );
 	int s = GET_LE16SA( ECHO_PTR( ch ) );
 	// second copy simplifies wrap-around handling
 	ECHO_FIR( 0 ) [ch] = ECHO_FIR( 8 ) [ch] = s >> 1;

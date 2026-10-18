@@ -2,7 +2,7 @@
 export function convertSpcImport(prepared, {directory, durationSeconds, signal, onProgress} = {}) {
   signal?.throwIfAborted();
   return new Promise((resolve, reject) => {
-    const worker = new Worker(new URL('./playground_spc_trace_worker.js?v=spc-song-js-1', import.meta.url), {type:'module'});
+    const worker = new Worker(new URL('./playground_spc_trace_worker.js?v=spc-trace-filter-1', import.meta.url), {type:'module'});
     const cleanup = () => {clearTimeout(timer); signal?.removeEventListener('abort', abort); worker.terminate();};
     const finish = (fn, value) => {cleanup(); fn(value);};
     const abort = () => finish(reject, signal.reason ?? new DOMException('SPC conversion cancelled', 'AbortError'));
