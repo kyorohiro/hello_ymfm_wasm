@@ -14,7 +14,7 @@ function tokens(source) {
 }
 
 test('localized articles link to both languages and preserve every executable example', async () => {
-  assert.equal(pages.length,23);
+  assert.equal(pages.length,26);
   for (const name of pages) {
     const englishName = name.replace('_ja.html','.html');
     const [en,ja] = await Promise.all([readFile(new URL(englishName,import.meta.url),'utf8'),readFile(new URL(name,import.meta.url),'utf8')]);

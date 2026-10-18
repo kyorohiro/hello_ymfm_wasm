@@ -18,7 +18,7 @@
     <p>音量を変える、音を刻む、波形を歪ませる。PCMの小さな加工から、
       フィルターや残響まで、Playgroundで試しながら学ぶシリーズです。</p>
     <p class="hint"><strong>このシリーズは作成中です。</strong>
-      Gainから組み合わせまで、全15章の下書きを掲載しています。内容・サンプルは試聴しながら今後調整します。</p>
+      Gainからフォルマント音声の実験まで、全18章の下書きを掲載しています。内容・サンプルは試聴しながら今後調整します。</p>
   </header>
   <section class="panel">
     <h2>まず試してみる</h2>
@@ -29,7 +29,7 @@
         Gainを周期的に変え、stateで処理の位置を引き継ぎます。</li>
     </ol>
     <p>各記事のiframe内に編集可能なPlaygroundがあります。Runで再生、Stopで停止。
-      コードを変えてApplyし、liveFxの入力・出力をFX Monitorで比較できます。
+      コードを変えてもう一度Runすると更新が反映され、liveFxの入力・出力をFX Monitorで比較できます。
       ViewでOscilloscope（波形）とSpectrum（周波数成分）を切り替えられます。
       比較するときは、先に再生したPlaygroundをStopしてください。</p>
   </section>
@@ -51,6 +51,15 @@
       <li><a href="./tetorica-fx-chorus_ja.html"><a href="./tetorica-fx-chorus_ja.html"><strong>Chorus</strong></a></a> — 音に揺れと厚みを作る</li>
       <li><a href="./tetorica-fx-reverb_ja.html"><a href="./tetorica-fx-reverb_ja.html"><strong>Reverb</strong></a></a> — 遅延を組み合わせて残響を作る</li>
       <li><a href="./tetorica-fx-chains_ja.html"><a href="./tetorica-fx-chains_ja.html"><strong>組み合わせ</strong></a></a> — 直列・並列と処理順の違い</li>
+    </ol>
+  </section>
+  <section class="panel">
+    <h2>フォルマントで声の響きを作る</h2>
+    <p>倍音を含む入力音にliveFxをかけ、母音のような音色を作ります。LPCのエミュレーションや、マイク入力で動くボコーダーとは別の、フォルマントフィルターの実験です。</p>
+    <ol start="16" class="steps">
+      <li><a href="./tetorica-fx-formant-vowels_ja.html"><strong>フォルマント母音</strong></a> — F1・F2・F3と「あいうえお」の連続変化</li>
+      <li><a href="./tetorica-fx-formant-voice_ja.html"><strong>フォルマント音声</strong></a> — LFOで作るボコーダー風の響き</li>
+      <li><a href="./tetorica-fx-formant-pitch_ja.html"><strong>音程と母音</strong></a> — 入力音源の音程と母音を別々に操作</li>
     </ol>
   </section>
 </main>

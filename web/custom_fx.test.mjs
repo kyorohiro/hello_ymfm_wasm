@@ -139,3 +139,28 @@ test('adding gain to an already running rack fades dry to wet without a block bo
   assert.equal(out[0][0],.25,'registration before audio processing is immediate');
  }
 });
+
+test('a DSP can sanitize nonfinite source samples without dry/wet mixing reintroducing NaN',()=>{
+ const sanitize=function(input,output){
+  for(let ch=0;ch<input.length;ch++)for(let i=0;i<input[ch].length;i++){
+   const value=input[ch][i];output[ch][i]=Number.isFinite(value)?value*.5:.25;
+  }
+ };
+ const invalid=()=>[Float32Array.of(NaN,Infinity,-Infinity,.5),Float32Array.of(Infinity,NaN,-Infinity,-.5)];
+ for(const rate of [44100,48000])for(const running of [false,true]){
+  const rack=new LiveFX(rate),errors=[];
+  if(running)rack.process(block(),assert.fail);
+  const fx=createNativeFXController(data=>rack.command(data));
+  fx.liveFx('sanitize',{process:sanitize});
+  const samples=invalid();rack.process(samples,error=>errors.push(error));
+  for(const channel of samples)for(const value of channel)assert.ok(Number.isFinite(value));
+  if(running){
+   assert.equal(samples[0][0],0,'nonfinite dry signal begins fade from silence');
+   assert.ok(samples[0][1]>0&&samples[0][1]<.25,'sanitized wet signal fades in');
+   for(let b=0;b<70;b++)rack.process(invalid(),error=>errors.push(error));
+  }
+  const settled=invalid();rack.process(settled,error=>errors.push(error));
+  assert.deepEqual(settled,[Float32Array.of(.25,.25,.25,.25),Float32Array.of(.25,.25,.25,-.25)]);
+  assert.deepEqual(errors,[]);
+ }
+});

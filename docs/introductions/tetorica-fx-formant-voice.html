@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Formant voice: a vocoder-like color — Tetorica FX introduction</title><link rel="stylesheet" href="./fx-introduction.css"><link rel="alternate" hreflang="en" href="./tetorica-fx-formant-voice.html"><link rel="alternate" hreflang="ja" href="./tetorica-fx-formant-voice_ja.html"><style>.language-nav{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}.language-nav a[aria-current="page"]{font-weight:700}</style></head>
+<body><main><nav aria-label="Article navigation"><a href="./tetorica-fx.html">FX introduction index (work in progress)</a><a href="./tetorica-fx-formant-vowels.html">16. Formant vowels</a><a href="./tetorica-fx-formant-voice.html">17. Formant voice</a><a href="./tetorica-fx-formant-pitch.html">18. Pitch and vowels</a></nav>
+<header class="panel"><p class="kicker">FX INTRODUCTION / 17</p><h1>Formant voice: a vocoder-like color</h1><nav class="language-nav" aria-label="Language"><a href="./tetorica-fx-formant-voice.html" lang="en" hreflang="en" aria-current="page">English</a> | <a href="./tetorica-fx-formant-voice_ja.html" lang="ja" hreflang="ja">日本語</a></nav><p>Move a bank of resonances with an LFO to turn a sustained electronic tone into a talking or robotic texture. This is a formant-filter experiment, rather than an analysis/synthesis vocoder.</p></header>
+<section class="panel"><h2>1. Listen first</h2><p>Press Run to hear a fixed-pitch square wave through a moving vowel filter. The LFO moves the three formants together. Listen for the changing color without a corresponding melody.</p><p class="hint">In the embedded Playground, Run starts playback and Stop stops it. After editing during playback, press Run again to apply the updated code. Keep the same liveFx name to retain its filter state. For a fresh comparison, Stop and then Run. Stop other embedded Playgrounds before listening.</p>
+<script type="text/plain" id="formant-voice">
+// The PSG square wave supplies harmonics; the FX shapes their balance.
+const carrierHz = 130; // Try 130, 196 or 260 Hz. Sega PSG cannot reach below about 109 Hz.
+
+liveFx('formant-voice', {
+  context: {
+    vowel: 0, // 0:a/あ, 1:i/い, 2:u/う, 3:e/え, 4:o/お; fractions morph.
+    autoVowels: false, // false lets you choose vowel above.
+    vowelSeconds: 1.4, // Hold, then morph: a → i → u → e → o → a.
+    transitionMs: 60, // Smoothing time constant; state survives same-name Apply.
+    lfoHz: 0.8, // Cycles per second, independent of BPM.
+    lfoDepth: 0.3, // Formant shift in octaves; 0 disables it.
+    gain: 4,
+    mix: 1, // 0: input; 1: formant output. Changes are smoothed.
+    formants: [
+      [800, 1200, 2500], // a / あ: F1, F2, F3 in Hz (illustrative)
+      [300, 2300, 3000], // i / い
+      [350, 1200, 2500], // u / う
+      [500, 1900, 2600], // e / え
+      [500,  900, 2400], // o / お
+    ],
+    bandwidths: [100, 140, 200], // Hz; wider bands sound less sharply resonant.
+    levels: [1, 0.7, 0.4],
+  },
+  process: formantProcess,
+});
+
+// Prepare once: applying edited FX does not retrigger the source.
+await livePrepare('formant-voice-source', () => {
+  psg.setFrequency(PSG1, carrierHz);
+  psg.setAttenuation(PSG1, 5);
+  psg.keyOn(PSG1);
+});
+psg.setFrequency(PSG1, carrierHz);
+liveLoop('formant-voice-control', async () => {
+  // The vowel motion and LFO run on the audio thread, not this timer.
+  await sleep(1); // seconds; Stop ends the sustained source and discards filter state.
+});
+
+// Filter implementation below. Start experimenting with context above.
+/** @param {Float32Array[]} input @param {Float32Array[]} output
+ * @param {Record<string, any>} state @param {any} context */
+function formantProcess(input, output, state, context) {
+  // sampleRate is supplied by AudioWorkletGlobalScope, not a guessed 48000.
+  const rate = Number(Reflect.get(globalThis, 'sampleRate'));
+  if (!Number.isFinite(rate) || rate < 8000 || rate > 384000) {
+    for (const channel of output) channel.fill(0);
+    return;
+  }
+  if (state.schema !== 1 || state.rate !== rate) {
+    state.schema = 1; state.rate = rate;
+    state.defaults = new Float64Array([
+      800, 1200, 2500, // a / あ
+      300, 2300, 3000, // i / い
+      350, 1200, 2500, // u / う
+      500, 1900, 2600, // e / え
+      500,  900, 2400, // o / お
+    ]);
+    state.frequency = new Float64Array([800, 1200, 2500]);
+    state.bandwidth = new Float64Array([100, 140, 200]);
+    state.level = new Float64Array([1, .7, .4]);
+    state.coefficients = new Float64Array(12);
+    state.memory = []; state.untilControl = 0;
+    state.vowelPhase = 0; state.lfoPhase = 0;
+    state.lfoHz = 0; state.depth = 0; state.gain = 0; state.mix = 1;
+    state.vowelSeconds = 1.4;
+  }
+  // Two integrator memories per band, independently for left and right.
+  while (state.memory.length < output.length) state.memory.push(new Float64Array(6));
+  const frames = output[0]?.length ?? 0;
+  for (let i = 0; i < frames; i++) {
+    if (state.untilControl === 0) {
+      // Recalculate at a fixed 16-sample control interval, across block edges.
+      // This keeps tan() out of the per-channel/per-sample inner loop.
+      const ms = Number.isFinite(context.transitionMs) ? Math.max(5, Math.min(500, context.transitionMs)) : 60;
+      const alpha = 1 - Math.exp(-16 / (rate * ms * .001));
+      const seconds = Number.isFinite(context.vowelSeconds) ? Math.max(.25, Math.min(10, context.vowelSeconds)) : 1.4;
+      const hz = Number.isFinite(context.lfoHz) ? Math.max(0, Math.min(8, context.lfoHz)) : 0;
+      const depth = Number.isFinite(context.lfoDepth) ? Math.max(0, Math.min(1, context.lfoDepth)) : 0;
+      const gain = Number.isFinite(context.gain) ? Math.max(0, Math.min(12, context.gain)) : 4;
+      const mix = Number.isFinite(context.mix) ? Math.max(0, Math.min(1, context.mix)) : 1;
+      state.vowelSeconds += alpha * (seconds - state.vowelSeconds);
+      state.lfoHz += alpha * (hz - state.lfoHz);
+      state.depth += alpha * (depth - state.depth);
+      state.gain += alpha * (gain - state.gain);
+      state.mix += alpha * (mix - state.mix);
+      const vowel = Number.isFinite(context.vowel) ? Math.max(0, Math.min(4, context.vowel)) : 0;
+      const position = context.autoVowels === true ? state.vowelPhase : vowel;
+      const first = Math.floor(position), next = (first + 1) % 5;
+      const fraction = position - first;
+      // Auto: hold each vowel for 60% of its time, then morph to the next.
+      let blend = context.autoVowels === true ? Math.max(0, (fraction - .6) / .4) : fraction;
+      blend = blend * blend * (3 - 2 * blend);
+      const shift = 2 ** (state.depth * Math.sin(state.lfoPhase));
+      for (let band = 0; band < 3; band++) {
+        const a = context.formants?.[first]?.[band], b = context.formants?.[next]?.[band];
+        const fa = Number.isFinite(a) && a > 0 ? a : state.defaults[first * 3 + band];
+        const fb = Number.isFinite(b) && b > 0 ? b : state.defaults[next * 3 + band];
+        const limit = Math.min(6000, rate * .2);
+        const target = Math.max(40, Math.min(limit, Math.exp(Math.log(fa) * (1 - blend) + Math.log(fb) * blend) * shift));
+        state.frequency[band] += alpha * (target - state.frequency[band]);
+        const width = context.bandwidths?.[band], level = context.levels?.[band];
+        const bw = Number.isFinite(width) ? Math.max(40, Math.min(600, width)) : band === 0 ? 100 : band === 1 ? 140 : 200;
+        const amplitude = Number.isFinite(level) ? Math.max(0, Math.min(2, level)) : band === 0 ? 1 : band === 1 ? .7 : .4;
+        state.bandwidth[band] += alpha * (bw - state.bandwidth[band]);
+        state.level[band] += alpha * (amplitude - state.level[band]);
+        // Trapezoidal state-variable band-pass (Andrew Simper / Cytomic).
+        // k * bandPass gives approximately unity gain at the band centre.
+        const g = Math.tan(Math.PI * state.frequency[band] / rate);
+        const k = Math.max(1 / 24, Math.min(2, state.bandwidth[band] / state.frequency[band]));
+        const a1 = 1 / (1 + g * (g + k)), offset = band * 4;
+        state.coefficients[offset] = a1;
+        state.coefficients[offset + 1] = g * a1;
+        state.coefficients[offset + 2] = g * g * a1;
+        state.coefficients[offset + 3] = k;
+      }
+      if (context.autoVowels === true) state.vowelPhase = (state.vowelPhase + 16 / (rate * state.vowelSeconds)) % 5;
+      state.lfoPhase = (state.lfoPhase + 2 * Math.PI * state.lfoHz * 16 / rate) % (2 * Math.PI);
+      state.untilControl = 16;
+    }
+    for (let ch = 0; ch < output.length; ch++) {
+      const raw = input[ch]?.[i] ?? 0;
+      const dry = Number.isFinite(raw) ? Math.max(-1, Math.min(1, raw)) : 0;
+      const memory = state.memory[ch];
+      let sum = 0;
+      for (let band = 0; band < 3; band++) {
+        const offset = band * 4, m = band * 2, c = state.coefficients;
+        const v3 = dry - memory[m + 1];
+        let v1 = c[offset] * memory[m] + c[offset + 1] * v3;
+        const v2 = memory[m + 1] + c[offset + 1] * memory[m] + c[offset + 2] * v3;
+        const ic1 = 2 * v1 - memory[m], ic2 = 2 * v2 - memory[m + 1];
+        if (!Number.isFinite(ic1) || !Number.isFinite(ic2) || Math.abs(ic1) > 1e6 || Math.abs(ic2) > 1e6) {
+          memory[m] = memory[m + 1] = 0; v1 = 0;
+        } else {
+          memory[m] = Math.abs(ic1) < 1e-24 ? 0 : ic1;
+          memory[m + 1] = Math.abs(ic2) < 1e-24 ? 0 : ic2;
+        }
+        sum += state.level[band] * c[offset + 3] * v1;
+      }
+      // Soft limiting keeps the wet signal below ±0.75, with headroom.
+      const wet = .75 * Math.tanh(state.gain * sum / .75);
+      output[ch][i] = dry * (1 - state.mix) + wet * state.mix;
+    }
+    state.untilControl--;
+  }
+}
+</script>
+<iframe data-playground-src="formant-voice" data-playground-mode="full" title="Move a formant filter with an LFO" loading="lazy" allow="autoplay"></iframe>
+<p><a data-playground-src="formant-voice" target="_blank" rel="noopener noreferrer">Open this code in a separate Playground tab ↗</a></p></section>
+<section class="panel"><h2>2. A voice has a source and a resonant shape</h2>
+<p>The vocal folds provide a vibrating source. The vocal tract emphasizes some frequency regions. Those broad resonant regions are called <strong>formants</strong>. A filter can give an electronic source a similar spectral shape, even though it is not a human vocal tract.</p>
+<p class="formula">harmonic-rich input<br>↘ band-pass F1 ↗<br>→ band-pass F2 → weighted sum → dry/wet mix → output<br>↗ band-pass F3 ↘</p>
+<p>The three filters receive the same input in parallel. We add their outputs; the sound does not pass through F1, then F2, then F3 in series.</p>
+<table><thead><tr><th>Formant</th><th>A useful first approximation</th></tr></thead><tbody><tr><td>F1</td><td>Often relates to vowel openness: more open vowels tend to have higher F1.</td></tr><tr><td>F2</td><td>Often relates to tongue front/back position: front vowels tend to have higher F2.</td></tr><tr><td>F3</td><td>Adds further vowel and voice quality. It is not a separate anatomical control knob.</td></tr></tbody></table>
+<p>Actual formants depend on the speaker and articulation. These are illustrative targets for an experiment, not universal measurements of Japanese vowels. See the <a href="https://www.phon.ox.ac.uk/jcoleman/AcousticPhonetics2.pdf" target="_blank" rel="noopener noreferrer">Oxford introduction to acoustic phonetics (source–filter theory and vowels)</a>.</p>
+<table><thead><tr><th>Vowel / index</th><th>F1 (Hz)</th><th>F2 (Hz)</th><th>F3 (Hz)</th></tr></thead><tbody><tr><td>a / 0</td><td>800</td><td>1200</td><td>2500</td></tr><tr><td>i / 1</td><td>300</td><td>2300</td><td>3000</td></tr><tr><td>u / 2</td><td>350</td><td>1200</td><td>2500</td></tr><tr><td>e / 3</td><td>500</td><td>1900</td><td>2600</td></tr><tr><td>o / 4</td><td>500</td><td>900</td><td>2400</td></tr></tbody></table></section>
+<section class="panel"><h2>3. Read the controls</h2>
+<table><thead><tr><th>Setting</th><th>Meaning / unit</th></tr></thead><tbody><tr><td>vowel</td><td>Vowel index, 0–4; fractions such as 0.5 blend adjacent vowels</td></tr><tr><td>autoVowels</td><td>Automatically change the vowel target when true</td></tr><tr><td>vowelSeconds</td><td>Interval between vowel targets, in elapsed seconds</td></tr><tr><td>transitionMs</td><td>Parameter-smoothing time scale, in milliseconds</td></tr><tr><td>lfoHz / lfoDepth</td><td>LFO cycles per second / resonance shift in octaves</td></tr><tr><td>gain / mix</td><td>Wet-signal multiplier / wet proportion, 0–1</td></tr><tr><td>formants</td><td>Table of [F1, F2, F3] frequencies per vowel, in Hz</td></tr><tr><td>bandwidths / levels</td><td>Width in Hz / mixing weight of each of the three bands</td></tr></tbody></table>
+<p><code>context</code> contains settings passed to audio processing; <code>state</code> carries history to its next call. The vowel settings are names defined by this example, not new built-in FX APIs. Compare the numbers in the <code>liveFx</code> <code>context</code> with the <code>process</code> callback that transforms the input. Running the same-named code during playback sends the edited settings to the audio processor.</p></section>
+<section class="panel"><h2>4. Move the voice color with an LFO</h2>
+<p>An LFO is a slow periodic oscillator used as a control signal. It is not mixed into the audible waveform here. <code>lfoHz: 0.8</code> means 0.8 cycles per second, or one cycle every 1.25 seconds. This rate uses elapsed seconds and does not follow <code>setBpm()</code>.</p>
+<p><code>lfoDepth: 0.3</code> is a frequency shift in octaves. At the two extremes, each formant target is multiplied by <code>2 ** 0.3</code> or <code>2 ** -0.3</code>. The carrier frequency is unchanged. The same shift is applied to F1, F2, and F3; <code>transitionMs</code> smooths the filter movement.</p>
+<ol class="steps"><li>Set <code>lfoDepth: 0</code> to hear a stationary vowel. Keep <code>autoVowels: false</code> so automatic vowel changes do not obscure the comparison.</li><li>Compare <code>lfoHz: 0.2</code>, <code>0.8</code>, and <code>2</code>. Watch the same motion at different speeds.</li><li>Compare <code>lfoDepth: 0.1</code>, <code>0.3</code>, and <code>0.6</code>. Wider movement makes a more exaggerated voice color.</li><li>Change <code>vowel</code> from 0 to 3, then compare <code>mix: 0.5</code> and <code>1</code>.</li></ol>
+<h3>What differs from a vocoder?</h3>
+<p>A common channel vocoder analyzes a modulator, often a microphone signal, in multiple bands and applies those band envelopes to a separate carrier. This example has one input, no microphone or modulator analysis, and no envelope-detector bank. The resonances are controlled by numbers and an LFO.</p>
+<p>“Vocoder-like” describes the electronic voice impression, not an equivalent signal-processing method. This is also not LPC chip emulation, speech recognition, or intelligible speech synthesis.</p></section>
+<section class="panel"><h2>5. Keep the filter running smoothly</h2>
+<p><code>process(input, output, state, context)</code> runs on the AudioWorklet audio thread. Each <code>input[ch]</code> is one audio channel, such as left or right; it is not a YM2612 musical channel. Each channel keeps its own three filter histories in <code>state</code>. Control position is shared so both sides move together.</p>
+<p>The example uses trapezoidal state-variable band-pass filters, with coefficients calculated from the AudioWorklet's actual <code>sampleRate</code>. The same frequency settings work at 44.1 kHz and 48 kHz. See <a href="https://cytomic.com/files/dsp/SvfLinearTrapOptimised2.pdf" target="_blank" rel="noopener noreferrer">Cytomic's linear trapezoidal SVF derivation</a> for the filter method.</p>
+<p>The processor retains filter history across blocks and same-name code updates. It smooths target frequency, gain, and mix changes over time; <code>transitionMs</code> sets the movement time scale in milliseconds. It also bounds settings, rejects non-finite calculations, and limits output. Very large gain can still squash the sound; begin with the supplied settings.</p>
+<p>This demonstration needs harmonics to shape. A sine wave has only one frequency component, so it cannot provide a convincing set of vowel resonances. The Sega PSG square wave contains odd harmonics. Its default clock also limits its lowest tone to about 109 Hz; try source frequencies around 110–260 Hz. It is a compact chip-based carrier, not a complete model of vocal-fold excitation.</p></section>
+<section class="panel"><h2>6. Compare input and output in FX Monitor</h2><p>After Run, open <strong>FX Monitor</strong> and choose <code>formant-voice</code> as the target. Blue is input and orange is output. Use <strong>View → Spectrum</strong> to compare the frequencies emphasized by the filter; use <strong>Oscilloscope</strong> for the waveform shape.</p>
+<p>Keep a fixed Y range when comparing waveform heights. Input and output share the display scale. In Spectrum, look at the broad shape of the harmonic peaks: peaks sit near the carrier's harmonics, not necessarily exactly at F1, F2, and F3. A filter reshapes existing frequency content rather than generating a new oscillator at each formant.</p>
+<p>The monitor is a short-time view. Listen over several cycles and compare the motion rather than expecting every frame to show three isolated peaks. The effect runs after the sound sources, so it also processes other audio you add to this Playground.</p><p>These are synthetic vowel-color experiments. They do not reproduce LPC hardware, recognize speech, add consonants, or promise a natural speaking voice. Audibility depends on the carrier, pitch, playback device, and listener. Compare at a comfortable level.</p><p><a href="./tetorica-fx.html">FX introduction index (work in progress)</a></p></section>
+</main><script src="./playground-embed.js"></script></body></html>

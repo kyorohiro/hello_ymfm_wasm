@@ -17,7 +17,7 @@ test('all embedded FX lessons register valid APIs and complete their reference l
     choose:values=>values[0],chord:root=>[root],
     noteToBlockFnum:()=>({block:3,fnum:500}),
     noteLerp:()=>({block:3,fnum:500}),lerp:(a,b,t)=>a+(b-a)*t,
-    async tween(duration,fn){assert.equal(duration,1.5);fn(0);fn(.5);fn(1);},
+    async tween(duration,fn){if(typeof duration==='number')assert.equal(duration,1.5);else assert.deepEqual(duration,{seconds:1.5});fn(0);fn(.5);fn(1);},
     cycle(values){return values[cyclePosition++ % values.length];},
     livePrepare:async(_name,fn)=>fn({fx}),
     liveFx(name,{process,context}){processor.command({action:'register',name,source:process.toString(),context});},

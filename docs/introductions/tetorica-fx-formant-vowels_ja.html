@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>フォルマント母音：「あいうえお」を作る — Tetorica FX入門</title><link rel="stylesheet" href="./fx-introduction.css"><link rel="alternate" hreflang="en" href="./tetorica-fx-formant-vowels.html"><link rel="alternate" hreflang="ja" href="./tetorica-fx-formant-vowels_ja.html"><style>.language-nav{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}.language-nav a[aria-current="page"]{font-weight:700}</style></head>
+<body><main><nav aria-label="記事ナビゲーション"><a href="./tetorica-fx_ja.html">FX入門一覧（作成中）</a><a href="./tetorica-fx-formant-vowels_ja.html">16. 母音合成</a><a href="./tetorica-fx-formant-voice_ja.html">17. ボコーダー風</a><a href="./tetorica-fx-formant-pitch_ja.html">18. 音程と母音</a></nav>
+<header class="panel"><p class="kicker">FX INTRODUCTION / 16</p><h1>フォルマント母音：「あいうえお」を作る</h1><nav class="language-nav" aria-label="Language"><a href="./tetorica-fx-formant-vowels.html" lang="en" hreflang="en">English</a> | <a href="./tetorica-fx-formant-vowels_ja.html" lang="ja" hreflang="ja" aria-current="page">日本語</a></nav><p>倍音を含む音の、いくつかの周波数帯を強調すると、母音のような響きになります。liveFxで小さなフォルマントフィルターを作り、5つの母音の間を滑らかにつなぎます。</p></header>
+<section class="panel"><h2>1. まず聴いてみる</h2><p>Runすると、130 HzのSega PSG矩形波が鳴り続けます。フィルターは「あ → い → う → え → お」と変わります。音源の音程はそのままで、共鳴の形だけが動きます。</p><p class="hint">iframe内のRunで再生、Stopで停止します。再生中にコードを編集したら、もう一度Runすると更新が反映されます。同じliveFx名ならフィルターの状態を保持します。最初から比較したい場合はStopしてからRunしてください。ほかのPlaygroundはStopしてから聴き比べます。</p>
+<script type="text/plain" id="formant-vowels">
+// The PSG square wave supplies harmonics; the FX shapes their balance.
+const carrierHz = 130; // Try 130, 196 or 260 Hz. Sega PSG cannot reach below about 109 Hz.
+
+liveFx('formant-vowels', {
+  context: {
+    vowel: 0, // 0:a/あ, 1:i/い, 2:u/う, 3:e/え, 4:o/お; fractions morph.
+    autoVowels: true, // false lets you choose vowel above.
+    vowelSeconds: 1.4, // Hold, then morph: a → i → u → e → o → a.
+    transitionMs: 60, // Smoothing time constant; state survives same-name Apply.
+    lfoHz: 0, // Cycles per second, independent of BPM.
+    lfoDepth: 0, // Formant shift in octaves; 0 disables it.
+    gain: 4,
+    mix: 1, // 0: input; 1: formant output. Changes are smoothed.
+    formants: [
+      [800, 1200, 2500], // a / あ: F1, F2, F3 in Hz (illustrative)
+      [300, 2300, 3000], // i / い
+      [350, 1200, 2500], // u / う
+      [500, 1900, 2600], // e / え
+      [500,  900, 2400], // o / お
+    ],
+    bandwidths: [100, 140, 200], // Hz; wider bands sound less sharply resonant.
+    levels: [1, 0.7, 0.4],
+  },
+  process: formantProcess,
+});
+
+// Prepare once: applying edited FX does not retrigger the source.
+await livePrepare('formant-vowels-source', () => {
+  psg.setFrequency(PSG1, carrierHz);
+  psg.setAttenuation(PSG1, 5);
+  psg.keyOn(PSG1);
+});
+psg.setFrequency(PSG1, carrierHz);
+liveLoop('formant-vowels-control', async () => {
+  // The vowel motion and LFO run on the audio thread, not this timer.
+  await sleep(1); // seconds; Stop ends the sustained source and discards filter state.
+});
+
+// Filter implementation below. Start experimenting with context above.
+/** @param {Float32Array[]} input @param {Float32Array[]} output
+ * @param {Record<string, any>} state @param {any} context */
+function formantProcess(input, output, state, context) {
+  // sampleRate is supplied by AudioWorkletGlobalScope, not a guessed 48000.
+  const rate = Number(Reflect.get(globalThis, 'sampleRate'));
+  if (!Number.isFinite(rate) || rate < 8000 || rate > 384000) {
+    for (const channel of output) channel.fill(0);
+    return;
+  }
+  if (state.schema !== 1 || state.rate !== rate) {
+    state.schema = 1; state.rate = rate;
+    state.defaults = new Float64Array([
+      800, 1200, 2500, // a / あ
+      300, 2300, 3000, // i / い
+      350, 1200, 2500, // u / う
+      500, 1900, 2600, // e / え
+      500,  900, 2400, // o / お
+    ]);
+    state.frequency = new Float64Array([800, 1200, 2500]);
+    state.bandwidth = new Float64Array([100, 140, 200]);
+    state.level = new Float64Array([1, .7, .4]);
+    state.coefficients = new Float64Array(12);
+    state.memory = []; state.untilControl = 0;
+    state.vowelPhase = 0; state.lfoPhase = 0;
+    state.lfoHz = 0; state.depth = 0; state.gain = 0; state.mix = 1;
+    state.vowelSeconds = 1.4;
+  }
+  // Two integrator memories per band, independently for left and right.
+  while (state.memory.length < output.length) state.memory.push(new Float64Array(6));
+  const frames = output[0]?.length ?? 0;
+  for (let i = 0; i < frames; i++) {
+    if (state.untilControl === 0) {
+      // Recalculate at a fixed 16-sample control interval, across block edges.
+      // This keeps tan() out of the per-channel/per-sample inner loop.
+      const ms = Number.isFinite(context.transitionMs) ? Math.max(5, Math.min(500, context.transitionMs)) : 60;
+      const alpha = 1 - Math.exp(-16 / (rate * ms * .001));
+      const seconds = Number.isFinite(context.vowelSeconds) ? Math.max(.25, Math.min(10, context.vowelSeconds)) : 1.4;
+      const hz = Number.isFinite(context.lfoHz) ? Math.max(0, Math.min(8, context.lfoHz)) : 0;
+      const depth = Number.isFinite(context.lfoDepth) ? Math.max(0, Math.min(1, context.lfoDepth)) : 0;
+      const gain = Number.isFinite(context.gain) ? Math.max(0, Math.min(12, context.gain)) : 4;
+      const mix = Number.isFinite(context.mix) ? Math.max(0, Math.min(1, context.mix)) : 1;
+      state.vowelSeconds += alpha * (seconds - state.vowelSeconds);
+      state.lfoHz += alpha * (hz - state.lfoHz);
+      state.depth += alpha * (depth - state.depth);
+      state.gain += alpha * (gain - state.gain);
+      state.mix += alpha * (mix - state.mix);
+      const vowel = Number.isFinite(context.vowel) ? Math.max(0, Math.min(4, context.vowel)) : 0;
+      const position = context.autoVowels === true ? state.vowelPhase : vowel;
+      const first = Math.floor(position), next = (first + 1) % 5;
+      const fraction = position - first;
+      // Auto: hold each vowel for 60% of its time, then morph to the next.
+      let blend = context.autoVowels === true ? Math.max(0, (fraction - .6) / .4) : fraction;
+      blend = blend * blend * (3 - 2 * blend);
+      const shift = 2 ** (state.depth * Math.sin(state.lfoPhase));
+      for (let band = 0; band < 3; band++) {
+        const a = context.formants?.[first]?.[band], b = context.formants?.[next]?.[band];
+        const fa = Number.isFinite(a) && a > 0 ? a : state.defaults[first * 3 + band];
+        const fb = Number.isFinite(b) && b > 0 ? b : state.defaults[next * 3 + band];
+        const limit = Math.min(6000, rate * .2);
+        const target = Math.max(40, Math.min(limit, Math.exp(Math.log(fa) * (1 - blend) + Math.log(fb) * blend) * shift));
+        state.frequency[band] += alpha * (target - state.frequency[band]);
+        const width = context.bandwidths?.[band], level = context.levels?.[band];
+        const bw = Number.isFinite(width) ? Math.max(40, Math.min(600, width)) : band === 0 ? 100 : band === 1 ? 140 : 200;
+        const amplitude = Number.isFinite(level) ? Math.max(0, Math.min(2, level)) : band === 0 ? 1 : band === 1 ? .7 : .4;
+        state.bandwidth[band] += alpha * (bw - state.bandwidth[band]);
+        state.level[band] += alpha * (amplitude - state.level[band]);
+        // Trapezoidal state-variable band-pass (Andrew Simper / Cytomic).
+        // k * bandPass gives approximately unity gain at the band centre.
+        const g = Math.tan(Math.PI * state.frequency[band] / rate);
+        const k = Math.max(1 / 24, Math.min(2, state.bandwidth[band] / state.frequency[band]));
+        const a1 = 1 / (1 + g * (g + k)), offset = band * 4;
+        state.coefficients[offset] = a1;
+        state.coefficients[offset + 1] = g * a1;
+        state.coefficients[offset + 2] = g * g * a1;
+        state.coefficients[offset + 3] = k;
+      }
+      if (context.autoVowels === true) state.vowelPhase = (state.vowelPhase + 16 / (rate * state.vowelSeconds)) % 5;
+      state.lfoPhase = (state.lfoPhase + 2 * Math.PI * state.lfoHz * 16 / rate) % (2 * Math.PI);
+      state.untilControl = 16;
+    }
+    for (let ch = 0; ch < output.length; ch++) {
+      const raw = input[ch]?.[i] ?? 0;
+      const dry = Number.isFinite(raw) ? Math.max(-1, Math.min(1, raw)) : 0;
+      const memory = state.memory[ch];
+      let sum = 0;
+      for (let band = 0; band < 3; band++) {
+        const offset = band * 4, m = band * 2, c = state.coefficients;
+        const v3 = dry - memory[m + 1];
+        let v1 = c[offset] * memory[m] + c[offset + 1] * v3;
+        const v2 = memory[m + 1] + c[offset + 1] * memory[m] + c[offset + 2] * v3;
+        const ic1 = 2 * v1 - memory[m], ic2 = 2 * v2 - memory[m + 1];
+        if (!Number.isFinite(ic1) || !Number.isFinite(ic2) || Math.abs(ic1) > 1e6 || Math.abs(ic2) > 1e6) {
+          memory[m] = memory[m + 1] = 0; v1 = 0;
+        } else {
+          memory[m] = Math.abs(ic1) < 1e-24 ? 0 : ic1;
+          memory[m + 1] = Math.abs(ic2) < 1e-24 ? 0 : ic2;
+        }
+        sum += state.level[band] * c[offset + 3] * v1;
+      }
+      // Soft limiting keeps the wet signal below ±0.75, with headroom.
+      const wet = .75 * Math.tanh(state.gain * sum / .75);
+      output[ch][i] = dry * (1 - state.mix) + wet * state.mix;
+    }
+    state.untilControl--;
+  }
+}
+</script>
+<iframe data-playground-src="formant-vowels" data-playground-mode="full" title="liveFxで5つの母音を滑らかにつなぐ" loading="lazy" allow="autoplay"></iframe>
+<p><a data-playground-src="formant-vowels" target="_blank" rel="noopener noreferrer">このコードを別タブのPlaygroundで開く ↗</a></p></section>
+<section class="panel"><h2>2. 声には「音源」と「共鳴の形」がある</h2>
+<p>声帯の振動が音源になり、声道が特定の周波数帯を強調します。この幅のある共鳴帯域を<strong>フォルマント</strong>と呼びます。電子音にもフィルターで似た形を与えられます。ただし、人間の声道そのものを再現しているわけではありません。</p>
+<p class="formula">倍音を含む入力音<br>↘ バンドパス F1 ↗<br>→ バンドパス F2 → 重み付き加算 → 原音／加工音のMix → 出力<br>↗ バンドパス F3 ↘</p>
+<p>3つのフィルターは、同じ入力を並列に受け取ります。その出力を加算します。F1、F2、F3の順に直列で通す処理ではありません。</p>
+<table><thead><tr><th>フォルマント</th><th>最初の理解の目安</th></tr></thead><tbody><tr><td>F1</td><td>母音の開きと関係します。開いた母音ほど高くなる傾向があります。</td></tr><tr><td>F2</td><td>舌の前後位置と関係します。前寄りの母音ほど高くなる傾向があります。</td></tr><tr><td>F3</td><td>母音や声の響きをさらに特徴づけます。独立した身体のつまみに対応するわけではありません。</td></tr></tbody></table>
+<p>実際の値は話者や発声で変わります。以下は実験用の目標値で、日本語の母音に共通する唯一の数値ではありません。背景は<a href="https://www.phon.ox.ac.uk/jcoleman/AcousticPhonetics2.pdf" target="_blank" rel="noopener noreferrer">Oxfordの音響音声学入門資料（音源・フィルターと母音、英語）</a>を参照できます。</p>
+<table><thead><tr><th>母音／番号</th><th>F1（Hz）</th><th>F2（Hz）</th><th>F3（Hz）</th></tr></thead><tbody><tr><td>あ／0</td><td>800</td><td>1200</td><td>2500</td></tr><tr><td>い／1</td><td>300</td><td>2300</td><td>3000</td></tr><tr><td>う／2</td><td>350</td><td>1200</td><td>2500</td></tr><tr><td>え／3</td><td>500</td><td>1900</td><td>2600</td></tr><tr><td>お／4</td><td>500</td><td>900</td><td>2400</td></tr></tbody></table></section>
+<section class="panel"><h2>3. コードの設定を読む</h2>
+<table><thead><tr><th>設定</th><th>意味／単位</th></tr></thead><tbody><tr><td>vowel</td><td>0〜4の母音番号。0.5などの小数で隣の母音との中間も指定可能</td></tr><tr><td>autoVowels</td><td>trueなら母音の目標を自動で切り替える</td></tr><tr><td>vowelSeconds</td><td>次の母音へ進む間隔（実時間の秒）</td></tr><tr><td>transitionMs</td><td>パラメーターの変化をならす時間尺度（ミリ秒）</td></tr><tr><td>lfoHz / lfoDepth</td><td>LFOの周期数／秒と、共鳴周波数を動かす幅（オクターブ）</td></tr><tr><td>gain / mix</td><td>加工音の倍率／加工音を混ぜる割合（0〜1）</td></tr><tr><td>formants</td><td>母音ごとの[F1, F2, F3]（Hz）の表</td></tr><tr><td>bandwidths / levels</td><td>3帯域それぞれの幅（Hz）／混ぜる重み</td></tr></tbody></table>
+<p><code>context</code>は音声処理へ渡す設定、<code>state</code>は次回の処理へ残す履歴です。これらの母音設定は今回のサンプルが定義する名前で、組み込みFXの追加APIではありません。<code>liveFx</code>の<code>context</code>にある数値と、<code>process</code>で入力を加工する箇所を見比べてください。再生中に同名のコードをRunすると、変更した設定が音声処理へ渡されます。</p></section>
+<section class="panel"><h2>4. 母音を切り替えて、間をつなぐ</h2>
+<p><code>vowel</code>は番号です。0 = あ、1 = い、2 = う、3 = え、4 = お。まず<code>autoVowels: false</code>にして、番号を1つ選び、編集後にもう一度Runします。<code>vowel: 0</code>と<code>vowel: 1</code>を比べると、音源の音程を変えずにフィルターの目標だけが変わります。</p>
+<p><code>autoVowels: true</code>に戻すと、<code>vowelSeconds: 1.4</code>秒ごとに次の目標へ進みます。音声ブロックをまたいで位置を保持し、境界でフィルターを初期化する代わりに、共鳴周波数を少しずつ移動します。1区間の前半60%で母音を保ち、後半40%で次の母音へつなぎます。</p>
+<ol class="steps"><li><code>mix: 0</code>で元の矩形波を聴き、<code>mix: 1</code>に戻して比べます。</li><li><code>autoVowels: false</code>、<code>vowel: 0</code>にし、<code>formants</code>先頭行のF1だけを800から600 Hzへ変えます。ほかの数値を固定して、1つの共鳴の効果を聴きます。</li><li>固定した母音と自動切り替えを比較します。<code>vowelSeconds: 0.7</code>や<code>2.5</code>も試します。</li><li><code>transitionMs: 20</code>、<code>60</code>、<code>200</code>を比べます。長くすると、母音の響きがよりゆっくりつながります。</li><li>Spectrumで、倍音の間隔はほぼ同じまま、強くなる帯域が移動することを確認します。</li></ol>
+<p>母音らしい響きは、録音された声や音節とは別物です。これらの目標値は口の形を思わせる響きを作りますが、子音や言葉の発音は作りません。</p></section>
+<section class="panel"><h2>5. フィルターを途切れずに動かす</h2>
+<p><code>process(input, output, state, context)</code>はAudioWorkletの音声スレッドで動きます。<code>input[ch]</code>は左右などの音声チャンネルで、YM2612の演奏チャンネル番号ではありません。左右それぞれの3つのフィルター履歴を<code>state</code>に保持し、制御位置は共通にして同じタイミングで動かします。</p>
+<p>この例では台形積分方式の状態変数バンドパスフィルターを使い、AudioWorkletの実際の<code>sampleRate</code>から係数を計算します。同じ周波数設定を44.1 kHzと48 kHzで使えます。方式の詳細は<a href="https://cytomic.com/files/dsp/SvfLinearTrapOptimised2.pdf" target="_blank" rel="noopener noreferrer">Cytomicの線形台形積分SVFの資料（英語）</a>にあります。</p>
+<p>音声ブロックや同名FXの更新をまたいで履歴を保ち、目標周波数・Gain・Mixの変更を平滑化します。<code>transitionMs</code>は移動の時間尺度で、単位はミリ秒です。設定範囲を制限し、有限でない計算結果を防ぎ、出力にも上限を設けます。それでもGainを大きくしすぎると音がつぶれるので、まずは初期値で試してください。</p>
+<p>この実験には、加工するための倍音が必要です。サイン波は周波数成分が1つなので、母音の共鳴を十分に作れません。Sega PSGの矩形波には奇数次の倍音があります。標準クロックでの最低音は約109 Hzなので、入力音源は110〜260 Hz程度を目安に試してください。これは小さなチップ音源によるキャリアで、声帯振動の完全なモデルではありません。</p></section>
+<section class="panel"><h2>6. FX Monitorで加工前後を比べる</h2><p>Runしたら<strong>FX Monitor</strong>で対象に<code>formant-vowels</code>を選びます。青が入力、オレンジが出力です。<strong>View → Spectrum</strong>で強調される周波数帯を、<strong>Oscilloscope</strong>で波形の形を比較します。</p>
+<p>波形の高さを比較するときはYを固定します。入力と出力は同じ表示スケールです。Spectrumでは倍音ピークの全体の形を見てください。ピークは入力音源の倍音付近に立ち、F1、F2、F3の中心と完全に一致するとは限りません。フィルターは既存の成分を強調するもので、各フォルマントに新しい発振器を追加する処理ではありません。</p>
+<p>Monitorは短い時間の観測です。毎フレーム3つの山が独立して見えるとは限らないので、数周期の動きと音を合わせて確認します。音源の後段で動くため、このPlaygroundに追加したほかの音にも同じFXがかかります。</p><p>合成した母音の響きを楽しむ実験です。LPCハードウェアの再現、音声認識、子音の生成、自然な話し声の再現を目的にはしていません。聞き取りやすさは音源・音程・再生機器・聴く人でも変わります。無理のない音量で比べてください。</p><p><a href="./tetorica-fx_ja.html">FX入門一覧（作成中）</a></p></section>
+</main><script src="./playground-embed.js"></script></body></html>

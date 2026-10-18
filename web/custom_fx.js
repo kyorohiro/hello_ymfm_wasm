@@ -52,7 +52,13 @@ export class LiveFX {
           const wet=e.fadeRemaining>0?1-e.fadeRemaining/fadeFrames:1;
           for(let ch=0;ch<channels.length;ch++){
             const processed=Math.max(-1,Math.min(1,this.output[ch][i]));
-            channels[ch][i]=this.input[ch][i]*(1-wet)+processed*wet;
+            // A DSP may sanitize a nonfinite source sample. Multiplying the
+            // original NaN/Infinity by zero would poison its valid wet output.
+            if(wet===1)channels[ch][i]=processed;
+            else{
+              const source=this.input[ch][i],dry=Number.isFinite(source)?source:0;
+              channels[ch][i]=dry*(1-wet)+processed*wet;
+            }
           }
           if(e.fadeRemaining>0)e.fadeRemaining--;
         }
