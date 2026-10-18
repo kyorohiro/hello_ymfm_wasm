@@ -2,7 +2,7 @@ import {readFile, writeFile} from 'node:fs/promises';
 import {createFormantExample} from '../docs/introductions/formant-examples.js';
 
 // Keep both languages' editable code identical to the DSP exercised by tests.
-for (const kind of ['vowels', 'voice', 'pitch']) for (const locale of ['', '_ja']) {
+for (const kind of ['vowels', 'voice', 'pitch', 'ym2612']) for (const locale of ['', '_ja']) {
   const path = new URL(`../docs/introductions/tetorica-fx-formant-${kind}${locale}.html`, import.meta.url);
   const html = await readFile(path, 'utf8');
   const pattern = new RegExp(`(<script type="text/plain" id="formant-${kind}">)[\\s\\S]*?(</script>)`);

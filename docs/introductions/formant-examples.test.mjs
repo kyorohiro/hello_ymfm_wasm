@@ -7,6 +7,10 @@ import {formantProcess, createFormantExample} from './formant-examples.js';
 import {createNativeFXController} from '../../web/native_fx.js';
 import {LiveFX} from '../../web/custom_fx.js';
 import {spectrum} from '../playground/playground_fx_monitor.js';
+import ym2612Factory from '../generated/ym2612_wasm.js';
+import {Ym2612} from '../../web/ym2612.js';
+import {YM2612Synth, YM2612DirectTransport} from '../../web/ym2612synth.js';
+import {FM_PRESETS} from '../../web/megasynth-fm-presets.js';
 
 // Compile the same serialized function in a Worklet-like global realm. Importing
 // the function directly would incorrectly let it see this test's globals.
@@ -222,7 +226,7 @@ test('example A/B/C use supported APIs, preserve a sustained source on Apply, an
     assert.deepEqual(keys, [0], 'Apply does not key the sustained source on again');
     assert.equal(f.rack.effects.get('formant-pitch').state, state, 'Apply retains formant state');
   }
-  for (const kind of ['vowels', 'voice', 'pitch']) {
+  for (const kind of ['vowels', 'voice', 'pitch', 'ym2612']) {
     const source = createFormantExample(kind);
     assert.ok(source.includes('process: formantProcess'));
     assert.ok(source.includes(`liveFx('formant-${kind}'`));
@@ -231,10 +235,100 @@ test('example A/B/C use supported APIs, preserve a sustained source on Apply, an
   assert.throws(() => createFormantExample('unknown'), /Unknown formant lesson/);
 });
 
-test('all six published lesson embeds exactly match the tested canonical source and are linked from their index', async () => {
+test('the YM2612 lesson drives a real WASM carrier through formants and preserves its voice when Run again edits source parameters', async t => {
+  const chip = await Ym2612.create({moduleFactory: ym2612Factory,
+    moduleOptions: {wasmBinary: await readFile(new URL('../generated/ym2612_wasm.wasm', import.meta.url))}});
+  try {
+    const transport = new YM2612DirectTransport(chip), writes = [], calls = [];
+    const write = transport.write.bind(transport);
+    transport.write = (port, register, value) => {writes.push({port, register, value}); write(port, register, value);};
+    const synth = new YM2612Synth({transport}), rate = chip.sampleRate(), f = fixture(rate);
+    f.fx.removeLiveFx('formant-test');
+    const fm = new Proxy(synth, {get(target, name) {
+      const value = Reflect.get(target, name);
+      return typeof value === 'function' ? (...args) => {calls.push({name, args}); return value.apply(target, args);} : value;
+    }});
+    const prepared = new Map(), loops = new Map(); let cyclePosition = 0;
+    const api = {fm, FM_PRESETS, CH1: 0, OP1: 0, OP4: 3, liveFx: f.fx.liveFx,
+      livePrepare: async (name, fn) => {if (!prepared.has(name)) prepared.set(name, await fn()); return prepared.get(name);},
+      liveLoop: (name, fn) => loops.set(name, fn), cycle: values => values[cyclePosition++ % values.length],
+      sleep: async seconds => assert.equal(seconds, .6)};
+    const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
+    const execute = source => new AsyncFunction(...Object.keys(api), source)(...Object.values(api));
+    const original = createFormantExample('ym2612');
+    await execute(original);
+    assert.equal(loops.size, 1);
+    assert.deepEqual(calls.filter(call => call.name === 'keyOn').map(call => call.args), [[0, [0]]]);
+    const effect = f.rack.effects.get('formant-ym2612');
+    assert.equal(effect.context.autoVowels, true, 'A changes vowel color');
+    calls.length = 0;
+    for (let i = 0; i < 4; i++) await [...loops.values()][0]();
+    assert.deepEqual(calls.filter(call => call.name === 'setFrequency').map(call => call.args[1]), [130, 130, 130, 130], 'A keeps the carrier pitch fixed');
+
+    chip.generateStereo(Math.round(rate * .1));
+    const dry = chip.generateStereo(16384), bins = spectrum(dry.left);
+    const bandPower = harmonic => {
+      const centre = Math.round(130 * harmonic * dry.left.length / rate); let power = 0;
+      for (let bin = centre - 2; bin <= centre + 2; bin++) power += 10 ** (bins[bin] / 10);
+      return power;
+    };
+    const harmonicRatio = Array.from({length: 11}, (_, i) => bandPower(i + 2)).reduce((a, b) => a + b, 0) / bandPower(1);
+    assert.ok(harmonicRatio > .05, 'feedback supplies harmonics for the formant filters: ' + harmonicRatio);
+    const processPcm = pcm => {
+      const output = [new Float32Array(pcm.left.length), new Float32Array(pcm.right.length)];
+      for (let offset = 0; offset < pcm.left.length; offset += 128) {
+        const channels = [pcm.left.slice(offset, offset + 128), pcm.right.slice(offset, offset + 128)];
+        f.process(channels); output[0].set(channels[0], offset); output[1].set(channels[1], offset);
+      }
+      finiteBounded(output); return output;
+    };
+    const wet = processPcm(dry);
+    const rms = values => Math.sqrt(values.reduce((sum, value) => sum + value * value, 0) / values.length);
+    assert.ok(rms(wet[0]) > .0001, 'real FM source remains audible after filtering');
+    assert.ok(rms(wet[0].map((value, i) => value - dry.left[i])) > .001, 'the filter actually changes the real carrier');
+    assert.deepEqual(wet[0], wet[1], 'the panned carrier and filter stay synchronized');
+    const state = effect.state, integrators = effect.state.memory[0], before = Array.from(integrators);
+
+    const fixed = original.replace("let experiment = 'A';", "let experiment = 'B';")
+      .replace('const fixedVowel = 0;', 'const fixedVowel = 2;');
+    assert.notEqual(fixed, original);
+    await execute(fixed);
+    assert.equal(f.rack.effects.get('formant-ym2612').state, state, 'Run again retains DSP state');
+    assert.equal(state.memory[0], integrators); assert.deepEqual(Array.from(integrators), before);
+    assert.equal(f.rack.effects.get('formant-ym2612').context.autoVowels, false, 'B holds the selected vowel');
+    assert.equal(f.rack.effects.get('formant-ym2612').context.vowel, 2);
+    calls.length = 0; cyclePosition = 0;
+    for (let i = 0; i < 4; i++) await [...loops.values()][0]();
+    assert.deepEqual(calls.filter(call => call.name === 'setFrequency').map(call => call.args[1]), [130, 162.5, 195, 162.5], 'B moves source pitch independently');
+    processPcm(chip.generateStereo(8192));
+
+    const edited = original.replace("let experiment = 'A';", "let experiment = 'C';")
+      .replace('const carrierHz = 130;', 'const carrierHz = 196;')
+      .replace('const feedback = 6;', 'const feedback = 4;')
+      .replace('const operatorLevel = 16;', 'const operatorLevel = 24;');
+    await execute(edited);
+    assert.equal(synth.channels[0].algorithm, 7); assert.equal(synth.channels[0].feedback, 4);
+    assert.equal(synth.channels[0].operators[0].tl, 24, 'Run again changes operator level outside livePrepare');
+    const channel = synth.channels[0];
+    const actualHz = channel.fnum * synth.clock * 2 ** (channel.block - 1) / (144 * 2 ** 20);
+    assert.ok(Math.abs(actualHz - 196) < .3, 'the two-argument setFrequency controls calibrated Hz');
+    assert.equal(f.rack.effects.get('formant-ym2612').context.autoVowels, true, 'C also moves formants');
+    calls.length = 0; cyclePosition = 0;
+    for (let i = 0; i < 4; i++) await [...loops.values()][0]();
+    assert.deepEqual(calls.filter(call => call.name === 'setFrequency').map(call => call.args[1]), [196, 245, 294, 245]);
+    assert.equal(f.rack.effects.get('formant-ym2612').state, state);
+    const final = processPcm(chip.generateStereo(8192));
+    assert.ok(rms(final[0]) > .00001, 'edited source still produces finite audible output');
+    assert.deepEqual(writes.filter(write => write.port === 0 && write.register === 0x28).map(write => write.value), [0x10], 'source edits never retrigger the envelope');
+    assert.deepEqual(f.errors, []);
+    t.diagnostic(`real YM2612 ${rate} Hz; harmonic/fundamental power=${harmonicRatio.toFixed(3)}; filtered RMS=${rms(wet[0]).toFixed(5)}`);
+  } finally {chip.dispose();}
+});
+
+test('all eight published lesson embeds exactly match the tested canonical source and are linked from their index', async () => {
   const indices = new Map(await Promise.all(['', '_ja'].map(async locale => [locale,
     await readFile(new URL(`./tetorica-fx${locale}.html`, import.meta.url), 'utf8')])));
-  for (const locale of ['', '_ja']) for (const kind of ['vowels', 'voice', 'pitch']) {
+  for (const locale of ['', '_ja']) for (const kind of ['vowels', 'voice', 'pitch', 'ym2612']) {
     const filename = `tetorica-fx-formant-${kind}${locale}.html`, id = `formant-${kind}`;
     const html = await readFile(new URL('./' + filename, import.meta.url), 'utf8');
     const scripts = [...html.matchAll(/<script type="text\/plain" id="([^"]+)">([\s\S]*?)<\/script>/g)];

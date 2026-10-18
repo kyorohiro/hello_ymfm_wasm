@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>YM2612フォルマント：FM音源で母音を作る — Tetorica FX入門</title><link rel="stylesheet" href="./fx-introduction.css"><link rel="alternate" hreflang="en" href="./tetorica-fx-formant-ym2612.html"><link rel="alternate" hreflang="ja" href="./tetorica-fx-formant-ym2612_ja.html"><style>.language-nav{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}.language-nav a[aria-current="page"]{font-weight:700}</style></head>
+<body><main><nav aria-label="記事ナビゲーション"><a href="./tetorica-fx_ja.html">FX入門一覧（作成中）</a><a href="./tetorica-fx-formant-vowels_ja.html">16. フォルマント母音</a><a href="./tetorica-fx-formant-voice_ja.html">17. フォルマント音声</a><a href="./tetorica-fx-formant-pitch_ja.html">18. 音程と母音</a><a href="./tetorica-fx-formant-ym2612_ja.html">19. YM2612フォルマント</a></nav>
+<header class="panel"><p class="kicker">FX INTRODUCTION / 19</p><h1>YM2612フォルマント：FM音源で母音を作る</h1><nav class="language-nav" aria-label="Language"><a href="./tetorica-fx-formant-ym2612.html" lang="en" hreflang="en">English</a> | <a href="./tetorica-fx-formant-ym2612_ja.html" lang="ja" hreflang="ja" aria-current="page">日本語</a></nav><p>YM2612を倍音のある音源にして、同じliveFxのフォルマントフィルターで加工します。チップのFeedback、音程、母音の響きを、別々の操作として比べます。</p></header>
+<section class="panel"><h2>1. まず聴いてみる</h2><p>Runすると、130 HzのYM2612音が鳴り続けます。実験Aでは音程を固定し、フィルターが「あ → い → う → え → お」と動きます。チップの倍音と、ソフトウェアで作る共鳴を組み合わせた、電子的な声の響きです。</p><p class="hint">Runで再生、Stopで停止します。再生中にコードを編集したら、もう一度Runすると反映されます。同名のFXはフィルター履歴を保持し、livePrepareにより音源を再発音しません。最初から試すときはStopしてからRunします。別々のPlaygroundは同時に鳴るので、ほかのサンプルは停止して1つずつ比べてください。</p>
+<script type="text/plain" id="formant-ym2612">
+// A: fixed pitch / moving vowels; B: fixed vowel / moving pitch; C: both.
+const carrierHz = 130; // Try 65, 130 or 260 Hz. YM2612 controls pitch; the FX controls vowel color.
+const feedback = 6; // 0..7: 0 is a sine-like source; 6 supplies more harmonics.
+const operatorLevel = 16; // OP1 total level, 0..127; larger is quieter.
+let experiment = 'A'; // Change to 'B' or 'C', then Run again to apply.
+const fixedVowel = 0; // 0:a 1:i 2:u 3:e 4:o
+liveFx('formant-ym2612', {
+  context: {
+    vowel: fixedVowel, // 0:a/あ, 1:i/い, 2:u/う, 3:e/え, 4:o/お; fractions morph.
+    autoVowels: experiment !== 'B', // false lets you choose vowel above.
+    vowelSeconds: 1.4, // Hold, then morph: a → i → u → e → o → a.
+    transitionMs: 60, // Smoothing time constant; state survives same-name Apply.
+    lfoHz: 0, // Cycles per second, independent of BPM.
+    lfoDepth: 0, // Formant shift in octaves; 0 disables it.
+    gain: 4,
+    mix: 1, // 0: input; 1: formant output. Changes are smoothed.
+    formants: [
+      [800, 1200, 2500], // a / あ: F1, F2, F3 in Hz (illustrative)
+      [300, 2300, 3000], // i / い
+      [350, 1200, 2500], // u / う
+      [500, 1900, 2600], // e / え
+      [500,  900, 2400], // o / お
+    ],
+    bandwidths: [100, 140, 200], // Hz; wider bands sound less sharply resonant.
+    levels: [1, 0.7, 0.4],
+  },
+  process: formantProcess,
+});
+
+// Prepare once: applying edited FX does not retrigger the source.
+await livePrepare('formant-ym2612-source', () => {
+  // Algorithm 7 makes OP1 a carrier; its own feedback enriches the source.
+  fm.setPreset(CH1, FM_PRESETS.sine);
+  fm.setAlgo(CH1, 7, feedback);
+  fm.setOperator(CH1, OP1, { tl: operatorLevel });
+  fm.setOperator(CH1, OP4, { tl: 127 }); // Mute the sine preset's original carrier.
+  fm.setPan(CH1, true, true);
+  fm.setFrequency(CH1, carrierHz);
+  fm.keyOn(CH1, [OP1]);
+});
+// Apply source edits without resetting phase or retriggering the envelope.
+fm.setAlgo(CH1, 7, feedback);
+fm.setOperator(CH1, OP1, { tl: operatorLevel });
+fm.setFrequency(CH1, carrierHz);
+liveLoop('formant-ym2612-control', async () => {
+  const hz = experiment === 'A' ? carrierHz : cycle([carrierHz, carrierHz * 1.25, carrierHz * 1.5, carrierHz * 1.25]);
+  fm.setFrequency(CH1, hz);
+  await sleep(0.6); // seconds; Stop ends the sustained source and discards filter state.
+});
+
+// Filter implementation below. Start experimenting with context above.
+/** @param {Float32Array[]} input @param {Float32Array[]} output
+ * @param {Record<string, any>} state @param {any} context */
+function formantProcess(input, output, state, context) {
+  // sampleRate is supplied by AudioWorkletGlobalScope, not a guessed 48000.
+  const rate = Number(Reflect.get(globalThis, 'sampleRate'));
+  if (!Number.isFinite(rate) || rate < 8000 || rate > 384000) {
+    for (const channel of output) channel.fill(0);
+    return;
+  }
+  if (state.schema !== 1 || state.rate !== rate) {
+    state.schema = 1; state.rate = rate;
+    state.defaults = new Float64Array([
+      800, 1200, 2500, // a / あ
+      300, 2300, 3000, // i / い
+      350, 1200, 2500, // u / う
+      500, 1900, 2600, // e / え
+      500,  900, 2400, // o / お
+    ]);
+    state.frequency = new Float64Array([800, 1200, 2500]);
+    state.bandwidth = new Float64Array([100, 140, 200]);
+    state.level = new Float64Array([1, .7, .4]);
+    state.coefficients = new Float64Array(12);
+    state.memory = []; state.untilControl = 0;
+    state.vowelPhase = 0; state.lfoPhase = 0;
+    state.lfoHz = 0; state.depth = 0; state.gain = 0; state.mix = 1;
+    state.vowelSeconds = 1.4;
+  }
+  // Two integrator memories per band, independently for left and right.
+  while (state.memory.length < output.length) state.memory.push(new Float64Array(6));
+  const frames = output[0]?.length ?? 0;
+  for (let i = 0; i < frames; i++) {
+    if (state.untilControl === 0) {
+      // Recalculate at a fixed 16-sample control interval, across block edges.
+      // This keeps tan() out of the per-channel/per-sample inner loop.
+      const ms = Number.isFinite(context.transitionMs) ? Math.max(5, Math.min(500, context.transitionMs)) : 60;
+      const alpha = 1 - Math.exp(-16 / (rate * ms * .001));
+      const seconds = Number.isFinite(context.vowelSeconds) ? Math.max(.25, Math.min(10, context.vowelSeconds)) : 1.4;
+      const hz = Number.isFinite(context.lfoHz) ? Math.max(0, Math.min(8, context.lfoHz)) : 0;
+      const depth = Number.isFinite(context.lfoDepth) ? Math.max(0, Math.min(1, context.lfoDepth)) : 0;
+      const gain = Number.isFinite(context.gain) ? Math.max(0, Math.min(12, context.gain)) : 4;
+      const mix = Number.isFinite(context.mix) ? Math.max(0, Math.min(1, context.mix)) : 1;
+      state.vowelSeconds += alpha * (seconds - state.vowelSeconds);
+      state.lfoHz += alpha * (hz - state.lfoHz);
+      state.depth += alpha * (depth - state.depth);
+      state.gain += alpha * (gain - state.gain);
+      state.mix += alpha * (mix - state.mix);
+      const vowel = Number.isFinite(context.vowel) ? Math.max(0, Math.min(4, context.vowel)) : 0;
+      const position = context.autoVowels === true ? state.vowelPhase : vowel;
+      const first = Math.floor(position), next = (first + 1) % 5;
+      const fraction = position - first;
+      // Auto: hold each vowel for 60% of its time, then morph to the next.
+      let blend = context.autoVowels === true ? Math.max(0, (fraction - .6) / .4) : fraction;
+      blend = blend * blend * (3 - 2 * blend);
+      const shift = 2 ** (state.depth * Math.sin(state.lfoPhase));
+      for (let band = 0; band < 3; band++) {
+        const a = context.formants?.[first]?.[band], b = context.formants?.[next]?.[band];
+        const fa = Number.isFinite(a) && a > 0 ? a : state.defaults[first * 3 + band];
+        const fb = Number.isFinite(b) && b > 0 ? b : state.defaults[next * 3 + band];
+        const limit = Math.min(6000, rate * .2);
+        const target = Math.max(40, Math.min(limit, Math.exp(Math.log(fa) * (1 - blend) + Math.log(fb) * blend) * shift));
+        state.frequency[band] += alpha * (target - state.frequency[band]);
+        const width = context.bandwidths?.[band], level = context.levels?.[band];
+        const bw = Number.isFinite(width) ? Math.max(40, Math.min(600, width)) : band === 0 ? 100 : band === 1 ? 140 : 200;
+        const amplitude = Number.isFinite(level) ? Math.max(0, Math.min(2, level)) : band === 0 ? 1 : band === 1 ? .7 : .4;
+        state.bandwidth[band] += alpha * (bw - state.bandwidth[band]);
+        state.level[band] += alpha * (amplitude - state.level[band]);
+        // Trapezoidal state-variable band-pass (Andrew Simper / Cytomic).
+        // k * bandPass gives approximately unity gain at the band centre.
+        const g = Math.tan(Math.PI * state.frequency[band] / rate);
+        const k = Math.max(1 / 24, Math.min(2, state.bandwidth[band] / state.frequency[band]));
+        const a1 = 1 / (1 + g * (g + k)), offset = band * 4;
+        state.coefficients[offset] = a1;
+        state.coefficients[offset + 1] = g * a1;
+        state.coefficients[offset + 2] = g * g * a1;
+        state.coefficients[offset + 3] = k;
+      }
+      if (context.autoVowels === true) state.vowelPhase = (state.vowelPhase + 16 / (rate * state.vowelSeconds)) % 5;
+      state.lfoPhase = (state.lfoPhase + 2 * Math.PI * state.lfoHz * 16 / rate) % (2 * Math.PI);
+      state.untilControl = 16;
+    }
+    for (let ch = 0; ch < output.length; ch++) {
+      const raw = input[ch]?.[i] ?? 0;
+      const dry = Number.isFinite(raw) ? Math.max(-1, Math.min(1, raw)) : 0;
+      const memory = state.memory[ch];
+      let sum = 0;
+      for (let band = 0; band < 3; band++) {
+        const offset = band * 4, m = band * 2, c = state.coefficients;
+        const v3 = dry - memory[m + 1];
+        let v1 = c[offset] * memory[m] + c[offset + 1] * v3;
+        const v2 = memory[m + 1] + c[offset + 1] * memory[m] + c[offset + 2] * v3;
+        const ic1 = 2 * v1 - memory[m], ic2 = 2 * v2 - memory[m + 1];
+        if (!Number.isFinite(ic1) || !Number.isFinite(ic2) || Math.abs(ic1) > 1e6 || Math.abs(ic2) > 1e6) {
+          memory[m] = memory[m + 1] = 0; v1 = 0;
+        } else {
+          memory[m] = Math.abs(ic1) < 1e-24 ? 0 : ic1;
+          memory[m + 1] = Math.abs(ic2) < 1e-24 ? 0 : ic2;
+        }
+        sum += state.level[band] * c[offset + 3] * v1;
+      }
+      // Soft limiting keeps the wet signal below ±0.75, with headroom.
+      const wet = .75 * Math.tanh(state.gain * sum / .75);
+      output[ch][i] = dry * (1 - state.mix) + wet * state.mix;
+    }
+    state.untilControl--;
+  }
+}
+</script>
+<iframe data-playground-src="formant-ym2612" data-playground-mode="full" title="YM2612のFeedback音を母音に加工する" loading="lazy" allow="autoplay"></iframe>
+<p><a data-playground-src="formant-ym2612" target="_blank" rel="noopener noreferrer">このコードを別タブのPlaygroundで開く ↗</a></p></section>
+<section class="panel"><h2>2. チップの音を作り、その後でフィルターをかける</h2>
+<p class="formula">YM2612のOP1＋Feedback → 倍音を含む音 → 3つの並列フォルマントフィルター → Mix → 出力</p>
+<p>出発点は<code>FM_PRESETS["sine"]</code>です。この例では、4つのOperatorがすべてキャリアになれるAlgorithm 7を選び、<code>OP1</code>だけを鳴らします。ほかのOperatorはミュートします。チップのFeedback経路がOP1にあるため、このOperatorを使います。</p>
+<p><code>feedback = 0</code>では、OP1はサイン波に近い音源です。Feedbackを上げると発振波形が変形し、フィルターが強調できる倍音が増えます。まず<code>feedback = 6</code>から始め、0、3、6を比べてください。Feedbackはチップ側の音色を変え、F1・F2・F3の位置は動かしません。</p>
+<p><code>operatorLevel</code>はYM2612のTotal Level（TL）で、チップの減衰量を表す生の値です。小さいほど大きな音、大きいほど小さな音になります。パーセントではありません。例ではOP1をTL 16、ミュートするOperatorをTL 127にしています。Feedbackを変えて比べるときは、TLの変更も少しずつ試してください。</p>
+<p>フォルマントフィルターは、チップ出力の後段に置く<strong>AudioWorklet上のliveFxによるソフトウェア処理</strong>です。YM2612の中に3つのフォルマントフィルターがあるわけではありません。LPC音声チップの再現や、マイク音声の分析でもありません。</p></section>
+<section class="panel"><h2>3. 3種類の変化を分けて考える</h2>
+<table><thead><tr><th>設定</th><th>変わるもの</th><th>まず試すこと</th></tr></thead><tbody>
+<tr><td><code>carrierHz</code></td><td>YM2612音源の周波数（Hz）</td><td>65、130、260を比較</td></tr>
+<tr><td><code>feedback</code></td><td>音源の波形と倍音。チップの値0〜7</td><td>0、3、6を比較</td></tr>
+<tr><td><code>operatorLevel</code></td><td>OP1の減衰量。生のTL値0〜127</td><td>16と28を比較。大きいほど小さな音</td></tr>
+<tr><td><code>vowel</code>／<code>fixedVowel</code></td><td>共鳴の目標。0=あ、1=い、2=う、3=え、4=お</td><td>0と1に固定して比較</td></tr>
+<tr><td><code>vowelSeconds</code></td><td>自動で次の母音へ進む間隔（実時間の秒）</td><td>1.4と2.5を比較</td></tr>
+<tr><td><code>transitionMs</code></td><td>フォルマント設定を平滑化する時間尺度（ミリ秒）</td><td>20、60、200を比較</td></tr>
+<tr><td><code>lfoHz</code>／<code>lfoDepth</code></td><td>共鳴を動かす周期数／秒と幅（オクターブ）</td><td>0.8と0.3で周期的な母音の響きを試す</td></tr>
+<tr><td><code>mix</code></td><td>原音と加工音の割合。0〜1</td><td>0でチップの音、1でフィルター後の音</td></tr>
+</tbody></table>
+<p><code>formants</code>は母音ごとの[F1, F2, F3]をHzで指定する表です。各バンドパスに同じ入力を渡し、3つの出力を混ぜます。F1は母音の開き、F2は舌の前後位置との関係があり、F3は声の響きをさらに特徴づけます。値は実験用の目安で、すべての話者に共通するものではありません。表とフィルターの仕組みは<a href="./tetorica-fx-formant-vowels_ja.html">フォルマント母音の章</a>で説明しています。</p></section>
+<section class="panel"><h2>4. 実験A・B・Cを比べる</h2>
+<table><thead><tr><th>experiment</th><th>YM2612の音程</th><th>フォルマントフィルター</th></tr></thead><tbody><tr><td><code>'A'</code></td><td><code>carrierHz</code>に固定</td><td>5つの母音を巡回</td></tr><tr><td><code>'B'</code></td><td>周波数パターンを反復</td><td><code>fixedVowel</code>に固定</td></tr><tr><td><code>'C'</code></td><td>同じ周波数パターンを反復</td><td>5つの母音を巡回</td></tr></tbody></table>
+<ol class="steps"><li>Aで<code>mix: 0</code>にし、<code>feedback</code>を6から0へ変えて、もう一度Runします。YM2612自体が作る音の違いを確認します。</li><li>Feedbackを6、<code>mix: 1</code>に戻します。フィルターが加工できる倍音が増えます。Feedback 0では主な成分が1つなので、3つの母音の共鳴を十分に作れません。</li><li><code>experiment = 'B'</code>、<code>fixedVowel = 0</code>にします。音程が動いても共鳴の目標は同じです。次にfixedVowel 1を試します。</li><li>Cを試し、<code>vowelSeconds: 2.5</code>で母音の移動をゆっくりにします。音源の音程と母音の動きは、別々に制御されています。</li><li>LFOも試すならBを選び、<code>lfoHz: 0.8</code>、<code>lfoDepth: 0.3</code>にします。音源用ループが音程を動かしながら、フィルターは周期的に動きます。</li></ol>
+<p>音源用ループは<code>fm.setFrequency</code>を呼びます。フォルマント処理は音声スレッド側の位置から共鳴周波数を動かします。これらは秒で進むため、BPMを変えても速さは変わりません。基音を高くすると共鳴の帯域に入る倍音が減るので、同じ母音設定でも聞こえ方は変わります。</p></section>
+<section class="panel"><h2>5. FX Monitorでチップの音と加工後を比べる</h2>
+<p>Runしたら<strong>FX Monitor</strong>で<code>formant-ym2612</code>を選びます。青が音源からの入力、オレンジがフィルター後の出力です。<strong>View → Spectrum</strong>で倍音の強さを、<strong>Oscilloscope</strong>で波形を比較します。高さを比べるときはYを固定してください。入力と出力は同じ表示スケールです。</p>
+<p>mix 0なら入力と出力が重なります。Feedback 6・mix 1では、オレンジのSpectrumがフォルマント付近の帯域を強調します。個々のピークは音源の倍音付近に立つため、F1・F2・F3の中心と完全には一致しません。Aでは倍音の間隔を変えずに全体の形が動き、Bでは共鳴の目標を保って倍音の間隔が変わります。</p>
+<p>FXは音源を混ぜた後の音声を処理します。特定のYM2612 Operatorや演奏チャンネルだけを選んでいるわけではありません。比較するときは、ほかの音源を鳴らさないようにします。</p></section>
+<section class="panel"><h2>6. 平滑化するもの・しないもの</h2>
+<p>フォルマント処理は左右の音声チャンネルごとに履歴を保持し、実際のAudioWorkletのサンプルレートから係数を計算します。設定の目標を平滑化し、加工音の過大出力を抑えます。前の3つのフォルマント記事と同じ処理を使っています。</p>
+<p><strong>チップの生の設定変更は別です。</strong>Feedback、TL、音程を急に変えると、波形の段差やクリック音が生じる場合があります。フォルマントの移動を滑らかにしても、直接のYM2612レジスター変更までクリックなしになるとは限りません。コードの反映時に音源のキー状態は保ちますが、チップの値に自動の平滑化は加えません。</p>
+<p>合成した声の響きを楽しむ実験です。子音の生成、人間の声道の再現、文章の読み上げは行いません。聴く人、音程、Feedback、再生機器によっても、母音の聞き取りやすさは変わります。無理のない音量から試してください。</p><p><a href="./tetorica-fx_ja.html">FX入門一覧（作成中）</a></p></section>
+</main><script src="./playground-embed.js"></script></body></html>

@@ -108,12 +108,13 @@ export function formantProcess(input, output, state, context) {
 }
 
 export function createFormantExample(kind) {
-  if (!['vowels', 'voice', 'pitch'].includes(kind)) throw new Error('Unknown formant lesson');
+  if (!['vowels', 'voice', 'pitch', 'ym2612'].includes(kind)) throw new Error('Unknown formant lesson');
   const name = `formant-${kind}`;
-  const pitch = kind === 'pitch';
+  const ym2612 = kind === 'ym2612';
+  const pitch = kind === 'pitch' || ym2612;
   const source = `// ${pitch ? 'A: fixed pitch / moving vowels; B: fixed vowel / moving pitch; C: both.' : 'The PSG square wave supplies harmonics; the FX shapes their balance.'}
-const carrierHz = 130; // Try 130, 196 or 260 Hz. Sega PSG cannot reach below about 109 Hz.
-${pitch ? "let experiment = 'A'; // Change to 'B' or 'C', then Run again to apply.\nconst fixedVowel = 0; // 0:a 1:i 2:u 3:e 4:o" : ''}
+const carrierHz = 130; // ${ym2612 ? 'Try 65, 130 or 260 Hz. YM2612 controls pitch; the FX controls vowel color.' : 'Try 130, 196 or 260 Hz. Sega PSG cannot reach below about 109 Hz.'}
+${ym2612 ? "const feedback = 6; // 0..7: 0 is a sine-like source; 6 supplies more harmonics.\nconst operatorLevel = 16; // OP1 total level, 0..127; larger is quieter.\n" : ''}${pitch ? "let experiment = 'A'; // Change to 'B' or 'C', then Run again to apply.\nconst fixedVowel = 0; // 0:a 1:i 2:u 3:e 4:o" : ''}
 liveFx('${name}', {
   context: {
     vowel: ${pitch ? 'fixedVowel' : '0'}, // 0:a/あ, 1:i/い, 2:u/う, 3:e/え, 4:o/お; fractions morph.
@@ -139,13 +140,24 @@ liveFx('${name}', {
 
 // Prepare once: applying edited FX does not retrigger the source.
 await livePrepare('${name}-source', () => {
-  psg.setFrequency(PSG1, carrierHz);
+  ${ym2612 ? `// Algorithm 7 makes OP1 a carrier; its own feedback enriches the source.
+  fm.setPreset(CH1, FM_PRESETS.sine);
+  fm.setAlgo(CH1, 7, feedback);
+  fm.setOperator(CH1, OP1, { tl: operatorLevel });
+  fm.setOperator(CH1, OP4, { tl: 127 }); // Mute the sine preset's original carrier.
+  fm.setPan(CH1, true, true);
+  fm.setFrequency(CH1, carrierHz);
+  fm.keyOn(CH1, [OP1]);` : `psg.setFrequency(PSG1, carrierHz);
   psg.setAttenuation(PSG1, 5);
-  psg.keyOn(PSG1);
+  psg.keyOn(PSG1);`}
 });
-psg.setFrequency(PSG1, carrierHz);
+${ym2612 ? `// Apply source edits without resetting phase or retriggering the envelope.
+fm.setAlgo(CH1, 7, feedback);
+fm.setOperator(CH1, OP1, { tl: operatorLevel });
+fm.setFrequency(CH1, carrierHz);` : 'psg.setFrequency(PSG1, carrierHz);'}
 liveLoop('${name}-control', async () => {
-  ${pitch ? "const hz = experiment === 'A' ? carrierHz : cycle([carrierHz, carrierHz * 1.25, carrierHz * 1.5, carrierHz * 1.25]);\n  psg.setFrequency(PSG1, hz);" : '// The vowel motion and LFO run on the audio thread, not this timer.'}
+  ${pitch ? `const hz = experiment === 'A' ? carrierHz : cycle([carrierHz, carrierHz * 1.25, carrierHz * 1.5, carrierHz * 1.25]);
+  ${ym2612 ? 'fm.setFrequency(CH1, hz);' : 'psg.setFrequency(PSG1, hz);'}` : '// The vowel motion and LFO run on the audio thread, not this timer.'}
   await sleep(${pitch ? '0.6' : '1'}); // seconds; Stop ends the sustained source and discards filter state.
 });
 

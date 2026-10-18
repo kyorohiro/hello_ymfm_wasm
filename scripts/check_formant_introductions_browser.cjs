@@ -117,7 +117,13 @@ async function capture(frame, milliseconds = 450) {
       }
       return {finite, rms, peak, bins, peakFrequencies};
     }
-    return {count:snapshots.length, rate:snapshots.at(-1)?.rate, input:summarize('input'), output:summarize('output')};
+    const input = summarize('input'), output = summarize('output');
+    let differenceSquared = 0, differenceCount = 0;
+    for (const snapshot of snapshots) for (let i = 0; i < snapshot.input.length; i++) {
+      differenceSquared += (snapshot.output[i] - snapshot.input[i]) ** 2; differenceCount++;
+    }
+    return {count:snapshots.length, rate:snapshots.at(-1)?.rate, input, output,
+      relativeInputOutputError:Math.sqrt(differenceSquared / Math.max(1,differenceCount)) / Math.max(1e-12,input.rms)};
   });
 }
 
@@ -166,13 +172,18 @@ function dominantFrequency(result, low = 80, high = 500) {
   return peak * step;
 }
 
-function spectralDistance(a, b) {
+function spectralDistance(a, b, key = 'output') {
   const normalize = values => {
     const total = values.reduce((sum, v) => sum + v, 0);
     return values.map(v => v / total);
   };
-  const x = normalize(a.output.bins), y = normalize(b.output.bins);
+  const x = normalize(a[key].bins), y = normalize(b[key].bins);
   return x.reduce((sum, v, index) => sum + Math.abs(v - y[index]), 0);
+}
+
+function highFrequencyFraction(result, cutoff = 500) {
+  const bins = result.input.bins, first = Math.ceil(cutoff * bins.length * 2 / result.rate);
+  return bins.slice(first).reduce((sum,v) => sum + v,0) / bins.reduce((sum,v) => sum + v,0);
 }
 
 // The lesson-specific checks below are intentionally coupled to the editable
@@ -227,6 +238,18 @@ function replaceParameter(source, name, value) {
 function fixedVowelSource(source, vowel) {
   let edited = source.replace(/autoVowels:\s*true\b/, 'autoVowels: false');
   edited = edited.replace(/(vowel:\s*)0\b/, (_, prefix) => prefix + vowel);
+  return edited;
+}
+
+function fixedPitchVowelSource(source) {
+  return source.replace(/(?:const|let) experiment\s*=\s*["']A["']/, 'let experiment = "B"')
+    .replace(/\[carrierHz,\s*carrierHz\s*\*\s*1\.25,\s*carrierHz\s*\*\s*1\.5,\s*carrierHz\s*\*\s*1\.25\]/, '[carrierHz]');
+}
+
+function replaceConstant(source, name, from, to) {
+  const pattern = new RegExp(`(const ${name}\\s*=\\s*)${from}\\b`);
+  const edited = source.replace(pattern, (_,prefix) => prefix + to);
+  assert.notEqual(edited, source, `editable ${name} constant exists`);
   return edited;
 }
 
@@ -325,13 +348,70 @@ async function checkJapaneseWorker(page, origin, browserName) {
   return {lesson:'formant-vowels-ja-worker', initial:compact(initial), applied:compact(applied)};
 }
 
+async function checkYm2612Lesson(page, origin, browserName, {japanese = false, worker = false} = {}) {
+  const id = 'formant-ym2612', suffix = japanese ? '_ja' : '';
+  await page.goto(`${origin}/introductions/tetorica-fx-${id}${suffix}.html`);
+  assert.equal(await page.locator('html').getAttribute('lang'), japanese ? 'ja' : 'en');
+  assert.match(await page.locator('h1').textContent(), /YM2612/);
+  const source = await page.locator(`script[id="${id}"]`).textContent();
+  if (japanese) await page.screenshot({path:path.join(artifacts, `formant-ym2612-ja-article-${browserName}.png`)});
+  const frame = await prepareFrame(page, id);
+  if (worker) await frame.locator('#workerExecution').check();
+  await applySource(frame, source);
+  await checkDiagnostics(frame, `${id}${suffix}`);
+  await observe(frame, id);
+  const initial = await capture(frame, 700); assertSignal(initial, `${id} initial`);
+  await frame.locator('#fxMonitorMode').selectOption('spectrum'); await frame.waitForTimeout(200);
+  assert(await frame.locator('#fxMonitorSpectrumView').isVisible());
+  await page.screenshot({path:path.join(artifacts, `formant-ym2612${japanese ? '-ja' : ''}-monitor-${browserName}.png`)});
+  await frame.locator('#fxMonitorMode').selectOption('waveform');
+
+  const fixed = fixedPitchVowelSource(source);
+  assert.notEqual(fixed, source, 'YM2612 B can hold a fixed source pitch and vowel');
+  const drySource = replaceParameter(fixed, 'mix', 0);
+  const settle = worker ? 1400 : 800; // Include Worker lookahead before the smoothing tail.
+  await applySource(frame, drySource); await observe(frame, id); await frame.waitForTimeout(settle);
+  const dry = await capture(frame, 550); assertSignal(dry, `${id} mix0`);
+  assert(dry.relativeInputOutputError < .001, `mix0 passes actual source PCM through after smoothing: ${dry.relativeInputOutputError}`);
+  await applySource(frame, fixed); await observe(frame, id); await frame.waitForTimeout(settle);
+  const wet = await capture(frame, 550); assertSignal(wet, `${id} mix1`);
+  const wetDistance = spectralDistance({output:wet.input}, wet);
+  assert(wet.relativeInputOutputError > .1 && wetDistance > .1, `mix1 shapes actual YM2612 input: ${wet.relativeInputOutputError}, ${wetDistance}`);
+  const result = {lesson:`${id}${japanese ? '-ja' : ''}${worker ? '-worker' : ''}`, initial:compact(initial),
+    mix:{dryRelativeError:dry.relativeInputOutputError, wetRelativeError:wet.relativeInputOutputError, wetSpectralDistance:wetDistance}};
+
+  if (!worker) {
+    const sineSource = replaceConstant(fixed, 'feedback', 6, 0);
+    await applySource(frame, sineSource); await observe(frame, id); await frame.waitForTimeout(650);
+    const sine = await capture(frame, 550); assertSignal(sine, 'YM2612 feedback0');
+    const lowCommand = await registration(frame, id);
+    await applySource(frame, fixed); await observe(frame, id); await frame.waitForTimeout(650);
+    const bright = await capture(frame, 550); assertSignal(bright, 'YM2612 feedback6');
+    const pureHigh = highFrequencyFraction(sine), brightHigh = highFrequencyFraction(bright), distance = spectralDistance(sine, bright, 'input');
+    assert(brightHigh > pureHigh * 5 && brightHigh > .01 && distance > .1,
+      `feedback creates real source harmonics: ${JSON.stringify({pureHigh,brightHigh,distance})}`);
+    const highSource = replaceConstant(sineSource, 'carrierHz', 130, 260);
+    await applySource(frame, highSource); await observe(frame, id); await frame.waitForTimeout(800);
+    const high = await capture(frame, 550); assertSignal(high, 'YM2612 pitch260');
+    const highCommand = await registration(frame, id);
+    assert.deepEqual(highCommand.context, lowCommand.context, 'YM2612 source pitch changes independently of all formant parameters');
+    const lowHz = dominantFrequency(sine), highHz = dominantFrequency(high);
+    assert(Math.abs(lowHz - 130) < 25 && Math.abs(highHz - 260) < 25, `YM2612 source pitch130→260: ${lowHz}, ${highHz}`);
+    result.feedback = {sineHighFrequencyFraction:pureHigh, brightHighFrequencyFraction:brightHigh, sourceSpectralDistance:distance};
+    result.pitch = {inputHz:[lowHz,highHz], low:compact(sine), high:compact(high)};
+  }
+  await stopAndCheck(frame);
+  return result;
+}
+
 async function checkBrowser(name, type, origin) {
   const browser = await type.launch({headless:true, ...(name === 'chromium' ? {args:['--autoplay-policy=no-user-gesture-required']} : {})});
   try {
     const context = await browser.newContext({viewport:{width:1280,height:1000}, serviceWorkers:'block'});
     await context.addInitScript(instrumentBrowser);
     const results = [];
-    if (!process.argv.includes('--only-existing')) for (const kind of ['vowels','voice','pitch']) {
+    const onlyYm2612 = process.argv.includes('--only-ym2612');
+    if (!process.argv.includes('--only-existing') && !onlyYm2612) for (const kind of ['vowels','voice','pitch']) {
       const page = await context.newPage(), errors = [];
       page.on('pageerror', error => errors.push(error.message));
       page.setDefaultTimeout(15000);
@@ -339,14 +419,21 @@ async function checkBrowser(name, type, origin) {
       assert.deepEqual(errors, [], `${kind}: no page errors`);
       await page.close();
     }
-    if (!process.argv.includes('--only-existing')) {
+    if (!process.argv.includes('--only-existing') && !onlyYm2612) {
       const page = await context.newPage(), errors = [];
       page.on('pageerror', error => errors.push(error.message)); page.setDefaultTimeout(15000);
       results.push(await checkJapaneseWorker(page, origin, name));
       assert.deepEqual(errors, [], 'Japanese Worker: no page errors');
       await page.close();
     }
-    for (const [name,id,target] of [['gain','gain-live','gain-lab'],['slicer','slicer-live','slicer-lab']]) {
+    if (!process.argv.includes('--only-existing')) for (const settings of [{}, {japanese:true,worker:true}]) {
+      const page = await context.newPage(), errors = [];
+      page.on('pageerror', error => errors.push(error.message)); page.setDefaultTimeout(15000);
+      results.push(await checkYm2612Lesson(page, origin, name, settings));
+      assert.deepEqual(errors, [], `YM2612 ${settings.worker ? 'Worker' : 'Main'}: no page errors`);
+      await page.close();
+    }
+    if (!onlyYm2612) for (const [name,id,target] of [['gain','gain-live','gain-lab'],['slicer','slicer-live','slicer-lab']]) {
       const page = await context.newPage(), errors = [];
       page.on('pageerror', error => errors.push(error.message));
       page.setDefaultTimeout(15000);

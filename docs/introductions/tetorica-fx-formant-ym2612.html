@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>YM2612 formants: make an FM tone speak — Tetorica FX introduction</title><link rel="stylesheet" href="./fx-introduction.css"><link rel="alternate" hreflang="en" href="./tetorica-fx-formant-ym2612.html"><link rel="alternate" hreflang="ja" href="./tetorica-fx-formant-ym2612_ja.html"><style>.language-nav{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}.language-nav a[aria-current="page"]{font-weight:700}</style></head>
+<body><main><nav aria-label="Article navigation"><a href="./tetorica-fx.html">FX introduction index (work in progress)</a><a href="./tetorica-fx-formant-vowels.html">16. Formant vowels</a><a href="./tetorica-fx-formant-voice.html">17. Formant voice</a><a href="./tetorica-fx-formant-pitch.html">18. Pitch and vowels</a><a href="./tetorica-fx-formant-ym2612.html">19. YM2612 formants</a></nav>
+<header class="panel"><p class="kicker">FX INTRODUCTION / 19</p><h1>YM2612 formants: make an FM tone speak</h1><nav class="language-nav" aria-label="Language"><a href="./tetorica-fx-formant-ym2612.html" lang="en" hreflang="en" aria-current="page">English</a> | <a href="./tetorica-fx-formant-ym2612_ja.html" lang="ja" hreflang="ja">日本語</a></nav><p>Use the YM2612 as a harmonic-rich source, then shape it with the same liveFx formant filter. Compare chip feedback, musical pitch, and vowel color as three separate controls.</p></header>
+<section class="panel"><h2>1. Listen first</h2><p>Press Run to sustain a YM2612 tone at 130 Hz. In experiment A, the pitch stays fixed while the filter moves through a → i → u → e → o. The electronic voice color comes from the combination of chip harmonics and software resonances.</p><p class="hint">Run starts playback; Stop stops it. Edit the code during playback and press Run again to apply changes. The same-named FX keeps its filter state, and livePrepare avoids retriggering the sustained source. Stop and Run for a fresh start. Play only one embedded example at a time: independent Playgrounds can otherwise sound together.</p>
+<script type="text/plain" id="formant-ym2612">
+// A: fixed pitch / moving vowels; B: fixed vowel / moving pitch; C: both.
+const carrierHz = 130; // Try 65, 130 or 260 Hz. YM2612 controls pitch; the FX controls vowel color.
+const feedback = 6; // 0..7: 0 is a sine-like source; 6 supplies more harmonics.
+const operatorLevel = 16; // OP1 total level, 0..127; larger is quieter.
+let experiment = 'A'; // Change to 'B' or 'C', then Run again to apply.
+const fixedVowel = 0; // 0:a 1:i 2:u 3:e 4:o
+liveFx('formant-ym2612', {
+  context: {
+    vowel: fixedVowel, // 0:a/あ, 1:i/い, 2:u/う, 3:e/え, 4:o/お; fractions morph.
+    autoVowels: experiment !== 'B', // false lets you choose vowel above.
+    vowelSeconds: 1.4, // Hold, then morph: a → i → u → e → o → a.
+    transitionMs: 60, // Smoothing time constant; state survives same-name Apply.
+    lfoHz: 0, // Cycles per second, independent of BPM.
+    lfoDepth: 0, // Formant shift in octaves; 0 disables it.
+    gain: 4,
+    mix: 1, // 0: input; 1: formant output. Changes are smoothed.
+    formants: [
+      [800, 1200, 2500], // a / あ: F1, F2, F3 in Hz (illustrative)
+      [300, 2300, 3000], // i / い
+      [350, 1200, 2500], // u / う
+      [500, 1900, 2600], // e / え
+      [500,  900, 2400], // o / お
+    ],
+    bandwidths: [100, 140, 200], // Hz; wider bands sound less sharply resonant.
+    levels: [1, 0.7, 0.4],
+  },
+  process: formantProcess,
+});
+
+// Prepare once: applying edited FX does not retrigger the source.
+await livePrepare('formant-ym2612-source', () => {
+  // Algorithm 7 makes OP1 a carrier; its own feedback enriches the source.
+  fm.setPreset(CH1, FM_PRESETS.sine);
+  fm.setAlgo(CH1, 7, feedback);
+  fm.setOperator(CH1, OP1, { tl: operatorLevel });
+  fm.setOperator(CH1, OP4, { tl: 127 }); // Mute the sine preset's original carrier.
+  fm.setPan(CH1, true, true);
+  fm.setFrequency(CH1, carrierHz);
+  fm.keyOn(CH1, [OP1]);
+});
+// Apply source edits without resetting phase or retriggering the envelope.
+fm.setAlgo(CH1, 7, feedback);
+fm.setOperator(CH1, OP1, { tl: operatorLevel });
+fm.setFrequency(CH1, carrierHz);
+liveLoop('formant-ym2612-control', async () => {
+  const hz = experiment === 'A' ? carrierHz : cycle([carrierHz, carrierHz * 1.25, carrierHz * 1.5, carrierHz * 1.25]);
+  fm.setFrequency(CH1, hz);
+  await sleep(0.6); // seconds; Stop ends the sustained source and discards filter state.
+});
+
+// Filter implementation below. Start experimenting with context above.
+/** @param {Float32Array[]} input @param {Float32Array[]} output
+ * @param {Record<string, any>} state @param {any} context */
+function formantProcess(input, output, state, context) {
+  // sampleRate is supplied by AudioWorkletGlobalScope, not a guessed 48000.
+  const rate = Number(Reflect.get(globalThis, 'sampleRate'));
+  if (!Number.isFinite(rate) || rate < 8000 || rate > 384000) {
+    for (const channel of output) channel.fill(0);
+    return;
+  }
+  if (state.schema !== 1 || state.rate !== rate) {
+    state.schema = 1; state.rate = rate;
+    state.defaults = new Float64Array([
+      800, 1200, 2500, // a / あ
+      300, 2300, 3000, // i / い
+      350, 1200, 2500, // u / う
+      500, 1900, 2600, // e / え
+      500,  900, 2400, // o / お
+    ]);
+    state.frequency = new Float64Array([800, 1200, 2500]);
+    state.bandwidth = new Float64Array([100, 140, 200]);
+    state.level = new Float64Array([1, .7, .4]);
+    state.coefficients = new Float64Array(12);
+    state.memory = []; state.untilControl = 0;
+    state.vowelPhase = 0; state.lfoPhase = 0;
+    state.lfoHz = 0; state.depth = 0; state.gain = 0; state.mix = 1;
+    state.vowelSeconds = 1.4;
+  }
+  // Two integrator memories per band, independently for left and right.
+  while (state.memory.length < output.length) state.memory.push(new Float64Array(6));
+  const frames = output[0]?.length ?? 0;
+  for (let i = 0; i < frames; i++) {
+    if (state.untilControl === 0) {
+      // Recalculate at a fixed 16-sample control interval, across block edges.
+      // This keeps tan() out of the per-channel/per-sample inner loop.
+      const ms = Number.isFinite(context.transitionMs) ? Math.max(5, Math.min(500, context.transitionMs)) : 60;
+      const alpha = 1 - Math.exp(-16 / (rate * ms * .001));
+      const seconds = Number.isFinite(context.vowelSeconds) ? Math.max(.25, Math.min(10, context.vowelSeconds)) : 1.4;
+      const hz = Number.isFinite(context.lfoHz) ? Math.max(0, Math.min(8, context.lfoHz)) : 0;
+      const depth = Number.isFinite(context.lfoDepth) ? Math.max(0, Math.min(1, context.lfoDepth)) : 0;
+      const gain = Number.isFinite(context.gain) ? Math.max(0, Math.min(12, context.gain)) : 4;
+      const mix = Number.isFinite(context.mix) ? Math.max(0, Math.min(1, context.mix)) : 1;
+      state.vowelSeconds += alpha * (seconds - state.vowelSeconds);
+      state.lfoHz += alpha * (hz - state.lfoHz);
+      state.depth += alpha * (depth - state.depth);
+      state.gain += alpha * (gain - state.gain);
+      state.mix += alpha * (mix - state.mix);
+      const vowel = Number.isFinite(context.vowel) ? Math.max(0, Math.min(4, context.vowel)) : 0;
+      const position = context.autoVowels === true ? state.vowelPhase : vowel;
+      const first = Math.floor(position), next = (first + 1) % 5;
+      const fraction = position - first;
+      // Auto: hold each vowel for 60% of its time, then morph to the next.
+      let blend = context.autoVowels === true ? Math.max(0, (fraction - .6) / .4) : fraction;
+      blend = blend * blend * (3 - 2 * blend);
+      const shift = 2 ** (state.depth * Math.sin(state.lfoPhase));
+      for (let band = 0; band < 3; band++) {
+        const a = context.formants?.[first]?.[band], b = context.formants?.[next]?.[band];
+        const fa = Number.isFinite(a) && a > 0 ? a : state.defaults[first * 3 + band];
+        const fb = Number.isFinite(b) && b > 0 ? b : state.defaults[next * 3 + band];
+        const limit = Math.min(6000, rate * .2);
+        const target = Math.max(40, Math.min(limit, Math.exp(Math.log(fa) * (1 - blend) + Math.log(fb) * blend) * shift));
+        state.frequency[band] += alpha * (target - state.frequency[band]);
+        const width = context.bandwidths?.[band], level = context.levels?.[band];
+        const bw = Number.isFinite(width) ? Math.max(40, Math.min(600, width)) : band === 0 ? 100 : band === 1 ? 140 : 200;
+        const amplitude = Number.isFinite(level) ? Math.max(0, Math.min(2, level)) : band === 0 ? 1 : band === 1 ? .7 : .4;
+        state.bandwidth[band] += alpha * (bw - state.bandwidth[band]);
+        state.level[band] += alpha * (amplitude - state.level[band]);
+        // Trapezoidal state-variable band-pass (Andrew Simper / Cytomic).
+        // k * bandPass gives approximately unity gain at the band centre.
+        const g = Math.tan(Math.PI * state.frequency[band] / rate);
+        const k = Math.max(1 / 24, Math.min(2, state.bandwidth[band] / state.frequency[band]));
+        const a1 = 1 / (1 + g * (g + k)), offset = band * 4;
+        state.coefficients[offset] = a1;
+        state.coefficients[offset + 1] = g * a1;
+        state.coefficients[offset + 2] = g * g * a1;
+        state.coefficients[offset + 3] = k;
+      }
+      if (context.autoVowels === true) state.vowelPhase = (state.vowelPhase + 16 / (rate * state.vowelSeconds)) % 5;
+      state.lfoPhase = (state.lfoPhase + 2 * Math.PI * state.lfoHz * 16 / rate) % (2 * Math.PI);
+      state.untilControl = 16;
+    }
+    for (let ch = 0; ch < output.length; ch++) {
+      const raw = input[ch]?.[i] ?? 0;
+      const dry = Number.isFinite(raw) ? Math.max(-1, Math.min(1, raw)) : 0;
+      const memory = state.memory[ch];
+      let sum = 0;
+      for (let band = 0; band < 3; band++) {
+        const offset = band * 4, m = band * 2, c = state.coefficients;
+        const v3 = dry - memory[m + 1];
+        let v1 = c[offset] * memory[m] + c[offset + 1] * v3;
+        const v2 = memory[m + 1] + c[offset + 1] * memory[m] + c[offset + 2] * v3;
+        const ic1 = 2 * v1 - memory[m], ic2 = 2 * v2 - memory[m + 1];
+        if (!Number.isFinite(ic1) || !Number.isFinite(ic2) || Math.abs(ic1) > 1e6 || Math.abs(ic2) > 1e6) {
+          memory[m] = memory[m + 1] = 0; v1 = 0;
+        } else {
+          memory[m] = Math.abs(ic1) < 1e-24 ? 0 : ic1;
+          memory[m + 1] = Math.abs(ic2) < 1e-24 ? 0 : ic2;
+        }
+        sum += state.level[band] * c[offset + 3] * v1;
+      }
+      // Soft limiting keeps the wet signal below ±0.75, with headroom.
+      const wet = .75 * Math.tanh(state.gain * sum / .75);
+      output[ch][i] = dry * (1 - state.mix) + wet * state.mix;
+    }
+    state.untilControl--;
+  }
+}
+</script>
+<iframe data-playground-src="formant-ym2612" data-playground-mode="full" title="Shape a YM2612 feedback tone into vowels" loading="lazy" allow="autoplay"></iframe>
+<p><a data-playground-src="formant-ym2612" target="_blank" rel="noopener noreferrer">Open this code in a separate Playground tab ↗</a></p></section>
+<section class="panel"><h2>2. Start with the chip, then add the filter</h2>
+<p class="formula">YM2612 OP1 + feedback → harmonic-rich tone → three parallel formant filters → mix → output</p>
+<p>The starting preset is <code>FM_PRESETS["sine"]</code>. This example selects algorithm 7, in which all four operators can be carriers, but enables only <code>OP1</code>. The other operators are muted. OP1 is useful here because the chip's feedback path belongs to that operator.</p>
+<p>At <code>feedback = 0</code>, OP1 is close to a sine-wave source. Raising feedback bends the oscillator's waveform and supplies more harmonics for the filter to emphasize. Start with <code>feedback = 6</code>, then compare 0, 3, and 6. Feedback changes the chip's source tone; it does not move F1, F2, or F3.</p>
+<p><code>operatorLevel</code> is the YM2612 Total Level (TL), a raw chip attenuation value: smaller is louder, larger is quieter. It is not a percentage. The example uses TL 16 for OP1 and TL 127 for the muted operators. Change TL cautiously when comparing different feedback settings.</p>
+<p>The formant filters are <strong>software processing in liveFx on the AudioWorklet thread</strong>, after the chip output. The YM2612 does not contain these three formant filters. This does not emulate an LPC speech chip or analyze a microphone signal.</p></section>
+<section class="panel"><h2>3. Separate three kinds of change</h2>
+<table><thead><tr><th>Control</th><th>What it changes</th><th>First experiment</th></tr></thead><tbody>
+<tr><td><code>carrierHz</code></td><td>YM2612 source frequency, in Hz</td><td>Compare 65, 130, and 260</td></tr>
+<tr><td><code>feedback</code></td><td>Source waveform and harmonics; raw chip range 0–7</td><td>Compare 0, 3, and 6</td></tr>
+<tr><td><code>operatorLevel</code></td><td>OP1 attenuation, raw TL 0–127</td><td>Compare 16 and 28; larger is quieter</td></tr>
+<tr><td><code>vowel</code> / <code>fixedVowel</code></td><td>Resonance target: 0=a, 1=i, 2=u, 3=e, 4=o</td><td>Compare fixed targets 0 and 1</td></tr>
+<tr><td><code>vowelSeconds</code></td><td>Interval between automatic vowel targets, in elapsed seconds</td><td>Compare 1.4 and 2.5</td></tr>
+<tr><td><code>transitionMs</code></td><td>Formant-parameter smoothing time scale, in milliseconds</td><td>Compare 20, 60, and 200</td></tr>
+<tr><td><code>lfoHz</code> / <code>lfoDepth</code></td><td>Formant motion in cycles per second / octaves</td><td>Try 0.8 and 0.3 for periodic vowel color</td></tr>
+<tr><td><code>mix</code></td><td>Dry/wet balance, 0–1</td><td>0 hears the chip; 1 hears the filtered sound</td></tr>
+</tbody></table>
+<p>The <code>formants</code> table contains [F1, F2, F3] in Hz for each vowel. Each band-pass receives the same input and the three outputs are mixed. F1 broadly relates to vowel openness, F2 to front/back tongue position, and F3 adds further voice quality. These are illustrative targets, not universal measurements. The <a href="./tetorica-fx-formant-vowels.html">formant vowels chapter</a> explains the table and filter.</p></section>
+<section class="panel"><h2>4. Compare experiments A, B, and C</h2>
+<table><thead><tr><th>experiment</th><th>YM2612 pitch</th><th>Formant filter</th></tr></thead><tbody><tr><td><code>'A'</code></td><td>Fixed at <code>carrierHz</code></td><td>Moves through five vowels</td></tr><tr><td><code>'B'</code></td><td>Repeating frequency pattern</td><td>Fixed at <code>fixedVowel</code></td></tr><tr><td><code>'C'</code></td><td>Same repeating frequency pattern</td><td>Moves through five vowels</td></tr></tbody></table>
+<ol class="steps"><li>Start with A and <code>mix: 0</code>. Change <code>feedback</code> from 6 to 0 and Run again. This isolates what the YM2612 contributes.</li><li>Restore feedback 6 and <code>mix: 1</code>. The filter now has more harmonics to shape. With feedback 0, the single main frequency cannot convincingly supply three vowel resonances.</li><li>Set <code>experiment = 'B'</code> and <code>fixedVowel = 0</code>. The melody moves but the resonance targets stay fixed. Try fixedVowel 1 next.</li><li>Try C, then slow the vowel cycle with <code>vowelSeconds: 2.5</code>. Source pitch and vowel motion are controlled separately.</li><li>For the LFO experiment, choose B and set <code>lfoHz: 0.8</code>, <code>lfoDepth: 0.3</code>. The filter moves periodically while the source loop continues to control pitch.</li></ol>
+<p>The source loop calls <code>fm.setFrequency</code>. The formant processor changes resonance frequencies using its own audio-thread position. Changing BPM does not change these second-based controls. A higher fundamental has fewer harmonics inside the formant regions, so the perceived vowel can still vary with source pitch.</p></section>
+<section class="panel"><h2>5. Compare the chip and filtered sound in FX Monitor</h2>
+<p>After Run, open <strong>FX Monitor</strong> and select <code>formant-ym2612</code>. Blue is input from the sound sources; orange is the filtered output. Use <strong>View → Spectrum</strong> to compare harmonic balance and <strong>Oscilloscope</strong> to compare waveforms. Keep Y fixed when comparing heights; input and output share the scale.</p>
+<p>With mix 0, input and output should overlap. With feedback 6 and mix 1, the orange spectrum emphasizes regions near the formants. Actual peaks remain near the source harmonics rather than necessarily exactly at F1, F2, and F3. In A, watch the broad spectral shape move without changing harmonic spacing. In B, harmonic spacing changes while the resonance targets stay put.</p>
+<p>The effect processes the mixed source audio, not a selected YM2612 operator or channel. Keep other sources quiet when learning from this comparison.</p></section>
+<section class="panel"><h2>6. What is smoothed, and what is not?</h2>
+<p>The formant processor keeps separate filter histories for the left and right audio channels, calculates coefficients from the actual AudioWorklet sample rate, smooths parameter targets, and limits excessive wet output. The same processing is used in the earlier three formant chapters.</p>
+<p><strong>Raw chip edits are separate:</strong> abrupt feedback, TL, or pitch changes can create waveform discontinuities and click sounds. Smooth formant movement does not guarantee that a direct YM2612 register change is click-free. The example preserves the source key state when code is applied, but does not add automatic smoothing to the chip's parameters.</p>
+<p>This is a synthetic voice-color experiment. It does not produce consonants, reconstruct a human vocal tract, or read text aloud. Listener, pitch, feedback, and playback device affect how clearly the vowels are heard. Start at a comfortable level.</p><p><a href="./tetorica-fx.html">FX introduction index (work in progress)</a></p></section>
+</main><script src="./playground-embed.js"></script></body></html>
