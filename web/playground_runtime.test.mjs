@@ -83,6 +83,61 @@ test('rerun replaces a liveLoop only after its current iteration completes', asy
   assert.deepEqual(events, ['old-start','old-end','new-start']);
 });
 
+test('Main executes bare and pg seconds timeline APIs', {timeout:2000}, async t => {
+  const {runtime} = setup(t);
+  globalThis.playgroundReview = [];
+  await runtime.playSource(`
+    const timeline = createTimeline();
+    await timeline.waitUntil(0);
+    globalThis.playgroundReview.push('bare');
+    await pg.createTimeline().waitUntil(0);
+    globalThis.playgroundReview.push('pg');
+  `);
+  assert.deepEqual(globalThis.playgroundReview,['bare','pg']);
+});
+
+test('Main timeline lets the current liveLoop iteration finish after rerun', {timeout:2000}, async t => {
+  const {runtime} = setup(t);
+  const old = deferred(), next = deferred(), events = [];
+  globalThis.playgroundReview = {old:old.promise,next:next.promise,events,done:deferred()};
+  await runtime.playSource(`liveLoop('lead',async()=>{
+    const timeline = createTimeline();
+    globalThis.playgroundReview.events.push('old-start');
+    await globalThis.playgroundReview.old;
+    await timeline.waitUntil(0);
+    globalThis.playgroundReview.events.push('old-end');
+  });`);
+  await runtime.playSource(`liveLoop('lead',async()=>{
+    globalThis.playgroundReview.events.push('new-start');
+    globalThis.playgroundReview.done.resolve();
+    await globalThis.playgroundReview.next;
+  });`);
+  assert.deepEqual(events,['old-start']);old.resolve();
+  await globalThis.playgroundReview.done.promise;
+  assert.deepEqual(events,['old-start','old-end','new-start']);
+});
+
+test('Main Stop cancels a pending seconds timeline and rejects later waits', {timeout:2000}, async t => {
+  const {runtime} = setup(t);
+  globalThis.playgroundReview = {};
+  const playing = runtime.playSource(`
+    const timeline = createTimeline();
+    globalThis.playgroundReview.timeline = timeline;
+    globalThis.playgroundReview.entered = true;
+    try {
+      await timeline.waitUntil(60);
+      globalThis.playgroundReview.finished = true;
+    } catch (error) {
+      globalThis.playgroundReview.error = error.message;
+    }
+  `);
+  await until(()=>globalThis.playgroundReview.entered);
+  await runtime.stop();await playing;
+  assert.equal(globalThis.playgroundReview.finished,undefined);
+  assert.equal(globalThis.playgroundReview.error,'Run stopped');
+  await assert.rejects(globalThis.playgroundReview.timeline.waitUntil(61),/Run stopped/);
+});
+
 test('rerun removes undeclared liveFx without stopping audio or the current loop', async t => {
   const {runtime,megaDrive} = setup(t);
   const processor = new LiveFX(48000), gate = deferred(), events = [];

@@ -21,7 +21,7 @@ import {installPlaygroundPageLifecycle} from "./playground_page_lifecycle.js";
 import {createFXMonitor} from './playground_fx_monitor.js?v=vertical-range-1';
 import {createAudioMonitor} from './playground_audio_monitor.js?v=vertical-range-1';
 import {installMidiImport} from './playground_midi_import.js?v=midi-sections-1';
-import {installSpcImport} from './playground_spc_import.js?v=spc-events-1';
+import {installSpcImport} from './playground_spc_import.js?v=spc-song-timing-1';
 import {
   FM_PRESET_ORDER,
   FM_PRESETS,
@@ -43,7 +43,7 @@ import {
 import { createPlaygroundOperatorKeyboard } from "./playground_operator_keyboard.js?v=keyboard-controls-minimize-1";
 import { CHIP_CLOCKS } from "../js/playground_chip_clock.js";
 import { DEFAULT_CODE, EXAMPLES, EXAMPLE_FILES } from "./playground_examples.js?v=worker-lookahead-500-1";
-import { initializePlaygroundMonaco } from "./playground_monaco.js?v=spc-import-1";
+import { initializePlaygroundMonaco } from "./playground_monaco.js?v=spc-song-timing-1";
 import {
   decodeBase64Bytes,
   loadTfiPresetsFromQuery,
@@ -74,7 +74,7 @@ import { exportYm2608VgmToPlaygroundJavaScript } from "../js/ym2608vgm.js";
 import { exportYm2610BVgmToPlaygroundJavaScript } from "../js/ym2610bvgm.js";
 import {
   createPlaygroundRuntime,
-} from "../js/playground_runtime.js?v=spc-events-1";
+} from "../js/playground_runtime.js?v=spc-song-timing-1";
 import {DEFAULT_WORKER_LOOKAHEAD_SECONDS} from '../js/playground_performance_sender.js?v=worker-lookahead-500-1';
 import { createVgmPresetFiles } from "./playground_vgm_presets.js";
 import { createTfiFileEditor, instrumentToEditorPreset } from "./playground_tfi_editor.js?v=chip-tabs-2";

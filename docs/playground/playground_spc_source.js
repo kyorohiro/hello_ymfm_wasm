@@ -2,7 +2,7 @@ import {parseSpcFile} from '../js/spc_file.js';
 import {exportBrrSample} from '../js/snes_brr.js';
 import {noteToHz} from '../js/soundchip_pitch.js';
 import {scanSpcBrrCandidates} from '../vgm_analyzer/spc_brr_candidates.js';
-import {buildSpcSongSource} from './playground_spc_song_source.js?v=spc-events-1';
+import {buildSpcSongSource} from './playground_spc_song_source.js?v=spc-song-timing-1';
 
 const MAX_INSTRUMENT_BYTES = 65536 - 0x400;
 const DEFAULT_VOICE = {adsr1:0x8f, adsr2:0xe0, gain:127, volumeLeft:90, volumeRight:90, pitch:4096};

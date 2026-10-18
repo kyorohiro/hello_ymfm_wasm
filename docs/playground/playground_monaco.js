@@ -1,5 +1,5 @@
-import {createDefinitionViewer} from './playground_monaco_definitions.js?v=spc-import-1';
-import { registerMonacoCompletions } from "./playground_monaco_completion.js";
+import {createDefinitionViewer} from './playground_monaco_definitions.js?v=spc-song-timing-1';
+import { registerMonacoCompletions } from "./playground_monaco_completion.js?v=spc-song-timing-1";
 
 function registerMonacoHover(
   monaco
@@ -25,6 +25,8 @@ function registerMonacoHover(
             "Create a named repeating live loop.",
           livePrepare:
             "Prepare and reuse live state across runs.",
+          createTimeline:
+            "Start an elapsed-seconds timeline after loading resources. waitUntil(seconds) uses positions from this start; late waits catch up. Independent of BPM; not sample-accurate audio reservation.",
           beat:
             "Wait using the shared beat clock.",
           nextBeat:

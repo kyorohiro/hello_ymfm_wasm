@@ -211,7 +211,7 @@ async function checkGeneratedDiagnostics(page,script) {
   assert.deepEqual(result.diagnostics,[],`Generated JavaScript must have no Monaco syntax/semantic diagnostics: ${script}`);
   return {path:result.path,syntaxErrors:0,semanticErrors:0};
 }
-async function runGenerated(page,script,execution,{repeat=false,waitForLog} = {}) {
+async function runGenerated(page,script,execution,{repeat=false,waitForLog,waitForComplete=false} = {}) {
   await page.evaluate(({script,execution}) => {
     const p = window.__spcImportTest; p.open(script);
     document.getElementById('workerExecution').checked = execution === 'worker';
@@ -245,6 +245,11 @@ async function runGenerated(page,script,execution,{repeat=false,waitForLog} = {}
     assert((await level(page)).rms > .001,`${execution}: repeated Run must leave the imported song audible`);
   }
   if (waitForLog) await page.waitForFunction(marker => document.getElementById('consoleOutput').textContent.includes(marker),waitForLog);
+  if (waitForComplete) {
+    await page.waitForFunction(count => window.__spcImportTest.runOutcomes.length > count,outcomes);
+    assert.deepEqual(await page.evaluate(() => window.__spcImportTest.runOutcomes.at(-1)),{ok:true},
+      `${execution}: generated song must finish before STOP`);
+  }
   await page.locator('#stopButton').click();
   await page.waitForFunction(() => window.__spcImportTest.runtime.getState().playback === 'stopped'
     && !document.getElementById('stopButton').disabled);
@@ -343,6 +348,68 @@ await sleep(10);
     'Static DSP playback must emit one inferred initial note without raw writes, overflow or repeated heartbeat notes');
   return {audio,diagnostics,events};
 }
+async function checkDenseSongTiming(page,fixture,execution) {
+  const marker = `SPC_DENSE_TIMING_${execution}_`, directory = `/spc/dense-timing-${execution}`;
+  const script = `${directory}/index.js`;
+  const details = await page.evaluate(async ({fixture,marker,directory,script}) => {
+    const {buildSpcSongSource} = await import(new URL('playground_spc_song_source.js?dense-timing-check=1',location.href).href);
+    const bytes = new Uint8Array(fixture), dsp = bytes.slice(0x10100,0x10180);
+    const preset = {adsr1:0,adsr2:0,gain:127,volumeLeft:64,volumeRight:48,pitch:4096,sourceNumber:0};
+    const events = [{type:'noteOn',clock:0,channel:0,sourceNumber:0,pitch:4096,
+      preset,sampleId:0,reason:'kon'}];
+    // A relative sleep for every 1 ms event hits the browser's nested-timer
+    // minimum and stretches this one-second song to several seconds. Events
+    // across distinct voices can be this close even with a 20 ms control step.
+    for (let index = 1; index <= 900; index++) events.push({type:'pitch',clock:Math.round(index * 1024),
+      channel:0,pitch:4096 + index % 512});
+    events.push({type:'noteOff',clock:1024000,channel:0,reason:'koff'});
+    const performance = {version:1,clockRate:1024000,durationClocks:1024000,
+      initialDsp:dsp,events,samples:[{id:0,sourceNumber:0,brr:bytes.slice(0x2100,0x2109),
+        loop:true,loopStartSamples:0}],warnings:[],controlStepMs:0,
+      statistics:{rawWrites:events.length,eventCount:events.length}};
+    const generated = buildSpcSongSource(performance,directory);
+    let source = generated.source;
+    if (!source.includes('const timeline = createTimeline();')) throw Error('Generated song must create its clock after loading assets');
+    source = source.replace('const timeline = createTimeline();',
+      `const timeline = createTimeline();\n  console.log(${JSON.stringify(marker + 'START')});`);
+    source = source.replace('  snes.allNotesOff();',
+      `  console.log(${JSON.stringify(marker + 'END')});\n  snes.allNotesOff();`);
+    const p = window.__spcImportTest;
+    for (const file of generated.files) {
+      if (file.type === 'text') p.virtualFiles.writeText(file.path,file.data);
+      else p.virtualFiles.writeBinary(file.path,file.data);
+    }
+    p.virtualFiles.writeText(script,source);
+    p.denseTimingObserver?.disconnect();
+    p.denseTiming = {start:null,end:null};
+    p.denseTimingObserver = new MutationObserver(() => {
+      const text = document.getElementById('consoleOutput').textContent;
+      if (p.denseTiming.start === null && text.includes(marker + 'START')) p.denseTiming.start = performanceNow();
+      if (p.denseTiming.end === null && text.includes(marker + 'END')) p.denseTiming.end = performanceNow();
+    });
+    // Use the browser's clock only in this external test harness. Generated
+    // Playground code has no dependency on browser globals or test functions.
+    const performanceNow = () => window.performance.now();
+    p.denseTimingObserver.observe(document.getElementById('consoleOutput'),{subtree:true,childList:true,characterData:true});
+    return {source,eventCount:events.length,waitCount:(source.match(/\.waitUntil\(/g) || []).length};
+  },{fixture:Array.from(fixture),marker,directory,script});
+  assert.match(details.source,/createTimeline\(/);
+  assert.match(details.source,/await timeline\.waitUntil\(/);
+  assert.doesNotMatch(details.source,/await sleep\(/,'Dense song events must use absolute deadlines');
+  assert(details.waitCount >= 900,'The fixture must exercise many close event deadlines');
+  const diagnostics = await checkGeneratedDiagnostics(page,script);
+  const audio = await runGenerated(page,script,execution,{waitForLog:marker + 'END',waitForComplete:true});
+  const timing = await page.evaluate(() => {
+    const p = window.__spcImportTest; p.denseTimingObserver.disconnect();
+    return {...p.denseTiming,outcome:p.runOutcomes.at(-1)};
+  });
+  assert.equal(typeof timing.start,'number'); assert.equal(typeof timing.end,'number');
+  const dispatchDurationMs = timing.end - timing.start;
+  assert(dispatchDurationMs >= 800 && dispatchDurationMs < 1350,
+    `${execution}: one second of dense controls must retain song speed, observed ${dispatchDurationMs.toFixed(1)} ms`);
+  assert.deepEqual(timing.outcome,{ok:true},'The dense generated song must finish without an execution error');
+  return {eventCount:details.eventCount,waitCount:details.waitCount,dispatchDurationMs,audio,diagnostics};
+}
 function assertPageErrors(errors,rejections) {
   // Monaco cancels its previous view when switching the generated model.
   const modelTrace = stack => stack.includes('/monaco-editor/0.52.2/min/vs/editor/editor.main.js')
@@ -368,6 +435,13 @@ async function checkBrowser(name,type,url,fixture) {
     });
     await page.goto(url);
     await page.waitForFunction(() => window.__spcImportTest?.editor.kind === 'monaco');
+    if (process.argv.includes('--timing-only')) {
+      const timing = {};
+      for (const execution of ['main','worker']) timing[execution] = await checkDenseSongTiming(page,fixture,execution);
+      const modelCancellations = assertPageErrors(errors,await page.evaluate(() => window.__spcImportRejections));
+      console.log(JSON.stringify({browser:name,passed:true,denseSongTiming:true,timing,modelCancellations}));
+      await page.close(); return;
+    }
     if (process.argv.includes('--idle-events')) {
       const song = await importBundle(page,fixture,'song'), observations = {};
       for (const execution of ['main','worker']) observations[execution] = await checkIdleSpcEvents(page,song.directory,execution);
@@ -464,7 +538,9 @@ async function checkBrowser(name,type,url,fixture) {
     assert(readable.files.every(file => !/\/initial\.(ram|dsp)\.bin$/.test(file.path)),
       'Readable song JavaScript uses instrument assets instead of raw DSP/RAM snapshots');
     for (const method of ['loadBRR','setPreset','setPitch','keyOn','keyOff']) assert.match(readableSource,new RegExp(`\\.${method}\\(`));
-    assert.match(readableSource,/await sleep\(/);
+    assert.match(readableSource,/const timeline = createTimeline\(\)/);
+    assert.match(readableSource,/await timeline\.waitUntil\(/);
+    assert.doesNotMatch(readableSource,/await sleep\(/,'Readable song events must not accumulate relative timer delays');
     assert.doesNotMatch(readableSource,/new Uint32Array|prepareTimeline|playTimeline/);
     assert((readableSource.match(/\.setPitch\(/g) || []).length < 16,
       'Repeated unchanged driver PITCH writes must not turn into hundreds of high-level calls');
@@ -476,6 +552,8 @@ async function checkBrowser(name,type,url,fixture) {
       eventObservations[execution] = await checkSpcEvents(page,readable.directory,execution);
       eventGuards[execution] = await checkSpcEventGuard(page,readable.directory,execution);
     }
+    const denseSongTiming = {};
+    for (const execution of ['main','worker']) denseSongTiming[execution] = await checkDenseSongTiming(page,fixture,execution);
     await page.evaluate(script => window.__spcImportTest.open(script),readable.entryPath);
     await page.screenshot({path:`/private/tmp/playground-spc-import-${name}.png`});
     // Opening generated models can cancel Monaco 0.52.2's previous view task.
@@ -484,7 +562,7 @@ async function checkBrowser(name,type,url,fixture) {
     const rejections = await page.evaluate(() => window.__spcImportRejections);
     const modelCancellations = assertPageErrors(errors,rejections);
     console.log(JSON.stringify({browser:name,passed:true,cancelNoChange:true,conversionCancelNoChange:true,repeatedSongRun:true,uniqueDirectories:[song.directory,repeatedSong.directory,instruments.directory,trace.directory,readable.directory],
-      songLevels,instrumentLevels,traceLevels,readableLevels,eventObservations,eventGuards,optimization,diagnostics,modelCancellations,unusedRootUnknown:true,originalSpcPreserved:true}));
+      songLevels,instrumentLevels,traceLevels,readableLevels,eventObservations,eventGuards,denseSongTiming,optimization,diagnostics,modelCancellations,unusedRootUnknown:true,originalSpcPreserved:true}));
     await page.close();
   } finally {await browser.close();}
 }

@@ -33,7 +33,7 @@ export async function captureSpcPerformance(bytes, {durationSeconds, moduleFacto
       'Approximate re-performance, not identical SPC playback. Original note names, loops and tempo are not inferred.',
       'Initially active voices restart their envelopes and BRR phase. Echo and its RAM are omitted.',
       'BRR versions are captured at note/sample changes at 128-frame boundaries (up to 4 ms); subsequent CPU edits to playing sample RAM are not replayed.',
-      'JavaScript sleeps use elapsed seconds and are not sample-accurate audio reservations.',
+      'Timeline waits use elapsed seconds and catch up after JavaScript delays; event dispatch is not sample-accurate audio reservation.',
     ]);
     const sampleCache = new Map(), pending = new Map();
     const held = new Uint8Array(8), sourceNumbers = Array.from({length:8}, (_, ch) => initialDsp[(ch << 4) + 4]);

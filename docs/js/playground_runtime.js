@@ -43,7 +43,7 @@ import {
   FM_PRESETS,
 } from "./megasynth.js?v=chip-tabs-2";
 import { createTetoricaSynth } from "./tetorica_synth.js?v=chip-tabs-2";
-import { createPlaygroundClock } from "./playground_clock.js?v=run-sample-clock-1";
+import { createPlaygroundClock, createSecondsTimeline } from "./playground_clock.js?v=spc-song-timing-1";
 import { capturePlaygroundNativeIpc, executeWithPlaygroundGuards } from "./playground_execution.js";
 import { createPlaygroundLive } from "./playground_live.js?v=run-sample-clock-1";
 import { createPlaygroundMusic } from "./playground_music.js?v=shared-beat-clock-1";
@@ -195,7 +195,7 @@ export function createPlaygroundRuntime(
     options.execution ?? "main";
   const defaultLogicWorkerUrl =
     new URL(
-      "./playground_logic_worker.js?v=spc-events-1",
+      "./playground_logic_worker.js?v=spc-song-timing-1",
       import.meta.url
     );
   defaultLogicWorkerUrl.searchParams.set(
@@ -1677,6 +1677,18 @@ export function createPlaygroundRuntime(
           seconds,
           runToken
         ),
+      createTimeline() {
+        const loop = currentLoopContext;
+        const token = loop?.runToken ?? runToken;
+        return createSecondsTimeline({
+          now: clockApi.nowSeconds,
+          sleep: seconds => clockApi.sleep(seconds, runToken),
+          check: () => {
+            if (loop?.interruptError && !loop.stopped) throw loop.interruptError;
+            if (loop?.stopped || token !== (loop?.runToken ?? currentRunToken)) throw new Error('Run stopped');
+          },
+        });
+      },
       sleepSamples: (
         samples,
         sampleRate = 44100
@@ -1798,6 +1810,7 @@ export function createPlaygroundRuntime(
           pg.scheduleWritesSamples(start, entries),
         sleep: (seconds) =>
           pg.sleep(seconds),
+        createTimeline: pg.createTimeline,
         sleepSamples: (
           samples,
           sampleRate

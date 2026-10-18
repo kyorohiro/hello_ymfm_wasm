@@ -16,8 +16,9 @@ const revisions={
   'playground_snes.js':'spc-song-js-1',
   'playground_snes_worklet.js':'spc-song-js-1',
   'playground_snes_audio.js':'spc-song-js-1',
-  'playground_runtime.js':'spc-events-1',
-  'playground_logic_worker.js':'spc-events-1',
+  'playground_clock.js':'spc-song-timing-1',
+  'playground_runtime.js':'spc-song-timing-1',
+  'playground_logic_worker.js':'spc-song-timing-1',
   'playground_performance_sender.js':'spc-events-1',
   'playground_performance_host.js':'spc-events-1',
   'playground_soundchips.js':'spc-import-1',
@@ -27,7 +28,7 @@ const revisions={
   'playground_performance_processor.js':'spc-song-js-1',
 };
 const targets=[
-  'soundchip_mixer.js','megasynth.js','playground_runtime.js','playground_logic_worker.js','playground_performance_sender.js','playground_performance_host.js',
+  'soundchip_mixer.js','megasynth.js','playground_clock.js','playground_runtime.js','playground_logic_worker.js','playground_performance_sender.js','playground_performance_host.js',
   'playground_rf5c164.js','playground_chip_inspector.js','playground_chip_inspector_state.js',
   'playground_segapsg_worklet.js','rf5c164-worklet.js','playground_pwm_worklet.js',
   'ym2612-worklet.js','ym2612-worklet-nuked.js',

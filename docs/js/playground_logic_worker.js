@@ -29,7 +29,7 @@ import {createWorkerDac} from './playground_worker_dac.js';
 import {createWorkerChip} from './playground_worker_chip.js?v=dac-pcm-1';
 import {createMidiApi, createMidiRack} from './playground_midi.js?v=shared-beat-clock-1';
 import { hzToBlockFnum } from "./pitch.js";
-import {createDeadlineScheduler,createBeatClock,runTween} from './playground_clock.js?v=shared-beat-clock-1';
+import {createDeadlineScheduler,createBeatClock,createSecondsTimeline,runTween} from './playground_clock.js?v=spc-song-timing-1';
 
 import {createNativeFXController,createLiveFxLifecycle} from "./native_fx.js?v=live-fx-definitions-1";
 let nativeFXPort = null;
@@ -704,6 +704,14 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
     scheduleWritesSamples: (start, entries) => workerDac ? workerDac.schedule(start, entries) : postCommand("scheduleWritesSamples", [start, entries]),
     control: (voice, options) => nativeNoise ? controlNativeNoise(voice,options) : postCommand("noise.control", [handleId(voice), options]),
     sleep: clock.sleep,
+    createTimeline() {
+      const token = run.token;
+      return createSecondsTimeline({
+        now: () => performance.now() / 1000,
+        sleep: clock.sleep,
+        check: () => { if (run.stopped || token !== run.token) throw new DOMException('Run stopped', 'AbortError'); },
+      });
+    },
     sleepSamples: clock.sleepSamples,
     beat: clock.beat,
     nextBeat: clock.nextBeat,

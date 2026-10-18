@@ -101,6 +101,7 @@ async function executeSavedSong(plan,trace,frames) {
 async function executeReadableSong(plan) {
   const files = new Map(plan.files.map(file => [file.path,file]));
   const core = await SnesDspCore.create(options), synth = new SnesSynth({core});
+  const {createSecondsTimeline} = await import('../../web/playground_clock.js');
   const calls = [], pcm = [], waits = [];
   let disposed = false;
   try {
@@ -118,11 +119,14 @@ async function executeReadableSong(plan) {
       assert.equal(type,'arrayBuffer'); assert.equal(entry.type,'binary');
       return entry.data.buffer.slice(entry.data.byteOffset,entry.data.byteOffset+entry.data.byteLength);
     };
+    let elapsed = 0;
     const sleep = async seconds => {
       assert(Number.isFinite(seconds) && seconds >= 0,'Readable waits use finite elapsed seconds');
       waits.push(seconds); pcm.push(render(core,Math.round(seconds * 32000),127));
+      elapsed += seconds;
     };
-    await new AsyncFunction('createSoundChip','file','sleep',files.get(plan.entryPath).data)(createSoundChip,file,sleep);
+    const createTimeline = () => createSecondsTimeline({now:()=>elapsed,sleep});
+    await new AsyncFunction('createSoundChip','file','createTimeline',files.get(plan.entryPath).data)(createSoundChip,file,createTimeline);
     assert(disposed,'Readable source releases its instrument');
     return {calls,pcm,waits};
   } finally {core.dispose();}
@@ -249,7 +253,8 @@ test('readable songs use BRR and high-level operations instead of unchanged DSP 
   assert(plan.files.some(file => file.path.endsWith('.brr')),'Readable songs save actual BRR assets');
   assert(plan.files.every(file => !/\/initial\.(ram|dsp)\.bin$/.test(file.path)));
   for (const method of ['loadBRR','setPreset','setPitch','keyOn','keyOff']) assert.match(source,new RegExp(`\\.${method}\\(`));
-  assert.match(source,/await sleep\(/); assert.match(source,/approx|not.*exact|not.*identical|lossy/i);
+  assert.match(source,/await timeline\.waitUntil\(/); assert.match(source,/approx|not.*exact|not.*identical|lossy/i);
+  assert.doesNotMatch(source,/await sleep\(/,'Song event deadlines must not accumulate relative-wait latency');
   assert.doesNotMatch(source,/new Uint32Array|prepareTimeline|playTimeline/);
   const repeatedWrites = performance.statistics.rawWrites;
   assert(repeatedWrites >= 400,'The authored driver must actually repeat unchanged PITCH writes');

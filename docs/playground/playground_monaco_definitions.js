@@ -9,7 +9,8 @@ export function definitionSource(text, position, chip = 'ym2612') {
   const prefix = lines.slice(0, position?.startLineNumber ?? position?.lineNumber ?? 1).join('\n');
   const owners = [...prefix.matchAll(/^(?:declare\s+)?(?:interface|type)\s+(\w+)/gm)];
   const owner = owners.at(-1)?.[1] ?? '';
-  if (['useSoundChip', 'createSoundChip', 'setBpm', 'beat', 'nextBeat', 'sleep', 'sleepSamples', 'tween'].includes(symbol)) return {file:'playground_runtime.js', symbol};
+  if (['useSoundChip', 'createSoundChip', 'setBpm', 'beat', 'nextBeat', 'sleep', 'sleepSamples', 'tween', 'createTimeline'].includes(symbol)) return {file:'playground_runtime.js', symbol};
+  if (owner === 'PlaygroundSecondsTimeline') return {file:'playground_clock.js',symbol};
   if (['hzToBlockFnum', 'createPitchFromMidi'].includes(symbol)) return {file:'pitch.js', symbol};
   if (['noteToBlockFnum', 'play', 'scale', 'chord', 'noteLerp'].includes(symbol)) return {file:'playground_music.js', symbol};
   if (/^PlaygroundNes$/.test(owner)) return {file:'nesapusynth.js', symbol};

@@ -49,6 +49,7 @@ export function buildSpcSongSource(performance, directory) {
   const lines = [
     '// Editable SPC song: approximate re-performance, not identical SPC playback.',
     '// One SNES instance, physical voices 0..7. Times are elapsed seconds, independent of BPM.',
+    '// waitUntil targets the song timeline: late JavaScript catches up instead of slowing every following note.',
     '// PITCH 4096 plays at the BRR source rate (32,000 Hz); note names cannot be inferred.',
     '// C4 below is your assigned reference note, not a detected musical root.',
     '// ADSR1/ADSR2/GAIN and signed volumes are raw DSP values, not durations.',
@@ -77,9 +78,10 @@ export function buildSpcSongSource(performance, directory) {
     const value = register === 0x6c ? performance.initialDsp[register] | 0x20 : performance.initialDsp[register];
     lines.push(`  snes.writeDsp(${hex(register)}, ${hex(value)}); // ${label}`);
   }
+  lines.push('  const timeline = createTimeline(); // Start after all samples and presets have loaded.');
   let clock = 0;
   for (const event of performance.events) {
-    if (event.clock > clock) lines.push(`  await sleep(${number((event.clock - clock) / performance.clockRate)});`);
+    if (event.clock > clock) lines.push(`  await timeline.waitUntil(${number(event.clock / performance.clockRate)});`);
     clock = event.clock;
     const channel = event.channel;
     if (event.type === 'noteOn') {
@@ -95,11 +97,11 @@ export function buildSpcSongSource(performance, directory) {
     else if (event.type === 'instrument') lines.push(`  snes.setChannel(${channel}, {adsr1: ${event.adsr1}, adsr2: ${event.adsr2}, gain: ${event.gain}${event.sampleId !== undefined ? `, sample: sample${event.sampleId}` : ''}});`);
     else if (GLOBAL_LABELS.has(event.register)) lines.push(`  snes.writeDsp(${hex(event.register)}, ${hex(event.register === 0x6c ? event.value | 0x20 : event.value)}); // ${GLOBAL_LABELS.get(event.register)}`);
   }
-  if (clock < performance.durationClocks) lines.push(`  await sleep(${number((performance.durationClocks - clock) / performance.clockRate)});`);
+  if (clock < performance.durationClocks) lines.push(`  await timeline.waitUntil(${number(performance.durationClocks / performance.clockRate)});`);
   lines.push('  snes.allNotesOff();', '} finally {', '  snes.dispose();', '}', '');
   return {files,source:lines.join('\n'),conversion:{kind:'readable',version:1,
     clockRate:performance.clockRate,durationClocks:performance.durationClocks,
-    durationSeconds:performance.durationClocks / performance.clockRate,nativeSampleRate:32000,
+    durationSeconds:performance.durationClocks / performance.clockRate,nativeSampleRate:32000,timing:'elapsed-seconds-from-start',
     ...performance.statistics,eventCount:performance.events.length,controlStepMs:performance.controlStepMs,
     warnings:[...performance.warnings]}};
 }

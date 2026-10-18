@@ -3,7 +3,7 @@ export function convertSpcImport(prepared, {directory, durationSeconds, mode = '
   if (!['javascript','trace'].includes(mode)) throw new TypeError('SPC conversion mode must be javascript or trace');
   signal?.throwIfAborted();
   return new Promise((resolve, reject) => {
-    const worker = new Worker(new URL('./playground_spc_trace_worker.js?v=spc-events-1', import.meta.url), {type:'module'});
+    const worker = new Worker(new URL('./playground_spc_trace_worker.js?v=spc-song-timing-1', import.meta.url), {type:'module'});
     const cleanup = () => {clearTimeout(timer); signal?.removeEventListener('abort', abort); worker.terminate();};
     const finish = (fn, value) => {cleanup(); fn(value);};
     const abort = () => finish(reject, signal.reason ?? new DOMException('SPC conversion cancelled', 'AbortError'));

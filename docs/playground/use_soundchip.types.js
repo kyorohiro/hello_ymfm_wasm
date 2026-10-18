@@ -1,5 +1,12 @@
 // Type-check fixture for the same module scope used by Monaco.
 // @ts-check
+const songTimeline = createTimeline();
+await songTimeline.waitUntil(0.25);
+await pg.createTimeline().waitUntil(0);
+// @ts-expect-error Timeline positions are seconds, not duration objects.
+await songTimeline.waitUntil({seconds:1});
+// @ts-expect-error Timeline positions must be numeric.
+await songTimeline.waitUntil('1');
 const fm = await useSoundChip('ym2612');
 fm.setPreset(CH1, FM_PRESETS['one-op-basic']);
 await play('C4', {channel:CH1, duration:0.3});

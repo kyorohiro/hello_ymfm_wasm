@@ -64,7 +64,7 @@ export function installSpcImport({button, existingPaths, existingDirectories = (
     const alive = () => current === request && !controller.signal.aborted && dialog.open;
     try {
       onStatus?.(`Reading ${file.name}…`);
-      const source = await import('./playground_spc_source.js?v=spc-events-1');
+      const source = await import('./playground_spc_source.js?v=spc-song-timing-1');
       const prepared = await source.prepareSpcImport(await file.arrayBuffer(), file.name, {signal:controller.signal});
       if (!alive()) return;
       const tagSeconds = prepared.metadata.playSeconds;
@@ -106,7 +106,7 @@ export function installSpcImport({button, existingPaths, existingDirectories = (
           : 'Starts at the saved SPC position. Choose 0.1–600 seconds. Unused work RAM is omitted after analyzing the song. No automatic loop detection or tag fade. Up to 1,000,000 retained writes; large logs are intended for analysis.';
         confirm.textContent = javascript || trace ? 'Convert & import' : 'Import';
         help.textContent = javascript
-          ? 'Generate readable loadBRR / setPreset / setPitch / keyOn / sleep / keyOff code. This is an approximate re-performance: initially active envelopes restart; echo and subsequent BRR RAM edits are omitted. Use Song playback for the original sound.' : trace
+          ? 'Generate readable loadBRR / setPreset / setPitch / keyOn / timeline.waitUntil / keyOff code. Times use one song origin, so timer delays do not accumulate. This is an approximate re-performance: initially active envelopes restart; echo and subsequent BRR RAM edits are omitted. Use Song playback for the original sound.' : trace
           ? 'Record detailed timed DSP and RAM writes, retaining BRR changes, echo, noise and pitch modulation. This preserves the captured execution; it is a low-level analysis log, not editable musical notes.' : song
           ? 'Play the original SPC700 program with useSoundChip(\'spc\'). Use spc.onEvent() to inspect key requests and parameter changes. Playback continues until Stop.'
           : 'Save selected BRR samples, captured settings and editable SNES scripts. Candidates are from this snapshot; unused directory data may not be an instrument. Echo, noise, pitch modulation and song-time changes are omitted.';
@@ -130,7 +130,7 @@ export function installSpcImport({button, existingPaths, existingDirectories = (
           let plan;
           if (['javascript','trace'].includes(mode())) {
             progress.hidden = false; progress.value = 0; conversionStatus.textContent = 'Preparing conversion…';
-            const {convertSpcImport} = await import('./playground_spc_trace.js?v=spc-events-1');
+            const {convertSpcImport} = await import('./playground_spc_trace.js?v=spc-song-timing-1');
             if (!alive()) return;
             plan = await convertSpcImport(prepared, {directory, mode:mode(), controlStepMs:Number(controlStep.value), durationSeconds:Number(seconds.value), signal:controller.signal,
               onProgress:value => {if (alive()) {

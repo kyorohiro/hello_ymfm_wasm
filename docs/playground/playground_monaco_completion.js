@@ -348,6 +348,7 @@ function createKnownObjectSuggestions(
         [
           "play",
           "sleep",
+          "createTimeline",
           "beat",
           "nextBeat",
           "tween",

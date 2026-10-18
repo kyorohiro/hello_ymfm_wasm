@@ -785,6 +785,20 @@ declare function write(register: number, value: number): void;
 declare function write(port: number, register: number, value: number): void;
 /** Wait for a number of seconds. */
 declare function sleep(seconds: number): Promise<void>;
+interface PlaygroundSecondsTimeline {
+  /**
+   * Wait for elapsed seconds from createTimeline(), independent of BPM.
+   * Positions must be finite, nonnegative and nondecreasing. Late waits yield
+   * without adding the lateness to later positions. Stop cancels the wait.
+   */
+  waitUntil(seconds: number): Promise<void>;
+}
+/**
+ * Anchor a new elapsed-seconds timeline now. Create it after loading resources.
+ * Main uses the audio clock; Worker uses its monotonic clock. This resumes
+ * JavaScript and is not a sample-accurate audio reservation.
+ */
+declare function createTimeline(): PlaygroundSecondsTimeline;
 /** Wait for VGM-style sample units. Default sampleRate is 44100. */
 declare function sleepSamples(samples: number, sampleRate?: number): Promise<void>;
 /**
@@ -974,6 +988,7 @@ type PlaygroundAPI = {
     (port: number, register: number, value: number): void;
   };
   sleep: (seconds: number) => Promise<void>;
+  createTimeline: typeof createTimeline;
   sleepSamples: (samples: number, sampleRate?: number) => Promise<void>;
   /** Shared 44100-Hz timeline cursor; a newly started loop may begin at a nonzero value. */
   beginSampleSchedule: () => number;

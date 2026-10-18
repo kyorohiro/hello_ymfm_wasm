@@ -126,6 +126,35 @@ export function createDeadlineScheduler({
   };
 }
 
+/**
+ * Create an elapsed-seconds timeline anchored once, avoiding accumulated timer
+ * lateness between events. This resumes JavaScript; it does not reserve audio.
+ * @param {{now:()=>number,sleep:(seconds:number)=>Promise<void>,check?:()=>void}} options
+ * @returns {{waitUntil:(seconds:number)=>Promise<void>}}
+ */
+export function createSecondsTimeline({now, sleep, check = () => {}}) {
+  check();
+  const origin = now();
+  let previous = 0;
+  return {
+    /** Wait until elapsed seconds from creation, independent of BPM.
+     * Positions must be finite, nonnegative and nondecreasing. Even a late
+     * position yields through sleep so Stop and other tasks can be processed.
+     * @param {number} seconds
+     * @returns {Promise<void>}
+     */
+    async waitUntil(seconds) {
+      check();
+      if (!Number.isFinite(seconds) || seconds < previous || !Number.isFinite(origin + seconds)) {
+        throw new RangeError('Timeline time must be finite, nonnegative and nondecreasing');
+      }
+      previous = seconds;
+      await sleep(Math.max(0, origin + seconds - now()));
+      check();
+    },
+  };
+}
+
 /** Shared beat clock: BPM changes preserve phase and retime outstanding beat waits.
  * State belongs to one active runtime, not to individual liveLoops.
  * @param {{now:()=>number, scheduler:DeadlineScheduler, state:{bpm:number,clockStartTime:number|null}}} options

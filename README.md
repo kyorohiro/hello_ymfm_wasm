@@ -56,7 +56,9 @@ This is the easiest way to test YM2612 control, sound design, and Genesis-orient
   All modes preserve the original SPC in a new Files folder. Instrument reference notes
   are assigned by the user; they are not inferred from BRR. Song playback runs until Stop.
   Song JavaScript records 0.1–600 seconds into `loadBRR`, `setPreset`, `setPitch`,
-  `keyOn`, `sleep` and `keyOff` calls. PITCH remains in chip units, with no guessed
+  `keyOn`, `timeline.waitUntil` and `keyOff` calls. The timeline starts after sample
+  and preset loading; event times are elapsed seconds from that origin, so timer
+  lateness does not slow all following events. PITCH remains in chip units, with no guessed
   note names or original loop structure. The control step defaults to 20 ms
   (0 keeps all distinct changes; maximum 1000 ms). PITCH, volume and same-SRCN
   ADSR/GAIN updates are sampled; key and SRCN-change boundaries retain their
@@ -65,6 +67,8 @@ This is the easiest way to test YM2612 control, sound design, and Genesis-orient
   controls are retained; echo is omitted to protect relocated BRR. Warnings
   are saved with the source. Conversion rejects more than 20,000 musical events,
   256 BRRs or 64,512 total BRR bytes instead of saving partial data.
+  Regenerate previously imported Song JavaScript from the original SPC to use
+  this timing; existing editable scripts keep their original relative `sleep` calls.
   Event trace records 0.1–600 seconds, with a maximum of 1,000,000 writes.
   Edit its annotated `events` array to change raw chip values and timing; initial
   BRR/RAM and DSP bytes are saved alongside the code. It retains sample changes,

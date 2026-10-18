@@ -30,6 +30,7 @@
 | API・引数 | 単位 | 意味 |
 |---|---|---|
 | `sleep(seconds)` | 秒 | 待つ長さ |
+| `createTimeline().waitUntil(seconds)` | 秒 | 作成時を0とする経過位置。読込み後に作成し、遅れを以降へ累積させず追いつく。Mainは音声時計、Workerは単調時計、BPM非依存。JS待機であり音声予約ではない |
 | `sleepSamples(samples, sampleRate?)` | サンプル数 | 待つ長さ。sampleRate の既定は44,100 Hz |
 | `beat(beats)` | 拍 | 待つ長さ。BPMに依存 |
 | `nextBeat()` | 拍 | 次の整数拍まで待つ。時間引数はない |
