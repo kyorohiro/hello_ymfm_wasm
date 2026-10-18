@@ -17,7 +17,8 @@ export function createExportTempoSettings(analyze) {
     }
     help.textContent = (tempo.estimated
       ? `Suggested: ${tempo.bpm} BPM. Candidates: ${tempo.candidates.join(', ')}. Estimated from key-on intervals; half/double tempo may also fit.`
-      : 'No reliable tempo estimate. Default: 120 BPM.') + ` You can change this value. ${detail}`;
+      : 'No reliable tempo estimate. Default: 120 BPM.') + ` You can change this value. ${detail}`
+      + (analysis.exportSummary ? ` ${analysis.exportSummary}` : '');
   }
   return {getAnalysis, prepare};
 }

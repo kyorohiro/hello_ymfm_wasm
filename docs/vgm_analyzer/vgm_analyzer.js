@@ -1,6 +1,7 @@
 import {createAudioPreferences, effectDefaults} from './audio_preferences.js';
 import {mountSpcAnalyzer} from './spc_analyzer.js?v=voice-preview-1';
-import {mountSpcNoteish} from './spc_noteish.js?v=snes-noteish-1';
+import {mountSpcNoteish} from './spc_noteish.js?v=snes-score-1';
+import {prepareSnesScore} from './snes_score.js?v=snes-score-1';
 import {createMixerUi} from './mixer_ui.js';
 import {connectDesktop} from './desktop_interface.js';
 import {exportFmRegisterSnapshot} from './fm_snapshot.js';
@@ -17,10 +18,10 @@ import {createNesMonitor,applyNesWrite,describeNesNotes} from './nes_notes.js';
 import {createDefaultTfiPreset, findOperatorFromSlotOffset, cloneTfiPreset, presetSignature, decodeKeyOnChannel, extractTfiPatchesFromVgm} from './tfi_extract.js';
 import {createStoredZipBytes} from './stored_zip.js';
 import { createPlaybackEngine, selectPlaybackConfiguration, detectPlaybackChipKindFromVgm, detectPlaybackChipKind } from './playback_core.js?v=msm5205-3';
-import { mountMusicSheet } from "./music_sheet.js?v=tab-1";
+import { mountMusicSheet } from "./music_sheet.js?v=snes-score-1";
 import { renderVgmToWav } from "./vgm_wav.js";
-import { createExportTempoSettings } from "./export_tempo.js";
-import { analyzeLilyPondSource as analyzeScoreSource, exportLilyPondAnalysis } from "./analyzer_core.js?v=scc-plus-1";
+import { createExportTempoSettings } from "./export_tempo.js?v=snes-score-1";
+import { analyzeLilyPondSource as analyzeScoreSource, exportLilyPondAnalysis } from "./analyzer_core.js?v=snes-score-1";
 import {createOpmTfiFiles,OPM_TFI_NOTICE} from './opm_tfi.js';
 import {mountOpmInfo} from './opm_info.js?v=keyboard-layout-2';
 import {mountSbiInfo} from './sbi_info.js';
@@ -41,7 +42,7 @@ import { describeToneNotes } from './tone_notes.js?v=ym2610-vgm-2';
 import { createGameboyMonitor, applyGameboyWrite, describeGameboyNotes } from './gameboy_notes.js';
 import { midiChipKind } from "./vgm_notes.js?v=ym2610-vgm-2";
 import { renderFretboard, FRET_TRAIL_MS, createFretboardTracker } from "./fretboard.js?v=hand-position-2";
-import { exportAnalysisMidi } from "./analyzer_core.js?v=scc-plus-1";
+import { exportAnalysisMidi, exportNoteAnalysisMidi } from "./analyzer_core.js?v=snes-score-1";
 import { createRf5c164Monitor, describeRf5c164Monitor, observeRf5c164Engine } from "./rf5c164_monitor.js";
 import { sourcesForChip, applySourceMutes, allSourcesMuted } from "./source_mutes.js?v=msm5205-2";
 import { createPsgMonitor, describePsgMonitor, observePsgEngine, applySsgWrite } from "./psg_monitor.js?v=ym2610-vgm-2";
@@ -246,6 +247,12 @@ const notesDialogOutput = document.getElementById("notesDialogOutput");
 const notesDialogCloseButton = document.getElementById("notesDialogCloseButton");
 
 let currentBuffer = null;
+let spcScoreSource = null, spcScore = null, midiPreparedSource = null;
+function scoreExportSource() {return spcView.active ? spcScore : currentBuffer;}
+function scoreExportBuffer() {return spcView.active ? spcScoreSource : currentBuffer;}
+function scoreExportAvailable() {
+  return spcView.active ? !!spcScore : !!currentBuffer && (midiExportAvailable || (currentChipKind === 'ymf262' && !(noteishHeader.ymf262Clock & 0xc0000000)));
+}
 const sampleTab = document.getElementById('sampleExplorerTab');
 const samplePanel = document.getElementById('sampleExplorerPanel');
 const sampleExplorer = mountSampleExplorer(samplePanel, () => currentBuffer, () => ({roms:{ymf278bWave:ymf278bWaveRomBytes}}));
@@ -277,13 +284,15 @@ const spcView = mountSpcAnalyzer({
   },
 });
 const spcNoteish = mountSpcNoteish({root:document.getElementById('spcNoteishControls'),
-  onChange(analysis) {
+  onChange(analysis,{exportReady=true}={}) {
     if(currentChipKind!=='snes'||!spcView.active)return;
+    spcScore=analysis&&exportReady?prepareSnesScore(analysis):null;
     const selected=timelineSelectionPending?(seekSelection??songTimeline?.selected()):null;
     if(selected!==null)seekSelection=selected;
     songTimeline?.loadAnalysis(analysis);
     if(selected!==null&&analysis){songTimeline.cursor(selected,false);seekSelection=songTimeline.selected();}
     lastNoteishSignature=null;requestNoteishRender();renderNoteishGrid();
+    updatePlaybackButtons();
   }});
 async function spcAction(fn) {
   try {await fn();} catch (error) {if (error.name !== 'AbortError') {reportPlaybackError(error); setStatus(`SPC: ${error.message}`);}}
@@ -2909,6 +2918,11 @@ function stopActiveStream() {
 }
 
 function updatePlaybackButtons(state = {}) {
+  const scoreSource=scoreExportSource();
+  musicSheet?.updateTrack();
+  if(midiPreparedSource&&midiPreparedSource!==scoreSource){midiPreparedSource=null;if(midiExportDialog.open)midiExportDialog.close();}
+  if(lilyPondSource&&lilyPondSource!==scoreSource){lilyPondSource=null;lilyPondPrepared=null;if(lilyPondExportDialog.open)lilyPondExportDialog.close();}
+  for(const button of document.querySelectorAll('[data-score-groups]'))button.disabled=spcView.active&&!spcScore;
   if (spcView.active) {
     const info = spcView.state;
     playButton.disabled = info.playing || info.busy;
@@ -2922,9 +2936,12 @@ function updatePlaybackButtons(state = {}) {
       exportSnapshotVgiButton, exportSnapshotButton, exportAllTfiButton, exportAllVgiButton,
       exportAllOpmButton, exportOpmButton, exportLilyPondButton, document.getElementById('exportMusicSheetButton')]) button.disabled = true;
     exportParseInfoButton.disabled = !lastParseInfo;
-    for (const tab of [operatorInfoTab, tfiInfoTab, sheetMusicTab]) tab.disabled = true;
-    noteishTab.disabled=false;
-    document.getElementById('showSheetMusicButton').disabled = true;
+    for (const tab of [operatorInfoTab, tfiInfoTab]) tab.disabled = true;
+    noteishTab.disabled=sheetMusicTab.disabled=false;
+    const ready=!!spcScore;
+    exportMidiButton.disabled=exportLilyPondButton.disabled=document.getElementById('exportMusicSheetButton').disabled=document.getElementById('showSheetMusicButton').disabled=!ready;
+    exportMidiButton.title='SNES base pitches and Pitch Bend from the analyzed interval; original BRR timbres are not reproduced.';
+    exportLilyPondButton.title='SPC reference transcription: semitone pitches, 1/16 grid, assumed 4/4.';
     sampleTab.disabled = false; sampleTab.textContent = 'SPC / BRR'; sampleTab.setAttribute('aria-controls', 'spcInfoPanel');
     updatePlaylistNavigation();
     return;
@@ -2937,6 +2954,8 @@ function updatePlaybackButtons(state = {}) {
   updateSeekPosition();
   exportMmlButton.disabled = !hasBuffer || (!opmExport && (currentChipKind==='mixed' || !(currentChipKind === "ay8910" || currentChipKind === "ym2413" || ["ym2612", "ym2203", "ym2608", "ym2610"].includes(midiChipKind(noteishHeader)))));
   exportMidiButton.disabled = !hasBuffer || !midiExportAvailable;
+  exportMidiButton.title='Base-pitch notes with Pitch Bend and original timing; original timbres are not reproduced.';
+  exportLilyPondButton.title='Editable reference transcription: semitone pitches, 1/16 grid, assumed 4/4.';
   const playing = Boolean(state.playing);
   const paused = Boolean(state.paused);
   playButton.disabled = !hasBuffer || playing || wavExportBusy;
@@ -3421,6 +3440,7 @@ function startScriptProcessorStream() {
 
 async function handleFile(file, preserveEditor = false) {
   spcNoteish.clear();
+  spcScoreSource=null;spcScore=null;
   await spcView.clear();
   spcPanel.hidden = true;
   playbackSeek.step = inlinePlaybackSeek.step = '4410';
@@ -3472,6 +3492,7 @@ async function handleFile(file, preserveEditor = false) {
     try {
       const parsed = await spcView.load(new Uint8Array(rawBuffer), file.name);
       const info = spcView.state;
+      spcScoreSource=new Uint8Array(rawBuffer);
       spcNoteish.load(new Uint8Array(rawBuffer),{durationSeconds:Math.min(120,info.durationSeconds)});
       timelineSelectionPending=false;
       playbackSeek.max = String(info.durationSeconds * 1000);
@@ -4037,7 +4058,7 @@ function selectedOutputTab() {
 }
 
 function setOutputTab(tabName) {
-  if (spcView.active && !['parsed-output', 'samples', 'noteish'].includes(tabName)) tabName = 'parsed-output';
+  if (spcView.active && !['parsed-output', 'samples', 'noteish', 'sheet-music'].includes(tabName)) tabName = 'parsed-output';
   const sbi = ['ym3526','ym3812','y8950','ymf262','ymf278b'].includes(currentChipKind);
   if (!(sbi && tabName === 'tfi-info' && currentBuffer && !(noteishHeader[currentChipKind+'Clock'] & 0xc0000000)) && !((["ymf278b","gameboy"].includes(currentChipKind) || (["segapcm", "ym2151", "okim6258"].includes(currentChipKind) && (noteishHeader.segaPcmClock || noteishHeader.okim6258Clock))) && tabName === "samples") && !(tabName === "sheet-music" && currentBuffer && (midiExportAvailable || (currentChipKind === 'ymf262' && !(noteishHeader.ymf262Clock & 0xc0000000)))) && ((["mixed", "okim6295", "okim6258", "segapcm"].includes(currentChipKind) && tabName !== "parsed-output") || (["msx","huc6280","gameboy","nes","ymf278b","ymf262"].includes(currentChipKind) && !["parsed-output", "noteish"].includes(tabName)) || (currentChipKind === "ay8910" && !["operator-info", "parsed-output", "noteish"].includes(tabName)) || ((currentChipKind === "ym2413" || isOpl(currentChipKind)) && !["operator-info", "parsed-output", "noteish"].includes(tabName)) || (currentChipKind === "ym2151" && !["operator-info", "parsed-output", "noteish", "tfi-info"].includes(tabName)))) {
     setStatus('Analysis and instrument editing: Support coming soon.');
@@ -4080,9 +4101,12 @@ function setOutputTab(tabName) {
   if (isOperatorInfo) requestChannelMonitorRender();
   parsedOutputPanel.hidden = tabName !== "parsed-output";
   noteishPanel.hidden = tabName !== "noteish";
-  document.getElementById('spcNoteishControls').hidden=!spcView.active;
-  for(const button of document.querySelectorAll('#noteishPanel [data-score-groups]'))button.hidden=spcView.active;
-  spcNoteish.setVisible(tabName==='noteish'&&spcView.active);
+  if(spcView.active){
+    const host=document.getElementById(tabName==='sheet-music'?'spcSheetControls':'spcNoteishHome');
+    host.append(document.getElementById('spcNoteishControls'));
+  }
+  document.getElementById('spcSheetControls').hidden=!spcView.active;
+  spcNoteish.setVisible(['noteish','sheet-music'].includes(tabName)&&spcView.active);
   songTimeline.active(tabName === "noteish" && noteishViewMode === "song");
   if (tabName === "noteish") {
     requestNoteishRender();
@@ -4178,7 +4202,7 @@ ensureNoteishRenderTimer();
 renderChannelMonitor();
 renderNoteishGrid();
 
-const exportTempo = createExportTempoSettings(analyzeScoreSource);
+const exportTempo = createExportTempoSettings(source=>source?.chipKind==='snes'?source:analyzeScoreSource(source));
 const analyzeLilyPondSource = buffer => exportTempo.getAnalysis(buffer);
 const commandEditor = mountCommandEditor(document.getElementById('commandEditor'), {
   setStatus,
@@ -4189,9 +4213,12 @@ const commandEditor = mountCommandEditor(document.getElementById('commandEditor'
   },
 });
 
-mountScoreGroups({getTrack:()=>({buffer:currentBuffer}), getAnalysis:buffer=>currentChipKind === 'huc6280' ? extractHuc6280Notes(buffer) : exportTempo.getAnalysis(buffer),
+mountScoreGroups({getTrack:()=>({buffer:scoreExportBuffer()}), getAnalysis:buffer=>{
+  if(spcView.active){if(!spcScore)throw new Error('Analyze this SPC in Note-ish or Sheet Music first.');return spcScore;}
+  return currentChipKind === 'huc6280' ? extractHuc6280Notes(buffer) : exportTempo.getAnalysis(buffer);
+},
   onChange:()=>{if(currentBuffer)songTimeline.load(currentBuffer);setStatus('Groups updated. Regenerate the sheet to apply changes.');},setStatus});
-musicSheet = mountMusicSheet({getTrack: () => ({buffer:currentBuffer, available:(midiExportAvailable || (currentChipKind === 'ymf262' && !(noteishHeader.ymf262Clock & 0xc0000000))), fileName:lastLoadedFileName}), tempoSettings:exportTempo, setStatus});
+musicSheet = mountMusicSheet({getTrack: () => ({buffer:scoreExportBuffer(), source:scoreExportSource(),available:scoreExportAvailable(),fileName:lastLoadedFileName}), tempoSettings:exportTempo, setStatus});
 
 function downloadMml(format) {
   if (!currentBuffer || !mmlBpmInput.reportValidity()) return;
@@ -4245,24 +4272,28 @@ mmlFormatDialog.querySelector("form").addEventListener("submit", (event) => {
 });
 
 exportMidiButton.addEventListener("click", () => {
-  if (!currentBuffer) return;
+  if (!scoreExportAvailable()) return;
   try {
-    exportTempo.prepare(currentBuffer, midiBpmInput, document.getElementById('midiBpmHelp'), 'Original note timing is preserved; BPM sets the beat grid.');
+    midiPreparedSource=scoreExportSource();
+    exportTempo.prepare(midiPreparedSource, midiBpmInput, document.getElementById('midiBpmHelp'), 'Original note timing is preserved; BPM sets the beat grid.');
     midiExportDialog.showModal();
   } catch (error) { setStatus(`Tempo analysis failed: ${error.message}`); }
 });
 
 midiExportDialog.querySelector("form").addEventListener("submit", (event) => {
-  if (event.submitter?.value !== "export" || !currentBuffer || !midiBpmInput.reportValidity()) return;
+  if (event.submitter?.value !== "export") return;
+  if (!scoreExportAvailable() || !midiBpmInput.reportValidity()) {event.preventDefault();return;}
   try {
-    const result = exportAnalysisMidi(currentBuffer, { bpm: Number(midiBpmInput.value), fileName: lastLoadedFileName });
+    if(!midiPreparedSource||midiPreparedSource!==scoreExportSource())throw new Error('Reopen MIDI export for the current analysis');
+    const options={bpm:Number(midiBpmInput.value),fileName:lastLoadedFileName};
+    const result = spcView.active ? exportNoteAnalysisMidi(midiPreparedSource,options) : exportAnalysisMidi(currentBuffer,options);
     const url = URL.createObjectURL(new Blob([result.bytes], { type: "audio/midi" }));
     const anchor = document.createElement("a");
     anchor.href = url;
     anchor.download = `${lastLoadedFileName.replace(/\.[^.]+$/, "") || "analysis"}.mid`;
     anchor.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
-    setStatus(`Exported MIDI: ${result.noteCount} notes, ${result.bendCount} pitch bends, ${result.skippedNotes} omitted intervals. ${result.chipName} base-pitch notes; no grid quantization. Noise, PCM and original timbres are omitted. Details are in MIDI text events.`);
+    setStatus(`Exported MIDI: ${result.noteCount} notes, ${result.bendCount} pitch bends, ${result.skippedNotes} omitted intervals. ${result.chipName} base-pitch notes; no grid quantization. ${spcView.active?'Analyzed SPC interval only; original BRR timbres and audible release are not reproduced.':'Noise, PCM and original timbres are omitted.'} Details are in MIDI text events.`);
   } catch (error) { setStatus(`MIDI export failed: ${error.message}`); }
 });
 
@@ -4349,16 +4380,14 @@ document.getElementById('chipSupportButton').addEventListener('click', () => {
 let lilyPondPrepared = null;
 let lilyPondSource = null;
 exportLilyPondButton.addEventListener("click", () => {
-  if (!currentBuffer || !(midiExportAvailable || (currentChipKind === 'ymf262' && !(noteishHeader.ymf262Clock & 0xc0000000)))) return;
+  if (!scoreExportAvailable()) return;
   try {
-    if (lilyPondSource !== currentBuffer) {
-      lilyPondPrepared = analyzeLilyPondSource(currentBuffer);
-      lilyPondSource = currentBuffer;
-      lilyPondBpmInput.value = lilyPondPrepared.tempo.bpm;
+    const source=scoreExportSource();
+    if (lilyPondSource !== source) {
+      lilyPondPrepared = analyzeLilyPondSource(source);
+      lilyPondSource = source;
       const help = document.getElementById('lilyPondTempoHelp');
-      help.textContent = lilyPondPrepared.tempo.estimated
-        ? `Suggested: ${lilyPondPrepared.tempo.bpm} BPM. Candidates: ${lilyPondPrepared.tempo.candidates.join(', ')}. Estimated from key-on intervals; half/double tempo may also fit. You can change this value.`
-        : 'No reliable tempo estimate. Default: 120 BPM. You can change this value.';
+      exportTempo.prepare(source,lilyPondBpmInput,help);
       const list = document.getElementById('lilyPondChannels');
       list.replaceChildren();
       lilyPondPrepared.channels.forEach((channel, index) => {
@@ -4375,19 +4404,20 @@ exportLilyPondButton.addEventListener("click", () => {
   } catch (error) { lilyPondSource = null; setStatus(`LilyPond analysis failed: ${error.message}`); }
 });
 lilyPondExportDialog.querySelector("form").addEventListener("submit", event => {
-  if (event.submitter?.value !== "export" || !currentBuffer || !lilyPondBpmInput.reportValidity()) return;
+  if (event.submitter?.value !== "export") return;
+  if (!scoreExportAvailable() || !lilyPondBpmInput.reportValidity()) {event.preventDefault();return;}
   try {
-    if (lilyPondSource !== currentBuffer || !lilyPondPrepared) throw new Error('Reopen LilyPond export for the current track');
+    if (lilyPondSource !== scoreExportSource() || !lilyPondPrepared) throw new Error('Reopen LilyPond export for the current analysis');
     const channelIndices = Array.from(document.getElementById('lilyPondChannels').querySelectorAll('input:checked'), input => Number(input.value));
     if (!channelIndices.length) { event.preventDefault(); setStatus('Select at least one channel for LilyPond export.'); return; }
-    const result = exportLilyPondAnalysis(lilyPondPrepared, { bpm: Number(lilyPondBpmInput.value), fileName: lastLoadedFileName, channelIndices, groups:getScoreGroups(currentBuffer) });
+    const result = exportLilyPondAnalysis(lilyPondPrepared, { bpm: Number(lilyPondBpmInput.value), fileName: lastLoadedFileName, channelIndices, groups:getScoreGroups(scoreExportBuffer()) });
     const url = URL.createObjectURL(new Blob([result.text], { type: "text/plain;charset=utf-8" }));
     const anchor = document.createElement("a");
     anchor.href = url;
     anchor.download = `${lastLoadedFileName.replace(/\.[^.]+$/, "") || "analysis"}.ly`;
     anchor.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
-    setStatus(`Exported LilyPond: ${result.noteCount} notes, ${result.skippedNotes} omitted intervals. 1/16 grid, assumed 4/4. PCM/noise/modulation omitted; see comments in the .ly file.`);
+    setStatus(`Exported LilyPond: ${result.noteCount} notes, ${result.skippedNotes} omitted intervals. 1/16 grid, assumed 4/4. ${spcView.active?'Analyzed SPC interval only; base-pitch reference transcription.':'PCM/noise/modulation omitted;'} see comments in the .ly file.`);
   } catch (error) { setStatus(`LilyPond export failed: ${error.message}`); }
 });
 

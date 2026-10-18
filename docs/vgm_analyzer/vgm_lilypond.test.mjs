@@ -81,22 +81,39 @@ test('selected channels retain their original names and full score timing',()=>{
   assert.throws(()=>exportLilyPondAnalysis(analysis,{channelIndices:[]}),/Select/);
   assert.throws(()=>exportLilyPondAnalysis(analysis,{channelIndices:[2]}),/Invalid/);
 });
+test('precomputed SPC analysis carries source-specific notices and score title',()=>{
+  const analysis={chipKind:'snes',channels:[{name:'SNES Voice 1',notes:[note(0,4,60)]}],time:sample(16),warnings:['Initially active note inferred.']};
+  const result=exportLilyPondAnalysis(analysis,{bpm:120,fileName:'Song.spc'});
+  assert.equal(result.noteCount,1);
+  assert.match(result.text,/SPC transcription \(quantized\)/);
+  assert.match(result.text,/current Note-ish references/);
+  assert.match(result.text,/Only the analyzed SPC interval is exported/);
+  assert.match(result.text,/Initially active note inferred/);
+  assert.doesNotMatch(result.text,/PCM, noise|VGM loop/);
+  assert.match(score([note(0,4,60)]).text,/VGM transcription \(quantized\)/);
+  assert.match(score([note(0,4,60)]).text,/PCM, noise.*|VGM loop is not expanded/);
+});
 test('dialog recommends BPM, excludes silent channels, retains edits and exports selection',async()=>{
  const {readFileSync}=await import('node:fs');const vm=await import('node:vm');
  const source=readFileSync(new URL('./vgm_analyzer.js',import.meta.url),'utf8');
- let open,submit,opts,clicked=0,scans=0;
+ let open,submit,opts,clicked=0,scans=0,sourceOverride=null,available=true,groupSource;
+ const statuses=[];
  const inputs=[];
  const list={replaceChildren(){inputs.length=0;},append(label){inputs.push(label.input);},querySelectorAll(){return inputs.filter(i=>i.checked);}};
  const bpm={value:'120',reportValidity:()=>true};const help={};const anchor={click(){clicked++;}};
  const context=vm.createContext({
-  getScoreGroups:()=>[],currentBuffer:new Uint8Array(1),midiExportAvailable:true,lastLoadedFileName:'music.vgz',
+  getScoreGroups:source=>{groupSource=source;return [];},currentBuffer:new Uint8Array(1),midiExportAvailable:true,lastLoadedFileName:'music.vgz',
+  scoreExportAvailable:()=>available,
+  scoreExportSource:()=>sourceOverride??context.currentBuffer,
+  scoreExportBuffer:()=>context.currentBuffer,
+  exportTempo:{prepare(_source,input){input.value=137;}},spcView:{active:false},
   exportLilyPondButton:{addEventListener(_t,fn){open=fn;}},
   lilyPondExportDialog:{close(){},showModal(){},querySelector(){return {addEventListener(_t,fn){submit=fn;}};}},
   lilyPondBpmInput:bpm,
   analyzeLilyPondSource(){scans++;return {tempo:{bpm:137,estimated:true,candidates:[137]},channels:[{name:'CH1',notes:[note(0,4,60)]},{name:'CH2',notes:[]}]};},
   exportLilyPondAnalysis(_a,o){opts=o;return {text:'score',noteCount:1,skippedNotes:0};},
   document:{getElementById:id=>id==='lilyPondChannels'?list:help,createTextNode:s=>s,createElement(tag){return tag==='a'?anchor:tag==='label'?{style:{},append(input){this.input=input;}}:{};}},
-  URL:{createObjectURL:()=> 'blob:test',revokeObjectURL(){}},Blob:class{},setTimeout(){},setStatus(){},
+  URL:{createObjectURL:()=> 'blob:test',revokeObjectURL(){}},Blob:class{},setTimeout(){},setStatus:message=>statuses.push(message),
  });
  vm.runInContext(source.slice(source.indexOf('let lilyPondPrepared =')),context);
  open();assert.equal(bpm.value,137);assert.deepEqual(inputs.map(i=>i.checked),[true,false]);
@@ -106,4 +123,15 @@ test('dialog recommends BPM, excludes silent channels, retains edits and exports
  submit({submitter:{value:'preview'}});assert.equal(clicked,1); // Preview is no longer an action.
  inputs[0].checked=false;let prevented=false;submit({submitter:{value:'export'},preventDefault(){prevented=true;}});assert.equal(prevented,true);assert.equal(clicked,1);
  context.currentBuffer=new Uint8Array(2);open();assert.equal(scans,2);assert.equal(bpm.value,137);
+ const originalBuffer=context.currentBuffer;
+ sourceOverride={referenceRevision:1};open();assert.equal(scans,3);
+ sourceOverride={referenceRevision:2};
+ submit({submitter:{value:'export'},preventDefault(){}});
+ assert.equal(clicked,1);assert.match(statuses.at(-1),/current analysis/);
+ open();assert.equal(scans,4);assert.equal(context.currentBuffer,originalBuffer);
+ submit({submitter:{value:'export'},preventDefault(){}});
+ assert.equal(clicked,2);assert.equal(groupSource,originalBuffer);
+ available=false;let unavailablePrevented=false;
+ submit({submitter:{value:'export'},preventDefault(){unavailablePrevented=true;}});
+ assert.equal(unavailablePrevented,true);assert.equal(clicked,2);
 });

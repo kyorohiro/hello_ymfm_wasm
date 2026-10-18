@@ -5,8 +5,9 @@ import vm from 'node:vm';
 import {readFileSync} from 'node:fs';
 const source=readFileSync(new URL('./vgm_analyzer.js',import.meta.url),'utf8');
 function setup(chip) {
- const node=()=>({attrs:{},setAttribute(k,v){this.attrs[k]=v;},getAttribute(k){return this.attrs[k];}});
- const ctx={isOpl,spcView:{active:false,setVisible(value){this.visible=value;}},spcNoteish:{setVisible(value){this.visible=value;}},spcPanel:node(),musicSheet:undefined,OPM_TFI_NOTICE:'Approximate conversion',currentBuffer:new Uint8Array(1),midiExportAvailable:true,currentChipKind:chip,noteishViewMode:'live',noteishHeader:{},document:{getElementById:()=>node(),querySelectorAll:()=>[]},tfiInfo:{setVisible(){}},opmInfo:{setVisible(){}},sampleExplorer:{stop(){}},songTimeline:{active(){}},requestChannelMonitorRender(){},setStatus(){},requestNoteishRender(){},renderNoteishGrid(){}};
+ const node=()=>({attrs:{},append(child){this.child=child;},setAttribute(k,v){this.attrs[k]=v;},getAttribute(k){return this.attrs[k];}});
+ const elements=new Map(),getElementById=id=>{if(!elements.has(id))elements.set(id,node());return elements.get(id);};
+ const ctx={isOpl,spcView:{active:false,setVisible(value){this.visible=value;}},spcNoteish:{setVisible(value){this.visible=value;}},spcPanel:node(),musicSheet:undefined,OPM_TFI_NOTICE:'Approximate conversion',currentBuffer:new Uint8Array(1),midiExportAvailable:true,currentChipKind:chip,noteishViewMode:'live',noteishHeader:{},document:{getElementById,querySelectorAll:()=>[]},tfiInfo:{setVisible(){}},opmInfo:{setVisible(){}},sampleExplorer:{stop(){}},songTimeline:{active(){}},requestChannelMonitorRender(){},setStatus(){},requestNoteishRender(){},renderNoteishGrid(){}};
  for(const name of ['sheetMusicTab','sheetMusicPanel','exportAllOpmButton','exportOpmButton','operatorInfoTab','noteishTab','tfiInfoTab','sampleTab','parsedOutputTab','exportMidiButton','exportLilyPondButton','exportMmlButton','exportSnapshotTfiButton','exportSnapshotVgiButton','exportSnapshotButton','exportAllTfiButton','exportAllVgiButton','opnMonitorRoot','opmMonitorRoot','ayMonitorRoot','ym2413MonitorRoot','oplMonitorRoot','samplePanel','operatorInfoPanel','parsedOutputPanel','noteishPanel'])ctx[name]=node();
  ctx.sbiInfo={setVisible(value){this.visible=value;}};
  vm.createContext(ctx);
@@ -92,12 +93,16 @@ test('Game Boy GB Info tab remains accessible through playback UI refresh',()=>{
  assert.equal(c.samplePanel.hidden,false);
 });
 
-test('SPC keeps Note-ish and BRR available while rejecting FM editing and score tabs',()=>{
+test('SPC shares analysis controls across Note-ish and Sheet Music while rejecting FM editing',()=>{
  const c=setup('snes');c.spcView.active=true;
  c.setOutputTab('noteish');
  assert.equal(c.noteishPanel.hidden,false);assert.equal(c.noteishTab.getAttribute('aria-selected'),'true');
  assert.equal(c.spcNoteish.visible,true);assert.equal(c.spcView.visible,false);
- for(const tab of ['operator-info','tfi-info','sheet-music']){
+ assert.equal(c.document.getElementById('spcNoteishHome').child,c.document.getElementById('spcNoteishControls'));
+ c.setOutputTab('sheet-music');
+ assert.equal(c.sheetMusicPanel.hidden,false);assert.equal(c.spcNoteish.visible,true,'Sheet Music keeps the same analysis active');
+ assert.equal(c.document.getElementById('spcSheetControls').child,c.document.getElementById('spcNoteishControls'));
+ for(const tab of ['operator-info','tfi-info']){
   c.setOutputTab(tab);
   assert.equal(c.parsedOutputPanel.hidden,false,`${tab} falls back to parsed-output for SPC`);
   assert.equal(c.operatorInfoPanel.hidden,true);assert.equal(c.sheetMusicPanel.hidden,true);

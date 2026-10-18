@@ -118,7 +118,15 @@ This is the easiest way to test YM2612 control, sound design, and Genesis-orient
   audible envelopes, release tails, echo and later held-sample RAM edits are omitted.
   Analysis defaults to the first 120 seconds or the shorter tagged duration, up to
   600 seconds, 20,000 interpreted events and 256 BRRs / 64,512 BRR bytes.
-  A 20 ms control step is adjustable down to 0. MIDI and sheet export remain unavailable for SPC.
+  A 20 ms control step is adjustable down to 0.
+  **Sheet Music** shares the same analysis controls. Once analysis completes,
+  export MIDI, preview sheet music, or download MusicXML / LilyPond.
+  Current BRR reference corrections apply to all note exports without changing
+  SPC playback. Only the analyzed interval is exported; provisional references
+  and other approximations are listed in each output. MIDI keeps timing and
+  pitch bends on eight voice tracks with a fixed program / velocity. Scores use
+  semitone pitches, a sixteenth-note grid and assumed 4/4 with an adjustable BPM;
+  they are editable reference transcriptions. Original BRR timbres are not reproduced.
 
 [VGM Analyzer sound chip support and limitations](https://kyorohiro.github.io/hello_ymfm_wasm/vgm_analyzer/support.html)
 

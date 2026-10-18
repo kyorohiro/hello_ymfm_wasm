@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { exportAnalysisMidi } from './vgm_midi.js';
+import { exportAnalysisMidi, exportNoteAnalysisMidi } from './vgm_midi.js';
 function vgm(commands, clock=7670454) {
   const b=new Uint8Array(256+commands.length);b.set([86,103,109,32]);
   const v=new DataView(b.buffer);v.setUint32(8,0x171,true);v.setUint32(0x2c,clock,true);v.setUint32(0x34,0xcc,true);
@@ -314,4 +314,101 @@ test('YMF278B MIDI assigns 18 simultaneous voices to distinct port/channel pairs
  }
  assert.equal(new Set(destinations).size,18);
  assert(result.warnings.some(w=>/multi-port/.test(w)));
+});
+
+function snesAnalysis(voiceNotes = [], time = 88200) {
+  return {chipKind:'snes',chipName:'SNES',displayRate:44100,time,
+    channels:Array.from({length:8},(_,i) => ({name:`SNES Voice ${i+1}`,notes:voiceNotes[i] ?? []})),
+    warnings:['BRR reference is provisional; correct the tuning before relying on note names.']};
+}
+
+test('SNES precomputed MIDI retains eight voices, fixed velocity/program and analyzed real time',()=>{
+  // Noninteger display ticks retain SPC clock timing; they are not 32-kHz frames.
+  const start = 12345 * 44100 / 1024000, end = 901234 * 44100 / 1024000;
+  const analysis = snesAnalysis([[{start,end,midi:69.25,key:1}]]);
+  for (const bpm of [60,120,137.3]) {
+    const result = exportNoteAnalysisMidi(analysis,{bpm,fileName:'song.spc'}), decoded = decode(result.bytes);
+    assert.equal(result.chipKind,'snes'); assert.equal(result.chipName,'SNES');
+    assert.equal(decoded.tracks.length,9); assert.equal(result.noteCount,1);
+    for (const [i,samples] of [[0,start],[1,end]]) {
+      const event = notes(decoded.tracks[1])[i];
+      assert.ok(Math.abs(event.tick * result.tempo / (960 * 1e6) - samples / 44100) <= result.tempo / (960 * 1e6) / 2);
+    }
+    assert.equal(notes(decoded.tracks[1])[0].data[1],100);
+    for (const [i,track] of decoded.tracks.slice(1).entries()) {
+      assert.equal(new TextDecoder().decode(track.find(e=>e.type===3).data),`SNES Voice ${i+1}`);
+      assert.deepEqual([...track.find(e=>e.status===(0xc0|i)).data],[0]);
+      assert.deepEqual(track.filter(e=>e.status===(0xb0|i)).map(e=>[...e.data]),[[101,0],[100,0],[6,2],[38,0],[101,127],[100,127]]);
+      assert.equal(track.at(-1).tick,Math.round(analysis.time * 1000000 * 960 / (44100 * result.tempo)));
+    }
+    assert.equal(new TextDecoder().decode(decoded.tracks[0][0].data),'song.spc');
+    const notices = decoded.tracks[0].filter(e=>e.type===1).map(e=>new TextDecoder().decode(e.data)).join('\n');
+    assert.match(notices,/analyzed interval only/); assert.match(notices,/original BRR timbres/);
+    assert.match(notices,/provisional/); assert.doesNotMatch(notices,/PCM.*omitted|VGM loop/);
+  }
+  assert.equal(analysis.warnings.length,1,'output notices do not mutate cached analysis');
+});
+
+test('SNES MIDI keeps initial short pitch changes, bends, retriggers and independent voices',()=>{
+  const analysis = snesAnalysis([
+    [
+      {start:0,end:5,midi:60.25,key:1,freshOnset:true,endReason:'pitch'},
+      {start:5,end:22050,midi:60.5,key:1},
+      {start:22050,end:44100,midi:72.5,key:1},
+      {start:44100,end:66150,midi:64,key:2},
+    ],
+    [{start:0,end:66150,midi:55,key:1}],
+  ]);
+  const result = exportNoteAnalysisMidi(analysis), decoded = decode(result.bytes), voice = decoded.tracks[1];
+  assert.equal(result.noteCount,3); assert.equal(result.bendRanges[0],13);
+  assert.deepEqual(notes(voice).map(e=>[e.tick,e.status,...e.data]),[
+    [0,0x90,60,100],[1920,0x80,60,0],[1920,0x90,64,100],[2880,0x80,64,0],
+  ]);
+  const firstBend = voice.filter(e=>e.status===0xe0 && e.tick===0).at(-1);
+  const value = firstBend.data[0] + firstBend.data[1] * 128;
+  // Both first points round to tick zero: retain the final 60.5, not a folded 61 onset.
+  assert.ok(Math.abs(60 + (value - 8192) * result.bendRanges[0] / 8192 - 60.5) <= 13 / 16384);
+  assert.deepEqual(voice.filter(e=>e.tick===1920).map(e=>e.status),[0x80,0xe0,0x90]);
+  assert.deepEqual(notes(decoded.tracks[2]).map(e=>[e.status,e.data[0]]),[[0x91,55],[0x81,55]]);
+  assert.ok(decoded.tracks[2].filter(e=>e.status===0xe1).every(e=>e.data[0]===0 && e.data[1]===64));
+});
+
+test('SNES MIDI omits unknown, out-of-range and sub-tick intervals explicitly',()=>{
+  const analysis = snesAnalysis([[
+    {start:0,end:1000,midi:null,key:1},
+    {start:1000,end:2000,midi:200,key:2},
+    {start:2000,end:2000.001,midi:60,key:3},
+    {start:22050,end:44100,midi:60,key:4},
+  ]]);
+  const result = exportNoteAnalysisMidi(analysis);
+  assert.equal(result.noteCount,1); assert.equal(result.skippedNotes,3);
+  assert.match(result.warnings.at(-1),/3 unknown, out-of-range or sub-tick/);
+  assert.throws(()=>exportNoteAnalysisMidi(snesAnalysis()),/No convertible SNES/);
+});
+
+test('precomputed MIDI rejects malformed, nonfinite or overlapping analysis and wrong timebase',()=>{
+  const valid = snesAnalysis([[{start:0,end:44100,midi:60,key:1}]]);
+  for (const time of [NaN,Infinity,-1]) assert.throws(()=>exportNoteAnalysisMidi({...valid,time}),/Invalid MIDI note analysis/);
+  for (const changes of [
+    {start:NaN},{start:-1},{end:Infinity},{end:88201},{end:-1},{midi:NaN},{midi:Infinity},{key:NaN},{key:undefined},
+  ]) {
+    const bad = snesAnalysis([[{...valid.channels[0].notes[0],...changes}]]);
+    assert.throws(()=>exportNoteAnalysisMidi(bad),/Invalid or overlapping MIDI note intervals/);
+  }
+  assert.throws(()=>exportNoteAnalysisMidi(snesAnalysis([[
+    {start:0,end:22050,midi:60,key:1},{start:1000,end:44100,midi:62,key:2},
+  ]])),/overlapping/);
+  for (const changes of [{displayRate:32000},{warnings:new Map()},{warnings:[{}]},{channels:[]},{chipName:null}]) {
+    assert.throws(()=>exportNoteAnalysisMidi({...valid,...changes}),/Invalid MIDI note analysis/);
+  }
+  for (const bpm of [0,-1,NaN,Infinity,1e9]) assert.throws(()=>exportNoteAnalysisMidi(valid,{bpm}),/BPM/);
+});
+
+test('dense SNES capture exports twenty thousand key intervals without argument-limit failures',()=>{
+  const count = 20000, length = 100;
+  const voice = Array.from({length:count},(_,i) => ({start:i*length,end:(i+1)*length,midi:48+i%24,key:i}));
+  const result = exportNoteAnalysisMidi(snesAnalysis([voice],count*length)), decoded = decode(result.bytes);
+  assert.equal(result.noteCount,count); assert.equal(result.skippedNotes,0);
+  assert.equal(notes(decoded.tracks[1]).length,count*2);
+  assert.equal(decoded.tracks[1].at(-1).tick,Math.round(count*length*1920/44100));
 });

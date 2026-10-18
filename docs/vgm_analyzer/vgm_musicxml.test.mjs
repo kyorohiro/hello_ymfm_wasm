@@ -23,3 +23,14 @@ test('reject empty selection and invalid tempo or duration', () => {
  for(const bpm of [NaN,0,120.1,1000]) assert.throws(()=>createMusicXmlScore([],0,{bpm}),/BPM/);
  assert.throws(()=>createMusicXmlScore([ {notes:[]} ],Infinity),/long/);
 });
+test('SPC base-pitch score explains reference and capture limits without claiming PCM was omitted', () => {
+ const channels=[{name:'SNES Voice 1',notes:[n(0,4,60)]}];
+ const result=createMusicXmlScore(channels,16*5512.5,{chipKind:'snes',fileName:'Song.spc',warnings:['Initially active note inferred.']});
+ assert.equal(result.noteCount,1);
+ assert.match(result.text,/<step>C<\/step><octave>4/);
+ assert.match(result.text,/current Note-ish references/);
+ assert.match(result.text,/Only the analyzed SPC interval is exported/);
+ assert.match(result.text,/Initially active note inferred/);
+ assert.doesNotMatch(result.text,/PCM, noise|VGM loop/);
+ assert.match(createMusicXmlScore(channels,16*5512.5).text,/PCM, noise.*VGM loop is not expanded/);
+});

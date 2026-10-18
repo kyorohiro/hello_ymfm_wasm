@@ -95,7 +95,7 @@ function noteLabel(hz) {
     cents:Number(((midi - nearest) * 100).toFixed(2))};
 }
 
-/** Lazy, display-only SPC analysis. Resource loading/analysis/reference edits
+/** Lazy SPC note analysis. Resource loading/analysis/reference edits
  * never send commands to the audible player or access its RAM/DSP snapshots.
  */
 export function mountSpcNoteish({root,onChange = () => {}}) {
@@ -118,10 +118,10 @@ export function mountSpcNoteish({root,onChange = () => {}}) {
   status.dataset.spcNotesStatus = ''; status.setAttribute('role','status');
   const progress = element('progress',undefined,root); progress.max = 1; progress.hidden = true;
   progress.setAttribute('aria-label','SPC note analysis progress');
-  const help = element('p','Display-only approximation of key requests and base pitches. Audible EG release, echo and live BRR RAM changes are not transcribed. References describe BRR at 32,000 Hz / PITCH 4096; editing them never changes playback. Provisional C4 is an assigned reference, not a detected note.',root);
+  const help = element('p','Approximate key requests and base pitches for Note-ish, MIDI and sheet music. Audible EG release, echo and live BRR RAM changes are not transcribed. References describe BRR at 32,000 Hz / PITCH 4096; editing them updates note displays and exports, never SPC playback. Provisional C4 is an assigned reference, not a detected note.',root);
   help.className = 'noteish-help';
   const references = element('details',undefined,root);
-  element('summary','BRR tuning references (display only)',references);
+  element('summary','BRR tuning references (notes and exports)',references);
   const referenceHost = element('div',undefined,references); referenceHost.className = 'spc-note-samples';
   function setState(value,text) {
     root.dataset.spcNotesState = value;
@@ -163,10 +163,10 @@ export function mountSpcNoteish({root,onChange = () => {}}) {
       element('small',`${estimate?.referenceHz && !estimated ? `Possible ${estimate.referenceHz.toFixed(2)} Hz; not applied. ` : ''}${estimate?.reason ?? 'No reliable pitch estimate.'}`,result);
       const note = element('input',undefined,element('td',undefined,tr));
       note.type = 'text'; note.value = initial.note; note.required = true; note.dataset.spcNoteReference = '';
-      note.setAttribute('aria-label',`Display reference note for BRR ${sample.id}`);
+      note.setAttribute('aria-label',`Reference note for BRR ${sample.id}`);
       const cents = element('input',undefined,element('td',undefined,tr));
       cents.type = 'number'; cents.value = String(initial.cents); cents.min = '-100'; cents.max = '100'; cents.step = 'any'; cents.required = true;
-      cents.dataset.spcNoteCents = ''; cents.setAttribute('aria-label',`Display reference cents for BRR ${sample.id}`);
+      cents.dataset.spcNoteCents = ''; cents.setAttribute('aria-label',`Reference cents for BRR ${sample.id}`);
       const reset = element('button','Reset',element('td',undefined,tr)); reset.type = 'button';
       let manual = false;
       const valid = () => {
@@ -176,7 +176,7 @@ export function mountSpcNoteish({root,onChange = () => {}}) {
       };
       const edit = () => {
         manual = true; label.textContent = 'Manual reference';
-        if (!valid()) {status.textContent = 'Enter a valid note and cents. The display keeps its last valid reference.'; return;}
+        if (!valid()) {status.textContent = 'Enter a valid note and cents. The display keeps its last valid reference; note exports are unavailable until corrected.'; onChange(analysis,{exportReady:false}); return;}
         rebuild();
       };
       note.addEventListener('input',edit); cents.addEventListener('input',edit);

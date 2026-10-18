@@ -1,7 +1,7 @@
 import {scoreVoices} from './score_groups.js';
 // MusicXML 4.0 partwise. The independent trial uses the same 1/16 grid as .ly export.
 const xml = value => String(value).replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/g, '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'}[c]));
-export function createMusicXmlScore(channels, totalSamples, {bpm = 120, fileName = 'VGM', warnings = []} = {}) {
+export function createMusicXmlScore(channels, totalSamples, {bpm = 120, fileName = 'VGM', warnings = [], chipKind} = {}) {
   if (!Number.isInteger(bpm) || bpm < 4 || bpm > 999) throw new RangeError('BPM must be an integer from 4 to 999');
   const tick = sample => Math.round(sample * bpm * 4 / (44100 * 60));
   const end = Math.max(16, Math.ceil(tick(totalSamples) / 16) * 16);
@@ -48,7 +48,9 @@ export function createMusicXmlScore(channels, totalSamples, {bpm = 120, fileName
     const bass = pitches.length && pitches[Math.floor(pitches.length / 2)] < 60;
     return `<part id="P${index+1}">${measures.map((notes, i) => `<measure number="${i+1}">${i === 0 ? `<attributes><divisions>4</divisions><time><beats>4</beats><beat-type>4</beat-type></time><clef><sign>${bass ? 'F' : 'G'}</sign><line>${bass ? 4 : 2}</line></clef></attributes>${index === 0 ? `<direction placement="above"><direction-type><metronome><beat-unit>quarter</beat-unit><per-minute>${bpm}</per-minute></metronome></direction-type><sound tempo="${bpm}"/></direction>` : ''}` : ''}${notes.join('')}${i === measures.length - 1 ? '<barline location="right"><bar-style>light-heavy</bar-style></barline>' : ''}</measure>`).join('\n')}</part>`;
   });
-  const notices = ['Quantized transcription; manual BPM, assumed 4/4, 1/16 grid. Not an original score.', 'PCM, noise, timbres, modulation and audible release are omitted. Unknown pitches become rests; sub-grid intervals may disappear. Final bar is padded. VGM loop is not expanded.', ...warnings, `${skippedNotes} intervals omitted or replaced by rests.`];
+  const notices = ['Quantized transcription; manual BPM, assumed 4/4, 1/16 grid. Not an original score.', chipKind === 'snes'
+    ? 'SNES BRR base pitches use the current Note-ish references; estimated or provisional references can have wrong notes or octaves. Noise, timbres, pitch modulation and audible envelope/release are not transcribed. Unknown pitches become rests; sub-grid intervals may disappear. Final bar is padded. Only the analyzed SPC interval is exported.'
+    : 'PCM, noise, timbres, modulation and audible release are omitted. Unknown pitches become rests; sub-grid intervals may disappear. Final bar is padded. VGM loop is not expanded.', ...warnings, `${skippedNotes} intervals omitted or replaced by rests.`];
   const text = `<?xml version="1.0" encoding="UTF-8"?>\n<score-partwise version="4.0"><work><work-title>${xml(fileName)}</work-title></work><identification><encoding><software>VGM Analyzer MusicXML trial</software><encoding-description>${xml(notices.join('\n'))}</encoding-description></encoding></identification><part-list>${channels.map((ch,i) => `<score-part id="P${i+1}"><part-name>${xml(ch.name ?? `CH${i+1}`)}</part-name></score-part>`).join('')}</part-list>${parts.join('\n')}</score-partwise>`;
   return {text, noteCount, skippedNotes, warnings: notices};
 }

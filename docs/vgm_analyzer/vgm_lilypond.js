@@ -21,7 +21,7 @@ export function lilyPitch(midi) {
 }
 
 /** One monophonic staff per extracted channel, with a shared absolute beat grid. */
-export function createLilyPondScore(channels, totalSamples, { bpm = 120, fileName = 'VGM', warnings = [] } = {}) {
+export function createLilyPondScore(channels, totalSamples, { bpm = 120, fileName = 'VGM', warnings = [], chipKind } = {}) {
   if (!Number.isInteger(bpm) || bpm < 4 || bpm > 999) throw new RangeError('BPM must be an integer from 4 to 999');
   const tick = sample => Math.round(sample * bpm * 4 / (44100 * 60));
   const end = Math.max(16, Math.ceil(tick(totalSamples) / 16) * 16);
@@ -71,15 +71,17 @@ export function createLilyPondScore(channels, totalSamples, { bpm = 120, fileNam
   if (!staves.length) throw new Error('No supported channels for LilyPond export');
   const notices = [
     'Editable transcription: manual BPM, assumed 4/4, sixteenth-note grid; not an original score.',
-    'Semitone base pitches only; PCM, noise, timbres, LFO, bends and audible release are not reproduced.',
+    chipKind === 'snes'
+      ? 'SNES BRR base pitches use the current Note-ish references; estimated or provisional references can have wrong notes or octaves. Noise, timbres, pitch modulation and audible envelope/release are not transcribed.'
+      : 'Semitone base pitches only; PCM, noise, timbres, LFO, bends and audible release are not reproduced.',
     'Unknown pitches become rests; sub-grid intervals may disappear. Final bar is padded with rests.',
     'Same-key, same-rounded-pitch intervals are merged; distinct key events remain separate.',
-    'No automatic key signature, meter, tempo, pickup or triplet detection. VGM loop is not expanded.',
+    'No automatic key signature, meter, tempo, pickup or triplet detection. ' + (chipKind === 'snes' ? 'Only the analyzed SPC interval is exported.' : 'VGM loop is not expanded.'),
     ...warnings, `${skippedNotes} intervals omitted or replaced by rests.`,
   ];
   const text = `\\version "2.24.3"\n\\language "nederlands"\n`
     + notices.map(s => `% ${String(s).replace(/[\r\n]/g, ' ')}`).join('\n')
-    + `\n\\header { title = ${quoted(fileName)} subtitle = "VGM transcription (quantized)" }\n`
+    + `\n\\header { title = ${quoted(fileName)} subtitle = "${chipKind === 'snes' ? 'SPC' : 'VGM'} transcription (quantized)" }\n`
     + `\\score {\n\\new StaffGroup <<\n${staves.join('\n')}\n>>\n\\layout {}\n}\n`;
   return { text, noteCount, skippedNotes, warnings: notices };
 }
@@ -152,5 +154,5 @@ export function exportLilyPondAnalysis(analysis, options = {}) {
   }
   const channels = analysis.channels.filter((_ch, i) => selected === undefined || selected.includes(i));
   if (!channels.length) throw new Error('Select at least one channel');
-  return createLilyPondScore(groupSelectedScoreChannels(analysis.channels,channels,options.groups), analysis.time, { ...options, warnings: analysis.warnings });
+  return createLilyPondScore(groupSelectedScoreChannels(analysis.channels,channels,options.groups), analysis.time, { ...options, chipKind:analysis.chipKind ?? options.chipKind, warnings: analysis.warnings });
 }

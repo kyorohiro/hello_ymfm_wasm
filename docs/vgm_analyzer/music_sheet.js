@@ -1,6 +1,6 @@
 import {groupSelectedScoreChannels} from './score_groups.js';
 import {getScoreGroups} from './score_group_ui.js';
-import {createMusicXmlScore} from './vgm_musicxml.js';
+import {createMusicXmlScore} from './vgm_musicxml.js?v=snes-score-1';
 let rendererLoading;
 function loadRenderer() {
   if (globalThis.opensheetmusicdisplay) return Promise.resolve(globalThis.opensheetmusicdisplay);
@@ -21,17 +21,23 @@ export function mountMusicSheet({getTrack, tempoSettings, setStatus}) {
   const settings = $('musicSheetExportDialog'), preview = $('musicSheetPreviewDialog');
   const bpm = $('musicSheetBpmInput'), list = $('musicSheetChannels');
   const panel = $('sheetMusicPanel');
-  let target = preview, panelSource;
+  let target = preview, panelSource, panelBuffer;
   const renderers = new Map();
-  let source, analysis, fileName, generation = 0;
+  let source, sourceBuffer, analysis, fileName, generation = 0;
+  const identity = track => track.source ?? track.buffer;
+  const current = (expectedSource, expectedBuffer) => {
+    const track = getTrack();
+    return !!track.available && track.buffer === expectedBuffer && identity(track) === expectedSource;
+  };
   preview.addEventListener('close', () => { if (target === preview) generation++; });
   function openSettings(destination) {
     const track = getTrack(); if (!track.buffer || !track.available) return;
     try {
-      if (source !== track.buffer) {
-        analysis = tempoSettings.getAnalysis(track.buffer);
-        tempoSettings.prepare(track.buffer, bpm, $('musicSheetTempoHelp'));
-        source = track.buffer; fileName = track.fileName;
+      const nextSource = identity(track);
+      if (source !== nextSource || sourceBuffer !== track.buffer) {
+        analysis = tempoSettings.getAnalysis(nextSource);
+        tempoSettings.prepare(nextSource, bpm, $('musicSheetTempoHelp'));
+        source = nextSource; sourceBuffer = track.buffer; fileName = track.fileName;
         list.replaceChildren();
         analysis.channels.forEach((ch, i) => {
           const count = ch.notes.filter(n => Number.isFinite(n.midi) && n.end > n.start).length;
@@ -51,10 +57,10 @@ export function mountMusicSheet({getTrack, tempoSettings, setStatus}) {
     event.preventDefault();
     if (!bpm.reportValidity()) return;
     try {
-      if (!analysis || source !== getTrack().buffer) throw new Error('Reopen Export Music Sheet for the current track');
+      if (!analysis || !current(source, sourceBuffer)) throw new Error('Reopen Export Music Sheet for the current analysis');
       const selected = new Set([...list.querySelectorAll('input:checked')].map(i => Number(i.value)));
-      const result = createMusicXmlScore(groupSelectedScoreChannels(analysis.channels, analysis.channels.filter((_,i) => selected.has(i)), getScoreGroups(source)), analysis.time,
-        {bpm:Number(bpm.value), fileName, warnings:analysis.warnings});
+      const result = createMusicXmlScore(groupSelectedScoreChannels(analysis.channels, analysis.channels.filter((_,i) => selected.has(i)), getScoreGroups(sourceBuffer)), analysis.time,
+        {bpm:Number(bpm.value), fileName, warnings:analysis.warnings, chipKind:analysis.chipKind});
       if (action === 'export') {
         const url = URL.createObjectURL(new Blob([result.text], {type:'application/vnd.recordare.musicxml+xml'}));
         const a = document.createElement('a'); a.href = url; a.download = (fileName.replace(/\.[^.]+$/, '') || 'analysis') + '.musicxml'; a.click();
@@ -62,11 +68,11 @@ export function mountMusicSheet({getTrack, tempoSettings, setStatus}) {
         setStatus(`Exported MusicXML: ${result.noteCount} notes, ${result.skippedNotes} omitted intervals.`); return;
       }
       settings.close(); const job = ++generation;
-      const container = target, trackSource = source;
+      const container = target, trackSource = source, trackBuffer = sourceBuffer;
       const status = container.querySelector('[data-status]'), pages = container.querySelector('[data-pages]');
       renderers.get(container)?.clear(); renderers.delete(container); pages.replaceChildren();
-      if (container === panel) panelSource = source;
-      const active = () => job === generation && trackSource === getTrack().buffer && (container !== preview || preview.open);
+      if (container === panel) {panelSource = source; panelBuffer = sourceBuffer;}
+      const active = () => job === generation && current(trackSource, trackBuffer) && (container !== preview || preview.open);
       status.textContent = 'Loading music sheet…'; if (container === preview) preview.showModal();
       container.querySelector('[data-notices]').textContent = result.warnings.join('\n');
       try {
@@ -79,20 +85,20 @@ export function mountMusicSheet({getTrack, tempoSettings, setStatus}) {
     } catch(e) { setStatus(`Music sheet export failed: ${e.message}`); }
   });
   return {setVisible(visible) {
-    if (visible) renderers.get(panel)?.render();
+    if (visible && current(panelSource, panelBuffer)) renderers.get(panel)?.render();
   }, updateTrack() {
-    if (source && source !== getTrack().buffer) {
+    if (source && !current(source, sourceBuffer)) {
       generation++;
       if (preview.open) preview.close();
       if (settings.open) settings.close();
-      source = undefined;
+      source = undefined; sourceBuffer = undefined; analysis = undefined;
     }
-    if (panelSource && panelSource !== getTrack().buffer) {
+    if (panelSource && !current(panelSource, panelBuffer)) {
       renderers.get(panel)?.clear(); renderers.delete(panel);
       panel.querySelector('[data-pages]').replaceChildren();
       panel.querySelector('[data-notices]').textContent = '';
       panel.querySelector('[data-status]').textContent = 'Press Show Sheet Music to generate the current track.';
-      panelSource = undefined;
+      panelSource = undefined; panelBuffer = undefined;
     }
   }};
 }

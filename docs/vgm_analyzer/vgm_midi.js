@@ -26,11 +26,12 @@ function track(events, end) {
   events.sort((a,b) => a.tick - b.tick || a.order - b.order);
   const data = []; let cursor = 0;
   for (const event of events) {
-    data.push(...vlq(event.tick - cursor), ...event.bytes);
+    for (const byte of vlq(event.tick - cursor)) data.push(byte);
+    for (const byte of event.bytes) data.push(byte);
     cursor = event.tick;
   }
   data.push(...vlq(Math.max(cursor, end) - cursor), 255, 47, 0);
-  return new Uint8Array([...utf8('MTrk'), ...be32(data.length), ...data]);
+  return concat([utf8('MTrk'), new Uint8Array(be32(data.length)), new Uint8Array(data)]);
 }
 function concat(parts) {
   const out = new Uint8Array(parts.reduce((n,p) => n + p.length, 0));
@@ -39,12 +40,17 @@ function concat(parts) {
   return out;
 }
 
-/** SMF type 1. Tempo is manual; tick rounding is not musical quantization. */
-export function exportAnalysisMidi(source, { bpm = 120, fileName = 'VGM' } = {}) {
+function midiTempo(bpm) {
   const tempo = Math.round(60000000 / bpm);
   if (!Number.isFinite(bpm) || bpm <= 0 || tempo < 1 || tempo > 0xffffff) {
     throw new RangeError('BPM must fit the MIDI tempo range (approximately 3.58–60000000)');
   }
+  return tempo;
+}
+
+/** SMF type 1. Tempo is manual; tick rounding is not musical quantization. */
+export function exportAnalysisMidi(source, { bpm = 120, fileName = 'VGM' } = {}) {
+  const tempo = midiTempo(bpm);
   const parserHeader = new Ym2612VGM(source).header;
   const chipKind = midiChipKind(parserHeader) === 'msx' ? 'msx' : parserHeader.ym2151Clock & 0x3fffffff ? 'ym2151' : midiChipKind(parserHeader);
   if (!chipKind) throw new Error('MIDI requires YM2151 / YM2612 / YM2203 / YM2608 / YM2610 / AY-3-8910 / YM2413 / YM3526 / YM3812 / Y8950 / YMF262 / YMF278B / PSG or NES APU / HuC6280 / Game Boy DMG');
@@ -65,6 +71,56 @@ export function exportAnalysisMidi(source, { bpm = 120, fileName = 'VGM' } = {})
   if (chipKind === 'ym2151') warnings.push('YM2151 base KC/KF pitch only: DT/MUL and audible release are not reproduced; CH8 noise, partial key masks and CSM intervals are omitted.');
   for (const [message, entry] of extractionWarnings) warnings.push(`${message} (${entry.count})`);
   if (parserHeader.loopOffset) warnings.push('VGM loop is not expanded; one pass is exported.');
+  return writeNoteMidi({channels,time,chipKind,chipName,warnings},{tempo,fileName,foldOnset:true});
+}
+
+/** Export precomputed monophonic channel notes. start/end/time use 44,100-Hz
+ * analysis ticks, not SPC CPU clocks or output-device frames. Fractional MIDI
+ * pitches remain pitch bends; no beat-grid quantization or timbre reconstruction
+ * is performed. Distinct key IDs retain their note-on/off boundaries.
+ */
+export function exportNoteAnalysisMidi(analysis, {bpm = 120, fileName = 'analysis'} = {}) {
+  const tempo = midiTempo(bpm);
+  if (!analysis || !Number.isFinite(analysis.time) || analysis.time < 0
+    || !Array.isArray(analysis.channels) || !analysis.channels.length || analysis.channels.length > 256
+    || typeof analysis.chipKind !== 'string' || !analysis.chipKind
+    || typeof analysis.chipName !== 'string' || !analysis.chipName
+    || (analysis.displayRate !== undefined && analysis.displayRate !== 44100)
+    || !Array.isArray(analysis.warnings) || analysis.warnings.length > 4096
+    || analysis.warnings.some(w => typeof w !== 'string' || w.length > 65536)) {
+    throw new TypeError('Invalid MIDI note analysis; expected 44,100-Hz intervals and text warnings');
+  }
+  let count = 0;
+  for (const channel of analysis.channels) {
+    if (!channel || !Array.isArray(channel.notes) || channel.notes.length > 1000000
+      || (channel.name !== undefined && (typeof channel.name !== 'string' || channel.name.length > 65536))) {
+      throw new TypeError('Invalid MIDI analysis channel');
+    }
+    count += channel.notes.length;
+    if (count > 1000000) throw new RangeError('MIDI note analysis exceeds 1,000,000 intervals');
+    let previousEnd = 0;
+    for (const note of channel.notes) {
+      if (!note || !Number.isFinite(note.start) || !Number.isFinite(note.end)
+        || note.start < previousEnd || note.end < note.start || note.end > analysis.time
+        || (note.midi !== null && !Number.isFinite(note.midi))
+        || !['number','string'].includes(typeof note.key)
+        || (typeof note.key === 'number' && !Number.isFinite(note.key))) {
+        throw new TypeError('Invalid or overlapping MIDI note intervals');
+      }
+      previousEnd = note.end;
+    }
+  }
+  const warnings = [...analysis.warnings];
+  if (analysis.chipKind === 'snes') warnings.unshift(
+    'SNES BRR base-pitch notes from the analyzed interval only; original BRR timbres, noise, pitch modulation, envelope progression and audible release are not reproduced.',
+    'Pitch changes become Pitch Bend. Program is fixed at 0 and velocity at 100. Inferred initial notes start at the capture origin; the final held note ends at the analyzed endpoint.',
+  );
+  return writeNoteMidi({...analysis,warnings},{tempo,fileName,foldOnset:false});
+}
+
+function writeNoteMidi({channels,time,chipKind,chipName,warnings},{tempo,fileName,foldOnset}) {
+  // Do not mutate the caller's analysis when output-specific notices are added.
+  warnings = [...warnings];
   if (channels.length > 15) warnings.push('Uses MIDI Port meta events to keep independent pitches on more than 15 melodic channels; playback requires multi-port MIDI support.');
   const tick = sample => Math.round(sample * 1000000 * PPQN / (44100 * tempo));
   let noteCount = 0, skippedNotes = 0, bendCount = 0;
@@ -78,7 +134,7 @@ export function exportAnalysisMidi(source, { bpm = 120, fileName = 'VGM' } = {})
       const next = channel.notes[i + 1];
       // Only the first pitch commit following a fresh full KEY ON is folded
       // into the onset. Preserve its KEY time and all subsequent bends.
-      if (n.freshOnset && n.endReason === "pitch" &&
+      if (foldOnset && n.freshOnset && n.endReason === "pitch" &&
           n.end - n.start >= 0 && n.end - n.start <= 8 &&
           next?.key === n.key && next.start === n.end &&
           Number.isFinite(next.midi) && next.midi !== null) {
