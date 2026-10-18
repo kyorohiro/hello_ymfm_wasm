@@ -1425,6 +1425,26 @@ interface PlaygroundSnesState {
   sampleRate:number;
   samples:PlaygroundSnesSample[]; channels:PlaygroundSnesChannelState[]; nextAddress:number;
 }
+/** Recorded original DSP execution, including RAM/BRR changes. Independent of
+ * BPM. Four words per event: effective DSP clock, kind (0 DSP / 1 RAM), address,
+ * byte value. Preserve nondecreasing clocks and same-clock event order.
+ * These are 1,024,000-Hz execution clocks, not output frames or VGM samples.
+ */
+interface PlaygroundSnesTimeline {
+  version:1;
+  clockRate:1024000;
+  /** Complete 32,000-Hz frames; maximum 600 seconds. */
+  durationClocks:number;
+  initialState:{ram:Uint8Array; dsp:Uint8Array; outputDelayFrames:4};
+  /** At most 1,000,000 packed events. RAM addresses 0..65535; DSP 0..127. */
+  events:Uint32Array | number[];
+}
+interface PlaygroundSnesTimelineState {
+  loaded:boolean; playing:boolean; ended:boolean;
+  /** Native 32,000-Hz frames from the prepared timeline's origin. */
+  positionFrames:number;
+  totalFrames:number;
+}
 /** Independent CPU-free S-DSP, eight fixed physical voices, no automatic allocator.
  * BRR uploads, tuning and voice configuration are explicit. Routes through mixer/FX.
  * Worker performance commands follow Worker lookahead; STOP disposes this instance.
@@ -1435,6 +1455,18 @@ interface PlaygroundSnes {
   readonly sampleRate:number;
   readonly nativeSampleRate:32000;
   loadBRR(bytes:ArrayBuffer | ArrayBufferView, options:PlaygroundSnesBrrOptions):Promise<PlaygroundSnesSample>;
+  /** Upload original RAM/DSP state and timed writes, without playback. This
+   * replaces the authored instrument state; use reset() before BRR/note editing.
+   */
+  prepareTimeline(timeline:PlaygroundSnesTimeline):Promise<PlaygroundSnesTimelineState>;
+  /** Restart the prepared interval; resolves when audio finishes. Worker
+   * lookahead delays the start once. Stop, disposal or owner removal rejects
+   * with AbortError. No JS sleep is needed to keep playback alive.
+   */
+  playTimeline():Promise<PlaygroundSnesTimelineState>;
+  /** Silence a timeline and reject any pending playTimeline() wait. */
+  stopTimeline():Promise<PlaygroundSnesTimelineState>;
+  getTimelineState():Promise<PlaygroundSnesTimelineState>;
   setPreset(channel:PlaygroundSnesChannel, preset:PlaygroundSnesPreset):void;
   setChannel(channel:PlaygroundSnesChannel, params:PlaygroundSnesPreset):void;
   getPreset(channel:PlaygroundSnesChannel):Promise<PlaygroundSnesChannelState>;
@@ -1448,7 +1480,9 @@ interface PlaygroundSnes {
   noteOn(channel:PlaygroundSnesChannel, note?:string | number):void;
   noteOff(channel:PlaygroundSnesChannel):void;
   allNotesOff():void;
-  /** Reset registers and release voices, retaining uploaded sample IDs/data. */
+  /** Reset registers and release voices, retaining uploaded sample IDs/data.
+   * After prepareTimeline(), clears raw timeline mode and returns to BRR editing.
+   */
   reset():void;
   writeDsp(register:number, value:number):void;
   readDsp(register:number):Promise<number>;

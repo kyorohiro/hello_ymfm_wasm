@@ -1,17 +1,23 @@
-import factory from '../generated/spc_wasm.js';
-import {SnesDspCore} from './spc.js?v=chip-tabs-2';
-import {SnesSynth} from './snessynth.js?v=chip-tabs-2';
+import factory from '../generated/spc_wasm.js?v=spc-song-js-1';
+import {SnesDspCore} from './spc.js?v=spc-song-js-1';
+import {SnesSynth} from './snessynth.js?v=spc-song-js-1';
 import {SpcResampler} from './spc_resampler.js?v=chip-tabs-2';
-import {createProcessorPerformance} from './playground_performance_processor.js?v=snes-spc-1';
-const METHODS=new Set(['loadBRR','setPreset','setChannel','setPitch','setFrequency','setNote','keyOn','keyOff','noteOn','noteOff','allNotesOff','reset','writeDsp','readDsp','getState','getPreset','snapshot','dispose']);
+import {createProcessorPerformance} from './playground_performance_processor.js?v=spc-song-js-1';
+const METHODS=new Set(['prepareTimeline','playTimeline','stopTimeline','getTimelineState','loadBRR','setPreset','setChannel','setPitch','setFrequency','setNote','keyOn','keyOff','noteOn','noteOff','allNotesOff','reset','writeDsp','readDsp','getState','getPreset','snapshot','dispose']);
+const RESOURCE_METHODS=new Set(['prepareTimeline','stopTimeline','getTimelineState','loadBRR','readDsp','getState','getPreset','snapshot']);
 export class SnesInstrumentProcessor extends AudioWorkletProcessor {
   constructor({processorOptions={}}={}) {
-    super();this.synth=null;this.dead=false;this.remote=null;
+    super();this.synth=null;this.dead=false;this.remote=null;this.timelineCompletion=null;
     this.validation=new SnesSynth({core:{reset(){},loadRam(){},writeDsp(){},dispose(){}}});
     this.renderSegment=this.renderSegment.bind(this);
     this.performance=createProcessorPerformance({chip:'snes',apply:(data,port)=>this.apply(data,port,true),
-      immediate:['loadBRR','readDsp','getState','getPreset','snapshot'],validate:({method,args=[]})=>{
+      prepare:(data,port)=>{
+        if(RESOURCE_METHODS.has(data.method)){this.apply(data,port);return null;}
+        if(data.method==='playTimeline'||data.id===undefined)return data;
+        const {id,...command}=data;port.postMessage({id,value:true});return command;
+      },validate:({method,args=[]})=>{
         if(!METHODS.has(method))throw new Error('Unknown SNES method');
+        if(['prepareTimeline','playTimeline','stopTimeline','getTimelineState'].includes(method))return;
         if(method==='dispose'||['getState','snapshot','readDsp','getPreset'].includes(method))return;
         if(method!=='loadBRR')this.validation[method](...args);
       }});
@@ -22,26 +28,59 @@ export class SnesInstrumentProcessor extends AudioWorkletProcessor {
     };
     this.ready=SnesDspCore.create({moduleFactory:factory,moduleOptions:{wasmBinary:processorOptions.wasmBinary}}).then(core=>{
       if(this.dead){core.dispose();return;}
-      this.synth=new SnesSynth({core});this.resampler=new SpcResampler(this.synth,sampleRate,{sourceFrames:1});
+      this.synth=new SnesSynth({core});
+      this.instrumentResampler=new SpcResampler(this.synth,sampleRate,{sourceFrames:1});
+      this.timelineResampler=new SpcResampler(this.synth,sampleRate,{sourceFrames:128});
+      this.resampler=this.instrumentResampler;
       this.port.postMessage({ready:true,sampleRate,nativeSampleRate:32000});
     }).catch(error=>this.fail(error));
   }
-  receive(data,port){if(this.performance.receive(data,port))return;this.apply(data,port);}
+  receive(data,port){
+    if(data?.type==='performance-stop'&&this.performance.getStats().activeSession===data.session){
+      this.synth?.stopTimeline();
+      if(this.synth?.timeline)this.resampler.reset(this.synth.core.nativeFrames);
+      this.finishTimeline('SNES performance stopped');
+    }
+    if(this.performance.receive(data,port))return;this.apply(data,port);
+  }
   apply({method,args=[],id},port,queued=false) {
     try {
       if(method==='dispose'){this.dispose();return;}
       if(this.dead||!this.synth)throw new Error('SNES instrument is not ready');
       if(!METHODS.has(method))throw new Error('Unknown SNES method');
+      if(['prepareTimeline','playTimeline','stopTimeline','reset'].includes(method)){
+        this.synth.stopTimeline();this.finishTimeline('SNES timeline stopped or replaced');
+      }
       const value=this.synth[method](...args);
+      if(method==='stopTimeline'&&this.synth.timeline)this.resampler.reset(this.synth.core.nativeFrames);
+      if(method==='prepareTimeline'){
+        this.performance.clear();this.resampler=this.timelineResampler;this.resampler.reset();
+      }
+      if(method==='playTimeline'){
+        this.resampler.reset();
+        if(id!==undefined)this.timelineCompletion={id,port};
+        return;
+      }
       if(method==='loadBRR')this.validation.loadBRR(...args);
-      else if(!queued&&!['readDsp','getState','getPreset','snapshot'].includes(method))this.validation[method](...args);
-      if(method==='reset')this.resampler.reset();
+      else if(!queued&&!RESOURCE_METHODS.has(method))this.validation[method](...args);
+      if(method==='reset'){this.resampler=this.instrumentResampler;this.resampler.reset();}
       if(id!==undefined)port.postMessage({id,value});
-    }catch(error){port.postMessage({id,error:String(error.message??error)});}
+    }catch(error){port.postMessage({id,error:String(error.message??error),name:error.name});}
+  }
+  finishTimeline(message){
+    const pending=this.timelineCompletion;if(!pending)return;this.timelineCompletion=null;
+    if(message)pending.port.postMessage({id:pending.id,error:message,name:'AbortError'});
+    else pending.port.postMessage({id:pending.id,value:this.synth.getTimelineState()});
   }
   fail(error){if(this.dead)return;this.port.postMessage({fatal:true,error:String(error.message??error)});this.remote?.postMessage({fatal:true,error:String(error.message??error)});this.dispose();}
-  dispose(){if(this.dead)return;this.dead=true;this.performance.clear();this.synth?.dispose();this.synth=null;this.remote?.close();}
-  renderSegment(left,right){if(!this.synth){left.fill(0);right.fill(0);return;}this.resampler.render(left,right);}
+  dispose(){if(this.dead)return;this.dead=true;this.finishTimeline('SNES instance disposed');this.performance.clear();this.synth?.dispose();this.synth=null;this.remote?.close();}
+  renderSegment(left,right){
+    if(!this.synth){left.fill(0);right.fill(0);return;}this.resampler.render(left,right);
+    if(this.timelineCompletion){
+      const timeline=this.synth.timeline;
+      if(timeline&&!timeline.playing&&this.resampler.playbackNativeFrames>=timeline.totalFrames)this.finishTimeline();
+    }
+  }
   process(_inputs,outputs){const[left,right]=outputs[0];if(this.dead){left.fill(0);right.fill(0);return false;}try{this.performance.render(left,right,this.renderSegment);return true;}catch(error){left.fill(0);right.fill(0);this.fail(error);return false;}}
 }
 registerProcessor('tetorica-playground-snes',SnesInstrumentProcessor);

@@ -85,6 +85,8 @@ void SNES_SPC::enable_rom( int enable )
 		m.rom_enabled = enable;
 		if ( enable )
 			memcpy( m.hi_ram, &RAM [rom_addr], sizeof m.hi_ram );
+		if ( trace_callback ) for ( int i = 0; i < rom_size; ++i )
+			trace_ram_write( rom_addr + i, (enable ? m.rom : m.hi_ram) [i] );
 		memcpy( &RAM [rom_addr], (enable ? m.rom : m.hi_ram), rom_size );
 		// TODO: ROM can still get overwritten when DSP writes to echo buffer
 	}
@@ -92,6 +94,12 @@ void SNES_SPC::enable_rom( int enable )
 
 
 //// DSP
+
+void SNES_SPC::copy_tetorica_trace_initial( unsigned char* ram, unsigned char* regs ) const
+{
+	memcpy( ram, RAM, 65536 );
+	for ( int i = 0; i < SPC_DSP::register_count; ++i ) regs [i] = dsp.read( i );
+}
 
 #if SPC_LESS_ACCURATE
 	int const max_reg_time = 29;
@@ -123,7 +131,7 @@ void SNES_SPC::enable_rom( int enable )
 		{\
 			int clock_count = (count & ~(clocks_per_sample - 1)) + clocks_per_sample;\
 			m.dsp_time += clock_count;\
-			dsp.run( clock_count );\
+			trace_dsp_run( clock_count );\
 		}
 #else
 	#define RUN_DSP( time, offset ) \
@@ -133,7 +141,7 @@ void SNES_SPC::enable_rom( int enable )
 			{\
 				assert( count > 0 );\
 				m.dsp_time = (time);\
-				dsp.run( count );\
+				trace_dsp_run( count );\
 			}\
 		}
 #endif
@@ -174,7 +182,10 @@ inline void SNES_SPC::dsp_write( int data, rel_time_t time )
 	#endif
 	
 	if ( REGS [r_dspaddr] <= 0x7F )
+	{
+		if ( trace_callback ) trace_callback( trace_user, trace_clock, 0, REGS [r_dspaddr], (uint8_t) data );
 		dsp.write( REGS [r_dspaddr], data );
+	}
 	else if ( !SPC_MORE_ACCURACY )
 		dprintf( "SPC wrote to DSP register > $7F\n" );
 }
@@ -398,7 +409,10 @@ void SNES_SPC::cpu_write_high( int data, int i, rel_time_t time )
 	{
 		m.hi_ram [i] = (uint8_t) data;
 		if ( m.rom_enabled )
+		{
+			trace_ram_write( i + rom_addr, m.rom [i] );
 			RAM [i + rom_addr] = m.rom [i]; // restore overwritten ROM
+		}
 	}
 	else
 	{
@@ -415,6 +429,7 @@ void SNES_SPC::cpu_write( int data, int addr, rel_time_t time )
 	MEM_ACCESS( time, addr )
 	
 	// RAM
+	trace_ram_write( addr, data );
 	RAM [addr] = (uint8_t) data;
 	int reg = addr - 0xF0;
 	if ( reg >= 0 ) // 64%

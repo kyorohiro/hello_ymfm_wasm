@@ -6,6 +6,7 @@ import {createPerformanceQueue} from './playground_performance_queue.js';
  */
 export function identifyPerformanceNote(chip,{method,type,args=[] ,register,value}) {
   if(['reset','allNotesOff','panic'].includes(method))return {allOff:true};
+  if(chip==='snes'&&['playTimeline','stopTimeline'].includes(method))return {key:'timeline',on:method==='playTimeline'};
   if(chip==='snes'&&['noteOn','keyOn','noteOff','keyOff'].includes(method))return {key:args[0],on:method==='noteOn'||method==='keyOn'};
   if(chip==='snes'&&method==='writeDsp'&&[0x4c,0x5c].includes(args[0]))return {events:Array.from({length:8},(_,key)=>key).filter(key=>args[1]&(1<<key)).map(key=>({key,on:args[0]===0x4c}))};
   if(chip==='dx7'&&(method==='noteOn'||method==='noteOff'))return {key:args[0],on:method==='noteOn'&&(args[1]??100)>0};
@@ -30,7 +31,7 @@ export function identifyPerformanceNote(chip,{method,type,args=[] ,register,valu
 }
 export function performanceNoteRelease(chip,key) {
   if(chip==='dx7')return {method:'noteOff',args:[key]};
-  if(chip==='snes')return {method:'keyOff',args:[key]};
+  if(chip==='snes')return key==='timeline'?{method:'stopTimeline',args:[]}:{method:'keyOff',args:[key]};
   if(chip==='rf5c164')return {method:'keyOff',args:[key]};
   if(chip==='nes')return key===5?{method:'writeRegister',args:[0x4083,128]}:{method:'setChannelEnabled',args:[key,false]};
   if(chip==='gameboy')return {method:'writeRegister',args:[[2,7,10,17][key],0]};
@@ -61,7 +62,7 @@ export function createProcessorPerformance({apply,prepare,validate,onDiscard,chi
   const queue = createPerformanceQueue({sampleRate:rate,nowFrame,validate,
     onDiscard(command,metadata) {
       const pending=pendingRPC.get(command);
-      if(pending){pendingRPC.delete(command);pending.postMessage({id:command.id,error:'Performance command cancelled'});}
+      if(pending){pendingRPC.delete(command);pending.postMessage({id:command.id,error:'Performance command cancelled',name:'AbortError'});}
       onDiscard?.(command,metadata);
     },
     apply(command,reply,frame,metadata) {pendingRPC.delete(command);const port=ports.get(reply);if(note(command,port,metadata))apply(command,port,frame,metadata);},
@@ -122,7 +123,7 @@ export function createProcessorPerformance({apply,prepare,validate,onDiscard,chi
         offset+=count;
       }
     },
-    clear:queue.clear,
+    clear(){queue.clear();owners.clear();},
     getStats:queue.getStats,
   };
 }

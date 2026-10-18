@@ -1,10 +1,10 @@
 import {createSpcAudio} from './playground_spc_audio.js?v=spc-import-1';
 import {createSpcClient} from './playground_spc.js?v=spc-import-1';
-import {createSnesAudio} from './playground_snes_audio.js?v=chip-tabs-2';
-import {createSnesClient} from './playground_snes.js?v=chip-tabs-2';
+import {createSnesAudio} from './playground_snes_audio.js?v=spc-song-js-1';
+import {createSnesClient} from './playground_snes.js?v=spc-song-js-1';
 import {createChipInspector} from './playground_chip_inspector.js?v=chip-tabs-2';
 import {createPerformanceHost} from './playground_performance_host.js';
-import {DEFAULT_WORKER_LOOKAHEAD_SECONDS, validateWorkerLookahead} from './playground_performance_sender.js?v=spc-import-1';
+import {DEFAULT_WORKER_LOOKAHEAD_SECONDS, validateWorkerLookahead} from './playground_performance_sender.js?v=spc-song-js-1';
 import {midiToOpnPitch, opnPitchFromHz} from './soundchip_pitch.js';
 import {attachChipClock, CHIP_CLOCKS} from './playground_chip_clock.js';
 import {createNesAudio} from './playground_nes_audio.js';

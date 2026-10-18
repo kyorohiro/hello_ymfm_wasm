@@ -98,7 +98,7 @@ export class SpcRuntimeSynth {
     if (context.state !== 'running') await waitFor(context.resume(), signal);
     const workletUrl = String(this.options.workletUrl ?? new URL('./spc-worklet.js?v=spc-import-1', import.meta.url));
     const binary = this.options.wasmBinary !== undefined ? Promise.resolve(copyBytes(this.options.wasmBinary))
-      : (this.options.fetch ?? nativeFetch)(this.options.wasmUrl ?? new URL('../generated/spc_wasm.wasm', import.meta.url), {signal})
+      : (this.options.fetch ?? nativeFetch)(this.options.wasmUrl ?? new URL('../generated/spc_wasm.wasm?v=spc-song-js-1', import.meta.url), {signal})
         .then(response => {if (!response.ok) throw new Error(`SPC WASM: HTTP ${response.status}`); return response.arrayBuffer();});
     const [wasmBinary] = await waitFor(Promise.all([binary, addModule(context, workletUrl)]), signal);
     signal.throwIfAborted();

@@ -149,6 +149,19 @@ snes.setClock(1024000);
 // @ts-expect-error Velocity is not a third noteOn argument on this chip.
 snes.noteOn(0, 'C4', 100);
 
+/** @type {PlaygroundSnesTimeline} */
+const snesTimeline = {version:1, clockRate:1024000, durationClocks:32000,
+  initialState:{ram:new Uint8Array(65536), dsp:new Uint8Array(128), outputDelayFrames:4},
+  events:new Uint32Array([0, 0, 0x4c, 1])};
+(await snes.prepareTimeline(snesTimeline)).totalFrames.toFixed();
+(await snes.playTimeline()).ended.valueOf();
+(await snes.stopTimeline()).positionFrames.toFixed();
+(await snes.getTimelineState()).playing.valueOf();
+// @ts-expect-error Timeline clocks are not VGM's 44100-Hz sample units.
+await snes.prepareTimeline({...snesTimeline, clockRate:44100});
+// @ts-expect-error Preserve the source SPC's four-frame output FIFO.
+await snes.prepareTimeline({...snesTimeline, initialState:{...snesTimeline.initialState, outputDelayFrames:0}});
+
 const spc = await useSoundChip('spc');
 await spc.loadSPC(await file('/spc/song/original.spc', {type:'arrayBuffer'}));
 await spc.play();

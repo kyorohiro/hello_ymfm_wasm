@@ -104,6 +104,62 @@ await spc.play();
 `;
 }
 
+const DSP_LABELS = new Map([[0x0c,'Master volume L'],[0x1c,'Master volume R'],[0x2c,'Echo volume L'],
+  [0x3c,'Echo volume R'],[0x4c,'Key on mask'],[0x5c,'Key off mask'],[0x6c,'Flags / noise clock'],
+  [0x7c,'End flags'],[0x0d,'Echo feedback'],[0x2d,'Pitch modulation mask'],[0x3d,'Noise mask'],
+  [0x4d,'Echo mask'],[0x5d,'Sample directory'],[0x6d,'Echo address'],[0x7d,'Echo delay']]);
+const VOICE_LABELS = ['Volume L','Volume R','Pitch low','Pitch high','Sample number','ADSR1','ADSR2','GAIN','ENVX','OUTX'];
+const hex = (value, width = 2) => `0x${value.toString(16).padStart(width, '0')}`;
+function dspLabel(register) {
+  if (DSP_LABELS.has(register)) return DSP_LABELS.get(register);
+  if ((register & 15) < VOICE_LABELS.length) return `Voice ${(register >> 4) + 1} ${VOICE_LABELS[register & 15]}`;
+  return (register & 15) === 15 ? `Echo FIR ${(register >> 4)}` : 'DSP';
+}
+
+function validateTrace(trace) {
+  if (trace?.version !== 1 || trace.clockRate !== 1024000 || !Number.isSafeInteger(trace.durationClocks)
+    || trace.durationClocks < 102400 || trace.durationClocks > 600 * 1024000 || trace.durationClocks % 32
+    || !(trace.initialState?.ram instanceof Uint8Array) || trace.initialState.ram.length !== 65536
+    || !(trace.initialState.dsp instanceof Uint8Array) || trace.initialState.dsp.length !== 128
+    || trace.initialState.outputDelayFrames !== 4 || !(trace.events instanceof Uint32Array)
+    || trace.events.length % 4 || trace.events.length > 4_000_000) throw new TypeError('Invalid SPC conversion trace');
+  let previous = 0;
+  for (let i = 0; i < trace.events.length; i += 4) {
+    const clock = trace.events[i], kind = trace.events[i + 1], address = trace.events[i + 2], value = trace.events[i + 3];
+    if (clock < previous || clock > trace.durationClocks || kind > 1 || address > (kind ? 65535 : 127) || value > 255) {
+      throw new RangeError('Invalid SPC conversion event');
+    }
+    previous = clock;
+  }
+}
+
+function javascriptSource(trace) {
+  const lines = [
+    '// Recorded SPC song: edit the timed DSP and RAM writes below.',
+    '// Each row: clock, kind (0 = DSP register, 1 = RAM byte), address, value.',
+    '// 1,024,000 clocks/second, 32 clocks/native sample. This clock is independent of BPM.',
+    '// Clock positions preserve the original DSP execution order, including sub-sample writes.',
+    '// BRR/directory changes, echo, noise and pitch modulation are retained.',
+    '// This is a finite captured interval; original note names and loops are not inferred.',
+    '// Initial RAM includes the original BRR samples. Original SPC is kept for reference.',
+    'const snes = await createSoundChip(\'snes\');', 'try {',
+    '  const events = new Uint32Array([',
+  ];
+  for (let i = 0; i < trace.events.length; i += 4) {
+    const clock = trace.events[i], kind = trace.events[i + 1], address = trace.events[i + 2], value = trace.events[i + 3];
+    lines.push(`    ${clock}, ${kind}, ${hex(address, kind ? 4 : 2)}, ${hex(value)},${kind ? '' : ` // ${dspLabel(address)}`}`);
+  }
+  lines.push('  ]);', '  await snes.prepareTimeline({', '    version: 1,', '    clockRate: 1024000,',
+    `    durationClocks: ${trace.durationClocks}, // ${(trace.durationClocks / 1024000).toFixed(6)} seconds`,
+    '    initialState: {',
+    '      ram: new Uint8Array(await file(\'./initial.ram.bin\', {type:\'arrayBuffer\'})),',
+    '      dsp: new Uint8Array(await file(\'./initial.dsp.bin\', {type:\'arrayBuffer\'})),',
+    `      outputDelayFrames: ${trace.initialState.outputDelayFrames},`, '    },', '    events,', '  });',
+    '  await snes.playTimeline(); // Waits for the captured interval to finish; toolbar STOP cancels.',
+    '} finally {', '  snes.dispose();', '}', '');
+  return lines.join('\n');
+}
+
 function instrumentSource({candidate, voice, referenceNote, basePitch, label}) {
   const loop = candidate.loop ? `,\n    loopStartSamples: ${candidate.loopStartSamples}` : '';
   return `// BRR instrument from SRCN ${candidate.sourceNumbers.join(', ')}${voice ? `, captured Voice ${voice.index + 1}` : ', no captured Voice settings'}.
@@ -141,9 +197,10 @@ try {
  * voiceIndex:null explicitly requests the default voice; undefined selects the
  * first captured Voice when one exists. entryPath is the first selected script.
  */
-export function buildSpcImportFiles(prepared, {mode, directory, selected = []} = {}) {
+export function buildSpcImportFiles(prepared, {mode, directory, selected = [], trace} = {}) {
   if (!prepared?.spc?.originalBytes || !Array.isArray(prepared.candidates)) throw new TypeError('Expected a prepared SPC import');
-  if (!['song', 'instruments'].includes(mode)) throw new TypeError('SPC import mode must be song or instruments');
+  if (!['song', 'instruments', 'javascript'].includes(mode)) throw new TypeError('SPC import mode must be song, instruments or javascript');
+  if (mode === 'javascript') validateTrace(trace);
   safeDirectory(directory);
   if (!Array.isArray(selected) || selected.length > 256) throw new TypeError('selected must be an array of at most 256 BRR candidates');
   const selections = mode === 'instruments' ? selected.map(value => findSelection(prepared, value)) : [];
@@ -153,8 +210,20 @@ export function buildSpcImportFiles(prepared, {mode, directory, selected = []} =
     {path:`${directory}/sourceinfo.json`, type:'text', data:json({format:'tetorica-spc-import', schemaVersion:1,
       sourceName:prepared.name, mode, metadata:prepared.metadata, warnings:prepared.warnings,
       scan:{directory:prepared.scan.directory, summary:prepared.scan.summary, rejected:prepared.scan.rejected},
-      limitation:'BRR candidates describe this saved RAM snapshot, not every instrument used during the song.'})},
+      ...(mode === 'javascript' ? {conversion:{version:trace.version, clockRate:trace.clockRate,
+        durationClocks:trace.durationClocks, durationSeconds:trace.durationClocks / trace.clockRate,
+        eventCount:trace.events.length / 4, nativeSampleRate:32000,
+        outputDelayFrames:trace.initialState.outputDelayFrames}} : {}),
+      limitation:mode === 'javascript' ? 'Finite recorded DSP/RAM execution; original note names and loop structure are not inferred. Tag fade is not applied.'
+        : 'BRR candidates describe this saved RAM snapshot, not every instrument used during the song.'})},
   ];
+  if (mode === 'javascript') {
+    const entryPath = `${directory}/index.js`;
+    files.push({path:`${directory}/initial.ram.bin`, type:'binary', data:trace.initialState.ram.slice()},
+      {path:`${directory}/initial.dsp.bin`, type:'binary', data:trace.initialState.dsp.slice()},
+      {path:entryPath, type:'text', data:javascriptSource(trace)});
+    return {files, entryPath, directory, mode};
+  }
   if (mode === 'song') {
     const entryPath = `${directory}/index.js`;
     files.push({path:entryPath, type:'text', data:songSource()});

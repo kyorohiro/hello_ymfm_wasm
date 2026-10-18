@@ -40,6 +40,26 @@ function fixtureWithUnusedInstrument(bytes) {
   for (let block = 0; block < Math.floor(65536 / 9); block++) ram[(0x3004 + block * 9) & 65535] &= 0xfe;
   return fixture;
 }
+function fixtureWithTimedWrites(bytes) {
+  const fixture = Buffer.from(bytes), ram = fixture.subarray(0x100,0x10100), code = [];
+  const writeDsp = (address,value) => code.push(0x8f,address,0xf2,0x8f,value,0xf3);
+  const delay = () => {
+    code.push(0xcd,160); // MOV X,#160.
+    const outer = code.length;
+    code.push(0x8d,255,0xfe,0xfe,0x1d,0xd0,0); // MOV Y,#255; DBNZ Y,-2; DEC X; BNE outer.
+    code[code.length - 1] = (outer - code.length) & 255;
+  };
+  delay();
+  code.push(0xe8,0x72,0xc5,0x01,0x20); // MOV A,#$72; MOV $2001,A: live BRR RAM mutation.
+  writeDsp(3,8); // Half PITCH after the initial sounding segment.
+  delay();
+  writeDsp(0,0); writeDsp(1,64); // Switch the voice to the right output.
+  delay();
+  writeDsp(0x5c,1); // KOFF, then idle without further writes.
+  code.push(0x2f,0xfe);
+  ram.set(code,0x200);
+  return fixture;
+}
 async function snapshotFiles(page) {
   return page.evaluate(() => window.__spcImportTest.virtualFiles.list().map(file => {
     const values = file.type === 'text' ? new TextEncoder().encode(file.data) : file.data;
@@ -69,6 +89,10 @@ async function importBundle(page,fixture,mode,browserName) {
   await openImport(page,fixture);
   const dialog = page.locator('#spcImportDialog');
   await dialog.locator(`input[name="spc-import-mode"][value="${mode}"]`).check();
+  if (mode === 'javascript') {
+    await dialog.locator('input[data-spc-conversion-seconds]').fill('2');
+    if (browserName) await page.screenshot({path:`/private/tmp/playground-spc-javascript-import-${browserName}.png`});
+  }
   if (mode === 'instruments') {
     await dialog.locator('[data-spc-candidate="srcn-127"]').waitFor({state:'visible'});
     assert.equal(await dialog.locator('input[data-spc-candidate]').count(),2,'Full directory scanning finds used and unused BRR candidates');
@@ -97,6 +121,30 @@ async function importBundle(page,fixture,mode,browserName) {
   assert(files.some(file => file.path === entryPath && file.type === 'text' && file.path.endsWith('.js')),
     'Import opens its generated runnable JavaScript');
   return {files,entryPath,directory:originals[0].path.slice(0,-'/original.spc'.length)};
+}
+async function cancelJavascriptImport(page,fixture) {
+  const before = await snapshotFiles(page);
+  let release, requested;
+  const barrier = new Promise(resolve => {release=resolve;});
+  const started = new Promise(resolve => {requested=resolve;});
+  const pattern = '**/playground_spc_trace_worker.js*';
+  await page.route(pattern,async route => {
+    requested(); await barrier;
+    try {await route.continue();} catch {} // Cancelling terminates this real worker request.
+  });
+  let timer;
+  try {
+    await openImport(page,fixture);
+    const dialog = page.locator('#spcImportDialog');
+    await dialog.locator('input[name="spc-import-mode"][value="javascript"]').check();
+    await dialog.locator('input[data-spc-conversion-seconds]').fill('2');
+    await dialog.locator('[data-spc-import-confirm]').click();
+    await Promise.race([started,new Promise((_,reject) => {timer=setTimeout(() => reject(Error('Conversion worker was not requested')),10000);})]);
+    await dialog.locator('[data-spc-import-cancel]').click();
+    await dialog.waitFor({state:'hidden'});
+  } finally {clearTimeout(timer); release(); await page.unroute(pattern);}
+  await page.waitForTimeout(100);
+  assert.deepEqual(await snapshotFiles(page),before,'Cancelling a running conversion must not create partial or late project files');
 }
 async function attachMeter(page) {
   await page.waitForFunction(() => window.__spcImportTest.megaDrive.audioContext?.state === 'running'
@@ -235,6 +283,22 @@ async function checkBrowser(name,type,url,fixture) {
       instrumentLevels[execution] = [];
       for (const script of scripts) instrumentLevels[execution].push(await runGenerated(page,script.path,execution));
     }
+    const timedFixture = fixtureWithTimedWrites(fixture);
+    await cancelJavascriptImport(page,timedFixture);
+    const javascript = await importBundle(page,timedFixture,'javascript',name);
+    assert.equal(javascript.files.length,5,'Song JavaScript stores original SPC, provenance, initial RAM/DSP and editable timed writes');
+    const recorded = JSON.parse(javascript.files.find(file => file.path.endsWith('/sourceinfo.json')).data);
+    assert.equal(recorded.mode,'javascript'); assert.equal(recorded.conversion.durationSeconds,2);
+    assert.equal(recorded.conversion.clockRate,1024000); assert(recorded.conversion.eventCount >= 5);
+    assert.equal(javascript.files.find(file => file.path.endsWith('/initial.ram.bin')).data.length,65536);
+    assert.equal(javascript.files.find(file => file.path.endsWith('/initial.dsp.bin')).data.length,128);
+    const javascriptSource = javascript.files.find(file => file.path === javascript.entryPath).data;
+    assert.match(javascriptSource,/prepareTimeline/); assert.match(javascriptSource,/playTimeline/);
+    assert.match(javascriptSource,/0x2001/,'The editable source must retain sample RAM changes');
+    assert.match(javascriptSource,/Pitch high/i); assert.match(javascriptSource,/Key off mask/i);
+    diagnostics.push(await checkGeneratedDiagnostics(page,javascript.entryPath));
+    const javascriptLevels = {};
+    for (const execution of ['main','worker']) javascriptLevels[execution] = await runGenerated(page,javascript.entryPath,execution);
     await page.screenshot({path:`/private/tmp/playground-spc-import-${name}.png`});
     // Opening generated models can cancel Monaco 0.52.2's previous view task.
     // Match the same identified cancellation as the Sync/Revert browser test;
@@ -245,8 +309,8 @@ async function checkBrowser(name,type,url,fixture) {
     const modelCancellations = errors.filter(error => ['Canceled','Canceled: Canceled'].includes(error.message)
       && (modelTrace(error.stack) || rejections.some(reason => reason.message === 'Canceled' && modelTrace(reason.stack))));
     assert.deepEqual(errors.filter(error => !modelCancellations.includes(error)),[],JSON.stringify({rejections}));
-    console.log(JSON.stringify({browser:name,passed:true,cancelNoChange:true,repeatedSongRun:true,uniqueDirectories:[song.directory,repeatedSong.directory,instruments.directory],
-      songLevels,instrumentLevels,diagnostics,modelCancellations:modelCancellations.length,unusedRootUnknown:true,originalSpcPreserved:true}));
+    console.log(JSON.stringify({browser:name,passed:true,cancelNoChange:true,conversionCancelNoChange:true,repeatedSongRun:true,uniqueDirectories:[song.directory,repeatedSong.directory,instruments.directory,javascript.directory],
+      songLevels,instrumentLevels,javascriptLevels,diagnostics,modelCancellations:modelCancellations.length,unusedRootUnknown:true,originalSpcPreserved:true}));
     await page.close();
   } finally {await browser.close();}
 }

@@ -21,7 +21,7 @@ import {installPlaygroundPageLifecycle} from "./playground_page_lifecycle.js";
 import {createFXMonitor} from './playground_fx_monitor.js?v=vertical-range-1';
 import {createAudioMonitor} from './playground_audio_monitor.js?v=vertical-range-1';
 import {installMidiImport} from './playground_midi_import.js?v=midi-sections-1';
-import {installSpcImport} from './playground_spc_import.js?v=spc-import-types-1';
+import {installSpcImport} from './playground_spc_import.js?v=spc-song-js-1';
 import {
   FM_PRESET_ORDER,
   FM_PRESETS,
@@ -2714,7 +2714,7 @@ installSpcImport({button:document.getElementById('importSpcButton'),
     }
     activeVirtualPath = plan.entryPath; runVirtualPath = plan.entryPath;
     showVirtualFile(virtualFiles.get(plan.entryPath)); renderVirtualFileExplorer(); renderRunFileOptions(); setBottomTab('code');
-    setStatus(`Imported ${name} into ${plan.directory}. Choose Run to play ${plan.mode === 'song' ? 'the SPC song' : 'the selected instrument'}.`);
+    setStatus(`Imported ${name} into ${plan.directory}. Choose Run to play ${plan.mode === 'song' ? 'the SPC song' : plan.mode === 'javascript' ? 'the recorded song JavaScript' : 'the selected instrument'}.`);
   },
 });
 

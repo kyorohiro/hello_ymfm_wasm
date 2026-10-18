@@ -1,6 +1,6 @@
 import {createSpcClient} from './playground_spc.js?v=spc-import-1';
-import {createSnesClient} from './playground_snes.js?v=chip-tabs-2';
-import {createPerformanceSender} from './playground_performance_sender.js?v=spc-import-1';
+import {createSnesClient} from './playground_snes.js?v=spc-song-js-1';
+import {createPerformanceSender} from './playground_performance_sender.js?v=spc-song-js-1';
 import {midiToOpnPitch, opnPitchFromHz} from './soundchip_pitch.js';
 import {CHIP_CLOCKS} from './playground_chip_clock.js';
 import {createNesClient} from './playground_nes.js';

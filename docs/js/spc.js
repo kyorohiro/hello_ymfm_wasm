@@ -4,6 +4,17 @@
  * Supply the generated spc_wasm module factory; resample at the output boundary.
  */
 export const SPC_SAMPLE_RATE = 32000;
+export const SPC_TRACE_CLOCK_RATE = 1024000;
+export const SPC_TRACE_MAX_EVENTS = 1000000;
+const MAX_TRACE_CLOCKS = 600 * SPC_TRACE_CLOCK_RATE;
+/** Captured ordering at the accurate core's effective DSP clock, not CPU time.
+ * events are packed [clock, kind, address, value] records; kind0 writes DSP,
+ * kind1 writes RAM. Arrays remain editable before preparing a playback copy.
+ * @typedef {{version:1,clockRate:1024000,durationClocks:number,
+ * initialState:{ram:Uint8Array,dsp:Uint8Array,outputDelayFrames:4},
+ * events:Uint32Array|number[]}} SpcTimeline
+ */
+/** @typedef {{loaded:boolean,positionFrames:number,totalFrames:number,ended:boolean}} SpcTimelineState */
 /** @typedef {{moduleFactory:(options?:{wasmBinary?:Uint8Array|ArrayBuffer})=>any,
  * moduleOptions?:{wasmBinary?:Uint8Array|ArrayBuffer}}} SpcCoreOptions */
 const MAX_FILE_BYTES = 16 * 1024 * 1024;
@@ -19,6 +30,36 @@ function bytesOf(value) {
   if (value instanceof ArrayBuffer) return new Uint8Array(value);
   if (ArrayBuffer.isView(value)) return new Uint8Array(value.buffer, value.byteOffset, value.byteLength);
   throw new TypeError('Expected an ArrayBuffer or typed array');
+}
+
+/** Validate/copy an editable DSP/RAM trace without initializing WASM or audio.
+ * Four uint32 words per event: effective DSP clock, kind (0 DSP / 1 RAM),
+ * address, byte value. These clocks preserve the accurate core's observed
+ * ordering, including its deferred DSP catch-up; they are not raw CPU timestamps.
+ * Capture starts at a freshly loaded SPC's DSP.load phase, with upstream's
+ * four-frame output FIFO. Arbitrary mid-song snapshots are not restorable here.
+ * @param {SpcTimeline} trace
+ * @returns {SpcTimeline & {events:Uint32Array}}
+ */
+export function prepareSpcTimeline(trace) {
+  if (!trace || trace.version !== 1 || trace.clockRate !== SPC_TRACE_CLOCK_RATE) throw new TypeError('Expected SNES timeline version 1 at 1024000 clocks/second');
+  integer(trace.durationClocks, 'durationClocks', 32, MAX_TRACE_CLOCKS);
+  if (trace.durationClocks % 32) throw new RangeError('durationClocks must contain complete native 32000-Hz frames');
+  if (trace.initialState?.outputDelayFrames !== 4) throw new RangeError('SNES timeline requires the original four-frame output delay');
+  const ram = bytesOf(trace.initialState.ram), dsp = bytesOf(trace.initialState.dsp);
+  if (ram.length !== 65536 || dsp.length !== 128) throw new RangeError('SNES timeline initialState requires 65536 RAM and 128 DSP bytes');
+  const source = trace.events;
+  if (!(source instanceof Uint32Array) && !Array.isArray(source)) throw new TypeError('SNES timeline events must be packed uint32 words');
+  if (source.length % 4 || source.length > SPC_TRACE_MAX_EVENTS * 4) throw new RangeError('SNES timeline exceeds the event limit or contains an incomplete record');
+  let previous = 0;
+  for (let i = 0; i < source.length; i += 4) {
+    const clock = source[i], kind = source[i + 1], address = source[i + 2], value = source[i + 3];
+    integer(clock, 'event clock', previous, trace.durationClocks); integer(kind, 'event kind', 0, 1);
+    integer(address, 'event address', 0, kind ? 65535 : 127); integer(value, 'event value', 0, 255);
+    previous = clock;
+  }
+  return {version:1, clockRate:SPC_TRACE_CLOCK_RATE, durationClocks:trace.durationClocks,
+    initialState:{ram:ram.slice(), dsp:dsp.slice(), outputDelayFrames:4}, events:Uint32Array.from(source)};
 }
 
 class Core {
@@ -146,6 +187,24 @@ export class SpcCore extends Core {
     finally { this._syncViews(); }
   }
   reset() { this.restart(); }
+  /** Begin bounded offline recording before rendering any frames after load.
+   * Same-address RAM writes between DSP advances are coalesced: the DSP never
+   * observed those intermediate values. A limit failure rejects the whole trace.
+   */
+  beginTrace({maxEvents = SPC_TRACE_MAX_EVENTS} = {}) {
+    this._assertOpen(); integer(maxEvents, 'maxEvents', 1, SPC_TRACE_MAX_EVENTS);
+    this._check(this.module._spc_trace_begin(this.handle, maxEvents)); this._syncViews();
+  }
+  /** Stop capture and return independent copied initial bytes and packed events.
+   * @returns {SpcTimeline & {events:Uint32Array}} */
+  endTrace() {
+    this._assertOpen(); this._check(this.module._spc_trace_finish(this.handle)); this._syncViews();
+    const initial = this.module._spc_trace_initial_ptr(this.handle), count = this.module._spc_trace_event_count(this.handle);
+    const events = new Uint32Array(this.module.HEAPU8.buffer, this.module._spc_trace_events_ptr(this.handle), count * 4).slice();
+    return {version:1, clockRate:SPC_TRACE_CLOCK_RATE, durationClocks:this.nativeFrames * 32,
+      initialState:{ram:this.module.HEAPU8.slice(initial, initial + 65536),
+        dsp:this.module.HEAPU8.slice(initial + 65536, initial + 65536 + 128), outputDelayFrames:4}, events};
+  }
 }
 export { SpcCore as SpcPlayerCore };
 
@@ -171,5 +230,24 @@ export class SnesDspCore extends Core {
   readDsp(reg) {
     this._assertOpen(); integer(reg, 'DSP register', 0, 127);
     return this.module._spc_read_dsp(this.handle, reg);
+  }
+  /** Prepare raw original RAM and exact sub-sample DSP/RAM events. Instrument
+   * sample allocation/presets must not be mixed with this raw timeline mode.
+   * @param {SpcTimeline} trace @returns {SpcTimelineState} */
+  loadTimeline(trace) {
+    const prepared = prepareSpcTimeline(trace), initialBytes = 65536 + 128;
+    const bytes = new Uint8Array(initialBytes + prepared.events.byteLength);
+    bytes.set(prepared.initialState.ram); bytes.set(prepared.initialState.dsp, 65536);
+    new Uint32Array(bytes.buffer, initialBytes, prepared.events.length).set(prepared.events);
+    this._withBytes(bytes, ptr => this._check(this.module._spc_load_timeline(this.handle, ptr, ptr + initialBytes,
+      prepared.events.length / 4, prepared.durationClocks)));
+    return this.getTimelineState();
+  }
+  /** Restart prepared state without reallocating/copying the event list. */
+  restartTimeline() {this._assertOpen(); this._check(this.module._spc_restart_timeline(this.handle)); return this.getTimelineState();}
+  /** @returns {SpcTimelineState} */
+  getTimelineState() {
+    this._assertOpen(); const totalFrames = this.module._spc_timeline_total_frames(this.handle), positionFrames = this.nativeFrames;
+    return {loaded:totalFrames > 0, positionFrames, totalFrames, ended:totalFrames > 0 && positionFrames >= totalFrames};
   }
 }

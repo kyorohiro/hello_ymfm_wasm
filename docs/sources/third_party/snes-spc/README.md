@@ -27,6 +27,20 @@ The selected registers remain all of $F0..$FF except $F2 and $F4..$F7.
 DSP sample-directory addresses wrap to 16 bits, including when DIR/SRCN select
 an entry beyond $FFFF; this prevents an out-of-bounds read and matches RAM wrap.
 
+Optional offline trace callbacks record DSP writes and CPU RAM changes (including
+the optimized direct-page writes, stack and IPL-overlay paths). The trace clock
+follows actual DSP advancement at 1,024,000 Hz; it preserves upstream's deferred
+DSP catch-up rather than treating CPU instruction timestamps as DSP timestamps.
+Capture does not alter the original PCM. The wrapper replays these events with
+initial RAM/register bytes and the original four-frame output FIFO, without the
+SPC700 CPU. Same-address RAM writes between DSP advances may be coalesced because
+the DSP could not observe their intermediate values.
+
+Upstream's live-BRR RAM writes can depend on render block boundaries. Playground
+conversion uses the same 128-native-frame blocks as its SPC player; the resulting
+recorded timeline replays independently of render partitioning. This does not
+change upstream RAM timing or promise a hardware-perfect transcription.
+
 The wrapper `wasm/spc_wasm.cpp` and build script `scripts/build_spc_wasm.sh`
 are kept in the repository. Rebuild with Emscripten from the repository root:
 

@@ -14,7 +14,7 @@ import {createSoundChipFactory} from './soundchip_factory.js';
 import {ChipPCMRenderer} from './chip_pcm_renderer.js';
 import {YM2612DirectTransport} from './ym2612synth.js';
 import {YM2612DacPlayer} from './ym2612_dac.js';
-import {createProcessorPerformance,performanceNoteRelease} from './playground_performance_processor.js?v=snes-spc-1';
+import {createProcessorPerformance,performanceNoteRelease} from './playground_performance_processor.js?v=spc-song-js-1';
 
 const profiles = {ym2612: [Ym2612, ym2612Factory], ym2608: [Ym2608, ym2608Factory],
   ym2151: [Ym2151, ym2151Factory], gameboy: [GameboyApu, gameboyFactory], segapsg: [SegaPSG, psgFactory], nes: [NesApu, undefined]};

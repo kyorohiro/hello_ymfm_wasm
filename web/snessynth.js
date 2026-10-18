@@ -57,6 +57,7 @@ export class SnesSynth {
   }
   /** DSP reset keeps sample uploads and their IDs; active voices are released. */
   reset() {
+    this.timeline = null;
     this.core.reset();this.pendingKon=0;this.konFrame=-1;this.koff=255;
     /** @type {SnesVoiceState[]} */
     this.channels=Array.from({length:8},()=>({sample:null,adsr1:0,adsr2:0,gain:127,volumeLeft:100,volumeRight:100,pitch:0x1000}));
@@ -77,6 +78,7 @@ export class SnesSynth {
    * @param {SnesBRROptions} options
    * @returns {SnesSample} */
   loadBRR(input,options) {
+    this._instrumentOnly();
     const p=prepareSnesBRR(input,options);
     if(this.samples.length>=256||this.nextAddress+p.brr.length>65536)throw new RangeError('SNES BRR sample RAM is full; create a fresh instance');
     const startAddress=this.nextAddress,loopAddress=startAddress+(p.loopStartSamples??0)/16*9;
@@ -87,6 +89,7 @@ export class SnesSynth {
     return {...sample};
   }
   _preset(ch,preset) {
+    this._instrumentOnly();
     channel(ch);
     if(!preset||typeof preset!=='object'||Array.isArray(preset))throw new TypeError('SNES preset must be an object');
     if(Object.keys(preset).some(key=>!['sample','adsr1','adsr2','gain','volumeLeft','volumeRight','pitch'].includes(key)))throw new TypeError('Unknown SNES preset parameter');
@@ -109,37 +112,50 @@ export class SnesSynth {
   /** @param {number} ch @param {SnesPreset} params */
   setChannel(ch,params){this.setPreset(ch,params);}
   /** @param {number} ch @returns {SnesVoiceState} */
-  getPreset(ch){channel(ch);return {...this.channels[ch]};}
+  getPreset(ch){this._instrumentOnly();channel(ch);return {...this.channels[ch]};}
   /** Explicit hardware PITCH0..16383; 4096 advances one source sample/frame.
    * @param {number} ch @param {number} pitch */
-  setPitch(ch,pitch){channel(ch);integer(pitch,0,0x3fff,'pitch');this.channels[ch].pitch=pitch;this.core.writeDsp((ch<<4)+2,pitch&255);this.core.writeDsp((ch<<4)+3,pitch>>8);}
+  setPitch(ch,pitch){this._instrumentOnly();channel(ch);integer(pitch,0,0x3fff,'pitch');this.channels[ch].pitch=pitch;this.core.writeDsp((ch<<4)+2,pitch&255);this.core.writeDsp((ch<<4)+3,pitch>>8);}
   /** Musical fundamental Hz relative to the uploaded sample's declared tuning.
    * @param {number} ch @param {number} hz */
   setFrequency(ch,hz){channel(ch);positive(hz,'frequency');const sample=this.samples[this.channels[ch].sample];if(!sample)throw new Error('Assign a BRR sample before setting musical pitch');const pitch=Math.round(sample.basePitch*hz/sample.rootFrequencyHz);if(pitch<1||pitch>0x3fff)throw new RangeError('Frequency is outside SNES PITCH range');this.setPitch(ch,pitch);}
   /** @param {number} ch @param {string|number} note Note name or integer MIDI. */
   setNote(ch,note){this.setFrequency(ch,noteToHz(note));}
   /** @param {number} ch */
-  keyOn(ch){channel(ch);if(!this.samples[this.channels[ch].sample])throw new Error('Assign a BRR sample before keyOn');this.koff&=~(1<<ch);this.core.writeDsp(0x5c,this.koff);const frame=this.core.nativeFrames??0;if(frame!==this.konFrame){this.pendingKon=0;this.konFrame=frame;}this.pendingKon|=1<<ch;this.core.writeDsp(0x4c,this.pendingKon);}
+  keyOn(ch){this._instrumentOnly();channel(ch);if(!this.samples[this.channels[ch].sample])throw new Error('Assign a BRR sample before keyOn');this.koff&=~(1<<ch);this.core.writeDsp(0x5c,this.koff);const frame=this.core.nativeFrames??0;if(frame!==this.konFrame){this.pendingKon=0;this.konFrame=frame;}this.pendingKon|=1<<ch;this.core.writeDsp(0x4c,this.pendingKon);}
   /** S-DSP KOFF release (fixed hardware release rate), no synthetic smoothing.
    * @param {number} ch */
-  keyOff(ch){channel(ch);this.pendingKon&=~(1<<ch);if((this.core.nativeFrames??0)===this.konFrame)this.core.writeDsp(0x4c,this.pendingKon);this.koff|=1<<ch;this.core.writeDsp(0x5c,this.koff);}
+  keyOff(ch){this._instrumentOnly();channel(ch);this.pendingKon&=~(1<<ch);if((this.core.nativeFrames??0)===this.konFrame)this.core.writeDsp(0x4c,this.pendingKon);this.koff|=1<<ch;this.core.writeDsp(0x5c,this.koff);}
   /** @param {number} ch @param {string|number} [note] */
   noteOn(ch,note){if(note!==undefined)this.setNote(ch,note);this.keyOn(ch);}
   /** @param {number} ch */
   noteOff(ch){this.keyOff(ch);}
-  allNotesOff(){this.pendingKon=0;this.koff=255;this.core.writeDsp(0x4c,0);this.core.writeDsp(0x5c,255);}
+  allNotesOff(){this._instrumentOnly();this.pendingKon=0;this.koff=255;this.core.writeDsp(0x4c,0);this.core.writeDsp(0x5c,255);}
   /** Raw register edits can bypass sample/channel bookkeeping.
    * @param {number} register @param {number} value */
-  writeDsp(register,value){integer(register,0,127,'DSP register');integer(value,0,255,'DSP value');if(register===0x4c){this.pendingKon=value;this.konFrame=this.core.nativeFrames??0;}if(register===0x5c)this.koff=value;this.core.writeDsp(register,value);}
+  writeDsp(register,value){this._instrumentOnly();integer(register,0,127,'DSP register');integer(value,0,255,'DSP value');if(register===0x4c){this.pendingKon=value;this.konFrame=this.core.nativeFrames??0;}if(register===0x5c)this.koff=value;this.core.writeDsp(register,value);}
   /** @param {number} register @returns {number} */
   readDsp(register){return this.core.readDsp(integer(register,0,127,'DSP register'));}
   /** @returns {{ram:Uint8Array,dsp:Uint8Array,nativeFrames:number}} */
   snapshot(){return this.core.snapshot();}
   /** @returns {SnesState} */
-  getState(){return {sampleRate:SNES_SAMPLE_RATE,samples:this.samples.map(s=>({...s})),channels:this.channels.map(p=>({...p})),nextAddress:this.nextAddress};}
+  getState(){return {sampleRate:SNES_SAMPLE_RATE,samples:this.samples.map(s=>({...s})),channels:this.channels.map(p=>({...p})),nextAddress:this.nextAddress,...(this.timeline?{timeline:this.getTimelineState()}: {})};}
+  _instrumentOnly(){if(this.timeline)throw new Error('SNES timeline mode is exclusive; reset() before editing instruments');}
+  /** Prepare captured initial RAM/DSP plus editable 1,024,000-Hz DSP/RAM events.
+   * Playback remains paused until playTimeline(). No SPC700 driver is executed.
+   * @param {import('./spc.js').SpcTimeline} trace */
+  prepareTimeline(trace){const state=this.core.loadTimeline(trace);this.timeline={playing:false,totalFrames:state.totalFrames};return this.getTimelineState();}
+  /** Restart the prepared timeline from its captured DSP phase. */
+  playTimeline(){if(!this.timeline)throw new Error('Prepare an SNES timeline before playback');this.core.restartTimeline();this.timeline.playing=true;return this.getTimelineState();}
+  stopTimeline(){if(this.timeline)this.timeline.playing=false;return this.getTimelineState();}
+  getTimelineState(){return this.timeline?{...this.core.getTimelineState(),playing:this.timeline.playing}:{loaded:false,playing:false,positionFrames:0,totalFrames:0,ended:false};}
   /** Optional rendering convenience; core.renderInto() is equally supported.
    * Multiple keyOn calls at the same native frame form one KON mask.
    * @param {Float32Array} left @param {Float32Array} right @param {number} [frames] @param {number} [offset] */
-  renderInto(left,right,frames=Math.min(left.length,right.length),offset=0){this.core.renderInto(left,right,frames,offset);}
+  renderInto(left,right,frames=Math.min(left.length,right.length),offset=0){
+    if(this.timeline&&!this.timeline.playing){left.fill(0,offset,offset+frames);right.fill(0,offset,offset+frames);return;}
+    this.core.renderInto(left,right,frames,offset);
+    if(this.timeline&&this.core.nativeFrames>=this.timeline.totalFrames)this.timeline.playing=false;
+  }
   dispose(){this.core.dispose();}
 }

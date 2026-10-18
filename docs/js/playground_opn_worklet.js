@@ -5,7 +5,7 @@ import {Ym2610B} from './ym2610b.js';
 import ym2612Factory from '../generated/ym2612_wasm.js';
 import ym2203Factory from '../generated/ym2203_wasm.js';
 import ym2610Factory from '../generated/ym2610b_wasm.js';
-import {createProcessorPerformance} from './playground_performance_processor.js?v=snes-spc-1';
+import {createProcessorPerformance} from './playground_performance_processor.js?v=spc-song-js-1';
 
 /** One independent WASM chip per processor; shares only the AudioContext clock. */
 class Processor extends AudioWorkletProcessor {

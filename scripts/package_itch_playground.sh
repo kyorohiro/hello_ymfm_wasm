@@ -57,6 +57,8 @@ playground_tfi_editor.js
 playground_midi_import.js
 playground_spc_import.js
 playground_spc_source.js
+playground_spc_trace.js
+playground_spc_trace_worker.js
 playground_vgm_presets.js
 playground_vgm_import.js
 ym2203_high.js
@@ -73,6 +75,7 @@ tetorica-playground-ym2612.d.ts
 
 RUNTIME_FILES="
 spc.js
+spc_trace.js
 spc-worklet.js
 playground_spc.js
 playground_spc_audio.js
@@ -437,6 +440,7 @@ perl -0pi -e 's#"\./playground\.js"#"./playground.js"#g; s#\.\./js/#./js/#g; s#\
   "${STAGE_DIR}/playground_tfi_editor.js" \
   "${STAGE_DIR}/playground_midi_import.js" \
   "${STAGE_DIR}/playground_spc_source.js" \
+  "${STAGE_DIR}/playground_spc_trace_worker.js" \
   "${STAGE_DIR}/playground_vgm_presets.js" \
   "${STAGE_DIR}/playground_vgm_import.js" \
   "${STAGE_DIR}/ym2608_vgm_import.js" \

@@ -90,10 +90,14 @@ Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA */
 	int addr = (sp -= 2) - ram;\
 	if ( addr > 0x100 )\
 	{\
+		trace_ram_write( addr, data );\
+		trace_ram_write( addr + 1, data >> 8 );\
 		SET_LE16( sp, data );\
 	}\
 	else\
 	{\
+		trace_ram_write( (uint8_t) addr + 0x100, data );\
+		trace_ram_write( addr + 1, data >> 8 );\
 		ram [(uint8_t) addr + 0x100] = (uint8_t) data;\
 		sp [1] = (uint8_t) (data >> 8);\
 		sp += 0x100;\
@@ -102,6 +106,7 @@ Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA */
 
 #define PUSH( data )\
 {\
+	trace_ram_write( sp - ram - 1, data );\
 	*--sp = (uint8_t) (data);\
 	if ( sp - ram == 0x100 )\
 		sp += 0x100;\
@@ -287,6 +292,7 @@ loop:
 		#if !SPC_MORE_ACCURACY
 		{
 			int i = dp + temp;
+			trace_ram_write( i, data );
 			ram [i] = (uint8_t) data;
 			i -= 0xF0;
 			if ( (unsigned) i < 0x10 ) // 76%
@@ -310,6 +316,7 @@ loop:
 		#if !SPC_MORE_ACCURACY
 		{
 			int i = dp + data;
+			trace_ram_write( i, a );
 			ram [i] = (uint8_t) a;
 			i -= 0xF0;
 			if ( (unsigned) i < 0x10 ) // 39%

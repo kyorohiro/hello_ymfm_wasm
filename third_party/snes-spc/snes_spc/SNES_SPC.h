@@ -83,6 +83,14 @@ public:
 	// Plays for count samples and write samples to out. Discards samples if out
 	// is NULL. Count must be a multiple of 2 since output is stereo.
 	blargg_err_t play( int count, sample_t* out );
+
+	// Tetorica offline trace: record the ordering observed by this accurate DSP.
+	// The clock advances only when DSP.run advances, including sub-sample phases.
+	typedef void (*tetorica_trace_t)( void*, unsigned long long, int, int, int );
+	void set_tetorica_trace( tetorica_trace_t callback, void* user ) {
+		trace_callback = callback; trace_user = user; trace_clock = 0;
+	}
+	void copy_tetorica_trace_initial( unsigned char* ram, unsigned char* regs ) const;
 	
 	// Skips count samples. Several times faster than play() when using fast DSP.
 	blargg_err_t skip( int count );
@@ -134,6 +142,18 @@ public:
 	
 private:
 	SPC_DSP dsp;
+	tetorica_trace_t trace_callback = 0;
+	void* trace_user = 0;
+	unsigned long long trace_clock = 0;
+	void trace_dsp_run( int clocks ) {
+		dsp.run( clocks );
+		if ( trace_callback ) trace_clock += clocks;
+	}
+	void trace_ram_write( int addr, int data ) {
+		addr &= 0xFFFF;
+		if ( trace_callback && m.ram.ram [addr] != (uint8_t) data )
+			trace_callback( trace_user, trace_clock, 1, addr, (uint8_t) data );
+	}
 	
 	#if SPC_LESS_ACCURATE
 		static signed char const reg_times_ [256];
