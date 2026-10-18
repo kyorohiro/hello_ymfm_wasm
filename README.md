@@ -59,9 +59,16 @@ This is the easiest way to test YM2612 control, sound design, and Genesis-orient
   `keyOn`, `timeline.waitUntil` and `keyOff` calls. The timeline starts after sample
   and preset loading; event times are elapsed seconds from that origin, so timer
   lateness does not slow all following events. PITCH remains in chip units, with no guessed
-  original note names or loop structure. Generated `setPitch` calls include provisional
-  note/cents comments relative to the assigned C4/PITCH4096 tuning; actual BRR fundamentals
-  are not detected. Noise voices have no note label; pitch-modulated voices label the base pitch.
+  original note names or loop structure. Song JavaScript automatically analyzes the
+  BRR versions used in the chosen interval and lists their comment reference notes.
+  Reliable periodic sounds receive estimated fundamental/note/cents comments at
+  32,000 Hz / PITCH4096; uncertain sounds retain provisional C4. You can correct
+  each reference note and cents before converting, or use the defaults.
+  Estimates can have octave errors and are not recovered original notes.
+  These references affect comments only: `rootNote`, `basePitch`, raw `setPitch`,
+  presets and timing remain unchanged. Reference edits reuse the capture; changing
+  the duration or control step analyzes it again. Noise voices have no note label;
+  pitch-modulated voices label the base pitch.
   The control step defaults to 20 ms
   (0 keeps all distinct changes; maximum 1000 ms). PITCH, volume and same-SRCN
   ADSR/GAIN updates are sampled; key and SRCN-change boundaries retain their

@@ -10,6 +10,8 @@ const revisions={
   'spc.js':'spc-events-1',
   'spc_events.js':'spc-events-1',
   'spc_performance.js':'spc-events-1',
+  'spc_pitch.js':'spc-pitch-comments-1',
+  'snes_brr.js':'spc-pitch-comments-1',
   'spc_trace.js':'spc-events-1',
   'spc_audio.js':'spc-events-1',
   'snessynth.js':'spc-song-js-1',
@@ -36,7 +38,7 @@ const targets=[
   'ym2203synth.js','ym2608synth.js','ym2610bsynth.js',
   'playground_segapsg_audio.js','playground_rf5c164_audio.js','playground_pwm_audio.js',
   'soundchip_worklet.js','playground_performance_processor.js',
-  'spc.js','spc_trace.js','spc_events.js','spc_performance.js','spc_audio.js','spc-worklet.js','spc_resampler.js','spc_file.js','snes_brr.js',
+  'spc.js','spc_trace.js','spc_events.js','spc_performance.js','spc_pitch.js','spc_audio.js','spc-worklet.js','spc_resampler.js','spc_file.js','snes_brr.js',
   'snessynth.js','playground_snes.js','playground_snes_audio.js','playground_snes_worklet.js',
   'playground_soundchips.js','playground_spc.js','playground_spc_audio.js',
 ];

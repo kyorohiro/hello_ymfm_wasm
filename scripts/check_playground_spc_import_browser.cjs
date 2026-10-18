@@ -113,6 +113,9 @@ async function importBundle(page,fixture,mode,browserName) {
       await dialog.locator('input[data-spc-control-step]').fill('20');
       assert.match(await dialog.innerText(),/approx|not.*exact|not.*identical|lossy/i,
         'Readable conversion must disclose that it approximates the original song');
+      await dialog.locator('[data-spc-pitch-table][data-spc-pitch-state="ready"]').waitFor({state:'visible'});
+      assert(await dialog.locator('[data-spc-pitch-sample]').count() > 0,
+        'Song JavaScript analyzes its captured BRR samples before conversion');
     }
     if (browserName) await page.screenshot({path:`/private/tmp/playground-spc-${mode}-import-${browserName}.png`});
   }
@@ -161,13 +164,96 @@ async function cancelConversionImport(page,fixture,mode = 'javascript') {
     const dialog = page.locator('#spcImportDialog');
     await dialog.locator(`input[name="spc-import-mode"][value="${mode}"]`).check();
     await dialog.locator('input[data-spc-conversion-seconds]').fill('2');
-    await dialog.locator('[data-spc-import-confirm]').click();
+    // Readable mode analyzes automatically before its confirm button is enabled.
+    // Trace mode still starts its capture only on an explicit conversion.
+    if (mode === 'trace') await dialog.locator('[data-spc-import-confirm]').click();
     await Promise.race([started,new Promise((_,reject) => {timer=setTimeout(() => reject(Error('Conversion worker was not requested')),10000);})]);
     await dialog.locator('[data-spc-import-cancel]').click();
     await dialog.waitFor({state:'hidden'});
   } finally {clearTimeout(timer); release(); await page.unroute(pattern);}
   await page.waitForTimeout(100);
   assert.deepEqual(await snapshotFiles(page),before,'Cancelling a running conversion must not create partial or late project files');
+}
+const sourceWithoutComments = source => source.split('\n').map(line => line.replace(/\/\/.*$/,'').trimEnd())
+  .filter(line => line.trim()).join('\n');
+async function checkPitchAnnotations(page,fixture,original,browserName) {
+  const originalSource = original.files.find(file => file.path === original.entryPath).data;
+  const before = await snapshotFiles(page);
+  const openAnalyzed = async () => {
+    await openImport(page,fixture);
+    const dialog = page.locator('#spcImportDialog');
+    await dialog.locator('input[name="spc-import-mode"][value="javascript"]').check();
+    await dialog.locator('input[data-spc-conversion-seconds]').fill('2');
+    await dialog.locator('input[data-spc-control-step]').fill('20');
+    const table = dialog.locator('[data-spc-pitch-table][data-spc-pitch-state="ready"]');
+    await table.waitFor({state:'visible'});
+    const row = table.locator('[data-spc-pitch-sample="0"]');
+    await row.waitFor({state:'visible'});
+    assert.match(await row.innerText(),/estimate|provisional|manual/i,
+      'The pitch reference clearly identifies detection confidence or a manual assignment');
+    assert.match(await row.locator('input[data-spc-pitch-note]').inputValue(),/^[A-G][#b]?\-?\d+$/,
+      'Automatic analysis fills an editable nearest note or provisional C4');
+    assert(Number.isFinite(Number(await row.locator('input[data-spc-pitch-cents]').inputValue())),
+      'The note reference retains a finite cents offset');
+    return {dialog,table,row};
+  };
+  // Validation and closing a completed preview must not create project files.
+  let preview = await openAnalyzed();
+  const requestCount = await page.evaluate(() => window.__spcImportWorkerRequests.filter(request => request.action === 'analyze').length);
+  await preview.row.locator('input[data-spc-pitch-note]').fill('not-a-note');
+  assert.equal(await preview.row.locator('input[data-spc-pitch-note]').evaluate(input => input.checkValidity()),false);
+  await preview.dialog.locator('[data-spc-import-confirm]').evaluate(button => button.click());
+  assert(await preview.dialog.isVisible());
+  assert.deepEqual(await snapshotFiles(page),before,'An invalid pitch reference must not import files');
+  await preview.row.locator('input[data-spc-pitch-note]').fill('C5');
+  await preview.row.locator('input[data-spc-pitch-cents]').fill('');
+  assert.equal(await preview.row.locator('input[data-spc-pitch-cents]').evaluate(input => input.checkValidity()),false);
+  await preview.dialog.locator('[data-spc-import-confirm]').evaluate(button => button.click());
+  assert(await preview.dialog.isVisible());
+  assert.deepEqual(await snapshotFiles(page),before,'An invalid cents offset must not import files');
+  await preview.row.locator('input[data-spc-pitch-cents]').fill('0');
+  assert.match(await preview.row.innerText(),/manual/i,'Editing a reference marks it as a manual assignment');
+  await page.waitForTimeout(400);
+  assert.equal(await page.evaluate(() => window.__spcImportWorkerRequests.filter(request => request.action === 'analyze').length),requestCount,
+    'Changing annotation fields must reuse the already captured performance');
+  if (browserName) await page.screenshot({path:`/private/tmp/playground-spc-pitch-annotations-${browserName}.png`});
+  await preview.dialog.locator('[data-spc-import-cancel]').click();
+  await preview.dialog.waitFor({state:'hidden'});
+  assert.deepEqual(await snapshotFiles(page),before,'Closing a pitch preview must leave all project files unchanged');
+
+  // A fresh import uses manual labels while every actual playback statement,
+  // tuning value and BRR asset remains the same as automatic conversion.
+  preview = await openAnalyzed();
+  await preview.row.locator('input[data-spc-pitch-note]').fill('C5');
+  await preview.row.locator('input[data-spc-pitch-cents]').fill('23.25');
+  assert.equal(await preview.row.locator('input[data-spc-pitch-cents]').inputValue(),'23.25',
+    'The editable reference retains fractional cents even though source comments round for readability');
+  if (browserName) await page.screenshot({path:`/private/tmp/playground-spc-pitch-annotations-${browserName}.png`});
+  const beforeGenerate = await page.evaluate(() => window.__spcImportWorkerRequests.length);
+  await preview.dialog.locator('[data-spc-import-confirm]').click();
+  await preview.dialog.waitFor({state:'hidden'});
+  const after = await snapshotFiles(page); assertExistingUnchanged(before,after);
+  const oldPaths = new Set(before.map(file => file.path));
+  const files = await readFiles(page,after.filter(file => !oldPaths.has(file.path)).map(file => file.path));
+  const sourceFile = files.find(file => file.path.endsWith('/index.js'));
+  assert(sourceFile,'Manual pitch annotation creates its runnable source');
+  assert.equal(sourceWithoutComments(sourceFile.data),sourceWithoutComments(originalSource),
+    'Changing the note reference must change comments only, never raw PITCH or playback tuning');
+  assert.match(sourceFile.data,/rootNote: ['"]C4['"], basePitch: 4096/,
+    'BRR tuning remains the raw 32 kHz reference despite a different comment label');
+  const initialPitch = sourceFile.data.split('\n').find(line => /snes\.setPitch\(0, 4096\)/.test(line));
+  assert.match(initialPitch,/reference C5.*\+23c/);
+  const halfPitch = sourceFile.data.split('\n').find(line => /snes\.setPitch\(0, 2048\)/.test(line));
+  assert.match(halfPitch,/reference C4.*\+23c/);
+  assert.match(sourceFile.data,/manual/i,'Per-sample reference comments preserve manual-assignment provenance');
+  const requests = await page.evaluate(start => window.__spcImportWorkerRequests.slice(start),beforeGenerate);
+  assert(requests.some(request => request.action === 'generate' && request.hasPerformance),
+    'Converting a ready preview formats the cached performance in a Worker');
+  assert(requests.every(request => request.action !== 'analyze' && request.action !== 'convert'),
+    'Manual annotations must not recapture the SPC during conversion');
+  const diagnostics = await checkGeneratedDiagnostics(page,sourceFile.path);
+  return {manualOnlyComments:true,invalidControlsNoFiles:true,cancelNoFiles:true,cachedPerformance:true,
+    initialPitch:initialPitch.trim(),halfPitch:halfPitch.trim(),requests,diagnostics};
 }
 async function attachMeter(page) {
   await page.waitForFunction(() => window.__spcImportTest.megaDrive.audioContext?.state === 'running'
@@ -432,6 +518,19 @@ async function checkBrowser(name,type,url,fixture) {
       window.addEventListener('unhandledrejection',event => {
         window.__spcImportRejections.push({message:event.reason?.message,stack:event.reason?.stack || ''});
       });
+      window.__spcImportWorkerRequests = [];
+      const NativeWorker = window.Worker, urls = new WeakMap();
+      window.Worker = new Proxy(NativeWorker,{construct(Target,args) {
+        const worker = Reflect.construct(Target,args); urls.set(worker,String(args[0])); return worker;
+      }});
+      const originalPostMessage = NativeWorker.prototype.postMessage;
+      NativeWorker.prototype.postMessage = function(message,...args) {
+        if ((urls.get(this) || '').includes('playground_spc_trace_worker.js')) {
+          window.__spcImportWorkerRequests.push({action:message?.action,
+            hasPerformance:Boolean(message?.performance),durationSeconds:message?.durationSeconds});
+        }
+        return Reflect.apply(originalPostMessage,this,[message,...args]);
+      };
     });
     await page.goto(url);
     await page.waitForFunction(() => window.__spcImportTest?.editor.kind === 'monaco');
@@ -546,6 +645,7 @@ async function checkBrowser(name,type,url,fixture) {
       'Repeated unchanged driver PITCH writes must not turn into hundreds of high-level calls');
     assert.match(readableSource,/approx|not.*exact|not.*identical|lossy/i);
     diagnostics.push(await checkGeneratedDiagnostics(page,readable.entryPath));
+    const pitchAnnotations = await checkPitchAnnotations(page,musicalFixture,readable,name);
     const readableLevels = {}, eventObservations = {}, eventGuards = {};
     for (const execution of ['main','worker']) {
       readableLevels[execution] = await runGenerated(page,readable.entryPath,execution);
@@ -562,7 +662,7 @@ async function checkBrowser(name,type,url,fixture) {
     const rejections = await page.evaluate(() => window.__spcImportRejections);
     const modelCancellations = assertPageErrors(errors,rejections);
     console.log(JSON.stringify({browser:name,passed:true,cancelNoChange:true,conversionCancelNoChange:true,repeatedSongRun:true,uniqueDirectories:[song.directory,repeatedSong.directory,instruments.directory,trace.directory,readable.directory],
-      songLevels,instrumentLevels,traceLevels,readableLevels,eventObservations,eventGuards,denseSongTiming,optimization,diagnostics,modelCancellations,unusedRootUnknown:true,originalSpcPreserved:true}));
+      songLevels,instrumentLevels,traceLevels,readableLevels,eventObservations,eventGuards,denseSongTiming,pitchAnnotations,optimization,diagnostics,modelCancellations,unusedRootUnknown:true,originalSpcPreserved:true}));
     await page.close();
   } finally {await browser.close();}
 }

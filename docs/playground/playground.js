@@ -21,7 +21,7 @@ import {installPlaygroundPageLifecycle} from "./playground_page_lifecycle.js";
 import {createFXMonitor} from './playground_fx_monitor.js?v=vertical-range-1';
 import {createAudioMonitor} from './playground_audio_monitor.js?v=vertical-range-1';
 import {installMidiImport} from './playground_midi_import.js?v=midi-sections-1';
-import {installSpcImport} from './playground_spc_import.js?v=spc-note-comments-1';
+import {installSpcImport} from './playground_spc_import.js?v=spc-pitch-comments-1';
 import {
   FM_PRESET_ORDER,
   FM_PRESETS,

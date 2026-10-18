@@ -79,6 +79,7 @@ spc.js
 spc_trace.js
 spc_events.js
 spc_performance.js
+spc_pitch.js
 spc-worklet.js
 playground_spc.js
 playground_spc_audio.js
@@ -443,6 +444,7 @@ perl -0pi -e 's#"\./playground\.js"#"./playground.js"#g; s#\.\./js/#./js/#g; s#\
   "${STAGE_DIR}/playground_tfi_editor.js" \
   "${STAGE_DIR}/playground_midi_import.js" \
   "${STAGE_DIR}/playground_spc_source.js" \
+  "${STAGE_DIR}/playground_spc_import.js" \
   "${STAGE_DIR}/playground_spc_song_source.js" \
   "${STAGE_DIR}/playground_spc_trace_worker.js" \
   "${STAGE_DIR}/playground_vgm_presets.js" \

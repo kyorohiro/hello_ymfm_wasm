@@ -2,7 +2,7 @@
  * BRR is raw sample data, not a preset. Musical tuning must be declared by the
  * caller. DSP envelope values remain hardware register values, not seconds.
  */
-import {decodeBrr} from './snes_brr.js?v=chip-tabs-2';
+import {decodeBrr} from './snes_brr.js?v=spc-pitch-comments-1';
 import {noteToHz} from './soundchip_pitch.js';
 export const SNES_CHANNEL_COUNT = 8;
 export const SNES_SAMPLE_RATE = 32000;

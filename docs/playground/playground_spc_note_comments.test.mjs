@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import path from 'node:path';
 import {buildSpcSongSource} from './playground_spc_song_source.js';
+import {buildSpcImportFiles} from './playground_spc_source.js';
 
 const DIRECTORY = '/spc/note-comments';
 const AsyncFunction = Object.getPrototypeOf(async function() {}).constructor;
@@ -134,4 +135,137 @@ test('provisional note comments leave all executed PITCH calls unchanged', async
   assert.equal(calls.filter(call => call.method === 'setNote').length,0,
     'Comments must not retune the song or replace raw hardware PITCH calls');
   assert.equal(calls.at(-1).method,'dispose');
+});
+
+test('estimated and manual fundamental references label notes at PITCH 4096 and its ratios', () => {
+  const input = performance([noteOn(0,4096),pitchChange(0,2048,1),pitchChange(0,3810,2)]);
+  const estimated = buildSpcSongSource(input,DIRECTORY,{annotations:[
+    {sampleId:0,referenceHz:440,kind:'estimated',confidence:'high'},
+  ]});
+  assert.deepEqual(pitchLines(estimated.source).map(comment),[
+    ' // estimated A4',' // estimated A3',' // estimated G#4 -25c',
+  ]);
+  const manual = buildSpcSongSource(input,DIRECTORY,{annotations:[
+    {sampleId:0,referenceHz:440 * 2 ** (25 / 1200),kind:'manual'},
+  ]});
+  assert.match(comment(pitchLines(manual.source)[0]),/^ \/\/ reference A4 \+25c$/);
+  assert.match(manual.source,/manual reference .* Hz at PITCH 4096; comments only/);
+  assert.match(estimated.source,/estimated fundamental 440 Hz at PITCH 4096; comments only/);
+  assert.match(estimated.source,/Estimates may be wrong/);
+  assert.match(estimated.source,/References affect comments only, never audio/);
+});
+
+test('different BRR versions sharing SRCN use their individual references and follow sample changes', () => {
+  const input = performance([
+    noteOn(0,4096),{...noteOn(1,4096,1),sampleId:1},
+    {type:'instrument',clock:2,channel:0,sampleId:1,...preset},pitchChange(0,8192,3),
+    pitchChange(1,4096,4),
+  ]);
+  input.samples.push({...input.samples[0],id:1,brr:Uint8Array.of(3,1,0,0,0,0,0,0,0)});
+  const {source} = buildSpcSongSource(input,DIRECTORY,{annotations:[
+    {sampleId:0,referenceHz:440,kind:'estimated',confidence:'high'},
+    {sampleId:1,referenceHz:220,kind:'manual'},
+  ]});
+  assert.deepEqual(pitchLines(source).map(comment),[
+    ' // estimated A4',' // reference A3',' // reference A4',' // reference A3',
+  ]);
+});
+
+test('references preserve noise, modulation, unassigned and zero-PITCH safeguards', () => {
+  const input = performance([
+    pitchChange(3,4096,0),noteOn(0,4096),noteOn(1,4096),noteOn(2,0),
+  ],{noise:1,pmon:2});
+  const {source} = buildSpcSongSource(input,DIRECTORY,{annotations:[
+    {sampleId:0,referenceHz:440,kind:'manual'},
+  ]});
+  const comments = pitchLines(source).map(comment);
+  assert.match(comments[0],/no BRR assigned: no note label/);
+  assert.match(comments[1],/noise voice/); assert.doesNotMatch(comments[1],/A4/);
+  assert.equal(comments[2],' // reference A4 (before pitch modulation)');
+  assert.match(comments[3],/PITCH 0: no note name/);
+});
+
+test('partial references leave unannotated assets on their provisional mapping', () => {
+  const input = performance([noteOn(0,4096),{...noteOn(1,4096,1),sampleId:1}]);
+  input.samples.push({...input.samples[0],id:1,brr:Uint8Array.of(3,1,0,0,0,0,0,0,0)});
+  const {source} = buildSpcSongSource(input,DIRECTORY,{annotations:[
+    {sampleId:0,referenceHz:440,kind:'estimated',confidence:'high'},
+  ]});
+  assert.deepEqual(pitchLines(source).map(comment),[' // estimated A4',' // provisional C4']);
+});
+
+test('invalid or ambiguous references fail before producing an import plan', () => {
+  const input = performance([noteOn(0,4096)]);
+  const valid = {sampleId:0,referenceHz:440,kind:'estimated',confidence:'high'};
+  for (const referenceHz of [0,-1,NaN,Infinity,-Infinity,'440',undefined]) {
+    assert.throws(() => buildSpcSongSource(input,DIRECTORY,{annotations:[{...valid,referenceHz}]}),TypeError);
+  }
+  for (const sampleId of [-1,1,.5,NaN,'0',undefined]) {
+    assert.throws(() => buildSpcSongSource(input,DIRECTORY,{annotations:[{...valid,sampleId}]}),TypeError);
+  }
+  for (const kind of ['auto','reference','',undefined]) {
+    assert.throws(() => buildSpcSongSource(input,DIRECTORY,{annotations:[{...valid,kind}]}),TypeError);
+  }
+  assert.throws(() => buildSpcSongSource(input,DIRECTORY,{annotations:[{...valid,confidence:'certain'}]}),TypeError);
+  for (const annotations of [null,{},'auto',[valid,valid],[null]]) {
+    assert.throws(() => buildSpcSongSource(input,DIRECTORY,{annotations}),TypeError);
+  }
+  // A finite but inaudibly high/low frequency is valid input, with no invented MIDI label.
+  for (const referenceHz of [Number.MIN_VALUE,Number.MAX_VALUE]) {
+    const {source} = buildSpcSongSource(input,DIRECTORY,{annotations:[{...valid,referenceHz}]});
+    assert.match(comment(pitchLines(source)[0]),/outside MIDI note range/);
+  }
+});
+
+function executableSource(source) {
+  return source.split('\n').map(line => line.replace(/^\s*\/\/.*$/,'').replace(/;\s*\/\/.*$/,';'))
+    .filter(line => line.trim()).join('\n');
+}
+
+async function executeGenerated(generated) {
+  const files = new Map(generated.files.map(entry => [entry.path,entry])), calls = [];
+  let sampleId = 0;
+  const snes = new Proxy({}, {get(_,method) {
+    if (method === 'then') return undefined;
+    return (...args) => {
+      calls.push({method,args});
+      return method === 'loadBRR' ? {id:sampleId++} : undefined;
+    };
+  }});
+  const file = async (relative,{type}) => {
+    const entry = files.get(path.posix.resolve(DIRECTORY,relative));
+    assert(entry);
+    return type === 'json' ? JSON.parse(entry.data) : entry.data.slice().buffer;
+  };
+  await new AsyncFunction('createSoundChip','file','createTimeline',generated.source)(
+    async () => snes,file,() => ({waitUntil:async seconds => {calls.push({method:'waitUntil',args:[seconds]});}}),
+  );
+  return calls;
+}
+
+test('fundamental annotations alter only comments, preserving audio calls, timing and every generated asset', async () => {
+  const input = performance([noteOn(0,3810),pitchChange(0,2528,1),{type:'noteOff',clock:2,channel:0}]);
+  const baseline = buildSpcSongSource(input,DIRECTORY);
+  const annotations = [{sampleId:0,referenceHz:440,kind:'manual'}];
+  const annotated = buildSpcSongSource(input,DIRECTORY,{annotations});
+  assert.deepEqual(annotated.files,baseline.files,'BRR, preset and metadata files must be byte-identical');
+  assert.deepEqual(annotated.conversion,baseline.conversion);
+  assert.equal(executableSource(annotated.source),executableSource(baseline.source));
+  assert.deepEqual(await executeGenerated(annotated),await executeGenerated(baseline),
+    'No loadBRR rootNote/basePitch, raw PITCH, preset, wait or key operation may change');
+  assert.deepEqual(annotations,[{sampleId:0,referenceHz:440,kind:'manual'}],'Caller annotations are not mutated');
+});
+
+test('readable SPC import forwards fundamental annotations without changing other output files', () => {
+  const input = performance([noteOn(0,4096)]);
+  const prepared = {spc:{originalBytes:Uint8Array.of(1,2,3)},candidates:[],name:'notes.spc',
+    metadata:{},warnings:[],scan:{directory:0,summary:{},rejected:[]}};
+  const options = {mode:'javascript',directory:DIRECTORY,performance:input};
+  const baseline = buildSpcImportFiles(prepared,options);
+  const annotated = buildSpcImportFiles(prepared,{...options,annotations:[
+    {sampleId:0,referenceHz:440,kind:'estimated',confidence:'high'},
+  ]});
+  assert.match(annotated.files.find(file => file.path === annotated.entryPath).data,/\/\/ estimated A4/);
+  assert.deepEqual(annotated.files.filter(file => file.path !== annotated.entryPath),
+    baseline.files.filter(file => file.path !== baseline.entryPath));
 });

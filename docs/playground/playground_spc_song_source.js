@@ -37,12 +37,34 @@ function validate(performance) {
   }
 }
 
+function validateAnnotations(annotations, samples) {
+  if (!Array.isArray(annotations) || annotations.length > samples.length) {
+    throw new TypeError('SPC note annotations must be an array with at most one entry per sample');
+  }
+  const bySample = new Map();
+  for (const annotation of annotations) {
+    if (!annotation || !Number.isInteger(annotation.sampleId) || annotation.sampleId < 0
+      || !samples[annotation.sampleId] || !Number.isFinite(annotation.referenceHz) || annotation.referenceHz <= 0
+      || !['estimated','manual'].includes(annotation.kind)
+      || (annotation.confidence !== undefined && !['high','low','none'].includes(annotation.confidence))) {
+      throw new TypeError('Invalid SPC note annotation: expected a known sampleId, positive finite referenceHz and estimated/manual kind');
+    }
+    if (bySample.has(annotation.sampleId)) throw new TypeError('Duplicate SPC note annotation sampleId');
+    bySample.set(annotation.sampleId,annotation);
+  }
+  return bySample;
+}
+
 /** Return source and assets without changing Virtual Files. A single physical
  * eight-voice SNES instance keeps channel overlap; all samples are loaded first.
  * This is an editable approximation, not an exact SPC/DSP timeline export.
+ * Optional annotations give each sample's fundamental at 32,000 Hz / PITCH 4096
+ * for comments only. Resolve manual overrides before calling: duplicate sample
+ * IDs are rejected. Sample tuning, BRR bytes and all playback calls are unchanged.
  */
-export function buildSpcSongSource(performance, directory) {
+export function buildSpcSongSource(performance, directory, {annotations = []} = {}) {
   validate(performance);
+  const annotationsBySample = validateAnnotations(annotations,performance.samples);
   const files = [], presets = [], presetNames = new Map();
   function getPreset(event) {
     const values = Object.fromEntries(PRESET_KEYS.map(key => [key,event.preset[key]]));
@@ -55,10 +77,14 @@ export function buildSpcSongSource(performance, directory) {
     '// Editable SPC song: approximate re-performance, not identical SPC playback.',
     '// One SNES instance, physical voices 0..7. Times are elapsed seconds, independent of BPM.',
     '// waitUntil targets the song timeline: late JavaScript catches up instead of slowing every following note.',
-    '// PITCH 4096 plays at the BRR source rate (32,000 Hz); note names cannot be inferred.',
+    '// PITCH 4096 plays at the BRR source rate (32,000 Hz); BRR contains no musical root-note metadata.',
     `// Provisional note comments use assigned ${ASSIGNED_TUNING.rootNote} at PITCH ${ASSIGNED_TUNING.basePitch}, not a detected BRR fundamental or audible note.`,
     '// Relative intervals within one sample are meaningful; different samples may have different actual tuning.',
     '// Comments describe the tuning at import time; editing rootNote/basePitch does not recalculate these comments.',
+    ...(annotations.length ? [
+      '// Estimated/reference note comments use a guessed or user-supplied BRR fundamental at 32,000 Hz / PITCH 4096.',
+      '// Estimates may be wrong, especially for percussion, noise or inharmonic samples. References affect comments only, never audio.',
+    ] : []),
     '// ADSR1/ADSR2/GAIN and signed volumes are raw DSP values, not durations.',
     `// Controls keep the last value per ${performance.controlStepMs} ms interval (0 = every distinct value). Key times are retained.`,
     ...performance.warnings.map(warning => `// ${String(warning).replace(/[\r\n]/g,' ')}`),
@@ -72,6 +98,8 @@ export function buildSpcSongSource(performance, directory) {
     files.push({path:`${directory}/samples/${label}.metadata.json`,type:'text',data:json({
       ...metadata,assignedReferenceNote:ASSIGNED_TUNING.rootNote,assignedBasePitch:ASSIGNED_TUNING.basePitch,
       tuning:'Assigned reference only; no original note or fundamental is inferred.'})});
+    const annotation = annotationsBySample.get(sample.id);
+    if (annotation) lines.push(`  // sample${sample.id} / SRCN ${sample.sourceNumber}: ${annotation.kind === 'manual' ? 'manual reference' : 'estimated fundamental'} ${annotation.referenceHz} Hz at PITCH 4096; comments only.`);
     lines.push(`  const sample${sample.id} = await snes.loadBRR(await file(${quote(`./samples/${label}.brr`)}, {type:'arrayBuffer'}), {`,
       `    rootNote: ${quote(ASSIGNED_TUNING.rootNote)}, basePitch: ${ASSIGNED_TUNING.basePitch}${sample.loop ? `, loopStartSamples: ${sample.loopStartSamples}` : ''}`, '  });');
   }
@@ -92,12 +120,15 @@ export function buildSpcSongSource(performance, directory) {
     if (noiseMask & (1 << channel)) return '// noise voice: PITCH is not the noise frequency';
     if (channelSamples[channel] === null) return '// no BRR assigned: no note label';
     if (pitch === 0) return '// PITCH 0: no note name';
-    const midi = ASSIGNED_MIDI + 12 * Math.log2(pitch / ASSIGNED_TUNING.basePitch);
+    const annotation = annotationsBySample.get(channelSamples[channel]);
+    const referenceMidi = annotation ? 69 + 12 * Math.log2(annotation.referenceHz / 440) : ASSIGNED_MIDI;
+    const label = annotation ? annotation.kind === 'manual' ? 'reference' : 'estimated' : 'provisional';
+    const midi = referenceMidi + 12 * Math.log2(pitch / ASSIGNED_TUNING.basePitch);
     const nearest = Math.round(midi);
-    if (!Number.isFinite(midi) || nearest < 0 || nearest > 127) return '// assigned pitch outside MIDI note range';
+    if (!Number.isFinite(midi) || nearest < 0 || nearest > 127) return `// ${annotation ? label : 'assigned'} pitch outside MIDI note range`;
     const note = NOTE_NAMES[nearest % 12] + (Math.floor(nearest / 12) - 1);
     const cents = Math.round((midi - nearest) * 100);
-    return `// provisional ${note}${cents ? ` ${cents > 0 ? '+' : ''}${cents}c` : ''}${channel > 0 && (modulationMask & (1 << channel)) ? ' (before pitch modulation)' : ''}`;
+    return `// ${label} ${note}${cents ? ` ${cents > 0 ? '+' : ''}${cents}c` : ''}${channel > 0 && (modulationMask & (1 << channel)) ? ' (before pitch modulation)' : ''}`;
   }
   let clock = 0;
   for (const event of performance.events) {

@@ -1,6 +1,6 @@
 import {SpcCore} from './spc.js?v=spc-events-1';
 import {createSpcEventDecoder, SPC_EVENT_CLOCK_RATE} from './spc_events.js?v=spc-events-1';
-import {extractBrrSamples} from './snes_brr.js?v=chip-tabs-2';
+import {extractBrrSamples} from './snes_brr.js?v=spc-pitch-comments-1';
 
 export const SPC_PERFORMANCE_MAX_EVENTS = 20000;
 const MAX_SAMPLE_BYTES = 65536 - 0x400;

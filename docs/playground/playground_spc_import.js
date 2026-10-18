@@ -1,3 +1,11 @@
+import {noteToHz} from '../js/soundchip_pitch.js';
+
+const NOTE_NAMES = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+function noteLabel(hz) {
+  const midi = 69 + 12 * Math.log2(hz / 440), nearest = Math.round(midi);
+  if (!Number.isFinite(midi) || nearest < 0 || nearest > 127) return null;
+  return {note:NOTE_NAMES[nearest % 12] + (Math.floor(nearest / 12) - 1), cents:Number(((midi - nearest) * 100).toFixed(2))};
+}
 function element(tag, text, parent) {
   const node = document.createElement(tag);
   if (text !== undefined) node.textContent = text;
@@ -42,6 +50,11 @@ export function installSpcImport({button, existingPaths, existingDirectories = (
     const progress = element('progress', undefined, conversion); progress.max = 1; progress.value = 0; progress.hidden = true;
     progress.setAttribute('aria-label', 'SPC conversion progress');
     const conversionStatus = element('p', '', conversion); conversionStatus.setAttribute('role', 'status');
+    const pitches = element('fieldset', undefined, dialog); pitches.hidden = true; pitches.disabled = true;
+    element('legend', 'Note comments — reference at PITCH 4096', pitches);
+    element('p', 'Only comments change. Estimated pitches are a reading aid, not recovered original notes. Uncertain sounds use provisional C4. Correct a reference below if needed; playback, BRR tuning and raw PITCH stay unchanged.', pitches);
+    const pitchStatus = element('p', '', pitches); pitchStatus.setAttribute('role', 'status');
+    const pitchHost = element('div', undefined, pitches); pitchHost.className = 'spc-import-table'; pitchHost.dataset.spcPitchTable = ''; pitchHost.dataset.spcPitchState = 'loading';
     const instruments = element('fieldset', undefined, dialog); instruments.dataset.spcImportInstruments = ''; instruments.hidden = true; instruments.disabled = true;
     element('legend', 'Choose BRR instruments', instruments);
     element('p', 'The assigned note labels the captured pitch for your own keyboard playing. C4 is a starting assignment, not a detected original note. The generated script first plays the captured raw PITCH.', instruments);
@@ -64,7 +77,7 @@ export function installSpcImport({button, existingPaths, existingDirectories = (
     const alive = () => current === request && !controller.signal.aborted && dialog.open;
     try {
       onStatus?.(`Reading ${file.name}…`);
-      const source = await import('./playground_spc_source.js?v=spc-note-comments-1');
+      const source = await import('./playground_spc_source.js?v=spc-pitch-comments-1');
       const prepared = await source.prepareSpcImport(await file.arrayBuffer(), file.name, {signal:controller.signal});
       if (!alive()) return;
       const tagSeconds = prepared.metadata.playSeconds;
@@ -95,16 +108,100 @@ export function installSpcImport({button, existingPaths, existingDirectories = (
         rows.push({candidate, check, voice, note});
       }
       const mode = () => modeControls.find(control => control.checked).value;
+      let analysis = null, analysisController = null, analysisTimer = null, analysisEpoch = 0, pitchRows = [], importing = false;
+      const reportProgress = value => {
+        if (!alive()) return;
+        progress.value = value.ratio;
+        conversionStatus.textContent = value.stage === 'source' ? 'Generating JavaScript…'
+          : value.stage === 'pitch' ? `Estimating BRR pitches ${value.completed} / ${value.total}…`
+          : `${value.stage === 'interpret' ? 'Interpreting' : value.stage === 'analyze' ? 'Analyzing' : 'Recording'} ${value.renderedSeconds.toFixed(1)} / ${value.durationSeconds.toFixed(1)} seconds…`;
+      };
+      const clearAnalysis = () => {
+        clearTimeout(analysisTimer); analysisController?.abort(); analysisController = null;
+        analysis = null; analysisEpoch++; pitchRows = []; pitchHost.replaceChildren(); pitchHost.dataset.spcPitchState = 'loading';
+        pitchHost.setAttribute('aria-busy', 'true');
+        if (!importing) {progress.hidden = true; conversionStatus.textContent = '';}
+      };
+      controller.signal.addEventListener('abort', clearAnalysis, {once:true});
+      const showPitches = result => {
+        const table = element('table', undefined, pitchHost), header = element('tr', undefined, element('thead', undefined, table));
+        for (const heading of ['BRR / SRCN', 'Pitch analysis', 'Reference note', 'Cents', '']) element('th', heading, header);
+        const body = element('tbody', undefined, table);
+        pitchRows = result.performance.samples.map(sample => {
+          const estimate = result.estimates.find(value => value.sampleId === sample.id);
+          const estimated = estimate?.confidence === 'high' && noteLabel(estimate.referenceHz);
+          const initial = estimated || {note:'C4', cents:0};
+          const uncertain = !estimated && estimate?.referenceHz > 0 ? `Possible ${estimate.referenceHz.toFixed(2)} Hz; not applied. ` : '';
+          const stateLabel = estimated ? `Estimated · ${estimate.referenceHz.toFixed(2)} Hz` : 'Provisional C4 · no reliable estimate';
+          const tr = element('tr', undefined, body); tr.dataset.spcPitchSample = String(sample.id);
+          element('td', `#${sample.id} · SRCN ${sample.sourceNumber} · ${sample.brr.length} bytes${sample.loop ? ' · loop' : ''}`, tr);
+          const state = element('td', stateLabel, tr);
+          state.title = estimate?.reason ?? 'No reliable pitch estimate';
+          element('small', uncertain + (estimate?.reason ?? 'No reliable pitch estimate'), state);
+          const note = element('input', undefined, element('td', undefined, tr)); note.type = 'text'; note.value = initial.note;
+          note.dataset.spcPitchNote = ''; note.required = true; note.setAttribute('aria-label', `Comment reference note for BRR ${sample.id}`);
+          const cents = element('input', undefined, element('td', undefined, tr)); cents.type = 'number'; cents.step = 'any'; cents.min = '-100'; cents.max = '100'; cents.value = String(initial.cents); cents.required = true;
+          cents.dataset.spcPitchCents = ''; cents.setAttribute('aria-label', `Comment reference cents for BRR ${sample.id}`);
+          const reset = element('button', 'Reset', element('td', undefined, tr)); reset.type = 'button';
+          let manual = false;
+          const validateReference = () => {
+            note.setCustomValidity('');
+            try {noteToHz(note.value.trim());} catch {note.setCustomValidity('Enter a note name from C-1 to G9, for example C4 or F#3.');}
+          };
+          const edit = () => {manual = true; validateReference(); state.firstChild.textContent = 'Manual reference';};
+          note.addEventListener('input', edit); cents.addEventListener('input', edit);
+          reset.addEventListener('click', () => {
+            manual = false; note.value = initial.note; cents.value = String(initial.cents); validateReference();
+            state.firstChild.textContent = stateLabel;
+          });
+          return {sample, note, cents, annotation:() => manual
+            ? {sampleId:sample.id, kind:'manual', referenceHz:noteToHz(note.value.trim()) * 2 ** (Number(cents.value) / 1200)}
+            : estimated ? {sampleId:sample.id, kind:'estimated', confidence:'high', referenceHz:estimate.referenceHz} : null};
+        });
+        pitchStatus.textContent = result.performance.samples.length
+          ? `${result.performance.samples.length} BRR version(s) used in this interval. Confidence is a heuristic; octave errors remain possible. Editing references does not repeat the capture.`
+          : 'No BRR instruments used in this interval.';
+        pitchHost.dataset.spcPitchState = 'ready'; pitchHost.setAttribute('aria-busy', 'false');
+      };
+      const scheduleAnalysis = () => {
+        clearAnalysis(); error.textContent = '';
+        if (mode() !== 'javascript') return;
+        confirm.disabled = true; progress.hidden = true; conversionStatus.textContent = '';
+        if (!seconds.checkValidity() || !controlStep.checkValidity()) {pitchStatus.textContent = 'Enter a valid conversion duration and control step.'; return;}
+        pitchStatus.textContent = 'Analyzing the chosen interval to find its instruments…';
+        const epoch = analysisEpoch;
+        analysisTimer = setTimeout(async () => {
+          if (!alive() || epoch !== analysisEpoch) return;
+          const abort = new AbortController(); analysisController = abort;
+          try {
+            progress.hidden = false; progress.value = 0;
+            const {analyzeSpcImport} = await import('./playground_spc_trace.js?v=spc-pitch-comments-1');
+            if (!alive() || epoch !== analysisEpoch) return;
+            const result = await analyzeSpcImport(prepared, {durationSeconds:Number(seconds.value), controlStepMs:Number(controlStep.value), signal:abort.signal,
+              onProgress:value => {if (epoch === analysisEpoch) reportProgress(value);}});
+            if (!alive() || epoch !== analysisEpoch) return;
+            analysis = result; showPitches(result); confirm.disabled = false; progress.hidden = true;
+            conversionStatus.textContent = 'Analysis ready. Adjust note comments or convert with these defaults.';
+          } catch (failure) {
+            if (!alive() || epoch !== analysisEpoch || abort.signal.aborted) return;
+            pitchHost.dataset.spcPitchState = 'error'; pitchHost.setAttribute('aria-busy', 'false'); progress.hidden = true;
+            pitchStatus.textContent = 'Analysis failed. Change the duration or control step to retry.';
+            error.textContent = `${failure.message} Try a shorter interval or use Song playback.`;
+          }
+        }, 300);
+      };
       const updateMode = () => {
         const selectedMode = mode(), song = selectedMode === 'song', javascript = selectedMode === 'javascript', trace = selectedMode === 'trace';
         instruments.hidden = selectedMode !== 'instruments'; instruments.disabled = instruments.hidden;
         conversion.hidden = !(javascript || trace); conversion.disabled = conversion.hidden;
         controlLabel.hidden = !javascript; controlStep.disabled = !javascript;
+        pitches.hidden = !javascript; pitches.disabled = !javascript || importing;
         conversionLegend.textContent = javascript ? 'Song JavaScript' : 'Event trace';
         conversionHelp.textContent = javascript
-          ? 'Starts at the saved SPC position. Choose 0.1–600 seconds. Controls keep the last value per interval; 0 keeps every distinct value. Key-on/off times are retained. Up to 20,000 interpreted events and 64,512 bytes / 256 BRR versions. No tempo, note-name or loop detection.'
+          ? 'Starts at the saved SPC position. Choose 0.1–600 seconds. Controls keep the last value per interval; 0 keeps every distinct value. Key-on/off times are retained. Up to 20,000 interpreted events and 64,512 bytes / 256 BRR versions. No tempo or loop detection.'
           : 'Starts at the saved SPC position. Choose 0.1–600 seconds. Unused work RAM is omitted after analyzing the song. No automatic loop detection or tag fade. Up to 1,000,000 retained writes; large logs are intended for analysis.';
         confirm.textContent = javascript || trace ? 'Convert & import' : 'Import';
+        confirm.disabled = importing || (javascript && !analysis);
         help.textContent = javascript
           ? 'Generate readable loadBRR / setPreset / setPitch / keyOn / timeline.waitUntil / keyOff code. Times use one song origin, so timer delays do not accumulate. This is an approximate re-performance: initially active envelopes restart; echo and subsequent BRR RAM edits are omitted. Use Song playback for the original sound.' : trace
           ? 'Record detailed timed DSP and RAM writes, retaining BRR changes, echo, noise and pitch modulation. This preserves the captured execution; it is a low-level analysis log, not editable musical notes.' : song
@@ -113,15 +210,18 @@ export function installSpcImport({button, existingPaths, existingDirectories = (
         destination.textContent = `New folder: ${source.allocateSpcImportDirectory(file.name, existingPaths(), existingDirectories())}`;
       };
       modes.disabled = false; confirm.disabled = false;
-      for (const radio of modeControls) radio.addEventListener('change', updateMode);
+      for (const radio of modeControls) radio.addEventListener('change', () => {clearAnalysis(); updateMode(); scheduleAnalysis();});
+      for (const input of [seconds,controlStep]) input.addEventListener('input', scheduleAnalysis);
       updateMode();
       onStatus?.('SPC ready. Choose an import mode.');
       confirm.addEventListener('click', async () => {
         if (!alive()) return;
         if (['javascript','trace'].includes(mode()) && !seconds.reportValidity()) return;
         if (mode() === 'javascript' && !controlStep.reportValidity()) return;
+        if (mode() === 'javascript' && (!analysis || pitchRows.some(row => !row.note.reportValidity() || !row.cents.reportValidity()))) return;
+        importing = true;
         confirm.disabled = true; error.textContent = '';
-        modes.disabled = true; conversion.disabled = true; instruments.disabled = true;
+        modes.disabled = true; conversion.disabled = true; instruments.disabled = true; pitches.disabled = true;
         try {
           const selected = rows.filter(row => row.check.checked).map(row => ({candidateId:row.candidate.id,
             ...(row.voice.value !== '' ? {voiceIndex:Number(row.voice.value)} : {}),
@@ -130,20 +230,18 @@ export function installSpcImport({button, existingPaths, existingDirectories = (
           let plan;
           if (['javascript','trace'].includes(mode())) {
             progress.hidden = false; progress.value = 0; conversionStatus.textContent = 'Preparing conversion…';
-            const {convertSpcImport} = await import('./playground_spc_trace.js?v=spc-note-comments-1');
+            const {convertSpcImport,generateSpcImport} = await import('./playground_spc_trace.js?v=spc-pitch-comments-1');
             if (!alive()) return;
-            plan = await convertSpcImport(prepared, {directory, mode:mode(), controlStepMs:Number(controlStep.value), durationSeconds:Number(seconds.value), signal:controller.signal,
-              onProgress:value => {if (alive()) {
-                progress.value = value.ratio;
-                conversionStatus.textContent = value.stage === 'source' ? 'Generating JavaScript…'
-                  : `${value.stage === 'interpret' ? 'Interpreting' : value.stage === 'analyze' ? 'Analyzing' : 'Recording'} ${value.renderedSeconds.toFixed(1)} / ${value.durationSeconds.toFixed(1)} seconds…`;
-              }}});
+            plan = mode() === 'javascript'
+              ? await generateSpcImport(prepared, {directory, performance:analysis.performance, annotations:pitchRows.map(row => row.annotation()).filter(Boolean), signal:controller.signal, onProgress:reportProgress})
+              : await convertSpcImport(prepared, {directory, mode:mode(), durationSeconds:Number(seconds.value), signal:controller.signal, onProgress:reportProgress});
           } else plan = source.buildSpcImportFiles(prepared, {mode:mode(), directory, selected});
           if (!alive()) return;
           await importFiles(plan, file.name);
           dialog.close();
         } catch (failure) {
           if (alive()) {
+            importing = false;
             error.textContent = `${failure.message}${['javascript','trace'].includes(mode()) ? ' Try a shorter interval or use Song playback.' : ''}`;
             confirm.disabled = false; modes.disabled = false; progress.hidden = true; updateMode();
           }

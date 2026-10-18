@@ -316,6 +316,8 @@
       .spc-import-table table { width: 100%; border-collapse: collapse; }
       .spc-import-table th, .spc-import-table td { padding: 8px; border-bottom: 1px solid var(--line); text-align: left; font-size: .82rem; }
       .spc-import-table input[type="text"] { width: 5em; }
+      .spc-import-table input[type="number"] { width: 5.5em; }
+      .spc-import-table small { display: block; margin-top: 4px; max-width: 28em; opacity: .75; }
       .spc-import-table select { max-width: 18em; }
       .spc-import-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 8px; position: sticky; bottom: -20px; padding: 12px 0; background: var(--panel); }
       .spc-import-actions [role="alert"] { flex-basis: 100%; color: #b32323; }
@@ -2329,7 +2331,7 @@
       })();
     </script>
     <script type="module">
-      import('./playground.js?v=spc-note-comments-1').catch(error => window.__playgroundStartup.fail(error));
+      import('./playground.js?v=spc-pitch-comments-1').catch(error => window.__playgroundStartup.fail(error));
     </script>
   </body>
 </html>

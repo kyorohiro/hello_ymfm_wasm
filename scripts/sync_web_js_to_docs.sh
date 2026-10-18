@@ -14,6 +14,7 @@ spc.js
 spc_trace.js
 spc_events.js
 spc_performance.js
+spc_pitch.js
 spc_file.js
 snes_brr.js
 spc_audio.js
