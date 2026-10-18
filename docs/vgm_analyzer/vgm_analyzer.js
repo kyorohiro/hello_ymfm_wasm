@@ -1,5 +1,6 @@
 import {createAudioPreferences, effectDefaults} from './audio_preferences.js';
 import {mountSpcAnalyzer} from './spc_analyzer.js?v=voice-preview-1';
+import {mountSpcNoteish} from './spc_noteish.js?v=snes-noteish-1';
 import {createMixerUi} from './mixer_ui.js';
 import {connectDesktop} from './desktop_interface.js';
 import {exportFmRegisterSnapshot} from './fm_snapshot.js';
@@ -33,7 +34,7 @@ import {mountYm2413Monitor} from './ym2413_monitor.js';
 import { mountTfiInfo } from "./tfi_info.js?v=concurrent-audition-1";
 import { mountSampleExplorer } from './sample_explorer.js?v=gb-info-perf-1';
 import { renderAllFretboard } from './fretboard_all.js';
-import { createNoteTimeline } from './note_timeline_view.js?v=opm-notes-1';
+import { createNoteTimeline } from './note_timeline_view.js?v=snes-noteish-1';
 import { seekPlayback } from './seek_playback.js';
 import { timelinePlaybackPosition } from './note_timeline.js';
 import { describeToneNotes } from './tone_notes.js?v=ym2610-vgm-2';
@@ -110,7 +111,7 @@ function renderSeekPosition(sample) {
 
 function updateSeekPosition() {
   if (spcView.active) {
-    if (!seekDragging) renderSeekPosition(spcView.state.positionSeconds * 1000);
+    if (!seekDragging) renderSeekPosition(timelineSelectionPending ? (seekSelection??songTimeline.selected()) * 1000 / 44100 : spcView.state.positionSeconds * 1000);
     return;
   }
   if (seekDragging || timelineSeekController) return;
@@ -268,13 +269,22 @@ const spcView = mountSpcAnalyzer({
   },
   getMasterVolume:() => masterVolume,
   onAudioReady:() => rewireAudioGraph(),
-  onState:state => updatePlaybackButtons(state),
+  onState:state => {updatePlaybackButtons(state); if(state.active)requestNoteishRender();},
   onStatus:setStatus,
   onEnded() {
     if (loopCheckbox.checked) void spcAction(async () => {await spcView.stop(); await spcView.play();});
     else {setStatus('SPC playback finished.'); void advancePlaylist();}
   },
 });
+const spcNoteish = mountSpcNoteish({root:document.getElementById('spcNoteishControls'),
+  onChange(analysis) {
+    if(currentChipKind!=='snes'||!spcView.active)return;
+    const selected=timelineSelectionPending?(seekSelection??songTimeline?.selected()):null;
+    if(selected!==null)seekSelection=selected;
+    songTimeline?.loadAnalysis(analysis);
+    if(selected!==null&&analysis){songTimeline.cursor(selected,false);seekSelection=songTimeline.selected();}
+    lastNoteishSignature=null;requestNoteishRender();renderNoteishGrid();
+  }});
 async function spcAction(fn) {
   try {await fn();} catch (error) {if (error.name !== 'AbortError') {reportPlaybackError(error); setStatus(`SPC: ${error.message}`);}}
 }
@@ -1025,6 +1035,7 @@ function ensureChannelMonitorRenderTimer() {
 // position), not wall-clock time: it freezes while paused and jumps correctly
 // on seek, so the ghost trail does not keep aging/fading while nothing plays.
 function songTimeMs() {
+  if(spcView.active)return spcView.state.positionSeconds*1000;
   return (player?.processedWaitSamples ?? 0) / 44.1;
 }
 
@@ -1043,7 +1054,7 @@ function ensureNoteishRenderTimer() {
     if (noteishPanel.hidden) {
       return;
     }
-    if (!noteishDirty && !player?.isPlaying?.() && !hasRecentChannelChanges() && !hasRecentFretboardHistory()) {
+    if (!noteishDirty && !player?.isPlaying?.() && !(spcView.active&&spcView.state.playing) && !hasRecentChannelChanges() && !hasRecentFretboardHistory()) {
       return;
     }
     renderNoteishGrid();
@@ -1122,6 +1133,10 @@ function resetOpmNotes(clock) {
 }
 
 function noteishChannels() {
+  if(currentChipKind==='snes'&&spcView.active){
+    const state=spcView.state;
+    return spcNoteish.channelsAt(state.positionSeconds,{muteMask:state.muteMask,stopped:!state.playing&&!state.paused});
+  }
   if (currentChipKind === "ym2151") return opmNoteChannels;
   if (currentChipKind === "ym2413") return ym2413NoteChannels;
   if (["msx","y8950","huc6280","gameboy","nes","ymf278b","ymf262","ym3526","ym3812"].includes(currentChipKind)) return apuNoteChannels;
@@ -1312,6 +1327,7 @@ function midiToNoteName(midi) {
 }
 
 function estimateChannelNoteish(channel) {
+  if(channel.snes){const midi=channel.toneMidi;return {midiFloat:midi,note:midi===null?(channel.reason||'No pitch'):`~${midiToNoteName(Math.round(midi))}`,cents:midi===null?null:Math.round((midi-Math.round(midi))*100)};}
   if (channel.opm) { const midi = channel.noteMidi;return {midiFloat:midi,note:midi===null ? (channel.reason || "No pitch") : `~${midiToNoteName(Math.round(midi))}`,cents:midi===null ? null : Math.round((midi-Math.round(midi))*100)}; }
   if (channel.opll) {
     const midi = channel.toneMidi;
@@ -1494,6 +1510,10 @@ function buildNoteishSignature() {
     channel.keyOn,
     channel.toneMidi,
     channel.apuType,
+    channel.snes?channel.sampleId:null,
+    channel.snes?channel.pitch:null,
+    channel.snes?channel.referenceKind:null,
+    channel.snes?channel.muted:null,
     channel.reason,
     channel.block,
     channel.fnum,
@@ -1504,7 +1524,7 @@ function buildNoteishSignature() {
     channel.noteHistory.length,
     channel.noteHistory[channel.noteHistory.length - 1]?.time ?? 0,
     channel.noteHistory[channel.noteHistory.length - 1]?.midiFloat ?? null,
-    (player?.isPlaying?.() || hasRecentFretboardHistory()) ? Math.floor(performance.now() / 90) : 0,
+    (player?.isPlaying?.() || (spcView.active&&spcView.state.playing) || hasRecentFretboardHistory()) ? Math.floor(performance.now() / 90) : 0,
   ]));
 }
 
@@ -1661,6 +1681,7 @@ function noteishOverviewY(midiFloat) {
 function renderNoteishOverviewGraph() {
   if (typeof songTimeline !== 'undefined' && document.getElementById('noteTimelineMode').value === 'score') {
     songTimeline.mode(noteishMode.value);
+    if(spcView.active){if(!timelineSelectionPending)songTimeline.cursor(spcView.state.positionSeconds*44100,spcView.state.playing);return;}
     if (player?.isPlaying() && !timelineSelectionPending && !timelineSeekController) {
       const queued = player.queuedFrames + (activeStream?.workletQueuedFrames ?? 0);
       songTimeline.cursor(Math.max(0, player.processedWaitSamples - queued * 44100 / player.sampleRate()), true, loopCheckbox.checked);
@@ -1808,16 +1829,16 @@ function renderNoteishGrid() {
       if (node.textContent !== value) node.textContent = value;
     };
     text('.noteish-title', channel.label ?? `CH${channel.channel + 1}`);
-    text('.noteish-state', channel.huc6280 ? (channel.audible ? channel.apuType : channel.reason) : channel.keyOn ? 'key on' : 'key off');
+    text('.noteish-state', channel.snes ? (channel.muted?'muted':channel.keyOn?'key on':channel.reason||'key off') : channel.huc6280 ? (channel.audible ? channel.apuType : channel.reason) : channel.keyOn ? 'key on' : 'key off');
     text('.noteish-note', estimated.note);
     text('.noteish-cents', centsText);
     updateNoteishHtml(card.querySelector('.noteish-meta'), `
         RANGE ${rangeText}<br>
-        ${channel.opm ? `KC ${channel.kc} / KF ${channel.kf}<br>Base pitch; LFO/DT/MUL and audible release are not reconstructed.` : channel.opll ? `FNUM ${channel.fnum} / BLOCK ${channel.block}<br>Instrument ${channel.instrument === 0 ? "Custom" : channel.instrument} / Volume ${channel.volume}${channel.isRhythmChannel ? "<br>Repurposed for rhythm; base pitch not shown." : ""}` : channel.tone ? `PERIOD ${channel.period}<br>Envelope ${channel.envelope ? "on (estimated)" : "off"} / Noise ${channel.noise ? "mixed" : "off"}` : channel.apu ? `${channel.apuType} · FREQ ${channel.freq}<br>${channel.huc6280 ? "Base pitch only; PCM/DDA, noise and LFO intervals have no note." : (currentChipKind === "msx" || isOpl(currentChipKind) || ["ymf262","ymf278b"].includes(currentChipKind)) ? "Base pitch only; rhythm, timbre, modulation and release omitted." : "Length counter and channel 1 sweep are time-based and not reconstructed."}` : `BLOCK ${channel.block}<br>
+        ${channel.snes ? `SRCN ${channel.sourceNumber??'—'} / BRR ${channel.sampleId??'—'} · PITCH ${channel.pitch??0}<br>${channel.referenceKind??'provisional'} reference${Number.isFinite(channel.referenceHz)?` · ${channel.referenceHz.toFixed(2)} Hz at PITCH 4096`:''}${channel.pitchModulation?' · before pitch modulation':''}${channel.inferred?' · inferred initial note':''}<br>Key requests; audible envelope/release and echo are not transcribed.` : channel.opm ? `KC ${channel.kc} / KF ${channel.kf}<br>Base pitch; LFO/DT/MUL and audible release are not reconstructed.` : channel.opll ? `FNUM ${channel.fnum} / BLOCK ${channel.block}<br>Instrument ${channel.instrument === 0 ? "Custom" : channel.instrument} / Volume ${channel.volume}${channel.isRhythmChannel ? "<br>Repurposed for rhythm; base pitch not shown." : ""}` : channel.tone ? `PERIOD ${channel.period}<br>Envelope ${channel.envelope ? "on (estimated)" : "off"} / Noise ${channel.noise ? "mixed" : "off"}` : channel.apu ? `${channel.apuType} · FREQ ${channel.freq}<br>${channel.huc6280 ? "Base pitch only; PCM/DDA, noise and LFO intervals have no note." : (currentChipKind === "msx" || isOpl(currentChipKind) || ["ymf262","ymf278b"].includes(currentChipKind)) ? "Base pitch only; rhythm, timbre, modulation and release omitted." : "Length counter and channel 1 sweep are time-based and not reconstructed."}` : `BLOCK ${channel.block}<br>
         FNUM ${channel.fnum}<br>
         ALG ${channel.algorithm} / FB ${channel.feedback}`}
     `);
-    card.querySelector('.noteish-actions').hidden = !!(channel.tone || channel.opm || channel.opll || channel.apu);
+    card.querySelector('.noteish-actions').hidden = !!(channel.snes || channel.tone || channel.opm || channel.opll || channel.apu);
     const button = card.querySelector('.noteish-button');
     if (button.getAttribute('data-show-notes') !== String(channel.channel)) button.setAttribute('data-show-notes', String(channel.channel));
     const viewport = card.querySelector('.noteish-graph');
@@ -2901,7 +2922,8 @@ function updatePlaybackButtons(state = {}) {
       exportSnapshotVgiButton, exportSnapshotButton, exportAllTfiButton, exportAllVgiButton,
       exportAllOpmButton, exportOpmButton, exportLilyPondButton, document.getElementById('exportMusicSheetButton')]) button.disabled = true;
     exportParseInfoButton.disabled = !lastParseInfo;
-    for (const tab of [operatorInfoTab, noteishTab, tfiInfoTab, sheetMusicTab]) tab.disabled = true;
+    for (const tab of [operatorInfoTab, tfiInfoTab, sheetMusicTab]) tab.disabled = true;
+    noteishTab.disabled=false;
     document.getElementById('showSheetMusicButton').disabled = true;
     sampleTab.disabled = false; sampleTab.textContent = 'SPC / BRR'; sampleTab.setAttribute('aria-controls', 'spcInfoPanel');
     updatePlaylistNavigation();
@@ -3398,6 +3420,7 @@ function startScriptProcessorStream() {
 }
 
 async function handleFile(file, preserveEditor = false) {
+  spcNoteish.clear();
   await spcView.clear();
   spcPanel.hidden = true;
   playbackSeek.step = inlinePlaybackSeek.step = '4410';
@@ -3449,6 +3472,8 @@ async function handleFile(file, preserveEditor = false) {
     try {
       const parsed = await spcView.load(new Uint8Array(rawBuffer), file.name);
       const info = spcView.state;
+      spcNoteish.load(new Uint8Array(rawBuffer),{durationSeconds:Math.min(120,info.durationSeconds)});
+      timelineSelectionPending=false;
       playbackSeek.max = String(info.durationSeconds * 1000);
       playbackSeek.step = inlinePlaybackSeek.step = '100';
       renderSeekPosition(0);
@@ -3465,7 +3490,7 @@ async function handleFile(file, preserveEditor = false) {
       tfiInfo.loadVgm(null); opmInfo.loadVgm(null);
       monitorToggles.replaceChildren(); inlineMonitorToggles.replaceChildren();
       updatePlaybackButtons(); setOutputTab(selectedOutputTab());
-      setStatus(`Loaded ${file.name} (SPC). Open SPC / BRR for samples and voice controls.`);
+      setStatus(`Loaded ${file.name} (SPC). Open Note-ish for estimated pitches or SPC / BRR for samples and voice controls.`);
     } catch (error) {await spcView.clear(); updatePlaybackButtons(); reportPlaybackError(error); setStatus(`SPC: ${error.message}`);}
     return;
   }
@@ -3810,9 +3835,11 @@ var songTimeline = createNoteTimeline(document.getElementById('noteTimeline'), {
     seekSelection = null;
     timelineSelectionPending = true;
     updateSeekPosition();
+    if(spcView.active){seekSelection=songTimeline.selected();if(spcView.state.playing)void spcAction(()=>spcView.pause());requestNoteishRender();return;}
     if (player?.isPlaying()) pauseButton.click();
   },
   onPlay: async sample => {
+    if(spcView.active){await spcAction(async()=>{if(timelineSelectionPending)await spcView.seek((seekSelection??sample)/44100);timelineSelectionPending=false;seekSelection=null;await spcView.play();});return;}
     if (player?.isPaused() && !timelineSelectionPending) await resumeTimelinePlayback();
     else await playCurrentVgm(sample);
   },
@@ -3826,7 +3853,7 @@ playbackSeek.addEventListener("input", () => {
   renderSeekPosition(Number(playbackSeek.value));
 });
 playbackSeek.addEventListener("change", async () => {
-  if (spcView.active) {seekDragging = false; await spcAction(() => spcView.seek(Number(playbackSeek.value) / 1000)); return;}
+  if (spcView.active) {seekDragging = false;timelineSelectionPending=false;seekSelection=null;await spcAction(() => spcView.seek(Number(playbackSeek.value) / 1000));return;}
   const sample = Number(playbackSeek.value);
   const wasPlaying = player?.isPlaying();
   seekDragging = false;
@@ -3838,6 +3865,7 @@ playbackSeek.addEventListener("change", async () => {
 });
 
 playButton.addEventListener("click", async () => {
+  if(spcView.active){await spcAction(async()=>{if(timelineSelectionPending)await spcView.seek((seekSelection??songTimeline.selected())/44100);timelineSelectionPending=false;seekSelection=null;await spcView.play();});return;}
   if (player?.isPaused() && !timelineSelectionPending) {
     await resumeTimelinePlayback();
     return;
@@ -3859,7 +3887,7 @@ pauseButton.addEventListener("click", async () => {
 
 
 replayButton.addEventListener("click", async () => {
-  if (spcView.active) {await spcAction(async () => {await spcView.stop(); await spcView.play();}); return;}
+  if (spcView.active) {timelineSelectionPending=false;seekSelection=null;await spcAction(async () => {await spcView.stop(); await spcView.play();});return;}
   if (!currentBuffer) {
     return;
   }
@@ -3868,7 +3896,7 @@ replayButton.addEventListener("click", async () => {
 
 stopButton.addEventListener("click", () => {
   playlistRevision += 1;
-  if (spcView.active) {void spcAction(() => spcView.stop()); setStatus('SPC stopped.'); return;}
+  if (spcView.active) {timelineSelectionPending=false;seekSelection=null;songTimeline.cursor(0,false);void spcAction(() => spcView.stop());setStatus('SPC stopped.');return;}
   timelineSeekController?.abort();
   resetTimelineToStart();
   stopActiveStream();
@@ -3995,7 +4023,7 @@ const sbiInfo = mountSbiInfo({root:document.getElementById('sbiInfoPanel'),onSta
 const tfiInfo = mountTfiInfo({ root: document.getElementById('tfiInfoPanel'), onStatus: setStatus,
 });
 tfiInfoTab.addEventListener('click', () => setOutputTab('tfi-info'));
-window.addEventListener('pagehide', event => { if (!event.persisted) { void tfiInfo.dispose(); void opmInfo.dispose(); void sbiInfo.dispose(); void spcView.dispose(); } });
+window.addEventListener('pagehide', event => { if (!event.persisted) {spcNoteish.clear();void tfiInfo.dispose(); void opmInfo.dispose(); void sbiInfo.dispose(); void spcView.dispose(); } });
 
 function selectedOutputTab() {
   for (const [tab, name] of [
@@ -4009,7 +4037,7 @@ function selectedOutputTab() {
 }
 
 function setOutputTab(tabName) {
-  if (spcView.active && !['parsed-output', 'samples'].includes(tabName)) tabName = 'parsed-output';
+  if (spcView.active && !['parsed-output', 'samples', 'noteish'].includes(tabName)) tabName = 'parsed-output';
   const sbi = ['ym3526','ym3812','y8950','ymf262','ymf278b'].includes(currentChipKind);
   if (!(sbi && tabName === 'tfi-info' && currentBuffer && !(noteishHeader[currentChipKind+'Clock'] & 0xc0000000)) && !((["ymf278b","gameboy"].includes(currentChipKind) || (["segapcm", "ym2151", "okim6258"].includes(currentChipKind) && (noteishHeader.segaPcmClock || noteishHeader.okim6258Clock))) && tabName === "samples") && !(tabName === "sheet-music" && currentBuffer && (midiExportAvailable || (currentChipKind === 'ymf262' && !(noteishHeader.ymf262Clock & 0xc0000000)))) && ((["mixed", "okim6295", "okim6258", "segapcm"].includes(currentChipKind) && tabName !== "parsed-output") || (["msx","huc6280","gameboy","nes","ymf278b","ymf262"].includes(currentChipKind) && !["parsed-output", "noteish"].includes(tabName)) || (currentChipKind === "ay8910" && !["operator-info", "parsed-output", "noteish"].includes(tabName)) || ((currentChipKind === "ym2413" || isOpl(currentChipKind)) && !["operator-info", "parsed-output", "noteish"].includes(tabName)) || (currentChipKind === "ym2151" && !["operator-info", "parsed-output", "noteish", "tfi-info"].includes(tabName)))) {
     setStatus('Analysis and instrument editing: Support coming soon.');
@@ -4052,6 +4080,9 @@ function setOutputTab(tabName) {
   if (isOperatorInfo) requestChannelMonitorRender();
   parsedOutputPanel.hidden = tabName !== "parsed-output";
   noteishPanel.hidden = tabName !== "noteish";
+  document.getElementById('spcNoteishControls').hidden=!spcView.active;
+  for(const button of document.querySelectorAll('#noteishPanel [data-score-groups]'))button.hidden=spcView.active;
+  spcNoteish.setVisible(tabName==='noteish'&&spcView.active);
   songTimeline.active(tabName === "noteish" && noteishViewMode === "song");
   if (tabName === "noteish") {
     requestNoteishRender();

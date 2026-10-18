@@ -75,6 +75,8 @@ test('Play resumes a paused position but restarts from a newly selected cursor',
  let handler;const actions=[];
  const c=vm.createContext({
   playButton:{addEventListener(_type,fn){handler=fn;}},
+  spcView:{active:false,seek:async seconds=>actions.push(['spc-seek',seconds]),play:async()=>actions.push('spc-play')},
+  spcAction:async fn=>fn(),
   player:{isPaused:()=>true},timelineSelectionPending:false,seekSelection:null,
   songTimeline:{selected:()=>44100},
   resumeTimelinePlayback:async()=>actions.push('resume'),
@@ -85,6 +87,10 @@ test('Play resumes a paused position but restarts from a newly selected cursor',
  assert.deepEqual(actions,['resume',44100]);
  c.seekSelection=88200;await handler();
  assert.deepEqual(actions,['resume',44100,88200]);
+ c.spcView.active=true;c.seekSelection=null;c.timelineSelectionPending=false;await handler();
+ c.timelineSelectionPending=true;await handler();
+ assert.deepEqual(actions.slice(-3),['spc-play',['spc-seek',1],'spc-play']);
+ assert.equal(c.timelineSelectionPending,false,'SPC cursor uses seconds and clears its pending selection');
 });
 
 test('seek bar previews a position and seeks immediately only during playback',async()=>{
@@ -94,7 +100,7 @@ test('seek bar previews a position and seeks immediately only during playback',a
  const handlers={},actions=[];let playing=false;
  const c=vm.createContext({
   playbackSeek:{value:'88200',addEventListener(type,fn){handlers[type]=fn;}},
-  spcView:{active:false},
+  spcView:{active:false,seek:async seconds=>actions.push(['spc-seek',seconds])},spcAction:async fn=>fn(),
   seekDragging:false,seekSelection:null,timelineSelectionPending:false,
   player:{isPlaying:()=>playing,stats:()=>({})},
   songTimeline:{cursor:sample=>actions.push(['cursor',sample])},
@@ -108,6 +114,9 @@ test('seek bar previews a position and seeks immediately only during playback',a
  assert.deepEqual(actions,[['preview',88200],['cursor',88200]]);
  playing=true;c.playbackSeek.value='44100';await handlers.change();
  assert.deepEqual(actions.slice(-2),[['cursor',44100],['play',44100]]);
+ c.spcView.active=true;c.playbackSeek.value='1500';await handlers.change();
+ assert.deepEqual(actions.at(-1),['spc-seek',1.5]);
+ assert.equal(c.timelineSelectionPending,false,'SPC transport seek uses milliseconds independently of 44100-Hz display ticks');
 });
 
 test('timeline cursor wraps into the loop section without losing the intro',async()=>{

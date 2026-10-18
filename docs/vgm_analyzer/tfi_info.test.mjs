@@ -73,7 +73,7 @@ test('TFI tab switching and first audition leave VGM playback running', () => {
   const synths = [];
   let stopped = 0;
   const context = vm.createContext({isOpl,
-    document: { getElementById: element, createElement: element }, window: { addEventListener() {} },
+    document: { getElementById: element, createElement: element, querySelectorAll: () => [] }, window: { addEventListener() {} },
     createTfiFileEditor(options) { editorOptions = options; return { setVisible() {}, dispose() {} }; },
     MegaSynth: class { constructor(options) { this.options = options; synths.push(this); } },
     mountOpmInfo() { return {setVisible() {},dispose() {}}; },
@@ -85,7 +85,7 @@ test('TFI tab switching and first audition leave VGM playback running', () => {
     player: { isPlaying: () => true, pause: () => stopped++, stop: () => stopped++ },
     pauseButton: { click: () => stopped++ },
     samplePanel: element(), sampleTab: element(), sampleExplorer: { stop() {} },
-    spcPanel: element(), spcView: {active:false,setVisible(){}},
+    spcPanel: element(), spcView: {active:false,setVisible(){}}, spcNoteish: {setVisible(){}},
     operatorInfoTab: element(), parsedOutputTab: element(), noteishTab: element(),
     operatorInfoPanel: element(), parsedOutputPanel: element(), noteishPanel: element(),
     songTimeline: { active() {} }, noteishViewMode: 'song',

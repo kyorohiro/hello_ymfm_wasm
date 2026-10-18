@@ -133,7 +133,7 @@ DX7/RF5C164の既存経路を参考にする。
 
 ### 2026-10-18 実装結果
 
-**Phase 1〜3を実装後、Phase 4の書き込み記録・PlaygroundでのEvent trace／onEventも追加。Analyzer専用の時系列表示は残課題。**
+**Phase 1〜3を実装後、Phase 4の書き込み記録・PlaygroundでのEvent trace／onEvent、AnalyzerのSPC Note-ish時系列表示も追加。**
 
 SNES／SPC対応は**実験的実装**として扱う。合成データによる検証は完了しているが、
 実ゲーム由来SPC、Tauri実アプリ、長時間再生の互換性確認は継続する。
@@ -147,6 +147,12 @@ Analyzer:
 
 - `.spc`を通常のファイル入力・プレイリストから開く。Play / Pause / Stop / Replay、seek、Vol、曲送りに対応。
 - 「SPC / BRR」で8ボイスのミュート、RAM/DSPの明示Capture、SRCN指定抽出、波形、試聴、BRR / WAV / JSONの保存。
+- SPCでもNote-ishを開ける。Live History／Pitch／Song Timeline／Semantic Keyboard／Fretboard／Fretboard (All)で8ボイスを表示する。初回表示時に独立Workerで元のSPCを無音実行し、既存の時刻付き演奏観察とBRR基音推定を再利用する。実際のSPCプレイヤーのRAM／DSP／PITCHには書き込まず、現在の再生位置に合わせて観察済みの状態を引く。
+- Note-ishのBRR基準はnative32,000Hz／PITCH4096で統一する。highの推定、手動の音名＋セント差、未確定の仮C4を区別し、同じSRCNでもBRRバージョンIDごとに基準を持つ。手動修正は表示だけを再計算し、音声再生とCPU再解析は行わない。別ファイルや区間／Control stepの再解析では基準を初期化する。推定のオクターブ誤りは手動補正できる。
+- Note-ish解析は先頭から指定した0.1〜600秒。既定は120秒、タグ付きの短い曲はその長さまで。Control stepは20ms、0で全distinct変更を保持、最大1000ms。現在はPlaygroundのcaptureと共通で2万イベント、BRR256バージョン／64,512bytesまで。超過時は明示エラーとし、短い区間や大きいControl stepで再解析する。対象外の時刻を無音や最後の音と断定せず、解析範囲外と表示する。
+- 表示は発音要求と基準音程の近似。初期音はinferred、同音のKON再発音は別の発音として残し、KOFF中のKONは持続音として扱わない。noiseは音名なし、PMONは変調前の音程、PITCH0は音名なし。voice／masterの左右音量、direct GAIN0、FLG mute/resetは区別するが、実際のEG進行、BRR END、release、echoや保持中BRRの後続RAM変更は音符へ転記しない。MIDI／譜面exportは今回追加しない。
+- pause中の履歴は固定し、seek／Stop／loopで将来や前周回の履歴を混ぜない。Song Timelineのカーソルと再生に対応し、共有表示の44,100Hz tick・SPCの1,024,000Hz clock・transportのmsを明示変換する。解析結果を差し替える際も選択カーソルを保持する。非表示の未完了Workerは停止し、ファイル切り替え／Cancel後の旧結果を適用しない。表示履歴は直近8秒、過密区間では保持数を制限し、破棄部分を架空の線で結ばない。
+- Song Timelineの縦軸は既存表示と共通のC1〜C7（MIDI 24〜96）。この範囲外の推定音はPitchやSemantic Keyboardで確認する。全MIDI範囲のタイムライン表示は後続課題。
 - `Scan all SRCNs`で現在のRAMの0〜255を調べ、同じ開始／ループ位置の番号をまとめて候補表示する。元のSRCN一覧と参照位置はMetadataにも保存。全曲走査や音色判定ではなく、未使用データが含まれ得る。処理量の上限で未確認の番号が残れば明示し、ファイル切替時は走査を中断する。
 - ID666のtext/binaryとxid6を読み、未知フィールド・元バイト列を保持する。
 - 長さとfadeがタグにあれば使用する。タグなしは180秒、UIの上限は3,600秒。末尾停止／曲送りの判定は200msポーリング。
@@ -205,6 +211,7 @@ snes.noteOff(0);
 
 検証結果:
 
+- Analyzer SPC Note-ish追加（2026-10-18）: Analyzer全507件中506成功、失敗0、既存の任意mml2mdr連携1件skip。実WASMを使った演奏観察、基準音・セント差、同音再発音、KOFF、noise／PMON、音量、解析範囲外、8秒の履歴・過密上限、pause／seek／Stop、世代違いのWorker結果の破棄を検証した。docs／itch配布配置 × Chromium／WebKitで全ビュー、基準音補正、入力検証、解析再利用、Cancel、SPC→SPC／VGM切り替え、Songカーソルの保持と秒への変換を確認。補正前後の実出音は同じ約1998Hzで、追加の音声命令やCPU再解析がないこと、出音finite／全mute・Stop後peak0も確認。既存SPC／BRRブラウザー回帰も両ブラウザーで成功（SRCN走査、BRR／WAV、Raw／Voice試聴、取消、タグfade、transport、SPC→VGM）。itch依存659参照とZIP生成が成功。実ゲーム由来SPCの推定精度・Tauri実アプリは今回未確認。
 - Import基準の共有（2026-10-18）: 推定／手動の基準HzをloadBRRのbaseFrequencyHz・コメント・sample metadataへ共通反映し、既知素材の仮C4登録を廃止。生成した曲のraw setPitch／keyOn／keyOff／preset／待機は維持し、setNote等へ置換しない。Playground595テスト成功。実WASM S-DSPで設定前後の左右各3200framesが完全一致（非無音、peak約0.507）し、後からのsetNoteが設定した基準Hzを使うことも確認。docs／itch配布構成 × Chromium／WebKit × Main／Workerで推定・手動設定の実サンプルHzを16条件確認、metadata一致、Cancel／入力検証／解析再利用、出音finite／Stop後peak0／Monaco診断0が成功。1秒902eventsは1.002〜1.006秒。itch依存450参照とZIP生成が成功。既存の生成済みJSは変更せず、原本SPCの再取り込みで反映する。Tauri実アプリと実曲での推定精度は未確認。
 - BRR基音の参考注釈（2026-10-18 初回、コメント専用）: 推定19件を含むSPC／SNES関連135件とPlayground593件が成功。倍音・欠落基音、非整数周期、filter1〜3のloop履歴、無音／DC／noise、attack、sweep／decay、短い素材、不正入力・上限を検証。注釈有無で実行コード・演奏命令・待機・BRR／preset／metadataが同一であることを確認。docs／itch配布構成 × Chromium／WebKitの4経路で、既定推定・手動補正・入力検証・Cancelの無変更・解析再利用、Main／Workerの出音finite／Stop後peak0／Monaco診断0が成功。1秒902eventsは8条件で1.001〜1.005秒。SDKビルド（227宣言）・公開型とitch依存450参照も成功。参考計測はローカルNodeで最大BRR約25ms（warm平均約13ms）、短い素材256個で約492ms。実曲の推定精度・Tauri実アプリは未確認。
 - Song JavaScriptスロー再生対策（2026-10-18）: 微小な相対`sleep`の反復で、タイマーの遅れとJS処理時間が毎回加算されていた。素材読込み後に作る`createTimeline().waitUntil(開始からの秒数)`へ変更し、Main／Worker共通で遅れを以降へ累積しない。模擬timerと処理負荷では1秒の曲が修正前2.1056秒→修正後1.00355秒。75msの一時停止を入れても1.00350秒で、507回の音程操作をすべて保持した。実ブラウザーでは902イベント／1秒をChromium／WebKit × Main／Workerで1.000〜1.009秒に再生。docsの全SPC取り込み回帰とitch配布配置の速度確認、出音finite／Stop後peak 0／Monaco診断0が成功。関連199テスト、SDKビルド（226宣言）、公開型、itch依存446参照も成功。既存sleep／MIDIの仕様は変更しない。生成済みJSへの自動適用は行わず、原本SPCの再取り込みで新方式を使う。Tauri実アプリは未確認。
@@ -228,7 +235,7 @@ snes.noteOff(0);
 - 実ゲーム由来SPC、実機比較、Tauriの実アプリ（macOS／Windows／Linux）、長時間の実機音切れ検証は未実施。
 - Nintendo IPL ROMは同梱せず、上流の最小fallbackを使用。完全IPLやゲーム本体から後続転送を必要とするSPCは動かない場合がある。
 - SPCはDSP内部の全位相・BRR履歴を含む完全checkpointではない。ゲームごとの復元直後の音や互換性は別途確認が必要。
-- 出力リサンプラーは線形補間。高品質な変換、完全な途中checkpoint／seek cache、DSP時系列の可視化、楽譜変換は後続課題。
+- 出力リサンプラーは線形補間。高品質な変換、完全な途中checkpoint／seek cache、詳細なDSPレジスター時系列の可視化、楽譜変換は後続課題。Note-ishの近似音程表示は追加済み。
 - 旧式タグの文字コード・text/binary判定は曖昧な場合がある。ライブラリーの`textEncoding`／`id666Format`指定で上書き可能。Analyzer内の選択UIは未追加。
 
 ## Song JavaScript：リリース後の課題と確認項目（2026-10-18）

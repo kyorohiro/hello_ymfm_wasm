@@ -110,6 +110,15 @@ This is the easiest way to test YM2612 control, sound design, and Genesis-orient
   The graph shows relative register values; pitch, RS and SSG-EG affect actual timing.
 - VGM Analyzer:
   [https://kyorohiro.github.io/hello_ymfm_wasm/vgm_analyzer/index.html](https://kyorohiro.github.io/hello_ymfm_wasm/vgm_analyzer/index.html)
+  For SPC, open **Note-ish** to analyze the chosen interval in a background Worker.
+  Eight SNES voices share Live History, Pitch, Song Timeline, keyboard and fretboard
+  views. BRR reference notes/cents can be corrected without changing SPC playback.
+  Estimates may have octave errors; uncertain samples use provisional C4, noise
+  has no note, and pitch modulation shows its base pitch. Key requests are shown;
+  audible envelopes, release tails, echo and later held-sample RAM edits are omitted.
+  Analysis defaults to the first 120 seconds or the shorter tagged duration, up to
+  600 seconds, 20,000 interpreted events and 256 BRRs / 64,512 BRR bytes.
+  A 20 ms control step is adjustable down to 0. MIDI and sheet export remain unavailable for SPC.
 
 [VGM Analyzer sound chip support and limitations](https://kyorohiro.github.io/hello_ymfm_wasm/vgm_analyzer/support.html)
 

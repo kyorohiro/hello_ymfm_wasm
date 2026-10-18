@@ -1,5 +1,5 @@
 import {getScoreGroups} from './score_group_ui.js';
-import {timelineScrollWidth,timelinePlaybackPosition} from './note_timeline.js';
+import {packTimeline,timelineWindow,timelineScrollWidth,timelinePlaybackPosition} from './note_timeline.js';
 const rate=44100, colors=['#e77f67','#f2b15c','#7fdc86','#72a8ff','#bd86ff','#62d7dd','#25794b','#a85520','#506fbd'];
 const name=n=>['C','C♯','D','D♯','E','F','F♯','G','G♯','A','A♯','B'][((n%12)+12)%12]+(Math.floor(n/12)-1);
 export function createNoteTimeline(root,{onSelect, onPlay,onPause,onCancel}) {
@@ -16,7 +16,7 @@ export function createNoteTimeline(root,{onSelect, onPlay,onPause,onCancel}) {
   const el=role=>root.querySelector(`[data-role="${role}"]`);
   const canvas=root.querySelector('canvas'),scroll=el('scroll'),status=el('status');
   const play=root.querySelector('[data-action="play"]'),cancel=root.querySelector('[data-action="cancel"]');
-  let loopSamples=0,active=false,pendingBuffer=null,analysisBuffer=null;
+  let loopSamples=0,active=false,pendingBuffer=null,analysisBuffer=null,localChannels=null;
   let worker=null,duration=0,start=0,cursor=0,pps=100,width=700,height=230,detailed=false,ready=false;
   let request=0,channels=[],names=[],frame=0,busy=false;
   const span=()=>Math.max(1,width-48)/pps*rate;
@@ -33,6 +33,11 @@ export function createNoteTimeline(root,{onSelect, onPlay,onPause,onCancel}) {
     if(!active)return;
     start=(scroll.scrollLeft/Math.max(1,scroll.scrollWidth-width))*Math.max(0,duration-span());
     if(worker&&ready)worker.postMessage({type:'view',id:++request,start,end:start+span(),limit:Math.max(1000,Math.floor(width*4))});
+    if(localChannels&&ready){
+      const limit=Math.max(1000,Math.floor(width*4));
+      channels=localChannels.map(ch=>({name:ch.name,...timelineWindow(ch.data,start,start+span(),limit)}));
+      status.textContent=channels.some(ch=>ch.dense)?'Dense region: zoom in to see all pitch changes.':`${(duration/rate).toFixed(2)} seconds analyzed · click to set cursor`;
+    }
     draw();
   }
   function draw(){
@@ -78,7 +83,7 @@ export function createNoteTimeline(root,{onSelect, onPlay,onPause,onCancel}) {
     if(notify)onSelect(cursor);draw();
   }
   function clear(){
-    pendingBuffer=null;analysisBuffer=null;
+    pendingBuffer=null;analysisBuffer=null;localChannels=null;
     worker?.terminate();worker=null;ready=false;duration=0;channels=[];names=[];cursor=0;scroll.scrollLeft=0;
     el('legend').textContent='';status.textContent='Load a file to inspect notes.';play.disabled=true;resize();
   }
@@ -97,8 +102,23 @@ export function createNoteTimeline(root,{onSelect, onPlay,onPause,onCancel}) {
   root.querySelector('[data-action="pause"]').addEventListener('click',onPause);
   cancel.addEventListener('click',onCancel);
   new ResizeObserver(resize).observe(scroll);
+  function readyDisplay(){
+    ready=true;play.disabled=false;
+    status.textContent=`${(duration/rate).toFixed(2)} seconds · click to set cursor`;
+    el('legend').replaceChildren(...names.map((n,i)=>{const s=document.createElement('span');s.textContent=n+'  ';s.style.color=colors[i%colors.length];return s;}));
+    el('position').max=duration/rate;resize();
+  }
   return {
     clear, selected:()=>cursor,
+    // Precomputed analyses use 44,100-Hz display ticks, not SPC native frames.
+    // This lets SPC reuse the existing viewport without parsing it as VGM.
+    loadAnalysis(score){
+      clear();
+      if(!score)return;
+      if(!Number.isFinite(score.time)||score.time<0||!Array.isArray(score.channels))throw new TypeError('Invalid precomputed note analysis');
+      localChannels=score.channels.map(ch=>({name:ch.name,data:packTimeline(ch.notes)})).filter(ch=>ch.data.length);
+      duration=score.time;loopSamples=0;names=localChannels.map(ch=>ch.name);readyDisplay();
+    },
     active(value){
       if(active===value)return;
       active=value;
@@ -121,10 +141,7 @@ export function createNoteTimeline(root,{onSelect, onPlay,onPause,onCancel}) {
         if(data.type==='error'){status.textContent=data.message;return;}
         if(data.type==='ready'){
           analysisBuffer=null;
-          duration=data.duration;loopSamples=data.loopSamples||0;names=data.names;ready=true;play.disabled=false;
-          status.textContent=`${(duration/rate).toFixed(2)} seconds · click to set cursor`;
-          el('legend').replaceChildren(...names.map((n,i)=>{const s=document.createElement('span');s.textContent=n+'  ';s.style.color=colors[i%colors.length];return s;}));
-          el('position').max=duration/rate;resize();
+          duration=data.duration;loopSamples=data.loopSamples||0;names=data.names;readyDisplay();
         }else if(data.type==='view'&&data.id===request){
           channels=data.channels;
           status.textContent=channels.some(ch=>ch.dense)?'Dense region: zoom in to see all pitch changes.':`${(duration/rate).toFixed(2)} seconds · click to set cursor`;
