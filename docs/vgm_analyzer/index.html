@@ -611,7 +611,6 @@
                 <caption>VGM / VGZ / S98 / SPC support by chip</caption>
                 <thead><tr><th scope="col">Chip</th><th scope="col">Playback</th><th scope="col">ON/OFF</th><th scope="col">State display</th><th scope="col">Note-ish</th><th scope="col">Voice / Export</th></tr></thead>
                 <tbody>
-                  <tr><th scope="row">SNES SPC700 / S-DSP</th><td>SPC snapshot; CPU + 8-voice DSP at 32,000 Hz</td><td>8 voices in SPC / BRR</td><td>Captured DSP / voice registers</td><td>8-voice Live / Pitch / Song Timeline; BRR reference estimates and manual correction</td><td>BRR waveform, decoded preview, BRR / WAV / metadata; normal seeking from original file. Analyzed base-pitch MIDI / Sheet Music / MusicXML / LilyPond; no VGM command conversion.</td></tr>
                   <tr><th scope="row">YM2612</th><td>FM + DAC<br><small>Seek cache</small></td><td>6 FM CH, PSG</td><td>Operator Info</td><td>FM + PSG tone</td><td>TFI / VGI, audition, MIDI, MML, LilyPond</td></tr>
                   <tr><th scope="row">YM2203</th><td>FM + SSG<br><small>Seek cache</small></td><td>3 FM CH, SSG</td><td>Operator Info / SSG</td><td>FM + SSG tone</td><td>TFI / VGI, audition, MIDI, MML, LilyPond</td></tr>
                   <tr><th scope="row">YM2608</th><td>FM + SSG + Rhythm + ADPCM-B<br><small>Seek cache</small></td><td>FM CH, SSG / Rhythm / ADPCM-B</td><td>Operator Info / SSG</td><td>FM + SSG tone</td><td>TFI / VGI, audition, MIDI, MML, LilyPond</td></tr>
@@ -635,6 +634,7 @@
                   <tr><th scope="row">Sega PCM (315-5218)</th><td>16-voice 8-bit PCM; standalone, mixed with Sega PSG, or mixed with YM2151 / YM2164<br><small>Seek cache: with YM2151 / YM2164 only</small></td><td>16 CH, chip</td><td>Sample Explorer</td><td>—</td><td>Unsigned 8-bit ROM snapshots, usage / bank / loop settings, waveform, raw PCM / ZIP and one-pass stereo preview / WAV; no wrapped ranges or live automation</td></tr>
                   <tr><th scope="row">NES APU + FDS (NTSC)</th><td>2 pulse + triangle + noise + DMC; optional FDS wavetable<br><small>Seek cache</small></td><td>5 CH + optional FDS CH6</td><td>—</td><td>Pulse / triangle / FDS base pitch; FDS modulation and timed envelopes omitted</td><td>MIDI / MusicXML / LilyPond; no MML or voice export. PAL/dual unsupported.</td></tr>
                   <tr><th scope="row">Game Boy DMG (LR35902)</th><td>2 square + wave + noise<br><small>Seek cache</small></td><td>4 CH, chip</td><td>—</td><td>CH1/CH2 square + CH3 wave (base pitch); CH4 noise has no pitch</td><td>Base-pitch MIDI / LilyPond; no MML or FM/PCM voice export</td></tr>
+                  <tr><th scope="row">SNES SPC700 / S-DSP</th><td>SPC snapshot; CPU + 8-voice DSP at 32,000 Hz</td><td>8 voices in SPC / BRR</td><td>Captured DSP / voice registers</td><td>8-voice Live / Pitch / Song Timeline; BRR reference estimates and manual correction</td><td>BRR waveform, decoded preview, BRR / WAV / metadata; normal seeking from original file. Analyzed base-pitch MIDI / Sheet Music / MusicXML / LilyPond; no VGM command conversion.</td></tr>
                 </tbody>
               </table>
             </div>

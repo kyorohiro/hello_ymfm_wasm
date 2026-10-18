@@ -464,7 +464,7 @@ function assertKeyboardAudio(result, expectedHz, label) {
 }
 
 async function checkBundledSingingKeyboard(page, origin, browserName, execution) {
-  const filePath = '/examples/basic/00-singing-keyboard.js';
+  const filePath = '/examples/basic/singing-keyboard.js';
   await page.goto(`${origin}/playground/index.html?mode=full&expanded=1`);
   await page.waitForFunction(() => window.__formantTest?.editor.kind === 'monaco');
   await page.locator('#startupNotice').waitFor({state:'hidden'});
@@ -476,8 +476,8 @@ async function checkBundledSingingKeyboard(page, origin, browserName, execution)
   const example = page.locator(`button.file-entry[data-file-path="${filePath}"]`);
   await example.click();
   assert.equal(await page.locator('#runFileSelect').inputValue(), filePath, 'opening Basic example selects the real Run file');
-  assert.equal(await page.locator('#runFileSelect optgroup[label="/examples/basic"] option').first().getAttribute('value'), filePath,
-    'singing keyboard is first in the Basic root');
+  assert.equal(await page.locator(`#runFileSelect optgroup[label="/examples/basic"] option[value="${filePath}"]`).count(), 1,
+    'singing keyboard appears in the Basic root');
   assert.match(await page.evaluate(() => window.__formantTest.editor.getValue()), /let experiment = ['"]K['"]/);
   await checkDiagnostics(page, 'bundled singing keyboard');
   await page.screenshot({path:path.join(artifacts, `singing-keyboard-files-${browserName}-${execution}.png`)});

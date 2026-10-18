@@ -14,7 +14,7 @@ for (const kind of ['vowels', 'voice', 'pitch', 'ym2612']) for (const locale of 
 }
 
 // The Basic entry starts silently and lets Keyboard own pitch and note on/off.
-const keyboardPath = new URL('../docs/playground/examples/basic/00-singing-keyboard.js', import.meta.url);
+const keyboardPath = new URL('../docs/playground/examples/basic/singing-keyboard.js', import.meta.url);
 const keyboardSource = createFormantExample('ym2612', {keyboard: true});
 if (process.argv.includes('--check')) {
   if (await readFile(keyboardPath, 'utf8') !== keyboardSource) throw new Error('Singing Keyboard example is stale');
