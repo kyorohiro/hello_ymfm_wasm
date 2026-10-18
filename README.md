@@ -59,7 +59,10 @@ This is the easiest way to test YM2612 control, sound design, and Genesis-orient
   `keyOn`, `timeline.waitUntil` and `keyOff` calls. The timeline starts after sample
   and preset loading; event times are elapsed seconds from that origin, so timer
   lateness does not slow all following events. PITCH remains in chip units, with no guessed
-  note names or original loop structure. The control step defaults to 20 ms
+  original note names or loop structure. Generated `setPitch` calls include provisional
+  note/cents comments relative to the assigned C4/PITCH4096 tuning; actual BRR fundamentals
+  are not detected. Noise voices have no note label; pitch-modulated voices label the base pitch.
+  The control step defaults to 20 ms
   (0 keeps all distinct changes; maximum 1000 ms). PITCH, volume and same-SRCN
   ADSR/GAIN updates are sampled; key and SRCN-change boundaries retain their
   original times. This is an editable approximation: initial envelope state,

@@ -64,7 +64,7 @@ export function installSpcImport({button, existingPaths, existingDirectories = (
     const alive = () => current === request && !controller.signal.aborted && dialog.open;
     try {
       onStatus?.(`Reading ${file.name}…`);
-      const source = await import('./playground_spc_source.js?v=spc-song-timing-1');
+      const source = await import('./playground_spc_source.js?v=spc-note-comments-1');
       const prepared = await source.prepareSpcImport(await file.arrayBuffer(), file.name, {signal:controller.signal});
       if (!alive()) return;
       const tagSeconds = prepared.metadata.playSeconds;
@@ -130,7 +130,7 @@ export function installSpcImport({button, existingPaths, existingDirectories = (
           let plan;
           if (['javascript','trace'].includes(mode())) {
             progress.hidden = false; progress.value = 0; conversionStatus.textContent = 'Preparing conversion…';
-            const {convertSpcImport} = await import('./playground_spc_trace.js?v=spc-song-timing-1');
+            const {convertSpcImport} = await import('./playground_spc_trace.js?v=spc-note-comments-1');
             if (!alive()) return;
             plan = await convertSpcImport(prepared, {directory, mode:mode(), controlStepMs:Number(controlStep.value), durationSeconds:Number(seconds.value), signal:controller.signal,
               onProgress:value => {if (alive()) {

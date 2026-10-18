@@ -1,4 +1,9 @@
 // Source generation for editable SPC re-performance; emulation stays in Worker.
+import {noteToHz} from '../js/soundchip_pitch.js';
+
+const ASSIGNED_TUNING = {rootNote:'C4',basePitch:4096};
+const ASSIGNED_MIDI = 69 + 12 * Math.log2(noteToHz(ASSIGNED_TUNING.rootNote) / 440);
+const NOTE_NAMES = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
 const json = value => JSON.stringify(value, null, 2) + '\n';
 const quote = value => JSON.stringify(value);
 const hex = value => `0x${value.toString(16).padStart(2,'0')}`;
@@ -51,7 +56,9 @@ export function buildSpcSongSource(performance, directory) {
     '// One SNES instance, physical voices 0..7. Times are elapsed seconds, independent of BPM.',
     '// waitUntil targets the song timeline: late JavaScript catches up instead of slowing every following note.',
     '// PITCH 4096 plays at the BRR source rate (32,000 Hz); note names cannot be inferred.',
-    '// C4 below is your assigned reference note, not a detected musical root.',
+    `// Provisional note comments use assigned ${ASSIGNED_TUNING.rootNote} at PITCH ${ASSIGNED_TUNING.basePitch}, not a detected BRR fundamental or audible note.`,
+    '// Relative intervals within one sample are meaningful; different samples may have different actual tuning.',
+    '// Comments describe the tuning at import time; editing rootNote/basePitch does not recalculate these comments.',
     '// ADSR1/ADSR2/GAIN and signed volumes are raw DSP values, not durations.',
     `// Controls keep the last value per ${performance.controlStepMs} ms interval (0 = every distinct value). Key times are retained.`,
     ...performance.warnings.map(warning => `// ${String(warning).replace(/[\r\n]/g,' ')}`),
@@ -63,10 +70,10 @@ export function buildSpcSongSource(performance, directory) {
     files.push({path:`${directory}/samples/${label}.brr`,type:'binary',data:sample.brr.slice()});
     const {brr,...metadata} = sample;
     files.push({path:`${directory}/samples/${label}.metadata.json`,type:'text',data:json({
-      ...metadata,assignedReferenceNote:'C4',assignedBasePitch:4096,
+      ...metadata,assignedReferenceNote:ASSIGNED_TUNING.rootNote,assignedBasePitch:ASSIGNED_TUNING.basePitch,
       tuning:'Assigned reference only; no original note or fundamental is inferred.'})});
     lines.push(`  const sample${sample.id} = await snes.loadBRR(await file(${quote(`./samples/${label}.brr`)}, {type:'arrayBuffer'}), {`,
-      `    rootNote: 'C4', basePitch: 4096${sample.loop ? `, loopStartSamples: ${sample.loopStartSamples}` : ''}`, '  });');
+      `    rootNote: ${quote(ASSIGNED_TUNING.rootNote)}, basePitch: ${ASSIGNED_TUNING.basePitch}${sample.loop ? `, loopStartSamples: ${sample.loopStartSamples}` : ''}`, '  });');
   }
   for (const [id,preset] of presets.entries()) {
     const path = `./presets/voice-${String(id).padStart(3,'0')}.json`;
@@ -79,6 +86,19 @@ export function buildSpcSongSource(performance, directory) {
     lines.push(`  snes.writeDsp(${hex(register)}, ${hex(value)}); // ${label}`);
   }
   lines.push('  const timeline = createTimeline(); // Start after all samples and presets have loaded.');
+  const channelSamples = Array(8).fill(null);
+  let noiseMask = performance.initialDsp[0x3d], modulationMask = performance.initialDsp[0x2d];
+  function pitchComment(channel, pitch) {
+    if (noiseMask & (1 << channel)) return '// noise voice: PITCH is not the noise frequency';
+    if (channelSamples[channel] === null) return '// no BRR assigned: no note label';
+    if (pitch === 0) return '// PITCH 0: no note name';
+    const midi = ASSIGNED_MIDI + 12 * Math.log2(pitch / ASSIGNED_TUNING.basePitch);
+    const nearest = Math.round(midi);
+    if (!Number.isFinite(midi) || nearest < 0 || nearest > 127) return '// assigned pitch outside MIDI note range';
+    const note = NOTE_NAMES[nearest % 12] + (Math.floor(nearest / 12) - 1);
+    const cents = Math.round((midi - nearest) * 100);
+    return `// provisional ${note}${cents ? ` ${cents > 0 ? '+' : ''}${cents}c` : ''}${channel > 0 && (modulationMask & (1 << channel)) ? ' (before pitch modulation)' : ''}`;
+  }
   let clock = 0;
   for (const event of performance.events) {
     if (event.clock > clock) lines.push(`  await timeline.waitUntil(${number(event.clock / performance.clockRate)});`);
@@ -88,14 +108,21 @@ export function buildSpcSongSource(performance, directory) {
       if (event.keyOffHeld) {
         lines.push(`  // Voice ${channel + 1}: KON while KOFF is held; no sustained note is started.`); continue;
       }
+      channelSamples[channel] = event.sampleId;
       lines.push(`  // ${number(clock / performance.clockRate)} s · Voice ${channel + 1} · SRCN ${event.sourceNumber}${event.inferred ? ' · inferred initial note (envelope restarts)' : ''}`,
         `  snes.setPreset(${channel}, {...preset${getPreset(event)}, sample: sample${event.sampleId}});`,
-        `  snes.setPitch(${channel}, ${event.pitch});`, `  snes.keyOn(${channel});`);
+        `  snes.setPitch(${channel}, ${event.pitch}); ${pitchComment(channel,event.pitch)}`, `  snes.keyOn(${channel});`);
     } else if (event.type === 'noteOff') lines.push(`  snes.keyOff(${channel});`);
-    else if (event.type === 'pitch') lines.push(`  snes.setPitch(${channel}, ${event.pitch});`);
+    else if (event.type === 'pitch') lines.push(`  snes.setPitch(${channel}, ${event.pitch}); ${pitchComment(channel,event.pitch)}`);
     else if (event.type === 'volume') lines.push(`  snes.setChannel(${channel}, {volumeLeft: ${event.volumeLeft}, volumeRight: ${event.volumeRight}});`);
-    else if (event.type === 'instrument') lines.push(`  snes.setChannel(${channel}, {adsr1: ${event.adsr1}, adsr2: ${event.adsr2}, gain: ${event.gain}${event.sampleId !== undefined ? `, sample: sample${event.sampleId}` : ''}});`);
-    else if (GLOBAL_LABELS.has(event.register)) lines.push(`  snes.writeDsp(${hex(event.register)}, ${hex(event.register === 0x6c ? event.value | 0x20 : event.value)}); // ${GLOBAL_LABELS.get(event.register)}`);
+    else if (event.type === 'instrument') {
+      if (event.sampleId !== undefined) channelSamples[channel] = event.sampleId;
+      lines.push(`  snes.setChannel(${channel}, {adsr1: ${event.adsr1}, adsr2: ${event.adsr2}, gain: ${event.gain}${event.sampleId !== undefined ? `, sample: sample${event.sampleId}` : ''}});`);
+    } else if (GLOBAL_LABELS.has(event.register)) {
+      lines.push(`  snes.writeDsp(${hex(event.register)}, ${hex(event.register === 0x6c ? event.value | 0x20 : event.value)}); // ${GLOBAL_LABELS.get(event.register)}`);
+      if (event.register === 0x3d) noiseMask = event.value;
+      if (event.register === 0x2d) modulationMask = event.value;
+    }
   }
   if (clock < performance.durationClocks) lines.push(`  await timeline.waitUntil(${number(performance.durationClocks / performance.clockRate)});`);
   lines.push('  snes.allNotesOff();', '} finally {', '  snes.dispose();', '}', '');
