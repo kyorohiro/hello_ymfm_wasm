@@ -6,6 +6,7 @@ import {buildExampleBundle} from '../../scripts/build_playground_examples.mjs';
 import {createVirtualFileSystem} from './playground_virtual_files.js';
 import {buildFileTree} from './playground_file_tree.js';
 import {createPlaygroundCassetteZip, loadPlaygroundCassette} from './playground_cassette.js';
+import {createFormantExample} from '../introductions/formant-examples.js';
 
 test('wobble sample loop plays only samples loaded during preparation', async () => {
   const loaded = new Set();
@@ -55,6 +56,23 @@ test('bundled examples match editable categorized source files', async () => {
     assert.equal(file.data,await readFile(new URL('.'+file.path,import.meta.url),'utf8'));
     assert.equal(EXAMPLES[file.name],file.data);
   }
+});
+
+test('the singing keyboard is the first direct Basic file and matches the tested canonical keyboard source', async () => {
+  const path = '/examples/basic/00-singing-keyboard.js';
+  const sample = EXAMPLE_FILES.find(file => file.path === path);
+  assert.ok(sample, 'the example is directly inside Basic');
+  assert.equal(sample.data.trim(), createFormantExample('ym2612', {keyboard: true}).trim());
+  assert.equal(sample.data, await readFile(new URL('.' + path, import.meta.url), 'utf8'));
+  assert.equal(EXAMPLES['00-singing-keyboard'], sample.data);
+  assert.match(sample.data, /Run.*Keyboard.*melody/);
+  assert.match(sample.data, /Keyboard.*メロディー/);
+  assert.match(sample.data, /let experiment = 'K';/);
+  const basicFiles = EXAMPLE_FILES.filter(file => /^\/examples\/basic\/[^/]+\.js$/.test(file.path));
+  assert.equal(basicFiles[0].path, path, 'the bundled direct-file order starts with this example');
+  const tree = buildFileTree(EXAMPLE_FILES), examples = tree.find(node => node.name === 'examples');
+  const basic = examples.children.find(node => node.name === 'basic');
+  assert.equal(basic.children.filter(node => node.file)[0].path, path, 'the visible Basic file list starts with this example');
 });
 
 test('examples appear in the folder tree and edited source survives cassette export', async () => {

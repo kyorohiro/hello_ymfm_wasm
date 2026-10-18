@@ -3,13 +3,24 @@
 <title>YM2612フォルマント：FM音源で母音を作る — Tetorica FX入門</title><link rel="stylesheet" href="./fx-introduction.css"><link rel="alternate" hreflang="en" href="./tetorica-fx-formant-ym2612.html"><link rel="alternate" hreflang="ja" href="./tetorica-fx-formant-ym2612_ja.html"><style>.language-nav{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}.language-nav a[aria-current="page"]{font-weight:700}</style></head>
 <body><main><nav aria-label="記事ナビゲーション"><a href="./tetorica-fx_ja.html">FX入門一覧（作成中）</a><a href="./tetorica-fx-formant-vowels_ja.html">16. フォルマント母音</a><a href="./tetorica-fx-formant-voice_ja.html">17. フォルマント音声</a><a href="./tetorica-fx-formant-pitch_ja.html">18. 音程と母音</a><a href="./tetorica-fx-formant-ym2612_ja.html">19. YM2612フォルマント</a></nav>
 <header class="panel"><p class="kicker">FX INTRODUCTION / 19</p><h1>YM2612フォルマント：FM音源で母音を作る</h1><nav class="language-nav" aria-label="Language"><a href="./tetorica-fx-formant-ym2612.html" lang="en" hreflang="en">English</a> | <a href="./tetorica-fx-formant-ym2612_ja.html" lang="ja" hreflang="ja" aria-current="page">日本語</a></nav><p>YM2612を倍音のある音源にして、同じliveFxのフォルマントフィルターで加工します。チップのFeedback、音程、母音の響きを、別々の操作として比べます。</p></header>
-<section class="panel"><h2>1. まず聴いてみる</h2><p>Runすると、130 HzのYM2612音が鳴り続けます。実験Aでは音程を固定し、フィルターが「あ → い → う → え → お」と動きます。チップの倍音と、ソフトウェアで作る共鳴を組み合わせた、電子的な声の響きです。</p><p class="hint">Runで再生、Stopで停止します。再生中にコードを編集したら、もう一度Runすると反映されます。同名のFXはフィルター履歴を保持し、livePrepareにより音源を再発音しません。最初から試すときはStopしてからRunします。別々のPlaygroundは同時に鳴るので、ほかのサンプルは停止して1つずつ比べてください。</p>
+<section class="panel"><h2>Keyboardでメロディーを弾いてみよう</h2>
+<p>Playgroundの<strong>Basicサンプル一覧の先頭</strong>にある<code>00-singing-keyboard.js</code>（<code>examples/basic/00-singing-keyboard.js</code>）でも、この音作りを試せます。鍵盤演奏用の設定と、操作手順のコメントを入れたサンプルです。まずは鳴らしてから、数値を変えて遊んでください。</p>
+<p>このページのコードで演奏する場合は、次の手順で鍵盤モードに切り替えます。</p>
+<ol class="steps"><li><strong>Stop</strong>し、コード先頭の<code>experiment = 'A'</code>を<code>experiment = 'K'</code>に変更して<strong>Run</strong>します。</li><li>下側の<strong>Keyboard</strong>タブを開き、<strong>Mo: Fixed channel</strong>、<strong>Ch: CH1</strong>、<strong>Pre: Current</strong>を選びます。Currentを使うことで、コードで作ったYM2612音色をそのまま演奏できます。</li><li>画面の鍵盤をクリックしてメロディーを弾いてみましょう。PCのキーで弾く場合は、コード入力欄からフォーカスを外してKeyboard側をクリックし、画面に表示される数字・文字のキー割り当てを使います。</li></ol>
+<p>Kでは音色とFXだけを準備し、自動の持続音や音程変更ループは鳴らしません。鍵盤がYM2612の音程を決め、その後段のフィルターが母音を巡回します。<code>feedback</code>や<code>vowelSeconds</code>を変えて、同じメロディーの響きを比べられます。</p>
+<p>Keyboardとコードは同じYM2612音色とFXを共有します。FILESでTFI音色を開いたときの試聴鍵盤は別経路です。KとA・B・Cを切り替えるときは<strong>Stop → Run</strong>にしてください。Keyboardから別タブへ移ると押している鍵盤は離されるため、FX Monitorで鳴り続ける音を比較する場合はA・B・Cを使います。</p>
+</section>
+<section class="panel"><h2>1. まず聴いてみる</h2><p>Runすると、130 HzのYM2612音が鳴り続けます。実験Aでは音程を固定し、フィルターが「あ → い → う → え → お」と動きます。チップの倍音と、ソフトウェアで作る共鳴を組み合わせた、電子的な声の響きです。</p><p class="hint">Runで再生、Stopで停止します。再生中にコードを編集したら、もう一度Runすると反映されます。同名のFXはフィルター履歴を保持し、livePrepareにより音源を再発音しません。最初から試すときやK・A・B・Cを切り替えるときはStopしてからRunします。別々のPlaygroundは同時に鳴るので、ほかのサンプルは停止して1つずつ比べてください。</p>
 <script type="text/plain" id="formant-ym2612">
+// Singing keyboard: Run, open Keyboard, and play a melody!
+// 歌う鍵盤: Run → Keyboard を開き、鍵盤入力でメロディーを弾いてみてください。
+// Choose Fixed channel / CH1 / Pre: Current. Click outside the code editor before typing.
+// K: keyboard input. Stop, change experiment, then Run when switching K / A / B / C.
 // A: fixed pitch / moving vowels; B: fixed vowel / moving pitch; C: both.
-const carrierHz = 130; // Try 65, 130 or 260 Hz. YM2612 controls pitch; the FX controls vowel color.
+const carrierHz = 130; // A / B / C: try 65, 130 or 260 Hz. In K mode, Keyboard controls pitch.
 const feedback = 6; // 0..7: 0 is a sine-like source; 6 supplies more harmonics.
 const operatorLevel = 16; // OP1 total level, 0..127; larger is quieter.
-let experiment = 'A'; // Change to 'B' or 'C', then Run again to apply.
+let experiment = 'A'; // K: play Keyboard; A / B / C: automatic experiments.
 const fixedVowel = 0; // 0:a 1:i 2:u 3:e 4:o
 liveFx('formant-ym2612', {
   context: {
@@ -42,17 +53,22 @@ await livePrepare('formant-ym2612-source', () => {
   fm.setOperator(CH1, OP1, { tl: operatorLevel });
   fm.setOperator(CH1, OP4, { tl: 127 }); // Mute the sine preset's original carrier.
   fm.setPan(CH1, true, true);
-  fm.setFrequency(CH1, carrierHz);
-  fm.keyOn(CH1, [OP1]);
+  if (experiment !== 'K') {
+    fm.setFrequency(CH1, carrierHz);
+    fm.keyOn(CH1, [OP1]);
+  }
 });
 // Apply source edits without resetting phase or retriggering the envelope.
 fm.setAlgo(CH1, 7, feedback);
 fm.setOperator(CH1, OP1, { tl: operatorLevel });
-fm.setFrequency(CH1, carrierHz);
+if (experiment !== 'K') fm.setFrequency(CH1, carrierHz);
 liveLoop('formant-ym2612-control', async () => {
-  const hz = experiment === 'A' ? carrierHz : cycle([carrierHz, carrierHz * 1.25, carrierHz * 1.5, carrierHz * 1.25]);
-  fm.setFrequency(CH1, hz);
-  await sleep(0.6); // seconds; Stop ends the sustained source and discards filter state.
+  // In K mode the keyboard owns pitch and note on/off; the FX still moves vowels.
+  if (experiment !== 'K') {
+    const hz = experiment === 'A' ? carrierHz : cycle([carrierHz, carrierHz * 1.25, carrierHz * 1.5, carrierHz * 1.25]);
+    fm.setFrequency(CH1, hz);
+  }
+  await sleep(0.6); // seconds; Stop ends the notes and discards filter state.
 });
 
 // Filter implementation below. Start experimenting with context above.
@@ -185,7 +201,7 @@ function formantProcess(input, output, state, context) {
 <p><code>formants</code>は母音ごとの[F1, F2, F3]をHzで指定する表です。各バンドパスに同じ入力を渡し、3つの出力を混ぜます。F1は母音の開き、F2は舌の前後位置との関係があり、F3は声の響きをさらに特徴づけます。値は実験用の目安で、すべての話者に共通するものではありません。表とフィルターの仕組みは<a href="./tetorica-fx-formant-vowels_ja.html">フォルマント母音の章</a>で説明しています。</p></section>
 <section class="panel"><h2>4. 実験A・B・Cを比べる</h2>
 <table><thead><tr><th>experiment</th><th>YM2612の音程</th><th>フォルマントフィルター</th></tr></thead><tbody><tr><td><code>'A'</code></td><td><code>carrierHz</code>に固定</td><td>5つの母音を巡回</td></tr><tr><td><code>'B'</code></td><td>周波数パターンを反復</td><td><code>fixedVowel</code>に固定</td></tr><tr><td><code>'C'</code></td><td>同じ周波数パターンを反復</td><td>5つの母音を巡回</td></tr></tbody></table>
-<ol class="steps"><li>Aで<code>mix: 0</code>にし、<code>feedback</code>を6から0へ変えて、もう一度Runします。YM2612自体が作る音の違いを確認します。</li><li>Feedbackを6、<code>mix: 1</code>に戻します。フィルターが加工できる倍音が増えます。Feedback 0では主な成分が1つなので、3つの母音の共鳴を十分に作れません。</li><li><code>experiment = 'B'</code>、<code>fixedVowel = 0</code>にします。音程が動いても共鳴の目標は同じです。次にfixedVowel 1を試します。</li><li>Cを試し、<code>vowelSeconds: 2.5</code>で母音の移動をゆっくりにします。音源の音程と母音の動きは、別々に制御されています。</li><li>LFOも試すならBを選び、<code>lfoHz: 0.8</code>、<code>lfoDepth: 0.3</code>にします。音源用ループが音程を動かしながら、フィルターは周期的に動きます。</li></ol>
+<ol class="steps"><li>Aで<code>mix: 0</code>にし、<code>feedback</code>を6から0へ変えて、もう一度Runします。YM2612自体が作る音の違いを確認します。</li><li>Feedbackを6、<code>mix: 1</code>に戻します。フィルターが加工できる倍音が増えます。Feedback 0では主な成分が1つなので、3つのフォルマントの共鳴を十分に作れません。</li><li><code>experiment = 'B'</code>、<code>fixedVowel = 0</code>にします。音程が動いても共鳴の目標は同じです。次にfixedVowel 1を試します。</li><li>Cを試し、<code>vowelSeconds: 2.5</code>で母音の移動をゆっくりにします。音源の音程と母音の動きは、別々に制御されています。</li><li>LFOも試すならBを選び、<code>lfoHz: 0.8</code>、<code>lfoDepth: 0.3</code>にします。音源用ループが音程を動かしながら、フィルターは周期的に動きます。</li></ol>
 <p>音源用ループは<code>fm.setFrequency</code>を呼びます。フォルマント処理は音声スレッド側の位置から共鳴周波数を動かします。これらは秒で進むため、BPMを変えても速さは変わりません。基音を高くすると共鳴の帯域に入る倍音が減るので、同じ母音設定でも聞こえ方は変わります。</p></section>
 <section class="panel"><h2>5. FX Monitorでチップの音と加工後を比べる</h2>
 <p>Runしたら<strong>FX Monitor</strong>で<code>formant-ym2612</code>を選びます。青が音源からの入力、オレンジがフィルター後の出力です。<strong>View → Spectrum</strong>で倍音の強さを、<strong>Oscilloscope</strong>で波形を比較します。高さを比べるときはYを固定してください。入力と出力は同じ表示スケールです。</p>

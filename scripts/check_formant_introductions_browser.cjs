@@ -404,6 +404,125 @@ async function checkYm2612Lesson(page, origin, browserName, {japanese = false, w
   return result;
 }
 
+async function attachOutputMeter(page) {
+  await page.evaluate(() => {
+    const p = window.__formantTest, context = p.megaDrive.audioContext;
+    p.keyboardMeter = context.createAnalyser(); p.keyboardMeter.fftSize = 4096;
+    const mute = context.createGain(); mute.gain.value = 0;
+    p.keyboardMeter.connect(mute); mute.connect(context.destination);
+    p.megaDrive.audio.connectOutputMonitor(p.keyboardMeter);
+  });
+}
+
+async function keyboardOutput(page) {
+  return page.evaluate(() => {
+    const meter = window.__formantTest.keyboardMeter, pcm = new Float32Array(meter.fftSize);
+    meter.getFloatTimeDomainData(pcm);
+    return {finite:pcm.every(Number.isFinite), peak:pcm.reduce((max,v) => Math.max(max,Math.abs(v)),0),
+      rms:Math.sqrt(pcm.reduce((sum,v) => sum + v*v,0) / pcm.length)};
+  });
+}
+
+// One existing monitor request observes the live effect while the Keyboard tab
+// stays selected. Changing tabs would deliberately release its held notes.
+async function heldKeyboardAudio(page, expectedHz) {
+  return page.evaluate(expectedHz => new Promise((resolve,reject) => {
+    const p = window.__formantTest, rack = p.megaDrive.audio.nativeFX;
+    const previous = rack.onMonitor, id = 1000000 + (p.keyboardMonitorId = (p.keyboardMonitorId || 0) + 1);
+    const timeout = setTimeout(() => {rack.onMonitor = previous; reject(Error('Keyboard liveFx capture timed out'));}, 5000);
+    rack.onMonitor = data => {
+      if (data.id !== id) {previous?.(data); return;}
+      clearTimeout(timeout); rack.onMonitor = previous;
+      if (!data.input?.length) {reject(Error('Singing keyboard liveFx is not registered')); return;}
+      const summarize = values => ({finite:values.every(Number.isFinite), peak:values.reduce((max,v) => Math.max(max,Math.abs(v)),0),
+        rms:Math.sqrt(values.reduce((sum,v) => sum + v*v,0) / values.length)});
+      const mean = data.input.reduce((sum,v) => sum + v,0) / data.input.length;
+      let best = {correlation:-1, hz:null};
+      for (let lag = Math.floor(data.rate / (expectedHz * 1.04)); lag <= Math.ceil(data.rate / (expectedHz * .96)); lag++) {
+        let cross = 0, a2 = 0, b2 = 0;
+        for (let i = lag; i < data.input.length; i++) {
+          const a = data.input[i] - mean, b = data.input[i-lag] - mean;
+          cross += a*b; a2 += a*a; b2 += b*b;
+        }
+        const correlation = cross / Math.sqrt(a2*b2);
+        if (correlation > best.correlation) best = {correlation, hz:data.rate/lag};
+      }
+      resolve({rate:data.rate, input:summarize(data.input), output:summarize(data.output), pitch:best});
+    };
+    rack.node.port.postMessage({op:'fx-monitor', enabled:true, id, name:'formant-ym2612', channel:0});
+  }), expectedHz);
+}
+
+function assertKeyboardAudio(result, expectedHz, label) {
+  assert(result.input.finite && result.output.finite, `${label}: real Worklet PCM is finite`);
+  assert(result.input.rms > .001 && result.output.rms > .0001, `${label}: keyboard reaches the formant filter`);
+  assert(result.output.peak <= 1, `${label}: processed output is bounded`);
+  // Feedback6 enriches and slightly varies the waveform between periods;
+  // the repeated source pitch must remain clear without requiring pure sine PCM.
+  assert(result.pitch.correlation > .9 && Math.abs(result.pitch.hz - expectedHz) < 4,
+    `${label}: held note remains at ${expectedHz} Hz, not automatic130 Hz: ${JSON.stringify(result.pitch)}`);
+}
+
+async function checkBundledSingingKeyboard(page, origin, browserName, execution) {
+  const filePath = '/examples/basic/00-singing-keyboard.js';
+  await page.goto(`${origin}/playground/index.html?mode=full&expanded=1`);
+  await page.waitForFunction(() => window.__formantTest?.editor.kind === 'monaco');
+  await page.locator('#startupNotice').waitFor({state:'hidden'});
+  await page.locator('#workerExecution').setChecked(execution === 'worker');
+  for (const folder of ['/examples','/examples/basic']) {
+    const label = page.locator(`summary[data-file-path="${folder}"]`);
+    if (!await label.evaluate(element => element.parentElement.open)) await label.click();
+  }
+  const example = page.locator(`button.file-entry[data-file-path="${filePath}"]`);
+  await example.click();
+  assert.equal(await page.locator('#runFileSelect').inputValue(), filePath, 'opening Basic example selects the real Run file');
+  assert.equal(await page.locator('#runFileSelect optgroup[label="/examples/basic"] option').first().getAttribute('value'), filePath,
+    'singing keyboard is first in the Basic root');
+  assert.match(await page.evaluate(() => window.__formantTest.editor.getValue()), /let experiment = ['"]K['"]/);
+  await checkDiagnostics(page, 'bundled singing keyboard');
+  await page.screenshot({path:path.join(artifacts, `singing-keyboard-files-${browserName}-${execution}.png`)});
+  await page.locator('#runButton').click();
+  await page.waitForFunction(() => !document.getElementById('runButton').disabled);
+  await attachOutputMeter(page);
+  await page.waitForTimeout(execution === 'worker' ? 800 : 200);
+  const initial = await keyboardOutput(page);
+  assert(initial.peak < 1e-5, 'K mode does not start an automatic source note');
+  await page.locator('#keyboardTab').click();
+  await page.locator('#playgroundKeyboardChannelMode').selectOption('fixed');
+  await page.locator('#playgroundKeyboardChannel').selectOption('0');
+  await page.locator('#playgroundKeyboardPreset').selectOption('');
+  const keys = await page.locator('#operatorKeyboardRoot .key').evaluateAll(buttons => {
+    const key = (note, letterOnly = false) => {
+      const button = buttons.find(button => button.querySelector('span')?.textContent === note && (!letterOnly || /^[a-z]$/.test(button.dataset.key)));
+      if (!button) throw Error('Default Guitar layout does not show ' + note);
+      return button.dataset.key;
+    };
+    return {a:key('A3'), computer:key('B3',true)};
+  });
+  const pointerKey = page.locator(`#operatorKeyboardRoot .key[data-key="${keys.a}"]`);
+  await pointerKey.scrollIntoViewIfNeeded();
+  const bounds = await pointerKey.boundingBox();
+  await page.mouse.move(bounds.x+bounds.width/2,bounds.y+bounds.height/2); await page.mouse.down();
+  await page.waitForTimeout(220);
+  const pointerFirst = await heldKeyboardAudio(page, 220); assertKeyboardAudio(pointerFirst, 220, 'pointer press');
+  await page.waitForTimeout(900);
+  const pointerLater = await heldKeyboardAudio(page, 220); assertKeyboardAudio(pointerLater, 220, 'pointer held beyond control-loop boundary');
+  await page.screenshot({path:path.join(artifacts, `singing-keyboard-keys-${browserName}-${execution}.png`)});
+  await page.mouse.up(); await page.waitForTimeout(350);
+  const released = await keyboardOutput(page); assert(released.peak < .0001, `pointer release ends the note: ${released.peak}`);
+  // Real PC input after leaving Code; derive its binding from the shown key.
+  await page.locator('#codeTab').click();
+  await page.locator('#editorHost .monaco-editor').click();
+  await page.locator('#keyboardTab').click();
+  assert(!await page.evaluate(() => document.activeElement?.closest('.monaco-editor')), 'Code editor focus has been left');
+  await page.keyboard.down(keys.computer); await page.waitForTimeout(220);
+  const typed = await heldKeyboardAudio(page, 246.9416506); assertKeyboardAudio(typed, 246.9416506, 'PC letter press after leaving Code');
+  await page.waitForTimeout(900);
+  const typedLater = await heldKeyboardAudio(page, 246.9416506); assertKeyboardAudio(typedLater, 246.9416506, 'PC letter held beyond control-loop boundary');
+  await stopAndCheck(page); await page.keyboard.up(keys.computer);
+  return {lesson:'bundled-singing-keyboard', execution, initial, pointerFirst, pointerLater, released, typed, typedLater};
+}
+
 async function checkBrowser(name, type, origin) {
   const browser = await type.launch({headless:true, ...(name === 'chromium' ? {args:['--autoplay-policy=no-user-gesture-required']} : {})});
   try {
@@ -411,6 +530,16 @@ async function checkBrowser(name, type, origin) {
     await context.addInitScript(instrumentBrowser);
     const results = [];
     const onlyYm2612 = process.argv.includes('--only-ym2612');
+    if (process.argv.includes('--only-keyboard')) {
+      for (const execution of ['main','worker']) {
+        const page = await context.newPage(), errors = [];
+        page.on('pageerror', error => errors.push(error.message)); page.setDefaultTimeout(15000);
+        results.push(await checkBundledSingingKeyboard(page, origin, name, execution));
+        assert.deepEqual(errors, [], `${execution}: bundled keyboard has no page errors`);
+        await page.close();
+      }
+      console.log(JSON.stringify({browser:name, passed:true, results})); return;
+    }
     if (!process.argv.includes('--only-existing') && !onlyYm2612) for (const kind of ['vowels','voice','pitch']) {
       const page = await context.newPage(), errors = [];
       page.on('pageerror', error => errors.push(error.message));

@@ -11,6 +11,8 @@ import ym2612Factory from '../generated/ym2612_wasm.js';
 import {Ym2612} from '../../web/ym2612.js';
 import {YM2612Synth, YM2612DirectTransport} from '../../web/ym2612synth.js';
 import {FM_PRESETS} from '../../web/megasynth-fm-presets.js';
+import {createOpnAuditionGuard} from '../../web/playground_audition_guard.js';
+import {midiToOpnPitch} from '../../web/soundchip_pitch.js';
 
 // Compile the same serialized function in a Worklet-like global realm. Importing
 // the function directly would incorrectly let it see this test's globals.
@@ -322,6 +324,74 @@ test('the YM2612 lesson drives a real WASM carrier through formants and preserve
     assert.deepEqual(writes.filter(write => write.port === 0 && write.register === 0x28).map(write => write.value), [0x10], 'source edits never retrigger the envelope');
     assert.deepEqual(f.errors, []);
     t.diagnostic(`real YM2612 ${rate} Hz; harmonic/fundamental power=${harmonicRatio.toFixed(3)}; filtered RMS=${rms(wet[0]).toFixed(5)}`);
+  } finally {chip.dispose();}
+});
+
+test('the singing keyboard prepares silently, leaves pitch and keys to manual input, and retains the held voice on Run again', async t => {
+  const chip = await Ym2612.create({moduleFactory: ym2612Factory,
+    moduleOptions: {wasmBinary: await readFile(new URL('../generated/ym2612_wasm.wasm', import.meta.url))}});
+  try {
+    const guard = createOpnAuditionGuard(chip), transport = new YM2612DirectTransport(chip), writes = [];
+    const write = transport.write.bind(transport);
+    transport.write = (port, register, value) => {writes.push({port, register, value}); write(port, register, value);};
+    const fm = new YM2612Synth({transport}), rate = chip.sampleRate(), f = fixture(rate);
+    f.fx.removeLiveFx('formant-test');
+    const prepared = new Map(), loops = new Map();
+    const api = {fm, FM_PRESETS, CH1: 0, OP1: 0, OP4: 3, liveFx: f.fx.liveFx,
+      livePrepare: async (name, fn) => {if (!prepared.has(name)) prepared.set(name, await fn()); return prepared.get(name);},
+      liveLoop: (name, fn) => loops.set(name, fn), cycle: () => assert.fail('K must not run the automatic melody'),
+      sleep: async seconds => assert.equal(seconds, .6)};
+    const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
+    const execute = source => new AsyncFunction(...Object.keys(api), source)(...Object.values(api));
+    const source = createFormantExample('ym2612', {keyboard: true});
+    assert.match(source, /let experiment = 'K';/);
+    await execute(source);
+    assert.equal(loops.size, 1);
+    for (let i = 0; i < 4; i++) await [...loops.values()][0]();
+    const isPitchOrKey = ({port, register}) => (port === 0 && register === 0x28) ||
+      (register >= 0xa0 && register <= 0xa6);
+    assert.deepEqual(writes.filter(isPitchOrKey), [], 'preparation and idle iterations never start or retune a note');
+    assert.equal(fm.channels[0].feedback, 6); assert.equal(fm.channels[0].operators[0].tl, 16);
+    assert.equal(fm.channels[0].operators[3].tl, 127);
+    const effect = f.rack.effects.get('formant-ym2612');
+    assert.equal(effect.context.autoVowels, true, 'formants continue to move while keyboard controls the melody');
+    const processPcm = pcm => {
+      const output = [new Float32Array(pcm.left.length), new Float32Array(pcm.right.length)];
+      for (let offset = 0; offset < pcm.left.length; offset += 128) {
+        const channels = [pcm.left.slice(offset, offset + 128), pcm.right.slice(offset, offset + 128)];
+        f.process(channels); output[0].set(channels[0], offset); output[1].set(channels[1], offset);
+      }
+      finiteBounded(output); return output;
+    };
+    const rms = values => Math.sqrt(values.reduce((sum, value) => sum + value * value, 0) / values.length);
+    const silence = processPcm(chip.generateStereo(4096));
+    // The real chip has a tiny quantized idle floor; compare against that,
+    // rather than assuming the emulator produces mathematical zero samples.
+    assert.ok(rms(silence[0]) < 1e-4, 'Run waits at the chip idle floor: ' + rms(silence[0]));
+    const pitch = midiToOpnPitch(48, fm.clock); // C3, representative of the displayed keyboard's low notes.
+    guard.handle({type: 'audition-note-on', channel: 0, token: 1, ...pitch});
+    const played = processPcm(chip.generateStereo(8192));
+    assert.ok(rms(played[0]) > .0001, 'a real manual keyboard command plays through the formant FX');
+    assert.ok(rms(played[0]) > rms(silence[0]) * 100, 'manual playing is distinct from the silent preparation floor');
+    assert.deepEqual(played[0], played[1]);
+    const state = effect.state, memory = state.memory[0], previousMemory = Array.from(memory);
+    const edited = source.replace('const feedback = 6;', 'const feedback = 4;')
+      .replace('const operatorLevel = 16;', 'const operatorLevel = 24;')
+      .replace('const carrierHz = 130;', 'const carrierHz = 260;');
+    await execute(edited);
+    assert.equal(f.rack.effects.get('formant-ym2612').state, state);
+    assert.equal(state.memory[0], memory); assert.deepEqual(Array.from(memory), previousMemory);
+    assert.equal(fm.channels[0].feedback, 4); assert.equal(fm.channels[0].operators[0].tl, 24);
+    for (let i = 0; i < 4; i++) await [...loops.values()][0]();
+    assert.deepEqual(writes.filter(isPitchOrKey), [], 'source edits and idle iterations leave the held keyboard pitch/key untouched');
+    const held = processPcm(chip.generateStereo(8192));
+    assert.ok(rms(held[0]) > .00001, 'manual note continues after Run again');
+    guard.handle({type: 'audition-note-off', channel: 0, token: 1});
+    processPcm(chip.generateStereo(Math.round(rate * .25)));
+    const released = processPcm(chip.generateStereo(4096));
+    assert.ok(rms(released[0]) < 1e-4, 'manual key release returns to the idle floor after its filter tail');
+    assert.deepEqual(f.errors, []);
+    t.diagnostic(`real K-mode keyboard filtered RMS=${rms(played[0]).toFixed(5)}; released RMS=${rms(released[0]).toExponential(2)}`);
   } finally {chip.dispose();}
 });
 

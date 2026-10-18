@@ -3,13 +3,24 @@
 <title>YM2612 formants: make an FM tone speak — Tetorica FX introduction</title><link rel="stylesheet" href="./fx-introduction.css"><link rel="alternate" hreflang="en" href="./tetorica-fx-formant-ym2612.html"><link rel="alternate" hreflang="ja" href="./tetorica-fx-formant-ym2612_ja.html"><style>.language-nav{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}.language-nav a[aria-current="page"]{font-weight:700}</style></head>
 <body><main><nav aria-label="Article navigation"><a href="./tetorica-fx.html">FX introduction index (work in progress)</a><a href="./tetorica-fx-formant-vowels.html">16. Formant vowels</a><a href="./tetorica-fx-formant-voice.html">17. Formant voice</a><a href="./tetorica-fx-formant-pitch.html">18. Pitch and vowels</a><a href="./tetorica-fx-formant-ym2612.html">19. YM2612 formants</a></nav>
 <header class="panel"><p class="kicker">FX INTRODUCTION / 19</p><h1>YM2612 formants: make an FM tone speak</h1><nav class="language-nav" aria-label="Language"><a href="./tetorica-fx-formant-ym2612.html" lang="en" hreflang="en" aria-current="page">English</a> | <a href="./tetorica-fx-formant-ym2612_ja.html" lang="ja" hreflang="ja">日本語</a></nav><p>Use the YM2612 as a harmonic-rich source, then shape it with the same liveFx formant filter. Compare chip feedback, musical pitch, and vowel color as three separate controls.</p></header>
-<section class="panel"><h2>1. Listen first</h2><p>Press Run to sustain a YM2612 tone at 130 Hz. In experiment A, the pitch stays fixed while the filter moves through a → i → u → e → o. The electronic voice color comes from the combination of chip harmonics and software resonances.</p><p class="hint">Run starts playback; Stop stops it. Edit the code during playback and press Run again to apply changes. The same-named FX keeps its filter state, and livePrepare avoids retriggering the sustained source. Stop and Run for a fresh start. Play only one embedded example at a time: independent Playgrounds can otherwise sound together.</p>
+<section class="panel"><h2>Play a melody on the Keyboard</h2>
+<p>The <strong>first entry in Playground's Basic examples</strong>, <code>00-singing-keyboard.js</code> (<code>examples/basic/00-singing-keyboard.js</code>), also contains this sound. It starts in keyboard mode and includes comments explaining how to play. Try making a melody first, then change the numbers.</p>
+<p>To play the code embedded on this page, switch it to keyboard mode:</p>
+<ol class="steps"><li>Press <strong>Stop</strong>, change <code>experiment = 'A'</code> near the top to <code>experiment = 'K'</code>, then press <strong>Run</strong>.</li><li>Open the bottom <strong>Keyboard</strong> tab. Select <strong>Mo: Fixed channel</strong>, <strong>Ch: CH1</strong>, and <strong>Pre: Current</strong>. Current keeps the YM2612 patch prepared by the code.</li><li>Click the on-screen keys to play a melody. For PC keyboard playing, move focus out of the code editor by clicking the Keyboard area, then use the number and letter assignments shown on screen.</li></ol>
+<p>K prepares the patch and FX without starting a drone or an automatic pitch loop. Your keys control YM2612 pitch while the filter cycles through the vowels. Change <code>feedback</code> or <code>vowelSeconds</code> and compare the same melody.</p>
+<p>The Keyboard shares the code's YM2612 patch and FX. The audition keyboard shown when opening a TFI in FILES is a separate path. Use <strong>Stop → Run</strong> when switching between K and A, B, or C. Leaving the Keyboard tab releases held keys, so use A, B, or C when you need a sustained sound for FX Monitor comparisons.</p>
+</section>
+<section class="panel"><h2>1. Listen first</h2><p>Press Run to sustain a YM2612 tone at 130 Hz. In experiment A, the pitch stays fixed while the filter moves through a → i → u → e → o. The electronic voice color comes from the combination of chip harmonics and software resonances.</p><p class="hint">Run starts playback; Stop stops it. Edit the code during playback and press Run again to apply changes. The same-named FX keeps its filter state, and livePrepare avoids retriggering the sustained source. Stop and Run for a fresh start or when switching between K, A, B, and C. Play only one embedded example at a time: independent Playgrounds can otherwise sound together.</p>
 <script type="text/plain" id="formant-ym2612">
+// Singing keyboard: Run, open Keyboard, and play a melody!
+// 歌う鍵盤: Run → Keyboard を開き、鍵盤入力でメロディーを弾いてみてください。
+// Choose Fixed channel / CH1 / Pre: Current. Click outside the code editor before typing.
+// K: keyboard input. Stop, change experiment, then Run when switching K / A / B / C.
 // A: fixed pitch / moving vowels; B: fixed vowel / moving pitch; C: both.
-const carrierHz = 130; // Try 65, 130 or 260 Hz. YM2612 controls pitch; the FX controls vowel color.
+const carrierHz = 130; // A / B / C: try 65, 130 or 260 Hz. In K mode, Keyboard controls pitch.
 const feedback = 6; // 0..7: 0 is a sine-like source; 6 supplies more harmonics.
 const operatorLevel = 16; // OP1 total level, 0..127; larger is quieter.
-let experiment = 'A'; // Change to 'B' or 'C', then Run again to apply.
+let experiment = 'A'; // K: play Keyboard; A / B / C: automatic experiments.
 const fixedVowel = 0; // 0:a 1:i 2:u 3:e 4:o
 liveFx('formant-ym2612', {
   context: {
@@ -42,17 +53,22 @@ await livePrepare('formant-ym2612-source', () => {
   fm.setOperator(CH1, OP1, { tl: operatorLevel });
   fm.setOperator(CH1, OP4, { tl: 127 }); // Mute the sine preset's original carrier.
   fm.setPan(CH1, true, true);
-  fm.setFrequency(CH1, carrierHz);
-  fm.keyOn(CH1, [OP1]);
+  if (experiment !== 'K') {
+    fm.setFrequency(CH1, carrierHz);
+    fm.keyOn(CH1, [OP1]);
+  }
 });
 // Apply source edits without resetting phase or retriggering the envelope.
 fm.setAlgo(CH1, 7, feedback);
 fm.setOperator(CH1, OP1, { tl: operatorLevel });
-fm.setFrequency(CH1, carrierHz);
+if (experiment !== 'K') fm.setFrequency(CH1, carrierHz);
 liveLoop('formant-ym2612-control', async () => {
-  const hz = experiment === 'A' ? carrierHz : cycle([carrierHz, carrierHz * 1.25, carrierHz * 1.5, carrierHz * 1.25]);
-  fm.setFrequency(CH1, hz);
-  await sleep(0.6); // seconds; Stop ends the sustained source and discards filter state.
+  // In K mode the keyboard owns pitch and note on/off; the FX still moves vowels.
+  if (experiment !== 'K') {
+    const hz = experiment === 'A' ? carrierHz : cycle([carrierHz, carrierHz * 1.25, carrierHz * 1.5, carrierHz * 1.25]);
+    fm.setFrequency(CH1, hz);
+  }
+  await sleep(0.6); // seconds; Stop ends the notes and discards filter state.
 });
 
 // Filter implementation below. Start experimenting with context above.
@@ -185,7 +201,7 @@ function formantProcess(input, output, state, context) {
 <p>The <code>formants</code> table contains [F1, F2, F3] in Hz for each vowel. Each band-pass receives the same input and the three outputs are mixed. F1 broadly relates to vowel openness, F2 to front/back tongue position, and F3 adds further voice quality. These are illustrative targets, not universal measurements. The <a href="./tetorica-fx-formant-vowels.html">formant vowels chapter</a> explains the table and filter.</p></section>
 <section class="panel"><h2>4. Compare experiments A, B, and C</h2>
 <table><thead><tr><th>experiment</th><th>YM2612 pitch</th><th>Formant filter</th></tr></thead><tbody><tr><td><code>'A'</code></td><td>Fixed at <code>carrierHz</code></td><td>Moves through five vowels</td></tr><tr><td><code>'B'</code></td><td>Repeating frequency pattern</td><td>Fixed at <code>fixedVowel</code></td></tr><tr><td><code>'C'</code></td><td>Same repeating frequency pattern</td><td>Moves through five vowels</td></tr></tbody></table>
-<ol class="steps"><li>Start with A and <code>mix: 0</code>. Change <code>feedback</code> from 6 to 0 and Run again. This isolates what the YM2612 contributes.</li><li>Restore feedback 6 and <code>mix: 1</code>. The filter now has more harmonics to shape. With feedback 0, the single main frequency cannot convincingly supply three vowel resonances.</li><li>Set <code>experiment = 'B'</code> and <code>fixedVowel = 0</code>. The melody moves but the resonance targets stay fixed. Try fixedVowel 1 next.</li><li>Try C, then slow the vowel cycle with <code>vowelSeconds: 2.5</code>. Source pitch and vowel motion are controlled separately.</li><li>For the LFO experiment, choose B and set <code>lfoHz: 0.8</code>, <code>lfoDepth: 0.3</code>. The filter moves periodically while the source loop continues to control pitch.</li></ol>
+<ol class="steps"><li>Start with A and <code>mix: 0</code>. Change <code>feedback</code> from 6 to 0 and Run again. This isolates what the YM2612 contributes.</li><li>Restore feedback 6 and <code>mix: 1</code>. The filter now has more harmonics to shape. With feedback 0, the single main frequency cannot convincingly supply three formant resonances.</li><li>Set <code>experiment = 'B'</code> and <code>fixedVowel = 0</code>. The melody moves but the resonance targets stay fixed. Try fixedVowel 1 next.</li><li>Try C, then slow the vowel cycle with <code>vowelSeconds: 2.5</code>. Source pitch and vowel motion are controlled separately.</li><li>For the LFO experiment, choose B and set <code>lfoHz: 0.8</code>, <code>lfoDepth: 0.3</code>. The filter moves periodically while the source loop continues to control pitch.</li></ol>
 <p>The source loop calls <code>fm.setFrequency</code>. The formant processor changes resonance frequencies using its own audio-thread position. Changing BPM does not change these second-based controls. A higher fundamental has fewer harmonics inside the formant regions, so the perceived vowel can still vary with source pitch.</p></section>
 <section class="panel"><h2>5. Compare the chip and filtered sound in FX Monitor</h2>
 <p>After Run, open <strong>FX Monitor</strong> and select <code>formant-ym2612</code>. Blue is input from the sound sources; orange is the filtered output. Use <strong>View → Spectrum</strong> to compare harmonic balance and <strong>Oscilloscope</strong> to compare waveforms. Keep Y fixed when comparing heights; input and output share the scale.</p>
