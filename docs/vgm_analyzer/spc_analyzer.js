@@ -34,6 +34,7 @@ export function mountSpcAnalyzer({root, getAudioContext, getMasterVolume, onAudi
   let polling = false, preview = null, output = null, stem = 'sample', visible = false;
   let captureRevision = 0, captureAbort = null, capturing = false;
   let selectedWaveform = null, waveformSerial = 0;
+  let previewRevision = 0, previewAbort = null, previewStatus = null;
   let state = {active:false, playing:false, paused:false, busy:false, positionSeconds:0, durationSeconds:180};
   const title = element('h2', 'SNES / SPC', root);
   const summary = element('p', '', root);
@@ -56,7 +57,7 @@ export function mountSpcAnalyzer({root, getAudioContext, getMasterVolume, onAudi
   const label = element('label', 'SRCN ', actions);
   const source = element('input', undefined, label); source.type = 'number'; source.min = '0'; source.max = '255'; source.value = '0'; source.style.width = '5em';
   const extract = element('button', 'Extract SRCN', actions); extract.type = 'button';
-  const note = element('p', 'BRR preview plays decoded sample data. Its original tuning is unknown; DSP envelopes, pitch modulation and echo are not applied.', root);
+  const note = element('p', 'Raw plays decoded BRR at 32,000 Hz. Voice settings uses captured PITCH, ADSR/GAIN and left/right volume: 1 s hold + 1 s release. Echo, noise, pitch modulation and song-time changes are not applied.', root);
   note.className = 'subtext';
   const scanHelp = element('p', 'Scan all SRCNs checks 0–255 in the current RAM snapshot and groups identical start/loop addresses. Readable candidates may include unused or unrelated data.', root);
   scanHelp.className = 'subtext';
@@ -86,7 +87,11 @@ export function mountSpcAnalyzer({root, getAudioContext, getMasterVolume, onAudi
   async function perform(fn) {
     try {return await fn();} catch (error) {if (error.name !== 'AbortError') onStatus?.(`SPC: ${error.message}`);}
   }
-  function stopPreview() {if (preview) {try {preview.stop();} catch {} preview.disconnect(); preview = null;}}
+  function stopPreview() {
+    previewRevision++; previewAbort?.abort(); previewAbort = null;
+    if (previewStatus) {previewStatus.textContent = ''; previewStatus = null;}
+    if (preview) {try {preview.stop();} catch {} preview.disconnect(); preview = null;}
+  }
   function cancelCapture() {
     captureRevision++;
     captureAbort?.abort(); captureAbort = null; capturing = false;
@@ -100,13 +105,15 @@ export function mountSpcAnalyzer({root, getAudioContext, getMasterVolume, onAudi
     canvas.remove();
   }
   function showWaveform(entry, host, button, {toggle = false, reveal = true} = {}) {
+    if (!host.isConnected) return;
     const closing = toggle && selectedWaveform?.host === host;
     resetWaveform();
-    if (closing || !host.isConnected) return;
-    host.append(canvas); host.hidden = false;
+    if (closing) return;
+    host.prepend(canvas); host.hidden = false;
     button.setAttribute('aria-expanded', 'true');
     canvas.setAttribute('aria-label', `Decoded BRR waveform for SRCN ${sourceNumberLabel(entry.sourceNumbers ?? [entry.sourceNumber])}, with loop region`);
     selectedWaveform = {host, button};
+    host.querySelector('[data-spc-waveform-caption]').textContent = 'Raw BRR waveform · loop region highlighted';
     draw(entry);
     if (reveal) host.scrollIntoView({block:'nearest', inline:'nearest'});
   }
@@ -154,38 +161,78 @@ export function mountSpcAnalyzer({root, getAudioContext, getMasterVolume, onAudi
   function draw(entry) {
     const context = canvas.getContext('2d'); context.clearRect(0, 0, canvas.width, canvas.height);
     context.fillStyle = '#f2f7f4'; context.fillRect(0, 0, canvas.width, canvas.height);
-    if (!entry?.pcm.length) return;
+    const channels = entry?.channels ?? [entry?.pcm];
+    const frames = channels[0]?.length ?? 0;
+    if (!frames) return;
     if (entry.loopStartSamples !== null) {
-      context.fillStyle = '#cce2d9'; context.fillRect(entry.loopStartSamples / entry.pcm.length * canvas.width, 0, canvas.width, canvas.height);
+      context.fillStyle = '#cce2d9'; context.fillRect(entry.loopStartSamples / frames * canvas.width, 0, canvas.width, canvas.height);
     }
     context.strokeStyle = '#17614b'; context.beginPath();
     for (let x = 0; x < canvas.width; x++) {
-      const from = Math.floor(x * entry.pcm.length / canvas.width), to = Math.max(from + 1, Math.floor((x + 1) * entry.pcm.length / canvas.width));
+      const from = Math.floor(x * frames / canvas.width), to = Math.max(from + 1, Math.floor((x + 1) * frames / canvas.width));
       let low = 0, high = 0;
-      for (let i = from; i < Math.min(to, entry.pcm.length); i++) {low = Math.min(low, entry.pcm[i]); high = Math.max(high, entry.pcm[i]);}
+      for (const pcm of channels) for (let i = from; i < Math.min(to, frames); i++) {low = Math.min(low, pcm[i]); high = Math.max(high, pcm[i]);}
       context.moveTo(x, (1 - high) * canvas.height / 2); context.lineTo(x, (1 - low) * canvas.height / 2);
     }
     context.stroke();
   }
-  async function previewSample(entry) {
-    const current = revision, synth = await ready();
-    if (current !== revision) return;
-    await synth.pause();
-    if (current !== revision) return;
-    state.playing = false; state.paused = true; emit(); stopPreview();
-    output.gain.cancelScheduledValues(synth.audioContext.currentTime); output.gain.value = 1;
-    const context = synth.audioContext, buffer = context.createBuffer(1, entry.pcm.length, 32000);
-    buffer.copyToChannel(entry.pcm, 0);
-    const node = context.createBufferSource(); node.buffer = buffer;
-    if (entry.loopStartSamples !== null) {node.loop = true; node.loopStart = entry.loopStartSamples / 32000; node.loopEnd = entry.pcm.length / 32000;}
-    node.connect(synth.audio.masterInputNode); preview = node;
-    await context.resume();
-    if (current !== revision || preview !== node) {node.disconnect(); return;}
-    node.start(); if (node.loop) node.stop(context.currentTime + 2);
-    node.onended = () => {node.disconnect(); if (preview === node) preview = null;};
+  async function previewSample(entry, {snapshot, voice, status, waveformHost} = {}) {
+    stopPreview();
+    const current = revision, captured = captureRevision, request = previewRevision;
+    const controller = new AbortController(); previewAbort = controller; previewStatus = status;
+    const check = () => {
+      if (controller.signal.aborted || current !== revision || captured !== captureRevision || request !== previewRevision || !status.isConnected) {
+        throw new DOMException('BRR preview cancelled', 'AbortError');
+      }
+    };
+    status.textContent = voice ? 'Preparing voice preview…' : 'Preparing raw preview…';
+    try {
+      const synth = await ready(); check();
+      await synth.pause(); check();
+      state.playing = false; state.paused = true; emit();
+      output.gain.cancelScheduledValues(synth.audioContext.currentTime); output.gain.value = 1;
+      let channels = [entry.pcm];
+      if (voice) {
+        const {renderSpcBrrVoicePreview} = await import('./spc_brr_preview.js?v=voice-settings-1'); check();
+        const rendered = await renderSpcBrrVoicePreview(entry, voice, {snapshot, signal:controller.signal}); check();
+        channels = rendered.channels;
+        if (selectedWaveform?.host === waveformHost) {
+          draw({channels, loopStartSamples:null});
+          canvas.setAttribute('aria-label', `Voice ${voice.index + 1} preview waveform, one second hold and one second release`);
+          waveformHost.querySelector('[data-spc-waveform-caption]').textContent = `Voice ${voice.index + 1} settings · 1 s hold + 1 s release`;
+        }
+      }
+      const context = synth.audioContext, buffer = context.createBuffer(channels.length, channels[0].length, 32000);
+      channels.forEach((pcm, index) => buffer.copyToChannel(pcm, index));
+      const node = context.createBufferSource(); node.buffer = buffer;
+      if (!voice && entry.loopStartSamples !== null) {node.loop = true; node.loopStart = entry.loopStartSamples / 32000; node.loopEnd = entry.pcm.length / 32000;}
+      node.connect(synth.audio.masterInputNode); preview = node;
+      await context.resume(); check();
+      node.start(); if (node.loop) node.stop(context.currentTime + 2);
+      status.textContent = voice ? `Voice ${voice.index + 1} · PITCH ${voice.pitch} · L ${voice.volumeLeft} / R ${voice.volumeRight}` : 'Raw preview';
+      node.onended = () => {
+        node.disconnect();
+        if (preview === node) preview = null;
+        if (request === previewRevision) {
+          previewAbort = null; previewStatus = null;
+          status.textContent = voice ? `Voice ${voice.index + 1} preview finished` : 'Raw preview finished';
+        }
+      };
+    } catch (error) {
+      if (error.name === 'AbortError' || controller.signal.aborted || current !== revision || captured !== captureRevision || request !== previewRevision || !status.isConnected) {
+        if (request === previewRevision) stopPreview();
+        return;
+      }
+      if (request === previewRevision) {
+        stopPreview();
+        if (error.name !== 'AbortError' && status.isConnected) status.textContent = `Preview failed: ${error.message}`;
+      }
+      throw error;
+    }
   }
   async function captureSamples(sourceNumbers, {scanAll = false} = {}) {
     const current = revision;
+    stopPreview();
     cancelCapture();
     const request = captureRevision, controller = new AbortController();
     captureAbort = controller; capturing = true; emit();
@@ -214,14 +261,27 @@ export function mountSpcAnalyzer({root, getAudioContext, getMasterVolume, onAudi
         if (entry.voices.length) element('span', `Voice ${entry.voices.map(voice => voice.index + 1).join(', ')}`, row);
         const waveformHost = element('div'); waveformHost.className = 'spc-brr-waveform'; waveformHost.hidden = true;
         waveformHost.id = `${root.id}-waveform-${++waveformSerial}`;
+        const waveformCaption = element('p', '', waveformHost); waveformCaption.dataset.spcWaveformCaption = ''; waveformCaption.className = 'subtext';
         const waveformButton = element('button', 'Waveform', row); waveformButton.type = 'button';
         waveformButton.setAttribute('aria-expanded', 'false'); waveformButton.setAttribute('aria-controls', waveformHost.id);
         waveformButton.addEventListener('click', () => showWaveform(entry, waveformHost, waveformButton, {toggle:true}));
         firstWaveform ??= {entry, host:waveformHost, button:waveformButton};
+        const previewMode = element('select', undefined, row); previewMode.dataset.spcPreviewMode = '';
+        previewMode.title = 'Preview mode. BRR and WAV exports contain the raw sample.';
+        previewMode.setAttribute('aria-label', `Preview mode for SRCN ${sourceNumberLabel(sourceNumbers)}`);
+        element('option', 'Raw', previewMode).value = 'raw';
+        for (const voice of entry.voices) element('option', `Voice ${voice.index + 1} settings`, previewMode).value = `voice-${voice.index}`;
+        if (!entry.voices.length) {
+          const unavailable = element('option', 'Voice settings unavailable', previewMode); unavailable.disabled = true;
+          previewMode.title = 'Capture this sample while a Voice references its SRCN to obtain voice settings.';
+        }
+        previewMode.addEventListener('change', () => {stopPreview(); showWaveform(entry, waveformHost, waveformButton, {reveal:false});});
+        const previewFeedback = element('output'); previewFeedback.dataset.spcPreviewStatus = ''; previewFeedback.setAttribute('role', 'status');
         for (const [text, fn] of [
           ['Preview', () => {
             showWaveform(entry, waveformHost, waveformButton);
-            return perform(() => previewSample(entry));
+            const voice = entry.voices.find(voice => previewMode.value === `voice-${voice.index}`);
+            return perform(() => previewSample(entry, {snapshot, voice, status:previewFeedback, waveformHost}));
           }],
           ['BRR', () => download(`${stem}_${entry.sourceNumber}.brr`, entry.brr, 'application/octet-stream')],
           ['WAV', () => download(`${stem}_${entry.sourceNumber}.wav`, exportBrrSample(entry).wav, 'audio/wav')],
@@ -230,6 +290,7 @@ export function mountSpcAnalyzer({root, getAudioContext, getMasterVolume, onAudi
             ...(entry.sourceEntries ? {sourceNumbers, sourceEntries:entry.sourceEntries} : {}),
           }, null, 2), 'application/json')],
         ]) {const button = element('button', text, row); button.type = 'button'; button.addEventListener('click', fn);}
+        row.append(previewFeedback);
         row.append(waveformHost);
       }
       if (firstWaveform) showWaveform(firstWaveform.entry, firstWaveform.host, firstWaveform.button, {reveal:false});
@@ -267,7 +328,7 @@ export function mountSpcAnalyzer({root, getAudioContext, getMasterVolume, onAudi
       state.positionSeconds = next.positionSeconds; applyTagFade(state.positionSeconds, true);
       state.playing = true; state.paused = false; emit();
     },
-    async pause() {const current = revision, next = await runtime?.pause(); if (current !== revision) return; state.positionSeconds = next?.positionSeconds ?? state.positionSeconds; applyTagFade(state.positionSeconds); state.playing = false; state.paused = true; emit();},
+    async pause() {stopPreview(); const current = revision, next = await runtime?.pause(); if (current !== revision) return; state.positionSeconds = next?.positionSeconds ?? state.positionSeconds; applyTagFade(state.positionSeconds); state.playing = false; state.paused = true; emit();},
     async stop() {
       stopPreview();
       if (state.busy) {revision++; await closeAudio(); state.busy = false;}

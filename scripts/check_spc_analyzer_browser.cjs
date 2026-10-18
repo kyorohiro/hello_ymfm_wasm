@@ -15,6 +15,18 @@ const server = http.createServer(async (request, response) => {
     if ((await fs.stat(file)).isDirectory()) file = path.join(file, 'index.html');
     let body = await fs.readFile(file);
     if (file === path.join(docs, analyzerPath, 'vgm_analyzer.js')) body = Buffer.concat([body, Buffer.from('\nwindow.__spcTest={view:spcView,getContext:()=>audioContext};\n')]);
+    if (path.basename(file) === 'spc_brr_preview.js') {
+      // Hold the result of the real offline DSP renderer, never substitute PCM.
+      // This makes stale-preview continuation races deterministic in the UI.
+      const source = body.toString().replace(/export\s+(async\s+)?function\s+renderSpcBrrVoicePreview\b/, '$1function __renderSpcBrrVoicePreview');
+      if (source === body.toString()) throw Error('Voice preview renderer export was not found');
+      body = Buffer.from(source + `\nexport async function renderSpcBrrVoicePreview(...args) {
+        const result = await __renderSpcBrrVoicePreview(...args);
+        const gate = globalThis.__spcVoicePreviewGate;
+        if (gate?.armed) {gate.armed = false; gate.entered = true; await gate.wait;}
+        return result;
+      }\n`);
+    }
     response.setHeader('Content-Type', mime[path.extname(file)] ?? 'application/octet-stream'); response.end(body);
   } catch (error) {response.writeHead(404); response.end(error.message);}
 });
@@ -32,6 +44,52 @@ async function signal(page) {
       }
     } finally {output.disconnect(meter); meter.disconnect(); gain.disconnect();}
     return {peak, range:high - low, bad};
+  });
+}
+function observePreviewStarts() {
+  window.__spcPreviewStarts = [];
+  const start = AudioBufferSourceNode.prototype.start;
+  AudioBufferSourceNode.prototype.start = function(...args) {
+    if (this.buffer) {
+      const captured = {channels:this.buffer.numberOfChannels, frames:this.buffer.length, sampleRate:this.buffer.sampleRate, loop:this.loop};
+      if (captured.channels === 2 && captured.frames === 64000) {
+        const pcm = this.buffer.getChannelData(0);
+        const rms = (from,to) => Math.sqrt(pcm.subarray(from,to).reduce((sum,sample) => sum + sample * sample,0) / (to-from));
+        captured.attack = {early:rms(0,1600),late:rms(19200,22400)};
+      }
+      window.__spcPreviewStarts.push(captured);
+    }
+    return start.apply(this,args);
+  };
+}
+async function stereoSignal(page) {
+  return page.evaluate(async () => {
+    const context = window.__spcTest.getContext(), output = window.__spcTest.view.outputNode;
+    const splitter = context.createChannelSplitter(2), sink = context.createGain();
+    sink.gain.value = 0; sink.connect(context.destination); output.connect(splitter);
+    const meters = [0,1].map(channel => {
+      const meter = context.createAnalyser(); meter.fftSize = 8192;
+      splitter.connect(meter, channel); meter.connect(sink); return meter;
+    });
+    const result = meters.map(() => ({peak:0, rms:0, frequency:0, bad:0}));
+    try {
+      for (let batch = 0; batch < 4; batch++) {
+        await new Promise(resolve => setTimeout(resolve, 50));
+        for (let channel = 0; channel < 2; channel++) {
+          const pcm = new Float32Array(meters[channel].fftSize), spectrum = new Float32Array(meters[channel].frequencyBinCount);
+          meters[channel].getFloatTimeDomainData(pcm); meters[channel].getFloatFrequencyData(spectrum);
+          let sum = 0, peakBin = 1;
+          for (const sample of pcm) {
+            if (!Number.isFinite(sample)) result[channel].bad++;
+            else {result[channel].peak = Math.max(result[channel].peak, Math.abs(sample)); sum += sample * sample;}
+          }
+          result[channel].rms = Math.max(result[channel].rms, Math.sqrt(sum / pcm.length));
+          for (let bin = 2; bin < spectrum.length; bin++) if (spectrum[bin] > spectrum[peakBin]) peakBin = bin;
+          result[channel].frequency = peakBin * context.sampleRate / meters[channel].fftSize;
+        }
+      }
+    } finally {output.disconnect(splitter); splitter.disconnect(); for (const meter of meters) meter.disconnect(); sink.disconnect();}
+    return result;
   });
 }
 function withUnusedSamples(original) {
@@ -57,9 +115,75 @@ function withLongSampleList(original) {
   }
   return bytes;
 }
+function withPreviewVoice(original) {
+  const bytes = Buffer.from(original), dsp = bytes.subarray(0x10100,0x10180);
+  dsp[0] = 64; dsp[1] = 0; // Left-only Voice 1.
+  dsp[2] = 0; dsp[3] = 8; // PITCH $0800: half the raw sample frequency.
+  dsp[5] = 0x86; dsp[6] = 0xe0; dsp[7] = 127; // Audible rising hardware attack.
+  return bytes;
+}
 async function downloadBytes(page, button) {
   const downloaded = page.waitForEvent('download'); await button.click();
   return fs.readFile(await (await downloaded).path());
+}
+async function verifyVoiceModes(page, original, name) {
+  await page.locator('#fileInput').setInputFiles({name:'preview-voice.spc',mimeType:'application/octet-stream',buffer:withPreviewVoice(original)});
+  await page.waitForFunction(() => /preview-voice/.test(document.querySelector('#spcInfoPanel p').textContent)
+    && !document.getElementById('inlinePlayButton').disabled);
+  const row = page.locator('#spcInfoPanel [data-source-numbers="0"]');
+  const mode = row.locator('select[data-spc-preview-mode]'), preview = row.getByRole('button',{name:'Preview',exact:true});
+  assert.equal(await mode.inputValue(),'raw','Raw remains the default preview');
+  assert.equal(await mode.locator('option[value="voice-0"]').count(),1,'Captured Voice 1 settings are selectable');
+  assert.equal(await mode.locator('option[value="voice-1"]').count(),1,'Other captured voice settings remain independently selectable');
+  const starts = () => page.evaluate(() => window.__spcPreviewStarts.length);
+  let before = await starts(); await preview.click();
+  await page.waitForFunction(before => window.__spcPreviewStarts.length > before,before);
+  const raw = await stereoSignal(page);
+  assert(raw.every(channel => channel.bad === 0 && channel.peak > .001),'Raw preview must produce finite stereo-upmixed audio');
+  assert(Math.abs(raw[0].rms / raw[1].rms - 1) < .03,'Raw preview has no captured channel panning');
+  await mode.selectOption('voice-0'); before = await starts(); await preview.click();
+  await page.waitForFunction(before => window.__spcPreviewStarts.length > before,before);
+  const voiceBuffer = await page.evaluate(() => window.__spcPreviewStarts.at(-1));
+  const {attack,...voiceFormat} = voiceBuffer;
+  assert.deepEqual(voiceFormat,{channels:2,frames:64000,sampleRate:32000,loop:false},
+    'Voice preview must use actual two-second native-rate S-DSP stereo PCM');
+  assert(attack.late > attack.early * 2 && attack.late > .001,
+    'Captured ADSR attack must shape the real DSP preview: ' + JSON.stringify(attack));
+  const voice = await stereoSignal(page);
+  assert.equal(voice[0].bad + voice[1].bad,0);
+  assert(voice[0].peak > .001 && voice[1].peak < voice[0].peak * .001,'Voice preview must preserve captured left-only volume');
+  assert(Math.abs(raw[0].frequency - 2000) < 50 && Math.abs(voice[0].frequency - 1000) < 50,
+    'Captured PITCH $0800 must halve the raw sample pitch: ' + JSON.stringify({raw,voice}));
+  await page.screenshot({path:`/private/tmp/spc-brr-voice-preview-${name}.png`});
+
+  // The helper still renders real PCM, but the test server can delay its return
+  // to exercise a newer transport/file action winning over old async work.
+  for (const action of ['stop','play','file']) {
+    const previousStarts = await starts();
+    await page.evaluate(() => {
+      let release; const wait = new Promise(resolve => {release=resolve;});
+      window.__spcVoicePreviewGate = {armed:true,entered:false,wait,release};
+    });
+    try {
+      await preview.click();
+      await page.waitForFunction(() => window.__spcVoicePreviewGate.entered);
+      if (action === 'stop') await page.locator('#inlineStopButton').click();
+      else if (action === 'play') {
+        await page.locator('#inlinePlayButton').click();
+        await page.waitForFunction(() => window.__spcTest.view.state.playing);
+      } else {
+        await page.locator('#fileInput').setInputFiles({name:'preview-replacement.spc',mimeType:'application/octet-stream',buffer:original});
+        await page.waitForFunction(() => /preview-replacement/.test(document.querySelector('#spcInfoPanel p').textContent)
+          && !document.getElementById('inlinePlayButton').disabled);
+      }
+    } finally {await page.evaluate(() => window.__spcVoicePreviewGate.release());}
+    await page.waitForTimeout(120);
+    assert.equal(await starts(),previousStarts,'A pending Voice preview must not restart after ' + action);
+    assert.equal(await page.evaluate(() => window.__spcTest.view.state.playing),action === 'play',
+      'A stale Voice preview must preserve the newer transport state');
+    await page.evaluate(() => {window.__spcVoicePreviewGate=null;});
+  }
+  return {raw,voice,attack,cancelledBy:['stop','play','file']};
 }
 (async () => {
   const {createSyntheticSpc} = await import(pathToFileURL(path.join(root, 'web/spc_test_fixture.mjs')));
@@ -74,6 +198,7 @@ async function downloadBytes(page, button) {
       const browser = await engine.launch({headless:true});
       try {
         const page = await browser.newPage({serviceWorkers:'block', acceptDownloads:true}), errors = [];
+        await page.addInitScript(observePreviewStarts);
         page.setDefaultTimeout(30000); page.on('pageerror', error => errors.push(error.message));
         page.on('console', message => {if (message.type() === 'error') console.error(name + ': ' + message.text());});
         await page.goto(`http://127.0.0.1:${server.address().port}${analyzerPath}/`);
@@ -94,6 +219,9 @@ async function downloadBytes(page, button) {
         const unusedRow = page.locator('#spcInfoPanel [data-source-numbers="127"]');
         assert.equal(await aliasRow.count(), 1, 'Unused aliases must share one candidate');
         assert.equal(await unusedRow.count(), 1, 'An unused valid SRCN must be discoverable');
+        const unavailableVoice = unusedRow.locator('select[data-spc-preview-mode] option').filter({hasText:'Voice settings unavailable'});
+        assert.equal(await unavailableVoice.count(),1,'Unused samples must explain that captured voice settings are unavailable');
+        assert.equal(await unavailableVoice.isDisabled(),true);
         assert.equal(await page.locator('#spcInfoPanel').getByRole('button', {name:'WAV', exact:true}).count(), 2,
           'Scanning must deduplicate aliases and skip unterminated BRR entries');
         assert.match(await page.locator('#spcInfoPanel').innerText(), /false.?positive|may not|not guaranteed|may include unused or unrelated data/i,
@@ -220,6 +348,7 @@ async function downloadBytes(page, button) {
         await previous.waitFor({state:'visible'});
         assert.equal(await page.locator('#spcInfoPanel button[aria-expanded="true"]').count(), 1, 'Explicit extraction selects its new sample instead of retaining an old row');
         assert.equal(await inlineCanvas.evaluate(canvas => canvas.closest('[data-source-numbers]').dataset.sourceNumbers), '22');
+        const previewModes = await verifyVoiceModes(page,original,name);
         const tagged=Buffer.from(fixture); tagged[0x23]=0x1a;
         tagged.write('001',0xa9,'ascii'); tagged.write('01000',0xac,'ascii');
         await page.locator('#fileInput').setInputFiles({name:'tagged.spc',mimeType:'application/octet-stream',buffer:tagged});
@@ -251,7 +380,7 @@ async function downloadBytes(page, button) {
         await page.waitForTimeout(100); await page.locator('#inlineStopButton').click();
         assert.deepEqual(errors, []);
         console.log(JSON.stringify({browser:name, passed:true, playing, muted, brrWavBytes:wav.length, allSrcnScan:true,
-          unusedSources:[42,127], aliasMetadata:true, staleScanFenced:true, inlineWaveform:true, tagFade:true, staleLoadFenced:true, vgmAfterSpc:true}));
+          unusedSources:[42,127], aliasMetadata:true, staleScanFenced:true, inlineWaveform:true, previewModes, tagFade:true, staleLoadFenced:true, vgmAfterSpc:true}));
         await page.close();
       } finally {await browser.close();}
     }

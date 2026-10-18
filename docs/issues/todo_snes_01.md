@@ -154,6 +154,7 @@ Analyzer:
 - stopは元のSPC（echo RAM含む）を再ロード。seekは元から0.5秒以内のnativeブロックで再実行し、途中停止できる。
 - 解析用snapshotはRAM/DSPのコピー。出力位置と生成位置を区別し、リサンプラーの最大4ms程度の先読みとcore内の短いキューを含み得る。
 - BRR試聴は32kHz monoデコード結果。ゲームで鳴った音の完全再現ではなく、Gaussian補間、ADSR/GAIN、echo、元のtuningは適用しない。
+- 試聴モードは`Raw`と参照Voiceごとの`Voice N settings`を選べる。Rawは上記の生PCM。Voice試聴は取得RAMを独立S-DSPへコピーし、PITCH・ADSR/GAIN・左右音量とGaussian補間を適用して1秒発音＋1秒離鍵後を32kHz stereoで生成する。曲中の変更・元のEG内部状態・echo/noise/PMONは再現せず、DSP master volumeは127固定。基準音名の推定は不要。参照Voiceがない候補はRawのみ。Voice試聴中の波形は生成した音声を表示する。Stop／Play／シーク／ファイル切替・再取得で未完了の試聴もキャンセルする。BRR/WAV保存は従来どおり素材を保存する。
 
 Playground:
 
