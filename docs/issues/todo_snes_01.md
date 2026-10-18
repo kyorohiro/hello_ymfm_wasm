@@ -163,7 +163,7 @@ Playground:
 - Instrumentsは保存時点の全SRCN候補から選んだBRR・Metadata・設定JSON・試奏JSを保存。捕捉Voiceを選択でき、ない候補は既定の設定を使う。C4等は利用者が割り当てる参照音名で、元の基音を推定したものではない。初回試奏は捕捉PITCHをそのまま使い、1秒発音＋1秒離鍵する。未解決ループや独立SNES音源のRAMに収まらないBRRは理由を示し音色取り込みの対象外とする。試奏ごとに独立音源を解放し、Runの繰り返しでサンプルRAMを使い切らない。
 - Song JavaScript（実験的）は指定0.1〜600秒を独立Workerで無音実行し、`loadBRR`／`setPreset`／`setPitch`／`keyOn`／`timeline.waitUntil`／`keyOff`で編集できるコードに変換する。全素材の読込み後に`createTimeline()`で起点を一度取り、各イベントはそこからの絶対経過秒を待つ。相対`sleep`の反復でタイマー遅れが曲全体へ累積することを防ぐ。既存の生成済みJSには自動適用しないため、原本SPCを再取り込みする。元の音符名・変数名・ループ構造は推定しない。PITCH・ADSR/GAIN・左右volumeはチップのraw値を使う。初期のEG内部状態は復元できず、BRRの取得も128 native frames（最大約4ms）の区切りとなる。noise／PMONのraw global制御は保持する。echoは再配置したBRRへのRAM上書きを避けるため無効にし、初期EG・再生中BRR変更・JS時間精度等の近似をsourceinfoと生成JSへ明示する。原本と同一PCMが必要ならSong playbackまたはEvent traceを使う。
 - 読みやすい変換のcontrol stepは既定20ms、0で全distinct変更を保持、上限1000ms。PITCH・volume・同一SRCNのADSR/GAIN更新は区間の最終値へ間引く。KON／KOFF／SRCN変更の境界は元の時刻を保持し、そこをまたいでcontrolをまとめない。エンジンに補間・スムージングは追加しない。20000 musical events、BRR256個／合計64512 bytesを超えたら途中データを保存せず明示エラーとする。タグfadeは推定しない。変換CancelではFilesを変更しない。
-- `setPitch`には音名・セント差のコメントを変換時に付ける。Song JavaScriptで実際に使うBRRバージョンを解析し、周期性が安定した素材には`// estimated B3 -25c`を付ける。音色一覧の基準音・セント差を手動修正すると`// reference B3 -25c`、不確実な素材は従来のC4／PITCH4096を仮基準にした`// provisional B3 -25c`とする。推定・手動参照はnative 32,000Hz／PITCH4096での基音の目安で、元の楽譜や音名を復元するものではない。noise時は音名を付けず、PMON時は変調前と明記。PITCH0やMIDI範囲外に架空の音名を付けない。変更するのはコメントだけで、loadBRRのrootNote／basePitch、BRR／preset／raw PITCH／演奏時刻は維持する。生成後のコード編集によるコメントの自動再計算はしない。
+- `setPitch`には音名・セント差のコメントを変換時に付ける。Song JavaScriptで実際に使うBRRバージョンを解析し、周期性が安定した素材には`// estimated B3 -25c`を付ける。音色一覧の基準音・セント差を手動修正すると`// reference B3 -25c`、不確実な素材は従来のC4／PITCH4096を仮基準にした`// provisional B3 -25c`とする。推定・手動参照はnative 32,000Hz／PITCH4096での基音の目安で、元の楽譜や音名を復元するものではない。noise時は音名を付けず、PMON時は変調前と明記。PITCH0やMIDI範囲外に架空の音名を付けない。Importで確認した基準HzをloadBRRのbaseFrequencyHzとコメントへ共通反映し、basePitchは4096とする。未推定の素材は仮のrootNote:C4を使う。BRR／preset／raw PITCH／演奏時刻は維持し、演奏命令をsetNoteへ置換しない。生成後のコード編集によるコメントの自動再計算はしない。
 - Event trace（以前のSong JavaScript）はDSPレジスター操作とCPUによるRAM変更を時刻付きの編集可能な`events`配列に変換する。初期RAM（BRR・ディレクトリー・echo RAMを含む）とDSPレジスターは`initial.ram.bin`／`initial.dsp.bin`として保存する。100万イベントを超えたら途中データは保存せず、時間短縮かSong playbackを案内する。
 - Timelineの1行は`clock, kind, address, value`の4整数。kindは0=DSPレジスター、1=RAM。clockは1,024,000Hzの**DSPが実際に観測した実行順序**を保存し、CPU命令の生時刻ではない。32 clocksがnative 32kHzの1frame。出力sampleRate・44,100HzのVGM sample単位・BPMから独立する。同一clockの行の順序も維持する。
 - `snes.prepareTimeline(trace)`で初期状態とイベントを準備し、`await snes.playTimeline()`は実際の音声終了まで待機する。`stopTimeline()`／toolbar Stop／破棄／loop owner解除は待機をAbortErrorで中断する。Worker先読みは開始に一度だけ適用する。Timeline中は通常音色編集との混在を拒否し、`reset()`でBRR演奏へ戻る。再生中のJSによる逐次イベント送信を避け、WASM内でサンプル未満の時刻も処理する。
@@ -205,7 +205,8 @@ snes.noteOff(0);
 
 検証結果:
 
-- BRR基音の参考注釈（2026-10-18）: 推定19件を含むSPC／SNES関連135件とPlayground593件が成功。倍音・欠落基音、非整数周期、filter1〜3のloop履歴、無音／DC／noise、attack、sweep／decay、短い素材、不正入力・上限を検証。注釈有無で実行コード・演奏命令・待機・BRR／preset／metadataが同一であることを確認。docs／itch配布構成 × Chromium／WebKitの4経路で、既定推定・手動補正・入力検証・Cancelの無変更・解析再利用、Main／Workerの出音finite／Stop後peak0／Monaco診断0が成功。1秒902eventsは8条件で1.001〜1.005秒。SDKビルド（227宣言）・公開型とitch依存450参照も成功。参考計測はローカルNodeで最大BRR約25ms（warm平均約13ms）、短い素材256個で約492ms。実曲の推定精度・Tauri実アプリは未確認。
+- Import基準の共有（2026-10-18）: 推定／手動の基準HzをloadBRRのbaseFrequencyHz・コメント・sample metadataへ共通反映し、既知素材の仮C4登録を廃止。生成した曲のraw setPitch／keyOn／keyOff／preset／待機は維持し、setNote等へ置換しない。Playground595テスト成功。実WASM S-DSPで設定前後の左右各3200framesが完全一致（非無音、peak約0.507）し、後からのsetNoteが設定した基準Hzを使うことも確認。docs／itch配布構成 × Chromium／WebKit × Main／Workerで推定・手動設定の実サンプルHzを16条件確認、metadata一致、Cancel／入力検証／解析再利用、出音finite／Stop後peak0／Monaco診断0が成功。1秒902eventsは1.002〜1.006秒。itch依存450参照とZIP生成が成功。既存の生成済みJSは変更せず、原本SPCの再取り込みで反映する。Tauri実アプリと実曲での推定精度は未確認。
+- BRR基音の参考注釈（2026-10-18 初回、コメント専用）: 推定19件を含むSPC／SNES関連135件とPlayground593件が成功。倍音・欠落基音、非整数周期、filter1〜3のloop履歴、無音／DC／noise、attack、sweep／decay、短い素材、不正入力・上限を検証。注釈有無で実行コード・演奏命令・待機・BRR／preset／metadataが同一であることを確認。docs／itch配布構成 × Chromium／WebKitの4経路で、既定推定・手動補正・入力検証・Cancelの無変更・解析再利用、Main／Workerの出音finite／Stop後peak0／Monaco診断0が成功。1秒902eventsは8条件で1.001〜1.005秒。SDKビルド（227宣言）・公開型とitch依存450参照も成功。参考計測はローカルNodeで最大BRR約25ms（warm平均約13ms）、短い素材256個で約492ms。実曲の推定精度・Tauri実アプリは未確認。
 - Song JavaScriptスロー再生対策（2026-10-18）: 微小な相対`sleep`の反復で、タイマーの遅れとJS処理時間が毎回加算されていた。素材読込み後に作る`createTimeline().waitUntil(開始からの秒数)`へ変更し、Main／Worker共通で遅れを以降へ累積しない。模擬timerと処理負荷では1秒の曲が修正前2.1056秒→修正後1.00355秒。75msの一時停止を入れても1.00350秒で、507回の音程操作をすべて保持した。実ブラウザーでは902イベント／1秒をChromium／WebKit × Main／Workerで1.000〜1.009秒に再生。docsの全SPC取り込み回帰とitch配布配置の速度確認、出音finite／Stop後peak 0／Monaco診断0が成功。関連199テスト、SDKビルド（226宣言）、公開型、itch依存446参照も成功。既存sleep／MIDIの仕様は変更しない。生成済みJSへの自動適用は行わず、原本SPCの再取り込みで新方式を使う。Tauri実アプリは未確認。
 - 読みやすい変換／onEvent追加（2026-10-18）: 関連261テスト成功。自作曲の645回のDSP書き込みを5件の演奏イベントへ整理し、生成したBRR・preset・JSを実S-DSPで再生確認。間引きの境界、同音再発音、KOFF、BRRバージョン、未解決loop、RAM／イベント上限、Cancel、観察overflowとPCM不変を検証。docs／itch配布配置のChromium／WebKit × Main／Workerで4モードの出音・Stop後peak 0・Monaco型診断0・filter／unsubscribeを確認。スクリプト終了後の非同期callbackにも既存のネットワーク制限を適用し、両経路・両ブラウザーで検証。既存Analyzer両ブラウザー回帰、WASM再ビルド、SDKビルド（226宣言）・型チェック、itch依存446参照・ZIP生成が成功。初期音だけのSPCも再生開始後に一度だけ通知し、停止中に空の通知を繰り返さない。実ゲームSPC／Tauri実アプリは未確認。読みやすい変換は同一PCMを保証せず、完全なcaptured execution再生は従来のEvent traceを使用する。
 - RAM削減追加（2026-10-18）: native／trace38件と生成／capture／統合18件が成功。検証曲では194→5イベント（DSP4＋RAM1、97.4%削減）となり、原本・旧JS・削減後JSのPCMが左右全sample一致。BRR／DIR変更、echo、noise、PMON、RAM折返し、無音Voice、インスタンス分離、上限判定前の除去、両passでのCancelも確認。docs／itch配布配置のChromium／WebKit × Main／Worker、Monaco型診断0、Stop後peak 0、既存Analyzerの両ブラウザ回帰、SDKビルド／224宣言生成と型チェックが成功。実ゲームSPC・Tauri実アプリは未確認。削減率は曲に依存する。
@@ -227,7 +228,7 @@ snes.noteOff(0);
 - 実ゲーム由来SPC、実機比較、Tauriの実アプリ（macOS／Windows／Linux）、長時間の実機音切れ検証は未実施。
 - Nintendo IPL ROMは同梱せず、上流の最小fallbackを使用。完全IPLやゲーム本体から後続転送を必要とするSPCは動かない場合がある。
 - SPCはDSP内部の全位相・BRR履歴を含む完全checkpointではない。ゲームごとの復元直後の音や互換性は別途確認が必要。
-- 出力リサンプラーは線形補間。高品質な変換、完全な途中checkpoint／seek cache、DSP時系列の可視化、BRR推定基音による実際の調律変更、楽譜変換は後続課題。
+- 出力リサンプラーは線形補間。高品質な変換、完全な途中checkpoint／seek cache、DSP時系列の可視化、楽譜変換は後続課題。
 - 旧式タグの文字コード・text/binary判定は曖昧な場合がある。ライブラリーの`textEncoding`／`id666Format`指定で上書き可能。Analyzer内の選択UIは未追加。
 
 ## Song JavaScript：リリース後の課題と確認項目（2026-10-18）
@@ -240,16 +241,16 @@ snes.noteOff(0);
 - [ ] **優先：原曲との音の差を比較・記録する。** 同じSPC・同じ区間のSong playbackとSong JavaScriptを聴き比べ、現在の変換仕様による差と不具合を切り分ける。echoは省略、初期EG／BRR位相は再発音、保持中のBRR RAM書き換えは未再現。BRR取得は128 native framesの区切り（最大約4ms）、既定20msのcontrol間引きでも細かな表現が変わり得る。Control stepを0にした場合との比較も残す。
 - [ ] **優先：負荷時の発音タイミングを検証する。** `timeline.waitUntil`はJSの再開時刻を調整するもので、音声のサンプル精度予約ではない。実行スレッドが詰まるとイベントは遅れ、復帰時に期限を過ぎた処理が続けて送られる。全体のスロー化に加え、一時的な音の揺れ・詰まりを別に確認する。必要に応じて音声側の予約や先読みを検討する。
 - [ ] **長い曲・音色入れ替え曲への対応を検討する。** 現在は最大600秒、2万イベント、256 BRRバージョン、BRR合計64,512 bytes。すべてのBRRバージョンを先に読み込むため、元のSPCがRAMを使い回して再生できる曲でも、変換後の合計容量が上限を超える場合がある。上限に達する実例を集め、必要になった段階で素材の入れ替えや区間分割を検討する。途中データを黙って省略しない方針は維持する。
-- [x] **音作りを読み解くための基音推定・手動補正コメントを追加する。** 演奏はraw PITCHと開始からの秒数を維持。基音推定と利用者による補正は参考注釈に限定し、演奏値への反映やフレーズの書き換えは人間またはAIが判断する。元の音符名、BPM、小節、フレーズ、ループ構造を復元したものとはしない。
+- [x] **音作りを読み解くための基音推定・手動補正コメントを追加する。** 演奏はraw PITCHと開始からの秒数を維持。基音推定と利用者による補正はloadBRRの基準調律と注釈へ共通反映する。raw演奏値への反映やフレーズの書き換えは人間またはAIが判断する。元の音符名、BPM、小節、フレーズ、ループ構造を復元したものとはしない。
 
 ### 基音推定の用途と範囲（2026-10-18 実装）
 
-Importの目的は、原曲の音色設定・音程変化・発音操作から音作りのコツを学ぶこと。基音の推定結果は、生成コードを読むためのコメントに限定する。
+Importの目的は、原曲の音色設定・音程変化・発音操作から音作りのコツを学ぶこと。Importで確認した基準を、生成コードのloadBRRの調律と音名コメントへ共通反映する。元曲の演奏はraw PITCHを保ち、音名指定へ置換しない。
 
 - 推定できた音色には参考の音名・セント差・判定状態を注記し、怪しい音色は現在の仮割り当てによるコメントを使う。推定と仮割り当てを区別する。
-- Song JavaScriptを選ぶと、指定区間を独立Workerで自動解析し、実際に使うBRRバージョンごとの音色一覧を表示する。基準音とセント差を修正でき、既定値でよければそのままConvertする。同じSRCNでも素材やループ位置が異なるバージョンは別々に扱う。注釈の変更は解析結果を再利用し、区間・Control stepの変更では旧Workerを中止して再解析する。CancelはFilesを変更しない。
-- 推定値によって`rootNote`／`basePitch`、raw `setPitch`、音色パラメーター、演奏タイミングを自動変更しない。`setNote()`の調律への自動反映も今回の対象に含めない。
-- BRRをDSP envelope／noise／echo適用前のPCMにデコードし、FFT自己相関と正規化周期差分を使って最大3窓で周期・音高・エネルギーの安定性を確認する。ループの予測filter履歴を引き継いでウォームアップし、attackは避ける。解析範囲は約31.25〜8,000Hz。high判定だけを既定注釈に採用し、low／noneはC4の仮割り当てにする。confidenceは確率ではない。打楽器・ノイズ・複合音やオクターブ曖昧性は自動解決できない。
+- Song JavaScriptを選ぶと、指定区間を独立Workerで自動解析し、実際に使うBRRバージョンごとの音色一覧を表示する。基準音とセント差を修正でき、既定値でよければそのままConvertする。同じSRCNでも素材やループ位置が異なるバージョンは別々に扱う。基準の変更は解析結果を再利用し、区間・Control stepの変更では旧Workerを中止して再解析する。CancelはFilesを変更しない。
+- 推定または手動指定したHzを`baseFrequencyHz`へそのまま設定し、`basePitch:4096`とする。基準音＋セント差の手動指定もHzへ変換して同じ値をコメント・loadBRR・sample metadataで共有する。metadataには`baseFrequencyHz`／`referenceKind`／`assignedBasePitch`を記録し、既知素材へ仮のC4を併記しない。不明な素材は従来どおり仮の`rootNote:"C4"`。元曲はraw `setPitch`／keyOn／keyOffを維持し、`setNote`／`noteOn(note)`／`setFrequency`による演奏へ書き換えない。後から利用者が音名指定で編集する場合に、この基準が適用される。
+- BRRをDSP envelope／noise／echo適用前のPCMにデコードし、FFT自己相関と正規化周期差分を使って最大3窓で周期・音高・エネルギーの安定性を確認する。ループの予測filter履歴を引き継いでウォームアップし、attackは避ける。解析範囲は約31.25〜8,000Hz。high判定だけを既定の基準に採用し、low／noneはC4の仮割り当てにする。confidenceは確率ではない。打楽器・ノイズ・複合音やオクターブ曖昧性は自動解決できない。
 - 解析は単一素材64KiB、最大360,448 decoded frames、最大3窓×4096framesに制限する。入力やloopが不正・データ不足・上限超過でも推定不能として仮割り当てへ戻し、演奏素材を切り詰めない。
 - 原曲の演奏操作を残し、注釈を手がかりに人間またはAIが判断してコードを書き換える。推定のためにエンジンへスムージング・補間や位相／EGのリセットを追加しない。
 

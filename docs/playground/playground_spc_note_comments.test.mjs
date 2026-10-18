@@ -1,8 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import path from 'node:path';
+import {readFile} from 'node:fs/promises';
 import {buildSpcSongSource} from './playground_spc_song_source.js';
 import {buildSpcImportFiles} from './playground_spc_source.js';
+import factory from '../generated/spc_wasm.js';
+import {SnesDspCore} from '../../web/spc.js';
+import {SnesSynth} from '../../web/snessynth.js';
 
 const DIRECTORY = '/spc/note-comments';
 const AsyncFunction = Object.getPrototypeOf(async function() {}).constructor;
@@ -149,10 +153,10 @@ test('estimated and manual fundamental references label notes at PITCH 4096 and 
     {sampleId:0,referenceHz:440 * 2 ** (25 / 1200),kind:'manual'},
   ]});
   assert.match(comment(pitchLines(manual.source)[0]),/^ \/\/ reference A4 \+25c$/);
-  assert.match(manual.source,/manual reference .* Hz at PITCH 4096; comments only/);
-  assert.match(estimated.source,/estimated fundamental 440 Hz at PITCH 4096; comments only/);
+  assert.match(manual.source,/manual reference .* Hz .*at PITCH 4096/);
+  assert.match(estimated.source,/estimated fundamental 440 Hz .*at PITCH 4096/);
   assert.match(estimated.source,/Estimates may be wrong/);
-  assert.match(estimated.source,/References affect comments only, never audio/);
+  assert.match(estimated.source,/baseFrequencyHz/);
 });
 
 test('different BRR versions sharing SRCN use their individual references and follow sample changes', () => {
@@ -222,6 +226,21 @@ function executableSource(source) {
     .filter(line => line.trim()).join('\n');
 }
 
+function sourceWithoutCalibration(source) {
+  return executableSource(source).replace(/(?:rootNote:\s*["']C4["']|baseFrequencyHz:\s*[\d.eE+-]+), basePitch: 4096/g,
+    'rootNote: "C4", basePitch: 4096');
+}
+
+function callsWithoutCalibration(calls) {
+  return calls.map(call => {
+    if (call.method !== 'loadBRR') return call;
+    const [bytes,options] = call.args, {baseFrequencyHz,...unchanged} = options;
+    return {...call,args:[bytes,{...unchanged,rootNote:'C4'}]};
+  });
+}
+
+const sampleMetadata = file => /\/samples\/[^/]+\.metadata\.json$/.test(file.path);
+
 async function executeGenerated(generated) {
   const files = new Map(generated.files.map(entry => [entry.path,entry])), calls = [];
   let sampleId = 0;
@@ -243,20 +262,32 @@ async function executeGenerated(generated) {
   return calls;
 }
 
-test('fundamental annotations alter only comments, preserving audio calls, timing and every generated asset', async () => {
+test('fundamental references configure BRR tuning while preserving raw playback calls, timing and binary assets', async () => {
   const input = performance([noteOn(0,3810),pitchChange(0,2528,1),{type:'noteOff',clock:2,channel:0}]);
   const baseline = buildSpcSongSource(input,DIRECTORY);
   const annotations = [{sampleId:0,referenceHz:440,kind:'manual'}];
   const annotated = buildSpcSongSource(input,DIRECTORY,{annotations});
-  assert.deepEqual(annotated.files,baseline.files,'BRR, preset and metadata files must be byte-identical');
+  assert.deepEqual(annotated.files.filter(file => !sampleMetadata(file)),baseline.files.filter(file => !sampleMetadata(file)),
+    'BRR bytes and presets must be byte-identical');
   assert.deepEqual(annotated.conversion,baseline.conversion);
-  assert.equal(executableSource(annotated.source),executableSource(baseline.source));
-  assert.deepEqual(await executeGenerated(annotated),await executeGenerated(baseline),
-    'No loadBRR rootNote/basePitch, raw PITCH, preset, wait or key operation may change');
+  assert.equal(sourceWithoutCalibration(annotated.source),sourceWithoutCalibration(baseline.source));
+  const calibratedCalls = await executeGenerated(annotated), baselineCalls = await executeGenerated(baseline);
+  assert.deepEqual(callsWithoutCalibration(calibratedCalls),callsWithoutCalibration(baselineCalls),
+    'Only loadBRR tuning may change; raw PITCH, presets, waits and key operations must stay identical');
+  assert.deepEqual(calibratedCalls.find(call => call.method === 'loadBRR').args[1],
+    {baseFrequencyHz:440,basePitch:4096,loopStartSamples:0});
+  assert.deepEqual(baselineCalls.find(call => call.method === 'loadBRR').args[1],
+    {rootNote:'C4',basePitch:4096,loopStartSamples:0});
+  assert.doesNotMatch(annotated.source,/\.(?:setNote|noteOn|setFrequency)\(/,
+    'Recorded songs keep explicit raw PITCH; calibration is reserved for subsequent musical editing');
+  const metadata = JSON.parse(annotated.files.find(sampleMetadata).data);
+  assert.equal(metadata.baseFrequencyHz,440); assert.equal(metadata.referenceKind,'manual');
+  assert.equal(metadata.assignedBasePitch,4096);
+  assert(!Object.hasOwn(metadata,'assignedReferenceNote'),'A calibrated sample must not also claim assigned C4 tuning');
   assert.deepEqual(annotations,[{sampleId:0,referenceHz:440,kind:'manual'}],'Caller annotations are not mutated');
 });
 
-test('readable SPC import forwards fundamental annotations without changing other output files', () => {
+test('readable SPC import forwards calibrated references and changes only source and sample metadata', () => {
   const input = performance([noteOn(0,4096)]);
   const prepared = {spc:{originalBytes:Uint8Array.of(1,2,3)},candidates:[],name:'notes.spc',
     metadata:{},warnings:[],scan:{directory:0,summary:{},rejected:[]}};
@@ -266,6 +297,107 @@ test('readable SPC import forwards fundamental annotations without changing othe
     {sampleId:0,referenceHz:440,kind:'estimated',confidence:'high'},
   ]});
   assert.match(annotated.files.find(file => file.path === annotated.entryPath).data,/\/\/ estimated A4/);
-  assert.deepEqual(annotated.files.filter(file => file.path !== annotated.entryPath),
-    baseline.files.filter(file => file.path !== baseline.entryPath));
+  assert.deepEqual(annotated.files.filter(file => file.path !== annotated.entryPath && !sampleMetadata(file)),
+    baseline.files.filter(file => file.path !== baseline.entryPath && !sampleMetadata(file)));
+});
+
+test('per-version estimated, fractional manual and fallback tuning agree with their sample metadata', async () => {
+  const input = performance([noteOn(0,4096),{...noteOn(1,4096,1),sampleId:1},
+    {...noteOn(2,4096,2),sampleId:2}]);
+  for (const id of [1,2]) input.samples.push({...input.samples[0],id});
+  const manualHz = 440 * 2 ** (23.5 / 1200);
+  const generated = buildSpcSongSource(input,DIRECTORY,{annotations:[
+    {sampleId:0,referenceHz:220,kind:'estimated',confidence:'high'},
+    {sampleId:1,referenceHz:manualHz,kind:'manual'},
+  ]});
+  const uploads = (await executeGenerated(generated)).filter(call => call.method === 'loadBRR');
+  assert.deepEqual(uploads.map(call => call.args[1]),[
+    {baseFrequencyHz:220,basePitch:4096,loopStartSamples:0},
+    {baseFrequencyHz:manualHz,basePitch:4096,loopStartSamples:0},
+    {rootNote:'C4',basePitch:4096,loopStartSamples:0},
+  ]);
+  const metadata = generated.files.filter(sampleMetadata).map(file => JSON.parse(file.data));
+  assert.equal(metadata[0].baseFrequencyHz,220); assert.equal(metadata[0].referenceKind,'estimated');
+  assert.equal(metadata[1].baseFrequencyHz,manualHz); assert.equal(metadata[1].referenceKind,'manual');
+  assert.equal(metadata[2].assignedReferenceNote,'C4'); assert(!Object.hasOwn(metadata[2],'baseFrequencyHz'));
+  assert.deepEqual(metadata.map(sample => sample.assignedBasePitch),[4096,4096,4096]);
+  assert(!Object.hasOwn(metadata[0],'assignedReferenceNote')); assert(!Object.hasOwn(metadata[1],'assignedReferenceNote'));
+});
+
+async function executeRealSong(generated) {
+  const wasmBinary = new Uint8Array(await readFile(new URL('../generated/spc_wasm.wasm',import.meta.url)));
+  const core = await SnesDspCore.create({moduleFactory:factory,moduleOptions:{wasmBinary}});
+  const synth = new SnesSynth({core}), files = new Map(generated.files.map(file => [file.path,file]));
+  const pcm = [new Float32Array(3200),new Float32Array(3200)];
+  let frames = 0, disposed = false;
+  const instrument = new Proxy(synth,{get(target,method) {
+    if (method === 'then') return undefined;
+    if (method === 'dispose') return () => {disposed = true;};
+    const value = target[method];
+    return typeof value === 'function' ? value.bind(target) : value;
+  }});
+  const file = async (relative,{type}) => {
+    const entry = files.get(path.posix.resolve(DIRECTORY,relative)); assert(entry);
+    return type === 'json' ? JSON.parse(entry.data) : entry.data.slice().buffer;
+  };
+  const createTimeline = () => ({waitUntil:async seconds => {
+    const target = Math.round(seconds * 32000);
+    assert(target >= frames && target <= 3200);
+    while (frames < target) {
+      const count = Math.min(127,target - frames);
+      synth.renderInto(pcm[0],pcm[1],count,frames); frames += count;
+    }
+  }});
+  try {
+    await new AsyncFunction('createSoundChip','file','createTimeline',generated.source)(async () => instrument,file,createTimeline);
+    assert(disposed); assert.equal(frames,3200);
+    return {synth,pcm,dispose:() => core.dispose()};
+  } catch (error) {core.dispose(); throw error;}
+}
+
+test('calibrated generated songs preserve every real S-DSP PCM sample and tune subsequent setNote calls', async t => {
+  const input = performance([
+    {...noteOn(0,3810),preset:{adsr1:0,adsr2:0,gain:127,volumeLeft:64,volumeRight:48}},
+    {...noteOn(1,2528),sampleId:1,preset:{adsr1:0,adsr2:0,gain:127,volumeLeft:48,volumeRight:64}},
+    pitchChange(0,4096,10240),pitchChange(1,8192,20480),
+    {type:'instrument',clock:30720,channel:0,sampleId:1,adsr1:0,adsr2:0,gain:127},
+    pitchChange(0,3810,40960),{type:'noteOff',clock:81920,channel:0},
+    {type:'noteOff',clock:92160,channel:1},
+  ]);
+  // Authored 16-frame waveform, one native 32 kHz cycle = 2000 Hz. No game data.
+  input.samples[0].brr = Uint8Array.of(0xc3,0x13,0x57,0x75,0x31,0xfd,0xb9,0x9b,0xdf);
+  input.samples.push({...input.samples[0],id:1,brr:Uint8Array.of(0xb3,0x12,0x34,0x43,0x21,0xfe,0xdc,0xcd,0xef)});
+  input.initialDsp[0x0c] = input.initialDsp[0x1c] = 127;
+  const manualHz = 440 * 2 ** (23.5 / 1200);
+  const baselineSource = buildSpcSongSource(input,DIRECTORY);
+  const calibratedSource = buildSpcSongSource(input,DIRECTORY,{annotations:[
+    {sampleId:0,referenceHz:2000,kind:'estimated',confidence:'high'},
+    {sampleId:1,referenceHz:manualHz,kind:'manual'},
+  ]});
+  const baseline = await executeRealSong(baselineSource);
+  let calibrated;
+  try {
+    calibrated = await executeRealSong(calibratedSource);
+    let peak = 0;
+    for (let channel = 0; channel < 2; channel++) {
+      assert.deepEqual(calibrated.pcm[channel],baseline.pcm[channel],
+        `Channel ${channel}: selected tuning must not alter a single sample of raw-PITCH song playback`);
+      for (const sample of calibrated.pcm[channel]) {assert(Number.isFinite(sample)); peak = Math.max(peak,Math.abs(sample));}
+    }
+    assert(peak > .01,'Exact PCM comparison must contain real nonzero audio');
+    const state = calibrated.synth.getState();
+    assert.equal(state.samples[0].rootFrequencyHz,2000);
+    assert.equal(state.samples[1].rootFrequencyHz,manualHz,'Fractional cents must survive without note-label rounding');
+    assert.equal(state.samples[0].basePitch,4096); assert.equal(state.samples[1].basePitch,4096);
+    for (const [id,hz] of [[0,2000],[1,manualHz]]) {
+      calibrated.synth.setPreset(0,{sample:id}); calibrated.synth.setNote(0,'A4');
+      const expected = Math.round(4096 * 440 / hz);
+      assert.equal(calibrated.synth.getPreset(0).pitch,expected);
+      assert.equal(calibrated.synth.readDsp(2) | (calibrated.synth.readDsp(3) << 8),expected,
+        'Musical setNote must use calibrated sample tuning in the actual DSP PITCH registers');
+    }
+    baseline.synth.setPreset(0,{sample:0}); baseline.synth.setNote(0,'C4');
+    assert.equal(baseline.synth.getPreset(0).pitch,4096,'Unestimated BRR keeps the assigned C4 reference');
+    t.diagnostic(JSON.stringify({framesPerChannel:3200,pcmMismatchCount:0,peak,estimatedHz:2000,manualHz}));
+  } finally {baseline.dispose(); calibrated?.dispose();}
 });

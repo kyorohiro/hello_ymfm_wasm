@@ -104,6 +104,7 @@ async function openImport(page,fixture) {
 }
 async function importBundle(page,fixture,mode,browserName) {
   const before = await snapshotFiles(page);
+  let pitchReferences = [];
   await openImport(page,fixture);
   const dialog = page.locator('#spcImportDialog');
   await dialog.locator(`input[name="spc-import-mode"][value="${mode}"]`).check();
@@ -116,6 +117,16 @@ async function importBundle(page,fixture,mode,browserName) {
       await dialog.locator('[data-spc-pitch-table][data-spc-pitch-state="ready"]').waitFor({state:'visible'});
       assert(await dialog.locator('[data-spc-pitch-sample]').count() > 0,
         'Song JavaScript analyzes its captured BRR samples before conversion');
+      pitchReferences = await dialog.locator('[data-spc-pitch-sample]').evaluateAll(async rows => {
+        const {noteToHz} = await import(new URL('../js/soundchip_pitch.js',location.href).href);
+        return rows.map(row => {
+          const note = row.querySelector('input[data-spc-pitch-note]').value;
+          const cents = Number(row.querySelector('input[data-spc-pitch-cents]').value);
+          const state = row.innerText, estimatedHz = state.match(/Estimated\s*·\s*([\d.]+)\s*Hz/i);
+          return {sampleId:Number(row.dataset.spcPitchSample),note,cents,
+            referenceHz:estimatedHz ? Number(estimatedHz[1]) : noteToHz(note) * 2 ** (cents / 1200),state};
+        });
+      });
     }
     if (browserName) await page.screenshot({path:`/private/tmp/playground-spc-${mode}-import-${browserName}.png`});
   }
@@ -146,7 +157,7 @@ async function importBundle(page,fixture,mode,browserName) {
   const entryPath = await page.evaluate(() => window.__spcImportTest.path);
   assert(files.some(file => file.path === entryPath && file.type === 'text' && file.path.endsWith('.js')),
     'Import opens its generated runnable JavaScript');
-  return {files,entryPath,directory:originals[0].path.slice(0,-'/original.spc'.length)};
+  return {files,entryPath,directory:originals[0].path.slice(0,-'/original.spc'.length),pitchReferences};
 }
 async function cancelConversionImport(page,fixture,mode = 'javascript') {
   const before = await snapshotFiles(page);
@@ -176,6 +187,30 @@ async function cancelConversionImport(page,fixture,mode = 'javascript') {
 }
 const sourceWithoutComments = source => source.split('\n').map(line => line.replace(/\/\/.*$/,'').trimEnd())
   .filter(line => line.trim()).join('\n');
+const sourceWithoutReferenceTuning = source => sourceWithoutComments(source)
+  .replace(/baseFrequencyHz:\s*[\d.eE+-]+/g,'baseFrequencyHz: CHOSEN_REFERENCE');
+function assertFrequency(actual,expected,description,tolerance = Math.max(1,Math.abs(expected)) * 1e-9) {
+  assert(Number.isFinite(actual) && Math.abs(actual - expected) < tolerance,
+    `${description}: expected ${expected} Hz, got ${actual} Hz`);
+}
+async function checkLoadedSampleReference(page,sourceFile,label,expectedHz,execution) {
+  const marker = `SPC_LOADED_REFERENCE_${label}_${execution}:`;
+  const probe = `\n  console.log(${JSON.stringify(marker)} + JSON.stringify({rootFrequencyHz:sample0.rootFrequencyHz, basePitch:sample0.basePitch, rootNote:sample0.rootNote}));`;
+  const source = sourceFile.data.replace(/(  const sample0 = await snes\.loadBRR\([\s\S]*?\n  \}\);)/,`$1${probe}`);
+  assert.notEqual(source,sourceFile.data,'The runtime probe must inspect the actual loaded BRR sample');
+  const script = sourceFile.path.replace(/\/index\.js$/,`/inspect-reference-${execution}.js`);
+  await page.evaluate(({script,source}) => window.__spcImportTest.virtualFiles.writeText(script,source),{script,source});
+  const diagnostics = await checkGeneratedDiagnostics(page,script);
+  const audio = await runGenerated(page,script,execution,{waitForLog:marker});
+  const sample = await page.evaluate(marker => {
+    const text = document.getElementById('consoleOutput').textContent;
+    return JSON.parse(text.slice(text.lastIndexOf(marker) + marker.length).split('\n')[0]);
+  },marker);
+  assertFrequency(sample.rootFrequencyHz,expectedHz,`${execution}: actual loaded ${label} BRR tuning`,
+    label === 'estimated' ? .01 : undefined);
+  assert.equal(sample.basePitch,4096); assert.equal(sample.rootNote,null);
+  return {sample,audio,diagnostics};
+}
 async function checkPitchAnnotations(page,fixture,original,browserName) {
   const originalSource = original.files.find(file => file.path === original.entryPath).data;
   const before = await snapshotFiles(page);
@@ -221,8 +256,8 @@ async function checkPitchAnnotations(page,fixture,original,browserName) {
   await preview.dialog.waitFor({state:'hidden'});
   assert.deepEqual(await snapshotFiles(page),before,'Closing a pitch preview must leave all project files unchanged');
 
-  // A fresh import uses manual labels while every actual playback statement,
-  // tuning value and BRR asset remains the same as automatic conversion.
+  // A fresh import shares the chosen frequency between comments and BRR
+  // tuning. Hardware PITCH, note events and timing retain the original values.
   preview = await openAnalyzed();
   await preview.row.locator('input[data-spc-pitch-note]').fill('C5');
   await preview.row.locator('input[data-spc-pitch-cents]').fill('23.25');
@@ -237,10 +272,29 @@ async function checkPitchAnnotations(page,fixture,original,browserName) {
   const files = await readFiles(page,after.filter(file => !oldPaths.has(file.path)).map(file => file.path));
   const sourceFile = files.find(file => file.path.endsWith('/index.js'));
   assert(sourceFile,'Manual pitch annotation creates its runnable source');
-  assert.equal(sourceWithoutComments(sourceFile.data),sourceWithoutComments(originalSource),
-    'Changing the note reference must change comments only, never raw PITCH or playback tuning');
-  assert.match(sourceFile.data,/rootNote: ['"]C4['"], basePitch: 4096/,
-    'BRR tuning remains the raw 32 kHz reference despite a different comment label');
+  assert.equal(sourceWithoutReferenceTuning(sourceFile.data),sourceWithoutReferenceTuning(originalSource),
+    'Changing the reference must retain all raw PITCH, key, preset and wait calls');
+  assert.doesNotMatch(sourceFile.data,/\.setNote\(/,'SPC replay retains explicit hardware PITCH');
+  const manualHz = 440 * 2 ** ((72 - 69) / 12) * 2 ** (23.25 / 1200);
+  const defaultReference = original.pitchReferences.find(reference => reference.sampleId === 0);
+  assert(defaultReference,'The default conversion records its selected UI reference');
+  assert.match(defaultReference.state,/Estimated/i,'The periodic authored BRR fixture has a reliable default estimate');
+  const sourceTuning = source => {
+    const match = source.match(/baseFrequencyHz:\s*([\d.eE+-]+),\s*basePitch: 4096/);
+    assert(match,'Generated BRR loading uses its chosen frequency at hardware PITCH 4096');
+    return Number(match[1]);
+  };
+  assertFrequency(sourceTuning(originalSource),defaultReference.referenceHz,'Estimated UI reference is applied to loadBRR',.01);
+  assertFrequency(sourceTuning(sourceFile.data),manualHz,'Manual note and cents are applied to loadBRR');
+  const estimatedMetadata = original.files.filter(file => /\/samples\/.*\.metadata\.json$/.test(file.path))
+    .map(file => JSON.parse(file.data)).find(sample => sample.id === 0);
+  assert.equal(estimatedMetadata?.referenceKind,'estimated');
+  assertFrequency(estimatedMetadata.baseFrequencyHz,sourceTuning(originalSource),'Saved estimated BRR frequency matches generated loading');
+  const manualMetadata = files.filter(file => /\/samples\/.*\.metadata\.json$/.test(file.path))
+    .map(file => JSON.parse(file.data)).find(sample => sample.id === 0);
+  assert(manualMetadata,'Manual BRR reference is preserved in its metadata');
+  assertFrequency(manualMetadata.baseFrequencyHz,manualHz,'Saved BRR frequency');
+  assert.equal(manualMetadata.referenceKind,'manual'); assert.equal(manualMetadata.assignedBasePitch,4096);
   const initialPitch = sourceFile.data.split('\n').find(line => /snes\.setPitch\(0, 4096\)/.test(line));
   assert.match(initialPitch,/reference C5.*\+23c/);
   const halfPitch = sourceFile.data.split('\n').find(line => /snes\.setPitch\(0, 2048\)/.test(line));
@@ -252,7 +306,15 @@ async function checkPitchAnnotations(page,fixture,original,browserName) {
   assert(requests.every(request => request.action !== 'analyze' && request.action !== 'convert'),
     'Manual annotations must not recapture the SPC during conversion');
   const diagnostics = await checkGeneratedDiagnostics(page,sourceFile.path);
-  return {manualOnlyComments:true,invalidControlsNoFiles:true,cancelNoFiles:true,cachedPerformance:true,
+  const loadedReferences = {};
+  for (const execution of ['main','worker']) {
+    loadedReferences[execution] = {
+      estimated:await checkLoadedSampleReference(page,original.files.find(file => file.path === original.entryPath),'estimated',defaultReference.referenceHz,execution),
+      manual:await checkLoadedSampleReference(page,sourceFile,'manual',manualHz,execution),
+    };
+  }
+  return {sharedReference:true,rawPitchEventsPreserved:true,invalidControlsNoFiles:true,cancelNoFiles:true,cachedPerformance:true,
+    defaultReferenceHz:defaultReference.referenceHz,manualReferenceHz:manualHz,loadedReferences,
     initialPitch:initialPitch.trim(),halfPitch:halfPitch.trim(),requests,diagnostics};
 }
 async function attachMeter(page) {

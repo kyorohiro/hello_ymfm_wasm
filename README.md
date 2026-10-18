@@ -60,13 +60,17 @@ This is the easiest way to test YM2612 control, sound design, and Genesis-orient
   and preset loading; event times are elapsed seconds from that origin, so timer
   lateness does not slow all following events. PITCH remains in chip units, with no guessed
   original note names or loop structure. Song JavaScript automatically analyzes the
-  BRR versions used in the chosen interval and lists their comment reference notes.
+  BRR versions used in the chosen interval and lists their tuning reference notes.
   Reliable periodic sounds receive estimated fundamental/note/cents comments at
   32,000 Hz / PITCH4096; uncertain sounds retain provisional C4. You can correct
   each reference note and cents before converting, or use the defaults.
   Estimates can have octave errors and are not recovered original notes.
-  These references affect comments only: `rootNote`, `basePitch`, raw `setPitch`,
-  presets and timing remain unchanged. Reference edits reuse the capture; changing
+  Each confirmed reference configures both `loadBRR`'s `baseFrequencyHz` at
+  `basePitch: 4096` and the generated note comments. Fractional cents are retained;
+  unknown samples keep provisional `rootNote: "C4"`. This calibrates later
+  `setNote`/`setFrequency` edits. The generated song itself keeps raw `setPitch`
+  calls, BRR bytes, presets and timing, so its pitch does not change. No note-name
+  playback calls are substituted. Reference edits reuse the capture; changing
   the duration or control step analyzes it again. Noise voices have no note label;
   pitch-modulated voices label the base pitch.
   The control step defaults to 20 ms
@@ -78,7 +82,7 @@ This is the easiest way to test YM2612 control, sound design, and Genesis-orient
   are saved with the source. Conversion rejects more than 20,000 musical events,
   256 BRRs or 64,512 total BRR bytes instead of saving partial data.
   Regenerate previously imported Song JavaScript from the original SPC to use
-  this timing; existing editable scripts keep their original relative `sleep` calls.
+  the current timing and sample references; existing editable scripts are not rewritten.
   Event trace records 0.1–600 seconds, with a maximum of 1,000,000 writes.
   Edit its annotated `events` array to change raw chip values and timing; initial
   BRR/RAM and DSP bytes are saved alongside the code. It retains sample changes,

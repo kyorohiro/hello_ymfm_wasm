@@ -2,7 +2,7 @@ import factory from '../generated/spc_wasm.js?v=spc-events-1';
 import {captureSpcTrace} from '../js/spc_trace.js?v=spc-events-1';
 import {captureSpcPerformance} from '../js/spc_performance.js?v=spc-events-1';
 import {estimateBrrPitch} from '../js/spc_pitch.js?v=spc-pitch-comments-1';
-import {buildSpcImportFiles} from './playground_spc_source.js?v=spc-pitch-comments-1';
+import {buildSpcImportFiles} from './playground_spc_source.js?v=spc-reference-tuning-1';
 
 let busy = false;
 self.onmessage = async ({data}) => {

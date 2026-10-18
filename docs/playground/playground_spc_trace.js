@@ -5,7 +5,7 @@ function runSpcWorker(prepared, options) {
   const {signal, onProgress, ...parameters} = options;
   signal?.throwIfAborted();
   return new Promise((resolve, reject) => {
-    const worker = new Worker(new URL('./playground_spc_trace_worker.js?v=spc-pitch-comments-1', import.meta.url), {type:'module'});
+    const worker = new Worker(new URL('./playground_spc_trace_worker.js?v=spc-reference-tuning-1', import.meta.url), {type:'module'});
     const cleanup = () => {clearTimeout(timer); signal?.removeEventListener('abort', abort); worker.terminate();};
     const finish = (fn, value) => {cleanup(); fn(value);};
     const abort = () => finish(reject, signal.reason ?? new DOMException('SPC conversion cancelled', 'AbortError'));

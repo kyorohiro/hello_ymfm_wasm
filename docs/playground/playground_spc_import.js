@@ -51,8 +51,8 @@ export function installSpcImport({button, existingPaths, existingDirectories = (
     progress.setAttribute('aria-label', 'SPC conversion progress');
     const conversionStatus = element('p', '', conversion); conversionStatus.setAttribute('role', 'status');
     const pitches = element('fieldset', undefined, dialog); pitches.hidden = true; pitches.disabled = true;
-    element('legend', 'Note comments — reference at PITCH 4096', pitches);
-    element('p', 'Only comments change. Estimated pitches are a reading aid, not recovered original notes. Uncertain sounds use provisional C4. Correct a reference below if needed; playback, BRR tuning and raw PITCH stay unchanged.', pitches);
+    element('legend', 'Sample tuning and note comments — reference at PITCH 4096', pitches);
+    element('p', 'These references configure loadBRR tuning and note comments together. They calibrate later note-name edits; the generated song keeps its original raw PITCH and timing. Estimates are not recovered original notes. Uncertain sounds use provisional C4.', pitches);
     const pitchStatus = element('p', '', pitches); pitchStatus.setAttribute('role', 'status');
     const pitchHost = element('div', undefined, pitches); pitchHost.className = 'spc-import-table'; pitchHost.dataset.spcPitchTable = ''; pitchHost.dataset.spcPitchState = 'loading';
     const instruments = element('fieldset', undefined, dialog); instruments.dataset.spcImportInstruments = ''; instruments.hidden = true; instruments.disabled = true;
@@ -77,7 +77,7 @@ export function installSpcImport({button, existingPaths, existingDirectories = (
     const alive = () => current === request && !controller.signal.aborted && dialog.open;
     try {
       onStatus?.(`Reading ${file.name}…`);
-      const source = await import('./playground_spc_source.js?v=spc-pitch-comments-1');
+      const source = await import('./playground_spc_source.js?v=spc-reference-tuning-1');
       const prepared = await source.prepareSpcImport(await file.arrayBuffer(), file.name, {signal:controller.signal});
       if (!alive()) return;
       const tagSeconds = prepared.metadata.playSeconds;
@@ -139,9 +139,9 @@ export function installSpcImport({button, existingPaths, existingDirectories = (
           state.title = estimate?.reason ?? 'No reliable pitch estimate';
           element('small', uncertain + (estimate?.reason ?? 'No reliable pitch estimate'), state);
           const note = element('input', undefined, element('td', undefined, tr)); note.type = 'text'; note.value = initial.note;
-          note.dataset.spcPitchNote = ''; note.required = true; note.setAttribute('aria-label', `Comment reference note for BRR ${sample.id}`);
+          note.dataset.spcPitchNote = ''; note.required = true; note.setAttribute('aria-label', `Tuning reference note for BRR ${sample.id}`);
           const cents = element('input', undefined, element('td', undefined, tr)); cents.type = 'number'; cents.step = 'any'; cents.min = '-100'; cents.max = '100'; cents.value = String(initial.cents); cents.required = true;
-          cents.dataset.spcPitchCents = ''; cents.setAttribute('aria-label', `Comment reference cents for BRR ${sample.id}`);
+          cents.dataset.spcPitchCents = ''; cents.setAttribute('aria-label', `Tuning reference cents for BRR ${sample.id}`);
           const reset = element('button', 'Reset', element('td', undefined, tr)); reset.type = 'button';
           let manual = false;
           const validateReference = () => {
@@ -175,13 +175,13 @@ export function installSpcImport({button, existingPaths, existingDirectories = (
           const abort = new AbortController(); analysisController = abort;
           try {
             progress.hidden = false; progress.value = 0;
-            const {analyzeSpcImport} = await import('./playground_spc_trace.js?v=spc-pitch-comments-1');
+            const {analyzeSpcImport} = await import('./playground_spc_trace.js?v=spc-reference-tuning-1');
             if (!alive() || epoch !== analysisEpoch) return;
             const result = await analyzeSpcImport(prepared, {durationSeconds:Number(seconds.value), controlStepMs:Number(controlStep.value), signal:abort.signal,
               onProgress:value => {if (epoch === analysisEpoch) reportProgress(value);}});
             if (!alive() || epoch !== analysisEpoch) return;
             analysis = result; showPitches(result); confirm.disabled = false; progress.hidden = true;
-            conversionStatus.textContent = 'Analysis ready. Adjust note comments or convert with these defaults.';
+            conversionStatus.textContent = 'Analysis ready. Adjust sample references or convert with these defaults.';
           } catch (failure) {
             if (!alive() || epoch !== analysisEpoch || abort.signal.aborted) return;
             pitchHost.dataset.spcPitchState = 'error'; pitchHost.setAttribute('aria-busy', 'false'); progress.hidden = true;
@@ -230,7 +230,7 @@ export function installSpcImport({button, existingPaths, existingDirectories = (
           let plan;
           if (['javascript','trace'].includes(mode())) {
             progress.hidden = false; progress.value = 0; conversionStatus.textContent = 'Preparing conversion…';
-            const {convertSpcImport,generateSpcImport} = await import('./playground_spc_trace.js?v=spc-pitch-comments-1');
+            const {convertSpcImport,generateSpcImport} = await import('./playground_spc_trace.js?v=spc-reference-tuning-1');
             if (!alive()) return;
             plan = mode() === 'javascript'
               ? await generateSpcImport(prepared, {directory, performance:analysis.performance, annotations:pitchRows.map(row => row.annotation()).filter(Boolean), signal:controller.signal, onProgress:reportProgress})

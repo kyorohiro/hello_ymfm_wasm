@@ -59,8 +59,9 @@ function validateAnnotations(annotations, samples) {
  * eight-voice SNES instance keeps channel overlap; all samples are loaded first.
  * This is an editable approximation, not an exact SPC/DSP timeline export.
  * Optional annotations give each sample's fundamental at 32,000 Hz / PITCH 4096
- * for comments only. Resolve manual overrides before calling: duplicate sample
- * IDs are rejected. Sample tuning, BRR bytes and all playback calls are unchanged.
+ * for both loadBRR tuning and note comments. Resolve manual overrides before
+ * calling: duplicate sample IDs are rejected. Raw PITCH, BRR bytes, presets and
+ * event timing stay unchanged; no note-name playback calls are generated.
  */
 export function buildSpcSongSource(performance, directory, {annotations = []} = {}) {
   validate(performance);
@@ -80,10 +81,11 @@ export function buildSpcSongSource(performance, directory, {annotations = []} = 
     '// PITCH 4096 plays at the BRR source rate (32,000 Hz); BRR contains no musical root-note metadata.',
     `// Provisional note comments use assigned ${ASSIGNED_TUNING.rootNote} at PITCH ${ASSIGNED_TUNING.basePitch}, not a detected BRR fundamental or audible note.`,
     '// Relative intervals within one sample are meaningful; different samples may have different actual tuning.',
-    '// Comments describe the tuning at import time; editing rootNote/basePitch does not recalculate these comments.',
+    '// Comments describe the reference at import time; editing rootNote/baseFrequencyHz/basePitch does not recalculate them.',
     ...(annotations.length ? [
-      '// Estimated/reference note comments use a guessed or user-supplied BRR fundamental at 32,000 Hz / PITCH 4096.',
-      '// Estimates may be wrong, especially for percussion, noise or inharmonic samples. References affect comments only, never audio.',
+      '// loadBRR tuning and estimated/reference note comments share the reference chosen during import at PITCH 4096.',
+      '// Estimates may be wrong, especially for percussion, noise or inharmonic samples.',
+      '// The song keeps raw setPitch calls. References calibrate later setNote/setFrequency edits without retuning this playback.',
     ] : []),
     '// ADSR1/ADSR2/GAIN and signed volumes are raw DSP values, not durations.',
     `// Controls keep the last value per ${performance.controlStepMs} ms interval (0 = every distinct value). Key times are retained.`,
@@ -95,13 +97,22 @@ export function buildSpcSongSource(performance, directory, {annotations = []} = 
     const label = `sample-${String(sample.id).padStart(3,'0')}-srcn-${String(sample.sourceNumber).padStart(3,'0')}`;
     files.push({path:`${directory}/samples/${label}.brr`,type:'binary',data:sample.brr.slice()});
     const {brr,...metadata} = sample;
-    files.push({path:`${directory}/samples/${label}.metadata.json`,type:'text',data:json({
-      ...metadata,assignedReferenceNote:ASSIGNED_TUNING.rootNote,assignedBasePitch:ASSIGNED_TUNING.basePitch,
-      tuning:'Assigned reference only; no original note or fundamental is inferred.'})});
     const annotation = annotationsBySample.get(sample.id);
-    if (annotation) lines.push(`  // sample${sample.id} / SRCN ${sample.sourceNumber}: ${annotation.kind === 'manual' ? 'manual reference' : 'estimated fundamental'} ${annotation.referenceHz} Hz at PITCH 4096; comments only.`);
+    files.push({path:`${directory}/samples/${label}.metadata.json`,type:'text',data:json({
+      ...metadata,assignedBasePitch:ASSIGNED_TUNING.basePitch,
+      ...(annotation ? {baseFrequencyHz:annotation.referenceHz,referenceKind:annotation.kind,
+        tuning:'Import reference shared by loadBRR tuning and note comments; raw song PITCH is preserved.'}
+        : {assignedReferenceNote:ASSIGNED_TUNING.rootNote,
+          tuning:'Assigned reference only; no original note or fundamental is inferred.'})})});
+    if (annotation) {
+      const midi = 69 + 12 * Math.log2(annotation.referenceHz / 440), nearest = Math.round(midi);
+      const cents = Number(((midi - nearest) * 100).toFixed(2));
+      const note = Number.isFinite(midi) && nearest >= 0 && nearest <= 127
+        ? ` (${NOTE_NAMES[nearest % 12]}${Math.floor(nearest / 12) - 1}${cents ? ` ${cents > 0 ? '+' : ''}${cents}c` : ''})` : '';
+      lines.push(`  // sample${sample.id} / SRCN ${sample.sourceNumber}: ${annotation.kind === 'manual' ? 'manual reference' : 'estimated fundamental'} ${annotation.referenceHz} Hz${note} at PITCH 4096; shared tuning and note reference.`);
+    }
     lines.push(`  const sample${sample.id} = await snes.loadBRR(await file(${quote(`./samples/${label}.brr`)}, {type:'arrayBuffer'}), {`,
-      `    rootNote: ${quote(ASSIGNED_TUNING.rootNote)}, basePitch: ${ASSIGNED_TUNING.basePitch}${sample.loop ? `, loopStartSamples: ${sample.loopStartSamples}` : ''}`, '  });');
+      `    ${annotation ? `baseFrequencyHz: ${annotation.referenceHz}` : `rootNote: ${quote(ASSIGNED_TUNING.rootNote)}`}, basePitch: ${ASSIGNED_TUNING.basePitch}${sample.loop ? `, loopStartSamples: ${sample.loopStartSamples}` : ''}`, '  });');
   }
   for (const [id,preset] of presets.entries()) {
     const path = `./presets/voice-${String(id).padStart(3,'0')}.json`;
