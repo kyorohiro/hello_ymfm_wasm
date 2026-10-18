@@ -56,6 +56,13 @@ export function createPerformanceSender({getLoop = () => null, restoreLoop = () 
       if (commands.some(command => command.id !== undefined)) throw new DOMException('Run stopped', 'AbortError');
       return;
     }
+    // An SPC runs its own song driver. Keep its transport immediate while still
+    // carrying the lease used by Stop and live-loop owner cancellation.
+    if (kind === 'spc') {
+      if (Array.isArray(data)) throw new TypeError('SPC controls must be individual commands');
+      port.postMessage({...data, spcPerformance: {session:configuration.session, owner}}, transfer);
+      return;
+    }
     const {time} = timestamp();
     if (transfer?.length && commands.length > 1 && commands.some(command => immediate(command, kind))) {
       // A transfer list can be consumed only once. Mixed prep/performance
@@ -103,7 +110,7 @@ export function createPerformanceSender({getLoop = () => null, restoreLoop = () 
         get onmessageerror() { return port.onmessageerror; }, set onmessageerror(fn) { port.onmessageerror = fn; },
         start: () => port.start?.(), close: () => {
           if (closeTimer !== null) return;
-          if (!configuration || stopped) { close(); return; }
+          if (!configuration || stopped || kind === 'spc') { close(); return; }
           // Clients dispose synchronously, but their final audio commands are
           // still reserved. Keep this control lease until those commands render
           // so a removed loop can cancel them without waiting for Main's UI.

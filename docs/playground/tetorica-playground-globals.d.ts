@@ -1458,6 +1458,34 @@ interface PlaygroundSnes {
   snapshot():Promise<{ram:Uint8Array; dsp:Uint8Array; nativeFrames:number}>;
   dispose():void;
 }
+interface PlaygroundSpcState {
+  ready:boolean; loaded:boolean; playing:boolean; paused:boolean; muteMask:number;
+  /** Elapsed media seconds from the loaded SPC snapshot, independent of BPM. */
+  positionSeconds:number;
+  playbackNativeFrames:number; renderedNativeFrames:number;
+  nativeSampleRate:32000; sampleRate?:number; closed?:boolean;
+}
+/** SPC700 program + S-DSP file player. This is not the CPU-free SNES instrument API.
+ * Runs the saved program after play(); song events are not converted to JavaScript.
+ * The SPC clock is independent of BPM and Worker lookahead. STOP disposes the player.
+ */
+interface PlaygroundSpc {
+  readonly sampleRate:number;
+  readonly nativeSampleRate:32000;
+  loadSPC(bytes:Uint8Array | ArrayBuffer):Promise<PlaygroundSpcState>;
+  play():Promise<PlaygroundSpcState>;
+  pause():Promise<PlaygroundSpcState>;
+  /** Reload the original saved state and rewind to zero. */
+  stop():Promise<PlaygroundSpcState>;
+  /** Replay from the original snapshot to elapsed seconds (0..3600); no seek cache. */
+  seek(seconds:number):Promise<PlaygroundSpcState>;
+  getState():Promise<PlaygroundSpcState>;
+  /** Bit0..7 mute the eight voices; their internal musical state still advances. */
+  setMuteMask(mask:number):Promise<PlaygroundSpcState>;
+  /** Current RAM/DSP capture, not a complete resumable checkpoint. */
+  snapshot():Promise<{ram:Uint8Array; dsp:Uint8Array; nativeFrames:number; playbackNativeFrames:number; positionSeconds:number; nativeSampleRate:32000; muteMask:number}>;
+  dispose():void;
+}
 type PlaygroundSoundChipMap = {
   ym2612: TetoricaSelectedChip extends 'ym2612' ? FMApi : PlaygroundCreatedFm;
   ym2203: TetoricaSelectedChip extends 'ym2203' ? PlaygroundOPNFm<0 | 1 | 2> : PlaygroundCreatedYm2203;
@@ -1471,9 +1499,10 @@ type PlaygroundSoundChipMap = {
   pwm: PlaygroundPWM32X;
   dx7: PlaygroundDx7;
   snes: PlaygroundSnes;
+  spc: PlaygroundSpc;
 };
 type PlaygroundUseSoundChipOptions = { [key: string]: never };
-type PlaygroundSoundChipClient<Name extends keyof PlaygroundSoundChipMap> = Name extends 'dx7' | 'snes'
+type PlaygroundSoundChipClient<Name extends keyof PlaygroundSoundChipMap> = Name extends 'dx7' | 'snes' | 'spc'
   ? PlaygroundSoundChipMap[Name] & {readonly id: string}
   : PlaygroundSoundChipMap[Name] & PlaygroundChipClock & {readonly id: string};
 /** Reuse one instance of this instrument until STOP. For independent instances use createSoundChip. */
@@ -1483,6 +1512,8 @@ declare function useSoundChip<Name extends keyof PlaygroundSoundChipMap>(name: N
 declare function createSoundChip(name: 'dx7', options?: PlaygroundCreateSoundChipOptions): Promise<PlaygroundDx7 & {readonly id: string}>;
 /** Independent CPU-free S-DSP with separate RAM and eight physical voices. */
 declare function createSoundChip(name:'snes', options?:PlaygroundCreateSoundChipOptions):Promise<PlaygroundSnes & {readonly id:string}>;
+/** Independent SPC file player; use 'snes' for BRR instrument programming. */
+declare function createSoundChip(name:'spc', options?:PlaygroundCreateSoundChipOptions):Promise<PlaygroundSpc & {readonly id:string}>;
 
 /** Independent chips. Global play/write still target the default Playground chip. */
 type PlaygroundCreatedFm = Omit<FMApi, 'dac' | 'scheduleWrites' | 'read' | 'readStatus' | 'getIrq'> & {dispose(): void};

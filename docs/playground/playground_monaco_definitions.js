@@ -17,6 +17,7 @@ export function definitionSource(text, position, chip = 'ym2612') {
   if (/^PlaygroundYm2151$/.test(owner)) return {file:'playground_ym2151.js', symbol};
   if (/^PlaygroundDx7$/.test(owner)) return {file:'playground_dx7.js', symbol};
   if (/^PlaygroundSnes$/.test(owner)) return {file:'playground_snes.js', symbol};
+  if (/^PlaygroundSpc$/.test(owner)) return {file:'playground_spc.js', symbol};
   if (/^PlaygroundYm2608$/.test(owner)) return {file:'ym2608synth.js', symbol};
   if (/^PlaygroundRf5c164$/.test(owner)) return {file:'rf5c164synth.js', symbol};
   if (/^PlaygroundSegaPsg$/.test(owner)) return {file:'segapsgsynth.js', symbol};

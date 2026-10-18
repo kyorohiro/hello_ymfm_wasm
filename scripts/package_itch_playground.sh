@@ -55,6 +55,8 @@ playground_example_order.js
 playground_file_resize.js
 playground_tfi_editor.js
 playground_midi_import.js
+playground_spc_import.js
+playground_spc_source.js
 playground_vgm_presets.js
 playground_vgm_import.js
 ym2203_high.js
@@ -71,6 +73,9 @@ tetorica-playground-ym2612.d.ts
 
 RUNTIME_FILES="
 spc.js
+spc-worklet.js
+playground_spc.js
+playground_spc_audio.js
 spc_file.js
 snes_brr.js
 wav.js
@@ -280,7 +285,8 @@ node "${ROOT_DIR}/scripts/build_playground_examples.mjs"
 mkdir -p "${RELEASE_DIR}"
 rm -rf "${STAGE_DIR}"
 rm -f "${ZIP_PATH}"
-mkdir -p "${STAGE_DIR}/js" "${STAGE_DIR}/synth" "${STAGE_DIR}/generated" "${STAGE_DIR}/samples" "${STAGE_DIR}/vendor" "${STAGE_DIR}/licenses/nuked-opn2"
+mkdir -p "${STAGE_DIR}/js" "${STAGE_DIR}/synth" "${STAGE_DIR}/generated" "${STAGE_DIR}/samples" "${STAGE_DIR}/vendor" "${STAGE_DIR}/licenses/nuked-opn2" "${STAGE_DIR}/vgm_analyzer"
+cp "${ROOT_DIR}/docs/vgm_analyzer/spc_brr_candidates.js" "${STAGE_DIR}/vgm_analyzer/spc_brr_candidates.js"
 
 for file in ${PLAYGROUND_FILES}; do
   src="${PLAYGROUND_DIR}/${file}"
@@ -430,6 +436,7 @@ perl -0pi -e 's#"\./playground\.js"#"./playground.js"#g; s#\.\./js/#./js/#g; s#\
   "${STAGE_DIR}/playground_operator_keyboard.js" \
   "${STAGE_DIR}/playground_tfi_editor.js" \
   "${STAGE_DIR}/playground_midi_import.js" \
+  "${STAGE_DIR}/playground_spc_source.js" \
   "${STAGE_DIR}/playground_vgm_presets.js" \
   "${STAGE_DIR}/playground_vgm_import.js" \
   "${STAGE_DIR}/ym2608_vgm_import.js" \
@@ -439,6 +446,7 @@ perl -0pi -e 's#"\./playground\.js"#"./playground.js"#g; s#\.\./js/#./js/#g; s#\
   "${STAGE_DIR}/playground_ui.js" \
   "${STAGE_DIR}/playground_audio_monitor.js" \
   "${STAGE_DIR}/playground_workbench.js"
+perl -0pi -e 's#\.\./vgm_analyzer/#./vgm_analyzer/#g' "${STAGE_DIR}/playground_spc_source.js"
 
 node "${ROOT_DIR}/scripts/copy_opna_rhythm.mjs" "${STAGE_DIR}"
 node --experimental-vm-modules "${ROOT_DIR}/scripts/check_playground_package.mjs" "${STAGE_DIR}"

@@ -158,6 +158,10 @@ Analyzer:
 
 Playground:
 
+- `Menu → Import → SPC…`からSong playback／Instrumentsを選択可能。どちらも`/spc/<元ファイル名>/`以下の新規フォルダーへ原本SPCとsourceinfoを保持し、同名の取り込みは別フォルダーにする。
+- Song playbackは`useSoundChip('spc')`のloadSPC／playを使うコードを生成。SPC700プログラムとDSPを再生し、JavaScriptの音符列には変換しない。BPM／Worker先読みから独立し、Stopまで再生する。Main／Workerとも既存Mixer・FX・Master経路に接続する。
+- Instrumentsは保存時点の全SRCN候補から選んだBRR・Metadata・設定JSON・試奏JSを保存。捕捉Voiceを選択でき、ない候補は既定の設定を使う。C4等は利用者が割り当てる参照音名で、元の基音を推定したものではない。初回試奏は捕捉PITCHをそのまま使い、1秒発音＋1秒離鍵する。未解決ループや独立SNES音源のRAMに収まらないBRRは理由を示し音色取り込みの対象外とする。試奏ごとに独立音源を解放し、Runの繰り返しでサンプルRAMを使い切らない。
+
 ```javascript
 const snes = await useSoundChip('snes');
 const sample = await snes.loadBRR(await file('/samples/tone.brr', {type:'arrayBuffer'}), {
@@ -190,6 +194,7 @@ snes.noteOff(0);
 
 検証結果:
 
+- SPC Import追加（2026-10-18）: 生成・SPC client・Main管理52件、関連回帰57件、型チェックが成功。itch Playground配布配置をChromium／WebKit × Main／Workerで確認し、Songの連続Run、捕捉Voice／未参照BRRの試奏、Stop後の無音、Cancel時の無変更、取り込み先の衝突回避、原本SPCの完全保持を検証。既存AnalyzerのChromium／WebKit回帰も成功。使用データは自作の合成SPCで、実ゲームSPCとTauri実アプリは今回未確認。
 - core: 10/10成功、nativeとWASMのPCM完全一致。BRR、echo＋PMON、noise、CPU→DSP書込み、1 frameを含む分割、restart、RAM折返し、インスタンス分離。
 - BRRデコーダー: 元のaccurate DSPのデコーダーと20,480 samples一致。全filter／shift、履歴、ランダム列を比較。
 - SPC音声処理: 18/18成功。実ブラウザーはChromium／WebKit × 44.1／48kHzの4条件成功。

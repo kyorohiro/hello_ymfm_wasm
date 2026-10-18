@@ -148,3 +148,20 @@ snes.noteOn(8, 'C4');
 snes.setClock(1024000);
 // @ts-expect-error Velocity is not a third noteOn argument on this chip.
 snes.noteOn(0, 'C4', 100);
+
+const spc = await useSoundChip('spc');
+await spc.loadSPC(await file('/spc/song/original.spc', {type:'arrayBuffer'}));
+await spc.play();
+await spc.pause();
+await spc.seek(5);
+await spc.setMuteMask(0xfe);
+(await spc.getState()).positionSeconds.toFixed();
+(await spc.snapshot()).ram.byteLength.toFixed();
+await mixer.set(spc.id, {volume:0.5});
+(await createSoundChip('spc', {id:'spc:other'})).dispose();
+// @ts-expect-error SPC is a file player, not a musical instrument.
+spc.keyOn(0);
+// @ts-expect-error SPC has a fixed native clock.
+spc.setClock(1024000);
+// @ts-expect-error Supply binary file data.
+await spc.loadSPC(await file('/spc/song/original.spc'));

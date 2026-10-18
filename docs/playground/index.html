@@ -308,6 +308,17 @@
       .playground-settings-dialog input[type="number"] { width: 8em; padding: 7px; font: inherit; border: 1px solid var(--line); border-radius: 6px; }
       .settings-dialog-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
       .settings-dialog-actions button[type="submit"] { background: var(--accent-dark); color: white; }
+      .spc-import-dialog { width: min(1050px, calc(100vw - 32px)); }
+      .spc-import-dialog fieldset { margin: 12px 0; min-width: 0; border: 1px solid var(--line); border-radius: 8px; }
+      .spc-import-dialog [hidden] { display: none; }
+      .spc-import-dialog fieldset > label { display: inline-flex; align-items: center; gap: 6px; margin: 0 18px 6px 0; }
+      .spc-import-table { max-height: 45vh; overflow: auto; }
+      .spc-import-table table { width: 100%; border-collapse: collapse; }
+      .spc-import-table th, .spc-import-table td { padding: 8px; border-bottom: 1px solid var(--line); text-align: left; font-size: .82rem; }
+      .spc-import-table input[type="text"] { width: 5em; }
+      .spc-import-table select { max-width: 18em; }
+      .spc-import-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 8px; position: sticky; bottom: -20px; padding: 12px 0; background: var(--panel); }
+      .spc-import-actions [role="alert"] { flex-basis: 100%; color: #b32323; }
 
       .vgm-import-options[hidden] { display: none; }
       .vgm-import-options {
@@ -1673,6 +1684,7 @@
                 <div class="toolbar-menu-panel">
                   <button id="importVgmButton" type="button">VGM / S98…</button>
                   <button id="importMidiButton" type="button">MIDI…</button>
+                  <button id="importSpcButton" type="button">SPC…</button>
                 </div>
               </details>
               <details class="toolbar-menu" id="menuExport">
@@ -2317,7 +2329,7 @@
       })();
     </script>
     <script type="module">
-      import('./playground.js?v=snes-spc-1').catch(error => window.__playgroundStartup.fail(error));
+      import('./playground.js?v=spc-import-types-1').catch(error => window.__playgroundStartup.fail(error));
     </script>
   </body>
 </html>

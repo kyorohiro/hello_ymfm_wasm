@@ -22,7 +22,7 @@ const modules = readdirSync(join(root,'web')).filter(n=>n.endsWith('.js') && !n.
 for (const name of modules) {
   let source=readFileSync(join(root,'web',name),'utf8');
   // Match the established docs/js layout for module-relative generated assets.
-  if (nested && (name.includes('worklet') || ['vgm_runtime.js','spc_audio.js','playground_snes_audio.js','playground_rf5c164_audio.js','playground_ym2608_audio.js','playground_gameboy_audio.js'].includes(name)))
+  if (nested && (name.includes('worklet') || ['vgm_runtime.js','spc_audio.js','playground_spc_audio.js','playground_snes_audio.js','playground_rf5c164_audio.js','playground_ym2608_audio.js','playground_gameboy_audio.js'].includes(name)))
     source=source.replaceAll('./generated/', '../generated/');
   if (name === 'nesapu.js') source=source.replace('../docs/js/nesapuaudioengine.js', './nesapuaudioengine.js');
   if (name === 'soundchip.js') {

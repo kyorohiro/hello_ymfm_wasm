@@ -49,6 +49,10 @@ This is the easiest way to test YM2612 control, sound design, and Genesis-orient
   Experimental SNES S-DSP is available through `await useSoundChip('snes')`: eight independent
   voices with BRR, explicit sample tuning and raw ADSR/GAIN controls.
   Try `examples/snes/snes-brr-melody.js`; its original BRR needs no game files.
+  `Menu → Import → SPC…` can import **Song playback** (`useSoundChip('spc')`)
+  or **Instruments** (BRR, captured settings and editable SNES audition scripts).
+  Both preserve the original SPC in a new Files folder. Instrument reference notes
+  are assigned by the user; they are not inferred from BRR. Song playback runs until Stop.
 - Playground Runtime Embedded Demo:
   [https://kyorohiro.github.io/hello_ymfm_wasm/demos/playground_runtime.html](https://kyorohiro.github.io/hello_ymfm_wasm/demos/playground_runtime.html)
 - Synth:

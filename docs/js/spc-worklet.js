@@ -16,17 +16,64 @@ export class SpcProcessor extends AudioWorkletProcessor {
     this.failed = false;
     this.muteMask = 0;
     this.seekId = null;
+    this.remote = null;
+    this.playbackOwner = null;
+    this.cancelledOwners = new Set();
+    this.stoppedSessions = new Set();
     this.discardLeft = new Float32Array(1024);
     this.discardRight = new Float32Array(1024);
     this.ready = this.initialize(processorOptions.wasmBinary);
     this.commands = this.ready;
     this.port.onmessage = ({data}) => {
+      if (['performance-start', 'performance-stop', 'performance-cancel-owner'].includes(data?.type)) {
+        this.receiveRpc(data, this.port); return;
+      }
+      if (data?.type === 'attach-spc-port') {
+        this.remote?.close(); this.remote = data.port;
+        const remote = this.remote;
+        remote.onmessage = event => {if (this.remote === remote) this.receiveRpc(event.data, remote);};
+        remote.start?.(); return;
+      }
       if (data?.type === 'dispose') { this.dispose(); return; }
-      this.commands = this.commands.then(() => this.command(data)).catch(error => {
-        if (this.disposed || this.failed) return;
-        this.port.postMessage({type: 'result', id: data?.id, error: String(error.message ?? error), name: error.name});
-      });
+      this.enqueue(data, this.port);
     };
+  }
+  enqueue(data, reply, owner = null) {
+      this.commands = this.commands.then(() => {
+        if (owner && (this.stoppedSessions.has(owner.session) || this.cancelledOwners.has(`${owner.session}:${owner.owner}`))) throw cancelledSeek();
+        if (data.type === 'play') this.playbackOwner = owner;
+        return this.command(data, reply);
+      }).catch(error => {
+        if (this.disposed || this.failed) return;
+        reply.postMessage({type: 'result', id: data?.id, error: String(error.message ?? error), name: error.name});
+      });
+  }
+  receiveRpc(data, reply) {
+    if (data?.method === 'dispose') {this.dispose(); return;}
+    if (data?.type === 'performance-start') {
+      reply.postMessage({type:'performance-result', id:data.id}); return;
+    }
+    if (data?.type === 'performance-stop' || data?.type === 'performance-cancel-owner') {
+      if (data.type === 'performance-stop') this.stoppedSessions.add(data.session);
+      else this.cancelledOwners.add(`${data.session}:${data.owner}`);
+      if (this.playbackOwner?.session === data.session &&
+          (data.type === 'performance-stop' || this.playbackOwner.owner === data.owner)) {
+        this.playing = false; this.seekId = null;
+      }
+      return;
+    }
+    const args = data?.args ?? [], commands = {
+      loadSPC: () => ({type:'load', bytes:args[0]}), play: () => ({type:'play'}),
+      pause: () => ({type:'pause'}), stop: () => ({type:'stop'}),
+      getState: () => ({type:'state'}), snapshot: () => ({type:'snapshot'}),
+      setMuteMask: () => ({type:'mute', mask:args[0]}),
+      seekBegin: () => ({type:'seek-begin', seekId:args[0]}),
+      seekStep: () => ({type:'seek-step', seekId:args[0], frames:args[1]}),
+      seekEnd: () => ({type:'seek-end', seekId:args[0], resume:args[1]}),
+    };
+    const convert = Object.hasOwn(commands, data?.method) ? commands[data.method] : null;
+    if (!convert) {reply.postMessage({id:data?.id, error:'Unknown SPC player method'}); return;}
+    this.enqueue({...convert(), id:data.id}, reply, data.spcPerformance ?? null);
   }
   async initialize(wasmBinary) {
     try {
@@ -46,7 +93,7 @@ export class SpcProcessor extends AudioWorkletProcessor {
       renderedNativeFrames: this.resampler?.renderedNativeFrames ?? 0};
   }
   requireLoaded() { if (!this.loaded) throw new Error('Load an SPC file before playback'); }
-  command(data) {
+  command(data, reply = this.port) {
     if (this.disposed || this.failed) return;
     if (!this.core) throw new Error('SPC processor is not ready');
     switch (data.type) {
@@ -88,7 +135,7 @@ export class SpcProcessor extends AudioWorkletProcessor {
       case 'snapshot': {
         this.requireLoaded();
         const snapshot = this.core.snapshot(), state = this.state();
-        this.port.postMessage({type: 'result', id: data.id, value: {...snapshot,
+        reply.postMessage({type: 'result', id: data.id, value: {...snapshot,
           positionSeconds: state.positionSeconds, playbackNativeFrames: state.playbackNativeFrames,
           nativeSampleRate: NATIVE_RATE, muteMask: this.muteMask}}, [snapshot.ram.buffer, snapshot.dsp.buffer]);
         return;
@@ -96,19 +143,22 @@ export class SpcProcessor extends AudioWorkletProcessor {
       case 'state': break;
       default: throw new Error(`Unknown SPC command: ${data.type}`);
     }
-    this.port.postMessage({type: 'result', id: data.id, value: this.state()});
+    reply.postMessage({type: 'result', id: data.id, value: this.state()});
   }
   fail(error) {
     if (this.disposed || this.failed) return;
     this.failed = true; this.playing = false;
     this.core?.dispose(); this.core = null;
     this.port.postMessage({type: 'error', error: String(error.message ?? error)});
+    this.remote?.postMessage({fatal:true, error:String(error.message ?? error)});
+    this.remote?.close(); this.remote = null;
     this.port.onmessage = null; this.port.close();
   }
   dispose() {
     if (this.disposed) return;
     this.disposed = true; this.playing = false;
     this.core?.dispose(); this.core = null;
+    this.remote?.close(); this.remote = null;
     this.port.onmessage = null; this.port.close();
   }
   process(_inputs, outputs) {

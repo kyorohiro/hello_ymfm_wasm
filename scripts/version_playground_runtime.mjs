@@ -7,9 +7,13 @@ import {join} from 'node:path';
 const directory=fileURLToPath(new URL('../docs/js/',import.meta.url));
 const version='chip-tabs-2';
 const revisions={
-  'playground_runtime.js':'snes-spc-1',
-  'playground_logic_worker.js':'snes-spc-1',
-  'playground_performance_sender.js':'snes-spc-1',
+  'playground_runtime.js':'spc-import-1',
+  'playground_logic_worker.js':'spc-import-1',
+  'playground_performance_sender.js':'spc-import-1',
+  'playground_soundchips.js':'spc-import-1',
+  'spc-worklet.js':'spc-import-1',
+  'playground_spc.js':'spc-import-1',
+  'playground_spc_audio.js':'spc-import-1',
   'playground_performance_processor.js':'snes-spc-1',
 };
 const targets=[
@@ -23,6 +27,7 @@ const targets=[
   'soundchip_worklet.js','playground_performance_processor.js',
   'spc.js','spc_audio.js','spc-worklet.js','spc_resampler.js','spc_file.js','snes_brr.js',
   'snessynth.js','playground_snes.js','playground_snes_audio.js','playground_snes_worklet.js',
+  'playground_soundchips.js','playground_spc.js','playground_spc_audio.js',
 ];
 const filenames=targets.map(name=>name.replaceAll('.', '\\.')).join('|');
 // Include bare sibling worklet filenames as well as relative module imports and

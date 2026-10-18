@@ -20,6 +20,8 @@ snessynth.js
 playground_snes.js
 playground_snes_audio.js
 playground_snes_worklet.js
+playground_spc.js
+playground_spc_audio.js
 soundchip_mixer.js
 playground_chip_inspector.js
 playground_chip_inspector_state.js
@@ -276,6 +278,6 @@ cp "${WEB_DIR}/msfa_dx7/vendor/msfa/COPYING" "${WEB_DIR}/msfa_dx7/vendor/msfa/UP
 # Cache identities belong to the website build; keep Node/package constructor identities unchanged.
 perl -0pi -e 's#\./generated/spc_wasm#../generated/spc_wasm#g' \
   "${DOCS_JS_DIR}/spc-worklet.js" "${DOCS_JS_DIR}/spc_audio.js" \
-  "${DOCS_JS_DIR}/playground_snes_worklet.js" "${DOCS_JS_DIR}/playground_snes_audio.js"
+  "${DOCS_JS_DIR}/playground_snes_worklet.js" "${DOCS_JS_DIR}/playground_snes_audio.js" "${DOCS_JS_DIR}/playground_spc_audio.js"
 node "${ROOT_DIR}/scripts/copy_spc_sources.mjs" "${ROOT_DIR}/docs"
 node "${ROOT_DIR}/scripts/version_playground_runtime.mjs"

@@ -13,11 +13,15 @@ function setup(t, selectedChip='ym2612') {
  globalThis.window={addEventListener(){},removeEventListener(){},setTimeout};
  globalThis.AudioWorkletNode=class {
   constructor(context,name){
-   this.name=name;this.messages=[];this.disconnects=0;
-   this.port={postMessage:message=>{this.messages.push(message);if(message.port){this.remote=message.port;message.port.onmessage=({data})=>{if(data.method==='dispose')message.port.close();};message.port.start();}},close(){}};
+   this.name=name;this.messages=[];this.rpcMessages=[];this.disconnects=0;
+   this.port={postMessage:message=>{this.messages.push(message);if(message.port){this.remote=message.port;message.port.onmessage=({data})=>{
+    this.rpcMessages.push(data);
+    if(data.method==='dispose')message.port.close();
+    else if(name==='tetorica-spc'&&data.id!==undefined)message.port.postMessage({id:data.id,value:{ready:true,loaded:true,playing:data.method==='play'}});
+   };message.port.start();}},close(){}};
    nodes.push(this);if(!delay)queueMicrotask(()=>this.ready());
   }
-  ready(){this.port.onmessage({data:{ready:true}});}
+  ready(){this.port.onmessage({data:this.name==='tetorica-spc'?{type:'ready',sampleRate:44100}:{ready:true}});}
   connect(){} disconnect(){this.disconnects++;this.remote?.close();}
  };
  const media=()=>({stop(){},stopAll(){},pause(){},list:()=>[],unload(){}});
@@ -26,13 +30,21 @@ function setup(t, selectedChip='ym2612') {
  t.after(()=>{runtime.stop();Object.assign(globalThis,saved);});
  return {runtime,megaDrive,nodes,setDelay:value=>{delay=value;}};
 }
-for(const chip of ['rf5c164','ym2608','gameboy','ym2203','ym2610','ym2612','segapsg','ym2151','pwm','nes','dx7','snes'])test(`Main managed ${chip} creates once, reuses on Run and recreates after Stop`,async t=>{
+for(const chip of ['rf5c164','ym2608','gameboy','ym2203','ym2610','ym2612','segapsg','ym2151','pwm','nes','dx7','snes','spc'])test(`Main managed ${chip} creates once, reuses on Run and recreates after Stop`,async t=>{
  const {runtime,nodes}=setup(t,chip==='ym2612'?'ym2203':'ym2612');
  const source=`const [a,b]=await Promise.all([useSoundChip('${chip}'),useSoundChip('${chip}')]);
  if(a!==b || (context.pcm && a!==context.pcm))throw Error('identity');context.pcm=a;
+ if('${chip}'==='spc' && (typeof a.loadSPC!=='function'||typeof a.play!=='function'||a.nativeSampleRate!==32000))throw Error('Missing SPC player API');
+ if('${chip}'==='spc'){await a.loadSPC(new Uint8Array(0x10200));await a.play();context.spcRuns=(context.spcRuns??0)+1;}
  if('${chip}'==='snes' && (typeof a.loadBRR!=='function'||typeof a.writeDsp!=='function'))throw Error('Missing SNES DSP API');
  if('${chip}'==='ym2608' && (typeof a.setClock!=='function'||typeof a.resetRegisters!=='function'))throw Error('Missing YM2608 import API');`;
  await runtime.playSource(source);await runtime.playSource(source);assert.equal(nodes.length,1);
+ if(chip==='spc') {
+  assert.equal(runtime.context.spcRuns,2,'cached SPC methods remain callable after the second Run');
+  assert.equal(nodes[0].rpcMessages.filter(message=>message.method==='play').length,2);
+  const sessions=nodes[0].rpcMessages.filter(message=>message.method==='play').map(message=>message.spcPerformance.session);
+  assert.notEqual(sessions[0],sessions[1],'each script evaluation uses its current execution lease');
+ }
  assert.equal(runtime.context.pcm.id,`${chip}:shared`);
  runtime.stop();assert.equal(nodes[0].disconnects,1);assert.equal(Object.keys(runtime.context).length,0);
  await runtime.playSource(source);assert.equal(nodes.length,2);
@@ -49,6 +61,19 @@ test('Main disposes initialization completed after Stop and permits a new lookup
  setDelay(false);await runtime.playSource(`await useSoundChip('rf5c164');`);assert.equal(nodes.length,2);
 });
 
+test('Main SPC loop removal cancels its own lease and suppresses its late finally controls',async t=>{
+ const {runtime,nodes}=setup(t);
+ await runtime.playSource(`const spc=await useSoundChip('spc');liveLoop('song',async()=>{try{await spc.play();await sleep(30);}finally{await spc.pause().catch(()=>{});}});`);
+ for(let i=0;i<100&&!nodes[0]?.rpcMessages.some(message=>message.method==='play');i++)await tick();
+ const play=nodes[0].rpcMessages.find(message=>message.method==='play');assert.ok(play?.spcPerformance);
+ await runtime.playSource('');
+ for(let i=0;i<5;i++)await tick();
+ assert.ok(nodes[0].messages.some(message=>message.type==='performance-cancel-owner'&&message.owner===play.spcPerformance.owner&&message.session===play.spcPerformance.session));
+ assert.equal(nodes[0].rpcMessages.some(message=>message.method==='pause'),false,'a stopped loop cannot pause a replacement playback');
+ await runtime.playSource(`await(await useSoundChip('spc')).play();`);
+ assert.equal(nodes[0].rpcMessages.filter(message=>message.method==='play').length,2);
+});
+
 for (const name of ['ym2612','ym2203','ym2610','segapsg','ym2151','dx7']) test(`Main creates independent ${name} nodes and Stop disposes both`, async t => {
  const {runtime,nodes}=setup(t);
  await runtime.playSource(`const [a,b]=await Promise.all([createSoundChip('${name}'),createSoundChip('${name}')]);if(a===b||a===fm||a.id===b.id)throw Error('identity');if('${name}'==='segapsg'){a.tone(0,{note:'C4'});b.noiseOff();}else if('${name}'==='ym2151'){a.setNote(7,'A4');a.keyOn(7);b.keyOff(7);}else if('${name}'==='dx7'){a.noteOn(60,100);b.noteOff(60);}else{a.noteOn(0,4,600);b.noteOff(0);}context.a=a;`);
@@ -56,7 +81,7 @@ for (const name of ['ym2612','ym2203','ym2610','segapsg','ym2151','dx7']) test(`
  runtime.stop();assert.ok(nodes.every(n=>n.disconnects===1));assert.equal(Object.keys(runtime.context).length,0);
 });
 
-for (const name of ['ym2612','ym2203','ym2610','segapsg','ym2151','nes','dx7','snes']) test(`Main Stop during ${name} creation disposes the late node`, async t => {
+for (const name of ['ym2612','ym2203','ym2610','segapsg','ym2151','nes','dx7','snes','spc']) test(`Main Stop during ${name} creation disposes the late node`, async t => {
  const {runtime,nodes,setDelay}=setup(t);setDelay(true);
  const state=runtime.context;
  const running=runtime.playSource(`await createSoundChip('${name}');context.completed=true;`);

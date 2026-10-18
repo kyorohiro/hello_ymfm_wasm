@@ -21,6 +21,7 @@ import {installPlaygroundPageLifecycle} from "./playground_page_lifecycle.js";
 import {createFXMonitor} from './playground_fx_monitor.js?v=vertical-range-1';
 import {createAudioMonitor} from './playground_audio_monitor.js?v=vertical-range-1';
 import {installMidiImport} from './playground_midi_import.js?v=midi-sections-1';
+import {installSpcImport} from './playground_spc_import.js?v=spc-import-types-1';
 import {
   FM_PRESET_ORDER,
   FM_PRESETS,
@@ -42,7 +43,7 @@ import {
 import { createPlaygroundOperatorKeyboard } from "./playground_operator_keyboard.js?v=keyboard-controls-minimize-1";
 import { CHIP_CLOCKS } from "../js/playground_chip_clock.js";
 import { DEFAULT_CODE, EXAMPLES, EXAMPLE_FILES } from "./playground_examples.js?v=worker-lookahead-500-1";
-import { initializePlaygroundMonaco } from "./playground_monaco.js?v=dx7-soundchip-1";
+import { initializePlaygroundMonaco } from "./playground_monaco.js?v=spc-import-1";
 import {
   decodeBase64Bytes,
   loadTfiPresetsFromQuery,
@@ -73,7 +74,7 @@ import { exportYm2608VgmToPlaygroundJavaScript } from "../js/ym2608vgm.js";
 import { exportYm2610BVgmToPlaygroundJavaScript } from "../js/ym2610bvgm.js";
 import {
   createPlaygroundRuntime,
-} from "../js/playground_runtime.js?v=snes-spc-1";
+} from "../js/playground_runtime.js?v=spc-import-1";
 import {DEFAULT_WORKER_LOOKAHEAD_SECONDS} from '../js/playground_performance_sender.js?v=worker-lookahead-500-1';
 import { createVgmPresetFiles } from "./playground_vgm_presets.js";
 import { createTfiFileEditor, instrumentToEditorPreset } from "./playground_tfi_editor.js?v=chip-tabs-2";
@@ -2692,6 +2693,30 @@ if(!window.__TAURI_INTERNALS__)installPlaygroundGit({fs:virtualFiles,shell:playg
   editorAdapter.syncVirtualFiles?.(virtualFiles.list().filter(file => !isCheckpointVirtualPath(file.path)));renderVirtualFileExplorer();renderRunFileOptions();
 }});
 window.addEventListener('pagehide',()=>playgroundShell.invalidate('Page closed'));
+
+installSpcImport({button:document.getElementById('importSpcButton'),
+  existingPaths:() => virtualFiles.list().map(file => file.path),
+  existingDirectories:() => virtualFiles.listDirectories(),
+  onStatus:setStatus, onError:error => setStatus(`SPC import failed: ${error.message}`),
+  importFiles(plan, name) {
+    const pending = new Set();
+    for (const file of plan.files) {
+      if (isSystemVirtualPath(file.path) || isCheckpointVirtualPath(file.path) || virtualFiles.has(file.path) || pending.has(file.path)) throw new Error(`Import path already exists or is reserved: ${file.path}`);
+      for (let parent = file.path.slice(0, file.path.lastIndexOf('/')); parent; parent = parent.slice(0, parent.lastIndexOf('/'))) {
+        if (virtualFiles.has(parent)) throw new Error(`Import folder conflicts with a file: ${parent}`);
+      }
+      pending.add(file.path);
+    }
+    saveActiveVirtualFile();
+    for (const file of plan.files) {
+      if (file.type === 'binary') virtualFiles.writeBinary(file.path, file.data);
+      else virtualFiles.writeText(file.path, file.data);
+    }
+    activeVirtualPath = plan.entryPath; runVirtualPath = plan.entryPath;
+    showVirtualFile(virtualFiles.get(plan.entryPath)); renderVirtualFileExplorer(); renderRunFileOptions(); setBottomTab('code');
+    setStatus(`Imported ${name} into ${plan.directory}. Choose Run to play ${plan.mode === 'song' ? 'the SPC song' : 'the selected instrument'}.`);
+  },
+});
 
 installMidiImport({button:document.getElementById('importMidiButton'), presets:playgroundPresets,
   enabled:selectedChip==='ym2612'&&!useNukedEngine,
