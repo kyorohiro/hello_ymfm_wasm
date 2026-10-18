@@ -13,7 +13,9 @@ function plain(html) {
 }
 const rows = [...dialog.matchAll(/<tr><th scope="row">([\s\S]*?)<\/th><td>([\s\S]*?)<\/td>/g)]
   .map(([, chip, playback]) => [plain(chip), plain(playback)])
-  .filter(([chip]) => chip !== 'Other supported chip combinations');
+  // This table lists VGM render adapters. SPC offline analysis/export has its
+  // own README section and is not yet a CLI render adapter.
+  .filter(([chip]) => chip !== 'Other supported chip combinations' && chip !== 'SNES SPC700 / S-DSP');
 if (!rows.length) throw new Error('Cannot locate chip support rows');
 const block = `${start}\n| Chip | Playback in the shared core |\n| --- | --- |\n${rows.map(([chip, playback]) => `| ${chip} | ${playback} |`).join('\n')}\n${end}`;
 const readme = readFileSync(target, 'utf8');

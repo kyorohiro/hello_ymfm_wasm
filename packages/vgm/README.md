@@ -1,7 +1,8 @@
 # tetorica-vgm
 
 Analyze VGM/VGZ music, export scores and FM voices, and render WAV files from
-Node.js. Uses the same analysis and playback core as the Tetorica browser analyzer.
+Node.js. Experimental SPC analysis exports MIDI, MusicXML and LilyPond using
+the same BRR pitch estimates and score algorithms as the browser Analyzer.
 
 Requires **Node.js 22 or later**. WASM engines are included, with no npm runtime
 dependencies; Emscripten is not required to use the package.
@@ -17,7 +18,81 @@ npx tetorica-vgm render song.vgz --output song.wav --max-seconds 120
 ```
 
 To test a local build, install its distribution tarball with
-`npm install ./tetorica-vgm-0.2.11.tgz`, then use `npx tetorica-vgm --help`.
+`npm install ./tetorica-vgm-0.2.12.tgz`, then use `npx tetorica-vgm --help`.
+
+Try playback, Note-ish and sheet music in the
+[browser VGM Analyzer](https://kyorohiro.github.io/hello_ymfm_wasm/vgm_analyzer/index.html).
+
+## Experimental SPC analysis and scores (0.2.12)
+
+```sh
+npx tetorica-vgm analyze song.spc --spc-seconds 30 --json
+npx tetorica-vgm score-channels song.spc --spc-seconds 30 --json
+npx tetorica-vgm export song.spc --spc-seconds 30 --format midi --output song.mid
+npx tetorica-vgm export song.spc --spc-seconds 30 --format musicxml --bpm 120 --output song.musicxml
+npx tetorica-vgm export song.spc --spc-seconds 30 --format lilypond --bpm 120 --output song.ly
+```
+
+SPC captures the sound CPU's state, so analysis runs the bundled CPU/DSP engine
+silently to observe the chosen interval. Default: the first 120 seconds or the
+shorter tagged duration. `--spc-seconds` accepts 0.1–600 seconds;
+`--spc-control-step-ms` accepts 0–1000 (default 20, 0 retains all distinct controls).
+Limits are 20,000 interpreted events and 256 BRR versions / 64,512 BRR bytes;
+exceeding a limit produces an error rather than a partial output.
+
+High-confidence BRR fundamental estimates are used at native 32,000 Hz / PITCH
+4096; uncertain samples use an explicitly provisional C4 reference. Estimates
+can be an octave off. To correct them, inspect the analysis sample IDs and pass
+`--spc-references references.json`. For example:
+
+```json
+[
+  {"sampleId": 0, "note": "C4", "cents": 0},
+  {"sampleId": 1, "referenceHz": 125}
+]
+```
+
+Each entry supplies either `note` with optional `cents`, or `referenceHz`.
+`sampleId` identifies a captured BRR version, not its SRCN. IDs belong to the
+file and capture settings; check them again after changing the input or interval.
+Corrections change the exported notes, never the SPC program or raw PITCH.
+
+MIDI preserves original timing and Pitch Bend on eight physical voice tracks,
+with Program 0 and velocity 100. MusicXML/LilyPond round base pitches to
+semitones on the existing 1/16 grid and assumed 4/4; BPM is suggested or set
+manually. Scores support IDs `snes-voice-1` through `snes-voice-8` with
+`--channels`, `--group` and `--merge-all` as for VGM.
+
+Only the analyzed interval is exported. Initial notes and envelope state are
+inferred; noise has no note, PMON shows base pitch, and audible release, echo,
+original BRR timbres and later held-sample RAM edits are not reconstructed.
+These are editable reference transcriptions, not original scores. SPC WAV
+rendering, sample export and lossless VGM/JSON commands are not exposed by this
+CLI. Use the browser Analyzer for SPC playback and BRR preview.
+
+The additive Node API leaves existing VGM APIs synchronous and unchanged:
+
+```js
+import {readFile, writeFile} from 'node:fs/promises';
+import {analyzeSpcSource, exportSpcAnalysis} from 'tetorica-vgm/spc';
+
+const analysis = await analyzeSpcSource(await readFile('song.spc'), {
+  durationSeconds: 30,
+  controlStepMs: 20,
+  // references: [{sampleId: 0, note: 'C4', cents: 0}],
+});
+const midi = exportSpcAnalysis(analysis, {format: 'midi', fileName: 'song'});
+await writeFile('song.mid', midi.bytes);
+const score = exportSpcAnalysis(analysis, {format: 'musicxml', bpm: 120});
+await writeFile('song.musicxml', score.text);
+```
+
+`isSpcSource`, `analyzeSpcSource`, `exportSpcAnalysis` and
+`listSpcScoreChannels` are also exported from `tetorica-vgm`.
+Analysis note positions use 44,100-Hz reference ticks, SPC events use
+1,024,000-Hz clocks, and `durationSeconds` is elapsed seconds independent of BPM.
+An optional AbortSignal cancels analysis; `onProgress` receives bounded progress
+updates. The existing `readSource` / `exportSource` APIs remain VGM/VGZ/S98 APIs.
 
 ## Sound chip support
 
@@ -140,7 +215,10 @@ The main entry point adds Node file access and WASM initialization for rendering
 
 ## License and source
 
-BSD-3-Clause. See [LICENSE](LICENSE) and the included `licenses/` notices.
+Tetorica code is BSD-3-Clause. The bundled snes_spc 0.9.0 component is
+LGPL-2.1-or-later; its notices, modified sources, WASM wrapper and rebuild recipe
+are included in `licenses/snes-spc/` and `sources/`. See [LICENSE](LICENSE) and
+the other included `licenses/` notices. No Nintendo IPL ROM or game data is bundled.
 The package excludes the browser score display libraries, LilyPond runtime and
 external ROMs; the Tetorica synthetic rhythm replacement is included.
 
@@ -401,6 +479,14 @@ Optimizes the bundled YM2612, Sega PSG, YM2203, YM2608, YM2610 / YM2610B,
 YM2413 and RF5C164 WASM cores used by WAV rendering. Tested PCM matches
 the previous builds; runtime assertions remain enabled. Analysis and export
 command interfaces are unchanged.
+
+## Version 0.2.12
+
+Adds experimental SPC CPU/DSP observation and BRR pitch estimation to the Node
+API and CLI, with MIDI / MusicXML / LilyPond exports and manual BRR references.
+The shared MIDI writer retains bends and timing; score algorithms and
+limitations match the browser Analyzer. Existing VGM APIs remain unchanged.
+SPC engine sources, license notices and rebuild instructions are bundled.
 
 ## MDX export
 

@@ -164,6 +164,14 @@ Analyzer:
 - BRR試聴は32kHz monoデコード結果。ゲームで鳴った音の完全再現ではなく、Gaussian補間、ADSR/GAIN、echo、元のtuningは適用しない。
 - 試聴モードは`Raw`と参照Voiceごとの`Voice N settings`を選べる。Rawは上記の生PCM。Voice試聴は取得RAMを独立S-DSPへコピーし、PITCH・ADSR/GAIN・左右音量とGaussian補間を適用して1秒発音＋1秒離鍵後を32kHz stereoで生成する。曲中の変更・元のEG内部状態・echo/noise/PMONは再現せず、DSP master volumeは127固定。基準音名の推定は不要。参照Voiceがない候補はRawのみ。Voice試聴中の波形は生成した音声を表示する。Stop／Play／シーク／ファイル切替・再取得で未完了の試聴もキャンセルする。BRR/WAV保存は従来どおり素材を保存する。
 
+Node／CLI（tetorica-vgm 0.2.12）:
+
+- 2026-10-18: npmへ公開済み。`latest=0.2.12`、レジストリーのintegrity／SHA-1と配布tarballの完全一致を確認。公開前に検証した同じtarballを配布している。
+- SPC用の非同期`analyzeSpcSource(bytes, options)`と、解析済み結果を再利用する`exportSpcAnalysis`／`listSpcScoreChannels`／署名判定`isSpcSource`を追加。既存の同期VGM APIは維持する。npmのmainと`tetorica-vgm/spc`から利用可能。
+- CLIのanalyze／support／score-channels／exportでSPCを受け付ける。`--spc-seconds`、`--spc-control-step-ms`、`--spc-references`を指定可能。参照JSONはBRRバージョンのsampleIdに対してHzか音名＋セント差を指定し、推定より優先する。ブラウザーと同じcapture・基音推定・Note-ish・MIDI／譜面生成処理を使う。
+- 出力はMIDI／MusicXML／LilyPondのみ。SPCのWAV render、samples、VGM/JSON round trip、MMLやFM voice snapshotは未対応として明示拒否する。supportは3形式を実出力で検査し、再生・素材出力と混同しない。npm READMEのVGM再生表からSPCを分離する。
+- SPC本体16MiB／参照JSON1MiB、既存の解析秒数・イベント・BRR上限を維持。不正値・未対応指定・解析エラーでは出力ファイルを作らず、既存ファイルはforce指定なしで保護する。WASMとLGPL-2.1-or-laterの通知・改変済みソース・wrapper・再ビルド手順を同梱し、Nintendo IPL／実ゲーム素材は含めない。
+
 Playground:
 
 - `Menu → Import → SPC…`からSong playback／Instruments／Song JavaScript／Event traceを選択可能。すべて`/spc/<元ファイル名>/`以下の新規フォルダーへ原本SPCとsourceinfoを保持し、同名の取り込みは別フォルダーにする。
@@ -213,6 +221,7 @@ snes.noteOff(0);
 
 検証結果:
 
+- npm SPC対応（2026-10-18）: 実WASMのNode 8件とCLI／既存VGM・S98・support・score-channels・tarballの22件が成功。Nodeとブラウザー共通処理の音符・参照値・3出力の一致、MIDIの8ボイスとBPM非依存の秒数、Hz／音名の補正、選択・grouping、既定タグ長／120秒上限、Abort、実DSPでの2万イベント超過、入力不正・未対応操作・上書き拒否を確認。公開用0.2.12 tarballを隔離offline installし、150モジュールの依存、mainと/spcのAPI、署名判定、CLI/APIの実出力、WASMとLGPLソース同梱を検証した。実ゲーム由来SPCでの推定・採譜品質は継続確認する。
 - Analyzer SPC MIDI／譜面追加（2026-10-18）: Analyzer全525件中524成功、失敗0、既存の任意mml2mdr連携1件skip。既存VGMと共通のSMF生成を用い、SNESの8トラック／固定Program・velocity／RPN／Pitch Bend／再発音／末尾無音、異なるBPMでも元の秒数が一致すること、2万音符の出力と不正入力を検証。観察→Note-ish→共通解析→MIDI／MusicXML／LilyPondを通す統合テストで基準音補正・KOFF・単位・入力不変を確認。docs／itch配布配置 × Chromium／WebKitの4経路で実ダウンロードを独立解析し、MIDI conductor＋8トラックと区間長、音名・セント差、MusicXML／LilyPondと実OSMD SVG表示、Sheet先行の解析、タブ間のWorker共有を確認。無効な参照音での出力停止、補正／再解析／ファイル変更時の古い設定・プレビューの破棄、Cancel／seek／Stop／SPC→VGMも成功。補正前後の元SPC音声は同じ約1998Hz、finite、全mute／Stop後peak0。itch依存661参照・support表の一致・ZIP生成が成功。実ゲーム由来SPCの採譜品質とTauri実アプリは今回未確認。元の楽譜・音色の復元ではなく、編集可能な参考出力として扱う。
 - Analyzer SPC Note-ish追加（2026-10-18）: Analyzer全507件中506成功、失敗0、既存の任意mml2mdr連携1件skip。実WASMを使った演奏観察、基準音・セント差、同音再発音、KOFF、noise／PMON、音量、解析範囲外、8秒の履歴・過密上限、pause／seek／Stop、世代違いのWorker結果の破棄を検証した。docs／itch配布配置 × Chromium／WebKitで全ビュー、基準音補正、入力検証、解析再利用、Cancel、SPC→SPC／VGM切り替え、Songカーソルの保持と秒への変換を確認。補正前後の実出音は同じ約1998Hzで、追加の音声命令やCPU再解析がないこと、出音finite／全mute・Stop後peak0も確認。既存SPC／BRRブラウザー回帰も両ブラウザーで成功（SRCN走査、BRR／WAV、Raw／Voice試聴、取消、タグfade、transport、SPC→VGM）。itch依存659参照とZIP生成が成功。実ゲーム由来SPCの推定精度・Tauri実アプリは今回未確認。
 - Import基準の共有（2026-10-18）: 推定／手動の基準HzをloadBRRのbaseFrequencyHz・コメント・sample metadataへ共通反映し、既知素材の仮C4登録を廃止。生成した曲のraw setPitch／keyOn／keyOff／preset／待機は維持し、setNote等へ置換しない。Playground595テスト成功。実WASM S-DSPで設定前後の左右各3200framesが完全一致（非無音、peak約0.507）し、後からのsetNoteが設定した基準Hzを使うことも確認。docs／itch配布構成 × Chromium／WebKit × Main／Workerで推定・手動設定の実サンプルHzを16条件確認、metadata一致、Cancel／入力検証／解析再利用、出音finite／Stop後peak0／Monaco診断0が成功。1秒902eventsは1.002〜1.006秒。itch依存450参照とZIP生成が成功。既存の生成済みJSは変更せず、原本SPCの再取り込みで反映する。Tauri実アプリと実曲での推定精度は未確認。

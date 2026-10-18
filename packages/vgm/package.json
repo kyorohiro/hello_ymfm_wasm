@@ -1,9 +1,10 @@
 {
   "name": "tetorica-vgm",
-  "version": "0.2.11",
-  "description": "Tetorica VGM Analyzer CLI and shared analysis core",
+  "version": "0.2.12",
+  "description": "VGM and experimental SPC analysis, MIDI and sheet music exports",
   "type": "module",
   "license": "BSD-3-Clause",
+  "homepage": "https://kyorohiro.github.io/hello_ymfm_wasm/vgm_analyzer/index.html",
   "engines": {
     "node": ">=22"
   },
@@ -12,7 +13,8 @@
   },
   "exports": {
     ".": "./cli/index.js",
-    "./core": "./docs/vgm_analyzer/analyzer_core.js"
+    "./core": "./docs/vgm_analyzer/analyzer_core.js",
+    "./spc": "./cli/spc.js"
   },
   "files": [
     "cli/",
@@ -20,6 +22,7 @@
     "web/",
     "licenses/",
     "assets/",
+    "sources/",
     "README.md",
     "CLI.md",
     "LICENSE"
@@ -44,6 +47,10 @@
     "vgm-analyzer",
     "midi",
     "musicxml",
-    "lilypond"
+    "lilypond",
+    "snes",
+    "spc",
+    "brr",
+    "spc700"
   ]
 }

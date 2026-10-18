@@ -3,6 +3,51 @@
 Node.js 22+ CLI and library for the existing Tetorica VGM Analyzer.
 Install the CLI and library with `npm install tetorica-vgm`.
 
+## Experimental SPC support (0.2.12)
+
+`analyze`, `score-channels`, `support` and `export` also accept SPC snapshots.
+SPC is recognized by its signature. Export formats are `midi`, `musicxml` and
+`lilypond`; existing VGM/VGZ/S98 commands retain their behavior.
+
+```sh
+npx tetorica-vgm analyze song.spc --spc-seconds 30 --json
+npx tetorica-vgm export song.spc --spc-seconds 30 --format midi --output song.mid
+npx tetorica-vgm export song.spc --spc-seconds 30 --format musicxml --bpm 120 --output song.musicxml
+```
+
+- `--spc-seconds`: first 0.1–600 elapsed seconds; default 120 or the shorter tagged duration.
+- `--spc-control-step-ms`: control sampling, 0–1000 ms; default 20, 0 keeps distinct changes.
+- `--spc-references FILE.json`: manual BRR references as an array, for example
+  `[{"sampleId":0,"note":"C4","cents":0}]` or `[{"sampleId":0,"referenceHz":261.625565}]`.
+  Use one representation per entry. Inspect `analyze --json` for captured sample
+  IDs; these are BRR version IDs within the selected capture, not SRCNs.
+
+These flags are only accepted for the four SPC commands above. High-confidence
+fundamental estimates are applied; uncertain BRRs use provisional C4. Reference
+Hz is defined at native 32,000 Hz / PITCH 4096, and manual values override estimates.
+The event/asset limits are 20,000 events, 256 BRR versions and 64,512 BRR bytes.
+Capture errors do not write partial exports. No automatic percussion/root-note
+recognition or octave disambiguation is promised.
+
+MIDI uses eight independent voice tracks, fixed Program 0 / velocity 100, raw
+timing and Pitch Bend. MusicXML/LilyPond use half-step pitches, a 1/16 grid and
+assumed 4/4 with a suggested or explicit BPM. Score IDs are `snes-voice-1`–`snes-voice-8`;
+channel selection and manual grouping work as for VGM. Only the captured interval
+is exported. Key requests approximate note lengths; audible EG/release, echo,
+noise, original timbres and later held-sample RAM edits are omitted; PMON uses
+base pitch. Initially active notes are inferred. Inspect warnings in each output.
+
+SPC `render`, `samples`, snapshots, MML and lossless VGM/JSON conversion are not
+supported by this CLI. The [browser Analyzer](https://kyorohiro.github.io/hello_ymfm_wasm/vgm_analyzer/index.html)
+provides SPC playback and BRR inspection. `support` reports these distinctions.
+
+Node exports `analyzeSpcSource(bytes, options)` (async),
+`exportSpcAnalysis(analysis, options)` (sync), `listSpcScoreChannels(analysis)`
+and `isSpcSource(bytes)` from both `tetorica-vgm` and `tetorica-vgm/spc`.
+Existing `readSource`, `readSourceDocument`, `exportSource` and `renderSource`
+remain VGM/VGZ/S98 APIs. Detailed usage is in the package README.
+The bundled LGPL-2.1-or-later snes_spc sources and rebuild recipe are in `sources/`.
+
 ## From this repository
 
 The BSD-3-Clause synthetic YM2608 rhythm replacement is included at
@@ -19,7 +64,7 @@ node dist/vgm/cli/main.js render test/fixtures/psg-tone.vgz --output /tmp/tone.w
 npm run pack:vgm:check
 npm run pack:vgm
 # Test the actual tarball without publishing:
-npm exec --offline --package ./tetorica-vgm-0.2.11.tgz -- tetorica-vgm --help
+npm exec --offline --package ./tetorica-vgm-0.2.12.tgz -- tetorica-vgm --help
 ```
 
 After publication, the same commands work as `npx tetorica-vgm ...`.

@@ -3,6 +3,7 @@ import { readFile, writeFile, mkdir, cp, rm, chmod, stat } from 'node:fs/promise
 import { resolve, dirname, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { copyOpnaRhythm } from './copy_opna_rhythm.mjs';
+import { copySpcSources } from './copy_spc_sources.mjs';
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const out = resolve(root, 'dist/vgm');
 await rm(out, { recursive:true, force:true });
@@ -50,3 +51,4 @@ await chmod(resolve(out,'cli/main.js'),0o755);
 console.error(`Staged ${seen.size} dependency files in dist/vgm/`);
 
 await cp(resolve(root,'third_party/fixnes-fds'),resolve(out,'licenses/fixnes-fds'),{recursive:true});
+await copySpcSources(out);
