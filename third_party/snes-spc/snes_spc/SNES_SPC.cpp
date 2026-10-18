@@ -184,6 +184,7 @@ inline void SNES_SPC::dsp_write( int data, rel_time_t time )
 	if ( REGS [r_dspaddr] <= 0x7F )
 	{
 		if ( trace_callback ) trace_callback( trace_user, trace_clock, 0, REGS [r_dspaddr], (uint8_t) data );
+		if ( observer_callback ) observer_callback( observer_user, observer_clock, 0, REGS [r_dspaddr], (uint8_t) data );
 		dsp.write( REGS [r_dspaddr], data );
 	}
 	else if ( !SPC_MORE_ACCURACY )

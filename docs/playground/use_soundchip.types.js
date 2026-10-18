@@ -170,6 +170,41 @@ await spc.seek(5);
 await spc.setMuteMask(0xfe);
 (await spc.getState()).positionSeconds.toFixed();
 (await spc.snapshot()).ram.byteLength.toFixed();
+const stopObservingSpc = spc.onEvent(event => {
+  (event.clock / 1024000).toFixed(3);
+  if (event.type === 'noteOn') {
+    event.preset.adsr1.toFixed();
+    event.pitch.toFixed();
+    event.channel.toFixed();
+    event.keyOffHeld.valueOf();
+    // @ts-expect-error Raw PITCH has no inferred note name.
+    event.note.toUpperCase();
+  } else if (event.type === 'instrument') {
+    event.sourceNumber.toFixed();
+    event.preset.volumeLeft.toFixed();
+  } else if (event.type === 'pitch') {
+    event.pitch.toFixed();
+    // @ts-expect-error A PITCH change does not carry a complete instrument preset.
+    event.preset.gain.toFixed();
+  } else if (event.type === 'volume') {
+    event.volumeRight.toFixed();
+  } else if (event.type === 'noteOff') {
+    event.reason.toUpperCase();
+  } else if (event.type === 'dsp') {
+    event.register.toFixed();
+    event.value.toFixed();
+  } else {
+    event.droppedWrites.toFixed();
+    event.message.toUpperCase();
+  }
+}, {voices:[0,7], types:['noteOn','pitch','dsp'], intervalMs:32});
+stopObservingSpc();
+// @ts-expect-error SPC physical voices are 0..7.
+spc.onEvent(() => {}, {voices:[8]});
+// @ts-expect-error Only the documented musical/raw event types can be selected.
+spc.onEvent(() => {}, {types:['note']});
+// @ts-expect-error onEvent needs a callback, not an event name.
+spc.onEvent('noteOn');
 await mixer.set(spc.id, {volume:0.5});
 (await createSoundChip('spc', {id:'spc:other'})).dispose();
 // @ts-expect-error SPC is a file player, not a musical instrument.

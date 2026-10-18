@@ -2,6 +2,7 @@ import {parseSpcFile} from '../js/spc_file.js';
 import {exportBrrSample} from '../js/snes_brr.js';
 import {noteToHz} from '../js/soundchip_pitch.js';
 import {scanSpcBrrCandidates} from '../vgm_analyzer/spc_brr_candidates.js';
+import {buildSpcSongSource} from './playground_spc_song_source.js?v=spc-events-1';
 
 const MAX_INSTRUMENT_BYTES = 65536 - 0x400;
 const DEFAULT_VOICE = {adsr1:0x8f, adsr2:0xe0, gain:127, volumeLeft:90, volumeRight:90, pitch:4096};
@@ -100,6 +101,11 @@ function songSource() {
 // Playback continues after this script finishes. Use toolbar STOP to stop it.
 const spc = await useSoundChip('spc');
 await spc.loadSPC(await file('./original.spc', {type:'arrayBuffer'}));
+// Inspect key requests without changing playback (physical voices 0..7):
+// const unsubscribe = spc.onEvent(event => console.log(event), {
+//   voices: [0], types: ['noteOn', 'noteOff']
+// });
+// unsubscribe(); // Stop observing; the song keeps playing.
 await spc.play();
 `;
 }
@@ -201,11 +207,12 @@ try {
  * voiceIndex:null explicitly requests the default voice; undefined selects the
  * first captured Voice when one exists. entryPath is the first selected script.
  */
-export function buildSpcImportFiles(prepared, {mode, directory, selected = [], trace} = {}) {
+export function buildSpcImportFiles(prepared, {mode, directory, selected = [], trace, performance} = {}) {
   if (!prepared?.spc?.originalBytes || !Array.isArray(prepared.candidates)) throw new TypeError('Expected a prepared SPC import');
-  if (!['song', 'instruments', 'javascript'].includes(mode)) throw new TypeError('SPC import mode must be song, instruments or javascript');
-  if (mode === 'javascript') validateTrace(trace);
+  if (!['song', 'instruments', 'javascript', 'trace'].includes(mode)) throw new TypeError('SPC import mode must be song, instruments, javascript or trace');
+  if (mode === 'trace') validateTrace(trace);
   safeDirectory(directory);
+  const readable = mode === 'javascript' ? buildSpcSongSource(performance, directory) : null;
   if (!Array.isArray(selected) || selected.length > 256) throw new TypeError('selected must be an array of at most 256 BRR candidates');
   const selections = mode === 'instruments' ? selected.map(value => findSelection(prepared, value)) : [];
   if (mode === 'instruments' && !selections.length) throw new RangeError('Select at least one importable BRR candidate');
@@ -214,15 +221,21 @@ export function buildSpcImportFiles(prepared, {mode, directory, selected = [], t
     {path:`${directory}/sourceinfo.json`, type:'text', data:json({format:'tetorica-spc-import', schemaVersion:1,
       sourceName:prepared.name, mode, metadata:prepared.metadata, warnings:prepared.warnings,
       scan:{directory:prepared.scan.directory, summary:prepared.scan.summary, rejected:prepared.scan.rejected},
-      ...(mode === 'javascript' ? {conversion:{version:trace.version, clockRate:trace.clockRate,
+      ...(readable ? {conversion:readable.conversion} : mode === 'trace' ? {conversion:{version:trace.version, clockRate:trace.clockRate,
         durationClocks:trace.durationClocks, durationSeconds:trace.durationClocks / trace.clockRate,
         eventCount:trace.events.length / 4, nativeSampleRate:32000,
         outputDelayFrames:trace.initialState.outputDelayFrames,
         ...(trace.optimization ? {optimization:trace.optimization} : {})}} : {}),
-      limitation:mode === 'javascript' ? 'Finite recorded DSP/RAM execution; original note names and loop structure are not inferred. Tag fade is not applied.'
+      limitation:readable ? 'Approximate editable re-performance; initial envelope/phase, echo and subsequent BRR RAM edits are not restored. No original note names, loop structure or tempo are inferred.'
+        : mode === 'trace' ? 'Finite recorded DSP/RAM execution; original note names and loop structure are not inferred. Tag fade is not applied.'
         : 'BRR candidates describe this saved RAM snapshot, not every instrument used during the song.'})},
   ];
   if (mode === 'javascript') {
+    const entryPath = `${directory}/index.js`;
+    files.push(...readable.files,{path:entryPath,type:'text',data:readable.source});
+    return {files,entryPath,directory,mode,conversion:readable.conversion};
+  }
+  if (mode === 'trace') {
     const entryPath = `${directory}/index.js`;
     files.push({path:`${directory}/initial.ram.bin`, type:'binary', data:trace.initialState.ram.slice()},
       {path:`${directory}/initial.dsp.bin`, type:'binary', data:trace.initialState.dsp.slice()},

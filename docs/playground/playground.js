@@ -21,7 +21,7 @@ import {installPlaygroundPageLifecycle} from "./playground_page_lifecycle.js";
 import {createFXMonitor} from './playground_fx_monitor.js?v=vertical-range-1';
 import {createAudioMonitor} from './playground_audio_monitor.js?v=vertical-range-1';
 import {installMidiImport} from './playground_midi_import.js?v=midi-sections-1';
-import {installSpcImport} from './playground_spc_import.js?v=spc-trace-filter-1';
+import {installSpcImport} from './playground_spc_import.js?v=spc-events-1';
 import {
   FM_PRESET_ORDER,
   FM_PRESETS,
@@ -74,7 +74,7 @@ import { exportYm2608VgmToPlaygroundJavaScript } from "../js/ym2608vgm.js";
 import { exportYm2610BVgmToPlaygroundJavaScript } from "../js/ym2610bvgm.js";
 import {
   createPlaygroundRuntime,
-} from "../js/playground_runtime.js?v=spc-import-1";
+} from "../js/playground_runtime.js?v=spc-events-1";
 import {DEFAULT_WORKER_LOOKAHEAD_SECONDS} from '../js/playground_performance_sender.js?v=worker-lookahead-500-1';
 import { createVgmPresetFiles } from "./playground_vgm_presets.js";
 import { createTfiFileEditor, instrumentToEditorPreset } from "./playground_tfi_editor.js?v=chip-tabs-2";
@@ -2715,8 +2715,10 @@ installSpcImport({button:document.getElementById('importSpcButton'),
     activeVirtualPath = plan.entryPath; runVirtualPath = plan.entryPath;
     showVirtualFile(virtualFiles.get(plan.entryPath)); renderVirtualFileExplorer(); renderRunFileOptions(); setBottomTab('code');
     const stats = plan.conversion?.optimization;
-    const summary = stats ? ` ${plan.conversion.eventCount.toLocaleString()} writes (DSP ${stats.dspEvents.toLocaleString()}, RAM ${stats.ramEvents.toLocaleString()}).` : '';
-    setStatus(`Imported ${name} into ${plan.directory}.${summary} Choose Run to play ${plan.mode === 'song' ? 'the SPC song' : plan.mode === 'javascript' ? 'the recorded song JavaScript' : 'the selected instrument'}.`);
+    const summary = plan.conversion?.kind === 'readable'
+      ? ` ${plan.conversion.eventCount.toLocaleString()} interpreted events from ${plan.conversion.rawWrites.toLocaleString()} writes; ${plan.conversion.sampleCount} BRR samples. Approximate re-performance; see source comments for limitations.`
+      : stats ? ` ${plan.conversion.eventCount.toLocaleString()} writes (DSP ${stats.dspEvents.toLocaleString()}, RAM ${stats.ramEvents.toLocaleString()}).` : '';
+    setStatus(`Imported ${name} into ${plan.directory}.${summary} Choose Run to play ${plan.mode === 'song' ? 'the SPC song' : plan.mode === 'javascript' ? 'the editable song JavaScript' : plan.mode === 'trace' ? 'the recorded event trace' : 'the selected instrument'}.`);
   },
 });
 

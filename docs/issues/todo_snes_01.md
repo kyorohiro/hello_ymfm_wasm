@@ -158,15 +158,19 @@ Analyzer:
 
 Playground:
 
-- `Menu → Import → SPC…`からSong playback／Instruments／Song JavaScriptを選択可能。すべて`/spc/<元ファイル名>/`以下の新規フォルダーへ原本SPCとsourceinfoを保持し、同名の取り込みは別フォルダーにする。
+- `Menu → Import → SPC…`からSong playback／Instruments／Song JavaScript／Event traceを選択可能。すべて`/spc/<元ファイル名>/`以下の新規フォルダーへ原本SPCとsourceinfoを保持し、同名の取り込みは別フォルダーにする。
 - Song playbackは`useSoundChip('spc')`のloadSPC／playを使うコードを生成。SPC700プログラムとDSPを再生し、JavaScriptの音符列には変換しない。BPM／Worker先読みから独立し、Stopまで再生する。Main／Workerとも既存Mixer・FX・Master経路に接続する。
 - Instrumentsは保存時点の全SRCN候補から選んだBRR・Metadata・設定JSON・試奏JSを保存。捕捉Voiceを選択でき、ない候補は既定の設定を使う。C4等は利用者が割り当てる参照音名で、元の基音を推定したものではない。初回試奏は捕捉PITCHをそのまま使い、1秒発音＋1秒離鍵する。未解決ループや独立SNES音源のRAMに収まらないBRRは理由を示し音色取り込みの対象外とする。試奏ごとに独立音源を解放し、Runの繰り返しでサンプルRAMを使い切らない。
-- Song JavaScript（実験的）は指定0.1〜600秒を独立Workerで無音実行し、DSPレジスター操作とCPUによるRAM変更を時刻付きの編集可能な`events`配列に変換する。初期RAM（BRR・ディレクトリー・echo RAMを含む）とDSPレジスターは`initial.ram.bin`／`initial.dsp.bin`として保存する。元の音符名・変数名・ループ構造は推定しない。タグfadeも自動適用しない。100万イベントを超えたら途中データは保存せず、時間短縮かSong playbackを案内する。変換中のCancelはWorkerを破棄し、Filesを変更しない。
+- Song JavaScript（実験的）は指定0.1〜600秒を独立Workerで無音実行し、`loadBRR`／`setPreset`／`setPitch`／`keyOn`／`sleep`／`keyOff`で編集できるコードに変換する。元の音符名・変数名・ループ構造は推定しない。PITCH・ADSR/GAIN・左右volumeはチップのraw値を使う。初期のEG内部状態は復元できず、BRRの取得も128 native frames（最大約4ms）の区切りとなる。noise／PMONのraw global制御は保持する。echoは再配置したBRRへのRAM上書きを避けるため無効にし、初期EG・再生中BRR変更・JS時間精度等の近似をsourceinfoと生成JSへ明示する。原本と同一PCMが必要ならSong playbackまたはEvent traceを使う。
+- 読みやすい変換のcontrol stepは既定20ms、0で全distinct変更を保持、上限1000ms。PITCH・volume・同一SRCNのADSR/GAIN更新は区間の最終値へ間引く。KON／KOFF／SRCN変更の境界は元の時刻を保持し、そこをまたいでcontrolをまとめない。エンジンに補間・スムージングは追加しない。20000 musical events、BRR256個／合計64512 bytesを超えたら途中データを保存せず明示エラーとする。タグfadeは推定しない。変換CancelではFilesを変更しない。
+- Event trace（以前のSong JavaScript）はDSPレジスター操作とCPUによるRAM変更を時刻付きの編集可能な`events`配列に変換する。初期RAM（BRR・ディレクトリー・echo RAMを含む）とDSPレジスターは`initial.ram.bin`／`initial.dsp.bin`として保存する。100万イベントを超えたら途中データは保存せず、時間短縮かSong playbackを案内する。
 - Timelineの1行は`clock, kind, address, value`の4整数。kindは0=DSPレジスター、1=RAM。clockは1,024,000Hzの**DSPが実際に観測した実行順序**を保存し、CPU命令の生時刻ではない。32 clocksがnative 32kHzの1frame。出力sampleRate・44,100HzのVGM sample単位・BPMから独立する。同一clockの行の順序も維持する。
 - `snes.prepareTimeline(trace)`で初期状態とイベントを準備し、`await snes.playTimeline()`は実際の音声終了まで待機する。`stopTimeline()`／toolbar Stop／破棄／loop owner解除は待機をAbortErrorで中断する。Worker先読みは開始に一度だけ適用する。Timeline中は通常音色編集との混在を拒否し、`reset()`でBRR演奏へ戻る。再生中のJSによる逐次イベント送信を避け、WASM内でサンプル未満の時刻も処理する。
 - 上流のDSP catch-upと再生中のBRR RAM書き換えにより、元のSPCエンジン自体にrender分割依存がある。通常プレイヤーと同じ128 native frames単位で録音し、端数は完全な128-frame読み込みのprefixを切り出す。録音有無で元PCMを変更しない。書き出したTimelineの再生はrender分割に依存しない。実機の完全再現や任意の他プレイヤーとの完全一致を保証するものではない。
-- Song JavaScriptのRAM削減: 同じ128-frame実行を2回行う。1回目はDSPが実際に読む全RAMアドレス（BRR・ディレクトリー・echo、16bit読み出しの両byte・折り返し・無音Voiceも含む）の集合を調べ、2回目はその集合にあるRAM変更だけをイベント上限の判定前に記録する。CPUの実行自体は変えず、DSPレジスター書き込みは全部残す。元の区間で未読の作業用RAM変更がイベント上限を消費しなくなる。進捗はAnalyzing／Recordingを分ける。
+- Event traceのRAM削減: 同じ128-frame実行を2回行う。1回目はDSPが実際に読む全RAMアドレス（BRR・ディレクトリー・echo、16bit読み出しの両byte・折り返し・無音Voiceも含む）の集合を調べ、2回目はその集合にあるRAM変更だけをイベント上限の判定前に記録する。CPUの実行自体は変えず、DSPレジスター書き込みは全部残す。元の区間で未読の作業用RAM変更がイベント上限を消費しなくなる。進捗はAnalyzing／Recordingを分ける。
 - 削減後のDSP／RAM件数と参照RAMアドレス数は`sourceinfo.json`の`conversion.optimization`に記録し、取り込み完了statusと生成JS冒頭にも件数を表示する。各イベントには秒数とDSPパラメーター名を添える。保証は元の区間の再現であり、編集によって未読領域へDIR／SRCN／PITCH／echo等の参照先を変える場合、そこへ元CPUが行った省略済み更新は含まれない。曲によって削減量は異なり、元から必要なDSP操作が多い場合の100万件上限は残る。
+- Song playbackの`spc.onEvent(callback, {voices, types, intervalMs})`は任意購読。戻り値の関数で解除する。SPCのDSP書込みを共通decoderで`noteOn`／`noteOff`／`pitch`／`volume`／`instrument`／`dsp`へ解釈し、MainまたはスクリプトWorkerでまとめてcallbackを呼ぶ。音声スレッド内で利用者JSを実行しない。intervalMsは16〜1000ms（既定16）の配送間隔で、controlの量子化ではない。`clock`はSPC原点から1,024,000Hz、`channel`は0〜7。global `dsp`はvoice filterの対象外。overflow診断はfilterにかかわらず通知し、欠落した履歴は補わず現在のDSPから再同期する。
+- 共通decoderは同一clockのPITCH上下byte／左右volume／音色byteを集約し、同じ最終値の反復を除く。KONは同じmaskでも毎回発音要求として残し、KON/KOFF/global書込みの順序境界を越えて集約しない。KOFFは持続maskで、KON時にもbitがある場合は`keyOffHeld:true`を付ける。初期音はKON／ENVX／OUTXからの推測で`inferred:true`とし、元のkey履歴・内部EG・実際に聞こえているかは断定しない。PITCHを音名へ推定せず、volumeは符号付き値、noteOn/instrumentにはその時点のpresetを添える。rawDSPはglobal echo／noise／PMON等の追加解析にも使える。読みやすい変換はその一部を利用するが、decoder自体は省略・量子化をしない。
 
 ```javascript
 const snes = await useSoundChip('snes');
@@ -200,6 +204,7 @@ snes.noteOff(0);
 
 検証結果:
 
+- 読みやすい変換／onEvent追加（2026-10-18）: 関連261テスト成功。自作曲の645回のDSP書き込みを5件の演奏イベントへ整理し、生成したBRR・preset・JSを実S-DSPで再生確認。間引きの境界、同音再発音、KOFF、BRRバージョン、未解決loop、RAM／イベント上限、Cancel、観察overflowとPCM不変を検証。docs／itch配布配置のChromium／WebKit × Main／Workerで4モードの出音・Stop後peak 0・Monaco型診断0・filter／unsubscribeを確認。スクリプト終了後の非同期callbackにも既存のネットワーク制限を適用し、両経路・両ブラウザーで検証。既存Analyzer両ブラウザー回帰、WASM再ビルド、SDKビルド（226宣言）・型チェック、itch依存446参照・ZIP生成が成功。初期音だけのSPCも再生開始後に一度だけ通知し、停止中に空の通知を繰り返さない。実ゲームSPC／Tauri実アプリは未確認。読みやすい変換は同一PCMを保証せず、完全なcaptured execution再生は従来のEvent traceを使用する。
 - RAM削減追加（2026-10-18）: native／trace38件と生成／capture／統合18件が成功。検証曲では194→5イベント（DSP4＋RAM1、97.4%削減）となり、原本・旧JS・削減後JSのPCMが左右全sample一致。BRR／DIR変更、echo、noise、PMON、RAM折返し、無音Voice、インスタンス分離、上限判定前の除去、両passでのCancelも確認。docs／itch配布配置のChromium／WebKit × Main／Worker、Monaco型診断0、Stop後peak 0、既存Analyzerの両ブラウザ回帰、SDKビルド／224宣言生成と型チェックが成功。実ゲームSPC・Tauri実アプリは未確認。削減率は曲に依存する。
 - Song JavaScript追加（2026-10-18）: 変換・capture・生成コード33件、関連runtime／SPC／既存chip予約148件が成功。初期RAM・書き出しJS・binaryの再読込を含む元SPCとのPCM完全一致、128-frame端数切出し、32／44.1／48kHzのWorklet再生、Stop／owner解除、100万件上限とCancelを確認。docsとitch配布配置をChromium／WebKit × Main／Workerで実行し、全モードの出音・Stop後peak 0・Monaco型診断0・原本保持・取り込み先衝突回避が成功。既存Analyzerの両ブラウザ回帰、WASM再ビルド、SDKビルド／224宣言生成、型チェックも成功。実ゲームSPC・Tauri実アプリは未確認。
 - SPC Import追加（2026-10-18）: 生成・SPC client・Main管理52件、関連回帰57件、型チェックが成功。itch Playground配布配置をChromium／WebKit × Main／Workerで確認し、Songの連続Run、捕捉Voice／未参照BRRの試奏、Stop後の無音、Cancel時の無変更、取り込み先の衝突回避、原本SPCの完全保持を検証。既存AnalyzerのChromium／WebKit回帰も成功。使用データは自作の合成SPCで、実ゲームSPCとTauri実アプリは今回未確認。
@@ -219,5 +224,5 @@ snes.noteOff(0);
 - 実ゲーム由来SPC、実機比較、Tauriの実アプリ（macOS／Windows／Linux）、長時間の実機音切れ検証は未実施。
 - Nintendo IPL ROMは同梱せず、上流の最小fallbackを使用。完全IPLやゲーム本体から後続転送を必要とするSPCは動かない場合がある。
 - SPCはDSP内部の全位相・BRR履歴を含む完全checkpointではない。ゲームごとの復元直後の音や互換性は別途確認が必要。
-- 出力リサンプラーは線形補間。高品質な変換、完全な途中checkpoint／seek cache、DSP時系列解析、BRRのroot推定、楽譜変換は後続課題。
+- 出力リサンプラーは線形補間。高品質な変換、完全な途中checkpoint／seek cache、DSP時系列の可視化、BRRのroot推定、楽譜変換は後続課題。
 - 旧式タグの文字コード・text/binary判定は曖昧な場合がある。ライブラリーの`textEncoding`／`id666Format`指定で上書き可能。Analyzer内の選択UIは未追加。

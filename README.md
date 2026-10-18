@@ -50,11 +50,22 @@ This is the easiest way to test YM2612 control, sound design, and Genesis-orient
   voices with BRR, explicit sample tuning and raw ADSR/GAIN controls.
   Try `examples/snes/snes-brr-melody.js`; its original BRR needs no game files.
   `Menu → Import → SPC…` offers **Song playback** (`useSoundChip('spc')`),
-  **Instruments** (BRR, captured settings and editable SNES audition scripts), and
-  experimental **Song JavaScript** (a finite, editable DSP/RAM event timeline).
+  **Instruments** (BRR, captured settings and editable SNES audition scripts),
+  experimental **Song JavaScript** (readable BRR/instrument/note operations), and
+  **Event trace** (a finite, editable DSP/RAM event timeline).
   All modes preserve the original SPC in a new Files folder. Instrument reference notes
   are assigned by the user; they are not inferred from BRR. Song playback runs until Stop.
-  Song JavaScript records 0.1–600 seconds, with a maximum of 1,000,000 writes.
+  Song JavaScript records 0.1–600 seconds into `loadBRR`, `setPreset`, `setPitch`,
+  `keyOn`, `sleep` and `keyOff` calls. PITCH remains in chip units, with no guessed
+  note names or original loop structure. The control step defaults to 20 ms
+  (0 keeps all distinct changes; maximum 1000 ms). PITCH, volume and same-SRCN
+  ADSR/GAIN updates are sampled; key and SRCN-change boundaries retain their
+  original times. This is an editable approximation: initial envelope state,
+  BRR snapshot timing and JavaScript timing can differ. Raw noise/pitch-modulation
+  controls are retained; echo is omitted to protect relocated BRR. Warnings
+  are saved with the source. Conversion rejects more than 20,000 musical events,
+  256 BRRs or 64,512 total BRR bytes instead of saving partial data.
+  Event trace records 0.1–600 seconds, with a maximum of 1,000,000 writes.
   Edit its annotated `events` array to change raw chip values and timing; initial
   BRR/RAM and DSP bytes are saved alongside the code. It retains sample changes,
   echo, noise and pitch modulation. Note names, loops and tag fade are not inferred.
@@ -63,6 +74,14 @@ This is the easiest way to test YM2612 control, sound design, and Genesis-orient
   labels, and the import status/source info report the retained DSP/RAM counts.
   This preserves the recorded playback; edits that reference other RAM regions
   may require additional original driver data that was not used in that interval.
+  Song playback also supports opt-in `spc.onEvent(callback, {voices, types, intervalMs})`
+  observations in Main and Worker. Callbacks receive distinct PITCH, signed stereo
+  volume, instrument and key requests, plus raw global DSP writes. `clock` uses
+  1,024,000 ticks per second; delivery is batched and is not an audio scheduling API.
+  Initial notes are inferred, repeated KON requests retrigger, and a persistent KOFF
+  is reported as `keyOffHeld`. The returned function unsubscribes. An `overflow`
+  diagnostic reports interrupted observation; playback continues and observation
+  resynchronizes without inventing missing history.
 - Playground Runtime Embedded Demo:
   [https://kyorohiro.github.io/hello_ymfm_wasm/demos/playground_runtime.html](https://kyorohiro.github.io/hello_ymfm_wasm/demos/playground_runtime.html)
 - Synth:

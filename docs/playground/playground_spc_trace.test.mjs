@@ -4,7 +4,9 @@ import {readFile} from 'node:fs/promises';
 import path from 'node:path';
 import factory from '../generated/spc_wasm.js';
 import {SpcCore,SnesDspCore} from '../../web/spc.js';
+import {SnesSynth} from '../../web/snessynth.js';
 import {captureSpcTrace} from '../../web/spc_trace.js';
+import {captureSpcPerformance} from '../../web/spc_performance.js';
 import {createSyntheticSpc} from '../../web/spc_test_fixture.mjs';
 import {prepareSpcImport,buildSpcImportFiles} from './playground_spc_source.js';
 
@@ -27,6 +29,23 @@ function writableSong({busyWork = false} = {}) {
   delay(); code.push(0xe8,0x72,0xc5,1,0x20); writeDsp(3,8);
   delay(); writeDsp(0,0); writeDsp(1,64);
   delay(); writeDsp(0x5c,1); code.push(0x2f,0xfe);
+  ram.set(code,0x200);
+  return bytes;
+}
+function musicalSong({unsupported = false} = {}) {
+  const bytes = createSyntheticSpc({voices:1,echo:unsupported,noise:unsupported}), ram = bytes.subarray(0x100,0x10100), code = [];
+  const writeDsp = (address,value) => code.push(0x8f,address,0xf2,0x8f,value,0xf3);
+  const delay = pitchHigh => {
+    code.push(0xcd,160);
+    const outer = code.length;
+    writeDsp(3,pitchHigh); // Driver repeats an unchanged parameter every iteration.
+    code.push(0x8d,255,0xfe,0xfe,0x1d,0xd0,0);
+    code[code.length - 1] = (outer - code.length) & 255;
+  };
+  delay(16); writeDsp(3,8);
+  delay(8); writeDsp(0x5c,1);
+  delay(8); writeDsp(0x5c,0); writeDsp(0x4c,1);
+  delay(8); writeDsp(0x5c,1); code.push(0x2f,0xfe);
   ram.set(code,0x200);
   return bytes;
 }
@@ -79,8 +98,37 @@ async function executeSavedSong(plan,trace,frames) {
     return actual;
   } finally {replay.dispose();}
 }
+async function executeReadableSong(plan) {
+  const files = new Map(plan.files.map(file => [file.path,file]));
+  const core = await SnesDspCore.create(options), synth = new SnesSynth({core});
+  const calls = [], pcm = [], waits = [];
+  let disposed = false;
+  try {
+    const instrument = new Proxy(synth,{get(target,key) {
+      if (key === 'dispose') return () => {disposed = true;};
+      const value = target[key];
+      if (typeof value !== 'function') return value;
+      return (...args) => {calls.push({method:key,args}); return value.apply(target,args);};
+    }});
+    const createSoundChip = async kind => {assert.equal(kind,'snes'); return instrument;};
+    const file = async (relative,{type} = {}) => {
+      const entry = files.get(path.posix.resolve(plan.directory,relative));
+      assert(entry,'Readable source must load an actual saved asset');
+      if (type === 'json') return JSON.parse(entry.data);
+      assert.equal(type,'arrayBuffer'); assert.equal(entry.type,'binary');
+      return entry.data.buffer.slice(entry.data.byteOffset,entry.data.byteOffset+entry.data.byteLength);
+    };
+    const sleep = async seconds => {
+      assert(Number.isFinite(seconds) && seconds >= 0,'Readable waits use finite elapsed seconds');
+      waits.push(seconds); pcm.push(render(core,Math.round(seconds * 32000),127));
+    };
+    await new AsyncFunction('createSoundChip','file','sleep',files.get(plan.entryPath).data)(createSoundChip,file,sleep);
+    assert(disposed,'Readable source releases its instrument');
+    return {calls,pcm,waits};
+  } finally {core.dispose();}
+}
 
-test('saved Song JavaScript replays the SPC player native PCM path exactly',async () => {
+test('saved Event trace JavaScript replays the SPC player native PCM path exactly',async () => {
   const bytes = writableSong(), frames = 64000;
   const trace = await captureSpcTrace(bytes,{...options,durationSeconds:2});
   assert.equal(trace.durationClocks,frames * 32);
@@ -90,7 +138,7 @@ test('saved Song JavaScript replays the SPC player native PCM path exactly',asyn
   assert(events.some(([,kind,address,value]) => kind === 0 && address === 0x5c && value === 1),'Trace must retain key-off');
 
   const prepared = await prepareSpcImport(bytes,'authored.spc');
-  const plan = buildSpcImportFiles(prepared,{mode:'javascript',directory:'/spc/authored',trace});
+  const plan = buildSpcImportFiles(prepared,{mode:'trace',directory:'/spc/authored',trace});
   assert.equal(plan.files.length,5);
   const files = new Map(plan.files.map(file => [file.path,file]));
   const provenance = JSON.parse(files.get('/spc/authored/sourceinfo.json').data);
@@ -172,8 +220,8 @@ test('omitting DSP-unread CPU work RAM shrinks saved JavaScript without changing
     assert(stats.ramEvents >= 1,'A sample-RAM change must remain in the editable source');
 
     const prepared = await prepareSpcImport(bytes,'counter.spc');
-    const baselinePlan = buildSpcImportFiles(prepared,{mode:'javascript',directory:'/spc/full',trace:baseline});
-    const filteredPlan = buildSpcImportFiles(prepared,{mode:'javascript',directory:'/spc/filtered',trace:filtered});
+    const baselinePlan = buildSpcImportFiles(prepared,{mode:'trace',directory:'/spc/full',trace:baseline});
+    const filteredPlan = buildSpcImportFiles(prepared,{mode:'trace',directory:'/spc/filtered',trace:filtered});
     const source = plan => plan.files.find(file => file.path === plan.entryPath).data;
     assert(source(baselinePlan).split('\n').length - source(filteredPlan).split('\n').length >= 100,
       'The saved editable JavaScript must actually shrink with the recording');
@@ -188,4 +236,69 @@ test('omitting DSP-unread CPU work RAM shrinks saved JavaScript without changing
       }
     }
   } finally {core.dispose();}
+});
+
+test('readable songs use BRR and high-level operations instead of unchanged DSP writes',async t => {
+  const bytes = musicalSong(), performance = await captureSpcPerformance(bytes,{...options,durationSeconds:2,controlStepMs:20});
+  const prepared = await prepareSpcImport(bytes,'musical.spc');
+  const plan = buildSpcImportFiles(prepared,{mode:'javascript',directory:'/spc/musical',performance});
+  const source = plan.files.find(file => file.path === plan.entryPath).data;
+  const metadata = JSON.parse(plan.files.find(file => file.path.endsWith('/sourceinfo.json')).data);
+  assert.equal(metadata.mode,'javascript'); assert.equal(metadata.conversion.kind,'readable');
+  assert.deepEqual(metadata.conversion.warnings,performance.warnings);
+  assert(plan.files.some(file => file.path.endsWith('.brr')),'Readable songs save actual BRR assets');
+  assert(plan.files.every(file => !/\/initial\.(ram|dsp)\.bin$/.test(file.path)));
+  for (const method of ['loadBRR','setPreset','setPitch','keyOn','keyOff']) assert.match(source,new RegExp(`\\.${method}\\(`));
+  assert.match(source,/await sleep\(/); assert.match(source,/approx|not.*exact|not.*identical|lossy/i);
+  assert.doesNotMatch(source,/new Uint32Array|prepareTimeline|playTimeline/);
+  const repeatedWrites = performance.statistics.rawWrites;
+  assert(repeatedWrites >= 400,'The authored driver must actually repeat unchanged PITCH writes');
+  const result = await executeReadableSong(plan);
+  const pitches = result.calls.filter(call => call.method === 'setPitch');
+  assert(pitches.length >= 1 && pitches.length < 8,'Readable source emits only meaningful pitch operations');
+  assert(pitches.some(call => call.args[0] === 0 && call.args[1] === 2048),'The changed hardware PITCH remains explicit');
+  assert(result.calls.filter(call => call.method === 'keyOn' && call.args[0] === 0).length >= 2,
+    'An initially sounding voice and its later retrigger both become understandable keyOn calls');
+  assert(result.calls.some(call => call.method === 'keyOff' && call.args[0] === 0));
+  assert(result.waits.length >= 3 && Math.abs(result.waits.reduce((sum,seconds) => sum + seconds,0) - 2) < .001,
+    'Readable waits retain the requested musical interval in elapsed seconds');
+  let peak = 0;
+  for (const segment of result.pcm) for (const channel of segment) for (const sample of channel) {
+    assert(Number.isFinite(sample)); peak = Math.max(peak,Math.abs(sample));
+  }
+  assert(peak > .01,'The generated readable source must drive the real S-DSP instrument engine');
+  t.diagnostic(JSON.stringify({driverWrites:repeatedWrites,readableEvents:performance.events.length,readablePitchCalls:pitches.length,peak}));
+});
+
+test('readable conversion discloses omitted echo and preserves raw noise controls',async () => {
+  const bytes = musicalSong({unsupported:true});
+  const performance = await captureSpcPerformance(bytes,{...options,durationSeconds:.1});
+  assert(performance.warnings.some(warning => /echo/i.test(warning)),'Echo omission must be visible');
+  const prepared = await prepareSpcImport(bytes,'effects.spc');
+  const plan = buildSpcImportFiles(prepared,{mode:'javascript',directory:'/spc/effects',performance});
+  const source = plan.files.find(file => file.path === plan.entryPath).data;
+  const metadata = JSON.parse(plan.files.find(file => file.path.endsWith('/sourceinfo.json')).data);
+  assert.deepEqual(metadata.conversion.warnings,performance.warnings);
+  assert.match(source,/echo/i);
+  assert.match(source,/approx|not.*exact|not.*identical|lossy/i);
+  const result = await executeReadableSong(plan);
+  assert(result.calls.some(call => call.method === 'writeDsp' && call.args[0] === 0x3d && call.args[1] === 1),
+    'The readable source retains the captured noise-enable register');
+});
+
+test('readable conversion rejects malformed timing and cancellation without partial output',async () => {
+  const bytes = musicalSong();
+  for (const durationSeconds of [NaN,Infinity,0,-1,601]) {
+    await assert.rejects(captureSpcPerformance(bytes,{...options,durationSeconds}),RangeError);
+  }
+  for (const controlStepMs of [NaN,Infinity,-1]) {
+    await assert.rejects(captureSpcPerformance(bytes,{...options,durationSeconds:.1,controlStepMs}),RangeError);
+  }
+  const unstepped = await captureSpcPerformance(bytes,{...options,durationSeconds:.1,controlStepMs:0});
+  assert.equal(unstepped.controlStepMs,0,'Zero keeps every distinct semantic control event');
+  const controller = new AbortController(); controller.abort();
+  await assert.rejects(captureSpcPerformance(bytes,{...options,durationSeconds:2,signal:controller.signal}),{name:'AbortError'});
+  const interrupted = new AbortController();
+  await assert.rejects(captureSpcPerformance(bytes,{...options,durationSeconds:2,signal:interrupted.signal,
+    onProgress:() => interrupted.abort()}),{name:'AbortError'});
 });

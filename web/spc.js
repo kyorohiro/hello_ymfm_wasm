@@ -187,6 +187,40 @@ export class SpcCore extends Core {
     finally { this._syncViews(); }
   }
   reset() { this.restart(); }
+  /** Enable bounded DSP-write observation at the current position without
+   * resetting phase/envelopes. Draining is independent of offline RAM tracing.
+   * @param {{capacity?:number}} [options] */
+  startDspObservation({capacity = 2048} = {}) {
+    this._assertOpen(); integer(capacity, 'DSP observation capacity', 16, 8192);
+    this._check(this.module._spc_observer_begin(this.handle, capacity)); this._syncViews();
+    this._dspObserverCapacity = capacity;
+    this._dspObserverWords = new Uint32Array(this.module.HEAPU8.buffer, this.module._spc_observer_ptr(this.handle), capacity * 4);
+  }
+  stopDspObservation() {this._assertOpen(); this.module._spc_observer_stop(this.handle);}
+  /** Write ordered triples [absolute DSP clock, register, value] into owned
+   * preallocated storage. Returns event count; clocks retain precision past 2^32.
+   * @param {Float64Array} output @returns {number} */
+  drainDspEventsInto(output) {
+    this._assertOpen();
+    if (!(output instanceof Float64Array) || output.length < (this._dspObserverCapacity ?? 0) * 3) throw new RangeError('DSP event output must fit the observation capacity');
+    if (!this._dspObserverCapacity) return 0;
+    if (this._dspObserverWords.buffer !== this.module.HEAPU8.buffer) this._dspObserverWords = new Uint32Array(this.module.HEAPU8.buffer,
+      this.module._spc_observer_ptr(this.handle), this._dspObserverCapacity * 4);
+    const count = this.module._spc_observer_drain(this.handle), words = this._dspObserverWords;
+    for (let index = 0; index < count; index++) {
+      output[index * 3] = words[index * 4] + words[index * 4 + 1] * 4294967296;
+      output[index * 3 + 1] = words[index * 4 + 2]; output[index * 3 + 2] = words[index * 4 + 3];
+    }
+    return count;
+  }
+  /** Return/reset lost-write count. Overflow never stops or changes playback. */
+  takeDspEventOverflow() {this._assertOpen(); return this.module._spc_observer_lost(this.handle);}
+  /** @param {Uint8Array} output */
+  readDspRegistersInto(output) {
+    this._assertOpen(); if (!(output instanceof Uint8Array) || output.length < 128) throw new RangeError('DSP register output requires 128 bytes');
+    const ptr = this.module._spc_observer_registers_ptr(this.handle);
+    for (let index = 0; index < 128; index++) output[index] = this.module.HEAPU8[ptr + index];
+  }
   /** Discover the union of physical DSP RAM reads over an offline interval.
    * Start fresh/unmuted, render with the same partition and duration as the
    * following trace, then restart before beginTrace({ramReadMask}). The bounded

@@ -12,6 +12,8 @@ DOCS_JS_DIR="${ROOT_DIR}/docs/js"
 SYNC_FILES="
 spc.js
 spc_trace.js
+spc_events.js
+spc_performance.js
 spc_file.js
 snes_brr.js
 spc_audio.js

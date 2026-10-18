@@ -1,10 +1,10 @@
-import {createSpcAudio} from './playground_spc_audio.js?v=spc-import-1';
-import {createSpcClient} from './playground_spc.js?v=spc-import-1';
+import {createSpcAudio} from './playground_spc_audio.js?v=spc-events-1';
+import {createSpcClient} from './playground_spc.js?v=spc-events-1';
 import {createSnesAudio} from './playground_snes_audio.js?v=spc-song-js-1';
 import {createSnesClient} from './playground_snes.js?v=spc-song-js-1';
 import {createChipInspector} from './playground_chip_inspector.js?v=chip-tabs-2';
-import {createPerformanceHost} from './playground_performance_host.js';
-import {DEFAULT_WORKER_LOOKAHEAD_SECONDS, validateWorkerLookahead} from './playground_performance_sender.js?v=spc-song-js-1';
+import {createPerformanceHost} from './playground_performance_host.js?v=spc-events-1';
+import {DEFAULT_WORKER_LOOKAHEAD_SECONDS, validateWorkerLookahead} from './playground_performance_sender.js?v=spc-events-1';
 import {midiToOpnPitch, opnPitchFromHz} from './soundchip_pitch.js';
 import {attachChipClock, CHIP_CLOCKS} from './playground_chip_clock.js';
 import {createNesAudio} from './playground_nes_audio.js';
@@ -195,7 +195,7 @@ export function createPlaygroundRuntime(
     options.execution ?? "main";
   const defaultLogicWorkerUrl =
     new URL(
-      "./playground_logic_worker.js?v=spc-import-1",
+      "./playground_logic_worker.js?v=spc-events-1",
       import.meta.url
     );
   defaultLogicWorkerUrl.searchParams.set(
@@ -1606,6 +1606,7 @@ export function createPlaygroundRuntime(
         const client=name === 'spc' ? createSpcClient(device.port, device, {
           getOwner:()=>spcOwner(currentLoopContext,currentRunToken), captureContext:()=>currentLoopContext,
           restoreContext:loop=>{currentLoopContext=loop;},
+          invokeEvent:(callback,event)=>executeUserCallback(()=>callback(event)),
         }) : name === 'snes' ? createSnesClient(device.port, device) : name === 'dx7' ? createDx7Client(device.port, device) : name === 'nes' ? createNesClient(device.port, device) : name === 'pwm' ? createPWM32XClient(device.port) : ['ym2612', 'ym2203', 'ym2610'].includes(name) ? createOpnClient(name, device.port) : name === 'ym2151' ? createYm2151Client(device.port) : name === 'segapsg' ? createSegaPsgClient(device.port) : name === 'gameboy' ? createGameboyClient(device.port) : name === 'ym2608' ? createYm2608Client(device.port) : createRf5c164Client(device.port,decodePcm);
         Object.defineProperty(client, 'id', {value: device.mixerId, enumerable: true});
         const dispose=device.dispose, disposeClient=client.dispose.bind(client); let disposed=false;

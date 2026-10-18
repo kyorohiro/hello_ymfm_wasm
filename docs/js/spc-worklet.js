@@ -1,5 +1,5 @@
-import moduleFactory from '../generated/spc_wasm.js?v=spc-trace-filter-1';
-import {SpcCore} from './spc.js?v=spc-trace-filter-1';
+import moduleFactory from '../generated/spc_wasm.js?v=spc-events-1';
+import {SpcCore} from './spc.js?v=spc-events-1';
 import {SpcResampler} from './spc_resampler.js?v=chip-tabs-2';
 
 const NATIVE_RATE = 32000;
@@ -22,6 +22,11 @@ export class SpcProcessor extends AudioWorkletProcessor {
     this.stoppedSessions = new Set();
     this.discardLeft = new Float32Array(1024);
     this.discardRight = new Float32Array(1024);
+    this.eventEnabled = false; this.eventEpoch = 0; this.eventSequence = 0;
+    this.eventIntervalFrames = Math.ceil(sampleRate * .016); this.eventFrames = 0;
+    this.eventCapacity = 2048; this.eventPool = []; this.eventInFlight = new Set();
+    this.eventPending = null; this.eventCount = 0; this.eventLost = 0; this.eventNeedsFinal = false;
+    this.eventInitialPending = false;
     this.ready = this.initialize(processorOptions.wasmBinary);
     this.commands = this.ready;
     this.port.onmessage = ({data}) => {
@@ -45,11 +50,20 @@ export class SpcProcessor extends AudioWorkletProcessor {
         return this.command(data, reply);
       }).catch(error => {
         if (this.disposed || this.failed) return;
+        if (data?.type === 'load' && this.loaded && this.eventEnabled) this.resetObservation(data.eventEpoch, 'load-error');
         reply.postMessage({type: 'result', id: data?.id, error: String(error.message ?? error), name: error.name});
       });
   }
   receiveRpc(data, reply) {
     if (data?.method === 'dispose') {this.dispose(); return;}
+    if (data?.method === 'eventAck') {
+      const [epoch, sequence, buffer] = data.args ?? [];
+      if (epoch === this.eventEpoch && this.eventInFlight.delete(sequence) && buffer?.byteLength === this.eventCapacity * 3 * 8) {
+        this.eventPool.push(new Float64Array(buffer));
+        if (this.eventNeedsFinal) this.sendObservedEvents(true);
+      }
+      return;
+    }
     if (data?.type === 'performance-start') {
       reply.postMessage({type:'performance-result', id:data.id}); return;
     }
@@ -59,6 +73,8 @@ export class SpcProcessor extends AudioWorkletProcessor {
       if (this.playbackOwner?.session === data.session &&
           (data.type === 'performance-stop' || this.playbackOwner.owner === data.owner)) {
         this.playing = false; this.seekId = null;
+        this.eventSuspended = true; this.core?.stopDspObservation(); this.eventPool = []; this.eventInFlight.clear();
+        this.remote?.postMessage({type:'spc-events-suspended', epoch:this.eventEpoch});
       }
       return;
     }
@@ -70,17 +86,21 @@ export class SpcProcessor extends AudioWorkletProcessor {
       seekBegin: () => ({type:'seek-begin', seekId:args[0]}),
       seekStep: () => ({type:'seek-step', seekId:args[0], frames:args[1]}),
       seekEnd: () => ({type:'seek-end', seekId:args[0], resume:args[1]}),
+      observe: () => ({type:'observe', enabled:args[0], epoch:args[1], intervalMs:args[2]}),
     };
     const convert = Object.hasOwn(commands, data?.method) ? commands[data.method] : null;
     if (!convert) {reply.postMessage({id:data?.id, error:'Unknown SPC player method'}); return;}
-    this.enqueue({...convert(), id:data.id}, reply, data.spcPerformance ?? null);
+    this.enqueue({...convert(), id:data.id, eventEpoch:data.spcEventEpoch}, reply, data.spcPerformance ?? null);
   }
   async initialize(wasmBinary) {
     try {
       const core = await SpcCore.create({moduleFactory, moduleOptions: {wasmBinary}});
       if (this.disposed) { core.dispose(); return; }
       this.core = core;
-      this.resampler = new SpcResampler(core, sampleRate);
+      this.resampler = new SpcResampler({renderInto:(left,right,frames) => {
+        core.renderInto(left,right,frames);
+        if (this.eventEnabled) this.collectObservedEvents();
+      }}, sampleRate);
       this.port.postMessage({type: 'ready', sampleRate, nativeSampleRate: NATIVE_RATE});
     } catch (error) { this.fail(error); }
   }
@@ -93,6 +113,55 @@ export class SpcProcessor extends AudioWorkletProcessor {
       renderedNativeFrames: this.resampler?.renderedNativeFrames ?? 0};
   }
   requireLoaded() { if (!this.loaded) throw new Error('Load an SPC file before playback'); }
+  resetObservation(epoch, reason) {
+    this.eventEpoch = epoch ?? this.eventEpoch + 1; this.eventFrames = 0;
+    this.eventInFlight.clear(); this.eventPool = [];
+    this.eventPending = null; this.eventCount = this.eventLost = 0; this.eventNeedsFinal = false;
+    this.eventInitialPending = true;
+    this.core?.stopDspObservation();
+    if (!this.eventEnabled || !this.loaded || this.seekId || !this.remote) return;
+    this.core.startDspObservation({capacity:this.eventCapacity});
+    this.eventScratch = new Float64Array(this.eventCapacity * 3);
+    this.eventPool = Array.from({length:4}, () => new Float64Array(this.eventCapacity * 3));
+    const dsp = new Uint8Array(128); this.core.readDspRegistersInto(dsp);
+    this.remote.postMessage({type:'spc-events-reset', epoch:this.eventEpoch, clock:this.core.nativeFrames * 32, dsp, reason}, [dsp.buffer]);
+  }
+  collectObservedEvents() {
+    const count = this.core.drainDspEventsInto(this.eventScratch), lost = this.core.takeDspEventOverflow();
+    if (lost || this.eventLost) {
+      this.eventLost += lost + count + this.eventCount; this.eventCount = 0; return;
+    }
+    let index = 0;
+    while (index < count) {
+      this.eventPending ??= this.eventPool.pop();
+      if (!this.eventPending) {this.eventLost += count - index; return;}
+      const take = Math.min(count - index, this.eventCapacity - this.eventCount);
+      for (let word = 0; word < take * 3; word++) this.eventPending[this.eventCount * 3 + word] = this.eventScratch[index * 3 + word];
+      this.eventCount += take; index += take;
+      if (this.eventCount === this.eventCapacity) this.sendObservedEvents(false,true);
+    }
+  }
+  sendObservedEvents(force = false, early = false) {
+    if (force && !this.playing && !this.eventCount && !this.eventLost) return;
+    if (force) this.eventNeedsFinal = true;
+    if (!this.eventEnabled || !this.remote || (!force && !early && this.eventFrames < this.eventIntervalFrames)) return;
+    if (!this.eventCount && !this.eventLost && !force && !this.eventInitialPending) return;
+    this.eventPending ??= this.eventPool.pop();
+    if (!this.eventPending) return;
+    this.eventFrames = 0;
+    const writes = this.eventPending, count = this.eventCount, lost = this.eventLost;
+    this.eventPending = null; this.eventCount = this.eventLost = 0; this.eventNeedsFinal = false;
+    this.eventInitialPending = false;
+    // A capacity-triggered batch can split one native fetch. Its remaining
+    // writes have not been sent yet, so do not seal the whole fetch watermark.
+    const sequence = ++this.eventSequence, clock = early && count ? writes[(count - 1) * 3] : this.core.nativeFrames * 32;
+    let dsp;
+    if (lost) {dsp = new Uint8Array(128); this.core.readDspRegistersInto(dsp);}
+    this.eventInFlight.add(sequence);
+    const message = {type:'spc-events', epoch:this.eventEpoch, sequence, clock, writes, count:lost ? 0 : count,
+      droppedWrites:lost ? lost + count : 0, final:force, ...(dsp ? {dsp} : {})};
+    this.remote.postMessage(message, dsp ? [writes.buffer,dsp.buffer] : [writes.buffer]);
+  }
   command(data, reply = this.port) {
     if (this.disposed || this.failed) return;
     if (!this.core) throw new Error('SPC processor is not ready');
@@ -101,13 +170,17 @@ export class SpcProcessor extends AudioWorkletProcessor {
         this.playing = false; this.seekId = null;
         this.core.load(data.bytes); this.core.setMuteMask(this.muteMask);
         this.loaded = true; this.resampler.reset();
+        this.resetObservation(data.eventEpoch, 'load');
         break;
-      case 'play': this.requireLoaded(); this.seekId = null; this.playing = true; break;
-      case 'pause': this.seekId = null; this.playing = false; break;
+      case 'play': this.requireLoaded(); this.seekId = null; this.playing = true;
+        if (this.eventSuspended) {this.eventSuspended = false; this.resetObservation(data.eventEpoch, 'play');}
+        break;
+      case 'pause': this.sendObservedEvents(true); this.seekId = null; this.playing = false; break;
       case 'stop':
         this.seekId = null; this.playing = false;
         if (this.loaded) { this.core.restart(); this.core.setMuteMask(this.muteMask); }
         this.resampler.reset();
+        this.resetObservation(data.eventEpoch, 'stop');
         break;
       case 'mute':
         if (!Number.isInteger(data.mask) || data.mask < 0 || data.mask > 255) throw new RangeError('SPC mute mask must be 0..255');
@@ -115,6 +188,7 @@ export class SpcProcessor extends AudioWorkletProcessor {
         break;
       case 'seek-begin':
         this.requireLoaded(); this.playing = false; this.seekId = data.seekId;
+        this.resetObservation(data.eventEpoch, 'seek');
         this.core.restart(); this.core.setMuteMask(this.muteMask); this.resampler.reset();
         break;
       case 'seek-step': {
@@ -131,6 +205,15 @@ export class SpcProcessor extends AudioWorkletProcessor {
       case 'seek-end':
         if (data.seekId !== this.seekId) throw cancelledSeek();
         this.seekId = null; this.playing = data.resume === true;
+        this.resetObservation(data.eventEpoch, 'seek');
+        break;
+      case 'observe':
+        if (typeof data.enabled !== 'boolean' || !Number.isInteger(data.epoch) || data.epoch < 0 ||
+          !Number.isFinite(data.intervalMs) || data.intervalMs < 16 || data.intervalMs > 1000) throw new RangeError('Invalid SPC observation options');
+        this.eventIntervalFrames = Math.ceil(sampleRate * data.intervalMs / 1000);
+        if (this.eventEnabled !== data.enabled || this.eventEpoch !== data.epoch) {
+          this.eventEnabled = data.enabled; this.resetObservation(data.epoch, 'subscribe');
+        }
         break;
       case 'snapshot': {
         this.requireLoaded();
@@ -171,6 +254,7 @@ export class SpcProcessor extends AudioWorkletProcessor {
     }
     try {
       this.resampler.render(channels[0], channels[1] ?? channels[0]);
+      if (this.eventEnabled) {this.eventFrames += channels[0].length; this.sendObservedEvents();}
       for (let c = 2; c < channels.length; c++) channels[c].set(channels[0]);
     } catch (error) {
       for (let c = 0; c < channels.length; c++) channels[c].fill(0);

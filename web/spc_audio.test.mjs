@@ -18,6 +18,9 @@ class FakeCore {
   load(bytes) {if (bytes[0] !== 1) throw new Error('Invalid SPC fixture'); this.nativeFrames = 0;}
   restart() {this.nativeFrames = 0;}
   setMuteMask(mask) {this.mask = mask;}
+  // This fixture exercises the unobserved player; the real observer path is
+  // covered with the WASM core in playground_spc.test.mjs.
+  stopDspObservation() {}
   renderInto(left, right, frames = left.length) {
     this.calls++;
     for (let i = 0; i < frames; i++) {left[i] = this.mask === 255 ? 0 : wave(this.nativeFrames); right[i] = -left[i]; this.nativeFrames++;}

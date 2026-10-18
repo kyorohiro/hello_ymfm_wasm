@@ -1,8 +1,9 @@
 /** One disposable worker per import keeps conversion and cancellation off the UI. */
-export function convertSpcImport(prepared, {directory, durationSeconds, signal, onProgress} = {}) {
+export function convertSpcImport(prepared, {directory, durationSeconds, mode = 'javascript', controlStepMs = 20, signal, onProgress} = {}) {
+  if (!['javascript','trace'].includes(mode)) throw new TypeError('SPC conversion mode must be javascript or trace');
   signal?.throwIfAborted();
   return new Promise((resolve, reject) => {
-    const worker = new Worker(new URL('./playground_spc_trace_worker.js?v=spc-trace-filter-1', import.meta.url), {type:'module'});
+    const worker = new Worker(new URL('./playground_spc_trace_worker.js?v=spc-events-1', import.meta.url), {type:'module'});
     const cleanup = () => {clearTimeout(timer); signal?.removeEventListener('abort', abort); worker.terminate();};
     const finish = (fn, value) => {cleanup(); fn(value);};
     const abort = () => finish(reject, signal.reason ?? new DOMException('SPC conversion cancelled', 'AbortError'));
@@ -22,7 +23,7 @@ export function convertSpcImport(prepared, {directory, durationSeconds, signal, 
     const source = {name:prepared.name, spc:{originalBytes:prepared.spc.originalBytes}, candidates:[],
       scan:{directory:prepared.scan.directory, summary:prepared.scan.summary, rejected:prepared.scan.rejected},
       metadata:prepared.metadata, warnings:prepared.warnings};
-    try {worker.postMessage({bytes:source.spc.originalBytes, prepared:source, directory, durationSeconds});}
+    try {worker.postMessage({bytes:source.spc.originalBytes, prepared:source, directory, durationSeconds, mode, controlStepMs});}
     catch (error) {finish(reject, error);}
   });
 }

@@ -58,6 +58,22 @@ test('changing the same live session preserves its clock and lead; a stopped ses
   assert.equal(f.sent.at(-1).performance.session, 2);
 });
 
+test('SPC observation buffer acknowledgements return after cancellation without reviving audio controls', () => {
+  const f = fixture(), raw = {postMessage:(data,transfer)=>f.sent.push(structuredClone(data,{transfer}))};
+  const spc = f.sender.port(raw,'spc');
+  f.setLoop({performanceOwner:'old',stopped:true});
+  f.sender.cancelOwner('old'); f.sender.stop(); f.sent.length = 0;
+  const buffer = new Float64Array(12).buffer;
+  spc.postMessage({method:'eventAck',args:[3,7,buffer]},[buffer]);
+  assert.equal(buffer.byteLength,0,'The buffer is actually transferred back');
+  assert.equal(f.sent.length,1);
+  assert.equal(f.sent[0].method,'eventAck');
+  assert.equal(f.sent[0].spcPerformance,undefined,'Housekeeping carries no active audio owner');
+  assert.equal(f.sent[0].args[2].byteLength,96);
+  spc.postMessage({method:'play',args:[]});
+  assert.equal(f.sent.length,1,'Cancelled user controls remain suppressed');
+});
+
 test('splitting timed and resource preparation groups transfers a payload only once', () => {
   const f = fixture();
   const buffer = new Uint8Array([1, 2, 3]).buffer;

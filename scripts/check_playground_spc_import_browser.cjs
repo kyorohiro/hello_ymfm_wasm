@@ -61,6 +61,23 @@ function fixtureWithTimedWrites(bytes) {
   ram.set(code,0x200);
   return fixture;
 }
+function fixtureWithMusicalEvents(bytes) {
+  const fixture = Buffer.from(bytes), ram = fixture.subarray(0x100,0x10100), code = [];
+  const writeDsp = (address,value) => code.push(0x8f,address,0xf2,0x8f,value,0xf3);
+  const delay = pitchHigh => {
+    code.push(0xcd,160);
+    const outer = code.length;
+    writeDsp(3,pitchHigh); // Repeated unchanged writes must not become 160 calls.
+    code.push(0x8d,255,0xfe,0xfe,0x1d,0xd0,0);
+    code[code.length - 1] = (outer - code.length) & 255;
+  };
+  delay(16); writeDsp(3,8);
+  delay(8); writeDsp(0x5c,1);
+  delay(8); writeDsp(0x5c,0); writeDsp(0x4c,1);
+  delay(8); writeDsp(0x5c,1); code.push(0x2f,0xfe);
+  ram.set(code,0x200);
+  return fixture;
+}
 async function snapshotFiles(page) {
   return page.evaluate(() => window.__spcImportTest.virtualFiles.list().map(file => {
     const values = file.type === 'text' ? new TextEncoder().encode(file.data) : file.data;
@@ -90,9 +107,14 @@ async function importBundle(page,fixture,mode,browserName) {
   await openImport(page,fixture);
   const dialog = page.locator('#spcImportDialog');
   await dialog.locator(`input[name="spc-import-mode"][value="${mode}"]`).check();
-  if (mode === 'javascript') {
+  if (mode === 'javascript' || mode === 'trace') {
     await dialog.locator('input[data-spc-conversion-seconds]').fill('2');
-    if (browserName) await page.screenshot({path:`/private/tmp/playground-spc-javascript-import-${browserName}.png`});
+    if (mode === 'javascript') {
+      await dialog.locator('input[data-spc-control-step]').fill('20');
+      assert.match(await dialog.innerText(),/approx|not.*exact|not.*identical|lossy/i,
+        'Readable conversion must disclose that it approximates the original song');
+    }
+    if (browserName) await page.screenshot({path:`/private/tmp/playground-spc-${mode}-import-${browserName}.png`});
   }
   if (mode === 'instruments') {
     await dialog.locator('[data-spc-candidate="srcn-127"]').waitFor({state:'visible'});
@@ -123,7 +145,7 @@ async function importBundle(page,fixture,mode,browserName) {
     'Import opens its generated runnable JavaScript');
   return {files,entryPath,directory:originals[0].path.slice(0,-'/original.spc'.length)};
 }
-async function cancelJavascriptImport(page,fixture) {
+async function cancelConversionImport(page,fixture,mode = 'javascript') {
   const before = await snapshotFiles(page);
   let release, requested;
   const barrier = new Promise(resolve => {release=resolve;});
@@ -137,7 +159,7 @@ async function cancelJavascriptImport(page,fixture) {
   try {
     await openImport(page,fixture);
     const dialog = page.locator('#spcImportDialog');
-    await dialog.locator('input[name="spc-import-mode"][value="javascript"]').check();
+    await dialog.locator(`input[name="spc-import-mode"][value="${mode}"]`).check();
     await dialog.locator('input[data-spc-conversion-seconds]').fill('2');
     await dialog.locator('[data-spc-import-confirm]').click();
     await Promise.race([started,new Promise((_,reject) => {timer=setTimeout(() => reject(Error('Conversion worker was not requested')),10000);})]);
@@ -189,7 +211,7 @@ async function checkGeneratedDiagnostics(page,script) {
   assert.deepEqual(result.diagnostics,[],`Generated JavaScript must have no Monaco syntax/semantic diagnostics: ${script}`);
   return {path:result.path,syntaxErrors:0,semanticErrors:0};
 }
-async function runGenerated(page,script,execution,{repeat=false} = {}) {
+async function runGenerated(page,script,execution,{repeat=false,waitForLog} = {}) {
   await page.evaluate(({script,execution}) => {
     const p = window.__spcImportTest; p.open(script);
     document.getElementById('workerExecution').checked = execution === 'worker';
@@ -203,6 +225,12 @@ async function runGenerated(page,script,execution,{repeat=false} = {}) {
     await page.waitForTimeout(80); measured = await level(page);
     if (measured.rms > .001) break;
   } while (Date.now() < deadline);
+  if (measured.rms <= .001) console.error(await page.evaluate(() => ({
+    status:document.getElementById('status').textContent,console:document.getElementById('consoleOutput').textContent,
+    state:window.__spcImportTest.runtime.getState(),outcomes:window.__spcImportTest.runOutcomes,
+    context:window.__spcImportTest.megaDrive.audioContext.state,
+    mixer:window.__spcImportTest.megaDrive.mixer.list(),
+  })));
   assert.equal(measured.bad,0,script + ': generated audio must be finite');
   assert(measured.rms > .001,`${execution}: generated script must produce real final-output PCM: ${script} ${JSON.stringify(measured)}`);
   if (repeat) {
@@ -216,6 +244,7 @@ async function runGenerated(page,script,execution,{repeat=false} = {}) {
     await page.waitForTimeout(120);
     assert((await level(page)).rms > .001,`${execution}: repeated Run must leave the imported song audible`);
   }
+  if (waitForLog) await page.waitForFunction(marker => document.getElementById('consoleOutput').textContent.includes(marker),waitForLog);
   await page.locator('#stopButton').click();
   await page.waitForFunction(() => window.__spcImportTest.runtime.getState().playback === 'stopped'
     && !document.getElementById('stopButton').disabled);
@@ -226,6 +255,102 @@ async function runGenerated(page,script,execution,{repeat=false} = {}) {
     currentTime:window.__spcImportTest.megaDrive.audioContext.currentTime,mixer:window.__spcImportTest.megaDrive.mixer.list()})));
   assert(stopped.peak < .00001,`${execution}: STOP must silence the imported music: ${JSON.stringify(stopped)}`);
   return {...measured,stoppedPeak:stopped.peak};
+}
+async function checkSpcEvents(page,directory,execution) {
+  const marker = `SPC_EVENTS_${execution}:`, script = `${directory}/observe-${execution}.js`;
+  const source = `const spc = await useSoundChip('spc');
+await spc.loadSPC(await file('./original.spc', {type:'arrayBuffer'}));
+const events = [], pitches = [], excluded = [], removed = [];
+const summarize = event => ({type:event.type, channel:'channel' in event ? event.channel : null});
+const off = spc.onEvent(event => {events.push(summarize(event));}, {voices:[0], types:['noteOn','noteOff','pitch'], intervalMs:16});
+const offPitch = spc.onEvent(event => {pitches.push(summarize(event));}, {voices:[0], types:['pitch'], intervalMs:16});
+const offExcluded = spc.onEvent(event => {excluded.push(summarize(event));}, {voices:[7], types:['noteOn','noteOff','pitch'], intervalMs:16});
+const offRemoved = spc.onEvent(event => {removed.push(summarize(event));}, {voices:[0], intervalMs:16});
+offRemoved();
+spc.play();
+await sleep(1.4);
+off(); offPitch(); offExcluded();
+console.log(${JSON.stringify(marker)} + JSON.stringify({events,pitches,excluded,removed}));
+await sleep(10);
+`;
+  await page.evaluate(({script,source}) => window.__spcImportTest.virtualFiles.writeText(script,source),{script,source});
+  const diagnostics = await checkGeneratedDiagnostics(page,script);
+  const audio = await runGenerated(page,script,execution,{waitForLog:marker});
+  const observed = await page.evaluate(marker => {
+    const text = document.getElementById('consoleOutput').textContent;
+    return JSON.parse(text.slice(text.lastIndexOf(marker) + marker.length).split('\n')[0]);
+  },marker);
+  assert(observed.events.some(event => event.type === 'noteOn'),'SPC events expose initial/retriggered notes');
+  assert(observed.events.some(event => event.type === 'noteOff'),'SPC events expose real KOFF events');
+  assert(observed.events.some(event => event.type === 'pitch'),'SPC events expose the changed hardware pitch');
+  assert(observed.events.every(event => event.channel === 0 && ['noteOn','noteOff','pitch'].includes(event.type)),
+    'The voice and event-type filters must apply to actual playback callbacks');
+  assert(observed.pitches.length >= 1 && observed.pitches.length < 8,'Unchanged driver PITCH writes must be coalesced semantically');
+  assert(observed.pitches.every(event => event.type === 'pitch' && event.channel === 0));
+  assert.deepEqual(observed.excluded,[],'An excluded silent voice must not receive other voices events');
+  assert.deepEqual(observed.removed,[],'Unsubscribing before playback prevents callbacks');
+  return {audio,diagnostics,...observed};
+}
+async function checkSpcEventGuard(page,directory,execution) {
+  const marker = `SPC_EVENT_GUARD_${execution}:`, script = `${directory}/event-guard-${execution}.js`;
+  const source = `const spc = await useSoundChip('spc');
+await spc.loadSPC(await file('./original.spc', {type:'arrayBuffer'}));
+const off = spc.onEvent(async event => {
+  off();
+  try {
+    // @ts-expect-error Intentional forbidden-API probe: fetch is absent from Playground globals.
+    await fetch('/spc-callback-guard-probe');
+    console.log(${JSON.stringify(marker)} + 'unexpected network access');
+  } catch (error) {
+    console.log(${JSON.stringify(marker)} + String(error));
+  }
+}, {voices:[0], types:['pitch'], intervalMs:16});
+await spc.play();
+`;
+  await page.evaluate(({script,source}) => window.__spcImportTest.virtualFiles.writeText(script,source),{script,source});
+  const diagnostics = await checkGeneratedDiagnostics(page,script);
+  const audio = await runGenerated(page,script,execution,{waitForLog:marker});
+  const result = await page.evaluate(marker => {
+    const text = document.getElementById('consoleOutput').textContent;
+    return text.slice(text.lastIndexOf(marker) + marker.length).split('\n')[0];
+  },marker);
+  assert.match(result,/Network access is disabled/,
+    'An async SPC callback after the top-level script finishes must retain Playground execution guards');
+  return {audio,diagnostics,result};
+}
+async function checkIdleSpcEvents(page,directory,execution) {
+  const marker = `SPC_IDLE_EVENTS_${execution}:`, script = `${directory}/idle-events-${execution}.js`;
+  const source = `const spc = await useSoundChip('spc');
+await spc.loadSPC(await file('./original.spc', {type:'arrayBuffer'}));
+const events = [];
+spc.onEvent(event => {
+  events.push({type:event.type, channel:'channel' in event ? event.channel : null,
+    reason:'reason' in event ? event.reason : null, inferred:'inferred' in event ? event.inferred : false});
+}, {voices:[0], types:['noteOn'], intervalMs:16});
+await spc.play();
+await sleep(.3);
+console.log(${JSON.stringify(marker)} + JSON.stringify(events));
+await sleep(10);
+`;
+  await page.evaluate(({script,source}) => window.__spcImportTest.virtualFiles.writeText(script,source),{script,source});
+  const diagnostics = await checkGeneratedDiagnostics(page,script);
+  const audio = await runGenerated(page,script,execution,{waitForLog:marker});
+  const events = await page.evaluate(marker => {
+    const text = document.getElementById('consoleOutput').textContent;
+    return JSON.parse(text.slice(text.lastIndexOf(marker) + marker.length).split('\n')[0]);
+  },marker);
+  assert.deepEqual(events,[{type:'noteOn',channel:0,reason:'initial',inferred:true}],
+    'Static DSP playback must emit one inferred initial note without raw writes, overflow or repeated heartbeat notes');
+  return {audio,diagnostics,events};
+}
+function assertPageErrors(errors,rejections) {
+  // Monaco cancels its previous view when switching the generated model.
+  const modelTrace = stack => stack.includes('/monaco-editor/0.52.2/min/vs/editor/editor.main.js')
+    && stack.includes('setModel') && stack.includes('dispose');
+  const modelCancellations = errors.filter(error => ['Canceled','Canceled: Canceled'].includes(error.message)
+    && (modelTrace(error.stack) || rejections.some(reason => reason.message === 'Canceled' && modelTrace(reason.stack))));
+  assert.deepEqual(errors.filter(error => !modelCancellations.includes(error)),[],JSON.stringify({rejections}));
+  return modelCancellations.length;
 }
 
 async function checkBrowser(name,type,url,fixture) {
@@ -243,6 +368,13 @@ async function checkBrowser(name,type,url,fixture) {
     });
     await page.goto(url);
     await page.waitForFunction(() => window.__spcImportTest?.editor.kind === 'monaco');
+    if (process.argv.includes('--idle-events')) {
+      const song = await importBundle(page,fixture,'song'), observations = {};
+      for (const execution of ['main','worker']) observations[execution] = await checkIdleSpcEvents(page,song.directory,execution);
+      const modelCancellations = assertPageErrors(errors,await page.evaluate(() => window.__spcImportRejections));
+      console.log(JSON.stringify({browser:name,passed:true,idleEvents:true,observations,modelCancellations}));
+      await page.close(); return;
+    }
     const initial = await snapshotFiles(page);
     await openImport(page,fixture);
     await page.locator('#spcImportDialog [data-spc-import-cancel]').click();
@@ -285,11 +417,11 @@ async function checkBrowser(name,type,url,fixture) {
       for (const script of scripts) instrumentLevels[execution].push(await runGenerated(page,script.path,execution));
     }
     const timedFixture = fixtureWithTimedWrites(fixture);
-    await cancelJavascriptImport(page,timedFixture);
-    const javascript = await importBundle(page,timedFixture,'javascript',name);
-    assert.equal(javascript.files.length,5,'Song JavaScript stores original SPC, provenance, initial RAM/DSP and editable timed writes');
-    const recorded = JSON.parse(javascript.files.find(file => file.path.endsWith('/sourceinfo.json')).data);
-    assert.equal(recorded.mode,'javascript'); assert.equal(recorded.conversion.durationSeconds,2);
+    await cancelConversionImport(page,timedFixture);
+    const trace = await importBundle(page,timedFixture,'trace',name);
+    assert.equal(trace.files.length,5,'Event trace stores original SPC, provenance, initial RAM/DSP and editable timed writes');
+    const recorded = JSON.parse(trace.files.find(file => file.path.endsWith('/sourceinfo.json')).data);
+    assert.equal(recorded.mode,'trace'); assert.equal(recorded.conversion.durationSeconds,2);
     assert.equal(recorded.conversion.clockRate,1024000); assert(recorded.conversion.eventCount >= 5);
     const optimization = recorded.conversion.optimization;
     assert.equal(optimization.kind,'dsp-ram-read-set');
@@ -303,32 +435,56 @@ async function checkBrowser(name,type,url,fixture) {
     assert((await page.locator('#status').innerText()).includes(
       `${recorded.conversion.eventCount} writes (DSP ${optimization.dspEvents}, RAM ${optimization.ramEvents})`),
     'The import completion status shows the actual retained DSP/RAM counts');
-    assert.equal(javascript.files.find(file => file.path.endsWith('/initial.ram.bin')).data.length,65536);
-    assert.equal(javascript.files.find(file => file.path.endsWith('/initial.dsp.bin')).data.length,128);
-    const javascriptSource = javascript.files.find(file => file.path === javascript.entryPath).data;
-    assert.match(javascriptSource,/prepareTimeline/); assert.match(javascriptSource,/playTimeline/);
-    assert.match(javascriptSource,/0x2001/,'The editable source must retain sample RAM changes');
-    assert.doesNotMatch(javascriptSource,/, 1, 0x0030,/,
+    assert.equal(trace.files.find(file => file.path.endsWith('/initial.ram.bin')).data.length,65536);
+    assert.equal(trace.files.find(file => file.path.endsWith('/initial.dsp.bin')).data.length,128);
+    const traceSource = trace.files.find(file => file.path === trace.entryPath).data;
+    assert.match(traceSource,/prepareTimeline/); assert.match(traceSource,/playTimeline/);
+    assert.match(traceSource,/0x2001/,'The editable source must retain sample RAM changes');
+    assert.doesNotMatch(traceSource,/, 1, 0x0030,/,
       'DSP-unread CPU bookkeeping must be absent from the editable source');
-    assert.match(javascriptSource,/Work RAM.*omitted/);
-    assert.match(javascriptSource,/new RAM regions.*new capture/,
+    assert.match(traceSource,/Work RAM.*omitted/);
+    assert.match(traceSource,/new RAM regions.*new capture/,
       'The editable source explains the read-set capture constraint');
-    assert.match(javascriptSource,/Pitch high/i); assert.match(javascriptSource,/Key off mask/i);
-    diagnostics.push(await checkGeneratedDiagnostics(page,javascript.entryPath));
-    const javascriptLevels = {};
-    for (const execution of ['main','worker']) javascriptLevels[execution] = await runGenerated(page,javascript.entryPath,execution);
+    assert.match(traceSource,/Pitch high/i); assert.match(traceSource,/Key off mask/i);
+    diagnostics.push(await checkGeneratedDiagnostics(page,trace.entryPath));
+    const traceLevels = {};
+    for (const execution of ['main','worker']) traceLevels[execution] = await runGenerated(page,trace.entryPath,execution);
+    const musicalFixture = fixtureWithMusicalEvents(fixture);
+    const readable = await importBundle(page,musicalFixture,'javascript',name);
+    const readableSource = readable.files.find(file => file.path === readable.entryPath).data;
+    const readableMetadata = JSON.parse(readable.files.find(file => file.path.endsWith('/sourceinfo.json')).data);
+    assert.equal(readableMetadata.mode,'javascript');
+    assert.equal(readableMetadata.conversion.kind,'readable');
+    assert(Array.isArray(readableMetadata.conversion.warnings));
+    assert.equal(readableMetadata.conversion.controlStepMs,20);
+    assert(readableMetadata.conversion.rawWrites >= 400 && readableMetadata.conversion.eventCount < 20,
+      'Actual conversion statistics distinguish repeated driver writes from meaningful events');
+    assert.match(await page.locator('#status').innerText(),/interpreted events.*writes.*Approximate/i);
+    assert(readable.files.some(file => file.path.endsWith('.brr')),'Readable song JavaScript saves playable BRR assets');
+    assert(readable.files.every(file => !/\/initial\.(ram|dsp)\.bin$/.test(file.path)),
+      'Readable song JavaScript uses instrument assets instead of raw DSP/RAM snapshots');
+    for (const method of ['loadBRR','setPreset','setPitch','keyOn','keyOff']) assert.match(readableSource,new RegExp(`\\.${method}\\(`));
+    assert.match(readableSource,/await sleep\(/);
+    assert.doesNotMatch(readableSource,/new Uint32Array|prepareTimeline|playTimeline/);
+    assert((readableSource.match(/\.setPitch\(/g) || []).length < 16,
+      'Repeated unchanged driver PITCH writes must not turn into hundreds of high-level calls');
+    assert.match(readableSource,/approx|not.*exact|not.*identical|lossy/i);
+    diagnostics.push(await checkGeneratedDiagnostics(page,readable.entryPath));
+    const readableLevels = {}, eventObservations = {}, eventGuards = {};
+    for (const execution of ['main','worker']) {
+      readableLevels[execution] = await runGenerated(page,readable.entryPath,execution);
+      eventObservations[execution] = await checkSpcEvents(page,readable.directory,execution);
+      eventGuards[execution] = await checkSpcEventGuard(page,readable.directory,execution);
+    }
+    await page.evaluate(script => window.__spcImportTest.open(script),readable.entryPath);
     await page.screenshot({path:`/private/tmp/playground-spc-import-${name}.png`});
     // Opening generated models can cancel Monaco 0.52.2's previous view task.
     // Match the same identified cancellation as the Sync/Revert browser test;
     // keep its count visible and reject every other page error.
     const rejections = await page.evaluate(() => window.__spcImportRejections);
-    const modelTrace = stack => stack.includes('/monaco-editor/0.52.2/min/vs/editor/editor.main.js')
-      && stack.includes('setModel') && stack.includes('dispose');
-    const modelCancellations = errors.filter(error => ['Canceled','Canceled: Canceled'].includes(error.message)
-      && (modelTrace(error.stack) || rejections.some(reason => reason.message === 'Canceled' && modelTrace(reason.stack))));
-    assert.deepEqual(errors.filter(error => !modelCancellations.includes(error)),[],JSON.stringify({rejections}));
-    console.log(JSON.stringify({browser:name,passed:true,cancelNoChange:true,conversionCancelNoChange:true,repeatedSongRun:true,uniqueDirectories:[song.directory,repeatedSong.directory,instruments.directory,javascript.directory],
-      songLevels,instrumentLevels,javascriptLevels,optimization,diagnostics,modelCancellations:modelCancellations.length,unusedRootUnknown:true,originalSpcPreserved:true}));
+    const modelCancellations = assertPageErrors(errors,rejections);
+    console.log(JSON.stringify({browser:name,passed:true,cancelNoChange:true,conversionCancelNoChange:true,repeatedSongRun:true,uniqueDirectories:[song.directory,repeatedSong.directory,instruments.directory,trace.directory,readable.directory],
+      songLevels,instrumentLevels,traceLevels,readableLevels,eventObservations,eventGuards,optimization,diagnostics,modelCancellations,unusedRootUnknown:true,originalSpcPreserved:true}));
     await page.close();
   } finally {await browser.close();}
 }

@@ -22,19 +22,23 @@ export function installSpcImport({button, existingPaths, existingDirectories = (
     dialog.setAttribute('aria-labelledby', title.id);
     const summary = element('p', 'Reading SPC…', dialog); summary.setAttribute('role', 'status');
     const modes = element('fieldset', undefined, dialog); element('legend', 'Import as', modes); modes.disabled = true;
-    const modeControls = ['song', 'instruments', 'javascript'].map((mode, index) => {
+    const modeControls = ['song', 'instruments', 'javascript', 'trace'].map((mode, index) => {
       const label = element('label', undefined, modes), radio = element('input', undefined, label);
       radio.type = 'radio'; radio.name = 'spc-import-mode'; radio.value = mode; radio.checked = index === 0;
-      label.append(document.createTextNode({song:' Song playback', instruments:' Instruments', javascript:' Song JavaScript'}[mode]));
+      label.append(document.createTextNode({song:' Song playback', instruments:' Instruments', javascript:' Song JavaScript', trace:' Event trace (analysis)'}[mode]));
       return radio;
     });
     const help = element('p', '', dialog);
     const conversion = element('fieldset', undefined, dialog); conversion.hidden = true; conversion.disabled = true;
-    conversion.dataset.spcConversion = ''; element('legend', 'Song JavaScript', conversion);
+    conversion.dataset.spcConversion = ''; const conversionLegend = element('legend', 'Song JavaScript', conversion);
     const lengthLabel = element('label', 'Conversion seconds ', conversion);
     const seconds = element('input', undefined, lengthLabel); seconds.type = 'number'; seconds.min = '0.1'; seconds.max = '600'; seconds.step = 'any';
     seconds.dataset.spcConversionSeconds = ''; seconds.value = '120'; seconds.required = true;
-    element('p', 'Starts at the saved SPC position. Choose 0.1–600 seconds. Unused work RAM is omitted after analyzing the song. No automatic loop detection or tag fade. Up to 1,000,000 retained writes; shorten the interval if it exceeds the limit.', conversion);
+    const controlLabel = element('label', 'Control step (ms) ', conversion);
+    const controlStep = element('input', undefined, controlLabel); controlStep.type = 'number';
+    controlStep.min = '0'; controlStep.max = '1000'; controlStep.step = 'any'; controlStep.value = '20'; controlStep.required = true;
+    controlStep.dataset.spcControlStep = '';
+    const conversionHelp = element('p', '', conversion);
     const progress = element('progress', undefined, conversion); progress.max = 1; progress.value = 0; progress.hidden = true;
     progress.setAttribute('aria-label', 'SPC conversion progress');
     const conversionStatus = element('p', '', conversion); conversionStatus.setAttribute('role', 'status');
@@ -60,7 +64,7 @@ export function installSpcImport({button, existingPaths, existingDirectories = (
     const alive = () => current === request && !controller.signal.aborted && dialog.open;
     try {
       onStatus?.(`Reading ${file.name}…`);
-      const source = await import('./playground_spc_source.js?v=spc-trace-filter-1');
+      const source = await import('./playground_spc_source.js?v=spc-events-1');
       const prepared = await source.prepareSpcImport(await file.arrayBuffer(), file.name, {signal:controller.signal});
       if (!alive()) return;
       const tagSeconds = prepared.metadata.playSeconds;
@@ -92,13 +96,19 @@ export function installSpcImport({button, existingPaths, existingDirectories = (
       }
       const mode = () => modeControls.find(control => control.checked).value;
       const updateMode = () => {
-        const selectedMode = mode(), song = selectedMode === 'song', javascript = selectedMode === 'javascript';
+        const selectedMode = mode(), song = selectedMode === 'song', javascript = selectedMode === 'javascript', trace = selectedMode === 'trace';
         instruments.hidden = selectedMode !== 'instruments'; instruments.disabled = instruments.hidden;
-        conversion.hidden = !javascript; conversion.disabled = !javascript;
-        confirm.textContent = javascript ? 'Convert & import' : 'Import';
+        conversion.hidden = !(javascript || trace); conversion.disabled = conversion.hidden;
+        controlLabel.hidden = !javascript; controlStep.disabled = !javascript;
+        conversionLegend.textContent = javascript ? 'Song JavaScript' : 'Event trace';
+        conversionHelp.textContent = javascript
+          ? 'Starts at the saved SPC position. Choose 0.1–600 seconds. Controls keep the last value per interval; 0 keeps every distinct value. Key-on/off times are retained. Up to 20,000 interpreted events and 64,512 bytes / 256 BRR versions. No tempo, note-name or loop detection.'
+          : 'Starts at the saved SPC position. Choose 0.1–600 seconds. Unused work RAM is omitted after analyzing the song. No automatic loop detection or tag fade. Up to 1,000,000 retained writes; large logs are intended for analysis.';
+        confirm.textContent = javascript || trace ? 'Convert & import' : 'Import';
         help.textContent = javascript
-          ? 'Record the song silently and generate editable JavaScript with timed DSP and RAM writes, including sample changes, echo, noise and pitch modulation. Pitch remains in raw chip units; note names and original code structure are not inferred.' : song
-          ? 'Play the original SPC700 program with useSoundChip(\'spc\'). This creates player code, not a transcription of the song into notes. Playback continues until Stop.'
+          ? 'Generate readable loadBRR / setPreset / setPitch / keyOn / sleep / keyOff code. This is an approximate re-performance: initially active envelopes restart; echo and subsequent BRR RAM edits are omitted. Use Song playback for the original sound.' : trace
+          ? 'Record detailed timed DSP and RAM writes, retaining BRR changes, echo, noise and pitch modulation. This preserves the captured execution; it is a low-level analysis log, not editable musical notes.' : song
+          ? 'Play the original SPC700 program with useSoundChip(\'spc\'). Use spc.onEvent() to inspect key requests and parameter changes. Playback continues until Stop.'
           : 'Save selected BRR samples, captured settings and editable SNES scripts. Candidates are from this snapshot; unused directory data may not be an instrument. Echo, noise, pitch modulation and song-time changes are omitted.';
         destination.textContent = `New folder: ${source.allocateSpcImportDirectory(file.name, existingPaths(), existingDirectories())}`;
       };
@@ -108,7 +118,8 @@ export function installSpcImport({button, existingPaths, existingDirectories = (
       onStatus?.('SPC ready. Choose an import mode.');
       confirm.addEventListener('click', async () => {
         if (!alive()) return;
-        if (mode() === 'javascript' && !seconds.reportValidity()) return;
+        if (['javascript','trace'].includes(mode()) && !seconds.reportValidity()) return;
+        if (mode() === 'javascript' && !controlStep.reportValidity()) return;
         confirm.disabled = true; error.textContent = '';
         modes.disabled = true; conversion.disabled = true; instruments.disabled = true;
         try {
@@ -117,15 +128,15 @@ export function installSpcImport({button, existingPaths, existingDirectories = (
             referenceNote:/^\d+$/.test(row.note.value.trim()) ? Number(row.note.value.trim()) : row.note.value.trim()}));
           const directory = source.allocateSpcImportDirectory(file.name, existingPaths(), existingDirectories());
           let plan;
-          if (mode() === 'javascript') {
+          if (['javascript','trace'].includes(mode())) {
             progress.hidden = false; progress.value = 0; conversionStatus.textContent = 'Preparing conversion…';
-            const {convertSpcImport} = await import('./playground_spc_trace.js?v=spc-trace-filter-1');
+            const {convertSpcImport} = await import('./playground_spc_trace.js?v=spc-events-1');
             if (!alive()) return;
-            plan = await convertSpcImport(prepared, {directory, durationSeconds:Number(seconds.value), signal:controller.signal,
+            plan = await convertSpcImport(prepared, {directory, mode:mode(), controlStepMs:Number(controlStep.value), durationSeconds:Number(seconds.value), signal:controller.signal,
               onProgress:value => {if (alive()) {
                 progress.value = value.ratio;
                 conversionStatus.textContent = value.stage === 'source' ? 'Generating JavaScript…'
-                  : `${value.stage === 'analyze' ? 'Analyzing' : 'Recording'} ${value.renderedSeconds.toFixed(1)} / ${value.durationSeconds.toFixed(1)} seconds…`;
+                  : `${value.stage === 'interpret' ? 'Interpreting' : value.stage === 'analyze' ? 'Analyzing' : 'Recording'} ${value.renderedSeconds.toFixed(1)} / ${value.durationSeconds.toFixed(1)} seconds…`;
               }}});
           } else plan = source.buildSpcImportFiles(prepared, {mode:mode(), directory, selected});
           if (!alive()) return;
@@ -133,7 +144,7 @@ export function installSpcImport({button, existingPaths, existingDirectories = (
           dialog.close();
         } catch (failure) {
           if (alive()) {
-            error.textContent = `${failure.message}${mode() === 'javascript' ? ' Try a shorter interval or use Song playback.' : ''}`;
+            error.textContent = `${failure.message}${['javascript','trace'].includes(mode()) ? ' Try a shorter interval or use Song playback.' : ''}`;
             confirm.disabled = false; modes.disabled = false; progress.hidden = true; updateMode();
           }
         }

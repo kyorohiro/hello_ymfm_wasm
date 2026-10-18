@@ -1499,8 +1499,41 @@ interface PlaygroundSpcState {
   playbackNativeFrames:number; renderedNativeFrames:number;
   nativeSampleRate:32000; sampleRate?:number; closed?:boolean;
 }
+/** Captured S-DSP registers; raw PITCH and envelope bytes, not MIDI or seconds. */
+interface PlaygroundSpcEventPreset {
+  sourceNumber:number;
+  /** Raw PITCH 0..16383; 4096 is unity BRR playback rate. */
+  pitch:number;
+  adsr1:number; adsr2:number; gain:number;
+  /** Signed register values -128..127, including phase inversion. */
+  volumeLeft:number; volumeRight:number;
+}
+type PlaygroundSpcEventType = 'noteOn' | 'noteOff' | 'pitch' | 'volume' | 'instrument' | 'dsp';
+/** Source clocks from the SPC origin, at 1,024,000 Hz (32 clocks/native frame).
+ * Callback delivery occurs later, in Main or the script Worker, not in audio.
+ */
+type PlaygroundSpcEvent =
+  | (PlaygroundSpcEventPreset & {type:'noteOn'; clock:number; channel:PlaygroundSnesChannel;
+      preset:PlaygroundSpcEventPreset; reason:'kon' | 'initial';
+      /** The persistent KOFF bit was asserted when KON requested this note. */
+      keyOffHeld:boolean;
+      /** Initial state is inferred from KON/ENVX/OUTX, not original key history. */
+      inferred?:true})
+  | {type:'noteOff'; clock:number; channel:PlaygroundSnesChannel; sourceNumber:number; reason:'koff' | 'initial'; inferred?:true}
+  | {type:'pitch'; clock:number; channel:PlaygroundSnesChannel; pitch:number}
+  | {type:'volume'; clock:number; channel:PlaygroundSnesChannel; volumeLeft:number; volumeRight:number}
+  | {type:'instrument'; clock:number; channel:PlaygroundSnesChannel; sourceNumber:number; adsr1:number; adsr2:number; gain:number; preset:PlaygroundSpcEventPreset}
+  | {type:'dsp'; clock:number; channel?:never; register:number; value:number}
+  | {type:'overflow'; clock:number; channel?:never; droppedWrites:number; message:string};
+interface PlaygroundSpcEventOptions {
+  /** Physical voices 0..7. Global DSP writes remain available via type 'dsp'. */
+  voices?:PlaygroundSnesChannel[];
+  types?:PlaygroundSpcEventType[];
+  /** Delivery batching interval 16..1000 ms, default 16; not a timing quantizer. */
+  intervalMs?:number;
+}
 /** SPC700 program + S-DSP file player. This is not the CPU-free SNES instrument API.
- * Runs the saved program after play(); song events are not converted to JavaScript.
+ * Runs the saved program after play(); optional onEvent observes musical requests.
  * The SPC clock is independent of BPM and Worker lookahead. STOP disposes the player.
  */
 interface PlaygroundSpc {
@@ -1516,6 +1549,14 @@ interface PlaygroundSpc {
   getState():Promise<PlaygroundSpcState>;
   /** Bit0..7 mute the eight voices; their internal musical state still advances. */
   setMuteMask(mask:number):Promise<PlaygroundSpcState>;
+  /** Opt-in musical observations: key requests, distinct PITCH/volume/instrument
+   * changes and raw global DSP writes. No smoothing or note-name inference.
+   * Same-clock PITCH low/high writes are combined; repeated KON still retriggers.
+   * Returns an unsubscribe function. Load/seek reset the inferred initial state;
+   * Stop/dispose remove queued delivery. An overflow diagnostic bypasses filters
+   * and reports that chronology was lost; the decoder then resynchronizes.
+   */
+  onEvent(callback:(event:PlaygroundSpcEvent)=>void | Promise<void>, options?:PlaygroundSpcEventOptions):()=>void;
   /** Current RAM/DSP capture, not a complete resumable checkpoint. */
   snapshot():Promise<{ram:Uint8Array; dsp:Uint8Array; nativeFrames:number; playbackNativeFrames:number; positionSeconds:number; nativeSampleRate:32000; muteMask:number}>;
   dispose():void;

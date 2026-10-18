@@ -1,4 +1,4 @@
-import {SpcCore, SPC_TRACE_MAX_EVENTS} from './spc.js?v=spc-trace-filter-1';
+import {SpcCore, SPC_TRACE_MAX_EVENTS} from './spc.js?v=spc-events-1';
 
 export const SPC_TRACE_MAX_SECONDS = 600;
 export {SPC_TRACE_MAX_EVENTS};
@@ -6,8 +6,8 @@ export {SPC_TRACE_MAX_EVENTS};
 /** Execute a bounded SPC interval offline. Events retain the native DSP clock;
  * no AudioContext, BPM, output sample-rate conversion or audio playback is used.
  * @param {ArrayBuffer|ArrayBufferView} bytes
- * @param {{durationSeconds:number,moduleFactory:import('./spc.js?v=spc-trace-filter-1').SpcCoreOptions['moduleFactory'],
- * moduleOptions?:import('./spc.js?v=spc-trace-filter-1').SpcCoreOptions['moduleOptions'],
+ * @param {{durationSeconds:number,moduleFactory:import('./spc.js?v=spc-events-1').SpcCoreOptions['moduleFactory'],
+ * moduleOptions?:import('./spc.js?v=spc-events-1').SpcCoreOptions['moduleOptions'],
  * signal?:AbortSignal,onProgress?:(progress:{stage:'analyze'|'record',renderedSeconds:number,durationSeconds:number,ratio:number})=>void,
  * maxEvents?:number}} options
  */

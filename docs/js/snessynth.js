@@ -49,7 +49,7 @@ export function prepareSnesBRR(input, options = {}) {
  * and must respect these RAM reservations. reset retains/reuploads samples.
  */
 export class SnesSynth {
-  /** @param {{core:import('./spc.js?v=spc-trace-filter-1').SnesDspCore}} options */
+  /** @param {{core:import('./spc.js?v=spc-events-1').SnesDspCore}} options */
   constructor({core}) {
     if(!core||typeof core.writeDsp!=='function'||typeof core.loadRam!=='function')throw new TypeError('SnesSynth requires SnesDspCore');
     this.core=core;this.sampleRate=SNES_SAMPLE_RATE;this.channelCount=SNES_CHANNEL_COUNT;/** @type {SnesSample[]} */ this.samples=[];this.sampleBytes=[];this.nextAddress=0x400;this.pendingKon=0;this.koff=255;
@@ -143,7 +143,7 @@ export class SnesSynth {
   _instrumentOnly(){if(this.timeline)throw new Error('SNES timeline mode is exclusive; reset() before editing instruments');}
   /** Prepare captured initial RAM/DSP plus editable 1,024,000-Hz DSP/RAM events.
    * Playback remains paused until playTimeline(). No SPC700 driver is executed.
-   * @param {import('./spc.js?v=spc-trace-filter-1').SpcTimeline} trace */
+   * @param {import('./spc.js?v=spc-events-1').SpcTimeline} trace */
   prepareTimeline(trace){const state=this.core.loadTimeline(trace);this.timeline={playing:false,totalFrames:state.totalFrames};return this.getTimelineState();}
   /** Restart the prepared timeline from its captured DSP phase. */
   playTimeline(){if(!this.timeline)throw new Error('Prepare an SNES timeline before playback');this.core.restartTimeline();this.timeline.playing=true;return this.getTimelineState();}

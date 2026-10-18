@@ -92,6 +92,13 @@ public:
 	}
 	void copy_tetorica_trace_initial( unsigned char* ram, unsigned char* regs ) const;
 	void set_tetorica_ram_read_mask( unsigned char* mask ) { dsp.set_tetorica_ram_read_mask( mask ); }
+	// Independent, bounded live DSP observation; changing this never resets DSP.
+	void set_tetorica_dsp_observer( tetorica_trace_t callback, void* user, unsigned long long clock ) {
+		observer_callback = callback; observer_user = user; observer_clock = clock;
+	}
+	void copy_tetorica_dsp_registers( unsigned char* regs ) const {
+		for ( int i = 0; i < SPC_DSP::register_count; ++i ) regs [i] = dsp.read( i );
+	}
 	
 	// Skips count samples. Several times faster than play() when using fast DSP.
 	blargg_err_t skip( int count );
@@ -146,9 +153,13 @@ private:
 	tetorica_trace_t trace_callback = 0;
 	void* trace_user = 0;
 	unsigned long long trace_clock = 0;
+	tetorica_trace_t observer_callback = 0;
+	void* observer_user = 0;
+	unsigned long long observer_clock = 0;
 	void trace_dsp_run( int clocks ) {
 		dsp.run( clocks );
 		if ( trace_callback ) trace_clock += clocks;
+		if ( observer_callback ) observer_clock += clocks;
 	}
 	void trace_ram_write( int addr, int data ) {
 		addr &= 0xFFFF;

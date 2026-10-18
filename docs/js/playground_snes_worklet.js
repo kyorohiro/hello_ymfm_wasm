@@ -1,5 +1,5 @@
-import factory from '../generated/spc_wasm.js?v=spc-trace-filter-1';
-import {SnesDspCore} from './spc.js?v=spc-trace-filter-1';
+import factory from '../generated/spc_wasm.js?v=spc-events-1';
+import {SnesDspCore} from './spc.js?v=spc-events-1';
 import {SnesSynth} from './snessynth.js?v=spc-song-js-1';
 import {SpcResampler} from './spc_resampler.js?v=chip-tabs-2';
 import {createProcessorPerformance} from './playground_performance_processor.js?v=spc-song-js-1';

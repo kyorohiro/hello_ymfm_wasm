@@ -15,13 +15,13 @@ const module = await factory({wasmBinary});
 const source = (await readFile(new URL('./spc-worklet.js', import.meta.url), 'utf8'))
   .replace(/^import .*;$/gm, '').replace('export class ', 'class ');
 const tick = () => new Promise(resolve => setImmediate(resolve));
-async function setup(t, {worker = false} = {}) {
+async function setup(t, {worker = false, clientOptions = {}} = {}) {
   class WorkletBase {
     constructor() {this.port = {messages: [], postMessage(data) {this.messages.push(data);}, close() {}};}
   }
   const Processor = vm.runInNewContext(source + '\nSpcProcessor;', {
     AudioWorkletProcessor:WorkletBase, SpcCore, SpcResampler, moduleFactory:async () => module,
-    sampleRate:48000, Float32Array, Uint8Array, Error, RangeError, Set, Object, Promise,
+    sampleRate:48000, Float32Array, Float64Array, Uint8Array, Error, RangeError, Set, Object, Promise,
     registerProcessor() {},
   });
   const processor = new Processor({processorOptions:{wasmBinary}});
@@ -33,7 +33,7 @@ async function setup(t, {worker = false} = {}) {
   let owner = 'old';
   const sender = createPerformanceSender({getLoop:() => ({performanceOwner:owner}), now:() => 1000});
   sender.configure({session:1,audioSeconds:1,performanceEpochMs:1000,lookaheadSeconds:.5});
-  const client = createSpcClient(worker ? sender.port(channel.port2, 'spc') : channel.port2, {sampleRate:48000});
+  const client = createSpcClient(worker ? sender.port(channel.port2, 'spc') : channel.port2, {sampleRate:48000},clientOptions);
   t.after(() => {client.dispose(); processor.dispose(); channel.port1.close(); channel.port2.close();});
   return {client,processor,sender,channel,setOwner(value){owner=value;},render(frames=4800) {
     const channels = [new Float32Array(frames),new Float32Array(frames)]; processor.process([], [channels]); return channels;
@@ -106,6 +106,87 @@ test('SPC malformed files and invalid controls leave the client retryable', asyn
   assert.throws(()=>f.client.setMuteMask(256),/mask/);
   for (const seconds of [NaN,-1,Infinity,3601]) await assert.rejects(f.client.seek(seconds),/seconds/);
   await f.client.play(); assert.ok(f.render()[0].some(value=>value!==0));
+});
+
+function semanticSpc({repeat = false} = {}) {
+  const bytes = createSyntheticSpc();
+  bytes.set(repeat ? [0x8f,0,0xf2,0xe8,0x20,0xc4,0xf3,0xbc,0x2f,0xfb]
+    : [0x8f,2,0xf2,0x8f,0x80,0xf3,0x8f,3,0xf2,0x8f,0x0c,0xf3,
+      0xcd,16,0x8d,255,0xfe,0xfe,0x1d,0xd0,0xf9,
+      0x8f,0x6c,0xf2,0x8f,0x20,0xf3,
+      0x8f,0x5c,0xf2,0x8f,1,0xf3,0x2f,0xfe],0x100+0x200);
+  return bytes;
+}
+for (const worker of [false,true]) test(`SPC ${worker?'Worker':'Main'} onEvent delivers filtered semantic events away from the render call and unsubscribes`,async t=>{
+  const f=await setup(t,{worker}), events=[], pitches=[],excluded=[];
+  const off=f.client.onEvent(event=>events.push(event),{voices:[0],types:['noteOn','noteOff','pitch']});
+  const offPitch=f.client.onEvent(event=>pitches.push(event),{types:['pitch']});
+  const offExcluded=f.client.onEvent(event=>excluded.push(event),{voices:[7],types:['pitch','noteOff']});
+  await f.client.loadSPC(semanticSpc());await f.client.play();const beforeRender=events.length,pcm=f.render(1280);
+  assert.ok(pcm[0].some(value=>value!==0));assert.equal(events.length,beforeRender,'no user callback runs in process()');
+  await tick();await tick();
+  assert.ok(events.some(event=>event.type==='noteOn'&&event.channel===0));
+  assert.ok(events.some(event=>event.type==='noteOff'&&event.channel===0));
+  assert.ok(pitches.length>0);assert.ok(pitches.every(event=>event.type==='pitch'));assert.equal(excluded.length,0);
+  const count=events.length;off();offPitch();offExcluded();await f.client.stop();await f.client.play();f.render(1280);await tick();await tick();assert.equal(events.length,count);
+});
+
+test('SPC queued events are fenced immediately by Stop, load and seek; invalid load remains observable',async t=>{
+  const f=await setup(t),events=[];f.client.onEvent(event=>events.push(event),{types:['pitch','dsp']});
+  await f.client.loadSPC(semanticSpc());await f.client.play();f.render(1280);await f.client.stop();await tick();assert.equal(events.length,0);
+  await f.client.play();f.render(1280);await f.client.loadSPC(semanticSpc());await tick();assert.equal(events.length,0);
+  await f.client.play();f.render(1280);await f.client.seek(.1);await tick();assert.equal(events.length,0);
+  await f.client.stop();
+  const malformed=semanticSpc();malformed[0]=0;
+  await assert.rejects(f.client.loadSPC(malformed),/header/);await f.client.play();f.render(1280);await tick();await tick();
+  assert.ok(events.length>0,'failed load resynchronizes the current song observer');
+});
+
+for (const worker of [false,true]) test(`SPC ${worker?'Worker':'Main'} idle driver reports initial inferred notes asynchronously without waiting for DSP writes`,async t=>{
+  const f=await setup(t,{worker}),events=[];await f.client.loadSPC(createSyntheticSpc());
+  const off=f.client.onEvent(event=>events.push(event),{voices:[0],types:['noteOn']});
+  assert.equal(events.length,0,'subscription never invokes a callback synchronously');
+  await tick();await tick();
+  assert.equal(events.length,0,'loading/subscribing while paused does not deliver initial notes');
+  await f.client.pause();await tick();assert.equal(events.length,0);
+  await f.client.play();f.render(1280);assert.equal(events.length,0,'heartbeat callbacks remain outside process()');await tick();await tick();
+  assert.equal(events.length,1);assert.equal(events[0].reason,'initial');assert.equal(events[0].inferred,true);assert.equal(events[0].clock,0);
+  const batches=f.processor.eventSequence;f.render(1280);await tick();await tick();assert.equal(events.length,1,'idle playback does not duplicate the initial note');
+  assert.equal(f.processor.eventSequence,batches,'only one idle heartbeat is sent');
+  await f.client.stop();f.render(1280);await tick();await tick();assert.equal(events.length,1,'Stop does not emit the reset snapshot');
+  await f.client.play();f.render(1280);await f.client.stop();await tick();assert.equal(events.length,1,'Stop fences a queued initial heartbeat');
+  off();
+});
+
+test('SPC overload reports lost chronology, bounds in-flight messages and leaves playback alive',async t=>{
+  const f=await setup(t), events=[];f.client.onEvent(event=>events.push(event),{types:['pitch']});
+  await f.client.loadSPC(semanticSpc({repeat:true}));await f.client.play();
+  // Deliberately hold returned buffers to emulate a caller blocked by UI work.
+  const post=f.channel.port2.postMessage.bind(f.channel.port2),held=[];
+  f.channel.port2.postMessage=(data,transfer)=>{if(data?.method==='eventAck')held.push({data,transfer});else post(data,transfer);};
+  for(let round=0;round<8;round++){f.render(1280);await tick();await tick();}
+  assert.equal(f.processor.eventInFlight.size,4);assert.equal(f.processor.eventPool.length,0);
+  assert.equal((await f.client.getState()).playing,true,'delivery pressure never stops the audio source');
+  f.channel.port2.postMessage=post;for(const message of held)post(message.data,message.transfer);
+  await tick();await tick();f.render(1280);await tick();await tick();
+  assert.ok(events.some(event=>event.type==='overflow'&&event.droppedWrites>0),'overload diagnostic bypasses type filters');
+  assert.equal(f.processor.failed,false);assert.equal((await f.client.getState()).playing,true);
+});
+
+test('SPC callback errors and observation option errors do not break future delivery',async t=>{
+  const f=await setup(t);await f.client.loadSPC(semanticSpc());
+  for(const options of [{voices:[8]},{voices:[NaN]},{types:['unknown']},{intervalMs:0}])assert.throws(()=>f.client.onEvent(()=>{},options));
+  assert.throws(()=>f.client.onEvent(null),/callback/);
+  let count=0;const off=f.client.onEvent(()=>count++);off();off();await f.client.play();f.render(1280);await tick();assert.equal(count,0);
+});
+
+test('SPC global DSP events survive voice filters and callbacks restore the caller context',async t=>{
+  let context='registering';const events=[];
+  const f=await setup(t,{clientOptions:{captureContext:()=>context,restoreContext:value=>{context=value;}}});
+  f.client.onEvent(event=>{assert.equal(context,'registering');events.push(event);context='changed-by-callback';},{voices:[7],types:['dsp']});
+  context='caller';await f.client.loadSPC(semanticSpc());await f.client.play();f.render(1280);await tick();await tick();
+  assert.ok(events.some(event=>event.type==='dsp'&&event.channel===undefined&&event.register===0x6c));
+  assert.equal(context,'caller');
 });
 
 function audioMock(t,{ready=true}={}) {

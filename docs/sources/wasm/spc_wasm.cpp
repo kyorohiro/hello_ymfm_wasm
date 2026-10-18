@@ -15,6 +15,7 @@ constexpr int max_file_bytes = 16 * 1024 * 1024;
 constexpr uint32_t max_trace_events = 1000000;
 constexpr uint32_t max_trace_clocks = 600 * 1024000;
 struct TraceEvent { uint32_t clock, kind, address, value; };
+struct ObservedDspWrite { uint32_t clock_low, clock_high, address, value; };
 static_assert(sizeof(TraceEvent) == 16, "Trace records have four uint32 words");
 struct Player {
   explicit Player(bool dsp_only) : dsp_only(dsp_only) {
@@ -35,6 +36,16 @@ struct Player {
   bool tracing = false, trace_failed = false, timeline_loaded = false;
   bool read_tracking = false, read_failed = false, filter_ram = false;
   std::vector<unsigned char> ram_read_mask, trace_ram_filter;
+  bool observing_dsp = false;
+  std::vector<ObservedDspWrite> observed_dsp;
+  uint32_t observed_count = 0, observed_lost = 0;
+  std::array<unsigned char, 128> observed_registers{};
+  static void observe(void* user, unsigned long long clock, int, int address, int value) {
+    auto& p = *static_cast<Player*>(user);
+    if (p.observed_count >= p.observed_dsp.size()) {if (p.observed_lost != UINT32_MAX) ++p.observed_lost; return;}
+    p.observed_dsp[p.observed_count++] = {static_cast<uint32_t>(clock), static_cast<uint32_t>(clock >> 32),
+      static_cast<uint32_t>(address), static_cast<uint32_t>(value)};
+  }
   std::string trace_error;
   uint32_t trace_limit = 0;
   std::array<unsigned char, 65536 + 128> trace_initial{};
@@ -112,7 +123,8 @@ struct Player {
     // Keep original bytes only after validation; failed loads leave playback intact.
     if (data != original.data()) original.assign(data, data + size);
     cpu.swap(next);
-    tracing = trace_failed = read_tracking = false; trace_events.clear(); ram_read_mask.clear();
+    tracing = trace_failed = read_tracking = observing_dsp = false; trace_events.clear(); ram_read_mask.clear();
+    observed_count = observed_lost = 0;
     frames = 0;
     error.clear();
     return true;
@@ -240,6 +252,25 @@ int spc_ram_read_finish(Player* p) {
   p->error.clear(); return 1;
 }
 unsigned char* spc_ram_read_mask_ptr(Player* p) {return p && !p->ram_read_mask.empty() ? p->ram_read_mask.data() : nullptr;}
+int spc_observer_begin(Player* p, int capacity) {
+  if (!p || p->dsp_only || p->original.empty() || capacity < 16 || capacity > 8192) {
+    if (p) p->error = "DSP observation requires a loaded SPC and capacity from 16 to 8192"; return 0;
+  }
+  p->observed_dsp.resize(capacity); p->observed_count = p->observed_lost = 0; p->observing_dsp = true;
+  p->cpu->set_tetorica_dsp_observer(Player::observe, p, p->frames * 32); p->error.clear(); return 1;
+}
+void spc_observer_stop(Player* p) {
+  if (!p || p->dsp_only) return;
+  p->cpu->set_tetorica_dsp_observer(nullptr, nullptr, 0); p->observing_dsp = false;
+  p->observed_count = p->observed_lost = 0;
+}
+ObservedDspWrite* spc_observer_ptr(Player* p) {return p && !p->observed_dsp.empty() ? p->observed_dsp.data() : nullptr;}
+int spc_observer_drain(Player* p) {if (!p) return 0; const int count = p->observed_count; p->observed_count = 0; return count;}
+double spc_observer_lost(Player* p) {if (!p) return 0; const uint32_t lost = p->observed_lost; p->observed_lost = 0; return lost;}
+unsigned char* spc_observer_registers_ptr(Player* p) {
+  if (!p || p->dsp_only) return nullptr;
+  p->cpu->copy_tetorica_dsp_registers(p->observed_registers.data()); return p->observed_registers.data();
+}
 int spc_load_timeline(Player* p, const unsigned char* initial, const TraceEvent* events, int count, int duration) {
   if (!p || !p->dsp_only || !initial || count < 0 || count > static_cast<int>(max_trace_events) ||
       (count && !events) || duration < 32 || duration > static_cast<int>(max_trace_clocks) || duration % 32) {
