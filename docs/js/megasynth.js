@@ -16,8 +16,8 @@ import {
 } from "./ym2612synth.js?v=audio-stability-2";
 import { YM2612_CLOCK } from "./ym2612.js";
 import { createSegaPsgApi } from "./segapsg_api.js?v=sega-modes-1";
-import { createRf5c164Audio } from "./playground_rf5c164_audio.js?v=sega-modes-1";
-import { createRf5c164Client } from "./playground_rf5c164.js?v=audio-stability-2";
+import { createRf5c164Audio } from "./playground_rf5c164_audio.js?v=mega-cd-2";
+import { createRf5c164Client } from "./playground_rf5c164.js?v=mega-cd-2";
 import { samplePCM } from "./native_sample.js?v=audio-stability-2";
 import { TetoricaAudioRuntime } from "./tetorica_audio_runtime.js?v=audio-stability-2";
 export {
@@ -352,7 +352,7 @@ export class MegaSynth {
     this.rf5c164WasmUrl = options.rf5c164WasmUrl ??
       resolveSiblingWorkletUrl(this.ym2612WasmUrl, 'rf5c164_wasm.wasm');
     this.rf5c164WorkletUrl = options.rf5c164WorkletUrl ??
-      resolveSiblingWorkletUrl(this.workletUrl, 'rf5c164-worklet.js?v=sega-modes-1');
+      resolveSiblingWorkletUrl(this.workletUrl, 'rf5c164-worklet.js?v=mega-cd-2');
     this.rf5c164Fetch = options.rf5c164Fetch;
     /** RF5C164 API after start() when megaCD is enabled; its methods return promises.
      * @type {(ReturnType<typeof createRf5c164Client> & {readonly id: string}) | null} */

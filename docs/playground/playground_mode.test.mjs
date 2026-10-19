@@ -7,7 +7,8 @@ import {MODE_STARTERS} from './playground_mode_examples.js';
 test('modes select native chips, clocks and Full expansions', () => {
   const expected = [
     ['genesis','ym2612',7670454,false], ['genesis-full','ym2612',7670454,true],
-    ['genesis-full-nuked','ym2612',7670454,true], ['pc98-26','ym2203',4000000,false],
+    ['genesis-full-nuked','ym2612',7670454,true], ['mega-cd','ym2612',7670454,false],
+    ['pc98-26','ym2203',4000000,false],
     ['pc98','ym2608',8000000,false], ['neogeo','ym2610',8000000,false],
     ['neogeo-b','ym2610b',8000000,false],
     ['gameboy','gameboy',4194304,false],
@@ -19,8 +20,8 @@ test('modes select native chips, clocks and Full expansions', () => {
   for (const mode of PLAYGROUND_MODES) {
     const options = createModeSynthOptions(mode, new URL('https://example.com/app/js/'));
     assert.equal(options.chip, mode.chip);
-    assert.equal(options.megaCD, mode.full);
-    assert.equal(options.mega32X, mode.full);
+    assert.equal(options.megaCD, mode.megaCD ?? mode.full);
+    assert.equal(options.mega32X, mode.mega32X ?? mode.full);
     assert.equal(Boolean(options.segaPsgWasmUrl), mode.chip === 'ym2612');
     if (mode.chip === 'segapsg') {
       assert.equal(mode.fmChannels,0);
@@ -47,6 +48,15 @@ test('modes select native chips, clocks and Full expansions', () => {
   const full = createModeSynthOptions(getPlaygroundMode('genesis-full-nuked'));
   assert.match(full.workletUrl, /ym2612-worklet-nuked\.js\?/);
   assert.equal(full.megaCD && full.mega32X, true);
+  for (const id of ['genesis-full', 'genesis-full-nuked']) {
+    assert.equal(getPlaygroundMode(id).declarationChip, 'mega-cd', `${id} shares primary PCM ownership types`);
+  }
+  const megaCD = getPlaygroundMode('mega-cd');
+  assert.deepEqual(megaCD.chipTabs, ['operator', 'segapsg', 'rf5c164']);
+  assert.equal(megaCD.declarationChip, 'mega-cd');
+  assert.equal(megaCD.legacyDraftKey, 'mega-cd', 'a fresh Mega-CD mode does not inherit an old Genesis draft');
+  assert.equal(createModeSynthOptions(megaCD).megaCD, true);
+  assert.equal(createModeSynthOptions(megaCD).mega32X, false);
   const gameboy = getPlaygroundMode('gameboy');
   assert.deepEqual(gameboy.chipTabs, []);
   assert.equal(gameboy.fmChannels, 0);
@@ -68,6 +78,7 @@ test('legacy chip and engine links retain their original environments; explicit 
   assert.equal(resolvePlaygroundMode('?chip=ym2610').id, 'neogeo');
   assert.equal(resolvePlaygroundMode('?chip=ym2610b').chip, 'ym2610b');
   assert.equal(resolvePlaygroundMode('?mode=gameboy').chip, 'gameboy');
+  assert.equal(resolvePlaygroundMode('?mode=mega-cd').chip, 'ym2612');
   assert.equal(resolvePlaygroundMode('?engine=nuked').id, 'genesis-nuked');
   assert.equal(resolvePlaygroundMode('?mode=pc98&chip=ym2612&engine=nuked').chip, 'ym2608');
   assert.equal(resolvePlaygroundMode('?mode=simple&chip=ym2203').id, 'pc98-26');

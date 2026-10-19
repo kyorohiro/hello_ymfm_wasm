@@ -69,6 +69,9 @@ const segaFiles=new Set(['segapsg.js','segapsgsynth.js','segapsg_api.js',
   'playground_segapsg.js','playground_segapsg_audio.js','playground_segapsg_worklet.js',
   'native_runtime_synth.js','playground_native_primary.js','tetorica_synth.js',
   'playground_runtime.js','playground_logic_worker.js','playground_performance_processor.js']);
+const megaCdVersion='mega-cd-2';
+const megaCdFiles=new Set(['playground_runtime.js','playground_logic_worker.js','playground_live.js',
+  'playground_rf5c164.js','rf5c164-worklet.js']);
 let propagated;
 do {
   propagated=false;
@@ -76,6 +79,15 @@ do {
     if(audioFiles.has(name))continue;
     const imports=[...source.matchAll(/['"](?:\.\/)?([\w.-]+\.js)(?:\?[^'"]*)?['"]/g)];
     if(imports.some(match=>audioFiles.has(match[1]))) {audioFiles.add(name);propagated=true;}
+  }
+} while(propagated);
+do {
+  propagated=false;
+  for(const {name,source} of sources) {
+    if(megaCdFiles.has(name))continue;
+    const runtimeSource=source.replace(/\/\*[\s\S]*?\*\//g,'');
+    const imports=[...runtimeSource.matchAll(/['"](?:\.\/)?([\w.-]+\.js)(?:\?[^'"]*)?['"]/g)];
+    if(imports.some(match=>megaCdFiles.has(match[1]))) {megaCdFiles.add(name);propagated=true;}
   }
 } while(propagated);
 do {
@@ -89,18 +101,19 @@ do {
   }
 } while(propagated);
 for(const name of ['playground.js','playground_mode.js','playground_operator_tab.js','playground_tfi_editor.js'])audioFiles.add(name);
-const pageRevisions={'playground.js':segaVersion,'playground_mode_starters.js':'mode-choice-1',
+const pageRevisions={'playground.js':megaCdVersion,'playground_audio_input.js':megaCdVersion,'playground_mode_starters.js':'mode-choice-1',
   'playground_autosave.js':'mode-handoff-1','playground_mode_project.js':'mode-handoff-1',
   ...Object.fromEntries(['playground_mode.js','playground_examples.js','playground_mode_examples.js',
     'playground_monaco.js','playground_declarations.js','playground_monaco_completion.js']
-    .map(name=>[name,segaVersion])),
+    .map(name=>[name,megaCdVersion])),
   ...Object.fromEntries(['ym2612vgm.js','ym2203vgm.js','ym2608vgm.js','ym2610bvgm.js',
     'playground_vgm_import.js','rf5c164_vgm_export.js','ym2608_vgm_import.js','playground_vgm_presets.js']
     .map(name=>[name,'vgm-frequency-order-2']))};
-const revisionFor=name=>pageRevisions[name]??(segaFiles.has(name)?segaVersion:audioFiles.has(name)?audioVersion:revisions[name]??version);
+const revisionFor=name=>pageRevisions[name]??(megaCdFiles.has(name)?megaCdVersion:segaFiles.has(name)?segaVersion:audioFiles.has(name)?audioVersion:revisions[name]??version);
 const targets=[...new Set([
   ...Object.keys(pageRevisions),
   ...segaFiles,
+  ...megaCdFiles,
   ...audioFiles,
   ...pcmFiles,
   ...nativeFiles,

@@ -1,6 +1,6 @@
 import {
   FM_PRESETS,
-} from "../js/megasynth.js?v=sega-modes-1";
+} from "../js/megasynth.js?v=mega-cd-2";
 
 const SCALE_NAMES = [
   "major",
@@ -267,6 +267,7 @@ const YM2612_REGISTER_CANDIDATES = [
 
 const FM_COMPLETION_CAPABILITIES = {
   ym2612: {channels: [0, 1, 2, 3, 4, 5], dac: true, pan: true, lfo: true},
+  'mega-cd': {channels: [0, 1, 2, 3, 4, 5], dac: true, pan: true, lfo: true},
   ym2203: {channels: [0, 1, 2], dac: false, pan: false, lfo: false},
   ym2608: {channels: [0, 1, 2, 3, 4, 5], dac: false, pan: true, lfo: true},
   ym2610: {channels: [1, 2, 4, 5], dac: false, pan: true, lfo: true},

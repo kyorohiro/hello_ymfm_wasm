@@ -1,4 +1,4 @@
-import {isSimplePlaygroundLayout} from './playground_mode.js?v=sega-modes-1';
+import {isSimplePlaygroundLayout} from './playground_mode.js?v=mega-cd-2';
 
 /** Arrange Files beside an editor and independently selectable bottom tools. */
 export function installPlaygroundWorkbench(root, {storage, search = window.location.search} = {}) {

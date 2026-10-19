@@ -17,6 +17,7 @@ import {formatLogArgs} from './playground_log.js';
  * @param {(loop: object) => void} [options.cancelWaits] Wake a stopped loop's waits.
  * @param {(loop: object) => Promise<void>} [options.finishTasks] Await loop-owned asynchronous tasks.
  * @param {(loop: object) => void} [options.releaseTasks] Release completed loop task state.
+ * @param {() => string[]} [options.getKeyboardNames] Registered keyboard resources retained by liveCleanup.
  * @param {(line: string) => void} options.logLine Error/log sink.
  * @param {(message: string) => void} options.setStatus Status sink.
  * @param {(callback: () => unknown) => unknown | Promise<unknown>} [options.executeCallback] Optional execution guard wrapper.
@@ -36,6 +37,7 @@ export function createPlaygroundLive(
     cancelWaits = () => {},
     finishTasks = async () => {},
     releaseTasks = () => {},
+    getKeyboardNames = () => [],
     logLine,
     setStatus,
     executeCallback = (callback) =>
@@ -326,6 +328,7 @@ export function createPlaygroundLive(
     state.stopped = true;
     state.runToken += 1;
     cancelWaits(state);
+    flushLiveCleanups();
   }
 
   function stopAllLoops() {
@@ -334,6 +337,7 @@ export function createPlaygroundLive(
       state.runToken += 1;
       cancelWaits(state);
     }
+    flushLiveCleanups();
   }
 
   function isRunStoppedError(error) {
@@ -442,6 +446,7 @@ export function createPlaygroundLive(
       ) {
         setCurrentLoopContext(null);
       }
+      flushLiveCleanups();
     }
   }
 
@@ -507,7 +512,7 @@ export function createPlaygroundLive(
 
   function flushLiveCleanups(
     activeNames = new Set(
-      getActiveLoopNames()
+      [...getActiveLoopNames(), ...getKeyboardNames()]
     )
   ) {
     for (const [
@@ -569,7 +574,7 @@ export function createPlaygroundLive(
       if (
         definition.cleanupScope ===
         cleanupScope &&
-        !activeDefinitionIds.has(id)
+        (!activeDefinitionIds.has(id) || definition.keyboardScoped)
       ) {
         // Replacing a source removes its old definition. Run it before
         // discarding it so persistent voices and effects are released.
@@ -578,6 +583,7 @@ export function createPlaygroundLive(
     }
 
     for (const definition of cleanupDefinitions) {
+      definition.keyboardScoped = definition.names.some(name => getKeyboardNames().includes(name));
       runtime.liveCleanupHooks.set(
         definition.id,
         definition
@@ -586,7 +592,7 @@ export function createPlaygroundLive(
 
     flushLiveCleanups(
       new Set(
-        getActiveLoopNames()
+        [...getActiveLoopNames(), ...getKeyboardNames()]
       )
     );
   }

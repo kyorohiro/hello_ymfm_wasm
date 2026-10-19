@@ -12,6 +12,7 @@ import {YM2610BSynth, NeoGeoFMSynth} from './ym2610bsynth.js';
 import {createSegaPsgClient} from './playground_segapsg.js';
 import {createSnesClient} from './playground_snes.js';
 import {SnesSynth} from './snessynth.js';
+import {createRf5c164Client, createRf5c164Control} from './playground_rf5c164.js';
 
 function deferred() {
   let resolve;
@@ -48,6 +49,103 @@ function setup(t, capabilities, runtimeOptions = {}) {
   });
   return { runtime, megaDrive, listeners, statuses, logs };
 }
+
+function attachPrimaryPcm(megaDrive) {
+  const writes = [], memory = [];
+  const control = createRf5c164Control({writeRegister:(...args)=>writes.push(args),loadMemory:(...args)=>memory.push(args),reset(){},dispose(){throw Error('Primary disposed');}});
+  const port = {start(){},close(){throw Error('Primary port closed');},postMessage({id,method,args=[]}) {
+    const value = method === 'clock' ? undefined : control[method](...args);
+    if (id !== undefined) queueMicrotask(()=>port.onmessage({data:{id,value}}));
+  }};
+  megaDrive.pcm = createRf5c164Client(port,async source=>source);
+  Object.defineProperty(megaDrive.pcm,'id',{value:'rf5c164'});
+  return {writes,memory};
+}
+
+test('Mega CD useSoundChip borrows primary PCM, keeps RAM and tuning across Stop, and accepts decoded PCM',async t=>{
+  const {runtime,megaDrive}=setup(t,{chip:'ym2612',fmChannels:6,psg:true,dac:true});
+  const {writes,memory}=attachPrimaryPcm(megaDrive);
+  await runtime.playSource(`
+    const [pcm,again]=await Promise.all([useSoundChip('rf5c164'),useSoundChip('rf5c164')]);
+    if(pcm!==again||pcm.id!=='rf5c164'||typeof pcm.dispose!=='undefined')throw Error('Independent PCM');
+    const wave=await pcm.loadSample({channels:[new Float32Array([0,.5,-.5,0])],sampleRate:16000});
+    await pcm.setChannel(7,{...wave,volume:180,pan:{left:15,right:8}});
+    await pcm.setClock(10000000);await pcm.keyOn(7);
+  `);
+  assert.equal(memory.length,1); assert.equal(megaDrive.pcm.clock,10000000);
+  const before=writes.length; await runtime.stop();
+  assert.equal(writes.at(-1)[0],8); assert.equal(writes.at(-1)[1],255);
+  assert(!writes.slice(before).some(([register])=>register!==8),'Stop only gates voices, preserving channel settings');
+  await runtime.playSource(`const pcm=await useSoundChip('rf5c164');if(pcm.clock!==10000000)throw Error('Lost tuning');await pcm.keyOn(7);`);
+  assert.equal(memory.length,1,'waveform RAM is reused');
+  assert.equal(writes.at(-1)[1],127,'the eighth voice can retrigger after Stop');
+});
+
+test('Main Run waits for all old primary PCM release acknowledgements while Stop stays immediate',async t=>{
+  const {runtime,megaDrive}=setup(t,{chip:'ym2612',fmChannels:6,psg:true,dac:true});
+  const pending=[],events=[];let delay=true;
+  megaDrive.pcm={keyOff(channel){
+    const apply=()=>events.push(['off',channel]);
+    if(!delay){apply();return Promise.resolve();}
+    return new Promise(resolve=>pending.push(()=>{apply();resolve();}));
+  },keyOn(channel){events.push(['on',channel]);return Promise.resolve();}};
+  await runtime.playSource('');assert.equal(runtime.stop(),undefined);
+  assert.equal(pending.length,8);
+  const next=runtime.playSource(`const pcm=await useSoundChip('rf5c164');await pcm.keyOn(0);`);
+  for(let i=0;i<7;i++)pending[i]();
+  await Promise.resolve();await Promise.resolve();assert(!events.some(([kind])=>kind==='on'));
+  delay=false;pending[7]();await next;
+  assert.deepEqual(events,[...[0,1,2,3,4,5,6,7].map(channel=>['off',channel]),['on',0]]);
+});
+
+test('stopping a Main PCM liveLoop releases its voices without muting a replacement owner',async t=>{
+  const {runtime,megaDrive}=setup(t,{chip:'ym2612',fmChannels:6,psg:true,dac:true});
+  const {writes}=attachPrimaryPcm(megaDrive);
+  await runtime.playSource(`const pcm=await useSoundChip('rf5c164');liveLoop('held',async()=>{await pcm.keyOn(0);await pcm.keyOn(1);try{await sleep(60);}finally{await pcm.keyOff(1);}});`);
+  await until(()=>writes.some(([r,v])=>r===8&&v===252));
+  const before=writes.length;
+  await runtime.playSource(`const pcm=await useSoundChip('rf5c164');await pcm.keyOn(1);stopLoop('held');`);
+  await until(()=>writes.slice(before).some(([r,v])=>r===8&&v===253));
+  await new Promise(resolve=>setTimeout(resolve,0));
+  assert(!writes.slice(before).some(([r,v])=>r===8&&v===255),'retired finally cannot mute the replacement channel');
+});
+
+test('Main audio input exposes decoded PCM, aborts on Stop and rejects stale completion',async t=>{
+  let receivedOptions, signal;
+  const gate=deferred();
+  const {runtime}=setup(t,undefined,{inputAudio:(options,context)=>{receivedOptions=options;signal=context.signal;return gate.promise;}});
+  globalThis.playgroundReview={};
+  const playing=runtime.playSource(`try{const value=await inputAudio({title:'Sampler'});context.value=value;}catch(error){globalThis.playgroundReview.error=error.name;throw error;}`);
+  await until(()=>signal);
+  assert.deepEqual(receivedOptions,{title:'Sampler'});assert.equal(signal.aborted,false);
+  runtime.stop();assert.equal(signal.aborted,true);
+  gate.resolve({name:'voice.wav',source:'file',channels:[new Float32Array(8)],sampleRate:16000});
+  await playing;assert.equal(globalThis.playgroundReview.error,'AbortError');
+  assert.equal(runtime.context.value,undefined);
+});
+
+test('a new Main Run aborts an older audio input, and pg.inputAudio preserves cancellation',async t=>{
+  const gates=[],signals=[];
+  const {runtime}=setup(t,undefined,{inputAudio:(_,context)=>{signals.push(context.signal);const gate=deferred();gates.push(gate);return gate.promise;}});
+  const old=runtime.playSource(`await inputAudio();`);
+  await until(()=>signals.length===1);
+  const next=runtime.playSource(`context.input=await pg.inputAudio();`);
+  await until(()=>signals.length===2);assert.equal(signals[0].aborted,true);
+  gates[0].resolve(null);await old;
+  gates[1].resolve(null);await next;assert.equal(runtime.context.input,null);
+});
+
+test('Main keyboard cleanup stays active without a polling loop and runs on replacement and Stop',async t=>{
+  const {runtime,listeners}=setup(t);
+  globalThis.playgroundReview=[];
+  const source=label=>`onKeyboardReleaseKey('sampler',event=>globalThis.playgroundReview.push(['key',event.editable]));liveCleanup(['sampler'],()=>globalThis.playgroundReview.push('${label}'));`;
+  await runtime.playSource(source('old'));assert.deepEqual(globalThis.playgroundReview,[]);
+  [...listeners][0]({type:'keyup',code:'KeyZ',target:{isContentEditable:true}});
+  await Promise.resolve();assert.deepEqual(globalThis.playgroundReview,[['key',true]]);
+  await runtime.playSource(source('new'));assert.deepEqual(globalThis.playgroundReview,[['key',true],'old']);
+  await runtime.playSource('');assert.deepEqual(globalThis.playgroundReview,[['key',true],'old','new']);
+  await runtime.playSource(source('stop'));runtime.stop();assert.deepEqual(globalThis.playgroundReview,[['key',true],'old','new','stop']);
+});
 
 test('primary Game Boy exposes shared initialized controls without FM shortcuts and survives Stop', async t => {
   const {runtime,megaDrive}=setup(t,{chip:'gameboy',fmChannels:0,psg:false,dac:false});
@@ -682,6 +780,20 @@ function workerBridge(t) {
   };
   t.after(()=>{globalThis.Worker=previous;});return workers;
 }
+test('Worker restart waits for Main primary PCM releases even when its stopped message arrives first',async t=>{
+  const {runtime,megaDrive}=setup(t,{chip:'ym2612',fmChannels:6,psg:true,dac:true});
+  const workers=workerBridge(t),pending=[];let delay=true;
+  megaDrive.pcm={keyOff(){return delay?new Promise(resolve=>pending.push(resolve)):Promise.resolve();}};
+  await runtime.playSource('',{execution:'worker'});
+  const worker=workers[0];let starts=0;
+  const post=worker.postMessage.bind(worker);worker.postMessage=message=>{if(message.type==='run')starts++;return post(message);};
+  runtime.stop();const next=runtime.playSource('',{execution:'worker'});
+  await until(()=>pending.length===8);
+  assert.equal(starts,0);
+  for(let i=0;i<7;i++)pending[i]();
+  await Promise.resolve();await Promise.resolve();assert.equal(starts,0);
+  delay=false;pending[7]();await next;assert.equal(starts,1);
+});
 test('a delayed Worker Stop must finish before the next Run is sent', async t => {
   const {runtime, megaDrive}=setup(t);
   const previous=globalThis.Worker, workers=[];

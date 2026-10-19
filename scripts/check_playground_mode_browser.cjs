@@ -25,8 +25,9 @@ const mime = {'.html':'text/html', '.js':'text/javascript', '.mjs':'text/javascr
 const accessor = '\nwindow.__modeRegression={runtime,megaDrive,selectedMode,virtualFiles,getEditorValue,setEditorValue:value=>editorAdapter.setValue(value),captureProjectSnapshot,openVirtualFile,loadCassetteSource,runCode};';
 const modes = [
   {id:'genesis', label:'Genesis', chip:'ym2612', clock:7670454, channels:6},
-  {id:'genesis-full', label:'Genesis Full', chip:'ym2612', clock:7670454, channels:6, full:true},
-  {id:'genesis-full-nuked', label:'Genesis Full (Nuked)', chip:'ym2612', clock:7670454, channels:6, full:true, nuked:true},
+  {id:'genesis-full', label:'Genesis Full', chip:'ym2612', declarationChip:'mega-cd', clock:7670454, channels:6, full:true},
+  {id:'genesis-full-nuked', label:'Genesis Full (Nuked)', chip:'ym2612', declarationChip:'mega-cd', clock:7670454, channels:6, full:true, nuked:true},
+  {id:'mega-cd', label:'Mega-CD / Sega CD', chip:'ym2612', declarationChip:'mega-cd', clock:7670454, channels:6, megaCD:true},
   {id:'pc98-26', label:'PC-98 (YM2203 / OPN)', chip:'ym2203', clock:4000000, channels:3},
   {id:'pc98', label:'PC-98 (YM2608 / OPNA)', chip:'ym2608', clock:8000000, channels:6},
   {id:'neogeo', label:'Neo Geo', chip:'ym2610', clock:8000000, channels:4},
@@ -64,7 +65,7 @@ async function checkTypes(page, mode) {
   if (mode.chip === 'gameboy') return checkGameboyTypes(page);
   const types = await page.evaluate(async mode => {
     const models = monaco.editor.getModels().filter(model => model.uri.path.endsWith('.d.ts'));
-    const selected = models.find(model => model.uri.path.endsWith(`/tetorica-playground-${mode.chip}.d.ts`));
+    const selected = models.find(model => model.uri.path.endsWith(`/tetorica-playground-${mode.declarationChip ?? mode.chip}.d.ts`));
     const valid = `fm.setPreset(${mode.channels - 1}, FM_PRESETS['one-op-basic']);\n`;
     const source = valid + `fm.setPreset(${mode.channels}, FM_PRESETS['one-op-basic']);\nfm;\npg.fm;\nfm.`;
     const model = monaco.editor.createModel(source, 'javascript', monaco.Uri.parse('file:///mode-type-regression.js'));
@@ -98,7 +99,7 @@ async function checkTypes(page, mode) {
           pgFm:pgFmHover?.displayParts.map(part => part.text).join('')}};
     } finally {model.dispose();}
   }, mode);
-  assert(types.selected?.includes(`"${mode.chip}"`), `${mode.id}: selected declarations missing`);
+  assert(types.selected?.includes(`"${mode.declarationChip ?? mode.chip}"`), `${mode.id}: selected declarations missing`);
   assert(types.methods?.includes('setPreset'), `${mode.id}: fm completion missing`);
   assert(!types.diagnostics.some(diagnostic => diagnostic.start < types.validLength), `${mode.id}: highest native FM channel rejected`);
   assert(types.diagnostics.some(diagnostic => diagnostic.start >= types.validLength && diagnostic.code === 2345), `${mode.id}: out-of-range FM channel accepted`);
@@ -190,7 +191,7 @@ async function checkGameboyTypes(page) {
 async function checkChipTabs(page, mode) {
   const chipTabs = {operator:'#operatorTabButton', segapsg:'#segapsgTab', rf5c164:'#rf5c164Tab', pwm:'#pwmTab'};
   const expected = mode.chip === 'ym2612'
-    ? ['operator', 'segapsg', ...(mode.full ? ['rf5c164', 'pwm'] : [])] : mode.chip === 'gameboy' ? [] : ['operator'];
+    ? ['operator', 'segapsg', ...(mode.full || mode.megaCD ? ['rf5c164'] : []), ...(mode.full ? ['pwm'] : [])] : mode.chip === 'gameboy' ? [] : ['operator'];
   for (const [name, selector] of Object.entries(chipTabs)) {
     assert.equal(await page.locator(selector).isVisible(), expected.includes(name), `${mode.id}: ${name} tab visibility`);
   }
@@ -783,7 +784,7 @@ async function checkAudio(page, mode) {
   });
   assert.equal(native.chip, mode.chip);
   assert.equal(native.channels, mode.channels);
-  assert.equal(native.pcm, Boolean(mode.full), `${mode.id}: RF5C164 startup`);
+  assert.equal(native.pcm, Boolean(mode.full || mode.megaCD), `${mode.id}: RF5C164 startup`);
   assert.equal(native.pwm, Boolean(mode.full), `${mode.id}: 32X PWM startup`);
   assert.equal(native.engine, mode.nuked ? 'nuked' : 'ymfm');
   assert.equal(native.worklet.includes('ym2612-worklet-nuked'), Boolean(mode.nuked));
@@ -1036,7 +1037,10 @@ async function checkStarterAudio(page, browserName, mode, files) {
   try {
     // Genesis retains the extensive legacy catalog. Its starter is the fresh
     // mode contract; running every old sample would repeat unrelated suites.
-    const selected = mode.id === 'genesis' ? files.slice(0,1) : files;
+    // The interactive sampler is exercised with real file/recording input and
+    // keyboard events in check_playground_megacd_browser.cjs.
+    const selected = (mode.id === 'genesis' ? files.slice(0,1) : files)
+      .filter(file => !file.path.endsWith('/megacd-sampler.js'));
     for (const execution of ['main','worker']) {
       for (const file of selected) {
         const lookahead = await page.evaluate(execution => execution === 'worker'

@@ -105,6 +105,7 @@ const SCALE_INTERVALS = {
  *   onReady?: ((context: { synth: object, megaDrive: object }) => void) | null,
  *   onMegaDriveEvent?: ((event: object) => void) | null,
  *   onAuditionReset?: (() => void) | null,
+ *   inputAudio?: ((options: {title?:string}, context: {signal:AbortSignal}) => Promise<null|{name:string,source:'file'|'microphone',sampleRate:number,channels:Float32Array[]}>) | null,
  * }} [options]
  * @returns Runtime controls and accessors; initialize audio before using the synth.
  */
@@ -246,6 +247,30 @@ export function createPlaygroundRuntime(
   }
   let currentRunToken = 0;
   let currentLoopContext = null;
+  const audioInputRequests = new Set();
+  function cancelAudioInputRequests() {
+    for (const controller of audioInputRequests) controller.abort(new DOMException('Run stopped', 'AbortError'));
+    audioInputRequests.clear();
+  }
+  async function inputAudio(inputOptions = {}, runToken = currentRunToken) {
+    if (!inputOptions || typeof inputOptions !== 'object' || Array.isArray(inputOptions) ||
+        Reflect.ownKeys(inputOptions).some(key => key !== 'title') ||
+        inputOptions.title !== undefined && typeof inputOptions.title !== 'string') throw new TypeError('inputAudio supports {title?: string}');
+    if (runToken !== currentRunToken) throw new DOMException('Run stopped', 'AbortError');
+    if (typeof options.inputAudio !== 'function') throw new Error('Audio input is unavailable in this host');
+    const controller = new AbortController();
+    audioInputRequests.add(controller);
+    let cancel;
+    try {
+      const result = await new Promise((resolve,reject) => {
+        cancel = () => reject(controller.signal.reason);
+        controller.signal.addEventListener('abort',cancel,{once:true});
+        Promise.resolve().then(() => options.inputAudio(inputOptions, {signal:controller.signal})).then(resolve,reject);
+      });
+      if (controller.signal.aborted || runToken !== currentRunToken) throw new DOMException('Run stopped', 'AbortError');
+      return result;
+    } finally {controller.signal.removeEventListener('abort',cancel);audioInputRequests.delete(controller);}
+  }
   const keyboardHandlers = new Map();
   let removeMegaDriveListener =
     null;
@@ -287,6 +312,36 @@ export function createPlaygroundRuntime(
   let sharedGameboySynth;
   let sharedFm;
   let sharedFmSynth;
+  let sharedPcm;
+  let sharedPcmClient;
+  let primaryPcmSilence = Promise.resolve();
+  const primaryPcmOwners = new Map();
+  function silencePrimaryPcm(channels) {
+    const pending = channels.map(channel => Promise.resolve(megaDrive.pcm?.keyOff(channel)).catch(() => {}));
+    // The Main and Worker control ports have independent message order. A new
+    // performance must wait until every old Main-port release has been applied.
+    primaryPcmSilence = Promise.all([primaryPcmSilence, ...pending]).then(() => {});
+    return primaryPcmSilence;
+  }
+  function primaryPcmApi() {
+    const raw = megaDrive.pcm;
+    if (!raw) return undefined;
+    if (sharedPcmClient !== raw) {
+      sharedPcmClient = raw;
+      sharedPcm = borrowNativeApi(raw, 'rf5c164', () => {}, (path, args) => {
+        const loop = currentLoopContext, method = path.at(-1);
+        if (loop?.stopped) return false;
+        if (method === 'reset') primaryPcmOwners.clear();
+        if (method === 'keyOn') primaryPcmOwners.set(args[0], loop);
+        if (method === 'keyOff') {
+          if (loop && primaryPcmOwners.has(args[0]) && primaryPcmOwners.get(args[0]) !== loop) return false;
+          primaryPcmOwners.delete(args[0]);
+        }
+        return true;
+      });
+    }
+    return sharedPcm;
+  }
   let sharedSections = {};
   let sharedSectionSynth;
   const nativeOwners = new Map(), nativeApiCache = new WeakMap();
@@ -456,6 +511,7 @@ export function createPlaygroundRuntime(
     pcmDevices.add(device); chipInspector.notify(); return device;
   }
   async function decodePcm(source){
+    if(source?.channels && source.sampleRate)return source;
     if(source instanceof Uint8Array)source=source.buffer.slice(source.byteOffset,source.byteOffset+source.byteLength);
     if(typeof Blob !== 'undefined' && source instanceof Blob)source=await source.arrayBuffer();
     // Reuse the existing local-file URL policy and browser decoder, then release the cache.
@@ -738,6 +794,9 @@ export function createPlaygroundRuntime(
       synth?.write?.(0, 0x2b, 0x00);
     }
     stopAllNotes();
+    megaDrive.pcm?._cancelClockRequests?.('Run stopped');
+    if (megaDrive.pcm) silencePrimaryPcm([0,1,2,3,4,5,6,7]);
+    primaryPcmOwners.clear();
     if (nativePrimary) {megaDrive.stopAllNative();nativeOwners.clear();}
     if (capabilities.chip === 'gameboy') {
       synth?._cancelClockRequests?.('Run stopped');
@@ -760,6 +819,7 @@ export function createPlaygroundRuntime(
     megaDrive.sample.stopAll();
     megaDrive.stream.stop();
     noiseApi.stopAll();
+    return primaryPcmSilence;
   }
 
   const clockApi =
@@ -811,7 +871,13 @@ export function createPlaygroundRuntime(
       executeCallback: executeUserCallback,
       finishTasks: loop => loopTasks.finish(loop),
       releaseTasks: loop => loopTasks.release(loop),
+      getKeyboardNames: () => [...keyboardHandlers.values()].map(handler => handler.name),
       cancelWaits: state => {
+        const pcmChannels = [];
+        for (const [channel, owner] of primaryPcmOwners) if (owner === state) {
+          primaryPcmOwners.delete(channel); pcmChannels.push(channel);
+        }
+        if (pcmChannels.length) silencePrimaryPcm(pcmChannels);
         for (const [key, voice] of nativeOwners) if (voice.owner === state) {
           nativeOwners.delete(key); releaseNativeVoice(voice.name,voice.key);
         }
@@ -1161,6 +1227,7 @@ export function createPlaygroundRuntime(
     megaDrive.audio?.nativeFX?.stop();
     if(nativePrimary)for(const endpoint of megaDrive.primaryEndpoints)endpoint.node.port.postMessage({type:'detach-chip-port',primaryWorker:true});
     else megaDrive.node?.port.postMessage({type:"detach-chip-port"});
+    megaDrive.pcmDevice?.node.port.postMessage({type:'detach-chip-port',primaryWorker:true});
     logicWorker?.terminate();
     logicWorker = null;
     megaDrive.audio?.nativeFX?.useMain();
@@ -1176,10 +1243,11 @@ export function createPlaygroundRuntime(
       key: event.key,
       code: event.code,
       repeat: event.repeat,
-      altKey: event.altKey,
-      ctrlKey: event.ctrlKey,
-      metaKey: event.metaKey,
-      shiftKey: event.shiftKey,
+      altKey: Boolean(event.altKey),
+      ctrlKey: Boolean(event.ctrlKey),
+      metaKey: Boolean(event.metaKey),
+      shiftKey: Boolean(event.shiftKey),
+      editable: Boolean(event.editable ?? (event.target?.isContentEditable || event.target?.closest?.('input, textarea, select, [contenteditable=""], [contenteditable="true"], .monaco-editor'))),
     };
   }
 
@@ -1232,6 +1300,7 @@ export function createPlaygroundRuntime(
     }
     if(command.startsWith('mixer.')) {const method=command.slice(6);if(!['set','get','reset','list'].includes(method)) throw new Error('Unknown mixer method');return megaDrive.mixer[method](...args);}
     if(command==='pcm.decode')return decodePcm(args[0]);
+    if(command==='audio.input')return globals.inputAudio(args[0]);
     if (command === "midi.file") return globals.midi.playFile(...args);
     if (command === "midi.invoke") {
       const [method,values]=args;
@@ -1391,6 +1460,7 @@ export function createPlaygroundRuntime(
   function handleWorkerMessage(event) {
     const message = event.data ?? {};
     if (message.type === 'performance-cancel-owner') { performanceHost.cancelOwner(message); return; }
+    if (message.type === 'primary-pcm-clock') {megaDrive.pcm?._adoptClock(message.clock);return;}
     if (message.type === 'native-observer') {
       megaDrive.primaryEndpoints?.find(endpoint => endpoint.globalName === message.name)?.client._adoptState?.(message.state);
       return;
@@ -1428,7 +1498,7 @@ export function createPlaygroundRuntime(
         .then(() => {
           if (logicWorker !== worker) return;
           const result = invokeWorkerCommand(message.command, message.args ?? [], message.performance);
-          if (message.command === "play" || message.command === "midi.file" || message.command === 'pcm.create') {
+          if (message.command === "play" || message.command === "midi.file" || message.command === 'pcm.create' || message.command === 'audio.input') {
             // Start notes in FIFO order, but their durations must not block other
             // loops, register writes or Stop. Chip creation may also wait for a
             // retired same-ID node; unrelated RPC must keep flowing meanwhile.
@@ -1521,6 +1591,7 @@ export function createPlaygroundRuntime(
 
     for (const [id, definition] of definitions) {
       const listener = (event) => {
+        Object.defineProperty(event, 'editable', {value:serializeKeyboardEvent(event).editable,configurable:true});
         void executeUserCallback(
           () => definition.fn(event)
         ).catch((error) => {
@@ -1534,6 +1605,7 @@ export function createPlaygroundRuntime(
         id,
         {
           eventType: definition.eventType,
+          name: definition.name,
           listener,
         }
       );
@@ -1629,7 +1701,7 @@ export function createPlaygroundRuntime(
     };
     const fx = liveFxLifecycle.track(createFxApi(), evaluationState.liveFxDefinitions);
     const isGameboy = capabilities.chip === 'gameboy';
-    if (!hasOpn) currentLoopContext = null;
+    currentLoopContext = null;
     if (isGameboy && sharedGameboySynth !== synth) {
       sharedGameboy = createPrimaryGameboyApi(synth);
       sharedGameboySynth = synth;
@@ -1787,6 +1859,7 @@ export function createPlaygroundRuntime(
     const pg = {
       mixer: megaDrive.mixer,
       trackAsync: promise => loopTasks.track(promise),
+      inputAudio: inputOptions => inputAudio(inputOptions, runToken),
       useSoundChip: async (name, options) => {
         const check = () => { if (runToken !== currentRunToken) throw new DOMException('Run stopped', 'AbortError'); };
         check();
@@ -1794,10 +1867,11 @@ export function createPlaygroundRuntime(
           check();
           const endpoint = megaDrive.primaryEndpoints?.find(endpoint => endpoint.name === chipName);
           if (endpoint) return nativeApis[endpoint.globalName];
+          if (chipName === 'rf5c164' && megaDrive.pcm) return primaryPcmApi();
           if (chipName === 'gameboy' && isGameboy) return gameboy;
           if (['ym2612', 'ym2203', 'ym2610'].includes(chipName) && capabilities.chip === chipName) return fm;
           return pg.createSoundChip(chipName, {id:`${chipName}:shared`});
-        }, {evictOnDispose: !megaDrive.primaryEndpoints?.some(endpoint => endpoint.name === name) && !((['ym2612', 'ym2203', 'ym2610'].includes(name) || name === 'gameboy') && capabilities.chip === name)});
+        }, {evictOnDispose: !(name === 'rf5c164' && megaDrive.pcm) && !megaDrive.primaryEndpoints?.some(endpoint => endpoint.name === name) && !((['ym2612', 'ym2203', 'ym2610'].includes(name) || name === 'gameboy') && capabilities.chip === name)});
         check();
         return chip;
       },
@@ -1885,7 +1959,7 @@ export function createPlaygroundRuntime(
         const token = loop?.runToken ?? runToken;
         return createSecondsTimeline({
           now: clockApi.nowSeconds,
-          sleep: seconds => clockApi.sleep(seconds, runToken),
+          sleep: seconds => {currentLoopContext=loop;return clockApi.sleep(seconds, runToken);},
           check: () => {
             if (loop?.interruptError && !loop.stopped) throw loop.interruptError;
             if (loop?.stopped || token !== (loop?.runToken ?? currentRunToken)) throw new Error('Run stopped');
@@ -1975,6 +2049,7 @@ export function createPlaygroundRuntime(
         mixer: pg.mixer,
         createSoundChip: pg.createSoundChip,
         useSoundChip: pg.useSoundChip,
+        inputAudio: pg.inputAudio,
         midi,
         ...nativeApis,
         ...(gameboy ? {gameboy} : {}),
@@ -2201,14 +2276,18 @@ export function createPlaygroundRuntime(
       );
     }
 
+    cancelAudioInputRequests();
     currentRunToken += 1;
     const runToken = currentRunToken;
     if (logicWorkerStopPromise) await logicWorkerStopPromise;
+    await primaryPcmSilence;
     if (runToken !== currentRunToken) return;
     await ensureReady();
     if (runToken !== currentRunToken) return;
     clearKeyboardHandlers();
     liveApi.stopAllLoops();
+    await primaryPcmSilence;
+    if (runToken !== currentRunToken) return;
     if (!logicWorker) {
       liveFxLifecycle.clear();
       liveApi.clearRunFxChain();
@@ -2245,10 +2324,15 @@ export function createPlaygroundRuntime(
       }
       const port = megaDrive.audio?.nativeFX?.workerPort();
       if (port) worker.postMessage({type: "native-fx", port}, [port]);
+      if (megaDrive.pcm && megaDrive.pcmDevice?.node.port && typeof MessageChannel === 'function') {
+        const channel = new MessageChannel();
+        megaDrive.pcmDevice.node.port.postMessage({port:channel.port1,primaryWorker:true},[channel.port1]);
+        worker.postMessage({type:'primary-pcm-port',port:channel.port2,clock:megaDrive.pcm.clock},[channel.port2]);
+      }
     }
 
     const performanceClock = await performanceHost.start(
-      [...(nativePrimary ? megaDrive.primaryEndpoints.map(endpoint=>endpoint.node.port) : [megaDrive.node?.port]), megaDrive.audio?.nativeFX?.node?.port].filter(Boolean), workerLookaheadSeconds);
+      [...(nativePrimary ? megaDrive.primaryEndpoints.map(endpoint=>endpoint.node.port) : [megaDrive.node?.port]), megaDrive.pcmDevice?.node.port, megaDrive.audio?.nativeFX?.node?.port].filter(Boolean), workerLookaheadSeconds);
     if (runToken !== currentRunToken) return;
     await new Promise((resolve, reject) => {
       workerRunRequests.push({ resolve, reject, runToken });
@@ -2293,6 +2377,7 @@ export function createPlaygroundRuntime(
         `Unknown execution mode: ${execution}`
       );
     }
+    cancelAudioInputRequests();
     currentRunToken += 1;
     const runToken = currentRunToken;
     await stopLogicWorker();
@@ -2303,6 +2388,8 @@ export function createPlaygroundRuntime(
       terminateLogicWorker();
     }
 
+    await primaryPcmSilence;
+    if (runToken !== currentRunToken) return;
     await ensureReady();
     if (runToken !== currentRunToken) return;
     clearKeyboardHandlers();
@@ -2346,12 +2433,12 @@ export function createPlaygroundRuntime(
       liveApi.commitLiveLoops(
         evaluationState.loopDefinitions
       );
+      commitKeyboardHandlers(
+        evaluationState.keyboardDefinitions
+      );
       liveApi.commitLiveCleanups(
         evaluationState.cleanupDefinitions,
         evaluationState.cleanupScope
-      );
-      commitKeyboardHandlers(
-        evaluationState.keyboardDefinitions
       );
 
       if (runToken === currentRunToken) {
@@ -2450,6 +2537,7 @@ export function createPlaygroundRuntime(
   }
 
   function stop() {
+    cancelAudioInputRequests();
     performanceHost.stop();
     clearAuditions();
     currentRunToken += 1;

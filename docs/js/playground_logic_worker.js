@@ -4,7 +4,7 @@ import {createPerformanceSender} from './playground_performance_sender.js?v=opna
 import {midiToOpnPitch, opnPitchFromHz} from './soundchip_pitch.js';
 import {CHIP_CLOCKS} from './playground_chip_clock.js?v=audio-stability-2';
 import {createNesClient} from './playground_nes.js?v=audio-stability-2';
-import {createNativeWorkerApis, createNativePrimaryClient} from './playground_native_primary.js?v=sega-modes-1';
+import {borrowNativeApi, createNativeWorkerApis, createNativePrimaryClient} from './playground_native_primary.js?v=sega-modes-1';
 import {createDx7Client} from './playground_dx7.js';
 import {createPWM32XClient} from './pwm32x_playback.js?v=audio-stability-2';
 import {createYm2151Client} from './playground_ym2151.js?v=audio-stability-2';
@@ -16,7 +16,7 @@ import {createOpnClient} from './playground_opn.js?v=audio-stability-2';
 import {createSoundChipRegistry} from './playground_soundchips.js?v=native-modes-3';
 import {createGameboyClient} from './playground_gameboy.js?v=audio-stability-2';
 import {createYm2608Client} from './playground_ym2608.js?v=audio-stability-2';
-import {createRf5c164Client} from './playground_rf5c164.js?v=audio-stability-2';
+import {createRf5c164Client} from './playground_rf5c164.js?v=mega-cd-2';
 import {createNativeSampleController} from './native_sample.js?v=audio-stability-2';
 import {serializeLogError} from './playground_log.js';
 /**
@@ -35,6 +35,7 @@ import {createDeadlineScheduler,createBeatClock,createSecondsTimeline,runTween} 
 import {createNativeFXController,createLiveFxLifecycle} from "./native_fx.js?v=live-fx-definitions-1";
 let nativeFXPort = null;
 let chipConnection = null;
+let primaryPcmConnection = null;
 let nativeConnections = [];
 let currentRun = null;
 let nextRequestId = 1;
@@ -343,6 +344,7 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
     prepared: new Map(),
     liveFxDefinitions: new Map(),
     keyboard: new Map(),
+    collectingKeyboard: null,
     cleanups: [],
     collectingCleanups: null,
     currentLoop: null,
@@ -360,6 +362,14 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
   const nativePrimary = ['nes','snes','x68000','huc6280','segapsg'].includes(capabilities.chip);
   const hasOpn = !nativePrimary && capabilities.chip !== 'gameboy';
   const native = createNativeWorkerApis(nativeConnections,performanceTransport,(name,state)=>postMessage({type:'native-observer',name,state}));
+  const primaryPcmClient = primaryPcmConnection ? createRf5c164Client(
+    performanceTransport.port(primaryPcmConnection.port, 'independent'), source => request('pcm.decode',[source],run.currentLoop)) : null;
+  if (primaryPcmClient) primaryPcmClient._adoptClock(primaryPcmConnection.clock ?? CHIP_CLOCKS.rf5c164);
+  const primaryPcm = primaryPcmClient ? borrowNativeApi(primaryPcmClient, 'rf5c164', () => {
+    if (primaryPcmConnection.clock === primaryPcmClient.clock) return;
+    primaryPcmConnection.clock = primaryPcmClient.clock;
+    postMessage({type:'primary-pcm-clock',clock:primaryPcmClient.clock});
+  }, () => !run.stopped && !run.currentLoop?.stopped) : null;
   const chip = !nativePrimary && chipConnection ? createWorkerChip({...chipConnection,port:performanceTransport.port(chipConnection.port,'chip'),capabilities,observe:event=>postMessage({type:"chip-observer",event})}) : null;
   run.resumeChip = () => chip?.resume();
   const workerDac = chip && capabilities.dac ? createWorkerDac(chip.send, timing) : null;
@@ -563,6 +573,8 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
       }
     }
     run.resetSampleClock();
+    const primaryPcmReleases = [];
+    run.currentLoop = null;
     // In Worker mode this is the sole source of audio-control commands.
     performanceTransport.immediateCleanup(() => {
       for(const pcm of pcmClients)pcm.dispose();
@@ -571,8 +583,11 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
       nativeNoise?.disposeAll();
       chip?.stop();
       native.stop();
+      primaryPcmClient?._cancelClockRequests('Run stopped');
+      if (primaryPcmClient) for (let channel = 0; channel < 8; channel++) primaryPcmReleases.push(Promise.resolve(primaryPcmClient.keyOff(channel)).catch(() => {}));
       localMidiRack?.stop();
     });
+    await Promise.all(primaryPcmReleases);
     postCommand("audio.stopAll");
     if (nativeFXPort) performanceTransport.immediateCleanup(() => fx.dispose()); else postCommand("fx.detach");
     postCommand("audio.disposeHandles", [[...run.audioHandles]]);
@@ -587,7 +602,7 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
   const registerKeyboard = (eventType, name, fn) => {
     if (typeof name !== "string" || !name || typeof fn !== "function") throw new Error("Keyboard handler requires a name and callback");
     const id = `${eventType}:${name}`;
-    run.keyboard.set(id, fn);
+    (run.collectingKeyboard ?? run.keyboard).set(id, fn);
     postCommand("keyboard.register", [id, eventType]);
   };
   const choose = (values) => values[Math.floor(Math.random() * values.length)];
@@ -654,6 +669,13 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
   const localNoteOwners=new Map();
   const globals = {
     trackAsync: promise => loopTasks.track(promise),
+    async inputAudio(options) {
+      const token = run.token;
+      if (run.stopped) throw new Error('Run stopped');
+      const result = await request('audio.input', [options], run.currentLoop);
+      if (run.stopped || token !== run.token) throw new Error('Run stopped');
+      return result;
+    },
     async useSoundChip(name, options) {
       const token = run.token;
       const check = () => { if (run.stopped || token !== run.token) throw new Error('Run stopped'); };
@@ -662,10 +684,11 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
         check();
         const endpoint = nativeConnections.find(endpoint => endpoint.name === chipName);
         if (endpoint) return native.apis[endpoint.globalName];
+        if (chipName === 'rf5c164' && primaryPcm) return primaryPcm;
         if (chipName === 'gameboy' && isGameboy) return gameboy;
         if (['ym2612', 'ym2203', 'ym2610'].includes(chipName) && (capabilities.chip ?? 'ym2612') === chipName) return fm;
         return globals.createSoundChip(chipName, {id:`${chipName}:shared`});
-      }, {evictOnDispose: !nativeConnections.some(endpoint => endpoint.name === name) && !((['ym2612', 'ym2203', 'ym2610'].includes(name) || name === 'gameboy') && (capabilities.chip ?? 'ym2612') === name)});
+      }, {evictOnDispose: !(name === 'rf5c164' && primaryPcm) && !nativeConnections.some(endpoint => endpoint.name === name) && !((['ym2612', 'ym2203', 'ym2610'].includes(name) || name === 'gameboy') && (capabilities.chip ?? 'ym2612') === name)});
       check();
       return chip;
     },
@@ -805,6 +828,7 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
     run.collectingLoops = new Map();
     run.collectingLiveFx = new Map();
     run.collectingCleanups = [];
+    run.collectingKeyboard = new Map();
     const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
     const userFunction = new AsyncFunction(...Object.keys(globals), `"use strict";\n{\n${nextSourceCode}\n}`);
     await executeWithWorkerGuards(
@@ -813,6 +837,8 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
     if (run.stopped || generation !== run.generation) throw new Error("Run stopped");
     const definitions = run.collectingLoops;
     const cleanupDefinitions = run.collectingCleanups;
+    run.keyboard = run.collectingKeyboard;
+    run.collectingKeyboard = null;
     run.collectingLoops = null;
     run.collectingCleanups = null;
     liveFxLifecycle.commit(run.collectingLiveFx);
@@ -822,14 +848,20 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
       if (!definitions.has(name)) { run.loops.delete(name); clock.cancelLoop(name); }
     }
     for (const [name, fn] of definitions) run.loops.set(name, fn);
+    const keyboardNames = new Set([...run.keyboard.keys()].map(id => id.slice(id.indexOf(':') + 1)));
     for (const cleanup of run.cleanups) {
-      if (!cleanup.names.some((name) => run.loops.has(name))) {
+      if (cleanup.keyboardScoped || !cleanup.names.some((name) => run.loops.has(name) || keyboardNames.has(name))) {
         await executeWithWorkerGuards(
           () => cleanup.fn()
         );
       }
     }
-    run.cleanups = cleanupDefinitions;
+    run.cleanups = [];
+    for (const cleanup of cleanupDefinitions) {
+      cleanup.keyboardScoped = cleanup.names.some(name => keyboardNames.has(name));
+      if (cleanup.names.some(name => run.loops.has(name) || keyboardNames.has(name))) run.cleanups.push(cleanup);
+      else await executeWithWorkerGuards(() => cleanup.fn());
+    }
     const sampleCursorSeconds = clock.currentSampleCursor();
     for (const name of definitions.keys()) {
       const existing = run.runningLoops.get(name);
@@ -907,6 +939,7 @@ self.onmessage = (event) => {
   if (message.type === 'chip-clock-state') { currentRun?.adoptChipClock(message.clock); return; }
   if (message.type === "chip-state") { currentRun?.adoptChipState(message.state); return; }
   if (message.type === "chip-port") { chipConnection?.port.close(); chipConnection={port:message.port,state:message.state}; return; }
+  if (message.type === 'primary-pcm-port') {primaryPcmConnection?.port.close();primaryPcmConnection={port:message.port,clock:message.clock};return;}
   if (message.type === 'native-primary-ports') {for(const endpoint of nativeConnections)endpoint.port.close();nativeConnections=message.endpoints;return;}
   if (message.type === "native-fx") { nativeFXPort?.close(); nativeFXPort = message.port; return; }
   if (message.type === "stop") {

@@ -1,5 +1,5 @@
 import {createSnesClient} from '../../web/playground_snes.js';
-import {createNativeWorkerApis,createNativePrimaryClient} from '../../web/playground_native_primary.js';
+import {borrowNativeApi,createNativeWorkerApis,createNativePrimaryClient} from '../../web/playground_native_primary.js';
 import {createPerformanceSender} from '../../web/playground_performance_sender.js';
 import {midiToOpnPitch, opnPitchFromHz} from '../../web/soundchip_pitch.js';
 import {CHIP_CLOCKS} from '../../web/playground_chip_clock.js';
@@ -29,7 +29,7 @@ import { hzToBlockFnum } from "../js/pitch.js";
 import {createDeadlineScheduler,createBeatClock,runTween} from '../js/playground_clock.js';
 
 const workerSource = readFileSync(
-  new URL("../js/playground_logic_worker.js", import.meta.url),
+  new URL("../../web/playground_logic_worker.js", import.meta.url),
   "utf8"
 );
 
@@ -37,7 +37,7 @@ function createWorkerHarness(overrides = {}) {
   const messages = [];
   const context = {
     createPerformanceSender, serializeLogError,
-    createNativeWorkerApis,createNativePrimaryClient,
+    borrowNativeApi,createNativeWorkerApis,createNativePrimaryClient,
     midiToOpnPitch, opnPitchFromHz, CHIP_CLOCKS, resolvePlaySeconds, resolvePlayDuration, createBeatClock, runTween, createNativeSampleController, createNativeNoiseController, controlNativeNoise, createWorkerDac, atob, createMidiApi, createMidiRack, createWorkerChip, createNativeFXController, createLiveFxLifecycle, DOMException, structuredClone,
     createSnesClient, createDx7Client, createYm2151Client, createSegaPsgClient, createLoopAsyncTasks, createCycle, createDeadlineScheduler, createOpnClient, createGameboyClient, createSoundChipRegistry, createRf5c164Client, createYm2608Client,
     hzToBlockFnum,
@@ -941,6 +941,119 @@ test('liveFx registration and context update use direct port from Code',async()=
     assert.equal(closed,1);
   }
  });
+
+test('Worker borrows primary Mega CD PCM directly and keeps its port, RAM and tuning after Stop',async()=>{
+ const worker=createWorkerHarness(),sent=[];let closed=0;
+ const port={start(){},close(){closed++;},postMessage(message){
+  sent.push(message);
+  if(message.id!==undefined)queueMicrotask(()=>port.onmessage({data:{id:message.id,value:true}}));
+ }};
+ await worker.send({type:'primary-pcm-port',port,clock:12500000});
+ const source=`
+  const [pcm,again]=await Promise.all([useSoundChip('rf5c164'),useSoundChip('rf5c164')]);
+  if(pcm!==again||pcm.id!=='rf5c164'||typeof pcm.dispose!=='undefined')throw Error('Independent PCM');
+  context.pcm=pcm;
+  await pcm.loadSample({channels:[new Float32Array([0,.5,-.5,0])],sampleRate:16000});
+  await pcm.setChannel(7,{start:0,loopStart:0,step:1000,volume:180,pan:{left:15,right:8}});
+  await pcm.setClock(10000000);await pcm.keyOn(7);
+ `;
+ try {
+  await worker.send({type:'run',capabilities:{chip:'ym2612'},sourceCode:source});
+  await waitFor(()=>worker.messages.some(m=>m.type==='complete'||m.type==='execution-error'));
+  assert.equal(worker.messages.find(m=>m.type==='execution-error'),undefined);
+  assert.equal(worker.messages.filter(m=>m.command==='pcm.create'||m.command==='pcm.decode').length,0);
+  assert(sent.some(m=>m.method==='loadMemory'));
+  assert(worker.messages.some(m=>m.type==='primary-pcm-clock'&&m.clock===10000000));
+  const before=sent.length;await worker.send({type:'stop'});
+  assert.deepEqual(sent.slice(before).filter(m=>m.method==='keyOff').map(m=>m.args[0]),[0,1,2,3,4,5,6,7]);
+  assert(!sent.some(m=>m.method==='reset'||m.method==='dispose'));assert.equal(closed,0);
+  await worker.send({type:'run',sourceCode:`const pcm=await useSoundChip('rf5c164');if(pcm!==context.pcm)console.log('new lease');if(pcm.clock!==10000000)throw Error('Lost tuning');await pcm.keyOn(7);`});
+  await waitFor(()=>worker.messages.filter(m=>m.type==='complete').length===2||worker.messages.some(m=>m.type==='execution-error'));
+  assert.equal(worker.messages.find(m=>m.type==='execution-error'),undefined);
+  assert.equal(sent.filter(m=>m.method==='loadMemory').length,1);assert.equal(closed,0);
+ }finally{await worker.send({type:'stop'});}
+});
+
+test('Worker Stop waits for primary PCM releases before acknowledging Stop and starting another Run',async()=>{
+ const worker=createWorkerHarness(),pending=[],packets=[];let delay=true;
+ const port={start(){},close(){},postMessage(packet){
+  packets.push(packet);
+  if(packet.id!==undefined){
+   const acknowledge=()=>port.onmessage({data:{id:packet.id,value:true}});
+   if(delay&&packet.method==='keyOff')pending.push(acknowledge);else queueMicrotask(acknowledge);
+  }
+ }};
+ await worker.send({type:'primary-pcm-port',port,clock:12500000});
+ await worker.send({type:'run',capabilities:{chip:'ym2612'},sourceCode:`await useSoundChip('rf5c164');`});
+ await waitFor(()=>worker.messages.some(message=>message.type==='complete'));
+ const before=worker.messages.length;worker.post({type:'stop'});
+ worker.post({type:'run',sourceCode:`const pcm=await useSoundChip('rf5c164');await pcm.keyOn(0);`});
+ await waitFor(()=>pending.length===8);
+ assert(!worker.messages.slice(before).some(message=>message.type==='stopped'||message.command==='audio.stopAll'));
+ assert(!packets.some(packet=>packet.method==='keyOn'));
+ for(let i=0;i<7;i++)pending[i]();
+ await new Promise(resolve=>setTimeout(resolve,0));
+ assert(!worker.messages.slice(before).some(message=>message.type==='stopped'));
+ delay=false;pending[7]();
+ await waitFor(()=>worker.messages.filter(message=>message.type==='complete').length===2);
+ assert(worker.messages.slice(before).some(message=>message.type==='stopped'));
+ assert(packets.some(packet=>packet.method==='keyOn'));
+ await worker.send({type:'stop'});
+});
+
+test('Worker audio input requests use the host decoder and preserve null cancellation and PCM',async()=>{
+ const worker=createWorkerHarness();
+ try {
+  await worker.send({type:'run',sourceCode:`console.log('input',await pg.inputAudio({title:'Sampler'}));`});
+  const first=worker.messages.find(m=>m.command==='audio.input');assert(first);assert.equal(first.args[0].title,'Sampler');
+  await worker.send({type:'response',id:first.id,value:null});
+  await waitFor(()=>worker.messages.some(m=>m.type==='complete'));
+  assert.equal(worker.messages.find(m=>m.command==='log').args[1],null);
+  await worker.send({type:'run',sourceCode:`const value=await inputAudio();console.log(value.name,value.channels[0].length,value.sampleRate);`});
+  const second=worker.messages.filter(m=>m.command==='audio.input').at(-1);
+  await worker.send({type:'response',id:second.id,value:{name:'voice.wav',source:'file',sampleRate:16000,channels:[new Float32Array(8)]}});
+  await waitFor(()=>worker.messages.filter(m=>m.type==='complete').length===2);
+  assert.deepEqual(Array.from(worker.messages.filter(m=>m.command==='log').at(-1).args),['voice.wav',8,16000]);
+ }finally{await worker.send({type:'stop'});}
+});
+
+test('Worker primary PCM schedules on its direct performance port and cancels a removed loop owner',async()=>{
+ const f=createTimedWorkerHarness(),packets=[];
+ const port={start(){},close(){},postMessage(packet){
+  packets.push(packet);
+  for(const command of packet.commands??[packet])if(command.id!==undefined)queueMicrotask(()=>port.onmessage({data:{id:command.id,value:true}}));
+ }};
+ f.worker.post({type:'primary-pcm-port',port,clock:12500000});
+ try {
+  await f.run(`const pcm=await useSoundChip('rf5c164');liveLoop('sample',async()=>{await pcm.setChannel(7,{step:1000});await pcm.keyOn(7);await sleep(60);});`,.25,{performance:{...performanceClock(f),lookaheadSeconds:.25},capabilities:performanceCapabilities});
+  const note=commandPackets(packets,command=>command.method==='keyOn')[0];
+  assert(note);assert.equal(note.performance.time,30.25);assert.match(note.performance.owner,/^loop:/);
+  assert(!f.worker.messages.some(message=>message.command==='pcm.create'||message.command==='pcm.invoke'));
+  await f.run('',.25,{performance:{...performanceClock(f),lookaheadSeconds:.25},capabilities:performanceCapabilities});
+  assert(packets.some(packet=>packet.type==='performance-cancel-owner'&&packet.owner===note.performance.owner));
+ }finally{await f.stop();}
+ assert.equal(packets.filter(packet=>packet.method==='keyOff').length,8);
+ assert(!packets.some(packet=>packet.method==='dispose'));
+});
+
+test('Worker keyboard cleanup survives a keyboard-only Run and releases old handlers on replacement and Stop',async()=>{
+ const worker=createWorkerHarness();
+ const source=label=>`onKeyboardReleaseKey('sampler',event=>console.log('key',event.editable));liveCleanup(['sampler'],()=>console.log('${label}'));`;
+ try {
+  await worker.send({type:'run',sourceCode:source('old')});
+  assert.equal(worker.messages.filter(m=>m.command==='log').length,0);
+  await worker.send({type:'keyboard',id:'keyup:sampler',event:{code:'KeyZ',editable:true}});
+  assert.deepEqual(Array.from(worker.messages.find(m=>m.command==='log').args),['key',true]);
+  await worker.send({type:'run',sourceCode:source('new')});
+  assert.equal(worker.messages.filter(m=>m.command==='log'&&m.args[0]==='old').length,1);
+  await worker.send({type:'run',sourceCode:''});
+  assert.equal(worker.messages.filter(m=>m.command==='log'&&m.args[0]==='new').length,1);
+  const before=worker.messages.length;await worker.send({type:'keyboard',id:'keyup:sampler',event:{code:'KeyZ'}});
+  assert(!worker.messages.slice(before).some(m=>m.command==='log'),'removed keyboard callbacks cannot run');
+  await worker.send({type:'run',sourceCode:source('stop')});await worker.send({type:'stop'});
+  assert.equal(worker.messages.filter(m=>m.command==='log'&&m.args[0]==='stop').length,1);
+ }finally{await worker.send({type:'stop'});}
+});
 
 test('Worker useSoundChip aliases global FM, permits const fm, reuses on reevaluation and forwards play',async()=>{
  const worker=createWorkerHarness();

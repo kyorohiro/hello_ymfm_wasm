@@ -8,6 +8,10 @@ test('Genesis declarations keep existing convenience APIs and MIDI channel const
   const selected = selectPlaygroundDeclarations(source, 'ym2612');
   assert.equal(selected, source.replace(/^declare const (?:ssg|rhythm|adpcm|adpcmA|adpcmB|gameboy|nes|snes|opm|pce): [^\n]+\n/gm, ''));
 });
+
+test('Mega-CD keeps Genesis FM, PSG, DAC and MIDI channel conveniences', () => {
+  assert.equal(selectPlaygroundDeclarations(source, 'mega-cd'), selectPlaygroundDeclarations(source, 'ym2612'));
+});
 for (const [chip, channels] of [['ym2203',3],['ym2608',6],['ym2610',4],['ym2610b',6]]) {
   test(`${chip} completion globals match FM channels and omit Genesis PSG/DAC shortcuts`, () => {
     const selected = selectPlaygroundDeclarations(source, chip);

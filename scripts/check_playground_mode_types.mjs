@@ -9,7 +9,7 @@ const root = fileURLToPath(new URL('../', import.meta.url));
 const scratch = await mkdtemp(join(tmpdir(), 'playground-mode-types-'));
 try {
   const fixtures = [
-    ...['ym2612', 'ym2203', 'ym2608', 'ym2610', 'ym2610b'].map(chip => `playground-mode-${chip}.ts`),
+    ...['ym2612', 'mega-cd', 'ym2203', 'ym2608', 'ym2610', 'ym2610b'].map(chip => `playground-mode-${chip}.ts`),
     ...['gameboy','nes','snes','x68000','huc6280','game-gear','master-system'].map(chip => `playground-mode-${chip}.ts`),
     'playground-time.ts', 'playground-tone.ts', 'playground-chip-clock.ts',
   ];

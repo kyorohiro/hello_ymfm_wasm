@@ -21,6 +21,7 @@ index.html
 playground.js
 playground_git.js
 playground_page_lifecycle.js
+playground_audio_input.js
 playground_fx_monitor.js
 playground_audio_monitor.js
 playground_monitor_scale.js
@@ -85,6 +86,7 @@ tetorica-playground-x68000.d.ts
 tetorica-playground-huc6280.d.ts
 tetorica-playground-game-gear.d.ts
 tetorica-playground-master-system.d.ts
+tetorica-playground-mega-cd.d.ts
 "
 
 RUNTIME_FILES="

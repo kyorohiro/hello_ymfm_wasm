@@ -651,6 +651,7 @@ type FMApi = PlaygroundChipClock & {
 
 /** The selected mode's primary FM chip; independent chips retain their own API. */
 type PlaygroundNativeSelectedChip = 'gameboy' | 'nes' | 'snes' | 'x68000' | 'huc6280' | 'game-gear' | 'master-system';
+type PlaygroundGenesisSelectedChip = 'ym2612' | 'mega-cd';
 type PlaygroundSelectedFmChannel = TetoricaSelectedChip extends PlaygroundNativeSelectedChip ? never
   : TetoricaSelectedChip extends 'ym2203' ? 0 | 1 | 2
   : TetoricaSelectedChip extends 'ym2610' ? 0 | 1 | 2 | 3
@@ -662,6 +663,7 @@ interface YM2610FMApi extends PlaygroundOPNFm<0 | 1 | 2 | 3> {}
 interface YM2610BFMApi extends PlaygroundOPNFm<OPNFmChannel> {}
 type PlaygroundSelectedFm = {
   ym2612: YM2612FMApi;
+  'mega-cd': YM2612FMApi;
   ym2203: YM2203FMApi;
   ym2608: YM2608FMApi;
   ym2610: YM2610FMApi;
@@ -820,11 +822,23 @@ declare const context: PlaygroundContext;
  * Names absent from the next successful Run are cancelled at their next wait.
  */
 declare function liveLoop(name: string, fn: () => Promise<void> | void): void;
+/** Editable-target metadata is also available when keyboard events cross into Worker. */
+interface PlaygroundKeyboardEvent extends KeyboardEvent {
+  readonly type: string;
+  readonly key: string;
+  readonly code: string;
+  readonly repeat: boolean;
+  readonly altKey: boolean;
+  readonly ctrlKey: boolean;
+  readonly metaKey: boolean;
+  readonly shiftKey: boolean;
+  readonly editable: boolean;
+}
 /** Register a named key-down handler for the current Playground run. */
-declare function onKeyboardPressKey(name: string, fn: (event: KeyboardEvent) => void): void;
+declare function onKeyboardPressKey(name: string, fn: (event: PlaygroundKeyboardEvent) => void): void;
 /** Register a named key-up handler for the current Playground run. */
-declare function onKeyboardReleaseKey(name: string, fn: (event: KeyboardEvent) => void): void;
-/** Register cleanup that runs once after all named live loops disappear. */
+declare function onKeyboardReleaseKey(name: string, fn: (event: PlaygroundKeyboardEvent) => void): void;
+/** Register cleanup that runs once after all named live loops and keyboard handlers disappear. */
 declare function liveCleanup(names: string[], fn: () => Promise<void> | void): void;
 type PlaygroundLivePrepareAPI = {
   fx: FXApi;
@@ -833,7 +847,7 @@ type PlaygroundLivePrepareAPI = {
   noise: PlaygroundNoiseAPI;
   log: (...args: unknown[]) => void;
 } & (TetoricaSelectedChip extends PlaygroundNativeSelectedChip ? PlaygroundSelectedNativeAPI : {fm: PlaygroundSelectedFm})
-  & (TetoricaSelectedChip extends 'ym2612' ? {psg: PSGApi} : {}) & PlaygroundSelectedOpnSectionsAPI;
+  & (TetoricaSelectedChip extends PlaygroundGenesisSelectedChip ? {psg: PSGApi} : {}) & PlaygroundSelectedOpnSectionsAPI;
 /** Prepare shared live state once and reuse it across runs. */
 declare function livePrepare(name: string, fn: (context: PlaygroundLivePrepareAPI) => Promise<any> | any): Promise<any>;
 /** Play one note through the current synth setup. */
@@ -1008,9 +1022,9 @@ type PlaygroundSelectedChannelConstants = Pick<PlaygroundChannelConstants,
   TetoricaSelectedChip extends PlaygroundNativeSelectedChip ? never
   : TetoricaSelectedChip extends 'ym2203' ? 'CH1' | 'CH2' | 'CH3'
   : TetoricaSelectedChip extends 'ym2610' ? 'CH1' | 'CH2' | 'CH3' | 'CH4'
-  : TetoricaSelectedChip extends 'ym2612' ? keyof PlaygroundChannelConstants
+  : TetoricaSelectedChip extends PlaygroundGenesisSelectedChip ? keyof PlaygroundChannelConstants
   : 'CH1' | 'CH2' | 'CH3' | 'CH4' | 'CH5' | 'CH6'>;
-type PlaygroundSelectedPsgAPI = TetoricaSelectedChip extends 'ym2612' ? {
+type PlaygroundSelectedPsgAPI = TetoricaSelectedChip extends PlaygroundGenesisSelectedChip ? {
   /** Raw Sega PSG API, mixed into the same output as fm. */
   psg: PSGApi;
   psgTone: (channel: number, period: number, attenuation?: number) => void;
@@ -1044,6 +1058,7 @@ type PlaygroundAPIBase = {
   trackAsync(task: PromiseLike<unknown>): void;
   createSoundChip: typeof createSoundChip;
   useSoundChip: typeof useSoundChip;
+  inputAudio: typeof inputAudio;
   midi: PlaygroundMidi;
   /** Primary FM API for the selected mode. */
   fm: PlaygroundSelectedFm;
@@ -1086,8 +1101,8 @@ type PlaygroundAPIBase = {
   liveFx: typeof liveFx;
   /** Same-name updates take effect at the next iteration, preserving the current iteration. */
   liveLoop: (name: string, fn: () => Promise<void> | void) => void;
-  onKeyboardPressKey: (name: string, fn: (event: KeyboardEvent) => void) => void;
-  onKeyboardReleaseKey: (name: string, fn: (event: KeyboardEvent) => void) => void;
+  onKeyboardPressKey: (name: string, fn: (event: PlaygroundKeyboardEvent) => void) => void;
+  onKeyboardReleaseKey: (name: string, fn: (event: PlaygroundKeyboardEvent) => void) => void;
   livePrepare: typeof livePrepare;
   scale: (root: string, name: string, octaves?: number) => string[];
   chord: (root: string, name: "major" | "minor" | "major7" | "minor7" | "dominant7") => string[];
@@ -1129,6 +1144,16 @@ type PlaygroundAPI = TetoricaSelectedChip extends PlaygroundNativeSelectedChip
   : PlaygroundAPIBase;
 
 declare var pg: PlaygroundAPI;
+
+/** Decoded audio chosen from a local file or recorded from the microphone. */
+interface PlaygroundAudioInput {
+  name: string;
+  source: 'file' | 'microphone';
+  sampleRate: number;
+  channels: Float32Array[];
+}
+/** Open the audio input dialog. Cancel returns null; Stop aborts the request. */
+declare function inputAudio(options?: {title?: string}): Promise<PlaygroundAudioInput | null>;
 
 interface PlaygroundTiming {
   /** Explicit DAC/VGM sample schedule refill lead; seconds. Default 0.25. */
@@ -1222,7 +1247,7 @@ declare const midi: PlaygroundMidi;
 interface PlaygroundRf5c164 {
   loadMemory(bytes: Uint8Array | ArrayBuffer, address?: number): Promise<void>;
   /** WAV/FLAC URL or encoded file bytes. loopStart is a sample offset; omitted means silence after end. */
-  loadSample(source: string | Uint8Array | ArrayBuffer | Blob, options?: {address?: number; loopStart?: number}): Promise<{start: number; loopStart: number; step: number}>;
+  loadSample(source: {channels: Float32Array[]; sampleRate: number} | string | Uint8Array | ArrayBuffer | Blob, options?: {address?: number; loopStart?: number}): Promise<{start: number; loopStart: number; step: number}>;
   setChannel(ch: number, options: {start?: number; loopStart?: number; step?: number; volume?: number; pan?: {left: number; right: number}}): Promise<void>;
   setPitch(ch: number, step: number): Promise<void>;
   keyOn(ch: number): Promise<void>;
@@ -1682,10 +1707,10 @@ interface PlaygroundSpc {
   dispose():void;
 }
 type PlaygroundSoundChipMap = {
-  ym2612: TetoricaSelectedChip extends 'ym2612' ? YM2612FMApi : PlaygroundCreatedFm;
+  ym2612: TetoricaSelectedChip extends PlaygroundGenesisSelectedChip ? YM2612FMApi : PlaygroundCreatedFm;
   ym2203: TetoricaSelectedChip extends 'ym2203' ? YM2203FMApi : PlaygroundCreatedYm2203;
   ym2610: TetoricaSelectedChip extends 'ym2610' ? YM2610FMApi : PlaygroundCreatedYm2610;
-  rf5c164: PlaygroundRf5c164;
+  rf5c164: TetoricaSelectedChip extends 'mega-cd' ? Omit<PlaygroundRf5c164, 'dispose'> : PlaygroundRf5c164;
   ym2608: PlaygroundYm2608;
   gameboy: TetoricaSelectedChip extends 'gameboy' ? PlaygroundPrimaryGameboy : PlaygroundGameboy;
   segapsg: TetoricaSelectedChip extends 'game-gear' ? PlaygroundPrimaryGameGearPsg

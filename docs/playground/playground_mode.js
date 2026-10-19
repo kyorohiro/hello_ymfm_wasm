@@ -3,8 +3,11 @@ import {CHIP_CLOCKS} from '../js/playground_chip_clock.js?v=audio-stability-2';
 // Modes describe an authoring environment. Chip IDs remain the runtime/API IDs.
 const definitions = [
   {id:'genesis', label:'Genesis', chip:'ym2612'},
-  {id:'genesis-full', label:'Genesis Full', chip:'ym2612', full:true},
-  {id:'genesis-full-nuked', label:'Genesis Full (Nuked)', chip:'ym2612', full:true, engine:'nuked'},
+  {id:'genesis-full', label:'Genesis Full', chip:'ym2612', declarationChip:'mega-cd', full:true},
+  {id:'genesis-full-nuked', label:'Genesis Full (Nuked)', chip:'ym2612', declarationChip:'mega-cd', full:true, engine:'nuked'},
+  {id:'mega-cd', label:'Mega-CD / Sega CD', chip:'ym2612', declarationChip:'mega-cd',
+    megaCD:true, mega32X:false, legacyDraftKey:'mega-cd', chipTabs:['operator', 'segapsg', 'rf5c164'],
+    details:'YM2612 + Sega PSG + RF5C164 · 8 PCM voices · 64 KiB RAM'},
   {id:'pc98-26', label:'PC-98 (YM2203 / OPN)', chip:'ym2203'},
   {id:'pc98', label:'PC-98 (YM2608 / OPNA)', chip:'ym2608'},
   {id:'neogeo', label:'Neo Geo', chip:'ym2610'},
@@ -25,7 +28,7 @@ const modes = new Map(definitions.map(definition => {
   const mode = Object.freeze({engine:'ymfm', full:false, ...definition,
     clock:CHIP_CLOCKS[definition.chip],
     declarationChip:definition.declarationChip ?? definition.chip,
-    legacyDraftKey:definition.chip === 'segapsg' ? definition.id : definition.chip + (definition.engine === 'nuked' ? ':nuked' : ''),
+    legacyDraftKey:definition.legacyDraftKey ?? (definition.chip === 'segapsg' ? definition.id : definition.chip + (definition.engine === 'nuked' ? ':nuked' : '')),
     chipTabs:Object.freeze(definition.chipTabs ?? (definition.chip === 'ym2612'
       ? ['operator', 'segapsg', ...(definition.full ? ['rf5c164', 'pwm'] : [])]
       : definition.fmChannels === 0 ? [] : ['operator'])),
@@ -104,7 +107,7 @@ export function createModeSynthOptions(mode, base = new URL('../js/', import.met
     ym2612WasmUrl:new URL(`${wasm}_wasm.wasm`, generated).href,
     wasmUrl:mode.chip === 'ym2612' ? undefined : new URL(`${chip}_wasm.wasm`, generated).href,
     segaPsgWasmUrl:mode.chip === 'ym2612' ? new URL('segapsg_wasm.wasm?v=sega-modes-1', generated).href : null,
-    megaCD:mode.full,
-    mega32X:mode.full,
+    megaCD:mode.megaCD ?? mode.full,
+    mega32X:mode.mega32X ?? mode.full,
   };
 }

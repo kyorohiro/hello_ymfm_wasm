@@ -3,7 +3,7 @@ import {ChipClockResampler, CHIP_CLOCKS} from './playground_chip_clock.js?v=audi
 /** Browser AudioWorklet: RF5C164 PCM generation and direct control port. */
 import {Rf5c164} from './rf5c164.js?v=audio-stability-2';
 import factory from '../generated/rf5c164_wasm.js';
-import {createRf5c164Control} from './playground_rf5c164.js?v=audio-stability-2';
+import {createRf5c164Control} from './playground_rf5c164.js?v=mega-cd-2';
 import {createProcessorPerformance} from './playground_performance_processor.js?v=sega-modes-1';
 import {RF5C164Synth} from './rf5c164synth.js?v=audio-stability-2';
 import {validateChipClock} from './playground_chip_clock.js?v=audio-stability-2';
@@ -18,11 +18,12 @@ class Processor extends AudioWorkletProcessor {
  }});
  this.renderSegment=this.renderSegment.bind(this);this.port.onmessage=({data})=>{
  if(data.method==='dispose'){this.dispose();return;}
- if(data.port){this.remote=data.port;this.remote.onmessage=e=>this.receive(e.data,this.remote);this.remote.start();}else this.receive(data,this.port);
+ if(data.type==='detach-chip-port'&&data.primaryWorker){this.workerRemote?.close();this.workerRemote=null;return;}
+ if(data.port){const name=data.primaryWorker?'workerRemote':'remote';this[name]?.close();const remote=this[name]=data.port;remote.onmessage=e=>this.receive(e.data,remote);remote.start();}else this.receive(data,this.port);
  };
  Rf5c164.create({moduleFactory:factory,moduleOptions:{wasmBinary:options.processorOptions.wasmBinary},sampleRate}).then(chip=>{if(this.dead){chip.dispose();return;}this.chip=chip;this.inspector=new RfInspectorState(chip,{clock:()=>CHIP_CLOCKS.rf5c164*(this.clockResampler?.ratio??1),sampleRate});this.control=createRf5c164Control(chip);this.control.reset();this.port.postMessage({ready:true});},error=>this.port.postMessage({error:error.message}));
  }
- dispose(){this.performance.clear();this.dead=true;this.control?.dispose();this.control=null;this.chip=null;this.remote?.close();}
+ dispose(){this.performance.clear();this.dead=true;this.control?.dispose();this.control=null;this.chip=null;this.remote?.close();this.workerRemote?.close();}
  receive(data,port){if(data?.type==='chip-inspector'&&receiveChipInspector(data,port,this.control ? (action,method,args)=>this.inspect(action,method,args) : null))return;if(this.performance.receive(data,port))return;this.apply(data,port);}
  inspect(action,method,args){
   if(action==='read')return this.inspector.read();

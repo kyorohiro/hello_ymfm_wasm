@@ -1,11 +1,12 @@
 /** Filter convenience globals to match the selected primary environment. */
 export function selectPlaygroundDeclarations(source, chip) {
+  const genesis = chip === 'ym2612' || chip === 'mega-cd';
   const segaPsg = chip === 'game-gear' || chip === 'master-system';
   const native = segaPsg || ['gameboy','nes','snes','x68000','huc6280'].includes(chip);
   const channels = native ? 0 : chip === 'ym2203' ? 3 : chip === 'ym2610' ? 4 : 6;
   let declarations = source.replace(/^declare const CH(\d+): \d+;\n/gm, (line, number) =>
-    Number(number) <= (chip === 'ym2612' ? 16 : channels) ? line : '');
-  if (chip !== 'ym2612') {
+    Number(number) <= (genesis ? 16 : channels) ? line : '');
+  if (!genesis) {
     declarations = declarations
       .replace(/^declare function psg(?:Tone|Noise)\([^\n]*\): void;\n/gm, '')
       .replace(/^declare const dac: \{[\s\S]*?^\};\n/gm, '');
