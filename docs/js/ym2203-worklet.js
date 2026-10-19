@@ -1,4 +1,4 @@
-import {validateChipClock} from './playground_chip_clock.js';
+import {validateChipClock} from './playground_chip_clock.js?v=opnb-primary-1';
 import {createPerformanceQueue, createPerformanceChipOwnership} from './playground_performance_queue.js';
 import {createOpnAuditionGuard, receiveOpnAuditionCommand} from './playground_audition_guard.js';
 import {createChipPortReceiver} from "./playground_chip_port.js";
@@ -18,13 +18,14 @@ class YM2203Processor extends AudioWorkletProcessor {
     this.auditions = null;
     this.chipRate = sampleRate;
     this.remainder = 0; this.lastLeft = 0; this.lastRight = 0;
+    this.ssgOwners = new Array(3).fill(null);
     this.performanceOwnership = createPerformanceChipOwnership({
       writeFm: (register, value, port) => this.chip?.writeRegister(register, value, port),
       channelCount: 3,
     });
     this.performanceQueue = createPerformanceQueue({
       apply: (data, reply, _frame, performance) => handle(data, reply, performance),
-      onCancelOwner: owner => this.performanceOwnership.cancel(owner),
+      onCancelOwner: owner => { this.performanceOwnership.cancel(owner); this.cancelSsgOwner(owner); },
       nowFrame: () => currentFrame, sampleRate,
       prepare: (data, reply) => {
         if (data.type !== 'chip-clock') return data;
@@ -39,6 +40,7 @@ class YM2203Processor extends AudioWorkletProcessor {
     const receiveChipPort = createChipPortReceiver((data, reply) => handle(data, reply), undefined, {performanceQueue: this.performanceQueue});
     const handle = (data, reply = message => this.port.postMessage(message), performance) => {
       this.performanceOwnership.observe(data, performance);
+      this.observeSsgOwnership(data, performance);
       if (receiveOpnAuditionCommand(this.auditions, data, reply)) return;
       if (data.type === 'chip-clock') {
         try { if (!this.chip) throw new Error('Chip not ready'); this.chipRate = this.chip.sampleRate(validateChipClock(data.clock)); if (!data.performanceAcknowledged) reply({type:'chip-clock-result',id:data.id}); }
@@ -76,6 +78,20 @@ class YM2203Processor extends AudioWorkletProcessor {
 
   write(register, value) {
     this.chip.writeRegister(register, value, 0);
+  }
+
+  observeSsgOwnership(data, performance) {
+    if (data.type === 'reset') this.ssgOwners.fill(null);
+    if (data.type !== 'write' || (data.port ?? 0) !== 0) return;
+    if (data.register >= 8 && data.register <= 10) {
+      this.ssgOwners[data.register - 8] = data.value & 31 ? performance?.owner ?? null : null;
+    }
+  }
+
+  cancelSsgOwner(owner) {
+    for (let ch = 0; ch < 3; ch++) if (this.ssgOwners[ch] === owner) {
+      this.ssgOwners[ch] = null; this.chip?.writeRegister(8 + ch, 0, 0);
+    }
   }
 
   process(_inputs, outputs) {

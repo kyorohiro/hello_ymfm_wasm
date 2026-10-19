@@ -993,6 +993,52 @@ test('Worker late chip initialization after Stop is disposed and next run retrie
 });
 
 
+test('native YM2203 SSG fallback uses the primary chip and exposes no ADPCM sections',async()=>{
+ const worker=createWorkerHarness();
+ try {
+  await worker.send({type:'run',capabilities:{chip:'ym2203',fmChannels:3},sourceCode:`
+   const prepared=await livePrepare('ssg',({ssg})=>ssg);
+   if(ssg!==pg.ssg || prepared!==ssg)throw Error('Separate SSG');
+   if(typeof rhythm!=='undefined' || typeof adpcm!=='undefined')throw Error('Unexpected sections');
+   await ssg.noise(0,{period:16,volume:10});
+  `});
+  const pending=worker.messages.find(message=>message.command==='chip.section');
+  assert.deepEqual(Array.from(pending.args.slice(0,2)),['ssg','noise']);
+  await worker.send({type:'response',id:pending.id});
+  await waitFor(()=>worker.messages.some(message=>message.type==='complete'));
+  assert.equal(worker.messages.filter(message=>message.command==='pcm.create').length,0);
+ }finally{await worker.send({type:'stop'});}
+});
+
+for(const chip of ['ym2610','ym2610b'])test(`native ${chip} section fallback uses the primary chip and preserves the ADPCM-B alias`,async()=>{
+ const worker=createWorkerHarness();
+ try {
+  await worker.send({type:'run',capabilities:{chip,fmChannels:chip==='ym2610'?4:6},sourceCode:`
+   const prepared=await livePrepare('native-sections',({ssg,adpcmA,adpcmB,adpcm})=>({ssg,adpcmA,adpcmB,adpcm}));
+   if(adpcm!==adpcmB || pg.adpcm!==adpcmB)throw Error('ADPCM-B alias');
+   for(const name of ['ssg','adpcmA','adpcmB','adpcm'])if(prepared[name]!==pg[name])throw Error('Section identity');
+   if(typeof rhythm!=='undefined')throw Error('Unexpected OPNA rhythm');
+   await ssg.noise(1,{period:16,volume:10});
+   await adpcmA.loadMemory(new Uint8Array(256),0);
+   await adpcmB.loadMemory(new ArrayBuffer(256),256);
+   await adpcm.keyOn({repeat:true});
+  `});
+  const handled=new Set();
+  for(let step=0;step<4;step++) {
+   await waitFor(()=>worker.messages.some(message=>message.command==='chip.section'&&!handled.has(message.id)));
+   const pending=worker.messages.find(message=>message.command==='chip.section'&&!handled.has(message.id));
+   handled.add(pending.id);
+   await worker.send({type:'response',id:pending.id});
+  }
+  await waitFor(()=>worker.messages.some(message=>message.type==='complete'));
+  const calls=worker.messages.filter(message=>message.command==='chip.section');
+  assert.deepEqual(calls.map(message=>Array.from(message.args.slice(0,2))),[
+   ['ssg','noise'],['adpcmA','loadMemory'],['adpcmB','loadMemory'],['adpcmB','keyOn'],
+  ]);
+  assert.equal(worker.messages.filter(message=>message.command==='pcm.create').length,0);
+ }finally{await worker.send({type:'stop'});}
+});
+
 for(const name of ['ym2203','ym2610'])test(`Worker useSoundChip ${name} returns selected FM without creating an extra chip`,async()=>{
  const worker=createWorkerHarness();
  try {

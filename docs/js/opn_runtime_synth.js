@@ -5,7 +5,7 @@
  * import だけでは音声デバイスを開かない。アセット読み込みには fetch を使用する。
  */
 import { TetoricaAudioRuntime } from "./tetorica_audio_runtime.js?v=chip-tabs-2";
-import { OPNWorkletTransport } from "./opn_fm_synth.js?v=opna-primary-1";
+import { OPNWorkletTransport } from "./opn_fm_synth.js?v=opnb-primary-1";
 
 /** @typedef {Pick<import('./megasynth.js?v=chip-tabs-2').MegaSynthOptions,'audioContext'|'outputNode'|'sampleOutputNode'|'masterVolume'|'mixer'|'workletUrl'> & {wasmUrl?:string,rhythmRom?:Uint8Array,rhythmRomUrl?:string}} OPNRuntimeSynthOptions */
 
@@ -190,7 +190,9 @@ export class OPNRuntimeSynth {
     this.mixerRelease = this.mixer.connect(this.chip, this.chip, this.node, this.audio.masterInputNode, this.audioContext);
     const ready = this.#waitForWorkletReady(this.node, signal);
     ready.catch(() => {});
-    this.node.port.postMessage({ type: "initialize", wasmBinary, rhythmRom }, [wasmBinary]);
+    this.node.port.postMessage({ type: "initialize", wasmBinary, rhythmRom,
+      ...(['ym2610','ym2610b'].includes(this.chip) ? {variant:this.chip==='ym2610b'} : {}),
+    }, [wasmBinary]);
     await ready;
     signal.throwIfAborted();
     this.fm = new this.FMSynth({

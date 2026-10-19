@@ -4,6 +4,9 @@
 // --tabs-only checks mode-specific chip tabs without audio/transfer suites.
 // --types-only checks the actual Monaco completions, diagnostics and FM hovers.
 // --opna-only checks mode-specific section types and primary OPNA section audio.
+// --opnb-only checks section types and both Neo Geo primary OPNB variants.
+// --opnb-example-only runs the bundled OPNB example in both Neo Geo modes.
+// --ym2203-only checks native OPN SSG types, audio, clock, reset and Stop.
 const assert = require('node:assert/strict');
 const http = require('node:http');
 const fs = require('node:fs/promises');
@@ -20,6 +23,7 @@ const modes = [
   {id:'pc98-26', label:'PC-98 (YM2203 / OPN)', chip:'ym2203', clock:4000000, channels:3},
   {id:'pc98', label:'PC-98 (YM2608 / OPNA)', chip:'ym2608', clock:8000000, channels:6},
   {id:'neogeo', label:'Neo Geo', chip:'ym2610', clock:8000000, channels:4},
+  {id:'neogeo-b', label:'Neo Geo (YM2610B)', chip:'ym2610b', clock:8000000, channels:6},
 ];
 const server = http.createServer(async (request, response) => {
   try {
@@ -72,8 +76,10 @@ async function checkTypes(page, mode) {
       const prepareSource = "livePrepare('opna-types', api => { api. });";
       const sections = {globals:await completions('globals', ';\n'), pg:await completions('pg', 'pg.'),
         prepare:await completions('prepare', prepareSource, prepareSource.indexOf('api.') + 4)};
-      if (mode.chip === 'ym2608') {
-        for (const section of ['ssg','rhythm','adpcm']) sections[section] = await completions(section, `${section}.`);
+      if (['ym2203', 'ym2608', 'ym2610', 'ym2610b'].includes(mode.chip)) {
+        const names = mode.chip === 'ym2203' ? ['ssg'] : mode.chip === 'ym2608'
+          ? ['ssg','rhythm','adpcm'] : ['ssg','adpcmA','adpcmB','adpcm'];
+        for (const section of names) sections[section] = await completions(section, `${section}.`);
       }
       return {selected:selected?.getValue(), validLength:valid.length,
         diagnostics:diagnostics.map(({start, code}) => ({start, code})),
@@ -96,14 +102,28 @@ async function checkTypes(page, mode) {
     }
   }
   for (const target of ['globals', 'pg', 'prepare']) {
-    for (const section of ['ssg', 'rhythm', 'adpcm']) {
-      assert.equal(types.sections[target].includes(section), mode.chip === 'ym2608', `${mode.id}: ${target} ${section} completion follows the selected mode`);
+    const opna = mode.chip === 'ym2608', opnb = ['ym2610', 'ym2610b'].includes(mode.chip);
+    for (const [section, available] of Object.entries({ssg:mode.chip === 'ym2203' || opna || opnb, rhythm:opna, adpcm:opna || opnb, adpcmA:opnb, adpcmB:opnb})) {
+      assert.equal(types.sections[target].includes(section), available, `${mode.id}: ${target} ${section} completion follows the selected mode`);
+    }
+  }
+  if (mode.chip === 'ym2203') {
+    for (const method of ['tone','noise','setEnvelope','setFrequency','keyOff','reset']) {
+      assert(types.sections.ssg.includes(method), `OPN ssg.${method} completion missing`);
     }
   }
   if (mode.chip === 'ym2608') {
     for (const [section, methods] of Object.entries({ssg:['tone','setFrequency','keyOff'],
       rhythm:['setVoice','keyOn','keyOff'], adpcm:['loadSample','loadMemory','setPlaybackRate','keyOn','keyOff']})) {
       for (const method of methods) assert(types.sections[section].includes(method), `OPNA ${section}.${method} completion missing`);
+    }
+  }
+  if (['ym2610', 'ym2610b'].includes(mode.chip)) {
+    for (const [section, methods] of Object.entries({ssg:['tone','noise','setFrequency','keyOff'],
+      adpcmA:['loadMemory','setSample','setVoice','keyOn','keyOff'],
+      adpcmB:['loadMemory','setSample','setPlaybackRate','keyOn','keyOff'],
+      adpcm:['loadMemory','setSample','setPlaybackRate','keyOn','keyOff']})) {
+      for (const method of methods) assert(types.sections[section].includes(method), `${mode.id}: ${section}.${method} completion missing`);
     }
   }
   return types.hovers;
@@ -145,6 +165,144 @@ async function checkAdditionalChipTabs(page, mode) {
   await checkChipTabs(page, mode);
   await page.evaluate(async () => window.__modeRegression.runtime.stopWithFade());
   assert.equal(await page.locator('#segapsgTab').isVisible(), false, 'an added chip does not change mode-defined tabs');
+}
+
+async function checkYm2203Ssg(page, browserName) {
+  const examplePath = '/examples/pc98/pc98-opn-ssg.js';
+  const example = await page.evaluate(path => window.__modeRegression.virtualFiles.get(path)?.data, examplePath);
+  assert.equal(example, await fs.readFile(path.join(docs, 'playground', examplePath), 'utf8'), 'the built-in OPN example matches its source file');
+  await page.evaluate(() => {
+    document.getElementById('workerExecution').checked = false;
+    window.__modeRegression.setEditorValue("console.log('OPN_PRIMARY_READY');");
+  });
+  await page.click('#runButton');
+  await page.waitForFunction(() => document.getElementById('consoleOutput').textContent.includes('OPN_PRIMARY_READY'));
+  await page.evaluate(async () => {
+    const {megaDrive} = window.__modeRegression;
+    const context = megaDrive.audioContext, meter = context.createAnalyser(), silent = context.createGain();
+    meter.fftSize = 1024; silent.gain.value = 0; meter.connect(silent); silent.connect(context.destination);
+    const state = window.__opnMeter = {meter, silent, detach:megaDrive.audio.connectOutputMonitor(meter), peak:0, quietSince:null};
+    const moduleUrl = URL.createObjectURL(new Blob([`
+      class OPNMonoProbe extends AudioWorkletProcessor {
+        process(inputs) {
+          const channels = inputs[0], left = channels[0], right = channels[1];
+          if (!left) return true;
+          let peak = 0, difference = 0;
+          for (let i = 0; i < left.length; i++) {
+            peak = Math.max(peak, Math.abs(left[i]), Math.abs(right?.[i] ?? 0));
+            difference = Math.max(difference, Math.abs(left[i] - (right?.[i] ?? left[i])));
+          }
+          this.port.postMessage({peak, difference, channels:channels.length});
+          return true;
+        }
+      }
+      registerProcessor('opn-mono-probe', OPNMonoProbe);
+    `], {type:'text/javascript'}));
+    try {await context.audioWorklet.addModule(moduleUrl);} finally {URL.revokeObjectURL(moduleUrl);}
+    // Probe the primary worklet ahead of the mixer and any stereo effects.
+    const probe = state.probe = new AudioWorkletNode(context, 'opn-mono-probe', {
+      numberOfInputs:1, numberOfOutputs:1, outputChannelCount:[1],
+      channelCount:2, channelCountMode:'explicit', channelInterpretation:'discrete',
+    });
+    probe.port.onmessage = ({data}) => {
+      state.rawPeak = Math.max(state.rawPeak ?? 0, data.peak);
+      state.rawDifference = Math.max(state.rawDifference ?? 0, data.difference);
+    };
+    megaDrive.node.connect(probe); probe.connect(silent);
+    state.timer = setInterval(() => {
+      const pcm = new Float32Array(meter.fftSize); meter.getFloatTimeDomainData(pcm);
+      let peak = 0;
+      for (const value of pcm) peak = Math.max(peak, Math.abs(value));
+      state.peak = Math.max(state.peak, peak);
+      if (peak < .00001) state.quietSince ??= performance.now();
+      else state.quietSince = null;
+    }, 10);
+  });
+  const cases = {
+    tone:"ssg.tone(0, {frequency:440, volume:12}); liveLoop('opn-tone-hold', async () => {await sleep(.1);});",
+    noise:"ssg.noise(2, {period:19, volume:12}); liveLoop('opn-noise-hold', async () => {await sleep(.1);});",
+    envelope: `
+      ssg.setEnvelope({period:1000, shape:10}); ssg.tone(1, {frequency:330, envelope:true});
+      liveLoop('opn-envelope-hold', async () => {await sleep(.1);});
+    `,
+    'fm-after-ssg-reset': `
+      fm.setPreset(2, FM_PRESETS['one-op-basic']); fm.noteOn(2, 'A4');
+      ssg.reset(); liveLoop('opn-fm-hold', async () => {await sleep(.1);});
+    `,
+  };
+  try {
+    for (const execution of ['main', 'worker']) {
+      const lookahead = await page.evaluate(execution => execution === 'worker'
+        ? window.__modeRegression.runtime.getTiming().workerLookaheadSeconds * 1000 : 0, execution);
+      const assertQuiet = async () => {
+        await page.evaluate(() => {
+          // Keep the output gate open to observe the actual chip generators.
+          window.__modeRegression.runtime.stop(); window.__opnMeter.quietSince = null;
+        });
+        await page.waitForFunction(quietMs => window.__opnMeter.quietSince !== null &&
+          performance.now() - window.__opnMeter.quietSince >= quietMs,
+        Math.max(250, lookahead + 150), {timeout:3000 + lookahead});
+      };
+      for (const [section, body] of Object.entries(cases)) {
+        const marker = `OPN_SSG_PASS:${execution}:${section}`;
+        const source = `
+          if (ssg !== pg.ssg) throw Error('OPN SSG aliases do not share the primary chip');
+          await livePrepare(${JSON.stringify(`opn-context-${execution}-${section}`)}, api => {
+            if (api.fm !== fm || api.ssg !== ssg) throw Error('livePrepare OPN context differs from globals');
+            if ('rhythm' in api || 'adpcm' in api || 'adpcmA' in api || 'adpcmB' in api) throw Error('OPN has unsupported sections');
+            return true;
+          });
+          if (fm.clock !== 4000000) throw Error('OPN master clock differs from PC-98 mode');
+          if (ssg.setFrequency(0, 440) !== Math.round(4000000 / (2*16*440))) throw Error('OPN SSG must use master / 2');
+          try {
+            await fm.setClock(6000000);
+            if (fm.clock !== 6000000) throw Error('Primary OPN clock did not change');
+            if (ssg.setFrequency(0, 440) !== Math.round(6000000 / (2*16*440))) throw Error('OPN SSG clock is not synchronized');
+          } finally {await fm.setClock(4000000);}
+          ${body}
+          console.log(${JSON.stringify(marker)});
+        `;
+        await page.evaluate(async ({source, execution}) => {
+          window.__opnMeter.peak = 0; window.__opnMeter.quietSince = null;
+          window.__opnMeter.rawPeak = 0; window.__opnMeter.rawDifference = 0;
+          await window.__modeRegression.runtime.playSource(source, {execution});
+        }, {source, execution});
+        await page.waitForFunction(marker => document.getElementById('consoleOutput').textContent.includes(marker), marker);
+        await page.waitForFunction(() => window.__opnMeter.peak > .0001 && window.__opnMeter.rawPeak > .0001, null, {timeout:3000 + lookahead});
+        const actual = await page.evaluate(() => ({peak:window.__opnMeter.peak,
+          rawPeak:window.__opnMeter.rawPeak, rawDifference:window.__opnMeter.rawDifference,
+          connected:window.__modeRegression.megaDrive.mixer.list().filter(chip => chip.connected).map(chip => chip.id),
+          inspected:window.__modeRegression.runtime.chipInspector.list().map(chip => chip.id)}));
+        assert.deepEqual(actual.connected, ['ym2203'], `${execution}/${section}: SSG must share the one primary YM2203`);
+        assert(!actual.inspected.some(id => /^ym2203:/.test(id)), `${execution}/${section}: an extra YM2203 was created`);
+        assert(actual.rawDifference <= 1e-7, `${execution}/${section}: native YM2203 output must be mono (difference ${actual.rawDifference})`);
+        await assertQuiet();
+        console.log(JSON.stringify({browser:browserName, mode:'pc98-26', execution, section, peak:actual.peak,
+          primaryOnly:true, clockSynchronized:true, nativeMono:true, stopQuiet:true, passed:true}));
+      }
+      const marker = `OPN_BUILTIN_EXAMPLE_PASS:${execution}`;
+      await page.evaluate(async ({source, execution, marker}) => {
+        window.__opnMeter.peak = 0; window.__opnMeter.quietSince = null;
+        await window.__modeRegression.runtime.playSource(source + `\nconsole.log(${JSON.stringify(marker)});`, {execution});
+      }, {source:example, execution, marker});
+      await page.waitForFunction(marker => document.getElementById('consoleOutput').textContent.includes(marker), marker);
+      assert(await page.evaluate(() => window.__opnMeter.peak > .0001), `${execution}: the built-in OPN example produced no audio`);
+      assert.deepEqual(await page.evaluate(() => window.__modeRegression.megaDrive.mixer.list()
+        .filter(chip => chip.connected).map(chip => chip.id)), ['ym2203'], 'the built-in example uses only primary OPN');
+      await assertQuiet();
+      console.log(JSON.stringify({browser:browserName, mode:'pc98-26', execution, example:examplePath,
+        primaryOnly:true, audible:true, stopQuiet:true, passed:true}));
+    }
+  } finally {
+    await page.evaluate(async () => {
+      const state = window.__opnMeter;
+      if (!state) return;
+      clearInterval(state.timer); state.detach(); state.meter.disconnect(); state.silent.disconnect();
+      window.__modeRegression.megaDrive.node.disconnect(state.probe); state.probe.disconnect(); state.probe.port.close();
+      delete window.__opnMeter;
+      await window.__modeRegression.runtime.stopWithFade();
+    }).catch(() => {});
+  }
 }
 
 async function checkOpnaSections(page, browserName) {
@@ -261,6 +419,142 @@ async function checkOpnaSections(page, browserName) {
       if (!state) return;
       clearInterval(state.timer); state.detach(); state.meter.disconnect(); state.silent.disconnect();
       delete window.__opnaMeter;
+      await window.__modeRegression.runtime.stopWithFade();
+    }).catch(() => {});
+  }
+}
+
+async function checkOpnbSections(page, browserName, mode, {exampleOnly = false} = {}) {
+  const examplePath = '/examples/neogeo/neogeo-opnb-sections.js';
+  const example = await page.evaluate(path => window.__modeRegression.virtualFiles.get(path)?.data, examplePath);
+  assert.equal(example, await fs.readFile(path.join(docs, 'playground', examplePath), 'utf8'), 'the built-in OPNB example matches its source file');
+  await page.evaluate(() => {
+    document.getElementById('workerExecution').checked = false;
+    window.__modeRegression.setEditorValue("console.log('OPNB_PRIMARY_READY');");
+  });
+  await page.click('#runButton');
+  await page.waitForFunction(() => document.getElementById('consoleOutput').textContent.includes('OPNB_PRIMARY_READY'));
+  await page.evaluate(() => {
+    const {megaDrive} = window.__modeRegression;
+    const context = megaDrive.audioContext, meter = context.createAnalyser(), silent = context.createGain();
+    meter.fftSize = 1024; silent.gain.value = 0; meter.connect(silent); silent.connect(context.destination);
+    const state = window.__opnbMeter = {meter, silent, detach:megaDrive.audio.connectOutputMonitor(meter), peak:0, quietSince:null};
+    state.timer = setInterval(() => {
+      const pcm = new Float32Array(meter.fftSize); meter.getFloatTimeDomainData(pcm);
+      let peak = 0;
+      for (const value of pcm) peak = Math.max(peak, Math.abs(value));
+      state.peak = Math.max(state.peak, peak);
+      if (peak < .00001) state.quietSince ??= performance.now();
+      else state.quietSince = null;
+    }, 10);
+  });
+  // The generated nibble stream exercises the decoders without any game ROM.
+  const cases = {
+    'ssg-tone':"ssg.tone(0, {frequency:440, volume:12}); liveLoop('opnb-tone-hold', async () => {await sleep(.1);});",
+    'ssg-noise':"ssg.noise(2, {period:19, volume:12}); liveLoop('opnb-noise-hold', async () => {await sleep(.1);});",
+    ...Object.fromEntries(Array.from({length:6}, (_, voice) => [`adpcmA-${voice}`, `
+      await livePrepare('opnb-a-memory-${voice}', async api => {
+        await api.adpcmA.loadMemory(new Uint8Array(1024).fill(0x17), ${voice * 1024}); return true;
+      });
+      adpcmA.setVolume(48); adpcmA.setVoice(${voice}, {volume:24, left:true, right:true});
+      adpcmA.setSample(${voice}, {start:${voice * 1024}, end:${(voice + 1) * 1024}});
+      liveLoop('opnb-a-hold', async () => {adpcmA.keyOn(${voice}); await sleep(.12);});
+    `])),
+    adpcmB:`
+      await livePrepare('opnb-b-memory', async api => {
+        await api.adpcmB.loadMemory(new Uint8Array(4096).fill(0x17).buffer, 256); return true;
+      });
+      adpcmB.setSample({start:256, end:4352}); adpcmB.setPlaybackRate(8000);
+      adpcmB.setVolume(180); adpcmB.setPan(true, true); adpcm.keyOn({repeat:true});
+      liveLoop('opnb-b-hold', async () => {await sleep(.1);});
+    `,
+    [`fm-${mode.channels - 1}`]:`
+      fm.setPreset(${mode.channels - 1}, FM_PRESETS['one-op-basic']);
+      liveLoop('opnb-fm-hold', async () => {await play('A4', {channel:${mode.channels - 1}, seconds:.15});});
+    `,
+  };
+  try {
+    for (const execution of ['main', 'worker']) {
+      const lookahead = await page.evaluate(execution => execution === 'worker'
+        ? window.__modeRegression.runtime.getTiming().workerLookaheadSeconds * 1000 : 0, execution);
+      const physicalChannels = mode.chip === 'ym2610' ? [1, 2, 4, 5] : [0, 1, 2, 3, 4, 5];
+      const pitches = await page.evaluate(async ({execution, channels}) => {
+        const {runtime, megaDrive} = window.__modeRegression;
+        const core = megaDrive.rawFm ?? megaDrive.fm;
+        const before = core.getState().channels.map(({block, fnum}) => ({block, fnum}));
+        const source = `for (let ch=0; ch<${channels}; ch++) fm.setBlockFnum(ch, 2, 1200+ch); console.log('OPNB_MAPPING_READY');`;
+        await runtime.playSource(source, {execution});
+        return {before, after:core.getState().channels.map(({block, fnum}) => ({block, fnum}))};
+      }, {execution, channels:mode.channels});
+      const expectedPitches = pitches.before.map(pitch => ({...pitch}));
+      physicalChannels.forEach((physical, logical) => {expectedPitches[physical] = {block:2, fnum:1200 + logical};});
+      assert.deepEqual(pitches.after, expectedPitches, `${mode.id}/${execution}: logical FM channels map to the native hardware channels`);
+      for (const [section, body] of Object.entries(exampleOnly ? {} : cases)) {
+        const marker = `OPNB_SECTION_PASS:${mode.id}:${execution}:${section}`;
+        const source = `
+          if (ssg !== pg.ssg || adpcmA !== pg.adpcmA || adpcmB !== pg.adpcmB || adpcm !== pg.adpcm || adpcm !== adpcmB)
+            throw Error('OPNB aliases do not share the primary chip');
+          await livePrepare(${JSON.stringify(`opnb-context-${mode.id}-${execution}-${section}`)}, async api => {
+            if (api.fm !== fm || api.ssg !== ssg || api.adpcmA !== adpcmA || api.adpcmB !== adpcmB || api.adpcm !== adpcmB)
+              throw Error('livePrepare OPNB context differs from globals');
+            return true;
+          });
+          const initialClock = fm.clock;
+          try {
+            await fm.setClock(6000000);
+            if (fm.clock !== 6000000) throw Error('Primary FM clock did not change');
+            if (ssg.setFrequency(0, 440) !== Math.round(6000000 / (4*16*440))) throw Error('SSG clock is not synchronized');
+            const expectedRate = Math.round(8000*144*65536/6000000)*6000000/(144*65536);
+            if (Math.abs(adpcmB.setPlaybackRate(8000) - expectedRate) > .000001) throw Error('ADPCM-B clock is not synchronized');
+          } finally {await fm.setClock(initialClock);}
+          ${body}
+          console.log(${JSON.stringify(marker)});
+        `;
+        await page.evaluate(async ({source, execution}) => {
+          window.__opnbMeter.peak = 0; window.__opnbMeter.quietSince = null;
+          await window.__modeRegression.runtime.playSource(source, {execution});
+        }, {source, execution});
+        await page.waitForFunction(marker => document.getElementById('consoleOutput').textContent.includes(marker), marker);
+        await page.waitForFunction(() => window.__opnbMeter.peak > .0001, null, {timeout:3000 + lookahead});
+        const actual = await page.evaluate(() => {
+          const {runtime, megaDrive} = window.__modeRegression;
+          return {peak:window.__opnbMeter.peak,
+            connected:megaDrive.mixer.list().filter(chip => chip.connected).map(chip => chip.id),
+            inspected:runtime.chipInspector.list().map(chip => chip.id)};
+        });
+        assert.deepEqual(actual.connected, [mode.chip], `${mode.id}/${execution}/${section}: sections must share the one primary OPNB`);
+        assert(!actual.inspected.some(id => /^ym2610b?:/.test(id)), `${mode.id}/${execution}/${section}: an extra OPNB was created`);
+        await page.evaluate(() => {
+          // Keep the master gate open, including the Worker reservation window.
+          window.__modeRegression.runtime.stop(); window.__opnbMeter.quietSince = null;
+        });
+        const quietMs = Math.max(250, lookahead + 150);
+        await page.waitForFunction(quietMs => window.__opnbMeter.quietSince !== null &&
+          performance.now() - window.__opnbMeter.quietSince >= quietMs, quietMs, {timeout:3000 + lookahead});
+        console.log(JSON.stringify({browser:browserName, mode:mode.id, execution, section, peak:actual.peak,
+          primaryOnly:true, clockSynchronized:true, stopQuiet:true, passed:true}));
+      }
+      const marker = `OPNB_BUILTIN_EXAMPLE_PASS:${mode.id}:${execution}`;
+      await page.evaluate(async ({source, execution, marker}) => {
+        window.__opnbMeter.peak = 0; window.__opnbMeter.quietSince = null;
+        await window.__modeRegression.runtime.playSource(source + `\nconsole.log(${JSON.stringify(marker)});`, {execution});
+      }, {source:example, execution, marker});
+      await page.waitForFunction(marker => document.getElementById('consoleOutput').textContent.includes(marker), marker);
+      assert(await page.evaluate(() => window.__opnbMeter.peak > .0001), `${mode.id}/${execution}: the built-in OPNB example produced no audio`);
+      assert.deepEqual(await page.evaluate(() => window.__modeRegression.megaDrive.mixer.list()
+        .filter(chip => chip.connected).map(chip => chip.id)), [mode.chip], 'the built-in example uses only primary OPNB');
+      await page.evaluate(() => {window.__modeRegression.runtime.stop(); window.__opnbMeter.quietSince = null;});
+      await page.waitForFunction(quietMs => window.__opnbMeter.quietSince !== null &&
+        performance.now() - window.__opnbMeter.quietSince >= quietMs, Math.max(250, lookahead + 150), {timeout:3000 + lookahead});
+      console.log(JSON.stringify({browser:browserName, mode:mode.id, execution, example:examplePath,
+        primaryOnly:true, audible:true, stopQuiet:true, passed:true}));
+    }
+  } finally {
+    await page.evaluate(async () => {
+      const state = window.__opnbMeter;
+      if (!state) return;
+      clearInterval(state.timer); state.detach(); state.meter.disconnect(); state.silent.disconnect();
+      delete window.__opnbMeter;
       await window.__modeRegression.runtime.stopWithFade();
     }).catch(() => {});
   }
@@ -475,36 +769,48 @@ async function checkBrowser(name, type, base) {
   const tabsOnly = process.argv.includes('--tabs-only');
   const typesOnly = process.argv.includes('--types-only');
   const opnaOnly = process.argv.includes('--opna-only');
+  const opnbOnly = process.argv.includes('--opnb-only');
+  const opnbExampleOnly = process.argv.includes('--opnb-example-only');
+  const ym2203Only = process.argv.includes('--ym2203-only');
+  const sectionsOnly = opnaOnly || opnbOnly || opnbExampleOnly || ym2203Only;
+  const selectedModes = process.argv.includes('--project-only') ? [] : ym2203Only
+    ? modes.filter(mode => mode.chip === 'ym2203') : opnbExampleOnly
+    ? modes.filter(mode => ['ym2610', 'ym2610b'].includes(mode.chip)) : modes;
   try {
-    for (const mode of process.argv.includes('--project-only') ? [] : modes) {
+    for (const mode of selectedModes) {
       await page.goto(`${base}?mode=${mode.id}&no-sw=1`); await ready(page);
       assert.equal(await page.title(), `Tetorica ${mode.label} Playground`);
       assert.equal(await page.locator('#playgroundMode').inputValue(), mode.id);
       assert.deepEqual(await page.locator('#playgroundMode option').evaluateAll(options => options.map(option => option.value)), modes.map(mode => mode.id));
-      if (!typesOnly && !opnaOnly) await checkChipTabs(page, mode);
+      if (!typesOnly && !sectionsOnly) await checkChipTabs(page, mode);
       let typeHovers;
       if (!tabsOnly) {
-        typeHovers = await checkTypes(page, mode);
-        if (!typesOnly && !opnaOnly) await checkAudio(page, mode);
+        if (!opnbExampleOnly) typeHovers = await checkTypes(page, mode);
+        if (!typesOnly && !sectionsOnly) await checkAudio(page, mode);
       }
-      if (!typesOnly && !opnaOnly) await checkAdditionalChipTabs(page, mode);
-      if (!typesOnly && !tabsOnly && mode.id === 'pc98') await checkOpnaSections(page, name);
-      if (!typesOnly && !opnaOnly && mode.id === 'pc98' && name === 'chromium') await page.screenshot({path:'/private/tmp/playground-mode-tabs.png'});
+      if (!typesOnly && !sectionsOnly) await checkAdditionalChipTabs(page, mode);
+      if (!typesOnly && !tabsOnly && !opnaOnly && !opnbOnly && !opnbExampleOnly && mode.id === 'pc98-26') await checkYm2203Ssg(page, name);
+      if (!typesOnly && !tabsOnly && !opnbOnly && !opnbExampleOnly && !ym2203Only && mode.id === 'pc98') await checkOpnaSections(page, name);
+      if (!typesOnly && !tabsOnly && !opnaOnly && !ym2203Only && ['ym2610', 'ym2610b'].includes(mode.chip)) await checkOpnbSections(page, name, mode, {exampleOnly:opnbExampleOnly});
+      if (!typesOnly && !sectionsOnly && mode.id === 'pc98' && name === 'chromium') await page.screenshot({path:'/private/tmp/playground-mode-tabs.png'});
       if (tabsOnly) console.log(JSON.stringify({browser:name, mode:mode.id, chipTabs:true, keyboardNavigation:true, passed:true}));
       if (typesOnly) console.log(JSON.stringify({browser:name, mode:mode.id, hovers:typeHovers, passed:true}));
     }
-    if (!tabsOnly && !typesOnly && !opnaOnly) {
+    if (!tabsOnly && !typesOnly && !sectionsOnly) {
       await checkProjectSwitch(page, base, name === 'chromium');
       await checkLegacyAndLayout(page, base);
       await checkDesktopAutosave(browser, base);
     }
     assert.deepEqual(errors, [], `${name}: page errors`);
-    console.log(JSON.stringify({browser:name, passed:true, modes:process.argv.includes('--project-only') ? 0 : modes.length,
-      chipTabs:!typesOnly && !opnaOnly && !process.argv.includes('--project-only'),
-      opnaSections:!tabsOnly && !typesOnly && !process.argv.includes('--project-only'),
-      projectSwitch:!tabsOnly && !typesOnly && !opnaOnly, fileTypes:!tabsOnly && !typesOnly && !opnaOnly,
-      desktopAutosave:!tabsOnly && !typesOnly && !opnaOnly, legacyUrls:!tabsOnly && !typesOnly && !opnaOnly,
-      simpleLayout:!tabsOnly && !typesOnly && !opnaOnly}));
+    console.log(JSON.stringify({browser:name, passed:true, modes:selectedModes.length,
+      chipTabs:!typesOnly && !sectionsOnly && !process.argv.includes('--project-only'),
+      ym2203Ssg:!tabsOnly && !typesOnly && !opnaOnly && !opnbOnly && !opnbExampleOnly && !process.argv.includes('--project-only'),
+      opnaSections:!tabsOnly && !typesOnly && !opnbOnly && !opnbExampleOnly && !ym2203Only && !process.argv.includes('--project-only'),
+      opnbSections:!tabsOnly && !typesOnly && !opnaOnly && !opnbExampleOnly && !ym2203Only && !process.argv.includes('--project-only'),
+      opnbExamples:!tabsOnly && !typesOnly && !opnaOnly && !ym2203Only && !process.argv.includes('--project-only'),
+      projectSwitch:!tabsOnly && !typesOnly && !sectionsOnly, fileTypes:!tabsOnly && !typesOnly && !sectionsOnly,
+      desktopAutosave:!tabsOnly && !typesOnly && !sectionsOnly, legacyUrls:!tabsOnly && !typesOnly && !sectionsOnly,
+      simpleLayout:!tabsOnly && !typesOnly && !sectionsOnly}));
   } catch (error) {
     console.error(JSON.stringify({browser:name, url:page.url(), status:await page.locator('#status').textContent().catch(() => null), errors}));
     throw error;

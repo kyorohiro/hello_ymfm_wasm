@@ -1,4 +1,4 @@
-import {EXAMPLE_FOLDER_ORDER} from './playground_example_order.js';
+import {EXAMPLE_FOLDER_ORDER} from './playground_example_order.js?v=opnb-primary-1';
 
 export function buildFileTree(files) {
   const root = { children: new Map() };

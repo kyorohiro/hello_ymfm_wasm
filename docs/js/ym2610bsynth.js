@@ -4,8 +4,8 @@
  * 依存: 低レベル Synth / DirectTransport は注入したチップで動作し、Node.js でも使用可能。
  * RuntimeSynth 系の実再生は OPNRuntimeSynth 経由で AudioContext / AudioWorkletNode / fetch を使う。
  */
-import { OPNDirectTransport, OPNFMSynth } from "./opn_fm_synth.js?v=opna-primary-1";
-import { OPNRuntimeSynth } from "./opn_runtime_synth.js?v=opna-primary-1";
+import { OPNDirectTransport, OPNFMSynth } from "./opn_fm_synth.js?v=opnb-primary-1";
+import { OPNRuntimeSynth } from "./opn_runtime_synth.js?v=opnb-primary-1";
 
 import { SSGSynth } from "./ssgsynth.js?v=opna-primary-1";
 import { YM2610B_CLOCK } from "./ym2610b.js";
@@ -181,7 +181,7 @@ export class YM2610BAdpcmASynth {
 
 /** Six-channel FM, CH3 special, SSG, and separate ADPCM-A/B ROM playback. */
 export class YM2610BSynth extends OPNFMSynth {
-  /** @param {{transport: import('./opn_fm_synth.js?v=opna-primary-1').OPNTransport, clock?: number}} options Master clock in Hz, default 8 MHz. */
+  /** @param {{transport: import('./opn_fm_synth.js?v=opnb-primary-1').OPNTransport, clock?: number}} options Master clock in Hz, default 8 MHz. */
   constructor({ transport, clock = YM2610B_CLOCK } = {}) {
     super({ transport, clock, chipName: "YM2610B", channelCount: 6, portCount: 2, supportsPan: true, supportsLfo: true });
     const load = type => (bytes,address) => {
@@ -213,7 +213,7 @@ export class YM2610BRuntimeSynth extends OPNRuntimeSynth {
   constructor(options = {}) {
     super(options, {
       chip: "ym2610b", chipName: "YM2610B", fmChannels: 6, portCount: 2,
-      processorName: "ym2610b-processor", workletUrl: "./ym2610b-worklet.js",
+      processorName: "ym2610b-processor", workletUrl: "./ym2610b-worklet.js?v=opnb-primary-1",
       wasmUrl: "../generated/ym2610b_wasm.wasm", FMSynth: YM2610BSynth,
     });
   }

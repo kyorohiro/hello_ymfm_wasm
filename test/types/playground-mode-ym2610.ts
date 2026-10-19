@@ -1,7 +1,7 @@
 /// <reference path="../../docs/playground/tetorica-playground-ym2610.d.ts" />
 /// <reference path="./playground-mode-common.ts" />
 /// <reference path="./playground-mode-opn.ts" />
-/// <reference path="./playground-mode-without-opna.ts" />
+/// <reference path="./playground-mode-opnb.ts" />
 
 async function checkNeoGeoModeTypes() {
   fm.setPan(CH4, true, false);

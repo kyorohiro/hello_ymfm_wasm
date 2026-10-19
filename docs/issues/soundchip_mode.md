@@ -9,17 +9,19 @@
 | Genesis | `genesis` | YM2612 + Sega PSG / DAC | YM2612: 7,670,454 Hz |
 | Genesis Full | `genesis-full` | Genesis + Mega-CD RF5C164 + 32X PWM | YM2612: 7,670,454 Hz |
 | Genesis Full (Nuked) | `genesis-full-nuked` | Genesis Full の YM2612 を Nuked-OPN2 にする | YM2612: 7,670,454 Hz |
-| PC-98 (YM2203 / OPN) | `pc98-26` | YM2203 FM、3ch | 4,000,000 Hz |
+| PC-98 (YM2203 / OPN) | `pc98-26` | YM2203 FM 3ch + SSG 3ch | 4,000,000 Hz |
 | PC-98 (YM2608 / OPNA) | `pc98` | YM2608 FM 6ch + SSG 3ch + Rhythm 6音 + ADPCM-B | 8,000,000 Hz |
-| Neo Geo | `neogeo` | YM2610 FM、4ch | 8,000,000 Hz |
+| Neo Geo | `neogeo` | YM2610 FM 4ch + SSG 3ch + ADPCM-A 6音 + ADPCM-B | 8,000,000 Hz |
+| Neo Geo (YM2610B) | `neogeo-b` | YM2610B FM 6ch + SSG 3ch + ADPCM-A 6音 + ADPCM-B | 8,000,000 Hz |
 
 ここでの Hz は CPU や音声出力のサンプルレートではなく、音源のマスタークロック。
 型定義、FM チャンネル定数、補完、音程計算を、選んだ環境に合わせる。
 音源タブも mode に合わせ、Genesis は FM / Sega PSG、Full はさらに RF5C164 / 32X PWM、
 PC-98 と Neo Geo は対象の FM タブを表示する。Code や下部の共通ツールは引き続き使える。
 `useSoundChip()` で追加した音源によって、mode に含まれないタブを自動表示することはしない。
-PC-98 (YM2608 / OPNA) は `fm` に加えて `ssg`・`rhythm`・`adpcm` を標準で公開する。
-これらは同じ YM2608 を操作する。現時点で標準公開していない機能は、既存の
+PC-98 (YM2203 / OPN) は `fm` と `ssg`、YM2608 / OPNA は `fm` に加えて `ssg`・`rhythm`・`adpcm` を標準で公開する。
+これらは同じ YM2608 を操作する。Neo Geo / YM2610B では `ssg`・`adpcmA`・`adpcmB`
+（`adpcm` は ADPCM-B の別名）を標準で公開する。現時点で標準公開していない機能は、既存の
 `useSoundChip()` / `createSoundChip()` で追加して使える。
 
 切り替え時は停止・音声の終了処理を行い、現在のコード、バイナリ、フォルダー、
@@ -28,13 +30,23 @@ PC-98 (YM2608 / OPNA) は `fm` に加えて `ssg`・`rhythm`・`adpcm` を標準
 デスクトップの下書きは mode ごとに保存し、既存の下書きは対応する基本 mode で読み込める。
 
 新しい URL は `?mode=pc98` などを使う。既存の `chip=` / `engine=nuked` は入力互換として
-残す。明示された mode が優先する。通常の Nuked 版と YM2610B は、過去のリンク用の
-`genesis-nuked` / `neogeo-b` として維持する。簡易表示は `layout=simple` とし、
+残す。明示された mode が優先する。通常の Nuked 版は、過去のリンク用の
+`genesis-nuked` として維持する。`neogeo-b` は標準の選択候補とし、既存リンクも引き継ぐ。簡易表示は `layout=simple` とし、
 従来の `mode=simple` も読み込める。
 
 YM2608 の `useSoundChip()` は、SSG・Rhythm・ADPCM・Timeline を含む既存のフル API を
 保つため、標準の YM2608 とは別インスタンスのままとする。標準 FM と共有する YM2612・YM2203・
 YM2610 とは扱いが異なる。単純な FM への別名化でフル import を壊さない。
+
+### PC-98 / OPN の標準 API
+
+`?mode=pc98-26` では、Main / Worker の両方で `fm`（3ch）と `ssg`（3ch）を使える。
+`ssg.tone()`・`ssg.noise()`・`ssg.setEnvelope()` などを、FM と同じ YM2203 に対して操作する。
+`pg.ssg`・`livePrepare({ssg})` にも同じ API を公開し、型・補完も対応する。
+SSG の実効クロックはマスターの1/2で、`fm.setClock()` の変更に追従する。
+音源出力はモノラル信号を左右両チャンネルへ同じ波形で送る。
+Stop で全3ch を消音し、再開用の音量・エンベロープ設定は保持する。
+外部ファイル不要の例は `examples/pc98/pc98-opn-ssg.js`。
 
 ### PC-98 / OPNA の標準 API
 
@@ -70,6 +82,25 @@ adpcm.keyOff();
 ```
 
 外部ファイル不要の実行例は `examples/pc98/pc98-opna-sections.js`。
+
+### Neo Geo / YM2610B の標準 API
+
+`?mode=neogeo` は YM2610 の FM 4ch、`?mode=neogeo-b` は YM2610B の FM 6ch を使う。
+型表示もそれぞれ `YM2610FMApi` / `YM2610BFMApi` になる。
+通常版の論理 FM ch 0..3 はハードウェア ch 1・2・4・5 に対応し、B 版は ch 0..5 を使う。
+Worklet の実チップも YM2610 / YM2610B の variant を mode に合わせて選ぶ。
+
+両方の mode で、FM と同じチップの次の機能を Main / Worker から操作できる。
+
+- `ssg`：3ch のトーン・ノイズ・エンベロープ。ノイズは `ssg.noise()` から設定する。
+- `adpcmA`：6音。音ごとのサンプル範囲・音量・パンを設定できる。再生レートはクロック / 432。
+- `adpcmB` / `adpcm`：1音。Delta-N / 再生レート指定・繰り返し再生に対応。
+
+`pg` と `livePrepare()` にも同じ名前・同じオブジェクトを公開する。
+A/B はそれぞれに符号化済みデータを `await loadMemory()` で読み込み、256-byte 境界の
+`setSample()` で範囲を選んでから発音する。A と B のメモリ領域は別々に扱う。
+`fm.setClock()` に SSG の音程計算と ADPCM-B のレート計算が追従し、Stop で全音源を停止する。
+外部 ROM 不要の例は `examples/neogeo/neogeo-opnb-sections.js`。
 
 ## 背景
 
@@ -113,7 +144,7 @@ Genesis mode に FM、PSG、DAC が最初から用意され、`play()` が標準
 
 ## mode 候補
 
-名称・ID・構成は案。PC-98 を OPN / OPNA に分けた次の15候補を出発点とする。
+名称・ID・構成は案。PC-98 を OPN / OPNA、Neo Geo を YM2610 / YM2610B に分けた次の16候補を出発点とする。
 
 | 表示名 | ID 案 | 標準音源・構成の案 | 補足・未決事項 |
 | --- | --- | --- | --- |
@@ -125,9 +156,10 @@ Genesis mode に FM、PSG、DAC が最初から用意され、`play()` が標準
 | NES × FDS | `nes-fds` | NES + FDS | FDS を含む環境として用意する。 |
 | Game Boy | `gameboy` | Game Boy 音源 | FM を前提としない API・サンプルを用意する。 |
 | SNES | `snes` | SNES 音源 | サンプル・音色の初期構成と SPC 再生の位置付けを整理する。 |
-| PC-98 (OPN) | `pc98-26` | YM2203 | 先行実装は3ch の FM を標準音源とする。 |
+| PC-98 (OPN) | `pc98-26` | YM2203 | FM 3ch・SSG 3ch を標準公開。 |
 | PC-98 (OPNA) | `pc98` | YM2608 | FM 6ch・SSG 3ch・Rhythm・ADPCM-B を標準公開。 |
-| Neo Geo | `neogeo` | YM2610 系の構成 | 使用する実装と、FM・SSG・ADPCM の公開方法を整理する。 |
+| Neo Geo | `neogeo` | YM2610 | FM 4ch・SSG・ADPCM-A/B を標準公開。 |
+| Neo Geo (YM2610B) | `neogeo-b` | YM2610B | FM 6ch・SSG・ADPCM-A/B を標準公開。 |
 | X68000 | `x68000` | YM2151 + OKIM6258 を想定 | 各音源の Playground 接続を確認する。 |
 | PC Engine | `pc-engine` | HuC6280 を想定 | Playground 側の接続・API を確認する。 |
 | DX7 | `dx7` | DX7 音源 | DX7 向けの音色選択・編集・演奏を中心とした環境。 |

@@ -138,13 +138,20 @@ export class OPNWorkletTransport {
   async close() {this.dispose(); await this.endpoint?.dispose();}
   flush() {return this.endpoint?.request('barrier') ?? Promise.resolve();}
 
-  /** @param {Uint8Array} bytes
+  /** YM2608: (bytes, address). YM2610/B: (memoryType, bytes, address), A=0 / B=1.
+   * @param {Uint8Array|0|1} typeOrBytes
+   * @param {Uint8Array|number} [bytesOrAddress]
    * @param {number} [address] */
-  loadAdpcmMemory(bytes, address = 0) {
+  loadAdpcmMemory(typeOrBytes, bytesOrAddress, address = 0) {
     if (this.disposed) return Promise.reject(new Error('ADPCM transport disposed'));
-    if (this.chipName !== 'YM2608') return Promise.reject(new Error('ADPCM memory upload requires YM2608'));
-    if (!(bytes instanceof Uint8Array) || !Number.isInteger(address) || address < 0 || address + bytes.length > 0x200000) return Promise.reject(new RangeError('Invalid ADPCM memory upload'));
-    return this._loadMemory({type: 'loadAdpcmMemory', bytes, address}, 'adpcm-memory-loaded');
+    const opna = this.chipName === 'YM2608';
+    const opnb = ['YM2610', 'YM2610B'].includes(this.chipName);
+    if (!opna && !opnb) return Promise.reject(new Error('ADPCM memory upload requires YM2608 or YM2610/B'));
+    const memoryType = opna ? undefined : typeOrBytes;
+    const bytes = opna ? typeOrBytes : bytesOrAddress;
+    if (opna) address = bytesOrAddress ?? 0;
+    if ((opnb && ![0, 1].includes(memoryType)) || !(bytes instanceof Uint8Array) || !Number.isInteger(address) || address < 0 || address + bytes.length > (opna ? 0x200000 : 0x1000000)) return Promise.reject(new RangeError('Invalid ADPCM memory upload'));
+    return this._loadMemory({type: 'loadAdpcmMemory', ...(opnb ? {memoryType} : {}), bytes, address}, 'adpcm-memory-loaded');
   }
 
   _loadMemory(command, resultType) {

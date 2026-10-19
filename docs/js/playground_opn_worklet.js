@@ -1,4 +1,4 @@
-import {validateChipClock} from './playground_chip_clock.js';
+import {validateChipClock} from './playground_chip_clock.js?v=opnb-primary-1';
 import {Ym2612} from './ym2612.js';
 import {Ym2203} from './ym2203.js';
 import {Ym2610B} from './ym2610b.js';

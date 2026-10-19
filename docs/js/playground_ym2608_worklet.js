@@ -1,4 +1,4 @@
-import {validateChipClock} from './playground_chip_clock.js';
+import {validateChipClock} from './playground_chip_clock.js?v=opnb-primary-1';
 import {Ym2608Timeline} from './playground_ym2608_timeline.js';
 import {Ym2608AudioEngine} from './ym2608audioengine.js';
 import factory from '../generated/ym2608_wasm.js';

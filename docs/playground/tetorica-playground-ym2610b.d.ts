@@ -1,2 +1,2 @@
-/** Legacy YM2610B selection: six FM channels, without the YM2612 DAC. */
+/** Neo Geo YM2610B mode: six FM channels, SSG and ADPCM-A/B. */
 type TetoricaSelectedChip = "ym2610b";

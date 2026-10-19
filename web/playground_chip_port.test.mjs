@@ -3,7 +3,9 @@ import assert from 'node:assert/strict';
 import {createChipPortReceiver} from './playground_chip_port.js';
 import {createWorkerChip} from './playground_worker_chip.js';
 import {YM2612Synth} from './ym2612synth.js';
+import {YM2203Synth} from './ym2203synth.js';
 import {YM2608Synth} from './ym2608synth.js';
+import {YM2610BSynth} from './ym2610bsynth.js';
 import {OPNWorkletTransport} from './opn_fm_synth.js';
 import {createPerformanceQueue} from './playground_performance_queue.js';
 
@@ -205,4 +207,146 @@ test('selected OPNA preserves remembered SSG levels across Main snapshots, Stop 
   assert.equal(commands.at(-1).value, 3, 'an explicit raw volume write replaces the remembered level');
   worker.fm.reset(); worker.adoptState(snapshot()); worker.ssg.keyOn(0);
   assert.equal(commands.at(-1).value, 0, 'whole-chip reset still clears the SSG patch');
+});
+
+for (const name of ['ym2610', 'ym2610b']) {
+  test(`selected ${name} exposes shared SSG and ADPCM-A/B sections with seeded shadows and mapped FM`, () => {
+    const commands = [], main = new YM2610BSynth({transport: {write() {}}});
+    main.ssg.setVolume(0, 12); main.ssg.keyOff(0);
+    main.write(0, 7, 0xc1); main.write(0, 0x11, 0xc2); main.write(1, 8, 0xc5);
+    const snapshot = () => ({...main.getState(), clock: 8000000, ssg: main.ssg._getState(),
+      adpcmA: {levels: Array.from(main.adpcmA.levels)}, adpcmB: {registers: Array.from(main.adpcmB.registers)}});
+    const worker = createWorkerChip({port: {postMessage: batch => commands.push(...batch)},
+      capabilities: {chip: name, fmChannels: name === 'ym2610' ? 4 : 6}, state: snapshot(), observe: ({method, args}) => {
+        if (method === 'write') main.write(...args);
+        if (method === 'ssgState') main.ssg._adoptState(args[0]);
+        if (method === 'reset') main.reset();
+      }});
+    assert.equal(commands.length, 0, 'attaching does not reset or rewrite the device');
+    assert.equal(worker.adpcm, worker.adpcmB, 'ADPCM alias addresses the same B section');
+    assert.equal(worker.ssg._getState, undefined);
+    worker.ssg.keyOn(0); assert.equal(commands.at(-1).value, 12);
+    worker.ssg.noise(1, {period: 7, volume: 9});
+    assert.equal(commands.at(-1).register, 9); assert.equal(commands.at(-1).value, 9);
+    worker.adpcmA.setVoice(0, {volume: 9});
+    assert.deepEqual(commands.at(-1), {type: 'write', port: 1, register: 8, value: 0xc9});
+    worker.adpcmB.setPan(true, false);
+    assert.deepEqual(commands.at(-1), {type: 'write', port: 0, register: 0x11, value: 0x82});
+    worker.fm.setOperator(name === 'ym2610' ? 2 : 5, 0, {tl: 20});
+    assert.deepEqual(commands.at(-1), {type: 'write', port: 1, register: name === 'ym2610' ? 0x41 : 0x42, value: 20});
+    worker.adpcmA.keyOn([0, 5]); worker.adpcmB.keyOn({repeat: true}); commands.length = 0;
+    worker.stop();
+    for (const register of [8, 9, 10]) assert.ok(commands.some(c => c.port === 0 && c.register === register && c.value === 0));
+    assert.ok(commands.some(c => c.port === 1 && c.register === 0 && c.value === 0xbf));
+    assert.ok(commands.some(c => c.port === 0 && c.register === 0x10 && c.value === 1));
+    assert.equal(main.ssg._getState().levels[0], 12, 'Stop preserves configured SSG volume');
+    worker.resume(); worker.adoptState(snapshot()); worker.ssg.keyOn(0); assert.equal(commands.at(-1).value, 12);
+    worker.fm.reset();
+    assert.equal(worker.raw.ssg.registers[8], 0); assert.equal(worker.raw.adpcmA.levels[0], 0); assert.equal(worker.raw.adpcmB.registers[1], 0);
+  });
+
+  test(`${name} A/B memory preparation selects separate ROMs, typed ACKs and Stop cancellation`, async () => {
+    const commands = [], observed = [], port = {postMessage: batch => commands.push(...batch)};
+    const worker = createWorkerChip({port, capabilities: {chip: name, fmChannels: name === 'ym2610' ? 4 : 6}, observe: event => observed.push(event)});
+    for (const [section, memoryType] of [['adpcmA', 0], ['adpcmB', 1]]) {
+      const pending = worker[section].loadMemory(new ArrayBuffer(256), 512), command = commands.at(-1);
+      assert.equal(command.type, 'loadAdpcmMemory'); assert.equal(command.memoryType, memoryType);
+      assert.equal(command.address, 512); assert.ok(command.bytes instanceof Uint8Array);
+      port.onmessage({data: {type: 'rhythm-rom-loaded', id: command.id, error: 'wrong ACK'}});
+      port.onmessage({data: {type: 'adpcm-memory-loaded', id: command.id}}); await pending;
+    }
+    assert.equal(observed.length, 0, 'ROM bytes never travel through UI observation');
+    const rejected = ['adpcmA', 'adpcmB'].map(section => assert.rejects(worker[section].loadMemory(new Uint8Array(256)), /Run stopped/));
+    worker.stop(); await Promise.all(rejected);
+    await assert.rejects(worker.adpcmB.loadMemory(new Uint8Array(256)), /Run stopped/);
+    worker.resume();
+    const next = worker.adpcmA.loadMemory(new Uint8Array(256)), command = commands.at(-1);
+    port.onmessage({data: {type: 'adpcm-memory-loaded', id: command.id, error: 'ROM rejected'}});
+    await assert.rejects(next, /ROM rejected/);
+  });
+
+  test(`${name} acknowledged master clock updates SSG and ADPCM-B rate conversion`, async () => {
+    const commands = [], port = {postMessage: batch => commands.push(...batch)};
+    const worker = createWorkerChip({port, capabilities: {chip: name, fmChannels: name === 'ym2610' ? 4 : 6}});
+    assert.equal(worker.raw.ssg.clock, 2000000); assert.equal(worker.raw.adpcmB.clock, 8000000);
+    const pending = worker.fm.setClock(4000000), command = commands.at(-1);
+    port.onmessage({data: {type: 'chip-clock-result', id: command.id}}); await pending;
+    worker.ssg.setFrequency(0, 440);
+    assert.equal(commands.at(-2).value | commands.at(-1).value << 8, Math.round(1000000 / (16 * 440)));
+    worker.adpcmB.setPlaybackRate(8000);
+    assert.equal(worker.raw.adpcmB.registers[9] | worker.raw.adpcmB.registers[10] << 8, Math.round(8000 * 144 * 65536 / 4000000));
+  });
+}
+
+test('primary OPNB transport validates A/B ROM ranges and remains reusable after canceled uploads', async () => {
+  let receive;
+  const commands = [], port = {postMessage: command => commands.push(command),
+    addEventListener(_type, listener) {receive = listener;}, removeEventListener() {}};
+  const transport = new OPNWorkletTransport(port, {chipName: 'YM2610B', portCount: 2});
+  for (const memoryType of [0, 1]) {
+    const pending = transport.loadAdpcmMemory(memoryType, new Uint8Array(256), 0x10000), command = commands.at(-1);
+    assert.equal(command.memoryType, memoryType); assert.equal(command.address, 0x10000);
+    receive({data: {type: 'adpcm-memory-loaded', id: command.id}}); await pending;
+  }
+  for (const args of [[2, new Uint8Array(1)], [0, new Uint8Array(1), -1], [1, new Uint8Array(256), 0x1000000], [0, new ArrayBuffer(1)]]) {
+    await assert.rejects(transport.loadAdpcmMemory(...args), /Invalid ADPCM memory upload/);
+  }
+  const canceled = [0, 1].map(type => assert.rejects(transport.loadAdpcmMemory(type, new Uint8Array(256)), /Run stopped/));
+  transport.cancelPending(); await Promise.all(canceled);
+  const next = transport.loadAdpcmMemory(1, new Uint8Array(256)), command = commands.at(-1);
+  receive({data: {type: 'adpcm-memory-loaded', id: command.id}}); await next;
+  transport.dispose(); await assert.rejects(transport.loadAdpcmMemory(0, new Uint8Array(256)), /disposed/);
+});
+
+test('selected YM2203 exposes SSG tone/noise/envelope and preserves shared register shadows through Stop', () => {
+  const commands = [], events = [], main = new YM2203Synth({transport: {write() {}}});
+  main.write(0, 7, 0xc1); main.ssg.setVolume(0, 12); main.ssg.keyOff(0);
+  const snapshot = () => ({...main.getState(), clock: 4000000, ssg: main.ssg._getState()});
+  const worker = createWorkerChip({port: {postMessage: batch => commands.push(...batch)},
+    capabilities: {chip: 'ym2203', fmChannels: 3}, state: snapshot(), observe: event => {
+      events.push(event);
+      if (event.method === 'write') main.write(...event.args);
+      if (event.method === 'ssgState') main.ssg._adoptState(event.args[0]);
+      if (event.method === 'reset') main.reset();
+    }});
+  assert.ok(worker.raw instanceof YM2203Synth);
+  assert.equal(commands.length, 0, 'attachment preserves the running chip without a reset');
+  assert.equal(worker.ssg._getState, undefined);
+  assert.equal(worker.adpcm, undefined); assert.equal(worker.rhythm, undefined);
+  worker.ssg.noise(1, {period: 7, volume: 9, envelope: true});
+  assert.deepEqual(commands.slice(-3), [
+    {type: 'write', port: 0, register: 6, value: 7},
+    {type: 'write', port: 0, register: 7, value: 0xc3},
+    {type: 'write', port: 0, register: 9, value: 16},
+  ]);
+  worker.ssg.setEnvelope({period: 0x1234, shape: 9});
+  assert.deepEqual(commands.slice(-3).map(({register, value}) => [register, value]), [[11, 0x34], [12, 0x12], [13, 9]]);
+  worker.ssg.keyOn(0); assert.equal(commands.at(-1).value, 12);
+  worker.ssg.tone(2, {frequency: 440, volume: 10});
+  assert.equal(worker.raw.ssg.registers[4] | worker.raw.ssg.registers[5] << 8, Math.round(2000000 / (16 * 440)));
+  assert.deepEqual(main.ssg._getState(), worker.raw.ssg._getState());
+  assert.ok(events.some(event => event.method === 'ssgState'));
+  commands.length = 0; worker.stop();
+  for (let register = 8; register <= 10; register++) assert.ok(commands.some(c => c.port === 0 && c.register === register && c.value === 0));
+  assert.equal(main.ssg._getState().levels[0], 12);
+  assert.equal(main.ssg._getState().levels[1], 16, 'Stop remembers envelope selection');
+  worker.resume(); worker.adoptState(snapshot()); worker.ssg.keyOn(0); assert.equal(commands.at(-1).value, 12);
+  worker.fm.write(0, 8, 3); worker.ssg.keyOff(0); worker.adoptState(snapshot()); worker.ssg.keyOn(0);
+  assert.equal(commands.at(-1).value, 3, 'raw writes replace the remembered SSG volume');
+  worker.fm.reset();
+  assert.equal(main.ssg._getState().levels[0], 0); assert.equal(worker.raw.ssg.registers[7], 0);
+});
+
+test('selected YM2203 clock conversion follows acknowledged master/2 SSG frequency', async () => {
+  const commands = [], port = {postMessage: batch => commands.push(...batch)};
+  const worker = createWorkerChip({port, capabilities: {chip: 'ym2203', fmChannels: 3}});
+  assert.equal(worker.raw.ssg.clock, 2000000);
+  const pending = worker.fm.setClock(3000000), command = commands.at(-1);
+  assert.equal(worker.raw.ssg.clock, 2000000, 'unacknowledged clock does not change helper math');
+  port.onmessage({data: {type: 'chip-clock-result', id: command.id}}); await pending;
+  assert.equal(worker.raw.ssg.clock, 1500000);
+  worker.ssg.setFrequency(0, 440);
+  assert.equal(commands.at(-2).value | commands.at(-1).value << 8, Math.round(1500000 / (16 * 440)));
+  worker.adoptState({...worker.raw.getState(), clock: 6000000, ssg: worker.raw.ssg._getState()});
+  assert.equal(worker.raw.ssg.clock, 3000000, 'Main snapshots adopt the same master/2 conversion');
 });

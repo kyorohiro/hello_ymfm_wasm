@@ -1,4 +1,4 @@
-import {attachChipClock, CHIP_CLOCKS} from './playground_chip_clock.js';
+import {attachChipClock, CHIP_CLOCKS} from './playground_chip_clock.js?v=opnb-primary-1';
 import {NesApuSynth} from './nesapusynth.js';
 import {NES_APU_CLOCK} from './nesapu.js';
 /** Same register generator as the public NES API; uploads await Worklet acknowledgement. */

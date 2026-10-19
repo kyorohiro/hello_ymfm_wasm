@@ -114,9 +114,10 @@ export function createPlaygroundRuntime(
       workletUrl:
         options.audioWorkletUrl ??
         options.workletUrl ??
-        (options.chip === "ym2610"
-          ? "./ym2610b-worklet.js"
-          : "./ym2612-worklet.js"),
+        (options.chip === 'ym2203' ? './ym2203-worklet.js'
+          : options.chip === 'ym2608' ? './ym2608-worklet.js'
+          : ['ym2610','ym2610b'].includes(options.chip)
+            ? "./ym2610b-worklet.js" : "./ym2612-worklet.js"),
       ym2612WasmUrl:
         options.ym2612WasmUrl ??
         "./generated/ym2612_wasm.wasm",
@@ -126,7 +127,7 @@ export function createPlaygroundRuntime(
           ? options.ym2203WasmUrl ?? "./generated/ym2203_wasm.wasm"
           : options.chip === "ym2608"
             ? options.ym2608WasmUrl ?? "./generated/ym2608_wasm.wasm"
-            : options.chip === "ym2610"
+            : ['ym2610','ym2610b'].includes(options.chip)
               ? options.ym2610bWasmUrl ?? "./generated/ym2610b_wasm.wasm"
             : undefined),
       segaPsgWasmUrl:
@@ -148,6 +149,9 @@ export function createPlaygroundRuntime(
       psg: Boolean(megaDrive.psg),
       dac: true,
     };
+  const primarySectionNames = capabilities.chip === 'ym2203' ? ['ssg']
+    : capabilities.chip === 'ym2608' ? ['ssg','rhythm','adpcm']
+    : ['ym2610','ym2610b'].includes(capabilities.chip) ? ['ssg','adpcmA','adpcmB'] : [];
   const sourceMap =
     new Map();
   const liveFxLifecycle = createLiveFxLifecycle();
@@ -198,10 +202,6 @@ export function createPlaygroundRuntime(
       "./playground_logic_worker.js",
       import.meta.url
     );
-  defaultLogicWorkerUrl.searchParams.set(
-    "v",
-    "run-sample-clock-1"
-  );
   const logicWorkerUrl =
     options.logicWorkerUrl ??
     defaultLogicWorkerUrl.href;
@@ -270,38 +270,42 @@ export function createPlaygroundRuntime(
   watchInspectorMixer();
   let sharedFm;
   let sharedFmSynth;
-  let sharedOpna = {};
-  let sharedOpnaSynth;
-  let opnaLoads = new AbortController();
-  function primaryOpnaSections() {
-    if (capabilities.chip !== 'ym2608') return {};
-    if (sharedOpnaSynth === synth) return sharedOpna;
-    sharedOpna = {};
-    for (const section of ['ssg','rhythm','adpcm']) {
-      const target = synth?.[section];
+  let sharedSections = {};
+  let sharedSectionSynth;
+  let sectionLoads = new AbortController();
+  function primaryChipSections() {
+    if (!primarySectionNames.length) return {};
+    if (sharedSectionSynth === synth) return sharedSections;
+    const core = synth?.fm ?? synth;
+    sharedSections = {};
+    for (const section of primarySectionNames) {
+      const target = core?.[section];
       if (!target) continue;
-      sharedOpna[section] = Object.fromEntries(Object.getOwnPropertyNames(Object.getPrototypeOf(target))
+      sharedSections[section] = Object.fromEntries(Object.getOwnPropertyNames(Object.getPrototypeOf(target))
         .filter(method => !method.startsWith('_') && !['constructor','resetState','observeWrite'].includes(method))
         .map(method => [method, (...args) => {
           if (section === 'rhythm' && method === 'loadRom' && args[0] instanceof ArrayBuffer) args[0] = new Uint8Array(args[0]);
           if (section === 'adpcm' && method === 'loadSample') {
             const [source, options = {}] = args;
-            const signal = options.signal ? AbortSignal.any([opnaLoads.signal, options.signal]) : opnaLoads.signal;
+            const signal = options.signal ? AbortSignal.any([sectionLoads.signal, options.signal]) : sectionLoads.signal;
             return target.loadSample(source, {...options, signal});
           }
           return target[method](...args);
         }]));
     }
-    sharedOpnaSynth = synth;
-    return sharedOpna;
+    if (sharedSections.adpcmB) sharedSections.adpcm = sharedSections.adpcmB;
+    sharedSectionSynth = synth;
+    return sharedSections;
   }
   function primaryChipState() {
     const core = synth?.fm ?? synth;
     const sections = {};
-    if (capabilities.chip === 'ym2608') {
+    if (primarySectionNames.length) {
       if (core?.ssg?._getState) sections.ssg = core.ssg._getState();
       if (core?.rhythm?.levels) sections.rhythm = {levels:Array.from(core.rhythm.levels)};
       if (core?.adpcm?.registers) sections.adpcm = {registers:Array.from(core.adpcm.registers)};
+      if (core?.adpcmA?.levels) sections.adpcmA = {levels:Array.from(core.adpcmA.levels)};
+      if (core?.adpcmB?.registers) sections.adpcmB = {registers:Array.from(core.adpcmB.registers)};
     }
     return {...core?.getState?.(), clock:sharedFm?.clock ?? core?.clock, ...sections};
   }
@@ -662,13 +666,15 @@ export function createPlaygroundRuntime(
       synth?.write?.(0, 0x2b, 0x00);
     }
     stopAllNotes();
-    if (capabilities.chip === 'ym2608') {
-      opnaLoads.abort(new Error('Run stopped'));
-      opnaLoads = new AbortController();
-      synth?.transport?.cancelPending?.('Run stopped');
-      for (let channel = 0; channel < 3; channel++) synth?.ssg?.keyOff(channel);
-      synth?.rhythm?.keyOff([0,1,2,3,4,5]);
-      synth?.adpcm?.keyOff();
+    if (primarySectionNames.length) {
+      sectionLoads.abort(new Error('Run stopped'));
+      sectionLoads = new AbortController();
+      const core = synth?.fm ?? synth;
+      core?.transport?.cancelPending?.('Run stopped');
+      for (let channel = 0; channel < 3; channel++) core?.ssg?.keyOff(channel);
+      core?.rhythm?.keyOff([0,1,2,3,4,5]);
+      core?.adpcmA?.keyOff([0,1,2,3,4,5]);
+      core?.adpcm?.keyOff();
     }
     megaDrive.psg?.reset?.();
     megaDrive.sample.stopAll();
@@ -1193,13 +1199,13 @@ export function createPlaygroundRuntime(
       }
       return globals.psg[method](...args);
     }
-    if (command === 'opna.invoke') {
+    if (command === 'chip.section') {
       const [section, method, methodArgs] = args;
-      const target = capabilities.chip === 'ym2608' &&
-        ['ssg','rhythm','adpcm'].includes(section) ? globals[section] : null;
+      const available = primarySectionNames.includes(section) || (section === 'adpcm' && primarySectionNames.includes('adpcmB'));
+      const target = available ? globals[section] : null;
       if (!target || typeof method !== 'string' || method.startsWith('_') ||
           method === 'constructor' || typeof target[method] !== 'function') {
-        throw new Error(`Unsupported OPNA method: ${section}.${method}`);
+        throw new Error(`Unsupported chip section method: ${section}.${method}`);
       }
       return target[method](...methodArgs);
     }
@@ -1508,10 +1514,11 @@ export function createPlaygroundRuntime(
       if (megaDrive.node?.port) attachChipClock(sharedFm, megaDrive.node.port, CHIP_CLOCKS[capabilities.chip ?? 'ym2612'], {
         primary:true,
         onApplied: hz => {
-          (synth.fm ?? synth).clock = hz;
-          if (synth.ssg) synth.ssg.clock = hz / (capabilities.chip === 'ym2203' ? 2 : 4);
-          if (synth.adpcmB) synth.adpcmB.clock = hz;
-          if (synth.adpcm) synth.adpcm.clock = hz;
+          const core = synth.fm ?? synth;
+          core.clock = hz;
+          if (core.ssg) core.ssg.clock = hz / (capabilities.chip === 'ym2203' ? 2 : 4);
+          if (core.adpcmB) core.adpcmB.clock = hz;
+          if (core.adpcm) core.adpcm.clock = hz;
           logicWorker?.postMessage({type:'chip-clock-state',clock:hz});
         },
       });
@@ -1520,7 +1527,7 @@ export function createPlaygroundRuntime(
     }
     const fm = sharedFm;
     const psg = megaDrive.psg;
-    const opna = primaryOpnaSections();
+    const sections = primaryChipSections();
     const musicApi =
       createPlaygroundMusic({
         noteToSemitone:
@@ -1605,7 +1612,7 @@ export function createPlaygroundRuntime(
     };
     const livePrepareApi = {
       fm,
-      ...opna,
+      ...sections,
       fx,
       psg,
       sample: sampleApi,
@@ -1678,7 +1685,7 @@ export function createPlaygroundRuntime(
       },
       midi,
       fm,
-      ...opna,
+      ...sections,
       dac: dacApi,
       fx,
       psg,
@@ -1837,7 +1844,7 @@ export function createPlaygroundRuntime(
         useSoundChip: pg.useSoundChip,
         midi,
         fm,
-        ...opna,
+        ...sections,
         dac: pg.dac,
         fx,
         psg,

@@ -1,4 +1,4 @@
-import {ChipClockResampler, CHIP_CLOCKS} from './playground_chip_clock.js';
+import {ChipClockResampler, CHIP_CLOCKS} from './playground_chip_clock.js?v=opnb-primary-1';
 import {GameboyApu} from './gameboyapu.js';
 import factory from '../generated/gameboy_apu_wasm.js';
 import {createProcessorPerformance} from './playground_performance_processor.js?v=spc-song-js-1';

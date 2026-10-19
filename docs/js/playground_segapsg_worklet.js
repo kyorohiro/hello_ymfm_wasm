@@ -1,4 +1,4 @@
-import {ChipClockResampler, CHIP_CLOCKS} from './playground_chip_clock.js';
+import {ChipClockResampler, CHIP_CLOCKS} from './playground_chip_clock.js?v=opnb-primary-1';
 import {PsgInspectorState, receiveChipInspector} from './playground_chip_inspector_state.js?v=chip-tabs-2';
 import {SegaPSG} from './segapsg.js';
 import factory from '../generated/segapsg_wasm.js';

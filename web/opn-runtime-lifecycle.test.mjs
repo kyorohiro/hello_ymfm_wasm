@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { YM2203RuntimeSynth as RuntimeSynth } from './ym2203synth.js';
 import { YM2608RuntimeSynth } from './ym2608synth.js';
-import { NeoGeoSynth } from './ym2610bsynth.js';
+import { NeoGeoSynth, YM2610BRuntimeSynth } from './ym2610bsynth.js';
 
 function deferred() {
   let resolve;
@@ -89,6 +89,18 @@ test('YM2608 runtime loads bundled rhythm data and honors explicit overrides', a
   const bad = new YM2608RuntimeSynth({audioContext: h.context, rhythmRom: new Uint8Array(1)});
   await assert.rejects(bad.start(), /8192/);
   await bad.close();
+});
+test('Neo Geo and YM2610B runtimes initialize the matching hardware variant', async t => {
+  const h=harness(t);
+  for(const [Synth,variant,channels] of [[NeoGeoSynth,false,4],[YM2610BRuntimeSynth,true,6]]) {
+    const synth=new Synth({audioContext:h.context});
+    try {
+      await synth.start();
+      const initialization=h.nodes.at(-1).messages.find(message=>message.type==='initialize');
+      assert.equal(initialization.variant,variant);
+      assert.equal(synth.capabilities.fmChannels,channels);
+    } finally {await synth.close();}
+  }
 });
 for (const stage of ['module', 'fetch', 'ready']) {
   test(`close cancels initialization during ${stage} and permits restart`, async t => {

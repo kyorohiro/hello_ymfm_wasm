@@ -64,6 +64,16 @@ async function checkPc98OpnaModeTypes() {
   fm.ssg;
   // @ts-expect-error pg.fm remains the FM facade
   pg.fm.adpcm;
+  // @ts-expect-error OPNA rhythm is separate from Neo Geo ADPCM-A
+  pg.adpcmA;
+  // @ts-expect-error only Neo Geo exposes the explicit ADPCM-B alias
+  pg.adpcmB;
+  livePrepare('opna-without-adpcm-a', api => {
+    // @ts-expect-error OPNA has rhythm in place of ADPCM-A
+    api.adpcmA;
+    // @ts-expect-error use adpcm in PC-98 OPNA mode
+    api.adpcmB;
+  });
   // Full YM2608 is still independently available in its own mode.
   const opna = await useSoundChip('ym2608');
   opna.ssg.setFrequency(0, 440);

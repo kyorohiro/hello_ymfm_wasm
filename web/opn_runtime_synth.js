@@ -190,7 +190,9 @@ export class OPNRuntimeSynth {
     this.mixerRelease = this.mixer.connect(this.chip, this.chip, this.node, this.audio.masterInputNode, this.audioContext);
     const ready = this.#waitForWorkletReady(this.node, signal);
     ready.catch(() => {});
-    this.node.port.postMessage({ type: "initialize", wasmBinary, rhythmRom }, [wasmBinary]);
+    this.node.port.postMessage({ type: "initialize", wasmBinary, rhythmRom,
+      ...(['ym2610','ym2610b'].includes(this.chip) ? {variant:this.chip==='ym2610b'} : {}),
+    }, [wasmBinary]);
     await ready;
     signal.throwIfAborted();
     this.fm = new this.FMSynth({

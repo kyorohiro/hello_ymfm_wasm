@@ -10,7 +10,12 @@ export function selectPlaygroundDeclarations(source, chip) {
       .replace(/^declare function psg(?:Tone|Noise)\([^\n]*\): void;\n/gm, '')
       .replace(/^declare const dac: \{[\s\S]*?^\};\n/gm, '');
   }
-  if (chip !== 'ym2608') declarations = declarations.replace(
-    /^declare const (?:ssg|rhythm|adpcm): PlaygroundYm2608\['(?:ssg|rhythm|adpcm)'\];\n/gm, '');
+  const opna = chip === 'ym2608';
+  const opnb = chip === 'ym2610' || chip === 'ym2610b';
+  if (chip !== 'ym2203' && !opna && !opnb) declarations = declarations.replace(
+    /^declare const ssg: [^\n]+\n/gm, '');
+  if (!opna && !opnb) declarations = declarations.replace(/^declare const adpcm: [^\n]+\n/gm, '');
+  if (!opna) declarations = declarations.replace(/^declare const rhythm: [^\n]+\n/gm, '');
+  if (!opnb) declarations = declarations.replace(/^declare const adpcm[AB]: [^\n]+\n/gm, '');
   return declarations;
 }

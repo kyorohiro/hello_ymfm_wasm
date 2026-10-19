@@ -1,7 +1,6 @@
 /// <reference path="../../docs/playground/tetorica-playground-ym2203.d.ts" />
 /// <reference path="./playground-mode-common.ts" />
 /// <reference path="./playground-mode-opn.ts" />
-/// <reference path="./playground-mode-without-opna.ts" />
 
 async function checkPc98OpnModeTypes() {
   fm.setPreset(CH3, {algorithm: 7, feedback: 2});
@@ -37,6 +36,39 @@ async function checkPc98OpnModeTypes() {
     // @ts-expect-error livePrepare receives the selected YM2203
     fm.setPan(0, true, false);
   });
+  const period: number = ssg.setFrequency(0, 440);
+  ssg.tone(0, {frequency: 440, volume: 10});
+  ssg.noise(1, {period: 12, volume: 8});
+  ssg.noteOn(2, 'G4');
+  pg.ssg.setMixer(1, {tone: false, noise: true});
+  pg.ssg.setEnvelope({period: 600, shape: 9});
+  await livePrepare('primary-opn-ssg', ({ssg}) => {
+    ssg.setVolume(0, 8);
+    ssg.keyOn(0);
+  });
+  await pg.livePrepare('primary-opn-ssg-pg', ({ssg}) => ssg.keyOff(0));
+  // @ts-expect-error YM2203 has SSG without OPNA rhythm
+  pg.rhythm;
+  // @ts-expect-error YM2203 has no ADPCM
+  pg.adpcm;
+  // @ts-expect-error YM2203 has no ADPCM-A
+  pg.adpcmA;
+  // @ts-expect-error YM2203 has no ADPCM-B
+  pg.adpcmB;
+  livePrepare('opn-without-adpcm', api => {
+    // @ts-expect-error YM2203 has no OPNA rhythm
+    api.rhythm;
+    // @ts-expect-error YM2203 has no ADPCM
+    api.adpcm;
+    // @ts-expect-error YM2203 has no ADPCM-A
+    api.adpcmA;
+    // @ts-expect-error YM2203 has no ADPCM-B
+    api.adpcmB;
+  });
+  // @ts-expect-error FM stays a dedicated FM facade
+  fm.ssg;
+  // @ts-expect-error FM stays a dedicated FM facade
+  pg.fm.ssg;
   const primary = await useSoundChip('ym2203');
   primary.setNote(2, 'C4');
   // @ts-expect-error the shared primary has the same bounds as fm

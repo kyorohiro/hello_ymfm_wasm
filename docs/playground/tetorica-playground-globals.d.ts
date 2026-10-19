@@ -721,12 +721,16 @@ declare function psgTone(channel: number, period: number, attenuation?: number):
 /** Write PSG noise mode + attenuation. Mode is the raw 3-bit noise register value 0..7. */
 declare function psgNoise(mode: number, attenuation?: number): void;
 
-/** PC-98 OPNA mode: SSG on the same primary YM2608 as fm. */
-declare const ssg: PlaygroundYm2608['ssg'];
+/** PC-98 OPN/OPNA and Neo Geo modes: SSG tone/noise on the same primary chip as fm. */
+declare const ssg: PlaygroundSelectedSSG;
 /** PC-98 OPNA mode: built-in rhythm voices on the primary YM2608. */
 declare const rhythm: PlaygroundYm2608['rhythm'];
-/** PC-98 OPNA mode: ADPCM-B on the primary YM2608; await sample/memory uploads. */
-declare const adpcm: PlaygroundYm2608['adpcm'];
+/** Primary ADPCM-B; Neo Geo modes also expose this as adpcmB. Await memory uploads. */
+declare const adpcm: PlaygroundSelectedADPCM;
+/** Neo Geo YM2610/YM2610B modes: six ADPCM-A voices on the primary chip. */
+declare const adpcmA: PlaygroundCreatedYm2610['adpcmA'];
+/** Neo Geo YM2610/YM2610B modes: primary ADPCM-B, identical to adpcm. */
+declare const adpcmB: PlaygroundCreatedYm2610['adpcmB'];
 
 declare const sample: PlaygroundSampleAPI;
 declare const stream: PlaygroundStreamAPI;
@@ -807,7 +811,7 @@ type PlaygroundLivePrepareAPI = {
   stream: PlaygroundStreamAPI;
   noise: PlaygroundNoiseAPI;
   log: (...args: unknown[]) => void;
-} & (TetoricaSelectedChip extends 'ym2612' ? {psg: PSGApi} : {}) & PlaygroundSelectedOpnaAPI;
+} & (TetoricaSelectedChip extends 'ym2612' ? {psg: PSGApi} : {}) & PlaygroundSelectedOpnSectionsAPI;
 /** Prepare shared live state once and reuse it across runs. */
 declare function livePrepare(name: string, fn: (context: PlaygroundLivePrepareAPI) => Promise<any> | any): Promise<any>;
 /** Play one note through the current synth setup. */
@@ -992,9 +996,18 @@ type PlaygroundSelectedPsgAPI = TetoricaSelectedChip extends 'ym2612' ? {
   PSG2: 1;
   PSG3: 2;
 } : {};
-/** Built-in sections of PC-98 OPNA mode, sharing the primary fm chip and clock. */
-type PlaygroundSelectedOpnaAPI = TetoricaSelectedChip extends 'ym2608'
-  ? Pick<PlaygroundYm2608, 'ssg' | 'rhythm' | 'adpcm'> : {};
+type PlaygroundSelectedSSG = TetoricaSelectedChip extends 'ym2203' | 'ym2608' | 'ym2610' | 'ym2610b'
+  ? PlaygroundYm2608['ssg'] : never;
+type PlaygroundSelectedADPCM = TetoricaSelectedChip extends 'ym2608'
+  ? PlaygroundYm2608['adpcm']
+  : TetoricaSelectedChip extends 'ym2610' | 'ym2610b' ? PlaygroundCreatedYm2610['adpcmB'] : never;
+/** Built-in OPN sections share the primary fm chip and clock. */
+type PlaygroundSelectedOpnSectionsAPI = TetoricaSelectedChip extends 'ym2203'
+  ? Pick<PlaygroundCreatedYm2203, 'ssg'>
+  : TetoricaSelectedChip extends 'ym2608'
+    ? Pick<PlaygroundYm2608, 'ssg' | 'rhythm' | 'adpcm'>
+    : TetoricaSelectedChip extends 'ym2610' | 'ym2610b'
+      ? Pick<PlaygroundCreatedYm2610, 'ssg' | 'adpcmA' | 'adpcmB' | 'adpcm'> : {};
 
 type PlaygroundAPI = {
   mixer: PlaygroundMixer;
@@ -1071,7 +1084,7 @@ type PlaygroundAPI = {
   setDacLookahead: (seconds: number) => number;
   getDacLookahead: () => number;
   log: (...args: unknown[]) => void;
-} & PlaygroundSelectedChannelConstants & PlaygroundSelectedPsgAPI & PlaygroundSelectedOpnaAPI;
+} & PlaygroundSelectedChannelConstants & PlaygroundSelectedPsgAPI & PlaygroundSelectedOpnSectionsAPI;
 
 declare var pg: PlaygroundAPI;
 

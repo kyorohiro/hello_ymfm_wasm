@@ -19,7 +19,8 @@ test('served primary worklets resolve their real static module imports, includin
       assert.ok(fs.existsSync(resolved), `${tree}/${name}.js cannot load ${path}`);
     }
     const webSource = fs.readFileSync(new URL(`./${name}.js`, import.meta.url), 'utf8');
-    assert.equal(source.replaceAll('?v=chip-tabs-2',''), webSource.replaceAll('"./generated/', '"../generated/'));
+    const withoutImportVersions = text => text.replace(/^(import .* from ["'][^"']+\.js)\?v=[^"']+(["'];)$/gm, '$1$2');
+    assert.equal(withoutImportVersions(source), withoutImportVersions(webSource.replaceAll('"./generated/', '"../generated/')));
   }
 });
 function processor(tree, name, rate = 48000) {
@@ -123,6 +124,26 @@ for (const name of ['ym2612-worklet', 'ym2612-worklet-nuked']) {
 }
 
 for (const tree of ['web', 'docs/js']) {
+  test(`${tree} primary YM2203: canceling a loop releases its SSG tone/noise/envelope voices only`, () => {
+    const f = processor(tree, 'ym2203-worklet');
+    f.batch(0, [{type: 'write', port: 0, register: 8, value: 12},
+      {type: 'write', port: 0, register: 9, value: 16},
+      {type: 'write', port: 0, register: 10, value: 9}], 'old');
+    f.render(1);
+    f.batch(1, [{type: 'write', port: 0, register: 9, value: 10}], 'new');
+    f.render(1);
+    f.send({type: 'write', port: 0, register: 10, value: 6}); f.writes.length = 0;
+    f.send({type: 'performance-cancel-owner', session: 1, owner: 'old'});
+    assert.deepEqual(f.writes, [[8, 0, 0]], 'newer loop and immediate manual voice keep sounding');
+    f.writes.length = 0;
+    f.send({type: 'performance-cancel-owner', session: 1, owner: 'new'});
+    assert.deepEqual(f.writes, [[9, 0, 0]]);
+    f.batch(2, [{type: 'write', port: 0, register: 8, value: 16}], 'envelope'); f.render(1);
+    f.writes.length = 0;
+    f.send({type: 'performance-cancel-owner', session: 1, owner: 'envelope'});
+    assert.deepEqual(f.writes, [[8, 0, 0]], 'envelope-only level 16 also belongs to its loop');
+  });
+
   test(`${tree} primary YM2608: memory/ROM prep replies on its direct port before future performance frames`, () => {
     const f = processor(tree, 'ym2608-worklet'), loaded = [];
     f.chip.loadAdpcmARom = bytes => loaded.push(['rom', bytes.length]);
@@ -156,5 +177,57 @@ for (const tree of ['web', 'docs/js']) {
     f.writes.length = 0;
     f.send({type: 'performance-cancel-owner', session: 1, owner: 'new'});
     assert.deepEqual(f.writes, [[9, 0, 0], [0x10, 0x82, 0]]);
+  });
+
+  test(`${tree} primary YM2610/B: A/B ROM prep acknowledges before future frames and retains full memory size`, () => {
+    const f = processor(tree, 'ym2610b-worklet'), loaded = [];
+    f.chip.loadAdpcmRom = (type, bytes, address, size) => {
+      if (![0, 1].includes(type)) throw Error('Invalid ADPCM type');
+      loaded.push([type, address, bytes.length, size]);
+    };
+    f.batch(400, [{type: 'loadAdpcmMemory', memoryType: 0, id: 31, bytes: new Uint8Array(256), address: 512},
+      {type: 'loadAdpcmMemory', memoryType: 1, id: 32, bytes: new Uint8Array(512), address: 1024}]);
+    assert.deepEqual(loaded, [[0, 512, 256, 0x1000000], [1, 1024, 512, 0x1000000]]);
+    for (const id of [31, 32]) assert.ok(f.portReplies.some(reply => reply.type === 'adpcm-memory-loaded' && reply.id === id && !reply.error));
+    assert.equal(f.p.performanceQueue.getStats().queuedCommands, 0);
+    f.port.onmessage({data: [{type: 'loadAdpcmMemory', memoryType: 2, id: 33, bytes: new Uint8Array(256)}]});
+    assert.ok(f.portReplies.some(reply => reply.id === 33 && reply.error === 'Invalid ADPCM type'));
+    f.p.chip = null;
+    f.port.onmessage({data: [{type: 'loadAdpcmMemory', memoryType: 0, id: 34, bytes: new Uint8Array(256)}]});
+    assert.ok(f.portReplies.some(reply => reply.id === 34 && /not ready/.test(reply.error)));
+  });
+
+  test(`${tree} primary YM2610/B: initialization selects the actual four-channel or six-channel core variant`, async () => {
+    const f = processor(tree, 'ym2610b-worklet'), variants = [];
+    f.scope.ym2610bModuleFactory = {};
+    f.scope.YM2610B_CLOCK = 8000000;
+    f.scope.Ym2610B = {create: async options => {variants.push(options.variant); return f.chip;}};
+    await f.p.initialize(new ArrayBuffer(1), false);
+    await f.p.initialize(new ArrayBuffer(1), true);
+    await f.p.initialize(new ArrayBuffer(1));
+    assert.deepEqual(variants, [false, true, true]);
+  });
+
+  test(`${tree} primary YM2610/B: canceled loops release SSG and both ADPCM sections while preserving newer owners`, () => {
+    const f = processor(tree, 'ym2610b-worklet');
+    f.batch(0, [{type: 'write', port: 0, register: 8, value: 12},
+      {type: 'write', port: 0, register: 9, value: 13},
+      {type: 'write', port: 1, register: 0, value: 3},
+      {type: 'write', port: 0, register: 0x10, value: 0xb0}], 'old');
+    f.render(1);
+    f.batch(1, [{type: 'write', port: 0, register: 9, value: 10},
+      {type: 'write', port: 1, register: 0, value: 2}], 'new');
+    f.render(1); f.writes.length = 0;
+    f.send({type: 'performance-cancel-owner', session: 1, owner: 'old'});
+    assert.deepEqual(f.writes, [[8, 0, 0], [0, 0x81, 1], [0x10, 1, 0]]);
+    f.writes.length = 0;
+    f.send({type: 'performance-cancel-owner', session: 1, owner: 'new'});
+    assert.deepEqual(f.writes, [[9, 0, 0], [0, 0x82, 1]]);
+    f.batch(2, [{type: 'write', port: 0, register: 0x10, value: 0xa0}], 'b-old'); f.render(1);
+    f.batch(3, [{type: 'write', port: 0, register: 0x10, value: 0xa0}], 'b-new'); f.render(1); f.writes.length = 0;
+    f.send({type: 'performance-cancel-owner', session: 1, owner: 'b-old'});
+    assert.deepEqual(f.writes, [], 'a replacement ADPCM-B sample owns its ongoing decoder');
+    f.send({type: 'performance-cancel-owner', session: 1, owner: 'b-new'});
+    assert.deepEqual(f.writes, [[0x10, 1, 0]]);
   });
 }

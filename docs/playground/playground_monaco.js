@@ -1,6 +1,6 @@
 import {createDefinitionViewer} from './playground_monaco_definitions.js?v=opn-modes-1';
 import { registerMonacoCompletions } from "./playground_monaco_completion.js?v=opn-modes-1";
-import {selectPlaygroundDeclarations} from './playground_declarations.js?v=opna-primary-1';
+import {selectPlaygroundDeclarations} from './playground_declarations.js?v=opn-ssg-1';
 
 function registerMonacoHover(
   monaco
@@ -384,7 +384,7 @@ async function registerMonacoPlaygroundGlobals(
 ) {
   const libraryModels = new Map();
   for (const name of ["tetorica-playground-globals", `tetorica-playground-${chip}`, "tetorica-shell"]) {
-    const response = await fetch(new URL(`./${name}.d.ts?v=opna-primary-1`, import.meta.url), { cache: "no-cache" });
+    const response = await fetch(new URL(`./${name}.d.ts?v=opn-ssg-1`, import.meta.url), { cache: "no-cache" });
     if (!response.ok) throw new Error(`Failed to load playground type declarations: ${response.status}`);
     let declarations = await response.text();
     if (name === 'tetorica-playground-globals') declarations = selectPlaygroundDeclarations(declarations, chip);

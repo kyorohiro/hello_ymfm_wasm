@@ -1,4 +1,4 @@
-import {attachChipClock, CHIP_CLOCKS} from './playground_chip_clock.js';
+import {attachChipClock, CHIP_CLOCKS} from './playground_chip_clock.js?v=opnb-primary-1';
 import {GameboySynth} from './gameboysynth.js';
 /** Same immediate, ordered port writes for both raw and high-level APIs. */
 /** @param {MessagePort} port */

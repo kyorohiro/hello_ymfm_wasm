@@ -1,4 +1,4 @@
-import {validateChipClock} from './playground_chip_clock.js';
+import {validateChipClock} from './playground_chip_clock.js?v=opnb-primary-1';
 import {Ym2151} from './ym2151.js';
 import factory from '../generated/ym2151_wasm.js';
 import {createProcessorPerformance} from './playground_performance_processor.js?v=spc-song-js-1';

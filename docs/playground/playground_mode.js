@@ -1,4 +1,4 @@
-import {CHIP_CLOCKS} from '../js/playground_chip_clock.js';
+import {CHIP_CLOCKS} from '../js/playground_chip_clock.js?v=opnb-primary-1';
 
 // Modes describe an authoring environment. Chip IDs remain the runtime/API IDs.
 const definitions = [
@@ -8,13 +8,13 @@ const definitions = [
   {id:'pc98-26', label:'PC-98 (YM2203 / OPN)', chip:'ym2203'},
   {id:'pc98', label:'PC-98 (YM2608 / OPNA)', chip:'ym2608'},
   {id:'neogeo', label:'Neo Geo', chip:'ym2610'},
+  {id:'neogeo-b', label:'Neo Geo (YM2610B)', chip:'ym2610b'},
   // Preserve old engine/chip links without adding another standard environment.
   {id:'genesis-nuked', label:'Genesis (Nuked)', chip:'ym2612', engine:'nuked', legacy:true},
-  {id:'neogeo-b', label:'Neo Geo (YM2610B)', chip:'ym2610b', legacy:true},
 ];
 const modes = new Map(definitions.map(definition => {
   const mode = Object.freeze({engine:'ymfm', full:false, ...definition,
-    clock:CHIP_CLOCKS[definition.chip === 'ym2610b' ? 'ym2610' : definition.chip],
+    clock:CHIP_CLOCKS[definition.chip],
     declarationChip:definition.chip,
     legacyDraftKey:definition.chip + (definition.engine === 'nuked' ? ':nuked' : ''),
     chipTabs:Object.freeze(definition.chip === 'ym2612'
@@ -64,7 +64,9 @@ export function createModeSynthOptions(mode, base = new URL('../js/', import.met
   const nuked = mode.engine === 'nuked';
   const chip = mode.chip === 'ym2610' ? 'ym2610b' : mode.chip;
   const wasm = nuked ? 'nuked_opn2' : chip;
-  const workletVersion = mode.chip === 'ym2608' ? 'opna-primary-1' : 'chip-tabs-2';
+  const workletVersion = mode.chip === 'ym2203' ? 'opn-ssg-1'
+    : ['ym2610','ym2610b'].includes(mode.chip) ? 'opnb-primary-1'
+    : mode.chip === 'ym2608' ? 'opna-primary-1' : 'chip-tabs-2';
   return {
     chip:mode.chip,
     workletUrl:new URL(nuked ? 'ym2612-worklet-nuked.js?v=chip-tabs-2' : `${chip}-worklet.js?v=${workletVersion}`, base).href,

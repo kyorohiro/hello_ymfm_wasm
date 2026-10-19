@@ -11,7 +11,8 @@ FILES の `examples/` を開き、フォルダー内の `.js` を選択して Ru
 | genesis | 独立 Sega PSG・Mega CD PCM（RF5C164） |
 | gameboy | pulse・wave・noise・複数音源の設定 |
 | nes | NES APU の pulse・triangle・noise、FDS 波形と変調、DMC サンプル |
-| pc98 | PC-98 mode の標準 FM・SSG・rhythm・ADPCM-B と、独立 YM2608 の例 |
+| pc98 | PC-98 OPN の FM・SSG、OPNA の FM・SSG・rhythm・ADPCM-B と、独立 YM2608 の例 |
+| neogeo | Neo Geo / YM2610B mode の標準 FM・SSG tone/noise・ADPCM-A/B |
 | x68000 | 独立 YM2151 の FM |
 | dx7 | MSFA DX7 の16音発音、Object での音作りと SysEx 音色の読み込み |
 
@@ -20,10 +21,20 @@ FILES ではこの順に表示します。機種別のサンプルは各フォ�
 `basic/fm`・`basic/psg`・`basic/dac` は選択中の音源や Playground のグローバル API を使います。
 機種別フォルダーには、その mode の標準音源や `useSoundChip()` / `createSoundChip()` で取得する独立音源の例を置きます。
 
+`pc98/pc98-opn-ssg.js` は Mode を `PC-98 (YM2203 / OPN)` にして実行します。
+標準の `fm` と `ssg` で、FM・SSG のトーン・ノイズ・エンベロープを順番に鳴らします。
+SSG は3ch、音程計算にはマスタークロックの1/2を使います。
+
 `pc98/pc98-opna-sections.js` は Mode を `PC-98 (YM2608 / OPNA)` にして実行します。
 標準の `fm`・`ssg`・`rhythm`・`adpcm` で、同じ YM2608 の各機能を順番に鳴らします。
 Main / Worker の両方で使え、ADPCM 用の音声もコード内で作るため外部ファイルは不要です。
 他の `pc98/ym2608-*.js` は独立音源を使うため、どの mode でも実行できます。
+
+`neogeo/neogeo-opnb-sections.js` は `Neo Geo` または `Neo Geo (YM2610B)` mode 用です。
+同じチップの FM・SSG のトーンとノイズ・6音の ADPCM-A・ADPCM-B を順番に鳴らします。
+ADPCM はコード内で作るテスト用の符号化済みパターンを使い、外部 ROM は不要です。
+`adpcm` と `adpcmB` は同じ API です。A/B の `loadMemory()` は、それぞれに対応した
+符号化済みデータを受け取り、WAV / PCM の直接読み込みは行いません。
 
 `basic/fm/soundchip-tone-controls.js` は共通の音程・発音操作の例です。
 `setFrequency(ch, hz)`、`setNote(ch, note)`、`keyOn(ch)`、`keyOff(ch)`、`noteOn(ch, note)` を使います。

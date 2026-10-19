@@ -3,13 +3,15 @@ import {attachChipClock, CHIP_CLOCKS} from './playground_chip_clock.js';
  * No DOM, AudioNode or main-thread RPC. Observers are fire-and-forget.
  */
 import {YM2612Synth} from './ym2612synth.js';
+import {YM2203Synth} from './ym2203synth.js';
 import {OPNFMSynth} from './opn_fm_synth.js';
 import {YM2608Synth} from './ym2608synth.js';
+import {YM2610BSynth} from './ym2610bsynth.js';
 import {createSegaPsgApi} from './segapsg_api.js';
 /**
  * Create Worker-side FM/PSG controls that batch ordered writes to a Worklet port.
  * Stop cancels outstanding DAC requests and mutes hardware; resume permits new work.
- * @param {{port: MessagePort, capabilities: {chip?: 'ym2612' | 'ym2203' | 'ym2608' | 'ym2610', fmChannels?: number, psg?: boolean, dac?: boolean}, state?: {channels: object[], lfo: object, modeRegister?: number, dac?: object}, observe?: (event: {method: string, args: unknown[]}) => void}} options Port, chip capabilities, optional snapshot and observer.
+ * @param {{port: MessagePort, capabilities: {chip?: 'ym2612' | 'ym2203' | 'ym2608' | 'ym2610' | 'ym2610b', fmChannels?: number, psg?: boolean, dac?: boolean}, state?: {channels: object[], lfo: object, modeRegister?: number, dac?: object}, observe?: (event: {method: string, args: unknown[]}) => void}} options Port, chip capabilities, optional snapshot and observer.
  * @returns FM/PSG controls, raw synth state, write sender and lifecycle methods.
  */
 export function createWorkerChip({port,capabilities,state,observe=()=>{}}){
@@ -40,24 +42,31 @@ export function createWorkerChip({port,capabilities,state,observe=()=>{}}){
  }
  const transport={
   dacCommand(command){return request({type:'pcm-dac',command},'pcm-dac-result');},
-  loadAdpcmMemory(bytes,address){return request({type:'loadAdpcmMemory',bytes,address},'adpcm-memory-loaded');},
+  loadAdpcmMemory(...args){
+   const [memoryType,bytes,address]=name==='ym2608'?[undefined,...args]:args;
+   return request({type:'loadAdpcmMemory',...(memoryType===undefined?{}:{memoryType}),bytes,address},'adpcm-memory-loaded');
+  },
   loadRhythmRom(bytes){return request({type:'loadRhythmRom',bytes},'rhythm-rom-loaded');},
   write(port,register,value){
    send({type:'write',port,register,value});
    // Mirror only control registers, never sample payloads or caller objects.
-   if(enabled&&name==='ym2608'&&((port===0&&register<0x20)||(port===1&&register<0x10)))observe({method:'write',args:[port,register,value]});
+   const sectionWrite=name==='ym2203'?(port===0&&register<16):name==='ym2608'?((port===0&&register<0x20)||(port===1&&register<0x10)):
+    ['ym2610','ym2610b'].includes(name)&&((port===0&&register<0x20)||(port===1&&register<0x30));
+   if(enabled&&sectionWrite)observe({method:'write',args:[port,register,value]});
   },reset(){send({type:'reset'});}
  };
  const name=capabilities.chip??'ym2612';
- const raw=name==='ym2612'?new YM2612Synth({transport}):name==='ym2608'?new YM2608Synth({transport}):new OPNFMSynth({transport,chipName:name,channelCount:name==='ym2203'?3:6,portCount:name==='ym2203'?1:2,supportsPan:name!=='ym2203',supportsLfo:name!=='ym2203'});
+ const raw=name==='ym2612'?new YM2612Synth({transport}):name==='ym2203'?new YM2203Synth({transport}):name==='ym2608'?new YM2608Synth({transport}):['ym2610','ym2610b'].includes(name)?new YM2610BSynth({transport}):new OPNFMSynth({transport,chipName:name,channelCount:6,portCount:2,supportsPan:true,supportsLfo:true});
+ const sectionNames=raw.adpcmA?['ssg','adpcmA','adpcmB']:['ssg','rhythm','adpcm'];
  function adoptState(state){if(!state)return;if(state.clock!==undefined)raw._adoptClock(state.clock);raw.channels=structuredClone(state.channels);raw.lfo=structuredClone(state.lfo);raw._modeRegister=state.modeRegister??0;if(state.dac)Object.assign(raw.dac ??= {}, structuredClone(state.dac));
-  for(const section of ['ssg','rhythm','adpcm']){
+  for(const section of sectionNames){
    if(section==='ssg'&&state.ssg?.registers&&raw.ssg){raw.ssg._adoptState(state.ssg);continue;}
-   const values=state[section]?.registers??(section==='rhythm'?state.rhythm?.levels:null);
-   if(values&&raw[section])for(const [register,value] of Array.from(values).entries())raw[section].observeWrite(section==='rhythm'?0x18+register:register,value);
+   const values=state[section]?.registers??state[section]?.levels??(section==='adpcmB'?state.adpcm?.registers:null);
+   const offset=section==='rhythm'?0x18:section==='adpcmA'?8:0;
+   if(values&&raw[section])for(const [register,value] of Array.from(values).entries())raw[section].observeWrite(offset+register,value);
   }
  }
- const onApplied=hz=>{if(raw.ssg)raw.ssg.clock=hz/4;if(raw.adpcm)raw.adpcm.clock=hz;};
+ const onApplied=hz=>{if(raw.ssg)raw.ssg.clock=hz/(name==='ym2203'?2:4);if(raw.adpcmB)raw.adpcmB.clock=hz;else if(raw.adpcm)raw.adpcm.clock=hz;};
  attachChipClock(raw, port, state?.clock ?? CHIP_CLOCKS[name], {primary:true,batch:true,onApplied});
  onApplied(raw.clock);
  adoptState(state);
@@ -81,7 +90,7 @@ export function createWorkerChip({port,capabilities,state,observe=()=>{}}){
   return result;
  }
  const sections={};
- for(const section of ['ssg','rhythm','adpcm'])if(raw[section]){
+ for(const section of sectionNames)if(raw[section]){
   sections[section]=Object.fromEntries(Object.getOwnPropertyNames(Object.getPrototypeOf(raw[section]))
    .filter(method=>!method.startsWith('_')&&!['constructor','resetState','observeWrite'].includes(method))
    .map(method=>[method,(...args)=>{
@@ -95,6 +104,7 @@ export function createWorkerChip({port,capabilities,state,observe=()=>{}}){
     finally{const commands=batch;batch=null;if(commands.length)port.postMessage(commands);if(section==='ssg')observe({method:'ssgState',args:[raw.ssg._getState()]});}
    }]));
  }
+ if(sections.adpcmB)sections.adpcm=sections.adpcmB;
  const fm=new Proxy({}, {get:(_t,method)=> method==='clock'?raw.clock:method==='dac'?raw.dac:sections[method]??((...args)=>invoke(String(method),args))});
  const psg=capabilities.psg?createSegaPsgApi({write:value=>send({type:'psg-write',value}),reset:()=>send({type:'psg-reset'}),resetAll:()=>fm.reset()}):null;
  return {fm,psg,...sections,raw,send,adoptState,
@@ -116,6 +126,7 @@ export function createWorkerChip({port,capabilities,state,observe=()=>{}}){
    psg?.reset();
    if(raw.ssg){for(let channel=0;channel<3;channel++)raw.ssg.keyOff(channel);observe({method:'ssgState',args:[raw.ssg._getState()]});}
    raw.rhythm?.keyOff([0,1,2,3,4,5]);
+   raw.adpcmA?.keyOff([0,1,2,3,4,5]);
    raw.adpcm?.keyOff();
   },
  };

@@ -7,6 +7,7 @@ import {LiveFX} from './custom_fx.js';
 import {createYm2608Client} from './playground_ym2608.js';
 import {YM2203Synth} from './ym2203synth.js';
 import {YM2608Synth} from './ym2608synth.js';
+import {YM2610BSynth, NeoGeoFMSynth} from './ym2610bsynth.js';
 
 function deferred() {
   let resolve;
@@ -78,6 +79,29 @@ test('primary OPNA exposes one shared SSG/rhythm/ADPCM API and Stop releases all
   assert.deepEqual(canceled, ['Run stopped']);
 });
 
+test('primary YM2203 exposes shared SSG tone/noise/envelope and Stop silences all three channels', async t => {
+  const {runtime,megaDrive}=setup(t,{chip:'ym2203',fmChannels:3,psg:false,dac:false});
+  const writes=[];
+  megaDrive.fm=new YM2203Synth({transport:{reset(){},write(port,register,value){writes.push([port,register,value]);}}});
+  await runtime.playSource(`
+    const prepared=await livePrepare('ssg',({ssg})=>ssg);
+    if(ssg!==pg.ssg || prepared!==ssg)throw Error('Separate SSG');
+    if(typeof adpcm!=='undefined' || typeof rhythm!=='undefined')throw Error('Unexpected ADPCM/rhythm');
+    ssg.tone(0,{frequency:440,volume:12});
+    ssg.noise(1,{period:16,volume:8});
+    ssg.setEnvelope({period:2000,shape:9});
+    ssg.tone(2,{frequency:880,envelope:true});
+  `);
+  const core=megaDrive.fm;
+  assert.equal(core.ssg.registers[0]|core.ssg.registers[1]<<8,Math.round((4000000/2)/(16*440)));
+  assert.equal(core.ssg.registers[6],16);
+  assert.equal(core.ssg.registers[10],16);
+  const before=writes.length;
+  runtime.stop();
+  for(let ch=0;ch<3;ch++)assert(writes.slice(before).some(([p,r,v])=>p===0&&r===8+ch&&v===0));
+  assert.deepEqual(core.ssg._getState().levels,[12,8,16],'Stop retains configured volume/envelope');
+});
+
 test('Stop during primary ADPCM decoding prevents a late memory upload or retrigger', async t => {
   const {runtime, megaDrive} = setup(t, {chip:'ym2608', fmChannels:6, psg:false, dac:false});
   const decoded = deferred(), uploads = [], writes = [];
@@ -102,6 +126,41 @@ test('Stop during primary ADPCM decoding prevents a late memory upload or retrig
   assert.equal(globalThis.playgroundReview.error, 'Run stopped');
   assert.equal(uploads.length, 0);
   assert.equal(writes.length, stoppedWrites);
+});
+
+for (const chip of ['ym2610','ym2610b']) test(`primary ${chip} exposes shared SSG and ADPCM-A/B and Stop releases every section`, async t => {
+  const {runtime,megaDrive} = setup(t,{chip,fmChannels:chip==='ym2610'?4:6,psg:false,dac:false});
+  const writes=[],uploads=[],canceled=[];
+  const core=new YM2610BSynth({transport:{reset(){},
+    write:(port,register,value)=>writes.push([port,register,value]),
+    loadAdpcmMemory:(type,bytes,address)=>{uploads.push({type,bytes,address});return Promise.resolve();},
+    cancelPending:reason=>canceled.push(reason),
+  }});
+  megaDrive.fm=chip==='ym2610'?new NeoGeoFMSynth(core):core;
+  await runtime.playSource(`
+    const shared=await livePrepare('sections',({ssg,adpcmA,adpcmB,adpcm})=>({ssg,adpcmA,adpcmB,adpcm}));
+    if(adpcm!==adpcmB || pg.adpcm!==adpcmB)throw Error('ADPCM-B alias');
+    for(const name of ['ssg','adpcmA','adpcmB','adpcm'])if(shared[name]!==pg[name])throw Error('Separate section '+name);
+    if(ssg!==pg.ssg || adpcmA!==pg.adpcmA || adpcmB!==pg.adpcmB)throw Error('Separate globals');
+    if(typeof rhythm!=='undefined')throw Error('Unexpected OPNA rhythm');
+    ssg.noise(2,{period:16,volume:10});
+    await adpcmA.loadMemory(new Uint8Array(256).fill(0x17),256);
+    adpcmA.setVolume(48);adpcmA.setVoice(5,{volume:24,left:true,right:true});
+    adpcmA.setSample(5,{start:256,end:512});adpcmA.keyOn(5);
+    await adpcmB.loadMemory(new ArrayBuffer(256),512);
+    adpcmB.setSample({start:512,end:768});adpcmB.setPlaybackRate(8000);
+    adpcmB.setVolume(180);adpcmB.setPan(true,true);adpcmB.keyOn({repeat:true});
+    fm.setAlgo(${chip==='ym2610'?3:5},7,0);
+  `);
+  assert.deepEqual(uploads.map(({type,address,bytes})=>[type,address,bytes.length]),[[0,256,256],[1,512,256]]);
+  assert(writes.some(([port,r])=>port===1&&r===0xb2),'highest logical FM channel maps to hardware channel 5');
+  const before=writes.length;
+  runtime.stop();
+  const stopped=writes.slice(before);
+  for(let ch=0;ch<3;ch++)assert(stopped.some(([port,r,v])=>port===0&&r===8+ch&&v===0));
+  assert(stopped.some(([port,r,v])=>port===1&&r===0&&v===0xbf));
+  assert(stopped.some(([port,r,v])=>port===0&&r===0x10&&v===1));
+  assert.deepEqual(canceled,['Run stopped']);
 });
 
 test('Worker playback defaults to 500 ms independently of the DAC scheduler', t => {

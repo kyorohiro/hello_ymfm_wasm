@@ -8,6 +8,7 @@ test('OPN modes select native chips, clocks and Full expansions', () => {
     ['genesis','ym2612',7670454,false], ['genesis-full','ym2612',7670454,true],
     ['genesis-full-nuked','ym2612',7670454,true], ['pc98-26','ym2203',4000000,false],
     ['pc98','ym2608',8000000,false], ['neogeo','ym2610',8000000,false],
+    ['neogeo-b','ym2610b',8000000,false],
   ];
   assert.deepEqual(PLAYGROUND_MODES.map(mode => [mode.id,mode.chip,mode.clock,mode.full]), expected);
   for (const mode of PLAYGROUND_MODES) {
