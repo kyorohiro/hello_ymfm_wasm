@@ -759,28 +759,102 @@ test("native Raw, Scheduled and exact High preserve separated pitch writes and t
   }
 });
 
-async function runExactFrequencyExport(bytes, options) {
+async function runExactFrequencyExport(bytes, options, {late = false, cycles = 1} = {}) {
   const source = exportYm2612VgmToPlaygroundJavaScript(bytes, options);
-  let time = 0;
-  const loops = [], writes = [];
-  const record = (...args) => writes.push([time, ...(args.length === 2 ? [0, ...args] : args)]);
+  let active, wallTime = 0;
+  const loops = [], writes = [], commits = [], pending = [], latches = [0, 0];
+  const record = (...args) => {
+    const [port, register, value] = args.length === 2 ? [0, ...args] : args;
+    const time = active?.time ?? 0;
+    writes.push([time, port, register, value]);
+    if ((register & 0xf0) === 0xa0 && (register & 3) < 3) {
+      const latch = (register & 8) >> 3;
+      if (register & 4) latches[latch] = value & 0x3f;
+      else commits.push([time, port, register, latches[latch] >> 3, ((latches[latch] & 7) << 8) | value]);
+    }
+  };
   const fm = new YM2612Synth({transport: {write: (p, r, v) => record(p, r, v)}});
-  writes.length = 0;
+  writes.length = commits.length = 0;
+  latches.fill(0);
   const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
   await new AsyncFunction('fm', 'write', 'liveLoop', 'sleepSamples',
     'CH1', 'CH2', 'CH3', 'CH4', 'CH5', 'CH6', 'OP1', 'OP2', 'OP3', 'OP4', source)(
-    fm, record, (name, fn) => loops.push({name, fn}), async n => {time += n;},
+    fm, record, (name, fn) => loops.push({name, fn, time: 0}), n => {
+      active.time += n;
+      return late ? new Promise(resolve => pending.push({loop: active, resolve})) : Promise.resolve();
+    },
     0, 1, 2, 3, 4, 5, 0, 1, 2, 3);
-  const durations = [];
-  for (const loop of loops) {
-    time = 0;
-    await loop.fn();
-    durations.push(time);
+  if (!late) {
+    for (const loop of loops) {
+      active = loop;
+      for (let cycle = 0; cycle < cycles; cycle++) await loop.fn();
+    }
+  } else {
+    // Timers for nearby sample positions may run in the opposite channel order
+    // after a late browser task. Resume one continuation at a time, with every
+    // deadline in a 16-sample bucket eligible together. The record clock remains
+    // each loop's intended sample position, so guards cannot hide moved waits.
+    const flush = async () => {for (let i = 0; i < 8; i++) await Promise.resolve();};
+    const running = loops.map((loop, index) => {
+      active = loop; loop.index = index;
+      return (async () => {for (let cycle = 0; cycle < cycles; cycle++) await loop.fn();})();
+    });
+    while (pending.length) {
+      wallTime = Math.max(wallTime, Math.ceil(Math.min(...pending.map(p => p.loop.time)) / 16) * 16);
+      pending.sort((a, b) => b.loop.index - a.loop.index);
+      const index = pending.findIndex(p => p.loop.time <= wallTime);
+      const [next] = pending.splice(index, 1);
+      active = next.loop; next.resolve();
+      await flush();
+    }
+    await Promise.all(running);
   }
-  return {source, names: loops.map(loop => loop.name), writes, durations};
+  return {source, names: loops.map(loop => loop.name), writes, commits, durations: loops.map(loop => loop.time)};
 }
 
-test("Write and exact High keep timed multichannel frequency writes in one ordered loop", async () => {
+function frequencyTrack([, port, register, value]) {
+  const target = getYm2612WriteTarget(port, register, value);
+  return target.scope === 'channel' ? target.channel : 'global';
+}
+
+function assertFrequencyGuards(actual, original) {
+  const latches = [0, 0], expectedCommits = [], expected = new Map();
+  for (const write of original) {
+    const [time, port, register, value] = write;
+    const latch = (register & 8) >> 3;
+    const frequency = (register & 0xf0) === 0xa0 && (register & 3) < 3;
+    const high = latches[latch];
+    if (frequency) {
+      if (register & 4) latches[latch] = value & 0x3f;
+      else expectedCommits.push([time, port, register, high >> 3, ((high & 7) << 8) | value]);
+    }
+    const track = frequencyTrack(write);
+    if (!expected.has(track)) expected.set(track, []);
+    expected.get(track).push({write, high});
+  }
+  for (const [track, events] of expected) {
+    const writes = actual.writes.filter(write => frequencyTrack(write) === track);
+    let index = 0;
+    for (let i = 0; i < writes.length; i++) {
+      const next = events[index];
+      if (next && JSON.stringify(writes[i]) === JSON.stringify(next.write)) {index++; continue;}
+      // Every additional write must restore the original shared upper latch
+      // immediately before its low commit, at the unchanged sample position.
+      assert.ok(next, 'no writes after the original track ends');
+      const [time, port, register, value] = writes[i];
+      assert.ok((register & 0xf0) === 0xa0 && (register & 4) && (register & 3) < 3);
+      assert.deepEqual([time, port, register - 4], next.write.slice(0, 3));
+      assert.equal(value & 0x3f, next.high);
+      assert.deepEqual(writes[i + 1], next.write);
+    }
+    assert.equal(index, events.length, 'every source write and its timestamp is retained');
+    assert.deepEqual(actual.commits.filter(write => frequencyTrack(write) === track),
+      expectedCommits.filter(write => frequencyTrack(write) === track));
+  }
+  assert.ok(actual.writes.every(write => expected.has(frequencyTrack(write))));
+}
+
+test("split Write and exact High keep the original pitches when nearby timers resume out of order", async () => {
   // CH1's low commit and CH2's high write become runnable together when the
   // two-sample wait expires. Independent loops can otherwise overwrite the
   // shared high latch before CH1 consumes it, changing its octave/FNUM.
@@ -795,14 +869,14 @@ test("Write and exact High keep timed multichannel frequency writes in one order
     [5, 1, 0xa6, 0x1c], [8, 1, 0xa2, 0xc0],
   ];
   for (const high of [false, true]) {
-    const actual = await runExactFrequencyExport(bytes, {high, splitChannels: true});
-    assert.deepEqual(actual.names, ['vgm']);
-    assert.deepEqual(actual.writes, expected);
-    assert.deepEqual(actual.durations, [9]);
+    const actual = await runExactFrequencyExport(bytes, {high, splitChannels: true}, {late: true});
+    assert.deepEqual(actual.names, high ? ['ch1', 'ch2', 'ch6'] : ['ch1', 'ch2', 'ch3', 'ch4', 'ch5', 'ch6']);
+    assertFrequencyGuards(actual, expected);
+    assert.ok(actual.durations.every(n => n === 9));
   }
 });
 
-test("Write and exact High preserve cross-port high-latch dependencies without extra writes", async () => {
+test("split Write and exact High restore the source high latch across register ports", async () => {
   const bytes = createVgmBuffer([
     0x53, 0xa5, 0x2b, 0x71, 0x52, 0xa0, 0xc6,
     0x52, 0xa4, 0x1c, 0x53, 0xa2, 0xc0, 0x70, 0x66,
@@ -812,27 +886,56 @@ test("Write and exact High preserve cross-port high-latch dependencies without e
     [2, 0, 0xa4, 0x1c], [2, 1, 0xa2, 0xc0],
   ];
   for (const high of [false, true]) {
-    const actual = await runExactFrequencyExport(bytes, {high, splitChannels: true});
-    assert.deepEqual(actual.names, ['vgm']);
-    assert.deepEqual(actual.writes, expected);
-    assert.deepEqual(actual.durations, [3]);
+    const actual = await runExactFrequencyExport(bytes, {high, splitChannels: true}, {late: true});
+    assert.deepEqual(actual.names, high ? ['ch1', 'ch5', 'ch6'] : ['ch1', 'ch2', 'ch3', 'ch4', 'ch5', 'ch6']);
+    assertFrequencyGuards(actual, expected);
+    assert.ok(actual.durations.every(n => n === 3));
   }
 });
 
-test("cross-port CH3-special latch writes keep global and channel events in source order", async () => {
+test("split CH3-special writes restore the separate special latch across global and channel loops", async () => {
   const bytes = createVgmBuffer([
-    0x53, 0xac, 0x22, 0x71, 0x52, 0xa8, 0x83,
+    0x53, 0xac, 0x22, 0x71, 0x53, 0xae, 0x1c, 0x52, 0xa8, 0x83,
     0x52, 0xad, 0x2b, 0x52, 0xa9, 0xc6, 0x70, 0x66,
   ]);
   const expected = [
-    [0, 1, 0xac, 0x22], [2, 0, 0xa8, 0x83],
+    [0, 1, 0xac, 0x22], [2, 1, 0xae, 0x1c], [2, 0, 0xa8, 0x83],
     [2, 0, 0xad, 0x2b], [2, 0, 0xa9, 0xc6],
   ];
   for (const high of [false, true]) {
-    const actual = await runExactFrequencyExport(bytes, {high, splitChannels: true});
-    assert.deepEqual(actual.names, ['vgm']);
-    assert.deepEqual(actual.writes, expected);
-    assert.deepEqual(actual.durations, [3]);
+    const actual = await runExactFrequencyExport(bytes, {high, splitChannels: true}, {late: true});
+    assert.deepEqual(actual.names, high ? ['global', 'ch3'] : ['global', 'ch1', 'ch2', 'ch3', 'ch4', 'ch5', 'ch6']);
+    assertFrequencyGuards(actual, expected);
+    assert.ok(actual.durations.every(n => n === 3));
+  }
+});
+
+test("same-time cross-channel upper writes are used by the correct low commit after splitting", async () => {
+  const bytes = createVgmBuffer([
+    0x52, 0xa4, 0x22, 0x52, 0xa5, 0x2b, 0x52, 0xa0, 0x83,
+    0x52, 0xa1, 0xc6, 0x70, 0x66,
+  ]);
+  const expected = [[0, 0, 0xa4, 0x22], [0, 0, 0xa5, 0x2b], [0, 0, 0xa0, 0x83], [0, 0, 0xa1, 0xc6]];
+  for (const high of [false, true]) {
+    const actual = await runExactFrequencyExport(bytes, {high, splitChannels: true}, {late: true});
+    assertFrequencyGuards(actual, expected);
+    assert.ok(actual.names.includes('ch1') && actual.names.includes('ch2'));
+  }
+});
+
+test("split prefix low commits use reset state on the first pass and the final latch on repeats", async () => {
+  const bytes = createVgmBuffer([
+    0x52, 0xa0, 0x83, 0x71, 0x52, 0xa4, 0x1c,
+    0x53, 0xa4, 0x2b, 0x53, 0xa0, 0xc6, 0x70, 0x66,
+  ]);
+  const first = [[0, 0, 0xa0, 0x83], [2, 0, 0xa4, 0x1c], [2, 1, 0xa4, 0x2b], [2, 1, 0xa0, 0xc6]];
+  const expected = [...first, ...first.map(([time, ...rest]) => [time + 3, ...rest])];
+  for (const high of [false, true]) {
+    const actual = await runExactFrequencyExport(bytes, {high, splitChannels: true}, {late: true, cycles: 2});
+    assertFrequencyGuards(actual, expected);
+    assert.deepEqual(actual.commits.filter(([, port]) => port === 0), [[0, 0, 0xa0, 0, 0x83], [3, 0, 0xa0, 5, 0x383]]);
+    assert.ok(actual.names.includes('ch1') && actual.names.includes('ch4'));
+    assert.ok(actual.durations.every(n => n === 6));
   }
 });
 

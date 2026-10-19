@@ -1,6 +1,6 @@
 import {ym2608HighOperation} from './ym2608_high.js';
-import {Ym2612VGM} from '../js/ym2612vgm.js?v=vgm-frequency-order-1';
-import {detectVgmImport} from './playground_vgm_import.js?v=vgm-frequency-order-1';
+import {Ym2612VGM} from '../js/ym2612vgm.js?v=vgm-frequency-order-2';
+import {detectVgmImport} from './playground_vgm_import.js?v=vgm-frequency-order-2';
 
 /** Full OPNA Write export. All register/data events keep their original order. */
 export function exportYm2608FullVgm(buffer, {mode = 'write', writeMemoryFile} = {}) {

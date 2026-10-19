@@ -93,7 +93,7 @@ export const createMsxAudioEngine = options => MsxAudioEngine.create(options);
 
 /**
  * Check supported MSX chip combinations and single-chip variant flags.
- * @param {import('./ym2612vgm.js?v=vgm-frequency-order-1').Ym2612VgmHeader} header Parsed VGM clock/variant fields.
+ * @param {import('./ym2612vgm.js?v=vgm-frequency-order-2').Ym2612VgmHeader} header Parsed VGM clock/variant fields.
  * @returns {void}
  * @throws {Error} For unsupported chip combinations or variants.
  */

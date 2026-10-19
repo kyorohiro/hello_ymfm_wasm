@@ -74,10 +74,10 @@ do {
   }
 } while(propagated);
 for(const name of ['playground.js','playground_mode.js','playground_operator_tab.js','playground_tfi_editor.js'])audioFiles.add(name);
-const pageRevisions={'playground.js':'vgm-frequency-order-1','playground_mode_starters.js':'mode-choice-1',
+const pageRevisions={'playground.js':'vgm-frequency-order-2','playground_mode_starters.js':'mode-choice-1',
   ...Object.fromEntries(['ym2612vgm.js','ym2203vgm.js','ym2608vgm.js','ym2610bvgm.js',
     'playground_vgm_import.js','rf5c164_vgm_export.js','ym2608_vgm_import.js','playground_vgm_presets.js']
-    .map(name=>[name,'vgm-frequency-order-1']))};
+    .map(name=>[name,'vgm-frequency-order-2']))};
 const revisionFor=name=>pageRevisions[name]??(audioFiles.has(name)?audioVersion:revisions[name]??version);
 const targets=[...new Set([
   ...Object.keys(pageRevisions),

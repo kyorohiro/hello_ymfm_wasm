@@ -1975,13 +1975,9 @@ function exportOpnFmVgmToPlaygroundJavaScript(source, options, chipKind, targetC
     : Math.max(0, Math.floor(options.totalLoopSamples));
   const highMode = options.high === true || options.compact === true;
   const requestedSplit = highMode ? options.splitChannels === true : options.splitChannels !== false;
-  // Independent JS waits cannot preserve the original tie order when a low
-  // frequency write resumes beside another channel's high write. Scheduled
-  // playback keeps its audio-clock timeline; Write/High must keep source order.
-  const sharedFrequencyOrder = requestedSplit && (highMode || !options.scheduled) &&
-    requiresSharedFrequencyOrder(orderedEvents);
-  const splitChannels = sharedFrequencyOrder ? false : options.splitChannels;
-  const frequencyOrderComment = '// One FM timeline preserves shared frequency latch order across channels and short waits.';
+  // Keep channel loops independently editable. A low write that resumes after
+  // a wait must restore its source high latch before another track can affect it.
+  if (requestedSplit && (highMode || !options.scheduled)) annotateSplitFrequencyWrites(orderedEvents);
   if (highMode) {
     if (options.compact) options = { ...options, noteish: true };
     options = { ...options,
@@ -2032,13 +2028,12 @@ function exportOpnFmVgmToPlaygroundJavaScript(source, options, chipKind, targetC
     }
     const compactEvents = options.compact ? compactHighEvents(orderedEvents) : null;
     const retained = compactEvents ? new Set(compactEvents) : null;
-    if (splitChannels === true) {
+    if (options.splitChannels === true) {
       return tracks.filter((track) => track.events.length > 0).map((track) =>
         `{\n${renderHighPlaygroundEvents(retained ? track.events.filter(e => retained.has(e)) : track.events, totalLoopSamples, options, track.name)}\n}`
       ).join("\n\n");
     }
-    return (sharedFrequencyOrder ? frequencyOrderComment + '\n' : '') +
-      renderHighPlaygroundEvents(compactEvents ?? orderedEvents, totalLoopSamples, options);
+    return renderHighPlaygroundEvents(compactEvents ?? orderedEvents, totalLoopSamples, options);
   }
   /** @type {string[]} */
   const lines = [];
@@ -2058,7 +2053,6 @@ function exportOpnFmVgmToPlaygroundJavaScript(source, options, chipKind, targetC
     lines.push("");
   }
   if (options.psgWarning) lines.push(options.psgWarning);
-  if (sharedFrequencyOrder) lines.push(frequencyOrderComment);
   const dacEvents = tracks[0].events.filter((event) => event.port === 0 && event.register === 0x2a);
   const useDacBase64 =
     chipKind === "ym2612" &&
@@ -2078,7 +2072,7 @@ function exportOpnFmVgmToPlaygroundJavaScript(source, options, chipKind, targetC
   const chipTracks = chipKind === "ym2203"
     ? tracks.slice(0, 4)
     : tracks;
-  const renderOrder = splitChannels === false
+  const renderOrder = options.splitChannels === false
     ? [{ name: "vgm", events: orderedEvents }]
     : chipTracks[0].events.length > 0
     ? chipTracks
@@ -2101,13 +2095,11 @@ function exportOpnFmVgmToPlaygroundJavaScript(source, options, chipKind, targetC
   return lines.join("\n");
 }
 
-/** Normal and CH3-special OPN frequencies each share a high latch across ports.
- * Splitting is safe when each low has its own track's high in the same JS
- * continuation. Keep dependent raw writes together without adding writes or
- * removing short waits. Port 0 special pitches already share the CH3 track;
- * nonstandard port 1 special writes use the global track and can interfere.
+/** Capture the high latch in source order before separating channel loops.
+ * Reasserting a high changes only the latch; the original low still commits at
+ * its original time. Normal and CH3-special pitches have independent latches.
  */
-function requiresSharedFrequencyOrder(events) {
+function annotateSplitFrequencyWrites(events) {
   const track = event => {
     const target = getYm2612WriteTarget(event.port, event.register, event.value);
     return target.scope === 'channel' ? target.channel : 'global';
@@ -2115,13 +2107,37 @@ function requiresSharedFrequencyOrder(events) {
   for (const first of [0xa0, 0xa8]) {
     const pitches = events.filter(e => e.register >= first && e.register <= first + 6 && (e.register & 3) < 3);
     if (new Set(pitches.map(track)).size < 2) continue;
+    const repeatValue = pitches.filter(e => e.register & 4).at(-1)?.value ?? 0;
     let high;
     for (const event of pitches) {
       if (event.register & 4) high = event;
-      else if (!high || track(high) !== track(event) || high.timeSamples !== event.timeSamples) return true;
+      else if (!high || track(high) !== track(event) || high.timeSamples !== event.timeSamples) {
+        event.splitFrequencyHigh = {value:high?.value ?? null, repeatValue};
+      }
     }
   }
-  return false;
+}
+
+function renderFrequencyLoopStart(name, events) {
+  const needsFirstPass = events.some(e => e.splitFrequencyHigh?.value === null);
+  const flag = `firstFrequencyPass_${name.replace(/[^a-zA-Z0-9_]/g, '_')}`;
+  return [
+    ...(needsFirstPass ? [`let ${flag} = true;`] : []),
+    `liveLoop(${JSON.stringify(name)}, async () => {`,
+    ...(needsFirstPass ? [`  const firstFrequencyPass = ${flag};`, `  ${flag} = false;`] : []),
+  ];
+}
+
+function renderFrequencyGuard(event) {
+  const guard = event.splitFrequencyHigh;
+  if (!guard) return [];
+  const value = guard.value === null
+    ? `(firstFrequencyPass ? 0x00 : ${formatHexNumber(guard.repeatValue)})`
+    : formatHexNumber(guard.value);
+  return [
+    '  // Restore the source high latch immediately before this low write; edit this pair together.',
+    `  write(${event.port ? event.port + ', ' : ''}${formatHexNumber(event.register + 4)}, ${value});`,
+  ];
 }
 
 /**
@@ -2260,7 +2276,7 @@ function renderHighPlaygroundEvents(events, totalLoopSamples, options, loopName 
       : `  await dac.loadBase64("vgm-dac", ${JSON.stringify(encodeDacSchedule(dacEvents))});`);
     lines.push('});', '');
   }
-  lines.push(`liveLoop(${JSON.stringify(loopName)}, async () => {`);
+  lines.push(...renderFrequencyLoopStart(loopName, events));
   if (dacEvents.length > 0) {
     lines.push('  const dacStart = beginSampleSchedule();');
     lines.push('  dac.playStream("vgm-dac", { atSamples: dacStart });');
@@ -2274,6 +2290,8 @@ function renderHighPlaygroundEvents(events, totalLoopSamples, options, loopName 
       lines.push(`  await sleepSamples(${event.timeSamples - cursor});`);
     }
     cursor = event.timeSamples;
+    // Note-ish normal pitches already send their complete high/low pair.
+    if (!(options.noteish && event.noteCommit)) lines.push(...renderFrequencyGuard(event));
     const offset = register - 0xa4;
     const next = events[index + 1];
     const group = groups.get(index);
@@ -2393,7 +2411,7 @@ function renderHighPlaygroundEvents(events, totalLoopSamples, options, loopName 
 
 function renderPlaygroundTrack(track, totalLoopSamples, scheduled, useDacBase64) {
   /** @type {string[]} */
-  const lines = [`liveLoop(${JSON.stringify(track.name)}, async () => {`];
+  const lines = renderFrequencyLoopStart(track.name, track.events);
   const dacEvents = useDacBase64
     ? track.events.filter((event) => event.port === 0 && event.register === 0x2a)
     : [];
@@ -2419,6 +2437,7 @@ function renderPlaygroundTrack(track, totalLoopSamples, scheduled, useDacBase64)
     else {
       const delta = event.timeSamples - cursor;
       if (delta > 0) lines.push(`  await sleepSamples(${delta});`);
+      lines.push(...renderFrequencyGuard(event));
       lines.push(event.type === 'psg' ? `  psg.write(${formatHexNumber(event.value)});` : `  ${formatPlaygroundWrite(event.port, event.register, event.value)};`);
       cursor = event.timeSamples;
     }
