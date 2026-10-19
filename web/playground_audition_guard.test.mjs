@@ -10,7 +10,7 @@ import {YM2612DacPlayer, receiveDacCommand} from './ym2612_dac.js';
 function chip(registerApi = true) {
   const writes = [], addresses = [0, 0];
   const value = {
-    writes, resets: 0,
+    writes, resets: 0, reservations: [], generatedFrames: 0,
     write(offset, value) {
       const port = offset >> 1;
       if (offset & 1) writes.push([addresses[port], value, port]);
@@ -18,8 +18,9 @@ function chip(registerApi = true) {
     },
     reset() { this.resets++; return 'reset result'; },
     sampleRate: () => 48000,
+    reserveStereoFrames(frames) { this.reservations.push(frames); },
     generateStereoView(frames) { return this.generateStereo(frames); },
-    generateStereo(frames) { return {left: new Float32Array(frames), right: new Float32Array(frames)}; },
+    generateStereo(frames) { this.generatedFrames += frames; return {left: new Float32Array(frames), right: new Float32Array(frames)}; },
   };
   if (registerApi) value.writeRegister = (register, data, port = 0) => { writes.push([register, data, port]); return 'write result'; };
   return value;
@@ -158,6 +159,8 @@ for (const [name, Type, count] of [['ym2203', 'Ym2203', 3], ['ym2608', 'Ym2608',
     });
     await p.initialize(new ArrayBuffer(0));
     assert.equal(messages[0].type, 'ready');
+    assert.deepEqual(core.reservations, [128], 'initialization reserves one output quantum at the chip rate');
+    assert.equal(core.generatedFrames, 0, 'reservation must not advance chip synthesis');
     const channel = count - 1;
     p.port.onmessage({data: on(channel, 1)}); core.writes.length = 0;
     const port = {start() {}, close() {}};

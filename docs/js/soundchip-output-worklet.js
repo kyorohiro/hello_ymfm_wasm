@@ -1,6 +1,6 @@
 import {PWM32XPlayback, PWM_METHODS} from './pwm32x_playback.js';
 import {Ym2612} from './ym2612.js';
-import {Ym2608} from './ym2608.js';
+import {Ym2608} from './ym2608.js?v=pcm-views-1';
 import {Ym2151} from './ym2151.js';
 import {GameboyApu} from './gameboyapu.js';
 import {SegaPSG} from './segapsg.js';
@@ -14,7 +14,7 @@ import {createSoundChipFactory} from './soundchip_factory.js';
 import {ChipPCMRenderer} from './chip_pcm_renderer.js';
 import {YM2612DirectTransport} from './ym2612synth.js';
 import {YM2612DacPlayer} from './ym2612_dac.js';
-import {createProcessorPerformance,performanceNoteRelease} from './playground_performance_processor.js?v=native-modes-2';
+import {createProcessorPerformance,performanceNoteRelease} from './playground_performance_processor.js?v=native-modes-3';
 
 const profiles = {ym2612: [Ym2612, ym2612Factory], ym2608: [Ym2608, ym2608Factory],
   ym2151: [Ym2151, ym2151Factory], gameboy: [GameboyApu, gameboyFactory], segapsg: [SegaPSG, psgFactory], nes: [NesApu, undefined]};

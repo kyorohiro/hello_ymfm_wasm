@@ -12,6 +12,7 @@ const nativeFiles=['native_runtime_synth.js','playground_native_primary.js','tet
   'playground_snes.js','playground_snes_audio.js','playground_snes_worklet.js',
   'playground_ym2151.js','playground_ym2151_audio.js','playground_ym2151_worklet.js',
   ...['huc6280','okim6258'].flatMap(chip=>[`${chip}synth.js`,`playground_${chip}.js`,`playground_${chip}_audio.js`,`playground_${chip}_worklet.js`])];
+const pcmFiles=['ym2203.js','ym2608.js','ym2610b.js','pwm32x.js'];
 const revisions={
   'spc.js':'spc-events-1',
   'spc_events.js':'spc-events-1',
@@ -38,21 +39,24 @@ const revisions={
   'opn_runtime_synth.js':'opnb-primary-1',
   'tetorica_synth.js':'gameboy-mode-1',
   'ym2203synth.js':'opn-ssg-1',
-  'ym2203-worklet.js':'audio-render-2',
+  'ym2203-worklet.js':'audio-render-3',
   'ym2608synth.js':'opnb-primary-1',
   'ym2610bsynth.js':'opnb-primary-1',
-  'ym2610b-worklet.js':'audio-render-2',
+  'ym2610b-worklet.js':'audio-render-3',
+  'ym2612-worklet-nuked.js':'audio-render-3',
   'ssgsynth.js':'opna-primary-1',
-  'ym2608-worklet.js':'audio-render-2',
+  'ym2608-worklet.js':'audio-render-3',
   'playground_performance_host.js':'spc-events-1',
   'playground_soundchips.js':'spc-import-1',
   'spc-worklet.js':'spc-events-1',
   'playground_spc.js':'spc-events-1',
   'playground_spc_audio.js':'spc-events-1',
   'playground_performance_processor.js':'spc-song-js-1',
-  ...Object.fromEntries(nativeFiles.map(name=>[name,'native-modes-2'])),
+  ...Object.fromEntries(nativeFiles.map(name=>[name,'native-modes-3'])),
+  ...Object.fromEntries(pcmFiles.map(name=>[name,'pcm-views-1'])),
 };
 const targets=[
+  ...pcmFiles,
   ...nativeFiles,
   'soundchip_mixer.js','megasynth.js','playground_clock.js','playground_runtime.js','playground_logic_worker.js','playground_performance_sender.js','playground_performance_host.js',
   'playground_rf5c164.js','playground_chip_inspector.js','playground_chip_inspector_state.js',

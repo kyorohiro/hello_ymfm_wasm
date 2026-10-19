@@ -1,7 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {readFile} from 'node:fs/promises';
 import {createVirtualFileSystem} from './playground_virtual_files.js';
 import {reconcileModeProject} from './playground_mode_starters.js';
+import {MODE_DEFAULT_CODES, MODE_DEFAULT_HISTORY} from './playground_examples.js';
 
 const defaults = {genesis: 'fm.noteOn(0, "C4");\n', gameboy: 'gameboy.pulse.noteOn(0, "C4");\n'};
 const genesisExample = {path: '/examples/fm/lead.js', data: 'await play("C4");\n'};
@@ -154,4 +156,61 @@ test('a missing index gets the target starter without replacing a directory occu
   const directory = reconcileModeProject(project([], {files: [], directories: ['/index.js']}), options);
   assert.equal(fileAt(directory, '/index.js'), undefined);
   assert.equal(directory.directories.includes('/index.js'), true);
+});
+
+const bundledDefaults = Object.fromEntries(Object.entries(MODE_DEFAULT_CODES).map(([id, source]) =>
+  [id, [source, ...(MODE_DEFAULT_HISTORY[id] ?? [])]]));
+
+test('canonical historical starters are bundled only for supported modes and current sources stay first', async () => {
+  const history = JSON.parse(await readFile(new URL('./defaults/history.json', import.meta.url), 'utf8'));
+  assert.deepEqual(MODE_DEFAULT_HISTORY,history);
+  assert.deepEqual(Object.keys(history).sort(),['neogeo','pc-engine','pc98','pc98-26','snes']);
+  for (const [id, sources] of Object.entries(history)) {
+    assert.ok(Object.hasOwn(MODE_DEFAULT_CODES,id),id);
+    assert.equal(sources.length,1,`${id} records its pre-noise-fix starter`);
+    assert.notEqual(sources[0],MODE_DEFAULT_CODES[id]);
+    assert.equal(bundledDefaults[id][0],MODE_DEFAULT_CODES[id]);
+    const result = reconcileModeProject(project([], {modeId:id,files:[]}),{
+      targetModeId:id,defaults:bundledDefaults,
+    });
+    assert.equal(fileAt(result,'/index.js').data,MODE_DEFAULT_CODES[id],'new files use current source');
+  }
+  for (const id of ['pc98','pc98-26','neogeo']) {
+    assert.doesNotMatch(history[id][0],/ssg\.setMixer\(/,'old sources retain the exact former SSG recipe');
+    assert.match(MODE_DEFAULT_CODES[id],/ssg\.setMixer\(0, \{tone: true, noise: false\}\)/);
+  }
+});
+
+test('exact old starters receive the current source on restore and mode switches without changing assets', () => {
+  const assets = [
+    {path:'/samples/custom.bin',type:'binary',data:new Uint8Array([0,255,128])},
+    {path:'/my-song.js',type:'text',data:'// my song\n'},
+  ];
+  for (const [id, sources] of Object.entries(MODE_DEFAULT_HISTORY)) for (const oldSource of sources) {
+    const snapshot = project([],{
+      modeId:id,files:[{path:'/index.js',type:'text',data:oldSource},...assets,
+        {path:'/.tet.ss/index.js',type:'text',data:oldSource}],
+      metadata:{title:'My saved project'},directories:['/','/my-empty-folder'],
+    });
+    const original = structuredClone(snapshot);
+    for (const targetModeId of [id,'genesis']) {
+      const result = reconcileModeProject(snapshot,{targetModeId,defaults:bundledDefaults});
+      assert.equal(fileAt(result,'/index.js').data,MODE_DEFAULT_CODES[targetModeId],`${id} -> ${targetModeId}`);
+      for (const asset of snapshot.files.slice(1)) assert.deepEqual(fileAt(result,asset.path),asset);
+      assert.deepEqual(result.metadata,snapshot.metadata);
+      assert.deepEqual(result.directories,snapshot.directories);
+    }
+    assert.deepEqual(snapshot,original);
+  }
+});
+
+test('a one-character edit to a historical starter remains user data on restore and mode switches', () => {
+  for (const [id, sources] of Object.entries(MODE_DEFAULT_HISTORY)) for (const oldSource of sources) {
+    const edited = oldSource + ' ';
+    const snapshot = project([],{modeId:id,files:[{path:'/index.js',type:'text',data:edited}]});
+    for (const targetModeId of [id,'genesis']) {
+      const result = reconcileModeProject(snapshot,{targetModeId,defaults:bundledDefaults});
+      assert.equal(fileAt(result,'/index.js').data,edited,`${id} edit survives ${targetModeId}`);
+    }
+  }
 });

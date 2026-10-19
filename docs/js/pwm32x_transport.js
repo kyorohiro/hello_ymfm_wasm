@@ -1,4 +1,4 @@
-import {PWM32X} from './pwm32x.js';
+import {PWM32X} from './pwm32x.js?v=pcm-views-1';
 import {PWM32XPlayback} from './pwm32x_playback.js';
 
 /** Main-side command API; chip rendering and the schedule live in AudioWorklet. */

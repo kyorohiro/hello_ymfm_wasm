@@ -8,13 +8,13 @@ import { OPNDirectTransport, OPNFMSynth } from "./opn_fm_synth.js?v=opnb-primary
 import { OPNRuntimeSynth } from "./opn_runtime_synth.js?v=opnb-primary-1";
 
 import { SSGSynth } from "./ssgsynth.js?v=opna-primary-1";
-import { YM2610B_CLOCK } from "./ym2610b.js";
+import { YM2610B_CLOCK } from "./ym2610b.js?v=pcm-views-1";
 
 const NEO_GEO_FM_CHANNELS = [1, 2, 4, 5];
 
-/** @extends {OPNDirectTransport<import('./ym2610b.js').Ym2610B>} */
+/** @extends {OPNDirectTransport<import('./ym2610b.js?v=pcm-views-1').Ym2610B>} */
 export class YM2610BDirectTransport extends OPNDirectTransport {
-  /** @param {import('./ym2610b.js').Ym2610B} chip */
+  /** @param {import('./ym2610b.js?v=pcm-views-1').Ym2610B} chip */
   constructor(chip) { super(chip, { chipName: "YM2610B", portCount: 2 }); }
    /** Transfer encoded A/B data. Keep the full address space so later loads never truncate earlier samples. @param {Uint8Array} bytes @param {number} address  @param {0|1} type */
   loadAdpcmMemory(type, bytes, address) { return this.chip.loadAdpcmRom(type, bytes, address, 0x1000000); }
@@ -213,7 +213,7 @@ export class YM2610BRuntimeSynth extends OPNRuntimeSynth {
   constructor(options = {}) {
     super(options, {
       chip: "ym2610b", chipName: "YM2610B", fmChannels: 6, portCount: 2,
-      processorName: "ym2610b-processor", workletUrl: "./ym2610b-worklet.js?v=audio-render-2",
+      processorName: "ym2610b-processor", workletUrl: "./ym2610b-worklet.js?v=audio-render-3",
       wasmUrl: "../generated/ym2610b_wasm.wasm", FMSynth: YM2610BSynth,
     });
   }

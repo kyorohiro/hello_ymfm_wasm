@@ -4,6 +4,7 @@
 // See third_party/mame-32x-pwm/README.md for provenance and differences.
 /** @typedef {{clock?: number, sampleRate?: number, gain?: number, outputMode?: 'dac'|'duty'}} PWM32XOptions */
 export const PWM32X_CLOCK = 23011361;
+const outputSample = (value, scale, gain) => value === null ? 0 : ((value & 4095) / scale - 1) * gain;
 export class PWM32X {
   #states = new WeakMap();
   /** @param {PWM32XOptions} [options] */
@@ -65,8 +66,7 @@ export class PWM32X {
   }
   output() {
     const scale = this.outputMode === 'duty' ? (this.cycle || 4095) / 2 : 2048;
-    const sample = value => value === null ? 0 : ((value & 4095) / scale - 1) * this.gain;
-    return this.muted ? [0, 0] : [sample(this.left), sample(this.right)];
+    return this.muted ? [0, 0] : [outputSample(this.left, scale, this.gain), outputSample(this.right, scale, this.gain)];
   }
   /** @param {number} frames */
   generateStereo(frames) {
@@ -77,7 +77,13 @@ export class PWM32X {
       let remaining = cyclesPerFrame, l = 0, r = 0;
       while (remaining > 0) {
         const duration = this.active() ? Math.min(remaining, this.untilTick) : remaining;
-        const [a, b] = this.output(); l += a * duration; r += b * duration; remaining -= duration;
+        // output() returns an owned pair for callers. Keep the audio render
+        // path scalar: it runs for every output frame and native timer tick,
+        // including the silent PWM endpoint in Genesis Full.
+        const scale = this.outputMode === 'duty' ? (this.cycle || 4095) / 2 : 2048;
+        const a = this.muted ? 0 : outputSample(this.left, scale, this.gain);
+        const b = this.muted ? 0 : outputSample(this.right, scale, this.gain);
+        l += a * duration; r += b * duration; remaining -= duration;
         if (this.active()) {
           this.untilTick -= duration;
           if (this.untilTick <= 0) {this.tick(); this.untilTick = this.cycle - 1;}

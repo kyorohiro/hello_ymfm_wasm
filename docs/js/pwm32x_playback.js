@@ -1,12 +1,12 @@
-import {attachChipClock, CHIP_CLOCKS, validateChipClock} from './playground_chip_clock.js?v=native-modes-2';
-import {PWM32X} from './pwm32x.js';
+import {attachChipClock, CHIP_CLOCKS, validateChipClock} from './playground_chip_clock.js?v=native-modes-3';
+import {PWM32X} from './pwm32x.js?v=pcm-views-1';
 
 /** @typedef {{frame: number, register: 0|1|2|3|4, value: number}} PWMWrite */
 /** @typedef {Pick<PWM32XPlayback, 'write'|'writeRegister'|'read'|'reset'|'scheduleWrites'|'clearSchedule'|'getState'|'setClock'>} PWMAPI */
 /** @typedef {{[K in keyof PWMAPI]: (...args: Parameters<PWMAPI[K]>) => Promise<ReturnType<PWMAPI[K]>>}} AsyncPWMAPI */
 /** MAME-derived PWM plus output-frame scheduling; no timers or audio device. */
 export class PWM32XPlayback {
-  /** @param {import("./pwm32x.js").PWM32XOptions} [options] @param {PWM32X} [chip] */
+  /** @param {import("./pwm32x.js?v=pcm-views-1").PWM32XOptions} [options] @param {PWM32X} [chip] */
   constructor(options = {}, chip) {
     this.chip = chip ?? new PWM32X({outputMode: 'duty', gain: 1, ...options});
     this.frame = 0; this.queue = []; this.order = 0;

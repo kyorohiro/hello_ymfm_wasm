@@ -8,7 +8,7 @@ import { Ym2612, YM2612_CLOCK } from "./ym2612.js";
 import { SegaPSG, SEGAPSG_CLOCK } from "./segapsg.js";
 
 import { Rf5c164 } from "./rf5c164.js";
-import {PWM32X} from './pwm32x.js';
+import {PWM32X} from './pwm32x.js?v=pcm-views-1';
 
 /**
  * GenesisAudioEngine adapter for synchronous stereo rendering and VGM register dispatch.

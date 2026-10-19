@@ -4,7 +4,7 @@ import {readFile} from 'node:fs/promises';
 import {Ym2612} from './ym2612.js';
 import {SegaPSG} from './segapsg.js';
 
-for (const [name, Chip] of [['ym2612', Ym2612], ['segapsg', SegaPSG]]) {
+for (const [name, Chip] of [['ym2612', Ym2612], ['nuked_opn2', Ym2612], ['segapsg', SegaPSG]]) {
   test(`${name}: borrowed views match owned output and reuse capacity`, async () => {
     const {default: moduleFactory} = await import(`../docs/generated/${name}_wasm.js`);
     const wasmBinary = await readFile(new URL(`../docs/generated/${name}_wasm.wasm`, import.meta.url));
@@ -12,7 +12,7 @@ for (const [name, Chip] of [['ym2612', Ym2612], ['segapsg', SegaPSG]]) {
     const b = await Chip.create({moduleFactory, moduleOptions: {wasmBinary}});
     try {
       for (const chip of [a,b]) {
-        if (name === 'ym2612') {
+        if (Chip === Ym2612) {
           chip.writeRegister(0xb6, 0xc0);
           chip.writeRegister(0x2b, 0x80);
           chip.writeRegister(0x2a, 200);
@@ -60,7 +60,7 @@ for (const [name, Chip] of [['ym2612', Ym2612], ['segapsg', SegaPSG]]) {
       },
       getIrq() { irqChecks++; return 0; },
     });
-    if (name === 'ym2612') chip.setHooks({onIrq() {}});
+    if (Chip === Ym2612) chip.setHooks({onIrq() {}});
     chip.reserveStereoFrames(128);
     const count = allocations;
     const old = chip.generateStereoView(64);
@@ -72,6 +72,6 @@ for (const [name, Chip] of [['ym2612', Ym2612], ['segapsg', SegaPSG]]) {
     assert.equal(fresh.left.buffer, memory.buffer);
     assert.equal(fresh.left[63], .25);
     assert.equal(fresh.right[63], -.25);
-    if (name === 'ym2612') assert.ok(irqChecks >= 102);
+    if (Chip === Ym2612) assert.ok(irqChecks >= 102);
   });
 }

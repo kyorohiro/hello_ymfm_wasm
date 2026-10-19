@@ -1205,8 +1205,20 @@ async function checkStarterLegacyDraft(browser, base) {
     await page.evaluate(async custom => {window.__modeRegression.setEditorValue(custom); await window.__tetoricaAutosaveFlush();},custom);
     await page.reload(); await ready(page);
     assert.equal(await page.evaluate(() => window.__modeRegression.getEditorValue()),custom,'custom FM draft is preserved');
+    for (const id of ['pc98','pc98-26','neogeo','snes','pc-engine']) {
+      await page.evaluate(async id => {
+        const {openDraftStore} = await import('./playground_autosave.js');
+        const {MODE_DEFAULT_HISTORY} = await import('./playground_examples.js?v=starter-history-1');
+        const store = await openDraftStore(indexedDB,`mode:${id}`);
+        try {await store.save({version:1,modeId:id,activePath:'/index.js',runPath:'/index.js',directories:['/'],
+          files:[{path:'/index.js',type:'text',data:MODE_DEFAULT_HISTORY[id][0]}]});}
+        finally {store.close();}
+      },id);
+      await page.goto(`${base}?mode=${id}&no-sw=1`); await ready(page);
+      await assertModeStarter(page,id);
+    }
     assert.deepEqual(errors,[],'legacy starter draft page errors');
-    console.log(JSON.stringify({starters:true,legacyDefaultMigration:true,customDraftPreserved:true,passed:true}));
+    console.log(JSON.stringify({starters:true,legacyDefaultMigration:true,historicalModes:5,customDraftPreserved:true,passed:true}));
   } finally {await context.close();}
 }
 

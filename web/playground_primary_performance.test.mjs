@@ -36,9 +36,10 @@ function processor(tree, name, rate = 48000) {
   vm.runInNewContext(fs.readFileSync(new URL(`../${tree}/${name}.js`, import.meta.url), 'utf8').replace(/^import .*;\n/gm, ''), scope);
   const p = new Type();
   const chip = {
-    value: 0, sampleRate: () => rate, reset() {this.value = 0;},
+    value: 0, reservations: [], generatedFrames: 0, sampleRate: () => rate, reset() {this.value = 0;},
     writeRegister(register, value, port = 0) {writes.push([register, value, port]); this.value = value;},
-    generateStereo(frames) {return {left: new Float32Array(frames).fill(this.value), right: new Float32Array(frames).fill(this.value)};},
+    reserveStereoFrames(frames) {this.reservations.push(frames);},
+    generateStereo(frames) {this.generatedFrames += frames; return {left: new Float32Array(frames).fill(this.value), right: new Float32Array(frames).fill(this.value)};},
     generateStereoView(frames) {return this.generateStereo(frames);},
   };
   if (name.startsWith('ym2612')) p.ym2612 = chip;
@@ -206,6 +207,8 @@ for (const tree of ['web', 'docs/js']) {
     await f.p.initialize(new ArrayBuffer(1), true);
     await f.p.initialize(new ArrayBuffer(1));
     assert.deepEqual(variants, [false, true, true]);
+    assert.deepEqual(f.chip.reservations, [128, 128, 128]);
+    assert.equal(f.chip.generatedFrames, 0, 'all variants reserve capacity without advancing synthesis');
   });
 
   test(`${tree} primary YM2610/B: canceled loops release SSG and both ADPCM sections while preserving newer owners`, () => {

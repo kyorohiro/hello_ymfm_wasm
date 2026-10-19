@@ -7,7 +7,7 @@ export {SoundChipMixer, soundChipMixDefaults} from './soundchip_mixer.js?v=chip-
  */
 import { createSoundChipFactory } from './soundchip_factory.js';
 import {createWorkletSoundChip} from './soundchip_worklet.js?v=chip-tabs-2';
-import {PWM32X} from './pwm32x.js';
+import {PWM32X} from './pwm32x.js?v=pcm-views-1';
 export {encodeWav} from './wav.js';
 
 /**
@@ -109,7 +109,7 @@ const loaders = {
   },
   /** @param {SoundChipOptions} [options] */
   ym2203: async (options) => {
-    const { Ym2203 } = await import('./ym2203.js');
+    const { Ym2203 } = await import('./ym2203.js?v=pcm-views-1');
     return Ym2203.create(await loadModule('ym2203', options));
   },
   /** @param {SoundChipOptions} [options] */
@@ -119,12 +119,12 @@ const loaders = {
   },
   /** @param {SoundChipOptions} [options] */
   ym2608: async (options) => {
-    const { Ym2608 } = await import('./ym2608.js');
+    const { Ym2608 } = await import('./ym2608.js?v=pcm-views-1');
     return Ym2608.create(await loadModule('ym2608', options));
   },
   /** @param {SoundChipOptions} [options] */
   ym2610b: async (options) => {
-    const { Ym2610B } = await import('./ym2610b.js');
+    const { Ym2610B } = await import('./ym2610b.js?v=pcm-views-1');
     return Ym2610B.create(await loadModule('ym2610b', options));
   },
   /** @param {SoundChipOptions} [options] */
@@ -181,15 +181,15 @@ const createLocalSoundChip = createSoundChipFactory(loaders);
 /** @typedef {{
  *   gameboy: import('./gameboyapu.js').GameboyApu,
  *   segapsg: import('./segapsg.js').SegaPSG,
- *   pwm: import('./pwm32x.js').PWM32X,
+ *   pwm: import('./pwm32x.js?v=pcm-views-1').PWM32X,
  *   nes: import('./nesapu.js').NesApu,
  *   ay8910: import('./ay8910.js').Ay8910,
  *   y8950: import('./y8950.js').Y8950,
- *   ym2610b: import('./ym2610b.js').Ym2610B,
+ *   ym2610b: import('./ym2610b.js?v=pcm-views-1').Ym2610B,
  *   ym2151: import('./ym2151.js').Ym2151,
- *   ym2203: import('./ym2203.js').Ym2203,
+ *   ym2203: import('./ym2203.js?v=pcm-views-1').Ym2203,
  *   ym2413: import('./ym2413.js').Ym2413,
- *   ym2608: import('./ym2608.js').Ym2608,
+ *   ym2608: import('./ym2608.js?v=pcm-views-1').Ym2608,
  *   ym2612: import('./ym2612.js').Ym2612,
  *   ym3438: import('./ym3438.js').Ym3438,
  *   ym3526: import('./ym3526.js').Ym3526,

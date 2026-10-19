@@ -7,13 +7,13 @@
 import { OPNDirectTransport, OPNWorkletTransport, OPNFMSynth } from "./opn_fm_synth.js?v=opnb-primary-1";
 import { OPNRuntimeSynth } from "./opn_runtime_synth.js?v=opnb-primary-1";
 import { SSGSynth } from "./ssgsynth.js?v=opna-primary-1";
-import { YM2608_CLOCK } from "./ym2608.js";
+import { YM2608_CLOCK } from "./ym2608.js?v=pcm-views-1";
 import {readSamplePCM, encodeAdpcmB} from './adpcm_b_sample.js';
 
 /** Direct transport for YM2608 register operations. */
-/** @extends {OPNDirectTransport<import('./ym2608.js').Ym2608>} */
+/** @extends {OPNDirectTransport<import('./ym2608.js?v=pcm-views-1').Ym2608>} */
 export class YM2608DirectTransport extends OPNDirectTransport {
-  /** @param {import('./ym2608.js').Ym2608} chip */
+  /** @param {import('./ym2608.js?v=pcm-views-1').Ym2608} chip */
   constructor(chip) {
     super(chip, { chipName: "YM2608", portCount: 2 });
   }
@@ -290,7 +290,7 @@ export class YM2608RuntimeSynth extends OPNRuntimeSynth {
       fmChannels: 6,
       portCount: 2,
       processorName: "ym2608-processor",
-      workletUrl: "./ym2608-worklet.js?v=audio-render-2",
+      workletUrl: "./ym2608-worklet.js?v=audio-render-3",
       wasmUrl: "../generated/ym2608_wasm.wasm",
       FMSynth: YM2608Synth,
       rhythmRomUrl: new URL('./tetorica_ym2608_adpcm_rom.bin', import.meta.url),

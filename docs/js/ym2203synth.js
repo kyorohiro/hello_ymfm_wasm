@@ -5,14 +5,14 @@
  * RuntimeSynth 系の実再生は OPNRuntimeSynth 経由で AudioContext / AudioWorkletNode / fetch を使う。
  */
 import { SSGSynth } from "./ssgsynth.js?v=opna-primary-1";
-import { YM2203_CLOCK } from "./ym2203.js";
+import { YM2203_CLOCK } from "./ym2203.js?v=pcm-views-1";
 import { OPNDirectTransport, OPNFMSynth } from "./opn_fm_synth.js?v=opnb-primary-1";
 import { OPNRuntimeSynth } from "./opn_runtime_synth.js?v=opnb-primary-1";
 
 /** Direct transport for YM2203 FM and SSG registers. */
-/** @extends {OPNDirectTransport<import('./ym2203.js').Ym2203>} */
+/** @extends {OPNDirectTransport<import('./ym2203.js?v=pcm-views-1').Ym2203>} */
 export class YM2203DirectTransport extends OPNDirectTransport {
-  /** @param {import('./ym2203.js').Ym2203} chip */
+  /** @param {import('./ym2203.js?v=pcm-views-1').Ym2203} chip */
   constructor(chip) {
     super(chip, { chipName: "YM2203", portCount: 1 });
   }
@@ -62,7 +62,7 @@ export class YM2203RuntimeSynth extends OPNRuntimeSynth {
       fmChannels: 3,
       portCount: 1,
       processorName: "ym2203-processor",
-      workletUrl: "./ym2203-worklet.js?v=audio-render-2",
+      workletUrl: "./ym2203-worklet.js?v=audio-render-3",
       wasmUrl: "../generated/ym2203_wasm.wasm",
       FMSynth: YM2203Synth,
     });

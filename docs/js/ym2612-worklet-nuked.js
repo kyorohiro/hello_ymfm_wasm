@@ -1,5 +1,5 @@
 import {PsgInspectorState, receiveChipInspector} from './playground_chip_inspector_state.js?v=chip-tabs-2';
-import {validateChipClock} from './playground_chip_clock.js?v=native-modes-2';
+import {validateChipClock} from './playground_chip_clock.js?v=native-modes-3';
 import {createPerformanceQueue, createPerformanceChipOwnership} from './playground_performance_queue.js';
 import {createOpnAuditionGuard, receiveOpnAuditionCommand} from './playground_audition_guard.js';
 import {YM2612DacPlayer, receiveDacCommand} from "./ym2612_dac.js";
@@ -144,6 +144,12 @@ class YM2612Processor extends AudioWorkletProcessor {
       }
 
       if (this.psg) this.psgInspector = new PsgInspectorState(this.psg, {sampleRate});
+
+      // Match the normal Genesis path: reserve once and consume borrowed PCM
+      // views in the audio callback, without copying arrays every quantum.
+      const capacity = Math.ceil(128 * this.ym2612.sampleRate() / sampleRate);
+      this.ym2612.reserveStereoFrames(capacity);
+      this.psg?.reserveStereoFrames(capacity);
 
       for (const command of this.pendingCommands) {
         this.applyCommand(command);
@@ -469,8 +475,8 @@ class YM2612Processor extends AudioWorkletProcessor {
     this.psgLeft ??= 0; this.psgRight ??= 0;
     const psgFrames = Math.floor((this.psgRemainder + frames * psgRate) / sampleRate);
     const sourceFrames = Math.floor((this.resampleRemainder + frames * chipRate) / sampleRate);
-    const pcm = sourceFrames > 0 ? this.ym2612.generateStereo(sourceFrames) : null;
-    const psg = psgFrames > 0 ? this.psg?.generateStereo(psgFrames) : null;
+    const pcm = sourceFrames > 0 ? this.ym2612.generateStereoView(sourceFrames) : null;
+    const psg = psgFrames > 0 ? this.psg?.generateStereoView(psgFrames) : null;
     let sourceOffset = 0, psgOffset = 0;
     for (let i = 0; i < frames; i++) {
       for (let source = 0; source < MIX_SOURCES.length; source++) {

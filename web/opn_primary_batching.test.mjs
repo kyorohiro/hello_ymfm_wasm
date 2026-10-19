@@ -29,10 +29,13 @@ async function setup(name, Chip, rate) {
   processor.chip = await Chip.create({moduleFactory, moduleOptions:{wasmBinary}});
   processor.chipRate = processor.chip.sampleRate();
   processor.auditions = createOpnAuditionGuard(processor.chip, name === 'ym2203' ? 3 : 6);
-  let calls = 0;
+  let ownedCalls = 0, viewCalls = 0;
   const generate = processor.chip.generateStereo.bind(processor.chip);
-  processor.chip.generateStereo = frames => {calls++; return generate(frames);};
-  return {processor, scope, get calls() {return calls;}};
+  const view = processor.chip.generateStereoView.bind(processor.chip);
+  processor.chip.generateStereo = frames => {ownedCalls++; return generate(frames);};
+  processor.chip.generateStereoView = frames => {viewCalls++; return view(frames);};
+  return {processor, scope, get calls() {return ownedCalls + viewCalls;},
+    get ownedCalls() {return ownedCalls;}, get viewCalls() {return viewCalls;}};
 }
 
 // Keep the previous per-output-frame implementation as an independent PCM
@@ -101,6 +104,8 @@ for (const [name,Chip] of chips) for (const rate of [44100,48000,96000]) {
     }
     assert(peak > .001,'actual FM/SSG output must be audible');
     assert(actual.calls < reference.calls / 8,'WASM calls scale with timed segments instead of output samples');
+    assert(actual.viewCalls > 0,'the realtime path consumes borrowed PCM');
+    assert.equal(actual.ownedCalls,0,'the realtime path never copies owned PCM arrays');
     assert.equal(actual.processor.performanceQueue.getStats().queuedCommands,0);
   });
 }

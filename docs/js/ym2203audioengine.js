@@ -4,7 +4,7 @@
  * 依存: 音源チップ／WASM バックエンド（ファクトリーまたはエンジンを注入）。
  * 同期 PCM 生成・ミックス用。DOM・AudioContext・スピーカー出力は不要。
  */
-import { Ym2203, YM2203_CLOCK } from "./ym2203.js";
+import { Ym2203, YM2203_CLOCK } from "./ym2203.js?v=pcm-views-1";
 
 const DEFAULT_OUTPUT_SAMPLE_RATE = 44100;
 

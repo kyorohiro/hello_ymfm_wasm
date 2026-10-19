@@ -37,6 +37,20 @@ function render(p, frames) {
   return { left, right };
 }
 for (const tree of ['web', 'docs/js']) for (const file of ['ym2612-worklet.js', 'ym2612-worklet-nuked.js']) {
+  test(`${tree} ${file}: realtime FM and PSG use reusable views without owned PCM copies`, () => {
+    const {p} = processor(tree, file, 48000);
+    for (const key of ['ym2612','psg']) {
+      const source = p[key] = chip(53267);
+      const pcm = {left:new Float32Array(256).fill(.25),right:new Float32Array(256).fill(-.25)};
+      source.generateStereo = () => { throw new Error('Owned PCM allocation in realtime callback'); };
+      source.generateStereoView = n => { source.frames += n; return pcm; };
+    }
+    for (let i=0;i<375;i++) assert.ok(render(p,128).left.every(Number.isFinite));
+    assert.equal(p.ym2612.frames,53267);
+    assert.equal(p.psg.frames,53267);
+  });
+}
+for (const tree of ['web', 'docs/js']) for (const file of ['ym2612-worklet.js', 'ym2612-worklet-nuked.js']) {
   test(`${tree} ${file}: envelope monitoring is opt-in and spans complete 512-frame buckets`, () => {
     const {p, messages} = processor(tree, file, 48000);
     const left = new Float32Array(128).fill(.25), right = left;

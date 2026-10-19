@@ -1,4 +1,4 @@
-import {validateChipClock} from './playground_chip_clock.js?v=native-modes-2';
+import {validateChipClock} from './playground_chip_clock.js?v=native-modes-3';
 import {createPerformanceQueue, createPerformanceChipOwnership} from './playground_performance_queue.js';
 import {createOpnAuditionGuard, receiveOpnAuditionCommand} from './playground_audition_guard.js';
 import {createChipPortReceiver} from "./playground_chip_port.js";
@@ -9,7 +9,7 @@ import {createChipPortReceiver} from "./playground_chip_port.js";
  * AudioContext.audioWorklet.addModule() で読み込む専用エントリーポイント。音源コアの WASM も必要。
  */
 import ym2610bModuleFactory from "../generated/ym2610b_wasm.js";
-import { Ym2610B, YM2610B_CLOCK } from "./ym2610b.js";
+import { Ym2610B, YM2610B_CLOCK } from "./ym2610b.js?v=pcm-views-1";
 
 class YM2610BProcessor extends AudioWorkletProcessor {
   constructor() {
@@ -73,6 +73,7 @@ class YM2610BProcessor extends AudioWorkletProcessor {
       this.chip = await Ym2610B.create({ moduleFactory: ym2610bModuleFactory, moduleOptions: { wasmBinary: new Uint8Array(wasmBinary) }, variant });
       this.auditions = createOpnAuditionGuard(this.chip, 6);
       this.chipRate = this.chip.sampleRate(YM2610B_CLOCK);
+      this.chip.reserveStereoFrames(Math.ceil(128 * this.chipRate / sampleRate));
       this.port.postMessage({ type: "ready" });
     } catch (error) {
       this.chip?.dispose();
@@ -131,7 +132,7 @@ class YM2610BProcessor extends AudioWorkletProcessor {
         this.sampleCounts[index] = count;
         samples += count;
       }
-      const pcm = samples ? this.chip.generateStereo(samples) : null;
+      const pcm = samples ? this.chip.generateStereoView(samples) : null;
       let offset = 0;
       for (; frame < end; frame++) {
         const count = this.sampleCounts[frame];

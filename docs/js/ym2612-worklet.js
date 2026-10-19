@@ -1,5 +1,5 @@
 import {PsgInspectorState, receiveChipInspector} from './playground_chip_inspector_state.js?v=chip-tabs-2';
-import {validateChipClock} from './playground_chip_clock.js?v=native-modes-2';
+import {validateChipClock} from './playground_chip_clock.js?v=native-modes-3';
 import {createPerformanceQueue, createPerformanceChipOwnership} from './playground_performance_queue.js';
 import {createOpnAuditionGuard, receiveOpnAuditionCommand} from './playground_audition_guard.js';
 import {YM2612DacPlayer, receiveDacCommand} from "./ym2612_dac.js";

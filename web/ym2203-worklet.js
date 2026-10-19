@@ -65,6 +65,7 @@ class YM2203Processor extends AudioWorkletProcessor {
       });
       this.auditions = createOpnAuditionGuard(this.chip, 3);
       this.chipRate = this.chip.sampleRate(YM2203_CLOCK);
+      this.chip.reserveStereoFrames(Math.ceil(128 * this.chipRate / sampleRate));
       this.port.postMessage({ type: "ready" });
     } catch (error) {
       this.chip?.dispose();
@@ -113,7 +114,7 @@ class YM2203Processor extends AudioWorkletProcessor {
         this.sampleCounts[index] = count;
         samples += count;
       }
-      const pcm = samples ? this.chip.generateStereo(samples) : null;
+      const pcm = samples ? this.chip.generateStereoView(samples) : null;
       let offset = 0;
       for (; frame < end; frame++) {
         const count = this.sampleCounts[frame];

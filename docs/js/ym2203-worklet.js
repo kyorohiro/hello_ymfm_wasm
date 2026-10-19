@@ -1,4 +1,4 @@
-import {validateChipClock} from './playground_chip_clock.js?v=native-modes-2';
+import {validateChipClock} from './playground_chip_clock.js?v=native-modes-3';
 import {createPerformanceQueue, createPerformanceChipOwnership} from './playground_performance_queue.js';
 import {createOpnAuditionGuard, receiveOpnAuditionCommand} from './playground_audition_guard.js';
 import {createChipPortReceiver} from "./playground_chip_port.js";
@@ -9,7 +9,7 @@ import {createChipPortReceiver} from "./playground_chip_port.js";
  * AudioContext.audioWorklet.addModule() で読み込む専用エントリーポイント。音源コアの WASM も必要。
  */
 import ym2203ModuleFactory from "../generated/ym2203_wasm.js";
-import { Ym2203, YM2203_CLOCK } from "./ym2203.js";
+import { Ym2203, YM2203_CLOCK } from "./ym2203.js?v=pcm-views-1";
 
 class YM2203Processor extends AudioWorkletProcessor {
   constructor() {
@@ -65,6 +65,7 @@ class YM2203Processor extends AudioWorkletProcessor {
       });
       this.auditions = createOpnAuditionGuard(this.chip, 3);
       this.chipRate = this.chip.sampleRate(YM2203_CLOCK);
+      this.chip.reserveStereoFrames(Math.ceil(128 * this.chipRate / sampleRate));
       this.port.postMessage({ type: "ready" });
     } catch (error) {
       this.chip?.dispose();
@@ -113,7 +114,7 @@ class YM2203Processor extends AudioWorkletProcessor {
         this.sampleCounts[index] = count;
         samples += count;
       }
-      const pcm = samples ? this.chip.generateStereo(samples) : null;
+      const pcm = samples ? this.chip.generateStereoView(samples) : null;
       let offset = 0;
       for (; frame < end; frame++) {
         const count = this.sampleCounts[frame];

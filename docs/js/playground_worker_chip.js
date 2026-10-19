@@ -1,4 +1,4 @@
-import {attachChipClock, CHIP_CLOCKS} from './playground_chip_clock.js?v=native-modes-2';
+import {attachChipClock, CHIP_CLOCKS} from './playground_chip_clock.js?v=native-modes-3';
 /** Worker/Node: selected-primary performance state and register generation.
  * No DOM, AudioNode or main-thread RPC. Observers are fire-and-forget.
  */

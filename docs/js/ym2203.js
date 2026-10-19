@@ -115,6 +115,8 @@ export class Ym2203 {
       this.api.destroy(this.handle);
       this.handle = 0;
     }
+    this.bufferFrames = 0;
+    this.pcmView = undefined;
   }
 
   /**
@@ -245,11 +247,46 @@ export class Ym2203 {
     return { left, right };
   }
 
+  /**
+   * Reserve PCM capacity without advancing the chip (for realtime initialization).
+   * @param {number} frames Maximum expected stereo frame count.
+   * @returns {void}
+   */
+  reserveStereoFrames(frames) {
+    this.#ensureBuffers(frames);
+  }
+
+  /**
+   * Generate borrowed views of WASM PCM, reusing arrays and the result object.
+   * Read only the first `frames` entries; array length is reserved capacity.
+   * Consume immediately: generation, buffer growth, or disposal invalidates the data.
+   * Do not retain/mutate these views. Use generateStereo() for owned copies.
+   * @param {number} frames Nonnegative integer frame count, up to 16777216.
+   * @returns {{left: Float32Array, right: Float32Array}} Borrowed PCM views.
+   */
+  generateStereoView(frames) {
+    this.#ensureBuffers(frames);
+    this.api.generate(this.handle, this.leftPtr, this.rightPtr, frames);
+    this.#syncIrq();
+    const buffer = this.module.HEAPF32.buffer;
+    const view = this.pcmView;
+    if (!view || view.left.buffer !== buffer ||
+        view.left.byteOffset !== this.leftPtr || view.right.byteOffset !== this.rightPtr ||
+        view.left.length !== this.bufferFrames) {
+      this.pcmView = {
+        left: new Float32Array(buffer, this.leftPtr, this.bufferFrames),
+        right: new Float32Array(buffer, this.rightPtr, this.bufferFrames),
+      };
+    }
+    return this.pcmView;
+  }
+
   /** @param {number} frames */
   #ensureBuffers(frames) {
     if (!Number.isInteger(frames) || frames < 0 || frames > 0x1000000) {
       throw new RangeError("Invalid frame count");
     }
+    if (!this.handle) throw new Error("YM2203 is disposed");
     if (frames <= this.bufferFrames) {
       return;
     }

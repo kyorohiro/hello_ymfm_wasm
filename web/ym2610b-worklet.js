@@ -73,6 +73,7 @@ class YM2610BProcessor extends AudioWorkletProcessor {
       this.chip = await Ym2610B.create({ moduleFactory: ym2610bModuleFactory, moduleOptions: { wasmBinary: new Uint8Array(wasmBinary) }, variant });
       this.auditions = createOpnAuditionGuard(this.chip, 6);
       this.chipRate = this.chip.sampleRate(YM2610B_CLOCK);
+      this.chip.reserveStereoFrames(Math.ceil(128 * this.chipRate / sampleRate));
       this.port.postMessage({ type: "ready" });
     } catch (error) {
       this.chip?.dispose();
@@ -131,7 +132,7 @@ class YM2610BProcessor extends AudioWorkletProcessor {
         this.sampleCounts[index] = count;
         samples += count;
       }
-      const pcm = samples ? this.chip.generateStereo(samples) : null;
+      const pcm = samples ? this.chip.generateStereoView(samples) : null;
       let offset = 0;
       for (; frame < end; frame++) {
         const count = this.sampleCounts[frame];

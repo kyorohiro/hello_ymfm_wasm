@@ -7,9 +7,9 @@ import {installPlaygroundShell} from './playground_shell.js?v=compact-shell-1';
 import {installPlaygroundGit} from './playground_git.js';
 import {openDraftStore, createProjectAutosave} from './playground_autosave.js?v=opn-modes-1';
 import {PLAYGROUND_MODES, resolvePlaygroundMode, createModeSynthOptions,
-  createPlaygroundModeUrl, isSimplePlaygroundLayout} from './playground_mode.js?v=native-modes-2';
+  createPlaygroundModeUrl, isSimplePlaygroundLayout} from './playground_mode.js?v=native-modes-3';
 import {saveModeProject, consumeModeProject} from './playground_mode_project.js';
-import {reconcileModeProject} from './playground_mode_starters.js?v=native-modes-2';
+import {reconcileModeProject} from './playground_mode_starters.js?v=native-modes-3';
 let desktopAutosave = null;
 let playgroundShell = null;
 let fileExplorerMenu = null;
@@ -34,7 +34,7 @@ import {
 } from "../js/megasynth.js?v=chip-tabs-2";
 import {
   createTetoricaSynth,
-} from "../js/tetorica_synth.js?v=native-modes-2";
+} from "../js/tetorica_synth.js?v=native-modes-3";
 import {
   createTfiOperatorObjectText,
   createTfiPresetObjectText,
@@ -47,8 +47,8 @@ import {
 } from "./playground_operator_tab.js?v=chip-tabs-2";
 import { createPlaygroundOperatorKeyboard } from "./playground_operator_keyboard.js?v=keyboard-controls-minimize-1";
 import { CHIP_CLOCKS } from "../js/playground_chip_clock.js?v=opnb-primary-1";
-import { DEFAULT_CODE, EXAMPLES, EXAMPLE_FILES, MODE_DEFAULT_CODES, MODE_EXAMPLE_FILES } from "./playground_examples.js?v=native-modes-2";
-import { initializePlaygroundMonaco } from "./playground_monaco.js?v=native-modes-2";
+import { DEFAULT_CODE, EXAMPLES, EXAMPLE_FILES, MODE_DEFAULT_CODES, MODE_DEFAULT_HISTORY, MODE_EXAMPLE_FILES } from "./playground_examples.js?v=starter-history-1";
+import { initializePlaygroundMonaco } from "./playground_monaco.js?v=native-modes-3";
 import {
   decodeBase64Bytes,
   loadTfiPresetsFromQuery,
@@ -79,12 +79,12 @@ import { exportYm2608VgmToPlaygroundJavaScript } from "../js/ym2608vgm.js";
 import { exportYm2610BVgmToPlaygroundJavaScript } from "../js/ym2610bvgm.js";
 import {
   createPlaygroundRuntime,
-} from "../js/playground_runtime.js?v=native-modes-2";
+} from "../js/playground_runtime.js?v=native-modes-3";
 import {DEFAULT_WORKER_LOOKAHEAD_SECONDS} from '../js/playground_performance_sender.js?v=opna-primary-1';
 import { createVgmPresetFiles } from "./playground_vgm_presets.js";
 import { createTfiFileEditor, instrumentToEditorPreset } from "./playground_tfi_editor.js?v=chip-tabs-2";
 import { renderFileTree } from "./playground_file_tree.js?v=opnb-primary-1";
-import { createPlaygroundUi, applyPlaygroundLayout } from "./playground_ui.js?v=native-modes-2";
+import { createPlaygroundUi, applyPlaygroundLayout } from "./playground_ui.js?v=native-modes-3";
 import {
   handleMegaSynthEvent,
 } from "./playground_sync.js";
@@ -303,7 +303,7 @@ let editorAdapter =
 const bundledExampleFiles = MODE_EXAMPLE_FILES[selectedMode.id];
 if (!bundledExampleFiles) throw new Error(`Missing examples for ${selectedMode.label}`);
 const knownModeDefaults = Object.fromEntries(Object.entries(MODE_DEFAULT_CODES).map(([id, source]) =>
-  [id, [source, id === 'gameboy' ? EXAMPLES['gameboy-mode-pulse'] : DEFAULT_CODE]]));
+  [id, [source, ...(MODE_DEFAULT_HISTORY[id] ?? []), id === 'gameboy' ? EXAMPLES['gameboy-mode-pulse'] : DEFAULT_CODE]]));
 function prepareModeProject(snapshot, targetModeId = selectedMode.id) {
   return reconcileModeProject(snapshot, {
     targetModeId,

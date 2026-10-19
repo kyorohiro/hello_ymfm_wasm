@@ -1,7 +1,7 @@
-import {validateChipClock} from './playground_chip_clock.js?v=native-modes-2';
+import {validateChipClock} from './playground_chip_clock.js?v=native-modes-3';
 import {Ym2151} from './ym2151.js';
 import factory from '../generated/ym2151_wasm.js';
-import {createProcessorPerformance} from './playground_performance_processor.js?v=native-modes-2';
+import {createProcessorPerformance} from './playground_performance_processor.js?v=native-modes-3';
 class Processor extends AudioWorkletProcessor {
   constructor(options) {
     super(); this.chip = null; this.dead = false; this.remainder = 0; this.left = 0; this.right = 0;

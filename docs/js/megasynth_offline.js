@@ -34,7 +34,7 @@ async function loadFX(options) {
  */
 /** @typedef {{sampleRate?: number, masterVolume?: number, chipOptions?: import('./soundchip.js').SoundChipOptions,
  * fxModule?: WebAssembly.Module, fxWasmBinary?: Uint8Array | ArrayBuffer, fxWasmUrl?: string | URL,
- * signal?: AbortSignal, mega32X?: boolean, pwmOptions?: import('./pwm32x.js').PWM32XOptions}} MegaSynthOfflineOptions */
+ * signal?: AbortSignal, mega32X?: boolean, pwmOptions?: import('./pwm32x.js?v=pcm-views-1').PWM32XOptions}} MegaSynthOfflineOptions */
 /** @param {MegaSynthOfflineOptions} [options] */
 export async function createMegaSynthOffline(options = {}) {
   const sampleRate = options.sampleRate ?? 48000;

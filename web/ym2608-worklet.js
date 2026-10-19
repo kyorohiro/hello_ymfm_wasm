@@ -78,6 +78,7 @@ class YM2608Processor extends AudioWorkletProcessor {
       });
       this.auditions = createOpnAuditionGuard(this.chip, 6);
       this.chipRate = this.chip.sampleRate(YM2608_CLOCK);
+      this.chip.reserveStereoFrames(Math.ceil(128 * this.chipRate / sampleRate));
       if (rhythmRom) this.chip.loadAdpcmARom(rhythmRom);
       this.port.postMessage({ type: "ready" });
     } catch (error) {
@@ -141,7 +142,7 @@ class YM2608Processor extends AudioWorkletProcessor {
         this.sampleCounts[index] = count;
         samples += count;
       }
-      const pcm = samples ? this.chip.generateStereo(samples) : null;
+      const pcm = samples ? this.chip.generateStereoView(samples) : null;
       let offset = 0;
       for (; frame < end; frame++) {
         const count = this.sampleCounts[frame];

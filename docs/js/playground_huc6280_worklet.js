@@ -1,8 +1,8 @@
-import {ChipClockResampler, validateChipClock} from './playground_chip_clock.js?v=native-modes-2';
+import {ChipClockResampler, validateChipClock} from './playground_chip_clock.js?v=native-modes-3';
 import {Huc6280AudioEngine} from './huc6280audioengine.js';
-import {HUC6280_CLOCK} from './huc6280synth.js?v=native-modes-2';
+import {HUC6280_CLOCK} from './huc6280synth.js?v=native-modes-3';
 import factory from '../generated/huc6280_wasm.js';
-import {createProcessorPerformance} from './playground_performance_processor.js?v=native-modes-2';
+import {createProcessorPerformance} from './playground_performance_processor.js?v=native-modes-3';
 
 class Processor extends AudioWorkletProcessor {
   constructor(options) {

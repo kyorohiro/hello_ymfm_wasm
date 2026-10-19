@@ -1,0 +1,17 @@
+{
+  "pc98": [
+    "// Select Mode: PC-98 (YM2608 / OPNA).\n// Built-in FM, SSG and rhythm; bundled synthetic drums need no ROM upload.\nsetBpm(120);\nfm.setPreset(CH1, FM_PRESETS['one-op-basic']);\nssg.setVolume(0, 8);\nrhythm.setVolume(48);\nfor (const voice of ['bassDrum', 'snare', 'hiHat']) {\n  rhythm.setVoice(voice, {volume: 24, left: true, right: true});\n}\n\nliveLoop('opna-groove', async () => {\n  const lead = ['C4', 'E4', 'G4', 'B4', 'C5', 'G4', 'E4', 'D4'];\n  for (let step = 0; step < lead.length; step++) {\n    rhythm.keyOn([step % 2 ? 'snare' : 'bassDrum', 'hiHat']);\n    ssg.noteOn(0, step < 4 ? 'C3' : 'G2');\n    await play(lead[step], {channel: CH1, beats: 0.4});\n    ssg.keyOff(0);\n    await beat(0.1);\n  }\n});\n"
+  ],
+  "pc98-26": [
+    "// Select Mode: PC-98 (YM2203 / OPN).\n// FM and SSG share one mono YM2203, sent equally to left and right.\nsetBpm(120);\nfm.setPreset(CH1, FM_PRESETS['one-op-basic']);\nssg.setVolume(0, 8);\n\nliveLoop('opn-melody', async () => {\n  const lead = ['C4', 'E4', 'G4', 'B4', 'C5', 'G4', 'E4', 'D4'];\n  const bass = ['C3', 'C3', 'G2', 'G2', 'A2', 'A2', 'G2', 'G2'];\n  for (let step = 0; step < lead.length; step++) {\n    ssg.noteOn(0, bass[step]);\n    await play(lead[step], {channel: CH1, beats: 0.4});\n    ssg.keyOff(0);\n    await beat(0.1);\n  }\n});\n"
+  ],
+  "neogeo": [
+    "// Select Mode: Neo Geo (YM2610) or Neo Geo (YM2610B).\n// FM and SSG use the standard chip; ADPCM sections are available separately.\nsetBpm(120);\nfm.setPreset(CH1, FM_PRESETS['one-op-basic']);\nssg.setVolume(0, 8);\n\nliveLoop('opnb-duet', async () => {\n  const lead = ['C4', 'E4', 'G4', 'B4', 'C5', 'G4', 'E4', 'D4'];\n  for (let step = 0; step < lead.length; step++) {\n    ssg.noteOn(0, step < 4 ? 'C3' : 'G2');\n    await play(lead[step], {channel: CH1, beats: 0.4});\n    ssg.keyOff(0);\n    await beat(0.1);\n  }\n});\n"
+  ],
+  "snes": [
+    "// Select Mode: SNES. CPU-free S-DSP; original BRR, no game files needed.\nsetBpm(120);\nconst leadSample = await livePrepare('snes-mode-lead-brr', async () => {\n  const brrBytes = new Uint8Array([0xc3, 0x13, 0x57, 0x75, 0x31, 0xfd, 0xb9, 0x9b, 0xdf]);\n  // One looping block = 16 samples at native 32,000 Hz: base frequency 2,000 Hz.\n  return snes.loadBRR(brrBytes, {baseFrequencyHz:2000, loopStartSamples:0});\n});\nsnes.setPreset(0, {\n  sample:leadSample, adsr1:0x8f, adsr2:0xe0, gain:127,\n  volumeLeft:80, volumeRight:80,\n});\n\nliveLoop('snes-melody', async () => {\n  for (const note of ['C4', 'E4', 'G4', 'B4', 'C5', 'G4', 'E4', 'D4']) {\n    snes.noteOn(0, note);\n    await beat(0.4);\n    snes.noteOff(0);\n    await beat(0.1);\n  }\n});\n\n// Eight physical voices, numbered 0..7. Assign a BRR sample before setting pitch.\n"
+  ],
+  "pc-engine": [
+    "// Select Mode: PC Engine. Six 32-entry, five-bit wavetable voices.\nsetBpm(120);\npce.setWaveform(0, Array.from({length:32}, (_, index) =>\n  Math.round(15.5 + 15.5 * Math.sin(index * Math.PI / 16))));\npce.setVolume(0, 26); // Hardware volume 0..31.\npce.setPan(0, 15, 15); // Independent left/right balances 0..15.\n\nliveLoop('pce-melody', async () => {\n  for (const note of ['C4', 'E4', 'G4', 'B4', 'C5', 'G4', 'E4', 'D4']) {\n    pce.noteOn(0, note);\n    await beat(0.4);\n    pce.keyOff(0);\n    await beat(0.1);\n  }\n});\n\n// Uploading a waveform stops its channel. Channels 4/5 can also generate noise.\n"
+  ]
+}

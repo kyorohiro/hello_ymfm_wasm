@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="ja">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Safari 音声の切り分け — Tetorica</title>
+<style>
+  :root {color-scheme:dark light;font:16px/1.7 system-ui,sans-serif}
+  body {max-width:760px;margin:40px auto;padding:0 20px}
+  h1 {font-size:1.5rem} select,button {font:inherit;padding:10px;margin:5px 6px 5px 0}
+  button:disabled {opacity:.5} #status {padding:14px;border:1px solid #888;border-radius:6px;min-height:3em}
+  pre {white-space:pre-wrap;overflow-wrap:anywhere;font:13px/1.5 monospace}
+</style>
+<h1>Safari 音声の切り分け</h1>
+<p>選んだ音を6秒間鳴らします。①が終わったら②を押して、ノイズが録音にも入っているか聴き比べてください。</p>
+<label>音源 <select id="mode"></select></label>
+<label>鳴らし方 <select id="pattern"><option value="hold">持続音</option><option value="starter" selected>Playgroundと同じ初期コード</option></select></label>
+<div>
+  <button id="record">① 音源で鳴らして録音</button>
+  <button id="replay" disabled>② 同じ録音を再生</button>
+  <button id="sine">③ 基準のサイン波</button>
+  <button id="stop">停止</button>
+</div>
+<p id="status" role="status">①から始めてください。途中で停止できます。</p>
+<p>①は音源を動かして再生します。②は音源を終了し、録音した音だけを再生します。③はブラウザー標準の音です。最初と最後の音の切り替わりを除いて比べてください。</p>
+<button id="download" disabled>録音をWAVで保存</button>
+<pre id="details"></pre>
+<script type="module">
+import {createTetoricaSynth} from '../js/tetorica_synth.js?v=native-modes-3';
+import {createPlaygroundRuntime} from '../js/playground_runtime.js?v=native-modes-3';
+import {FM_PRESETS} from '../js/megasynth-fm-presets.js';
+import {getPlaygroundMode,createModeSynthOptions} from './playground_mode.js?v=native-modes-3';
+import {MODE_DEFAULT_CODES} from './playground_examples.js?v=starter-history-1';
+import {encodeWav} from '../js/wav.js';
+
+const $=id=>document.getElementById(id), modes=['genesis','genesis-full','genesis-full-nuked','pc98-26','pc98','neogeo','neogeo-b'];
+for(const id of modes) $('mode').add(new Option(getPlaygroundMode(id).label,id));
+$('mode').value='pc98';
+let generation=0,cleanup=async()=>{},recorded=null;
+const status=text=>{$('status').textContent=text;};
+const busy=value=>{for(const id of ['record','replay','sine','mode','pattern']) $(id).disabled=value||(id==='replay'&&!recorded);};
+const details=context=>{$('details').textContent=[navigator.userAgent,
+  `sampleRate: ${context.sampleRate} Hz`, `baseLatency: ${context.baseLatency??'unavailable'} s`,
+  `outputLatency: ${context.outputLatency??'unavailable'} s`].join('\n');};
+async function stop(){generation++;const close=cleanup;cleanup=async()=>{};await close();busy(false);}
+function report(error){if(error.name!=='AbortError')status(`エラー: ${error.message}`);}
+
+const captureSource=`class Capture extends AudioWorkletProcessor {
+  constructor(){super();this.offset=0;this.length=Math.round(sampleRate*6);this.left=new Float32Array(this.length);this.right=new Float32Array(this.length);this.done=false;}
+  process(inputs){
+    if(this.done)return false;
+    const channels=inputs[0];if(!channels?.[0])return true;
+    const count=Math.min(channels[0].length,this.length-this.offset);
+    for(let i=0;i<count;i++){this.left[this.offset+i]=channels[0][i];this.right[this.offset+i]=(channels[1]??channels[0])[i];}
+    this.offset+=count;
+    if(this.offset===this.length){this.done=true;this.port.postMessage({left:this.left,right:this.right,sampleRate},[this.left.buffer,this.right.buffer]);return false;}
+    return true;
+  }
+} registerProcessor('tetorica-audio-check-capture',Capture);`;
+
+$('record').onclick=async()=>{
+  await stop();const token=generation;busy(true);status('音源を準備しています…');
+  let synth,runtime,tap,detach,rejectCapture;
+  cleanup=async()=>{
+    rejectCapture?.(new DOMException('Stopped','AbortError'));
+    detach?.();tap?.disconnect();tap?.port.close();await runtime?.finalize();await synth?.close();
+  };
+  try{
+    const mode=getPlaygroundMode($('mode').value);
+    const pattern=$('pattern').value;
+    synth=createTetoricaSynth(createModeSynthOptions(mode));
+    if(pattern==='starter'){
+      runtime=createPlaygroundRuntime({synth,onLog:line=>{$('details').textContent+='\n'+line;}});
+      await runtime.ensureReady();
+    }else await synth.start();
+    if(token!==generation){await synth.close();return;}
+    synth.setMasterVolume(1);
+    const context=synth.audioContext;details(context);
+    const url=URL.createObjectURL(new Blob([captureSource],{type:'text/javascript'}));
+    try{await context.audioWorklet.addModule(url);}finally{URL.revokeObjectURL(url);}
+    if(token!==generation)return;
+    tap=new AudioWorkletNode(context,'tetorica-audio-check-capture',{numberOfInputs:1,numberOfOutputs:1,outputChannelCount:[2]});
+    const capture=new Promise((resolve,reject)=>{rejectCapture=reject;tap.port.onmessage=({data})=>resolve(data);tap.onprocessorerror=()=>reject(Error('録音処理が停止しました'));});
+    detach=synth.audio.connectOutputMonitor(tap);tap.connect(context.destination);
+    if(runtime)await runtime.playSource(MODE_DEFAULT_CODES[mode.id],{execution:'main'});
+    else {synth.fm.setPreset(0,FM_PRESETS['one-op-basic']);synth.fm.noteOn(0,'A4');}
+    status(`① ${mode.label}：6秒間、音源で鳴らして録音しています…`);
+    const data=await capture;if(token!==generation)return;
+    recorded={...data,mode:mode.label,pattern};$('download').disabled=false;
+    let peak=0;for(const value of data.left)peak=Math.max(peak,Math.abs(value));
+    $('details').textContent+=`\nrecorded: ${mode.label}, ${data.left.length} frames, peak ${peak.toFixed(6)}`;
+    await stop();status('録音できました。②で同じ音を再生して、ノイズを聴き比べてください。');
+  }catch(error){if(token===generation){await stop();report(error);}}
+};
+
+async function play(kind){
+  await stop();const token=generation;busy(true);
+  const context=new AudioContext();cleanup=()=>context.close();
+  try{
+    await context.resume();if(token!==generation)return;details(context);
+    let source;
+    if(kind==='replay'){
+      if(!recorded)throw Error('①で録音してください');
+      const buffer=context.createBuffer(2,recorded.left.length,recorded.sampleRate);
+      buffer.copyToChannel(recorded.left,0);buffer.copyToChannel(recorded.right,1);
+      source=context.createBufferSource();source.buffer=buffer;source.connect(context.destination);
+      status(`② ${recorded.mode}の録音だけを再生しています…`);
+    }else{
+      source=context.createOscillator();source.frequency.value=440;
+      const gain=context.createGain();gain.gain.value=.06;source.connect(gain);gain.connect(context.destination);
+      status('③ ブラウザー標準のサイン波を6秒間鳴らしています…');
+    }
+    source.onended=()=>{if(token===generation)void stop().then(()=>status('再生が終わりました。'));};
+    source.start();if(kind!=='replay')source.stop(context.currentTime+6);
+  }catch(error){if(token===generation){await stop();report(error);}}
+}
+$('replay').onclick=()=>void play('replay');$('sine').onclick=()=>void play('sine');
+$('stop').onclick=()=>void stop().then(()=>status('停止しました。'));
+$('download').onclick=()=>{
+  if(!recorded)return;
+  const url=URL.createObjectURL(new Blob([encodeWav(recorded)],{type:'audio/wav'}));
+  const link=document.createElement('a');link.href=url;link.download='tetorica-audio-check.wav';link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+};
+</script>
+</html>

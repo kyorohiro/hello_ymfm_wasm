@@ -1,4 +1,4 @@
-import {CHIP_CLOCKS} from '../js/playground_chip_clock.js?v=native-modes-2';
+import {CHIP_CLOCKS} from '../js/playground_chip_clock.js?v=native-modes-3';
 
 // Modes describe an authoring environment. Chip IDs remain the runtime/API IDs.
 const definitions = [
@@ -71,9 +71,9 @@ export function createModeSynthOptions(mode, base = new URL('../js/', import.met
     const worklet = {nes:'playground_nes_worklet',snes:'playground_snes_worklet',x68000:'playground_ym2151_worklet',huc6280:'playground_huc6280_worklet'}[mode.chip];
     const wasm = {snes:'spc',x68000:'ym2151',huc6280:'huc6280'}[mode.chip];
     return {chip:mode.chip,clock:mode.clock,fds:mode.chip === 'nes',
-      workletUrl:new URL(`${worklet}.js?v=native-modes-2`,base).href,
+      workletUrl:new URL(`${worklet}.js?v=native-modes-3`,base).href,
       ...(wasm?{wasmUrl:new URL(`${wasm}_wasm.wasm`,generated).href}:{}),
-      ...(mode.chip === 'x68000'?{extraOki:{workletUrl:new URL('playground_okim6258_worklet.js?v=native-modes-2',base).href,wasmUrl:new URL('okim6258_wasm.wasm',generated).href}}:{}),
+      ...(mode.chip === 'x68000'?{extraOki:{workletUrl:new URL('playground_okim6258_worklet.js?v=native-modes-3',base).href,wasmUrl:new URL('okim6258_wasm.wasm',generated).href}}:{}),
       segaPsgWasmUrl:null,megaCD:false,mega32X:false};
   }
   if (mode.chip === 'gameboy') return {
@@ -88,10 +88,10 @@ export function createModeSynthOptions(mode, base = new URL('../js/', import.met
   const chip = mode.chip === 'ym2610' ? 'ym2610b' : mode.chip;
   const wasm = nuked ? 'nuked_opn2' : chip;
   const workletVersion = ['ym2203','ym2610','ym2610b','ym2608'].includes(mode.chip)
-    ? 'audio-render-2' : 'chip-tabs-2';
+    ? 'audio-render-3' : 'chip-tabs-2';
   return {
     chip:mode.chip,
-    workletUrl:new URL(nuked ? 'ym2612-worklet-nuked.js?v=chip-tabs-2' : `${chip}-worklet.js?v=${workletVersion}`, base).href,
+    workletUrl:new URL(nuked ? 'ym2612-worklet-nuked.js?v=audio-render-3' : `${chip}-worklet.js?v=${workletVersion}`, base).href,
     ym2612WasmUrl:new URL(`${wasm}_wasm.wasm`, generated).href,
     wasmUrl:mode.chip === 'ym2612' ? undefined : new URL(`${chip}_wasm.wasm`, generated).href,
     segaPsgWasmUrl:mode.chip === 'ym2612' ? new URL('segapsg_wasm.wasm', generated).href : null,
