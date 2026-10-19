@@ -1,11 +1,46 @@
 # Playground Sound Chip Mode 案
 
+## OPN 系の先行実装
+
+まずは既存の OPN 系 runtime を使い、Menu の Mode で次の環境を選べるようにする。
+
+| mode | ID | ベース音源 | マスタークロック |
+| --- | --- | --- | --- |
+| Genesis | `genesis` | YM2612 + Sega PSG / DAC | YM2612: 7,670,454 Hz |
+| Genesis Full | `genesis-full` | Genesis + Mega-CD RF5C164 + 32X PWM | YM2612: 7,670,454 Hz |
+| Genesis Full (Nuked) | `genesis-full-nuked` | Genesis Full の YM2612 を Nuked-OPN2 にする | YM2612: 7,670,454 Hz |
+| PC-98 (YM2203 / OPN) | `pc98-26` | YM2203 FM、3ch | 4,000,000 Hz |
+| PC-98 (YM2608 / OPNA) | `pc98` | YM2608 FM、6ch | 8,000,000 Hz |
+| Neo Geo | `neogeo` | YM2610 FM、4ch | 8,000,000 Hz |
+
+ここでの Hz は CPU や音声出力のサンプルレートではなく、音源のマスタークロック。
+型定義、FM チャンネル定数、補完、音程計算を、選んだ環境に合わせる。
+音源タブも mode に合わせ、Genesis は FM / Sega PSG、Full はさらに RF5C164 / 32X PWM、
+PC-98 と Neo Geo は対象の FM タブを表示する。Code や下部の共通ツールは引き続き使える。
+`useSoundChip()` で追加した音源によって、mode に含まれないタブを自動表示することはしない。
+PC-98 / Neo Geo の標準 FM 以外の機能は、既存の `useSoundChip()` / `createSoundChip()`
+で追加して使える。機種全体のエミュレーションを新設するものではない。
+
+切り替え時は停止・音声の終了処理を行い、現在のコード、バイナリ、フォルダー、
+開いているコードファイル、実行対象、Cassette メタデータを引き継いで再読み込みする。
+プロジェクトは IndexedDB で受け渡し、保存に失敗した場合は画面を移動しない。
+デスクトップの下書きは mode ごとに保存し、既存の下書きは対応する基本 mode で読み込める。
+
+新しい URL は `?mode=pc98` などを使う。既存の `chip=` / `engine=nuked` は入力互換として
+残す。明示された mode が優先する。通常の Nuked 版と YM2610B は、過去のリンク用の
+`genesis-nuked` / `neogeo-b` として維持する。簡易表示は `layout=simple` とし、
+従来の `mode=simple` も読み込める。
+
+YM2608 の `useSoundChip()` は、SSG・Rhythm・ADPCM・Timeline を含む既存のフル API を
+保つため、標準 FM とは別インスタンスのままとする。標準 FM と共有する YM2612・YM2203・
+YM2610 とは扱いが異なる。単純な FM への別名化でフル import を壊さない。
+
 ## 背景
 
 Playground は Genesis / YM2612 向けの環境から始まったため、グローバルの
 `fm`、`play()`、`write()`、`FM_PRESETS`、PSG、DAC などに、その出自が残っている。
 
-現在の `?chip=` はベースの OPN 音源を選ぶ仕組みであり、例えば
+mode 導入前の `?chip=` はベースの OPN 音源を選ぶ仕組みであり、例えば
 `?chip=ym2203` では `fm` と `play()` の発音先も YM2203 になる。
 一方、`useSoundChip()` で別の音源を追加しても、そのベースは切り替わらない。
 
@@ -16,8 +51,7 @@ NES、Game Boy、SNES、PC Engine など、FM ではない音源も扱うよう�
 音源の追加が一段落する段階なので、揃ってきた音源を前提に、
 「どの機種・音源環境で曲を書くか」を選べる形に整理する。
 
-この文書は設計メモ。mode 自体の実装や、すべての構成の Playground 統合が
-完了していることを示すものではない。
+以下は全体の設計メモ。OPN 系以外の mode は今後の対象とする。
 
 ## 方針
 
@@ -43,19 +77,20 @@ Genesis mode に FM、PSG、DAC が最初から用意され、`play()` が標準
 
 ## mode 候補
 
-名称・ID・構成は案。Genesis Full Nuked を加えた次の14候補を出発点とする。
+名称・ID・構成は案。PC-98 を OPN / OPNA に分けた次の15候補を出発点とする。
 
 | 表示名 | ID 案 | 標準音源・構成の案 | 補足・未決事項 |
 | --- | --- | --- | --- |
 | Genesis | `genesis` | YM2612 + Sega PSG、YM2612 DAC | 現在の使い勝手を引き継ぐ基本環境。 |
-| Genesis Full | `genesis-full` | Genesis の構成 + 拡張音源 | Mega-CD の RF5C164、32X PWM を含むかなど、Full の範囲を決める。 |
+| Genesis Full | `genesis-full` | Genesis + Mega-CD RF5C164 + 32X PWM | OPN 系の先行実装で対応。 |
 | Genesis Full (Nuked) | `genesis-full-nuked` | Genesis Full の YM2612 部分を Nuked-OPN2 にする構成 | エンジン選択を mode に含める案。Full の音源構成は通常版と揃える。 |
 | Master System | `master-system` | Sega PSG を中心とした構成 | FM 拡張を標準構成に含めるかは別途決める。 |
 | Game Gear | `game-gear` | Sega PSG を中心とした構成 | Master System との違い、ステレオ制御の扱いを整理する。 |
 | NES × FDS | `nes-fds` | NES + FDS | FDS を含む環境として用意する。 |
 | Game Boy | `gameboy` | Game Boy 音源 | FM を前提としない API・サンプルを用意する。 |
 | SNES | `snes` | SNES 音源 | サンプル・音色の初期構成と SPC 再生の位置付けを整理する。 |
-| PC-98 | `pc98` | YM2203 または YM2608 | OPN / OPNA の選択方法、初期値、公開する機能を決める。 |
+| PC-98 (OPN) | `pc98-26` | YM2203 | 先行実装は3ch の FM を標準音源とする。 |
+| PC-98 (OPNA) | `pc98` | YM2608 | 先行実装は6ch の FM を標準音源とする。 |
 | Neo Geo | `neogeo` | YM2610 系の構成 | 使用する実装と、FM・SSG・ADPCM の公開方法を整理する。 |
 | X68000 | `x68000` | YM2151 + OKIM6258 を想定 | 各音源の Playground 接続を確認する。 |
 | PC Engine | `pc-engine` | HuC6280 を想定 | Playground 側の接続・API を確認する。 |
@@ -81,10 +116,9 @@ mode が決める内容の候補は、標準音源の組み合わせに加えて
 選択中の mode に加え、実際に使っている音源・エンジンも確認できるようにする。
 内部のチップ ID や音源 API まで mode という名前に変更する必要はない。
 
-URL や保存設定も mode に揃える案とする。例えば `?mode=genesis-full-nuked` だけで
-初期構成と YM2612 エンジンを決められる形を想定する。具体的な保存形式や、
-既存の `chip=` / `engine=` URL をどう引き継ぐかは未決。
-過去のリンクを読み替える場合も、新しく選択・出力する環境設定は mode に統一する。
+URL とデスクトップの下書き保存キーも mode に揃える。
+例えば `?mode=genesis-full-nuked` だけで初期構成と YM2612 エンジンを決める。
+既存の `chip=` / `engine=` URL は互換入力として読み替え、新しい環境選択は mode に統一する。
 
 ### Nuked 版の扱い
 
@@ -96,8 +130,8 @@ URL や保存設定も mode に揃える案とする。例えば `?mode=genesis-
 - Nuked 版は YM2612 の実装を切り替える。PSG や追加の PCM 音源まで Nuked 実装に
   変わるという意味ではない。YM2612 の DAC も含め、既存コードとの動作を確認する。
 - エンジンによる音の違いを選べる環境として扱う。
-- 通常の Genesis にも `Genesis (Nuked)` を用意するかは未決。
-  必要なら `genesis-nuked` を追加候補とする。
+- 通常の `Genesis (Nuked)` は `genesis-nuked` として旧リンクとの互換性を維持する。
+  標準の選択候補には Full の Nuked 版を載せる。
 
 ## API の扱い
 
@@ -137,15 +171,13 @@ mode が環境を明示するなら、その環境に合ったショートカッ
 追加音源を取得するだけの `useSoundChip()` 呼び出しで、既存のショートカットの
 操作先が暗黙に切り替わらない方針を維持する。
 
-## 実装前に整理する点
+## 今後整理する点
 
 - mode ごとの音源構成、クロック、公開名、初期コードの対応表。
-- mode 標準音源を `useSoundChip()` で指定した場合に、同じインスタンスを返すか。
-  現状はベースの一部 OPN 音源だけが再利用されるため、統一した扱いを検討する。
-- mode 切り替え時の停止・後始末と、コード・追加音源・音色設定を保持する範囲。
-- 再読み込みによる切り替えにするか、同じ画面内で切り替えるか。
-- mode の保存方法と、既存 `chip=` URL との対応・優先順位。
-- 既存 `engine=nuked` の読み替えと、通常の Genesis にも Nuked 版を用意するか。
+- mode 標準音源を `useSoundChip()` で指定した場合の再利用範囲。
+  YM2608 のフル API や Full の追加音源も踏まえ、既存コードとの互換性を保つ。
+- 再読み込みを行わない mode 切り替えが必要か。
+- 実行中に変更した音色や追加音源など、コード・ファイル以外の状態を保持する範囲。
 - mode に対応した補完・型定義・ヘルプ・サンプルの提示方法。
 - Main / Worker の両実行モードで、同じ音源構成と公開 API を使えること。
 

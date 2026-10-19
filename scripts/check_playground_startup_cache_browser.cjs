@@ -154,6 +154,10 @@ async function check(engine, browserName, origin) {
       }
       for (const [tab, panel] of [['operatorTabButton', 'operatorPanel'], ['segapsgTab', 'segapsgPanel'],
         ['rf5c164Tab', 'rf5c164Panel'], ['pwmTab', 'pwmPanel'], ['mixerTab', 'mixerPanel']]) {
+        if (tab === 'rf5c164Tab' || tab === 'pwmTab') {
+          assert(!await page.locator('#' + tab).isVisible(), 'Genesis hides Full-only tabs: ' + tab);
+          continue;
+        }
         await page.click('#' + tab);
         assert(await page.locator('#' + panel).isVisible(), 'the upgraded tab opens: ' + tab);
       }

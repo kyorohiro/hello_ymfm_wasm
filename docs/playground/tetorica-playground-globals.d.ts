@@ -143,10 +143,10 @@ type PlaygroundNoteLength =
     };
 
 type PlaygroundPlayOptions = PlaygroundNoteLength & {
-  /** YM2612 channel 0..5. */
-  channel?: YM2612Channel;
-  /** Optional preset applied before playing the note. */
-  preset?: YM2612Preset;
+  /** Logical FM channel in the selected mode: 3 on YM2203, 4 on YM2610, otherwise 6. */
+  channel?: PlaygroundSelectedFmChannel;
+  /** Built-in or host-provided preset name applied before playing the note. */
+  preset?: MegaDriveFmPresetName | (string & {});
 };
 
 type PlaygroundSamplePlayOptions = {
@@ -646,7 +646,14 @@ type FMApi = PlaygroundChipClock & {
   rawWrite(port: number, register: number, value: number): void;
 };
 
-declare const fm: FMApi;
+/** The selected mode's primary FM chip; independent chips retain their own API. */
+type PlaygroundSelectedFmChannel = TetoricaSelectedChip extends 'ym2203' ? 0 | 1 | 2
+  : TetoricaSelectedChip extends 'ym2610' ? 0 | 1 | 2 | 3
+  : YM2612Channel;
+type PlaygroundSelectedFm = TetoricaSelectedChip extends 'ym2612' ? FMApi
+  : TetoricaSelectedChip extends 'ym2203' ? PlaygroundOPNFm<0 | 1 | 2, false>
+  : PlaygroundOPNFm<PlaygroundSelectedFmChannel>;
+declare const fm: PlaygroundSelectedFm;
 
 type PSGApi = {
   /** Configure Hz without triggering or changing attenuation. */
@@ -775,13 +782,21 @@ declare function onKeyboardPressKey(name: string, fn: (event: KeyboardEvent) => 
 declare function onKeyboardReleaseKey(name: string, fn: (event: KeyboardEvent) => void): void;
 /** Register cleanup that runs once after all named live loops disappear. */
 declare function liveCleanup(names: string[], fn: () => Promise<void> | void): void;
+type PlaygroundLivePrepareAPI = {
+  fx: FXApi;
+  fm: PlaygroundSelectedFm;
+  sample: PlaygroundSampleAPI;
+  stream: PlaygroundStreamAPI;
+  noise: PlaygroundNoiseAPI;
+  log: (...args: unknown[]) => void;
+} & (TetoricaSelectedChip extends 'ym2612' ? {psg: PSGApi} : {});
 /** Prepare shared live state once and reuse it across runs. */
-declare function livePrepare(name: string, fn: (context: { fx: FXApi; fm: FMApi; psg: PSGApi; sample: PlaygroundSampleAPI; stream: PlaygroundStreamAPI; noise: PlaygroundNoiseAPI; log: (...args: unknown[]) => void }) => Promise<any> | any): Promise<any>;
+declare function livePrepare(name: string, fn: (context: PlaygroundLivePrepareAPI) => Promise<any> | any): Promise<any>;
 /** Play one note through the current synth setup. */
 declare function play(note: string, options?: PlaygroundPlayOptions): Promise<void>;
-/** Compact YM2612 write helper. Defaults to port 0 when omitted. */
+/** Compact write to the selected FM chip. Defaults to port 0 when omitted. */
 declare function write(register: number, value: number): void;
-/** Compact YM2612 write helper with explicit port. */
+/** Compact write to the selected FM chip with explicit port. */
 declare function write(port: number, register: number, value: number): void;
 /** Wait for a number of seconds. */
 declare function sleep(seconds: number): Promise<void>;
@@ -856,10 +871,8 @@ declare function setBpm(bpm: number): void;
 declare function scale(root: string, name: string, octaves?: number): string[];
 /** Build a simple chord from a root note. */
 declare function chord(root: string, name: "major" | "minor" | "major7" | "minor7" | "dominant7"): string[];
-/** Convert one note name into raw YM2612 BLOCK / F-NUM values. */
 /** Note name or MIDI pitch at A4=440 Hz, using the selected chip and current master clock. */
 declare function noteToBlockFnum(note: string | number): { block: number; fnum: number };
-/** Convert Hz to YM2612 BLOCK/FNUM. Clock defaults to 7670454 Hz. */
 /** Convert Hz using the selected FM chip and its current master clock; clock overrides the master Hz. */
 declare function hzToBlockFnum(hz: number, clock?: number): { block: number; fnum: number };
 /** Interpolate between two numbers. */
@@ -929,12 +942,7 @@ declare function setInterval(handler: () => void, timeout?: number): number;
 /** Browser timer helper available in playground examples. */
 declare function clearInterval(id: number): void;
 
-type PlaygroundAPI = {
-  mixer: PlaygroundMixer;
-  /** Track a liveLoop task; rejection interrupts its waits and ends that loop. */
-  trackAsync(task: PromiseLike<unknown>): void;
-  createSoundChip: typeof createSoundChip;
-  useSoundChip: typeof useSoundChip;
+type PlaygroundChannelConstants = {
   CH1: 0;
   CH2: 1;
   CH3: 2;
@@ -951,14 +959,33 @@ type PlaygroundAPI = {
   CH14: 13;
   CH15: 14;
   CH16: 15;
-
-  midi: PlaygroundMidi;
-  /** Low-level YM2612 synth API. */
-  fm: FMApi;
-  /** Master FX helper API. */
-  fx: FXApi;
+};
+type PlaygroundSelectedChannelConstants = Pick<PlaygroundChannelConstants,
+  TetoricaSelectedChip extends 'ym2203' ? 'CH1' | 'CH2' | 'CH3'
+  : TetoricaSelectedChip extends 'ym2610' ? 'CH1' | 'CH2' | 'CH3' | 'CH4'
+  : TetoricaSelectedChip extends 'ym2612' ? keyof PlaygroundChannelConstants
+  : 'CH1' | 'CH2' | 'CH3' | 'CH4' | 'CH5' | 'CH6'>;
+type PlaygroundSelectedPsgAPI = TetoricaSelectedChip extends 'ym2612' ? {
   /** Raw Sega PSG API, mixed into the same output as fm. */
   psg: PSGApi;
+  psgTone: (channel: number, period: number, attenuation?: number) => void;
+  psgNoise: (mode: number, attenuation?: number) => void;
+  PSG1: 0;
+  PSG2: 1;
+  PSG3: 2;
+} : {};
+
+type PlaygroundAPI = {
+  mixer: PlaygroundMixer;
+  /** Track a liveLoop task; rejection interrupts its waits and ends that loop. */
+  trackAsync(task: PromiseLike<unknown>): void;
+  createSoundChip: typeof createSoundChip;
+  useSoundChip: typeof useSoundChip;
+  midi: PlaygroundMidi;
+  /** Primary FM API for the selected mode. */
+  fm: PlaygroundSelectedFm;
+  /** Master FX helper API. */
+  fx: FXApi;
   /** Shared mutable object that survives re-runs in the same playground session. */
   context: PlaygroundContext;
   /** Preloaded sample playback API. */
@@ -971,11 +998,6 @@ type PlaygroundAPI = {
     voice: PlaygroundNoiseVoice,
     options: NoiseControlOptions
   ) => void;
-  psgTone: (channel: number, period: number, attenuation?: number) => void;
-  psgNoise: (mode: number, attenuation?: number) => void;
-  PSG1: 0;
-  PSG2: 1;
-  PSG3: 2;
   /** Built-in preset table. */
   presets: typeof FM_PRESETS;
   /** Convert 42-byte TFI data into a preset accepted by `fm.setPreset()`. */
@@ -1003,7 +1025,7 @@ type PlaygroundAPI = {
   liveLoop: (name: string, fn: () => Promise<void> | void) => void;
   onKeyboardPressKey: (name: string, fn: (event: KeyboardEvent) => void) => void;
   onKeyboardReleaseKey: (name: string, fn: (event: KeyboardEvent) => void) => void;
-  livePrepare: (name: string, fn: (context: { fx: FXApi; fm: FMApi; psg: PSGApi; sample: PlaygroundSampleAPI; stream: PlaygroundStreamAPI; noise: PlaygroundNoiseAPI; log: (...args: unknown[]) => void }) => Promise<any> | any) => Promise<any>;
+  livePrepare: typeof livePrepare;
   scale: (root: string, name: string, octaves?: number) => string[];
   chord: (root: string, name: "major" | "minor" | "major7" | "minor7" | "dominant7") => string[];
   noteToBlockFnum: (note: string | number) => { block: number; fnum: number };
@@ -1028,7 +1050,7 @@ type PlaygroundAPI = {
   setDacLookahead: (seconds: number) => number;
   getDacLookahead: () => number;
   log: (...args: unknown[]) => void;
-};
+} & PlaygroundSelectedChannelConstants & PlaygroundSelectedPsgAPI;
 
 declare var pg: PlaygroundAPI;
 
@@ -1249,16 +1271,21 @@ declare function createSoundChip(name: 'ym2608', options?: PlaygroundCreateSound
  * YM2612/YM2203/YM2610 reuse global fm when selected, otherwise create an independent chip.
  * Multiple instances via id are not supported. Existing createSoundChip creates fresh chips.
  */
-/** Existing OPN FM facade, with logical channel bounds and no YM2612 DAC API. */
-type PlaygroundOPNFm<Channel extends YM2612Channel> = {
-  [K in Exclude<keyof FMApi, 'setDacEnabled' | 'writeDac' | 'dac'>]:
-    K extends 'setFrequency' ? {
+/** OPN setPreset configures operators/modulation; chip LFO uses setLfo separately. */
+type PlaygroundOPNPreset<Stereo extends boolean = true> = Stereo extends true
+  ? Omit<YM2612Preset, 'lfo'>
+  : Omit<YM2612Preset, 'pan' | 'ams' | 'pms' | 'lfo'>;
+/** OPN FM facade with logical channel bounds and the chip's supported controls. */
+type PlaygroundOPNFm<Channel extends YM2612Channel, Stereo extends boolean = true> = {
+  [K in Exclude<keyof FMApi, 'setDacEnabled' | 'writeDac' | 'dac' | (Stereo extends false ? 'setPan' | 'setLfo' : never)>]:
+    K extends 'setPreset' ? (channel: Channel, preset: PlaygroundOPNPreset<Stereo>) => void
+    : K extends 'setFrequency' ? {
       (channel: Channel, hz: number): void;
       (channel: Channel, block: number, fnum: number): void;
     } : K extends 'noteOn' ? {
       (channel: Channel, note: string | number): void;
       (channel: Channel, block: number, fnum: number): void;
-    } : K extends 'setPreset'  | 'setOperator' | 'setOperators' | 'setAlgo' | 'setPan' | 'setFrequency' | 'setNote' | 'setBlockFnum' | 'noteOnRaw' | 'keyOn' | 'keyOff' | 'noteOn' | 'noteOff'
+    } : K extends 'setOperator' | 'setOperators' | 'setAlgo' | 'setPan' | 'setNote' | 'setBlockFnum' | 'noteOnRaw' | 'keyOn' | 'keyOff' | 'noteOff'
       ? FMApi[K] extends (channel: YM2612Channel, ...args: infer Args) => infer Result
         ? (channel: Channel, ...args: Args) => Result : never
       : FMApi[K];
@@ -1578,7 +1605,7 @@ interface PlaygroundSpc {
 }
 type PlaygroundSoundChipMap = {
   ym2612: TetoricaSelectedChip extends 'ym2612' ? FMApi : PlaygroundCreatedFm;
-  ym2203: TetoricaSelectedChip extends 'ym2203' ? PlaygroundOPNFm<0 | 1 | 2> : PlaygroundCreatedYm2203;
+  ym2203: TetoricaSelectedChip extends 'ym2203' ? PlaygroundOPNFm<0 | 1 | 2, false> : PlaygroundCreatedYm2203;
   ym2610: TetoricaSelectedChip extends 'ym2610' ? PlaygroundOPNFm<0 | 1 | 2 | 3> : PlaygroundCreatedYm2610;
   rf5c164: PlaygroundRf5c164;
   ym2608: PlaygroundYm2608;
@@ -1607,9 +1634,9 @@ declare function createSoundChip(name:'spc', options?:PlaygroundCreateSoundChipO
 
 /** Independent chips. Global play/write still target the default Playground chip. */
 type PlaygroundCreatedFm = Omit<FMApi, 'dac' | 'scheduleWrites' | 'read' | 'readStatus' | 'getIrq'> & {dispose(): void};
-type PlaygroundCreatedOPN<C extends YM2612Channel> = Omit<PlaygroundOPNFm<C>, 'scheduleWrites' | 'read' | 'readStatus' | 'getIrq' | 'rawWrite' | 'writeAddress' | 'writeData'> & {dispose(): void};
+type PlaygroundCreatedOPN<C extends YM2612Channel, Stereo extends boolean = true> = Omit<PlaygroundOPNFm<C, Stereo>, 'scheduleWrites' | 'read' | 'readStatus' | 'getIrq' | 'rawWrite' | 'writeAddress' | 'writeData'> & {dispose(): void};
 declare function createSoundChip(name: 'ym2612', options?: PlaygroundCreateSoundChipOptions): Promise<PlaygroundCreatedFm & PlaygroundChipClock & {readonly id: string}>;
-type PlaygroundCreatedYm2203 = PlaygroundCreatedOPN<0 | 1 | 2> & {ssg: PlaygroundYm2608['ssg']; setClock(clock: number): Promise<void>; scheduleRegisters(entries: Array<[number, number, number]>, durationSamples: number): Promise<void>};
+type PlaygroundCreatedYm2203 = PlaygroundCreatedOPN<0 | 1 | 2, false> & {ssg: PlaygroundYm2608['ssg']; setClock(clock: number): Promise<void>; scheduleRegisters(entries: Array<[number, number, number]>, durationSamples: number): Promise<void>};
 declare function createSoundChip(name: 'ym2203', options?: PlaygroundCreateSoundChipOptions): Promise<PlaygroundCreatedYm2203 & PlaygroundChipClock & {readonly id: string}>;
 type PlaygroundCreatedYm2610 = PlaygroundCreatedOPN<0 | 1 | 2 | 3> & {
   ssg: PlaygroundYm2608['ssg'];

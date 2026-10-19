@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {applyPlaygroundLayout} from './playground_ui.js';
+import {isSimplePlaygroundLayout} from './playground_mode.js';
 
 function setup(search) {
   const classes = new Set();
@@ -18,7 +19,7 @@ function setup(search) {
   };
   classes.add('mode-expanded'); // Initial HTML also reserves the full layout before boot.
   const body = {classList: {toggle(value, enabled) { enabled ? classes.add(value) : classes.delete(value); }}};
-  const simpleMode = new URLSearchParams(search).get('mode') === 'simple';
+  const simpleMode = isSimplePlaygroundLayout(search);
   return {classes, mainMenu, pin, run, stop, reset, utilities, statusBar, toolbar, body, simpleMode};
 }
 
@@ -35,8 +36,8 @@ for (const search of ['', '?expanded=0', '?expanded=1', '?mode=full&monitor=1'])
   });
 }
 
-test('compact lesson iframes keep their overlay controls and inline status', () => {
-  const state = setup('?mode=simple&expanded=1');
+for (const search of ['?mode=simple&expanded=1', '?mode=pc98&layout=simple']) test(`compact lesson iframes keep their overlay controls and inline status (${search})`, () => {
+  const state = setup(search);
   applyPlaygroundLayout(state);
   assert.equal(state.classes.has('mode-expanded'), false);
   assert.deepEqual(state.toolbar.children, [state.run, state.stop, state.utilities]);

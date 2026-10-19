@@ -1008,6 +1008,40 @@ for(const name of ['ym2203','ym2610'])test(`Worker useSoundChip ${name} returns 
  }finally{await worker.send({type:'stop'});}
 });
 
+test('selected YM2608 Worker preserves the shared full client through reevaluation and Stop',async()=>{
+ const worker=createWorkerHarness({Uint8Array}),ports=[];
+ const source=`
+  const [opna,again]=await Promise.all([useSoundChip('ym2608'),useSoundChip('ym2608')]);
+  if(opna!==again||opna===fm||(context.opna&&context.opna!==opna))throw Error('Full-client identity');
+  if(typeof opna.setAlgo!=='function'||!opna.ssg||!opna.rhythm||!opna.adpcm)throw Error('Missing OPNA controls');
+  context.opna=opna;await opna.setClock(7987200);
+  opna.resetRegisters();opna.rhythm.setVolume(40);
+  await opna.adpcm.loadMemory(new Uint8Array([0x12]),8);
+  await opna.prepareTimeline([[0,0,8,15]],[],1);await opna.playTimeline();
+ `;
+ try {
+  for(let run=0;run<2;run++) {
+   const from=worker.messages.length;
+   await worker.send({type:'run',capabilities:{chip:'ym2608',fmChannels:6,psg:false,dac:false},sourceCode:source});
+   const requests=worker.messages.slice(from).filter(message=>message.command==='pcm.create');
+   assert.equal(requests.length,1);
+   const commands=[];let closed=0;
+   const port={start(){},close(){closed++;},postMessage(message){commands.push(message);if(message.id)queueMicrotask(()=>port.onmessage({data:{id:message.id}}));}};
+   ports.push({commands,get closed(){return closed;}});
+   await worker.send({type:'response',id:requests[0].id,value:port});
+   await waitFor(()=>worker.messages.slice(from).some(message=>message.type==='complete'));
+   await worker.send({type:'run',sourceCode:source});
+   await waitFor(()=>worker.messages.slice(from).filter(message=>message.type==='complete').length===2);
+   assert.equal(worker.messages.slice(from).filter(message=>message.command==='pcm.create').length,1);
+   for(const method of ['clock','memory','prepareTimeline','playTimeline'])assert.equal(commands.filter(command=>command.method===method).length,2,method);
+   assert.equal(commands.filter(command=>command.method==='reset').length,3); // Constructor plus both evaluations.
+   await worker.send({type:'stop'});
+   assert.equal(commands.filter(command=>command.method==='dispose').length,1);assert.equal(closed,1);
+  }
+ }finally{await worker.send({type:'stop'});}
+ assert.equal(ports.length,2);
+});
+
 for (const name of ['ym2612', 'ym2203', 'ym2610']) test(`Worker creates independent ${name} clients and disposes both`, async () => {
  const worker = createWorkerHarness(), sent = [[], []];
  try {

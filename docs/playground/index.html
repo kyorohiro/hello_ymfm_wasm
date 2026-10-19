@@ -290,6 +290,8 @@
       .toolbar-menu-panel hr { width: 100%; margin: 5px 0; border: 0; border-top: 1px solid var(--line); }
       .toolbar-menu-panel #desktopSettingsMenu { display: grid; }
       .toolbar-menu-panel .menu-setting-row { display: flex; align-items: center; justify-content: space-between; gap: 14px; }
+      #playgroundMode { min-width: 0; max-width: 230px; flex: 1; }
+      #playgroundModeDetails { margin: 4px 0 12px; font-variant-numeric: tabular-nums; }
       .menu-value { min-width: 0; max-width: 45%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #526467; font-size: .75rem; font-weight: 500; text-align: right; font-variant-numeric: tabular-nums; }
       #desktopPinSlot:empty { display: none; }
       #desktopPinSlot { display: inline-flex; }
@@ -887,6 +889,7 @@
         border-color: var(--line);
         box-shadow: inset 0 3px 0 var(--accent);
       }
+      .tab-button[hidden] { display: none; }
 
       #codePanel .section-heading {
         display: none;
@@ -1662,10 +1665,10 @@
     <nav class="app-bar" aria-label="Playground navigation">
       <div class="app-bar-leading">
         <div class="app-bar-brand">
-          <h1 id="pageTitle">Tetorica FM2612 Playground</h1>
+          <h1 id="pageTitle">Tetorica Genesis Playground</h1>
           <p class="subtext">
             Write a few lines of JavaScript, run them in the browser, then
-            drop down to raw YM2612 control when you want to.
+            drop down to raw sound chip control when you want to.
           </p>
         </div>
       </div>
@@ -1697,6 +1700,11 @@
                 </div>
               </details>
               <hr>
+              <label class="menu-setting-row" for="playgroundMode">
+                <span>Mode</span>
+                <select id="playgroundMode" aria-label="Playground mode"></select>
+              </label>
+              <p id="playgroundModeDetails" class="subtext"></p>
               <button id="workerLookaheadButton" class="menu-setting-row" type="button" aria-haspopup="dialog" aria-controls="workerLookaheadDialog">
                 <span>Worker lookahead…</span><small id="workerLookaheadValue" class="menu-value">500 ms</small>
               </button>
@@ -1922,9 +1930,9 @@
             >
               YM2612
             </button>
-            <button id="segapsgTab" class="tab-button" type="button" role="tab" aria-selected="false" aria-controls="segapsgPanel">Sega PSG</button>
-            <button id="rf5c164Tab" class="tab-button" type="button" role="tab" aria-selected="false" aria-controls="rf5c164Panel">RF5C164</button>
-            <button id="pwmTab" class="tab-button" type="button" role="tab" aria-selected="false" aria-controls="pwmPanel">32X PWM</button>
+            <button id="segapsgTab" class="tab-button" type="button" role="tab" aria-selected="false" aria-controls="segapsgPanel" hidden>Sega PSG</button>
+            <button id="rf5c164Tab" class="tab-button" type="button" role="tab" aria-selected="false" aria-controls="rf5c164Panel" hidden>RF5C164</button>
+            <button id="pwmTab" class="tab-button" type="button" role="tab" aria-selected="false" aria-controls="pwmPanel" hidden>32X PWM</button>
             <button id="mixerTab" class="tab-button" type="button" role="tab" aria-selected="false" aria-controls="mixerPanel">Mixer</button>
             <button id="keyboardTab" class="tab-button" type="button" role="tab" aria-selected="false" aria-controls="keyboardPanel">
               Keyboard
@@ -2203,10 +2211,10 @@
 
             <h2 style="margin-top: 14px;">fm</h2>
             <ul class="helper-list">
-              <li><code>fm</code> is the raw <code>YM2612Synth</code> layer</li>
+              <li><code>fm</code> controls the selected mode's primary FM chip</li>
               <li><code>await play("C4")</code> plays one note</li>
-              <li><code>pg.fm</code> points to the same YM2612 layer</li>
-              <li>Channels are <code>CH1</code> through <code>CH6</code>; logical operators are <code>OP1</code> through <code>OP4</code></li>
+              <li><code>pg.fm</code> points to the same primary FM chip</li>
+              <li>FM channels: 3 on YM2203, 4 on Neo Geo YM2610, 6 on YM2612/YM2608. Logical operators are <code>OP1</code> through <code>OP4</code>.</li>
               <li><code>fm.setPreset(CH1, pg.presets["one-op-basic"])</code> applies one preset</li>
               <li><code>fm.setOperators(CH1, [[OP1, { tl: 20 }], [OP3, { tl: 24 }]])</code> applies partial settings in array order (YM2612). Repeated operators are allowed. Fields within each entry follow <code>setOperator()</code>'s register order.</li>
               <li><code>fm.setOperator(CH1, OP1, { multi: 1, tl: 20, ar: 24, d1r: 8, d2r: 4, sl: 6, rr: 8 })</code></li>
@@ -2331,7 +2339,7 @@
       })();
     </script>
     <script type="module">
-      import('./playground.js?v=spc-reference-tuning-1').catch(error => window.__playgroundStartup.fail(error));
+      import('./playground.js?v=mode-tabs-1').catch(error => window.__playgroundStartup.fail(error));
     </script>
   </body>
 </html>

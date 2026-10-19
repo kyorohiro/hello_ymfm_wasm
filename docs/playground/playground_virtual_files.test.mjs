@@ -57,10 +57,10 @@ test('Playground hides checkpoint files in Files and Run while preserving them i
   assert.equal(context.runVirtualPath, '/index.js', 'A stored checkpoint run target falls back to current');
   assert.deepEqual(Array.from(treeEntries, entry=>entry.path).filter(path=>path.endsWith('.js')), ['/index.js']);
   assert.ok(treeEntries.every(entry=>!isCheckpointVirtualPath(entry.path)));
-  const captureStart = source.indexOf('capture:() => ({', source.indexOf('desktopAutosave = createProjectAutosave')) + 'capture:'.length;
-  const captureEnd = source.indexOf('\n    })});', captureStart) + '\n    })'.length;
-  vm.runInContext(`capture = ${source.slice(captureStart, captureEnd)};`, context);
-  const snapshot = context.capture();
+  const captureStart = source.indexOf('function captureProjectSnapshot()');
+  const captureEnd = source.indexOf('\nasync function restoreProjectSnapshot', captureStart);
+  vm.runInContext(source.slice(captureStart, captureEnd), context);
+  const snapshot = context.captureProjectSnapshot();
   assert.equal(snapshot.files.find(file=>file.path==='/index.js').data, 'latest editor source');
   assert.equal(snapshot.files.find(file=>file.path==='/.tet.ss/index.js').data, 'previous source');
   assert.deepEqual(snapshot.files.find(file=>file.path==='/.tet.ss/opaque.bin').data, new Uint8Array([0,255]));

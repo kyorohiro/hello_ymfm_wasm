@@ -49,6 +49,9 @@ playground_shell_runner.js
 playground_shell_diagnostics.js
 playground_shell_worker.js
 playground_autosave.js
+playground_mode.js
+playground_mode_project.js
+playground_declarations.js
 playground_file_tree.js
 playground_file_menu.js
 playground_example_order.js
@@ -71,6 +74,7 @@ tetorica-shell.d.ts
 tetorica-playground-ym2203.d.ts
 tetorica-playground-ym2608.d.ts
 tetorica-playground-ym2610.d.ts
+tetorica-playground-ym2610b.d.ts
 tetorica-playground-ym2612.d.ts
 "
 
@@ -429,6 +433,7 @@ perl -0pi -e 's#<a class="link-button" href="\.\./index\.html">Back</a>##g' \
 perl -0pi -e 's#"\./playground\.js"#"./playground.js"#g; s#\.\./js/#./js/#g; s#\.\./synth/#./synth/#g; s#\.\./generated/#./generated/#g' \
   "${STAGE_DIR}/index.html" \
   "${STAGE_DIR}/playground.js" \
+  "${STAGE_DIR}/playground_mode.js" \
   "${STAGE_DIR}/playground_git.js" \
   "${STAGE_DIR}/playground_virtual_files.js" \
   "${STAGE_DIR}/playground_shell.js" \

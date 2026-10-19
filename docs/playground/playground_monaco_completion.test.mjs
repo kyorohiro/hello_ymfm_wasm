@@ -76,3 +76,68 @@ test('import paths use current project files and replace quoted contents without
   files = files.filter(file => file.path !== '/lib/new-file.js');
   assert.deepEqual(paths('await import("', '/index.js'), []);
 });
+
+function chipSuggestions(source, chip) {
+  let selectedProvider;
+  registerMonacoCompletions({languages: {
+    CompletionItemKind: {}, CompletionItemInsertTextRule: {InsertAsSnippet: 4},
+    registerCompletionItemProvider(language, value) {if(language === 'javascript') selectedProvider = value;},
+  }}, {chip});
+  const lines = source.split('\n'), line = lines.at(-1), column = line.length + 1;
+  return selectedProvider.provideCompletionItems({
+    getValue: () => source, getLineContent: () => line, getValueInRange: () => source,
+    getWordUntilPosition: () => ({startColumn: column, endColumn: column, word: ''}),
+  }, {lineNumber: lines.length, column})?.suggestions ?? [];
+}
+
+test('pg and global fm members defer to selected declarations without Genesis helper overrides', () => {
+  for(const chip of ['ym2203', 'ym2610', 'ym2608', 'ym2612']) {
+    assert.deepEqual(chipSuggestions('pg.', chip), [], chip);
+    assert.deepEqual(chipSuggestions('fm.', chip), [], chip);
+    assert.deepEqual(chipSuggestions('pg.fm.', chip), [], chip);
+  }
+});
+
+test('global FM register hints follow selected DAC, pan and LFO capabilities', () => {
+  const values = (source, chip) => chipSuggestions(source, chip).map(item => item.insertText);
+  for(const receiver of ['fm', 'pg.fm']) {
+    const opn = values(`${receiver}.write(0, `, 'ym2203');
+    for(const register of ['0x22', '0x2a', '0x2b', '0xb4'])assert(!opn.includes(register), register);
+    for(const register of ['0x27', '0x28', '0x30', '0xa0'])assert(opn.includes(register), register);
+    for(const chip of ['ym2610', 'ym2608']) {
+      const registers = values(`${receiver}.writeAddress(0, `, chip);
+      for(const register of ['0x2a', '0x2b'])assert(!registers.includes(register), chip);
+      for(const register of ['0x22', '0xb4'])assert(registers.includes(register), chip);
+    }
+    const genesis = values(`${receiver}.write(0, `);
+    for(const register of ['0x22', '0x2a', '0x2b', '0xb4'])assert(genesis.includes(register), register);
+    assert.deepEqual(values(`${receiver}.write(0, 0x22, `, 'ym2203'), []);
+    assert.deepEqual(values(`${receiver}.write(0, 0x2b, `, 'ym2610'), []);
+  }
+});
+
+test('global FM key-on hints include only the selected chip hardware channels', () => {
+  const values = chip => chipSuggestions('fm.write(0, 0x28, ', chip).map(item => item.insertText);
+  assert.deepEqual(values('ym2203'), ['0x00', '0x01', '0x02', '0xf0', '0xf1', '0xf2']);
+  assert.deepEqual(values('ym2610'), ['0x01', '0x02', '0x05', '0x06', '0xf1', '0xf2', '0xf5', '0xf6']);
+  assert.equal(values('ym2608').length, 12);
+});
+
+test('selected-mode register filtering does not restrict an explicitly declared independent fm', () => {
+  for(const source of [
+    'const fm = await createSoundChip("ym2612");\nfm.write(0, ',
+    'const fm = await useSoundChip("ym2612");\nfm.write(0, ',
+    'async function notes(fm) {\nfm.write(0, ',
+    'const pg = customPlayground;\npg.fm.write(0, ',
+  ]) {
+    const values = chipSuggestions(source, 'ym2203').map(item => item.insertText);
+    for(const register of ['0x22', '0x2a', '0x2b', '0xb4'])assert(values.includes(register), source);
+  }
+});
+
+test('play option guidance describes the selected logical FM channel range', () => {
+  for(const [chip, lastChannel] of [['ym2203', 2], ['ym2610', 3], ['ym2608', 5]]) {
+    const channel = chipSuggestions('play("C4", { ', chip).find(item => item.label === 'channel');
+    assert.equal(channel.documentation, `${chip.toUpperCase()} FM channel number 0..${lastChannel}.`);
+  }
+});

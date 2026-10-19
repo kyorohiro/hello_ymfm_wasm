@@ -185,7 +185,7 @@ async function check(engine, name, url) {
 (async () => {
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
   try {
-    const url = `http://127.0.0.1:${server.address().port}/playground/index.html?no-sw=1`;
+    const url = `http://127.0.0.1:${server.address().port}/playground/index.html?mode=genesis-full&no-sw=1`;
     const engines = process.argv.includes('--chromium') ? [[chromium, 'chromium']] : process.argv.includes('--webkit') ? [[webkit, 'webkit']] : [[chromium, 'chromium'], [webkit, 'webkit']];
     for (const [engine, name] of engines) await check(engine, name, url);
   } finally {await new Promise(resolve => server.close(resolve));}

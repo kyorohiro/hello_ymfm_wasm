@@ -23,7 +23,7 @@ export function definitionSource(text, position, chip = 'ym2612') {
   if (/^PlaygroundRf5c164$/.test(owner)) return {file:'rf5c164synth.js', symbol};
   if (/^PlaygroundSegaPsg$/.test(owner)) return {file:'segapsgsynth.js', symbol};
   if (/^PlaygroundPWM32X$/.test(owner)) return {file:'pwm32x_playback.js', symbol};
-  if (['FMApi','PlaygroundCreatedFm','PlaygroundCreatedYm2203','PlaygroundCreatedYm2610'].includes(owner)) {
+  if (['FMApi','PlaygroundOPNFm','PlaygroundCreatedFm','PlaygroundCreatedYm2203','PlaygroundCreatedYm2610'].includes(owner)) {
     return {file:chip === 'ym2612' ? 'ym2612synth.js' : 'opn_fm_synth.js', symbol};
   }
   return null;

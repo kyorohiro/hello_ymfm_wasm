@@ -16,6 +16,7 @@ export async function openDraftStore(indexedDB, key) {
   return {
     load: () => transact('readonly', store => store.get(key)),
     save: snapshot => transact('readwrite', store => store.put(snapshot, key)),
+    remove: () => transact('readwrite', store => store.delete(key)),
     close: () => db.close(),
   };
 }

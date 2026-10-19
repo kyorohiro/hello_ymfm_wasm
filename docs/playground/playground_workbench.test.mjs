@@ -160,3 +160,37 @@ test('chip editors remain above a separately selected Mixer and navigate in visu
   ui.setBottomTab('mixer');
   assert.equal(options.mixerPanel.hidden, false);
 });
+
+for (const chipTabs of [['operator'], ['operator','segapsg'], ['operator','segapsg','rf5c164','pwm']]) {
+  test(`mode tabs stay hidden and navigation visits only available editors (${chipTabs.join(', ')})`, () => {
+    const {options, events} = setup();
+    for (const name of ['segapsg', 'rf5c164', 'pwm']) {
+      options[`${name}Panel`] = {};
+      options[`${name}Tab`] = {setAttribute() {}, focus() {this.focused = true;}};
+    }
+    const ui = createPlaygroundUi({...options, chipTabs});
+    ui.setBottomTab('operator');
+    const all = ['operator','segapsg','rf5c164','pwm'];
+    for (const name of all) {
+      const button = options[name === 'operator' ? 'operatorTabButton' : `${name}Tab`];
+      assert.equal(button.hidden, !chipTabs.includes(name));
+      if (!chipTabs.includes(name)) {
+        const before = events.length;
+        ui.setBottomTab(name);
+        assert.equal(events.length, before, 'hidden tabs cannot select a panel');
+        assert.equal(options[`${name}Panel`].hidden, true);
+        assert.equal(options.operatorPanel.hidden, false);
+      }
+    }
+    for (let index = 0; index < chipTabs.length; index++) {
+      const current = chipTabs[index], next = chipTabs[index + 1] ?? 'code';
+      ui.moveBottomTabFocus(options[current === 'operator' ? 'operatorTabButton' : `${current}Tab`], 1);
+      assert.equal(events.at(-1).primaryTab, next);
+      assert.equal(options[next === 'operator' ? 'operatorTabButton' : `${next}Tab`].focused, true);
+    }
+    ui.moveBottomTabFocus(options.codeTab, -1);
+    assert.equal(events.at(-1).primaryTab, chipTabs.at(-1), 'reverse navigation skips hidden tabs too');
+    ui.setBottomTab('helpers');
+    assert.equal(options.helpersPanel.hidden, false, 'common tools remain available');
+  });
+}

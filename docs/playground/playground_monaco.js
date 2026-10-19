@@ -1,5 +1,6 @@
-import {createDefinitionViewer} from './playground_monaco_definitions.js?v=spc-song-timing-1';
-import { registerMonacoCompletions } from "./playground_monaco_completion.js?v=spc-song-timing-1";
+import {createDefinitionViewer} from './playground_monaco_definitions.js?v=opn-modes-1';
+import { registerMonacoCompletions } from "./playground_monaco_completion.js?v=opn-modes-1";
+import {selectPlaygroundDeclarations} from './playground_declarations.js';
 
 function registerMonacoHover(
   monaco
@@ -38,7 +39,7 @@ function registerMonacoHover(
           tween:
             "Animate over {seconds} or {beats}. Progress goes from 0 to 1. Beat durations follow shared setBpm changes; seconds ignore tempo.",
           fx: "Create and connect master FX units.",
-          fm: "Control raw YM2612Synth behavior.",
+          fm: "Control the selected mode's primary FM sound chip.",
         };
         const message =
           docs[word.word];
@@ -383,13 +384,10 @@ async function registerMonacoPlaygroundGlobals(
 ) {
   const libraryModels = new Map();
   for (const name of ["tetorica-playground-globals", `tetorica-playground-${chip}`, "tetorica-shell"]) {
-    const response = await fetch(new URL(`./${name}.d.ts?v=loop-async-tasks-1`, import.meta.url), { cache: "no-cache" });
+    const response = await fetch(new URL(`./${name}.d.ts?v=opn-modes-1`, import.meta.url), { cache: "no-cache" });
     if (!response.ok) throw new Error(`Failed to load playground type declarations: ${response.status}`);
     let declarations = await response.text();
-    if ((chip === "ym2203" || chip === "ym2610") && name === "tetorica-playground-globals") {
-      // YM2203 has three channels; Neo Geo YM2610 exposes four.
-      declarations = declarations.replace(chip === "ym2203" ? /declare const CH[456]: [345];\n/g : /declare const CH[56]: [45];\n/g, "");
-    }
+    if (name === 'tetorica-playground-globals') declarations = selectPlaygroundDeclarations(declarations, chip);
     const uri = monaco.Uri.parse(`file:///${name}.d.ts`);
     monaco.languages.typescript.javascriptDefaults.addExtraLib(declarations, uri.toString());
     const model = monaco.editor.getModel(uri) ?? monaco.editor.createModel(declarations, 'typescript', uri);
@@ -529,7 +527,7 @@ export async function initializePlaygroundMonaco(
     );
     registerMonacoCompletions(
       monaco,
-      { listVirtualFiles: options.listVirtualFiles }
+      { listVirtualFiles: options.listVirtualFiles, chip:options.chip }
     );
     registerMonacoHover(monaco);
     registerMonacoSignatureHelp(

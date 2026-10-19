@@ -1,7 +1,9 @@
+import {isSimplePlaygroundLayout} from './playground_mode.js';
+
 /** Arrange Files beside an editor and independently selectable bottom tools. */
 export function installPlaygroundWorkbench(root, {storage, search = window.location.search} = {}) {
   const params = new URLSearchParams(search);
-  if (!root || params.get('mode') === 'simple') return null;
+  if (!root || isSimplePlaygroundLayout(search)) return null;
   try {if (storage === undefined) storage = globalThis.localStorage;} catch {storage = null;}
   const key = 'tetorica.playground.bottomPanel';
   let saved = {};

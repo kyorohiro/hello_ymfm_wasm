@@ -4,6 +4,8 @@ import {readFile} from 'node:fs/promises';
 import { createPlaygroundRuntime } from './playground_runtime.js';
 import {createNativeFXController} from './native_fx.js';
 import {LiveFX} from './custom_fx.js';
+import {createYm2608Client} from './playground_ym2608.js';
+import {YM2203Synth} from './ym2203synth.js';
 
 function deferred() {
   let resolve;
@@ -741,6 +743,50 @@ for(const [chip,channels] of [['ym2203',3],['ym2610',4]])test(`Main useSoundChip
  await runtime.playSource(`if(await useSoundChip('${chip}')!==context.fm)throw Error('Not reused');`);
  assert.equal(notes.length,1);
  runtime.stop();await runtime.playSource(`const fm=await useSoundChip('${chip}');if(fm!==pg.fm)throw Error('Restart');`);
+});
+
+test('YM2203 startup and exported FM presets work with the real mono synth',async t=>{
+ const {runtime,megaDrive}=setup(t,{chip:'ym2203',fmChannels:3,psg:false,dac:false});
+ const writes=[];
+ megaDrive.fm=new YM2203Synth({transport:{write:(port,register,value)=>writes.push([port,register,value])}});
+ await runtime.playSource(`
+  const fm=await useSoundChip('ym2203');
+  if(fm!==pg.fm)throw Error('Different primary FM');
+  for(const preset of Object.values(FM_PRESETS))fm.setPreset(CH1,preset);
+  fm.setPreset(CH1,FM_PRESETS['one-op-basic']);
+ `);
+ assert.equal(megaDrive.fm.channels[0].algorithm,7);
+ assert(writes.length>0);
+ assert(writes.every(([port])=>port===0));
+});
+
+test('selected YM2608 keeps useSoundChip full-client ownership and import APIs',async t=>{
+ const {runtime}=setup(t,{chip:'ym2608',fmChannels:6,psg:false,dac:false});
+ const clients=[],commands=[];
+ // Exercise registry selection without opening an AudioWorklet in Node. The
+ // full client deliberately differs from the selected global FM facade.
+ globalThis.playgroundReview={create:async(name,options)=>{
+  assert.equal(name,'ym2608');assert.deepEqual(options,{id:'ym2608:shared'});
+  const port={start(){},close(){},postMessage(message){commands.push(message);if(message.id)queueMicrotask(()=>port.onmessage({data:{id:message.id}}));}};
+  const client=createYm2608Client(port);clients.push(client);return client;
+ }};
+ t.after(()=>clients.forEach(client=>client.dispose()));
+ const source=`
+  pg.createSoundChip=globalThis.playgroundReview.create;
+  const [opna,again]=await Promise.all([useSoundChip('ym2608'),useSoundChip('ym2608')]);
+  if(opna!==again||opna===pg.fm)throw Error('Full-client identity');
+  if(typeof opna.setAlgo!=='function'||!opna.ssg||!opna.rhythm||!opna.adpcm)throw Error('Missing OPNA controls');
+  await opna.setClock(7987200);
+  opna.resetRegisters();opna.rhythm.setVolume(40);
+  await opna.adpcm.loadMemory(new Uint8Array([0x12]),8);
+  await opna.prepareTimeline([[0,0,8,15]],[],1);await opna.playTimeline();
+  context.opna=opna;
+ `;
+ await runtime.playSource(source);
+ await runtime.playSource(`if(await useSoundChip('ym2608')!==context.opna)throw Error('Not reused');`);
+ assert.equal(clients.length,1);
+ for(const method of ['clock','reset','memory','prepareTimeline','playTimeline'])assert(commands.some(command=>command.method===method),method);
+ runtime.stop();await runtime.playSource(source);assert.equal(clients.length,2);
 });
 
 for(const method of ['sleep','sleepSamples','beat'])test(`Main tracked failure ends its loop during ${method} without retrying`,async t=>{

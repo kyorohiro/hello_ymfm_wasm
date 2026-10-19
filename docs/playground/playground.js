@@ -1,15 +1,20 @@
 import {installFileExplorerResize} from './playground_file_resize.js';
 import {installFileExplorerMenu} from './playground_file_menu.js?v=file-menu-1';
-import {installPlaygroundWorkbench} from './playground_workbench.js?v=chip-tabs-2';
+import {installPlaygroundWorkbench} from './playground_workbench.js?v=opn-modes-1';
 import {createPlaygroundMixer} from './playground_mixer.js?v=chip-tabs-2';
 import {createPlaygroundChipTabs} from './playground_chip_tabs.js?v=chip-tabs-2';
 import {installPlaygroundShell} from './playground_shell.js?v=compact-shell-1';
 import {installPlaygroundGit} from './playground_git.js';
-import {openDraftStore, createProjectAutosave} from './playground_autosave.js';
+import {openDraftStore, createProjectAutosave} from './playground_autosave.js?v=opn-modes-1';
+import {PLAYGROUND_MODES, resolvePlaygroundMode, createModeSynthOptions,
+  createPlaygroundModeUrl, isSimplePlaygroundLayout} from './playground_mode.js?v=mode-tabs-1';
+import {saveModeProject, consumeModeProject} from './playground_mode_project.js';
 let desktopAutosave = null;
 let playgroundShell = null;
 let fileExplorerMenu = null;
 let restoredDesktopProject = false;
+let restoredModeProject = false;
+let changingMode = false;
 let mixerPanel = null;
 let chipTabs = null;
 let pendingDesktopCassetteAssets = null;
@@ -28,7 +33,6 @@ import {
 } from "../js/megasynth.js?v=chip-tabs-2";
 import {
   createTetoricaSynth,
-  normalizeTetoricaChip,
 } from "../js/tetorica_synth.js?v=chip-tabs-2";
 import {
   createTfiOperatorObjectText,
@@ -43,7 +47,7 @@ import {
 import { createPlaygroundOperatorKeyboard } from "./playground_operator_keyboard.js?v=keyboard-controls-minimize-1";
 import { CHIP_CLOCKS } from "../js/playground_chip_clock.js";
 import { DEFAULT_CODE, EXAMPLES, EXAMPLE_FILES } from "./playground_examples.js?v=worker-lookahead-500-1";
-import { initializePlaygroundMonaco } from "./playground_monaco.js?v=spc-song-timing-1";
+import { initializePlaygroundMonaco } from "./playground_monaco.js?v=opn-modes-1";
 import {
   decodeBase64Bytes,
   loadTfiPresetsFromQuery,
@@ -79,7 +83,7 @@ import {DEFAULT_WORKER_LOOKAHEAD_SECONDS} from '../js/playground_performance_sen
 import { createVgmPresetFiles } from "./playground_vgm_presets.js";
 import { createTfiFileEditor, instrumentToEditorPreset } from "./playground_tfi_editor.js?v=chip-tabs-2";
 import { renderFileTree } from "./playground_file_tree.js?v=file-menu-1";
-import { createPlaygroundUi, applyPlaygroundLayout } from "./playground_ui.js?v=chip-tabs-2";
+import { createPlaygroundUi, applyPlaygroundLayout } from "./playground_ui.js?v=mode-tabs-1";
 import {
   handleMegaSynthEvent,
 } from "./playground_sync.js";
@@ -247,65 +251,25 @@ const keyboardTab = document.getElementById("keyboardTab");
 const keyboardPanel = document.getElementById("keyboardPanel");
 const operatorKeyboardRoot = document.getElementById("operatorKeyboardRoot");
 
-// Experimental: ?engine=nuked swaps the YM2612 core for Nuked-OPN2
-// (https://github.com/nukeykt/Nuked-OPN2) instead of the default ymfm
-// backend.
 const playgroundSearch = new URLSearchParams(
   window.location.search
 );
-const selectedChip = normalizeTetoricaChip(
-  playgroundSearch.get("chip")
-);
-const selectedChipClock = CHIP_CLOCKS[selectedChip === 'ym2610b' ? 'ym2610' : selectedChip];
-const useNukedEngine =
-  selectedChip === "ym2612" &&
-  playgroundSearch.get("engine") === "nuked";
-const selectedWorkletChip =
-  selectedChip === "ym2610"
-    ? "ym2610b"
-    : selectedChip;
-
-const synthOptions = {
-  chip: selectedChip,
-  workletUrl: useNukedEngine
-    ? "../js/ym2612-worklet-nuked.js?v=chip-tabs-2"
-    : `../js/${selectedWorkletChip}-worklet.js?v=chip-tabs-2`,
-  ym2612WasmUrl: useNukedEngine
-    ? "../generated/nuked_opn2_wasm.wasm"
-    : "../generated/ym2612_wasm.wasm",
-  wasmUrl:
-    selectedChip === "ym2203"
-      ? "../generated/ym2203_wasm.wasm"
-      : selectedChip === "ym2608"
-        ? "../generated/ym2608_wasm.wasm"
-        : selectedChip === "ym2610"
-          ? "../generated/ym2610b_wasm.wasm"
-        : undefined,
-  segaPsgWasmUrl:
-    selectedChip === "ym2612"
-      ? "../generated/segapsg_wasm.wasm"
-      : null,
-};
+const selectedMode = resolvePlaygroundMode(window.location.search);
+const selectedChip = selectedMode.chip;
+const selectedChipClock = selectedMode.clock;
+const useNukedEngine = selectedMode.engine === 'nuked';
+const synthOptions = createModeSynthOptions(selectedMode);
 const megaDrive = createTetoricaSynth(synthOptions);
-
-if (useNukedEngine) {
-  const pageTitle =
-    document.getElementById(
-      "pageTitle"
-    );
-  const badge =
-    document.createElement("span");
-  badge.className = "engine-badge";
-  badge.textContent =
-    "Nuked-OPN2 engine";
-  pageTitle?.appendChild(badge);
-}
-
-if (selectedChip !== "ym2612") {
-  document.title = `Tetorica ${selectedChip.toUpperCase()} Playground`;
-  const pageTitle = document.getElementById("pageTitle");
-  if (pageTitle) pageTitle.firstChild.textContent = `Tetorica ${selectedChip.toUpperCase()} Playground`;
-}
+document.title = `Tetorica ${selectedMode.label} Playground`;
+const pageTitle = document.getElementById('pageTitle');
+if (pageTitle) pageTitle.firstChild.textContent = document.title;
+operatorTabButton.textContent = selectedChip.toUpperCase();
+const modeSelect = document.getElementById('playgroundMode');
+const modeOptions = selectedMode.legacy ? [...PLAYGROUND_MODES, selectedMode] : PLAYGROUND_MODES;
+modeSelect.replaceChildren(...modeOptions.map(mode => new Option(mode.label, mode.id)));
+modeSelect.value = selectedMode.id;
+document.getElementById('playgroundModeDetails').textContent =
+  `${selectedChip.toUpperCase()} · ${selectedChipClock.toLocaleString('en-US')} Hz · ${useNukedEngine ? 'Nuked-OPN2' : 'ymfm'}`;
 
 let synth = null;
 const urlTfiResult =
@@ -551,7 +515,7 @@ const tfiFileEditor = createTfiFileEditor({
   keyboardRoot: document.getElementById("tfiFileKeyboard"),
   minimizableKeyboard: true,
   title: document.getElementById("tfiFileTitle"),
-  createAudio: () => createTetoricaSynth(synthOptions),
+  createAudio: () => createTetoricaSynth({...synthOptions, megaCD:false, mega32X:false}),
   clock: selectedChipClock,
   clockDivider: selectedChip === 'ym2203' ? 72 : 144,
   onSave(path, bytes) {
@@ -1681,6 +1645,7 @@ const audioMonitor = createAudioMonitor(() => activeTfiFilePath && !codePanel.hi
 
 const ui =
   createPlaygroundUi({
+    chipTabs: selectedMode.chipTabs,
     dockedPanels: Boolean(workbench),
     initialBottomTab: workbench?.initialBottomTab,
     initialDockOpen: workbench?.initialDockOpen,
@@ -2020,20 +1985,21 @@ function formatCassetteStatus(assets) {
 }
 
 function restoreVirtualFilesFromCassette(cassette) {
-  playgroundShell?.invalidate('Project changed');
-  fileExplorerMenu?.clear();
   const textExtensions = /\.(?:js|json|md|txt)$/i;
-  const previousSource = getEditorValue();
-  clearVirtualInstrumentPresets();
-  virtualFiles.replace(
-    Array.from(cassette.files, ([path, bytes]) => ({
+  restoreProjectFiles(Array.from(cassette.files, ([path, bytes]) => ({
       path: `/${path}`,
       data: !path.startsWith('.git/') && textExtensions.test(path)
         ? new TextDecoder().decode(bytes)
         : bytes,
-    })),
-    cassette.directories ?? []
-  );
+    })), cassette.directories ?? []);
+}
+
+function restoreProjectFiles(files, directories = []) {
+  playgroundShell?.invalidate('Project changed');
+  fileExplorerMenu?.clear();
+  const previousSource = getEditorValue();
+  clearVirtualInstrumentPresets();
+  virtualFiles.replace(files, directories);
 
   if (!virtualFiles.has("/index.js")) {
     virtualFiles.writeText("/index.js", previousSource);
@@ -2172,17 +2138,7 @@ function applyInitialSourceFromQuery() {
 }
 
 function applySimpleModeFromQuery() {
-  const params =
-    new URLSearchParams(
-      window.location.search
-    );
-
-  if (
-    params.get("mode") !==
-    "simple"
-  ) {
-    return;
-  }
+  if (!isSimplePlaygroundLayout(window.location.search)) return;
 
   document.body.classList.add(
     "mode-simple"
@@ -2204,6 +2160,7 @@ function applySimpleModeFromQuery() {
 }
 
 function installPlaygroundEventHandlers() {
+  modeSelect.addEventListener('change', () => void changePlaygroundMode(modeSelect.value));
   mainMenu.addEventListener("click", event => {
     if (event.target.closest("button, a")) mainMenu.open = false;
   });
@@ -2549,10 +2506,10 @@ runButton.addEventListener(
 
 function bootPlayground() {
   if (!restoredDesktopProject) applyInitialSourceFromQuery();
-  void applyCassetteFromQuery();
+  if (!restoredModeProject) void applyCassetteFromQuery();
   applySimpleModeFromQuery();
   applyPlaygroundLayout({body: document.body, mainMenu, toolbar, statusBar,
-    simpleMode: playgroundSearch.get("mode") === "simple"});
+    simpleMode: isSimplePlaygroundLayout(window.location.search)});
   clearConsole();
   setBottomTab("code");
   setRuntimeState("Audio idle");
@@ -2579,7 +2536,7 @@ installFileExplorerDropTarget();
     status: setStatus,
   });
   void initializePlaygroundMonaco({
-    chip: selectedChip,
+    chip: selectedMode.declarationChip,
     editor,
     editorHost,
     getEditorValue,
@@ -2615,6 +2572,66 @@ installFileExplorerDropTarget();
   }).then(() => window.__playgroundStartup?.ready(), error => window.__playgroundStartup?.fail(error));
 }
 
+function captureProjectSnapshot() {
+  return {
+    version:1, activePath:activeVirtualPath, runPath:runVirtualPath,
+    directories:virtualFiles.listDirectories(),
+    metadata:currentCassetteMetadata, hasMetadataFile:currentCassetteHasMetadataFile,
+    files:virtualFiles.list().filter(file => !isSystemVirtualPath(file.path)).map(file =>
+      file.path === activeVirtualPath && file.type === 'text' ? {...file, data:getEditorValue()} : file),
+  };
+}
+
+async function restoreProjectSnapshot(snapshot) {
+  currentCassetteMetadata = snapshot.metadata ?? null;
+  currentCassetteHasMetadataFile = Boolean(snapshot.hasMetadataFile);
+  restoreProjectFiles(snapshot.files, snapshot.directories ?? []);
+  if (snapshot.activePath && !isCheckpointVirtualPath(snapshot.activePath) && virtualFiles.get(snapshot.activePath)?.type === 'text') openVirtualFile(snapshot.activePath);
+  if (snapshot.runPath && !isHiddenVirtualPath(snapshot.runPath) && virtualFiles.get(snapshot.runPath)?.type === 'text') runVirtualPath = snapshot.runPath;
+  // Prepare imported assets for the next Run, without starting audio on reload.
+  try {
+    const archive = createPlaygroundCassetteZip(snapshot.files.filter(file => !['/metadata.json','/cassette.metadata.js'].includes(file.path)));
+    pendingDesktopCassetteAssets = parseCassetteAssets(await loadPlaygroundCassette(archive, {name:'restored-project'}));
+  } catch (error) {setStatus(`Project restored; cassette assets could not be prepared: ${error.message}`);}
+}
+
+async function restoreModeProjectFromQuery() {
+  const token = playgroundSearch.get('modeProject');
+  if (!token) return;
+  const snapshot = await consumeModeProject(window.indexedDB, selectedMode.id, token);
+  if (!snapshot) throw new Error('The project for this mode switch could not be restored. Return to the previous page to keep editing.');
+  await restoreProjectSnapshot(snapshot);
+  restoredModeProject = restoredDesktopProject = true;
+  const url = new URL(window.location.href);
+  url.searchParams.delete('modeProject');
+  window.history.replaceState(window.history.state, '', url);
+}
+
+async function changePlaygroundMode(id) {
+  if (changingMode || id === selectedMode.id) return;
+  changingMode = true;
+  modeSelect.disabled = true;
+  try {
+    saveActiveVirtualFile();
+    playgroundShell?.invalidate('Mode changed');
+    await stopRun();
+    runButton.disabled = stopButton.disabled = true;
+    await desktopAutosave?.flush();
+    const url = createPlaygroundModeUrl(window.location.href, id);
+    // The transferred project, including edits to imported code, is authoritative.
+    for (const key of ['cassette','src','code','source','example']) url.searchParams.delete(key);
+    const token = await saveModeProject(window.indexedDB, id, captureProjectSnapshot());
+    url.searchParams.set('modeProject', token);
+    await runtime.finalize();
+    window.location.assign(url.href);
+  } catch (error) {
+    changingMode = false;
+    modeSelect.disabled = runButton.disabled = stopButton.disabled = false;
+    modeSelect.value = selectedMode.id;
+    setStatus(`Could not switch mode: ${error.message}`);
+  }
+}
+
 async function initializeDesktopAutosave() {
   if (!window.__TAURI_INTERNALS__) return;
   const label = document.getElementById('autosaveStatus');
@@ -2622,31 +2639,19 @@ async function initializeDesktopAutosave() {
   const status = text => {label.textContent = text;};
   status('Restoring autosave…');
   try {
-    const store = await openDraftStore(window.indexedDB, selectedChip + (useNukedEngine ? ':nuked' : ''));
-    const snapshot = await store.load();
+    const store = await openDraftStore(window.indexedDB, `mode:${selectedMode.id}`);
+    let snapshot = await store.load();
+    if (!snapshot && !selectedMode.full) {
+      const legacyStore = await openDraftStore(window.indexedDB, selectedMode.legacyDraftKey);
+      try {snapshot = await legacyStore.load();} finally {legacyStore.close();}
+    }
     // Explicit shared URLs take precedence over a previous local draft.
     const explicitSource = ['cassette', 'code', 'src', 'source', 'example'].some(key => playgroundSearch.has(key));
-    if (snapshot?.version === 1 && !explicitSource) {
-      currentCassetteMetadata = snapshot.metadata ?? null;
-      currentCassetteHasMetadataFile = Boolean(snapshot.hasMetadataFile);
-      restoreVirtualFilesFromCassette({files:new Map(snapshot.files.map(file => [file.path.replace(/^\//, ''), file.type === 'text' ? new TextEncoder().encode(file.data) : file.data]))});
-      for (const directory of snapshot.directories ?? []) virtualFiles.mkdir(directory,{recursive:true});
-      if (snapshot.activePath && !isCheckpointVirtualPath(snapshot.activePath) && virtualFiles.get(snapshot.activePath)?.type === 'text') openVirtualFile(snapshot.activePath);
-      if (snapshot.runPath && !isHiddenVirtualPath(snapshot.runPath) && virtualFiles.get(snapshot.runPath)?.type === 'text') runVirtualPath = snapshot.runPath;
+    if (snapshot?.version === 1 && !explicitSource && !restoredModeProject) {
+      await restoreProjectSnapshot(snapshot);
       restoredDesktopProject = true;
-      // Recreate imported sample/preset names when Run initializes audio, without playing on startup.
-      try {
-        const archive = createPlaygroundCassetteZip(snapshot.files.filter(file => !['/metadata.json','/cassette.metadata.js'].includes(file.path)));
-        pendingDesktopCassetteAssets = parseCassetteAssets(await loadPlaygroundCassette(archive, {name:'autosave'}));
-      } catch (error) {setStatus(`Project restored; cassette assets could not be prepared: ${error.message}`);}
     }
-    desktopAutosave = createProjectAutosave({store, onStatus:status, capture:() => ({
-      version:1, activePath:activeVirtualPath, runPath:runVirtualPath,
-      directories:virtualFiles.listDirectories(),
-      metadata:currentCassetteMetadata, hasMetadataFile:currentCassetteHasMetadataFile,
-      files:virtualFiles.list().filter(file => !isSystemVirtualPath(file.path)).map(file =>
-        file.path === activeVirtualPath && file.type === 'text' ? {...file, data:getEditorValue()} : file),
-    })});
+    desktopAutosave = createProjectAutosave({store, onStatus:status, capture:captureProjectSnapshot});
     virtualFiles.onDidChange(() => desktopAutosave.changed());
     runFileSelect.addEventListener('change', () => queueMicrotask(() => desktopAutosave.changed()));
     window.addEventListener('pagehide', () => {
@@ -2655,11 +2660,13 @@ async function initializeDesktopAutosave() {
     window.__tetoricaAutosaveFlush = () => {
       desktopAutosave.changed(); return desktopAutosave.flush();
     };
-    status(restoredDesktopProject ? 'Autosave restored' : 'Autosave enabled');
+    if (restoredModeProject) desktopAutosave.changed();
+    else status(restoredDesktopProject ? 'Autosave restored' : 'Autosave enabled');
   } catch (error) {status(`Autosave unavailable: ${error.message ?? error}`);}
 }
 
 if (window.__TAURI_INTERNALS__) window.__playgroundStartup?.stage('Starting Playground… Restoring your saved project.');
+await restoreModeProjectFromQuery();
 await initializeDesktopAutosave();
 bootPlayground();
 let shellPreviousPath = activeVirtualPath;
