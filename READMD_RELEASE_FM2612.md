@@ -1,13 +1,15 @@
 # tetorica-fm2612 の npm リリース手順
 
-## 0.2.21 公開準備（2026-10-20）
+## 0.2.21 公開記録（2026-10-20）
 
 - 公開済み0.2.20を基準に差分を確認。HuC6280／OKIM6258の高水準Synth、ネイティブ音源の基本構成、Game Boy／NES＋FDS／YM2151／OKIM6258／HuC6280の音色Inspectorを収録。Webのmodeメニューや音色パネル自体はnpmに含まない。
 - ホスト提供の音声入力・Keyboard接続、共通sample instrument／編集ヘルパーを追加。試奏中のチャンネル所有権、Stop・旧callbackの無効化、OPN周波数書込、ADPCM転送とリズムROM ACK、音声decode失敗処理を更新。既存の音名→Hz変換式は公開0.2.20と同じ。
 - Sega PSG stereo／SPC traceの更新は対応するJSとWASMを組にして配布。`loadRhythmRom()`はPromiseで転送完了を通知するため、`await`してから利用する。
 - 新APIのJSDocと型定義を補完。Node.js 22で共有web runtimeの1,556テストが成功。Node.js 22／26で新規導入した配布物の実core・型定義、15 renderer・24 WASMを確認。最終型定義は245件を生成・検証し、NodeNext／Bundler／ブラウザー（Node ambientなし）の利用例を通過。
 - npm配布物を使い、Chromium／WebKitのMain／WorkerでDX7とHuC6280の音程・音量・波形編集・チャンネル所有権・Keyboard・Stop／再起動を確認。Web UI専用部品は別途fixtureから配信し、音声runtimeとWASMは配布物から読み込んだ。
-- tgzは608ファイル。検証したruntimeと配布物の全ファイル一致を確認。npm公開・registry integrity照合は未実施。
+- 公開元commit: `c094155a`。tgzは608ファイル・1,251,328 bytes。publish dry-runを通過し、npmへ公開。registryのlatestが0.2.21で、integrity／SHA-1が検証済みtgzと一致することを確認。
+- 公開版を新規インストールし、608ファイルすべてが検証済みtgzと一致。Node.js 22で519 module／asset参照・24 WASM・15 renderer・型定義を再確認。
+- integrity: `sha512-f7AlCvoLRpvHWP47Kg4beTo+XyHeeBS44hMkyJAvbfE7kxsyqh+exXRyr8tjOlk0kyboL2GrHXzu37D/wFHOUA==`。SHA-1: `029bbb11a9a24dd845262c2a3cbf1a8f2b3753ee`。
 
 ## 0.2.11 公開記録（2026-10-08）
 

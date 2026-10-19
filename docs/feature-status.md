@@ -109,13 +109,13 @@ WASMが存在するだけでPlayground APIも利用可能とは判断しない�
 
 ## 公開状況の記録
 
-利用者からの公開報告と、実際に公開・配布物を照合した記録を併記する。CLI v0.2.10とFM2612 v0.2.12はnpm配布物を照合済み。ほかの公開報告はGitHub Pages／itch.ioの配布物を取得・照合していない。
+利用者からの公開報告と、実際に公開・配布物を照合した記録を併記する。CLI v0.2.10とFM2612 v0.2.21はnpm配布物を照合済み。ほかの公開報告はGitHub Pages／itch.ioの配布物を取得・照合していない。
 版番号だけを根拠に、後から追加したコードまで公開済みにしない。
 
 | 対象 | 公開報告 | この一覧での扱い |
 |---|---|---|
 | CLI `tetorica-vgm` | [v0.2.10をnpm公開](https://www.npmjs.com/package/tetorica-vgm/v/0.2.10)（2026-10-11） | latestと公開tarball integrityを照合。MSM5205／PC Engine CD ADPCM、Game Boy・NES/FDS状態保存を含む。公開版の新規導入・Node.js 22で解析／WAV／start／ADPCMミュート／状態復元PCM一致を確認。公開元commit `85e2093` |
-| Sound-chip runtime `tetorica-fm2612` | [v0.2.20を公開版比較の基準として確認](https://www.npmjs.com/package/tetorica-fm2612/v/0.2.20)。0.2.21を公開準備中（2026-10-20） | 公開0.2.20 tarballと現在の共有Runtimeを比較し、ネイティブ基本構成／音色Inspector／Keyboard・音声入力等を0.2.21の対象として整理。Webパネルはnpm非収録。0.2.21の公開・配布物照合は完了後に追記する |
+| Sound-chip runtime `tetorica-fm2612` | [v0.2.21をnpm公開](https://www.npmjs.com/package/tetorica-fm2612/v/0.2.21)（2026-10-20） | latestと公開tarball integrityを照合。HuC6280／OKIM6258高水準Synth・ネイティブ基本構成／音色Inspector／Keyboard・音声入力等を収録。Webパネルはnpm非収録。公開版を新規導入し608ファイル一致、Node.js 22で24 WASM・15 renderer・型定義を確認。公開前に共有web runtime 1,556テストとChromium／WebKitのMain／Worker再生を検証。公開元commit `c094155a` |
 | VGM Analyzer | v0.40.7公開済みとの報告（SBI対応の時期） | 後続のROM・高速シーク等がどの公開版に入ったかは未照合 |
 | Playground／Game Boy VGM→JavaScript変換 | itch.io向けv0.40.11公開済みとの報告（2026-09-30） | raw／解説付きraw／高水準API＋raw fallback、チップ別オプション。公開配布物の照合・ブラウザー聴感確認は未実施 |
 
