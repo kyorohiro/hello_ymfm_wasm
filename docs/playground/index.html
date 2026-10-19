@@ -234,6 +234,11 @@
         box-shadow: 0 10px 22px rgba(55, 64, 61, 0.18);
       }
 
+      /* Keep closed nested menus out of layout as well as painting in WebKit. */
+      .toolbar-menu:not([open]) > .toolbar-menu-panel {
+        display: none;
+      }
+
       .toolbar-menu-panel button,
       .toolbar-menu-panel .link-button {
         width: 100%;
@@ -286,6 +291,10 @@
         width: min(300px, calc(100vw - 24px));
         max-height: calc(100dvh - 68px);
         overflow-y: auto;
+        /* Isolate the overlay from the editor and meters underneath it. */
+        contain: layout paint;
+        transform: translateZ(0);
+        box-shadow: 0 2px 6px rgba(55, 64, 61, 0.15);
       }
       .toolbar-menu-panel hr { width: 100%; margin: 5px 0; border: 0; border-top: 1px solid var(--line); }
       .toolbar-menu-panel #desktopSettingsMenu { display: grid; }
@@ -1689,12 +1698,6 @@
               <button id="importCassetteButton" type="button">Load Cassette…</button>
               <p id="autosaveStatus" class="subtext" role="status" hidden></p>
               <hr>
-              <details class="toolbar-menu" id="menuExamples">
-                <summary>Examples</summary>
-                <div class="toolbar-menu-panel">
-                  <button id="openInitialCodeButton" type="button" title="Open this mode's initial code in a separate file">Initial code</button>
-                </div>
-              </details>
               <details class="toolbar-menu" id="menuImport">
                 <summary>Import</summary>
                 <div class="toolbar-menu-panel">
@@ -2386,7 +2389,7 @@
       })();
     </script>
     <script type="module">
-      import('./playground.js?v=mode-choice-1').catch(error => window.__playgroundStartup.fail(error));
+      import('./playground.js?v=menu-render-1').catch(error => window.__playgroundStartup.fail(error));
     </script>
   </body>
 </html>

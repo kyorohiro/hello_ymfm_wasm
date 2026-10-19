@@ -278,6 +278,7 @@ modeSelect.value = selectedMode.id;
 document.getElementById('playgroundModeDetails').textContent =
   selectedMode.details ?? `${selectedChip.toUpperCase()} · ${selectedChipClock.toLocaleString('en-US')} Hz · ${selectedMode.engine === 'apu' ? selectedMode.label + ' APU' : selectedMode.engine === 'psg' ? 'PSG' : useNukedEngine ? 'Nuked-OPN2' : 'ymfm'}`;
 for (const button of [exportTfiButton, exportVgiButton]) if (button) button.hidden = !hasPrimaryFM;
+document.getElementById('menuExport').hidden = !hasPrimaryFM;
 for (const element of document.querySelectorAll('[data-opn-helper]')) element.hidden = !hasPrimaryFM;
 for (const element of document.querySelectorAll('[data-gameboy-helper]')) element.hidden = selectedChip !== 'gameboy';
 for (const element of document.querySelectorAll('[data-native-helper]')) element.hidden = element.dataset.nativeHelper !== selectedChip;
@@ -2194,26 +2195,17 @@ function installPlaygroundEventHandlers() {
   // Modal keys belong to the choice UI; live keyboard handlers must not block
   // Escape or play notes behind it. Keep keyup bubbling to release held notes.
   document.getElementById('changeModeDialog').addEventListener('keydown', event => event.stopPropagation());
-  document.getElementById('openInitialCodeButton').addEventListener('click', () => {
-    saveActiveVirtualFile();
-    const directories = new Set(virtualFiles.listDirectories());
-    let suffix = 0, path;
-    do {
-      path = `/starter-${selectedMode.id}${suffix ? '-' + suffix : ''}.js`;
-      suffix++;
-    } while (directories.has(path) || (virtualFiles.has(path) &&
-      (virtualFiles.get(path).type !== 'text' || virtualFiles.get(path).data !== initialCode)));
-    if (!virtualFiles.has(path)) virtualFiles.writeText(path, initialCode);
-    openVirtualFile(path);
-    setBottomTab('code');
-    desktopAutosave?.changed();
-    setStatus(`Opened ${selectedMode.label} initial code: ${path}`);
-  });
   mainMenu.addEventListener("click", event => {
     if (event.target.closest("button, a")) mainMenu.open = false;
   });
-  mainMenu.addEventListener("toggle", () => {
-    if (!mainMenu.open) for (const submenu of mainMenu.querySelectorAll("details[open]")) submenu.open = false;
+  // Menu navigation must not also reach the running script or audition keys.
+  // Leave keyup alone so notes held before opening the menu can still release.
+  mainMenu.addEventListener('keydown', event => {
+    if (event.key === 'Escape' && mainMenu.open) {
+      mainMenu.open = false;
+      mainMenu.querySelector(':scope > summary')?.focus({preventScroll:true});
+    }
+    event.stopPropagation();
   });
   document.addEventListener("pointerdown", event => {
     if (mainMenu.open && !mainMenu.contains(event.target)) mainMenu.open = false;

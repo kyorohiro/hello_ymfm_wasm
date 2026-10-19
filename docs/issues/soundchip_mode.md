@@ -64,8 +64,8 @@ mode 切り替え時は **Start with initial code / Keep current code / Cancel**
 維持を選んだ場合、現在開いている example と実行対象の example も整理から保護する。
 旧下書きや Cassette の復元も維持が既定で、初期コードの自動差し替えは行わない。
 
-編集済みの `/index.js` を残したまま選択 mode の初期コードを試すには、
-**Menu → Examples → Initial code** を使う。`/starter-<mode ID>.js` に開き、編集中の `/index.js` を上書きしない。
+同じ mode の初期状態からやり直す場合は **Menu → New Cassette** を使う。
+確認後、現在のプロジェクトを選択 mode の初期コード・ファイル構成に戻す。
 
 ### PC-98 / OPN の標準 API
 
@@ -424,6 +424,17 @@ PCM 変更のない最適化は実 WASM 出力を従来処理と比較し、音�
 `scripts/check_playground_control_audio_browser.cjs --webkit` では、Chromium / WebKit ×
 Genesis / PC-98 × Main / Worker の8条件、計136回の連続操作が成功した。
 NES / SNES / X68000 / PC Engine も WebKit の Main / Worker 再生・停止・再開を確認した。
+
+Menu 表示中のノイズも報告された。Genesis の持続音を Chromium / WebKit の Main / Worker で
+閉じる→開く→閉じる各1.2秒ずつ計測した全12区間では、PCM のピーク・最大サンプル差は同じで、
+Menu 内の継続 DOM 更新・Canvas 描画・音源への書き込み・AudioContext の状態変更はなかった。
+実デバイスへの出力欠落はこの計測では判定できないため、Safari の聴感上の原因は未確定。
+Menu の描画領域を背後のエディターから分離し、ぼかしの大きい影を軽減する。
+キーボードによる Menu 操作は実行中の演奏処理へ渡さず、押していたキーの解放は維持する。
+
+閉じた子メニューは CSS でも `display: none` にし、WebKit で内容の領域だけが残る空白を防ぐ。
+Import / Export の展開状態は親 Menu の開閉で変更せず、再表示時も保持する。
+FM 用出力しかない Export は、SNES など FM を持たない mode では親ごと非表示にする。
 
 ## 今後整理する点
 

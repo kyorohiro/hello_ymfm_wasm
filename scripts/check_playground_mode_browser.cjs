@@ -10,7 +10,9 @@
 // --gameboy-only checks the native non-FM environment, audio and mode transfer.
 // --starters-only checks fresh defaults, curated files, playable examples and draft restore.
 // --starter-modes=id,id focuses starter audio; --webkit-only selects only WebKit.
-// --mode-choice-only checks the mode dialog, project choices and Initial code menu.
+// --mode-choice-only checks mode choices, draft restore and New Cassette.
+// --menu-only compares sustained audio and UI activity with Menu closed/open/closed.
+// --menu-modes=genesis,pc98 and --menu-executions=main,worker focus that probe.
 const assert = require('node:assert/strict');
 const http = require('node:http');
 const fs = require('node:fs/promises');
@@ -1100,13 +1102,12 @@ async function changeMode(page,id,choice='keep') {
   await finishModeChange(page,id,choice);
 }
 
-async function openInitialCode(page) {
+async function openNewCassette(page) {
   await settleEditor(page);
-  // WebKit can give nested <details> descendants a visible bounding box while
-  // their outer menu is closed. Open the actual disclosure states explicitly.
+  // Use the disclosure state: WebKit can report closed-menu children visible.
   if(!await page.locator('#mainMenu').evaluate(node=>node.open))await page.locator('#mainMenu > summary').click();
-  if(!await page.locator('#menuExamples').evaluate(node=>node.open))await page.locator('#menuExamples > summary').click();
-  await page.locator('#openInitialCodeButton').click();
+  await page.locator('#newCassetteButton').click();
+  await page.locator('#newCassetteDialog').waitFor({state:'visible'});
 }
 
 async function assertModeStarter(page, modeId) {
@@ -1156,31 +1157,11 @@ async function checkStarterTransfer(page, base) {
   },foreign);
   assert.deepEqual(restored,{editor:editedIndex,index:editedIndex,example:editedExample,bytes:[0,255,128,0],module:'export const own = true;\n',empty:'directory'});
 
-  const openStarter = async () => {await openInitialCode(page);};
-  await openStarter();
-  const firstOpened=await page.evaluate(()=>({path:window.__modeRegression.captureProjectSnapshot().activePath,
-    count:window.__modeRegression.virtualFiles.list().length}));
-  await openStarter();
-  const opened = await page.evaluate(async () => {
-    const test = window.__modeRegression,snapshot = test.captureProjectSnapshot();
-    return {index:test.virtualFiles.get('/index.js')?.data,source:test.getEditorValue(),active:snapshot.activePath,run:snapshot.runPath,
-      expected:(await import('./playground_examples.js')).MODE_DEFAULT_CODES.gameboy,
-      count:test.virtualFiles.list().length};
-  });
-  assert.equal(opened.index,editedIndex,'opening a mode starter preserves edited /index.js');
-  assert.equal(opened.source,opened.expected); assert.notEqual(opened.active,'/index.js'); assert.equal(opened.run,opened.active);
-  assert.deepEqual({path:opened.active,count:opened.count},firstOpened,'reopening untouched Initial code reuses its separate file');
-  const ownStarter = '// My starter edits stay intact.\nawait sleep(.01);\n';
-  await page.evaluate(source => window.__modeRegression.setEditorValue(source),ownStarter);
-  await openStarter();
-  const suffixed = await page.evaluate(firstPath => {
-    const test = window.__modeRegression,snapshot = test.captureProjectSnapshot();
-    return {first:test.virtualFiles.get(firstPath)?.data,source:test.getEditorValue(),active:snapshot.activePath,run:snapshot.runPath,
-      selected:document.getElementById('runFileSelect').value};
-  },opened.active);
-  assert.notEqual(suffixed.active,opened.active);
-  assert.deepEqual(suffixed,{first:ownStarter,source:opened.expected,active:suffixed.active,run:suffixed.active,selected:suffixed.active},
-    'editing Initial code makes the menu choose a new path without overwrites');
+  const beforeNew=await choiceProjectState(page);
+  await openNewCassette(page);
+  await page.locator('#newCassetteDialog button[value="cancel"]').click();
+  await page.locator('#newCassetteDialog').waitFor({state:'hidden'});
+  assert.deepEqual(await choiceProjectState(page),beforeNew,'Cancel New Cassette preserves the current project');
 
   await settleEditor(page);
   await page.evaluate(async ({editedIndex,editedExample}) => {
@@ -1200,7 +1181,7 @@ async function checkStarterTransfer(page, base) {
       title:snapshot.metadata?.title,license:snapshot.metadata?.license};
   });
   assert.deepEqual(cassette,{editor:editedIndex,example:editedExample,bytes:[255,0,128],empty:'directory',title:'Mode project',license:'CC0-1.0'});
-  console.log(JSON.stringify({starters:true,projectSwitch:'Genesis→GameBoy→PC98',pristineCleanup:true,editedFiles:true,binaryDirectories:true,cassette:true,openStarterPreservesEdits:true,passed:true}));
+  console.log(JSON.stringify({starters:true,projectSwitch:'Genesis→GameBoy→PC98',pristineCleanup:true,editedFiles:true,binaryDirectories:true,cassette:true,newCassetteCancelPreservesEdits:true,passed:true}));
 }
 
 async function choiceProjectState(page) {
@@ -1211,6 +1192,141 @@ async function choiceProjectState(page) {
       files:snapshot.files.map(file=>({path:file.path,type:typeof file.data==='string'?'text':'binary',
         data:typeof file.data==='string'?file.data:Array.from(file.data)})).sort((a,b)=>a.path.localeCompare(b.path))};
   });
+}
+
+const menuCaptureSource=`class MenuAudioCapture extends AudioWorkletProcessor {
+  constructor(){super();this.reset();this.port.onmessage=({data})=>{if(data.op==='reset'){this.reset();this.port.postMessage({op:'reset'});}if(data.op==='report')this.port.postMessage({op:'report',frames:this.frames,invalid:this.invalid,peak:this.peak,maxQuietFrames:this.maxQuietFrames,frameGaps:this.frameGaps,maxDelta:this.maxDelta});};}
+  reset(){this.frames=0;this.invalid=0;this.peak=0;this.quietFrames=0;this.maxQuietFrames=0;this.frameGaps=0;this.nextFrame=null;this.last=0;this.maxDelta=0;}
+  process(inputs){const channels=inputs[0];if(!channels?.[0])return true;const frames=channels[0].length;if(this.nextFrame!==null&&this.nextFrame!==currentFrame)this.frameGaps++;this.nextFrame=currentFrame+frames;this.frames+=frames;let peak=0;
+    for(const channel of channels)for(const value of channel){if(!Number.isFinite(value))this.invalid++;else peak=Math.max(peak,Math.abs(value));}
+    for(const value of channels[0]){if(this.frames>frames)this.maxDelta=Math.max(this.maxDelta,Math.abs(value-this.last));this.last=value;}
+    this.peak=Math.max(this.peak,peak);this.quietFrames=peak<1e-7?this.quietFrames+frames:0;this.maxQuietFrames=Math.max(this.maxQuietFrames,this.quietFrames);return true;}
+}registerProcessor('tetorica-menu-audio-capture',MenuAudioCapture);`;
+
+async function checkMenuAudio(page,base,browserName) {
+  const modeIds=process.argv.find(arg=>arg.startsWith('--menu-modes='))?.split('=')[1].split(',')??['genesis'];
+  const executions=process.argv.find(arg=>arg.startsWith('--menu-executions='))?.split('=')[1].split(',')??['main','worker'];
+  assert(modeIds.length&&modeIds.every(id=>['genesis','pc98'].includes(id)),'Menu probe supports Genesis/PC98');
+  assert(executions.length&&executions.every(value=>['main','worker'].includes(value)),'Menu probe supports Main/Worker');
+  const source=`const preset={...FM_PRESETS['one-op-basic'],operators:FM_PRESETS['one-op-basic'].operators.map(op=>({...op}))};
+preset.operators[3]={...preset.operators[3],tl:32,ar:31,d1r:0,d2r:0,sl:0,rr:15};fm.setPreset(CH1,preset);fm.noteOn(CH1,'A4');
+onKeyboardPressKey('menu-probe-key',event=>{console.log('MENU_KEY_DOWN '+event.code);event.preventDefault?.();});
+onKeyboardReleaseKey('menu-probe-key',event=>console.log('MENU_KEY_UP '+event.code));
+liveLoop('menu-held-audio',async()=>{await sleep(.25);});console.log('MENU_SOURCE '+(typeof document==='undefined'?'worker':'main'));`;
+  for(const mode of modeIds)for(const execution of executions){
+    await page.goto(`${base}?mode=${mode}&no-sw=1`);await settleEditor(page);
+    await page.evaluate(({source,execution})=>{window.__modeRegression.setEditorValue(source);document.getElementById('workerExecution').checked=execution==='worker';},{source,execution});
+    await page.click('#runButton');
+    await page.waitForFunction(execution=>document.getElementById('consoleOutput').textContent.includes('MENU_SOURCE '+execution),execution);
+    const lead=execution==='worker'?await page.evaluate(()=>window.__modeRegression.runtime.getTiming().workerLookaheadSeconds*1000):0;
+    await page.waitForTimeout(lead+250);
+    await page.evaluate(async captureSource=>{
+      const test=window.__modeRegression,context=test.megaDrive.audioContext,url=URL.createObjectURL(new Blob([captureSource],{type:'text/javascript'}));
+      try{await context.audioWorklet.addModule(url);}finally{URL.revokeObjectURL(url);}
+      const capture=new AudioWorkletNode(context,'tetorica-menu-audio-capture',{numberOfInputs:1,numberOfOutputs:1,outputChannelCount:[2]});
+      const state=window.__menuProbe={capture,context,node:test.megaDrive.node,restores:[],sampleRate:context.sampleRate,processorError:false};
+      state.detach=test.megaDrive.audio.connectOutputMonitor(capture);capture.connect(context.destination);capture.onprocessorerror=()=>{state.processorError=true;};
+      state.resetMetrics=()=>{state.menuMutations=0;state.bodyMutations=0;state.menuCanvasCalls=0;state.canvasCalls={};state.messages={};state.lifecycle={};state.raf=0;};state.resetMetrics();
+      const observe=new MutationObserver(records=>{for(const record of records){state.bodyMutations++;if(document.getElementById('mainMenu').contains(record.target))state.menuMutations++;}});
+      observe.observe(document.body,{subtree:true,attributes:true,childList:true,characterData:true});state.restores.push(()=>observe.disconnect());
+      const wrap=(target,key,fn)=>{const original=target[key];if(typeof original!=='function')return;target[key]=function(...args){fn(this,args);return original.apply(this,args);};state.restores.push(()=>{target[key]=original;});};
+      for(const method of ['resume','suspend','close'])wrap(context,method,()=>{state.lifecycle[method]=(state.lifecycle[method]??0)+1;});
+      wrap(state.node.port,'postMessage',(_,args)=>{for(const message of Array.isArray(args[0])?args[0]:[args[0]]){const type=message?.type??message?.method??'unknown';state.messages[type]=(state.messages[type]??0)+1;}});
+      for(const method of ['clearRect','fillRect','stroke','fill','drawImage','putImageData'])wrap(CanvasRenderingContext2D.prototype,method,(ctx)=>{const canvas=ctx.canvas,key=canvas.id||canvas.closest('[id]')?.id||'anonymous';state.canvasCalls[key]=(state.canvasCalls[key]??0)+1;if(document.getElementById('mainMenu').contains(canvas))state.menuCanvasCalls++;});
+      const raf=requestAnimationFrame;window.requestAnimationFrame=callback=>raf(time=>{state.raf++;callback(time);});state.restores.push(()=>{window.requestAnimationFrame=raf;});
+      state.command=op=>new Promise(resolve=>{capture.port.onmessage=({data})=>{if(data.op===op)resolve(data);};capture.port.postMessage({op});});
+      state.before=(test.megaDrive.fm.fm??test.megaDrive.fm).getState();
+    },menuCaptureSource);
+    const phase=async label=>{
+      await page.waitForTimeout(100);
+      await page.evaluate(async()=>{const state=window.__menuProbe;await state.command('reset');state.resetMetrics();state.started=performance.now();});
+      await page.waitForTimeout(1200);
+      const report=await page.evaluate(async()=>{const state=window.__menuProbe,pcm=await state.command('report'),test=window.__modeRegression;
+        return {pcm,menuOpen:document.getElementById('mainMenu').open,menuMutations:state.menuMutations,bodyMutations:state.bodyMutations,
+          menuCanvasCalls:state.menuCanvasCalls,canvasCalls:state.canvasCalls,raf:state.raf,messages:state.messages,lifecycle:state.lifecycle,
+          ms:performance.now()-state.started,sampleRate:state.sampleRate,processorError:state.processorError,
+          sameContext:state.context===test.megaDrive.audioContext,sameNode:state.node===test.megaDrive.node,
+          stateUnchanged:JSON.stringify(state.before)===JSON.stringify((test.megaDrive.fm.fm??test.megaDrive.fm).getState()),playback:test.runtime.getState().playback};});
+      const pfx=`${browserName}/${mode}/${execution}/${label}`;
+      assert.equal(report.pcm.invalid,0,`${pfx}: finite PCM`);assert.equal(report.pcm.frameGaps,0,`${pfx}: continuous worklet frames`);
+      assert(report.pcm.frames>report.sampleRate*.5&&report.pcm.peak>.0001,`${pfx}: sustained audio is captured`);
+      assert(report.pcm.maxQuietFrames<report.sampleRate*.1,`${pfx}: held audio does not stop for 100ms`);
+      assert.deepEqual(report.lifecycle,{},`${pfx}: no AudioContext lifecycle calls`);
+      assert.equal(report.stateUnchanged,true,`${pfx}: menu does not change chip registers`);
+      assert(!Object.keys(report.messages).some(type=>/write|reset|initialize|clock|envelope|dac-playback/.test(type)),`${pfx}: no register/reset/clock messages`);
+      assert.equal(report.sameContext,true);assert.equal(report.sameNode,true);assert.equal(report.processorError,false);assert.equal(report.playback,'running');
+      assert.equal(report.menuMutations,0,`${pfx}: settled menu has no continuous DOM updates`);
+      assert.equal(report.menuCanvasCalls,0,`${pfx}: settled menu has no canvas rendering`);
+      console.log(JSON.stringify({browser:browserName,mode,execution,menuPhase:label,...report,passed:true}));return report;
+    };
+    try{
+      await phase('closed');await page.locator('#mainMenu > summary').click();await phase('open');
+      await page.locator('#mainMenu > summary').click();await phase('closed-again');
+      await page.locator('#codeTab').click();await page.keyboard.down('j');
+      await page.waitForFunction(()=>document.getElementById('consoleOutput').textContent.includes('MENU_KEY_DOWN KeyJ'));
+      await page.locator('#mainMenu > summary').click();await page.keyboard.up('j');
+      await page.waitForFunction(()=>document.getElementById('consoleOutput').textContent.includes('MENU_KEY_UP KeyJ'));
+      await page.keyboard.press('q');await page.keyboard.press('Escape');
+      assert.equal(await page.locator('#mainMenu').evaluate(node=>node.open),false,'Menu Escape closes despite user preventDefault handler');
+      assert.equal(await page.locator('#consoleOutput').textContent().then(text=>text.includes('MENU_KEY_DOWN KeyQ')||text.includes('MENU_KEY_DOWN Escape')),false,'Menu keys do not reach running code');
+      await page.waitForFunction(()=>document.activeElement===document.querySelector('#mainMenu > summary'));
+      await page.locator('#mainMenu > summary').click();
+      for(const menu of ['menuImport','menuExport'])if(!await page.locator('#'+menu).evaluate(node=>node.open))await page.locator('#'+menu+' > summary').click();
+      for(let repeat=0;repeat<3;repeat++){
+        await page.locator('#mainMenu > summary').click();await page.locator('#mainMenu > summary').click();
+        for(const [menu,button] of [['menuImport','importVgmButton'],['menuExport','exportTfiButton']]){
+          assert.equal(await page.locator('#'+menu).evaluate(node=>node.open),true,`${menu}: expansion survives parent reopen`);
+          await page.locator('#'+button).click({trial:true});
+        }
+      }
+      assert.equal(await page.locator('#openInitialCodeButton, #menuExamples').count(),0,'No redundant starter action');
+      await page.locator('#playgroundMode').click({trial:true});
+      const screenshot=`/private/tmp/playground-menu-${browserName}-${mode}-${execution}.png`;await page.screenshot({path:screenshot});
+      await page.setViewportSize({width:420,height:860});
+      await page.locator('#playgroundMode').click({trial:true});await page.locator('#importVgmButton').click({trial:true});
+      await page.screenshot({path:`/private/tmp/playground-menu-narrow-${browserName}-${mode}-${execution}.png`});await page.setViewportSize({width:1320,height:960});
+      console.log(JSON.stringify({browser:browserName,mode,execution,menuKeysIsolated:true,heldKeyRelease:true,submenusRetained:true,nativeModeSelectReachable:true,narrowMenuReachable:true,screenshot,passed:true}));
+    }finally{
+      await page.evaluate(async()=>{const state=window.__menuProbe;for(const restore of state.restores.reverse())restore();state.detach();state.capture.disconnect();state.capture.port.close();await window.__modeRegression.runtime.stopWithFade();}).catch(()=>{});
+    }
+  }
+}
+
+async function checkMenuLayout(page,base,browserName) {
+  for(const mode of ['genesis','snes']){
+    await page.goto(`${base}?mode=${mode}&no-sw=1`);await settleEditor(page);
+    await page.locator('#mainMenu > summary').click();
+    const closed=await page.evaluate(()=>{
+      const describe=id=>{const node=document.getElementById(id),panel=node.querySelector(':scope > .toolbar-menu-panel');
+        return {open:node.open,hidden:node.hidden,height:node.getBoundingClientRect().height,summaryHeight:node.querySelector(':scope > summary').getBoundingClientRect().height,
+          panelDisplay:getComputedStyle(panel).display,panelHeight:panel.getBoundingClientRect().height,panelWidth:panel.getBoundingClientRect().width};};
+      return {import:describe('menuImport'),export:describe('menuExport')};
+    });
+    for(const id of ['import',...(mode==='genesis'?['export']:[])]){
+      assert.equal(closed[id].open,false,`${mode}/${id}: initially collapsed`);
+      assert.equal(closed[id].panelDisplay,'none');assert.equal(closed[id].panelHeight,0);assert.equal(closed[id].panelWidth,0);
+      assert(closed[id].height<=closed[id].summaryHeight+2,`${mode}/${id}: closed panel leaves no blank vertical area`);
+    }
+    assert.equal(closed.export.hidden,mode!=='genesis',`${mode}: Export is only shown for FM modes`);
+    const screenshot=`/private/tmp/playground-menu-closed-${browserName}-${mode}.png`;await page.screenshot({path:screenshot});
+    const entries=[['menuImport','importVgmButton'],...(mode==='genesis'?[['menuExport','exportTfiButton']]:[])];
+    for(const [menu] of entries)await page.locator('#'+menu+' > summary').click();
+    for(let repeat=0;repeat<3;repeat++){
+      await page.locator('#mainMenu > summary').click();await page.locator('#mainMenu > summary').click();
+      for(const [menu,button] of entries){assert.equal(await page.locator('#'+menu).evaluate(node=>node.open),true,`${mode}/${menu}: expansion is retained`);await page.locator('#'+button).click({trial:true});}
+    }
+    const [chooser]=await Promise.all([page.waitForEvent('filechooser'),page.locator('#importVgmButton').click()]);
+    await chooser.setFiles([]);
+    await page.locator('#mainMenu > summary').click();
+    for(const [menu,button] of entries){assert.equal(await page.locator('#'+menu).evaluate(node=>node.open),true);await page.locator('#'+button).click({trial:true});}
+    await page.locator('#playgroundMode').selectOption(mode);
+    assert.equal(await page.locator('#changeModeDialog').isVisible(),false,'Native Mode select same-mode choice leaves menu usable');
+    await page.setViewportSize({width:420,height:860});
+    await page.locator('#importVgmButton').click({trial:true});await page.locator('#playgroundMode').click({trial:true});
+    await page.screenshot({path:`/private/tmp/playground-menu-layout-narrow-${browserName}-${mode}.png`});
+    await page.setViewportSize({width:1320,height:960});
+    console.log(JSON.stringify({browser:browserName,mode,menuLayout:true,closed,expandedContentsRetained:true,realImportFileChooser:true,narrowHitTesting:true,screenshot,passed:true}));
+  }
 }
 
 async function checkModeChoices(page,base,browserName) {
@@ -1308,31 +1424,17 @@ console.log('MODE_CHOICE_RUNNING');\n`;
   assert.equal(kept.editor,runSource,'Keep preserves active editor content');
   assert.equal(await page.evaluate(()=>window.__modeRegression.runtime.getState().playback),'stopped','The new mode waits for Run');
 
-  await openInitialCode(page);
-  const initialFile=await page.evaluate(async()=>({path:window.__modeRegression.captureProjectSnapshot().activePath,
-    source:window.__modeRegression.getEditorValue(),expected:(await import('./playground_examples.js')).MODE_DEFAULT_CODES.genesis,
-    count:window.__modeRegression.virtualFiles.list().length}));
-  assert.notEqual(initialFile.path,'/index.js','Examples opens Initial code in a separate file');
-  assert.equal(initialFile.source,initialFile.expected);
-  assert.equal((await choiceProjectState(page)).run,initialFile.path,'Initial code becomes the selected Run file');
-  await openInitialCode(page);
-  assert.deepEqual(await page.evaluate(()=>({path:window.__modeRegression.captureProjectSnapshot().activePath,
-    count:window.__modeRegression.virtualFiles.list().length})),{path:initialFile.path,count:initialFile.count},'Repeated Initial code reuses an untouched separate file');
-  const editedInitial='// Keep my edits to the separate Initial code file.\nawait sleep(.01);\n';
-  await page.evaluate(source=>window.__modeRegression.setEditorValue(source),editedInitial);
-  await openInitialCode(page);
-  const nextInitial=await page.evaluate(path=>({first:window.__modeRegression.virtualFiles.get(path)?.data,
-    path:window.__modeRegression.captureProjectSnapshot().activePath,source:window.__modeRegression.getEditorValue()}),initialFile.path);
-  assert.equal(nextInitial.first,editedInitial,'Initial code preserves edits to the previously opened starter');
-  assert.notEqual(nextInitial.path,initialFile.path,'Edited Initial code causes a different file to open');
-  assert.equal(nextInitial.source,initialFile.expected);
-  const afterMenu=await choiceProjectState(page);
-  assert.equal(afterMenu.files.find(file=>file.path==='/index.js')?.data,customIndex,'Examples Initial code does not replace index.js');
-  assert.deepEqual(resources(afterMenu),resources(before),'Examples Initial code preserves project resources');
-
-  await settleEditor(page);
-  await page.selectOption('#runFileSelect','/lib/running.js');
+  assert.equal(await page.locator('#openInitialCodeButton, #menuExamples').count(),0,'New Cassette is the sole fresh-project action');
   await runLoop();
+  const beforeNew=await choiceProjectState(page);
+  await openNewCassette(page);
+  const liveNew=await page.evaluate(()=>({playback:window.__modeRegression.runtime.getState().playback,
+    sameContext:window.__modeChoiceContext===window.__modeRegression.runtime.context}));
+  assert.deepEqual(liveNew,{playback:'running',sameContext:true},'Opening New Cassette does not stop the current run');
+  await page.locator('#newCassetteDialog button[value="cancel"]').click();
+  await page.locator('#newCassetteDialog').waitFor({state:'hidden'});
+  assert.deepEqual(await choiceProjectState(page),beforeNew,'Cancel New Cassette preserves files and selections');
+  assert.equal(await page.evaluate(()=>window.__modeRegression.runtime.getState().playback),'running','Cancel New Cassette preserves playback');
   await beginModeChange(page,'gameboy');
   const pendingInitial=await page.evaluate(()=>({playback:window.__modeRegression.runtime.getState().playback,
     sameContext:window.__modeChoiceContext===window.__modeRegression.runtime.context}));
@@ -1346,10 +1448,20 @@ console.log('MODE_CHOICE_RUNNING');\n`;
   assert.equal(initialized.files.find(file=>file.path==='/index-genesis.js')?.data,reservedBackup,'Initial preserves pre-existing backup content');
   assert.equal(await page.evaluate(()=>window.__modeRegression.runtime.getState().playback),'stopped','Initial stops the previous run and does not autoplay');
   assert(!/\[error\]|(?:Reference|Syntax|Type)Error:/.test(await page.locator('#consoleOutput').textContent()),'Mode choices leave no runtime console error');
+  await openNewCassette(page);
+  await page.locator('#newCassetteDialog button[value="new"]').click();
+  await page.waitForFunction(()=>!window.__modeRegression.virtualFiles.has('/assets/opaque.txt'));
+  await settleEditor(page);
+  const fresh=await choiceProjectState(page);
+  const expected=await page.evaluate(async()=>(await import('./playground_examples.js')).MODE_DEFAULT_CODES.gameboy);
+  assert.equal(fresh.editor,expected,'New Cassette opens the selected mode initial code');
+  assert.equal(fresh.active,'/index.js');assert.equal(fresh.run,'/index.js');
+  assert.equal(fresh.metadata,null);assert.equal(fresh.hasMetadataFile,false);
+  assert(!fresh.files.some(file=>file.data===customIndex),'Confirmed New Cassette resets the old project');
   console.log(JSON.stringify({browser:browserName,modeChoices:true,initial:true,keep:true,cancel:true,escape:true,sameMode:true,
     untouchedDefaultKept:true,activeRunPreservedUntilChoice:true,dialogKeyboardIsolated:true,cancelFocusRestored:true,
     activeRunPathKept:true,customIndexBackup:backups[0].path,
-    binaryDirectoriesMetadata:true,initialCodeSeparateFile:true,initialCodeEditsPreserved:true,screenshot,passed:true}));
+    binaryDirectoriesMetadata:true,newCassetteCancelPreservesRun:true,newCassetteResetsProject:true,screenshot,passed:true}));
 }
 
 async function checkStarterLegacyDraft(browser, base) {
@@ -1416,6 +1528,12 @@ async function checkBrowser(name, type, base) {
     ? modes.filter(mode => mode.chip === 'ym2203') : opnbExampleOnly
     ? modes.filter(mode => ['ym2610', 'ym2610b'].includes(mode.chip)) : modes;
   try {
+    if(process.argv.includes('--menu-only')){
+      await checkMenuAudio(page,base,name);
+      await checkMenuLayout(page,base,name);
+      assert.deepEqual(errors,[],`${name}: menu page errors`);
+      console.log(JSON.stringify({browser:name,menuAudio:true,pageErrors:0,passed:true}));return;
+    }
     if(modeChoiceOnly){
       await checkModeChoices(page,base,name);
       await checkStarterLegacyDraft(browser,base);
