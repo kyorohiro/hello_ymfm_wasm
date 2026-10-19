@@ -3,18 +3,18 @@ import {Ym2612} from './ym2612.js';
 import {Ym2608} from './ym2608.js?v=audio-stability-2';
 import {Ym2151} from './ym2151.js?v=audio-stability-2';
 import {GameboyApu} from './gameboyapu.js?v=audio-stability-2';
-import {SegaPSG} from './segapsg.js?v=audio-stability-2';
+import {SegaPSG} from './segapsg.js?v=sega-modes-1';
 import {NesApu} from './nesapu.js';
 import ym2612Factory from '../generated/ym2612_wasm.js';
 import ym2608Factory from '../generated/ym2608_wasm.js';
 import ym2151Factory from '../generated/ym2151_wasm.js';
 import gameboyFactory from '../generated/gameboy_apu_wasm.js';
-import psgFactory from '../generated/segapsg_wasm.js';
+import psgFactory from '../generated/segapsg_wasm.js?v=sega-modes-1';
 import {createSoundChipFactory} from './soundchip_factory.js';
 import {ChipPCMRenderer} from './chip_pcm_renderer.js?v=audio-stability-2';
 import {YM2612DirectTransport} from './ym2612synth.js?v=audio-stability-2';
 import {YM2612DacPlayer} from './ym2612_dac.js';
-import {createProcessorPerformance,performanceNoteRelease} from './playground_performance_processor.js?v=native-modes-3';
+import {createProcessorPerformance,performanceNoteRelease} from './playground_performance_processor.js?v=sega-modes-1';
 
 const profiles = {ym2612: [Ym2612, ym2612Factory], ym2608: [Ym2608, ym2608Factory],
   ym2151: [Ym2151, ym2151Factory], gameboy: [GameboyApu, gameboyFactory], segapsg: [SegaPSG, psgFactory], nes: [NesApu, undefined]};

@@ -1,6 +1,6 @@
 # Tetorica Playground (hello_ymfm_wasm)
 
-> Browser-based JavaScript playground, documentation, and WebAssembly tools for OPN FM, Game Boy, NES + FDS, SNES, X68000 and PC Engine sound chips.
+> Browser-based JavaScript playground, documentation, and WebAssembly tools for OPN FM, Game Boy, NES + FDS, SNES, X68000, PC Engine, Game Gear and Master System sound chips.
 
 Use the common Playground type definitions together with the type definition for the selected sound chip. The canonical examples are code that runs in the Playground.
 
@@ -24,8 +24,10 @@ Use the common Playground type definitions together with the type definition for
 - [SNES mode](./playground/tetorica-playground-snes.d.ts): Primary snes CPU-free S-DSP with eight BRR voices. Await loadBRR, assign with setPreset, then noteOn. Native PCM is 32,000 Hz; no setClock. SPC file playback uses useSoundChip('spc').
 - [X68000 mode](./playground/tetorica-playground-x68000.d.ts): Primary opm (YM2151, 4 MHz) and adpcm (OKIM6258, 8 MHz). Await adpcm.loadSample(PCM/WAV) or loadMemory(OKI ADPCM4, low nibble first), then play({repeat?}) / stop(). This is not the OPN ADPCM-B API.
 - [PC Engine mode](./playground/tetorica-playground-huc6280.d.ts): Primary pce HuC6280 with six 32-sample five-bit wavetable voices, noise on channels 4/5, DDA and LFO. Additional chip name is huc6280.
+- [Game Gear mode](./playground/tetorica-playground-game-gear.d.ts): Primary psg Sega PSG with three tones and noise. psg.setStereo(mask) routes bits 0..3 to the right and bits 4..7 to the left; 0xff enables both sides. Use PSG1..3 for tone channels.
+- [Master System mode](./playground/tetorica-playground-master-system.d.ts): Primary psg Sega PSG with three tones and noise, mixed in mono. No setStereo on the primary instrument. This mode uses the base PSG and does not include the optional YM2413 FM expansion.
 
-Native modes expose the same instrument namespaces on pg and livePrepare. Game Boy, NES, SNES, X68000 and PC Engine have no global fm/play/write, OPN pitch helpers, FM channel/operator constants or MIDI-to-FM shortcuts. Use explicit instrument methods and beat/sleep/liveLoop. useSoundChip of a mode's primary instrument borrows it without dispose; createSoundChip creates an additional disposable instrument. OPN chips remain available explicitly from every mode. Non-Genesis modes each bundle 2–3 native examples and their own defaults/<mode>/index.js.
+Native modes expose the same instrument namespaces on pg and livePrepare. Game Boy, NES, SNES, X68000, PC Engine, Game Gear and Master System have no global fm/play/write, OPN pitch helpers, FM channel/operator constants or MIDI-to-FM shortcuts. Use explicit instrument methods and beat/sleep/liveLoop. useSoundChip of a mode's primary instrument borrows it without dispose; createSoundChip creates an additional disposable instrument. In Game Gear and Master System modes, useSoundChip('segapsg') returns the primary psg; createSoundChip('segapsg') creates an independent PSG with stereo routing. OPN chips remain available explicitly from every mode. Non-Genesis modes each bundle 2–3 native examples and their own defaults/<mode>/index.js.
 
 ## Examples
 
@@ -42,6 +44,9 @@ Open these source files from Playground FILES → examples to run them.
 - [SNES starter](./playground/defaults/snes/index.js): Authored BRR sample and eight-voice S-DSP programming
 - [X68000 starter](./playground/defaults/x68000/index.js): YM2151 OPM programming; selected ADPCM example encodes PCM for OKIM6258
 - [PC Engine starter](./playground/defaults/pc-engine/index.js): HuC6280 waveform and explicit channel noteOn/keyOff
+- [Game Gear starter](./playground/defaults/game-gear/index.js): Three-tone Sega PSG melody, noise rhythm, and stereo routing
+- [Game Gear stereo](./playground/examples/game-gear/gg-mode-stereo.js): Route physical tone channels to the left or right speaker
+- [Master System starter](./playground/defaults/master-system/index.js): Sega PSG melody and noise rhythm in mono
 - [DX7 Init Sine](./playground/examples/dx7/dx7-init-sine.js): useSoundChip('dx7'), 16-voice MIDI-note playback and DX7 SysEx banks. Read SysEx with file(path, {type:'arrayBuffer'}); await loadSysex before noteOn. MSFA runs internally at 44,100 Hz and has no setClock API.
 
 ## Source

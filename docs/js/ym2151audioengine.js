@@ -5,7 +5,7 @@
  * 同期 PCM 生成・ミックス用。DOM・AudioContext・スピーカー出力は不要。
  */
 import { Ym2151, YM2151_CLOCK } from './ym2151.js?v=audio-stability-2';
-import { SegaPSG } from './segapsg.js?v=audio-stability-2';
+import { SegaPSG } from './segapsg.js?v=sega-modes-1';
 import { SegaPcm } from './segapcm.js?v=audio-stability-2';
 
 // YM2151 and optional Sega PSG / Sega PCM share the output clock, but keep independent state.
@@ -18,7 +18,7 @@ export class Ym2151AudioEngine {
   #states = new WeakMap();
   /**
    * Create the chip instances required by this engine.
-   * @param {{ym2151ModuleFactory: import('./soundchip.js?v=audio-stability-2').WasmModuleFactory, ym2151ModuleOptions?: import('./soundchip.js?v=audio-stability-2').WasmModuleOptions, ym2151Clock?: number, ym2151Variant?: 'ym2151'|'ym2164', segaPsgModuleFactory?: import('./soundchip.js?v=audio-stability-2').WasmModuleFactory, psgClock?: number, segaPcmModuleFactory?: import('./soundchip.js?v=audio-stability-2').WasmModuleFactory, segaPcmModuleOptions?: import('./soundchip.js?v=audio-stability-2').WasmModuleOptions, segaPcmClock?: number, segaPcmBankShift?: number, segaPcmBankMask?: number, outputSampleRate?: number, masterVolume?: number}} [options={}] Chip factories, clocks in Hz and loader settings.
+   * @param {{ym2151ModuleFactory: import('./soundchip.js?v=sega-modes-1').WasmModuleFactory, ym2151ModuleOptions?: import('./soundchip.js?v=sega-modes-1').WasmModuleOptions, ym2151Clock?: number, ym2151Variant?: 'ym2151'|'ym2164', segaPsgModuleFactory?: import('./soundchip.js?v=sega-modes-1').WasmModuleFactory, psgClock?: number, segaPcmModuleFactory?: import('./soundchip.js?v=sega-modes-1').WasmModuleFactory, segaPcmModuleOptions?: import('./soundchip.js?v=sega-modes-1').WasmModuleOptions, segaPcmClock?: number, segaPcmBankShift?: number, segaPcmBankMask?: number, outputSampleRate?: number, masterVolume?: number}} [options={}] Chip factories, clocks in Hz and loader settings.
    * @param {number} [options.outputSampleRate=44100] Output stereo frames per second.
    * @param {number} [options.masterVolume=1] Linear output gain, not dB.
    * @returns {Promise<Ym2151AudioEngine>} Initialized engine owned by the caller.

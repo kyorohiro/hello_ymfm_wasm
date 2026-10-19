@@ -4,10 +4,10 @@
  * 依存: 音源チップ／WASM バックエンド（ファクトリーまたはエンジンを注入）。
  * 同期 PCM 生成・ミックス用。DOM・AudioContext・スピーカー出力は不要。
  */
-import {Ym2151AudioEngine} from './ym2151audioengine.js?v=audio-stability-2';
+import {Ym2151AudioEngine} from './ym2151audioengine.js?v=sega-modes-1';
 import {Ay8910AudioEngine} from './ay8910audioengine.js?v=audio-stability-2';
-import {Ym2413AudioEngine} from './ym2413audioengine.js?v=audio-stability-2';
-import {Y8950AudioEngine} from './y8950audioengine.js?v=audio-stability-2';
+import {Ym2413AudioEngine} from './ym2413audioengine.js?v=sega-modes-1';
+import {Y8950AudioEngine} from './y8950audioengine.js?v=sega-modes-1';
 import {K051649AudioEngine} from './k051649audioengine.js?v=audio-stability-2';
 import {MultiChipAudioEngine} from './multichipaudioengine.js';
 
@@ -21,7 +21,7 @@ import {MultiChipAudioEngine} from './multichipaudioengine.js';
 export class MsxAudioEngine extends MultiChipAudioEngine {
   /**
    * Create the chip instances required by this engine.
-   * @param {{chips?:MsxChipDescriptor[],outputSampleRate?:number,masterVolume?:number, ym2151ModuleFactory?:import('./soundchip.js?v=audio-stability-2').WasmModuleFactory, ym2151ModuleOptions?:import('./soundchip.js?v=audio-stability-2').WasmModuleOptions, ym2151Clock?:number, ayModuleFactory?:import('./soundchip.js?v=audio-stability-2').WasmModuleFactory, ayModuleOptions?:import('./soundchip.js?v=audio-stability-2').WasmModuleOptions, ayClock?:number, ym2413ModuleFactory?:import('./soundchip.js?v=audio-stability-2').WasmModuleFactory, ym2413ModuleOptions?:import('./soundchip.js?v=audio-stability-2').WasmModuleOptions, ym2413Clock?:number, y8950ModuleFactory?:import('./soundchip.js?v=audio-stability-2').WasmModuleFactory, y8950ModuleOptions?:import('./soundchip.js?v=audio-stability-2').WasmModuleOptions, y8950Clock?:number, k051649ModuleFactory?:import('./soundchip.js?v=audio-stability-2').WasmModuleFactory, k051649ModuleOptions?:import('./soundchip.js?v=audio-stability-2').WasmModuleOptions, k051649Clock?:number,ym2151Variant?:'ym2151'|'ym2164',ayType?:number,ayFlags?:number}} [options={}] Chip factories, clocks in Hz and loader settings.
+   * @param {{chips?:MsxChipDescriptor[],outputSampleRate?:number,masterVolume?:number, ym2151ModuleFactory?:import('./soundchip.js?v=sega-modes-1').WasmModuleFactory, ym2151ModuleOptions?:import('./soundchip.js?v=sega-modes-1').WasmModuleOptions, ym2151Clock?:number, ayModuleFactory?:import('./soundchip.js?v=sega-modes-1').WasmModuleFactory, ayModuleOptions?:import('./soundchip.js?v=sega-modes-1').WasmModuleOptions, ayClock?:number, ym2413ModuleFactory?:import('./soundchip.js?v=sega-modes-1').WasmModuleFactory, ym2413ModuleOptions?:import('./soundchip.js?v=sega-modes-1').WasmModuleOptions, ym2413Clock?:number, y8950ModuleFactory?:import('./soundchip.js?v=sega-modes-1').WasmModuleFactory, y8950ModuleOptions?:import('./soundchip.js?v=sega-modes-1').WasmModuleOptions, y8950Clock?:number, k051649ModuleFactory?:import('./soundchip.js?v=sega-modes-1').WasmModuleFactory, k051649ModuleOptions?:import('./soundchip.js?v=sega-modes-1').WasmModuleOptions, k051649Clock?:number,ym2151Variant?:'ym2151'|'ym2164',ayType?:number,ayFlags?:number}} [options={}] Chip factories, clocks in Hz and loader settings.
    * @param {number} [options.outputSampleRate=44100] Output stereo frames per second.
    * @param {number} [options.masterVolume=1] Linear output gain, not dB.
    * @returns {Promise<MsxAudioEngine>} Initialized engine owned by the caller.

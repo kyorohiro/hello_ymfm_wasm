@@ -83,3 +83,38 @@ for(const [name,command,key]of[
   p.performance.receive({type:'performance-cancel-owner',session:1,owner:'voice'},p.port);
   assert.deepEqual(p.applied.at(-1),performanceNoteRelease(name,key));
 });
+
+for (const [channel,latch] of [[0,0x9f],[3,0xff]]) test(`PSG raw continuation acquires voice ${channel} at its applied volume latch`,()=>{
+  const p=setup({chip:'segapsg'});
+  const commands=[0x8a,0x10,latch,0x01].map(byte=>({method:'write',args:[byte]}));
+  p.enqueue(commands,.001,'raw'); p.render(2);
+  p.performance.receive({type:'performance-cancel-owner',session:1,owner:'raw'},p.port);
+  assert.deepEqual(p.applied.at(-1),{method:'write',args:[latch]});
+  assert.equal(p.applied.length,commands.length+1);
+});
+
+test('PSG continuation follows applied shared latch order and a stale owner cannot mute another channel',()=>{
+  const p=setup({chip:'segapsg'}), write=byte=>({method:'write',args:[byte]});
+  // Submitted in the opposite order to playback. The last hardware latch is CH2.
+  p.enqueue([write(0xbf),write(0x02)],.002,'new');
+  p.enqueue([write(0x9f),write(0x01)],.001,'old');
+  p.enqueue([write(0x0f)],.003,'old');
+  p.render(4);
+  assert.deepEqual(p.applied.map(command=>command.args[0]),[0x9f,0x01,0xbf,0x02]);
+  p.performance.receive({type:'performance-cancel-owner',session:1,owner:'old'},p.port);
+  assert.equal(p.applied.at(-1).args[0],0x9f,'old owns CH1, not the last shared CH2 latch');
+  // Releasing old changed the hardware latch to CH1. A continuation now owns CH1.
+  p.enqueue([write(0x03)],.004,'third'); p.render(1);
+  p.performance.receive({type:'performance-cancel-owner',session:1,owner:'third'},p.port);
+  assert.equal(p.applied.at(-1).args[0],0x9f);
+  p.performance.receive({type:'performance-cancel-owner',session:1,owner:'new'},p.port);
+  assert.equal(p.applied.at(-1).args[0],0xbf);
+});
+
+test('PSG continuation honors an observed hardware latch from Main or inspector writes',()=>{
+  let latched=7;
+  const p=setup({chip:'segapsg',getPsgLatch:()=>latched});
+  p.enqueue([{method:'write',args:[0x01]}],.001,'worker'); p.render(2);
+  p.performance.receive({type:'performance-cancel-owner',session:1,owner:'worker'},p.port);
+  assert.deepEqual(p.applied.at(-1),{method:'write',args:[0xff]});
+});

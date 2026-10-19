@@ -2,7 +2,7 @@ import factory from '../generated/spc_wasm.js?v=spc-events-1';
 import {SnesDspCore} from './spc.js?v=spc-events-1';
 import {SnesSynth} from './snessynth.js?v=spc-song-js-1';
 import {SpcResampler} from './spc_resampler.js?v=chip-tabs-2';
-import {createProcessorPerformance} from './playground_performance_processor.js?v=native-modes-3';
+import {createProcessorPerformance} from './playground_performance_processor.js?v=sega-modes-1';
 const METHODS=new Set(['prepareTimeline','playTimeline','stopTimeline','getTimelineState','loadBRR','setPreset','setChannel','setPitch','setFrequency','setNote','keyOn','keyOff','noteOn','noteOff','allNotesOff','reset','writeDsp','readDsp','getState','getPreset','snapshot','dispose']);
 const RESOURCE_METHODS=new Set(['prepareTimeline','stopTimeline','getTimelineState','loadBRR','readDsp','getState','getPreset','snapshot']);
 export class SnesInstrumentProcessor extends AudioWorkletProcessor {

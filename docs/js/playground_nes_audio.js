@@ -5,7 +5,7 @@ import {NES_APU_CLOCK, validateNesApuClock} from './nesapu.js';
 export async function createNesAudio(context, destination, {fds = false, clock = NES_APU_CLOCK, signal, workletUrl} = {}) {
   validateNesApuClock(clock);
   signal?.throwIfAborted();
-  await waitForInitialization(context.audioWorklet.addModule(workletUrl ?? new URL('./playground_nes_worklet.js?v=audio-stability-2', import.meta.url)), signal);
+  await waitForInitialization(context.audioWorklet.addModule(workletUrl ?? new URL('./playground_nes_worklet.js?v=sega-modes-1', import.meta.url)), signal);
   signal?.throwIfAborted();
   const node = new AudioWorkletNode(context, 'tetorica-nes', {
     numberOfInputs: 0, numberOfOutputs: 1, outputChannelCount: [2], processorOptions: {fds, clock},

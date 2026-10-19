@@ -57,3 +57,18 @@ for (const [chip, globals] of [['nes',['nes']],['snes',['snes']],['x68000',['opm
     for (const name of ['sample','stream','noise']) assert.match(selected, new RegExp(`^declare const ${name}:`, 'm'));
   });
 }
+
+for (const chip of ['game-gear', 'master-system']) {
+  test(`${chip} exposes its primary PSG without Genesis or other native shortcuts`, () => {
+    const selected = selectPlaygroundDeclarations(source, chip);
+    assert.match(selected, /^declare const psg: PlaygroundSelectedPsg;/m);
+    for (const [index, name] of ['PSG1','PSG2','PSG3'].entries()) {
+      assert.match(selected, new RegExp(`^declare const ${name}: ${index};`, 'm'));
+    }
+    assert.doesNotMatch(selected, /^declare const (?:fm|FM_PRESETS|midi|CH\d+|OP\d+|dac|ssg|rhythm|adpcm[AB]?|gameboy|nes|snes|opm|pce):/m);
+    assert.doesNotMatch(selected, /^declare function (?:play|write|scheduleWritesSamples|psgTone|psgNoise|noteToBlockFnum|hzToBlockFnum|noteLerp|tfiToPreset|vgiToPreset|setDacLookahead|getDacLookahead)\(/m);
+    for (const name of ['beat','sleep','liveLoop','tween','scale','chord','beginSampleSchedule','useSoundChip']) {
+      assert.match(selected, new RegExp(`^declare function ${name}[<(]`, 'm'));
+    }
+  });
+}

@@ -14,17 +14,21 @@ const definitions = [
   {id:'snes', label:'SNES', chip:'snes', engine:'dsp', fmChannels:0, details:'S-DSP · 32,000 Hz · 8 voices'},
   {id:'x68000', label:'X68000', chip:'x68000', engine:'opm-adpcm', fmChannels:0, details:'YM2151 · 4 MHz + OKIM6258 · 8 MHz'},
   {id:'pc-engine', label:'PC Engine', chip:'huc6280', engine:'psg', fmChannels:0},
+  {id:'game-gear', label:'Game Gear', chip:'segapsg', declarationChip:'game-gear', engine:'psg', fmChannels:0,
+    stereoEnabled:true, chipTabs:['segapsg'], details:'Sega PSG · 3,579,545 Hz · 3 tones + noise · Stereo'},
+  {id:'master-system', label:'Master System', chip:'segapsg', declarationChip:'master-system', engine:'psg', fmChannels:0,
+    stereoEnabled:false, chipTabs:['segapsg'], details:'Sega PSG · 3,579,545 Hz · 3 tones + noise · Mono'},
   // Preserve old engine/chip links without adding another standard environment.
   {id:'genesis-nuked', label:'Genesis (Nuked)', chip:'ym2612', engine:'nuked', legacy:true},
 ];
 const modes = new Map(definitions.map(definition => {
   const mode = Object.freeze({engine:'ymfm', full:false, ...definition,
     clock:CHIP_CLOCKS[definition.chip],
-    declarationChip:definition.chip,
-    legacyDraftKey:definition.chip + (definition.engine === 'nuked' ? ':nuked' : ''),
-    chipTabs:Object.freeze(definition.chip === 'ym2612'
+    declarationChip:definition.declarationChip ?? definition.chip,
+    legacyDraftKey:definition.chip === 'segapsg' ? definition.id : definition.chip + (definition.engine === 'nuked' ? ':nuked' : ''),
+    chipTabs:Object.freeze(definition.chipTabs ?? (definition.chip === 'ym2612'
       ? ['operator', 'segapsg', ...(definition.full ? ['rf5c164', 'pwm'] : [])]
-      : definition.fmChannels === 0 ? [] : ['operator']),
+      : definition.fmChannels === 0 ? [] : ['operator'])),
   });
   return [mode.id, mode];
 }));
@@ -67,6 +71,12 @@ export function createPlaygroundModeUrl(href, id) {
 
 export function createModeSynthOptions(mode, base = new URL('../js/', import.meta.url)) {
   const generated = new URL('generated/', new URL('../', base));
+  if (mode.chip === 'segapsg') return {
+    chip:mode.chip, clock:mode.clock, stereoEnabled:mode.stereoEnabled,
+    workletUrl:new URL('playground_segapsg_worklet.js?v=sega-modes-1', base).href,
+    wasmUrl:new URL('segapsg_wasm.wasm?v=sega-modes-1', generated).href,
+    segaPsgWasmUrl:null, megaCD:false, mega32X:false,
+  };
   if (['nes','snes','x68000','huc6280'].includes(mode.chip)) {
     const worklet = {nes:'playground_nes_worklet',snes:'playground_snes_worklet',x68000:'playground_ym2151_worklet',huc6280:'playground_huc6280_worklet'}[mode.chip];
     const wasm = {snes:'spc',x68000:'ym2151',huc6280:'huc6280'}[mode.chip];
@@ -93,7 +103,7 @@ export function createModeSynthOptions(mode, base = new URL('../js/', import.met
     workletUrl:new URL(nuked ? 'ym2612-worklet-nuked.js?v=audio-stability-2' : `${chip}-worklet.js?v=${workletVersion}`, base).href,
     ym2612WasmUrl:new URL(`${wasm}_wasm.wasm`, generated).href,
     wasmUrl:mode.chip === 'ym2612' ? undefined : new URL(`${chip}_wasm.wasm`, generated).href,
-    segaPsgWasmUrl:mode.chip === 'ym2612' ? new URL('segapsg_wasm.wasm', generated).href : null,
+    segaPsgWasmUrl:mode.chip === 'ym2612' ? new URL('segapsg_wasm.wasm?v=sega-modes-1', generated).href : null,
     megaCD:mode.full,
     mega32X:mode.full,
   };

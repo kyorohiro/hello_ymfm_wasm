@@ -1,32 +1,59 @@
-/** Browser setup; commands subsequently travel directly from Worker to Worklet. */
+import {SEGAPSG_CLOCK} from './segapsg.js?v=sega-modes-1';
+import {validateChipClock} from './playground_chip_clock.js?v=audio-stability-2';
+
 const nativeFetch = globalThis.fetch?.bind(globalThis);
-/** @param {AudioContext} context
- * @param {AudioNode} destination */
-export async function createSegaPsgAudio(context, destination) {
-  const bytes = async path => {
-    const response = await nativeFetch(new URL(path, import.meta.url));
-    if (!response.ok) throw new Error(`Sega PSG HTTP ${response.status}: ${path}`);
-    return response.arrayBuffer();
-  };
-  const [wasmBinary] = await Promise.all([
-    bytes('../generated/segapsg_wasm.wasm'),
-    context.audioWorklet.addModule(new URL('./playground_segapsg_worklet.js?v=audio-stability-2', import.meta.url)),
-  ]);
-  const node = new AudioWorkletNode(context, 'tetorica-segapsg', {
-    numberOfInputs: 0, numberOfOutputs: 1, outputChannelCount: [2], processorOptions: {wasmBinary},
-  });
-  try {
-    await new Promise((resolve, reject) => {
-      node.port.onmessage = ({data}) => { if (data.ready) resolve(); else if (data.error) reject(new Error(data.error)); };
-      node.onprocessorerror = () => reject(new Error('Sega PSG Worklet failed'));
+const modules = new WeakMap();
+/** Browser setup; subsequent writes travel directly from Worker to Worklet.
+ * @param {AudioContext} context @param {AudioNode|null} destination
+ * @param {{clock?:number,stereoEnabled?:boolean,signal?:AbortSignal,wasmUrl?:string|URL,workletUrl?:string|URL,fetch?:typeof fetch}} [options] */
+export async function createSegaPsgAudio(context, destination, options = {}) {
+  options.signal?.throwIfAborted();
+  const clock = validateChipClock(options.clock ?? SEGAPSG_CLOCK);
+  if (!context?.audioWorklet || context.state === 'closed') throw new Error('Sega PSG requires an open AudioContext with AudioWorklet');
+  const workletUrl = String(options.workletUrl ?? new URL('./playground_segapsg_worklet.js?v=sega-modes-1', import.meta.url));
+  let cache = modules.get(context); if (!cache) modules.set(context, cache = new Map());
+  let module = cache.get(workletUrl);
+  if (!module) { module = context.audioWorklet.addModule(workletUrl); cache.set(workletUrl, module); module.catch(() => cache.delete(workletUrl)); }
+  const wait = promise => {
+    const signal = options.signal; if (!signal) return promise; signal.throwIfAborted();
+    return new Promise((resolve, reject) => {
+      const abort = () => reject(signal.reason); signal.addEventListener('abort', abort, {once:true});
+      Promise.resolve(promise).then(resolve, reject).finally(() => signal.removeEventListener('abort', abort));
     });
-  } catch (error) { node.port.postMessage({method: 'dispose'}); node.disconnect(); node.port.close(); throw error; }
-  node.connect(destination);
-  const channel = new MessageChannel();
-  node.port.postMessage({port: channel.port1}, [channel.port1]);
-  let disposed = false;
-  return {node, port: channel.port2, dispose() {
-    if (disposed) return;
-    disposed = true; node.port.postMessage({method: 'dispose'}); node.disconnect(); node.port.close();
-  }};
+  };
+  const [wasmBinary] = await wait(Promise.all([
+    (options.fetch ?? nativeFetch)(options.wasmUrl ?? new URL('../generated/segapsg_wasm.wasm?v=sega-modes-1', import.meta.url), {signal:options.signal})
+      .then(response => { if (!response.ok) throw new Error(`Sega PSG WASM HTTP ${response.status}`); return response.arrayBuffer(); }),
+    module,
+  ]));
+  options.signal?.throwIfAborted();
+  const node = new AudioWorkletNode(context, 'tetorica-segapsg', {
+    numberOfInputs:0, numberOfOutputs:1, outputChannelCount:[2], processorOptions:{wasmBinary, clock, stereoEnabled:options.stereoEnabled ?? true},
+  });
+  const channel = new MessageChannel(); let disposed = false, rejectReady, timer;
+  const dispose = () => {
+    if (disposed) return; disposed = true;
+    try { node.port.postMessage({method:'dispose'}); } catch {}
+    clearTimeout(timer); context.removeEventListener?.('statechange', closed); node.onprocessorerror = null; node.port.onmessage = null;
+    try { node.disconnect(); } catch {}
+    node.port.close(); channel.port1.close(); channel.port2.close();
+  };
+  const closed = () => { if (context.state === 'closed') { rejectReady?.(new Error('Sega PSG AudioContext was closed')); dispose(); } };
+  const abort = () => { rejectReady?.(options.signal.reason); dispose(); };
+  context.addEventListener?.('statechange', closed); options.signal?.addEventListener('abort', abort, {once:true});
+  try {
+    await wait(new Promise((resolve, reject) => {
+      rejectReady = reject;
+      timer = setTimeout(() => { reject(new Error('Sega PSG AudioWorklet initialization timed out')); dispose(); }, 15000); timer.unref?.();
+      node.port.onmessage = ({data}) => {
+        if (data.ready) resolve(); else if (data.error) { reject(new Error(data.error)); dispose(); }
+      };
+      node.onprocessorerror = () => { reject(new Error('Sega PSG Worklet processor failed')); dispose(); };
+    }));
+    clearTimeout(timer); options.signal?.throwIfAborted();
+    if (context.state === 'closed') throw new Error('Sega PSG AudioContext was closed');
+    node.port.postMessage({port:channel.port1}, [channel.port1]); if (destination) node.connect(destination);
+    return {node, port:channel.port2, clock, stereoEnabled:options.stereoEnabled ?? true, dispose};
+  } catch (error) { dispose(); throw error; }
+  finally { clearTimeout(timer); options.signal?.removeEventListener('abort', abort); }
 }

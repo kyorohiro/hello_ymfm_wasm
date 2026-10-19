@@ -13,6 +13,7 @@ test('modes select native chips, clocks and Full expansions', () => {
     ['gameboy','gameboy',4194304,false],
     ['nes','nes',1789773,false],['snes','snes',1024000,false],
     ['x68000','x68000',4000000,false],['pc-engine','huc6280',3579545,false],
+    ['game-gear','segapsg',3579545,false],['master-system','segapsg',3579545,false],
   ];
   assert.deepEqual(PLAYGROUND_MODES.map(mode => [mode.id,mode.chip,mode.clock,mode.full]), expected);
   for (const mode of PLAYGROUND_MODES) {
@@ -21,6 +22,15 @@ test('modes select native chips, clocks and Full expansions', () => {
     assert.equal(options.megaCD, mode.full);
     assert.equal(options.mega32X, mode.full);
     assert.equal(Boolean(options.segaPsgWasmUrl), mode.chip === 'ym2612');
+    if (mode.chip === 'segapsg') {
+      assert.equal(mode.fmChannels,0);
+      assert.equal(mode.declarationChip,mode.id);
+      assert.equal(options.stereoEnabled,mode.id === 'game-gear');
+      assert.deepEqual(mode.chipTabs,['segapsg']);
+      assert.equal(options.wasmUrl,'https://example.com/app/generated/segapsg_wasm.wasm?v=sega-modes-1');
+      assert.match(options.workletUrl,/playground_segapsg_worklet\.js\?/);
+      continue;
+    }
     if (['nes','snes','x68000','huc6280'].includes(mode.chip)) {
       assert.deepEqual(mode.chipTabs, []);
       assert.equal(mode.fmChannels,0);

@@ -9,7 +9,7 @@ import {YM2203Synth} from './ym2203synth.js?v=audio-stability-2';
 import {OPNFMSynth} from './opn_fm_synth.js?v=audio-stability-2';
 import {YM2608Synth} from './ym2608synth.js?v=audio-stability-2';
 import {YM2610BSynth} from './ym2610bsynth.js?v=audio-stability-2';
-import {createSegaPsgApi} from './segapsg_api.js?v=audio-stability-2';
+import {createSegaPsgApi} from './segapsg_api.js?v=sega-modes-1';
 /**
  * Create Worker-side primary controls that send ordered writes to a Worklet port.
  * Stop cancels outstanding DAC requests and mutes hardware; resume permits new work.

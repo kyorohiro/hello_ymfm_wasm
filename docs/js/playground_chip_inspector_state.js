@@ -1,5 +1,5 @@
 /** Applied register snapshots for the Playground editors. No polling or audio allocation. */
-import {createSegaPsgApi} from './segapsg_api.js?v=audio-stability-2';
+import {createSegaPsgApi} from './segapsg_api.js?v=sega-modes-1';
 import {CHIP_CLOCKS} from './playground_chip_clock.js?v=audio-stability-2';
 
 export class PsgInspectorState {

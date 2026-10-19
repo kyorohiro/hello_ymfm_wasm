@@ -46,6 +46,7 @@ SegaPSG::SegaPSG(uint32_t sample_rate, uint32_t clock) :
 void SegaPSG::reset()
 {
     m_clock_accumulator = 0;
+    m_stereo_mask = 0xff;
 
     for (auto &channel : m_tone)
     {
@@ -170,18 +171,18 @@ void SegaPSG::generate(float *left, float *right, uint32_t frames)
             clock_generator();
         }
 
-        float mixed = 0.0f;
-
-        if (!(m_mute_mask & 1)) mixed += tone_level(0);
-        if (!(m_mute_mask & 2)) mixed += tone_level(1);
-        if (!(m_mute_mask & 4)) mixed += tone_level(2);
-        if (!(m_mute_mask & 8)) mixed += noise_level();
-
-        mixed *= OUTPUT_GAIN;
-
-        // Genesis PSG output is mono.
-        left[index] = mixed;
-        right[index] = mixed;
+        float mixed_left = 0.0f, mixed_right = 0.0f;
+        for (uint32_t channel = 0; channel < 4; channel++)
+        {
+            if (m_mute_mask & (1 << channel)) continue;
+            const float level = channel < 3 ? tone_level(channel) : noise_level();
+            // Game Gear stereo register: low nibble right, high nibble left.
+            // The default 0xff retains Genesis / Master System mono output.
+            if (m_stereo_mask & (1 << channel)) mixed_right += level;
+            if (m_stereo_mask & (0x10 << channel)) mixed_left += level;
+        }
+        left[index] = mixed_left * OUTPUT_GAIN;
+        right[index] = mixed_right * OUTPUT_GAIN;
     }
 }
 

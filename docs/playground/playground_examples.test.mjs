@@ -37,7 +37,7 @@ test('wobble sample loop plays only samples loaded during preparation', async ()
 test('bundled examples match editable categorized source files', async () => {
   const folders = [...new Set(EXAMPLE_FILES.map(file => file.path.split('/')[2]))];
   assert.equal(folders.indexOf('chip-raw'), folders.indexOf('basic') + 1);
-  assert.deepEqual(folders, ['basic', 'chip-raw', 'genesis', 'gameboy', 'nes', 'pc98', 'neogeo', 'x68000', 'dx7', 'snes', 'pc-engine']);
+  assert.deepEqual(folders, ['basic', 'chip-raw', 'genesis', 'game-gear', 'master-system', 'gameboy', 'nes', 'pc98', 'neogeo', 'x68000', 'dx7', 'snes', 'pc-engine']);
   assert.ok(EXAMPLE_FILES.some(file => file.path === '/examples/chip-raw/ym2612-raw-write-beep.js'));
   assert.ok(EXAMPLE_FILES.some(file => file.path === '/examples/chip-raw/gameboy-raw-write-sample.js'));
   assert.deepEqual(EXAMPLE_FILES.filter(file => file.path.startsWith('/examples/basic/livefx/')).map(file => file.name), ['live-fx-distortion']);
@@ -53,8 +53,8 @@ test('bundled examples match editable categorized source files', async () => {
   }
   assert.equal(await buildExampleBundle(), await readFile(new URL('./playground_examples.js',import.meta.url),'utf8'));
   for(const file of EXAMPLE_FILES){
-    assert.match(file.path,/^\/examples\/(basic|chip-raw|genesis|gameboy|nes|pc98|neogeo|x68000|dx7|snes|pc-engine)\/(?:[\w-]+\/)*[\w-]+\.js$/);
-    if (/^\/examples\/(genesis|gameboy|nes|pc98|neogeo|x68000|dx7|snes|pc-engine)\//.test(file.path)) {
+    assert.match(file.path,/^\/examples\/(basic|chip-raw|genesis|game-gear|master-system|gameboy|nes|pc98|neogeo|x68000|dx7|snes|pc-engine)\/(?:[\w-]+\/)*[\w-]+\.js$/);
+    if (/^\/examples\/(genesis|game-gear|master-system|gameboy|nes|pc98|neogeo|x68000|dx7|snes|pc-engine)\//.test(file.path)) {
       assert.equal(file.path.split('/').length, 4, 'machine examples have no subfolders');
     }
     assert.equal(file.data,await readFile(new URL('.'+file.path,import.meta.url),'utf8'));
@@ -64,7 +64,7 @@ test('bundled examples match editable categorized source files', async () => {
 
 test('all mode starters match their physical index.js sources', async () => {
   const modeIds = Object.keys(MODE_STARTERS);
-  assert.equal(modeIds.length, 13);
+  assert.equal(modeIds.length, 15);
   assert.deepEqual(Object.keys(MODE_DEFAULT_CODES), modeIds);
   for (const [id, definition] of Object.entries(MODE_STARTERS)) {
     assert.equal(definition.index, `${id}/index.js`);
@@ -101,7 +101,7 @@ test('mode catalogs keep two or three examples while Genesis retains its library
     '/examples/pc98/ym2608-chip.js',
   ]) assert.ok(genesis.some(file => file.path === path), `Genesis retains ${path}`);
   for (const file of EXAMPLE_FILES.filter(file =>
-    /\/(?:gameboy-mode-|pc98-opn|neogeo-opnb-|neogeo-b-six-channel|nes-mode-|snes-mode-|x68000-mode-|pce-mode-)/.test(file.path))) {
+    /\/(?:gg-mode-|sms-mode-|gameboy-mode-|pc98-opn|neogeo-opnb-|neogeo-b-six-channel|nes-mode-|snes-mode-|x68000-mode-|pce-mode-)/.test(file.path))) {
     assert.ok(!genesis.includes(file), `${file.name} needs its native mode`);
   }
   assert.deepEqual(MODE_EXAMPLE_FILES.gameboy.map(file => file.name), [
@@ -109,6 +109,43 @@ test('mode catalogs keep two or three examples while Genesis retains its library
   ]);
   assert.throws(() => selectModeExamples(EXAMPLE_FILES, 'missing'), /Unsupported example mode/);
   assert.throws(() => selectModeExamples([], 'gameboy'), /Missing gameboy example/);
+});
+
+test('Sega mode starters and examples run with the built-in PSG; stereo keeps the correct speaker bits', async () => {
+  const {SegaPSGSynth} = await import('../../web/segapsgsynth.js');
+  const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
+  for (const id of ['game-gear', 'master-system']) {
+    const sources = [MODE_DEFAULT_CODES[id], ...MODE_EXAMPLE_FILES[id].map(file => file.data)];
+    for (const source of sources) {
+      const writes = [], stereo = [], loops = [], waits = [];
+      const psg = new SegaPSGSynth({transport: {write: value => writes.push(value)}});
+      psg.setStereo = mask => stereo.push(mask);
+      const api = {
+        psg, PSG1: 0, PSG2: 1, PSG3: 2,
+        setBpm: bpm => assert.equal(bpm, 120),
+        liveLoop: (name, fn) => loops.push({name, fn}),
+        beat: async beats => { assert.ok(beats > 0); waits.push(beats); },
+      };
+      await new AsyncFunction(...Object.keys(api), source)(...Object.values(api));
+      assert.ok(loops.length > 0);
+      for (const loop of loops) {
+        const start = waits.length;
+        await loop.fn();
+        assert.ok(waits.length > start, `${loop.name} yields between PSG updates`);
+      }
+      assert.ok(writes.length > 0, `${id} plays through the PSG API`);
+      if (id === 'master-system') assert.deepEqual(stereo, []);
+      else {
+        assert.equal(stereo[0], 0xff);
+        assert.equal(stereo.at(-1), 0xff);
+        if (source === EXAMPLES['gg-mode-stereo']) {
+          assert.deepEqual(stereo, [0xff, 0xfe, 0xef, 0xfe, 0xef, 0xfe, 0xef, 0xfe, 0xef, 0xff]);
+          assert.equal(0xfe & 0x11, 0x10, 'the left step enables only PSG1 left');
+          assert.equal(0xef & 0x11, 0x01, 'the right step enables only PSG1 right');
+        }
+      }
+    }
+  }
 });
 
 test('the singing keyboard is a direct Basic file and matches the tested canonical keyboard source', async () => {
@@ -131,7 +168,7 @@ test('examples appear in the folder tree and edited source survives cassette exp
   const tree=buildFileTree(fs.list());
   assert.equal(tree[0].name,'examples');
   assert.equal(tree[0].children.length,new Set(EXAMPLE_FILES.map(file=>file.path.split('/')[2])).size);
-  assert.deepEqual(tree[0].children.map(node => node.name), ['basic', 'chip-raw', 'genesis', 'gameboy', 'nes', 'pc98', 'neogeo', 'x68000', 'dx7', 'snes', 'pc-engine']);
+  assert.deepEqual(tree[0].children.map(node => node.name), ['basic', 'chip-raw', 'genesis', 'game-gear', 'master-system', 'gameboy', 'nes', 'pc98', 'neogeo', 'x68000', 'dx7', 'snes', 'pc-engine']);
   const path='/examples/basic/midi/midi-auto-chord.js';
   fs.writeText(path,'// user edited\n'+fs.get(path).data);
   const zip=createPlaygroundCassetteZip(fs.list());

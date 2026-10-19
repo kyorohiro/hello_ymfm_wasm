@@ -1,7 +1,7 @@
 import {SoundChipMixer} from './soundchip_mixer.js?v=chip-tabs-2';
 /**
  * @typedef {{
- * execution: 'worklet', name: import('./soundchip.js?v=audio-stability-2').WorkletChipName,
+ * execution: 'worklet', name: import('./soundchip.js?v=sega-modes-1').WorkletChipName,
  * port: MessagePort, node: AudioWorkletNode, audioContext: AudioContext,
  * mixer: import('./soundchip_mixer.js?v=chip-tabs-2').SoundChipMixer, readonly id: string,
  * readonly fdsEnabled?: boolean, readonly clock?: number,
@@ -12,8 +12,8 @@ import {SoundChipMixer} from './soundchip_mixer.js?v=chip-tabs-2';
 /** Main-side chip endpoint. The actual chip is created inside AudioWorklet. */
 const supported = new Set(['ym2612', 'ym2608', 'gameboy', 'segapsg', 'ym2151', 'pwm', 'nes']);
 /**
- * @param {import('./soundchip.js?v=audio-stability-2').WorkletChipName} name
- * @param {import('./soundchip.js?v=audio-stability-2').SoundChipOptions} options
+ * @param {import('./soundchip.js?v=sega-modes-1').WorkletChipName} name
+ * @param {import('./soundchip.js?v=sega-modes-1').SoundChipOptions} options
  * @param {() => Promise<Uint8Array | ArrayBuffer | undefined>} loadBinary
  * @returns {Promise<WorkletSoundChip>}
  */
@@ -65,7 +65,7 @@ export async function createWorkletSoundChip(name, options, loadBinary) {
     options.signal?.throwIfAborted();
     await context.resume();
     const wasmBinary = await loadBinary();
-    await context.audioWorklet.addModule(new URL('./soundchip-output-worklet.js?v=audio-stability-2', import.meta.url).href);
+    await context.audioWorklet.addModule(new URL('./soundchip-output-worklet.js?v=sega-modes-1', import.meta.url).href);
     options.signal?.throwIfAborted();
     const chipOptions = Object.fromEntries(['clock', 'sampleRate', 'flags', 'variant', 'outputMode', 'fds'].filter(key => options[key] !== undefined).map(key => [key, options[key]]));
     node = new AudioWorkletNode(context, 'tetorica-soundchip', {

@@ -78,12 +78,16 @@
           <li><a href="./playground/tetorica-playground-ym2203.d.ts">YM2203 / PC-98 selection</a></li>
           <li><a href="./playground/tetorica-playground-ym2610.d.ts">YM2610 / Neo Geo selection</a></li>
           <li><a href="./playground/tetorica-playground-gameboy.d.ts">Game Boy mode</a></li>
+          <li><a href="./playground/tetorica-playground-game-gear.d.ts">Game Gear mode</a></li>
+          <li><a href="./playground/tetorica-playground-master-system.d.ts">Master System mode</a></li>
         </ul>
         <p>
           Read the common API and the one chip-selection file that matches the
           target Playground.
         </p>
         <p>Game Boy mode uses <code>gameboy.pulse</code>, <code>gameboy.wave</code> and <code>gameboy.noise</code>, also through <code>pg.gameboy</code>. Use <code>beat()</code>, <code>sleep()</code> and <code>liveLoop()</code> for timing. Global <code>play()</code>, <code>fm</code> and OPN shortcuts are available in OPN modes.</p>
+        <p>Game Gear and Master System modes use the primary <code>psg</code> with <code>PSG1</code>, <code>PSG2</code> and <code>PSG3</code> for three tone channels, plus <code>psg.noise()</code>. Use <code>psg.tone()</code> / <code>psg.off()</code> and <code>beat()</code> / <code>sleep()</code>; these modes have no global <code>play()</code> or <code>fm</code>. Game Gear adds <code>psg.setStereo(mask)</code>: bits 0..3 route tone 1–3 and noise to the right, bits 4..7 to the left, and <code>0xff</code> enables both sides. Master System mixes the same PSG voices in mono and omits <code>setStereo()</code>; the optional YM2413 FM expansion is outside this mode.</p>
+        <p>The primary PSG is also available as <code>pg.psg</code>, in <code>livePrepare()</code>, and from <code>await useSoundChip('segapsg')</code>, without <code>dispose()</code>. Use <code>await createSoundChip('segapsg')</code> for an independent disposable PSG with stereo routing.</p>
 
         <h2>Working examples</h2>
         <p>
@@ -101,6 +105,9 @@
           <li><a href="./playground/examples/basic/psg/psg-scale.js">PSG Scale</a> — SN76489-compatible tone API</li>
           <li><a href="./playground/examples/basic/fx/parallel-fx.js">Parallel FX</a> — branched effect routing</li>
           <li><a href="./playground/examples/gameboy/gameboy-mode-pulse.js">Game Boy mode pulse</a> — primary APU and a named melody loop</li>
+          <li><a href="./playground/defaults/game-gear/index.js">Game Gear starter</a> — Sega PSG melody, noise rhythm, and stereo routing</li>
+          <li><a href="./playground/examples/game-gear/gg-mode-stereo.js">Game Gear stereo</a> — route physical tone channels to the left or right speaker</li>
+          <li><a href="./playground/defaults/master-system/index.js">Master System starter</a> — Sega PSG melody and noise rhythm in mono</li>
         </ul>
 
         <h2>Execution contract</h2>

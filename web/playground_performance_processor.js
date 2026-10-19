@@ -4,7 +4,7 @@ import {createPerformanceQueue} from './playground_performance_queue.js';
  * Untagged standalone commands stay immediate. RPC setters acknowledge acceptance
  * while their sound changes wait for the reserved audio frame.
  */
-export function identifyPerformanceNote(chip,{method,type,args=[] ,register,value,channel}) {
+export function identifyPerformanceNote(chip,{method,type,args=[] ,register,value,channel},{psgLatch=0}={}) {
   if(['reset','allNotesOff','panic'].includes(method))return {allOff:true};
   if(chip==='snes'&&['playTimeline','stopTimeline'].includes(method))return {key:'timeline',on:method==='playTimeline'};
   if(chip==='snes'&&['noteOn','keyOn','noteOff','keyOff'].includes(method))return {key:args[0],on:method==='noteOn'||method==='keyOn'};
@@ -19,7 +19,10 @@ export function identifyPerformanceNote(chip,{method,type,args=[] ,register,valu
     if([2,7,17].includes(reg)&&v===0)return {key:{2:0,7:1,17:3}[reg],on:false};
     if(reg===10&&!(v&128))return {key:2,on:false};
   }
-  if(chip==='segapsg'&&method==='write'&&(args[0]&0x90)===0x90)return {key:(args[0]>>5)&3,on:(args[0]&15)!==15};
+  if(chip==='segapsg'&&method==='write') {
+    const byte=args[0],latched=byte&128?(byte>>4)&7:psgLatch;
+    if(Number.isInteger(byte)&&byte>=0&&byte<=255&&(latched&1))return {key:latched>>1,on:(byte&15)!==15};
+  }
   if(chip==='ym2151'&&method==='writeRegister'&&args[0]===8)return {key:args[1]&7,on:!!(args[1]&0x78)};
   if(chip==='ym2151'&&method==='forceKeyOff')return {key:args[0],on:false};
   if(chip==='huc6280'&&method==='writeRegister'&&args[0]===4&&Number.isInteger(channel))return {key:channel,on:!!(args[1]&128)};
@@ -47,11 +50,27 @@ export function performanceNoteRelease(chip,key) {
   if(chip==='pwm')return {method:'reset',args:[]};
   return {method:'write',args:[0,0x28,[0,1,2,4,5,6][key]]};
 }
-export function createProcessorPerformance({apply,prepare,validate,onDiscard,chip,releaseNote,immediate = [],nowFrame = () => currentFrame,rate = sampleRate}) {
+export function createProcessorPerformance({apply,prepare,validate,onDiscard,chip,releaseNote,getPsgLatch,immediate = [],nowFrame = () => currentFrame,rate = sampleRate}) {
   const replies = new WeakMap(),ports = new WeakMap(),pendingRPC = new WeakMap(),immediateMethods = new Set(immediate);
   const owners=new Map();
+  let psgLatch=0;
+  const noteState={psgLatch:0};
+  const chipName=()=>typeof chip==='function'?chip():chip;
+  // Data bytes reuse the last register selected by any applied PSG writer.
+  // A chip snapshot includes inspector writes that bypass this queue.
+  function observePsgLatch(command) {
+    if(chipName()!=='segapsg')return;
+    if(command.method==='reset')psgLatch=0;
+    else if(command.method==='allNotesOff')psgLatch=7;
+    else if(command.method==='write'&&(command.args?.[0]&128))psgLatch=(command.args[0]>>4)&7;
+  }
+  function applyTracked(command,port,frame,metadata) {
+    if(!note(command,port,metadata))return;
+    apply(command,port,frame,metadata); observePsgLatch(command);
+  }
   function note(command,port,metadata) {
-    const event=identifyPerformanceNote(typeof chip==='function'?chip():chip,command);
+    noteState.psgLatch=getPsgLatch?.()??psgLatch;
+    const event=identifyPerformanceNote(chipName(),command,noteState);
     if(!event)return true;
     if(event.allOff){owners.clear();return true;}
     if(event.events){
@@ -72,9 +91,9 @@ export function createProcessorPerformance({apply,prepare,validate,onDiscard,chi
       if(pending){pendingRPC.delete(command);pending.postMessage({id:command.id,error:'Performance command cancelled',name:'AbortError'});}
       onDiscard?.(command,metadata);
     },
-    apply(command,reply,frame,metadata) {pendingRPC.delete(command);const port=ports.get(reply);if(note(command,port,metadata))apply(command,port,frame,metadata);},
+    apply(command,reply,frame,metadata) {pendingRPC.delete(command);const port=ports.get(reply);applyTracked(command,port,frame,metadata);},
     onCancelOwner(owner) {
-      for(const [key,entry]of owners)if(entry.owner===owner){owners.delete(key);apply(releaseNote?releaseNote(key):performanceNoteRelease(typeof chip==='function'?chip():chip,key),entry.port);}
+      for(const [key,entry]of owners)if(entry.owner===owner){owners.delete(key);applyTracked(releaseNote?releaseNote(key):performanceNoteRelease(chipName(),key),entry.port);}
     },
     prepare(command,reply,performance) {
       const port = ports.get(reply);
@@ -111,7 +130,7 @@ export function createProcessorPerformance({apply,prepare,validate,onDiscard,chi
         ports.set(reply,port);
       }
       const handled=queue.receive(data,reply);
-      if(!handled)note(data,port);
+      if(!handled&&note(data,port))observePsgLatch(data);
       return handled;
     },
     render(left,right,render) {

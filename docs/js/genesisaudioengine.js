@@ -5,7 +5,7 @@
  * 同期 PCM 生成・ミックス用。DOM・AudioContext・スピーカー出力は不要。
  */
 import { Ym2612, YM2612_CLOCK } from "./ym2612.js";
-import { SegaPSG, SEGAPSG_CLOCK } from "./segapsg.js?v=audio-stability-2";
+import { SegaPSG, SEGAPSG_CLOCK } from "./segapsg.js?v=sega-modes-1";
 
 import { Rf5c164 } from "./rf5c164.js?v=audio-stability-2";
 import {PWM32X} from './pwm32x.js?v=pcm-views-1';
@@ -39,7 +39,7 @@ export class GenesisAudioEngine {
 
   /**
    * Create the chip instances required by this engine.
-   * @param {{ym2612ModuleFactory: import('./soundchip.js?v=audio-stability-2').WasmModuleFactory, ym2612ModuleOptions?: import('./soundchip.js?v=audio-stability-2').WasmModuleOptions, segaPsgModuleFactory: import('./soundchip.js?v=audio-stability-2').WasmModuleFactory, segaPsgModuleOptions?: import('./soundchip.js?v=audio-stability-2').WasmModuleOptions, ym2612Clock?: number, psgClock?: number, masterVolume?: number, rf5c164ModuleFactory?: import('./soundchip.js?v=audio-stability-2').WasmModuleFactory, rf5c164ModuleOptions?: import('./soundchip.js?v=audio-stability-2').WasmModuleOptions, rf5c164Clock?: number, pwmModel?: "legacy"|"mame", pwmOutputMode?: "dac"|"duty", pwmClock?: number}} [options={}] Chip factories, clocks in Hz and loader settings.
+   * @param {{ym2612ModuleFactory: import('./soundchip.js?v=sega-modes-1').WasmModuleFactory, ym2612ModuleOptions?: import('./soundchip.js?v=sega-modes-1').WasmModuleOptions, segaPsgModuleFactory: import('./soundchip.js?v=sega-modes-1').WasmModuleFactory, segaPsgModuleOptions?: import('./soundchip.js?v=sega-modes-1').WasmModuleOptions, ym2612Clock?: number, psgClock?: number, masterVolume?: number, rf5c164ModuleFactory?: import('./soundchip.js?v=sega-modes-1').WasmModuleFactory, rf5c164ModuleOptions?: import('./soundchip.js?v=sega-modes-1').WasmModuleOptions, rf5c164Clock?: number, pwmModel?: "legacy"|"mame", pwmOutputMode?: "dac"|"duty", pwmClock?: number}} [options={}] Chip factories, clocks in Hz and loader settings.
    * Output rate is derived from the YM2612 clock; sampleRate() reports the actual rate.
    * @param {number} [options.ym2612Clock=YM2612_CLOCK] YM2612 input clock in Hz.
    * @param {number} [options.masterVolume=1] Linear output gain, not dB.

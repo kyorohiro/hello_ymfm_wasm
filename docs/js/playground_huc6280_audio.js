@@ -10,7 +10,7 @@ export async function createHuc6280Audio(context, destination, options = {}) {
   options.signal?.throwIfAborted();
   const clock = validateChipClock(options.clock ?? HUC6280_CLOCK);
   if (!context?.audioWorklet || context.state === 'closed') throw new Error('HuC6280 requires an open AudioContext with AudioWorklet');
-  const workletUrl = String(options.workletUrl ?? new URL('./playground_huc6280_worklet.js?v=audio-stability-2', import.meta.url));
+  const workletUrl = String(options.workletUrl ?? new URL('./playground_huc6280_worklet.js?v=sega-modes-1', import.meta.url));
   let cache = modules.get(context); if (!cache) modules.set(context, cache = new Map());
   let module = cache.get(workletUrl);
   if (!module) { module = context.audioWorklet.addModule(workletUrl); cache.set(workletUrl, module); module.catch(() => cache.delete(workletUrl)); }

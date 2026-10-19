@@ -5,10 +5,10 @@ import {createPlaygroundMixer} from './playground_mixer.js?v=chip-tabs-2';
 import {createPlaygroundChipTabs} from './playground_chip_tabs.js?v=chip-tabs-2';
 import {installPlaygroundShell} from './playground_shell.js?v=compact-shell-1';
 import {installPlaygroundGit} from './playground_git.js';
-import {openDraftStore, createProjectAutosave} from './playground_autosave.js?v=opn-modes-1';
+import {openDraftStore, createProjectAutosave} from './playground_autosave.js?v=mode-handoff-1';
 import {PLAYGROUND_MODES, resolvePlaygroundMode, createModeSynthOptions,
-  createPlaygroundModeUrl, isSimplePlaygroundLayout} from './playground_mode.js?v=audio-stability-2';
-import {saveModeProject, consumeModeProject} from './playground_mode_project.js';
+  createPlaygroundModeUrl, isSimplePlaygroundLayout} from './playground_mode.js?v=sega-modes-1';
+import {saveModeProject, consumeModeProject} from './playground_mode_project.js?v=mode-handoff-1';
 import {reconcileModeProject} from './playground_mode_starters.js?v=mode-choice-1';
 let desktopAutosave = null;
 let playgroundShell = null;
@@ -31,10 +31,10 @@ import {installSpcImport} from './playground_spc_import.js?v=spc-reference-tunin
 import {
   FM_PRESET_ORDER,
   FM_PRESETS,
-} from "../js/megasynth.js?v=audio-stability-2";
+} from "../js/megasynth.js?v=sega-modes-1";
 import {
   createTetoricaSynth,
-} from "../js/tetorica_synth.js?v=audio-stability-2";
+} from "../js/tetorica_synth.js?v=sega-modes-1";
 import {
   createTfiOperatorObjectText,
   createTfiPresetObjectText,
@@ -47,8 +47,8 @@ import {
 } from "./playground_operator_tab.js?v=audio-stability-2";
 import { createPlaygroundOperatorKeyboard } from "./playground_operator_keyboard.js?v=keyboard-controls-minimize-1";
 import { CHIP_CLOCKS } from "../js/playground_chip_clock.js?v=audio-stability-2";
-import { DEFAULT_CODE, EXAMPLES, EXAMPLE_FILES, MODE_DEFAULT_CODES, MODE_DEFAULT_HISTORY, MODE_EXAMPLE_FILES } from "./playground_examples.js?v=starter-history-1";
-import { initializePlaygroundMonaco } from "./playground_monaco.js?v=native-modes-3";
+import { DEFAULT_CODE, EXAMPLES, EXAMPLE_FILES, MODE_DEFAULT_CODES, MODE_DEFAULT_HISTORY, MODE_EXAMPLE_FILES } from "./playground_examples.js?v=sega-modes-1";
+import { initializePlaygroundMonaco } from "./playground_monaco.js?v=sega-modes-1";
 import {
   decodeBase64Bytes,
   loadTfiPresetsFromQuery,
@@ -79,7 +79,7 @@ import { exportYm2608VgmToPlaygroundJavaScript } from "../js/ym2608vgm.js?v=vgm-
 import { exportYm2610BVgmToPlaygroundJavaScript } from "../js/ym2610bvgm.js?v=vgm-frequency-order-2";
 import {
   createPlaygroundRuntime,
-} from "../js/playground_runtime.js?v=audio-stability-2";
+} from "../js/playground_runtime.js?v=sega-modes-1";
 import {DEFAULT_WORKER_LOOKAHEAD_SECONDS} from '../js/playground_performance_sender.js?v=opna-primary-1';
 import { createVgmPresetFiles } from "./playground_vgm_presets.js?v=vgm-frequency-order-2";
 import { createTfiFileEditor, instrumentToEditorPreset } from "./playground_tfi_editor.js?v=audio-stability-2";
@@ -282,6 +282,7 @@ document.getElementById('menuExport').hidden = !hasPrimaryFM;
 for (const element of document.querySelectorAll('[data-opn-helper]')) element.hidden = !hasPrimaryFM;
 for (const element of document.querySelectorAll('[data-gameboy-helper]')) element.hidden = selectedChip !== 'gameboy';
 for (const element of document.querySelectorAll('[data-native-helper]')) element.hidden = element.dataset.nativeHelper !== selectedChip;
+for (const element of document.querySelectorAll('[data-game-gear-helper]')) element.hidden = selectedMode.id !== 'game-gear';
 
 let synth = null;
 const urlTfiResult =
@@ -2679,6 +2680,9 @@ async function changePlaygroundMode(id) {
     const token = await saveModeProject(window.indexedDB, id, prepareModeProject(captureProjectSnapshot(), id, codeChoice));
     url.searchParams.set('modeProject', token);
     await runtime.finalize();
+    // The draft was flushed above. Close its connection before the next
+    // WebView opens IndexedDB, and prevent pagehide from starting another save.
+    desktopAutosave?.dispose();
     window.location.assign(url.href);
   } catch (error) {
     if (switching) {

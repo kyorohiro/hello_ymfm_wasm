@@ -2,6 +2,7 @@ import {createNesClient} from './playground_nes.js?v=audio-stability-2';
 import {createSnesClient} from './playground_snes.js?v=native-modes-3';
 import {createYm2151Client} from './playground_ym2151.js?v=audio-stability-2';
 import {createHuc6280Client} from './playground_huc6280.js?v=audio-stability-2';
+import {createSegaPsgClient} from './playground_segapsg.js?v=sega-modes-1';
 import {createOki6258Client} from './playground_okim6258.js?v=audio-stability-2';
 
 /** Primary controls borrow devices owned by the runtime. */
@@ -36,6 +37,7 @@ export function createNativePrimaryClient(name, port, options = {}) {
   const client = name === 'nes' ? createNesClient(port, options)
     : name === 'snes' ? createSnesClient(port, options)
     : name === 'ym2151' ? createYm2151Client(port)
+    : name === 'segapsg' ? createSegaPsgClient(port, options)
     : name === 'huc6280' ? createHuc6280Client(port, options)
     : name === 'okim6258' ? createOki6258Client(port, options)
     : null;

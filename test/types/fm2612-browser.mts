@@ -109,5 +109,15 @@ await nativeX68.adpcm?.loadSample({channels:[new Float32Array(32)],sampleRate:15
 const nativePce = new NativeRuntimeSynth({chip:'huc6280'});
 nativePce.pce?.setWaveform(5,new Uint8Array(32));
 nativePce.pce?.setNoise(5,{enabled:true,frequency:20});
+const nativePsg = new NativeRuntimeSynth({chip:'segapsg',stereoEnabled:true,clock:3579545});
+nativePsg.psg?.setStereo(0xf1);
+nativePsg.psg?.allNotesOff();
+import {createTetoricaSynth} from 'tetorica-fm2612/tetorica_synth.js';
+createTetoricaSynth({chip:'segapsg',stereoEnabled:false,clock:3579545,fetch:globalThis.fetch});
+createTetoricaSynth({chip:'x68000',extraOki:{wasmUrl:'oki.wasm'}});
+// @ts-expect-error Stereo support is a boolean option.
+createTetoricaSynth({chip:'segapsg',stereoEnabled:'mono'});
+// @ts-expect-error Chip clocks are numeric Hz values.
+createTetoricaSynth({chip:'segapsg',clock:'3579545'});
 // @ts-expect-error OPN chips use their own primary runtime.
 new NativeRuntimeSynth({chip:'ym2612'});

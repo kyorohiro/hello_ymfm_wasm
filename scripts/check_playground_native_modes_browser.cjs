@@ -1,6 +1,6 @@
 // Actual native-mode audio, Monaco types, primary devices and project transfer.
 // Self-hosts docs. Chromium runs by default; --webkit includes WebKit and
-// --webkit-only selects WebKit. --modes=nes,snes,x68000,pc-engine focuses a run.
+// --webkit-only selects WebKit. --modes=game-gear,master-system focuses a run.
 // --types-only and --audio-only support focused diagnosis after a failure.
 // --project-only checks transfer without repeating the audio matrix.
 // --trace-rpc adds primary request/reply traces to failure output.
@@ -30,11 +30,51 @@ const modes = [
     valid:"pce.noteOn(5, 'C4');\npce.setNoise(4, {enabled:true, frequency:12});\npce.setPan(0,15,15);\n",
     invalid:"pce.noteOn(6, 'C4');\npce.setNoise(3, {enabled:true});\n",
     methods:{pce:['setWaveform','setFrequency','noteOn','keyOff','setNoise','setDda','setClock']}},
+  {id:'game-gear', declaration:'game-gear', globals:['psg'], constants:['PSG1','PSG2','PSG3'], primaries:{psg:'segapsg'},
+    valid:"psg.tone(PSG1, {note:'C4', attenuation:9});\npsg.setAttenuation(3,12);\npsg.setStereo(0xff);\n",
+    invalid:"psg.tone(3, {note:'C4'});\npsg.setAttenuation(4,12);\n",
+    methods:{psg:['tone','off','noise','noiseOff','setNote','keyOn','keyOff','setAttenuation','setClock','setStereo']}},
+  {id:'master-system', declaration:'master-system', globals:['psg'], constants:['PSG1','PSG2','PSG3'], primaries:{psg:'segapsg'},
+    valid:"psg.tone(PSG3, {note:'C4', attenuation:9});\npsg.setAttenuation(3,12);\n",
+    invalid:"psg.tone(3, {note:'C4'});\npsg.setAttenuation(4,12);\n",
+    methods:{psg:['tone','off','noise','noiseOff','setNote','keyOn','keyOff','setAttenuation','setClock']},
+    absentMethods:{psg:['setStereo']}},
 ];
 const forbidden = ['fm','play','write','FM_PRESETS','CH1','OP1','midi','noteToBlockFnum','hzToBlockFnum','psg','dac','ssg','rhythm','adpcmA','adpcmB'];
+const modeForbidden = mode => forbidden.filter(name => !mode.globals.includes(name));
+// Observe both channels from the same render quantum so equality checks cannot
+// accidentally compare analyser buffers captured on different quantum boundaries.
+const stereoProbeSource = `
+class NativeStereoProbe extends AudioWorkletProcessor {
+  constructor() {
+    super(); this.epoch = 0; this.clear();
+    this.port.onmessage = ({data}) => {this.epoch = data.epoch; this.clear();};
+  }
+  clear() {this.blocks = 0; this.frames = 0; this.squares = [0,0]; this.difference = 0;}
+  process(inputs, outputs) {
+    const input = inputs[0], output = outputs[0];
+    for (const channel of output) channel.fill(0);
+    if (input.length < 2) return true;
+    for (let i = 0; i < input[0].length; i++) {
+      const left = input[0][i], right = input[1][i];
+      this.squares[0] += left * left; this.squares[1] += right * right;
+      this.difference = Math.max(this.difference, Math.abs(left - right)); this.frames++;
+    }
+    if (++this.blocks === 8) {
+      this.port.postMessage({epoch:this.epoch,rms:this.squares.map(sum => Math.sqrt(sum / this.frames)),difference:this.difference});
+      this.clear();
+    }
+    return true;
+  }
+}
+registerProcessor('native-stereo-regression', NativeStereoProbe);
+`;
 const server = http.createServer(async (request,response) => {
   try {
     const pathname = decodeURIComponent(new URL(request.url,'http://localhost').pathname);
+    if (pathname === '/__native_stereo_probe.js') {
+      response.setHeader('Content-Type','text/javascript'); response.end(stereoProbeSource); return;
+    }
     let file = path.resolve(docs,'.' + pathname);
     if (!file.startsWith(docs + path.sep)) throw Error('Invalid path');
     if ((await fs.stat(file)).isDirectory()) file = path.join(file,'index.html');
@@ -72,11 +112,12 @@ async function checkTypes(page,mode) {
       pg:(await probe('pg','pg.')).entries,
       prepare:(await probe('prepare',prepare,prepare.indexOf('api.') + 4)).entries};
     for (const name of mode.globals) completions[name] = (await probe(name,`${name}.`)).entries;
-    const valid = mode.valid + mode.globals.map(name => `pg.${name};\nlivePrepare('types-${name}', api => api.${name});\n`).join('');
+    const valid = mode.valid + mode.globals.map(name => `pg.${name};\nlivePrepare('types-${name}', api => api.${name});\n`).join('') +
+      (mode.constants || []).map(name => `${name};\npg.${name};\n`).join('');
     const invalid = mode.invalid + forbidden.map(name => `${name};\npg.${name};\n`).join('');
     return {selected:selected?.getValue(),completions,validLength:valid.length,
       diagnostics:(await probe('diagnostics',valid + invalid)).diagnostics};
-  },{mode,forbidden});
+  },{mode,forbidden:modeForbidden(mode)});
   assert(new RegExp(`type TetoricaSelectedChip\\s*=\\s*["']${mode.declaration}["']`).test(result.selected || ''),`${mode.id}: selected declaration missing`);
   assert(!result.diagnostics.some(d => d.start < result.validLength),`${mode.id}: valid native declarations rejected: ${JSON.stringify(result.diagnostics)}`);
   assert(result.diagnostics.some(d => d.code === 2345),`${mode.id}: invalid hardware channel accepted`);
@@ -87,8 +128,9 @@ async function checkTypes(page,mode) {
   }
   for (const target of ['globals','pg','prepare']) {
     for (const name of mode.globals) assert(result.completions[target].includes(name),`${mode.id}: ${target}.${name} missing`);
-    for (const name of forbidden) assert(!result.completions[target].includes(name),`${mode.id}: ${target}.${name} leaked`);
-    for (const name of ['nes','snes','opm','adpcm','pce','gameboy']) {
+    if (target !== 'prepare') for (const name of mode.constants || []) assert(result.completions[target].includes(name),`${mode.id}: ${target}.${name} missing`);
+    for (const name of modeForbidden(mode)) assert(!result.completions[target].includes(name),`${mode.id}: ${target}.${name} leaked`);
+    for (const name of ['nes','snes','opm','adpcm','pce','gameboy','psg']) {
       assert.equal(result.completions[target].includes(name),mode.globals.includes(name),`${mode.id}: ${target}.${name} follows selected machine`);
     }
     const generic = target === 'prepare' ? ['sample','stream','noise','fx'] : ['sample','stream','noise','mixer','fx','beat','sleep'];
@@ -97,6 +139,9 @@ async function checkTypes(page,mode) {
   for (const [name,methods] of Object.entries(mode.methods)) {
     for (const method of methods) assert(result.completions[name].includes(method),`${mode.id}: ${name}.${method} missing`);
     assert(!result.completions[name].includes('dispose'),`${mode.id}: primary ${name} exposes disposal`);
+  }
+  for (const [name,methods] of Object.entries(mode.absentMethods || {})) {
+    for (const method of methods) assert(!result.completions[name].includes(method),`${mode.id}: ${name}.${method} leaked`);
   }
   console.log(JSON.stringify({mode:mode.id,types:true,channelBounds:true,selectedGlobals:true,passed:true}));
 }
@@ -121,7 +166,7 @@ async function checkCatalogAndTabs(page,mode) {
   const paths = state.examples.map(file => file.path).sort();
   assert.deepEqual(state.tree.sort(),paths); assert.deepEqual(state.run.sort(),paths);
   for (const selector of ['#operatorTabButton','#segapsgTab','#rf5c164Tab','#pwmTab','#keyboardTab']) {
-    assert.equal(await page.locator(selector).isVisible(),false,`${mode.id}: legacy FM tab ${selector} hidden`);
+    assert.equal(await page.locator(selector).isVisible(),selector === '#segapsgTab' && mode.primaries.psg === 'segapsg',`${mode.id}: chip tab ${selector} follows selected mode`);
   }
   for (const selector of ['#codeTab','#audioMonitorTab','#fxMonitorTab','#mixerTab','#consoleTab','#shellTab','#helpersTab']) {
     assert(await page.locator(selector).isVisible(),`${mode.id}: generic tool ${selector} remains available`);
@@ -148,11 +193,22 @@ async function initializeAudio(page,mode) {
       endpoint.node.port.addEventListener('message',({data}) => window.__nativeRpc.push({chip:endpoint.name,direction:'node',data}));
     }
   });
-  const primary = await page.evaluate(() => {
+  const primary = await page.evaluate(async segaPsg => {
     const {megaDrive} = window.__nativeRegression, context = megaDrive.audioContext;
     const meter = context.createAnalyser(), silent = context.createGain();
     meter.fftSize = 2048; silent.gain.value = 0; meter.connect(silent); silent.connect(context.destination);
     const state = window.__nativeMeter = {meter,silent,detach:megaDrive.audio.connectOutputMonitor(meter),peak:0,acPeak:0,recentAc:[],samples:0,quietThreshold:.00001,quietSince:null};
+    if (segaPsg) {
+      await context.audioWorklet.addModule(new URL('/__native_stereo_probe.js',location.href));
+      state.stereoProbe = new AudioWorkletNode(context,'native-stereo-regression',{
+        numberOfInputs:1,numberOfOutputs:1,outputChannelCount:[2],channelCount:2,channelCountMode:'explicit',channelInterpretation:'discrete',
+      });
+      state.stereoFrames = []; state.stereoEpoch = 0;
+      state.stereoProbe.port.onmessage = ({data}) => {
+        if (data.epoch === state.stereoEpoch) {state.stereoFrames.push(data); if (state.stereoFrames.length > 12) state.stereoFrames.shift();}
+      };
+      state.stereoDetach = megaDrive.audio.connectOutputMonitor(state.stereoProbe); state.stereoProbe.connect(silent);
+    }
     state.timer = setInterval(() => {
       const pcm = new Float32Array(meter.fftSize); meter.getFloatTimeDomainData(pcm);
       const mean = pcm.reduce((sum,value) => sum + value,0) / pcm.length;
@@ -164,7 +220,7 @@ async function initializeAudio(page,mode) {
     return {fm:megaDrive.fm,capabilities:megaDrive.capabilities,
       endpoints:megaDrive.primaryEndpoints.map(endpoint => ({name:endpoint.name,globalName:endpoint.globalName,node:endpoint.node instanceof AudioWorkletNode})),
       chips:megaDrive.mixer.list().filter(chip => chip.connected).map(chip => chip.id)};
-  });
+  },mode.primaries.psg === 'segapsg');
   assert.equal(primary.fm,null,`${mode.id}: no hidden FM synth`);
   assert.equal(primary.capabilities.fmChannels,0);
   assert.deepEqual(primary.endpoints.map(({name,globalName}) => ({name,globalName})),Object.entries(mode.primaries).map(([globalName,name]) => ({name,globalName})));
@@ -232,12 +288,20 @@ const sectionCases = {
     wave:{setup:'pce.setWaveform(0,Array.from({length:32},(_,i) => i < 16 ? 28 : 3)); pce.setVolume(0,24); pce.setPan(0,15,15);',on:"pce.noteOn(0,'A4');"},
     noise:{setup:'pce.setNoise(4,{enabled:true,frequency:16}); pce.setVolume(4,20); pce.setPan(4,15,15);',on:'pce.keyOn(4);'},
   },
+  'game-gear':{
+    tone:{setup:'psg.setStereo(0xff);',on:"psg.tone(PSG1,{note:'A4',attenuation:9});"},
+    noise:{setup:'psg.setStereo(0xff);',on:"psg.noise({type:'white',rate:'medium',attenuation:10});"},
+  },
+  'master-system':{
+    tone:{setup:'',on:"psg.tone(PSG1,{note:'A4',attenuation:9});"},
+    noise:{setup:'',on:"psg.noise({type:'white',rate:'medium',attenuation:10});"},
+  },
 };
 
 async function checkPrimaryContract(page,mode,execution) {
   const marker = `NATIVE_CONTRACT:${mode.id}:${execution}`;
   const source = `
-    ${forbidden.map(name => `if (typeof ${name} !== 'undefined' || ${JSON.stringify(name)} in pg) throw Error('Legacy global leaked: ${name}');`).join('\n')}
+    ${modeForbidden(mode).map(name => `if (typeof ${name} !== 'undefined' || ${JSON.stringify(name)} in pg) throw Error('Legacy global leaked: ${name}');`).join('\n')}
     ${Object.entries(mode.primaries).map(([globalName,chip]) => `
       if (${globalName} !== pg.${globalName} || ${globalName} !== await useSoundChip(${JSON.stringify(chip)})) throw Error('Primary aliases differ: ${globalName}');
       if (typeof ${globalName}.dispose !== 'undefined') throw Error('Primary disposal exposed: ${globalName}');
@@ -250,12 +314,50 @@ async function checkPrimaryContract(page,mode,execution) {
       extra_${globalName}.dispose();
     `).join('\n')}
     ${mode.id === 'nes' ? "if (!nes.fdsEnabled) throw Error('Primary NES has no FDS');" : ''}
+    ${mode.primaries.psg === 'segapsg' ? `if (PSG1 !== 0 || PSG2 !== 1 || PSG3 !== 2 || pg.PSG1 !== PSG1 || pg.PSG2 !== PSG2 || pg.PSG3 !== PSG3) throw Error('PSG channel aliases differ');
+      if (typeof psg.setStereo !== ${JSON.stringify(mode.id === 'game-gear' ? 'function' : 'undefined')}) throw Error('PSG stereo capability differs');` : ''}
     if (typeof sample.load !== 'function' || typeof stream.load !== 'function' || typeof noise.create !== 'function' || typeof mixer.set !== 'function' || typeof fx.gain !== 'function') throw Error('Generic audio services missing');
     console.log(${JSON.stringify(marker)});
   `;
   await runSource(page,source,execution);
   await page.waitForFunction(marker => document.getElementById('consoleOutput').textContent.includes(marker),marker);
   await primaryOnly(page,mode);
+}
+
+async function checkSegaStereo(page,browserName,mode) {
+  if (mode.primaries.psg !== 'segapsg') return;
+  const voices = [
+    ...[0,1,2].map(channel => ({channel,on:`psg.tone(${channel},{note:'A4',attenuation:9});`})),
+    {channel:3,on:"psg.noise({type:'white',rate:'medium',attenuation:10});"},
+  ];
+  for (const execution of ['main','worker']) {
+    const lookahead = await page.evaluate(execution => execution === 'worker' ? window.__nativeRegression.runtime.getTiming().workerLookaheadSeconds * 1000 : 0,execution);
+    for (const voice of voices) {
+      const routings = mode.id === 'game-gear' ? ['left','right','both'] : ['both'];
+      for (const routing of routings) {
+        await resetMeter(page);
+        const mask = routing === 'left' ? 1 << (voice.channel + 4) : routing === 'right' ? 1 << voice.channel : 0xff;
+        await runSource(page,`${mode.id === 'game-gear' ? `psg.setStereo(${mask});` : "if (typeof psg.setStereo !== 'undefined') throw Error('Master System exposes stereo control');"}\n${voice.on}`,execution);
+        await audible(page,lookahead);
+        await page.evaluate(() => {
+          const state = window.__nativeMeter; state.stereoFrames = [];
+          state.stereoProbe.port.postMessage({epoch:++state.stereoEpoch});
+        });
+        await page.waitForFunction(() => window.__nativeMeter.stereoFrames.length >= 5);
+        const measured = await page.evaluate(() => {
+          const frames = window.__nativeMeter.stereoFrames.slice(-5);
+          return {rms:[0,1].map(channel => frames.reduce((sum,frame) => sum + frame.rms[channel],0) / frames.length),
+            difference:Math.max(...frames.map(frame => frame.difference))};
+        });
+        const [left,right] = measured.rms;
+        if (routing === 'left') assert(left > .00001 && right < left * .001,`${mode.id}/${execution}/${voice.channel}: left mask leaks right: ${JSON.stringify(measured)}`);
+        else if (routing === 'right') assert(right > .00001 && left < right * .001,`${mode.id}/${execution}/${voice.channel}: right mask leaks left: ${JSON.stringify(measured)}`);
+        else assert(left > .00001 && right > .00001 && measured.difference < 1e-7,`${mode.id}/${execution}/${voice.channel}: balanced output differs: ${JSON.stringify(measured)}`);
+        await stop(page,lookahead);
+        console.log(JSON.stringify({browser:browserName,mode:mode.id,execution,channel:voice.channel,routing,...measured,passed:true}));
+      }
+    }
+  }
 }
 
 async function checkSections(page,browserName,mode) {
@@ -361,7 +463,7 @@ async function changeMode(page,id,choice='keep') {
 }
 async function checkTransfer(page,base) {
   await page.goto(`${base}?mode=nes&no-sw=1`); await ready(page);
-  for (const id of ['snes','x68000','pc-engine','nes']) {
+  for (const id of ['snes','x68000','pc-engine','game-gear','master-system','nes']) {
     await changeMode(page,id,'initial');
     const state = await page.evaluate(async id => {
       const test = window.__nativeRegression;
@@ -390,9 +492,12 @@ async function checkTransfer(page,base) {
 async function checkBrowser(name,type,base) {
   const browser = await type.launch({headless:true,...(name === 'chromium' ? {args:['--autoplay-policy=no-user-gesture-required']} : {})});
   const context = await browser.newContext({serviceWorkers:'block',viewport:{width:1320,height:960}});
-  const page = await context.newPage(), errors = [];
+  const page = await context.newPage(), errors = [], browserErrors = [], networkErrors = [];
   page.setDefaultTimeout(20000);
   page.on('pageerror',error => errors.push({message:error.message,stack:error.stack,url:page.url()}));
+  page.on('console',message => {if (message.type() === 'error') browserErrors.push(message.text());});
+  page.on('requestfailed',request => networkErrors.push({url:request.url(),error:request.failure()?.errorText}));
+  page.on('response',response => {if (response.status() >= 400) networkErrors.push({url:response.url(),status:response.status()});});
   const ids = process.argv.find(arg => arg.startsWith('--modes='))?.split('=')[1].split(',');
   const selectedModes = process.argv.includes('--project-only') ? [] : ids ? modes.filter(mode => ids.includes(mode.id)) : modes;
   assert(process.argv.includes('--project-only') || selectedModes.length,'No recognized native modes selected');
@@ -406,12 +511,16 @@ async function checkBrowser(name,type,base) {
         const baseline = await initializeAudio(page,mode);
         try {
           await checkSections(page,name,mode);
+          await checkSegaStereo(page,name,mode);
           await checkExamples(page,name,mode,files);
           await checkMixerFxMedia(page,name,mode);
         } finally {
           await page.evaluate(async () => {
             const state = window.__nativeMeter;
-            if (state) {clearInterval(state.timer);state.detach();state.meter.disconnect();state.silent.disconnect();delete window.__nativeMeter;}
+            if (state) {
+              clearInterval(state.timer);state.detach();state.meter.disconnect();state.silent.disconnect();
+              state.stereoDetach?.(); state.stereoProbe?.port.close(); state.stereoProbe?.disconnect(); delete window.__nativeMeter;
+            }
             await window.__nativeRegression.runtime.stopWithFade();
           }).catch(() => {});
         }
@@ -424,7 +533,11 @@ async function checkBrowser(name,type,base) {
   } catch (error) {
     console.error(JSON.stringify({browser:name,url:page.url(),status:await page.locator('#status').textContent().catch(() => null),
       startup:await page.locator('#startupNotice').textContent().catch(() => null),
-      console:await page.locator('#consoleOutput').textContent().catch(() => null),errors,
+      console:await page.locator('#consoleOutput').textContent().catch(() => null),errors,browserErrors,networkErrors,
+      audio:await page.evaluate(() => {
+        const synth = window.__nativeRegression?.megaDrive;
+        return synth && {state:synth.state,audioState:synth.audioContext?.state,endpoints:synth.primaryEndpoints?.map(endpoint => endpoint.name)};
+      }).catch(() => null),
       meter:await page.evaluate(() => window.__nativeMeter && {acPeak:window.__nativeMeter.acPeak,lastAcPeak:window.__nativeMeter.lastAcPeak,threshold:window.__nativeMeter.quietThreshold}).catch(() => null)}));
     if (process.argv.includes('--trace-rpc')) console.error(JSON.stringify(await page.evaluate(() => ({rpc:window.__nativeRpc,audioState:window.__nativeRegression.megaDrive.audioContext?.state,hardware:window.__nativeRegression.megaDrive.primaryEndpoints.map(endpoint => ({name:endpoint.name,state:endpoint.client._getState?.()}))})).catch(() => null)));
     throw error;

@@ -10,11 +10,13 @@ import {createOki6258Audio} from './playground_okim6258_audio.js';
 import {createOki6258Client} from './playground_okim6258.js';
 import {createHuc6280Audio} from './playground_huc6280_audio.js';
 import {createHuc6280Client} from './playground_huc6280.js';
+import {createSegaPsgAudio} from './playground_segapsg_audio.js';
+import {createSegaPsgClient} from './playground_segapsg.js';
 
-const PRIMARY_CHIPS = Object.freeze(['nes', 'snes', 'x68000', 'huc6280']);
+const PRIMARY_CHIPS = Object.freeze(['nes', 'snes', 'x68000', 'huc6280', 'segapsg']);
 
 /** @typedef {Pick<import('./megasynth.js').MegaSynthOptions,'audioContext'|'outputNode'|'sampleOutputNode'|'masterVolume'|'mixer'> & {
- * chip?:'nes'|'snes'|'x68000'|'huc6280', clock?:number, fds?:boolean,
+ * chip?:'nes'|'snes'|'x68000'|'huc6280'|'segapsg', clock?:number, stereoEnabled?:boolean, fds?:boolean,
  * wasmUrl?:string|URL, workletUrl?:string|URL, fetch?:typeof globalThis.fetch,
  * extraOki?:{fetch?:typeof globalThis.fetch,wasmUrl?:string|URL,workletUrl?:string|URL}
  * }} NativeRuntimeSynthOptions */
@@ -31,7 +33,7 @@ export class NativeRuntimeSynth {
     if (!PRIMARY_CHIPS.includes(chip)) throw new Error(`Unsupported native primary chip: ${chip}`);
     this.chip = chip;
     this.options = options;
-    this.capabilities = Object.freeze({chip, fmChannels:0, psg:false, dac:false, recorder:false});
+    this.capabilities = Object.freeze({chip, fmChannels:0, psg:chip === 'segapsg', dac:false, recorder:false});
     this.audio = new TetoricaAudioRuntime({
       audioContext:options.audioContext, outputNode:options.outputNode,
       sampleOutputNode:options.sampleOutputNode, masterVolume:clampMasterVolume(options.masterVolume ?? 1), mixer:options.mixer,
@@ -39,7 +41,7 @@ export class NativeRuntimeSynth {
     this.node = null;
     this.fm = null;
     this.psg = null;
-    /** @type {{nes?:ReturnType<typeof createNesClient>,snes?:ReturnType<typeof createSnesClient>,opm?:ReturnType<typeof createYm2151Client>,adpcm?:ReturnType<typeof createOki6258Client>,pce?:ReturnType<typeof createHuc6280Client>}} */
+    /** @type {{nes?:ReturnType<typeof createNesClient>,snes?:ReturnType<typeof createSnesClient>,opm?:ReturnType<typeof createYm2151Client>,adpcm?:ReturnType<typeof createOki6258Client>,pce?:ReturnType<typeof createHuc6280Client>,psg?:ReturnType<typeof createSegaPsgClient>}} */
     this.primaryApis = {};
     /** @type {ReturnType<typeof createNesClient>|null} */ this.nes = null;
     /** @type {ReturnType<typeof createSnesClient>|null} */ this.snes = null;
@@ -115,7 +117,7 @@ export class NativeRuntimeSynth {
 
   /** Stop voices while keeping uploaded samples, patches, waveforms and clocks. */
   stopAllNative() {
-    const {nes, snes, opm, adpcm, pce} = this.primaryApis;
+    const {nes, snes, opm, adpcm, pce, psg} = this.primaryApis;
     if (nes) for (let channel = 0; channel < 6; channel++) nes.keyOff(channel);
     if (snes) {
       try { snes.allNotesOff(); }
@@ -128,6 +130,7 @@ export class NativeRuntimeSynth {
     opm?.allNotesOff();
     adpcm?.stop();
     pce?.allNotesOff();
+    psg?.allNotesOff();
   }
   reset() { this.stopAllNative(); }
 
@@ -179,6 +182,8 @@ export class NativeRuntimeSynth {
       await this.#addPrimary('nes', 'nes', createNesAudio, device => createNesClient(device.port, {clock:device.clock, fdsEnabled:true}), {...options, fds:true}, signal);
     } else if (this.chip === 'snes') {
       await this.#addPrimary('snes', 'snes', createSnesAudio, device => createSnesClient(device.port, device), options, signal);
+    } else if (this.chip === 'segapsg') {
+      await this.#addPrimary('segapsg', 'psg', createSegaPsgAudio, device => createSegaPsgClient(device.port, {clock:device.clock, stereoEnabled:device.stereoEnabled}), options, signal);
     } else if (this.chip === 'huc6280') {
       const endpoint = await this.#addPrimary('huc6280', 'pce', createHuc6280Audio, device => createHuc6280Client(device.port, {clock:device.clock}), options, signal);
       endpoint.client.initialize();

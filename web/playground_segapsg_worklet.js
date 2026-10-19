@@ -6,27 +6,49 @@ import {createProcessorPerformance} from './playground_performance_processor.js'
 class Processor extends AudioWorkletProcessor {
   constructor(options) {
     super(); this.chip = null; this.dead = false;
-    this.performance=createProcessorPerformance({chip:'segapsg',apply:(data,port)=>this.apply(data,port)});
+    this.baseClock = options.processorOptions.clock ?? CHIP_CLOCKS.segapsg;
+    this.stereoEnabled = options.processorOptions.stereoEnabled ?? true;
+    this.performance=createProcessorPerformance({chip:'segapsg',getPsgLatch:()=>this.inspector?.latched,apply:(data,port)=>this.apply(data,port)});
     this.renderSegment=this.renderSegment.bind(this);
     this.port.onmessage = ({data}) => {
+      if (data.primaryWorker) {
+        this.workerRemote?.close(); this.workerRemote = null;
+        if (data.port) {
+          if (this.dead) {data.port.close(); return;}
+          const remote = this.workerRemote = data.port;
+          remote.onmessage = event => {if (this.workerRemote === remote) this.receive(event.data, remote);}; remote.start();
+        }
+        return;
+      }
+      if (data.type === 'detach-chip-port') {this.retireRemote(); return;}
       if (data.port) {
+        this.retireRemote();
         if (this.dead) { data.port.close(); return; }
         this.remote = data.port;
-        this.remote.onmessage = event => this.receive(event.data, this.remote);
-        this.remote.start();
+        const remote = this.remote;
+        remote.onmessage = event => {if (this.remote === remote) this.receive(event.data, remote);};
+        remote.start();
       } else this.receive(data, this.port);
     };
-    SegaPSG.create({moduleFactory: factory, moduleOptions: {wasmBinary: options.processorOptions.wasmBinary}, sampleRate})
+    SegaPSG.create({moduleFactory: factory, moduleOptions: {wasmBinary: options.processorOptions.wasmBinary}, sampleRate, clock:this.baseClock})
       .then(chip => {
         if (this.dead) { chip.dispose(); return; }
         this.chip = chip; chip.reserveStereoFrames(128);
-        this.inspector = new PsgInspectorState(chip, {clock:()=>CHIP_CLOCKS.segapsg*(this.clockResampler?.ratio??1),sampleRate}); this.port.postMessage({ready: true});
+        this.inspector = new PsgInspectorState(chip, {clock:()=>this.baseClock*(this.clockResampler?.ratio??1),sampleRate}); this.port.postMessage({ready: true});
       }).catch(error => { this.dispose(); this.port.postMessage({error: error.message}); });
   }
-  dispose() { this.performance.clear(); this.dead = true; this.chip?.dispose(); this.chip = null; this.remote?.close(); }
+  retireRemote() {
+    this.remote?.close(); this.remote = null;
+    const session = this.performance.getStats().activeSession;
+    if (session) this.receive({type:'performance-stop', session}, this.port);
+    else {this.performance.clear(); this.apply({method:'allNotesOff'}, this.port);}
+  }
+  dispose() { this.performance.clear(); this.dead = true; this.chip?.dispose(); this.chip = null; this.remote?.close(); this.workerRemote?.close(); }
   receive(data, port=this.port) {
+    if (Array.isArray(data)) {for (const command of data) this.receive(command, port); return;}
     if(data?.type==='chip-inspector'&&receiveChipInspector(data,port,this.inspector ? (action,method,args)=>action==='read'?this.inspector.read():this.inspector.invoke(method,args) : null))return;
-    if(this.performance.receive(data,port))return;
+    const stop = data.type === 'performance-stop' && Number.isSafeInteger(data.session) && data.session > 0 && data.session >= this.performance.getStats().latestSession;
+    if(this.performance.receive(data,port)) {if (stop) {this.apply({method:'allNotesOff'},port); this.performance.clear();} return;}
     this.apply(data,port);
   }
   apply(data,port) {
@@ -34,7 +56,7 @@ class Processor extends AudioWorkletProcessor {
     if (data.method === 'clock') {
       try {
         if (!this.chip) throw new Error('Chip not ready');
-        (this.clockResampler ??= new ChipClockResampler()).setClock(data.args[0], CHIP_CLOCKS.segapsg);
+        (this.clockResampler ??= new ChipClockResampler()).setClock(data.args[0], this.baseClock);
         port.postMessage({id:data.id});
       } catch (error) { port.postMessage({id:data.id, error:error.message}); }
       return;
@@ -42,6 +64,8 @@ class Processor extends AudioWorkletProcessor {
     if (!this.chip) return;
     if (data.method === 'reset') { this.chip.reset(); this.clockResampler?.resetPhase(); }
     if (data.method === 'write') this.chip.write(...data.args);
+    if (data.method === 'setStereo' && this.stereoEnabled) this.chip.setStereo(...data.args);
+    if (data.method === 'allNotesOff') for (let channel = 0; channel < 4; channel++) this.chip.write(0x9f | (channel << 5));
   }
   process(inputs, outputs) {
     if (this.dead) return false;

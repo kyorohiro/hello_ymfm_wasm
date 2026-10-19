@@ -1,8 +1,9 @@
 import {attachChipClock, CHIP_CLOCKS} from './playground_chip_clock.js?v=audio-stability-2';
-import {createSegaPsgApi} from './segapsg_api.js?v=audio-stability-2';
-/** Immediate ordered commands, shared by main-thread and Worker runtimes. */
-/** @param {MessagePort} port */
-export function createSegaPsgClient(port) {
+import {createSegaPsgApi} from './segapsg_api.js?v=sega-modes-1';
+/** Immediate ordered commands, shared by main-thread and Worker runtimes.
+ * @param {MessagePort} port
+ * @param {{clock?:number,stereoEnabled?:boolean}} [options] */
+export function createSegaPsgClient(port, {clock = CHIP_CLOCKS.segapsg, stereoEnabled = true} = {}) {
   let disposed = false;
   const send = (method, args = []) => {
     if (disposed) throw new Error('Sega PSG disposed');
@@ -11,11 +12,16 @@ export function createSegaPsgClient(port) {
   const client = {...createSegaPsgApi({
     get clock() { return client.clock; },
     write: value => send('write', [value]),
+    ...(stereoEnabled ? {setStereo:mask => send('setStereo', [mask])} : {}),
     reset: () => send('reset'),
     resetAll: () => send('reset'),
   }), dispose() {
     if (disposed) return;
     send('dispose'); disposed = true; port.close();
   }};
-  return attachChipClock(client, port, CHIP_CLOCKS.segapsg);
+  const getState = client._getState, adoptState = client._adoptState;
+  client._getState = () => ({...getState(), clock:client.clock, stereoEnabled});
+  client._adoptState = state => {adoptState(state); if (state?.clock !== undefined) client._adoptClock(state.clock);};
+  Object.defineProperty(client, 'stereoEnabled', {value:stereoEnabled, enumerable:true});
+  return attachChipClock(client, port, clock);
 }

@@ -116,10 +116,13 @@ export function createPlaygroundRuntime(
     options.megaDrive ??
     createTetoricaSynth({
       chip: options.chip,
+      stereoEnabled:options.stereoEnabled,
+      clock:options.clock,
+      fetch:options.fetch,
       workletUrl:
         options.audioWorkletUrl ??
         options.workletUrl ??
-        (['nes','snes','x68000','huc6280'].includes(options.chip) ? undefined : options.chip === 'gameboy' ? new URL('./playground_gameboy_worklet.js', import.meta.url).href
+        (['nes','snes','x68000','huc6280','segapsg'].includes(options.chip) ? undefined : options.chip === 'gameboy' ? new URL('./playground_gameboy_worklet.js', import.meta.url).href
           : options.chip === 'ym2203' ? './ym2203-worklet.js'
           : options.chip === 'ym2608' ? './ym2608-worklet.js'
           : ['ym2610','ym2610b'].includes(options.chip)
@@ -160,7 +163,7 @@ export function createPlaygroundRuntime(
   const primarySectionNames = capabilities.chip === 'ym2203' ? ['ssg']
     : capabilities.chip === 'ym2608' ? ['ssg','rhythm','adpcm']
     : ['ym2610','ym2610b'].includes(capabilities.chip) ? ['ssg','adpcmA','adpcmB'] : [];
-  const nativePrimary = ['nes','snes','x68000','huc6280'].includes(capabilities.chip);
+  const nativePrimary = ['nes','snes','x68000','huc6280','segapsg'].includes(capabilities.chip);
   const hasOpn = !nativePrimary && capabilities.chip !== 'gameboy';
   const sourceMap =
     new Map();
@@ -287,9 +290,19 @@ export function createPlaygroundRuntime(
   let sharedSections = {};
   let sharedSectionSynth;
   const nativeOwners = new Map(), nativeApiCache = new WeakMap();
-  function nativeVoice(name, path, args) {
+  function nativeVoice(name, path, args, raw) {
     const method = path.at(-1);
-    if (['allNotesOff','reset'].includes(method)) return {allOff:true};
+    if (['allNotesOff','reset','resetAll'].includes(method)) return {allOff:true};
+    if (name === 'psg') {
+      if (['tone','noteOn','keyOn'].includes(method)) return {key:args[0],on:true};
+      if (['off','keyOff'].includes(method)) return {key:args[0],on:false};
+      if (['noise','noiseVolume','noiseOff'].includes(method)) return {key:3,on:method !== 'noiseOff'};
+      if (method === 'setAttenuation') return {key:args[0],on:args[1] !== 15};
+      if (method === 'write') {
+        const byte = args[0], latched = byte & 128 ? (byte >> 4) & 7 : raw?._getState?.().latched ?? 0;
+        if (Number.isInteger(byte) && byte >= 0 && byte <= 255 && (latched & 1)) return {key:latched >> 1,on:(byte & 15) !== 15};
+      }
+    }
     if (name === 'adpcm' && ['play','stop','keyOff'].includes(method)) return {key:0,on:method==='play'};
     if (name === 'nes' && path.length > 1) {
       const voice = path[0];
@@ -309,7 +322,7 @@ export function createPlaygroundRuntime(
     return Object.fromEntries((megaDrive.primaryEndpoints ?? []).map(endpoint => {
       const {globalName:name, client:raw} = endpoint;
       if (!nativeApiCache.has(raw)) nativeApiCache.set(raw, borrowNativeApi(raw, endpoint.name, () => {}, (path,args) => {
-        const event = nativeVoice(name,path,args), loop = currentLoopContext;
+        const event = nativeVoice(name,path,args,raw), loop = currentLoopContext;
         if (loop?.stopped) return false;
         if (!event) return true;
         if (event.allOff) {for (const key of nativeOwners.keys()) if(key.startsWith(name+':'))nativeOwners.delete(key);return true;}
@@ -743,7 +756,7 @@ export function createPlaygroundRuntime(
       core?.adpcmA?.keyOff([0,1,2,3,4,5]);
       core?.adpcm?.keyOff();
     }
-    megaDrive.psg?.reset?.();
+    if (capabilities.chip !== 'segapsg') megaDrive.psg?.reset?.();
     megaDrive.sample.stopAll();
     megaDrive.stream.stop();
     noiseApi.stopAll();
@@ -1640,7 +1653,7 @@ export function createPlaygroundRuntime(
     const fm = sharedFm;
     const gameboy = isGameboy ? sharedGameboy : undefined;
     const nativeApis = nativePrimaryApis();
-    const psg = megaDrive.psg;
+    const psg = nativeApis.psg ?? megaDrive.psg;
     const sections = primaryChipSections();
     const musicApi =
       createPlaygroundMusic({
@@ -1743,7 +1756,7 @@ export function createPlaygroundRuntime(
         );
       },
     };
-    if (!hasOpn) for (const name of ['fm','psg','dac']) delete livePrepareApi[name];
+    if (!hasOpn) for (const name of ['fm','dac', ...(capabilities.chip === 'segapsg' ? [] : ['psg'])]) delete livePrepareApi[name];
     const playgroundConsole = {
       log: (...args) => {
         emitLog(
@@ -2077,6 +2090,7 @@ export function createPlaygroundRuntime(
       const opnNames = ['fm','psg','dac','midi','play','write','psgTone','psgNoise','scheduleWritesSamples',
         'noteToBlockFnum','hzToBlockFnum','noteLerp','FM_PRESETS','presets','tfiToPreset','vgiToPreset','setDacLookahead','getDacLookahead'];
       for (const api of [pg,globals]) for (const name of Object.keys(api)) {
+        if (capabilities.chip === 'segapsg' && (name === 'psg' || /^PSG[123]$/.test(name))) continue;
         if (opnNames.includes(name) || /^(?:CH|PSG|OP)\d+$/.test(name)) delete api[name];
       }
     }
@@ -2220,7 +2234,7 @@ export function createPlaygroundRuntime(
           const channel = new MessageChannel();
           endpoint.node.port.postMessage({port:channel.port1,primaryWorker:true},[channel.port1]);
           endpoints.push({name:endpoint.name,globalName:endpoint.globalName,clock:endpoint.client.clock,
-            fdsEnabled:endpoint.client.fdsEnabled,sampleRate:endpoint.client.sampleRate,state:endpoint.client._getState?.(),port:channel.port2});
+            fdsEnabled:endpoint.client.fdsEnabled,stereoEnabled:endpoint.client.stereoEnabled,sampleRate:endpoint.client.sampleRate,state:endpoint.client._getState?.(),port:channel.port2});
           transfer.push(channel.port2);
         }
         worker.postMessage({type:'native-primary-ports',endpoints},transfer);

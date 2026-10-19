@@ -12,7 +12,7 @@ async function until(predicate) {
 }
 
 /** Real client MessageChannels, with deterministic device/module boundaries. */
-function harness(t, chip, {stage = '', target = chip === 'x68000' ? 'okim6258' : chip} = {}) {
+function harness(t, chip, {stage = '', target = chip === 'x68000' ? 'okim6258' : chip, stereoEnabled = true} = {}) {
   const previous = globalThis.AudioWorkletNode;
   const gate = deferred(), nodes = [], fetches = [], moduleLoads = [], ports = new Set();
   let reached = false, contextCloses = 0;
@@ -56,20 +56,20 @@ function harness(t, chip, {stage = '', target = chip === 'x68000' ? 'okim6258' :
     connect(node) { this.connections.push(node); }
     disconnect() { this.connections.length = 0; }
   };
-  const synth = new NativeRuntimeSynth({chip, audioContext:context, fetch:fetchBytes, extraOki:{fetch:fetchBytes}});
+  const synth = new NativeRuntimeSynth({chip, audioContext:context, fetch:fetchBytes, extraOki:{fetch:fetchBytes}, stereoEnabled});
   t.after(async () => {
     gate.resolve(); await synth.close(); for (const port of ports) port.close(); globalThis.AudioWorkletNode = previous;
   });
   return {synth, context, nodes, fetches, moduleLoads, gate, reached:() => reached, contextCloses:() => contextCloses};
 }
 
-for (const chip of ['nes','snes','huc6280','x68000']) test(`${chip} primary is lazy, starts once, routes only native devices, and restarts`, async t => {
+for (const chip of ['nes','snes','huc6280','x68000','segapsg']) test(`${chip} primary is lazy, starts once, routes only native devices, and restarts`, async t => {
   const device = harness(t, chip); const {synth,nodes} = device;
   assert.equal(nodes.length, 0); assert.equal(device.fetches.length, 0); assert.equal(device.moduleLoads.length, 0);
   assert.equal(synth.fm, null); assert.equal(synth.psg, null); assert.equal(synth.isReady(), false);
   await Promise.all([synth.start(),synth.start()]);
   assert.equal(synth.isReady(), true); assert.equal(nodes.length, chip === 'x68000' ? 2 : 1);
-  assert.deepEqual(synth.capabilities, {chip,fmChannels:0,psg:false,dac:false,recorder:false});
+  assert.deepEqual(synth.capabilities, {chip,fmChannels:0,psg:chip === 'segapsg',dac:false,recorder:false});
   assert.equal(typeof synth.sample.load, 'function'); assert.equal(typeof synth.stream.load, 'function');
   assert(nodes.every(node => node.connections.length === 1), 'each device connects once through mixer, with no direct duplicate output');
   const names = chip === 'x68000' ? ['ym2151','okim6258'] : [chip];
@@ -142,7 +142,7 @@ test('NES Worker handoff adopts FDS and pulse configuration without resetting th
   assert(!messages.some(data => data.method === 'reset'));
 });
 
-for (const chip of ['nes','snes','huc6280','x68000']) test(`${chip} close during ${chip === 'x68000' ? 'second device' : 'device'} initialization aborts and permits restart`, async t => {
+for (const chip of ['nes','snes','huc6280','x68000','segapsg']) test(`${chip} close during ${chip === 'x68000' ? 'second device' : 'device'} initialization aborts and permits restart`, async t => {
   const {synth,nodes,gate,reached} = harness(t,chip,{stage:'ready'});
   const canceled = assert.rejects(synth.start(),{name:'AbortError'});
   await until(reached); if (chip === 'x68000') assert.equal(synth.primaryEndpoints.length,1,'OPM ready before second device');
@@ -154,6 +154,36 @@ for (const chip of ['nes','snes','huc6280','x68000']) test(`${chip} close during
 
 for (const stage of ['module','fetch']) test(`PCE close cancels pending ${stage} loading without allocating a node`, async t => {
   const {synth,nodes,gate,reached} = harness(t,'huc6280',{stage});
+  const canceled = assert.rejects(synth.start(),{name:'AbortError'}); await until(reached);
+  await synth.close(); await canceled; assert.equal(nodes.length,0);
+  gate.resolve(); await synth.start(); assert.equal(nodes.length,1); assert(synth.isReady());
+});
+
+for (const stereoEnabled of [true,false]) test(`PSG primary configures ${stereoEnabled ? 'Game Gear stereo' : 'Master System mono'}, Stop and Worker handoff preserve authoring state`, async t => {
+  const {synth,nodes} = harness(t,'segapsg',{stereoEnabled}); await synth.start();
+  assert.equal(synth.psg, synth.primaryApis.psg); assert.equal(synth.psg.clock,3579545);
+  assert.equal(nodes[0].options.processorOptions.stereoEnabled,stereoEnabled);
+  assert.equal(typeof synth.psg.setStereo,stereoEnabled ? 'function' : 'undefined');
+  synth.psg.tone(0,{note:'C4',attenuation:7}); synth.psg.noise({attenuation:9});
+  if (stereoEnabled) synth.psg.setStereo(0xa5);
+  const before = synth.psg._getState();
+  const channel = new MessageChannel(), messages = [];
+  channel.port1.onmessage = ({data}) => messages.push(data); channel.port1.start();
+  const worker = createNativePrimaryClient('segapsg',channel.port2,{clock:synth.psg.clock,stereoEnabled,state:before});
+  t.after(() => {worker.dispose();channel.port1.close();});
+  await immediate(); assert.equal(messages.length,0,'state adoption must not reset/replay audio'); assert.deepEqual(worker._getState(),before);
+  synth.stopAllNative();
+  await until(() => nodes[0].messages.filter(data => data.method === 'write').length >= 9);
+  assert.deepEqual(nodes[0].messages.filter(data => data.method === 'write').slice(-4).map(data => data.args[0]),[0x9f,0xbf,0xdf,0xff]);
+  assert.deepEqual(synth.psg._getState().attenuations,before.attenuations); assert.equal(synth.psg._getState().stereo,before.stereo);
+  const borrowed = borrowNativeApi(worker,'segapsg');
+  for (const name of ['dispose','transport','_getState','_adoptState']) assert.equal(borrowed[name],undefined);
+  const count = messages.length; worker._adoptState(synth.psg._getState()); await immediate(); assert.equal(messages.length,count);
+  worker.keyOn(0); await until(() => messages.length > count); assert.equal(messages.at(-1).args[0],0x97);
+});
+
+for (const stage of ['module','fetch']) test(`PSG close cancels pending ${stage} loading without allocating a node`, async t => {
+  const {synth,nodes,gate,reached} = harness(t,'segapsg',{stage});
   const canceled = assert.rejects(synth.start(),{name:'AbortError'}); await until(reached);
   await synth.close(); await canceled; assert.equal(nodes.length,0);
   gate.resolve(); await synth.start(); assert.equal(nodes.length,1); assert(synth.isReady());

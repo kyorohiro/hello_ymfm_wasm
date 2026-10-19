@@ -650,7 +650,7 @@ type FMApi = PlaygroundChipClock & {
 };
 
 /** The selected mode's primary FM chip; independent chips retain their own API. */
-type PlaygroundNativeSelectedChip = 'gameboy' | 'nes' | 'snes' | 'x68000' | 'huc6280';
+type PlaygroundNativeSelectedChip = 'gameboy' | 'nes' | 'snes' | 'x68000' | 'huc6280' | 'game-gear' | 'master-system';
 type PlaygroundSelectedFmChannel = TetoricaSelectedChip extends PlaygroundNativeSelectedChip ? never
   : TetoricaSelectedChip extends 'ym2203' ? 0 | 1 | 2
   : TetoricaSelectedChip extends 'ym2610' ? 0 | 1 | 2 | 3
@@ -671,6 +671,8 @@ type PlaygroundSelectedFm = {
   snes: never;
   x68000: never;
   huc6280: never;
+  'game-gear': never;
+  'master-system': never;
 }[TetoricaSelectedChip];
 declare const fm: PlaygroundSelectedFm;
 /** The primary Game Boy APU, initialized and shared by this mode. */
@@ -729,7 +731,9 @@ type PSGApi = {
   noiseOff(): void;
 };
 
-declare const psg: PSGApi;
+type PlaygroundSelectedPsg = TetoricaSelectedChip extends 'game-gear' ? PlaygroundPrimaryGameGearPsg
+  : TetoricaSelectedChip extends 'master-system' ? PlaygroundPrimaryMasterSystemPsg : PSGApi;
+declare const psg: PlaygroundSelectedPsg;
 declare const PSG1: 0;
 declare const PSG2: 1;
 declare const PSG3: 2;
@@ -1014,6 +1018,11 @@ type PlaygroundSelectedPsgAPI = TetoricaSelectedChip extends 'ym2612' ? {
   PSG1: 0;
   PSG2: 1;
   PSG3: 2;
+} : TetoricaSelectedChip extends 'game-gear' | 'master-system' ? {
+  psg: PlaygroundSelectedPsg;
+  PSG1: 0;
+  PSG2: 1;
+  PSG3: 2;
 } : {};
 type PlaygroundSelectedSSG = TetoricaSelectedChip extends 'ym2203' | 'ym2608' | 'ym2610' | 'ym2610b'
   ? PlaygroundYm2608['ssg'] : never;
@@ -1113,7 +1122,8 @@ type PlaygroundSelectedNativeAPI = TetoricaSelectedChip extends 'gameboy' ? {gam
   : TetoricaSelectedChip extends 'nes' ? {nes: PlaygroundPrimaryNes}
   : TetoricaSelectedChip extends 'snes' ? {snes: PlaygroundPrimarySnes}
   : TetoricaSelectedChip extends 'x68000' ? {opm: PlaygroundPrimaryOpm; adpcm: PlaygroundPrimaryOki6258}
-  : TetoricaSelectedChip extends 'huc6280' ? {pce: PlaygroundPrimaryHuc6280} : {};
+  : TetoricaSelectedChip extends 'huc6280' ? {pce: PlaygroundPrimaryHuc6280}
+  : TetoricaSelectedChip extends 'game-gear' | 'master-system' ? {psg: PlaygroundSelectedPsg} : {};
 type PlaygroundAPI = TetoricaSelectedChip extends PlaygroundNativeSelectedChip
   ? Omit<PlaygroundAPIBase, PlaygroundFmConvenienceName> & PlaygroundSelectedNativeAPI
   : PlaygroundAPIBase;
@@ -1678,7 +1688,8 @@ type PlaygroundSoundChipMap = {
   rf5c164: PlaygroundRf5c164;
   ym2608: PlaygroundYm2608;
   gameboy: TetoricaSelectedChip extends 'gameboy' ? PlaygroundPrimaryGameboy : PlaygroundGameboy;
-  segapsg: PlaygroundSegaPsg;
+  segapsg: TetoricaSelectedChip extends 'game-gear' ? PlaygroundPrimaryGameGearPsg
+    : TetoricaSelectedChip extends 'master-system' ? PlaygroundPrimaryMasterSystemPsg : PlaygroundSegaPsg;
   ym2151: TetoricaSelectedChip extends 'x68000' ? PlaygroundPrimaryOpm : PlaygroundYm2151;
   nes: TetoricaSelectedChip extends 'nes' ? PlaygroundPrimaryNes : PlaygroundNes;
   pwm: PlaygroundPWM32X;
@@ -1726,10 +1737,18 @@ declare function createSoundChip(name: 'ym2610', options?: PlaygroundCreateSound
 
 /** Independent Sega PSG; resetAll only resets this chip. */
 type PlaygroundSegaPsg = Omit<PSGApi, 'resetAll'> & {
+  /** Game Gear output mask: bits 0..3 right, bits 4..7 left. 0xff enables every channel on both sides. */
+  setStereo(mask: number): void;
+  /** Silence the three tone channels and noise without resetting their settings. */
+  allNotesOff(): void;
   /** Reset only this independent Sega PSG. */
   resetAll(): void;
   dispose(): void;
 };
+/** The Game Gear's borrowed primary PSG; its lifetime belongs to the selected mode. */
+type PlaygroundPrimaryGameGearPsg = Omit<PlaygroundSegaPsg, 'dispose'> & PlaygroundChipClock & {readonly id: string};
+/** The Master System PSG has a mono output and no Game Gear stereo register. */
+type PlaygroundPrimaryMasterSystemPsg = Omit<PlaygroundPrimaryGameGearPsg, 'setStereo'>;
 declare function createSoundChip(name: 'segapsg', options?: PlaygroundCreateSoundChipOptions): Promise<PlaygroundSegaPsg & PlaygroundChipClock & {readonly id: string}>;
 
 /** OPM channels 0..7; operators in register order M1, C1, M2, C2 (0..3). */

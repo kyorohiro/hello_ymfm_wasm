@@ -18,6 +18,8 @@ Menu の Mode で次の環境を選べる。
 | SNES | `snes` | S-DSP、BRR サンプルによる8音 | 内部 PCM: 32,000 Hz |
 | X68000 | `x68000` | YM2151 OPM 8ch + OKIM6258 ADPCM | OPM: 4,000,000 Hz、OKI: 8,000,000 Hz |
 | PC Engine | `pc-engine` | HuC6280 Wave 6ch、うち2ch は Noise へ切り替え可能 | 3,579,545 Hz |
+| Game Gear | `game-gear` | Sega PSG Tone 3ch + Noise、各音の左右出力切り替え | 3,579,545 Hz |
+| Master System | `master-system` | Sega PSG Tone 3ch + Noise、モノラル | 3,579,545 Hz |
 
 SNES を除く Hz は CPU や音声出力のサンプルレートではなく、音源のマスタークロック。
 SNES の 32,000 Hz は S-DSP 内部の PCM 出力レートで、音声デバイスの出力レートとは別。
@@ -35,6 +37,11 @@ PC-98 (YM2203 / OPN) は `fm` と `ssg`、YM2608 / OPNA は `fm` に加えて `s
 再読み込みする。キャンセルした場合は停止や保存・画面遷移を行わない。
 プロジェクトは IndexedDB で受け渡し、保存に失敗した場合は画面を移動しない。
 デスクトップの下書きは mode ごとに保存し、既存の下書きは対応する基本 mode で読み込める。
+
+Tauri の macOS WebView では、切り替え元の `pagehide` で開始した下書きの書き込みが
+完了せず、切り替え先の引き継ぎデータの読み取りを塞ぐことがあった。
+mode 切り替えでは保存完了後に自動保存を終了して DB 接続を閉じ、`pagehide` で再保存しない。
+キャンセル時は自動保存を継続する。
 
 新しい URL は `?mode=pc98` などを使う。既存の `chip=` / `engine=nuked` は入力互換として
 残す。明示された mode が優先する。通常の Nuked 版は、過去のリンク用の
@@ -66,6 +73,21 @@ mode 切り替え時は **Start with initial code / Keep current code / Cancel**
 
 同じ mode の初期状態からやり直す場合は **Menu → New Cassette** を使う。
 確認後、現在のプロジェクトを選択 mode の初期コード・ファイル構成に戻す。
+
+### Game Gear / Master System の標準 API
+
+両 mode は PSG を標準音源とし、`psg`・`PSG1`〜`PSG3` を公開する。
+`psg.tone()` / `psg.off()` と `psg.noise()` / `psg.noiseOff()` で演奏し、待機には
+`beat()` / `sleep()` を使う。`pg.psg`、`livePrepare()`、`useSoundChip('segapsg')` からも
+同じ標準 PSG を操作できる。FM の `play()`・`fm`・`write()` は公開しない。
+音源タブは Sega PSG のみとし、各 mode の初期コードと2〜3個の examples を同梱する。
+下書きは mode ごとに分け、切り替えダイアログでコード維持・初期化を選べる。
+
+Game Gear の `psg.setStereo(mask)` は8ビットの左右出力レジスターに対応する。
+上位4ビットが左、下位4ビットが右で、各組の下位から Tone 1 / 2 / 3 / Noise。
+`0xff` で全音を両側に出力する。対応は [Sega の Game Gear 公式資料](https://www.smspower.org/Development/GGOfficialDocs#(7)_I/O_port_06H_(Write_Only)) に基づく。
+Master System の標準 PSG はモノラルを左右に同じ波形で出し、ステレオ切り替えを公開しない。
+独立した `createSoundChip('segapsg')` はステレオ対応の別音源を作る。
 
 ### PC-98 / OPN の標準 API
 

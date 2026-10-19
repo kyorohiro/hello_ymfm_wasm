@@ -71,3 +71,40 @@ for (const rate of [44100,48000,96000]) test(`Sega PSG: borrowed worklet PCM pre
   }
 });
 
+
+for (const stereoEnabled of [true,false]) test(`PSG worklet keeps Main / Worker ports independent and enforces ${stereoEnabled ? 'Game Gear routing' : 'Master System mono'}`,async t => {
+  let Processor, resolveReady;
+  const ready = new Promise(resolve => {resolveReady = resolve;});
+  const source = (await readFile(new URL('./playground_segapsg_worklet.js',import.meta.url),'utf8')).replace(/^import .*;$/gm,'');
+  vm.runInNewContext(source,{PsgInspectorState,receiveChipInspector,CHIP_CLOCKS,ChipClockResampler,SegaPSG,factory,sampleRate:48000,
+    createProcessorPerformance:options => createProcessorPerformance({...options,rate:48000,nowFrame:() => 0}),
+    AudioWorkletProcessor:class {constructor() {this.port = {postMessage:resolveReady};}},registerProcessor(_name,Type) {Processor = Type;},
+  });
+  const wasmBinary = await readFile(new URL('../docs/generated/segapsg_wasm.wasm',import.meta.url));
+  const p = new Processor({processorOptions:{wasmBinary,stereoEnabled,clock:3579545}});
+  assert.equal((await ready).ready,true); t.after(() => p.dispose());
+  const remote = () => ({closed:false,start(){},close(){this.closed=true;},postMessage(){}});
+  const main = remote(), worker = remote();
+  p.port.onmessage({data:{port:main}}); p.port.onmessage({data:{port:worker,primaryWorker:true}});
+  assert.equal(main.closed,false,'attaching Worker must keep the primary Main client alive');
+  for (const byte of [0x8c,0x1a]) worker.onmessage({data:{method:'write',args:[byte]}});
+  main.onmessage({data:{method:'write',args:[0x95]}});
+  worker.onmessage({data:{method:'setStereo',args:[0x10]}});
+  const left = new Float32Array(128), right = new Float32Array(128);
+  p.process([],[[left,right]]); assert(left.some(value => value !== 0));
+  if (stereoEnabled) assert(right.every(value => value === 0)); else assert.deepEqual(right,left);
+  assert.equal(p.inspector.read().clock,3579545);
+  p.port.onmessage({data:{type:'detach-chip-port',primaryWorker:true}});
+  assert.equal(worker.closed,true); assert.equal(main.closed,false);
+  main.onmessage({data:{method:'allNotesOff'}}); p.process([],[[left,right]]);
+  assert(left.every(value => value === 0)); assert(right.every(value => value === 0));
+  const write=byte=>({method:'write',args:[byte]}), enqueue=(owner,bytes)=>p.receive({performance:{session:1,owner,time:0},commands:bytes.map(write)}),
+    cancel=owner=>p.receive({type:'performance-cancel-owner',session:1,owner});
+  p.receive({type:'performance-start',session:1});
+  enqueue('raw',[0x8a,0x10,0x9f,0x01]); p.process([],[[left,right]]); assert(left.some(value=>value!==0));
+  cancel('raw'); p.process([],[[left,right]]); assert(left.every(value=>value===0),'cancelling a continuation-keyed Worker note silences it');
+  enqueue('old',[0x90]); enqueue('new',[0x91]); enqueue('old',[0x0f]); p.process([],[[left,right]]);
+  assert(left.some(value=>value!==0),'an older Worker raw off cannot mute the replacement owner');
+  cancel('old'); p.process([],[[left,right]]); assert(left.some(value=>value!==0));
+  cancel('new'); p.process([],[[left,right]]); assert(left.every(value=>value===0));
+});

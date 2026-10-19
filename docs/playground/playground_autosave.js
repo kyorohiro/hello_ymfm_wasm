@@ -22,7 +22,8 @@ export async function openDraftStore(indexedDB, key) {
 }
 
 /** Coalesce edits before capturing binary data, then serialize writes. flush()
- * bypasses the editing delay and includes changes made during an in-flight save. */
+ * bypasses the editing delay and includes changes made during an in-flight save.
+ * dispose() cancels pending edits and closes storage; flush first when navigating. */
 export function createProjectAutosave({store, capture, onStatus = () => {},
   delayMs = 750, maxWaitMs = 5000, setTimer = setTimeout, clearTimer = clearTimeout,
   now = () => performance.now()}) {
@@ -80,7 +81,9 @@ export function createProjectAutosave({store, capture, onStatus = () => {},
     return completion;
   }
   return {changed, flush, dispose() {
+    if (stopped) return;
     stopped = true; cancelTimer(); dirty = false;
     if (!saving && settle) {settle.resolve(); settle = null;}
+    store.close?.();
   }};
 }

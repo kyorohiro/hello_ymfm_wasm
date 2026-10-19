@@ -17,6 +17,7 @@ public:
     void reset();
     void write(uint8_t data);
     void set_mute_mask(uint8_t mask) { m_mute_mask = mask & 0x0f; }
+    void set_stereo(uint8_t mask) { m_stereo_mask = mask; }
     void generate(float *left, float *right, uint32_t frames);
 
     uint32_t sample_rate() const { return m_sample_rate; }
@@ -27,11 +28,13 @@ public:
         io.field(m_sample_rate); io.field(m_clock); io.field(m_clock_accumulator);
         for (auto &ch : m_tone) { io.field(ch.period); io.field(ch.counter); io.field(ch.output_high); io.field(ch.volume); }
         io.field(m_noise_lfsr); io.field(m_noise_control); io.field(m_noise_volume);
+        io.field(m_stereo_mask);
         io.field(m_noise_counter); io.field(m_noise_output_high); io.field(m_latched_channel); io.field(m_latched_volume);
     }
 private:
     // Playback setting: preserve it across reset and synthesis state restoration.
     uint8_t m_mute_mask = 0;
+    uint8_t m_stereo_mask = 0xff;
     struct ToneChannel
     {
         uint16_t period;

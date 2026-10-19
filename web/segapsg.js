@@ -58,6 +58,7 @@ export class SegaPSG {
       destroy: module.cwrap("segapsg_destroy", null, ["number"]),
       reset: module.cwrap("segapsg_reset", null, ["number"]),
       write: module.cwrap("segapsg_write", null, ["number", "number"]),
+      setStereo: module.cwrap("segapsg_set_stereo", null, ["number", "number"]),
       setMuteMask: module.cwrap("segapsg_set_mute_mask", null, ["number", "number"]),
       sampleRate: module.cwrap("segapsg_sample_rate", "number", ["number"]),
       generate: module.cwrap("segapsg_generate", null, ["number", "number", "number", "number"]),
@@ -128,6 +129,12 @@ export class SegaPSG {
    */
   write(data) {
     this.api.write(this.handle, data);
+  }
+
+  /** Game Gear routing: bits 0..3 right, bits 4..7 left; 0xff is mono. */
+  setStereo(mask) {
+    if (!Number.isInteger(mask) || mask < 0 || mask > 255) throw new RangeError('PSG stereo mask must be 0..255');
+    this.api.setStereo(this.handle, mask);
   }
 
   /** Mute Tone 1–3 / Noise (0–3) without changing registers or oscillator state. */

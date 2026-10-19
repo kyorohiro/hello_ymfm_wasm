@@ -1,6 +1,6 @@
 import {
   FM_PRESETS,
-} from "../js/megasynth.js?v=audio-stability-2";
+} from "../js/megasynth.js?v=sega-modes-1";
 
 const SCALE_NAMES = [
   "major",
@@ -270,7 +270,7 @@ const FM_COMPLETION_CAPABILITIES = {
   ym2203: {channels: [0, 1, 2], dac: false, pan: false, lfo: false},
   ym2608: {channels: [0, 1, 2, 3, 4, 5], dac: false, pan: true, lfo: true},
   ym2610: {channels: [1, 2, 4, 5], dac: false, pan: true, lfo: true},
-  ...Object.fromEntries(['gameboy','nes','snes','x68000','huc6280'].map(chip => [chip,{channels:[],dac:false,pan:false,lfo:false}])),
+  ...Object.fromEntries(['gameboy','nes','snes','x68000','huc6280','game-gear','master-system'].map(chip => [chip,{channels:[],dac:false,pan:false,lfo:false}])),
 };
 
 function fmCompletionCapabilities(chip) {

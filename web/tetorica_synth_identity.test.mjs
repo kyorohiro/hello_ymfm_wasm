@@ -14,7 +14,7 @@ import {SoundChipMixer} from './soundchip.js';
 for(const [chip,Type]of[
   ['ym2612',MegaSynth],['ym2203',YM2203RuntimeSynth],['ym2608',YM2608RuntimeSynth],
   ['gameboy',GameboyRuntimeSynth],['ym2610',NeoGeoSynth],['ym2610b',YM2610BRuntimeSynth],
-  ['nes',NativeRuntimeSynth],['snes',NativeRuntimeSynth],['x68000',NativeRuntimeSynth],['huc6280',NativeRuntimeSynth],
+  ['nes',NativeRuntimeSynth],['snes',NativeRuntimeSynth],['x68000',NativeRuntimeSynth],['huc6280',NativeRuntimeSynth],['segapsg',NativeRuntimeSynth],
 ])test(`${chip}: canonical factory instances match direct public class and mixer exports`,()=>{
   const synth=createTetoricaSynth({chip});
   assert(synth instanceof Type);

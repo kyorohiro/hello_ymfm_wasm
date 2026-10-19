@@ -9,7 +9,7 @@ const modules = new WeakMap();
  */
 export async function createOki6258Audio(context, destination, {clock = OKIM6258_CLOCK,
   wasmUrl = new URL('../generated/okim6258_wasm.wasm', import.meta.url),
-  workletUrl = new URL('./playground_okim6258_worklet.js?v=audio-stability-2', import.meta.url), signal, fetch:fetchBytes = nativeFetch} = {}) {
+  workletUrl = new URL('./playground_okim6258_worklet.js?v=sega-modes-1', import.meta.url), signal, fetch:fetchBytes = nativeFetch} = {}) {
   validateChipClock(clock);
   signal?.throwIfAborted();
   if (!context?.audioWorklet || context.state === 'closed') throw new Error('OKIM6258 requires an open AudioContext with AudioWorklet');

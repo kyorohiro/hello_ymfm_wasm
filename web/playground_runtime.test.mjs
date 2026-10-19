@@ -9,6 +9,7 @@ import {GameboySynth} from './gameboysynth.js';
 import {YM2203Synth} from './ym2203synth.js';
 import {YM2608Synth} from './ym2608synth.js';
 import {YM2610BSynth, NeoGeoFMSynth} from './ym2610bsynth.js';
+import {createSegaPsgClient} from './playground_segapsg.js';
 import {createSnesClient} from './playground_snes.js';
 import {SnesSynth} from './snessynth.js';
 
@@ -1025,4 +1026,59 @@ for(const method of ['sleep','sleepSamples','beat'])test(`Main tracked failure e
  reject(new Error('memory transfer failed'));
  for(let i=0;i<100&&!statuses.includes('Loop error: upload');i++)await new Promise(r=>setTimeout(r,1));
  assert.ok(statuses.includes('Loop error: upload'));assert.equal(globalThis.playgroundReview.runs,1);assert.equal(globalThis.playgroundReview.after,false);
+});
+
+for (const stereoEnabled of [true,false]) test(`primary ${stereoEnabled ? 'Game Gear' : 'Master System'} shares PSG without FM shortcuts, and stopping its loop silences tone and noise`, async t => {
+  const {runtime,megaDrive}=setup(t,{chip:'segapsg',fmChannels:0,psg:true,dac:false});
+  const writes=[];
+  const raw=createSegaPsgClient({postMessage:command=>writes.push(command),start(){},close(){}},{stereoEnabled});
+  megaDrive.fm=null; megaDrive.psg=raw;
+  megaDrive.primaryEndpoints=[{name:'segapsg',globalName:'psg',client:raw}];
+  megaDrive.stopAllNative=()=>raw.allNotesOff();
+  await runtime.playSource(`
+    const prepared=await livePrepare('psg',api=>({psg:api.psg,keys:Object.keys(api)}));
+    if(psg!==pg.psg || prepared.psg!==psg || await useSoundChip('segapsg')!==psg) throw Error('Separate PSG primary');
+    if(typeof psg.dispose!=='undefined')throw Error('Primary lifetime leaked');
+    if(typeof psg.setStereo!=='${stereoEnabled ? 'function' : 'undefined'}')throw Error('Wrong stereo API');
+    if(PSG1!==0||PSG2!==1||PSG3!==2)throw Error('Missing PSG channels');
+    for(const name of ['fm','dac','midi','play','write','CH1','OP1','FM_PRESETS','noteToBlockFnum']) {
+      if(name in pg || prepared.keys.includes(name)) throw Error('OPN shortcut '+name);
+    }
+    liveLoop('held',async()=>{psg.tone(PSG1,{note:'C4',attenuation:7});psg.noise({attenuation:9});await sleep(60);});
+  `);
+  await until(()=>writes.some(data=>data.method==='write'&&data.args[0]===0xf9));
+  const before=writes.length;
+  await runtime.playSource(`stopLoop('held');`);
+  assert(writes.slice(before).some(data=>data.method==='write'&&data.args[0]===0x9f));
+  assert(writes.slice(before).some(data=>data.method==='write'&&data.args[0]===0xff));
+  assert.deepEqual(raw._getState().attenuations.slice(0,1),[7]);
+  const configured = raw._getState();
+  await runtime.stop();
+  assert.deepEqual(raw._getState().attenuations,configured.attenuations,'Stop retains configured PSG attenuation');
+  assert.equal(writes.filter(data=>data.method==='reset').length,0,'Stop must not reset the primary PSG');
+  assert.deepEqual(writes.filter(data=>data.method==='write').slice(-4).map(data=>data.args[0]),[0x9f,0xbf,0xdf,0xff]);
+});
+
+for (const latch of [0x9f,0xff]) test(`stopping a Main raw PSG loop releases continuation-keyed ${latch === 0xff ? 'noise' : 'tone'}`, async t => {
+  const {runtime,megaDrive}=setup(t,{chip:'segapsg',fmChannels:0,psg:true,dac:false});
+  const writes=[], raw=createSegaPsgClient({postMessage:command=>writes.push(command),start(){},close(){}});
+  megaDrive.fm=null; megaDrive.psg=raw;
+  megaDrive.primaryEndpoints=[{name:'segapsg',globalName:'psg',client:raw}]; megaDrive.stopAllNative=()=>raw.allNotesOff();
+  await runtime.playSource(`liveLoop('raw',async()=>{psg.write(0x8a);psg.write(0x10);psg.write(${latch});psg.write(0x01);await sleep(60);});`);
+  await until(()=>writes.some(command=>command.method==='write'&&command.args[0]===1));
+  const before=writes.length; await runtime.playSource(`stopLoop('raw');`);
+  assert.deepEqual(writes.slice(before).map(command=>command.args[0]),[latch]);
+});
+
+test('an older Main raw PSG loop cannot turn off a replacement through the shared volume latch', async t => {
+  const {runtime,megaDrive}=setup(t,{chip:'segapsg',fmChannels:0,psg:true,dac:false});
+  const writes=[], raw=createSegaPsgClient({postMessage:command=>writes.push(command),start(){},close(){}});
+  megaDrive.fm=null; megaDrive.psg=raw;
+  megaDrive.primaryEndpoints=[{name:'segapsg',globalName:'psg',client:raw}]; megaDrive.stopAllNative=()=>raw.allNotesOff();
+  await runtime.playSource(`liveLoop('old',async()=>{psg.write(0x90);await sleep(.01);psg.write(0x0f);context.attempted=true;await sleep(60);});liveLoop('new',async()=>{psg.write(0x91);await sleep(60);});context.stopOld=()=>stopLoop('old');context.stopNew=()=>stopLoop('new');`);
+  await until(()=>writes.some(command=>command.method==='write'&&command.args[0]===0x91));
+  const before=writes.length; megaDrive.audioContext.currentTime=.1; await new Promise(resolve=>setTimeout(resolve,25)); assert.equal(runtime.context.attempted,true);
+  assert.equal(writes.length,before,'stale raw continuation-off must not reach the chip');
+  runtime.context.stopOld(); assert.equal(writes.length,before);
+  runtime.context.stopNew(); assert.equal(writes.at(-1).args[0],0x9f);
 });

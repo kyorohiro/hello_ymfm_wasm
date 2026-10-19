@@ -13,6 +13,8 @@ export const MODE_DEFAULT_CODES = {
   "snes": "// Select Mode: SNES. CPU-free S-DSP; original BRR, no game files needed.\nsetBpm(120);\nconst leadSample = await livePrepare('snes-mode-lead-brr', async () => {\n  const brrBytes = new Uint8Array([0xc3, 0x13, 0x57, 0x75, 0x31, 0xfd, 0xb9, 0x9b, 0xdf]);\n  // One looping block = 16 samples at native 32,000 Hz: base frequency 2,000 Hz.\n  return snes.loadBRR(brrBytes, {baseFrequencyHz:2000, loopStartSamples:0});\n});\nsnes.setPreset(0, {\n  sample:leadSample, adsr1:0x8e, adsr2:0xe0, gain:127, // Short hardware attack avoids an abrupt onset.\n  volumeLeft:80, volumeRight:80,\n});\n\nliveLoop('snes-melody', async () => {\n  for (const note of ['C4', 'E4', 'G4', 'B4', 'C5', 'G4', 'E4', 'D4']) {\n    snes.noteOn(0, note);\n    await beat(0.4);\n    snes.noteOff(0);\n    await beat(0.1);\n  }\n});\n\n// Eight physical voices, numbered 0..7. Assign a BRR sample before setting pitch.\n",
   "x68000": "// Select Mode: X68000. Built-in YM2151, channels 0..7; operators M1/C1/M2/C2.\nsetBpm(120);\nopm.setAlgo(0, 7);\nopm.setPan(0, true, true);\nopm.setOperator(0, 3, {mul:1, tl:32, ar:31, d1r:0, d2r:0, d1l:0, rr:15});\n\nliveLoop('x68000-opm-melody', async () => {\n  for (const note of ['C4', 'E4', 'G4', 'B4', 'C5', 'G4', 'E4', 'D4']) {\n    opm.setNote(0, note);\n    opm.keyOn(0, 8); // Only C2, one of algorithm 7's four parallel carriers.\n    await beat(0.4);\n    opm.keyOff(0);\n    await beat(0.1);\n  }\n});\n\n// The built-in adpcm device is the X68000's mono OKIM6258.\n",
   "pc-engine": "// Select Mode: PC Engine. Six 32-entry, five-bit wavetable voices.\nsetBpm(120);\npce.setWaveform(0, Array.from({length:32}, (_, index) =>\n  Math.round(15.5 + 15.5 * Math.sin(index * Math.PI / 16))));\npce.setVolume(0, 26); // Hardware volume 0..31.\npce.setPan(0, 15, 15); // Independent left/right balances 0..15.\n\nliveLoop('pce-melody', async () => {\n  for (const note of ['C4', 'E4', 'G4', 'B4', 'C5', 'G4', 'E4', 'D4']) {\n    // Keep the waveform running between notes; hard key cuts can click.\n    pce.noteOn(0, note);\n    await beat(0.5);\n  }\n});\n\n// Uploading a waveform stops its channel. Channels 4/5 can also generate noise.\n",
+  "game-gear": "// Select Mode: Game Gear. Three PSG tones and one noise voice, with stereo routing.\nsetBpm(120);\npsg.setStereo(0xff); // All four voices reach both speakers.\n\nliveLoop('gg-melody', async () => {\n  for (const note of ['C4', 'E4', 'G4', 'B4', 'C5', 'G4', 'E4', 'D4']) {\n    psg.tone(PSG1, {note, attenuation: 9});\n    await beat(0.4);\n    psg.off(PSG1);\n    await beat(0.1);\n  }\n});\n\nliveLoop('gg-rhythm', async () => {\n  psg.noise({type: 'white', rate: 'high', attenuation: 12});\n  await beat(0.1);\n  psg.noiseOff();\n  await beat(0.9);\n});\n",
+  "master-system": "// Select Mode: Master System. Three PSG tones and one noise voice, in mono.\nsetBpm(120);\n\nliveLoop('sms-melody', async () => {\n  for (const note of ['C4', 'E4', 'G4', 'B4', 'C5', 'G4', 'E4', 'D4']) {\n    psg.tone(PSG1, {note, attenuation: 9});\n    await beat(0.4);\n    psg.off(PSG1);\n    await beat(0.1);\n  }\n});\n\nliveLoop('sms-rhythm', async () => {\n  psg.noise({type: 'white', rate: 'high', attenuation: 12});\n  await beat(0.1);\n  psg.noiseOff();\n  await beat(0.9);\n});\n",
   "genesis-nuked": "setBpm(120);\n\nfm.setPreset(CH1, FM_PRESETS[\"one-op-basic\"]);\n\nliveFx(\"distortion\", {\n  context: { gain: 60.0, drive: 0.03 },\n  process(input, output, state, context) {\n    for (let ch = 0; ch < input.length; ch++) {\n      for (let i = 0; i < input[ch].length; i++) {\n        output[ch][i] = Math.tanh(input[ch][i] * context.gain) * context.drive;\n      }\n    }\n  },\n});\n\nliveLoop(\"lead\", async () => {\n  const notes = scale(\"E3\", \"minorPentatonic\", 2);\n  //await nextBeat();\n  await play(choose(notes), {\n    channel: CH1,\n    duration: 0.08,\n  });\n  await beat(cycle([0.04, 0.04, 0.08]));\n});\n"
 };
 export const MODE_DEFAULT_HISTORY = {
@@ -237,6 +239,31 @@ export const EXAMPLE_FILES = [
     "path": "/examples/genesis/segapsg-tone-noise.js",
     "name": "segapsg-tone-noise",
     "data": "// Independent Sega PSG: works with any selected Playground chip.\nconst chip = await useSoundChip('segapsg');\ntry {\n  for (const note of ['C4', 'E4', 'G4', 'C5']) {\n    chip.tone(0, {note, attenuation: 4});\n    await sleep(0.2);\n  }\n  chip.off(0);\n  chip.noise({type: 'white', rate: 'medium', attenuation: 8});\n  await sleep(0.2);\n  chip.noiseOff();\n} finally { chip.dispose(); }\n"
+  },
+  {
+    "path": "/examples/game-gear/gg-mode-melody.js",
+    "name": "gg-mode-melody",
+    "data": "// Select Mode: Game Gear. A square-wave melody with a separate bass voice.\nsetBpm(120);\npsg.setStereo(0xff);\n\nliveLoop('gg-two-tone', async () => {\n  const melody = ['C4', 'E4', 'G4', 'C5', 'B4', 'G4', 'E4', 'D4'];\n  const bass = ['C3', 'C3', 'C3', 'C3', 'G3', 'G3', 'G3', 'G3'];\n  for (let step = 0; step < melody.length; step++) {\n    psg.tone(PSG1, {note: melody[step], attenuation: 9});\n    psg.tone(PSG2, {note: bass[step], attenuation: 12});\n    await beat(0.4);\n    psg.off(PSG1);\n    psg.off(PSG2);\n    await beat(0.1);\n  }\n});\n"
+  },
+  {
+    "path": "/examples/game-gear/gg-mode-noise.js",
+    "name": "gg-mode-noise",
+    "data": "// Select Mode: Game Gear. The fourth PSG voice supplies short noise percussion.\nsetBpm(120);\npsg.setStereo(0xff);\n\nliveLoop('gg-noise-drums', async () => {\n  for (let step = 0; step < 8; step++) {\n    psg.noise({\n      type: 'white',\n      rate: step % 2 ? 'high' : 'low',\n      attenuation: step % 2 ? 13 : 10,\n    });\n    await beat(0.1);\n    psg.noiseOff();\n    await beat(0.4);\n  }\n});\n"
+  },
+  {
+    "path": "/examples/game-gear/gg-mode-stereo.js",
+    "name": "gg-mode-stereo",
+    "data": "// Select Mode: Game Gear. Route PSG1 left, then right, one note at a time.\n// Bits 4..7 enable the left speaker; bits 0..3 enable the right speaker.\nsetBpm(120);\npsg.setStereo(0xff);\n\nliveLoop('gg-stereo-melody', async () => {\n  const notes = ['C4', 'E4', 'G4', 'C5', 'B4', 'G4', 'E4', 'D4'];\n  for (let step = 0; step < notes.length; step++) {\n    psg.setStereo(step % 2 ? 0xef : 0xfe); // PSG1 right only / left only.\n    psg.tone(PSG1, {note: notes[step], attenuation: 9});\n    await beat(0.4);\n    psg.off(PSG1);\n    await beat(0.1);\n  }\n  psg.setStereo(0xff);\n});\n"
+  },
+  {
+    "path": "/examples/master-system/sms-mode-melody.js",
+    "name": "sms-mode-melody",
+    "data": "// Select Mode: Master System. A square-wave melody with a separate bass voice.\nsetBpm(120);\n\nliveLoop('sms-two-tone', async () => {\n  const melody = ['C4', 'E4', 'G4', 'C5', 'B4', 'G4', 'E4', 'D4'];\n  const bass = ['C3', 'C3', 'C3', 'C3', 'G3', 'G3', 'G3', 'G3'];\n  for (let step = 0; step < melody.length; step++) {\n    psg.tone(PSG1, {note: melody[step], attenuation: 9});\n    psg.tone(PSG2, {note: bass[step], attenuation: 12});\n    await beat(0.4);\n    psg.off(PSG1);\n    psg.off(PSG2);\n    await beat(0.1);\n  }\n});\n"
+  },
+  {
+    "path": "/examples/master-system/sms-mode-noise.js",
+    "name": "sms-mode-noise",
+    "data": "// Select Mode: Master System. The fourth PSG voice supplies short noise percussion.\nsetBpm(120);\n\nliveLoop('sms-noise-drums', async () => {\n  for (let step = 0; step < 8; step++) {\n    psg.noise({\n      type: 'white',\n      rate: step % 2 ? 'high' : 'low',\n      attenuation: step % 2 ? 13 : 10,\n    });\n    await beat(0.1);\n    psg.noiseOff();\n    await beat(0.4);\n  }\n});\n"
   },
   {
     "path": "/examples/gameboy/gameboy-mode-noise.js",
@@ -530,6 +557,15 @@ export const MODE_EXAMPLE_FILES = Object.fromEntries(Object.entries({
     "/examples/pc-engine/pce-mode-wave.js",
     "/examples/pc-engine/pce-mode-stereo.js",
     "/examples/pc-engine/pce-mode-noise.js"
+  ],
+  "game-gear": [
+    "/examples/game-gear/gg-mode-melody.js",
+    "/examples/game-gear/gg-mode-noise.js",
+    "/examples/game-gear/gg-mode-stereo.js"
+  ],
+  "master-system": [
+    "/examples/master-system/sms-mode-melody.js",
+    "/examples/master-system/sms-mode-noise.js"
   ],
   "genesis-nuked": [
     "/examples/basic/8-bit-arcade-sweep.js",

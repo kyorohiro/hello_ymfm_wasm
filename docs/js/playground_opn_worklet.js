@@ -5,7 +5,7 @@ import {Ym2610B} from './ym2610b.js?v=audio-stability-2';
 import ym2612Factory from '../generated/ym2612_wasm.js';
 import ym2203Factory from '../generated/ym2203_wasm.js';
 import ym2610Factory from '../generated/ym2610b_wasm.js';
-import {createProcessorPerformance} from './playground_performance_processor.js?v=native-modes-3';
+import {createProcessorPerformance} from './playground_performance_processor.js?v=sega-modes-1';
 
 /** One independent WASM chip per processor; shares only the AudioContext clock. */
 class Processor extends AudioWorkletProcessor {

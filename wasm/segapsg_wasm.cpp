@@ -36,6 +36,11 @@ void segapsg_write(void *ptr, uint8_t data)
     cast_handle(ptr)->write(data);
 }
 
+void segapsg_set_stereo(void *ptr, uint8_t mask)
+{
+    cast_handle(ptr)->set_stereo(mask);
+}
+
 void segapsg_set_mute_mask(void *ptr, uint8_t mask)
 {
     cast_handle(ptr)->set_mute_mask(mask);

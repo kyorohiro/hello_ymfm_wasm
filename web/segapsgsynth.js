@@ -29,13 +29,15 @@ export class SegaPSGDirectTransport {
   /** @param {number} value */
   write(value) { this.chip.write(value); }
   reset() { this.chip.reset(); }
+  setStereo(mask) { this.chip.setStereo(mask); }
 }
 
 /** Tone/noise register generation shared by Node.js and browser transports. */
 export class SegaPSGSynth {
   #attenuations = new Uint8Array(4);
   #latched = 0;
-  /** @param {{transport: {clock?:number, write: (value: number) => void, reset?: () => void, resetAll?: () => void}}} [options] Ordered register transport. */
+  #stereo = 0xff;
+  /** @param {{transport: {clock?:number, write: (value: number) => void, setStereo?:(mask:number)=>void, reset?: () => void, resetAll?: () => void}}} [options] Ordered register transport. */
   constructor({transport} = {}) {
     if (!transport || typeof transport.write !== 'function') throw new TypeError('SegaPSGSynth requires a transport with write(value)');
     this.transport = transport;
@@ -47,8 +49,27 @@ export class SegaPSGSynth {
     if (this.#latched & 1) this.#attenuations[this.#latched >> 1] = byte & 15;
     return this.transport.write(byte);
   }
-  reset() { const result = this.transport.reset?.(); this.#attenuations.fill(0); this.#latched = 0; return result; }
-  resetAll() { const result = this.transport.resetAll?.(); this.#attenuations.fill(0); this.#latched = 0; return result; }
+  reset() { const result = this.transport.reset?.(); this.#attenuations.fill(0); this.#latched = 0; this.#stereo = 0xff; return result; }
+  resetAll() { const result = this.transport.resetAll?.(); this.#attenuations.fill(0); this.#latched = 0; this.#stereo = 0xff; return result; }
+  /** Game Gear routing: bits 0..3 right, bits 4..7 left. */
+  setStereo(mask) {
+    const value = normalizeByte(mask);
+    if (typeof this.transport.setStereo !== 'function') throw new Error('Stereo routing is unavailable for this PSG');
+    this.transport.setStereo(value); this.#stereo = value;
+  }
+  /** Silence all four voices while keeping configured attenuation and routing. */
+  allNotesOff() { for (let channel = 0; channel < 4; channel++) this._forceKeyOff(channel); }
+  _forceKeyOff(channel) {
+    const attenuation = this.#attenuations[channel];
+    this.setAttenuation(channel, 15); this.#attenuations[channel] = attenuation;
+  }
+  _getState() { return {attenuations:Array.from(this.#attenuations), latched:this.#latched, stereo:this.#stereo}; }
+  // Observation updates authoring state only: no writes or audio work on Main.
+  _adoptState(state = {}) {
+    if (Array.isArray(state.attenuations) && state.attenuations.length === 4) this.#attenuations.set(state.attenuations);
+    if (Number.isInteger(state.latched)) this.#latched = state.latched & 7;
+    if (Number.isInteger(state.stereo)) this.#stereo = state.stereo & 255;
+  }
   /** @param {number} channel Physical tone channel, 0..2.
    * @param {{note?: string, frequency?: number, period?: number, attenuation?: number, volume?: number}} [options]
    * @returns {number} Written 10-bit period, calculated using SEGAPSG_CLOCK.

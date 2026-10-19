@@ -1,4 +1,4 @@
-import {openDraftStore} from './playground_autosave.js?v=opn-modes-1';
+import {openDraftStore} from './playground_autosave.js?v=mode-handoff-1';
 
 const HANDOFF_VERSION = 1;
 const projectKey = token => `mode-project:${token}`;

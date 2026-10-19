@@ -5,8 +5,8 @@
  * import だけでは音声デバイスを開かない。アセット読み込みには fetch を使用する。
  */
 import ym2612ModuleFactory from "../generated/ym2612_wasm.js";
-import segaPsgModuleFactory from "../generated/segapsg_wasm.js";
-import { createGenesisAudioEngine } from "./genesisaudioengine.js?v=audio-stability-2";
+import segaPsgModuleFactory from "../generated/segapsg_wasm.js?v=sega-modes-1";
+import { createGenesisAudioEngine } from "./genesisaudioengine.js?v=sega-modes-1";
 import { VgmPlayer } from "./vgmplayer.js";
 
 /**

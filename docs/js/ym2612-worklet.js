@@ -1,4 +1,4 @@
-import {PsgInspectorState, receiveChipInspector} from './playground_chip_inspector_state.js?v=audio-stability-2';
+import {PsgInspectorState, receiveChipInspector} from './playground_chip_inspector_state.js?v=sega-modes-1';
 import {validateChipClock} from './playground_chip_clock.js?v=audio-stability-2';
 import {createPerformanceQueue, createPerformanceChipOwnership} from './playground_performance_queue.js';
 import {createOpnAuditionGuard, receiveOpnAuditionCommand} from './playground_audition_guard.js';
@@ -12,8 +12,8 @@ import {createChipPortReceiver} from "./playground_chip_port.js?v=audio-stabilit
  */
 import ym2612ModuleFactory from "../generated/ym2612_wasm.js";
 import { createYm2612 } from "./ym2612.js";
-import segaPsgModuleFactory from "../generated/segapsg_wasm.js";
-import { SegaPSG, SEGAPSG_CLOCK } from "./segapsg.js?v=audio-stability-2";
+import segaPsgModuleFactory from "../generated/segapsg_wasm.js?v=sega-modes-1";
+import { SegaPSG, SEGAPSG_CLOCK } from "./segapsg.js?v=sega-modes-1";
 
 // Same mix balance as GenesisAudioEngine.process() in genesisaudioengine.js.
 const YM_GAIN = 0.9;

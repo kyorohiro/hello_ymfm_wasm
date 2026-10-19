@@ -90,6 +90,20 @@ test('dispose cancels deferred captures and settles outstanding notifications',a
   await autosave.changed();assert.equal(captures,0);assert.equal(timer.count,0);
 });
 
+test('disposing after a navigation flush closes storage once and prevents a pagehide write',async()=>{
+  const timer=clock(), events=[];let source='latest edit';
+  const autosave=createProjectAutosave({...timer,capture:()=>({source}),store:{
+    async save(snapshot){events.push(['save',snapshot.source]);},
+    close(){events.push(['close']);},
+  }});
+  autosave.changed();await autosave.flush();
+  autosave.dispose();autosave.dispose();
+  // pagehide runs the same hooks as ordinary navigation, after disposal.
+  source='pagehide';await autosave.changed();await autosave.flush();timer.advance(10000);
+  assert.deepEqual(events,[['save','latest edit'],['close']]);
+  assert.equal(timer.count,0);
+});
+
 test('failed saves remain visible and retry on the next edit', async () => {
   let fail=true;const status=[];
   const autosave=createProjectAutosave({capture:()=>({source:'edit'}),onStatus:text=>status.push(text),store:{async save(){if(fail)throw Error('disk full');}}});

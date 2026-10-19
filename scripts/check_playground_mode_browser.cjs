@@ -11,6 +11,7 @@
 // --starters-only checks fresh defaults, curated files, playable examples and draft restore.
 // --starter-modes=id,id focuses starter audio; --webkit-only selects only WebKit.
 // --mode-choice-only checks mode choices, draft restore and New Cassette.
+// --desktop-mode-switch-only checks draft flush/close before Keep/Initial reloads.
 // --menu-only compares sustained audio and UI activity with Menu closed/open/closed.
 // --menu-modes=genesis,pc98 and --menu-executions=main,worker focus that probe.
 const assert = require('node:assert/strict');
@@ -1464,6 +1465,104 @@ console.log('MODE_CHOICE_RUNNING');\n`;
     binaryDirectoriesMetadata:true,newCassetteCancelPreservesRun:true,newCassetteResetsProject:true,screenshot,passed:true}));
 }
 
+function installDesktopDraftLifecycleProbe() {
+  window.__TAURI_INTERNALS__ = {};
+  const logKey = 'desktop-mode-draft-events';
+  const pageId = Number(sessionStorage.getItem('desktop-mode-page') || 0) + 1;
+  sessionStorage.setItem('desktop-mode-page', String(pageId));
+  const ids = new WeakMap();
+  let nextId = 0;
+  const dbId = db => {
+    if (!ids.has(db)) ids.set(db, ++nextId);
+    return ids.get(db);
+  };
+  const log = entry => {
+    const events = JSON.parse(sessionStorage.getItem(logKey) || '[]');
+    events.push({page:pageId, ...entry});
+    sessionStorage.setItem(logKey, JSON.stringify(events));
+  };
+  const put = IDBObjectStore.prototype.put;
+  IDBObjectStore.prototype.put = function(value, key) {
+    if (this.transaction.db.name === 'tetorica-playground-drafts') {
+      const db = dbId(this.transaction.db);
+      log({type:'put', db, key});
+      this.transaction.addEventListener('complete', () => log({type:'saved', db, key}), {once:true});
+    }
+    return put.apply(this, arguments);
+  };
+  const close = IDBDatabase.prototype.close;
+  IDBDatabase.prototype.close = function() {
+    if (this.name === 'tetorica-playground-drafts') log({type:'close', db:dbId(this)});
+    return close.apply(this, arguments);
+  };
+  addEventListener('pagehide', () => log({type:'pagehide'}));
+  window.__desktopDraftLifecycle = {pageId, reset:() => sessionStorage.setItem(logKey, '[]'),
+    events:() => JSON.parse(sessionStorage.getItem(logKey) || '[]')};
+}
+
+async function checkDesktopModeSwitch(page, base, browserName) {
+  await page.goto(`${base}?mode=genesis&no-sw=1`);
+  await ready(page);
+  await beginModeChange(page, 'gameboy');
+  await finishModeChange(page, 'gameboy', 'cancel');
+  const source = '// A cancelled mode choice must keep the draft writable.\nawait sleep(.01);\n';
+  await page.evaluate(async source => {
+    window.__modeRegression.setEditorValue(source);
+    await window.__tetoricaAutosaveFlush();
+  }, source);
+  const afterCancel = await page.evaluate(() => window.__desktopDraftLifecycle.events());
+  const cancelledSave = afterCancel.findLast(event => event.type === 'saved' && event.key === 'mode:genesis');
+  assert(cancelledSave, 'Cancel leaves the current draft writable');
+  assert(!afterCancel.some(event => event.type === 'close' && event.db === cancelledSave.db), 'Cancel keeps the current draft connection open');
+
+  const pending = '// Unsaved edits survive a Desktop mode reload.\nawait sleep(.02);\n';
+  await page.evaluate(pending => {
+    const test = window.__modeRegression;
+    test.setEditorValue(pending);
+    test.virtualFiles.writeBinary('/assets/desktop-mode.bin', new Uint8Array([0, 255, 128, 13]));
+    test.virtualFiles.mkdir('/assets/desktop-empty', {recursive:true});
+  }, pending);
+  const verifyReload = async (target, choice, from) => {
+    const previousPage = await page.evaluate(() => {
+      window.__desktopDraftLifecycle.reset();
+      return window.__desktopDraftLifecycle.pageId;
+    });
+    await changeMode(page, target, choice);
+    const events = await page.evaluate(() => window.__desktopDraftLifecycle.events());
+    const oldEvents = events.filter(event => event.page === previousPage);
+    const hideIndex = oldEvents.findIndex(event => event.type === 'pagehide');
+    const putIndex = oldEvents.findIndex(event => event.type === 'put' && event.key === `mode:${from}`);
+    const savedIndex = oldEvents.findIndex(event => event.type === 'saved' && event.key === `mode:${from}`);
+    assert(putIndex >= 0 && savedIndex > putIndex, `${choice}: current draft is flushed before reload`);
+    assert(hideIndex > savedIndex, `${choice}: draft flush completes before pagehide`);
+    const draftDb = oldEvents[putIndex].db;
+    const closeIndex = oldEvents.findIndex(event => event.type === 'close' && event.db === draftDb);
+    assert(closeIndex > savedIndex && closeIndex < hideIndex, `${choice}: draft connection closes after flush and before pagehide; ${JSON.stringify(oldEvents)}`);
+    assert(!oldEvents.slice(hideIndex + 1).some(event => event.type === 'put'), `${choice}: pagehide does not start a second draft write`);
+    const resources = await page.evaluate(() => {
+      const files = window.__modeRegression.virtualFiles;
+      return {bytes:Array.from(files.get('/assets/desktop-mode.bin')?.data || []), empty:files.stat('/assets/desktop-empty')?.type};
+    });
+    assert.deepEqual(resources, {bytes:[0,255,128,13], empty:'directory'}, `${choice}: binary and empty directories survive`);
+  };
+  await verifyReload('gameboy', 'keep', 'genesis');
+  assert.equal(await page.evaluate(() => window.__modeRegression.getEditorValue()), pending, 'Keep preserves pending editor changes');
+  // Mark the next draft dirty immediately before choosing Initial so it also
+  // exercises an explicit pre-navigation flush rather than an idle autosave.
+  await page.evaluate(() => window.__modeRegression.virtualFiles.writeText('/NOTICE', 'Still here after Initial.\n'));
+  await verifyReload('pc98', 'initial', 'gameboy');
+  await assertModeStarter(page, 'pc98');
+  const restored = await page.evaluate(pending => {
+    const files = window.__modeRegression.virtualFiles.list();
+    return {backup:files.some(file => file.path !== '/index.js' && file.data === pending),
+      notice:window.__modeRegression.virtualFiles.get('/NOTICE')?.data};
+  }, pending);
+  assert.deepEqual(restored, {backup:true, notice:'Still here after Initial.\n'}, 'Initial preserves the previous index and other resources');
+  console.log(JSON.stringify({browser:browserName, desktopModeSwitch:true, cancelStillSaves:true,
+    keep:true, initial:true, draftFlushedBeforeReload:true, draftClosedBeforeReload:true,
+    noPagehideWrite:true, binaryDirectoriesAndBackup:true, passed:true}));
+}
+
 async function checkStarterLegacyDraft(browser, base) {
   const context = await browser.newContext({serviceWorkers:'block'});
   await context.addInitScript(() => {window.__TAURI_INTERNALS__ = {};});
@@ -1509,6 +1608,8 @@ async function checkStarterLegacyDraft(browser, base) {
 async function checkBrowser(name, type, base) {
   const browser = await type.launch({headless:true, ...(name === 'chromium' ? {args:['--autoplay-policy=no-user-gesture-required']} : {})});
   const context = await browser.newContext({serviceWorkers:'block', viewport:{width:1320, height:960}});
+  const desktopModeSwitchOnly = process.argv.includes('--desktop-mode-switch-only');
+  if (desktopModeSwitchOnly) await context.addInitScript(installDesktopDraftLifecycleProbe);
   const page = await context.newPage(), errors = [];
   page.setDefaultTimeout(20000);
   page.on('pageerror', error => errors.push({message:error.message,stack:error.stack,url:page.url()}));
@@ -1528,6 +1629,11 @@ async function checkBrowser(name, type, base) {
     ? modes.filter(mode => mode.chip === 'ym2203') : opnbExampleOnly
     ? modes.filter(mode => ['ym2610', 'ym2610b'].includes(mode.chip)) : modes;
   try {
+    if (desktopModeSwitchOnly) {
+      await checkDesktopModeSwitch(page, base, name);
+      assert.deepEqual(errors, [], `${name}: Desktop mode switch page errors`);
+      return;
+    }
     if(process.argv.includes('--menu-only')){
       await checkMenuAudio(page,base,name);
       await checkMenuLayout(page,base,name);
@@ -1545,7 +1651,7 @@ async function checkBrowser(name, type, base) {
       await page.goto(`${base}?mode=${mode.id}&no-sw=1`); await ready(page);
       assert.equal(await page.title(), `Tetorica ${mode.label} Playground`);
       assert.equal(await page.locator('#playgroundMode').inputValue(), mode.id);
-      assert.deepEqual(await page.locator('#playgroundMode option').evaluateAll(options => options.map(option => option.value)), [...modes.map(mode => mode.id),'nes','snes','x68000','pc-engine']);
+      assert.deepEqual(await page.locator('#playgroundMode option').evaluateAll(options => options.map(option => option.value)), [...modes.map(mode => mode.id),'nes','snes','x68000','pc-engine','game-gear','master-system']);
       if (startersOnly) {
         const files = await checkStarterCatalog(page,mode);
         await checkStarterAudio(page,name,mode,files);

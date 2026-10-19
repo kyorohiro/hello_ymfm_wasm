@@ -154,3 +154,16 @@ test('Game Boy does not suggest primary OPN play, presets, operators, or registe
   const operators = chipSuggestions('const fm = await useSoundChip("ym2612");\nfm.setOperator(0, 0, { ', 'gameboy');
   assert(operators.some(item => item.label === 'multi'));
 });
+
+for (const chip of ['game-gear', 'master-system']) {
+  test(`${chip} completion omits primary OPN hints and retains independent FM hints`, () => {
+    for (const source of [
+      'play(', 'pg.play(', 'play("C4", { ', 'pg.play("C4", { ',
+      'fm.write(0, ', 'pg.fm.write(0, ', 'fm.setOperator(0, 0, { ',
+      'FM_PRESETS["', 'pg.presets["',
+    ]) assert.deepEqual(chipSuggestions(source, chip), [], source);
+    assert(chipSuggestions('scale("', chip).length > 0);
+    const registers = chipSuggestions('const fm = await useSoundChip("ym2612");\nfm.write(0, ', chip);
+    assert(registers.some(item => item.insertText === '0x2a'));
+  });
+}

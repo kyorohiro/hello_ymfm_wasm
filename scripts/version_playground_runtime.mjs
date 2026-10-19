@@ -64,6 +64,11 @@ const audioFiles=new Set(['chip_pcm_renderer.js','custom_fx.js','opn_fm_synth.js
   'tetorica_audio_runtime.js','ym2608audioengine.js','ym2612synth.js']);
 const sources=await Promise.all((await readdir(directory)).filter(name=>name.endsWith('.js'))
   .map(async name=>({name,source:await readFile(join(directory,name),'utf8')})));
+const segaVersion='sega-modes-1';
+const segaFiles=new Set(['segapsg.js','segapsgsynth.js','segapsg_api.js',
+  'playground_segapsg.js','playground_segapsg_audio.js','playground_segapsg_worklet.js',
+  'native_runtime_synth.js','playground_native_primary.js','tetorica_synth.js',
+  'playground_runtime.js','playground_logic_worker.js','playground_performance_processor.js']);
 let propagated;
 do {
   propagated=false;
@@ -73,14 +78,29 @@ do {
     if(imports.some(match=>audioFiles.has(match[1]))) {audioFiles.add(name);propagated=true;}
   }
 } while(propagated);
+do {
+  propagated=false;
+  for(const {name,source} of sources) {
+    if(segaFiles.has(name))continue;
+    // Type-only JSDoc references do not make a module a runtime importer.
+    const runtimeSource=source.replace(/\/\*[\s\S]*?\*\//g,'');
+    const imports=[...runtimeSource.matchAll(/['"](?:\.\/)?([\w.-]+\.js)(?:\?[^'"]*)?['"]/g)];
+    if(imports.some(match=>segaFiles.has(match[1]))) {segaFiles.add(name);propagated=true;}
+  }
+} while(propagated);
 for(const name of ['playground.js','playground_mode.js','playground_operator_tab.js','playground_tfi_editor.js'])audioFiles.add(name);
-const pageRevisions={'playground.js':'vgm-frequency-order-2','playground_mode_starters.js':'mode-choice-1',
+const pageRevisions={'playground.js':segaVersion,'playground_mode_starters.js':'mode-choice-1',
+  'playground_autosave.js':'mode-handoff-1','playground_mode_project.js':'mode-handoff-1',
+  ...Object.fromEntries(['playground_mode.js','playground_examples.js','playground_mode_examples.js',
+    'playground_monaco.js','playground_declarations.js','playground_monaco_completion.js']
+    .map(name=>[name,segaVersion])),
   ...Object.fromEntries(['ym2612vgm.js','ym2203vgm.js','ym2608vgm.js','ym2610bvgm.js',
     'playground_vgm_import.js','rf5c164_vgm_export.js','ym2608_vgm_import.js','playground_vgm_presets.js']
     .map(name=>[name,'vgm-frequency-order-2']))};
-const revisionFor=name=>pageRevisions[name]??(audioFiles.has(name)?audioVersion:revisions[name]??version);
+const revisionFor=name=>pageRevisions[name]??(segaFiles.has(name)?segaVersion:audioFiles.has(name)?audioVersion:revisions[name]??version);
 const targets=[...new Set([
   ...Object.keys(pageRevisions),
+  ...segaFiles,
   ...audioFiles,
   ...pcmFiles,
   ...nativeFiles,
@@ -112,6 +132,8 @@ for(const currentDirectory of [directory,join(directory,'../playground')])for(co
   if(!name.endsWith('.js')&&!name.endsWith('.html'))continue;
   const path=join(currentDirectory,name),source=await readFile(path,'utf8');
   const next=source.replace(currentDirectory===directory?references:pageReferences,(_match,quote,path)=>quote+path+'?v='+revisionFor(path.split('/').at(-1))+quote)
+    .replace(/(['"])((?:(?:\.\.?\/)+generated\/)?segapsg_wasm\.(?:js|wasm))(?:\?[^'"\s]*)?\1/g,
+      (_match,quote,path)=>quote+path+'?v='+segaVersion+quote)
     .replace(/(['"])((?:\.\.?\/)+generated\/spc_wasm\.(?:js|wasm))(?:\?[^'"\s]*)?\1/g,
       (_match,quote,path)=>quote+path+'?v=spc-events-1'+quote);
   if(next!==source){await writeFile(path,next);changed++;}

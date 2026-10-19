@@ -2197,6 +2197,15 @@
               <li><code>opm.reset()</code> resets this chip; <code>opm.dispose()</code> releases it. Open <code>examples/x68000/ym2151-tone.js</code> for a complete voice setup.</li>
             </ul>
 
+            <h2 data-native-helper="segapsg" style="margin-top: 14px;">Game Gear / Master System PSG</h2>
+            <ul data-native-helper="segapsg" class="helper-list">
+              <li><code>psg</code> is the primary sound chip, also available through <code>pg.psg</code> and <code>livePrepare()</code>. Tone channels are <code>PSG1</code>, <code>PSG2</code>, and <code>PSG3</code>.</li>
+              <li><code>psg.tone(PSG1, {note:"C4", attenuation:6})</code> starts a tone; <code>psg.off(PSG1)</code> stops it. Use <code>await beat(...)</code> to set its duration.</li>
+              <li><code>psg.noise({type:"white", rate:"medium", attenuation:10})</code> starts noise; <code>psg.noiseOff()</code> stops it. <code>await psg.setClock(hz)</code> changes the PSG clock.</li>
+              <li><code>await useSoundChip("segapsg")</code> returns this primary chip; <code>createSoundChip("segapsg")</code> adds an independent chip. Stop silences the primary tones and noise.</li>
+              <li data-game-gear-helper><code>psg.setStereo(0xff)</code> enables all voices on both sides. Bits 4–7 enable left Tone 1/2/3/Noise; bits 0–3 enable the corresponding right voices. For Tone 1, <code>0xfe</code> is left only and <code>0xef</code> is right only.</li>
+            </ul>
+
             <h2 style="margin-top: 14px;">Sega PSG (independent chip)</h2>
             <ul class="helper-list">
               <li><code>const chip = await useSoundChip("segapsg")</code> reuses an independent Sega PSG; <code>createSoundChip("segapsg")</code> creates a fresh instance.</li>
@@ -2389,7 +2398,7 @@
       })();
     </script>
     <script type="module">
-      import('./playground.js?v=vgm-frequency-order-2').catch(error => window.__playgroundStartup.fail(error));
+      import('./playground.js?v=sega-modes-1').catch(error => window.__playgroundStartup.fail(error));
     </script>
   </body>
 </html>

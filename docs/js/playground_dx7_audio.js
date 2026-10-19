@@ -44,7 +44,7 @@ function loadWasm(fetchImpl) {
 function loadModule(context) {
   let ready = loadedModules.get(context);
   if (!ready) {
-    ready = context.audioWorklet.addModule(new URL('./playground_dx7_worklet.js', import.meta.url));
+    ready = context.audioWorklet.addModule(new URL('./playground_dx7_worklet.js?v=sega-modes-1', import.meta.url));
     loadedModules.set(context, ready);
     ready.catch(() => { if (loadedModules.get(context) === ready) loadedModules.delete(context); });
   }
