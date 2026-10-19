@@ -8,6 +8,8 @@
 // --opnb-example-only runs the bundled OPNB example in both Neo Geo modes.
 // --ym2203-only checks native OPN SSG types, audio, clock, reset and Stop.
 // --gameboy-only checks the native non-FM environment, audio and mode transfer.
+// --starters-only checks mode defaults, curated files, playable examples and migration.
+// --starter-modes=id,id focuses starter audio; --webkit-only selects only WebKit.
 const assert = require('node:assert/strict');
 const http = require('node:http');
 const fs = require('node:fs/promises');
@@ -16,7 +18,7 @@ const {chromium, webkit} = require('playwright');
 
 const docs = path.resolve(__dirname, '../docs');
 const mime = {'.html':'text/html', '.js':'text/javascript', '.mjs':'text/javascript', '.css':'text/css', '.wasm':'application/wasm', '.json':'application/json', '.svg':'image/svg+xml'};
-const accessor = '\nwindow.__modeRegression={runtime,megaDrive,selectedMode,virtualFiles,getEditorValue,setEditorValue:value=>editorAdapter.setValue(value)};';
+const accessor = '\nwindow.__modeRegression={runtime,megaDrive,selectedMode,virtualFiles,getEditorValue,setEditorValue:value=>editorAdapter.setValue(value),captureProjectSnapshot,openVirtualFile,loadCassetteSource,runCode};';
 const modes = [
   {id:'genesis', label:'Genesis', chip:'ym2612', clock:7670454, channels:6},
   {id:'genesis-full', label:'Genesis Full', chip:'ym2612', clock:7670454, channels:6, full:true},
@@ -224,8 +226,9 @@ async function checkGameboyAudio(page, browserName) {
   const examplePath = '/examples/gameboy/gameboy-mode-pulse.js';
   const example = await page.evaluate(path => window.__modeRegression.virtualFiles.get(path)?.data, examplePath);
   assert.equal(example, await fs.readFile(path.join(docs, 'playground', examplePath), 'utf8'), 'the builtin Game Boy example matches its source file');
-  const initialSource = await page.evaluate(() => window.__modeRegression.getEditorValue());
-  assert.equal(initialSource, example, 'Game Boy mode starts with its own runnable example');
+  const initial = await page.evaluate(async () => ({source:window.__modeRegression.getEditorValue(),
+    expected:(await import('./playground_examples.js')).MODE_DEFAULT_CODES.gameboy}));
+  assert.equal(initial.source, initial.expected, 'Game Boy mode starts with its own runnable /index.js');
   await page.evaluate(() => {
     document.getElementById('workerExecution').checked = false;
     window.__modeRegression.setEditorValue("console.log('GAMEBOY_PRIMARY_READY');");
@@ -980,12 +983,240 @@ async function checkLegacyAndLayout(page, base) {
   assert.equal(await page.locator('#playgroundMode').inputValue(), 'pc98');
 }
 
+async function checkStarterCatalog(page, mode) {
+  const state = await page.evaluate(async modeId => {
+    const {MODE_DEFAULT_CODES, MODE_EXAMPLE_FILES, EXAMPLE_FILES} = await import('./playground_examples.js');
+    const test = window.__modeRegression;
+    const expected = MODE_EXAMPLE_FILES[modeId];
+    return {expected:expected.map(file => ({path:file.path,data:file.data})), canonicalCount:EXAMPLE_FILES.length,
+      defaultCode:MODE_DEFAULT_CODES[modeId], editor:test.getEditorValue(), entry:test.virtualFiles.get('/index.js')?.data,
+      examples:test.virtualFiles.list().filter(file => file.path.startsWith('/examples/') && file.path.endsWith('.js')).map(file => ({path:file.path,data:file.data})),
+      tree:Array.from(document.querySelectorAll('#fileExplorerList button[data-file-path]'), node => node.dataset.filePath).filter(path => path.startsWith('/examples/') && path.endsWith('.js')),
+      run:Array.from(document.querySelectorAll('#runFileSelect option'), node => node.value).filter(path => path.startsWith('/examples/') && path.endsWith('.js'))};
+  }, mode.id);
+  assert.equal(typeof state.defaultCode, 'string', `${mode.id}: mode has a starter`);
+  assert.equal(state.editor, state.defaultCode, `${mode.id}: fresh editor shows its mode starter`);
+  assert.equal(state.entry, state.defaultCode, `${mode.id}: /index.js contains its mode starter`);
+  assert.deepEqual(state.examples.toSorted((a,b) => a.path.localeCompare(b.path)), state.expected.toSorted((a,b) => a.path.localeCompare(b.path)), `${mode.id}: VFS contains only selected examples`);
+  const paths = state.expected.map(file => file.path).sort();
+  assert.deepEqual(state.tree.sort(), paths, `${mode.id}: FILES follows selected examples`);
+  assert.deepEqual(state.run.sort(), paths, `${mode.id}: Run selector follows selected examples`);
+  if (mode.id === 'genesis') assert(paths.length > 20, 'default Genesis retains its rich catalog');
+  else assert(paths.length >= 2 && paths.length <= 3, `${mode.id}: expected two or three curated examples, got ${paths.length}`);
+  return [{path:'/index.js',data:state.defaultCode}, ...state.expected];
+}
+
+async function checkStarterAudio(page, browserName, mode, files) {
+  // Initialize the audio context through the same user gesture as a normal Run.
+  await page.evaluate(() => {
+    document.getElementById('workerExecution').checked = false;
+    window.__modeRegression.setEditorValue("console.log('MODE_STARTER_AUDIO_READY');");
+  });
+  await page.click('#runButton');
+  await page.waitForFunction(() => document.getElementById('consoleOutput').textContent.includes('MODE_STARTER_AUDIO_READY'));
+  await page.evaluate(() => {
+    const {megaDrive} = window.__modeRegression, context = megaDrive.audioContext;
+    const meter = context.createAnalyser(), silent = context.createGain();
+    meter.fftSize = 2048; silent.gain.value = 0; meter.connect(silent); silent.connect(context.destination);
+    const state = window.__starterMeter = {meter,silent,detach:megaDrive.audio.connectOutputMonitor(meter),peak:0,acPeak:0,recentAc:[],samples:0,quietThreshold:.00001,quietSince:null};
+    state.timer = setInterval(() => {
+      const pcm = new Float32Array(meter.fftSize); meter.getFloatTimeDomainData(pcm);
+      const peak = pcm.reduce((max,value) => Math.max(max,Math.abs(value)),0);
+      const mean = pcm.reduce((sum,value) => sum + value,0) / pcm.length;
+      const acPeak = pcm.reduce((max,value) => Math.max(max,Math.abs(value - mean)),0);
+      state.peak = Math.max(state.peak,peak); state.lastPeak = peak; state.lastMean = mean;
+      state.acPeak = Math.max(state.acPeak,acPeak); state.lastAcPeak = acPeak; state.samples++;
+      state.recentAc.push(acPeak); if (state.recentAc.length > 10) state.recentAc.shift();
+      if (acPeak < state.quietThreshold) state.quietSince ??= performance.now(); else state.quietSince = null;
+    },10);
+  });
+  await page.waitForFunction(() => window.__starterMeter.samples >= 30);
+  const baseline = await page.evaluate(() => {
+    const state = window.__starterMeter;
+    const baseline = {peak:state.lastPeak,acPeak:Math.max(...state.recentAc),dc:state.lastMean};
+    // Some emulators emit a constant DAC offset while idle. Measure the AC
+    // signal above that offset, and retain the measured pre-Run noise floor.
+    state.quietThreshold = Math.max(.00001,baseline.acPeak * 2);
+    return baseline;
+  });
+  try {
+    // Genesis retains the extensive legacy catalog. Its starter is the fresh
+    // mode contract; running every old sample would repeat unrelated suites.
+    const selected = mode.id === 'genesis' ? files.slice(0,1) : files;
+    for (const execution of ['main','worker']) {
+      for (const file of selected) {
+        const lookahead = await page.evaluate(execution => execution === 'worker'
+          ? window.__modeRegression.runtime.getTiming().workerLookaheadSeconds * 1000 : 0, execution);
+        await page.evaluate(async ({file,execution}) => {
+          const test = window.__modeRegression;
+          test.openVirtualFile(file.path); test.setEditorValue(file.data);
+          document.getElementById('workerExecution').checked = execution === 'worker';
+          window.__starterMeter.peak = 0; window.__starterMeter.acPeak = 0; window.__starterMeter.quietSince = null;
+          await test.runCode({propagateError:true});
+        },{file,execution});
+        await page.waitForFunction(() => window.__starterMeter.acPeak > window.__starterMeter.quietThreshold * 5, null,{timeout:5000 + lookahead});
+        const peak = await page.evaluate(() => window.__starterMeter.peak);
+        assert(!/\[error\]|(?:Reference|Syntax|Type)Error:/.test(await page.locator('#consoleOutput').textContent()), `${mode.id}/${execution}/${file.path}: runtime console error`);
+        await page.evaluate(() => {window.__modeRegression.runtime.stop(); window.__starterMeter.quietSince = null;});
+        await page.waitForFunction(quietMs => window.__starterMeter.quietSince !== null &&
+          performance.now() - window.__starterMeter.quietSince >= quietMs, Math.max(250,lookahead + 150),{timeout:6000 + lookahead}).catch(async error => {
+          console.error(JSON.stringify({mode:mode.id,execution,file:file.path,baseline,afterStop:await page.evaluate(() => {
+            const state = window.__starterMeter; return {peak:state.lastPeak,acPeak:state.lastAcPeak,dc:state.lastMean,threshold:state.quietThreshold};
+          })})); throw error;
+        });
+        console.log(JSON.stringify({browser:browserName,mode:mode.id,execution,starter:file.path === '/index.js',example:file.path,peak,baseline,stopQuiet:true,passed:true}));
+      }
+    }
+  } finally {
+    await page.evaluate(async () => {
+      const state = window.__starterMeter;
+      if (state) {clearInterval(state.timer); state.detach(); state.meter.disconnect(); state.silent.disconnect(); delete window.__starterMeter;}
+      await window.__modeRegression.runtime.stopWithFade();
+    }).catch(() => {});
+  }
+}
+
+async function settleEditor(page) {
+  await ready(page);
+  // Let Monaco finish the model-scoped requests started by the editor change
+  // before another synthetic action replaces that model in the same task.
+  await page.waitForTimeout(150);
+}
+
+async function changeMode(page, id) {
+  await settleEditor(page);
+  if (!await page.locator('#playgroundMode').isVisible()) await page.locator('#mainMenu > summary').click();
+  await Promise.all([page.waitForURL(url => url.searchParams.get('mode') === id),page.locator('#playgroundMode').selectOption(id)]);
+  await ready(page);
+}
+
+async function assertModeStarter(page, modeId) {
+  const state = await page.evaluate(async modeId => {
+    const {MODE_DEFAULT_CODES} = await import('./playground_examples.js');
+    const test = window.__modeRegression, snapshot = test.captureProjectSnapshot();
+    return {mode:test.selectedMode.id,editor:test.getEditorValue(),entry:test.virtualFiles.get('/index.js')?.data,
+      expected:MODE_DEFAULT_CODES[modeId],active:snapshot.activePath,run:snapshot.runPath};
+  },modeId);
+  assert.equal(state.mode,modeId);
+  assert.equal(state.editor,state.expected,`${modeId}: untouched starter follows mode`);
+  assert.equal(state.entry,state.expected,`${modeId}: untouched /index.js follows mode`);
+  assert.equal(state.active,'/index.js'); assert.equal(state.run,'/index.js');
+}
+
+async function checkStarterTransfer(page, base) {
+  const foreign = '/examples/basic/fm/fm-api-beep.js';
+  await page.goto(`${base}?mode=genesis&no-sw=1`); await ready(page);
+  // An untouched foreign sample may have been open and selected for Run when
+  // the machine changes. It should disappear and both selections should reset.
+  await page.evaluate(path => window.__modeRegression.openVirtualFile(path),foreign);
+  await changeMode(page,'gameboy'); await assertModeStarter(page,'gameboy');
+  assert.equal(await page.evaluate(path => window.__modeRegression.virtualFiles.has(path),foreign),false,'pristine foreign example is removed');
+  await changeMode(page,'pc98'); await assertModeStarter(page,'pc98');
+
+  const editedIndex = '// User FM source stays intact across machine changes.\nfm.keyOff(0);\n';
+  const editedExample = '// Edited built-in example is now project code.\nawait sleep(.01);\n';
+  await page.goto(`${base}?mode=genesis&no-sw=1`); await ready(page);
+  await page.evaluate(foreign => window.__modeRegression.openVirtualFile(foreign),foreign);
+  await settleEditor(page);
+  await page.evaluate(source => window.__modeRegression.setEditorValue(source),editedExample);
+  await settleEditor(page);
+  await page.evaluate(() => window.__modeRegression.openVirtualFile('/index.js'));
+  await settleEditor(page);
+  await page.evaluate(editedIndex => {
+    const test = window.__modeRegression; test.setEditorValue(editedIndex);
+    test.virtualFiles.writeBinary('/assets/starter.bin',new Uint8Array([0,255,128,0]));
+    test.virtualFiles.writeText('/lib/own.js','export const own = true;\n');
+    test.virtualFiles.mkdir('/assets/empty',{recursive:true});
+  },editedIndex);
+  await changeMode(page,'gameboy');
+  const restored = await page.evaluate(foreign => {
+    const test = window.__modeRegression;
+    return {editor:test.getEditorValue(),index:test.virtualFiles.get('/index.js')?.data,example:test.virtualFiles.get(foreign)?.data,
+      bytes:Array.from(test.virtualFiles.get('/assets/starter.bin')?.data || []),module:test.virtualFiles.get('/lib/own.js')?.data,
+      empty:test.virtualFiles.stat('/assets/empty')?.type};
+  },foreign);
+  assert.deepEqual(restored,{editor:editedIndex,index:editedIndex,example:editedExample,bytes:[0,255,128,0],module:'export const own = true;\n',empty:'directory'});
+
+  const openStarter = async () => {
+    await settleEditor(page);
+    if (!await page.locator('#openModeStarterButton').isVisible()) await page.locator('#mainMenu > summary').click();
+    await page.locator('#openModeStarterButton').click();
+  };
+  await openStarter(); await openStarter();
+  const opened = await page.evaluate(async () => {
+    const test = window.__modeRegression,snapshot = test.captureProjectSnapshot();
+    return {index:test.virtualFiles.get('/index.js')?.data,source:test.getEditorValue(),active:snapshot.activePath,run:snapshot.runPath,
+      expected:(await import('./playground_examples.js')).MODE_DEFAULT_CODES.gameboy,
+      paths:test.virtualFiles.list().filter(file => file.path.startsWith('/starter-gameboy')).map(file => file.path)};
+  });
+  assert.equal(opened.index,editedIndex,'opening a mode starter preserves edited /index.js');
+  assert.equal(opened.source,opened.expected); assert.equal(opened.active,'/starter-gameboy.js'); assert.equal(opened.run,'/starter-gameboy.js');
+  assert.deepEqual(opened.paths,['/starter-gameboy.js'],'reopening an untouched starter reuses it');
+  const ownStarter = '// My starter edits stay intact.\nawait sleep(.01);\n';
+  await page.evaluate(source => window.__modeRegression.setEditorValue(source),ownStarter);
+  await openStarter();
+  const suffixed = await page.evaluate(() => {
+    const test = window.__modeRegression,snapshot = test.captureProjectSnapshot();
+    return {first:test.virtualFiles.get('/starter-gameboy.js')?.data,source:test.getEditorValue(),active:snapshot.activePath,run:snapshot.runPath,
+      selected:document.getElementById('runFileSelect').value};
+  });
+  assert.deepEqual(suffixed,{first:ownStarter,source:opened.expected,active:'/starter-gameboy-1.js',run:'/starter-gameboy-1.js',selected:'/starter-gameboy-1.js'},
+    'editing a starter makes Open Mode Starter choose a new path without overwrites');
+
+  await settleEditor(page);
+  await page.evaluate(async ({editedIndex,editedExample}) => {
+    const {createPlaygroundCassetteZip} = await import('./playground_cassette.js');
+    const archive = createPlaygroundCassetteZip([
+      {path:'/index.js',type:'text',data:editedIndex},
+      {path:'/examples/author.js',type:'text',data:editedExample},
+      {path:'/assets/cassette.bin',type:'binary',data:new Uint8Array([255,0,128])},
+    ],{directories:['/assets/cassette-empty'],metadata:{title:'Mode project'},license:'CC0-1.0'});
+    await window.__modeRegression.loadCassetteSource(archive,'mode-project.cassette.zip');
+  },{editedIndex,editedExample});
+  await changeMode(page,'pc98-26');
+  const cassette = await page.evaluate(() => {
+    const test = window.__modeRegression,snapshot = test.captureProjectSnapshot();
+    return {editor:test.getEditorValue(),example:test.virtualFiles.get('/examples/author.js')?.data,
+      bytes:Array.from(test.virtualFiles.get('/assets/cassette.bin')?.data || []),empty:test.virtualFiles.stat('/assets/cassette-empty')?.type,
+      title:snapshot.metadata?.title,license:snapshot.metadata?.license};
+  });
+  assert.deepEqual(cassette,{editor:editedIndex,example:editedExample,bytes:[255,0,128],empty:'directory',title:'Mode project',license:'CC0-1.0'});
+  console.log(JSON.stringify({starters:true,projectSwitch:'Genesis→GameBoy→PC98',pristineCleanup:true,editedFiles:true,binaryDirectories:true,cassette:true,openStarterPreservesEdits:true,passed:true}));
+}
+
+async function checkStarterLegacyDraft(browser, base) {
+  const context = await browser.newContext({serviceWorkers:'block'});
+  await context.addInitScript(() => {window.__TAURI_INTERNALS__ = {};});
+  const page = await context.newPage(), errors = [];
+  page.on('pageerror',error => errors.push(error.message));
+  try {
+    await page.goto(new URL('/index.html?no-sw=1',base).href);
+    await page.evaluate(async () => {
+      const {openDraftStore} = await import('./playground/playground_autosave.js');
+      const {DEFAULT_CODE,EXAMPLE_FILES} = await import('./playground/playground_examples.js');
+      const store = await openDraftStore(indexedDB,'mode:gameboy');
+      try {await store.save({version:1,activePath:'/index.js',runPath:'/index.js',directories:['/'],files:[
+        {path:'/index.js',type:'text',data:DEFAULT_CODE},...EXAMPLE_FILES.map(file => ({...file,type:'text'}))]});}
+      finally {store.close();}
+    });
+    await page.goto(`${base}?mode=gameboy&no-sw=1`); await ready(page);
+    await assertModeStarter(page,'gameboy'); await checkStarterCatalog(page,modes.find(mode => mode.id === 'gameboy'));
+    const custom = '// A custom FM draft must survive migration.\nfm.keyOff(0);\n';
+    await page.evaluate(async custom => {window.__modeRegression.setEditorValue(custom); await window.__tetoricaAutosaveFlush();},custom);
+    await page.reload(); await ready(page);
+    assert.equal(await page.evaluate(() => window.__modeRegression.getEditorValue()),custom,'custom FM draft is preserved');
+    assert.deepEqual(errors,[],'legacy starter draft page errors');
+    console.log(JSON.stringify({starters:true,legacyDefaultMigration:true,customDraftPreserved:true,passed:true}));
+  } finally {await context.close();}
+}
+
 async function checkBrowser(name, type, base) {
   const browser = await type.launch({headless:true, ...(name === 'chromium' ? {args:['--autoplay-policy=no-user-gesture-required']} : {})});
   const context = await browser.newContext({serviceWorkers:'block', viewport:{width:1320, height:960}});
   const page = await context.newPage(), errors = [];
   page.setDefaultTimeout(20000);
-  page.on('pageerror', error => errors.push(error.message));
+  page.on('pageerror', error => errors.push({message:error.message,stack:error.stack,url:page.url()}));
+  const startersOnly = process.argv.includes('--starters-only');
   const tabsOnly = process.argv.includes('--tabs-only');
   const typesOnly = process.argv.includes('--types-only');
   const opnaOnly = process.argv.includes('--opna-only');
@@ -994,7 +1225,8 @@ async function checkBrowser(name, type, base) {
   const ym2203Only = process.argv.includes('--ym2203-only');
   const gameboyOnly = process.argv.includes('--gameboy-only');
   const sectionsOnly = opnaOnly || opnbOnly || opnbExampleOnly || ym2203Only;
-  const selectedModes = process.argv.includes('--project-only') ? [] : gameboyOnly
+  const starterModeIds = process.argv.find(arg => arg.startsWith('--starter-modes='))?.split('=')[1].split(',');
+  const selectedModes = startersOnly && starterModeIds ? modes.filter(mode => starterModeIds.includes(mode.id)) : process.argv.includes('--project-only') ? [] : gameboyOnly
     ? modes.filter(mode => mode.chip === 'gameboy') : ym2203Only
     ? modes.filter(mode => mode.chip === 'ym2203') : opnbExampleOnly
     ? modes.filter(mode => ['ym2610', 'ym2610b'].includes(mode.chip)) : modes;
@@ -1004,6 +1236,11 @@ async function checkBrowser(name, type, base) {
       assert.equal(await page.title(), `Tetorica ${mode.label} Playground`);
       assert.equal(await page.locator('#playgroundMode').inputValue(), mode.id);
       assert.deepEqual(await page.locator('#playgroundMode option').evaluateAll(options => options.map(option => option.value)), modes.map(mode => mode.id));
+      if (startersOnly) {
+        const files = await checkStarterCatalog(page,mode);
+        await checkStarterAudio(page,name,mode,files);
+        continue;
+      }
       if (!typesOnly && !sectionsOnly) await checkChipTabs(page, mode);
       let typeHovers;
       if (!tabsOnly) {
@@ -1020,6 +1257,13 @@ async function checkBrowser(name, type, base) {
       if (!typesOnly && !sectionsOnly && mode.id === 'pc98' && name === 'chromium') await page.screenshot({path:'/private/tmp/playground-mode-tabs.png'});
       if (tabsOnly) console.log(JSON.stringify({browser:name, mode:mode.id, chipTabs:true, keyboardNavigation:true, passed:true}));
       if (typesOnly) console.log(JSON.stringify({browser:name, mode:mode.id, hovers:typeHovers, passed:true}));
+    }
+    if (startersOnly) {
+      await checkStarterTransfer(page,base);
+      await checkStarterLegacyDraft(browser,base);
+      assert.deepEqual(errors,[],`${name}: starter page errors`);
+      console.log(JSON.stringify({browser:name,starters:true,modes:selectedModes.length,passed:true}));
+      return;
     }
     if (!tabsOnly && !typesOnly && !sectionsOnly && gameboyOnly) await checkGameboyProjectSwitch(page, base);
     if (!tabsOnly && !typesOnly && !sectionsOnly && !gameboyOnly) {
@@ -1040,7 +1284,8 @@ async function checkBrowser(name, type, base) {
       simpleLayout:!tabsOnly && !typesOnly && !sectionsOnly && !gameboyOnly}));
   } catch (error) {
     console.error(JSON.stringify({browser:name, url:page.url(), status:await page.locator('#status').textContent().catch(() => null),
-      console:await page.locator('#consoleOutput').textContent().catch(() => null), errors}));
+      console:await page.locator('#consoleOutput').textContent().catch(() => null), errors,
+      starterMeter:await page.evaluate(() => window.__starterMeter && {peak:window.__starterMeter.peak,lastPeak:window.__starterMeter.lastPeak}).catch(() => null)}));
     throw error;
   } finally {await context.close(); await browser.close();}
 }
@@ -1049,7 +1294,7 @@ async function checkBrowser(name, type, base) {
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
   try {
     const base = `http://127.0.0.1:${server.address().port}/playground/index.html`;
-    await checkBrowser('chromium', chromium, base);
-    if (process.argv.includes('--webkit')) await checkBrowser('webkit', webkit, base);
+    if (!process.argv.includes('--webkit-only')) await checkBrowser('chromium', chromium, base);
+    if (process.argv.includes('--webkit') || process.argv.includes('--webkit-only')) await checkBrowser('webkit', webkit, base);
   } finally {await new Promise(resolve => server.close(resolve));}
 })().catch(error => {console.error(error); process.exitCode = 1;});

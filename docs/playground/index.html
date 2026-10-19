@@ -1680,6 +1680,7 @@
             <summary aria-label="Playground menu">Menu</summary>
             <div class="toolbar-menu-panel">
               <button id="newCassetteButton" type="button">New Cassette</button>
+              <button id="openModeStarterButton" type="button">Open Mode Starter</button>
               <button id="exportCassetteButton" type="button">Save Cassette…</button>
               <button id="importCassetteButton" type="button">Load Cassette…</button>
               <p id="autosaveStatus" class="subtext" role="status" hidden></p>
@@ -2352,7 +2353,7 @@
       })();
     </script>
     <script type="module">
-      import('./playground.js?v=gameboy-mode-1').catch(error => window.__playgroundStartup.fail(error));
+      import('./playground.js?v=mode-starters-1').catch(error => window.__playgroundStartup.fail(error));
     </script>
   </body>
 </html>

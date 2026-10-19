@@ -4,6 +4,23 @@ FILES の `examples/` を開き、フォルダー内の `.js` を選択して Ru
 ファイルを選ぶとエディターと Run file の両方が切り替わる。
 サンプルはプロジェクト内で編集でき、Cassette Export にも保存される。
 
+各 mode は `../defaults/<mode ID>/index.js` を初期コードとして持つ。
+初期の `/index.js` と `/examples/` は、選択した mode の API でそのまま実行できる構成にする。
+Genesis（互換用の `genesis-nuked` を含む）は従来の豊富なサンプルを残し、
+それ以外の mode は代表的なサンプルを2〜3個に絞る。
+表示対象は `../playground_mode_examples.js` で定義する。このフォルダーには、
+表示対象以外の独立音源・共通機能サンプルの原本も保持する。
+
+mode を切り替えると、未編集の `/index.js` は切り替え先の初期コードになり、
+未編集の同梱 examples は切り替え先の組み合わせに入れ替わる。
+編集済みの `/index.js`・examples、自作・移動済みのファイル、バイナリ、
+チェックポイントは保持する。同じパスにファイルやフォルダーがあれば上書きしない。
+実行対象やエディターが入れ替え対象の example を開いていた場合は `/index.js` に戻る。
+編集中のコードを残して初期コードを試す場合は、Menu の **Open Mode Starter** を使う。
+`/starter-<mode ID>.js` に開き、編集済みの `/index.js` を上書きしない。
+
+以下は原本のフォルダー構成。FILES に最初から入るサンプルは mode ごとに異なる。
+
 | Folder | 内容 |
 | --- | --- |
 | basic | グローバル fm・psg・dac と、liveLoop・context・FX・MIDI・noise・samples |
@@ -21,12 +38,13 @@ FILES ではこの順に表示します。機種別のサンプルは各フォ�
 `basic/fm`・`basic/psg`・`basic/dac` は選択中の音源や Playground のグローバル API を使います。
 機種別フォルダーには、その mode の標準音源や `useSoundChip()` / `createSoundChip()` で取得する独立音源の例を置きます。
 
-`gameboy/gameboy-mode-pulse.js` は `Game Boy` mode の初期コードです。
+`Game Boy` mode の初期コードは `../defaults/gameboy/index.js`。
+`gameboy/gameboy-mode-pulse.js`・`gameboy-mode-wave.js`・`gameboy-mode-noise.js` を同梱します。
 標準の `gameboy.pulse` を `beat()`・`liveLoop()` と組み合わせて鳴らします。
 `gameboy.wave`・`gameboy.noise` も同じ APU を操作します。`pg.gameboy` と
 `livePrepare(({gameboy}) => ...)` でも同じ音源を使えます。
 Game Boy mode の演奏は音源ごとの API で行い、グローバルの `play()` は OPN mode の FM 用です。
-他の `gameboy/*.js` は独立音源を作るため、どの mode でも実行できます。
+`gameboy-saw-*.js` と `gameboy-synth.js` は独立音源を作る例です。
 
 `pc98/pc98-opn-ssg.js` は Mode を `PC-98 (YM2203 / OPN)` にして実行します。
 標準の `fm` と `ssg` で、FM・SSG のトーン・ノイズ・エンベロープを順番に鳴らします。
@@ -94,12 +112,14 @@ msfa の AM・transpose 等の制約は [DX7 ライブラリの README](../../js
 
 ## サンプルを追加・修正する場合
 
-このフォルダーの JavaScript が原本。サンプル名（拡張子を除くファイル名）は重複させない。
+このフォルダーの JavaScript がサンプルの原本。サンプル名（拡張子を除くファイル名）は重複させない。
+初期コードは `../defaults/<mode ID>/index.js` を編集し、同梱するサンプルを変える場合は
+`../playground_mode_examples.js` も更新する。`../defaults/index.js` は旧初期コードの識別用に残す。
 
 ```sh
 node scripts/build_playground_examples.mjs
 node scripts/build_playground_examples.mjs --check
 ```
 
-生成された `playground_examples.js` は、コードを実行せず文字列として配布するためのバンドル。
+生成された `playground_examples.js` は、各 mode の初期コードとサンプルを実行せず文字列として配布するためのバンドル。
 直接編集しない。itch.io パッケージ生成時にも更新する。

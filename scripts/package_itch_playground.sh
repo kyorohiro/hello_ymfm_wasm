@@ -51,6 +51,8 @@ playground_shell_worker.js
 playground_autosave.js
 playground_mode.js
 playground_mode_project.js
+playground_mode_starters.js
+playground_mode_examples.js
 playground_declarations.js
 playground_file_tree.js
 playground_file_menu.js
@@ -382,6 +384,7 @@ cp "${ROOT_DIR}/third_party/mame-gameboy/LICENSE" "${ROOT_DIR}/third_party/mame-
 cp "${ROOT_DIR}/third_party/mame-rf5c164/LICENSE" "${ROOT_DIR}/third_party/mame-rf5c164/README.md" "${STAGE_DIR}/licenses/mame-rf5c164/"
 
 cp -R "${PLAYGROUND_DIR}/examples" "${STAGE_DIR}/examples"
+cp -R "${PLAYGROUND_DIR}/defaults" "${STAGE_DIR}/defaults"
 cp -R "${PLAYGROUND_SAMPLES_DIR}/." "${STAGE_DIR}/samples/"
 cp -R "${PLAYGROUND_VENDOR_DIR}/." "${STAGE_DIR}/vendor/"
 

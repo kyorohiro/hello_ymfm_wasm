@@ -7,8 +7,9 @@ import {installPlaygroundShell} from './playground_shell.js?v=compact-shell-1';
 import {installPlaygroundGit} from './playground_git.js';
 import {openDraftStore, createProjectAutosave} from './playground_autosave.js?v=opn-modes-1';
 import {PLAYGROUND_MODES, resolvePlaygroundMode, createModeSynthOptions,
-  createPlaygroundModeUrl, isSimplePlaygroundLayout} from './playground_mode.js?v=gameboy-mode-1';
+  createPlaygroundModeUrl, isSimplePlaygroundLayout} from './playground_mode.js?v=mode-starters-1';
 import {saveModeProject, consumeModeProject} from './playground_mode_project.js';
+import {reconcileModeProject} from './playground_mode_starters.js?v=mode-starters-1';
 let desktopAutosave = null;
 let playgroundShell = null;
 let fileExplorerMenu = null;
@@ -46,7 +47,7 @@ import {
 } from "./playground_operator_tab.js?v=chip-tabs-2";
 import { createPlaygroundOperatorKeyboard } from "./playground_operator_keyboard.js?v=keyboard-controls-minimize-1";
 import { CHIP_CLOCKS } from "../js/playground_chip_clock.js?v=opnb-primary-1";
-import { DEFAULT_CODE, EXAMPLES, EXAMPLE_FILES } from "./playground_examples.js?v=gameboy-mode-1";
+import { DEFAULT_CODE, EXAMPLES, EXAMPLE_FILES, MODE_DEFAULT_CODES, MODE_EXAMPLE_FILES } from "./playground_examples.js?v=mode-starters-1";
 import { initializePlaygroundMonaco } from "./playground_monaco.js?v=gameboy-mode-1";
 import {
   decodeBase64Bytes,
@@ -261,7 +262,7 @@ const useNukedEngine = selectedMode.engine === 'nuked';
 const synthOptions = createModeSynthOptions(selectedMode);
 const megaDrive = createTetoricaSynth(synthOptions);
 const hasPrimaryFM = megaDrive.capabilities.fmChannels > 0;
-const initialCode = selectedMode.defaultExample ? EXAMPLES[selectedMode.defaultExample] : DEFAULT_CODE;
+const initialCode = MODE_DEFAULT_CODES[selectedMode.id];
 if (typeof initialCode !== 'string') throw new Error(`Missing default example for ${selectedMode.label}`);
 const instrumentSynthOptions = hasPrimaryFM ? synthOptions
   : createModeSynthOptions(PLAYGROUND_MODES.find(mode => mode.id === 'genesis'));
@@ -298,7 +299,19 @@ let editorAdapter =
   createTextareaEditorAdapter(
     editor
   );
-const bundledExampleFiles = EXAMPLE_FILES;
+const bundledExampleFiles = MODE_EXAMPLE_FILES[selectedMode.id];
+if (!bundledExampleFiles) throw new Error(`Missing examples for ${selectedMode.label}`);
+const knownModeDefaults = Object.fromEntries(Object.entries(MODE_DEFAULT_CODES).map(([id, source]) =>
+  [id, [source, id === 'gameboy' ? EXAMPLES['gameboy-mode-pulse'] : DEFAULT_CODE]]));
+function prepareModeProject(snapshot, targetModeId = selectedMode.id) {
+  return reconcileModeProject(snapshot, {
+    targetModeId,
+    defaults:knownModeDefaults,
+    legacyDefaults:[DEFAULT_CODE, EXAMPLES['gameboy-mode-pulse']],
+    allExampleFiles:EXAMPLE_FILES,
+    targetExampleFiles:MODE_EXAMPLE_FILES[targetModeId],
+  });
+}
 const initialProjectFiles = [
   { path: "/index.js", data: initialCode },
   { path: "/scripts/example.js", data: [
@@ -422,14 +435,6 @@ function projectFileOrder(left, right) {
   };
   return rank(left.path) - rank(right.path) ||
     left.path.localeCompare(right.path);
-}
-
-function restoreBundledExampleFiles() {
-  for (const file of bundledExampleFiles) {
-    if (!virtualFiles.has(file.path)) {
-      virtualFiles.writeText(file.path, file.data);
-    }
-  }
 }
 
 function createImportInput(accept) {
@@ -2010,23 +2015,30 @@ function restoreVirtualFilesFromCassette(cassette) {
     })), cassette.directories ?? []);
 }
 
-function restoreProjectFiles(files, directories = []) {
+function restoreProjectFiles(files, directories = [], {prepared = false} = {}) {
   playgroundShell?.invalidate('Project changed');
   fileExplorerMenu?.clear();
-  const previousSource = getEditorValue();
   clearVirtualInstrumentPresets();
-  virtualFiles.replace(files, directories);
-
-  if (!virtualFiles.has("/index.js")) {
-    virtualFiles.writeText("/index.js", previousSource);
+  const project = prepared ? {files, directories} : prepareModeProject({files, directories});
+  virtualFiles.replace(project.files, project.directories);
+  let entry = virtualFiles.get('/index.js');
+  if (!entry || entry.type !== 'text') {
+    entry = virtualFiles.list().find(file => file.type === 'text' && file.path.endsWith('.js') && !isHiddenVirtualPath(file.path));
+    if (!entry) {
+      const directoryPaths = new Set(virtualFiles.listDirectories());
+      let suffix = 0, path;
+      do {path = `/index-${selectedMode.id}${suffix ? '-' + suffix : ''}.js`; suffix++;}
+      while (virtualFiles.has(path) || directoryPaths.has(path));
+      virtualFiles.writeText(path, initialCode);
+      entry = virtualFiles.get(path);
+    }
   }
-  restoreBundledExampleFiles();
   editorAdapter.syncVirtualFiles?.(virtualFiles.list().filter(file => !isCheckpointVirtualPath(file.path)));
   registerVirtualInstrumentPresets();
-  activeVirtualPath = "/index.js";
+  activeVirtualPath = entry.path;
   showVirtualFile(virtualFiles.get(activeVirtualPath));
   renderVirtualFileExplorer();
-  runVirtualPath = "/index.js";
+  runVirtualPath = entry.path;
   renderRunFileOptions();
 }
 
@@ -2177,6 +2189,21 @@ function applySimpleModeFromQuery() {
 
 function installPlaygroundEventHandlers() {
   modeSelect.addEventListener('change', () => void changePlaygroundMode(modeSelect.value));
+  document.getElementById('openModeStarterButton').addEventListener('click', () => {
+    saveActiveVirtualFile();
+    const directories = new Set(virtualFiles.listDirectories());
+    let suffix = 0, path;
+    do {
+      path = `/starter-${selectedMode.id}${suffix ? '-' + suffix : ''}.js`;
+      suffix++;
+    } while (directories.has(path) || (virtualFiles.has(path) &&
+      (virtualFiles.get(path).type !== 'text' || virtualFiles.get(path).data !== initialCode)));
+    if (!virtualFiles.has(path)) virtualFiles.writeText(path, initialCode);
+    openVirtualFile(path);
+    setBottomTab('code');
+    desktopAutosave?.changed();
+    setStatus(`Opened ${selectedMode.label} starter: ${path}`);
+  });
   mainMenu.addEventListener("click", event => {
     if (event.target.closest("button, a")) mainMenu.open = false;
   });
@@ -2590,7 +2617,7 @@ installFileExplorerDropTarget();
 
 function captureProjectSnapshot() {
   return {
-    version:1, activePath:activeVirtualPath, runPath:runVirtualPath,
+    version:1, modeId:selectedMode.id, activePath:activeVirtualPath, runPath:runVirtualPath,
     directories:virtualFiles.listDirectories(),
     metadata:currentCassetteMetadata, hasMetadataFile:currentCassetteHasMetadataFile,
     files:virtualFiles.list().filter(file => !isSystemVirtualPath(file.path)).map(file =>
@@ -2599,11 +2626,13 @@ function captureProjectSnapshot() {
 }
 
 async function restoreProjectSnapshot(snapshot) {
+  snapshot = prepareModeProject(snapshot);
   currentCassetteMetadata = snapshot.metadata ?? null;
   currentCassetteHasMetadataFile = Boolean(snapshot.hasMetadataFile);
-  restoreProjectFiles(snapshot.files, snapshot.directories ?? []);
+  restoreProjectFiles(snapshot.files, snapshot.directories ?? [], {prepared:true});
   if (snapshot.activePath && !isCheckpointVirtualPath(snapshot.activePath) && virtualFiles.get(snapshot.activePath)?.type === 'text') openVirtualFile(snapshot.activePath);
   if (snapshot.runPath && !isHiddenVirtualPath(snapshot.runPath) && virtualFiles.get(snapshot.runPath)?.type === 'text') runVirtualPath = snapshot.runPath;
+  renderRunFileOptions();
   // Prepare imported assets for the next Run, without starting audio on reload.
   try {
     const archive = createPlaygroundCassetteZip(snapshot.files.filter(file => !['/metadata.json','/cassette.metadata.js'].includes(file.path)));
@@ -2636,7 +2665,7 @@ async function changePlaygroundMode(id) {
     const url = createPlaygroundModeUrl(window.location.href, id);
     // The transferred project, including edits to imported code, is authoritative.
     for (const key of ['cassette','src','code','source','example']) url.searchParams.delete(key);
-    const token = await saveModeProject(window.indexedDB, id, captureProjectSnapshot());
+    const token = await saveModeProject(window.indexedDB, id, prepareModeProject(captureProjectSnapshot(), id));
     url.searchParams.set('modeProject', token);
     await runtime.finalize();
     window.location.assign(url.href);

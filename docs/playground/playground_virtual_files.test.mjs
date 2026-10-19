@@ -47,9 +47,10 @@ test('Playground hides checkpoint files in Files and Run while preserving them i
     renameFileButton:{}, deleteFileButton:{},
     runFileSelect:runSelect, document:{createElement:element},
     currentCassetteMetadata:null, currentCassetteHasMetadataFile:false,
+    selectedMode:{id:'genesis'},
     getEditorValue:()=>'latest editor source',
   });
-  const policies = source.slice(source.indexOf('function isSystemVirtualPath('), source.indexOf('\nfunction restoreBundledExampleFiles('));
+  const policies = source.slice(source.indexOf('function isSystemVirtualPath('), source.indexOf('\nfunction createImportInput('));
   const runOptions = source.slice(source.indexOf('function renderRunFileOptions('), source.indexOf('\nconst expandedFileFolders'));
   const explorer = source.slice(source.indexOf('function renderVirtualFileExplorer('), source.indexOf('\nfunction openVirtualFile('));
   vm.runInContext(`${policies}\n${runOptions}\n${explorer}\nrenderRunFileOptions();renderVirtualFileExplorer();`, context);
@@ -61,6 +62,7 @@ test('Playground hides checkpoint files in Files and Run while preserving them i
   const captureEnd = source.indexOf('\nasync function restoreProjectSnapshot', captureStart);
   vm.runInContext(source.slice(captureStart, captureEnd), context);
   const snapshot = context.captureProjectSnapshot();
+  assert.equal(snapshot.modeId, 'genesis');
   assert.equal(snapshot.files.find(file=>file.path==='/index.js').data, 'latest editor source');
   assert.equal(snapshot.files.find(file=>file.path==='/.tet.ss/index.js').data, 'previous source');
   assert.deepEqual(snapshot.files.find(file=>file.path==='/.tet.ss/opaque.bin').data, new Uint8Array([0,255]));

@@ -25,8 +25,9 @@ PC-98 (YM2203 / OPN) は `fm` と `ssg`、YM2608 / OPNA は `fm` に加えて `s
 （`adpcm` は ADPCM-B の別名）を標準で公開する。現時点で標準公開していない機能は、既存の
 `useSoundChip()` / `createSoundChip()` で追加して使える。
 
-切り替え時は停止・音声の終了処理を行い、現在のコード、バイナリ、フォルダー、
+切り替え時は停止・音声の終了処理を行い、編集済みのコード、バイナリ、フォルダー、
 開いているコードファイル、実行対象、Cassette メタデータを引き継いで再読み込みする。
+未編集の初期コード・同梱 examples は、切り替え先の mode に合わせて入れ替える。
 プロジェクトは IndexedDB で受け渡し、保存に失敗した場合は画面を移動しない。
 デスクトップの下書きは mode ごとに保存し、既存の下書きは対応する基本 mode で読み込める。
 
@@ -38,6 +39,25 @@ PC-98 (YM2203 / OPN) は `fm` と `ssg`、YM2608 / OPNA は `fm` に加えて `s
 YM2608 の `useSoundChip()` は、SSG・Rhythm・ADPCM・Timeline を含む既存のフル API を
 保つため、標準の YM2608 とは別インスタンスのままとする。標準 FM と共有する YM2612・YM2203・
 YM2610 とは扱いが異なる。単純な FM への別名化でフル import を壊さない。
+
+### mode ごとの初期コードと examples
+
+各 mode の初期コードは `docs/playground/defaults/<mode ID>/index.js` を原本とし、
+新規プロジェクトの `/index.js` に入れる。同梱 examples の選択は
+`docs/playground/playground_mode_examples.js` にまとめる。
+Genesis は従来の豊富なサンプル集を維持し、他の mode はその標準 API を使う代表例を2〜3個に絞る。
+互換用の `genesis-nuked` は Genesis のサンプル構成を引き継ぐ。
+初期コード・サンプルは `scripts/build_playground_examples.mjs` で文字列として生成し、読み込み時には実行しない。
+
+mode 切り替え時は、元の mode の初期コードと完全一致する `/index.js` だけを置き換える。
+同梱 examples も元のパスと内容が完全一致するものだけを整理し、切り替え先の examples を不足分だけ追加する。
+編集済みのコード、自作・移動済みのファイル、バイナリ、チェックポイント、Cassette メタデータは保持する。
+追加先にファイルやフォルダーがある場合は上書きしない。
+削除した同梱 example がエディターまたは実行対象だった場合だけ `/index.js` に戻す。
+旧下書きの共有初期コード・全 examples も同じ判定で移行し、編集箇所は残す。
+
+編集済みの `/index.js` を残したまま選択 mode の初期コードを試すには、
+Menu の **Open Mode Starter** を使う。`/starter-<mode ID>.js` に開き、編集中の `/index.js` を上書きしない。
 
 ### PC-98 / OPN の標準 API
 
@@ -122,7 +142,8 @@ FM・Sega PSG・PCM・PWM タブと FM Keyboard は表示しない。
 Main / Worker の両方に対応し、Stop で全4ch を停止する。標準 APU は Run ごとに
 破棄せず、音色設定を保持する。`useSoundChip('gameboy')` は標準 APU を再利用し、
 `createSoundChip('gameboy')` は独立した追加音源を作る。
-実行例・初期コードは `examples/gameboy/gameboy-mode-pulse.js`。
+初期コードは `defaults/gameboy/index.js`。同梱例は
+`examples/gameboy/gameboy-mode-pulse.js`・`gameboy-mode-wave.js`・`gameboy-mode-noise.js`。
 
 ## 背景
 

@@ -1,7 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-import {EXAMPLES, EXAMPLE_FILES} from './playground_examples.js';
+import {DEFAULT_CODE, EXAMPLES, EXAMPLE_FILES, MODE_DEFAULT_CODES, MODE_EXAMPLE_FILES} from './playground_examples.js';
+import {MODE_STARTERS, selectModeExamples} from './playground_mode_examples.js';
 import {buildExampleBundle} from '../../scripts/build_playground_examples.mjs';
 import {createVirtualFileSystem} from './playground_virtual_files.js';
 import {buildFileTree} from './playground_file_tree.js';
@@ -45,7 +46,10 @@ test('bundled examples match editable categorized source files', async () => {
   assert.ok(EXAMPLE_FILES.some(file => file.path === '/examples/basic/dac/dac-pcm-sample.js'));
   assert.ok(EXAMPLE_FILES.some(file => file.path === '/examples/snes/snes-brr-melody.js'));
   for (const file of EXAMPLE_FILES.filter(file => file.path.startsWith('/examples/genesis/'))) {
-    assert.match(file.data, /await (?:useSoundChip|createSoundChip)\(/);
+    if (file.name === 'genesis-mode-duet') {
+      assert.match(file.data, /fm\.setPreset\(/);
+      assert.match(file.data, /psg\.tone\(/);
+    } else assert.match(file.data, /await (?:useSoundChip|createSoundChip)\(/);
   }
   assert.equal(await buildExampleBundle(), await readFile(new URL('./playground_examples.js',import.meta.url),'utf8'));
   for(const file of EXAMPLE_FILES){
@@ -56,6 +60,55 @@ test('bundled examples match editable categorized source files', async () => {
     assert.equal(file.data,await readFile(new URL('.'+file.path,import.meta.url),'utf8'));
     assert.equal(EXAMPLES[file.name],file.data);
   }
+});
+
+test('all nine mode starters match their physical index.js sources', async () => {
+  const modeIds = Object.keys(MODE_STARTERS);
+  assert.equal(modeIds.length, 9);
+  assert.deepEqual(Object.keys(MODE_DEFAULT_CODES), modeIds);
+  for (const [id, definition] of Object.entries(MODE_STARTERS)) {
+    assert.equal(definition.index, `${id}/index.js`);
+    const source = await readFile(new URL(`./defaults/${definition.index}`, import.meta.url), 'utf8');
+    assert.equal(MODE_DEFAULT_CODES[id], source, `${id} starts from its own editable source`);
+    assert.match(source, /liveLoop\(/, `${id} has a runnable starter`);
+  }
+  assert.equal(DEFAULT_CODE, await readFile(new URL('./defaults/index.js', import.meta.url), 'utf8'));
+  assert.equal(MODE_DEFAULT_CODES.genesis, DEFAULT_CODE, 'the legacy Genesis default stays compatible');
+  assert.equal(MODE_DEFAULT_CODES['genesis-nuked'], DEFAULT_CODE);
+});
+
+test('mode catalogs keep two or three examples while Genesis retains its library', () => {
+  assert.deepEqual(Object.keys(MODE_EXAMPLE_FILES), Object.keys(MODE_STARTERS));
+  for (const [id, definition] of Object.entries(MODE_STARTERS)) {
+    const files = MODE_EXAMPLE_FILES[id];
+    assert.deepEqual(files, selectModeExamples(EXAMPLE_FILES, id), `${id} follows the editable catalog`);
+    assert.equal(new Set(files.map(file => file.path)).size, files.length, `${id} has no duplicates`);
+    for (const file of files) assert.ok(EXAMPLE_FILES.includes(file), `${id} uses a bundled source`);
+    if (definition.examples) {
+      assert.ok(files.length >= 2 && files.length <= 3, `${id} has two or three examples`);
+      assert.deepEqual(files.map(file => file.path), definition.examples);
+    }
+  }
+
+  const genesis = MODE_EXAMPLE_FILES.genesis;
+  assert.ok(genesis.length > 40, 'Genesis keeps the established example library');
+  assert.deepEqual(MODE_EXAMPLE_FILES['genesis-nuked'], genesis);
+  for (const path of [
+    '/examples/basic/fm/fm-api-beep.js',
+    '/examples/basic/psg/psg-scale.js',
+    '/examples/basic/dac/dac-pcm-sample.js',
+    '/examples/gameboy/gameboy-synth.js',
+    '/examples/pc98/ym2608-chip.js',
+  ]) assert.ok(genesis.some(file => file.path === path), `Genesis retains ${path}`);
+  for (const file of EXAMPLE_FILES.filter(file =>
+    /\/(?:gameboy-mode-|pc98-opn|neogeo-opnb-|neogeo-b-six-channel)/.test(file.path))) {
+    assert.ok(!genesis.includes(file), `${file.name} needs its native mode`);
+  }
+  assert.deepEqual(MODE_EXAMPLE_FILES.gameboy.map(file => file.name), [
+    'gameboy-mode-pulse', 'gameboy-mode-wave', 'gameboy-mode-noise',
+  ]);
+  assert.throws(() => selectModeExamples(EXAMPLE_FILES, 'missing'), /Unsupported example mode/);
+  assert.throws(() => selectModeExamples([], 'gameboy'), /Missing gameboy example/);
 });
 
 test('the singing keyboard is a direct Basic file and matches the tested canonical keyboard source', async () => {
@@ -87,7 +140,6 @@ test('examples appear in the folder tree and edited source survives cassette exp
 });
 
 test('initial editor source uses the mode default; URL source still takes priority', async () => {
-  const {DEFAULT_CODE}=await import('./playground_examples.js');
   const {resolveInitialSourceFromQuery}=await import('./playground_query.js');
   const defaults={'index.js':DEFAULT_CODE};
   const initial=resolveInitialSourceFromQuery('',defaults,'index.js');

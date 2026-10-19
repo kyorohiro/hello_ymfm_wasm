@@ -30,9 +30,9 @@ for (let i = 0; i < wave.length; i++) {
   const fade = Math.min(1, i / 80, (wave.length - 1 - i) / 80);
   wave[i] = 0.6 * fade * Math.sin(2 * Math.PI * 330 * i / sampleRate);
 }
-const sample = await adpcm.loadSample({channels: [wave], sampleRate});
+const adpcmSample = await adpcm.loadSample({channels: [wave], sampleRate});
 adpcm.setVolume(180);
 adpcm.setPan(true, true);
 adpcm.keyOn();
-await sleep(sample.duration + 0.05);
+await sleep(adpcmSample.duration + 0.05);
 adpcm.keyOff();

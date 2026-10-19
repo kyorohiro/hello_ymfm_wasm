@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {PLAYGROUND_MODES, getPlaygroundMode, resolvePlaygroundMode,
   createModeSynthOptions, createPlaygroundModeUrl, isSimplePlaygroundLayout} from './playground_mode.js';
+import {MODE_STARTERS} from './playground_mode_examples.js';
 
 test('modes select native chips, clocks and Full expansions', () => {
   const expected = [
@@ -27,8 +28,15 @@ test('modes select native chips, clocks and Full expansions', () => {
   const gameboy = getPlaygroundMode('gameboy');
   assert.deepEqual(gameboy.chipTabs, []);
   assert.equal(gameboy.fmChannels, 0);
-  assert.equal(gameboy.defaultExample, 'gameboy-mode-pulse');
   assert.match(createModeSynthOptions(gameboy).workletUrl, /playground_gameboy_worklet\.js\?/);
+});
+
+test('every visible mode and the legacy Nuked mode have their own starter catalog', () => {
+  assert.deepEqual(Object.keys(MODE_STARTERS), [...PLAYGROUND_MODES.map(mode => mode.id), 'genesis-nuked']);
+  for (const [id, definition] of Object.entries(MODE_STARTERS)) {
+    assert.equal(getPlaygroundMode(id).id, id);
+    assert.equal(definition.index, `${id}/index.js`);
+  }
 });
 
 test('legacy chip and engine links retain their original environments; explicit mode wins', () => {

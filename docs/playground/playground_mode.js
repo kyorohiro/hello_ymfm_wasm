@@ -9,7 +9,7 @@ const definitions = [
   {id:'pc98', label:'PC-98 (YM2608 / OPNA)', chip:'ym2608'},
   {id:'neogeo', label:'Neo Geo', chip:'ym2610'},
   {id:'neogeo-b', label:'Neo Geo (YM2610B)', chip:'ym2610b'},
-  {id:'gameboy', label:'Game Boy', chip:'gameboy', engine:'apu', fmChannels:0, defaultExample:'gameboy-mode-pulse'},
+  {id:'gameboy', label:'Game Boy', chip:'gameboy', engine:'apu', fmChannels:0},
   // Preserve old engine/chip links without adding another standard environment.
   {id:'genesis-nuked', label:'Genesis (Nuked)', chip:'ym2612', engine:'nuked', legacy:true},
 ];
