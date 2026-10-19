@@ -1973,7 +1973,16 @@ function exportOpnFmVgmToPlaygroundJavaScript(source, options, chipKind, targetC
   const totalLoopSamples = options.totalLoopSamples == null
     ? timeSamples
     : Math.max(0, Math.floor(options.totalLoopSamples));
-  if ((options.high === true || options.compact === true)) {
+  const highMode = options.high === true || options.compact === true;
+  const requestedSplit = highMode ? options.splitChannels === true : options.splitChannels !== false;
+  // Independent JS waits cannot preserve the original tie order when a low
+  // frequency write resumes beside another channel's high write. Scheduled
+  // playback keeps its audio-clock timeline; Write/High must keep source order.
+  const sharedFrequencyOrder = requestedSplit && (highMode || !options.scheduled) &&
+    requiresSharedFrequencyOrder(orderedEvents);
+  const splitChannels = sharedFrequencyOrder ? false : options.splitChannels;
+  const frequencyOrderComment = '// One FM timeline preserves shared frequency latch order across channels and short waits.';
+  if (highMode) {
     if (options.compact) options = { ...options, noteish: true };
     options = { ...options,
       nativeOpn: chipKind !== "ym2612" && targetChip !== "ym2612",
@@ -2023,12 +2032,13 @@ function exportOpnFmVgmToPlaygroundJavaScript(source, options, chipKind, targetC
     }
     const compactEvents = options.compact ? compactHighEvents(orderedEvents) : null;
     const retained = compactEvents ? new Set(compactEvents) : null;
-    if (options.splitChannels === true) {
+    if (splitChannels === true) {
       return tracks.filter((track) => track.events.length > 0).map((track) =>
         `{\n${renderHighPlaygroundEvents(retained ? track.events.filter(e => retained.has(e)) : track.events, totalLoopSamples, options, track.name)}\n}`
       ).join("\n\n");
     }
-    return renderHighPlaygroundEvents(compactEvents ?? orderedEvents, totalLoopSamples, options);
+    return (sharedFrequencyOrder ? frequencyOrderComment + '\n' : '') +
+      renderHighPlaygroundEvents(compactEvents ?? orderedEvents, totalLoopSamples, options);
   }
   /** @type {string[]} */
   const lines = [];
@@ -2048,6 +2058,7 @@ function exportOpnFmVgmToPlaygroundJavaScript(source, options, chipKind, targetC
     lines.push("");
   }
   if (options.psgWarning) lines.push(options.psgWarning);
+  if (sharedFrequencyOrder) lines.push(frequencyOrderComment);
   const dacEvents = tracks[0].events.filter((event) => event.port === 0 && event.register === 0x2a);
   const useDacBase64 =
     chipKind === "ym2612" &&
@@ -2067,7 +2078,7 @@ function exportOpnFmVgmToPlaygroundJavaScript(source, options, chipKind, targetC
   const chipTracks = chipKind === "ym2203"
     ? tracks.slice(0, 4)
     : tracks;
-  const renderOrder = options.splitChannels === false
+  const renderOrder = splitChannels === false
     ? [{ name: "vgm", events: orderedEvents }]
     : chipTracks[0].events.length > 0
     ? chipTracks
@@ -2088,6 +2099,29 @@ function exportOpnFmVgmToPlaygroundJavaScript(source, options, chipKind, targetC
     }
   }
   return lines.join("\n");
+}
+
+/** Normal and CH3-special OPN frequencies each share a high latch across ports.
+ * Splitting is safe when each low has its own track's high in the same JS
+ * continuation. Keep dependent raw writes together without adding writes or
+ * removing short waits. Port 0 special pitches already share the CH3 track;
+ * nonstandard port 1 special writes use the global track and can interfere.
+ */
+function requiresSharedFrequencyOrder(events) {
+  const track = event => {
+    const target = getYm2612WriteTarget(event.port, event.register, event.value);
+    return target.scope === 'channel' ? target.channel : 'global';
+  };
+  for (const first of [0xa0, 0xa8]) {
+    const pitches = events.filter(e => e.register >= first && e.register <= first + 6 && (e.register & 3) < 3);
+    if (new Set(pitches.map(track)).size < 2) continue;
+    let high;
+    for (const event of pitches) {
+      if (event.register & 4) high = event;
+      else if (!high || track(high) !== track(event) || high.timeSamples !== event.timeSamples) return true;
+    }
+  }
+  return false;
 }
 
 /**

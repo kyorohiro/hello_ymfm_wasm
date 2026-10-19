@@ -21,8 +21,8 @@ let chipTabs = null;
 let pendingDesktopCassetteAssets = null;
 const cassettePresetNames = new Set();
 const cassetteSampleNames = new Set();
-import {exportYm2608FullVgm} from './ym2608_vgm_import.js?v=loop-async-tasks-1';
-import {prepareVgmImport, exportGameboyVgm, exportNesVgm, exportRf5c164Vgm, addVgmSoundChipSetup, exportYm2203FullVgm} from './playground_vgm_import.js?v=loop-async-tasks-1';
+import {exportYm2608FullVgm} from './ym2608_vgm_import.js?v=vgm-frequency-order-1';
+import {prepareVgmImport, exportGameboyVgm, exportNesVgm, exportRf5c164Vgm, addVgmSoundChipSetup, exportYm2203FullVgm} from './playground_vgm_import.js?v=vgm-frequency-order-1';
 import {installPlaygroundPageLifecycle} from "./playground_page_lifecycle.js";
 import {createFXMonitor} from './playground_fx_monitor.js?v=vertical-range-1';
 import {createAudioMonitor} from './playground_audio_monitor.js?v=vertical-range-1';
@@ -73,15 +73,15 @@ import {
   exportYm2203FmVgmToPlaygroundJavaScript,
   exportYm2608FmVgmToPlaygroundJavaScript,
   exportYm2610FmVgmToPlaygroundJavaScript,
-} from "../js/ym2612vgm.js";
-import { exportYm2203VgmToPlaygroundJavaScript } from "../js/ym2203vgm.js";
-import { exportYm2608VgmToPlaygroundJavaScript } from "../js/ym2608vgm.js";
-import { exportYm2610BVgmToPlaygroundJavaScript } from "../js/ym2610bvgm.js";
+} from "../js/ym2612vgm.js?v=vgm-frequency-order-1";
+import { exportYm2203VgmToPlaygroundJavaScript } from "../js/ym2203vgm.js?v=vgm-frequency-order-1";
+import { exportYm2608VgmToPlaygroundJavaScript } from "../js/ym2608vgm.js?v=vgm-frequency-order-1";
+import { exportYm2610BVgmToPlaygroundJavaScript } from "../js/ym2610bvgm.js?v=vgm-frequency-order-1";
 import {
   createPlaygroundRuntime,
 } from "../js/playground_runtime.js?v=audio-stability-2";
 import {DEFAULT_WORKER_LOOKAHEAD_SECONDS} from '../js/playground_performance_sender.js?v=opna-primary-1';
-import { createVgmPresetFiles } from "./playground_vgm_presets.js";
+import { createVgmPresetFiles } from "./playground_vgm_presets.js?v=vgm-frequency-order-1";
 import { createTfiFileEditor, instrumentToEditorPreset } from "./playground_tfi_editor.js?v=audio-stability-2";
 import { renderFileTree } from "./playground_file_tree.js?v=opnb-primary-1";
 import { createPlaygroundUi, applyPlaygroundLayout } from "./playground_ui.js?v=native-modes-3";

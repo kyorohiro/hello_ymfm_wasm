@@ -759,6 +759,134 @@ test("native Raw, Scheduled and exact High preserve separated pitch writes and t
   }
 });
 
+async function runExactFrequencyExport(bytes, options) {
+  const source = exportYm2612VgmToPlaygroundJavaScript(bytes, options);
+  let time = 0;
+  const loops = [], writes = [];
+  const record = (...args) => writes.push([time, ...(args.length === 2 ? [0, ...args] : args)]);
+  const fm = new YM2612Synth({transport: {write: (p, r, v) => record(p, r, v)}});
+  writes.length = 0;
+  const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
+  await new AsyncFunction('fm', 'write', 'liveLoop', 'sleepSamples',
+    'CH1', 'CH2', 'CH3', 'CH4', 'CH5', 'CH6', 'OP1', 'OP2', 'OP3', 'OP4', source)(
+    fm, record, (name, fn) => loops.push({name, fn}), async n => {time += n;},
+    0, 1, 2, 3, 4, 5, 0, 1, 2, 3);
+  const durations = [];
+  for (const loop of loops) {
+    time = 0;
+    await loop.fn();
+    durations.push(time);
+  }
+  return {source, names: loops.map(loop => loop.name), writes, durations};
+}
+
+test("Write and exact High keep timed multichannel frequency writes in one ordered loop", async () => {
+  // CH1's low commit and CH2's high write become runnable together when the
+  // two-sample wait expires. Independent loops can otherwise overwrite the
+  // shared high latch before CH1 consumes it, changing its octave/FNUM.
+  const bytes = createVgmBuffer([
+    0x52, 0xa4, 0x1c, 0x71,
+    0x52, 0xa0, 0xc0, 0x52, 0xa5, 0x22, 0x52, 0xa1, 0xd3,
+    0x72, 0x53, 0xa6, 0x1c, 0x72, 0x53, 0xa2, 0xc0, 0x70, 0x66,
+  ]);
+  const expected = [
+    [0, 0, 0xa4, 0x1c],
+    [2, 0, 0xa0, 0xc0], [2, 0, 0xa5, 0x22], [2, 0, 0xa1, 0xd3],
+    [5, 1, 0xa6, 0x1c], [8, 1, 0xa2, 0xc0],
+  ];
+  for (const high of [false, true]) {
+    const actual = await runExactFrequencyExport(bytes, {high, splitChannels: true});
+    assert.deepEqual(actual.names, ['vgm']);
+    assert.deepEqual(actual.writes, expected);
+    assert.deepEqual(actual.durations, [9]);
+  }
+});
+
+test("Write and exact High preserve cross-port high-latch dependencies without extra writes", async () => {
+  const bytes = createVgmBuffer([
+    0x53, 0xa5, 0x2b, 0x71, 0x52, 0xa0, 0xc6,
+    0x52, 0xa4, 0x1c, 0x53, 0xa2, 0xc0, 0x70, 0x66,
+  ]);
+  const expected = [
+    [0, 1, 0xa5, 0x2b], [2, 0, 0xa0, 0xc6],
+    [2, 0, 0xa4, 0x1c], [2, 1, 0xa2, 0xc0],
+  ];
+  for (const high of [false, true]) {
+    const actual = await runExactFrequencyExport(bytes, {high, splitChannels: true});
+    assert.deepEqual(actual.names, ['vgm']);
+    assert.deepEqual(actual.writes, expected);
+    assert.deepEqual(actual.durations, [3]);
+  }
+});
+
+test("cross-port CH3-special latch writes keep global and channel events in source order", async () => {
+  const bytes = createVgmBuffer([
+    0x53, 0xac, 0x22, 0x71, 0x52, 0xa8, 0x83,
+    0x52, 0xad, 0x2b, 0x52, 0xa9, 0xc6, 0x70, 0x66,
+  ]);
+  const expected = [
+    [0, 1, 0xac, 0x22], [2, 0, 0xa8, 0x83],
+    [2, 0, 0xad, 0x2b], [2, 0, 0xa9, 0xc6],
+  ];
+  for (const high of [false, true]) {
+    const actual = await runExactFrequencyExport(bytes, {high, splitChannels: true});
+    assert.deepEqual(actual.names, ['vgm']);
+    assert.deepEqual(actual.writes, expected);
+    assert.deepEqual(actual.durations, [3]);
+  }
+});
+
+test("port-0 CH3-special pitches remain together in their own editable channel loop", async () => {
+  const bytes = createVgmBuffer([
+    0x52, 0x27, 0x40, 0x52, 0xac, 0x22, 0x71,
+    0x52, 0xa8, 0x83, 0x52, 0xad, 0x2b, 0x52, 0xa9, 0xc6, 0x70, 0x66,
+  ]);
+  for (const high of [false, true]) {
+    const actual = await runExactFrequencyExport(bytes, {high, splitChannels: true});
+    assert.deepEqual(actual.names, high ? ['global', 'ch3'] : ['global', 'ch1', 'ch2', 'ch3', 'ch4', 'ch5', 'ch6']);
+    assert.deepEqual(actual.writes, [
+      [0, 0, 0x27, 0x40], [0, 0, 0xac, 0x22], [2, 0, 0xa8, 0x83],
+      [2, 0, 0xad, 0x2b], [2, 0, 0xa9, 0xc6],
+    ]);
+    assert.ok(actual.durations.every(n => n === 3));
+  }
+});
+
+test("same-time frequency pairs keep independent editable channel loops", async () => {
+  const bytes = createVgmBuffer([
+    0x52, 0xa4, 0x22, 0x52, 0xa0, 0x83,
+    0x53, 0xa4, 0x2b, 0x53, 0xa0, 0xc6, 0x71,
+    0x52, 0xa4, 0x23, 0x52, 0xa0, 0x1d, 0x70, 0x66,
+  ]);
+  for (const high of [false, true]) {
+    const actual = await runExactFrequencyExport(bytes, {high, splitChannels: true});
+    assert.deepEqual(actual.names, high ? ['ch1', 'ch4'] : ['ch1', 'ch2', 'ch3', 'ch4', 'ch5', 'ch6']);
+    assert.deepEqual(actual.writes.filter(([, port]) => port === 0), [
+      [0, 0, 0xa4, 0x22], [0, 0, 0xa0, 0x83],
+      [2, 0, 0xa4, 0x23], [2, 0, 0xa0, 0x1d],
+    ]);
+    assert.deepEqual(actual.writes.filter(([, port]) => port === 1), [
+      [0, 1, 0xa4, 0x2b], [0, 1, 0xa0, 0xc6],
+    ]);
+    assert.ok(actual.durations.every(n => n === 3));
+  }
+});
+
+test("a single pitch channel keeps split loops and its original short wait", async () => {
+  const bytes = createVgmBuffer([
+    0x52, 0xa4, 0x22, 0x71, 0x52, 0xa0, 0x83,
+    0x53, 0x40, 20, 0x70, 0x66,
+  ]);
+  for (const high of [false, true]) {
+    const actual = await runExactFrequencyExport(bytes, {high, splitChannels: true});
+    assert.deepEqual(actual.names, high ? ['ch1', 'ch4'] : ['ch1', 'ch2', 'ch3', 'ch4', 'ch5', 'ch6']);
+    assert.deepEqual(actual.writes, [
+      [0, 0, 0xa4, 0x22], [2, 0, 0xa0, 0x83], [2, 1, 0x40, 20],
+    ]);
+    assert.ok(actual.durations.every(n => n === 3));
+  }
+});
+
 test("Compact onset cleanup is opt-in and preserves KEY timing and later bends", async()=>{
   for(const splitChannels of [false,true]) for(const gap of [5,8,9]) {
     const bytes=createVgmBuffer([

@@ -7,4 +7,4 @@
 export {
   Ym2612VGM as Ym2610BVGM,
   exportYm2610BVgmToPlaygroundJavaScript,
-} from "./ym2612vgm.js";
+} from "./ym2612vgm.js?v=vgm-frequency-order-1";

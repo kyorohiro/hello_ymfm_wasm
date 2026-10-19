@@ -1,4 +1,4 @@
-import {Ym2612VGM} from '../js/ym2612vgm.js';
+import {Ym2612VGM} from '../js/ym2612vgm.js?v=vgm-frequency-order-1';
 
 /** Preserve RF5C bank semantics while recording a single RF/FM/PSG timeline. */
 export function exportRf5c164Vgm(buffer, {mode = 'write', includeDac = true, includePsg = true, writeMemoryFile, loop = true, splitChannels = true, noteish = false, dacBase64 = true, writeDacFile} = {}) {
