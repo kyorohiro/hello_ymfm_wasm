@@ -2,13 +2,15 @@
 
 ## 実装済み mode
 
-Menu の Mode で次の環境を選べる。
+Menu の Mode で次の環境を選べる。先頭は Genesis → Mega CD → 32X → 32X Nuked の順に並べる。
+内部IDは互換性のため `genesis` / `mega-cd` / `genesis-full` / `genesis-full-nuked` を維持する。
 
 | mode | ID | ベース音源 | クロック / 内部出力レート |
 | --- | --- | --- | --- |
 | Genesis | `genesis` | YM2612 + Sega PSG / DAC | YM2612: 7,670,454 Hz |
-| Genesis Full | `genesis-full` | Genesis + Mega-CD RF5C164 + 32X PWM | YM2612: 7,670,454 Hz |
-| Genesis Full (Nuked) | `genesis-full-nuked` | Genesis Full の YM2612 を Nuked-OPN2 にする | YM2612: 7,670,454 Hz |
+| Mega CD | `mega-cd` | Genesis + RF5C164 | YM2612: 7,670,454 Hz |
+| 32X | `genesis-full` | Genesis + Mega-CD RF5C164 + 32X PWM | YM2612: 7,670,454 Hz |
+| 32X Nuked | `genesis-full-nuked` | 32X の YM2612 を Nuked-OPN2 にする | YM2612: 7,670,454 Hz |
 | PC-98 (YM2203 / OPN) | `pc98-26` | YM2203 FM 3ch + SSG 3ch | 4,000,000 Hz |
 | PC-98 (YM2608 / OPNA) | `pc98` | YM2608 FM 6ch + SSG 3ch + Rhythm 6音 + ADPCM-B | 8,000,000 Hz |
 | Neo Geo | `neogeo` | YM2610 FM 4ch + SSG 3ch + ADPCM-A 6音 + ADPCM-B | 8,000,000 Hz |
@@ -24,7 +26,7 @@ Menu の Mode で次の環境を選べる。
 SNES を除く Hz は CPU や音声出力のサンプルレートではなく、音源のマスタークロック。
 SNES の 32,000 Hz は S-DSP 内部の PCM 出力レートで、音声デバイスの出力レートとは別。
 型定義、音源 API・チャンネル定数、補完、音程計算を、選んだ環境に合わせる。
-音源タブも mode に合わせ、Genesis は FM / Sega PSG、Full はさらに RF5C164 / 32X PWM、
+音源タブも mode に合わせ、Genesis は FM / Sega PSG、Mega CD はさらに RF5C164、32X はさらに32X PWM、
 PC-98 と Neo Geo は対象の FM タブを表示する。Code や下部の共通ツールは引き続き使える。
 `useSoundChip()` で追加した音源によって、mode に含まれないタブを自動表示することはしない。
 PC-98 (YM2203 / OPN) は `fm` と `ssg`、YM2608 / OPNA は `fm` に加えて `ssg`・`rhythm`・`adpcm` を標準で公開する。
@@ -268,13 +270,14 @@ Genesis mode に FM、PSG、DAC が最初から用意され、`play()` が標準
 
 ## mode 候補
 
-名称・ID・構成は案。PC-98 を OPN / OPNA、Neo Geo を YM2610 / YM2610B に分けた次の16候補を出発点とする。
+名称・ID・構成は案。PC-98 を OPN / OPNA、Neo Geo を YM2610 / YM2610B に分けた次の17候補を出発点とする。
 
 | 表示名 | ID 案 | 標準音源・構成の案 | 補足・未決事項 |
 | --- | --- | --- | --- |
 | Genesis | `genesis` | YM2612 + Sega PSG、YM2612 DAC | 現在の使い勝手を引き継ぐ基本環境。 |
-| Genesis Full | `genesis-full` | Genesis + Mega-CD RF5C164 + 32X PWM | OPN 系の先行実装で対応。 |
-| Genesis Full (Nuked) | `genesis-full-nuked` | Genesis Full の YM2612 部分を Nuked-OPN2 にする構成 | エンジン選択を mode に含める案。Full の音源構成は通常版と揃える。 |
+| Mega CD | `mega-cd` | Genesis + RF5C164 | 32X PWMを含めず、PCMの作曲・サンプリングを扱う。 |
+| 32X | `genesis-full` | Genesis + Mega-CD RF5C164 + 32X PWM | OPN 系の先行実装で対応。 |
+| 32X Nuked | `genesis-full-nuked` | 32X の YM2612 部分を Nuked-OPN2 にする構成 | エンジン選択を mode に含める案。32X の音源構成は通常版と揃える。 |
 | Master System | `master-system` | Sega PSG を中心とした構成 | FM 拡張を標準構成に含めるかは別途決める。 |
 | Game Gear | `game-gear` | Sega PSG を中心とした構成 | Master System との違い、ステレオ制御の扱いを整理する。 |
 | NES + FDS | `nes` | NES + FDS | 標準 `nes` API と3個の代表例を実装。 |
@@ -314,16 +317,16 @@ URL とデスクトップの下書き保存キーも mode に揃える。
 
 ### Nuked 版の扱い
 
-現在の Nuked-OPN2 による YM2612 を、`Genesis Full (Nuked)` という mode として
+現在の Nuked-OPN2 による YM2612 を、`32X Nuked` という mode として
 用意する案。mode を選ぶだけで音源構成とエンジンが決まり、別途エンジンを
 選択しなくても使い始められる。
 
-- `Genesis Full` と `Genesis Full (Nuked)` は、公開 API と標準音源の構成を揃える。
+- `32X` と `32X Nuked` は、公開 API と標準音源の構成を揃える。
 - Nuked 版は YM2612 の実装を切り替える。PSG や追加の PCM 音源まで Nuked 実装に
   変わるという意味ではない。YM2612 の DAC も含め、既存コードとの動作を確認する。
 - エンジンによる音の違いを選べる環境として扱う。
 - 通常の `Genesis (Nuked)` は `genesis-nuked` として旧リンクとの互換性を維持する。
-  標準の選択候補には Full の Nuked 版を載せる。
+  標準の選択候補には 32X Nuked を載せる。
 
 ## API の扱い
 
@@ -381,7 +384,7 @@ SSG の混入ノイズと発音境界の段差は実 PCM で確認した。Safar
 追加調査では、YM2203 / YM2608 / YM2610(B) と Nuked の Worklet も、通常 Genesis と
 同じ再利用 PCM バッファーを使うようにした。`generateStereo()` の戻り値を所有できる
 従来の契約は維持し、Worklet だけ `generateStereoView()` を即時に消費する。
-Genesis Full の PWM も毎サンプルの出力ペア配列を生成しないようにした。
+32X の PWM も毎サンプルの出力ペア配列を生成しないようにした。
 
 同じ持続 FM 音を7モードで比較した WebKit の最終出力には、途切れや異常な波形の
 飛びを検出できなかった。Nuked の処理時間には再生中7msの突出があったが、可聴ノイズ
@@ -482,16 +485,16 @@ Chromium / WebKit の実再生でも、分割したまま元の約0.85秒・1.65
 標準 YMFM の high はラッチ更新だけだが、Nuked の既存 WASM wrapper は書き込み時にも
 内部クロックを進めるため、追加 high による PCM の完全一致までは保証しない。
 
-### Mega-CD / Sega CD mode
+### Mega CD mode
 
 `mega-cd` は Genesis の YM2612・Sega PSG に RF5C164 を加えた環境にする。
-北米名の Sega CD もラベルに含める。Genesis Full の32X PWMは含めず、
+表示名は `Mega CD` に統一する。実機の北米名は Sega CD。32X PWMは含めず、
 音源タブは FM / PSG / RF5C164 のみを表示する。
 
 `const pcm = await useSoundChip('rf5c164')` は組み込みの8音PCMを借用し、
 モニターやミキサーと同じ音源を操作する。PCMをもう一台追加したい場合は
 `createSoundChip('rf5c164')` を使う。借用した組み込み音源の寿命はRuntimeが管理し、
-`dispose()` は公開しない。Genesis Full / Full (Nuked) も同じ借用規則にする。
+`dispose()` は公開しない。32X / 32X Nuked も同じ借用規則にする。
 型宣言は FM / PSG / DAC の既存機能を保ち、追加のグローバル `pcm` は作らない。
 
 初期コードはFMとPCMのベースを組み合わせる。専用examplesは、同じ波形RAMを8音で
@@ -514,7 +517,7 @@ Keyboardの押下・解放で物理8チャンネルを割り当てて演奏す�
 
 - mode ごとの音源構成、クロック、公開名、初期コードの対応表。
 - mode 標準音源を `useSoundChip()` で指定した場合の再利用範囲。
-  YM2608 のフル API や Full の追加音源も踏まえ、既存コードとの互換性を保つ。
+  YM2608 のフル API や 32X の追加音源も踏まえ、既存コードとの互換性を保つ。
 - 再読み込みを行わない mode 切り替えが必要か。
 - 実行中に変更した音色や追加音源など、コード・ファイル以外の状態を保持する範囲。
 - mode に対応した補完・型定義・ヘルプ・サンプルの提示方法。

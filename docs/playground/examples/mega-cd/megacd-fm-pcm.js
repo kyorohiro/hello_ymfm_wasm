@@ -1,4 +1,4 @@
-// Mega-CD mode: Genesis FM + PSG, with the CD expansion's PCM bass.
+// Mega CD mode: Genesis FM + PSG, with the CD expansion's PCM bass.
 const pcm = await useSoundChip('rf5c164');
 const length = 128;
 const wave = new Uint8Array(length + 1);

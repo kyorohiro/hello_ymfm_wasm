@@ -7,7 +7,7 @@ import {installPlaygroundShell} from './playground_shell.js?v=compact-shell-1';
 import {installPlaygroundGit} from './playground_git.js';
 import {openDraftStore, createProjectAutosave} from './playground_autosave.js?v=mode-handoff-1';
 import {PLAYGROUND_MODES, resolvePlaygroundMode, createModeSynthOptions,
-  createPlaygroundModeUrl, isSimplePlaygroundLayout} from './playground_mode.js?v=mega-cd-2';
+  createPlaygroundModeUrl, isSimplePlaygroundLayout} from './playground_mode.js?v=mega-cd-3';
 import {saveModeProject, consumeModeProject} from './playground_mode_project.js?v=mode-handoff-1';
 import {reconcileModeProject} from './playground_mode_starters.js?v=mode-choice-1';
 let desktopAutosave = null;
@@ -24,7 +24,7 @@ const cassetteSampleNames = new Set();
 import {exportYm2608FullVgm} from './ym2608_vgm_import.js?v=vgm-frequency-order-2';
 import {prepareVgmImport, exportGameboyVgm, exportNesVgm, exportRf5c164Vgm, addVgmSoundChipSetup, exportYm2203FullVgm} from './playground_vgm_import.js?v=vgm-frequency-order-2';
 import {installPlaygroundPageLifecycle} from "./playground_page_lifecycle.js";
-import {createPlaygroundAudioInput} from './playground_audio_input.js?v=mega-cd-2';
+import {createPlaygroundAudioInput} from './playground_audio_input.js?v=mega-cd-3';
 import {createFXMonitor} from './playground_fx_monitor.js?v=vertical-range-1';
 import {createAudioMonitor} from './playground_audio_monitor.js?v=vertical-range-1';
 import {installMidiImport} from './playground_midi_import.js?v=midi-sections-1';
@@ -32,10 +32,10 @@ import {installSpcImport} from './playground_spc_import.js?v=spc-reference-tunin
 import {
   FM_PRESET_ORDER,
   FM_PRESETS,
-} from "../js/megasynth.js?v=mega-cd-2";
+} from "../js/megasynth.js?v=mega-cd-3";
 import {
   createTetoricaSynth,
-} from "../js/tetorica_synth.js?v=mega-cd-2";
+} from "../js/tetorica_synth.js?v=mega-cd-3";
 import {
   createTfiOperatorObjectText,
   createTfiPresetObjectText,
@@ -48,8 +48,8 @@ import {
 } from "./playground_operator_tab.js?v=audio-stability-2";
 import { createPlaygroundOperatorKeyboard } from "./playground_operator_keyboard.js?v=keyboard-controls-minimize-1";
 import { CHIP_CLOCKS } from "../js/playground_chip_clock.js?v=audio-stability-2";
-import { DEFAULT_CODE, EXAMPLES, EXAMPLE_FILES, MODE_DEFAULT_CODES, MODE_DEFAULT_HISTORY, MODE_EXAMPLE_FILES } from "./playground_examples.js?v=mega-cd-2";
-import { initializePlaygroundMonaco } from "./playground_monaco.js?v=mega-cd-2";
+import { DEFAULT_CODE, EXAMPLES, EXAMPLE_FILES, MODE_DEFAULT_CODES, MODE_DEFAULT_HISTORY, MODE_EXAMPLE_FILES } from "./playground_examples.js?v=mega-cd-3";
+import { initializePlaygroundMonaco } from "./playground_monaco.js?v=mega-cd-3";
 import {
   decodeBase64Bytes,
   loadTfiPresetsFromQuery,
@@ -80,7 +80,7 @@ import { exportYm2608VgmToPlaygroundJavaScript } from "../js/ym2608vgm.js?v=vgm-
 import { exportYm2610BVgmToPlaygroundJavaScript } from "../js/ym2610bvgm.js?v=vgm-frequency-order-2";
 import {
   createPlaygroundRuntime,
-} from "../js/playground_runtime.js?v=mega-cd-2";
+} from "../js/playground_runtime.js?v=mega-cd-3";
 import {DEFAULT_WORKER_LOOKAHEAD_SECONDS} from '../js/playground_performance_sender.js?v=opna-primary-1';
 import { createVgmPresetFiles } from "./playground_vgm_presets.js?v=vgm-frequency-order-2";
 import { createTfiFileEditor, instrumentToEditorPreset } from "./playground_tfi_editor.js?v=audio-stability-2";

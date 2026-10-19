@@ -69,7 +69,7 @@ const segaFiles=new Set(['segapsg.js','segapsgsynth.js','segapsg_api.js',
   'playground_segapsg.js','playground_segapsg_audio.js','playground_segapsg_worklet.js',
   'native_runtime_synth.js','playground_native_primary.js','tetorica_synth.js',
   'playground_runtime.js','playground_logic_worker.js','playground_performance_processor.js']);
-const megaCdVersion='mega-cd-2';
+const megaCdVersion='mega-cd-3';
 const megaCdFiles=new Set(['playground_runtime.js','playground_logic_worker.js','playground_live.js',
   'playground_rf5c164.js','rf5c164-worklet.js']);
 let propagated;

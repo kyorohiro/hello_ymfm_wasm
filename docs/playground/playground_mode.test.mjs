@@ -4,10 +4,10 @@ import {PLAYGROUND_MODES, getPlaygroundMode, resolvePlaygroundMode,
   createModeSynthOptions, createPlaygroundModeUrl, isSimplePlaygroundLayout} from './playground_mode.js';
 import {MODE_STARTERS} from './playground_mode_examples.js';
 
-test('modes select native chips, clocks and Full expansions', () => {
+test('modes select native chips, clocks and console expansions', () => {
   const expected = [
-    ['genesis','ym2612',7670454,false], ['genesis-full','ym2612',7670454,true],
-    ['genesis-full-nuked','ym2612',7670454,true], ['mega-cd','ym2612',7670454,false],
+    ['genesis','ym2612',7670454,false], ['mega-cd','ym2612',7670454,false],
+    ['genesis-full','ym2612',7670454,true], ['genesis-full-nuked','ym2612',7670454,true],
     ['pc98-26','ym2203',4000000,false],
     ['pc98','ym2608',8000000,false], ['neogeo','ym2610',8000000,false],
     ['neogeo-b','ym2610b',8000000,false],

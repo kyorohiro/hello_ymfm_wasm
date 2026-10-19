@@ -1,4 +1,4 @@
-// Select Mode: Genesis, Genesis Full, or either Nuked mode.
+// Select Mode: Genesis, Mega CD, 32X, or 32X Nuked.
 // The built-in FM and PSG play together; no extra chip is needed.
 setBpm(120);
 fm.setPreset(CH1, FM_PRESETS['one-op-basic']);

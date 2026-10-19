@@ -294,7 +294,7 @@ async function checkBrowser(name,type,base) {
       assert.deepEqual(errors,[],'quality capture page errors');
       return;
     }
-    assert.equal(await page.title(),'Tetorica Mega-CD / Sega CD Playground');
+    assert.equal(await page.title(),'Tetorica Mega CD Playground');
     for (const selector of ['#operatorTabButton','#segapsgTab','#rf5c164Tab']) assert(await page.locator(selector).isVisible());
     assert.equal(await page.locator('#pwmTab').isVisible(),false);
     await checkTypes(page);

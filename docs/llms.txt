@@ -1,6 +1,6 @@
 # Tetorica Playground (hello_ymfm_wasm)
 
-> Browser-based JavaScript playground, documentation, and WebAssembly tools for OPN FM, Mega-CD, Game Boy, NES + FDS, SNES, X68000, PC Engine, Game Gear and Master System sound chips.
+> Browser-based JavaScript playground, documentation, and WebAssembly tools for OPN FM, Mega CD, Game Boy, NES + FDS, SNES, X68000, PC Engine, Game Gear and Master System sound chips.
 
 Use the common Playground type definitions together with the type definition for the selected sound chip. The canonical examples are code that runs in the Playground.
 
@@ -16,7 +16,7 @@ Use the common Playground type definitions together with the type definition for
 
 - [Common Playground API](./playground/tetorica-playground-globals.d.ts): Globals, live coding, samples, noise, effects, files, FM, and PSG APIs
 - [YM2612 selection](./playground/tetorica-playground-ym2612.d.ts): Mega Drive / Genesis configuration
-- [Mega-CD / Sega CD selection](./playground/tetorica-playground-mega-cd.d.ts): YM2612 FM, Sega PSG and the primary RF5C164, without 32X PWM. Also used by Genesis Full modes for shared PCM ownership. Await useSoundChip('rf5c164') for the built-in eight-voice PCM; createSoundChip adds a separate disposable device.
+- [Mega CD selection](./playground/tetorica-playground-mega-cd.d.ts): YM2612 FM, Sega PSG and the primary RF5C164, without 32X PWM. Also used by 32X and 32X Nuked modes for shared PCM ownership. Await useSoundChip('rf5c164') for the built-in eight-voice PCM; createSoundChip adds a separate disposable device.
 - [YM2608 selection](./playground/tetorica-playground-ym2608.d.ts): PC-98 configuration
 - [YM2203 selection](./playground/tetorica-playground-ym2203.d.ts): Three-channel PC-98 configuration
 - [YM2610 selection](./playground/tetorica-playground-ym2610.d.ts): Neo Geo configuration
@@ -41,8 +41,8 @@ Open these source files from Playground FILES → examples to run them.
 - [Ambient Choir Sample](./playground/examples/basic/ambient-choir-sample.js): Sample loading, effects, and live state
 - [FM API Beep](./playground/examples/basic/fm/fm-api-beep.js): Direct YM2612 setup
 - [PSG Scale](./playground/examples/basic/psg/psg-scale.js): SN76489-compatible tone API
-- [Mega-CD starter](./playground/defaults/mega-cd/index.js): FM and a short PCM bass with a baked attack/release in the built-in RF5C164
-- [Mega-CD sampler](./playground/examples/mega-cd/megacd-sampler.js): Choose a local sound or record the microphone, then play it with the keyboard using up to eight PCM voices
+- [Mega CD starter](./playground/defaults/mega-cd/index.js): FM and a short PCM bass with a baked attack/release in the built-in RF5C164
+- [Mega CD sampler](./playground/examples/mega-cd/megacd-sampler.js): Choose a local sound or record the microphone, then play it with the keyboard using up to eight PCM voices
 - [Parallel FX](./playground/examples/basic/fx/parallel-fx.js): Branched effect routing
 - [Game Boy mode pulse](./playground/examples/gameboy/gameboy-mode-pulse.js): Primary APU with explicit pulse noteOn/keyOff and a named melody loop
 - [NES + FDS starter](./playground/defaults/nes/index.js): Primary APU melody; selected examples add FDS and rhythm/DMC

@@ -1,6 +1,6 @@
 import {
   FM_PRESETS,
-} from "../js/megasynth.js?v=mega-cd-2";
+} from "../js/megasynth.js?v=mega-cd-3";
 
 const SCALE_NAMES = [
   "major",

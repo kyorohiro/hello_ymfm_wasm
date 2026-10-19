@@ -171,10 +171,10 @@ const bundledDefaults = Object.fromEntries(Object.entries(MODE_DEFAULT_CODES).ma
 test('canonical historical starters are bundled only for supported modes and current sources stay first', async () => {
   const history = JSON.parse(await readFile(new URL('./defaults/history.json', import.meta.url), 'utf8'));
   assert.deepEqual(MODE_DEFAULT_HISTORY,history);
-  assert.deepEqual(Object.keys(history).sort(),['neogeo','pc-engine','pc98','pc98-26','snes']);
+  assert.deepEqual(Object.keys(history).sort(),['genesis-full','genesis-full-nuked','mega-cd','neogeo','pc-engine','pc98','pc98-26','snes']);
   for (const [id, sources] of Object.entries(history)) {
     assert.ok(Object.hasOwn(MODE_DEFAULT_CODES,id),id);
-    assert.equal(sources.length,1,`${id} records its pre-noise-fix starter`);
+    assert.equal(sources.length,1,`${id} records its previous starter`);
     assert.notEqual(sources[0],MODE_DEFAULT_CODES[id]);
     assert.equal(bundledDefaults[id][0],MODE_DEFAULT_CODES[id]);
     const result = reconcileModeProject(project([], {modeId:id,files:[]}),{

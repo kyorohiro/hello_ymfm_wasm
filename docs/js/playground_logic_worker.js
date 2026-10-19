@@ -16,7 +16,7 @@ import {createOpnClient} from './playground_opn.js?v=audio-stability-2';
 import {createSoundChipRegistry} from './playground_soundchips.js?v=native-modes-3';
 import {createGameboyClient} from './playground_gameboy.js?v=audio-stability-2';
 import {createYm2608Client} from './playground_ym2608.js?v=audio-stability-2';
-import {createRf5c164Client} from './playground_rf5c164.js?v=mega-cd-2';
+import {createRf5c164Client} from './playground_rf5c164.js?v=mega-cd-3';
 import {createNativeSampleController} from './native_sample.js?v=audio-stability-2';
 import {serializeLogError} from './playground_log.js';
 /**

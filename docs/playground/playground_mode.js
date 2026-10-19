@@ -3,11 +3,11 @@ import {CHIP_CLOCKS} from '../js/playground_chip_clock.js?v=audio-stability-2';
 // Modes describe an authoring environment. Chip IDs remain the runtime/API IDs.
 const definitions = [
   {id:'genesis', label:'Genesis', chip:'ym2612'},
-  {id:'genesis-full', label:'Genesis Full', chip:'ym2612', declarationChip:'mega-cd', full:true},
-  {id:'genesis-full-nuked', label:'Genesis Full (Nuked)', chip:'ym2612', declarationChip:'mega-cd', full:true, engine:'nuked'},
-  {id:'mega-cd', label:'Mega-CD / Sega CD', chip:'ym2612', declarationChip:'mega-cd',
+  {id:'mega-cd', label:'Mega CD', chip:'ym2612', declarationChip:'mega-cd',
     megaCD:true, mega32X:false, legacyDraftKey:'mega-cd', chipTabs:['operator', 'segapsg', 'rf5c164'],
     details:'YM2612 + Sega PSG + RF5C164 · 8 PCM voices · 64 KiB RAM'},
+  {id:'genesis-full', label:'32X', chip:'ym2612', declarationChip:'mega-cd', full:true},
+  {id:'genesis-full-nuked', label:'32X Nuked', chip:'ym2612', declarationChip:'mega-cd', full:true, engine:'nuked'},
   {id:'pc98-26', label:'PC-98 (YM2203 / OPN)', chip:'ym2203'},
   {id:'pc98', label:'PC-98 (YM2608 / OPNA)', chip:'ym2608'},
   {id:'neogeo', label:'Neo Geo', chip:'ym2610'},

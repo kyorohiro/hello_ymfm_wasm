@@ -1,4 +1,4 @@
-// Mega-CD mode: one 128-byte waveform, eight physical PCM voices.
+// Mega CD mode: one 128-byte waveform, eight physical PCM voices.
 // Change the waveform below; all voices reuse the same RAM with their own pitch and pan.
 const pcm = await useSoundChip('rf5c164');
 const length = 128;

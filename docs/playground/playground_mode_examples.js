@@ -10,9 +10,9 @@ const opnbExamples = [
 ];
 const definitions = {
   genesis: null,
+  'mega-cd': ['/examples/mega-cd/megacd-pcm-loop.js', '/examples/mega-cd/megacd-fm-pcm.js', '/examples/mega-cd/megacd-sampler.js'],
   'genesis-full': fullExamples,
   'genesis-full-nuked': fullExamples,
-  'mega-cd': ['/examples/mega-cd/megacd-pcm-loop.js', '/examples/mega-cd/megacd-fm-pcm.js', '/examples/mega-cd/megacd-sampler.js'],
   'pc98-26': ['/examples/pc98/pc98-opn-melody.js', '/examples/pc98/pc98-opn-ssg.js'],
   pc98: ['/examples/pc98/pc98-opna-groove.js', '/examples/pc98/pc98-opna-sections.js'],
   neogeo: opnbExamples,

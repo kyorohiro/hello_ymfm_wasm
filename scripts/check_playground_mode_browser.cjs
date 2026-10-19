@@ -25,9 +25,9 @@ const mime = {'.html':'text/html', '.js':'text/javascript', '.mjs':'text/javascr
 const accessor = '\nwindow.__modeRegression={runtime,megaDrive,selectedMode,virtualFiles,getEditorValue,setEditorValue:value=>editorAdapter.setValue(value),captureProjectSnapshot,openVirtualFile,loadCassetteSource,runCode};';
 const modes = [
   {id:'genesis', label:'Genesis', chip:'ym2612', clock:7670454, channels:6},
-  {id:'genesis-full', label:'Genesis Full', chip:'ym2612', declarationChip:'mega-cd', clock:7670454, channels:6, full:true},
-  {id:'genesis-full-nuked', label:'Genesis Full (Nuked)', chip:'ym2612', declarationChip:'mega-cd', clock:7670454, channels:6, full:true, nuked:true},
-  {id:'mega-cd', label:'Mega-CD / Sega CD', chip:'ym2612', declarationChip:'mega-cd', clock:7670454, channels:6, megaCD:true},
+  {id:'mega-cd', label:'Mega CD', chip:'ym2612', declarationChip:'mega-cd', clock:7670454, channels:6, megaCD:true},
+  {id:'genesis-full', label:'32X', chip:'ym2612', declarationChip:'mega-cd', clock:7670454, channels:6, full:true},
+  {id:'genesis-full-nuked', label:'32X Nuked', chip:'ym2612', declarationChip:'mega-cd', clock:7670454, channels:6, full:true, nuked:true},
   {id:'pc98-26', label:'PC-98 (YM2203 / OPN)', chip:'ym2203', clock:4000000, channels:3},
   {id:'pc98', label:'PC-98 (YM2608 / OPNA)', chip:'ym2608', clock:8000000, channels:6},
   {id:'neogeo', label:'Neo Geo', chip:'ym2610', clock:8000000, channels:4},
@@ -908,7 +908,7 @@ async function checkDesktopAutosave(browser, base) {
   const legacySource = '// Legacy YM2203 draft\nawait sleep(.01);\n';
   const opnSource = '// PC-98 OPN mode draft\nawait sleep(.02);\n';
   const genesisSource = '// Genesis mode draft\nawait sleep(.03);\n';
-  const fullSource = '// Genesis Full mode draft\nawait sleep(.04);\n';
+  const fullSource = '// 32X mode draft\nawait sleep(.04);\n';
   try {
     // The landing page establishes the origin without starting Playground's
     // pagehide autosave before legacy storage has been populated.
@@ -943,10 +943,10 @@ async function checkDesktopAutosave(browser, base) {
     await page.goto(`${base}?mode=pc98-26&no-sw=1`); await ready(page);
     assert.equal(await page.evaluate(() => window.__modeRegression.getEditorValue()), opnSource, 'the new mode draft takes precedence over the legacy draft');
     await page.goto(`${base}?mode=genesis-full&no-sw=1`); await ready(page);
-    assert.notEqual(await page.evaluate(() => window.__modeRegression.getEditorValue()), genesisSource, 'Genesis Full has its own draft');
+    assert.notEqual(await page.evaluate(() => window.__modeRegression.getEditorValue()), genesisSource, '32X has its own draft');
     await editAndFlush(fullSource);
     await page.goto(`${base}?mode=genesis&no-sw=1`); await ready(page);
-    assert.equal(await page.evaluate(() => window.__modeRegression.getEditorValue()), genesisSource, 'Genesis Full does not overwrite Genesis');
+    assert.equal(await page.evaluate(() => window.__modeRegression.getEditorValue()), genesisSource, '32X does not overwrite Genesis');
     const stored = await page.evaluate(async () => {
       const {openDraftStore} = await import('./playground_autosave.js');
       const drafts = {};

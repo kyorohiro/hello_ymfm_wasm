@@ -1,4 +1,4 @@
-// Mega-CD / Sega CD: FM and a short bass sample in the built-in PCM RAM.
+// Mega CD: FM and a short bass sample in the built-in PCM RAM.
 // Try examples/mega-cd/megacd-sampler.js to turn your own audio into a keyboard instrument.
 const pcm = await useSoundChip('rf5c164');
 const sampleRate = 16000;

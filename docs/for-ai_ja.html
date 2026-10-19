@@ -71,7 +71,7 @@
         <ul>
           <li><a href="./playground/tetorica-playground-globals.d.ts">Playground共通API</a></li>
           <li><a href="./playground/tetorica-playground-ym2612.d.ts">YM2612 / メガドライブ用</a></li>
-          <li><a href="./playground/tetorica-playground-mega-cd.d.ts">Mega-CD / Sega CD用（Genesis Full共用）</a></li>
+          <li><a href="./playground/tetorica-playground-mega-cd.d.ts">Mega CD用（32X・32X Nuked共用）</a></li>
           <li><a href="./playground/tetorica-playground-ym2608.d.ts">YM2608 / PC-98用</a></li>
           <li><a href="./playground/tetorica-playground-ym2203.d.ts">YM2203 / PC-98用</a></li>
           <li><a href="./playground/tetorica-playground-ym2610.d.ts">YM2610 / Neo Geo用</a></li>
@@ -80,7 +80,7 @@
         <p>共通APIと、対象のPlaygroundで選択するチップの型定義を読んでください。</p>
         <p>Game Boy modeでは<code>gameboy.pulse</code>・<code>gameboy.wave</code>・<code>gameboy.noise</code>を使います。<code>pg.gameboy</code>からも同じ音源を操作できます。時間制御には<code>beat()</code>・<code>sleep()</code>・<code>liveLoop()</code>を使い、グローバルの<code>play()</code>・<code>fm</code>・OPN用ショートカットはOPN modeで使います。</p>
 
-        <p>Mega-CD / Sega CD modeは、GenesisのFM・PSGにRF5C164の8音PCMと共有64 KiB RAMを加えます。32X PWMは含みません。<code>await useSoundChip('rf5c164')</code>は組み込み音源を借用し、<code>dispose()</code>を公開しません。別の音源を追加する場合は<code>createSoundChip()</code>を使います。<code>await inputAudio({title})</code>はファイル選択・マイク録音のダイアログを開き、<code>{name, source, sampleRate, channels: Float32Array[]}</code>またはキャンセル時に<code>null</code>を返します。素材の切り出しと変換は<code>pcm.loadSample()</code>やキーボード操作の前に済ませます。音程は再生速度で変更するため、素材の基準音は利用者が指定します。</p>
+        <p>Mega CD modeは、GenesisのFM・PSGにRF5C164の8音PCMと共有64 KiB RAMを加えます。32X PWMは含みません。<code>await useSoundChip('rf5c164')</code>は組み込み音源を借用し、<code>dispose()</code>を公開しません。別の音源を追加する場合は<code>createSoundChip()</code>を使います。<code>await inputAudio({title})</code>はファイル選択・マイク録音のダイアログを開き、<code>{name, source, sampleRate, channels: Float32Array[]}</code>またはキャンセル時に<code>null</code>を返します。素材の切り出しと変換は<code>pcm.loadSample()</code>やキーボード操作の前に済ませます。音程は再生速度で変更するため、素材の基準音は利用者が指定します。</p>
 
         <h2>動作するサンプル</h2>
         <p>サンプルの正本は<a href="./playground/playground_examples.js">playground_examples.js</a>です。以下のリンクはPlaygroundで利用する代表的なサンプルです。読み込んでも自動では実行されません。</p>
@@ -91,8 +91,8 @@
           <li><a href="./playground/examples/basic/noise/noise-ocean.js">Noise Ocean</a>— ノイズの生成とパラメーター操作</li>
           <li><a href="./playground/examples/basic/fm/fm-api-beep.js">FM API Beep</a>— YM2612の直接設定</li>
           <li><a href="./playground/examples/basic/psg/psg-scale.js">PSG Scale</a>— SN76489互換のトーンAPI</li>
-          <li><a href="./playground/defaults/mega-cd/index.js">Mega-CD初期コード</a>— FMとPCMのベース</li>
-          <li><a href="./playground/examples/mega-cd/megacd-sampler.js">Mega-CDサンプラー</a>— ファイルや録音素材をキーボードから8音PCMで演奏</li>
+          <li><a href="./playground/defaults/mega-cd/index.js">Mega CD初期コード</a>— FMとPCMのベース</li>
+          <li><a href="./playground/examples/mega-cd/megacd-sampler.js">Mega CDサンプラー</a>— ファイルや録音素材をキーボードから8音PCMで演奏</li>
           <li><a href="./playground/examples/basic/fx/parallel-fx.js">Parallel FX</a>— 分岐したエフェクト経路</li>
           <li><a href="./playground/examples/gameboy/gameboy-mode-pulse.js">Game Boy mode pulse</a>— 標準APUと名前付きメロディーループ</li>
         </ul>

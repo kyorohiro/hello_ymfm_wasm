@@ -29,8 +29,8 @@ import {createHuc6280Audio} from './playground_huc6280_audio.js?v=sega-modes-1';
 import {createOki6258Audio} from './playground_okim6258_audio.js?v=sega-modes-1';
 import {createYm2608Audio} from './playground_ym2608_audio.js?v=sega-modes-1';
 import {createYm2608Client} from './playground_ym2608.js?v=audio-stability-2';
-import {createRf5c164Client} from './playground_rf5c164.js?v=mega-cd-2';
-import {createRf5c164Audio} from './playground_rf5c164_audio.js?v=mega-cd-2';
+import {createRf5c164Client} from './playground_rf5c164.js?v=mega-cd-3';
+import {createRf5c164Audio} from './playground_rf5c164_audio.js?v=mega-cd-3';
 import {samplePCM} from './native_sample.js?v=audio-stability-2';
 import {formatLogArgs} from './playground_log.js';
 import {createLiveFxLifecycle} from './native_fx.js?v=live-fx-definitions-1';
@@ -45,11 +45,11 @@ import {parseMidiFile} from './midi_file.js?v=sega-modes-1';
 import { createAudioScheduler } from "./playground_audio_scheduler.js";
 import {
   FM_PRESETS,
-} from "./megasynth.js?v=mega-cd-2";
-import { createTetoricaSynth } from "./tetorica_synth.js?v=mega-cd-2";
+} from "./megasynth.js?v=mega-cd-3";
+import { createTetoricaSynth } from "./tetorica_synth.js?v=mega-cd-3";
 import { createPlaygroundClock, createSecondsTimeline } from "./playground_clock.js?v=spc-song-timing-1";
 import { capturePlaygroundNativeIpc, executeWithPlaygroundGuards } from "./playground_execution.js";
-import { createPlaygroundLive } from "./playground_live.js?v=mega-cd-2";
+import { createPlaygroundLive } from "./playground_live.js?v=mega-cd-3";
 import { createPlaygroundMusic } from "./playground_music.js?v=audio-stability-2";
 import { createPlaygroundNoiseApi } from "./playground_noise.js";
 import { createFmProxy } from "./playground_sync.js?v=audio-stability-2";
@@ -213,7 +213,7 @@ export function createPlaygroundRuntime(
     options.execution ?? "main";
   const defaultLogicWorkerUrl =
     new URL(
-      "./playground_logic_worker.js?v=mega-cd-2",
+      "./playground_logic_worker.js?v=mega-cd-3",
       import.meta.url
     );
   const logicWorkerUrl =
