@@ -5,6 +5,7 @@ import { createPlaygroundRuntime } from './playground_runtime.js';
 import {createNativeFXController} from './native_fx.js';
 import {LiveFX} from './custom_fx.js';
 import {createYm2608Client} from './playground_ym2608.js';
+import {GameboySynth} from './gameboysynth.js';
 import {YM2203Synth} from './ym2203synth.js';
 import {YM2608Synth} from './ym2608synth.js';
 import {YM2610BSynth, NeoGeoFMSynth} from './ym2610bsynth.js';
@@ -44,6 +45,63 @@ function setup(t, capabilities, runtimeOptions = {}) {
   });
   return { runtime, megaDrive, listeners, statuses, logs };
 }
+
+test('primary Game Boy exposes shared initialized controls without FM shortcuts and survives Stop', async t => {
+  const {runtime,megaDrive}=setup(t,{chip:'gameboy',fmChannels:0,psg:false,dac:false});
+  const writes=[];
+  megaDrive.fm=null;
+  megaDrive.gameboy=new GameboySynth({transport:{reset(){},writeRegister:(...args)=>writes.push(args)}});
+  megaDrive.gameboy.initialize();
+  await runtime.playSource(`
+    const prepared=await livePrepare('gameboy',api=>({gameboy:api.gameboy,keys:Object.keys(api)}));
+    if(gameboy!==pg.gameboy || prepared.gameboy!==gameboy || await useSoundChip('gameboy')!==gameboy)throw Error('Separate primary APU');
+    if(typeof gameboy.dispose!=='undefined')throw Error('Primary lifetime leaked');
+    for(const name of ['fm','psg','dac','midi','play','write','CH1','OP1','FM_PRESETS','noteToBlockFnum']) {
+      if(name in pg || prepared.keys.includes(name))throw Error('OPN shortcut '+name);
+    }
+    if(typeof fm!=='undefined'||typeof play!=='undefined'||typeof write!=='undefined'||typeof CH1!=='undefined')throw Error('Unexpected OPN global');
+    gameboy.pulse.setVoice(0,{volume:13}); gameboy.pulse.noteOn(0,'A4');
+    gameboy.wave.noteOn('C3'); gameboy.noise.keyOn();
+  `);
+  assert.equal(runtime.fm,null); assert.equal(runtime.gameboy,megaDrive.gameboy);
+  assert(writes.some(([reg,v])=>reg===4&&(v&128)));
+  const before=writes.length;
+  await runtime.stop();
+  for(const register of [2,7,10,17])assert(writes.slice(before).some(([r,v])=>r===register&&v===0));
+  const stopped=writes.length;
+  await runtime.playSource(`gameboy.pulse.noteOn(0,'C4');`);
+  assert(writes.slice(stopped).some(([reg,v])=>reg===2&&(v>>4)===13),'Stop retains pulse voice without initialize/reset');
+});
+
+test('stopping a Main Game Boy liveLoop releases its held voice', async t => {
+  const {runtime,megaDrive}=setup(t,{chip:'gameboy',fmChannels:0,psg:false,dac:false});
+  const writes=[];
+  megaDrive.fm=null;
+  megaDrive.gameboy=new GameboySynth({transport:{reset(){},writeRegister:(...args)=>writes.push(args)}});
+  megaDrive.gameboy.initialize();
+  writes.length=0;
+  await runtime.playSource(`liveLoop('held',async()=>{gameboy.pulse.noteOn(0,'C4');await sleep(60);});`);
+  await until(()=>writes.some(([r,v])=>r===4&&(v&128)));
+  const before=writes.length;
+  await runtime.playSource(`stopLoop('held');`);
+  assert(writes.slice(before).some(([r,v])=>r===2&&v===0));
+});
+
+test('a stopped Main Game Boy loop cannot release the next script replacement note', async t => {
+  const {runtime,megaDrive}=setup(t,{chip:'gameboy',fmChannels:0,psg:false,dac:false});
+  const writes=[];
+  megaDrive.fm=null;
+  megaDrive.gameboy=new GameboySynth({transport:{reset(){},writeRegister:(...args)=>writes.push(args)}});
+  megaDrive.gameboy.initialize(); writes.length=0;
+  await runtime.playSource(`liveLoop('held',async()=>{gameboy.pulse.noteOn(0,'C4');try{await sleep(60);}finally{gameboy.pulse.keyOff(0);}});`);
+  await until(()=>writes.some(([r,v])=>r===4&&(v&128)));
+  const before=writes.length;
+  await runtime.playSource(`gameboy.pulse.noteOn(0,'E4');stopLoop('held');`);
+  await Promise.resolve();
+  const replacement=writes.slice(before);
+  assert(replacement.some(([r,v])=>r===4&&(v&128)));
+  assert(!replacement.some(([r,v])=>r===2&&v===0),'retired loop cannot mute the script replacement');
+});
 
 test('primary OPNA exposes one shared SSG/rhythm/ADPCM API and Stop releases all sections', async t => {
   const {runtime, megaDrive} = setup(t, {chip:'ym2608', fmChannels:6, psg:false, dac:false});

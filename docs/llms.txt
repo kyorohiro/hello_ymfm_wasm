@@ -1,6 +1,6 @@
 # Tetorica Playground (hello_ymfm_wasm)
 
-> Browser-based JavaScript playground, documentation, and WebAssembly tools for YM2612, YM2608, YM2203, and YM2610 FM synthesis.
+> Browser-based JavaScript playground, documentation, and WebAssembly tools for OPN FM synthesis and the Game Boy APU.
 
 Use the common Playground type definitions together with the type definition for the selected sound chip. The canonical examples are code that runs in the Playground.
 
@@ -19,6 +19,7 @@ Use the common Playground type definitions together with the type definition for
 - [YM2608 selection](./playground/tetorica-playground-ym2608.d.ts): PC-98 configuration
 - [YM2203 selection](./playground/tetorica-playground-ym2203.d.ts): Three-channel PC-98 configuration
 - [YM2610 selection](./playground/tetorica-playground-ym2610.d.ts): Neo Geo configuration
+- [Game Boy mode](./playground/tetorica-playground-gameboy.d.ts): Built-in gameboy.pulse, gameboy.wave and gameboy.noise; no global play/fm/OPN shortcuts. Use beat/sleep/liveLoop for timing.
 
 ## Examples
 
@@ -30,6 +31,7 @@ Open these source files from Playground FILES → examples to run them.
 - [FM API Beep](./playground/examples/basic/fm/fm-api-beep.js): Direct YM2612 setup
 - [PSG Scale](./playground/examples/basic/psg/psg-scale.js): SN76489-compatible tone API
 - [Parallel FX](./playground/examples/basic/fx/parallel-fx.js): Branched effect routing
+- [Game Boy mode pulse](./playground/examples/gameboy/gameboy-mode-pulse.js): Primary APU with explicit pulse noteOn/keyOff and a named melody loop
 - [DX7 Init Sine](./playground/examples/dx7/dx7-init-sine.js): useSoundChip('dx7'), 16-voice MIDI-note playback and DX7 SysEx banks. Read SysEx with file(path, {type:'arrayBuffer'}); await loadSysex before noteOn. MSFA runs internally at 44,100 Hz and has no setClock API.
 
 ## Source

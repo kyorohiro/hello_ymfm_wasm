@@ -7,7 +7,7 @@ import {installPlaygroundShell} from './playground_shell.js?v=compact-shell-1';
 import {installPlaygroundGit} from './playground_git.js';
 import {openDraftStore, createProjectAutosave} from './playground_autosave.js?v=opn-modes-1';
 import {PLAYGROUND_MODES, resolvePlaygroundMode, createModeSynthOptions,
-  createPlaygroundModeUrl, isSimplePlaygroundLayout} from './playground_mode.js?v=opn-ssg-1';
+  createPlaygroundModeUrl, isSimplePlaygroundLayout} from './playground_mode.js?v=gameboy-mode-1';
 import {saveModeProject, consumeModeProject} from './playground_mode_project.js';
 let desktopAutosave = null;
 let playgroundShell = null;
@@ -33,7 +33,7 @@ import {
 } from "../js/megasynth.js?v=chip-tabs-2";
 import {
   createTetoricaSynth,
-} from "../js/tetorica_synth.js?v=opn-ssg-1";
+} from "../js/tetorica_synth.js?v=gameboy-mode-1";
 import {
   createTfiOperatorObjectText,
   createTfiPresetObjectText,
@@ -46,8 +46,8 @@ import {
 } from "./playground_operator_tab.js?v=chip-tabs-2";
 import { createPlaygroundOperatorKeyboard } from "./playground_operator_keyboard.js?v=keyboard-controls-minimize-1";
 import { CHIP_CLOCKS } from "../js/playground_chip_clock.js?v=opnb-primary-1";
-import { DEFAULT_CODE, EXAMPLES, EXAMPLE_FILES } from "./playground_examples.js?v=opn-ssg-1";
-import { initializePlaygroundMonaco } from "./playground_monaco.js?v=opn-ssg-1";
+import { DEFAULT_CODE, EXAMPLES, EXAMPLE_FILES } from "./playground_examples.js?v=gameboy-mode-1";
+import { initializePlaygroundMonaco } from "./playground_monaco.js?v=gameboy-mode-1";
 import {
   decodeBase64Bytes,
   loadTfiPresetsFromQuery,
@@ -78,12 +78,12 @@ import { exportYm2608VgmToPlaygroundJavaScript } from "../js/ym2608vgm.js";
 import { exportYm2610BVgmToPlaygroundJavaScript } from "../js/ym2610bvgm.js";
 import {
   createPlaygroundRuntime,
-} from "../js/playground_runtime.js?v=opn-ssg-1";
+} from "../js/playground_runtime.js?v=gameboy-mode-1";
 import {DEFAULT_WORKER_LOOKAHEAD_SECONDS} from '../js/playground_performance_sender.js?v=opna-primary-1';
 import { createVgmPresetFiles } from "./playground_vgm_presets.js";
 import { createTfiFileEditor, instrumentToEditorPreset } from "./playground_tfi_editor.js?v=chip-tabs-2";
 import { renderFileTree } from "./playground_file_tree.js?v=opnb-primary-1";
-import { createPlaygroundUi, applyPlaygroundLayout } from "./playground_ui.js?v=mode-tabs-1";
+import { createPlaygroundUi, applyPlaygroundLayout } from "./playground_ui.js?v=gameboy-mode-1";
 import {
   handleMegaSynthEvent,
 } from "./playground_sync.js";
@@ -260,6 +260,12 @@ const selectedChipClock = selectedMode.clock;
 const useNukedEngine = selectedMode.engine === 'nuked';
 const synthOptions = createModeSynthOptions(selectedMode);
 const megaDrive = createTetoricaSynth(synthOptions);
+const hasPrimaryFM = megaDrive.capabilities.fmChannels > 0;
+const initialCode = selectedMode.defaultExample ? EXAMPLES[selectedMode.defaultExample] : DEFAULT_CODE;
+if (typeof initialCode !== 'string') throw new Error(`Missing default example for ${selectedMode.label}`);
+const instrumentSynthOptions = hasPrimaryFM ? synthOptions
+  : createModeSynthOptions(PLAYGROUND_MODES.find(mode => mode.id === 'genesis'));
+const instrumentClock = hasPrimaryFM ? selectedChipClock : CHIP_CLOCKS.ym2612;
 document.title = `Tetorica ${selectedMode.label} Playground`;
 const pageTitle = document.getElementById('pageTitle');
 if (pageTitle) pageTitle.firstChild.textContent = document.title;
@@ -269,7 +275,10 @@ const modeOptions = selectedMode.legacy ? [...PLAYGROUND_MODES, selectedMode] : 
 modeSelect.replaceChildren(...modeOptions.map(mode => new Option(mode.label, mode.id)));
 modeSelect.value = selectedMode.id;
 document.getElementById('playgroundModeDetails').textContent =
-  `${selectedChip.toUpperCase()} · ${selectedChipClock.toLocaleString('en-US')} Hz · ${useNukedEngine ? 'Nuked-OPN2' : 'ymfm'}`;
+  `${selectedChip.toUpperCase()} · ${selectedChipClock.toLocaleString('en-US')} Hz · ${selectedChip === 'gameboy' ? 'Game Boy APU' : useNukedEngine ? 'Nuked-OPN2' : 'ymfm'}`;
+for (const button of [exportTfiButton, exportVgiButton]) if (button) button.hidden = !hasPrimaryFM;
+for (const element of document.querySelectorAll('[data-opn-helper]')) element.hidden = !hasPrimaryFM;
+for (const element of document.querySelectorAll('[data-gameboy-helper]')) element.hidden = selectedChip !== 'gameboy';
 
 let synth = null;
 const urlTfiResult =
@@ -291,8 +300,7 @@ let editorAdapter =
   );
 const bundledExampleFiles = EXAMPLE_FILES;
 const initialProjectFiles = [
-  // A new project starts with the previous Live Loop example as its entry point.
-  { path: "/index.js", data: DEFAULT_CODE },
+  { path: "/index.js", data: initialCode },
   { path: "/scripts/example.js", data: [
     "const {fs, shell, args, cwd} = await import('tetorica:shell');",
     "console.log('Shell script:', cwd, args);",
@@ -335,8 +343,14 @@ const initialProjectFiles = [
     "```js",
     "const { notes } = await import('./lib/notes.js');",
     "for (const note of notes) {",
-    "  await play(note, { channel: CH1, duration: 0.2 });",
-    "  await sleep(0.25);",
+    ...(hasPrimaryFM ? [
+      "  await play(note, { channel: CH1, duration: 0.2 });",
+      "  await sleep(0.25);",
+    ] : [
+      "  gameboy.pulse.noteOn(0, note);",
+      "  await beat(1);",
+      "  gameboy.pulse.keyOff(0);",
+    ]),
     "}",
     "```",
     "",
@@ -457,7 +471,7 @@ let vgmImportRequest = 0;
 const cassetteExamples = new Map();
 let currentCassetteMetadata = null;
 let currentCassetteHasMetadataFile = false;
-const operatorTab =
+const operatorTab = hasPrimaryFM ?
   createPlaygroundOperatorTab({
     root: operatorTabRoot,
     presets:
@@ -469,8 +483,8 @@ const operatorTab =
     onStatus(message) {
       setStatus(message);
     },
-  });
-const operatorKeyboard = createPlaygroundOperatorKeyboard({
+  }) : null;
+const operatorKeyboard = hasPrimaryFM ? createPlaygroundOperatorKeyboard({
   root: operatorKeyboardRoot,
   auditionPriority: true,
   minimizeHost: keyboardPanel,
@@ -504,9 +518,9 @@ const operatorKeyboard = createPlaygroundOperatorKeyboard({
   onStatus(message) {
     setStatus(message);
   },
-});
+}) : null;
 
-operatorTabRoot.addEventListener("change", () => operatorKeyboard.syncChannel());
+operatorTabRoot.addEventListener("change", () => operatorKeyboard?.syncChannel());
 
 let activeTfiFilePath = null;
 const tfiFileEditor = createTfiFileEditor({
@@ -515,8 +529,8 @@ const tfiFileEditor = createTfiFileEditor({
   keyboardRoot: document.getElementById("tfiFileKeyboard"),
   minimizableKeyboard: true,
   title: document.getElementById("tfiFileTitle"),
-  createAudio: () => createTetoricaSynth({...synthOptions, megaCD:false, mega32X:false}),
-  clock: selectedChipClock,
+  createAudio: () => createTetoricaSynth({...instrumentSynthOptions, megaCD:false, mega32X:false}),
+  clock: instrumentClock,
   clockDivider: selectedChip === 'ym2203' ? 72 : 144,
   onSave(path, bytes) {
     virtualFiles.writeBinary(path, bytes);
@@ -526,7 +540,7 @@ const tfiFileEditor = createTfiFileEditor({
 });
 window.addEventListener("pagehide", event => {
   if (!event.persisted) {
-    operatorTab.dispose();
+    operatorTab?.dispose();
     mixerPanel?.dispose();
     chipTabs?.dispose();
     void tfiFileEditor.dispose();
@@ -1467,7 +1481,7 @@ function registerVirtualInstrumentPreset(path) {
   virtualPresetIds.set(path, presetId);
   playgroundPresets[presetId] = preset;
   runtime.presets[presetId] = preset;
-  operatorTab.registerPresetOption(
+  operatorTab?.registerPresetOption(
     presetId,
     path.slice("/presets/".length)
   );
@@ -1483,7 +1497,7 @@ function clearVirtualInstrumentPresets() {
   for (const presetId of virtualPresetIds.values()) {
     delete playgroundPresets[presetId];
     delete runtime.presets[presetId];
-    operatorTab.removePresetOption(presetId);
+    operatorTab?.removePresetOption(presetId);
   }
   virtualPresetIds.clear();
 }
@@ -1646,6 +1660,7 @@ const audioMonitor = createAudioMonitor(() => activeTfiFilePath && !codePanel.hi
 const ui =
   createPlaygroundUi({
     chipTabs: selectedMode.chipTabs,
+    fmKeyboard: hasPrimaryFM,
     dockedPanels: Boolean(workbench),
     initialBottomTab: workbench?.initialBottomTab,
     initialDockOpen: workbench?.initialDockOpen,
@@ -1684,10 +1699,10 @@ const ui =
       const showAudio = tool === "audio" || (inlineAudioMonitor && primary === "code");
       if (inlineAudioMonitor) audioMonitorPanel.hidden = !showAudio;
       audioMonitor.setVisible(showAudio);
-      operatorTab.setVisible(primary === "operator");
+      operatorTab?.setVisible(primary === "operator");
       chipTabs?.setVisible(['segapsg', 'rf5c164', 'pwm'].includes(primary) ? primary : null);
       mixerPanel?.setVisible(tool === 'mixer');
-      operatorKeyboard.setView(tool === "keyboard" ? "keyboard" : primary);
+      operatorKeyboard?.setView(tool === "keyboard" ? "keyboard" : primary);
       tfiFileEditor.setVisible(primary === "code" && Boolean(activeTfiFilePath));
       refreshCodeFileActions();
     },
@@ -1706,7 +1721,7 @@ function createRuntime() {
     midiFileSupported: !useNukedEngine,
     workerLookaheadSeconds: readWorkerLookahead() / 1000,
     megaDrive,
-    onAuditionReset: () => operatorKeyboard.releaseAll(),
+    onAuditionReset: () => operatorKeyboard?.releaseAll(),
     presets:
       playgroundPresets,
     onStatus(message) {
@@ -1721,13 +1736,14 @@ function createRuntime() {
     },
     onReady(context) {
       synth = context.synth;
-      operatorTab.attachSynth(synth);
-      operatorKeyboard.attachSynth(runtime.getAuditionSynth());
+      operatorTab?.attachSynth(synth);
+      operatorKeyboard?.attachSynth(runtime.getAuditionSynth());
       applyMasterVolume();
       mixerPanel?.refresh();
       chipTabs?.refresh();
     },
     onMegaDriveEvent(event) {
+      if (!hasPrimaryFM) return;
       handleMegaSynthEvent(
         event,
         {
@@ -1769,7 +1785,7 @@ const pageLifecycle = installPlaygroundPageLifecycle({
   getRuntime: () => runtime,
   onRestored() {
     synth = null;
-    operatorKeyboard.attachSynth(null);
+    operatorKeyboard?.attachSynth(null);
     runButton.disabled = false;
     syncWorkerExecutionLock();
     setStatus("Playback stopped after navigation. Press Run to start again.");
@@ -1951,7 +1967,7 @@ async function registerCassetteAssets(assets) {
     cassettePresetNames.add(timbre.name);
     playgroundPresets[timbre.name] = timbre.preset;
     runtime.presets[timbre.name] = timbre.preset;
-    operatorTab.registerPresetOption(timbre.name);
+    operatorTab?.registerPresetOption(timbre.name);
   }
 
   for (const example of assets.examples) {
@@ -2082,7 +2098,7 @@ function applyInitialSourceFromQuery() {
   const result =
     resolveInitialSourceFromQuery(
       window.location.search,
-      { "index.js": DEFAULT_CODE },
+      { "index.js": initialCode },
       "index.js"
     );
 
@@ -2189,7 +2205,7 @@ function installPlaygroundEventHandlers() {
     await stopRun();
     pendingDesktopCassetteAssets = null;
     for (const name of cassettePresetNames) {
-      delete playgroundPresets[name]; delete runtime.presets[name]; operatorTab.removePresetOption(name);
+      delete playgroundPresets[name]; delete runtime.presets[name]; operatorTab?.removePresetOption(name);
     }
     cassettePresetNames.clear(); cassetteExamples.clear();
     for (const name of cassetteSampleNames) runtime.sample.unload(name);
@@ -2222,8 +2238,8 @@ function installPlaygroundEventHandlers() {
   });
   const exportCurrentPresets = (format) => {
     const files = {};
-    for (let channel = 0; channel < 6; channel += 1) {
-      const preset = operatorTab.getChannelPreset?.(channel);
+    for (let channel = 0; channel < megaDrive.capabilities.fmChannels; channel += 1) {
+      const preset = operatorTab?.getChannelPreset?.(channel);
       if (!preset) continue;
       const bytes = format === "vgi"
         ? createVgiFromPreset(preset)

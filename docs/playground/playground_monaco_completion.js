@@ -270,6 +270,7 @@ const FM_COMPLETION_CAPABILITIES = {
   ym2203: {channels: [0, 1, 2], dac: false, pan: false, lfo: false},
   ym2608: {channels: [0, 1, 2, 3, 4, 5], dac: false, pan: true, lfo: true},
   ym2610: {channels: [1, 2, 4, 5], dac: false, pan: true, lfo: true},
+  gameboy: {channels: [], dac: false, pan: false, lfo: false},
 };
 
 function fmCompletionCapabilities(chip) {
@@ -278,6 +279,7 @@ function fmCompletionCapabilities(chip) {
 
 function isAvailableFmRegister(register, chip) {
   const capabilities = fmCompletionCapabilities(chip);
+  if (!capabilities.channels.length) return false;
   if (["0x2a", "0x2b"].includes(register)) return capabilities.dac;
   if (register === "0x22") return capabilities.lfo;
   if (register === "0xb4") return capabilities.pan;
@@ -287,7 +289,7 @@ function isAvailableFmRegister(register, chip) {
 // A local fm may be an independently created chip. Its inferred type belongs
 // to Monaco; selected-mode hints only describe the known global receiver.
 function primaryFmCompletionChip(linePrefix, analysis, chip) {
-  const receiver = /(?:^|[^\w$.])((?:pg\.)?fm)\.(?:write|writeAddress)\([^()]*$/.exec(linePrefix)?.[1];
+  const receiver = /(?:^|[^\w$.])((?:pg\.)?fm)\.(?:write|writeAddress|setOperator)\([^()]*$/.exec(linePrefix)?.[1];
   const root = receiver === "pg.fm" ? "pg" : receiver;
   return root && !analysis.declaredVariableNames.has(root) &&
     !analysis.parameterNames.has(root) && !analysis.functionNames.has(root)
@@ -1331,7 +1333,7 @@ export function registerMonacoCompletions(
           analysis.livePrepareObjects;
 
         if (
-          isInsidePresetString(
+          chip !== "gameboy" && isInsidePresetString(
             linePrefix
           )
         ) {
@@ -1379,7 +1381,7 @@ export function registerMonacoCompletions(
         }
 
         if (
-          isAtPlayFirstArgument(
+          chip !== "gameboy" && isAtPlayFirstArgument(
             linePrefix
           )
         ) {
@@ -1433,7 +1435,7 @@ export function registerMonacoCompletions(
         }
 
         if (
-          isInsideNoteString(
+          (chip !== "gameboy" || /(?:^|[^\w$])(?:pg\.)?scale\(/.test(linePrefix)) && isInsideNoteString(
             linePrefix
           )
         ) {
@@ -1491,7 +1493,7 @@ export function registerMonacoCompletions(
         }
 
         if (
-          isInsideCallObject(
+          fmCompletionCapabilities(primaryFmCompletionChip(linePrefix, analysis, chip)).channels.length > 0 && isInsideCallObject(
             sourceBeforeCursor,
             ["fm.setOperator("]
           )
@@ -1506,7 +1508,7 @@ export function registerMonacoCompletions(
         }
 
         if (
-          isInsideCallObject(
+          chip !== "gameboy" && isInsideCallObject(
             sourceBeforeCursor,
             ["play(", "pg.play("]
           )

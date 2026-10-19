@@ -1,8 +1,8 @@
 # Playground Sound Chip Mode 案
 
-## OPN 系の先行実装
+## 実装済み mode
 
-まずは既存の OPN 系 runtime を使い、Menu の Mode で次の環境を選べるようにする。
+Menu の Mode で次の環境を選べる。
 
 | mode | ID | ベース音源 | マスタークロック |
 | --- | --- | --- | --- |
@@ -13,9 +13,10 @@
 | PC-98 (YM2608 / OPNA) | `pc98` | YM2608 FM 6ch + SSG 3ch + Rhythm 6音 + ADPCM-B | 8,000,000 Hz |
 | Neo Geo | `neogeo` | YM2610 FM 4ch + SSG 3ch + ADPCM-A 6音 + ADPCM-B | 8,000,000 Hz |
 | Neo Geo (YM2610B) | `neogeo-b` | YM2610B FM 6ch + SSG 3ch + ADPCM-A 6音 + ADPCM-B | 8,000,000 Hz |
+| Game Boy | `gameboy` | Pulse 2ch + Wave 1ch + Noise 1ch | 4,194,304 Hz |
 
 ここでの Hz は CPU や音声出力のサンプルレートではなく、音源のマスタークロック。
-型定義、FM チャンネル定数、補完、音程計算を、選んだ環境に合わせる。
+型定義、音源 API・チャンネル定数、補完、音程計算を、選んだ環境に合わせる。
 音源タブも mode に合わせ、Genesis は FM / Sega PSG、Full はさらに RF5C164 / 32X PWM、
 PC-98 と Neo Geo は対象の FM タブを表示する。Code や下部の共通ツールは引き続き使える。
 `useSoundChip()` で追加した音源によって、mode に含まれないタブを自動表示することはしない。
@@ -102,6 +103,27 @@ A/B はそれぞれに符号化済みデータを `await loadMemory()` で読み
 `fm.setClock()` に SSG の音程計算と ADPCM-B のレート計算が追従し、Stop で全音源を停止する。
 外部 ROM 不要の例は `examples/neogeo/neogeo-opnb-sections.js`。
 
+### Game Boy の標準 API
+
+`?mode=gameboy` では `gameboy` を標準 APU とし、`pg.gameboy` と
+`livePrepare(({gameboy}) => ...)` からも同じ音源を操作する。
+
+- `gameboy.pulse`：2ch。音色・デューティ・エンベロープ・音程・発音を指定する。
+- `gameboy.wave`：32個の4-bit波形、音量レベル・音程・発音を指定する。
+- `gameboy.noise`：ノイズの分周・シフト・7/15-bit幅・エンベロープを指定する。
+- `gameboy.setPan()`：APU 4ch の左右出力を指定する。
+
+Game Boy mode では、グローバルの `play()`・`fm`・`write()`、OPN の音程変換・FM 定数を
+公開しない。時間制御は共通の `beat()`・`sleep()`・`liveLoop()` を使い、発音は
+`gameboy.pulse.noteOn()` などで対象を明示する。初期コードも Game Boy 用とし、
+FM・Sega PSG・PCM・PWM タブと FM Keyboard は表示しない。
+追加の OPN 音源は `useSoundChip()` などで取得したオブジェクトから操作できる。
+
+Main / Worker の両方に対応し、Stop で全4ch を停止する。標準 APU は Run ごとに
+破棄せず、音色設定を保持する。`useSoundChip('gameboy')` は標準 APU を再利用し、
+`createSoundChip('gameboy')` は独立した追加音源を作る。
+実行例・初期コードは `examples/gameboy/gameboy-mode-pulse.js`。
+
 ## 背景
 
 Playground は Genesis / YM2612 向けの環境から始まったため、グローバルの
@@ -118,7 +140,7 @@ NES、Game Boy、SNES、PC Engine など、FM ではない音源も扱うよう�
 音源の追加が一段落する段階なので、揃ってきた音源を前提に、
 「どの機種・音源環境で曲を書くか」を選べる形に整理する。
 
-以下は全体の設計メモ。OPN 系以外の mode は今後の対象とする。
+以下は全体の設計メモ。未実装の mode は今後の対象とする。
 
 ## 方針
 
@@ -154,7 +176,7 @@ Genesis mode に FM、PSG、DAC が最初から用意され、`play()` が標準
 | Master System | `master-system` | Sega PSG を中心とした構成 | FM 拡張を標準構成に含めるかは別途決める。 |
 | Game Gear | `game-gear` | Sega PSG を中心とした構成 | Master System との違い、ステレオ制御の扱いを整理する。 |
 | NES × FDS | `nes-fds` | NES + FDS | FDS を含む環境として用意する。 |
-| Game Boy | `gameboy` | Game Boy 音源 | FM を前提としない API・サンプルを用意する。 |
+| Game Boy | `gameboy` | Game Boy 音源 | 標準 `gameboy` API・初期コードを公開。グローバル `play()` は提供しない。 |
 | SNES | `snes` | SNES 音源 | サンプル・音色の初期構成と SPC 再生の位置付けを整理する。 |
 | PC-98 (OPN) | `pc98-26` | YM2203 | FM 3ch・SSG 3ch を標準公開。 |
 | PC-98 (OPNA) | `pc98` | YM2608 | FM 6ch・SSG 3ch・Rhythm・ADPCM-B を標準公開。 |
@@ -224,8 +246,8 @@ NES や Game Boy などに、FM の概念や OPN の音程表現を当てはめ�
 - `noteToBlockFnum()` / `hzToBlockFnum()`：ベースの OPN 音源に合わせて音程を変換する。
 
 mode が環境を明示するなら、その環境に合ったショートカットを残すこともできる。
-`play()` をすべての音源の共通 API に作り直すことや、必ず音源オブジェクト側へ
-移すことは、現時点では決定していない。
+Game Boy ではグローバル `play()` を提供せず、音源オブジェクト側の API を使う。
+今後の非 OPN mode も、各音源の発音方法を明示する方向で検討する。
 
 各 mode について、以下を決める。
 

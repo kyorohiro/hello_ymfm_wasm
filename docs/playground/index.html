@@ -2061,7 +2061,7 @@
             <h2>pg</h2>
             <ul class="helper-list">
               <li><code>pg</code> is the main playground helper namespace</li>
-              <li><code>pg.play("C4", { channel: CH1, duration: 0.2 })</code> plays one note</li>
+              <li data-opn-helper><code>pg.play("C4", { channel: CH1, duration: 0.2 })</code> plays one note</li>
               <li><code>pg.sleep(0.25)</code> waits in seconds</li>
               <li><code>sleepSamples(735)</code> waits in VGM-style 44.1kHz sample units</li>
               <li><code>pg.liveLoop("bass", async () =&gt; {})</code> keeps a named loop alive</li>
@@ -2069,16 +2069,25 @@
               <li><code>pg.setMasterVolume(1.5)</code>, <code>pg.getMasterVolume()</code></li>
               <li><code>await pg.livePrepare("main-fx", async ({ fx }) =&gt; ...)</code> reuses prepared live state across runs</li>
               <li><code>pg.scale("Eb2", "majorPentatonic", 2)</code>, <code>pg.chord("B2", "minor")</code></li>
-              <li><code>pg.noteToBlockFnum("C4")</code>, <code>pg.noteLerp("B2", "E3", 0.5)</code>, <code>pg.lerp(0, 100, 0.5)</code></li>
-              <li><code>hzToBlockFnum(440)</code> / <code>pg.hzToBlockFnum(440)</code> converts Hz to <code>{block, fnum}</code> for <code>fm.setFrequency(channel, block, fnum)</code>. Optional second argument: chip clock in Hz (default 7670454), not the audio sample rate.</li>
+              <li><code>pg.lerp(0, 100, 0.5)</code> interpolates between two numbers</li>
+              <li data-opn-helper><code>pg.noteToBlockFnum("C4")</code>, <code>pg.noteLerp("B2", "E3", 0.5)</code> convert FM pitch</li>
+              <li data-opn-helper><code>hzToBlockFnum(440)</code> / <code>pg.hzToBlockFnum(440)</code> converts Hz to <code>{block, fnum}</code> for <code>fm.setFrequency(channel, block, fnum)</code>. Optional second argument: chip clock in Hz (default 7670454), not the audio sample rate.</li>
               <li><code>pg.choose(array)</code>, <code>pg.cycle(array)</code>, <code>pg.cycle("bass", array)</code></li>
               <li><code>pg.rand()</code>, <code>pg.rrange(0.2, 0.8)</code>, <code>pg.randInt(0, 7)</code></li>
               <li><code>pg.stopLoop(name)</code>, <code>pg.stopAllLoops()</code>, <code>pg.stopAll()</code></li>
             </ul>
 
             <p class="subtext">Go to Definition (F12 / Ctrl or Cmd + click) opens library declarations read-only. View implementation opens the corresponding JavaScript source.</p>
-            <h2 style="margin-top: 14px;">midi (YM2612 mode)</h2>
-            <ul class="helper-list">
+            <h2 data-gameboy-helper hidden style="margin-top: 14px;">Game Boy</h2>
+            <ul data-gameboy-helper hidden class="helper-list">
+              <li><code>gameboy</code> is the primary Game Boy APU, also available through <code>pg.gameboy</code> and <code>livePrepare(({gameboy}) =&gt; ...)</code>. It is initialized when audio starts.</li>
+              <li><code>gameboy.pulse.setVoice(0, {duty: 0.25, volume: 9})</code>, <code>gameboy.pulse.noteOn(0, "C4")</code>, <code>gameboy.pulse.keyOff(0)</code>. Pulse channels are <code>0</code> and <code>1</code>.</li>
+              <li><code>gameboy.wave.stopAndSetWaveform(samples)</code> loads 32 four-bit samples. Choose <code>setLevel(0.5)</code>, then <code>noteOn("C3")</code> / <code>keyOff()</code>.</li>
+              <li><code>gameboy.noise.setVoice({volume: 8, divisor: 3, shift: 4, width: 15})</code>, <code>gameboy.noise.keyOn()</code>, <code>gameboy.noise.keyOff()</code>.</li>
+              <li><code>gameboy.setPan(channel, left, right)</code> routes APU channels <code>0..3</code>. Time notes with <code>beat()</code> / <code>sleep()</code> and use <code>liveLoop()</code> for repeated patterns. See <code>examples/gameboy/gameboy-mode-pulse.js</code>.</li>
+            </ul>
+            <h2 data-opn-helper style="margin-top: 14px;">midi (YM2612 mode)</h2>
+            <ul data-opn-helper class="helper-list">
               <li><code>midi.output("tetorica-ym2612", { channel: CH1 })</code> creates an FM part; <code>"tetorica-sega-psg"</code> uses the three PSG tone voices (not noise). These are internal outputs, not external Web MIDI ports.</li>
               <li><code>channel</code> is a MIDI part: numeric <code>0..15</code> or <code>CH1..CH16</code>. Omitted channel defaults to CH1. By default the engine shares six FM voices or three PSG tone voices automatically; a MIDI channel does not pin a physical voice.</li>
               <li><code>await midi.enableSoundChip("tetorica-ym2612", { roundRobin: false })</code> selects fixed FM voices: CH1..CH6 map to physical CH1..CH6, one note each; CH7..CH16 do not sound. <code>roundRobin: true</code> restores automatic allocation. Changing mode stops FM notes. Specify the mode at the start of your script; this option is YM2612-only.</li>
@@ -2109,8 +2118,8 @@
               <li><code>liveFx(name, {context, process(input, output, state, context), resetState?})</code> registers JavaScript FX after native FX. Same-name Apply preserves state; Stop removes it. Input/output are arrays of channel Float32Arrays. The synchronous process runs in AudioWorklet: use context instead of captured variables, and avoid unbounded loops. Exceptions/non-finite output bypass that effect.</li>
               <li><code>fx.updateContext(name, patch)</code> sends a context update; <code>fx.removeLiveFx(name)</code> removes it. Commands are queued, not sample-timestamped. See <code>examples/basic/livefx/live-fx-distortion.js</code>.</li>
               <li><code>log(value)</code>, <code>console.log(value)</code>, <code>console.warn(value)</code>, and <code>console.error(value)</code> write to the Console tab</li>
-              <li><code>tfiToPreset(await file("./bass.tfi", { type: "arrayBuffer" }))</code> converts a 42-byte TFI file for <code>fm.setPreset()</code></li>
-              <li><code>vgiToPreset(await file("./bass.vgi", { type: "arrayBuffer" }))</code> converts a 43-byte VGI file for <code>fm.setPreset()</code> (binary files require <code>type: "arrayBuffer"</code>)</li>
+              <li data-opn-helper><code>tfiToPreset(await file("./bass.tfi", { type: "arrayBuffer" }))</code> converts a 42-byte TFI file for <code>fm.setPreset()</code></li>
+              <li data-opn-helper><code>vgiToPreset(await file("./bass.vgi", { type: "arrayBuffer" }))</code> converts a 43-byte VGI file for <code>fm.setPreset()</code> (binary files require <code>type: "arrayBuffer"</code>)</li>
             </ul>
 
             <h2 style="margin-top: 14px;">Sound chips</h2>
@@ -2125,7 +2134,8 @@
               <li><code>const snes = await useSoundChip("snes")</code> creates an independent, CPU-free S-DSP with eight voices (0..7). Load BRR with explicit tuning, then call <code>snes.setPreset(0, {sample})</code> and <code>snes.noteOn(0, "C4")</code>. Native audio is 32,000 Hz; there is no <code>setClock()</code>. See <code>examples/snes/snes-brr-melody.js</code>.</li>
               <li><code>const dx7 = await useSoundChip("dx7")</code> creates a 16-voice MSFA DX7 with the self-authored INIT SINE voice. Use <code>dx7.noteOn(60, 100)</code> and <code>dx7.noteOff(60)</code> with MIDI note numbers, without a channel argument.</li>
               <li>Import a DX7 SysEx file into FILES, then <code>await dx7.loadSysex(await file("/presets/my-bank.syx", {type:"arrayBuffer"}))</code>. Choose <code>dx7.selectVoice(0)</code> from <code>dx7.voices</code>. The internal rate is fixed at 44,100 Hz; there is no <code>setClock()</code>. See <code>examples/dx7/dx7-init-sine.js</code>.</li>
-              <li>Control additional chips through the returned object. Global <code>play()</code> and <code>write()</code> target the default chip; Stop disposes additional chips.</li>
+              <li>Control additional chips through the returned object. Stop disposes additional chips.</li>
+              <li data-opn-helper>Global <code>play()</code> and <code>write()</code> target the default FM chip.</li>
               <li>Concurrent <code>useSoundChip()</code> requests share initialization. Options other than an empty object are not supported.</li>
             </ul>
 
@@ -2177,8 +2187,8 @@
               <li>Open <code>examples/genesis/rf5c164-sine.js</code> in FILES for an example.</li>
             </ul>
 
-            <h2 style="margin-top: 14px;">dac (YM2612 mode)</h2>
-            <ul class="helper-list">
+            <h2 data-opn-helper style="margin-top: 14px;">dac (YM2612 mode)</h2>
+            <ul data-opn-helper class="helper-list">
               <li>DAC plays unsigned 8-bit PCM through physical CH6, replacing its FM output while enabled. Values are <code>0..255</code>; <code>128</code> is the neutral level.</li>
               <li><code>fm.setPan(CH6, true, true)</code> routes CH6 to both speakers. <code>fm.setDacEnabled(true)</code> enables DAC; <code>fm.writeDac(128)</code> writes one value; <code>fm.setDacEnabled(false)</code> restores FM output.</li>
               <li><code>const start = beginSampleSchedule()</code> gets the current loop cycle start in 44,100 Hz sample units. <code>dac.schedule(start, entries)</code> queues <code>[offsetSamples, value]</code> pairs relative to that start. Use <code>/** @type {Array&lt;[number, number]&gt;} */</code> for an initially empty entries array.</li>
@@ -2212,8 +2222,8 @@
               <li>Output passes through the master FX by default. Playback controls remain on the main thread, including in Worker mode. This API is separate from <code>dac.playStream()</code>.</li>
             </ul>
 
-            <h2 style="margin-top: 14px;">fm</h2>
-            <ul class="helper-list">
+            <h2 data-opn-helper style="margin-top: 14px;">fm</h2>
+            <ul data-opn-helper class="helper-list">
               <li><code>fm</code> controls the selected mode's primary FM chip</li>
               <li><code>await play("C4")</code> plays one note</li>
               <li><code>pg.fm</code> points to the same primary FM chip</li>
@@ -2232,8 +2242,8 @@
               <li><code>fm.read(offset)</code>, <code>fm.readStatus()</code>, <code>fm.getIrq()</code> expose low-level chip state where available</li>
             </ul>
 
-            <h2 style="margin-top: 14px;">psg</h2>
-            <ul class="helper-list">
+            <h2 data-opn-helper style="margin-top: 14px;">psg</h2>
+            <ul data-opn-helper class="helper-list">
               <li><code>psg</code> is the raw Sega PSG (SN76489-compatible) layer, mixed into the same output as <code>fm</code></li>
               <li><code>pg.psg</code> points to the same PSG layer</li>
               <li><code>pg.psgTone(channel, period, attenuation)</code> writes one PSG tone note helper for channel <code>0..2</code></li>
@@ -2342,7 +2352,7 @@
       })();
     </script>
     <script type="module">
-      import('./playground.js?v=opn-ssg-1').catch(error => window.__playgroundStartup.fail(error));
+      import('./playground.js?v=gameboy-mode-1').catch(error => window.__playgroundStartup.fail(error));
     </script>
   </body>
 </html>

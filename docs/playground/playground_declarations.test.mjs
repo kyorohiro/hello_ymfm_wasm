@@ -6,7 +6,7 @@ import {selectPlaygroundDeclarations} from './playground_declarations.js';
 const source = await readFile(new URL('./tetorica-playground-globals.d.ts', import.meta.url), 'utf8');
 test('Genesis declarations keep existing convenience APIs and MIDI channel constants', () => {
   const selected = selectPlaygroundDeclarations(source, 'ym2612');
-  assert.equal(selected, source.replace(/^declare const (?:ssg|rhythm|adpcm|adpcmA|adpcmB): [^\n]+\n/gm, ''));
+  assert.equal(selected, source.replace(/^declare const (?:ssg|rhythm|adpcm|adpcmA|adpcmB|gameboy): [^\n]+\n/gm, ''));
 });
 for (const [chip, channels] of [['ym2203',3],['ym2608',6],['ym2610',4],['ym2610b',6]]) {
   test(`${chip} completion globals match FM channels and omit Genesis PSG/DAC shortcuts`, () => {
@@ -29,3 +29,16 @@ for (const [chip, channels] of [['ym2203',3],['ym2608',6],['ym2610',4],['ym2610b
     }
   });
 }
+
+test('Game Boy globals expose its native APU and shared helpers without FM shortcuts', () => {
+  const selected = selectPlaygroundDeclarations(source, 'gameboy');
+  assert.match(selected, /^declare const gameboy: PlaygroundPrimaryGameboy;/m);
+  assert.doesNotMatch(selected, /^declare const (?:fm|FM_PRESETS|CH\d+|OP\d+|psg|PSG\d+|dac|ssg|rhythm|adpcm[AB]?):/m);
+  assert.doesNotMatch(selected, /^declare function (?:play|write|scheduleWritesSamples|psgTone|psgNoise|noteToBlockFnum|hzToBlockFnum|noteLerp|tfiToPreset|vgiToPreset|setDacLookahead|getDacLookahead)\(/m);
+  for (const name of ['beat','sleep','liveLoop','tween','scale','chord','beginSampleSchedule','useSoundChip']) {
+    assert.match(selected, new RegExp(`^declare function ${name}[<(]`, 'm'));
+  }
+  for (const name of ['sample','stream','noise']) assert.match(selected, new RegExp(`^declare const ${name}:`, 'm'));
+  assert.match(selected, /type FMApi =/);
+  assert.match(selected, /type PlaygroundCreatedOPN</);
+});

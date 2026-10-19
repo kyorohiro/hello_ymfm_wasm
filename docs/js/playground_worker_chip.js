@@ -1,7 +1,9 @@
 import {attachChipClock, CHIP_CLOCKS} from './playground_chip_clock.js?v=opnb-primary-1';
-/** Worker/Node: performance state and FM/PSG register generation.
+/** Worker/Node: selected-primary performance state and register generation.
  * No DOM, AudioNode or main-thread RPC. Observers are fire-and-forget.
  */
+import {GameboySynth} from './gameboysynth.js?v=gameboy-mode-1';
+import {createPrimaryGameboyApi} from './playground_gameboy.js?v=gameboy-mode-1';
 import {YM2612Synth} from './ym2612synth.js';
 import {YM2203Synth} from './ym2203synth.js?v=opn-ssg-1';
 import {OPNFMSynth} from './opn_fm_synth.js?v=opnb-primary-1';
@@ -9,12 +11,13 @@ import {YM2608Synth} from './ym2608synth.js?v=opnb-primary-1';
 import {YM2610BSynth} from './ym2610bsynth.js?v=opnb-primary-1';
 import {createSegaPsgApi} from './segapsg_api.js';
 /**
- * Create Worker-side FM/PSG controls that batch ordered writes to a Worklet port.
+ * Create Worker-side primary controls that send ordered writes to a Worklet port.
  * Stop cancels outstanding DAC requests and mutes hardware; resume permits new work.
- * @param {{port: MessagePort, capabilities: {chip?: 'ym2612' | 'ym2203' | 'ym2608' | 'ym2610' | 'ym2610b', fmChannels?: number, psg?: boolean, dac?: boolean}, state?: {channels: object[], lfo: object, modeRegister?: number, dac?: object}, observe?: (event: {method: string, args: unknown[]}) => void}} options Port, chip capabilities, optional snapshot and observer.
- * @returns FM/PSG controls, raw synth state, write sender and lifecycle methods.
+ * @param {{port: MessagePort, capabilities: {chip?: 'ym2612' | 'ym2203' | 'ym2608' | 'ym2610' | 'ym2610b' | 'gameboy', fmChannels?: number, psg?: boolean, dac?: boolean}, state?: {clock?:number, channels?:object[], lfo?:object, modeRegister?:number, dac?:object, initialized?:boolean, registers?:number[], voice?:number[]}, observe?: (event: {method: string, args: unknown[]}) => void}} options Port, chip capabilities, optional snapshot and observer.
+ * @returns Selected primary controls, raw synth state, write sender and lifecycle methods.
  */
 export function createWorkerChip({port,capabilities,state,observe=()=>{}}){
+ if(capabilities.chip==='gameboy')return createWorkerGameboy({port,state,observe});
  let enabled=false,batch=null;
  let requestId=0, stopped=false;
  let sampleController=new AbortController();
@@ -128,6 +131,32 @@ export function createWorkerChip({port,capabilities,state,observe=()=>{}}){
    raw.rhythm?.keyOff([0,1,2,3,4,5]);
    raw.adpcmA?.keyOff([0,1,2,3,4,5]);
    raw.adpcm?.keyOff();
+  },
+ };
+}
+
+function createWorkerGameboy({port,state,observe}) {
+ let enabled=false, notification=false;
+ const send=command=>{if(enabled)port.postMessage([command]);};
+ const raw=new GameboySynth({transport:{
+  writeRegister(offset,value){send({method:'writeRegister',args:[offset,value]});},
+  reset(){send({method:'reset',args:[]});},
+ }});
+ attachChipClock(raw,port,state?.clock??CHIP_CLOCKS.gameboy,{primary:true,batch:true,
+  onApplied:()=>{if(enabled)observe({method:'gameboyState',args:[raw._getState()]});}});
+ raw._observe=()=>{
+  if(!enabled||notification)return;
+  notification=true;
+  queueMicrotask(()=>{notification=false;observe({method:'gameboyState',args:[raw._getState()]});});
+ };
+ if(state)raw._adoptState(state);else raw.initialize();
+ enabled=true;
+ const gameboy=createPrimaryGameboyApi(raw);
+ return {gameboy,raw,send,adoptState:state=>raw._adoptState(state),resume(){},
+  stop(){
+   raw._cancelClockRequests('Run stopped');
+   send({type:'clear-scheduled-writes'});
+   if(raw._getState().initialized)for(let channel=0;channel<4;channel++)raw.keyOff(channel);
   },
  };
 }

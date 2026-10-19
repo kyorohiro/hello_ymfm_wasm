@@ -14,7 +14,7 @@ import { OPNWorkletTransport } from "../js/opn_fm_synth.js?v=opnb-primary-1";
 import {
   createTetoricaSynth,
   normalizeTetoricaChip,
-} from "../js/tetorica_synth.js?v=opn-ssg-1";
+} from "../js/tetorica_synth.js?v=gameboy-mode-1";
 
 function createTransport() {
   const writes = [];

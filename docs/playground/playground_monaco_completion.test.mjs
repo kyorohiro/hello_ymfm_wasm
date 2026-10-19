@@ -141,3 +141,16 @@ test('play option guidance describes the selected logical FM channel range', () 
     assert.equal(channel.documentation, `${chip.toUpperCase()} FM channel number 0..${lastChannel}.`);
   }
 });
+
+test('Game Boy does not suggest primary OPN play, presets, operators, or register writes', () => {
+  for (const source of [
+    'play(', 'pg.play(', 'play("C4", { ', 'pg.play("C4", { ', 'play("', 'pg.play("',
+    'fm.write(0, ', 'pg.fm.write(0, ', 'fm.write(0, 0x28, ', 'fm.setOperator(0, 0, { ',
+    'FM_PRESETS["', 'pg.presets["',
+  ]) assert.deepEqual(chipSuggestions(source, 'gameboy'), [], source);
+  assert(chipSuggestions('scale("', 'gameboy').length > 0);
+  const registers = chipSuggestions('const fm = await useSoundChip("ym2612");\nfm.write(0, ', 'gameboy');
+  assert(registers.some(item => item.insertText === '0x2a'));
+  const operators = chipSuggestions('const fm = await useSoundChip("ym2612");\nfm.setOperator(0, 0, { ', 'gameboy');
+  assert(operators.some(item => item.label === 'multi'));
+});

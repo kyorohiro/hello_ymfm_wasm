@@ -9,7 +9,7 @@ FILES の `examples/` を開き、フォルダー内の `.js` を選択して Ru
 | basic | グローバル fm・psg・dac と、liveLoop・context・FX・MIDI・noise・samples |
 | chip-raw | 音源レジスタを直接操作する例 |
 | genesis | 独立 Sega PSG・Mega CD PCM（RF5C164） |
-| gameboy | pulse・wave・noise・複数音源の設定 |
+| gameboy | Game Boy mode の標準 pulse、独立音源の wave・noise・複数音源の設定 |
 | nes | NES APU の pulse・triangle・noise、FDS 波形と変調、DMC サンプル |
 | pc98 | PC-98 OPN の FM・SSG、OPNA の FM・SSG・rhythm・ADPCM-B と、独立 YM2608 の例 |
 | neogeo | Neo Geo / YM2610B mode の標準 FM・SSG tone/noise・ADPCM-A/B |
@@ -20,6 +20,13 @@ FILES ではこの順に表示します。機種別のサンプルは各フォ�
 `chip-raw` は直接レジスタを書く入口として残しています。
 `basic/fm`・`basic/psg`・`basic/dac` は選択中の音源や Playground のグローバル API を使います。
 機種別フォルダーには、その mode の標準音源や `useSoundChip()` / `createSoundChip()` で取得する独立音源の例を置きます。
+
+`gameboy/gameboy-mode-pulse.js` は `Game Boy` mode の初期コードです。
+標準の `gameboy.pulse` を `beat()`・`liveLoop()` と組み合わせて鳴らします。
+`gameboy.wave`・`gameboy.noise` も同じ APU を操作します。`pg.gameboy` と
+`livePrepare(({gameboy}) => ...)` でも同じ音源を使えます。
+Game Boy mode の演奏は音源ごとの API で行い、グローバルの `play()` は OPN mode の FM 用です。
+他の `gameboy/*.js` は独立音源を作るため、どの mode でも実行できます。
 
 `pc98/pc98-opn-ssg.js` は Mode を `PC-98 (YM2203 / OPN)` にして実行します。
 標準の `fm` と `ssg` で、FM・SSG のトーン・ノイズ・エンベロープを順番に鳴らします。

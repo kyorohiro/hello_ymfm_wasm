@@ -88,8 +88,10 @@ export class GameboySynth {
   #pulse(ch) { this.#alive(); integer(ch, 0, 1); return ch * 5; }
   /** @param {number} offset */
   #send(offset, value) {
+    if (this._beforeWrite?.(offset,value) === false) return;
     this.#shadow[offset] = TRIGGERS.has(offset) ? value & 0x7f : value;
     this.#transport.writeRegister(offset, value);
+    this._observe?.({method: 'writeRegister', args: [offset, value]});
   }
   /** @param {number} offset
    * @param {number} mask */
@@ -115,9 +117,21 @@ export class GameboySynth {
     this.#voice.set(this.#shadow);
     this.#initialized = true;
   }
+  /** Internal snapshot for switching execution threads without replaying triggers. */
+  _getState() {
+    return {clock:this.clock, initialized:this.#initialized, registers:Array.from(this.#shadow), voice:Array.from(this.#voice)};
+  }
+  _adoptState(state) {
+    this.#alive();
+    if (state.clock !== undefined) this._adoptClock ? this._adoptClock(state.clock) : this.clock = state.clock;
+    if (state.registers?.length === 48) this.#shadow.set(state.registers);
+    if (state.voice?.length === 48) this.#voice.set(state.voice); else this.#voice.set(this.#shadow);
+    this.#initialized = Boolean(state.initialized);
+  }
   reset() {
     this.#alive(); this.#transport.reset(); this.#initialized = false;
     this.#shadow.fill(0); this.#voice.fill(0);
+    this._observe?.({method:'reset',args:[]});
   }
   initialize() {
     this.reset(); this.#send(22, 0x80); this.#voice[22] = 0x80; this.#initialized = true;

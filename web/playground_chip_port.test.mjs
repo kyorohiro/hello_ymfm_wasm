@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createChipPortReceiver} from './playground_chip_port.js';
 import {createWorkerChip} from './playground_worker_chip.js';
+import {GameboySynth} from './gameboysynth.js';
 import {YM2612Synth} from './ym2612synth.js';
 import {YM2203Synth} from './ym2203synth.js';
 import {YM2608Synth} from './ym2608synth.js';
@@ -349,4 +350,40 @@ test('selected YM2203 clock conversion follows acknowledged master/2 SSG frequen
   assert.equal(commands.at(-2).value | commands.at(-1).value << 8, Math.round(1500000 / (16 * 440)));
   worker.adoptState({...worker.raw.getState(), clock: 6000000, ssg: worker.raw.ssg._getState()});
   assert.equal(worker.raw.ssg.clock, 3000000, 'Main snapshots adopt the same master/2 conversion');
+});
+
+test('primary Game Boy Worker adopts waveform/voice without replay and preserves patches across Stop', async () => {
+  const expected=[],commands=[],events=[];
+  const core=new GameboySynth({transport:{reset(){},writeRegister:(...args)=>expected.push(args)}});
+  core.initialize(); core.pulse.setVoice(0,{volume:12,duty:0.25});
+  core.wave.setWaveform(Array.from({length:32},(_,i)=>i%16));
+  const worker=createWorkerChip({port:{postMessage:batch=>commands.push(...batch)},capabilities:{chip:'gameboy',fmChannels:0},state:core._getState(),observe:event=>events.push(event)});
+  assert.equal(commands.length,0,'primary attachment does not reset/retrigger');
+  assert.equal(worker.fm,undefined);
+  assert.equal(worker.gameboy.dispose,undefined);
+  expected.length=0;
+  core.pulse.noteOn(0,'C4'); worker.gameboy.pulse.noteOn(0,'C4');
+  assert.deepEqual(commands.map(command=>command.args),expected);
+  worker.stop();
+  for(const register of [2,7,10,17])assert(commands.some(command=>command.method==='writeRegister'&&command.args[0]===register&&command.args[1]===0));
+  commands.length=0; worker.resume(); worker.gameboy.pulse.keyOn(0);
+  assert(commands.some(command=>command.method==='writeRegister'&&command.args[0]===2&&(command.args[1]>>4)===12));
+  await Promise.resolve();
+  assert(events.some(event=>event.method==='gameboyState'&&event.args[0].initialized));
+});
+
+test('primary Game Boy clock acknowledges in order and Stop rejects pending requests', async () => {
+  const commands=[];
+  const port={postMessage:batch=>commands.push(...batch)};
+  const worker=createWorkerChip({port,capabilities:{chip:'gameboy',fmChannels:0}});
+  const changed=worker.gameboy.setClock(4000000);
+  const command=commands.at(-1);
+  assert.equal(command.type,'chip-clock'); assert.equal(worker.gameboy.clock,4194304);
+  port.onmessage({data:{id:command.id}}); await changed;
+  assert.equal(worker.gameboy.clock,4000000);
+  worker.gameboy.pulse.setFrequency(0,440);
+  const [lo,hi]=commands.slice(-2).map(command=>command.args[1]);
+  assert.equal(lo|((hi&7)<<8),Math.round(2048-4000000/(32*440)));
+  const stopped=assert.rejects(worker.gameboy.setClock(4194304),/Run stopped/);
+  worker.stop(); await stopped;
 });

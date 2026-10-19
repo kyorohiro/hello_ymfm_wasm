@@ -103,7 +103,8 @@ type MegaDriveFmPresetName =
 /**
  * Built-in YM2612 preset table used by playground examples and helpers.
  */
-declare const FM_PRESETS: Record<MegaDriveFmPresetName, YM2612Preset>;
+type PlaygroundFMPresets = Record<MegaDriveFmPresetName, YM2612Preset>;
+declare const FM_PRESETS: PlaygroundFMPresets;
 
 /** Friendly YM2612 channel constants for readable examples. */
 declare const CH1: 0;
@@ -649,7 +650,8 @@ type FMApi = PlaygroundChipClock & {
 };
 
 /** The selected mode's primary FM chip; independent chips retain their own API. */
-type PlaygroundSelectedFmChannel = TetoricaSelectedChip extends 'ym2203' ? 0 | 1 | 2
+type PlaygroundSelectedFmChannel = TetoricaSelectedChip extends 'gameboy' ? never
+  : TetoricaSelectedChip extends 'ym2203' ? 0 | 1 | 2
   : TetoricaSelectedChip extends 'ym2610' ? 0 | 1 | 2 | 3
   : OPNFmChannel;
 interface YM2612FMApi extends FMApi {}
@@ -663,8 +665,11 @@ type PlaygroundSelectedFm = {
   ym2608: YM2608FMApi;
   ym2610: YM2610FMApi;
   ym2610b: YM2610BFMApi;
+  gameboy: never;
 }[TetoricaSelectedChip];
 declare const fm: PlaygroundSelectedFm;
+/** The primary Game Boy APU, initialized and shared by this mode. */
+declare const gameboy: PlaygroundPrimaryGameboy;
 
 type PSGApi = {
   /** Configure Hz without triggering or changing attenuation. */
@@ -806,12 +811,12 @@ declare function onKeyboardReleaseKey(name: string, fn: (event: KeyboardEvent) =
 declare function liveCleanup(names: string[], fn: () => Promise<void> | void): void;
 type PlaygroundLivePrepareAPI = {
   fx: FXApi;
-  fm: PlaygroundSelectedFm;
   sample: PlaygroundSampleAPI;
   stream: PlaygroundStreamAPI;
   noise: PlaygroundNoiseAPI;
   log: (...args: unknown[]) => void;
-} & (TetoricaSelectedChip extends 'ym2612' ? {psg: PSGApi} : {}) & PlaygroundSelectedOpnSectionsAPI;
+} & (TetoricaSelectedChip extends 'gameboy' ? {gameboy: PlaygroundPrimaryGameboy} : {fm: PlaygroundSelectedFm})
+  & (TetoricaSelectedChip extends 'ym2612' ? {psg: PSGApi} : {}) & PlaygroundSelectedOpnSectionsAPI;
 /** Prepare shared live state once and reuse it across runs. */
 declare function livePrepare(name: string, fn: (context: PlaygroundLivePrepareAPI) => Promise<any> | any): Promise<any>;
 /** Play one note through the current synth setup. */
@@ -983,7 +988,8 @@ type PlaygroundChannelConstants = {
   CH16: 15;
 };
 type PlaygroundSelectedChannelConstants = Pick<PlaygroundChannelConstants,
-  TetoricaSelectedChip extends 'ym2203' ? 'CH1' | 'CH2' | 'CH3'
+  TetoricaSelectedChip extends 'gameboy' ? never
+  : TetoricaSelectedChip extends 'ym2203' ? 'CH1' | 'CH2' | 'CH3'
   : TetoricaSelectedChip extends 'ym2610' ? 'CH1' | 'CH2' | 'CH3' | 'CH4'
   : TetoricaSelectedChip extends 'ym2612' ? keyof PlaygroundChannelConstants
   : 'CH1' | 'CH2' | 'CH3' | 'CH4' | 'CH5' | 'CH6'>;
@@ -1009,7 +1015,7 @@ type PlaygroundSelectedOpnSectionsAPI = TetoricaSelectedChip extends 'ym2203'
     : TetoricaSelectedChip extends 'ym2610' | 'ym2610b'
       ? Pick<PlaygroundCreatedYm2610, 'ssg' | 'adpcmA' | 'adpcmB' | 'adpcm'> : {};
 
-type PlaygroundAPI = {
+type PlaygroundAPIBase = {
   mixer: PlaygroundMixer;
   /** Track a liveLoop task; rejection interrupts its waits and ends that loop. */
   trackAsync(task: PromiseLike<unknown>): void;
@@ -1033,7 +1039,7 @@ type PlaygroundAPI = {
     options: NoiseControlOptions
   ) => void;
   /** Built-in preset table. */
-  presets: typeof FM_PRESETS;
+  presets: PlaygroundFMPresets;
   /** Convert 42-byte TFI data into a preset accepted by `fm.setPreset()`. */
   tfiToPreset: (data: ArrayBuffer | Uint8Array) => YM2612Preset;
   vgiToPreset: (data: ArrayBuffer | Uint8Array) => YM2612Preset;
@@ -1085,6 +1091,13 @@ type PlaygroundAPI = {
   getDacLookahead: () => number;
   log: (...args: unknown[]) => void;
 } & PlaygroundSelectedChannelConstants & PlaygroundSelectedPsgAPI & PlaygroundSelectedOpnSectionsAPI;
+
+type PlaygroundFmConvenienceName = 'fm' | 'midi' | 'presets' | 'tfiToPreset' | 'vgiToPreset'
+  | 'play' | 'write' | 'scheduleWritesSamples' | 'noteToBlockFnum' | 'hzToBlockFnum' | 'noteLerp'
+  | 'setDacLookahead' | 'getDacLookahead';
+type PlaygroundAPI = TetoricaSelectedChip extends 'gameboy'
+  ? Omit<PlaygroundAPIBase, PlaygroundFmConvenienceName> & {gameboy: PlaygroundPrimaryGameboy}
+  : PlaygroundAPIBase;
 
 declare var pg: PlaygroundAPI;
 
@@ -1253,6 +1266,8 @@ interface PlaygroundGameboy {
   reset(): void;
   dispose(): void;
 }
+/** The selected APU has the same instrument API; its lifetime belongs to the mode. */
+type PlaygroundPrimaryGameboy = Omit<PlaygroundGameboy, 'dispose'> & PlaygroundChipClock & {readonly id: string};
 declare function createSoundChip(name: 'gameboy', options?: PlaygroundCreateSoundChipOptions): Promise<PlaygroundGameboy & PlaygroundChipClock & {readonly id: string}>;
 /** Independent YM2608; memory uploads are asynchronous, register setters are ordered writes. */
 type PlaygroundYm2608 = {setClock(clock: number): Promise<void>; resetRegisters(): void; prepareTimeline(events: Array<[number, number, number, number]>, blocks: Uint8Array[], durationSamples: number): Promise<void>; playTimeline(): Promise<void>} & Pick<FMApi, 'reset' | 'setPreset' | 'setOperator' | 'setOperators' | 'setAlgo' | 'setPan' | 'setLfo' | 'setChannel3SpecialMode' | 'setChannel3SpecialFrequency' | 'setFrequency' | 'setNote' | 'setBlockFnum' | 'noteOnRaw' | 'keyOn' | 'keyOff' | 'noteOn' | 'noteOff' | 'writeAddress' | 'writeData'> & {
@@ -1643,7 +1658,7 @@ type PlaygroundSoundChipMap = {
   ym2610: TetoricaSelectedChip extends 'ym2610' ? YM2610FMApi : PlaygroundCreatedYm2610;
   rf5c164: PlaygroundRf5c164;
   ym2608: PlaygroundYm2608;
-  gameboy: PlaygroundGameboy;
+  gameboy: TetoricaSelectedChip extends 'gameboy' ? PlaygroundPrimaryGameboy : PlaygroundGameboy;
   segapsg: PlaygroundSegaPsg;
   ym2151: PlaygroundYm2151;
   nes: PlaygroundNes;

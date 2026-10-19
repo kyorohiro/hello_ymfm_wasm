@@ -22,6 +22,7 @@ import {createOpnAudio} from './playground_opn_audio.js';
 import {createOpnClient} from './playground_opn.js';
 import {createSoundChipRegistry} from './playground_soundchips.js';
 import {createGameboyAudio} from './playground_gameboy_audio.js';
+import {createPrimaryGameboyApi} from './playground_gameboy.js';
 import {createGameboyClient} from './playground_gameboy.js';
 import {createYm2608Audio} from './playground_ym2608_audio.js?v=loop-async-tasks-1';
 import {createYm2608Client} from './playground_ym2608.js?v=loop-async-tasks-1';
@@ -83,11 +84,12 @@ const SCALE_INTERVALS = {
  * @param {{
  *   synth?: object | null,
  *   megaDrive?: object | null,
- *   chip?: "ym2612" | "ym2203" | "ym2608" | "ym2610",
+ *   chip?: "ym2612" | "ym2203" | "ym2608" | "ym2610" | "ym2610b" | "gameboy",
  *   workletUrl?: string,
  *   audioWorkletUrl?: string,
  *   ym2612WasmUrl?: string,
  *   segaPsgWasmUrl?: string,
+ *   gameboyWasmUrl?: string,
  *   presets?: Record<string, object>,
  *   logicWorkerUrl?: string | null,
  *   execution?: "main" | "worker",
@@ -114,7 +116,8 @@ export function createPlaygroundRuntime(
       workletUrl:
         options.audioWorkletUrl ??
         options.workletUrl ??
-        (options.chip === 'ym2203' ? './ym2203-worklet.js'
+        (options.chip === 'gameboy' ? new URL('./playground_gameboy_worklet.js', import.meta.url).href
+          : options.chip === 'ym2203' ? './ym2203-worklet.js'
           : options.chip === 'ym2608' ? './ym2608-worklet.js'
           : ['ym2610','ym2610b'].includes(options.chip)
             ? "./ym2610b-worklet.js" : "./ym2612-worklet.js"),
@@ -123,7 +126,9 @@ export function createPlaygroundRuntime(
         "./generated/ym2612_wasm.wasm",
       wasmUrl:
         options.wasmUrl ??
-        (options.chip === "ym2203"
+        (options.chip === "gameboy"
+          ? options.gameboyWasmUrl ?? new URL("./generated/gameboy_apu_wasm.wasm", import.meta.url).href
+          : options.chip === "ym2203"
           ? options.ym2203WasmUrl ?? "./generated/ym2203_wasm.wasm"
           : options.chip === "ym2608"
             ? options.ym2608WasmUrl ?? "./generated/ym2608_wasm.wasm"
@@ -268,6 +273,10 @@ export function createPlaygroundRuntime(
     releaseInspectorMixerSubscription??=megaDrive.mixer?.subscribe?.(()=>queueMicrotask(()=>chipInspector.notify()));
   }
   watchInspectorMixer();
+  const gameboyOwners = new Map();
+  let releasingGameboy = false;
+  let sharedGameboy;
+  let sharedGameboySynth;
   let sharedFm;
   let sharedFmSynth;
   let sharedSections = {};
@@ -298,6 +307,7 @@ export function createPlaygroundRuntime(
     return sharedSections;
   }
   function primaryChipState() {
+    if (capabilities.chip === 'gameboy') return synth?._getState?.();
     const core = synth?.fm ?? synth;
     const sections = {};
     if (primarySectionNames.length) {
@@ -666,6 +676,13 @@ export function createPlaygroundRuntime(
       synth?.write?.(0, 0x2b, 0x00);
     }
     stopAllNotes();
+    if (capabilities.chip === 'gameboy') {
+      synth?._cancelClockRequests?.('Run stopped');
+      megaDrive.node?.port?.postMessage({type:'clear-scheduled-writes'});
+      releasingGameboy = true;
+      try { if (synth?._getState?.().initialized) for (let channel = 0; channel < 4; channel++) synth.keyOff(channel); }
+      finally { releasingGameboy = false; gameboyOwners.clear(); }
+    }
     if (primarySectionNames.length) {
       sectionLoads.abort(new Error('Run stopped'));
       sectionLoads = new AbortController();
@@ -732,6 +749,12 @@ export function createPlaygroundRuntime(
       finishTasks: loop => loopTasks.finish(loop),
       releaseTasks: loop => loopTasks.release(loop),
       cancelWaits: state => {
+        if (capabilities.chip === 'gameboy') {
+          releasingGameboy = true;
+          try { for (const [channel, owner] of gameboyOwners) if (owner === state) {
+            gameboyOwners.delete(channel); synth?.keyOff(channel);
+          }} finally { releasingGameboy = false; }
+        }
         const owner = spcLoopOwners.get(state);
         if (owner) for (const device of pcmDevices) if (device.chipName === 'spc') {
           device.node.port.postMessage({type:'performance-cancel-owner',...owner});
@@ -916,7 +939,7 @@ export function createPlaygroundRuntime(
     }
 
     emitStatus(
-      "Loading Mega Drive audio..."
+      "Loading audio..."
     );
     emitRuntimeState(
       "Preparing..."
@@ -933,10 +956,26 @@ export function createPlaygroundRuntime(
             emitStatus(`FX error: ${message.split('\n')[0]} (see Console)`);
           };
         }
-        synth = megaDrive.fm;
+        synth = capabilities.chip === 'gameboy' ? megaDrive.gameboy : megaDrive.fm;
+        if (capabilities.chip === 'gameboy') synth._beforeWrite = (register,value) => {
+          const loop = currentLoopContext;
+          if (!releasingGameboy && loop?.stopped) return false;
+          const trigger = [4,9,14,19].indexOf(register);
+          const released = ({2:0,7:1,17:3})[register];
+          const channel = trigger >= 0 && (value & 128) ? trigger
+            : released !== undefined && value === 0 ? released : register === 10 && !(value & 128) ? 2 : undefined;
+          if (channel !== undefined) {
+            if (trigger >= 0) gameboyOwners.set(channel,loop ?? null);
+            else {
+              if (!releasingGameboy && loop && gameboyOwners.has(channel) && gameboyOwners.get(channel) !== loop) return false;
+              gameboyOwners.delete(channel);
+            }
+          }
+          return true;
+        };
         chipInspector.notify();
         installMegaDriveListener();
-        synth.setPreset(
+        synth.setPreset?.(
           0,
           presets["one-op-basic"]
         );
@@ -1178,6 +1217,14 @@ export function createPlaygroundRuntime(
       return target[method](...methodArgs);
     }
 
+    if (command === 'gameboy.invoke') {
+      const [path, values] = args;
+      if (capabilities.chip !== 'gameboy' || !Array.isArray(path) || path.length < 1 || path.length > 2 || path.some(key=>typeof key !== 'string' || key.startsWith('_') || key === 'constructor')) throw new Error('Unsupported Game Boy method');
+      const owner = path.length === 2 ? globals.gameboy[path[0]] : globals.gameboy;
+      const method = path.at(-1);
+      if (typeof owner?.[method] !== 'function') throw new Error('Unsupported Game Boy method');
+      return owner[method](...values);
+    }
     if (command.startsWith("fm.dac.")) {
       const method = command.slice(7);
       if (!['setSample', 'playFromSample', 'play', 'stop', 'removeSample'].includes(method) || !globals.fm.dac) {
@@ -1333,13 +1380,14 @@ export function createPlaygroundRuntime(
         const transport=core?.transport;
         try {
           applyingChipObserver=true;
-          if(core) core.transport={write(port,register,value){},reset(){}};
+          if(core && capabilities.chip !== 'gameboy') core.transport={write(port,register,value){},reset(){}};
           const {method,args}=message.event;
+          if (method === 'gameboyState') { core?._adoptState(args[0]); return; }
           if (method === 'ssgState') core?.ssg?._adoptState(args[0]);
           if (method === 'setClock') sharedFm?._adoptClock(args[0]);
           if(typeof synth?.[method]==="function" && !method.startsWith("_")) synth[method](...args);
         } catch(error){emitLog(`Observer: ${error.message}`);}
-        finally {if(core)core.transport=transport;applyingChipObserver=false;}
+        finally {if(core && capabilities.chip !== 'gameboy')core.transport=transport;applyingChipObserver=false;}
         return;
       }
       if (message.type === "complete") {
@@ -1509,7 +1557,13 @@ export function createPlaygroundRuntime(
         "__anonymous__",
     };
     const fx = liveFxLifecycle.track(createFxApi(), evaluationState.liveFxDefinitions);
-    if (sharedFmSynth !== synth) {
+    const isGameboy = capabilities.chip === 'gameboy';
+    if (isGameboy) currentLoopContext = null;
+    if (isGameboy && sharedGameboySynth !== synth) {
+      sharedGameboy = createPrimaryGameboyApi(synth);
+      sharedGameboySynth = synth;
+    }
+    if (!isGameboy && sharedFmSynth !== synth) {
       sharedFm = createFmProxy(synth);
       if (megaDrive.node?.port) attachChipClock(sharedFm, megaDrive.node.port, CHIP_CLOCKS[capabilities.chip ?? 'ym2612'], {
         primary:true,
@@ -1526,6 +1580,7 @@ export function createPlaygroundRuntime(
       sharedFmSynth = synth;
     }
     const fm = sharedFm;
+    const gameboy = isGameboy ? sharedGameboy : undefined;
     const psg = megaDrive.psg;
     const sections = primaryChipSections();
     const musicApi =
@@ -1534,8 +1589,8 @@ export function createPlaygroundRuntime(
           NOTE_TO_SEMITONE,
         scaleIntervals:
           SCALE_INTERVALS,
-        getPitch: midi => midiToOpnPitch(midi, fm.clock ?? CHIP_CLOCKS[capabilities.chip ?? 'ym2612'], capabilities.chip === 'ym2203' ? 72 : 144),
-        getFrequencyPitch: (hz, clock) => opnPitchFromHz(hz, clock ?? fm.clock ?? CHIP_CLOCKS[capabilities.chip ?? 'ym2612'], capabilities.chip === 'ym2203' ? 72 : 144, {clamp:true}),
+        getPitch: midi => midiToOpnPitch(midi, fm?.clock ?? CHIP_CLOCKS[capabilities.chip ?? 'ym2612'], capabilities.chip === 'ym2203' ? 72 : 144),
+        getFrequencyPitch: (hz, clock) => opnPitchFromHz(hz, clock ?? fm?.clock ?? CHIP_CLOCKS[capabilities.chip ?? 'ym2612'], capabilities.chip === 'ym2203' ? 72 : 144, {clamp:true}),
         synth: () => synth,
         presets,
         activeNotes,
@@ -1611,6 +1666,7 @@ export function createPlaygroundRuntime(
       },
     };
     const livePrepareApi = {
+      ...(gameboy ? {gameboy} : {}),
       fm,
       ...sections,
       fx,
@@ -1627,6 +1683,7 @@ export function createPlaygroundRuntime(
         );
       },
     };
+    if (isGameboy) for (const name of ['fm','psg','dac']) delete livePrepareApi[name];
     const playgroundConsole = {
       log: (...args) => {
         emitLog(
@@ -1662,9 +1719,10 @@ export function createPlaygroundRuntime(
         check();
         const chip = await soundChips.use(name, options, chipName => {
           check();
+          if (chipName === 'gameboy' && isGameboy) return gameboy;
           if (['ym2612', 'ym2203', 'ym2610'].includes(chipName) && capabilities.chip === chipName) return fm;
           return pg.createSoundChip(chipName, {id:`${chipName}:shared`});
-        }, {evictOnDispose: !(['ym2612', 'ym2203', 'ym2610'].includes(name) && capabilities.chip === name)});
+        }, {evictOnDispose: !((['ym2612', 'ym2203', 'ym2610'].includes(name) || name === 'gameboy') && capabilities.chip === name)});
         check();
         return chip;
       },
@@ -1684,6 +1742,7 @@ export function createPlaygroundRuntime(
         return client;
       },
       midi,
+      ...(gameboy ? {gameboy} : {}),
       fm,
       ...sections,
       dac: dacApi,
@@ -1833,9 +1892,7 @@ export function createPlaygroundRuntime(
       },
     };
 
-    return {
-      evaluationState,
-      globals: {
+    const globals = {
         console:
           playgroundConsole,
         pg,
@@ -1843,6 +1900,7 @@ export function createPlaygroundRuntime(
         createSoundChip: pg.createSoundChip,
         useSoundChip: pg.useSoundChip,
         midi,
+        ...(gameboy ? {gameboy} : {}),
         fm,
         ...sections,
         dac: pg.dac,
@@ -1950,8 +2008,15 @@ export function createPlaygroundRuntime(
         stream: pg.stream,
         control: pg.control,
         log: pg.log,
-      },
     };
+    if (isGameboy) {
+      const opnNames = ['fm','psg','dac','midi','play','write','psgTone','psgNoise','scheduleWritesSamples',
+        'noteToBlockFnum','hzToBlockFnum','noteLerp','FM_PRESETS','presets','tfiToPreset','vgiToPreset','setDacLookahead','getDacLookahead'];
+      for (const api of [pg,globals]) for (const name of Object.keys(api)) {
+        if (opnNames.includes(name) || /^(?:CH|PSG|OP)\d+$/.test(name)) delete api[name];
+      }
+    }
+    return {evaluationState,globals};
   }
 
   function writeYm2612(
@@ -2107,7 +2172,7 @@ export function createPlaygroundRuntime(
         presets,
         scaleIntervals: SCALE_INTERVALS,
         capabilities,
-        timing: {...getTiming(),chipClock:sharedFm?.clock ?? CHIP_CLOCKS[capabilities.chip ?? 'ym2612']},
+        timing: {...getTiming(),chipClock:sharedGameboy?.clock ?? sharedFm?.clock ?? CHIP_CLOCKS[capabilities.chip ?? 'ym2612']},
       });
     });
   }
@@ -2464,7 +2529,10 @@ export function createPlaygroundRuntime(
       return capabilities;
     },
     get fm() {
-      return synth;
+      return capabilities.fmChannels > 0 ? synth : null;
+    },
+    get gameboy() {
+      return capabilities.chip === 'gameboy' ? synth : null;
     },
     get psg() {
       return megaDrive.psg;

@@ -76,6 +76,7 @@ tetorica-playground-ym2608.d.ts
 tetorica-playground-ym2610.d.ts
 tetorica-playground-ym2610b.d.ts
 tetorica-playground-ym2612.d.ts
+tetorica-playground-gameboy.d.ts
 "
 
 RUNTIME_FILES="
@@ -141,6 +142,7 @@ playground_segapsg_audio.js
 playground_segapsg_worklet.js
 playground_gameboy.js
 gameboysynth.js
+gameboy_runtime_synth.js
 gameboyapu.js
 playground_gameboy_audio.js
 playground_gameboy_worklet.js

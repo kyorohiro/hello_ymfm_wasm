@@ -387,6 +387,17 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
       return chip && !mainMethods.includes(property) ? chip.fm[property] : commandProxy(`fm.${String(property)}`);
     },
   });
+  const isGameboy = capabilities.chip === 'gameboy';
+  const gameboy = isGameboy ? chip?.gameboy ?? new Proxy({}, {
+    get(_target, method) {
+      if (method === 'then') return undefined;
+      if (method === 'id') return 'gameboy';
+      if (method === 'clock') return fallbackClock;
+      if (method === 'setClock') return async hz => { await request('gameboy.invoke', [['setClock'],[hz]], run.currentLoop); fallbackClock=hz; };
+      if (['pulse','wave','noise'].includes(method)) return new Proxy({}, {get:(_target, name)=>(...args)=>request('gameboy.invoke',[[method,String(name)],args],run.currentLoop)});
+      return (...args)=>request('gameboy.invoke',[[String(method)],args],run.currentLoop);
+    },
+  }) : undefined;
   const sectionNames = capabilities.chip === 'ym2203' ? ['ssg']
     : capabilities.chip === 'ym2608' ? ['ssg','rhythm','adpcm']
     : ['ym2610','ym2610b'].includes(capabilities.chip) ? ['ssg','adpcmA','adpcmB'] : [];
@@ -500,7 +511,9 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
   const prepareResource = async (name, fn) => {
     if (run.prepared.has(name)) return run.prepared.get(name);
     const generation = run.generation;
-    const value = await fn({ fm, ...sections, fx, psg, sample, stream, dac, noise, control: (voice, options) => nativeNoise ? controlNativeNoise(voice,options) : postCommand("noise.control", [handleId(voice), options]), context: run.context, log: (...args) => postCommand("log", args) });
+    const prepareApi = { ...(gameboy ? {gameboy} : {}), fm, ...sections, fx, psg, sample, stream, dac, noise, control: (voice, options) => nativeNoise ? controlNativeNoise(voice,options) : postCommand("noise.control", [handleId(voice), options]), context: run.context, log: (...args) => postCommand("log", args) };
+    if (isGameboy) for (const name of ['fm','psg','dac']) delete prepareApi[name];
+    const value = await fn(prepareApi);
     if (run.stopped || generation !== run.generation) throw new Error("Run stopped");
     run.prepared.set(name, value);
     return value;
@@ -641,9 +654,10 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
       check();
       const chip = await soundChips.use(name, options, chipName => {
         check();
+        if (chipName === 'gameboy' && isGameboy) return gameboy;
         if (['ym2612', 'ym2203', 'ym2610'].includes(chipName) && (capabilities.chip ?? 'ym2612') === chipName) return fm;
         return globals.createSoundChip(chipName, {id:`${chipName}:shared`});
-      }, {evictOnDispose: !(['ym2612', 'ym2203', 'ym2610'].includes(name) && (capabilities.chip ?? 'ym2612') === name)});
+      }, {evictOnDispose: !((['ym2612', 'ym2203', 'ym2610'].includes(name) || name === 'gameboy') && (capabilities.chip ?? 'ym2612') === name)});
       check();
       return chip;
     },
@@ -674,7 +688,7 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
       error: (...args) => postCommand("error", args),
     },
     log: (...args) => postCommand("log", args),
-    fm, ...sections, fx, psg, dac, sample, stream, noise,
+    ...(gameboy ? {gameboy} : {}), fm, ...sections, fx, psg, dac, sample, stream, noise,
     context: run.context,
     FM_PRESETS: presets,
     tfiToPreset,
@@ -752,6 +766,11 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
     noteLerp,
     presets,
   };
+  if (isGameboy) {
+    const opnNames = ['fm','psg','dac','midi','play','write','psgTone','psgNoise','scheduleWritesSamples',
+      'noteToBlockFnum','hzToBlockFnum','noteLerp','FM_PRESETS','presets','tfiToPreset','vgiToPreset','setDacLookahead','getDacLookahead'];
+    for (const name of Object.keys(globals)) if (opnNames.includes(name) || /^(?:CH|PSG|OP)\d+$/.test(name)) delete globals[name];
+  }
   globals.pg = { ...globals };
 
   run.handleKeyboard = (id, event) => {

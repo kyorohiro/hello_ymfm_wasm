@@ -161,6 +161,26 @@ test('chip editors remain above a separately selected Mixer and navigate in visu
   assert.equal(options.mixerPanel.hidden, false);
 });
 
+test('a mode without FM keeps Code and common tools available and rejects FM keyboard selection', () => {
+  const {options,events}=setup();
+  const ui=createPlaygroundUi({...options,chipTabs:[],fmKeyboard:false,initialBottomTab:'keyboard'});
+  ui.setBottomTab('code');
+  assert.equal(options.operatorTabButton.hidden,true);
+  assert.equal(options.keyboardTab.hidden,true);
+  assert.equal(options.operatorPanel.hidden,true);
+  assert.equal(options.keyboardPanel.hidden,true);
+  assert.equal(options.codePanel.hidden,false);
+  assert.equal(options.consolePanel.hidden,false,'an unavailable saved tool falls back to Console');
+  const before=events.length;
+  ui.setBottomTab('keyboard');ui.setBottomTab('operator');
+  assert.equal(events.length,before,'unavailable FM panels cannot be activated');
+  ui.setBottomTab('helpers');
+  assert.equal(options.helpersPanel.hidden,false);
+  assert.equal(options.codePanel.hidden,false);
+  ui.moveBottomTabFocus(options.codeTab,1);
+  assert.equal(events.at(-1).primaryTab,'code','the only primary tab cycles to itself');
+});
+
 for (const chipTabs of [['operator'], ['operator','segapsg'], ['operator','segapsg','rf5c164','pwm']]) {
   test(`mode tabs stay hidden and navigation visits only available editors (${chipTabs.join(', ')})`, () => {
     const {options, events} = setup();

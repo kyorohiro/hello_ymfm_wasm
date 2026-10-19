@@ -77,11 +77,13 @@
           <li><a href="./playground/tetorica-playground-ym2608.d.ts">YM2608 / PC-98 selection</a></li>
           <li><a href="./playground/tetorica-playground-ym2203.d.ts">YM2203 / PC-98 selection</a></li>
           <li><a href="./playground/tetorica-playground-ym2610.d.ts">YM2610 / Neo Geo selection</a></li>
+          <li><a href="./playground/tetorica-playground-gameboy.d.ts">Game Boy mode</a></li>
         </ul>
         <p>
           Read the common API and the one chip-selection file that matches the
           target Playground.
         </p>
+        <p>Game Boy mode uses <code>gameboy.pulse</code>, <code>gameboy.wave</code> and <code>gameboy.noise</code>, also through <code>pg.gameboy</code>. Use <code>beat()</code>, <code>sleep()</code> and <code>liveLoop()</code> for timing. Global <code>play()</code>, <code>fm</code> and OPN shortcuts are available in OPN modes.</p>
 
         <h2>Working examples</h2>
         <p>
@@ -98,6 +100,7 @@
           <li><a href="./playground/examples/basic/fm/fm-api-beep.js">FM API Beep</a> — direct YM2612 setup</li>
           <li><a href="./playground/examples/basic/psg/psg-scale.js">PSG Scale</a> — SN76489-compatible tone API</li>
           <li><a href="./playground/examples/basic/fx/parallel-fx.js">Parallel FX</a> — branched effect routing</li>
+          <li><a href="./playground/examples/gameboy/gameboy-mode-pulse.js">Game Boy mode pulse</a> — primary APU and a named melody loop</li>
         </ul>
 
         <h2>Execution contract</h2>

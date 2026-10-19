@@ -4,12 +4,13 @@
  * 依存: 各チップのブラウザー向け RuntimeSynth。名前の正規化・import と音声初期化は別。
  * start() による実再生には Web Audio と WASM アセットが必要。
  */
+import { GameboyRuntimeSynth } from "./gameboy_runtime_synth.js";
 import { MegaSynth } from "./megasynth.js";
 import { YM2203RuntimeSynth } from "./ym2203synth.js";
 import { YM2608RuntimeSynth } from "./ym2608synth.js";
 import { NeoGeoSynth, YM2610BRuntimeSynth } from "./ym2610bsynth.js";
 
-export const TETORICA_CHIPS = Object.freeze(["ym2612", "ym2203", "ym2608", "ym2610", "ym2610b"]);
+export const TETORICA_CHIPS = Object.freeze(["ym2612", "ym2203", "ym2608", "ym2610", "ym2610b", "gameboy"]);
 
 /**
  * Normalize a supported chip name to lowercase.
@@ -29,7 +30,7 @@ export function normalizeTetoricaChip(chip) {
  * Construct the runtime synth for the selected chip. Call start() to initialize audio.
  * @param {import("./megasynth.js").MegaSynthOptions & import("./opn_runtime_synth.js").OPNRuntimeSynthOptions & {chip?:string}} [options={}] Forwarded to the selected synth constructor.
  * @param {string} [options.chip="ym2612"] One of TETORICA_CHIPS.
- * @returns {MegaSynth|YM2203RuntimeSynth|YM2608RuntimeSynth|NeoGeoSynth|YM2610BRuntimeSynth}
+ * @returns {MegaSynth|YM2203RuntimeSynth|YM2608RuntimeSynth|NeoGeoSynth|YM2610BRuntimeSynth|GameboyRuntimeSynth}
  *   Unstarted runtime; construction alone does not load WASM or open an audio device.
  */
 export function createTetoricaSynth(options = {}) {
@@ -48,6 +49,7 @@ export function createTetoricaSynth(options = {}) {
     });
     return synth;
   }
+  if (chip === "gameboy") return new GameboyRuntimeSynth(options);
   if (chip === "ym2203") return new YM2203RuntimeSynth(options);
   if (chip === "ym2608") return new YM2608RuntimeSynth(options);
   if (chip === "ym2610") return new NeoGeoSynth(options);

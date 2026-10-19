@@ -202,6 +202,11 @@ export const EXAMPLE_FILES = [
     "data": "// Independent Sega PSG: works with any selected Playground chip.\nconst chip = await useSoundChip('segapsg');\ntry {\n  for (const note of ['C4', 'E4', 'G4', 'C5']) {\n    chip.tone(0, {note, attenuation: 4});\n    await sleep(0.2);\n  }\n  chip.off(0);\n  chip.noise({type: 'white', rate: 'medium', attenuation: 8});\n  await sleep(0.2);\n  chip.noiseOff();\n} finally { chip.dispose(); }\n"
   },
   {
+    "path": "/examples/gameboy/gameboy-mode-pulse.js",
+    "name": "gameboy-mode-pulse",
+    "data": "// Select Mode: Game Boy. Main / Worker use the same built-in APU.\n// pulse: channels 0/1, wave: channel 2, noise: channel 3.\nsetBpm(120);\ngameboy.pulse.setVoice(0, {\n  duty: 0.25, volume: 9, envelope: {direction: 'down', period: 0},\n});\n\nliveLoop('melody', async () => {\n  for (const note of ['C4', 'E4', 'G4', 'B4', 'C5', 'G4', 'E4', 'D4']) {\n    gameboy.pulse.noteOn(0, note);\n    await beat(0.4);\n    gameboy.pulse.keyOff(0);\n    await beat(0.1);\n  }\n});\n\n// Other voices: gameboy.wave.noteOn('C3'), gameboy.noise.keyOn().\n// Configure them through gameboy.wave / gameboy.noise before starting.\n// Global play() is an FM shortcut in OPN modes; Game Boy uses its own API.\n"
+  },
+  {
     "path": "/examples/gameboy/gameboy-saw-noise.js",
     "name": "gameboy-saw-noise",
     "data": "// Game Boyノイズ：15-bitと7-bitの違い、分周とシフトを試します。\n// noiseには音名指定がありません。設定は即時書き込み、keyOn()で発音・エンベロープを開始します。\nconst gb = await createSoundChip('gameboy');\ntry {\n  gb.initialize();\n  for (const width of /** @type {const} */ ([15, 7])) {\n    for (const shift of [2, 3, 4, 5]) {\n      gb.noise.setVoice({\n        volume: 10,\n        envelope: {direction: 'down', period: 1},\n        divisor: 3, shift, width,\n      });\n      gb.noise.keyOn();\n      await sleep(0.2);\n      gb.noise.keyOff();\n      await sleep(0.1);\n    }\n  }\n} finally {\n  gb.dispose();\n}\n"

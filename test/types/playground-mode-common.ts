@@ -1,6 +1,12 @@
 /// <reference path="../../docs/playground/tetorica-playground-globals.d.ts" />
 
 async function checkCommonModeTypes() {
+  // @ts-expect-error primary Game Boy only exists in its selected mode
+  pg.gameboy;
+  livePrepare('without-primary-apu', context => {
+    // @ts-expect-error independent APUs are not primary OPN mode globals
+    context.gameboy;
+  });
   fm.setPreset(CH1, FM_PRESETS.sine);
   fm.setOperators(CH1, [[OP1, {multi: 1, tl: 20}]]);
   fm.setFrequency(CH1, 440);
@@ -42,4 +48,6 @@ async function checkCommonModeTypes() {
   neo.noteOn(4, 'C4');
   const extraPsg = await useSoundChip('segapsg');
   extraPsg.noteOn(0, 'C4');
+  const extraApu = await useSoundChip('gameboy');
+  extraApu.dispose();
 }

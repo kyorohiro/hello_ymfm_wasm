@@ -1,23 +1,36 @@
-import {mkdtemp, writeFile, rm} from 'node:fs/promises';
+import {mkdtemp, readFile, writeFile, rm} from 'node:fs/promises';
 import {join} from 'node:path';
 import {tmpdir} from 'node:os';
 import {fileURLToPath} from 'node:url';
 import {execFileSync} from 'node:child_process';
+import {selectPlaygroundDeclarations} from '../docs/playground/playground_declarations.js';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const scratch = await mkdtemp(join(tmpdir(), 'playground-mode-types-'));
 try {
   const fixtures = [
     ...['ym2612', 'ym2203', 'ym2608', 'ym2610', 'ym2610b'].map(chip => `playground-mode-${chip}.ts`),
+    'playground-mode-gameboy.ts',
     'playground-time.ts', 'playground-tone.ts', 'playground-chip-clock.ts',
   ];
   for (const fixture of fixtures) {
+    let fixturePath = join(root, 'test/types', fixture);
+    if (fixture === 'playground-mode-gameboy.ts') {
+      const globals = join(scratch, 'tetorica-playground-globals.d.ts');
+      await writeFile(globals, selectPlaygroundDeclarations(
+        await readFile(join(root, 'docs/playground/tetorica-playground-globals.d.ts'), 'utf8'), 'gameboy'));
+      const source = await readFile(fixturePath, 'utf8');
+      fixturePath = join(scratch, fixture);
+      await writeFile(fixturePath, source
+        .replace('../../docs/playground/tetorica-playground-globals.d.ts', globals)
+        .replace('../../docs/playground/tetorica-playground-gameboy.d.ts', join(root, 'docs/playground/tetorica-playground-gameboy.d.ts')));
+    }
     const config = join(scratch, 'tsconfig.json');
     await writeFile(config, JSON.stringify({compilerOptions: {
       strict: true, noEmit: true, skipLibCheck: false,
       target: 'ES2022', module: 'ESNext', moduleResolution: 'Bundler',
       lib: ['ES2022', 'DOM'], types: [],
-    }, files: [join(root, 'test/types', fixture)]}));
+    }, files: [fixturePath]}));
     execFileSync(process.execPath, [join(root, 'node_modules/typescript/bin/tsc'), '-p', config], {stdio: 'inherit'});
   }
   console.log('PASS: Playground mode declarations, selected channels/capabilities, independent chips, and existing time/tone/clock types.');

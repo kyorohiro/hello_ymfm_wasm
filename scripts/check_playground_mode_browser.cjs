@@ -1,4 +1,4 @@
-// Real OPN environments, Main/Worker playback, Monaco types and project transfer.
+// Selected environments, Main/Worker playback, Monaco types and project transfer.
 // Self-hosts docs. Chromium is required; pass --webkit to include WebKit.
 // --project-only exercises transfer/autosave/legacy URLs without repeating audio.
 // --tabs-only checks mode-specific chip tabs without audio/transfer suites.
@@ -7,6 +7,7 @@
 // --opnb-only checks section types and both Neo Geo primary OPNB variants.
 // --opnb-example-only runs the bundled OPNB example in both Neo Geo modes.
 // --ym2203-only checks native OPN SSG types, audio, clock, reset and Stop.
+// --gameboy-only checks the native non-FM environment, audio and mode transfer.
 const assert = require('node:assert/strict');
 const http = require('node:http');
 const fs = require('node:fs/promises');
@@ -24,6 +25,7 @@ const modes = [
   {id:'pc98', label:'PC-98 (YM2608 / OPNA)', chip:'ym2608', clock:8000000, channels:6},
   {id:'neogeo', label:'Neo Geo', chip:'ym2610', clock:8000000, channels:4},
   {id:'neogeo-b', label:'Neo Geo (YM2610B)', chip:'ym2610b', clock:8000000, channels:6},
+  {id:'gameboy', label:'Game Boy', chip:'gameboy', clock:4194304, channels:0},
 ];
 const server = http.createServer(async (request, response) => {
   try {
@@ -53,6 +55,7 @@ async function ready(page) {
 }
 
 async function checkTypes(page, mode) {
+  if (mode.chip === 'gameboy') return checkGameboyTypes(page);
   const types = await page.evaluate(async mode => {
     const models = monaco.editor.getModels().filter(model => model.uri.path.endsWith('.d.ts'));
     const selected = models.find(model => model.uri.path.endsWith(`/tetorica-playground-${mode.chip}.d.ts`));
@@ -102,6 +105,7 @@ async function checkTypes(page, mode) {
     }
   }
   for (const target of ['globals', 'pg', 'prepare']) {
+    assert(!types.sections[target].includes('gameboy'), `${mode.id}: ${target} should omit the Game Boy builtin`);
     const opna = mode.chip === 'ym2608', opnb = ['ym2610', 'ym2610b'].includes(mode.chip);
     for (const [section, available] of Object.entries({ssg:mode.chip === 'ym2203' || opna || opnb, rhythm:opna, adpcm:opna || opnb, adpcmA:opnb, adpcmB:opnb})) {
       assert.equal(types.sections[target].includes(section), available, `${mode.id}: ${target} ${section} completion follows the selected mode`);
@@ -129,17 +133,66 @@ async function checkTypes(page, mode) {
   return types.hovers;
 }
 
+async function checkGameboyTypes(page) {
+  const types = await page.evaluate(async () => {
+    const selected = monaco.editor.getModels().find(model => model.uri.path.endsWith('/tetorica-playground-gameboy.d.ts'));
+    const getWorker = await monaco.languages.typescript.getJavaScriptWorker();
+    const valid = `gameboy.pulse.noteOn(1, 'C4');\ngameboy.wave.noteOn('C3');\ngameboy.noise.keyOn();\npg.gameboy.setPan(3, true, true);\nlivePrepare('gb-types', api => api.gameboy.pulse.setDuty(0, .5));\n`;
+    const invalid = `gameboy.pulse.noteOn(2, 'C4');\nfm;\nplay('C4');\nwrite(0, 1);\nFM_PRESETS;\nCH1;\nOP1;\nnoteToBlockFnum('C4');\npg.fm;\npg.play;\n`;
+    const model = monaco.editor.createModel(valid + invalid, 'javascript', monaco.Uri.parse('file:///gameboy-native-mode-types.js'));
+    const completions = async (name, source, position = source.length) => {
+      const probe = monaco.editor.createModel(source, 'javascript', monaco.Uri.parse(`file:///gameboy-${name}-completion.js`));
+      try {
+        const service = await getWorker(probe.uri);
+        return (await service.getCompletionsAtPosition(probe.uri.toString(), position))?.entries.map(entry => entry.name) || [];
+      } finally {probe.dispose();}
+    };
+    try {
+      const worker = await getWorker(model.uri), uri = model.uri.toString();
+      const diagnostics = await worker.getSemanticDiagnostics(uri);
+      const hover = await worker.getQuickInfoAtPosition(uri, valid.indexOf('gameboy') + 2);
+      const prepareSource = "livePrepare('gb-context', api => {api.});";
+      return {selected:selected?.getValue(), validLength:valid.length,
+        diagnostics:diagnostics.map(({start, code}) => ({start, code})),
+        hover:hover?.displayParts.map(part => part.text).join(''),
+        globals:await completions('globals', ';\n'), pg:await completions('pg', 'pg.'),
+        prepare:await completions('prepare', prepareSource, prepareSource.indexOf('api.') + 4),
+        gameboy:await completions('chip', 'gameboy.'), pulse:await completions('pulse', 'gameboy.pulse.'),
+        wave:await completions('wave', 'gameboy.wave.'), noise:await completions('noise', 'gameboy.noise.')};
+    } finally {model.dispose();}
+  });
+  assert(types.selected?.includes('"gameboy"'), 'Game Boy selected declarations missing');
+  assert(!types.diagnostics.some(diagnostic => diagnostic.start < types.validLength), 'native Game Boy controls rejected');
+  assert(types.diagnostics.some(diagnostic => diagnostic.code === 2345), 'invalid third pulse channel accepted');
+  assert.equal(types.diagnostics.filter(diagnostic => diagnostic.code === 2304).length, 7, 'FM-only globals should be undefined in Game Boy mode');
+  assert.equal(types.diagnostics.filter(diagnostic => diagnostic.code === 2339).length, 2, 'pg should omit FM and play');
+  for (const target of ['globals', 'pg', 'prepare']) {
+    assert(types[target].includes('gameboy'), `${target}: native Game Boy completion missing`);
+    for (const name of ['fm','play','write','FM_PRESETS','CH1','OP1','noteToBlockFnum','psg','dac','ssg','rhythm','adpcm']) {
+      assert(!types[target].includes(name), `${target}: ${name} should not appear in Game Boy mode`);
+    }
+  }
+  for (const [section, methods] of Object.entries({gameboy:['pulse','wave','noise','setClock','writeRegister'],
+    pulse:['setVoice','setDuty','noteOn','keyOff'], wave:['stopAndSetWaveform','setLevel','noteOn','keyOff'],
+    noise:['setVoice','setParameters','keyOn','keyOff']})) {
+    for (const method of methods) assert(types[section].includes(method), `gameboy.${section}.${method} completion missing`);
+  }
+  assert(!types.gameboy.includes('dispose'), 'builtin lifetime must remain owned by the runtime');
+  return {gameboy:types.hover};
+}
+
 async function checkChipTabs(page, mode) {
   const chipTabs = {operator:'#operatorTabButton', segapsg:'#segapsgTab', rf5c164:'#rf5c164Tab', pwm:'#pwmTab'};
   const expected = mode.chip === 'ym2612'
-    ? ['operator', 'segapsg', ...(mode.full ? ['rf5c164', 'pwm'] : [])] : ['operator'];
+    ? ['operator', 'segapsg', ...(mode.full ? ['rf5c164', 'pwm'] : [])] : mode.chip === 'gameboy' ? [] : ['operator'];
   for (const [name, selector] of Object.entries(chipTabs)) {
     assert.equal(await page.locator(selector).isVisible(), expected.includes(name), `${mode.id}: ${name} tab visibility`);
   }
-  for (const selector of ['#codeTab', '#audioMonitorTab', '#fxMonitorTab', '#mixerTab', '#consoleTab', '#shellTab', '#keyboardTab', '#helpersTab']) {
+  for (const selector of ['#codeTab', '#audioMonitorTab', '#fxMonitorTab', '#mixerTab', '#consoleTab', '#shellTab', '#helpersTab']) {
     assert(await page.locator(selector).isVisible(), `${mode.id}: generic tool ${selector} remains available`);
   }
-  await page.locator('#operatorTabButton').focus();
+  assert.equal(await page.locator('#keyboardTab').isVisible(), mode.chip !== 'gameboy', `${mode.id}: FM keyboard visibility`);
+  await page.locator(mode.chip === 'gameboy' ? '#codeTab' : '#operatorTabButton').focus();
   await page.keyboard.press('ArrowRight');
   const next = mode.chip === 'ym2612' ? 'segapsgTab' : 'codeTab';
   assert.equal(await page.evaluate(() => document.activeElement.id), next, `${mode.id}: ArrowRight skips hidden chip tabs`);
@@ -165,6 +218,143 @@ async function checkAdditionalChipTabs(page, mode) {
   await checkChipTabs(page, mode);
   await page.evaluate(async () => window.__modeRegression.runtime.stopWithFade());
   assert.equal(await page.locator('#segapsgTab').isVisible(), false, 'an added chip does not change mode-defined tabs');
+}
+
+async function checkGameboyAudio(page, browserName) {
+  const examplePath = '/examples/gameboy/gameboy-mode-pulse.js';
+  const example = await page.evaluate(path => window.__modeRegression.virtualFiles.get(path)?.data, examplePath);
+  assert.equal(example, await fs.readFile(path.join(docs, 'playground', examplePath), 'utf8'), 'the builtin Game Boy example matches its source file');
+  const initialSource = await page.evaluate(() => window.__modeRegression.getEditorValue());
+  assert.equal(initialSource, example, 'Game Boy mode starts with its own runnable example');
+  await page.evaluate(() => {
+    document.getElementById('workerExecution').checked = false;
+    window.__modeRegression.setEditorValue("console.log('GAMEBOY_PRIMARY_READY');");
+  });
+  await page.click('#runButton');
+  await page.waitForFunction(() => document.getElementById('consoleOutput').textContent.includes('GAMEBOY_PRIMARY_READY'));
+  const primary = await page.evaluate(() => {
+    const {megaDrive} = window.__modeRegression;
+    const context = megaDrive.audioContext, meter = context.createAnalyser(), silent = context.createGain();
+    meter.fftSize = 1024; silent.gain.value = 0; meter.connect(silent); silent.connect(context.destination);
+    const state = window.__gameboyMeter = {meter, silent, detach:megaDrive.audio.connectOutputMonitor(meter), peak:0, quietSince:null};
+    state.timer = setInterval(() => {
+      const pcm = new Float32Array(meter.fftSize); meter.getFloatTimeDomainData(pcm);
+      let peak = 0;
+      for (const value of pcm) peak = Math.max(peak, Math.abs(value));
+      state.peak = Math.max(state.peak, peak);
+      if (peak < .00001) state.quietSince ??= performance.now();
+      else state.quietSince = null;
+    }, 10);
+    return {chip:megaDrive.chip, fm:megaDrive.fm, gameboy:Boolean(megaDrive.gameboy),
+      chips:megaDrive.mixer.list().filter(chip => chip.connected).map(chip => chip.id)};
+  });
+  assert.equal(primary.chip, 'gameboy');
+  assert.equal(primary.fm, null, 'Game Boy does not initialize a hidden FM device');
+  assert(primary.gameboy, 'the primary native Game Boy device exists');
+  assert.deepEqual(primary.chips, ['gameboy']);
+  const cases = {
+    pulse:`gameboy.pulse.setVoice(0, {duty:.25, volume:10, envelope:{direction:'down',period:0}});
+      liveLoop('gameboy-held-pulse', async () => {gameboy.pulse.noteOn(0, 'A4'); await sleep(3);});`,
+    wave:`gameboy.wave.stopAndSetWaveform(Array.from({length:32}, (_, i) => i < 16 ? 15 : 0));
+      gameboy.wave.setLevel(.5);
+      liveLoop('gameboy-held-wave', async () => {gameboy.wave.noteOn('C4'); await sleep(3);});`,
+    noise:`gameboy.noise.setVoice({volume:10,envelope:{direction:'down',period:0},divisor:3,shift:4,width:15});
+      liveLoop('gameboy-held-noise', async () => {gameboy.noise.keyOn(); await sleep(3);});`,
+  };
+  const assertPrimaryOnly = async execution => {
+    // Worker disposal is reserved on the audio timeline and can intentionally
+    // finish after its console marker, at the end of the lookahead window.
+    await page.waitForFunction(() => {
+      const chips = window.__modeRegression.megaDrive.mixer.list().filter(chip => chip.connected);
+      return chips.length === 1 && chips[0].id === 'gameboy';
+    });
+    const connected = await page.evaluate(() => window.__modeRegression.megaDrive.mixer.list().filter(chip => chip.connected).map(chip => chip.id));
+    assert.deepEqual(connected, ['gameboy'], `${execution}: native controls reuse the primary Game Boy`);
+  };
+  const waitQuiet = async lookahead => {
+    await page.evaluate(() => {window.__gameboyMeter.quietSince = null;});
+    await page.waitForFunction(quietMs => window.__gameboyMeter.quietSince !== null &&
+      performance.now() - window.__gameboyMeter.quietSince >= quietMs, Math.max(250, lookahead + 150), {timeout:4000 + lookahead});
+  };
+  try {
+    for (const execution of ['main','worker']) {
+      const lookahead = await page.evaluate(execution => execution === 'worker'
+        ? window.__modeRegression.runtime.getTiming().workerLookaheadSeconds * 1000 : 0, execution);
+      for (const [section, body] of Object.entries(cases)) {
+        const marker = `GAMEBOY_SECTION_PASS:${execution}:${section}`;
+        const source = `
+          if (typeof fm !== 'undefined' || typeof play !== 'undefined' || typeof write !== 'undefined' ||
+            typeof FM_PRESETS !== 'undefined' || typeof CH1 !== 'undefined' || typeof OP1 !== 'undefined' ||
+            typeof noteToBlockFnum !== 'undefined') throw Error('FM globals leaked into Game Boy mode');
+          if (gameboy !== pg.gameboy || gameboy !== await useSoundChip('gameboy')) throw Error('Game Boy aliases differ');
+          if (typeof gameboy.dispose !== 'undefined') throw Error('Primary Game Boy lifetime leaked');
+          for (const name of ['fm','play','write','presets','psg','dac']) if (name in pg) throw Error('pg.' + name + ' leaked');
+          await livePrepare(${JSON.stringify(`gameboy-context-${execution}-${section}`)}, api => {
+            if (api.gameboy !== gameboy || 'fm' in api || 'presets' in api) throw Error('livePrepare context differs');
+            return true;
+          });
+          if (gameboy.clock !== 4194304) throw Error('Wrong default Game Boy clock: ' + gameboy.clock);
+          try {
+            await gameboy.setClock(4000000);
+            const n = Math.round(2048 - 4000000 / (32 * 440));
+            const expected = 4000000 / (32 * (2048 - n));
+            if (gameboy.clock !== 4000000 || Math.abs(gameboy.pulse.setFrequency(0,440) - expected) > .000001) throw Error('Game Boy clock/pitch differ');
+          } finally {await gameboy.setClock(4194304);}
+          ${body}
+          console.log(${JSON.stringify(marker)});
+        `;
+        await page.evaluate(async ({source, execution}) => {
+          window.__gameboyMeter.peak = 0; window.__gameboyMeter.quietSince = null;
+          await window.__modeRegression.runtime.playSource(source, {execution});
+        }, {source, execution});
+        await page.waitForFunction(marker => document.getElementById('consoleOutput').textContent.includes(marker), marker);
+        await page.waitForFunction(() => window.__gameboyMeter.peak > .0001, null, {timeout:4000 + lookahead});
+        const peak = await page.evaluate(() => window.__gameboyMeter.peak);
+        await assertPrimaryOnly(execution);
+        await page.evaluate(() => window.__modeRegression.runtime.stop());
+        await waitQuiet(lookahead);
+        console.log(JSON.stringify({browser:browserName,mode:'gameboy',execution,section,peak,clock:true,primaryOnly:true,stopQuiet:true,passed:true}));
+      }
+      // Removing an owned loop must release its generator while leaving the
+      // audio output open, without relying on the global Stop button's fade.
+      await page.evaluate(async ({source, execution}) => {
+        window.__gameboyMeter.peak = 0;
+        await window.__modeRegression.runtime.playSource(source, {execution});
+      }, {source:cases.pulse, execution});
+      await page.waitForFunction(() => window.__gameboyMeter.peak > .0001, null, {timeout:4000 + lookahead});
+      await page.evaluate(async execution => window.__modeRegression.runtime.playSource("stopLoop('gameboy-held-pulse');", {execution}), execution);
+      await waitQuiet(lookahead);
+      const marker = `GAMEBOY_EXTRA_PASS:${execution}`;
+      await page.evaluate(async ({execution,marker}) => window.__modeRegression.runtime.playSource(`
+        const extra = await createSoundChip('gameboy');
+        if (extra === gameboy || extra.id === gameboy.id) throw Error('createSoundChip must create an independent Game Boy');
+        extra.initialize(); extra.dispose();
+        if (await useSoundChip('gameboy') !== gameboy) throw Error('useSoundChip did not return primary');
+        console.log(${JSON.stringify(marker)});
+      `, {execution}), {execution,marker});
+      await page.waitForFunction(marker => document.getElementById('consoleOutput').textContent.includes(marker), marker);
+      await assertPrimaryOnly(execution);
+      const exampleMarker = `GAMEBOY_EXAMPLE_PASS:${execution}`;
+      await page.evaluate(async ({source,execution,marker}) => {
+        window.__gameboyMeter.peak = 0;
+        await window.__modeRegression.runtime.playSource(source + `\nconsole.log(${JSON.stringify(marker)});`, {execution});
+      }, {source:example,execution,marker:exampleMarker});
+      await page.waitForFunction(marker => document.getElementById('consoleOutput').textContent.includes(marker), exampleMarker);
+      await page.waitForFunction(() => window.__gameboyMeter.peak > .0001, null, {timeout:4000 + lookahead});
+      await assertPrimaryOnly(execution);
+      await page.evaluate(() => window.__modeRegression.runtime.stop());
+      await waitQuiet(lookahead);
+      console.log(JSON.stringify({browser:browserName,mode:'gameboy',execution,example:examplePath,loopCancelQuiet:true,independentChip:true,primaryOnly:true,audible:true,stopQuiet:true,passed:true}));
+    }
+  } finally {
+    await page.evaluate(async () => {
+      const state = window.__gameboyMeter;
+      if (!state) return;
+      clearInterval(state.timer); state.detach(); state.meter.disconnect(); state.silent.disconnect();
+      delete window.__gameboyMeter;
+      await window.__modeRegression.runtime.stopWithFade();
+    }).catch(() => {});
+  }
 }
 
 async function checkYm2203Ssg(page, browserName) {
@@ -678,6 +868,36 @@ async function checkProjectSwitch(page, base, screenshot) {
   }
 }
 
+async function checkGameboyProjectSwitch(page, base) {
+  const source = '// Shared project survives OPN and Game Boy mode changes.\nawait sleep(.01);\n';
+  await page.goto(`${base}?mode=pc98-26&src=${Buffer.from(source).toString('base64url')}&no-sw=1`);
+  await ready(page);
+  await page.evaluate(() => {
+    const {virtualFiles} = window.__modeRegression;
+    virtualFiles.writeBinary('/assets/gameboy-mode.bin', new Uint8Array([0,255,128]));
+    virtualFiles.writeText('/lib/gameboy-mode.js', 'export const value = 42;\n');
+    virtualFiles.mkdir('/assets/gameboy-empty', {recursive:true});
+  });
+  for (const mode of ['gameboy','pc98-26']) {
+    await page.locator('#mainMenu > summary').click();
+    await Promise.all([
+      page.waitForURL(url => url.searchParams.get('mode') === mode),
+      page.locator('#playgroundMode').selectOption(mode),
+    ]);
+    await ready(page);
+    const restored = await page.evaluate(() => {
+      const test = window.__modeRegression;
+      return {mode:test.selectedMode.id, source:test.getEditorValue(), entry:test.virtualFiles.get('/index.js')?.data,
+        bytes:Array.from(test.virtualFiles.get('/assets/gameboy-mode.bin')?.data || []),
+        module:test.virtualFiles.get('/lib/gameboy-mode.js')?.data,
+        empty:test.virtualFiles.stat('/assets/gameboy-empty')?.type};
+    });
+    assert.deepEqual(restored, {mode,source,entry:source,bytes:[0,255,128],module:'export const value = 42;\n',empty:'directory'});
+    assert(!new URL(page.url()).searchParams.has('src'), `${mode}: source URL is consumed after project transfer`);
+  }
+  console.log(JSON.stringify({mode:'gameboy',projectSwitch:'OPN→GameBoy→OPN',fileTypes:true,passed:true}));
+}
+
 async function checkDesktopAutosave(browser, base) {
   // Autosave only needs the Desktop presence flag. No native playback or IPC is
   // involved, so this intentionally supplies no native command implementation.
@@ -772,8 +992,10 @@ async function checkBrowser(name, type, base) {
   const opnbOnly = process.argv.includes('--opnb-only');
   const opnbExampleOnly = process.argv.includes('--opnb-example-only');
   const ym2203Only = process.argv.includes('--ym2203-only');
+  const gameboyOnly = process.argv.includes('--gameboy-only');
   const sectionsOnly = opnaOnly || opnbOnly || opnbExampleOnly || ym2203Only;
-  const selectedModes = process.argv.includes('--project-only') ? [] : ym2203Only
+  const selectedModes = process.argv.includes('--project-only') ? [] : gameboyOnly
+    ? modes.filter(mode => mode.chip === 'gameboy') : ym2203Only
     ? modes.filter(mode => mode.chip === 'ym2203') : opnbExampleOnly
     ? modes.filter(mode => ['ym2610', 'ym2610b'].includes(mode.chip)) : modes;
   try {
@@ -786,7 +1008,10 @@ async function checkBrowser(name, type, base) {
       let typeHovers;
       if (!tabsOnly) {
         if (!opnbExampleOnly) typeHovers = await checkTypes(page, mode);
-        if (!typesOnly && !sectionsOnly) await checkAudio(page, mode);
+        if (!typesOnly && !sectionsOnly) {
+          if (mode.chip === 'gameboy') await checkGameboyAudio(page, name);
+          else await checkAudio(page, mode);
+        }
       }
       if (!typesOnly && !sectionsOnly) await checkAdditionalChipTabs(page, mode);
       if (!typesOnly && !tabsOnly && !opnaOnly && !opnbOnly && !opnbExampleOnly && mode.id === 'pc98-26') await checkYm2203Ssg(page, name);
@@ -796,7 +1021,8 @@ async function checkBrowser(name, type, base) {
       if (tabsOnly) console.log(JSON.stringify({browser:name, mode:mode.id, chipTabs:true, keyboardNavigation:true, passed:true}));
       if (typesOnly) console.log(JSON.stringify({browser:name, mode:mode.id, hovers:typeHovers, passed:true}));
     }
-    if (!tabsOnly && !typesOnly && !sectionsOnly) {
+    if (!tabsOnly && !typesOnly && !sectionsOnly && gameboyOnly) await checkGameboyProjectSwitch(page, base);
+    if (!tabsOnly && !typesOnly && !sectionsOnly && !gameboyOnly) {
       await checkProjectSwitch(page, base, name === 'chromium');
       await checkLegacyAndLayout(page, base);
       await checkDesktopAutosave(browser, base);
@@ -804,15 +1030,17 @@ async function checkBrowser(name, type, base) {
     assert.deepEqual(errors, [], `${name}: page errors`);
     console.log(JSON.stringify({browser:name, passed:true, modes:selectedModes.length,
       chipTabs:!typesOnly && !sectionsOnly && !process.argv.includes('--project-only'),
-      ym2203Ssg:!tabsOnly && !typesOnly && !opnaOnly && !opnbOnly && !opnbExampleOnly && !process.argv.includes('--project-only'),
-      opnaSections:!tabsOnly && !typesOnly && !opnbOnly && !opnbExampleOnly && !ym2203Only && !process.argv.includes('--project-only'),
-      opnbSections:!tabsOnly && !typesOnly && !opnaOnly && !opnbExampleOnly && !ym2203Only && !process.argv.includes('--project-only'),
-      opnbExamples:!tabsOnly && !typesOnly && !opnaOnly && !ym2203Only && !process.argv.includes('--project-only'),
+      gameboy:!tabsOnly && !typesOnly && !sectionsOnly && !process.argv.includes('--project-only'),
+      ym2203Ssg:!tabsOnly && !typesOnly && !opnaOnly && !opnbOnly && !opnbExampleOnly && !gameboyOnly && !process.argv.includes('--project-only'),
+      opnaSections:!tabsOnly && !typesOnly && !opnbOnly && !opnbExampleOnly && !ym2203Only && !gameboyOnly && !process.argv.includes('--project-only'),
+      opnbSections:!tabsOnly && !typesOnly && !opnaOnly && !opnbExampleOnly && !ym2203Only && !gameboyOnly && !process.argv.includes('--project-only'),
+      opnbExamples:!tabsOnly && !typesOnly && !opnaOnly && !ym2203Only && !gameboyOnly && !process.argv.includes('--project-only'),
       projectSwitch:!tabsOnly && !typesOnly && !sectionsOnly, fileTypes:!tabsOnly && !typesOnly && !sectionsOnly,
-      desktopAutosave:!tabsOnly && !typesOnly && !sectionsOnly, legacyUrls:!tabsOnly && !typesOnly && !sectionsOnly,
-      simpleLayout:!tabsOnly && !typesOnly && !sectionsOnly}));
+      desktopAutosave:!tabsOnly && !typesOnly && !sectionsOnly && !gameboyOnly, legacyUrls:!tabsOnly && !typesOnly && !sectionsOnly && !gameboyOnly,
+      simpleLayout:!tabsOnly && !typesOnly && !sectionsOnly && !gameboyOnly}));
   } catch (error) {
-    console.error(JSON.stringify({browser:name, url:page.url(), status:await page.locator('#status').textContent().catch(() => null), errors}));
+    console.error(JSON.stringify({browser:name, url:page.url(), status:await page.locator('#status').textContent().catch(() => null),
+      console:await page.locator('#consoleOutput').textContent().catch(() => null), errors}));
     throw error;
   } finally {await context.close(); await browser.close();}
 }

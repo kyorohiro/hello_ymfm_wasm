@@ -9,6 +9,7 @@ const definitions = [
   {id:'pc98', label:'PC-98 (YM2608 / OPNA)', chip:'ym2608'},
   {id:'neogeo', label:'Neo Geo', chip:'ym2610'},
   {id:'neogeo-b', label:'Neo Geo (YM2610B)', chip:'ym2610b'},
+  {id:'gameboy', label:'Game Boy', chip:'gameboy', engine:'apu', fmChannels:0, defaultExample:'gameboy-mode-pulse'},
   // Preserve old engine/chip links without adding another standard environment.
   {id:'genesis-nuked', label:'Genesis (Nuked)', chip:'ym2612', engine:'nuked', legacy:true},
 ];
@@ -19,7 +20,7 @@ const modes = new Map(definitions.map(definition => {
     legacyDraftKey:definition.chip + (definition.engine === 'nuked' ? ':nuked' : ''),
     chipTabs:Object.freeze(definition.chip === 'ym2612'
       ? ['operator', 'segapsg', ...(definition.full ? ['rf5c164', 'pwm'] : [])]
-      : ['operator']),
+      : definition.chip === 'gameboy' ? [] : ['operator']),
   });
   return [mode.id, mode];
 }));
@@ -38,7 +39,7 @@ export function resolvePlaygroundMode(search = '') {
   if (id && !['simple', 'full'].includes(id)) return getPlaygroundMode(id);
   const chip = (params.get('chip') || 'ym2612').toLowerCase();
   const legacy = {ym2612:params.get('engine') === 'nuked' ? 'genesis-nuked' : 'genesis',
-    ym2203:'pc98-26', ym2608:'pc98', ym2610:'neogeo', ym2610b:'neogeo-b'};
+    ym2203:'pc98-26', ym2608:'pc98', ym2610:'neogeo', ym2610b:'neogeo-b', gameboy:'gameboy'};
   if (!legacy[chip]) throw new Error(`Unsupported Playground chip: ${chip}`);
   return getPlaygroundMode(legacy[chip]);
 }
@@ -61,6 +62,14 @@ export function createPlaygroundModeUrl(href, id) {
 
 export function createModeSynthOptions(mode, base = new URL('../js/', import.meta.url)) {
   const generated = new URL('generated/', new URL('../', base));
+  if (mode.chip === 'gameboy') return {
+    chip:mode.chip,
+    workletUrl:new URL('playground_gameboy_worklet.js?v=gameboy-mode-1', base).href,
+    wasmUrl:new URL('gameboy_apu_wasm.wasm', generated).href,
+    segaPsgWasmUrl:null,
+    megaCD:false,
+    mega32X:false,
+  };
   const nuked = mode.engine === 'nuked';
   const chip = mode.chip === 'ym2610' ? 'ym2610b' : mode.chip;
   const wasm = nuked ? 'nuked_opn2' : chip;

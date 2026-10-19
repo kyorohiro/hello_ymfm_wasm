@@ -74,8 +74,10 @@
           <li><a href="./playground/tetorica-playground-ym2608.d.ts">YM2608 / PC-98用</a></li>
           <li><a href="./playground/tetorica-playground-ym2203.d.ts">YM2203 / PC-98用</a></li>
           <li><a href="./playground/tetorica-playground-ym2610.d.ts">YM2610 / Neo Geo用</a></li>
+          <li><a href="./playground/tetorica-playground-gameboy.d.ts">Game Boy mode用</a></li>
         </ul>
         <p>共通APIと、対象のPlaygroundで選択するチップの型定義を読んでください。</p>
+        <p>Game Boy modeでは<code>gameboy.pulse</code>・<code>gameboy.wave</code>・<code>gameboy.noise</code>を使います。<code>pg.gameboy</code>からも同じ音源を操作できます。時間制御には<code>beat()</code>・<code>sleep()</code>・<code>liveLoop()</code>を使い、グローバルの<code>play()</code>・<code>fm</code>・OPN用ショートカットはOPN modeで使います。</p>
 
         <h2>動作するサンプル</h2>
         <p>サンプルの正本は<a href="./playground/playground_examples.js">playground_examples.js</a>です。以下のリンクはPlaygroundで利用する代表的なサンプルです。読み込んでも自動では実行されません。</p>
@@ -87,6 +89,7 @@
           <li><a href="./playground/examples/basic/fm/fm-api-beep.js">FM API Beep</a>— YM2612の直接設定</li>
           <li><a href="./playground/examples/basic/psg/psg-scale.js">PSG Scale</a>— SN76489互換のトーンAPI</li>
           <li><a href="./playground/examples/basic/fx/parallel-fx.js">Parallel FX</a>— 分岐したエフェクト経路</li>
+          <li><a href="./playground/examples/gameboy/gameboy-mode-pulse.js">Game Boy mode pulse</a>— 標準APUと名前付きメロディーループ</li>
         </ul>
 
         <h2>実行時のルール</h2>
