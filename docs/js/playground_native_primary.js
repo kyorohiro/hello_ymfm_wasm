@@ -66,7 +66,8 @@ export function createNativeWorkerApis(connections, performance, observe) {
     stop() {
       for (const [name,client] of raw) {
         client._cancelClockRequests?.('Run stopped');
-        if (client.allNotesOff) client.allNotesOff();
+        if (client._stopVoices) client._stopVoices();
+        else if (client.allNotesOff) client.allNotesOff();
         else if (client.pulse) {for (let ch = 0; ch < 6; ch++) client.keyOff(ch);}
         else for (let ch = 0; ch < 8; ch++) client.keyOff(ch);
         if(client._getState)observe(name,client._getState());

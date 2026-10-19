@@ -304,10 +304,12 @@ export function createPlaygroundRuntime(
   const soundChips = createSoundChipRegistry();
   const chipInspector = createChipInspector({decode:decodePcm,endpoints:()=>{
     const entries=[];
+    if(capabilities.chip==='gameboy'&&megaDrive.gameboy&&megaDrive.node?.port)entries.push({id:'gameboy',kind:'gameboy',label:'Game Boy (primary)',port:megaDrive.node.port});
+    for(const endpoint of megaDrive.primaryEndpoints??[])if(endpoint.name==='nes'&&endpoint.node?.port)entries.push({id:'nes',kind:'nes',label:'NES + FDS (primary)',port:endpoint.node.port});
     if(megaDrive.psg&&megaDrive.node?.port)entries.push({id:'segapsg',kind:'segapsg',label:'Sega PSG (primary)',port:megaDrive.node.port});
     if(megaDrive.pcm&&megaDrive.pcmDevice?.node?.port)entries.push({id:'rf5c164',kind:'rf5c164',label:'RF5C164 (primary)',port:megaDrive.pcmDevice.node.port});
     if(megaDrive.pwm&&megaDrive.pwmDevice?.node?.port)entries.push({id:'pwm',kind:'pwm',label:'32X PWM (primary)',port:megaDrive.pwmDevice.node.port});
-    for(const device of pcmDevices)if(['segapsg','rf5c164','pwm'].includes(device.chipName))entries.push({id:device.mixerId,kind:device.chipName,label:device.mixerId,port:device.node.port});
+    for(const device of pcmDevices)if(['segapsg','rf5c164','pwm','gameboy','nes'].includes(device.chipName))entries.push({id:device.mixerId,kind:device.chipName,label:device.mixerId,port:device.node.port});
     return entries;
   }});
   let releaseInspectorMixerSubscription=null;

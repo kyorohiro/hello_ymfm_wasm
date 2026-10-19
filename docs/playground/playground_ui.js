@@ -117,7 +117,7 @@ export function createPlaygroundUi(
       button: operatorTabButton,
       panel: operatorPanel,
     },
-    ...['segapsg', 'rf5c164', 'pwm'].map(name => ({name, button: options[`${name}Tab`], panel: options[`${name}Panel`]})),
+    ...['segapsg', 'rf5c164', 'pwm', 'gameboy', 'nes'].map(name => ({name, button: options[`${name}Tab`], panel: options[`${name}Panel`]})),
     {
       name: "keyboard",
       button: keyboardTab,
@@ -130,7 +130,7 @@ export function createPlaygroundUi(
     },
   ];
 
-  const chipTabNames = new Set(['operator', 'segapsg', 'rf5c164', 'pwm']);
+  const chipTabNames = new Set(['operator', 'segapsg', 'rf5c164', 'pwm', 'gameboy', 'nes']);
   const visibleChipTabs = new Set(options.chipTabs ?? chipTabNames);
   for (const tab of bottomTabs) {
     tab.available = (!chipTabNames.has(tab.name) || visibleChipTabs.has(tab.name)) &&

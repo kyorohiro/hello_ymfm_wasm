@@ -11,7 +11,7 @@
     <meta property="og:type" content="website">
     <link rel="manifest" href="../playground.webmanifest">
     <link rel="icon" href="../playground-favicon.ico" sizes="any">
-    <link rel="stylesheet" href="./playground_chip_tabs.css?v=chip-tabs-2">
+    <link rel="stylesheet" href="./playground_chip_tabs.css?v=native-voices-1">
     <link rel="stylesheet" href="./playground_mixer.css?v=chip-tabs-2">
     <link rel="stylesheet" href="./playground_sample_editor.css">
     <script src="../sw-register.js"></script>
@@ -1972,6 +1972,8 @@
             <button id="segapsgTab" class="tab-button" type="button" role="tab" aria-selected="false" aria-controls="segapsgPanel" hidden>Sega PSG</button>
             <button id="rf5c164Tab" class="tab-button" type="button" role="tab" aria-selected="false" aria-controls="rf5c164Panel" hidden>RF5C164</button>
             <button id="pwmTab" class="tab-button" type="button" role="tab" aria-selected="false" aria-controls="pwmPanel" hidden>32X PWM</button>
+            <button id="gameboyTab" class="tab-button" type="button" role="tab" aria-selected="false" aria-controls="gameboyPanel" hidden>Game Boy</button>
+            <button id="nesTab" class="tab-button" type="button" role="tab" aria-selected="false" aria-controls="nesPanel" hidden>NES + FDS</button>
             <button id="mixerTab" class="tab-button" type="button" role="tab" aria-selected="false" aria-controls="mixerPanel">Mixer</button>
             <button id="keyboardTab" class="tab-button" type="button" role="tab" aria-selected="false" aria-controls="keyboardPanel">
               Keyboard
@@ -2126,6 +2128,7 @@
             <p class="subtext">Go to Definition (F12 / Ctrl or Cmd + click) opens library declarations read-only. View implementation opens the corresponding JavaScript source.</p>
             <h2 data-gameboy-helper hidden style="margin-top: 14px;">Game Boy</h2>
             <ul data-gameboy-helper hidden class="helper-list">
+              <li>Open the <strong>Game Boy</strong> tab to inspect or edit the current voice and draw Wave RAM. <strong>Prepare audio</strong> works without Run; use <strong>Hold to play</strong> or <strong>Use Keyboard</strong> to audition.</li>
               <li><code>gameboy</code> is the primary Game Boy APU, also available through <code>pg.gameboy</code> and <code>livePrepare(({gameboy}) =&gt; ...)</code>. It is initialized when audio starts.</li>
               <li><code>gameboy.pulse.setVoice(0, {duty: 0.25, volume: 9})</code>, <code>gameboy.pulse.noteOn(0, "C4")</code>, <code>gameboy.pulse.keyOff(0)</code>. Pulse channels are <code>0</code> and <code>1</code>.</li>
               <li><code>gameboy.wave.stopAndSetWaveform(samples)</code> loads 32 four-bit samples. Choose <code>setLevel(0.5)</code>, then <code>noteOn("C3")</code> / <code>keyOff()</code>.</li>
@@ -2133,6 +2136,7 @@
               <li><code>gameboy.setPan(channel, left, right)</code> routes APU channels <code>0..3</code>. Time notes with <code>beat()</code> / <code>sleep()</code> and use <code>liveLoop()</code> for repeated patterns. See <code>examples/gameboy/gameboy-mode-pulse.js</code>.</li>
             </ul>
             <p data-native-helper="nes" hidden><code>nes.pulse</code>, <code>nes.triangle</code>, <code>nes.noise</code>, <code>nes.dmc</code> and <code>nes.fds</code> control the primary NES + FDS. Use <code>nes.pulse.noteOn(0, "C4")</code>, <code>await beat(0.5)</code>, then <code>nes.pulse.keyOff(0)</code>.</p>
+            <p data-native-helper="nes" hidden>Open the <strong>NES + FDS</strong> tab for voice settings and FDS waveform editing. <strong>Prepare audio</strong> works without Run; <strong>Hold to play</strong> previews the selected channel and <strong>Use Keyboard</strong> connects the Guitar. DMC requires a loaded sample.</p>
             <p data-native-helper="snes" hidden><code>snes.loadBRR(bytes, {rootNote:"C4", loopStartSamples:0})</code> prepares a BRR instrument. Assign it with <code>snes.setPreset(0, {sample:tone})</code>, then use <code>snes.noteOn(0, "C4")</code> / <code>snes.keyOff(0)</code>. Channels are <code>0..7</code>.</p>
             <p data-native-helper="x68000" hidden><code>opm</code> controls the eight YM2151 FM channels. <code>adpcm</code> controls the OKIM6258: <code>await adpcm.loadSample({channels:[pcm], sampleRate:15625})</code>, then <code>adpcm.play()</code> / <code>adpcm.stop()</code>.</p>
             <p data-native-helper="huc6280" hidden><code>pce.setWaveform(0, wave)</code> loads 32 samples in <code>0..31</code>. Use <code>pce.setVolume(0, 20)</code>, <code>pce.noteOn(0, "C4")</code> and <code>pce.keyOff(0)</code>. Channels are <code>0..5</code>; noise is available on <code>4</code> and <code>5</code>.</p>
@@ -2357,6 +2361,8 @@
           <section id="segapsgPanel" class="tab-panel chip-editor-panel" role="tabpanel" aria-labelledby="segapsgTab" hidden></section>
           <section id="rf5c164Panel" class="tab-panel chip-editor-panel" role="tabpanel" aria-labelledby="rf5c164Tab" hidden></section>
           <section id="pwmPanel" class="tab-panel chip-editor-panel" role="tabpanel" aria-labelledby="pwmTab" hidden></section>
+          <section id="gameboyPanel" class="tab-panel chip-editor-panel" role="tabpanel" aria-labelledby="gameboyTab" hidden></section>
+          <section id="nesPanel" class="tab-panel chip-editor-panel" role="tabpanel" aria-labelledby="nesTab" hidden></section>
           <section id="mixerPanel" class="tab-panel" role="tabpanel" aria-labelledby="mixerTab" hidden></section>
           <section id="keyboardPanel" class="tab-panel" role="tabpanel" aria-labelledby="keyboardTab" hidden>
             <div id="operatorKeyboardRoot"></div>
@@ -2411,7 +2417,7 @@
       })();
     </script>
     <script type="module">
-      import('./playground.js?v=sample-editor-1').catch(error => window.__playgroundStartup.fail(error));
+      import('./playground.js?v=native-voices-1').catch(error => window.__playgroundStartup.fail(error));
     </script>
   </body>
 </html>

@@ -50,23 +50,63 @@ export function performanceNoteRelease(chip,key) {
   if(chip==='pwm')return {method:'reset',args:[]};
   return {method:'write',args:[0,0x28,[0,1,2,4,5,6][key]]};
 }
+/** Channel touched by native register commands, used only while an editor holds a key. */
+export function nativeVoiceChannel(chip,{method,args=[]}) {
+  if(chip==='gameboy'&&method==='writeRegister') {
+    const r=args[0];
+    if(r>=0&&r<=4)return 0;if(r>=5&&r<=9)return 1;
+    if((r>=10&&r<=14)||(r>=32&&r<=47))return 2;
+    if(r>=15&&r<=19)return 3;
+    if([20,21,22].includes(r))return 'all';
+  }
+  if(chip==='nes') {
+    if(method==='setChannelEnabled')return args[0];
+    if(method==='writeRegister') {
+      const r=args[0];if(r>=0x4000&&r<=0x4013)return Math.floor((r-0x4000)/4);
+      if(r===0x4015)return 'all';if(r>=0x4023&&r<=0x408a)return 5;
+    }
+  }
+  if(method==='reset')return 'all';return null;
+}
 export function createProcessorPerformance({apply,prepare,validate,onDiscard,chip,releaseNote,getPsgLatch,immediate = [],nowFrame = () => currentFrame,rate = sampleRate}) {
   const replies = new WeakMap(),ports = new WeakMap(),pendingRPC = new WeakMap(),immediateMethods = new Set(immediate);
-  const owners=new Map();
-  let psgLatch=0;
+  const owners=new Map(),auditions=new Map();
+  let psgLatch=0,nesEnabled=0;
   const noteState={psgLatch:0};
   const chipName=()=>typeof chip==='function'?chip():chip;
   // Data bytes reuse the last register selected by any applied PSG writer.
   // A chip snapshot includes inspector writes that bypass this queue.
   function observePsgLatch(command) {
+    if(chipName()==='nes'){
+      if(command.method==='reset')nesEnabled=0;
+      else if(command.method==='writeRegister'&&command.args[0]===0x4015)nesEnabled=command.args[1]&31;
+      else if(command.method==='setChannelEnabled')nesEnabled=command.args[1]?nesEnabled|(1<<command.args[0]):nesEnabled&~(1<<command.args[0]);
+    }
     if(chipName()!=='segapsg')return;
     if(command.method==='reset')psgLatch=0;
     else if(command.method==='allNotesOff')psgLatch=7;
     else if(command.method==='write'&&(command.args?.[0]&128))psgLatch=(command.args[0]>>4)&7;
   }
   function applyTracked(command,port,frame,metadata) {
+    if(blockedByAudition(command,metadata))return;
+    command=protectNesEnable(command,metadata);
     if(!note(command,port,metadata))return;
     apply(command,port,frame,metadata); observePsgLatch(command);
+  }
+  function blockedByAudition(command,metadata) {
+    if(!auditions.size)return false;
+    const channel=nativeVoiceChannel(chipName(),command);
+    if(channel==='all'){
+      if(chipName()==='nes'&&command.method==='writeRegister'&&command.args[0]===0x4015)return false;
+      for(const owner of auditions.values())if(owner===metadata?.owner)return false;return true;
+    }
+    return auditions.has(channel)&&auditions.get(channel)!==metadata?.owner;
+  }
+  function protectNesEnable(command,metadata) {
+    if(!auditions.size||chipName()!=='nes'||command.method!=='writeRegister'||command.args[0]!==0x4015)return command;
+    let mask=0;for(const [channel,owner]of auditions)if(channel<5&&owner!==metadata?.owner)mask|=1<<channel;
+    if(!mask)return command;
+    return {...command,args:[0x4015,(command.args[1]&~mask)|(nesEnabled&mask)]};
   }
   function note(command,port,metadata) {
     noteState.psgLatch=getPsgLatch?.()??psgLatch;
@@ -120,6 +160,10 @@ export function createProcessorPerformance({apply,prepare,validate,onDiscard,chi
   reserve(128);
   return {
     receive(data,port) {
+      // Editor audition writes use applyImmediate, so ordinary Main commands and
+      // previously reserved Worker commands cannot replace a held manual note.
+      if(!data?.performance&&blockedByAudition(data)){if(data.id!==undefined)port.postMessage({id:data.id,value:true});return true;}
+      if(!data?.performance&&auditions.size&&chipName()==='nes'&&data?.method==='writeRegister'&&data.args[0]===0x4015){applyTracked(data,port,nowFrame());return true;}
       let reply=replies.get(port);
       if (!reply) {reply=message=>port.postMessage(message);replies.set(port,reply);ports.set(reply,port);}
       if(data?.performance&&data.commands?.some(command=>command.id!==undefined)){
@@ -149,7 +193,10 @@ export function createProcessorPerformance({apply,prepare,validate,onDiscard,chi
         offset+=count;
       }
     },
-    clear(){queue.clear();owners.clear();},
+    beginAudition(channel,owner){auditions.set(channel,owner);},
+    endAudition(channel,owner){if(auditions.get(channel)===owner)auditions.delete(channel);},
+    applyImmediate(command,port,metadata){applyTracked(command,port,nowFrame(),metadata);},
+    clear(){queue.clear();owners.clear();auditions.clear();},
     getStats:queue.getStats,
   };
 }

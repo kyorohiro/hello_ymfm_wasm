@@ -1,6 +1,6 @@
-import {receiveChipInspector, readPwmInspector} from './playground_chip_inspector_state.js?v=sample-editor-1';
+import {receiveChipInspector, readPwmInspector} from './playground_chip_inspector_state.js?v=native-voices-1';
 import {PWM32XPlayback, PWM_METHODS} from './pwm32x_playback.js?v=audio-stability-2';
-import {createProcessorPerformance} from './playground_performance_processor.js?v=sega-modes-1';
+import {createProcessorPerformance} from './playground_performance_processor.js?v=native-voices-1';
 import {validateChipClock} from './playground_chip_clock.js?v=audio-stability-2';
 
 class PWMProcessor extends AudioWorkletProcessor {

@@ -1,4 +1,4 @@
-import {isSimplePlaygroundLayout} from './playground_mode.js?v=sample-editor-1';
+import {isSimplePlaygroundLayout} from './playground_mode.js?v=native-voices-1';
 
 /** Arrange Files beside an editor and independently selectable bottom tools. */
 export function installPlaygroundWorkbench(root, {storage, search = window.location.search} = {}) {
@@ -46,7 +46,9 @@ export function installPlaygroundWorkbench(root, {storage, search = window.locat
   const toggle = element('button', 'dock-toggle');
   toggle.type = 'button'; toggle.textContent = 'Panel'; toggle.setAttribute('aria-controls', 'bottomDock');
   primaryTabs.appendChild(toggle);
-  for (const id of ['codePanel','operatorPanel','segapsgPanel','rf5c164Panel','pwmPanel']) primaryPanels.appendChild(document.getElementById(id));
+  for (const id of ['codePanel','operatorPanel','segapsgPanel','rf5c164Panel','pwmPanel','gameboyPanel','nesPanel']) {
+    const panel = document.getElementById(id); if (panel) primaryPanels.appendChild(panel);
+  }
   editor.append(primaryTabs, primaryPanels); right.append(editor, divider, dock);
   root.append(explorer, fileDivider, right);
   root.classList.add('workbench');

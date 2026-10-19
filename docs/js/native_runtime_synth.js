@@ -1,21 +1,21 @@
 /** Primary non-OPN machines share media, mixer and FX without a hidden FM synth. */
 import {TetoricaAudioRuntime} from './tetorica_audio_runtime.js?v=audio-stability-2';
-import {createNesAudio} from './playground_nes_audio.js?v=sega-modes-1';
+import {createNesAudio} from './playground_nes_audio.js?v=native-voices-1';
 import {createNesClient} from './playground_nes.js?v=audio-stability-2';
-import {createSnesAudio} from './playground_snes_audio.js?v=sega-modes-1';
+import {createSnesAudio} from './playground_snes_audio.js?v=native-voices-1';
 import {createSnesClient} from './playground_snes.js?v=native-modes-3';
-import {createYm2151Audio} from './playground_ym2151_audio.js?v=sega-modes-1';
+import {createYm2151Audio} from './playground_ym2151_audio.js?v=native-voices-1';
 import {createYm2151Client} from './playground_ym2151.js?v=audio-stability-2';
-import {createOki6258Audio} from './playground_okim6258_audio.js?v=sega-modes-1';
+import {createOki6258Audio} from './playground_okim6258_audio.js?v=native-voices-1';
 import {createOki6258Client} from './playground_okim6258.js?v=audio-stability-2';
-import {createHuc6280Audio} from './playground_huc6280_audio.js?v=sega-modes-1';
+import {createHuc6280Audio} from './playground_huc6280_audio.js?v=native-voices-1';
 import {createHuc6280Client} from './playground_huc6280.js?v=audio-stability-2';
-import {createSegaPsgAudio} from './playground_segapsg_audio.js?v=sample-editor-1';
+import {createSegaPsgAudio} from './playground_segapsg_audio.js?v=native-voices-1';
 import {createSegaPsgClient} from './playground_segapsg.js?v=sega-modes-1';
 
 const PRIMARY_CHIPS = Object.freeze(['nes', 'snes', 'x68000', 'huc6280', 'segapsg']);
 
-/** @typedef {Pick<import('./megasynth.js?v=sample-editor-1').MegaSynthOptions,'audioContext'|'outputNode'|'sampleOutputNode'|'masterVolume'|'mixer'> & {
+/** @typedef {Pick<import('./megasynth.js?v=native-voices-1').MegaSynthOptions,'audioContext'|'outputNode'|'sampleOutputNode'|'masterVolume'|'mixer'> & {
  * chip?:'nes'|'snes'|'x68000'|'huc6280'|'segapsg', clock?:number, stereoEnabled?:boolean, fds?:boolean,
  * wasmUrl?:string|URL, workletUrl?:string|URL, fetch?:typeof globalThis.fetch,
  * extraOki?:{fetch?:typeof globalThis.fetch,wasmUrl?:string|URL,workletUrl?:string|URL}
@@ -118,7 +118,8 @@ export class NativeRuntimeSynth {
   /** Stop voices while keeping uploaded samples, patches, waveforms and clocks. */
   stopAllNative() {
     const {nes, snes, opm, adpcm, pce, psg} = this.primaryApis;
-    if (nes) for (let channel = 0; channel < 6; channel++) nes.keyOff(channel);
+    if (nes?._stopVoices) nes._stopVoices();
+    else if (nes) for (let channel = 0; channel < 6; channel++) nes.keyOff(channel);
     if (snes) {
       try { snes.allNotesOff(); }
       catch (error) {

@@ -23,7 +23,9 @@ const code = `
 fm.setPreset(CH1, FM_PRESETS['one-op-basic']); fm.setNote(CH1, 'A3'); fm.keyOn(CH1);
 psg.tone(0, {frequency: 220, volume: 0.25});
 const tone = await useSoundChip('segapsg'); tone.tone(0, {frequency: 440, volume: 0.5});
-const pcm = await useSoundChip('rf5c164');
+// useSoundChip now borrows the primary RF5C164 in Mega CD / 32X modes.
+// This fixture deliberately exercises an additional Worker-owned instance.
+const pcm = await createSoundChip('rf5c164', {id: 'rf5c164:shared'});
 const pwm = await useSoundChip('pwm'); await pwm.writeRegister(1, 1024);
 liveLoop('hold', async () => { await sleep(1); });
 `;

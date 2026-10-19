@@ -8,6 +8,7 @@ import {ChipClockResampler,CHIP_CLOCKS,validateChipClock} from './playground_chi
 import {Ym2608Timeline} from './playground_ym2608_timeline.js';
 import {RF5C164Synth} from './rf5c164synth.js';
 import {PWM_METHODS} from './pwm32x_playback.js';
+import {GameboyVoiceInspector,NesVoiceInspector} from './playground_native_voice_inspector.js';
 
 async function setup(file) {
   let Type;const messages=[],rate=48000;
@@ -23,7 +24,7 @@ async function setup(file) {
     process(left,right){left.fill(chip.value);right.fill(chip.value);}};
   class SyncChip {constructor(){return chip;}static async create(){return chip;}}
   class Playback {constructor(){return Object.assign(chip,{write(_reg,value){this.value=value;}});}}
-  const scope={PsgInspectorState,RfInspectorState,receiveChipInspector,rfSampleMetadata,readPwmInspector,currentFrame:0,sampleRate:rate,ChipClockResampler,CHIP_CLOCKS,validateChipClock,Ym2608Timeline,RF5C164Synth,PWM_METHODS,
+  const scope={GameboyVoiceInspector,NesVoiceInspector,PsgInspectorState,RfInspectorState,receiveChipInspector,rfSampleMetadata,readPwmInspector,currentFrame:0,sampleRate:rate,ChipClockResampler,CHIP_CLOCKS,validateChipClock,Ym2608Timeline,RF5C164Synth,PWM_METHODS,
     NesApu:SyncChip,GameboyApu:SyncChip,SegaPSG:SyncChip,Ym2151:SyncChip,Ym2612:SyncChip,Ym2203:SyncChip,Ym2610B:SyncChip,Ym2608:SyncChip,Rf5c164:SyncChip,
     Ym2608AudioEngine:{create:async()=>engine},PWM32XPlayback:Playback,factory:{},ym2612Factory:{},ym2203Factory:{},ym2610Factory:{},ym2608Factory:{},ym2151Factory:{},gameboyFactory:{},psgFactory:{},
     createRf5c164Control:()=>({reset:()=>chip.reset(),writeRegister:(reg,value)=>chip.writeRegister(reg,value),dispose:()=>chip.dispose()}),

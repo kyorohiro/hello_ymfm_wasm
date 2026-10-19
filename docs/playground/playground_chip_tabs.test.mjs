@@ -4,12 +4,13 @@ import {createPlaygroundChipTabs, frequencyNote, rfSamplePosition, pwmRoutingCon
 
 // Small DOM substitute for lifecycle tests. Rendering and input focus also receive browser coverage.
 class Element {
-  constructor(doc, tag) { this.ownerDocument = doc; this.tagName = tag; this.children = []; this.dataset = {}; this.listeners = {}; this.attributes = {}; this.value = ''; this.textContent = ''; this.classList = {add() {}}; }
+  constructor(doc, tag) { this.ownerDocument = doc; this.tagName = tag; this.children = []; this.dataset = {}; this.listeners = {}; this.attributes = {}; this.value = ''; this.textContent = ''; this.classList = {add() {},toggle() {}}; }
   appendChild(node) { this.children.push(node); node.parentNode = this; return node; }
   append(...nodes) { nodes.forEach(node => this.appendChild(node)); }
   replaceChildren(...nodes) { this.children = []; this.append(...nodes); }
   setAttribute(key, value) { this.attributes[key] = value; }
   addEventListener(name, callback) { (this.listeners[name] ??= []).push(callback); }
+  removeEventListener(name, callback) { this.listeners[name] = (this.listeners[name] ?? []).filter(fn=>fn!==callback); }
   async fire(name, extra = {}) { await Promise.all((this.listeners[name] ?? []).map(fn => fn({target: this, ...extra}))); await flush(); }
   setCustomValidity(value) { this.validityMessage = value; }
   reportValidity() {}
@@ -21,12 +22,13 @@ const control = (root, name) => walk(root).find(node => node.dataset.chipControl
 function fixture(inspector, options = {}) {
   const listeners = new Map();
   const doc = {activeElement: null, hidden: false, createElement: tag => new Element(doc, tag),
+    defaultView:{setTimeout,clearTimeout,addEventListener(){},removeEventListener(){}},
     addEventListener(name, callback) { if (!listeners.has(name)) listeners.set(name, new Set()); listeners.get(name).add(callback); },
     removeEventListener(name, callback) { listeners.get(name)?.delete(callback); },
     fire(name) { for (const callback of listeners.get(name) ?? []) callback(); },
     listenerCount(name) { return listeners.get(name)?.size ?? 0; },
   };
-  const roots = Object.fromEntries(['segapsg', 'rf5c164', 'pwm'].map(kind => [kind, new Element(doc, 'div')]));
+  const roots = Object.fromEntries(['segapsg', 'rf5c164', 'pwm','gameboy','nes'].map(kind => [kind, new Element(doc, 'div')]));
   const tabs = createPlaygroundChipTabs({roots, getInspector: () => inspector, pollMs: 100000, ...options});
   return {doc, roots, tabs};
 }
@@ -161,4 +163,42 @@ test('PWM route editing preserves clock/interrupt controls and never submits sam
   const {tabs, roots} = fixture(inspector); tabs.setVisible('pwm'); await flush();
   const route = control(roots.pwm, 'pwm-left-route'); route.value = '2'; await route.fire('change');
   assert.deepEqual(calls, [['pwm', 'writeRegister', [0, 0xa56]]]); tabs.dispose();
+});
+
+test('native editors prepare explicitly, render without writing and retire a selected instance', async () => {
+  let prepared = false, reads = 0;
+  const calls = [], targets = [];
+  const snapshot = {kind:'gameboy',clock:4194304,channels:Array.from({length:4},(_,channel)=>({channel,frequency:440,volume:10,duty:.5,envelope:{direction:'down',period:0},waveform:Array(32).fill(8),pan:{left:true,right:true}}))};
+  const inspector = {
+    list:()=>prepared ? [{id:'gameboy',kind:'gameboy'},{id:'other',kind:'gameboy'}] : [],
+    read:async()=>{reads++;return snapshot;},
+    invoke:async(...args)=>calls.push(args),
+  };
+  const {tabs,roots}=fixture(inspector,{ensureAudioReady:async()=>{prepared=true;},onKeyboardTargetChange:target=>targets.push(target)});
+  tabs.setVisible('gameboy');await flush();
+  assert.equal(prepared,false);assert.equal(reads,0,'opening an editor keeps audio closed');
+  await walk(roots.gameboy).find(node=>node.dataset.chipAction==='prepare').fire('click');
+  assert(reads>0);assert.deepEqual(calls,[],'readback and rendering never send audio commands');
+  const volume=control(roots.gameboy,'gb-volume');volume.value='7';await volume.fire('input');
+  assert.deepEqual(calls[0],['gameboy','setVoice',[0,{volume:7}]]);
+  await walk(roots.gameboy).find(node=>node.dataset.chipAction==='gb-keyboard').fire('click');
+  const target=targets.at(-1);assert(target?.name.includes('Game Boy'));
+  tabs.setVisible(null);target.noteOn({id:'press',midi:69,velocity:100});await flush();
+  assert(calls.some(([,method])=>method==='auditionOn'),'Keyboard target survives hiding the editor');
+  tabs.setVisible('gameboy');await flush();
+  const instance=control(roots.gameboy,'instance');instance.value='other';await instance.fire('change');
+  assert.equal(targets.at(-1),null,'switching instance retires the previous Keyboard target');
+  const before=calls.length;target.noteOn({id:'stale',midi:69});await flush();
+  assert.equal(calls.length,before,'a retired target cannot play the replacement device');tabs.dispose();
+});
+
+test('Run target handoff prevents native channel selection taking Keyboard back', async () => {
+  const targets=[];
+  const inspector={list:()=>[{id:'nes',kind:'nes'}],read:async()=>({kind:'nes',clock:1789773,fdsEnabled:true,channels:[],registers:[]}),invoke:async()=>{}};
+  const {tabs,roots}=fixture(inspector,{onKeyboardTargetChange:target=>targets.push(target)});
+  tabs.setVisible('nes');await flush();
+  await walk(roots.nes).find(node=>node.dataset.nesAction==='keyboard').fire('click');assert(targets.at(-1));
+  tabs.clearKeyboardTarget();const count=targets.length;
+  await walk(roots.nes).find(node=>node.dataset.nesChannel==='1').fire('click');
+  assert.equal(targets.length,count,'a later channel edit respects the script binding');tabs.dispose();
 });

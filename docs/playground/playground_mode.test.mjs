@@ -33,7 +33,7 @@ test('modes select native chips, clocks and console expansions', () => {
       continue;
     }
     if (['nes','snes','x68000','huc6280'].includes(mode.chip)) {
-      assert.deepEqual(mode.chipTabs, []);
+      assert.deepEqual(mode.chipTabs, mode.chip === 'nes' ? ['nes'] : []);
       assert.equal(mode.fmChannels,0);
       assert.equal(options.fds,mode.chip==='nes');
       const wasm = {snes:'spc',x68000:'ym2151',huc6280:'huc6280'}[mode.chip];
@@ -58,7 +58,7 @@ test('modes select native chips, clocks and console expansions', () => {
   assert.equal(createModeSynthOptions(megaCD).megaCD, true);
   assert.equal(createModeSynthOptions(megaCD).mega32X, false);
   const gameboy = getPlaygroundMode('gameboy');
-  assert.deepEqual(gameboy.chipTabs, []);
+  assert.deepEqual(gameboy.chipTabs, ['gameboy']);
   assert.equal(gameboy.fmChannels, 0);
   assert.match(createModeSynthOptions(gameboy).workletUrl, /playground_gameboy_worklet\.js\?/);
 });

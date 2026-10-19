@@ -1,6 +1,6 @@
 import {createSpcClient} from './playground_spc.js?v=spc-events-1';
 import {createSnesClient} from './playground_snes.js?v=native-modes-3';
-import {createPerformanceSender} from './playground_performance_sender.js?v=sample-editor-1';
+import {createPerformanceSender} from './playground_performance_sender.js?v=native-voices-1';
 import {midiToOpnPitch, opnPitchFromHz} from './soundchip_pitch.js';
 import {CHIP_CLOCKS} from './playground_chip_clock.js?v=audio-stability-2';
 import {createNesClient} from './playground_nes.js?v=audio-stability-2';
@@ -14,11 +14,11 @@ import {createLoopAsyncTasks} from './playground_async_tasks.js';
 import {createCycle} from './playground_music.js?v=audio-stability-2';
 import {createOpnClient} from './playground_opn.js?v=audio-stability-2';
 import {createSoundChipRegistry} from './playground_soundchips.js?v=native-modes-3';
-import {createMusicalKeyboard, createKeyboardApiGuard, keyboardBinding, registerKeyboardScope} from './playground_keyboard.js?v=sample-editor-1';
-import {createSampleInstrument as createSampleInstrumentFactory} from './playground_sample_instrument.js?v=sample-editor-1';
+import {createMusicalKeyboard, createKeyboardApiGuard, keyboardBinding, registerKeyboardScope} from './playground_keyboard.js?v=native-voices-1';
+import {createSampleInstrument as createSampleInstrumentFactory} from './playground_sample_instrument.js?v=native-voices-1';
 import {createGameboyClient} from './playground_gameboy.js?v=audio-stability-2';
 import {createYm2608Client} from './playground_ym2608.js?v=audio-stability-2';
-import {createRf5c164Client} from './playground_rf5c164.js?v=sample-editor-1';
+import {createRf5c164Client} from './playground_rf5c164.js?v=native-voices-1';
 import {createNativeSampleController} from './native_sample.js?v=audio-stability-2';
 import {serializeLogError} from './playground_log.js';
 /**

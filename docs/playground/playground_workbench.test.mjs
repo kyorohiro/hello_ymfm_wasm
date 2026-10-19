@@ -161,6 +161,20 @@ test('chip editors remain above a separately selected Mixer and navigate in visu
   assert.equal(options.mixerPanel.hidden, false);
 });
 
+for (const kind of ['gameboy','nes']) test(`${kind} voice editor coexists with Guitar Keyboard and keeps mode-specific navigation`,()=>{
+  const {options,events}=setup();
+  for(const name of ['segapsg','rf5c164','pwm','gameboy','nes']) {
+    options[`${name}Panel`]={};options[`${name}Tab`]={setAttribute(){},focus(){this.focused=true;}};
+  }
+  const ui=createPlaygroundUi({...options,chipTabs:[kind]});
+  ui.setBottomTab(kind);ui.setBottomTab('keyboard');
+  assert.equal(options[`${kind}Panel`].hidden,false);assert.equal(options.keyboardPanel.hidden,false);
+  assert.equal(options.operatorTabButton.hidden,true);assert.equal(options[`${kind==='nes'?'gameboy':'nes'}Tab`].hidden,true);
+  ui.moveBottomTabFocus(options.codeTab,1);assert.equal(options[`${kind}Tab`].focused,true);
+  ui.moveBottomTabFocus(options[`${kind}Tab`],1);assert.equal(options.codeTab.focused,true);
+  assert.equal(events.at(-1).primaryTab,'code');
+});
+
 test('a mode without FM keeps Code and common tools available and rejects FM keyboard selection', () => {
   const {options,events}=setup();
   const ui=createPlaygroundUi({...options,chipTabs:[],fmKeyboard:false,initialBottomTab:'keyboard'});

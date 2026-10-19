@@ -4,7 +4,7 @@ import {NES_APU_CLOCK} from './nesapu.js';
 /** Same register generator as the public NES API; uploads await Worklet acknowledgement. */
 /** @param {MessagePort} port Ordered Worklet command/acknowledgement port, owned by the client.
  * @param {{clock?: number, fdsEnabled?: boolean, state?:object}} [options={}] Clock in Hz, FDS availability and an optional existing device snapshot.
- * @returns {NesApuSynth} Synth whose dispose closes the port and rejects pending uploads. */
+ * @returns {NesApuSynth & {_stopVoices:()=>void}} Synth whose dispose closes the port and rejects pending uploads. */
 export function createNesClient(port, {clock = NES_APU_CLOCK, fdsEnabled = false, state} = {}) {
   let disposed = false, sequence = 0;
   const pending = new Map();
@@ -34,11 +34,18 @@ export function createNesClient(port, {clock = NES_APU_CLOCK, fdsEnabled = false
   };
   const synth = new NesApuSynth({transport,initialize:!state});
   if(state)synth._adoptState(state);
-  Object.assign(synth, {dispose() {
+  const client=Object.assign(synth, {_stopVoices() {
+    // The admin editor can change FDS pitch on the Worklet independently of
+    // this thread's shadow. Stop must use applied registers at the processor.
+    send('stopVoices');
+    const state=synth._getState();state.enabled=0;state.fdsActive=false;
+    state.registers[0x15]=0;state.registers[0x83]|=128;state.registers[0x80]=128;
+    synth._adoptState(state);
+  },dispose() {
     if (disposed) return;
     send('dispose'); disposed = true;
     for (const request of pending.values()) request.reject(new Error('NES disposed'));
     pending.clear(); port.close();
   }});
-  return attachChipClock(synth, port, clock);
+  return attachChipClock(client, port, clock);
 }

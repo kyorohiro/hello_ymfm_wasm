@@ -1,10 +1,13 @@
 import {ChipClockResampler, CHIP_CLOCKS} from './playground_chip_clock.js';
 import {NesApu} from './nesapu.js';
 import {createProcessorPerformance} from './playground_performance_processor.js';
+import {NesVoiceInspector} from './playground_native_voice_inspector.js';
+import {receiveChipInspector} from './playground_chip_inspector_state.js';
 class Processor extends AudioWorkletProcessor {
   constructor(options) {
     super(); this.dead = false;
-    this.performance=createProcessorPerformance({chip:'nes',apply:(data,port)=>this.apply(data,port),immediate:['loadMemory']});
+    this.performance=createProcessorPerformance({chip:'nes',apply:(data,port)=>this.apply(data,port),immediate:['loadMemory','stopVoices'],
+      releaseNote:channel=>channel===5?{method:'writeRegister',args:[0x4083,(this.inspector?.registers[0x83]??0)|128]}:{method:'setChannelEnabled',args:[channel,false]}});
     this.renderSegment=this.renderSegment.bind(this);
     this.port.onmessage = ({data}) => {
       if(data.primaryWorker) {
@@ -26,11 +29,16 @@ class Processor extends AudioWorkletProcessor {
     try {
       this.baseClock = options.processorOptions.clock ?? CHIP_CLOCKS.nes;
       this.chip = new NesApu({sampleRate, clock: options.processorOptions.clock, fds: options.processorOptions.fds});
+      this.inspector=new NesVoiceInspector(this.chip,{clock:()=>this.baseClock*(this.clockResampler?.ratio??1),sampleRate,
+        dispatch:(command,owner)=>this.performance.applyImmediate(command,this.port,{owner}),
+        beginAudition:(channel,owner)=>this.performance.beginAudition(channel,owner),endAudition:(channel,owner)=>this.performance.endAudition(channel,owner)});
       this.port.postMessage({ready: true});
     } catch (error) { this.port.postMessage({error: error.message}); this.dispose(); }
   }
   dispose() { this.performance.clear(); this.dead = true; this.chip?.dispose(); this.chip = null; this.remote?.close();this.workerRemote?.close(); }
   receive(data, port) {
+    if(data?.type==='chip-inspector'&&receiveChipInspector(data,port,this.inspector?(action,method,args)=>action==='read'?this.inspector.read():this.inspector.invoke(method,args):null))return;
+    if(data?.type==='performance-stop'&&Number.isSafeInteger(data.session)&&data.session>0&&data.session>=this.performance.getStats().latestSession)this.inspector?.invoke('auditionAllOff');
     if(this.performance.receive(data,port))return;
     this.apply(data,port);
   }
@@ -38,6 +46,10 @@ class Processor extends AudioWorkletProcessor {
     if (data.method === 'dispose') { this.dispose(); return; }
     try {
       if (this.dead) throw new Error('NES disposed');
+      if(data.method==='stopVoices'){
+        this.performance.clear();this.inspector.stopVoices();
+        if(data.id!==undefined)port.postMessage({id:data.id,value:true});return;
+      }
       if (data.method === 'clock') {
         (this.clockResampler ??= new ChipClockResampler()).setClock(data.args[0], this.baseClock ?? this.chip.clock);
         port.postMessage({id:data.id}); return;

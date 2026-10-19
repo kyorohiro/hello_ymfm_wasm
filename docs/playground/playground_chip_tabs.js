@@ -1,4 +1,6 @@
 /** Dedicated sound-chip editors. Reads are visible-only; opening an editor never creates a chip. */
+import {createPlaygroundGameboyVoicePanel} from './playground_gameboy_voice_panel.js?v=native-voices-1';
+import {createPlaygroundNesVoicePanel} from './playground_nes_voice_panel.js?v=native-voices-1';
 
 export function frequencyNote(frequency) {
   if (!Number.isFinite(frequency) || frequency <= 0) return '—';
@@ -25,13 +27,15 @@ export function pwmRoutingControl(control, side, route) {
 }
 
 const AUDIO_FILE = /\.(?:wav|wave|aif|aiff|mp3|ogg|flac|m4a|aac|webm)$/i;
-const KINDS = ['segapsg', 'rf5c164', 'pwm'];
+const KINDS = ['segapsg', 'rf5c164', 'pwm', 'gameboy', 'nes'];
 const finiteText = (value, digits = 0) => Number.isFinite(value) ? Number(value.toFixed(digits)).toString() : '—';
 const hex = value => Number.isInteger(value) ? `0x${value.toString(16).toUpperCase().padStart(4, '0')}` : '—';
 
-export function createPlaygroundChipTabs({roots, getInspector, listFiles = () => [], readFile, onError = () => {}, pollMs = 300}) {
+export function createPlaygroundChipTabs({roots, getInspector, listFiles = () => [], readFile,
+  ensureAudioReady, onKeyboardTargetChange = () => {}, onError = () => {}, pollMs = 300}) {
   let visible = null, generation = 0, disposed = false, timer = null, inspector = null, unsubscribe = null;
   const editors = new Map();
+  let keyboardEditor = null;
   const doc = Object.values(roots).find(Boolean)?.ownerDocument ?? globalThis.document;
   const make = (tag, className, text) => {
     const node = doc.createElement(tag);
@@ -106,13 +110,56 @@ export function createPlaygroundChipTabs({roots, getInspector, listFiles = () =>
     const toolbar = make('div', 'chip-editor-toolbar'); root.appendChild(toolbar);
     const editor = {kind, root, id: '', snapshot: null, channel: 0, selectionVersion: 0};
     editor.instances = select(toolbar, 'Sound chip', 'instance', [], value => {
+      detachNative(editor);
       editor.id = value; editor.snapshot = null; editor.selectionVersion += 1; delete editor.status.dataset.error; editor.status.textContent = ''; generation += 1; refresh();
     });
     const refreshButton = button('Refresh', () => refresh()); toolbar.appendChild(refreshButton);
+    if (['gameboy','nes'].includes(kind) && ensureAudioReady) {
+      const prepare = button('Prepare audio', async () => {
+        prepare.disabled = true;
+        try {await ensureAudioReady(); if (!disposed) await refresh();}
+        catch (e) {if (!disposed) error(editor,e);}
+        finally {if (!disposed) prepare.disabled = false;}
+      });
+      prepare.dataset.chipAction = 'prepare'; toolbar.appendChild(prepare);
+    }
     editor.status = make('p', 'chip-editor-status'); editor.status.setAttribute('role', 'status'); editor.status.setAttribute('aria-live', 'polite'); root.appendChild(editor.status);
     editor.body = make('fieldset', 'chip-editor-body'); editor.body.disabled = true; root.appendChild(editor.body);
     editor.note = make('p', 'subtext'); root.appendChild(editor.note);
     editors.set(kind, editor); return editor;
+  }
+
+  function detachNative(editor) {
+    if (!editor.voicePanel) return;
+    if (keyboardEditor === editor) {keyboardEditor = null; onKeyboardTargetChange(null);}
+    editor.voicePanel.dispose(); editor.voicePanel = null; editor.voiceSource = null; editor.voiceId = null;
+    editor.body.replaceChildren();
+  }
+  function buildNative(editor) {
+    editor.update = snapshot => {
+      const source = getInspector?.(), id = editor.id;
+      if (editor.voiceSource !== source || editor.voiceId !== id) detachNative(editor);
+      if (!editor.voicePanel) {
+        editor.voiceSource = source; editor.voiceId = id;
+        const invoke = async (method,args = []) => {
+          if (disposed || editor.voiceSource !== source || editor.voiceId !== id || getInspector?.() !== source) throw new DOMException('Sound chip changed','AbortError');
+          const value = await source.invoke(id,method,args);
+          if (!disposed && editor.voiceSource === source && editor.voiceId === id) {editor.status.textContent = ''; delete editor.status.dataset.error;}
+          if (!disposed && editor.voiceSource === source && editor.voiceId === id && visible === editor.kind) void refresh();
+          return value;
+        };
+        const factory = editor.kind === 'gameboy' ? createPlaygroundGameboyVoicePanel : createPlaygroundNesVoicePanel;
+        editor.voicePanel = factory({root:editor.body,invoke,onError:e=>error(editor,e),onKeyboardTargetChange:target=>{
+          if (target) {
+            if (keyboardEditor && keyboardEditor !== editor) keyboardEditor.voicePanel?.setKeyboardActive?.(false);
+            keyboardEditor = editor; onKeyboardTargetChange(target);
+          } else if (keyboardEditor === editor) {keyboardEditor = null; onKeyboardTargetChange(null);}
+        }});
+        editor.voicePanel.setVisible(visible === editor.kind);
+      }
+      editor.voicePanel.setConnected(true); editor.voicePanel.update(snapshot);
+      editor.note.textContent = 'Readback shows applied chip settings. Hold a preview button or connect the selected channel to Keyboard to audition the current sound.';
+    };
   }
 
   function buildPsg(editor) {
@@ -347,7 +394,7 @@ export function createPlaygroundChipTabs({roots, getInspector, listFiles = () =>
   for (const kind of KINDS) {
     if (!roots[kind]) continue;
     const editor = buildBase(kind, roots[kind]);
-    ({segapsg: buildPsg, rf5c164: buildRf, pwm: buildPwm})[kind](editor);
+    ({segapsg: buildPsg, rf5c164: buildRf, pwm: buildPwm, gameboy:buildNative, nes:buildNative})[kind](editor);
     editor.status.textContent = 'No connected instance. Run code that uses this sound chip first.';
   }
   function connectInspector() {
@@ -368,11 +415,11 @@ export function createPlaygroundChipTabs({roots, getInspector, listFiles = () =>
     const token = ++generation, source = inspector;
     const list = source?.list?.() ?? [];
     const matches = list.filter(entry => entry.kind === visible && entry.connected !== false);
-    if (!matches.some(entry => entry.id === editor.id)) { editor.id = matches[0]?.id ?? ''; editor.snapshot = null; editor.selectionVersion += 1; delete editor.status.dataset.error; editor.status.textContent = ''; }
+    if (!matches.some(entry => entry.id === editor.id)) { detachNative(editor); editor.id = matches[0]?.id ?? ''; editor.snapshot = null; editor.selectionVersion += 1; delete editor.status.dataset.error; editor.status.textContent = ''; }
     syncOptions(editor.instances, matches.length ? matches.map(entry => [entry.id, entry.label || entry.id]) : [['', 'No connected instance']], editor.id);
     editor.instances.disabled = !matches.length; editor.body.disabled = !editor.id || !editor.snapshot;
     if (!editor.id || !source) {
-      editor.status.textContent = 'No connected instance. Run code that uses this sound chip first.';
+      editor.status.textContent = ['gameboy','nes'].includes(editor.kind) ? 'Prepare audio to inspect and play this mode’s sound chip, or Run your code.' : 'No connected instance. Run code that uses this sound chip first.';
       schedule(); return;
     }
     const id = editor.id;
@@ -380,15 +427,16 @@ export function createPlaygroundChipTabs({roots, getInspector, listFiles = () =>
       const snapshot = await source.read(id);
       if (disposed || doc.hidden || token !== generation || visible !== editor.kind || editor.id !== id || getInspector?.() !== source) return;
       editor.snapshot = snapshot; editor.body.disabled = false;
-      if (!editor.status.dataset.error && editor.status.textContent.startsWith('No connected')) editor.status.textContent = '';
+      if (!editor.status.dataset.error && /^(No connected|Prepare audio)/.test(editor.status.textContent)) editor.status.textContent = '';
       editor.update(snapshot);
     } catch (e) {
-      if (!disposed && !doc.hidden && token === generation && visible === editor.kind && editor.id === id) { editor.body.disabled = true; error(editor, e); }
+      if (!disposed && !doc.hidden && token === generation && visible === editor.kind && editor.id === id) { editor.body.disabled = true; editor.voicePanel?.setConnected(false); error(editor, e); }
     } finally { if (!disposed && token === generation && visible === editor.kind) schedule(); }
   }
   function visibilityChanged() {
     if (disposed) return;
     if (doc.hidden) {
+      for (const editor of editors.values()) editor.voicePanel?.releaseAll();
       generation += 1; cancelTimer(); unsubscribe?.(); unsubscribe = null; inspector = null;
     } else if (visible) refresh();
   }
@@ -398,9 +446,15 @@ export function createPlaygroundChipTabs({roots, getInspector, listFiles = () =>
       const next = editors.has(kind) ? kind : null;
       if (next === visible) return;
       generation += 1; cancelTimer(); visible = next;
+      for (const editor of editors.values()) editor.voicePanel?.setVisible(next === editor.kind);
       if (visible) refresh(); else { unsubscribe?.(); unsubscribe = null; inspector = null; }
     },
     refresh,
-    dispose() { disposed = true; generation += 1; cancelTimer(); unsubscribe?.(); unsubscribe = null; inspector = null; doc.removeEventListener?.('visibilitychange', visibilityChanged); },
+    clearKeyboardTarget() {
+      keyboardEditor = null;
+      for (const editor of editors.values()) editor.voicePanel?.setKeyboardActive?.(false);
+    },
+    releaseAll() {for (const editor of editors.values()) editor.voicePanel?.releaseAll();},
+    dispose() { for (const editor of editors.values()) detachNative(editor); disposed = true; generation += 1; cancelTimer(); unsubscribe?.(); unsubscribe = null; inspector = null; doc.removeEventListener?.('visibilitychange', visibilityChanged); },
   };
 }

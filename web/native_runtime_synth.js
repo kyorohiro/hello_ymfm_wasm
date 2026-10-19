@@ -118,7 +118,8 @@ export class NativeRuntimeSynth {
   /** Stop voices while keeping uploaded samples, patches, waveforms and clocks. */
   stopAllNative() {
     const {nes, snes, opm, adpcm, pce, psg} = this.primaryApis;
-    if (nes) for (let channel = 0; channel < 6; channel++) nes.keyOff(channel);
+    if (nes?._stopVoices) nes._stopVoices();
+    else if (nes) for (let channel = 0; channel < 6; channel++) nes.keyOff(channel);
     if (snes) {
       try { snes.allNotesOff(); }
       catch (error) {

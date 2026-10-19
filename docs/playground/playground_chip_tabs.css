@@ -9,7 +9,10 @@
 .chip-section h3 { margin: 0 0 10px; font-size: 13px; }
 .chip-field { display: flex; flex-direction: column; gap: 5px; min-width: 100px; font-size: 12px; }
 .chip-field-label { color: #52615e; }
-.chip-field input[type="number"], .chip-field input[type="text"], .chip-field select { box-sizing: border-box; font: inherit; color: var(--ink, #252b2e); background: #fff; border: 1px solid var(--line, #c4c6bd); border-radius: 6px; padding: 6px 8px; }
+.chip-field input[type="number"], .chip-field input[type="text"], .chip-field select, .chip-field textarea { box-sizing: border-box; font: inherit; color: var(--ink, #252b2e); background: #fff; border: 1px solid var(--line, #c4c6bd); border-radius: 6px; padding: 6px 8px; }
+.chip-field textarea { width: 100%; resize: vertical; }
+.chip-voice-code { box-sizing: border-box; width: 100%; font: 12px ui-monospace, monospace; }
+.chip-editor-panel[hidden], .chip-editor [hidden] { display: none !important; }
 .chip-field input:disabled, .chip-field select:disabled { color: #66716c; background: #f1f2ee; }
 .chip-field input[type="number"] { width: 118px; }
 .chip-field input[type="text"] { width: 85px; }

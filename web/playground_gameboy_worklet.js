@@ -2,6 +2,8 @@ import {ChipClockResampler, CHIP_CLOCKS, validateChipClock} from './playground_c
 import {GameboyApu} from './gameboyapu.js';
 import factory from './generated/gameboy_apu_wasm.js';
 import {createProcessorPerformance} from './playground_performance_processor.js';
+import {GameboyVoiceInspector} from './playground_native_voice_inspector.js';
+import {receiveChipInspector} from './playground_chip_inspector_state.js';
 class Processor extends AudioWorkletProcessor {
   constructor(options) {
     super(); this.chip = null; this.dead = false;
@@ -34,7 +36,11 @@ class Processor extends AudioWorkletProcessor {
     GameboyApu.create({moduleFactory: factory, moduleOptions: {wasmBinary: options.processorOptions.wasmBinary}, sampleRate})
       .then(chip => {
         if (this.dead) { chip.dispose(); return; }
-        this.chip = chip; this.port.postMessage({ready: true});
+        this.chip = chip;
+        this.inspector=new GameboyVoiceInspector(chip,{clock:()=>CHIP_CLOCKS.gameboy*(this.clockResampler?.ratio??1),sampleRate,
+          dispatch:(command,owner)=>this.performance.applyImmediate(command,this.port,{owner}),
+          beginAudition:(channel,owner)=>this.performance.beginAudition(channel,owner),endAudition:(channel,owner)=>this.performance.endAudition(channel,owner)});
+        this.port.postMessage({ready: true});
       }).catch(error => { this.dispose(); this.port.postMessage({error: error.message}); });
   }
   retireRemote() {
@@ -46,6 +52,8 @@ class Processor extends AudioWorkletProcessor {
   dispose() { this.performance.clear(); this.dead = true; this.chip?.dispose(); this.chip = null; this.remote?.close(); }
   receive(data, port=this.port) {
     if (Array.isArray(data)) { for (const command of data) this.receive(command,port); return; }
+    if(data?.type==='chip-inspector'&&receiveChipInspector(data,port,this.inspector?(action,method,args)=>action==='read'?this.inspector.read():this.inspector.invoke(method,args):null))return;
+    if(data?.type==='performance-stop'&&Number.isSafeInteger(data.session)&&data.session>0&&data.session>=this.performance.getStats().latestSession)this.inspector?.invoke('auditionAllOff');
     if(this.performance.receive(data,port))return;
     this.apply(data,port);
   }

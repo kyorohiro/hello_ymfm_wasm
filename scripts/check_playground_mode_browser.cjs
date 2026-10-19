@@ -189,9 +189,9 @@ async function checkGameboyTypes(page) {
 }
 
 async function checkChipTabs(page, mode) {
-  const chipTabs = {operator:'#operatorTabButton', segapsg:'#segapsgTab', rf5c164:'#rf5c164Tab', pwm:'#pwmTab'};
+  const chipTabs = {operator:'#operatorTabButton', segapsg:'#segapsgTab', rf5c164:'#rf5c164Tab', pwm:'#pwmTab',gameboy:'#gameboyTab',nes:'#nesTab'};
   const expected = mode.chip === 'ym2612'
-    ? ['operator', 'segapsg', ...(mode.full || mode.megaCD ? ['rf5c164'] : []), ...(mode.full ? ['pwm'] : [])] : mode.chip === 'gameboy' ? [] : ['operator'];
+    ? ['operator', 'segapsg', ...(mode.full || mode.megaCD ? ['rf5c164'] : []), ...(mode.full ? ['pwm'] : [])] : mode.chip === 'gameboy' ? ['gameboy'] : ['operator'];
   for (const [name, selector] of Object.entries(chipTabs)) {
     assert.equal(await page.locator(selector).isVisible(), expected.includes(name), `${mode.id}: ${name} tab visibility`);
   }
@@ -201,7 +201,7 @@ async function checkChipTabs(page, mode) {
   assert.equal(await page.locator('#keyboardTab').isVisible(), true, `${mode.id}: shared keyboard visibility`);
   await page.locator(mode.chip === 'gameboy' ? '#codeTab' : '#operatorTabButton').focus();
   await page.keyboard.press('ArrowRight');
-  const next = mode.chip === 'ym2612' ? 'segapsgTab' : 'codeTab';
+  const next = mode.chip === 'ym2612' ? 'segapsgTab' : mode.chip === 'gameboy' ? 'gameboyTab' : 'codeTab';
   assert.equal(await page.evaluate(() => document.activeElement.id), next, `${mode.id}: ArrowRight skips hidden chip tabs`);
   assert.equal(await page.locator(`#${next}`).getAttribute('aria-selected'), 'true');
   await page.locator('#codeTab').click();

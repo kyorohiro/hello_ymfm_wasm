@@ -1,6 +1,6 @@
 import {
   FM_PRESETS,
-} from "../js/megasynth.js?v=sample-editor-1";
+} from "../js/megasynth.js?v=native-voices-1";
 
 const SCALE_NAMES = [
   "major",
