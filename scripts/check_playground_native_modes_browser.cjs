@@ -1,4 +1,4 @@
-// Actual native-mode audio, Monaco types, primary devices and project migration.
+// Actual native-mode audio, Monaco types, primary devices and project transfer.
 // Self-hosts docs. Chromium runs by default; --webkit includes WebKit and
 // --webkit-only selects WebKit. --modes=nes,snes,x68000,pc-engine focuses a run.
 // --types-only and --audio-only support focused diagnosis after a failure.
@@ -350,21 +350,24 @@ async function checkMixerFxMedia(page,browserName,mode) {
   console.log(JSON.stringify({browser:browserName,mode:mode.id,mixerMute:true,mediaIndependent:true,masterFx:true,stopQuiet:true,passed:true}));
 }
 
-async function changeMode(page,id) {
+async function changeMode(page,id,choice='keep') {
   await ready(page); await page.waitForTimeout(150);
   if (!await page.locator('#playgroundMode').isVisible()) await page.locator('#mainMenu > summary').click();
-  await Promise.all([page.waitForURL(url => url.searchParams.get('mode') === id),page.locator('#playgroundMode').selectOption(id)]);
+  await page.locator('#playgroundMode').selectOption(id);
+  await page.locator('#changeModeDialog').waitFor({state:'visible'});
+  const button=choice==='initial'?'#modeChoiceInitial':'#modeChoiceKeep';
+  await Promise.all([page.waitForURL(url => url.searchParams.get('mode') === id),page.locator(button).click()]);
   await ready(page);
 }
 async function checkTransfer(page,base) {
   await page.goto(`${base}?mode=nes&no-sw=1`); await ready(page);
   for (const id of ['snes','x68000','pc-engine','nes']) {
-    await changeMode(page,id);
+    await changeMode(page,id,'initial');
     const state = await page.evaluate(async id => {
       const test = window.__nativeRegression;
       return {actual:test.getEditorValue(),expected:(await import('./playground_examples.js')).MODE_DEFAULT_CODES[id]};
     },id);
-    assert.equal(state.actual,state.expected,`${id}: untouched starter switches with mode`);
+    assert.equal(state.actual,state.expected,`${id}: explicit Initial choice opens the target mode's code`);
   }
   const edited = '// Edited native project stays intact.\nnes.pulse.noteOn(0, "C4");\n';
   await page.evaluate(edited => {
@@ -381,7 +384,7 @@ async function checkTransfer(page,base) {
       empty:test.virtualFiles.stat('/samples/empty')?.type};
   });
   assert.deepEqual(actual,{editor:edited,index:edited,own:'export const retained = true;\n',binary:[0,255,128],empty:'directory'});
-  console.log(JSON.stringify({nativeModeTransfer:true,untouchedDefaults:true,editedCode:true,binaryDirectories:true,passed:true}));
+  console.log(JSON.stringify({nativeModeTransfer:true,initialChoiceDefaults:true,editedCode:true,binaryDirectories:true,passed:true}));
 }
 
 async function checkBrowser(name,type,base) {

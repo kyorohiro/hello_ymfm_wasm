@@ -9,15 +9,18 @@ const parents = path => {
 };
 const sources = value => (Array.isArray(value) ? value : [value]).filter(value => typeof value === 'string');
 
-/** Replace only untouched starter code when a project changes mode.
+/** Reconcile examples while keeping code unless the user explicitly chooses a starter.
  * Existing text, binary assets, checkpoints and project metadata remain user data.
  * `defaults` maps each mode ID to its current source, or to an array containing
  * that source followed by older bundled starters. `legacyDefaults` recognizes
- * old projects that have no recorded source mode.
+ * old projects that have no recorded source mode. `codeChoice: 'keep'` is also
+ * the restore policy. Explicit `initial` selects /index.js and backs up custom
+ * index content before replacing it with the target mode's current starter.
  */
 export function reconcileModeProject(snapshot, {
   sourceModeId = snapshot.modeId,
   targetModeId,
+  codeChoice = 'keep',
   defaults = {},
   legacyDefaults = [],
   allExampleFiles = [],
@@ -26,11 +29,14 @@ export function reconcileModeProject(snapshot, {
   const defaultEntries = defaults instanceof Map ? [...defaults] : Object.entries(defaults);
   const defaultMap = new Map(defaultEntries);
   const targetSource = sources(defaultMap.get(targetModeId))[0];
+  if (!['keep','initial'].includes(codeChoice)) throw new Error(`Unsupported mode code choice: ${codeChoice}`);
+  if (targetSource === undefined) throw new Error(`Missing starter source for mode: ${targetModeId}`);
   const sourceKnown = defaultMap.has(sourceModeId);
   const recognizedSources = new Set(sourceKnown
     ? sources(defaultMap.get(sourceModeId))
     : [...defaultEntries.flatMap(([, value]) => sources(value)), ...sources(legacyDefaults)]);
   const targetPaths = new Set(targetExampleFiles.map(file => file.path));
+  const protectedPaths = new Set(codeChoice === 'keep' ? [snapshot.activePath,snapshot.runPath] : []);
   const bundledSources = new Map();
   for (const file of allExampleFiles) {
     if (!isTextFile(file)) continue;
@@ -40,14 +46,11 @@ export function reconcileModeProject(snapshot, {
 
   const removed = new Set();
   const files = (snapshot.files ?? []).filter(file => {
-    const remove = !targetPaths.has(file.path) && isTextFile(file) &&
+    const remove = file.path !== '/index.js' && !protectedPaths.has(file.path) && !targetPaths.has(file.path) && isTextFile(file) &&
       bundledSources.get(file.path)?.has(file.data);
     if (remove) removed.add(file.path);
     return !remove;
-  }).map(file => file.path === '/index.js' && isTextFile(file) &&
-    targetSource !== undefined && recognizedSources.has(file.data)
-    ? {...file, data: targetSource}
-    : {...file});
+  }).map(file => ({...file}));
 
   // Snapshot directories include implicit parents and explicit empty folders.
   // Only parents of examples actually removed have evidence of being bundled.
@@ -75,7 +78,21 @@ export function reconcileModeProject(snapshot, {
       occupiedDirectories.add(path);
     }
   }
-  if (targetSource !== undefined) addMissing({path: '/index.js', data: targetSource});
+  if (codeChoice === 'initial') {
+    if (occupiedDirectories.has('/index.js')) throw new Error('Cannot open mode starter: /index.js is a directory');
+    const index = files.findIndex(file => file.path === '/index.js');
+    if (index >= 0) {
+      const previous = files[index];
+      if (!isTextFile(previous) || !recognizedSources.has(previous.data)) {
+        const sourceName = String(sourceModeId ?? 'previous').replace(/[^a-zA-Z0-9_-]+/g,'-').replace(/^-+|-+$/g,'') || 'previous';
+        const base = `/index-${sourceName}`;
+        let backup = `${base}.js`, suffix = 2;
+        while (filePaths.has(backup) || occupiedDirectories.has(backup)) backup = `${base}-${suffix++}.js`;
+        addMissing({...previous,path:backup});
+      }
+      files[index] = {path:'/index.js',type:'text',data:targetSource};
+    } else addMissing({path:'/index.js',type:'text',data:targetSource});
+  } else addMissing({path:'/index.js',data:targetSource});
   for (const file of targetExampleFiles) addMissing(file);
 
   return {
@@ -83,7 +100,6 @@ export function reconcileModeProject(snapshot, {
     modeId: targetModeId,
     files,
     directories: [...directories],
-    ...(removed.has(snapshot.activePath) ? {activePath: '/index.js'} : {}),
-    ...(removed.has(snapshot.runPath) ? {runPath: '/index.js'} : {}),
+    ...(codeChoice === 'initial' ? {activePath:'/index.js',runPath:'/index.js'} : {}),
   };
 }

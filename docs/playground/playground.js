@@ -9,7 +9,7 @@ import {openDraftStore, createProjectAutosave} from './playground_autosave.js?v=
 import {PLAYGROUND_MODES, resolvePlaygroundMode, createModeSynthOptions,
   createPlaygroundModeUrl, isSimplePlaygroundLayout} from './playground_mode.js?v=audio-stability-2';
 import {saveModeProject, consumeModeProject} from './playground_mode_project.js';
-import {reconcileModeProject} from './playground_mode_starters.js?v=native-modes-3';
+import {reconcileModeProject} from './playground_mode_starters.js?v=mode-choice-1';
 let desktopAutosave = null;
 let playgroundShell = null;
 let fileExplorerMenu = null;
@@ -304,9 +304,10 @@ const bundledExampleFiles = MODE_EXAMPLE_FILES[selectedMode.id];
 if (!bundledExampleFiles) throw new Error(`Missing examples for ${selectedMode.label}`);
 const knownModeDefaults = Object.fromEntries(Object.entries(MODE_DEFAULT_CODES).map(([id, source]) =>
   [id, [source, ...(MODE_DEFAULT_HISTORY[id] ?? []), id === 'gameboy' ? EXAMPLES['gameboy-mode-pulse'] : DEFAULT_CODE]]));
-function prepareModeProject(snapshot, targetModeId = selectedMode.id) {
+function prepareModeProject(snapshot, targetModeId = selectedMode.id, codeChoice = 'keep') {
   return reconcileModeProject(snapshot, {
     targetModeId,
+    codeChoice,
     defaults:knownModeDefaults,
     legacyDefaults:[DEFAULT_CODE, EXAMPLES['gameboy-mode-pulse']],
     allExampleFiles:EXAMPLE_FILES,
@@ -2190,7 +2191,10 @@ function applySimpleModeFromQuery() {
 
 function installPlaygroundEventHandlers() {
   modeSelect.addEventListener('change', () => void changePlaygroundMode(modeSelect.value));
-  document.getElementById('openModeStarterButton').addEventListener('click', () => {
+  // Modal keys belong to the choice UI; live keyboard handlers must not block
+  // Escape or play notes behind it. Keep keyup bubbling to release held notes.
+  document.getElementById('changeModeDialog').addEventListener('keydown', event => event.stopPropagation());
+  document.getElementById('openInitialCodeButton').addEventListener('click', () => {
     saveActiveVirtualFile();
     const directories = new Set(virtualFiles.listDirectories());
     let suffix = 0, path;
@@ -2203,7 +2207,7 @@ function installPlaygroundEventHandlers() {
     openVirtualFile(path);
     setBottomTab('code');
     desktopAutosave?.changed();
-    setStatus(`Opened ${selectedMode.label} starter: ${path}`);
+    setStatus(`Opened ${selectedMode.label} initial code: ${path}`);
   });
   mainMenu.addEventListener("click", event => {
     if (event.target.closest("button, a")) mainMenu.open = false;
@@ -2657,7 +2661,21 @@ async function changePlaygroundMode(id) {
   if (changingMode || id === selectedMode.id) return;
   changingMode = true;
   modeSelect.disabled = true;
+  modeSelect.value = selectedMode.id;
+  let switching = false;
   try {
+    const mode = modeOptions.find(mode => mode.id === id);
+    if (!mode) throw new Error(`Unsupported Playground mode: ${id}`);
+    mainMenu.open = false;
+    const dialog = document.getElementById('changeModeDialog');
+    document.getElementById('changeModeTarget').textContent = mode.label;
+    dialog.returnValue = 'cancel';
+    const codeChoice = await new Promise(resolve => {
+      dialog.addEventListener('close', () => resolve(dialog.returnValue), {once:true});
+      dialog.showModal();
+    });
+    if (!['initial','keep'].includes(codeChoice)) return;
+    switching = true;
     saveActiveVirtualFile();
     playgroundShell?.invalidate('Mode changed');
     await stopRun();
@@ -2666,15 +2684,21 @@ async function changePlaygroundMode(id) {
     const url = createPlaygroundModeUrl(window.location.href, id);
     // The transferred project, including edits to imported code, is authoritative.
     for (const key of ['cassette','src','code','source','example']) url.searchParams.delete(key);
-    const token = await saveModeProject(window.indexedDB, id, prepareModeProject(captureProjectSnapshot(), id));
+    const token = await saveModeProject(window.indexedDB, id, prepareModeProject(captureProjectSnapshot(), id, codeChoice));
     url.searchParams.set('modeProject', token);
     await runtime.finalize();
     window.location.assign(url.href);
   } catch (error) {
-    changingMode = false;
-    modeSelect.disabled = runButton.disabled = stopButton.disabled = false;
-    modeSelect.value = selectedMode.id;
+    if (switching) {
+      runButton.disabled = stopButton.disabled = false;
+      syncWorkerExecutionLock();
+    }
     setStatus(`Could not switch mode: ${error.message}`);
+  } finally {
+    changingMode = false;
+    modeSelect.disabled = false;
+    modeSelect.value = selectedMode.id;
+    if (!switching) mainMenu.querySelector('summary').focus();
   }
 }
 

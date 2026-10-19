@@ -74,7 +74,9 @@ do {
   }
 } while(propagated);
 for(const name of ['playground.js','playground_mode.js','playground_operator_tab.js','playground_tfi_editor.js'])audioFiles.add(name);
+const modeChoiceFiles=new Set(['playground.js','playground_mode_starters.js']);
 const targets=[...new Set([
+  ...modeChoiceFiles,
   ...audioFiles,
   ...pcmFiles,
   ...nativeFiles,
@@ -105,7 +107,7 @@ let changed=0;
 for(const currentDirectory of [directory,join(directory,'../playground')])for(const name of await readdir(currentDirectory)){
   if(!name.endsWith('.js')&&!name.endsWith('.html'))continue;
   const path=join(currentDirectory,name),source=await readFile(path,'utf8');
-  const next=source.replace(currentDirectory===directory?references:pageReferences,(_match,quote,path)=>quote+path+'?v='+(audioFiles.has(path.split('/').at(-1))?audioVersion:revisions[path.split('/').at(-1)]??version)+quote)
+  const next=source.replace(currentDirectory===directory?references:pageReferences,(_match,quote,path)=>quote+path+'?v='+(modeChoiceFiles.has(path.split('/').at(-1))?'mode-choice-1':audioFiles.has(path.split('/').at(-1))?audioVersion:revisions[path.split('/').at(-1)]??version)+quote)
     .replace(/(['"])((?:\.\.?\/)+generated\/spc_wasm\.(?:js|wasm))(?:\?[^'"\s]*)?\1/g,
       (_match,quote,path)=>quote+path+'?v=spc-events-1'+quote);
   if(next!==source){await writeFile(path,next);changed++;}

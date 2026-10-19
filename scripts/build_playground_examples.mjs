@@ -30,8 +30,8 @@ export async function buildExampleBundle() {
   const defaultCode = await readFile(new URL("../docs/playground/defaults/index.js", import.meta.url), "utf8");
   const modeDefaults = Object.fromEntries(await Promise.all(Object.entries(MODE_STARTERS).map(async ([id, definition]) =>
     [id, await readFile(new URL(`../docs/playground/defaults/${definition.index}`, import.meta.url), 'utf8')])));
-  // Exact previous starter sources let saved pristine projects receive fixes.
-  // History is recognition data only; the current index.js always stays first.
+  // Exact previous starters distinguish bundled code from user edits when
+  // explicitly starting with initial code. Restoring a project preserves code.
   const modeDefaultHistory = JSON.parse(await readFile(new URL('../docs/playground/defaults/history.json', import.meta.url), 'utf8'));
   for (const [id, sources] of Object.entries(modeDefaultHistory)) {
     if (!Object.hasOwn(modeDefaults, id) || !Array.isArray(sources) ||

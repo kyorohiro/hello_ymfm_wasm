@@ -8,8 +8,9 @@
 // --opnb-example-only runs the bundled OPNB example in both Neo Geo modes.
 // --ym2203-only checks native OPN SSG types, audio, clock, reset and Stop.
 // --gameboy-only checks the native non-FM environment, audio and mode transfer.
-// --starters-only checks mode defaults, curated files, playable examples and migration.
+// --starters-only checks fresh defaults, curated files, playable examples and draft restore.
 // --starter-modes=id,id focuses starter audio; --webkit-only selects only WebKit.
+// --mode-choice-only checks the mode dialog, project choices and Initial code menu.
 const assert = require('node:assert/strict');
 const http = require('node:http');
 const fs = require('node:fs/promises');
@@ -836,12 +837,7 @@ async function checkProjectSwitch(page, base, screenshot) {
     test.setEditorValue(source);
   }, source);
   // Use the public control so stopping, snapshotting and reload all run together.
-  await page.locator('#mainMenu > summary').click();
-  await Promise.all([
-    page.waitForURL(url => url.searchParams.get('mode') === 'pc98'),
-    page.locator('#playgroundMode').selectOption('pc98'),
-  ]);
-  await ready(page);
+  await changeMode(page,'pc98','keep');
   const restored = await page.evaluate(() => {
     const test = window.__modeRegression;
     return {mode:test.selectedMode.id, editor:test.getEditorValue(), entry:test.virtualFiles.get('/index.js')?.data,
@@ -882,12 +878,7 @@ async function checkGameboyProjectSwitch(page, base) {
     virtualFiles.mkdir('/assets/gameboy-empty', {recursive:true});
   });
   for (const mode of ['gameboy','pc98-26']) {
-    await page.locator('#mainMenu > summary').click();
-    await Promise.all([
-      page.waitForURL(url => url.searchParams.get('mode') === mode),
-      page.locator('#playgroundMode').selectOption(mode),
-    ]);
-    await ready(page);
+    await changeMode(page,mode,'keep');
     const restored = await page.evaluate(() => {
       const test = window.__modeRegression;
       return {mode:test.selectedMode.id, source:test.getEditorValue(), entry:test.virtualFiles.get('/index.js')?.data,
@@ -1083,11 +1074,39 @@ async function settleEditor(page) {
   await page.waitForTimeout(150);
 }
 
-async function changeMode(page, id) {
+async function beginModeChange(page,id) {
   await settleEditor(page);
   if (!await page.locator('#playgroundMode').isVisible()) await page.locator('#mainMenu > summary').click();
-  await Promise.all([page.waitForURL(url => url.searchParams.get('mode') === id),page.locator('#playgroundMode').selectOption(id)]);
+  await page.locator('#playgroundMode').selectOption(id);
+  await page.locator('#changeModeDialog').waitFor({state:'visible'});
+  const label=await page.locator(`#playgroundMode option[value="${id}"]`).textContent();
+  assert((await page.locator('#changeModeTarget').textContent()).includes(label),'dialog identifies the selected mode');
+}
+
+async function finishModeChange(page,id,choice='keep') {
+  const selector={initial:'#modeChoiceInitial',keep:'#modeChoiceKeep',cancel:'#modeChoiceCancel'}[choice];
+  assert(selector,`Unknown mode choice: ${choice}`);
+  if(choice==='cancel'){
+    await page.locator(selector).click();
+    await page.locator('#changeModeDialog').waitFor({state:'hidden'});
+    return;
+  }
+  await Promise.all([page.waitForURL(url=>url.searchParams.get('mode')===id),page.locator(selector).click()]);
   await ready(page);
+}
+
+async function changeMode(page,id,choice='keep') {
+  await beginModeChange(page,id);
+  await finishModeChange(page,id,choice);
+}
+
+async function openInitialCode(page) {
+  await settleEditor(page);
+  // WebKit can give nested <details> descendants a visible bounding box while
+  // their outer menu is closed. Open the actual disclosure states explicitly.
+  if(!await page.locator('#mainMenu').evaluate(node=>node.open))await page.locator('#mainMenu > summary').click();
+  if(!await page.locator('#menuExamples').evaluate(node=>node.open))await page.locator('#menuExamples > summary').click();
+  await page.locator('#openInitialCodeButton').click();
 }
 
 async function assertModeStarter(page, modeId) {
@@ -1098,20 +1117,20 @@ async function assertModeStarter(page, modeId) {
       expected:MODE_DEFAULT_CODES[modeId],active:snapshot.activePath,run:snapshot.runPath};
   },modeId);
   assert.equal(state.mode,modeId);
-  assert.equal(state.editor,state.expected,`${modeId}: untouched starter follows mode`);
-  assert.equal(state.entry,state.expected,`${modeId}: untouched /index.js follows mode`);
+  assert.equal(state.editor,state.expected,`${modeId}: explicit Initial choice opens the target mode's code`);
+  assert.equal(state.entry,state.expected,`${modeId}: explicit Initial choice replaces /index.js`);
   assert.equal(state.active,'/index.js'); assert.equal(state.run,'/index.js');
 }
 
 async function checkStarterTransfer(page, base) {
   const foreign = '/examples/basic/fm/fm-api-beep.js';
   await page.goto(`${base}?mode=genesis&no-sw=1`); await ready(page);
-  // An untouched foreign sample may have been open and selected for Run when
-  // the machine changes. It should disappear and both selections should reset.
+  // Explicit Initial replaces the entry and file selections even when an
+  // untouched foreign sample was previously open and selected for Run.
   await page.evaluate(path => window.__modeRegression.openVirtualFile(path),foreign);
-  await changeMode(page,'gameboy'); await assertModeStarter(page,'gameboy');
+  await changeMode(page,'gameboy','initial'); await assertModeStarter(page,'gameboy');
   assert.equal(await page.evaluate(path => window.__modeRegression.virtualFiles.has(path),foreign),false,'pristine foreign example is removed');
-  await changeMode(page,'pc98'); await assertModeStarter(page,'pc98');
+  await changeMode(page,'pc98','initial'); await assertModeStarter(page,'pc98');
 
   const editedIndex = '// User FM source stays intact across machine changes.\nfm.keyOff(0);\n';
   const editedExample = '// Edited built-in example is now project code.\nawait sleep(.01);\n';
@@ -1137,31 +1156,31 @@ async function checkStarterTransfer(page, base) {
   },foreign);
   assert.deepEqual(restored,{editor:editedIndex,index:editedIndex,example:editedExample,bytes:[0,255,128,0],module:'export const own = true;\n',empty:'directory'});
 
-  const openStarter = async () => {
-    await settleEditor(page);
-    if (!await page.locator('#openModeStarterButton').isVisible()) await page.locator('#mainMenu > summary').click();
-    await page.locator('#openModeStarterButton').click();
-  };
-  await openStarter(); await openStarter();
+  const openStarter = async () => {await openInitialCode(page);};
+  await openStarter();
+  const firstOpened=await page.evaluate(()=>({path:window.__modeRegression.captureProjectSnapshot().activePath,
+    count:window.__modeRegression.virtualFiles.list().length}));
+  await openStarter();
   const opened = await page.evaluate(async () => {
     const test = window.__modeRegression,snapshot = test.captureProjectSnapshot();
     return {index:test.virtualFiles.get('/index.js')?.data,source:test.getEditorValue(),active:snapshot.activePath,run:snapshot.runPath,
       expected:(await import('./playground_examples.js')).MODE_DEFAULT_CODES.gameboy,
-      paths:test.virtualFiles.list().filter(file => file.path.startsWith('/starter-gameboy')).map(file => file.path)};
+      count:test.virtualFiles.list().length};
   });
   assert.equal(opened.index,editedIndex,'opening a mode starter preserves edited /index.js');
-  assert.equal(opened.source,opened.expected); assert.equal(opened.active,'/starter-gameboy.js'); assert.equal(opened.run,'/starter-gameboy.js');
-  assert.deepEqual(opened.paths,['/starter-gameboy.js'],'reopening an untouched starter reuses it');
+  assert.equal(opened.source,opened.expected); assert.notEqual(opened.active,'/index.js'); assert.equal(opened.run,opened.active);
+  assert.deepEqual({path:opened.active,count:opened.count},firstOpened,'reopening untouched Initial code reuses its separate file');
   const ownStarter = '// My starter edits stay intact.\nawait sleep(.01);\n';
   await page.evaluate(source => window.__modeRegression.setEditorValue(source),ownStarter);
   await openStarter();
-  const suffixed = await page.evaluate(() => {
+  const suffixed = await page.evaluate(firstPath => {
     const test = window.__modeRegression,snapshot = test.captureProjectSnapshot();
-    return {first:test.virtualFiles.get('/starter-gameboy.js')?.data,source:test.getEditorValue(),active:snapshot.activePath,run:snapshot.runPath,
+    return {first:test.virtualFiles.get(firstPath)?.data,source:test.getEditorValue(),active:snapshot.activePath,run:snapshot.runPath,
       selected:document.getElementById('runFileSelect').value};
-  });
-  assert.deepEqual(suffixed,{first:ownStarter,source:opened.expected,active:'/starter-gameboy-1.js',run:'/starter-gameboy-1.js',selected:'/starter-gameboy-1.js'},
-    'editing a starter makes Open Mode Starter choose a new path without overwrites');
+  },opened.active);
+  assert.notEqual(suffixed.active,opened.active);
+  assert.deepEqual(suffixed,{first:ownStarter,source:opened.expected,active:suffixed.active,run:suffixed.active,selected:suffixed.active},
+    'editing Initial code makes the menu choose a new path without overwrites');
 
   await settleEditor(page);
   await page.evaluate(async ({editedIndex,editedExample}) => {
@@ -1184,6 +1203,155 @@ async function checkStarterTransfer(page, base) {
   console.log(JSON.stringify({starters:true,projectSwitch:'Genesis→GameBoy→PC98',pristineCleanup:true,editedFiles:true,binaryDirectories:true,cassette:true,openStarterPreservesEdits:true,passed:true}));
 }
 
+async function choiceProjectState(page) {
+  return page.evaluate(()=>{
+    const test=window.__modeRegression,snapshot=test.captureProjectSnapshot();
+    return {mode:snapshot.modeId,active:snapshot.activePath,run:snapshot.runPath,editor:test.getEditorValue(),
+      directories:snapshot.directories.slice().sort(),metadata:snapshot.metadata,hasMetadataFile:snapshot.hasMetadataFile,
+      files:snapshot.files.map(file=>({path:file.path,type:typeof file.data==='string'?'text':'binary',
+        data:typeof file.data==='string'?file.data:Array.from(file.data)})).sort((a,b)=>a.path.localeCompare(b.path))};
+  });
+}
+
+async function checkModeChoices(page,base,browserName) {
+  await page.goto(`${base}?mode=genesis&no-sw=1`);await ready(page);
+  const genesisSource=await page.evaluate(()=>window.__modeRegression.getEditorValue());
+  await changeMode(page,'gameboy','keep');
+  assert.equal(await page.evaluate(()=>window.__modeRegression.getEditorValue()),genesisSource,'Keep preserves even an untouched old mode default');
+  await changeMode(page,'pc98','initial');
+  await assertModeStarter(page,'pc98');
+  await settleEditor(page);
+
+  const customIndex='// My index must survive an explicit initial-code choice.\nconsole.log("CUSTOM_MODE_INDEX");\n';
+  const reservedBackup='// A pre-existing backup must not be overwritten.\n';
+  const runSource=`context.modeChoiceTicks=0;
+context.modeChoiceKeyPresses=0;
+onKeyboardPressKey('mode-choice-keys',event=>{context.modeChoiceKeyPresses++;event.preventDefault();});
+liveLoop('mode-choice-running',async()=>{context.modeChoiceTicks++;await sleep(.03);});
+console.log('MODE_CHOICE_RUNNING');\n`;
+  const metadata={title:'Mode choice resources',license:'CC0-1.0'};
+  // Seed the same one-shot handoff used by mode navigation. Restoring after
+  // Monaco has mounted would replace multiple models within one synthetic task
+  // and cancel its unrelated outstanding language requests.
+  const token=await page.evaluate(async ({customIndex,reservedBackup,runSource,metadata})=>{
+    const {saveModeProject}=await import('./playground_mode_project.js');
+    return saveModeProject(indexedDB,'pc98',{version:1,modeId:'pc98',activePath:'/lib/running.js',runPath:'/lib/running.js',
+      directories:['/','/assets','/assets/empty','/lib','/index-genesis-2.js'],metadata,hasMetadataFile:true,
+      files:[{path:'/index.js',type:'text',data:customIndex},
+        {path:'/index-genesis.js',type:'text',data:reservedBackup},
+        {path:'/lib/running.js',type:'text',data:runSource},
+        {path:'/assets/opaque.txt',type:'binary',data:new Uint8Array([0,255,128,13])},
+        {path:'/NOTICE',type:'text',data:'Resource without an extension\n'},
+        {path:'/metadata.json',type:'text',data:JSON.stringify(metadata)}]});
+  },{customIndex,reservedBackup,runSource,metadata});
+  await page.goto(`${base}?mode=pc98&modeProject=${encodeURIComponent(token)}&no-sw=1`);
+  await settleEditor(page);
+  await page.evaluate(()=>{document.getElementById('workerExecution').checked=false;});
+  const runLoop=async()=>{
+    await page.locator('#runButton').click();
+    await page.waitForFunction(()=>window.__modeRegression.runtime.getState().playback==='running' &&
+      window.__modeRegression.runtime.context.modeChoiceTicks>=2);
+    await page.evaluate(()=>{
+      window.__modeChoiceContext=window.__modeRegression.runtime.context;
+      window.__modeChoiceSynth=window.__modeRegression.megaDrive;
+    });
+  };
+  await runLoop();
+  // The dialog must leave the current editor, file selections, runtime context
+  // and liveLoop intact until the user chooses Initial or Keep.
+  const before=await choiceProjectState(page),beforeUrl=page.url();
+  const assertRunningUnchanged=async label=>{
+    const ticks=await page.evaluate(()=>window.__modeRegression.runtime.context.modeChoiceTicks);
+    await page.waitForFunction(previous=>window.__modeRegression.runtime.context.modeChoiceTicks>previous,ticks);
+    const live=await page.evaluate(()=>({playback:window.__modeRegression.runtime.getState().playback,
+      sameContext:window.__modeChoiceContext===window.__modeRegression.runtime.context,
+      sameSynth:window.__modeChoiceSynth===window.__modeRegression.megaDrive,
+      keyPresses:window.__modeRegression.runtime.context.modeChoiceKeyPresses}));
+    assert.deepEqual(live,{playback:'running',sameContext:true,sameSynth:true,keyPresses:0},`${label}: current run remains alive and dialog keys do not reach it`);
+    assert.equal(page.url(),beforeUrl,`${label}: does not navigate`);
+    assert.deepEqual(await choiceProjectState(page),before,`${label}: does not save or replace project content`);
+  };
+  await beginModeChange(page,'gameboy');
+  await assertRunningUnchanged('pending choice');
+  const screenshot=`/private/tmp/playground-mode-choice-${browserName}.png`;
+  await page.screenshot({path:screenshot});
+  await finishModeChange(page,'gameboy','cancel');
+  assert.equal(await page.locator('#playgroundMode').inputValue(),'pc98','Cancel restores the current mode selector');
+  await page.waitForFunction(()=>document.activeElement===document.querySelector('#mainMenu > summary'));
+  await assertRunningUnchanged('Cancel');
+
+  await beginModeChange(page,'gameboy');
+  await page.keyboard.press('q');
+  await page.keyboard.press('Escape');
+  await page.locator('#changeModeDialog').waitFor({state:'hidden'});
+  assert.equal(await page.locator('#playgroundMode').inputValue(),'pc98','Escape restores the current mode selector');
+  await page.waitForFunction(()=>document.activeElement===document.querySelector('#mainMenu > summary'));
+  await assertRunningUnchanged('Escape');
+
+  await page.locator('#mainMenu > summary').click();
+  await page.locator('#playgroundMode').selectOption('pc98');
+  await page.waitForTimeout(100);
+  assert.equal(await page.locator('#changeModeDialog').isVisible(),false,'Selecting the current mode does not open a dialog');
+  await assertRunningUnchanged('same mode');
+
+  await beginModeChange(page,'genesis');
+  await assertRunningUnchanged('pending Keep');
+  await finishModeChange(page,'genesis','keep');
+  const kept=await choiceProjectState(page);
+  const resources=state=>({files:state.files.filter(file=>['/assets/opaque.txt','/NOTICE','/metadata.json','/lib/running.js','/index-genesis.js'].includes(file.path)),
+    metadata:state.metadata,hasMetadataFile:state.hasMetadataFile,
+    empty:state.directories.includes('/assets/empty'),occupiedBackup:state.directories.includes('/index-genesis-2.js')});
+  assert.deepEqual(resources(kept),resources(before),'Keep preserves binary/text resources, empty directories and metadata');
+  assert.equal(kept.files.find(file=>file.path==='/index.js')?.data,customIndex,'Keep preserves custom index');
+  assert.equal(kept.active,before.active,'Keep preserves active editor path');
+  assert.equal(kept.run,before.run,'Keep preserves the selected Run path');
+  assert.equal(kept.editor,runSource,'Keep preserves active editor content');
+  assert.equal(await page.evaluate(()=>window.__modeRegression.runtime.getState().playback),'stopped','The new mode waits for Run');
+
+  await openInitialCode(page);
+  const initialFile=await page.evaluate(async()=>({path:window.__modeRegression.captureProjectSnapshot().activePath,
+    source:window.__modeRegression.getEditorValue(),expected:(await import('./playground_examples.js')).MODE_DEFAULT_CODES.genesis,
+    count:window.__modeRegression.virtualFiles.list().length}));
+  assert.notEqual(initialFile.path,'/index.js','Examples opens Initial code in a separate file');
+  assert.equal(initialFile.source,initialFile.expected);
+  assert.equal((await choiceProjectState(page)).run,initialFile.path,'Initial code becomes the selected Run file');
+  await openInitialCode(page);
+  assert.deepEqual(await page.evaluate(()=>({path:window.__modeRegression.captureProjectSnapshot().activePath,
+    count:window.__modeRegression.virtualFiles.list().length})),{path:initialFile.path,count:initialFile.count},'Repeated Initial code reuses an untouched separate file');
+  const editedInitial='// Keep my edits to the separate Initial code file.\nawait sleep(.01);\n';
+  await page.evaluate(source=>window.__modeRegression.setEditorValue(source),editedInitial);
+  await openInitialCode(page);
+  const nextInitial=await page.evaluate(path=>({first:window.__modeRegression.virtualFiles.get(path)?.data,
+    path:window.__modeRegression.captureProjectSnapshot().activePath,source:window.__modeRegression.getEditorValue()}),initialFile.path);
+  assert.equal(nextInitial.first,editedInitial,'Initial code preserves edits to the previously opened starter');
+  assert.notEqual(nextInitial.path,initialFile.path,'Edited Initial code causes a different file to open');
+  assert.equal(nextInitial.source,initialFile.expected);
+  const afterMenu=await choiceProjectState(page);
+  assert.equal(afterMenu.files.find(file=>file.path==='/index.js')?.data,customIndex,'Examples Initial code does not replace index.js');
+  assert.deepEqual(resources(afterMenu),resources(before),'Examples Initial code preserves project resources');
+
+  await settleEditor(page);
+  await page.selectOption('#runFileSelect','/lib/running.js');
+  await runLoop();
+  await beginModeChange(page,'gameboy');
+  const pendingInitial=await page.evaluate(()=>({playback:window.__modeRegression.runtime.getState().playback,
+    sameContext:window.__modeChoiceContext===window.__modeRegression.runtime.context}));
+  assert.deepEqual(pendingInitial,{playback:'running',sameContext:true},'Initial remains a choice until the button is clicked');
+  await finishModeChange(page,'gameboy','initial');
+  await assertModeStarter(page,'gameboy');
+  const initialized=await choiceProjectState(page);
+  assert.deepEqual(resources(initialized),resources(before),'Initial preserves resources, metadata and non-index source files');
+  const backups=initialized.files.filter(file=>file.path!=='/index.js' && file.data===customIndex);
+  assert.equal(backups.length,1,'Initial preserves the custom index as a separate backup');
+  assert.equal(initialized.files.find(file=>file.path==='/index-genesis.js')?.data,reservedBackup,'Initial preserves pre-existing backup content');
+  assert.equal(await page.evaluate(()=>window.__modeRegression.runtime.getState().playback),'stopped','Initial stops the previous run and does not autoplay');
+  assert(!/\[error\]|(?:Reference|Syntax|Type)Error:/.test(await page.locator('#consoleOutput').textContent()),'Mode choices leave no runtime console error');
+  console.log(JSON.stringify({browser:browserName,modeChoices:true,initial:true,keep:true,cancel:true,escape:true,sameMode:true,
+    untouchedDefaultKept:true,activeRunPreservedUntilChoice:true,dialogKeyboardIsolated:true,cancelFocusRestored:true,
+    activeRunPathKept:true,customIndexBackup:backups[0].path,
+    binaryDirectoriesMetadata:true,initialCodeSeparateFile:true,initialCodeEditsPreserved:true,screenshot,passed:true}));
+}
+
 async function checkStarterLegacyDraft(browser, base) {
   const context = await browser.newContext({serviceWorkers:'block'});
   await context.addInitScript(() => {window.__TAURI_INTERNALS__ = {};});
@@ -1191,34 +1359,38 @@ async function checkStarterLegacyDraft(browser, base) {
   page.on('pageerror',error => errors.push(error.message));
   try {
     await page.goto(new URL('/index.html?no-sw=1',base).href);
-    await page.evaluate(async () => {
+    const legacySource=await page.evaluate(async () => {
       const {openDraftStore} = await import('./playground/playground_autosave.js');
       const {DEFAULT_CODE,EXAMPLE_FILES} = await import('./playground/playground_examples.js');
       const store = await openDraftStore(indexedDB,'mode:gameboy');
       try {await store.save({version:1,activePath:'/index.js',runPath:'/index.js',directories:['/'],files:[
         {path:'/index.js',type:'text',data:DEFAULT_CODE},...EXAMPLE_FILES.map(file => ({...file,type:'text'}))]});}
       finally {store.close();}
+      return DEFAULT_CODE;
     });
     await page.goto(`${base}?mode=gameboy&no-sw=1`); await ready(page);
-    await assertModeStarter(page,'gameboy'); await checkStarterCatalog(page,modes.find(mode => mode.id === 'gameboy'));
-    const custom = '// A custom FM draft must survive migration.\nfm.keyOff(0);\n';
+    assert.equal(await page.evaluate(()=>window.__modeRegression.getEditorValue()),legacySource,'legacy default draft is kept on restore');
+    const custom = '// A custom FM draft must survive restore.\nfm.keyOff(0);\n';
     await page.evaluate(async custom => {window.__modeRegression.setEditorValue(custom); await window.__tetoricaAutosaveFlush();},custom);
     await page.reload(); await ready(page);
     assert.equal(await page.evaluate(() => window.__modeRegression.getEditorValue()),custom,'custom FM draft is preserved');
     for (const id of ['pc98','pc98-26','neogeo','snes','pc-engine']) {
-      await page.evaluate(async id => {
+      const historicalSource=await page.evaluate(async id => {
         const {openDraftStore} = await import('./playground_autosave.js');
         const {MODE_DEFAULT_HISTORY} = await import('./playground_examples.js?v=starter-history-1');
         const store = await openDraftStore(indexedDB,`mode:${id}`);
         try {await store.save({version:1,modeId:id,activePath:'/index.js',runPath:'/index.js',directories:['/'],
           files:[{path:'/index.js',type:'text',data:MODE_DEFAULT_HISTORY[id][0]}]});}
         finally {store.close();}
+        return MODE_DEFAULT_HISTORY[id][0];
       },id);
       await page.goto(`${base}?mode=${id}&no-sw=1`); await ready(page);
-      await assertModeStarter(page,id);
+      const restored=await page.evaluate(()=>({source:window.__modeRegression.getEditorValue(),
+        index:window.__modeRegression.virtualFiles.get('/index.js')?.data}));
+      assert.deepEqual(restored,{source:historicalSource,index:historicalSource},`${id}: historical starter is kept on restore`);
     }
     assert.deepEqual(errors,[],'legacy starter draft page errors');
-    console.log(JSON.stringify({starters:true,legacyDefaultMigration:true,historicalModes:5,customDraftPreserved:true,passed:true}));
+    console.log(JSON.stringify({starters:true,legacyDefaultPreserved:true,historicalModes:5,customDraftPreserved:true,passed:true}));
   } finally {await context.close();}
 }
 
@@ -1229,6 +1401,7 @@ async function checkBrowser(name, type, base) {
   page.setDefaultTimeout(20000);
   page.on('pageerror', error => errors.push({message:error.message,stack:error.stack,url:page.url()}));
   const startersOnly = process.argv.includes('--starters-only');
+  const modeChoiceOnly=process.argv.includes('--mode-choice-only');
   const tabsOnly = process.argv.includes('--tabs-only');
   const typesOnly = process.argv.includes('--types-only');
   const opnaOnly = process.argv.includes('--opna-only');
@@ -1243,6 +1416,13 @@ async function checkBrowser(name, type, base) {
     ? modes.filter(mode => mode.chip === 'ym2203') : opnbExampleOnly
     ? modes.filter(mode => ['ym2610', 'ym2610b'].includes(mode.chip)) : modes;
   try {
+    if(modeChoiceOnly){
+      await checkModeChoices(page,base,name);
+      await checkStarterLegacyDraft(browser,base);
+      assert.deepEqual(errors,[],`${name}: mode choice page errors`);
+      console.log(JSON.stringify({browser:name,modeChoices:true,legacyDraftsPreserved:true,pageErrors:0,passed:true}));
+      return;
+    }
     for (const mode of selectedModes) {
       await page.goto(`${base}?mode=${mode.id}&no-sw=1`); await ready(page);
       assert.equal(await page.title(), `Tetorica ${mode.label} Playground`);
@@ -1295,6 +1475,7 @@ async function checkBrowser(name, type, base) {
       desktopAutosave:!tabsOnly && !typesOnly && !sectionsOnly && !gameboyOnly, legacyUrls:!tabsOnly && !typesOnly && !sectionsOnly && !gameboyOnly,
       simpleLayout:!tabsOnly && !typesOnly && !sectionsOnly && !gameboyOnly}));
   } catch (error) {
+    await page.screenshot({path:`/private/tmp/playground-mode-failure-${name}.png`}).catch(()=>{});
     console.error(JSON.stringify({browser:name, url:page.url(), status:await page.locator('#status').textContent().catch(() => null),
       console:await page.locator('#consoleOutput').textContent().catch(() => null), errors,
       starterMeter:await page.evaluate(() => window.__starterMeter && {peak:window.__starterMeter.peak,lastPeak:window.__starterMeter.lastPeak}).catch(() => null)}));
