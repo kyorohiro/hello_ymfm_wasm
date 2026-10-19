@@ -198,7 +198,7 @@ async function checkChipTabs(page, mode) {
   for (const selector of ['#codeTab', '#audioMonitorTab', '#fxMonitorTab', '#mixerTab', '#consoleTab', '#shellTab', '#helpersTab']) {
     assert(await page.locator(selector).isVisible(), `${mode.id}: generic tool ${selector} remains available`);
   }
-  assert.equal(await page.locator('#keyboardTab').isVisible(), mode.chip !== 'gameboy', `${mode.id}: FM keyboard visibility`);
+  assert.equal(await page.locator('#keyboardTab').isVisible(), true, `${mode.id}: shared keyboard visibility`);
   await page.locator(mode.chip === 'gameboy' ? '#codeTab' : '#operatorTabButton').focus();
   await page.keyboard.press('ArrowRight');
   const next = mode.chip === 'ym2612' ? 'segapsgTab' : 'codeTab';
@@ -1037,10 +1037,10 @@ async function checkStarterAudio(page, browserName, mode, files) {
   try {
     // Genesis retains the extensive legacy catalog. Its starter is the fresh
     // mode contract; running every old sample would repeat unrelated suites.
-    // The interactive sampler is exercised with real file/recording input and
-    // keyboard events in check_playground_megacd_browser.cjs.
+    // Samplers load a saved asset or open the editor. Their shared asset and
+    // keyboard flow is covered by check_playground_sample_host_browser.cjs.
     const selected = (mode.id === 'genesis' ? files.slice(0,1) : files)
-      .filter(file => !file.path.endsWith('/megacd-sampler.js'));
+      .filter(file => !/-sampler\.js$/.test(file.path));
     for (const execution of ['main','worker']) {
       for (const file of selected) {
         const lookahead = await page.evaluate(execution => execution === 'worker'

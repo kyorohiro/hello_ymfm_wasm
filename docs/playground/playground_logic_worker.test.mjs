@@ -14,6 +14,8 @@ import {createOpnClient} from '../../web/playground_opn.js';
 import {createRf5c164Client} from '../../web/playground_rf5c164.js';
 import {createYm2608Client} from '../../web/playground_ym2608.js';
 import {createSoundChipRegistry} from '../../web/playground_soundchips.js';
+import {createMusicalKeyboard,createKeyboardApiGuard,keyboardBinding,registerKeyboardScope} from '../../web/playground_keyboard.js';
+import {createSampleInstrument as createSampleInstrumentFactory} from '../../web/playground_sample_instrument.js';
 import {createGameboyClient} from '../../web/playground_gameboy.js';
 import {createNativeSampleController} from "../../web/native_sample.js";
 import {createNativeNoiseController, controlNativeNoise} from "../../web/native_noise.js";
@@ -37,6 +39,7 @@ function createWorkerHarness(overrides = {}) {
   const messages = [];
   const context = {
     createPerformanceSender, serializeLogError,
+    createMusicalKeyboard,createKeyboardApiGuard,keyboardBinding,registerKeyboardScope,createSampleInstrumentFactory,
     borrowNativeApi,createNativeWorkerApis,createNativePrimaryClient,
     midiToOpnPitch, opnPitchFromHz, CHIP_CLOCKS, resolvePlaySeconds, resolvePlayDuration, createBeatClock, runTween, createNativeSampleController, createNativeNoiseController, controlNativeNoise, createWorkerDac, atob, createMidiApi, createMidiRack, createWorkerChip, createNativeFXController, createLiveFxLifecycle, DOMException, structuredClone,
     createSnesClient, createDx7Client, createYm2151Client, createSegaPsgClient, createLoopAsyncTasks, createCycle, createDeadlineScheduler, createOpnClient, createGameboyClient, createSoundChipRegistry, createRf5c164Client, createYm2608Client,
@@ -1053,6 +1056,117 @@ test('Worker keyboard cleanup survives a keyboard-only Run and releases old hand
   await worker.send({type:'run',sourceCode:source('stop')});await worker.send({type:'stop'});
   assert.equal(worker.messages.filter(m=>m.command==='log'&&m.args[0]==='stop').length,1);
  }finally{await worker.send({type:'stop'});}
+});
+
+test('Worker musical keyboard bypasses lookahead through awaited PCM setters while sibling loops stay scheduled',async()=>{
+ const f=createTimedWorkerHarness(),pcmPackets=[],fmPackets=[],pending=[];
+ const pcmPort={start(){},close(){},postMessage(packet){
+  pcmPackets.push(packet);
+  for(const command of packet.commands??[packet])if(command.id!==undefined){
+   const acknowledge=()=>pcmPort.onmessage({data:{id:command.id,value:true}});
+   if(command.method==='setChannel')pending.push(acknowledge);else queueMicrotask(acknowledge);
+  }
+ }};
+ f.worker.post({type:'primary-pcm-port',port:pcmPort,clock:12500000});
+ f.worker.post({type:'chip-port',port:{start(){},close(){},postMessage:packet=>fmPackets.push(packet)}});
+ try {
+  await f.run(`const pcm=await useSoundChip('rf5c164');if(keyboard!==pg.keyboard)throw Error('Separate keyboard');
+    keyboard.bind('sample',{async noteOn(event){console.log('musical-on',event);await pcm.setChannel(0,{step:1000});await pcm.keyOn(0);},
+      noteOff(){return pcm.keyOff(0);},allNotesOff(){return pcm.keyOff(0);}});
+    liveLoop('background',async()=>{fm.keyOn(CH2);await sleep(.01);fm.keyOff(CH2);await sleep(60);});`,.5,
+    {performance:{...performanceClock(f),lookaheadSeconds:.5},capabilities:performanceCapabilities});
+  const binding=f.worker.messages.filter(message=>message.type==='musical-keyboard-binding'&&message.binding).at(-1).binding;
+  f.worker.post({type:'musical-keyboard',session:binding.session,method:'noteOn',event:{id:'string1',midi:60}});await f.advance(0);
+  assert.equal(pending.length,1);assert(pcmPackets.some(packet=>packet.method==='setChannel'&&!packet.performance));
+  await f.advance(.02);
+  const background=commandPackets(fmPackets,command=>command.register===0x28);
+  assert(background.length>=2);assert(background.every(packet=>packet.performance&&packet.performance.time>=30.5));
+  pending.shift()();await f.advance(0);
+  assert(pcmPackets.some(packet=>packet.method==='keyOn'&&!packet.performance),'keyOn after await retains the immediate input lease');
+  const input=f.worker.messages.find(message=>message.command==='log'&&message.args[0]==='musical-on').args[1];
+  assert.equal(input.velocity,100);assert.equal(input.midi,60);
+  f.worker.post({type:'musical-keyboard',session:binding.session,method:'noteOff',event:{id:'string1',midi:60}});await f.advance(0);
+  assert(pcmPackets.some(packet=>packet.method==='keyOff'&&!packet.performance));
+  await f.run('',.5,{performance:{...performanceClock(f),lookaheadSeconds:.5},capabilities:performanceCapabilities});
+  const before=pcmPackets.length;f.worker.post({type:'musical-keyboard',session:binding.session,method:'noteOn',event:{id:'late',midi:64}});await f.advance(0);
+  assert.equal(pcmPackets.length,before,'retired binding messages cannot operate a new Run');
+ }finally{await f.stop();}
+});
+
+test('Worker shared sample factory keeps its voice FIFO immediate across awaited RPCs',async()=>{
+ const f=createTimedWorkerHarness(),pcmPackets=[],fmPackets=[],pending=[];
+ const port={start(){},close(){},postMessage(packet){
+  pcmPackets.push(packet);
+  for(const command of packet.commands??[packet])if(command.id!==undefined){
+   const ack=()=>port.onmessage({data:{id:command.id,value:true}});
+   if(command.method==='setChannel')pending.push(ack);else queueMicrotask(ack);
+  }
+ }};
+ f.worker.post({type:'primary-pcm-port',port,clock:12500000});
+ f.worker.post({type:'chip-port',port:{start(){},close(){},postMessage:packet=>fmPackets.push(packet)}});
+ try {
+  await f.run(`if(createSampleInstrument!==pg.createSampleInstrument)throw Error('Separate factory');
+    const instrument=await createSampleInstrument({channels:[new Float32Array([0,.5,-.5,0])],sampleRate:16000});
+    keyboard.bind(instrument.name,instrument);
+    liveLoop('background',async()=>{fm.keyOn(CH2);await sleep(.01);fm.keyOff(CH2);await sleep(60);});`,.5,
+    {performance:{...performanceClock(f),lookaheadSeconds:.5},capabilities:performanceCapabilities});
+  const binding=f.worker.messages.filter(message=>message.type==='musical-keyboard-binding'&&message.binding).at(-1)?.binding;
+  assert.match(binding?.name,/RF5C164/);pcmPackets.length=0;
+  f.worker.post({type:'musical-keyboard',session:binding.session,method:'noteOn',event:{id:'guitar:1',midi:60,velocity:90}});await f.advance(0);
+  assert.equal(pending.length,1);assert(pcmPackets.some(packet=>packet.method==='setChannel'));
+  assert(!pcmPackets.some(packet=>packet.performance),'queued note setup bypasses performance lookahead');
+  await f.advance(.02);pending.shift()();await f.advance(0);
+  assert(pcmPackets.some(packet=>packet.method==='keyOn'),'the awaited voice setup completes');
+  assert(!pcmPackets.some(packet=>packet.performance),'the final keyOn also bypasses performance lookahead');
+  const background=commandPackets(fmPackets,command=>command.register===0x28);
+  assert(background.length>=2);assert(background.every(packet=>packet.performance.time>=30.5));
+  f.worker.post({type:'musical-keyboard',session:binding.session,method:'noteOff',event:{id:'guitar:1',midi:60}});await f.advance(0);
+  assert.equal(pcmPackets.at(-1).method,'keyOff');assert(!pcmPackets.at(-1).performance);
+ }finally{await f.stop();}
+});
+
+test('Worker shared Game Boy factory keeps synchronous wave controls immediate inside its async voice queue',async()=>{
+ const f=createTimedWorkerHarness(),packets=[];
+ f.worker.post({type:'chip-port',port:{start(){},close(){},postMessage:packet=>packets.push(packet)}});
+ try {
+  await f.run(`const instrument=await createSampleInstrument({channels:[new Float32Array([0,.5,-.5,0])],sampleRate:16000,waveform:new Uint8Array(32).fill(8)});
+    keyboard.bind('wave',instrument);liveLoop('pulse',async()=>{gameboy.pulse.keyOn(0);await sleep(60);});`,.5,
+    {performance:{...performanceClock(f),lookaheadSeconds:.5},capabilities:{chip:'gameboy',fmChannels:0,psg:false,dac:false}});
+  assert(packets.some(packet=>packet.performance),'the background APU loop keeps the script lead');
+  const binding=f.worker.messages.filter(message=>message.type==='musical-keyboard-binding'&&message.binding).at(-1)?.binding;
+  assert.equal(binding?.name,'wave');packets.length=0;
+  f.worker.post({type:'musical-keyboard',session:binding.session,method:'noteOn',event:{id:'string',midi:60}});await f.advance(0);
+  assert(packets.filter(Array.isArray).flat().some(command=>command.args?.[0]===14&&(command.args[1]&128)),
+    'wave trigger reaches the port immediately after the awaited synchronous setters');
+  assert(!packets.some(packet=>packet.performance),'all wave setup and trigger commands bypass the script lead');
+  packets.length=0;f.worker.post({type:'musical-keyboard',session:binding.session,method:'noteOff',event:{id:'string',midi:60}});await f.advance(0);
+  assert(packets.filter(Array.isArray).flat().some(command=>command.args?.[0]===10&&!(command.args[1]&128)));
+  assert(!packets.some(packet=>packet.performance),'wave release also stays immediate');
+ }finally{await f.stop();}
+});
+
+test('Worker musical keyboard cancels an old awaited note start across Stop and a new target',async()=>{
+ const worker=createWorkerHarness(),packets=[],pending=[];
+ const port={start(){},close(){},postMessage(packet){
+  packets.push(packet);
+  if(packet.id!==undefined){const acknowledge=()=>port.onmessage({data:{id:packet.id,value:true}});
+   if(packet.method==='setChannel')pending.push(acknowledge);else queueMicrotask(acknowledge);
+  }
+ }};
+ await worker.send({type:'primary-pcm-port',port,clock:12500000});
+ await worker.send({type:'run',sourceCode:`const pcm=await useSoundChip('rf5c164');keyboard.bind('old',{
+   async noteOn(){await pcm.setChannel(0,{step:1000});await pcm.keyOn(0);},noteOff(){return pcm.keyOff(0);},allNotesOff(){return pcm.keyOff(0);}});`});
+ const old=worker.messages.filter(message=>message.type==='musical-keyboard-binding'&&message.binding).at(-1).binding;
+ await worker.send({type:'musical-keyboard',session:old.session,method:'noteOn',event:{id:'held',midi:60}});
+ assert.equal(pending.length,1);await worker.send({type:'stop'});
+ await worker.send({type:'run',sourceCode:`keyboard.bind('new',{noteOn(){console.log('new-on');},noteOff(){},allNotesOff(){}});`});
+ const next=worker.messages.filter(message=>message.type==='musical-keyboard-binding'&&message.binding).at(-1).binding;
+ assert.notEqual(next.session,old.session);pending.shift()();await new Promise(resolve=>setTimeout(resolve,0));
+ assert(!packets.some(packet=>packet.method==='keyOn'),'late old setter acknowledgement cannot trigger a voice');
+ await worker.send({type:'musical-keyboard',session:old.session,method:'noteOn',event:{id:'late',midi:64}});
+ await worker.send({type:'musical-keyboard',session:next.session,method:'noteOn',event:{id:'new',midi:64}});
+ assert.equal(worker.messages.filter(message=>message.command==='log'&&message.args[0]==='new-on').length,1);
+ await worker.send({type:'stop'});
 });
 
 test('Worker useSoundChip aliases global FM, permits const fm, reuses on reevaluation and forwards play',async()=>{

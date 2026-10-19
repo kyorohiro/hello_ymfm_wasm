@@ -7,7 +7,9 @@ import {
   setFretPosition,
   setInstrument,
   setStringWindowIndex,
-} from "../synth/synth_keyboard.js";
+} from "../synth/synth_keyboard.js?v=sample-editor-1";
+
+let keyboardSequence = 0;
 
 export function createPlaygroundOperatorKeyboard({
   root,
@@ -39,15 +41,40 @@ export function createPlaygroundOperatorKeyboard({
   };
   let layout = createFretboardLayout(layoutOptions);
   const held = new Map();
+  const keyboardId = ++keyboardSequence;
+  let pressSequence = 0;
+  let generation = 0;
+  let noteTarget = null;
   let enabled = false;
   let operatorMode = false;
+  let disposed = false;
 
+  const currentNoteTarget = () => enabled && !operatorMode ? noteTarget : null;
+  const showFmDetails = () => channelCount > 0 && (operatorMode || !noteTarget);
+  const reportError = error => {if (error?.name !== 'AbortError') onStatus?.(`Keyboard could not play: ${error.message ?? error}`);};
+  function callTarget(target, method, event) {
+    try {
+      const result = event === undefined ? target[method]() : target[method](event);
+      if (result?.then) Promise.resolve(result).catch(reportError);
+      return result;
+    } catch (error) {reportError(error);}
+  }
+  function updateButton(button) {
+    if (button) button.classList.toggle('is-active', [...held.values()].some(note => note.started && note.button === button));
+  }
+  function releaseNote(note) {
+    if (!note.started) return;
+    if (note.target) callTarget(note.target, 'noteOff', note.event);
+    else if (note.channel !== undefined) note.synth?.noteOff(note.channel);
+  }
   function releaseAll() {
-    for (const note of held.values()) {
-      if (note.channel !== undefined) synth?.noteOff(note.channel);
-      note.button?.classList.remove("is-active");
-    }
+    generation++;
+    const notes = [...held.values()];
+    const targets = new Set(notes.filter(note => note.target).map(note => note.target));
+    if (currentNoteTarget()) targets.add(currentNoteTarget());
     held.clear();
+    for (const note of notes) {releaseNote(note); updateButton(note.button);}
+    for (const target of targets) callTarget(target, 'allNotesOff');
   }
 
   root.innerHTML = `
@@ -74,7 +101,7 @@ export function createPlaygroundOperatorKeyboard({
     </div>
     <div class="playground-keyboard" id="playgroundKeyboardKeys"></div>
     <p class="subtext" id="playgroundKeyboardStatus">Audio idle</p>
-    <p class="subtext">Click a key or use the number and letter rows. ${auditionPriority
+    <p class="subtext" id="playgroundKeyboardHint">Click a key or use the number and letter rows. ${auditionPriority
       ? 'Held keys take priority on the selected channel; code resumes on its next note after release.'
       : 'The selected YM2612 channel is used.'}</p>
   `;
@@ -88,6 +115,18 @@ export function createPlaygroundOperatorKeyboard({
   const fretRoot = root.querySelector("#playgroundKeyboardFret");
   const stringsRoot = root.querySelector("#playgroundKeyboardStrings");
   const keyboardStatus = root.querySelector("#playgroundKeyboardStatus");
+  const channelTools = root.querySelector('#playgroundKeyboardChannelTools');
+  const keyboardHint = root.querySelector('#playgroundKeyboardHint');
+
+  function updateTargetControls() {
+    channelTools.hidden = !showFmDetails();
+    keyboardHint.textContent = noteTarget && !operatorMode
+      ? `Click a key or use the number and letter rows to play ${noteTarget.name}.`
+      : channelCount === 0 ? 'Connect an instrument to play this keyboard.'
+      : `Click a key or use the number and letter rows. ${auditionPriority
+        ? 'Held keys take priority on the selected channel; code resumes on its next note after release.'
+        : 'The selected FM channel is used.'}`;
+  }
 
   function setPreparing(nextPreparing) {
     root.dataset.audioState = nextPreparing ? "preparing" : "ready";
@@ -133,16 +172,16 @@ export function createPlaygroundOperatorKeyboard({
     presetSelect.blur();
   });
 
-  function rebuild() {
-    releaseAll();
+  function renderLayout() {
     layout = createFretboardLayout(layoutOptions);
     buildKeyboard({
       root: keysRoot,
       rowDefs: layout.rowDefs,
       layoutEntries: layout.entries,
-      onPointerDown: (_event, entry, button) => press(entry, button),
-      onPointerUp: (_event, entry) => release(entry),
-      onPointerCancel: (_event, entry) => release(entry),
+      showPitch: showFmDetails(),
+      onPointerDown: (event, entry, button) => press(entry, button, false, `pointer:${event.pointerId ?? entry.key}`),
+      onPointerUp: (event, entry) => release(`pointer:${event.pointerId ?? entry.key}`),
+      onPointerCancel: (event, entry) => release(`pointer:${event.pointerId ?? entry.key}`),
     });
     renderFretboardControls({
       instrumentRoot,
@@ -164,57 +203,86 @@ export function createPlaygroundOperatorKeyboard({
         rebuild();
       },
     });
+    updateTargetControls();
   }
 
-  async function press(entry, button, fromComputerKeys = false) {
-    if (!enabled || held.has(entry.key)) return;
-    const note = { button };
-    held.set(entry.key, note);
+  function rebuild() {releaseAll(); renderLayout();}
+
+  async function press(entry, button, fromComputerKeys = false, inputKey = `computer:${entry.key}`) {
+    if (disposed || !enabled || held.has(inputKey)) return;
+    const token = generation;
+    const target = currentNoteTarget();
+    const note = {button, target, started:false, event:{id:`keyboard-${keyboardId}-${++pressSequence}`, midi:entry.midi, velocity:100}};
+    held.set(inputKey, note);
     if (ensureAudioReady) {
       setPreparing(true);
       try {
         await ensureAudioReady();
       } catch (error) {
-        if (held.get(entry.key) === note) held.delete(entry.key);
+        if (held.get(inputKey) === note) held.delete(inputKey);
         setPreparing(false);
         onStatus?.(`Audio could not start: ${error.message}`);
         return;
       }
       setPreparing(false);
     }
-    if (!synth || !enabled || held.get(entry.key) !== note) return;
+    if (!enabled || generation !== token || held.get(inputKey) !== note) return;
     if (fromComputerKeys && !canHandleComputerKeys()) {
-      held.delete(entry.key);
+      held.delete(inputKey);
       return;
     }
+    if (target) {
+      if (currentNoteTarget() !== target) {held.delete(inputKey); return;}
+      note.started = true;
+      updateButton(button);
+      try {
+        const pending = target.noteOn(note.event);
+        // A target may await preparation before touching its instrument. A
+        // release while it waited must still silence that eventual voice.
+        if (pending?.then) {
+          await pending;
+          if (generation !== token || held.get(inputKey) !== note || currentNoteTarget() !== target) callTarget(target, 'noteOff', note.event);
+        }
+        if (generation === token && held.get(inputKey) === note && currentNoteTarget() === target) onStatus?.(`Playing ${entry.noteName} on ${target.name}.`);
+      } catch (error) {
+        const current = held.get(inputKey) === note && generation === token;
+        if (held.get(inputKey) === note) held.delete(inputKey);
+        callTarget(target, 'noteOff', note.event);
+        updateButton(button); if (current) reportError(error);
+      }
+      return;
+    }
+    if (!synth || channelCount < 1) {held.delete(inputKey); return;}
     const channel = channelMode === "roundRobin" ? roundRobinChannel++ % channelCount
-      : operatorMode ? getSelectedChannel() : fixedChannel;
+      : operatorMode ? getSelectedChannel?.() ?? 0 : fixedChannel;
     // A channel has one voice: releasing a stolen key must not stop its replacement.
     for (const [key, previous] of held) {
       if (previous.channel === channel) {
-        previous.button?.classList.remove("is-active");
         held.delete(key);
+        updateButton(previous.button);
       }
     }
     note.channel = channel;
+    note.synth = synth;
+    note.started = true;
     if (synth.noteOnMidi) synth.noteOnMidi(channel, entry.midi);
     else synth.noteOn(channel, entry.pitch.block, entry.pitch.fnum);
     button?.classList.add("is-active");
     onStatus?.(`Playing ${entry.noteName} on channel ${channel + 1}.`);
   }
 
-  function release(entry) {
-    const note = held.get(entry.key);
+  function release(inputKey) {
+    const note = held.get(inputKey);
     if (!note) return;
-    if (note.channel !== undefined) synth?.noteOff(note.channel);
-    held.delete(entry.key);
-    note.button?.classList.remove("is-active");
+    held.delete(inputKey);
+    releaseNote(note);
+    updateButton(note.button);
   }
 
   function onKeyDown(event) {
     if (
       !enabled || !canHandleComputerKeys() || event.ctrlKey || event.metaKey || event.altKey ||
-      event.target?.isContentEditable ||
+      event.editable || event.target?.isContentEditable ||
       event.repeat ||
       (/INPUT|TEXTAREA|SELECT/.test(event.target?.tagName ?? "") &&
         event.target?.type !== "range")
@@ -222,15 +290,15 @@ export function createPlaygroundOperatorKeyboard({
     const entry = findLayoutEntry(layout.entries, event.key);
     if (!entry) return;
     event.preventDefault();
-    void press(entry, keysRoot.querySelector(`[data-key="${CSS.escape(entry.key)}"]`), true);
+    void press(entry, keysRoot.querySelector(`[data-key="${CSS.escape(entry.key)}"]`), true, `computer:${event.code ?? entry.key}`);
   }
 
   function onKeyUp(event) {
     if (!enabled) return;
-    const entry = findLayoutEntry(layout.entries, event.key);
-    if (!entry || !held.has(entry.key)) return;
+    const inputKey = `computer:${event.code ?? findLayoutEntry(layout.entries, event.key)?.key ?? event.key}`;
+    if (!held.has(inputKey)) return;
     event.preventDefault();
-    release(entry);
+    release(inputKey);
   }
 
   window.addEventListener("keydown", onKeyDown);
@@ -259,6 +327,8 @@ export function createPlaygroundOperatorKeyboard({
   return {
     releaseAll,
     setView(tabName) {
+      if (disposed) return;
+      const previousDetails = showFmDetails();
       const nextEnabled = tabName === "operator" || tabName === "keyboard";
       const nextOperatorMode = tabName === "operator";
       if (enabled !== nextEnabled || operatorMode !== nextOperatorMode) releaseAll();
@@ -267,19 +337,32 @@ export function createPlaygroundOperatorKeyboard({
       root.hidden = !enabled;
       channelModeSelect.disabled = false;
       channelSelect.disabled = channelMode === "roundRobin";
-      channelSelect.value = String(operatorMode ? getSelectedChannel() : fixedChannel);
+      channelSelect.value = String(operatorMode ? getSelectedChannel?.() ?? 0 : fixedChannel);
       channelModeSelect.value = channelMode;
+      if (previousDetails !== showFmDetails()) renderLayout();
+      else updateTargetControls();
     },
     syncChannel() {
       if (operatorMode) channelSelect.value = String(getSelectedChannel());
     },
     attachSynth(nextSynth) {
-      if (synth) releaseAll();
+      if (synth && !currentNoteTarget()) releaseAll();
       synth = nextSynth;
       setPreparing(false);
     },
+    attachNoteTarget(target) {
+      if (target !== null && (!target || typeof target.name !== 'string' ||
+          ['noteOn','noteOff','allNotesOff'].some(method => typeof target[method] !== 'function'))) {
+        throw new TypeError('Keyboard target requires name, noteOn, noteOff and allNotesOff');
+      }
+      if (target === noteTarget) return;
+      releaseAll();
+      noteTarget = target;
+      renderLayout();
+    },
     dispose() {
       releaseAll();
+      disposed = true; enabled = false; noteTarget = null; synth = null;
       window.removeEventListener("keydown", onKeyDown);
       window.removeEventListener("keyup", onKeyUp);
       window.removeEventListener("blur", releaseAll);

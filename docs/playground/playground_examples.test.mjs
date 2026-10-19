@@ -105,7 +105,7 @@ test('mode catalogs keep two or three examples while Genesis retains its library
     assert.ok(!genesis.includes(file), `${file.name} needs its native mode`);
   }
   assert.deepEqual(MODE_EXAMPLE_FILES.gameboy.map(file => file.name), [
-    'gameboy-mode-pulse', 'gameboy-mode-wave', 'gameboy-mode-noise',
+    'gameboy-mode-pulse', 'gameboy-mode-wave', 'gameboy-sampler',
   ]);
   assert.throws(() => selectModeExamples(EXAMPLE_FILES, 'missing'), /Unsupported example mode/);
   assert.throws(() => selectModeExamples([], 'gameboy'), /Missing gameboy example/);

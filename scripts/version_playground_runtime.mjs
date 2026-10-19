@@ -69,9 +69,11 @@ const segaFiles=new Set(['segapsg.js','segapsgsynth.js','segapsg_api.js',
   'playground_segapsg.js','playground_segapsg_audio.js','playground_segapsg_worklet.js',
   'native_runtime_synth.js','playground_native_primary.js','tetorica_synth.js',
   'playground_runtime.js','playground_logic_worker.js','playground_performance_processor.js']);
-const megaCdVersion='mega-cd-3';
+const megaCdVersion='sample-editor-1';
 const megaCdFiles=new Set(['playground_runtime.js','playground_logic_worker.js','playground_live.js',
-  'playground_rf5c164.js','rf5c164-worklet.js']);
+  'playground_rf5c164.js','rf5c164-worklet.js','playground_keyboard.js',
+  'playground_sample_edit.js','playground_sample_instrument.js','playground_performance_sender.js',
+  'playground_chip_inspector_state.js']);
 let propagated;
 do {
   propagated=false;
@@ -101,7 +103,9 @@ do {
   }
 } while(propagated);
 for(const name of ['playground.js','playground_mode.js','playground_operator_tab.js','playground_tfi_editor.js'])audioFiles.add(name);
-const pageRevisions={'playground.js':megaCdVersion,'playground_audio_input.js':megaCdVersion,'playground_mode_starters.js':'mode-choice-1',
+const pageRevisions={'playground.js':megaCdVersion,'playground_audio_input.js':megaCdVersion,
+  'playground_sample_assets.js':megaCdVersion,'playground_sample_editor_worker.js':megaCdVersion,
+  'playground_operator_keyboard.js':megaCdVersion,'synth_keyboard.js':megaCdVersion,'playground_mode_starters.js':'mode-choice-1',
   'playground_autosave.js':'mode-handoff-1','playground_mode_project.js':'mode-handoff-1',
   ...Object.fromEntries(['playground_mode.js','playground_examples.js','playground_mode_examples.js',
     'playground_monaco.js','playground_declarations.js','playground_monaco_completion.js']
@@ -138,7 +142,7 @@ const shape=/(['"])((?:(?:\.\.?\/)+)?(?:js\/)?TARGET)(?:\?[^'"\s]*)?\1/g;
 const references=new RegExp(shape.source.replace('TARGET','(?:'+filenames+')'),'g');
 // Page modules also contain bare filenames as Monaco definition IDs. Only
 // version relative imports there; those IDs must remain canonical filenames.
-const pageShape=/(['"])((?:\.\.?\/)+(?:js\/)?TARGET)(?:\?[^'"\s]*)?\1/g;
+const pageShape=/(['"])((?:\.\.?\/)+(?:(?:js|synth)\/)?TARGET)(?:\?[^'"\s]*)?\1/g;
 const pageReferences=new RegExp(pageShape.source.replace('TARGET','(?:'+filenames+')'),'g');
 let changed=0;
 for(const currentDirectory of [directory,join(directory,'../playground')])for(const name of await readdir(currentDirectory)){

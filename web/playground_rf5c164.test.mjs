@@ -5,6 +5,7 @@ import {MessageChannel} from 'node:worker_threads';
 import factory from '../docs/generated/rf5c164_wasm.js';
 import {Rf5c164} from './rf5c164.js';
 import {createRf5c164Control,createRf5c164Client,encodeRf5c164} from './playground_rf5c164.js';
+import {RfInspectorState,rfSampleMetadata} from './playground_chip_inspector_state.js';
 const make=()=>Rf5c164.create({moduleFactory:factory,moduleOptions:{wasmBinary:readFileBytes},sampleRate:48000});
 const readFileBytes=await readFile(new URL('../docs/generated/rf5c164_wasm.wasm',import.meta.url));
 test('all eight channels produce finite PCM, stop, reset and raw register state',async()=>{
@@ -22,6 +23,33 @@ test('direct port RPC supports sample conversion, validation and disposal',async
  try{const wave=await client.loadSample(new ArrayBuffer(0));assert.equal(wave.loopStart,4);assert.equal(chip.readMemory(0),254);assert.equal(chip.readMemory(1),126);await client.setChannel(0,{...wave,volume:255,pan:{left:15,right:15}});await client.keyOn(0);chip.generateStereo(256);assert(chip.generateStereo(256).left.every(x=>x===0));await assert.rejects(client.setPitch(0,65536),/step/);await assert.rejects(client.loadSample(new ArrayBuffer(0),{address:1}),/aligned/);}
  finally{await client.reset();client.dispose();await new Promise(r=>setTimeout(r,20));port1.close();}
 });
+test('guarded sample RPC loads consecutive end markers atomically and retains Inspector waveform metadata',async()=>{
+ const chip=await make(),control=createRf5c164Control(chip),inspector=new RfInspectorState(chip),{port1,port2}=new MessageChannel();
+ const messages=[];
+ port1.on('message',message=>{messages.push(message);const {id,method,args}=message;
+  try{const value=control[method](...args);if(method==='loadMemory'&&args[2])inspector.addSample(args[1],args[0],args[2]);if(id)port1.postMessage({id,value});}
+  catch(error){if(id)port1.postMessage({id,error:error.message});}
+ });
+ const client=createRf5c164Client(port2,async source=>source),audio={channels:[new Float32Array([0,.5,-.5,0])],sampleRate:16000};
+ try{
+  await client.loadSample(audio);assert.deepEqual([4,5,6].map(address=>chip.readMemory(address)),[255,128,255],'default trailer is unchanged');
+  const sample=await client.loadSample(audio,{address:256,endGuardBytes:32});
+  assert.equal(messages.length,2,'guard bytes and metadata use one loadMemory command');
+  assert.equal(messages[1].args[0].length,36);assert(messages[1].args[0].subarray(4).every(value=>value===255));
+  const metadata=inspector.read().samples.find(item=>item.address===256);
+  assert.equal(metadata.frames,4);assert.equal(metadata.end,292);assert.equal(metadata.endGuardBytes,32);
+  assert.deepEqual(metadata.waveform,[0,63/126,-63/126,0]);assert.equal(metadata.loopStart,sample.loopStart);
+  await client.setChannel(0,{...sample,step:65535,volume:255,pan:{left:15,right:15}});await client.keyOn(0);
+  chip.generateStereo(128);assert(chip.generateStereo(4096).left.every(value=>value===0),'maximum-step one-shot stays silent within its marker guard');
+  const count=messages.length;
+  await assert.rejects(client.loadSample(audio,{endGuardBytes:-1}),/endGuardBytes/);
+  await assert.rejects(client.loadSample(audio,{endGuardBytes:1.5}),/endGuardBytes/);
+  await assert.rejects(client.loadSample(audio,{address:65280,endGuardBytes:257}),/RAM/);
+  assert.equal(messages.length,count,'invalid guarded samples never alter RAM');
+  assert.throws(()=>rfSampleMetadata(new Uint8Array(7),{frames:4,step:1000,endGuardBytes:32}),/metadata/);
+ }finally{await client.reset();client.dispose();await new Promise(resolve=>setTimeout(resolve,20));port1.close();}
+});
+
 test('Worklet initializes real WASM, accepts direct port and disposes',async()=>{
  let Processor;const ready=new Promise(resolve=>{
  globalThis.sampleRate=48000;

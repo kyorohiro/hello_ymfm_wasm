@@ -47,12 +47,17 @@ FILES ではこの順に表示します。機種別のサンプルは各フォ�
 機種別フォルダーには、その mode の標準音源や `useSoundChip()` / `createSoundChip()` で取得する独立音源の例を置きます。
 
 `Game Boy` mode の初期コードは `../defaults/gameboy/index.js`。
-`gameboy/gameboy-mode-pulse.js`・`gameboy-mode-wave.js`・`gameboy-mode-noise.js` を同梱します。
+`gameboy/gameboy-mode-pulse.js`・`gameboy-mode-wave.js`・`gameboy-sampler.js` を同梱します。
 標準の `gameboy.pulse` を `beat()`・`liveLoop()` と組み合わせて鳴らします。
 `gameboy.wave`・`gameboy.noise` も同じ APU を操作します。`pg.gameboy` と
 `livePrepare(({gameboy}) => ...)` でも同じ音源を使えます。
 Game Boy mode の演奏は音源ごとの API で行い、グローバルの `play()` は OPN mode の FM 用です。
 `gameboy-saw-*.js` と `gameboy-synth.js` は独立音源を作る例です。
+
+Mega-CD・Game Boy・PC-98・Neo Geo の `*-sampler.js` は、Sample Editor で録音／読み込みした
+`/samples/sampler.sample.json` を Keyboard の楽器にします。Mega-CD は8音の RF5C164、
+Game Boy は選択した1周期を32点・4 bitの wave RAM、PC-98 / Neo Geo は1音の ADPCM-B を使います。
+ADPCM-B のループはサンプル全体の繰り返しです。
 
 `NES + FDS` mode は `../defaults/nes/index.js` と、`nes-mode-pulse.js`・
 `nes-mode-fds.js`・`nes-mode-rhythm.js` を使います。標準の `nes` は FDS を有効にしています。

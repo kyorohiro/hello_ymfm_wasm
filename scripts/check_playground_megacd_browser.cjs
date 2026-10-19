@@ -83,15 +83,21 @@ async function stopped(page) {
   await waitState(page,current => current.channels.every(ch => !ch.active));
 }
 async function press(page,key,voices = 1) {
-  await page.locator('#consoleTab').click();
+  if (!await page.locator('#keyboardPanel').isVisible()) await page.locator('#keyboardTab').click();
+  await page.locator(`#playgroundKeyboardKeys [data-key="${key}"]`).focus();
   await page.keyboard.down(key);
   await activeState(page,voices);
+}
+async function samplerReady(page) {
+  await page.waitForFunction(() => window.__megacdTest.runtime.getKeyboardTarget()?.name === 'sampler');
 }
 async function chooseFile(page, screenshotName) {
   const dialog = page.locator('dialog[data-audio-input]');
   await dialog.waitFor({state:'visible'});
   await dialog.locator('[data-audio-file]').setInputFiles({name:'sine.wav',mimeType:'audio/wav',buffer:waveFile()});
   await dialog.locator('[data-audio-action="use"]:enabled').waitFor();
+  await dialog.locator('[data-field="rootMidi"]').selectOption('69');
+  await dialog.locator('[data-field="loopEnabled"]').check();
   await page.screenshot({path:`/private/tmp/playground-megacd-input-${screenshotName}.png`});
   await dialog.locator('[data-audio-action="use"]').click();
   await dialog.waitFor({state:'detached'});
@@ -275,7 +281,11 @@ async function checkBrowser(name,type,base) {
       gain.gain.value = .4;
       const destination = audio.createMediaStreamDestination();
       oscillator.connect(gain); gain.connect(destination); oscillator.start(); await audio.resume();
-      for (const track of destination.stream.getTracks()) {
+      // WebKit may expose another JS wrapper on each getTracks() call. Keep
+      // the instrumented track objects stable for cleanup accounting.
+      const tracks = destination.stream.getTracks();
+      Object.defineProperty(destination.stream,'getTracks',{value:()=>tracks});
+      for (const track of tracks) {
         const stop = track.stop.bind(track); let ended = false;
         track.stop = () => {if (!ended) {ended = true; window.__testCapture.stopped++; oscillator.stop(); void audio.close();} stop();};
       }
@@ -304,6 +314,20 @@ async function checkBrowser(name,type,base) {
     });
     assert.equal(files.length,4);
     await checkSamplerTypes(page,files.find(file => file.path.endsWith('megacd-sampler.js')).data);
+    if (process.argv.includes('--rf-only')) {
+      for (const execution of ['main','worker']) {
+        const source=`const audio={channels:[Float32Array.from({length:4096},(_,i)=>.5*Math.sin(2*Math.PI*440*i/16000))],sampleRate:16000,rootMidi:69,loopEnabled:true};keyboard.bind('sampler',await createSampleInstrument(audio));`;
+        await run(page,source,execution);await samplerReady(page);await meter(page);await press(page,'1');await audible(page);
+        const loaded=await state(page),sample=loaded.samples.find(sample=>sample.address===0);
+        assert.equal(sample.frames,4096);assert.equal(sample.endGuardBytes,32);assert.equal(sample.end,4128);
+        assert(sample.waveform.some(value=>Math.abs(value)>.1),'Inspector keeps the loaded sample waveform');
+        await page.keyboard.down('2');const chord=await activeState(page,2),active=chord.channels.filter(channel=>channel.active);
+        assert(Math.abs(active[1].step/active[0].step-2**(1/12))<.002);
+        await page.keyboard.up('1');await page.keyboard.up('2');await activeState(page,0);await stopped(page);
+        console.log(JSON.stringify({browser:name,execution,rfOnly:true,waveformMetadata:true,guardBytes:32,audible:true,pitch:true,release:true}));
+      }
+      assert.deepEqual(errors,[]);return;
+    }
     for (const execution of ['main','worker']) {
       const marker = `PRIMARY_OK:${execution}`;
       await run(page,`const pcm = await useSoundChip('rf5c164');\nif (pcm !== await useSoundChip('rf5c164')) throw Error('Not shared');\nif (pcm.id !== 'rf5c164' || typeof pcm.dispose !== 'undefined') throw Error('Wrong primary');\nconsole.log('${marker}');`,execution);
@@ -322,52 +346,65 @@ async function checkBrowser(name,type,base) {
       }
       const sampler = files.find(file => file.path.endsWith('megacd-sampler.js'));
       await run(page,sampler.data,execution);
-      await chooseFile(page,`${name}-${execution}`);
-      await waitLog(page,'sine.wav:');
+      if (execution === 'main') await chooseFile(page,`${name}-${execution}`);
+      await samplerReady(page);
+      assert.equal(await page.locator('dialog[data-audio-input]').count(),0,'a saved sample restores without opening the editor');
+      assert(await page.evaluate(() => Boolean(window.__megacdTest.virtualFiles.get('/samples/sampler.sample.json'))),'sample edits are saved in the Cassette');
       await meter(page);
-      await press(page,'a');
+      await press(page,'1');
+      assert.equal(await page.locator('#playgroundKeyboardChannelTools').isVisible(),false,'sample targets hide FM channel controls');
+      const keys = await page.locator('#playgroundKeyboardKeys [data-key]').evaluateAll(buttons => buttons.map(button => ({key:button.dataset.key,note:button.querySelector('span').textContent})));
+      assert.equal(keys.find(entry=>entry.key==='1').note,'G3');assert.equal(keys.find(entry=>entry.key==='2').note,'G#3');
       await audible(page);
-      const first = await state(page); assert(first.samples.length > 0,'sampler RAM metadata');
-      await page.keyboard.down('w');
+      const first = await state(page); assert(first.samples.some(sample=>sample.address===0&&sample.endGuardBytes===32&&sample.waveform.length),'sampler guard load preserves Inspector waveform metadata');
+      await page.keyboard.down('2');
       const chord = await activeState(page,2), active = chord.channels.filter(ch => ch.active);
       assert(Math.abs(active[1].step / active[0].step - 2 ** (1 / 12)) < .002,'sample pitch changes by a semitone');
-      await page.keyboard.up('a'); await page.keyboard.up('w');
+      await page.keyboard.up('1'); await page.keyboard.up('2');
       await waitState(page,current => current.channels.every(ch => !ch.active));
       await page.locator('#codeTab').click();
       await page.locator('.monaco-editor textarea').first().focus();
-      await page.keyboard.down('a');
+      await page.keyboard.down('1');
       await page.waitForTimeout(execution === 'worker' ? 750 : 250);
       assert((await state(page)).channels.every(ch => !ch.active),'typing in Code does not play the sampler');
-      await page.keyboard.up('a');
-      await press(page,'a');
+      await page.keyboard.up('1');
+      await press(page,'1');
       await page.locator('#codeTab').click();
       await page.locator('.monaco-editor textarea').first().focus();
-      await page.keyboard.up('a');
+      await page.keyboard.up('1');
       await waitState(page,current => current.channels.every(ch => !ch.active));
       await page.locator('#consoleTab').click();
-      for (const key of ['a','w','s','e','d','f','t','g']) await page.keyboard.down(key);
+      if (!await page.locator('#keyboardPanel').isVisible()) await page.locator('#keyboardTab').click();
+      for (const key of ['1','2','3','4','5','6','7','8']) await page.keyboard.down(key);
       await waitState(page,current => current.channels.every(ch => ch.active));
-      await page.keyboard.down('y'); await page.keyboard.up('a');
+      await page.keyboard.down('9'); await page.keyboard.up('1');
       const stolen = await activeState(page,8,Math.floor(first.channels[0].step * 1.5));
       assert.equal(stolen.channels.filter(ch => ch.active).length,8,'ninth note steals one voice; release of the old owner does not silence it');
-      for (const key of ['w','s','e','d','f','t','g','y']) await page.keyboard.up(key);
+      for (const key of ['2','3','4','5','6','7','8','9']) await page.keyboard.up(key);
       await waitState(page,current => current.channels.every(ch => !ch.active));
-      await press(page,'a'); await stopped(page); await page.keyboard.up('a');
+      await press(page,'1'); await stopped(page); await page.keyboard.up('1');
       await run(page,sampler.data,execution);
+      await samplerReady(page);
+      assert.equal(await page.locator('dialog[data-audio-input]').count(),0,'re-Run restores the saved instrument without a dialog');
+      await press(page,'1');await page.evaluate(() => window.dispatchEvent(new Event('blur')));
+      await waitState(page,current => current.channels.every(ch => !ch.active));await page.keyboard.up('1');
+      await stopped(page);
+      await run(page,"const audio = await inputAudio(); if (audio !== null) throw Error('Cancel result'); console.log('FILE_CANCEL_OK');",execution);
       await page.locator('dialog[data-audio-input] [data-audio-action="cancel"]').click();
-      await waitLog(page,'No sample selected.');
+      await waitLog(page,'FILE_CANCEL_OK');
       await page.locator('dialog[data-audio-input]').waitFor({state:'detached'});
-      console.log(JSON.stringify({browser:name,execution,samplerFile:true,polyphony:8,voiceSteal:true,pitch:true,keyRelease:true,editorSuppressesKeys:true,editorFocusRelease:true,heldStop:true,cancel:true}));
-      await run(page,sampler.data,execution);
+      console.log(JSON.stringify({browser:name,execution,samplerFile:true,sharedKeyboard:true,savedAssetRestore:true,polyphony:8,voiceSteal:true,pitch:true,keyRelease:true,editorSuppressesKeys:true,editorFocusRelease:true,heldStop:true,blurRelease:true,cancel:true}));
+      await run(page,"const audio = await inputAudio(); if (audio) {keyboard.bind('sampler', await createSampleInstrument(audio)); console.log('MIC_READY');}",execution);
       const dialog = page.locator('dialog[data-audio-input]');
       await dialog.locator('[data-audio-action="record"]').click();
       await dialog.locator('[data-audio-action="stop"]').waitFor({state:'visible'});
       await page.waitForTimeout(350);
       await dialog.locator('[data-audio-action="stop"]').click();
+      await dialog.locator('[data-field="save"]').uncheck();
       await dialog.locator('[data-audio-action="use"]:enabled').click();
-      await waitLog(page,'Microphone recording:');
+      await waitLog(page,'MIC_READY');await samplerReady(page);
       await meter(page);
-      await press(page,'a'); await audible(page); await page.keyboard.up('a'); await stopped(page);
+      await press(page,'1'); await audible(page); await page.keyboard.up('1'); await stopped(page);
       const capture = await page.evaluate(() => window.__testCapture);
       assert.equal(capture.requests,capture.stopped,'microphone tracks closed after use');
       await run(page,"const audio = await inputAudio(); console.log('UNEXPECTED_INPUT');",execution);

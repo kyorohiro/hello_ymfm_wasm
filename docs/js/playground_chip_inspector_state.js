@@ -37,16 +37,17 @@ export class PsgInspectorState {
 }
 
 /** A compact waveform is derived from encoded RAM data, so it also matches mono downmix/clamping. */
-/** @param {Uint8Array} bytes @param {{name?:string,frames?:number,step?:number}} [options] */
-export function rfSampleMetadata(bytes, {name = 'Sample', frames, step} = {}) {
-  if (!Number.isInteger(frames) || frames < 1 || frames + 3 !== bytes.length || !Number.isInteger(step) || step < 1 || step > 65535) throw new RangeError('Invalid RF5C164 sample metadata');
+/** @param {Uint8Array} bytes @param {{name?:string,frames?:number,step?:number,endGuardBytes?:number}} [options] */
+export function rfSampleMetadata(bytes, {name = 'Sample', frames, step, endGuardBytes = 0} = {}) {
+  if (!Number.isInteger(endGuardBytes) || endGuardBytes < 0 || endGuardBytes > 65536 ||
+      !Number.isInteger(frames) || frames < 1 || frames + Math.max(3,endGuardBytes) !== bytes.length || !Number.isInteger(step) || step < 1 || step > 65535) throw new RangeError('Invalid RF5C164 sample metadata');
   const waveform = [], stride = Math.max(1, Math.ceil(frames / 512));
   for (let start=0; start<frames; start+=stride) {
     let peak=0;
     for (let i=start; i<Math.min(frames,start+stride); i++) {const value=(bytes[i]&127)/126*(bytes[i]&128 ? 1 : -1); if(Math.abs(value)>Math.abs(peak))peak=value;}
     waveform.push(peak);
   }
-  return {name:String(name).slice(0,256),frames,step,waveform};
+  return {name:String(name).slice(0,256),frames,step,waveform,...(endGuardBytes?{endGuardBytes}:{})};
 }
 
 export class RfInspectorState {

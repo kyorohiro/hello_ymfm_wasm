@@ -22,11 +22,22 @@ async function checkMegaCDModeTypes() {
   await primary.dac.stop();
   const pcm = await useSoundChip('rf5c164');
   const audio = await inputAudio({title: 'Choose a sound'});
+  const saved = await inputAudio({asset:'/samples/voice.sample.json',edit:false});
   const contextAudio: PlaygroundAudioInput | null = await pg.inputAudio();
   if (audio) {
     const kind: 'file' | 'microphone' = audio.source;
     const channel: Float32Array = audio.channels[0];
-    await pcm.loadSample(audio);
+    await pcm.loadSample(audio,{endGuardBytes:32});
+    const instrument = await createSampleInstrument(audio,{target:'rf5c164',volume:72});
+    keyboard.bind('sampler',instrument);
+    const contextInstrument: PlaygroundSampleInstrument = await pg.createSampleInstrument(audio,{target:'auto'});
+    pg.keyboard.bind('sample-events',{
+      noteOn(event) {const pitch: number = event.midi; const identity: string = event.id;},
+      noteOff(event) {const velocity: number = event.velocity;},
+      allNotesOff() {},
+    });
+    // @ts-expect-error sample targets are explicit supported adapters
+    await createSampleInstrument(audio,{target:'nes'});
   }
   await pcm.loadMemory(new Uint8Array([128, 180, 128, 52, 255]));
   await pcm.setChannel(7, {start: 0, loopStart: 0, step: 1000, volume: 80, pan: {left: 15, right: 15}});

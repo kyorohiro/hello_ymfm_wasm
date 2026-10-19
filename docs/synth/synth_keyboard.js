@@ -419,6 +419,7 @@ export function buildKeyboard({
   onPointerDown,
   onPointerUp,
   onPointerCancel,
+  showPitch = true,
 }) {
   root.innerHTML = "";
 
@@ -459,16 +460,19 @@ export function buildKeyboard({
         String(entry.stringNumber);
       button.dataset.fret =
         String(entry.fret);
+      const activePointers = new Set();
       button.innerHTML = `
         <strong>${entry.label}</strong>
         <span>${entry.noteName}</span>
-        <small>b${entry.pitch.block} / f${entry.pitch.fnum}</small>
+        ${showPitch ? `<small>b${entry.pitch.block} / f${entry.pitch.fnum}</small>` : ''}
       `;
 
       button.addEventListener(
         "pointerdown",
         async (event) => {
           event.preventDefault();
+          activePointers.add(event.pointerId);
+          try {button.setPointerCapture?.(event.pointerId);} catch {}
           await onPointerDown?.(
             event,
             entry,
@@ -480,24 +484,31 @@ export function buildKeyboard({
       button.addEventListener(
         "pointerup",
         (event) => {
+          if (!activePointers.delete(event.pointerId)) return;
           onPointerUp?.(
             event,
             entry,
             button
           );
+          try {if (button.hasPointerCapture?.(event.pointerId)) button.releasePointerCapture(event.pointerId);} catch {}
         }
       );
 
       button.addEventListener(
         "pointercancel",
         (event) => {
+          if (!activePointers.delete(event.pointerId)) return;
           onPointerCancel?.(
             event,
             entry,
             button
           );
+          try {if (button.hasPointerCapture?.(event.pointerId)) button.releasePointerCapture(event.pointerId);} catch {}
         }
       );
+      button.addEventListener('lostpointercapture', event => {
+        if (activePointers.delete(event.pointerId)) onPointerCancel?.(event, entry, button);
+      });
 
       rowElement.appendChild(
         button

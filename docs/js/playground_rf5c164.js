@@ -14,8 +14,25 @@ export function createRf5c164Client(port,decode){
  const call=(method,args=[])=>{if(disposed)return Promise.reject(new Error('RF5C164 disposed'));return new Promise((resolve,reject)=>{const id=++sequence;pending.set(id,{resolve,reject});port.postMessage({id,method,args});});};
  const client = {
   loadMemory(bytes,address=0){return call('loadMemory',[sampleBytes(bytes),address]);},
-  /** @param {unknown} source @param {{address?: number, loopStart?: number}} [options] */
-  async loadSample(source,{address=0,loopStart}={}){if(disposed)throw new Error('RF5C164 disposed');const data=encodeRf5c164(source?.channels&&source.sampleRate?source:await decode(source));integer(address,65535,'address');if(address%256)throw new RangeError('Start must be 256-byte aligned');if(address+data.bytes.length>65536)throw new RangeError('Sample exceeds RAM');const loop=loopStart===undefined?address+data.frames+1:address+integer(loopStart,data.frames-1,'loopStart');await call('loadMemory',[data.bytes,address,{frames:data.frames,step:Math.max(1,Math.min(65535,Math.round(data.step * CHIP_CLOCKS.rf5c164 / client.clock))),loopStart:loop}]);return {start:address,loopStart:loop,step:Math.max(1, Math.min(65535, Math.round(data.step * CHIP_CLOCKS.rf5c164 / client.clock)))};},
+  /** endGuardBytes requests consecutive end markers for large pitch steps; 0 retains the legacy trailer.
+   * @param {unknown} source @param {{address?: number, loopStart?: number, endGuardBytes?: number}} [options] */
+  async loadSample(source,{address=0,loopStart,endGuardBytes=0}={}){
+   if(disposed)throw new Error('RF5C164 disposed');
+   integer(address,65535,'address');integer(endGuardBytes,65536,'endGuardBytes');
+   if(address%256)throw new RangeError('Start must be 256-byte aligned');
+   const data=encodeRf5c164(source?.channels&&source.sampleRate?source:await decode(source));
+   let bytes=data.bytes;
+   if(endGuardBytes){
+    const length=data.frames+Math.max(3,endGuardBytes);
+    if(address+length>65536)throw new RangeError('Sample exceeds RAM');
+    bytes=new Uint8Array(length);bytes.set(data.bytes.subarray(0,data.frames));bytes.fill(255,data.frames);
+   }
+   if(address+bytes.length>65536)throw new RangeError('Sample exceeds RAM');
+   const loop=loopStart===undefined?address+data.frames+1:address+integer(loopStart,data.frames-1,'loopStart');
+   const step=Math.max(1,Math.min(65535,Math.round(data.step*CHIP_CLOCKS.rf5c164/client.clock)));
+   await call('loadMemory',[bytes,address,{frames:data.frames,step,loopStart:loop,...(endGuardBytes?{endGuardBytes}:{})}]);
+   return {start:address,loopStart:loop,step};
+  },
   setChannel:(ch,options)=>call('setChannel',[ch,options]),setPitch:(ch,step)=>call('setChannel',[ch,{step}]),
   keyOn:ch=>call('keyOn',[ch]),keyOff:ch=>call('keyOff',[ch]),writeRegister:(r,v)=>call('writeRegister',[r,v]),reset:()=>call('reset'),
   dispose(){if(disposed)return;port.postMessage({method:'dispose',args:[]});disposed=true;for(const p of pending.values())p.reject(new Error('RF5C164 disposed'));pending.clear();port.close();},

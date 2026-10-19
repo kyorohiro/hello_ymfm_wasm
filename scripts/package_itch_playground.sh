@@ -22,6 +22,9 @@ playground.js
 playground_git.js
 playground_page_lifecycle.js
 playground_audio_input.js
+playground_sample_assets.js
+playground_sample_editor.css
+playground_sample_editor_worker.js
 playground_fx_monitor.js
 playground_audio_monitor.js
 playground_monitor_scale.js
@@ -205,6 +208,9 @@ midi_source.js
 playground_music.js
 playground_noise.js
 playground_runtime.js
+playground_keyboard.js
+playground_sample_edit.js
+playground_sample_instrument.js
 playground_soundchips.js
 playground_async_tasks.js
 playground_opn.js
@@ -469,6 +475,8 @@ perl -0pi -e 's#<a class="link-button" href="\.\./index\.html">Back</a>##g' \
 perl -0pi -e 's#"\./playground\.js"#"./playground.js"#g; s#\.\./js/#./js/#g; s#\.\./synth/#./synth/#g; s#\.\./generated/#./generated/#g' \
   "${STAGE_DIR}/index.html" \
   "${STAGE_DIR}/playground.js" \
+  "${STAGE_DIR}/playground_audio_input.js" \
+  "${STAGE_DIR}/playground_sample_editor_worker.js" \
   "${STAGE_DIR}/playground_mode.js" \
   "${STAGE_DIR}/playground_git.js" \
   "${STAGE_DIR}/playground_virtual_files.js" \

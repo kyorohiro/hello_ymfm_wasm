@@ -263,7 +263,7 @@ export const EXAMPLE_FILES = [
   {
     "path": "/examples/mega-cd/megacd-sampler.js",
     "name": "megacd-sampler",
-    "data": "// Run → choose a file or record your voice → click outside Code → play A W S E D F T G Y H U J K.\n// Run → 音声ファイルかマイク録音を選択 → Code の外をクリックして A W S E D F ... を演奏。\n// C4 plays the original recording speed; this example does not detect its pitch.\n// Mega-CD RF5C164: 8 voices share 64 KiB of 8-bit sample RAM.\nconst sourceNote = 60; // MIDI C4. Change this if your recording has another root note.\nconst startSeconds = 0; // Choose the useful part of a longer recording.\nconst maxSeconds = 3;\nconst sampleRate = 16000; // Lower rates save RAM and give a rougher PCM sound.\nconst volume = 72; // 0..255 per voice; leave headroom for all eight voices.\n\nconst audio = await inputAudio({title: 'Choose a Mega-CD sample'});\nif (audio) {\n  const pcm = await useSoundChip('rf5c164');\n  const prepared = prepareSample(audio, startSeconds, maxSeconds, sampleRate);\n  const sample = await pcm.loadSample(prepared, {address: 0});\n  const voices = Array.from({length: 8}, (_, channel) => ({\n    channel, owner: null, queue: Promise.resolve(),\n  }));\n  const held = new Map();\n  let active = true;\n  let age = 0;\n  const keys = {\n    KeyA: 60, KeyW: 61, KeyS: 62, KeyE: 63, KeyD: 64, KeyF: 65,\n    KeyT: 66, KeyG: 67, KeyY: 68, KeyH: 69, KeyU: 70, KeyJ: 71,\n    KeyK: 72, KeyO: 73, KeyL: 74, KeyP: 75, Semicolon: 76,\n  };\n\n  liveCleanup(['megacd-sampler'], async () => {\n    active = false;\n    held.clear();\n    for (const voice of voices) voice.owner = null;\n    // Send silence now; queued old callbacks must never touch a later Run.\n    await Promise.all(voices.map(voice => pcm.keyOff(voice.channel)));\n  });\n\n  onKeyboardPressKey('megacd-sampler', async event => {\n    const note = keys[event.code];\n    if (!active || event.editable || note === undefined || event.repeat || event.altKey || event.ctrlKey || event.metaKey) return;\n    if (held.has(event.code)) return;\n    // Reuse a free voice, or steal the oldest held note when all eight are busy.\n    const voice = voices.find(v => !v.owner) ?? voices.reduce((a, b) => a.owner.age < b.owner.age ? a : b);\n    if (voice.owner) held.delete(voice.owner.key);\n    const owner = {key: event.code, age: ++age};\n    voice.owner = owner;\n    held.set(event.code, {voice, owner});\n    const step = Math.max(1, Math.min(65535, Math.round(sample.step * 2 ** ((note - sourceNote) / 12))));\n    // One FIFO per voice prevents a quick release/steal from reviving an old note.\n    voice.queue = voice.queue.then(async () => {\n      if (!active || voice.owner !== owner) return;\n      await pcm.keyOff(voice.channel);\n      if (!active || voice.owner !== owner) return;\n      await pcm.setChannel(voice.channel, {\n        ...sample, step, volume,\n        pan: voice.channel % 2 ? {left: 11, right: 15} : {left: 15, right: 11},\n      });\n      if (active && voice.owner === owner) await pcm.keyOn(voice.channel);\n    });\n    await voice.queue;\n  });\n\n  onKeyboardReleaseKey('megacd-sampler', async event => {\n    const pressed = held.get(event.code);\n    if (!pressed) return;\n    held.delete(event.code);\n    if (pressed.voice.owner !== pressed.owner) return;\n    pressed.voice.owner = null;\n    pressed.voice.queue = pressed.voice.queue.then(() => {\n      if (active) return pcm.keyOff(pressed.voice.channel);\n    });\n    await pressed.voice.queue;\n  });\n\n  log(`${audio.name}: ${prepared.channels[0].length} / 65533 sample bytes, ${prepared.sampleRate} Hz, 8 voices.`);\n  log('Play A W S E D F T G Y H U J K O L P ; outside Code. Release a key to stop its voice.');\n} else {\n  log('No sample selected. Run again to choose a sound.');\n}\n\n// Mix to mono, crop, and fit RAM before RF5C164 converts it to sign-magnitude PCM.\n// Filtering happens once here, never on keyboard events or a display frame.\nfunction prepareSample(audio, startSeconds, maxSeconds, targetRate) {\n  const first = Math.min(audio.channels[0].length - 1, Math.max(0, Math.floor(startSeconds * audio.sampleRate)));\n  const available = Math.min(audio.channels[0].length - first, Math.floor(maxSeconds * audio.sampleRate));\n  const frames = Math.min(65533, Math.max(1, Math.floor(available * targetRate / audio.sampleRate)));\n  const mono = new Float32Array(available);\n  for (const channel of audio.channels) {\n    for (let i = 0; i < available; i++) mono[i] += channel[first + i] / audio.channels.length;\n  }\n  const output = new Float32Array(frames);\n  const ratio = audio.sampleRate / targetRate;\n  const cutoff = Math.min(1, 1 / ratio) * 0.9;\n  const radius = 12 / cutoff;\n  const fade = Math.min(Math.round(targetRate * 0.005), Math.floor(frames / 2));\n  for (let i = 0; i < frames; i++) {\n    const position = i * ratio;\n    let value = 0, weights = 0;\n    // Windowed sinc reduces aliasing when shrinking a high-rate recording.\n    for (let j = Math.max(0, Math.ceil(position - radius)); j < Math.min(available, position + radius); j++) {\n      const distance = j - position;\n      const x = Math.PI * distance * cutoff;\n      const weight = (x === 0 ? 1 : Math.sin(x) / x) * (0.5 + 0.5 * Math.cos(Math.PI * distance / radius));\n      value += mono[j] * weight;\n      weights += weight;\n    }\n    const edge = fade ? Math.min(1, i / fade, (frames - 1 - i) / fade) : 1;\n    output[i] = Math.max(-1, Math.min(1, weights ? value / weights : 0)) * edge;\n  }\n  return {channels: [output], sampleRate: targetRate};\n}\n"
+    "data": "// Edit /samples/sampler.sample.json in Sample Editor, then Run → open Keyboard.\n// Sample Editor で音声を録音／読み込み・編集して、Keyboard で演奏します。\n// RF5C164: eight voices, 8-bit PCM and 64 KiB shared sample RAM.\nconst audio = await inputAudio({asset: '/samples/sampler.sample.json', edit: false});\nif (audio) {\n  keyboard.bind('sampler', await createSampleInstrument(audio));\n  log('Sampler ready. Open Keyboard to play. Edit /samples/sampler.sample.json to change the sound.');\n}\n"
   },
   {
     "path": "/examples/game-gear/gg-mode-melody.js",
@@ -304,6 +304,11 @@ export const EXAMPLE_FILES = [
     "path": "/examples/gameboy/gameboy-mode-wave.js",
     "name": "gameboy-mode-wave",
     "data": "// Select Mode: Game Boy. Use the built-in 32-sample, four-bit wave channel.\nsetBpm(120);\ngameboy.wave.stopAndSetWaveform(\n  Array.from({length: 32}, (_, i) => i < 16 ? i : 31 - i),\n);\ngameboy.wave.setLevel(0.5);\n\nliveLoop('wave-bass', async () => {\n  for (const note of ['C3', 'C3', 'G2', 'G2', 'A2', 'A2', 'F2', 'G2']) {\n    gameboy.wave.noteOn(note);\n    await beat(0.4);\n    gameboy.wave.keyOff();\n    await beat(0.1);\n  }\n});\n"
+  },
+  {
+    "path": "/examples/gameboy/gameboy-sampler.js",
+    "name": "gameboy-sampler",
+    "data": "// Select one cycle in Sample Editor; Game Boy stores 32 four-bit wave samples.\n// Sample Editor で1周期を選択して、Run → Keyboard で演奏します。wave RAM は同時1音です。\nconst audio = await inputAudio({asset: '/samples/sampler.sample.json', edit: false});\nif (audio) {\n  keyboard.bind('sampler', await createSampleInstrument(audio));\n  log('Wave RAM ready. Open Keyboard to play. Edit /samples/sampler.sample.json to redraw the wave.');\n}\n"
   },
   {
     "path": "/examples/gameboy/gameboy-saw-noise.js",
@@ -381,6 +386,11 @@ export const EXAMPLE_FILES = [
     "data": "// Select Mode: PC-98 (YM2608 / OPNA). Works in Main and Worker.\n// fm, ssg, rhythm and adpcm share the default YM2608; no useSoundChip needed.\nsetBpm(120);\n\n// FM: one operator sine.\nfm.setPreset(0, FM_PRESETS['one-op-basic']);\nawait play('C4', {channel: CH1, beats: 1});\n\n// SSG: tone, then shared noise on channel 0.\nssg.tone(0, {frequency: 440, volume: 10});\nawait beat(1);\nssg.noise(0, {period: 16, volume: 8});\nawait beat(1);\nssg.keyOff(0);\n\n// Rhythm: the bundled synthetic sounds are ready to use.\nrhythm.setVolume(48);\nfor (const voice of ['bassDrum', 'snare', 'hiHat']) {\n  rhythm.setVoice(voice, {volume: 24, left: true, right: true});\n}\nfor (let step = 0; step < 8; step++) {\n  rhythm.keyOn([step % 2 ? 'snare' : 'bassDrum', 'hiHat']);\n  await beat(0.5);\n}\n\n// ADPCM-B: encode and upload an original PCM tone before starting playback.\nconst sampleRate = 8000;\nconst wave = new Float32Array(4000);\nfor (let i = 0; i < wave.length; i++) {\n  const fade = Math.min(1, i / 80, (wave.length - 1 - i) / 80);\n  wave[i] = 0.6 * fade * Math.sin(2 * Math.PI * 330 * i / sampleRate);\n}\nconst adpcmSample = await adpcm.loadSample({channels: [wave], sampleRate});\nadpcm.setVolume(180);\nadpcm.setPan(true, true);\nadpcm.keyOn();\nawait sleep(adpcmSample.duration + 0.05);\nadpcm.keyOff();\n"
   },
   {
+    "path": "/examples/pc98/pc98-sampler.js",
+    "name": "pc98-sampler",
+    "data": "// Edit /samples/sampler.sample.json in Sample Editor, then Run → open Keyboard.\n// YM2608 ADPCM-B: one PCM voice with variable pitch and whole-sample repeat.\nconst audio = await inputAudio({asset: '/samples/sampler.sample.json', edit: false});\nif (audio) {\n  keyboard.bind('sampler', await createSampleInstrument(audio));\n  log('ADPCM-B sampler ready. Open Keyboard to play. Edit /samples/sampler.sample.json to change the sound.');\n}\n"
+  },
+  {
     "path": "/examples/pc98/ym2608-adpcm-load-sample.js",
     "name": "ym2608-adpcm-load-sample",
     "data": "// Independent YM2608: works with any chip selected in the Playground UI.\n// loadSample accepts decoded PCM here, and converts it to Yamaha ADPCM-B.\nconst ym2608 = await useSoundChip('ym2608');\ntry {\n  const sampleRate = 8000;\n  const frames = 4000;\n  const wave = new Float32Array(frames);\n  for (let i = 0; i < frames; i++) {\n    // Original 440 Hz tone with 10 ms fades. No external file or ROM needed.\n    const fade = Math.min(1, i / 80, (frames - 1 - i) / 80);\n    wave[i] = 0.6 * fade * Math.sin(i * 2 * Math.PI * 440 / sampleRate);\n  }\n\n  // Mix PCM to mono, encode ADPCM-B, upload it and set the sample range/rate.\n  // address must be 32-byte aligned. Loading does not start playback.\n  const sample = await ym2608.adpcm.loadSample(\n    {channels: [wave], sampleRate},\n    {address: 0},\n  );\n  ym2608.adpcm.setVolume(180);\n  ym2608.adpcm.setPan(true, true);\n  ym2608.adpcm.keyOn();\n  await sleep(sample.duration + 0.05);\n  ym2608.adpcm.keyOff();\n\n  // Reuse the same memory at 1.5x speed: higher pitch, shorter duration.\n  ym2608.adpcm.setPlaybackRate(sample.sampleRate * 1.5);\n  ym2608.adpcm.keyOn();\n  await sleep(sample.duration / 1.5 + 0.05);\n  ym2608.adpcm.keyOff();\n\n  // For a PCM/Float WAV imported into FILES, the loading step can instead be:\n  // const wav = await file('./samples/voice.wav', {type: 'arrayBuffer'});\n  // const sample = await ym2608.adpcm.loadSample(wav, {address: 0});\n  // loadMemory() is for already-encoded ADPCM-B bytes, not WAV/Float32 PCM.\n} finally {\n  ym2608.dispose();\n}\n"
@@ -409,6 +419,11 @@ export const EXAMPLE_FILES = [
     "path": "/examples/neogeo/neogeo-opnb-sections.js",
     "name": "neogeo-opnb-sections",
     "data": "// Select Mode: Neo Geo (FM 4ch) or Neo Geo (YM2610B, FM 6ch).\n// Main / Worker: all sections share the default chip. No extra chip is needed.\nsetBpm(120);\nfm.setPreset(CH1, FM_PRESETS['one-op-basic']);\nawait play('C4', {channel: CH1, beats: 1});\n// In YM2610B mode, CH5 and CH6 are available as well.\n\nssg.tone(0, {frequency: 440, volume: 10});\nawait beat(1);\nssg.noise(0, {period: 16, volume: 8});\nawait beat(1);\nssg.keyOff(0);\n\n// Original test patterns of encoded ADPCM nibbles; no external ROM or WAV.\n// A and B have separate memories and use 256-byte aligned sample ranges.\nawait adpcmA.loadMemory(new Uint8Array(256).fill(0x17));\nadpcmA.setVolume(48);\nfor (let voice = 0; voice < 6; voice++) {\n  adpcmA.setSample(voice, {start: 0, end: 256});\n  adpcmA.setVoice(voice, {volume: 24, left: true, right: true});\n  adpcmA.keyOn(voice);\n  await beat(0.5);\n}\nadpcmA.keyOff([0, 1, 2, 3, 4, 5]);\n\n// ADPCM-B: adjustable rate and whole-sample repeat. adpcm === adpcmB.\nawait adpcmB.loadMemory(new Uint8Array(256).fill(0x17));\nadpcmB.setSample({start: 0, end: 256});\nadpcmB.setPlaybackRate(8000);\nadpcmB.setVolume(160);\nadpcmB.setPan(true, true);\nadpcmB.keyOn({repeat: true});\nawait beat(2);\nadpcmB.keyOff();\n"
+  },
+  {
+    "path": "/examples/neogeo/neogeo-sampler.js",
+    "name": "neogeo-sampler",
+    "data": "// Edit /samples/sampler.sample.json in Sample Editor, then Run → open Keyboard.\n// YM2610/B ADPCM-B: one pitched PCM voice. Memory ranges use 256-byte units.\nconst audio = await inputAudio({asset: '/samples/sampler.sample.json', edit: false});\nif (audio) {\n  keyboard.bind('sampler', await createSampleInstrument(audio));\n  log('ADPCM-B sampler ready. Open Keyboard to play. Edit /samples/sampler.sample.json to change the sound.');\n}\n"
   },
   {
     "path": "/examples/x68000/x68000-mode-adpcm.js",
@@ -554,21 +569,23 @@ export const MODE_EXAMPLE_FILES = Object.fromEntries(Object.entries({
   ],
   "pc98": [
     "/examples/pc98/pc98-opna-groove.js",
-    "/examples/pc98/pc98-opna-sections.js"
+    "/examples/pc98/pc98-opna-sections.js",
+    "/examples/pc98/pc98-sampler.js"
   ],
   "neogeo": [
     "/examples/neogeo/neogeo-opnb-duet.js",
-    "/examples/neogeo/neogeo-opnb-sections.js"
+    "/examples/neogeo/neogeo-opnb-sections.js",
+    "/examples/neogeo/neogeo-sampler.js"
   ],
   "neogeo-b": [
-    "/examples/neogeo/neogeo-opnb-duet.js",
     "/examples/neogeo/neogeo-opnb-sections.js",
-    "/examples/neogeo/neogeo-b-six-channel.js"
+    "/examples/neogeo/neogeo-b-six-channel.js",
+    "/examples/neogeo/neogeo-sampler.js"
   ],
   "gameboy": [
     "/examples/gameboy/gameboy-mode-pulse.js",
     "/examples/gameboy/gameboy-mode-wave.js",
-    "/examples/gameboy/gameboy-mode-noise.js"
+    "/examples/gameboy/gameboy-sampler.js"
   ],
   "nes": [
     "/examples/nes/nes-mode-pulse.js",

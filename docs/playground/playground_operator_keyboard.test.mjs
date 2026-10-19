@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
 
 const source = readFileSync(new URL('./playground_operator_keyboard.js', import.meta.url), 'utf8')
-  .replace(/import[\s\S]*?from "\.\.\/synth\/synth_keyboard.js";/, '')
+  .replace(/import[\s\S]*?from "\.\.\/synth\/synth_keyboard\.js(?:\?[^\"]*)?";/, '')
   .replace('export function', 'function');
 
 function classList() {
@@ -43,25 +43,167 @@ function setup(ensureAudioReady, keyboardOptions = {}) {
   const root = element();
   const notes = [];
   const synth = { noteOn: (...args) => notes.push(['on', ...args]), noteOff: ch => notes.push(['off', ch]) };
-  const entries = ['a', 's'].map(key => ({ key, noteName: key, pitch: { block: 4, fnum: 553 } }));
-  let pointerHandlers;
+  const entries = ['a', 's'].map((key,index) => ({ key, midi:60 + index, noteName: key, pitch: { block: 4, fnum: 553 } }));
+  let pointerHandlers, fretControls;
   let selected = 2;
   const context = vm.createContext({
     document: { createElement: element }, CSS: { escape: value => value },
     window: { addEventListener: (name, fn) => listeners.set(name, fn), removeEventListener: name => listeners.delete(name) },
     createFretboardState: () => ({}), createFretboardLayout: () => ({ entries }),
-    buildKeyboard(options) { pointerHandlers = options; }, renderFretboardControls() {},
+    buildKeyboard(options) { pointerHandlers = options; }, renderFretboardControls(options) {fretControls = options;},
+    setInstrument() {}, setFretPosition() {}, setStringWindowIndex() {},
     findLayoutEntry: (entries, key) => entries.find(entry => entry.key === key),
   });
   vm.runInContext(source, context);
   const options = typeof keyboardOptions === 'function' ? keyboardOptions(root) : keyboardOptions;
   const keyboard = context.createPlaygroundOperatorKeyboard({ root, getSelectedChannel: () => selected, onChannelChange: ch => { selected = ch; }, ensureAudioReady, ...options });
   const send = (name, key = 'a', extra = {}) => listeners.get(name)?.({ key, target: { tagName: 'BUTTON' }, preventDefault() {}, ...extra });
-  return { keyboard, root, notes, synth, send, select: ch => { selected = ch; },
-    pointerDown: (key = 'a') => pointerHandlers.onPointerDown({}, entries.find(entry => entry.key === key)),
-    pointerUp: (key = 'a') => pointerHandlers.onPointerUp({}, entries.find(entry => entry.key === key)),
+  const buttonFor = key => root.querySelector('#playgroundKeyboardKeys').querySelector(`[data-key="${key}"]`);
+  return { keyboard, root, notes, synth, send, entries, buttonFor,
+    pointerOptions: () => pointerHandlers, fretControls: () => fretControls,
+    select: ch => { selected = ch; },
+    pointerDown: (key = 'a',event = {}) => pointerHandlers.onPointerDown(event, entries.find(entry => entry.key === key),buttonFor(key)),
+    pointerUp: (key = 'a',event = {}) => pointerHandlers.onPointerUp(event, entries.find(entry => entry.key === key)),
+    pointerCancel: (key = 'a',event = {}) => pointerHandlers.onPointerCancel(event, entries.find(entry => entry.key === key)),
   };
 }
+
+function targetFixture(name = 'Sampler', noteOn) {
+  const events = [];
+  return {events,target:{name,
+    noteOn(event) {events.push(['on',{...event}]);return noteOn?.(event);},
+    noteOff(event) {events.push(['off',{...event}]);},
+    allNotesOff() {events.push(['all']);},
+  }};
+}
+
+test('a custom target uses shared MIDI notes and independent press IDs for equal pitches', () => {
+  const t = setup(), custom = targetFixture();
+  t.entries[1].midi = t.entries[0].midi;
+  t.keyboard.attachSynth(t.synth);
+  t.keyboard.attachNoteTarget(custom.target);
+  t.keyboard.setView('keyboard');
+  t.send('keydown','a'); t.send('keydown','s');
+  const on = custom.events.filter(event => event[0] === 'on').map(event => event[1]);
+  assert.equal(on.length,2); assert.equal(on[0].midi,60); assert.equal(on[1].midi,60);
+  assert.equal(on[0].velocity,100); assert.equal(typeof on[0].id,'string'); assert.notEqual(on[0].id,on[1].id);
+  t.send('keyup','a');
+  assert.equal(custom.events.at(-1)[1].id,on[0].id);
+  assert.equal(t.buttonFor('s').classList.contains('is-active'),true);
+  t.send('keyup','s');
+  assert.equal(custom.events.at(-1)[1].id,on[1].id);
+  assert.deepEqual(t.notes,[],'custom notes must not also audition FM');
+});
+
+test('pointer and computer presses on the same key have separate identities and release ownership', () => {
+  const t = setup(), custom = targetFixture();
+  t.keyboard.attachNoteTarget(custom.target); t.keyboard.setView('keyboard');
+  t.pointerDown('a',{pointerId:11}); t.send('keydown','a',{code:'KeyA'});
+  assert.equal(custom.events.filter(event => event[0] === 'on').length,2);
+  t.pointerUp('a',{pointerId:11});
+  assert.equal(t.buttonFor('a').classList.contains('is-active'),true);
+  t.send('keyup','A',{code:'KeyA',target:{tagName:'TEXTAREA'}});
+  assert.equal(t.buttonFor('a').classList.contains('is-active'),false);
+  const off = custom.events.filter(event => event[0] === 'off').map(event => event[1].id);
+  assert.equal(new Set(off).size,2);
+});
+
+test('custom targets work without primary FM and hide its controls and key details', () => {
+  const t = setup(undefined,{channelCount:0}), custom = targetFixture('Game Boy wave');
+  t.keyboard.attachNoteTarget(custom.target); t.keyboard.setView('keyboard');
+  assert.equal(t.root.querySelector('#playgroundKeyboardChannelTools').hidden,true);
+  assert.equal(t.pointerOptions().showPitch,false);
+  assert.match(t.root.querySelector('#playgroundKeyboardHint').textContent,/Game Boy wave/);
+  t.send('keydown'); t.send('keyup');
+  assert.deepEqual(custom.events.map(event => event[0]),['on','off']);
+});
+
+test('Operator keeps FM audition while Keyboard uses its explicit target; null restores FM', () => {
+  const t = setup(), custom = targetFixture();
+  t.keyboard.attachSynth(t.synth); t.keyboard.attachNoteTarget(custom.target);
+  t.keyboard.setView('operator'); t.send('keydown'); t.send('keyup');
+  assert.deepEqual(t.notes,[['on',2,4,553],['off',2]]);
+  assert.equal(custom.events.filter(event => event[0] === 'on').length,0);
+  assert.equal(t.pointerOptions().showPitch,true);
+  assert.equal(t.root.querySelector('#playgroundKeyboardChannelTools').hidden,false);
+  t.keyboard.setView('keyboard'); t.send('keydown'); t.send('keyup');
+  assert.equal(custom.events.filter(event => event[0] === 'on').length,1);
+  assert.equal(t.pointerOptions().showPitch,false);
+  t.keyboard.attachNoteTarget(null); t.send('keydown'); t.send('keyup');
+  assert.deepEqual(t.notes.slice(-2),[['on',0,4,553],['off',0]]);
+  assert.equal(t.pointerOptions().showPitch,true);
+});
+
+test('custom target preparation survives initial FM attachment and cancels on release or target change', async () => {
+  let ready;
+  const t = setup(() => new Promise(resolve => {ready = resolve;})), custom = targetFixture(), replacement = targetFixture('Other');
+  t.keyboard.attachNoteTarget(custom.target); t.keyboard.setView('keyboard');
+  t.send('keydown'); t.keyboard.attachSynth(t.synth); ready();
+  await new Promise(setImmediate);
+  assert.equal(custom.events.filter(event => event[0] === 'on').length,1);
+  t.send('keyup');
+  t.send('keydown','s'); t.send('keyup','s'); ready();
+  await new Promise(setImmediate);
+  assert.equal(custom.events.filter(event => event[0] === 'on').length,1);
+  t.send('keydown'); t.keyboard.attachNoteTarget(replacement.target); ready();
+  await new Promise(setImmediate);
+  assert.equal(custom.events.filter(event => event[0] === 'on').length,1);
+  assert.equal(replacement.events.filter(event => event[0] === 'on').length,0);
+});
+
+test('a cancelled asynchronous noteOn receives a final matching off without touching its replacement', async () => {
+  let finish;
+  const t = setup(), old = targetFixture('Old',() => new Promise(resolve => {finish = resolve;})), next = targetFixture('New');
+  t.keyboard.attachNoteTarget(old.target); t.keyboard.setView('keyboard'); t.send('keydown');
+  const oldId = old.events[0][1].id;
+  t.keyboard.attachNoteTarget(next.target); t.send('keydown','s'); finish();
+  await new Promise(setImmediate);
+  assert.deepEqual(old.events.filter(event => event[0] === 'off').map(event => event[1].id),[oldId,oldId]);
+  assert.equal(next.events.filter(event => event[0] === 'on').length,1);
+  assert.equal(next.events.filter(event => event[0] === 'off').length,0);
+  t.send('keyup','s');
+});
+
+test('blur, fretboard rebuild and explicit releaseAll release the custom target', async () => {
+  const t = setup(), custom = targetFixture();
+  t.keyboard.attachNoteTarget(custom.target); t.keyboard.setView('keyboard');
+  for (const release of [() => t.send('blur'),() => t.fretControls().onInstrumentChange('bass'),() => t.keyboard.releaseAll()]) {
+    t.send('keydown'); release();
+    assert.equal(t.buttonFor('a').classList.contains('is-active'),false);
+  }
+  await new Promise(setImmediate);
+  assert.equal(custom.events.filter(event => event[0] === 'on').length,3);
+  assert.equal(custom.events.filter(event => event[0] === 'off').length,3);
+  assert.equal(custom.events.filter(event => event[0] === 'all').length,3);
+});
+
+test('same target attachment preserves notes and invalid targets do not replace it', () => {
+  const t = setup(), custom = targetFixture();
+  t.keyboard.attachNoteTarget(custom.target); t.keyboard.setView('keyboard'); t.send('keydown');
+  t.keyboard.attachNoteTarget(custom.target);
+  assert.equal(custom.events.length,1);
+  assert.throws(() => t.keyboard.attachNoteTarget({name:'Invalid'}),/requires name/);
+  t.send('keyup');
+  assert.deepEqual(custom.events.map(event => event[0]),['on','off']);
+});
+
+test('rejected custom noteOn releases its ID and reports failure without retaining the key', async () => {
+  const statuses = [], t = setup(undefined,{onStatus:message => statuses.push(message)});
+  const custom = targetFixture('Rejected',() => Promise.reject(new Error('not ready')));
+  t.keyboard.attachNoteTarget(custom.target); t.keyboard.setView('keyboard'); t.send('keydown');
+  await new Promise(setImmediate);
+  assert.equal(t.buttonFor('a').classList.contains('is-active'),false);
+  assert.match(statuses.at(-1),/not ready/);
+  assert.deepEqual(custom.events.map(event => event[0]),['on','off']);
+});
+
+test('dispose releases a custom target and prevents pointer input from reviving the controller', async () => {
+  const t = setup(), custom = targetFixture();
+  t.keyboard.attachNoteTarget(custom.target); t.keyboard.setView('keyboard'); t.pointerDown();
+  t.keyboard.dispose(); t.keyboard.setView('keyboard'); t.pointerDown('s');
+  await new Promise(setImmediate);
+  assert.deepEqual(custom.events.map(event => event[0]),['on','off','all']);
+});
 
 test('Operator auditions its selected channel and releases the original channel', () => {
   const t = setup();

@@ -21,6 +21,8 @@ import {createLoopAsyncTasks} from './playground_async_tasks.js';
 import {createOpnAudio} from './playground_opn_audio.js';
 import {createOpnClient} from './playground_opn.js';
 import {createSoundChipRegistry} from './playground_soundchips.js';
+import {createMusicalKeyboard, createKeyboardApiGuard, keyboardBinding, registerKeyboardScope} from './playground_keyboard.js';
+import {createSampleInstrument as createSampleInstrumentFactory} from './playground_sample_instrument.js';
 import {createGameboyAudio} from './playground_gameboy_audio.js';
 import {createPrimaryGameboyApi} from './playground_gameboy.js';
 import {createGameboyClient} from './playground_gameboy.js';
@@ -105,7 +107,8 @@ const SCALE_INTERVALS = {
  *   onReady?: ((context: { synth: object, megaDrive: object }) => void) | null,
  *   onMegaDriveEvent?: ((event: object) => void) | null,
  *   onAuditionReset?: (() => void) | null,
- *   inputAudio?: ((options: {title?:string}, context: {signal:AbortSignal}) => Promise<null|{name:string,source:'file'|'microphone',sampleRate:number,channels:Float32Array[]}>) | null,
+ *   onKeyboardTargetChange?: ((target:object|null) => void) | null,
+ *   inputAudio?: ((options: {title?:string,asset?:string,edit?:boolean}, context: {signal:AbortSignal}) => Promise<null|{name:string,source:'file'|'microphone',sampleRate:number,channels:Float32Array[]}>) | null,
  * }} [options]
  * @returns Runtime controls and accessors; initialize audio before using the synth.
  */
@@ -247,6 +250,10 @@ export function createPlaygroundRuntime(
   }
   let currentRunToken = 0;
   let currentLoopContext = null;
+  const keyboardApi = createKeyboardApiGuard(() => currentLoopContext, value => {currentLoopContext=value;});
+  const musicalKeyboard = createMusicalKeyboard({getContext:() => currentLoopContext,setContext:value => {currentLoopContext=value;},
+    invoke:callback => executeUserCallback(callback),onChange:target => options.onKeyboardTargetChange?.(target),
+    onError:error => emitLog(`[keyboard] ${formatLogArgs([error])}`)});
   const audioInputRequests = new Set();
   function cancelAudioInputRequests() {
     for (const controller of audioInputRequests) controller.abort(new DOMException('Run stopped', 'AbortError'));
@@ -254,8 +261,10 @@ export function createPlaygroundRuntime(
   }
   async function inputAudio(inputOptions = {}, runToken = currentRunToken) {
     if (!inputOptions || typeof inputOptions !== 'object' || Array.isArray(inputOptions) ||
-        Reflect.ownKeys(inputOptions).some(key => key !== 'title') ||
-        inputOptions.title !== undefined && typeof inputOptions.title !== 'string') throw new TypeError('inputAudio supports {title?: string}');
+        Reflect.ownKeys(inputOptions).some(key => !['title','asset','edit'].includes(key)) ||
+        inputOptions.title !== undefined && typeof inputOptions.title !== 'string' ||
+        inputOptions.asset !== undefined && typeof inputOptions.asset !== 'string' ||
+        inputOptions.edit !== undefined && typeof inputOptions.edit !== 'boolean') throw new TypeError('inputAudio supports {title?: string, asset?: string, edit?: boolean}');
     if (runToken !== currentRunToken) throw new DOMException('Run stopped', 'AbortError');
     if (typeof options.inputAudio !== 'function') throw new Error('Audio input is unavailable in this host');
     const controller = new AbortController();
@@ -316,6 +325,9 @@ export function createPlaygroundRuntime(
   let sharedPcmClient;
   let primaryPcmSilence = Promise.resolve();
   const primaryPcmOwners = new Map();
+  // Each key callback has its own cancellation lease. Note releases still own
+  // the instrument channels started by another callback in the same binding.
+  const voiceOwner = context => context?.keyboard ? context.keyboardOwner : context;
   function silencePrimaryPcm(channels) {
     const pending = channels.map(channel => Promise.resolve(megaDrive.pcm?.keyOff(channel)).catch(() => {}));
     // The Main and Worker control ports have independent message order. A new
@@ -332,9 +344,9 @@ export function createPlaygroundRuntime(
         const loop = currentLoopContext, method = path.at(-1);
         if (loop?.stopped) return false;
         if (method === 'reset') primaryPcmOwners.clear();
-        if (method === 'keyOn') primaryPcmOwners.set(args[0], loop);
+        if (method === 'keyOn') primaryPcmOwners.set(args[0], voiceOwner(loop));
         if (method === 'keyOff') {
-          if (loop && primaryPcmOwners.has(args[0]) && primaryPcmOwners.get(args[0]) !== loop) return false;
+          if (loop && primaryPcmOwners.has(args[0]) && primaryPcmOwners.get(args[0]) !== voiceOwner(loop)) return false;
           primaryPcmOwners.delete(args[0]);
         }
         return true;
@@ -382,9 +394,9 @@ export function createPlaygroundRuntime(
         if (!event) return true;
         if (event.allOff) {for (const key of nativeOwners.keys()) if(key.startsWith(name+':'))nativeOwners.delete(key);return true;}
         const key = name + ':' + event.key;
-        if (event.on) nativeOwners.set(key,{name,key:event.key,owner:loop});
+        if (event.on) nativeOwners.set(key,{name,key:event.key,owner:voiceOwner(loop)});
         else {
-          if (loop && nativeOwners.has(key) && nativeOwners.get(key).owner !== loop) return false;
+          if (loop && nativeOwners.has(key) && nativeOwners.get(key).owner !== voiceOwner(loop)) return false;
           nativeOwners.delete(key);
         }
         return true;
@@ -1097,9 +1109,9 @@ export function createPlaygroundRuntime(
           const channel = trigger >= 0 && (value & 128) ? trigger
             : released !== undefined && value === 0 ? released : register === 10 && !(value & 128) ? 2 : undefined;
           if (channel !== undefined) {
-            if (trigger >= 0) gameboyOwners.set(channel,loop ?? null);
+            if (trigger >= 0) gameboyOwners.set(channel,voiceOwner(loop) ?? null);
             else {
-              if (!releasingGameboy && loop && gameboyOwners.has(channel) && gameboyOwners.get(channel) !== loop) return false;
+              if (!releasingGameboy && loop && gameboyOwners.has(channel) && gameboyOwners.get(channel) !== voiceOwner(loop)) return false;
               gameboyOwners.delete(channel);
             }
           }
@@ -1459,6 +1471,13 @@ export function createPlaygroundRuntime(
 
   function handleWorkerMessage(event) {
     const message = event.data ?? {};
+    if (message.type === 'musical-keyboard-binding') {
+      const worker = logicWorker, binding = message.binding;
+      const forward = (method,event) => {if(logicWorker===worker)worker.postMessage({type:'musical-keyboard',session:binding.session,method,event});};
+      const definition = binding ? keyboardBinding(binding.name,{noteOn:event=>forward('noteOn',event),noteOff:event=>forward('noteOff',event),allNotesOff:()=>forward('allNotesOff')}) : null;
+      void musicalKeyboard.commit(definition,() => logicWorker===worker && !logicWorkerStopPromise);
+      return;
+    }
     if (message.type === 'performance-cancel-owner') { performanceHost.cancelOwner(message); return; }
     if (message.type === 'primary-pcm-clock') {megaDrive.pcm?._adoptClock(message.clock);return;}
     if (message.type === 'native-observer') {
@@ -1695,6 +1714,8 @@ export function createPlaygroundRuntime(
       cleanupDefinitions: [],
       cleanupCallIndex: 0,
       keyboardDefinitions: new Map(),
+      musicalBinding: null,
+      collectingKeyboardBinding: true,
       cleanupScope:
         currentSourceName ??
         "__anonymous__",
@@ -1722,11 +1743,11 @@ export function createPlaygroundRuntime(
       Object.defineProperty(sharedFm, 'id', {value: capabilities.chip ?? 'ym2612', enumerable: true});
       sharedFmSynth = synth;
     }
-    const fm = sharedFm;
-    const gameboy = isGameboy ? sharedGameboy : undefined;
-    const nativeApis = nativePrimaryApis();
-    const psg = nativeApis.psg ?? megaDrive.psg;
-    const sections = primaryChipSections();
+    const fm = keyboardApi(sharedFm);
+    const gameboy = isGameboy ? keyboardApi(sharedGameboy) : undefined;
+    const nativeApis = Object.fromEntries(Object.entries(nativePrimaryApis()).map(([name,api])=>[name,keyboardApi(api)]));
+    const psg = nativeApis.psg ?? keyboardApi(megaDrive.psg);
+    const sections = Object.fromEntries(Object.entries(primaryChipSections()).map(([name,api])=>[name,keyboardApi(api)]));
     const musicApi =
       createPlaygroundMusic({
         noteToSemitone:
@@ -1860,6 +1881,12 @@ export function createPlaygroundRuntime(
       mixer: megaDrive.mixer,
       trackAsync: promise => loopTasks.track(promise),
       inputAudio: inputOptions => inputAudio(inputOptions, runToken),
+      createSampleInstrument: (audio,instrumentOptions={}) => createSampleInstrumentFactory({pg,audio,chip:capabilities.chip,...instrumentOptions}),
+      keyboard: {bind(name,handlers) {
+        if (!evaluationState.collectingKeyboardBinding || runToken !== currentRunToken) throw new Error('keyboard.bind must be called during source evaluation');
+        if (evaluationState.musicalBinding) throw new Error('Only one keyboard binding is supported per Run');
+        evaluationState.musicalBinding=keyboardBinding(name,handlers);
+      }},
       useSoundChip: async (name, options) => {
         const check = () => { if (runToken !== currentRunToken) throw new DOMException('Run stopped', 'AbortError'); };
         check();
@@ -1867,7 +1894,7 @@ export function createPlaygroundRuntime(
           check();
           const endpoint = megaDrive.primaryEndpoints?.find(endpoint => endpoint.name === chipName);
           if (endpoint) return nativeApis[endpoint.globalName];
-          if (chipName === 'rf5c164' && megaDrive.pcm) return primaryPcmApi();
+          if (chipName === 'rf5c164' && megaDrive.pcm) return keyboardApi(primaryPcmApi());
           if (chipName === 'gameboy' && isGameboy) return gameboy;
           if (['ym2612', 'ym2203', 'ym2610'].includes(chipName) && capabilities.chip === chipName) return fm;
           return pg.createSoundChip(chipName, {id:`${chipName}:shared`});
@@ -1888,7 +1915,7 @@ export function createPlaygroundRuntime(
         // Keep the current method visible: useSoundChip wraps it to evict the
         // cached endpoint, including when a device fails asynchronously.
         device.dispose=()=>client.dispose();
-        return client;
+        return keyboardApi(client);
       },
       midi,
       ...nativeApis,
@@ -2042,6 +2069,7 @@ export function createPlaygroundRuntime(
       },
     };
 
+    registerKeyboardScope(pg,()=>currentLoopContext,value=>{currentLoopContext=value;});
     const globals = {
         console:
           playgroundConsole,
@@ -2050,6 +2078,8 @@ export function createPlaygroundRuntime(
         createSoundChip: pg.createSoundChip,
         useSoundChip: pg.useSoundChip,
         inputAudio: pg.inputAudio,
+        keyboard: pg.keyboard,
+        createSampleInstrument: pg.createSampleInstrument,
         midi,
         ...nativeApis,
         ...(gameboy ? {gameboy} : {}),
@@ -2280,6 +2310,7 @@ export function createPlaygroundRuntime(
     currentRunToken += 1;
     const runToken = currentRunToken;
     if (logicWorkerStopPromise) await logicWorkerStopPromise;
+    await musicalKeyboard.settled();
     await primaryPcmSilence;
     if (runToken !== currentRunToken) return;
     await ensureReady();
@@ -2381,6 +2412,7 @@ export function createPlaygroundRuntime(
     currentRunToken += 1;
     const runToken = currentRunToken;
     await stopLogicWorker();
+    await musicalKeyboard.settled();
     if (runToken !== currentRunToken) return;
     if (logicWorker) {
       loopTasks.clear();
@@ -2428,6 +2460,9 @@ export function createPlaygroundRuntime(
         }
       );
 
+      evaluationState.collectingKeyboardBinding = false;
+      if (runToken !== currentRunToken) return;
+      await musicalKeyboard.commit(evaluationState.musicalBinding,()=>runToken===currentRunToken);
       if (runToken !== currentRunToken) return;
       liveFxLifecycle.commit(evaluationState.liveFxDefinitions);
       liveApi.commitLiveLoops(
@@ -2445,7 +2480,7 @@ export function createPlaygroundRuntime(
         const loopCount =
           evaluationState.loopDefinitions.size;
         const keyboardHandlerCount =
-          evaluationState.keyboardDefinitions.size;
+          evaluationState.keyboardDefinitions.size + (evaluationState.musicalBinding ? 1 : 0);
         emitStatus(
           loopCount > 0
             ? `Running ${loopCount} live loop(s).`
@@ -2466,6 +2501,7 @@ export function createPlaygroundRuntime(
         );
       }
     } catch (error) {
+      evaluationState.collectingKeyboardBinding = false;
       if (runToken !== currentRunToken) {
         if (error?.message === "Run stopped") return;
         throw error;
@@ -2537,6 +2573,7 @@ export function createPlaygroundRuntime(
   }
 
   function stop() {
+    void musicalKeyboard.clear();
     cancelAudioInputRequests();
     performanceHost.stop();
     clearAuditions();
@@ -2675,6 +2712,7 @@ export function createPlaygroundRuntime(
     prepareAudition,
     /** Host keyboard facade. Held notes take priority until release. */
     getAuditionSynth: () => auditionSynth,
+    getKeyboardTarget: () => musicalKeyboard.target,
     load,
     put,
     get,

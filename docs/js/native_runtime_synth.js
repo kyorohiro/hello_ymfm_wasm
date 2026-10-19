@@ -10,12 +10,12 @@ import {createOki6258Audio} from './playground_okim6258_audio.js?v=sega-modes-1'
 import {createOki6258Client} from './playground_okim6258.js?v=audio-stability-2';
 import {createHuc6280Audio} from './playground_huc6280_audio.js?v=sega-modes-1';
 import {createHuc6280Client} from './playground_huc6280.js?v=audio-stability-2';
-import {createSegaPsgAudio} from './playground_segapsg_audio.js?v=sega-modes-1';
+import {createSegaPsgAudio} from './playground_segapsg_audio.js?v=sample-editor-1';
 import {createSegaPsgClient} from './playground_segapsg.js?v=sega-modes-1';
 
 const PRIMARY_CHIPS = Object.freeze(['nes', 'snes', 'x68000', 'huc6280', 'segapsg']);
 
-/** @typedef {Pick<import('./megasynth.js?v=mega-cd-3').MegaSynthOptions,'audioContext'|'outputNode'|'sampleOutputNode'|'masterVolume'|'mixer'> & {
+/** @typedef {Pick<import('./megasynth.js?v=sample-editor-1').MegaSynthOptions,'audioContext'|'outputNode'|'sampleOutputNode'|'masterVolume'|'mixer'> & {
  * chip?:'nes'|'snes'|'x68000'|'huc6280'|'segapsg', clock?:number, stereoEnabled?:boolean, fds?:boolean,
  * wasmUrl?:string|URL, workletUrl?:string|URL, fetch?:typeof globalThis.fetch,
  * extraOki?:{fetch?:typeof globalThis.fetch,wasmUrl?:string|URL,workletUrl?:string|URL}

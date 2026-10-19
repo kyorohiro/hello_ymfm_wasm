@@ -1059,6 +1059,8 @@ type PlaygroundAPIBase = {
   createSoundChip: typeof createSoundChip;
   useSoundChip: typeof useSoundChip;
   inputAudio: typeof inputAudio;
+  keyboard: PlaygroundMusicalKeyboard;
+  createSampleInstrument: typeof createSampleInstrument;
   midi: PlaygroundMidi;
   /** Primary FM API for the selected mode. */
   fm: PlaygroundSelectedFm;
@@ -1146,14 +1148,63 @@ type PlaygroundAPI = TetoricaSelectedChip extends PlaygroundNativeSelectedChip
 declare var pg: PlaygroundAPI;
 
 /** Decoded audio chosen from a local file or recorded from the microphone. */
-interface PlaygroundAudioInput {
-  name: string;
-  source: 'file' | 'microphone';
+type PlaygroundSampleTarget = 'rf5c164' | 'adpcm-b' | 'gameboy-wave';
+interface PlaygroundSampleAudio {
   sampleRate: number;
   channels: Float32Array[];
+  rootMidi?: number;
+  tuneCents?: number;
+  loopEnabled?: boolean;
+  loopStartFrame?: number;
+  loopEndFrame?: number;
+  target?: PlaygroundSampleTarget;
+  /** Game Boy wave RAM: one user-selected cycle rendered to 32 four-bit samples. */
+  waveform?: Uint8Array | number[];
+  assetPath?: string;
 }
-/** Open the audio input dialog. Cancel returns null; Stop aborts the request. */
-declare function inputAudio(options?: {title?: string}): Promise<PlaygroundAudioInput | null>;
+interface PlaygroundAudioInput extends PlaygroundSampleAudio {
+  name: string;
+  source: 'file' | 'microphone';
+}
+/** Open the sample editor. asset defaults to /samples/sampler.sample.json;
+ * edit:false reuses a saved asset without opening the editor. Cancel returns
+ * null; Stop aborts. Original audio and neutral edit settings remain separate. */
+declare function inputAudio(options?: {title?: string; asset?: string; edit?: boolean}): Promise<PlaygroundAudioInput | null>;
+
+interface PlaygroundMusicalNoteEvent {
+  /** Unique press identity; use it for release ownership, since pitches may repeat. */
+  id: string;
+  /** Integer MIDI note 0..127. */
+  midi: number;
+  /** MIDI velocity 0..127. */
+  velocity: number;
+}
+interface PlaygroundKeyboardHandlers {
+  noteOn(event: PlaygroundMusicalNoteEvent): void | Promise<void>;
+  noteOff(event: PlaygroundMusicalNoteEvent): void | Promise<void>;
+  allNotesOff(): void | Promise<void>;
+}
+interface PlaygroundMusicalKeyboard {
+  /** Bind the shared Guitar/Bass/Ukulele Keyboard to one instrument for this Run.
+   * Register during source evaluation. Stop or omitting it on the next Run
+   * retires the binding. Operator view retains its usual FM audition. */
+  bind(name: string, handlers: PlaygroundKeyboardHandlers): void;
+}
+declare const keyboard: PlaygroundMusicalKeyboard;
+interface PlaygroundSampleInstrument extends PlaygroundKeyboardHandlers {
+  readonly name: string;
+  noteOn(event: PlaygroundMusicalNoteEvent): Promise<void>;
+  noteOff(event: PlaygroundMusicalNoteEvent): Promise<void>;
+  allNotesOff(): Promise<void>;
+}
+/** Create an adapter for already edited PCM. The chosen chip keeps its hardware
+ * memory/voice limits; the adapter does not silently crop or resample audio.
+ * Pass the result to keyboard.bind() during source evaluation. */
+declare function createSampleInstrument(audio: PlaygroundSampleAudio, options?: {
+  target?: 'auto' | PlaygroundSampleTarget;
+  /** Physical per-voice level, 0..255; default depends on the target. */
+  volume?: number;
+}): Promise<PlaygroundSampleInstrument>;
 
 interface PlaygroundTiming {
   /** Explicit DAC/VGM sample schedule refill lead; seconds. Default 0.25. */
@@ -1246,8 +1297,9 @@ declare const midi: PlaygroundMidi;
 /** RF5C164 physical channels: CH1..CH8 (0..7), no automatic allocation. */
 interface PlaygroundRf5c164 {
   loadMemory(bytes: Uint8Array | ArrayBuffer, address?: number): Promise<void>;
-  /** WAV/FLAC URL or encoded file bytes. loopStart is a sample offset; omitted means silence after end. */
-  loadSample(source: {channels: Float32Array[]; sampleRate: number} | string | Uint8Array | ArrayBuffer | Blob, options?: {address?: number; loopStart?: number}): Promise<{start: number; loopStart: number; step: number}>;
+  /** WAV/FLAC URL or encoded file bytes. loopStart is a sample offset; omitted means silence after end.
+   * endGuardBytes reserves consecutive end markers for large pitch steps; 0 keeps the legacy trailer. */
+  loadSample(source: {channels: Float32Array[]; sampleRate: number} | string | Uint8Array | ArrayBuffer | Blob, options?: {address?: number; loopStart?: number; endGuardBytes?: number}): Promise<{start: number; loopStart: number; step: number}>;
   setChannel(ch: number, options: {start?: number; loopStart?: number; step?: number; volume?: number; pan?: {left: number; right: number}}): Promise<void>;
   setPitch(ch: number, step: number): Promise<void>;
   keyOn(ch: number): Promise<void>;

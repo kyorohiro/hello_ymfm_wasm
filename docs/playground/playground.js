@@ -7,7 +7,7 @@ import {installPlaygroundShell} from './playground_shell.js?v=compact-shell-1';
 import {installPlaygroundGit} from './playground_git.js';
 import {openDraftStore, createProjectAutosave} from './playground_autosave.js?v=mode-handoff-1';
 import {PLAYGROUND_MODES, resolvePlaygroundMode, createModeSynthOptions,
-  createPlaygroundModeUrl, isSimplePlaygroundLayout} from './playground_mode.js?v=mega-cd-3';
+  createPlaygroundModeUrl, isSimplePlaygroundLayout} from './playground_mode.js?v=sample-editor-1';
 import {saveModeProject, consumeModeProject} from './playground_mode_project.js?v=mode-handoff-1';
 import {reconcileModeProject} from './playground_mode_starters.js?v=mode-choice-1';
 let desktopAutosave = null;
@@ -24,7 +24,8 @@ const cassetteSampleNames = new Set();
 import {exportYm2608FullVgm} from './ym2608_vgm_import.js?v=vgm-frequency-order-2';
 import {prepareVgmImport, exportGameboyVgm, exportNesVgm, exportRf5c164Vgm, addVgmSoundChipSetup, exportYm2203FullVgm} from './playground_vgm_import.js?v=vgm-frequency-order-2';
 import {installPlaygroundPageLifecycle} from "./playground_page_lifecycle.js";
-import {createPlaygroundAudioInput} from './playground_audio_input.js?v=mega-cd-3';
+import {createPlaygroundAudioInput} from './playground_audio_input.js?v=sample-editor-1';
+import {createPlaygroundSampleAssets, DEFAULT_SAMPLE_ASSET} from './playground_sample_assets.js?v=sample-editor-1';
 import {createFXMonitor} from './playground_fx_monitor.js?v=vertical-range-1';
 import {createAudioMonitor} from './playground_audio_monitor.js?v=vertical-range-1';
 import {installMidiImport} from './playground_midi_import.js?v=midi-sections-1';
@@ -32,10 +33,10 @@ import {installSpcImport} from './playground_spc_import.js?v=spc-reference-tunin
 import {
   FM_PRESET_ORDER,
   FM_PRESETS,
-} from "../js/megasynth.js?v=mega-cd-3";
+} from "../js/megasynth.js?v=sample-editor-1";
 import {
   createTetoricaSynth,
-} from "../js/tetorica_synth.js?v=mega-cd-3";
+} from "../js/tetorica_synth.js?v=sample-editor-1";
 import {
   createTfiOperatorObjectText,
   createTfiPresetObjectText,
@@ -46,10 +47,10 @@ import { createVgiFromPreset, parseVgi } from "../js/vgi.js?v=audio-stability-2"
 import {
   createPlaygroundOperatorTab,
 } from "./playground_operator_tab.js?v=audio-stability-2";
-import { createPlaygroundOperatorKeyboard } from "./playground_operator_keyboard.js?v=keyboard-controls-minimize-1";
+import { createPlaygroundOperatorKeyboard } from "./playground_operator_keyboard.js?v=sample-editor-1";
 import { CHIP_CLOCKS } from "../js/playground_chip_clock.js?v=audio-stability-2";
-import { DEFAULT_CODE, EXAMPLES, EXAMPLE_FILES, MODE_DEFAULT_CODES, MODE_DEFAULT_HISTORY, MODE_EXAMPLE_FILES } from "./playground_examples.js?v=mega-cd-3";
-import { initializePlaygroundMonaco } from "./playground_monaco.js?v=mega-cd-3";
+import { DEFAULT_CODE, EXAMPLES, EXAMPLE_FILES, MODE_DEFAULT_CODES, MODE_DEFAULT_HISTORY, MODE_EXAMPLE_FILES } from "./playground_examples.js?v=sample-editor-1";
+import { initializePlaygroundMonaco } from "./playground_monaco.js?v=sample-editor-1";
 import {
   decodeBase64Bytes,
   loadTfiPresetsFromQuery,
@@ -80,8 +81,8 @@ import { exportYm2608VgmToPlaygroundJavaScript } from "../js/ym2608vgm.js?v=vgm-
 import { exportYm2610BVgmToPlaygroundJavaScript } from "../js/ym2610bvgm.js?v=vgm-frequency-order-2";
 import {
   createPlaygroundRuntime,
-} from "../js/playground_runtime.js?v=mega-cd-3";
-import {DEFAULT_WORKER_LOOKAHEAD_SECONDS} from '../js/playground_performance_sender.js?v=opna-primary-1';
+} from "../js/playground_runtime.js?v=sample-editor-1";
+import {DEFAULT_WORKER_LOOKAHEAD_SECONDS} from '../js/playground_performance_sender.js?v=sample-editor-1';
 import { createVgmPresetFiles } from "./playground_vgm_presets.js?v=vgm-frequency-order-2";
 import { createTfiFileEditor, instrumentToEditorPreset } from "./playground_tfi_editor.js?v=audio-stability-2";
 import { renderFileTree } from "./playground_file_tree.js?v=opnb-primary-1";
@@ -416,6 +417,12 @@ const initialProjectFiles = [
   ...bundledExampleFiles,
 ];
 const virtualFiles = createVirtualFileSystem(initialProjectFiles);
+let sampleProjectGeneration = 0;
+let sampleEditorSession = null;
+function invalidateSampleEditor(reason = 'Project changed') {
+  sampleProjectGeneration++;
+  sampleEditorSession?.controller.abort(new DOMException(reason, 'AbortError'));
+}
 let activeVirtualPath = "/index.js";
 let runVirtualPath = "/index.js";
 let codeCheckpointCache = null;
@@ -494,7 +501,7 @@ const operatorTab = hasPrimaryFM ?
       setStatus(message);
     },
   }) : null;
-const operatorKeyboard = hasPrimaryFM ? createPlaygroundOperatorKeyboard({
+const operatorKeyboard = createPlaygroundOperatorKeyboard({
   root: operatorKeyboardRoot,
   auditionPriority: true,
   minimizeHost: keyboardPanel,
@@ -504,31 +511,31 @@ const operatorKeyboard = hasPrimaryFM ? createPlaygroundOperatorKeyboard({
   canHandleComputerKeys: () => !(activeTfiFilePath && !codePanel.hidden),
   getClock: () => (megaDrive.fm?.fm ?? megaDrive.fm)?.clock ?? selectedChipClock,
   clockDivider: selectedChip === 'ym2203' ? 72 : 144,
-  getSelectedChannel: () => operatorTab.getSelectedChannel(),
+  getSelectedChannel: () => operatorTab?.getSelectedChannel() ?? 0,
   channelCount: megaDrive.capabilities.fmChannels,
   presets: playgroundPresets,
   presetOrder: FM_PRESET_ORDER,
   ensureAudioReady: () => runtime.prepareAudition(),
   onChannelChange(channel) {
-    operatorTab.selectChannel?.(channel);
+    operatorTab?.selectChannel?.(channel);
   },
   onPresetChange(channel, presetName) {
     if (presetName) {
       if (channel === null) {
-        const selectedChannel = operatorTab.getSelectedChannel?.() ?? 0;
+        const selectedChannel = operatorTab?.getSelectedChannel?.() ?? 0;
         for (let target = 0; target < megaDrive.capabilities.fmChannels; target += 1) {
-          operatorTab.selectPreset?.(target, presetName);
+          operatorTab?.selectPreset?.(target, presetName);
         }
-        operatorTab.selectChannel?.(selectedChannel);
+        operatorTab?.selectChannel?.(selectedChannel);
       } else {
-        operatorTab.selectPreset?.(channel, presetName);
+        operatorTab?.selectPreset?.(channel, presetName);
       }
     }
   },
   onStatus(message) {
     setStatus(message);
   },
-}) : null;
+});
 
 operatorTabRoot.addEventListener("change", () => operatorKeyboard?.syncChannel());
 
@@ -1334,6 +1341,15 @@ function openVirtualFile(path) {
   if (!file) {
     return;
   }
+  if (file.type === 'text' && /\.sample\.json$/i.test(path)) {
+    let sampleManifest;
+    try {sampleManifest = JSON.parse(file.data);} catch {}
+    if (sampleManifest?.format === 'tetorica-sample-v1') {
+      saveActiveVirtualFile();
+      void openSampleEditor(path).catch(error => {if (error.name !== 'AbortError') setStatus(`Could not edit sample: ${error.message}`);});
+      return;
+    }
+  }
   if (file.type === "binary" && /\.(?:tfi|vgi)$/i.test(path)) {
     try {
       saveActiveVirtualFile();
@@ -1670,7 +1686,7 @@ const audioMonitor = createAudioMonitor(() => activeTfiFilePath && !codePanel.hi
 const ui =
   createPlaygroundUi({
     chipTabs: selectedMode.chipTabs,
-    fmKeyboard: hasPrimaryFM,
+    fmKeyboard: true,
     dockedPanels: Boolean(workbench),
     initialBottomTab: workbench?.initialBottomTab,
     initialDockOpen: workbench?.initialDockOpen,
@@ -1726,12 +1742,53 @@ const {
   formatLogArgs,
   setBottomTab,
 } = ui;
-const inputAudio = createPlaygroundAudioInput({
+const sampleAssets = createPlaygroundSampleAssets({
+  fs: virtualFiles,
+  getProjectIdentity: () => sampleProjectGeneration,
+  onChanged(path) {
+    refreshExplorerFiles(path.slice(0,path.lastIndexOf('/')) || '/');
+    if (activeVirtualPath === path && virtualFiles.get(path)?.type === 'text') showVirtualFile(virtualFiles.get(path));
+    desktopAutosave?.changed();
+  },
+});
+const sampleInputProvider = createPlaygroundAudioInput({
+  recordingSeconds: 60,
+  defaultTarget: selectedChip === 'gameboy' ? 'gameboy-wave'
+    : ['ym2608','ym2610','ym2610b'].includes(selectedChip) ? 'adpcm-b' : 'rf5c164',
   getAudioContext: () => {
     if (!megaDrive.audioContext) throw new Error('Start Playground audio before choosing a sample.');
     return megaDrive.audioContext;
   },
+  getPreviewDestination: () => megaDrive.masterInputNode ?? megaDrive.audio?.masterInputNode ?? megaDrive.audioContext.destination,
+  loadAsset: (path, context) => sampleAssets.loadAsset(path,sampleAssetContext(context)),
+  saveAsset: (asset, context) => sampleAssets.saveAsset(asset,sampleAssetContext(context)),
 });
+function sampleAssetContext(context = {}) {
+  if (!sampleEditorSession || context.signal !== sampleEditorSession.controller.signal) throw new DOMException('Sample editor closed','AbortError');
+  return {...context,projectIdentity:sampleEditorSession.projectIdentity};
+}
+async function inputAudio(options = {}, context = {}) {
+  context.signal?.throwIfAborted();
+  if (sampleEditorSession) throw new Error('A sample editor is already open.');
+  const session = {projectIdentity:sampleProjectGeneration,controller:new AbortController()};
+  sampleEditorSession = session;
+  const abort = () => session.controller.abort(context.signal.reason);
+  context.signal?.addEventListener('abort',abort,{once:true});
+  try {return await sampleInputProvider({asset:DEFAULT_SAMPLE_ASSET,...options},{signal:session.controller.signal});}
+  finally {
+    session.controller.abort(new DOMException('Sample editor closed','AbortError'));
+    context.signal?.removeEventListener('abort',abort);
+    if (sampleEditorSession === session) sampleEditorSession = null;
+  }
+}
+async function openSampleEditor(asset = DEFAULT_SAMPLE_ASSET) {
+  mainMenu.open = false;
+  saveActiveVirtualFile();
+  const projectIdentity = sampleProjectGeneration;
+  await runtime.prepareAudition();
+  if (projectIdentity !== sampleProjectGeneration) throw new DOMException('Project changed','AbortError');
+  return inputAudio({asset,saveOnly:true});
+}
 function createRuntime() {
   return createPlaygroundRuntime({
     inputAudio,
@@ -1739,6 +1796,7 @@ function createRuntime() {
     workerLookaheadSeconds: readWorkerLookahead() / 1000,
     megaDrive,
     onAuditionReset: () => operatorKeyboard?.releaseAll(),
+    onKeyboardTargetChange: target => operatorKeyboard.attachNoteTarget(target),
     presets:
       playgroundPresets,
     onStatus(message) {
@@ -1754,7 +1812,7 @@ function createRuntime() {
     onReady(context) {
       synth = context.synth;
       operatorTab?.attachSynth(synth);
-      operatorKeyboard?.attachSynth(runtime.getAuditionSynth());
+      operatorKeyboard.attachSynth(hasPrimaryFM ? runtime.getAuditionSynth() : null);
       applyMasterVolume();
       mixerPanel?.refresh();
       chipTabs?.refresh();
@@ -2032,6 +2090,7 @@ function restoreProjectFiles(files, directories = [], {prepared = false} = {}) {
   fileExplorerMenu?.clear();
   clearVirtualInstrumentPresets();
   const project = prepared ? {files, directories} : prepareModeProject({files, directories});
+  invalidateSampleEditor();
   virtualFiles.replace(project.files, project.directories);
   let entry = virtualFiles.get('/index.js');
   if (!entry || entry.type !== 'text') {
@@ -2231,6 +2290,9 @@ function installPlaygroundEventHandlers() {
     mainMenu.open = false;
     newCassetteDialog.returnValue = '';
     newCassetteDialog.showModal();
+  });
+  document.getElementById('sampleEditorButton').addEventListener('click', () => {
+    void openSampleEditor().catch(error => {if (error.name !== 'AbortError') setStatus(`Could not edit sample: ${error.message}`);});
   });
   newCassetteDialog.addEventListener('close', async () => {
     if (newCassetteDialog.returnValue !== 'new') return;
@@ -2677,6 +2739,7 @@ async function changePlaygroundMode(id) {
     });
     if (!['initial','keep'].includes(codeChoice)) return;
     switching = true;
+    invalidateSampleEditor('Mode changed');
     saveActiveVirtualFile();
     playgroundShell?.invalidate('Mode changed');
     await stopRun();

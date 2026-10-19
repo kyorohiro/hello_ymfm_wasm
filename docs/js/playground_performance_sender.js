@@ -50,6 +50,13 @@ export function createPerformanceSender({getLoop = () => null, restoreLoop = () 
     // Return observation storage even after an owner is cancelled. This carries
     // no audio command; the SPC Worklet checks its epoch/sequence separately.
     if (kind === 'spc' && data?.method === 'eventAck') {port.postMessage(data,transfer); return;}
+    const interactive = getLoop();
+    if (interactive?.keyboard) {
+      if (interactive.stopped) throw new DOMException('Run stopped','AbortError');
+      // This lease follows acknowledged instrument RPCs through awaits. Only
+      // interactive input skips the script lead; sibling liveLoops keep theirs.
+      port.postMessage(data,transfer);return;
+    }
     if (bypass || !configuration) { port.postMessage(data, transfer); return; }
     const loop = getLoop(), owner = loop?.performanceOwner ?? 'script';
     let commands = Array.isArray(data) ? data : [data];

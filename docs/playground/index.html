@@ -13,6 +13,7 @@
     <link rel="icon" href="../playground-favicon.ico" sizes="any">
     <link rel="stylesheet" href="./playground_chip_tabs.css?v=chip-tabs-2">
     <link rel="stylesheet" href="./playground_mixer.css?v=chip-tabs-2">
+    <link rel="stylesheet" href="./playground_sample_editor.css">
     <script src="../sw-register.js"></script>
     <style>
       :root {
@@ -1186,6 +1187,10 @@
         margin-bottom: 10px;
       }
 
+      .playground-keyboard-toolbar[hidden] {
+        display: none;
+      }
+
       .playground-keyboard-toolbar > div {
         display: flex;
         gap: 5px;
@@ -1696,6 +1701,7 @@
               <button id="newCassetteButton" type="button">New Cassette</button>
               <button id="exportCassetteButton" type="button">Save Cassette…</button>
               <button id="importCassetteButton" type="button">Load Cassette…</button>
+              <button id="sampleEditorButton" type="button">Sample Editor…</button>
               <p id="autosaveStatus" class="subtext" role="status" hidden></p>
               <hr>
               <details class="toolbar-menu" id="menuImport">
@@ -2091,6 +2097,13 @@
               Generating Playground code with an AI?
               <a href="https://kyorohiro.github.io/hello_ymfm_wasm/for-ai.html" target="_blank" rel="noopener">Open For AI documentation</a> for type definitions and working examples.
             </p>
+            <h2>Sample Editor and Keyboard</h2>
+            <ul class="helper-list">
+              <li>Open <strong>Menu → Sample Editor…</strong> to record, load, trim or draw a sound. The original WAV and edit settings are saved together in your Cassette.</li>
+              <li>Run your mode's <code>*-sampler.js</code> example in FILES, then open <strong>Keyboard</strong> to play the edited sound with the Guitar layout.</li>
+              <li><code>const audio = await inputAudio({asset:"/samples/sampler.sample.json", edit:false})</code> reuses a saved sound; it opens the editor if the asset is missing. Cancel returns <code>null</code>.</li>
+              <li><code>keyboard.bind("sampler", await createSampleInstrument(audio))</code> connects the sound. Custom targets provide <code>noteOn({id,midi,velocity})</code>, <code>noteOff(event)</code> and <code>allNotesOff()</code>.</li>
+            </ul>
             <h2>pg</h2>
             <ul class="helper-list">
               <li><code>pg</code> is the main playground helper namespace</li>
@@ -2398,7 +2411,7 @@
       })();
     </script>
     <script type="module">
-      import('./playground.js?v=mega-cd-3').catch(error => window.__playgroundStartup.fail(error));
+      import('./playground.js?v=sample-editor-1').catch(error => window.__playgroundStartup.fail(error));
     </script>
   </body>
 </html>

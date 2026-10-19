@@ -7,8 +7,10 @@ function walk(dir){for(const ent of readdirSync(dir,{withFileTypes:true})){if(['
 walk(root);
 for(const file of ['playground_mode_starters.js','playground_mode_examples.js','defaults/index.js',...['genesis','genesis-nuked','genesis-full','genesis-full-nuked','pc98-26','pc98','neogeo','neogeo-b','gameboy','nes','snes','x68000','pc-engine','game-gear','master-system'].map(mode=>`defaults/${mode}/index.js`)])if(!existsSync(resolve(root,file)))errors.push(file);
 for(const mode of ['game-gear','master-system'])if(!existsSync(resolve(root,`tetorica-playground-${mode}.d.ts`)))errors.push(`tetorica-playground-${mode}.d.ts`);
-for(const file of ['playground_audio_input.js','tetorica-playground-mega-cd.d.ts','defaults/mega-cd/index.js',
-  'examples/mega-cd/megacd-pcm-loop.js','examples/mega-cd/megacd-fm-pcm.js','examples/mega-cd/megacd-sampler.js'])if(!existsSync(resolve(root,file)))errors.push(file);
+for(const file of ['playground_audio_input.js','playground_sample_assets.js','playground_sample_editor.css','playground_sample_editor_worker.js',
+  'js/playground_sample_edit.js','js/playground_sample_instrument.js','js/playground_keyboard.js','tetorica-playground-mega-cd.d.ts','defaults/mega-cd/index.js',
+  'examples/mega-cd/megacd-pcm-loop.js','examples/mega-cd/megacd-fm-pcm.js','examples/mega-cd/megacd-sampler.js',
+  'examples/gameboy/gameboy-sampler.js','examples/pc98/pc98-sampler.js','examples/neogeo/neogeo-sampler.js'])if(!existsSync(resolve(root,file)))errors.push(file);
 for(const file of ['js/native_runtime_synth.js','js/playground_native_primary.js',
   ...['nes','snes','x68000','huc6280'].map(chip=>`tetorica-playground-${chip}.d.ts`),
   ...['huc6280','okim6258'].flatMap(chip=>[`js/${chip}audioengine.js`,`js/${chip}synth.js`,`js/playground_${chip}.js`,`js/playground_${chip}_audio.js`,`js/playground_${chip}_worklet.js`,`generated/${chip}_wasm.js`,`generated/${chip}_wasm.wasm`,`licenses/mame-${chip}/LICENSE`,`licenses/mame-${chip}/README.md`]),

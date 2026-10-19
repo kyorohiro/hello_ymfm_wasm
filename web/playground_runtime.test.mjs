@@ -147,6 +147,97 @@ test('Main keyboard cleanup stays active without a polling loop and runs on repl
   await runtime.playSource(source('stop'));runtime.stop();assert.deepEqual(globalThis.playgroundReview,[['key',true],'old','new','stop']);
 });
 
+test('Main musical keyboard commits one Run-owned binding, preserves press identity and retires on omission',async t=>{
+  const targets=[];const {runtime}=setup(t,undefined,{onKeyboardTargetChange:target=>targets.push(target)});
+  globalThis.playgroundReview=[];
+  await runtime.playSource(`if(keyboard!==pg.keyboard)throw Error('Separate keyboard');keyboard.bind('bass',{
+    noteOn:event=>globalThis.playgroundReview.push(['on',event]),noteOff:event=>globalThis.playgroundReview.push(['off',event]),
+    allNotesOff:()=>globalThis.playgroundReview.push(['all'])});`);
+  const target=runtime.getKeyboardTarget();assert.equal(target.name,'bass');assert.equal(targets.at(-1),target);
+  await target.noteOn({id:'string1',midi:60});await target.noteOn({id:'string2',midi:60,velocity:90});
+  await target.noteOn({id:'string1',midi:60});assert.equal(globalThis.playgroundReview.length,2);
+  const first=globalThis.playgroundReview[0][1];assert.equal(first.velocity,100);
+  assert.notEqual(first.id,globalThis.playgroundReview[1][1].id);
+  await target.noteOff({id:'string1',midi:60});assert.deepEqual(globalThis.playgroundReview.at(-1),['off',first]);
+  await target.noteOn({id:'string1',midi:60});assert.notEqual(globalThis.playgroundReview.at(-1)[1].id,first.id,'a new press has its own identity');
+  await assert.rejects(runtime.playSource(`keyboard.bind('bad',{noteOn(){}});`),/noteOff/);
+  assert.equal(runtime.getKeyboardTarget(),target,'failed evaluation preserves the committed binding');
+  await runtime.playSource('');assert.equal(runtime.getKeyboardTarget(),null);assert.equal(targets.at(-1),null);
+  assert.equal(globalThis.playgroundReview.at(-1)[0],'all');
+  const count=globalThis.playgroundReview.length;await target.noteOn({id:'late',midi:64});assert.equal(globalThis.playgroundReview.length,count);
+});
+
+test('Main musical keyboard all-notes-off and Stop cancel awaited PCM note starts before a later binding',async t=>{
+  const {runtime,megaDrive}=setup(t,{chip:'ym2612',fmChannels:6,psg:true,dac:true});
+  const gate=deferred(),notes=[];let entered=false;
+  megaDrive.pcm={setChannel(){entered=true;return gate.promise;},keyOn:channel=>notes.push(channel),keyOff(){}};
+  const binding=`const pcm=await useSoundChip('rf5c164');keyboard.bind('sampler',{
+    async noteOn(){await pcm.setChannel(0,{step:1000});await pcm.keyOn(0);},noteOff(){return pcm.keyOff(0);},allNotesOff(){return pcm.keyOff(0);}});`;
+  await runtime.playSource(binding);const old=runtime.getKeyboardTarget();
+  const pending=old.noteOn({id:'held',midi:60});await until(()=>entered);
+  await old.allNotesOff();runtime.stop();
+  await runtime.playSource(`keyboard.bind('next',{noteOn(){fm.keyOn(CH1);},noteOff(){fm.keyOff(CH1);},allNotesOff(){fm.keyOff(CH1);}});`);
+  gate.resolve();await pending;assert.deepEqual(notes,[],'old RPC continuation cannot key on the next Run');
+  assert.equal(runtime.getKeyboardTarget().name,'next');
+});
+
+test('Main shared PCM sample factory releases started voices across separate key callback leases',async t=>{
+  const {runtime,megaDrive}=setup(t,{chip:'ym2612',fmChannels:6,psg:true,dac:true});
+  const {writes}=attachPrimaryPcm(megaDrive);
+  await runtime.playSource(`const instrument=await createSampleInstrument({channels:[new Float32Array([0,.5,-.5,0])],sampleRate:16000});keyboard.bind('sampler',instrument);`);
+  const target=runtime.getKeyboardTarget();
+  await target.noteOn({id:'first',midi:60});assert.equal(writes.at(-1)[1],254);
+  await target.noteOff({id:'first',midi:60});assert.equal(writes.at(-1)[1],255,'key release reaches the primary device');
+  await target.noteOn({id:'second',midi:60});assert.equal(writes.at(-1)[1],254);
+  await target.allNotesOff();assert.equal(writes.at(-1)[1],255,'all-notes-off shares the binding audio owner');
+});
+
+test('Main shared Game Boy sample factory releases wave RAM notes from another callback lease',async t=>{
+  const {runtime,megaDrive}=setup(t,{chip:'gameboy',fmChannels:0,psg:false,dac:false});
+  const writes=[];megaDrive.fm=null;
+  megaDrive.gameboy=new GameboySynth({transport:{reset(){},writeRegister:(...args)=>writes.push(args)}});megaDrive.gameboy.initialize();
+  await runtime.playSource(`const instrument=await createSampleInstrument({channels:[new Float32Array([0,.5,-.5,0])],sampleRate:16000,waveform:new Uint8Array(32).fill(8)});keyboard.bind('sampler',instrument);`);
+  const target=runtime.getKeyboardTarget();
+  await target.noteOn({id:'wave',midi:60});assert(writes.some(([register,value])=>register===14&&(value&128)));
+  const before=writes.length;await target.noteOff({id:'wave',midi:60});
+  assert(writes.slice(before).some(([register,value])=>register===10&&!(value&128)),'wave key release reaches the mono primary device');
+});
+
+test('Main native PSG musical binding releases the channel across separate key callback leases',async t=>{
+  const {runtime,megaDrive}=setup(t,{chip:'segapsg',fmChannels:0,psg:true,dac:false});
+  const writes=[],raw=createSegaPsgClient({postMessage:command=>writes.push(command),start(){},close(){}});
+  megaDrive.fm=null;megaDrive.psg=raw;megaDrive.primaryEndpoints=[{name:'segapsg',globalName:'psg',client:raw}];megaDrive.stopAllNative=()=>raw.allNotesOff();
+  await runtime.playSource(`keyboard.bind('psg',{noteOn(){psg.tone(0,{note:'C4',attenuation:7});},noteOff(){psg.off(0);},allNotesOff(){psg.allNotesOff();}});`);
+  const target=runtime.getKeyboardTarget();await target.noteOn({id:'tone',midi:60});assert.equal(writes.at(-1).args[0],0x97);
+  await target.noteOff({id:'tone',midi:60});assert.equal(writes.at(-1).args[0],0x9f);
+});
+
+test('Main shared sample factory retains queued input leases and rejects a retired voice continuation',async t=>{
+  const {runtime,megaDrive}=setup(t,{chip:'ym2612',fmChannels:6,psg:true,dac:true});
+  const {writes}=attachPrimaryPcm(megaDrive),gate=deferred();
+  const setChannel=megaDrive.pcm.setChannel.bind(megaDrive.pcm);let entered=false;
+  megaDrive.pcm.setChannel=(...args)=>{entered=true;return gate.promise.then(()=>setChannel(...args));};
+  await runtime.playSource(`
+    if(createSampleInstrument!==pg.createSampleInstrument)throw Error('Separate factory');
+    const instrument=await createSampleInstrument({channels:[new Float32Array([0,.5,-.5,0])],sampleRate:16000});
+    keyboard.bind(instrument.name,instrument);
+  `);
+  const old=runtime.getKeyboardTarget();assert.match(old.name,/RF5C164/);
+  const on=old.noteOn({id:'held',midi:60});await until(()=>entered);
+  await old.allNotesOff();runtime.stop();await runtime.playSource('');
+  const boundary=writes.length;gate.resolve();await on;
+  assert(!writes.slice(boundary).some(([register,value])=>register===8&&value!==255),
+    'an awaited voice FIFO cannot trigger a note after its input lease retires');
+});
+
+test('Main audio input forwards saved asset options without bypassing strict option validation',async t=>{
+  const requests=[];const {runtime}=setup(t,undefined,{inputAudio:options=>{requests.push(options);return Promise.resolve(null);}});
+  await runtime.playSource(`await inputAudio({title:'Restore',asset:'/instruments/voice.sample.json',edit:false});`);
+  assert.deepEqual(requests,[{title:'Restore',asset:'/instruments/voice.sample.json',edit:false}]);
+  await assert.rejects(runtime.playSource(`await inputAudio({asset:4});`),/inputAudio supports/);
+  await assert.rejects(runtime.playSource(`await inputAudio({edit:'no'});`),/inputAudio supports/);
+});
+
 test('primary Game Boy exposes shared initialized controls without FM shortcuts and survives Stop', async t => {
   const {runtime,megaDrive}=setup(t,{chip:'gameboy',fmChannels:0,psg:false,dac:false});
   const writes=[];
@@ -780,6 +871,20 @@ function workerBridge(t) {
   };
   t.after(()=>{globalThis.Worker=previous;});return workers;
 }
+test('Main exposes a Worker musical binding and fences old UI callbacks after replacement and Stop',async t=>{
+  const {runtime}=setup(t),workers=workerBridge(t);
+  await runtime.playSource('',{execution:'worker'});const worker=workers[0],sent=[];
+  const post=worker.postMessage.bind(worker);worker.postMessage=message=>{sent.push(message);return post(message);};
+  worker.send({type:'musical-keyboard-binding',binding:{name:'Worker sampler',session:'worker:1'}});
+  await until(()=>runtime.getKeyboardTarget()?.name==='Worker sampler');
+  const old=runtime.getKeyboardTarget();await old.noteOn({id:'string1',midi:60});
+  assert.equal(sent.at(-1).type,'musical-keyboard');assert.equal(sent.at(-1).session,'worker:1');
+  assert.equal(sent.at(-1).event.velocity,100);
+  worker.send({type:'musical-keyboard-binding',binding:{name:'Next',session:'worker:2'}});
+  await until(()=>runtime.getKeyboardTarget()?.name==='Next');
+  const count=sent.length;await old.noteOff({id:'string1',midi:60});assert.equal(sent.length,count);
+  runtime.stop();assert.equal(runtime.getKeyboardTarget(),null);
+});
 test('Worker restart waits for Main primary PCM releases even when its stopped message arrives first',async t=>{
   const {runtime,megaDrive}=setup(t,{chip:'ym2612',fmChannels:6,psg:true,dac:true});
   const workers=workerBridge(t),pending=[];let delay=true;
