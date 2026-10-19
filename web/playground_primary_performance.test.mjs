@@ -24,7 +24,7 @@ test('served primary worklets resolve their real static module imports, includin
 });
 function processor(tree, name, rate = 48000) {
   let Type;
-  const replies = [], writes = [];
+  const replies = [], portReplies = [], writes = [];
   const scope = {
     currentFrame: 0, sampleRate: rate, Float32Array, Uint8Array, Error,
     createPerformanceQueue, createPerformanceChipOwnership, createChipPortReceiver, createOpnAuditionGuard, receiveOpnAuditionCommand,
@@ -44,7 +44,7 @@ function processor(tree, name, rate = 48000) {
   else {p.chip = chip; p.chipRate = rate;}
   p.auditions = createOpnAuditionGuard(chip, name === 'ym2203-worklet' ? 3 : 6);
   const send = data => p.port.onmessage({data});
-  const port = {start() {}, close() {}, postMessage: data => replies.push(data)};
+  const port = {start() {}, close() {}, postMessage: data => {replies.push(data); portReplies.push(data);}};
   send({type: 'attach-chip-port', port});
   send({type: 'performance-start', session: 1, id: 1});
   const batch = (frame, commands, owner = 'loop:1', session = 1) => port.onmessage({data: {
@@ -54,7 +54,7 @@ function processor(tree, name, rate = 48000) {
     const left = new Float32Array(count), right = new Float32Array(count);
     p.process([], [[left, right]]); scope.currentFrame += count; return left;
   };
-  return {p, chip, scope, replies, writes, send, batch, render, port};
+  return {p, chip, scope, replies, portReplies, writes, send, batch, render, port};
 }
 
 for (const tree of ['web', 'docs/js']) for (const name of names) {
@@ -119,5 +119,42 @@ for (const name of ['ym2612-worklet', 'ym2612-worklet-nuked']) {
     assert.equal(f.replies.filter(reply => reply.type === 'chip-clock-result' && reply.id === 10).length, 1);
     assert.equal(f.replies.filter(reply => reply.type === 'pcm-dac-result' && reply.id === 12).length, 1);
     assert.ok(f.writes.some(([register, value]) => register === 0x2a && value === 129));
+  });
+}
+
+for (const tree of ['web', 'docs/js']) {
+  test(`${tree} primary YM2608: memory/ROM prep replies on its direct port before future performance frames`, () => {
+    const f = processor(tree, 'ym2608-worklet'), loaded = [];
+    f.chip.loadAdpcmARom = bytes => loaded.push(['rom', bytes.length]);
+    f.chip.loadAdpcmBMemory = (bytes, address) => {if (address === 1) throw Error('Memory rejected'); loaded.push(['memory', address, bytes.length]);};
+    f.batch(400, [{type: 'loadRhythmRom', id: 21, bytes: new Uint8Array(8192)},
+      {type: 'loadAdpcmMemory', id: 22, bytes: new Uint8Array(32), address: 64}]);
+    assert.deepEqual(loaded, [['rom', 8192], ['memory', 64, 32]]);
+    for (const [type, id] of [['rhythm-rom-loaded', 21], ['adpcm-memory-loaded', 22]]) {
+      assert.ok(f.portReplies.some(reply => reply.type === type && reply.id === id && !reply.error));
+    }
+    assert.equal(f.p.performanceQueue.getStats().queuedCommands, 0);
+    f.port.onmessage({data: [{type: 'loadAdpcmMemory', id: 23, bytes: new Uint8Array(32), address: 1}]});
+    assert.ok(f.portReplies.some(reply => reply.id === 23 && reply.error === 'Memory rejected'));
+    f.p.chip = null;
+    f.port.onmessage({data: [{type: 'loadRhythmRom', id: 24, bytes: new Uint8Array(8192)}]});
+    assert.ok(f.portReplies.some(reply => reply.id === 24 && /not ready/.test(reply.error)));
+  });
+
+  test(`${tree} primary YM2608: canceled loops release SSG/rhythm/ADPCM without silencing replacement voices`, () => {
+    const f = processor(tree, 'ym2608-worklet');
+    f.batch(0, [{type: 'write', port: 0, register: 8, value: 12},
+      {type: 'write', port: 0, register: 9, value: 13},
+      {type: 'write', port: 0, register: 0x10, value: 3},
+      {type: 'write', port: 1, register: 0, value: 0xa0}], 'old');
+    f.render(1);
+    f.batch(1, [{type: 'write', port: 0, register: 9, value: 10},
+      {type: 'write', port: 0, register: 0x10, value: 2}], 'new');
+    f.render(1); f.writes.length = 0;
+    f.send({type: 'performance-cancel-owner', session: 1, owner: 'old'});
+    assert.deepEqual(f.writes, [[8, 0, 0], [0x10, 0x81, 0], [0, 1, 1]]);
+    f.writes.length = 0;
+    f.send({type: 'performance-cancel-owner', session: 1, owner: 'new'});
+    assert.deepEqual(f.writes, [[9, 0, 0], [0x10, 0x82, 0]]);
   });
 }

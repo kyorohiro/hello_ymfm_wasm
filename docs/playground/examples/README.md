@@ -11,14 +11,19 @@ FILES の `examples/` を開き、フォルダー内の `.js` を選択して Ru
 | genesis | 独立 Sega PSG・Mega CD PCM（RF5C164） |
 | gameboy | pulse・wave・noise・複数音源の設定 |
 | nes | NES APU の pulse・triangle・noise、FDS 波形と変調、DMC サンプル |
-| pc98 | 独立 YM2608 の SSG・rhythm・ADPCM-B（PCM からの loadSample を含む） |
+| pc98 | PC-98 mode の標準 FM・SSG・rhythm・ADPCM-B と、独立 YM2608 の例 |
 | x68000 | 独立 YM2151 の FM |
 | dx7 | MSFA DX7 の16音発音、Object での音作りと SysEx 音色の読み込み |
 
 FILES ではこの順に表示します。機種別のサンプルは各フォルダーに直接置きます。`basic/` 内の共通機能サンプルは機能別に分類しています。
 `chip-raw` は直接レジスタを書く入口として残しています。
 `basic/fm`・`basic/psg`・`basic/dac` は選択中の音源や Playground のグローバル API を使います。
-機種別フォルダーには `useSoundChip()` / `createSoundChip()` で独立した音源を取得する例を置きます。
+機種別フォルダーには、その mode の標準音源や `useSoundChip()` / `createSoundChip()` で取得する独立音源の例を置きます。
+
+`pc98/pc98-opna-sections.js` は Mode を `PC-98 (YM2608 / OPNA)` にして実行します。
+標準の `fm`・`ssg`・`rhythm`・`adpcm` で、同じ YM2608 の各機能を順番に鳴らします。
+Main / Worker の両方で使え、ADPCM 用の音声もコード内で作るため外部ファイルは不要です。
+他の `pc98/ym2608-*.js` は独立音源を使うため、どの mode でも実行できます。
 
 `basic/fm/soundchip-tone-controls.js` は共通の音程・発音操作の例です。
 `setFrequency(ch, hz)`、`setNote(ch, note)`、`keyOn(ch)`、`keyOff(ch)`、`noteOn(ch, note)` を使います。

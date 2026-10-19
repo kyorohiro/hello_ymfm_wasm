@@ -19,6 +19,13 @@ export class SSGSynth {
   }
   /** Reset tracked registers after the parent chip was reset. Does not write hardware. */
   resetState() { this.registers = new Uint8Array(16); this.#levels.fill(0); }
+  /** Internal performance snapshot, including levels retained while keyed off. */
+  _getState() { return {registers: Array.from(this.registers), levels: Array.from(this.#levels)}; }
+  /** Adopt a performance shadow without bus writes; older register-only snapshots remain supported. */
+  _adoptState({registers, levels}) {
+    this.registers.set(registers);
+    this.#levels.set(levels ?? Array.from(registers).slice(8, 11));
+  }
    /** Track parent Synth raw writes so mixer changes preserve other channels and I/O bits. @param {number} register  @param {number} value */
   observeWrite(register, value) { if (register >= 0 && register < 16) this.registers[register] = value; if (register >= 8 && register <= 10) this.#levels[register - 8] = value; }
   /** @param {number} register

@@ -17,7 +17,7 @@ function immediate(command, kind) {
   if (kind === 'chip') {
     if (command.type === 'pcm-dac') return command.command.action === 'load' ||
       command.command.action === 'remove' || command.command.when !== undefined;
-    return ['schedule-writes', 'clear-scheduled-writes', 'load-dac-bank', 'play-dac-bank',
+    return ['loadRhythmRom', 'loadAdpcmMemory', 'schedule-writes', 'clear-scheduled-writes', 'load-dac-bank', 'play-dac-bank',
       'clear-dac-playback', 'begin-sample-schedule', 'reset-sample-schedule',
       'sample-writes', 'sample-dac-bank'].includes(command.type);
   }

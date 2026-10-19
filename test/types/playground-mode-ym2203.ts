@@ -1,6 +1,7 @@
 /// <reference path="../../docs/playground/tetorica-playground-ym2203.d.ts" />
 /// <reference path="./playground-mode-common.ts" />
 /// <reference path="./playground-mode-opn.ts" />
+/// <reference path="./playground-mode-without-opna.ts" />
 
 async function checkPc98OpnModeTypes() {
   fm.setPreset(CH3, {algorithm: 7, feedback: 2});

@@ -5,7 +5,7 @@
  * import だけでは音声デバイスを開かない。アセット読み込みには fetch を使用する。
  */
 import { TetoricaAudioRuntime } from "./tetorica_audio_runtime.js?v=chip-tabs-2";
-import { OPNWorkletTransport } from "./opn_fm_synth.js";
+import { OPNWorkletTransport } from "./opn_fm_synth.js?v=opna-primary-1";
 
 /** @typedef {Pick<import('./megasynth.js?v=chip-tabs-2').MegaSynthOptions,'audioContext'|'outputNode'|'sampleOutputNode'|'masterVolume'|'mixer'|'workletUrl'> & {wasmUrl?:string,rhythmRom?:Uint8Array,rhythmRomUrl?:string}} OPNRuntimeSynthOptions */
 

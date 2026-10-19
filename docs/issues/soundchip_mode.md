@@ -10,7 +10,7 @@
 | Genesis Full | `genesis-full` | Genesis + Mega-CD RF5C164 + 32X PWM | YM2612: 7,670,454 Hz |
 | Genesis Full (Nuked) | `genesis-full-nuked` | Genesis Full の YM2612 を Nuked-OPN2 にする | YM2612: 7,670,454 Hz |
 | PC-98 (YM2203 / OPN) | `pc98-26` | YM2203 FM、3ch | 4,000,000 Hz |
-| PC-98 (YM2608 / OPNA) | `pc98` | YM2608 FM、6ch | 8,000,000 Hz |
+| PC-98 (YM2608 / OPNA) | `pc98` | YM2608 FM 6ch + SSG 3ch + Rhythm 6音 + ADPCM-B | 8,000,000 Hz |
 | Neo Geo | `neogeo` | YM2610 FM、4ch | 8,000,000 Hz |
 
 ここでの Hz は CPU や音声出力のサンプルレートではなく、音源のマスタークロック。
@@ -18,8 +18,9 @@
 音源タブも mode に合わせ、Genesis は FM / Sega PSG、Full はさらに RF5C164 / 32X PWM、
 PC-98 と Neo Geo は対象の FM タブを表示する。Code や下部の共通ツールは引き続き使える。
 `useSoundChip()` で追加した音源によって、mode に含まれないタブを自動表示することはしない。
-PC-98 / Neo Geo の標準 FM 以外の機能は、既存の `useSoundChip()` / `createSoundChip()`
-で追加して使える。機種全体のエミュレーションを新設するものではない。
+PC-98 (YM2608 / OPNA) は `fm` に加えて `ssg`・`rhythm`・`adpcm` を標準で公開する。
+これらは同じ YM2608 を操作する。現時点で標準公開していない機能は、既存の
+`useSoundChip()` / `createSoundChip()` で追加して使える。
 
 切り替え時は停止・音声の終了処理を行い、現在のコード、バイナリ、フォルダー、
 開いているコードファイル、実行対象、Cassette メタデータを引き継いで再読み込みする。
@@ -32,8 +33,43 @@ PC-98 / Neo Geo の標準 FM 以外の機能は、既存の `useSoundChip()` / `
 従来の `mode=simple` も読み込める。
 
 YM2608 の `useSoundChip()` は、SSG・Rhythm・ADPCM・Timeline を含む既存のフル API を
-保つため、標準 FM とは別インスタンスのままとする。標準 FM と共有する YM2612・YM2203・
+保つため、標準の YM2608 とは別インスタンスのままとする。標準 FM と共有する YM2612・YM2203・
 YM2610 とは扱いが異なる。単純な FM への別名化でフル import を壊さない。
+
+### PC-98 / OPNA の標準 API
+
+`?mode=pc98` では、Main / Worker の両方で次の入口を使える。
+
+- `fm`：FM 6ch。型表示は `YM2608FMApi`。
+- `ssg`：3ch の tone / noise / envelope。
+- `rhythm`：6音のリズム。標準の合成リズム ROM を使用し、`loadRom()` で差し替えも可能。
+- `adpcm`：ADPCM-B。`loadMemory()` または PCM / WAV からの `loadSample()` で準備して発音する。
+
+`pg.ssg`・`pg.rhythm`・`pg.adpcm` と `livePrepare()` の引数にも同じ API を公開する。
+補完・型定義はこの mode に合わせる。`fm.setClock()` の変更は SSG の音程計算と
+ADPCM の再生レート計算にも反映し、Stop で全セクションを停止する。
+SSG・Rhythm・ADPCM 用のタブ追加は、この実装には含めない。
+
+```javascript
+ssg.tone(0, {frequency: 440, volume: 10});
+await beat(1);
+ssg.keyOff(0);
+
+rhythm.setVolume(48);
+rhythm.setVoice('snare', {volume: 24, left: true, right: true});
+rhythm.keyOn('snare');
+
+const sample = await adpcm.loadSample(
+  await file('./voice.wav', {type: 'arrayBuffer'}),
+);
+adpcm.setVolume(180);
+adpcm.setPan(true, true);
+adpcm.keyOn();
+await sleep(sample.duration);
+adpcm.keyOff();
+```
+
+外部ファイル不要の実行例は `examples/pc98/pc98-opna-sections.js`。
 
 ## 背景
 
@@ -90,7 +126,7 @@ Genesis mode に FM、PSG、DAC が最初から用意され、`play()` が標準
 | Game Boy | `gameboy` | Game Boy 音源 | FM を前提としない API・サンプルを用意する。 |
 | SNES | `snes` | SNES 音源 | サンプル・音色の初期構成と SPC 再生の位置付けを整理する。 |
 | PC-98 (OPN) | `pc98-26` | YM2203 | 先行実装は3ch の FM を標準音源とする。 |
-| PC-98 (OPNA) | `pc98` | YM2608 | 先行実装は6ch の FM を標準音源とする。 |
+| PC-98 (OPNA) | `pc98` | YM2608 | FM 6ch・SSG 3ch・Rhythm・ADPCM-B を標準公開。 |
 | Neo Geo | `neogeo` | YM2610 系の構成 | 使用する実装と、FM・SSG・ADPCM の公開方法を整理する。 |
 | X68000 | `x68000` | YM2151 + OKIM6258 を想定 | 各音源の Playground 接続を確認する。 |
 | PC Engine | `pc-engine` | HuC6280 を想定 | Playground 側の接続・API を確認する。 |

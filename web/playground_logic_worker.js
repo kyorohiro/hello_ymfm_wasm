@@ -387,6 +387,14 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
       return chip && !mainMethods.includes(property) ? chip.fm[property] : commandProxy(`fm.${String(property)}`);
     },
   });
+  const opna = capabilities.chip === 'ym2608' ? Object.fromEntries(
+    ['ssg','rhythm','adpcm'].map(section => [section, chip?.[section] ?? new Proxy({}, {
+      get(_target, method) {
+        if (method === 'then') return undefined;
+        if (method === 'clock' && section !== 'rhythm') return section === 'ssg' ? fm.clock / 4 : fm.clock;
+        return (...args) => request('opna.invoke', [section, String(method), args], run.currentLoop);
+      },
+    })])) : {};
   const fxPort = nativeFXPort ? performanceTransport.port(nativeFXPort, 'fx') : null;
   const nativeSample=fxPort?createNativeSampleController(data=>fxPort.postMessage(data)):null;
   if(nativeSample){fxPort.onmessage=({data})=>nativeSample.accept(data);fxPort.start?.();}
@@ -487,7 +495,7 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
   const prepareResource = async (name, fn) => {
     if (run.prepared.has(name)) return run.prepared.get(name);
     const generation = run.generation;
-    const value = await fn({ fm, fx, psg, sample, stream, dac, noise, control: (voice, options) => nativeNoise ? controlNativeNoise(voice,options) : postCommand("noise.control", [handleId(voice), options]), context: run.context, log: (...args) => postCommand("log", args) });
+    const value = await fn({ fm, ...opna, fx, psg, sample, stream, dac, noise, control: (voice, options) => nativeNoise ? controlNativeNoise(voice,options) : postCommand("noise.control", [handleId(voice), options]), context: run.context, log: (...args) => postCommand("log", args) });
     if (run.stopped || generation !== run.generation) throw new Error("Run stopped");
     run.prepared.set(name, value);
     return value;
@@ -661,7 +669,7 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
       error: (...args) => postCommand("error", args),
     },
     log: (...args) => postCommand("log", args),
-    fm, fx, psg, dac, sample, stream, noise,
+    fm, ...opna, fx, psg, dac, sample, stream, noise,
     context: run.context,
     FM_PRESETS: presets,
     tfiToPreset,

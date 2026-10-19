@@ -9,12 +9,12 @@ import {
   YM2608DirectTransport,
   YM2608RuntimeSynth,
   YM2608Synth,
-} from "../js/ym2608synth.js?v=chip-tabs-2";
-import { OPNWorkletTransport } from "../js/opn_fm_synth.js";
+} from "../js/ym2608synth.js?v=opna-primary-1";
+import { OPNWorkletTransport } from "../js/opn_fm_synth.js?v=opna-primary-1";
 import {
   createTetoricaSynth,
   normalizeTetoricaChip,
-} from "../js/tetorica_synth.js?v=chip-tabs-2";
+} from "../js/tetorica_synth.js?v=opna-primary-1";
 
 function createTransport() {
   const writes = [];

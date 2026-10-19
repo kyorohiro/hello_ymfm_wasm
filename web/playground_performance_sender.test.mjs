@@ -29,6 +29,8 @@ test('explicit DAC timelines and resource loads stay immediate without double le
     {type: 'schedule-writes', entries: [{time: 10}]},
     {type: 'pcm-dac', id: 1, command: {action: 'load', data: new Uint8Array([128])}},
     {type: 'pcm-dac', id: 2, command: {action: 'play', when: 12}},
+    {type: 'loadRhythmRom', id: 3, bytes: new Uint8Array(8192)},
+    {type: 'loadAdpcmMemory', id: 4, bytes: new Uint8Array(32), address: 64},
   ]) f.channel.postMessage([command]);
   assert.ok(f.sent.every(data => Array.isArray(data) && !data.performance));
 });

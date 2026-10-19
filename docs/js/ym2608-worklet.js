@@ -18,15 +18,17 @@ class YM2608Processor extends AudioWorkletProcessor {
     this.auditions = null;
     this.chipRate = sampleRate;
     this.remainder = 0; this.lastLeft = 0; this.lastRight = 0;
+    this.sectionOwners = {ssg: new Array(3).fill(null), rhythm: new Array(6).fill(null), adpcm: null};
     this.performanceOwnership = createPerformanceChipOwnership({
       writeFm: (register, value, port) => this.chip?.writeRegister(register, value, port),
       channelCount: 6,
     });
     this.performanceQueue = createPerformanceQueue({
       apply: (data, reply, _frame, performance) => handle(data, reply, performance),
-      onCancelOwner: owner => this.performanceOwnership.cancel(owner),
+      onCancelOwner: owner => { this.performanceOwnership.cancel(owner); this.cancelSectionOwner(owner); },
       nowFrame: () => currentFrame, sampleRate,
       prepare: (data, reply) => {
+        if (data.type === 'loadRhythmRom' || data.type === 'loadAdpcmMemory') { handle(data, reply); return null; }
         if (data.type !== 'chip-clock') return data;
         try {
           if (!this.chip) throw new Error('Chip not ready');
@@ -39,6 +41,7 @@ class YM2608Processor extends AudioWorkletProcessor {
     const receiveChipPort = createChipPortReceiver((data, reply) => handle(data, reply), undefined, {performanceQueue: this.performanceQueue});
     const handle = (data, reply = message => this.port.postMessage(message), performance) => {
       this.performanceOwnership.observe(data, performance);
+      this.observeSectionOwnership(data, performance);
       if (receiveOpnAuditionCommand(this.auditions, data, reply)) return;
       if (data.type === 'chip-clock') {
         try { if (!this.chip) throw new Error('Chip not ready'); this.chipRate = this.chip.sampleRate(validateChipClock(data.clock)); if (!data.performanceAcknowledged) reply({type:'chip-clock-result',id:data.id}); }
@@ -46,15 +49,17 @@ class YM2608Processor extends AudioWorkletProcessor {
         return;
       }
       if (data.type === "initialize") void this.initialize(data.wasmBinary, data.rhythmRom);
-      if (data.type === 'loadRhythmRom' && this.chip) this.chip.loadAdpcmARom(data.bytes);
-      if (data.type === 'loadAdpcmMemory') {
+      if (data.type === 'loadRhythmRom' || data.type === 'loadAdpcmMemory') {
+        const type = data.type === 'loadRhythmRom' ? 'rhythm-rom-loaded' : 'adpcm-memory-loaded';
         try {
           if (!this.chip) throw new Error('YM2608 is not ready');
-          this.chip.loadAdpcmBMemory(data.bytes, data.address);
-          this.port.postMessage({type: 'adpcm-memory-loaded', id: data.id});
+          if (data.type === 'loadRhythmRom') this.chip.loadAdpcmARom(data.bytes);
+          else this.chip.loadAdpcmBMemory(data.bytes, data.address);
+          reply({type, id: data.id});
         } catch (error) {
-          this.port.postMessage({type: 'adpcm-memory-loaded', id: data.id, error: String(error.message ?? error)});
+          reply({type, id: data.id, error: String(error.message ?? error)});
         }
+        return;
       }
       if (data.type === "write" && this.chip) this.write(data.port, data.register, data.value);
       if (data.type === "reset") this.chip?.reset();
@@ -87,6 +92,34 @@ class YM2608Processor extends AudioWorkletProcessor {
 
   write(port, register, value) {
     this.chip.writeRegister(register, value, port);
+  }
+
+  observeSectionOwnership(data, performance) {
+    const owner = performance?.owner ?? null;
+    if (data.type === 'reset') { this.sectionOwners.ssg.fill(null); this.sectionOwners.rhythm.fill(null); this.sectionOwners.adpcm = null; }
+    if (data.type !== 'write') return;
+    const {register, value} = data;
+    if ((data.port ?? 0) === 0) {
+      if (register >= 8 && register <= 10) this.sectionOwners.ssg[register - 8] = value & 31 ? owner : null;
+      if (register === 0x10) for (let ch = 0; ch < 6; ch++) {
+        if (value & (1 << ch)) this.sectionOwners.rhythm[ch] = value & 0x80 ? null : owner;
+      }
+    } else if (data.port === 1 && register === 0) {
+      if (value & 0x80) this.sectionOwners.adpcm = owner;
+      else if (value & 1) this.sectionOwners.adpcm = null;
+    }
+  }
+
+  cancelSectionOwner(owner) {
+    for (let ch = 0; ch < 3; ch++) if (this.sectionOwners.ssg[ch] === owner) {
+      this.sectionOwners.ssg[ch] = null; this.chip?.writeRegister(8 + ch, 0, 0);
+    }
+    let rhythmMask = 0;
+    for (let ch = 0; ch < 6; ch++) if (this.sectionOwners.rhythm[ch] === owner) {
+      this.sectionOwners.rhythm[ch] = null; rhythmMask |= 1 << ch;
+    }
+    if (rhythmMask) this.chip?.writeRegister(0x10, 0x80 | rhythmMask, 0);
+    if (this.sectionOwners.adpcm === owner) { this.sectionOwners.adpcm = null; this.chip?.writeRegister(0, 1, 1); }
   }
 
   process(_inputs, outputs) {

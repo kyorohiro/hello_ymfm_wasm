@@ -1,4 +1,4 @@
-import {validateWorkerLookahead} from './playground_performance_sender.js?v=spc-events-1';
+import {validateWorkerLookahead} from './playground_performance_sender.js?v=opna-primary-1';
 
 // One module-wide sequence also fences a retired Runtime sharing the same node.
 let nextSession = Date.now() * 1000;

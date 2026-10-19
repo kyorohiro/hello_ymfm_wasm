@@ -4,7 +4,7 @@ import {createSnesAudio} from './playground_snes_audio.js?v=spc-song-js-1';
 import {createSnesClient} from './playground_snes.js?v=spc-song-js-1';
 import {createChipInspector} from './playground_chip_inspector.js?v=chip-tabs-2';
 import {createPerformanceHost} from './playground_performance_host.js?v=spc-events-1';
-import {DEFAULT_WORKER_LOOKAHEAD_SECONDS, validateWorkerLookahead} from './playground_performance_sender.js?v=spc-events-1';
+import {DEFAULT_WORKER_LOOKAHEAD_SECONDS, validateWorkerLookahead} from './playground_performance_sender.js?v=opna-primary-1';
 import {midiToOpnPitch, opnPitchFromHz} from './soundchip_pitch.js';
 import {attachChipClock, CHIP_CLOCKS} from './playground_chip_clock.js';
 import {createNesAudio} from './playground_nes_audio.js';
@@ -42,7 +42,7 @@ import { createAudioScheduler } from "./playground_audio_scheduler.js";
 import {
   FM_PRESETS,
 } from "./megasynth.js?v=chip-tabs-2";
-import { createTetoricaSynth } from "./tetorica_synth.js?v=chip-tabs-2";
+import { createTetoricaSynth } from "./tetorica_synth.js?v=opna-primary-1";
 import { createPlaygroundClock, createSecondsTimeline } from "./playground_clock.js?v=spc-song-timing-1";
 import { capturePlaygroundNativeIpc, executeWithPlaygroundGuards } from "./playground_execution.js";
 import { createPlaygroundLive } from "./playground_live.js?v=run-sample-clock-1";
@@ -195,7 +195,7 @@ export function createPlaygroundRuntime(
     options.execution ?? "main";
   const defaultLogicWorkerUrl =
     new URL(
-      "./playground_logic_worker.js?v=spc-song-timing-1",
+      "./playground_logic_worker.js?v=opna-primary-1",
       import.meta.url
     );
   defaultLogicWorkerUrl.searchParams.set(
@@ -270,6 +270,41 @@ export function createPlaygroundRuntime(
   watchInspectorMixer();
   let sharedFm;
   let sharedFmSynth;
+  let sharedOpna = {};
+  let sharedOpnaSynth;
+  let opnaLoads = new AbortController();
+  function primaryOpnaSections() {
+    if (capabilities.chip !== 'ym2608') return {};
+    if (sharedOpnaSynth === synth) return sharedOpna;
+    sharedOpna = {};
+    for (const section of ['ssg','rhythm','adpcm']) {
+      const target = synth?.[section];
+      if (!target) continue;
+      sharedOpna[section] = Object.fromEntries(Object.getOwnPropertyNames(Object.getPrototypeOf(target))
+        .filter(method => !method.startsWith('_') && !['constructor','resetState','observeWrite'].includes(method))
+        .map(method => [method, (...args) => {
+          if (section === 'rhythm' && method === 'loadRom' && args[0] instanceof ArrayBuffer) args[0] = new Uint8Array(args[0]);
+          if (section === 'adpcm' && method === 'loadSample') {
+            const [source, options = {}] = args;
+            const signal = options.signal ? AbortSignal.any([opnaLoads.signal, options.signal]) : opnaLoads.signal;
+            return target.loadSample(source, {...options, signal});
+          }
+          return target[method](...args);
+        }]));
+    }
+    sharedOpnaSynth = synth;
+    return sharedOpna;
+  }
+  function primaryChipState() {
+    const core = synth?.fm ?? synth;
+    const sections = {};
+    if (capabilities.chip === 'ym2608') {
+      if (core?.ssg?._getState) sections.ssg = core.ssg._getState();
+      if (core?.rhythm?.levels) sections.rhythm = {levels:Array.from(core.rhythm.levels)};
+      if (core?.adpcm?.registers) sections.adpcm = {registers:Array.from(core.adpcm.registers)};
+    }
+    return {...core?.getState?.(), clock:sharedFm?.clock ?? core?.clock, ...sections};
+  }
   // UI notes share the chip and its output gain, but own their channel until
   // released. The worklet arbitrates against Main and direct Worker writes.
   const auditionTokens = new Map();
@@ -426,8 +461,12 @@ export function createPlaygroundRuntime(
         (event) => {
           options.onMegaDriveEvent?.(event);
           if(logicWorker && !applyingChipObserver) {
-            const core=synth?.fm??synth;
-            logicWorker.postMessage({type:"chip-state",state:{...core?.getState?.(),clock:sharedFm?.clock}});
+            const worker = logicWorker;
+            // Section helpers finish updating their register shadows after the
+            // parent emits its write event (keyOff also remembers its volume).
+            queueMicrotask(() => {
+              if (logicWorker === worker) worker.postMessage({type:"chip-state",state:primaryChipState()});
+            });
           }
         }
       );
@@ -623,6 +662,14 @@ export function createPlaygroundRuntime(
       synth?.write?.(0, 0x2b, 0x00);
     }
     stopAllNotes();
+    if (capabilities.chip === 'ym2608') {
+      opnaLoads.abort(new Error('Run stopped'));
+      opnaLoads = new AbortController();
+      synth?.transport?.cancelPending?.('Run stopped');
+      for (let channel = 0; channel < 3; channel++) synth?.ssg?.keyOff(channel);
+      synth?.rhythm?.keyOff([0,1,2,3,4,5]);
+      synth?.adpcm?.keyOff();
+    }
     megaDrive.psg?.reset?.();
     megaDrive.sample.stopAll();
     megaDrive.stream.stop();
@@ -1146,6 +1193,16 @@ export function createPlaygroundRuntime(
       }
       return globals.psg[method](...args);
     }
+    if (command === 'opna.invoke') {
+      const [section, method, methodArgs] = args;
+      const target = capabilities.chip === 'ym2608' &&
+        ['ssg','rhythm','adpcm'].includes(section) ? globals[section] : null;
+      if (!target || typeof method !== 'string' || method.startsWith('_') ||
+          method === 'constructor' || typeof target[method] !== 'function') {
+        throw new Error(`Unsupported OPNA method: ${section}.${method}`);
+      }
+      return target[method](...methodArgs);
+    }
     if(command==='sample.decode'){
       const buffer=await globals.sample.load(...args);
       return samplePCM(buffer);
@@ -1272,6 +1329,7 @@ export function createPlaygroundRuntime(
           applyingChipObserver=true;
           if(core) core.transport={write(port,register,value){},reset(){}};
           const {method,args}=message.event;
+          if (method === 'ssgState') core?.ssg?._adoptState(args[0]);
           if (method === 'setClock') sharedFm?._adoptClock(args[0]);
           if(typeof synth?.[method]==="function" && !method.startsWith("_")) synth[method](...args);
         } catch(error){emitLog(`Observer: ${error.message}`);}
@@ -1462,6 +1520,7 @@ export function createPlaygroundRuntime(
     }
     const fm = sharedFm;
     const psg = megaDrive.psg;
+    const opna = primaryOpnaSections();
     const musicApi =
       createPlaygroundMusic({
         noteToSemitone:
@@ -1546,6 +1605,7 @@ export function createPlaygroundRuntime(
     };
     const livePrepareApi = {
       fm,
+      ...opna,
       fx,
       psg,
       sample: sampleApi,
@@ -1618,6 +1678,7 @@ export function createPlaygroundRuntime(
       },
       midi,
       fm,
+      ...opna,
       dac: dacApi,
       fx,
       psg,
@@ -1776,6 +1837,7 @@ export function createPlaygroundRuntime(
         useSoundChip: pg.useSoundChip,
         midi,
         fm,
+        ...opna,
         dac: pg.dac,
         fx,
         psg,
@@ -2019,8 +2081,7 @@ export function createPlaygroundRuntime(
       if(megaDrive.node?.port && typeof MessageChannel==="function") {
         const channel=new MessageChannel();
         megaDrive.node.port.postMessage({type:"attach-chip-port",port:channel.port1},[channel.port1]);
-        const core=synth?.fm??synth;
-        worker.postMessage({type:"chip-port",port:channel.port2,state:{...core?.getState?.(),clock:sharedFm?.clock}},[channel.port2]);
+        worker.postMessage({type:"chip-port",port:channel.port2,state:primaryChipState()},[channel.port2]);
       }
       const port = megaDrive.audio?.nativeFX?.workerPort();
       if (port) worker.postMessage({type: "native-fx", port}, [port]);

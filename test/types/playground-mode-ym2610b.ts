@@ -1,6 +1,7 @@
 /// <reference path="../../docs/playground/tetorica-playground-ym2610b.d.ts" />
 /// <reference path="./playground-mode-common.ts" />
 /// <reference path="./playground-mode-opn.ts" />
+/// <reference path="./playground-mode-without-opna.ts" />
 
 async function checkLegacyYm2610bTypes() {
   fm.setNote(CH6, 'C4');

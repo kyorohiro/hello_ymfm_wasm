@@ -5,7 +5,8 @@ import {selectPlaygroundDeclarations} from './playground_declarations.js';
 
 const source = await readFile(new URL('./tetorica-playground-globals.d.ts', import.meta.url), 'utf8');
 test('Genesis declarations keep existing convenience APIs and MIDI channel constants', () => {
-  assert.equal(selectPlaygroundDeclarations(source, 'ym2612'), source);
+  const selected = selectPlaygroundDeclarations(source, 'ym2612');
+  assert.equal(selected, source.replace(/^declare const (?:ssg|rhythm|adpcm): [^\n]+\n/gm, ''));
 });
 for (const [chip, channels] of [['ym2203',3],['ym2608',6],['ym2610',4],['ym2610b',6]]) {
   test(`${chip} completion globals match FM channels and omit Genesis PSG/DAC shortcuts`, () => {
@@ -19,5 +20,8 @@ for (const [chip, channels] of [['ym2203',3],['ym2608',6],['ym2610',4],['ym2610b
     assert.match(selected, /declare function useSoundChip</);
     assert.match(selected, /declare const fm: PlaygroundSelectedFm;/);
     assert.match(selected, /declare function sleep\(/);
+    for (const section of ['ssg','rhythm','adpcm']) {
+      assert.equal(new RegExp(`^declare const ${section}:`, 'm').test(selected), chip === 'ym2608');
+    }
   });
 }

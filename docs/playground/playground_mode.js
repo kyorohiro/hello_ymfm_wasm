@@ -64,9 +64,10 @@ export function createModeSynthOptions(mode, base = new URL('../js/', import.met
   const nuked = mode.engine === 'nuked';
   const chip = mode.chip === 'ym2610' ? 'ym2610b' : mode.chip;
   const wasm = nuked ? 'nuked_opn2' : chip;
+  const workletVersion = mode.chip === 'ym2608' ? 'opna-primary-1' : 'chip-tabs-2';
   return {
     chip:mode.chip,
-    workletUrl:new URL(nuked ? 'ym2612-worklet-nuked.js?v=chip-tabs-2' : `${chip}-worklet.js?v=chip-tabs-2`, base).href,
+    workletUrl:new URL(nuked ? 'ym2612-worklet-nuked.js?v=chip-tabs-2' : `${chip}-worklet.js?v=${workletVersion}`, base).href,
     ym2612WasmUrl:new URL(`${wasm}_wasm.wasm`, generated).href,
     wasmUrl:mode.chip === 'ym2612' ? undefined : new URL(`${chip}_wasm.wasm`, generated).href,
     segaPsgWasmUrl:mode.chip === 'ym2612' ? new URL('segapsg_wasm.wasm', generated).href : null,

@@ -4,9 +4,9 @@
  * 依存: 低レベル Synth / DirectTransport は注入したチップで動作し、Node.js でも使用可能。
  * RuntimeSynth 系の実再生は OPNRuntimeSynth 経由で AudioContext / AudioWorkletNode / fetch を使う。
  */
-import { OPNDirectTransport, OPNWorkletTransport, OPNFMSynth } from "./opn_fm_synth.js";
-import { OPNRuntimeSynth } from "./opn_runtime_synth.js?v=chip-tabs-2";
-import { SSGSynth } from "./ssgsynth.js?v=ssg-period-1";
+import { OPNDirectTransport, OPNWorkletTransport, OPNFMSynth } from "./opn_fm_synth.js?v=opna-primary-1";
+import { OPNRuntimeSynth } from "./opn_runtime_synth.js?v=opna-primary-1";
+import { SSGSynth } from "./ssgsynth.js?v=opna-primary-1";
 import { YM2608_CLOCK } from "./ym2608.js";
 import {readSamplePCM, encodeAdpcmB} from './adpcm_b_sample.js';
 
@@ -225,7 +225,7 @@ export class YM2608AdpcmSynth {
 
 /** Six-channel FM (including CH3 special), three-channel SSG, fixed-ROM rhythm and ADPCM-B playback. */
 export class YM2608Synth extends OPNFMSynth {
-  /** @param {{transport: import('./opn_fm_synth.js').OPNTransport, clock?: number}} options
+  /** @param {{transport: import('./opn_fm_synth.js?v=opna-primary-1').OPNTransport, clock?: number}} options
    * clock is the master clock in Hz. SSG frequency helpers assume standard prescaling.
    */
   constructor({ transport, clock = YM2608_CLOCK } = {}) {
@@ -290,7 +290,7 @@ export class YM2608RuntimeSynth extends OPNRuntimeSynth {
       fmChannels: 6,
       portCount: 2,
       processorName: "ym2608-processor",
-      workletUrl: "./ym2608-worklet.js",
+      workletUrl: "./ym2608-worklet.js?v=opna-primary-1",
       wasmUrl: "../generated/ym2608_wasm.wasm",
       FMSynth: YM2608Synth,
       rhythmRomUrl: new URL('./tetorica_ym2608_adpcm_rom.bin', import.meta.url),

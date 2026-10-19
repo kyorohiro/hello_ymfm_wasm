@@ -51,7 +51,7 @@ function harness(t, stage = '') {
         },
       };
     }
-    send(type) { for (const fn of [...this.handlers]) fn({ data: { type } }); }
+    send(type) { for (const fn of [...this.handlers]) fn({ data: typeof type === 'string' ? {type} : type }); }
     connect() { this.connected = true; }
     disconnect() { this.connected = false; }
   };
@@ -80,8 +80,10 @@ test('YM2608 runtime loads bundled rhythm data and honors explicit overrides', a
       assert.deepEqual(node.messages.find(m => m.type === 'initialize').rhythmRom, options.rhythmRom ?? bundled);
       if (options.rhythmRom) assert.equal(urls.length, 1, 'explicit bytes avoid ROM fetch');
       else assert.ok(urls.includes(options.rhythmRomUrl ?? new URL('./tetorica_ym2608_adpcm_rom.bin', import.meta.url).href));
-      synth.fm.rhythm.loadRom(bundled);
-      assert.deepEqual(node.messages.at(-1), {type: 'loadRhythmRom', bytes: bundled});
+      const loaded = synth.fm.rhythm.loadRom(bundled), command = node.messages.at(-1);
+      assert.deepEqual(command, {type: 'loadRhythmRom', id: command.id, bytes: bundled});
+      node.send({type: 'rhythm-rom-loaded', id: command.id});
+      await loaded;
     } finally { await synth.close(); }
   }
   const bad = new YM2608RuntimeSynth({audioContext: h.context, rhythmRom: new Uint8Array(1)});

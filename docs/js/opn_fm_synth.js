@@ -100,9 +100,10 @@ export class OPNDirectTransport {
 export class OPNWorkletTransport {
   /** @param {Uint8Array} bytes */
   loadRhythmRom(bytes) {
-    if (this.chipName !== 'YM2608') throw new Error('Rhythm ROM loading requires YM2608');
-    if (!(bytes instanceof Uint8Array) || bytes.length !== 8192) throw new RangeError('Expected 8192-byte rhythm ROM');
-    this.node.port.postMessage({type: 'loadRhythmRom', bytes});
+    if (this.disposed) return Promise.reject(new Error('ADPCM transport disposed'));
+    if (this.chipName !== 'YM2608') return Promise.reject(new Error('Rhythm ROM loading requires YM2608'));
+    if (!(bytes instanceof Uint8Array) || bytes.length !== 8192) return Promise.reject(new RangeError('Expected 8192-byte rhythm ROM'));
+    return this._loadMemory({type: 'loadRhythmRom', bytes}, 'rhythm-rom-loaded');
   }
   /** @param {AudioWorkletNode|MessagePort|import('./soundchip_worklet.js?v=chip-tabs-2').WorkletSoundChip} node
    * @param {{portCount:number,chipName:string}} config */
@@ -120,9 +121,8 @@ export class OPNWorkletTransport {
     this.memoryRequests = new Map();
     this.disposed = false;
     this.onMemoryMessage = ({data}) => {
-      if (data?.type !== 'adpcm-memory-loaded') return;
-      const request = this.memoryRequests.get(data.id);
-      if (!request) return;
+      const request = this.memoryRequests.get(data?.id);
+      if (!request || data?.type !== request.resultType) return;
       this.memoryRequests.delete(data.id);
       data.error ? request.reject(new Error(data.error)) : request.resolve();
     };
@@ -144,10 +144,14 @@ export class OPNWorkletTransport {
     if (this.disposed) return Promise.reject(new Error('ADPCM transport disposed'));
     if (this.chipName !== 'YM2608') return Promise.reject(new Error('ADPCM memory upload requires YM2608'));
     if (!(bytes instanceof Uint8Array) || !Number.isInteger(address) || address < 0 || address + bytes.length > 0x200000) return Promise.reject(new RangeError('Invalid ADPCM memory upload'));
+    return this._loadMemory({type: 'loadAdpcmMemory', bytes, address}, 'adpcm-memory-loaded');
+  }
+
+  _loadMemory(command, resultType) {
     const id = ++this.memorySequence;
     return new Promise((resolve, reject) => {
-      this.memoryRequests.set(id, {resolve, reject});
-      try { this.node.port.postMessage({type: 'loadAdpcmMemory', id, bytes, address}); }
+      this.memoryRequests.set(id, {resolve, reject, resultType});
+      try { this.node.port.postMessage({...command, id}); }
       catch (error) { this.memoryRequests.delete(id); reject(error); }
     });
   }
@@ -155,7 +159,11 @@ export class OPNWorkletTransport {
   dispose() {
     this.disposed = true;
     this.node.port.removeEventListener?.('message', this.onMemoryMessage);
-    for (const request of this.memoryRequests.values()) request.reject(new Error('ADPCM transport disposed'));
+    this.cancelPending('ADPCM transport disposed');
+  }
+
+  cancelPending(reason = 'Run stopped') {
+    for (const request of this.memoryRequests.values()) request.reject(new Error(reason));
     this.memoryRequests.clear();
   }
 

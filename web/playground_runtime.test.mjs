@@ -6,6 +6,7 @@ import {createNativeFXController} from './native_fx.js';
 import {LiveFX} from './custom_fx.js';
 import {createYm2608Client} from './playground_ym2608.js';
 import {YM2203Synth} from './ym2203synth.js';
+import {YM2608Synth} from './ym2608synth.js';
 
 function deferred() {
   let resolve;
@@ -42,6 +43,66 @@ function setup(t, capabilities, runtimeOptions = {}) {
   });
   return { runtime, megaDrive, listeners, statuses, logs };
 }
+
+test('primary OPNA exposes one shared SSG/rhythm/ADPCM API and Stop releases all sections', async t => {
+  const {runtime, megaDrive} = setup(t, {chip:'ym2608', fmChannels:6, psg:false, dac:false});
+  const writes = [], uploads = [], roms = [], canceled = [];
+  megaDrive.fm = new YM2608Synth({transport:{reset() {},
+    write:(port,register,value) => writes.push([port,register,value]), loadAdpcmMemory:(...args) => {uploads.push(args); return Promise.resolve();},
+    loadRhythmRom:bytes => {roms.push(bytes); return Promise.resolve();}, cancelPending:reason => canceled.push(reason),
+  }});
+  await runtime.playSource(`
+    const shared = await livePrepare('sections', ({ssg,rhythm,adpcm}) => ({ssg,rhythm,adpcm}));
+    for (const name of ['ssg','rhythm','adpcm']) {
+      if (shared[name] !== pg[name]) throw Error('Separate section ' + name);
+    }
+    if (ssg !== pg.ssg || rhythm !== pg.rhythm || adpcm !== pg.adpcm) throw Error('Separate global sections');
+    const {setVolume} = ssg;
+    setVolume(0, 12);
+    ssg.noteOn(0, 'A4');
+    await rhythm.loadRom(new ArrayBuffer(8192));
+    rhythm.setVolume(48); rhythm.setVoice('snare', {volume:24, left:true, right:true}); rhythm.keyOn('snare');
+    const sample = await adpcm.loadSample({channels:[new Float32Array([0,.5,-.5,0])],sampleRate:8000});
+    adpcm.setVolume(180); adpcm.setPan(true,true); adpcm.keyOn({repeat:true});
+    context.sections = [ssg,rhythm,adpcm];
+  `);
+  assert.equal(uploads.length, 1);
+  assert.equal(roms.length, 1);
+  assert(roms[0] instanceof Uint8Array);
+  const before = writes.length;
+  await runtime.stop();
+  const stopWrites = writes.slice(before);
+  for (let channel = 0; channel < 3; channel++) assert(stopWrites.some(([port,r,v]) => port === 0 && r === 8 + channel && v === 0));
+  assert(stopWrites.some(([port,r,v]) => port === 0 && r === 0x10 && v === 0xbf));
+  assert(stopWrites.some(([port,r,v]) => port === 1 && r === 0 && v === 1));
+  assert.deepEqual(canceled, ['Run stopped']);
+});
+
+test('Stop during primary ADPCM decoding prevents a late memory upload or retrigger', async t => {
+  const {runtime, megaDrive} = setup(t, {chip:'ym2608', fmChannels:6, psg:false, dac:false});
+  const decoded = deferred(), uploads = [], writes = [];
+  megaDrive.fm = new YM2608Synth({transport:{reset() {}, write:(port,register,value) => writes.push([port,register,value]),
+    loadAdpcmMemory:(...args) => {uploads.push(args); return Promise.resolve();},
+  }});
+  globalThis.playgroundReview = {decode:decoded.promise, requested:false};
+  const running = runtime.playSource(`
+    try {
+      await adpcm.loadSample(new Uint8Array([1,2,3]), {decodeAudio:() => {
+        globalThis.playgroundReview.requested = true;
+        return globalThis.playgroundReview.decode;
+      }});
+      adpcm.keyOn({repeat:true});
+    } catch (error) { globalThis.playgroundReview.error = error.message; }
+  `);
+  await until(() => globalThis.playgroundReview.requested);
+  await runtime.stop();
+  const stoppedWrites = writes.length;
+  decoded.resolve({channels:[new Float32Array([0,.5,-.5,0])],sampleRate:8000});
+  await running;
+  assert.equal(globalThis.playgroundReview.error, 'Run stopped');
+  assert.equal(uploads.length, 0);
+  assert.equal(writes.length, stoppedWrites);
+});
 
 test('Worker playback defaults to 500 ms independently of the DAC scheduler', t => {
   const {runtime} = setup(t);
@@ -688,6 +749,35 @@ test('Worker observer updates synth state without sending audio or waiting for a
  assert.equal(workers[0].responses.length,0);
  megaDrive.fm.setAlgo(0,4,2);
  assert.ok(writes.length>0,'normal UI transport is restored after observation');
+ await runtime.finalize();
+});
+
+test('OPNA Worker observations preserve remembered SSG volume and UI snapshots wait for completed shadows', async t => {
+ const {runtime,megaDrive}=setup(t,{chip:'ym2608',fmChannels:6,psg:false,dac:false},{onMegaDriveEvent(){}});
+ const workers=workerBridge(t),writes=[],messages=[];
+ let listener;
+ megaDrive.addListener=fn=>{listener=fn;return()=>{listener=null;};};
+ megaDrive.fm=new YM2608Synth({transport:{write(port,register,value){
+  writes.push([port,register,value]);listener?.({type:'write',port,register,value});
+ }}});
+ await runtime.playSource('',{execution:'worker'});
+ const worker=workers[0],post=worker.postMessage.bind(worker);
+ worker.postMessage=message=>{messages.push(message);post(message);};
+ writes.length=0;
+ worker.send({type:'chip-observer',event:{method:'write',args:[0,8,0]}});
+ worker.send({type:'chip-observer',event:{method:'ssgState',args:[{
+  registers:Array.from(megaDrive.fm.ssg.registers),levels:[12,0,0],
+ }]}});
+ assert.equal(writes.length,0,'observer updates must not send duplicate audio');
+ assert.equal(megaDrive.fm.ssg._getState().levels[0],12);
+ megaDrive.fm.ssg.keyOn(0);
+ assert.equal(writes.at(-1)[2],12);
+ megaDrive.fm.ssg.keyOff(0);
+ assert.equal(messages.length,0,'snapshot waits until keyOff restores its remembered volume');
+ await Promise.resolve();
+ const state=messages.filter(message=>message.type==='chip-state').at(-1).state;
+ assert.equal(state.ssg.registers[8],0);
+ assert.equal(state.ssg.levels[0],12);
  await runtime.finalize();
 });
 

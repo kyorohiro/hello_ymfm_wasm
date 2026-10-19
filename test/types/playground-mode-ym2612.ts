@@ -1,5 +1,6 @@
 /// <reference path="../../docs/playground/tetorica-playground-ym2612.d.ts" />
 /// <reference path="./playground-mode-common.ts" />
+/// <reference path="./playground-mode-without-opna.ts" />
 
 async function checkGenesisModeTypes() {
   fm.setPan(CH6, true, false);

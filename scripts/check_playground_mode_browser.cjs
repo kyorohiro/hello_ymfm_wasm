@@ -2,6 +2,8 @@
 // Self-hosts docs. Chromium is required; pass --webkit to include WebKit.
 // --project-only exercises transfer/autosave/legacy URLs without repeating audio.
 // --tabs-only checks mode-specific chip tabs without audio/transfer suites.
+// --types-only checks the actual Monaco completions, diagnostics and FM hovers.
+// --opna-only checks mode-specific section types and primary OPNA section audio.
 const assert = require('node:assert/strict');
 const http = require('node:http');
 const fs = require('node:fs/promises');
@@ -51,16 +53,34 @@ async function checkTypes(page, mode) {
     const models = monaco.editor.getModels().filter(model => model.uri.path.endsWith('.d.ts'));
     const selected = models.find(model => model.uri.path.endsWith(`/tetorica-playground-${mode.chip}.d.ts`));
     const valid = `fm.setPreset(${mode.channels - 1}, FM_PRESETS['one-op-basic']);\n`;
-    const source = valid + `fm.setPreset(${mode.channels}, FM_PRESETS['one-op-basic']);\nfm.`;
+    const source = valid + `fm.setPreset(${mode.channels}, FM_PRESETS['one-op-basic']);\nfm;\npg.fm;\nfm.`;
     const model = monaco.editor.createModel(source, 'javascript', monaco.Uri.parse('file:///mode-type-regression.js'));
     try {
       const getWorker = await monaco.languages.typescript.getJavaScriptWorker();
       const worker = await getWorker(model.uri), uri = model.uri.toString();
       const diagnostics = await worker.getSemanticDiagnostics(uri);
       const completion = await worker.getCompletionsAtPosition(uri, source.length);
+      const fmHover = await worker.getQuickInfoAtPosition(uri, source.indexOf('fm;') + 1);
+      const pgFmHover = await worker.getQuickInfoAtPosition(uri, source.indexOf('pg.fm;') + 4);
+      const completions = async (name, source, position = source.length) => {
+        const probe = monaco.editor.createModel(source, 'javascript', monaco.Uri.parse(`file:///mode-${name}-completion.js`));
+        try {
+          const service = await getWorker(probe.uri);
+          return (await service.getCompletionsAtPosition(probe.uri.toString(), position))?.entries.map(entry => entry.name) || [];
+        } finally {probe.dispose();}
+      };
+      const prepareSource = "livePrepare('opna-types', api => { api. });";
+      const sections = {globals:await completions('globals', ';\n'), pg:await completions('pg', 'pg.'),
+        prepare:await completions('prepare', prepareSource, prepareSource.indexOf('api.') + 4)};
+      if (mode.chip === 'ym2608') {
+        for (const section of ['ssg','rhythm','adpcm']) sections[section] = await completions(section, `${section}.`);
+      }
       return {selected:selected?.getValue(), validLength:valid.length,
         diagnostics:diagnostics.map(({start, code}) => ({start, code})),
-        methods:completion?.entries.map(entry => entry.name)};
+        methods:completion?.entries.map(entry => entry.name),
+        sections,
+        hovers:{fm:fmHover?.displayParts.map(part => part.text).join(''),
+          pgFm:pgFmHover?.displayParts.map(part => part.text).join('')}};
     } finally {model.dispose();}
   }, mode);
   assert(types.selected?.includes(`"${mode.chip}"`), `${mode.id}: selected declarations missing`);
@@ -68,6 +88,25 @@ async function checkTypes(page, mode) {
   assert(!types.diagnostics.some(diagnostic => diagnostic.start < types.validLength), `${mode.id}: highest native FM channel rejected`);
   assert(types.diagnostics.some(diagnostic => diagnostic.start >= types.validLength && diagnostic.code === 2345), `${mode.id}: out-of-range FM channel accepted`);
   assert.equal(types.methods.includes('setDacEnabled'), mode.chip === 'ym2612', `${mode.id}: DAC completion follows selected FM`);
+  const expectedName = `${mode.chip.toUpperCase()}FMApi`;
+  for (const [target, hover] of Object.entries(types.hovers)) {
+    assert(hover?.includes(expectedName), `${mode.id}: ${target} hover should identify ${expectedName}, got ${hover}`);
+    if (mode.chip !== 'ym2612') {
+      assert(!/PlaygroundOPNFm|YM2612Channel/.test(hover), `${mode.id}: ${target} hover exposes a generic or Genesis FM type: ${hover}`);
+    }
+  }
+  for (const target of ['globals', 'pg', 'prepare']) {
+    for (const section of ['ssg', 'rhythm', 'adpcm']) {
+      assert.equal(types.sections[target].includes(section), mode.chip === 'ym2608', `${mode.id}: ${target} ${section} completion follows the selected mode`);
+    }
+  }
+  if (mode.chip === 'ym2608') {
+    for (const [section, methods] of Object.entries({ssg:['tone','setFrequency','keyOff'],
+      rhythm:['setVoice','keyOn','keyOff'], adpcm:['loadSample','loadMemory','setPlaybackRate','keyOn','keyOff']})) {
+      for (const method of methods) assert(types.sections[section].includes(method), `OPNA ${section}.${method} completion missing`);
+    }
+  }
+  return types.hovers;
 }
 
 async function checkChipTabs(page, mode) {
@@ -106,6 +145,125 @@ async function checkAdditionalChipTabs(page, mode) {
   await checkChipTabs(page, mode);
   await page.evaluate(async () => window.__modeRegression.runtime.stopWithFade());
   assert.equal(await page.locator('#segapsgTab').isVisible(), false, 'an added chip does not change mode-defined tabs');
+}
+
+async function checkOpnaSections(page, browserName) {
+  const examplePath = '/examples/pc98/pc98-opna-sections.js';
+  const example = await page.evaluate(path => window.__modeRegression.virtualFiles.get(path)?.data, examplePath);
+  assert.equal(example, await fs.readFile(path.join(docs, 'playground', examplePath), 'utf8'), 'the built-in OPNA example matches its source file');
+  await page.evaluate(() => {
+    document.getElementById('workerExecution').checked = false;
+    window.__modeRegression.setEditorValue("console.log('OPNA_PRIMARY_READY');");
+  });
+  await page.click('#runButton');
+  await page.waitForFunction(() => document.getElementById('consoleOutput').textContent.includes('OPNA_PRIMARY_READY'));
+  await page.evaluate(() => {
+    const {megaDrive} = window.__modeRegression;
+    const context = megaDrive.audioContext, meter = context.createAnalyser(), silent = context.createGain();
+    meter.fftSize = 1024; silent.gain.value = 0; meter.connect(silent); silent.connect(context.destination);
+    const state = window.__opnaMeter = {meter, silent, detach:megaDrive.audio.connectOutputMonitor(meter), peak:0, quietSince:null};
+    state.timer = setInterval(() => {
+      const pcm = new Float32Array(meter.fftSize); meter.getFloatTimeDomainData(pcm);
+      let peak = 0;
+      for (const value of pcm) peak = Math.max(peak, Math.abs(value));
+      state.peak = Math.max(state.peak, peak);
+      if (peak < .00001) state.quietSince ??= performance.now();
+      else state.quietSince = null;
+    }, 10);
+  });
+  const cases = {
+    ssg:"ssg.tone(0, {frequency:440, volume:12}); liveLoop('opna-ssg-hold', async () => {await sleep(.1);});",
+    rhythm:`
+      rhythm.setVolume(48); rhythm.setVoice('snare', {volume:24, left:true, right:true});
+      liveLoop('opna-rhythm-hold', async () => {rhythm.keyOn('snare'); await sleep(.12);});
+    `,
+    adpcm:`
+      const sample = await livePrepare('opna-pcm-sample', async api => {
+        if (api.adpcm !== adpcm) throw Error('livePrepare is not using primary ADPCM');
+        const sampleRate = 8000, pcm = new Float32Array(4096);
+        for (let i=0; i<pcm.length; i++) pcm[i] = .7 * Math.sin(2*Math.PI*330*i/sampleRate);
+        return await api.adpcm.loadSample({channels:[pcm], sampleRate}, {address:0});
+      });
+      if (!(sample.frames > 0 && sample.duration > .4)) throw Error('PCM sample was not encoded/uploaded');
+      adpcm.setVolume(220); adpcm.setPan(true, true); adpcm.keyOn({repeat:true});
+      liveLoop('opna-adpcm-hold', async () => {await sleep(.1);});
+    `,
+  };
+  try {
+    for (const execution of ['main', 'worker']) {
+      const lookahead = await page.evaluate(execution => execution === 'worker'
+        ? window.__modeRegression.runtime.getTiming().workerLookaheadSeconds * 1000 : 0, execution);
+      for (const [section, body] of Object.entries(cases)) {
+        const marker = `OPNA_SECTION_PASS:${execution}:${section}`;
+        const source = `
+          if (ssg !== pg.ssg || rhythm !== pg.rhythm || adpcm !== pg.adpcm) throw Error('OPNA section aliases do not share the primary chip');
+          await livePrepare(${JSON.stringify(`opna-context-${execution}-${section}`)}, async api => {
+            if (api.fm !== fm || api.ssg !== ssg || api.rhythm !== rhythm || api.adpcm !== adpcm) throw Error('livePrepare OPNA context differs from globals');
+            return true;
+          });
+          const initialClock = fm.clock;
+          try {
+            await fm.setClock(6000000);
+            if (fm.clock !== 6000000) throw Error('Primary FM clock did not change');
+            if (ssg.setFrequency(0, 440) !== Math.round(6000000 / (4*16*440))) throw Error('SSG clock is not synchronized');
+            const expectedRate = Math.round(8000*144*65536/6000000)*6000000/(144*65536);
+            if (Math.abs(adpcm.setPlaybackRate(8000) - expectedRate) > .000001) throw Error('ADPCM clock is not synchronized');
+          } finally {await fm.setClock(initialClock);}
+          ${body}
+          console.log(${JSON.stringify(marker)});
+        `;
+        await page.evaluate(async ({source, execution}) => {
+          window.__opnaMeter.peak = 0; window.__opnaMeter.quietSince = null;
+          await window.__modeRegression.runtime.playSource(source, {execution});
+        }, {source, execution});
+        await page.waitForFunction(marker => document.getElementById('consoleOutput').textContent.includes(marker), marker);
+        await page.waitForFunction(() => window.__opnaMeter.peak > .0001, null, {timeout:3000 + lookahead});
+        const actual = await page.evaluate(() => {
+          const {runtime, megaDrive} = window.__modeRegression;
+          return {peak:window.__opnaMeter.peak,
+            connected:megaDrive.mixer.list().filter(chip => chip.connected).map(chip => ({id:chip.id, name:chip.name})),
+            inspected:runtime.chipInspector.list().map(chip => chip.id)};
+        });
+        assert.deepEqual(actual.connected.map(chip => chip.id), ['ym2608'], `${execution}/${section}: sections must share the one primary YM2608`);
+        assert(!actual.inspected.some(id => /^ym2608:/.test(id)), `${execution}/${section}: an extra YM2608 was created`);
+        await page.evaluate(() => {
+          // Keep the master gate open: silence must come from stopping OPNA's
+          // generators rather than from the UI's output fade masking them.
+          window.__modeRegression.runtime.stop();
+          window.__opnaMeter.quietSince = null;
+        });
+        // Observe continuous silence beyond the Worker reservation window, so
+        // a queued key-on cannot pass by arriving after an early quiet frame.
+        const quietMs = Math.max(250, lookahead + 150);
+        await page.waitForFunction(quietMs => window.__opnaMeter.quietSince !== null &&
+          performance.now() - window.__opnaMeter.quietSince >= quietMs, quietMs, {timeout:3000 + lookahead});
+        console.log(JSON.stringify({browser:browserName, mode:'pc98', execution, section, peak:actual.peak,
+          primaryOnly:true, clockSynchronized:true, stopQuiet:true, passed:true}));
+      }
+      const marker = `OPNA_BUILTIN_EXAMPLE_PASS:${execution}`;
+      await page.evaluate(async ({source, execution, marker}) => {
+        window.__opnaMeter.peak = 0; window.__opnaMeter.quietSince = null;
+        await window.__modeRegression.runtime.playSource(source + `\nconsole.log(${JSON.stringify(marker)});`, {execution});
+      }, {source:example, execution, marker});
+      await page.waitForFunction(marker => document.getElementById('consoleOutput').textContent.includes(marker), marker);
+      assert(await page.evaluate(() => window.__opnaMeter.peak > .0001), `${execution}: the built-in OPNA example produced no audio`);
+      assert.deepEqual(await page.evaluate(() => window.__modeRegression.megaDrive.mixer.list()
+        .filter(chip => chip.connected).map(chip => chip.id)), ['ym2608'], 'the built-in example uses only primary OPNA');
+      await page.evaluate(() => {window.__modeRegression.runtime.stop(); window.__opnaMeter.quietSince = null;});
+      await page.waitForFunction(quietMs => window.__opnaMeter.quietSince !== null &&
+        performance.now() - window.__opnaMeter.quietSince >= quietMs, Math.max(250, lookahead + 150), {timeout:3000 + lookahead});
+      console.log(JSON.stringify({browser:browserName, mode:'pc98', execution, example:examplePath,
+        primaryOnly:true, audible:true, stopQuiet:true, passed:true}));
+    }
+  } finally {
+    await page.evaluate(async () => {
+      const state = window.__opnaMeter;
+      if (!state) return;
+      clearInterval(state.timer); state.detach(); state.meter.disconnect(); state.silent.disconnect();
+      delete window.__opnaMeter;
+      await window.__modeRegression.runtime.stopWithFade();
+    }).catch(() => {});
+  }
 }
 
 async function checkAudio(page, mode) {
@@ -315,30 +473,38 @@ async function checkBrowser(name, type, base) {
   page.setDefaultTimeout(20000);
   page.on('pageerror', error => errors.push(error.message));
   const tabsOnly = process.argv.includes('--tabs-only');
+  const typesOnly = process.argv.includes('--types-only');
+  const opnaOnly = process.argv.includes('--opna-only');
   try {
     for (const mode of process.argv.includes('--project-only') ? [] : modes) {
       await page.goto(`${base}?mode=${mode.id}&no-sw=1`); await ready(page);
       assert.equal(await page.title(), `Tetorica ${mode.label} Playground`);
       assert.equal(await page.locator('#playgroundMode').inputValue(), mode.id);
       assert.deepEqual(await page.locator('#playgroundMode option').evaluateAll(options => options.map(option => option.value)), modes.map(mode => mode.id));
-      await checkChipTabs(page, mode);
+      if (!typesOnly && !opnaOnly) await checkChipTabs(page, mode);
+      let typeHovers;
       if (!tabsOnly) {
-        await checkTypes(page, mode);
-        await checkAudio(page, mode);
+        typeHovers = await checkTypes(page, mode);
+        if (!typesOnly && !opnaOnly) await checkAudio(page, mode);
       }
-      await checkAdditionalChipTabs(page, mode);
-      if (mode.id === 'pc98' && name === 'chromium') await page.screenshot({path:'/private/tmp/playground-mode-tabs.png'});
+      if (!typesOnly && !opnaOnly) await checkAdditionalChipTabs(page, mode);
+      if (!typesOnly && !tabsOnly && mode.id === 'pc98') await checkOpnaSections(page, name);
+      if (!typesOnly && !opnaOnly && mode.id === 'pc98' && name === 'chromium') await page.screenshot({path:'/private/tmp/playground-mode-tabs.png'});
       if (tabsOnly) console.log(JSON.stringify({browser:name, mode:mode.id, chipTabs:true, keyboardNavigation:true, passed:true}));
+      if (typesOnly) console.log(JSON.stringify({browser:name, mode:mode.id, hovers:typeHovers, passed:true}));
     }
-    if (!tabsOnly) {
+    if (!tabsOnly && !typesOnly && !opnaOnly) {
       await checkProjectSwitch(page, base, name === 'chromium');
       await checkLegacyAndLayout(page, base);
       await checkDesktopAutosave(browser, base);
     }
     assert.deepEqual(errors, [], `${name}: page errors`);
     console.log(JSON.stringify({browser:name, passed:true, modes:process.argv.includes('--project-only') ? 0 : modes.length,
-      chipTabs:!process.argv.includes('--project-only'), projectSwitch:!tabsOnly, fileTypes:!tabsOnly,
-      desktopAutosave:!tabsOnly, legacyUrls:!tabsOnly, simpleLayout:!tabsOnly}));
+      chipTabs:!typesOnly && !opnaOnly && !process.argv.includes('--project-only'),
+      opnaSections:!tabsOnly && !typesOnly && !process.argv.includes('--project-only'),
+      projectSwitch:!tabsOnly && !typesOnly && !opnaOnly, fileTypes:!tabsOnly && !typesOnly && !opnaOnly,
+      desktopAutosave:!tabsOnly && !typesOnly && !opnaOnly, legacyUrls:!tabsOnly && !typesOnly && !opnaOnly,
+      simpleLayout:!tabsOnly && !typesOnly && !opnaOnly}));
   } catch (error) {
     console.error(JSON.stringify({browser:name, url:page.url(), status:await page.locator('#status').textContent().catch(() => null), errors}));
     throw error;

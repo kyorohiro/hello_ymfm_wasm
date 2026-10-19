@@ -6,7 +6,7 @@
  */
 import { MegaSynth } from "./megasynth.js?v=chip-tabs-2";
 import { YM2203RuntimeSynth } from "./ym2203synth.js?v=chip-tabs-2";
-import { YM2608RuntimeSynth } from "./ym2608synth.js?v=chip-tabs-2";
+import { YM2608RuntimeSynth } from "./ym2608synth.js?v=opna-primary-1";
 import { NeoGeoSynth, YM2610BRuntimeSynth } from "./ym2610bsynth.js?v=chip-tabs-2";
 
 export const TETORICA_CHIPS = Object.freeze(["ym2612", "ym2203", "ym2608", "ym2610", "ym2610b"]);
@@ -27,7 +27,7 @@ export function normalizeTetoricaChip(chip) {
 
 /**
  * Construct the runtime synth for the selected chip. Call start() to initialize audio.
- * @param {import("./megasynth.js?v=chip-tabs-2").MegaSynthOptions & import("./opn_runtime_synth.js?v=chip-tabs-2").OPNRuntimeSynthOptions & {chip?:string}} [options={}] Forwarded to the selected synth constructor.
+ * @param {import("./megasynth.js?v=chip-tabs-2").MegaSynthOptions & import("./opn_runtime_synth.js?v=opna-primary-1").OPNRuntimeSynthOptions & {chip?:string}} [options={}] Forwarded to the selected synth constructor.
  * @param {string} [options.chip="ym2612"] One of TETORICA_CHIPS.
  * @returns {MegaSynth|YM2203RuntimeSynth|YM2608RuntimeSynth|NeoGeoSynth|YM2610BRuntimeSynth}
  *   Unstarted runtime; construction alone does not load WASM or open an audio device.

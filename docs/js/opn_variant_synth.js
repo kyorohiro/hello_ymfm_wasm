@@ -3,7 +3,7 @@
  * 実行環境: Browser / Node.js。依存: 注入されたレジスタ transport。Web Audio は不要。
  * FM only: no rhythm/SSG presets or browser RuntimeSynth are added here.
  */
-import { OPNFMSynth } from './opn_fm_synth.js';
+import { OPNFMSynth } from './opn_fm_synth.js?v=opna-primary-1';
 
 /** YM3438 FM programming uses the shared six-channel OPN register interface. */
 export class YM3438Synth extends OPNFMSynth {
