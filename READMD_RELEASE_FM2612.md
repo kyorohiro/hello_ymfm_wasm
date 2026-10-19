@@ -1,5 +1,14 @@
 # tetorica-fm2612 の npm リリース手順
 
+## 0.2.21 公開準備（2026-10-20）
+
+- 公開済み0.2.20を基準に差分を確認。HuC6280／OKIM6258の高水準Synth、ネイティブ音源の基本構成、Game Boy／NES＋FDS／YM2151／OKIM6258／HuC6280の音色Inspectorを収録。Webのmodeメニューや音色パネル自体はnpmに含まない。
+- ホスト提供の音声入力・Keyboard接続、共通sample instrument／編集ヘルパーを追加。試奏中のチャンネル所有権、Stop・旧callbackの無効化、OPN周波数書込、ADPCM転送とリズムROM ACK、音声decode失敗処理を更新。既存の音名→Hz変換式は公開0.2.20と同じ。
+- Sega PSG stereo／SPC traceの更新は対応するJSとWASMを組にして配布。`loadRhythmRom()`はPromiseで転送完了を通知するため、`await`してから利用する。
+- 新APIのJSDocと型定義を補完。Node.js 22で共有web runtimeの1,556テストが成功。Node.js 22／26で新規導入した配布物の実core・型定義、15 renderer・24 WASMを確認。最終型定義は245件を生成・検証し、NodeNext／Bundler／ブラウザー（Node ambientなし）の利用例を通過。
+- npm配布物を使い、Chromium／WebKitのMain／WorkerでDX7とHuC6280の音程・音量・波形編集・チャンネル所有権・Keyboard・Stop／再起動を確認。Web UI専用部品は別途fixtureから配信し、音声runtimeとWASMは配布物から読み込んだ。
+- tgzは608ファイル。検証したruntimeと配布物の全ファイル一致を確認。npm公開・registry integrity照合は未実施。
+
 ## 0.2.11 公開記録（2026-10-08）
 
 - 公開元 commit: `ca17231`。共通 `YM2151Synth` を追加。8チャンネル、4オペレーター、setPreset / setOperator / setAlgo / setPan / setNote / setFrequency / setPitch / noteOn / noteOff / keyOn / keyOff、OPMのDT2・LFO・ノイズに対応。
@@ -81,7 +90,7 @@
 
 ## リリース手順
 
-リポジトリのルートで実行する。以下は `0.2.11` を公開する例。
+リポジトリのルートで実行する。以下は `0.2.21` を公開する例。
 版番号を変更する場合は、tgz名と公開後の確認コマンドも読み替える。
 
 VGM CLIの手順は [READMD_RELEASE_VGM.md](READMD_RELEASE_VGM.md) を参照。
@@ -96,7 +105,7 @@ npm view tetorica-fm2612 name version versions maintainers --registry=https://re
 ```
 
 `packages/fm2612/package.json` の `version` を、公開する未使用の番号へ更新する。
-現在のローカル版は `0.2.11`。公開前に npm registry で未使用であることを確認する。
+現在のローカル版は `0.2.21`。公開前に npm registry で未使用であることを確認する。
 公開済みの同じ名前・バージョンは再利用できない。
 
 - `packages/fm2612/README.md`: npmに同梱する使い方、対応チップ、ブラウザのアセット配置。
@@ -150,16 +159,16 @@ RF5C164の8CH・左右パン・FM/PSG/PCMの混合出力・Stop/Reset・終了�
 
 ```sh
 npm run pack:fm2612 -- --silent
-tar -tzf tetorica-fm2612-0.2.11.tgz
-tar -xOf tetorica-fm2612-0.2.11.tgz package/package.json
-tar -xOf tetorica-fm2612-0.2.11.tgz package/README.md
+tar -tzf tetorica-fm2612-0.2.21.tgz
+tar -xOf tetorica-fm2612-0.2.21.tgz package/package.json
+tar -xOf tetorica-fm2612-0.2.21.tgz package/README.md
 ```
 
 専用スクリプトは `dist/fm2612/` に既存webランタイムを集め、WASM・Worker・
 AudioWorklet・音源データ・ライセンス文書を同梱する。npm用READMEは
 `packages/fm2612/README.md` からコピーする。ルートにtgzが生成される。
 
-配布manifestの名前が `tetorica-fm2612`、版番号が `0.2.11` であることを確認する。
+配布manifestの名前が `tetorica-fm2612`、版番号が `0.2.21` であることを確認する。
 `megasynth-fm-presets.js`、RF5C164のWASM/Worklet、第三者ライセンス、
 Nuked-OPN2のソースとビルドスクリプト、自作OPNAリズムデータも確認する。
 外部ROM・ゲームファイル・`w/`・キャッシュは含めない。
@@ -175,7 +184,7 @@ VGMは `dist/vgm/`、FM2612は `dist/fm2612/` のみを作り直す。
 以下の変数はリポジトリのルートで設定する。
 
 ```sh
-fm2612_tarball="$PWD/tetorica-fm2612-0.2.11.tgz"
+fm2612_tarball="$PWD/tetorica-fm2612-0.2.21.tgz"
 fm2612_test_dir="$(mktemp -d)"
 (
   cd "$fm2612_test_dir" || exit 1
@@ -217,10 +226,10 @@ npm whoami --registry=https://registry.npmjs.org/
 
 ```sh
 # 公開しない確認
-npm publish ./tetorica-fm2612-0.2.11.tgz --access public --dry-run --registry=https://registry.npmjs.org/
+npm publish ./tetorica-fm2612-0.2.21.tgz --access public --dry-run --registry=https://registry.npmjs.org/
 
 # 同じtgzを公開
-npm publish ./tetorica-fm2612-0.2.11.tgz --access public --tag latest --registry=https://registry.npmjs.org/
+npm publish ./tetorica-fm2612-0.2.21.tgz --access public --tag latest --registry=https://registry.npmjs.org/
 ```
 
 dry-runは公開権限や名前の利用可否を保証しない。
@@ -230,17 +239,17 @@ dry-runは公開権限や名前の利用可否を保証しない。
 
 ```sh
 npm view tetorica-fm2612 version dist-tags --registry=https://registry.npmjs.org/ --prefer-online
-npm view tetorica-fm2612@0.2.11 dist.integrity --registry=https://registry.npmjs.org/ --prefer-online
+npm view tetorica-fm2612@0.2.21 dist.integrity --registry=https://registry.npmjs.org/ --prefer-online
 ```
 
-`latest` が `0.2.11` を指していることを確認する。npmが公開後の処理中と案内した
+`latest` が `0.2.21` を指していることを確認する。npmが公開後の処理中と案内した
 場合は、数分待ってから確認する。反映待ちの間に同じ版を再公開しない。
 
 ```sh
 fm2612_verify_dir="$(mktemp -d)"
 (
   cd "$fm2612_verify_dir" || exit 1
-  npm install tetorica-fm2612@0.2.11 --ignore-scripts --no-audit --no-fund --registry=https://registry.npmjs.org/ || exit 1
+  npm install tetorica-fm2612@0.2.21 --ignore-scripts --no-audit --no-fund --registry=https://registry.npmjs.org/ || exit 1
   node --input-type=module <<'JS'
 import {createSoundChip} from 'tetorica-fm2612';
 const chip = await createSoundChip('ym2151');

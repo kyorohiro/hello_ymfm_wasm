@@ -5,6 +5,13 @@ const fs = require('node:fs/promises');
 const path = require('node:path');
 const {chromium, webkit} = require('playwright');
 const docs = path.resolve(__dirname, '../docs');
+const packageOption = process.argv.indexOf('--package');
+if(packageOption!==-1&&(!process.argv[packageOption+1]||process.argv[packageOption+1].startsWith('--')))throw Error('--package requires an installed tetorica-fm2612 directory');
+const installed = packageOption===-1 ? null : path.resolve(process.argv[packageOption+1]);
+const servedPackageAssets = new Set();
+// The npm package ships audio/runtime modules. Cassette filesystem/Git belongs
+// to the repository's Playground shell, which remains the UI fixture here.
+const fixtureJsPrefixes = ['/js/tetorica_virtual_files/'];
 const mime = {'.html':'text/html','.js':'text/javascript','.css':'text/css','.json':'application/json','.wasm':'application/wasm','.svg':'image/svg+xml'};
 const root = '#huc6280Panel';
 const control = name => `${root} [data-chip-control="pce-${name}"]`;
@@ -13,10 +20,14 @@ const channel = index => `${root} [data-chip-channel="${index}"]`;
 const server = http.createServer(async (request,response) => {
   try {
     const pathname=decodeURIComponent(new URL(request.url,'http://localhost').pathname);
-    let filename=path.resolve(docs,'.'+pathname);
-    if(!filename.startsWith(docs+path.sep))throw Error('Invalid path');
+    let base=docs,relative='.'+pathname,packageAsset=null;
+    if(installed&&pathname.startsWith('/js/')&&!fixtureJsPrefixes.some(prefix=>pathname.startsWith(prefix))){base=installed;relative=pathname.slice('/js/'.length);packageAsset=relative;}
+    else if(installed&&pathname.startsWith('/generated/')){base=installed;relative=pathname.slice(1);packageAsset=relative;}
+    let filename=path.resolve(base,relative);
+    if(!filename.startsWith(base+path.sep))throw Error('Invalid path');
     if((await fs.stat(filename)).isDirectory())filename=path.join(filename,'index.html');
     let body=await fs.readFile(filename);
+    if(packageAsset)servedPackageAssets.add(packageAsset);
     if(pathname.endsWith('/playground.js'))body=Buffer.from(body.toString()+'\nwindow.__huc6280Voice={runtime,megaDrive,chipTabs,operatorKeyboard,setSource:value=>editorAdapter.setValue(value)};');
     response.setHeader('Content-Type',mime[path.extname(filename)]||'application/octet-stream');response.end(body);
   }catch(error){response.writeHead(404).end(error.message);}
@@ -88,6 +99,7 @@ liveLoop('other-channel-latch',async()=>{
 `;
 async function check(page,url,browserName,worker) {
   const errors=[],result={browser:browserName,worker};page.on('pageerror',error=>errors.push(error.message));console.log(JSON.stringify({...result,stage:'start'}));
+  servedPackageAssets.clear();
   await page.goto(`${url}?mode=pc-engine&no-sw=1`);await page.waitForFunction(()=>window.__huc6280Voice&&window.monaco?.editor?.getEditors().length);
   assert(await page.locator('#huc6280Tab').isVisible(),'PC Engine exposes its HuC6280 tab');assert(await page.locator('#gameboyTab').isHidden()&&await page.locator('#nesTab').isHidden()&&await page.locator('#ym2151Tab').isHidden(),'mode hides unrelated chips');await page.click('#huc6280Tab');
   assert.equal(await page.evaluate(()=>window.__huc6280Voice.megaDrive.audioContext),null,'opening the panel does not open audio');assert.deepEqual(await page.evaluate(()=>window.__huc6280Voice.runtime.chipInspector.list()),[],'opening the panel does not prepare chips');
@@ -135,9 +147,15 @@ async function check(page,url,browserName,worker) {
   await page.evaluate(({source,worker})=>{window.__huc6280Voice.setSource(source);document.getElementById('workerExecution').checked=worker;},{source:program,worker});await page.click('#runButton');await page.waitForFunction(()=>window.__huc6280Voice.runtime.getState().playback==='running');await untilState(page,'state.channels[0].active&&Math.abs(state.channels[0].frequency-261.6256)<3','background code starts');await page.click('#huc6280Tab');await page.click(channel(0));await field(page,control('audition-midi'),69);await startHold(page);await field(page,control('volume'),23);await untilState(page,'state.channels[0].active&&Math.abs(state.channels[0].frequency-440)<3&&state.channels[0].volume===23','manual audition owns the selected channel');
   const otherFrequencies=[];for(let index=0;index<5;index++){await page.waitForTimeout(220);const state=await read(page);assert(state.channels[0].active&&Math.abs(state.channels[0].frequency-440)<3&&state.channels[0].volume===23&&state.channels[0].pan.left===15&&state.channels[0].pan.right===15,'queued writes and the global selector do not steal the held voice');assert(state.channels[1].pan.left===0&&state.channels[1].pan.right===0,'other-channel balance stays on CH2');otherFrequencies.push(state.channels[1].frequency);}assert(Math.max(...otherFrequencies)-Math.min(...otherFrequencies)>200,'another channel keeps progressing while CH1 is held');await audible(page,'held audition over background code');await releaseOutside(page);await untilState(page,'state.channels[0].active&&Math.abs(state.channels[0].frequency-261.6256)<3','code resumes on its next note');await stop(page);
   await page.click('#runButton');await page.waitForFunction(()=>window.__huc6280Voice.runtime.getState().playback==='running');await untilState(page,'state.channels[0].active&&Math.abs(state.channels[0].frequency-261.6256)<3','Run works after manual audition and Stop');await stop(page);assert.equal((await page.evaluate(()=>window.__huc6280Voice.runtime.chipInspector.list())).filter(entry=>entry.kind==='huc6280').length,1,'audition creates no additional HuC6280');assert.deepEqual(errors,[],'no browser page errors');
+  if(installed){
+    for(const asset of ['playground_runtime.js','native_runtime_synth.js','playground_chip_inspector.js','playground_performance_processor.js','playground_huc6280_worklet.js','playground_huc6280_inspector.js','generated/huc6280_wasm.js','generated/huc6280_wasm.wasm'])assert(servedPackageAssets.has(asset),`installed package asset was not exercised: ${asset}`);
+    if(worker)assert(servedPackageAssets.has('playground_logic_worker.js'),'Worker runtime came from the installed package');
+    result.installedPackage=true;
+  }
   if(process.argv.includes('--screenshots')){await page.click('#huc6280Tab');result.screenshot=`/private/tmp/huc6280-voice-${browserName}-${worker?'worker':'main'}-success.png`;await page.screenshot({path:result.screenshot});}console.log(JSON.stringify({...result,stage:'passed'}));
 }
 (async()=>{
+  if(installed){const metadata=JSON.parse(await fs.readFile(path.join(installed,'package.json'),'utf8'));assert.equal(metadata.name,'tetorica-fm2612');console.log(JSON.stringify({installedPackage:installed,version:metadata.version}));}
   await new Promise((resolve,reject)=>{server.once('error',reject);server.listen(0,'127.0.0.1',resolve);});
   try {
     const url=`http://127.0.0.1:${server.address().port}/playground/index.html`,engines=process.argv.includes('--chromium')?[['chromium',chromium]]:process.argv.includes('--webkit')?[['webkit',webkit]]:[['chromium',chromium],['webkit',webkit]],workers=process.argv.includes('--main')?[false]:process.argv.includes('--worker')?[true]:[false,true];

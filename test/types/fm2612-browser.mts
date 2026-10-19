@@ -121,3 +121,34 @@ createTetoricaSynth({chip:'segapsg',stereoEnabled:'mono'});
 createTetoricaSynth({chip:'segapsg',clock:'3579545'});
 // @ts-expect-error OPN chips use their own primary runtime.
 new NativeRuntimeSynth({chip:'ym2612'});
+
+// Native chips and audio/Keyboard hosting are available through the public Playground constructor.
+const nativePlayground = Playground({
+  chip:'huc6280',clock:3579545,fetch:globalThis.fetch,stereoEnabled:false,wasmUrl:new URL('pce.wasm',location.href),
+  inputAudio:async (options,{signal}) => {
+    options.asset?.toUpperCase(); options.edit?.valueOf(); signal.throwIfAborted();
+    return {name:'microphone',source:'microphone',sampleRate:16000,channels:[new Float32Array(16000)]};
+  },
+  onKeyboardTargetChange(target) {
+    if (!target) return;
+    target.name.toUpperCase(); target.noteOn({id:'key-1',midi:60,velocity:100});
+    target.noteOff({id:'key-1',midi:60}); target.allNotesOff();
+  },
+});
+for (const chip of ['nes','snes','x68000','segapsg','gameboy'] as const) Playground({chip});
+await nativePlayground.playSource('const audio = await inputAudio({asset:"/samples/voice.sample.json",edit:false});');
+// @ts-expect-error An OKI stream is part of the X68000 primary, not a standalone primary chip.
+Playground({chip:'okim6258'});
+// @ts-expect-error Native primary clock is numeric Hz.
+Playground({chip:'huc6280',clock:'3579545'});
+// @ts-expect-error Keyboard event pitches are numeric MIDI.
+Playground({onKeyboardTargetChange:target => target?.noteOn({id:'key',midi:'C4'})});
+// @ts-expect-error Audio providers return decoded PCM channels.
+Playground({inputAudio:async () => ({name:'invalid',source:'file',sampleRate:16000,channels:['file.wav']})});
+
+import {createHuc6280Client} from 'tetorica-fm2612/playground_huc6280.js';
+import {createOki6258Client} from 'tetorica-fm2612/playground_okim6258.js';
+const pce = createHuc6280Client(new MessageChannel().port1);pce.initialize();pce.setWaveform(0,new Uint8Array(32));pce.setNote(0,'A4');
+const oki = createOki6258Client(new MessageChannel().port1);await oki.loadSample({channels:[new Float32Array(32)],sampleRate:16000});oki.setDivider(512);oki.play({repeat:true});
+// @ts-expect-error Pan uses boolean channel routing.
+oki.setPan('left',true);

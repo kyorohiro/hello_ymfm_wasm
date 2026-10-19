@@ -8,6 +8,10 @@ const channel=value=>{if(value!==0)throw new RangeError('OKIM6258 has one channe
 
 /** Applied single-stream state. Reads never decode memory, write, or advance audio. */
 export class Oki6258VoiceInspector {
+  /**
+   * @param {import('./okim6258synth.js?v=native-voices-4').Oki6258Stream} stream
+   * @param {Omit<import('./playground_native_voice_inspector.js?v=native-voices-4').NativeVoiceInspectorOptions, 'clock'>} [options]
+   */
   constructor(stream,{sampleRate=44100,dispatch,beginAudition=()=>{},endAudition=()=>{}}={}){
     this.stream=stream;this.sampleRate=sampleRate;this.dispatch=dispatch;
     this.beginAudition=beginAudition;this.endAudition=endAudition;this.audition=null;this.previewSequence=0;this.sample=null;this.memoryRevision=0;

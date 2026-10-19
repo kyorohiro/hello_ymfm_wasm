@@ -110,6 +110,8 @@ button.addEventListener('click', async () => {
 
 対応チップの全一覧とAPIの使い方は[パッケージのREADME](packages/fm2612/README.md)を、実行できるWeb / Nodeの例は[examples](https://github.com/kyorohiro/tetorica-fm2612-examples)を参照してください。高水準Synth APIの対応範囲はチップごとに異なります。
 
+0.2.21では、共有Playground Runtimeにネイティブ音源の基本構成、適用済み音色の読み取り・編集、チャンネルを占有する試奏、ホスト向けKeyboard／音声入力の接続を追加しています。HuC6280とOKIM6258の高水準Synthモジュールも収録します。Webサイトのmode選択、音色パネル、Guitar Keyboardの部品、Sample Editorのダイアログはnpmに含まれず、組み込み先のホストが画面を用意します。[Runtimeの組み込み説明](packages/fm2612/README.md#native-configurations-and-host-integration-0221)を参照してください。
+
 ### tetorica-vgm
 
 VGM Analyzerは、コマンドラインでの解析、エクスポート、WAV生成向けに[`tetorica-vgm` npmパッケージ](https://www.npmjs.com/package/tetorica-vgm)としても提供しています。Node.js 22以降が必要です。

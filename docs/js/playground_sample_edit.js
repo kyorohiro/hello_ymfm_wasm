@@ -105,7 +105,12 @@ function resample(input, frames, sourceRate, targetRate, circular = false) {
   return output;
 }
 
-/** Render an owned PCM copy. rootMidi/tuneCents are instrument metadata, not destructive resampling. */
+/**
+ * Render an owned PCM copy. rootMidi/tuneCents are instrument metadata, not destructive resampling.
+ * @param {any} audio
+ * @param {any} settings
+ * @param {{sampleRate?: number, mono?: boolean, maxFrames?: number}} [options]
+ */
 export function renderSampleEdit(audio, settings, {sampleRate = audio.sampleRate, mono = true, maxFrames} = {}) {
   const edit = normalizeSampleEdit(audio, settings);
   if (!Number.isInteger(sampleRate) || sampleRate < 1 || sampleRate > 768000) throw new RangeError('Invalid output sample rate');
@@ -171,7 +176,12 @@ export function encodeSampleWav(audio) {
   }
   return bytes;
 }
-/** Binary-only wrapper: never loads paths, URLs or devices. */
+/** Binary-only wrapper: never loads paths, URLs or devices.
+ * Returns decoded Float32 channels and the WAV sample rate; edit/instrument
+ * metadata is stored separately and is not recovered from this audio container.
+ * @param {Uint8Array|ArrayBuffer} bytes
+ * @returns {Promise<import('./wav.js').ChannelPCM>}
+ */
 export async function decodeSampleWav(bytes) {
   if (!(bytes instanceof Uint8Array) && !(bytes instanceof ArrayBuffer)) throw new TypeError('Expected WAV bytes');
   const pcm = await readSamplePCM(bytes);

@@ -35,12 +35,15 @@ entry points, rather than every internal Worker or Worklet module.
 | Game Boy pulse, wave and noise | `tetorica-fm2612/gameboysynth.js` | `GameboySynth`, `GameboyDirectTransport` |
 | NES APU and FDS | `tetorica-fm2612/nesapusynth.js` | `NesApuSynth`, `NesApuDirectTransport`, `NesApuWorkletTransport` |
 | Sega PSG tone and noise | `tetorica-fm2612/segapsgsynth.js` | `SegaPSGSynth`, `SegaPSGDirectTransport`, `psgPeriodFromFrequency`, `psgPeriodFromNote` |
+| PC Engine wavetable, noise and DDA | `tetorica-fm2612/huc6280synth.js` | `Huc6280Synth`, `Huc6280DirectTransport` |
+| OKIM6258 ADPCM samples | `tetorica-fm2612/okim6258synth.js` | `Oki6258Synth`, `encodeOki6258` |
 | RF5C164 PCM | `tetorica-fm2612/rf5c164synth.js` | `RF5C164Synth`, `RF5C164DirectTransport` |
 | 32X PWM | `tetorica-fm2612/pwm32x_transport.js` | `PWM32XDirectTransport`, `PWM32XWorkletTransport` |
 | Shared browser chip transports | `tetorica-fm2612/chip_worklet_transport.js` | `GameboyWorkletTransport`, `SegaPSGWorkletTransport`, `YM2151WorkletTransport` |
 | Real-time chip playback on Node | `tetorica-fm2612/node/transports` | `YM2612AudifyTransport`, `YM2608AudifyTransport`, `YM2151AudifyTransport`, `GameboyAudifyTransport`, `SegaPSGAudifyTransport`, `NesApuAudifyTransport`, `PWM32XAudifyTransport` |
 | Browser synth with FX, recording and looping | `tetorica-fm2612/megasynth.js` | `MegaSynth` |
 | Browser live-code runtime | `tetorica-fm2612/playground_runtime.js` | `Playground`, `createPlaygroundRuntime` |
+| Select a primary runtime synth | `tetorica-fm2612/tetorica_synth.js` | `createTetoricaSynth`, `TETORICA_CHIPS` |
 | DX7 inside browser Playground scripts | `tetorica-fm2612/playground_runtime.js` | Script globals `useSoundChip('dx7')`, `createSoundChip('dx7')` |
 | SNES S-DSP / SPC700 | `tetorica-fm2612/snessynth.js`, `tetorica-fm2612/spc.js` | CPU-free BRR instrument / SPC file PCM core |
 | Offline FM + native FX rendering | `tetorica-fm2612/megasynth_offline.js` | `createMegaSynthOffline` (experimental) |
@@ -250,6 +253,48 @@ These APIs require Web Audio and, when used, browser Worker/AudioWorklet support
 Initialize audio from a user gesture. Worklets, the logic Worker, native effects
 WASM, chip loader JS/WASM pairs and Tetorica's generated OPNA rhythm data are
 included. Website/editor pages and the Introduction/Ebook are separate consumers.
+
+### Native configurations and host integration (0.2.21)
+
+The shared runtime supports Game Boy, NES + FDS, SNES, X68000
+(YM2151 + OKIM6258), PC Engine (HuC6280), and Sega PSG primary synths alongside
+the OPN configurations. `createTetoricaSynth` selects the underlying chip family;
+the website's named modes, starter files and mode-switching interface are host
+features. Native scripts use their chip APIs, such as `pce`, `opm` and `adpcm`;
+the musical `play()` helper remains specific to OPN FM.
+
+Runtime hosts can read applied chip state and send explicit edits through
+`runtime.chipInspector`. Native voice inspectors cover Game Boy, NES/FDS,
+YM2151, OKIM6258 and HuC6280. Reads do not render audio or trigger notes.
+Manual audition owns the selected hardware channel until release or sample completion; stale note
+releases cannot silence its replacement. Stop cancels reserved script commands
+and manual notes while retaining uploaded material and supported voice settings.
+
+Scripts can bind a host keyboard and create sample instruments:
+
+```js
+// Inside a Playground script. The embedding host supplies audio input and a keyboard UI.
+const audio = await inputAudio();
+if (audio) {
+  keyboard.bind('sampler', await createSampleInstrument(audio));
+}
+```
+
+The host supplies the runtime's `inputAudio` callback, returning decoded PCM or
+`null`, and connects `onKeyboardTargetChange` to its input surface. Input requests
+receive an AbortSignal for Stop/cancellation. The sample-instrument adapters
+support RF5C164, Game Boy wave RAM and PC-98/Neo Geo ADPCM-B; they do not provide
+a common sampler for every chip. Keyboard bindings also accept custom
+`noteOn`, `noteOff` and `allNotesOff` handlers with per-press identities.
+
+The npm package includes these runtime modules and sample-processing helpers.
+The website's mode menu, Guitar Keyboard widgets, voice-panel widgets and
+file/microphone Sample Editor dialog under `docs/playground/` are separate and
+are not included in the npm package. See the
+[browser Playground](https://kyorohiro.github.io/hello_ymfm_wasm/playground/index.html)
+for that complete interface.
+
+### Worker timing
 
 Playground Worker scripts reserve FM/PSG, native sample/noise/FX and independent
 chip commands 500 ms ahead by default on the shared audio clock. UI Keyboard audition and
@@ -654,10 +699,10 @@ FM/PSG/PCM mixing, stop/reset and close/restart. Playwright is a development
 dependency; it is not required by users of the sound-chip runtime.
 
 The build is staged in `dist/fm2612/`; packing produces
-`tetorica-fm2612-0.2.20.tgz`. To install a local build in another project:
+`tetorica-fm2612-0.2.21.tgz`. To install a local build in another project:
 
 ```sh
-npm install /absolute/path/to/tetorica-fm2612-0.2.20.tgz
+npm install /absolute/path/to/tetorica-fm2612-0.2.21.tgz
 ```
 
 The existing `tetorica-vgm` CLI package is built separately. This first package
@@ -674,6 +719,17 @@ Tetorica-generated and includes its license and generator. External
 instrument/sample ROMs are not included.
 
 ## Release notes
+
+`0.2.21` extends the **shared Playground runtime** with native primary synth
+configurations, applied-state voice inspectors, channel-owned audition,
+`keyboard.bind()`, host-provided `inputAudio()` and sample-instrument adapters.
+It includes the HuC6280 and OKIM6258 high-level Synth modules, Game Gear stereo
+controls, SNES prepared-timeline playback and bounded SPC trace helpers.
+OPN updates include YM2610/B ADPCM memory transfers and acknowledged OPNA rhythm
+ROM loading (`await transport.loadRhythmRom(...)`). Selected PCM rendering paths
+add reusable buffers. Stop/cleanup, banked register targeting, VGM frequency-write ordering
+and failed browser-audio decoding are also corrected. The website editor UI and
+its named mode selector remain separate from this npm runtime payload.
 
 `0.2.20` adds **experimental SNES/SPC support**: a CPU-free, eight-voice
 S-DSP BRR instrument through Playground's `useSoundChip('snes')` and

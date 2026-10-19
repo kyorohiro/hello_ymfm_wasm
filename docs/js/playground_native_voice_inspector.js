@@ -8,8 +8,37 @@ const boolean=(v,name)=>{if(typeof v!=='boolean')throw new TypeError(`${name} mu
 function options(value,keys){if(!value||typeof value!=='object'||Array.isArray(value))throw new TypeError('Voice must be an object');for(const key of Object.keys(value))if(!keys.includes(key))throw new TypeError(`Unknown voice property: ${key}`);}
 function identity(value){if(typeof value!=='string'||!value.length||value.length>128)throw new TypeError('Audition identity must contain 1..128 characters');return `voice-editor:${value}`;}
 
+/**
+ * @typedef {{method: string, args?: any[], channel?: number}} NativeVoiceCommand
+ * @typedef {object} NativeVoiceInspectorOptions
+ * @property {number | (() => number)} [clock]
+ * @property {number} [sampleRate]
+ * @property {(command: NativeVoiceCommand, owner?: string, metadata?: {preserveOwner?: boolean}) => void} [dispatch]
+ * @property {(channel: number, owner: string) => void} [beginAudition]
+ * @property {(channel: number, owner: string) => void} [endAudition]
+ */
+
+/**
+ * @typedef {{channel:number,active:boolean,frequency:number,pan:{left:boolean,right:boolean},
+ * lengthEnabled:boolean,lengthCount:number,length:number}} GameboyVoiceChannelBase
+ * @typedef {{direction:'up'|'down',period:number}} GameboyVoiceEnvelope
+ * @typedef {{direction:'up'|'down',period:number,shift:number}} GameboyVoiceSweep
+ * @typedef {GameboyVoiceChannelBase & {channel:0|1,type:'pulse',period:number,
+ * duty:0.125|0.25|0.5|0.75,volume:number,envelope:GameboyVoiceEnvelope,
+ * sweep?:GameboyVoiceSweep}} GameboyPulseVoiceSnapshot
+ * @typedef {GameboyVoiceChannelBase & {channel:2,type:'wave',period:number,
+ * level:0|0.25|0.5|1,waveform:number[]}} GameboyWaveVoiceSnapshot
+ * @typedef {GameboyVoiceChannelBase & {channel:3,type:'noise',volume:number,
+ * envelope:GameboyVoiceEnvelope,divisor:number,shift:number,width:7|15}} GameboyNoiseVoiceSnapshot
+ * @typedef {GameboyPulseVoiceSnapshot|GameboyWaveVoiceSnapshot|GameboyNoiseVoiceSnapshot} GameboyVoiceChannelSnapshot
+ * @typedef {{kind:'gameboy',clock:number,sampleRate:number,powered:boolean,
+ * activeSource:'applied-register-gates',masterVolume:{left:number,right:number},
+ * channels:GameboyVoiceChannelSnapshot[],registers:number[]}} GameboyVoiceSnapshot
+ */
+
 /** Mirrors only applied writes. read() never renders audio, triggers a note, or sends a message. */
 class VoiceInspector {
+  /** @param {any} chip @param {NativeVoiceInspectorOptions} [options] */
   constructor(chip,{clock,sampleRate=44100,dispatch,beginAudition=()=>{},endAudition=()=>{}}={}) {
     this.chip=chip;this.clock=typeof clock==='function'?clock:()=>clock??chip.clock;
     this.sampleRate=sampleRate;this.dispatch=dispatch??(command=>chip[command.method](...(command.args??[])));
@@ -40,6 +69,7 @@ class VoiceInspector {
 }
 
 export class GameboyVoiceInspector extends VoiceInspector {
+  /** @param {any} chip @param {NativeVoiceInspectorOptions} [options] */
   constructor(chip,options={}){super(chip,options);this.kind='gameboy';this.reset();}
   reset(){this.resetAuditions();this.registers=new Uint8Array(48);this.voice=new Uint8Array(48);this.gates=[false,false,false,false];}
   observeWrite(offset,value) {
@@ -88,6 +118,7 @@ export class GameboyVoiceInspector extends VoiceInspector {
     if(method==='setFrequency')return this.stage(s=>s.setFrequency(...args));
     throw new Error('Unsupported Game Boy inspector operation');
   }
+  /** @returns {GameboyVoiceSnapshot} */
   read(){
     const r=this.registers,v=this.voice,powered=!!(r[22]&128),clock=this.clock();
     const channels=Array.from({length:4},(_,channel)=>{
@@ -103,6 +134,7 @@ export class GameboyVoiceInspector extends VoiceInspector {
 }
 
 export class NesVoiceInspector extends VoiceInspector {
+  /** @param {any} chip @param {NativeVoiceInspectorOptions} [options] */
   constructor(chip,options={}){
     super(chip,options);this.kind='nes';this.fdsEnabled=!!chip.fdsEnabled;this.reset();
     const load=chip.loadMemory?.bind(chip);if(load)chip.loadMemory=(bytes,address=0xc000)=>{const result=load(bytes,address);this.memoryRanges.push({address,end:address+bytes.length});return result;};

@@ -189,6 +189,14 @@ button.addEventListener('click', async () => {
 
 See the [package README](packages/fm2612/README.md) for the complete chip list and APIs, and the [examples](https://github.com/kyorohiro/tetorica-fm2612-examples) for runnable Web/Node projects. High-level Synth API coverage varies by chip.
 
+Version 0.2.21 updates the shared Playground runtime with native primary synth
+configurations, applied-state voice inspection, channel-owned audition and
+keyboard/sample-input hooks for embedding hosts. It also includes the HuC6280
+and OKIM6258 high-level Synth modules. The website's mode selector, voice panels,
+Guitar Keyboard widgets and Sample Editor dialog are separate from the npm
+payload; hosts provide their own interface. See the
+[runtime integration details](packages/fm2612/README.md#native-configurations-and-host-integration-0221).
+
 ### tetorica-vgm
 
 The VGM Analyzer is also available as the [`tetorica-vgm` npm package](https://www.npmjs.com/package/tetorica-vgm)

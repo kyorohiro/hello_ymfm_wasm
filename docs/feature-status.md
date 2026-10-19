@@ -1,6 +1,6 @@
 # Tetorica 機能対応状況
 
-更新日：2026-10-11。**現在のリポジトリの機能を探す入口**。
+更新日：2026-10-20。**現在のリポジトリの機能を探す入口**。
 機能単位の状態はこの一覧で管理し、細かなチップ条件・設計・作業経緯はリンク先に残す。
 公開版と現在のコードは同一とは限らない。再生対応だけで、音色Export・高速シーク・高水準APIも対応済みとは判断しない。
 
@@ -72,6 +72,9 @@ WASMが存在するだけでPlayground APIも利用可能とは判断しない�
 | 機能 | 実装・範囲 | 制限・手動確認 | 自動検証・詳細 |
 |---|---|---|---|
 | ライブコーディング・埋め込みRuntime | 実装済。FM／PSG／DAC、サンプル、ループ等 | 音源選択によって使えるAPIが異なる。手動記録は未整理 | [Runtime](../web/README.md)、[テスト](../web/playground_runtime.test.mjs)、[examples](playground/examples/README.md) |
+| Playground modeとネイティブ基本構成 | WebはOPN系に加えGame Boy／NES＋FDS／SNES／X68000／PC Engine／Game Gear／Master System等のmodeを実装。共有Runtimeは対応する基本音源構成を扱う | npm 0.2.21の対象。modeメニュー・初期コード・画面の切替はWeb側の機能で、npmに画面は含まれない。`play()`はOPN FM用、他音源は個別APIで操作 | [mode仕様](issues/soundchip_mode.md)、[Runtimeの収録範囲](../packages/fm2612/README.md#native-configurations-and-host-integration-0221) |
+| ネイティブ音色情報・試奏 | Game Boy／NES＋FDS／YM2151／OKIM6258／HuC6280の適用済み設定と波形を確認・編集。Hold試奏と共通Keyboardを接続 | 共有Inspector・Worklet側処理はnpm 0.2.21の対象、パネルUIはWeb専用。選択CHのmanual lease、旧IDのrelease無視、Stopの予約取消・設定保持を検証。HuCのDDAでは音符試奏不可、OKIのKeyboardは同rateの単音sample trigger | [仕様と検証](issues/soundchip_mode.md)、[HuC実core](../web/playground_huc6280_inspector.test.mjs)、[OKI実core](../web/playground_okim6258_inspector.test.mjs)、[OPM実core](../web/playground_ym2151_inspector.test.mjs) |
+| 共通Keyboard・音声入力・Sample instrument | 共有Runtimeの`keyboard.bind()`、ホスト提供の`inputAudio()`、RF5C164／Game Boy Wave／PC98・Neo Geo ADPCM-B向け`createSampleInstrument()` | npm 0.2.21の対象。音声入力の画面とKeyboard入力面はホストが提供する。Webの録音・波形編集ダイアログ、Cassette保存UIはnpm非収録。全チップ共通のサンプラーではない | [APIと収録範囲](../packages/fm2612/README.md#native-configurations-and-host-integration-0221)、[Sample instrumentテスト](../web/playground_sample_instrument.test.mjs) |
 | 32X PWM 共通コア | MAME由来のFIFO／周期／ルーティング・PCM・状態復元。VGMはpwmModel: mameで比較可能 | 開発版。Analyzer／CLIのVGM再生はMAME由来方式が既定（cycle基準の振幅）。MegaSynth／MegaSynthNodeはmega32X: true、PlaygroundはuseSoundChip('pwm')。フレーム単位の書き込みと共通Worklet／Audify Transportを追加。PCMサンプル高級APIと実機比較は残作業 | [実装と検証](issues/pwm32x_01.md)、[比較ページ](demos/32x-pwm-compare.html) |
 | MegaSynth Mega CD PCM | `megaCD: true`でRF5C164を有効化。`pcm`から8CH・64 KiB RAM・サンプル読込・パンを操作。FM／PSGと共通の出力・FX経路 | npm公開版0.2.6に収録。FMコマンド録音にPCMは含まれない。CDディスク／32X対応は別 | [APIと例](../packages/fm2612/README.md)、[終了・再起動テスト](../web/megasynth.test.mjs)、[実ブラウザー検証](../scripts/check_megacd_browser.cjs)：8CH・左右パン・混合出力・Stop／Reset／再起動を確認 |
 | `createSoundChip('rf5c164')` | 実装済。独立PCM音源・RAM・CH制御 | ブラウザー試聴・実曲検証未確認 | [作業記録](issues/rf5c164_01.md)、[テスト](../web/playground_rf5c164.test.mjs) |
@@ -112,7 +115,7 @@ WASMが存在するだけでPlayground APIも利用可能とは判断しない�
 | 対象 | 公開報告 | この一覧での扱い |
 |---|---|---|
 | CLI `tetorica-vgm` | [v0.2.10をnpm公開](https://www.npmjs.com/package/tetorica-vgm/v/0.2.10)（2026-10-11） | latestと公開tarball integrityを照合。MSM5205／PC Engine CD ADPCM、Game Boy・NES/FDS状態保存を含む。公開版の新規導入・Node.js 22で解析／WAV／start／ADPCMミュート／状態復元PCM一致を確認。公開元commit `85e2093` |
-| Sound-chip runtime `tetorica-fm2612` | [v0.2.12をnpm公開](https://www.npmjs.com/package/tetorica-fm2612/v/0.2.12)（2026-10-09） | latestと公開tarball integrityを照合。既存Mixer・自動ID・YM2151Synthに加えNES APU／FDS SynthとPlayground接続・examplesを収録。新規導入・型定義・Direct／Worklet発音と終了、Node CoreAudio、Playground Main／Workerを確認 |
+| Sound-chip runtime `tetorica-fm2612` | [v0.2.20を公開版比較の基準として確認](https://www.npmjs.com/package/tetorica-fm2612/v/0.2.20)。0.2.21を公開準備中（2026-10-20） | 公開0.2.20 tarballと現在の共有Runtimeを比較し、ネイティブ基本構成／音色Inspector／Keyboard・音声入力等を0.2.21の対象として整理。Webパネルはnpm非収録。0.2.21の公開・配布物照合は完了後に追記する |
 | VGM Analyzer | v0.40.7公開済みとの報告（SBI対応の時期） | 後続のROM・高速シーク等がどの公開版に入ったかは未照合 |
 | Playground／Game Boy VGM→JavaScript変換 | itch.io向けv0.40.11公開済みとの報告（2026-09-30） | raw／解説付きraw／高水準API＋raw fallback、チップ別オプション。公開配布物の照合・ブラウザー聴感確認は未実施 |
 

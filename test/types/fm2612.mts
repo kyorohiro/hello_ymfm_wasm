@@ -152,3 +152,69 @@ await nesSynth.loadMemory('DPCM', 0xc000);
 
 // Playground accepts the source NES CPU clock independently of FDS expansion.
 await createSoundChip('nes', {clock:1662607, fds:false});
+
+// New standalone PC Engine / X68000 helpers retain useful consumer parameter types.
+import {Huc6280Synth, Huc6280DirectTransport} from 'tetorica-fm2612/huc6280synth.js';
+import type {Huc6280AudioEngine} from 'tetorica-fm2612/huc6280audioengine.js';
+import {Oki6258Synth, encodeOki6258, summarizeOki6258} from 'tetorica-fm2612/okim6258synth.js';
+declare const pceEngine: Huc6280AudioEngine;
+const pceSynth = new Huc6280Synth({transport:new Huc6280DirectTransport(pceEngine),clock:3579545});
+pceSynth.initialize(); pceSynth.setWaveform(0,new Uint8Array(32)); pceSynth.noteOn(0,'A4');
+pceSynth.setNoise(5,{enabled:true,frequency:20});
+// @ts-expect-error Wave samples must be numeric arrays, not a waveform name.
+pceSynth.setWaveform(0,'triangle');
+// @ts-expect-error Noise enable is a boolean hardware setting.
+pceSynth.setNoise(5,{enabled:'on'});
+const okiSynth = new Oki6258Synth({transport:{
+  writeRegister(register,value) { register.toFixed(); value.toFixed(); },
+  async loadMemory(encoded,metadata) { encoded.byteLength.toFixed(); metadata?.waveform[0]?.toFixed(); },
+  play(options) { options.repeat.valueOf(); },stop(){},reset(){},
+}});
+okiSynth.setDivider(768); okiSynth.setPan(true,false); await okiSynth.loadMemory(new Uint8Array([0x10,0xf8]));
+okiSynth.play({repeat:true}); okiSynth.stop();
+const encodedOki = encodeOki6258({channels:[new Float32Array(32)],sampleRate:16000},15625);
+summarizeOki6258(encodedOki.bytes).frames.toFixed();
+// @ts-expect-error Divider rates are numeric.
+okiSynth.setDivider('768');
+// @ts-expect-error Playback repeat is boolean.
+okiSynth.play({repeat:'yes'});
+// @ts-expect-error Encoded ADPCM preview requires bytes.
+summarizeOki6258('sample.wav');
+// @ts-expect-error PCM input must include decoded Float32 channels.
+encodeOki6258({channels:['sample.wav'],sampleRate:16000},15625);
+
+// Applied Game Boy channels discriminate their pulse/wave/noise readback fields.
+import {GameboyVoiceInspector} from 'tetorica-fm2612/playground_native_voice_inspector.js';
+const gbVoiceSnapshot = new GameboyVoiceInspector(await createSoundChip('gameboy'),{clock:4194304}).read();
+gbVoiceSnapshot.clock.toFixed(); gbVoiceSnapshot.masterVolume.left.toFixed();
+for (const channel of gbVoiceSnapshot.channels) {
+  channel.frequency.toFixed(); channel.pan.left.valueOf(); channel.lengthCount.toFixed();
+  if (channel.type === 'wave') {
+    const samples: number[] = channel.waveform;
+    const level: 0|0.25|0.5|1 = channel.level;
+    samples[0]?.toFixed(); channel.period.toFixed(); void level;
+  } else {
+    channel.volume.toFixed(); channel.envelope.period.toFixed();
+    const direction: 'up'|'down' = channel.envelope.direction;
+    if (channel.type === 'pulse') {
+      channel.period.toFixed(); channel.duty.toFixed(); channel.sweep?.shift.toFixed();
+    } else {
+      channel.divisor.toFixed(); channel.shift.toFixed();
+      const width: 7|15 = channel.width; void width;
+    }
+    void direction;
+    // @ts-expect-error Pulse and noise channels have no Wave RAM snapshot.
+    channel.waveform;
+  }
+}
+
+// Binary WAV decoding returns useful PCM channels and sample-rate metadata.
+import {decodeSampleWav} from 'tetorica-fm2612/playground_sample_edit.js';
+import type {ChannelPCM} from 'tetorica-fm2612/wav.js';
+declare const sampleWavBytes: Uint8Array;
+const decodedSample: ChannelPCM = await decodeSampleWav(sampleWavBytes);
+decodedSample.sampleRate.toFixed();
+const decodedChannel: Float32Array = decodedSample.channels[0];
+decodedChannel.subarray(0,32);
+// @ts-expect-error This binary-only decoder never fetches a path or URL.
+await decodeSampleWav('recording.wav');

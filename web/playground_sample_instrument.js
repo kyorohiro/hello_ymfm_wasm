@@ -69,7 +69,10 @@ function metadata(audio) {
   return {rootMidi, tuneCents};
 }
 
-/** audio is already edited PCM; target adapters never silently crop or resample it. */
+/**
+ * audio is already edited PCM; target adapters never silently crop or resample it.
+ * @param {{pg?: any, audio?: any, chip?: string, target?: 'auto' | 'rf5c164' | 'gameboy-wave' | 'adpcm-b', volume?: number}} [options]
+ */
 export async function createSampleInstrument({pg, audio, chip = 'ym2612', target = audio?.target ?? 'auto', volume} = {}) {
   if (!pg || !audio) throw new TypeError('createSampleInstrument requires pg and decoded audio');
   const {rootMidi, tuneCents} = metadata(audio);

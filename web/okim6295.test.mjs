@@ -77,7 +77,9 @@ test('real YM2151 and OKIM6295 mix equal independent outputs; CLI WAV and mute w
 test('UI source controls and shipped modules match',()=>{
  assert(sourcesForChip('ym2151',false,true).some(s=>s.key==='oki6295'));
  let muted=false;applySourceMutes({setOki6295Muted:v=>{muted=v;}},'okim6295',{oki6295:true});assert.equal(muted,true);
- for(const f of ['ym2612vgm.js','vgmplayer.js','okim6295audioengine.js'])assert.equal(readFileSync(new URL(f,import.meta.url),'utf8'),readFileSync(new URL('../docs/js/'+f,import.meta.url),'utf8'));
+ // Website cache revisions differ from the package's module identities.
+ const source=url=>readFileSync(url,'utf8').replace(/(\.js)\?v=[\w.-]+/g,'$1');
+ for(const f of ['ym2612vgm.js','vgmplayer.js','okim6295audioengine.js'])assert.equal(source(new URL(f,import.meta.url)),source(new URL('../docs/js/'+f,import.meta.url)));
 });
 
 test('player reset replays identical PCM; loading another track clears sample ROM',async()=>{
