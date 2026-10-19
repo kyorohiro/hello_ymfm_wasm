@@ -1,4 +1,4 @@
-import {ChipClockResampler, CHIP_CLOCKS} from './playground_chip_clock.js?v=native-modes-3';
+import {ChipClockResampler, CHIP_CLOCKS} from './playground_chip_clock.js?v=audio-stability-2';
 import {NesApu} from './nesapu.js';
 import {createProcessorPerformance} from './playground_performance_processor.js?v=native-modes-3';
 class Processor extends AudioWorkletProcessor {

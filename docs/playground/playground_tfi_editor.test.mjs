@@ -67,15 +67,18 @@ test('file editing saves to the opened path and preview audio starts only on aud
   assert.equal(editor.getAudioRuntime(), null);
 });
 
-function auditionEditor({deferredStart = false} = {}) {
-  const calls = {create: 0, start: 0, resume: 0, close: 0, keyboardDispose: 0, volume: [], views: [], attachments: []};
+function auditionEditor({deferredStart = false, deferredResume = false, deferredSuspend = false} = {}) {
+  const calls = {create: 0, start: 0, resume: 0, suspend: 0, close: 0, keyboardDispose: 0, volume: [], views: [], attachments: []};
   const previewRuntime = {audioContext: {state: 'running'}, masterOutputNode: {}};
-  let finishStart;
+  let finishStart, finishResume, finishSuspend;
   const startPromise = deferredStart ? new Promise(resolve => { finishStart = resolve; }) : Promise.resolve();
+  const resumePromise = deferredResume ? new Promise(resolve => { finishResume = resolve; }) : Promise.resolve();
+  const suspendReady = deferredSuspend ? new Promise(resolve => { finishSuspend = resolve; }) : Promise.resolve();
   const synth = {audio: previewRuntime, fm: {},
-    async start() { calls.start++; await startPromise; },
-    async resume() { calls.resume++; },
-    close() { calls.close++; },
+    async start() { calls.start++; await startPromise; previewRuntime.audioContext.state = 'running'; },
+    async resume() { calls.resume++; await resumePromise; previewRuntime.audioContext.state = 'running'; },
+    async suspend() { calls.suspend++; await suspendReady; previewRuntime.audioContext.state = 'suspended'; },
+    close() { calls.close++; previewRuntime.audioContext.state = 'closed'; },
     setMasterVolume(volume) { calls.volume.push(volume); },
   };
   let keyboardOptions, currentPreset;
@@ -104,7 +107,12 @@ function auditionEditor({deferredStart = false} = {}) {
     createAudio() { calls.create++; return synth; },
   });
   return {editor, root, calls, synth, previewRuntime,
-    audition: () => keyboardOptions.ensureAudioReady(), finishStart};
+    audition: () => keyboardOptions.ensureAudioReady(), finishStart, finishResume, finishSuspend};
+}
+
+async function until(predicate) {
+  for (let i = 0; i < 100; i++) { if (predicate()) return; await Promise.resolve(); }
+  assert.fail('Async boundary was not reached');
 }
 
 for (const format of ['tfi', 'vgi']) {
@@ -129,11 +137,13 @@ for (const format of ['tfi', 'vgi']) {
     assert.equal(f.calls.start, 1);
     assert.equal(f.calls.resume, 1, 'monitor reads must not resume audio');
     f.editor.setVisible(false);
+    await until(() => f.previewRuntime.audioContext.state === 'suspended');
     assert.equal(f.root.hidden, true);
     assert.equal(f.calls.views.at(-1), 'code', 'hiding still tells the keyboard to release its audition');
     assert.equal(f.editor.getAudioRuntime(), f.previewRuntime, 'visibility does not destroy the reusable runtime');
     assert.equal(f.calls.close, 0);
     assert.equal(f.calls.resume, 1);
+    assert.equal(f.calls.suspend, 1, 'a hidden preview cannot keep its long release audible');
     f.editor.setVisible(true);
     f.editor.open(`/presets/another.${format}`, instrument);
     assert.equal(f.editor.getAudioRuntime(), f.previewRuntime);
@@ -142,6 +152,8 @@ for (const format of ['tfi', 'vgi']) {
     await f.audition();
     assert.equal(f.calls.start, 1);
     assert.equal(f.calls.resume, 2);
+    assert.equal(f.previewRuntime.audioContext.state, 'running');
+    f.editor.dispose();
     f.editor.dispose();
     for (let i = 0; i < 5; i++) assert.equal(f.editor.getAudioRuntime(), null);
     assert.equal(f.calls.keyboardDispose, 1, 'disposal still releases the keyboard');
@@ -169,6 +181,70 @@ test('reading or hiding a preparing preview does not start another session or at
   assert.equal(f.calls.resume, 0);
   assert.deepEqual(f.calls.attachments, []);
   assert.equal(f.calls.close, 1);
+});
+
+test('hiding during preview initialization suspends its late completion without resuming it', async () => {
+  const f = auditionEditor({deferredStart:true});
+  f.editor.open('/presets/voice.tfi', bytes);
+  const ready = f.audition();
+  f.editor.setVisible(false);
+  await until(() => f.calls.suspend === 1);
+  f.finishStart();
+  await ready;
+  assert.equal(f.previewRuntime.audioContext.state,'suspended');
+  assert.equal(f.calls.resume,0,'a hidden audition never explicitly resumes');
+  f.editor.setVisible(true);
+  assert.equal(f.previewRuntime.audioContext.state,'suspended','showing the file alone does not play its tail');
+  await f.audition();
+  assert.equal(f.calls.start,1,'the existing patch and runtime are reused');
+  assert.equal(f.previewRuntime.audioContext.state,'running');
+  f.editor.dispose();
+});
+
+test('a pending resume cannot leave a hidden preview running', async () => {
+  const f = auditionEditor({deferredResume:true});
+  f.editor.open('/presets/voice.tfi',bytes);
+  const ready = f.audition();
+  await until(() => f.calls.resume === 1);
+  f.editor.setVisible(false);
+  await until(() => f.previewRuntime.audioContext.state === 'suspended');
+  f.finishResume();
+  await ready;
+  assert.equal(f.previewRuntime.audioContext.state,'suspended');
+  assert.equal(f.calls.suspend,2,'the resumed hidden context is suspended again');
+  f.editor.dispose();
+});
+
+test('a visible audition waits for an earlier hide suspension before resuming', async () => {
+  const f = auditionEditor({deferredSuspend:true});
+  f.editor.open('/presets/voice.tfi',bytes);
+  await f.audition();
+  f.editor.setVisible(false);
+  await until(() => f.calls.suspend === 1);
+  f.editor.setVisible(true);
+  const ready = f.audition();
+  await Promise.resolve();
+  assert.equal(f.calls.resume,1,'resume must not race ahead of a pending suspend');
+  f.finishSuspend();
+  await ready;
+  assert.equal(f.calls.resume,2);
+  assert.equal(f.previewRuntime.audioContext.state,'running');
+  f.editor.dispose();
+});
+
+test('disposal cancels a queued hide suspension and later auditions remain inactive', async () => {
+  const f = auditionEditor();
+  f.editor.open('/presets/voice.tfi',bytes);
+  await f.audition();
+  f.editor.setVisible(false);
+  f.editor.dispose();
+  await Promise.resolve(); await Promise.resolve();
+  assert.equal(f.calls.suspend,0,'a closed preview receives no later suspension request');
+  f.editor.setVisible(true);
+  await f.audition();
+  assert.equal(f.calls.resume,1);
+  assert.equal(f.calls.close,1);
+  assert.equal(f.previewRuntime.audioContext.state,'closed');
 });
 
 test('VGI editing keeps its format, logical operators, pan, AMS/PMS and uneditable B4 bit', () => {

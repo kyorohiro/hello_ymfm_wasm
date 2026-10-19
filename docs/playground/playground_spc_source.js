@@ -1,5 +1,5 @@
-import {parseSpcFile} from '../js/spc_file.js';
-import {exportBrrSample} from '../js/snes_brr.js';
+import {parseSpcFile} from '../js/spc_file.js?v=chip-tabs-2';
+import {exportBrrSample} from '../js/snes_brr.js?v=spc-pitch-comments-1';
 import {noteToHz} from '../js/soundchip_pitch.js';
 import {scanSpcBrrCandidates} from '../vgm_analyzer/spc_brr_candidates.js';
 import {buildSpcSongSource} from './playground_spc_song_source.js?v=spc-reference-tuning-1';

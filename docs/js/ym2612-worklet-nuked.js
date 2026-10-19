@@ -1,9 +1,9 @@
-import {PsgInspectorState, receiveChipInspector} from './playground_chip_inspector_state.js?v=chip-tabs-2';
-import {validateChipClock} from './playground_chip_clock.js?v=native-modes-3';
+import {PsgInspectorState, receiveChipInspector} from './playground_chip_inspector_state.js?v=audio-stability-2';
+import {validateChipClock} from './playground_chip_clock.js?v=audio-stability-2';
 import {createPerformanceQueue, createPerformanceChipOwnership} from './playground_performance_queue.js';
 import {createOpnAuditionGuard, receiveOpnAuditionCommand} from './playground_audition_guard.js';
 import {YM2612DacPlayer, receiveDacCommand} from "./ym2612_dac.js";
-import {createChipPortReceiver} from "./playground_chip_port.js?v=dac-pcm-1";
+import {createChipPortReceiver} from "./playground_chip_port.js?v=audio-stability-2";
 /**
  * @file ym2612-worklet-nuked.js
  * 実行環境: Browser（AudioWorkletGlobalScope）
@@ -13,7 +13,7 @@ import {createChipPortReceiver} from "./playground_chip_port.js?v=dac-pcm-1";
 import ym2612ModuleFactory from "../generated/nuked_opn2_wasm.js";
 import { createYm2612 } from "./ym2612.js";
 import segaPsgModuleFactory from "../generated/segapsg_wasm.js";
-import { SegaPSG, SEGAPSG_CLOCK } from "./segapsg.js";
+import { SegaPSG, SEGAPSG_CLOCK } from "./segapsg.js?v=audio-stability-2";
 
 // Same mix balance as GenesisAudioEngine.process() in genesisaudioengine.js.
 const YM_GAIN = 0.9;

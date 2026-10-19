@@ -10,7 +10,7 @@ export async function createSegaPsgAudio(context, destination) {
   };
   const [wasmBinary] = await Promise.all([
     bytes('../generated/segapsg_wasm.wasm'),
-    context.audioWorklet.addModule(new URL('./playground_segapsg_worklet.js?v=chip-tabs-2', import.meta.url)),
+    context.audioWorklet.addModule(new URL('./playground_segapsg_worklet.js?v=audio-stability-2', import.meta.url)),
   ]);
   const node = new AudioWorkletNode(context, 'tetorica-segapsg', {
     numberOfInputs: 0, numberOfOutputs: 1, outputChannelCount: [2], processorOptions: {wasmBinary},

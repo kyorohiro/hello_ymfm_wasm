@@ -7,7 +7,7 @@ const integer = (value, max, name) => {
 
 /** Direct synchronous transport; the caller owns and disposes the chip. */
 export class RF5C164DirectTransport {
-  /** @param {import('./rf5c164.js').Rf5c164} chip */
+  /** @param {import('./rf5c164.js?v=audio-stability-2').Rf5c164} chip */
   constructor(chip) {
     if (!chip || typeof chip.writeRegister !== 'function' || typeof chip.loadMemory !== 'function' || typeof chip.reset !== 'function') {
       throw new TypeError('RF5C164DirectTransport requires writeRegister, loadMemory and reset');

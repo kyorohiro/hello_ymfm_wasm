@@ -6,7 +6,7 @@ export {SoundChipMixer, soundChipMixDefaults} from './soundchip_mixer.js?v=chip-
  * 動的 import の配布方法はバンドラーに依存するため、この入口はサイズ削減を保証しない。
  */
 import { createSoundChipFactory } from './soundchip_factory.js';
-import {createWorkletSoundChip} from './soundchip_worklet.js?v=chip-tabs-2';
+import {createWorkletSoundChip} from './soundchip_worklet.js?v=audio-stability-2';
 import {PWM32X} from './pwm32x.js?v=pcm-views-1';
 export {encodeWav} from './wav.js';
 
@@ -85,46 +85,46 @@ const loaders = {
     return NesApu.create(options);
   },
   gameboy: async (options) => {
-    const {GameboyApu} = await import('./gameboyapu.js');
+    const {GameboyApu} = await import('./gameboyapu.js?v=audio-stability-2');
     return GameboyApu.create(await loadModule('gameboy_apu', options));
   },
   segapsg: async (options) => {
-    const {SegaPSG} = await import('./segapsg.js');
+    const {SegaPSG} = await import('./segapsg.js?v=audio-stability-2');
     return SegaPSG.create(await loadModule('segapsg', options));
   },
   /** @param {SoundChipOptions} [options] */
   ay8910: async (options) => {
-    const { Ay8910 } = await import('./ay8910.js');
+    const { Ay8910 } = await import('./ay8910.js?v=audio-stability-2');
     return Ay8910.create(await loadModule('ay8910', options));
   },
   /** @param {SoundChipOptions} [options] */
   y8950: async (options) => {
-    const { Y8950 } = await import('./y8950.js');
+    const { Y8950 } = await import('./y8950.js?v=audio-stability-2');
     return Y8950.create(await loadModule('y8950', options));
   },
   /** @param {SoundChipOptions} [options] */
   ym2151: async (options) => {
-    const { Ym2151 } = await import('./ym2151.js');
+    const { Ym2151 } = await import('./ym2151.js?v=audio-stability-2');
     return Ym2151.create(await loadModule('ym2151', options));
   },
   /** @param {SoundChipOptions} [options] */
   ym2203: async (options) => {
-    const { Ym2203 } = await import('./ym2203.js?v=pcm-views-1');
+    const { Ym2203 } = await import('./ym2203.js?v=audio-stability-2');
     return Ym2203.create(await loadModule('ym2203', options));
   },
   /** @param {SoundChipOptions} [options] */
   ym2413: async (options) => {
-    const { Ym2413 } = await import('./ym2413.js');
+    const { Ym2413 } = await import('./ym2413.js?v=audio-stability-2');
     return Ym2413.create(await loadModule('ym2413', options));
   },
   /** @param {SoundChipOptions} [options] */
   ym2608: async (options) => {
-    const { Ym2608 } = await import('./ym2608.js?v=pcm-views-1');
+    const { Ym2608 } = await import('./ym2608.js?v=audio-stability-2');
     return Ym2608.create(await loadModule('ym2608', options));
   },
   /** @param {SoundChipOptions} [options] */
   ym2610b: async (options) => {
-    const { Ym2610B } = await import('./ym2610b.js?v=pcm-views-1');
+    const { Ym2610B } = await import('./ym2610b.js?v=audio-stability-2');
     return Ym2610B.create(await loadModule('ym2610b', options));
   },
   /** @param {SoundChipOptions} [options] */
@@ -139,17 +139,17 @@ const loaders = {
   },
   /** @param {SoundChipOptions} [options] */
   ym3526: async (options) => {
-    const { Ym3526 } = await import('./ym3526.js');
+    const { Ym3526 } = await import('./ym3526.js?v=audio-stability-2');
     return Ym3526.create(await loadModule('ym3526', options));
   },
   /** @param {SoundChipOptions} [options] */
   ym3812: async (options) => {
-    const { Ym3812 } = await import('./ym3812.js');
+    const { Ym3812 } = await import('./ym3812.js?v=audio-stability-2');
     return Ym3812.create(await loadModule('ym3812', options));
   },
   /** @param {SoundChipOptions} [options] */
   ymf262: async (options) => {
-    const { Ymf262 } = await import('./ymf262.js');
+    const { Ymf262 } = await import('./ymf262.js?v=audio-stability-2');
     return Ymf262.create(await loadModule('ymf262', options));
   },
   /** @param {SoundChipOptions} [options] */
@@ -159,7 +159,7 @@ const loaders = {
   },
   /** @param {SoundChipOptions} [options] */
   ymf278b: async (options) => {
-    const { Ymf278b } = await import('./ymf278b.js');
+    const { Ymf278b } = await import('./ymf278b.js?v=audio-stability-2');
     return Ymf278b.create(await loadModule('ymf278b', options));
   },
   /** @param {SoundChipOptions} [options] */
@@ -179,24 +179,24 @@ const loaders = {
  */
 const createLocalSoundChip = createSoundChipFactory(loaders);
 /** @typedef {{
- *   gameboy: import('./gameboyapu.js').GameboyApu,
- *   segapsg: import('./segapsg.js').SegaPSG,
+ *   gameboy: import('./gameboyapu.js?v=audio-stability-2').GameboyApu,
+ *   segapsg: import('./segapsg.js?v=audio-stability-2').SegaPSG,
  *   pwm: import('./pwm32x.js?v=pcm-views-1').PWM32X,
  *   nes: import('./nesapu.js').NesApu,
- *   ay8910: import('./ay8910.js').Ay8910,
- *   y8950: import('./y8950.js').Y8950,
- *   ym2610b: import('./ym2610b.js?v=pcm-views-1').Ym2610B,
- *   ym2151: import('./ym2151.js').Ym2151,
- *   ym2203: import('./ym2203.js?v=pcm-views-1').Ym2203,
- *   ym2413: import('./ym2413.js').Ym2413,
- *   ym2608: import('./ym2608.js?v=pcm-views-1').Ym2608,
+ *   ay8910: import('./ay8910.js?v=audio-stability-2').Ay8910,
+ *   y8950: import('./y8950.js?v=audio-stability-2').Y8950,
+ *   ym2610b: import('./ym2610b.js?v=audio-stability-2').Ym2610B,
+ *   ym2151: import('./ym2151.js?v=audio-stability-2').Ym2151,
+ *   ym2203: import('./ym2203.js?v=audio-stability-2').Ym2203,
+ *   ym2413: import('./ym2413.js?v=audio-stability-2').Ym2413,
+ *   ym2608: import('./ym2608.js?v=audio-stability-2').Ym2608,
  *   ym2612: import('./ym2612.js').Ym2612,
  *   ym3438: import('./ym3438.js').Ym3438,
- *   ym3526: import('./ym3526.js').Ym3526,
- *   ym3812: import('./ym3812.js').Ym3812,
- *   ymf262: import('./ymf262.js').Ymf262,
+ *   ym3526: import('./ym3526.js?v=audio-stability-2').Ym3526,
+ *   ym3812: import('./ym3812.js?v=audio-stability-2').Ym3812,
+ *   ymf262: import('./ymf262.js?v=audio-stability-2').Ymf262,
  *   ymf276: import('./ymf276.js').Ymf276,
- *   ymf278b: import('./ymf278b.js').Ymf278b,
+ *   ymf278b: import('./ymf278b.js?v=audio-stability-2').Ymf278b,
  *   ymf288: import('./ymf288.js').Ymf288,
  * }} SoundChipMap */
 /** @typedef {'ym2612'|'ym2608'|'ym2151'|'gameboy'|'segapsg'|'pwm'|'nes'} WorkletChipName */
@@ -205,7 +205,7 @@ const createLocalSoundChip = createSoundChipFactory(loaders);
  * @overload
  * @param {Name} name
  * @param {SoundChipOptions & {execution: 'worklet'}} options
- * @returns {Promise<import('./soundchip_worklet.js?v=chip-tabs-2').WorkletSoundChip & {name: Name}>}
+ * @returns {Promise<import('./soundchip_worklet.js?v=audio-stability-2').WorkletSoundChip & {name: Name}>}
  */
 /**
  * @template {keyof SoundChipMap} Name
@@ -219,7 +219,7 @@ const createLocalSoundChip = createSoundChipFactory(loaders);
  * @overload
  * @param {Name} name
  * @param {SoundChipOptions} options
- * @returns {Promise<(SoundChipMap[Name] & {readonly id: string}) | import('./soundchip_worklet.js?v=chip-tabs-2').WorkletSoundChip>}
+ * @returns {Promise<(SoundChipMap[Name] & {readonly id: string}) | import('./soundchip_worklet.js?v=audio-stability-2').WorkletSoundChip>}
  */
 /** @param {keyof SoundChipMap} name @param {SoundChipOptions} [options] */
 export function createSoundChip(name, options = {}) {

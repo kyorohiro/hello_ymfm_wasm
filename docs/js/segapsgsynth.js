@@ -4,7 +4,7 @@ import {noteToHz} from './soundchip_pitch.js';
  * 実行環境: Browser / Node.js
  * 依存: 注入されたレジスタ書き込み関数。DOM・Web Audio は不要。
  */
-import { SEGAPSG_CLOCK } from "./segapsg.js";
+import { SEGAPSG_CLOCK } from "./segapsg.js?v=audio-stability-2";
 
 const NOTE_TO_SEMITONE = {
   C: 0, "C#": 1, Db: 1, D: 2, "D#": 3, Eb: 3,
@@ -21,7 +21,7 @@ const NOISE_RATES = {
 
 /** Direct register transport. The caller retains ownership of the chip. */
 export class SegaPSGDirectTransport {
-  /** @param {import('./segapsg.js').SegaPSG} chip */
+  /** @param {import('./segapsg.js?v=audio-stability-2').SegaPSG} chip */
   constructor(chip) {
     if (!chip || typeof chip.write !== 'function') throw new TypeError('SegaPSGDirectTransport requires write(value)');
     this.chip = chip;

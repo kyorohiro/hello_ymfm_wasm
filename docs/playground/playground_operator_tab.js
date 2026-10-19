@@ -264,6 +264,12 @@ export function createPlaygroundOperatorTab(
   let refreshBatchDepth = 0;
   let pendingSelectedRefresh =
     false;
+  let controlsDirty = false;
+  let controlsFrame = null;
+  let visible = false;
+  let disposed = false;
+  const requestFrame = options.requestAnimationFrame ?? (callback => requestAnimationFrame(callback));
+  const cancelFrame = options.cancelAnimationFrame ?? (frame => cancelAnimationFrame(frame));
   let channel3SpecialState =
     createDefaultChannel3SpecialState();
 
@@ -415,8 +421,28 @@ export function createPlaygroundOperatorTab(
       return;
     }
 
-    updateControlsUi();
+    scheduleControlsRefresh();
   }
+
+  function cancelControlsFrame() {
+    if (controlsFrame !== null) cancelFrame(controlsFrame);
+    controlsFrame = null;
+  }
+
+  function scheduleControlsRefresh() {
+    controlsDirty = true;
+    if (disposed || !visible || document.hidden || refreshBatchDepth || controlsFrame !== null) return;
+    controlsFrame = requestFrame(() => {
+      controlsFrame = null;
+      if (!disposed && visible && !document.hidden && controlsDirty) updateControlsUi();
+    });
+  }
+
+  function visibilityChanged() {
+    if (document.hidden) cancelControlsFrame();
+    else if (controlsDirty) scheduleControlsRefresh();
+  }
+  document.addEventListener('visibilitychange', visibilityChanged);
 
   function beginRefreshBatch() {
     refreshBatchDepth += 1;
@@ -435,7 +461,7 @@ export function createPlaygroundOperatorTab(
     ) {
       pendingSelectedRefresh =
         false;
-      updateControlsUi();
+      scheduleControlsRefresh();
     }
   }
 
@@ -447,7 +473,8 @@ export function createPlaygroundOperatorTab(
   }
 
   function applyChannelStateToSynth(
-    channel
+    channel,
+    includeGlobal = false
   ) {
     if (!synth) {
       return;
@@ -474,18 +501,22 @@ export function createPlaygroundOperatorTab(
         state.algorithm,
         state.feedback
       );
-      synth.setLfo(
-        globalCommonState.lfoEnabled,
-        globalCommonState.lfoFrequency
-      );
-      synth.setDacEnabled(
-        globalCommonState.dacEnabled
-      );
-      synth.setChannel3SpecialMode(
-        channel3SpecialState.enabled
-      );
-      for (const operator of OPERATOR_NUMBERS) {
-        applyChannel3SpecialOperator(operator);
+      // Selecting a channel's voice must not rewrite chip-wide controls or
+      // the independently playing CH3 pitch. Only restore them on attachment.
+      if (includeGlobal) {
+        if (synth.supportsLfo !== false) synth.setLfo(
+          globalCommonState.lfoEnabled,
+          globalCommonState.lfoFrequency
+        );
+        synth.setDacEnabled?.(
+          globalCommonState.dacEnabled
+        );
+        synth.setChannel3SpecialMode(
+          channel3SpecialState.enabled
+        );
+        for (const operator of OPERATOR_NUMBERS) {
+          applyChannel3SpecialOperator(operator);
+        }
       }
       applyPanToSynth(channel);
     } finally {
@@ -515,7 +546,7 @@ export function createPlaygroundOperatorTab(
   }
 
   function applyPanToSynth(channel) {
-    if (!synth) {
+    if (!synth || synth.supportsPan === false) {
       return;
     }
 
@@ -560,6 +591,8 @@ export function createPlaygroundOperatorTab(
   }
 
   function updateControlsUi() {
+    controlsDirty = false;
+    cancelControlsFrame();
     const state =
       currentState();
 
@@ -763,16 +796,12 @@ export function createPlaygroundOperatorTab(
     gapPx: 4,
     wheelAdjust: false,
     onChange(id, value) {
-      if (
-        id === "lfoEnabled" ||
+      const state = id === "lfoEnabled" ||
         id === "lfoFrequency" ||
         id === "dacEnabled"
-      ) {
-        globalCommonState[id] =
-          value;
-      } else {
-        currentState()[id] = value;
-      }
+        ? globalCommonState : currentState();
+      if (state[id] === value) return;
+      state[id] = value;
       updateAlgorithmDescription();
       markDirty();
       if (synth) {
@@ -780,20 +809,20 @@ export function createPlaygroundOperatorTab(
           id === "lfoEnabled" ||
           id === "lfoFrequency"
         ) {
-          synth.setLfo(
+          if (synth.supportsLfo !== false) synth.setLfo(
             globalCommonState.lfoEnabled,
             globalCommonState.lfoFrequency
           );
         } else if (
           id === "dacEnabled"
         ) {
-          synth.setDacEnabled(
+          synth.setDacEnabled?.(
             globalCommonState.dacEnabled
           );
-        } else {
-          applyChannelStateToSynth(
-            selectedChannel
-          );
+        } else if (id === 'algorithm' || id === 'feedback') {
+          synth.setAlgo(selectedChannel, currentState().algorithm, currentState().feedback);
+        } else if (id === 'ams' || id === 'pms') {
+          applyPanToSynth(selectedChannel);
         }
       }
     },
@@ -950,8 +979,19 @@ export function createPlaygroundOperatorTab(
   }
 
   return {
-    setVisible: envelopeView.setVisible,
-    dispose: envelopeView.dispose,
+    setVisible(nextVisible) {
+      visible = Boolean(nextVisible);
+      envelopeView.setVisible(visible);
+      if (!visible) cancelControlsFrame();
+      else if (controlsDirty) scheduleControlsRefresh();
+    },
+    dispose() {
+      if (disposed) return;
+      disposed = true;
+      cancelControlsFrame();
+      document.removeEventListener('visibilitychange', visibilityChanged);
+      envelopeView.dispose();
+    },
     registerPresetOption,
     removePresetOption,
     selectChannel(channel) {
@@ -993,7 +1033,8 @@ export function createPlaygroundOperatorTab(
 
       for (const channel of dirtyChannels) {
         applyChannelStateToSynth(
-          channel
+          channel,
+          true
         );
       }
     },
@@ -1012,8 +1053,9 @@ export function createPlaygroundOperatorTab(
       }
       channel3SpecialState =
         createDefaultChannel3SpecialState();
+      Object.assign(globalCommonState, GLOBAL_COMMON_STATE);
       dirtyChannels.clear();
-      updateControlsUi();
+      scheduleControlsRefresh();
     },
     syncPreset(channel, presetName, preset) {
       if (channel === selectedChannel) selectionVersion += 1;
@@ -1118,19 +1160,19 @@ export function createPlaygroundOperatorTab(
         enabled;
       globalCommonState.lfoFrequency =
         frequency;
-      updateControlsUi();
+      scheduleControlsRefresh();
     },
     syncDacEnabled(enabled) {
       globalCommonState.dacEnabled =
         enabled;
-      updateControlsUi();
+      scheduleControlsRefresh();
     },
     syncChannel3SpecialMode(
       enabled
     ) {
       channel3SpecialState.enabled =
         enabled;
-      updateSpecialUi();
+      scheduleControlsRefresh();
     },
     syncChannel3SpecialFrequency(
       operator,
@@ -1148,23 +1190,21 @@ export function createPlaygroundOperatorTab(
         block,
         fnum,
       };
-      updateSpecialUi();
+      scheduleControlsRefresh();
     },
     syncPan(
       channel,
       left,
       right,
-      ams = 0,
-      pms = 0
+      ams = undefined,
+      pms = undefined
     ) {
       stateByChannel[channel].left =
         left;
       stateByChannel[channel].right =
         right;
-      stateByChannel[channel].ams =
-        ams;
-      stateByChannel[channel].pms =
-        pms;
+      if (ams !== undefined) stateByChannel[channel].ams = ams;
+      if (pms !== undefined) stateByChannel[channel].pms = pms;
       refreshIfSelected(channel);
     },
   };

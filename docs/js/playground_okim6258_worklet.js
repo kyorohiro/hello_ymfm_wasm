@@ -1,6 +1,6 @@
-import {Oki6258AudioEngine} from './okim6258audioengine.js';
-import {Oki6258Stream, OKIM6258_CLOCK} from './okim6258synth.js?v=native-modes-3';
-import {validateChipClock} from './playground_chip_clock.js?v=native-modes-3';
+import {Oki6258AudioEngine} from './okim6258audioengine.js?v=audio-stability-2';
+import {Oki6258Stream, OKIM6258_CLOCK} from './okim6258synth.js?v=audio-stability-2';
+import {validateChipClock} from './playground_chip_clock.js?v=audio-stability-2';
 import factory from '../generated/okim6258_wasm.js';
 import {createProcessorPerformance} from './playground_performance_processor.js?v=native-modes-3';
 

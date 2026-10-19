@@ -53,7 +53,7 @@ test('late OPN initialization is disposed after Stop',async()=>{
 
 test('YM2203 schedules ordered FM/SSG writes at output frames and cancels on reset', async()=>{
  let frame=0;const writes=[],replies=[];
- const fake={sampleRate:clock=>clock??48000,write:(address,value)=>writes.push([frame,address,value]),reset(){},dispose(){},generateStereo:n=>({left:new Float32Array(n),right:new Float32Array(n)})};
+ const fake={sampleRate:clock=>clock??48000,write:(address,value)=>writes.push([frame,address,value]),reset(){},dispose(){},reserveStereoFrames(){},generateStereoView:n=>({left:new Float32Array(n),right:new Float32Array(n)})};
  const {processor,promise}=await setup('ym2203',{Ym2203:{create:async()=>fake}});
  await promise;
  const port={postMessage:m=>replies.push(m)};

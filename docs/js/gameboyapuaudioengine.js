@@ -4,7 +4,7 @@
  * 依存: 音源チップ／WASM バックエンド（ファクトリーまたはエンジンを注入）。
  * 同期 PCM 生成・ミックス用。DOM・AudioContext・スピーカー出力は不要。
  */
-import {GameboyApu} from './gameboyapu.js?v=seek-state-1';
+import {GameboyApu} from './gameboyapu.js?v=audio-stability-2';
 /**
  * GameboyApuAudioEngine adapter for synchronous stereo rendering and VGM register dispatch.
  * Output timing uses sampleRate() frames per second. No browser audio device is opened.
@@ -14,7 +14,7 @@ export class GameboyApuAudioEngine {
   #states = new WeakMap();
   /**
    * Create the chip instances required by this engine.
-   * @param {{moduleFactory: import('./soundchip.js').WasmModuleFactory, moduleOptions?: import('./soundchip.js').WasmModuleOptions, clock?: number, outputSampleRate?: number, masterVolume?: number}} [options={}] Chip factories, clocks in Hz and loader settings.
+   * @param {{moduleFactory: import('./soundchip.js?v=audio-stability-2').WasmModuleFactory, moduleOptions?: import('./soundchip.js?v=audio-stability-2').WasmModuleOptions, clock?: number, outputSampleRate?: number, masterVolume?: number}} [options={}] Chip factories, clocks in Hz and loader settings.
    * @param {number} [options.outputSampleRate=44100] Output stereo frames per second.
    * @param {number} [options.masterVolume=1] Linear output gain, not dB.
    * @returns {Promise<GameboyApuAudioEngine>} Initialized engine owned by the caller.

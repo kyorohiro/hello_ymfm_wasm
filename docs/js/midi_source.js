@@ -3,8 +3,8 @@
  * 実行環境: Browser / Node.js
  * 依存: MIDI パーサーとプリセット情報。JavaScript ソース生成のみで、音声デバイスは不要。
  */
-import {parseMidiFile} from './midi_file.js?v=midi-shared-1';
-import {MIDI_SUPPORTED_CC, validateBendRange} from './playground_midi.js?v=midi-shared-1';
+import {parseMidiFile} from './midi_file.js?v=audio-stability-2';
+import {MIDI_SUPPORTED_CC, validateBendRange} from './playground_midi.js?v=audio-stability-2';
 
 /**
  * Resolve import selections into concrete MIDI routes without mutating the selections.

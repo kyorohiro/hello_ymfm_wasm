@@ -4,7 +4,7 @@
  * 依存: 音源チップ／WASM バックエンド（ファクトリーまたはエンジンを注入）。
  * 同期 PCM 生成・ミックス用。DOM・AudioContext・スピーカー出力は不要。
  */
-import { Ym2610B, YM2610B_CLOCK } from "./ym2610b.js?v=pcm-views-1";
+import { Ym2610B, YM2610B_CLOCK } from "./ym2610b.js?v=audio-stability-2";
 
 const DEFAULT_OUTPUT_SAMPLE_RATE = 44100;
 
@@ -28,7 +28,7 @@ export class Ym2610BAudioEngine {
 
   /**
    * Create the chip instances required by this engine.
-   * @param {{moduleFactory: import('./soundchip.js').WasmModuleFactory, moduleOptions?: import('./soundchip.js').WasmModuleOptions, clock?: number, outputSampleRate?: number, masterVolume?: number, variant?: boolean}} [options={}] Chip factories, clocks in Hz and loader settings.
+   * @param {{moduleFactory: import('./soundchip.js?v=audio-stability-2').WasmModuleFactory, moduleOptions?: import('./soundchip.js?v=audio-stability-2').WasmModuleOptions, clock?: number, outputSampleRate?: number, masterVolume?: number, variant?: boolean}} [options={}] Chip factories, clocks in Hz and loader settings.
    * @param {number} [options.outputSampleRate=44100] Output stereo frames per second.
    * @param {number} [options.masterVolume=1] Linear output gain, not dB.
    * @returns {Promise<Ym2610BAudioEngine>} Initialized engine owned by the caller.

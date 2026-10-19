@@ -1,9 +1,9 @@
-import {PWM32XPlayback, PWM_METHODS} from './pwm32x_playback.js';
+import {PWM32XPlayback, PWM_METHODS} from './pwm32x_playback.js?v=audio-stability-2';
 import {Ym2612} from './ym2612.js';
-import {Ym2608} from './ym2608.js?v=pcm-views-1';
-import {Ym2151} from './ym2151.js';
-import {GameboyApu} from './gameboyapu.js';
-import {SegaPSG} from './segapsg.js';
+import {Ym2608} from './ym2608.js?v=audio-stability-2';
+import {Ym2151} from './ym2151.js?v=audio-stability-2';
+import {GameboyApu} from './gameboyapu.js?v=audio-stability-2';
+import {SegaPSG} from './segapsg.js?v=audio-stability-2';
 import {NesApu} from './nesapu.js';
 import ym2612Factory from '../generated/ym2612_wasm.js';
 import ym2608Factory from '../generated/ym2608_wasm.js';
@@ -11,8 +11,8 @@ import ym2151Factory from '../generated/ym2151_wasm.js';
 import gameboyFactory from '../generated/gameboy_apu_wasm.js';
 import psgFactory from '../generated/segapsg_wasm.js';
 import {createSoundChipFactory} from './soundchip_factory.js';
-import {ChipPCMRenderer} from './chip_pcm_renderer.js';
-import {YM2612DirectTransport} from './ym2612synth.js';
+import {ChipPCMRenderer} from './chip_pcm_renderer.js?v=audio-stability-2';
+import {YM2612DirectTransport} from './ym2612synth.js?v=audio-stability-2';
 import {YM2612DacPlayer} from './ym2612_dac.js';
 import {createProcessorPerformance,performanceNoteRelease} from './playground_performance_processor.js?v=native-modes-3';
 
@@ -43,11 +43,16 @@ class SoundChipProcessor extends AudioWorkletProcessor {
         this.direct = name === 'ym2612' ? new YM2612DirectTransport(chip) : null;
         if (this.direct) this.pcmDac = new YM2612DacPlayer(sampleRate, (port, register, value) => chip.writeRegister(register, value, port));
         this.renderer = new ChipPCMRenderer(chip, {sampleRate, gain: 1, removeIdleOffset: name === 'ym2612',
-          generate: this.direct?.generateStereo.bind(this.direct)});
+          generate: this.direct?.generateStereoView.bind(this.direct)});
+        chip.reserveStereoFrames?.(Math.ceil(128 * chip.sampleRate() / sampleRate));
         this.port.postMessage({type: 'ready', sampleRate: chip.sampleRate()});
       }).catch(error => {this.dead = true; this.chip?.dispose(); this.port.postMessage({error: error.message});});
   }
   receive(data, replyPort = this.port) {
+    if(Array.isArray(data)){
+      if(data.length<=4096)for(const command of data)this.receive(command,replyPort);
+      return;
+    }
     if(this.performance.receive(data,replyPort))return;
     this.apply(data,replyPort);
   }
@@ -138,7 +143,7 @@ class SoundChipProcessor extends AudioWorkletProcessor {
         this.pcmDac?.advance(frame);
         const next = Math.min(startFrame + left.length, this.scheduled[0]?.frame ?? Infinity, this.pcmDac?.nextFrame() ?? Infinity);
         const count = Math.max(1, next - frame);
-        const pcm = this.renderer.render(count); left.set(pcm.left, offset); right.set(pcm.right, offset); offset += count;
+        this.renderer.renderInto(left, right, offset, count); offset += count;
       }
     }
   }

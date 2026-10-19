@@ -102,7 +102,7 @@ export function handleMegaSynthEvent(
 
 /**
  * Expose the Playground FM facade while forwarding calls to the current synth.
- * @param {import('./ym2612synth.js').YM2612Synth} targetSynth Synth to delegate to.
+ * @param {import('./ym2612synth.js?v=audio-stability-2').YM2612Synth} targetSynth Synth to delegate to.
  * @returns Forwarding FM controls with access to the same DAC API.
  */
 export function createFmProxy(

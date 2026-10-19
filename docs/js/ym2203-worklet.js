@@ -1,7 +1,7 @@
-import {validateChipClock} from './playground_chip_clock.js?v=native-modes-3';
+import {validateChipClock} from './playground_chip_clock.js?v=audio-stability-2';
 import {createPerformanceQueue, createPerformanceChipOwnership} from './playground_performance_queue.js';
 import {createOpnAuditionGuard, receiveOpnAuditionCommand} from './playground_audition_guard.js';
-import {createChipPortReceiver} from "./playground_chip_port.js";
+import {createChipPortReceiver} from "./playground_chip_port.js?v=audio-stability-2";
 /**
  * @file ym2203-worklet.js
  * 実行環境: Browser（AudioWorkletGlobalScope）
@@ -9,7 +9,7 @@ import {createChipPortReceiver} from "./playground_chip_port.js";
  * AudioContext.audioWorklet.addModule() で読み込む専用エントリーポイント。音源コアの WASM も必要。
  */
 import ym2203ModuleFactory from "../generated/ym2203_wasm.js";
-import { Ym2203, YM2203_CLOCK } from "./ym2203.js?v=pcm-views-1";
+import { Ym2203, YM2203_CLOCK } from "./ym2203.js?v=audio-stability-2";
 
 class YM2203Processor extends AudioWorkletProcessor {
   constructor() {

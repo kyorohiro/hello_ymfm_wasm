@@ -190,6 +190,14 @@ export class OPNWorkletTransport {
       value,
     });
   }
+
+  /** Apply a related register group in one worklet message.
+   * @param {Array<{port:number,register:number,value:number}>} writes */
+  writeBatch(writes) {
+    const commands = writes.map(({port, register, value}) => ({type:'write',
+      port:assertRange('port', port, 0, this.portCount - 1), register, value}));
+    this.node.port.postMessage(commands);
+  }
 }
 
 export class OPNFMSynth {
@@ -297,9 +305,7 @@ export class OPNFMSynth {
   setOperator(channel, operator, params) {
     this._assertChannel(channel);
     assertRange("operator", operator, 0, OPERATOR_COUNT - 1);
-    if (!params || typeof params !== "object") {
-      throw new Error("params must be an object");
-    }
+    params = validateOperatorParams(params);
 
     const state = this.channels[channel].operators[operator];
     const { port, channelOffset } = this._splitChannel(channel);
@@ -411,8 +417,10 @@ export class OPNFMSynth {
     const validFnum = assertRange("fnum", fnum, 0, 0x7ff);
     const registers = CHANNEL_3_SPECIAL_FREQUENCY_REGISTERS[operator];
     this.channels[2].specialFrequencies[operator] = { block: validBlock, fnum: validFnum };
-    this._write(0, registers.high, (validBlock << 3) | ((validFnum >> 8) & 0x07));
-    this._write(0, registers.low, validFnum & 0xff);
+    this._writeBatch([
+      {port:0, register:registers.high, value:(validBlock << 3) | ((validFnum >> 8) & 0x07)},
+      {port:0, register:registers.low, value:validFnum & 0xff},
+    ]);
   }
 
   /** Set frequency in Hz without KEY ON. @overload @param {number} channel @param {number} hz @returns {void} */
@@ -436,8 +444,10 @@ export class OPNFMSynth {
     state.block = validBlock;
     state.fnum = validFnum;
     const { port, channelOffset } = this._splitChannel(channel);
-    this._write(port, 0xa4 + channelOffset, (validBlock << 3) | ((validFnum >> 8) & 0x07));
-    this._write(port, 0xa0 + channelOffset, validFnum & 0xff);
+    this._writeBatch([
+      {port, register:0xa4 + channelOffset, value:(validBlock << 3) | ((validFnum >> 8) & 0x07)},
+      {port, register:0xa0 + channelOffset, value:validFnum & 0xff},
+    ]);
   }
 
   /** @param {number} channel
@@ -575,6 +585,18 @@ export class OPNFMSynth {
       this.transport.write(command);
     }
     this.hooks.onWrite?.(command);
+    this._syncIrq();
+  }
+
+  // OPN's frequency high latch is shared between channels. Finish both writes
+  // before calling observers, which can synchronously change another channel.
+  _writeBatch(commands) {
+    if (typeof this.transport.writeBatch === 'function') this.transport.writeBatch(commands);
+    else for (const command of commands) {
+      if (this.transport.write.length >= 3) this.transport.write(command.port, command.register, command.value);
+      else this.transport.write(command);
+    }
+    for (const command of commands) this.hooks.onWrite?.(command);
     this._syncIrq();
   }
 

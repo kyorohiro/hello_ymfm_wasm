@@ -43,11 +43,16 @@ class SoundChipProcessor extends AudioWorkletProcessor {
         this.direct = name === 'ym2612' ? new YM2612DirectTransport(chip) : null;
         if (this.direct) this.pcmDac = new YM2612DacPlayer(sampleRate, (port, register, value) => chip.writeRegister(register, value, port));
         this.renderer = new ChipPCMRenderer(chip, {sampleRate, gain: 1, removeIdleOffset: name === 'ym2612',
-          generate: this.direct?.generateStereo.bind(this.direct)});
+          generate: this.direct?.generateStereoView.bind(this.direct)});
+        chip.reserveStereoFrames?.(Math.ceil(128 * chip.sampleRate() / sampleRate));
         this.port.postMessage({type: 'ready', sampleRate: chip.sampleRate()});
       }).catch(error => {this.dead = true; this.chip?.dispose(); this.port.postMessage({error: error.message});});
   }
   receive(data, replyPort = this.port) {
+    if(Array.isArray(data)){
+      if(data.length<=4096)for(const command of data)this.receive(command,replyPort);
+      return;
+    }
     if(this.performance.receive(data,replyPort))return;
     this.apply(data,replyPort);
   }
@@ -138,7 +143,7 @@ class SoundChipProcessor extends AudioWorkletProcessor {
         this.pcmDac?.advance(frame);
         const next = Math.min(startFrame + left.length, this.scheduled[0]?.frame ?? Infinity, this.pcmDac?.nextFrame() ?? Infinity);
         const count = Math.max(1, next - frame);
-        const pcm = this.renderer.render(count); left.set(pcm.left, offset); right.set(pcm.right, offset); offset += count;
+        this.renderer.renderInto(left, right, offset, count); offset += count;
       }
     }
   }

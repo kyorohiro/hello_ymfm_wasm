@@ -1,5 +1,5 @@
 import { parseTfi, TFI_FILE_SIZE } from "../js/tfi.js";
-import { parseVgi, VGI_FILE_SIZE } from "../js/vgi.js";
+import { parseVgi, VGI_FILE_SIZE } from "../js/vgi.js?v=audio-stability-2";
 
 const SIMPLE_TFI_ID_PATTERN = /^[A-Za-z0-9_-]+$/;
 

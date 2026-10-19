@@ -14,7 +14,7 @@ function configuration(value, keys) {
 
 /** Borrow a synchronous HuC6280 rendering engine; disposing the synth does not destroy it. */
 export class Huc6280DirectTransport {
-  /** @param {import('./huc6280audioengine.js').Huc6280AudioEngine} chip */
+  /** @param {import('./huc6280audioengine.js?v=audio-stability-2').Huc6280AudioEngine} chip */
   constructor(chip) {
     if (!chip || typeof chip.writeHuc6280 !== 'function' || typeof chip.reset !== 'function') throw new TypeError('Expected Huc6280AudioEngine');
     this.chip = chip;

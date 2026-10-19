@@ -4,7 +4,7 @@
  * 依存: 音源チップ／WASM バックエンド（ファクトリーまたはエンジンを注入）。
  * 同期 PCM 生成・ミックス用。DOM・AudioContext・スピーカー出力は不要。
  */
-import { Ym2608, YM2608_CLOCK } from "./ym2608.js?v=pcm-views-1";
+import { Ym2608, YM2608_CLOCK } from "./ym2608.js?v=audio-stability-2";
 
 const DEFAULT_OUTPUT_SAMPLE_RATE = 44100;
 
@@ -34,11 +34,12 @@ export class Ym2608AudioEngine {
     this._resampleRemainder = 0;
     this._lastLeft = 0;
     this._lastRight = 0;
+    this._sampleCounts = new Uint32Array(128);
   }
 
   /**
    * Create the chip instances required by this engine.
-   * @param {{ym2608ModuleFactory: import('./soundchip.js').WasmModuleFactory, ym2608ModuleOptions?: import('./soundchip.js').WasmModuleOptions, ym2608Clock?: number, outputSampleRate?: number, masterVolume?: number}} [options={}] Chip factories, clocks in Hz and loader settings.
+   * @param {{ym2608ModuleFactory: import('./soundchip.js?v=audio-stability-2').WasmModuleFactory, ym2608ModuleOptions?: import('./soundchip.js?v=audio-stability-2').WasmModuleOptions, ym2608Clock?: number, outputSampleRate?: number, masterVolume?: number}} [options={}] Chip factories, clocks in Hz and loader settings.
    * @param {number} [options.outputSampleRate=44100] Output stereo frames per second.
    * @param {number} [options.masterVolume=1] Linear output gain, not dB.
    * @returns {Promise<Ym2608AudioEngine>} Initialized engine owned by the caller.
@@ -202,26 +203,38 @@ export class Ym2608AudioEngine {
       throw new Error("process buffers are smaller than the requested frame count");
     }
 
-    for (let index = 0; index < frames; index += 1) {
-      this._resampleRemainder += this._chipSampleRate;
-
-      const samplesToMix = Math.floor(this._resampleRemainder / this._sampleRate);
-      this._resampleRemainder -= samplesToMix * this._sampleRate;
-
-      // During upsampling, hold the previous sample without advancing the chip.
-      if (samplesToMix > 0) {
-        const ym = this.ym2608.generateStereo(samplesToMix);
-        let mixedLeft = 0;
-        let mixedRight = 0;
-        for (let sampleIndex = 0; sampleIndex < samplesToMix; sampleIndex += 1) {
-          mixedLeft += ym.left[sampleIndex];
-          mixedRight += ym.right[sampleIndex];
-        }
-        this._lastLeft = mixedLeft / samplesToMix;
-        this._lastRight = mixedRight / samplesToMix;
+    // A user IRQ callback can write registers synchronously. Keep its previous
+    // per-output-frame observation points; realtime worklets install no hook.
+    const blockFrames = typeof this.ym2608.hooks?.onIrq === 'function' ? 1 : 128;
+    for (let outputOffset = 0; outputOffset < frames; outputOffset += blockFrames) {
+      const count = Math.min(blockFrames,frames-outputOffset);
+      let sourceFrames = 0;
+      // Timelines split this call at register-write boundaries. Bounded source
+      // batches also keep long offline renders within the native frame limit.
+      for (let index = 0; index < count; index++) {
+        this._resampleRemainder += this._chipSampleRate;
+        const samplesToMix = Math.floor(this._resampleRemainder / this._sampleRate);
+        this._resampleRemainder -= samplesToMix * this._sampleRate;
+        this._sampleCounts[index] = samplesToMix;
+        sourceFrames += samplesToMix;
       }
-      left[index] = this._lastLeft * this._masterVolume;
-      right[index] = this._lastRight * this._masterVolume;
+      const ym = sourceFrames ? (this.ym2608.generateStereoView ?? this.ym2608.generateStereo).call(this.ym2608,sourceFrames) : null;
+      let offset = 0;
+      for (let index = 0; index < count; index++) {
+        const samplesToMix = this._sampleCounts[index];
+        // During upsampling, hold the previous sample without advancing the chip.
+        if (samplesToMix > 0) {
+          let mixedLeft = 0;
+          let mixedRight = 0;
+          for (let sampleIndex = 0; sampleIndex < samplesToMix; sampleIndex++, offset++) {
+            mixedLeft += ym.left[offset]; mixedRight += ym.right[offset];
+          }
+          this._lastLeft = mixedLeft / samplesToMix;
+          this._lastRight = mixedRight / samplesToMix;
+        }
+        left[outputOffset+index] = this._lastLeft * this._masterVolume;
+        right[outputOffset+index] = this._lastRight * this._masterVolume;
+      }
     }
   }
 

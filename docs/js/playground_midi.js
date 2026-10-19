@@ -7,10 +7,10 @@ import {resolvePlaySeconds,resolvePlayDuration} from './playground_duration.js?v
  * 音声デバイスや Web MIDI を直接開かない。実際の発音は接続先に依存する。
  */
 import {createMidiSongPlayer} from './midi_song.js?v=readable-midi-1';
-import {YM2612Synth} from './ym2612synth.js';
-import {createSegaPsgApi, psgPeriodFromFrequency} from './segapsg_api.js';
+import {YM2612Synth} from './ym2612synth.js?v=audio-stability-2';
+import {createSegaPsgApi, psgPeriodFromFrequency} from './segapsg_api.js?v=audio-stability-2';
 import {parseTfi} from './tfi.js';
-import {parseVgi} from './vgi.js';
+import {parseVgi} from './vgi.js?v=audio-stability-2';
 
 const destinations = ['tetorica-ym2612', 'tetorica-sega-psg'];
 let nextVoiceId = 0; // Never reuse IDs across Stop / Run rack replacement.

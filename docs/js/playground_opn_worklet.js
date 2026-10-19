@@ -1,7 +1,7 @@
-import {validateChipClock} from './playground_chip_clock.js?v=native-modes-3';
+import {validateChipClock} from './playground_chip_clock.js?v=audio-stability-2';
 import {Ym2612} from './ym2612.js';
-import {Ym2203} from './ym2203.js?v=pcm-views-1';
-import {Ym2610B} from './ym2610b.js?v=pcm-views-1';
+import {Ym2203} from './ym2203.js?v=audio-stability-2';
+import {Ym2610B} from './ym2610b.js?v=audio-stability-2';
 import ym2612Factory from '../generated/ym2612_wasm.js';
 import ym2203Factory from '../generated/ym2203_wasm.js';
 import ym2610Factory from '../generated/ym2610b_wasm.js';
@@ -13,6 +13,7 @@ class Processor extends AudioWorkletProcessor {
     super();
     this.chip = null; this.dead = false; this.schedule = null;
     this.remainder = 0; this.left = 0; this.right = 0;
+    this.counts = new Uint32Array(128);
     this.performance=createProcessorPerformance({chip:()=>this.name,apply:(data,port)=>this.apply(data,port),prepare:(data,port)=>{
       if(data.method==='memory'){this.apply(data,port);return null;}
       // A schedule request resolves at its documented playback completion.
@@ -33,6 +34,7 @@ class Processor extends AudioWorkletProcessor {
     Chip.create({moduleFactory, moduleOptions: {wasmBinary}, variant: false}).then(chip => {
       if (this.dead) { chip.dispose(); return; }
       this.chip = chip; this.rate = chip.sampleRate();
+      chip.reserveStereoFrames(Math.ceil(128 * this.rate / sampleRate));
       this.port.postMessage({ready: true});
     }).catch(error => { this.dispose(); this.port.postMessage({error: error.message}); });
   }
@@ -87,7 +89,10 @@ class Processor extends AudioWorkletProcessor {
   }
   renderSegment(left,right) {
     if(!this.chip){left.fill(0);right.fill(0);return;}
-    for (let i = 0; i < left.length; i++) {
+    if (this.counts.length < left.length) this.counts = new Uint32Array(left.length);
+    let frame = 0;
+    while (frame < left.length) {
+      let end = left.length;
       const schedule = this.schedule;
       if (schedule) {
         const position = schedule.frame * 44100 / sampleRate;
@@ -97,18 +102,34 @@ class Processor extends AudioWorkletProcessor {
         }
         if (position >= schedule.duration) {
           this.schedule = null; schedule.port.postMessage({id: schedule.id});
-        } else schedule.frame++;
+        } else {
+          // Never render ahead of the next VGM write or completion. Compare
+          // using the original frame-to-VGM conversion to retain its rounding.
+          const next = Math.min(schedule.events[schedule.index]?.[0] ?? Infinity, schedule.duration);
+          let count = 1;
+          while (frame + count < end && (schedule.frame + count) * 44100 / sampleRate < next) count++;
+          end = frame + count;
+          schedule.frame += count;
+        }
       }
-      this.remainder += this.rate;
-      const count = Math.floor(this.remainder / sampleRate);
-      this.remainder -= count * sampleRate;
-      if (count) {
-        const pcm = this.chip.generateStereo(count);
-        let l = 0, r = 0;
-        for (let j = 0; j < count; j++) { l += pcm.left[j]; r += pcm.right[j]; }
-        this.left = l / count; this.right = r / count;
+      let samples = 0;
+      for (let index = frame; index < end; index++) {
+        this.remainder += this.rate;
+        const count = Math.floor(this.remainder / sampleRate);
+        this.remainder -= count * sampleRate;
+        this.counts[index] = count; samples += count;
       }
-      left[i] = this.left; right[i] = this.right;
+      const pcm = samples ? this.chip.generateStereoView(samples) : null;
+      let offset = 0;
+      for (; frame < end; frame++) {
+        const count = this.counts[frame];
+        if (count) {
+          let l = 0, r = 0;
+          for (let j = 0; j < count; j++, offset++) { l += pcm.left[offset]; r += pcm.right[offset]; }
+          this.left = l / count; this.right = r / count;
+        }
+        left[frame] = this.left; right[frame] = this.right;
+      }
     }
   }
 }

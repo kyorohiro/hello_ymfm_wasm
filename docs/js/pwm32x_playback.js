@@ -1,4 +1,4 @@
-import {attachChipClock, CHIP_CLOCKS, validateChipClock} from './playground_chip_clock.js?v=native-modes-3';
+import {attachChipClock, CHIP_CLOCKS, validateChipClock} from './playground_chip_clock.js?v=audio-stability-2';
 import {PWM32X} from './pwm32x.js?v=pcm-views-1';
 
 /** @typedef {{frame: number, register: 0|1|2|3|4, value: number}} PWMWrite */

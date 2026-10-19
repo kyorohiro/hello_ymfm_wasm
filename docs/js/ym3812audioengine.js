@@ -4,8 +4,8 @@
  * 依存: 音源チップ／WASM バックエンド（ファクトリーまたはエンジンを注入）。
  * 同期 PCM 生成・ミックス用。DOM・AudioContext・スピーカー出力は不要。
  */
-import { Ym3812, YM3812_CLOCK } from './ym3812.js';
-import { SegaPSG } from './segapsg.js';
+import { Ym3812, YM3812_CLOCK } from './ym3812.js?v=audio-stability-2';
+import { SegaPSG } from './segapsg.js?v=audio-stability-2';
 
 // YM3812 and optional Sega PSG share the output clock, but keep independent state.
 /**
@@ -16,7 +16,7 @@ import { SegaPSG } from './segapsg.js';
 export class Ym3812AudioEngine {
   /**
    * Create the chip instances required by this engine.
-   * @param {{ym3812ModuleFactory: import('./soundchip.js').WasmModuleFactory, ym3812ModuleOptions?: import('./soundchip.js').WasmModuleOptions, ym3812Clock?: number, segaPsgModuleFactory?: import('./soundchip.js').WasmModuleFactory, psgClock?: number, outputSampleRate?: number, masterVolume?: number}} [options={}] Chip factories, clocks in Hz and loader settings.
+   * @param {{ym3812ModuleFactory: import('./soundchip.js?v=audio-stability-2').WasmModuleFactory, ym3812ModuleOptions?: import('./soundchip.js?v=audio-stability-2').WasmModuleOptions, ym3812Clock?: number, segaPsgModuleFactory?: import('./soundchip.js?v=audio-stability-2').WasmModuleFactory, psgClock?: number, outputSampleRate?: number, masterVolume?: number}} [options={}] Chip factories, clocks in Hz and loader settings.
    * @param {number} [options.outputSampleRate=44100] Output stereo frames per second.
    * @param {number} [options.masterVolume=1] Linear output gain, not dB.
    * @returns {Promise<Ym3812AudioEngine>} Initialized engine owned by the caller.

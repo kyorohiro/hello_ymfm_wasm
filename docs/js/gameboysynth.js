@@ -1,6 +1,6 @@
 import {noteToHz as noteHz} from './soundchip_pitch.js';
 /** Shared, synchronous Game Boy register synthesizer. No audio-device dependency. */
-import {GAMEBOY_APU_CLOCK} from './gameboyapu.js';
+import {GAMEBOY_APU_CLOCK} from './gameboyapu.js?v=audio-stability-2';
 /** @typedef {{direction?:'down'|'up',period?:number}} GameboyEnvelope
  * @typedef {{duty?:0.125|0.25|0.5|0.75,volume?:number,envelope?:GameboyEnvelope}} GameboyPulseVoice
  * @typedef {{volume?:number,envelope?:GameboyEnvelope,divisor?:number,shift?:number,width?:7|15}} GameboyNoiseVoice
@@ -28,7 +28,7 @@ function options(value, keys) {
 }
 /** Borrows the core. Disposing a Synth never destroys this transport's chip. */
 export class GameboyDirectTransport {
-  /** @param {import('./gameboyapu.js').GameboyApu} chip */
+  /** @param {import('./gameboyapu.js?v=audio-stability-2').GameboyApu} chip */
   constructor(chip) {
     if (!chip || typeof chip.writeRegister !== 'function' || typeof chip.reset !== 'function') throw new TypeError('Expected GameboyApu');
     this.chip = chip;

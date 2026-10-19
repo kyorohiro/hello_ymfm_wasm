@@ -40,6 +40,95 @@ test('bad registration is atomic; runtime exception/nonfinite bypass preserves i
  assert.throws(()=>controller.liveFx('x',{process:async()=>{}}));
  assert.throws(()=>controller.liveFx('x',{process:gain,context:{fn(){}}}));
 });
+test('invalid channel replacements and array shape changes bypass only that effect',()=>{
+ const malformed=[
+  function(input,output){output[0]=Float32Array.of(.5);},
+  function(input,output){output[0]=null;},
+  function(input,output){output.length=0;},
+  function(input,output){input.length=0;throw new Error('bad');},
+  function(input,output){input[0]=new Float32Array(1);},
+  function(input,output){output[0]=new Float64Array(input[0].length);},
+  function(input,output){output.push(new Float32Array(input[0].length));},
+  function(input,output){input.length=1;},
+  function(input,output){delete output[1];},
+  function(input,output){output.length=0;Object.freeze(output);},
+  function(input,output){input.length=0;Object.freeze(input);throw new Error('bad');},
+ ];
+ for(const process of malformed){
+  const processor=new LiveFX(48000),errors=[];
+  const controller=createNativeFXController(data=>processor.command(data));
+  controller.liveFx('bad',{process});
+  controller.liveFx('good',{process:gain,context:{gain:.5}});
+  for(let iteration=0;iteration<3;iteration++){
+   const out=block();processor.process(out,error=>errors.push(error));
+   assert.ok(out[0].every(value=>value===.25),'the following effect receives the preserved dry input');
+   assert.ok(out[1].every(value=>value===.125));
+  }
+  assert.equal(errors.length,1,'the malformed effect is bypassed after its first failure');
+  assert.match(errors[0],/\[liveFx:bad\]/);
+  assert.equal(processor.effects.get('bad').bypass,true);
+  assert.equal(processor.effects.get('good').state.blocks,3);
+ }
+});
+test('owned channel arrays and sample buffers are reused between blocks without freezing valid replacements',()=>{
+ const processor=new LiveFX(48000),controller=createNativeFXController(data=>processor.command(data));
+ controller.liveFx('copy',{process(input,output,state){
+  state.input=input;state.output=output;
+  for(let ch=0;ch<input.length;ch++){
+   input[ch][0]*=.5;
+   output[ch].set(input[ch]);
+  }
+ }});
+ const first=block();processor.process(first,assert.fail);
+ assert.equal(first[0][0],.25);assert.equal(first[0][1],.5);
+ const {input,output}=processor.effects.get('copy').state;
+ assert.notEqual(input[0],first[0]);assert.notEqual(output[0],first[0]);assert.notEqual(input[0],output[0]);
+ assert.equal(Object.isFrozen(input),false);assert.equal(Object.isFrozen(output),false);
+ const inputLeft=input[0],outputLeft=output[0];
+ const second=block();processor.process(second,assert.fail);
+ assert.equal(processor.effects.get('copy').state.input,input);
+ assert.equal(processor.effects.get('copy').state.output,output);
+ assert.equal(input[0],inputLeft);assert.equal(output[0],outputLeft);
+ assert.equal(second[0][0],.25);assert.equal(second[0][1],.5);
+});
+
+test('valid Float32Array channel replacement remains audible and cannot replace the rack’s reusable buffers',()=>{
+ const processor=new LiveFX(48000),controller=createNativeFXController(data=>processor.command(data));
+ controller.liveFx('replace',{context:{gain:.5},process(input,output,state,context){
+  if(!state.input){state.input=input;state.output=output;state.inputLeft=input[0];state.outputLeft=output[0];}
+  if(input!==state.input||output!==state.output||input[0]!==state.inputLeft||output[0]!==state.outputLeft)throw Error('Rack buffers changed');
+  for(let ch=0;ch<input.length;ch++)output[ch]=Float32Array.from(input[ch],value=>value*context.gain);
+  state.replacement=output[0];
+ }});
+ controller.liveFx('after',{process:gain,context:{gain:.5}});
+ for(let iteration=0;iteration<10;iteration++){
+  const out=block();processor.process(out,assert.fail);
+  assert.ok(out[0].every(value=>value===.125));assert.ok(out[1].every(value=>value===.0625));
+  const state=processor.effects.get('replace').state;
+  assert.equal(state.output[0],state.outputLeft,'owned output is restored after each callback');
+  assert.notEqual(state.output[0],state.replacement);
+ }
+ assert.equal(processor.effects.get('after').state.blocks,10);
+ assert.equal(processor.effects.get('replace').bypass,false);
+});
+
+test('valid input and output replacements work at cached segment lengths and restore their canonical arrays',()=>{
+ const processor=new LiveFX(48000),controller=createNativeFXController(data=>processor.command(data));
+ controller.liveFx('replace',{process(input,output){
+  for(let ch=0;ch<input.length;ch++){
+   input[ch]=Float32Array.from(input[ch],value=>value*.5);
+   output[ch]=input[ch];
+  }
+ }});
+ for(let iteration=0;iteration<2;iteration++)for(const length of [1,37,128]){
+  const out=[new Float32Array(length).fill(.5)];processor.process(out,assert.fail);
+  assert.ok(out[0].every(value=>value===.25));
+  const buffers=processor.buffers.get(1).get(length);
+  assert.equal(buffers.input.length,1);assert.equal(buffers.output.length,1);
+  assert.equal(buffers.input[0],buffers.inputStorage[0]);assert.equal(buffers.output[0],buffers.outputStorage[0]);
+ }
+ assert.equal(processor.buffers.get(1).size,3,'rendering reuses each bounded segment cache');
+});
 test('actual WASM worklet accepts liveFx on main and direct Worker port; Stop clears it',async()=>{
  const messages=[];
  globalThis.sampleRate=48000;

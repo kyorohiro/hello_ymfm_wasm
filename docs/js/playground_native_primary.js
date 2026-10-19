@@ -1,8 +1,8 @@
-import {createNesClient} from './playground_nes.js?v=native-modes-3';
+import {createNesClient} from './playground_nes.js?v=audio-stability-2';
 import {createSnesClient} from './playground_snes.js?v=native-modes-3';
-import {createYm2151Client} from './playground_ym2151.js?v=native-modes-3';
-import {createHuc6280Client} from './playground_huc6280.js?v=native-modes-3';
-import {createOki6258Client} from './playground_okim6258.js?v=native-modes-3';
+import {createYm2151Client} from './playground_ym2151.js?v=audio-stability-2';
+import {createHuc6280Client} from './playground_huc6280.js?v=audio-stability-2';
+import {createOki6258Client} from './playground_okim6258.js?v=audio-stability-2';
 
 /** Primary controls borrow devices owned by the runtime. */
 export function borrowNativeApi(raw, id, changed = () => {}, before = () => true) {

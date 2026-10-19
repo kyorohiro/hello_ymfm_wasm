@@ -1,10 +1,10 @@
-import {PWM_METHODS} from './pwm32x_playback.js';
+import {PWM_METHODS} from './pwm32x_playback.js?v=audio-stability-2';
 /** Render-clock event recording / looping for offline and Node Worker engines. */
-import {createMegaSynthOffline} from './megasynth_offline.js';
+import {createMegaSynthOffline} from './megasynth_offline.js?v=audio-stability-2';
 import {MegaSynthRecordingManager} from './megasynth_recording.js';
 import {MegaSynthLooper} from './looper.js';
 import {SampleClock} from './sample_clock.js';
-import {YM2612Synth} from './ym2612synth.js';
+import {YM2612Synth} from './ym2612synth.js?v=audio-stability-2';
 import {MegaSynthPCMLooper} from './megasynth_pcm_looper.js';
 
 const COMMANDS = {
@@ -25,7 +25,7 @@ const LOOP_METHODS = new Set(['start', 'stop', 'clear', 'startRecording', 'finis
   'toggleRecord', 'undo', 'noteOn', 'noteOff', 'getState', 'getUnits', 'exportAudio']);
 const validationFM = () => new YM2612Synth({transport: {write(port, register, value) {}, reset() {}}});
 
-/** @typedef {import('./megasynth_offline.js').MegaSynthOfflineOptions & {looperMode?: 'events'|'pcm', looperMaxAudioSeconds?: number}} MegaSynthSessionOptions */
+/** @typedef {import('./megasynth_offline.js?v=audio-stability-2').MegaSynthOfflineOptions & {looperMode?: 'events'|'pcm', looperMaxAudioSeconds?: number}} MegaSynthSessionOptions */
 /** @param {MegaSynthSessionOptions} [options] */
 export async function createMegaSynthSession(options = {}) {
   if (!['events', 'pcm'].includes(options.looperMode ?? 'events')) throw new Error('Invalid looperMode');

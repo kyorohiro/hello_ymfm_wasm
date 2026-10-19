@@ -39,6 +39,8 @@ test('WorkletTransport scheduled writes split PCM at exact output frames', async
     const fm = new YM2612Synth({transport}); fm.setPreset(0, FM_PRESETS.sine); fm.setFrequency(0, 4, 553);
     const expectedFM = new YM2612Synth({transport: direct}); expectedFM.setPreset(0, FM_PRESETS.sine); expectedFM.setFrequency(0, 4, 553);
     const renderer = new ChipPCMRenderer(chip, {sampleRate: 48000, gain: 1, removeIdleOffset: true, generate: direct.generateStereo.bind(direct)});
+    processor.renderer.render = () => {throw Error('AudioWorklet must fill existing output buffers');};
+    processor.direct.generateStereo = () => {throw Error('AudioWorklet must borrow native PCM views');};
     transport.scheduleWrites([{time: 0, port: 0, register: 0x28, value: 0xf0}, {time: 16 / 48000, port: 0, register: 0x28, value: 0}]);
     processor.receive({method: 'start'});
     direct.write(0, 0x28, 0xf0); const first = renderer.render(16);

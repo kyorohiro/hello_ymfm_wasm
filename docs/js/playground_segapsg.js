@@ -1,5 +1,5 @@
-import {attachChipClock, CHIP_CLOCKS} from './playground_chip_clock.js?v=native-modes-3';
-import {createSegaPsgApi} from './segapsg_api.js';
+import {attachChipClock, CHIP_CLOCKS} from './playground_chip_clock.js?v=audio-stability-2';
+import {createSegaPsgApi} from './segapsg_api.js?v=audio-stability-2';
 /** Immediate ordered commands, shared by main-thread and Worker runtimes. */
 /** @param {MessagePort} port */
 export function createSegaPsgClient(port) {

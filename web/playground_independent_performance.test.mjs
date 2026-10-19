@@ -15,6 +15,7 @@ async function setup(file) {
     reset(){this.value=0;},dispose(){this.disposed=true;},
     writeRegister(_register,value){this.value=value;},
     write(address,value){if(arguments.length===1)this.value=address;else if(address&1)this.value=value;},
+    reserveStereoFrames(){},generateStereoView(frames){return this.generateStereo(frames);},
     generateStereo(frames){this.frame+=frames;return {left:new Float32Array(frames).fill(this.value),right:new Float32Array(frames).fill(this.value)};},
     getState(){return {currentFrame:this.frame};},loadMemory(){},loadAdpcmARom(){},
   };
@@ -26,7 +27,7 @@ async function setup(file) {
     NesApu:SyncChip,GameboyApu:SyncChip,SegaPSG:SyncChip,Ym2151:SyncChip,Ym2612:SyncChip,Ym2203:SyncChip,Ym2610B:SyncChip,Ym2608:SyncChip,Rf5c164:SyncChip,
     Ym2608AudioEngine:{create:async()=>engine},PWM32XPlayback:Playback,factory:{},ym2612Factory:{},ym2203Factory:{},ym2610Factory:{},ym2608Factory:{},ym2151Factory:{},gameboyFactory:{},psgFactory:{},
     createRf5c164Control:()=>({reset:()=>chip.reset(),writeRegister:(reg,value)=>chip.writeRegister(reg,value),dispose:()=>chip.dispose()}),
-    createSoundChipFactory:()=>async()=>chip,ChipPCMRenderer:class{render(n){return chip.generateStereo(n);}resetHistory(){}},
+    createSoundChipFactory:()=>async()=>chip,ChipPCMRenderer:class{render(n){return chip.generateStereo(n);}renderInto(left,right,offset=0,frames=left.length-offset){const pcm=chip.generateStereo(frames);left.set(pcm.left,offset);right.set(pcm.right,offset);}resetHistory(){}},
     YM2612DirectTransport:class{},YM2612DacPlayer:class{},performanceNoteRelease,
     AudioWorkletProcessor:class{constructor(){this.port={postMessage:message=>messages.push(message)};}},registerProcessor(_name,Value){Type=Value;},
   };

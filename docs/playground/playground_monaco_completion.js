@@ -1,6 +1,6 @@
 import {
   FM_PRESETS,
-} from "../js/megasynth.js";
+} from "../js/megasynth.js?v=audio-stability-2";
 
 const SCALE_NAMES = [
   "major",

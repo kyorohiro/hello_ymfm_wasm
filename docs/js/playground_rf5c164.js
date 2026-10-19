@@ -1,7 +1,7 @@
-import {attachChipClock, CHIP_CLOCKS} from './playground_chip_clock.js?v=native-modes-3';
+import {attachChipClock, CHIP_CLOCKS} from './playground_chip_clock.js?v=audio-stability-2';
 /** @file Browser / Worker: RF5C164 communication and compatibility facade. */
 import { sampleBytes, encodeRf5c164 } from './rf5c164_pcm.js';
-import { RF5C164Synth, RF5C164DirectTransport } from './rf5c164synth.js';
+import { RF5C164Synth, RF5C164DirectTransport } from './rf5c164synth.js?v=audio-stability-2';
 export { sampleBytes, encodeRf5c164 } from './rf5c164_pcm.js';
 const integer=(v,max,name)=>{if(!Number.isInteger(v)||v<0||v>max)throw new RangeError(`Invalid ${name}`);return v;};
 /** Port RPC shared by main and Worker; commands never require main-thread synthesis. */
@@ -23,7 +23,7 @@ export function createRf5c164Client(port,decode){
  return attachChipClock(client, port, CHIP_CLOCKS.rf5c164);
 }
 /** Compatibility facade. New offline code can construct Synth + DirectTransport. */
-/** @param {import('./rf5c164.js').Rf5c164} chip Native chip owned by the facade.
+/** @param {import('./rf5c164.js?v=audio-stability-2').Rf5c164} chip Native chip owned by the facade.
  * @returns Bound Synth controls; dispose releases the supplied chip. */
 export function createRf5c164Control(chip) {
   const synth = new RF5C164Synth({transport: new RF5C164DirectTransport(chip)});

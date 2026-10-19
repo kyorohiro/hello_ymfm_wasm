@@ -1,5 +1,5 @@
-import {attachChipClock} from './playground_chip_clock.js?v=native-modes-3';
-import {Huc6280Synth, HUC6280_CLOCK} from './huc6280synth.js?v=native-modes-3';
+import {attachChipClock} from './playground_chip_clock.js?v=audio-stability-2';
+import {Huc6280Synth, HUC6280_CLOCK} from './huc6280synth.js?v=audio-stability-2';
 
 /** Immediate, ordered register commands shared by Main and Worker runtimes.
  * @param {MessagePort} port

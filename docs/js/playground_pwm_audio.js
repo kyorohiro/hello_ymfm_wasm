@@ -4,7 +4,7 @@
  * @param {{signal?:AbortSignal,clock?:number,gain?:number,outputMode?:'dac'|'duty'}} [options] */
 export async function createPWM32XAudio(context, destination, options = {}) {
   options.signal?.throwIfAborted();
-  await context.audioWorklet.addModule(new URL('./playground_pwm_worklet.js?v=chip-tabs-2', import.meta.url));
+  await context.audioWorklet.addModule(new URL('./playground_pwm_worklet.js?v=audio-stability-2', import.meta.url));
   options.signal?.throwIfAborted();
   const node = new AudioWorkletNode(context, 'tetorica-pwm32x', {
     numberOfInputs: 0, outputChannelCount: [2],

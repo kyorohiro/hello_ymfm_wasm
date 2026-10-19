@@ -122,6 +122,34 @@ test('Direct DAC rendering copies borrowed views before the next generate overwr
  assert.deepEqual(result.left,result.right);
 });
 
+test('borrowed DirectTransport PCM keeps the native timeline and owned samples intact', () => {
+  const samples = new Float32Array(64); let frame = 0;
+  const chip = {writeRegister() {}, generateStereoView(n) {
+    for (let i = 0; i < n; i++) samples[i] = ++frame;
+    return {left: samples, right: samples};
+  }};
+  const transport = new YM2612DirectTransport(chip);
+  const owned = transport.generateStereo(4);
+  const view = transport.generateStereoView(8);
+  assert.equal(view.left, samples);
+  assert.deepEqual([...view.left.subarray(0, 8)], [5,6,7,8,9,10,11,12]);
+  assert.equal(transport.frame, 12);
+  assert.deepEqual([...owned.left], [1,2,3,4]);
+  assert.throws(() => transport.generateStereoView(NaN), /frames/);
+});
+
+test('borrowed DirectTransport DAC PCM retains exact event boundaries and reuses its buffers', async () => {
+  const {synth, transport} = fixture(100);
+  await synth.dac.play([140,180], {sampleRate: 10});
+  const first = transport.generateStereoView(16);
+  assert.deepEqual([...first.left], [...Array(10).fill(140), ...Array(6).fill(180)]);
+  const next = transport.generateStereoView(6);
+  assert.equal(next, first);
+  assert.deepEqual([...next.left.subarray(0, 6)], [180,180,180,180,128,128]);
+  assert.equal(transport.frame, 22);
+  assert.deepEqual(next.left, next.right);
+});
+
 test('real WASM PCM is identical with owned arrays and borrowed capacity views',async()=>{
  const {Ym2612}=await import('./ym2612.js');
  const {default:factory}=await import('../docs/generated/ym2612_wasm.js');

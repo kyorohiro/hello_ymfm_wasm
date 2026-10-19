@@ -33,12 +33,18 @@ export class LiveFX {
       if(!lengths){lengths=new Map();if(channels.length<=2)this.buffers.set(channels.length,lengths);}
       let buffers=lengths.get(n);
       if(!buffers){
-        buffers={input:channels.map(()=>new Float32Array(n)),output:channels.map(()=>new Float32Array(n))};
+        const input=channels.map(()=>new Float32Array(n)),output=channels.map(()=>new Float32Array(n));
+        // Compatible effects can replace a channel with their own PCM. Retain
+        // the rack's storage separately so malformed or replaced references
+        // cannot leak into the next effect or render quantum.
+        buffers={input,output,inputStorage:input.slice(),outputStorage:output.slice()};
         // A render quantum can be split at any sample. Cache those bounded
         // lengths; arbitrary standalone block sizes retain only the last size.
         if(n<=128&&channels.length<=2)lengths.set(n,buffers);
       }
       this.input=buffers.input;this.output=buffers.output;
+      this.inputStorage=buffers.inputStorage;this.outputStorage=buffers.outputStorage;
+      this.channelBuffers=buffers;
     }
     for(const [name,e] of this.effects){
       if(e.bypass){observe?.(name,channels,channels);continue;}
@@ -46,7 +52,13 @@ export class LiveFX {
       try {
         const result=e.fn(this.input,this.output,e.state,e.context);
         if(result&&typeof result.then==='function')throw new Error('Async process is not supported');
-        for(const channel of this.output)for(const value of channel)if(!Number.isFinite(value))throw new Error('Non-finite output');
+        if(this.input.length!==channels.length||this.output.length!==channels.length)throw new Error('Invalid channel count');
+        for(let ch=0;ch<channels.length;ch++){
+          if(!(this.input[ch] instanceof Float32Array)||this.input[ch].length!==n)throw new Error('Invalid input channel');
+          const channel=this.output[ch];
+          if(!(channel instanceof Float32Array)||channel.length!==n)throw new Error('Invalid output channel');
+          for(const value of channel)if(!Number.isFinite(value))throw new Error('Non-finite output');
+        }
         const fadeFrames=Math.max(1,Math.round(this.rate*.005));
         for(let i=0;i<n;i++){
           const wet=e.fadeRemaining>0?1-e.fadeRemaining/fadeFrames:1;
@@ -63,6 +75,20 @@ export class LiveFX {
           if(e.fadeRemaining>0)e.fadeRemaining--;
         }
       }catch(error){e.bypass=true;report('[liveFx:'+name+'] '+(error?.stack??String(error))+'\nEffect bypassed. Fix the code and Apply to retry.');}
+      finally{
+        try{
+          this.input.length=this.output.length=channels.length;
+          for(let ch=0;ch<channels.length;ch++){
+            this.input[ch]=this.inputStorage[ch];this.output[ch]=this.outputStorage[ch];
+          }
+        }catch{
+          // A callback can also freeze or seal its mutated outer arrays.
+          // Recover only in that exceptional path; ordinary rendering never
+          // creates replacement channel lists or PCM storage.
+          this.input=this.channelBuffers.input=this.inputStorage.slice();
+          this.output=this.channelBuffers.output=this.outputStorage.slice();
+        }
+      }
       observe?.(name,this.input,channels);
     }
   }

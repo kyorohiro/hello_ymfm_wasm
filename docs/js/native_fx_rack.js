@@ -1,5 +1,5 @@
 /** Browser-only AudioWorklet setup. FX controls themselves also run in Workers. */
-import {createNativeSampleController} from './native_sample.js';
+import {createNativeSampleController} from './native_sample.js?v=audio-stability-2';
 import {createNativeNoiseController} from './native_noise.js';
 import {createNativeFXController} from './native_fx.js?v=prepared-fx-rerun-2';
 /** @param {AudioContext} context Owner of the native FX AudioWorklet.
@@ -7,7 +7,7 @@ import {createNativeFXController} from './native_fx.js?v=prepared-fx-rerun-2';
 export async function createNativeFXRack(context){
  const [module]=await Promise.all([
   fetch(new URL('./native_audio_effect.wasm',import.meta.url)).then(r=>{if(!r.ok)throw new Error(`Native FX WASM: HTTP ${r.status}`);return r.arrayBuffer();}).then(b=>WebAssembly.compile(b)),
-  context.audioWorklet.addModule(new URL('./native-fx-worklet.js',import.meta.url)),
+  context.audioWorklet.addModule(new URL('./native-fx-worklet.js?v=audio-stability-2',import.meta.url)),
  ]);
  const node=new AudioWorkletNode(context,'tetorica-native-fx',{numberOfInputs:1,numberOfOutputs:1,outputChannelCount:[2],processorOptions:{module}});
  node.port.onmessage=({data})=>{

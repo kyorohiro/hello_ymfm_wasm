@@ -504,10 +504,11 @@ export function createPlaygroundRuntime(
   }
 
   let applyingChipObserver=false;
+  let pendingChipStateWorker=null;
   function installMegaDriveListener() {
     if (
       removeMegaDriveListener ||
-      typeof options.onMegaDriveEvent !==
+      typeof megaDrive.addListener !==
         "function"
     ) {
       return;
@@ -516,15 +517,20 @@ export function createPlaygroundRuntime(
     removeMegaDriveListener =
       megaDrive.addListener(
         (event) => {
-          options.onMegaDriveEvent?.(event);
-          if(logicWorker && !applyingChipObserver) {
+          if(logicWorker && !applyingChipObserver && pendingChipStateWorker !== logicWorker) {
             const worker = logicWorker;
+            pendingChipStateWorker = worker;
             // Section helpers finish updating their register shadows after the
-            // parent emits its write event (keyOff also remembers its volume).
+            // parent emits its write event. One snapshot at the end of this
+            // turn also coalesces preset/register bursts without deep copies
+            // for every setter, independently of an optional UI listener.
             queueMicrotask(() => {
+              if (pendingChipStateWorker !== worker) return;
+              pendingChipStateWorker = null;
               if (logicWorker === worker) worker.postMessage({type:"chip-state",state:primaryChipState()});
             });
           }
+          options.onMegaDriveEvent?.(event);
         }
       );
   }

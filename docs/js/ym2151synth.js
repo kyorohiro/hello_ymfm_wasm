@@ -1,6 +1,6 @@
 import {noteToHz, opmPitchFromHz} from './soundchip_pitch.js';
-export {YM2151_CLOCK} from './ym2151.js';
-export {YM2151WorkletTransport} from './chip_worklet_transport.js';
+export {YM2151_CLOCK} from './ym2151.js?v=audio-stability-2';
+export {YM2151WorkletTransport} from './chip_worklet_transport.js?v=audio-stability-2';
 
 /** @typedef {{dt?: number, dt1?: number, multi?: number, mul?: number,
  * tl?: number, rs?: number, ks?: number, ar?: number, am?: boolean | number,
@@ -33,7 +33,7 @@ function object(value, label) {
 }
 /** Borrows the caller's chip; does not create or close an audio device. */
 export class YM2151DirectTransport {
-  /** @param {import('./ym2151.js').Ym2151} chip */
+  /** @param {import('./ym2151.js?v=audio-stability-2').Ym2151} chip */
   constructor(chip) {
     if (!chip || typeof chip.write !== 'function') throw new TypeError('YM2151DirectTransport requires a chip with write(offset, value)');
     this.chip = chip;

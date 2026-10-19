@@ -1,5 +1,5 @@
 import {readSamplePCM} from './adpcm_b_sample.js';
-import {validateChipClock} from './playground_chip_clock.js?v=native-modes-3';
+import {validateChipClock} from './playground_chip_clock.js?v=audio-stability-2';
 
 export const OKIM6258_CLOCK = 8000000;
 export const OKIM6258_DIVIDERS = Object.freeze([1024, 768, 512]);

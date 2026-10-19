@@ -4,10 +4,10 @@
  * 依存: 音声初期化・再生時に AudioContext / AudioWorkletNode と WASM アセットが必要。
  * import だけでは音声デバイスを開かない。アセット読み込みには fetch を使用する。
  */
-import { TetoricaAudioRuntime } from "./tetorica_audio_runtime.js?v=chip-tabs-2";
-import { OPNWorkletTransport } from "./opn_fm_synth.js?v=opnb-primary-1";
+import { TetoricaAudioRuntime } from "./tetorica_audio_runtime.js?v=audio-stability-2";
+import { OPNWorkletTransport } from "./opn_fm_synth.js?v=audio-stability-2";
 
-/** @typedef {Pick<import('./megasynth.js?v=chip-tabs-2').MegaSynthOptions,'audioContext'|'outputNode'|'sampleOutputNode'|'masterVolume'|'mixer'|'workletUrl'> & {wasmUrl?:string,rhythmRom?:Uint8Array,rhythmRomUrl?:string}} OPNRuntimeSynthOptions */
+/** @typedef {Pick<import('./megasynth.js?v=audio-stability-2').MegaSynthOptions,'audioContext'|'outputNode'|'sampleOutputNode'|'masterVolume'|'mixer'|'workletUrl'> & {wasmUrl?:string,rhythmRom?:Uint8Array,rhythmRomUrl?:string}} OPNRuntimeSynthOptions */
 
 const MAX_MASTER_VOLUME = 3.8;
 
@@ -202,6 +202,52 @@ export class OPNRuntimeSynth {
       }),
     });
     Object.defineProperty(this.fm, 'id', {value: this.chip, enumerable: true});
+    this.#installFmEvents();
+  }
+
+  #installFmEvents() {
+    const fm = this.fm;
+    // Match MegaSynth's completed high-level events. Section helpers use the
+    // parent write() method, so their state also participates in Worker handoff.
+    const events = {
+      reset: () => ({type:'reset'}),
+      setPreset: (channel,preset) => ({type:'setPreset',channel,preset}),
+      setOperator: (channel,operator,params) => ({type:'setOperator',channel,operator,params}),
+      setAlgo: (channel,algorithm,feedback=0) => ({type:'setAlgo',channel,algorithm,feedback}),
+      setLfo: (enabled,frequency) => ({type:'setLfo',enabled,frequency}),
+      setPan: (channel,left,right,ams,pms) => ({type:'setPan',channel,left,right,ams,pms}),
+      setModulation: channel => {
+        const {left,right,ams,pms} = fm.channels[channel];
+        return {type:'setPan',channel,left,right,ams,pms};
+      },
+      setChannel3SpecialMode: enabled => ({type:'setChannel3SpecialMode',enabled}),
+      setChannel3SpecialFrequency: (operator,block,fnum) => ({type:'setChannel3SpecialFrequency',operator,block,fnum}),
+      noteOn: (channel,block,fnum) => ({type:'noteOn',channel,block,fnum}),
+      noteOff: channel => ({type:'noteOff',channel}),
+      write: (port,register,value) => ({type:'write',port,register,value}),
+      writeData: value => ({type:'write',port:fm._pendingAddressPort,register:fm._pendingAddressRegister,value}),
+    };
+    for (const [method,toEvent] of Object.entries(events)) {
+      const original = fm[method];
+      if (typeof original !== 'function') continue;
+      fm[method] = (...args) => {
+        const result = original.apply(fm,args);
+        this.#emit(toEvent(...args));
+        return result;
+      };
+    }
+  }
+
+  #emit(event) {
+    if (this.chip === 'ym2610' && event.channel !== undefined) {
+      const channel = [1,2,4,5].indexOf(event.channel);
+      if (channel < 0) return;
+      event = {...event,channel};
+    }
+    for (const listener of this.listeners) {
+      try { listener(event); }
+      catch (error) { console.error(`${this.chipName} listener failed`,error); }
+    }
   }
 
   #waitForWorkletReady(node, signal) {

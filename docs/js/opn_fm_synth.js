@@ -13,7 +13,7 @@ import {noteToHz, opnPitchFromHz} from './soundchip_pitch.js';
  * YM2203 and YM2608 APIs as they grow.
  */
 
-/** @typedef {import('./ym2612synth.js').YM2612Transport} OPNTransport */
+/** @typedef {import('./ym2612synth.js?v=audio-stability-2').YM2612Transport} OPNTransport */
 
 const OPERATOR_COUNT = 4;
 const KEY_OPERATOR_BITS = [0x10, 0x20, 0x40, 0x80];
@@ -105,10 +105,10 @@ export class OPNWorkletTransport {
     if (!(bytes instanceof Uint8Array) || bytes.length !== 8192) return Promise.reject(new RangeError('Expected 8192-byte rhythm ROM'));
     return this._loadMemory({type: 'loadRhythmRom', bytes}, 'rhythm-rom-loaded');
   }
-  /** @param {AudioWorkletNode|MessagePort|import('./soundchip_worklet.js?v=chip-tabs-2').WorkletSoundChip} node
+  /** @param {AudioWorkletNode|MessagePort|import('./soundchip_worklet.js?v=audio-stability-2').WorkletSoundChip} node
    * @param {{portCount:number,chipName:string}} config */
   constructor(node, { portCount, chipName }) {
-    /** @type {import('./soundchip_worklet.js?v=chip-tabs-2').WorkletSoundChip|null} */
+    /** @type {import('./soundchip_worklet.js?v=audio-stability-2').WorkletSoundChip|null} */
     this.endpoint = node?.execution === 'worklet' ? node : null;
     if (!node?.port && node?.postMessage) node = {port: node};
     if (!node?.port?.postMessage) {
@@ -190,6 +190,14 @@ export class OPNWorkletTransport {
       value,
     });
   }
+
+  /** Apply a related register group in one worklet message.
+   * @param {Array<{port:number,register:number,value:number}>} writes */
+  writeBatch(writes) {
+    const commands = writes.map(({port, register, value}) => ({type:'write',
+      port:assertRange('port', port, 0, this.portCount - 1), register, value}));
+    this.node.port.postMessage(commands);
+  }
 }
 
 export class OPNFMSynth {
@@ -234,7 +242,7 @@ export class OPNFMSynth {
   }
 
   /** @param {number} channel
-   * @param {import('./ym2612synth.js').YM2612Preset} preset */
+   * @param {import('./ym2612synth.js?v=audio-stability-2').YM2612Preset} preset */
   setPreset(channel, preset) {
     this._assertChannel(channel);
     if (!preset || typeof preset !== "object") {
@@ -277,7 +285,7 @@ export class OPNFMSynth {
    * Apply partial operator settings in order, retaining repeated entries.
    * Validate the entire batch before changing state or writing registers.
    * @param {number} channel
-   * @param {Array<[number, import('./ym2612synth.js').YM2612OperatorParams]>} entries
+   * @param {Array<[number, import('./ym2612synth.js?v=audio-stability-2').YM2612OperatorParams]>} entries
    */
   setOperators(channel, entries) {
     this._assertChannel(channel);
@@ -293,13 +301,11 @@ export class OPNFMSynth {
 
   /** @param {number} channel
    * @param {number} operator
-   * @param {import('./ym2612synth.js').YM2612OperatorParams} params */
+   * @param {import('./ym2612synth.js?v=audio-stability-2').YM2612OperatorParams} params */
   setOperator(channel, operator, params) {
     this._assertChannel(channel);
     assertRange("operator", operator, 0, OPERATOR_COUNT - 1);
-    if (!params || typeof params !== "object") {
-      throw new Error("params must be an object");
-    }
+    params = validateOperatorParams(params);
 
     const state = this.channels[channel].operators[operator];
     const { port, channelOffset } = this._splitChannel(channel);
@@ -411,8 +417,10 @@ export class OPNFMSynth {
     const validFnum = assertRange("fnum", fnum, 0, 0x7ff);
     const registers = CHANNEL_3_SPECIAL_FREQUENCY_REGISTERS[operator];
     this.channels[2].specialFrequencies[operator] = { block: validBlock, fnum: validFnum };
-    this._write(0, registers.high, (validBlock << 3) | ((validFnum >> 8) & 0x07));
-    this._write(0, registers.low, validFnum & 0xff);
+    this._writeBatch([
+      {port:0, register:registers.high, value:(validBlock << 3) | ((validFnum >> 8) & 0x07)},
+      {port:0, register:registers.low, value:validFnum & 0xff},
+    ]);
   }
 
   /** Set frequency in Hz without KEY ON. @overload @param {number} channel @param {number} hz @returns {void} */
@@ -436,8 +444,10 @@ export class OPNFMSynth {
     state.block = validBlock;
     state.fnum = validFnum;
     const { port, channelOffset } = this._splitChannel(channel);
-    this._write(port, 0xa4 + channelOffset, (validBlock << 3) | ((validFnum >> 8) & 0x07));
-    this._write(port, 0xa0 + channelOffset, validFnum & 0xff);
+    this._writeBatch([
+      {port, register:0xa4 + channelOffset, value:(validBlock << 3) | ((validFnum >> 8) & 0x07)},
+      {port, register:0xa0 + channelOffset, value:validFnum & 0xff},
+    ]);
   }
 
   /** @param {number} channel
@@ -575,6 +585,18 @@ export class OPNFMSynth {
       this.transport.write(command);
     }
     this.hooks.onWrite?.(command);
+    this._syncIrq();
+  }
+
+  // OPN's frequency high latch is shared between channels. Finish both writes
+  // before calling observers, which can synchronously change another channel.
+  _writeBatch(commands) {
+    if (typeof this.transport.writeBatch === 'function') this.transport.writeBatch(commands);
+    else for (const command of commands) {
+      if (this.transport.write.length >= 3) this.transport.write(command.port, command.register, command.value);
+      else this.transport.write(command);
+    }
+    for (const command of commands) this.hooks.onWrite?.(command);
     this._syncIrq();
   }
 

@@ -21,6 +21,12 @@ export function createChipPortReceiver(apply, now = () => currentFrame / sampleR
   apply(command, reply);
  };
  return data=>{
+  // Main uses the same immediate register batches as the direct Worker port.
+  // A whole frequency pair must apply before another port can change its latch.
+  if(Array.isArray(data)){
+   if(data.length<=4096)for(const command of data)dispatch(command);
+   return true;
+  }
   if(data.type==='attach-chip-port'){
    port?.close();
    if(performanceQueue){const session=performanceQueue.getStats().activeSession;if(session)performanceQueue.receive({type:'performance-stop',session});else performanceQueue.clear();}

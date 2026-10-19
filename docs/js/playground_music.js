@@ -67,8 +67,8 @@ export function lerp(
  *   getFrequencyPitch?: (hz:number,clock?:number) => {block:number,fnum:number},
  *   getClockScale?: () => number,
  *   pitchReference?: {referenceMidi: number, referenceBlock: number, referenceFnum: number},
- *   synth: () => import('./ym2612synth.js').YM2612Synth | null,
- *   presets: Record<string, import('./ym2612synth.js').YM2612Preset>, activeNotes: Set<number>,
+ *   synth: () => import('./ym2612synth.js?v=audio-stability-2').YM2612Synth | null,
+ *   presets: Record<string, import('./ym2612synth.js?v=audio-stability-2').YM2612Preset>, activeNotes: Set<number>,
  *   sleep: (seconds: number) => Promise<void>, waitBeats?: (beats:number) => Promise<void>, getBpm?: () => number,
  *   getCurrentLoopContext?: () => {cycleState: Map<string, number>, cycleCallIndex: number} | null}} options Pitch reference, synth lookup, waits and sequence context.
  * @returns Music helpers; play waits for note duration and releases only the note it owns.

@@ -5,9 +5,9 @@ import {SoundChipMixer} from './soundchip_mixer.js?v=chip-tabs-2';
  * 依存: AudioContext / AudioNode を使う音声ルーティング・エフェクト。
  * サンプルの URL 読み込みには fetch、デコードには AudioContext が必要。依存は一部注入可能。
  */
-import {samplePCM} from "./native_sample.js";
+import {samplePCM} from "./native_sample.js?v=audio-stability-2";
 import * as fx from "./megasynth_fx.js";
-import {createNativeFXRack} from "./native_fx_rack.js?v=prepared-fx-rerun-2";
+import {createNativeFXRack} from "./native_fx_rack.js?v=audio-stability-2";
 
 /**
  * Chip-independent browser audio state shared by Tetorica synths.
@@ -32,6 +32,8 @@ export class TetoricaAudioRuntime {
     /** @type {Set<AudioNode>} Non-audible observation branches after FX and master volume. */
     this.outputMonitors = new Set();
     this.fxChain = [];
+    this.nativeFXPreparation = null;
+    this.nativeFXGeneration = 0;
     this.sampleBuffers = new Map();
     this.sampleVoices = new Set();
     this.streamEntries = new Map();
@@ -138,11 +140,26 @@ export class TetoricaAudioRuntime {
   }
 
   async prepareNativeFX() {
-    if (!this.nativeFX) {
-      this.nativeFX = await createNativeFXRack(this.audioContext);
-      this.rebuildFXChain();
+    if (this.nativeFX) return this.nativeFX;
+    if (!this.nativeFXPreparation) {
+      const context = this.audioContext, generation = this.nativeFXGeneration;
+      const pending = createNativeFXRack(context).then(rack => {
+        // A synth can close while its rack is fetching/compiling. Never let
+        // that old preparation reconnect audio or survive into a new session.
+        if (generation !== this.nativeFXGeneration || context !== this.audioContext) {
+          rack.dispose();
+          throw new DOMException('Audio preparation cancelled', 'AbortError');
+        }
+        this.nativeFX = rack;
+        try { this.rebuildFXChain(); }
+        catch (error) { this.nativeFX = null; rack.dispose(); throw error; }
+        return rack;
+      });
+      this.nativeFXPreparation = pending;
+      const clear = () => { if (this.nativeFXPreparation === pending) this.nativeFXPreparation = null; };
+      pending.then(clear, clear);
     }
-    return this.nativeFX;
+    return this.nativeFXPreparation;
   }
 
   createFXApi(options = {}) {
@@ -990,6 +1007,8 @@ export class TetoricaAudioRuntime {
   }
 
   disposeFXChain() {
+    this.nativeFXGeneration++;
+    this.nativeFXPreparation = null;
     if (this.nativeFX) { this.nativeFX.dispose(); this.nativeFX = null; }
     const previous = this.fxChain;
     this.fxChain = [];

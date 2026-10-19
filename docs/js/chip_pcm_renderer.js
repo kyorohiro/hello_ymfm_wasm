@@ -19,6 +19,18 @@ export class ChipPCMRenderer {
   resetHistory() {this.phase = 0; this.left = this.right = 0;}
   render(frames) {
     const left = new Float32Array(frames), right = new Float32Array(frames);
+    this.renderInto(left, right);
+    return {left, right, sampleRate: this.sampleRate};
+  }
+  /** Fill an output span without allocating PCM arrays on the audio thread.
+   * @param {Float32Array} left @param {Float32Array} right
+   * @param {number} [outputOffset] @param {number} [frames] */
+  renderInto(left, right, outputOffset = 0, frames = left.length - outputOffset) {
+    if (!Number.isSafeInteger(outputOffset) || outputOffset < 0 ||
+        !Number.isSafeInteger(frames) || frames < 0 ||
+        frames > left.length - outputOffset || frames > right.length - outputOffset) {
+      throw new RangeError('Invalid PCM output span');
+    }
     const nativeFrames = Math.floor((this.phase + frames * this.rate) / this.sampleRate);
     const pcm = nativeFrames ? this.generate(nativeFrames) : null;
     let offset = 0;
@@ -30,8 +42,7 @@ export class ChipPCMRenderer {
         for (let j = 0; j < count; j++, offset++) {l += pcm.left[offset] - this.idleLeft; r += pcm.right[offset] - this.idleRight;}
         this.left = l / count; this.right = r / count;
       }
-      left[i] = this.left * this.gain; right[i] = this.right * this.gain;
+      left[outputOffset + i] = this.left * this.gain; right[outputOffset + i] = this.right * this.gain;
     }
-    return {left, right, sampleRate: this.sampleRate};
   }
 }

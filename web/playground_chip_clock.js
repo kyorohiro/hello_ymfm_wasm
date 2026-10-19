@@ -27,7 +27,7 @@ export class ChipClockResampler {
       const count = Math.floor(this.remainder); this.remainder -= count;
       this.counts[i] = count; frames += count;
     }
-    const pcm = frames ? chip.generateStereo(frames) : null;
+    const pcm = frames ? (chip.generateStereoView ?? chip.generateStereo).call(chip,frames) : null;
     let offset = 0;
     for (let i = 0; i < left.length; i++) {
       const count = this.counts[i];

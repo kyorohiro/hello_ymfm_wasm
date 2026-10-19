@@ -1,19 +1,19 @@
 /** Primary non-OPN machines share media, mixer and FX without a hidden FM synth. */
-import {TetoricaAudioRuntime} from './tetorica_audio_runtime.js?v=chip-tabs-2';
-import {createNesAudio} from './playground_nes_audio.js?v=native-modes-3';
-import {createNesClient} from './playground_nes.js?v=native-modes-3';
+import {TetoricaAudioRuntime} from './tetorica_audio_runtime.js?v=audio-stability-2';
+import {createNesAudio} from './playground_nes_audio.js?v=audio-stability-2';
+import {createNesClient} from './playground_nes.js?v=audio-stability-2';
 import {createSnesAudio} from './playground_snes_audio.js?v=native-modes-3';
 import {createSnesClient} from './playground_snes.js?v=native-modes-3';
-import {createYm2151Audio} from './playground_ym2151_audio.js?v=native-modes-3';
-import {createYm2151Client} from './playground_ym2151.js?v=native-modes-3';
-import {createOki6258Audio} from './playground_okim6258_audio.js?v=native-modes-3';
-import {createOki6258Client} from './playground_okim6258.js?v=native-modes-3';
-import {createHuc6280Audio} from './playground_huc6280_audio.js?v=native-modes-3';
-import {createHuc6280Client} from './playground_huc6280.js?v=native-modes-3';
+import {createYm2151Audio} from './playground_ym2151_audio.js?v=audio-stability-2';
+import {createYm2151Client} from './playground_ym2151.js?v=audio-stability-2';
+import {createOki6258Audio} from './playground_okim6258_audio.js?v=audio-stability-2';
+import {createOki6258Client} from './playground_okim6258.js?v=audio-stability-2';
+import {createHuc6280Audio} from './playground_huc6280_audio.js?v=audio-stability-2';
+import {createHuc6280Client} from './playground_huc6280.js?v=audio-stability-2';
 
 const PRIMARY_CHIPS = Object.freeze(['nes', 'snes', 'x68000', 'huc6280']);
 
-/** @typedef {Pick<import('./megasynth.js?v=chip-tabs-2').MegaSynthOptions,'audioContext'|'outputNode'|'sampleOutputNode'|'masterVolume'|'mixer'> & {
+/** @typedef {Pick<import('./megasynth.js?v=audio-stability-2').MegaSynthOptions,'audioContext'|'outputNode'|'sampleOutputNode'|'masterVolume'|'mixer'> & {
  * chip?:'nes'|'snes'|'x68000'|'huc6280', clock?:number, fds?:boolean,
  * wasmUrl?:string|URL, workletUrl?:string|URL, fetch?:typeof globalThis.fetch,
  * extraOki?:{fetch?:typeof globalThis.fetch,wasmUrl?:string|URL,workletUrl?:string|URL}

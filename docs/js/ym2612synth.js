@@ -23,6 +23,7 @@ import {YM2612Dac, YM2612DacPlayer} from "./ym2612_dac.js";
 /**
  * @typedef {{
  *   write(port: number, register: number, value: number): void,
+ *   writeBatch?: (writes: Array<{port:number,register:number,value:number}>) => void,
  *   reset?: () => void,
  *   read?: (offset: number) => number,
  *   readStatus?: () => number,
@@ -241,12 +242,34 @@ export class YM2612DirectTransport {
   generateStereo(frames) {
     if (!Number.isSafeInteger(frames) || frames < 0) throw new RangeError('frames must be a nonnegative integer');
     const left = new Float32Array(frames), right = new Float32Array(frames);
-    const generate = (this.chip.generateStereoView ?? this.chip.generateStereo).bind(this.chip);
+    this.#generateStereoInto(frames, left, right);
+    return {left, right};
+  }
+
+  /** Borrowed PCM, valid until the next render. Views can include spare capacity.
+   * Use generateStereo() when the caller needs to retain the samples.
+   * @param {number} frames */
+  generateStereoView(frames) {
+    if (!Number.isSafeInteger(frames) || frames < 0) throw new RangeError('frames must be a nonnegative integer');
+    if (!this.dacPlayer && this.chip.generateStereoView) {
+      const pcm = this.chip.generateStereoView(frames);
+      this.frame += frames;
+      return pcm;
+    }
+    if (!this.stereoView || this.stereoView.left.length < frames) {
+      this.stereoView = {left: new Float32Array(frames), right: new Float32Array(frames)};
+    }
+    this.#generateStereoInto(frames, this.stereoView.left, this.stereoView.right);
+    return this.stereoView;
+  }
+
+  #generateStereoInto(frames, left, right) {
+    const generate = this.chip.generateStereoView ?? this.chip.generateStereo;
     let offset = 0;
     while (offset < frames) {
       this.dacPlayer?.advance(this.frame);
       const count = Math.min(frames - offset, (this.dacPlayer?.nextFrame() ?? Infinity) - this.frame);
-      const pcm = generate(count);
+      const pcm = generate.call(this.chip, count);
       // Borrowed views may cover reserved capacity, not just this segment.
       for (let i = 0; i < count; i++) {
         left[offset + i] = pcm.left[i];
@@ -254,7 +277,6 @@ export class YM2612DirectTransport {
       }
       this.frame += count; offset += count;
     }
-    return {left, right};
   }
 
   /** @param {number} offset */
@@ -282,7 +304,7 @@ export class YM2612DirectTransport {
 
 export class YM2612WorkletTransport {
   /**
-   * @param {AudioWorkletNode | MessagePort | import('./soundchip_worklet.js?v=chip-tabs-2').WorkletSoundChip} node
+   * @param {AudioWorkletNode | MessagePort | import('./soundchip_worklet.js?v=audio-stability-2').WorkletSoundChip} node
    */
   constructor(node) {
     this.endpoint = node?.execution === 'worklet' ? node : null;
@@ -359,6 +381,12 @@ export class YM2612WorkletTransport {
       register,
       value,
     });
+  }
+
+  /** Apply a related register group in one worklet message.
+   * @param {Array<{port:number,register:number,value:number}>} writes */
+  writeBatch(writes) {
+    this.node.port.postMessage(writes.map(command => ({type:'write', ...command})));
   }
 
   scheduleWrites(entries) {
@@ -786,8 +814,10 @@ export class YM2612Synth {
     };
 
     // BLOCK / F-NUM high, then low
-    this._write(0, registers.high, (validBlock << 3) | fnumHigh);
-    this._write(0, registers.low, fnumLow);
+    this._writeBatch([
+      {port:0, register:registers.high, value:(validBlock << 3) | fnumHigh},
+      {port:0, register:registers.low, value:fnumLow},
+    ]);
   }
 
   /**
@@ -853,13 +883,11 @@ export class YM2612Synth {
     const fnumHigh = (validFnum >> 8) & 0x07;
     const fnumLow = validFnum & 0xff;
 
-    // BLOCK / F-NUM high
-    // base 0xa4
-    this._write(port, 0xa4 + channelOffset, (validBlock << 3) | fnumHigh);
-
-    // F-NUM low
-    // base 0xa0
-    this._write(port, 0xa0 + channelOffset, fnumLow);
+    // The low byte applies the shared high-byte latch. Keep the pair together.
+    this._writeBatch([
+      {port, register:0xa4 + channelOffset, value:(validBlock << 3) | fnumHigh},
+      {port, register:0xa0 + channelOffset, value:fnumLow},
+    ]);
   }
 
   /**
@@ -1135,6 +1163,18 @@ export class YM2612Synth {
     if (typeof this.hooks.onWrite === "function") {
       this.hooks.onWrite(command);
     }
+    this._syncIrq();
+  }
+
+  // Apply the entire frequency pair before observers can reenter the synth.
+  // Legacy custom transports remain synchronous and need no batch API.
+  _writeBatch(commands) {
+    if (typeof this.transport.writeBatch === 'function') this.transport.writeBatch(commands);
+    else for (const command of commands) {
+      if (this.transport.write.length >= 3) this.transport.write(command.port, command.register, command.value);
+      else this.transport.write(command);
+    }
+    for (const command of commands) this.hooks.onWrite?.(command);
     this._syncIrq();
   }
 

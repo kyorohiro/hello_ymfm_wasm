@@ -2,22 +2,22 @@ import {createSpcClient} from './playground_spc.js?v=spc-events-1';
 import {createSnesClient} from './playground_snes.js?v=native-modes-3';
 import {createPerformanceSender} from './playground_performance_sender.js?v=opna-primary-1';
 import {midiToOpnPitch, opnPitchFromHz} from './soundchip_pitch.js';
-import {CHIP_CLOCKS} from './playground_chip_clock.js?v=native-modes-3';
-import {createNesClient} from './playground_nes.js?v=native-modes-3';
-import {createNativeWorkerApis, createNativePrimaryClient} from './playground_native_primary.js?v=native-modes-3';
+import {CHIP_CLOCKS} from './playground_chip_clock.js?v=audio-stability-2';
+import {createNesClient} from './playground_nes.js?v=audio-stability-2';
+import {createNativeWorkerApis, createNativePrimaryClient} from './playground_native_primary.js?v=audio-stability-2';
 import {createDx7Client} from './playground_dx7.js';
-import {createPWM32XClient} from './pwm32x_playback.js';
-import {createYm2151Client} from './playground_ym2151.js?v=native-modes-3';
-import {createSegaPsgClient} from './playground_segapsg.js';
+import {createPWM32XClient} from './pwm32x_playback.js?v=audio-stability-2';
+import {createYm2151Client} from './playground_ym2151.js?v=audio-stability-2';
+import {createSegaPsgClient} from './playground_segapsg.js?v=audio-stability-2';
 import {resolvePlaySeconds,resolvePlayDuration} from './playground_duration.js?v=shared-beat-clock-1';
 import {createLoopAsyncTasks} from './playground_async_tasks.js';
-import {createCycle} from './playground_music.js?v=cycle-parity-1';
-import {createOpnClient} from './playground_opn.js';
+import {createCycle} from './playground_music.js?v=audio-stability-2';
+import {createOpnClient} from './playground_opn.js?v=audio-stability-2';
 import {createSoundChipRegistry} from './playground_soundchips.js?v=native-modes-3';
-import {createGameboyClient} from './playground_gameboy.js?v=gameboy-mode-1';
-import {createYm2608Client} from './playground_ym2608.js?v=loop-async-tasks-1';
-import {createRf5c164Client} from './playground_rf5c164.js?v=chip-tabs-2';
-import {createNativeSampleController} from './native_sample.js';
+import {createGameboyClient} from './playground_gameboy.js?v=audio-stability-2';
+import {createYm2608Client} from './playground_ym2608.js?v=audio-stability-2';
+import {createRf5c164Client} from './playground_rf5c164.js?v=audio-stability-2';
+import {createNativeSampleController} from './native_sample.js?v=audio-stability-2';
 import {serializeLogError} from './playground_log.js';
 /**
  * @file playground_logic_worker.js
@@ -27,8 +27,8 @@ import {serializeLogError} from './playground_log.js';
  */
 import {createNativeNoiseController, controlNativeNoise} from './native_noise.js';
 import {createWorkerDac} from './playground_worker_dac.js';
-import {createWorkerChip} from './playground_worker_chip.js?v=gameboy-mode-1';
-import {createMidiApi, createMidiRack} from './playground_midi.js?v=shared-beat-clock-1';
+import {createWorkerChip} from './playground_worker_chip.js?v=audio-stability-2';
+import {createMidiApi, createMidiRack} from './playground_midi.js?v=audio-stability-2';
 import { hzToBlockFnum } from "./pitch.js";
 import {createDeadlineScheduler,createBeatClock,createSecondsTimeline,runTween} from './playground_clock.js?v=spc-song-timing-1';
 

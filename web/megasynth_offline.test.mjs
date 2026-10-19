@@ -73,7 +73,7 @@ test('offline stereo FM + native delay/reverb exactly match the AudioWorklet pro
   const p = new Processor();
   await p.init(fs.readFileSync(new URL('../docs/generated/ym2612_wasm.wasm', import.meta.url)));
   assert.ok(p.ym2612);
-  const fm = new YM2612Synth({transport: new YM2612WorkletTransport({port: {postMessage: command => p.applyCommand(command)}})});
+  const fm = new YM2612Synth({transport: new YM2612WorkletTransport({port: {postMessage: data => p.port.onmessage({data})}})});
   const dsp = new NativeFXEngine(fxModule, 48000);
   const fx = createNativeFXController(command => dsp.command(structuredClone(command)));
   const synth = await create();

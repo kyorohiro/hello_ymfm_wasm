@@ -1,5 +1,5 @@
 import {PsgInspectorState,receiveChipInspector} from './playground_chip_inspector_state.js';
-import {CHIP_CLOCKS} from './playground_chip_clock.js';
+import {CHIP_CLOCKS,ChipClockResampler} from './playground_chip_clock.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
@@ -39,5 +39,35 @@ for (const highLevel of [true]) test(`Sega PSG ${highLevel ? 'Synth' : 'raw'} ex
     assert.equal(played, 5); assert.equal(processor.dead, true);
     assert.throws(() => client.reset(), /disposed/);
   } finally { client.dispose(); processor.dispose(); }
+});
+
+for (const rate of [44100,48000,96000]) test(`Sega PSG: borrowed worklet PCM preserves tone/noise, partial segments and clocks at ${rate} Hz`,async t => {
+  let Processor, resolveReady;
+  const ready = new Promise(resolve => {resolveReady = resolve;});
+  const source = (await readFile(new URL('./playground_segapsg_worklet.js',import.meta.url),'utf8')).replace(/^import .*;$/gm,'');
+  vm.runInNewContext(source,{PsgInspectorState,receiveChipInspector,CHIP_CLOCKS,ChipClockResampler,SegaPSG,factory,sampleRate:rate,
+    createProcessorPerformance:options => createProcessorPerformance({...options,rate,nowFrame:() => 0}),
+    AudioWorkletProcessor:class {constructor() {this.port = {postMessage:resolveReady};}},registerProcessor(_name,Type) {Processor = Type;},
+  });
+  const wasmBinary = await readFile(new URL('../docs/generated/segapsg_wasm.wasm',import.meta.url));
+  const p = new Processor({processorOptions:{wasmBinary}});
+  assert.equal((await ready).ready,true);
+  const reference = await SegaPSG.create({moduleFactory:factory,moduleOptions:{wasmBinary},sampleRate:rate});
+  t.after(() => {p.dispose(); reference.dispose();});
+  for (const byte of [0x8c,0x1a,0x9a,0xe5,0xfc]) {p.receive({method:'write',args:[byte]}); reference.write(byte);}
+  p.chip.generateStereo = () => assert.fail('realtime PSG must use borrowed PCM');
+  let adapter;
+  for (const clock of [null,CHIP_CLOCKS.segapsg,Math.round(CHIP_CLOCKS.segapsg/2),CHIP_CLOCKS.segapsg*2]) {
+    if (clock) {p.receive({method:'clock',args:[clock],id:1}); (adapter ??= new ChipClockResampler()).setClock(clock,CHIP_CLOCKS.segapsg);}
+    for (const frames of [128,37,1,90,128,3,128]) {
+      const left = new Float32Array(frames), right = new Float32Array(frames);
+      const expectedLeft = new Float32Array(frames), expectedRight = new Float32Array(frames);
+      p.process([],[[left,right]]);
+      if (adapter) adapter.render({generateStereo:n => reference.generateStereo(n)},expectedLeft,expectedRight);
+      else {const pcm = reference.generateStereo(frames); expectedLeft.set(pcm.left); expectedRight.set(pcm.right);}
+      assert.deepEqual(left,expectedLeft); assert.deepEqual(right,expectedRight);
+      assert(left.every(Number.isFinite));
+    }
+  }
 });
 

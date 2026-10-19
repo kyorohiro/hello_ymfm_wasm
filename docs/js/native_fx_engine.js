@@ -1,5 +1,5 @@
 /** Shared native DSP: no AudioContext, AudioWorklet or DOM dependency. */
-import {LiveFX} from './custom_fx.js';
+import {LiveFX} from './custom_fx.js?v=audio-stability-2';
 import {createSampleProcessor} from './native_sample_processor.js';
 import {setChain} from './native_fx_graph.js';
 import {FX_TYPES} from './native_fx.js';

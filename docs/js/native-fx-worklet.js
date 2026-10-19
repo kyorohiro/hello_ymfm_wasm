@@ -1,4 +1,4 @@
-import {NativeFXEngine} from './native_fx_engine.js';
+import {NativeFXEngine} from './native_fx_engine.js?v=audio-stability-2';
 /** Browser AudioWorklet: one WASM graph for all Playground FX. */
 import {setChain} from './native_fx_graph.js';
 import {createPerformanceQueue} from './playground_performance_queue.js';

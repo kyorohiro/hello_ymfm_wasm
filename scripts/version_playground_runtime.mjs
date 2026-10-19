@@ -55,7 +55,27 @@ const revisions={
   ...Object.fromEntries(nativeFiles.map(name=>[name,'native-modes-3'])),
   ...Object.fromEntries(pcmFiles.map(name=>[name,'pcm-views-1'])),
 };
-const targets=[
+// A transport and its processor must roll out together. Also invalidate their
+// importers so a cached parent cannot keep loading an earlier dependency URL.
+const audioVersion='audio-stability-2';
+const audioFiles=new Set(['chip_pcm_renderer.js','custom_fx.js','opn_fm_synth.js',
+  'playground_chip_clock.js','playground_chip_port.js','playground_opn_worklet.js',
+  'playground_segapsg_worklet.js','soundchip-output-worklet.js',
+  'tetorica_audio_runtime.js','ym2608audioengine.js','ym2612synth.js']);
+const sources=await Promise.all((await readdir(directory)).filter(name=>name.endsWith('.js'))
+  .map(async name=>({name,source:await readFile(join(directory,name),'utf8')})));
+let propagated;
+do {
+  propagated=false;
+  for(const {name,source} of sources) {
+    if(audioFiles.has(name))continue;
+    const imports=[...source.matchAll(/['"](?:\.\/)?([\w.-]+\.js)(?:\?[^'"]*)?['"]/g)];
+    if(imports.some(match=>audioFiles.has(match[1]))) {audioFiles.add(name);propagated=true;}
+  }
+} while(propagated);
+for(const name of ['playground.js','playground_mode.js','playground_operator_tab.js','playground_tfi_editor.js'])audioFiles.add(name);
+const targets=[...new Set([
+  ...audioFiles,
   ...pcmFiles,
   ...nativeFiles,
   'soundchip_mixer.js','megasynth.js','playground_clock.js','playground_runtime.js','playground_logic_worker.js','playground_performance_sender.js','playground_performance_host.js',
@@ -71,17 +91,21 @@ const targets=[
   'spc.js','spc_trace.js','spc_events.js','spc_performance.js','spc_pitch.js','spc_audio.js','spc-worklet.js','spc_resampler.js','spc_file.js','snes_brr.js',
   'snessynth.js','playground_snes.js','playground_snes_audio.js','playground_snes_worklet.js',
   'playground_soundchips.js','playground_spc.js','playground_spc_audio.js',
-];
+])];
 const filenames=targets.map(name=>name.replaceAll('.', '\\.')).join('|');
 // Include bare sibling worklet filenames as well as relative module imports and
 // new URL() / Worker() defaults. Custom absolute URLs remain unchanged.
-const shape=/(['"])((?:(?:\.\.?\/)+)?TARGET)(?:\?[^'"\s]*)?\1/g;
+const shape=/(['"])((?:(?:\.\.?\/)+)?(?:js\/)?TARGET)(?:\?[^'"\s]*)?\1/g;
 const references=new RegExp(shape.source.replace('TARGET','(?:'+filenames+')'),'g');
+// Page modules also contain bare filenames as Monaco definition IDs. Only
+// version relative imports there; those IDs must remain canonical filenames.
+const pageShape=/(['"])((?:\.\.?\/)+(?:js\/)?TARGET)(?:\?[^'"\s]*)?\1/g;
+const pageReferences=new RegExp(pageShape.source.replace('TARGET','(?:'+filenames+')'),'g');
 let changed=0;
-for(const name of await readdir(directory)){
-  if(!name.endsWith('.js'))continue;
-  const path=join(directory,name),source=await readFile(path,'utf8');
-  const next=source.replace(references,(_match,quote,path)=>quote+path+'?v='+(revisions[path.split('/').at(-1)]??version)+quote)
+for(const currentDirectory of [directory,join(directory,'../playground')])for(const name of await readdir(currentDirectory)){
+  if(!name.endsWith('.js')&&!name.endsWith('.html'))continue;
+  const path=join(currentDirectory,name),source=await readFile(path,'utf8');
+  const next=source.replace(currentDirectory===directory?references:pageReferences,(_match,quote,path)=>quote+path+'?v='+(audioFiles.has(path.split('/').at(-1))?audioVersion:revisions[path.split('/').at(-1)]??version)+quote)
     .replace(/(['"])((?:\.\.?\/)+generated\/spc_wasm\.(?:js|wasm))(?:\?[^'"\s]*)?\1/g,
       (_match,quote,path)=>quote+path+'?v=spc-events-1'+quote);
   if(next!==source){await writeFile(path,next);changed++;}

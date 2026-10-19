@@ -1,6 +1,6 @@
-import {ChipClockResampler, CHIP_CLOCKS} from './playground_chip_clock.js?v=native-modes-3';
-import {PsgInspectorState, receiveChipInspector} from './playground_chip_inspector_state.js?v=chip-tabs-2';
-import {SegaPSG} from './segapsg.js';
+import {ChipClockResampler, CHIP_CLOCKS} from './playground_chip_clock.js?v=audio-stability-2';
+import {PsgInspectorState, receiveChipInspector} from './playground_chip_inspector_state.js?v=audio-stability-2';
+import {SegaPSG} from './segapsg.js?v=audio-stability-2';
 import factory from '../generated/segapsg_wasm.js';
 import {createProcessorPerformance} from './playground_performance_processor.js?v=native-modes-3';
 class Processor extends AudioWorkletProcessor {
@@ -19,7 +19,8 @@ class Processor extends AudioWorkletProcessor {
     SegaPSG.create({moduleFactory: factory, moduleOptions: {wasmBinary: options.processorOptions.wasmBinary}, sampleRate})
       .then(chip => {
         if (this.dead) { chip.dispose(); return; }
-        this.chip = chip; this.inspector = new PsgInspectorState(chip, {clock:()=>CHIP_CLOCKS.segapsg*(this.clockResampler?.ratio??1),sampleRate}); this.port.postMessage({ready: true});
+        this.chip = chip; chip.reserveStereoFrames(128);
+        this.inspector = new PsgInspectorState(chip, {clock:()=>CHIP_CLOCKS.segapsg*(this.clockResampler?.ratio??1),sampleRate}); this.port.postMessage({ready: true});
       }).catch(error => { this.dispose(); this.port.postMessage({error: error.message}); });
   }
   dispose() { this.performance.clear(); this.dead = true; this.chip?.dispose(); this.chip = null; this.remote?.close(); }
@@ -49,7 +50,10 @@ class Processor extends AudioWorkletProcessor {
   }
   renderSegment(left,right) {
     if (this.chip && this.clockResampler) this.clockResampler.render(this.chip, left, right);
-    else if (this.chip) { const pcm = this.chip.generateStereo(left.length); left.set(pcm.left); right.set(pcm.right); }
+    else if (this.chip) {
+      const pcm = this.chip.generateStereoView(left.length);
+      for (let frame = 0; frame < left.length; frame++) { left[frame] = pcm.left[frame]; right[frame] = pcm.right[frame]; }
+    }
     else { left.fill(0); right.fill(0); }
   }
 }

@@ -1,7 +1,7 @@
-import { createPlaygroundOperatorTab } from './playground_operator_tab.js?v=chip-tabs-2';
+import { createPlaygroundOperatorTab } from './playground_operator_tab.js?v=audio-stability-2';
 import { createPlaygroundOperatorKeyboard } from './playground_operator_keyboard.js?v=keyboard-controls-minimize-1';
 import { createTfiFromPreset, parseTfi } from '../js/tfi.js';
-import { createVgiFromPreset, parseVgi } from '../js/vgi.js';
+import { createVgiFromPreset, parseVgi } from '../js/vgi.js?v=audio-stability-2';
 
 export function tfiToEditorPreset(bytes) {
   const preset = parseTfi(bytes);
@@ -33,10 +33,22 @@ export function createTfiFileEditor({ root, operatorRoot, keyboardRoot, title, c
   let loading = false;
   let audio = null;
   let readyPromise = null;
+  let suspendPromise = null;
+  let visible = false;
   let disposed = false;
   let volume = 1;
   let originalB4 = 0;
   let format = 'tfi';
+  function suspendPreview() {
+    if (!audio || disposed) return Promise.resolve();
+    if (!suspendPromise) {
+      const pending = Promise.resolve().then(() => { if (!disposed) return audio.suspend?.(); });
+      suspendPromise = pending;
+      const clear = () => { if (suspendPromise === pending) suspendPromise = null; };
+      pending.then(clear, clear);
+    }
+    return suspendPromise;
+  }
   const operator = createPlaygroundOperatorTab({
     root: operatorRoot, presets, presetOrder: [], channelCount: 1,
     idPrefix: 'file-', onStatus,
@@ -54,6 +66,7 @@ export function createTfiFileEditor({ root, operatorRoot, keyboardRoot, title, c
     minimizeHost: minimizableKeyboard ? keyboardRoot : null,
     onControlsMinimizedChange: minimized => root.classList.toggle('keyboard-controls-minimized', minimized),
     async ensureAudioReady() {
+      if (disposed || !visible) return;
       if (!readyPromise) {
         audio ??= createAudio();
         readyPromise = (async () => {
@@ -65,11 +78,21 @@ export function createTfiFileEditor({ root, operatorRoot, keyboardRoot, title, c
         })().catch(error => { readyPromise = null; throw error; });
       }
       await readyPromise;
-      if (!disposed) await audio.resume();
+      if (disposed) return;
+      // Hiding releases keys, but a long FM release can remain audible. Keep
+      // its independent context suspended until the next visible audition.
+      if (!visible) { await suspendPreview(); return; }
+      if (suspendPromise) await suspendPromise;
+      if (disposed || !visible) return;
+      await audio.resume();
+      // A hide can race both asynchronous start() and resume(). Recheck after
+      // either operation so a late completion cannot reopen hidden audio.
+      if (!disposed && !visible) await suspendPreview();
     },
   });
   return {
     open(nextPath, bytes) {
+      if (disposed) return;
       const preset = instrumentToEditorPreset(nextPath, bytes);
       keyboard.setView('code');
       loading = true;
@@ -80,15 +103,19 @@ export function createTfiFileEditor({ root, operatorRoot, keyboardRoot, title, c
         originalB4 = preset.b4 ?? 0;
         format = (bytes.byteLength ?? bytes.length) === 43 ? 'vgi' : 'tfi';
         title.textContent = nextPath;
+        visible = true;
         root.hidden = false;
         operator.setVisible?.(true);
         keyboard.setView('operator');
       } finally { loading = false; }
     },
-    setVisible(visible) {
+    setVisible(nextVisible) {
+      if (disposed) return;
+      visible = Boolean(nextVisible);
       root.hidden = !visible;
       operator.setVisible?.(visible);
       keyboard.setView(visible ? 'operator' : 'code');
+      if (!visible) void suspendPreview().catch(error => onStatus?.(`Audio could not suspend: ${error.message}`));
     },
     setMasterVolume(nextVolume) {
       volume = nextVolume;
@@ -99,6 +126,7 @@ export function createTfiFileEditor({ root, operatorRoot, keyboardRoot, title, c
       return disposed ? null : audio?.audio ?? null;
     },
     dispose() {
+      if (disposed) return;
       disposed = true;
       operator.dispose?.();
       keyboard.dispose();

@@ -1,6 +1,6 @@
 /** @file Browser / Worker / Node.js: compatibility facade for the PSG Synth API. */
-import { SegaPSGSynth } from './segapsgsynth.js';
-export { psgPeriodFromFrequency, psgPeriodFromNote } from './segapsgsynth.js';
+import { SegaPSGSynth } from './segapsgsynth.js?v=audio-stability-2';
+export { psgPeriodFromFrequency, psgPeriodFromNote } from './segapsgsynth.js?v=audio-stability-2';
 /** Existing Playground callers keep bound methods and their injected transport. */
 /** @param {{clock?:number, write: (value: number) => void, reset?: () => void, resetAll?: () => void}} transport Ordered register sender.
  * @returns Bound SegaPSGSynth tone/noise, attenuation and reset methods. */

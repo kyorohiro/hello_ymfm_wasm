@@ -1,4 +1,4 @@
-import {TetoricaAudioRuntime} from './tetorica_audio_runtime.js?v=chip-tabs-2';
+import {TetoricaAudioRuntime} from './tetorica_audio_runtime.js?v=audio-stability-2';
 
 const nativeFetch = globalThis.fetch?.bind(globalThis);
 const modules = new WeakMap();

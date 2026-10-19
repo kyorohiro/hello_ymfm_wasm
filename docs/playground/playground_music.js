@@ -2,4 +2,4 @@
 export {
   createPlaygroundMusic,
   lerp,
-} from "../js/playground_music.js";
+} from "../js/playground_music.js?v=audio-stability-2";
