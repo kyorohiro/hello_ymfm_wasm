@@ -1,5 +1,5 @@
-import {OKIM6258_CLOCK} from './okim6258synth.js?v=native-modes-1';
-import {validateChipClock} from './playground_chip_clock.js?v=native-modes-1';
+import {OKIM6258_CLOCK} from './okim6258synth.js?v=native-modes-2';
+import {validateChipClock} from './playground_chip_clock.js?v=native-modes-2';
 const nativeFetch = globalThis.fetch?.bind(globalThis);
 const modules = new WeakMap();
 
@@ -9,7 +9,7 @@ const modules = new WeakMap();
  */
 export async function createOki6258Audio(context, destination, {clock = OKIM6258_CLOCK,
   wasmUrl = new URL('../generated/okim6258_wasm.wasm', import.meta.url),
-  workletUrl = new URL('./playground_okim6258_worklet.js?v=native-modes-1', import.meta.url), signal, fetch:fetchBytes = nativeFetch} = {}) {
+  workletUrl = new URL('./playground_okim6258_worklet.js?v=native-modes-2', import.meta.url), signal, fetch:fetchBytes = nativeFetch} = {}) {
   validateChipClock(clock);
   signal?.throwIfAborted();
   if (!context?.audioWorklet || context.state === 'closed') throw new Error('OKIM6258 requires an open AudioContext with AudioWorklet');

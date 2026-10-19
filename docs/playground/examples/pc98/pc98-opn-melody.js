@@ -2,6 +2,7 @@
 // FM and SSG share one mono YM2203, sent equally to left and right.
 setBpm(120);
 fm.setPreset(CH1, FM_PRESETS['one-op-basic']);
+ssg.setMixer(0, {tone: true, noise: false});
 ssg.setVolume(0, 8);
 
 liveLoop('opn-melody', async () => {

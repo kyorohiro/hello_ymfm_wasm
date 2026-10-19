@@ -1,10 +1,11 @@
-import {validateChipClock} from './playground_chip_clock.js?v=native-modes-1';
+import {validateChipClock} from './playground_chip_clock.js?v=native-modes-2';
 import {Ym2151} from './ym2151.js';
 import factory from '../generated/ym2151_wasm.js';
-import {createProcessorPerformance} from './playground_performance_processor.js?v=native-modes-1';
+import {createProcessorPerformance} from './playground_performance_processor.js?v=native-modes-2';
 class Processor extends AudioWorkletProcessor {
   constructor(options) {
     super(); this.chip = null; this.dead = false; this.remainder = 0; this.left = 0; this.right = 0;
+    this.counts = new Uint32Array(128);
     this.registers = new Uint8Array(256); this.mutedChannels = new Set(); this.silent = false;
     this.performance=createProcessorPerformance({chip:'ym2151',apply:(data,port)=>this.apply(data,port)});
     this.renderSegment=this.renderSegment.bind(this);
@@ -72,14 +73,24 @@ class Processor extends AudioWorkletProcessor {
   renderSegment(left,right) {
     if (this.chip) {
       // OPM generates at its native clock/64 rate; convert to the device rate.
+      // Generate once per event-delimited segment rather than allocating PCM
+      // arrays and crossing into WASM for every output sample. Keep the same
+      // additions/remainder as the sample loop so source-frame boundaries agree.
+      if (this.counts.length < left.length) this.counts = new Uint32Array(left.length);
+      let frames = 0;
       for (let i = 0; i < left.length; i++) {
         this.remainder += this.rate;
         const count = Math.floor(this.remainder / sampleRate);
         this.remainder -= count * sampleRate;
+        this.counts[i] = count; frames += count;
+      }
+      const pcm = frames ? this.chip.generateStereo(frames) : null;
+      let offset = 0;
+      for (let i = 0; i < left.length; i++) {
+        const count = this.counts[i];
         if (count) {
-          const pcm = this.chip.generateStereo(count);
           let l = 0, r = 0;
-          for (let j = 0; j < count; j++) { l += pcm.left[j]; r += pcm.right[j]; }
+          for (let j = 0; j < count; j++, offset++) { l += pcm.left[offset]; r += pcm.right[offset]; }
           this.left = l / count; this.right = r / count;
         }
         left[i] = this.silent?0:this.left; right[i] = this.silent?0:this.right;

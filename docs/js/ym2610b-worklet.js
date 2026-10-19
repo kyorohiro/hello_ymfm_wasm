@@ -1,4 +1,4 @@
-import {validateChipClock} from './playground_chip_clock.js?v=native-modes-1';
+import {validateChipClock} from './playground_chip_clock.js?v=native-modes-2';
 import {createPerformanceQueue, createPerformanceChipOwnership} from './playground_performance_queue.js';
 import {createOpnAuditionGuard, receiveOpnAuditionCommand} from './playground_audition_guard.js';
 import {createChipPortReceiver} from "./playground_chip_port.js";
@@ -115,18 +115,33 @@ class YM2610BProcessor extends AudioWorkletProcessor {
   process(_inputs, outputs) {
     const [left, right] = outputs[0];
     if (!this.chip) { left.fill(0); right.fill(0); return true; }
-    for (let frame = 0; frame < left.length; frame += 1) {
+    // Render only as far as the next timed register/clock change. The native
+    // chip can then generate the whole segment in one call, avoiding tens of
+    // thousands of tiny PCM allocations per second on the audio thread.
+    if (!this.sampleCounts || this.sampleCounts.length < left.length) this.sampleCounts = new Uint32Array(left.length);
+    let frame = 0;
+    while (frame < left.length) {
       if (this.performanceQueue.nextFrame() <= currentFrame + frame) this.performanceQueue.advance(currentFrame + frame);
-      this.remainder += this.chipRate;
-      const count = Math.floor(this.remainder / sampleRate);
-      this.remainder -= count * sampleRate;
-      if (count) {
-      const pcm = this.chip.generateStereo(count);
-      let l = 0; let r = 0;
-      for (let index = 0; index < count; index += 1) { l += pcm.left[index]; r += pcm.right[index]; }
-      this.lastLeft = l / count; this.lastRight = r / count;
+      const end = Math.min(left.length, this.performanceQueue.nextFrame() - currentFrame);
+      let samples = 0;
+      for (let index = frame; index < end; index++) {
+        this.remainder += this.chipRate;
+        const count = Math.floor(this.remainder / sampleRate);
+        this.remainder -= count * sampleRate;
+        this.sampleCounts[index] = count;
+        samples += count;
       }
-      left[frame] = this.lastLeft; right[frame] = this.lastRight;
+      const pcm = samples ? this.chip.generateStereo(samples) : null;
+      let offset = 0;
+      for (; frame < end; frame++) {
+        const count = this.sampleCounts[frame];
+        if (count) {
+          let l = 0, r = 0;
+          for (let index = 0; index < count; index++, offset++) { l += pcm.left[offset]; r += pcm.right[offset]; }
+          this.lastLeft = l / count; this.lastRight = r / count;
+        }
+        left[frame] = this.lastLeft; right[frame] = this.lastRight;
+      }
     }
     return true;
   }

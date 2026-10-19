@@ -1,4 +1,4 @@
-import {attachChipClock, CHIP_CLOCKS} from './playground_chip_clock.js?v=native-modes-1';
+import {attachChipClock, CHIP_CLOCKS} from './playground_chip_clock.js?v=native-modes-2';
 /** Independent OPN client. All writes and memory uploads use one ordered port. */
 import {YM2612Synth} from './ym2612synth.js';
 import {YM2203Synth} from './ym2203synth.js?v=opn-ssg-1';

@@ -1,32 +1,32 @@
 import {createSpcAudio} from './playground_spc_audio.js?v=spc-events-1';
 import {createSpcClient} from './playground_spc.js?v=spc-events-1';
-import {createSnesAudio} from './playground_snes_audio.js?v=native-modes-1';
-import {createSnesClient} from './playground_snes.js?v=native-modes-1';
+import {createSnesAudio} from './playground_snes_audio.js?v=native-modes-2';
+import {createSnesClient} from './playground_snes.js?v=native-modes-2';
 import {createChipInspector} from './playground_chip_inspector.js?v=chip-tabs-2';
 import {createPerformanceHost} from './playground_performance_host.js?v=spc-events-1';
 import {DEFAULT_WORKER_LOOKAHEAD_SECONDS, validateWorkerLookahead} from './playground_performance_sender.js?v=opna-primary-1';
 import {midiToOpnPitch, opnPitchFromHz} from './soundchip_pitch.js';
-import {attachChipClock, CHIP_CLOCKS} from './playground_chip_clock.js?v=native-modes-1';
-import {createNesAudio} from './playground_nes_audio.js?v=native-modes-1';
-import {createNesClient} from './playground_nes.js?v=native-modes-1';
+import {attachChipClock, CHIP_CLOCKS} from './playground_chip_clock.js?v=native-modes-2';
+import {createNesAudio} from './playground_nes_audio.js?v=native-modes-2';
+import {createNesClient} from './playground_nes.js?v=native-modes-2';
 import {createDx7Audio} from './playground_dx7_audio.js';
 import {createDx7Client} from './playground_dx7.js';
 import {createPWM32XAudio} from './playground_pwm_audio.js?v=chip-tabs-2';
 import {createPWM32XClient} from './pwm32x_playback.js';
-import {createYm2151Audio} from './playground_ym2151_audio.js?v=native-modes-1';
-import {createYm2151Client} from './playground_ym2151.js?v=native-modes-1';
+import {createYm2151Audio} from './playground_ym2151_audio.js?v=native-modes-2';
+import {createYm2151Client} from './playground_ym2151.js?v=native-modes-2';
 import {createSegaPsgAudio} from './playground_segapsg_audio.js?v=chip-tabs-2';
 import {createSegaPsgClient} from './playground_segapsg.js';
 import {createLoopAsyncTasks} from './playground_async_tasks.js';
 import {createOpnAudio} from './playground_opn_audio.js';
 import {createOpnClient} from './playground_opn.js';
-import {createSoundChipRegistry} from './playground_soundchips.js?v=native-modes-1';
+import {createSoundChipRegistry} from './playground_soundchips.js?v=native-modes-2';
 import {createGameboyAudio} from './playground_gameboy_audio.js';
 import {createPrimaryGameboyApi} from './playground_gameboy.js?v=gameboy-mode-1';
 import {createGameboyClient} from './playground_gameboy.js?v=gameboy-mode-1';
-import {borrowNativeApi, createNativePrimaryClient} from './playground_native_primary.js?v=native-modes-1';
-import {createHuc6280Audio} from './playground_huc6280_audio.js?v=native-modes-1';
-import {createOki6258Audio} from './playground_okim6258_audio.js?v=native-modes-1';
+import {borrowNativeApi, createNativePrimaryClient} from './playground_native_primary.js?v=native-modes-2';
+import {createHuc6280Audio} from './playground_huc6280_audio.js?v=native-modes-2';
+import {createOki6258Audio} from './playground_okim6258_audio.js?v=native-modes-2';
 import {createYm2608Audio} from './playground_ym2608_audio.js?v=loop-async-tasks-1';
 import {createYm2608Client} from './playground_ym2608.js?v=loop-async-tasks-1';
 import {createRf5c164Client} from './playground_rf5c164.js?v=chip-tabs-2';
@@ -46,7 +46,7 @@ import { createAudioScheduler } from "./playground_audio_scheduler.js";
 import {
   FM_PRESETS,
 } from "./megasynth.js?v=chip-tabs-2";
-import { createTetoricaSynth } from "./tetorica_synth.js?v=native-modes-1";
+import { createTetoricaSynth } from "./tetorica_synth.js?v=native-modes-2";
 import { createPlaygroundClock, createSecondsTimeline } from "./playground_clock.js?v=spc-song-timing-1";
 import { capturePlaygroundNativeIpc, executeWithPlaygroundGuards } from "./playground_execution.js";
 import { createPlaygroundLive } from "./playground_live.js?v=run-sample-clock-1";
@@ -120,10 +120,10 @@ export function createPlaygroundRuntime(
         options.audioWorkletUrl ??
         options.workletUrl ??
         (['nes','snes','x68000','huc6280'].includes(options.chip) ? undefined : options.chip === 'gameboy' ? new URL('./playground_gameboy_worklet.js?v=gameboy-mode-1', import.meta.url).href
-          : options.chip === 'ym2203' ? './ym2203-worklet.js?v=opn-ssg-1'
-          : options.chip === 'ym2608' ? './ym2608-worklet.js?v=opna-primary-1'
+          : options.chip === 'ym2203' ? './ym2203-worklet.js?v=audio-render-2'
+          : options.chip === 'ym2608' ? './ym2608-worklet.js?v=audio-render-2'
           : ['ym2610','ym2610b'].includes(options.chip)
-            ? "./ym2610b-worklet.js?v=opnb-primary-1" : "./ym2612-worklet.js?v=chip-tabs-2"),
+            ? "./ym2610b-worklet.js?v=audio-render-2" : "./ym2612-worklet.js?v=chip-tabs-2"),
       ym2612WasmUrl:
         options.ym2612WasmUrl ??
         "./generated/ym2612_wasm.wasm",
@@ -209,7 +209,7 @@ export function createPlaygroundRuntime(
     options.execution ?? "main";
   const defaultLogicWorkerUrl =
     new URL(
-      "./playground_logic_worker.js?v=native-modes-1",
+      "./playground_logic_worker.js?v=native-modes-2",
       import.meta.url
     );
   const logicWorkerUrl =

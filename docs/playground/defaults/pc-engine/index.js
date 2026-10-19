@@ -7,10 +7,9 @@ pce.setPan(0, 15, 15); // Independent left/right balances 0..15.
 
 liveLoop('pce-melody', async () => {
   for (const note of ['C4', 'E4', 'G4', 'B4', 'C5', 'G4', 'E4', 'D4']) {
+    // Keep the waveform running between notes; hard key cuts can click.
     pce.noteOn(0, note);
-    await beat(0.4);
-    pce.keyOff(0);
-    await beat(0.1);
+    await beat(0.5);
   }
 });
 

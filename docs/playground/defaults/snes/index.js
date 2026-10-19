@@ -6,7 +6,7 @@ const leadSample = await livePrepare('snes-mode-lead-brr', async () => {
   return snes.loadBRR(brrBytes, {baseFrequencyHz:2000, loopStartSamples:0});
 });
 snes.setPreset(0, {
-  sample:leadSample, adsr1:0x8f, adsr2:0xe0, gain:127,
+  sample:leadSample, adsr1:0x8e, adsr2:0xe0, gain:127, // Short hardware attack avoids an abrupt onset.
   volumeLeft:80, volumeRight:80,
 });
 

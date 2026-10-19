@@ -2,6 +2,7 @@
 // Built-in FM, SSG and rhythm; bundled synthetic drums need no ROM upload.
 setBpm(120);
 fm.setPreset(CH1, FM_PRESETS['one-op-basic']);
+ssg.setMixer(0, {tone: true, noise: false});
 ssg.setVolume(0, 8);
 rhythm.setVolume(48);
 for (const voice of ['bassDrum', 'snare', 'hiHat']) {

@@ -6,20 +6,21 @@ import {createYm2151Client} from './playground_ym2151.js';
 import {Ym2151} from './ym2151.js';
 import factory from '../docs/generated/ym2151_wasm.js';
 import {createProcessorPerformance} from './playground_performance_processor.js';
+import {validateChipClock} from './playground_chip_clock.js';
 
 async function setup(sampleRate) {
-  let Processor, ready;
+  let Processor, ready, frame = 0;
   const started = new Promise(resolve => {ready = resolve;});
   const source = (await readFile(new URL('./playground_ym2151_worklet.js', import.meta.url), 'utf8')).replace(/^import .*;$/gm, '');
-  vm.runInNewContext(source, {Ym2151, factory, sampleRate,
-    createProcessorPerformance:options=>createProcessorPerformance({...options,rate:sampleRate,nowFrame:()=>0}),
+  vm.runInNewContext(source, {Ym2151, factory, sampleRate, validateChipClock,
+    createProcessorPerformance:options=>createProcessorPerformance({...options,rate:sampleRate,nowFrame:()=>frame}),
     AudioWorkletProcessor: class { constructor() {this.port = {postMessage: ready};} },
     registerProcessor: (_, value) => {Processor = value;},
   });
   const processor = new Processor({processorOptions: {wasmBinary: await readFile(new URL('../docs/generated/ym2151_wasm.wasm', import.meta.url))}});
   assert.equal((await started).ready, true);
   const chip = createYm2151Client({postMessage: data => processor.receive(data), close() {}});
-  const render = n => {const out = [new Float32Array(n), new Float32Array(n)]; processor.process([], [out]); return out;};
+  const render = n => {const out = [new Float32Array(n), new Float32Array(n)]; processor.process([], [out]); frame += n; return out;};
   return {processor, chip, render};
 }
 for (const rate of [44100,48000]) test(`OPM all channels, pan, pitch, release and noise at ${rate}`, async () => {
@@ -81,4 +82,70 @@ test('OPM Stop silences an indefinite release and restores its saved patch on th
     chip._forceKeyOff(0);assert(peak(render(2048))<.00001,'loop cancellation mutes even RR=0');
     chip.keyOn(0,8);assert(peak(render(4096))>.01);
   } finally {chip.dispose();processor.dispose();}
+});
+
+// Reference the former one-native-generation-per-output-sample path. Batching
+// must preserve every native sample, held value and fractional phase exactly.
+function useSampleReference(processor, sampleRate) {
+  processor.renderSegment = function(left, right) {
+    for (let i = 0; i < left.length; i++) {
+      this.remainder += this.rate;
+      const count = Math.floor(this.remainder / sampleRate);
+      this.remainder -= count * sampleRate;
+      if (count) {
+        const pcm = this.chip.generateStereo(count);
+        let l = 0, r = 0;
+        for (let j = 0; j < count; j++) { l += pcm.left[j]; r += pcm.right[j]; }
+        this.left = l / count; this.right = r / count;
+      }
+      left[i] = this.silent ? 0 : this.left; right[i] = this.silent ? 0 : this.right;
+    }
+  }.bind(processor);
+}
+function configureTone(chip) {
+  chip.setAlgo(0,7); chip.setPan(0,true,true);
+  chip.setOperator(0,3,{mul:1,tl:32,ar:31,d1r:0,d2r:0,rr:0});
+  chip.setPitch(0,0x4a); chip.keyOn(0,8);
+}
+for (const rate of [44100,48000,96000]) test(`OPM batched native PCM equals sample rendering at ${rate} Hz and changing clocks`, async () => {
+  const actual = await setup(rate), reference = await setup(rate), port = {postMessage() {}};
+  useSampleReference(reference.processor, rate);
+  try {
+    for (const clock of [3579545,4000000,8000000,100000]) {
+      for (const fixture of [actual,reference]) {
+        fixture.processor.apply({method:'clock',args:[clock]},port);
+        fixture.chip._adoptClock(clock);
+        configureTone(fixture.chip);
+      }
+      for (const frames of [128,1,127,53,1024]) {
+        const output = actual.render(frames), expected = reference.render(frames);
+        assert.deepEqual(output,expected, `clock ${clock}, ${frames} output frames`);
+        assert.equal(actual.processor.remainder,reference.processor.remainder);
+      }
+      for (const fixture of [actual,reference]) fixture.chip.allNotesOff();
+      assert.deepEqual(actual.render(128),reference.render(128));
+    }
+  } finally { actual.processor.dispose(); reference.processor.dispose(); }
+});
+test('OPM batches one native generation per reserved-event segment and reuses count storage', async () => {
+  const rate = 48000, actual = await setup(rate), reference = await setup(rate), port = {postMessage() {}};
+  useSampleReference(reference.processor, rate);
+  try {
+    for (const fixture of [actual,reference]) {
+      configureTone(fixture.chip);
+      fixture.processor.receive({type:'performance-start',session:1},port);
+      fixture.processor.receive({performance:{session:1,owner:'tone',time:63/rate},commands:[{method:'writeRegister',args:[0x28,0x4c]}]},port);
+      fixture.processor.receive({performance:{session:1,owner:'tone',time:191/rate},commands:[{method:'allNotesOff',args:[]}]},port);
+    }
+    let calls = 0;
+    const generate = actual.processor.chip.generateStereo.bind(actual.processor.chip);
+    actual.processor.chip.generateStereo = frames => { calls++; return generate(frames); };
+    const counts = actual.processor.counts;
+    assert.deepEqual(actual.render(128),reference.render(128));
+    assert.equal(calls,2,'the pitch event splits the quantum into two native generations');
+    calls = 0;
+    assert.deepEqual(actual.render(128),reference.render(128));
+    assert.equal(calls,2,'Stop still takes effect at its reserved output frame');
+    assert.equal(actual.processor.counts,counts,'normal quanta do not allocate count arrays');
+  } finally { actual.processor.dispose(); reference.processor.dispose(); }
 });
