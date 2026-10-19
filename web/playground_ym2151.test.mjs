@@ -65,3 +65,20 @@ test('OPM example runs against the real worklet', async () => {
     assert.equal(calls,8);assert.equal(processor.dead,true);
   } finally {chip.dispose();processor.dispose();}
 });
+
+test('OPM Stop silences an indefinite release and restores its saved patch on the next trigger', async () => {
+  const {chip,processor,render}=await setup(48000);
+  const peak = pcm => Math.max(...pcm[0].map(Math.abs));
+  try {
+    chip.setAlgo(0,7);chip.setPan(0,true,true);
+    chip.setOperator(0,3,{mul:1,tl:32,ar:31,d1r:0,d2r:0,rr:0});
+    chip.setNote(0,'A4');chip.keyOn(0,8);
+    assert(peak(render(4096))>.01);
+    const saved=chip._getState().registers.slice();
+    chip.allNotesOff();assert.equal(peak(render(2048)),0);
+    assert.deepEqual(chip._getState().registers,saved,'Stop keeps the patch in client memory');
+    chip.keyOn(0,8);assert(peak(render(4096))>.01,'the old operator levels are restored');
+    chip._forceKeyOff(0);assert(peak(render(2048))<.00001,'loop cancellation mutes even RR=0');
+    chip.keyOn(0,8);assert(peak(render(4096))>.01);
+  } finally {chip.dispose();processor.dispose();}
+});

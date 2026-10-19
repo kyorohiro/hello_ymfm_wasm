@@ -1,7 +1,7 @@
-import {ChipClockResampler, CHIP_CLOCKS, validateChipClock} from './playground_chip_clock.js?v=opnb-primary-1';
+import {ChipClockResampler, CHIP_CLOCKS, validateChipClock} from './playground_chip_clock.js?v=native-modes-1';
 import {GameboyApu} from './gameboyapu.js';
 import factory from '../generated/gameboy_apu_wasm.js';
-import {createProcessorPerformance} from './playground_performance_processor.js?v=spc-song-js-1';
+import {createProcessorPerformance} from './playground_performance_processor.js?v=native-modes-1';
 class Processor extends AudioWorkletProcessor {
   constructor(options) {
     super(); this.chip = null; this.dead = false;

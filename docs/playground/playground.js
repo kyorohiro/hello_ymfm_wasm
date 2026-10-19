@@ -7,9 +7,9 @@ import {installPlaygroundShell} from './playground_shell.js?v=compact-shell-1';
 import {installPlaygroundGit} from './playground_git.js';
 import {openDraftStore, createProjectAutosave} from './playground_autosave.js?v=opn-modes-1';
 import {PLAYGROUND_MODES, resolvePlaygroundMode, createModeSynthOptions,
-  createPlaygroundModeUrl, isSimplePlaygroundLayout} from './playground_mode.js?v=mode-starters-1';
+  createPlaygroundModeUrl, isSimplePlaygroundLayout} from './playground_mode.js?v=native-modes-1';
 import {saveModeProject, consumeModeProject} from './playground_mode_project.js';
-import {reconcileModeProject} from './playground_mode_starters.js?v=mode-starters-1';
+import {reconcileModeProject} from './playground_mode_starters.js?v=native-modes-1';
 let desktopAutosave = null;
 let playgroundShell = null;
 let fileExplorerMenu = null;
@@ -34,7 +34,7 @@ import {
 } from "../js/megasynth.js?v=chip-tabs-2";
 import {
   createTetoricaSynth,
-} from "../js/tetorica_synth.js?v=gameboy-mode-1";
+} from "../js/tetorica_synth.js?v=native-modes-1";
 import {
   createTfiOperatorObjectText,
   createTfiPresetObjectText,
@@ -47,8 +47,8 @@ import {
 } from "./playground_operator_tab.js?v=chip-tabs-2";
 import { createPlaygroundOperatorKeyboard } from "./playground_operator_keyboard.js?v=keyboard-controls-minimize-1";
 import { CHIP_CLOCKS } from "../js/playground_chip_clock.js?v=opnb-primary-1";
-import { DEFAULT_CODE, EXAMPLES, EXAMPLE_FILES, MODE_DEFAULT_CODES, MODE_EXAMPLE_FILES } from "./playground_examples.js?v=mode-starters-1";
-import { initializePlaygroundMonaco } from "./playground_monaco.js?v=gameboy-mode-1";
+import { DEFAULT_CODE, EXAMPLES, EXAMPLE_FILES, MODE_DEFAULT_CODES, MODE_EXAMPLE_FILES } from "./playground_examples.js?v=native-modes-1";
+import { initializePlaygroundMonaco } from "./playground_monaco.js?v=native-modes-1";
 import {
   decodeBase64Bytes,
   loadTfiPresetsFromQuery,
@@ -79,12 +79,12 @@ import { exportYm2608VgmToPlaygroundJavaScript } from "../js/ym2608vgm.js";
 import { exportYm2610BVgmToPlaygroundJavaScript } from "../js/ym2610bvgm.js";
 import {
   createPlaygroundRuntime,
-} from "../js/playground_runtime.js?v=gameboy-mode-1";
+} from "../js/playground_runtime.js?v=native-modes-1";
 import {DEFAULT_WORKER_LOOKAHEAD_SECONDS} from '../js/playground_performance_sender.js?v=opna-primary-1';
 import { createVgmPresetFiles } from "./playground_vgm_presets.js";
 import { createTfiFileEditor, instrumentToEditorPreset } from "./playground_tfi_editor.js?v=chip-tabs-2";
 import { renderFileTree } from "./playground_file_tree.js?v=opnb-primary-1";
-import { createPlaygroundUi, applyPlaygroundLayout } from "./playground_ui.js?v=gameboy-mode-1";
+import { createPlaygroundUi, applyPlaygroundLayout } from "./playground_ui.js?v=native-modes-1";
 import {
   handleMegaSynthEvent,
 } from "./playground_sync.js";
@@ -276,10 +276,11 @@ const modeOptions = selectedMode.legacy ? [...PLAYGROUND_MODES, selectedMode] : 
 modeSelect.replaceChildren(...modeOptions.map(mode => new Option(mode.label, mode.id)));
 modeSelect.value = selectedMode.id;
 document.getElementById('playgroundModeDetails').textContent =
-  `${selectedChip.toUpperCase()} · ${selectedChipClock.toLocaleString('en-US')} Hz · ${selectedChip === 'gameboy' ? 'Game Boy APU' : useNukedEngine ? 'Nuked-OPN2' : 'ymfm'}`;
+  selectedMode.details ?? `${selectedChip.toUpperCase()} · ${selectedChipClock.toLocaleString('en-US')} Hz · ${selectedMode.engine === 'apu' ? selectedMode.label + ' APU' : selectedMode.engine === 'psg' ? 'PSG' : useNukedEngine ? 'Nuked-OPN2' : 'ymfm'}`;
 for (const button of [exportTfiButton, exportVgiButton]) if (button) button.hidden = !hasPrimaryFM;
 for (const element of document.querySelectorAll('[data-opn-helper]')) element.hidden = !hasPrimaryFM;
 for (const element of document.querySelectorAll('[data-gameboy-helper]')) element.hidden = selectedChip !== 'gameboy';
+for (const element of document.querySelectorAll('[data-native-helper]')) element.hidden = element.dataset.nativeHelper !== selectedChip;
 
 let synth = null;
 const urlTfiResult =

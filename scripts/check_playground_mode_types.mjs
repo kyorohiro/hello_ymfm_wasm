@@ -10,20 +10,21 @@ const scratch = await mkdtemp(join(tmpdir(), 'playground-mode-types-'));
 try {
   const fixtures = [
     ...['ym2612', 'ym2203', 'ym2608', 'ym2610', 'ym2610b'].map(chip => `playground-mode-${chip}.ts`),
-    'playground-mode-gameboy.ts',
+    ...['gameboy','nes','snes','x68000','huc6280'].map(chip => `playground-mode-${chip}.ts`),
     'playground-time.ts', 'playground-tone.ts', 'playground-chip-clock.ts',
   ];
   for (const fixture of fixtures) {
     let fixturePath = join(root, 'test/types', fixture);
-    if (fixture === 'playground-mode-gameboy.ts') {
+    const nativeChip = /^playground-mode-(gameboy|nes|snes|x68000|huc6280)\.ts$/.exec(fixture)?.[1];
+    if (nativeChip) {
       const globals = join(scratch, 'tetorica-playground-globals.d.ts');
       await writeFile(globals, selectPlaygroundDeclarations(
-        await readFile(join(root, 'docs/playground/tetorica-playground-globals.d.ts'), 'utf8'), 'gameboy'));
+        await readFile(join(root, 'docs/playground/tetorica-playground-globals.d.ts'), 'utf8'), nativeChip));
       const source = await readFile(fixturePath, 'utf8');
       fixturePath = join(scratch, fixture);
       await writeFile(fixturePath, source
         .replace('../../docs/playground/tetorica-playground-globals.d.ts', globals)
-        .replace('../../docs/playground/tetorica-playground-gameboy.d.ts', join(root, 'docs/playground/tetorica-playground-gameboy.d.ts')));
+        .replace(`../../docs/playground/tetorica-playground-${nativeChip}.d.ts`, join(root, `docs/playground/tetorica-playground-${nativeChip}.d.ts`)));
     }
     const config = join(scratch, 'tsconfig.json');
     await writeFile(config, JSON.stringify({compilerOptions: {

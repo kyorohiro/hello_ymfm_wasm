@@ -1,6 +1,6 @@
 # Tetorica Playground (hello_ymfm_wasm)
 
-> Browser-based JavaScript playground, documentation, and WebAssembly tools for OPN FM synthesis and the Game Boy APU.
+> Browser-based JavaScript playground, documentation, and WebAssembly tools for OPN FM, Game Boy, NES + FDS, SNES, X68000 and PC Engine sound chips.
 
 Use the common Playground type definitions together with the type definition for the selected sound chip. The canonical examples are code that runs in the Playground.
 
@@ -20,6 +20,12 @@ Use the common Playground type definitions together with the type definition for
 - [YM2203 selection](./playground/tetorica-playground-ym2203.d.ts): Three-channel PC-98 configuration
 - [YM2610 selection](./playground/tetorica-playground-ym2610.d.ts): Neo Geo configuration
 - [Game Boy mode](./playground/tetorica-playground-gameboy.d.ts): Built-in gameboy.pulse, gameboy.wave and gameboy.noise; no global play/fm/OPN shortcuts. Use beat/sleep/liveLoop for timing.
+- [NES + FDS mode](./playground/tetorica-playground-nes.d.ts): Primary nes.pulse/triangle/noise/dmc/fds. FDS is enabled in this mode; use {fds:true} for independent createSoundChip('nes').
+- [SNES mode](./playground/tetorica-playground-snes.d.ts): Primary snes CPU-free S-DSP with eight BRR voices. Await loadBRR, assign with setPreset, then noteOn. Native PCM is 32,000 Hz; no setClock. SPC file playback uses useSoundChip('spc').
+- [X68000 mode](./playground/tetorica-playground-x68000.d.ts): Primary opm (YM2151, 4 MHz) and adpcm (OKIM6258, 8 MHz). Await adpcm.loadSample(PCM/WAV) or loadMemory(OKI ADPCM4, low nibble first), then play({repeat?}) / stop(). This is not the OPN ADPCM-B API.
+- [PC Engine mode](./playground/tetorica-playground-huc6280.d.ts): Primary pce HuC6280 with six 32-sample five-bit wavetable voices, noise on channels 4/5, DDA and LFO. Additional chip name is huc6280.
+
+Native modes expose the same instrument namespaces on pg and livePrepare. Game Boy, NES, SNES, X68000 and PC Engine have no global fm/play/write, OPN pitch helpers, FM channel/operator constants or MIDI-to-FM shortcuts. Use explicit instrument methods and beat/sleep/liveLoop. useSoundChip of a mode's primary instrument borrows it without dispose; createSoundChip creates an additional disposable instrument. OPN chips remain available explicitly from every mode. Non-Genesis modes each bundle 2–3 native examples and their own defaults/<mode>/index.js.
 
 ## Examples
 
@@ -32,6 +38,10 @@ Open these source files from Playground FILES → examples to run them.
 - [PSG Scale](./playground/examples/basic/psg/psg-scale.js): SN76489-compatible tone API
 - [Parallel FX](./playground/examples/basic/fx/parallel-fx.js): Branched effect routing
 - [Game Boy mode pulse](./playground/examples/gameboy/gameboy-mode-pulse.js): Primary APU with explicit pulse noteOn/keyOff and a named melody loop
+- [NES + FDS starter](./playground/defaults/nes/index.js): Primary APU melody; selected examples add FDS and rhythm/DMC
+- [SNES starter](./playground/defaults/snes/index.js): Authored BRR sample and eight-voice S-DSP programming
+- [X68000 starter](./playground/defaults/x68000/index.js): YM2151 OPM programming; selected ADPCM example encodes PCM for OKIM6258
+- [PC Engine starter](./playground/defaults/pc-engine/index.js): HuC6280 waveform and explicit channel noteOn/keyOff
 - [DX7 Init Sine](./playground/examples/dx7/dx7-init-sine.js): useSoundChip('dx7'), 16-voice MIDI-note playback and DX7 SysEx banks. Read SysEx with file(path, {type:'arrayBuffer'}); await loadSysex before noteOn. MSFA runs internally at 44,100 Hz and has no setClock API.
 
 ## Source

@@ -2,7 +2,7 @@ import factory from '../generated/spc_wasm.js?v=spc-events-1';
 import {SnesDspCore} from './spc.js?v=spc-events-1';
 import {SnesSynth} from './snessynth.js?v=spc-song-js-1';
 import {SpcResampler} from './spc_resampler.js?v=chip-tabs-2';
-import {createProcessorPerformance} from './playground_performance_processor.js?v=spc-song-js-1';
+import {createProcessorPerformance} from './playground_performance_processor.js?v=native-modes-1';
 const METHODS=new Set(['prepareTimeline','playTimeline','stopTimeline','getTimelineState','loadBRR','setPreset','setChannel','setPitch','setFrequency','setNote','keyOn','keyOff','noteOn','noteOff','allNotesOff','reset','writeDsp','readDsp','getState','getPreset','snapshot','dispose']);
 const RESOURCE_METHODS=new Set(['prepareTimeline','stopTimeline','getTimelineState','loadBRR','readDsp','getState','getPreset','snapshot']);
 export class SnesInstrumentProcessor extends AudioWorkletProcessor {
@@ -22,8 +22,16 @@ export class SnesInstrumentProcessor extends AudioWorkletProcessor {
         if(method!=='loadBRR')this.validation[method](...args);
       }});
     this.port.onmessage=({data})=>{
+      if(data?.primaryWorker){
+        this.workerRemote?.close();this.workerRemote=null;
+        if(data.port){
+          if(this.dead){data.port.close();return;}
+          const remote=this.workerRemote=data.port;remote.onmessage=event=>{if(this.workerRemote===remote)this.receive(event.data,remote);};remote.start();
+        }
+        return;
+      }
       if(data?.method==='dispose'){this.dispose();return;}
-      if(data?.port){this.remote=data.port;this.remote.onmessage=event=>this.receive(event.data,this.remote);this.remote.start();}
+      if(data?.port){this.remote=data.port;const remote=this.remote;remote.onmessage=event=>this.receive(event.data,remote);remote.start();}
       else this.receive(data,this.port);
     };
     this.ready=SnesDspCore.create({moduleFactory:factory,moduleOptions:{wasmBinary:processorOptions.wasmBinary}}).then(core=>{
@@ -72,8 +80,8 @@ export class SnesInstrumentProcessor extends AudioWorkletProcessor {
     if(message)pending.port.postMessage({id:pending.id,error:message,name:'AbortError'});
     else pending.port.postMessage({id:pending.id,value:this.synth.getTimelineState()});
   }
-  fail(error){if(this.dead)return;this.port.postMessage({fatal:true,error:String(error.message??error)});this.remote?.postMessage({fatal:true,error:String(error.message??error)});this.dispose();}
-  dispose(){if(this.dead)return;this.dead=true;this.finishTimeline('SNES instance disposed');this.performance.clear();this.synth?.dispose();this.synth=null;this.remote?.close();}
+  fail(error){if(this.dead)return;const message={fatal:true,error:String(error.message??error)};this.port.postMessage(message);this.remote?.postMessage(message);this.workerRemote?.postMessage(message);this.dispose();}
+  dispose(){if(this.dead)return;this.dead=true;this.finishTimeline('SNES instance disposed');this.performance.clear();this.synth?.dispose();this.synth=null;this.remote?.close();this.workerRemote?.close();}
   renderSegment(left,right){
     if(!this.synth){left.fill(0);right.fill(0);return;}this.resampler.render(left,right);
     if(this.timelineCompletion){

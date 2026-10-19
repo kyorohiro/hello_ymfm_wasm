@@ -270,7 +270,7 @@ const FM_COMPLETION_CAPABILITIES = {
   ym2203: {channels: [0, 1, 2], dac: false, pan: false, lfo: false},
   ym2608: {channels: [0, 1, 2, 3, 4, 5], dac: false, pan: true, lfo: true},
   ym2610: {channels: [1, 2, 4, 5], dac: false, pan: true, lfo: true},
-  gameboy: {channels: [], dac: false, pan: false, lfo: false},
+  ...Object.fromEntries(['gameboy','nes','snes','x68000','huc6280'].map(chip => [chip,{channels:[],dac:false,pan:false,lfo:false}])),
 };
 
 function fmCompletionCapabilities(chip) {
@@ -1333,7 +1333,7 @@ export function registerMonacoCompletions(
           analysis.livePrepareObjects;
 
         if (
-          chip !== "gameboy" && isInsidePresetString(
+          fmCompletionCapabilities(chip).channels.length > 0 && isInsidePresetString(
             linePrefix
           )
         ) {
@@ -1381,7 +1381,7 @@ export function registerMonacoCompletions(
         }
 
         if (
-          chip !== "gameboy" && isAtPlayFirstArgument(
+          fmCompletionCapabilities(chip).channels.length > 0 && isAtPlayFirstArgument(
             linePrefix
           )
         ) {
@@ -1435,7 +1435,7 @@ export function registerMonacoCompletions(
         }
 
         if (
-          (chip !== "gameboy" || /(?:^|[^\w$])(?:pg\.)?scale\(/.test(linePrefix)) && isInsideNoteString(
+          (fmCompletionCapabilities(chip).channels.length > 0 || /(?:^|[^\w$])(?:pg\.)?scale\(/.test(linePrefix)) && isInsideNoteString(
             linePrefix
           )
         ) {
@@ -1508,7 +1508,7 @@ export function registerMonacoCompletions(
         }
 
         if (
-          chip !== "gameboy" && isInsideCallObject(
+          fmCompletionCapabilities(chip).channels.length > 0 && isInsideCallObject(
             sourceBeforeCursor,
             ["play(", "pg.play("]
           )

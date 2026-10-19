@@ -1,11 +1,11 @@
-import {validateChipClock} from './playground_chip_clock.js?v=opnb-primary-1';
+import {validateChipClock} from './playground_chip_clock.js?v=native-modes-1';
 import {Ym2612} from './ym2612.js';
 import {Ym2203} from './ym2203.js';
 import {Ym2610B} from './ym2610b.js';
 import ym2612Factory from '../generated/ym2612_wasm.js';
 import ym2203Factory from '../generated/ym2203_wasm.js';
 import ym2610Factory from '../generated/ym2610b_wasm.js';
-import {createProcessorPerformance} from './playground_performance_processor.js?v=spc-song-js-1';
+import {createProcessorPerformance} from './playground_performance_processor.js?v=native-modes-1';
 
 /** One independent WASM chip per processor; shares only the AudioContext clock. */
 class Processor extends AudioWorkletProcessor {

@@ -1235,7 +1235,7 @@ async function checkBrowser(name, type, base) {
       await page.goto(`${base}?mode=${mode.id}&no-sw=1`); await ready(page);
       assert.equal(await page.title(), `Tetorica ${mode.label} Playground`);
       assert.equal(await page.locator('#playgroundMode').inputValue(), mode.id);
-      assert.deepEqual(await page.locator('#playgroundMode option').evaluateAll(options => options.map(option => option.value)), modes.map(mode => mode.id));
+      assert.deepEqual(await page.locator('#playgroundMode option').evaluateAll(options => options.map(option => option.value)), [...modes.map(mode => mode.id),'nes','snes','x68000','pc-engine']);
       if (startersOnly) {
         const files = await checkStarterCatalog(page,mode);
         await checkStarterAudio(page,name,mode,files);

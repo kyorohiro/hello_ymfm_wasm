@@ -1,32 +1,54 @@
 /** Browser setup; commands subsequently travel directly from Worker to Worklet. */
 const nativeFetch = globalThis.fetch?.bind(globalThis);
 /** @param {AudioContext} context
- * @param {AudioNode} destination */
-export async function createYm2151Audio(context, destination) {
-  const bytes = async path => {
-    const response = await nativeFetch(new URL(path, import.meta.url));
-    if (!response.ok) throw new Error(`YM2151 HTTP ${response.status}: ${path}`);
+ * @param {AudioNode|null} destination
+ * @param {{signal?:AbortSignal,fetch?:typeof fetch,wasmUrl?:string|URL,workletUrl?:string|URL}} [options] */
+export async function createYm2151Audio(context, destination, options = {}) {
+  const signal = options.signal;
+  signal?.throwIfAborted();
+  const bytes = async () => {
+    const response = await (options.fetch ?? nativeFetch)(options.wasmUrl ?? new URL('../generated/ym2151_wasm.wasm', import.meta.url), {signal});
+    if (!response.ok) throw new Error(`YM2151 HTTP ${response.status}`);
     return response.arrayBuffer();
   };
-  const [wasmBinary] = await Promise.all([
-    bytes('../generated/ym2151_wasm.wasm'),
-    context.audioWorklet.addModule(new URL('./playground_ym2151_worklet.js', import.meta.url)),
-  ]);
+  const [wasmBinary] = await waitForInitialization(Promise.all([
+    bytes(), context.audioWorklet.addModule(options.workletUrl ?? new URL('./playground_ym2151_worklet.js?v=native-modes-1', import.meta.url)),
+  ]), signal);
+  signal?.throwIfAborted();
   const node = new AudioWorkletNode(context, 'tetorica-ym2151', {
-    numberOfInputs: 0, numberOfOutputs: 1, outputChannelCount: [2], processorOptions: {wasmBinary},
+    numberOfInputs:0, numberOfOutputs:1, outputChannelCount:[2], processorOptions:{wasmBinary},
   });
+  const channel = new MessageChannel();
+  let disposed = false, readyTimer;
+  const dispose = () => {
+    if (disposed) return;
+    disposed = true; clearTimeout(readyTimer);
+    node.onprocessorerror = null; node.port.onmessage = null;
+    try { node.port.postMessage({method:'dispose'}); } catch {}
+    node.disconnect(); node.port.close(); channel.port1.close(); channel.port2.close();
+  };
   try {
-    await new Promise((resolve, reject) => {
+    await waitForInitialization(new Promise((resolve, reject) => {
+      readyTimer = setTimeout(() => reject(new Error('YM2151 AudioWorklet initialization timed out')), 15000);
+      readyTimer.unref?.();
       node.port.onmessage = ({data}) => { if (data.ready) resolve(); else if (data.error) reject(new Error(data.error)); };
       node.onprocessorerror = () => reject(new Error('YM2151 Worklet failed'));
-    });
-  } catch (error) { node.port.postMessage({method: 'dispose'}); node.disconnect(); node.port.close(); throw error; }
-  node.connect(destination);
-  const channel = new MessageChannel();
-  node.port.postMessage({port: channel.port1}, [channel.port1]);
-  let disposed = false;
-  return {node, port: channel.port2, dispose() {
-    if (disposed) return;
-    disposed = true; node.port.postMessage({method: 'dispose'}); node.disconnect(); node.port.close();
-  }};
+    }), signal);
+    clearTimeout(readyTimer); signal?.throwIfAborted();
+    if (destination) node.connect(destination);
+    node.port.postMessage({port:channel.port1}, [channel.port1]);
+    return {node, port:channel.port2, dispose};
+  } catch (error) { dispose(); throw error; }
+}
+
+async function waitForInitialization(promise, signal) {
+  if (!signal) return promise;
+  signal.throwIfAborted();
+  let abort;
+  try {
+    return await Promise.race([promise, new Promise((_, reject) => {
+      abort = () => reject(signal.reason);
+      signal.addEventListener('abort', abort, {once:true});
+    })]);
+  } finally { signal.removeEventListener('abort', abort); }
 }

@@ -6,7 +6,7 @@
  */
 import { TetoricaAudioRuntime } from "./tetorica_audio_runtime.js?v=chip-tabs-2";
 import { GameboySynth } from "./gameboysynth.js?v=gameboy-mode-1";
-import { attachChipClock, CHIP_CLOCKS } from "./playground_chip_clock.js?v=opnb-primary-1";
+import { attachChipClock, CHIP_CLOCKS } from "./playground_chip_clock.js?v=native-modes-1";
 
 /** @typedef {Pick<import('./megasynth.js?v=chip-tabs-2').MegaSynthOptions,'audioContext'|'outputNode'|'sampleOutputNode'|'masterVolume'|'mixer'|'workletUrl'> & {wasmUrl?:string}} GameboyRuntimeSynthOptions */
 

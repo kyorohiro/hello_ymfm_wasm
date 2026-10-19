@@ -17,6 +17,10 @@ const definitions = {
   neogeo: opnbExamples,
   'neogeo-b': [...opnbExamples, '/examples/neogeo/neogeo-b-six-channel.js'],
   gameboy: ['/examples/gameboy/gameboy-mode-pulse.js', '/examples/gameboy/gameboy-mode-wave.js', '/examples/gameboy/gameboy-mode-noise.js'],
+  nes: ['/examples/nes/nes-mode-pulse.js','/examples/nes/nes-mode-fds.js','/examples/nes/nes-mode-rhythm.js'],
+  snes: ['/examples/snes/snes-mode-brr.js','/examples/snes/snes-mode-stereo.js'],
+  x68000: ['/examples/x68000/x68000-mode-opm.js','/examples/x68000/x68000-mode-adpcm.js'],
+  'pc-engine': ['/examples/pc-engine/pce-mode-wave.js','/examples/pc-engine/pce-mode-stereo.js','/examples/pc-engine/pce-mode-noise.js'],
   'genesis-nuked': null,
 };
 

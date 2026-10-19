@@ -1,6 +1,6 @@
 /** Applied register snapshots for the Playground editors. No polling or audio allocation. */
 import {createSegaPsgApi} from './segapsg_api.js';
-import {CHIP_CLOCKS} from './playground_chip_clock.js?v=opnb-primary-1';
+import {CHIP_CLOCKS} from './playground_chip_clock.js?v=native-modes-1';
 
 export class PsgInspectorState {
   constructor(chip, {clock = () => CHIP_CLOCKS.segapsg, sampleRate = 44100} = {}) {

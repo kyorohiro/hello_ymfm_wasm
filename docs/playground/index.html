@@ -2087,6 +2087,10 @@
               <li><code>gameboy.noise.setVoice({volume: 8, divisor: 3, shift: 4, width: 15})</code>, <code>gameboy.noise.keyOn()</code>, <code>gameboy.noise.keyOff()</code>.</li>
               <li><code>gameboy.setPan(channel, left, right)</code> routes APU channels <code>0..3</code>. Time notes with <code>beat()</code> / <code>sleep()</code> and use <code>liveLoop()</code> for repeated patterns. See <code>examples/gameboy/gameboy-mode-pulse.js</code>.</li>
             </ul>
+            <p data-native-helper="nes" hidden><code>nes.pulse</code>, <code>nes.triangle</code>, <code>nes.noise</code>, <code>nes.dmc</code> and <code>nes.fds</code> control the primary NES + FDS. Use <code>nes.pulse.noteOn(0, "C4")</code>, <code>await beat(0.5)</code>, then <code>nes.pulse.keyOff(0)</code>.</p>
+            <p data-native-helper="snes" hidden><code>snes.loadBRR(bytes, {rootNote:"C4", loopStartSamples:0})</code> prepares a BRR instrument. Assign it with <code>snes.setPreset(0, {sample:tone})</code>, then use <code>snes.noteOn(0, "C4")</code> / <code>snes.keyOff(0)</code>. Channels are <code>0..7</code>.</p>
+            <p data-native-helper="x68000" hidden><code>opm</code> controls the eight YM2151 FM channels. <code>adpcm</code> controls the OKIM6258: <code>await adpcm.loadSample({channels:[pcm], sampleRate:15625})</code>, then <code>adpcm.play()</code> / <code>adpcm.stop()</code>.</p>
+            <p data-native-helper="huc6280" hidden><code>pce.setWaveform(0, wave)</code> loads 32 samples in <code>0..31</code>. Use <code>pce.setVolume(0, 20)</code>, <code>pce.noteOn(0, "C4")</code> and <code>pce.keyOff(0)</code>. Channels are <code>0..5</code>; noise is available on <code>4</code> and <code>5</code>.</p>
             <h2 data-opn-helper style="margin-top: 14px;">midi (YM2612 mode)</h2>
             <ul data-opn-helper class="helper-list">
               <li><code>midi.output("tetorica-ym2612", { channel: CH1 })</code> creates an FM part; <code>"tetorica-sega-psg"</code> uses the three PSG tone voices (not noise). These are internal outputs, not external Web MIDI ports.</li>
@@ -2353,7 +2357,7 @@
       })();
     </script>
     <script type="module">
-      import('./playground.js?v=mode-starters-1').catch(error => window.__playgroundStartup.fail(error));
+      import('./playground.js?v=native-modes-1').catch(error => window.__playgroundStartup.fail(error));
     </script>
   </body>
 </html>

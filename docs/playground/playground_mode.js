@@ -1,4 +1,4 @@
-import {CHIP_CLOCKS} from '../js/playground_chip_clock.js?v=opnb-primary-1';
+import {CHIP_CLOCKS} from '../js/playground_chip_clock.js?v=native-modes-1';
 
 // Modes describe an authoring environment. Chip IDs remain the runtime/API IDs.
 const definitions = [
@@ -10,6 +10,10 @@ const definitions = [
   {id:'neogeo', label:'Neo Geo', chip:'ym2610'},
   {id:'neogeo-b', label:'Neo Geo (YM2610B)', chip:'ym2610b'},
   {id:'gameboy', label:'Game Boy', chip:'gameboy', engine:'apu', fmChannels:0},
+  {id:'nes', label:'NES + FDS', chip:'nes', engine:'apu', fmChannels:0},
+  {id:'snes', label:'SNES', chip:'snes', engine:'dsp', fmChannels:0, details:'S-DSP · 32,000 Hz · 8 voices'},
+  {id:'x68000', label:'X68000', chip:'x68000', engine:'opm-adpcm', fmChannels:0, details:'YM2151 · 4 MHz + OKIM6258 · 8 MHz'},
+  {id:'pc-engine', label:'PC Engine', chip:'huc6280', engine:'psg', fmChannels:0},
   // Preserve old engine/chip links without adding another standard environment.
   {id:'genesis-nuked', label:'Genesis (Nuked)', chip:'ym2612', engine:'nuked', legacy:true},
 ];
@@ -20,7 +24,7 @@ const modes = new Map(definitions.map(definition => {
     legacyDraftKey:definition.chip + (definition.engine === 'nuked' ? ':nuked' : ''),
     chipTabs:Object.freeze(definition.chip === 'ym2612'
       ? ['operator', 'segapsg', ...(definition.full ? ['rf5c164', 'pwm'] : [])]
-      : definition.chip === 'gameboy' ? [] : ['operator']),
+      : definition.fmChannels === 0 ? [] : ['operator']),
   });
   return [mode.id, mode];
 }));
@@ -39,7 +43,8 @@ export function resolvePlaygroundMode(search = '') {
   if (id && !['simple', 'full'].includes(id)) return getPlaygroundMode(id);
   const chip = (params.get('chip') || 'ym2612').toLowerCase();
   const legacy = {ym2612:params.get('engine') === 'nuked' ? 'genesis-nuked' : 'genesis',
-    ym2203:'pc98-26', ym2608:'pc98', ym2610:'neogeo', ym2610b:'neogeo-b', gameboy:'gameboy'};
+    ym2203:'pc98-26', ym2608:'pc98', ym2610:'neogeo', ym2610b:'neogeo-b', gameboy:'gameboy',
+    nes:'nes',snes:'snes',x68000:'x68000',huc6280:'pc-engine'};
   if (!legacy[chip]) throw new Error(`Unsupported Playground chip: ${chip}`);
   return getPlaygroundMode(legacy[chip]);
 }
@@ -62,6 +67,15 @@ export function createPlaygroundModeUrl(href, id) {
 
 export function createModeSynthOptions(mode, base = new URL('../js/', import.meta.url)) {
   const generated = new URL('generated/', new URL('../', base));
+  if (['nes','snes','x68000','huc6280'].includes(mode.chip)) {
+    const worklet = {nes:'playground_nes_worklet',snes:'playground_snes_worklet',x68000:'playground_ym2151_worklet',huc6280:'playground_huc6280_worklet'}[mode.chip];
+    const wasm = {snes:'spc',x68000:'ym2151',huc6280:'huc6280'}[mode.chip];
+    return {chip:mode.chip,clock:mode.clock,fds:mode.chip === 'nes',
+      workletUrl:new URL(`${worklet}.js?v=native-modes-1`,base).href,
+      ...(wasm?{wasmUrl:new URL(`${wasm}_wasm.wasm`,generated).href}:{}),
+      ...(mode.chip === 'x68000'?{extraOki:{workletUrl:new URL('playground_okim6258_worklet.js?v=native-modes-1',base).href,wasmUrl:new URL('okim6258_wasm.wasm',generated).href}}:{}),
+      segaPsgWasmUrl:null,megaCD:false,mega32X:false};
+  }
   if (mode.chip === 'gameboy') return {
     chip:mode.chip,
     workletUrl:new URL('playground_gameboy_worklet.js?v=gameboy-mode-1', base).href,

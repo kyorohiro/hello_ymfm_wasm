@@ -96,3 +96,18 @@ await spc.seek(1.5, {signal:new AbortController().signal, resume:false, onProgre
 (await spc.snapshot()).ram.byteLength.toFixed();
 // @ts-expect-error Seek is in elapsed seconds, not unit strings.
 await spc.seek('1 beat');
+
+import {NativeRuntimeSynth} from 'tetorica-fm2612/native_runtime_synth.js';
+const nativeNes = new NativeRuntimeSynth({chip:'nes',audioContext:new AudioContext()});
+nativeNes.nes?.fds.setVolume(24);
+nativeNes.nes?.pulse.noteOn(0,'C4');
+const nativeSnes = new NativeRuntimeSynth({chip:'snes'});
+nativeSnes.snes?.noteOn(7,'C4');
+const nativeX68 = new NativeRuntimeSynth({chip:'x68000',extraOki:{wasmUrl:new URL('oki.wasm',location.href)}});
+nativeX68.opm?.allNotesOff();
+await nativeX68.adpcm?.loadSample({channels:[new Float32Array(32)],sampleRate:15625});
+const nativePce = new NativeRuntimeSynth({chip:'huc6280'});
+nativePce.pce?.setWaveform(5,new Uint8Array(32));
+nativePce.pce?.setNoise(5,{enabled:true,frequency:20});
+// @ts-expect-error OPN chips use their own primary runtime.
+new NativeRuntimeSynth({chip:'ym2612'});

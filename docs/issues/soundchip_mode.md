@@ -4,7 +4,7 @@
 
 Menu の Mode で次の環境を選べる。
 
-| mode | ID | ベース音源 | マスタークロック |
+| mode | ID | ベース音源 | クロック / 内部出力レート |
 | --- | --- | --- | --- |
 | Genesis | `genesis` | YM2612 + Sega PSG / DAC | YM2612: 7,670,454 Hz |
 | Genesis Full | `genesis-full` | Genesis + Mega-CD RF5C164 + 32X PWM | YM2612: 7,670,454 Hz |
@@ -14,8 +14,13 @@ Menu の Mode で次の環境を選べる。
 | Neo Geo | `neogeo` | YM2610 FM 4ch + SSG 3ch + ADPCM-A 6音 + ADPCM-B | 8,000,000 Hz |
 | Neo Geo (YM2610B) | `neogeo-b` | YM2610B FM 6ch + SSG 3ch + ADPCM-A 6音 + ADPCM-B | 8,000,000 Hz |
 | Game Boy | `gameboy` | Pulse 2ch + Wave 1ch + Noise 1ch | 4,194,304 Hz |
+| NES + FDS | `nes` | 2A03 Pulse 2ch + Triangle + Noise + DMC、FDS Wave | 1,789,773 Hz |
+| SNES | `snes` | S-DSP、BRR サンプルによる8音 | 内部 PCM: 32,000 Hz |
+| X68000 | `x68000` | YM2151 OPM 8ch + OKIM6258 ADPCM | OPM: 4,000,000 Hz、OKI: 8,000,000 Hz |
+| PC Engine | `pc-engine` | HuC6280 Wave 6ch、うち2ch は Noise へ切り替え可能 | 3,579,545 Hz |
 
-ここでの Hz は CPU や音声出力のサンプルレートではなく、音源のマスタークロック。
+SNES を除く Hz は CPU や音声出力のサンプルレートではなく、音源のマスタークロック。
+SNES の 32,000 Hz は S-DSP 内部の PCM 出力レートで、音声デバイスの出力レートとは別。
 型定義、音源 API・チャンネル定数、補完、音程計算を、選んだ環境に合わせる。
 音源タブも mode に合わせ、Genesis は FM / Sega PSG、Full はさらに RF5C164 / 32X PWM、
 PC-98 と Neo Geo は対象の FM タブを表示する。Code や下部の共通ツールは引き続き使える。
@@ -145,6 +150,57 @@ Main / Worker の両方に対応し、Stop で全4ch を停止する。標準 AP
 初期コードは `defaults/gameboy/index.js`。同梱例は
 `examples/gameboy/gameboy-mode-pulse.js`・`gameboy-mode-wave.js`・`gameboy-mode-noise.js`。
 
+### NES / SNES / X68000 / PC Engine の標準 API
+
+次の mode は Main / Worker の両方で、機種の音源名を発音の入口にする。
+`pg` と `livePrepare()` の引数にも同じ名前・同じ音源を公開する。
+
+| mode | 標準 API | 初期コード | 同梱 examples |
+| --- | --- | --- | --- |
+| NES + FDS | `nes` | `defaults/nes/index.js` | `nes-mode-pulse.js`、`nes-mode-fds.js`、`nes-mode-rhythm.js` |
+| SNES | `snes` | `defaults/snes/index.js` | `snes-mode-brr.js`、`snes-mode-stereo.js` |
+| X68000 | `opm`、`adpcm` | `defaults/x68000/index.js` | `x68000-mode-opm.js`、`x68000-mode-adpcm.js` |
+| PC Engine | `pce` | `defaults/pc-engine/index.js` | `pce-mode-wave.js`、`pce-mode-stereo.js`、`pce-mode-noise.js` |
+
+これらと Game Boy では、グローバルの `fm`・`play()`・`write()`・OPN の音程変換、
+`FM_PRESETS`・`CH1` などの FM 定数、MIDI の FM ルーティングを公開しない。
+FM 用タブと FM Keyboard も表示しない。時間制御、`sample`・`stream`・`noise`、
+mixer と FX は共通で使える。音源を追加する場合は `useSoundChip()` / `createSoundChip()` を使う。
+
+`useSoundChip('nes')`・`useSoundChip('snes')`・X68000 の `useSoundChip('ym2151')` /
+`useSoundChip('okim6258')`・PC Engine の `useSoundChip('huc6280')` は、それぞれ標準の音源を返す。
+標準音源の寿命は mode が管理し、返される API は `dispose()` を持たない。
+`createSoundChip()` は同じ名前でも独立した追加音源を作る。
+Stop は標準音源を消音し、アップロード済みサンプルや波形を次の Run に保持する。
+
+NES は標準で FDS を有効にする。`nes.pulse`・`triangle`・`noise`・`dmc`・`fds` を使い、
+DMC のメモリ転送は `await nes.dmc.loadSample()` で完了を待つ。
+独立した `createSoundChip('nes')` で FDS を使う場合は `{fds:true}` を指定する。
+
+SNES は SPC700 のゲームプログラムを動かす API とは別の、CPU を使わない S-DSP 音源。
+`await snes.loadBRR(bytes, {rootNote:'C4'})` でサンプルを読み、`snes.setPreset()` で
+0..7 の物理チャンネルへ割り当て、`snes.noteOn()` で演奏する。
+内部出力は 32,000 Hz 固定。`setClock()` は提供しない。
+SPC ファイル再生は従来どおり `useSoundChip('spc')` で追加できる。
+
+X68000 の `opm` は YM2151 の8ch。`setOperator()`・`setAlgo()`・`setPan()`・
+`setNote()` / `noteOn()`・`setPitch()`・`setNoise()` を公開する。
+OPN の `setPreset()` や OPN の LFO 設定はこの API に含めない。
+`adpcm` は OKIM6258 であり、PC-98 / Neo Geo の ADPCM-B とは別の API。
+PCM / AudioBuffer / WAV は `await adpcm.loadSample()` でモノラルに変換して OKI ADPCM4 へ符号化する。
+符号化済みの low-nibble-first データは `await adpcm.loadMemory(bytes)` で読み込める。
+`adpcm.play({repeat:true})`・`stop()`・`setPan(left,right)` を使い、
+再生終了と Stop では出力をゼロにして最後の ADPCM 値が残らないようにする。
+`setPlaybackRate(hz)` は現在のマスタークロック / 1024、/ 768、/ 512 のうち近いレートを選んで返す。
+標準 8 MHz では 7,812.5 / 10,416.67 / 15,625 Hz。
+`await adpcm.setClock(4000000)` と組み合わせると低速側のレートを選べる。
+
+PC Engine は `pce.setWaveform(ch, samples)` で32個の 0..31 の波形値を設定し、
+`setVolume()`・左右 0..15 の `setPan()`・`noteOn()` / `keyOff()` で0..5 の6ch を演奏する。
+`setNoise(4|5, {enabled:true,frequency:...})`、5-bit DAC の `setDda()` / `writeDda()`、
+ハードウェア LFO の `setLfo()` も公開する。
+`createSoundChip('huc6280')` と `createSoundChip('okim6258')` は他の mode からも利用できる。
+
 ## 背景
 
 Playground は Genesis / YM2612 向けの環境から始まったため、グローバルの
@@ -196,21 +252,21 @@ Genesis mode に FM、PSG、DAC が最初から用意され、`play()` が標準
 | Genesis Full (Nuked) | `genesis-full-nuked` | Genesis Full の YM2612 部分を Nuked-OPN2 にする構成 | エンジン選択を mode に含める案。Full の音源構成は通常版と揃える。 |
 | Master System | `master-system` | Sega PSG を中心とした構成 | FM 拡張を標準構成に含めるかは別途決める。 |
 | Game Gear | `game-gear` | Sega PSG を中心とした構成 | Master System との違い、ステレオ制御の扱いを整理する。 |
-| NES × FDS | `nes-fds` | NES + FDS | FDS を含む環境として用意する。 |
+| NES + FDS | `nes` | NES + FDS | 標準 `nes` API と3個の代表例を実装。 |
 | Game Boy | `gameboy` | Game Boy 音源 | 標準 `gameboy` API・初期コードを公開。グローバル `play()` は提供しない。 |
-| SNES | `snes` | SNES 音源 | サンプル・音色の初期構成と SPC 再生の位置付けを整理する。 |
+| SNES | `snes` | S-DSP | 標準 `snes` API と BRR 初期コードを実装。SPC ファイル再生は追加音源として扱う。 |
 | PC-98 (OPN) | `pc98-26` | YM2203 | FM 3ch・SSG 3ch を標準公開。 |
 | PC-98 (OPNA) | `pc98` | YM2608 | FM 6ch・SSG 3ch・Rhythm・ADPCM-B を標準公開。 |
 | Neo Geo | `neogeo` | YM2610 | FM 4ch・SSG・ADPCM-A/B を標準公開。 |
 | Neo Geo (YM2610B) | `neogeo-b` | YM2610B | FM 6ch・SSG・ADPCM-A/B を標準公開。 |
-| X68000 | `x68000` | YM2151 + OKIM6258 を想定 | 各音源の Playground 接続を確認する。 |
-| PC Engine | `pc-engine` | HuC6280 を想定 | Playground 側の接続・API を確認する。 |
+| X68000 | `x68000` | YM2151 + OKIM6258 | 標準 `opm` + `adpcm`、PCM からの OKI ADPCM4 読み込みを実装。 |
+| PC Engine | `pc-engine` | HuC6280 | 標準 `pce`、Wave / Noise / DDA / LFO と代表例を実装。 |
 | DX7 | `dx7` | DX7 音源 | DX7 向けの音色選択・編集・演奏を中心とした環境。 |
 | Empty | `empty` | なし | 音源は `useSoundChip()` などで明示的に用意する。 |
 
 低レベルのチップ対応と、Playground から使えること、mode として環境が整っている
-ことは分けて確認する。特に HuC6280 と OKIM6258 は、現状の Playground runtime の
-追加音源一覧に含まれていないため、mode 化にあたって接続経路の確認が必要。
+ことは分けて確認する。HuC6280 と OKIM6258 は、高級 API と Playground の
+Main / Worker → AudioWorklet 経路を追加し、標準音源・独立した追加音源の両方から使える。
 
 ## 設定と表示
 
@@ -268,7 +324,7 @@ NES や Game Boy などに、FM の概念や OPN の音程表現を当てはめ�
 
 mode が環境を明示するなら、その環境に合ったショートカットを残すこともできる。
 Game Boy ではグローバル `play()` を提供せず、音源オブジェクト側の API を使う。
-今後の非 OPN mode も、各音源の発音方法を明示する方向で検討する。
+NES / SNES / X68000 / PC Engine も、各音源の発音方法を明示する。
 
 各 mode について、以下を決める。
 

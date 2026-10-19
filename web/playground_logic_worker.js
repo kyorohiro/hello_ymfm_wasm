@@ -4,6 +4,7 @@ import {createPerformanceSender} from './playground_performance_sender.js';
 import {midiToOpnPitch, opnPitchFromHz} from './soundchip_pitch.js';
 import {CHIP_CLOCKS} from './playground_chip_clock.js';
 import {createNesClient} from './playground_nes.js';
+import {createNativeWorkerApis, createNativePrimaryClient} from './playground_native_primary.js';
 import {createDx7Client} from './playground_dx7.js';
 import {createPWM32XClient} from './pwm32x_playback.js';
 import {createYm2151Client} from './playground_ym2151.js';
@@ -34,6 +35,7 @@ import {createDeadlineScheduler,createBeatClock,createSecondsTimeline,runTween} 
 import {createNativeFXController,createLiveFxLifecycle} from "./native_fx.js?v=live-fx-definitions-1";
 let nativeFXPort = null;
 let chipConnection = null;
+let nativeConnections = [];
 let currentRun = null;
 let nextRequestId = 1;
 const pendingRequests = new Map();
@@ -355,7 +357,10 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
   run.resetSampleClock = () => clock.resetSampleClock();
   const commandProxy = (command) => (...args) => postCommand(command, args);
   const requestProxy = (command) => (...args) => request(command, args, run.currentLoop);
-  const chip = chipConnection ? createWorkerChip({...chipConnection,port:performanceTransport.port(chipConnection.port,'chip'),capabilities,observe:event=>postMessage({type:"chip-observer",event})}) : null;
+  const nativePrimary = ['nes','snes','x68000','huc6280'].includes(capabilities.chip);
+  const hasOpn = !nativePrimary && capabilities.chip !== 'gameboy';
+  const native = createNativeWorkerApis(nativeConnections,performanceTransport,(name,state)=>postMessage({type:'native-observer',name,state}));
+  const chip = !nativePrimary && chipConnection ? createWorkerChip({...chipConnection,port:performanceTransport.port(chipConnection.port,'chip'),capabilities,observe:event=>postMessage({type:"chip-observer",event})}) : null;
   run.resumeChip = () => chip?.resume();
   const workerDac = chip && capabilities.dac ? createWorkerDac(chip.send, timing) : null;
   run.resetSampleClock = () => { clock.resetSampleClock(); workerDac?.reset(); };
@@ -511,8 +516,8 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
   const prepareResource = async (name, fn) => {
     if (run.prepared.has(name)) return run.prepared.get(name);
     const generation = run.generation;
-    const prepareApi = { ...(gameboy ? {gameboy} : {}), fm, ...sections, fx, psg, sample, stream, dac, noise, control: (voice, options) => nativeNoise ? controlNativeNoise(voice,options) : postCommand("noise.control", [handleId(voice), options]), context: run.context, log: (...args) => postCommand("log", args) };
-    if (isGameboy) for (const name of ['fm','psg','dac']) delete prepareApi[name];
+    const prepareApi = { ...native.apis, ...(gameboy ? {gameboy} : {}), fm, ...sections, fx, psg, sample, stream, dac, noise, control: (voice, options) => nativeNoise ? controlNativeNoise(voice,options) : postCommand("noise.control", [handleId(voice), options]), context: run.context, log: (...args) => postCommand("log", args) };
+    if (!hasOpn) for (const name of ['fm','psg','dac']) delete prepareApi[name];
     const value = await fn(prepareApi);
     if (run.stopped || generation !== run.generation) throw new Error("Run stopped");
     run.prepared.set(name, value);
@@ -565,6 +570,7 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
       nativeSample?.stopAll();
       nativeNoise?.disposeAll();
       chip?.stop();
+      native.stop();
       localMidiRack?.stop();
     });
     postCommand("audio.stopAll");
@@ -654,10 +660,12 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
       check();
       const chip = await soundChips.use(name, options, chipName => {
         check();
+        const endpoint = nativeConnections.find(endpoint => endpoint.name === chipName);
+        if (endpoint) return native.apis[endpoint.globalName];
         if (chipName === 'gameboy' && isGameboy) return gameboy;
         if (['ym2612', 'ym2203', 'ym2610'].includes(chipName) && (capabilities.chip ?? 'ym2612') === chipName) return fm;
         return globals.createSoundChip(chipName, {id:`${chipName}:shared`});
-      }, {evictOnDispose: !((['ym2612', 'ym2203', 'ym2610'].includes(name) || name === 'gameboy') && (capabilities.chip ?? 'ym2612') === name)});
+      }, {evictOnDispose: !nativeConnections.some(endpoint => endpoint.name === name) && !((['ym2612', 'ym2203', 'ym2610'].includes(name) || name === 'gameboy') && (capabilities.chip ?? 'ym2612') === name)});
       check();
       return chip;
     },
@@ -673,7 +681,7 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
       const pcm=name === 'spc' ? createSpcClient(port, response, {
         captureContext:()=>run.currentLoop,restoreContext:loop=>{run.currentLoop=loop;},
         invokeEvent:(callback,event)=>executeWithWorkerGuards(()=>callback(event)),
-      }) : name === 'snes' ? createSnesClient(port, response) : name === 'dx7' ? createDx7Client(port, response) : name === 'nes' ? createNesClient(port, response) : name === 'pwm' ? createPWM32XClient(port) : ['ym2612', 'ym2203', 'ym2610'].includes(name) ? createOpnClient(name, port) : name === 'ym2151' ? createYm2151Client(port) : name === 'segapsg' ? createSegaPsgClient(port) : name === 'gameboy' ? createGameboyClient(port) : name === 'ym2608' ? createYm2608Client(port) : createRf5c164Client(port,source=>request('pcm.decode',[source]));
+      }) : ['huc6280','okim6258'].includes(name) ? createNativePrimaryClient(name,port,response) : name === 'snes' ? createSnesClient(port, response) : name === 'dx7' ? createDx7Client(port, response) : name === 'nes' ? createNesClient(port, response) : name === 'pwm' ? createPWM32XClient(port) : ['ym2612', 'ym2203', 'ym2610'].includes(name) ? createOpnClient(name, port) : name === 'ym2151' ? createYm2151Client(port) : name === 'segapsg' ? createSegaPsgClient(port) : name === 'gameboy' ? createGameboyClient(port) : name === 'ym2608' ? createYm2608Client(port) : createRf5c164Client(port,source=>request('pcm.decode',[source]));
       if(run.stopped || token!==run.token){pcm.dispose();throw new Error('Run stopped');}
       Object.defineProperty(pcm, 'id', {value: mixerId, enumerable: true});
       const dispose=pcm.dispose.bind(pcm); let disposed=false;
@@ -688,7 +696,7 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
       error: (...args) => postCommand("error", args),
     },
     log: (...args) => postCommand("log", args),
-    ...(gameboy ? {gameboy} : {}), fm, ...sections, fx, psg, dac, sample, stream, noise,
+    ...native.apis, ...(gameboy ? {gameboy} : {}), fm, ...sections, fx, psg, dac, sample, stream, noise,
     context: run.context,
     FM_PRESETS: presets,
     tfiToPreset,
@@ -766,7 +774,7 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
     noteLerp,
     presets,
   };
-  if (isGameboy) {
+  if (!hasOpn) {
     const opnNames = ['fm','psg','dac','midi','play','write','psgTone','psgNoise','scheduleWritesSamples',
       'noteToBlockFnum','hzToBlockFnum','noteLerp','FM_PRESETS','presets','tfiToPreset','vgiToPreset','setDacLookahead','getDacLookahead'];
     for (const name of Object.keys(globals)) if (opnNames.includes(name) || /^(?:CH|PSG|OP)\d+$/.test(name)) delete globals[name];
@@ -896,6 +904,7 @@ self.onmessage = (event) => {
   if (message.type === 'chip-clock-state') { currentRun?.adoptChipClock(message.clock); return; }
   if (message.type === "chip-state") { currentRun?.adoptChipState(message.state); return; }
   if (message.type === "chip-port") { chipConnection?.port.close(); chipConnection={port:message.port,state:message.state}; return; }
+  if (message.type === 'native-primary-ports') {for(const endpoint of nativeConnections)endpoint.port.close();nativeConnections=message.endpoints;return;}
   if (message.type === "native-fx") { nativeFXPort?.close(); nativeFXPort = message.port; return; }
   if (message.type === "stop") {
     lifecycleGeneration += 1;

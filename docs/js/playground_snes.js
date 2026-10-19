@@ -16,6 +16,8 @@ export function createSnesClient(port,initial={}) {
   port.onmessage=({data})=>{if(disposed)return;if(data.fatal){fail(new Error(data.error??'SNES AudioWorklet failed'));return;}const p=pending.get(data.id);if(!p){if(data.error)fail(new Error(data.error));return;}pending.delete(data.id);clearTimeout(p.timer);if(data.error){const error=new Error(data.error);if(data.name)error.name=data.name;p.reject(error);}else p.resolve(data.value);};
   port.onmessageerror=()=>fail(new Error('Invalid SNES AudioWorklet message'));port.start?.();
   const client={
+    _getState(){return validation.getState();},
+    _adoptState(state){if(!state)return;validation.samples=structuredClone(state.samples??[]);validation.channels=structuredClone(state.channels??validation.channels);validation.nextAddress=state.nextAddress??0x400;},
     sampleRate:initial.sampleRate??48000,nativeSampleRate:32000,
     /** @param {ArrayBuffer|ArrayBufferView} input @param {import('./snessynth.js?v=spc-song-js-1').SnesBRROptions} options
      * @returns {Promise<import('./snessynth.js?v=spc-song-js-1').SnesSample>} */
@@ -55,5 +57,6 @@ export function createSnesClient(port,initial={}) {
     /** @returns {Promise<ReturnType<SnesSynth['snapshot']>>} */ snapshot(){return request('snapshot');},
     dispose(){if(disposed)return;disposed=true;timelineRevision++;try{port.postMessage({method:'dispose',args:[]});}catch{}finally{for(const p of pending.values()){clearTimeout(p.timer);p.reject(new DOMException('SNES instance is disposed','AbortError'));}pending.clear();port.onmessage=null;port.onmessageerror=null;port.close();}},
   };
+  if(initial.state)client._adoptState(initial.state);
   return client;
 }

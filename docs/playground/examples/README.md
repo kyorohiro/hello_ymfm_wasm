@@ -28,9 +28,11 @@ mode を切り替えると、未編集の `/index.js` は切り替え先の初�
 | genesis | 独立 Sega PSG・Mega CD PCM（RF5C164） |
 | gameboy | Game Boy mode の標準 pulse、独立音源の wave・noise・複数音源の設定 |
 | nes | NES APU の pulse・triangle・noise、FDS 波形と変調、DMC サンプル |
+| snes | SNES mode の BRR サンプル、8ch の演奏とステレオ配置、独立 S-DSP の例 |
 | pc98 | PC-98 OPN の FM・SSG、OPNA の FM・SSG・rhythm・ADPCM-B と、独立 YM2608 の例 |
 | neogeo | Neo Geo / YM2610B mode の標準 FM・SSG tone/noise・ADPCM-A/B |
-| x68000 | 独立 YM2151 の FM |
+| x68000 | X68000 mode の標準 OPM・OKIM6258 ADPCM と、独立 YM2151 の FM |
+| pc-engine | PC Engine mode の6ch Wave、ステレオ、Noise |
 | dx7 | MSFA DX7 の16音発音、Object での音作りと SysEx 音色の読み込み |
 
 FILES ではこの順に表示します。機種別のサンプルは各フォルダーに直接置きます。`basic/` 内の共通機能サンプルは機能別に分類しています。
@@ -45,6 +47,30 @@ FILES ではこの順に表示します。機種別のサンプルは各フォ�
 `livePrepare(({gameboy}) => ...)` でも同じ音源を使えます。
 Game Boy mode の演奏は音源ごとの API で行い、グローバルの `play()` は OPN mode の FM 用です。
 `gameboy-saw-*.js` と `gameboy-synth.js` は独立音源を作る例です。
+
+`NES + FDS` mode は `../defaults/nes/index.js` と、`nes-mode-pulse.js`・
+`nes-mode-fds.js`・`nes-mode-rhythm.js` を使います。標準の `nes` は FDS を有効にしています。
+`nes.pulse`・`triangle`・`noise`・`dmc`・`fds` を演奏できます。
+
+`SNES` mode は `../defaults/snes/index.js` と、`snes-mode-brr.js`・`snes-mode-stereo.js` を使います。
+標準の `snes` は CPU を使わない8音の S-DSP です。BRR の読み込みを `await` し、
+`setPreset()` でサンプルを割り当てて `noteOn()` で演奏します。内部 PCM は 32,000 Hz 固定です。
+SPC ファイル再生は、独立した `useSoundChip('spc')` の API を使います。
+
+`X68000` mode は `../defaults/x68000/index.js` と、`x68000-mode-opm.js`・`x68000-mode-adpcm.js` を使います。
+`opm` は4 MHz の YM2151、`adpcm` は8 MHz の OKIM6258 です。
+ADPCM の例はコード内で PCM を作り、`await adpcm.loadSample()` で OKI ADPCM4 に変換します。
+`adpcm.play()` / `stop()` は PC-98 の ADPCM-B 用 API と異なります。
+
+`PC Engine` mode は `../defaults/pc-engine/index.js` と、`pce-mode-wave.js`・
+`pce-mode-stereo.js`・`pce-mode-noise.js` を使います。
+`pce` の0..5 の6ch に32個の 0..31 の波形値を設定し、`noteOn()` / `keyOff()` で演奏します。
+Noise はチャンネル4・5で使えます。独立音源の作成名は `huc6280` です。
+
+これらの mode と Game Boy は `pg`・`livePrepare()` にも同じ標準音源を公開します。
+共通の `beat()`・`sleep()`・`liveLoop()` と組み合わせ、グローバルの `play()`・`fm`・
+OPN の音程変換・FM 定数は使いません。`useSoundChip()` で標準音源を取得しても
+同じ音源を再利用し、`createSoundChip()` では独立した追加音源を作ります。
 
 `pc98/pc98-opn-ssg.js` は Mode を `PC-98 (YM2203 / OPN)` にして実行します。
 標準の `fm` と `ssg` で、FM・SSG のトーン・ノイズ・エンベロープを順番に鳴らします。

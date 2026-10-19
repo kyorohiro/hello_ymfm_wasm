@@ -1,17 +1,26 @@
-import {ChipClockResampler, CHIP_CLOCKS} from './playground_chip_clock.js?v=opnb-primary-1';
+import {ChipClockResampler, CHIP_CLOCKS} from './playground_chip_clock.js?v=native-modes-1';
 import {NesApu} from './nesapu.js';
-import {createProcessorPerformance} from './playground_performance_processor.js?v=spc-song-js-1';
+import {createProcessorPerformance} from './playground_performance_processor.js?v=native-modes-1';
 class Processor extends AudioWorkletProcessor {
   constructor(options) {
     super(); this.dead = false;
     this.performance=createProcessorPerformance({chip:'nes',apply:(data,port)=>this.apply(data,port),immediate:['loadMemory']});
     this.renderSegment=this.renderSegment.bind(this);
     this.port.onmessage = ({data}) => {
+      if(data.primaryWorker) {
+        this.workerRemote?.close();this.workerRemote=null;
+        if(data.port) {
+          if(this.dead){data.port.close();return;}
+          const remote=this.workerRemote=data.port;remote.onmessage=event=>{if(this.workerRemote===remote)this.receive(event.data,remote);};remote.start();
+        }
+        return;
+      }
       if (data.port) {
         if (this.dead) { data.port.close(); return; }
         this.remote = data.port;
-        this.remote.onmessage = ({data}) => this.receive(data, this.remote);
-        this.remote.start();
+        const remote=this.remote;
+        remote.onmessage = ({data}) => this.receive(data, remote);
+        remote.start();
       } else this.receive(data, this.port);
     };
     try {
@@ -20,7 +29,7 @@ class Processor extends AudioWorkletProcessor {
       this.port.postMessage({ready: true});
     } catch (error) { this.port.postMessage({error: error.message}); this.dispose(); }
   }
-  dispose() { this.performance.clear(); this.dead = true; this.chip?.dispose(); this.chip = null; this.remote?.close(); }
+  dispose() { this.performance.clear(); this.dead = true; this.chip?.dispose(); this.chip = null; this.remote?.close();this.workerRemote?.close(); }
   receive(data, port) {
     if(this.performance.receive(data,port))return;
     this.apply(data,port);

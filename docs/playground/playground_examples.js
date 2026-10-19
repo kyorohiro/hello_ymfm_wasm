@@ -9,6 +9,10 @@ export const MODE_DEFAULT_CODES = {
   "neogeo": "// Select Mode: Neo Geo (YM2610) or Neo Geo (YM2610B).\n// FM and SSG use the standard chip; ADPCM sections are available separately.\nsetBpm(120);\nfm.setPreset(CH1, FM_PRESETS['one-op-basic']);\nssg.setVolume(0, 8);\n\nliveLoop('opnb-duet', async () => {\n  const lead = ['C4', 'E4', 'G4', 'B4', 'C5', 'G4', 'E4', 'D4'];\n  for (let step = 0; step < lead.length; step++) {\n    ssg.noteOn(0, step < 4 ? 'C3' : 'G2');\n    await play(lead[step], {channel: CH1, beats: 0.4});\n    ssg.keyOff(0);\n    await beat(0.1);\n  }\n});\n",
   "neogeo-b": "// Select Mode: Neo Geo (YM2610B). This uses all six FM channels.\nsetBpm(120);\nconst channels = /** @type {const} */ ([CH1, CH2, CH3, CH4, CH5, CH6]);\nfor (const channel of channels) {\n  fm.setPreset(channel, FM_PRESETS['one-op-basic']);\n}\n\nliveLoop('six-channel-chords', async () => {\n  for (const chord of [\n    ['C3', 'G3', 'C4', 'E4', 'G4', 'B4'],\n    ['A2', 'E3', 'A3', 'C4', 'E4', 'G4'],\n    ['F2', 'C3', 'F3', 'A3', 'C4', 'E4'],\n    ['G2', 'D3', 'G3', 'B3', 'D4', 'F4'],\n  ]) {\n    for (let i = 0; i < channels.length; i++) {\n      fm.noteOn(channels[i], chord[i]);\n    }\n    await beat(0.75);\n    for (const channel of channels) fm.keyOff(channel);\n    await beat(0.25);\n  }\n});\n",
   "gameboy": "// Select Mode: Game Boy. Main / Worker use the same built-in APU.\n// pulse: channels 0/1, wave: channel 2, noise: channel 3.\nsetBpm(120);\ngameboy.pulse.setVoice(0, {\n  duty: 0.25, volume: 9, envelope: {direction: 'down', period: 0},\n});\n\nliveLoop('melody', async () => {\n  for (const note of ['C4', 'E4', 'G4', 'B4', 'C5', 'G4', 'E4', 'D4']) {\n    gameboy.pulse.noteOn(0, note);\n    await beat(0.4);\n    gameboy.pulse.keyOff(0);\n    await beat(0.1);\n  }\n});\n\n// Other voices: gameboy.wave.noteOn('C3'), gameboy.noise.keyOn().\n// Configure them through gameboy.wave / gameboy.noise before starting.\n// Global play() is an FM shortcut in OPN modes; Game Boy uses its own API.\n",
+  "nes": "// Select Mode: NES + FDS. Built-in pulse voices use physical channels 0/1.\nsetBpm(120);\nnes.pulse.setVoice(0, {duty:0.25, volume:8});\n\nliveLoop('nes-melody', async () => {\n  for (const note of ['C4', 'E4', 'G4', 'B4', 'C5', 'G4', 'E4', 'D4']) {\n    nes.pulse.noteOn(0, note);\n    await beat(0.4);\n    nes.pulse.noteOff(0);\n    await beat(0.1);\n  }\n});\n\n// Other voices: nes.triangle.noteOn('C3'), nes.noise.noteOn(), nes.fds.noteOn('C4').\n",
+  "snes": "// Select Mode: SNES. CPU-free S-DSP; original BRR, no game files needed.\nsetBpm(120);\nconst leadSample = await livePrepare('snes-mode-lead-brr', async () => {\n  const brrBytes = new Uint8Array([0xc3, 0x13, 0x57, 0x75, 0x31, 0xfd, 0xb9, 0x9b, 0xdf]);\n  // One looping block = 16 samples at native 32,000 Hz: base frequency 2,000 Hz.\n  return snes.loadBRR(brrBytes, {baseFrequencyHz:2000, loopStartSamples:0});\n});\nsnes.setPreset(0, {\n  sample:leadSample, adsr1:0x8f, adsr2:0xe0, gain:127,\n  volumeLeft:80, volumeRight:80,\n});\n\nliveLoop('snes-melody', async () => {\n  for (const note of ['C4', 'E4', 'G4', 'B4', 'C5', 'G4', 'E4', 'D4']) {\n    snes.noteOn(0, note);\n    await beat(0.4);\n    snes.noteOff(0);\n    await beat(0.1);\n  }\n});\n\n// Eight physical voices, numbered 0..7. Assign a BRR sample before setting pitch.\n",
+  "x68000": "// Select Mode: X68000. Built-in YM2151, channels 0..7; operators M1/C1/M2/C2.\nsetBpm(120);\nopm.setAlgo(0, 7);\nopm.setPan(0, true, true);\nopm.setOperator(0, 3, {mul:1, tl:32, ar:31, d1r:0, d2r:0, d1l:0, rr:15});\n\nliveLoop('x68000-opm-melody', async () => {\n  for (const note of ['C4', 'E4', 'G4', 'B4', 'C5', 'G4', 'E4', 'D4']) {\n    opm.setNote(0, note);\n    opm.keyOn(0, 8); // Only C2, one of algorithm 7's four parallel carriers.\n    await beat(0.4);\n    opm.keyOff(0);\n    await beat(0.1);\n  }\n});\n\n// The built-in adpcm device is the X68000's mono OKIM6258.\n",
+  "pc-engine": "// Select Mode: PC Engine. Six 32-entry, five-bit wavetable voices.\nsetBpm(120);\npce.setWaveform(0, Array.from({length:32}, (_, index) =>\n  Math.round(15.5 + 15.5 * Math.sin(index * Math.PI / 16))));\npce.setVolume(0, 26); // Hardware volume 0..31.\npce.setPan(0, 15, 15); // Independent left/right balances 0..15.\n\nliveLoop('pce-melody', async () => {\n  for (const note of ['C4', 'E4', 'G4', 'B4', 'C5', 'G4', 'E4', 'D4']) {\n    pce.noteOn(0, note);\n    await beat(0.4);\n    pce.keyOff(0);\n    await beat(0.1);\n  }\n});\n\n// Uploading a waveform stops its channel. Channels 4/5 can also generate noise.\n",
   "genesis-nuked": "setBpm(120);\n\nfm.setPreset(CH1, FM_PRESETS[\"one-op-basic\"]);\n\nliveFx(\"distortion\", {\n  context: { gain: 60.0, drive: 0.03 },\n  process(input, output, state, context) {\n    for (let ch = 0; ch < input.length; ch++) {\n      for (let i = 0; i < input[ch].length; i++) {\n        output[ch][i] = Math.tanh(input[ch][i] * context.gain) * context.drive;\n      }\n    }\n  },\n});\n\nliveLoop(\"lead\", async () => {\n  const notes = scale(\"E3\", \"minorPentatonic\", 2);\n  //await nextBeat();\n  await play(choose(notes), {\n    channel: CH1,\n    duration: 0.08,\n  });\n  await beat(cycle([0.04, 0.04, 0.08]));\n});\n"
 };
 export const EXAMPLE_FILES = [
@@ -268,6 +272,21 @@ export const EXAMPLE_FILES = [
     "data": "// FDS: a custom 64-entry waveform, then the same melody with modulation.\nconst nes = await createSoundChip('nes', {fds: true});\ntry {\n  await mixer.set(nes.id, {volume: 0.5});\n  nes.fds.setWave(Array.from({length: 64}, (_, i) =>\n    Math.round(31.5 + 23 * Math.sin(i * Math.PI / 32) + 8 * Math.sin(i * Math.PI / 16))));\n  nes.fds.setVolume(24);\n  for (const enabled of [false, true]) {\n    nes.fds.setModulation({\n      table: Array.from({length: 32}, (_, i) => i < 16 ? 1 : 7),\n      rate: 80, depth: 10, bias: 0, enabled,\n    });\n    for (const note of ['C4', 'E4', 'G4', 'C5']) {\n      nes.fds.noteOn(note);\n      await sleep(0.3);\n      nes.fds.noteOff();\n      await sleep(0.05);\n    }\n  }\n} finally { nes.dispose(); }\n"
   },
   {
+    "path": "/examples/nes/nes-mode-fds.js",
+    "name": "nes-mode-fds",
+    "data": "// Select Mode: NES + FDS. Original 64-entry waveform, no disk image needed.\nsetBpm(110);\nnes.fds.setWave(Array.from({length:64}, (_, index) =>\n  Math.round(31.5 + 23 * Math.sin(index * Math.PI / 32) + 8 * Math.sin(index * Math.PI / 16))));\nnes.fds.setVolume(24);\nnes.fds.setModulation({\n  table:Array.from({length:32}, (_, index) => index < 16 ? 1 : 7),\n  rate:80, depth:8, bias:0, enabled:true,\n});\n\nliveLoop('fds-melody', async () => {\n  for (const note of ['C4', 'E4', 'G4', 'C5', 'B4', 'G4', 'E4', 'D4']) {\n    nes.fds.noteOn(note);\n    await beat(0.4);\n    nes.fds.noteOff();\n    await beat(0.1);\n  }\n});\n"
+  },
+  {
+    "path": "/examples/nes/nes-mode-pulse.js",
+    "name": "nes-mode-pulse",
+    "data": "// Select Mode: NES + FDS. Built-in pulse voices use physical channels 0/1.\nsetBpm(120);\nnes.pulse.setVoice(0, {duty:0.25, volume:8});\n\nliveLoop('nes-melody', async () => {\n  for (const note of ['C4', 'E4', 'G4', 'B4', 'C5', 'G4', 'E4', 'D4']) {\n    nes.pulse.noteOn(0, note);\n    await beat(0.4);\n    nes.pulse.noteOff(0);\n    await beat(0.1);\n  }\n});\n\n// Other voices: nes.triangle.noteOn('C3'), nes.noise.noteOn(), nes.fds.noteOn('C4').\n"
+  },
+  {
+    "path": "/examples/nes/nes-mode-rhythm.js",
+    "name": "nes-mode-rhythm",
+    "data": "// Select Mode: NES + FDS. Triangle bass and short/long noise percussion.\nsetBpm(120);\n\nliveLoop('nes-rhythm', async () => {\n  const bassLine = ['C3', 'C3', 'G2', 'C3', 'F2', 'F2', 'G2', 'G2'];\n  for (let step = 0; step < bassLine.length; step++) {\n    nes.triangle.noteOn(bassLine[step]);\n    nes.noise.setVoice({volume:step % 2 ? 5 : 8, period:step % 2 ? 5 : 10, shortMode:false});\n    nes.noise.noteOn();\n    await beat(0.12);\n    nes.noise.noteOff();\n    await beat(0.28);\n    nes.triangle.noteOff();\n    await beat(0.1);\n  }\n});\n"
+  },
+  {
     "path": "/examples/nes/nes-pulse-frequency.js",
     "name": "nes-pulse-frequency",
     "data": "// Hz and note names are separate APIs: noteOn(channel, note) sets a musical note.\n// setFrequency(channel, hz) + keyOn(channel) uses the configured frequency.\nconst nes = await useSoundChip('nes');\ntry {\n  nes.pulse.setVoice(0, {duty: 0.5, volume: 8});\n  nes.pulse.setFrequency(0, 440);\n  nes.pulse.keyOn(0);\n  await sleep(0.3);\n  // Change Hz while sounding, without choosing a new note name.\n  nes.pulse.setFrequency(0, 660);\n  await sleep(0.3);\n  nes.pulse.keyOff(0);\n  await sleep(0.15);\n  // Restart the same 660 Hz pitch.\n  nes.pulse.keyOn(0);\n  await sleep(0.3);\n  nes.pulse.keyOff(0);\n} finally {\n  nes.dispose();\n}\n"
@@ -323,6 +342,16 @@ export const EXAMPLE_FILES = [
     "data": "// Select Mode: Neo Geo (FM 4ch) or Neo Geo (YM2610B, FM 6ch).\n// Main / Worker: all sections share the default chip. No extra chip is needed.\nsetBpm(120);\nfm.setPreset(CH1, FM_PRESETS['one-op-basic']);\nawait play('C4', {channel: CH1, beats: 1});\n// In YM2610B mode, CH5 and CH6 are available as well.\n\nssg.tone(0, {frequency: 440, volume: 10});\nawait beat(1);\nssg.noise(0, {period: 16, volume: 8});\nawait beat(1);\nssg.keyOff(0);\n\n// Original test patterns of encoded ADPCM nibbles; no external ROM or WAV.\n// A and B have separate memories and use 256-byte aligned sample ranges.\nawait adpcmA.loadMemory(new Uint8Array(256).fill(0x17));\nadpcmA.setVolume(48);\nfor (let voice = 0; voice < 6; voice++) {\n  adpcmA.setSample(voice, {start: 0, end: 256});\n  adpcmA.setVoice(voice, {volume: 24, left: true, right: true});\n  adpcmA.keyOn(voice);\n  await beat(0.5);\n}\nadpcmA.keyOff([0, 1, 2, 3, 4, 5]);\n\n// ADPCM-B: adjustable rate and whole-sample repeat. adpcm === adpcmB.\nawait adpcmB.loadMemory(new Uint8Array(256).fill(0x17));\nadpcmB.setSample({start: 0, end: 256});\nadpcmB.setPlaybackRate(8000);\nadpcmB.setVolume(160);\nadpcmB.setPan(true, true);\nadpcmB.keyOn({repeat: true});\nawait beat(2);\nadpcmB.keyOff();\n"
   },
   {
+    "path": "/examples/x68000/x68000-mode-adpcm.js",
+    "name": "x68000-mode-adpcm",
+    "data": "// Select Mode: X68000. Original PCM is encoded to the built-in OKIM6258's ADPCM.\nsetBpm(120);\nawait livePrepare('x68000-mode-original-kick', async () => {\n  const pcmRate = 15625; // 8 MHz / 512, one of the chip's three hardware rates.\n  const drumPcm = Float32Array.from({length:3125}, (_, index) => {\n    const seconds = index / pcmRate;\n    const phase = 2 * Math.PI * (65 * seconds + 3 * (1 - Math.exp(-seconds * 45)));\n    return 0.6 * Math.sin(phase) * Math.exp(-seconds * 22);\n  });\n  return adpcm.loadSample({channels:[drumPcm], sampleRate:pcmRate}, {sampleRate:pcmRate});\n});\nadpcm.setPan(true, true);\n\nliveLoop('x68000-adpcm-drums', async () => {\n  for (let step = 0; step < 8; step++) {\n    adpcm.play(); // The OKIM6258 has one sample stream, with no per-note pitch register.\n    await beat(0.4);\n    adpcm.stop();\n    await beat(step === 7 ? 0.6 : 0.1);\n  }\n});\n"
+  },
+  {
+    "path": "/examples/x68000/x68000-mode-opm.js",
+    "name": "x68000-mode-opm",
+    "data": "// Select Mode: X68000. Built-in YM2151, channels 0..7; operators M1/C1/M2/C2.\nsetBpm(120);\nopm.setAlgo(0, 7);\nopm.setPan(0, true, true);\nopm.setOperator(0, 3, {mul:1, tl:32, ar:31, d1r:0, d2r:0, d1l:0, rr:15});\n\nliveLoop('x68000-opm-melody', async () => {\n  for (const note of ['C4', 'E4', 'G4', 'B4', 'C5', 'G4', 'E4', 'D4']) {\n    opm.setNote(0, note);\n    opm.keyOn(0, 8); // Only C2, one of algorithm 7's four parallel carriers.\n    await beat(0.4);\n    opm.keyOff(0);\n    await beat(0.1);\n  }\n});\n\n// The built-in adpcm device is the X68000's mono OKIM6258.\n"
+  },
+  {
     "path": "/examples/x68000/ym2151-tone.js",
     "name": "ym2151-tone",
     "data": "// Independent OPM; numeric channels 0..7. Operator order: M1, C1, M2, C2.\nconst opm = await useSoundChip('ym2151');\ntry {\n  opm.reset();\n  opm.setAlgo(0, 7); // Four parallel carriers; enable only C2 below.\n  opm.setPan(0, true, true);\n  opm.setOperator(0, 3, {mul: 1, tl: 32, ar: 31, d1r: 0, d2r: 0, d1l: 0, rr: 15});\n  for (const note of ['C4', 'E4', 'G4', 'A4']) {\n    opm.setNote(0, note);\n    opm.keyOn(0, 8); // Only C2.\n    await sleep(0.2);\n    opm.keyOff(0);\n    await sleep(0.05);\n  }\n} finally { opm.dispose(); }\n"
@@ -346,6 +375,31 @@ export const EXAMPLE_FILES = [
     "path": "/examples/snes/snes-brr-melody.js",
     "name": "snes-brr-melody",
     "data": "// CPU-free SNES S-DSP: eight physical voices, numbered 0..7.\n// This original 16-sample looping BRR needs no game files.\nconst snes = await useSoundChip('snes');\nconst tone = await livePrepare('snes-original-brr', async () => {\n  const brr = new Uint8Array([0xc3, 0x13, 0x57, 0x75, 0x31, 0xfd, 0xb9, 0x9b, 0xdf]);\n  // At hardware PITCH=4096, 32,000 / 16 = 2,000 Hz.\n  // BRR contains no tuning information: declare it explicitly.\n  return snes.loadBRR(brr, {baseFrequencyHz: 2000, loopStartSamples: 0});\n});\nsnes.setPreset(0, {\n  sample: tone,\n  adsr1: 0x8f, adsr2: 0xe0, gain: 127,\n  volumeLeft: 90, volumeRight: 90,\n});\nsetBpm(110);\nawait mixer.set(snes.id, {volume: 0.5});\n\nliveLoop('snes-melody', async () => {\n  for (const note of ['C4', 'E4', 'G4', 'C5', 'G4', 'E4']) {\n    snes.noteOn(0, note);\n    await beat(0.4);\n    snes.noteOff(0);\n    await beat(0.1);\n  }\n});\n\n// For an imported BRR, provide its actual root note and loop position:\n// const sample = await snes.loadBRR(await file('/samples/bass.brr', {type:'arrayBuffer'}),\n//   {rootNote:'C3', loopStartSamples:32});\n// await mixer.set(snes.id, {volume:0.4, pan:-0.25});\n// Raw DSP ADSR/GAIN/volume values are hardware values, not seconds or percentages.\n"
+  },
+  {
+    "path": "/examples/snes/snes-mode-brr.js",
+    "name": "snes-mode-brr",
+    "data": "// Select Mode: SNES. CPU-free S-DSP; original BRR, no game files needed.\nsetBpm(120);\nconst leadSample = await livePrepare('snes-mode-lead-brr', async () => {\n  const brrBytes = new Uint8Array([0xc3, 0x13, 0x57, 0x75, 0x31, 0xfd, 0xb9, 0x9b, 0xdf]);\n  // One looping block = 16 samples at native 32,000 Hz: base frequency 2,000 Hz.\n  return snes.loadBRR(brrBytes, {baseFrequencyHz:2000, loopStartSamples:0});\n});\nsnes.setPreset(0, {\n  sample:leadSample, adsr1:0x8f, adsr2:0xe0, gain:127,\n  volumeLeft:80, volumeRight:80,\n});\n\nliveLoop('snes-melody', async () => {\n  for (const note of ['C4', 'E4', 'G4', 'B4', 'C5', 'G4', 'E4', 'D4']) {\n    snes.noteOn(0, note);\n    await beat(0.4);\n    snes.noteOff(0);\n    await beat(0.1);\n  }\n});\n\n// Eight physical voices, numbered 0..7. Assign a BRR sample before setting pitch.\n"
+  },
+  {
+    "path": "/examples/snes/snes-mode-stereo.js",
+    "name": "snes-mode-stereo",
+    "data": "// Select Mode: SNES. Two tuned BRR voices, independently balanced left/right.\nsetBpm(110);\nconst duetSample = await livePrepare('snes-mode-duet-brr', async () =>\n  snes.loadBRR(new Uint8Array([0xc3, 0x13, 0x57, 0x75, 0x31, 0xfd, 0xb9, 0x9b, 0xdf]),\n    {baseFrequencyHz:2000, loopStartSamples:0}));\nsnes.setPreset(0, {\n  sample:duetSample, adsr1:0x8f, adsr2:0xe0, gain:127,\n  volumeLeft:75, volumeRight:15,\n});\nsnes.setPreset(1, {\n  sample:duetSample, adsr1:0x8f, adsr2:0xe0, gain:127,\n  volumeLeft:15, volumeRight:60,\n});\n\nliveLoop('snes-stereo-duet', async () => {\n  const leadLine = ['C4', 'E4', 'G4', 'C5', 'B4', 'G4', 'E4', 'D4'];\n  const bassLine = ['C3', 'C3', 'C3', 'C3', 'G2', 'G2', 'G2', 'G2'];\n  for (let step = 0; step < leadLine.length; step++) {\n    snes.noteOn(0, leadLine[step]); snes.noteOn(1, bassLine[step]);\n    await beat(0.4);\n    snes.noteOff(0); snes.noteOff(1);\n    await beat(0.1);\n  }\n});\n"
+  },
+  {
+    "path": "/examples/pc-engine/pce-mode-noise.js",
+    "name": "pce-mode-noise",
+    "data": "// Select Mode: PC Engine. Physical channels 4 and 5 support noise.\nsetBpm(120);\npce.setVolume(4, 24); pce.setPan(4, 15, 10);\npce.setVolume(5, 20); pce.setPan(5, 10, 15);\npce.setNoise(4, {enabled:true, frequency:18});\npce.setNoise(5, {enabled:true, frequency:28}); // Frequency is a hardware code 0..31.\n\nliveLoop('pce-noise-drums', async () => {\n  for (let step = 0; step < 8; step++) {\n    const channel = step % 2 ? 5 : 4;\n    pce.keyOn(channel);\n    await beat(step % 2 ? 0.12 : 0.2);\n    pce.keyOff(channel);\n    await beat(step % 2 ? 0.38 : 0.3);\n  }\n});\n"
+  },
+  {
+    "path": "/examples/pc-engine/pce-mode-stereo.js",
+    "name": "pce-mode-stereo",
+    "data": "// Select Mode: PC Engine. Two waveforms with independent stereo balance.\nsetBpm(110);\npce.setWaveform(0, Array.from({length:32}, (_, index) => index < 16 ? 31 : 0));\npce.setWaveform(1, Array.from({length:32}, (_, index) => index));\npce.setVolume(0, 22); pce.setPan(0, 15, 5);\npce.setVolume(1, 22); pce.setPan(1, 5, 15);\n\nliveLoop('pce-stereo-duet', async () => {\n  const leadLine = ['C4', 'E4', 'G4', 'C5', 'B4', 'G4', 'E4', 'D4'];\n  const bassLine = ['C3', 'C3', 'C3', 'C3', 'G2', 'G2', 'G2', 'G2'];\n  for (let step = 0; step < leadLine.length; step++) {\n    pce.noteOn(0, leadLine[step]); pce.noteOn(1, bassLine[step]);\n    await beat(0.4);\n    pce.keyOff(0); pce.keyOff(1);\n    await beat(0.1);\n  }\n});\n"
+  },
+  {
+    "path": "/examples/pc-engine/pce-mode-wave.js",
+    "name": "pce-mode-wave",
+    "data": "// Select Mode: PC Engine. Six 32-entry, five-bit wavetable voices.\nsetBpm(120);\npce.setWaveform(0, Array.from({length:32}, (_, index) =>\n  Math.round(15.5 + 15.5 * Math.sin(index * Math.PI / 16))));\npce.setVolume(0, 26); // Hardware volume 0..31.\npce.setPan(0, 15, 15); // Independent left/right balances 0..15.\n\nliveLoop('pce-melody', async () => {\n  for (const note of ['C4', 'E4', 'G4', 'B4', 'C5', 'G4', 'E4', 'D4']) {\n    pce.noteOn(0, note);\n    await beat(0.4);\n    pce.keyOff(0);\n    await beat(0.1);\n  }\n});\n\n// Uploading a waveform stops its channel. Channels 4/5 can also generate noise.\n"
   }
 ];
 export const EXAMPLES = Object.fromEntries(EXAMPLE_FILES.map(file => [file.name, file.data]));
@@ -441,6 +495,24 @@ export const MODE_EXAMPLE_FILES = Object.fromEntries(Object.entries({
     "/examples/gameboy/gameboy-mode-pulse.js",
     "/examples/gameboy/gameboy-mode-wave.js",
     "/examples/gameboy/gameboy-mode-noise.js"
+  ],
+  "nes": [
+    "/examples/nes/nes-mode-pulse.js",
+    "/examples/nes/nes-mode-fds.js",
+    "/examples/nes/nes-mode-rhythm.js"
+  ],
+  "snes": [
+    "/examples/snes/snes-mode-brr.js",
+    "/examples/snes/snes-mode-stereo.js"
+  ],
+  "x68000": [
+    "/examples/x68000/x68000-mode-opm.js",
+    "/examples/x68000/x68000-mode-adpcm.js"
+  ],
+  "pc-engine": [
+    "/examples/pc-engine/pce-mode-wave.js",
+    "/examples/pc-engine/pce-mode-stereo.js",
+    "/examples/pc-engine/pce-mode-noise.js"
   ],
   "genesis-nuked": [
     "/examples/basic/8-bit-arcade-sweep.js",

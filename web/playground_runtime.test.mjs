@@ -9,6 +9,8 @@ import {GameboySynth} from './gameboysynth.js';
 import {YM2203Synth} from './ym2203synth.js';
 import {YM2608Synth} from './ym2608synth.js';
 import {YM2610BSynth, NeoGeoFMSynth} from './ym2610bsynth.js';
+import {createSnesClient} from './playground_snes.js';
+import {SnesSynth} from './snessynth.js';
 
 function deferred() {
   let resolve;
@@ -71,6 +73,26 @@ test('primary Game Boy exposes shared initialized controls without FM shortcuts 
   const stopped=writes.length;
   await runtime.playSource(`gameboy.pulse.noteOn(0,'C4');`);
   assert(writes.slice(stopped).some(([reg,v])=>reg===2&&(v>>4)===13),'Stop retains pulse voice without initialize/reset');
+});
+
+test('native SNES Stop sends no OPN audition commands and its primary BRR port remains usable', async t => {
+  const {runtime,megaDrive}=setup(t,{chip:'snes',fmChannels:0,psg:false,dac:false});
+  const backend=new SnesSynth({core:{reset(){},loadRam(){},writeDsp(){},dispose(){}}});
+  const port={start(){},close(){},postMessage({method,args=[],id}) {
+    const value=backend[method](...args);
+    if(id!==undefined)queueMicrotask(()=>port.onmessage({data:{id,value}}));
+  }};
+  const raw=createSnesClient(port);
+  megaDrive.fm=null;
+  megaDrive.node={port:{postMessage(command){throw Error('Unexpected OPN node command: '+JSON.stringify(command));}}};
+  megaDrive.primaryEndpoints=[{name:'snes',globalName:'snes',client:raw,node:megaDrive.node}];
+  megaDrive.stopAllNative=()=>raw.allNotesOff();
+  const source=`const tone=await snes.loadBRR(new Uint8Array([0xc3,0x13,0x57,0x75,0x31,0xfd,0xb9,0x9b,0xdf]),{baseFrequencyHz:2000,loopStartSamples:0});snes.setPreset(0,{sample:tone});snes.noteOn(0,'C4');`;
+  await runtime.playSource(source);
+  runtime.stop();
+  await runtime.playSource(source);
+  assert.equal(backend.samples.length,2,'a second BRR upload resolves after Stop');
+  assert.equal(runtime.fm,null);
 });
 
 test('stopping a Main Game Boy liveLoop releases its held voice', async t => {

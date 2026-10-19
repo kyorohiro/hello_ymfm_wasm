@@ -6,6 +6,12 @@ import {join} from 'node:path';
 // imports query-free so direct class exports retain their constructor identity.
 const directory=fileURLToPath(new URL('../docs/js/',import.meta.url));
 const version='chip-tabs-2';
+const nativeFiles=['native_runtime_synth.js','playground_native_primary.js','tetorica_synth.js',
+  'playground_runtime.js','playground_logic_worker.js','playground_soundchips.js','playground_performance_processor.js','playground_chip_clock.js',
+  'nesapusynth.js','playground_nes.js','playground_nes_audio.js','playground_nes_worklet.js',
+  'playground_snes.js','playground_snes_audio.js','playground_snes_worklet.js',
+  'playground_ym2151.js','playground_ym2151_audio.js','playground_ym2151_worklet.js',
+  ...['huc6280','okim6258'].flatMap(chip=>[`${chip}synth.js`,`playground_${chip}.js`,`playground_${chip}_audio.js`,`playground_${chip}_worklet.js`])];
 const revisions={
   'spc.js':'spc-events-1',
   'spc_events.js':'spc-events-1',
@@ -44,8 +50,10 @@ const revisions={
   'playground_spc.js':'spc-events-1',
   'playground_spc_audio.js':'spc-events-1',
   'playground_performance_processor.js':'spc-song-js-1',
+  ...Object.fromEntries(nativeFiles.map(name=>[name,'native-modes-1'])),
 };
 const targets=[
+  ...nativeFiles,
   'soundchip_mixer.js','megasynth.js','playground_clock.js','playground_runtime.js','playground_logic_worker.js','playground_performance_sender.js','playground_performance_host.js',
   'playground_rf5c164.js','playground_chip_inspector.js','playground_chip_inspector_state.js',
   'playground_segapsg_worklet.js','rf5c164-worklet.js','playground_pwm_worklet.js',

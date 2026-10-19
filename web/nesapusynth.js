@@ -43,8 +43,8 @@ export class NesApuSynth {
  #fdsMaster=0;
  #generation=0;
  /** @type {{address:number,length:number}|null} */ #sample=null;
- /** @param {{transport:NesApuTransport, clock?:number, fds?:boolean}} options */
- constructor({transport,clock=transport?.clock??NES_APU_CLOCK,fds=transport?.fdsEnabled??false}={}){
+ /** @param {{transport:NesApuTransport, clock?:number, fds?:boolean, initialize?:boolean}} options */
+ constructor({transport,clock=transport?.clock??NES_APU_CLOCK,fds=transport?.fdsEnabled??false,initialize=true}={}){
   if(!transport?.writeRegister)throw new TypeError('NesApuSynth requires writeRegister(address,value)');
   validateNesApuClock(clock);
   this.transport=transport;this.clock=clock;this.fdsEnabled=fds;
@@ -124,8 +124,10 @@ export class NesApuSynth {
     this.writeRegister(0x4085,bias&127);this.writeRegister(0x4084,128|depth);this.writeRegister(0x4086,rate&255);this.writeRegister(0x4087,(enabled?0:128)|(rate>>8));
    },
   };
-  this.reset();
+  if(initialize)this.reset();
  }
+ _getState(){return {clock:this.clock,registers:Array.from(this.#registers),enabled:this.#enabled,fdsActive:this.#fdsActive,fdsGain:this.#fdsGain,fdsMaster:this.#fdsMaster,sample:this.#sample&&{...this.#sample}};}
+ _adoptState(state){if(!state)return;if(state.clock!==undefined){if(this._adoptClock)this._adoptClock(state.clock);else this.clock=state.clock;}if(state.registers)this.#registers.set(state.registers);this.#enabled=state.enabled??0;this.#fdsActive=!!state.fdsActive;this.#fdsGain=state.fdsGain??32;this.#fdsMaster=state.fdsMaster??0;this.#sample=state.sample?{...state.sample}:null;}
  #checkFds(){if(!this.fdsEnabled)throw new Error('FDS requires createSoundChip(nes, {fds:true})');}
  /** @param {number} address @param {number} value */
  writeRegister(address,value){if(!((address>=0x4000&&address<=0x4017)||address===0x4023||(address>=0x4040&&address<=0x408a)))throw new RangeError('Unsupported NES address');if(address>=0x4023)this.#checkFds();integer(address-0x4000,0x8a,'NES address offset');integer(value,255,'NES register value');this.transport.writeRegister(address,value);this.#registers[address-0x4000]=value;if(address===0x4015)this.#enabled=value&31;if(address===0x4083)this.#fdsActive=!(value&128);}

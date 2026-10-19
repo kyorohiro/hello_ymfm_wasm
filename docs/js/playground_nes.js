@@ -1,11 +1,11 @@
-import {attachChipClock, CHIP_CLOCKS} from './playground_chip_clock.js?v=opnb-primary-1';
-import {NesApuSynth} from './nesapusynth.js';
+import {attachChipClock, CHIP_CLOCKS} from './playground_chip_clock.js?v=native-modes-1';
+import {NesApuSynth} from './nesapusynth.js?v=native-modes-1';
 import {NES_APU_CLOCK} from './nesapu.js';
 /** Same register generator as the public NES API; uploads await Worklet acknowledgement. */
 /** @param {MessagePort} port Ordered Worklet command/acknowledgement port, owned by the client.
- * @param {{clock?: number, fdsEnabled?: boolean}} [options={}] Clock in Hz and FDS availability.
+ * @param {{clock?: number, fdsEnabled?: boolean, state?:object}} [options={}] Clock in Hz, FDS availability and an optional existing device snapshot.
  * @returns {NesApuSynth} Synth whose dispose closes the port and rejects pending uploads. */
-export function createNesClient(port, {clock = NES_APU_CLOCK, fdsEnabled = false} = {}) {
+export function createNesClient(port, {clock = NES_APU_CLOCK, fdsEnabled = false, state} = {}) {
   let disposed = false, sequence = 0;
   const pending = new Map();
   const send = (method, args = []) => {
@@ -32,7 +32,8 @@ export function createNesClient(port, {clock = NES_APU_CLOCK, fdsEnabled = false
       catch (error) { pending.delete(id); reject(error); }
     }),
   };
-  const synth = new NesApuSynth({transport});
+  const synth = new NesApuSynth({transport,initialize:!state});
+  if(state)synth._adoptState(state);
   Object.assign(synth, {dispose() {
     if (disposed) return;
     send('dispose'); disposed = true;

@@ -66,6 +66,17 @@ native_sample.js
 playground_rf5c164.js
 playground_ym2608.js
 playground_gameboy.js
+gameboy_runtime_synth.js
+native_runtime_synth.js
+playground_native_primary.js
+huc6280synth.js
+playground_huc6280.js
+playground_huc6280_audio.js
+playground_huc6280_worklet.js
+okim6258synth.js
+playground_okim6258.js
+playground_okim6258_audio.js
+playground_okim6258_worklet.js
 playground_ym2151.js
 playground_nes.js
 playground_nes_audio.js
@@ -255,7 +266,14 @@ perl -0pi -e 's#./generated/ym2608#../generated/ym2608#g' \
   "${DOCS_JS_DIR}/playground_ym2608_audio.js" "${DOCS_JS_DIR}/playground_ym2608_worklet.js"
 
 perl -0pi -e 's#./generated/gameboy_apu#../generated/gameboy_apu#g' \
-  "${DOCS_JS_DIR}/playground_gameboy_audio.js" "${DOCS_JS_DIR}/playground_gameboy_worklet.js"
+  "${DOCS_JS_DIR}/playground_gameboy_audio.js" "${DOCS_JS_DIR}/playground_gameboy_worklet.js" "${DOCS_JS_DIR}/gameboy_runtime_synth.js" "${DOCS_JS_DIR}/playground_runtime.js"
+
+for chip in huc6280 okim6258; do
+  perl -0pi -e 's#\./generated/#../generated/#g' \
+    "${DOCS_JS_DIR}/playground_${chip}_audio.js" "${DOCS_JS_DIR}/playground_${chip}_worklet.js"
+  mkdir -p "${ROOT_DIR}/docs/licenses/mame-${chip}"
+  cp "${ROOT_DIR}/third_party/mame-${chip}/LICENSE" "${ROOT_DIR}/third_party/mame-${chip}/README.md" "${ROOT_DIR}/docs/licenses/mame-${chip}/"
+done
 
 # Independent OPN worklets and their dynamically selected WASM binaries.
 perl -0pi -e 's#\./generated/segapsg#../generated/segapsg#g' \

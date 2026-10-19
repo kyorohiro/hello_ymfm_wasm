@@ -1,4 +1,4 @@
-import {validateChipClock} from './playground_chip_clock.js?v=opnb-primary-1';
+import {validateChipClock} from './playground_chip_clock.js?v=native-modes-1';
 import {createPerformanceQueue, createPerformanceChipOwnership} from './playground_performance_queue.js';
 import {createOpnAuditionGuard, receiveOpnAuditionCommand} from './playground_audition_guard.js';
 import {createChipPortReceiver} from "./playground_chip_port.js";

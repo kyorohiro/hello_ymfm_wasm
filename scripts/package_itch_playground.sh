@@ -79,6 +79,10 @@ tetorica-playground-ym2610.d.ts
 tetorica-playground-ym2610b.d.ts
 tetorica-playground-ym2612.d.ts
 tetorica-playground-gameboy.d.ts
+tetorica-playground-nes.d.ts
+tetorica-playground-snes.d.ts
+tetorica-playground-x68000.d.ts
+tetorica-playground-huc6280.d.ts
 "
 
 RUNTIME_FILES="
@@ -145,7 +149,19 @@ playground_segapsg_worklet.js
 playground_gameboy.js
 gameboysynth.js
 gameboy_runtime_synth.js
+native_runtime_synth.js
+playground_native_primary.js
 gameboyapu.js
+playground_huc6280.js
+playground_huc6280_audio.js
+playground_huc6280_worklet.js
+huc6280synth.js
+huc6280audioengine.js
+playground_okim6258.js
+playground_okim6258_audio.js
+playground_okim6258_worklet.js
+okim6258synth.js
+okim6258audioengine.js
 playground_gameboy_audio.js
 playground_gameboy_worklet.js
 playground_ym2608_audio.js
@@ -239,6 +255,10 @@ ym2151_wasm.js
 ym2151_wasm.wasm
 gameboy_apu_wasm.js
 gameboy_apu_wasm.wasm
+huc6280_wasm.js
+huc6280_wasm.wasm
+okim6258_wasm.js
+okim6258_wasm.wasm
 rf5c164_wasm.js
 rf5c164_wasm.wasm
 ym2612_wasm.js
@@ -382,6 +402,10 @@ mkdir -p "${STAGE_DIR}/licenses/mame-rf5c164"
 mkdir -p "${STAGE_DIR}/licenses/mame-gameboy"
 cp "${ROOT_DIR}/third_party/mame-gameboy/LICENSE" "${ROOT_DIR}/third_party/mame-gameboy/README.md" "${STAGE_DIR}/licenses/mame-gameboy/"
 cp "${ROOT_DIR}/third_party/mame-rf5c164/LICENSE" "${ROOT_DIR}/third_party/mame-rf5c164/README.md" "${STAGE_DIR}/licenses/mame-rf5c164/"
+for chip in mame-huc6280 mame-okim6258; do
+  mkdir -p "${STAGE_DIR}/licenses/${chip}"
+  cp "${ROOT_DIR}/third_party/${chip}/LICENSE" "${ROOT_DIR}/third_party/${chip}/README.md" "${STAGE_DIR}/licenses/${chip}/"
+done
 
 cp -R "${PLAYGROUND_DIR}/examples" "${STAGE_DIR}/examples"
 cp -R "${PLAYGROUND_DIR}/defaults" "${STAGE_DIR}/defaults"
@@ -412,6 +436,9 @@ See js/msfa_dx7/LICENSE, THIRD_PARTY_NOTICES.md and README.vendor.md.
 32X PWM: MAME-derived FIFO/timer core, BSD-3-Clause. See licenses/mame-32x-pwm/.
 
 Game Boy DMG APU: MAME adaptation, BSD-3-Clause. See licenses/mame-gameboy/.
+
+PC Engine HuC6280 PSG: MAME adaptation by Charles MacDonald, BSD-3-Clause. See licenses/mame-huc6280/.
+X68000 OKIM6258 ADPCM: MAME adaptation by Barry Rodewald, BSD-3-Clause. See licenses/mame-okim6258/.
 
 RF5C164: MAME adaptation, BSD-3-Clause.
 See ./licenses/mame-rf5c164/LICENSE and README.md.

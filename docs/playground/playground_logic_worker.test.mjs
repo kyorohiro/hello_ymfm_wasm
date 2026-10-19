@@ -1,4 +1,5 @@
 import {createSnesClient} from '../../web/playground_snes.js';
+import {createNativeWorkerApis,createNativePrimaryClient} from '../../web/playground_native_primary.js';
 import {createPerformanceSender} from '../../web/playground_performance_sender.js';
 import {midiToOpnPitch, opnPitchFromHz} from '../../web/soundchip_pitch.js';
 import {CHIP_CLOCKS} from '../../web/playground_chip_clock.js';
@@ -36,6 +37,7 @@ function createWorkerHarness(overrides = {}) {
   const messages = [];
   const context = {
     createPerformanceSender, serializeLogError,
+    createNativeWorkerApis,createNativePrimaryClient,
     midiToOpnPitch, opnPitchFromHz, CHIP_CLOCKS, resolvePlaySeconds, resolvePlayDuration, createBeatClock, runTween, createNativeSampleController, createNativeNoiseController, controlNativeNoise, createWorkerDac, atob, createMidiApi, createMidiRack, createWorkerChip, createNativeFXController, createLiveFxLifecycle, DOMException, structuredClone,
     createSnesClient, createDx7Client, createYm2151Client, createSegaPsgClient, createLoopAsyncTasks, createCycle, createDeadlineScheduler, createOpnClient, createGameboyClient, createSoundChipRegistry, createRf5c164Client, createYm2608Client,
     hzToBlockFnum,

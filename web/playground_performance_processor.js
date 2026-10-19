@@ -4,7 +4,7 @@ import {createPerformanceQueue} from './playground_performance_queue.js';
  * Untagged standalone commands stay immediate. RPC setters acknowledge acceptance
  * while their sound changes wait for the reserved audio frame.
  */
-export function identifyPerformanceNote(chip,{method,type,args=[] ,register,value}) {
+export function identifyPerformanceNote(chip,{method,type,args=[] ,register,value,channel}) {
   if(['reset','allNotesOff','panic'].includes(method))return {allOff:true};
   if(chip==='snes'&&['playTimeline','stopTimeline'].includes(method))return {key:'timeline',on:method==='playTimeline'};
   if(chip==='snes'&&['noteOn','keyOn','noteOff','keyOff'].includes(method))return {key:args[0],on:method==='noteOn'||method==='keyOn'};
@@ -21,6 +21,11 @@ export function identifyPerformanceNote(chip,{method,type,args=[] ,register,valu
   }
   if(chip==='segapsg'&&method==='write'&&(args[0]&0x90)===0x90)return {key:(args[0]>>5)&3,on:(args[0]&15)!==15};
   if(chip==='ym2151'&&method==='writeRegister'&&args[0]===8)return {key:args[1]&7,on:!!(args[1]&0x78)};
+  if(chip==='ym2151'&&method==='forceKeyOff')return {key:args[0],on:false};
+  if(chip==='huc6280'&&method==='writeRegister'&&args[0]===4&&Number.isInteger(channel))return {key:channel,on:!!(args[1]&128)};
+  if(chip==='huc6280'&&method==='keyOff')return {key:args[0],on:false};
+  if(chip==='okim6258'&&['play','stop','keyOff'].includes(method))return {key:0,on:method==='play'};
+  if(chip==='okim6258'&&method==='writeRegister'&&args[0]===0)return {key:0,on:!(args[1]&1)&&!!(args[1]&2)};
   if(['ym2612','ym2203','ym2610','ym2608'].includes(chip)){
     const reg=type==='write'?register:method==='write'&&args.length>=3?args[1]:method==='writeRegister'?args[0]:null;
     const v=type==='write'?value:method==='write'?args[2]:args[1];
@@ -36,7 +41,9 @@ export function performanceNoteRelease(chip,key) {
   if(chip==='nes')return key===5?{method:'writeRegister',args:[0x4083,128]}:{method:'setChannelEnabled',args:[key,false]};
   if(chip==='gameboy')return {method:'writeRegister',args:[[2,7,10,17][key],0]};
   if(chip==='segapsg')return {method:'write',args:[0x9f|(key<<5)]};
-  if(chip==='ym2151')return {method:'writeRegister',args:[8,key]};
+  if(chip==='ym2151')return {method:'forceKeyOff',args:[key]};
+  if(chip==='huc6280')return {method:'keyOff',args:[key]};
+  if(chip==='okim6258')return {method:'stop',args:[]};
   if(chip==='pwm')return {method:'reset',args:[]};
   return {method:'write',args:[0,0x28,[0,1,2,4,5,6][key]]};
 }

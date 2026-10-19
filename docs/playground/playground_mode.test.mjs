@@ -11,6 +11,8 @@ test('modes select native chips, clocks and Full expansions', () => {
     ['pc98','ym2608',8000000,false], ['neogeo','ym2610',8000000,false],
     ['neogeo-b','ym2610b',8000000,false],
     ['gameboy','gameboy',4194304,false],
+    ['nes','nes',1789773,false],['snes','snes',1024000,false],
+    ['x68000','x68000',4000000,false],['pc-engine','huc6280',3579545,false],
   ];
   assert.deepEqual(PLAYGROUND_MODES.map(mode => [mode.id,mode.chip,mode.clock,mode.full]), expected);
   for (const mode of PLAYGROUND_MODES) {
@@ -19,6 +21,16 @@ test('modes select native chips, clocks and Full expansions', () => {
     assert.equal(options.megaCD, mode.full);
     assert.equal(options.mega32X, mode.full);
     assert.equal(Boolean(options.segaPsgWasmUrl), mode.chip === 'ym2612');
+    if (['nes','snes','x68000','huc6280'].includes(mode.chip)) {
+      assert.deepEqual(mode.chipTabs, []);
+      assert.equal(mode.fmChannels,0);
+      assert.equal(options.fds,mode.chip==='nes');
+      const wasm = {snes:'spc',x68000:'ym2151',huc6280:'huc6280'}[mode.chip];
+      assert.equal(options.wasmUrl,wasm?`https://example.com/app/generated/${wasm}_wasm.wasm`:undefined);
+      assert.match(options.workletUrl,/playground_\w+_worklet\.js\?/);
+      if (mode.chip==='x68000') assert.equal(options.extraOki.wasmUrl,'https://example.com/app/generated/okim6258_wasm.wasm');
+      continue;
+    }
     const wasm = mode.engine === 'nuked' ? 'nuked_opn2' : mode.chip === 'ym2610' ? 'ym2610b' : mode.chip === 'gameboy' ? 'gameboy_apu' : mode.chip;
     assert.equal(options.wasmUrl ?? options.ym2612WasmUrl, `https://example.com/app/generated/${wasm}_wasm.wasm`);
   }

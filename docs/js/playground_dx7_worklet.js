@@ -1,6 +1,6 @@
 import {createDX7, createInitVoice, createVoiceSysex,parseSysex} from './msfa_dx7/src/index.js';
 import {presetToVoice,voiceToPreset,validatePreset,validateOperator,validateOperators} from './msfa_dx7/src/preset.js';
-import {createProcessorPerformance} from './playground_performance_processor.js?v=spc-song-js-1';
+import {createProcessorPerformance} from './playground_performance_processor.js?v=native-modes-1';
 
 const errorMessage = error => String(error?.message ?? error);
 

@@ -1,4 +1,4 @@
-import {attachChipClock, CHIP_CLOCKS} from './playground_chip_clock.js?v=opnb-primary-1';
+import {attachChipClock, CHIP_CLOCKS} from './playground_chip_clock.js?v=native-modes-1';
 import {createSegaPsgApi} from './segapsg_api.js';
 /** Immediate ordered commands, shared by main-thread and Worker runtimes. */
 /** @param {MessagePort} port */
