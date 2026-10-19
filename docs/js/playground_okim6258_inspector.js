@@ -1,4 +1,4 @@
-import {OKIM6258_DIVIDERS,oki6258Rate} from './okim6258synth.js?v=native-voices-3';
+import {OKIM6258_DIVIDERS,oki6258Rate} from './okim6258synth.js?v=native-voices-4';
 import {validateChipClock} from './playground_chip_clock.js?v=audio-stability-2';
 
 const bool=(value,label)=>{if(typeof value!=='boolean')throw new TypeError(`${label} must be boolean`);return value;};

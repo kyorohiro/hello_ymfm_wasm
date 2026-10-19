@@ -463,7 +463,7 @@ test('chip inspector stays audio-free until initialization and retains subscript
   await runtime.finalize();unsubscribe();
 });
 
-for (const [chip,kind] of [['gameboy','gameboy'],['nes','nes'],['x68000','ym2151'],['x68000','okim6258']]) test(`${chip} ${kind} inspector borrows its primary admin port without starting audio or taking the Worker port`,async t=>{
+for (const [chip,kind] of [['gameboy','gameboy'],['nes','nes'],['x68000','ym2151'],['x68000','okim6258'],['huc6280','huc6280']]) test(`${chip} ${kind} inspector borrows its primary admin port without starting audio or taking the Worker port`,async t=>{
   const {runtime,megaDrive}=setup(t,{chip,fmChannels:0});
   megaDrive.stopAllNative=()=>{};
   const listeners=new Set(),messages=[];
@@ -473,7 +473,7 @@ for (const [chip,kind] of [['gameboy','gameboy'],['nes','nes'],['x68000','ym2151
     messages.push(message);queueMicrotask(()=>{for(const listener of listeners)listener({data:{type:'chip-inspector-result',id:message.id,value:{kind,channels:[]}}});});
   }};
   if(chip==='gameboy'){megaDrive.node={port};assert.deepEqual(runtime.chipInspector.list(),[],'an APU still loading cannot receive admin reads');megaDrive.gameboy={};}
-  else megaDrive.primaryEndpoints=[{name:kind,globalName:kind==='ym2151'?'opm':kind==='okim6258'?'adpcm':'nes',client:{},node:{port}}];
+  else megaDrive.primaryEndpoints=[{name:kind,globalName:kind==='ym2151'?'opm':kind==='okim6258'?'adpcm':kind==='huc6280'?'pce':'nes',client:{},node:{port}}];
   assert.deepEqual(runtime.chipInspector.list().map(({id,kind})=>({id,kind})),[{id:kind,kind}]);
   assert.equal(megaDrive.state,'idle');
   assert.equal((await runtime.chipInspector.read(kind)).kind,kind);

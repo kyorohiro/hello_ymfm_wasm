@@ -1,21 +1,21 @@
 /** Primary non-OPN machines share media, mixer and FX without a hidden FM synth. */
-import {TetoricaAudioRuntime} from './tetorica_audio_runtime.js?v=native-voices-3';
-import {createNesAudio} from './playground_nes_audio.js?v=native-voices-3';
+import {TetoricaAudioRuntime} from './tetorica_audio_runtime.js?v=native-voices-4';
+import {createNesAudio} from './playground_nes_audio.js?v=native-voices-4';
 import {createNesClient} from './playground_nes.js?v=audio-stability-2';
-import {createSnesAudio} from './playground_snes_audio.js?v=native-voices-3';
+import {createSnesAudio} from './playground_snes_audio.js?v=native-voices-4';
 import {createSnesClient} from './playground_snes.js?v=native-modes-3';
-import {createYm2151Audio} from './playground_ym2151_audio.js?v=native-voices-3';
+import {createYm2151Audio} from './playground_ym2151_audio.js?v=native-voices-4';
 import {createYm2151Client} from './playground_ym2151.js?v=audio-stability-2';
-import {createOki6258Audio} from './playground_okim6258_audio.js?v=native-voices-3';
-import {createOki6258Client} from './playground_okim6258.js?v=native-voices-3';
-import {createHuc6280Audio} from './playground_huc6280_audio.js?v=native-voices-3';
-import {createHuc6280Client} from './playground_huc6280.js?v=audio-stability-2';
-import {createSegaPsgAudio} from './playground_segapsg_audio.js?v=native-voices-3';
+import {createOki6258Audio} from './playground_okim6258_audio.js?v=native-voices-4';
+import {createOki6258Client} from './playground_okim6258.js?v=native-voices-4';
+import {createHuc6280Audio} from './playground_huc6280_audio.js?v=native-voices-4';
+import {createHuc6280Client} from './playground_huc6280.js?v=native-voices-4';
+import {createSegaPsgAudio} from './playground_segapsg_audio.js?v=native-voices-4';
 import {createSegaPsgClient} from './playground_segapsg.js?v=sega-modes-1';
 
 const PRIMARY_CHIPS = Object.freeze(['nes', 'snes', 'x68000', 'huc6280', 'segapsg']);
 
-/** @typedef {Pick<import('./megasynth.js?v=native-voices-3').MegaSynthOptions,'audioContext'|'outputNode'|'sampleOutputNode'|'masterVolume'|'mixer'> & {
+/** @typedef {Pick<import('./megasynth.js?v=native-voices-4').MegaSynthOptions,'audioContext'|'outputNode'|'sampleOutputNode'|'masterVolume'|'mixer'> & {
  * chip?:'nes'|'snes'|'x68000'|'huc6280'|'segapsg', clock?:number, stereoEnabled?:boolean, fds?:boolean,
  * wasmUrl?:string|URL, workletUrl?:string|URL, fetch?:typeof globalThis.fetch,
  * extraOki?:{fetch?:typeof globalThis.fetch,wasmUrl?:string|URL,workletUrl?:string|URL}
@@ -132,7 +132,8 @@ export class NativeRuntimeSynth {
     else opm?.allNotesOff();
     if (adpcm?._stopVoices) adpcm._stopVoices();
     else adpcm?.stop();
-    pce?.allNotesOff();
+    if (pce?._stopVoices) pce._stopVoices();
+    else pce?.allNotesOff();
     psg?.allNotesOff();
   }
   reset() { this.stopAllNative(); }

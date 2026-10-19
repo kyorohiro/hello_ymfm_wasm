@@ -4,7 +4,7 @@ import {createPerformanceQueue} from './playground_performance_queue.js';
  * Untagged standalone commands stay immediate. RPC setters acknowledge acceptance
  * while their sound changes wait for the reserved audio frame.
  */
-export function identifyPerformanceNote(chip,{method,type,args=[] ,register,value,channel},{psgLatch=0}={}) {
+export function identifyPerformanceNote(chip,{method,type,args=[] ,register,value,channel},{psgLatch=0,hucChannel=0}={}) {
   if(['reset','allNotesOff','panic'].includes(method))return {allOff:true};
   if(chip==='snes'&&['playTimeline','stopTimeline'].includes(method))return {key:'timeline',on:method==='playTimeline'};
   if(chip==='snes'&&['noteOn','keyOn','noteOff','keyOff'].includes(method))return {key:args[0],on:method==='noteOn'||method==='keyOn'};
@@ -25,7 +25,7 @@ export function identifyPerformanceNote(chip,{method,type,args=[] ,register,valu
   }
   if(chip==='ym2151'&&method==='writeRegister'&&args[0]===8)return {key:args[1]&7,on:!!(args[1]&0x78)};
   if(chip==='ym2151'&&method==='forceKeyOff')return {key:args[0],on:false};
-  if(chip==='huc6280'&&method==='writeRegister'&&args[0]===4&&Number.isInteger(channel))return {key:channel,on:!!(args[1]&128)};
+  if(chip==='huc6280'&&method==='writeRegister'&&args[0]===4)return {key:Number.isInteger(channel)?channel:hucChannel,on:!!(args[1]&128)};
   if(chip==='huc6280'&&method==='keyOff')return {key:args[0],on:false};
   if(chip==='okim6258'&&['play','stop','keyOff'].includes(method))return {key:0,on:method==='play'};
   if(chip==='okim6258'&&method==='writeRegister'&&args[0]===0)return {key:0,on:!(args[1]&1)&&!!(args[1]&2)};
@@ -51,7 +51,16 @@ export function performanceNoteRelease(chip,key) {
   return {method:'write',args:[0,0x28,[0,1,2,4,5,6][key]]};
 }
 /** Channel touched by native register commands, used only while an editor holds a key. */
-export function nativeVoiceChannel(chip,{method,args=[]}) {
+export function nativeVoiceChannel(chip,{method,type,args=[],channel},{hucChannel=0}={}) {
+  if(chip==='huc6280'){
+    if(method==='keyOff'||method==='setWaveform')return args[0];
+    if(method==='allNotesOff'||method==='clock'||type==='chip-clock')return 'all';
+    if(method==='writeRegister'){
+      const register=args[0];if([1,8,9].includes(register))return 'all';
+      if(register>=2&&register<=7)return Number.isInteger(channel)?channel:hucChannel;
+      if(register===0)return null;
+    }
+  }
   if(chip==='okim6258'&&['play','stop','keyOff','allNotesOff','reset','clock','loadMemory','writeRegister','setRepeat'].includes(method))return 0;
   if(chip==='ym2151') {
     if(method==='forceKeyOff'||method==='auditionKeyOn')return args[0];
@@ -79,7 +88,7 @@ export function nativeVoiceChannel(chip,{method,args=[]}) {
   }
   if(method==='reset')return 'all';return null;
 }
-export function createProcessorPerformance({apply,prepare,validate,onDiscard,chip,releaseNote,getPsgLatch,immediate = [],nowFrame = () => currentFrame,rate = sampleRate}) {
+export function createProcessorPerformance({apply,prepare,validate,onDiscard,chip,releaseNote,getPsgLatch,getHucChannel,immediate = [],nowFrame = () => currentFrame,rate = sampleRate}) {
   const replies = new WeakMap(),ports = new WeakMap(),pendingRPC = new WeakMap(),immediateMethods = new Set(immediate);
   const owners=new Map(),auditions=new Map();
   let psgLatch=0,nesEnabled=0;
@@ -107,12 +116,14 @@ export function createProcessorPerformance({apply,prepare,validate,onDiscard,chi
     }
     if(blockedByAudition(command,metadata))return;
     command=protectNesEnable(command,metadata);
-    if(!note(command,port,metadata))return;
+    // Editor parameter patches retain a script's note owner even when a banked
+    // control register repeats its existing gate bit. Triggers/releases do not.
+    if(!metadata?.preserveOwner&&!note(command,port,metadata))return;
     apply(command,port,frame,metadata); observePsgLatch(command);
   }
   function blockedByAudition(command,metadata) {
     if(!auditions.size)return false;
-    const channel=nativeVoiceChannel(chipName(),command);
+    const channel=nativeVoiceChannel(chipName(),command,{hucChannel:getHucChannel?.()??0});
     if(channel==='all'){
       if(chipName()==='nes'&&command.method==='writeRegister'&&command.args[0]===0x4015)return false;
       for(const owner of auditions.values())if(owner===metadata?.owner)return false;return true;
@@ -127,6 +138,7 @@ export function createProcessorPerformance({apply,prepare,validate,onDiscard,chi
   }
   function note(command,port,metadata) {
     noteState.psgLatch=getPsgLatch?.()??psgLatch;
+    noteState.hucChannel=getHucChannel?.()??0;
     const event=identifyPerformanceNote(chipName(),command,noteState);
     if(!event)return true;
     if(event.allOff){owners.clear();return true;}

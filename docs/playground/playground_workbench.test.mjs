@@ -161,9 +161,9 @@ test('chip editors remain above a separately selected Mixer and navigate in visu
   assert.equal(options.mixerPanel.hidden, false);
 });
 
-for (const kind of ['gameboy','nes','ym2151','okim6258']) test(`${kind} voice editor coexists with Guitar Keyboard and keeps mode-specific navigation`,()=>{
+for (const kind of ['gameboy','nes','ym2151','okim6258','huc6280']) test(`${kind} voice editor coexists with Guitar Keyboard and keeps mode-specific navigation`,()=>{
   const {options,events}=setup();
-  for(const name of ['segapsg','rf5c164','pwm','gameboy','nes','ym2151','okim6258']) {
+  for(const name of ['segapsg','rf5c164','pwm','gameboy','nes','ym2151','okim6258','huc6280']) {
     options[`${name}Panel`]={};options[`${name}Tab`]={setAttribute(){},focus(){this.focused=true;}};
   }
   const ui=createPlaygroundUi({...options,chipTabs:[kind]});

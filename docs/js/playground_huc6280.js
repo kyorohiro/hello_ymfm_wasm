@@ -10,6 +10,10 @@ export function createHuc6280Client(port, {clock = HUC6280_CLOCK} = {}) {
     reset() { port.postMessage({method:'reset', args:[]}); },
     dispose() { port.postMessage({method:'dispose', args:[]}); port.close(); },
   }});
+  Object.defineProperty(synth,'_stopVoices',{value:()=>{
+    const state=synth._getState();for(const registers of state.registers)registers[4]&=127;
+    synth._adoptState(state);port.postMessage({method:'stopVoices',args:[]});
+  }});
   return attachChipClock(synth, port, clock);
 }
 

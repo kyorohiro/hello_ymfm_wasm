@@ -132,7 +132,8 @@ export class NativeRuntimeSynth {
     else opm?.allNotesOff();
     if (adpcm?._stopVoices) adpcm._stopVoices();
     else adpcm?.stop();
-    pce?.allNotesOff();
+    if (pce?._stopVoices) pce._stopVoices();
+    else pce?.allNotesOff();
     psg?.allNotesOff();
   }
   reset() { this.stopAllNative(); }

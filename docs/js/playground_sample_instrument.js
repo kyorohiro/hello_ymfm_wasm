@@ -1,7 +1,7 @@
 /** Browser / Worker / Node: shared sample instruments. Device access is injected through pg. */
-import {normalizeSampleEdit, renderSampleEdit, renderGameboyWave} from './playground_sample_edit.js?v=native-voices-3';
+import {normalizeSampleEdit, renderSampleEdit, renderGameboyWave} from './playground_sample_edit.js?v=native-voices-4';
 import {encodeAdpcmB} from './adpcm_b_sample.js';
-import {captureKeyboardCallback} from './playground_keyboard.js?v=native-voices-3';
+import {captureKeyboardCallback} from './playground_keyboard.js?v=native-voices-4';
 
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 function eventNote(event) {

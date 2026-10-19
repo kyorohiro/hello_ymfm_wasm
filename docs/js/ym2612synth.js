@@ -304,7 +304,7 @@ export class YM2612DirectTransport {
 
 export class YM2612WorkletTransport {
   /**
-   * @param {AudioWorkletNode | MessagePort | import('./soundchip_worklet.js?v=native-voices-3').WorkletSoundChip} node
+   * @param {AudioWorkletNode | MessagePort | import('./soundchip_worklet.js?v=native-voices-4').WorkletSoundChip} node
    */
   constructor(node) {
     this.endpoint = node?.execution === 'worklet' ? node : null;

@@ -1,4 +1,4 @@
-import {TetoricaAudioRuntime} from './tetorica_audio_runtime.js?v=native-voices-3';
+import {TetoricaAudioRuntime} from './tetorica_audio_runtime.js?v=native-voices-4';
 
 const nativeFetch = globalThis.fetch?.bind(globalThis);
 const modules = new WeakMap();

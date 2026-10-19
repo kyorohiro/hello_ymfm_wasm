@@ -9,6 +9,8 @@ import {createHuc6280Client, createPrimaryHuc6280Api} from './playground_huc6280
 import {createHuc6280Audio} from './playground_huc6280_audio.js';
 import {ChipClockResampler, validateChipClock} from './playground_chip_clock.js';
 import {createProcessorPerformance} from './playground_performance_processor.js';
+import {Huc6280VoiceInspector} from './playground_huc6280_inspector.js';
+import {receiveChipInspector} from './playground_chip_inspector_state.js';
 
 const sampleRate = 48000;
 const peak = audio => audio.reduce((value, sample) => Math.max(value, Math.abs(sample)), 0);
@@ -16,7 +18,7 @@ async function createWorklet(clock = HUC6280_CLOCK) {
   let Processor, resolveReady, rejectReady, frame = 0; const replies = [];
   const ready = new Promise((resolve,reject) => { resolveReady = resolve; rejectReady = reject; });
   const source = (await readFile(new URL('./playground_huc6280_worklet.js', import.meta.url), 'utf8')).replace(/^import .*;$/gm, '');
-  vm.runInNewContext(source, {Huc6280AudioEngine, HUC6280_CLOCK, factory, sampleRate, ChipClockResampler, validateChipClock,
+  vm.runInNewContext(source, {Huc6280VoiceInspector,receiveChipInspector,Huc6280AudioEngine, HUC6280_CLOCK, factory, sampleRate, ChipClockResampler, validateChipClock,
     createProcessorPerformance:options => createProcessorPerformance({...options, rate:sampleRate, nowFrame:() => frame}),
     AudioWorkletProcessor:class { constructor() { this.port = {postMessage:data => { replies.push(data); if (data.ready) resolveReady(); if (data.error) rejectReady(new Error(data.error)); }}; } },
     registerProcessor:(_, value) => { Processor = value; },
