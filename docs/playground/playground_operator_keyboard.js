@@ -7,7 +7,7 @@ import {
   setFretPosition,
   setInstrument,
   setStringWindowIndex,
-} from "../synth/synth_keyboard.js?v=native-voices-2";
+} from "../synth/synth_keyboard.js?v=native-voices-3";
 
 let keyboardSequence = 0;
 

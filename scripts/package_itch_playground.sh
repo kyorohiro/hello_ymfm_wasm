@@ -35,6 +35,7 @@ playground_chip_tabs.css
 playground_gameboy_voice_panel.js
 playground_nes_voice_panel.js
 playground_ym2151_voice_panel.js
+playground_okim6258_voice_panel.js
 playground_workbench.js
 playground_cassette.js
 playground_examples.js
@@ -131,6 +132,7 @@ playground_performance_queue.js
 playground_performance_processor.js
 playground_native_voice_inspector.js
 playground_ym2151_inspector.js
+playground_okim6258_inspector.js
 playground_audition_guard.js
 playground_worker_chip.js
 playground_worker_dac.js

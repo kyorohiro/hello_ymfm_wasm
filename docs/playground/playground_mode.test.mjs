@@ -33,7 +33,7 @@ test('modes select native chips, clocks and console expansions', () => {
       continue;
     }
     if (['nes','snes','x68000','huc6280'].includes(mode.chip)) {
-      assert.deepEqual(mode.chipTabs, mode.chip === 'nes' ? ['nes'] : mode.chip === 'x68000' ? ['ym2151'] : []);
+      assert.deepEqual(mode.chipTabs, mode.chip === 'nes' ? ['nes'] : mode.chip === 'x68000' ? ['ym2151','okim6258'] : []);
       assert.equal(mode.fmChannels,0);
       assert.equal(options.fds,mode.chip==='nes');
       const wasm = {snes:'spc',x68000:'ym2151',huc6280:'huc6280'}[mode.chip];
@@ -75,7 +75,7 @@ test('mode voice editors load the new processors after a cached website upgrade'
   for (const [id, filename] of [['gameboy','playground_gameboy_worklet.js'], ['nes','playground_nes_worklet.js'], ['x68000','playground_ym2151_worklet.js']]) {
     const url = new URL(createModeSynthOptions(getPlaygroundMode(id), new URL('https://example.com/custom-audio/')).workletUrl);
     assert.equal(url.pathname, `/custom-audio/${filename}`);
-    assert.equal(url.searchParams.get('v'), 'native-voices-2', `${id} cannot reuse its pre-editor processor URL`);
+    assert.equal(url.searchParams.get('v'), 'native-voices-3', `${id} cannot reuse its pre-editor processor URL`);
   }
 });
 

@@ -2,7 +2,7 @@ import {validateChipClock} from './playground_chip_clock.js?v=audio-stability-2'
 import {Ym2608Timeline} from './playground_ym2608_timeline.js';
 import {Ym2608AudioEngine} from './ym2608audioengine.js?v=audio-stability-2';
 import factory from '../generated/ym2608_wasm.js';
-import {createProcessorPerformance} from './playground_performance_processor.js?v=native-voices-2';
+import {createProcessorPerformance} from './playground_performance_processor.js?v=native-voices-3';
 
 class Processor extends AudioWorkletProcessor {
   constructor(options) {

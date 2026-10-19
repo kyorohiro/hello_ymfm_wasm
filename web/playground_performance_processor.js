@@ -52,6 +52,7 @@ export function performanceNoteRelease(chip,key) {
 }
 /** Channel touched by native register commands, used only while an editor holds a key. */
 export function nativeVoiceChannel(chip,{method,args=[]}) {
+  if(chip==='okim6258'&&['play','stop','keyOff','allNotesOff','reset','clock','loadMemory','writeRegister','setRepeat'].includes(method))return 0;
   if(chip==='ym2151') {
     if(method==='forceKeyOff'||method==='auditionKeyOn')return args[0];
     if(method==='allNotesOff')return 'all';

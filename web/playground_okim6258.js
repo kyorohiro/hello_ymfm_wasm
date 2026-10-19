@@ -18,11 +18,11 @@ export function createOki6258Client(port, {clock = OKIM6258_CLOCK} = {}) {
   };
   const synth = new Oki6258Synth({clock, transport:{
     writeRegister:(...args) => send('writeRegister', args),
-    loadMemory:bytes => new Promise((resolve, reject) => {
+    loadMemory:(bytes,metadata) => new Promise((resolve, reject) => {
       if (disposed) { reject(new Error('OKIM6258 disposed')); return; }
       const id = ++sequence;
       pending.set(id, {resolve, reject});
-      try { port.postMessage({method:'loadMemory', args:[bytes], id}); }
+      try { port.postMessage({method:'loadMemory', args:[bytes,metadata], id}); }
       catch (error) { pending.delete(id); reject(error); }
     }),
     play:options => send('play', [options]), stop:() => send('stop'), reset:() => send('reset'),
@@ -33,5 +33,6 @@ export function createOki6258Client(port, {clock = OKIM6258_CLOCK} = {}) {
       pending.clear(); port.close();
     },
   }});
+  Object.defineProperty(synth,'_stopVoices',{value:()=>send('stopVoices')});
   return attachChipClock(synth, port, clock, {onApplied:hz => synth._adoptHardwareClock(hz)});
 }

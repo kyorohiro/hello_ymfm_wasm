@@ -55,6 +55,24 @@ export function encodeOki6258({channels, sampleRate}, outputRate, maxBytes = 0x1
   return {bytes, frames, paddedFrames:byteLength * 2, sampleRate:outputRate, durationSeconds:byteLength * 2 / outputRate};
 }
 
+/** Decode a bounded peak preview outside the audio render thread. No PCM-sized allocation. */
+export function summarizeOki6258(input,{bins=512}={}) {
+  const bytes=input instanceof ArrayBuffer?new Uint8Array(input):input;
+  if(!(bytes instanceof Uint8Array)||!bytes.length||bytes.length>0x1000000)throw new RangeError('Expected 1 byte to 16 MiB of OKI ADPCM');
+  if(!Number.isInteger(bins)||bins<1||bins>512)throw new RangeError('Preview bins must be 1..512');
+  const frames=bytes.length*2,count=Math.min(bins,frames),waveform=new Array(count).fill(0);
+  let predictor=-2,stepIndex=0;
+  for(let frame=0;frame<frames;frame++){
+    const code=bytes[frame>>1]>>((frame&1)*4)&15,step=STEPS[stepIndex];
+    const difference=Math.floor(step/8)+(code&1?Math.floor(step/4):0)+(code&2?Math.floor(step/2):0)+(code&4?step:0);
+    predictor=Math.max(-2048,Math.min(2047,predictor+(code&8?-difference:difference)));
+    stepIndex=Math.max(0,Math.min(48,stepIndex+INDEX_SHIFT[code&7]));
+    const bin=Math.min(count-1,Math.floor(frame*count/frames)),value=predictor/2048;
+    if(Math.abs(value)>Math.abs(waveform[bin]))waveform[bin]=value;
+  }
+  return {frames,waveform};
+}
+
 /** Portable control surface. Transport memory is acknowledged before playback. */
 export class Oki6258Synth {
   constructor({transport, clock = OKIM6258_CLOCK}) {
@@ -105,7 +123,8 @@ export class Oki6258Synth {
     if (!(bytes instanceof Uint8Array)) throw new TypeError('OKIM6258 memory requires Uint8Array or ArrayBuffer');
     if (!bytes.length || bytes.length > 0x1000000) throw new RangeError('Expected 1 byte to 16 MiB of OKI ADPCM');
     if (sampleRate !== undefined) this.setPlaybackRate(sampleRate);
-    await this.transport.loadMemory(bytes.slice());
+    const preview=summarizeOki6258(bytes);
+    await this.transport.loadMemory(bytes.slice(),{...preview,sampleRate:this.playbackRate,source:'raw'});
     this.sample = {bytes:bytes.length, frames:bytes.length * 2, sampleRate:this.playbackRate, durationSeconds:bytes.length * 2 / this.playbackRate};
   }
   /** PCM objects, AudioBuffer, WAV bytes, Blob and URL/path are accepted.

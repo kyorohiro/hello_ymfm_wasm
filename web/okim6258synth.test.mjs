@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import factory from '../docs/generated/okim6258_wasm.js';
 import {Oki6258AudioEngine} from './okim6258audioengine.js';
-import {encodeOki6258, oki6258Rate, Oki6258Synth, Oki6258Stream} from './okim6258synth.js';
+import {encodeOki6258, summarizeOki6258, oki6258Rate, Oki6258Synth, Oki6258Stream} from './okim6258synth.js';
 import {createOki6258Client} from './playground_okim6258.js';
 
 async function makeStream(clock = 8000000, rate = 44100) {
@@ -45,6 +45,14 @@ test('PCM conversion averages channels, resamples and pads one final nibble', ()
   assert.equal(stereo.durationSeconds, 52 / 5000);
   assert.throws(() => encodeOki6258({channels:[Float32Array.of(NaN)], sampleRate:8000}, 8000), /Nonfinite/);
   assert.throws(() => encodeOki6258({channels:[mono], sampleRate:1}, 100000, 10), /exceeds/);
+});
+
+test('OKI preview decodes native ADPCM levels and stores only bounded signed peaks',()=>{
+  assert.deepEqual(summarizeOki6258(Uint8Array.of(0x10,0xf8)),{frames:4,waveform:[0,6/2048,4/2048,-26/2048]});
+  assert.deepEqual(summarizeOki6258(Uint8Array.of(0x10,0xf8),{bins:2}),{frames:4,waveform:[6/2048,-26/2048]});
+  const source=Uint8Array.from({length:100000},(_,i)=>i&255),copy=source.slice(),preview=summarizeOki6258(source);
+  assert.equal(preview.frames,200000);assert.equal(preview.waveform.length,512);assert(preview.waveform.every(v=>Number.isFinite(v)&&Math.abs(v)<=1));assert.deepEqual(source,copy);
+  assert.throws(()=>summarizeOki6258(source,{bins:513}),/bins/);
 });
 
 test('VCLK uses only hardware dividers and nearest supported sample rate', () => {

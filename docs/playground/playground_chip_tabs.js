@@ -1,7 +1,8 @@
 /** Dedicated sound-chip editors. Reads are visible-only; opening an editor never creates a chip. */
-import {createPlaygroundGameboyVoicePanel} from './playground_gameboy_voice_panel.js?v=native-voices-2';
-import {createPlaygroundNesVoicePanel} from './playground_nes_voice_panel.js?v=native-voices-2';
-import {createPlaygroundYm2151VoicePanel} from './playground_ym2151_voice_panel.js?v=native-voices-2';
+import {createPlaygroundGameboyVoicePanel} from './playground_gameboy_voice_panel.js?v=native-voices-3';
+import {createPlaygroundNesVoicePanel} from './playground_nes_voice_panel.js?v=native-voices-3';
+import {createPlaygroundOki6258VoicePanel} from './playground_okim6258_voice_panel.js?v=native-voices-3';
+import {createPlaygroundYm2151VoicePanel} from './playground_ym2151_voice_panel.js?v=native-voices-3';
 
 export function frequencyNote(frequency) {
   if (!Number.isFinite(frequency) || frequency <= 0) return '—';
@@ -28,8 +29,8 @@ export function pwmRoutingControl(control, side, route) {
 }
 
 const AUDIO_FILE = /\.(?:wav|wave|aif|aiff|mp3|ogg|flac|m4a|aac|webm)$/i;
-const KINDS = ['segapsg', 'rf5c164', 'pwm', 'gameboy', 'nes', 'ym2151'];
-const nativePanels = {gameboy:createPlaygroundGameboyVoicePanel,nes:createPlaygroundNesVoicePanel,ym2151:createPlaygroundYm2151VoicePanel};
+const KINDS = ['segapsg', 'rf5c164', 'pwm', 'gameboy', 'nes', 'ym2151', 'okim6258'];
+const nativePanels = {gameboy:createPlaygroundGameboyVoicePanel,nes:createPlaygroundNesVoicePanel,ym2151:createPlaygroundYm2151VoicePanel,okim6258:createPlaygroundOki6258VoicePanel};
 const finiteText = (value, digits = 0) => Number.isFinite(value) ? Number(value.toFixed(digits)).toString() : '—';
 const hex = value => Number.isInteger(value) ? `0x${value.toString(16).toUpperCase().padStart(4, '0')}` : '—';
 
@@ -150,8 +151,15 @@ export function createPlaygroundChipTabs({roots, getInspector, listFiles = () =>
           if (!disposed && editor.voiceSource === source && editor.voiceId === id && visible === editor.kind) void refresh();
           return value;
         };
+        const loadSample = async (input, options = {}) => {
+          if (disposed || editor.voiceSource !== source || editor.voiceId !== id || getInspector?.() !== source) throw new DOMException('Sound chip changed','AbortError');
+          options.signal?.throwIfAborted();
+          const result = await source.loadSample(id,input,options);
+          if (!disposed && editor.voiceSource === source && editor.voiceId === id && visible === editor.kind) void refresh();
+          return result;
+        };
         const factory = nativePanels[editor.kind];
-        editor.voicePanel = factory({root:editor.body,invoke,onError:e=>error(editor,e),onKeyboardTargetChange:target=>{
+        editor.voicePanel = factory({root:editor.body,invoke,listFiles,readFile,loadSample,onError:e=>error(editor,e),onKeyboardTargetChange:target=>{
           if (target) {
             if (keyboardEditor && keyboardEditor !== editor) keyboardEditor.voicePanel?.setKeyboardActive?.(false);
             keyboardEditor = editor; onKeyboardTargetChange(target);
@@ -396,7 +404,7 @@ export function createPlaygroundChipTabs({roots, getInspector, listFiles = () =>
   for (const kind of KINDS) {
     if (!roots[kind]) continue;
     const editor = buildBase(kind, roots[kind]);
-    ({segapsg: buildPsg, rf5c164: buildRf, pwm: buildPwm, gameboy:buildNative, nes:buildNative,ym2151:buildNative})[kind](editor);
+    ({segapsg: buildPsg, rf5c164: buildRf, pwm: buildPwm, gameboy:buildNative, nes:buildNative,ym2151:buildNative,okim6258:buildNative})[kind](editor);
     editor.status.textContent = 'No connected instance. Run code that uses this sound chip first.';
   }
   function connectInspector() {

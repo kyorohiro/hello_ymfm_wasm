@@ -119,3 +119,53 @@ test('RF invalid ranges and huge material fail before sending writes, options re
     assert.deepEqual(await normal,{address:256,name:'original'});assert.equal(requests.length,1);
   }finally{inspector.dispose();port1.close();port2.close();}
 });
+
+test('OKIM6258 file loading encodes at the applied rate after decoding and leaves playback settings alone',async()=>{
+  const {port1,port2}=new MessageChannel();let finish,rate=15625;const requests=[];
+  port1.on('message',data=>{
+    requests.push(data);
+    const value=data.action==='read'?{clock:8000000,playbackRate:rate}:data.args[1];
+    port1.postMessage({type:'chip-inspector-result',id:data.id,value});
+  });
+  const inspector=createChipInspector({endpoints:()=>[{id:'oki',kind:'okim6258',port:port2}],decode:()=>new Promise(resolve=>finish=resolve)});
+  try{
+    const options={name:'voice.wav'},loading=inspector.loadSample('oki',new ArrayBuffer(0),options);
+    options.name='changed.wav';rate=7812.5;
+    finish({channels:[Float32Array.from({length:15625},(_,i)=>.4*Math.sin(2*Math.PI*440*i/15625))],sampleRate:15625});
+    const sample=await loading;
+    assert.deepEqual(requests.map(request=>request.action),['read','loadSample'],'loading does not write divider, pan or clock');
+    assert.equal(sample.name,'voice.wav');assert.equal(sample.sampleRate,7812.5);
+    assert.equal(sample.frames,7814);assert.equal(requests[1].args[0].length,3907);
+    assert(sample.waveform.length>0&&sample.waveform.length<=512);
+    assert(sample.waveform.every(value=>Number.isFinite(value)&&Math.abs(value)<=1));
+  }finally{inspector.dispose();port1.close();port2.close();}
+});
+
+test('OKIM6258 invalid, aborted and disconnected file loads send no sample commands',async()=>{
+  const {port1,port2}=new MessageChannel(),replacement=new MessageChannel();let port=port2,finish,decodes=0;const requests=[];
+  port1.on('message',data=>requests.push(data));
+  const inspector=createChipInspector({endpoints:()=>[{id:'oki',kind:'okim6258',port}],decode:()=>{decodes++;return new Promise(resolve=>finish=resolve);}});
+  const pcm={channels:[Float32Array.of(0,.2,-.2,0)],sampleRate:15625};
+  try{
+    for(const options of [{sampleRate:NaN},{name:42},{address:0},{loopStart:0},{signal:{}}])await assert.rejects(inspector.loadSample('oki',pcm,options));
+    const preAborted=new AbortController();preAborted.abort();await assert.rejects(inspector.loadSample('oki',pcm,{signal:preAborted.signal}),{name:'AbortError'});
+    assert.equal(decodes,0);
+    const controller=new AbortController(),cancelled=inspector.loadSample('oki',pcm,{signal:controller.signal});controller.abort();finish(pcm);
+    await assert.rejects(cancelled,{name:'AbortError'});
+    const retired=inspector.loadSample('oki',pcm);port=replacement.port2;finish(pcm);
+    await assert.rejects(retired,/changed while decoding/);assert.deepEqual(requests,[]);
+  }finally{inspector.dispose();port1.close();port2.close();replacement.port1.close();replacement.port2.close();}
+});
+
+test('OKIM6258 replacement during its rate read cannot receive the old file load',async()=>{
+  const {port1,port2}=new MessageChannel(),replacement=new MessageChannel();let port=port2;const requests=[];
+  port1.on('message',data=>{
+    requests.push(data);port=replacement.port2;
+    port1.postMessage({type:'chip-inspector-result',id:data.id,value:{clock:8000000,playbackRate:15625}});
+  });
+  const inspector=createChipInspector({endpoints:()=>[{id:'oki',kind:'okim6258',port}],decode:async()=>({channels:[Float32Array.of(0,.2,-.2,0)],sampleRate:15625})});
+  try{
+    await assert.rejects(inspector.loadSample('oki',new ArrayBuffer(0)),/changed while decoding/);
+    assert.deepEqual(requests.map(request=>request.action),['read']);
+  }finally{inspector.dispose();port1.close();port2.close();replacement.port1.close();replacement.port2.close();}
+});

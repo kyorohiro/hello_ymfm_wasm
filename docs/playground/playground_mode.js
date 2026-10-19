@@ -15,7 +15,7 @@ const definitions = [
   {id:'gameboy', label:'Game Boy', chip:'gameboy', engine:'apu', fmChannels:0, chipTabs:['gameboy']},
   {id:'nes', label:'NES + FDS', chip:'nes', engine:'apu', fmChannels:0, chipTabs:['nes']},
   {id:'snes', label:'SNES', chip:'snes', engine:'dsp', fmChannels:0, details:'S-DSP · 32,000 Hz · 8 voices'},
-  {id:'x68000', label:'X68000', chip:'x68000', engine:'opm-adpcm', fmChannels:0, chipTabs:['ym2151'], details:'YM2151 · 4 MHz + OKIM6258 · 8 MHz'},
+  {id:'x68000', label:'X68000', chip:'x68000', engine:'opm-adpcm', fmChannels:0, chipTabs:['ym2151','okim6258'], details:'YM2151 · 4 MHz + OKIM6258 · 8 MHz'},
   {id:'pc-engine', label:'PC Engine', chip:'huc6280', engine:'psg', fmChannels:0},
   {id:'game-gear', label:'Game Gear', chip:'segapsg', declarationChip:'game-gear', engine:'psg', fmChannels:0,
     stereoEnabled:true, chipTabs:['segapsg'], details:'Sega PSG · 3,579,545 Hz · 3 tones + noise · Stereo'},
@@ -76,24 +76,24 @@ export function createModeSynthOptions(mode, base = new URL('../js/', import.met
   const generated = new URL('generated/', new URL('../', base));
   if (mode.chip === 'segapsg') return {
     chip:mode.chip, clock:mode.clock, stereoEnabled:mode.stereoEnabled,
-    workletUrl:new URL('./playground_segapsg_worklet.js?v=native-voices-2', base).href,
+    workletUrl:new URL('./playground_segapsg_worklet.js?v=native-voices-3', base).href,
     wasmUrl:new URL('segapsg_wasm.wasm?v=sega-modes-1', generated).href,
     segaPsgWasmUrl:null, megaCD:false, mega32X:false,
   };
   if (['nes','snes','x68000','huc6280'].includes(mode.chip)) {
     // Keep complete relative filenames so the website versioner can invalidate
     // each processor together with the modules it imports.
-    const worklet = {nes:'./playground_nes_worklet.js?v=native-voices-2',snes:'./playground_snes_worklet.js?v=native-voices-2',x68000:'./playground_ym2151_worklet.js?v=native-voices-2',huc6280:'./playground_huc6280_worklet.js?v=native-voices-2'}[mode.chip];
+    const worklet = {nes:'./playground_nes_worklet.js?v=native-voices-3',snes:'./playground_snes_worklet.js?v=native-voices-3',x68000:'./playground_ym2151_worklet.js?v=native-voices-3',huc6280:'./playground_huc6280_worklet.js?v=native-voices-3'}[mode.chip];
     const wasm = {snes:'spc',x68000:'ym2151',huc6280:'huc6280'}[mode.chip];
     return {chip:mode.chip,clock:mode.clock,fds:mode.chip === 'nes',
       workletUrl:new URL(worklet,base).href,
       ...(wasm?{wasmUrl:new URL(`${wasm}_wasm.wasm`,generated).href}:{}),
-      ...(mode.chip === 'x68000'?{extraOki:{workletUrl:new URL('./playground_okim6258_worklet.js?v=native-voices-2',base).href,wasmUrl:new URL('okim6258_wasm.wasm',generated).href}}:{}),
+      ...(mode.chip === 'x68000'?{extraOki:{workletUrl:new URL('./playground_okim6258_worklet.js?v=native-voices-3',base).href,wasmUrl:new URL('okim6258_wasm.wasm',generated).href}}:{}),
       segaPsgWasmUrl:null,megaCD:false,mega32X:false};
   }
   if (mode.chip === 'gameboy') return {
     chip:mode.chip,
-    workletUrl:new URL('./playground_gameboy_worklet.js?v=native-voices-2', base).href,
+    workletUrl:new URL('./playground_gameboy_worklet.js?v=native-voices-3', base).href,
     wasmUrl:new URL('gameboy_apu_wasm.wasm', generated).href,
     segaPsgWasmUrl:null,
     megaCD:false,
@@ -102,10 +102,10 @@ export function createModeSynthOptions(mode, base = new URL('../js/', import.met
   const nuked = mode.engine === 'nuked';
   const chip = mode.chip === 'ym2610' ? 'ym2610b' : mode.chip;
   const wasm = nuked ? 'nuked_opn2' : chip;
-  const worklets = {ym2612:'./ym2612-worklet.js?v=native-voices-2',ym2203:'./ym2203-worklet.js?v=audio-stability-2',ym2608:'./ym2608-worklet.js?v=audio-stability-2',ym2610b:'./ym2610b-worklet.js?v=audio-stability-2'};
+  const worklets = {ym2612:'./ym2612-worklet.js?v=native-voices-3',ym2203:'./ym2203-worklet.js?v=audio-stability-2',ym2608:'./ym2608-worklet.js?v=audio-stability-2',ym2610b:'./ym2610b-worklet.js?v=audio-stability-2'};
   return {
     chip:mode.chip,
-    workletUrl:new URL(nuked ? './ym2612-worklet-nuked.js?v=native-voices-2' : worklets[chip], base).href,
+    workletUrl:new URL(nuked ? './ym2612-worklet-nuked.js?v=native-voices-3' : worklets[chip], base).href,
     ym2612WasmUrl:new URL(`${wasm}_wasm.wasm`, generated).href,
     wasmUrl:mode.chip === 'ym2612' ? undefined : new URL(`${chip}_wasm.wasm`, generated).href,
     segaPsgWasmUrl:mode.chip === 'ym2612' ? new URL('segapsg_wasm.wasm?v=sega-modes-1', generated).href : null,

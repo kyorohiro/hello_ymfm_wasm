@@ -1233,11 +1233,18 @@ async function decodeAudioBuffer(
 ) {
   return new Promise(
     (resolve, reject) => {
-      audioContext.decodeAudioData(
+      const failed = error => reject(
+        error && typeof error.message === 'string'
+          ? error : new Error(error == null ? 'Unable to decode audio data' : String(error))
+      );
+      const decoding = audioContext.decodeAudioData(
         arrayBuffer.slice(0),
         resolve,
-        reject
+        failed
       );
+      // Modern browsers return a Promise even when callbacks are supplied.
+      // Observe both paths so a failed decode has only the caller's rejection.
+      decoding?.then(resolve, failed);
     }
   );
 }

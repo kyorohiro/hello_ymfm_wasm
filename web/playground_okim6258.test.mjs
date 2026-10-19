@@ -9,6 +9,8 @@ import {createOki6258Client} from './playground_okim6258.js';
 import {createOki6258Audio} from './playground_okim6258_audio.js';
 import {validateChipClock} from './playground_chip_clock.js';
 import {createProcessorPerformance} from './playground_performance_processor.js';
+import {Oki6258VoiceInspector} from './playground_okim6258_inspector.js';
+import {receiveChipInspector} from './playground_chip_inspector_state.js';
 
 const sampleRate = 48000;
 const peak = samples => samples.reduce((best, value) => Math.max(best, Math.abs(value)), 0);
@@ -16,7 +18,7 @@ async function worklet() {
   let Processor, resolveReady, rejectReady, frame = 0;
   const replies = [], ready = new Promise((resolve, reject) => { resolveReady = resolve; rejectReady = reject; });
   const source = (await readFile(new URL('./playground_okim6258_worklet.js', import.meta.url), 'utf8')).replace(/^import .*;$/gm, '');
-  vm.runInNewContext(source, {Oki6258AudioEngine, Oki6258Stream, OKIM6258_CLOCK, validateChipClock, factory, sampleRate,
+  vm.runInNewContext(source, {Oki6258VoiceInspector,receiveChipInspector,Oki6258AudioEngine, Oki6258Stream, OKIM6258_CLOCK, validateChipClock, factory, sampleRate,
     createProcessorPerformance:options => createProcessorPerformance({...options, rate:sampleRate, nowFrame:() => frame}),
     AudioWorkletProcessor:class { constructor() { this.port = {postMessage:data => {
       replies.push(data); if (data.ready) resolveReady(); if (data.error) rejectReady(new Error(data.error));

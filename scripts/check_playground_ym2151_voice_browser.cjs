@@ -30,10 +30,18 @@ async function field(page, selector, value) {
 const read = page => page.evaluate(() => window.__ym2151Voice.runtime.chipInspector.read('ym2151'));
 const invoke = (page, method, args=[]) => page.evaluate(({method,args}) => window.__ym2151Voice.runtime.chipInspector.invoke('ym2151',method,args), {method,args});
 async function untilState(page, source, label) {
-  await page.waitForFunction(async source => {
-    const state = await window.__ym2151Voice.runtime.chipInspector.read('ym2151');
-    return new Function('state', `return (${source})`)(state);
-  }, source, {timeout:10000}).catch(error => {throw new Error(`${label}: ${error.message}`);});
+  const deadline = Date.now() + 10000;
+  try {
+    while (Date.now() < deadline) {
+      const matched = await page.evaluate(async source => {
+        const state = await window.__ym2151Voice.runtime.chipInspector.read('ym2151');
+        return Boolean(new Function('state', `return (${source})`)(state));
+      }, source);
+      if (matched) return;
+      await page.waitForTimeout(25);
+    }
+    throw new Error(`Applied chip state did not match within 10000 ms: ${source}`);
+  } catch (error) {throw new Error(`${label}: ${error.message}`);}
 }
 async function installMeter(page) {
   await page.evaluate(() => {

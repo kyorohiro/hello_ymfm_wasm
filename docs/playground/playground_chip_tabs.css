@@ -37,3 +37,5 @@
 .chip-memory-ranges { margin: 8px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; color: #52615e; font-size: 11px; }
 .chip-editor > .subtext { line-height: 1.5; }
 @media (max-width: 640px) { .chip-editor { padding: 8px; } .chip-fields { gap: 10px; } .chip-field { min-width: 90px; } .chip-field select { max-width: 240px; } }
+
+.chip-oki-waveform { cursor: default; }

@@ -107,7 +107,7 @@ test('native Stop retains X68000 OPM patch and OKIM6258 sample metadata, and bor
   await synth.adpcm.loadMemory(Uint8Array.of(0x10,0x32,0x54,0x76)); synth.adpcm.play({repeat:true});
   const patch = synth.opm._getState().registers.slice(0x20), sample = synth.adpcm._getState();
   synth.stopAllNative(); assert.deepEqual(synth.opm._getState().registers.slice(0x20),patch); assert.deepEqual(synth.adpcm._getState(),sample);
-  await until(() => nodes[1].messages.some(data => data.method === 'stop'));
+  await until(() => nodes[1].messages.some(data => data.method === 'stopVoices'));
   assert.deepEqual(nodes[1].loadedMemory,Uint8Array.of(0x10,0x32,0x54,0x76));
   const borrowed = borrowNativeApi(synth.adpcm,'okim6258');
   assert.equal(borrowed.dispose,undefined); assert.equal(borrowed.transport,undefined); assert.equal(borrowed._getState,undefined); assert.equal(borrowed.id,'okim6258');

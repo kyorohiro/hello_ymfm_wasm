@@ -1,6 +1,6 @@
 import {attachChipClock, CHIP_CLOCKS} from './playground_chip_clock.js?v=audio-stability-2';
 /** Shared main-thread / Worker facade; register writes and memory transfers share one ordered port. */
-import {YM2608Synth} from './ym2608synth.js?v=audio-stability-2';
+import {YM2608Synth} from './ym2608synth.js?v=native-voices-3';
 
 /** @param {MessagePort} port */
 export function createYm2608Client(port) {
