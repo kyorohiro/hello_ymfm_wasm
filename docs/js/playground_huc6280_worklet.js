@@ -2,7 +2,7 @@ import {ChipClockResampler, validateChipClock} from './playground_chip_clock.js?
 import {Huc6280AudioEngine} from './huc6280audioengine.js?v=audio-stability-2';
 import {HUC6280_CLOCK} from './huc6280synth.js?v=audio-stability-2';
 import factory from '../generated/huc6280_wasm.js';
-import {createProcessorPerformance} from './playground_performance_processor.js?v=native-voices-1';
+import {createProcessorPerformance} from './playground_performance_processor.js?v=native-voices-2';
 
 class Processor extends AudioWorkletProcessor {
   constructor(options) {

@@ -128,7 +128,8 @@ export class NativeRuntimeSynth {
         snes.stopTimeline().catch(() => {});
       }
     }
-    opm?.allNotesOff();
+    if (opm?._stopVoices) opm._stopVoices();
+    else opm?.allNotesOff();
     adpcm?.stop();
     pce?.allNotesOff();
     psg?.allNotesOff();

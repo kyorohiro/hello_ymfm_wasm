@@ -52,6 +52,16 @@ export function performanceNoteRelease(chip,key) {
 }
 /** Channel touched by native register commands, used only while an editor holds a key. */
 export function nativeVoiceChannel(chip,{method,args=[]}) {
+  if(chip==='ym2151') {
+    if(method==='forceKeyOff'||method==='auditionKeyOn')return args[0];
+    if(method==='allNotesOff')return 'all';
+    if(method==='writeRegister') {
+      const register=args[0];
+      if(register===8)return args[1]&7;
+      if(register>=0x20&&register<=255)return register&7;
+      if(register>=0&&register<0x20)return 'all';
+    }
+  }
   if(chip==='gameboy'&&method==='writeRegister') {
     const r=args[0];
     if(r>=0&&r<=4)return 0;if(r>=5&&r<=9)return 1;
@@ -88,6 +98,12 @@ export function createProcessorPerformance({apply,prepare,validate,onDiscard,chi
     else if(command.method==='write'&&(command.args?.[0]&128))psgLatch=(command.args[0]>>4)&7;
   }
   function applyTracked(command,port,frame,metadata) {
+    // A script's global OPM release still stops its other voices while an editor
+    // holds one channel. Keep that manual key and its owner until explicit Off.
+    if(auditions.size&&chipName()==='ym2151'&&command.method==='allNotesOff'){
+      for(let channel=0;channel<8;channel++)if(!auditions.has(channel))applyTracked({method:'forceKeyOff',args:[channel]},port,frame);
+      return;
+    }
     if(blockedByAudition(command,metadata))return;
     command=protectNesEnable(command,metadata);
     if(!note(command,port,metadata))return;
@@ -121,7 +137,10 @@ export function createProcessorPerformance({apply,prepare,validate,onDiscard,chi
       return true;
     }
     const previous=owners.get(event.key);
-    if(!event.on&&metadata&&previous&&previous.owner!==metadata.owner)return false;
+    // A newly acquired editor lease may release the old physical key before
+    // retriggering it. Other owners still cannot send a stale release.
+    const manualOwner=auditions.has(event.key)&&auditions.get(event.key)===metadata?.owner;
+    if(!event.on&&metadata&&previous&&previous.owner!==metadata.owner&&!manualOwner)return false;
     if(event.on)owners.set(event.key,{owner:metadata?.owner??null,port});else owners.delete(event.key);
     return true;
   }
@@ -162,6 +181,9 @@ export function createProcessorPerformance({apply,prepare,validate,onDiscard,chi
     receive(data,port) {
       // Editor audition writes use applyImmediate, so ordinary Main commands and
       // previously reserved Worker commands cannot replace a held manual note.
+      if(!data?.performance&&auditions.size&&chipName()==='ym2151'&&data?.method==='allNotesOff'){
+        applyTracked(data,port,nowFrame());if(data.id!==undefined)port.postMessage({id:data.id,value:true});return true;
+      }
       if(!data?.performance&&blockedByAudition(data)){if(data.id!==undefined)port.postMessage({id:data.id,value:true});return true;}
       if(!data?.performance&&auditions.size&&chipName()==='nes'&&data?.method==='writeRegister'&&data.args[0]===0x4015){applyTracked(data,port,nowFrame());return true;}
       let reply=replies.get(port);

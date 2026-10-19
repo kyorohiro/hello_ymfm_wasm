@@ -11,7 +11,7 @@
     <meta property="og:type" content="website">
     <link rel="manifest" href="../playground.webmanifest">
     <link rel="icon" href="../playground-favicon.ico" sizes="any">
-    <link rel="stylesheet" href="./playground_chip_tabs.css?v=native-voices-1">
+    <link rel="stylesheet" href="./playground_chip_tabs.css?v=native-voices-2">
     <link rel="stylesheet" href="./playground_mixer.css?v=chip-tabs-2">
     <link rel="stylesheet" href="./playground_sample_editor.css">
     <script src="../sw-register.js"></script>
@@ -1974,6 +1974,7 @@
             <button id="pwmTab" class="tab-button" type="button" role="tab" aria-selected="false" aria-controls="pwmPanel" hidden>32X PWM</button>
             <button id="gameboyTab" class="tab-button" type="button" role="tab" aria-selected="false" aria-controls="gameboyPanel" hidden>Game Boy</button>
             <button id="nesTab" class="tab-button" type="button" role="tab" aria-selected="false" aria-controls="nesPanel" hidden>NES + FDS</button>
+            <button id="ym2151Tab" class="tab-button" type="button" role="tab" aria-selected="false" aria-controls="ym2151Panel" hidden>YM2151</button>
             <button id="mixerTab" class="tab-button" type="button" role="tab" aria-selected="false" aria-controls="mixerPanel">Mixer</button>
             <button id="keyboardTab" class="tab-button" type="button" role="tab" aria-selected="false" aria-controls="keyboardPanel">
               Keyboard
@@ -2139,6 +2140,7 @@
             <p data-native-helper="nes" hidden>Open the <strong>NES + FDS</strong> tab for voice settings and FDS waveform editing. <strong>Prepare audio</strong> works without Run; <strong>Hold to play</strong> previews the selected channel and <strong>Use Keyboard</strong> connects the Guitar. DMC requires a loaded sample.</p>
             <p data-native-helper="snes" hidden><code>snes.loadBRR(bytes, {rootNote:"C4", loopStartSamples:0})</code> prepares a BRR instrument. Assign it with <code>snes.setPreset(0, {sample:tone})</code>, then use <code>snes.noteOn(0, "C4")</code> / <code>snes.keyOff(0)</code>. Channels are <code>0..7</code>.</p>
             <p data-native-helper="x68000" hidden><code>opm</code> controls the eight YM2151 FM channels. <code>adpcm</code> controls the OKIM6258: <code>await adpcm.loadSample({channels:[pcm], sampleRate:15625})</code>, then <code>adpcm.play()</code> / <code>adpcm.stop()</code>.</p>
+            <p data-native-helper="x68000" hidden>Open <strong>YM2151</strong> for channel and operator settings. <strong>Prepare audio</strong> works without Run; <strong>Hold to play</strong> previews a sound and <strong>Use Keyboard</strong> connects the Guitar. The operator display uses logical M1 / M2 / C1 / C2 order.</p>
             <p data-native-helper="huc6280" hidden><code>pce.setWaveform(0, wave)</code> loads 32 samples in <code>0..31</code>. Use <code>pce.setVolume(0, 20)</code>, <code>pce.noteOn(0, "C4")</code> and <code>pce.keyOff(0)</code>. Channels are <code>0..5</code>; noise is available on <code>4</code> and <code>5</code>.</p>
             <h2 data-opn-helper style="margin-top: 14px;">midi (YM2612 mode)</h2>
             <ul data-opn-helper class="helper-list">
@@ -2363,6 +2365,7 @@
           <section id="pwmPanel" class="tab-panel chip-editor-panel" role="tabpanel" aria-labelledby="pwmTab" hidden></section>
           <section id="gameboyPanel" class="tab-panel chip-editor-panel" role="tabpanel" aria-labelledby="gameboyTab" hidden></section>
           <section id="nesPanel" class="tab-panel chip-editor-panel" role="tabpanel" aria-labelledby="nesTab" hidden></section>
+          <section id="ym2151Panel" class="tab-panel chip-editor-panel" role="tabpanel" aria-labelledby="ym2151Tab" hidden></section>
           <section id="mixerPanel" class="tab-panel" role="tabpanel" aria-labelledby="mixerTab" hidden></section>
           <section id="keyboardPanel" class="tab-panel" role="tabpanel" aria-labelledby="keyboardTab" hidden>
             <div id="operatorKeyboardRoot"></div>
@@ -2417,7 +2420,7 @@
       })();
     </script>
     <script type="module">
-      import('./playground.js?v=native-voices-1').catch(error => window.__playgroundStartup.fail(error));
+      import('./playground.js?v=native-voices-2').catch(error => window.__playgroundStartup.fail(error));
     </script>
   </body>
 </html>

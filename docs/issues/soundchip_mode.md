@@ -531,6 +531,19 @@ OPNの音源タブと同じ目的で、modeに一致する **Game Boy**／**NES 
 - DMCの試聴には、コードから読み込んだDPCM素材が必要。UI変更は実行中の音源へ適用する。
   Game Boyは設定をJavaScriptとして表示・コピーできる。コードやCassetteへ音色編集を自動反映するものではない。
 
+### X68000 の YM2151 Operator 画面
+
+X68000 modeの標準YM2151を **YM2151** タブで確認・編集する。
+8チャンネルのAlgorithm／Feedback／Pan／AMS／PMS、周波数・KC/KF、
+4オペレーターのDT1／DT2／MUL／TL／KS／AR／D1R／D2R／D1L／RR／AMと、LFO・CH8 Noiseを扱う。
+
+- 表示はlogical M1／M2／C1／C2の順。既存`opm.setOperator()`のregister順M1／C1／M2／C2を変えず、コピーするJavaScriptでは番号を変換する。
+- `Prepare audio`だけで標準OPMを準備でき、`Hold to play`／`Release`と共通Keyboardで選択チャンネルを試奏できる。
+- 初期状態が無音の場合は`Load basic voice`を明示操作する。閲覧・表示更新ではレジスターを書き換えない。
+- 編集は変更した項目だけを適用し、他オペレーターやレジスターの共有ビット、LFOのAMD／PMDを保持する。
+- 試奏中は選択チャンネルの所有者を区別し、Main／Workerの先読み済み演奏に音色や音程を上書きされないようにする。他チャンネルは継続する。
+- Stopでpatch・pitchを保持する。UIでの編集は実行中の音源に適用し、コードやCassetteへの自動保存はしない。
+
 ## 今後整理する点
 
 - mode ごとの音源構成、クロック、公開名、初期コードの対応表。

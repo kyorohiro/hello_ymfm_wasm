@@ -1,10 +1,10 @@
-import {RfInspectorState, receiveChipInspector, rfSampleMetadata} from './playground_chip_inspector_state.js?v=native-voices-1';
+import {RfInspectorState, receiveChipInspector, rfSampleMetadata} from './playground_chip_inspector_state.js?v=native-voices-2';
 import {ChipClockResampler, CHIP_CLOCKS} from './playground_chip_clock.js?v=audio-stability-2';
 /** Browser AudioWorklet: RF5C164 PCM generation and direct control port. */
 import {Rf5c164} from './rf5c164.js?v=audio-stability-2';
 import factory from '../generated/rf5c164_wasm.js';
-import {createRf5c164Control} from './playground_rf5c164.js?v=native-voices-1';
-import {createProcessorPerformance} from './playground_performance_processor.js?v=native-voices-1';
+import {createRf5c164Control} from './playground_rf5c164.js?v=native-voices-2';
+import {createProcessorPerformance} from './playground_performance_processor.js?v=native-voices-2';
 import {RF5C164Synth} from './rf5c164synth.js?v=audio-stability-2';
 import {validateChipClock} from './playground_chip_clock.js?v=audio-stability-2';
 class Processor extends AudioWorkletProcessor {

@@ -1,6 +1,7 @@
 /** Dedicated sound-chip editors. Reads are visible-only; opening an editor never creates a chip. */
-import {createPlaygroundGameboyVoicePanel} from './playground_gameboy_voice_panel.js?v=native-voices-1';
-import {createPlaygroundNesVoicePanel} from './playground_nes_voice_panel.js?v=native-voices-1';
+import {createPlaygroundGameboyVoicePanel} from './playground_gameboy_voice_panel.js?v=native-voices-2';
+import {createPlaygroundNesVoicePanel} from './playground_nes_voice_panel.js?v=native-voices-2';
+import {createPlaygroundYm2151VoicePanel} from './playground_ym2151_voice_panel.js?v=native-voices-2';
 
 export function frequencyNote(frequency) {
   if (!Number.isFinite(frequency) || frequency <= 0) return '—';
@@ -27,7 +28,8 @@ export function pwmRoutingControl(control, side, route) {
 }
 
 const AUDIO_FILE = /\.(?:wav|wave|aif|aiff|mp3|ogg|flac|m4a|aac|webm)$/i;
-const KINDS = ['segapsg', 'rf5c164', 'pwm', 'gameboy', 'nes'];
+const KINDS = ['segapsg', 'rf5c164', 'pwm', 'gameboy', 'nes', 'ym2151'];
+const nativePanels = {gameboy:createPlaygroundGameboyVoicePanel,nes:createPlaygroundNesVoicePanel,ym2151:createPlaygroundYm2151VoicePanel};
 const finiteText = (value, digits = 0) => Number.isFinite(value) ? Number(value.toFixed(digits)).toString() : '—';
 const hex = value => Number.isInteger(value) ? `0x${value.toString(16).toUpperCase().padStart(4, '0')}` : '—';
 
@@ -114,7 +116,7 @@ export function createPlaygroundChipTabs({roots, getInspector, listFiles = () =>
       editor.id = value; editor.snapshot = null; editor.selectionVersion += 1; delete editor.status.dataset.error; editor.status.textContent = ''; generation += 1; refresh();
     });
     const refreshButton = button('Refresh', () => refresh()); toolbar.appendChild(refreshButton);
-    if (['gameboy','nes'].includes(kind) && ensureAudioReady) {
+    if (nativePanels[kind] && ensureAudioReady) {
       const prepare = button('Prepare audio', async () => {
         prepare.disabled = true;
         try {await ensureAudioReady(); if (!disposed) await refresh();}
@@ -148,7 +150,7 @@ export function createPlaygroundChipTabs({roots, getInspector, listFiles = () =>
           if (!disposed && editor.voiceSource === source && editor.voiceId === id && visible === editor.kind) void refresh();
           return value;
         };
-        const factory = editor.kind === 'gameboy' ? createPlaygroundGameboyVoicePanel : createPlaygroundNesVoicePanel;
+        const factory = nativePanels[editor.kind];
         editor.voicePanel = factory({root:editor.body,invoke,onError:e=>error(editor,e),onKeyboardTargetChange:target=>{
           if (target) {
             if (keyboardEditor && keyboardEditor !== editor) keyboardEditor.voicePanel?.setKeyboardActive?.(false);
@@ -394,7 +396,7 @@ export function createPlaygroundChipTabs({roots, getInspector, listFiles = () =>
   for (const kind of KINDS) {
     if (!roots[kind]) continue;
     const editor = buildBase(kind, roots[kind]);
-    ({segapsg: buildPsg, rf5c164: buildRf, pwm: buildPwm, gameboy:buildNative, nes:buildNative})[kind](editor);
+    ({segapsg: buildPsg, rf5c164: buildRf, pwm: buildPwm, gameboy:buildNative, nes:buildNative,ym2151:buildNative})[kind](editor);
     editor.status.textContent = 'No connected instance. Run code that uses this sound chip first.';
   }
   function connectInspector() {
@@ -419,7 +421,7 @@ export function createPlaygroundChipTabs({roots, getInspector, listFiles = () =>
     syncOptions(editor.instances, matches.length ? matches.map(entry => [entry.id, entry.label || entry.id]) : [['', 'No connected instance']], editor.id);
     editor.instances.disabled = !matches.length; editor.body.disabled = !editor.id || !editor.snapshot;
     if (!editor.id || !source) {
-      editor.status.textContent = ['gameboy','nes'].includes(editor.kind) ? 'Prepare audio to inspect and play this mode’s sound chip, or Run your code.' : 'No connected instance. Run code that uses this sound chip first.';
+      editor.status.textContent = nativePanels[editor.kind] ? 'Prepare audio to inspect and play this mode’s sound chip, or Run your code.' : 'No connected instance. Run code that uses this sound chip first.';
       schedule(); return;
     }
     const id = editor.id;

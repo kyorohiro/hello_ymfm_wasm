@@ -12,6 +12,13 @@
 .chip-field input[type="number"], .chip-field input[type="text"], .chip-field select, .chip-field textarea { box-sizing: border-box; font: inherit; color: var(--ink, #252b2e); background: #fff; border: 1px solid var(--line, #c4c6bd); border-radius: 6px; padding: 6px 8px; }
 .chip-field textarea { width: 100%; resize: vertical; }
 .chip-voice-code { box-sizing: border-box; width: 100%; font: 12px ui-monospace, monospace; }
+.chip-opm-table-scroll { overflow-x: auto; }
+.chip-opm-table { border-collapse: collapse; width: 100%; font-size: 12px; }
+.chip-opm-table th, .chip-opm-table td { padding: 4px; text-align: center; }
+.chip-opm-table th[scope=row] { text-align: left; white-space: nowrap; }
+.chip-opm-table input[type=number] { width: 60px; box-sizing: border-box; font: inherit; border: 1px solid var(--line, #c4c6bd); border-radius: 4px; padding: 5px; }
+.chip-opm-routing { font: 12px ui-monospace, monospace; white-space: pre-wrap; line-height: 1.5; }
+.chip-opm-envelope { display: block; width: 100%; height: 180px; background: #101820; border: 1px solid var(--line, #c4c6bd); border-radius: 4px; margin: 10px 0; cursor: default; }
 .chip-editor-panel[hidden], .chip-editor [hidden] { display: none !important; }
 .chip-field input:disabled, .chip-field select:disabled { color: #66716c; background: #f1f2ee; }
 .chip-field input[type="number"] { width: 118px; }

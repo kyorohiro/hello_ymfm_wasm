@@ -59,6 +59,7 @@ export function createYm2151Client(port) {
     keyOn(ch, mask = 15) { channel(ch); integer(mask, 15, 'Operator mask'); writeRegister(8, ch | (mask << 3)); },
     keyOff(ch) { channel(ch); writeRegister(8, ch); },
     _forceKeyOff(ch) {channel(ch);send('forceKeyOff',[ch]);},
+    _stopVoices() {send('stopVoices');},
     allNotesOff() {send('allNotesOff');},
     setNoise(enabled, frequency = 0) { integer(frequency, 31, 'Noise frequency'); writeRegister(15, (enabled ? 128 : 0) | frequency); },
     dispose() { if (disposed) return; send('dispose'); disposed = true; port.close(); },
