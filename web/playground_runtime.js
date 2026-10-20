@@ -316,13 +316,14 @@ export function createPlaygroundRuntime(
   const soundChips = createSoundChipRegistry();
   const chipInspector = createChipInspector({decode:decodePcm,endpoints:()=>{
     const entries=[];
+    if(hasOpn&&megaDrive.node?.port)entries.push({id:capabilities.chip,kind:capabilities.chip,label:`${capabilities.chip.toUpperCase()} (primary)`,port:megaDrive.node.port});
     if(capabilities.chip==='gameboy'&&megaDrive.gameboy&&megaDrive.node?.port)entries.push({id:'gameboy',kind:'gameboy',label:'Game Boy (primary)',port:megaDrive.node.port});
     const nativeLabels={snes:'SNES (primary)',nes:'NES + FDS (primary)',ym2151:'YM2151 (primary)',okim6258:'OKIM6258 (primary)',huc6280:'HuC6280 (primary)',dx7:'DX7 (primary)'};
-    for(const endpoint of megaDrive.primaryEndpoints??[])if(nativeLabels[endpoint.name]&&endpoint.client&&endpoint.node?.port)entries.push({id:endpoint.name,kind:endpoint.name,label:nativeLabels[endpoint.name],port:endpoint.node.port});
+    for(const endpoint of megaDrive.primaryEndpoints??[])if(nativeLabels[endpoint.name]&&endpoint.client&&endpoint.node?.port)entries.push({id:endpoint.name,kind:endpoint.name,label:nativeLabels[endpoint.name],port:endpoint.node.port,...(endpoint.name==='nes'?{fdsEnabled:true}:{})});
     if(megaDrive.psg&&megaDrive.node?.port)entries.push({id:'segapsg',kind:'segapsg',label:'Sega PSG (primary)',port:megaDrive.node.port});
     if(megaDrive.pcm&&megaDrive.pcmDevice?.node?.port)entries.push({id:'rf5c164',kind:'rf5c164',label:'RF5C164 (primary)',port:megaDrive.pcmDevice.node.port});
     if(megaDrive.pwm&&megaDrive.pwmDevice?.node?.port)entries.push({id:'pwm',kind:'pwm',label:'32X PWM (primary)',port:megaDrive.pwmDevice.node.port});
-    for(const device of pcmDevices)if(['segapsg','rf5c164','pwm','gameboy','nes','ym2151','okim6258','huc6280','dx7'].includes(device.chipName))entries.push({id:device.mixerId,kind:device.chipName,label:device.mixerId,port:device.node.port});
+    for(const device of pcmDevices)entries.push({id:device.mixerId,kind:device.chipName,label:`${device.chipName.toUpperCase()} · ${device.mixerId}`,port:device.node.port,...(device.chipName==='nes'?{fdsEnabled:device.fdsEnabled}:{})});
     return entries;
   }});
   let releaseInspectorMixerSubscription=null;
@@ -808,9 +809,27 @@ export function createPlaygroundRuntime(
   }
 
   function stopAllAudio() {
+    const fromKeyboardCleanup=currentLoopContext?.keyboardCleanup===true;
     soundChips.clear();
-    for(const device of pcmDevices)device.dispose();
-    pcmDevices.clear();
+    const retiringDevices=[...pcmDevices];
+    if(retiringDevices.length){
+      // Retire callbacks while their clients and ports still exist. Disconnect
+      // output immediately, so an awaited custom allNotesOff cannot keep Stop
+      // audible or send its final releases to a replacement instance.
+      const keyboardCleanup=musicalKeyboard.settled();
+      const released=keyboardCleanup.then(()=>{
+        for(const device of retiringDevices)try{device.dispose();}catch(error){emitLog(formatLogArgs([error]));}
+      }).finally(()=>{
+        for(const device of retiringDevices)if(pendingPcmDisposals.get(device.mixerId)===released)pendingPcmDisposals.delete(device.mixerId);
+      });
+      for(const device of retiringDevices){
+        pcmDevices.delete(device);
+        pendingPcmDisposals.set(device.mixerId,released);
+        device.node?.disconnect?.();
+      }
+      chipInspector.notify();
+      primaryPcmSilence=Promise.all([primaryPcmSilence,released]).then(()=>{});
+    }
     midiApis.clear();
     midiRack?.stop();
     midiRack = null;
@@ -823,7 +842,10 @@ export function createPlaygroundRuntime(
     }
     stopAllNotes();
     megaDrive.pcm?._cancelClockRequests?.('Run stopped');
-    if (megaDrive.pcm) silencePrimaryPcm([0,1,2,3,4,5,6,7]);
+    if (megaDrive.pcm?._stopVoices) {
+      const stopped=megaDrive.pcm._stopVoices();
+      primaryPcmSilence=Promise.all([primaryPcmSilence,Promise.resolve(stopped).catch(()=>{})]).then(()=>{});
+    } else if (megaDrive.pcm) silencePrimaryPcm([0,1,2,3,4,5,6,7]);
     primaryPcmOwners.clear();
     if (nativePrimary) {
       const pending=megaDrive.stopAllNative();
@@ -851,7 +873,9 @@ export function createPlaygroundRuntime(
     megaDrive.sample.stopAll();
     megaDrive.stream.stop();
     noiseApi.stopAll();
-    return primaryPcmSilence;
+    // A custom allNotesOff may itself await pg.stopAll(). Its callback is one
+    // of the operations in this barrier, so it must not await its own release.
+    return fromKeyboardCleanup?Promise.resolve():primaryPcmSilence;
   }
 
   const clockApi =
@@ -1350,6 +1374,9 @@ export function createPlaygroundRuntime(
       const pending=new Promise(resolve=>{finish=resolve;});
       pendingPcmDisposals.set(args[0],pending);
       const cleanup=()=>{
+        // Stop may have taken ownership of this same device's retirement while
+        // its musical Keyboard callback is still releasing the old client.
+        if(pendingPcmDisposals.get(args[0])!==pending){finish();return;}
         if(performance && performanceHost.clock?.session===performance.session &&
             megaDrive.audioContext.currentTime < performance.time) {setTimeout(cleanup,10);return;}
         try {for(const device of devices){performanceHost.detach(device.node?.port);device.dispose();}}
@@ -2711,6 +2738,7 @@ export function createPlaygroundRuntime(
       null;
     releaseInspectorMixerSubscription?.();
     releaseInspectorMixerSubscription=null;
+    await primaryPcmSilence;
     await megaDrive.close();
     // finalize() can be followed by initialize() on the same Runtime. Drop dead
     // port listeners while retaining the UI subscriptions for that next audio session.

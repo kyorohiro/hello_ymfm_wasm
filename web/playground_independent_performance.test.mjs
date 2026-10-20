@@ -1,3 +1,5 @@
+import {createOpnAuditionGuard} from './playground_audition_guard.js';
+import {OpnKeyboardInspector} from './playground_opn_inspector.js';
 import {PsgInspectorState,RfInspectorState,receiveChipInspector,rfSampleMetadata,readPwmInspector} from './playground_chip_inspector_state.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -25,7 +27,7 @@ async function setup(file) {
     process(left,right){left.fill(chip.value);right.fill(chip.value);}};
   class SyncChip {constructor(){return chip;}static async create(){return chip;}}
   class Playback {constructor(){return Object.assign(chip,{write(_reg,value){this.value=value;}});}}
-  const scope={Ym2151VoiceInspector,GameboyVoiceInspector,NesVoiceInspector,PsgInspectorState,RfInspectorState,receiveChipInspector,rfSampleMetadata,readPwmInspector,currentFrame:0,sampleRate:rate,ChipClockResampler,CHIP_CLOCKS,validateChipClock,Ym2608Timeline,RF5C164Synth,PWM_METHODS,
+  const scope={OpnKeyboardInspector,createOpnAuditionGuard,Ym2151VoiceInspector,GameboyVoiceInspector,NesVoiceInspector,PsgInspectorState,RfInspectorState,receiveChipInspector,rfSampleMetadata,readPwmInspector,currentFrame:0,sampleRate:rate,ChipClockResampler,CHIP_CLOCKS,validateChipClock,Ym2608Timeline,RF5C164Synth,PWM_METHODS,
     NesApu:SyncChip,GameboyApu:SyncChip,SegaPSG:SyncChip,Ym2151:SyncChip,Ym2612:SyncChip,Ym2203:SyncChip,Ym2610B:SyncChip,Ym2608:SyncChip,Rf5c164:SyncChip,
     Ym2608AudioEngine:{create:async()=>engine},PWM32XPlayback:Playback,factory:{},ym2612Factory:{},ym2203Factory:{},ym2610Factory:{},ym2608Factory:{},ym2151Factory:{},gameboyFactory:{},psgFactory:{},
     createRf5c164Control:()=>({reset:()=>chip.reset(),writeRegister:(reg,value)=>chip.writeRegister(reg,value),dispose:()=>chip.dispose()}),

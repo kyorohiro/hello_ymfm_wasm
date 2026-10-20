@@ -1,14 +1,14 @@
-import {ChipClockResampler, CHIP_CLOCKS} from './playground_chip_clock.js?v=dx7-voices-1';
-import {PsgInspectorState, receiveChipInspector} from './playground_chip_inspector_state.js?v=dx7-voices-1';
+import {ChipClockResampler, CHIP_CLOCKS} from './playground_chip_clock.js?v=keyboard-chips-1';
+import {PsgInspectorState, receiveChipInspector} from './playground_chip_inspector_state.js?v=keyboard-chips-1';
 import {SegaPSG} from './segapsg.js?v=sega-modes-1';
 import factory from '../generated/segapsg_wasm.js?v=sega-modes-1';
-import {createProcessorPerformance} from './playground_performance_processor.js?v=dx7-voices-1';
+import {createProcessorPerformance} from './playground_performance_processor.js?v=keyboard-chips-1';
 class Processor extends AudioWorkletProcessor {
   constructor(options) {
     super(); this.chip = null; this.dead = false;
     this.baseClock = options.processorOptions.clock ?? CHIP_CLOCKS.segapsg;
     this.stereoEnabled = options.processorOptions.stereoEnabled ?? true;
-    this.performance=createProcessorPerformance({chip:'segapsg',getPsgLatch:()=>this.inspector?.latched,apply:(data,port)=>this.apply(data,port)});
+    this.performance=createProcessorPerformance({chip:'segapsg',getPsgLatch:()=>this.inspector?.latched,getPsgMode:()=>this.inspector?.mode??0,apply:(data,port)=>this.apply(data,port)});
     this.renderSegment=this.renderSegment.bind(this);
     this.port.onmessage = ({data}) => {
       if (data.primaryWorker) {

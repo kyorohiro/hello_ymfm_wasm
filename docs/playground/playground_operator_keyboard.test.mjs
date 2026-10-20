@@ -25,10 +25,12 @@ function setup(ensureAudioReady, keyboardOptions = {}) {
   const elements = new Map();
   function element() {
     const attributes = new Map();
-    return { listeners: new Map(), dataset: {}, classList: classList(),
+    return { listeners: new Map(), dataset: {}, classList: classList(), children: [],
       setAttribute(name, value) { attributes.set(name, String(value)); },
       getAttribute(name) { return attributes.get(name) ?? null; },
-      appendChild() {}, addEventListener(name, fn) { this.listeners.set(name, fn); }, blur() {},
+      appendChild(child) { this.children.push(child); },
+      replaceChildren(...children) { this.children = children; },
+      addEventListener(name, fn) { this.listeners.set(name, fn); }, blur() {},
       querySelector(id) {
         if (!elements.has(id)) {
           const child = element();
@@ -46,8 +48,9 @@ function setup(ensureAudioReady, keyboardOptions = {}) {
   const entries = ['a', 's'].map((key,index) => ({ key, midi:60 + index, noteName: key, pitch: { block: 4, fnum: 553 } }));
   let pointerHandlers, fretControls;
   let selected = 2;
+  const document = { createElement: element, activeElement: null };
   const context = vm.createContext({
-    document: { createElement: element }, CSS: { escape: value => value },
+    document, CSS: { escape: value => value },
     window: { addEventListener: (name, fn) => listeners.set(name, fn), removeEventListener: name => listeners.delete(name) },
     createFretboardState: () => ({}), createFretboardLayout: () => ({ entries }),
     buildKeyboard(options) { pointerHandlers = options; }, renderFretboardControls(options) {fretControls = options;},
@@ -59,7 +62,7 @@ function setup(ensureAudioReady, keyboardOptions = {}) {
   const keyboard = context.createPlaygroundOperatorKeyboard({ root, getSelectedChannel: () => selected, onChannelChange: ch => { selected = ch; }, ensureAudioReady, ...options });
   const send = (name, key = 'a', extra = {}) => listeners.get(name)?.({ key, target: { tagName: 'BUTTON' }, preventDefault() {}, ...extra });
   const buttonFor = key => root.querySelector('#playgroundKeyboardKeys').querySelector(`[data-key="${key}"]`);
-  return { keyboard, root, notes, synth, send, entries, buttonFor,
+  return { keyboard, root, notes, synth, send, entries, buttonFor, document,
     pointerOptions: () => pointerHandlers, fretControls: () => fretControls,
     select: ch => { selected = ch; },
     pointerDown: (key = 'a',event = {}) => pointerHandlers.onPointerDown(event, entries.find(entry => entry.key === key),buttonFor(key)),
@@ -76,6 +79,166 @@ function targetFixture(name = 'Sampler', noteOn) {
     allNotesOff() {events.push(['all']);},
   }};
 }
+
+function routingFixture() {
+  let state = {chips:[
+    {id:'ym2612-1', label:'YM2612 #1', channels:[{id:'fm-1', label:'FM CH1'}, {id:'fm-2', label:'FM CH2'}]},
+    {id:'psg-1', label:'Sega PSG #1', channels:[{id:'tone-1', label:'Tone CH1'}, {id:'tone-2', label:'Tone CH2'}]},
+  ], chipId:'ym2612-1', channelId:'fm-1'};
+  const listeners = new Set(), selections = [];
+  const fixture = {
+    selections, onChange:null,
+    set(next) {
+      state = {...state, ...next};
+      fixture.onChange?.(state);
+      for (const listener of listeners) listener();
+    },
+    routing:{
+      getState:() => state,
+      subscribe(listener) {listeners.add(listener); return () => listeners.delete(listener);},
+      selectChip(id) {
+        selections.push(['chip',id]);
+        fixture.set({chipId:id, channelId:state.chips.find(chip => chip.id === id)?.channels?.[0]?.id ?? null});
+      },
+      selectChannel(id) {selections.push(['channel',id]); fixture.set({channelId:id});},
+    },
+    get listenerCount() {return listeners.size;},
+  };
+  return fixture;
+}
+
+function choose(t, selector, value) {
+  const select = t.root.querySelector(selector);
+  select.value = value;
+  select.listeners.get('change')();
+}
+
+test('routed Keyboard exposes actual Chip and CH choices without duplicate FM controls', () => {
+  const fixture = routingFixture(), t = setup(undefined,{routing:fixture.routing});
+  t.keyboard.setView('keyboard');
+  const chip = t.root.querySelector('#playgroundKeyboardChip');
+  const channel = t.root.querySelector('#playgroundKeyboardTargetChannel');
+  assert.equal(t.root.querySelector('#playgroundKeyboardRoutingTools').hidden,false);
+  assert.equal(t.root.querySelector('#playgroundKeyboardChannelTools').hidden,true);
+  assert.equal(chip.value,'ym2612-1');
+  assert.deepEqual(chip.children.map(option => option.textContent),['YM2612 #1','Sega PSG #1']);
+  assert.deepEqual(channel.children.map(option => option.textContent),['FM CH1','FM CH2']);
+  choose(t,'#playgroundKeyboardChip','psg-1');
+  assert.equal(channel.value,'tone-1');
+  assert.deepEqual(channel.children.map(option => option.textContent),['Tone CH1','Tone CH2']);
+  choose(t,'#playgroundKeyboardTargetChannel','tone-2');
+  assert.deepEqual(fixture.selections,[['chip','psg-1'],['channel','tone-2']]);
+  assert.match(t.root.querySelector('#playgroundKeyboardHint').textContent,/Sega PSG #1 \/ Tone CH2/);
+  assert.match(t.root.querySelector('#playgroundKeyboardStatus').textContent,/Sega PSG #1 \/ Tone CH2/);
+  t.keyboard.setView('operator');
+  assert.equal(t.root.querySelector('#playgroundKeyboardRoutingTools').hidden,true);
+  assert.equal(t.root.querySelector('#playgroundKeyboardChannelTools').hidden,false,'compact Operator retains its own FM controls');
+});
+
+test('selecting Chip or CH while idle sends no note or panic commands', () => {
+  const fixture = routingFixture(), t = setup(undefined,{routing:fixture.routing});
+  const first = targetFixture('YM2612 #1 CH1'), second = targetFixture('YM2612 #1 CH2'), psg = targetFixture('PSG #1');
+  fixture.onChange = state => t.keyboard.attachNoteTarget(state.chipId === 'psg-1' ? psg.target : second.target);
+  t.keyboard.attachNoteTarget(first.target); t.keyboard.setView('keyboard');
+  choose(t,'#playgroundKeyboardTargetChannel','fm-2');
+  choose(t,'#playgroundKeyboardChip','psg-1');
+  assert.deepEqual([...first.events,...second.events,...psg.events],[]);
+  t.send('keydown'); t.send('keyup');
+  assert.deepEqual(psg.events.map(event => event[0]),['on','off']);
+});
+
+test('changing a routed channel releases held notes and their old keyup cannot stop a replacement', () => {
+  const fixture = routingFixture(), t = setup(undefined,{routing:fixture.routing});
+  const first = targetFixture('CH1'), second = targetFixture('CH2');
+  t.keyboard.attachNoteTarget(first.target); t.keyboard.setView('keyboard');
+  fixture.onChange = () => t.keyboard.attachNoteTarget(second.target);
+  t.send('keydown','a',{code:'KeyA'});
+  const firstId = first.events[0][1].id;
+  const layout = t.pointerOptions();
+  choose(t,'#playgroundKeyboardTargetChannel','fm-2');
+  assert.deepEqual(first.events.map(event => event[0]),['on','off','all']);
+  assert.equal(first.events[1][1].id,firstId);
+  assert.equal(t.buttonFor('a').classList.contains('is-active'),false);
+  assert.equal(t.pointerOptions(),layout,'selecting a route preserves the fretboard DOM and focus');
+  t.send('keydown','s',{code:'KeyS'}); t.send('keyup','a',{code:'KeyA'});
+  assert.deepEqual(second.events.map(event => event[0]),['on']);
+  t.send('keyup','s',{code:'KeyS'});
+  assert.deepEqual(second.events.map(event => event[0]),['on','off']);
+});
+
+test('instance metadata additions and removals update choices without releasing an unchanged held route', () => {
+  const fixture = routingFixture(), t = setup(undefined,{routing:fixture.routing}), current = targetFixture('CH1');
+  t.keyboard.attachNoteTarget(current.target); t.keyboard.setView('keyboard'); t.send('keydown');
+  const chip = t.root.querySelector('#playgroundKeyboardChip'), layout = t.pointerOptions();
+  const originalChip = fixture.routing.getState().chips[0];
+  fixture.set({chips:[originalChip,{id:'ym2612-2',label:'YM2612 #2',channels:[{id:'fm-1',label:'FM CH1'}]}]});
+  assert.deepEqual(chip.children.map(option => option.value),['ym2612-1','ym2612-2']);
+  assert.equal(t.pointerOptions(),layout);
+  assert.deepEqual(current.events.map(event => event[0]),['on']);
+  fixture.set({chips:[originalChip]});
+  assert.deepEqual(chip.children.map(option => option.value),['ym2612-1']);
+  assert.deepEqual(current.events.map(event => event[0]),['on']);
+  t.send('keyup');
+  assert.deepEqual(current.events.map(event => event[0]),['on','off']);
+});
+
+test('removing the selected instance releases its keys and cannot fall back to the primary FM synth', () => {
+  const fixture = routingFixture(), t = setup(undefined,{routing:fixture.routing}), current = targetFixture('Removed chip');
+  t.keyboard.attachSynth(t.synth); t.keyboard.attachNoteTarget(current.target); t.keyboard.setView('keyboard');
+  t.send('keydown','a');
+  fixture.set({chips:fixture.routing.getState().chips.filter(chip => chip.id !== 'ym2612-1')});
+  assert.deepEqual(current.events.map(event => event[0]),['on','off','all']);
+  t.send('keyup','a'); t.send('keydown','s'); t.pointerDown('a');
+  assert.deepEqual(current.events.map(event => event[0]),['on','off','all']);
+  assert.deepEqual(t.notes,[]);
+});
+
+test('metadata updates preserve an open native selector and apply its latest options after blur', () => {
+  const fixture = routingFixture(), t = setup(undefined,{routing:fixture.routing});
+  t.keyboard.setView('keyboard');
+  const chip = t.root.querySelector('#playgroundKeyboardChip'), options = chip.children;
+  t.document.activeElement = chip;
+  chip.value = 'psg-1';
+  fixture.set({chips:[...fixture.routing.getState().chips,{id:'dx7-1',label:'DX7 #1',channels:[{id:'poly',label:'Polyphonic'}]}]});
+  assert.equal(chip.children,options,'a metadata notification must not replace a focused native picker');
+  assert.equal(chip.value,'psg-1','an uncommitted native picker choice is preserved');
+  t.document.activeElement = null;
+  chip.listeners.get('blur')();
+  assert.deepEqual(chip.children.map(option => option.value),['ym2612-1','psg-1','dx7-1']);
+  assert.equal(chip.value,'ym2612-1','the committed routing selection remains authoritative');
+});
+
+test('unsupported routes stay selectable, explain the limitation and never prepare or fall back to FM', () => {
+  let preparations = 0;
+  const fixture = routingFixture();
+  fixture.set({chips:[...fixture.routing.getState().chips,{id:'pwm-1',label:'32X PWM #1',channels:[],disabled:true,hint:'Load a sample to use this instrument.'}]});
+  const t = setup(() => {preparations++;},{routing:fixture.routing}), custom = targetFixture('Previously selected');
+  t.keyboard.attachSynth(t.synth); t.keyboard.attachNoteTarget(custom.target); t.keyboard.setView('keyboard');
+  choose(t,'#playgroundKeyboardChip','pwm-1');
+  const chip = t.root.querySelector('#playgroundKeyboardChip'), channel = t.root.querySelector('#playgroundKeyboardTargetChannel');
+  assert.equal(chip.children.find(option => option.value === 'pwm-1').disabled,false);
+  assert.equal(channel.disabled,true);
+  assert.match(t.root.querySelector('#playgroundKeyboardHint').textContent,/Load a sample/);
+  t.send('keydown'); t.pointerDown();
+  assert.equal(preparations,0);
+  assert.deepEqual(t.notes,[]);
+  assert.deepEqual(custom.events,[]);
+});
+
+test('routing changes during preparation cancel the pending note, and disposal unsubscribes metadata', async () => {
+  let ready;
+  const fixture = routingFixture(), t = setup(() => new Promise(resolve => {ready = resolve;}),{routing:fixture.routing});
+  const old = targetFixture('Old'), next = targetFixture('Next');
+  fixture.onChange = () => t.keyboard.attachNoteTarget(next.target);
+  t.keyboard.attachNoteTarget(old.target); t.keyboard.setView('keyboard'); t.send('keydown');
+  choose(t,'#playgroundKeyboardTargetChannel','fm-2'); ready();
+  await new Promise(setImmediate);
+  assert.deepEqual(old.events,[],'a pending key must not send an idle panic during selection');
+  assert.deepEqual(next.events,[],'the old held key must not move to the replacement channel');
+  assert.equal(fixture.listenerCount,1);
+  t.keyboard.dispose();
+  assert.equal(fixture.listenerCount,0);
+});
 
 test('a custom target uses shared MIDI notes and independent press IDs for equal pitches', () => {
   const t = setup(), custom = targetFixture();

@@ -51,7 +51,18 @@ export function performanceNoteRelease(chip,key) {
   return {method:'write',args:[0,0x28,[0,1,2,4,5,6][key]]};
 }
 /** Channel touched by native register commands, used only while an editor holds a key. */
-export function nativeVoiceChannel(chip,{method,type,args=[],channel,psgRegister},{hucChannel=0,psgLatch=0}={}) {
+export function nativeVoiceChannel(chip,{method,type,args=[],channel,psgRegister},{hucChannel=0,psgLatch=0,rfChannel=0}={}) {
+  if(chip==='rf5c164'){
+    if(['setChannel','setPitch','keyOn','keyOff'].includes(method))return args[0];
+    if(['clock','loadMemory'].includes(method)||type==='chip-clock')return 'all';
+    if(method==='writeRegister'){
+      if(args[0]<7)return rfChannel;
+      if(args[0]===7&&!(args[1]&128))return 'all';
+      // The active-low mask is merged per channel below, rather than blocking
+      // another channel's note when one Keyboard voice is held.
+      return null;
+    }
+  }
   if(chip==='segapsg'){
     if(method==='write'){const byte=args[0],latch=byte&128?byte>>4&7:Number.isInteger(psgRegister)?psgRegister:psgLatch;return latch>>1;}
     if(['allNotesOff','setStereo','clock'].includes(method)||type==='chip-clock')return 'all';
@@ -101,7 +112,7 @@ export function nativeVoiceChannel(chip,{method,type,args=[],channel,psgRegister
   }
   if(method==='reset')return 'all';return null;
 }
-export function createProcessorPerformance({apply,prepare,validate,onDiscard,onBlocked,chip,releaseNote,getPsgLatch,getHucChannel,trackImmediateNotes=true,immediate = [],nowFrame = () => currentFrame,rate = sampleRate}) {
+export function createProcessorPerformance({apply,prepare,validate,onDiscard,onBlocked,chip,releaseNote,getPsgLatch,getPsgMode,getHucChannel,getRfChannel,getRfMask,trackImmediateNotes=true,immediate = [],nowFrame = () => currentFrame,rate = sampleRate}) {
   const replies = new WeakMap(),ports = new WeakMap(),pendingRPC = new WeakMap(),immediateMethods = new Set(immediate);
   const owners=new Map(),auditions=new Map();
   let psgLatch=0,nesEnabled=0;
@@ -138,6 +149,7 @@ export function createProcessorPerformance({apply,prepare,validate,onDiscard,onB
     if(blockedByAudition(command,metadata)){onBlocked?.(command,port,metadata);return false;}
     command=protectNesEnable(command,metadata);
     command=protectSnesKeys(command,metadata);
+    command=protectRfMask(command,metadata);
     // Editor parameter patches retain a script's note owner even when a banked
     // control register repeats its existing gate bit. Triggers/releases do not.
     if(!metadata?.preserveOwner&&!note(command,port,metadata))return false;
@@ -146,7 +158,13 @@ export function createProcessorPerformance({apply,prepare,validate,onDiscard,onB
   }
   function blockedByAudition(command,metadata) {
     if(!auditions.size)return false;
-    const channel=nativeVoiceChannel(chipName(),command,{hucChannel:getHucChannel?.()??0,psgLatch:getPsgLatch?.()??psgLatch});
+    // PSG noise rate 3 uses tone channel 3's divider. A held noise key owns
+    // that divider as well, while the tone channel's volume remains editable.
+    if(chipName()==='segapsg'&&command.method==='write'&&auditions.has(3)&&(getPsgMode?.()&3)===3){
+      const byte=command.args[0],register=byte&128?byte>>4&7:Number.isInteger(command.psgRegister)?command.psgRegister:getPsgLatch?.()??psgLatch;
+      if(register===4&&auditions.get(3)!==metadata?.owner)return true;
+    }
+    const channel=nativeVoiceChannel(chipName(),command,{hucChannel:getHucChannel?.()??0,psgLatch:getPsgLatch?.()??psgLatch,rfChannel:getRfChannel?.()??0});
     if(channel==='all'){
       if(chipName()==='nes'&&command.method==='writeRegister'&&command.args[0]===0x4015)return false;
       for(const owner of auditions.values())if(owner===metadata?.owner)return false;return true;
@@ -163,6 +181,11 @@ export function createProcessorPerformance({apply,prepare,validate,onDiscard,onB
     if(!auditions.size||chipName()!=='snes'||command.method!=='writeDsp'||![0x4c,0x5c].includes(command.args[0]))return command;
     let mask=0;for(const [channel,owner]of auditions)if(owner!==metadata?.owner)mask|=1<<channel;
     return {...command,args:[command.args[0],command.args[1]&~mask]};
+  }
+  function protectRfMask(command,metadata){
+    if(!auditions.size||chipName()!=='rf5c164'||command.method!=='writeRegister'||command.args[0]!==8)return command;
+    let mask=0;for(const [channel,owner]of auditions)if(owner!==metadata?.owner)mask|=1<<channel;
+    return {...command,args:[8,(command.args[1]&~mask)|((getRfMask?.()??255)&mask)]};
   }
   function note(command,port,metadata) {
     noteState.psgLatch=getPsgLatch?.()??psgLatch;
@@ -199,7 +222,12 @@ export function createProcessorPerformance({apply,prepare,validate,onDiscard,onB
       const port = ports.get(reply);
       let deferred;
       if (prepare) deferred=prepare(command,port,performance);
-      else if (immediateMethods.has(command.method)) {apply(command,port);return null;}
+      else if (immediateMethods.has(command.method)) {
+        if(chipName()==='rf5c164'){
+          if(!applyTracked(command,port,nowFrame())&&command.id!==undefined)port.postMessage({id:command.id,value:true});
+        }else apply(command,port);
+        return null;
+      }
       else if (command.id === undefined) deferred=command;
       else {const {id,...data}=command;port.postMessage({id,value:true});deferred=data;}
       if(deferred?.id!==undefined)pendingRPC.set(deferred,port);
@@ -231,6 +259,7 @@ export function createProcessorPerformance({apply,prepare,validate,onDiscard,onB
       }
       if(!data?.performance&&auditions.size&&chipName()==='nes'&&data?.method==='writeRegister'&&data.args[0]===0x4015){applyTracked(data,port,nowFrame());return true;}
       if(!data?.performance&&auditions.size&&chipName()==='snes'&&data?.method==='writeDsp'&&[0x4c,0x5c].includes(data.args[0])){applyTracked(data,port,nowFrame());if(data.id!==undefined)port.postMessage({id:data.id,value:true});return true;}
+      if(!data?.performance&&auditions.size&&chipName()==='rf5c164'&&data?.method==='writeRegister'&&data.args[0]===8){applyTracked(data,port,nowFrame());if(data.id!==undefined)port.postMessage({id:data.id,value:true});return true;}
       let reply=replies.get(port);
       if (!reply) {reply=message=>port.postMessage(message);replies.set(port,reply);ports.set(reply,port);}
       if(data?.performance&&data.commands?.some(command=>command.id!==undefined)){

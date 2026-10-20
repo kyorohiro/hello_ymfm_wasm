@@ -1,3 +1,6 @@
+import {receiveChipInspector} from './playground_chip_inspector_state.js';
+import {createOpnAuditionGuard} from './playground_audition_guard.js';
+import {OpnKeyboardInspector} from './playground_opn_inspector.js';
 import {validateChipClock} from './playground_chip_clock.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -15,7 +18,7 @@ const source=(await readFile(new URL('./playground_opn_worklet.js',import.meta.u
 async function setup(name, overrides={}) {
  let Processor, ready;
  const promise=new Promise(resolve=>{ready=resolve;});
- vm.runInNewContext(source,{validateChipClock,Ym2612,Ym2203,Ym2610B,ym2612Factory,ym2203Factory,ym2610Factory,sampleRate:48000,
+ vm.runInNewContext(source,{OpnKeyboardInspector,receiveChipInspector,createOpnAuditionGuard,validateChipClock,Ym2612,Ym2203,Ym2610B,ym2612Factory,ym2203Factory,ym2610Factory,sampleRate:48000,
   createProcessorPerformance:options=>createProcessorPerformance({...options,rate:48000,nowFrame:()=>0}),
   AudioWorkletProcessor:class{constructor(){this.port={postMessage:ready};}},registerProcessor:(_,cls)=>{Processor=cls;},...overrides});
  const wasmBinary=await readFile(new URL(`../docs/generated/${name==='ym2610'?'ym2610b':name}_wasm.wasm`,import.meta.url));

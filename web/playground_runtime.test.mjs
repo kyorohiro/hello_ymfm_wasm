@@ -26,7 +26,7 @@ async function until(predicate) {
   }
   assert.fail('Async boundary was not reached');
 }
-function setup(t, capabilities, runtimeOptions = {}) {
+function setup(t, capabilities, runtimeOptions = {}, createRuntime = createPlaygroundRuntime) {
   const listeners = new Set(), statuses = [], logs = [];
   const previous = globalThis.window;
   globalThis.window = {
@@ -41,7 +41,7 @@ function setup(t, capabilities, runtimeOptions = {}) {
     async start() { this.state = 'ready'; }, async resume() {}, async close() {},
     clearFXChain: () => [],
   };
-  const runtime = createPlaygroundRuntime({ megaDrive, guardExecution: false, onStatus: s => statuses.push(s), onLog: line => logs.push(line), ...runtimeOptions });
+  const runtime = createRuntime({ megaDrive, guardExecution: false, onStatus: s => statuses.push(s), onLog: line => logs.push(line), ...runtimeOptions });
   t.after(() => {
     runtime.stop();
     globalThis.window = previous;
@@ -50,11 +50,40 @@ function setup(t, capabilities, runtimeOptions = {}) {
   return { runtime, megaDrive, listeners, statuses, logs };
 }
 
+// Inject a deterministic audio endpoint into the real runtime, keeping its
+// production factory and public options unchanged. Other imports retain their
+// actual implementations, including the independent OPN client and Keyboard.
+let injectedRuntimeSequence=0;
+async function runtimeWithOpnAudio(factory){
+  const sourceUrl=new URL('./playground_runtime.js',import.meta.url),key=`__runtimeOpnAudio${++injectedRuntimeSequence}`;
+  globalThis[key]=factory;
+  const source=(await readFile(sourceUrl,'utf8'))
+    .replace(/^import \{createOpnAudio\} from ['"][^'"]+['"];$/m,`const createOpnAudio=globalThis[${JSON.stringify(key)}];`)
+    .replace(/from\s*(['"])(\.[^'"]+)\1/g,(_match,_quote,path)=>`from ${JSON.stringify(new URL(path,sourceUrl).href)}`)
+    .replaceAll('import.meta.url',JSON.stringify(sourceUrl.href));
+  try{return (await import(`data:text/javascript,${encodeURIComponent(source)}`)).createPlaygroundRuntime;}
+  finally{delete globalThis[key];}
+}
+function independentOpnFixture(){
+  const events=[],devices=[];
+  const factory=async()=>{
+    const entry={id:devices.length,disposed:false,disconnected:false};devices.push(entry);events.push(['create',entry.id]);
+    const port={start(){},close(){events.push(['port-close',entry.id]);},postMessage(command){
+      if(entry.disposed)throw new Error('Independent OPN client was disposed before cleanup');
+      events.push(['command',entry.id,command.method,command.args]);
+      if(command.id!==undefined)queueMicrotask(()=>port.onmessage({data:{id:command.id}}));
+    }};
+    return {port,node:{port:{postMessage(){},addEventListener(){},removeEventListener(){},start(){}},disconnect(){entry.disconnected=true;events.push(['disconnect',entry.id]);}},
+      dispose(){entry.disposed=true;events.push(['dispose',entry.id]);}};
+  };
+  return {events,devices,factory};
+}
+
 function attachPrimaryPcm(megaDrive) {
   const writes = [], memory = [];
   const control = createRf5c164Control({writeRegister:(...args)=>writes.push(args),loadMemory:(...args)=>memory.push(args),reset(){},dispose(){throw Error('Primary disposed');}});
   const port = {start(){},close(){throw Error('Primary port closed');},postMessage({id,method,args=[]}) {
-    const value = method === 'clock' ? undefined : control[method](...args);
+    const value = method === 'clock' ? undefined : method==='stopVoices'?Array.from({length:8},(_,channel)=>control.keyOff(channel)):control[method](...args);
     if (id !== undefined) queueMicrotask(()=>port.onmessage({data:{id,value}}));
   }};
   megaDrive.pcm = createRf5c164Client(port,async source=>source);
@@ -179,6 +208,58 @@ test('Main musical keyboard all-notes-off and Stop cancel awaited PCM note start
   await runtime.playSource(`keyboard.bind('next',{noteOn(){fm.keyOn(CH1);},noteOff(){fm.keyOff(CH1);},allNotesOff(){fm.keyOff(CH1);}});`);
   gate.resolve();await pending;assert.deepEqual(notes,[],'old RPC continuation cannot key on the next Run');
   assert.equal(runtime.getKeyboardTarget().name,'next');
+});
+
+test('Stop silences independent chips immediately, then awaits custom Keyboard releases before disposal and ID reuse',async t=>{
+  const fixture=independentOpnFixture(),createRuntime=await runtimeWithOpnAudio(fixture.factory);
+  const {runtime,megaDrive,logs}=setup(t,undefined,{},createRuntime);megaDrive.audio={masterInputNode:{}};
+  const gate=deferred();globalThis.playgroundReview={gate,entered:false};
+  await runtime.playSource(`const extra=await createSoundChip('ym2612',{id:'extra'});
+    keyboard.bind('extra',{noteOn(){extra.keyOn(0);},noteOff(){extra.keyOff(0);},
+      async allNotesOff(){globalThis.playgroundReview.entered=true;await globalThis.playgroundReview.gate.promise;extra.keyOff(0);}});`);
+  await runtime.getKeyboardTarget().noteOn({id:'held',midi:60});
+  const stopBoundary=fixture.events.length;
+  assert.equal(runtime.stop(),undefined);
+  assert.equal(fixture.devices[0].disconnected,true,'Stop disconnects audible output synchronously');
+  assert.equal(fixture.devices[0].disposed,false,'async cleanup keeps the original client alive');
+  assert.deepEqual(runtime.chipInspector.list(),[],'a retiring device is no longer selectable');
+  await until(()=>globalThis.playgroundReview.entered);
+  let started=false;const next=runtime.playSource(`await createSoundChip('ym2612',{id:'extra'});`).then(()=>{started=true;});
+  for(let i=0;i<10;i++)await Promise.resolve();
+  assert.equal(started,false);assert.equal(fixture.devices.length,1,'next Run cannot reuse the retiring ID early');
+  gate.resolve();await next;
+  assert.equal(fixture.devices[0].disposed,true);assert.equal(fixture.devices.length,2);
+  const off=fixture.events.findIndex(([kind,id,method,args],index)=>index>=stopBoundary&&kind==='command'&&id===0&&method==='write'&&args[1]===0x28&&args[2]===0);
+  const disposed=fixture.events.findIndex(([kind,id])=>kind==='dispose'&&id===0),created=fixture.events.findIndex(([kind,id])=>kind==='create'&&id===1);
+  assert(off>=0&&off<disposed&&disposed<created,'cleanup reaches the old client before disposal and replacement creation');
+  assert.deepEqual(logs,[]);
+  await runtime.finalize();assert(fixture.devices.every(device=>device.disposed));
+});
+
+test('finalize waits for independent custom Keyboard cleanup before closing the primary AudioContext',async t=>{
+  const fixture=independentOpnFixture(),createRuntime=await runtimeWithOpnAudio(fixture.factory);
+  const {runtime,megaDrive,logs}=setup(t,undefined,{},createRuntime);megaDrive.audio={masterInputNode:{}};
+  const gate=deferred();globalThis.playgroundReview={gate,entered:false};let closed=false;
+  megaDrive.close=async()=>{closed=true;fixture.events.push(['primary-close']);};
+  await runtime.playSource(`const extra=await createSoundChip('ym2612',{id:'extra'});
+    keyboard.bind('extra',{noteOn(){},noteOff(){},async allNotesOff(){
+      globalThis.playgroundReview.entered=true;await globalThis.playgroundReview.gate.promise;extra.keyOff(0);}});`);
+  const finalizing=runtime.finalize();await until(()=>globalThis.playgroundReview.entered);
+  assert.equal(fixture.devices[0].disconnected,true);assert.equal(fixture.devices[0].disposed,false);assert.equal(closed,false);
+  gate.resolve();await finalizing;
+  assert.equal(fixture.devices[0].disposed,true);assert.equal(closed,true);assert.deepEqual(logs,[]);
+  assert(fixture.events.findIndex(([kind])=>kind==='dispose')<fixture.events.findIndex(([kind])=>kind==='primary-close'));
+});
+
+test('custom Keyboard cleanup can await pg.stopAll without waiting on its own device retirement',async t=>{
+  const fixture=independentOpnFixture(),createRuntime=await runtimeWithOpnAudio(fixture.factory);
+  const {runtime,megaDrive,logs}=setup(t,undefined,{},createRuntime);megaDrive.audio={masterInputNode:{}};
+  globalThis.playgroundReview={released:false};
+  await runtime.playSource(`const extra=await createSoundChip('ym2612',{id:'extra'});
+    keyboard.bind('extra',{noteOn(){},noteOff(){},async allNotesOff(){
+      await pg.stopAll();extra.keyOff(0);globalThis.playgroundReview.released=true;}});`);
+  runtime.stop();await runtime.finalize();
+  assert.equal(globalThis.playgroundReview.released,true);assert.equal(fixture.devices[0].disposed,true);assert.deepEqual(logs,[]);
 });
 
 test('Main shared PCM sample factory releases started voices across separate key callback leases',async t=>{
@@ -341,6 +422,16 @@ for(const chip of ['dx7','snes','segapsg'])test(`${chip} keyboard audition waits
   const audition=runtime.prepareAudition().then(()=>{ready=true;});
   for(let i=0;i<8;i++)await Promise.resolve();assert.equal(ready,false,'admin-port audition must not overtake a remote-port Stop');
   gate.resolve();await audition;assert.equal(ready,true);megaDrive.stopAllNative=()=>{};
+});
+
+test('primary PCM Keyboard waits for the applied Stop and retains its sample API',async t=>{
+  const {runtime,megaDrive}=setup(t);await runtime.initialize();const gate=deferred();let stops=0;
+  const pcm={_stopVoices(){stops++;return gate.promise;},_cancelClockRequests(){}};
+  megaDrive.pcm=pcm;runtime.stop();assert.equal(stops,1);let ready=false;
+  const pending=runtime.prepareAudition().then(()=>{ready=true;});
+  for(let i=0;i<8;i++)await Promise.resolve();assert.equal(ready,false);
+  gate.resolve();await pending;assert.equal(megaDrive.pcm,pcm);assert.equal(ready,true);
+  megaDrive.pcm=null;
 });
 
 test('a newer Stop retires an older pending audition preparation before it can reopen audio',async t=>{
@@ -539,9 +630,9 @@ test('chip inspector stays audio-free until initialization and retains subscript
   assert.deepEqual(runtime.chipInspector.list(),[]);
   await assert.rejects(runtime.chipInspector.read('segapsg'),/not connected/);
   assert.equal(starts,0);assert.equal(subscribers.size,0);
-  await runtime.initialize();assert.equal(starts,1);assert.equal(subscribers.size,1);assert.deepEqual(snapshots.at(-1),['segapsg']);
+  await runtime.initialize();assert.equal(starts,1);assert.equal(subscribers.size,1);assert.deepEqual(snapshots.at(-1),['ym2612','segapsg']);
   await runtime.finalize();assert.equal(subscribers.size,0);assert.deepEqual(snapshots.at(-1),[]);
-  await runtime.initialize();assert.equal(starts,2);assert.equal(subscribers.size,1);assert.deepEqual(snapshots.at(-1),['segapsg']);
+  await runtime.initialize();assert.equal(starts,2);assert.equal(subscribers.size,1);assert.deepEqual(snapshots.at(-1),['ym2612','segapsg']);
   await runtime.finalize();unsubscribe();
 });
 

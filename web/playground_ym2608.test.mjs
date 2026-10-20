@@ -1,3 +1,6 @@
+import {OpnKeyboardInspector} from './playground_opn_inspector.js';
+import {createOpnAuditionGuard} from './playground_audition_guard.js';
+import {receiveChipInspector} from './playground_chip_inspector_state.js';
 import {validateChipClock} from './playground_chip_clock.js';
 import {Ym2608Timeline} from './playground_ym2608_timeline.js';
 import test from 'node:test';
@@ -26,7 +29,7 @@ test('Stop during worklet initialization disposes the late chip without announci
   let Processor, complete, disposed = false;
   const messages = [];
   const source = (await readFile(new URL('./playground_ym2608_worklet.js', import.meta.url), 'utf8')).replace(/^import .*;$/gm, '');
-  vm.runInNewContext(source, {validateChipClock,Ym2608Timeline,createProcessorPerformance:performanceProcessor,
+  vm.runInNewContext(source, {OpnKeyboardInspector,createOpnAuditionGuard,receiveChipInspector,validateChipClock,Ym2608Timeline,createProcessorPerformance:performanceProcessor,
     Ym2608AudioEngine: {create: () => new Promise(resolve => { complete = resolve; })}, factory: {}, Uint8Array, sampleRate: 48000,
     AudioWorkletProcessor: class { constructor() { this.port = {postMessage: data => messages.push(data)}; } },
     registerProcessor: (_, cls) => { Processor = cls; },
@@ -44,7 +47,7 @@ test('YM2608 port client and real worklet core: rhythm, SSG, ADPCM memory, reset
   const ready = new Promise(resolve => { readyResolve = resolve; });
   const source = (await readFile(new URL('./playground_ym2608_worklet.js', import.meta.url), 'utf8'))
     .replace(/^import .*;$/gm, '');
-  vm.runInNewContext(source, {validateChipClock,Ym2608Timeline,Ym2608AudioEngine, factory, Uint8Array, sampleRate: 48000,createProcessorPerformance:performanceProcessor,
+  vm.runInNewContext(source, {OpnKeyboardInspector,createOpnAuditionGuard,receiveChipInspector,validateChipClock,Ym2608Timeline,Ym2608AudioEngine, factory, Uint8Array, sampleRate: 48000,createProcessorPerformance:performanceProcessor,
     AudioWorkletProcessor: class { constructor() { this.port = {postMessage: data => readyResolve(data)}; } },
     registerProcessor: (_, cls) => { Processor = cls; },
   });

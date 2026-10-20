@@ -1,3 +1,6 @@
+import {receiveChipInspector} from './playground_chip_inspector_state.js';
+import {createOpnAuditionGuard} from './playground_audition_guard.js';
+import {OpnKeyboardInspector} from './playground_opn_inspector.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
@@ -15,7 +18,7 @@ async function setup(name,rate) {
   let Processor, resolveReady, calls = 0;
   const ready = new Promise(resolve => {resolveReady = resolve;});
   const messages = [];
-  const scope = {sampleRate:rate,currentFrame:0,Ym2612,Ym2203,Ym2610B,ym2612Factory,ym2203Factory,ym2610Factory,validateChipClock,
+  const scope = {OpnKeyboardInspector,receiveChipInspector,createOpnAuditionGuard,sampleRate:rate,currentFrame:0,Ym2612,Ym2203,Ym2610B,ym2612Factory,ym2203Factory,ym2610Factory,validateChipClock,
     createProcessorPerformance:options => createProcessorPerformance({...options,rate,nowFrame:() => scope.currentFrame}),
     AudioWorkletProcessor:class {constructor() {this.port = {postMessage:message => {messages.push(message); resolveReady(message);}};}},
     registerProcessor(_name,Type) {Processor = Type;},

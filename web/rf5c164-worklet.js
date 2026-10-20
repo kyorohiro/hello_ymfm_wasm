@@ -10,7 +10,7 @@ import {validateChipClock} from './playground_chip_clock.js';
 class Processor extends AudioWorkletProcessor {
  constructor(options){super();this.control=null;this.chip=null;this.dead=false;
  const validation=new RF5C164Synth({transport:{write(){},loadMemory(){},reset(){}}});
- this.performance=createProcessorPerformance({chip:'rf5c164',apply:(data,port)=>this.apply(data,port),immediate:['loadMemory'],validate:data=>{
+ this.performance=createProcessorPerformance({chip:'rf5c164',apply:(data,port)=>this.apply(data,port),getRfChannel:()=>this.inspector?.selected??0,getRfMask:()=>this.inspector?.mask??255,immediate:['loadMemory'],validate:data=>{
   if(data.method==='clock'){validateChipClock(data.args[0]);return;}
   if(data.method==='dispose')return;
   if(typeof validation[data.method]!=='function'||!['setChannel','setPitch','keyOn','keyOff','writeRegister','reset','loadMemory'].includes(data.method))throw new Error('Unknown RF5C164 method');
@@ -19,14 +19,22 @@ class Processor extends AudioWorkletProcessor {
  this.renderSegment=this.renderSegment.bind(this);this.port.onmessage=({data})=>{
  if(data.method==='dispose'){this.dispose();return;}
  if(data.type==='detach-chip-port'&&data.primaryWorker){this.workerRemote?.close();this.workerRemote=null;return;}
- if(data.port){const name=data.primaryWorker?'workerRemote':'remote';this[name]?.close();const remote=this[name]=data.port;remote.onmessage=e=>this.receive(e.data,remote);remote.start();}else this.receive(data,this.port);
+ if(data.port){const name=data.primaryWorker?'workerRemote':'remote';this[name]?.close();const remote=this[name]=data.port;remote.onmessage=e=>{if(this[name]===remote)this.receive(e.data,remote);};remote.start();}else this.receive(data,this.port);
  };
- Rf5c164.create({moduleFactory:factory,moduleOptions:{wasmBinary:options.processorOptions.wasmBinary},sampleRate}).then(chip=>{if(this.dead){chip.dispose();return;}this.chip=chip;this.inspector=new RfInspectorState(chip,{clock:()=>CHIP_CLOCKS.rf5c164*(this.clockResampler?.ratio??1),sampleRate});this.control=createRf5c164Control(chip);this.control.reset();this.port.postMessage({ready:true});},error=>this.port.postMessage({error:error.message}));
+ Rf5c164.create({moduleFactory:factory,moduleOptions:{wasmBinary:options.processorOptions.wasmBinary},sampleRate}).then(chip=>{if(this.dead){chip.dispose();return;}this.chip=chip;this.inspector=new RfInspectorState(chip,{clock:()=>CHIP_CLOCKS.rf5c164*(this.clockResampler?.ratio??1),sampleRate,
+  dispatch:(command,owner,metadata)=>this.performance.applyImmediate(command,this.port,{owner,...metadata}),beginAudition:(channel,owner)=>this.performance.beginAudition(channel,owner),endAudition:(channel,owner)=>this.performance.endAudition(channel,owner)});this.control=createRf5c164Control(chip);this.control.reset();this.port.postMessage({ready:true});},error=>this.port.postMessage({error:error.message}));
  }
- dispose(){this.performance.clear();this.dead=true;this.control?.dispose();this.control=null;this.chip=null;this.remote?.close();this.workerRemote?.close();}
- receive(data,port){if(data?.type==='chip-inspector'&&receiveChipInspector(data,port,this.control ? (action,method,args)=>this.inspect(action,method,args) : null))return;if(this.performance.receive(data,port))return;this.apply(data,port);}
+ stopVoices(){this.inspector?.resetAuditions();this.performance.clear();if(this.control)for(let channel=0;channel<8;channel++)this.control.keyOff(channel);}
+ dispose(){this.inspector?.resetAuditions();this.performance.clear();this.dead=true;this.control?.dispose();this.control=null;this.chip=null;this.remote?.close();this.workerRemote?.close();}
+ receive(data,port){
+  if(data?.type==='chip-inspector'&&receiveChipInspector(data,port,this.control ? (action,method,args)=>this.inspect(action,method,args) : null))return;
+  const stop=data.type==='performance-stop'&&Number.isSafeInteger(data.session)&&data.session>0&&data.session>=this.performance.getStats().latestSession;
+  if(stop||data.method==='stopVoices'){this.stopVoices();if(stop)this.performance.receive(data,port);if(data.id!==undefined)port.postMessage({id:data.id,value:true});return;}
+  if(this.performance.receive(data,port))return;this.apply(data,port);
+ }
  inspect(action,method,args){
   if(action==='read')return this.inspector.read();
+  if(['auditionOn','auditionOff','auditionAllOff'].includes(method))return this.inspector.invoke(method,args);
   if(action==='loadSample'){
    const [bytes,metadata,options={}]=args;
    rfSampleMetadata(bytes,metadata);

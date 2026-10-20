@@ -1,7 +1,7 @@
-import {receiveChipInspector, readPwmInspector} from './playground_chip_inspector_state.js?v=dx7-voices-1';
-import {PWM32XPlayback, PWM_METHODS} from './pwm32x_playback.js?v=dx7-voices-1';
-import {createProcessorPerformance} from './playground_performance_processor.js?v=dx7-voices-1';
-import {validateChipClock} from './playground_chip_clock.js?v=dx7-voices-1';
+import {receiveChipInspector, readPwmInspector} from './playground_chip_inspector_state.js?v=keyboard-chips-1';
+import {PWM32XPlayback, PWM_METHODS} from './pwm32x_playback.js?v=keyboard-chips-1';
+import {createProcessorPerformance} from './playground_performance_processor.js?v=keyboard-chips-1';
+import {validateChipClock} from './playground_chip_clock.js?v=keyboard-chips-1';
 
 class PWMProcessor extends AudioWorkletProcessor {
   constructor({processorOptions = {}}) {

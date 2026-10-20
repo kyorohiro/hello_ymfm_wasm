@@ -1,15 +1,17 @@
 import {encodeRf5c164} from './rf5c164_pcm.js';
-import {encodeOki6258,summarizeOki6258,oki6258Rate} from './okim6258synth.js?v=dx7-voices-1';
+import {encodeOki6258,summarizeOki6258,oki6258Rate} from './okim6258synth.js?v=keyboard-chips-1';
 
 /** UI-only admin port access. Audio creation and Worker-owned ports are deliberately untouched. */
 export function createChipInspector({endpoints, decode}) {
   const listeners=new Set(),ports=new Map();let sequence=0;
-  const list=()=>endpoints().map(({id,kind,label})=>({id,kind,name:kind,label,connected:true}));
+  const list=()=>endpoints().map(({id,kind,label,fdsEnabled})=>({id,kind,name:kind,label,connected:true,...(fdsEnabled===undefined?{}:{fdsEnabled})}));
+  const connections=new WeakMap();let connectionSequence=0;
+  function getConnectionToken(id){const {port}=endpointFor(id);if(!connections.has(port))connections.set(port,++connectionSequence);return connections.get(port);}
   const synchronize=()=>{
     const active=new Set(endpoints().map(endpoint=>endpoint.port));
     for(const [port,entry] of ports)if(!active.has(port)){
       port.removeEventListener('message',entry.listener);
-      for(const request of entry.pending.values()){clearTimeout(request.timer);request.reject(new Error('Sound chip disconnected'));}
+      for(const request of entry.pending.values()){clearTimeout(request.timer);request.reject(new DOMException('Sound chip disconnected','AbortError'));}
       ports.delete(port);
     }
   };
@@ -40,12 +42,12 @@ export function createChipInspector({endpoints, decode}) {
       const id=`chip-inspector:${++sequence}`;
       const timer=setTimeout(()=>{entry.pending.delete(id);reject(new Error('Sound chip did not respond'));},5000);
       entry.pending.set(id,{resolve,reject,timer});
-      try{port.postMessage({type:'chip-inspector',id,action,method,args});}
+      try{port.postMessage({type:'chip-inspector',id,inspectorKind:endpoint.kind,action,method,args});}
       catch(error){clearTimeout(timer);entry.pending.delete(id);reject(error);}
     });
   }
   return {
-    list,notify,
+    list,notify,getConnectionToken,
     subscribe(listener){if(typeof listener!=='function')throw new TypeError('Inspector listener must be a function');listeners.add(listener);return()=>listeners.delete(listener);},
     async read(id){return request(endpointFor(id),'read');},
     async invoke(id,method,args=[]){return request(endpointFor(id),'invoke',method,args);},
@@ -82,6 +84,6 @@ export function createChipInspector({endpoints, decode}) {
       if(endpointFor(id).port!==endpoint.port)throw new Error('Sound chip changed while decoding');
       return request(endpoint,'loadSample',undefined,[bytes,{frames,step,name:selected.name},selected]);
     },
-    dispose(){for(const [port,entry]of ports){port.removeEventListener('message',entry.listener);for(const request of entry.pending.values()){clearTimeout(request.timer);request.reject(new Error('Sound chip inspector disposed'));}}ports.clear();listeners.clear();},
+    dispose(){for(const [port,entry]of ports){port.removeEventListener('message',entry.listener);for(const request of entry.pending.values()){clearTimeout(request.timer);request.reject(new DOMException('Sound chip inspector disposed','AbortError'));}}ports.clear();listeners.clear();},
   };
 }

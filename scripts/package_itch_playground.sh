@@ -119,6 +119,8 @@ playground_snes_audio.js
 playground_snes_worklet.js
 soundchip_mixer.js
 playground_chip_inspector.js
+playground_keyboard_channels.js
+playground_opn_inspector.js
 playground_chip_inspector_state.js
 pwm32x.js
 pwm32x_playback.js
@@ -492,6 +494,7 @@ perl -0pi -e 's#"\./playground\.js"#"./playground.js"#g; s#\.\./js/#./js/#g; s#\
   "${STAGE_DIR}/playground_audio_input.js" \
   "${STAGE_DIR}/playground_sample_editor_worker.js" \
   "${STAGE_DIR}/playground_mode.js" \
+  "${STAGE_DIR}/playground_mode_keyboard.js" \
   "${STAGE_DIR}/playground_git.js" \
   "${STAGE_DIR}/playground_virtual_files.js" \
   "${STAGE_DIR}/playground_shell.js" \

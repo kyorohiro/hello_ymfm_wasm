@@ -1,8 +1,10 @@
+import {PsgInspectorState,receiveChipInspector} from './playground_chip_inspector_state.js';
+import {OpnKeyboardInspector} from './playground_opn_inspector.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
-import {createOpnAuditionGuard, receiveOpnAuditionCommand} from './playground_audition_guard.js';
+import {createOpnAuditionGuard, receiveOpnAuditionCommand, createPsgAuditionGuard} from './playground_audition_guard.js';
 import {createChipPortReceiver} from './playground_chip_port.js';
 import {createPerformanceQueue, createPerformanceChipOwnership} from './playground_performance_queue.js';
 import {YM2612DacPlayer, receiveDacCommand} from './ym2612_dac.js';
@@ -121,7 +123,7 @@ test('audition validation is atomic, rejects nonfinite data, and reports errors 
 function processor(file, imports = {}) {
   let Type;
   const messages = [];
-  const scope = {createOpnAuditionGuard, receiveOpnAuditionCommand, YM2612DacPlayer, receiveDacCommand, createPerformanceQueue, createPerformanceChipOwnership,
+  const scope = {OpnKeyboardInspector,receiveChipInspector,createOpnAuditionGuard, receiveOpnAuditionCommand, createPsgAuditionGuard, YM2612DacPlayer, receiveDacCommand, createPerformanceQueue, createPerformanceChipOwnership,
     createChipPortReceiver: (apply, _now, options) => createChipPortReceiver(apply, () => 0, options),
     sampleRate: 48000, currentFrame: 0, Float32Array, Uint8Array, Error, ...imports,
     AudioWorkletProcessor: class {constructor() {this.port = {postMessage: message => messages.push(message)};}},
@@ -177,3 +179,24 @@ for (const [name, Type, count] of [['ym2203', 'Ym2203', 3], ['ym2608', 'Ym2608',
     assert.equal(messages.at(-1).type, 'audition-error');
   });
 }
+
+for(const file of ['ym2612-worklet.js','ym2612-worklet-nuked.js'])test(`${file}: shared PSG Keyboard survives Main, Worker and reserved playback; Stop retires its IDs`,async()=>{
+  const core=chip(),bytes=[];core.setHooks=()=>{};
+  const psg={write:byte=>bytes.push(byte),reset(){},reserveStereoFrames(){},generateStereoView:frames=>({left:new Float32Array(frames),right:new Float32Array(frames)})};
+  const {p,messages}=processor(file,{PsgInspectorState,createYm2612:async()=>core,ym2612ModuleFactory:{},SegaPSG:{create:async()=>psg},segaPsgModuleFactory:{},SEGAPSG_CLOCK:3579545});
+  await p.init(new ArrayBuffer(0),new ArrayBuffer(0));
+  assert.equal(messages.at(-1).type,'ready');
+  p.port.onmessage({data:{type:'chip-inspector',inspectorKind:'segapsg',id:'key',action:'invoke',method:'auditionOn',args:[0,69,'held']}});
+  assert.equal(messages.at(-1).error,undefined);bytes.length=0;
+  p.applyCommand({type:'psg-write',value:0x9f});
+  const port={start(){},close(){}};p.port.onmessage({data:{type:'attach-chip-port',port}});
+  port.onmessage({data:[{type:'psg-write',value:0x80},{type:'psg-write',value:0x3f}]});
+  p.applyCommand({type:'schedule-writes',entries:[{type:'psg-write',time:0,value:0x9f}]});
+  p.process([],[[new Float32Array(128),new Float32Array(128)]]);
+  assert.deepEqual(bytes,[],'all three script paths share the same manual lease');
+  port.onmessage({data:[{type:'psg-write',value:0xb4}]});assert.deepEqual(bytes,[0xb4]);
+  p.applyCommand({type:'clear-auditions'});assert.equal(bytes.at(-1),0x9f);
+  assert.deepEqual(p.psgInspector.read().auditions,[]);bytes.length=0;
+  p.psgInspector.invoke('auditionOff',[0,'held']);assert.deepEqual(bytes,[]);
+  p.applyCommand({type:'psg-write',value:0x9a});assert.deepEqual(bytes,[0x9a]);
+});

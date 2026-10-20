@@ -1,8 +1,11 @@
-import {validateChipClock} from './playground_chip_clock.js?v=dx7-voices-1';
+import {OpnKeyboardInspector} from './playground_opn_inspector.js?v=keyboard-chips-1';
+import {createOpnAuditionGuard} from './playground_audition_guard.js?v=keyboard-chips-1';
+import {receiveChipInspector} from './playground_chip_inspector_state.js?v=keyboard-chips-1';
+import {validateChipClock} from './playground_chip_clock.js?v=keyboard-chips-1';
 import {Ym2608Timeline} from './playground_ym2608_timeline.js';
 import {Ym2608AudioEngine} from './ym2608audioengine.js?v=audio-stability-2';
 import factory from '../generated/ym2608_wasm.js';
-import {createProcessorPerformance} from './playground_performance_processor.js?v=dx7-voices-1';
+import {createProcessorPerformance} from './playground_performance_processor.js?v=keyboard-chips-1';
 
 class Processor extends AudioWorkletProcessor {
   constructor(options) {
@@ -25,7 +28,11 @@ class Processor extends AudioWorkletProcessor {
     Ym2608AudioEngine.create({ym2608ModuleFactory: factory, ym2608ModuleOptions: {wasmBinary}, outputSampleRate: sampleRate})
       .then(engine => {
         if (this.dead) { engine.dispose(); return; }
-        this.engine = engine; this.timeline = new Ym2608Timeline(engine, sampleRate);
+        this.engine = engine;
+        this.auditions=createOpnAuditionGuard(engine.ym2608,6);
+        this.opnInspector=new OpnKeyboardInspector(engine.ym2608,{kind:'ym2608',guard:this.auditions,clock:()=>this.clock??8000000,sampleRate});
+        engine.writeYm2608=(port,register,value)=>engine.ym2608.writeRegister(register,value,port);
+        this.timeline = new Ym2608Timeline(engine, sampleRate);
         const bytes = new Uint8Array(rom);
         if (bytes.length !== 8192) throw new Error('Expected 8192-byte rhythm ROM');
         engine.loadAdpcmARom(bytes);
@@ -34,6 +41,7 @@ class Processor extends AudioWorkletProcessor {
   }
   dispose() { this.performance.clear();this.timeline?.dispose(); this.dead = true; this.engine?.dispose(); this.engine = null; this.remote?.close(); }
   receive(data, port) {
+    if(data?.type==='chip-inspector'&&receiveChipInspector(data,port,this.opnInspector?(action,method,args)=>action==='read'?this.opnInspector.read():this.opnInspector.invoke(method,args):null))return;
     if(this.performance.receive(data,port))return;
     this.apply(data,port);
   }
@@ -44,6 +52,7 @@ class Processor extends AudioWorkletProcessor {
       const args = data.args ?? [];
       switch (data.method) {
         case 'write': this.engine.writeYm2608(...args); break;
+        case 'clear-auditions': this.opnInspector?.clear(); break;
         // Synth reset preserves uploaded ADPCM-B memory, like DirectTransport.
         case 'reset': this.timeline.cancel(); this.engine.ym2608.reset(); break;
         case 'rom':
@@ -51,7 +60,7 @@ class Processor extends AudioWorkletProcessor {
           this.engine.loadAdpcmARom(...args); break;
         case 'clock':
           validateChipClock(args[0]);
-          this.engine._chipSampleRate = this.engine.ym2608.sampleRate(args[0]); break;
+          this.clock=args[0]; this.engine._chipSampleRate = this.engine.ym2608.sampleRate(args[0]); break;
         case 'prepareTimeline': this.timeline.prepare(...args); break;
         case 'playTimeline': this.timeline.play(error => port.postMessage({id: data.id, ...(error ? {error} : {})})); return;
         case 'memory': this.engine.loadAdpcmBMemory(...args); break;

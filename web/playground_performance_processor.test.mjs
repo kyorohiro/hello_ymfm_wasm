@@ -118,3 +118,15 @@ test('PSG continuation honors an observed hardware latch from Main or inspector 
   p.performance.receive({type:'performance-cancel-owner',session:1,owner:'worker'},p.port);
   assert.deepEqual(p.applied.at(-1),{method:'write',args:[0xff]});
 });
+
+test('PSG tone-3-rate noise leases its shared divider while tone volume and other channels remain live',()=>{
+  let mode=7,latched=7;const p=setup({chip:'segapsg',getPsgMode:()=>mode,getPsgLatch:()=>latched});
+  const write=(byte,psgRegister)=>({method:'write',args:[byte],...(psgRegister===undefined?{}:{psgRegister})});
+  p.performance.beginAudition(3,'manual-noise');
+  p.enqueue([write(0xc3),write(0x12,4),write(0xd8),write(0x8a),write(0x10,0),write(0x98)],.001,'code');p.render(2);
+  assert.deepEqual(p.applied.map(command=>command.args[0]),[0xd8,0x8a,0x10,0x98]);
+  p.performance.applyImmediate(write(0xc2),p.port,{owner:'manual-noise'});assert.equal(p.applied.at(-1).args[0],0xc2,'the noise owner may deliberately edit its own shared divider');
+  p.performance.endAudition(3,'expired');assert.equal(p.performance.receive(write(0xc4),p.port),true,'an expired release cannot unlock the held noise divider');assert.equal(p.applied.at(-1).args[0],0xc2);
+  mode=6;p.enqueue([write(0xc5),write(0x11,4)],.002);p.render(1);assert.deepEqual(p.applied.slice(-2).map(command=>command.args[0]),[0xc5,0x11],'fixed-rate noise does not reserve tone 3 pitch');
+  mode=7;p.performance.endAudition(3,'manual-noise');p.enqueue([write(0xc6),write(0x13,4)],.003);p.render(1);assert.deepEqual(p.applied.slice(-2).map(command=>command.args[0]),[0xc6,0x13]);
+});

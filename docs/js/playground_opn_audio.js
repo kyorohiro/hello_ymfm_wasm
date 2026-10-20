@@ -12,8 +12,8 @@ export async function createOpnAudio(context, destination, name) {
     return response.arrayBuffer();
   };
   const [wasmBinary] = await Promise.all([
-    bytes(`./generated/${backend}_wasm.wasm`),
-    context.audioWorklet.addModule(new URL('./playground_opn_worklet.js?v=dx7-voices-1', import.meta.url)),
+    bytes({ym2612:'../generated/ym2612_wasm.wasm',ym2203:'../generated/ym2203_wasm.wasm',ym2610b:'../generated/ym2610b_wasm.wasm'}[backend]),
+    context.audioWorklet.addModule(new URL('./playground_opn_worklet.js?v=keyboard-chips-1', import.meta.url)),
   ]);
   const node = new AudioWorkletNode(context, 'tetorica-opn', {
     numberOfInputs: 0, numberOfOutputs: 1, outputChannelCount: [2], processorOptions: {wasmBinary, name},

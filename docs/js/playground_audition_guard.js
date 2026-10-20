@@ -97,3 +97,42 @@ export function receiveOpnAuditionCommand(guard, command, reply) {
   }
   return true;
 }
+
+/** Shared Genesis PSG bus ownership. Script latch/data continuations retain
+ * their own destination while an inspector changes the physical chip latch.
+ * Install after the applied-state observer, so blocked bytes never enter it.
+ * @param {{write:(byte:number)=>unknown,reset:()=>unknown}} chip
+ * @param {{getState:()=>{latched:number,mode:number,periods:number[]}}} options
+ */
+export function createPsgAuditionGuard(chip,{getState}) {
+  const write=chip.write.bind(chip),reset=chip.reset.bind(chip),owners=new Map();
+  let scriptLatch=getState().latched;
+  function send(byte,register,owner) {
+    const channel=register>>1,state=getState();
+    if(owners.has(channel)&&owners.get(channel)!==owner)return;
+    // Noise rate 3 shares tone channel 3's divider; retain that divider for a
+    // held noise voice even while code continues on the tone channel.
+    if(register===4&&owners.has(3)&&(state.mode&3)===3&&owners.get(3)!==owner)return;
+    if(!(byte&128)&&state.latched!==register){
+      const low=register&1?byte&15:register===6?state.mode:state.periods[channel]&15;
+      write(0x80|(register<<4)|low);
+    }
+    return write(byte);
+  }
+  chip.write=byte=>{
+    if(byte&128)scriptLatch=(byte>>4)&7;
+    return send(byte,scriptLatch);
+  };
+  chip.reset=()=>{if(owners.size)return;scriptLatch=0;return reset();};
+  return {
+    begin(channel,owner){owners.set(channel,owner);},
+    end(channel,owner){if(owners.get(channel)===owner)owners.delete(channel);},
+    apply(command,owner){
+      if(command.method==='reset')return chip.reset();
+      if(command.method!=='write')throw new Error('Unsupported shared PSG inspector command');
+      const byte=command.args[0],register=byte&128?(byte>>4)&7:command.psgRegister??getState().latched;
+      return send(byte,register,owner);
+    },
+    clear(){for(const channel of owners.keys())write(0x9f|(channel<<5));owners.clear();},
+  };
+}

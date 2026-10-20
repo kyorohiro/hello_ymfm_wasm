@@ -7,6 +7,17 @@ import {RF5C164Synth} from './rf5c164synth.js';
 import {encodeRf5c164} from './rf5c164_pcm.js';
 import {PWM32XPlayback} from './pwm32x_playback.js';
 
+test('shared OPN/PSG admin ports keep their kind and replaced instances receive a fresh connection token',async()=>{
+  const first=new MessageChannel(),second=new MessageChannel();let active=first.port2;const kinds=[];
+  first.port1.on('message',data=>{kinds.push(data.inspectorKind);first.port1.postMessage({type:'chip-inspector-result',id:data.id,value:data.inspectorKind});});
+  const inspector=createChipInspector({endpoints:()=>['ym2612','segapsg'].map(kind=>({id:kind,kind,port:active})),decode:async()=>{}});
+  try{
+    const token=inspector.getConnectionToken('ym2612');assert.equal(inspector.getConnectionToken('segapsg'),token);
+    assert.equal(await inspector.read('ym2612'),'ym2612');assert.equal(await inspector.read('segapsg'),'segapsg');assert.deepEqual(kinds,['ym2612','segapsg']);
+    active=second.port2;assert.notEqual(inspector.getConnectionToken('ym2612'),token);
+  }finally{inspector.dispose();for(const {port1,port2}of[first,second]){port1.close();port2.close();}}
+});
+
 test('PSG snapshots track applied raw latch/data writes and preserve quiet audition levels',()=>{
   const chip={writes:[],write(value){this.writes.push(value);},reset(){}};
   const state=new PsgInspectorState(chip);
@@ -20,6 +31,19 @@ test('PSG snapshots track applied raw latch/data writes and preserve quiet audit
   assert.equal(state.read().channels[0].frequency,null);assert.equal(state.read().channels[0].constantOutput,true);
   chip.reset();assert(state.read().channels.every(ch=>!ch.active));assert.equal(state.read().noise.active,false);
   assert.throws(()=>state.invoke('dispose'),/Unsupported/);
+});
+
+test('PSG Keyboard noise retriggers its configured attenuation without changing noise or Tone 3 pitch',()=>{
+  const chip={writes:[],write(value){this.writes.push(value);},reset(){}},state=new PsgInspectorState(chip);
+  chip.write(0xc3);chip.write(0x12);chip.write(0xe7);chip.write(0xf9);chip.write(0xff);
+  const before=state.read();state.invoke('auditionOn',[3,69,'noise-old']);
+  assert.equal(state.read().noise.attenuation,9);assert.equal(state.read().noise.active,true);
+  assert.equal(state.read().noise.rate,before.noise.rate);assert.equal(state.read().noise.type,before.noise.type);assert.equal(state.read().channels[2].period,before.channels[2].period);
+  assert.equal(chip.writes.at(-1),0xf9,'no noise-register write resets the LFSR');
+  state.invoke('auditionOn',[3,12,'noise-new']);assert.equal(state.invoke('auditionOff',[3,'noise-old']),false);assert(state.read().noise.active);
+  assert.equal(state.invoke('auditionOff',[3,'noise-new']),true);assert.equal(state.read().noise.active,false);
+  state.invoke('auditionOn',[3,80,'next']);assert.equal(state.read().noise.attenuation,9);
+  assert.throws(()=>state.invoke('auditionOn',[4,69,'bad']),/0..3/);
 });
 
 test('RF snapshots follow channel bank selection, channel masks and RAM-preserving reset',()=>{
@@ -45,6 +69,23 @@ test('RF allocation rejects overlap and overflow, raw writes invalidate only ove
   chip.loadMemory(new Uint8Array(1),64);assert.deepEqual(state.read().samples.map(sample=>sample.name),['two']);
   assert.deepEqual(state.read().memoryRanges,[{address:0,end:203},{address:512,end:715}]);
   assert.equal(state.read().memoryRevision,3);
+});
+
+test('RF Keyboard transposes the existing configured sample step without cumulative pitch or RAM/pan/volume changes',()=>{
+  const chip={writeRegister(){},loadMemory(){},reset(){}},state=new RfInspectorState(chip);
+  const control=new RF5C164Synth({transport:{write:(...args)=>chip.writeRegister(...args),loadMemory:(...args)=>chip.loadMemory(...args),reset:()=>chip.reset()}});
+  assert.throws(()=>state.invoke('auditionOn',[0,60,'empty']),/Load PCM/);assert.equal(state.read().auditions.length,0);
+  chip.loadMemory(new Uint8Array(16),0);assert.throws(()=>state.invoke('auditionOn',[0,60,'no-rate']),/playback step/);
+  control.setPitch(0,1000);assert.throws(()=>state.invoke('auditionOn',[0,60,'muted']),/volume and pan/);assert.equal(state.read().auditions.length,0);
+  chip.loadMemory(new Uint8Array(256),512);control.setChannel(7,{start:512,loopStart:512,step:1200,volume:73,pan:{left:2,right:13}});control.setChannel(1,{start:512,loopStart:512,step:900,volume:83,pan:{left:3,right:12}});control.keyOn(1);
+  const material=state.read(),settings=material.channels[7];
+  state.invoke('auditionOn',[7,72,'high']);assert.equal(state.read().channels[7].step,2400);assert(state.read().channels[1].active,'selecting another PCM channel must retain the active-low mask');
+  state.invoke('auditionOn',[7,60,'base']);assert.equal(state.read().channels[7].step,1200);assert.equal(state.invoke('auditionOff',[7,'high']),false);
+  state.invoke('auditionOff',[7,'base']);assert.equal(state.read().channels[7].active,false);assert(state.read().channels[1].active);
+  const after=state.read();assert.equal(after.memoryRevision,material.memoryRevision);assert.deepEqual(after.memoryRanges,material.memoryRanges);assert.deepEqual(after.samples,material.samples);assert.deepEqual({...after.channels[7],active:false},{...settings,active:false});
+  control.setPitch(7,2000);state.invoke('auditionOn',[7,48,'lower']);assert.equal(state.read().channels[7].step,1000,'an explicit pitch edit establishes the next reference step');
+  assert.throws(()=>state.invoke('auditionOn',[7,127,'overflow']),/step range/);assert.equal(state.read().auditions[0].id,'lower');
+  state.resetAuditions();assert.equal(state.invoke('auditionOff',[7,'lower']),false);
 });
 
 test('PWM snapshots inspect FIFO without consuming it or changing the scheduled timeline',()=>{

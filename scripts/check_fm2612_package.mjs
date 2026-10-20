@@ -13,7 +13,7 @@ try {
     cwd: join(root, 'dist/fm2612'), encoding: 'utf8',
   }))[0];
   const packedPaths = new Set(packed.files.map(file => file.path));
-  for (const file of ['playground_dx7.js', 'playground_dx7_audio.js', 'playground_dx7_worklet.js', 'playground_dx7_inspector.js', 'playground_snes_inspector.js',
+  for (const file of ['playground_dx7.js', 'playground_dx7_audio.js', 'playground_dx7_worklet.js', 'playground_keyboard_channels.js','playground_opn_inspector.js','playground_dx7_inspector.js', 'playground_snes_inspector.js',
     'msfa_dx7/src/index.js', 'msfa_dx7/src/index.d.ts', 'msfa_dx7/src/preset.js', 'msfa_dx7/src/preset.d.ts', 'msfa_dx7/src/sysex.js', 'msfa_dx7/wasm/msfa.wasm',
     'msfa_dx7/LICENSE', 'msfa_dx7/THIRD_PARTY_NOTICES.md', 'msfa_dx7/README.vendor.md', 'msfa_dx7/vendor/msfa/COPYING']) {
     assert.ok(packedPaths.has(file), `DX7 package payload missing ${file}`);

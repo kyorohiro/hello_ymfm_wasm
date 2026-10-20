@@ -1,7 +1,8 @@
-import {PsgInspectorState, receiveChipInspector} from './playground_chip_inspector_state.js?v=dx7-voices-1';
-import {validateChipClock} from './playground_chip_clock.js?v=dx7-voices-1';
+import {OpnKeyboardInspector} from './playground_opn_inspector.js?v=keyboard-chips-1';
+import {PsgInspectorState, receiveChipInspector} from './playground_chip_inspector_state.js?v=keyboard-chips-1';
+import {validateChipClock} from './playground_chip_clock.js?v=keyboard-chips-1';
 import {createPerformanceQueue, createPerformanceChipOwnership} from './playground_performance_queue.js';
-import {createOpnAuditionGuard, receiveOpnAuditionCommand} from './playground_audition_guard.js';
+import {createOpnAuditionGuard, receiveOpnAuditionCommand, createPsgAuditionGuard} from './playground_audition_guard.js?v=keyboard-chips-1';
 import {YM2612DacPlayer, receiveDacCommand} from "./ym2612_dac.js";
 import {createChipPortReceiver} from "./playground_chip_port.js?v=audio-stability-2";
 /**
@@ -87,7 +88,10 @@ class YM2612Processor extends AudioWorkletProcessor {
     const receiveChipPort = createChipPortReceiver((command, reply) => this.applyCommand(command, reply), undefined, {performanceQueue: this.performanceQueue});
     this.port.onmessage = (event) => {
       const command = event.data;
-      if (command?.type==='chip-inspector' && receiveChipInspector(command,this.port,this.psgInspector ? (action,method,args)=>action==='read'?this.psgInspector.read():this.psgInspector.invoke(method,args) : null)) return;
+      if (command?.type==='chip-inspector') {
+        const inspector=command.inspectorKind==='ym2612'?this.opnInspector:this.psgInspector;
+        if(receiveChipInspector(command,this.port,inspector?(action,method,args)=>action==='read'?inspector.read():inspector.invoke(method,args):null))return;
+      }
       if (this.performanceQueue.receive(command, message => this.port.postMessage(message))) return;
       if (receiveChipPort(command)) return;
 
@@ -118,6 +122,7 @@ class YM2612Processor extends AudioWorkletProcessor {
         }
       );
       this.auditions = createOpnAuditionGuard(this.ym2612, 6);
+      this.opnInspector = new OpnKeyboardInspector(this.ym2612,{kind:'ym2612',guard:this.auditions,clock:()=>this.clock??7670454,sampleRate});
       this.ym2612.setHooks({
         onIrq: (asserted) => {
           this.port.postMessage({
@@ -147,7 +152,13 @@ class YM2612Processor extends AudioWorkletProcessor {
         });
       }
 
-      if (this.psg) this.psgInspector = new PsgInspectorState(this.psg, {sampleRate});
+      if (this.psg) {
+        this.psgInspector = new PsgInspectorState(this.psg, {sampleRate,
+          dispatch:(command,owner)=>this.psgAuditions.apply(command,owner),
+          beginAudition:(channel,owner)=>this.psgAuditions.begin(channel,owner),
+          endAudition:(channel,owner)=>this.psgAuditions.end(channel,owner)});
+        this.psgAuditions = createPsgAuditionGuard(this.psg,{getState:()=>this.psgInspector});
+      }
 
       // Reserve the usual 128-frame render quantum without advancing chip time.
       // Larger quanta remain supported by the wrappers' capacity checks.
@@ -226,6 +237,7 @@ class YM2612Processor extends AudioWorkletProcessor {
       return;
     }
     if (command.type === 'performance-pcm-dac-stop') { this.performanceDacOwner = null; this.pcmDac.stop(); return; }
+    if(command.type==='clear-auditions'){this.opnInspector?.clear();this.psgAuditions?.clear();this.psgInspector?.resetAuditions();}
     if (receiveOpnAuditionCommand(this.auditions, command, reply)) return;
     if (command.type === 'chip-clock') {
       try { if (!this.ym2612) throw new Error('Chip not ready'); this.clock = validateChipClock(command.clock); if (!command.performanceAcknowledged) reply({type:'chip-clock-result',id:command.id}); }

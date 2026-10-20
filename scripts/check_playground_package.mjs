@@ -9,7 +9,7 @@ for(const file of ['playground_mode_starters.js','playground_mode_examples.js','
 for(const mode of ['game-gear','master-system','dx7'])if(!existsSync(resolve(root,`tetorica-playground-${mode}.d.ts`)))errors.push(`tetorica-playground-${mode}.d.ts`);
 for(const file of ['playground_audio_input.js','playground_sample_assets.js','playground_sample_editor.css','playground_sample_editor_worker.js',
   'playground_mode_keyboard.js','playground_dx7_voice_panel.js','playground_gameboy_voice_panel.js','playground_nes_voice_panel.js','playground_ym2151_voice_panel.js','playground_okim6258_voice_panel.js','playground_huc6280_voice_panel.js',
-  'js/playground_dx7_inspector.js','js/playground_snes_inspector.js','js/playground_native_voice_inspector.js','js/playground_ym2151_inspector.js','js/playground_okim6258_inspector.js','js/playground_huc6280_inspector.js',
+  'js/playground_keyboard_channels.js','js/playground_opn_inspector.js','js/playground_dx7_inspector.js','js/playground_snes_inspector.js','js/playground_native_voice_inspector.js','js/playground_ym2151_inspector.js','js/playground_okim6258_inspector.js','js/playground_huc6280_inspector.js',
   'js/playground_sample_edit.js','js/playground_sample_instrument.js','js/playground_keyboard.js','tetorica-playground-mega-cd.d.ts','defaults/mega-cd/index.js',
   'examples/mega-cd/megacd-pcm-loop.js','examples/mega-cd/megacd-fm-pcm.js','examples/mega-cd/megacd-sampler.js',
   'examples/gameboy/gameboy-sampler.js','examples/pc98/pc98-sampler.js','examples/neogeo/neogeo-sampler.js'])if(!existsSync(resolve(root,file)))errors.push(file);

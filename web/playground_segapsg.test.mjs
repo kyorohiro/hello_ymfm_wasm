@@ -123,6 +123,26 @@ test('primary PSG Keyboard protects manual notes, restores quiet levels, preserv
   p.receive({performance:{session:31,owner:'late',time:1},commands:[{method:'write',args:[0x90]}]},port);p.receive({method:'stopVoices'},port);assert.equal(p.inspector.read().auditions.length,0);assert.equal(p.inspector.invoke('auditionOff',[0,'new']),false);assert.equal(peak(render(48001)),0);assert.equal(p.inspector.read().channels[0].period,period,'Stop retains pitch');p.inspector.invoke('auditionOn',[0,69,'after']);assert.equal(p.inspector.read().channels[0].attenuation,9);assert(peak(render(1024))>.005);
 });
 
+test('standalone PSG held tone-3-rate noise keeps its divider against Main and queued code while other tones remain live',async t=>{
+  let Processor,resolveReady,current=0;const ready=new Promise(resolve=>resolveReady=resolve),rate=48000;
+  const source=(await readFile(new URL('./playground_segapsg_worklet.js',import.meta.url),'utf8')).replace(/^import .*;$/gm,'');
+  vm.runInNewContext(source,{PsgInspectorState,receiveChipInspector,CHIP_CLOCKS,ChipClockResampler,SegaPSG,factory,sampleRate:rate,createProcessorPerformance:options=>createProcessorPerformance({...options,rate,nowFrame:()=>current}),AudioWorkletProcessor:class{constructor(){this.port={postMessage:resolveReady};}},registerProcessor(_name,Type){Processor=Type;}});
+  const wasmBinary=await readFile(new URL('../docs/generated/segapsg_wasm.wasm',import.meta.url)),p=new Processor({processorOptions:{wasmBinary}});await ready;
+  const reference=await SegaPSG.create({moduleFactory:factory,moduleOptions:{wasmBinary},sampleRate:rate});t.after(()=>{p.dispose();reference.dispose();});
+  const port={postMessage(){}},client=createSegaPsgClient({postMessage:data=>p.receive(data,port),close(){}}),writeReference=bytes=>{for(const byte of bytes)reference.write(byte);};
+  const render=frames=>{const actual=[new Float32Array(frames),new Float32Array(frames)];p.process([],[actual]);current+=frames;const expected=reference.generateStereo(frames);assert.deepEqual(actual[0],expected.left);assert.deepEqual(actual[1],expected.right);assert(actual.every(values=>values.every(value=>Number.isFinite(value)&&Math.abs(value)<1)));return actual;};
+  const initial=[0xc0,0x19,0xdf,0xe7,0xf8,0xff];for(const byte of initial)client.write(byte);writeReference(initial);
+  p.inspector.invoke('auditionOn',[3,60,'old']);p.inspector.invoke('auditionOn',[3,84,'new']);writeReference([0xf8]);
+  const period=p.inspector.read().channels[2].period;assert.equal(period,400);assert.equal(p.inspector.read().noise.rate,'tone3');
+  client.setPeriod(2,123);client.setAttenuation(2,9);client.tone(0,{period:220,attenuation:9});client.noiseOff();writeReference([0xd9,0x8c,0x0d,0x99]);
+  assert.equal(p.inspector.read().channels[2].period,period);assert.equal(p.inspector.read().channels[2].attenuation,9);assert(p.inspector.read().noise.active);assert.equal(p.inspector.invoke('auditionOff',[3,'old']),false);assert(render(512)[0].some(value=>Math.abs(value)>.005));
+  p.receive({type:'performance-start',session:81},port);
+  p.receive({performance:{session:81,owner:'code',time:(current+128)/rate},commands:[{method:'write',args:[0xc1]},{method:'write',args:[3],psgRegister:4},{method:'write',args:[0xd8]},{method:'write',args:[0xa3]},{method:'write',args:[0x14],psgRegister:2},{method:'write',args:[0xb7]}]},port);
+  render(128);writeReference([0xd8,0xa3,0x14,0xb7]);render(256);assert.equal(p.inspector.read().channels[2].period,period);assert.equal(p.inspector.read().channels[2].attenuation,8);assert.equal(p.inspector.read().channels[1].period,0x143);
+  p.receive({method:'stopVoices'},port);const state=p.inspector.read();assert.equal(state.noise.active,false);assert.equal(state.noise.rate,'tone3');assert.equal(state.channels[2].period,period);assert.equal(p.inspector.invoke('auditionOff',[3,'new']),false);
+  client.setPeriod(2,123);assert.equal(p.inspector.read().channels[2].period,123,'Stop releases the shared divider lease without resetting the configured noise mode');
+});
+
 test('PSG Stop ACK fences the remote command before a new admin audition and shares disposal with clock RPCs',async t=>{
   let Processor,resolveReady;const ready=new Promise(resolve=>resolveReady=resolve),rate=48000;
   const source=(await readFile(new URL('./playground_segapsg_worklet.js',import.meta.url),'utf8')).replace(/^import .*;$/gm,'');

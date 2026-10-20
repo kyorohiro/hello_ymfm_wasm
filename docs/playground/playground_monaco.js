@@ -1,6 +1,6 @@
 import {createDefinitionViewer} from './playground_monaco_definitions.js?v=opn-modes-1';
-import { registerMonacoCompletions } from "./playground_monaco_completion.js?v=dx7-voices-1";
-import {selectPlaygroundDeclarations} from './playground_declarations.js?v=dx7-voices-1';
+import { registerMonacoCompletions } from "./playground_monaco_completion.js?v=keyboard-chips-1";
+import {selectPlaygroundDeclarations} from './playground_declarations.js?v=keyboard-chips-1';
 
 function registerMonacoHover(
   monaco

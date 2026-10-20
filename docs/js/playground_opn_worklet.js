@@ -1,11 +1,14 @@
-import {validateChipClock} from './playground_chip_clock.js?v=dx7-voices-1';
+import {OpnKeyboardInspector} from './playground_opn_inspector.js?v=keyboard-chips-1';
+import {createOpnAuditionGuard} from './playground_audition_guard.js?v=keyboard-chips-1';
+import {receiveChipInspector} from './playground_chip_inspector_state.js?v=keyboard-chips-1';
+import {validateChipClock} from './playground_chip_clock.js?v=keyboard-chips-1';
 import {Ym2612} from './ym2612.js';
 import {Ym2203} from './ym2203.js?v=audio-stability-2';
 import {Ym2610B} from './ym2610b.js?v=audio-stability-2';
 import ym2612Factory from '../generated/ym2612_wasm.js';
 import ym2203Factory from '../generated/ym2203_wasm.js';
 import ym2610Factory from '../generated/ym2610b_wasm.js';
-import {createProcessorPerformance} from './playground_performance_processor.js?v=dx7-voices-1';
+import {createProcessorPerformance} from './playground_performance_processor.js?v=keyboard-chips-1';
 
 /** One independent WASM chip per processor; shares only the AudioContext clock. */
 class Processor extends AudioWorkletProcessor {
@@ -34,6 +37,8 @@ class Processor extends AudioWorkletProcessor {
     Chip.create({moduleFactory, moduleOptions: {wasmBinary}, variant: false}).then(chip => {
       if (this.dead) { chip.dispose(); return; }
       this.chip = chip; this.rate = chip.sampleRate();
+      this.auditions=createOpnAuditionGuard(chip,name==='ym2203'?3:6);
+      this.opnInspector=new OpnKeyboardInspector(chip,{kind:name,guard:this.auditions,clock:()=>this.clock??(name==='ym2612'?7670454:name==='ym2203'?4000000:8000000),sampleRate});
       chip.reserveStereoFrames(Math.ceil(128 * this.rate / sampleRate));
       this.port.postMessage({ready: true});
     }).catch(error => { this.dispose(); this.port.postMessage({error: error.message}); });
@@ -44,6 +49,7 @@ class Processor extends AudioWorkletProcessor {
   }
   dispose() { this.performance.clear();this.cancelSchedule(); this.dead = true; this.chip?.dispose(); this.chip = null; this.remote?.close(); }
   receive(data, port) {
+    if(data?.type==='chip-inspector'&&receiveChipInspector(data,port,this.opnInspector?(action,method,args)=>action==='read'?this.opnInspector.read():this.opnInspector.invoke(method,args):null))return;
     if(this.performance.receive(data,port))return;
     this.apply(data,port);
   }
@@ -53,7 +59,8 @@ class Processor extends AudioWorkletProcessor {
       if (!this.chip) throw new Error('OPN not ready');
       const args = data.args ?? [];
       switch (data.method) {
-        case 'write': this.chip.write(args[0] * 2, args[1]); this.chip.write(args[0] * 2 + 1, args[2]); break;
+        case 'write': this.chip.writeRegister(args[1],args[2],args[0]); break;
+        case 'clear-auditions': this.opnInspector?.clear(); break;
         case 'reset': this.cancelSchedule(); this.chip.reset(); this.remainder = 0; this.left = this.right = 0; break;
         case 'clock':
           validateChipClock(args[0]);
@@ -98,7 +105,7 @@ class Processor extends AudioWorkletProcessor {
         const position = schedule.frame * 44100 / sampleRate;
         while (schedule.index < schedule.events.length && schedule.events[schedule.index][0] <= position) {
           const [, register, value] = schedule.events[schedule.index++];
-          this.chip.write(0, register); this.chip.write(1, value);
+          this.chip.writeRegister(register,value,0);
         }
         if (position >= schedule.duration) {
           this.schedule = null; schedule.port.postMessage({id: schedule.id});

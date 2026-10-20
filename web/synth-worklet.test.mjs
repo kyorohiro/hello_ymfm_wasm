@@ -1,3 +1,4 @@
+import {OpnKeyboardInspector} from './playground_opn_inspector.js';
 import {PsgInspectorState, receiveChipInspector} from './playground_chip_inspector_state.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -6,12 +7,12 @@ import vm from 'node:vm';
 import {YM2612DacPlayer, receiveDacCommand} from './ym2612_dac.js';
 import {createChipPortReceiver} from './playground_chip_port.js';
 import {createPerformanceQueue, createPerformanceChipOwnership} from './playground_performance_queue.js';
-import {createOpnAuditionGuard, receiveOpnAuditionCommand} from './playground_audition_guard.js';
+import {createOpnAuditionGuard, receiveOpnAuditionCommand, createPsgAuditionGuard} from './playground_audition_guard.js';
 
 function processor(tree, file, rate, imports = {}) {
   let Type;
   const messages = [];
-  const context = { PsgInspectorState, receiveChipInspector, YM2612DacPlayer, receiveDacCommand, createPerformanceQueue, createPerformanceChipOwnership, createOpnAuditionGuard, receiveOpnAuditionCommand, createChipPortReceiver: (apply, _now, options) => createChipPortReceiver(apply, () => context.currentFrame / rate, options), ...imports, sampleRate: rate, currentFrame: 0, Float32Array, Uint8Array, Error,
+  const context = { OpnKeyboardInspector,PsgInspectorState, receiveChipInspector, YM2612DacPlayer, receiveDacCommand, createPerformanceQueue, createPerformanceChipOwnership, createOpnAuditionGuard, receiveOpnAuditionCommand, createPsgAuditionGuard, createChipPortReceiver: (apply, _now, options) => createChipPortReceiver(apply, () => context.currentFrame / rate, options), ...imports, sampleRate: rate, currentFrame: 0, Float32Array, Uint8Array, Error,
     AudioWorkletProcessor: class { constructor() { this.port = { postMessage: x => messages.push(x) }; } },
     registerProcessor: (_, value) => { Type = value; },
   };

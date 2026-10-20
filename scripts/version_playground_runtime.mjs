@@ -69,9 +69,11 @@ const segaFiles=new Set(['segapsg.js','segapsgsynth.js','segapsg_api.js',
   'playground_segapsg.js','playground_segapsg_audio.js','playground_segapsg_worklet.js',
   'native_runtime_synth.js','playground_native_primary.js','tetorica_synth.js',
   'playground_runtime.js','playground_logic_worker.js','playground_performance_processor.js']);
-const megaCdVersion='dx7-voices-1';
+const megaCdVersion='keyboard-chips-1';
 const megaCdFiles=new Set(['playground_runtime.js','playground_logic_worker.js','playground_live.js',
-  'playground_chip_clock.js',
+  'playground_chip_clock.js','playground_audition_guard.js','playground_keyboard_channels.js','playground_opn_inspector.js',
+  'ym2612-worklet.js','ym2612-worklet-nuked.js','ym2203-worklet.js','ym2608-worklet.js','ym2610b-worklet.js',
+  'playground_opn_worklet.js','playground_ym2608_worklet.js',
   'tetorica_audio_runtime.js',
   'playground_rf5c164.js','rf5c164-worklet.js','playground_keyboard.js',
   'playground_sample_edit.js','playground_sample_instrument.js','playground_performance_sender.js',

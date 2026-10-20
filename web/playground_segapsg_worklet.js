@@ -8,7 +8,7 @@ class Processor extends AudioWorkletProcessor {
     super(); this.chip = null; this.dead = false;
     this.baseClock = options.processorOptions.clock ?? CHIP_CLOCKS.segapsg;
     this.stereoEnabled = options.processorOptions.stereoEnabled ?? true;
-    this.performance=createProcessorPerformance({chip:'segapsg',getPsgLatch:()=>this.inspector?.latched,apply:(data,port)=>this.apply(data,port)});
+    this.performance=createProcessorPerformance({chip:'segapsg',getPsgLatch:()=>this.inspector?.latched,getPsgMode:()=>this.inspector?.mode??0,apply:(data,port)=>this.apply(data,port)});
     this.renderSegment=this.renderSegment.bind(this);
     this.port.onmessage = ({data}) => {
       if (data.primaryWorker) {

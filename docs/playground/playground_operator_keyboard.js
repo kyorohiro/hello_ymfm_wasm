@@ -7,7 +7,7 @@ import {
   setFretPosition,
   setInstrument,
   setStringWindowIndex,
-} from "../synth/synth_keyboard.js?v=dx7-voices-1";
+} from "../synth/synth_keyboard.js?v=keyboard-chips-1";
 
 let keyboardSequence = 0;
 
@@ -28,6 +28,7 @@ export function createPlaygroundOperatorKeyboard({
   canHandleComputerKeys = () => true,
   minimizeHost = null,
   onControlsMinimizedChange,
+  routing = null,
 }) {
   const state = createFretboardState();
   let synth = null;
@@ -48,9 +49,12 @@ export function createPlaygroundOperatorKeyboard({
   let enabled = false;
   let operatorMode = false;
   let disposed = false;
+  let routingState = routing?.getState() ?? null;
+  let unsubscribeRouting = null;
 
   const currentNoteTarget = () => enabled && !operatorMode ? noteTarget : null;
-  const showFmDetails = () => channelCount > 0 && (operatorMode || !noteTarget);
+  const routedKeyboard = () => Boolean(routing) && !operatorMode;
+  const showFmDetails = () => channelCount > 0 && !routedKeyboard() && (operatorMode || !noteTarget);
   const reportError = error => {if (error?.name !== 'AbortError') onStatus?.(`Keyboard could not play: ${error.message ?? error}`);};
   function callTarget(target, method, event) {
     try {
@@ -67,18 +71,28 @@ export function createPlaygroundOperatorKeyboard({
     if (note.target) callTarget(note.target, 'noteOff', note.event);
     else if (note.channel !== undefined) note.synth?.noteOff(note.channel);
   }
-  function releaseAll() {
+  function releaseNotes(includeCurrentTarget) {
     generation++;
     const notes = [...held.values()];
-    const targets = new Set(notes.filter(note => note.target).map(note => note.target));
-    if (currentNoteTarget()) targets.add(currentNoteTarget());
+    const targets = new Set(notes.filter(note => note.started && note.target).map(note => note.target));
+    if (includeCurrentTarget && currentNoteTarget()) targets.add(currentNoteTarget());
     held.clear();
     for (const note of notes) {releaseNote(note); updateButton(note.button);}
     for (const target of targets) callTarget(target, 'allNotesOff');
   }
+  const releaseAll = () => releaseNotes(true);
+  const releaseOwnedNotes = () => releaseNotes(false);
 
   root.innerHTML = `
     ${minimizeHost ? '<button id="playgroundKeyboardMinimize" class="playground-keyboard-minimize" type="button">−</button>' : ''}
+    <div id="playgroundKeyboardRoutingTools" class="playground-keyboard-toolbar playground-keyboard-routing-tools" hidden>
+      <label>Chip:
+        <select id="playgroundKeyboardChip" aria-label="Keyboard chip"></select>
+      </label>
+      <label>CH:
+        <select id="playgroundKeyboardTargetChannel" aria-label="Keyboard channel"></select>
+      </label>
+    </div>
     <div id="playgroundKeyboardChannelTools" class="playground-keyboard-toolbar playground-keyboard-channel-tools">
       <label>Mo:
         <select id="playgroundKeyboardChannelMode">
@@ -117,15 +131,88 @@ export function createPlaygroundOperatorKeyboard({
   const keyboardStatus = root.querySelector("#playgroundKeyboardStatus");
   const channelTools = root.querySelector('#playgroundKeyboardChannelTools');
   const keyboardHint = root.querySelector('#playgroundKeyboardHint');
+  const routingTools = root.querySelector('#playgroundKeyboardRoutingTools');
+  const chipSelect = root.querySelector('#playgroundKeyboardChip');
+  const targetChannelSelect = root.querySelector('#playgroundKeyboardTargetChannel');
+
+  function selectedRoute() {
+    const chip = routingState?.chips?.find(entry => String(entry.id) === String(routingState.chipId));
+    const channel = chip?.channels?.find(entry => String(entry.id) === String(routingState.channelId));
+    return {chip, channel, label: chip ? `${chip.label}${channel ? ` / ${channel.label}` : ''}` : ''};
+  }
+
+  const selectSignatures = new WeakMap();
+  function syncSelect(select, entries, value, placeholder) {
+    const options = entries.length ? entries : [{id:'', label:placeholder}];
+    const signature = JSON.stringify(options.map(entry => [String(entry.id), entry.label, Boolean(entry.disabled)]));
+    // Safari keeps a native picker open while this element has focus. Metadata
+    // updates must not replace its options or overwrite an uncommitted choice.
+    if (document.activeElement === select) return;
+    if (selectSignatures.get(select) !== signature) {
+      select.replaceChildren(...options.map(entry => {
+        const option = document.createElement('option');
+        option.value = String(entry.id);
+        option.textContent = entry.label;
+        option.disabled = Boolean(entry.disabled);
+        return option;
+      }));
+      selectSignatures.set(select, signature);
+    }
+    select.value = value == null ? '' : String(value);
+  }
+
+  function syncRoutingControls() {
+    if (!routing) return;
+    const {chip} = selectedRoute();
+    syncSelect(chipSelect, (routingState?.chips ?? []).map(entry => ({...entry, disabled:false})), routingState?.chipId, 'No connected instruments');
+    syncSelect(targetChannelSelect, chip?.channels ?? [], routingState?.channelId, 'No channels');
+    chipSelect.disabled = !routingState?.chips?.length;
+    targetChannelSelect.disabled = !chip || chip.disabled || !chip.channels?.length;
+  }
+
+  function updateRoutingState() {
+    if (disposed) return;
+    const next = routing.getState();
+    const before = selectedRoute();
+    const changed = String(next?.chipId ?? '') !== String(routingState?.chipId ?? '') ||
+      String(next?.channelId ?? '') !== String(routingState?.channelId ?? '');
+    routingState = next;
+    const after = selectedRoute();
+    const playable = route => Boolean(route.chip && !route.chip.disabled && route.channel && !route.channel.disabled);
+    if (routedKeyboard() && (changed || playable(before) !== playable(after))) releaseOwnedNotes();
+    syncRoutingControls();
+    updateTargetControls();
+  }
+
+  function selectRoute(select, action) {
+    if (!routing || disposed) return;
+    releaseOwnedNotes();
+    try { action(select.value); }
+    catch (error) { reportError(error); }
+    select.blur();
+    updateRoutingState();
+  }
+  chipSelect.addEventListener('change', () => selectRoute(chipSelect, id => routing.selectChip(id)));
+  targetChannelSelect.addEventListener('change', () => selectRoute(targetChannelSelect, id => routing.selectChannel(id)));
+  for (const select of [chipSelect, targetChannelSelect]) select.addEventListener('blur', syncRoutingControls);
 
   function updateTargetControls() {
+    routingTools.hidden = !routedKeyboard();
     channelTools.hidden = !showFmDetails();
-    keyboardHint.textContent = noteTarget && !operatorMode
+    const {chip, label} = selectedRoute();
+    keyboardHint.textContent = routedKeyboard()
+      ? chip?.disabled ? `${label}: ${chip.hint ?? 'Keyboard playback is unavailable for this instrument.'}`
+        : chip ? `Click a key or use the number and letter rows to play ${label}.${chip.hint ? ` ${chip.hint}` : ''}`
+        : 'Connect an instrument to play this keyboard.'
+      : noteTarget && !operatorMode
       ? `Click a key or use the number and letter rows to play ${noteTarget.name}.`
       : channelCount === 0 ? 'Connect an instrument to play this keyboard.'
       : `Click a key or use the number and letter rows. ${auditionPriority
         ? 'Held keys take priority on the selected channel; code resumes on its next note after release.'
         : 'The selected FM channel is used.'}`;
+    if (routedKeyboard() && root.dataset.audioState !== 'preparing' && !held.size) {
+      keyboardStatus.textContent = `${root.dataset.audioState === 'ready' ? 'Audio ready' : 'Audio idle'}${label ? ` · ${label}` : ''}`;
+    }
   }
 
   function setPreparing(nextPreparing) {
@@ -133,6 +220,7 @@ export function createPlaygroundOperatorKeyboard({
     keyboardStatus.textContent = nextPreparing
       ? "Preparing audio..."
       : "Audio ready";
+    if (!nextPreparing) updateTargetControls();
   }
 
   for (let channel = 0; channel < channelCount; channel += 1) {
@@ -210,6 +298,10 @@ export function createPlaygroundOperatorKeyboard({
 
   async function press(entry, button, fromComputerKeys = false, inputKey = `computer:${entry.key}`) {
     if (disposed || !enabled || held.has(inputKey)) return;
+    if (routedKeyboard()) {
+      const {chip, channel} = selectedRoute();
+      if (!chip || chip.disabled || !channel || channel.disabled) return;
+    }
     const token = generation;
     const target = currentNoteTarget();
     const note = {button, target, started:false, event:{id:`keyboard-${keyboardId}-${++pressSequence}`, midi:entry.midi, velocity:100}};
@@ -252,7 +344,7 @@ export function createPlaygroundOperatorKeyboard({
       }
       return;
     }
-    if (!synth || channelCount < 1) {held.delete(inputKey); return;}
+    if (routedKeyboard() || !synth || channelCount < 1) {held.delete(inputKey); return;}
     const channel = channelMode === "roundRobin" ? roundRobinChannel++ % channelCount
       : operatorMode ? getSelectedChannel?.() ?? 0 : fixedChannel;
     // A channel has one voice: releasing a stolen key must not stop its replacement.
@@ -306,6 +398,10 @@ export function createPlaygroundOperatorKeyboard({
   window.addEventListener("blur", releaseAll);
 
   rebuild();
+  if (routing) {
+    syncRoutingControls();
+    unsubscribeRouting = routing.subscribe(updateRoutingState);
+  }
   if (idPrefix) {
     for (const element of root.querySelectorAll("[id]")) element.id = idPrefix + element.id;
   }
@@ -320,7 +416,7 @@ export function createPlaygroundOperatorKeyboard({
       button.setAttribute('aria-expanded', String(!minimized));
       onControlsMinimizedChange?.(minimized);
     };
-    button.setAttribute('aria-controls', `${idPrefix}playgroundKeyboardChannelTools ${idPrefix}playgroundKeyboardFretTools`);
+    button.setAttribute('aria-controls', `${routing ? `${idPrefix}playgroundKeyboardRoutingTools ` : ''}${idPrefix}playgroundKeyboardChannelTools ${idPrefix}playgroundKeyboardFretTools`);
     button.addEventListener('click', () => { minimized = !minimized; update(); });
     update();
   }
@@ -331,7 +427,7 @@ export function createPlaygroundOperatorKeyboard({
       const previousDetails = showFmDetails();
       const nextEnabled = tabName === "operator" || tabName === "keyboard";
       const nextOperatorMode = tabName === "operator";
-      if (enabled !== nextEnabled || operatorMode !== nextOperatorMode) releaseAll();
+      if (enabled !== nextEnabled || operatorMode !== nextOperatorMode) releaseOwnedNotes();
       enabled = nextEnabled;
       operatorMode = nextOperatorMode;
       root.hidden = !enabled;
@@ -356,13 +452,15 @@ export function createPlaygroundOperatorKeyboard({
         throw new TypeError('Keyboard target requires name, noteOn, noteOff and allNotesOff');
       }
       if (target === noteTarget) return;
-      releaseAll();
+      releaseOwnedNotes();
       noteTarget = target;
-      renderLayout();
+      if (routedKeyboard()) updateTargetControls();
+      else renderLayout();
     },
     dispose() {
       releaseAll();
       disposed = true; enabled = false; noteTarget = null; synth = null;
+      unsubscribeRouting?.();
       window.removeEventListener("keydown", onKeyDown);
       window.removeEventListener("keyup", onKeyUp);
       window.removeEventListener("blur", releaseAll);

@@ -1,10 +1,10 @@
-import {createPlaygroundDx7VoicePanel} from './playground_dx7_voice_panel.js?v=dx7-voices-1';
+import {createPlaygroundDx7VoicePanel} from './playground_dx7_voice_panel.js?v=keyboard-chips-1';
 /** Dedicated sound-chip editors. Reads are visible-only; opening an editor never creates a chip. */
-import {createPlaygroundGameboyVoicePanel} from './playground_gameboy_voice_panel.js?v=dx7-voices-1';
-import {createPlaygroundNesVoicePanel} from './playground_nes_voice_panel.js?v=dx7-voices-1';
-import {createPlaygroundHuc6280VoicePanel} from './playground_huc6280_voice_panel.js?v=dx7-voices-1';
-import {createPlaygroundOki6258VoicePanel} from './playground_okim6258_voice_panel.js?v=dx7-voices-1';
-import {createPlaygroundYm2151VoicePanel} from './playground_ym2151_voice_panel.js?v=dx7-voices-1';
+import {createPlaygroundGameboyVoicePanel} from './playground_gameboy_voice_panel.js?v=keyboard-chips-1';
+import {createPlaygroundNesVoicePanel} from './playground_nes_voice_panel.js?v=keyboard-chips-1';
+import {createPlaygroundHuc6280VoicePanel} from './playground_huc6280_voice_panel.js?v=keyboard-chips-1';
+import {createPlaygroundOki6258VoicePanel} from './playground_okim6258_voice_panel.js?v=keyboard-chips-1';
+import {createPlaygroundYm2151VoicePanel} from './playground_ym2151_voice_panel.js?v=keyboard-chips-1';
 
 export function frequencyNote(frequency) {
   if (!Number.isFinite(frequency) || frequency <= 0) return '—';

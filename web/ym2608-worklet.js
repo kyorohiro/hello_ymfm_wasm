@@ -1,3 +1,5 @@
+import {OpnKeyboardInspector} from './playground_opn_inspector.js';
+import {receiveChipInspector} from './playground_chip_inspector_state.js';
 import {validateChipClock} from './playground_chip_clock.js';
 import {createPerformanceQueue, createPerformanceChipOwnership} from './playground_performance_queue.js';
 import {createOpnAuditionGuard, receiveOpnAuditionCommand} from './playground_audition_guard.js';
@@ -42,9 +44,10 @@ class YM2608Processor extends AudioWorkletProcessor {
     const handle = (data, reply = message => this.port.postMessage(message), performance) => {
       this.performanceOwnership.observe(data, performance);
       this.observeSectionOwnership(data, performance);
+      if(data.type==='clear-auditions')this.opnInspector?.clear();
       if (receiveOpnAuditionCommand(this.auditions, data, reply)) return;
       if (data.type === 'chip-clock') {
-        try { if (!this.chip) throw new Error('Chip not ready'); this.chipRate = this.chip.sampleRate(validateChipClock(data.clock)); if (!data.performanceAcknowledged) reply({type:'chip-clock-result',id:data.id}); }
+        try { if (!this.chip) throw new Error('Chip not ready'); this.clock = validateChipClock(data.clock); this.chipRate = this.chip.sampleRate(this.clock); if (!data.performanceAcknowledged) reply({type:'chip-clock-result',id:data.id}); }
         catch (error) { if (!data.performanceAcknowledged) reply({type:'chip-clock-result',id:data.id,error:error.message}); }
         return;
       }
@@ -65,6 +68,7 @@ class YM2608Processor extends AudioWorkletProcessor {
       if (data.type === "reset") this.chip?.reset();
     };
     this.port.onmessage = ({data}) => {
+      if(data?.type==='chip-inspector'&&receiveChipInspector(data,this.port,this.opnInspector?(action,method,args)=>action==='read'?this.opnInspector.read():this.opnInspector.invoke(method,args):null))return;
       if (this.performanceQueue.receive(data, message => this.port.postMessage(message))) return;
       if (!receiveChipPort(data)) handle(data);
     };
@@ -77,6 +81,7 @@ class YM2608Processor extends AudioWorkletProcessor {
         moduleOptions: { wasmBinary: new Uint8Array(wasmBinary) },
       });
       this.auditions = createOpnAuditionGuard(this.chip, 6);
+      this.opnInspector = new OpnKeyboardInspector(this.chip,{kind:'ym2608',guard:this.auditions,clock:()=>this.clock??8000000,sampleRate});
       this.chipRate = this.chip.sampleRate(YM2608_CLOCK);
       this.chip.reserveStereoFrames(Math.ceil(128 * this.chipRate / sampleRate));
       if (rhythmRom) this.chip.loadAdpcmARom(rhythmRom);
